@@ -9,6 +9,7 @@ add_library(forge_core
     src/bitboard.cpp
     src/board.cpp
     src/eval.cpp
+    src/eval_params.cpp
     src/search.cpp
 )
 target_include_directories(forge_core PUBLIC include)
@@ -44,6 +45,13 @@ option(FORGE_BUILD_VALIDATION_TOOLS "Build the original opening corpus generator
 if(FORGE_BUILD_VALIDATION_TOOLS)
     add_executable(forge_openings tools/generate_openings.cpp)
     target_link_libraries(forge_openings PRIVATE forge_core)
+endif()
+option(FORGE_BUILD_TUNING_TOOLS "Build the evaluation tuning tools (position extractor and Texel tuner)" OFF)
+if(FORGE_BUILD_TUNING_TOOLS)
+    add_executable(forge_extract tools/tune/extract.cpp)
+    target_link_libraries(forge_extract PRIVATE forge_core)
+    add_executable(forge_texel tools/tune/texel.cpp)
+    target_link_libraries(forge_texel PRIVATE forge_core Threads::Threads)
 endif()
 find_package(Python3 3.10 COMPONENTS Interpreter QUIET)
 if(Python3_Interpreter_FOUND)

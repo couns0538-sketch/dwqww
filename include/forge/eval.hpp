@@ -38,17 +38,16 @@ public:
     // Evaluation without any cache, for tests and tools.
     [[nodiscard]] static int evaluate_uncached(const Board& board);
 
-private:
     struct PawnEntry {
         std::uint64_t key = 0;
         Score score = 0;
         std::array<Bitboard, 2> passed{};
         bool valid = false;
     };
+
+private:
     static constexpr std::size_t PawnCacheSize = 1U << 15U;
     std::vector<PawnEntry> pawn_cache_;
-
-    [[nodiscard]] int evaluate_impl(const Board& board, PawnEntry* cache);
 };
 
 } // namespace forge

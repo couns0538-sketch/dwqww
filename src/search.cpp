@@ -301,13 +301,12 @@ private:
                board_.is_pseudo_legal(move);
     }
 
-    [[nodiscard]] Move pick_best() {
-        std::size_t best = index_;
-        for (std::size_t i = index_ + 1; i < count_; ++i) {
-            if (moves_[i].score > moves_[best].score) best = i;
-        }
-        std::swap(moves_[index_], moves_[best]);
-        return moves_[index_++].move;
+    // Lists are sorted once when generated, so picking is sequential.
+    [[nodiscard]] Move pick_best() { return moves_[index_++].move; }
+
+    void sort_moves() {
+        std::sort(moves_.begin(), moves_.begin() + static_cast<std::ptrdiff_t>(count_),
+                  [](const Scored& a, const Scored& b) { return a.score > b.score; });
     }
 
     void generate_captures() {
@@ -320,6 +319,7 @@ private:
             if (move.is_promotion()) score += move.promotion == Queen ? 20000 : -5000;
             moves_[count_++] = Scored{move, score};
         }
+        sort_moves();
     }
 
     void generate_quiets() {
@@ -333,6 +333,7 @@ private:
             if (direct_check(move)) score += 12000;
             moves_[count_++] = Scored{move, score};
         }
+        sort_moves();
     }
 
     void generate_evasions() {
@@ -350,6 +351,7 @@ private:
             }
             moves_[count_++] = Scored{move, score};
         }
+        sort_moves();
     }
 };
 
@@ -554,6 +556,7 @@ int Searcher::qsearch(Board& board, SearchStack* ss, int alpha, int beta) {
         (ss + 1)->ply = ply + 1;
         Undo undo;
         (void)board.make_move(move, undo);
+        tt_.prefetch(board.key());
         const int score = -qsearch(board, ss + 1, -beta, -alpha);
         board.unmake_move(move, undo);
         if (aborted_) return 0;
@@ -803,6 +806,7 @@ int Searcher::search(Board& board, SearchStack* ss, int depth, int alpha, int be
         (ss + 1)->ply = ply + 1;
         Undo undo;
         (void)board.make_move(move, undo);
+        tt_.prefetch(board.key());
 
         int score = -Infinite;
         bool full_depth_needed = !pv_node || move_count > 1;

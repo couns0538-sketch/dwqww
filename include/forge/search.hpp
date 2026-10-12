@@ -83,6 +83,13 @@ public:
     void clear();
     void new_search() { generation_ = static_cast<std::uint8_t>((generation_ + 1U) & 31U); }
     [[nodiscard]] TTEntry* probe(std::uint64_t key, bool& hit);
+    void prefetch(std::uint64_t key) const {
+#if defined(__GNUC__) || defined(__clang__)
+        __builtin_prefetch(&cluster_for(key));
+#else
+        (void)key;
+#endif
+    }
     void store(TTEntry* entry, std::uint64_t key, int score, int eval, Move move, int depth, Bound bound, bool pv);
     [[nodiscard]] int hashfull() const;
     [[nodiscard]] std::uint8_t generation() const { return generation_; }
