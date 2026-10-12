@@ -1038,7 +1038,6 @@ SearchInfo Worker::search(Board board, const SearchLimits& limits, bool emit_inf
     root_history_index_ = board.history_size() - 1;
     node_limit_ = limits.nodes;
     node_limit_specified_ = is_main() && (limits.nodes_specified || limits.nodes != 0);
-    if (is_main()) shared_.tt.new_search();
 
     // Time allocation.
     const std::int64_t overhead = std::max<std::int64_t>(0, limits.move_overhead_ms);
@@ -1264,6 +1263,8 @@ SearchInfo Searcher::search(Board board, const SearchLimits& limits, bool emit_i
     std::vector<Worker*> all;
     all.reserve(workers_.size());
     for (auto& worker : workers_) all.push_back(worker.get());
+    // Age the table once per search, before any worker can probe it.
+    shared_.tt.new_search();
     std::vector<std::thread> helpers;
     for (std::size_t i = 1; i < workers_.size(); ++i) {
         helpers.emplace_back([this, i, board, &limits, &all]() { (void)workers_[i]->search(board, limits, false, all); });
