@@ -967,15 +967,6 @@ int Searcher::search(Board& board, SearchStack* ss, int depth, int alpha, int be
         // Even without a cutoff, a new PV move earned its place.
         apply_history((*main_history_)[static_cast<std::size_t>(board.side_to_move())][best_move.from][best_move.to],
                       history_bonus(depth) / 4);
-    } else if (best_move.is_none() && !(ss - 1)->current_move.is_none() && (ss - 1)->moved_piece != Empty &&
-               !(ss - 1)->current_move.is_capture()) {
-        // Every move failed low: the opponent's quiet move that led here refuted
-        // this line, so reward it in the histories of the plies before it.
-        const Move previous = (ss - 1)->current_move;
-        const int bonus = history_bonus(depth) * (1 + (depth > 5) + (pv_node || cut_node)) / 2;
-        update_continuation(ss - 1, (ss - 1)->moved_piece, previous.to, bonus);
-        apply_history((*main_history_)[static_cast<std::size_t>(opposite(board.side_to_move()))][previous.from][previous.to],
-                      bonus / 2);
     }
 
     const Bound bound = best_score >= beta ? BoundLower : (pv_node && !best_move.is_none() ? BoundExact : BoundUpper);
