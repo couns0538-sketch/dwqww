@@ -910,8 +910,10 @@ int Searcher::search(Board& board, SearchStack* ss, int depth, int alpha, int be
             if (quiet && !skip_quiets && move_count >= lmp_threshold(depth, improving)) skip_quiets = true;
             const int lmr_depth = std::max(0, depth - reduction(quiet, depth, move_count));
             if (quiet && !gives_check) {
-                if (!in_check && lmr_depth <= 7 && ss->static_eval + 100 + 110 * lmr_depth <= alpha) {
-                    skip_quiets = true;
+                // Futility: a quiet move that is not even a known good one
+                // will not lift a low static evaluation back to alpha.
+                if (!in_check && lmr_depth <= 8 &&
+                    ss->static_eval + 100 + 110 * lmr_depth + history / 32 <= alpha) {
                     continue;
                 }
                 if (lmr_depth <= 3 && history < -2048 * depth) continue;
@@ -972,7 +974,7 @@ int Searcher::search(Board& board, SearchStack* ss, int depth, int alpha, int be
             if (tt_capture && quiet) r += 1;
             if (gives_check) r -= 1;
             if (in_check) r -= 1;
-            if (quiet) r -= std::clamp(history / 6000, -2, 2);
+            r -= quiet ? std::clamp(history / 6000, -2, 2) : std::clamp(history / 8000, -1, 1);
             const int reduced_depth = std::clamp(new_depth - r, 1, new_depth);
             score = -search(board, ss + 1, reduced_depth, -alpha - 1, -alpha, true);
             full_depth_needed = score > alpha && reduced_depth < new_depth;
