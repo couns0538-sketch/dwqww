@@ -13,7 +13,8 @@ Hash 64 MB, fastchess. See `validation/release-6.0.0/` for the match records.
 | Engine | TC | Games | Score vs SF 19 @ 2800 |
 | --- | --- | --- | --- |
 | Forge 5.31.0 (previous release) | 10+0.1 | 20 | 10.0 % (1W 17L 2D) |
-| Forge 6.0.0 | 10+0.1 | see validation | see validation |
+| Forge 6.0.0 | 10+0.1 | 200 | 69.0 % (118W 42L 40D), +158 Elo |
+| Forge 6.0.0 | 30+0.3 | 100 | 82.5 % (79W 14L 7D), +331 Elo |
 
 Stockfish's `UCI_Elo` scale is anchored to CCRL blitz ratings, so a score above
 50 % against this opponent corresponds to a rating above 2800 on that scale.

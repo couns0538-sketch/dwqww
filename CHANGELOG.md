@@ -36,10 +36,10 @@ is replaced by a modern pruning/reduction search validated by match results.
   pseudo-legality, SEE, evaluation symmetry, transposition table, tactical
   cases, searchmoves/terminal roots); the UCI regression no longer pins
   evaluation-specific centipawn values.
-- Strength against Stockfish 19 (`UCI_LimitStrength`, `UCI_Elo 2800`, 10+0.1,
-  one thread, Hash 64, 8moves_v3 openings): 5.31.0 scored 10.0 % over 20 games;
-  6.0.0 before tuning scored 57.5 % over 100 games. See
-  `validation/release-6.0.0/` for the final tuned-engine results.
+- Strength against Stockfish 19 (`UCI_LimitStrength`, `UCI_Elo 2800`, one
+  thread, Hash 64, 8moves_v3 openings): 5.31.0 scored 10.0 % over 20 games at
+  10+0.1; 6.0.0 scores 69.0 % over 200 games at 10+0.1 (+158 Elo) and 82.5 %
+  over 100 games at 30+0.3 (+331 Elo). Records in `validation/release-6.0.0/`.
 
 ## 5.31.0 - 2026-10-09
 
