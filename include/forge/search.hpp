@@ -117,6 +117,10 @@ using PieceToHistory = std::array<std::array<std::int16_t, 64>, 13>;
 using ContinuationHistory = std::array<std::array<PieceToHistory, 64>, 13>;
 using CaptureHistory = std::array<std::array<std::array<std::int16_t, 7>, 64>, 13>;
 using CounterMoveTable = std::array<std::array<Move, 64>, 13>;
+// Quiet-move history indexed by a hash of the pawn structure, then piece and
+// destination square.
+constexpr std::size_t PawnHistorySize = 512;
+using PawnHistory = std::array<PieceToHistory, PawnHistorySize>;
 // Evaluation correction: running averages of (search score - static eval)
 // indexed by features of the position, in units of 1/CorrectionGrain pawn.
 constexpr std::size_t CorrectionSize = 1U << 14U;
@@ -201,6 +205,7 @@ private:
     std::unique_ptr<CaptureHistory> capture_history_;
     std::unique_ptr<ContinuationHistory> continuation_history_;
     std::unique_ptr<CounterMoveTable> counter_moves_;
+    std::unique_ptr<PawnHistory> pawn_history_;
     std::unique_ptr<CorrectionHistory> pawn_correction_;
     std::array<std::unique_ptr<CorrectionHistory>, 2> non_pawn_correction_;
     std::unique_ptr<CorrectionHistory> minor_correction_;
@@ -242,7 +247,10 @@ private:
                             const Move* quiets, int quiet_count);
     void update_capture_stats(const Board& board, Move best, int depth, const Move* captures, int capture_count);
     void update_continuation(SearchStack* ss, Piece piece, int to, int bonus);
+    // Butterfly plus continuation history: drives pruning and reductions.
     [[nodiscard]] int quiet_history(const Board& board, const SearchStack* ss, Move move) const;
+    // quiet_history plus the pawn-structure history: orders the quiet moves.
+    [[nodiscard]] int ordering_history(const Board& board, const SearchStack* ss, Move move) const;
     [[nodiscard]] int capture_history_value(const Board& board, Move move) const;
     [[nodiscard]] int corrected_eval(const Board& board, const SearchStack* ss, int raw_eval) const;
     void update_correction(const Board& board, const SearchStack* ss, int depth, int best_score, int static_eval);

@@ -351,7 +351,7 @@ private:
         index_ = 0;
         count_ = 0;
         for (const Move move : buffer_) {
-            int score = searcher_.quiet_history(board_, ss_, move);
+            int score = searcher_.ordering_history(board_, ss_, move);
             if (direct_check(move)) score += 12000;
             moves_[count_++] = Scored{move, score};
         }
@@ -380,7 +380,7 @@ private:
                 score = 1'000'000 + 10 * capture_value(board_, move) -
                         SeePieceValue[static_cast<std::size_t>(piece_type(board_.moved_piece(move)))] / 10;
             } else {
-                score = searcher_.quiet_history(board_, ss_, move) + (direct_check(move) ? 12000 : 0);
+                score = searcher_.ordering_history(board_, ss_, move) + (direct_check(move) ? 12000 : 0);
             }
             moves_[count_++] = Scored{move, score};
         }
@@ -397,6 +397,7 @@ Searcher::Searcher(std::size_t hash_mb)
       capture_history_(std::make_unique<CaptureHistory>()),
       continuation_history_(std::make_unique<ContinuationHistory>()),
       counter_moves_(std::make_unique<CounterMoveTable>()),
+      pawn_history_(std::make_unique<PawnHistory>()),
       pawn_correction_(std::make_unique<CorrectionHistory>()),
       non_pawn_correction_{std::make_unique<CorrectionHistory>(), std::make_unique<CorrectionHistory>()},
       minor_correction_(std::make_unique<CorrectionHistory>()),
@@ -412,6 +413,7 @@ Searcher::Searcher(TranspositionTable& shared_tt, int thread_id)
       capture_history_(std::make_unique<CaptureHistory>()),
       continuation_history_(std::make_unique<ContinuationHistory>()),
       counter_moves_(std::make_unique<CounterMoveTable>()),
+      pawn_history_(std::make_unique<PawnHistory>()),
       pawn_correction_(std::make_unique<CorrectionHistory>()),
       non_pawn_correction_{std::make_unique<CorrectionHistory>(), std::make_unique<CorrectionHistory>()},
       minor_correction_(std::make_unique<CorrectionHistory>()),
@@ -440,6 +442,7 @@ void Searcher::reset_histories() {
     *capture_history_ = CaptureHistory{};
     *continuation_history_ = ContinuationHistory{};
     *counter_moves_ = CounterMoveTable{};
+    *pawn_history_ = PawnHistory{};
     *pawn_correction_ = CorrectionHistory{};
     for (auto& table : non_pawn_correction_) *table = CorrectionHistory{};
     *minor_correction_ = CorrectionHistory{};
@@ -535,6 +538,14 @@ bool Searcher::is_draw(const Board& board, int ply) const {
     return board.is_repetition(root_history_index_) || board.is_insufficient_material();
 }
 
+namespace {
+
+[[nodiscard]] std::size_t pawn_history_index(const Board& board) {
+    return static_cast<std::size_t>(board.pawn_key() & (PawnHistorySize - 1U));
+}
+
+} // namespace
+
 int Searcher::quiet_history(const Board& board, const SearchStack* ss, Move move) const {
     const Piece piece = board.moved_piece(move);
     int score = (*main_history_)[static_cast<std::size_t>(board.side_to_move())][move.from][move.to];
@@ -543,6 +554,11 @@ int Searcher::quiet_history(const Board& board, const SearchStack* ss, Move move
         if ((ss - 2)->continuation != nullptr) score += (*(ss - 2)->continuation)[static_cast<std::size_t>(piece)][move.to];
     }
     return score;
+}
+
+int Searcher::ordering_history(const Board& board, const SearchStack* ss, Move move) const {
+    return quiet_history(board, ss, move) +
+           (*pawn_history_)[pawn_history_index(board)][static_cast<std::size_t>(board.moved_piece(move))][move.to];
 }
 
 int Searcher::capture_history_value(const Board& board, Move move) const {
@@ -573,13 +589,17 @@ void Searcher::update_quiet_stats(const Board& board, SearchStack* ss, Move move
         (*counter_moves_)[static_cast<std::size_t>(previous->moved_piece)][previous->current_move.to] = move;
     }
     const Piece piece = board.moved_piece(move);
+    PieceToHistory& pawn_table = (*pawn_history_)[pawn_history_index(board)];
     apply_history((*main_history_)[static_cast<std::size_t>(us)][move.from][move.to], bonus);
+    apply_history(pawn_table[static_cast<std::size_t>(piece)][move.to], bonus);
     update_continuation(ss, piece, move.to, bonus);
     for (int i = 0; i < quiet_count; ++i) {
         const Move quiet = quiets[i];
         if (quiet == move) continue;
+        const Piece quiet_piece = board.moved_piece(quiet);
         apply_history((*main_history_)[static_cast<std::size_t>(us)][quiet.from][quiet.to], -bonus);
-        update_continuation(ss, board.moved_piece(quiet), quiet.to, -bonus);
+        apply_history(pawn_table[static_cast<std::size_t>(quiet_piece)][quiet.to], -bonus);
+        update_continuation(ss, quiet_piece, quiet.to, -bonus);
     }
 }
 
