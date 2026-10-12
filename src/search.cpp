@@ -1106,7 +1106,6 @@ SearchInfo Searcher::search(Board board, const SearchLimits& limits, bool emit_i
     Move previous_best = Move::none();
     int stable_iterations = 0;
     int score = 0;
-    int previous_score = 0;
     root_move_nodes_.fill(0);
     root_best_index_ = -1;
     // Odd helper threads skip the first iteration so that the pool does not
@@ -1148,7 +1147,6 @@ SearchInfo Searcher::search(Board board, const SearchLimits& limits, bool emit_i
             }
             break;
         }
-        previous_score = score;
         score = iteration_score;
         result.score = score;
         result.depth = depth;
@@ -1177,10 +1175,6 @@ SearchInfo Searcher::search(Board board, const SearchLimits& limits, bool emit_i
                 const double effort = static_cast<double>(root_move_nodes_[static_cast<std::size_t>(root_best_index_)]) /
                                       static_cast<double>(nodes_);
                 factor *= std::clamp(1.55 - effort, 0.6, 1.4);
-            }
-            // A falling score means trouble is being discovered; keep looking.
-            if (depth >= 6 && !is_mate_score(score) && !is_mate_score(previous_score)) {
-                factor *= std::clamp(1.0 + static_cast<double>(previous_score - score) / 150.0, 0.8, 1.5);
             }
             if (elapsed_ms() >= static_cast<std::int64_t>(static_cast<double>(soft_limit_ms_) * factor)) break;
         }
