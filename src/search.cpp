@@ -298,8 +298,7 @@ private:
     Move counter_{};
     Stage stage_;
     // Only the first count_ / bad_count_ entries are ever read, so these
-    // buffers are deliberately left uninitialised: zeroing them cost about
-    // a tenth of the node rate.
+    // buffers are deliberately left uninitialised.
     std::array<Scored, 256> moves_;
     std::size_t index_ = 0;
     std::size_t count_ = 0;
@@ -357,15 +356,51 @@ private:
         }
     }
 
-    // Quiet moves that give direct check (discovered checks are not sought).
+    // Quiet moves that give direct check (discovered checks are not sought),
+    // generated straight from the checking squares so that the many
+    // quiescence nodes without a useful check do not pay for a full quiet
+    // move generation. Flags match Board::generate_pseudo_legal so the moves
+    // compare equal to hash and killer moves.
     void generate_quiet_checks() {
-        buffer_.clear();
-        board_.generate_pseudo_legal(buffer_, Board::GenType::Quiets);
         index_ = 0;
         count_ = 0;
-        for (const Move move : buffer_) {
-            if (!direct_check(move)) continue;
+        const Color us = board_.side_to_move();
+        const Bitboard occupied = board_.occupied();
+        const Bitboard empty = ~occupied;
+        auto add = [&](int from, int to, std::uint8_t flags) {
+            const Move move{static_cast<std::uint8_t>(from), static_cast<std::uint8_t>(to), 0, flags};
             moves_[count_++] = Scored{move, searcher_.quiet_history(board_, ss_, move)};
+        };
+        const int up = pawn_push_delta(us);
+        const Bitboard pawns = board_.pieces(us, Pawn) & ~(us == White ? Rank7BB : Rank2BB);
+        const Bitboard single = pawn_push(us, pawns) & empty;
+        const Bitboard twice = pawn_push(us, single & (us == White ? Rank3BB : Rank6BB)) & empty;
+        Bitboard targets = single & check_squares_[Pawn];
+        while (targets != 0) {
+            const int to = pop_lsb(targets);
+            add(to - up, to, Quiet);
+        }
+        targets = twice & check_squares_[Pawn];
+        while (targets != 0) {
+            const int to = pop_lsb(targets);
+            add(to - 2 * up, to, DoublePush);
+        }
+        for (int type = Knight; type <= Queen; ++type) {
+            const Bitboard mask = check_squares_[static_cast<std::size_t>(type)] & empty;
+            if (mask == 0) continue;
+            Bitboard pieces = board_.pieces(us, static_cast<PieceType>(type));
+            while (pieces != 0) {
+                const int from = pop_lsb(pieces);
+                Bitboard reach;
+                switch (type) {
+                case Knight: reach = attacks::knight(from); break;
+                case Bishop: reach = attacks::bishop(from, occupied); break;
+                case Rook: reach = attacks::rook(from, occupied); break;
+                default: reach = attacks::queen(from, occupied); break;
+                }
+                Bitboard checks = reach & mask;
+                while (checks != 0) add(from, pop_lsb(checks), Quiet);
+            }
         }
     }
 
