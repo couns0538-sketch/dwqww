@@ -488,7 +488,9 @@ std::int64_t Searcher::elapsed_ms() const {
 bool Searcher::should_stop() {
     published_nodes_.store(nodes_, std::memory_order_relaxed);
     if (stop_.load(std::memory_order_relaxed)) return true;
-    if (node_limit_specified_ && nodes_ >= node_limit_) return true;
+    // A node budget covers the whole pool: the helpers' published counts
+    // (refreshed every 1024 nodes) are added to the main thread's own.
+    if (node_limit_specified_ && nodes_ + (helper_nodes_ ? helper_nodes_() : 0) >= node_limit_) return true;
     if (hard_limit_ms_ > 0) {
         if (pondering_ && ponder_hit_ns_.load(std::memory_order_relaxed) == 0) return false;
         if (elapsed_ms() >= hard_limit_ms_) return true;
@@ -989,7 +991,25 @@ int Searcher::search(Board& board, SearchStack* ss, int depth, int alpha, int be
 // ---------------------------------------------------------------------------
 // Iterative deepening driver
 
+void Searcher::report(const SearchInfo& info) const {
+    const std::int64_t elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(
+        std::chrono::steady_clock::now() - start_).count();
+    const std::uint64_t total_nodes = nodes_ + (helper_nodes_ ? helper_nodes_() : 0);
+    const std::uint64_t nps = elapsed > 0 ? total_nodes * 1000U / static_cast<std::uint64_t>(elapsed) : 0;
+    const std::lock_guard<std::mutex> output_lock(uci_output_mutex());
+    std::cout << "info depth " << info.depth << " seldepth " << std::max(info.seldepth, info.depth) << " score "
+              << format_score(info.score) << " nodes " << total_nodes << " nps " << nps << " hashfull " << tt_->hashfull()
+              << " time " << elapsed << " pv";
+    for (const Move move : info.pv) std::cout << ' ' << Board::move_to_uci(move);
+    std::cout << std::endl;
+}
+
 SearchInfo Searcher::search(Board board, const SearchLimits& limits, bool emit_info) {
+    last_result_ = iterative_deepening(std::move(board), limits, emit_info);
+    return last_result_;
+}
+
+SearchInfo Searcher::iterative_deepening(Board board, const SearchLimits& limits, bool emit_info) {
     start_ = std::chrono::steady_clock::now();
     nodes_ = 0;
     seldepth_ = 0;
@@ -1054,15 +1074,12 @@ SearchInfo Searcher::search(Board board, const SearchLimits& limits, bool emit_i
 
     auto emit = [&](int depth, int score, const std::vector<Move>& pv) {
         if (!emit_info) return;
-        const std::int64_t elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(
-            std::chrono::steady_clock::now() - start_).count();
-        const std::uint64_t total_nodes = nodes_ + (helper_nodes_ ? helper_nodes_() : 0);
-        const std::uint64_t nps = elapsed > 0 ? total_nodes * 1000U / static_cast<std::uint64_t>(elapsed) : 0;
-        const std::lock_guard<std::mutex> output_lock(uci_output_mutex());
-        std::cout << "info depth " << depth << " seldepth " << std::max(seldepth_, depth) << " score " << format_score(score)
-                  << " nodes " << total_nodes << " nps " << nps << " hashfull " << tt_->hashfull() << " time " << elapsed << " pv";
-        for (const Move move : pv) std::cout << ' ' << Board::move_to_uci(move);
-        std::cout << std::endl;
+        SearchInfo line;
+        line.depth = depth;
+        line.seldepth = std::max(seldepth_, depth);
+        line.score = score;
+        line.pv = pv;
+        report(line);
     };
 
     // Terminal or adjudicated roots: report without searching.
@@ -1254,8 +1271,58 @@ SearchInfo ThreadPool::search(Board board, const SearchLimits& limits, bool emit
     SearchInfo result = searchers_.front()->search(board, limits, emit_info);
     for (std::size_t i = 1; i < searchers_.size(); ++i) searchers_[i]->stop();
     for (std::thread& helper : helpers) helper.join();
+    if (searchers_.size() > 1 && !result.restricted_root_empty) {
+        const SearchInfo& chosen = vote(result);
+        if (&chosen != &result) {
+            result.best_move = chosen.best_move;
+            result.ponder_move = chosen.ponder_move;
+            result.score = chosen.score;
+            result.depth = chosen.depth;
+            result.seldepth = chosen.seldepth;
+            result.pv = chosen.pv;
+            if (emit_info) searchers_.front()->report(result);
+        }
+    }
     result.nodes = nodes();
     return result;
+}
+
+// Thread voting: every thread backs its best move with a weight that grows
+// with its completed depth and with how its score compares to the worst
+// thread's; the move with the most support wins, preferring the deepest
+// supporter. Mate scores are compared directly.
+const SearchInfo& ThreadPool::vote(const SearchInfo& main_result) const {
+    std::vector<const SearchInfo*> candidates;
+    candidates.push_back(&main_result);
+    for (std::size_t i = 1; i < searchers_.size(); ++i) {
+        const SearchInfo& info = searchers_[i]->last_result();
+        if (info.depth > 0 && !info.best_move.is_none()) candidates.push_back(&info);
+    }
+    if (candidates.size() == 1) return main_result;
+
+    int min_score = Infinite;
+    for (const SearchInfo* info : candidates) min_score = std::min(min_score, info->score);
+    std::array<std::int64_t, 64 * 64> votes{};
+    auto slot = [](const SearchInfo& info) {
+        return static_cast<std::size_t>(info.best_move.from) * 64U + info.best_move.to;
+    };
+    for (const SearchInfo* info : candidates) {
+        votes[slot(*info)] += static_cast<std::int64_t>(info->score - min_score + 10) * info->depth;
+    }
+    const SearchInfo* best = &main_result;
+    for (const SearchInfo* info : candidates) {
+        if (info == best) continue;
+        if (best->score >= MateInMaxPly) {
+            if (info->score > best->score) best = info;
+        } else if (info->score >= MateInMaxPly) {
+            best = info;
+        } else if (info->score > -MateInMaxPly &&
+                   (votes[slot(*info)] > votes[slot(*best)] ||
+                    (votes[slot(*info)] == votes[slot(*best)] && info->depth > best->depth))) {
+            best = info;
+        }
+    }
+    return *best;
 }
 
 } // namespace forge

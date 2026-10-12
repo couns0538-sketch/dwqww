@@ -181,6 +181,11 @@ public:
     [[nodiscard]] std::uint64_t published_nodes() const { return published_nodes_.load(std::memory_order_relaxed); }
     // Nodes searched by the other threads of the pool, added to UCI output.
     void set_helper_node_source(std::function<std::uint64_t()> source) { helper_nodes_ = std::move(source); }
+    // Result of the most recent search() call (valid once it has returned).
+    [[nodiscard]] const SearchInfo& last_result() const { return last_result_; }
+    // Prints a UCI info line for a result (used when the pool adopts a
+    // helper thread's line).
+    void report(const SearchInfo& info) const;
 
 private:
     friend struct SearcherTestProbe;
@@ -204,6 +209,7 @@ private:
     std::array<SearchStack, MaxPly + 8> stack_{};
     std::array<std::uint64_t, 256> root_move_nodes_{};
     int root_best_index_ = -1;
+    SearchInfo last_result_;
 
     std::atomic<bool> stop_{false};
     std::atomic<std::int64_t> ponder_hit_ns_{0};
@@ -224,6 +230,7 @@ private:
     std::uint64_t null_tries_ = 0;
     std::uint64_t null_cutoffs_ = 0;
 
+    SearchInfo iterative_deepening(Board board, const SearchLimits& limits, bool emit_info);
     int search(Board& board, SearchStack* ss, int depth, int alpha, int beta, bool cut_node);
     int qsearch(Board& board, SearchStack* ss, int alpha, int beta);
     [[nodiscard]] bool should_stop();
@@ -266,6 +273,7 @@ private:
     std::vector<std::unique_ptr<Searcher>> searchers_;
 
     [[nodiscard]] std::uint64_t helper_nodes() const;
+    [[nodiscard]] const SearchInfo& vote(const SearchInfo& main_result) const;
 };
 
 } // namespace forge
