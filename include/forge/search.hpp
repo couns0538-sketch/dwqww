@@ -8,6 +8,7 @@
 #include <chrono>
 #include <cstddef>
 #include <cstdint>
+#include <functional>
 #include <memory>
 #include <vector>
 
@@ -148,7 +149,11 @@ struct SearchStack {
 
 class Searcher {
 public:
+    // A stand-alone searcher owns its transposition table.
     explicit Searcher(std::size_t hash_mb = 32);
+    // A pool member shares the table; thread 0 is the main thread, which alone
+    // manages time, node limits, table ageing and output.
+    Searcher(TranspositionTable& shared_tt, int thread_id);
     ~Searcher();
     Searcher(const Searcher&) = delete;
     Searcher& operator=(const Searcher&) = delete;
@@ -167,16 +172,25 @@ public:
     }
     void clear();
     void clear_hash();
+    void reset_histories();
     void resize_hash(std::size_t hash_mb);
-    [[nodiscard]] int hashfull_permille() const { return tt_.hashfull(); }
+    [[nodiscard]] int hashfull_permille() const { return tt_->hashfull(); }
     [[nodiscard]] static int evaluate(const Board& board) { return Evaluator::evaluate_uncached(board); }
     [[nodiscard]] std::uint64_t nodes() const { return nodes_; }
+    // Node count as last published by this thread; safe to read from others.
+    [[nodiscard]] std::uint64_t published_nodes() const { return published_nodes_.load(std::memory_order_relaxed); }
+    // Nodes searched by the other threads of the pool, added to UCI output.
+    void set_helper_node_source(std::function<std::uint64_t()> source) { helper_nodes_ = std::move(source); }
 
 private:
     friend struct SearcherTestProbe;
     friend class MovePicker;
 
-    TranspositionTable tt_;
+    std::unique_ptr<TranspositionTable> owned_tt_;
+    TranspositionTable* tt_;
+    int thread_id_ = 0;
+    std::atomic<std::uint64_t> published_nodes_{0};
+    std::function<std::uint64_t()> helper_nodes_;
     Evaluator evaluator_;
     std::unique_ptr<ButterflyHistory> main_history_;
     std::unique_ptr<CaptureHistory> capture_history_;
@@ -223,6 +237,35 @@ private:
     [[nodiscard]] int capture_history_value(const Board& board, Move move) const;
     [[nodiscard]] int corrected_eval(const Board& board, const SearchStack* ss, int raw_eval) const;
     void update_correction(const Board& board, const SearchStack* ss, int depth, int best_score, int static_eval);
+};
+
+// Lazy SMP: every thread runs the same iterative deepening on the same root
+// and shares the transposition table; the main thread owns the clock and the
+// result, and the helpers are stopped when it finishes.
+class ThreadPool {
+public:
+    explicit ThreadPool(std::size_t hash_mb = 32, int threads = 1);
+    ~ThreadPool();
+    ThreadPool(const ThreadPool&) = delete;
+    ThreadPool& operator=(const ThreadPool&) = delete;
+
+    void set_threads(int threads);
+    [[nodiscard]] int threads() const { return static_cast<int>(searchers_.size()); }
+    SearchInfo search(Board board, const SearchLimits& limits, bool emit_info = false);
+    void stop();
+    void reset_stop();
+    void ponderhit() { searchers_.front()->ponderhit(); }
+    void clear();
+    void clear_hash();
+    void resize_hash(std::size_t hash_mb);
+    [[nodiscard]] int hashfull_permille() const { return tt_.hashfull(); }
+    [[nodiscard]] std::uint64_t nodes() const;
+
+private:
+    TranspositionTable tt_;
+    std::vector<std::unique_ptr<Searcher>> searchers_;
+
+    [[nodiscard]] std::uint64_t helper_nodes() const;
 };
 
 } // namespace forge

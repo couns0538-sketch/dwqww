@@ -16,7 +16,7 @@ namespace forge {
 struct SearcherTestProbe {
     static std::uint64_t null_tries(const Searcher& searcher) { return searcher.null_tries_; }
     static std::uint64_t null_cutoffs(const Searcher& searcher) { return searcher.null_cutoffs_; }
-    static TranspositionTable& tt(Searcher& searcher) { return searcher.tt_; }
+    static TranspositionTable& tt(Searcher& searcher) { return *searcher.tt_; }
 };
 
 } // namespace forge

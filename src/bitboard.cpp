@@ -107,13 +107,7 @@ void init_magics(bool rook, Bitboard* table, std::array<Magic, 64>& magics) {
     }
 }
 
-} // namespace
-
-void init() {
-    static bool initialized = false;
-    if (initialized) return;
-    initialized = true;
-
+void init_tables() {
     for (int square = 0; square < 64; ++square) {
         const std::size_t s = static_cast<std::size_t>(square);
         for (const auto& [df, dr] : std::array<std::pair<int, int>, 8>{{{1, 2}, {2, 1}, {-1, 2}, {-2, 1},
@@ -169,6 +163,18 @@ void init() {
             }
         }
     }
+}
+
+} // namespace
+
+void init() {
+    // A function-local static initialiser runs exactly once, even if several
+    // threads construct their first Board concurrently.
+    static const bool initialized = [] {
+        init_tables();
+        return true;
+    }();
+    (void)initialized;
 }
 
 } // namespace forge::attacks

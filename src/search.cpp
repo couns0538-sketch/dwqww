@@ -6,6 +6,7 @@
 #include <cstring>
 #include <iostream>
 #include <limits>
+#include <thread>
 
 namespace forge {
 namespace {
@@ -360,7 +361,8 @@ private:
 // Searcher
 
 Searcher::Searcher(std::size_t hash_mb)
-    : tt_(hash_mb),
+    : owned_tt_(std::make_unique<TranspositionTable>(hash_mb)),
+      tt_(owned_tt_.get()),
       main_history_(std::make_unique<ButterflyHistory>()),
       capture_history_(std::make_unique<CaptureHistory>()),
       continuation_history_(std::make_unique<ContinuationHistory>()),
@@ -373,17 +375,38 @@ Searcher::Searcher(std::size_t hash_mb)
     clear();
 }
 
+Searcher::Searcher(TranspositionTable& shared_tt, int thread_id)
+    : tt_(&shared_tt),
+      thread_id_(thread_id),
+      main_history_(std::make_unique<ButterflyHistory>()),
+      capture_history_(std::make_unique<CaptureHistory>()),
+      continuation_history_(std::make_unique<ContinuationHistory>()),
+      counter_moves_(std::make_unique<CounterMoveTable>()),
+      pawn_correction_(std::make_unique<CorrectionHistory>()),
+      non_pawn_correction_{std::make_unique<CorrectionHistory>(), std::make_unique<CorrectionHistory>()},
+      minor_correction_(std::make_unique<CorrectionHistory>()),
+      major_correction_(std::make_unique<CorrectionHistory>()),
+      continuation_correction_(std::make_unique<ContinuationCorrectionHistory>()) {
+    // The pool owns the shared table; only the local state is reset here.
+    evaluator_.clear();
+    reset_histories();
+}
+
 Searcher::~Searcher() = default;
 
-void Searcher::resize_hash(std::size_t hash_mb) { tt_.resize(hash_mb); }
+void Searcher::resize_hash(std::size_t hash_mb) { tt_->resize(hash_mb); }
 
 void Searcher::clear_hash() {
-    tt_.clear();
+    tt_->clear();
     evaluator_.clear();
 }
 
 void Searcher::clear() {
     clear_hash();
+    reset_histories();
+}
+
+void Searcher::reset_histories() {
     *main_history_ = ButterflyHistory{};
     *capture_history_ = CaptureHistory{};
     *continuation_history_ = ContinuationHistory{};
@@ -462,6 +485,7 @@ std::int64_t Searcher::elapsed_ms() const {
 }
 
 bool Searcher::should_stop() {
+    published_nodes_.store(nodes_, std::memory_order_relaxed);
     if (stop_.load(std::memory_order_relaxed)) return true;
     if (node_limit_specified_ && nodes_ >= node_limit_) return true;
     if (hard_limit_ms_ > 0) {
@@ -563,7 +587,7 @@ int Searcher::qsearch(Board& board, SearchStack* ss, int alpha, int beta) {
     ss->in_check = in_check;
 
     bool tt_hit = false;
-    TTEntry* tte = tt_.probe(board.key(), tt_hit);
+    TTEntry* tte = tt_->probe(board.key(), tt_hit);
     const Move tt_move = tt_hit ? tte->move : Move::none();
     const int tt_score = tt_hit ? score_from_tt(tte->score, ply) : ValueNone;
     const Bound tt_bound = tt_hit ? tte->bound() : BoundNone;
@@ -591,7 +615,7 @@ int Searcher::qsearch(Board& board, SearchStack* ss, int alpha, int beta) {
         }
         best_score = eval;
         if (best_score >= beta) {
-            if (!tt_hit) tt_.store(tte, board.key(), score_to_tt(best_score, ply), ss->raw_eval, Move::none(), 0, BoundLower, false);
+            if (!tt_hit) tt_->store(tte, board.key(), score_to_tt(best_score, ply), ss->raw_eval, Move::none(), 0, BoundLower, false);
             return best_score;
         }
         if (best_score > alpha) alpha = best_score;
@@ -620,7 +644,7 @@ int Searcher::qsearch(Board& board, SearchStack* ss, int alpha, int beta) {
         (ss + 1)->ply = ply + 1;
         Undo undo;
         (void)board.make_move(move, undo);
-        tt_.prefetch(board.key());
+        tt_->prefetch(board.key());
         const int score = -qsearch(board, ss + 1, -beta, -alpha);
         board.unmake_move(move, undo);
         if (aborted_) return 0;
@@ -641,7 +665,7 @@ int Searcher::qsearch(Board& board, SearchStack* ss, int alpha, int beta) {
     if (in_check && move_count == 0) return mated_in(ply);
 
     const Bound bound = best_score >= beta ? BoundLower : (pv_node && !best_move.is_none() ? BoundExact : BoundUpper);
-    tt_.store(tte, board.key(), score_to_tt(best_score, ply), in_check ? ValueNone : ss->raw_eval, best_move, 0, bound, tt_pv);
+    tt_->store(tte, board.key(), score_to_tt(best_score, ply), in_check ? ValueNone : ss->raw_eval, best_move, 0, bound, tt_pv);
     return best_score;
 }
 
@@ -679,7 +703,7 @@ int Searcher::search(Board& board, SearchStack* ss, int depth, int alpha, int be
 
     // Transposition table probe.
     bool tt_hit = false;
-    TTEntry* tte = tt_.probe(board.key(), tt_hit);
+    TTEntry* tte = tt_->probe(board.key(), tt_hit);
     const Move tt_move = tt_hit ? tte->move : Move::none();
     const int tt_score = tt_hit ? score_from_tt(tte->score, ply) : ValueNone;
     const int tt_depth = tt_hit ? tte->depth : -1;
@@ -782,7 +806,7 @@ int Searcher::search(Board& board, SearchStack* ss, int depth, int alpha, int be
                 board.unmake_move(move, undo);
                 if (aborted_) return 0;
                 if (value >= probcut_beta) {
-                    tt_.store(tte, board.key(), score_to_tt(value, ply), ss->raw_eval, move, depth - 3, BoundLower, ss->tt_pv);
+                    tt_->store(tte, board.key(), score_to_tt(value, ply), ss->raw_eval, move, depth - 3, BoundLower, ss->tt_pv);
                     return value;
                 }
             }
@@ -875,7 +899,7 @@ int Searcher::search(Board& board, SearchStack* ss, int depth, int alpha, int be
         (ss + 1)->ply = ply + 1;
         Undo undo;
         (void)board.make_move(move, undo);
-        tt_.prefetch(board.key());
+        tt_->prefetch(board.key());
         const std::uint64_t nodes_before = nodes_;
 
         int score = -Infinite;
@@ -957,7 +981,7 @@ int Searcher::search(Board& board, SearchStack* ss, int depth, int alpha, int be
 
     const Bound bound = best_score >= beta ? BoundLower : (pv_node && !best_move.is_none() ? BoundExact : BoundUpper);
     if (excluded.is_none() && !(root_node && root_restricted_)) {
-        tt_.store(tte, board.key(), score_to_tt(best_score, ply), ss->raw_eval, best_move, depth, bound, ss->tt_pv);
+        tt_->store(tte, board.key(), score_to_tt(best_score, ply), ss->raw_eval, best_move, depth, bound, ss->tt_pv);
     }
     // Teach the static evaluation about this pawn structure when the search
     // result is a usable bound in the direction of the difference.
@@ -986,7 +1010,8 @@ SearchInfo Searcher::search(Board board, const SearchLimits& limits, bool emit_i
     root_history_index_ = board.history_size() - 1;
     node_limit_ = limits.nodes;
     node_limit_specified_ = limits.nodes_specified || limits.nodes != 0;
-    tt_.new_search();
+    published_nodes_.store(0, std::memory_order_relaxed);
+    if (thread_id_ == 0) tt_->new_search();
 
     // Time allocation.
     const std::int64_t overhead = std::max<std::int64_t>(0, limits.move_overhead_ms);
@@ -1039,10 +1064,11 @@ SearchInfo Searcher::search(Board board, const SearchLimits& limits, bool emit_i
         if (!emit_info) return;
         const std::int64_t elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(
             std::chrono::steady_clock::now() - start_).count();
-        const std::uint64_t nps = elapsed > 0 ? nodes_ * 1000U / static_cast<std::uint64_t>(elapsed) : 0;
+        const std::uint64_t total_nodes = nodes_ + (helper_nodes_ ? helper_nodes_() : 0);
+        const std::uint64_t nps = elapsed > 0 ? total_nodes * 1000U / static_cast<std::uint64_t>(elapsed) : 0;
         const std::lock_guard<std::mutex> output_lock(uci_output_mutex());
         std::cout << "info depth " << depth << " seldepth " << std::max(seldepth_, depth) << " score " << format_score(score)
-                  << " nodes " << nodes_ << " nps " << nps << " hashfull " << tt_.hashfull() << " time " << elapsed << " pv";
+                  << " nodes " << total_nodes << " nps " << nps << " hashfull " << tt_->hashfull() << " time " << elapsed << " pv";
         for (const Move move : pv) std::cout << ' ' << Board::move_to_uci(move);
         std::cout << std::endl;
     };
@@ -1093,7 +1119,10 @@ SearchInfo Searcher::search(Board board, const SearchLimits& limits, bool emit_i
     int previous_score = 0;
     root_move_nodes_.fill(0);
     root_best_index_ = -1;
-    for (int depth = 1; depth <= max_depth; ++depth) {
+    // Odd helper threads skip the first iteration so that the pool does not
+    // search identical trees in lock-step.
+    const int first_depth = std::min(max_depth, 1 + (thread_id_ & 1));
+    for (int depth = first_depth; depth <= max_depth; ++depth) {
         root_depth_ = depth;
         int delta = 18;
         int alpha = -Infinite;
@@ -1168,10 +1197,81 @@ SearchInfo Searcher::search(Board board, const SearchLimits& limits, bool emit_i
     }
 
     result.nodes = nodes_;
+    published_nodes_.store(nodes_, std::memory_order_relaxed);
     result.seldepth = std::max(result.seldepth, seldepth_);
     result.elapsed_ms = static_cast<std::uint64_t>(std::chrono::duration_cast<std::chrono::milliseconds>(
         std::chrono::steady_clock::now() - start_).count());
     if (result.best_move.is_none()) result.best_move = root_candidates.front();
+    return result;
+}
+
+// ---------------------------------------------------------------------------
+// Thread pool
+
+ThreadPool::ThreadPool(std::size_t hash_mb, int threads) : tt_(hash_mb) { set_threads(threads); }
+
+ThreadPool::~ThreadPool() = default;
+
+void ThreadPool::set_threads(int threads) {
+    const std::size_t count = static_cast<std::size_t>(std::clamp(threads, 1, 256));
+    while (searchers_.size() > count) searchers_.pop_back();
+    while (searchers_.size() < count) {
+        searchers_.push_back(std::make_unique<Searcher>(tt_, static_cast<int>(searchers_.size())));
+    }
+    searchers_.front()->set_helper_node_source([this] { return helper_nodes(); });
+}
+
+std::uint64_t ThreadPool::helper_nodes() const {
+    std::uint64_t total = 0;
+    for (std::size_t i = 1; i < searchers_.size(); ++i) total += searchers_[i]->published_nodes();
+    return total;
+}
+
+std::uint64_t ThreadPool::nodes() const { return searchers_.front()->nodes() + helper_nodes(); }
+
+void ThreadPool::stop() {
+    for (auto& searcher : searchers_) searcher->stop();
+}
+
+void ThreadPool::reset_stop() {
+    for (auto& searcher : searchers_) searcher->reset_stop();
+}
+
+void ThreadPool::clear() {
+    tt_.clear();
+    for (auto& searcher : searchers_) {
+        searcher->reset_histories();
+        searcher->clear_hash();
+    }
+}
+
+void ThreadPool::clear_hash() {
+    tt_.clear();
+    for (auto& searcher : searchers_) searcher->clear_hash();
+}
+
+void ThreadPool::resize_hash(std::size_t hash_mb) { tt_.resize(hash_mb); }
+
+SearchInfo ThreadPool::search(Board board, const SearchLimits& limits, bool emit_info) {
+    // Helpers run until told to stop; the main thread applies the real limits.
+    SearchLimits helper_limits = limits;
+    helper_limits.infinite = true;
+    helper_limits.ponder = false;
+    helper_limits.movetime_ms = -1;
+    helper_limits.time_ms = -1;
+    helper_limits.nodes = 0;
+    helper_limits.nodes_specified = false;
+
+    std::vector<std::thread> helpers;
+    helpers.reserve(searchers_.size());
+    for (std::size_t i = 1; i < searchers_.size(); ++i) {
+        searchers_[i]->reset_stop();
+        helpers.emplace_back([this, i, board, helper_limits] { (void)searchers_[i]->search(board, helper_limits, false); });
+    }
+    SearchInfo result = searchers_.front()->search(board, limits, emit_info);
+    for (std::size_t i = 1; i < searchers_.size(); ++i) searchers_[i]->stop();
+    for (std::thread& helper : helpers) helper.join();
+    result.nodes = nodes();
     return result;
 }
 
