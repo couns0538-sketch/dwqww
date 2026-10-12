@@ -80,6 +80,9 @@ struct Undo {
     std::uint16_t fullmove = 1;
     std::uint64_t key = 0;
     std::uint64_t pawn_key = 0;
+    std::array<std::uint64_t, 2> non_pawn_key{};
+    std::uint64_t minor_key = 0;
+    std::uint64_t major_key = 0;
     Bitboard checkers = 0;
     std::uint16_t plies_from_null = 0;
 };
@@ -191,7 +194,7 @@ private:
     std::uint16_t plies_from_null_ = 1024;
     std::vector<std::uint64_t> key_history_;
 
-    void toggle_piece_keys(Piece piece, int square);
+    void compute_class_keys();
     void put_piece(Piece piece, int square);
     void remove_piece(int square);
     void move_piece(int from, int to);

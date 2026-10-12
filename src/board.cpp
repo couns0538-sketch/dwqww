@@ -4,6 +4,7 @@
 #include <array>
 #include <cctype>
 #include <cstdlib>
+#include <initializer_list>
 #include <sstream>
 
 namespace forge {
@@ -73,6 +74,20 @@ constexpr std::array<std::uint8_t, 64> make_castling_masks() {
 }
 constexpr auto CastlingMasks = make_castling_masks();
 
+// All-ones for pieces inside a class, zero outside it, indexed by Piece.
+constexpr std::array<std::uint64_t, 13> make_class_mask(std::initializer_list<int> types) {
+    std::array<std::uint64_t, 13> masks{};
+    for (int piece = WP; piece <= BK; ++piece) {
+        for (const int type : types) {
+            if (piece_type(static_cast<Piece>(piece)) == type) masks[static_cast<std::size_t>(piece)] = ~0ULL;
+        }
+    }
+    return masks;
+}
+constexpr auto NonPawnMask = make_class_mask({Knight, Bishop, Rook, Queen, King});
+constexpr auto MinorMask = make_class_mask({Knight, Bishop, King});
+constexpr auto MajorMask = make_class_mask({Rook, Queen, King});
+
 } // namespace
 
 Board::Board() {
@@ -81,23 +96,11 @@ Board::Board() {
     (void)set_fen(StandardStartFen);
 }
 
-// The piece-class keys are toggled here, at the only places where pieces are
-// placed or removed, so unmaking a move restores them without undo state.
-void Board::toggle_piece_keys(Piece piece, int square) {
-    const int type = piece_type(piece);
-    if (type == Pawn) return;
-    const std::uint64_t key = piece_key(square, piece);
-    non_pawn_key_[static_cast<std::size_t>(color_of(piece))] ^= key;
-    if (type == Knight || type == Bishop || type == King) minor_key_ ^= key;
-    if (type == Rook || type == Queen || type == King) major_key_ ^= key;
-}
-
 void Board::put_piece(Piece piece, int square) {
     squares_[static_cast<std::size_t>(square)] = piece;
     const Bitboard bit = square_bb(square);
     bitboards_[static_cast<std::size_t>(piece)] |= bit;
     occupied_[static_cast<std::size_t>(color_of(piece))] |= bit;
-    toggle_piece_keys(piece, square);
 }
 
 void Board::remove_piece(int square) {
@@ -106,7 +109,6 @@ void Board::remove_piece(int square) {
     bitboards_[static_cast<std::size_t>(piece)] &= ~bit;
     occupied_[static_cast<std::size_t>(color_of(piece))] &= ~bit;
     squares_[static_cast<std::size_t>(square)] = Empty;
-    toggle_piece_keys(piece, square);
 }
 
 void Board::move_piece(int from, int to) {
@@ -116,8 +118,21 @@ void Board::move_piece(int from, int to) {
     occupied_[static_cast<std::size_t>(color_of(piece))] ^= bits;
     squares_[static_cast<std::size_t>(from)] = Empty;
     squares_[static_cast<std::size_t>(to)] = piece;
-    toggle_piece_keys(piece, from);
-    toggle_piece_keys(piece, to);
+}
+
+void Board::compute_class_keys() {
+    non_pawn_key_.fill(0);
+    minor_key_ = 0;
+    major_key_ = 0;
+    for (int square = 0; square < 64; ++square) {
+        const Piece piece = squares_[static_cast<std::size_t>(square)];
+        if (piece == Empty) continue;
+        const std::size_t p = static_cast<std::size_t>(piece);
+        const std::uint64_t key = piece_key(square, piece);
+        non_pawn_key_[p >= BP ? 1 : 0] ^= key & NonPawnMask[p];
+        minor_key_ ^= key & MinorMask[p];
+        major_key_ ^= key & MajorMask[p];
+    }
 }
 
 bool Board::set_fen(std::string_view fen_text, std::string* error) {
@@ -251,14 +266,12 @@ bool Board::set_fen(std::string_view fen_text, std::string* error) {
     candidate.squares_.fill(Empty);
     candidate.bitboards_.fill(0);
     candidate.occupied_.fill(0);
-    candidate.non_pawn_key_.fill(0);
-    candidate.minor_key_ = 0;
-    candidate.major_key_ = 0;
     for (int square = 0; square < 64; ++square) {
         if (parsed[static_cast<std::size_t>(square)] != Empty) {
             candidate.put_piece(parsed[static_cast<std::size_t>(square)], square);
         }
     }
+    candidate.compute_class_keys();
     candidate.king_squares_ = {king_squares[White], king_squares[Black]};
     candidate.side_ = parsed_side;
     candidate.castling_ = rights;
@@ -643,6 +656,22 @@ bool Board::make_move(const Move& move, Undo& undo) {
     undo.pawn_key = pawn_key_;
     undo.checkers = checkers_;
     undo.plies_from_null = plies_from_null_;
+    undo.non_pawn_key = non_pawn_key_;
+    undo.minor_key = minor_key_;
+    undo.major_key = major_key_;
+
+    // Piece-class key changes are gathered in registers and written once;
+    // unmake_move restores the saved values.
+    std::uint64_t non_pawn_delta[2] = {0, 0};
+    std::uint64_t minor_delta = 0;
+    std::uint64_t major_delta = 0;
+    auto toggle_class = [&](Piece piece, int square) {
+        const std::size_t p = static_cast<std::size_t>(piece);
+        const std::uint64_t k = piece_key(square, piece);
+        non_pawn_delta[p >= BP ? 1 : 0] ^= k & NonPawnMask[p];
+        minor_delta ^= k & MinorMask[p];
+        major_delta ^= k & MajorMask[p];
+    };
 
     if (ep_square_ >= 0 && has_legal_en_passant_capture()) {
         key_ ^= Z.ep[static_cast<std::size_t>(file_of(ep_square_))];
@@ -659,21 +688,25 @@ bool Board::make_move(const Move& move, Undo& undo) {
     } else if (undo.captured != Empty) {
         key_ ^= piece_key(move.to, undo.captured);
         if (piece_type(undo.captured) == Pawn) pawn_key_ ^= piece_key(move.to, undo.captured);
+        else toggle_class(undo.captured, move.to);
         remove_piece(move.to);
     }
     if (undo.captured != Empty || piece_type(moving) == Pawn) halfmove_ = 0;
 
     key_ ^= piece_key(move.from, moving);
     if (piece_type(moving) == Pawn) pawn_key_ ^= piece_key(move.from, moving);
+    else toggle_class(moving, move.from);
     move_piece(move.from, move.to);
     if (move.is_promotion()) {
         const Piece promoted = make_piece(us, move.promotion);
         remove_piece(move.to);
         put_piece(promoted, move.to);
         key_ ^= piece_key(move.to, promoted);
+        toggle_class(promoted, move.to);
     } else {
         key_ ^= piece_key(move.to, moving);
         if (piece_type(moving) == Pawn) pawn_key_ ^= piece_key(move.to, moving);
+        else toggle_class(moving, move.to);
     }
     if (piece_type(moving) == King) king_squares_[static_cast<std::size_t>(us)] = move.to;
 
@@ -683,8 +716,14 @@ bool Board::make_move(const Move& move, Undo& undo) {
         const int rook_to = us == White ? (king_side ? 5 : 3) : (king_side ? 61 : 59);
         const Piece rook = squares_[static_cast<std::size_t>(rook_from)];
         key_ ^= piece_key(rook_from, rook) ^ piece_key(rook_to, rook);
+        toggle_class(rook, rook_from);
+        toggle_class(rook, rook_to);
         move_piece(rook_from, rook_to);
     }
+    non_pawn_key_[0] ^= non_pawn_delta[0];
+    non_pawn_key_[1] ^= non_pawn_delta[1];
+    minor_key_ ^= minor_delta;
+    major_key_ ^= major_delta;
 
     key_ ^= Z.castling[castling_];
     castling_ &= static_cast<std::uint8_t>(CastlingMasks[move.from] & CastlingMasks[move.to]);
@@ -730,6 +769,9 @@ void Board::unmake_move(const Move& move, const Undo& undo) {
     fullmove_ = undo.fullmove;
     key_ = undo.key;
     pawn_key_ = undo.pawn_key;
+    non_pawn_key_ = undo.non_pawn_key;
+    minor_key_ = undo.minor_key;
+    major_key_ = undo.major_key;
     checkers_ = undo.checkers;
     plies_from_null_ = undo.plies_from_null;
 }
