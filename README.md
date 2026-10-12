@@ -11,15 +11,24 @@ move picker.
 
 Measured on this project's reference ladder: Stockfish 19 with
 `UCI_LimitStrength=true UCI_Elo=2800`, 8moves_v3 openings, one thread each,
-Hash 64 MB, fastchess. See `validation/release-6.0.0/` for the match records.
+Hash 64 MB, fastchess. See `validation/release-6.0.0/` and
+`validation/release-6.1.0/` for the match records.
 
 | Engine | TC | Games | Score vs SF 19 @ 2800 |
 | --- | --- | --- | --- |
-| Forge 5.31.0 (previous release) | 10+0.1 | 20 | 10.0 % (1W 17L 2D) |
-| Forge 6.0.0 | 10+0.1 | see validation | see validation |
+| Forge 5.31.0 | 10+0.1 | 20 | 10.0 % (1W 17L 2D) |
+| Forge 6.0.0 | 10+0.1 | 200 | 69.0 % (118W 42L 40D) |
+| Forge 6.0.0, same machine as the 6.1.0 row | 10+0.1 | 100 | 70.5 % (63W 22L 15D) |
+| Forge 6.1.0, one thread | 10+0.1 | 100 | 71.0 % (67W 25L 8D) |
 
 Stockfish's `UCI_Elo` scale is anchored to CCRL blitz ratings, so a score above
 50 % against this opponent corresponds to a rating above 2800 on that scale.
+The ladder saturates at this level and does not separate 6.0.0 from 6.1.0;
+the direct comparisons are in `validation/release-6.1.0/README.md`:
+`Threads=2` beats `Threads=1` by +81 +/- 40 Elo at 5+0.05, and the
+single-thread changes are positive per node (correction history +12 to +24
+Elo at 100k nodes, capture futility +11 Elo at 25k nodes) and neutral to
+slightly positive at blitz time controls.
 
 ## Features
 

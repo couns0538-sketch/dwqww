@@ -79,9 +79,9 @@ rewrite (PR #2, this tree's base) beat the selective-search branch (PR #1)
 
 ## Reference ladder
 
-See `stockfish-ladder.md` in this directory (added when the matches finish)
-for Stockfish 19 `UCI_Elo 2800` results measured on this machine for both
-6.0.0 and 6.1.0.
+See `stockfish-ladder.md` in this directory for Stockfish 19 `UCI_Elo 2800`
+results measured on this machine for both 6.0.0 and 6.1.0 (70.5 % and
+71.0 % over 100 games each; the ladder saturates at this level).
 
 ## Sanity
 
