@@ -2,9 +2,8 @@
 
 #include <algorithm>
 #include <array>
-#include <bit>
-#include <charconv>
 #include <cctype>
+#include <cstdlib>
 #include <sstream>
 
 namespace forge {
@@ -15,110 +14,44 @@ constexpr std::uint8_t WhiteQueenSide = 2;
 constexpr std::uint8_t BlackKingSide = 4;
 constexpr std::uint8_t BlackQueenSide = 8;
 
-constexpr bool on_board(int square) { return square >= 0 && square < 64; }
-constexpr int file_of(int square) { return square & 7; }
-constexpr int rank_of(int square) { return square >> 3; }
-constexpr int abs_int(int value) { return value < 0 ? -value : value; }
-constexpr std::array<int, 7> SeeValue{0, 100, 320, 330, 500, 900, 20000};
+constexpr std::array<int, 7> SeeValue{0, 100, 300, 300, 500, 900, 0};
 
-template <std::size_t N>
-constexpr std::array<std::array<std::int8_t, N>, 64> make_jump_targets(const std::array<int, N>& offsets,
-                                                                       int max_file_delta) {
-    std::array<std::array<std::int8_t, N>, 64> targets{};
-    for (auto& row : targets) row.fill(-1);
-    for (int square = 0; square < 64; ++square) {
-        for (std::size_t i = 0; i < N; ++i) {
-            const int target = square + offsets[i];
-            if (on_board(target) && abs_int(file_of(target) - file_of(square)) <= max_file_delta) {
-                targets[static_cast<std::size_t>(square)][i] = static_cast<std::int8_t>(target);
+constexpr std::uint64_t mix(std::uint64_t x) {
+    x += 0x9e3779b97f4a7c15ULL;
+    x = (x ^ (x >> 30U)) * 0xbf58476d1ce4e5b9ULL;
+    x = (x ^ (x >> 27U)) * 0x94d049bb133111ebULL;
+    return x ^ (x >> 31U);
+}
+
+struct Zobrist {
+    std::array<std::array<std::uint64_t, 64>, 13> piece{};
+    std::array<std::uint64_t, 16> castling{};
+    std::array<std::uint64_t, 8> ep{};
+    std::uint64_t side = 0;
+
+    constexpr Zobrist() {
+        for (int p = 0; p < 13; ++p) {
+            for (int s = 0; s < 64; ++s) {
+                piece[static_cast<std::size_t>(p)][static_cast<std::size_t>(s)] =
+                    p == Empty ? 0 : mix(1 + static_cast<std::uint64_t>(s) * 13U + static_cast<std::uint64_t>(p));
             }
         }
+        for (int c = 0; c < 16; ++c) castling[static_cast<std::size_t>(c)] = mix(900 + static_cast<std::uint64_t>(c));
+        for (int f = 0; f < 8; ++f) ep[static_cast<std::size_t>(f)] = mix(1000 + static_cast<std::uint64_t>(f));
+        side = mix(1100);
     }
-    return targets;
-}
+};
 
-constexpr std::array<int, 8> KnightOffsets{17, 15, 10, 6, -6, -10, -15, -17};
-constexpr std::array<int, 8> KingOffsets{9, 8, 7, 1, -1, -7, -8, -9};
-constexpr std::array<int, 8> RayDirections{9, 7, -7, -9, 8, -8, 1, -1};
-constexpr auto KnightTargets = make_jump_targets(KnightOffsets, 2);
-constexpr auto KingTargets = make_jump_targets(KingOffsets, 1);
+constexpr Zobrist Z{};
 
-constexpr std::array<std::array<std::array<std::int8_t, 7>, 8>, 64> make_rays() {
-    std::array<std::array<std::array<std::int8_t, 7>, 8>, 64> rays{};
-    for (auto& square : rays) for (auto& ray : square) ray.fill(-1);
-    for (int square = 0; square < 64; ++square) {
-        for (std::size_t d = 0; d < RayDirections.size(); ++d) {
-            int from = square;
-            std::size_t step = 0;
-            while (step < 7) {
-                const int target = from + RayDirections[d];
-                if (!on_board(target) || abs_int(file_of(target) - file_of(from)) > 1) break;
-                rays[static_cast<std::size_t>(square)][d][step++] = static_cast<std::int8_t>(target);
-                from = target;
-            }
-        }
-    }
-    return rays;
-}
-
-constexpr auto RayTargets = make_rays();
-
-template <std::size_t N>
-constexpr std::array<std::uint64_t, 64> make_jump_masks(
-    const std::array<std::array<std::int8_t, N>, 64>& targets) {
-    std::array<std::uint64_t, 64> masks{};
-    for (std::size_t square = 0; square < masks.size(); ++square) {
-        for (const std::int8_t target : targets[square]) {
-            if (target >= 0) masks[square] |= 1ULL << target;
-        }
-    }
-    return masks;
-}
-
-constexpr std::array<std::array<std::uint64_t, 8>, 64> make_ray_masks() {
-    std::array<std::array<std::uint64_t, 8>, 64> masks{};
-    for (std::size_t square = 0; square < masks.size(); ++square) {
-        for (std::size_t direction = 0; direction < 8; ++direction) {
-            for (const std::int8_t target : RayTargets[square][direction]) {
-                if (target < 0) break;
-                masks[square][direction] |= 1ULL << target;
-            }
-        }
-    }
-    return masks;
-}
-
-constexpr std::array<std::array<std::uint64_t, 64>, 2> make_pawn_attackers() {
-    std::array<std::array<std::uint64_t, 64>, 2> masks{};
-    for (int square = 0; square < 64; ++square) {
-        for (int color_index = 0; color_index < 2; ++color_index) {
-            const Color color = static_cast<Color>(color_index);
-            const int step = color == White ? -8 : 8;
-            for (const int delta : {step - 1, step + 1}) {
-                const int from = square + delta;
-                if (on_board(from) && abs_int(file_of(from) - file_of(square)) == 1) {
-                    masks[static_cast<std::size_t>(color)][static_cast<std::size_t>(square)] |=
-                        1ULL << from;
-                }
-            }
-        }
-    }
-    return masks;
-}
-
-constexpr auto KnightMasks = make_jump_masks(KnightTargets);
-constexpr auto KingMasks = make_jump_masks(KingTargets);
-constexpr auto RayMasks = make_ray_masks();
-constexpr auto PawnAttackers = make_pawn_attackers();
-
-bool same_color(Piece a, Piece b) {
-    return a != Empty && b != Empty && (is_white(a) == is_white(b));
+constexpr std::uint64_t piece_key(int square, Piece piece) {
+    return Z.piece[static_cast<std::size_t>(piece)][static_cast<std::size_t>(square)];
 }
 
 Piece char_to_piece(char c) {
     constexpr std::string_view chars = " PNBRQKpnbrqk";
     const auto position = chars.find(c);
-    return position == std::string_view::npos ? Empty : static_cast<Piece>(position);
+    return position == std::string_view::npos || position == 0 ? Empty : static_cast<Piece>(position);
 }
 
 char piece_to_char(Piece piece) {
@@ -126,107 +59,50 @@ char piece_to_char(Piece piece) {
     return chars[static_cast<std::size_t>(piece)];
 }
 
-std::uint64_t mix(std::uint64_t x) {
-    x += 0x9e3779b97f4a7c15ULL;
-    x = (x ^ (x >> 30U)) * 0xbf58476d1ce4e5b9ULL;
-    x = (x ^ (x >> 27U)) * 0x94d049bb133111ebULL;
-    return x ^ (x >> 31U);
+// Castling rights cleared when a piece moves from or to a square.
+constexpr std::array<std::uint8_t, 64> make_castling_masks() {
+    std::array<std::uint8_t, 64> masks{};
+    for (auto& m : masks) m = 0xFF;
+    masks[0] = static_cast<std::uint8_t>(~WhiteQueenSide);
+    masks[7] = static_cast<std::uint8_t>(~WhiteKingSide);
+    masks[4] = static_cast<std::uint8_t>(~(WhiteKingSide | WhiteQueenSide));
+    masks[56] = static_cast<std::uint8_t>(~BlackQueenSide);
+    masks[63] = static_cast<std::uint8_t>(~BlackKingSide);
+    masks[60] = static_cast<std::uint8_t>(~(BlackKingSide | BlackQueenSide));
+    return masks;
 }
-
-std::uint64_t piece_key(int square, Piece piece) {
-    return mix(1 + static_cast<std::uint64_t>(square) * 13U + static_cast<std::uint64_t>(piece));
-}
-
-bool square_attacked_on(const std::array<Piece, 64>& squares, int square, Color by) {
-    const Piece pawn = by == White ? WP : BP;
-    const int pawn_step = by == White ? -8 : 8;
-    for (int delta : {pawn_step - 1, pawn_step + 1}) {
-        const int from = square + delta;
-        if (on_board(from) && std::abs(file_of(from) - file_of(square)) == 1 &&
-            squares[static_cast<std::size_t>(from)] == pawn) return true;
-    }
-    const Piece knight = by == White ? WN : BN;
-    for (const std::int8_t from : KnightTargets[static_cast<std::size_t>(square)]) {
-        if (from >= 0 && squares[static_cast<std::size_t>(from)] == knight) return true;
-    }
-    const Piece king = by == White ? WK : BK;
-    for (const std::int8_t from : KingTargets[static_cast<std::size_t>(square)]) {
-        if (from >= 0 && squares[static_cast<std::size_t>(from)] == king) return true;
-    }
-    auto ray = [&](int direction_index, Piece bishop_or_rook) {
-        for (const std::int8_t next : RayTargets[static_cast<std::size_t>(square)]
-                                                 [static_cast<std::size_t>(direction_index)]) {
-            if (next < 0) break;
-            const Piece piece = squares[static_cast<std::size_t>(next)];
-            if (piece != Empty) {
-                const Piece queen = by == White ? WQ : BQ;
-                return piece == bishop_or_rook || piece == queen;
-            }
-        }
-        return false;
-    };
-    const Piece bishop = by == White ? WB : BB;
-    const Piece rook = by == White ? WR : BR;
-    return ray(0, bishop) || ray(1, bishop) || ray(2, bishop) || ray(3, bishop) ||
-           ray(4, rook) || ray(5, rook) || ray(6, rook) || ray(7, rook);
-}
-
-bool attacks_target(const std::array<Piece, 64>& squares, int from, int target, Piece piece) {
-    const int df = file_of(target) - file_of(from);
-    const int dr = rank_of(target) - rank_of(from);
-    const int type = piece_type(piece);
-    if (type == 1) return is_white(piece) ? dr == 1 && std::abs(df) == 1
-                                          : dr == -1 && std::abs(df) == 1;
-    if (type == 2) return (std::abs(df) == 1 && std::abs(dr) == 2) ||
-                          (std::abs(df) == 2 && std::abs(dr) == 1);
-    if (type == 6) return std::max(std::abs(df), std::abs(dr)) == 1;
-    const bool diagonal = std::abs(df) == std::abs(dr) && df != 0;
-    const bool straight = (df == 0) != (dr == 0);
-    if ((type == 3 && !diagonal) || (type == 4 && !straight) ||
-        (type == 5 && !diagonal && !straight)) return false;
-    const int file_step = (df > 0) - (df < 0);
-    const int rank_step = (dr > 0) - (dr < 0);
-    int file = file_of(from) + file_step;
-    int rank = rank_of(from) + rank_step;
-    while (file != file_of(target) || rank != rank_of(target)) {
-        if (squares[static_cast<std::size_t>(rank * 8 + file)] != Empty) return false;
-        file += file_step;
-        rank += rank_step;
-    }
-    return true;
-}
-
-int least_attacker(std::array<Piece, 64>& squares,
-                   const std::array<std::uint64_t, 13>& bitboards, int target, Color side) {
-    for (int type = 1; type <= 6; ++type) {
-        const Piece piece = static_cast<Piece>((side == White ? 0 : 6) + type);
-        std::uint64_t candidates = bitboards[static_cast<std::size_t>(piece)];
-        while (candidates != 0) {
-            const int square = static_cast<int>(std::countr_zero(candidates));
-            candidates &= candidates - 1;
-            if (!attacks_target(squares, square, target, piece)) continue;
-            // SEE must not treat an absolutely pinned piece, or a king moving
-            // into check, as a legal recapturer. Probe only the local mailbox;
-            // the bitboards are unchanged until an attacker is selected.
-            const std::uint64_t kings = bitboards[side == White ? WK : BK];
-            if (kings == 0) return -1;
-            const int king = type == 6 ? target : static_cast<int>(std::countr_zero(kings));
-            const Piece captured = squares[static_cast<std::size_t>(target)];
-            squares[static_cast<std::size_t>(square)] = Empty;
-            squares[static_cast<std::size_t>(target)] = piece;
-            const bool legal = !square_attacked_on(squares, king, opposite(side));
-            squares[static_cast<std::size_t>(square)] = piece;
-            squares[static_cast<std::size_t>(target)] = captured;
-            if (legal) return square;
-        }
-    }
-    return -1;
-}
+constexpr auto CastlingMasks = make_castling_masks();
 
 } // namespace
 
 Board::Board() {
+    attacks::init();
+    key_history_.reserve(512);
     (void)set_fen(StandardStartFen);
+}
+
+void Board::put_piece(Piece piece, int square) {
+    squares_[static_cast<std::size_t>(square)] = piece;
+    const Bitboard bit = square_bb(square);
+    bitboards_[static_cast<std::size_t>(piece)] |= bit;
+    occupied_[static_cast<std::size_t>(color_of(piece))] |= bit;
+}
+
+void Board::remove_piece(int square) {
+    const Piece piece = squares_[static_cast<std::size_t>(square)];
+    const Bitboard bit = square_bb(square);
+    bitboards_[static_cast<std::size_t>(piece)] &= ~bit;
+    occupied_[static_cast<std::size_t>(color_of(piece))] &= ~bit;
+    squares_[static_cast<std::size_t>(square)] = Empty;
+}
+
+void Board::move_piece(int from, int to) {
+    const Piece piece = squares_[static_cast<std::size_t>(from)];
+    const Bitboard bits = square_bb(from) | square_bb(to);
+    bitboards_[static_cast<std::size_t>(piece)] ^= bits;
+    occupied_[static_cast<std::size_t>(color_of(piece))] ^= bits;
+    squares_[static_cast<std::size_t>(from)] = Empty;
+    squares_[static_cast<std::size_t>(to)] = piece;
 }
 
 bool Board::set_fen(std::string_view fen_text, std::string* error) {
@@ -235,8 +111,8 @@ bool Board::set_fen(std::string_view fen_text, std::string* error) {
     std::string side;
     std::string castling;
     std::string ep;
-    int halfmove = 0;
-    int fullmove = 1;
+    long long halfmove = 0;
+    long long fullmove = 1;
     if (!(input >> placement >> side >> castling >> ep >> halfmove >> fullmove)) {
         if (error != nullptr) *error = "FEN must contain six fields";
         return false;
@@ -289,24 +165,15 @@ bool Board::set_fen(std::string_view fen_text, std::string* error) {
         if (error != nullptr) *error = "invalid FEN fields";
         return false;
     }
-    if (std::abs(file_of(king_squares[White]) - file_of(king_squares[Black])) <= 1 &&
-        std::abs(rank_of(king_squares[White]) - rank_of(king_squares[Black])) <= 1) {
+    if (square_distance(king_squares[White], king_squares[Black]) <= 1) {
         if (error != nullptr) *error = "kings may not be adjacent";
-        return false;
-    }
-    const Color parsed_side = side == "w" ? White : Black;
-    const Color side_just_moved = opposite(parsed_side);
-    if (square_attacked_on(parsed, king_squares[side_just_moved], parsed_side)) {
-        if (error != nullptr) *error = "side that moved left its king in check";
         return false;
     }
     for (const Color color : {White, Black}) {
         const int offset = color == White ? 0 : 6;
         const int pawns = piece_counts[static_cast<std::size_t>(WP + offset)];
         int total = 0;
-        for (int type = 1; type <= 6; ++type) {
-            total += piece_counts[static_cast<std::size_t>(type + offset)];
-        }
+        for (int type = 1; type <= 6; ++type) total += piece_counts[static_cast<std::size_t>(type + offset)];
         const int promoted = std::max(0, piece_counts[static_cast<std::size_t>(WN + offset)] - 2) +
                              std::max(0, piece_counts[static_cast<std::size_t>(WB + offset)] - 2) +
                              std::max(0, piece_counts[static_cast<std::size_t>(WR + offset)] - 2) +
@@ -343,6 +210,7 @@ bool Board::set_fen(std::string_view fen_text, std::string* error) {
         if (error != nullptr) *error = "castling right without king and rook";
         return false;
     }
+    const Color parsed_side = side == "w" ? White : Black;
     int ep_square = -1;
     if (ep != "-") {
         if (ep.size() != 2 || ep[0] < 'a' || ep[0] > 'h' || (ep[1] != '3' && ep[1] != '6')) {
@@ -362,40 +230,35 @@ bool Board::set_fen(std::string_view fen_text, std::string* error) {
         }
     }
 
-    squares_ = parsed;
-    king_squares_ = {king_squares[White], king_squares[Black]};
-    bitboards_ = {};
-    occupied_ = {};
+    // Commit into a scratch board first so a late validation failure (side
+    // that just moved left in check) leaves the current position untouched.
+    Board candidate(*this);
+    candidate.squares_.fill(Empty);
+    candidate.bitboards_.fill(0);
+    candidate.occupied_.fill(0);
     for (int square = 0; square < 64; ++square) {
-        const Piece piece = squares_[static_cast<std::size_t>(square)];
-        if (piece != Empty) {
-            const std::uint64_t bit = 1ULL << square;
-            bitboards_[static_cast<std::size_t>(piece)] |= bit;
-            occupied_[static_cast<std::size_t>(is_white(piece) ? White : Black)] |= bit;
+        if (parsed[static_cast<std::size_t>(square)] != Empty) {
+            candidate.put_piece(parsed[static_cast<std::size_t>(square)], square);
         }
     }
-    side_ = side == "w" ? White : Black;
-    castling_ = rights;
-    ep_square_ = static_cast<std::int8_t>(ep_square);
-    halfmove_ = static_cast<std::uint16_t>(std::min(halfmove, 65535));
-    fullmove_ = static_cast<std::uint16_t>(std::min(fullmove, 65535));
-    key_ = compute_key();
-    repetition_context_ = mix(key_);
-    pawn_key_ = 0;
-    for (int square = 0; square < 64; ++square) {
-        const Piece piece = squares_[static_cast<std::size_t>(square)];
-        if (piece == WP || piece == BP) pawn_key_ ^= piece_key(square, piece);
+    candidate.king_squares_ = {king_squares[White], king_squares[Black]};
+    candidate.side_ = parsed_side;
+    candidate.castling_ = rights;
+    candidate.ep_square_ = static_cast<std::int8_t>(ep_square);
+    candidate.halfmove_ = static_cast<std::uint16_t>(std::min<long long>(halfmove, 65535));
+    candidate.fullmove_ = static_cast<std::uint16_t>(std::min<long long>(fullmove, 65535));
+    if (candidate.square_attacked(king_squares[opposite(parsed_side)], parsed_side)) {
+        if (error != nullptr) *error = "side that moved left its king in check";
+        return false;
     }
-    key_history_.clear();
-    key_history_.push_back(key_);
+    candidate.key_ = candidate.compute_key();
+    candidate.pawn_key_ = candidate.compute_pawn_key();
+    candidate.checkers_ = candidate.compute_checkers();
+    candidate.plies_from_null_ = 1024;
+    candidate.key_history_.clear();
+    candidate.key_history_.push_back(candidate.key_);
+    *this = std::move(candidate);
     return true;
-}
-
-std::uint64_t Board::transposition_history_key() const {
-    // Future repetition adjudication depends on occurrence counts in the known
-    // reversible legal history, not merely the current position. Addition makes
-    // this an order-independent multiset fingerprint. Irreversible moves reset it.
-    return key_ ^ std::rotl(repetition_context_, 23);
 }
 
 std::string Board::fen() const {
@@ -431,160 +294,25 @@ std::string Board::fen() const {
     return out.str();
 }
 
-void Board::add_pawn_moves(MoveList& moves, int square, bool captures_only) const {
-    const Piece pawn = squares_[static_cast<std::size_t>(square)];
-    const bool white = pawn == WP;
-    const int direction = white ? 8 : -8;
-    const int start_rank = white ? 1 : 6;
-    const int promotion_rank = white ? 6 : 1;
-    const std::array<std::uint8_t, 4> promotions{5, 4, 3, 2};
-    auto add = [&](int to, std::uint8_t flags) {
-        if (rank_of(square) == promotion_rank) {
-            for (std::uint8_t promotion : promotions) {
-                moves.push_back(Move{static_cast<std::uint8_t>(square), static_cast<std::uint8_t>(to), promotion,
-                                     static_cast<std::uint8_t>(flags | Promotion)});
-            }
-        } else {
-            moves.push_back(Move{static_cast<std::uint8_t>(square), static_cast<std::uint8_t>(to), 0, flags});
-        }
-    };
-
-    const int one = square + direction;
-    if ((!captures_only || rank_of(square) == promotion_rank) && on_board(one) && squares_[static_cast<std::size_t>(one)] == Empty) {
-        add(one, Quiet);
-        const int two = one + direction;
-        if (!captures_only && rank_of(square) == start_rank && squares_[static_cast<std::size_t>(two)] == Empty) {
-            moves.push_back(Move{static_cast<std::uint8_t>(square), static_cast<std::uint8_t>(two), 0, DoublePush});
-        }
-    }
-    for (int delta : {direction - 1, direction + 1}) {
-        const int to = square + delta;
-        if (!on_board(to) || std::abs(file_of(to) - file_of(square)) != 1) continue;
-        const Piece target = squares_[static_cast<std::size_t>(to)];
-        if (target != Empty && !same_color(pawn, target)) add(to, Capture);
-        if (to == ep_square_) add(to, static_cast<std::uint8_t>(Capture | EnPassant));
-    }
+Bitboard Board::attackers_to(int square, Bitboard occupancy) const {
+    return (attacks::pawn(Black, square) & pieces(WP)) | (attacks::pawn(White, square) & pieces(BP)) |
+           (attacks::knight(square) & pieces(Knight)) | (attacks::king(square) & pieces(King)) |
+           (attacks::bishop(square, occupancy) & (pieces(Bishop) | pieces(Queen))) |
+           (attacks::rook(square, occupancy) & (pieces(Rook) | pieces(Queen)));
 }
 
-void Board::add_slider_moves(MoveList& moves, int square, int first_direction,
-                             int count, bool captures_only) const {
-    const Piece piece = squares_[static_cast<std::size_t>(square)];
-    for (int i = 0; i < count; ++i) {
-        const auto& ray = RayTargets[static_cast<std::size_t>(square)]
-                                    [static_cast<std::size_t>(first_direction + i)];
-        for (const std::int8_t target_square : ray) {
-            if (target_square < 0) break;
-            const int to = target_square;
-            const Piece target = squares_[static_cast<std::size_t>(to)];
-            if (target == Empty) {
-                if (!captures_only) moves.push_back(Move{static_cast<std::uint8_t>(square), static_cast<std::uint8_t>(to), 0, Quiet});
-            } else {
-                if (!same_color(piece, target)) moves.push_back(Move{static_cast<std::uint8_t>(square), static_cast<std::uint8_t>(to), 0, Capture});
-                break;
-            }
-        }
-    }
-}
-
-MoveList Board::pseudo_legal_moves(bool captures_only) const {
-    MoveList moves;
-    moves.reserve(captures_only ? 32U : 64U);
-
-    std::uint64_t pieces_to_move = occupied_[static_cast<std::size_t>(side_)];
-    while (pieces_to_move != 0) {
-        const int square = static_cast<int>(std::countr_zero(pieces_to_move));
-        pieces_to_move &= pieces_to_move - 1;
-        const Piece piece = squares_[static_cast<std::size_t>(square)];
-        const int type = piece_type(piece);
-        if (type == 1) {
-            add_pawn_moves(moves, square, captures_only);
-        } else if (type == 3) {
-            add_slider_moves(moves, square, 0, 4, captures_only);
-        } else if (type == 4) {
-            add_slider_moves(moves, square, 4, 4, captures_only);
-        } else if (type == 5) {
-            add_slider_moves(moves, square, 0, 8, captures_only);
-        } else {
-            const auto& targets = type == 2 ? KnightTargets[static_cast<std::size_t>(square)]
-                                            : KingTargets[static_cast<std::size_t>(square)];
-            for (const std::int8_t target_square : targets) {
-                if (target_square < 0) continue;
-                const int to = target_square;
-                const Piece target = squares_[static_cast<std::size_t>(to)];
-                if (target == Empty) {
-                    if (!captures_only) moves.push_back(Move{static_cast<std::uint8_t>(square), static_cast<std::uint8_t>(to), 0, Quiet});
-                } else if (!same_color(piece, target)) {
-                    moves.push_back(Move{static_cast<std::uint8_t>(square), static_cast<std::uint8_t>(to), 0, Capture});
-                }
-            }
-            if (type == 6 && !captures_only && !in_check(side_)) {
-                const Color enemy = opposite(side_);
-                if (side_ == White && square == 4) {
-                    if ((castling_ & WhiteKingSide) != 0U && squares_[5] == Empty && squares_[6] == Empty && squares_[7] == WR &&
-                        !square_attacked(5, enemy) && !square_attacked(6, enemy))
-                        moves.push_back(Move{4, 6, 0, KingCastle});
-                    if ((castling_ & WhiteQueenSide) != 0U && squares_[3] == Empty && squares_[2] == Empty && squares_[1] == Empty && squares_[0] == WR &&
-                        !square_attacked(3, enemy) && !square_attacked(2, enemy))
-                        moves.push_back(Move{4, 2, 0, QueenCastle});
-                } else if (side_ == Black && square == 60) {
-                    if ((castling_ & BlackKingSide) != 0U && squares_[61] == Empty && squares_[62] == Empty && squares_[63] == BR &&
-                        !square_attacked(61, enemy) && !square_attacked(62, enemy))
-                        moves.push_back(Move{60, 62, 0, KingCastle});
-                    if ((castling_ & BlackQueenSide) != 0U && squares_[59] == Empty && squares_[58] == Empty && squares_[57] == Empty && squares_[56] == BR &&
-                        !square_attacked(59, enemy) && !square_attacked(58, enemy))
-                        moves.push_back(Move{60, 58, 0, QueenCastle});
-                }
-            }
-        }
-    }
-    return moves;
-}
-
-bool Board::square_attacked_with_occupancy(int square, Color by, std::uint64_t occupancy,
-                                             std::uint64_t removed_attackers) const {
-    const std::uint64_t available = ~removed_attackers;
-    const Piece pawn = by == White ? WP : BP;
-    if ((PawnAttackers[static_cast<std::size_t>(by)][static_cast<std::size_t>(square)] &
-         bitboards_[static_cast<std::size_t>(pawn)] & available) != 0) return true;
-
-    const Piece knight = by == White ? WN : BN;
-    if ((KnightMasks[static_cast<std::size_t>(square)] &
-         bitboards_[static_cast<std::size_t>(knight)] & available) != 0) return true;
-
-    const Piece king = by == White ? WK : BK;
-    if ((KingMasks[static_cast<std::size_t>(square)] &
-         bitboards_[static_cast<std::size_t>(king)] & available) != 0) return true;
-
-    const std::uint64_t bishops_queens =
-        (bitboards_[static_cast<std::size_t>(by == White ? WB : BB)] |
-         bitboards_[static_cast<std::size_t>(by == White ? WQ : BQ)]) & available;
-    const std::uint64_t rooks_queens =
-        (bitboards_[static_cast<std::size_t>(by == White ? WR : BR)] |
-         bitboards_[static_cast<std::size_t>(by == White ? WQ : BQ)]) & available;
-
-    for (int direction = 0; direction < 8; ++direction) {
-        std::uint64_t blockers = RayMasks[static_cast<std::size_t>(square)]
-                                        [static_cast<std::size_t>(direction)] & occupancy;
-        if (blockers == 0) continue;
-        const int blocker_square = RayDirections[static_cast<std::size_t>(direction)] > 0
-            ? static_cast<int>(std::countr_zero(blockers))
-            : 63 - static_cast<int>(std::countl_zero(blockers));
-        const std::uint64_t blocker = 1ULL << blocker_square;
-        if (direction < 4) {
-            if ((blocker & bishops_queens) != 0) return true;
-        } else if ((blocker & rooks_queens) != 0) {
-            return true;
-        }
-    }
-    return false;
+bool Board::square_attacked_with_occupancy(int square, Color by, Bitboard occupancy, Bitboard removed) const {
+    const Bitboard available = ~removed;
+    if ((attacks::pawn(opposite(by), square) & pieces(by, Pawn) & available) != 0) return true;
+    if ((attacks::knight(square) & pieces(by, Knight) & available) != 0) return true;
+    if ((attacks::king(square) & pieces(by, King) & available) != 0) return true;
+    const Bitboard queens = pieces(by, Queen) & available;
+    if ((attacks::bishop(square, occupancy) & ((pieces(by, Bishop) & available) | queens)) != 0) return true;
+    return (attacks::rook(square, occupancy) & ((pieces(by, Rook) & available) | queens)) != 0;
 }
 
 bool Board::square_attacked(int square, Color by) const {
-    return square_attacked_with_occupancy(square, by, occupied_[White] | occupied_[Black]);
-}
-
-int Board::king_square(Color color) const {
-    return king_squares_[static_cast<std::size_t>(color)];
+    return square_attacked_with_occupancy(square, by, occupied());
 }
 
 bool Board::in_check(Color color) const {
@@ -592,92 +320,367 @@ bool Board::in_check(Color color) const {
     return square >= 0 && square_attacked(square, opposite(color));
 }
 
-bool Board::make_move(const Move& move, Undo& undo) {
-    const Piece moving = squares_[move.from];
-    undo = Undo{squares_[move.to], castling_, ep_square_, halfmove_, fullmove_, key_, pawn_key_,
-                repetition_context_};
-    const bool old_ep_hashed = ep_square_ >= 0 && has_legal_en_passant_capture();
-    key_ ^= piece_key(move.from, moving);
-    if (undo.captured != Empty) key_ ^= piece_key(move.to, undo.captured);
-    if (piece_type(moving) == 1) pawn_key_ ^= piece_key(move.from, moving);
-    if (undo.captured == WP || undo.captured == BP) pawn_key_ ^= piece_key(move.to, undo.captured);
-    bitboards_[static_cast<std::size_t>(moving)] &= ~(1ULL << move.from);
-    if (undo.captured != Empty) bitboards_[static_cast<std::size_t>(undo.captured)] &= ~(1ULL << move.to);
-    occupied_[static_cast<std::size_t>(side_)] &= ~(1ULL << move.from);
-    if (undo.captured != Empty) occupied_[static_cast<std::size_t>(opposite(side_))] &= ~(1ULL << move.to);
-    occupied_[static_cast<std::size_t>(side_)] |= 1ULL << move.to;
-    squares_[move.from] = Empty;
-    squares_[move.to] = moving;
-    if (piece_type(moving) == 6) king_squares_[static_cast<std::size_t>(side_)] = move.to;
-    bitboards_[static_cast<std::size_t>(moving)] |= 1ULL << move.to;
-    if ((move.flags & EnPassant) != 0U) {
-        const int captured_square = side_ == White ? static_cast<int>(move.to) - 8 : static_cast<int>(move.to) + 8;
-        undo.captured = squares_[static_cast<std::size_t>(captured_square)];
-        if (undo.captured != Empty) key_ ^= piece_key(captured_square, undo.captured);
-        if (undo.captured == WP || undo.captured == BP) pawn_key_ ^= piece_key(captured_square, undo.captured);
-        if (undo.captured != Empty) {
-            bitboards_[static_cast<std::size_t>(undo.captured)] &= ~(1ULL << captured_square);
-            occupied_[static_cast<std::size_t>(opposite(side_))] &= ~(1ULL << captured_square);
+Bitboard Board::compute_checkers() const {
+    const int king = king_square(side_);
+    if (king < 0) return 0;
+    return attackers_to(king, occupied()) & occupied(opposite(side_));
+}
+
+void Board::generate_pseudo_legal(MoveList& moves, bool captures_only) const {
+    const Color us = side_;
+    const Color them = opposite(us);
+    const Bitboard own = occupied(us);
+    const Bitboard enemy = occupied(them);
+    const Bitboard occ = own | enemy;
+    const Bitboard empty = ~occ;
+    const int up = pawn_push_delta(us);
+
+    auto push = [&](int from, int to, std::uint8_t flags) {
+        moves.push_back(Move{static_cast<std::uint8_t>(from), static_cast<std::uint8_t>(to), 0, flags});
+    };
+    auto push_promotions = [&](int from, int to, std::uint8_t flags) {
+        moves.push_back(Move{static_cast<std::uint8_t>(from), static_cast<std::uint8_t>(to), Queen,
+                             static_cast<std::uint8_t>(flags | Promotion)});
+        if (!captures_only) {
+            for (const std::uint8_t promotion : {Rook, Bishop, Knight}) {
+                moves.push_back(Move{static_cast<std::uint8_t>(from), static_cast<std::uint8_t>(to), promotion,
+                                     static_cast<std::uint8_t>(flags | Promotion)});
+            }
         }
-        squares_[static_cast<std::size_t>(captured_square)] = Empty;
+    };
+
+    const Bitboard pawns = pieces(us, Pawn);
+    const Bitboard seventh = us == White ? Rank7BB : Rank2BB;
+    const Bitboard third = us == White ? Rank3BB : Rank6BB;
+    const Bitboard promoting = pawns & seventh;
+    const Bitboard regular = pawns & ~seventh;
+
+    if (!captures_only) {
+        Bitboard single = pawn_push(us, regular) & empty;
+        Bitboard twice = pawn_push(us, single & third) & empty;
+        while (single != 0) {
+            const int to = pop_lsb(single);
+            push(to - up, to, Quiet);
+        }
+        while (twice != 0) {
+            const int to = pop_lsb(twice);
+            push(to - 2 * up, to, DoublePush);
+        }
     }
-    if ((move.flags & Promotion) != 0U) {
-        const Piece promoted = static_cast<Piece>((side_ == White ? 0 : 6) + move.promotion);
-        bitboards_[static_cast<std::size_t>(moving)] &= ~(1ULL << move.to);
-        bitboards_[static_cast<std::size_t>(promoted)] |= 1ULL << move.to;
-        squares_[move.to] = promoted;
-    } else if (piece_type(moving) == 1) {
-        pawn_key_ ^= piece_key(move.to, moving);
+    Bitboard promo_push = pawn_push(us, promoting) & empty;
+    while (promo_push != 0) {
+        const int to = pop_lsb(promo_push);
+        push_promotions(to - up, to, Quiet);
     }
-    key_ ^= piece_key(move.to, squares_[move.to]);
-    if ((move.flags & KingCastle) != 0U) {
-        const int rook_from = side_ == White ? 7 : 63;
-        const int rook_to = side_ == White ? 5 : 61;
-        key_ ^= piece_key(rook_from, squares_[static_cast<std::size_t>(rook_from)]);
-        key_ ^= piece_key(rook_to, squares_[static_cast<std::size_t>(rook_from)]);
-        squares_[static_cast<std::size_t>(rook_to)] = squares_[static_cast<std::size_t>(rook_from)];
-        const Piece rook = squares_[static_cast<std::size_t>(rook_from)];
-        bitboards_[static_cast<std::size_t>(rook)] &= ~(1ULL << rook_from);
-        bitboards_[static_cast<std::size_t>(rook)] |= 1ULL << rook_to;
-        occupied_[static_cast<std::size_t>(side_)] &= ~(1ULL << rook_from);
-        occupied_[static_cast<std::size_t>(side_)] |= 1ULL << rook_to;
-        squares_[static_cast<std::size_t>(rook_from)] = Empty;
-    } else if ((move.flags & QueenCastle) != 0U) {
-        const int rook_from = side_ == White ? 0 : 56;
-        const int rook_to = side_ == White ? 3 : 59;
-        key_ ^= piece_key(rook_from, squares_[static_cast<std::size_t>(rook_from)]);
-        key_ ^= piece_key(rook_to, squares_[static_cast<std::size_t>(rook_from)]);
-        squares_[static_cast<std::size_t>(rook_to)] = squares_[static_cast<std::size_t>(rook_from)];
-        const Piece rook = squares_[static_cast<std::size_t>(rook_from)];
-        bitboards_[static_cast<std::size_t>(rook)] &= ~(1ULL << rook_from);
-        bitboards_[static_cast<std::size_t>(rook)] |= 1ULL << rook_to;
-        occupied_[static_cast<std::size_t>(side_)] &= ~(1ULL << rook_from);
-        occupied_[static_cast<std::size_t>(side_)] |= 1ULL << rook_to;
-        squares_[static_cast<std::size_t>(rook_from)] = Empty;
+    Bitboard capturers = pawns;
+    while (capturers != 0) {
+        const int from = pop_lsb(capturers);
+        Bitboard targets = attacks::pawn(us, from) & enemy;
+        const bool promotes = (square_bb(from) & seventh) != 0;
+        while (targets != 0) {
+            const int to = pop_lsb(targets);
+            if (promotes) push_promotions(from, to, Capture);
+            else push(from, to, Capture);
+        }
+    }
+    if (ep_square_ >= 0) {
+        Bitboard ep_attackers = attacks::pawn(them, ep_square_) & pawns;
+        while (ep_attackers != 0) {
+            push(pop_lsb(ep_attackers), ep_square_, static_cast<std::uint8_t>(Capture | EnPassant));
+        }
     }
 
-    key_ ^= mix(900 + castling_);
-    if (moving == WK) castling_ &= static_cast<std::uint8_t>(~(WhiteKingSide | WhiteQueenSide));
-    if (moving == BK) castling_ &= static_cast<std::uint8_t>(~(BlackKingSide | BlackQueenSide));
-    if (move.from == 0 || move.to == 0) castling_ &= static_cast<std::uint8_t>(~WhiteQueenSide);
-    if (move.from == 7 || move.to == 7) castling_ &= static_cast<std::uint8_t>(~WhiteKingSide);
-    if (move.from == 56 || move.to == 56) castling_ &= static_cast<std::uint8_t>(~BlackQueenSide);
-    if (move.from == 63 || move.to == 63) castling_ &= static_cast<std::uint8_t>(~BlackKingSide);
-    key_ ^= mix(900 + castling_);
-    if (old_ep_hashed) key_ ^= mix(1000 + static_cast<std::uint64_t>(file_of(ep_square_)));
-    ep_square_ = (move.flags & DoublePush) != 0U ? static_cast<std::int8_t>((move.from + move.to) / 2) : -1;
-    halfmove_ = (piece_type(moving) == 1 || undo.captured != Empty)
-        ? 0 : static_cast<std::uint16_t>(std::min<int>(halfmove_ + 1, 65535));
-    if (side_ == Black) fullmove_ = static_cast<std::uint16_t>(std::min<int>(fullmove_ + 1, 65535));
-    side_ = opposite(side_);
-    key_ ^= mix(1100);
-    if (ep_square_ >= 0 && has_legal_en_passant_capture()) {
-        key_ ^= mix(1000 + static_cast<std::uint64_t>(file_of(ep_square_)));
+    const Bitboard targets_mask = captures_only ? enemy : ~own;
+    auto emit = [&](int from, Bitboard targets) {
+        while (targets != 0) {
+            const int to = pop_lsb(targets);
+            push(from, to, (square_bb(to) & enemy) != 0 ? Capture : Quiet);
+        }
+    };
+    Bitboard knights = pieces(us, Knight);
+    while (knights != 0) {
+        const int from = pop_lsb(knights);
+        emit(from, attacks::knight(from) & targets_mask);
     }
-    const bool irreversible = piece_type(moving) == 1 || undo.captured != Empty ||
-                              castling_ != undo.castling;
-    if (irreversible) repetition_context_ = 0;
-    repetition_context_ += mix(key_);
+    Bitboard bishops = pieces(us, Bishop);
+    while (bishops != 0) {
+        const int from = pop_lsb(bishops);
+        emit(from, attacks::bishop(from, occ) & targets_mask);
+    }
+    Bitboard rooks = pieces(us, Rook);
+    while (rooks != 0) {
+        const int from = pop_lsb(rooks);
+        emit(from, attacks::rook(from, occ) & targets_mask);
+    }
+    Bitboard queens = pieces(us, Queen);
+    while (queens != 0) {
+        const int from = pop_lsb(queens);
+        emit(from, attacks::queen(from, occ) & targets_mask);
+    }
+    const int king = king_square(us);
+    emit(king, attacks::king(king) & targets_mask);
+
+    if (!captures_only && checkers_ == 0) {
+        if (us == White && king == 4) {
+            if ((castling_ & WhiteKingSide) != 0U && (occ & (square_bb(5) | square_bb(6))) == 0 &&
+                piece_at(7) == WR && !square_attacked(5, Black) && !square_attacked(6, Black)) {
+                push(4, 6, KingCastle);
+            }
+            if ((castling_ & WhiteQueenSide) != 0U &&
+                (occ & (square_bb(1) | square_bb(2) | square_bb(3))) == 0 &&
+                piece_at(0) == WR && !square_attacked(3, Black) && !square_attacked(2, Black)) {
+                push(4, 2, QueenCastle);
+            }
+        } else if (us == Black && king == 60) {
+            if ((castling_ & BlackKingSide) != 0U && (occ & (square_bb(61) | square_bb(62))) == 0 &&
+                piece_at(63) == BR && !square_attacked(61, White) && !square_attacked(62, White)) {
+                push(60, 62, KingCastle);
+            }
+            if ((castling_ & BlackQueenSide) != 0U &&
+                (occ & (square_bb(57) | square_bb(58) | square_bb(59))) == 0 &&
+                piece_at(56) == BR && !square_attacked(59, White) && !square_attacked(58, White)) {
+                push(60, 58, QueenCastle);
+            }
+        }
+    }
+}
+
+MoveList Board::pseudo_legal_moves(bool captures_only) const {
+    MoveList moves;
+    generate_pseudo_legal(moves, captures_only);
+    return moves;
+}
+
+MoveList Board::legal_moves(bool captures_only) const {
+    MoveList moves = pseudo_legal_moves(captures_only);
+    std::size_t write = 0;
+    for (const Move move : moves) {
+        if (is_legal(move)) moves[write++] = move;
+    }
+    moves.resize(write);
+    return moves;
+}
+
+bool Board::has_legal_move() const {
+    MoveList moves;
+    generate_pseudo_legal(moves, false);
+    for (const Move move : moves) {
+        if (is_legal(move)) return true;
+    }
+    return false;
+}
+
+bool Board::is_legal(const Move& move) const {
+    const Color us = side_;
+    const Piece moving = squares_[move.from];
+    Bitboard occupancy = occupied() & ~square_bb(move.from);
+    int captured_square = move.to;
+    if ((move.flags & EnPassant) != 0U) captured_square = move.to - pawn_push_delta(us);
+    Bitboard removed = 0;
+    if (move.is_capture()) {
+        removed = square_bb(captured_square);
+        occupancy &= ~removed;
+    }
+    occupancy |= square_bb(move.to);
+    if (move.is_castle()) {
+        const bool king_side = (move.flags & KingCastle) != 0U;
+        const int rook_from = us == White ? (king_side ? 7 : 0) : (king_side ? 63 : 56);
+        const int rook_to = us == White ? (king_side ? 5 : 3) : (king_side ? 61 : 59);
+        occupancy &= ~square_bb(rook_from);
+        occupancy |= square_bb(rook_to);
+    }
+    const int king = piece_type(moving) == King ? static_cast<int>(move.to) : king_square(us);
+    return !square_attacked_with_occupancy(king, opposite(us), occupancy, removed);
+}
+
+bool Board::is_pseudo_legal(const Move& move) const {
+    if (move.from >= 64 || move.to >= 64 || move.from == move.to) return false;
+    const Color us = side_;
+    const Piece moving = squares_[move.from];
+    if (moving == Empty || color_of(moving) != us) return false;
+    const Piece target = squares_[move.to];
+    if (target != Empty && (color_of(target) == us || piece_type(target) == King)) return false;
+    const int type = piece_type(moving);
+    const Bitboard occ = occupied();
+    const int up = pawn_push_delta(us);
+    const std::uint8_t special = static_cast<std::uint8_t>(move.flags & (DoublePush | KingCastle | QueenCastle | EnPassant | Promotion));
+
+    if (move.is_castle()) {
+        if (type != King || checkers_ != 0 || special != (move.flags & (KingCastle | QueenCastle))) return false;
+        if ((move.flags & Capture) != 0U || move.promotion != 0) return false;
+        const bool king_side = (move.flags & KingCastle) != 0U;
+        if (king_side && (move.flags & QueenCastle) != 0U) return false;
+        if (us == White) {
+            if (move.from != 4 || move.to != (king_side ? 6 : 2)) return false;
+            if (king_side) {
+                return (castling_ & WhiteKingSide) != 0U && (occ & (square_bb(5) | square_bb(6))) == 0 &&
+                       piece_at(7) == WR && !square_attacked(5, Black) && !square_attacked(6, Black);
+            }
+            return (castling_ & WhiteQueenSide) != 0U && (occ & (square_bb(1) | square_bb(2) | square_bb(3))) == 0 &&
+                   piece_at(0) == WR && !square_attacked(3, Black) && !square_attacked(2, Black);
+        }
+        if (move.from != 60 || move.to != (king_side ? 62 : 58)) return false;
+        if (king_side) {
+            return (castling_ & BlackKingSide) != 0U && (occ & (square_bb(61) | square_bb(62))) == 0 &&
+                   piece_at(63) == BR && !square_attacked(61, White) && !square_attacked(62, White);
+        }
+        return (castling_ & BlackQueenSide) != 0U && (occ & (square_bb(57) | square_bb(58) | square_bb(59))) == 0 &&
+               piece_at(56) == BR && !square_attacked(59, White) && !square_attacked(58, White);
+    }
+
+    if (type == Pawn) {
+        const bool promotes = relative_rank(us, move.from) == 6;
+        if (promotes != move.is_promotion()) return false;
+        if (move.is_promotion() && (move.promotion < Knight || move.promotion > Queen)) return false;
+        if (!move.is_promotion() && move.promotion != 0) return false;
+        if ((move.flags & EnPassant) != 0U) {
+            if (ep_square_ < 0 || move.to != ep_square_ || (move.flags & Capture) == 0U) return false;
+            if ((move.flags & (DoublePush | Promotion)) != 0U) return false;
+            return (attacks::pawn(us, move.from) & square_bb(move.to)) != 0;
+        }
+        if ((move.flags & Capture) != 0U) {
+            if (target == Empty || (move.flags & DoublePush) != 0U) return false;
+            return (attacks::pawn(us, move.from) & square_bb(move.to)) != 0;
+        }
+        if (target != Empty) return false;
+        if ((move.flags & DoublePush) != 0U) {
+            if (relative_rank(us, move.from) != 1 || move.to != move.from + 2 * up) return false;
+            return squares_[static_cast<std::size_t>(move.from + up)] == Empty;
+        }
+        return move.to == move.from + up;
+    }
+
+    if (special != 0 || move.promotion != 0) return false;
+    if (((move.flags & Capture) != 0U) != (target != Empty)) return false;
+    Bitboard reach = 0;
+    switch (type) {
+    case Knight: reach = attacks::knight(move.from); break;
+    case Bishop: reach = attacks::bishop(move.from, occ); break;
+    case Rook: reach = attacks::rook(move.from, occ); break;
+    case Queen: reach = attacks::queen(move.from, occ); break;
+    case King: reach = attacks::king(move.from); break;
+    default: return false;
+    }
+    return (reach & square_bb(move.to)) != 0;
+}
+
+bool Board::gives_check(const Move& move) const {
+    const Color us = side_;
+    const Color them = opposite(us);
+    const int ksq = king_square(them);
+    const Bitboard king_bit = square_bb(ksq);
+    Bitboard occ = (occupied() ^ square_bb(move.from)) | square_bb(move.to);
+    if ((move.flags & EnPassant) != 0U) occ &= ~square_bb(move.to - pawn_push_delta(us));
+    if (move.is_castle()) {
+        const bool king_side = (move.flags & KingCastle) != 0U;
+        const int rook_from = us == White ? (king_side ? 7 : 0) : (king_side ? 63 : 56);
+        const int rook_to = us == White ? (king_side ? 5 : 3) : (king_side ? 61 : 59);
+        occ = (occ & ~square_bb(rook_from)) | square_bb(rook_to);
+        if ((attacks::rook(rook_to, occ) & king_bit) != 0) return true;
+    }
+    const int type = move.is_promotion() ? move.promotion : piece_type(squares_[move.from]);
+    Bitboard direct = 0;
+    switch (type) {
+    case Pawn: direct = attacks::pawn(us, move.to); break;
+    case Knight: direct = attacks::knight(move.to); break;
+    case Bishop: direct = attacks::bishop(move.to, occ); break;
+    case Rook: direct = attacks::rook(move.to, occ); break;
+    case Queen: direct = attacks::queen(move.to, occ); break;
+    default: break;
+    }
+    if ((direct & king_bit) != 0) return true;
+    const Bitboard moved = square_bb(move.from);
+    const Bitboard diagonals = (pieces(us, Bishop) | pieces(us, Queen)) & ~moved;
+    const Bitboard lines = (pieces(us, Rook) | pieces(us, Queen)) & ~moved;
+    if (diagonals != 0 && (attacks::bishop(ksq, occ) & diagonals) != 0) return true;
+    return lines != 0 && (attacks::rook(ksq, occ) & lines) != 0;
+}
+
+bool Board::has_legal_en_passant_capture() const {
+    if (ep_square_ < 0) return false;
+    const Color us = side_;
+    Bitboard candidates = attacks::pawn(opposite(us), ep_square_) & pieces(us, Pawn);
+    if (candidates == 0) return false;
+    const int king = king_square(us);
+    const int captured_square = ep_square_ - pawn_push_delta(us);
+    const Bitboard captured_bit = square_bb(captured_square);
+    while (candidates != 0) {
+        const int from = pop_lsb(candidates);
+        const Bitboard occupancy = ((occupied() & ~square_bb(from)) & ~captured_bit) | square_bb(ep_square_);
+        if (!square_attacked_with_occupancy(king, opposite(us), occupancy, captured_bit)) return true;
+    }
+    return false;
+}
+
+bool Board::make_move(const Move& move, Undo& undo) {
+    const Color us = side_;
+    const Color them = opposite(us);
+    const Piece moving = squares_[move.from];
+    undo.captured = squares_[move.to];
+    undo.castling = castling_;
+    undo.ep_square = ep_square_;
+    undo.halfmove = halfmove_;
+    undo.fullmove = fullmove_;
+    undo.key = key_;
+    undo.pawn_key = pawn_key_;
+    undo.checkers = checkers_;
+    undo.plies_from_null = plies_from_null_;
+
+    if (ep_square_ >= 0 && has_legal_en_passant_capture()) {
+        key_ ^= Z.ep[static_cast<std::size_t>(file_of(ep_square_))];
+    }
+    ep_square_ = -1;
+    halfmove_ = static_cast<std::uint16_t>(std::min<int>(halfmove_ + 1, 65535));
+
+    if ((move.flags & EnPassant) != 0U) {
+        const int captured_square = move.to - pawn_push_delta(us);
+        undo.captured = squares_[static_cast<std::size_t>(captured_square)];
+        key_ ^= piece_key(captured_square, undo.captured);
+        pawn_key_ ^= piece_key(captured_square, undo.captured);
+        remove_piece(captured_square);
+    } else if (undo.captured != Empty) {
+        key_ ^= piece_key(move.to, undo.captured);
+        if (piece_type(undo.captured) == Pawn) pawn_key_ ^= piece_key(move.to, undo.captured);
+        remove_piece(move.to);
+    }
+    if (undo.captured != Empty || piece_type(moving) == Pawn) halfmove_ = 0;
+
+    key_ ^= piece_key(move.from, moving);
+    if (piece_type(moving) == Pawn) pawn_key_ ^= piece_key(move.from, moving);
+    move_piece(move.from, move.to);
+    if (move.is_promotion()) {
+        const Piece promoted = make_piece(us, move.promotion);
+        remove_piece(move.to);
+        put_piece(promoted, move.to);
+        key_ ^= piece_key(move.to, promoted);
+    } else {
+        key_ ^= piece_key(move.to, moving);
+        if (piece_type(moving) == Pawn) pawn_key_ ^= piece_key(move.to, moving);
+    }
+    if (piece_type(moving) == King) king_squares_[static_cast<std::size_t>(us)] = move.to;
+
+    if (move.is_castle()) {
+        const bool king_side = (move.flags & KingCastle) != 0U;
+        const int rook_from = us == White ? (king_side ? 7 : 0) : (king_side ? 63 : 56);
+        const int rook_to = us == White ? (king_side ? 5 : 3) : (king_side ? 61 : 59);
+        const Piece rook = squares_[static_cast<std::size_t>(rook_from)];
+        key_ ^= piece_key(rook_from, rook) ^ piece_key(rook_to, rook);
+        move_piece(rook_from, rook_to);
+    }
+
+    key_ ^= Z.castling[castling_];
+    castling_ &= static_cast<std::uint8_t>(CastlingMasks[move.from] & CastlingMasks[move.to]);
+    key_ ^= Z.castling[castling_];
+
+    if ((move.flags & DoublePush) != 0U) ep_square_ = static_cast<std::int8_t>((move.from + move.to) / 2);
+    if (us == Black) fullmove_ = static_cast<std::uint16_t>(std::min<int>(fullmove_ + 1, 65535));
+    side_ = them;
+    key_ ^= Z.side;
+    if (ep_square_ >= 0 && has_legal_en_passant_capture()) {
+        key_ ^= Z.ep[static_cast<std::size_t>(file_of(ep_square_))];
+    }
+    checkers_ = attackers_to(king_square(them), occupied()) & occupied(us);
+    plies_from_null_ = static_cast<std::uint16_t>(std::min<int>(plies_from_null_ + 1, 1024));
     key_history_.push_back(key_);
     return true;
 }
@@ -685,125 +688,60 @@ bool Board::make_move(const Move& move, Undo& undo) {
 void Board::unmake_move(const Move& move, const Undo& undo) {
     key_history_.pop_back();
     side_ = opposite(side_);
-    fullmove_ = undo.fullmove;
-    const Piece moving = squares_[move.to];
-    const Piece original = (move.flags & Promotion) != 0U ? (side_ == White ? WP : BP) : moving;
-    occupied_[static_cast<std::size_t>(side_)] &= ~(1ULL << move.to);
-    occupied_[static_cast<std::size_t>(side_)] |= 1ULL << move.from;
-    bitboards_[static_cast<std::size_t>(moving)] &= ~(1ULL << move.to);
-    bitboards_[static_cast<std::size_t>(original)] |= 1ULL << move.from;
-    squares_[move.from] = original;
-    if (piece_type(original) == 6) king_squares_[static_cast<std::size_t>(side_)] = move.from;
-    squares_[move.to] = undo.captured;
-    if (undo.captured != Empty && (move.flags & EnPassant) == 0U) {
-        bitboards_[static_cast<std::size_t>(undo.captured)] |= 1ULL << move.to;
-        occupied_[static_cast<std::size_t>(opposite(side_))] |= 1ULL << move.to;
+    const Color us = side_;
+    if (move.is_promotion()) {
+        remove_piece(move.to);
+        put_piece(make_piece(us, Pawn), move.to);
     }
+    move_piece(move.to, move.from);
+    if (piece_type(squares_[move.from]) == King) king_squares_[static_cast<std::size_t>(us)] = move.from;
     if ((move.flags & EnPassant) != 0U) {
-        squares_[move.to] = Empty;
-        const int captured_square = side_ == White ? static_cast<int>(move.to) - 8 : static_cast<int>(move.to) + 8;
-        squares_[static_cast<std::size_t>(captured_square)] = undo.captured;
-        if (undo.captured != Empty) {
-            bitboards_[static_cast<std::size_t>(undo.captured)] |= 1ULL << captured_square;
-            occupied_[static_cast<std::size_t>(opposite(side_))] |= 1ULL << captured_square;
-        }
+        put_piece(undo.captured, move.to - pawn_push_delta(us));
+    } else if (undo.captured != Empty) {
+        put_piece(undo.captured, move.to);
     }
-    if ((move.flags & KingCastle) != 0U) {
-        const int rook_from = side_ == White ? 7 : 63;
-        const int rook_to = side_ == White ? 5 : 61;
-        squares_[static_cast<std::size_t>(rook_from)] = squares_[static_cast<std::size_t>(rook_to)];
-        const Piece rook = squares_[static_cast<std::size_t>(rook_to)];
-        bitboards_[static_cast<std::size_t>(rook)] &= ~(1ULL << rook_to);
-        bitboards_[static_cast<std::size_t>(rook)] |= 1ULL << rook_from;
-        occupied_[static_cast<std::size_t>(side_)] &= ~(1ULL << rook_to);
-        occupied_[static_cast<std::size_t>(side_)] |= 1ULL << rook_from;
-        squares_[static_cast<std::size_t>(rook_to)] = Empty;
-    } else if ((move.flags & QueenCastle) != 0U) {
-        const int rook_from = side_ == White ? 0 : 56;
-        const int rook_to = side_ == White ? 3 : 59;
-        squares_[static_cast<std::size_t>(rook_from)] = squares_[static_cast<std::size_t>(rook_to)];
-        const Piece rook = squares_[static_cast<std::size_t>(rook_to)];
-        bitboards_[static_cast<std::size_t>(rook)] &= ~(1ULL << rook_to);
-        bitboards_[static_cast<std::size_t>(rook)] |= 1ULL << rook_from;
-        occupied_[static_cast<std::size_t>(side_)] &= ~(1ULL << rook_to);
-        occupied_[static_cast<std::size_t>(side_)] |= 1ULL << rook_from;
-        squares_[static_cast<std::size_t>(rook_to)] = Empty;
+    if (move.is_castle()) {
+        const bool king_side = (move.flags & KingCastle) != 0U;
+        const int rook_from = us == White ? (king_side ? 7 : 0) : (king_side ? 63 : 56);
+        const int rook_to = us == White ? (king_side ? 5 : 3) : (king_side ? 61 : 59);
+        move_piece(rook_to, rook_from);
     }
     castling_ = undo.castling;
     ep_square_ = undo.ep_square;
     halfmove_ = undo.halfmove;
+    fullmove_ = undo.fullmove;
     key_ = undo.key;
     pawn_key_ = undo.pawn_key;
-    repetition_context_ = undo.repetition_context;
+    checkers_ = undo.checkers;
+    plies_from_null_ = undo.plies_from_null;
 }
 
 void Board::make_null_move(NullUndo& undo) {
-    undo = NullUndo{ep_square_, key_};
+    undo.ep_square = ep_square_;
+    undo.key = key_;
+    undo.halfmove = halfmove_;
+    undo.plies_from_null = plies_from_null_;
+    undo.checkers = checkers_;
     if (ep_square_ >= 0 && has_legal_en_passant_capture()) {
-        key_ ^= mix(1000 + static_cast<std::uint64_t>(file_of(ep_square_)));
+        key_ ^= Z.ep[static_cast<std::size_t>(file_of(ep_square_))];
     }
     ep_square_ = -1;
     side_ = opposite(side_);
-    key_ ^= mix(1100);
+    key_ ^= Z.side;
+    halfmove_ = static_cast<std::uint16_t>(std::min<int>(halfmove_ + 1, 65535));
+    plies_from_null_ = 0;
+    checkers_ = 0;
+    key_history_.push_back(key_);
 }
 
 void Board::unmake_null_move(const NullUndo& undo) {
+    key_history_.pop_back();
     side_ = opposite(side_);
     ep_square_ = undo.ep_square;
     key_ = undo.key;
-}
-
-MoveList Board::legal_moves(bool captures_only) {
-    MoveList moves = pseudo_legal_moves(captures_only);
-    std::size_t write = 0;
-    for (const Move move : moves) {
-        if (is_legal_after(move)) moves[write++] = move;
-    }
-    moves.resize(write);
-    return moves;
-}
-
-bool Board::is_legal_after(const Move& move) const {
-    const Color moving_side = side_;
-    const Piece moving = squares_[move.from];
-    std::uint64_t occupancy = occupied_[White] | occupied_[Black];
-    const std::uint64_t from_bit = 1ULL << move.from;
-    const std::uint64_t to_bit = 1ULL << move.to;
-    occupancy &= ~from_bit;
-
-    int captured_square = static_cast<int>(move.to);
-    if ((move.flags & EnPassant) != 0U) {
-        captured_square = moving_side == White ? static_cast<int>(move.to) - 8
-                                               : static_cast<int>(move.to) + 8;
-    }
-    std::uint64_t removed_attackers = 0;
-    if (move.is_capture()) {
-        const std::uint64_t captured_bit = 1ULL << captured_square;
-        occupancy &= ~captured_bit;
-        removed_attackers = captured_bit;
-    }
-    occupancy |= to_bit;
-
-    if ((move.flags & KingCastle) != 0U || (move.flags & QueenCastle) != 0U) {
-        const bool king_side = (move.flags & KingCastle) != 0U;
-        const int rook_from = moving_side == White ? (king_side ? 7 : 0) : (king_side ? 63 : 56);
-        const int rook_to = moving_side == White ? (king_side ? 5 : 3) : (king_side ? 61 : 59);
-        occupancy &= ~(1ULL << rook_from);
-        occupancy |= 1ULL << rook_to;
-    }
-
-    const int king = piece_type(moving) == 6
-        ? static_cast<int>(move.to)
-        : king_squares_[static_cast<std::size_t>(moving_side)];
-    return king < 0 || !square_attacked_with_occupancy(king, opposite(moving_side),
-                                                       occupancy, removed_attackers);
-}
-
-bool Board::has_legal_move() {
-    for (const Move move : pseudo_legal_moves()) {
-        if (is_legal_after(move)) return true;
-    }
-    return false;
+    halfmove_ = undo.halfmove;
+    plies_from_null_ = undo.plies_from_null;
+    checkers_ = undo.checkers;
 }
 
 std::optional<Move> Board::parse_uci(std::string_view text) {
@@ -820,7 +758,7 @@ std::string Board::move_to_uci(const Move& move) {
     text += static_cast<char>('1' + rank_of(move.from));
     text += static_cast<char>('a' + file_of(move.to));
     text += static_cast<char>('1' + rank_of(move.to));
-    if ((move.flags & Promotion) != 0U) {
+    if (move.is_promotion()) {
         constexpr std::array<char, 7> promotion_chars{' ', ' ', 'n', 'b', 'r', 'q', ' '};
         text += promotion_chars[move.promotion];
     }
@@ -829,10 +767,16 @@ std::string Board::move_to_uci(const Move& move) {
 
 std::uint64_t Board::perft(int depth) {
     if (depth <= 0) return 1;
-    const auto moves = legal_moves();
-    if (depth == 1) return moves.size();
+    MoveList moves;
+    generate_pseudo_legal(moves, false);
+    if (depth == 1) {
+        std::uint64_t count = 0;
+        for (const Move move : moves) count += is_legal(move) ? 1 : 0;
+        return count;
+    }
     std::uint64_t nodes = 0;
     for (const Move move : moves) {
+        if (!is_legal(move)) continue;
         Undo undo;
         (void)make_move(move, undo);
         nodes += perft(depth - 1);
@@ -852,114 +796,122 @@ bool Board::is_repetition() const {
     return matches >= 2;
 }
 
-bool Board::is_insufficient_material() const {
-    constexpr std::uint64_t DarkSquares = 0xAA55AA55AA55AA55ULL;
-    const std::uint64_t pawns_rooks_queens = bitboards_[WP] | bitboards_[BP] | bitboards_[WR] |
-                                             bitboards_[BR] | bitboards_[WQ] | bitboards_[BQ];
-    if (pawns_rooks_queens != 0) return false;
-    const std::uint64_t knights = bitboards_[WN] | bitboards_[BN];
-    const std::uint64_t bishops = bitboards_[WB] | bitboards_[BB];
-    const int minor_count = std::popcount(knights | bishops);
-    if (minor_count <= 1) return true;
-    return knights == 0 && ((bishops & DarkSquares) == 0 || (bishops & ~DarkSquares) == 0);
-}
-
-int Board::static_exchange(const Move& move) const {
-    if (!move.is_capture() && (move.flags & Promotion) == 0U) return 0;
-    std::array<Piece, 64> position = squares_;
-    std::array<std::uint64_t, 13> position_bits = bitboards_;
-    Piece moving = position[move.from];
-    Piece captured = position[move.to];
-    if ((move.flags & EnPassant) != 0U) {
-        const int captured_square = side_ == White ? static_cast<int>(move.to) - 8
-                                                   : static_cast<int>(move.to) + 8;
-        captured = position[static_cast<std::size_t>(captured_square)];
-        position[static_cast<std::size_t>(captured_square)] = Empty;
-        position_bits[static_cast<std::size_t>(captured)] &= ~(1ULL << captured_square);
-    }
-    std::array<int, 32> gain{};
-    gain[0] = SeeValue[static_cast<std::size_t>(piece_type(captured))];
-    if ((move.flags & Promotion) != 0U) {
-        gain[0] += SeeValue[move.promotion] - SeeValue[1];
-        moving = static_cast<Piece>((side_ == White ? 0 : 6) + move.promotion);
-    }
-    position[move.from] = Empty;
-    position_bits[static_cast<std::size_t>(squares_[move.from])] &= ~(1ULL << move.from);
-    if (position[move.to] != Empty) {
-        position_bits[static_cast<std::size_t>(position[move.to])] &= ~(1ULL << move.to);
-    }
-    position[move.to] = moving;
-    position_bits[static_cast<std::size_t>(moving)] |= 1ULL << move.to;
-    int captured_value = SeeValue[static_cast<std::size_t>(piece_type(moving))];
-    Color side = opposite(side_);
-    int depth = 0;
-    while (depth + 1 < static_cast<int>(gain.size())) {
-        const int from = least_attacker(position, position_bits, move.to, side);
-        if (from < 0) break;
-        const Piece source_attacker = position[static_cast<std::size_t>(from)];
-        Piece attacker = source_attacker;
-        int promotion_gain = 0;
-        const int target_rank = rank_of(move.to);
-        if (piece_type(attacker) == 1 && (target_rank == 0 || target_rank == 7)) {
-            promotion_gain = SeeValue[5] - SeeValue[1];
-            attacker = side == White ? WQ : BQ;
+bool Board::is_repetition(std::size_t root_index) const {
+    const std::ptrdiff_t size = static_cast<std::ptrdiff_t>(key_history_.size());
+    const std::ptrdiff_t span = std::min<std::ptrdiff_t>(std::min<int>(halfmove_, plies_from_null_), size - 1);
+    if (span < 4) return false;
+    const std::ptrdiff_t limit = size - 1 - span;
+    int count = 0;
+    for (std::ptrdiff_t i = size - 5; i >= limit; i -= 2) {
+        if (key_history_[static_cast<std::size_t>(i)] == key_) {
+            if (i >= static_cast<std::ptrdiff_t>(root_index)) return true;
+            if (++count >= 2) return true;
         }
-        ++depth;
-        gain[static_cast<std::size_t>(depth)] = captured_value + promotion_gain -
-                                                gain[static_cast<std::size_t>(depth - 1)];
-        position[static_cast<std::size_t>(from)] = Empty;
-        const Piece original_attacker = position[move.to];
-        position_bits[static_cast<std::size_t>(original_attacker)] &= ~(1ULL << move.to);
-        position_bits[static_cast<std::size_t>(source_attacker)] &= ~(1ULL << from);
-        position[move.to] = attacker;
-        position_bits[static_cast<std::size_t>(attacker)] |= 1ULL << move.to;
-        captured_value = SeeValue[static_cast<std::size_t>(piece_type(attacker))];
-        side = opposite(side);
-    }
-    while (depth > 0) {
-        gain[static_cast<std::size_t>(depth - 1)] =
-            -std::max(-gain[static_cast<std::size_t>(depth - 1)], gain[static_cast<std::size_t>(depth)]);
-        --depth;
-    }
-    return gain[0];
-}
-
-bool Board::has_legal_en_passant_capture() const {
-    if (ep_square_ < 0) return false;
-    const int target = ep_square_;
-    const Piece pawn = side_ == White ? WP : BP;
-    const int captured_square = side_ == White ? target - 8 : target + 8;
-    const std::array<int, 2> candidates = side_ == White
-        ? std::array<int, 2>{target - 9, target - 7}
-        : std::array<int, 2>{target + 7, target + 9};
-    const int king = king_squares_[static_cast<std::size_t>(side_)];
-    if (king < 0) return false;
-    const std::uint64_t base_occupancy = occupied_[White] | occupied_[Black];
-    const std::uint64_t captured_bit = 1ULL << captured_square;
-    for (const int from : candidates) {
-        if (!on_board(from) || abs_int(file_of(from) - file_of(target)) != 1 ||
-            squares_[static_cast<std::size_t>(from)] != pawn) {
-            continue;
-        }
-        std::uint64_t occupancy = base_occupancy;
-        occupancy &= ~(1ULL << from);
-        occupancy &= ~captured_bit;
-        occupancy |= 1ULL << target;
-        if (!square_attacked_with_occupancy(king, opposite(side_), occupancy, captured_bit)) return true;
     }
     return false;
 }
 
+bool Board::is_insufficient_material() const {
+    const Bitboard pawns_rooks_queens = pieces(Pawn) | pieces(Rook) | pieces(Queen);
+    if (pawns_rooks_queens != 0) return false;
+    const Bitboard knights = pieces(Knight);
+    const Bitboard bishops = pieces(Bishop);
+    const int minor_count = popcount(knights | bishops);
+    if (minor_count <= 1) return true;
+    return knights == 0 && ((bishops & DarkSquares) == 0 || (bishops & LightSquares) == 0);
+}
+
+bool Board::has_non_pawn_material(Color color) const {
+    return (pieces(color, Knight) | pieces(color, Bishop) | pieces(color, Rook) | pieces(color, Queen)) != 0;
+}
+
+bool Board::see_ge(const Move& move, int threshold) const {
+    if (move.is_castle()) return 0 >= threshold;
+    const Color us = side_;
+    const int from = move.from;
+    const int to = move.to;
+    const int captured_square = (move.flags & EnPassant) != 0U ? to - pawn_push_delta(us) : to;
+    int swap = SeeValue[static_cast<std::size_t>(piece_type(squares_[static_cast<std::size_t>(captured_square)]))] - threshold;
+    int attacker_value = SeeValue[static_cast<std::size_t>(piece_type(squares_[static_cast<std::size_t>(from)]))];
+    if (move.is_promotion()) {
+        swap += SeeValue[move.promotion] - SeeValue[Pawn];
+        attacker_value = SeeValue[move.promotion];
+    }
+    if (swap < 0) return false;
+    swap = attacker_value - swap;
+    if (swap <= 0) return true;
+
+    Bitboard occupancy = (occupied() ^ square_bb(from) ^ square_bb(captured_square)) | square_bb(to);
+    Color stm = us;
+    Bitboard attackers = attackers_to(to, occupancy);
+    const Bitboard diagonals = pieces(Bishop) | pieces(Queen);
+    const Bitboard lines = pieces(Rook) | pieces(Queen);
+    int result = 1;
+    while (true) {
+        stm = opposite(stm);
+        attackers &= occupancy;
+        const Bitboard stm_attackers = attackers & occupied(stm);
+        if (stm_attackers == 0) break;
+        result ^= 1;
+        Bitboard bb = 0;
+        if ((bb = stm_attackers & pieces(stm, Pawn)) != 0) {
+            if ((swap = SeeValue[Pawn] - swap) < result) break;
+            occupancy ^= square_bb(lsb(bb));
+            attackers |= attacks::bishop(to, occupancy) & diagonals;
+        } else if ((bb = stm_attackers & pieces(stm, Knight)) != 0) {
+            if ((swap = SeeValue[Knight] - swap) < result) break;
+            occupancy ^= square_bb(lsb(bb));
+        } else if ((bb = stm_attackers & pieces(stm, Bishop)) != 0) {
+            if ((swap = SeeValue[Bishop] - swap) < result) break;
+            occupancy ^= square_bb(lsb(bb));
+            attackers |= attacks::bishop(to, occupancy) & diagonals;
+        } else if ((bb = stm_attackers & pieces(stm, Rook)) != 0) {
+            if ((swap = SeeValue[Rook] - swap) < result) break;
+            occupancy ^= square_bb(lsb(bb));
+            attackers |= attacks::rook(to, occupancy) & lines;
+        } else if ((bb = stm_attackers & pieces(stm, Queen)) != 0) {
+            if ((swap = SeeValue[Queen] - swap) < result) break;
+            occupancy ^= square_bb(lsb(bb));
+            attackers |= (attacks::bishop(to, occupancy) & diagonals) | (attacks::rook(to, occupancy) & lines);
+        } else {
+            // Only the king is left to capture; it may do so only if the
+            // opponent has no further attackers.
+            return (attackers & ~occupied(stm)) != 0 ? result ^ 1 : result;
+        }
+    }
+    return result != 0;
+}
+
+int Board::static_exchange(const Move& move) const {
+    int low = -2000;
+    int high = 2000;
+    while (low < high) {
+        const int mid = low + (high - low + 1) / 2;
+        if (see_ge(move, mid)) low = mid;
+        else high = mid - 1;
+    }
+    return low;
+}
+
 std::uint64_t Board::compute_key() const {
     std::uint64_t key = 0;
-    for (std::size_t square = 0; square < squares_.size(); ++square) {
-        if (squares_[square] != Empty) key ^= piece_key(static_cast<int>(square), squares_[square]);
+    for (int square = 0; square < 64; ++square) {
+        const Piece piece = squares_[static_cast<std::size_t>(square)];
+        if (piece != Empty) key ^= piece_key(square, piece);
     }
-    key ^= mix(900 + castling_);
-    if (has_legal_en_passant_capture()) {
-        key ^= mix(1000 + static_cast<std::uint64_t>(file_of(ep_square_)));
+    key ^= Z.castling[castling_];
+    if (has_legal_en_passant_capture()) key ^= Z.ep[static_cast<std::size_t>(file_of(ep_square_))];
+    if (side_ == Black) key ^= Z.side;
+    return key;
+}
+
+std::uint64_t Board::compute_pawn_key() const {
+    std::uint64_t key = 0;
+    Bitboard pawns = pieces(Pawn);
+    while (pawns != 0) {
+        const int square = pop_lsb(pawns);
+        key ^= piece_key(square, squares_[static_cast<std::size_t>(square)]);
     }
-    if (side_ == Black) key ^= mix(1100);
     return key;
 }
 

@@ -1,11 +1,14 @@
 cmake_minimum_required(VERSION 3.16)
-project(ChessEngineForge VERSION 5.31.0 LANGUAGES CXX)
+project(ChessEngineForge VERSION 6.0.0 LANGUAGES CXX)
 find_package(Threads REQUIRED)
 
 option(FORGE_ENABLE_SANITIZERS "Enable AddressSanitizer and UndefinedBehaviorSanitizer" OFF)
+option(FORGE_NATIVE "Optimise for the build machine's CPU (-march=native)" OFF)
 
 add_library(forge_core
+    src/bitboard.cpp
     src/board.cpp
+    src/eval.cpp
     src/search.cpp
 )
 target_include_directories(forge_core PUBLIC include)
@@ -15,6 +18,9 @@ if(MSVC)
     target_compile_options(forge_core PRIVATE /W4 /permissive-)
 else()
     target_compile_options(forge_core PRIVATE -Wall -Wextra -Wpedantic -Wconversion -Wshadow)
+    if(FORGE_NATIVE)
+        target_compile_options(forge_core PUBLIC -march=native)
+    endif()
     if(FORGE_ENABLE_SANITIZERS)
         target_compile_options(forge_core PUBLIC -fsanitize=address,undefined -fno-omit-frame-pointer)
         target_link_options(forge_core PUBLIC -fsanitize=address,undefined)
