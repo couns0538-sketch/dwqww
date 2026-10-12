@@ -21,8 +21,16 @@ namespace {
 
 struct Game {
     std::string result;
+    std::string fen; // starting position when the game did not begin at the standard start
     std::vector<std::pair<std::string, std::string>> moves; // move, comment
 };
+
+std::string quoted_value(const std::string& line) {
+    const auto first = line.find('"');
+    const auto last = line.rfind('"');
+    if (first == std::string::npos || last == std::string::npos || last <= first) return std::string();
+    return line.substr(first + 1, last - first - 1);
+}
 
 bool read_game(std::istream& input, Game& game) {
     game = Game{};
@@ -41,13 +49,8 @@ bool read_game(std::istream& input, Game& game) {
                 break;
             }
             in_header = true;
-            if (line.rfind("[Result ", 0) == 0) {
-                const auto first = line.find('"');
-                const auto last = line.rfind('"');
-                if (first != std::string::npos && last != std::string::npos && last > first) {
-                    game.result = line.substr(first + 1, last - first - 1);
-                }
-            }
+            if (line.rfind("[Result ", 0) == 0) game.result = quoted_value(line);
+            else if (line.rfind("[FEN ", 0) == 0) game.fen = quoted_value(line);
             continue;
         }
         in_header = false;
@@ -128,6 +131,7 @@ int main(int argc, char** argv) {
             else continue;
             ++games;
             forge::Board board;
+            if (!game.fen.empty() && !board.set_fen(game.fen)) continue;
             int ply = 0;
             for (const auto& [text, comment] : game.moves) {
                 const auto move = board.parse_uci(text);
