@@ -14,9 +14,9 @@
 namespace forge {
 
 struct SearcherTestProbe {
-    static std::uint64_t null_tries(const Searcher& searcher) { return searcher.null_tries_; }
-    static std::uint64_t null_cutoffs(const Searcher& searcher) { return searcher.null_cutoffs_; }
-    static TranspositionTable& tt(Searcher& searcher) { return searcher.tt_; }
+    static std::uint64_t null_tries(Searcher& searcher) { return searcher.main_worker().null_tries_; }
+    static std::uint64_t null_cutoffs(Searcher& searcher) { return searcher.main_worker().null_cutoffs_; }
+    static TranspositionTable& tt(Searcher& searcher) { return searcher.transposition_table(); }
 };
 
 } // namespace forge
@@ -386,6 +386,29 @@ void test_search() {
     check(info.score > 300, "WAC 008 is recognised as winning");
 }
 
+void test_threads() {
+    forge::Board board;
+    forge::Searcher searcher(16, 4);
+    check(searcher.threads() == 4, "searcher reports its thread count");
+    forge::SearchLimits limits;
+    limits.depth = 12;
+    forge::SearchInfo info = searcher.search(board, limits);
+    check(!info.best_move.is_none() && info.depth == 12, "multi-threaded search completes the requested depth");
+    check(info.nodes > 0, "multi-threaded search reports nodes");
+    // A second search must not be blocked by the helper shutdown of the first.
+    info = searcher.search(board, limits);
+    check(info.depth == 12, "helper shutdown does not leave the stop flag raised");
+    check(board.set_fen("6k1/5ppp/8/8/8/8/8/4R1K1 w - - 0 1"), "threaded mate FEN parses");
+    limits.depth = 6;
+    info = searcher.search(board, limits);
+    check(forge::Board::move_to_uci(info.best_move) == "e1e8" && info.score == forge::MateValue - 1,
+          "multi-threaded search finds the mate");
+    searcher.set_threads(1);
+    check(searcher.threads() == 1, "thread count can be reduced");
+    info = searcher.search(board, limits);
+    check(forge::Board::move_to_uci(info.best_move) == "e1e8", "single-threaded search still works after resizing");
+}
+
 void test_transposition_table() {
     forge::TranspositionTable tt(1);
     bool hit = true;
@@ -415,6 +438,7 @@ int main() {
     test_evaluation();
     test_transposition_table();
     test_search();
+    test_threads();
     if (failures == 0) {
         std::cout << "All tests passed\n";
         return 0;

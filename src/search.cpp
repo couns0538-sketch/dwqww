@@ -147,7 +147,7 @@ class MovePicker {
 public:
     enum class Mode { Main, Quiescence };
 
-    MovePicker(const Board& board, const Searcher& searcher, const SearchStack* ss, Move tt_move, Mode mode)
+    MovePicker(const Board& board, const Worker& searcher, const SearchStack* ss, Move tt_move, Mode mode)
         : board_(board), searcher_(searcher), ss_(ss), tt_move_(tt_move) {
         const bool in_check = board.in_check();
         if (!tt_move_.is_none() && !board_.is_pseudo_legal(tt_move_)) tt_move_ = Move::none();
@@ -274,7 +274,7 @@ private:
     };
 
     const Board& board_;
-    const Searcher& searcher_;
+    const Worker& searcher_;
     const SearchStack* ss_;
     Move tt_move_;
     std::array<Move, 2> killers_{};
@@ -358,8 +358,9 @@ private:
 // ---------------------------------------------------------------------------
 // Searcher
 
-Searcher::Searcher(std::size_t hash_mb)
-    : tt_(hash_mb),
+Worker::Worker(SharedSearchState& shared, int id)
+    : shared_(shared),
+      id_(id),
       main_history_(std::make_unique<ButterflyHistory>()),
       capture_history_(std::make_unique<CaptureHistory>()),
       continuation_history_(std::make_unique<ContinuationHistory>()),
@@ -368,17 +369,10 @@ Searcher::Searcher(std::size_t hash_mb)
     clear();
 }
 
-Searcher::~Searcher() = default;
+Worker::~Worker() = default;
 
-void Searcher::resize_hash(std::size_t hash_mb) { tt_.resize(hash_mb); }
-
-void Searcher::clear_hash() {
-    tt_.clear();
+void Worker::clear() {
     evaluator_.clear();
-}
-
-void Searcher::clear() {
-    clear_hash();
     *main_history_ = ButterflyHistory{};
     *capture_history_ = CaptureHistory{};
     *continuation_history_ = ContinuationHistory{};
@@ -387,13 +381,13 @@ void Searcher::clear() {
     for (SearchStack& ss : stack_) ss = SearchStack{};
 }
 
-int Searcher::corrected_eval(const Board& board, int raw_eval) const {
+int Worker::corrected_eval(const Board& board, int raw_eval) const {
     const std::int32_t correction =
         (*correction_history_)[static_cast<std::size_t>(board.side_to_move())][board.pawn_key() & (CorrectionSize - 1U)];
     return std::clamp(raw_eval + correction / CorrectionGrain, -MateInMaxPly + 1, MateInMaxPly - 1);
 }
 
-void Searcher::update_correction(const Board& board, int depth, int best_score, int static_eval) {
+void Worker::update_correction(const Board& board, int depth, int best_score, int static_eval) {
     std::int32_t& entry =
         (*correction_history_)[static_cast<std::size_t>(board.side_to_move())][board.pawn_key() & (CorrectionSize - 1U)];
     const int diff = std::clamp((best_score - static_eval) * CorrectionGrain, -CorrectionLimit / 4, CorrectionLimit / 4);
@@ -401,10 +395,10 @@ void Searcher::update_correction(const Board& board, int depth, int best_score, 
     entry = std::clamp((entry * (256 - weight) + diff * weight) / 256, -CorrectionLimit, CorrectionLimit);
 }
 
-std::int64_t Searcher::elapsed_ms() const {
+std::int64_t Worker::elapsed_ms() const {
     auto origin = start_;
     if (pondering_) {
-        const std::int64_t hit_ns = ponder_hit_ns_.load(std::memory_order_relaxed);
+        const std::int64_t hit_ns = shared_.ponder_hit_ns.load(std::memory_order_relaxed);
         if (hit_ns == 0) return 0;
         origin = std::chrono::steady_clock::time_point(
             std::chrono::duration_cast<std::chrono::steady_clock::duration>(std::chrono::nanoseconds(hit_ns)));
@@ -412,17 +406,30 @@ std::int64_t Searcher::elapsed_ms() const {
     return std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - origin).count();
 }
 
-bool Searcher::should_stop() {
-    if (stop_.load(std::memory_order_relaxed)) return true;
-    if (node_limit_specified_ && nodes_ >= node_limit_) return true;
+std::uint64_t Worker::total_nodes() const {
+    std::uint64_t total = local_nodes_;
+    if (all_workers_ != nullptr) {
+        for (const Worker* worker : *all_workers_) {
+            if (worker != this) total += worker->nodes();
+        }
+    }
+    return total;
+}
+
+bool Worker::should_stop() {
+    // Publish this thread's node count for the others at the same cadence.
+    nodes_.store(local_nodes_, std::memory_order_relaxed);
+    if (shared_.stop.load(std::memory_order_relaxed)) return true;
+    if (!is_main()) return false;
+    if (node_limit_specified_ && total_nodes() >= node_limit_) return true;
     if (hard_limit_ms_ > 0) {
-        if (pondering_ && ponder_hit_ns_.load(std::memory_order_relaxed) == 0) return false;
+        if (pondering_ && shared_.ponder_hit_ns.load(std::memory_order_relaxed) == 0) return false;
         if (elapsed_ms() >= hard_limit_ms_) return true;
     }
     return false;
 }
 
-bool Searcher::is_draw(const Board& board, int ply) const {
+bool Worker::is_draw(const Board& board, int ply) const {
     (void)ply;
     if (board.halfmove_clock() >= 100) {
         // Checkmate on the hundredth half-move still wins; everything else is a draw.
@@ -431,7 +438,7 @@ bool Searcher::is_draw(const Board& board, int ply) const {
     return board.is_repetition(root_history_index_) || board.is_insufficient_material();
 }
 
-int Searcher::quiet_history(const Board& board, const SearchStack* ss, Move move) const {
+int Worker::quiet_history(const Board& board, const SearchStack* ss, Move move) const {
     const Piece piece = board.moved_piece(move);
     int score = (*main_history_)[static_cast<std::size_t>(board.side_to_move())][move.from][move.to];
     if (ss != nullptr) {
@@ -441,13 +448,13 @@ int Searcher::quiet_history(const Board& board, const SearchStack* ss, Move move
     return score;
 }
 
-int Searcher::capture_history_value(const Board& board, Move move) const {
+int Worker::capture_history_value(const Board& board, Move move) const {
     const Piece piece = board.moved_piece(move);
     const int captured = piece_type(board.captured_piece(move));
     return (*capture_history_)[static_cast<std::size_t>(piece)][move.to][static_cast<std::size_t>(captured)];
 }
 
-void Searcher::update_continuation(SearchStack* ss, Piece piece, int to, int bonus) {
+void Worker::update_continuation(SearchStack* ss, Piece piece, int to, int bonus) {
     for (const int back : {1, 2, 4}) {
         const SearchStack* previous = ss - back;
         if (previous->continuation == nullptr || previous->current_move.is_none()) continue;
@@ -456,7 +463,7 @@ void Searcher::update_continuation(SearchStack* ss, Piece piece, int to, int bon
     }
 }
 
-void Searcher::update_quiet_stats(const Board& board, SearchStack* ss, Move move, int depth, const Move* quiets,
+void Worker::update_quiet_stats(const Board& board, SearchStack* ss, Move move, int depth, const Move* quiets,
                                   int quiet_count) {
     const int bonus = history_bonus(depth);
     const Color us = board.side_to_move();
@@ -479,7 +486,7 @@ void Searcher::update_quiet_stats(const Board& board, SearchStack* ss, Move move
     }
 }
 
-void Searcher::update_capture_stats(const Board& board, Move best, int depth, const Move* captures, int capture_count) {
+void Worker::update_capture_stats(const Board& board, Move best, int depth, const Move* captures, int capture_count) {
     const int bonus = history_bonus(depth);
     if (best.is_capture()) {
         const Piece piece = board.moved_piece(best);
@@ -498,12 +505,12 @@ void Searcher::update_capture_stats(const Board& board, Move best, int depth, co
 // ---------------------------------------------------------------------------
 // Quiescence search
 
-int Searcher::qsearch(Board& board, SearchStack* ss, int alpha, int beta) {
+int Worker::qsearch(Board& board, SearchStack* ss, int alpha, int beta) {
     const bool pv_node = beta - alpha > 1;
     const int ply = ss->ply;
-    if (((nodes_ & 1023U) == 0 || node_limit_specified_) && should_stop()) aborted_ = true;
+    if (((local_nodes_ & 1023U) == 0 || node_limit_specified_) && should_stop()) aborted_ = true;
     if (aborted_) return 0;
-    ++nodes_;
+    ++local_nodes_;
     seldepth_ = std::max(seldepth_, ply);
     ss->pv_length = 0;
 
@@ -514,7 +521,7 @@ int Searcher::qsearch(Board& board, SearchStack* ss, int alpha, int beta) {
     ss->in_check = in_check;
 
     bool tt_hit = false;
-    TTEntry* tte = tt_.probe(board.key(), tt_hit);
+    TTEntry* tte = shared_.tt.probe(board.key(), tt_hit);
     const Move tt_move = tt_hit ? tte->move : Move::none();
     const int tt_score = tt_hit ? score_from_tt(tte->score, ply) : ValueNone;
     const Bound tt_bound = tt_hit ? tte->bound() : BoundNone;
@@ -542,7 +549,7 @@ int Searcher::qsearch(Board& board, SearchStack* ss, int alpha, int beta) {
         }
         best_score = eval;
         if (best_score >= beta) {
-            if (!tt_hit) tt_.store(tte, board.key(), score_to_tt(best_score, ply), ss->raw_eval, Move::none(), 0, BoundLower, false);
+            if (!tt_hit) shared_.tt.store(tte, board.key(), score_to_tt(best_score, ply), ss->raw_eval, Move::none(), 0, BoundLower, false);
             return best_score;
         }
         if (best_score > alpha) alpha = best_score;
@@ -571,7 +578,7 @@ int Searcher::qsearch(Board& board, SearchStack* ss, int alpha, int beta) {
         (ss + 1)->ply = ply + 1;
         Undo undo;
         (void)board.make_move(move, undo);
-        tt_.prefetch(board.key());
+        shared_.tt.prefetch(board.key());
         const int score = -qsearch(board, ss + 1, -beta, -alpha);
         board.unmake_move(move, undo);
         if (aborted_) return 0;
@@ -592,22 +599,22 @@ int Searcher::qsearch(Board& board, SearchStack* ss, int alpha, int beta) {
     if (in_check && move_count == 0) return mated_in(ply);
 
     const Bound bound = best_score >= beta ? BoundLower : (pv_node && !best_move.is_none() ? BoundExact : BoundUpper);
-    tt_.store(tte, board.key(), score_to_tt(best_score, ply), in_check ? ValueNone : ss->raw_eval, best_move, 0, bound, tt_pv);
+    shared_.tt.store(tte, board.key(), score_to_tt(best_score, ply), in_check ? ValueNone : ss->raw_eval, best_move, 0, bound, tt_pv);
     return best_score;
 }
 
 // ---------------------------------------------------------------------------
 // Main alpha-beta search
 
-int Searcher::search(Board& board, SearchStack* ss, int depth, int alpha, int beta, bool cut_node) {
+int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta, bool cut_node) {
     const bool pv_node = beta - alpha > 1;
     const bool root_node = ss->ply == 0;
     const int ply = ss->ply;
 
     if (depth <= 0) return qsearch(board, ss, alpha, beta);
-    if (((nodes_ & 1023U) == 0 || node_limit_specified_) && should_stop()) aborted_ = true;
+    if (((local_nodes_ & 1023U) == 0 || node_limit_specified_) && should_stop()) aborted_ = true;
     if (aborted_) return 0;
-    ++nodes_;
+    ++local_nodes_;
     seldepth_ = std::max(seldepth_, ply);
     ss->pv_length = 0;
     ss->move_count = 0;
@@ -630,7 +637,7 @@ int Searcher::search(Board& board, SearchStack* ss, int depth, int alpha, int be
 
     // Transposition table probe.
     bool tt_hit = false;
-    TTEntry* tte = tt_.probe(board.key(), tt_hit);
+    TTEntry* tte = shared_.tt.probe(board.key(), tt_hit);
     const Move tt_move = tt_hit ? tte->move : Move::none();
     const int tt_score = tt_hit ? score_from_tt(tte->score, ply) : ValueNone;
     const int tt_depth = tt_hit ? tte->depth : -1;
@@ -733,7 +740,7 @@ int Searcher::search(Board& board, SearchStack* ss, int depth, int alpha, int be
                 board.unmake_move(move, undo);
                 if (aborted_) return 0;
                 if (value >= probcut_beta) {
-                    tt_.store(tte, board.key(), score_to_tt(value, ply), ss->raw_eval, move, depth - 3, BoundLower, ss->tt_pv);
+                    shared_.tt.store(tte, board.key(), score_to_tt(value, ply), ss->raw_eval, move, depth - 3, BoundLower, ss->tt_pv);
                     return value;
                 }
             }
@@ -821,8 +828,8 @@ int Searcher::search(Board& board, SearchStack* ss, int depth, int alpha, int be
         (ss + 1)->ply = ply + 1;
         Undo undo;
         (void)board.make_move(move, undo);
-        tt_.prefetch(board.key());
-        const std::uint64_t nodes_before = nodes_;
+        shared_.tt.prefetch(board.key());
+        const std::uint64_t nodes_before = local_nodes_;
 
         int score = -Infinite;
         bool full_depth_needed = !pv_node || move_count > 1;
@@ -855,7 +862,7 @@ int Searcher::search(Board& board, SearchStack* ss, int depth, int alpha, int be
         }
         board.unmake_move(move, undo);
         if (aborted_) return 0;
-        if (root_node) root_move_nodes_[static_cast<std::size_t>(move_count - 1)] += nodes_ - nodes_before;
+        if (root_node) root_move_nodes_[static_cast<std::size_t>(move_count - 1)] += local_nodes_ - nodes_before;
 
         if (score > best_score) {
             best_score = score;
@@ -894,7 +901,7 @@ int Searcher::search(Board& board, SearchStack* ss, int depth, int alpha, int be
 
     const Bound bound = best_score >= beta ? BoundLower : (pv_node && !best_move.is_none() ? BoundExact : BoundUpper);
     if (excluded.is_none() && !(root_node && root_restricted_)) {
-        tt_.store(tte, board.key(), score_to_tt(best_score, ply), ss->raw_eval, best_move, depth, bound, ss->tt_pv);
+        shared_.tt.store(tte, board.key(), score_to_tt(best_score, ply), ss->raw_eval, best_move, depth, bound, ss->tt_pv);
     }
     // Teach the static evaluation about this pawn structure when the search
     // result is a usable bound in the direction of the difference.
@@ -910,9 +917,11 @@ int Searcher::search(Board& board, SearchStack* ss, int depth, int alpha, int be
 // ---------------------------------------------------------------------------
 // Iterative deepening driver
 
-SearchInfo Searcher::search(Board board, const SearchLimits& limits, bool emit_info) {
+SearchInfo Worker::search(Board board, const SearchLimits& limits, bool emit_info, const std::vector<Worker*>& all) {
     start_ = std::chrono::steady_clock::now();
-    nodes_ = 0;
+    local_nodes_ = 0;
+    nodes_.store(0, std::memory_order_relaxed);
+    all_workers_ = &all;
     seldepth_ = 0;
     aborted_ = false;
     pondering_ = limits.ponder;
@@ -922,8 +931,8 @@ SearchInfo Searcher::search(Board board, const SearchLimits& limits, bool emit_i
     root_restricted_ = limits.search_moves_specified;
     root_history_index_ = board.history_size() - 1;
     node_limit_ = limits.nodes;
-    node_limit_specified_ = limits.nodes_specified || limits.nodes != 0;
-    tt_.new_search();
+    node_limit_specified_ = is_main() && (limits.nodes_specified || limits.nodes != 0);
+    if (is_main()) shared_.tt.new_search();
 
     // Time allocation.
     const std::int64_t overhead = std::max<std::int64_t>(0, limits.move_overhead_ms);
@@ -952,6 +961,11 @@ SearchInfo Searcher::search(Board board, const SearchLimits& limits, bool emit_i
         hard_limit_ms_ = std::max<std::int64_t>(1, std::min(hard, available));
         time_managed_ = true;
     }
+    if (!is_main()) {
+        // Helpers run until the main thread stops them.
+        soft_limit_ms_ = hard_limit_ms_ = 0;
+        time_managed_ = false;
+    }
 
     SearchInfo result;
     const MoveList legal = board.legal_moves();
@@ -976,10 +990,11 @@ SearchInfo Searcher::search(Board board, const SearchLimits& limits, bool emit_i
         if (!emit_info) return;
         const std::int64_t elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(
             std::chrono::steady_clock::now() - start_).count();
-        const std::uint64_t nps = elapsed > 0 ? nodes_ * 1000U / static_cast<std::uint64_t>(elapsed) : 0;
+        const std::uint64_t nodes = total_nodes();
+        const std::uint64_t nps = elapsed > 0 ? nodes * 1000U / static_cast<std::uint64_t>(elapsed) : 0;
         const std::lock_guard<std::mutex> output_lock(uci_output_mutex());
         std::cout << "info depth " << depth << " seldepth " << std::max(seldepth_, depth) << " score " << format_score(score)
-                  << " nodes " << nodes_ << " nps " << nps << " hashfull " << tt_.hashfull() << " time " << elapsed << " pv";
+                  << " nodes " << nodes << " nps " << nps << " hashfull " << shared_.tt.hashfull() << " time " << elapsed << " pv";
         for (const Move move : pv) std::cout << ' ' << Board::move_to_uci(move);
         std::cout << std::endl;
     };
@@ -997,7 +1012,8 @@ SearchInfo Searcher::search(Board board, const SearchLimits& limits, bool emit_i
             if (should_stop()) break;
         }
         if (!root_candidates.empty()) result.best_move = root_candidates.front();
-        result.nodes = nodes_;
+        result.nodes = total_nodes();
+        nodes_.store(local_nodes_, std::memory_order_relaxed);
         result.elapsed_ms = static_cast<std::uint64_t>(std::chrono::duration_cast<std::chrono::milliseconds>(
             std::chrono::steady_clock::now() - start_).count());
         return result;
@@ -1072,7 +1088,7 @@ SearchInfo Searcher::search(Board board, const SearchLimits& limits, bool emit_i
         result.pv.assign(ss->pv.begin(), ss->pv.begin() + ss->pv_length);
         if (!result.pv.empty()) result.best_move = result.pv.front();
         result.ponder_move = result.pv.size() > 1 ? result.pv[1] : Move::none();
-        result.nodes = nodes_;
+        result.nodes = total_nodes();
         emit(depth, score, result.pv);
 
         if (result.best_move == previous_best) ++stable_iterations;
@@ -1081,7 +1097,7 @@ SearchInfo Searcher::search(Board board, const SearchLimits& limits, bool emit_i
 
         if (mate_moves > 0 && is_mate_score(score) && MateValue - std::abs(score) <= mate_depth) break;
         if (should_stop()) break;
-        if (time_managed_ && !(pondering_ && ponder_hit_ns_.load(std::memory_order_relaxed) == 0)) {
+        if (time_managed_ && !(pondering_ && shared_.ponder_hit_ns.load(std::memory_order_relaxed) == 0)) {
             // Stop early when the best move has been stable; spend longer when it keeps changing.
             double factor = 1.0;
             if (stable_iterations >= 6) factor = 0.6;
@@ -1089,20 +1105,67 @@ SearchInfo Searcher::search(Board board, const SearchLimits& limits, bool emit_i
             else if (stable_iterations == 0 && depth >= 6) factor = 1.4;
             // A best move that absorbed most of the effort is clearly best;
             // spend longer when the alternatives still draw attention.
-            if (root_best_index_ >= 0 && nodes_ > 0 && depth >= 6) {
+            if (root_best_index_ >= 0 && local_nodes_ > 0 && depth >= 6) {
                 const double effort = static_cast<double>(root_move_nodes_[static_cast<std::size_t>(root_best_index_)]) /
-                                      static_cast<double>(nodes_);
+                                      static_cast<double>(local_nodes_);
                 factor *= std::clamp(1.55 - effort, 0.6, 1.4);
             }
             if (elapsed_ms() >= static_cast<std::int64_t>(static_cast<double>(soft_limit_ms_) * factor)) break;
         }
     }
 
-    result.nodes = nodes_;
+    nodes_.store(local_nodes_, std::memory_order_relaxed);
+    result.nodes = total_nodes();
     result.seldepth = std::max(result.seldepth, seldepth_);
     result.elapsed_ms = static_cast<std::uint64_t>(std::chrono::duration_cast<std::chrono::milliseconds>(
         std::chrono::steady_clock::now() - start_).count());
     if (result.best_move.is_none()) result.best_move = root_candidates.front();
+    return result;
+}
+
+// ---------------------------------------------------------------------------
+// Searcher facade
+
+Searcher::Searcher(std::size_t hash_mb, int threads) : shared_(hash_mb) {
+    set_threads(threads);
+}
+
+Searcher::~Searcher() = default;
+
+void Searcher::set_threads(int threads) {
+    const std::size_t count = static_cast<std::size_t>(std::clamp(threads, 1, 256));
+    while (workers_.size() > count) workers_.pop_back();
+    while (workers_.size() < count) {
+        workers_.push_back(std::make_unique<Worker>(shared_, static_cast<int>(workers_.size())));
+    }
+}
+
+void Searcher::resize_hash(std::size_t hash_mb) { shared_.tt.resize(hash_mb); }
+
+void Searcher::clear_hash() {
+    shared_.tt.clear();
+    for (auto& worker : workers_) worker->clear_caches();
+}
+
+void Searcher::clear() {
+    shared_.tt.clear();
+    for (auto& worker : workers_) worker->clear();
+}
+
+SearchInfo Searcher::search(Board board, const SearchLimits& limits, bool emit_info) {
+    std::vector<Worker*> all;
+    all.reserve(workers_.size());
+    for (auto& worker : workers_) all.push_back(worker.get());
+    std::vector<std::thread> helpers;
+    for (std::size_t i = 1; i < workers_.size(); ++i) {
+        helpers.emplace_back([this, i, board, &limits, &all]() { (void)workers_[i]->search(board, limits, false, all); });
+    }
+    SearchInfo result = workers_.front()->search(board, limits, emit_info, all);
+    // Wind down the helpers without clobbering an externally requested stop.
+    const bool external_stop = shared_.stop.load(std::memory_order_relaxed);
+    shared_.stop.store(true, std::memory_order_relaxed);
+    for (auto& helper : helpers) helper.join();
+    shared_.stop.store(external_stop, std::memory_order_relaxed);
     return result;
 }
 

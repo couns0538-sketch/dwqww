@@ -9,6 +9,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <memory>
+#include <thread>
 #include <vector>
 
 namespace forge {
@@ -48,7 +49,6 @@ constexpr int Infinite = 32001;
 constexpr int MateValue = 32000;
 constexpr int MateInMaxPly = MateValue - MaxPly;
 constexpr int ValueNone = 32002;
-constexpr int TbWinValue = 0;
 
 [[nodiscard]] constexpr bool is_mate_score(int score) {
     return score >= MateInMaxPly || score <= -MateInMaxPly;
@@ -76,6 +76,8 @@ struct alignas(64) TTCluster {
     std::array<TTEntry, 4> entries{};
 };
 
+// Shared between all search threads. Entries are written without locks; a
+// torn entry is caught by the key check and by hash-move legality tests.
 class TranspositionTable {
 public:
     explicit TranspositionTable(std::size_t mb = 32) { resize(mb); }
@@ -83,6 +85,10 @@ public:
     void clear();
     void new_search() { generation_ = static_cast<std::uint8_t>((generation_ + 1U) & 31U); }
     [[nodiscard]] TTEntry* probe(std::uint64_t key, bool& hit);
+    void store(TTEntry* entry, std::uint64_t key, int score, int eval, Move move, int depth, Bound bound, bool pv);
+    [[nodiscard]] int hashfull() const;
+    [[nodiscard]] std::uint8_t generation() const { return generation_; }
+    [[nodiscard]] std::size_t cluster_count() const { return cluster_count_; }
     void prefetch(std::uint64_t key) const {
 #if defined(__GNUC__) || defined(__clang__)
         __builtin_prefetch(&cluster_for(key));
@@ -90,10 +96,6 @@ public:
         (void)key;
 #endif
     }
-    void store(TTEntry* entry, std::uint64_t key, int score, int eval, Move move, int depth, Bound bound, bool pv);
-    [[nodiscard]] int hashfull() const;
-    [[nodiscard]] std::uint8_t generation() const { return generation_; }
-    [[nodiscard]] std::size_t cluster_count() const { return cluster_count_; }
 
 private:
     std::unique_ptr<TTCluster[]> clusters_;
@@ -139,37 +141,37 @@ struct SearchStack {
     PieceToHistory* continuation = nullptr;
 };
 
-class Searcher {
-public:
-    explicit Searcher(std::size_t hash_mb = 32);
-    ~Searcher();
-    Searcher(const Searcher&) = delete;
-    Searcher& operator=(const Searcher&) = delete;
+// State shared by every worker of one Searcher.
+struct SharedSearchState {
+    explicit SharedSearchState(std::size_t hash_mb) : tt(hash_mb) {}
+    TranspositionTable tt;
+    std::atomic<bool> stop{false};
+    // 0 means pondering has not been converted into a timed search.
+    std::atomic<std::int64_t> ponder_hit_ns{0};
+};
 
-    SearchInfo search(Board board, const SearchLimits& limits, bool emit_info = false);
-    void stop() { stop_.store(true, std::memory_order_relaxed); }
-    void reset_stop() {
-        stop_.store(false, std::memory_order_relaxed);
-        ponder_hit_ns_.store(0, std::memory_order_relaxed);
-    }
-    void ponderhit() {
-        const auto now_ns = std::chrono::duration_cast<std::chrono::nanoseconds>(
-            std::chrono::steady_clock::now().time_since_epoch()).count();
-        std::int64_t expected = 0;
-        (void)ponder_hit_ns_.compare_exchange_strong(expected, now_ns);
-    }
+// One search thread: owns its histories, stack and evaluation cache.
+class Worker {
+public:
+    Worker(SharedSearchState& shared, int id);
+    ~Worker();
+    Worker(const Worker&) = delete;
+    Worker& operator=(const Worker&) = delete;
+
+    // Thread 0 drives time management and reporting; helpers search the same
+    // root until the shared stop flag is raised.
+    SearchInfo search(Board board, const SearchLimits& limits, bool emit_info, const std::vector<Worker*>& all);
     void clear();
-    void clear_hash();
-    void resize_hash(std::size_t hash_mb);
-    [[nodiscard]] int hashfull_permille() const { return tt_.hashfull(); }
-    [[nodiscard]] static int evaluate(const Board& board) { return Evaluator::evaluate_uncached(board); }
-    [[nodiscard]] std::uint64_t nodes() const { return nodes_; }
+    void clear_caches() { evaluator_.clear(); }
+    [[nodiscard]] std::uint64_t nodes() const { return nodes_.load(std::memory_order_relaxed); }
+    [[nodiscard]] bool is_main() const { return id_ == 0; }
 
 private:
     friend struct SearcherTestProbe;
     friend class MovePicker;
 
-    TranspositionTable tt_;
+    SharedSearchState& shared_;
+    int id_ = 0;
     Evaluator evaluator_;
     std::unique_ptr<ButterflyHistory> main_history_;
     std::unique_ptr<CaptureHistory> capture_history_;
@@ -180,11 +182,11 @@ private:
     std::array<std::uint64_t, 256> root_move_nodes_{};
     int root_best_index_ = -1;
 
-    std::atomic<bool> stop_{false};
-    std::atomic<std::int64_t> ponder_hit_ns_{0};
     bool pondering_ = false;
     std::chrono::steady_clock::time_point start_{};
-    std::uint64_t nodes_ = 0;
+    std::atomic<std::uint64_t> nodes_{0};
+    std::uint64_t local_nodes_ = 0;
+    const std::vector<Worker*>* all_workers_ = nullptr;
     std::uint64_t node_limit_ = 0;
     bool node_limit_specified_ = false;
     std::int64_t soft_limit_ms_ = 0;
@@ -203,6 +205,7 @@ private:
     int qsearch(Board& board, SearchStack* ss, int alpha, int beta);
     [[nodiscard]] bool should_stop();
     [[nodiscard]] std::int64_t elapsed_ms() const;
+    [[nodiscard]] std::uint64_t total_nodes() const;
     [[nodiscard]] bool is_draw(const Board& board, int ply) const;
     void update_quiet_stats(const Board& board, SearchStack* ss, Move move, int depth,
                             const Move* quiets, int quiet_count);
@@ -212,6 +215,41 @@ private:
     [[nodiscard]] int capture_history_value(const Board& board, Move move) const;
     [[nodiscard]] int corrected_eval(const Board& board, int raw_eval) const;
     void update_correction(const Board& board, int depth, int best_score, int static_eval);
+};
+
+// Public search facade: a shared transposition table plus one or more workers.
+class Searcher {
+public:
+    explicit Searcher(std::size_t hash_mb = 32, int threads = 1);
+    ~Searcher();
+    Searcher(const Searcher&) = delete;
+    Searcher& operator=(const Searcher&) = delete;
+
+    SearchInfo search(Board board, const SearchLimits& limits, bool emit_info = false);
+    void stop() { shared_.stop.store(true, std::memory_order_relaxed); }
+    void reset_stop() {
+        shared_.stop.store(false, std::memory_order_relaxed);
+        shared_.ponder_hit_ns.store(0, std::memory_order_relaxed);
+    }
+    void ponderhit() {
+        const auto now_ns = std::chrono::duration_cast<std::chrono::nanoseconds>(
+            std::chrono::steady_clock::now().time_since_epoch()).count();
+        std::int64_t expected = 0;
+        (void)shared_.ponder_hit_ns.compare_exchange_strong(expected, now_ns);
+    }
+    void clear();
+    void clear_hash();
+    void resize_hash(std::size_t hash_mb);
+    void set_threads(int threads);
+    [[nodiscard]] int threads() const { return static_cast<int>(workers_.size()); }
+    [[nodiscard]] int hashfull_permille() const { return shared_.tt.hashfull(); }
+    [[nodiscard]] static int evaluate(const Board& board) { return Evaluator::evaluate_uncached(board); }
+    [[nodiscard]] Worker& main_worker() { return *workers_.front(); }
+    [[nodiscard]] TranspositionTable& transposition_table() { return shared_.tt; }
+
+private:
+    SharedSearchState shared_;
+    std::vector<std::unique_ptr<Worker>> workers_;
 };
 
 } // namespace forge

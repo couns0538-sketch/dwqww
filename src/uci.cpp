@@ -143,6 +143,7 @@ int main() {
             std::cout << "id name Chess Engine Forge 6.0.0\n"
                          "id author OpenAI\n"
                          "option name Hash type spin default 32 min 1 max 2048\n"
+                         "option name Threads type spin default 1 min 1 max 256\n"
                          "option name Move Overhead type spin default 10 min 0 max 1000\n"
                          "option name Ponder type check default false\n"
                          "option name Clear Hash type button\n"
@@ -175,7 +176,7 @@ int main() {
                     const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex());
                     std::cout << "info string invalid value for option Ponder" << std::endl;
                 }
-            } else if (name == "Hash" || name == "Move Overhead") {
+            } else if (name == "Hash" || name == "Move Overhead" || name == "Threads") {
                 int value = 0;
                 const auto parsed = std::from_chars(
                     value_text.data(), value_text.data() + value_text.size(), value);
@@ -183,6 +184,8 @@ int main() {
                     { const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex()); std::cout << "info string invalid value for option " << name << std::endl; }
                 } else if (name == "Hash") {
                     searcher.resize_hash(static_cast<std::size_t>(std::clamp(value, 1, 2048)));
+                } else if (name == "Threads") {
+                    searcher.set_threads(std::clamp(value, 1, 256));
                 } else {
                     move_overhead_ms = std::clamp(value, 0, 1000);
                 }
