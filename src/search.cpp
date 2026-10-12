@@ -454,6 +454,29 @@ void Worker::clear() {
     for (SearchStack& ss : stack_) ss = SearchStack{};
 }
 
+int Worker::static_evaluate(const Board& board, SearchStack* ss) {
+    if (!nnue::enabled || !nnue::available()) return evaluator_.evaluate(board);
+    if (!ss->accumulator.valid) {
+        // Walk back to the nearest valid accumulator, then replay the moves.
+        int back = 0;
+        while (back < ss->ply && !(ss - back - 1)->accumulator.valid) ++back;
+        if (back >= ss->ply && !(ss - back - 1)->accumulator.valid) {
+            nnue::refresh(board, ss->accumulator);
+        } else {
+            for (int i = back; i >= 0; --i) nnue::update((ss - i - 1)->accumulator, (ss - i)->accumulator, (ss - i)->dirty);
+        }
+    }
+    return nnue::evaluate(board, ss->accumulator);
+}
+
+void Worker::record_move(SearchStack* ss, const Board& board, const Move& move) {
+    // Called before make_move: the child's accumulator becomes stale and the
+    // piece changes are remembered for the lazy update.
+    if (!nnue::enabled || !nnue::available()) return;
+    (ss + 1)->dirty = nnue::dirty_pieces(board, move);
+    (ss + 1)->accumulator.valid = false;
+}
+
 int Worker::corrected_eval(const Board& board, int raw_eval) const {
     const std::int32_t correction =
         (*correction_history_)[static_cast<std::size_t>(board.side_to_move())][board.pawn_key() & (CorrectionSize - 1U)];
@@ -588,7 +611,7 @@ int Worker::qsearch(Board& board, SearchStack* ss, int alpha, int beta) {
     ss->pv_length = 0;
 
     if (is_draw(board, ply)) return 0;
-    if (ply >= MaxPly) return board.in_check() ? 0 : evaluator_.evaluate(board);
+    if (ply >= MaxPly) return board.in_check() ? 0 : static_evaluate(board, ss);
 
     const bool in_check = board.in_check();
     ss->in_check = in_check;
@@ -613,7 +636,7 @@ int Worker::qsearch(Board& board, SearchStack* ss, int alpha, int beta) {
     } else {
         int eval;
         if (tt_hit && tte->eval != ValueNone) ss->raw_eval = tte->eval;
-        else ss->raw_eval = evaluator_.evaluate(board);
+        else ss->raw_eval = static_evaluate(board, ss);
         eval = ss->static_eval = corrected_eval(board, ss->raw_eval);
         if (tt_hit && tt_score != ValueNone &&
             ((tt_bound == BoundLower && tt_score > eval) || (tt_bound == BoundUpper && tt_score < eval) ||
@@ -649,6 +672,7 @@ int Worker::qsearch(Board& board, SearchStack* ss, int alpha, int beta) {
         ss->moved_piece = board.moved_piece(move);
         ss->continuation = &(*continuation_history_)[static_cast<std::size_t>(ss->moved_piece)][move.to];
         (ss + 1)->ply = ply + 1;
+        record_move(ss, board, move);
         Undo undo;
         (void)board.make_move(move, undo);
         shared_.tt.prefetch(board.key());
@@ -694,7 +718,7 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
 
     if (!root_node) {
         if (is_draw(board, ply)) return 0;
-        if (ply >= MaxPly) return board.in_check() ? 0 : evaluator_.evaluate(board);
+        if (ply >= MaxPly) return board.in_check() ? 0 : static_evaluate(board, ss);
         // Mate distance pruning.
         alpha = std::max(alpha, mated_in(ply));
         beta = std::min(beta, mate_in(ply + 1));
@@ -733,7 +757,7 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
         eval = ss->static_eval;
     } else {
         if (tt_hit && tte->eval != ValueNone) ss->raw_eval = tte->eval;
-        else ss->raw_eval = evaluator_.evaluate(board);
+        else ss->raw_eval = static_evaluate(board, ss);
         eval = ss->static_eval = corrected_eval(board, ss->raw_eval);
         if (tt_hit && tt_score != ValueNone &&
             ((tt_bound == BoundLower && tt_score > eval) || (tt_bound == BoundUpper && tt_score < eval) ||
@@ -773,6 +797,8 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
             ss->moved_piece = Empty;
             ss->continuation = &(*continuation_history_)[Empty][0];
             (ss + 1)->ply = ply + 1;
+            (ss + 1)->dirty.count = 0;
+            (ss + 1)->accumulator.valid = false;
             NullUndo undo;
             board.make_null_move(undo);
             int null_score = -search(board, ss + 1, depth - reduction, -beta, -beta + 1, !cut_node);
@@ -808,6 +834,7 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
                 ss->moved_piece = board.moved_piece(move);
                 ss->continuation = &(*continuation_history_)[static_cast<std::size_t>(ss->moved_piece)][move.to];
                 (ss + 1)->ply = ply + 1;
+                record_move(ss, board, move);
                 Undo undo;
                 (void)board.make_move(move, undo);
                 int value = -qsearch(board, ss + 1, -probcut_beta, -probcut_beta + 1);
@@ -904,6 +931,7 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
         ss->moved_piece = moved;
         ss->continuation = &(*continuation_history_)[static_cast<std::size_t>(moved)][move.to];
         (ss + 1)->ply = ply + 1;
+        record_move(ss, board, move);
         Undo undo;
         (void)board.make_move(move, undo);
         shared_.tt.prefetch(board.key());
@@ -1117,6 +1145,8 @@ SearchInfo Worker::search(Board board, const SearchLimits& limits, bool emit_inf
     }
     SearchStack* ss = &stack_[4];
     for (int i = 0; i < MaxPly + 4; ++i) stack_[static_cast<std::size_t>(i)].ply = i - 4;
+    for (SearchStack& entry : stack_) entry.accumulator.valid = false;
+    if (nnue::enabled && nnue::available()) nnue::refresh(board, ss->accumulator);
 
     Move previous_best = Move::none();
     int stable_iterations = 0;

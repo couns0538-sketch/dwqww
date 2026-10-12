@@ -1,5 +1,6 @@
 #include "forge/board.hpp"
 #include "forge/eval.hpp"
+#include "forge/nnue.hpp"
 #include "forge/search.hpp"
 
 #include <algorithm>
@@ -409,6 +410,44 @@ void test_threads() {
     check(forge::Board::move_to_uci(info.best_move) == "e1e8", "single-threaded search still works after resizing");
 }
 
+void test_nnue() {
+    if (!forge::nnue::available()) return;
+    // Incremental accumulator updates must agree with a full refresh along
+    // random games, including castling, promotions and en passant.
+    forge::Board board;
+    std::uint64_t random_state = 0x243f6a8885a308d3ULL;
+    int mismatches = 0;
+    for (int game = 0; game < 6; ++game) {
+        check(board.set_fen(forge::Board::StandardStartFen), "nnue walk reset");
+        forge::nnue::Accumulator incremental;
+        forge::nnue::refresh(board, incremental);
+        for (int ply = 0; ply < 160; ++ply) {
+            const forge::MoveList legal = board.legal_moves();
+            if (legal.empty()) break;
+            random_state = random_state * 6364136223846793005ULL + 1442695040888963407ULL;
+            const forge::Move move = legal[static_cast<std::size_t>(random_state % legal.size())];
+            const forge::nnue::DirtyPieces dirty = forge::nnue::dirty_pieces(board, move);
+            forge::Undo undo;
+            (void)board.make_move(move, undo);
+            forge::nnue::Accumulator next;
+            forge::nnue::update(incremental, next, dirty);
+            forge::nnue::Accumulator fresh;
+            forge::nnue::refresh(board, fresh);
+            if (forge::nnue::evaluate(board, next) != forge::nnue::evaluate(board, fresh)) ++mismatches;
+            incremental = next;
+            if (board.halfmove_clock() >= 100 || board.is_repetition()) break;
+        }
+    }
+    check(mismatches == 0, "incremental NNUE accumulators match full refreshes");
+    check(board.set_fen("6k1/8/8/8/8/8/8/Q3K3 w - - 0 1"), "nnue material FEN parses");
+    forge::nnue::Accumulator acc;
+    forge::nnue::refresh(board, acc);
+    check(forge::nnue::evaluate(board, acc) > 300, "NNUE sees a decisive material advantage");
+    check(board.set_fen("q3k3/8/8/8/8/8/8/6K1 b - - 0 1"), "nnue mirrored FEN parses");
+    forge::nnue::refresh(board, acc);
+    check(forge::nnue::evaluate(board, acc) > 300, "NNUE evaluates from the side to move's perspective");
+}
+
 void test_transposition_table() {
     forge::TranspositionTable tt(1);
     bool hit = true;
@@ -439,6 +478,7 @@ int main() {
     test_transposition_table();
     test_search();
     test_threads();
+    test_nnue();
     if (failures == 0) {
         std::cout << "All tests passed\n";
         return 0;

@@ -10,6 +10,7 @@ add_library(forge_core
     src/board.cpp
     src/eval.cpp
     src/eval_params.cpp
+    src/nnue.cpp
     src/search.cpp
 )
 target_include_directories(forge_core PUBLIC include)
@@ -52,6 +53,8 @@ if(FORGE_BUILD_TUNING_TOOLS)
     target_link_libraries(forge_extract PRIVATE forge_core)
     add_executable(forge_texel tools/tune/texel.cpp)
     target_link_libraries(forge_texel PRIVATE forge_core Threads::Threads)
+    add_executable(forge_nnue_train tools/tune/nnue_train.cpp)
+    target_link_libraries(forge_nnue_train PRIVATE forge_core Threads::Threads)
 endif()
 find_package(Python3 3.10 COMPONENTS Interpreter QUIET)
 if(Python3_Interpreter_FOUND)

@@ -1,4 +1,5 @@
 #include "forge/board.hpp"
+#include "forge/nnue.hpp"
 #include "forge/search.hpp"
 #include "forge/uci_output.hpp"
 
@@ -145,8 +146,9 @@ int main() {
                          "option name Hash type spin default 32 min 1 max 2048\n"
                          "option name Threads type spin default 1 min 1 max 256\n"
                          "option name Move Overhead type spin default 10 min 0 max 1000\n"
-                         "option name Ponder type check default false\n"
-                         "option name Clear Hash type button\n"
+                         "option name Ponder type check default false\n";
+            if (forge::nnue::available()) std::cout << "option name UseNNUE type check default true\n";
+            std::cout << "option name Clear Hash type button\n"
                          "uciok" << std::endl;
         } else if (command == "isready") {
             { const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex()); std::cout << "readyok" << std::endl; }
@@ -192,6 +194,14 @@ int main() {
                     const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex());
                     std::cout << "info string invalid value for option Ponder" << std::endl;
                 }
+            } else if (name == "UseNNUE") {
+                if (value_text == "true") forge::nnue::enabled = true;
+                else if (value_text == "false") forge::nnue::enabled = false;
+                else {
+                    const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex());
+                    std::cout << "info string invalid value for option UseNNUE" << std::endl;
+                }
+                searcher.clear_hash();
             } else if (name == "Hash" || name == "Move Overhead" || name == "Threads") {
                 int value = 0;
                 const auto parsed = std::from_chars(

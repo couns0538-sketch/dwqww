@@ -2,6 +2,7 @@
 
 #include "forge/board.hpp"
 #include "forge/eval.hpp"
+#include "forge/nnue.hpp"
 
 #include <array>
 #include <atomic>
@@ -188,6 +189,10 @@ struct SearchStack {
     bool tt_pv = false;
     bool null_move_allowed = true;
     PieceToHistory* continuation = nullptr;
+    // NNUE state: the accumulator is refreshed lazily from the nearest valid
+    // ancestor using the piece changes recorded for each ply.
+    nnue::Accumulator accumulator{};
+    nnue::DirtyPieces dirty{};
 };
 
 // State shared by every worker of one Searcher.
@@ -264,6 +269,8 @@ private:
     [[nodiscard]] int capture_history_value(const Board& board, Move move) const;
     [[nodiscard]] int corrected_eval(const Board& board, int raw_eval) const;
     void update_correction(const Board& board, int depth, int best_score, int static_eval);
+    [[nodiscard]] int static_evaluate(const Board& board, SearchStack* ss);
+    void record_move(SearchStack* ss, const Board& board, const Move& move);
 };
 
 // Public search facade: a shared transposition table plus one or more workers.
