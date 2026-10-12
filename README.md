@@ -1,11 +1,13 @@
 # Chess Engine Forge
 
-Chess Engine Forge 6.1.0 is a C++20 UCI chess engine. Version 6.0.0 rewrote
+Chess Engine Forge 6.2.0 is a C++20 UCI chess engine. Version 6.0.0 rewrote
 the move generator, search, and evaluation from the ground up for playing
-strength, replacing the conservative 5.x search. Version 6.1.0 adds
+strength, replacing the conservative 5.x search. Version 6.1.0 added
 multi-threaded search (`Threads` option, Lazy SMP), a broader evaluation
 correction history, capture futility pruning, and a faster default build and
-move picker.
+move picker. Version 6.2.0 adds quiet checks in quiescence search, a
+pawn-structure move-ordering history, history-aware futility pruning and
+capture reductions, and thread voting for the multi-threaded search.
 
 ## Strength
 
@@ -28,7 +30,11 @@ the direct comparisons are in `validation/release-6.1.0/README.md`:
 `Threads=2` beats `Threads=1` by +81 +/- 40 Elo at 5+0.05, and the
 single-thread changes are positive per node (correction history +12 to +24
 Elo at 100k nodes, capture futility +11 Elo at 25k nodes) and neutral to
-slightly positive at blitz time controls.
+slightly positive at blitz time controls. The 6.2.0 search changes were
+each measured in 1000-game fixed-node self-play against 6.1.0 and then
+confirmed together at 3+0.03: **6.2.0 beats 6.1.0 by +17 +/- 22 Elo**
+(300 games, one thread, LOS 94 %). The records are in
+`validation/release-6.2.0/README.md`.
 
 ## Features
 
@@ -46,24 +52,26 @@ Search
 
 - Iterative deepening principal-variation search with aspiration windows
 - Lazy SMP: `Threads` worker threads share the transposition table; odd
-  helpers skip the first iteration so the trees diverge
+  helpers skip the first iteration so the trees diverge; the best move is
+  chosen by thread voting (score- and depth-weighted support per move)
 - Bucketed transposition table (16-byte entries, 4-way clusters, aging,
   stored static evaluation, prefetch)
 - Staged move picker: hash move, SEE-filtered captures with capture history,
   killers, countermove, history-ordered quiets (checks first), losing captures
-- Butterfly, continuation (1/2/4 ply) and capture histories
+- Butterfly, continuation (1/2/4 ply), capture and pawn-structure histories
 - Evaluation correction histories keyed by pawn structure, each side's
   non-pawn placement, minor and major piece configurations, and the last two
   moves
-- Late move reductions with history, PV, cut-node, check, and improving terms
-- Late move pruning, futility pruning for quiets and captures, reverse
-  futility pruning, razoring,
+- Late move reductions with quiet- and capture-history, PV, cut-node, check,
+  and improving terms
+- Late move pruning, history-aware futility pruning for quiets, futility
+  pruning for captures, reverse futility pruning, razoring,
   SEE pruning for quiets and captures, history pruning
 - Null move pruning with adaptive reduction and high-depth verification
 - ProbCut, internal iterative reductions, singular extensions with double and
-  negative extensions and multi-cut, check extensions for safe checks
-- Quiescence search with transposition table, futility and SEE pruning, and
-  full evasion generation when in check
+  negative extensions and multi-cut
+- Quiescence search with transposition table, futility and SEE pruning,
+  quiet checks at the first ply, and full evasion generation when in check
 - Mate distance pruning, 50-move and insufficient-material detection
 - Time management with soft/hard limits, best-move stability and effort scaling
 

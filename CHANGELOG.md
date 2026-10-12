@@ -1,5 +1,61 @@
 # Changelog
 
+## 6.2.0 - 2026-10-12
+
+Strength release on top of 6.1.0: quiescence checks, a pawn-structure
+history, history-aware pruning, a simpler extension scheme, and thread
+voting for the multi-threaded search. Every search change was measured in
+1000-game fixed-node self-play (25,000 nodes per move, no adjudication);
+see `validation/release-6.2.0/README.md`.
+
+- Quiescence search: the first quiescence ply also tries the quiet moves
+  that give direct check, after the captures; a quiet check whose two
+  continuation histories are both negative is skipped, and the SEE filter
+  applies. +7.6 +/- 14.3 Elo per node.
+- Move ordering: a pawn-structure history (512 pawn-key buckets x piece x
+  destination) is updated with the quiet bonus/malus and added to the
+  ordering score of quiet moves. It is kept out of the history value that
+  drives pruning and reductions (the variant that fed it in scored 46 %
+  and was abandoned). +2.4 +/- 13.5 Elo per node; the depth-13 bench tree
+  shrinks by 18 %.
+- Pruning: quiet futility pruning subtracts history / 32 from its margin,
+  reaches LMR depth 8 and decides per move instead of switching off all
+  remaining quiets; late move reductions of captures follow the capture
+  history. +7.6 +/- 14.0 Elo per node.
+- Extensions: the one-ply extension of safe checking moves is removed
+  (+0.4 +/- 14.6 Elo per node, i.e. neutral, with 7 % fewer nodes per
+  depth); reductions already treat checks more carefully.
+- Threads: the pool picks the best move by thread voting (score- and
+  depth-weighted support per move, deeper thread on ties, mate scores
+  compared directly) instead of always taking the main thread's line, and
+  prints the adopted line when it differs. `go nodes` now budgets the
+  nodes of all threads together.
+- Move generation: in check, `Board::generate_pseudo_legal` only produces
+  king moves plus captures of the checker and interpositions (king moves
+  only in double check), instead of every pseudo-legal move for the
+  legality filter to discard; the generation order is unchanged, so the
+  legal moves come out in the same sequence (verified over 42,513 random
+  in-check positions, perft unchanged). The quiescence checking moves are
+  generated straight from the checking squares, and the picker generates
+  quiet moves directly (`Board::GenType::Quiets`) instead of generating
+  everything and discarding the captures it had already searched. Net
+  effect: 6.2.0 searches about 3 % more nodes per second than 6.1.0
+  despite the extra in-check quiescence nodes (it was 7 % slower before
+  the evasion generator). `bench` 13 signature: 1,234,322.
+- Tuning tools: `forge_extract` honours the PGN `[FEN]` header, so games
+  played from EPD openings yield training positions.
+- Not adopted after testing (all 1000-game fixed-node matches): one ply
+  less LMR in PV nodes (-2.4 +/- 14.4, and 17 % more nodes per depth),
+  singular extensions from depth 6 (+0.7 +/- 14.1), a wider quiescence
+  futility margin (220 instead of 160; 0.0 +/- 14.7), stronger negative
+  extensions (-3/-2; +1.0 +/- 14.0), the 4-ply continuation history in
+  the pruning history (-1.0 +/- 14.1), and a Texel refit of the evaluation
+  table on 251k positions from these matches (+2.8 +/- 14.2).
+- Strength: 6.2.0 beats 6.1.0 by **+17 +/- 22 Elo** (LOS 94 %) over 300
+  games at 3+0.03, one thread (108 / 93 / 99). The same search tree in the
+  build before the check-aware generator scored -8 +/- 24, which is how
+  the speed loss was found; see `validation/release-6.2.0/README.md`.
+
 ## 6.1.0 - 2026-10-12
 
 Strength release on top of 6.0.0: multi-threaded search, a broader evaluation

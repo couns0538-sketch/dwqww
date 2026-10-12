@@ -1,3 +1,30 @@
+# Release state — Chess Engine Forge 6.2.0
+
+Status: **strength release on top of 6.1.0; search refinements and thread voting**.
+
+Changes relative to 6.1.0 (see `CHANGELOG.md`): quiet checks at the first
+quiescence ply; a pawn-structure history for quiet move ordering;
+history-aware quiet futility pruning and capture-history reductions; the
+check extension removed; thread voting and pool-wide node budgets for
+`Threads > 1`; check-aware move generation (about 3 % more nodes per second
+than 6.1.0) and quiet-only generation in the picker; the tuning extractor
+reads PGN `[FEN]` headers. Match records live in `validation/release-6.2.0/`.
+
+Validation performed: GCC 13.3 Release with strict warnings as errors and GCC
+ASan+UBSan, 4/4 CTest suites each; sanitizer-built engine exercised with four
+threads through `go movetime`, `go depth`, `go infinite` + `stop`, `go nodes`
+and `ucinewgame`; each search change measured on its own in 1000-game
+fixed-node self-play (25,000 nodes per move, no adjudication) against 6.1.0;
+the adopted set confirmed together at 3+0.03 (+17 +/- 22 Elo over 300 games,
+LOS 94 %); five further parameter changes and one evaluation refit were
+tested the same way and not adopted. Single-thread `bench` signatures are
+unchanged by the threading and generation changes.
+
+Not done for this release: opening book, tablebases, Windows runtime testing,
+a separately measured Elo figure for thread voting (sanity-checked only).
+
+---
+
 # Release state — Chess Engine Forge 6.1.0
 
 Status: **strength release on top of 6.0.0; adds multi-threaded search**.
