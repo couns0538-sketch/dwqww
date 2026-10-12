@@ -10,9 +10,16 @@ Measured with fastchess (pinned commit from `tools/match/README.md`), both sides
 with Hash 32 MiB on the `tools/openings/forge-10000.epd` corpus, candidate against the unchanged
 5.31.0 binary:
 
-| Change | Time control | Games | Result | Elo |
+| Change (each measured against the previous step) | Time control | Games | Result | Elo |
 |---|---|---|---|---|
-| Selective search (LMR from depth 3, null move from depth 3, reverse futility, LMP/futility, check extension, SEE ordering, aspiration, soft time limit) | 5+0.05 | 100 | W88 D7 L5 | +413 +/- 111 |
+| Selective search (LMR from depth 3, null move from depth 3, reverse futility, LMP/futility, check extension, SEE ordering, aspiration, soft time limit) vs 5.31.0 | 5+0.05 | 100 | W88 D7 L5 | +413 +/- 111 |
+| Position-indexed transposition table, standard repetition rule | 5+0.05 | 120 | W42 D40 L38 | +12 +/- 38 (fixed-depth nodes -4% to -56%) |
+| PeSTO piece-square tables | 5+0.05 | 120 | W64 D36 L20 | +134 +/- 56 |
+| Attack-unit king safety | 5+0.05 | 200 | W60 D94 L46 | +24 +/- 30 |
+| **Final 6.0.0 vs unchanged 5.31.0** | 10+0.1 | 100 | W84 D9 L7 | **+355 +/- 92** |
+
+All games ended by checkmate or threefold repetition; there were no time losses, illegal moves
+or crashes in any of the measurement matches.
 
 In a fixed three-second search of the first corpus position, 5.31.0 reached depth 9 and 6.0.0
 reaches depth 19. The search is now speculative by design: like every modern alpha-beta engine

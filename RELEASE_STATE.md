@@ -5,18 +5,30 @@ Status: **strength release; measured gain over 5.31.0**.
 The 5.x line kept raising pruning thresholds whenever a zero-window search disagreed with a
 full-depth reference, which left the engine without usable late-move reductions below depth 10,
 without null-move pruning below depth 6, and without reverse futility, futility or late-move
-pruning. 6.0.0 adopts the standard selective-search toolkit (see CHANGELOG.md) and a
-position-indexed transposition table. Evaluation, move generation, UCI, pondering and the
-match tooling are unchanged.
+pruning. 6.0.0 adopts the standard selective-search toolkit (see CHANGELOG.md), a
+position-indexed transposition table, PeSTO piece-square tables and an attack-unit king-safety
+term. Move generation, UCI, pondering and the match tooling are unchanged.
 
-Evidence: fastchess, 5+0.05, Hash 32, `tools/openings/forge-10000.epd`, 100 games, candidate
-search versus the unchanged 5.31.0 binary: W88 D7 L5, +413 +/- 111 Elo. Strict GCC
-`-Wall -Wextra -Wpedantic -Wconversion -Wshadow -Werror` release build and GCC ASan+UBSan
-build pass all 4 CTest groups. Reference perfts are unchanged (move generation untouched).
+Evidence (fastchess, Hash 32, single thread, `tools/openings/forge-10000.epd`, paired
+openings, no adjudication):
 
-Known limits: single-threaded, hand-crafted evaluation without king-attack terms, no opening
-book, tablebases or NNUE. The next measurable items are evaluation (piece-square tables, king
-safety, passed-pawn interaction with kings), continuation/capture history, and TT aging.
+| Step | TC | Games | W/D/L | Elo |
+|---|---|---|---|---|
+| Selective search vs 5.31.0 | 5+0.05 | 100 | 88/7/5 | +413 +/- 111 |
+| + position-indexed TT, repetition rule | 5+0.05 | 120 | 42/40/38 | +12 +/- 38 |
+| + PeSTO piece-square tables | 5+0.05 | 120 | 64/36/20 | +134 +/- 56 |
+| + king safety | 5+0.05 | 200 | 60/94/46 | +24 +/- 30 |
+| **6.0.0 vs unchanged 5.31.0** | **10+0.1** | **100** | **84/9/7** | **+355 +/- 92** |
+
+Elo estimates saturate at scores near 90%; the final figure is a lower-bound style estimate of
+the gap. Strict GCC `-Wall -Wextra -Wpedantic -Wconversion -Wshadow -Werror` release build and
+GCC ASan+UBSan debug build pass all 4 CTest groups. Reference perfts are unchanged (move
+generation untouched). No time losses, illegal moves or crashes occurred in any match.
+
+Known limits: single-threaded, no capture/continuation history, always-replace TT without
+aging, no passed-pawn/king interaction, no opening book, tablebases or NNUE. The next
+measurable items are continuation/capture history, TT aging, passed-pawn and threat terms, and
+a staged move generator to recover node rate.
 
 ---
 

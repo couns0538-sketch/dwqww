@@ -27,13 +27,15 @@
   1-6, no whole-node pruning in pawn endings, deterministic node counts, soft/hard limit
   semantics, repetition rule, searchmoves fixture by legality and decisive score).
 - Evaluation: the center-distance placement terms are replaced by PeSTO's piece-square tables
-  (the material values were already PeSTO's). Mobility, pawn structure, passed pawns, bishop
+  (the material values were already PeSTO's), and an attack-unit king-safety term (knight,
+  bishop, rook and queen attacks into the king zone, weights 2/2/3/5, classic safety table,
+  active with two or more attackers) is added. Mobility, pawn structure, passed pawns, bishop
   pair, rook files, king shelter and tempo are unchanged.
-- Measured with fastchess at 5+0.05, Hash 32, `forge-10000.epd`: the search change alone scored
-  W88 D7 L5 (+413 +/- 111 Elo) in 100 games against unchanged 5.31.0; the position-indexed TT
-  was neutral at this time control (+12 +/- 38, 120 games) while cutting fixed-depth node
-  counts by 4-56%; the piece-square tables added a further large gain over the search-only
-  build (see RELEASE_STATE.md for the final numbers).
+- Measured with fastchess, Hash 32, `forge-10000.epd`, each step against the previous one at
+  5+0.05: search W88 D7 L5 (+413 +/- 111, 100 games, vs 5.31.0); position-indexed TT
+  W42 D40 L38 (+12 +/- 38, 120 games, fixed-depth nodes -4% to -56%); piece-square tables
+  W64 D36 L20 (+134 +/- 56, 120 games); king safety W60 D94 L46 (+24 +/- 30, 200 games).
+  Final 6.0.0 against unchanged 5.31.0 at 10+0.1: W84 D9 L7, +355 +/- 92 Elo (100 games).
 
 ## 5.31.0 - 2026-10-09
 
