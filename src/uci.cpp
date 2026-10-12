@@ -167,7 +167,23 @@ int main() {
                 }
                 if (token == "value") input >> value_text;
             }
-            if (name == "Clear Hash") {
+            bool handled_tunable = false;
+            for (const forge::tune::Parameter& parameter : forge::tune::parameters()) {
+                if (name != parameter.name) continue;
+                handled_tunable = true;
+                int value = 0;
+                const auto parsed = std::from_chars(value_text.data(), value_text.data() + value_text.size(), value);
+                if (parsed.ec != std::errc{} || parsed.ptr != value_text.data() + value_text.size()) {
+                    const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex());
+                    std::cout << "info string invalid value for option " << name << std::endl;
+                } else {
+                    *parameter.value = std::clamp(value, parameter.minimum, parameter.maximum);
+                    forge::tune::refresh();
+                }
+            }
+            if (handled_tunable) {
+                // Unlisted development options; nothing else to do.
+            } else if (name == "Clear Hash") {
                 searcher.clear_hash();
             } else if (name == "Ponder") {
                 if (value_text == "true") ponder_enabled = true;

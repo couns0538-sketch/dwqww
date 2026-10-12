@@ -112,6 +112,55 @@ private:
     }
 };
 
+// Search constants exposed for tuning. The UCI layer accepts them as unlisted
+// options (setoption name <Name> value <int>); defaults are the tested values.
+namespace tune {
+struct Parameter {
+    const char* name;
+    int* value;
+    int minimum;
+    int maximum;
+};
+extern int LmrQuietBase;      // x0.01
+extern int LmrQuietDivisor;   // x0.01
+extern int LmrNoisyBase;      // x0.01
+extern int LmrNoisyDivisor;   // x0.01
+extern int NullMoveMinDepth;
+extern int NullMoveBase;
+extern int NullMoveDepthDivisor;
+extern int NullMoveEvalDivisor;
+extern int RfpDepth;
+extern int RfpMargin;
+extern int RfpImproving;
+extern int RazorDepth;
+extern int RazorBase;
+extern int RazorMultiplier;
+extern int FutilityDepth;
+extern int FutilityBase;
+extern int FutilityMultiplier;
+extern int LmpBase;
+extern int HistoryPruneDepth;
+extern int HistoryPruneMultiplier;
+extern int SeeQuietMultiplier;
+extern int SeeNoisyMultiplier;
+extern int SingularDepth;
+extern int SingularMargin;
+extern int IirDepth;
+extern int ProbcutDepth;
+extern int ProbcutMargin;
+extern int QsFutilityMargin;
+extern int QsSeeMargin;
+extern int AspirationDelta;
+extern int HistoryBonusQuadratic;
+extern int HistoryBonusLinear;
+extern int HistoryBonusMax;
+extern int LmrHistoryDivisor;
+extern int CheckExtensionDepth;
+[[nodiscard]] const std::vector<Parameter>& parameters();
+// Call after changing LMR parameters.
+void refresh();
+} // namespace tune
+
 // Move-ordering statistics.
 using ButterflyHistory = std::array<std::array<std::array<std::int16_t, 64>, 64>, 2>;
 using PieceToHistory = std::array<std::array<std::int16_t, 64>, 13>;

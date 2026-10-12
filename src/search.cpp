@@ -8,6 +8,74 @@
 #include <limits>
 
 namespace forge {
+
+namespace tune {
+int LmrQuietBase = 85;
+int LmrQuietDivisor = 220;
+int LmrNoisyBase = 10;
+int LmrNoisyDivisor = 340;
+int NullMoveMinDepth = 3;
+int NullMoveBase = 3;
+int NullMoveDepthDivisor = 3;
+int NullMoveEvalDivisor = 200;
+int RfpDepth = 8;
+int RfpMargin = 72;
+int RfpImproving = 40;
+int RazorDepth = 2;
+int RazorBase = 150;
+int RazorMultiplier = 350;
+int FutilityDepth = 7;
+int FutilityBase = 100;
+int FutilityMultiplier = 110;
+int LmpBase = 3;
+int HistoryPruneDepth = 3;
+int HistoryPruneMultiplier = 2048;
+int SeeQuietMultiplier = 24;
+int SeeNoisyMultiplier = 150;
+int SingularDepth = 7;
+int SingularMargin = 2;
+int IirDepth = 4;
+int ProbcutDepth = 5;
+int ProbcutMargin = 180;
+int QsFutilityMargin = 160;
+int QsSeeMargin = 40;
+int AspirationDelta = 18;
+int HistoryBonusQuadratic = 16;
+int HistoryBonusLinear = 48;
+int HistoryBonusMax = 1536;
+int LmrHistoryDivisor = 6000;
+int CheckExtensionDepth = 2;
+
+const std::vector<Parameter>& parameters() {
+    static const std::vector<Parameter> table{
+        {"LmrQuietBase", &LmrQuietBase, 0, 300},         {"LmrQuietDivisor", &LmrQuietDivisor, 100, 500},
+        {"LmrNoisyBase", &LmrNoisyBase, 0, 300},         {"LmrNoisyDivisor", &LmrNoisyDivisor, 100, 800},
+        {"NullMoveMinDepth", &NullMoveMinDepth, 1, 10},  {"NullMoveBase", &NullMoveBase, 1, 6},
+        {"NullMoveDepthDivisor", &NullMoveDepthDivisor, 1, 10},
+        {"NullMoveEvalDivisor", &NullMoveEvalDivisor, 50, 1000},
+        {"RfpDepth", &RfpDepth, 0, 15},                  {"RfpMargin", &RfpMargin, 10, 300},
+        {"RfpImproving", &RfpImproving, 0, 200},         {"RazorDepth", &RazorDepth, 0, 6},
+        {"RazorBase", &RazorBase, 0, 1000},              {"RazorMultiplier", &RazorMultiplier, 0, 1000},
+        {"FutilityDepth", &FutilityDepth, 0, 15},        {"FutilityBase", &FutilityBase, 0, 500},
+        {"FutilityMultiplier", &FutilityMultiplier, 0, 500},
+        {"LmpBase", &LmpBase, 0, 20},                    {"HistoryPruneDepth", &HistoryPruneDepth, 0, 10},
+        {"HistoryPruneMultiplier", &HistoryPruneMultiplier, 0, 20000},
+        {"SeeQuietMultiplier", &SeeQuietMultiplier, 0, 200},
+        {"SeeNoisyMultiplier", &SeeNoisyMultiplier, 0, 1000},
+        {"SingularDepth", &SingularDepth, 2, 20},        {"SingularMargin", &SingularMargin, 0, 10},
+        {"IirDepth", &IirDepth, 1, 20},                  {"ProbcutDepth", &ProbcutDepth, 1, 20},
+        {"ProbcutMargin", &ProbcutMargin, 0, 1000},      {"QsFutilityMargin", &QsFutilityMargin, 0, 1000},
+        {"QsSeeMargin", &QsSeeMargin, 0, 500},           {"AspirationDelta", &AspirationDelta, 4, 200},
+        {"HistoryBonusQuadratic", &HistoryBonusQuadratic, 0, 100},
+        {"HistoryBonusLinear", &HistoryBonusLinear, 0, 500},
+        {"HistoryBonusMax", &HistoryBonusMax, 100, 10000},
+        {"LmrHistoryDivisor", &LmrHistoryDivisor, 1000, 30000},
+        {"CheckExtensionDepth", &CheckExtensionDepth, 1, 30},
+    };
+    return table;
+}
+} // namespace tune
+
 namespace {
 
 constexpr int HistoryMax = 16384;
@@ -31,19 +99,20 @@ constexpr int HistoryMax = 16384;
 struct ReductionTable {
     std::array<std::array<std::uint8_t, 64>, 64> quiet{};
     std::array<std::array<std::uint8_t, 64>, 64> noisy{};
-    ReductionTable() {
+    ReductionTable() { refresh(); }
+    void refresh() {
         for (int depth = 1; depth < 64; ++depth) {
             for (int moves = 1; moves < 64; ++moves) {
                 const double product = std::log(static_cast<double>(depth)) * std::log(static_cast<double>(moves));
-                quiet[static_cast<std::size_t>(depth)][static_cast<std::size_t>(moves)] =
-                    static_cast<std::uint8_t>(std::max(0.0, 0.85 + product / 2.20));
-                noisy[static_cast<std::size_t>(depth)][static_cast<std::size_t>(moves)] =
-                    static_cast<std::uint8_t>(std::max(0.0, 0.10 + product / 3.40));
+                quiet[static_cast<std::size_t>(depth)][static_cast<std::size_t>(moves)] = static_cast<std::uint8_t>(
+                    std::max(0.0, tune::LmrQuietBase / 100.0 + product / (tune::LmrQuietDivisor / 100.0)));
+                noisy[static_cast<std::size_t>(depth)][static_cast<std::size_t>(moves)] = static_cast<std::uint8_t>(
+                    std::max(0.0, tune::LmrNoisyBase / 100.0 + product / (tune::LmrNoisyDivisor / 100.0)));
             }
         }
     }
 };
-const ReductionTable Reductions;
+ReductionTable Reductions;
 
 [[nodiscard]] int reduction(bool quiet, int depth, int moves) {
     const std::size_t d = static_cast<std::size_t>(std::min(depth, 63));
@@ -52,10 +121,12 @@ const ReductionTable Reductions;
 }
 
 [[nodiscard]] int lmp_threshold(int depth, bool improving) {
-    return improving ? 3 + depth * depth : (3 + depth * depth) / 2;
+    return improving ? tune::LmpBase + depth * depth : (tune::LmpBase + depth * depth) / 2;
 }
 
-[[nodiscard]] int history_bonus(int depth) { return std::min(1536, 16 * depth * depth + 48 * depth - 32); }
+[[nodiscard]] int history_bonus(int depth) {
+    return std::min(tune::HistoryBonusMax, tune::HistoryBonusQuadratic * depth * depth + tune::HistoryBonusLinear * depth - 32);
+}
 
 void apply_history(std::int16_t& entry, int bonus) {
     const int clamped = std::clamp(bonus, -HistoryMax, HistoryMax);
@@ -78,6 +149,8 @@ std::string format_score(int score) {
 }
 
 } // namespace
+
+void tune::refresh() { Reductions.refresh(); }
 
 // ---------------------------------------------------------------------------
 // Transposition table
@@ -553,7 +626,7 @@ int Worker::qsearch(Board& board, SearchStack* ss, int alpha, int beta) {
             return best_score;
         }
         if (best_score > alpha) alpha = best_score;
-        futility_base = ss->static_eval + 160;
+        futility_base = ss->static_eval + tune::QsFutilityMargin;
     }
 
     MovePicker picker(board, *this, ss, tt_move, MovePicker::Mode::Quiescence);
@@ -570,7 +643,7 @@ int Worker::qsearch(Board& board, SearchStack* ss, int alpha, int beta) {
                 best_score = std::max(best_score, futility_base + capture_value(board, move));
                 continue;
             }
-            if (!board.see_ge(move, -40)) continue;
+            if (!board.see_ge(move, -tune::QsSeeMargin)) continue;
         }
         ss->current_move = move;
         ss->moved_piece = board.moved_piece(move);
@@ -678,20 +751,24 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
 
     if (!pv_node && !in_check && excluded.is_none() && !is_mate_score(beta)) {
         // Razoring: hopeless positions fall back to quiescence.
-        if (depth <= 2 && eval + 150 + 350 * depth < alpha) {
+        if (depth <= tune::RazorDepth && eval + tune::RazorBase + tune::RazorMultiplier * depth < alpha) {
             const int razor = qsearch(board, ss, alpha - 1, alpha);
             if (aborted_) return 0;
             if (razor < alpha) return razor;
         }
         // Reverse futility pruning.
-        if (depth <= 8 && eval - (72 * depth - 40 * improving) >= beta && eval < MateInMaxPly) return eval;
+        if (depth <= tune::RfpDepth && eval - (tune::RfpMargin * depth - tune::RfpImproving * improving) >= beta &&
+            eval < MateInMaxPly) {
+            return eval;
+        }
         // Null move pruning.
-        if (depth >= 3 && eval >= beta && ss->static_eval >= beta - 24 * depth + 180 &&
+        if (depth >= tune::NullMoveMinDepth && eval >= beta && ss->static_eval >= beta - 24 * depth + 180 &&
             ss->null_move_allowed && !(ss - 1)->current_move.is_none() &&
             board.has_non_pawn_material(board.side_to_move()) &&
             !(tt_hit && tt_bound == BoundUpper && tt_score < beta)) {
             ++null_tries_;
-            const int reduction = 3 + depth / 3 + std::min((eval - beta) / 200, 3);
+            const int reduction = tune::NullMoveBase + depth / tune::NullMoveDepthDivisor +
+                                  std::min((eval - beta) / tune::NullMoveEvalDivisor, 3);
             ss->current_move = Move::none();
             ss->moved_piece = Empty;
             ss->continuation = &(*continuation_history_)[Empty][0];
@@ -719,8 +796,8 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
             }
         }
         // ProbCut: a good capture that beats beta by a margin at reduced depth.
-        const int probcut_beta = beta + 180 - 50 * improving;
-        if (depth >= 5 && !is_mate_score(beta) &&
+        const int probcut_beta = beta + tune::ProbcutMargin - 50 * improving;
+        if (depth >= tune::ProbcutDepth && !is_mate_score(beta) &&
             !(tt_hit && tt_depth >= depth - 3 && tt_score != ValueNone && tt_score < probcut_beta)) {
             MovePicker picker(board, *this, ss, tt_move, MovePicker::Mode::Quiescence);
             Move move;
@@ -748,7 +825,7 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
     }
 
     // Internal iterative reduction: no hash move suggests a less important node.
-    if (!in_check && depth >= 4 && tt_move.is_none() && (pv_node || cut_node)) --depth;
+    if (!in_check && depth >= tune::IirDepth && tt_move.is_none() && (pv_node || cut_node)) --depth;
 
     MovePicker picker(board, *this, ss, tt_move, MovePicker::Mode::Main);
     std::array<Move, 128> quiets_tried{};
@@ -782,22 +859,23 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
             if (quiet && !skip_quiets && move_count >= lmp_threshold(depth, improving)) skip_quiets = true;
             const int lmr_depth = std::max(0, depth - reduction(quiet, depth, move_count));
             if (quiet && !gives_check) {
-                if (!in_check && lmr_depth <= 7 && ss->static_eval + 100 + 110 * lmr_depth <= alpha) {
+                if (!in_check && lmr_depth <= tune::FutilityDepth &&
+                    ss->static_eval + tune::FutilityBase + tune::FutilityMultiplier * lmr_depth <= alpha) {
                     skip_quiets = true;
                     continue;
                 }
-                if (lmr_depth <= 3 && history < -2048 * depth) continue;
-                if (!board.see_ge(move, -24 * lmr_depth * lmr_depth)) continue;
-            } else if (!board.see_ge(move, -150 * depth)) {
+                if (lmr_depth <= tune::HistoryPruneDepth && history < -tune::HistoryPruneMultiplier * depth) continue;
+                if (!board.see_ge(move, -tune::SeeQuietMultiplier * lmr_depth * lmr_depth)) continue;
+            } else if (!board.see_ge(move, -tune::SeeNoisyMultiplier * depth)) {
                 continue;
             }
         }
 
         // Extensions.
         int extension = 0;
-        if (!root_node && depth >= 7 && move == tt_move && excluded.is_none() && tt_bound != BoundUpper &&
+        if (!root_node && depth >= tune::SingularDepth && move == tt_move && excluded.is_none() && tt_bound != BoundUpper &&
             tt_score != ValueNone && !is_mate_score(tt_score) && tt_depth >= depth - 3) {
-            const int singular_beta = tt_score - 2 * depth;
+            const int singular_beta = tt_score - tune::SingularMargin * depth;
             const int singular_depth = (depth - 1) / 2;
             ss->excluded_move = move;
             const int singular_score = search(board, ss, singular_depth, singular_beta - 1, singular_beta, cut_node);
@@ -816,7 +894,7 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
             } else if (cut_node) {
                 extension = -1;
             }
-        } else if (gives_check && depth >= 2 && !root_node && board.see_ge(move, 0)) {
+        } else if (gives_check && depth >= tune::CheckExtensionDepth && !root_node && board.see_ge(move, 0)) {
             extension = 1;
         }
         if (extension <= 0) ss->double_extensions = (ss - 1)->double_extensions;
@@ -841,7 +919,7 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
             if (tt_capture && quiet) r += 1;
             if (gives_check) r -= 1;
             if (in_check) r -= 1;
-            if (quiet) r -= std::clamp(history / 6000, -2, 2);
+            if (quiet) r -= std::clamp(history / tune::LmrHistoryDivisor, -2, 2);
             const int reduced_depth = std::clamp(new_depth - r, 1, new_depth);
             score = -search(board, ss + 1, reduced_depth, -alpha - 1, -alpha, true);
             full_depth_needed = score > alpha && reduced_depth < new_depth;
@@ -1047,7 +1125,7 @@ SearchInfo Worker::search(Board board, const SearchLimits& limits, bool emit_inf
     root_best_index_ = -1;
     for (int depth = 1; depth <= max_depth; ++depth) {
         root_depth_ = depth;
-        int delta = 18;
+        int delta = tune::AspirationDelta;
         int alpha = -Infinite;
         int beta = Infinite;
         if (depth >= 4) {
