@@ -1,5 +1,24 @@
 # Changelog
 
+## 6.1.0 - 2026-10-12
+
+- Lazy SMP: `Threads` option (1-256). Workers share the transposition table and
+  stop flag and keep private histories and evaluation caches; the main thread
+  manages time and reporting. `Threads=4` scores 75 % (26W 1L 23D, 50 games at
+  8+0.08) against the single-threaded build on a four-core machine.
+- Unlisted integer tuning options for every search constant
+  (`forge::tune`), applied with `setoption name <Name> value <int>`.
+- Experimental NNUE evaluation (`forge::nnue`, 768 -> 256x2 SCReLU, lazily
+  updated accumulators, `UseNNUE` option) and trainer
+  (`tools/tune/nnue_train.cpp`) with validation-based early stopping. No
+  weights are shipped: nets trained on the 3.5M available self-play positions
+  overfit and lose to the tuned hand-crafted evaluation.
+- `forge_extract` understands `[FEN]` tags and `--min-ply`.
+- Tried and rejected (fixed-node self-play, 500 games each): quiet checks in
+  quiescence (50.2 %), second Texel iteration on 44k games (50.2 %).
+- Release archive `chess-engine-forge-6.1.0.zip` with prebuilt Linux/Windows
+  binaries (x86-64-v2 and v3).
+
 ## 6.0.0 - 2026-10-12
 
 Strength release. The move generator, search and evaluation were rewritten; the

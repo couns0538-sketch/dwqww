@@ -41,6 +41,14 @@ at 60+0.6.
 | Texel-tuned table (regularised) vs hand-set table | 300 | 68.0 % |
 | Texel-tuned table (unregularised) vs hand-set table | 300 | 64.0 % |
 | Second tuning iteration (44k games incl. 22k from the tuned engine) vs shipped table | 500 | 50.2 % (not adopted) |
+| Quiet checks in quiescence search vs shipped search | 500 | 50.2 % (not adopted) |
+| NNUE 768x256 trained on 3.5M positions vs tuned HCE | 300 | 9.5 % (not adopted; overfit) |
+
+## 6.1.0 multi-threading (8+0.08, concurrency 1, four-core VM)
+
+| Match | Games | W / L / D | Score |
+| --- | --- | --- | --- |
+| Threads=4 vs Threads=1 (same binary) | 50 | 26 / 1 / 23 | 75.0 % |
 
 ## Tuning data
 

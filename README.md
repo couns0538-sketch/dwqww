@@ -1,8 +1,10 @@
 # Chess Engine Forge
 
-Chess Engine Forge 6.0.0 is a C++20 UCI chess engine. Version 6.0.0 is a
-strength release: the move generator, search, and evaluation were rewritten
-from the ground up for playing strength, replacing the conservative 5.x search.
+Chess Engine Forge 6.1.0 is a C++20 UCI chess engine. The 6.x series is a
+strength rewrite: the move generator, search, and evaluation were rebuilt from
+the ground up for playing strength, replacing the conservative 5.x search.
+6.1.0 adds multi-threaded search (`Threads`), tuning options and the NNUE
+training tools.
 
 ## Strength
 
@@ -15,6 +17,9 @@ Hash 64 MB, fastchess. See `validation/release-6.0.0/` for the match records.
 | Forge 5.31.0 (previous release) | 10+0.1 | 20 | 10.0 % (1W 17L 2D) |
 | Forge 6.0.0 | 10+0.1 | 200 | 69.0 % (118W 42L 40D), +158 Elo |
 | Forge 6.0.0 | 30+0.3 | 100 | 82.5 % (79W 14L 7D), +331 Elo |
+
+With `Threads=4` on a four-core machine the engine scores 75 % (26W 1L 23D over
+50 games at 8+0.08) against its own single-threaded build.
 
 Stockfish's `UCI_Elo` scale is anchored to CCRL blitz ratings, so a score above
 50 % against this opponent corresponds to a rating above 2800 on that scale.
@@ -130,6 +135,24 @@ build/forge_texel positions.txt --epochs 500 --out src/eval_params_table.inc
 `forge_extract` keeps quiet, non-book positions with the engine's search score;
 `forge_texel` fits all parameters with Adam against a blend of game result and
 search score and rewrites the parameter table.
+
+## Experimental NNUE evaluation
+
+`include/forge/nnue.hpp` / `src/nnue.cpp` implement a 768 -> 256x2 SCReLU
+network with lazily updated accumulators, and `tools/tune/nnue_train.cpp` trains
+one from the same position files:
+
+```sh
+build/forge_nnue_train positions.txt --epochs 20 --lambda 0.5 --threads 4 \
+  --validate holdout.txt --out src/nnue_weights.inc
+touch src/nnue.cpp && cmake --build build --parallel   # compiles the weights in
+```
+
+When `src/nnue_weights.inc` exists the engine uses the network (option `UseNNUE`,
+default true) instead of the hand-crafted evaluation. No weights are shipped:
+nets trained on the few million self-play positions available so far overfit
+and lose to the tuned hand-crafted evaluation (validation loss 0.037 vs 0.029).
+The tooling is in place for anyone with a larger, more diverse dataset.
 
 ## Testing
 
