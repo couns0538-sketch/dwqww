@@ -146,18 +146,20 @@ int TranspositionTable::hashfull() const {
 
 class MovePicker {
 public:
-    enum class Mode { Main, Quiescence };
+    // QuiescenceChecks also yields the quiet moves that give direct check once
+    // the captures are exhausted (used at the first quiescence ply only).
+    enum class Mode { Main, Quiescence, QuiescenceChecks };
 
     MovePicker(const Board& board, const Searcher& searcher, const SearchStack* ss, Move tt_move, Mode mode)
-        : board_(board), searcher_(searcher), ss_(ss), tt_move_(tt_move) {
+        : board_(board), searcher_(searcher), ss_(ss), tt_move_(tt_move), qs_checks_(mode == Mode::QuiescenceChecks) {
         const bool in_check = board.in_check();
         if (!tt_move_.is_none() && !board_.is_pseudo_legal(tt_move_)) tt_move_ = Move::none();
-        if (mode == Mode::Quiescence && !in_check && !tt_move_.is_none() && !tt_move_.is_capture() &&
+        if (mode != Mode::Main && !in_check && !tt_move_.is_none() && !tt_move_.is_capture() &&
             !tt_move_.is_promotion()) {
             tt_move_ = Move::none();
         }
         if (in_check) stage_ = tt_move_.is_none() ? EvasionGenerate : EvasionTT;
-        else if (mode == Mode::Quiescence) stage_ = tt_move_.is_none() ? QsGenerate : QsTT;
+        else if (mode != Mode::Main) stage_ = tt_move_.is_none() ? QsGenerate : QsTT;
         else stage_ = tt_move_.is_none() ? GenerateCaptures : MainTT;
         if (ss != nullptr) {
             killers_ = ss->killers;
@@ -246,6 +248,19 @@ public:
                     if (move == tt_move_) continue;
                     return move;
                 }
+                if (!qs_checks_) return Move::none();
+                stage_ = QsGenerateChecks;
+                [[fallthrough]];
+            case QsGenerateChecks:
+                generate_quiet_checks();
+                stage_ = QsChecks;
+                [[fallthrough]];
+            case QsChecks:
+                while (index_ < count_) {
+                    const Move move = pick_best();
+                    if (move == tt_move_) continue;
+                    return move;
+                }
                 return Move::none();
 
             case EvasionGenerate:
@@ -266,7 +281,7 @@ public:
 private:
     enum Stage : int {
         MainTT, GenerateCaptures, GoodCaptures, Killer1, Killer2, CounterMove, GenerateQuiets, QuietMoves, BadCaptures,
-        QsTT, QsGenerate, QsCaptures,
+        QsTT, QsGenerate, QsCaptures, QsGenerateChecks, QsChecks,
         EvasionTT, EvasionGenerate, Evasions
     };
     struct Scored {
@@ -278,6 +293,7 @@ private:
     const Searcher& searcher_;
     const SearchStack* ss_;
     Move tt_move_;
+    bool qs_checks_ = false;
     std::array<Move, 2> killers_{};
     Move counter_{};
     Stage stage_;
@@ -338,6 +354,18 @@ private:
             int score = searcher_.quiet_history(board_, ss_, move);
             if (direct_check(move)) score += 12000;
             moves_[count_++] = Scored{move, score};
+        }
+    }
+
+    // Quiet moves that give direct check (discovered checks are not sought).
+    void generate_quiet_checks() {
+        buffer_.clear();
+        board_.generate_pseudo_legal(buffer_, Board::GenType::Quiets);
+        index_ = 0;
+        count_ = 0;
+        for (const Move move : buffer_) {
+            if (!direct_check(move)) continue;
+            moves_[count_++] = Scored{move, searcher_.quiet_history(board_, ss_, move)};
         }
     }
 
@@ -574,7 +602,7 @@ void Searcher::update_capture_stats(const Board& board, Move best, int depth, co
 // ---------------------------------------------------------------------------
 // Quiescence search
 
-int Searcher::qsearch(Board& board, SearchStack* ss, int alpha, int beta) {
+int Searcher::qsearch(Board& board, SearchStack* ss, int alpha, int beta, int depth) {
     const bool pv_node = beta - alpha > 1;
     const int ply = ss->ply;
     if (((nodes_ & 1023U) == 0 || node_limit_specified_) && should_stop()) aborted_ = true;
@@ -625,7 +653,8 @@ int Searcher::qsearch(Board& board, SearchStack* ss, int alpha, int beta) {
         futility_base = ss->static_eval + 160;
     }
 
-    MovePicker picker(board, *this, ss, tt_move, MovePicker::Mode::Quiescence);
+    MovePicker picker(board, *this, ss, tt_move,
+                      depth >= 0 ? MovePicker::Mode::QuiescenceChecks : MovePicker::Mode::Quiescence);
     Move best_move = Move::none();
     int move_count = 0;
     Move move;
@@ -639,6 +668,16 @@ int Searcher::qsearch(Board& board, SearchStack* ss, int alpha, int beta) {
                 best_score = std::max(best_score, futility_base + capture_value(board, move));
                 continue;
             }
+            // A quiet check whose continuation histories are both negative
+            // has not been worth following before.
+            if (!move.is_capture() && !move.is_promotion()) {
+                const Piece piece = board.moved_piece(move);
+                if ((ss - 1)->continuation != nullptr && (ss - 2)->continuation != nullptr &&
+                    (*(ss - 1)->continuation)[static_cast<std::size_t>(piece)][move.to] < 0 &&
+                    (*(ss - 2)->continuation)[static_cast<std::size_t>(piece)][move.to] < 0) {
+                    continue;
+                }
+            }
             if (!board.see_ge(move, -40)) continue;
         }
         ss->current_move = move;
@@ -648,7 +687,7 @@ int Searcher::qsearch(Board& board, SearchStack* ss, int alpha, int beta) {
         Undo undo;
         (void)board.make_move(move, undo);
         tt_->prefetch(board.key());
-        const int score = -qsearch(board, ss + 1, -beta, -alpha);
+        const int score = -qsearch(board, ss + 1, -beta, -alpha, depth - 1);
         board.unmake_move(move, undo);
         if (aborted_) return 0;
         if (score > best_score) {

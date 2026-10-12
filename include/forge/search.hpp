@@ -232,7 +232,9 @@ private:
 
     SearchInfo iterative_deepening(Board board, const SearchLimits& limits, bool emit_info);
     int search(Board& board, SearchStack* ss, int depth, int alpha, int beta, bool cut_node);
-    int qsearch(Board& board, SearchStack* ss, int alpha, int beta);
+    // depth 0 is the first quiescence ply (which also tries quiet checks);
+    // deeper plies are negative.
+    int qsearch(Board& board, SearchStack* ss, int alpha, int beta, int depth = 0);
     [[nodiscard]] bool should_stop();
     [[nodiscard]] std::int64_t elapsed_ms() const;
     [[nodiscard]] bool is_draw(const Board& board, int ply) const;
