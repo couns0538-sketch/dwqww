@@ -201,6 +201,39 @@ constexpr std::array<std::uint64_t, 64> make_knight_attacks() {
 
 constexpr auto KnightAttacks = make_knight_attacks();
 
+constexpr std::array<std::uint64_t, 64> make_king_attacks() {
+    std::array<std::uint64_t, 64> attacks{};
+    constexpr std::array<int, 8> offsets{9, 8, 7, 1, -1, -7, -8, -9};
+    for (int square = 0; square < 64; ++square) {
+        const int file = square & 7;
+        for (const int offset : offsets) {
+            const int target = square + offset;
+            if (target < 0 || target >= 64 || abs_int((target & 7) - file) > 1) continue;
+            attacks[static_cast<std::size_t>(square)] |= 1ULL << target;
+        }
+    }
+    return attacks;
+}
+
+constexpr auto KingAttacks = make_king_attacks();
+
+// King safety: attack units accumulated by enemy pieces hitting the king zone
+// (king square, its neighbours and the three squares beyond them), converted
+// to a middlegame penalty once at least two pieces take part.
+constexpr std::array<int, 7> KingAttackWeight{0, 0, 2, 2, 3, 5, 0};
+constexpr std::array<int, 100> KingSafetyTable{
+      0,   0,   1,   2,   3,   5,   7,   9,  12,  15,
+     18,  22,  26,  30,  35,  39,  44,  50,  56,  62,
+     68,  75,  82,  85,  89,  97, 105, 113, 122, 131,
+    140, 150, 169, 180, 191, 202, 213, 225, 237, 248,
+    260, 272, 283, 295, 307, 319, 330, 342, 354, 366,
+    377, 389, 401, 412, 424, 436, 448, 459, 471, 483,
+    494, 500, 500, 500, 500, 500, 500, 500, 500, 500,
+    500, 500, 500, 500, 500, 500, 500, 500, 500, 500,
+    500, 500, 500, 500, 500, 500, 500, 500, 500, 500,
+    500, 500, 500, 500, 500, 500, 500, 500, 500, 500,
+};
+
 constexpr std::array<int, 8> RayDirections{9, 7, -7, -9, 8, -8, 1, -1};
 
 constexpr std::array<std::array<std::uint64_t, 8>, 64> make_ray_attacks() {
@@ -352,14 +385,11 @@ int Searcher::evaluate_with_pawns(const Board& board, const PawnEntry& pawns) {
     };
     const std::uint64_t white_occupied = board.occupied(White);
     const std::uint64_t black_occupied = board.occupied(Black);
-    auto mobility = [&](int square, Color color, int type) {
-        const std::uint64_t own = color == White ? white_occupied : black_occupied;
-        if (type == 2) {
-            return std::popcount(KnightAttacks[static_cast<std::size_t>(square)] & ~own);
-        }
-        const std::uint64_t all_occupied = white_occupied | black_occupied;
-        int count = 0;
-        const int begin = type == 3 ? 0 : (type == 4 ? 4 : 0);
+    const std::uint64_t all_occupied = white_occupied | black_occupied;
+    auto attack_set = [&](int square, int type) {
+        if (type == 2) return KnightAttacks[static_cast<std::size_t>(square)];
+        std::uint64_t attacks = 0;
+        const int begin = type == 4 ? 4 : 0;
         const int end = type == 3 ? 4 : 8;
         for (int index = begin; index < end; ++index) {
             std::uint64_t ray = RayAttacks[static_cast<std::size_t>(square)]
@@ -372,10 +402,23 @@ int Searcher::evaluate_with_pawns(const Board& board, const PawnEntry& pawns) {
                 ray &= ~RayAttacks[static_cast<std::size_t>(blocker_square)]
                                   [static_cast<std::size_t>(index)];
             }
-            count += std::popcount(ray & ~own);
+            attacks |= ray;
         }
-        return count;
+        return attacks;
     };
+    // King zones are needed while scanning the attacking pieces, so locate the
+    // kings first.
+    std::array<std::uint64_t, 2> king_zone{};
+    for (int color_index = 0; color_index < 2; ++color_index) {
+        const std::uint64_t king_bit = board.pieces(color_index == 0 ? WK : BK);
+        if (king_bit == 0) continue;
+        const int king = static_cast<int>(std::countr_zero(king_bit));
+        const std::uint64_t ring = KingAttacks[static_cast<std::size_t>(king)] | king_bit;
+        king_zone[static_cast<std::size_t>(color_index)] =
+            ring | (color_index == 0 ? ring << 8U : ring >> 8U);
+    }
+    std::array<int, 2> king_attack_units{};
+    std::array<int, 2> king_attackers{};
 
     for (int color_index = 0; color_index < 2; ++color_index) {
         const Color color = static_cast<Color>(color_index);
@@ -396,10 +439,18 @@ int Searcher::evaluate_with_pawns(const Board& board, const PawnEntry& pawns) {
                 add(color, mg, eg);
 
                 if (type <= 5) {
-                    const int moves = mobility(square, color, type);
+                    const std::uint64_t attacks = attack_set(square, type);
+                    const std::uint64_t own = color == White ? white_occupied : black_occupied;
+                    const int moves = std::popcount(attacks & ~own);
                     const int mg_weight = type == 2 ? 4 : (type == 3 ? 5 : (type == 4 ? 2 : 1));
                     const int eg_weight = type == 2 ? 3 : (type == 3 ? 4 : (type == 4 ? 3 : 2));
                     add(color, moves * mg_weight, moves * eg_weight);
+                    const std::size_t defender = static_cast<std::size_t>(opposite(color));
+                    const int zone_hits = std::popcount(attacks & king_zone[defender]);
+                    if (zone_hits > 0) {
+                        ++king_attackers[defender];
+                        king_attack_units[defender] += zone_hits * KingAttackWeight[static_cast<std::size_t>(type)];
+                    }
                     if (type == 4 && pawns_by_file[static_cast<std::size_t>(color)][static_cast<std::size_t>(file)] == 0) {
                         const Color enemy = opposite(color);
                         const bool open = pawns_by_file[static_cast<std::size_t>(enemy)][static_cast<std::size_t>(file)] == 0;
@@ -432,6 +483,10 @@ int Searcher::evaluate_with_pawns(const Board& board, const PawnEntry& pawns) {
                 }
             }
             add(color, shelter, 0);
+        }
+        if (king_attackers[static_cast<std::size_t>(color)] >= 2) {
+            const int units = std::min(king_attack_units[static_cast<std::size_t>(color)], 99);
+            add(color, -KingSafetyTable[static_cast<std::size_t>(units)], 0);
         }
     }
 

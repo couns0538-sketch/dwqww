@@ -477,7 +477,7 @@ int main() {
     forge::Board evaluation_board;
     check(evaluation_board.set_fen("r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1"),
           "complex evaluation regression FEN parses");
-    check(forge::Searcher::evaluate(evaluation_board) == 64,
+    check(forge::Searcher::evaluate(evaluation_board) == 79,
           "complex evaluation regression preserves exact tapered score");
     check(evaluation_board.set_fen("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR b KQkq - 0 1"),
           "side-to-move evaluation FEN parses");
