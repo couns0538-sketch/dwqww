@@ -454,17 +454,17 @@ std::vector<Move> Searcher::extract_pv(Board board, int depth) const {
     return pv;
 }
 
-int Searcher::quiescence(Board& board, int ply, int alpha, int beta, bool null_branch) {
+int Searcher::quiescence(Board& board, int ply, int alpha, int beta) {
     if (abort_if_stopped()) return 0;
     if (ply >= 127) return evaluate_cached(board);
     seldepth_ = std::max(seldepth_, ply);
     ++nodes_;
     const bool checked = board.in_check(board.side_to_move());
-    if (!null_branch && (is_search_repetition(board, root_index_) || board.halfmove_clock() >= 100)) {
+    if (is_search_repetition(board, root_index_) || board.halfmove_clock() >= 100) {
         if (!checked || board.has_legal_move()) return 0;
         return -MateScore + ply;
     }
-    if (!null_branch && board.is_insufficient_material()) return 0;
+    if (board.is_insufficient_material()) return 0;
     alpha = std::max(alpha, -MateScore + ply);
     beta = std::min(beta, MateScore - ply - 1);
     if (alpha >= beta) return alpha;
@@ -472,7 +472,7 @@ int Searcher::quiescence(Board& board, int ply, int alpha, int beta, bool null_b
     const std::uint64_t qkey = tt_key(board);
     TTEntry& qentry = table_[tt_index(qkey)];
     Move qtt_move{};
-    const std::uint8_t qcontext = current_tt_context(board, null_branch);
+    const std::uint8_t qcontext = current_tt_context(board);
     if (qentry.key == qkey) {
         qtt_move = qentry.move;
         if (tt_depth(qentry) == 0 && tt_context(qentry) == qcontext) {
@@ -522,7 +522,7 @@ int Searcher::quiescence(Board& board, int ply, int alpha, int beta, bool null_b
         }
         Undo undo;
         (void)board.make_move(move, undo);
-        const int score = -quiescence(board, ply + 1, -beta, -alpha, null_branch);
+        const int score = -quiescence(board, ply + 1, -beta, -alpha);
         board.unmake_move(move, undo);
         if (aborted_) return 0;
         if (score >= beta) {
@@ -546,17 +546,17 @@ int Searcher::quiescence(Board& board, int ply, int alpha, int beta, bool null_b
 }
 
 int Searcher::alpha_beta(Board& board, int depth, int ply, int alpha, int beta,
-                         bool allow_null, bool null_branch, Move previous_move) {
+                         bool allow_null, Move previous_move) {
     if (abort_if_stopped()) return 0;
     if (ply >= 127) return evaluate_cached(board);
     seldepth_ = std::max(seldepth_, ply);
-    if (depth <= 0) return quiescence(board, ply, alpha, beta, null_branch);
+    if (depth <= 0) return quiescence(board, ply, alpha, beta);
     ++nodes_;
-    if (!null_branch && (is_search_repetition(board, root_index_) || board.halfmove_clock() >= 100)) {
+    if (is_search_repetition(board, root_index_) || board.halfmove_clock() >= 100) {
         if (!board.in_check(board.side_to_move()) || board.has_legal_move()) return 0;
         return -MateScore + ply;
     }
-    if (!null_branch && board.is_insufficient_material()) return 0;
+    if (board.is_insufficient_material()) return 0;
     alpha = std::max(alpha, -MateScore + ply);
     beta = std::min(beta, MateScore - ply - 1);
     if (alpha >= beta) return alpha;
@@ -564,7 +564,7 @@ int Searcher::alpha_beta(Board& board, int depth, int ply, int alpha, int beta,
     const std::uint64_t key = tt_key(board);
     TTEntry& entry = table_[tt_index(key)];
     Move tt_move{};
-    const std::uint8_t context = current_tt_context(board, null_branch);
+    const std::uint8_t context = current_tt_context(board);
     if (entry.key == key) {
         tt_move = entry.move;
         if (ply > 0 && tt_depth(entry) >= depth && tt_context(entry) == context) {
@@ -606,7 +606,7 @@ int Searcher::alpha_beta(Board& board, int depth, int ply, int alpha, int beta,
             const int reduction = 3 + depth / 3 + std::min(3, (static_eval - beta) / 200);
             const int null_depth = std::max(0, depth - 1 - reduction);
             const int null_score = -alpha_beta(board, null_depth, ply + 1,
-                                               -beta, -beta + 1, false, true, Move{});
+                                               -beta, -beta + 1, false, Move{});
             board.unmake_null_move(null_undo);
             if (aborted_) return 0;
             if (null_score >= beta) {
@@ -616,7 +616,7 @@ int Searcher::alpha_beta(Board& board, int depth, int ply, int alpha, int beta,
                 }
                 // Deep nodes verify the cutoff with a reduced regular search.
                 const int verification = alpha_beta(board, depth - 1 - reduction, ply, alpha, beta,
-                                                    false, null_branch, previous_move);
+                                                    false, previous_move);
                 if (aborted_) return 0;
                 if (verification >= beta) {
                     ++null_cutoffs_;
@@ -677,7 +677,7 @@ int Searcher::alpha_beta(Board& board, int depth, int ply, int alpha, int beta,
         const int new_depth = depth - 1 + ((gives_check && ply < 2 * root_depth_) ? 1 : 0);
         int score;
         if (move_index == 0) {
-            score = -alpha_beta(board, new_depth, ply + 1, -beta, -alpha, true, null_branch, move);
+            score = -alpha_beta(board, new_depth, ply + 1, -beta, -alpha, true, move);
         } else {
             int reduction = 0;
             if (depth >= 3 && move_index >= (pv_node ? 3 : 2) && quiet && !checked && !gives_check) {
@@ -692,12 +692,12 @@ int Searcher::alpha_beta(Board& board, int depth, int ply, int alpha, int beta,
                 reduction -= std::clamp(history_[us][move.from][move.to] / 4096, -2, 2);
                 reduction = std::clamp(reduction, 0, new_depth - 1);
             }
-            score = -alpha_beta(board, new_depth - reduction, ply + 1, -alpha - 1, -alpha, true, null_branch, move);
+            score = -alpha_beta(board, new_depth - reduction, ply + 1, -alpha - 1, -alpha, true, move);
             if (reduction > 0 && score > alpha) {
-                score = -alpha_beta(board, new_depth, ply + 1, -alpha - 1, -alpha, true, null_branch, move);
+                score = -alpha_beta(board, new_depth, ply + 1, -alpha - 1, -alpha, true, move);
             }
             if (pv_node && score > alpha && score < beta) {
-                score = -alpha_beta(board, new_depth, ply + 1, -beta, -alpha, true, null_branch, move);
+                score = -alpha_beta(board, new_depth, ply + 1, -beta, -alpha, true, move);
             }
         }
         board.unmake_move(move, undo);

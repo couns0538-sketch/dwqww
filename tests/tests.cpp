@@ -13,13 +13,13 @@
 namespace forge {
 
 struct SearcherTestProbe {
-    static int quiescence(Searcher& searcher, Board& board, int ply = 0, bool null_branch = false) {
-        return searcher.quiescence(board, ply, -32000, 32000, null_branch);
+    static int quiescence(Searcher& searcher, Board& board, int ply = 0) {
+        return searcher.quiescence(board, ply, -32000, 32000);
     }
 
     static int quiescence_window(Searcher& searcher, Board& board, int alpha, int beta,
-                                 int ply = 0, bool null_branch = false) {
-        return searcher.quiescence(board, ply, alpha, beta, null_branch);
+                                 int ply = 0) {
+        return searcher.quiescence(board, ply, alpha, beta);
     }
 
     static int alpha_beta(Searcher& searcher, Board& board, int depth, int alpha, int beta,
@@ -29,7 +29,7 @@ struct SearcherTestProbe {
 
     static int alpha_beta_without_null(Searcher& searcher, Board& board, int depth,
                                        int alpha, int beta, int ply = 1) {
-        return searcher.alpha_beta(board, depth, ply, alpha, beta, false, false);
+        return searcher.alpha_beta(board, depth, ply, alpha, beta, false);
     }
     static std::uint64_t null_tries(const Searcher& searcher) { return searcher.null_tries_; }
     static std::uint64_t null_cutoffs(const Searcher& searcher) { return searcher.null_cutoffs_; }
@@ -182,12 +182,7 @@ void check_tt_rule50_context() {
     check(forge::SearcherTestProbe::quiescence(qsearcher, q99) == 0, "qsearch ignores incompatible warmed TT score");
 
     qsearcher.clear_hash();
-    const int null_score = forge::SearcherTestProbe::quiescence(qsearcher, q99, 0, true);
-    check(null_score != 0, "synthetic-null qsearch suppresses rule-50 draw");
-    check(forge::SearcherTestProbe::quiescence(qsearcher, q99) == 0, "synthetic-null TT score does not leak into normal qsearch");
-    qsearcher.clear_hash();
     check(forge::SearcherTestProbe::quiescence(qsearcher, q99) == 0, "normal qsearch stores rule-50-aware context");
-    check(forge::SearcherTestProbe::quiescence(qsearcher, q99, 0, true) == null_score, "normal TT context does not leak into synthetic-null qsearch");
 
     forge::Board pawn_reset;
     check(pawn_reset.set_fen("7k/8/8/8/8/8/P7/K7 w - - 99 1"), "pawn-reset FEN parses");

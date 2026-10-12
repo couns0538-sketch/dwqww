@@ -116,7 +116,7 @@ public:
     [[nodiscard]] std::uint64_t key() const { return key_; }
     [[nodiscard]] std::uint64_t pawn_key() const { return pawn_key_; }
     // Position key combined with the known reversible legal-history context.
-    // Rule-50 and synthetic-null compatibility remain separate TT contexts.
+    // Diagnostic only: the search indexes its hash table by key() alone.
     [[nodiscard]] std::uint64_t transposition_history_key() const;
     [[nodiscard]] int halfmove_clock() const { return halfmove_; }
     [[nodiscard]] const std::vector<std::uint64_t>& key_history() const { return key_history_; }
