@@ -365,7 +365,11 @@ Searcher::Searcher(std::size_t hash_mb)
       capture_history_(std::make_unique<CaptureHistory>()),
       continuation_history_(std::make_unique<ContinuationHistory>()),
       counter_moves_(std::make_unique<CounterMoveTable>()),
-      correction_history_(std::make_unique<CorrectionHistory>()) {
+      pawn_correction_(std::make_unique<CorrectionHistory>()),
+      non_pawn_correction_{std::make_unique<CorrectionHistory>(), std::make_unique<CorrectionHistory>()},
+      minor_correction_(std::make_unique<CorrectionHistory>()),
+      major_correction_(std::make_unique<CorrectionHistory>()),
+      continuation_correction_(std::make_unique<ContinuationCorrectionHistory>()) {
     clear();
 }
 
@@ -384,22 +388,66 @@ void Searcher::clear() {
     *capture_history_ = CaptureHistory{};
     *continuation_history_ = ContinuationHistory{};
     *counter_moves_ = CounterMoveTable{};
-    *correction_history_ = CorrectionHistory{};
+    *pawn_correction_ = CorrectionHistory{};
+    for (auto& table : non_pawn_correction_) *table = CorrectionHistory{};
+    *minor_correction_ = CorrectionHistory{};
+    *major_correction_ = CorrectionHistory{};
+    *continuation_correction_ = ContinuationCorrectionHistory{};
     for (SearchStack& ss : stack_) ss = SearchStack{};
 }
 
-int Searcher::corrected_eval(const Board& board, int raw_eval) const {
-    const std::int32_t correction =
-        (*correction_history_)[static_cast<std::size_t>(board.side_to_move())][board.pawn_key() & (CorrectionSize - 1U)];
-    return std::clamp(raw_eval + correction / CorrectionGrain, -MateInMaxPly + 1, MateInMaxPly - 1);
+namespace {
+
+[[nodiscard]] std::size_t correction_index(std::uint64_t key) {
+    return static_cast<std::size_t>(key & (CorrectionSize - 1U));
 }
 
-void Searcher::update_correction(const Board& board, int depth, int best_score, int static_eval) {
-    std::int32_t& entry =
-        (*correction_history_)[static_cast<std::size_t>(board.side_to_move())][board.pawn_key() & (CorrectionSize - 1U)];
+// The continuation entry is addressed by the last two moves; a null move or
+// the root leaves no usable history.
+[[nodiscard]] CorrectionEntry* continuation_correction_entry(ContinuationCorrectionHistory& table,
+                                                             const SearchStack* ss) {
+    const SearchStack* previous = ss - 1;
+    const SearchStack* before = ss - 2;
+    if (previous->current_move.is_none() || previous->moved_piece == Empty || before->current_move.is_none() ||
+        before->moved_piece == Empty) {
+        return nullptr;
+    }
+    return &table[static_cast<std::size_t>(before->moved_piece)][before->current_move.to]
+                 [static_cast<std::size_t>(previous->moved_piece)][previous->current_move.to];
+}
+
+void apply_correction(CorrectionEntry& entry, int diff, int weight) {
+    entry = static_cast<CorrectionEntry>(
+        std::clamp((entry * (256 - weight) + diff * weight) / 256, -CorrectionLimit, CorrectionLimit));
+}
+
+} // namespace
+
+int Searcher::corrected_eval(const Board& board, const SearchStack* ss, int raw_eval) const {
+    const std::size_t us = static_cast<std::size_t>(board.side_to_move());
+    int correction = 2 * (*pawn_correction_)[us][correction_index(board.pawn_key())];
+    correction += 2 * (*non_pawn_correction_[White])[us][correction_index(board.non_pawn_key(White))];
+    correction += 2 * (*non_pawn_correction_[Black])[us][correction_index(board.non_pawn_key(Black))];
+    correction += (*minor_correction_)[us][correction_index(board.minor_key())];
+    correction += (*major_correction_)[us][correction_index(board.major_key())];
+    if (const CorrectionEntry* entry = continuation_correction_entry(*continuation_correction_, ss); entry != nullptr) {
+        correction += 2 * *entry;
+    }
+    return std::clamp(raw_eval + correction / (2 * CorrectionGrain), -MateInMaxPly + 1, MateInMaxPly - 1);
+}
+
+void Searcher::update_correction(const Board& board, const SearchStack* ss, int depth, int best_score, int static_eval) {
+    const std::size_t us = static_cast<std::size_t>(board.side_to_move());
     const int diff = std::clamp((best_score - static_eval) * CorrectionGrain, -CorrectionLimit / 4, CorrectionLimit / 4);
     const int weight = std::min(depth + 1, 16);
-    entry = std::clamp((entry * (256 - weight) + diff * weight) / 256, -CorrectionLimit, CorrectionLimit);
+    apply_correction((*pawn_correction_)[us][correction_index(board.pawn_key())], diff, weight);
+    apply_correction((*non_pawn_correction_[White])[us][correction_index(board.non_pawn_key(White))], diff, weight);
+    apply_correction((*non_pawn_correction_[Black])[us][correction_index(board.non_pawn_key(Black))], diff, weight);
+    apply_correction((*minor_correction_)[us][correction_index(board.minor_key())], diff, weight);
+    apply_correction((*major_correction_)[us][correction_index(board.major_key())], diff, weight);
+    if (CorrectionEntry* entry = continuation_correction_entry(*continuation_correction_, ss); entry != nullptr) {
+        apply_correction(*entry, diff, weight);
+    }
 }
 
 std::int64_t Searcher::elapsed_ms() const {
@@ -535,7 +583,7 @@ int Searcher::qsearch(Board& board, SearchStack* ss, int alpha, int beta) {
         int eval;
         if (tt_hit && tte->eval != ValueNone) ss->raw_eval = tte->eval;
         else ss->raw_eval = evaluator_.evaluate(board);
-        eval = ss->static_eval = corrected_eval(board, ss->raw_eval);
+        eval = ss->static_eval = corrected_eval(board, ss, ss->raw_eval);
         if (tt_hit && tt_score != ValueNone &&
             ((tt_bound == BoundLower && tt_score > eval) || (tt_bound == BoundUpper && tt_score < eval) ||
              tt_bound == BoundExact)) {
@@ -655,7 +703,7 @@ int Searcher::search(Board& board, SearchStack* ss, int depth, int alpha, int be
     } else {
         if (tt_hit && tte->eval != ValueNone) ss->raw_eval = tte->eval;
         else ss->raw_eval = evaluator_.evaluate(board);
-        eval = ss->static_eval = corrected_eval(board, ss->raw_eval);
+        eval = ss->static_eval = corrected_eval(board, ss, ss->raw_eval);
         if (tt_hit && tt_score != ValueNone &&
             ((tt_bound == BoundLower && tt_score > eval) || (tt_bound == BoundUpper && tt_score < eval) ||
              tt_bound == BoundExact)) {
@@ -903,7 +951,7 @@ int Searcher::search(Board& board, SearchStack* ss, int depth, int alpha, int be
         (best_move.is_none() || !best_move.is_capture()) &&
         !(bound == BoundLower && best_score <= ss->static_eval) &&
         !(bound == BoundUpper && best_score >= ss->static_eval)) {
-        update_correction(board, depth, best_score, ss->static_eval);
+        update_correction(board, ss, depth, best_score, ss->static_eval);
     }
     return best_score;
 }

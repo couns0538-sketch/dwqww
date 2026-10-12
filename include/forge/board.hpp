@@ -154,6 +154,11 @@ public:
     [[nodiscard]] Color side_to_move() const { return side_; }
     [[nodiscard]] std::uint64_t key() const { return key_; }
     [[nodiscard]] std::uint64_t pawn_key() const { return pawn_key_; }
+    // Piece-class keys for evaluation correction: one side's non-pawn
+    // pieces, and both sides' minor pieces or major pieces (each with kings).
+    [[nodiscard]] std::uint64_t non_pawn_key(Color color) const { return non_pawn_key_[static_cast<std::size_t>(color)]; }
+    [[nodiscard]] std::uint64_t minor_key() const { return minor_key_; }
+    [[nodiscard]] std::uint64_t major_key() const { return major_key_; }
     [[nodiscard]] int halfmove_clock() const { return halfmove_; }
     [[nodiscard]] int fullmove_number() const { return fullmove_; }
     [[nodiscard]] int ep_square() const { return ep_square_; }
@@ -178,11 +183,15 @@ private:
     std::uint16_t fullmove_ = 1;
     std::uint64_t key_ = 0;
     std::uint64_t pawn_key_ = 0;
+    std::array<std::uint64_t, 2> non_pawn_key_{};
+    std::uint64_t minor_key_ = 0;
+    std::uint64_t major_key_ = 0;
     Bitboard checkers_ = 0;
     // Plies since the last null move; bounds search-level repetition scans.
     std::uint16_t plies_from_null_ = 1024;
     std::vector<std::uint64_t> key_history_;
 
+    void toggle_piece_keys(Piece piece, int square);
     void put_piece(Piece piece, int square);
     void remove_piece(int square);
     void move_piece(int from, int to);

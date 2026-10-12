@@ -116,10 +116,17 @@ using PieceToHistory = std::array<std::array<std::int16_t, 64>, 13>;
 using ContinuationHistory = std::array<std::array<PieceToHistory, 64>, 13>;
 using CaptureHistory = std::array<std::array<std::array<std::int16_t, 7>, 64>, 13>;
 using CounterMoveTable = std::array<std::array<Move, 64>, 13>;
+// Evaluation correction: running averages of (search score - static eval)
+// indexed by features of the position, in units of 1/CorrectionGrain pawn.
 constexpr std::size_t CorrectionSize = 1U << 14U;
 constexpr int CorrectionGrain = 256;
 constexpr int CorrectionLimit = 32 * CorrectionGrain;
-using CorrectionHistory = std::array<std::array<std::int32_t, CorrectionSize>, 2>;
+using CorrectionEntry = std::int16_t;
+// [side to move][key hash]
+using CorrectionHistory = std::array<std::array<CorrectionEntry, CorrectionSize>, 2>;
+// [piece moved two plies ago][its square][piece moved one ply ago][its square]
+using ContinuationCorrectionHistory =
+    std::array<std::array<std::array<std::array<CorrectionEntry, 64>, 13>, 64>, 13>;
 
 struct SearchStack {
     std::array<Move, MaxPly + 1> pv{};
@@ -175,7 +182,11 @@ private:
     std::unique_ptr<CaptureHistory> capture_history_;
     std::unique_ptr<ContinuationHistory> continuation_history_;
     std::unique_ptr<CounterMoveTable> counter_moves_;
-    std::unique_ptr<CorrectionHistory> correction_history_;
+    std::unique_ptr<CorrectionHistory> pawn_correction_;
+    std::array<std::unique_ptr<CorrectionHistory>, 2> non_pawn_correction_;
+    std::unique_ptr<CorrectionHistory> minor_correction_;
+    std::unique_ptr<CorrectionHistory> major_correction_;
+    std::unique_ptr<ContinuationCorrectionHistory> continuation_correction_;
     std::array<SearchStack, MaxPly + 8> stack_{};
     std::array<std::uint64_t, 256> root_move_nodes_{};
     int root_best_index_ = -1;
@@ -210,8 +221,8 @@ private:
     void update_continuation(SearchStack* ss, Piece piece, int to, int bonus);
     [[nodiscard]] int quiet_history(const Board& board, const SearchStack* ss, Move move) const;
     [[nodiscard]] int capture_history_value(const Board& board, Move move) const;
-    [[nodiscard]] int corrected_eval(const Board& board, int raw_eval) const;
-    void update_correction(const Board& board, int depth, int best_score, int static_eval);
+    [[nodiscard]] int corrected_eval(const Board& board, const SearchStack* ss, int raw_eval) const;
+    void update_correction(const Board& board, const SearchStack* ss, int depth, int best_score, int static_eval);
 };
 
 } // namespace forge

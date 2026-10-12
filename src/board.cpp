@@ -81,11 +81,23 @@ Board::Board() {
     (void)set_fen(StandardStartFen);
 }
 
+// The piece-class keys are toggled here, at the only places where pieces are
+// placed or removed, so unmaking a move restores them without undo state.
+void Board::toggle_piece_keys(Piece piece, int square) {
+    const int type = piece_type(piece);
+    if (type == Pawn) return;
+    const std::uint64_t key = piece_key(square, piece);
+    non_pawn_key_[static_cast<std::size_t>(color_of(piece))] ^= key;
+    if (type == Knight || type == Bishop || type == King) minor_key_ ^= key;
+    if (type == Rook || type == Queen || type == King) major_key_ ^= key;
+}
+
 void Board::put_piece(Piece piece, int square) {
     squares_[static_cast<std::size_t>(square)] = piece;
     const Bitboard bit = square_bb(square);
     bitboards_[static_cast<std::size_t>(piece)] |= bit;
     occupied_[static_cast<std::size_t>(color_of(piece))] |= bit;
+    toggle_piece_keys(piece, square);
 }
 
 void Board::remove_piece(int square) {
@@ -94,6 +106,7 @@ void Board::remove_piece(int square) {
     bitboards_[static_cast<std::size_t>(piece)] &= ~bit;
     occupied_[static_cast<std::size_t>(color_of(piece))] &= ~bit;
     squares_[static_cast<std::size_t>(square)] = Empty;
+    toggle_piece_keys(piece, square);
 }
 
 void Board::move_piece(int from, int to) {
@@ -103,6 +116,8 @@ void Board::move_piece(int from, int to) {
     occupied_[static_cast<std::size_t>(color_of(piece))] ^= bits;
     squares_[static_cast<std::size_t>(from)] = Empty;
     squares_[static_cast<std::size_t>(to)] = piece;
+    toggle_piece_keys(piece, from);
+    toggle_piece_keys(piece, to);
 }
 
 bool Board::set_fen(std::string_view fen_text, std::string* error) {
@@ -236,6 +251,9 @@ bool Board::set_fen(std::string_view fen_text, std::string* error) {
     candidate.squares_.fill(Empty);
     candidate.bitboards_.fill(0);
     candidate.occupied_.fill(0);
+    candidate.non_pawn_key_.fill(0);
+    candidate.minor_key_ = 0;
+    candidate.major_key_ = 0;
     for (int square = 0; square < 64; ++square) {
         if (parsed[static_cast<std::size_t>(square)] != Empty) {
             candidate.put_piece(parsed[static_cast<std::size_t>(square)], square);

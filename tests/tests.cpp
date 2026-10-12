@@ -109,6 +109,11 @@ void check_board_consistency(const forge::Board& board, std::string_view label) 
     check(rebuilt_board.set_fen(board.fen()), "FEN round trip parses");
     check(rebuilt_board.key() == board.key(), "incremental key matches recomputation");
     check(rebuilt_board.pawn_key() == board.pawn_key(), "incremental pawn key matches recomputation");
+    check(rebuilt_board.non_pawn_key(forge::White) == board.non_pawn_key(forge::White) &&
+              rebuilt_board.non_pawn_key(forge::Black) == board.non_pawn_key(forge::Black),
+          "incremental non-pawn keys match recomputation");
+    check(rebuilt_board.minor_key() == board.minor_key() && rebuilt_board.major_key() == board.major_key(),
+          "incremental minor and major keys match recomputation");
     check(rebuilt_board.checkers() == board.checkers(), "incremental checkers match recomputation");
     check(rebuilt_board.in_check(board.side_to_move()) == board.in_check(), "check status is consistent");
 }
@@ -213,6 +218,8 @@ void test_move_generation() {
             const forge::Move move = legal[static_cast<std::size_t>(random_state % legal.size())];
             const bool predicted_check = board.gives_check(move);
             const std::string before = board.fen();
+            const std::array<std::uint64_t, 4> keys_before{board.non_pawn_key(forge::White), board.non_pawn_key(forge::Black),
+                                                           board.minor_key(), board.major_key()};
             forge::Undo undo;
             (void)board.make_move(move, undo);
             check(board.in_check() == predicted_check, "gives_check predicts the resulting check status");
@@ -220,6 +227,9 @@ void test_move_generation() {
             forge::Board copy = board;
             copy.unmake_move(move, undo);
             check(copy.fen() == before && copy.key() == undo.key, "unmake restores the previous position");
+            const std::array<std::uint64_t, 4> keys_after{copy.non_pawn_key(forge::White), copy.non_pawn_key(forge::Black),
+                                                          copy.minor_key(), copy.major_key()};
+            check(keys_after == keys_before, "unmake restores the piece-class keys");
             if (board.halfmove_clock() >= 100 || board.is_repetition()) break;
         }
     }
