@@ -1,8 +1,28 @@
 # Chess Engine Forge
 
-Chess Engine Forge 5.31.0 is a C++20 correctness release based on the exact validated 5.30.0 source. A reproduced nominal-depth-9 late-move-reduction (LMR) false fail-low is corrected by searching quiet late moves at full nominal depth 9. Other search heuristics, legal move generation, UCI pondering, evaluation, and repetition/TT behavior remain unchanged. No speed or Elo gain is claimed.
+Chess Engine Forge 6.0.0 is a C++20 UCI chess engine. This release replaces the deliberately
+unpruned 5.x search with a modern selective search and a position-indexed transposition table.
+Legal move generation, UCI handling, pondering and the evaluation function are unchanged.
 
-## Current 5.31.0 release status
+## Current 6.0.0 release status
+
+Measured with fastchess (pinned commit from `tools/match/README.md`), both sides single-threaded
+with Hash 32 MiB on the `tools/openings/forge-10000.epd` corpus, candidate against the unchanged
+5.31.0 binary:
+
+| Change | Time control | Games | Result | Elo |
+|---|---|---|---|---|
+| Selective search (LMR from depth 3, null move from depth 3, reverse futility, LMP/futility, check extension, SEE ordering, aspiration, soft time limit) | 5+0.05 | 100 | W88 D7 L5 | +413 +/- 111 |
+
+In a fixed three-second search of the first corpus position, 5.31.0 reached depth 9 and 6.0.0
+reaches depth 19. The search is now speculative by design: like every modern alpha-beta engine
+it trades exactness at a fixed nominal depth for depth and time, and its quality is measured in
+games rather than by zero-window bound reproduction. The pruning-independent properties kept
+under test are forced mates, draw handling (repetition, fifty-move rule, stalemate under
+zero-window pruning, insufficient material), searchmoves/ponder protocol behaviour, time-limit
+semantics and search determinism.
+
+## Historical 5.31.0 release status
 
 On unchanged 5.30.0 (source SHA-256 `fd2f0d249b78bc353bc3a439464be0c4aec7a01eb1664f2c923f985aef74d0d7`), direct interior depth-9 zero-window searches for `rn1qkb1r/p1p1ppp1/1p1pbn2/7p/3P4/2N1PN2/PPP1BPPP/R1BQK2R w KQkq - 0 1` at [53,54] and [54,55] return 53 and 54: false fail-lows compared with no-LMR full-depth references returning 54 and 55. 5.31.0 raises the LMR floor from 9 to 10; both full-depth boundary windows now return 54 and 55. GCC and Clang strict builds, ASan+UBSan, 4/4 CTest suites, extended UCI/ponder and the three reference perfts pass. Windows Zen 4 binary was cross-compiled with LLVM-MinGW from frozen source and PE-verified, but not Windows-runtime-tested. The depth-10+ LMR and depth-6+ null-verification concerns remain separate.
 
@@ -28,20 +48,20 @@ The exact 5.27.0 source archive SHA-256 is `6170b7b2d03eac5372802f4fb02c249ce52a
 - Pawn-structure cache covering pawn placement, weaknesses, and passers
 - Incrementally cached king locations for constant-time check lookup
 - Fixed-capacity stack move lists for pseudo-legal/legal generation, eliminating per-node move-list heap allocation
-- Iterative-deepening negamax alpha-beta search
-- Principal-variation search with conservative late-move reductions and mandatory verification searches
-- An extra verified reduction for very late, low-history quiet moves at depth 6+
-- Verified null-move pruning with mate-window, check, repetition, rule-50, and pawn-ending safeguards
-- Evaluation-aware adaptive null-move reduction with deep verification
-- Late-move pruning for clearly unpromising non-checking quiet moves at shallow zero-window nodes
-- Nominal-depth zero-window search on TT misses; no whole-node TT-miss depth shortcut
+- Iterative-deepening negamax alpha-beta search with progressive aspiration windows
+- Principal-variation search with logarithmic late-move reductions from depth 3, adjusted by node type, the improving flag, killer/countermove status and history
+- Null-move pruning from depth 3 with an evaluation-aware reduction; a verification search only at depth 10+
+- Reverse futility pruning, late-move pruning and futility pruning in non-PV nodes, never on checking moves, never in check or near mate scores, and never without non-pawn material
+- Check extension bounded by twice the root depth; internal iterative reduction on hash-move misses
 - Exact mate-distance window pruning
-- Reply-specific countermove ordering alongside killer and history heuristics
+- Reply-specific countermove ordering alongside killer and per-colour history heuristics
 - Root-to-root history aging so move-ordering feedback adapts throughout a game
-- Quiescence search with depth-0 TT bounds, transposition table, MVV-LVA ordering, killer moves, and history ordering
+- Position-indexed transposition table; the fifty-move clock is part of the entry context only from clock 90 upward
+- Repetition detection inside the search: one earlier occurrence after the root, or two anywhere in the known history
+- Quiescence search with depth-0 TT bounds, MVV-LVA ordering, delta pruning and static-exchange pruning of clearly losing captures
 - Static-exchange evaluation with bitboard attacker enumeration, x-rays, en passant, promotions, and king-safe recapturer selection
-- Single-score stable in-place move ordering without comparator recomputation, with promotion-first tactical ordering
-- Conservative quiescence delta pruning with promotion, check-evasion, and mate-window safeguards
+- Single-score stable in-place move ordering; losing captures and underpromotions are tried last
+- Soft/hard time management: no new iteration after half of the budget, extended when the best move changed
 - Transposition-move reuse in quiescence ordering
 - Correct checkmate and stalemate scoring at the quiescence horizon
 - Correct checkmate precedence over rule-50 and repetition draws

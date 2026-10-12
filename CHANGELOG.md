@@ -1,5 +1,34 @@
 # Changelog
 
+## 6.0.0 - 2026-10-12
+
+- Replaces the unpruned 5.x search with a modern selective search in `Searcher::alpha_beta`:
+  late-move reductions from depth 3 using a `log(depth) * log(move)` table (less for PV nodes,
+  killers, countermoves and good history; more when not improving), null-move pruning from
+  depth 3 with `R = 3 + depth/3 + min(3, (eval - beta)/200)` and a verification search only at
+  depth 10+, reverse futility pruning (depth <= 8), late-move pruning (depth <= 8) and futility
+  pruning (depth <= 6) for quiet non-checking moves in non-PV nodes, a check extension bounded
+  by twice the root depth, and internal iterative reduction without a hash move. Whole-node
+  pruning requires non-pawn material so pawn endings and stalemate positions are never cut off
+  before a move is generated.
+- Move ordering tries SEE-losing captures after the quiet moves and underpromotions last;
+  history is kept per colour. Quiescence uses delta pruning and skips captures that lose more
+  than 20 centipawns by static exchange.
+- Transposition table entries are indexed by position key instead of the path-dependent
+  repetition-context key, so transpositions reached by different move orders share bounds. The
+  fifty-move clock is part of the entry context only from clock 90 upward; the rule-50 and
+  synthetic-null context tests are unchanged. A fail-low no longer erases the stored hash move.
+- Repetition inside the search follows the usual rule: one earlier occurrence strictly after the
+  root, or two anywhere in the known game history, is a draw.
+- Iterative deepening uses progressive aspiration windows (25 centipawns, widening by half)
+  and a soft time limit at half of the hard budget, extended by half when the best move changed.
+- Tests: the exact-score regressions asserting the absence of pruning are replaced by
+  pruning-independent properties (forced mates, stalemate under zero-window pruning at depths
+  1-6, no whole-node pruning in pawn endings, deterministic node counts, soft/hard limit
+  semantics, repetition rule, searchmoves fixture by legality and decisive score).
+- Measured with fastchess at 5+0.05, Hash 32, `forge-10000.epd`, 100 games against unchanged
+  5.31.0: W88 D7 L5, +413 +/- 111 Elo for the search change alone.
+
 ## 5.31.0 - 2026-10-09
 
 - Fixes a reproduced depth-9 LMR false fail-low on `rn1qkb1r/p1p1ppp1/1p1pbn2/7p/3P4/2N1PN2/PPP1BPPP/R1BQK2R w KQkq - 0 1`. Unchanged 5.30.0 returns 53 for depth-9 interior [53,54] and 54 for [54,55]; a no-LMR full-depth reference returns 54 and 55 respectively. Depth-9 full-window scores differ (baseline +57, no-LMR +62), but the zero-window discrepancy is the focused bound regression.

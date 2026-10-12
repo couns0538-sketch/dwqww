@@ -1,3 +1,25 @@
+# Release state — Chess Engine Forge 6.0.0
+
+Status: **strength release; measured gain over 5.31.0**.
+
+The 5.x line kept raising pruning thresholds whenever a zero-window search disagreed with a
+full-depth reference, which left the engine without usable late-move reductions below depth 10,
+without null-move pruning below depth 6, and without reverse futility, futility or late-move
+pruning. 6.0.0 adopts the standard selective-search toolkit (see CHANGELOG.md) and a
+position-indexed transposition table. Evaluation, move generation, UCI, pondering and the
+match tooling are unchanged.
+
+Evidence: fastchess, 5+0.05, Hash 32, `tools/openings/forge-10000.epd`, 100 games, candidate
+search versus the unchanged 5.31.0 binary: W88 D7 L5, +413 +/- 111 Elo. Strict GCC
+`-Wall -Wextra -Wpedantic -Wconversion -Wshadow -Werror` release build and GCC ASan+UBSan
+build pass all 4 CTest groups. Reference perfts are unchanged (move generation untouched).
+
+Known limits: single-threaded, hand-crafted evaluation without king-attack terms, no opening
+book, tablebases or NNUE. The next measurable items are evaluation (piece-square tables, king
+safety, passed-pawn interaction with kings), continuation/capture history, and TT aging.
+
+---
+
 # Release state — Chess Engine Forge 5.31.0
 
 Status: **validated depth-9 LMR bound-correctness release, no demonstrated Elo gain**.
