@@ -101,8 +101,13 @@ private:
     [[nodiscard]] static constexpr std::uint8_t tt_context(const TTEntry& entry) {
         return static_cast<std::uint8_t>((entry.meta >> 9U) & 0x7FU);
     }
+    // Far from the fifty-move boundary every clock shares one context, so
+    // transpositions reuse each other's bounds. From clock 90 upward the exact
+    // clock is required, because the search result then depends on it.
     [[nodiscard]] static constexpr std::uint8_t current_tt_context(const Board& board, bool null_branch) {
-        return null_branch ? 101U : static_cast<std::uint8_t>(std::min(board.halfmove_clock(), 100));
+        if (null_branch) return 101U;
+        const int clock = std::min(board.halfmove_clock(), 100);
+        return clock < 90 ? 0U : static_cast<std::uint8_t>(clock - 89);
     }
     static constexpr void set_tt_meta(TTEntry& entry, int depth, Bound bound,
                                       std::uint8_t context) {
@@ -143,6 +148,8 @@ private:
     std::vector<Move> root_moves_;
     bool root_restricted_ = false;
     Move root_best_move_{};
+    // Index of the root position inside Board::key_history().
+    std::size_t root_index_ = 0;
 
     int alpha_beta(Board& board, int depth, int ply, int alpha, int beta,
                    bool allow_null = true, bool null_branch = false, Move previous_move = {});
@@ -154,12 +161,13 @@ private:
         return tt_mask_ != 0 ? static_cast<std::size_t>(key) & tt_mask_
                              : static_cast<std::size_t>(key % table_.size());
     }
-    [[nodiscard]] static std::uint64_t tt_key(const Board& board, bool null_branch = false) {
-        // Legal-search bounds depend on known reversible repetition history.
-        // Synthetic-null branches suppress legal repetition adjudication and
-        // retain the ordinary position key under the dedicated null context tag.
-        return null_branch ? board.key() : board.transposition_history_key();
-    }
+    // Hash entries are indexed by position only, so transpositions reached
+    // through different move orders share bounds. Synthetic-null branches use
+    // the same key under their dedicated context tag.
+    [[nodiscard]] static std::uint64_t tt_key(const Board& board) { return board.key(); }
+    // Draw by repetition inside the search: a position that already occurred
+    // once after the root, or twice anywhere in the known history.
+    [[nodiscard]] static bool is_search_repetition(const Board& board, std::size_t root_index);
     [[nodiscard]] static constexpr std::size_t eval_index(std::uint64_t key) {
         return static_cast<std::size_t>(key) & (EvalCacheSize - 1U);
     }

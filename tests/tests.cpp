@@ -40,6 +40,9 @@ struct SearcherTestProbe {
     static void reset_nodes(Searcher& searcher) { searcher.nodes_ = 0; searcher.aborted_ = false; }
     static std::uint64_t time_limit_ms(const Searcher& searcher) { return searcher.time_limit_ms_; }
     static std::uint64_t soft_limit_ms(const Searcher& searcher) { return searcher.soft_limit_ms_; }
+    static bool is_search_repetition(const Board& board, std::size_t root_index) {
+        return Searcher::is_search_repetition(board, root_index);
+    }
     static bool node_limit_specified(const Searcher& searcher) { return searcher.node_limit_specified_; }
     static std::uint64_t time_check_mask(const Searcher& searcher) { return searcher.time_check_mask_; }
     static std::size_t occupied_tt(const Searcher& searcher) {
@@ -573,17 +576,47 @@ int main() {
     check(fresh_context.transposition_history_key() != repeated_context.transposition_history_key(),
           "TT identity distinguishes known reversible histories");
 
-    forge::Searcher history_warm(1);
+    forge::Searcher history_fresh(1);
     forge::Searcher history_cold(1);
     const int fresh_history_score = forge::SearcherTestProbe::alpha_beta(
-        history_warm, fresh_context, 1, -32000, 32000, 1);
-    const int warm_repetition_score = forge::SearcherTestProbe::alpha_beta(
-        history_warm, repeated_context, 1, -32000, 32000, 1);
+        history_fresh, fresh_context, 1, -32000, 32000, 1);
     const int cold_repetition_score = forge::SearcherTestProbe::alpha_beta(
         history_cold, repeated_context, 1, -32000, 32000, 1);
     check(fresh_history_score < -500, "fresh history fixture is losing without a repetition claim");
-    check(warm_repetition_score == 0 && cold_repetition_score == 0,
-          "warm TT cannot override an available repetition draw from another history");
+    check(cold_repetition_score == 0,
+          "the losing side claims the available repetition draw from its real history");
+    forge::SearchLimits repetition_root_limits;
+    repetition_root_limits.depth = 4;
+    forge::Searcher repetition_root_searcher(1);
+    check(repetition_root_searcher.search(repeated_context, repetition_root_limits).score == 0,
+          "root search from a repeatable losing position scores the draw");
+
+    // Search repetition rule: twice before anywhere, or once strictly after the root.
+    forge::Board repetition_rule;
+    check(repetition_rule.set_fen(forge::Board::StandardStartFen), "repetition rule fixture parses");
+    for (const auto move : {"g1f3", "g8f6", "f3g1", "f6g8"}) play(repetition_rule, move);
+    check(!forge::SearcherTestProbe::is_search_repetition(repetition_rule, 0),
+          "returning to the root position once is not yet a search repetition");
+    check(forge::SearcherTestProbe::is_search_repetition(repetition_rule, 0) ==
+              repetition_rule.is_repetition(),
+          "root-level twofold agrees with the game-history rule");
+    for (const auto move : {"g1f3", "g8f6", "f3g1", "f6g8"}) play(repetition_rule, move);
+    check(forge::SearcherTestProbe::is_search_repetition(repetition_rule, 0) && repetition_rule.is_repetition(),
+          "a third occurrence is a repetition under both rules");
+    forge::Board tree_repetition;
+    check(tree_repetition.set_fen(forge::Board::StandardStartFen), "tree repetition fixture parses");
+    play(tree_repetition, "g1f3");
+    const std::size_t tree_root = tree_repetition.key_history().size() - 1;
+    for (const auto move : {"g8f6", "f3g1", "f6g8", "g1f3"}) play(tree_repetition, move);
+    check(!forge::SearcherTestProbe::is_search_repetition(tree_repetition, tree_root),
+          "repeating the root itself inside the tree is not a draw");
+    play(tree_repetition, "g8f6");
+    check(forge::SearcherTestProbe::is_search_repetition(tree_repetition, tree_root) &&
+              !tree_repetition.is_repetition(),
+          "a position repeated once strictly inside the tree is a search draw before threefold");
+    play(tree_repetition, "e2e4");
+    check(!forge::SearcherTestProbe::is_search_repetition(tree_repetition, tree_root),
+          "an irreversible move ends the repetition window");
 
     forge::Board zeroed_history;
     check(zeroed_history.set_fen(forge::Board::StandardStartFen), "history reset fixture parses");

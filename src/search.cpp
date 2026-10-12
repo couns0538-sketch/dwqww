@@ -126,6 +126,25 @@ void Searcher::clear_hash() {
     std::fill(pawn_cache_.begin(), pawn_cache_.end(), PawnEntry{});
 }
 
+bool Searcher::is_search_repetition(const Board& board, std::size_t root_index) {
+    const std::vector<std::uint64_t>& history = board.key_history();
+    const std::size_t size = history.size();
+    if (size < 3) return false;
+    const std::uint64_t current = history[size - 1];
+    const std::size_t reversible = std::min<std::size_t>(
+        static_cast<std::size_t>(board.halfmove_clock()), size - 1);
+    const std::size_t begin = size - 1 - reversible;
+    int matches = 0;
+    for (std::size_t i = size - 1; i-- > begin;) {
+        if (history[i] != current) continue;
+        // One earlier occurrence strictly inside the search tree is enough: the
+        // opponent can always repeat, so the line is at best a draw.
+        if (i > root_index) return true;
+        if (++matches >= 2) return true;
+    }
+    return false;
+}
+
 int Searcher::hashfull_permille() const {
     const std::size_t sample = std::min<std::size_t>(1000, table_.size());
     if (sample == 0) return 0;
@@ -441,7 +460,7 @@ int Searcher::quiescence(Board& board, int ply, int alpha, int beta, bool null_b
     seldepth_ = std::max(seldepth_, ply);
     ++nodes_;
     const bool checked = board.in_check(board.side_to_move());
-    if (!null_branch && (board.is_repetition() || board.halfmove_clock() >= 100)) {
+    if (!null_branch && (is_search_repetition(board, root_index_) || board.halfmove_clock() >= 100)) {
         if (!checked || board.has_legal_move()) return 0;
         return -MateScore + ply;
     }
@@ -450,7 +469,7 @@ int Searcher::quiescence(Board& board, int ply, int alpha, int beta, bool null_b
     beta = std::min(beta, MateScore - ply - 1);
     if (alpha >= beta) return alpha;
     const int original_alpha = alpha;
-    const std::uint64_t qkey = tt_key(board, null_branch);
+    const std::uint64_t qkey = tt_key(board);
     TTEntry& qentry = table_[tt_index(qkey)];
     Move qtt_move{};
     const std::uint8_t qcontext = current_tt_context(board, null_branch);
@@ -533,7 +552,7 @@ int Searcher::alpha_beta(Board& board, int depth, int ply, int alpha, int beta,
     seldepth_ = std::max(seldepth_, ply);
     if (depth <= 0) return quiescence(board, ply, alpha, beta, null_branch);
     ++nodes_;
-    if (!null_branch && (board.is_repetition() || board.halfmove_clock() >= 100)) {
+    if (!null_branch && (is_search_repetition(board, root_index_) || board.halfmove_clock() >= 100)) {
         if (!board.in_check(board.side_to_move()) || board.has_legal_move()) return 0;
         return -MateScore + ply;
     }
@@ -542,7 +561,7 @@ int Searcher::alpha_beta(Board& board, int depth, int ply, int alpha, int beta,
     beta = std::min(beta, MateScore - ply - 1);
     if (alpha >= beta) return alpha;
     const int original_alpha = alpha;
-    const std::uint64_t key = tt_key(board, null_branch);
+    const std::uint64_t key = tt_key(board);
     TTEntry& entry = table_[tt_index(key)];
     Move tt_move{};
     const std::uint8_t context = current_tt_context(board, null_branch);
@@ -733,6 +752,7 @@ SearchInfo Searcher::search(Board board, const SearchLimits& limits, bool emit_i
     nodes_ = 0;
     seldepth_ = 0;
     root_depth_ = 0;
+    root_index_ = board.key_history().empty() ? 0 : board.key_history().size() - 1;
     eval_stack_.fill(NoEval);
     pondering_ = limits.ponder;
     root_moves_ = limits.search_moves;
