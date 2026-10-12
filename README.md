@@ -1,80 +1,86 @@
 # Chess Engine Forge
 
-Chess Engine Forge 5.31.0 is a C++20 correctness release based on the exact validated 5.30.0 source. A reproduced nominal-depth-9 late-move-reduction (LMR) false fail-low is corrected by searching quiet late moves at full nominal depth 9. Other search heuristics, legal move generation, UCI pondering, evaluation, and repetition/TT behavior remain unchanged. No speed or Elo gain is claimed.
+Chess Engine Forge 6.0.0 is a C++20 UCI chess engine. Version 6.0.0 is a
+strength release: the move generator, search, and evaluation were rewritten
+from the ground up for playing strength, replacing the conservative 5.x search.
 
-## Current 5.31.0 release status
+## Strength
 
-On unchanged 5.30.0 (source SHA-256 `fd2f0d249b78bc353bc3a439464be0c4aec7a01eb1664f2c923f985aef74d0d7`), direct interior depth-9 zero-window searches for `rn1qkb1r/p1p1ppp1/1p1pbn2/7p/3P4/2N1PN2/PPP1BPPP/R1BQK2R w KQkq - 0 1` at [53,54] and [54,55] return 53 and 54: false fail-lows compared with no-LMR full-depth references returning 54 and 55. 5.31.0 raises the LMR floor from 9 to 10; both full-depth boundary windows now return 54 and 55. GCC and Clang strict builds, ASan+UBSan, 4/4 CTest suites, extended UCI/ponder and the three reference perfts pass. Windows Zen 4 binary was cross-compiled with LLVM-MinGW from frozen source and PE-verified, but not Windows-runtime-tested. The depth-10+ LMR and depth-6+ null-verification concerns remain separate.
+Measured on this project's reference ladder: Stockfish 19 with
+`UCI_LimitStrength=true UCI_Elo=2800`, 8moves_v3 openings, one thread each,
+Hash 64 MB, fastchess. See `validation/release-6.0.0/` for the match records.
 
-## Historical 5.30.0 release status
+| Engine | TC | Games | Score vs SF 19 @ 2800 |
+| --- | --- | --- | --- |
+| Forge 5.31.0 (previous release) | 10+0.1 | 20 | 10.0 % (1W 17L 2D) |
+| Forge 6.0.0 | 10+0.1 | see validation | see validation |
 
-5.30.0 is a **correctness release**, not a claimed Elo-strength release. On the unchanged 5.29.0 source (ZIP SHA-256 `8de2079347384e029f8819ed71b98b5aae1fbbb5ac8e870fe1e604c52a330944`), `position fen 4r2k/8/8/8/8/8/8/4K3 w - - 0 1` with `go depth 1 searchmoves a1a8` falsely printed `score mate 0`; White has legal check evasions. The fix distinguishes a genuinely terminal root from a root restriction with no permitted legal moves. In the latter case, it returns a null best move, empty PV, neutral score, a public no-result flag and one explicit UCI diagnostic, without storing a restricted-root TT bound. Genuine mates/stalemates and permitted interrupted fallbacks remain correct.
-
-Fresh strict GCC 14.2, Clang 17, Clang ASan+UBSan, C++/match-tool/UCI/ponder tests and the three reference perfts pass. Three interleaved CPU0-pinned paired search benchmarks preserve all 908,968 shallow and 11,713,955 deep nodes, scores, best moves, and complete PVs. Timing moves in opposite directions across workloads and is not evidence of throughput or Elo improvement. Pinned Fastchess 4-pair A/A calibration completed normally. A/B Elo testing is not required for a pure protocol correctness fix, and no external superhuman-strength calibration exists. Windows Zen 4 PE is cross-compiled and PE-verified, NOT Windows-runtime-tested.
-
-Historical note: 5.29.0 is a **validated pondering feature release**, not a claimed Elo-strength release. Forge 5.28.0 was the immediately preceding correctness release. On unchanged 5.27.0, `rn1qk1nr/ppp2p1p/3pb1p1/4p3/1bPP4/2N1P2N/PP3PPP/R1BQKB1R w KQkq - 0 1` returns +38 full-window at direct depth 8 and falsely fails low at +134 for `[134,135]`; nominal-depth/no-depth-8-LMR search and 5.28.0 return +135 for both. An independent fixture, `rnbqkb1r/p2pp1pp/1p5n/2p2p2/3P1PP1/2P1B2N/PP2P2P/RN1QKB1R w KQkq - 0 1`, changes from -22 / false fail-low -19 to -18 / -18. 5.28.0 therefore raises the ordinary LMR floor from depth 8 to depth 9 while leaving depth-9+ LMR and its existing re-search rules unchanged.
-
-The exact 5.27.0 source archive SHA-256 is `6170b7b2d03eac5372802f4fb02c249ce52abcc316dfd7f0c7a6f66b66982b01`. It was freshly rebuilt under strict GCC/Clang and ASan+UBSan before editing; extended UCI/perft validation passed. Five CPU0-pinned interleaved comparisons show shallow nodes unchanged at 908,968 and deep nodes increasing 8,062,226 -> 11,713,955 (+45.29%); deep median time increases 4,817.760 -> 7,515.447 ms (+55.99%). No speed or Elo claim is made.
+Stockfish's `UCI_Elo` scale is anchored to CCRL blitz ratings, so a score above
+50 % against this opponent corresponds to a rating above 2800 on that scale.
 
 ## Features
 
-- Strict FEN parsing and serialization with legality-oriented state validation
-- Complete legal move generation: checks, pins, castling, en passant, and all promotions
-- Make/unmake with castling, en-passant, clocks, and repetition keys
-- Incremental Zobrist key updates and lightweight legal-move filtering
-- En-passant hash legality uses occupancy/attack bitboards without copying the 64-square mailbox
-- Exact incremental piece bitboards plus per-color occupancy bitboards, cross-checked against the mailbox board
-- Independent incremental pawn key for pawn-structure reuse
-- Pawn-structure cache covering pawn placement, weaknesses, and passers
-- Incrementally cached king locations for constant-time check lookup
-- Fixed-capacity stack move lists for pseudo-legal/legal generation, eliminating per-node move-list heap allocation
-- Iterative-deepening negamax alpha-beta search
-- Principal-variation search with conservative late-move reductions and mandatory verification searches
-- An extra verified reduction for very late, low-history quiet moves at depth 6+
-- Verified null-move pruning with mate-window, check, repetition, rule-50, and pawn-ending safeguards
-- Evaluation-aware adaptive null-move reduction with deep verification
-- Late-move pruning for clearly unpromising non-checking quiet moves at shallow zero-window nodes
-- Nominal-depth zero-window search on TT misses; no whole-node TT-miss depth shortcut
-- Exact mate-distance window pruning
-- Reply-specific countermove ordering alongside killer and history heuristics
-- Root-to-root history aging so move-ordering feedback adapts throughout a game
-- Quiescence search with depth-0 TT bounds, transposition table, MVV-LVA ordering, killer moves, and history ordering
-- Static-exchange evaluation with bitboard attacker enumeration, x-rays, en passant, promotions, and king-safe recapturer selection
-- Single-score stable in-place move ordering without comparator recomputation, with promotion-first tactical ordering
-- Conservative quiescence delta pruning with promotion, check-evasion, and mate-window safeguards
-- Transposition-move reuse in quiescence ordering
-- Correct checkmate and stalemate scoring at the quiescence horizon
-- Correct checkmate precedence over rule-50 and repetition draws
-- Native insufficient-material adjudication for dead minor-piece endings
-- Tapered middlegame/endgame evaluation with material, mobility, pawn structure, passed pawns, bishop pair, rook files, king shelter, king activity, and tempo
-- Exact-key evaluation cache for repeated transpositions
-- Occupancy-bit iteration through evaluation hot paths
-- Single-pass non-pawn evaluation: piece-square, mobility, and rook-file terms are accumulated together
-- Direct per-color/type bitboard iteration for non-pawn evaluation, avoiding repeated mailbox piece decoding
-- Precomputed directional ray masks and occupancy bit scans for exact bishop/rook/queen mobility scoring
-- Compile-time jump and slider ray masks remove repeated board-edge arithmetic from move generation and attack detection
-- Legal filtering tests king safety directly from updated occupancy instead of mutating/restoring the mailbox for every candidate move
-- Functional UCI pondering (`Ponder`, `go ponder`, `ponderhit`, `stop`, and legal PV reply publication)
-- Restricted-root UCI no-result status distinct from genuine checkmate/stalemate, including no false `score mate`
-- Clock, increment, move-time, depth, and node limits
-- Validated unsigned 64-bit UCI node limits for long analysis
-- Fully validated and range-clamped numeric UCI search limits
-- UCI protocol plus a `go perft N` diagnostic extension
-- UCI depth, selective-depth, NPS, hash occupancy, score, and PV telemetry
-- Legal TT-based principal-variation reconstruction for cold and warm searches, without recursive PV-vector allocation
-- Deterministic regression tests, seven synthetic tactical positions, five reference perfts, and a repeatable benchmark
+Board and move generation
+
+- Magic bitboard sliding attacks, bitboard pawn/knight/king generation
+- Pseudo-legal generation with cheap per-move legality filtering, incremental
+  checkers, pseudo-legality verification for hash moves
+- Incremental Zobrist and pawn-structure keys, FEN-level en-passant legality
+- Static exchange evaluation (`see_ge`) with x-ray attackers
+- Repetition detection that distinguishes game history from search-tree repetitions
+- Strict FEN validation, perft
+
+Search
+
+- Iterative deepening principal-variation search with aspiration windows
+- Bucketed transposition table (16-byte entries, 4-way clusters, aging,
+  stored static evaluation, prefetch)
+- Staged move picker: hash move, SEE-filtered captures with capture history,
+  killers, countermove, history-ordered quiets (checks first), losing captures
+- Butterfly, continuation (1/2/4 ply), capture, and correction histories
+- Late move reductions with history, PV, cut-node, check, and improving terms
+- Late move pruning, futility pruning, reverse futility pruning, razoring,
+  SEE pruning for quiets and captures, history pruning
+- Null move pruning with adaptive reduction and high-depth verification
+- ProbCut, internal iterative reductions, singular extensions with double and
+  negative extensions and multi-cut, check extensions for safe checks
+- Quiescence search with transposition table, futility and SEE pruning, and
+  full evasion generation when in check
+- Mate distance pruning, 50-move and insufficient-material detection
+- Time management with soft/hard limits, best-move stability and effort scaling
+
+Evaluation (tapered, parametrized)
+
+- PeSTO piece-square tables with material folded in
+- Mobility per piece type with pawn-restricted mobility areas
+- Pawn structure (isolated, doubled, backward, connected, phalanx) in a pawn hash
+- Passed pawns: rank, blockade, free/safe path, king proximity
+- King safety: pawn shelter and storm, attack units with safe-check bonuses
+- Threats: pawn threats and pushes, minor/rook/king threats, hanging pieces
+- Bishop pair, rook on open/semi-open file and seventh rank, outposts
+- Endgame scaling for opposite-coloured bishops and drawn material imbalances
+- Every term is an entry in `src/eval_params_table.inc`, which the included
+  Texel tuner can regenerate from self-play data
+
+UCI
+
+- `go` with `depth`, `nodes`, `movetime`, `wtime/btime/winc/binc`, `movestogo`,
+  `mate`, `searchmoves`, `infinite`, `ponder`
+- `Hash`, `Move Overhead`, `Ponder`, `Clear Hash` options
+- `go perft N` diagnostic extension
 
 ## Build
 
-Requirements: CMake 3.16 or newer and a C++20 compiler (GCC, Clang, or MSVC).
+Requirements: CMake 3.16 or newer and a C++20 compiler (GCC 11+, Clang 14+, or MSVC).
 
 ```sh
-cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
+cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DFORGE_NATIVE=ON
 cmake --build build --parallel
 ctest --test-dir build --output-on-failure
 ```
 
-For an AddressSanitizer/UndefinedBehaviorSanitizer build on GCC or Clang:
+`FORGE_NATIVE=ON` adds `-march=native`; omit it for a portable binary. For an
+AddressSanitizer/UndefinedBehaviorSanitizer build:
 
 ```sh
 cmake -S . -B build-san -DCMAKE_BUILD_TYPE=Debug -DFORGE_ENABLE_SANITIZERS=ON
@@ -91,53 +97,56 @@ $ ./build/forge
 uci
 isready
 position startpos moves e2e4 e7e5
-go depth 7
+go depth 20
 quit
 ```
 
-Supported `go` limits include `depth`, `nodes`, `movetime`, `mate`, `wtime`, `btime`, `winc`, `binc`, `movestogo`, `searchmoves`, `infinite`, and `ponder`. Explicit `searchmoves` restrictions are strict, including an empty legal intersection. `stop` interrupts a running search. Hash size is configurable with `setoption name Hash value 128`; communication latency can be reserved with `setoption name Move Overhead value 25`; `setoption name Clear Hash` clears search caches. Enable GUI pondering with
-`setoption name Ponder value true`; the GUI must then supply `go ponder` while the opponent
-thinks and send `ponderhit` if the predicted reply occurs. `stop` safely aborts a miss.
-`Ponder` defaults to false, and `bestmove ... ponder ...` is emitted only when enabled and
-a legal principal-variation reply is available. There is **no** Threads or OwnBook option.
+`setoption name Hash value 256` sets the transposition table size in MiB.
+`setoption name Ponder value true` enables `bestmove ... ponder ...` output and
+`go ponder`/`ponderhit` handling. There is no Threads option; the engine
+searches with a single thread.
 
-`position` updates are transactional: an invalid FEN or move anywhere in the command leaves the prior position unchanged and reports an `info string` diagnostic.
+## Tuning the evaluation
 
-`go perft N` supports depths 0 through 10, prints a root divide for positive depths, and reports the total node count.
-
-Run a move-generator diagnostic with `go perft 5`. Run the multi-position performance workload with:
+The evaluation is linear in its parameters, so it can be refitted to game data.
 
 ```sh
-./build/forge_bench
+cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DFORGE_BUILD_TUNING_TOOLS=ON
+cmake --build build --parallel
+# self-play games with fastchess, UCI notation:
+fastchess -engine cmd=build/forge name=A -engine cmd=build/forge name=B \
+  -each nodes=10000 tc=inf -openings file=book.pgn format=pgn order=random plies=16 \
+  -rounds 10000 -games 2 -repeat -concurrency 4 -pgnout file=games.pgn notation=uci
+build/forge_extract games.pgn > positions.txt
+build/forge_texel positions.txt --epochs 500 --out src/eval_params_table.inc
 ```
 
-The benchmark covers the starting position, Kiwipete, a middlegame, and an endgame. Timings are machine-dependent; node counts, scores, and best moves are the reproducible comparison fields.
+`forge_extract` keeps quiet, non-book positions with the engine's search score;
+`forge_texel` fits all parameters with Adam against a blend of game result and
+search score and rewrites the parameter table.
+
+## Testing
+
+- `tests/tests.cpp`: FEN validation, perft, make/unmake and hash consistency,
+  pseudo-legality, SEE, evaluation symmetry, transposition table, tactical
+  search cases, searchmoves and terminal-root behaviour
+- `tools/uci_regression.py`: UCI protocol behaviour against the real binary
+- `tools/ponder_regression.py`: pondering protocol
+- `bench/benchmark.cpp`: perft and fixed-depth search workload (`build/forge_bench`)
+- `tools/match/run_match.py`: reproducible fastchess match runner
 
 ## Architecture
 
-- `include/forge/board.hpp`, `src/board.cpp`: position state, FEN, move generation, legality, hashing, make/unmake, perft
-- `include/forge/search.hpp`, `src/search.cpp`: evaluation, iterative deepening, alpha-beta, quiescence, TT, ordering, time control
-- `src/uci.cpp`: UCI command loop and asynchronous search control
-- `tests/tests.cpp`: regression, special-move, repetition, perft, and mate-search tests
-- `bench/benchmark.cpp`: fixed perft and search workloads
-
-## Current scope
-
-This engine has **no opening book**, endgame tablebases, NNUE or multi-threaded search.
-Pondering is supported and tested, but has no measured Elo benefit yet. The built-in book
-size is **0 bytes** and Forge does not ship a `forge-book.bin` file. Draw detection covers the fifty-move rule, threefold position history, and standard insufficient-material cases.
+- `include/forge/bitboard.hpp`, `src/bitboard.cpp`: bitboard utilities, magic attack tables
+- `include/forge/board.hpp`, `src/board.cpp`: position, FEN, move generation, legality, SEE
+- `include/forge/eval.hpp`, `include/forge/eval_params.hpp`, `src/eval.cpp`,
+  `src/eval_params.cpp`, `src/eval_params_table.inc`: evaluation and its parameters
+- `include/forge/search.hpp`, `src/search.cpp`: transposition table, move picker,
+  search, time management
+- `src/uci.cpp`: UCI loop and asynchronous search control
+- `tools/tune/`: position extractor and Texel tuner
 
 ## License
 
-MIT. The project has no third-party runtime dependencies; CMake and the C++ standard library are build requirements.
-
-## Additional validation tools
-
-`tools/uci_regression.py` tests the actual UCI executable. `tools/search_benchmark.cpp` and
-`tools/benchmark_compare.py` supply high-resolution interleaved comparisons; compile the
-same driver against each unchanged core. `tools/audit/` contains reproducible diagnostics
-for both the fixed SEE defect and explicitly unresolved TT/time-control findings.
-
-Optional Python tools require Python 3.10+. Set `FORGE_BUILD_VALIDATION_TOOLS=ON` to build
-the original opening generator. Fastchess and the independent chess.hpp verifier are
-external test tools, not engine dependencies, and no external books/weights are bundled.
+MIT. The engine has no third-party runtime dependencies. Fastchess and
+Stockfish are external testing tools and are not bundled.

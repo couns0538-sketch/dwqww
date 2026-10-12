@@ -116,6 +116,10 @@ using PieceToHistory = std::array<std::array<std::int16_t, 64>, 13>;
 using ContinuationHistory = std::array<std::array<PieceToHistory, 64>, 13>;
 using CaptureHistory = std::array<std::array<std::array<std::int16_t, 7>, 64>, 13>;
 using CounterMoveTable = std::array<std::array<Move, 64>, 13>;
+constexpr std::size_t CorrectionSize = 1U << 14U;
+constexpr int CorrectionGrain = 256;
+constexpr int CorrectionLimit = 32 * CorrectionGrain;
+using CorrectionHistory = std::array<std::array<std::int32_t, CorrectionSize>, 2>;
 
 struct SearchStack {
     std::array<Move, MaxPly + 1> pv{};
@@ -126,6 +130,7 @@ struct SearchStack {
     std::array<Move, 2> killers{};
     Piece moved_piece = Empty;
     int static_eval = ValueNone;
+    int raw_eval = ValueNone;
     int move_count = 0;
     int double_extensions = 0;
     bool in_check = false;
@@ -170,7 +175,10 @@ private:
     std::unique_ptr<CaptureHistory> capture_history_;
     std::unique_ptr<ContinuationHistory> continuation_history_;
     std::unique_ptr<CounterMoveTable> counter_moves_;
+    std::unique_ptr<CorrectionHistory> correction_history_;
     std::array<SearchStack, MaxPly + 8> stack_{};
+    std::array<std::uint64_t, 256> root_move_nodes_{};
+    int root_best_index_ = -1;
 
     std::atomic<bool> stop_{false};
     std::atomic<std::int64_t> ponder_hit_ns_{0};
@@ -202,6 +210,8 @@ private:
     void update_continuation(SearchStack* ss, Piece piece, int to, int bonus);
     [[nodiscard]] int quiet_history(const Board& board, const SearchStack* ss, Move move) const;
     [[nodiscard]] int capture_history_value(const Board& board, Move move) const;
+    [[nodiscard]] int corrected_eval(const Board& board, int raw_eval) const;
+    void update_correction(const Board& board, int depth, int best_score, int static_eval);
 };
 
 } // namespace forge

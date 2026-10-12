@@ -342,8 +342,8 @@ void Board::generate_pseudo_legal(MoveList& moves, bool captures_only) const {
         moves.push_back(Move{static_cast<std::uint8_t>(from), static_cast<std::uint8_t>(to), Queen,
                              static_cast<std::uint8_t>(flags | Promotion)});
         if (!captures_only) {
-            for (const std::uint8_t promotion : {Rook, Bishop, Knight}) {
-                moves.push_back(Move{static_cast<std::uint8_t>(from), static_cast<std::uint8_t>(to), promotion,
+            for (const int promotion : {Rook, Bishop, Knight}) {
+                moves.push_back(Move{static_cast<std::uint8_t>(from), static_cast<std::uint8_t>(to), static_cast<std::uint8_t>(promotion),
                                      static_cast<std::uint8_t>(flags | Promotion)});
             }
         }

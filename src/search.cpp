@@ -125,7 +125,7 @@ void TranspositionTable::store(TTEntry* entry, std::uint64_t key, int score, int
         entry->score = static_cast<std::int16_t>(std::clamp(score, -32767, 32767));
         entry->eval = static_cast<std::int16_t>(std::clamp(eval, -32767, 32767));
         entry->depth = static_cast<std::uint8_t>(std::clamp(depth, 0, 255));
-        entry->gen_bound = static_cast<std::uint8_t>((generation_ << 3U) | (pv ? 4U : 0U) | bound);
+        entry->gen_bound = static_cast<std::uint8_t>((static_cast<unsigned>(generation_) << 3U) | (pv ? 4U : 0U) | static_cast<unsigned>(bound));
     }
 }
 
@@ -363,7 +363,8 @@ Searcher::Searcher(std::size_t hash_mb)
       main_history_(std::make_unique<ButterflyHistory>()),
       capture_history_(std::make_unique<CaptureHistory>()),
       continuation_history_(std::make_unique<ContinuationHistory>()),
-      counter_moves_(std::make_unique<CounterMoveTable>()) {
+      counter_moves_(std::make_unique<CounterMoveTable>()),
+      correction_history_(std::make_unique<CorrectionHistory>()) {
     clear();
 }
 
@@ -382,7 +383,22 @@ void Searcher::clear() {
     *capture_history_ = CaptureHistory{};
     *continuation_history_ = ContinuationHistory{};
     *counter_moves_ = CounterMoveTable{};
+    *correction_history_ = CorrectionHistory{};
     for (SearchStack& ss : stack_) ss = SearchStack{};
+}
+
+int Searcher::corrected_eval(const Board& board, int raw_eval) const {
+    const std::int32_t correction =
+        (*correction_history_)[static_cast<std::size_t>(board.side_to_move())][board.pawn_key() & (CorrectionSize - 1U)];
+    return std::clamp(raw_eval + correction / CorrectionGrain, -MateInMaxPly + 1, MateInMaxPly - 1);
+}
+
+void Searcher::update_correction(const Board& board, int depth, int best_score, int static_eval) {
+    std::int32_t& entry =
+        (*correction_history_)[static_cast<std::size_t>(board.side_to_move())][board.pawn_key() & (CorrectionSize - 1U)];
+    const int diff = std::clamp((best_score - static_eval) * CorrectionGrain, -CorrectionLimit / 4, CorrectionLimit / 4);
+    const int weight = std::min(depth + 1, 16);
+    entry = std::clamp((entry * (256 - weight) + diff * weight) / 256, -CorrectionLimit, CorrectionLimit);
 }
 
 std::int64_t Searcher::elapsed_ms() const {
@@ -517,9 +533,9 @@ int Searcher::qsearch(Board& board, SearchStack* ss, int alpha, int beta) {
         best_score = futility_base = -Infinite;
     } else {
         int eval;
-        if (tt_hit && tte->eval != ValueNone) eval = tte->eval;
-        else eval = evaluator_.evaluate(board);
-        ss->static_eval = eval;
+        if (tt_hit && tte->eval != ValueNone) ss->raw_eval = tte->eval;
+        else ss->raw_eval = evaluator_.evaluate(board);
+        eval = ss->static_eval = corrected_eval(board, ss->raw_eval);
         if (tt_hit && tt_score != ValueNone &&
             ((tt_bound == BoundLower && tt_score > eval) || (tt_bound == BoundUpper && tt_score < eval) ||
              tt_bound == BoundExact)) {
@@ -527,7 +543,7 @@ int Searcher::qsearch(Board& board, SearchStack* ss, int alpha, int beta) {
         }
         best_score = eval;
         if (best_score >= beta) {
-            if (!tt_hit) tt_.store(tte, board.key(), score_to_tt(best_score, ply), ss->static_eval, Move::none(), 0, BoundLower, false);
+            if (!tt_hit) tt_.store(tte, board.key(), score_to_tt(best_score, ply), ss->raw_eval, Move::none(), 0, BoundLower, false);
             return best_score;
         }
         if (best_score > alpha) alpha = best_score;
@@ -577,7 +593,7 @@ int Searcher::qsearch(Board& board, SearchStack* ss, int alpha, int beta) {
     if (in_check && move_count == 0) return mated_in(ply);
 
     const Bound bound = best_score >= beta ? BoundLower : (pv_node && !best_move.is_none() ? BoundExact : BoundUpper);
-    tt_.store(tte, board.key(), score_to_tt(best_score, ply), ss->static_eval, best_move, 0, bound, tt_pv);
+    tt_.store(tte, board.key(), score_to_tt(best_score, ply), in_check ? ValueNone : ss->raw_eval, best_move, 0, bound, tt_pv);
     return best_score;
 }
 
@@ -633,13 +649,13 @@ int Searcher::search(Board& board, SearchStack* ss, int depth, int alpha, int be
     // Static evaluation.
     int eval;
     if (in_check) {
-        eval = ss->static_eval = ValueNone;
+        eval = ss->static_eval = ss->raw_eval = ValueNone;
     } else if (!excluded.is_none()) {
         eval = ss->static_eval;
     } else {
-        if (tt_hit && tte->eval != ValueNone) eval = tte->eval;
-        else eval = evaluator_.evaluate(board);
-        ss->static_eval = eval;
+        if (tt_hit && tte->eval != ValueNone) ss->raw_eval = tte->eval;
+        else ss->raw_eval = evaluator_.evaluate(board);
+        eval = ss->static_eval = corrected_eval(board, ss->raw_eval);
         if (tt_hit && tt_score != ValueNone &&
             ((tt_bound == BoundLower && tt_score > eval) || (tt_bound == BoundUpper && tt_score < eval) ||
              tt_bound == BoundExact)) {
@@ -718,7 +734,7 @@ int Searcher::search(Board& board, SearchStack* ss, int depth, int alpha, int be
                 board.unmake_move(move, undo);
                 if (aborted_) return 0;
                 if (value >= probcut_beta) {
-                    tt_.store(tte, board.key(), score_to_tt(value, ply), ss->static_eval, move, depth - 3, BoundLower, ss->tt_pv);
+                    tt_.store(tte, board.key(), score_to_tt(value, ply), ss->raw_eval, move, depth - 3, BoundLower, ss->tt_pv);
                     return value;
                 }
             }
@@ -807,6 +823,7 @@ int Searcher::search(Board& board, SearchStack* ss, int depth, int alpha, int be
         Undo undo;
         (void)board.make_move(move, undo);
         tt_.prefetch(board.key());
+        const std::uint64_t nodes_before = nodes_;
 
         int score = -Infinite;
         bool full_depth_needed = !pv_node || move_count > 1;
@@ -839,6 +856,7 @@ int Searcher::search(Board& board, SearchStack* ss, int depth, int alpha, int be
         }
         board.unmake_move(move, undo);
         if (aborted_) return 0;
+        if (root_node) root_move_nodes_[static_cast<std::size_t>(move_count - 1)] += nodes_ - nodes_before;
 
         if (score > best_score) {
             best_score = score;
@@ -849,6 +867,7 @@ int Searcher::search(Board& board, SearchStack* ss, int depth, int alpha, int be
                     std::copy_n((ss + 1)->pv.begin(), (ss + 1)->pv_length, ss->pv.begin() + 1);
                     ss->pv_length = (ss + 1)->pv_length + 1;
                 }
+                if (root_node) root_best_index_ = move_count - 1;
                 if (score >= beta) break;
                 alpha = score;
             }
@@ -874,9 +893,17 @@ int Searcher::search(Board& board, SearchStack* ss, int depth, int alpha, int be
                       history_bonus(depth) / 4);
     }
 
+    const Bound bound = best_score >= beta ? BoundLower : (pv_node && !best_move.is_none() ? BoundExact : BoundUpper);
     if (excluded.is_none() && !(root_node && root_restricted_)) {
-        const Bound bound = best_score >= beta ? BoundLower : (pv_node && !best_move.is_none() ? BoundExact : BoundUpper);
-        tt_.store(tte, board.key(), score_to_tt(best_score, ply), ss->static_eval, best_move, depth, bound, ss->tt_pv);
+        tt_.store(tte, board.key(), score_to_tt(best_score, ply), ss->raw_eval, best_move, depth, bound, ss->tt_pv);
+    }
+    // Teach the static evaluation about this pawn structure when the search
+    // result is a usable bound in the direction of the difference.
+    if (!in_check && excluded.is_none() && !is_mate_score(best_score) &&
+        (best_move.is_none() || !best_move.is_capture()) &&
+        !(bound == BoundLower && best_score <= ss->static_eval) &&
+        !(bound == BoundUpper && best_score >= ss->static_eval)) {
+        update_correction(board, depth, best_score, ss->static_eval);
     }
     return best_score;
 }
@@ -1001,6 +1028,8 @@ SearchInfo Searcher::search(Board board, const SearchLimits& limits, bool emit_i
     Move previous_best = Move::none();
     int stable_iterations = 0;
     int score = 0;
+    root_move_nodes_.fill(0);
+    root_best_index_ = -1;
     for (int depth = 1; depth <= max_depth; ++depth) {
         root_depth_ = depth;
         int delta = 18;
@@ -1028,10 +1057,12 @@ SearchInfo Searcher::search(Board board, const SearchLimits& limits, bool emit_i
         if (aborted_) {
             // A partially searched iteration that already raised alpha at the
             // root has found a move at least as good as the previous best.
-            if (ss->pv_length > 0) {
+            if (ss->pv_length > 0 && !(result.pv.size() > 0 && result.pv[0] == ss->pv[0])) {
                 result.best_move = ss->pv[0];
                 result.pv.assign(ss->pv.begin(), ss->pv.begin() + ss->pv_length);
                 result.ponder_move = result.pv.size() > 1 ? result.pv[1] : Move::none();
+                // Publish the revised line so GUIs see a PV consistent with the move.
+                emit(depth, result.score, result.pv);
             }
             break;
         }
@@ -1054,9 +1085,16 @@ SearchInfo Searcher::search(Board board, const SearchLimits& limits, bool emit_i
         if (time_managed_ && !(pondering_ && ponder_hit_ns_.load(std::memory_order_relaxed) == 0)) {
             // Stop early when the best move has been stable; spend longer when it keeps changing.
             double factor = 1.0;
-            if (stable_iterations >= 6) factor = 0.55;
-            else if (stable_iterations >= 3) factor = 0.75;
-            else if (stable_iterations == 0 && depth >= 6) factor = 1.5;
+            if (stable_iterations >= 6) factor = 0.6;
+            else if (stable_iterations >= 3) factor = 0.8;
+            else if (stable_iterations == 0 && depth >= 6) factor = 1.4;
+            // A best move that absorbed most of the effort is clearly best;
+            // spend longer when the alternatives still draw attention.
+            if (root_best_index_ >= 0 && nodes_ > 0 && depth >= 6) {
+                const double effort = static_cast<double>(root_move_nodes_[static_cast<std::size_t>(root_best_index_)]) /
+                                      static_cast<double>(nodes_);
+                factor *= std::clamp(1.55 - effort, 0.6, 1.4);
+            }
             if (elapsed_ms() >= static_cast<std::int64_t>(static_cast<double>(soft_limit_ms_) * factor)) break;
         }
     }

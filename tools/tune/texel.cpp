@@ -161,7 +161,7 @@ int main(int argc, char** argv) {
     double best_k = 1.0;
     {
         double best_error = 1e9;
-        for (double k = 0.4; k <= 2.5; k += 0.05) {
+        for (double k = 0.3; k <= 4.0; k += 0.05) {
             double error = 0.0;
             for (const Sample& s : samples) {
                 const double diff = sigmoid(evaluate_sample(s), k) - s.result;
