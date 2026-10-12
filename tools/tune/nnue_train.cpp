@@ -9,7 +9,8 @@
 // Usage:
 //   forge_nnue_train positions.txt [more.txt ...] [--epochs N] [--lr X]
 //       [--lambda L] [--batch B] [--threads T] [--k K] [--out weights.inc]
-//       [--load weights.bin] [--save weights.bin] [--seed S]
+//       [--load weights.bin] [--save weights.bin] [--seed S] [--validate positions.txt]
+// With --validate, the weights are only written when the validation loss improves.
 #include "forge/board.hpp"
 #include "forge/nnue.hpp"
 
@@ -186,6 +187,7 @@ int main(int argc, char** argv) {
     int threads = static_cast<int>(std::max(1U, std::thread::hardware_concurrency()));
     float k = 2.25F;
     std::uint64_t seed = 20261012;
+    std::string validation_path;
     for (int i = 1; i < argc; ++i) {
         const std::string arg = argv[i];
         auto next = [&]() -> std::string { return i + 1 < argc ? argv[++i] : ""; };
@@ -199,6 +201,7 @@ int main(int argc, char** argv) {
         else if (arg == "--load") load_path = next();
         else if (arg == "--save") save_path = next();
         else if (arg == "--seed") seed = std::stoull(next());
+        else if (arg == "--validate") validation_path = next();
         else inputs.push_back(arg);
     }
     if (inputs.empty()) {
@@ -206,15 +209,14 @@ int main(int argc, char** argv) {
         return 2;
     }
 
-    std::vector<Sample> samples;
-    {
+    auto load_samples = [&](const std::vector<std::string>& paths, std::vector<Sample>& samples) {
         forge::Board board;
         std::string line;
-        for (const std::string& path : inputs) {
+        for (const std::string& path : paths) {
             std::ifstream in(path);
             if (!in) {
                 std::cerr << "cannot open " << path << '\n';
-                return 1;
+                return false;
             }
             while (std::getline(in, line)) {
                 std::istringstream fields(line);
@@ -244,9 +246,35 @@ int main(int argc, char** argv) {
                 samples.push_back(s);
             }
         }
-        std::cerr << "loaded " << samples.size() << " positions\n";
-        if (samples.empty()) return 1;
+        return true;
+    };
+    std::vector<Sample> samples;
+    if (!load_samples(inputs, samples)) return 1;
+    std::cerr << "loaded " << samples.size() << " positions\n";
+    if (samples.empty()) return 1;
+    std::vector<Sample> validation;
+    if (!validation_path.empty()) {
+        if (!load_samples({validation_path}, validation)) return 1;
+        std::cerr << "validation positions " << validation.size() << '\n';
     }
+    auto validation_loss = [&](const Network& network) {
+        if (validation.empty()) return 0.0;
+        std::vector<double> losses(static_cast<std::size_t>(threads), 0.0);
+        std::vector<std::thread> workers;
+        for (int t = 0; t < threads; ++t) {
+            workers.emplace_back([&, t]() {
+                Gradients scratch;
+                const std::size_t lo = validation.size() * static_cast<std::size_t>(t) / static_cast<std::size_t>(threads);
+                const std::size_t hi = validation.size() * static_cast<std::size_t>(t + 1) / static_cast<std::size_t>(threads);
+                for (std::size_t i = lo; i < hi; ++i) train_sample(network, validation[i], scratch);
+                losses[static_cast<std::size_t>(t)] = scratch.loss;
+            });
+        }
+        for (auto& worker : workers) worker.join();
+        double total = 0.0;
+        for (const double l : losses) total += l;
+        return total / static_cast<double>(validation.size());
+    };
 
     Network net;
     if (!load_path.empty() && net.load(load_path)) std::cerr << "loaded weights from " << load_path << '\n';
@@ -259,6 +287,7 @@ int main(int argc, char** argv) {
     for (std::uint32_t i = 0; i < order.size(); ++i) order[i] = i;
     std::mt19937_64 rng(seed);
     int step = 0;
+    double best_validation = 1e9;
     const auto start = std::chrono::steady_clock::now();
     for (int epoch = 1; epoch <= epochs; ++epoch) {
         std::shuffle(order.begin(), order.end(), rng);
@@ -294,11 +323,22 @@ int main(int argc, char** argv) {
             adam_b2.step(&net.b2, &total.b2, 1, learning_rate, step, scale);
         }
         const auto elapsed = std::chrono::duration_cast<std::chrono::seconds>(std::chrono::steady_clock::now() - start).count();
-        std::cerr << "epoch " << epoch << " loss " << epoch_loss / static_cast<double>(samples.size()) << " lr " << learning_rate
-                  << " (" << elapsed << "s)\n";
+        std::cerr << "epoch " << epoch << " loss " << epoch_loss / static_cast<double>(samples.size()) << " lr " << learning_rate;
+        if (!validation.empty()) {
+            const double v = validation_loss(net);
+            std::cerr << " validation " << v;
+            if (v < best_validation) {
+                best_validation = v;
+                net.save(save_path);
+                write_include(output_path, net);
+                std::cerr << " *";
+            }
+        } else {
+            net.save(save_path);
+            write_include(output_path, net);
+        }
+        std::cerr << " (" << elapsed << "s)\n";
         if (epoch % 8 == 0) learning_rate *= 0.5F;
-        net.save(save_path);
-        write_include(output_path, net);
     }
     std::cerr << "wrote " << output_path << " and " << save_path << '\n';
     return 0;

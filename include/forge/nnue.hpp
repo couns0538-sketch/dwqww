@@ -11,7 +11,10 @@ namespace forge::nnue {
 // HiddenSize accumulator (incrementally updated); SCReLU of the side-to-move
 // and opponent accumulators is combined by a single linear output.
 constexpr int InputCount = 768;
-constexpr int HiddenSize = 256;
+#ifndef FORGE_NNUE_HIDDEN
+#define FORGE_NNUE_HIDDEN 256
+#endif
+constexpr int HiddenSize = FORGE_NNUE_HIDDEN;
 constexpr float WeightScale = 4096.0F;   // quantisation of w1 / b1 in the include file
 constexpr float OutputScale = 4096.0F;   // quantisation of w2 / b2
 constexpr float SigmoidK = 2.25F;        // network output is in sigmoid units of K/400 per centipawn

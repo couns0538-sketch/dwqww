@@ -5,7 +5,8 @@
 // score is the searching engine's reported centipawn score from White's point
 // of view, or "none" when unavailable.
 //
-// Usage: forge_extract <input.pgn> [more.pgn ...] > positions.txt
+// Usage: forge_extract [--min-ply N] <input.pgn> [more.pgn ...] > positions.txt
+// Positions before ply N (default 8) are skipped; book moves never qualify.
 #include "forge/board.hpp"
 
 #include <cstdio>
@@ -21,6 +22,7 @@ namespace {
 
 struct Game {
     std::string result;
+    std::string fen; // empty for the standard start position
     std::vector<std::pair<std::string, std::string>> moves; // move, comment
 };
 
@@ -41,11 +43,13 @@ bool read_game(std::istream& input, Game& game) {
                 break;
             }
             in_header = true;
-            if (line.rfind("[Result ", 0) == 0) {
+            if (line.rfind("[Result ", 0) == 0 || line.rfind("[FEN ", 0) == 0) {
                 const auto first = line.find('"');
                 const auto last = line.rfind('"');
                 if (first != std::string::npos && last != std::string::npos && last > first) {
-                    game.result = line.substr(first + 1, last - first - 1);
+                    const std::string value = line.substr(first + 1, last - first - 1);
+                    if (line[1] == 'R') game.result = value;
+                    else game.fen = value;
                 }
             }
             continue;
@@ -112,8 +116,13 @@ int main(int argc, char** argv) {
     }
     std::uint64_t games = 0;
     std::uint64_t positions = 0;
+    int min_ply = 8;
     std::ios::sync_with_stdio(false);
     for (int arg = 1; arg < argc; ++arg) {
+        if (std::string(argv[arg]) == "--min-ply" && arg + 1 < argc) {
+            min_ply = std::atoi(argv[++arg]);
+            continue;
+        }
         std::ifstream input(argv[arg]);
         if (!input) {
             std::cerr << "cannot open " << argv[arg] << '\n';
@@ -128,6 +137,7 @@ int main(int argc, char** argv) {
             else continue;
             ++games;
             forge::Board board;
+            if (!game.fen.empty() && !board.set_fen(game.fen)) continue;
             int ply = 0;
             for (const auto& [text, comment] : game.moves) {
                 const auto move = board.parse_uci(text);
@@ -136,7 +146,7 @@ int main(int argc, char** argv) {
                 const bool quiet = !move->is_capture() && !move->is_promotion() && !board.in_check();
                 // Skip book moves, tactical positions, and extreme scores whose
                 // outcome is already decided.
-                if (score.has_value() && quiet && ply >= 8 && std::abs(*score) < 1500) {
+                if (score.has_value() && quiet && ply >= min_ply && std::abs(*score) < 1500) {
                     const int white_score = board.side_to_move() == forge::White ? *score : -*score;
                     std::cout << board.fen() << ' ' << result << ' ' << white_score << '\n';
                     ++positions;
