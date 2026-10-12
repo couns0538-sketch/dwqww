@@ -1,8 +1,11 @@
 # Chess Engine Forge
 
-Chess Engine Forge 6.0.0 is a C++20 UCI chess engine. Version 6.0.0 is a
-strength release: the move generator, search, and evaluation were rewritten
-from the ground up for playing strength, replacing the conservative 5.x search.
+Chess Engine Forge 6.1.0 is a C++20 UCI chess engine. Version 6.0.0 rewrote
+the move generator, search, and evaluation from the ground up for playing
+strength, replacing the conservative 5.x search. Version 6.1.0 adds
+multi-threaded search (`Threads` option, Lazy SMP), a broader evaluation
+correction history, capture futility pruning, and a faster default build and
+move picker.
 
 ## Strength
 
@@ -33,13 +36,19 @@ Board and move generation
 Search
 
 - Iterative deepening principal-variation search with aspiration windows
+- Lazy SMP: `Threads` worker threads share the transposition table; odd
+  helpers skip the first iteration so the trees diverge
 - Bucketed transposition table (16-byte entries, 4-way clusters, aging,
   stored static evaluation, prefetch)
 - Staged move picker: hash move, SEE-filtered captures with capture history,
   killers, countermove, history-ordered quiets (checks first), losing captures
-- Butterfly, continuation (1/2/4 ply), capture, and correction histories
+- Butterfly, continuation (1/2/4 ply) and capture histories
+- Evaluation correction histories keyed by pawn structure, each side's
+  non-pawn placement, minor and major piece configurations, and the last two
+  moves
 - Late move reductions with history, PV, cut-node, check, and improving terms
-- Late move pruning, futility pruning, reverse futility pruning, razoring,
+- Late move pruning, futility pruning for quiets and captures, reverse
+  futility pruning, razoring,
   SEE pruning for quiets and captures, history pruning
 - Null move pruning with adaptive reduction and high-depth verification
 - ProbCut, internal iterative reductions, singular extensions with double and
@@ -66,7 +75,7 @@ UCI
 
 - `go` with `depth`, `nodes`, `movetime`, `wtime/btime/winc/binc`, `movestogo`,
   `mate`, `searchmoves`, `infinite`, `ponder`
-- `Hash`, `Move Overhead`, `Ponder`, `Clear Hash` options
+- `Hash`, `Threads`, `Move Overhead`, `Ponder`, `Clear Hash` options
 - `go perft N` diagnostic extension
 
 ## Build
@@ -79,7 +88,10 @@ cmake --build build --parallel
 ctest --test-dir build --output-on-failure
 ```
 
-`FORGE_NATIVE=ON` adds `-march=native`; omit it for a portable binary. For an
+`FORGE_NATIVE=ON` adds `-march=native`. Without it the x86-64 build still
+enables the POPCNT instruction (available on every x86-64 CPU since 2008),
+which is worth about 10 % of search speed; `FORGE_PORTABLE=ON` produces a
+baseline-ISA binary for older hardware. For an
 AddressSanitizer/UndefinedBehaviorSanitizer build:
 
 ```sh
@@ -102,9 +114,10 @@ quit
 ```
 
 `setoption name Hash value 256` sets the transposition table size in MiB.
+`setoption name Threads value 4` searches with four threads (Lazy SMP; the
+transposition table is shared, everything else is per thread).
 `setoption name Ponder value true` enables `bestmove ... ponder ...` output and
-`go ponder`/`ponderhit` handling. There is no Threads option; the engine
-searches with a single thread.
+`go ponder`/`ponderhit` handling.
 
 ## Tuning the evaluation
 

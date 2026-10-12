@@ -1,5 +1,44 @@
 # Changelog
 
+## 6.1.0 - 2026-10-12
+
+Strength release on top of 6.0.0: multi-threaded search, a broader evaluation
+correction history, more pruning, and speed.
+
+- Threads: new `Threads` UCI option (1-256) with Lazy SMP. All threads run the
+  same iterative deepening on the root and share the transposition table;
+  odd-numbered helpers skip depth 1 so the trees diverge. The main thread
+  alone manages time, node and depth limits, table ageing and output (node
+  counts include the helpers). Single-thread behaviour is unchanged.
+- Correction history: the static evaluation is now corrected by running
+  averages keyed by each side's non-pawn piece placement, by the minor-piece
+  and major-piece configurations and by the last two moves, in addition to
+  the pawn-structure key. `Board` maintains the piece-class Zobrist keys in
+  `put/remove/move_piece`, so `unmake_move` restores them without undo state.
+  Isolated in fixed-node self-play: -2 +/- 14 Elo at 25,000 nodes per move
+  (1000 games), +24 +/- 22 at 100,000 nodes with adjudication (400 games)
+  and +12 +/- 17 at 100,000 nodes without adjudication (300 games); the
+  term learns from search results and pays off with depth. The keys are
+  updated in `make_move` registers and restored from `Undo`, because
+  toggling them in the piece-placement helpers cost 8 % of search speed.
+- Search: capture futility pruning at low LMR depth (captures whose material
+  gain plus a depth-scaled margin cannot lift the static evaluation to alpha
+  are skipped): +11 +/- 14 Elo in 1000 fixed-node self-play games. A bonus
+  for the opponent's move that refutes a fail-low node was also tried and
+  dropped (-2 +/- 15 Elo in isolation).
+- Speed: the move picker selects the best remaining move on demand instead of
+  sorting whole lists (+7 % nps); the default x86-64 build enables POPCNT
+  (`FORGE_PORTABLE=ON` opts out), which alone is worth about 10 % nps.
+  `attacks::init` is thread-safe.
+- Tests: the random-walk board test verifies the new keys against a from-FEN
+  recomputation and across `unmake_move`.
+- Strength: `Threads=2` beats `Threads=1` by +81 +/- 40 Elo at 5+0.05
+  (100 games). Single-threaded, the release is a small gain over 6.0.0 that
+  300-game time-control matches cannot resolve (+2 +/- 19 at 3+0.03 for the
+  full change set, +8 +/- 20 for the move-picker change alone); the
+  component tests above carry the evidence. See
+  `validation/release-6.1.0/README.md`.
+
 ## 6.0.0 - 2026-10-12
 
 Strength release. The move generator, search and evaluation were rewritten; the

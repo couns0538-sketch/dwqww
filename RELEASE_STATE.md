@@ -1,3 +1,29 @@
+# Release state — Chess Engine Forge 6.1.0
+
+Status: **strength release on top of 6.0.0; adds multi-threaded search**.
+
+Changes relative to 6.0.0 (see `CHANGELOG.md`): `Threads` option with Lazy
+SMP; evaluation correction history extended from pawn structure to non-pawn,
+minor, major and continuation keys; capture futility pruning;
+selection-based move picking; POPCNT enabled in the default x86-64 build. Match records and the component A/B tests live in
+`validation/release-6.1.0/`.
+
+Validation performed: GCC 13.3 Release with strict warnings as errors and GCC
+ASan+UBSan, 4/4 CTest suites each; sanitizer-built engine exercised with up
+to four threads through every `go` mode; fixed-node self-play isolation tests
+for each search change (1000 games at 25k nodes, 400 games at 100k nodes);
+time-control matches against 6.0.0 and between thread counts (`Threads=2` vs
+`Threads=1`: +81 +/- 40 Elo over 100 games at 5+0.05). Single-threaded the
+release is at least as strong as 6.0.0 at blitz and stronger per node at
+depth; see `validation/release-6.1.0/README.md` for the numbers and the
+limits of what 300-game matches resolve. The single-thread `bench` signature
+is unchanged by the threading code.
+
+Not done for this release: opening book, tablebases, Windows runtime testing,
+thread voting for the best move (the main thread's result is used).
+
+---
+
 # Release state — Chess Engine Forge 6.0.0
 
 Status: **strength release; beats Stockfish 19 at UCI_Elo 2800 in measured matches**.
