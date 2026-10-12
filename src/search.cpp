@@ -301,12 +301,16 @@ private:
                board_.is_pseudo_legal(move);
     }
 
-    // Lists are sorted once when generated, so picking is sequential.
-    [[nodiscard]] Move pick_best() { return moves_[index_++].move; }
-
-    void sort_moves() {
-        std::sort(moves_.begin(), moves_.begin() + static_cast<std::ptrdiff_t>(count_),
-                  [](const Scored& a, const Scored& b) { return a.score > b.score; });
+    // Selection pick: most nodes consume only a few moves before a cutoff, so
+    // sorting the whole list up front would be wasted work. Ties keep
+    // generation order, which matches a stable sort.
+    [[nodiscard]] Move pick_best() {
+        std::size_t best = index_;
+        for (std::size_t i = index_ + 1; i < count_; ++i) {
+            if (moves_[i].score > moves_[best].score) best = i;
+        }
+        if (best != index_) std::swap(moves_[best], moves_[index_]);
+        return moves_[index_++].move;
     }
 
     void generate_captures() {
@@ -319,7 +323,6 @@ private:
             if (move.is_promotion()) score += move.promotion == Queen ? 20000 : -5000;
             moves_[count_++] = Scored{move, score};
         }
-        sort_moves();
     }
 
     void generate_quiets() {
@@ -333,7 +336,6 @@ private:
             if (direct_check(move)) score += 12000;
             moves_[count_++] = Scored{move, score};
         }
-        sort_moves();
     }
 
     void generate_evasions() {
@@ -351,7 +353,6 @@ private:
             }
             moves_[count_++] = Scored{move, score};
         }
-        sort_moves();
     }
 };
 
