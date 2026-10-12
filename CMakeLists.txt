@@ -4,6 +4,11 @@ find_package(Threads REQUIRED)
 
 option(FORGE_ENABLE_SANITIZERS "Enable AddressSanitizer and UndefinedBehaviorSanitizer" OFF)
 option(FORGE_NATIVE "Optimise for the build machine's CPU (-march=native)" OFF)
+# Without a hardware popcount the compiler emits a libgcc call for every
+# std::popcount, which costs the bitboard evaluation about 10% of its speed.
+# POPCNT has been available on every x86-64 CPU since 2008; set this ON only
+# for binaries that must run on older hardware.
+option(FORGE_PORTABLE "Build for the baseline x86-64 ISA without POPCNT" OFF)
 
 add_library(forge_core
     src/bitboard.cpp
@@ -21,6 +26,8 @@ else()
     target_compile_options(forge_core PRIVATE -Wall -Wextra -Wpedantic -Wconversion -Wshadow)
     if(FORGE_NATIVE)
         target_compile_options(forge_core PUBLIC -march=native)
+    elseif(NOT FORGE_PORTABLE AND CMAKE_SYSTEM_PROCESSOR MATCHES "(x86_64|AMD64|amd64)")
+        target_compile_options(forge_core PUBLIC -mpopcnt)
     endif()
     if(FORGE_ENABLE_SANITIZERS)
         target_compile_options(forge_core PUBLIC -fsanitize=address,undefined -fno-omit-frame-pointer)
