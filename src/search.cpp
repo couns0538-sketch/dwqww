@@ -890,8 +890,6 @@ int Searcher::search(Board& board, SearchStack* ss, int depth, int alpha, int be
             } else if (cut_node) {
                 extension = -1;
             }
-        } else if (gives_check && depth >= 2 && !root_node && board.see_ge(move, 0)) {
-            extension = 1;
         }
         if (extension <= 0) ss->double_extensions = (ss - 1)->double_extensions;
         const int new_depth = depth - 1 + extension;
