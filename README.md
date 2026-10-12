@@ -66,7 +66,7 @@ The exact 5.27.0 source archive SHA-256 is `6170b7b2d03eac5372802f4fb02c249ce52a
 - Correct checkmate and stalemate scoring at the quiescence horizon
 - Correct checkmate precedence over rule-50 and repetition draws
 - Native insufficient-material adjudication for dead minor-piece endings
-- Tapered middlegame/endgame evaluation with material, mobility, pawn structure, passed pawns, bishop pair, rook files, king shelter, king activity, and tempo
+- Tapered middlegame/endgame evaluation with PeSTO material and piece-square tables plus mobility, pawn structure, passed pawns, bishop pair, rook files, king shelter, and tempo
 - Exact-key evaluation cache for repeated transpositions
 - Occupancy-bit iteration through evaluation hot paths
 - Single-pass non-pawn evaluation: piece-square, mobility, and rook-file terms are accumulated together
