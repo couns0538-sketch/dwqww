@@ -357,7 +357,7 @@ Bitboard Board::compute_checkers() const {
     return attackers_to(king, occupied()) & occupied(opposite(side_));
 }
 
-void Board::generate_pseudo_legal(MoveList& moves, bool captures_only) const {
+void Board::generate_pseudo_legal(MoveList& moves, GenType type) const {
     const Color us = side_;
     const Color them = opposite(us);
     const Bitboard own = occupied(us);
@@ -365,6 +365,8 @@ void Board::generate_pseudo_legal(MoveList& moves, bool captures_only) const {
     const Bitboard occ = own | enemy;
     const Bitboard empty = ~occ;
     const int up = pawn_push_delta(us);
+    const bool want_captures = type != GenType::Quiets;
+    const bool want_quiets = type != GenType::Captures;
 
     auto push = [&](int from, int to, std::uint8_t flags) {
         moves.push_back(Move{static_cast<std::uint8_t>(from), static_cast<std::uint8_t>(to), 0, flags});
@@ -372,7 +374,7 @@ void Board::generate_pseudo_legal(MoveList& moves, bool captures_only) const {
     auto push_promotions = [&](int from, int to, std::uint8_t flags) {
         moves.push_back(Move{static_cast<std::uint8_t>(from), static_cast<std::uint8_t>(to), Queen,
                              static_cast<std::uint8_t>(flags | Promotion)});
-        if (!captures_only) {
+        if (type == GenType::All) {
             for (const int promotion : {Rook, Bishop, Knight}) {
                 moves.push_back(Move{static_cast<std::uint8_t>(from), static_cast<std::uint8_t>(to), static_cast<std::uint8_t>(promotion),
                                      static_cast<std::uint8_t>(flags | Promotion)});
@@ -386,7 +388,7 @@ void Board::generate_pseudo_legal(MoveList& moves, bool captures_only) const {
     const Bitboard promoting = pawns & seventh;
     const Bitboard regular = pawns & ~seventh;
 
-    if (!captures_only) {
+    if (want_quiets) {
         Bitboard single = pawn_push(us, regular) & empty;
         Bitboard twice = pawn_push(us, single & third) & empty;
         while (single != 0) {
@@ -398,30 +400,32 @@ void Board::generate_pseudo_legal(MoveList& moves, bool captures_only) const {
             push(to - 2 * up, to, DoublePush);
         }
     }
-    Bitboard promo_push = pawn_push(us, promoting) & empty;
-    while (promo_push != 0) {
-        const int to = pop_lsb(promo_push);
-        push_promotions(to - up, to, Quiet);
-    }
-    Bitboard capturers = pawns;
-    while (capturers != 0) {
-        const int from = pop_lsb(capturers);
-        Bitboard targets = attacks::pawn(us, from) & enemy;
-        const bool promotes = (square_bb(from) & seventh) != 0;
-        while (targets != 0) {
-            const int to = pop_lsb(targets);
-            if (promotes) push_promotions(from, to, Capture);
-            else push(from, to, Capture);
+    if (want_captures) {
+        Bitboard promo_push = pawn_push(us, promoting) & empty;
+        while (promo_push != 0) {
+            const int to = pop_lsb(promo_push);
+            push_promotions(to - up, to, Quiet);
         }
-    }
-    if (ep_square_ >= 0) {
-        Bitboard ep_attackers = attacks::pawn(them, ep_square_) & pawns;
-        while (ep_attackers != 0) {
-            push(pop_lsb(ep_attackers), ep_square_, static_cast<std::uint8_t>(Capture | EnPassant));
+        Bitboard capturers = pawns;
+        while (capturers != 0) {
+            const int from = pop_lsb(capturers);
+            Bitboard targets = attacks::pawn(us, from) & enemy;
+            const bool promotes = (square_bb(from) & seventh) != 0;
+            while (targets != 0) {
+                const int to = pop_lsb(targets);
+                if (promotes) push_promotions(from, to, Capture);
+                else push(from, to, Capture);
+            }
+        }
+        if (ep_square_ >= 0) {
+            Bitboard ep_attackers = attacks::pawn(them, ep_square_) & pawns;
+            while (ep_attackers != 0) {
+                push(pop_lsb(ep_attackers), ep_square_, static_cast<std::uint8_t>(Capture | EnPassant));
+            }
         }
     }
 
-    const Bitboard targets_mask = captures_only ? enemy : ~own;
+    const Bitboard targets_mask = type == GenType::Captures ? enemy : (type == GenType::Quiets ? empty : ~own);
     auto emit = [&](int from, Bitboard targets) {
         while (targets != 0) {
             const int to = pop_lsb(targets);
@@ -451,7 +455,7 @@ void Board::generate_pseudo_legal(MoveList& moves, bool captures_only) const {
     const int king = king_square(us);
     emit(king, attacks::king(king) & targets_mask);
 
-    if (!captures_only && checkers_ == 0) {
+    if (want_quiets && checkers_ == 0) {
         if (us == White && king == 4) {
             if ((castling_ & WhiteKingSide) != 0U && (occ & (square_bb(5) | square_bb(6))) == 0 &&
                 piece_at(7) == WR && !square_attacked(5, Black) && !square_attacked(6, Black)) {

@@ -281,10 +281,13 @@ private:
     std::array<Move, 2> killers_{};
     Move counter_{};
     Stage stage_;
-    std::array<Scored, 256> moves_{};
+    // Only the first count_ / bad_count_ entries are ever read, so these
+    // buffers are deliberately left uninitialised: zeroing them cost about
+    // a tenth of the node rate.
+    std::array<Scored, 256> moves_;
     std::size_t index_ = 0;
     std::size_t count_ = 0;
-    std::array<Move, 64> bad_captures_{};
+    std::array<Move, 64> bad_captures_;
     std::size_t bad_count_ = 0;
     std::size_t bad_index_ = 0;
     MoveList buffer_;
@@ -316,7 +319,7 @@ private:
 
     void generate_captures() {
         buffer_.clear();
-        board_.generate_pseudo_legal(buffer_, true);
+        board_.generate_pseudo_legal(buffer_, Board::GenType::Captures);
         index_ = 0;
         count_ = 0;
         for (const Move move : buffer_) {
@@ -328,11 +331,10 @@ private:
 
     void generate_quiets() {
         buffer_.clear();
-        board_.generate_pseudo_legal(buffer_, false);
+        board_.generate_pseudo_legal(buffer_, Board::GenType::Quiets);
         index_ = 0;
         count_ = 0;
         for (const Move move : buffer_) {
-            if (move.is_capture() || move.is_promotion()) continue;
             int score = searcher_.quiet_history(board_, ss_, move);
             if (direct_check(move)) score += 12000;
             moves_[count_++] = Scored{move, score};
@@ -341,7 +343,7 @@ private:
 
     void generate_evasions() {
         buffer_.clear();
-        board_.generate_pseudo_legal(buffer_, false);
+        board_.generate_pseudo_legal(buffer_, Board::GenType::All);
         index_ = 0;
         count_ = 0;
         for (const Move move : buffer_) {

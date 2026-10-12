@@ -107,9 +107,16 @@ public:
 
     // Move generation. Pseudo-legal moves may leave the own king in check;
     // is_legal() filters them. Captures-only generation also includes queen
-    // promotions, so quiescence search sees every material-changing move.
+    // promotions, so quiescence search sees every material-changing move;
+    // quiets-only generation excludes every capture and promotion, so the two
+    // together partition the capture-stage and quiet-stage moves of the
+    // staged move picker.
+    enum class GenType { All, Captures, Quiets };
     [[nodiscard]] MoveList pseudo_legal_moves(bool captures_only = false) const;
-    void generate_pseudo_legal(MoveList& moves, bool captures_only) const;
+    void generate_pseudo_legal(MoveList& moves, GenType type) const;
+    void generate_pseudo_legal(MoveList& moves, bool captures_only) const {
+        generate_pseudo_legal(moves, captures_only ? GenType::Captures : GenType::All);
+    }
     [[nodiscard]] MoveList legal_moves(bool captures_only = false) const;
     [[nodiscard]] bool has_legal_move() const;
     [[nodiscard]] bool is_legal(const Move& move) const;
