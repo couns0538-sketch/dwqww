@@ -387,9 +387,7 @@ Searcher::Searcher(TranspositionTable& shared_tt, int thread_id)
       minor_correction_(std::make_unique<CorrectionHistory>()),
       major_correction_(std::make_unique<CorrectionHistory>()),
       continuation_correction_(std::make_unique<ContinuationCorrectionHistory>()) {
-    // The pool owns the shared table; only the local state is reset here.
-    evaluator_.clear();
-    reset_histories();
+    clear();
 }
 
 Searcher::~Searcher() = default;
@@ -397,7 +395,8 @@ Searcher::~Searcher() = default;
 void Searcher::resize_hash(std::size_t hash_mb) { tt_->resize(hash_mb); }
 
 void Searcher::clear_hash() {
-    tt_->clear();
+    // A shared table is cleared once by the pool that owns it.
+    if (owned_tt_) owned_tt_->clear();
     evaluator_.clear();
 }
 
@@ -1239,10 +1238,7 @@ void ThreadPool::reset_stop() {
 
 void ThreadPool::clear() {
     tt_.clear();
-    for (auto& searcher : searchers_) {
-        searcher->reset_histories();
-        searcher->clear_hash();
-    }
+    for (auto& searcher : searchers_) searcher->clear();
 }
 
 void ThreadPool::clear_hash() {
