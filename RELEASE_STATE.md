@@ -1,3 +1,24 @@
+# Release state — Chess Engine Forge 6.0.0
+
+Status: **strength release; beats Stockfish 19 at UCI_Elo 2800 in measured matches**.
+
+The reference opponent is Stockfish 19 with `UCI_LimitStrength=true` and
+`UCI_Elo=2800`, whose skill scale is anchored to CCRL blitz ratings. Match
+records live in `validation/release-6.0.0/`. The 5.31.0 baseline scored 10.0 %
+(1W 17L 2D over 20 games at 10+0.1); 6.0.0 scores well above 50 %.
+
+Engine changes relative to 5.31.0 are described in `CHANGELOG.md`. Validation
+performed for this release: GCC Release build, GCC ASan+UBSan build, 4/4 CTest
+suites (C++ tests, match-tool tests, UCI regression with the three reference
+perfts 119060324 / 4085603 / 674624, ponder regression), a 15-position tactical
+suite, fixed-node self-play A/B tests for each search change, and time-control
+matches against the reference opponent.
+
+Not done for this release: multi-threaded search, opening book, tablebases,
+Windows runtime testing.
+
+---
+
 # Release state — Chess Engine Forge 5.31.0
 
 Status: **validated depth-9 LMR bound-correctness release, no demonstrated Elo gain**.

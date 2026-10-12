@@ -1,5 +1,46 @@
 # Changelog
 
+## 6.0.0 - 2026-10-12
+
+Strength release. The move generator, search and evaluation were rewritten; the
+5.x correctness philosophy of refusing reductions that change zero-window bounds
+is replaced by a modern pruning/reduction search validated by match results.
+
+- Board: magic bitboard sliding attacks, bitboard pawn/knight/king generation,
+  incremental checkers, `is_pseudo_legal` validation for hash moves,
+  `gives_check`, x-ray `see_ge`, repetition detection that counts a single
+  repetition inside the search tree. Perft runs at roughly 130 Mnps.
+- Search: PVS with aspiration windows; 16-byte TT entries in 4-way clusters
+  with generation aging and stored static evaluation; staged move picker with
+  SEE-filtered captures, killers, countermove and history-ordered quiets (checks
+  first); butterfly, continuation (1/2/4 ply), capture and correction
+  histories; LMR, LMP, futility, reverse futility, razoring, SEE and history
+  pruning; null move with adaptive reduction and verification at depth 14+;
+  ProbCut; IIR; singular extensions with double/negative extension and
+  multi-cut; safe-check extensions; quiescence search with TT, futility and
+  SEE pruning; soft/hard time management with best-move stability and
+  node-effort scaling. The engine reaches depth 20+ in a few seconds from the
+  starting position; 5.31.0 reached depth 9.
+- Evaluation: tapered PeSTO piece-square tables plus mobility, hashed pawn
+  structure, passed pawns, king shelter/storm and attack-unit danger with safe
+  checks, threats, outposts, rook files, bishop pair and endgame scaling. All
+  terms are entries of one parameter table (`src/eval_params_table.inc`) with a
+  coefficient trace for tuning.
+- Tuning: `tools/tune/extract.cpp` and `tools/tune/texel.cpp` (multi-threaded
+  Adam with rarity-scaled steps and regularisation). The shipped table was fitted
+  on 22,000 self-play games (1.72M quiet positions); at fixed nodes it scores
+  68.0 % (300 games) against the hand-set table.
+- UCI: `bench [depth]` command; `movestogo` is no longer assumed to be 30 when
+  absent (increment time controls allocate from the remaining clock).
+- Tests rewritten around behaviour (perft, make/unmake and hash consistency,
+  pseudo-legality, SEE, evaluation symmetry, transposition table, tactical
+  cases, searchmoves/terminal roots); the UCI regression no longer pins
+  evaluation-specific centipawn values.
+- Strength against Stockfish 19 (`UCI_LimitStrength`, `UCI_Elo 2800`, 10+0.1,
+  one thread, Hash 64, 8moves_v3 openings): 5.31.0 scored 10.0 % over 20 games;
+  6.0.0 before tuning scored 57.5 % over 100 games. See
+  `validation/release-6.0.0/` for the final tuned-engine results.
+
 ## 5.31.0 - 2026-10-09
 
 - Fixes a reproduced depth-9 LMR false fail-low on `rn1qkb1r/p1p1ppp1/1p1pbn2/7p/3P4/2N1PN2/PPP1BPPP/R1BQK2R w KQkq - 0 1`. Unchanged 5.30.0 returns 53 for depth-9 interior [53,54] and 54 for [54,55]; a no-LMR full-depth reference returns 54 and 55 respectively. Depth-9 full-window scores differ (baseline +57, no-LMR +62), but the zero-window discrepancy is the focused bound regression.
