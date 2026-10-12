@@ -17,6 +17,7 @@ Hash 64 MB, fastchess. See `validation/release-6.0.0/` for the match records.
 | Forge 5.31.0 (previous release) | 10+0.1 | 20 | 10.0 % (1W 17L 2D) |
 | Forge 6.0.0 | 10+0.1 | 200 | 69.0 % (118W 42L 40D), +158 Elo |
 | Forge 6.0.0 | 30+0.3 | 100 | 82.5 % (79W 14L 7D), +331 Elo |
+| Forge 6.1.0 | 10+0.1 | 200 | 75.0 % (134W 34L 32D), +224 Elo |
 
 With `Threads=4` on a four-core machine the engine scores 75 % (26W 1L 23D over
 50 games at 8+0.08) against its own single-threaded build.

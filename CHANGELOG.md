@@ -16,6 +16,11 @@
 - `forge_extract` understands `[FEN]` tags and `--min-ply`.
 - Tried and rejected (fixed-node self-play, 500 games each): quiet checks in
   quiescence (50.2 %), second Texel iteration on 44k games (50.2 %).
+- Evaluation retuned on 61.5k self-play games (4.67M positions) including 17.5k
+  games from random openings: 53-54 % in fixed-node self-play against the 6.0.0
+  table on both book and random openings.
+- Against Stockfish 19 at `UCI_Elo 2800` (10+0.1, one thread): 75.0 % over 200
+  games (134W 34L 32D, +224 Elo), up from 69.0 % for 6.0.0.
 - Release archive `chess-engine-forge-6.1.0.zip` with prebuilt Linux/Windows
   binaries (x86-64-v2 and v3).
 

@@ -26,10 +26,11 @@ control, while Forge's is not.
 | Forge 6.0.0, hand-set evaluation | 10+0.1 | 100 | 47 / 32 / 21 | 57.5 % | +66 +/- 68 | `forge-6.0.0-handset-eval-vs-sf19-2800-10+0.1.pgn` |
 | **Forge 6.0.0 (shipped)** | 10+0.1 | 200 | 118 / 42 / 40 | **69.0 %** | +158 +/- 48 | `forge-6.0.0-vs-sf19-2800-10+0.1.pgn` |
 | **Forge 6.0.0 (shipped)** | 30+0.3 | 100 | 79 / 14 / 7 | **82.5 %** | +331 +/- 68 | `forge-6.0.0-vs-sf19-2800-30+0.3.pgn` |
+| **Forge 6.1.0 (shipped)** | 10+0.1 | 200 | 134 / 34 / 32 | **75.0 %** | +224 +/- 48 | `forge-6.1.0-vs-sf19-2800-10+0.1.pgn` |
 
-All 420 recorded games terminated normally. The shipped binary's `bench 11`
-signature is 513922 nodes, identical to the binary used in both shipped-engine
-matches. Because the opponent's strength does not scale with time, the margin
+All 620 recorded games terminated normally. The 6.0.0 binary's `bench 11`
+signature is 513922 nodes and the 6.1.0 binary's is 422451 nodes, identical to
+the binaries used in the respective matches. Because the opponent's strength does not scale with time, the margin
 grows at longer time controls; Stockfish's `UCI_Elo` calibration itself was done
 at 60+0.6.
 
@@ -42,6 +43,8 @@ at 60+0.6.
 | Texel-tuned table (unregularised) vs hand-set table | 300 | 64.0 % |
 | Second tuning iteration (44k games incl. 22k from the tuned engine) vs shipped table | 500 | 50.2 % (not adopted) |
 | Quiet checks in quiescence search vs shipped search | 500 | 50.2 % (not adopted) |
+| Retune on 61.5k games incl. 17.5k random-opening games vs 6.0.0 table, 8moves_v3 openings | 300 | 53.2 % (adopted in 6.1.0) |
+| Same retune, random EPD openings | 300 | 54.0 % (adopted in 6.1.0) |
 | NNUE 768x256 trained on 3.5M positions vs tuned HCE | 300 | 9.5 % (not adopted; overfit) |
 
 ## 6.1.0 multi-threading (8+0.08, concurrency 1, four-core VM)
