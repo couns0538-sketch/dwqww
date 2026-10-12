@@ -7,7 +7,7 @@
 //
 // Usage:
 //   forge_texel positions.txt [--epochs N] [--lr X] [--lambda L] [--threads T]
-//               [--min-count C] [--out table.inc]
+//               [--min-count C] [--decay-every D] [--reg R] [--rarity F] [--out table.inc]
 //   forge_texel --dump table.inc      (write the current parameters)
 #include "forge/board.hpp"
 #include "forge/eval_params.hpp"
@@ -67,6 +67,9 @@ int main(int argc, char** argv) {
     double lambda = 0.5;
     int threads = static_cast<int>(std::max(1U, std::thread::hardware_concurrency()));
     int min_count = 40;
+    int decay_every = 150;
+    double regularization = 1e-8;
+    double rarity_fraction = 0.005;
     for (int i = 1; i < argc; ++i) {
         const std::string arg = argv[i];
         auto next = [&]() -> std::string { return i + 1 < argc ? argv[++i] : ""; };
@@ -75,6 +78,9 @@ int main(int argc, char** argv) {
         else if (arg == "--lambda") lambda = std::stod(next());
         else if (arg == "--threads") threads = std::stoi(next());
         else if (arg == "--min-count") min_count = std::stoi(next());
+        else if (arg == "--decay-every") decay_every = std::stoi(next());
+        else if (arg == "--reg") regularization = std::stod(next());
+        else if (arg == "--rarity") rarity_fraction = std::stod(next());
         else if (arg == "--out") output_path = next();
         else if (arg == "--dump") dump_path = next();
         else input_path = arg;
@@ -86,6 +92,8 @@ int main(int argc, char** argv) {
         mg[static_cast<std::size_t>(i)] = forge::mg_value(forge::params::table[static_cast<std::size_t>(i)]);
         eg[static_cast<std::size_t>(i)] = forge::eg_value(forge::params::table[static_cast<std::size_t>(i)]);
     }
+    const std::vector<double> initial_mg = mg;
+    const std::vector<double> initial_eg = eg;
     if (!dump_path.empty()) {
         write_table(dump_path, mg, eg);
         return 0;
@@ -231,22 +239,29 @@ int main(int argc, char** argv) {
                 g_mg += grad_mg[static_cast<std::size_t>(t)][i];
                 g_eg += grad_eg[static_cast<std::size_t>(t)][i];
             }
-            g_mg *= scale;
-            g_eg *= scale;
+            // Pull towards the initial values; this mostly anchors parameters
+            // that the data rarely exercises, since Adam normalises step sizes.
+            g_mg = g_mg * scale + regularization * (mg[i] - initial_mg[i]);
+            g_eg = g_eg * scale + regularization * (eg[i] - initial_eg[i]);
             m_mg[i] = beta1 * m_mg[i] + (1.0 - beta1) * g_mg;
             v_mg[i] = beta2 * v_mg[i] + (1.0 - beta2) * g_mg * g_mg;
             m_eg[i] = beta1 * m_eg[i] + (1.0 - beta1) * g_eg;
             v_eg[i] = beta2 * v_eg[i] + (1.0 - beta2) * g_eg * g_eg;
             const double correction1 = 1.0 - std::pow(beta1, epoch);
             const double correction2 = 1.0 - std::pow(beta2, epoch);
-            mg[i] -= learning_rate * (m_mg[i] / correction1) / (std::sqrt(v_mg[i] / correction2) + epsilon);
-            eg[i] -= learning_rate * (m_eg[i] / correction1) / (std::sqrt(v_eg[i] / correction2) + epsilon);
+            // Rare parameters take proportionally smaller steps so that a
+            // handful of positions cannot drag them far from their defaults.
+            const double rarity = std::min(1.0, static_cast<double>(usage[i]) / (rarity_fraction * static_cast<double>(samples.size())));
+            const double step = learning_rate * rarity;
+            mg[i] -= step * (m_mg[i] / correction1) / (std::sqrt(v_mg[i] / correction2) + epsilon);
+            eg[i] -= step * (m_eg[i] / correction1) / (std::sqrt(v_eg[i] / correction2) + epsilon);
         }
         if (epoch % 10 == 0 || epoch == 1 || epoch == epochs) {
             const auto elapsed = std::chrono::duration_cast<std::chrono::seconds>(std::chrono::steady_clock::now() - start).count();
             std::cerr << "epoch " << epoch << " loss " << loss << " (" << elapsed << "s)\n";
         }
         if (epoch % 100 == 0) write_table(output_path, mg, eg);
+        if (decay_every > 0 && epoch % decay_every == 0) learning_rate *= 0.5;
     }
     write_table(output_path, mg, eg);
     return 0;
