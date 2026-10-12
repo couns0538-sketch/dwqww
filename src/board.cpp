@@ -387,10 +387,27 @@ void Board::generate_pseudo_legal(MoveList& moves, GenType type) const {
     const Bitboard third = us == White ? Rank3BB : Rank6BB;
     const Bitboard promoting = pawns & seventh;
     const Bitboard regular = pawns & ~seventh;
+    const int king = king_square(us);
+
+    // In check, a non-king move must capture the checker or interpose; in
+    // double check only the king may move. Generation order is the same as
+    // out of check, so the legal moves come out in the same sequence.
+    Bitboard allowed = ~own;
+    bool ep_allowed = ep_square_ >= 0;
+    if (checkers_ != 0) {
+        if ((checkers_ & (checkers_ - 1)) != 0) {
+            allowed = 0;
+            ep_allowed = false;
+        } else {
+            allowed = checkers_ | attacks::between(king, lsb(checkers_));
+            ep_allowed = ep_allowed && (checkers_ & square_bb(ep_square_ - up)) != 0;
+        }
+    }
 
     if (want_quiets) {
-        Bitboard single = pawn_push(us, regular) & empty;
-        Bitboard twice = pawn_push(us, single & third) & empty;
+        const Bitboard reachable = pawn_push(us, regular) & empty;
+        Bitboard single = reachable & allowed;
+        Bitboard twice = pawn_push(us, reachable & third) & empty & allowed;
         while (single != 0) {
             const int to = pop_lsb(single);
             push(to - up, to, Quiet);
@@ -401,15 +418,15 @@ void Board::generate_pseudo_legal(MoveList& moves, GenType type) const {
         }
     }
     if (want_captures) {
-        Bitboard promo_push = pawn_push(us, promoting) & empty;
+        Bitboard promo_push = pawn_push(us, promoting) & empty & allowed;
         while (promo_push != 0) {
             const int to = pop_lsb(promo_push);
             push_promotions(to - up, to, Quiet);
         }
-        Bitboard capturers = pawns;
+        Bitboard capturers = allowed != 0 ? pawns : 0;
         while (capturers != 0) {
             const int from = pop_lsb(capturers);
-            Bitboard targets = attacks::pawn(us, from) & enemy;
+            Bitboard targets = attacks::pawn(us, from) & enemy & allowed;
             const bool promotes = (square_bb(from) & seventh) != 0;
             while (targets != 0) {
                 const int to = pop_lsb(targets);
@@ -417,7 +434,7 @@ void Board::generate_pseudo_legal(MoveList& moves, GenType type) const {
                 else push(from, to, Capture);
             }
         }
-        if (ep_square_ >= 0) {
+        if (ep_allowed) {
             Bitboard ep_attackers = attacks::pawn(them, ep_square_) & pawns;
             while (ep_attackers != 0) {
                 push(pop_lsb(ep_attackers), ep_square_, static_cast<std::uint8_t>(Capture | EnPassant));
@@ -425,7 +442,8 @@ void Board::generate_pseudo_legal(MoveList& moves, GenType type) const {
         }
     }
 
-    const Bitboard targets_mask = type == GenType::Captures ? enemy : (type == GenType::Quiets ? empty : ~own);
+    const Bitboard king_targets = type == GenType::Captures ? enemy : (type == GenType::Quiets ? empty : ~own);
+    const Bitboard targets_mask = king_targets & allowed;
     auto emit = [&](int from, Bitboard targets) {
         while (targets != 0) {
             const int to = pop_lsb(targets);
@@ -452,8 +470,7 @@ void Board::generate_pseudo_legal(MoveList& moves, GenType type) const {
         const int from = pop_lsb(queens);
         emit(from, attacks::queen(from, occ) & targets_mask);
     }
-    const int king = king_square(us);
-    emit(king, attacks::king(king) & targets_mask);
+    emit(king, attacks::king(king) & king_targets);
 
     if (want_quiets && checkers_ == 0) {
         if (us == White && king == 4) {
