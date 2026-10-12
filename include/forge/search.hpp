@@ -127,13 +127,19 @@ private:
     std::uint64_t reverse_futility_cutoffs_ = 0;
     std::uint64_t node_limit_ = 0;
     bool node_limit_specified_ = false;
+    // Hard limit: the search is interrupted once it is reached. Soft limit: no new
+    // iteration is started after it has elapsed. Both are zero when unbounded.
     std::uint64_t time_limit_ms_ = 0;
+    std::uint64_t soft_limit_ms_ = 0;
     std::uint64_t time_check_mask_ = 255;
     bool aborted_ = false;
     int seldepth_ = 0;
+    int root_depth_ = 0;
     std::array<std::array<Move, 2>, 128> killers_{};
-    std::array<std::array<int, 64>, 64> history_{};
+    std::array<std::array<std::array<int, 64>, 64>, 2> history_{};
     std::array<std::array<Move, 64>, 64> countermoves_{};
+    // Static evaluation per ply, used for the "improving" heuristic.
+    std::array<int, 130> eval_stack_{};
     std::vector<Move> root_moves_;
     bool root_restricted_ = false;
     Move root_best_move_{};
@@ -141,6 +147,7 @@ private:
     int alpha_beta(Board& board, int depth, int ply, int alpha, int beta,
                    bool allow_null = true, bool null_branch = false, Move previous_move = {});
     int quiescence(Board& board, int ply, int alpha, int beta, bool null_branch = false);
+    [[nodiscard]] std::uint64_t elapsed_budget_ms() const;
     [[nodiscard]] bool should_stop();
     bool abort_if_stopped();
     [[nodiscard]] std::size_t tt_index(std::uint64_t key) const {
@@ -163,9 +170,9 @@ private:
     [[nodiscard]] static PawnEntry analyze_pawns(const Board& board);
     [[nodiscard]] static int evaluate_with_pawns(const Board& board, const PawnEntry& pawns);
     void order_moves(const Board& board, MoveList& moves, const Move& tt_move,
-                     const Move& counter_move, int ply) const;
+                     const Move& counter_move, int ply, bool in_quiescence) const;
     [[nodiscard]] int move_score(const Board& board, const Move& move, const Move& tt_move,
-                                 const Move& counter_move, int ply) const;
+                                 const Move& counter_move, int ply, bool in_quiescence) const;
     [[nodiscard]] std::vector<Move> extract_pv(Board board, int depth) const;
 };
 
