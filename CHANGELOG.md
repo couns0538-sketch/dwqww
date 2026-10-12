@@ -30,8 +30,10 @@ is replaced by a modern pruning/reduction search validated by match results.
   Adam with rarity-scaled steps and regularisation). The shipped table was fitted
   on 22,000 self-play games (1.72M quiet positions); at fixed nodes it scores
   68.0 % (300 games) against the hand-set table.
-- UCI: `bench [depth]` command; `movestogo` is no longer assumed to be 30 when
-  absent (increment time controls allocate from the remaining clock).
+- UCI: `Threads` option (Lazy SMP with a shared transposition table and
+  per-thread histories); `bench [depth]` command; unlisted integer tuning
+  options for the search constants; `movestogo` is no longer assumed to be 30
+  when absent (increment time controls allocate from the remaining clock).
 - Tests rewritten around behaviour (perft, make/unmake and hash consistency,
   pseudo-legality, SEE, evaluation symmetry, transposition table, tactical
   cases, searchmoves/terminal roots); the UCI regression no longer pins

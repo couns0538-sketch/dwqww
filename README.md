@@ -49,6 +49,7 @@ Search
   full evasion generation when in check
 - Mate distance pruning, 50-move and insufficient-material detection
 - Time management with soft/hard limits, best-move stability and effort scaling
+- Lazy SMP: helper threads search the same root sharing the transposition table
 
 Evaluation (tapered, parametrized)
 
@@ -67,8 +68,11 @@ UCI
 
 - `go` with `depth`, `nodes`, `movetime`, `wtime/btime/winc/binc`, `movestogo`,
   `mate`, `searchmoves`, `infinite`, `ponder`
-- `Hash`, `Move Overhead`, `Ponder`, `Clear Hash` options
-- `go perft N` diagnostic extension
+- `Hash`, `Threads`, `Move Overhead`, `Ponder`, `Clear Hash` options
+- `go perft N` diagnostic extension, `bench` speed/signature command
+- Unlisted integer tuning options for every search constant (see
+  `forge::tune` in `include/forge/search.hpp`), usable with
+  `setoption name <Name> value <int>` for A/B testing
 
 ## Build
 
@@ -103,9 +107,10 @@ quit
 ```
 
 `setoption name Hash value 256` sets the transposition table size in MiB.
-`setoption name Ponder value true` enables `bestmove ... ponder ...` output and
-`go ponder`/`ponderhit` handling. There is no Threads option; the engine
-searches with a single thread.
+`setoption name Threads value 4` enables Lazy SMP with four search threads
+sharing the transposition table. `setoption name Ponder value true` enables
+`bestmove ... ponder ...` output and `go ponder`/`ponderhit` handling.
+`bench [depth]` prints a node-count signature and speed for the built binary.
 
 ## Tuning the evaluation
 
