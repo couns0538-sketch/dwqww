@@ -512,7 +512,6 @@ int Searcher::qsearch(Board& board, SearchStack* ss, int alpha, int beta) {
 
     const bool in_check = board.in_check();
     ss->in_check = in_check;
-    (ss + 1)->killers = {};
 
     bool tt_hit = false;
     TTEntry* tte = tt_.probe(board.key(), tt_hit);
@@ -625,8 +624,8 @@ int Searcher::search(Board& board, SearchStack* ss, int depth, int alpha, int be
     const bool in_check = board.in_check();
     ss->in_check = in_check;
     const Move excluded = ss->excluded_move;
-    (ss + 1)->killers = {};
     (ss + 1)->excluded_move = Move::none();
+    // Children share killers with their siblings; grandchildren start afresh.
     (ss + 2)->killers = {};
 
     // Transposition table probe.
