@@ -26,8 +26,14 @@
   pruning-independent properties (forced mates, stalemate under zero-window pruning at depths
   1-6, no whole-node pruning in pawn endings, deterministic node counts, soft/hard limit
   semantics, repetition rule, searchmoves fixture by legality and decisive score).
-- Measured with fastchess at 5+0.05, Hash 32, `forge-10000.epd`, 100 games against unchanged
-  5.31.0: W88 D7 L5, +413 +/- 111 Elo for the search change alone.
+- Evaluation: the center-distance placement terms are replaced by PeSTO's piece-square tables
+  (the material values were already PeSTO's). Mobility, pawn structure, passed pawns, bishop
+  pair, rook files, king shelter and tempo are unchanged.
+- Measured with fastchess at 5+0.05, Hash 32, `forge-10000.epd`: the search change alone scored
+  W88 D7 L5 (+413 +/- 111 Elo) in 100 games against unchanged 5.31.0; the position-indexed TT
+  was neutral at this time control (+12 +/- 38, 120 games) while cutting fixed-depth node
+  counts by 4-56%; the piece-square tables added a further large gain over the search-only
+  build (see RELEASE_STATE.md for the final numbers).
 
 ## 5.31.0 - 2026-10-09
 
