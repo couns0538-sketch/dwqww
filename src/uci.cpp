@@ -170,6 +170,14 @@ int main() {
                          "option name Book Depth type spin default 30 min 0 max 100\n"
                          "option name Book Variety type spin default 30 min 0 max 100\n";
             if (forge::nnue::available()) std::cout << "option name UseNNUE type check default true\n";
+#ifdef FORGE_EXPOSE_TUNABLES
+            // Development builds advertise the search constants so match
+            // runners can set them; release builds accept them silently.
+            for (const forge::tune::Parameter& parameter : forge::tune::parameters()) {
+                std::cout << "option name " << parameter.name << " type spin default " << *parameter.value
+                          << " min " << parameter.minimum << " max " << parameter.maximum << "\n";
+            }
+#endif
             std::cout << "option name Clear Hash type button\n"
                          "uciok" << std::endl;
         } else if (command == "isready") {

@@ -4,6 +4,7 @@ find_package(Threads REQUIRED)
 
 option(FORGE_ENABLE_SANITIZERS "Enable AddressSanitizer and UndefinedBehaviorSanitizer" OFF)
 option(FORGE_NATIVE "Optimise for the build machine's CPU (-march=native)" OFF)
+option(FORGE_EXPOSE_TUNABLES "Advertise search tuning constants as UCI options (development builds)" OFF)
 
 add_library(forge_core
     src/bitboard.cpp
@@ -32,6 +33,9 @@ endif()
 
 add_executable(forge src/uci.cpp)
 target_link_libraries(forge PRIVATE forge_core Threads::Threads)
+if(FORGE_EXPOSE_TUNABLES)
+    target_compile_definitions(forge PRIVATE FORGE_EXPOSE_TUNABLES=1)
+endif()
 
 add_executable(forge_tests tests/tests.cpp)
 target_link_libraries(forge_tests PRIVATE forge_core Threads::Threads)
