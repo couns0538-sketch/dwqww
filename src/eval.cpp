@@ -11,7 +11,16 @@ namespace {
 using namespace params;
 
 constexpr std::array<int, 8> PassedKingProximityScale{0, 0, 1, 2, 5, 9, 14, 0};
-constexpr std::array<int, 7> KingAttackWeight{0, 0, 2, 2, 3, 5, 0};
+
+[[nodiscard]] int king_attack_weight(int type) {
+    switch (type) {
+    case Knight: return king_safety.knight;
+    case Bishop: return king_safety.bishop;
+    case Rook: return king_safety.rook;
+    case Queen: return king_safety.queen;
+    default: return 0;
+    }
+}
 
 // Accumulates parameter contributions, optionally recording coefficients.
 template <bool Trace>
@@ -141,7 +150,7 @@ void evaluate_pieces(const Board& board, Accumulator<Trace>& acc, EvalInfo& info
             const Bitboard zone_hits = attacks_bb & enemy_king_zone;
             if (zone_hits != 0) {
                 ++info.king_attackers[Them];
-                info.king_attack_units[Them] += KingAttackWeight[static_cast<std::size_t>(type)] * popcount(zone_hits);
+                info.king_attack_units[Them] += king_attack_weight(type) * popcount(zone_hits);
             }
 
             if (type == Knight || type == Bishop) {
@@ -231,7 +240,7 @@ void evaluate_king(const Board& board, Accumulator<Trace>& acc, const EvalInfo& 
         const Bitboard zone = info.king_zone[Us];
         const Bitboard weak = zone & info.attacked_by[Them][0] & ~info.attacked_twice[Us] &
                               (~info.attacked_by[Us][0] | info.attacked_by[Us][King] | info.attacked_by[Us][Queen]);
-        units += 2 * popcount(weak);
+        units += king_safety.weak_square * popcount(weak);
         const Bitboard safe = ~board.occupied(Them) & (~info.attacked_by[Us][0] | (weak & info.attacked_twice[Them]));
         const Bitboard occ = board.occupied();
         const Bitboard rook_rays = attacks::rook(king, occ);
@@ -240,10 +249,10 @@ void evaluate_king(const Board& board, Accumulator<Trace>& acc, const EvalInfo& 
         const Bitboard bishop_checks = bishop_rays & safe & info.attacked_by[Them][Bishop];
         const Bitboard knight_checks = attacks::knight(king) & safe & info.attacked_by[Them][Knight];
         const Bitboard queen_checks = (rook_rays | bishop_rays) & safe & info.attacked_by[Them][Queen];
-        units += 6 * popcount(rook_checks) + 4 * popcount(bishop_checks) + 5 * popcount(knight_checks) +
-                 5 * popcount(queen_checks);
+        units += king_safety.rook_check * popcount(rook_checks) + king_safety.bishop_check * popcount(bishop_checks) +
+                 king_safety.knight_check * popcount(knight_checks) + king_safety.queen_check * popcount(queen_checks);
         if (board.pieces(Them, Queen) == 0) units /= 2;
-        units -= shelter / 8;
+        units -= shelter / king_safety.shelter_divisor;
         units = std::clamp(units, 0, 99);
         acc.template add<Us>(KingDanger + units, -1);
     }

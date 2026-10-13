@@ -68,6 +68,21 @@ extern Table table;
 [[nodiscard]] Table defaults();
 [[nodiscard]] const char* name(int index);
 
+// Integer weights composing the king-danger index; adjustable by tools.
+struct KingSafetyWeights {
+    int knight = 2;
+    int bishop = 2;
+    int rook = 3;
+    int queen = 5;
+    int weak_square = 2;
+    int rook_check = 6;
+    int bishop_check = 4;
+    int knight_check = 5;
+    int queen_check = 5;
+    int shelter_divisor = 4;
+};
+extern KingSafetyWeights king_safety;
+
 } // namespace forge::params
 
 namespace forge {

@@ -81,6 +81,18 @@ int main(int argc, char** argv) {
         else if (arg == "--decay-every") decay_every = std::stoi(next());
         else if (arg == "--reg") regularization = std::stod(next());
         else if (arg == "--rarity") rarity_fraction = std::stod(next());
+        else if (arg == "--king-safety") {
+            // knight,bishop,rook,queen,weak,rookcheck,bishopcheck,knightcheck,queencheck,shelterdiv
+            std::istringstream list(next());
+            std::string item;
+            int* fields[] = {&forge::params::king_safety.knight, &forge::params::king_safety.bishop,
+                             &forge::params::king_safety.rook, &forge::params::king_safety.queen,
+                             &forge::params::king_safety.weak_square, &forge::params::king_safety.rook_check,
+                             &forge::params::king_safety.bishop_check, &forge::params::king_safety.knight_check,
+                             &forge::params::king_safety.queen_check, &forge::params::king_safety.shelter_divisor};
+            std::size_t field = 0;
+            while (std::getline(list, item, ',') && field < 10) *fields[field++] = std::stoi(item);
+        }
         else if (arg == "--out") output_path = next();
         else if (arg == "--dump") dump_path = next();
         else input_path = arg;

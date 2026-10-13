@@ -17,6 +17,8 @@ Table defaults() { return Defaults; }
 
 Table table = defaults();
 
+KingSafetyWeights king_safety{};
+
 const char* name(int index) {
     static thread_local std::string buffer;
     auto indexed = [&](const char* base, int start) {
