@@ -1,4 +1,5 @@
 #include "forge/board.hpp"
+#include "forge/book.hpp"
 #include "forge/nnue.hpp"
 #include "forge/search.hpp"
 #include "forge/uci_output.hpp"
@@ -112,11 +113,28 @@ forge::SearchLimits parse_limits(std::istringstream& input, forge::Board& board)
 
 } // namespace
 
+namespace {
+
+// Ply number implied by the position's move counters (0 at the start position).
+int game_ply(const forge::Board& board) {
+    return 2 * (board.fullmove_number() - 1) + (board.side_to_move() == forge::Black ? 1 : 0);
+}
+
+} // namespace
+
 int main() {
     forge::Board board;
     forge::Searcher searcher;
     int move_overhead_ms = 10;
     bool ponder_enabled = false;
+    forge::book::Book book;
+    book.load_embedded();
+    bool own_book = forge::book::embedded_available();
+    std::string book_file;
+    int book_depth = 30;
+    int book_variety = 30;
+    std::uint64_t book_rng = static_cast<std::uint64_t>(
+        std::chrono::steady_clock::now().time_since_epoch().count()) | 1ULL;
     bool ponder_search_active = false;
     std::thread worker;
     std::mutex stop_mutex;
@@ -146,7 +164,11 @@ int main() {
                          "option name Hash type spin default 32 min 1 max 2048\n"
                          "option name Threads type spin default 1 min 1 max 256\n"
                          "option name Move Overhead type spin default 10 min 0 max 1000\n"
-                         "option name Ponder type check default false\n";
+                         "option name Ponder type check default false\n"
+                         "option name OwnBook type check default " << (forge::book::embedded_available() ? "true" : "false") << "\n"
+                         "option name Book File type string default <empty>\n"
+                         "option name Book Depth type spin default 30 min 0 max 100\n"
+                         "option name Book Variety type spin default 30 min 0 max 100\n";
             if (forge::nnue::available()) std::cout << "option name UseNNUE type check default true\n";
             std::cout << "option name Clear Hash type button\n"
                          "uciok" << std::endl;
@@ -193,6 +215,40 @@ int main() {
                 else {
                     const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex());
                     std::cout << "info string invalid value for option Ponder" << std::endl;
+                }
+            } else if (name == "OwnBook") {
+                if (value_text == "true") own_book = true;
+                else if (value_text == "false") own_book = false;
+                else {
+                    const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex());
+                    std::cout << "info string invalid value for option OwnBook" << std::endl;
+                }
+            } else if (name == "Book File") {
+                std::string rest;
+                std::getline(input, rest);
+                std::string path = value_text + rest;
+                while (!path.empty() && (path.back() == ' ' || path.back() == '\r')) path.pop_back();
+                if (path.empty() || path == "<empty>") {
+                    book_file.clear();
+                    book.load_embedded();
+                } else if (book.load_file(path)) {
+                    book_file = path;
+                    const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex());
+                    std::cout << "info string loaded book " << path << " with " << book.size() << " entries" << std::endl;
+                } else {
+                    const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex());
+                    std::cout << "info string cannot load book " << path << std::endl;
+                }
+            } else if (name == "Book Depth" || name == "Book Variety") {
+                int value = 0;
+                const auto parsed = std::from_chars(value_text.data(), value_text.data() + value_text.size(), value);
+                if (parsed.ec != std::errc{} || parsed.ptr != value_text.data() + value_text.size()) {
+                    const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex());
+                    std::cout << "info string invalid value for option " << name << std::endl;
+                } else if (name == "Book Depth") {
+                    book_depth = std::clamp(value, 0, 100);
+                } else {
+                    book_variety = std::clamp(value, 0, 100);
                 }
             } else if (name == "UseNNUE") {
                 if (value_text == "true") forge::nnue::enabled = true;
@@ -254,6 +310,27 @@ int main() {
                 input.seekg(position);
                 forge::SearchLimits limits = parse_limits(input, board);
                 limits.move_overhead_ms = move_overhead_ms;
+                // Book moves apply to game play (clock or movetime searches), not
+                // to analysis, pondering or restricted searches.
+                const bool game_search = (limits.time_ms >= 0 || limits.movetime_ms >= 0) && !limits.infinite &&
+                                         !limits.ponder && !limits.search_moves_specified && limits.mate_moves == 0;
+                if (game_search && (own_book || !book_file.empty()) && !book.empty() && game_ply(board) < book_depth) {
+                    const forge::Move book_move = book.probe(board, book_variety, book_rng);
+                    if (!book_move.is_none()) {
+                        std::string prediction;
+                        if (ponder_enabled) {
+                            forge::Board reply_board = board;
+                            forge::Undo undo;
+                            (void)reply_board.make_move(book_move, undo);
+                            const forge::Move reply = book.probe(reply_board, 0, book_rng);
+                            if (!reply.is_none()) prediction = " ponder " + forge::Board::move_to_uci(reply);
+                        }
+                        const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex());
+                        std::cout << "info string book move " << forge::Board::move_to_uci(book_move) << std::endl;
+                        std::cout << "bestmove " << forge::Board::move_to_uci(book_move) << prediction << std::endl;
+                        continue;
+                    }
+                }
                 const forge::Board search_board = board;
                 {
                     const std::lock_guard<std::mutex> lock(stop_mutex);
