@@ -145,6 +145,8 @@ struct SearchStack {
     int raw_eval = ValueNone;
     int move_count = 0;
     int double_extensions = 0;
+    // Fail highs seen at this ply while the parent iterated its moves.
+    int cutoff_count = 0;
     bool in_check = false;
     bool tt_pv = false;
     bool null_move_allowed = true;

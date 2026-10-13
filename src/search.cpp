@@ -795,6 +795,7 @@ int Searcher::search(Board& board, SearchStack* ss, int depth, int alpha, int be
     ss->in_check = in_check;
     const Move excluded = ss->excluded_move;
     (ss + 1)->excluded_move = Move::none();
+    (ss + 1)->cutoff_count = 0;
     // Children share killers with their siblings; grandchildren start afresh.
     (ss + 2)->killers = {};
 
@@ -1009,6 +1010,8 @@ int Searcher::search(Board& board, SearchStack* ss, int depth, int alpha, int be
             if (tt_capture && quiet) r += 1;
             if (gives_check) r -= 1;
             if (in_check) r -= 1;
+            // Many refutations at the next ply mark this as an all-node.
+            if ((ss + 1)->cutoff_count > 3) r += 1 + !(pv_node || cut_node);
             r -= quiet ? std::clamp(history / 6000, -2, 2) : std::clamp(history / 8000, -1, 1);
             const int reduced_depth = std::clamp(new_depth - r, 1, new_depth);
             score = -search(board, ss + 1, reduced_depth, -alpha - 1, -alpha, true);
@@ -1042,7 +1045,10 @@ int Searcher::search(Board& board, SearchStack* ss, int depth, int alpha, int be
                     ss->pv_length = (ss + 1)->pv_length + 1;
                 }
                 if (root_node) root_best_index_ = move_count - 1;
-                if (score >= beta) break;
+                if (score >= beta) {
+                    ++ss->cutoff_count;
+                    break;
+                }
                 alpha = score;
             }
         }
@@ -1210,6 +1216,7 @@ SearchInfo Searcher::iterative_deepening(Board board, const SearchLimits& limits
         ss.static_eval = ValueNone;
         ss.continuation = &(*continuation_history_)[Empty][0];
         ss.double_extensions = 0;
+        ss.cutoff_count = 0;
         ss.null_move_allowed = true;
         ss.killers = {};
     }
