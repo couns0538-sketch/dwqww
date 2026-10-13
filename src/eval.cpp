@@ -89,14 +89,21 @@ void evaluate_pieces(const Board& board, Accumulator<Trace>& acc, EvalInfo& info
     const Bitboard outpost_ranks = Us == White ? (Rank4BB | Rank5BB | Rank6BB) : (Rank5BB | Rank4BB | Rank3BB);
     const Bitboard own_pawn_attacks = info.attacked_by[Us][Pawn];
     const Bitboard enemy_king_zone = info.king_zone[Them];
-    // Squares that enemy pawns can never attack: outposts.
-    Bitboard enemy_pawn_attack_span = 0;
+    // Squares the enemy pawns attack now or could attack after advancing;
+    // the rest are outposts.
+    Bitboard enemy_pawn_attack_span;
     {
-        Bitboard ep = enemy_pawns;
-        while (ep != 0) {
-            const int sq = pop_lsb(ep);
-            enemy_pawn_attack_span |= attacks::passed_pawn_mask(Them, sq) & ~attacks::forward_file(Them, sq);
+        Bitboard fill = enemy_pawns;
+        if constexpr (Them == White) {
+            fill |= fill << 8U;
+            fill |= fill << 16U;
+            fill |= fill << 32U;
+        } else {
+            fill |= fill >> 8U;
+            fill |= fill >> 16U;
+            fill |= fill >> 32U;
         }
+        enemy_pawn_attack_span = pawn_attacks_bb(Them, fill);
     }
 
     for (int type = Knight; type <= Queen; ++type) {
