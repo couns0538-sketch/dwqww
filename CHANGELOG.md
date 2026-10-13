@@ -2,9 +2,10 @@
 
 ## 6.3.0 - 2026-10-13
 
-Strength release on top of 6.2.0: three search changes and eleven new
-evaluation terms, each measured in 1000-game fixed-node self-play (25,000
-nodes per move, no adjudication); see `validation/release-6.3.0/README.md`.
+Strength release on top of 6.2.0: three search changes, eleven new
+evaluation terms and a refit of the whole evaluation table, each measured
+in 1000-game fixed-node self-play (25,000 nodes per move, no
+adjudication); see `validation/release-6.3.0/README.md`.
 
 - Reductions: a node counts the fail highs at the next ply while it
   iterates its moves; after more than three, the remaining late moves are
@@ -30,6 +31,14 @@ nodes per move, no adjudication); see `validation/release-6.3.0/README.md`.
   node. A first version with a space term and a long-diagonal bishop term
   (both fitted to about zero, and 2 % slower) scored +3.8 +/- 13.9 and was
   dropped.
+- Evaluation: with the new terms in place, the whole parameter table was
+  refitted (`forge_texel`, 300 epochs, K = 2.85, lambda 0.5) on 688,237
+  quiet positions from 9,000 fixed-node games of this release's matches,
+  starting from the 6.0.0 fit: 556 of 625 parameters moved, by 7.5
+  centipawns on average. **+31.4 +/- 14.7 Elo per node** (LOS 100 %) over
+  1000 fixed-node games against the same engine with the previous table.
+  The 6.2.0 refit on 251k positions had been neutral; the difference is
+  the amount of data.
 - Evaluation: the enemy pawn attack span for the outpost test is a pawn
   fill instead of a per-pawn loop (same result, less work).
 - Tooling: `forge_texel --first-index I` fits only the parameters from
@@ -37,10 +46,16 @@ nodes per move, no adjudication); see `validation/release-6.3.0/README.md`.
   to have exactly one entry per `params::Index` (a missing line used to
   shift every following parameter silently).
 - Not adopted after testing (1000-game fixed-node matches each): one ply
-  less reduction for killer and counter moves (0.0 +/- 13.7) and the
+  less reduction for killer and counter moves (0.0 +/- 13.7), a reduction
+  refinement for PV-history nodes (-8.3 +/- 14.0), thinner reverse
+  futility margins when the opponent's last move lowered its evaluation
+  (+1.0 +/- 13.4), the quiescence rule that prunes captures which do not
+  win material when the stand-pat is below alpha (+1.7 +/- 13.7), and the
   further candidates listed in `validation/release-6.3.0/README.md`.
-- Strength: `bench` 13 signature 668,960 (6.2.0: 1,234,322). Time-control
-  confirmation against 6.2.0: see `validation/release-6.3.0/README.md`.
+- Strength: 6.3.0 beats 6.2.0 by **+55 +/- 26 Elo** (LOS 100 %) over 300
+  games at 3+0.03, one thread (133 / 86 / 81), at equal speed (1.009x the
+  node rate of 6.2.0 in interleaved `bench 15` runs). `bench` 13 signature
+  689,286 (6.2.0: 1,234,322). See `validation/release-6.3.0/README.md`.
 
 ## 6.2.0 - 2026-10-12
 
