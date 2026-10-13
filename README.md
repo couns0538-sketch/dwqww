@@ -1,6 +1,6 @@
 # Chess Engine Forge
 
-Chess Engine Forge 6.2.0 is a C++20 UCI chess engine. Version 6.0.0 rewrote
+Chess Engine Forge 6.3.0 is a C++20 UCI chess engine. Version 6.0.0 rewrote
 the move generator, search, and evaluation from the ground up for playing
 strength, replacing the conservative 5.x search. Version 6.1.0 added
 multi-threaded search (`Threads` option, Lazy SMP), a broader evaluation
@@ -8,6 +8,9 @@ correction history, capture futility pruning, and a faster default build and
 move picker. Version 6.2.0 adds quiet checks in quiescence search, a
 pawn-structure move-ordering history, history-aware futility pruning and
 capture reductions, and thread voting for the multi-threaded search.
+Version 6.3.0 adds cutoff-count reductions, quiescence move-count pruning,
+deeper and shallower re-searches after reductions, and eleven new
+evaluation terms fitted on self-play data.
 
 ## Strength
 
@@ -34,7 +37,10 @@ slightly positive at blitz time controls. The 6.2.0 search changes were
 each measured in 1000-game fixed-node self-play against 6.1.0 and then
 confirmed together at 3+0.03: **6.2.0 beats 6.1.0 by +17 +/- 22 Elo**
 (300 games, one thread, LOS 94 %). The records are in
-`validation/release-6.2.0/README.md`.
+`validation/release-6.2.0/README.md`. The 6.3.0 changes were measured the
+same way against 6.2.0 (three search changes at +12 to +13 Elo per node
+each and the evaluation terms at +9); the time-control confirmation is in
+`validation/release-6.3.0/README.md`.
 
 ## Features
 

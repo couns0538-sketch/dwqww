@@ -1,5 +1,47 @@
 # Changelog
 
+## 6.3.0 - 2026-10-13
+
+Strength release on top of 6.2.0: three search changes and eleven new
+evaluation terms, each measured in 1000-game fixed-node self-play (25,000
+nodes per move, no adjudication); see `validation/release-6.3.0/README.md`.
+
+- Reductions: a node counts the fail highs at the next ply while it
+  iterates its moves; after more than three, the remaining late moves are
+  reduced one ply more (two in nodes that are neither PV nor cut nodes).
+  +12.5 +/- 14.0 Elo per node (+13.6 +/- 13.8 in an earlier, unpublished
+  measurement); 42 % fewer nodes per depth at `bench` 13.
+- Quiescence: once two captures have been searched, only recaptures,
+  checks and promotions are tried; in check, at most two quiet evasions
+  are searched once a non-losing evasion is known. +12.5 +/- 15.1 Elo per
+  node (the Stockfish variant that also exempts recaptures from futility
+  pruning scored +11.1 +/- 13.7).
+- Reductions: when a reduced late move scores above alpha, the full-depth
+  re-search goes one ply deeper if the score beat the best move by more
+  than 50 + 2 x depth, and one ply shallower if it barely cleared alpha
+  (which can make the re-search unnecessary). +11.8 +/- 14.5 Elo per node.
+- Evaluation: knight and rook values adjusted by the own pawn count,
+  isolated or backward pawns on half-open files, passed pawns by file,
+  own and enemy rooks behind a passed pawn, a rook trapped beside its own
+  king, and a king on a pawnless flank. The eleven terms were appended to
+  the parameter table and fitted alone (`forge_texel --first-index 614`)
+  on 386,943 quiet positions from 5,000 fixed-node games of this release's
+  matches; the rest of the table is the 6.0.0 fit. +9.0 +/- 14.5 Elo per
+  node. A first version with a space term and a long-diagonal bishop term
+  (both fitted to about zero, and 2 % slower) scored +3.8 +/- 13.9 and was
+  dropped.
+- Evaluation: the enemy pawn attack span for the outpost test is a pawn
+  fill instead of a per-pawn loop (same result, less work).
+- Tooling: `forge_texel --first-index I` fits only the parameters from
+  index `I` on; the generated parameter table is checked at compile time
+  to have exactly one entry per `params::Index` (a missing line used to
+  shift every following parameter silently).
+- Not adopted after testing (1000-game fixed-node matches each): one ply
+  less reduction for killer and counter moves (0.0 +/- 13.7) and the
+  further candidates listed in `validation/release-6.3.0/README.md`.
+- Strength: `bench` 13 signature 668,960 (6.2.0: 1,234,322). Time-control
+  confirmation against 6.2.0: see `validation/release-6.3.0/README.md`.
+
 ## 6.2.0 - 2026-10-12
 
 Strength release on top of 6.1.0: quiescence checks, a pawn-structure

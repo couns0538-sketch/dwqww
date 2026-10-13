@@ -1,3 +1,28 @@
+# Release state — Chess Engine Forge 6.3.0
+
+Status: **strength release on top of 6.2.0; search refinements and new evaluation terms**.
+
+Changes relative to 6.2.0 (see `CHANGELOG.md`): cutoff-count late move
+reductions; quiescence move-count pruning (captures after the second, quiet
+evasions after the second); deeper or shallower re-search after a reduced
+move beats alpha; eleven new evaluation terms (pawn-count adjustments for
+knights and rooks, weak unopposed pawns, passed pawns by file, rooks behind
+passers, trapped rook, pawnless flank) fitted on 387k self-play positions;
+`forge_texel --first-index`; compile-time size check of the parameter
+table. Match records live in `validation/release-6.3.0/`.
+
+Validation performed: GCC 13.3 Release with strict warnings as errors, 4/4
+CTest suites; each search and evaluation change measured on its own in
+1000-game fixed-node self-play (25,000 nodes per move, no adjudication)
+against the tree it was added to; the adopted set confirmed together at
+time control against 6.2.0 (see the validation README for the figure);
+further candidates tested the same way and not adopted.
+
+Not done for this release: opening book, tablebases, Windows runtime testing,
+multi-threaded measurements (the threading code is unchanged).
+
+---
+
 # Release state — Chess Engine Forge 6.2.0
 
 Status: **strength release on top of 6.1.0; search refinements and thread voting**.
