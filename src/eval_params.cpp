@@ -1,15 +1,27 @@
 #include "forge/eval_params.hpp"
 
+#include <iterator>
 #include <string>
 
 namespace forge::params {
 namespace {
 
 // The flat parameter table lives in a generated include so the Texel tuner
-// (tools/tune) can rewrite it wholesale.
-constexpr Table Defaults{{
+// (tools/tune) can rewrite it wholesale. A missing or extra line would
+// silently shift every parameter that follows it, hence the size check.
+constexpr Score Generated[] = {
 #include "eval_params_table.inc"
-}};
+};
+static_assert(std::size(Generated) == static_cast<std::size_t>(Count),
+              "eval_params_table.inc must have exactly one entry per params::Index");
+
+constexpr Table make_defaults() {
+    Table result{};
+    for (std::size_t i = 0; i < result.size(); ++i) result[i] = Generated[i];
+    return result;
+}
+
+constexpr Table Defaults = make_defaults();
 
 } // namespace
 
@@ -59,8 +71,16 @@ const char* name(int index) {
     case HangingPiece: return "HangingPiece";
     case RestrictedPiece: return "RestrictedPiece";
     case KingFileOpen: return "KingFileOpen";
+    case KnightPawnAdjust: return "KnightPawnAdjust";
+    case RookPawnAdjust: return "RookPawnAdjust";
+    case PawnWeakUnopposed: return "PawnWeakUnopposed";
+    case PassedRookBehind: return "PassedRookBehind";
+    case PassedEnemyRookBehind: return "PassedEnemyRookBehind";
+    case TrappedRook: return "TrappedRook";
+    case PawnlessFlank: return "PawnlessFlank";
     default: break;
     }
+    if (index >= PassedFile && index < PassedFile + 4) return indexed("PassedFile", PassedFile);
     if (index >= PawnConnected && index < PawnConnected + 8) return indexed("PawnConnected", PawnConnected);
     if (index >= PassedRank && index < PassedRank + 8) return indexed("PassedRank", PassedRank);
     if (index >= ThreatByMinor && index < ThreatByMinor + 7) return indexed("ThreatByMinor", ThreatByMinor);

@@ -47,7 +47,15 @@ enum Index : int {
     StormDistance = ShelterDistance + 4,   // 4: unused, then rank distance 1..3
     KingFileOpen = StormDistance + 4,
     KingDanger,                            // 100, by attack units
-    Count = KingDanger + 100
+    KnightPawnAdjust = KingDanger + 100,   // per knight, times (own pawns - 4)
+    RookPawnAdjust,                        // per rook, times (own pawns - 4)
+    PawnWeakUnopposed,                     // isolated or backward pawn with no enemy pawn ahead on its file
+    PassedFile,                            // 4, by distance of the file from the edge
+    PassedRookBehind = PassedFile + 4,     // own rook behind the passed pawn
+    PassedEnemyRookBehind,                 // enemy rook behind the passed pawn
+    TrappedRook,                           // rook boxed in by its own king (doubled without castling rights)
+    PawnlessFlank,                         // king on a flank without any pawns
+    Count = PawnlessFlank + 1
 };
 
 using Table = std::array<Score, Count>;

@@ -60,14 +60,21 @@ void evaluate_pawn_structure(const Board& board, Accumulator<Trace>& acc, Bitboa
         const int stop = square + pawn_push_delta(Us);
 
         if ((own & forward) != 0) acc.template add<Us>(PawnDoubled);
+        bool weak = false;
         if (neighbours == 0) {
             acc.template add<Us>(PawnIsolated);
+            weak = true;
         } else if (supported == 0 && phalanx == 0) {
             // Backward: no pawn can ever support it and its stop square is
             // controlled by an enemy pawn.
             const Bitboard behind_or_level = ~attacks::forward_ranks(Us, square) & adjacent & own;
-            if (behind_or_level == 0 && (enemy_attacks & square_bb(stop)) != 0) acc.template add<Us>(PawnBackward);
+            if (behind_or_level == 0 && (enemy_attacks & square_bb(stop)) != 0) {
+                acc.template add<Us>(PawnBackward);
+                weak = true;
+            }
         }
+        // A weak pawn on a half-open file is a target for the enemy rooks.
+        if (weak && (enemy & forward) == 0) acc.template add<Us>(PawnWeakUnopposed);
         if (supported != 0 || phalanx != 0) {
             acc.template add<Us>(PawnConnected + rank);
             if (phalanx != 0) acc.template add<Us>(PawnPhalanx);
@@ -154,6 +161,13 @@ void evaluate_pieces(const Board& board, Accumulator<Trace>& acc, EvalInfo& info
                 const int file = file_of(square);
                 if ((own_pawns & file_bb(file)) == 0) {
                     acc.template add<Us>((enemy_pawns & file_bb(file)) == 0 ? RookOpenFile : RookSemiOpenFile);
+                } else if (mobility <= 3) {
+                    // Boxed in beside its own king, worse still without castling rights.
+                    const int king_file = file_of(info.king_square[Us]);
+                    if ((king_file < 4) == (file < king_file)) {
+                        const unsigned rights = board.castling_rights() & (Us == White ? 3U : 12U);
+                        acc.template add<Us>(TrappedRook, 1 + (rights == 0));
+                    }
                 }
                 if (relative_rank(Us, square) == 6) {
                     const int enemy_king_rank = relative_rank(Us, info.king_square[Them]);
@@ -198,6 +212,14 @@ void evaluate_king(const Board& board, Accumulator<Trace>& acc, const EvalInfo& 
             if (distance <= 3) shelter_term(StormDistance + std::max(1, distance));
         }
         if (((own_pawns | enemy_pawns) & file_bb(file)) == 0) shelter_term(KingFileOpen);
+    }
+    // A king on a flank without pawns has nothing to hide behind and the
+    // other side's pieces have free play there.
+    {
+        constexpr Bitboard CenterFiles = FileCBB | FileDBB | FileEBB | FileFBB;
+        const Bitboard flank = king_file == 0 ? (QueenSide ^ FileDBB) : king_file <= 2 ? QueenSide
+                               : king_file <= 4 ? CenterFiles : king_file <= 6 ? KingSide : (KingSide ^ FileEBB);
+        if (((own_pawns | enemy_pawns) & flank) == 0) acc.template add<Us>(PawnlessFlank);
     }
 
     // King danger from pieces attacking the zone; requires two attackers
@@ -278,6 +300,11 @@ void evaluate_passed(const Board& board, Accumulator<Trace>& acc, const EvalInfo
         const int square = pop_lsb(passed);
         const int rank = relative_rank(Us, square);
         acc.template add<Us>(PassedRank + rank);
+        acc.template add<Us>(PassedFile + std::min(file_of(square), 7 - file_of(square)));
+        // Rooks behind the pawn on an otherwise empty file.
+        const Bitboard behind = attacks::rook(square, occupied) & attacks::forward_file(Them, square);
+        if ((behind & board.pieces(Us, Rook)) != 0) acc.template add<Us>(PassedRookBehind);
+        if ((behind & board.pieces(Them, Rook)) != 0) acc.template add<Us>(PassedEnemyRookBehind);
         const int scale = PassedKingProximityScale[static_cast<std::size_t>(rank)];
         if (scale == 0) continue;
         const int stop = square + pawn_push_delta(Us);
@@ -398,6 +425,14 @@ int evaluate_position(const Board& board, Evaluator::PawnEntry* cache, EvalTrace
     if (popcount(board.pieces(Black, Bishop)) >= 2) acc.template add<Black>(BishopPair);
     if (board.side_to_move() == White) acc.template add<White>(Tempo);
     else acc.template add<Black>(Tempo);
+
+    // Knights like closed, pawn-rich positions; rooks want open ones.
+    const Bitboard white_pawns = board.pieces(White, Pawn);
+    const Bitboard black_pawns = board.pieces(Black, Pawn);
+    acc.template add<White>(KnightPawnAdjust, popcount(board.pieces(White, Knight)) * (popcount(white_pawns) - 4));
+    acc.template add<Black>(KnightPawnAdjust, popcount(board.pieces(Black, Knight)) * (popcount(black_pawns) - 4));
+    acc.template add<White>(RookPawnAdjust, popcount(board.pieces(White, Rook)) * (popcount(white_pawns) - 4));
+    acc.template add<Black>(RookPawnAdjust, popcount(board.pieces(Black, Rook)) * (popcount(black_pawns) - 4));
 
     const int mg = mg_value(acc.score);
     int eg = eg_value(acc.score);
