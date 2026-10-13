@@ -168,6 +168,8 @@ extern int TmStableFactor;        // x0.01 soft scale after 6 stable iterations
 extern int TmSemiStableFactor;    // x0.01 soft scale after 3 stable iterations
 extern int TmUnstableFactor;      // x0.01 soft scale when the best move just changed
 extern int TmEffortBase;          // x0.01: factor *= clamp(base - effort, 0.6, 1.4)
+extern int TmFallingEvalPercent;  // extra percent of soft time per 100 cp of score drop since the previous iteration
+extern int TmMinFactorPercent;    // lower bound of the combined soft-limit factor (x0.01)
 [[nodiscard]] const std::vector<Parameter>& parameters();
 // Call after changing LMR parameters.
 void refresh();

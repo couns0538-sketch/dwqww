@@ -55,6 +55,8 @@ int TmStableFactor = 60;
 int TmSemiStableFactor = 80;
 int TmUnstableFactor = 140;
 int TmEffortBase = 155;
+int TmFallingEvalPercent = 100;
+int TmMinFactorPercent = 45;
 
 const std::vector<Parameter>& parameters() {
     static const std::vector<Parameter> table{
@@ -87,6 +89,7 @@ const std::vector<Parameter>& parameters() {
         {"TmHardPercent", &TmHardPercent, 10, 95},           {"TmHardSoftMultiple", &TmHardSoftMultiple, 1, 20},
         {"TmStableFactor", &TmStableFactor, 20, 150},        {"TmSemiStableFactor", &TmSemiStableFactor, 20, 150},
         {"TmUnstableFactor", &TmUnstableFactor, 50, 300},    {"TmEffortBase", &TmEffortBase, 100, 250},
+        {"TmFallingEvalPercent", &TmFallingEvalPercent, 0, 400}, {"TmMinFactorPercent", &TmMinFactorPercent, 10, 100},
     };
     return table;
 }
@@ -1192,6 +1195,7 @@ SearchInfo Worker::search(Board board, const SearchLimits& limits, bool emit_inf
     Move previous_best = Move::none();
     int stable_iterations = 0;
     int score = 0;
+    int previous_score = ValueNone;
     root_move_nodes_.fill(0);
     root_best_index_ = -1;
     for (int depth = 1; depth <= max_depth; ++depth) {
@@ -1243,6 +1247,8 @@ SearchInfo Worker::search(Board board, const SearchLimits& limits, bool emit_inf
         if (result.best_move == previous_best) ++stable_iterations;
         else stable_iterations = 0;
         previous_best = result.best_move;
+        const int iteration_previous_score = previous_score;
+        previous_score = score;
 
         if (mate_moves > 0 && is_mate_score(score) && MateValue - std::abs(score) <= mate_depth) break;
         if (should_stop()) break;
@@ -1259,6 +1265,12 @@ SearchInfo Worker::search(Board board, const SearchLimits& limits, bool emit_inf
                                       static_cast<double>(local_nodes_);
                 factor *= std::clamp(tune::TmEffortBase / 100.0 - effort, 0.6, 1.4);
             }
+            // A falling evaluation deserves more thought.
+            if (iteration_previous_score != ValueNone && !is_mate_score(score) && score < iteration_previous_score) {
+                const int drop = std::min(iteration_previous_score - score, 150);
+                factor *= 1.0 + drop * tune::TmFallingEvalPercent / 10000.0;
+            }
+            factor = std::max(factor, tune::TmMinFactorPercent / 100.0);
             if (elapsed_ms() >= static_cast<std::int64_t>(static_cast<double>(soft_limit_ms_) * factor)) break;
         }
     }
