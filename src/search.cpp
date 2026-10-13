@@ -379,6 +379,8 @@ private:
     std::size_t bad_count_ = 0;
     std::size_t bad_index_ = 0;
     MoveList buffer_;
+    std::size_t list_start_ = 0;
+    bool sorted_ = false;
     std::array<Bitboard, 7> check_squares_{};
 
     [[nodiscard]] bool direct_check(Move move) const {
@@ -393,12 +395,28 @@ private:
                board_.is_pseudo_legal(move);
     }
 
-    // Lists are sorted once when generated, so picking is sequential.
-    [[nodiscard]] Move pick_best() { return moves_[index_++].move; }
+    // Most nodes need only the first few moves: select those on demand and
+    // sort the remainder once if the search gets that far.
+    [[nodiscard]] Move pick_best() {
+        if (!sorted_) {
+            if (index_ - list_start_ < 4) {
+                std::size_t best = index_;
+                for (std::size_t i = index_ + 1; i < count_; ++i) {
+                    if (moves_[i].score > moves_[best].score) best = i;
+                }
+                std::swap(moves_[index_], moves_[best]);
+            } else {
+                std::sort(moves_.begin() + static_cast<std::ptrdiff_t>(index_), moves_.begin() + static_cast<std::ptrdiff_t>(count_),
+                          [](const Scored& a, const Scored& b) { return a.score > b.score; });
+                sorted_ = true;
+            }
+        }
+        return moves_[index_++].move;
+    }
 
     void sort_moves() {
-        std::sort(moves_.begin(), moves_.begin() + static_cast<std::ptrdiff_t>(count_),
-                  [](const Scored& a, const Scored& b) { return a.score > b.score; });
+        list_start_ = index_;
+        sorted_ = false;
     }
 
     void generate_captures() {
