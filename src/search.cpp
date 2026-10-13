@@ -998,7 +998,7 @@ int Searcher::search(Board& board, SearchStack* ss, int depth, int alpha, int be
             }
         }
         if (extension <= 0) ss->double_extensions = (ss - 1)->double_extensions;
-        const int new_depth = depth - 1 + extension;
+        int new_depth = depth - 1 + extension;
 
         ss->current_move = move;
         ss->moved_piece = moved;
@@ -1024,10 +1024,14 @@ int Searcher::search(Board& board, SearchStack* ss, int depth, int alpha, int be
             r -= quiet ? std::clamp(history / 6000, -2, 2) : std::clamp(history / 8000, -1, 1);
             const int reduced_depth = std::clamp(new_depth - r, 1, new_depth);
             score = -search(board, ss + 1, reduced_depth, -alpha - 1, -alpha, true);
-            full_depth_needed = score > alpha && reduced_depth < new_depth;
-            if (full_depth_needed) {
-                score = -search(board, ss + 1, new_depth, -alpha - 1, -alpha, !cut_node);
-                full_depth_needed = false;
+            full_depth_needed = false;
+            if (score > alpha && reduced_depth < new_depth) {
+                // A reduced search that beat the best move by a wide margin
+                // deserves a deeper look; one that barely cleared alpha does not.
+                const bool deeper = score > best_score + 50 + 2 * new_depth;
+                const bool shallower = score < best_score + new_depth;
+                new_depth += (deeper ? 1 : 0) - (shallower ? 1 : 0);
+                if (new_depth > reduced_depth) score = -search(board, ss + 1, new_depth, -alpha - 1, -alpha, !cut_node);
             }
             if (!aborted_ && quiet && score > alpha) {
                 // A late quiet move that beat expectations deserves a history boost.
