@@ -7,8 +7,12 @@
 //
 // Usage:
 //   forge_texel positions.txt [--epochs N] [--lr X] [--lambda L] [--threads T]
-//               [--min-count C] [--decay-every D] [--reg R] [--rarity F] [--out table.inc]
+//               [--min-count C] [--decay-every D] [--reg R] [--rarity F] [--first-index I]
+//               [--out table.inc]
 //   forge_texel --dump table.inc      (write the current parameters)
+//
+// --first-index I keeps parameters 0..I-1 at their current values and fits
+// only the parameters from index I on (used to fit newly added terms).
 #include "forge/board.hpp"
 #include "forge/eval_params.hpp"
 
@@ -70,6 +74,7 @@ int main(int argc, char** argv) {
     int decay_every = 150;
     double regularization = 1e-8;
     double rarity_fraction = 0.005;
+    int first_index = 0;
     for (int i = 1; i < argc; ++i) {
         const std::string arg = argv[i];
         auto next = [&]() -> std::string { return i + 1 < argc ? argv[++i] : ""; };
@@ -81,6 +86,7 @@ int main(int argc, char** argv) {
         else if (arg == "--decay-every") decay_every = std::stoi(next());
         else if (arg == "--reg") regularization = std::stod(next());
         else if (arg == "--rarity") rarity_fraction = std::stod(next());
+        else if (arg == "--first-index") first_index = std::stoi(next());
         else if (arg == "--out") output_path = next();
         else if (arg == "--dump") dump_path = next();
         else input_path = arg;
@@ -231,7 +237,7 @@ int main(int argc, char** argv) {
         for (const double l : losses) loss += l;
         loss /= static_cast<double>(samples.size());
         const double scale = 1.0 / static_cast<double>(samples.size());
-        for (std::size_t i = 0; i < n; ++i) {
+        for (std::size_t i = static_cast<std::size_t>(std::max(0, first_index)); i < n; ++i) {
             if (usage[i] < static_cast<std::uint32_t>(min_count)) continue;
             double g_mg = 0.0;
             double g_eg = 0.0;
