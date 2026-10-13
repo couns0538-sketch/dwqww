@@ -57,6 +57,10 @@ int TmUnstableFactor = 140;
 int TmEffortBase = 155;
 int TmFallingEvalPercent = 100;
 int TmMinFactorPercent = 45;
+int CaptureFutilityBase = 0;
+int CaptureFutilityMultiplier = 250;
+int CaptureFutilityDepth = 6;
+int FailLowContinuationBonus = 0;
 
 const std::vector<Parameter>& parameters() {
     static const std::vector<Parameter> table{
@@ -90,6 +94,8 @@ const std::vector<Parameter>& parameters() {
         {"TmStableFactor", &TmStableFactor, 20, 150},        {"TmSemiStableFactor", &TmSemiStableFactor, 20, 150},
         {"TmUnstableFactor", &TmUnstableFactor, 50, 300},    {"TmEffortBase", &TmEffortBase, 100, 250},
         {"TmFallingEvalPercent", &TmFallingEvalPercent, 0, 400}, {"TmMinFactorPercent", &TmMinFactorPercent, 10, 100},
+        {"CaptureFutilityBase", &CaptureFutilityBase, 0, 1000},  {"CaptureFutilityMultiplier", &CaptureFutilityMultiplier, 0, 1000},
+        {"CaptureFutilityDepth", &CaptureFutilityDepth, 0, 15},  {"FailLowContinuationBonus", &FailLowContinuationBonus, 0, 300},
     };
     return table;
 }
@@ -952,8 +958,16 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
                 }
                 if (lmr_depth <= tune::HistoryPruneDepth && history < -tune::HistoryPruneMultiplier * depth) continue;
                 if (!board.see_ge(move, -tune::SeeQuietMultiplier * lmr_depth * lmr_depth)) continue;
-            } else if (!board.see_ge(move, -tune::SeeNoisyMultiplier * depth)) {
-                continue;
+            } else {
+                // Futility pruning for captures: even winning the piece cannot
+                // bring the position back to alpha.
+                if (tune::CaptureFutilityBase > 0 && capture && !in_check && !gives_check &&
+                    lmr_depth <= tune::CaptureFutilityDepth &&
+                    ss->static_eval + tune::CaptureFutilityBase + tune::CaptureFutilityMultiplier * lmr_depth +
+                            capture_value(board, move) + history / 8 <= alpha) {
+                    continue;
+                }
+                if (!board.see_ge(move, -tune::SeeNoisyMultiplier * depth)) continue;
             }
         }
 
@@ -1066,6 +1080,11 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
         // Even without a cutoff, a new PV move earned its place.
         apply_history((*main_history_)[static_cast<std::size_t>(board.side_to_move())][best_move.from][best_move.to],
                       history_bonus(depth) / 4);
+    } else if (tune::FailLowContinuationBonus > 0 && best_move.is_none() && !(ss - 1)->current_move.is_none() &&
+               (ss - 1)->moved_piece != Empty && !(ss - 1)->current_move.is_capture() && ply > 0) {
+        // Every move failed low: the parent's quiet move refuted this line.
+        update_continuation(ss - 1, (ss - 1)->moved_piece, (ss - 1)->current_move.to,
+                            history_bonus(depth) * tune::FailLowContinuationBonus / 100);
     }
 
     const Bound bound = best_score >= beta ? BoundLower : (pv_node && !best_move.is_none() ? BoundExact : BoundUpper);

@@ -170,6 +170,10 @@ extern int TmUnstableFactor;      // x0.01 soft scale when the best move just ch
 extern int TmEffortBase;          // x0.01: factor *= clamp(base - effort, 0.6, 1.4)
 extern int TmFallingEvalPercent;  // extra percent of soft time per 100 cp of score drop since the previous iteration
 extern int TmMinFactorPercent;    // lower bound of the combined soft-limit factor (x0.01)
+extern int CaptureFutilityBase;   // futility pruning of captures: base margin (0 = off)
+extern int CaptureFutilityMultiplier;
+extern int CaptureFutilityDepth;
+extern int FailLowContinuationBonus; // x0.01 of the history bonus given to the parent move on fail low (0 = off)
 [[nodiscard]] const std::vector<Parameter>& parameters();
 // Call after changing LMR parameters.
 void refresh();
