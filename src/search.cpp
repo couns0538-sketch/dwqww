@@ -712,16 +712,24 @@ int Searcher::qsearch(Board& board, SearchStack* ss, int alpha, int beta, int de
                       depth >= 0 ? MovePicker::Mode::QuiescenceChecks : MovePicker::Mode::Quiescence);
     Move best_move = Move::none();
     int move_count = 0;
+    int quiet_evasions = 0;
+    const Move previous_move = (ss - 1)->current_move;
     Move move;
     while (!(move = picker.next(false)).is_none()) {
         if (!board.is_legal(move)) continue;
         ++move_count;
         const bool gives_check = board.gives_check(move);
+        // Once a non-losing evasion is known, at most two quiet evasions are tried.
+        if (in_check && best_score > -MateInMaxPly && quiet_evasions > 1) break;
         if (!in_check && best_score > -MateInMaxPly) {
-            // Futility: even winning the captured piece cannot raise alpha.
-            if (!gives_check && !move.is_promotion() && futility_base + capture_value(board, move) <= alpha) {
-                best_score = std::max(best_score, futility_base + capture_value(board, move));
-                continue;
+            if (!gives_check && !move.is_promotion()) {
+                // After two captures only recaptures, checks and promotions remain.
+                if (move_count > 2 && !(move.to == previous_move.to && !previous_move.is_none())) continue;
+                // Futility: even winning the captured piece cannot raise alpha.
+                if (futility_base + capture_value(board, move) <= alpha) {
+                    best_score = std::max(best_score, futility_base + capture_value(board, move));
+                    continue;
+                }
             }
             // A quiet check whose continuation histories are both negative
             // has not been worth following before.
@@ -735,6 +743,7 @@ int Searcher::qsearch(Board& board, SearchStack* ss, int alpha, int beta, int de
             }
             if (!board.see_ge(move, -40)) continue;
         }
+        if (in_check && !move.is_capture()) ++quiet_evasions;
         ss->current_move = move;
         ss->moved_piece = board.moved_piece(move);
         ss->continuation = &(*continuation_history_)[static_cast<std::size_t>(ss->moved_piece)][move.to];
