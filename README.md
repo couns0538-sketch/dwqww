@@ -39,9 +39,9 @@ confirmed together at 3+0.03: **6.2.0 beats 6.1.0 by +17 +/- 22 Elo**
 (300 games, one thread, LOS 94 %). The records are in
 `validation/release-6.2.0/README.md`. The 6.3.0 changes were measured the
 same way (three search changes at +12 to +13 Elo per node each, the new
-evaluation terms at +9 and the evaluation refit at +31) and confirmed
-together at 3+0.03: **6.3.0 beats 6.2.0 by +55 +/- 26 Elo** (300 games,
-one thread, LOS 100 %). The records are in
+evaluation terms at +9 and the evaluation refits at +31 and +14) and
+confirmed together at 3+0.03: **6.3.0 beats 6.2.0 by +55 +/- 26 Elo** (300
+games, one thread, LOS 100 %, before the second refit). The records are in
 `validation/release-6.3.0/README.md`.
 
 ## Features

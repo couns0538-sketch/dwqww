@@ -26,16 +26,19 @@ the order below; the adopted ones were then kept for the next test.
 | Eleven new evaluation terms, fitted alone on 387k match positions (vs the three above) | 398 / 372 / 230 | 51.3 % | **+9.0 +/- 14.5** (LOS 89 %) | adopted |
 | Thirteen new evaluation terms incl. space and long-diagonal bishop, fitted on 230k positions (vs the three search changes) | 370 / 359 / 271 | 50.55 % | +3.8 +/- 13.9 (LOS 71 %) | dropped (the two extra terms fitted to about zero and cost 2 % speed) |
 | Whole evaluation table refitted on 688k positions from the matches above (vs the four adopted changes) | 428 / 338 / 234 | 54.5 % | **+31.4 +/- 14.7** (LOS 100 %) | adopted |
+| Second refit round on 913k positions (12,000 games), vs the first refit | 398 / 359 / 243 | 51.95 % | **+13.6 +/- 13.3** (LOS 98 %) | adopted |
 | One ply less reduction for killer and counter moves | 367 / 367 / 266 | 50.0 % | 0.0 +/- 13.7 | dropped |
 | Reduction refinement for PV-history nodes (one ply less when the hash score beats alpha, another when it beats beta at full depth) | 334 / 358 / 308 | 48.8 % | -8.3 +/- 14.0 | dropped |
 | Reverse futility: margin 24 thinner when the opponent's last move lowered its own evaluation, multiplier 56 instead of 72 in cut nodes without a hash entry | 1000 games | 50.15 % | +1.0 +/- 13.4 | dropped |
 | Quiescence: prune captures that do not win material (SEE < 1) when the stand-pat is below alpha | 1000 games | 50.25 % | +1.7 +/- 13.7 | dropped |
+| Futility-pruned quiet moves count as their futility value for the node's score | 1000 games | 49.65 % | -2.4 +/- 14.3 | dropped |
+| Null move reduction 4 + depth / 3 instead of 3 + depth / 3 | 368 / 381 / 251 | 49.35 % | -4.5 +/- 14.3 | dropped |
 
 ## Single-thread aggregate result
 
 | Match | TC | Games | W / L / D | Score | Elo |
 | --- | --- | --- | --- | --- | --- |
-| 6.3.0 (all adopted changes) vs 6.2.0 | 3+0.03, Hash 32, three games at a time | 300 | 133 / 86 / 81 | 57.8 % | **+55 +/- 26** (LOS 100 %) |
+| 6.3.0 with the first refit (all search changes, new terms, first refit) vs 6.2.0 | 3+0.03, Hash 32, three games at a time | 300 | 133 / 86 / 81 | 57.8 % | **+55 +/- 26** (LOS 100 %) |
 
 Pair outcomes (loss-loss, loss-draw, draw-draw or win-loss, win-draw,
 win-win): 6 / 10 / 81 / 37 / 16. The per-node component results add up to
@@ -43,7 +46,9 @@ about +75 Elo (the Elo scale is not additive and the components were
 measured at 25,000 nodes against moving references), so a time-control
 figure of this size is consistent with them; it is also the largest
 single-release gain of the 6.x series (6.2.0 vs 6.1.0 was +17 +/- 22 under
-the same conditions), almost all of it from the evaluation refit.
+the same conditions), almost all of it from the evaluation refit. The
+second refit round (+13.6 per node, table above) was adopted after this
+match; it changes only the parameter values.
 
 The W / L / D figures are from the `new` side's point of view. The first
 two adopted changes were also measured by an earlier run of this
@@ -75,7 +80,11 @@ were pawn PSQT entries (up to 24 centipawns), the rank-7 passed pawn
 endgame value (74 to 40), the bishop pair (11, 62 to 24, 73) and the
 pawnless-flank term (8, -29 to 18, -45). This refit scored +31.4 +/- 14.7
 per node where the 6.2.0 refit on 251k positions had scored +2.8: the
-difference is the amount of data. The table header records the source.
+difference is the amount of data. A second round, continuing from that
+table with the positions of three more matches (12,000 games, 912,741
+positions; 540 parameters moved by 4.4 centipawns on average), scored
++13.6 +/- 13.3 against the first and is the shipped table. The table
+header records the source.
 
 ## Speed
 
@@ -95,8 +104,8 @@ too small to measure on its own.
   -Werror`.
 - `bench` 13 signatures along the way: 6.2.0 1,234,322; cutoff-count
   reductions 720,188; quiescence move-count pruning 741,614; deeper /
-  shallower re-search 670,847; evaluation terms 668,960; refitted table
-  689,286 (the pawn attack span fill and the zero-valued term code left
-  the signature unchanged).
+  shallower re-search 670,847; evaluation terms 668,960; first refit
+  689,286; second refit 614,411 (the pawn attack span fill and the
+  zero-valued term code left the signature unchanged).
 - The generated evaluation table is checked at compile time to have one
   entry per parameter index.

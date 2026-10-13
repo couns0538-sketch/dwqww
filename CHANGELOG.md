@@ -38,7 +38,8 @@ adjudication); see `validation/release-6.3.0/README.md`.
   centipawns on average. **+31.4 +/- 14.7 Elo per node** (LOS 100 %) over
   1000 fixed-node games against the same engine with the previous table.
   The 6.2.0 refit on 251k positions had been neutral; the difference is
-  the amount of data.
+  the amount of data. A second round on 912,741 positions (12,000 games)
+  added **+13.6 +/- 13.3 Elo per node** (LOS 98 %) over the first.
 - Evaluation: the enemy pawn attack span for the outpost test is a pawn
   fill instead of a per-pawn loop (same result, less work).
 - Tooling: `forge_texel --first-index I` fits only the parameters from
@@ -52,10 +53,12 @@ adjudication); see `validation/release-6.3.0/README.md`.
   (+1.0 +/- 13.4), the quiescence rule that prunes captures which do not
   win material when the stand-pat is below alpha (+1.7 +/- 13.7), and the
   further candidates listed in `validation/release-6.3.0/README.md`.
-- Strength: 6.3.0 beats 6.2.0 by **+55 +/- 26 Elo** (LOS 100 %) over 300
-  games at 3+0.03, one thread (133 / 86 / 81), at equal speed (1.009x the
-  node rate of 6.2.0 in interleaved `bench 15` runs). `bench` 13 signature
-  689,286 (6.2.0: 1,234,322). See `validation/release-6.3.0/README.md`.
+- Strength: the build with the first refit beats 6.2.0 by **+55 +/- 26
+  Elo** (LOS 100 %) over 300 games at 3+0.03, one thread (133 / 86 / 81),
+  at equal speed (1.009x the node rate of 6.2.0 in interleaved `bench 15`
+  runs); the second refit adds its +13.6 per node on top. `bench` 13
+  signature 614,411 (6.2.0: 1,234,322). See
+  `validation/release-6.3.0/README.md`.
 
 ## 6.2.0 - 2026-10-12
 
