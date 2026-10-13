@@ -45,6 +45,16 @@ int HistoryBonusLinear = 48;
 int HistoryBonusMax = 1536;
 int LmrHistoryDivisor = 6000;
 int CheckExtensionDepth = 2;
+int LmrCutoffThreshold = 0;
+int MaterialCorrectionWeight = 0;
+int TmSoftDivisor = 22;
+int TmIncrementPercent = 75;
+int TmHardPercent = 60;
+int TmHardSoftMultiple = 5;
+int TmStableFactor = 60;
+int TmSemiStableFactor = 80;
+int TmUnstableFactor = 140;
+int TmEffortBase = 155;
 
 const std::vector<Parameter>& parameters() {
     static const std::vector<Parameter> table{
@@ -71,6 +81,12 @@ const std::vector<Parameter>& parameters() {
         {"HistoryBonusMax", &HistoryBonusMax, 100, 10000},
         {"LmrHistoryDivisor", &LmrHistoryDivisor, 1000, 30000},
         {"CheckExtensionDepth", &CheckExtensionDepth, 1, 30},
+        {"LmrCutoffThreshold", &LmrCutoffThreshold, 0, 20},
+        {"MaterialCorrectionWeight", &MaterialCorrectionWeight, 0, 300},
+        {"TmSoftDivisor", &TmSoftDivisor, 5, 80},            {"TmIncrementPercent", &TmIncrementPercent, 0, 150},
+        {"TmHardPercent", &TmHardPercent, 10, 95},           {"TmHardSoftMultiple", &TmHardSoftMultiple, 1, 20},
+        {"TmStableFactor", &TmStableFactor, 20, 150},        {"TmSemiStableFactor", &TmSemiStableFactor, 20, 150},
+        {"TmUnstableFactor", &TmUnstableFactor, 50, 300},    {"TmEffortBase", &TmEffortBase, 100, 250},
     };
     return table;
 }
@@ -438,7 +454,8 @@ Worker::Worker(SharedSearchState& shared, int id)
       capture_history_(std::make_unique<CaptureHistory>()),
       continuation_history_(std::make_unique<ContinuationHistory>()),
       counter_moves_(std::make_unique<CounterMoveTable>()),
-      correction_history_(std::make_unique<CorrectionHistory>()) {
+      correction_history_(std::make_unique<CorrectionHistory>()),
+      material_correction_(std::make_unique<CorrectionHistory>()) {
     clear();
 }
 
@@ -451,8 +468,22 @@ void Worker::clear() {
     *continuation_history_ = ContinuationHistory{};
     *counter_moves_ = CounterMoveTable{};
     *correction_history_ = CorrectionHistory{};
+    *material_correction_ = CorrectionHistory{};
     for (SearchStack& ss : stack_) ss = SearchStack{};
 }
+
+namespace {
+// Hash of the piece counts of both sides, for material-indexed statistics.
+[[nodiscard]] std::uint64_t material_key(const Board& board) {
+    std::uint64_t key = 0;
+    for (const Color color : {White, Black}) {
+        for (int type = Pawn; type <= Queen; ++type) {
+            key = key * 1099511628211ULL + static_cast<std::uint64_t>(popcount(board.pieces(color, static_cast<PieceType>(type))) + 1);
+        }
+    }
+    return key * 0x9E3779B97F4A7C15ULL;
+}
+} // namespace
 
 int Worker::static_evaluate(const Board& board, SearchStack* ss) {
     if (!nnue::enabled || !nnue::available()) return evaluator_.evaluate(board);
@@ -478,17 +509,23 @@ void Worker::record_move(SearchStack* ss, const Board& board, const Move& move) 
 }
 
 int Worker::corrected_eval(const Board& board, int raw_eval) const {
-    const std::int32_t correction =
-        (*correction_history_)[static_cast<std::size_t>(board.side_to_move())][board.pawn_key() & (CorrectionSize - 1U)];
+    const std::size_t side = static_cast<std::size_t>(board.side_to_move());
+    std::int32_t correction = (*correction_history_)[side][board.pawn_key() & (CorrectionSize - 1U)];
+    if (tune::MaterialCorrectionWeight > 0) {
+        correction += (*material_correction_)[side][material_key(board) & (CorrectionSize - 1U)] * tune::MaterialCorrectionWeight / 100;
+    }
     return std::clamp(raw_eval + correction / CorrectionGrain, -MateInMaxPly + 1, MateInMaxPly - 1);
 }
 
 void Worker::update_correction(const Board& board, int depth, int best_score, int static_eval) {
-    std::int32_t& entry =
-        (*correction_history_)[static_cast<std::size_t>(board.side_to_move())][board.pawn_key() & (CorrectionSize - 1U)];
+    const std::size_t side = static_cast<std::size_t>(board.side_to_move());
     const int diff = std::clamp((best_score - static_eval) * CorrectionGrain, -CorrectionLimit / 4, CorrectionLimit / 4);
     const int weight = std::min(depth + 1, 16);
-    entry = std::clamp((entry * (256 - weight) + diff * weight) / 256, -CorrectionLimit, CorrectionLimit);
+    auto apply = [&](std::int32_t& entry) {
+        entry = std::clamp((entry * (256 - weight) + diff * weight) / 256, -CorrectionLimit, CorrectionLimit);
+    };
+    apply((*correction_history_)[side][board.pawn_key() & (CorrectionSize - 1U)]);
+    if (tune::MaterialCorrectionWeight > 0) apply((*material_correction_)[side][material_key(board) & (CorrectionSize - 1U)]);
 }
 
 std::int64_t Worker::elapsed_ms() const {
@@ -729,6 +766,7 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
     ss->in_check = in_check;
     const Move excluded = ss->excluded_move;
     (ss + 1)->excluded_move = Move::none();
+    (ss + 1)->cutoff_count = 0;
     // Children share killers with their siblings; grandchildren start afresh.
     (ss + 2)->killers = {};
 
@@ -947,6 +985,7 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
             if (tt_capture && quiet) r += 1;
             if (gives_check) r -= 1;
             if (in_check) r -= 1;
+            if (tune::LmrCutoffThreshold > 0 && (ss + 1)->cutoff_count > tune::LmrCutoffThreshold) r += 1;
             if (quiet) r -= std::clamp(history / tune::LmrHistoryDivisor, -2, 2);
             const int reduced_depth = std::clamp(new_depth - r, 1, new_depth);
             score = -search(board, ss + 1, reduced_depth, -alpha - 1, -alpha, true);
@@ -980,7 +1019,10 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
                     ss->pv_length = (ss + 1)->pv_length + 1;
                 }
                 if (root_node) root_best_index_ = move_count - 1;
-                if (score >= beta) break;
+                if (score >= beta) {
+                    ++ss->cutoff_count;
+                    break;
+                }
                 alpha = score;
             }
         }
@@ -1059,8 +1101,8 @@ SearchInfo Worker::search(Board board, const SearchLimits& limits, bool emit_inf
             soft = available / (mtg + 1) + increment * 3 / 4;
             hard = std::min(available * 4 / 5, soft * 4);
         } else {
-            soft = available / 22 + increment * 3 / 4;
-            hard = std::min(available * 3 / 5, soft * 5);
+            soft = available / tune::TmSoftDivisor + increment * tune::TmIncrementPercent / 100;
+            hard = std::min(available * tune::TmHardPercent / 100, soft * tune::TmHardSoftMultiple);
         }
         soft_limit_ms_ = std::max<std::int64_t>(1, std::min(soft, available));
         hard_limit_ms_ = std::max<std::int64_t>(1, std::min(hard, available));
@@ -1207,15 +1249,15 @@ SearchInfo Worker::search(Board board, const SearchLimits& limits, bool emit_inf
         if (time_managed_ && !(pondering_ && shared_.ponder_hit_ns.load(std::memory_order_relaxed) == 0)) {
             // Stop early when the best move has been stable; spend longer when it keeps changing.
             double factor = 1.0;
-            if (stable_iterations >= 6) factor = 0.6;
-            else if (stable_iterations >= 3) factor = 0.8;
-            else if (stable_iterations == 0 && depth >= 6) factor = 1.4;
+            if (stable_iterations >= 6) factor = tune::TmStableFactor / 100.0;
+            else if (stable_iterations >= 3) factor = tune::TmSemiStableFactor / 100.0;
+            else if (stable_iterations == 0 && depth >= 6) factor = tune::TmUnstableFactor / 100.0;
             // A best move that absorbed most of the effort is clearly best;
             // spend longer when the alternatives still draw attention.
             if (root_best_index_ >= 0 && local_nodes_ > 0 && depth >= 6) {
                 const double effort = static_cast<double>(root_move_nodes_[static_cast<std::size_t>(root_best_index_)]) /
                                       static_cast<double>(local_nodes_);
-                factor *= std::clamp(1.55 - effort, 0.6, 1.4);
+                factor *= std::clamp(tune::TmEffortBase / 100.0 - effort, 0.6, 1.4);
             }
             if (elapsed_ms() >= static_cast<std::int64_t>(static_cast<double>(soft_limit_ms_) * factor)) break;
         }

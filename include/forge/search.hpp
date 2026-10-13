@@ -157,6 +157,17 @@ extern int HistoryBonusLinear;
 extern int HistoryBonusMax;
 extern int LmrHistoryDivisor;
 extern int CheckExtensionDepth;
+extern int LmrCutoffThreshold;    // child cutoff count above which late moves are reduced more (0 = off)
+extern int MaterialCorrectionWeight; // 0 = off, 100 = same weight as the pawn correction
+// Time management (sudden-death / increment controls).
+extern int TmSoftDivisor;         // soft limit = remaining / divisor + increment share
+extern int TmIncrementPercent;    // share of the increment added to the soft limit
+extern int TmHardPercent;         // hard limit as a percentage of the remaining time
+extern int TmHardSoftMultiple;    // hard limit cap as a multiple of the soft limit
+extern int TmStableFactor;        // x0.01 soft scale after 6 stable iterations
+extern int TmSemiStableFactor;    // x0.01 soft scale after 3 stable iterations
+extern int TmUnstableFactor;      // x0.01 soft scale when the best move just changed
+extern int TmEffortBase;          // x0.01: factor *= clamp(base - effort, 0.6, 1.4)
 [[nodiscard]] const std::vector<Parameter>& parameters();
 // Call after changing LMR parameters.
 void refresh();
@@ -184,6 +195,7 @@ struct SearchStack {
     int static_eval = ValueNone;
     int raw_eval = ValueNone;
     int move_count = 0;
+    int cutoff_count = 0;
     int double_extensions = 0;
     bool in_check = false;
     bool tt_pv = false;
@@ -232,6 +244,7 @@ private:
     std::unique_ptr<ContinuationHistory> continuation_history_;
     std::unique_ptr<CounterMoveTable> counter_moves_;
     std::unique_ptr<CorrectionHistory> correction_history_;
+    std::unique_ptr<CorrectionHistory> material_correction_;
     std::array<SearchStack, MaxPly + 8> stack_{};
     std::array<std::uint64_t, 256> root_move_nodes_{};
     int root_best_index_ = -1;

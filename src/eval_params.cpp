@@ -68,6 +68,18 @@ const char* name(int index) {
     if (index >= ShelterDistance && index < ShelterDistance + 4) return indexed("ShelterDistance", ShelterDistance);
     if (index >= StormDistance && index < StormDistance + 4) return indexed("StormDistance", StormDistance);
     if (index >= KingDanger && index < KingDanger + 100) return indexed("KingDanger", KingDanger);
+    if (index >= KnightPawnAdjust && index < KnightPawnAdjust + 9) return indexed("KnightPawnAdjust", KnightPawnAdjust);
+    if (index >= RookPawnAdjust && index < RookPawnAdjust + 9) return indexed("RookPawnAdjust", RookPawnAdjust);
+    switch (index) {
+    case RookBehindOwnPasser: return "RookBehindOwnPasser";
+    case RookBehindEnemyPasser: return "RookBehindEnemyPasser";
+    case Space: return "Space";
+    case BishopLongDiagonal: return "BishopLongDiagonal";
+    case WeakQueen: return "WeakQueen";
+    case WeakUnopposedPawn: return "WeakUnopposedPawn";
+    case KingPawnDistance: return "KingPawnDistance";
+    default: break;
+    }
     return "Unknown";
 }
 

@@ -60,13 +60,18 @@ void evaluate_pawn_structure(const Board& board, Accumulator<Trace>& acc, Bitboa
         const int stop = square + pawn_push_delta(Us);
 
         if ((own & forward) != 0) acc.template add<Us>(PawnDoubled);
+        const bool opposed = (enemy & forward) != 0;
         if (neighbours == 0) {
             acc.template add<Us>(PawnIsolated);
+            if (!opposed) acc.template add<Us>(WeakUnopposedPawn);
         } else if (supported == 0 && phalanx == 0) {
             // Backward: no pawn can ever support it and its stop square is
             // controlled by an enemy pawn.
             const Bitboard behind_or_level = ~attacks::forward_ranks(Us, square) & adjacent & own;
-            if (behind_or_level == 0 && (enemy_attacks & square_bb(stop)) != 0) acc.template add<Us>(PawnBackward);
+            if (behind_or_level == 0 && (enemy_attacks & square_bb(stop)) != 0) {
+                acc.template add<Us>(PawnBackward);
+                if (!opposed) acc.template add<Us>(WeakUnopposedPawn);
+            }
         }
         if (supported != 0 || phalanx != 0) {
             acc.template add<Us>(PawnConnected + rank);
@@ -98,6 +103,12 @@ void evaluate_pieces(const Board& board, Accumulator<Trace>& acc, EvalInfo& info
             enemy_pawn_attack_span |= attacks::passed_pawn_mask(Them, sq) & ~attacks::forward_file(Them, sq);
         }
     }
+
+    const int own_pawn_count = popcount(own_pawns);
+    acc.template add<Us>(KnightPawnAdjust + own_pawn_count, popcount(board.pieces(Us, Knight)));
+    acc.template add<Us>(RookPawnAdjust + own_pawn_count, popcount(board.pieces(Us, Rook)));
+    constexpr Bitboard LongDiagonals = 0x8142241818244281ULL;
+    constexpr Bitboard CenterFour = CenterSquares;
 
     for (int type = Knight; type <= Queen; ++type) {
         Bitboard pieces = board.pieces(Us, static_cast<PieceType>(type));
@@ -142,20 +153,39 @@ void evaluate_pieces(const Board& board, Accumulator<Trace>& acc, EvalInfo& info
                 if (type == Bishop) {
                     const Bitboard same_color = (bit & DarkSquares) != 0 ? DarkSquares : LightSquares;
                     acc.template add<Us>(BishopPawnsSameColor, popcount(own_pawns & same_color));
+                    // A bishop on a long diagonal that sees a central square.
+                    if ((bit & LongDiagonals) != 0 && (attacks::bishop(square, board.pieces(Pawn)) & CenterFour) != 0) {
+                        acc.template add<Us>(BishopLongDiagonal);
+                    }
                 }
             } else if (type == Rook) {
                 const int file = file_of(square);
                 if ((own_pawns & file_bb(file)) == 0) {
                     acc.template add<Us>((enemy_pawns & file_bb(file)) == 0 ? RookOpenFile : RookSemiOpenFile);
                 }
+                // Rook behind a passed pawn on the same file.
+                const Bitboard ahead = attacks::forward_file(Us, square);
+                if ((ahead & info.passed[Us]) != 0 && (attacks::rook(square, occupied) & ahead & info.passed[Us]) != 0) {
+                    acc.template add<Us>(RookBehindOwnPasser);
+                }
+                const Bitboard behind_enemy = attacks::forward_file(Them, square);
+                if ((behind_enemy & info.passed[Them]) != 0 && (attacks::rook(square, occupied) & behind_enemy & info.passed[Them]) != 0) {
+                    acc.template add<Us>(RookBehindEnemyPasser);
+                }
                 if (relative_rank(Us, square) == 6) {
                     const int enemy_king_rank = relative_rank(Us, info.king_square[Them]);
                     if (enemy_king_rank == 7 || (enemy_pawns & rank_bb(rank_of(square))) != 0) acc.template add<Us>(RookOnSeventh);
                 }
-            } else if (relative_rank(Us, square) >= 2) {
-                const Bitboard home_minors = (board.pieces(Us, Knight) | board.pieces(Us, Bishop)) &
-                                             (Us == White ? Rank1BB : Rank8BB);
-                acc.template add<Us>(QueenEarlyDevelopment, popcount(home_minors));
+            } else {
+                if (relative_rank(Us, square) >= 2) {
+                    const Bitboard home_minors = (board.pieces(Us, Knight) | board.pieces(Us, Bishop)) &
+                                                 (Us == White ? Rank1BB : Rank8BB);
+                    acc.template add<Us>(QueenEarlyDevelopment, popcount(home_minors));
+                }
+                // Queen attacked by an enemy slider (through pieces) that is not pinned down.
+                const Bitboard enemy_sliders = (attacks::bishop(square, occupied) & (board.pieces(Them, Bishop) | board.pieces(Them, Queen))) |
+                                               (attacks::rook(square, occupied) & (board.pieces(Them, Rook) | board.pieces(Them, Queen)));
+                if ((enemy_sliders & ~board.pieces(Them, Queen)) != 0) acc.template add<Us>(WeakQueen);
             }
         }
     }
@@ -216,6 +246,28 @@ void evaluate_king(const Board& board, Accumulator<Trace>& acc, const EvalInfo& 
         units -= shelter / 8;
         units = std::clamp(units, 0, 99);
         acc.template add<Us>(KingDanger + units, -1);
+    }
+
+    // Space: safe squares on the central files in our half, counted once more
+    // when they lie behind one of our pawns, scaled by the number of pieces.
+    const int piece_count = popcount(board.occupied(Us) & ~own_pawns) - 1;
+    if (piece_count >= 2) {
+        constexpr Bitboard SpaceMask = Us == White ? (FileCBB | FileDBB | FileEBB | FileFBB) & (Rank2BB | Rank3BB | Rank4BB)
+                                                   : (FileCBB | FileDBB | FileEBB | FileFBB) & (Rank7BB | Rank6BB | Rank5BB);
+        const Bitboard safe = SpaceMask & ~own_pawns & ~info.attacked_by[Them][Pawn];
+        Bitboard behind = own_pawns;
+        behind |= Us == White ? behind >> 8 : behind << 8;
+        behind |= Us == White ? behind >> 16 : behind << 16;
+        const int count = popcount(safe) + popcount(behind & safe & ~info.attacked_by[Them][0]);
+        acc.template add<Us>(Space, count * piece_count / 4);
+    }
+
+    // King distance to the nearest own pawn (endgame term).
+    if (own_pawns != 0) {
+        int nearest = 7;
+        Bitboard pawns = own_pawns;
+        while (pawns != 0) nearest = std::min(nearest, square_distance(king, pop_lsb(pawns)));
+        acc.template add<Us>(KingPawnDistance, nearest);
     }
 }
 
