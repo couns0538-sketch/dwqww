@@ -62,11 +62,14 @@ struct TTEntry {
     Move move{};
     std::int16_t score = 0;
     std::int16_t eval = 0;
+    // Search depth plus one: quiescence entries record whether checking
+    // moves were tried (depth 0) or not (depth -1).
     std::uint8_t depth = 0;
     // Bits 0..1 bound, bit 2 was-PV, bits 3..7 generation.
     std::uint8_t gen_bound = 0;
     std::uint16_t padding = 0;
 
+    [[nodiscard]] int search_depth() const { return static_cast<int>(depth) - 1; }
     [[nodiscard]] Bound bound() const { return static_cast<Bound>(gen_bound & 3U); }
     [[nodiscard]] bool pv() const { return (gen_bound & 4U) != 0; }
     [[nodiscard]] std::uint8_t generation() const { return static_cast<std::uint8_t>(gen_bound >> 3U); }

@@ -120,6 +120,7 @@ void TranspositionTable::store(TTEntry* entry, std::uint64_t key, int score, int
                                Bound bound, bool pv) {
     const std::uint32_t key32 = static_cast<std::uint32_t>(key >> 32U);
     const bool same_position = entry->key32 == key32 && entry->occupied();
+    depth += 1;
     if (!move.is_none() || !same_position) entry->move = move;
     if (bound == BoundExact || !same_position || depth + 4 > entry->depth || entry->generation() != generation_) {
         entry->key32 = key32;
@@ -671,6 +672,9 @@ int Searcher::qsearch(Board& board, SearchStack* ss, int alpha, int beta, int de
 
     const bool in_check = board.in_check();
     ss->in_check = in_check;
+    // Plies that try checking moves (and evasions) are worth a little more
+    // than the capture-only plies below them.
+    const int tt_depth = (in_check || depth >= 0) ? 0 : -1;
 
     bool tt_hit = false;
     TTEntry* tte = tt_->probe(board.key(), tt_hit);
@@ -678,7 +682,7 @@ int Searcher::qsearch(Board& board, SearchStack* ss, int alpha, int beta, int de
     const int tt_score = tt_hit ? score_from_tt(tte->score, ply) : ValueNone;
     const Bound tt_bound = tt_hit ? tte->bound() : BoundNone;
     const bool tt_pv = pv_node || (tt_hit && tte->pv());
-    if (!pv_node && tt_hit && tt_score != ValueNone &&
+    if (!pv_node && tt_hit && tt_score != ValueNone && tte->search_depth() >= tt_depth &&
         (tt_bound == BoundExact || (tt_bound == BoundLower && tt_score >= beta) ||
          (tt_bound == BoundUpper && tt_score <= alpha))) {
         return tt_score;
@@ -701,7 +705,7 @@ int Searcher::qsearch(Board& board, SearchStack* ss, int alpha, int beta, int de
         }
         best_score = eval;
         if (best_score >= beta) {
-            if (!tt_hit) tt_->store(tte, board.key(), score_to_tt(best_score, ply), ss->raw_eval, Move::none(), 0, BoundLower, false);
+            if (!tt_hit) tt_->store(tte, board.key(), score_to_tt(best_score, ply), ss->raw_eval, Move::none(), tt_depth, BoundLower, false);
             return best_score;
         }
         if (best_score > alpha) alpha = best_score;
@@ -771,7 +775,7 @@ int Searcher::qsearch(Board& board, SearchStack* ss, int alpha, int beta, int de
     if (in_check && move_count == 0) return mated_in(ply);
 
     const Bound bound = best_score >= beta ? BoundLower : (pv_node && !best_move.is_none() ? BoundExact : BoundUpper);
-    tt_->store(tte, board.key(), score_to_tt(best_score, ply), in_check ? ValueNone : ss->raw_eval, best_move, 0, bound, tt_pv);
+    tt_->store(tte, board.key(), score_to_tt(best_score, ply), in_check ? ValueNone : ss->raw_eval, best_move, tt_depth, bound, tt_pv);
     return best_score;
 }
 
@@ -813,7 +817,7 @@ int Searcher::search(Board& board, SearchStack* ss, int depth, int alpha, int be
     TTEntry* tte = tt_->probe(board.key(), tt_hit);
     const Move tt_move = tt_hit ? tte->move : Move::none();
     const int tt_score = tt_hit ? score_from_tt(tte->score, ply) : ValueNone;
-    const int tt_depth = tt_hit ? tte->depth : -1;
+    const int tt_depth = tt_hit ? tte->search_depth() : -2;
     const Bound tt_bound = tt_hit ? tte->bound() : BoundNone;
     const bool tt_capture = !tt_move.is_none() && tt_move.is_capture();
     ss->tt_pv = pv_node || (tt_hit && tte->pv());

@@ -403,12 +403,12 @@ void test_transposition_table() {
     check(!hit && entry != nullptr, "empty table misses");
     tt.store(entry, 0x123456789abcdefULL, 123, 45, forge::Move{12, 28, 0, 0}, 7, forge::BoundExact, true);
     entry = tt.probe(0x123456789abcdefULL, hit);
-    check(hit && entry->score == 123 && entry->eval == 45 && entry->depth == 7 && entry->bound() == forge::BoundExact &&
+    check(hit && entry->score == 123 && entry->eval == 45 && entry->search_depth() == 7 && entry->bound() == forge::BoundExact &&
               entry->pv() && entry->move == forge::Move{12, 28, 0, 0},
           "stored entry is retrieved intact");
     tt.store(entry, 0x123456789abcdefULL, 50, 45, forge::Move::none(), 2, forge::BoundUpper, false);
     entry = tt.probe(0x123456789abcdefULL, hit);
-    check(hit && entry->depth == 7 && entry->move == forge::Move{12, 28, 0, 0},
+    check(hit && entry->search_depth() == 7 && entry->move == forge::Move{12, 28, 0, 0},
           "a much shallower bound does not overwrite a deep exact entry in the same search");
     tt.clear();
     entry = tt.probe(0x123456789abcdefULL, hit);
