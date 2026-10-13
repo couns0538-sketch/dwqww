@@ -183,7 +183,7 @@ void evaluate_pieces(const Board& board, Accumulator<Trace>& acc, EvalInfo& info
 }
 
 template <bool Trace, Color Us>
-void evaluate_king(const Board& board, Accumulator<Trace>& acc, const EvalInfo& info) {
+void evaluate_king(const Board& board, Accumulator<Trace>& acc, const EvalInfo& info, Evaluator::PawnEntry* cache) {
     constexpr Color Them = opposite(Us);
     const int king = info.king_square[Us];
     const int king_file = file_of(king);
@@ -191,27 +191,43 @@ void evaluate_king(const Board& board, Accumulator<Trace>& acc, const EvalInfo& 
     const Bitboard own_pawns = board.pieces(Us, Pawn);
     const Bitboard enemy_pawns = board.pieces(Them, Pawn);
 
-    int shelter = 0;
-    auto shelter_term = [&](int index) {
-        acc.template add<Us>(index);
-        shelter += mg_value(table[static_cast<std::size_t>(index)]);
-    };
-    for (int file = std::max(0, king_file - 1); file <= std::min(7, king_file + 1); ++file) {
-        const Bitboard file_mask = file_bb(file) & attacks::forward_ranks(Us, king);
-        const Bitboard own = own_pawns & file_mask;
-        const Bitboard enemy = enemy_pawns & file_mask;
-        int own_distance = 0;
-        if (own != 0) {
-            const int nearest = Us == White ? lsb(own) : msb(own);
-            own_distance = std::min(3, relative_rank(Us, nearest) - king_rank);
+    // The shelter depends only on the pawns and the king square, so it is
+    // kept in the pawn cache entry until the king moves.
+    int shelter;
+    if (!Trace && cache != nullptr && cache->king_square[Us] == king) {
+        acc.score += Us == White ? cache->shelter[Us] : -cache->shelter[Us];
+        shelter = cache->shelter_mg[Us];
+    } else {
+        Accumulator<Trace> shelter_acc;
+        shelter_acc.trace = acc.trace;
+        shelter = 0;
+        auto shelter_term = [&](int index) {
+            shelter_acc.template add<Us>(index);
+            shelter += mg_value(table[static_cast<std::size_t>(index)]);
+        };
+        for (int file = std::max(0, king_file - 1); file <= std::min(7, king_file + 1); ++file) {
+            const Bitboard file_mask = file_bb(file) & attacks::forward_ranks(Us, king);
+            const Bitboard own = own_pawns & file_mask;
+            const Bitboard enemy = enemy_pawns & file_mask;
+            int own_distance = 0;
+            if (own != 0) {
+                const int nearest = Us == White ? lsb(own) : msb(own);
+                own_distance = std::min(3, relative_rank(Us, nearest) - king_rank);
+            }
+            shelter_term(ShelterDistance + own_distance);
+            if (enemy != 0) {
+                const int nearest = Us == White ? lsb(enemy) : msb(enemy);
+                const int distance = relative_rank(Us, nearest) - king_rank;
+                if (distance <= 3) shelter_term(StormDistance + std::max(1, distance));
+            }
+            if (((own_pawns | enemy_pawns) & file_bb(file)) == 0) shelter_term(KingFileOpen);
         }
-        shelter_term(ShelterDistance + own_distance);
-        if (enemy != 0) {
-            const int nearest = Us == White ? lsb(enemy) : msb(enemy);
-            const int distance = relative_rank(Us, nearest) - king_rank;
-            if (distance <= 3) shelter_term(StormDistance + std::max(1, distance));
+        acc.score += shelter_acc.score;
+        if (!Trace && cache != nullptr) {
+            cache->shelter[Us] = Us == White ? shelter_acc.score : -shelter_acc.score;
+            cache->shelter_mg[Us] = static_cast<std::int16_t>(shelter);
+            cache->king_square[Us] = static_cast<std::uint8_t>(king);
         }
-        if (((own_pawns | enemy_pawns) & file_bb(file)) == 0) shelter_term(KingFileOpen);
     }
     // A king on a flank without pawns has nothing to hide behind and the
     // other side's pieces have free play there.
@@ -384,6 +400,7 @@ int evaluate_position(const Board& board, Evaluator::PawnEntry* cache, EvalTrace
             cache->key = board.pawn_key();
             cache->score = pawn_acc.score;
             cache->passed = info.passed;
+            cache->king_square = {64, 64};
             cache->valid = true;
         }
     }
@@ -414,8 +431,8 @@ int evaluate_position(const Board& board, Evaluator::PawnEntry* cache, EvalTrace
 
     evaluate_pieces<Trace, White>(board, acc, info);
     evaluate_pieces<Trace, Black>(board, acc, info);
-    evaluate_king<Trace, White>(board, acc, info);
-    evaluate_king<Trace, Black>(board, acc, info);
+    evaluate_king<Trace, White>(board, acc, info, cache);
+    evaluate_king<Trace, Black>(board, acc, info, cache);
     evaluate_threats<Trace, White>(board, acc, info);
     evaluate_threats<Trace, Black>(board, acc, info);
     evaluate_passed<Trace, White>(board, acc, info);

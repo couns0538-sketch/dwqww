@@ -42,6 +42,11 @@ public:
         std::uint64_t key = 0;
         Score score = 0;
         std::array<Bitboard, 2> passed{};
+        // King shelter for each side, valid while the king square matches
+        // (64 marks an empty slot).
+        std::array<Score, 2> shelter{};
+        std::array<std::int16_t, 2> shelter_mg{};
+        std::array<std::uint8_t, 2> king_square{64, 64};
         bool valid = false;
     };
 
