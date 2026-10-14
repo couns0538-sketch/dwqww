@@ -1,3 +1,42 @@
+# Release state — Chess Engine Forge 6.4.0
+
+Status: **strength release; first shipped neural network (residual NNUE,
++86 Elo at fixed nodes and +45 Elo at 10+0.1 over 6.3.0), validated against
+Stockfish 19 at UCI_Elo 3000**.
+
+Against Stockfish 19 with `UCI_LimitStrength=true UCI_Elo=3000` (one thread,
+Hash 64, 8moves_v3 openings) the shipped binary scored 52.5 % over 100 games
+at 20+0.2 (35W 30L 35D, +17 +/- 53 Elo); 6.3.0 scored 50.0 % (33W 33L 34D)
+and 6.2.0 51.5 % (35W 32L 33D) under the same conditions, differences inside
+the noise of 100 games. Match records live in `validation/release-6.0.0/`.
+
+Engine change relative to 6.3.0 (see `CHANGELOG.md`): the evaluation is now
+the hand-crafted score plus a residual 768 -> 128x2 SCReLU network trained
+with the new `--residual` trainer mode on 13.4M self-play positions with pure
+search-score targets; the net improves the validation loss by 6 % over the
+hand-crafted evaluation and won 62.1 % of 500 games at 20k nodes/move
+(209W 88L 203D) and 56.5 % of 200 games at 10+0.1 (49W 23L 128D) against the
+6.3.0 release. Five search constants were tested by fixed-node SPRT and
+rejected (`FutilityBase=80`+`FutilityMultiplier=130` 50.20 %,
+`SeeQuietMultiplier=18` 50.50 %, `QsSeeMargin=80` 50.00 %,
+`HistoryPruneMultiplier=3000` 49.93 %, `NullMoveEvalDivisor=150` 49.16 %);
+the search constants are those of 6.3.0. Every run is recorded in
+`validation/release-6.0.0/EXPERIMENTS.md` with its games in
+`all-match-pgns.zip`. Validation performed for this release: GCC Release
+build, `forge_tests` and 4/4 CTest suites, the matches above, and the
+time-control match against the reference opponent. The `bench 11` signature
+of the shipped binaries is 417491 nodes; all six static builds (Linux and
+Windows, x86-64-v2/v3 and Zen 4, compiled with `-ffp-contract=off`) were
+executed, the Windows ones under Wine, and report the same signature.
+
+Not done for this release: tablebases, native Windows testing, a quantised
+(integer) network evaluation (the float network costs about 15 % of the nodes
+per second), larger or longer-trained nets (every residual run reached its
+best validation loss within the first two epochs on the available 13.4M
+positions).
+
+---
+
 # Release state — Chess Engine Forge 6.3.0
 
 Status: **incremental strength release; search constants retuned by SPRT

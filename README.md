@@ -1,17 +1,18 @@
 # Chess Engine Forge
 
-Chess Engine Forge 6.3.0 is a C++20 UCI chess engine. The 6.x series is a
+Chess Engine Forge 6.4.0 is a C++20 UCI chess engine. The 6.x series is a
 strength rewrite: the move generator, search, and evaluation were rebuilt from
 the ground up for playing strength, replacing the conservative 5.x search.
 6.1.0 added multi-threaded search (`Threads`), tuning options and the NNUE
 training tools; 6.2.0 added a built-in engine-generated opening book with
 Polyglot support, cutoff-count LMR, material correction history, new
 evaluation terms with a retuned table, a faster move picker and prebuilt Zen 4
-(`-march=znver4`) binaries. 6.3.0 adds retuned late-move pruning and history
-bonus constants (`LmpBase=4`, `HistoryBonusQuadratic=20`,
-`HistoryBonusMax=2048`), accepted by a fixed-node SPRT at +16 Elo over 6.2.0,
-and records the experiments that did not make it (four other search
-constants, two pawn-structure evaluation terms, a second NNUE net).
+(`-march=znver4`) binaries; 6.3.0 retuned the late-move pruning and history
+bonus constants (+16 Elo by SPRT). 6.4.0 ships the first neural network: a
+residual NNUE (768 -> 128x2 SCReLU) that is trained only on what the
+hand-crafted evaluation gets wrong and is added to it at search time. Against
+6.3.0 it scored 62.1 % at 20k nodes/move (+86 Elo) and 56.5 % at 10+0.1
+(+45 Elo) with no other change.
 
 ## Strength
 
@@ -29,6 +30,7 @@ match records.
 | Forge 6.2.0 (pre-release build) | SF 19 @ 3000 | 10+0.1 | 200 | 47.75 % (66W 75L 59D), -16 Elo |
 | Forge 6.2.0 | SF 19 @ 3000 | 20+0.2 | 100 | 51.5 % (35W 32L 33D), +10 +/- 60 Elo |
 | Forge 6.3.0 | SF 19 @ 3000 | 20+0.2 | 100 | 50.0 % (33W 33L 34D), 0 +/- 54 Elo |
+| Forge 6.4.0 | SF 19 @ 3000 | 20+0.2 | 100 | 52.5 % (35W 30L 35D), +17 +/- 53 Elo |
 
 With `Threads=4` on a four-core machine the engine scores 75 % (26W 1L 23D over
 50 games at 8+0.08) against its own single-threaded build.
@@ -88,13 +90,17 @@ Evaluation (tapered, parametrized)
 - Endgame scaling for opposite-coloured bishops and drawn material imbalances
 - Every term is an entry in `src/eval_params_table.inc`, which the included
   Texel tuner can regenerate from self-play data
+- Residual NNUE correction (`src/nnue_weights.inc`, 768 -> 128x2 SCReLU,
+  incrementally updated accumulators) added to the hand-crafted score; the net
+  was trained on 13.4M self-play positions to predict the engine's own search
+  scores minus the hand-crafted evaluation (option `UseNNUE`, default on)
 
 UCI
 
 - `go` with `depth`, `nodes`, `movetime`, `wtime/btime/winc/binc`, `movestogo`,
   `mate`, `searchmoves`, `infinite`, `ponder`
 - `Hash`, `Threads`, `Move Overhead`, `Ponder`, `OwnBook`, `Book File`,
-  `Book Depth`, `Book Variety`, `Clear Hash` options
+  `Book Depth`, `Book Variety`, `UseNNUE`, `Clear Hash` options
 - Opening book: Polyglot `.bin` reader (keys validated against python-chess)
   plus an embedded engine-generated book (`src/book_data.inc`, built with
   `tools/book/bookgen expand`)
@@ -184,29 +190,43 @@ touch src/book.cpp && cmake --build build --parallel
 self-play, and `forge_bookgen build` tallies move statistics from PGN files
 (optionally verifying every candidate with the engine) into the same format.
 
-## Experimental NNUE evaluation
+## Residual NNUE evaluation
 
-`include/forge/nnue.hpp` / `src/nnue.cpp` implement a 768 -> 256x2 SCReLU
-network with lazily updated accumulators, and `tools/tune/nnue_train.cpp` trains
-one from the same position files:
+`include/forge/nnue.hpp` / `src/nnue.cpp` implement a 768 -> 128x2 SCReLU
+network with lazily updated accumulators (`FORGE_NNUE_HIDDEN` selects the
+hidden size at compile time), and `tools/tune/nnue_train.cpp` trains one from
+the same `<fen> <result> <score>` position files as the Texel tuner.
+
+The shipped `src/nnue_weights.inc` is a *residual* net: it was trained with
+`--residual`, where the trainer adds the hand-crafted evaluation of every
+position to the network output before the sigmoid, so the net only learns the
+correction the hand-crafted evaluation needs. At search time the engine adds
+the net's centipawns to the hand-crafted score (`nnue::residual()`); a net
+trained without `--residual` replaces the hand-crafted evaluation instead. The
+shipped net was trained for two epochs on 13.4M self-play positions with pure
+search-score targets (`--lambda 0`):
 
 ```sh
-build/forge_nnue_train positions.txt --epochs 20 --lambda 0.5 --threads 4 \
-  --validate holdout.txt --out src/nnue_weights.inc
+build/forge_nnue_train positions.txt --residual --epochs 8 --lr 0.001 --lambda 0 \
+  --threads 4 --validate holdout.txt --out src/nnue_weights.inc
 touch src/nnue.cpp && cmake --build build --parallel   # compiles the weights in
 ```
 
-When `src/nnue_weights.inc` exists the engine uses the network (option `UseNNUE`,
-default true) instead of the hand-crafted evaluation. No weights are shipped:
-nets trained on the few million self-play positions available so far overfit
-and lose to the tuned hand-crafted evaluation (validation loss 0.037 vs 0.029).
-The tooling is in place for anyone with a larger, more diverse dataset.
+With `--validate` the include file is only rewritten when the validation loss
+improves, so the file holds the best epoch. Stand-alone nets (without
+`--residual`) trained on the same data overfit and lost heavily to the
+hand-crafted evaluation; the residual net improves the validation loss by 6 %
+over the hand-crafted evaluation in the search-score metric and won 62.1 % of
+500 games at 20k nodes/move and 56.5 % of 200 games at 10+0.1 against 6.3.0.
+`UseNNUE=false` switches back to the plain hand-crafted evaluation. The
+network costs about 15 % of the nodes per second.
 
 ## Testing
 
 - `tests/tests.cpp`: FEN validation, perft, make/unmake and hash consistency,
   pseudo-legality, SEE, evaluation symmetry, transposition table, tactical
-  search cases, searchmoves and terminal-root behaviour
+  search cases, searchmoves and terminal-root behaviour, incremental NNUE
+  accumulators against full refreshes
 - `tools/uci_regression.py`: UCI protocol behaviour against the real binary
 - `tools/ponder_regression.py`: pondering protocol
 - `bench/benchmark.cpp`: perft and fixed-depth search workload (`build/forge_bench`)

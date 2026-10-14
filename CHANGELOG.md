@@ -1,5 +1,77 @@
 # Changelog
 
+## 6.4.0 - 2026-10-14
+
+- Residual NNUE evaluation. The engine now ships a 768 -> 128x2 SCReLU network
+  (`src/nnue_weights.inc`) that is *added* to the hand-crafted evaluation
+  instead of replacing it. The trainer's new `--residual` mode feeds each
+  position's hand-crafted score (`Evaluator::evaluate_uncached`, side to move)
+  into the pre-sigmoid output (`net + K * hce / 400`), starts the output layer
+  at zero (so epoch 0 reproduces the hand-crafted evaluation's loss exactly)
+  and writes a `FORGE_NNUE_RESIDUAL` flag into the include file, which
+  `nnue::residual()` reports; `Worker::static_evaluate` returns
+  `hce + net` (clamped) when the flag is set. The shipped net was trained for
+  two epochs (Adam, lr 0.001, batch 16384, 4 threads) on 13,428,686 self-play
+  positions - 5,892,336 from the 6.3.0 round's 82,694 games at 4k nodes/move,
+  4,013,632 from the first ~50,000 of 53,656 new 6.3.0 self-play games at
+  4k nodes/move played during this round (`8moves_v3` openings; the last
+  300,000 of their 4,313,632 positions were held out), and the
+  3,522,718-position 6.1.0 set - with
+  pure search-score targets (`--lambda 0`). Validation on 300,000 held-out
+  random-opening positions: 0.00712 against 0.00757 for the hand-crafted
+  evaluation in the search-score metric (6 % better), 0.02650 against
+  0.02708 in the 0.5/0.5 result/score metric. Stand-alone nets trained on the
+  same data had been far worse than the hand-crafted evaluation (0.0333 at
+  best). In play against 6.3.0: 62.1 % over 500 games at 20k nodes/move
+  (209W 88L 203D, +86 +/- 24 Elo) and 56.5 % over 200 games at 10+0.1
+  (49W 23L 128D, +45 +/- 26 Elo, all games terminated normally). A 768 ->
+  256x2 variant scored the same at fixed nodes (62.0 %, 218W 98L 184D) and
+  was not taken. The network costs about 15 % of the nodes per second;
+  `UseNNUE=false` restores the plain hand-crafted evaluation. `bench 11` =
+  417491 nodes.
+- Residual-training runs with result-blended targets (`--lambda 0.5`) did not
+  generalise: best validation 0.02784 (256 hidden, lr 0.001), 0.02737 (lr
+  0.0005) and 0.02740 (128 hidden), each at epoch 1 and worse than the
+  hand-crafted evaluation's 0.02708, and rising from there while the training
+  loss kept falling (0.0190 after 19 epochs); a run validated on a held-out
+  slice of the training games showed the same (0.03026 vs 0.02980), so the
+  nets memorise game results of correlated positions rather than failing on a
+  distribution shift. `--lambda 0.1` was the first setting to beat the
+  hand-crafted evaluation (0.00823 vs 0.00857 at epoch 1); `--lambda 0`
+  shipped.
+- Build and speed: `-ffp-contract=off` for the engine library (CMake and the
+  release builds), and the network's output layer is computed with SSE
+  min/max/mul/add intrinsics over sixteen fixed-order partial sums, so the
+  float network produces the same search tree on x86-64-v2, x86-64-v3, Zen 4
+  and native builds (all six release binaries and the CMake build report
+  `bench 11` = 417491). Without the intrinsics GCC compiled the float clamp
+  of the SCReLU as scalar branchy code on AVX2 targets: `evaluate()` took
+  150-180 ns per call instead of 35 ns, and the x86-64-v2/v3 binaries ran at
+  0.76-0.86M nodes per second instead of 1.6-1.8M on the test VM.
+- Search constants tried and not adopted, fixed-node SPRTs at 20k nodes/move
+  (elo0=0, elo1=5, normalized model), each stopped under the pre-stated rule
+  "reject at or below 50.5 % after 1500 games". On the 6.3.0 source (before
+  the net was adopted): `FutilityBase=80` + `FutilityMultiplier=130` (5600
+  games, 50.20 %, 1589W 1567L 2444D, LLR -0.14) and `SeeQuietMultiplier=18`
+  (5000 games, 50.50 %, 1430W 1380L 2190D, LLR 0.46). With the residual net
+  compiled in: `QsSeeMargin=80` (3198 games, 50.00 %, 870W 870L 1458D, LLR
+  -0.66), `HistoryPruneMultiplier=3000` (4600 games, 49.93 %, 1235W 1241L
+  2124D, LLR -0.60) and `NullMoveEvalDivisor=150` (4000 games, 49.16 %,
+  1045W 1112L 1843D, LLR -1.79). No search constant changed; the 6.3.0
+  defaults ship unchanged.
+- Against Stockfish 19 at `UCI_Elo 3000` (one thread, Hash 64, 8moves_v3,
+  20+0.2): 52.5 % over 100 games (35W 30L 35D, +17 +/- 53 Elo), every game
+  terminated normally. 6.3.0 scored 50.0 % (33W 33L 34D) and 6.2.0 51.5 %
+  (35W 32L 33D) under the same conditions; 100 games cannot resolve the
+  difference, and the 700 self-play games against 6.3.0 above are the
+  measurement that separates the two builds. Record in
+  `validation/release-6.0.0/forge-6.4.0-vs-sf19-3000-20+0.2.pgn`.
+- Release archive `chess-engine-forge-6.4.0.zip` with statically linked Linux
+  and Windows binaries for x86-64-v2, x86-64-v3 and Zen 4 (`-march=znver4`),
+  all reporting `bench 11` = 417491 nodes (Windows builds checked under Wine).
+  The experiment record `validation/release-6.0.0/EXPERIMENTS.md` and the PGN
+  archive `all-match-pgns.zip` were extended with every match of this round.
+
 ## 6.3.0 - 2026-10-14
 
 - Search: late-move pruning keeps one more quiet move per depth (`LmpBase`
