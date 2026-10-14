@@ -1,7 +1,7 @@
-# Chess Engine Forge 5.31.0 -> 6.3.0: experiment record
+# Chess Engine Forge 5.31.0 -> 6.4.0: experiment record
 
 This document lists every measured experiment of the 6.x strength work
-(12-14 October 2026): what was tried, how it was measured, the exact result and
+(12-14 October 2026, four release rounds): what was tried, how it was measured, the exact result and
 whether it was adopted. Every match number below was re-read from the match
 directory's `console.txt` (last `Games:` line, and for SPRT runs the last
 `LLR`/`accepted` line) and from the game count of its `games.pgn`; the games
@@ -16,10 +16,11 @@ themselves are in `all-match-pgns.zip` next to this file (index at the end).
 | 6.1.0 | 422451 | Lazy SMP (`Threads`), unlisted tuning options for all search constants, NNUE infrastructure and trainer (`nnue_train`) next to the Texel tools (`forge_extract`, `forge_texel`), evaluation retuned on 61.5k games including random openings. |
 | 6.2.0 | 340241 | Embedded opening book (2616 entries), cutoff-count LMR, material correction history, new evaluation terms with a retuned table, lazy move sorting, falling-evaluation time management, Zen 4 builds. |
 | 6.3.0 | 344040 | Late-move pruning and history-bonus constants retuned by SPRT (`LmpBase=4`, `HistoryBonusQuadratic=20`, `HistoryBonusMax=2048`, +16 Elo at fixed nodes); four other search constants, two pawn-structure evaluation terms and a second NNUE net tested and rejected. |
+| 6.4.0 | 417491 | First shipped neural network: a residual 768 -> 128x2 SCReLU net trained (new `--residual` trainer mode, pure search-score targets) on what the hand-crafted evaluation gets wrong and added to it at search time (+86 Elo at 20k nodes, +45 Elo at 10+0.1 over 6.3.0); five search constants tested by SPRT and rejected; `-ffp-contract=off` so every build shares one `bench` signature. |
 
 The `bench 11` signatures were re-run on the binaries that played the matches
 (`forge_final` = 6.0.0, `forge_v61` = 6.1.0, `forge_v62` = 6.2.0, `forge_v63` =
-6.3.0); the 6.2.0 pre-release binary `forge_v62a` gives 335062.
+6.3.0, `forge_v64` = 6.4.0); the 6.2.0 pre-release binary `forge_v62a` gives 335062.
 
 ## How things were measured
 
@@ -28,8 +29,8 @@ The `bench 11` signatures were re-run on the binaries that played the matches
   Forge with `Hash=64` and default options, one thread. fastchess alpha 1.8.2
   (`20260726-f618e34`), `-repeat` colour-swapped pairs, `-recover`,
   `timemargin=200`, openings `8moves_v3.pgn` (random order, 16 plies), no
-  adjudication. Concurrency 3-4 on a four-core VM. Every game of the eight
-  matches (1020 games) has `[Termination "normal"]`; no time forfeits.
+  adjudication. Concurrency 3-4 on a four-core VM. Every game of the nine
+  matches (1120 games) has `[Termination "normal"]`; no time forfeits.
 - **Fixed-node self-play tests.** Same fastchess, both engines limited to
   20,000 or 25,000 nodes per move (stated per test), `Hash=32`, `8moves_v3`
   openings (random order, 16 plies) unless noted, draw adjudication from move 40
@@ -45,10 +46,21 @@ The `bench 11` signatures were re-run on the binaries that played the matches
   score is <= 50.5 % after 1500 or more games"; the `base` engine of that
   round is the 6.2.0 release source built with `-DFORGE_EXPOSE_TUNABLES=ON`
   (`bench 11` = 340241).
-- **Real-clock self-play tests.** 10+0.1 or 8+0.08, `Hash=64`, no adjudication.
+  The 6.4.0 round (14 October) used the same rule; its first two SPRTs (items
+  36 and 37, 2 cores while a self-play data stream used the other two) ran on
+  the 6.3.0 release source with tunables exposed (`bench 11` = 344040), the
+  last three (items 41-43, 4 cores) on the same source with the adopted
+  residual network compiled in (`bench 11` = 417491).
+- **Real-clock self-play tests.** 10+0.1 or 8+0.08, `Hash=64` (item 39:
+  `Hash=32`, `timemargin=200`, concurrency 4), no adjudication.
 - **Tuning loss.** `forge_texel` and `nnue_train` report the mean squared error
   between the sigmoid of the evaluation and a 0.5/0.5 blend of game result and
   search score, on the stated position set.
+  `nnue_train --lambda L` blends L parts game result with (1 - L) parts
+  search score for both training targets and the reported validation loss, so
+  losses are only comparable at the same lambda; the 6.4.0 tables state the
+  lambda and give the hand-crafted evaluation's loss in the same metric
+  (computed with a residual net whose output layer is zero).
 - **Elo columns.** Both figures printed by fastchess are given: `Elo` (logistic
   estimate) and `nElo` (normalized Elo), each with its 95 % interval. The Elo
   figures quoted in the release notes for items 2-5 (+66, +158, +331, +224) are
@@ -92,6 +104,7 @@ game counts, `bench 11` signatures).
 | 6 | 6.2.0 pre-release build, before the move-picker change, `bench 11` = 335062 (`v62a`); ran under heavy CPU load from parallel tests | 3000 | 10+0.1 | 200 | 66 / 75 / 59 | 47.75 % | -16 +/- 42 | -18 +/- 48 | `v62a_vs_sf3000_102121` | `forge-6.2.0pre-vs-sf19-3000-10+0.1.pgn` |
 | 7 | 6.2.0 release build (`v62`) | 3000 | 20+0.2 | 100 | 35 / 32 / 33 | 51.50 % | +10 +/- 60 | +12 +/- 68 | `v62_vs_sf3000_123635` | `forge-6.2.0-vs-sf19-3000-20+0.2.pgn` |
 | 8 | 6.3.0 release build (`v63`) | 3000 | 20+0.2 | 100 | 33 / 33 / 34 | 50.00 % | 0 +/- 54 | 0 +/- 68 | `v63_vs_sf3000_095408` | `forge-6.3.0-vs-sf19-3000-20+0.2.pgn` |
+| 9 | 6.4.0 release build (`v64`, residual NNUE) | 3000 | 20+0.2 | 100 | 35 / 30 / 35 | 52.50 % | +17 +/- 53 | +23 +/- 68 | `v64_vs_sf3000_170334` | `forge-6.4.0-vs-sf19-3000-20+0.2.pgn` |
 
 Stockfish's limited-strength play does not scale with the clock while Forge's
 does, so the margin at 2800 grows from 69.0 % (10+0.1) to 82.5 % (30+0.3) for
@@ -100,8 +113,8 @@ the same 6.0.0 binary.
 ## 2. Adopted changes
 
 Item numbers continue the numbering used during development (8-27 for the
-6.0.0-6.2.0 work, 28-35 for the 6.3.0 round); the order is chronological
-within each round. "vs" names the baseline binary.
+6.0.0-6.2.0 work, 28-35 for the 6.3.0 round, 36-43 for the 6.4.0 round); the
+order is chronological within each round. "vs" names the baseline binary.
 
 | # | Change tried | Baseline | Measurement | Result (console) | Elo / nElo | Decision | Directory |
 | --- | --- | --- | --- | --- | --- | --- | --- |
@@ -116,6 +129,8 @@ within each round. "vs" names the baseline binary.
 | 19 | Built-in opening book: embedded book of 2616 entries generated by the engine's own searches (`forge_bookgen expand`, 1.5M nodes per move), `OwnBook=true` | Same binary with `OwnBook=false` | 10+0.1 real clock from the start position (no opening file), no adjudication, 120 games (60 pairs) | 18W 11L 91D = 52.92 % | +20 +/- 30 / +42 +/- 62 | Adopted (book on by default) | `book_on_off` |
 | 20 | Lazy move-list sorting: the first few moves are selected on demand, the rest of the list is sorted only when reached (`pick`) | Previous picker with a full sort (`v62a`, 6.2.0 pre-release) | 20k nodes/move, 400 games | 110W 98L 192D = 51.50 % | +10 +/- 24 / +15 +/- 34 | Adopted for speed; only tie-breaking among equally scored moves differs, so the result is treated as neutral at fixed nodes | `pick_vs_v62a` |
 | 35 | Late-move pruning keeps one more quiet move per depth (`LmpBase=4`) together with a faster-growing, later-saturating history bonus (`HistoryBonusMax=2048`, `HistoryBonusQuadratic=20`); the two halves had each run to the 8000-game limit alone without reaching a bound (items 33 and 34), so the combination was tested in the round's spare time | `base` (6.2.0 release source, tunables exposed) | SPRT elo0=0 elo1=5, 20k nodes/move, concurrency 4 | H1 accepted after 3670 games: 1122W 948L 1600D = 52.37 %, LLR 2.97 (22 min 20 s) | +16.5 +/- 8.4 / +22.1 +/- 11.2 | Adopted (6.3.0 defaults; `bench 11` 340241 -> 344040) | `sprt63_lmp4_histbonus` |
+| 38 | Residual NNUE: 768 -> 128x2 SCReLU net trained with the new `--residual` trainer mode (network output added to the hand-crafted evaluation before the sigmoid, output layer initialised to zero) on 13,428,686 self-play positions with pure search-score targets (`--lambda 0`, lr 0.001, batch 16384, best of 8 epochs = epoch 2); engine adds the net's centipawns to the hand-crafted score (`res128` = 6.3.0 source + `src/nnue_weights.inc`, `bench 11` = 417491) | 6.3.0 release (`v63`) | 20k nodes/move, 500 games, concurrency 4 | 209W 88L 203D = 62.10 % (2 min 44 s) | +86 +/- 24 / +114 +/- 30 | Passed the pre-stated fixed-node gate (>= 53 %); confirmed at a real clock in item 39 and adopted (6.4.0) | `res128_vs_v63` |
+| 39 | Same `res128` build at a real clock | `v63` | 10+0.1, `Hash=32`, `timemargin=200`, concurrency 4, no adjudication, 200 games | 49W 23L 128D = 56.50 %; all 200 games terminated normally, no time losses | +45 +/- 26 / +84 +/- 48 | Passed the pre-stated real-clock gate (>= 51.5 %); the net ships in 6.4.0 | `resnnue_vs_v63_tc` |
 
 ## 3. Rejected or superseded changes
 
@@ -138,6 +153,12 @@ within each round. "vs" names the baseline binary.
 | 32 | Smaller reverse-futility margin (`RfpMargin=60` instead of 72) | `base` | SPRT elo0=0 elo1=5, 20k nodes/move, concurrency 3, stopped under the 1500-game rule (10 min) | 1600 games: 437W 440L 723D = 49.91 %, LLR -0.23 | -0.7 +/- 12.0 / -0.9 +/- 17.0 | Not adopted | `sprt63_rfp60` |
 | 33 | Late-move pruning keeps one more quiet move per depth (`LmpBase=4` instead of 3) | `base` | SPRT elo0=0 elo1=5, 20k nodes/move, concurrency 3, ran to the 8000-game limit (50 min 28 s) | 8000 games: 2261W 2176L 3563D = 50.53 %, LLR 0.86 (no bound reached) | +3.7 +/- 5.5 / +5.1 +/- 7.6 | Not adopted alone (below the LLR >= 1.0 / 51.5 % bar); adopted as part of item 35 | `sprt63_lmp4` |
 | 34 | History bonus grows faster and saturates later (`HistoryBonusMax=2048`, `HistoryBonusQuadratic=20` instead of 1536 and 16) | `base` | SPRT elo0=0 elo1=5, 20k nodes/move, concurrency 3, ran to the 8000-game limit (50 min 0 s) | 8000 games: 2295W 2247L 3458D = 50.30 %, LLR 0.10 (no bound reached) | +2.1 +/- 5.7 / +2.8 +/- 7.6 | Not adopted alone; adopted as part of item 35 | `sprt63_histbonus` |
+| 36 | Futility pruning margins `FutilityBase=80` + `FutilityMultiplier=130` (defaults 100 / 110) | `base` (6.3.0 release source, tunables exposed, `bench 11` = 344040) | SPRT elo0=0 elo1=5, 20k nodes/move, 2 cores (54 min), stopped under the rule | 5600 games: 1589W 1567L 2444D = 50.20 %, LLR -0.14 | +1.4 +/- 6.5 / +1.9 +/- 9.1 | Not adopted | `sprt64_futility` |
+| 37 | SEE pruning threshold for quiet moves `SeeQuietMultiplier=18` (default 24) | `base` (6.3.0) | SPRT as above, 2 cores (50 min), stopped under the rule | 5000 games: 1430W 1380L 2190D = 50.50 %, LLR 0.46 | +3.5 +/- 7.1 / +4.7 +/- 9.6 | Not adopted (at the 50.5 % boundary with a positive LLR; no spare time for a combination test) | `sprt64_seequiet` |
+| 40 | Residual NNUE with 256 hidden units (`res256`, run 6 of the training table below, 6 epochs, best = epoch 2, lambda-0.5 validation 0.026439 vs 0.026498 for the 128 net; `bench 11` = 403670) | `v63` | 20k nodes/move, 500 games, concurrency 4 | 218W 98L 184D = 62.00 % | +85 +/- 26 / +105 +/- 30 | Superseded: same strength as the 128 net (item 38) at fixed nodes with a 2x larger include file and accumulator; the 128 net shipped | `res256_vs_v63` |
+| 41 | Quiescence SEE pruning margin `QsSeeMargin=80` (default 40) | `base64` (6.3.0 source with the adopted residual net, tunables exposed, `bench 11` = 417491) | SPRT as above, 4 cores (15 min), stopped under the rule | 3198 games: 870W 870L 1458D = 50.00 %, LLR -0.66 (last 100-game report: 3000 games, 821W 821L 1358D = 50.00 %) | 0 / 0 | Not adopted | `sprt64_qssee` |
+| 42 | History pruning threshold `HistoryPruneMultiplier=3000` (default 2048) | `base64` | SPRT as above, 4 cores (26 min), stopped under the rule | 4600 games: 1235W 1241L 2124D = 49.93 %, LLR -0.60 | -0.5 +/- 7.1 / -0.6 +/- 10.0 | Not adopted | `sprt64_histprune` |
+| 43 | Null-move eval-margin divisor `NullMoveEvalDivisor=150` (default 200) | `base64` | SPRT as above, 4 cores (23 min), stopped under the rule | 4000 games: 1045W 1112L 1843D = 49.16 %, LLR -1.79 | -5.8 +/- 7.6 / -8.3 +/- 10.8 | Not adopted | `sprt64_nmpeval` |
 
 ## 4. Experiments without games
 
@@ -150,14 +171,21 @@ within each round. "vs" names the baseline binary.
 | Profiling | gprof-instrumented development build (`forge_prof`) searching the bench positions during the 6.2.0 work | Share of search time per function group | Evaluation ~26-27 %, move-list sorting ~16-20 %, TT probe ~12 % | Motivated the lazy move sorting of item 20 |
 | Texel fit with the pawn-island and candidate-passer terms (item 29) | `forge_texel` on the 4,674,912-position set with the two new terms added to the parameter table (9 new entries), 500 epochs, lr 1.0 halved every 200, lambda 0.5, reg 2e-9 | Final training loss | 0.028749 against 0.028870 for the 6.2.0 table on the same data and settings | Better fit but no gain in play (49.4 % over 400 games); not adopted |
 | Second NNUE training run (6.3.0 round) | 768 -> 256x2 SCReLU net, 30 epochs (Adam, lr 0.001 halved every 8 epochs, lambda 0.5), trained on 9,415,054 positions: 5,892,336 from 82,694 self-play games at 4k nodes/move with random EPD openings (`/tmp/data5/games1-5.pgn`: 34,452 played on 13 October by the `t4` development build of the 6.2.0 evaluation, 48,242 played during this round by the 6.2.0 release binary) plus the 3,522,718-position 6.1.0 set | Training loss per epoch; validation loss on 300,000 held-out random-opening positions (`/tmp/data3/random_positions.txt`, not in the training set); shipping threshold 0.0300 (hand-crafted evaluation about 0.0294 on this set) | Best validation 0.0333 at epoch 2 (training 0.0270), then rising every epoch: epoch 30 training 0.0166 / validation 0.0368 | Overfits like the 6.1.0 nets; no weights shipped and no match played |
+| Residual-mode check (6.4.0 round) | `forge_nnue_train --residual` with the output layer at zero and `--lr 0`, i.e. the network contributes nothing, scored on the 300,000-position random-opening holdout (`/tmp/data5/holdout.txt`) at several `--k` and `--lambda` values | Validation loss of the hand-crafted evaluation in the trainer's own metric | lambda 0.5: k 1.0 0.03103, 1.2 0.02972, 1.4 0.02872, 1.6 0.02800, 1.8 0.02751, 2.0 0.02722, 2.25 (engine constant) 0.027083; lambda 0.1 (k 2.25): 0.008570; lambda 0.0: 0.007565; on the 300,000 held-out training-distribution positions (`holdout6.txt`, lambda 0.5): 0.029803 | Baselines for every residual run below; the pre-stated figure "0.0294" came from `forge_texel` with its own fitted K and is not comparable |
+| Residual NNUE run 1 (6.4.0 round) | 768 -> 256x2, `--residual`, lambda 0.5, lr 0.001 (halved every 8 epochs), batch 16384, Adam, 4 threads, 30 epochs planned, trained on 13,728,686 positions (5,892,336 `positions5` + 4,313,632 `positions6` from the 53,656 new 6.3.0 self-play games at 4k nodes/move + 3,522,718 `nnue_all`); 15 s per epoch | Training loss per epoch; validation loss on the 300,000-position holdout (lambda 0.5; hand-crafted evaluation 0.027083) | Epoch 1: training 0.027672 / validation 0.027836 (best); then validation rose every epoch while training fell: epoch 8 0.020180 / 0.030515, epoch 19 0.019041 / 0.031511 (stopped) | Worse than the hand-crafted evaluation from the first epoch; not played |
+| Residual NNUE runs 2-4 (6.4.0 round) | Same data minus the last 300,000 lines of `positions6` (13,428,686 positions), 8 epochs each: run 2 = 256 hidden, lr 0.0005; run 3 = 128 hidden (`-DFORGE_NNUE_HIDDEN=128`), lr 0.001; run 4 = 256 hidden, lr 0.001, lambda 0.1 | As above (run 4 in the lambda-0.1 metric, hand-crafted evaluation 0.008570) | Run 2: best validation 0.027365 at epoch 1 (training 0.028678), 0.030061 at epoch 8 (training 0.021458). Run 3: best 0.027402 at epoch 1 (training 0.028292), 0.029127 at epoch 8 (training 0.022845). Run 4: 0.008234 at epoch 1 (better than the hand-crafted 0.008570; training 0.007497), 0.008623 at epoch 8 (training 0.005690) | Result-weighted targets overfit from epoch 1 regardless of learning rate and width; the first setting to beat the hand-crafted evaluation was the score-heavy lambda 0.1 |
+| Residual NNUE diagnostic (6.4.0 round) | Run-1 settings (256 hidden, lambda 0.5, lr 0.001, 6 epochs) validated on `holdout6.txt`, 300,000 positions from the last ~3,700 games of the new self-play stream (same opening book and node count as the training games) | Validation loss on the training distribution (hand-crafted evaluation 0.029803) | 0.030262 at epoch 1 rising to 0.032888 at epoch 6 (training 0.027654 -> 0.020697) | The nets fail on unseen games of the training distribution itself, i.e. they memorise game results of correlated positions; a distribution shift to the random-opening holdout is not the explanation |
+| Residual NNUE runs 5-6, shipped net (6.4.0 round) | Pure search-score targets (lambda 0.0), lr 0.001, batch 16384, 13,428,686 positions: run 5 = 128 hidden (8 epochs, 4 s per epoch), run 6 = 256 hidden (6 epochs, 14 s per epoch) | Validation loss on the 300,000-position holdout in the lambda-0 metric (hand-crafted evaluation 0.007565), then the saved best net rescored in the lambda-0.5 metric (hand-crafted 0.027083) | Run 5: 0.007180 (epoch 1), 0.007121 (epoch 2, best, training 0.006200), then 0.007131, 0.007148, 0.007159, 0.007181, 0.007195, 0.007203; lambda-0.5 metric 0.026498. Run 6: 0.007163 (epoch 1), 0.007163 (epoch 2, best, training 0.005917), then rising to 0.007347 at epoch 6; lambda-0.5 metric 0.026439 | Both beat the hand-crafted evaluation by 6 % (lambda 0) / 2 % (lambda 0.5), passing the gate; run 5's epoch-2 net (`resnet_run5_h128_l0.inc`) is `src/nnue_weights.inc` in 6.4.0 (items 38 and 39); run 6 played item 40 |
+| Residual-net zero check and speed (6.4.0 round) | Engine built with a residual include whose output layer is zero (`zero_check.inc`), and with the shipped net | `bench 11` signature and nodes per second on the development VM | Zero output layer: 344040 nodes, identical to the hand-crafted evaluation (1.20M nps vs 2.05M, the cost of running both evaluations); shipped 128 net: 417491 nodes, 1.75M nps idle (256 net: 403670 nodes, same speed) | Confirms that the engine adds the net to the hand-crafted score exactly as trained; the network costs about 15 % of the nodes per second |
+| Output-layer code generation (6.4.0 round) | `nnue::evaluate` micro-benchmark (1M calls, start position) and `bench 11` of static builds per target, before and after rewriting the SCReLU output layer with SSE min/max/mul/add intrinsics over 16 fixed-order partial sums | Nanoseconds per call; nodes per second | Before: 155 ns (x86-64-v3), 148 ns (x86-64-v2), 32 ns (x86-64-v4); engine 0.86M / 0.76M / 1.75M nps. After: 35-37 ns on all three targets; engine 1.78M (v3), 1.62M (v2), 1.85M (znver4) nps on the test VM, `bench 11` unchanged at 417491 on every target | Shipped; GCC had compiled the float clamp as scalar branchy code on AVX2 targets without `-ffast-math` |
 
 ## 5. PGN archive index
 
-`all-match-pgns.zip` (46,441,011 bytes, SHA-256
-`be0a1afcfa4eab5e8ea47fb6b1b488800e50b8eb28b6b2ebfe1c7c2a639ae9e5`) contains a
-`pgns/` folder with 35 files, 190,776,537 bytes and 51,752 games uncompressed
+`all-match-pgns.zip` (67,169,642 bytes, SHA-256
+`acbd91b4a7f7829092eede5472e2c40de1e34f33e469f6b2927c61b58ad27960`) contains a
+`pgns/` folder with 44 files, 281,063,155 bytes and 76,047 games uncompressed
 (26 files / 22,367 games from the 6.0.0-6.2.0 work, 9 files / 29,385 games
-from the 6.3.0 round). Each file is the unmodified `games.pgn` of its match
+from the 6.3.0 round, 9 files / 24,295 games from the 6.4.0 round). Each file is the unmodified `games.pgn` of its match
 directory. The training self-play games used for tuning are not matches and
 are not included.
 
@@ -198,6 +226,15 @@ are not included.
 | `sprt-lmp-base-4.pgn` | SPRT `LmpBase=4` vs default, 20k nodes, 8000-game limit | 33 | `sprt63_lmp4` | 8000 |
 | `sprt-history-bonus-max-2048-quadratic-20.pgn` | SPRT `HistoryBonusMax=2048` + `HistoryBonusQuadratic=20` vs default, 20k nodes, 8000-game limit | 34 | `sprt63_histbonus` | 8000 |
 | `sprt-lmp-base-4-history-bonus-2048-20.pgn` | SPRT `LmpBase=4` + `HistoryBonusMax=2048` + `HistoryBonusQuadratic=20` vs default, 20k nodes, H1 accepted | 35 | `sprt63_lmp4_histbonus` | 3670 |
+| `forge-6.4.0-vs-sf19-3000-20+0.2.pgn` | 6.4.0 release vs SF19 3000, 20+0.2 | 9 | `v64_vs_sf3000_170334` | 100 |
+| `sprt-futility-base-80-multiplier-130.pgn` | SPRT `FutilityBase=80` + `FutilityMultiplier=130` vs default, 20k nodes (6.4.0 round, 6.3.0 source) | 36 | `sprt64_futility` | 5649 (console report at 5600; full file: 1606W 1583L 2460D = 50.20 %) |
+| `sprt-see-quiet-multiplier-18.pgn` | SPRT `SeeQuietMultiplier=18` vs default, 20k nodes (6.3.0 source) | 37 | `sprt64_seequiet` | 5093 (console report at 5000; full file: 1458W 1409L 2226D = 50.48 %) |
+| `dev-residual-nnue-128-vs-6.3.0-20k.pgn` | Residual NNUE 768x128 (`res128`) vs 6.3.0, 20k nodes | 38 | `res128_vs_v63` | 500 |
+| `dev-residual-nnue-128-vs-6.3.0-10+0.1.pgn` | Residual NNUE 768x128 (`res128`) vs 6.3.0, 10+0.1 | 39 | `resnnue_vs_v63_tc` | 200 |
+| `dev-residual-nnue-256-vs-6.3.0-20k.pgn` | Residual NNUE 768x256 (`res256`) vs 6.3.0, 20k nodes | 40 | `res256_vs_v63` | 500 |
+| `sprt-qs-see-margin-80.pgn` | SPRT `QsSeeMargin=80` vs default, 20k nodes (residual net compiled in) | 41 | `sprt64_qssee` | 3394 (console report at 3198; full file: 923W 923L 1548D = 50.00 %) |
+| `sprt-history-prune-multiplier-3000.pgn` | SPRT `HistoryPruneMultiplier=3000` vs default, 20k nodes (residual net compiled in) | 42 | `sprt64_histprune` | 4741 (console report at 4600; full file: 1274W 1279L 2188D = 49.95 %) |
+| `sprt-null-move-eval-divisor-150.pgn` | SPRT `NullMoveEvalDivisor=150` vs default, 20k nodes (residual net compiled in) | 43 | `sprt64_nmpeval` | 4118 (console report at 4000; full file: 1086W 1140L 1892D = 49.34 %) |
 
 Not in the archive: the `SeeNoisyMultiplier=100` and `AspirationDelta=12`
 SPRTs of item 24 (killed after a handful of games, no records kept) and the two
