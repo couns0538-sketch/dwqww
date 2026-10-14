@@ -159,7 +159,7 @@ int main() {
         input >> command;
         if (command == "uci") {
             const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex());
-            std::cout << "id name Chess Engine Forge 6.1.0\n"
+            std::cout << "id name Chess Engine Forge 6.2.0\n"
                          "id author OpenAI\n"
                          "option name Hash type spin default 32 min 1 max 2048\n"
                          "option name Threads type spin default 1 min 1 max 256\n"

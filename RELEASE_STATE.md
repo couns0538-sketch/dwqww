@@ -1,3 +1,31 @@
+# Release state — Chess Engine Forge 6.2.0
+
+Status: **strength release; roughly level with Stockfish 19 at UCI_Elo 3000 in
+measured single-threaded matches**.
+
+Against Stockfish 19 with `UCI_LimitStrength=true UCI_Elo=3000` (one thread,
+Hash 64, 8moves_v3 openings) the pre-release build scored 47.75 % over 200
+games at 10+0.1 (66W 75L 59D) and the shipped binary scored 51.5 % over 100
+games at 20+0.2 (35W 32L 33D). Match records live in `validation/release-6.0.0/`.
+
+Engine changes relative to 6.1.0 are described in `CHANGELOG.md`: embedded
+engine-generated opening book with Polyglot support, cutoff-count LMR (SPRT
++21 Elo), material correction history, new evaluation terms and a retuned
+table, a lazy move picker, and a falling-evaluation time extension. Validation
+performed for this release: GCC Release build, `forge_tests` and 4/4 CTest
+suites (C++ tests, match-tool tests, UCI regression, ponder regression),
+fixed-node SPRTs for each search change, a time-control A/B of the time
+manager, and time-control matches against the reference opponent. The
+`bench 11` signature of the shipped binaries is 340241 nodes; the Linux and
+Windows x86-64-v2/v3 builds were executed (Windows under Wine) and the Zen 4
+(`znver4`) builds were 4.
+
+Not done for this release: tablebases, NNUE weights (the trainer ships, the
+nets so far lose to the tuned hand-crafted evaluation), native Windows
+testing.
+
+---
+
 # Release state — Chess Engine Forge 6.1.0
 
 Status: **strength release; beats Stockfish 19 at UCI_Elo 2800 in measured matches**.

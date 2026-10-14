@@ -1,29 +1,37 @@
 # Chess Engine Forge
 
-Chess Engine Forge 6.1.0 is a C++20 UCI chess engine. The 6.x series is a
+Chess Engine Forge 6.2.0 is a C++20 UCI chess engine. The 6.x series is a
 strength rewrite: the move generator, search, and evaluation were rebuilt from
 the ground up for playing strength, replacing the conservative 5.x search.
-6.1.0 adds multi-threaded search (`Threads`), tuning options and the NNUE
-training tools.
+6.1.0 added multi-threaded search (`Threads`), tuning options and the NNUE
+training tools; 6.2.0 adds a built-in engine-generated opening book with
+Polyglot support, cutoff-count LMR, material correction history, new
+evaluation terms with a retuned table, a faster move picker and prebuilt Zen 4
+(`-march=znver4`) binaries.
 
 ## Strength
 
 Measured on this project's reference ladder: Stockfish 19 with
-`UCI_LimitStrength=true UCI_Elo=2800`, 8moves_v3 openings, one thread each,
-Hash 64 MB, fastchess. See `validation/release-6.0.0/` for the match records.
+`UCI_LimitStrength=true` at `UCI_Elo` 2800 and 3000, 8moves_v3 openings, one
+thread each, Hash 64 MB, fastchess. See `validation/release-6.0.0/` for the
+match records.
 
-| Engine | TC | Games | Score vs SF 19 @ 2800 |
-| --- | --- | --- | --- |
-| Forge 5.31.0 (previous release) | 10+0.1 | 20 | 10.0 % (1W 17L 2D) |
-| Forge 6.0.0 | 10+0.1 | 200 | 69.0 % (118W 42L 40D), +158 Elo |
-| Forge 6.0.0 | 30+0.3 | 100 | 82.5 % (79W 14L 7D), +331 Elo |
-| Forge 6.1.0 | 10+0.1 | 200 | 75.0 % (134W 34L 32D), +224 Elo |
+| Engine | Opponent | TC | Games | Score |
+| --- | --- | --- | --- | --- |
+| Forge 5.31.0 (previous release) | SF 19 @ 2800 | 10+0.1 | 20 | 10.0 % (1W 17L 2D) |
+| Forge 6.0.0 | SF 19 @ 2800 | 10+0.1 | 200 | 69.0 % (118W 42L 40D), +158 Elo |
+| Forge 6.0.0 | SF 19 @ 2800 | 30+0.3 | 100 | 82.5 % (79W 14L 7D), +331 Elo |
+| Forge 6.1.0 | SF 19 @ 2800 | 10+0.1 | 200 | 75.0 % (134W 34L 32D), +224 Elo |
+| Forge 6.2.0 (pre-release build) | SF 19 @ 3000 | 10+0.1 | 200 | 47.75 % (66W 75L 59D), -16 Elo |
+| Forge 6.2.0 | SF 19 @ 3000 | 20+0.2 | 100 | 51.5 % (35W 32L 33D), +10 +/- 60 Elo |
 
 With `Threads=4` on a four-core machine the engine scores 75 % (26W 1L 23D over
 50 games at 8+0.08) against its own single-threaded build.
 
 Stockfish's `UCI_Elo` scale is anchored to CCRL blitz ratings, so a score above
-50 % against this opponent corresponds to a rating above 2800 on that scale.
+50 % against the 2800 opponent corresponds to a rating above 2800 on that scale,
+and the roughly even result against the 3000 opponent places the single-threaded
+engine near 3000 at blitz.
 
 ## Features
 
@@ -44,8 +52,10 @@ Search
   stored static evaluation, prefetch)
 - Staged move picker: hash move, SEE-filtered captures with capture history,
   killers, countermove, history-ordered quiets (checks first), losing captures
-- Butterfly, continuation (1/2/4 ply), capture, and correction histories
-- Late move reductions with history, PV, cut-node, check, and improving terms
+- Butterfly, continuation (1/2/4 ply), capture, and pawn- and material-keyed
+  correction histories
+- Late move reductions with history, PV, cut-node, check, improving and
+  child-cutoff-count terms
 - Late move pruning, futility pruning, reverse futility pruning, razoring,
   SEE pruning for quiets and captures, history pruning
 - Null move pruning with adaptive reduction and high-depth verification
@@ -54,7 +64,8 @@ Search
 - Quiescence search with transposition table, futility and SEE pruning, and
   full evasion generation when in check
 - Mate distance pruning, 50-move and insufficient-material detection
-- Time management with soft/hard limits, best-move stability and effort scaling
+- Time management with soft/hard limits, best-move stability, effort scaling and
+  falling-evaluation extension
 - Lazy SMP: helper threads search the same root sharing the transposition table
 
 Evaluation (tapered, parametrized)
@@ -65,7 +76,10 @@ Evaluation (tapered, parametrized)
 - Passed pawns: rank, blockade, free/safe path, king proximity
 - King safety: pawn shelter and storm, attack units with safe-check bonuses
 - Threats: pawn threats and pushes, minor/rook/king threats, hanging pieces
-- Bishop pair, rook on open/semi-open file and seventh rank, outposts
+- Bishop pair, rook on open/semi-open file and seventh rank, rook behind a
+  passed pawn, outposts, long-diagonal bishops
+- Material imbalance, space, weak queen, weak unopposed pawns, king-to-pawn
+  distance
 - Endgame scaling for opposite-coloured bishops and drawn material imbalances
 - Every term is an entry in `src/eval_params_table.inc`, which the included
   Texel tuner can regenerate from self-play data
