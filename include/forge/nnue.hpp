@@ -9,10 +9,12 @@ namespace forge::nnue {
 
 // Architecture: for each colour's perspective, 768 piece-square inputs feed a
 // HiddenSize accumulator (incrementally updated); SCReLU of the side-to-move
-// and opponent accumulators is combined by a single linear output.
+// and opponent accumulators is combined by a single linear output. The shipped
+// network (src/nnue_weights.inc) is a residual correction added to the
+// hand-crafted evaluation; see nnue::residual().
 constexpr int InputCount = 768;
 #ifndef FORGE_NNUE_HIDDEN
-#define FORGE_NNUE_HIDDEN 256
+#define FORGE_NNUE_HIDDEN 128
 #endif
 constexpr int HiddenSize = FORGE_NNUE_HIDDEN;
 constexpr float WeightScale = 4096.0F;   // quantisation of w1 / b1 in the include file

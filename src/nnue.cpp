@@ -16,6 +16,12 @@
 #ifndef FORGE_NNUE_RESIDUAL
 #define FORGE_NNUE_RESIDUAL 0
 #endif
+#if FORGE_HAS_NNUE
+static_assert(sizeof(NnueW1) / sizeof(NnueW1[0]) == static_cast<std::size_t>(forge::nnue::InputCount) * forge::nnue::HiddenSize,
+              "nnue_weights.inc was trained for a different FORGE_NNUE_HIDDEN");
+static_assert(sizeof(NnueB1) / sizeof(NnueB1[0]) == static_cast<std::size_t>(forge::nnue::HiddenSize), "nnue_weights.inc b1 size");
+static_assert(sizeof(NnueW2) / sizeof(NnueW2[0]) == 2 * static_cast<std::size_t>(forge::nnue::HiddenSize), "nnue_weights.inc w2 size");
+#endif
 
 namespace forge::nnue {
 

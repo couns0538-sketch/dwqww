@@ -22,6 +22,9 @@ if(MSVC)
     target_compile_options(forge_core PRIVATE /W4 /permissive-)
 else()
     target_compile_options(forge_core PRIVATE -Wall -Wextra -Wpedantic -Wconversion -Wshadow)
+    # The NNUE accumulators are floats: forbid fused multiply-add contraction so
+    # that every build (native, x86-64-v2/v3, Zen 4) searches the same tree.
+    target_compile_options(forge_core PUBLIC -ffp-contract=off)
     if(FORGE_NATIVE)
         target_compile_options(forge_core PUBLIC -march=native)
     endif()
