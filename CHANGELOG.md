@@ -1,5 +1,50 @@
 # Changelog
 
+## 6.3.0 - 2026-10-14
+
+- Search: late-move pruning keeps one more quiet move per depth (`LmpBase`
+  3 -> 4) and the history bonus grows faster and saturates later
+  (`HistoryBonusQuadratic` 16 -> 20, `HistoryBonusMax` 1536 -> 2048). Tested
+  together in a fixed-node SPRT (20k nodes/move, elo0=0, elo1=5, normalized
+  model) against the same binary with the 6.2.0 defaults: H1 accepted after
+  3670 games, 52.37 % (1122W 948L 1600D), LLR 2.97, +16 +/- 8 Elo (nElo +22
+  +/- 11). Tested alone, each half had run to the 8000-game limit without
+  reaching a bound: `LmpBase=4` 50.53 % (2261W 2176L 3563D, LLR 0.86, +3.7
+  +/- 5.5 Elo) and the history-bonus pair 50.30 % (2295W 2247L 3458D, LLR
+  0.10, +2.1 +/- 5.7 Elo). `bench 11` = 344040 nodes.
+- Tried and not adopted, fixed-node SPRTs at 20k nodes/move (same bounds),
+  each stopped under the pre-stated rule "reject at or below 50.5 % after
+  1500 games": `SingularMargin=1` (1600 games, 49.84 %, 462W 467L 671D, LLR
+  -0.26); `ProbcutDepth=4` (3800 games, 49.92 %, 1060W 1066L 1674D, LLR
+  -0.51); `LmrHistoryDivisor=4000` (1800 games, 50.39 %, 506W 492L 802D, LLR
+  0.09); `RfpMargin=60` (1600 games, 49.91 %, 437W 440L 723D, LLR -0.23).
+- Evaluation experiment, not adopted: two new pawn-structure terms, a
+  penalty per pawn island beyond the first and a candidate-passer bonus by
+  rank (unopposed, non-passed pawn whose stop square is attacked by no more
+  enemy pawns than it has potential supporters), with the whole table
+  refitted on the 4.67M-position set (`forge_texel` loss 0.028870 ->
+  0.028749). Fixed-node self-play against 6.2.0 at 20k nodes/move: 49.4 %
+  over 400 games (110W 115L 175D, -4 +/- 26 Elo); the terms were reverted.
+- NNUE experiment, not adopted: a 768 -> 256x2 net trained for 30 epochs on
+  9,415,054 self-play positions (82,694 games at 4k nodes/move played by
+  6.2.0-era builds, 48,242 of them by the release binary during this round,
+  plus the 6.1.0 set) reached its best validation loss of 0.0333 at
+  epoch 2 on 300,000 held-out random-opening positions (hand-crafted
+  evaluation: 0.0294; shipping threshold 0.0300) and overfitted afterwards
+  (training loss 0.0166, validation 0.0368 at epoch 30). No weights shipped;
+  the engine still evaluates with the tuned hand-crafted evaluation.
+- Against Stockfish 19 at `UCI_Elo 3000` (one thread, Hash 64, 8moves_v3,
+  20+0.2): 50.0 % over 100 games (33W 33L 34D, 0 +/- 54 Elo), every game
+  terminated normally. 6.2.0 scored 51.5 % (35W 32L 33D) under the same
+  conditions; the two results are indistinguishable at this sample size, and
+  the fixed-node SPRT above is the measurement that separates the two builds.
+  Record in `validation/release-6.0.0/forge-6.3.0-vs-sf19-3000-20+0.2.pgn`.
+- Release archive `chess-engine-forge-6.3.0.zip` with statically linked Linux
+  and Windows binaries for x86-64-v2, x86-64-v3 and Zen 4 (`-march=znver4`),
+  all reporting `bench 11` = 344040 nodes (Windows builds checked under Wine).
+  The experiment record `validation/release-6.0.0/EXPERIMENTS.md` and the PGN
+  archive `all-match-pgns.zip` were extended with every match of this round.
+
 ## 6.2.0 - 2026-10-13
 
 - Opening book. `forge::book` reads Polyglot `.bin` files (keys validated

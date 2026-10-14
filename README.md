@@ -1,13 +1,17 @@
 # Chess Engine Forge
 
-Chess Engine Forge 6.2.0 is a C++20 UCI chess engine. The 6.x series is a
+Chess Engine Forge 6.3.0 is a C++20 UCI chess engine. The 6.x series is a
 strength rewrite: the move generator, search, and evaluation were rebuilt from
 the ground up for playing strength, replacing the conservative 5.x search.
 6.1.0 added multi-threaded search (`Threads`), tuning options and the NNUE
-training tools; 6.2.0 adds a built-in engine-generated opening book with
+training tools; 6.2.0 added a built-in engine-generated opening book with
 Polyglot support, cutoff-count LMR, material correction history, new
 evaluation terms with a retuned table, a faster move picker and prebuilt Zen 4
-(`-march=znver4`) binaries.
+(`-march=znver4`) binaries. 6.3.0 adds retuned late-move pruning and history
+bonus constants (`LmpBase=4`, `HistoryBonusQuadratic=20`,
+`HistoryBonusMax=2048`), accepted by a fixed-node SPRT at +16 Elo over 6.2.0,
+and records the experiments that did not make it (four other search
+constants, two pawn-structure evaluation terms, a second NNUE net).
 
 ## Strength
 
@@ -24,6 +28,7 @@ match records.
 | Forge 6.1.0 | SF 19 @ 2800 | 10+0.1 | 200 | 75.0 % (134W 34L 32D), +224 Elo |
 | Forge 6.2.0 (pre-release build) | SF 19 @ 3000 | 10+0.1 | 200 | 47.75 % (66W 75L 59D), -16 Elo |
 | Forge 6.2.0 | SF 19 @ 3000 | 20+0.2 | 100 | 51.5 % (35W 32L 33D), +10 +/- 60 Elo |
+| Forge 6.3.0 | SF 19 @ 3000 | 20+0.2 | 100 | 50.0 % (33W 33L 34D), 0 +/- 54 Elo |
 
 With `Threads=4` on a four-core machine the engine scores 75 % (26W 1L 23D over
 50 games at 8+0.08) against its own single-threaded build.

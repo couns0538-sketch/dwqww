@@ -1,3 +1,36 @@
+# Release state — Chess Engine Forge 6.3.0
+
+Status: **incremental strength release; search constants retuned by SPRT
+(+16 Elo at fixed nodes over 6.2.0), validated against Stockfish 19 at
+UCI_Elo 3000**.
+
+Against Stockfish 19 with `UCI_LimitStrength=true UCI_Elo=3000` (one thread,
+Hash 64, 8moves_v3 openings) the shipped binary scored 50.0 % over 100 games
+at 20+0.2 (33W 33L 34D, 0 +/- 54 Elo); 6.2.0 scored 51.5 % (35W 32L 33D)
+under the same conditions, a difference well inside the noise of 100 games.
+Match records live in `validation/release-6.0.0/`.
+
+Engine change relative to 6.2.0 (see `CHANGELOG.md`): late-move pruning keeps
+one more quiet move per depth (`LmpBase=4`) and the history bonus grows faster
+and saturates later (`HistoryBonusQuadratic=20`, `HistoryBonusMax=2048`);
+the combination was accepted by a fixed-node SPRT (20k nodes/move, elo0=0,
+elo1=5) after 3670 games at 52.37 %, LLR 2.97. Four other search constants
+(`SingularMargin=1`, `ProbcutDepth=4`, `LmrHistoryDivisor=4000`,
+`RfpMargin=60`), two new pawn-structure evaluation terms with a retuned table,
+and a second NNUE net were tested and rejected; every run is recorded in
+`validation/release-6.0.0/EXPERIMENTS.md` with its games in
+`all-match-pgns.zip`. Validation performed for this release: GCC Release
+build, `forge_tests` and 4/4 CTest suites, the SPRTs above, and the
+time-control match against the reference opponent. The `bench 11` signature
+of the shipped binaries is 344040 nodes; all six static builds (Linux and
+Windows, x86-64-v2/v3 and Zen 4) were executed, the Windows ones under Wine.
+
+Not done for this release: tablebases, NNUE weights (the trainer ships; the
+nets so far overfit and lose to the tuned hand-crafted evaluation), native
+Windows testing.
+
+---
+
 # Release state — Chess Engine Forge 6.2.0
 
 Status: **strength release; roughly level with Stockfish 19 at UCI_Elo 3000 in
