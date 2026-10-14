@@ -5,6 +5,16 @@
 #include <cstdint>
 #include <memory>
 
+// The output layer uses SSE min/max/mul/add directly: compilers may not turn a
+// float clamp into min/max instructions without -ffast-math, which left the
+// AVX2 builds with slow scalar code. SSE2 is part of every x86-64 target.
+#if defined(__SSE__) || defined(_M_X64) || defined(_M_AMD64)
+#include <xmmintrin.h>
+#define FORGE_NNUE_SSE 1
+#else
+#define FORGE_NNUE_SSE 0
+#endif
+
 #if __has_include("nnue_weights.inc")
 #include "nnue_weights.inc"
 #define FORGE_HAS_NNUE 1
@@ -103,12 +113,41 @@ int evaluate(const Board& board, const Accumulator& accumulator) {
     const Color us = board.side_to_move();
     const auto& ours = accumulator.values[static_cast<std::size_t>(us)];
     const auto& theirs = accumulator.values[static_cast<std::size_t>(opposite(us))];
-    float out = w.b2;
-    for (int h = 0; h < HiddenSize; ++h) {
-        const float a = std::clamp(ours[static_cast<std::size_t>(h)], 0.0F, 1.0F);
-        const float b = std::clamp(theirs[static_cast<std::size_t>(h)], 0.0F, 1.0F);
-        out += a * a * w.w2[static_cast<std::size_t>(h)] + b * b * w.w2[static_cast<std::size_t>(HiddenSize + h)];
+    // Sixteen independent partial sums (lane j takes the hidden units with
+    // index % 16 == j, in increasing order) and then one ordered sum: the
+    // association is fixed by the source, so every target (SSE, AVX2, AVX-512,
+    // the scalar fallback) produces bit-identical results without -ffast-math.
+    constexpr int Lanes = 16;
+    static_assert(HiddenSize % Lanes == 0, "HiddenSize must be a multiple of the lane count");
+    alignas(64) float lanes[Lanes];
+#if FORGE_NNUE_SSE
+    const __m128 zero = _mm_setzero_ps();
+    const __m128 one = _mm_set1_ps(1.0F);
+    __m128 sums[4] = {zero, zero, zero, zero};
+    for (int h = 0; h < HiddenSize; h += Lanes) {
+        for (int k = 0; k < 4; ++k) {
+            const std::size_t base = static_cast<std::size_t>(h + 4 * k);
+            const __m128 a = _mm_min_ps(_mm_max_ps(_mm_load_ps(ours.data() + base), zero), one);
+            const __m128 b = _mm_min_ps(_mm_max_ps(_mm_load_ps(theirs.data() + base), zero), one);
+            const __m128 term = _mm_add_ps(_mm_mul_ps(_mm_mul_ps(a, a), _mm_load_ps(w.w2.data() + base)),
+                                           _mm_mul_ps(_mm_mul_ps(b, b), _mm_load_ps(w.w2.data() + HiddenSize + base)));
+            sums[k] = _mm_add_ps(sums[k], term);
+        }
     }
+    for (int k = 0; k < 4; ++k) _mm_store_ps(lanes + 4 * k, sums[k]);
+#else
+    for (float& lane : lanes) lane = 0.0F;
+    for (int h = 0; h < HiddenSize; h += Lanes) {
+        for (int j = 0; j < Lanes; ++j) {
+            const std::size_t index = static_cast<std::size_t>(h + j);
+            const float a = std::min(std::max(ours[index], 0.0F), 1.0F);
+            const float b = std::min(std::max(theirs[index], 0.0F), 1.0F);
+            lanes[j] += a * a * w.w2[index] + b * b * w.w2[static_cast<std::size_t>(HiddenSize) + index];
+        }
+    }
+#endif
+    float out = w.b2;
+    for (int j = 0; j < Lanes; ++j) out += lanes[j];
     const float centipawns = out * 400.0F / SigmoidK;
     return static_cast<int>(std::clamp(centipawns, -30000.0F, 30000.0F));
 }
