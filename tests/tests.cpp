@@ -7,6 +7,7 @@
 #include <array>
 #include <cctype>
 #include <cstdint>
+#include <cstdlib>
 #include <iostream>
 #include <string>
 #include <string_view>
@@ -439,13 +440,26 @@ void test_nnue() {
         }
     }
     check(mismatches == 0, "incremental NNUE accumulators match full refreshes");
+    // A residual network is a correction added to the hand-crafted evaluation,
+    // so the engine's static evaluation is the sum of both; a stand-alone
+    // network must carry the whole evaluation by itself.
+    auto static_eval = [](const forge::Board& b, const forge::nnue::Accumulator& accumulator) {
+        const int network = forge::nnue::evaluate(b, accumulator);
+        return forge::nnue::residual() ? forge::Evaluator::evaluate_uncached(b) + network : network;
+    };
     check(board.set_fen("6k1/8/8/8/8/8/8/Q3K3 w - - 0 1"), "nnue material FEN parses");
     forge::nnue::Accumulator acc;
     forge::nnue::refresh(board, acc);
-    check(forge::nnue::evaluate(board, acc) > 300, "NNUE sees a decisive material advantage");
+    check(static_eval(board, acc) > 300, "NNUE sees a decisive material advantage");
     check(board.set_fen("q3k3/8/8/8/8/8/8/6K1 b - - 0 1"), "nnue mirrored FEN parses");
     forge::nnue::refresh(board, acc);
-    check(forge::nnue::evaluate(board, acc) > 300, "NNUE evaluates from the side to move's perspective");
+    check(static_eval(board, acc) > 300, "NNUE evaluates from the side to move's perspective");
+    if (forge::nnue::residual()) {
+        // The correction must stay small relative to the evaluation it refines.
+        check(board.set_fen(forge::Board::StandardStartFen), "nnue start FEN parses");
+        forge::nnue::refresh(board, acc);
+        check(std::abs(forge::nnue::evaluate(board, acc)) < 200, "residual correction is bounded in the start position");
+    }
 }
 
 void test_transposition_table() {

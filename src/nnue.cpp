@@ -11,6 +11,11 @@
 #else
 #define FORGE_HAS_NNUE 0
 #endif
+// Include files written before residual training existed carry no flag and
+// hold stand-alone networks.
+#ifndef FORGE_NNUE_RESIDUAL
+#define FORGE_NNUE_RESIDUAL 0
+#endif
 
 namespace forge::nnue {
 
@@ -53,6 +58,8 @@ inline void sub_feature(std::array<float, HiddenSize>& acc, const float* column)
 } // namespace
 
 bool available() { return FORGE_HAS_NNUE != 0; }
+
+bool residual() { return FORGE_HAS_NNUE != 0 && FORGE_NNUE_RESIDUAL != 0; }
 
 void refresh(const Board& board, Accumulator& accumulator) {
     const Weights& w = weights();

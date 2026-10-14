@@ -46,6 +46,9 @@ struct DirtyPieces {
 
 // Whether a network is compiled into this binary.
 [[nodiscard]] bool available();
+// Whether the compiled-in network is a residual correction that the engine
+// adds to the hand-crafted evaluation (false when no network is compiled in).
+[[nodiscard]] bool residual();
 // Runtime switch (UCI option); only effective when available().
 extern bool enabled;
 

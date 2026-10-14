@@ -524,7 +524,10 @@ int Worker::static_evaluate(const Board& board, SearchStack* ss) {
             for (int i = back; i >= 0; --i) nnue::update((ss - i - 1)->accumulator, (ss - i)->accumulator, (ss - i)->dirty);
         }
     }
-    return nnue::evaluate(board, ss->accumulator);
+    const int network = nnue::evaluate(board, ss->accumulator);
+    if (!nnue::residual()) return network;
+    // A residual network is a learned correction on top of the hand-crafted evaluation.
+    return std::clamp(evaluator_.evaluate(board) + network, -MateInMaxPly + 1, MateInMaxPly - 1);
 }
 
 void Worker::record_move(SearchStack* ss, const Board& board, const Move& move) {
