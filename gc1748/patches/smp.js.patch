@@ -1,0 +1,155 @@
+--- /tmp/base1748/dist-v1.7.48/search/smp.js	2026-10-16 18:16:44.643256087 +0000
++++ /workspace/gc1748/dist-v1.7.48/search/smp.js	2026-10-16 18:41:11.528524427 +0000
+@@ -192,6 +192,13 @@
+                 w.postMessage({ type: 'nnue', use: nnueCfg.use, file: nnueCfg.file });
+             w.postMessage({ type: 'warmup', entries: hashEntries });
+         });
++        w.on('exit', () => {
++            const i = pool.indexOf(w);
++            if (i >= 0) {
++                pool.splice(i, 1);
++                poolReady.splice(i, 1);
++            }
++        });
+         pool.push(w);
+         poolReady.push(ready);
+     }
+@@ -220,27 +227,20 @@
+  * Prefer main (thread 0). Take a helper only if strictly deeper and not a
+  * clear score regression — avoids Lazy-SMP "deeper-but-wrong" blunders at short TC.
+  */
++let searchGen = 0;
++/** bestmove is always the main thread's last completed iteration (the PV already printed). */
+ function pickBest(results) {
+-    const main = results.find(r => r.threadId === 0) || results[0];
+-    let best = main;
+-    for (const r of results) {
+-        if (r.threadId === 0)
+-            continue;
+-        const deepEnough = r.depth >= main.depth + 2;
+-        const deeperOkScore = r.depth > main.depth && r.score >= main.score - 30;
+-        if (!deepEnough && !deeperOkScore)
+-            continue;
+-        if (r.depth > best.depth || (r.depth === best.depth && r.score > best.score)) {
+-            best = r;
+-        }
+-    }
+-    return best;
++    const main = results.find(r => r.threadId === 0);
++    if (main)
++        return main;
++    return { threadId: 0, best: null, depth: 0, score: 0, nodes: 0, pv: [] };
+ }
+-function helperGraceMs(limits) {
+-    if (limits.moveTime !== undefined) {
+-        return Math.min(400, Math.max(80, Math.floor(limits.moveTime * 0.25) + 50));
+-    }
+-    return 300;
++/** One generation per go, before any worker runs. Local tables still bump themselves. */
++function bumpSharedAge(bundle) {
++    if (!bundle)
++        return;
++    const meta = new Int32Array(bundle.metaSab);
++    Atomics.store(meta, 0, (Atomics.load(meta, 0) + 1) & 255);
+ }
+ /**
+  * Lazy SMP: ALL threads (including main/thread 0) run in warm workers.
+@@ -249,6 +249,7 @@
+  */
+ async function searchLazySmp(board, limits, threads, onInfo) {
+     const n = Math.max(1, Math.min(8, threads | 0));
++    const gen = ++searchGen;
+     const sab = new SharedArrayBuffer(4);
+     const stopFlag = new Int32Array(sab);
+     Atomics.store(stopFlag, 0, 0);
+@@ -263,9 +264,11 @@
+     const results = [];
+     const useSharedTT = n > 1;
+     const bundle = useSharedTT ? getSharedBundle() : null;
++    bumpSharedAge(bundle);
+     let mainDepth = 0, mainScore = 0, mainPv = [];
+     let mainNodes = 0;
+     let bestMainUci = null;
++    const cleanups = [];
+     const donePromises = workers.map((w, threadId) => {
+         return new Promise((resolve) => {
+             let settled = false;
+@@ -274,6 +277,8 @@
+                 resolve();
+             } };
+             const onMsg = (msg) => {
++                if (!msg || msg.gen !== gen)
++                    return;
+                 if (msg.type === 'info' && threadId === 0) {
+                     mainDepth = msg.depth;
+                     mainScore = msg.score;
+@@ -310,9 +315,21 @@
+                     finish();
+                 }
+             };
++            const onDead = () => {
++                if (settled)
++                    return;
++                results.push({ threadId, best: null, depth: 0, score: 0, nodes: 0, pv: [] });
++                finish();
++            };
++            w.on('exit', onDead);
+             w.on('message', onMsg);
++            cleanups.push(() => {
++                try { w.off('message', onMsg); } catch { /* */ }
++                try { w.off('exit', onDead); } catch { /* */ }
++            });
+             const job = {
+                 type: 'search',
++                gen,
+                 fen,
+                 rootHistHi,
+                 rootHistLo,
+@@ -338,31 +355,23 @@
+             catch { /* */ }
+         }
+     }
+-    if (n > 1) {
+-        const timed = limits.moveTime !== undefined || limits.wtime !== undefined || limits.btime !== undefined;
+-        const waitMs = timed ? helperGraceMs(limits) : 180000;
+-        await new Promise((resolve) => {
+-            let done = false;
+-            const finish = () => {
+-                if (done)
+-                    return;
+-                done = true;
+-                clearTimeout(timer);
+-                resolve();
+-            };
+-            const timer = setTimeout(finish, waitMs);
+-            Promise.all(donePromises.slice(1)).then(finish).catch(finish);
+-        });
+-    }
++    // Helpers were already told to stop. Do not block bestmove on them (infinite/depth used to wait 180s).
++    if (n > 1)
++        await Promise.race([
++            Promise.all(donePromises.slice(1)).catch(() => { }),
++            new Promise((resolve) => setTimeout(resolve, 40)),
++        ]);
++    for (const off of cleanups)
++        off();
+     clearActive();
+-    const pick = pickBest(results.length ? results : [{
+-            threadId: 0,
+-            best: bestMainUci,
+-            depth: mainDepth,
+-            score: mainScore,
+-            nodes: mainNodes,
+-            pv: mainPv,
+-        }]);
++    const pick = pickBest(results);
++    if (!pick.best && bestMainUci) {
++        pick.best = bestMainUci;
++        pick.depth = mainDepth;
++        pick.score = mainScore;
++        pick.nodes = mainNodes;
++        pick.pv = mainPv;
++    }
+     const totalNodes = results.reduce((s, r) => s + (r.nodes || 0), 0);
+     let best = null;
+     if (pick.best)

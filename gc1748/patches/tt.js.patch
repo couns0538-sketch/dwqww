@@ -1,0 +1,163 @@
+--- /tmp/base1748/dist-v1.7.48/search/tt.js	2026-10-16 18:16:44.643256087 +0000
++++ /workspace/gc1748/dist-v1.7.48/search/tt.js	2026-10-16 18:31:40.741111434 +0000
+@@ -10,20 +10,37 @@
+ /** Default 4M entries; shared SMP uses same. */
+ exports.TT_SIZE = 1 << 22;
+ function createSharedTTBundle(size = exports.TT_SIZE) {
+-    const depthsSab = new SharedArrayBuffer(size);
+-    new Int8Array(depthsSab).fill(-1);
+     return {
+         size,
+-        keysHiSab: new SharedArrayBuffer(size * 4),
+-        keysLoSab: new SharedArrayBuffer(size * 4),
+-        depthsSab,
+-        scoresSab: new SharedArrayBuffer(size * 2),
+-        flagsSab: new SharedArrayBuffer(size),
+-        agesSab: new SharedArrayBuffer(size),
+-        movesSab: new SharedArrayBuffer(size * 4),
++        keyXorSab: new SharedArrayBuffer(size * 8),
++        dataSab: new SharedArrayBuffer(size * 8),
+         metaSab: new SharedArrayBuffer(4),
+     };
+ }
++function posKey(hi, lo) {
++    return (BigInt(hi >>> 0) << 32n) | BigInt(lo >>> 0);
++}
++function packTTData(depth, score, flag, age, moveCode) {
++    const mv = BigInt(moveCode >>> 0) & 0x1ffffn;
++    const sc = BigInt(score & 0xffff);
++    const dep = BigInt(depth & 0xff);
++    const fl = BigInt(flag & 3);
++    const ag = BigInt(age & 0xff);
++    return (1n << 63n) | (ag << 43n) | (fl << 41n) | (dep << 33n) | (sc << 17n) | mv;
++}
++function unpackTTData(data) {
++    const moveCode = Number(data & 0x1ffffn);
++    let score = Number((data >> 17n) & 0xffffn);
++    if (score & 0x8000)
++        score -= 0x10000;
++    return {
++        moveCode,
++        score,
++        depth: Number((data >> 33n) & 0xffn),
++        flag: Number((data >> 41n) & 3n),
++        age: Number((data >> 43n) & 0xffn),
++    };
++}
+ /** Pack from/to/promo; 0 = null. sameMove only needs these fields. */
+ function packMove(m) {
+     if (!m)
+@@ -52,13 +69,8 @@
+         this.isShared = false;
+         if (bundle) {
+             this.size = bundle.size;
+-            this.keysHi = new Int32Array(bundle.keysHiSab);
+-            this.keysLo = new Int32Array(bundle.keysLoSab);
+-            this.depths = new Int8Array(bundle.depthsSab);
+-            this.scores = new Int16Array(bundle.scoresSab);
+-            this.flags = new Uint8Array(bundle.flagsSab);
+-            this.ages = new Uint8Array(bundle.agesSab);
+-            this.moveCodes = new Uint32Array(bundle.movesSab);
++            this.xkey64 = new BigUint64Array(bundle.keyXorSab);
++            this.data64 = new BigUint64Array(bundle.dataSab);
+             this.sharedMeta = new Int32Array(bundle.metaSab);
+             this.isShared = true;
+             this.age = Atomics.load(this.sharedMeta, 0) & 255;
+@@ -76,6 +88,13 @@
+         }
+     }
+     clear() {
++        if (this.isShared) {
++            this.xkey64.fill(0n);
++            this.data64.fill(0n);
++            this.age = 0;
++            Atomics.store(this.sharedMeta, 0, 0);
++            return;
++        }
+         this.depths.fill(-1);
+         this.moveCodes.fill(0);
+         this.keysHi.fill(0);
+@@ -90,8 +109,24 @@
+     index(lo) {
+         return lo & (this.size - 1);
+     }
++    readShared(i) {
++        const k1 = Atomics.load(this.xkey64, i);
++        const data = Atomics.load(this.data64, i);
++        const k2 = Atomics.load(this.xkey64, i);
++        if (k1 !== k2 || data === 0n)
++            return null;
++        return { key: k1 ^ data, data };
++    }
+     probe(hi, lo) {
+         const i = lo & (this.size - 1);
++        if (this.isShared) {
++            const got = this.readShared(i);
++            if (!got || got.key !== posKey(hi, lo))
++                return null;
++            const u = unpackTTData(got.data);
++            const bestMove = unpackMove(u.moveCode);
++            return { hi, lo, depth: u.depth, score: u.score, flag: u.flag, bestMove, age: u.age };
++        }
+         if (this.keysLo[i] === lo && this.keysHi[i] === hi && this.depths[i] >= 0) {
+             return {
+                 hi, lo,
+@@ -104,8 +139,38 @@
+         }
+         return null;
+     }
++    writeShared(i, hi, lo, depth, score, flag, bestMove) {
++        const d = depth > 127 ? 127 : depth;
++        const sc = score > 32767 ? 32767 : score < -32768 ? -32768 : score;
++        const data = packTTData(d, sc, flag, this.age & 255, packMove(bestMove));
++        Atomics.store(this.data64, i, data);
++        Atomics.store(this.xkey64, i, posKey(hi, lo) ^ data);
++    }
+     store(hi, lo, depth, score, flag, bestMove) {
+         const i = lo & (this.size - 1);
++        if (this.isShared) {
++            const got = this.readShared(i);
++            const key = posKey(hi, lo);
++            const same = !!(got && got.key === key);
++            let curD = -1;
++            let cur = null;
++            if (got && (same || got.data !== 0n)) {
++                cur = unpackTTData(got.data);
++                if (same)
++                    curD = cur.depth;
++                else if (got)
++                    curD = cur.depth;
++            }
++            if (same && depth < curD) {
++                if (cur && !cur.moveCode && bestMove)
++                    this.writeShared(i, hi, lo, cur.depth, cur.score, cur.flag, bestMove);
++                return;
++            }
++            if (!same && curD >= 0 && depth < curD && ((this.age - (cur ? cur.age : 0)) & 255) <= 2 && flag !== 0)
++                return;
++            this.writeShared(i, hi, lo, depth, score, flag, bestMove);
++            return;
++        }
+         const curD = this.depths[i];
+         const same = this.keysLo[i] === lo && this.keysHi[i] === hi && curD >= 0;
+         if (same && depth < curD && flag !== 0 /* TTFlag.Exact */) {
+@@ -133,14 +198,12 @@
+     }
+     prefetchAge() {
+         if (this.sharedMeta) {
+-            // Approximate age bump; races are fine for replacement policy
+-            let a = (Atomics.load(this.sharedMeta, 0) + 1) & 255;
+-            Atomics.store(this.sharedMeta, 0, a);
+-            this.age = a;
+-        }
+-        else {
+-            this.age = (this.age + 1) & 255;
++            // Age is bumped once per go on the UCI side. Helpers must not bump
++            // again or one search burns N generations and the keep-window drops.
++            this.age = Atomics.load(this.sharedMeta, 0) & 255;
++            return;
+         }
++        this.age = (this.age + 1) & 255;
+     }
+ }
+ exports.TranspositionTable = TranspositionTable;

@@ -1,0 +1,63 @@
+--- /tmp/base1748/dist-v1.7.48/search/search.js	2026-10-16 18:16:44.643256087 +0000
++++ /workspace/gc1748/dist-v1.7.48/search/search.js	2026-10-16 18:37:45.453116629 +0000
+@@ -159,6 +159,19 @@
+         this.prevMove = null;
+         this.prev2Move = null;
+     }
++    /**
++     * Shared TT only: drop a hit whose best move is not pseudo-legal in this
++     * position. Honest entries pass, so fixed-depth node counts stay the same.
++     * The local table is returned unchanged.
++     */
++    acceptSharedTt(entry) {
++        if (!entry || !this.tt.isShared || !entry.bestMove)
++            return entry;
++        const pseudo = (0, movegen_1.generateMoves)(this.board);
++        if (!pseudo.some((m) => this.sameMove(m, entry.bestMove)))
++            return null;
++        return entry;
++    }
+     shouldStop() {
+         if (this.stop)
+             return true;
+@@ -227,6 +240,7 @@
+         // ttkeep: count from the UCI `go` timestamp when provided (same clock as main-thread timers)
+         this.startTime = limits.startTime ?? Date.now();
+         this.timeLimit = this.computeTimeLimit(limits);
++        this.rootAllow = (limits.searchMoves && limits.searchMoves.length) ? limits.searchMoves : null;
+         this.tt.prefetchAge();
+         this.resetHeuristics();
+         if (this.historyNoiseSeed)
+@@ -315,7 +329,7 @@
+         if (this.shouldStop())
+             return 0;
+         const isPV = beta - alpha > 1;
+-        const ttEntry = this.tt.probe(this.board.zHi, this.board.zLo);
++        let ttEntry = this.acceptSharedTt(this.tt.probe(this.board.zHi, this.board.zLo));
+         let ttMove = null;
+         if (ttEntry) {
+             ttMove = ttEntry.bestMove;
+@@ -481,6 +495,14 @@
+             }
+         }
+         let moves = (0, movegen_1.generateMoves)(this.board);
++        if (ply === 0 && this.rootAllow) {
++            const allow = this.rootAllow;
++            moves = moves.filter((m) => allow.includes((0, movegen_1.moveToUci)(m)));
++        }
++        // Ignore a TT move that was not generated. A hit that is already in the
++        // list is unchanged, and the depth-9 bench stays on the 1.7.48 node total.
++        if (ttMove && !moves.some((m) => this.sameMove(m, ttMove)))
++            ttMove = null;
+         moves = this.orderMoves(moves, ply, ttMove, depth);
+         // TT moves are unpacked without a captured piece; resolve capture-ness from the generated move.
+         const ttIsCapture = ttMove !== null && moves.some(mm => this.sameMove(mm, ttMove) && mm.captured !== 0 /* Piece.None */);
+@@ -717,7 +739,7 @@
+         if (ply >= MAX_PLY - 1)
+             return (0, evaluate_1.evaluate)(this.board);
+         // Probe-only TT: reuse deeper search bounds; never store from qsearch
+-        const ttQ = this.tt.probe(this.board.zHi, this.board.zLo);
++        const ttQ = this.acceptSharedTt(this.tt.probe(this.board.zHi, this.board.zLo));
+         if (ttQ && ttQ.depth >= 1) {
+             const ttScore = (0, tt_1.scoreFromTT)(ttQ.score, ply);
+             if (ttQ.flag === 0 /* TTFlag.Exact */)

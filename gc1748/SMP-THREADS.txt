@@ -1,0 +1,198 @@
+GrokChess 1.7.48 — bugs that show up with Threads > 1
+===================================================
+
+Scope: Lazy SMP (worker_threads + one shared transposition table).
+Single-thread search and perft are unchanged. See the bench section.
+
+Files changed
+  dist-v1.7.48/search/smp.js
+  dist-v1.7.48/search/smp_worker.js
+  dist-v1.7.48/search/tt.js
+  dist-v1.7.48/search/search.js
+  dist-v1.7.48/uci/main.js
+Unified diffs against the unmodified 1.7.48 sources are in patches/.
+
+1. bestmove could come from a helper, so it disagreed with the PV
+-----------------------------------------------------------------
+What went wrong
+  pickBest() replaced thread 0 whenever a helper was two plies deeper,
+  or one ply deeper and within 30 cp. UCI info lines are posted only by
+  thread 0. The GUI then saw a PV from the main thread and a bestmove
+  from a helper.
+
+Fix
+  bestmove is always thread 0's last completed iteration. If thread 0
+  never reports, a helper result is not substituted. The UCI layer
+  prints the first move of that same PV, after checking it is legal
+  on the root board.
+
+Repro (unmodified engine)
+  setoption name Threads value 4
+  position startpos
+  go depth 8
+  Compare the last "info depth ... pv" token with bestmove. They can differ.
+
+Check
+  Threads 1, 2, 3 and 4, fixed depth: exactly one bestmove, and it
+  equals the first move of the last info pv. Mate in 1 (6k1/5Q2/6K1)
+  with 4 threads does the same. Checkmate for the side to move
+  (7k/6Q1/6K1 b) prints "bestmove 0000" and an empty pv.
+
+2. go depth / go infinite with helpers blocked bestmove for up to 180s
+-----------------------------------------------------------------------
+What went wrong
+  After thread 0 finished, searchLazySmp waited for the helpers.
+  On a timed go the wait was capped. On depth, infinite, and ponder
+  the cap was 180000 ms. Helpers have no time limit on those commands,
+  so bestmove sat behind that wait. Listeners were also left attached,
+  so a late "done" from the previous go could be applied to the next one.
+
+Fix
+  Thread 0's result is returned as soon as it is in. Helpers are told
+  to stop (shared stop flag plus a stop message) and given 40 ms.
+  bestmove is not held for them. Every search message carries a
+  generation. Info and done from any other generation are ignored,
+  and the listeners are removed when the go ends.
+
+Repro
+  setoption name Threads value 4
+  position startpos
+  go depth 4
+  Unmodified: bestmove can take minutes. Patched: it returns with the
+  depth-4 info line.
+
+3. go searchmoves was ignored, on every thread
+-----------------------------------------------
+What went wrong
+  The UCI parser skipped the searchmoves token and its move list.
+  Nothing in Search filtered the root. With Threads > 1 every worker
+  searched the full move list, so a GUI restriction was not kept.
+
+Fix
+  searchmoves is parsed until the next go keyword and passed on the
+  worker limits. At ply 0, moves outside that list are dropped before
+  ordering. The fallback bestmove uses the same list. This runs for
+  thread 0 and for helpers.
+
+Repro
+  setoption name Threads value 4
+  position startpos
+  go depth 3 searchmoves a2a3 h2h3
+  Unmodified: bestmove is a normal opening move (often d2d4 / g1f3).
+  Patched: bestmove and the PV move are a2a3 or h2h3.
+  Same check for Black: position startpos moves e2e4, then
+  go depth 3 searchmoves e7e5 c7c5.
+
+4. Ponder / ponderhit / stop
+----------------------------
+What went wrong
+  "ponder" was not parsed. "go ponder wtime ..." started the clock
+  immediately and could emit bestmove before ponderhit. A ponder or
+  infinite search that reached its depth also emitted bestmove with
+  nobody having sent stop or ponderhit. A second ponderhit could abort
+  a search that had already switched to the clock.
+
+Fix
+  go ponder searches with infinite time and does not arm the clock.
+  bestmove is held until stop or ponderhit.
+  ponderhit with wtime/btime starts the clock from that moment and
+  does not print bestmove yet. The soft controller and the hard timer
+  then stop the search the same way as a normal timed go.
+  ponderhit with no clock aborts and prints the move once.
+  stop prints bestmove once. quit and a closed stdin both abort,
+  shut the pool down, and force process.exit after 400 ms so a worker
+  stuck in search cannot keep the process alive.
+
+Repro
+  setoption name Threads value 2
+  position startpos
+  go ponder depth 2
+  Wait 350 ms: there must be no bestmove.
+  stop: exactly one bestmove, matching the last pv.
+
+  go ponder wtime 60000 btime 60000 winc 0 binc 0
+  ponderhit
+  Wait 200 ms: still no bestmove.
+  stop: exactly one bestmove, matching the last pv.
+
+  go infinite depth 2, wait, stop: same, one bestmove after stop.
+
+  go infinite, then quit, or close stdin: the process exits
+  (observed under 3 s, code 0).
+
+5. Shared transposition table could tear, and its age jumped N times
+---------------------------------------------------------------------
+What went wrong
+  The shared table was eight plain typed arrays. A reader could observe
+  a new score with an old key, or a new key with an old move. That is
+  a Threads > 1 bug: the local table is only written by one worker.
+  On top of that, every worker called prefetchAge() and bumped the
+  shared generation. One go with 8 threads burned 8 generations.
+  The replacement rule keeps an entry for 2 generations, so the shared
+  table threw entries away inside a single search.
+  A TT move was also trusted for a cutoff without being checked
+  against the moves of the position. A torn or colliding entry could
+  cut off on a move that side cannot play.
+  ucinewgame and setoption Hash cleared or replaced that buffer while
+  helpers were still probing it.
+
+Fix
+  Shared entries are two atomic 64-bit words: packed data, and
+  (position key xor data), with the high bit of data always set so an
+  empty slot is not a hit. The reader loads the key word, the data
+  word, and the key word again. A mismatch or a failed xor is a miss.
+  The generation is incremented once per go, on the UCI side, before
+  workers start. Workers only load it.
+  When the table is the shared one, a hit whose move is not in the
+  generated move list is ignored (negamax and qsearch). The local
+  table path does not do that extra generation, so one thread stays
+  on the same node counts.
+  ucinewgame and Hash received during a search are applied after
+  bestmove, not under the probes.
+  If a worker process dies, its search promise is settled and the
+  dead worker is dropped from the pool. A worker that is later used
+  as thread 0 has its helper knobs cleared (skip root IID, aspiration,
+  history noise, root defer).
+
+Repro
+  Store a shared entry, then flip the data word without rewriting the
+  xor key. probe() returns null.
+  Four workers storing and probing 4000 entries each on one shared
+  table: every accepted hit has a depth, flag, score, and move inside
+  the packed ranges (no torn fields accepted).
+
+6. What was checked, and what did not change
+---------------------------------------------
+Single thread, NNUE on, bench/bench.js, unmodified sources and patched
+sources, same per-position nodes:
+
+  depth 9   nodes=194011
+  depth 10  nodes=350802
+
+  startpos        d9 43886    d10 111127
+  kiwipete        d9 58912    d10  91893
+  qgd-middle      d9 49844    d10  84154
+  rook-endgame    d9  9101    d10  11674
+  pos3-endgame    d9 10634    d10  20133
+  tactical-pos4   d9 21634    d10  31821
+
+The figures 216708 (depth 9) and 282979 (depth 10) are not what these
+sources produce. The unmodified tree benches at 194011 and 350802
+with this net. The patch matches those totals exactly, so it does not
+move the single-thread search.
+
+HCE (GROKCHESS_USE_NNUE=0), startpos, depth 6: 3154 nodes.
+Perft startpos 4 = 197281, startpos 5 = 4865609, Kiwipete 3 = 97862.
+
+Threads 4, depth 7, startpos, NNUE off: 7 info lines (one per depth,
+no helper lines), one bestmove, and that move is the PV move.
+Threads 4 depth 4 does the same. Two go commands in a row with 3
+threads produce two bestmoves. ucinewgame sent during go depth 5
+does not hang the following go.
+
+Not changed on purpose
+  Helper threads still search different trees (aspiration skew, no
+  root IID). Their node totals and their chosen move can differ from
+  thread 0. That is Lazy SMP, not a second bestmove.
+  Info "nodes" stays the main thread's count, so a helper cannot
+  change the numbers on the line the GUI is reading.
