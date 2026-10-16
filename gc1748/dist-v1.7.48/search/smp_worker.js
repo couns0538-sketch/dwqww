@@ -176,6 +176,7 @@ worker_threads_1.parentPort?.on('message', (msg) => {
         }
         finally {
             activeSearch = null;
+            worker_threads_1.parentPort?.postMessage({ type: 'idle', gen: msg.gen, threadId: msg.threadId });
         }
     }
 });

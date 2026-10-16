@@ -89,8 +89,13 @@ class TranspositionTable {
     }
     clear() {
         if (this.isShared) {
-            this.xkey64.fill(0n);
-            this.data64.fill(0n);
+            // Data word first: a reader that sees data==0 treats the slot as empty
+            // even if it still observes the previous xor key.
+            const n = this.data64.length;
+            for (let i = 0; i < n; i++) {
+                Atomics.store(this.data64, i, 0n);
+                Atomics.store(this.xkey64, i, 0n);
+            }
             this.age = 0;
             Atomics.store(this.sharedMeta, 0, 0);
             return;

@@ -196,3 +196,48 @@ Not changed on purpose
   thread 0. That is Lazy SMP, not a second bestmove.
   Info "nodes" stays the main thread's count, so a helper cannot
   change the numbers on the line the GUI is reading.
+
+7. Helper tail writes after bestmove
+------------------------------------
+What went wrong
+  bestmove is sent when thread 0 finishes. Helpers are told to stop and
+  given 40 ms, then the UCI side moves on. A helper can still be inside
+  the node it was searching and still store into the shared table.
+  ucinewgame, setoption Hash, and a new go in that window clear or
+  replace the table under those stores, or queue a second search onto a
+  worker that has not left the first one. The next game then sees
+  entries from the previous search in a table it just cleared.
+
+Fix
+  Each worker posts idle when search() returns. The next go, and any
+  clear of the shared table (ucinewgame, Hash, NNUE swap), waits for
+  that idle. A worker that ignores the stop flag for a second is
+  removed from the pool so the next go does not post to it.
+  The clock is armed after that wait, so the clear is not subtracted
+  from the player's time.
+  Shared clears write the data word with an atomic store before the xor
+  key, so a reader treats a half-cleared slot as empty.
+
+Repro
+  setoption name Threads value 4
+  position startpos
+  go depth 5
+  While that search is running, send a new position (a mate in 1).
+  The first bestmove must still be a startpos move.
+  The following go depth 3 on the deferred position must be the mating
+  move (f7...).
+  ucinewgame immediately after bestmove, then a mate position, must
+  return the mating move rather than the previous search's move.
+
+8. position during search made bestmove illegal
+------------------------------------------------
+What went wrong
+  position was applied on the UCI board as soon as it arrived. The
+  workers had already copied the old fen. bestmove was then parsed on
+  the new board, so the PV move was often illegal there and the engine
+  printed a different legal move, or 0000.
+
+Fix
+  A position that arrives while searching is held and applied after
+  bestmove is printed. The move is checked on the board that was
+  searched. The held position is what the next go sees.

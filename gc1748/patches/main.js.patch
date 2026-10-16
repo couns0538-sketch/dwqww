@@ -1,6 +1,6 @@
 --- /tmp/base1748/dist-v1.7.48/uci/main.js	2026-10-16 18:16:44.643256087 +0000
-+++ /workspace/gc1748/dist-v1.7.48/uci/main.js	2026-10-16 18:32:06.585100033 +0000
-@@ -52,6 +52,45 @@
++++ gc1748/dist-v1.7.48/uci/main.js	2026-10-16 19:04:17.546944019 +0000
+@@ -52,6 +52,82 @@
  let moveOverhead = 30;
  let searching = false;
  let stopPending = false; // 'stop' that arrives after 'go' but before the async search has started (GUI race)
@@ -13,6 +13,43 @@
 +let bestmoveGate = null;
 +let deferredNewGame = false;
 +let deferredHashMb = null;
++/** `position` that arrived while a search owned the root board. */
++let deferredPosition = null;
++function applyPosition(parts) {
++    let idx = 1;
++    if (parts[idx] === 'startpos') {
++        board.setFen(board_1.START_FEN);
++        idx++;
++    }
++    else if (parts[idx] === 'fen') {
++        idx++;
++        const fenParts = [];
++        while (idx < parts.length && parts[idx] !== 'moves') {
++            fenParts.push(parts[idx++]);
++        }
++        board.setFen(fenParts.join(' '));
++    }
++    if (parts[idx] === 'moves') {
++        idx++;
++        while (idx < parts.length) {
++            const uci = parts[idx];
++            const m = (0, movegen_1.parseUciMove)(board, uci);
++            if (m)
++                board.makeMove(m);
++            else {
++                send(`info string warning: ignored illegal move ${uci} (stopping move list)`);
++                break;
++            }
++            idx++;
++        }
++    }
++}
++function clearTablesWhenIdle() {
++    (0, smp_1.afterWorkersIdle)(() => {
++        (0, smp_1.clearSharedTT)();
++        (0, smp_1.clearWorkerTTs)();
++    });
++}
 +function releaseBestmove() {
 +    if (!bestmoveGate)
 +        return;
@@ -46,12 +83,13 @@
  function scoreString(score) {
      if (Math.abs(score) > tt_1.MATE_BOUND) {
          const mateIn = score > 0
-@@ -86,6 +125,12 @@
+@@ -86,41 +162,24 @@
              (0, smp_1.ensurePool)(threads).then(() => send('readyok')).catch(() => send('readyok'));
              break;
          case 'ucinewgame':
-+            // Clearing the shared table while helpers are probing races the SAB.
-+            // The search already copied the fen; apply the reset after bestmove.
++            // The root board is reset now only when no search is validating a move.
++            // The shared table is cleared after helpers leave that search, so a
++            // tail write cannot refill a table the next game thinks is empty.
 +            if (searching) {
 +                deferredNewGame = true;
 +                break;
@@ -59,7 +97,47 @@
              board.setFen(board_1.START_FEN);
              if (searcher)
                  searcher.tt.clear();
-@@ -132,6 +177,14 @@
+-            (0, smp_1.clearSharedTT)();
+-            (0, smp_1.clearWorkerTTs)();
++            clearTablesWhenIdle();
+             break;
+         case 'position': {
+-            let idx = 1;
+-            if (parts[idx] === 'startpos') {
+-                board.setFen(board_1.START_FEN);
+-                idx++;
+-            }
+-            else if (parts[idx] === 'fen') {
+-                idx++;
+-                const fenParts = [];
+-                while (idx < parts.length && parts[idx] !== 'moves') {
+-                    fenParts.push(parts[idx++]);
+-                }
+-                board.setFen(fenParts.join(' '));
+-            }
+-            if (parts[idx] === 'moves') {
+-                idx++;
+-                while (idx < parts.length) {
+-                    const uci = parts[idx];
+-                    const m = (0, movegen_1.parseUciMove)(board, uci);
+-                    if (m)
+-                        board.makeMove(m);
+-                    else {
+-                        // Stop applying further moves — continuing desyncs vs the GUI move list
+-                        send(`info string warning: ignored illegal move ${uci} (stopping move list)`);
+-                        break;
+-                    }
+-                    idx++;
+-                }
++            if (searching) {
++                deferredPosition = parts;
++                break;
+             }
++            applyPosition(parts);
+             break;
+         }
+         case 'go': {
+@@ -132,6 +191,14 @@
              let movestogo;
              for (let i = 1; i < parts.length; i++) {
                  switch (parts[i]) {
@@ -74,7 +152,7 @@
                      case 'depth':
                          limits.maxDepth = parseInt(parts[++i], 10);
                          break;
-@@ -165,55 +218,78 @@
+@@ -165,55 +232,82 @@
                      }
                  }
              }
@@ -96,9 +174,9 @@
 +            savedClock = {
 +                wtime: limits.wtime, btime: limits.btime, winc: limits.winc, binc: limits.binc, movestogo,
 +            };
-+            liveGoStart = Date.now();
              let searchLimits = limits;
 -            if (limits.moveTime !== undefined) {
++            let armTimer = null;
 +            if (limits.ponder) {
 +                searchLimits = { maxDepth: limits.maxDepth, searchMoves: limits.searchMoves, infinite: true };
 +            }
@@ -107,7 +185,7 @@
                  const mt = Math.max(10, limits.moveTime - Math.max(0, moveOverhead - 8));
                  searchLimits = { ...limits, moveTime: mt };
 -                hardTimer = setTimeout(smp_1.abortSmpSearch, Math.max(5, mt - 8));
-+                liveHard = setTimeout(smp_1.abortSmpSearch, Math.max(5, mt - 8));
++                armTimer = () => { liveHard = setTimeout(smp_1.abortSmpSearch, Math.max(5, mt - 8)); };
              }
              else if (!limits.infinite && (limits.wtime !== undefined || limits.btime !== undefined)) {
                  const white = board.side === 0;
@@ -115,32 +193,37 @@
                  const inc = white ? limits.winc : limits.binc;
                  const budget = (0, timeman_1.computeBudget)({ time: t, inc, movestogo, moveOverhead });
 -                soft = new timeman_1.SoftController(budget);
-+                liveSoft = new timeman_1.SoftController(budget);
                  // search-internal limit is a backstop slightly behind the timer-driven stop
 -                searchLimits = { maxDepth: limits.maxDepth, moveTime: budget.hard + 8 + 30 };
 -                hardTimer = setTimeout(smp_1.abortSmpSearch, budget.hard);
 +                searchLimits = { maxDepth: limits.maxDepth, searchMoves: limits.searchMoves, moveTime: budget.hard + 8 + 30 };
-+                liveHard = setTimeout(smp_1.abortSmpSearch, budget.hard);
++                armTimer = () => {
++                    liveSoft = new timeman_1.SoftController(budget);
++                    liveHard = setTimeout(smp_1.abortSmpSearch, budget.hard);
++                };
              }
              searching = true;
              stopPending = false;
              setImmediate(async () => {
                  try {
++                    // Finish the previous helpers' tail and any deferred table clear
++                    // before the clock starts, so Hash/ucinewgame work is not time-loss.
++                    await (0, smp_1.prepareWorkers)();
                      if (stopPending) {
 -                        searchLimits = { maxDepth: 1 };
 -                        if (hardTimer) {
 -                            clearTimeout(hardTimer);
 -                            hardTimer = null;
-+                        searchLimits = { maxDepth: 1, searchMoves: limits.searchMoves };
-+                        if (liveHard) {
-+                            clearTimeout(liveHard);
-+                            liveHard = null;
-                         }
+-                        }
 -                        soft = null;
++                        searchLimits = { maxDepth: 1, searchMoves: limits.searchMoves };
 +                        liveSoft = null;
 +                        pondering = false;
                      }
 -                    searchLimits = { ...searchLimits, startTime: goStart };
++                    else if (armTimer)
++                        armTimer();
++                    liveGoStart = Date.now();
 +                    searchLimits = { ...searchLimits, startTime: liveGoStart };
                      const result = await (0, smp_1.searchLazySmp)(board, searchLimits, threads, (info) => {
 -                        if (soft && info.pv.length > 0 && soft.onIteration(info.depth, info.score, info.pv[0], Date.now() - goStart, info.bestFrac))
@@ -170,7 +253,7 @@
                          if (legal.length)
                              send(`bestmove ${(0, movegen_1.moveToUci)(legal[0])}`);
                          else
-@@ -221,9 +297,24 @@
+@@ -221,9 +315,30 @@
                      }
                  }
                  finally {
@@ -183,21 +266,27 @@
 +                    liveSoft = null;
                      searching = false;
 +                    pondering = false;
-+                    if (deferredNewGame) {
-+                        deferredNewGame = false;
++                    const ng = deferredNewGame;
++                    const pos = deferredPosition;
++                    const hash = deferredHashMb;
++                    deferredNewGame = false;
++                    deferredPosition = null;
++                    deferredHashMb = null;
++                    if (ng) {
 +                        board.setFen(board_1.START_FEN);
-+                        (0, smp_1.clearSharedTT)();
-+                        (0, smp_1.clearWorkerTTs)();
++                        if (searcher)
++                            searcher.tt.clear();
 +                    }
-+                    if (deferredHashMb !== null) {
-+                        const mb = deferredHashMb;
-+                        deferredHashMb = null;
-+                        (0, smp_1.setHashMb)(mb);
-+                    }
++                    if (pos)
++                        applyPosition(pos);
++                    if (ng)
++                        clearTablesWhenIdle();
++                    if (hash !== null)
++                        (0, smp_1.afterWorkersIdle)(() => (0, smp_1.setHashMb)(hash));
                  }
              });
              break;
-@@ -231,12 +322,30 @@
+@@ -231,12 +346,30 @@
          case 'stop':
              if (searching)
                  stopPending = true;
@@ -229,7 +318,39 @@
              break;
          case 'setoption': {
              // setoption name Threads value N
-@@ -279,7 +388,12 @@
+@@ -254,11 +387,13 @@
+                     nnueUse = on;
+                     (0, nnue_1.setUseNNUE)(on);
+                     process.env.GROKCHESS_USE_NNUE = on ? '1' : '0';
+-                    (0, smp_1.setPoolNNUE)(on, null);
+-                    if (changed) {
+-                        (0, smp_1.clearSharedTT)();
+-                        (0, smp_1.clearWorkerTTs)();
+-                    }
++                    (0, smp_1.afterWorkersIdle)(() => {
++                        (0, smp_1.setPoolNNUE)(on, null);
++                        if (changed) {
++                            (0, smp_1.clearSharedTT)();
++                            (0, smp_1.clearWorkerTTs)();
++                        }
++                    });
+                     send(`info string ${(0, nnue_1.nnueInfo)()}`);
+                 }
+                 else if (opt === 'EvalFile') {
+@@ -271,15 +406,22 @@
+                     }
+                     else {
+                         process.env.GROKCHESS_NNUE = f;
+-                        (0, smp_1.setPoolNNUE)(nnueUse, f);
+-                        (0, smp_1.clearSharedTT)();
+-                        (0, smp_1.clearWorkerTTs)();
++                        (0, smp_1.afterWorkersIdle)(() => {
++                            (0, smp_1.setPoolNNUE)(nnueUse, f);
++                            (0, smp_1.clearSharedTT)();
++                            (0, smp_1.clearWorkerTTs)();
++                        });
+                         send(`info string ${(0, nnue_1.nnueInfo)()}`);
+                     }
                  }
                  else if (opt === 'Hash') {
                      // hashmb: Hash now actually sizes the TT (was ignored; workers always used 1<<22)
@@ -239,11 +360,11 @@
 +                    if (searching)
 +                        deferredHashMb = mb;
 +                    else
-+                        (0, smp_1.setHashMb)(mb);
++                        (0, smp_1.afterWorkersIdle)(() => (0, smp_1.setHashMb)(mb));
                  }
                  else if (opt === 'Threads') {
                      threads = Math.max(1, Math.min(8, parseInt(val, 10) || 1));
-@@ -309,9 +423,8 @@
+@@ -309,9 +451,8 @@
  rl.on('close', () => {
      if (searching)
          stopPending = true;

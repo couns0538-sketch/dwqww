@@ -1,10 +1,96 @@
 --- /tmp/base1748/dist-v1.7.48/search/smp.js	2026-10-16 18:16:44.643256087 +0000
-+++ /workspace/gc1748/dist-v1.7.48/search/smp.js	2026-10-16 18:41:11.528524427 +0000
-@@ -192,6 +192,13 @@
++++ gc1748/dist-v1.7.48/search/smp.js	2026-10-16 19:04:19.418943643 +0000
+@@ -44,6 +44,8 @@
+ exports.ensurePool = ensurePool;
+ exports.shutdownPool = shutdownPool;
+ exports.searchLazySmp = searchLazySmp;
++exports.afterWorkersIdle = afterWorkersIdle;
++exports.prepareWorkers = prepareWorkers;
+ /** Lazy SMP manager — warm persistent worker pool + cooperative stop. */
+ const worker_threads_1 = require("worker_threads");
+ const path = __importStar(require("path"));
+@@ -70,6 +72,71 @@
+ /** Persistent helper pool (reused across go commands). */
+ let pool = [];
+ let poolReady = [];
++/**
++ * Helpers keep running for a short tail after bestmove. ucinewgame / Hash / the
++ * next go must wait until that tail has posted `idle`, or they clear or reuse
++ * the shared table while those workers are still storing.
++ */
++const idleSlot = new WeakMap();
++let idleChain = Promise.resolve();
++function markBusy(w, gen) {
++    let resolve;
++    const promise = new Promise((r) => { resolve = r; });
++    idleSlot.set(w, { promise, resolve, busy: true, gen });
++}
++function markIdle(w, gen) {
++    const slot = idleSlot.get(w);
++    if (!slot || !slot.busy)
++        return;
++    if (gen != null && slot.gen !== gen)
++        return;
++    slot.busy = false;
++    slot.resolve();
++}
++function sleepMs(ms) {
++    return new Promise((r) => setTimeout(r, ms));
++}
++async function drainWorkers(ms = 1000) {
++    // A search that has not been asked to stop must run to completion.
++    // The tail after bestmove has already raised the stop flag (or cleared it
++    // on the way out); a worker that ignores that is terminated.
++    const live = activeStopFlag && Atomics.load(activeStopFlag, 0) === 0;
++    const pending = pool.slice();
++    for (const w of pending) {
++        const slot = idleSlot.get(w);
++        if (!slot || !slot.busy)
++            continue;
++        const finished = live
++            ? await slot.promise.then(() => true)
++            : await Promise.race([
++                slot.promise.then(() => true),
++                sleepMs(ms).then(() => false),
++            ]);
++        if (!finished) {
++            markIdle(w, null);
++            const i = pool.indexOf(w);
++            if (i >= 0) {
++                pool.splice(i, 1);
++                poolReady.splice(i, 1);
++            }
++            try {
++                w.terminate();
++            }
++            catch { /* */ }
++        }
++    }
++}
++async function prepareWorkers() {
++    await idleChain;
++    await drainWorkers();
++}
++/** Run fn only after every worker has left its current search. */
++function afterWorkersIdle(fn) {
++    idleChain = idleChain.then(async () => {
++        await drainWorkers();
++        fn();
++    }).catch(() => { /* keep the chain alive */ });
++}
+ let activeStopFlag = null;
+ let activeMain = null;
+ let busyWorkers = [];
+@@ -192,6 +259,18 @@
                  w.postMessage({ type: 'nnue', use: nnueCfg.use, file: nnueCfg.file });
              w.postMessage({ type: 'warmup', entries: hashEntries });
          });
++        w.on('message', (msg) => {
++            if (msg && msg.type === 'idle')
++                markIdle(w, msg.gen);
++        });
 +        w.on('exit', () => {
++            markIdle(w, null);
 +            const i = pool.indexOf(w);
 +            if (i >= 0) {
 +                pool.splice(i, 1);
@@ -14,7 +100,7 @@
          pool.push(w);
          poolReady.push(ready);
      }
-@@ -220,27 +227,20 @@
+@@ -220,27 +299,20 @@
   * Prefer main (thread 0). Take a helper only if strictly deeper and not a
   * clear score regression — avoids Lazy-SMP "deeper-but-wrong" blunders at short TC.
   */
@@ -35,16 +121,17 @@
 -        }
 -    }
 -    return best;
-+    const main = results.find(r => r.threadId === 0);
-+    if (main)
-+        return main;
-+    return { threadId: 0, best: null, depth: 0, score: 0, nodes: 0, pv: [] };
- }
+-}
 -function helperGraceMs(limits) {
 -    if (limits.moveTime !== undefined) {
 -        return Math.min(400, Math.max(80, Math.floor(limits.moveTime * 0.25) + 50));
 -    }
 -    return 300;
++    const main = results.find(r => r.threadId === 0);
++    if (main)
++        return main;
++    return { threadId: 0, best: null, depth: 0, score: 0, nodes: 0, pv: [] };
++}
 +/** One generation per go, before any worker runs. Local tables still bump themselves. */
 +function bumpSharedAge(bundle) {
 +    if (!bundle)
@@ -54,15 +141,16 @@
  }
  /**
   * Lazy SMP: ALL threads (including main/thread 0) run in warm workers.
-@@ -249,6 +249,7 @@
+@@ -249,6 +321,8 @@
   */
  async function searchLazySmp(board, limits, threads, onInfo) {
      const n = Math.max(1, Math.min(8, threads | 0));
++    await prepareWorkers();
 +    const gen = ++searchGen;
      const sab = new SharedArrayBuffer(4);
      const stopFlag = new Int32Array(sab);
      Atomics.store(stopFlag, 0, 0);
-@@ -263,9 +264,11 @@
+@@ -263,9 +337,11 @@
      const results = [];
      const useSharedTT = n > 1;
      const bundle = useSharedTT ? getSharedBundle() : null;
@@ -74,7 +162,7 @@
      const donePromises = workers.map((w, threadId) => {
          return new Promise((resolve) => {
              let settled = false;
-@@ -274,6 +277,8 @@
+@@ -274,6 +350,8 @@
                  resolve();
              } };
              const onMsg = (msg) => {
@@ -83,7 +171,16 @@
                  if (msg.type === 'info' && threadId === 0) {
                      mainDepth = msg.depth;
                      mainScore = msg.score;
-@@ -310,9 +315,21 @@
+@@ -291,6 +369,8 @@
+                     return;
+                 }
+                 if (msg.type === 'done' && msg.threadId === threadId) {
++                    if (settled)
++                        return;
+                     w.off('message', onMsg);
+                     results.push({
+                         threadId: msg.threadId,
+@@ -310,9 +390,21 @@
                      finish();
                  }
              };
@@ -105,7 +202,15 @@
                  fen,
                  rootHistHi,
                  rootHistLo,
-@@ -338,31 +355,23 @@
+@@ -322,6 +414,7 @@
+             };
+             if (bundle)
+                 job.ttBundle = bundle;
++            markBusy(w, gen);
+             w.postMessage(job);
+         });
+     });
+@@ -338,31 +431,23 @@
              catch { /* */ }
          }
      }

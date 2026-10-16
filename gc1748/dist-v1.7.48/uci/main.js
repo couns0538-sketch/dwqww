@@ -61,6 +61,43 @@ let savedClock = null;
 let bestmoveGate = null;
 let deferredNewGame = false;
 let deferredHashMb = null;
+/** `position` that arrived while a search owned the root board. */
+let deferredPosition = null;
+function applyPosition(parts) {
+    let idx = 1;
+    if (parts[idx] === 'startpos') {
+        board.setFen(board_1.START_FEN);
+        idx++;
+    }
+    else if (parts[idx] === 'fen') {
+        idx++;
+        const fenParts = [];
+        while (idx < parts.length && parts[idx] !== 'moves') {
+            fenParts.push(parts[idx++]);
+        }
+        board.setFen(fenParts.join(' '));
+    }
+    if (parts[idx] === 'moves') {
+        idx++;
+        while (idx < parts.length) {
+            const uci = parts[idx];
+            const m = (0, movegen_1.parseUciMove)(board, uci);
+            if (m)
+                board.makeMove(m);
+            else {
+                send(`info string warning: ignored illegal move ${uci} (stopping move list)`);
+                break;
+            }
+            idx++;
+        }
+    }
+}
+function clearTablesWhenIdle() {
+    (0, smp_1.afterWorkersIdle)(() => {
+        (0, smp_1.clearSharedTT)();
+        (0, smp_1.clearWorkerTTs)();
+    });
+}
 function releaseBestmove() {
     if (!bestmoveGate)
         return;
@@ -125,8 +162,9 @@ function handle(line) {
             (0, smp_1.ensurePool)(threads).then(() => send('readyok')).catch(() => send('readyok'));
             break;
         case 'ucinewgame':
-            // Clearing the shared table while helpers are probing races the SAB.
-            // The search already copied the fen; apply the reset after bestmove.
+            // The root board is reset now only when no search is validating a move.
+            // The shared table is cleared after helpers leave that search, so a
+            // tail write cannot refill a table the next game thinks is empty.
             if (searching) {
                 deferredNewGame = true;
                 break;
@@ -134,38 +172,14 @@ function handle(line) {
             board.setFen(board_1.START_FEN);
             if (searcher)
                 searcher.tt.clear();
-            (0, smp_1.clearSharedTT)();
-            (0, smp_1.clearWorkerTTs)();
+            clearTablesWhenIdle();
             break;
         case 'position': {
-            let idx = 1;
-            if (parts[idx] === 'startpos') {
-                board.setFen(board_1.START_FEN);
-                idx++;
+            if (searching) {
+                deferredPosition = parts;
+                break;
             }
-            else if (parts[idx] === 'fen') {
-                idx++;
-                const fenParts = [];
-                while (idx < parts.length && parts[idx] !== 'moves') {
-                    fenParts.push(parts[idx++]);
-                }
-                board.setFen(fenParts.join(' '));
-            }
-            if (parts[idx] === 'moves') {
-                idx++;
-                while (idx < parts.length) {
-                    const uci = parts[idx];
-                    const m = (0, movegen_1.parseUciMove)(board, uci);
-                    if (m)
-                        board.makeMove(m);
-                    else {
-                        // Stop applying further moves — continuing desyncs vs the GUI move list
-                        send(`info string warning: ignored illegal move ${uci} (stopping move list)`);
-                        break;
-                    }
-                    idx++;
-                }
-            }
+            applyPosition(parts);
             break;
         }
         case 'go': {
@@ -233,8 +247,8 @@ function handle(line) {
             savedClock = {
                 wtime: limits.wtime, btime: limits.btime, winc: limits.winc, binc: limits.binc, movestogo,
             };
-            liveGoStart = Date.now();
             let searchLimits = limits;
+            let armTimer = null;
             if (limits.ponder) {
                 searchLimits = { maxDepth: limits.maxDepth, searchMoves: limits.searchMoves, infinite: true };
             }
@@ -242,31 +256,35 @@ function handle(line) {
                 // explicit movetime: honour it minus overhead beyond what search.ts already subtracts (8 ms)
                 const mt = Math.max(10, limits.moveTime - Math.max(0, moveOverhead - 8));
                 searchLimits = { ...limits, moveTime: mt };
-                liveHard = setTimeout(smp_1.abortSmpSearch, Math.max(5, mt - 8));
+                armTimer = () => { liveHard = setTimeout(smp_1.abortSmpSearch, Math.max(5, mt - 8)); };
             }
             else if (!limits.infinite && (limits.wtime !== undefined || limits.btime !== undefined)) {
                 const white = board.side === 0;
                 const t = white ? limits.wtime : limits.btime;
                 const inc = white ? limits.winc : limits.binc;
                 const budget = (0, timeman_1.computeBudget)({ time: t, inc, movestogo, moveOverhead });
-                liveSoft = new timeman_1.SoftController(budget);
                 // search-internal limit is a backstop slightly behind the timer-driven stop
                 searchLimits = { maxDepth: limits.maxDepth, searchMoves: limits.searchMoves, moveTime: budget.hard + 8 + 30 };
-                liveHard = setTimeout(smp_1.abortSmpSearch, budget.hard);
+                armTimer = () => {
+                    liveSoft = new timeman_1.SoftController(budget);
+                    liveHard = setTimeout(smp_1.abortSmpSearch, budget.hard);
+                };
             }
             searching = true;
             stopPending = false;
             setImmediate(async () => {
                 try {
+                    // Finish the previous helpers' tail and any deferred table clear
+                    // before the clock starts, so Hash/ucinewgame work is not time-loss.
+                    await (0, smp_1.prepareWorkers)();
                     if (stopPending) {
                         searchLimits = { maxDepth: 1, searchMoves: limits.searchMoves };
-                        if (liveHard) {
-                            clearTimeout(liveHard);
-                            liveHard = null;
-                        }
                         liveSoft = null;
                         pondering = false;
                     }
+                    else if (armTimer)
+                        armTimer();
+                    liveGoStart = Date.now();
                     searchLimits = { ...searchLimits, startTime: liveGoStart };
                     const result = await (0, smp_1.searchLazySmp)(board, searchLimits, threads, (info) => {
                         if (liveSoft && info.pv.length > 0 && liveSoft.onIteration(info.depth, info.score, info.pv[0], Date.now() - liveGoStart, info.bestFrac))
@@ -304,17 +322,23 @@ function handle(line) {
                     liveSoft = null;
                     searching = false;
                     pondering = false;
-                    if (deferredNewGame) {
-                        deferredNewGame = false;
+                    const ng = deferredNewGame;
+                    const pos = deferredPosition;
+                    const hash = deferredHashMb;
+                    deferredNewGame = false;
+                    deferredPosition = null;
+                    deferredHashMb = null;
+                    if (ng) {
                         board.setFen(board_1.START_FEN);
-                        (0, smp_1.clearSharedTT)();
-                        (0, smp_1.clearWorkerTTs)();
+                        if (searcher)
+                            searcher.tt.clear();
                     }
-                    if (deferredHashMb !== null) {
-                        const mb = deferredHashMb;
-                        deferredHashMb = null;
-                        (0, smp_1.setHashMb)(mb);
-                    }
+                    if (pos)
+                        applyPosition(pos);
+                    if (ng)
+                        clearTablesWhenIdle();
+                    if (hash !== null)
+                        (0, smp_1.afterWorkersIdle)(() => (0, smp_1.setHashMb)(hash));
                 }
             });
             break;
@@ -363,11 +387,13 @@ function handle(line) {
                     nnueUse = on;
                     (0, nnue_1.setUseNNUE)(on);
                     process.env.GROKCHESS_USE_NNUE = on ? '1' : '0';
-                    (0, smp_1.setPoolNNUE)(on, null);
-                    if (changed) {
-                        (0, smp_1.clearSharedTT)();
-                        (0, smp_1.clearWorkerTTs)();
-                    }
+                    (0, smp_1.afterWorkersIdle)(() => {
+                        (0, smp_1.setPoolNNUE)(on, null);
+                        if (changed) {
+                            (0, smp_1.clearSharedTT)();
+                            (0, smp_1.clearWorkerTTs)();
+                        }
+                    });
                     send(`info string ${(0, nnue_1.nnueInfo)()}`);
                 }
                 else if (opt === 'EvalFile') {
@@ -380,9 +406,11 @@ function handle(line) {
                     }
                     else {
                         process.env.GROKCHESS_NNUE = f;
-                        (0, smp_1.setPoolNNUE)(nnueUse, f);
-                        (0, smp_1.clearSharedTT)();
-                        (0, smp_1.clearWorkerTTs)();
+                        (0, smp_1.afterWorkersIdle)(() => {
+                            (0, smp_1.setPoolNNUE)(nnueUse, f);
+                            (0, smp_1.clearSharedTT)();
+                            (0, smp_1.clearWorkerTTs)();
+                        });
                         send(`info string ${(0, nnue_1.nnueInfo)()}`);
                     }
                 }
@@ -393,7 +421,7 @@ function handle(line) {
                     if (searching)
                         deferredHashMb = mb;
                     else
-                        (0, smp_1.setHashMb)(mb);
+                        (0, smp_1.afterWorkersIdle)(() => (0, smp_1.setHashMb)(mb));
                 }
                 else if (opt === 'Threads') {
                     threads = Math.max(1, Math.min(8, parseInt(val, 10) || 1));

@@ -44,6 +44,8 @@ exports.queryPoolNNUE = queryPoolNNUE;
 exports.ensurePool = ensurePool;
 exports.shutdownPool = shutdownPool;
 exports.searchLazySmp = searchLazySmp;
+exports.afterWorkersIdle = afterWorkersIdle;
+exports.prepareWorkers = prepareWorkers;
 /** Lazy SMP manager — warm persistent worker pool + cooperative stop. */
 const worker_threads_1 = require("worker_threads");
 const path = __importStar(require("path"));
@@ -70,6 +72,71 @@ const WORKER_PATH = path.join(__dirname, 'smp_worker.js');
 /** Persistent helper pool (reused across go commands). */
 let pool = [];
 let poolReady = [];
+/**
+ * Helpers keep running for a short tail after bestmove. ucinewgame / Hash / the
+ * next go must wait until that tail has posted `idle`, or they clear or reuse
+ * the shared table while those workers are still storing.
+ */
+const idleSlot = new WeakMap();
+let idleChain = Promise.resolve();
+function markBusy(w, gen) {
+    let resolve;
+    const promise = new Promise((r) => { resolve = r; });
+    idleSlot.set(w, { promise, resolve, busy: true, gen });
+}
+function markIdle(w, gen) {
+    const slot = idleSlot.get(w);
+    if (!slot || !slot.busy)
+        return;
+    if (gen != null && slot.gen !== gen)
+        return;
+    slot.busy = false;
+    slot.resolve();
+}
+function sleepMs(ms) {
+    return new Promise((r) => setTimeout(r, ms));
+}
+async function drainWorkers(ms = 1000) {
+    // A search that has not been asked to stop must run to completion.
+    // The tail after bestmove has already raised the stop flag (or cleared it
+    // on the way out); a worker that ignores that is terminated.
+    const live = activeStopFlag && Atomics.load(activeStopFlag, 0) === 0;
+    const pending = pool.slice();
+    for (const w of pending) {
+        const slot = idleSlot.get(w);
+        if (!slot || !slot.busy)
+            continue;
+        const finished = live
+            ? await slot.promise.then(() => true)
+            : await Promise.race([
+                slot.promise.then(() => true),
+                sleepMs(ms).then(() => false),
+            ]);
+        if (!finished) {
+            markIdle(w, null);
+            const i = pool.indexOf(w);
+            if (i >= 0) {
+                pool.splice(i, 1);
+                poolReady.splice(i, 1);
+            }
+            try {
+                w.terminate();
+            }
+            catch { /* */ }
+        }
+    }
+}
+async function prepareWorkers() {
+    await idleChain;
+    await drainWorkers();
+}
+/** Run fn only after every worker has left its current search. */
+function afterWorkersIdle(fn) {
+    idleChain = idleChain.then(async () => {
+        await drainWorkers();
+        fn();
+    }).catch(() => { /* keep the chain alive */ });
+}
 let activeStopFlag = null;
 let activeMain = null;
 let busyWorkers = [];
@@ -192,7 +259,12 @@ async function ensurePool(n) {
                 w.postMessage({ type: 'nnue', use: nnueCfg.use, file: nnueCfg.file });
             w.postMessage({ type: 'warmup', entries: hashEntries });
         });
+        w.on('message', (msg) => {
+            if (msg && msg.type === 'idle')
+                markIdle(w, msg.gen);
+        });
         w.on('exit', () => {
+            markIdle(w, null);
             const i = pool.indexOf(w);
             if (i >= 0) {
                 pool.splice(i, 1);
@@ -249,6 +321,7 @@ function bumpSharedAge(bundle) {
  */
 async function searchLazySmp(board, limits, threads, onInfo) {
     const n = Math.max(1, Math.min(8, threads | 0));
+    await prepareWorkers();
     const gen = ++searchGen;
     const sab = new SharedArrayBuffer(4);
     const stopFlag = new Int32Array(sab);
@@ -296,6 +369,8 @@ async function searchLazySmp(board, limits, threads, onInfo) {
                     return;
                 }
                 if (msg.type === 'done' && msg.threadId === threadId) {
+                    if (settled)
+                        return;
                     w.off('message', onMsg);
                     results.push({
                         threadId: msg.threadId,
@@ -339,6 +414,7 @@ async function searchLazySmp(board, limits, threads, onInfo) {
             };
             if (bundle)
                 job.ttBundle = bundle;
+            markBusy(w, gen);
             w.postMessage(job);
         });
     });
