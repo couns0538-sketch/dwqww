@@ -1,0 +1,29 @@
+--- /mnt/data/forge514_baseline/chess-engine-forge-5.14.0/tests/tests.cpp	2026-10-05 16:35:08.000000000 +0000
++++ /mnt/data/forge515_work/tests/tests.cpp	2026-10-05 18:28:55.049244496 +0000
+@@ -562,6 +562,26 @@
+           "null pruning produces verified cutoffs");
+     check(forge::SearcherTestProbe::reverse_futility_cutoffs(null_searcher) > 0,
+           "reverse futility pruning produces shallow zero-window cutoffs");
++
++    check(board.set_fen("2rqNN2/4k3/ppp2pB1/3p4/PPPp1Prb/n3P2b/K7/4Q3 b - - 0 34"),
++          "shallow null PVS regression FEN parses");
++    const auto null_a3b5 = board.parse_uci("a3b5");
++    const auto null_g4g3 = board.parse_uci("g4g3");
++    check(null_a3b5.has_value() && null_g4g3.has_value(),
++          "shallow null PVS regression moves parse");
++    if (null_a3b5.has_value() && null_g4g3.has_value()) {
++        forge::SearchLimits shallow_null_limits;
++        shallow_null_limits.depth = 6;
++        shallow_null_limits.search_moves_specified = true;
++        shallow_null_limits.search_moves = {*null_a3b5, *null_g4g3};
++        forge::Searcher shallow_null_searcher(4);
++        const forge::SearchInfo shallow_null_result =
++            shallow_null_searcher.search(board, shallow_null_limits);
++        check(forge::Board::move_to_uci(shallow_null_result.best_move) == "g4g3",
++              "shallow null pruning does not suppress the stronger PVS move");
++        check(shallow_null_result.score == 1498,
++              "shallow null PVS regression preserves the nominal-depth score");
++    }
+     forge::SearchLimits overhead_limits;
+     overhead_limits.movetime_ms = 100;
+     overhead_limits.move_overhead_ms = 25;

@@ -1,0 +1,89 @@
+--- /mnt/data/forge_work/baseline/chess-engine-forge-5.13.0/src/uci.cpp	2026-10-05 16:39:30.000000000 +0000
++++ /mnt/data/forge_work/chess-engine-forge-5.14.0/src/uci.cpp	2026-10-05 17:39:05.795074401 +0000
+@@ -1,5 +1,6 @@
+ #include "forge/board.hpp"
+ #include "forge/search.hpp"
++#include "forge/uci_output.hpp"
+ 
+ #include <algorithm>
+ #include <charconv>
+@@ -27,7 +28,7 @@
+         }
+         std::string error;
+         if (!candidate.set_fen(fen, &error)) {
+-            std::cout << "info string invalid FEN: " << error << std::endl;
++            { const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex()); std::cout << "info string invalid FEN: " << error << std::endl; }
+             return;
+         }
+     } else {
+@@ -41,7 +42,7 @@
+     while (input >> token) {
+         const auto move = candidate.parse_uci(token);
+         if (!move.has_value()) {
+-            std::cout << "info string illegal move " << token << std::endl;
++            { const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex()); std::cout << "info string illegal move " << token << std::endl; }
+             return;
+         }
+         forge::Undo undo;
+@@ -129,14 +130,15 @@
+         std::string command;
+         input >> command;
+         if (command == "uci") {
+-            std::cout << "id name Chess Engine Forge 5.13.0\n"
++            const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex());
++            std::cout << "id name Chess Engine Forge 5.14.0\n"
+                          "id author OpenAI\n"
+                          "option name Hash type spin default 32 min 1 max 2048\n"
+                          "option name Move Overhead type spin default 10 min 0 max 1000\n"
+                          "option name Clear Hash type button\n"
+                          "uciok" << std::endl;
+         } else if (command == "isready") {
+-            std::cout << "readyok" << std::endl;
++            { const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex()); std::cout << "readyok" << std::endl; }
+         } else if (command == "ucinewgame") {
+             stop_search();
+             searcher.clear();
+@@ -161,7 +163,7 @@
+                 const auto parsed = std::from_chars(
+                     value_text.data(), value_text.data() + value_text.size(), value);
+                 if (parsed.ec != std::errc{} || parsed.ptr != value_text.data() + value_text.size()) {
+-                    std::cout << "info string invalid value for option " << name << std::endl;
++                    { const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex()); std::cout << "info string invalid value for option " << name << std::endl; }
+                 } else if (name == "Hash") {
+                     searcher.resize_hash(static_cast<std::size_t>(std::clamp(value, 1, 2048)));
+                 } else {
+@@ -184,11 +186,11 @@
+                     depth_text.data(), depth_text.data() + depth_text.size(), depth);
+                 if (parsed.ec != std::errc{} || parsed.ptr != depth_text.data() + depth_text.size() ||
+                     depth < 0 || depth > 10) {
+-                    std::cout << "info string perft depth must be an integer from 0 to 10" << std::endl;
++                    { const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex()); std::cout << "info string perft depth must be an integer from 0 to 10" << std::endl; }
+                     continue;
+                 }
+                 if (depth == 0) {
+-                    std::cout << "nodes 1" << std::endl;
++                    { const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex()); std::cout << "nodes 1" << std::endl; }
+                     continue;
+                 }
+                 std::uint64_t total = 0;
+@@ -198,9 +200,9 @@
+                     const std::uint64_t nodes = board.perft(depth - 1);
+                     board.unmake_move(move, undo);
+                     total += nodes;
+-                    std::cout << forge::Board::move_to_uci(move) << ": " << nodes << '\n';
++                    { const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex()); std::cout << forge::Board::move_to_uci(move) << ": " << nodes << std::endl; }
+                 }
+-                std::cout << "nodes " << total << std::endl;
++                { const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex()); std::cout << "nodes " << total << std::endl; }
+             } else {
+                 input.clear();
+                 input.seekg(position);
+@@ -221,7 +223,7 @@
+                     }
+                     const std::string best = result.best_move.from == result.best_move.to
+                         ? "0000" : forge::Board::move_to_uci(result.best_move);
+-                    std::cout << "bestmove " << best << std::endl;
++                    { const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex()); std::cout << "bestmove " << best << std::endl; }
+                 });
+             }
+         } else if (command == "stop") {
