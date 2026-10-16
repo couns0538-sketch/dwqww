@@ -1,0 +1,21 @@
+Chess Engine Forge 5.24.0 pre-freeze validation summary
+
+Baseline: exact validated 5.23.0 source ZIP SHA-256 614008e4f0284e4a16d65682b1b16f18d1e565059d98fb3f79f93825534e3316.
+Selected defect: shallow LMR at nominal depths 3-4 can miss a late quiet move that raises alpha.
+Primary baseline result: depth4 full=41, [232,233]=232.
+Primary candidate/reference result: depth4 full=233, [232,233]=233, bestmove h6d2.
+Adjacent baseline depth3 result: full=-7, [14,15]=14.
+Adjacent candidate/reference depth3 result: full=15, [14,15]=15.
+
+Strict builds/tests:
+- GCC 14.2 Release + -Werror: PASS, 3/3 CTest.
+- Clang 17 Release + -Werror: PASS, 3/3 CTest.
+- Clang 17 RelWithDebInfo ASan+UBSan + -Werror: PASS, 3/3 CTest, no sanitizer diagnostic.
+- GCC and Clang extended UCI suites: PASS, known_failures empty.
+- Perft: start d6 119060324; Kiwipete d4 4085603; CPW pos3 d5 674624.
+
+Benchmark, 11 interleaved CPU0-pinned runs on AMD EPYC 9V74:
+- perft5: 4,865,609 nodes both; median 63.635 -> 63.606 ms.
+- shallow suite: 217,134 -> 324,363 nodes (+49.38%); 104.208 -> 151.715 ms (+45.59%).
+- deep suite: 1,229,258 -> 2,578,920 nodes (+109.79%); 684.298 -> 1,425.062 ms (+108.25%).
+No speed or Elo claim. Fastchess/SPRT not run.
