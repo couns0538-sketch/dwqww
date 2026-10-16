@@ -1,5 +1,5 @@
 --- /tmp/base1748/dist-v1.7.48/search/search.js	2026-10-16 18:16:44.643256087 +0000
-+++ gc1748/dist-v1.7.48/search/search.js	2026-10-16 19:46:24.446660245 +0000
++++ gc1748/dist-v1.7.48/search/search.js	2026-10-16 19:49:14.625554710 +0000
 @@ -8,6 +8,7 @@
  const evaluate_1 = require("../eval/evaluate");
  const tt_1 = require("./tt");
@@ -145,7 +145,18 @@
          this.tt.prefetchAge();
          this.resetHeuristics();
          if (this.historyNoiseSeed)
-@@ -315,7 +418,7 @@
+@@ -259,6 +362,10 @@
+             }
+             if (this.stop && depth > 1)
+                 break;
++            // An abort before any root move must not publish an empty pv. That
++            // line replaced the real PV and the fallback bestmove no longer matched it.
++            if (this.stop && this.pvLength[0] <= 0)
++                break;
+             bestScore = score;
+             if (this.pvLength[0] > 0)
+                 bestMove = this.pvTable[0][0];
+@@ -315,7 +422,7 @@
          if (this.shouldStop())
              return 0;
          const isPV = beta - alpha > 1;
@@ -154,7 +165,7 @@
          let ttMove = null;
          if (ttEntry) {
              ttMove = ttEntry.bestMove;
-@@ -481,6 +584,14 @@
+@@ -481,6 +588,14 @@
              }
          }
          let moves = (0, movegen_1.generateMoves)(this.board);
@@ -169,7 +180,7 @@
          moves = this.orderMoves(moves, ply, ttMove, depth);
          // TT moves are unpacked without a captured piece; resolve capture-ness from the generated move.
          const ttIsCapture = ttMove !== null && moves.some(mm => this.sameMove(mm, ttMove) && mm.captured !== 0 /* Piece.None */);
-@@ -717,7 +828,7 @@
+@@ -717,7 +832,7 @@
          if (ply >= MAX_PLY - 1)
              return (0, evaluate_1.evaluate)(this.board);
          // Probe-only TT: reuse deeper search bounds; never store from qsearch

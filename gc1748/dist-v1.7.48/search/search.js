@@ -362,6 +362,10 @@ class Search {
             }
             if (this.stop && depth > 1)
                 break;
+            // An abort before any root move must not publish an empty pv. That
+            // line replaced the real PV and the fallback bestmove no longer matched it.
+            if (this.stop && this.pvLength[0] <= 0)
+                break;
             bestScore = score;
             if (this.pvLength[0] > 0)
                 bestMove = this.pvTable[0][0];

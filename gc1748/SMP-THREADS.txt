@@ -248,3 +248,19 @@ Fix
   A position that arrives while searching is held and applied after
   bestmove is printed. The move is checked on the board that was
   searched. The held position is what the next go sees.
+
+9. Abort before the first root move wiped the PV
+-------------------------------------------------
+What went wrong
+  If the clock fired during depth 1 before any move finished, that
+  iteration still called onInfo with an empty pv. The worker stored
+  that empty pv as the final one. bestmove then fell back to the first
+  legal move, which was not the PV from the last real info line. Short
+  clocks with several threads hit this because worker startup used up
+  the budget.
+
+Fix
+  An abort that has not yet produced a root move does not publish info
+  and does not replace the previous pv. A depth-1 iteration that has a
+  move, and every completed iteration, still publish as before.
+  Fixed-depth bench totals are unchanged (194011 at depth 9).
