@@ -1,0 +1,29 @@
+Attached: grokchess_1745_full_source.txt = complete real source of my JavaScript NNUE chess engine GrokChess (lock 1.7.45): search, board, movegen, TT, NNUE, UCI, Lazy SMP. ~150-200k NPS single-thread in Node; tested with 10+0.1 SPRT.
+
+I am sending this SAME message to three models. Each model does ONLY its own job below and ignores the other two.
+- If you are Gemini (Argon): do JOB A.
+- If you are Grok: do JOB B.
+- If you are Muse (Wonder): do JOB C.
+Start your answer with "JOB A", "JOB B" or "JOB C". Only report things you can point to in this exact code; never invent functions; no generic advice.
+
+=== JOB A (Gemini): Elo-costing bug hunt ===
+Find real bugs and logic errors that likely cost Elo. Check in particular:
+- TT: mate-score adjustment on store/probe, bound handling, replacement, key collisions, stale entries across searches.
+- Search: PV handling, aspiration re-search, null-move, LMR, singular extension, repetition and 50-move draw detection, mate-distance pruning, time management, stop handling.
+- Qsearch: stand-pat, check evasions, delta/SEE pruning.
+- NNUE: accumulator updates on make/unmake, castling/en passant/promotion feature updates, output bucket choice, quantization overflow.
+- Lazy SMP: shared state between workers.
+For each finding: file, function, exact lines, why it is wrong, minimal fix as a unified diff, confidence, and likely Elo cost. Rank by expected Elo.
+
+=== JOB B (Grok): NNUE speed ===
+Find the three biggest SAFE NPS wins in the NNUE path (inference in nnue.js plus WASM SIMD). Look at JS-to-WASM call overhead per eval, accumulator refresh/incremental update, and undo handling in make/unmake. For each: unified diff against the real files, expected speedup, and why eval output stays bit-identical. Identical bench node counts is a hard requirement; do not change search or eval values. Lazy SMP must stay safe (per-thread accumulators, no shared mutable state).
+
+=== JOB C (Muse): NNUE training plan ===
+Facts: NNUE 768 inputs -> 256 hidden int16 accumulators (WASM SIMD) -> SCReLU -> 8 output buckets by piece count. Training data so far: Forge self-play plus Stockfish-derived positions. Hardware: one strong Windows PC with a GPU plus a small Linux box. The current best net beat the previous one by ~+40 Elo; switching from hand-written eval to NNUE gave ~+235.
+Question: what is the single highest-Elo NNUE path for THIS engine over the next 2-4 weeks, given it runs at JS speed?
+1. Architecture: keep 768->256, go wider (512/1024), add king buckets (how many, layout, mirrored?), or add a hidden layer? Quantify Elo vs NPS at our speed and the break-even.
+2. Data: how many positions, which source, filtering (in-check, captures, tactical, score limits), WDL vs score blend.
+3. Training recipe: loss, LR schedule, epochs, batch size, quantization scales, checkpoint selection (and why validation loss misleads).
+4. Testing: how to compare nets fairly in SPRT, including a same-data control net.
+5. Exact build order with expected Elo per step and the biggest risk at each.
+Read the attached NNUE code first. State uncertainty plainly.
