@@ -143,10 +143,10 @@ Fix
   word, and the key word again. A mismatch or a failed xor is a miss.
   The generation is incremented once per go, on the UCI side, before
   workers start. Workers only load it.
-  When the table is the shared one, a hit whose move is not in the
-  generated move list is ignored (negamax and qsearch). The local
-  table path does not do that extra generation, so one thread stays
-  on the same node counts.
+  When the table is the shared one, a hit whose move is not a
+  pseudo-legal move for the piece on that square is ignored (negamax
+  and qsearch). The test is one move, not a full generation. The local
+  table path does not do it, so one thread stays on the same node counts.
   ucinewgame and Hash received during a search are applied after
   bestmove, not under the probes.
   If a worker process dies, its search promise is settled and the
