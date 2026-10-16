@@ -1,0 +1,26 @@
+--- v512lib/chess-engine-forge-5.12.0/tools/uci_regression.py	2026-10-05 15:41:00.000000000 +0000
++++ v513-candidate/tools/uci_regression.py	2026-10-05 16:35:08.012211037 +0000
+@@ -189,6 +189,23 @@
+         timings["movetime_50_wall_seconds"] = time.monotonic() - start
+         assert timings["movetime_50_wall_seconds"] < 2
+         passed.append("finite movetime responsiveness")
++        e.position()
++        start = time.monotonic()
++        assert e.search("go movetime 0")[0] != "0000"
++        timings["movetime_0_wall_seconds"] = time.monotonic() - start
++        assert timings["movetime_0_wall_seconds"] < 1
++        passed.append("explicit zero movetime is bounded")
++        e.position()
++        start = time.monotonic()
++        assert e.search("go wtime 0 btime 1000 movestogo 30")[0] != "0000"
++        timings["white_clock_0_wall_seconds"] = time.monotonic() - start
++        assert timings["white_clock_0_wall_seconds"] < 1
++        e.position("startpos moves e2e4")
++        start = time.monotonic()
++        assert e.search("go wtime 1000 btime 0 movestogo 30")[0] != "0000"
++        timings["black_clock_0_wall_seconds"] = time.monotonic() - start
++        assert timings["black_clock_0_wall_seconds"] < 1
++        passed.append("explicit zero side clocks are bounded")
+         if not a.known_v56:
+             e.position()
+             assert e.search("go depth 1 wtime 2147483647 winc 2147483647")[0] != "0000"

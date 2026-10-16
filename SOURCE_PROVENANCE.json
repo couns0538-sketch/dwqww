@@ -1,0 +1,93 @@
+{
+  "status": "6.0.0 strength release: selective search, position-indexed TT, PeSTO piece-square tables; measured Elo gain",
+  "release": "6.0.0",
+  "last_previously_validated_release": "5.31.0",
+  "primary_causal_baseline": {
+    "version": "5.31.0",
+    "archive": "chess-engine-forge-5.31.0(2).zip (repository root)"
+  },
+  "lineage_note": "The 5.31.0 archive was extracted unchanged into the repository root, then the search and evaluation were changed in reviewable commits. Move generation, UCI handling, pondering and the match tooling are unchanged.",
+  "engine_changes": [
+    "Searcher::alpha_beta: late-move reductions from depth 3, null-move pruning from depth 3 (verification only at depth 10+), reverse futility, late-move and futility pruning, check extension, internal iterative reduction, progressive aspiration windows, soft/hard time limits",
+    "Transposition table indexed by Board::key(); fifty-move clock in the entry context only from clock 90; standard in-search repetition rule",
+    "Evaluation: PeSTO piece-square tables replace the center-distance placement terms"
+  ],
+  "third_party_material": [
+    {
+      "item": "PeSTO piece-square tables and tapered material values",
+      "author": "Ronald Friederich",
+      "source": "https://www.chessprogramming.org/PeSTO%27s_Evaluation_Function",
+      "terms": "published for free use; no engine source code was copied"
+    },
+    {
+      "item": "Fastchess (external match runner, not linked or redistributed)",
+      "source": "https://github.com/Disservin/fastchess commit 60d7a7a26c6b0582a15c112fb29a1829bef2adb3",
+      "terms": "MIT"
+    }
+  ],
+  "elo_claim": "See RELEASE_STATE.md: fastchess self-play against the unchanged 5.31.0 binary at 5+0.05 and 10+0.1.",
+  "strength_gate": "fastchess paired-opening matches from tools/openings/forge-10000.epd, Hash 32 MiB, single thread, no adjudication beyond the rules of chess",
+  "known_unfixed": [
+    "single-threaded search",
+    "no capture/continuation history, no singular extensions",
+    "transposition table is always-replace without aging",
+    "evaluation has no king-attack term beyond pawn shelter and no passed-pawn/king interaction",
+    "no opening book, tablebases or NNUE"
+  ],
+  "previous_release_record": {
+    "status": "validated nominal-depth-9 LMR false-bound correction; no Elo claim",
+    "release": "5.31.0",
+    "last_previously_validated_release": "5.30.0",
+    "primary_causal_baseline": {
+      "version": "5.30.0",
+      "archive_sha256": "fd2f0d249b78bc353bc3a439464be0c4aec7a01eb1664f2c923f985aef74d0d7"
+    },
+    "lineage_note": "Exactly one depth-9 LMR bound-correctness change on verified 5.30.0. No other engine heuristics or UCI behavior changed.",
+    "engine_change": "Searcher::alpha_beta depth-9 late-quiet moves searched at full nominal depth; LMR starts at depth 10",
+    "preserved": [
+      "5.30.0 restricted-root no-result classification",
+      "5.27.0 depth-7 LMR safeguard",
+      "5.26.0 depth-6 LMR safeguard",
+      "5.25.0 depth-5 LMR safeguard",
+      "5.24.0 depth-3/4 LMR safeguard",
+      "5.23.0 shallow null-move depth floor",
+      "5.22.0 qsearch stalemate correction",
+      "5.21.0 nominal-depth TT-miss zero-window search",
+      "5.20.0 reverse-futility correction",
+      "5.19.0 hard-delta qsearch correction",
+      "5.18.0 negative-SEE qsearch correction",
+      "5.17.0 explicit-zero node limit",
+      "5.16.0 repetition-history-aware TT identity",
+      "5.14.0 atomic UCI output",
+      "5.13.0 explicit-zero time controls",
+      "5.12.0 terminal SearchInfo commitment",
+      "5.11.0 infinite publication gating",
+      "5.10.0 restricted-root TT isolation",
+      "5.9.0 rule-50/null TT context",
+      "5.8.0 king-safe SEE"
+    ],
+    "elo_claim": null,
+    "strength_gate": "Proven search-bound correctness; no Fastchess A/B SPRT or Elo improvement asserted; deterministic fixed-depth metrics only.",
+    "known_unfixed": [
+      "depth-10+ history-conditioned LMR search/bound risk",
+      "depth-6+ reduced-null verification soundness risk",
+      "64-bit repetition-history fingerprint collision risk",
+      "coefficient-sensitive historical search regression infrastructure",
+      "Ponder-on match strength not measured",
+      "no multithreaded search",
+      "no OwnBook or bundled book file",
+      "no controlled opponent ladder / calibrated superhuman result",
+      "Windows native/Wine runtime not tested"
+    ],
+    "windows_toolchain": {
+      "source": "mstorsjo/llvm-mingw GitHub Actions artifact 11333834944",
+      "outer_artifact_sha256": "7b021b4b9717936751f6437317ed7defa628ac83a1726f8fb315ea0fd1813af3",
+      "contained_toolchain_sha256": "8c843b8878f25c822afd37864e435beda65e2abe030543ed70915aeb1ecd16de",
+      "compiler": "clang 24.0.0git, LLVM revision 540f1cb6efb0c855ee1550c9e153f9ba15cfe65b",
+      "target": "x86_64-w64-windows-gnu / UCRT / Zen 4 Ryzen 9 7950X3D",
+      "optimization": "-O3 -flto=thin -march=znver4 -mtune=znver4",
+      "runtime_linkage": "static C++ runtime; UCRT system imports",
+      "runtime_test_status": "cross-compiled/PE-verified; native Windows/Wine unavailable"
+    }
+  }
+}
