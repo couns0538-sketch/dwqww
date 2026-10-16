@@ -1,0 +1,156 @@
+--- /tmp/gc_clean/move/movegen.js	2026-10-16 10:31:56.426851652 +0000
++++ /workspace/engine/move/movegen.js	2026-10-16 15:09:24.101794065 +0000
+@@ -2,6 +2,7 @@
+ /** Legal / pseudo-legal move generation */
+ Object.defineProperty(exports, "__esModule", { value: true });
+ exports.generateMoves = generateMoves;
++exports.generateInto = generateInto;
+ exports.generateLegalMoves = generateLegalMoves;
+ exports.moveToUci = moveToUci;
+ exports.parseUciMove = parseUciMove;
+@@ -10,22 +11,38 @@
+ const types_1 = require("../board/types");
+ const attacks_1 = require("../board/attacks");
+ const magics_1 = require("../board/magics");
+-function addMove(moves, from, to, piece, captured, promo, flags) {
+-    moves.push({ from, to, piece, captured, promo, flags });
++/** Packed move: from | to<<6 | piece<<12 | captured<<16 | promo<<20 | flags<<24. */
++function packMove(from, to, piece, captured, promo, flags) {
++    return (from | (to << 6) | (piece << 12) | (captured << 16) | (promo << 20) | (flags << 24)) | 0;
+ }
+-function addPromotions(moves, from, to, piece, captured, color) {
++function addMove(sink, from, to, piece, captured, promo, flags) {
++    sink.buf[sink.n++] = packMove(from, to, piece, captured, promo, flags);
++}
++function unpackMove(m) {
++    return {
++        from: m & 63,
++        to: (m >>> 6) & 63,
++        piece: (m >>> 12) & 15,
++        captured: (m >>> 16) & 15,
++        promo: (m >>> 20) & 15,
++        flags: (m >>> 24) & 15,
++    };
++}
++const GEN_CAP = 256;
++const GEN_BUFS = Array.from({ length: 128 }, () => new Int32Array(GEN_CAP));
++function addPromotions(sink, from, to, piece, captured, color) {
+     const q = (0, types_1.makePiece)(color, 5);
+     const r = (0, types_1.makePiece)(color, 4);
+     const b = (0, types_1.makePiece)(color, 3);
+     const n = (0, types_1.makePiece)(color, 2);
+-    addMove(moves, from, to, piece, captured, q, 0);
+-    addMove(moves, from, to, piece, captured, r, 0);
+-    addMove(moves, from, to, piece, captured, b, 0);
+-    addMove(moves, from, to, piece, captured, n, 0);
++    addMove(sink, from, to, piece, captured, q, 0);
++    addMove(sink, from, to, piece, captured, r, 0);
++    addMove(sink, from, to, piece, captured, b, 0);
++    addMove(sink, from, to, piece, captured, n, 0);
+ }
+-/** Generate all pseudo-legal moves (may leave king in check). Scalar lo/hi + ctz loops, same move order as before. */
+-function generateMoves(board, capturesOnly = false) {
+-    const moves = [];
++/** Write pseudo-legal moves into buf as packed ints. Returns the count. Same order as before. */
++function generateInto(board, buf, capturesOnly = false) {
++    const moves = { buf, n: 0 };
+     const us = board.side;
+     const them = us === 0 /* Color.White */ ? 1 /* Color.Black */ : 0 /* Color.White */;
+     const enemyKing = them === 0 /* Color.White */ ? 6 /* Piece.WK */ : 12 /* Piece.BK */;
+@@ -141,10 +158,19 @@
+             }
+         }
+     }
+-    return moves;
++    return moves.n;
++}
++/** Object list for UCI / tests. Search uses generateInto. */
++function generateMoves(board, capturesOnly = false) {
++    const buf = GEN_BUFS[127];
++    const n = generateInto(board, buf, capturesOnly);
++    const out = new Array(n);
++    for (let i = 0; i < n; i++)
++        out[i] = unpackMove(buf[i]);
++    return out;
+ }
+ /** kind: 0 knight table, 1 bishop, 2 rook, 3 queen, 4 king table. */
+-function emitTargets(moves, sq, pieces, kind, table, piece, capturesOnly, theirLo, theirHi, notOursLo, notOursHi, occ) {
++function emitTargets(sink, sq, pieces, kind, table, piece, capturesOnly, theirLo, theirHi, notOursLo, notOursHi, occ) {
+     // orderfast: target mask chosen once per call; leaper table checked by null (kind 0/4 always pass a table).
+     const maskLo = capturesOnly ? theirLo : notOursLo, maskHi = capturesOnly ? theirHi : notOursHi;
+     if ((pieces.lo | pieces.hi) === 0)
+@@ -182,13 +208,13 @@
+                 const b = tl & -tl;
+                 tl ^= b;
+                 const to = 31 - Math.clz32(b);
+-                moves.push({ from, to, piece, captured: sq[to], promo: 0 /* Piece.None */, flags: 0 });
++                addMove(sink, from, to, piece, sq[to], 0 /* Piece.None */, 0);
+             }
+             while (th) {
+                 const b = th & -th;
+                 th ^= b;
+                 const to = 63 - Math.clz32(b);
+-                moves.push({ from, to, piece, captured: sq[to], promo: 0 /* Piece.None */, flags: 0 });
++                addMove(sink, from, to, piece, sq[to], 0 /* Piece.None */, 0);
+             }
+         }
+     }
+@@ -207,9 +233,12 @@
+ }
+ function moveToUci(m) {
+     const files = 'abcdefgh';
+-    let s = files[m.from & 7] + (1 + (m.from >> 3)) + files[m.to & 7] + (1 + (m.to >> 3));
+-    if (m.promo !== 0 /* Piece.None */) {
+-        const pt = (0, types_1.pieceType)(m.promo);
++    const from = typeof m === 'number' ? m & 63 : m.from;
++    const to = typeof m === 'number' ? (m >>> 6) & 63 : m.to;
++    const promo = typeof m === 'number' ? (m >>> 20) & 15 : m.promo;
++    let s = files[from & 7] + (1 + (from >> 3)) + files[to & 7] + (1 + (to >> 3));
++    if (promo !== 0 /* Piece.None */) {
++        const pt = (0, types_1.pieceType)(promo);
+         s += '  nbrq'[pt]; // 1=P skip, 2=n, 3=b, 4=r, 5=q
+     }
+     return s;
+@@ -248,16 +277,20 @@
+ }
+ /** Perft */
+ function perft(board, depth) {
++    return perftAt(board, depth, 0);
++}
++function perftAt(board, depth, ply) {
+     if (depth === 0)
+         return 1;
+-    const moves = generateMoves(board);
++    const buf = GEN_BUFS[ply];
++    const n = generateInto(board, buf, false);
+     let nodes = 0;
+-    for (const m of moves) {
+-        if (board.makeMove(m)) {
++    for (let i = 0; i < n; i++) {
++        if (board.makeMove(buf[i])) {
+             if (depth === 1)
+                 nodes++;
+             else
+-                nodes += perft(board, depth - 1);
++                nodes += perftAt(board, depth - 1, ply + 1);
+             board.unmakeMove();
+         }
+     }
+@@ -265,11 +298,13 @@
+ }
+ function perftDivide(board, depth) {
+     const result = new Map();
+-    const moves = generateMoves(board);
+-    for (const m of moves) {
++    const buf = GEN_BUFS[0];
++    const n = generateInto(board, buf, false);
++    for (let i = 0; i < n; i++) {
++        const m = buf[i];
+         if (board.makeMove(m)) {
+-            const n = depth === 1 ? 1 : perft(board, depth - 1);
+-            result.set(moveToUci(m), n);
++            const c = depth === 1 ? 1 : perftAt(board, depth - 1, 1);
++            result.set(moveToUci(m), c);
+             board.unmakeMove();
+         }
+     }

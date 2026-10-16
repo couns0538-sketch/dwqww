@@ -1,0 +1,189 @@
+--- /tmp/gc_clean/board/board.js	2026-10-16 10:31:56.426851652 +0000
++++ /workspace/engine/board/board.js	2026-10-16 15:09:50.745826164 +0000
+@@ -85,7 +85,7 @@
+         return false;
+     }
+     constructor(fen) {
+-        this.squares = new Array(64).fill(0 /* Piece.None */);
++        this.squares = new Uint8Array(64);
+         // Dual-u32 bitboards: [piece] / [color]
+         this.pieceBB = Array.from({ length: 13 }, () => (0, bitboard_1.emptyBB)());
+         this.colorBB = [(0, bitboard_1.emptyBB)(), (0, bitboard_1.emptyBB)()]; // white, black
+@@ -110,7 +110,7 @@
+     }
+     clone() {
+         const b = new Board();
+-        b.squares = this.squares.slice();
++        b.squares = new Uint8Array(this.squares);
+         b.pieceBB = this.pieceBB.map(bitboard_1.cloneBB);
+         b.colorBB = this.colorBB.map(bitboard_1.cloneBB);
+         b.occupied = (0, bitboard_1.cloneBB)(this.occupied);
+@@ -318,15 +318,32 @@
+         return this.isAttacked(ks, c === 0 /* Color.White */ ? 1 /* Color.Black */ : 0 /* Color.White */);
+     }
+     makeMove(m) {
++        let from, to, piece, captured, promo, flags;
++        if (typeof m === 'number') {
++            from = m & 63;
++            to = (m >>> 6) & 63;
++            piece = (m >>> 12) & 15;
++            captured = (m >>> 16) & 15;
++            promo = (m >>> 20) & 15;
++            flags = (m >>> 24) & 15;
++        }
++        else {
++            from = m.from;
++            to = m.to;
++            piece = m.piece;
++            captured = m.captured;
++            promo = m.promo;
++            flags = m.flags;
++        }
+         {
+             const t = this.undoSlot();
+             const u = this.undoBuf;
+-            u[t + U_FROM] = m.from;
+-            u[t + U_TO] = m.to;
+-            u[t + U_PIECE] = m.piece;
+-            u[t + U_CAP] = m.captured;
+-            u[t + U_PROMO] = m.promo;
+-            u[t + U_FLAGS] = m.flags;
++            u[t + U_FROM] = from;
++            u[t + U_TO] = to;
++            u[t + U_PIECE] = piece;
++            u[t + U_CAP] = captured;
++            u[t + U_PROMO] = promo;
++            u[t + U_FLAGS] = flags;
+             u[t + U_CASTLING] = this.castling;
+             u[t + U_EP] = this.epSquare;
+             u[t + U_HALF] = this.halfmove;
+@@ -343,15 +360,15 @@
+         const us = this.side;
+         const them = us === 0 /* Color.White */ ? 1 /* Color.Black */ : 0 /* Color.White */;
+         // Update halfmove
+-        if (m.piece === 1 /* Piece.WP */ || m.piece === 7 /* Piece.BP */ || m.captured !== 0 /* Piece.None */) {
++        if (piece === 1 /* Piece.WP */ || piece === 7 /* Piece.BP */ || captured !== 0 /* Piece.None */) {
+             this.halfmove = 0;
+         }
+         else {
+             this.halfmove++;
+         }
+         // Remove captured
+-        if (m.flags & types_1.MOVE_ENPASSANT) {
+-            const capSq = us === 0 /* Color.White */ ? m.to - 8 : m.to + 8;
++        if (flags & types_1.MOVE_ENPASSANT) {
++            const capSq = us === 0 /* Color.White */ ? to - 8 : to + 8;
+             const cap = this.removePiece(capSq);
+             {
+                 const _i = cap * 64 + capSq;
+@@ -359,34 +376,34 @@
+                 this.zLo ^= zobrist_1.ZP_LO[_i];
+             }
+         }
+-        else if (m.captured !== 0 /* Piece.None */) {
+-            this.removePiece(m.to);
++        else if (captured !== 0 /* Piece.None */) {
++            this.removePiece(to);
+             {
+-                const _i = m.captured * 64 + m.to;
++                const _i = captured * 64 + to;
+                 this.zHi ^= zobrist_1.ZP_HI[_i];
+                 this.zLo ^= zobrist_1.ZP_LO[_i];
+             }
+         }
+         // Move piece
+         {
+-            const _i = m.piece * 64 + m.from;
++            const _i = piece * 64 + from;
+             this.zHi ^= zobrist_1.ZP_HI[_i];
+             this.zLo ^= zobrist_1.ZP_LO[_i];
+         }
+-        this.removePiece(m.from);
+-        let placed = m.piece;
+-        if (m.promo !== 0 /* Piece.None */) {
+-            placed = m.promo;
++        this.removePiece(from);
++        let placed = piece;
++        if (promo !== 0 /* Piece.None */) {
++            placed = promo;
+         }
+-        this.putPiece(placed, m.to);
++        this.putPiece(placed, to);
+         {
+-            const _i = placed * 64 + m.to;
++            const _i = placed * 64 + to;
+             this.zHi ^= zobrist_1.ZP_HI[_i];
+             this.zLo ^= zobrist_1.ZP_LO[_i];
+         }
+         // Castling rook move
+-        if (m.flags & types_1.MOVE_CASTLE) {
+-            if (m.to === 6) { // white O-O: rook H1->F1
++        if (flags & types_1.MOVE_CASTLE) {
++            if (to === 6) { // white O-O: rook H1->F1
+                 {
+                     const _i = 4 /* Piece.WR */ * 64 + 7;
+                     this.zHi ^= zobrist_1.ZP_HI[_i];
+@@ -399,7 +416,7 @@
+                 }
+                 this.movePiece(7, 5);
+             }
+-            else if (m.to === 2) { // white O-O-O
++            else if (to === 2) { // white O-O-O
+                 {
+                     const _i = 4 /* Piece.WR */ * 64 + 0;
+                     this.zHi ^= zobrist_1.ZP_HI[_i];
+@@ -412,7 +429,7 @@
+                 }
+                 this.movePiece(0, 3);
+             }
+-            else if (m.to === 62) { // black O-O
++            else if (to === 62) { // black O-O
+                 {
+                     const _i = 10 /* Piece.BR */ * 64 + 63;
+                     this.zHi ^= zobrist_1.ZP_HI[_i];
+@@ -425,7 +442,7 @@
+                 }
+                 this.movePiece(63, 61);
+             }
+-            else if (m.to === 58) { // black O-O-O
++            else if (to === 58) { // black O-O-O
+                 {
+                     const _i = 10 /* Piece.BR */ * 64 + 56;
+                     this.zHi ^= zobrist_1.ZP_HI[_i];
+@@ -440,8 +457,8 @@
+             }
+         }
+         // Double pawn push -> set EP
+-        if (m.flags & types_1.MOVE_DOUBLE) {
+-            this.epSquare = us === 0 /* Color.White */ ? m.from + 8 : m.from - 8;
++        if (flags & types_1.MOVE_DOUBLE) {
++            this.epSquare = us === 0 /* Color.White */ ? from + 8 : from - 8;
+         }
+         // Update castling rights
+         {
+@@ -449,19 +466,19 @@
+             this.zHi ^= zobrist_1.ZC_HI[_i];
+             this.zLo ^= zobrist_1.ZC_LO[_i];
+         }
+-        if (m.piece === 6 /* Piece.WK */ || m.from === 4) {
++        if (piece === 6 /* Piece.WK */ || from === 4) {
+             this.castling &= ~(1 /* Castling.WK */ | 2 /* Castling.WQ */);
+         }
+-        if (m.piece === 12 /* Piece.BK */ || m.from === 60) {
++        if (piece === 12 /* Piece.BK */ || from === 60) {
+             this.castling &= ~(4 /* Castling.BK */ | 8 /* Castling.BQ */);
+         }
+-        if (m.from === 0 || m.to === 0)
++        if (from === 0 || to === 0)
+             this.castling &= ~2 /* Castling.WQ */;
+-        if (m.from === 7 || m.to === 7)
++        if (from === 7 || to === 7)
+             this.castling &= ~1 /* Castling.WK */;
+-        if (m.from === 56 || m.to === 56)
++        if (from === 56 || to === 56)
+             this.castling &= ~8 /* Castling.BQ */;
+-        if (m.from === 63 || m.to === 63)
++        if (from === 63 || to === 63)
+             this.castling &= ~4 /* Castling.BK */;
+         {
+             const _i = this.castling & 15;

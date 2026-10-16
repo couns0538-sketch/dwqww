@@ -1,0 +1,21 @@
+--- /tmp/gc_clean/search/givescheck.js	2026-10-16 10:31:56.426851652 +0000
++++ /workspace/engine/search/givescheck.js	2026-10-16 15:10:34.277888627 +0000
+@@ -46,14 +46,16 @@
+ }
+ /** Exact "does m give check" for a legal quiet non-castle non-promo move. Callers must not pass castles/promos/ep. */
+ function givesCheckQuiet(b, m) {
+-    const from = m.from, to = m.to;
++    const from = typeof m === 'number' ? m & 63 : m.from;
++    const to = typeof m === 'number' ? (m >>> 6) & 63 : m.to;
++    const piece = typeof m === 'number' ? (m >>> 12) & 15 : m.piece;
+     const white = b.side === 0 /* Color.White */;
+     const ks = white ? b.blackKingSq : b.whiteKingSq;
+     const occ = b.occupied;
+     // occ' = occ - from + to (to is empty: quiet)
+     const fLo = from < 32 ? (1 << from) >>> 0 : 0, fHi = from < 32 ? 0 : (1 << (from - 32)) >>> 0;
+     // 1) direct check by the moved piece from `to`
+-    const p = m.piece;
++    const p = piece;
+     const pt = white ? p : p - 6;
+     if (pt === 2) {
+         const a = attacks_1.KNIGHT_ATTACKS[to];
