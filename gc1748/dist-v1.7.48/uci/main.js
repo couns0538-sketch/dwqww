@@ -127,6 +127,7 @@ function armClock(clock) {
     });
     liveSoft = new timeman_1.SoftController(budget);
     liveHard = setTimeout(smp_1.abortSmpSearch, budget.hard);
+    (0, smp_1.armSearchDeadline)(Date.now() + budget.hard);
 }
 function scoreString(score) {
     if (Math.abs(score) > tt_1.MATE_BOUND) {
@@ -256,7 +257,11 @@ function handle(line) {
                 // explicit movetime: honour it minus overhead beyond what search.ts already subtracts (8 ms)
                 const mt = Math.max(10, limits.moveTime - Math.max(0, moveOverhead - 8));
                 searchLimits = { ...limits, moveTime: mt };
-                armTimer = () => { liveHard = setTimeout(smp_1.abortSmpSearch, Math.max(5, mt - 8)); };
+                armTimer = () => {
+                    const wait = Math.max(5, mt - 8);
+                    liveHard = setTimeout(smp_1.abortSmpSearch, wait);
+                    (0, smp_1.armSearchDeadline)(Date.now() + wait);
+                };
             }
             else if (!limits.infinite && (limits.wtime !== undefined || limits.btime !== undefined)) {
                 const white = board.side === 0;
@@ -268,6 +273,7 @@ function handle(line) {
                 armTimer = () => {
                     liveSoft = new timeman_1.SoftController(budget);
                     liveHard = setTimeout(smp_1.abortSmpSearch, budget.hard);
+                    (0, smp_1.armSearchDeadline)(Date.now() + budget.hard);
                 };
             }
             searching = true;
@@ -277,6 +283,8 @@ function handle(line) {
                     // Finish the previous helpers' tail and any deferred table clear
                     // before the clock starts, so Hash/ucinewgame work is not time-loss.
                     await (0, smp_1.prepareWorkers)();
+                    if (limits.ponder || armTimer)
+                        (0, smp_1.openSearchClock)();
                     if (stopPending) {
                         searchLimits = { maxDepth: 1, searchMoves: limits.searchMoves };
                         liveSoft = null;
@@ -322,6 +330,7 @@ function handle(line) {
                     liveSoft = null;
                     searching = false;
                     pondering = false;
+                    (0, smp_1.disarmSearchClock)();
                     const ng = deferredNewGame;
                     const pos = deferredPosition;
                     const hash = deferredHashMb;

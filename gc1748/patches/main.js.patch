@@ -1,6 +1,6 @@
 --- /tmp/base1748/dist-v1.7.48/uci/main.js	2026-10-16 18:16:44.643256087 +0000
-+++ gc1748/dist-v1.7.48/uci/main.js	2026-10-16 19:43:58.222892970 +0000
-@@ -52,6 +52,82 @@
++++ gc1748/dist-v1.7.48/uci/main.js	2026-10-16 19:46:37.310640234 +0000
+@@ -52,6 +52,83 @@
  let moveOverhead = 30;
  let searching = false;
  let stopPending = false; // 'stop' that arrives after 'go' but before the async search has started (GUI race)
@@ -79,11 +79,12 @@
 +    });
 +    liveSoft = new timeman_1.SoftController(budget);
 +    liveHard = setTimeout(smp_1.abortSmpSearch, budget.hard);
++    (0, smp_1.armSearchDeadline)(Date.now() + budget.hard);
 +}
  function scoreString(score) {
      if (Math.abs(score) > tt_1.MATE_BOUND) {
          const mateIn = score > 0
-@@ -86,41 +162,24 @@
+@@ -86,41 +163,24 @@
              (0, smp_1.ensurePool)(threads).then(() => send('readyok')).catch(() => send('readyok'));
              break;
          case 'ucinewgame':
@@ -137,7 +138,7 @@
              break;
          }
          case 'go': {
-@@ -132,6 +191,14 @@
+@@ -132,6 +192,14 @@
              let movestogo;
              for (let i = 1; i < parts.length; i++) {
                  switch (parts[i]) {
@@ -152,7 +153,7 @@
                      case 'depth':
                          limits.maxDepth = parseInt(parts[++i], 10);
                          break;
-@@ -165,55 +232,82 @@
+@@ -165,55 +233,89 @@
                      }
                  }
              }
@@ -185,7 +186,11 @@
                  const mt = Math.max(10, limits.moveTime - Math.max(0, moveOverhead - 8));
                  searchLimits = { ...limits, moveTime: mt };
 -                hardTimer = setTimeout(smp_1.abortSmpSearch, Math.max(5, mt - 8));
-+                armTimer = () => { liveHard = setTimeout(smp_1.abortSmpSearch, Math.max(5, mt - 8)); };
++                armTimer = () => {
++                    const wait = Math.max(5, mt - 8);
++                    liveHard = setTimeout(smp_1.abortSmpSearch, wait);
++                    (0, smp_1.armSearchDeadline)(Date.now() + wait);
++                };
              }
              else if (!limits.infinite && (limits.wtime !== undefined || limits.btime !== undefined)) {
                  const white = board.side === 0;
@@ -200,6 +205,7 @@
 +                armTimer = () => {
 +                    liveSoft = new timeman_1.SoftController(budget);
 +                    liveHard = setTimeout(smp_1.abortSmpSearch, budget.hard);
++                    (0, smp_1.armSearchDeadline)(Date.now() + budget.hard);
 +                };
              }
              searching = true;
@@ -209,6 +215,8 @@
 +                    // Finish the previous helpers' tail and any deferred table clear
 +                    // before the clock starts, so Hash/ucinewgame work is not time-loss.
 +                    await (0, smp_1.prepareWorkers)();
++                    if (limits.ponder || armTimer)
++                        (0, smp_1.openSearchClock)();
                      if (stopPending) {
 -                        searchLimits = { maxDepth: 1 };
 -                        if (hardTimer) {
@@ -253,7 +261,7 @@
                          if (legal.length)
                              send(`bestmove ${(0, movegen_1.moveToUci)(legal[0])}`);
                          else
-@@ -221,9 +315,30 @@
+@@ -221,9 +323,31 @@
                      }
                  }
                  finally {
@@ -266,6 +274,7 @@
 +                    liveSoft = null;
                      searching = false;
 +                    pondering = false;
++                    (0, smp_1.disarmSearchClock)();
 +                    const ng = deferredNewGame;
 +                    const pos = deferredPosition;
 +                    const hash = deferredHashMb;
@@ -286,7 +295,7 @@
                  }
              });
              break;
-@@ -231,12 +346,30 @@
+@@ -231,12 +355,30 @@
          case 'stop':
              if (searching)
                  stopPending = true;
@@ -318,7 +327,7 @@
              break;
          case 'setoption': {
              // setoption name Threads value N
-@@ -254,11 +387,13 @@
+@@ -254,11 +396,13 @@
                      nnueUse = on;
                      (0, nnue_1.setUseNNUE)(on);
                      process.env.GROKCHESS_USE_NNUE = on ? '1' : '0';
@@ -337,7 +346,7 @@
                      send(`info string ${(0, nnue_1.nnueInfo)()}`);
                  }
                  else if (opt === 'EvalFile') {
-@@ -271,15 +406,22 @@
+@@ -271,15 +415,22 @@
                      }
                      else {
                          process.env.GROKCHESS_NNUE = f;
@@ -364,7 +373,7 @@
                  }
                  else if (opt === 'Threads') {
                      threads = Math.max(1, Math.min(8, parseInt(val, 10) || 1));
-@@ -309,9 +451,8 @@
+@@ -309,9 +460,8 @@
  rl.on('close', () => {
      if (searching)
          stopPending = true;

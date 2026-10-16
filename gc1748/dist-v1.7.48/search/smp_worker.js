@@ -97,6 +97,7 @@ worker_threads_1.parentPort?.on('message', (msg) => {
         search.rootHistLo = msg.rootHistLo ?? null;
         activeSearch = search;
         search.stopFlag = stopFlag;
+        search.deadline = msg.deadlineSab ? new BigInt64Array(msg.deadlineSab) : null;
         search.threadId = msg.threadId;
         if (msg.ttBundle) {
             search.tt = new tt_1.TranspositionTable(msg.ttBundle.size, msg.ttBundle);

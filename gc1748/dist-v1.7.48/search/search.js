@@ -203,6 +203,8 @@ class Search {
         this.scoreStack = Array.from({ length: MAX_PLY }, () => []);
         /** SharedArrayBuffer-backed stop flag (Atomics); Lazy SMP cooperative abort */
         this.stopFlag = null;
+        /** BigInt64Array deadline (ms). Null unless this go has a clock. */
+        this.deadline = null;
         /** 0 = main thread; helpers diversify search */
         this.threadId = 0;
         /** Skip root IID (helpers explore different trees) */
@@ -256,6 +258,15 @@ class Search {
         if (this.stopFlag && Atomics.load(this.stopFlag, 0) !== 0) {
             this.stop = true;
             return true;
+        }
+        // Clock deadline shared with the UCI thread. Set only for timed / ponderhit
+        // searches, so fixed-depth node counts do not pay for the load.
+        if (this.deadline) {
+            const due = Atomics.load(this.deadline, 0);
+            if (due !== 0n && BigInt(Date.now()) >= due) {
+                this.stop = true;
+                return true;
+            }
         }
         if ((this.nodes & 4095) === 0) {
             if (this.stopFlag && Atomics.load(this.stopFlag, 0) !== 0) {

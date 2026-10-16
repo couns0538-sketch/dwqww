@@ -1,6 +1,14 @@
 --- /tmp/base1748/dist-v1.7.48/search/smp_worker.js	2026-10-16 18:16:44.643256087 +0000
-+++ gc1748/dist-v1.7.48/search/smp_worker.js	2026-10-16 18:59:31.271023820 +0000
-@@ -105,7 +105,16 @@
++++ gc1748/dist-v1.7.48/search/smp_worker.js	2026-10-16 19:46:23.734661356 +0000
+@@ -97,6 +97,7 @@
+         search.rootHistLo = msg.rootHistLo ?? null;
+         activeSearch = search;
+         search.stopFlag = stopFlag;
++        search.deadline = msg.deadlineSab ? new BigInt64Array(msg.deadlineSab) : null;
+         search.threadId = msg.threadId;
+         if (msg.ttBundle) {
+             search.tt = new tt_1.TranspositionTable(msg.ttBundle.size, msg.ttBundle);
+@@ -105,7 +106,16 @@
              search.tt = localTT;
          }
          const isMain = msg.threadId === 0;
@@ -18,7 +26,7 @@
              /*
               * With shared TT, mild diversification only (classic Lazy SMP):
               * skip root IID + slight aspiration skew. Avoid heavy rootDefer/history
-@@ -127,6 +136,7 @@
+@@ -127,6 +137,7 @@
              if (isMain) {
                  worker_threads_1.parentPort?.postMessage({
                      type: 'info',
@@ -26,7 +34,7 @@
                      threadId: 0,
                      depth: info.depth,
                      score: info.score,
-@@ -142,6 +152,7 @@
+@@ -142,6 +153,7 @@
              const best = search.search(msg.limits);
              worker_threads_1.parentPort?.postMessage({
                  type: 'done',
@@ -34,7 +42,7 @@
                  threadId: msg.threadId,
                  best: best ? (0, movegen_1.moveToUci)(best) : null,
                  depth: lastDepth,
-@@ -153,6 +164,7 @@
+@@ -153,6 +165,7 @@
          catch (e) {
              worker_threads_1.parentPort?.postMessage({
                  type: 'done',
@@ -42,7 +50,7 @@
                  threadId: msg.threadId,
                  best: null,
                  depth: lastDepth,
-@@ -164,6 +176,7 @@
+@@ -164,6 +177,7 @@
          }
          finally {
              activeSearch = null;

@@ -97,7 +97,10 @@ Fix
   bestmove is held until stop or ponderhit.
   ponderhit with wtime/btime starts the clock from that moment and
   does not print bestmove yet. The soft controller and the hard timer
-  then stop the search the same way as a normal timed go.
+  then stop the search the same way as a normal timed go. The same
+  deadline is stored in a shared 64-bit word that every worker checks,
+  so a busy UCI thread cannot leave the search running past the clock.
+  Fixed-depth searches do not install that word.
   ponderhit with no clock aborts and prints the move once.
   stop prints bestmove once. quit and a closed stdin both abort,
   shut the pool down, and force process.exit after 400 ms so a worker
@@ -216,7 +219,11 @@ Fix
   The clock is armed after that wait, so the clear is not subtracted
   from the player's time.
   Shared clears write the data word with an atomic store before the xor
-  key, so a reader treats a half-cleared slot as empty.
+  key, so a reader treats a half-cleared slot as empty. The wipe yields
+  every 65536 slots so quit is not stuck behind a large table.
+  A shallow update that only fills in a missing move uses
+  compareExchange, so it does not overwrite a deeper store from another
+  thread.
 
 Repro
   setoption name Threads value 4

@@ -46,6 +46,9 @@ exports.shutdownPool = shutdownPool;
 exports.searchLazySmp = searchLazySmp;
 exports.afterWorkersIdle = afterWorkersIdle;
 exports.prepareWorkers = prepareWorkers;
+exports.openSearchClock = openSearchClock;
+exports.armSearchDeadline = armSearchDeadline;
+exports.disarmSearchClock = disarmSearchClock;
 /** Lazy SMP manager — warm persistent worker pool + cooperative stop. */
 const worker_threads_1 = require("worker_threads");
 const path = __importStar(require("path"));
@@ -138,6 +141,29 @@ function afterWorkersIdle(fn) {
     }).catch(() => { /* keep the chain alive */ });
 }
 let activeStopFlag = null;
+/** Absolute ms deadline for the search in progress. 0 = no clock. */
+let activeDeadline = null;
+let deadlineSab = null;
+let pendingDeadline = 0;
+function openSearchClock() {
+    deadlineSab = new SharedArrayBuffer(8);
+    activeDeadline = new BigInt64Array(deadlineSab);
+    const due = pendingDeadline > 0 ? BigInt(pendingDeadline) : 0n;
+    Atomics.store(activeDeadline, 0, due);
+    return deadlineSab;
+}
+function armSearchDeadline(absMs) {
+    pendingDeadline = absMs;
+    if (activeDeadline)
+        Atomics.store(activeDeadline, 0, BigInt(absMs));
+}
+function disarmSearchClock() {
+    pendingDeadline = 0;
+    if (activeDeadline)
+        Atomics.store(activeDeadline, 0, 0n);
+    activeDeadline = null;
+    deadlineSab = null;
+}
 let activeMain = null;
 let busyWorkers = [];
 /** One shared TT for Lazy SMP (persists across go; cleared on ucinewgame). */
@@ -425,6 +451,8 @@ async function searchLazySmp(board, limits, threads, onInfo) {
             };
             if (bundle)
                 job.ttBundle = bundle;
+            if (deadlineSab)
+                job.deadlineSab = deadlineSab;
             markBusy(w, gen);
             w.postMessage(job);
         });

@@ -1,15 +1,18 @@
 --- /tmp/base1748/dist-v1.7.48/search/smp.js	2026-10-16 18:16:44.643256087 +0000
-+++ gc1748/dist-v1.7.48/search/smp.js	2026-10-16 19:43:35.594929964 +0000
-@@ -44,6 +44,8 @@
++++ gc1748/dist-v1.7.48/search/smp.js	2026-10-16 19:46:36.770641073 +0000
+@@ -44,6 +44,11 @@
  exports.ensurePool = ensurePool;
  exports.shutdownPool = shutdownPool;
  exports.searchLazySmp = searchLazySmp;
 +exports.afterWorkersIdle = afterWorkersIdle;
 +exports.prepareWorkers = prepareWorkers;
++exports.openSearchClock = openSearchClock;
++exports.armSearchDeadline = armSearchDeadline;
++exports.disarmSearchClock = disarmSearchClock;
  /** Lazy SMP manager — warm persistent worker pool + cooperative stop. */
  const worker_threads_1 = require("worker_threads");
  const path = __importStar(require("path"));
-@@ -70,6 +72,71 @@
+@@ -70,7 +75,95 @@
  /** Persistent helper pool (reused across go commands). */
  let pool = [];
  let poolReady = [];
@@ -79,9 +82,33 @@
 +    }).catch(() => { /* keep the chain alive */ });
 +}
  let activeStopFlag = null;
++/** Absolute ms deadline for the search in progress. 0 = no clock. */
++let activeDeadline = null;
++let deadlineSab = null;
++let pendingDeadline = 0;
++function openSearchClock() {
++    deadlineSab = new SharedArrayBuffer(8);
++    activeDeadline = new BigInt64Array(deadlineSab);
++    const due = pendingDeadline > 0 ? BigInt(pendingDeadline) : 0n;
++    Atomics.store(activeDeadline, 0, due);
++    return deadlineSab;
++}
++function armSearchDeadline(absMs) {
++    pendingDeadline = absMs;
++    if (activeDeadline)
++        Atomics.store(activeDeadline, 0, BigInt(absMs));
++}
++function disarmSearchClock() {
++    pendingDeadline = 0;
++    if (activeDeadline)
++        Atomics.store(activeDeadline, 0, 0n);
++    activeDeadline = null;
++    deadlineSab = null;
++}
  let activeMain = null;
  let busyWorkers = [];
-@@ -104,11 +171,22 @@
+ /** One shared TT for Lazy SMP (persists across go; cleared on ucinewgame). */
+@@ -104,11 +197,22 @@
          sharedBundle = (0, tt_1.createSharedTTBundle)(hashEntries);
      return sharedBundle;
  }
@@ -106,7 +133,7 @@
  }
  /** ttkeep: clear each worker's persistent local TT (ucinewgame). Message order guarantees it lands before the next job. */
  function clearWorkerTTs() {
-@@ -192,6 +270,18 @@
+@@ -192,6 +296,18 @@
                  w.postMessage({ type: 'nnue', use: nnueCfg.use, file: nnueCfg.file });
              w.postMessage({ type: 'warmup', entries: hashEntries });
          });
@@ -125,7 +152,7 @@
          pool.push(w);
          poolReady.push(ready);
      }
-@@ -220,27 +310,20 @@
+@@ -220,27 +336,20 @@
   * Prefer main (thread 0). Take a helper only if strictly deeper and not a
   * clear score regression — avoids Lazy-SMP "deeper-but-wrong" blunders at short TC.
   */
@@ -166,7 +193,7 @@
  }
  /**
   * Lazy SMP: ALL threads (including main/thread 0) run in warm workers.
-@@ -249,6 +332,8 @@
+@@ -249,6 +358,8 @@
   */
  async function searchLazySmp(board, limits, threads, onInfo) {
      const n = Math.max(1, Math.min(8, threads | 0));
@@ -175,7 +202,7 @@
      const sab = new SharedArrayBuffer(4);
      const stopFlag = new Int32Array(sab);
      Atomics.store(stopFlag, 0, 0);
-@@ -263,9 +348,11 @@
+@@ -263,9 +374,11 @@
      const results = [];
      const useSharedTT = n > 1;
      const bundle = useSharedTT ? getSharedBundle() : null;
@@ -187,7 +214,7 @@
      const donePromises = workers.map((w, threadId) => {
          return new Promise((resolve) => {
              let settled = false;
-@@ -274,6 +361,8 @@
+@@ -274,6 +387,8 @@
                  resolve();
              } };
              const onMsg = (msg) => {
@@ -196,7 +223,7 @@
                  if (msg.type === 'info' && threadId === 0) {
                      mainDepth = msg.depth;
                      mainScore = msg.score;
-@@ -291,6 +380,8 @@
+@@ -291,6 +406,8 @@
                      return;
                  }
                  if (msg.type === 'done' && msg.threadId === threadId) {
@@ -205,7 +232,7 @@
                      w.off('message', onMsg);
                      results.push({
                          threadId: msg.threadId,
-@@ -310,9 +401,21 @@
+@@ -310,9 +427,21 @@
                      finish();
                  }
              };
@@ -227,15 +254,17 @@
                  fen,
                  rootHistHi,
                  rootHistLo,
-@@ -322,6 +425,7 @@
+@@ -322,6 +451,9 @@
              };
              if (bundle)
                  job.ttBundle = bundle;
++            if (deadlineSab)
++                job.deadlineSab = deadlineSab;
 +            markBusy(w, gen);
              w.postMessage(job);
          });
      });
-@@ -338,31 +442,23 @@
+@@ -338,31 +470,23 @@
              catch { /* */ }
          }
      }
