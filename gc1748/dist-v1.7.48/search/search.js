@@ -8,6 +8,7 @@ const movegen_1 = require("../move/movegen");
 const evaluate_1 = require("../eval/evaluate");
 const tt_1 = require("./tt");
 const bitboard_1 = require("../board/bitboard");
+const attacks_1 = require("../board/attacks");
 const see_1 = require("./see");
 const givescheck_1 = require("./givescheck");
 const types_2 = require("../board/types");
@@ -17,6 +18,82 @@ exports.gcDebugStats = { checked: 0, mismatches: 0 };
 if (GC_DEBUG)
     process.on('exit', () => { process.stderr.write(`GC_DEBUG checked=${exports.gcDebugStats.checked} mismatches=${exports.gcDebugStats.mismatches}\n`); });
 const MAX_PLY = 128;
+/** Pseudo-legal check for one unpacked TT move. Shared table only. */
+function sharedMoveOk(board, mv) {
+    const from = mv.from | 0;
+    const to = mv.to | 0;
+    if (from < 0 || from > 63 || to < 0 || to > 63 || from === to)
+        return false;
+    const piece = board.squares[from];
+    if (!piece)
+        return false;
+    const white = board.side === 0;
+    if (white ? piece > 6 : piece < 7)
+        return false;
+    const promo = mv.promo | 0;
+    const pt = piece <= 6 ? piece : piece - 6;
+    const dest = board.squares[to];
+    if (dest && (white ? dest <= 6 : dest >= 7))
+        return false;
+    if (pt === 1) {
+        const last = white ? 7 : 0;
+        const onLast = (to >> 3) === last;
+        if (onLast) {
+            const good = white
+                ? promo === 2 || promo === 3 || promo === 4 || promo === 5
+                : promo === 8 || promo === 9 || promo === 10 || promo === 11;
+            if (!good)
+                return false;
+        }
+        else if (promo)
+            return false;
+        const step = white ? 8 : -8;
+        const occ = board.occupied;
+        if (to === from + step) {
+            return dest === 0;
+        }
+        const start = white ? (from >= 8 && from <= 15) : (from >= 48 && from <= 55);
+        if (start && to === from + step * 2 && dest === 0)
+            return !(0, bitboard_1.testBit)(occ, from + step);
+        const pa = white ? attacks_1.WHITE_PAWN_ATTACKS[from] : attacks_1.BLACK_PAWN_ATTACKS[from];
+        if (!(0, bitboard_1.testBit)(pa, to))
+            return false;
+        if (dest)
+            return true;
+        return board.epSquare === to;
+    }
+    if (promo)
+        return false;
+    if (pt === 6 && Math.abs(to - from) === 2 && (from === 4 || from === 60)) {
+        const sq = board.squares;
+        if (white && from === 4 && to === 6)
+            return (board.castling & 1) !== 0 && sq[5] === 0 && sq[6] === 0
+                && !board.isAttacked(4, 1) && !board.isAttacked(5, 1) && !board.isAttacked(6, 1);
+        if (white && from === 4 && to === 2)
+            return (board.castling & 2) !== 0 && sq[1] === 0 && sq[2] === 0 && sq[3] === 0
+                && !board.isAttacked(4, 1) && !board.isAttacked(3, 1) && !board.isAttacked(2, 1);
+        if (!white && from === 60 && to === 62)
+            return (board.castling & 4) !== 0 && sq[61] === 0 && sq[62] === 0
+                && !board.isAttacked(60, 0) && !board.isAttacked(61, 0) && !board.isAttacked(62, 0);
+        if (!white && from === 60 && to === 58)
+            return (board.castling & 8) !== 0 && sq[57] === 0 && sq[58] === 0 && sq[59] === 0
+                && !board.isAttacked(60, 0) && !board.isAttacked(59, 0) && !board.isAttacked(58, 0);
+        return false;
+    }
+    let attacks;
+    const occ = board.occupied;
+    if (pt === 2)
+        attacks = attacks_1.KNIGHT_ATTACKS[from];
+    else if (pt === 3)
+        attacks = (0, attacks_1.bishopAttacks)(from, occ);
+    else if (pt === 4)
+        attacks = (0, attacks_1.rookAttacks)(from, occ);
+    else if (pt === 5)
+        attacks = (0, attacks_1.queenAttacks)(from, occ);
+    else
+        attacks = attacks_1.KING_ATTACKS[from];
+    return (0, bitboard_1.testBit)(attacks, to);
+}
 function cloneMove(m) {
     return { from: m.from, to: m.to, piece: m.piece, captured: m.captured, promo: m.promo, flags: m.flags };
 }
@@ -167,8 +244,9 @@ class Search {
     acceptSharedTt(entry) {
         if (!entry || !this.tt.isShared || !entry.bestMove)
             return entry;
-        const pseudo = (0, movegen_1.generateMoves)(this.board);
-        if (!pseudo.some((m) => this.sameMove(m, entry.bestMove)))
+        // One-move test. Generating the full list here dominated Threads>1 time
+        // because every TT hit paid for it. Honest entries still pass.
+        if (!sharedMoveOk(this.board, entry.bestMove))
             return null;
         return entry;
     }
