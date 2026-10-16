@@ -134,7 +134,7 @@ async function prepareWorkers() {
 function afterWorkersIdle(fn) {
     idleChain = idleChain.then(async () => {
         await drainWorkers();
-        fn();
+        await fn();
     }).catch(() => { /* keep the chain alive */ });
 }
 let activeStopFlag = null;
@@ -171,11 +171,22 @@ function getSharedBundle() {
         sharedBundle = (0, tt_1.createSharedTTBundle)(hashEntries);
     return sharedBundle;
 }
-function clearSharedTT() {
+async function clearSharedTT() {
     if (!sharedBundle)
         return;
     const tt = new tt_1.TranspositionTable(sharedBundle.size, sharedBundle);
-    tt.clear();
+    const n = tt.data64.length;
+    // Yield so quit/stop are not stuck behind a large atomic wipe.
+    for (let i = 0; i < n;) {
+        const end = Math.min(n, i + 65536);
+        for (; i < end; i++) {
+            Atomics.store(tt.data64, i, 0n);
+            Atomics.store(tt.xkey64, i, 0n);
+        }
+        await new Promise((r) => setImmediate(r));
+    }
+    tt.age = 0;
+    Atomics.store(tt.sharedMeta, 0, 0);
 }
 /** ttkeep: clear each worker's persistent local TT (ucinewgame). Message order guarantees it lands before the next job. */
 function clearWorkerTTs() {

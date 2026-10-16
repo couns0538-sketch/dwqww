@@ -167,8 +167,13 @@ class TranspositionTable {
                     curD = cur.depth;
             }
             if (same && depth < curD) {
-                if (cur && !cur.moveCode && bestMove)
-                    this.writeShared(i, hi, lo, cur.depth, cur.score, cur.flag, bestMove);
+                // Only fill in a missing move. compareExchange so a deeper store
+                // from another thread is not replaced by this shallow update.
+                if (cur && !cur.moveCode && bestMove) {
+                    const data = packTTData(cur.depth, cur.score, cur.flag, cur.age & 255, packMove(bestMove));
+                    if (Atomics.compareExchange(this.data64, i, got.data, data) === got.data)
+                        Atomics.store(this.xkey64, i, posKey(hi, lo) ^ data);
+                }
                 return;
             }
             if (!same && curD >= 0 && depth < curD && ((this.age - (cur ? cur.age : 0)) & 255) <= 2 && flag !== 0)

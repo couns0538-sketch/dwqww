@@ -93,8 +93,8 @@ function applyPosition(parts) {
     }
 }
 function clearTablesWhenIdle() {
-    (0, smp_1.afterWorkersIdle)(() => {
-        (0, smp_1.clearSharedTT)();
+    (0, smp_1.afterWorkersIdle)(async () => {
+        await (0, smp_1.clearSharedTT)();
         (0, smp_1.clearWorkerTTs)();
     });
 }
@@ -387,10 +387,10 @@ function handle(line) {
                     nnueUse = on;
                     (0, nnue_1.setUseNNUE)(on);
                     process.env.GROKCHESS_USE_NNUE = on ? '1' : '0';
-                    (0, smp_1.afterWorkersIdle)(() => {
+                    (0, smp_1.afterWorkersIdle)(async () => {
                         (0, smp_1.setPoolNNUE)(on, null);
                         if (changed) {
-                            (0, smp_1.clearSharedTT)();
+                            await (0, smp_1.clearSharedTT)();
                             (0, smp_1.clearWorkerTTs)();
                         }
                     });
@@ -406,9 +406,9 @@ function handle(line) {
                     }
                     else {
                         process.env.GROKCHESS_NNUE = f;
-                        (0, smp_1.afterWorkersIdle)(() => {
+                        (0, smp_1.afterWorkersIdle)(async () => {
                             (0, smp_1.setPoolNNUE)(nnueUse, f);
-                            (0, smp_1.clearSharedTT)();
+                            await (0, smp_1.clearSharedTT)();
                             (0, smp_1.clearWorkerTTs)();
                         });
                         send(`info string ${(0, nnue_1.nnueInfo)()}`);

@@ -11,7 +11,7 @@ export interface SmpResult {
 export declare function hashMbToEntries(mb: number): number;
 /** hashmb: apply UCI Hash to the shared SMP table and every worker's local table. Call between searches. */
 export declare function setHashMb(mb: number): void;
-export declare function clearSharedTT(): void;
+export declare function clearSharedTT(): Promise<void>;
 /** ttkeep: clear each worker's persistent local TT (ucinewgame). Message order guarantees it lands before the next job. */
 export declare function clearWorkerTTs(): void;
 export declare function abortSmpSearch(): void;

@@ -1,5 +1,5 @@
 --- /tmp/base1748/dist-v1.7.48/search/tt.js	2026-10-16 18:16:44.643256087 +0000
-+++ gc1748/dist-v1.7.48/search/tt.js	2026-10-16 18:59:31.179023854 +0000
++++ gc1748/dist-v1.7.48/search/tt.js	2026-10-16 19:43:35.158930679 +0000
 @@ -10,20 +10,37 @@
  /** Default 4M entries; shared SMP uses same. */
  exports.TT_SIZE = 1 << 22;
@@ -107,7 +107,7 @@
          if (this.keysLo[i] === lo && this.keysHi[i] === hi && this.depths[i] >= 0) {
              return {
                  hi, lo,
-@@ -104,8 +144,38 @@
+@@ -104,8 +144,43 @@
          }
          return null;
      }
@@ -134,8 +134,13 @@
 +                    curD = cur.depth;
 +            }
 +            if (same && depth < curD) {
-+                if (cur && !cur.moveCode && bestMove)
-+                    this.writeShared(i, hi, lo, cur.depth, cur.score, cur.flag, bestMove);
++                // Only fill in a missing move. compareExchange so a deeper store
++                // from another thread is not replaced by this shallow update.
++                if (cur && !cur.moveCode && bestMove) {
++                    const data = packTTData(cur.depth, cur.score, cur.flag, cur.age & 255, packMove(bestMove));
++                    if (Atomics.compareExchange(this.data64, i, got.data, data) === got.data)
++                        Atomics.store(this.xkey64, i, posKey(hi, lo) ^ data);
++                }
 +                return;
 +            }
 +            if (!same && curD >= 0 && depth < curD && ((this.age - (cur ? cur.age : 0)) & 255) <= 2 && flag !== 0)
@@ -146,7 +151,7 @@
          const curD = this.depths[i];
          const same = this.keysLo[i] === lo && this.keysHi[i] === hi && curD >= 0;
          if (same && depth < curD && flag !== 0 /* TTFlag.Exact */) {
-@@ -133,14 +203,12 @@
+@@ -133,14 +208,12 @@
      }
      prefetchAge() {
          if (this.sharedMeta) {
