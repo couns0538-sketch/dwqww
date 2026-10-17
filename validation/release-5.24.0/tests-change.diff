@@ -1,0 +1,52 @@
+--- /mnt/data/forge-5.23-work/chess-engine-forge-5.23.0/tests/tests.cpp	2026-10-06 01:41:16.000000000 +0000
++++ /mnt/data/chess-engine-forge-5.24.0/tests/tests.cpp	2026-10-06 02:33:08.369122776 +0000
+@@ -715,6 +715,49 @@
+     check(whole_node_board.fen() == whole_node_fen,
+           "zero-window whole-node regression restores the board");
+ 
++    // Shallow LMR can miss a late quiet move whose full-depth search raises alpha.
++    // On 5.23.0 the depth-4 search reduces h6d2 and returns +41 instead of +233;
++    // its adjacent zero-window [232,233] therefore falsely fails low at +232.
++    forge::Board shallow_lmr_depth4_board;
++    check(shallow_lmr_depth4_board.set_fen(
++              "r2qkbnr/ppp3pp/2np3B/4pp2/1P1P4/N1P2P1b/P3P1PP/R2QKBNR w KQkq - 0 1"),
++          "depth-4 shallow LMR regression FEN parses");
++    const std::string shallow_lmr_depth4_fen = shallow_lmr_depth4_board.fen();
++    forge::Searcher shallow_lmr_depth4_full_searcher(4);
++    const int shallow_lmr_depth4_full = forge::SearcherTestProbe::alpha_beta(
++        shallow_lmr_depth4_full_searcher, shallow_lmr_depth4_board, 4, -32000, 32000);
++    check(shallow_lmr_depth4_full == 233,
++          "depth-4 shallow LMR regression retains the full-depth score");
++    check(shallow_lmr_depth4_board.fen() == shallow_lmr_depth4_fen,
++          "depth-4 shallow LMR full-window regression restores the board");
++    forge::Searcher shallow_lmr_depth4_window_searcher(4);
++    const int shallow_lmr_depth4_window = forge::SearcherTestProbe::alpha_beta(
++        shallow_lmr_depth4_window_searcher, shallow_lmr_depth4_board, 4, 232, 233);
++    check(shallow_lmr_depth4_window == 233,
++          "depth-4 shallow LMR zero-window search reaches the required beta bound");
++    check(shallow_lmr_depth4_board.fen() == shallow_lmr_depth4_fen,
++          "depth-4 shallow LMR zero-window regression restores the board");
++
++    // Adjacent depth-3 coverage: 5.23.0 returns -7 full-window and falsely fails
++    // low at +14 for [14,15]; full-depth search reaches +15.
++    forge::Board shallow_lmr_depth3_board;
++    check(shallow_lmr_depth3_board.set_fen(
++              "rnbqkbnr/3p3p/pp2p1p1/2p2p2/2P2P2/N2P2PN/PP2P2P/R1BQKB1R w KQkq - 0 1"),
++          "depth-3 shallow LMR regression FEN parses");
++    const std::string shallow_lmr_depth3_fen = shallow_lmr_depth3_board.fen();
++    forge::Searcher shallow_lmr_depth3_full_searcher(4);
++    const int shallow_lmr_depth3_full = forge::SearcherTestProbe::alpha_beta(
++        shallow_lmr_depth3_full_searcher, shallow_lmr_depth3_board, 3, -32000, 32000);
++    check(shallow_lmr_depth3_full == 15,
++          "depth-3 shallow LMR regression retains the full-depth score");
++    forge::Searcher shallow_lmr_depth3_window_searcher(4);
++    const int shallow_lmr_depth3_window = forge::SearcherTestProbe::alpha_beta(
++        shallow_lmr_depth3_window_searcher, shallow_lmr_depth3_board, 3, 14, 15);
++    check(shallow_lmr_depth3_window == 15,
++          "depth-3 shallow LMR zero-window search reaches the required beta bound");
++    check(shallow_lmr_depth3_board.fen() == shallow_lmr_depth3_fen,
++          "depth-3 shallow LMR regressions restore the board");
++
+     // Unverified shallow null probes can manufacture a false lower bound.
+     forge::Board shallow_null_bound_board;
+     check(shallow_null_bound_board.set_fen(
