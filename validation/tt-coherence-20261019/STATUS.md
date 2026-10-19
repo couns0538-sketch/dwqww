@@ -67,6 +67,27 @@ evidence of the repair; they do not prove absence of all possible races.
 ASan/UBSan compilation is in progress. Single-thread parity, comparative speed,
 SMP scaling and equal-clock Elo are still pending; accepted branch is unchanged.
 
+### Completed Linux correctness and parity gates
+
+The separate ASan/UBSan configuration built successfully and passed all six
+CTest suites. An additional actual-engine ASan/UBSan lifecycle process passed
+11 legality-checked searches without a report. Cold/warm one-thread output
+parity against the 6.4.2 parent passed for six positions on both repetitions;
+both stdin bench11 signatures are419798. No source reset or accepted-branch
+update occurred.
+
+`complete-linux-correctness-checkpoint.zip` contains the original raw logs,
+compiler/C++20 checks, drivers, failing approaches, complete TSan/ASan traces,
+parity inputs/outputs and Windows compile provenance. Its adjacent JSON lists
+every archived file hash. The Windows 6.4.3 build succeeded; runtime checks
+are held until the performance window is complete.
+
+Speed A/A calibration is currently running with the same 6.4.2 executable in
+both slots, six counterbalanced blocks at1/2/4threads. No performance result is
+available yet. All throughput work is separate from chess strength; equal-clock
+native testing remains pending. Do not infer a running job from an old status
+file without checking the actual process and final result.
+
 1. Finish the corrected Windows bundle's fresh Wine A/A readiness check and
    preserve both manifest-inventory attempts. No native Windows/Ryzen result
    exists yet; no timed Wine/VM pilots will be repeated.

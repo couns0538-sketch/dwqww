@@ -1,0 +1,2752 @@
+{
+  "schema_version": 1,
+  "updated_utc": "2026-10-19T20:19:08.515655+00:00",
+  "project": "Forge",
+  "target": "Native Windows x64 on Ryzen7 9850X3D",
+  "scope": "2026-10-19 accepted development reference, preserved candidate artifacts, correctness/speed/readiness trials, all failed timed attempts, audited original-ZIP fixed-node SPRT, actual TT race/candidate validation and isolated rule-50 investigation.",
+  "historical_ledger": "validation/release-6.0.0/EXPERIMENTS.md",
+  "accepted_development": {
+    "branch": "forge/6.4-hourly-20261019",
+    "commit": "9108d012526be80c6d163f7cab684e6acd9abf8d",
+    "acceptance": "User-designated development/correctness reference; no accepted measured Elo gain.",
+    "original_archive": {
+      "path": "chess-engine-forge-6.4.0.zip",
+      "sha256": "98d2ff2c523a25931897794bad3c39d40398799b8907d51596dad3e326a2ba9d"
+    },
+    "difference_from_original": "TT index/signature independence repair; keep original ZIP separate for combined-release comparisons.",
+    "evidence": [
+      "validation/hourly/2026-10-19-initial/candidate.patch",
+      "validation/hourly/2026-10-19-initial/candidate-ctest.log"
+    ]
+  },
+  "policy": {
+    "ids": "Stable IDs identify frozen attempts; append new attempts and preserve failures.",
+    "faults": "Timeout/crash/illegal move/warning/incomplete pair/changed input invalidates strict strength acceptance; no outcome pooling.",
+    "claims": "Separate correctness, kernel/search speed, fixed-node quality, equal-clock strength and readiness. A/A is calibration; Wine is readiness; H0 is not equality. Never sum estimates/ratios into cumulative Elo.",
+    "provenance": "Linked records freeze exact source/network/flags/binaries/commands/openings/stopping rules. File hashes alone do not prove source-to-binary build correspondence.",
+    "ongoing": "Pending/in-progress entries have no inferred result; background monitoring/job survival is not guaranteed.",
+    "strength_validity_field": "valid_strength_evidence denotes equal-clock strength only; valid_fixed_node_quality_evidence is separate."
+  },
+  "current_conclusions": {
+    "accepted_equal_clock_elo_gain": null,
+    "native_windows_strength_tested": false,
+    "physical_ryzen_strength_tested": false,
+    "full_strength_stockfish_superiority_proven": false,
+    "valid_fixed_node_result_id": "forge641-vs-original-10knodes-sprt-20261019",
+    "newer_642_strength_status": "untested; prior6.4.1 H0 does not transfer",
+    "newer_643_strength_status": "untested; bounded correctness/TSan results only; not promoted to accepted reference",
+    "tt_baseline_race_experiment_id": "forge642-tt-coherence-full-engine-20261019",
+    "tt_candidate_correctness_experiment_id": "forge643-tt-full-engine-tsan-attempt1-20261019",
+    "rule50_qsearch_bug_experiment_id": "forge643-rule50-qsearch-tt-investigation-20261019",
+    "portable_windows_readiness_status": "Corrected complete bundle passed Wine readiness; no native Windows result"
+  },
+  "candidates": [
+    {
+      "id": "forge64-avx2-20261019",
+      "code_commit": "140c8191969d4f47f65aae330d07c052af91bcf2",
+      "published_checkpoint_commit": "5a3a28d2ddbe05691d3a0df85ece5f9a15300275",
+      "published_ref": "origin/forge/nnue-avx2-9850x3d",
+      "parent_reference": "9108d012526be80c6d163f7cab684e6acd9abf8d",
+      "change": "AVX2 output arithmetic preserving lane operation order; no tuning/network change.",
+      "status": "published_candidate_not_strength_accepted",
+      "binaries_sha256": {
+        "windows_candidate": "0383e52d04552ec374fe35060b82b9a6faf43d7e754ff981311f644293736a13",
+        "windows_baseline": "566a713fb70a700eeb9f3644a7689204f8d8c41dab5491e16a54f6f67ea3e385",
+        "linux_candidate": "6c23e7903296b2ece0cb7640974454d771d7e9ac26f19cd246e0259965a64935",
+        "linux_baseline": "8dd373637425e3ef2321a82bc22c0ac6199f8c9e19ead31bdb796744a8c2a8a8"
+      },
+      "network_sha256": "41487f328ff51f27417564df45b6f3139d038b7e940dedb121340bd61be9a4d3",
+      "artifact": {
+        "path": "releases/forge-6.4-avx2-zen5-windows-candidate.zip",
+        "sha256": "61145e7fe9c01b2042deb46ade64bcde38d71870e6f6dcecbababb8cd6898254"
+      },
+      "compiler_flags_provenance": {
+        "path": "validation/nnue-avx2-9850x3d/provenance.json",
+        "sha256": "fe9c3dffca5a6fc5c922214b796a47f2b55b61e54037169779338572cfda38a9"
+      },
+      "native_windows_tested": false,
+      "physical_ryzen_tested": false
+    },
+    {
+      "id": "forge641-clock-stalemate-20261019",
+      "code_commit": "fab979c9cc1c08bd1e89f1d0dabcfe300432a903",
+      "component_commits": {
+        "request_clock_epoch": "9cf37933596c6777870ef6aac626f7e766255f51",
+        "stalemate_before_pruning": "fab979c9cc1c08bd1e89f1d0dabcfe300432a903"
+      },
+      "published_checkpoint_commit": "e6d17c90e77c163d82a73d1e2170265cd06321ce",
+      "published_ref": "origin/forge/clock-safety-9850x3d",
+      "parent_candidate_id": "forge64-avx2-20261019",
+      "status": "published_correctness_candidate_fixed_node_H0",
+      "binaries": {
+        "previous_avx2_linux": {
+          "path": "/workspace/.cloud-setup/forge-avx2-build/forge",
+          "sha256": "6c23e7903296b2ece0cb7640974454d771d7e9ac26f19cd246e0259965a64935"
+        },
+        "clock_reference_linux": {
+          "path": "/workspace/.cloud-setup/forge-clock-reference-build/forge",
+          "sha256": "5e319ae19e51afc32024002ffded662636c3cd488e38df0e6a6855c1d5460e6b"
+        },
+        "candidate_linux": {
+          "path": "/workspace/.cloud-setup/forge-clock-build/forge",
+          "sha256": "cdac5848fd84df510a44a914784fd1562e4e174459c2a622f5425b71293c60ff"
+        },
+        "candidate_windows": {
+          "path": "/workspace/.cloud-setup/forge-windows-clock/forge.exe",
+          "sha256": "f163ff2d2d4ea2b3f29f3d189ac6d43997c5f325b5786c35793ab8c7d00ba3b6"
+        },
+        "candidate_windows_tests": {
+          "path": "/workspace/.cloud-setup/forge-windows-clock/forge_tests.exe",
+          "sha256": "69efc123075245d29d0c460394cd2f30eb6b2d6a91f0a9468d24ac06d50a9e35"
+        },
+        "fastchess": {
+          "path": "/workspace/.cloud-setup/fastchess/fastchess",
+          "sha256": "8e8858856897722b564d5143786cf2b4915b8e6cc1146bfdd04a149081ec3400"
+        }
+      },
+      "network_sha256": "41487f328ff51f27417564df45b6f3139d038b7e940dedb121340bd61be9a4d3",
+      "artifact": {
+        "path": "releases/forge-6.4.1-candidate-windows-zen5.zip",
+        "bytes": 1505232,
+        "sha256": "3a77f3197d0d712372219cb9c03e399a6949b24a1c0356e3a7a4b10bb8c6cfa9",
+        "exe_sha256": "f163ff2d2d4ea2b3f29f3d189ac6d43997c5f325b5786c35793ab8c7d00ba3b6"
+      },
+      "compiler_flags_provenance": {
+        "path": "validation/clock-safety-9850x3d/provenance.json",
+        "sha256": "c08a710cc76cedf3d84ab85a96977f3478786077b70afcfaaf5c77303fab02d9"
+      },
+      "native_windows_tested": false,
+      "physical_ryzen_tested": false
+    },
+    {
+      "id": "forge642-underpromotions-20261019",
+      "code_commit": "f6f0a00b2f98a7a9f117790e2c8f19a340b6769f",
+      "published_source_ref_commit": "f6f0a00b2f98a7a9f117790e2c8f19a340b6769f",
+      "artifact_checkpoint_commit": "842c02ef432f730d7083e3c22d36a5f3cc5d5184",
+      "parent_candidate_id": "forge641-clock-stalemate-20261019",
+      "change": "All Q/R/B/N quiet/capture promotions for both colors; preserve search/evaluation/TT tuning.",
+      "status": "published_correctness_candidate_no_strength_result",
+      "binaries": {
+        "linux": {
+          "path": "/workspace/.cloud-setup/forge-underpromotions-build/forge",
+          "sha256": "b18ee2db5402c1fd22f11e25ffd44255709d499efbd5c4d61c4c5890c9507763"
+        },
+        "windows": {
+          "path": "/workspace/.cloud-setup/forge-windows-underpromotions/forge.exe",
+          "sha256": "7928cfbf3e5da6e508c4da5b4c6d4c2a6582a3058951ed5d5479c3098909e324"
+        },
+        "windows_tests": {
+          "path": "/workspace/.cloud-setup/forge-windows-underpromotions/forge_tests.exe",
+          "sha256": "c807737e1646554218db0d95b8282c4b0040c641890a69f5f719700ccab8f191"
+        }
+      },
+      "network_sha256": "41487f328ff51f27417564df45b6f3139d038b7e940dedb121340bd61be9a4d3",
+      "artifact": {
+        "path": "releases/forge-6.4.2-candidate-windows-zen5.zip",
+        "bytes": 1507764,
+        "sha256": "57a73877183f7aad8ff34972f868489b96563526340aad203f3afdf960d0d132",
+        "engine_exe_sha256": "7928cfbf3e5da6e508c4da5b4c6d4c2a6582a3058951ed5d5479c3098909e324",
+        "engine_source_commit": "f6f0a00b2f98a7a9f117790e2c8f19a340b6769f",
+        "zip_members_verified": true
+      },
+      "compiler_flags_provenance": {
+        "path": "validation/underpromotions-9850x3d/provenance.json",
+        "sha256": "343d841df5a0249d68e21daa97182d70c302f17c6db73764f2450449195ed035"
+      },
+      "native_windows_tested": false,
+      "physical_ryzen_tested": false
+    },
+    {
+      "id": "forge643-tt-coherence-20261019",
+      "code_commit": "df5d839a6a03f705310bb958601375fa9411e810",
+      "branch": "forge/tt-coherence-20261019",
+      "source_parent_commit": "92a751c8f175bb9bc1cb17301e82191d39c2d566",
+      "parent_candidate_id": "forge642-underpromotions-20261019",
+      "parent_production_source_commit": "f6f0a00b2f98a7a9f117790e2c8f19a340b6769f",
+      "parent_artifact_checkpoint_commit": "842c02ef432f730d7083e3c22d36a5f3cc5d5184",
+      "change": "Coherent immutable TT snapshots and opaque probe-time replacement slots protected by striped locks; preserve prior SIMD, clock, stalemate and promotion fixes.",
+      "status": "isolated_correctness_candidate_bounded_tsan_and_release_passed_not_promoted",
+      "binaries": {
+        "linux_release": {
+          "path": "/workspace/.cloud-setup/forge-tt-coherent-release/forge",
+          "sha256": "8a940f603fe57d5ec9cdbd2c4a04b2401f3cff3df1923e5203505a0090a5f370"
+        },
+        "linux_tsan": {
+          "path": "/workspace/.cloud-setup/forge-tt-coherent-tsan/forge",
+          "sha256": "70ad38a30d6bb38f57bde68a49fd3280bddb4865b878e7d99b462f9f5ea2f163"
+        }
+      },
+      "production_source_sha256": {
+        "CMakeLists.txt": "9058e7edab400b5e27a81f0fd92a930c4f4f98bb0c3aa905d949630305b2083c",
+        "src/search.cpp": "f9759e8da05515ac4e7dea6f3667f5cb724a95f4fbfe58be75a6f47911244225",
+        "include/forge/search.hpp": "3e286a93b15a50b7e8a0230ca3d85a02b727909516119aa1947d9189b29e2d70",
+        "src/uci.cpp": "bc24e9c9448d28468dd79a1cc657f145c6f6794376331ac5e181eb683c897e23",
+        "src/nnue_weights.inc": "41487f328ff51f27417564df45b6f3139d038b7e940dedb121340bd61be9a4d3"
+      },
+      "network_sha256": "41487f328ff51f27417564df45b6f3139d038b7e940dedb121340bd61be9a4d3",
+      "compiler_flags": {
+        "release": "GCC14.2.0; Release -O3 -DNDEBUG -march=x86-64-v3 -mtune=znver5 -fno-fast-math -ffp-contract=off",
+        "tsan": "GCC14.2.0; Debug -O1 -g -fsanitize=thread -fno-omit-frame-pointer -fno-pie; link -fsanitize=thread -no-pie; -fno-fast-math -ffp-contract=off"
+      },
+      "test_fixture": {
+        "committed_sha256": "9224055fe92defefec27ababb297c86db25897e45e5407aa7bd80e087e4062d4",
+        "corrected_uncommitted_sha256": "6d053ad0eee60af73c85b6eada03ca1e9226f06e3fb375f7a442da0e62609150",
+        "change": "Guarantee from!=to in synthetic correlated-tuple moves; production synchronization unchanged.",
+        "first_failure_experiment_id": "forge643-tt-regression-attempt1-20261019"
+      },
+      "pending_gates": [
+        "storage sanitizers",
+        "exact single-thread output/node parity",
+        "repeated Release overhead/scaling benchmarks",
+        "preregistered strength validation"
+      ],
+      "windows_artifact": null,
+      "native_windows_tested": false,
+      "physical_ryzen_tested": false,
+      "accepted_equal_clock_elo_gain": null
+    }
+  ],
+  "experiments": [
+    {
+      "id": "forge64-tt-tag-independence-20261019",
+      "scope": "correctness",
+      "status": "accepted_development_fix",
+      "source_commit": "9108d012526be80c6d163f7cab684e6acd9abf8d",
+      "result": "Old tag-independence regression failed; candidate4/4 CTest passed. No strength comparison accepted for the tag repair alone.",
+      "provenance": {
+        "path": "validation/hourly/2026-10-19-initial/runtime-reproduction-manifest.json",
+        "sha256": "1341723ce7166f28766ce8ba7585a65aebf89f229593795b178788a414f0c4a4"
+      },
+      "evidence": [
+        "validation/hourly/2026-10-19-initial/baseline-new-regression.log",
+        "validation/hourly/2026-10-19-initial/candidate-ctest.log",
+        "validation/hourly/2026-10-19-initial/modulo-ctest.log",
+        "validation/hourly/2026-10-19-initial/sanitizer-status.json"
+      ],
+      "valid_strength_evidence": false
+    },
+    {
+      "id": "forge64-avx2-arithmetic-parity-20261019",
+      "candidate_id": "forge64-avx2-20261019",
+      "scope": "correctness",
+      "status": "passed_recorded_checks",
+      "result": {
+        "legal_state_snapshots": 20226,
+        "finite_synthetic_evaluations": 100000,
+        "stream_bytes": 21192328,
+        "stream_sha256": "3ef4bacc1877f34b929c6c4cd349c56ff0c07c93545b292914775bcd9ae173a5",
+        "platforms": "Linux and Windows-under-Wine baseline/candidate streams byte-identical; not native Windows"
+      },
+      "provenance": {
+        "path": "validation/nnue-avx2-9850x3d/provenance.json",
+        "sha256": "fe9c3dffca5a6fc5c922214b796a47f2b55b61e54037169779338572cfda38a9"
+      },
+      "command_record": "validation/nnue-avx2-9850x3d/README.md#reproduce-builds-and-checks",
+      "evidence": [
+        "validation/nnue-avx2-9850x3d/ctest-linux.xml",
+        "validation/nnue-avx2-9850x3d/README.md"
+      ],
+      "valid_strength_evidence": false
+    },
+    {
+      "id": "forge64-avx2-output-kernel-20261019",
+      "candidate_id": "forge64-avx2-20261019",
+      "scope": "kernel_speed",
+      "status": "measured_kernel_only",
+      "settings": {
+        "calls_per_sample": 5000000,
+        "counterbalanced_repetitions": 12,
+        "first_repetition_excluded": true
+      },
+      "result": {
+        "median_ns_per_call": {
+          "baseline": 96.3653932,
+          "candidate": 67.0033224
+        },
+        "candidate_calls_per_second_ratio": 1.4382181322996603,
+        "scope": "Intel Xeon VM output layer only; no engine/Ryzen/Elo inference"
+      },
+      "evidence": [
+        "validation/nnue-avx2-9850x3d/output-layer-paired.json",
+        "validation/nnue-avx2-9850x3d/README.md"
+      ],
+      "valid_strength_evidence": false
+    },
+    {
+      "id": "forge64-avx2-search-paired-20261019",
+      "candidate_id": "forge64-avx2-20261019",
+      "scope": "search_speed",
+      "status": "superseded_order_biased",
+      "result": "Initial runner order bias; raw evidence retained, not the final timing.",
+      "provenance": {
+        "path": "validation/nnue-avx2-9850x3d/search-paired/provenance.json",
+        "sha256": "cf06878f0edacab4e87f6ba14cd9ee17aecc90e870cf049272ed7127fe46a601"
+      },
+      "evidence": [
+        "validation/nnue-avx2-9850x3d/search-paired/summary.json",
+        "validation/nnue-avx2-9850x3d/README.md"
+      ],
+      "valid_strength_evidence": false
+    },
+    {
+      "id": "forge64-avx2-search-balanced-20261019",
+      "candidate_id": "forge64-avx2-20261019",
+      "scope": "search_speed",
+      "status": "inconclusive_shared_vm_timing",
+      "result": "11 rotations; identical per-position signatures; variable VM timing does not establish hardware/Elo gain.",
+      "provenance": {
+        "path": "validation/nnue-avx2-9850x3d/search-balanced/provenance.json",
+        "sha256": "882132ed98c4e49d061162b8515aad905cbbbb1fb6e01fbeae35d4f2101d90b0"
+      },
+      "evidence": [
+        "validation/nnue-avx2-9850x3d/search-balanced/summary.json",
+        "validation/nnue-avx2-9850x3d/README.md"
+      ],
+      "valid_strength_evidence": false
+    },
+    {
+      "id": "forge641-clock-epoch-stalemate-20261019",
+      "candidate_id": "forge641-clock-stalemate-20261019",
+      "scope": "correctness",
+      "status": "passed_recorded_checks",
+      "reference_source_commit": "9cf37933596c6777870ef6aac626f7e766255f51",
+      "result": {
+        "linux_ctest": "4/4 passed",
+        "request_epoch": "red/green retained",
+        "stalemate": "before evaluation/pruning; old/new Linux/Wine process reproductions retained",
+        "linux_bench11_nodes": 417491,
+        "windows_bench11_nodes": 350867
+      },
+      "provenance": {
+        "path": "validation/clock-safety-9850x3d/provenance.json",
+        "sha256": "c08a710cc76cedf3d84ab85a96977f3478786077b70afcfaaf5c77303fab02d9"
+      },
+      "evidence": [
+        "validation/clock-safety-9850x3d/tests/clock-red.log",
+        "validation/clock-safety-9850x3d/tests/clock-green.log",
+        "validation/clock-safety-9850x3d/tests/stalemate-red.log",
+        "validation/clock-safety-9850x3d/tests/stalemate-green.log",
+        "validation/clock-safety-9850x3d/tests/stalemate-uci-comparison.json"
+      ],
+      "valid_strength_evidence": false
+    },
+    {
+      "id": "forge641-search-cpu-timing-20261019",
+      "candidate_id": "forge641-clock-stalemate-20261019",
+      "scope": "search_speed",
+      "status": "inconclusive_shared_vm_timing",
+      "result": "CPU/wall samples vary substantially; no stable engine-wide speedup/regression or physical-Ryzen inference.",
+      "provenance": {
+        "path": "validation/clock-safety-9850x3d/search-cpu/provenance.json",
+        "sha256": "551f03885f2ca8c4fd0b756673e61847a1cdcb42aa2ffd505b81e8ca0080867b"
+      },
+      "evidence": [
+        "validation/clock-safety-9850x3d/search-cpu/summary.json",
+        "validation/clock-safety-9850x3d/search-unoptimized/provenance.json",
+        "validation/clock-safety-9850x3d/README.md"
+      ],
+      "valid_strength_evidence": false
+    },
+    {
+      "id": "forge642-underpromotion-completeness-20261019",
+      "candidate_id": "forge642-underpromotions-20261019",
+      "scope": "correctness",
+      "status": "passed_recorded_checks",
+      "result": {
+        "baseline_expected_failures": 23,
+        "linux_ctest": "5/5 passed",
+        "windows_wine": "core/UCI/ponder passed",
+        "linux_bench11_nodes": 419798,
+        "windows_bench11_nodes": 351063,
+        "reproducer_fen": "8/k1P5/2K5/8/8/8/8/8 w - - 0 1",
+        "restricted_four_promotions": "Old6.4.1 c7c8q score0; new6.4.2 c7c8r score467. Unrestricted old Linux c6d6 is not a demonstrated drawn game."
+      },
+      "provenance": {
+        "path": "validation/underpromotions-9850x3d/provenance.json",
+        "sha256": "343d841df5a0249d68e21daa97182d70c302f17c6db73764f2450449195ed035"
+      },
+      "evidence": [
+        "validation/underpromotions-9850x3d/tests/promotions-red.log",
+        "validation/underpromotions-9850x3d/tests/promotions-green.log",
+        "validation/underpromotions-9850x3d/tests/linux-ctest.log",
+        "validation/underpromotions-9850x3d/tests/promotion-choice-comparison.json",
+        "validation/underpromotions-9850x3d/tests/underpromotion-review.json"
+      ],
+      "retained_failed_check": "Argv-style bench emitted nothing; empty logs retained, then correct stdin bench checks passed.",
+      "valid_strength_evidence": false
+    },
+    {
+      "id": "forge64-initial-aa-20261019",
+      "candidate_id": null,
+      "scope": "calibration",
+      "status": "passed_calibration",
+      "settings": {
+        "tc": "10+0.1",
+        "nodes_per_move": 5000,
+        "concurrency": 1,
+        "rounds": 4,
+        "games_per_round": 2,
+        "sprt": null,
+        "uci_options_by_engine": {
+          "Candidate": {
+            "Hash": "64",
+            "Move Overhead": "10"
+          },
+          "Baseline": {
+            "Hash": "64",
+            "Move Overhead": "10"
+          }
+        },
+        "seed": 20261003,
+        "threads_per_engine_declared": 1,
+        "affinity_recorded": [
+          0
+        ]
+      },
+      "command": {
+        "path": "validation/hourly/2026-10-19-initial/matches/aa/manifest.json",
+        "sha256": "459bdc4395826bb90d301ef49e941c0914ba76e8778f07a288c15867d183495e",
+        "json_pointer": "/command"
+      },
+      "input_identities": {
+        "path": "validation/hourly/2026-10-19-initial/matches/aa/manifest.json",
+        "sha256": "459bdc4395826bb90d301ef49e941c0914ba76e8778f07a288c15867d183495e",
+        "json_pointer": "/inputs"
+      },
+      "selected_openings": {
+        "path": "validation/hourly/2026-10-19-initial/matches/aa/selected.epd",
+        "sha256": "8789057ae55de195fbbd7e8bbdd85fe4a96e45d78221487bd48466ebd640f367"
+      },
+      "result": {
+        "exit_code": 0,
+        "finished_game_messages": 8,
+        "retained_pgn_games": 8,
+        "error": null,
+        "timeout_warnings": [],
+        "statistics": {
+          "pairs": 4,
+          "games": 8,
+          "candidate_wins_draws_losses": [
+            4,
+            0,
+            4
+          ],
+          "pentanomial_0_half_1_1half_2": [
+            0,
+            0,
+            4,
+            0,
+            0
+          ],
+          "unique_openings": 4,
+          "terminations": {
+            "normal": 8
+          },
+          "score_fraction": 0.5,
+          "elo_claim": null,
+          "note": "Outcome bookkeeping only, not evidence of an Elo gain."
+        }
+      },
+      "evidence": {
+        "manifest.json": "validation/hourly/2026-10-19-initial/matches/aa/manifest.json",
+        "stats.json": "validation/hourly/2026-10-19-initial/matches/aa/stats.json",
+        "state.json": "validation/hourly/2026-10-19-initial/matches/aa/state.json",
+        "console.txt": "validation/hourly/2026-10-19-initial/matches/aa/console.txt",
+        "games.pgn": "validation/hourly/2026-10-19-initial/matches/aa/games.pgn",
+        "fastchess.log": "validation/hourly/2026-10-19-initial/matches/aa/fastchess.log"
+      },
+      "valid_strength_evidence": false,
+      "equal_clock_gain_established": false,
+      "accepted_elo_gain": null,
+      "limitation": "Calibration only; no A/B outcome contribution.",
+      "runtime_recorded": "Linux-6.18.55-x86_64-with-glibc2.39"
+    },
+    {
+      "id": "forge64-clock-aa-20261019",
+      "candidate_id": "forge641-clock-stalemate-20261019",
+      "scope": "calibration",
+      "status": "passed_calibration",
+      "settings": {
+        "tc": "inf",
+        "nodes_per_move": 2000,
+        "concurrency": 1,
+        "rounds": 4,
+        "games_per_round": 2,
+        "sprt": null,
+        "uci_options_by_engine": {
+          "Candidate": {
+            "Threads": "1",
+            "Hash": "32",
+            "Move Overhead": "100",
+            "OwnBook": "false"
+          },
+          "Baseline": {
+            "Threads": "1",
+            "Hash": "32",
+            "Move Overhead": "100",
+            "OwnBook": "false"
+          }
+        },
+        "seed": 2026101956,
+        "threads_per_engine_declared": 1,
+        "affinity_recorded": [
+          0,
+          1,
+          2,
+          3,
+          4
+        ]
+      },
+      "command": {
+        "path": "validation/clock-safety-9850x3d/matches/aa/manifest.json",
+        "sha256": "1f9df2d18e33c8d13c4c50bdb50991bd47f20f30709e5a989eac778d939d4fc6",
+        "json_pointer": "/command"
+      },
+      "input_identities": {
+        "path": "validation/clock-safety-9850x3d/matches/aa/manifest.json",
+        "sha256": "1f9df2d18e33c8d13c4c50bdb50991bd47f20f30709e5a989eac778d939d4fc6",
+        "json_pointer": "/inputs"
+      },
+      "selected_openings": {
+        "path": "validation/clock-safety-9850x3d/matches/aa/selected.epd",
+        "sha256": "2246622cc557dd2485cccc3c508c630f372f9b32016f4f455f10bd3a46accc12"
+      },
+      "result": {
+        "exit_code": 0,
+        "finished_game_messages": 8,
+        "retained_pgn_games": 8,
+        "error": null,
+        "timeout_warnings": [],
+        "statistics": {
+          "pairs": 4,
+          "games": 8,
+          "candidate_wins_draws_losses": [
+            4,
+            0,
+            4
+          ],
+          "pentanomial_0_half_1_1half_2": [
+            0,
+            0,
+            4,
+            0,
+            0
+          ],
+          "unique_openings": 4,
+          "terminations": {
+            "normal": 8
+          },
+          "score_fraction": 0.5,
+          "elo_claim": null,
+          "note": "Outcome bookkeeping only, not evidence of an Elo gain."
+        }
+      },
+      "evidence": {
+        "manifest.json": "validation/clock-safety-9850x3d/matches/aa/manifest.json",
+        "stats.json": "validation/clock-safety-9850x3d/matches/aa/stats.json",
+        "state.json": "validation/clock-safety-9850x3d/matches/aa/state.json",
+        "console.txt": "validation/clock-safety-9850x3d/matches/aa/console.txt",
+        "games.pgn": "validation/clock-safety-9850x3d/matches/aa/games.pgn",
+        "fastchess.log": "validation/clock-safety-9850x3d/matches/aa/fastchess.log"
+      },
+      "valid_strength_evidence": false,
+      "equal_clock_gain_established": false,
+      "accepted_elo_gain": null,
+      "limitation": "Calibration only; no A/B outcome contribution.",
+      "runtime_recorded": "Linux-6.18.55-x86_64-with-glibc2.41"
+    },
+    {
+      "id": "forge64-clock-buffered-pilot-20261019",
+      "candidate_id": "forge641-clock-stalemate-20261019",
+      "scope": "timed_infrastructure_pilot",
+      "status": "invalid_timeout",
+      "settings": {
+        "tc": "10+0.1",
+        "nodes_per_move": null,
+        "concurrency": 1,
+        "rounds": 8,
+        "games_per_round": 2,
+        "sprt": null,
+        "uci_options_by_engine": {
+          "Candidate": {
+            "OwnBook": "false",
+            "Threads": "1",
+            "Hash": "32",
+            "Move Overhead": "1000"
+          },
+          "Baseline": {
+            "OwnBook": "false",
+            "Threads": "1",
+            "Hash": "32",
+            "Move Overhead": "1000"
+          }
+        },
+        "seed": 20261019,
+        "threads_per_engine_declared": 1,
+        "affinity_recorded": [
+          0,
+          1,
+          2,
+          3,
+          4
+        ]
+      },
+      "command": {
+        "path": "validation/clock-safety-9850x3d/matches/buffered-pilot/command.json",
+        "sha256": "66f5e9917bdeb767ce2e3b50c92aa76a82c2517860ac39d655365211b6bc7dfd"
+      },
+      "input_identities": {
+        "path": "validation/clock-safety-9850x3d/matches/buffered-pilot/input-hashes.json",
+        "sha256": "95e2fbe6a9703f183b80379d3a9f684aa9bbbf998d9c40261e45e1ef20208ed6"
+      },
+      "selected_openings": {
+        "path": "validation/clock-safety-9850x3d/matches/buffered-pilot/selected.epd",
+        "sha256": "0029bca997f89417531e75836823db9a798d2fe1f7ce609ccd63547442a956c5"
+      },
+      "result": {
+        "exit_code": 1,
+        "finished_game_messages": 4,
+        "retained_pgn_games": 4,
+        "error": "Fastchess exited 1; entire pilot failed",
+        "timeout_warnings": [
+          "Engine Baseline loses on time by 450ms"
+        ],
+        "statistics": null,
+        "diagnosis": "Reference overrun450ms after4 normal games despite1000ms reserve; entire attempt invalid."
+      },
+      "evidence": {
+        "protocol.json": "validation/clock-safety-9850x3d/matches/buffered-pilot/protocol.json",
+        "result.json": "validation/clock-safety-9850x3d/matches/buffered-pilot/result.json",
+        "state.json": "validation/clock-safety-9850x3d/matches/buffered-pilot/state.json",
+        "console.txt": "validation/clock-safety-9850x3d/matches/buffered-pilot/console.txt",
+        "games.pgn": "validation/clock-safety-9850x3d/matches/buffered-pilot/games.pgn",
+        "fastchess.log": "validation/clock-safety-9850x3d/matches/buffered-pilot/fastchess.log"
+      },
+      "valid_strength_evidence": false,
+      "equal_clock_gain_established": false,
+      "accepted_elo_gain": null,
+      "limitation": "Entire interrupted/failed attempt excluded; no retained-game pooling.",
+      "runtime_recorded": "Linux-6.18.55-x86_64-with-glibc2.41"
+    },
+    {
+      "id": "forge641-vs-original-10knodes-sprt-20261019",
+      "candidate_id": "forge641-clock-stalemate-20261019",
+      "scope": "fixed_node_quality",
+      "status": "completed_H0_accepted",
+      "settings": {
+        "tc": "inf",
+        "nodes_per_move": 10000,
+        "concurrency": 1,
+        "rounds": 500,
+        "games_per_round": 2,
+        "sprt": {
+          "elo0": 0,
+          "elo1": 20,
+          "alpha": 0.05,
+          "beta": 0.05,
+          "model": "logistic",
+          "bounds": [
+            -2.9444389791664403,
+            2.9444389791664403
+          ]
+        },
+        "uci_options_by_engine": {
+          "Candidate": {
+            "OwnBook": "false",
+            "Threads": "1",
+            "Hash": "32"
+          },
+          "Baseline": {
+            "OwnBook": "false",
+            "Threads": "1",
+            "Hash": "32"
+          }
+        },
+        "seed": 20261019,
+        "threads_per_engine_declared": 1,
+        "affinity_recorded": [
+          0,
+          1,
+          2,
+          3,
+          4
+        ]
+      },
+      "command": {
+        "path": "validation/clock-safety-9850x3d/matches/original-quality-sprt/command.json",
+        "sha256": "db39ff3dedef39c0df4e0a9661364c14c7f56156fb3b69381b4e81d51abfb72f"
+      },
+      "input_identities": {
+        "path": "validation/clock-safety-9850x3d/matches/original-quality-sprt/input-hashes.json",
+        "sha256": "c58e7638ce0c3d3eecf4119559f0bb49ee4984691256c35a28bce0546451b7c4"
+      },
+      "selected_openings": {
+        "path": "validation/clock-safety-9850x3d/matches/original-quality-sprt/selected.epd",
+        "sha256": "277c818bab9ef418cd66ace60f823830d91c78f60783ba8ec4681c34189be4f8"
+      },
+      "result": {
+        "exit_code": 0,
+        "finished_game_messages": 178,
+        "retained_pgn_games": 178,
+        "error": null,
+        "timeout_warnings": [],
+        "statistics": {
+          "pairs": 89,
+          "games": 178,
+          "candidate_wins_draws_losses": [
+            66,
+            44,
+            68
+          ],
+          "pentanomial_0_half_1_1half_2": [
+            1,
+            10,
+            68,
+            10,
+            0
+          ],
+          "unique_openings": 89,
+          "terminations": {
+            "normal": 178
+          },
+          "score_fraction": 0.4943820224719101,
+          "elo_claim": null,
+          "note": "Outcome bookkeeping only, not evidence of an Elo gain."
+        },
+        "sprt_decision": "H0_accepted",
+        "independent_llr": -3.0256529003603494,
+        "bounds": [
+          -2.9444389791664403,
+          2.9444389791664403
+        ]
+      },
+      "evidence": {
+        "protocol.json": "validation/clock-safety-9850x3d/matches/original-quality-sprt/protocol.json",
+        "result.json": "validation/clock-safety-9850x3d/matches/original-quality-sprt/result.json",
+        "stats.json": "validation/clock-safety-9850x3d/matches/original-quality-sprt/stats.json",
+        "state.json": "validation/clock-safety-9850x3d/matches/original-quality-sprt/state.json",
+        "console.txt": "validation/clock-safety-9850x3d/matches/original-quality-sprt/console.txt",
+        "games.pgn": "validation/clock-safety-9850x3d/matches/original-quality-sprt/games.pgn",
+        "fastchess.log": "validation/clock-safety-9850x3d/matches/original-quality-sprt/fastchess.log"
+      },
+      "valid_strength_evidence": false,
+      "equal_clock_gain_established": false,
+      "accepted_elo_gain": null,
+      "limitation": "[0,+20] alternative not accepted at this node budget/opponent; not equality, a specific regression magnitude, equal-clock evidence, or a result for later6.4.2.",
+      "independent_audit": {
+        "path": "validation/clock-safety-9850x3d/tests/original-quality-sprt-independent-audit.json",
+        "sha256": "ec8a57031772c46cf23441f3b362197c459b1c3a9daf753c9abf7754282e8804"
+      },
+      "frozen_outputs_sha256": {
+        "fastchess.log": "cd72176db6b44e6dc787393854c466a37230f5886b5765da6a7f400442ba4229",
+        "games.pgn": "700bf63cc97b3c7ae01d4aee1efda4e08f6925b770759334b156a453095eedd6",
+        "stats.json": "13aa5b71fabe933c160d81dfcc7f8913733b2f8e36eef59ef84e41da2220217e",
+        "command.json": "db39ff3dedef39c0df4e0a9661364c14c7f56156fb3b69381b4e81d51abfb72f",
+        "console.txt": "374e7ab94eb9c3136f5c76de0eb91892f48cacbfb8d46283de3c58e6cda752b6",
+        "state.json": "c11c413718483e1de52206b98c29a422a8aa34ec1d319d74f2bf232b8a2f6358",
+        "input-hashes.json": "c58e7638ce0c3d3eecf4119559f0bb49ee4984691256c35a28bce0546451b7c4",
+        "selected.epd": "277c818bab9ef418cd66ace60f823830d91c78f60783ba8ec4681c34189be4f8",
+        "protocol.json": "882ce293d0807bc0f06653e5dc380d1801f20305519980ac34cd9ec5fe06cfb2"
+      },
+      "runtime_recorded": "Linux-6.18.55-x86_64-with-glibc2.41",
+      "comparison": {
+        "baseline": "Exact original Forge6.4 archive, not accepted9108 TT-tag reference or clock-only9cf3793 causal reference.",
+        "baseline_binary": {
+          "path": "/workspace/.cloud-setup/forge-original-6.4-build/forge",
+          "sha256": "025e836782af559a620ce78dc1a8a66bb2c49ae798f3f7c320175494d9a060e0"
+        },
+        "candidate_binary": {
+          "path": "/workspace/.cloud-setup/forge-clock-build/forge",
+          "sha256": "cdac5848fd84df510a44a914784fd1562e4e174459c2a622f5425b71293c60ff"
+        },
+        "candidate_source_commit": "fab979c9cc1c08bd1e89f1d0dabcfe300432a903"
+      },
+      "valid_fixed_node_quality_evidence": true
+    },
+    {
+      "id": "forge64-clock-quality-aa-20261019",
+      "candidate_id": "forge641-clock-stalemate-20261019",
+      "scope": "calibration",
+      "status": "invalid_opening_representation_audit",
+      "settings": {
+        "tc": "inf",
+        "nodes_per_move": 10000,
+        "concurrency": 2,
+        "rounds": 4,
+        "games_per_round": 2,
+        "sprt": null,
+        "uci_options_by_engine": {
+          "Candidate": {
+            "OwnBook": "false",
+            "Threads": "1",
+            "Hash": "32"
+          },
+          "Baseline": {
+            "OwnBook": "false",
+            "Threads": "1",
+            "Hash": "32"
+          }
+        },
+        "seed": 20261019,
+        "threads_per_engine_declared": 1,
+        "affinity_recorded": [
+          0,
+          1,
+          2,
+          3,
+          4
+        ]
+      },
+      "command": {
+        "path": "validation/clock-safety-9850x3d/matches/quality-aa/command.json",
+        "sha256": "3c94bea302012d5d94468e1745b0738999b670640ae0bda66da4675f226039d5"
+      },
+      "input_identities": {
+        "path": "validation/clock-safety-9850x3d/matches/quality-aa/input-hashes.json",
+        "sha256": "aea4c0ffa9c6a16b02f11034a0232eef6aa14783628bb83dba8000c178b3daab"
+      },
+      "selected_openings": {
+        "path": "validation/clock-safety-9850x3d/matches/quality-aa/selected.epd",
+        "sha256": "7399b5398a0ba03d16911560c27c92df3d65fb05f0af43573b77dd5c90abd744"
+      },
+      "result": {
+        "exit_code": 0,
+        "finished_game_messages": 8,
+        "retained_pgn_games": 8,
+        "error": "unexpected opening",
+        "timeout_warnings": [],
+        "statistics": null,
+        "diagnosis": "Eight normal deterministic games; audit failed on unusable EP normalization. Fresh no-EP AA-v2 followed; no pooling."
+      },
+      "evidence": {
+        "protocol.json": "validation/clock-safety-9850x3d/matches/quality-aa/protocol.json",
+        "result.json": "validation/clock-safety-9850x3d/matches/quality-aa/result.json",
+        "state.json": "validation/clock-safety-9850x3d/matches/quality-aa/state.json",
+        "console.txt": "validation/clock-safety-9850x3d/matches/quality-aa/console.txt",
+        "games.pgn": "validation/clock-safety-9850x3d/matches/quality-aa/games.pgn",
+        "fastchess.log": "validation/clock-safety-9850x3d/matches/quality-aa/fastchess.log",
+        "audit-diagnosis.json": "validation/clock-safety-9850x3d/matches/quality-aa/audit-diagnosis.json"
+      },
+      "valid_strength_evidence": false,
+      "equal_clock_gain_established": false,
+      "accepted_elo_gain": null,
+      "limitation": "Calibration only; no A/B outcome contribution.",
+      "runtime_recorded": "Linux-6.18.55-x86_64-with-glibc2.41"
+    },
+    {
+      "id": "forge64-clock-quality-aa-v2-20261019",
+      "candidate_id": "forge641-clock-stalemate-20261019",
+      "scope": "calibration",
+      "status": "passed_calibration",
+      "settings": {
+        "tc": "inf",
+        "nodes_per_move": 10000,
+        "concurrency": 2,
+        "rounds": 4,
+        "games_per_round": 2,
+        "sprt": null,
+        "uci_options_by_engine": {
+          "Candidate": {
+            "OwnBook": "false",
+            "Threads": "1",
+            "Hash": "32"
+          },
+          "Baseline": {
+            "OwnBook": "false",
+            "Threads": "1",
+            "Hash": "32"
+          }
+        },
+        "seed": 20261019,
+        "threads_per_engine_declared": 1,
+        "affinity_recorded": [
+          0,
+          1,
+          2,
+          3,
+          4
+        ]
+      },
+      "command": {
+        "path": "validation/clock-safety-9850x3d/matches/quality-aa-v2/command.json",
+        "sha256": "0e957ac75b8914de1dd4ec70c4583fab7c0c76e15e354f25861d23ebd020dd89"
+      },
+      "input_identities": {
+        "path": "validation/clock-safety-9850x3d/matches/quality-aa-v2/input-hashes.json",
+        "sha256": "579e3ddf486a0564ab8b874b321d25edead6b7a82f5c4a83c9944dba1c69d507"
+      },
+      "selected_openings": {
+        "path": "validation/clock-safety-9850x3d/matches/quality-aa-v2/selected.epd",
+        "sha256": "30bf318b9777a027c1a7b774f811a86b85250aed2e0c1bd01321389886863d95"
+      },
+      "result": {
+        "exit_code": 0,
+        "finished_game_messages": 8,
+        "retained_pgn_games": 8,
+        "error": null,
+        "timeout_warnings": [],
+        "statistics": {
+          "pairs": 4,
+          "games": 8,
+          "candidate_wins_draws_losses": [
+            3,
+            2,
+            3
+          ],
+          "pentanomial_0_half_1_1half_2": [
+            0,
+            0,
+            4,
+            0,
+            0
+          ],
+          "unique_openings": 4,
+          "terminations": {
+            "normal": 8
+          },
+          "score_fraction": 0.5,
+          "elo_claim": null,
+          "note": "Outcome bookkeeping only, not evidence of an Elo gain."
+        }
+      },
+      "evidence": {
+        "protocol.json": "validation/clock-safety-9850x3d/matches/quality-aa-v2/protocol.json",
+        "result.json": "validation/clock-safety-9850x3d/matches/quality-aa-v2/result.json",
+        "stats.json": "validation/clock-safety-9850x3d/matches/quality-aa-v2/stats.json",
+        "state.json": "validation/clock-safety-9850x3d/matches/quality-aa-v2/state.json",
+        "console.txt": "validation/clock-safety-9850x3d/matches/quality-aa-v2/console.txt",
+        "games.pgn": "validation/clock-safety-9850x3d/matches/quality-aa-v2/games.pgn",
+        "fastchess.log": "validation/clock-safety-9850x3d/matches/quality-aa-v2/fastchess.log"
+      },
+      "valid_strength_evidence": false,
+      "equal_clock_gain_established": false,
+      "accepted_elo_gain": null,
+      "limitation": "Calibration only; no A/B outcome contribution.",
+      "runtime_recorded": "Linux-6.18.55-x86_64-with-glibc2.41"
+    },
+    {
+      "id": "forge64-clock-timed-pilot-20261019",
+      "candidate_id": "forge641-clock-stalemate-20261019",
+      "scope": "timed_infrastructure_pilot",
+      "status": "invalid_timeout",
+      "settings": {
+        "tc": "10+0.1",
+        "nodes_per_move": null,
+        "concurrency": 1,
+        "rounds": 8,
+        "games_per_round": 2,
+        "sprt": null,
+        "uci_options_by_engine": {
+          "Candidate": {
+            "OwnBook": "false",
+            "Threads": "1",
+            "Hash": "32",
+            "Move Overhead": "100"
+          },
+          "Baseline": {
+            "OwnBook": "false",
+            "Threads": "1",
+            "Hash": "32",
+            "Move Overhead": "100"
+          }
+        },
+        "seed": 20261019,
+        "threads_per_engine_declared": 1,
+        "affinity_recorded": [
+          0,
+          1,
+          2,
+          3,
+          4
+        ]
+      },
+      "command": {
+        "path": "validation/clock-safety-9850x3d/matches/timed-pilot/command.json",
+        "sha256": "821f7435cc60b6d522369e5ca5579910d59fa5b7edd2ec96216e18e28c4bb123"
+      },
+      "input_identities": {
+        "path": "validation/clock-safety-9850x3d/matches/timed-pilot/input-hashes.json",
+        "sha256": "5483d5fe128dea81f1c865c84bfc152d48557a60340f74bd7734a474a4f5dd01"
+      },
+      "selected_openings": {
+        "path": "validation/clock-safety-9850x3d/matches/timed-pilot/selected.epd",
+        "sha256": "2f567e11a193c004e0c233d0c40ea4ad3a9f733d9bad0c8da4e15ff2d2a848ce"
+      },
+      "result": {
+        "exit_code": 1,
+        "finished_game_messages": 3,
+        "retained_pgn_games": 3,
+        "error": "Fastchess exited 1; entire pilot failed",
+        "timeout_warnings": [
+          "Engine Candidate loses on time by 137ms"
+        ],
+        "statistics": null
+      },
+      "evidence": {
+        "protocol.json": "validation/clock-safety-9850x3d/matches/timed-pilot/protocol.json",
+        "result.json": "validation/clock-safety-9850x3d/matches/timed-pilot/result.json",
+        "state.json": "validation/clock-safety-9850x3d/matches/timed-pilot/state.json",
+        "console.txt": "validation/clock-safety-9850x3d/matches/timed-pilot/console.txt",
+        "games.pgn": "validation/clock-safety-9850x3d/matches/timed-pilot/games.pgn",
+        "fastchess.log": "validation/clock-safety-9850x3d/matches/timed-pilot/fastchess.log"
+      },
+      "valid_strength_evidence": false,
+      "equal_clock_gain_established": false,
+      "accepted_elo_gain": null,
+      "limitation": "Entire interrupted/failed attempt excluded; no retained-game pooling.",
+      "forensics": "validation/clock-safety-9850x3d/diagnostics/timed-pilot-failure-forensics.json",
+      "runtime_recorded": "Linux-6.18.55-x86_64-with-glibc2.41"
+    },
+    {
+      "id": "forge64-avx2-aa-20261019",
+      "candidate_id": "forge64-avx2-20261019",
+      "scope": "calibration",
+      "status": "passed_calibration",
+      "settings": {
+        "tc": "10+0.1",
+        "nodes_per_move": 2000,
+        "concurrency": 1,
+        "rounds": 4,
+        "games_per_round": 2,
+        "sprt": null,
+        "uci_options_by_engine": {
+          "Candidate": {
+            "Hash": "32",
+            "Move Overhead": "10"
+          },
+          "Baseline": {
+            "Hash": "32",
+            "Move Overhead": "10"
+          }
+        },
+        "seed": 20261003,
+        "threads_per_engine_declared": 1,
+        "affinity_recorded": [
+          0
+        ]
+      },
+      "command": {
+        "path": "validation/nnue-avx2-9850x3d/matches/aa/manifest.json",
+        "sha256": "6c95c93e84f8d3aa2c2607d7414038f370a323a3476e176593f7a96e61bed25f",
+        "json_pointer": "/command"
+      },
+      "input_identities": {
+        "path": "validation/nnue-avx2-9850x3d/matches/aa/manifest.json",
+        "sha256": "6c95c93e84f8d3aa2c2607d7414038f370a323a3476e176593f7a96e61bed25f",
+        "json_pointer": "/inputs"
+      },
+      "selected_openings": {
+        "path": "validation/nnue-avx2-9850x3d/matches/aa/selected.epd",
+        "sha256": "8789057ae55de195fbbd7e8bbdd85fe4a96e45d78221487bd48466ebd640f367"
+      },
+      "result": {
+        "exit_code": 0,
+        "finished_game_messages": 8,
+        "retained_pgn_games": 8,
+        "error": null,
+        "timeout_warnings": [],
+        "statistics": {
+          "pairs": 4,
+          "games": 8,
+          "candidate_wins_draws_losses": [
+            2,
+            4,
+            2
+          ],
+          "pentanomial_0_half_1_1half_2": [
+            0,
+            0,
+            4,
+            0,
+            0
+          ],
+          "unique_openings": 4,
+          "terminations": {
+            "normal": 8
+          },
+          "score_fraction": 0.5,
+          "elo_claim": null,
+          "note": "Outcome bookkeeping only, not evidence of an Elo gain."
+        }
+      },
+      "evidence": {
+        "manifest.json": "validation/nnue-avx2-9850x3d/matches/aa/manifest.json",
+        "stats.json": "validation/nnue-avx2-9850x3d/matches/aa/stats.json",
+        "state.json": "validation/nnue-avx2-9850x3d/matches/aa/state.json",
+        "console.txt": "validation/nnue-avx2-9850x3d/matches/aa/console.txt",
+        "games.pgn": "validation/nnue-avx2-9850x3d/matches/aa/games.pgn",
+        "fastchess.log": "validation/nnue-avx2-9850x3d/matches/aa/fastchess.log"
+      },
+      "valid_strength_evidence": false,
+      "equal_clock_gain_established": false,
+      "accepted_elo_gain": null,
+      "limitation": "Calibration only; no A/B outcome contribution.",
+      "runtime_recorded": "Linux-6.18.55-x86_64-with-glibc2.41"
+    },
+    {
+      "id": "forge64-avx2-aa-windows-20261019",
+      "candidate_id": "forge64-avx2-20261019",
+      "scope": "calibration",
+      "status": "invalid_crlf_transport",
+      "settings": {
+        "tc": "10+0.1",
+        "nodes_per_move": 2000,
+        "concurrency": 1,
+        "rounds": 4,
+        "games_per_round": 2,
+        "sprt": null,
+        "uci_options_by_engine": {
+          "Candidate": {
+            "Hash": "32",
+            "Move Overhead": "10"
+          },
+          "Baseline": {
+            "Hash": "32",
+            "Move Overhead": "10"
+          }
+        },
+        "seed": 20261003,
+        "threads_per_engine_declared": 1,
+        "affinity_recorded": [
+          0
+        ]
+      },
+      "command": {
+        "path": "validation/nnue-avx2-9850x3d/matches/aa-windows/manifest.json",
+        "sha256": "5d239ee6d002eb5d8bae3938f51b6e6b8673c6aeb23c6bc9dce7f6291bc1368d",
+        "json_pointer": "/command"
+      },
+      "input_identities": {
+        "path": "validation/nnue-avx2-9850x3d/matches/aa-windows/manifest.json",
+        "sha256": "5d239ee6d002eb5d8bae3938f51b6e6b8673c6aeb23c6bc9dce7f6291bc1368d",
+        "json_pointer": "/inputs"
+      },
+      "selected_openings": {
+        "path": "validation/nnue-avx2-9850x3d/matches/aa-windows/selected.epd",
+        "sha256": "8789057ae55de195fbbd7e8bbdd85fe4a96e45d78221487bd48466ebd640f367"
+      },
+      "result": {
+        "exit_code": 1,
+        "finished_game_messages": 0,
+        "retained_pgn_games": 0,
+        "error": "Fastchess exited 1; inspect console.txt",
+        "timeout_warnings": [],
+        "statistics": null,
+        "diagnosis": "Unnormalized Wine CRLF made Linux Fastchess parse an otherwise valid move as illegal."
+      },
+      "evidence": {
+        "manifest.json": "validation/nnue-avx2-9850x3d/matches/aa-windows/manifest.json",
+        "state.json": "validation/nnue-avx2-9850x3d/matches/aa-windows/state.json",
+        "console.txt": "validation/nnue-avx2-9850x3d/matches/aa-windows/console.txt",
+        "games.pgn": "validation/nnue-avx2-9850x3d/matches/aa-windows/games.pgn",
+        "fastchess.log": "validation/nnue-avx2-9850x3d/matches/aa-windows/fastchess.log"
+      },
+      "valid_strength_evidence": false,
+      "equal_clock_gain_established": false,
+      "accepted_elo_gain": null,
+      "limitation": "Calibration only; no A/B outcome contribution.",
+      "runtime_recorded": "Linux-6.18.55-x86_64-with-glibc2.41"
+    },
+    {
+      "id": "forge64-avx2-aa-windows-book-off-20261019",
+      "candidate_id": "forge64-avx2-20261019",
+      "scope": "calibration",
+      "status": "passed_calibration",
+      "settings": {
+        "tc": "10+0.1",
+        "nodes_per_move": 2000,
+        "concurrency": 1,
+        "rounds": 4,
+        "games_per_round": 2,
+        "sprt": null,
+        "uci_options_by_engine": {
+          "Candidate": {
+            "Hash": "32",
+            "Move Overhead": "10",
+            "OwnBook": "false"
+          },
+          "Baseline": {
+            "Hash": "32",
+            "Move Overhead": "10",
+            "OwnBook": "false"
+          }
+        },
+        "seed": 20261003,
+        "threads_per_engine_declared": 1,
+        "affinity_recorded": [
+          3
+        ]
+      },
+      "command": {
+        "path": "validation/nnue-avx2-9850x3d/matches/aa-windows-book-off/manifest.json",
+        "sha256": "1478f97de47c0c07cd45149dc3e7d36282cd6c7602198e3758c8d6dfe9754e03",
+        "json_pointer": "/command"
+      },
+      "input_identities": {
+        "path": "validation/nnue-avx2-9850x3d/matches/aa-windows-book-off/manifest.json",
+        "sha256": "1478f97de47c0c07cd45149dc3e7d36282cd6c7602198e3758c8d6dfe9754e03",
+        "json_pointer": "/inputs"
+      },
+      "selected_openings": {
+        "path": "validation/nnue-avx2-9850x3d/matches/aa-windows-book-off/selected.epd",
+        "sha256": "8789057ae55de195fbbd7e8bbdd85fe4a96e45d78221487bd48466ebd640f367"
+      },
+      "result": {
+        "exit_code": 0,
+        "finished_game_messages": 8,
+        "retained_pgn_games": 8,
+        "error": null,
+        "timeout_warnings": [],
+        "statistics": {
+          "pairs": 4,
+          "games": 8,
+          "candidate_wins_draws_losses": [
+            3,
+            2,
+            3
+          ],
+          "pentanomial_0_half_1_1half_2": [
+            0,
+            0,
+            4,
+            0,
+            0
+          ],
+          "unique_openings": 4,
+          "terminations": {
+            "normal": 8
+          },
+          "score_fraction": 0.5,
+          "elo_claim": null,
+          "note": "Outcome bookkeeping only, not evidence of an Elo gain."
+        }
+      },
+      "evidence": {
+        "manifest.json": "validation/nnue-avx2-9850x3d/matches/aa-windows-book-off/manifest.json",
+        "stats.json": "validation/nnue-avx2-9850x3d/matches/aa-windows-book-off/stats.json",
+        "state.json": "validation/nnue-avx2-9850x3d/matches/aa-windows-book-off/state.json",
+        "console.txt": "validation/nnue-avx2-9850x3d/matches/aa-windows-book-off/console.txt",
+        "games.pgn": "validation/nnue-avx2-9850x3d/matches/aa-windows-book-off/games.pgn",
+        "fastchess.log": "validation/nnue-avx2-9850x3d/matches/aa-windows-book-off/fastchess.log"
+      },
+      "valid_strength_evidence": false,
+      "equal_clock_gain_established": false,
+      "accepted_elo_gain": null,
+      "limitation": "Calibration only; no A/B outcome contribution.",
+      "runtime_recorded": "Linux-6.18.55-x86_64-with-glibc2.41"
+    },
+    {
+      "id": "forge64-avx2-aa-windows-normalized-20261019",
+      "candidate_id": "forge64-avx2-20261019",
+      "scope": "calibration",
+      "status": "invalid_aa_nondeterminism",
+      "settings": {
+        "tc": "10+0.1",
+        "nodes_per_move": 2000,
+        "concurrency": 1,
+        "rounds": 4,
+        "games_per_round": 2,
+        "sprt": null,
+        "uci_options_by_engine": {
+          "Candidate": {
+            "Hash": "32",
+            "Move Overhead": "10"
+          },
+          "Baseline": {
+            "Hash": "32",
+            "Move Overhead": "10"
+          }
+        },
+        "seed": 20261003,
+        "threads_per_engine_declared": 1,
+        "affinity_recorded": [
+          0
+        ]
+      },
+      "command": {
+        "path": "validation/nnue-avx2-9850x3d/matches/aa-windows-normalized/manifest.json",
+        "sha256": "ce83a5495200360f515ff88ee976e8d5c8cf61fa96365420bd2861d26831433b",
+        "json_pointer": "/command"
+      },
+      "input_identities": {
+        "path": "validation/nnue-avx2-9850x3d/matches/aa-windows-normalized/manifest.json",
+        "sha256": "ce83a5495200360f515ff88ee976e8d5c8cf61fa96365420bd2861d26831433b",
+        "json_pointer": "/inputs"
+      },
+      "selected_openings": {
+        "path": "validation/nnue-avx2-9850x3d/matches/aa-windows-normalized/selected.epd",
+        "sha256": "8789057ae55de195fbbd7e8bbdd85fe4a96e45d78221487bd48466ebd640f367"
+      },
+      "result": {
+        "exit_code": 0,
+        "finished_game_messages": 8,
+        "retained_pgn_games": 8,
+        "error": "A/A pair was not deterministic",
+        "timeout_warnings": [],
+        "statistics": null,
+        "diagnosis": "CRLF fixed but enabled engine book made A/A pairs nondeterministic; rerun disabled book."
+      },
+      "evidence": {
+        "manifest.json": "validation/nnue-avx2-9850x3d/matches/aa-windows-normalized/manifest.json",
+        "state.json": "validation/nnue-avx2-9850x3d/matches/aa-windows-normalized/state.json",
+        "console.txt": "validation/nnue-avx2-9850x3d/matches/aa-windows-normalized/console.txt",
+        "games.pgn": "validation/nnue-avx2-9850x3d/matches/aa-windows-normalized/games.pgn",
+        "fastchess.log": "validation/nnue-avx2-9850x3d/matches/aa-windows-normalized/fastchess.log"
+      },
+      "valid_strength_evidence": false,
+      "equal_clock_gain_established": false,
+      "accepted_elo_gain": null,
+      "limitation": "Calibration only; no A/B outcome contribution.",
+      "runtime_recorded": "Linux-6.18.55-x86_64-with-glibc2.41"
+    },
+    {
+      "id": "forge64-avx2-linux-sprt-20261019",
+      "candidate_id": "forge64-avx2-20261019",
+      "scope": "equal_clock_strength_attempt",
+      "status": "invalid_timeout",
+      "settings": {
+        "tc": "2+0.02",
+        "nodes_per_move": null,
+        "concurrency": 2,
+        "rounds": 200,
+        "games_per_round": 2,
+        "sprt": {
+          "elo0": 0,
+          "elo1": 5,
+          "alpha": 0.05,
+          "beta": 0.05,
+          "model": "logistic"
+        },
+        "uci_options_by_engine": {
+          "Candidate": {
+            "Hash": "32",
+            "Threads": "1",
+            "OwnBook": "false",
+            "Move Overhead": "20"
+          },
+          "Baseline": {
+            "Hash": "32",
+            "Threads": "1",
+            "OwnBook": "false",
+            "Move Overhead": "20"
+          }
+        },
+        "seed": 20261019,
+        "threads_per_engine_declared": 1,
+        "affinity_recorded": [
+          0,
+          1
+        ]
+      },
+      "command": {
+        "path": "validation/nnue-avx2-9850x3d/matches/linux-sprt/command.json",
+        "sha256": "18c89cca2b7bb8d1c30ce89059d46ffe59449a3bf6cac3dedda99c3649914a0a"
+      },
+      "input_identities": {
+        "path": "validation/nnue-avx2-9850x3d/matches/linux-sprt/protocol.json",
+        "sha256": "de29d8ae82d1e3823de4303dc898263079e3545e09c4b6623dec653028574890",
+        "json_pointer": "/sha256"
+      },
+      "selected_openings": {
+        "path": "validation/nnue-avx2-9850x3d/matches/linux-sprt/selected.epd",
+        "sha256": "b2b981c180b348663253e287ad79a252df0a4378183ba2670c246cd2eeb4759a"
+      },
+      "result": {
+        "exit_code": 1,
+        "finished_game_messages": 4,
+        "retained_pgn_games": 4,
+        "error": null,
+        "timeout_warnings": [
+          "Engine Candidate loses on time by 588ms"
+        ],
+        "statistics": null
+      },
+      "evidence": {
+        "protocol.json": "validation/nnue-avx2-9850x3d/matches/linux-sprt/protocol.json",
+        "assessment.json": "validation/nnue-avx2-9850x3d/matches/linux-sprt/assessment.json",
+        "state.json": "validation/nnue-avx2-9850x3d/matches/linux-sprt/state.json",
+        "console.txt": "validation/nnue-avx2-9850x3d/matches/linux-sprt/console.txt",
+        "games.pgn": "validation/nnue-avx2-9850x3d/matches/linux-sprt/games.pgn",
+        "fastchess.log": "validation/nnue-avx2-9850x3d/matches/linux-sprt/fastchess.log"
+      },
+      "valid_strength_evidence": false,
+      "equal_clock_gain_established": false,
+      "accepted_elo_gain": null,
+      "limitation": "Entire interrupted/failed attempt excluded; no retained-game pooling.",
+      "runtime_recorded": "Linux x86-64-v3 binaries, Xeon cloud VM; not physical Ryzen or Windows Elo evidence"
+    },
+    {
+      "id": "forge64-avx2-standard-baseline-20261019",
+      "candidate_id": "forge64-avx2-20261019",
+      "scope": "timed_infrastructure_pilot",
+      "status": "invalid_timeout",
+      "settings": {
+        "tc": "10+0.1",
+        "nodes_per_move": null,
+        "concurrency": 1,
+        "rounds": 10,
+        "games_per_round": 2,
+        "sprt": null,
+        "uci_options_by_engine": {
+          "Candidate": {
+            "OwnBook": "false",
+            "Threads": "1",
+            "Hash": "32",
+            "Move Overhead": "100"
+          },
+          "Baseline": {
+            "OwnBook": "false",
+            "Threads": "1",
+            "Hash": "32",
+            "Move Overhead": "100"
+          }
+        },
+        "seed": 20261019,
+        "threads_per_engine_declared": 1,
+        "affinity_recorded": [
+          0
+        ]
+      },
+      "command": {
+        "path": "validation/nnue-avx2-9850x3d/matches/standard-baseline/command.json",
+        "sha256": "ad56ba498357068fcadf51a62f6061166f4ff55f19d6e35dd4c741e0ad221b20"
+      },
+      "input_identities": {
+        "path": "validation/nnue-avx2-9850x3d/matches/standard-baseline/protocol.json",
+        "sha256": "6f1c7b4a3ab2e6f23830bc9781a9e989eddf9f9d44f4a18335ca2c336c35cabd",
+        "json_pointer": "/sha256"
+      },
+      "selected_openings": {
+        "path": "validation/nnue-avx2-9850x3d/matches/standard-baseline/selected.epd",
+        "sha256": "38e59db8881aef282ee9d854557ba8f62a8c88d28907edf5130719ba0679f560"
+      },
+      "result": {
+        "exit_code": 1,
+        "finished_game_messages": 7,
+        "retained_pgn_games": 7,
+        "error": null,
+        "timeout_warnings": [
+          "Engine Baseline loses on time by 118ms"
+        ],
+        "statistics": null
+      },
+      "evidence": {
+        "protocol.json": "validation/nnue-avx2-9850x3d/matches/standard-baseline/protocol.json",
+        "assessment.json": "validation/nnue-avx2-9850x3d/matches/standard-baseline/assessment.json",
+        "state.json": "validation/nnue-avx2-9850x3d/matches/standard-baseline/state.json",
+        "console.txt": "validation/nnue-avx2-9850x3d/matches/standard-baseline/console.txt",
+        "games.pgn": "validation/nnue-avx2-9850x3d/matches/standard-baseline/games.pgn",
+        "fastchess.log": "validation/nnue-avx2-9850x3d/matches/standard-baseline/fastchess.log"
+      },
+      "valid_strength_evidence": false,
+      "equal_clock_gain_established": false,
+      "accepted_elo_gain": null,
+      "limitation": "Entire interrupted/failed attempt excluded; no retained-game pooling.",
+      "runtime_recorded": null
+    },
+    {
+      "id": "forge64-avx2-standard-stockfish-20261019",
+      "candidate_id": "forge64-avx2-20261019",
+      "scope": "timed_infrastructure_pilot",
+      "status": "invalid_timeout",
+      "settings": {
+        "tc": "10+0.1",
+        "nodes_per_move": null,
+        "concurrency": 1,
+        "rounds": 5,
+        "games_per_round": 2,
+        "sprt": null,
+        "uci_options_by_engine": {
+          "Candidate": {
+            "OwnBook": "false",
+            "Threads": "1",
+            "Hash": "32",
+            "Move Overhead": "100"
+          },
+          "Baseline": {
+            "UCI_LimitStrength": "false",
+            "Skill Level": "20",
+            "Threads": "1",
+            "Hash": "32",
+            "Move Overhead": "100"
+          }
+        },
+        "seed": 20261019,
+        "threads_per_engine_declared": 1,
+        "affinity_recorded": [
+          2
+        ]
+      },
+      "command": {
+        "path": "validation/nnue-avx2-9850x3d/matches/standard-stockfish/command.json",
+        "sha256": "a69683eadeb14be69dd8e73ca7af29e28ab778679089a04f4380735ee1b1332f"
+      },
+      "input_identities": {
+        "path": "validation/nnue-avx2-9850x3d/matches/standard-stockfish/protocol.json",
+        "sha256": "0de37b658c2cc40dfeb3e39cff8975b23fed2d9a45a7054fbd88c093f8c2ed28",
+        "json_pointer": "/sha256"
+      },
+      "selected_openings": {
+        "path": "validation/nnue-avx2-9850x3d/matches/standard-stockfish/selected.epd",
+        "sha256": "e51f5e16e1eb075ac770734c32b96ba994fffdc86473d144a692c41843ee7bb8"
+      },
+      "result": {
+        "exit_code": 1,
+        "finished_game_messages": 3,
+        "retained_pgn_games": 3,
+        "error": null,
+        "timeout_warnings": [
+          "Engine Candidate loses on time by 246ms"
+        ],
+        "statistics": null
+      },
+      "evidence": {
+        "protocol.json": "validation/nnue-avx2-9850x3d/matches/standard-stockfish/protocol.json",
+        "assessment.json": "validation/nnue-avx2-9850x3d/matches/standard-stockfish/assessment.json",
+        "state.json": "validation/nnue-avx2-9850x3d/matches/standard-stockfish/state.json",
+        "console.txt": "validation/nnue-avx2-9850x3d/matches/standard-stockfish/console.txt",
+        "games.pgn": "validation/nnue-avx2-9850x3d/matches/standard-stockfish/games.pgn",
+        "fastchess.log": "validation/nnue-avx2-9850x3d/matches/standard-stockfish/fastchess.log"
+      },
+      "valid_strength_evidence": false,
+      "equal_clock_gain_established": false,
+      "accepted_elo_gain": null,
+      "limitation": "Entire interrupted/failed attempt excluded; no retained-game pooling.",
+      "runtime_recorded": null
+    },
+    {
+      "id": "forge64-avx2-stockfish-full-pilot-20261019",
+      "candidate_id": "forge64-avx2-20261019",
+      "scope": "timed_infrastructure_pilot",
+      "status": "invalid_timeout",
+      "settings": {
+        "tc": "2+0.02",
+        "nodes_per_move": null,
+        "concurrency": 1,
+        "rounds": 10,
+        "games_per_round": 2,
+        "sprt": null,
+        "uci_options_by_engine": {
+          "Candidate": {
+            "OwnBook": "false",
+            "Hash": "32",
+            "Threads": "1",
+            "Move Overhead": "20"
+          },
+          "Baseline": {
+            "UCI_LimitStrength": "false",
+            "Skill Level": "20",
+            "Hash": "32",
+            "Threads": "1",
+            "Move Overhead": "20"
+          }
+        },
+        "seed": 20261019,
+        "threads_per_engine_declared": 1,
+        "affinity_recorded": null
+      },
+      "command": {
+        "path": "validation/nnue-avx2-9850x3d/matches/stockfish-full-pilot/command.json",
+        "sha256": "0bb8a4bae578e92199e3262f33bca6420445a8039913982be0533c40cbeb7a7a"
+      },
+      "input_identities": {
+        "path": "validation/nnue-avx2-9850x3d/matches/stockfish-full-pilot/protocol.json",
+        "sha256": "83b89cd35ab132fbf61d007f1b98a8a63e815086bb314b431874c779a3a13506",
+        "json_pointer": "/sha256"
+      },
+      "selected_openings": {
+        "path": "validation/nnue-avx2-9850x3d/matches/stockfish-full-pilot/selected.epd",
+        "sha256": "38e59db8881aef282ee9d854557ba8f62a8c88d28907edf5130719ba0679f560"
+      },
+      "result": {
+        "exit_code": 1,
+        "finished_game_messages": 2,
+        "retained_pgn_games": 2,
+        "error": null,
+        "timeout_warnings": [
+          "Engine Candidate loses on time by 97ms"
+        ],
+        "statistics": null
+      },
+      "evidence": {
+        "protocol.json": "validation/nnue-avx2-9850x3d/matches/stockfish-full-pilot/protocol.json",
+        "assessment.json": "validation/nnue-avx2-9850x3d/matches/stockfish-full-pilot/assessment.json",
+        "state.json": "validation/nnue-avx2-9850x3d/matches/stockfish-full-pilot/state.json",
+        "console.txt": "validation/nnue-avx2-9850x3d/matches/stockfish-full-pilot/console.txt",
+        "games.pgn": "validation/nnue-avx2-9850x3d/matches/stockfish-full-pilot/games.pgn",
+        "fastchess.log": "validation/nnue-avx2-9850x3d/matches/stockfish-full-pilot/fastchess.log"
+      },
+      "valid_strength_evidence": false,
+      "equal_clock_gain_established": false,
+      "accepted_elo_gain": null,
+      "limitation": "Entire interrupted/failed attempt excluded; no retained-game pooling.",
+      "runtime_recorded": null
+    },
+    {
+      "id": "forge64-avx2-windows-sprt-20261019",
+      "candidate_id": "forge64-avx2-20261019",
+      "scope": "equal_clock_strength_attempt",
+      "status": "invalid_timeout",
+      "settings": {
+        "tc": "1+0.01",
+        "nodes_per_move": null,
+        "concurrency": 2,
+        "rounds": 400,
+        "games_per_round": 2,
+        "sprt": {
+          "elo0": 0,
+          "elo1": 5,
+          "alpha": 0.05,
+          "beta": 0.05,
+          "model": "logistic",
+          "required": "native SPRT decision; positive point estimate alone is not acceptance"
+        },
+        "uci_options_by_engine": {
+          "Candidate": {
+            "Hash": "32",
+            "Threads": "1",
+            "OwnBook": "false",
+            "Move Overhead": "2"
+          },
+          "Baseline": {
+            "Hash": "32",
+            "Threads": "1",
+            "OwnBook": "false",
+            "Move Overhead": "2"
+          }
+        },
+        "seed": 20261019,
+        "threads_per_engine_declared": 1,
+        "affinity_recorded": [
+          0,
+          1
+        ]
+      },
+      "command": {
+        "path": "validation/nnue-avx2-9850x3d/matches/windows-sprt/command.json",
+        "sha256": "e5beace8869d18c7ee03be40ffa11aa8d1a22690240b339f84e5ad38acdfb5b5"
+      },
+      "input_identities": {
+        "path": "validation/nnue-avx2-9850x3d/matches/windows-sprt/protocol.json",
+        "sha256": "0305620918dbe4bd12557244c5a2bb34946e9cad4c9aa7e88843d0454ea55b2c",
+        "json_pointer": "/sha256"
+      },
+      "selected_openings": {
+        "path": "validation/nnue-avx2-9850x3d/matches/windows-sprt/selected.epd",
+        "sha256": "c7062b25405b734645030dbb6bd346e433992b11c2c4a8f2c62089de223042ba"
+      },
+      "result": {
+        "exit_code": 1,
+        "finished_game_messages": 0,
+        "retained_pgn_games": 0,
+        "error": null,
+        "timeout_warnings": [
+          "Engine Baseline loses on time by 3ms"
+        ],
+        "statistics": null
+      },
+      "evidence": {
+        "protocol.json": "validation/nnue-avx2-9850x3d/matches/windows-sprt/protocol.json",
+        "assessment.json": "validation/nnue-avx2-9850x3d/matches/windows-sprt/assessment.json",
+        "state.json": "validation/nnue-avx2-9850x3d/matches/windows-sprt/state.json",
+        "console.txt": "validation/nnue-avx2-9850x3d/matches/windows-sprt/console.txt",
+        "games.pgn": "validation/nnue-avx2-9850x3d/matches/windows-sprt/games.pgn",
+        "fastchess.log": "validation/nnue-avx2-9850x3d/matches/windows-sprt/fastchess.log"
+      },
+      "valid_strength_evidence": false,
+      "equal_clock_gain_established": false,
+      "accepted_elo_gain": null,
+      "limitation": "Entire interrupted/failed attempt excluded; no retained-game pooling.",
+      "runtime_recorded": "Windows Zen 5 binaries under Wine on Intel Xeon Linux; not physical Ryzen validation"
+    },
+    {
+      "id": "forge64-clock-diagnostic-repro-stockfish-1-20261019",
+      "candidate_id": "forge64-avx2-20261019",
+      "scope": "diagnostic",
+      "status": "failed_command_configuration",
+      "command": {
+        "path": "validation/clock-safety-9850x3d/diagnostics/repro-stockfish-1/command.json",
+        "sha256": "b7913570f0668f969c040e67379224068216092fd57f3e130de5e376781a545a"
+      },
+      "result": {
+        "exit_code": 1,
+        "finished_games": 0,
+        "interpretation": "Unsupported debug/engine_coms logging options; no game."
+      },
+      "evidence": [
+        "validation/clock-safety-9850x3d/diagnostics/repro-stockfish-1/exit.json",
+        "validation/clock-safety-9850x3d/diagnostics/repro-stockfish-1/console.txt"
+      ],
+      "valid_strength_evidence": false
+    },
+    {
+      "id": "forge64-clock-diagnostic-repro-stockfish-2-20261019",
+      "candidate_id": "forge64-avx2-20261019",
+      "scope": "diagnostic",
+      "status": "failed_startup_readiness",
+      "command": {
+        "path": "validation/clock-safety-9850x3d/diagnostics/repro-stockfish-2/command.json",
+        "sha256": "13314b27db696720db20c463715d62f450ae88e77211a460c7a1f652cb022503"
+      },
+      "result": {
+        "exit_code": 1,
+        "finished_games": 0,
+        "interpretation": "Stockfish banner arrived but startup uciok timed out; Forge not started."
+      },
+      "evidence": [
+        "validation/clock-safety-9850x3d/diagnostics/repro-stockfish-2/exit.json",
+        "validation/clock-safety-9850x3d/diagnostics/repro-stockfish-2/console.txt",
+        "validation/clock-safety-9850x3d/diagnostics/repro-stockfish-2/fastchess.log"
+      ],
+      "valid_strength_evidence": false
+    },
+    {
+      "id": "forge64-clock-diagnostic-repro-forge-1-20261019",
+      "candidate_id": "forge64-avx2-20261019",
+      "scope": "diagnostic",
+      "status": "completed_single_game_diagnostic",
+      "command": {
+        "path": "validation/clock-safety-9850x3d/diagnostics/repro-forge-1/command.json",
+        "sha256": "06f6b48499e3593608d7e26e1a29eb860859a96700dd900cfa32a53aeacee91e"
+      },
+      "result": {
+        "exit_code": 0,
+        "finished_games": 1,
+        "interpretation": "One50-move draw; proxy forced teardown. No paired strength/clock-reliability inference."
+      },
+      "evidence": [
+        "validation/clock-safety-9850x3d/diagnostics/repro-forge-1/exit.json",
+        "validation/clock-safety-9850x3d/diagnostics/repro-forge-1/console.txt",
+        "validation/clock-safety-9850x3d/diagnostics/repro-forge-1/fastchess.log"
+      ],
+      "valid_strength_evidence": false
+    },
+    {
+      "id": "forge64-clock-diagnostic-repro-forge-2-20261019",
+      "candidate_id": "forge64-avx2-20261019",
+      "scope": "diagnostic",
+      "status": "invalid_timeout",
+      "command": {
+        "path": "validation/clock-safety-9850x3d/diagnostics/repro-forge-2/command.json",
+        "sha256": "e6ca0acba4fabc323d2bf1ddc1ae62d46999554397c0521f1a143733b5856c3a"
+      },
+      "result": {
+        "exit_code": 1,
+        "finished_games": 2,
+        "interpretation": "Candidate overrun22ms in game3 after two draws; diagnostic only."
+      },
+      "evidence": [
+        "validation/clock-safety-9850x3d/diagnostics/repro-forge-2/exit.json",
+        "validation/clock-safety-9850x3d/diagnostics/repro-forge-2/console.txt",
+        "validation/clock-safety-9850x3d/diagnostics/repro-forge-2/fastchess.log"
+      ],
+      "valid_strength_evidence": false
+    },
+    {
+      "id": "forge641-direct-deadline-scheduling-20261019",
+      "candidate_id": "forge641-clock-stalemate-20261019",
+      "scope": "diagnostic",
+      "status": "scheduling_starvation_observed",
+      "settings": {
+        "trials": 200,
+        "trials_per_engine": 100,
+        "remaining_clock_ms": 308,
+        "stop_sent": false
+      },
+      "result": {
+        "over_remaining_clock": 1,
+        "worst_wall_ms": 594.184447,
+        "search_runtime_ns": 121705211,
+        "search_run_queue_wait_ns": 465623166,
+        "interpretation": "At least one direct replay experienced about465.6ms runnable-queue wait. It demonstrates scheduling starvation can defeat this move budget; it does not attribute all previous forfeits."
+      },
+      "inputs": {
+        "clock_reference_linux": {
+          "path": "/workspace/.cloud-setup/forge-clock-reference-build/forge",
+          "sha256": "5e319ae19e51afc32024002ffded662636c3cd488e38df0e6a6855c1d5460e6b"
+        },
+        "candidate_linux": {
+          "path": "/workspace/.cloud-setup/forge-clock-build/forge",
+          "sha256": "cdac5848fd84df510a44a914784fd1562e4e174459c2a622f5425b71293c60ff"
+        }
+      },
+      "provenance": {
+        "path": "validation/clock-safety-9850x3d/diagnostics/scheduling-summary.json",
+        "sha256": "aa0bb4ce48014aff4fed94c31c1cdfedcb2f2374d5c41cd33f7cead652020999"
+      },
+      "command_record": "validation/clock-safety-9850x3d/diagnostics/deadline-probe.py",
+      "evidence": [
+        "validation/clock-safety-9850x3d/diagnostics/deadline-probe.zip",
+        "validation/clock-safety-9850x3d/diagnostics/scheduling-SHA256.json"
+      ],
+      "valid_strength_evidence": false
+    },
+    {
+      "id": "forge64-avx2-20261019-windows-readiness",
+      "candidate_id": "forge64-avx2-20261019",
+      "scope": "runtime_readiness",
+      "status": "passed_under_wine",
+      "result": "Delivered PE core/UCI/ponder passed under Wine10; native Windows/physical Ryzen untested.",
+      "command_record": "validation/nnue-avx2-9850x3d/README.md#reproduce-builds-and-checks",
+      "provenance": {
+        "path": "validation/nnue-avx2-9850x3d/provenance.json",
+        "sha256": "fe9c3dffca5a6fc5c922214b796a47f2b55b61e54037169779338572cfda38a9"
+      },
+      "evidence": [
+        "validation/nnue-avx2-9850x3d/runtime/core-wine.log",
+        "validation/nnue-avx2-9850x3d/runtime/uci-wine-retry.log",
+        "validation/nnue-avx2-9850x3d/runtime/ponder-wine.log"
+      ],
+      "native_windows": false,
+      "physical_ryzen": false,
+      "valid_strength_evidence": false
+    },
+    {
+      "id": "forge641-clock-stalemate-20261019-windows-readiness",
+      "candidate_id": "forge641-clock-stalemate-20261019",
+      "scope": "runtime_readiness",
+      "status": "passed_under_wine",
+      "result": "Delivered PE core/UCI/ponder passed under Wine10; native Windows/physical Ryzen untested.",
+      "command_record": "validation/clock-safety-9850x3d/tests/windows-runtime.json",
+      "provenance": {
+        "path": "validation/clock-safety-9850x3d/provenance.json",
+        "sha256": "c08a710cc76cedf3d84ab85a96977f3478786077b70afcfaaf5c77303fab02d9"
+      },
+      "evidence": [
+        "validation/clock-safety-9850x3d/tests/windows-core.log",
+        "validation/clock-safety-9850x3d/tests/windows-uci.log",
+        "validation/clock-safety-9850x3d/tests/windows-ponder.log"
+      ],
+      "native_windows": false,
+      "physical_ryzen": false,
+      "valid_strength_evidence": false
+    },
+    {
+      "id": "forge642-underpromotions-20261019-windows-readiness",
+      "candidate_id": "forge642-underpromotions-20261019",
+      "scope": "runtime_readiness",
+      "status": "passed_under_wine",
+      "result": "Delivered PE core/UCI/ponder passed under Wine10; native Windows/physical Ryzen untested.",
+      "command_record": "validation/underpromotions-9850x3d/tests/windows-runtime.json",
+      "provenance": {
+        "path": "validation/underpromotions-9850x3d/provenance.json",
+        "sha256": "343d841df5a0249d68e21daa97182d70c302f17c6db73764f2450449195ed035"
+      },
+      "evidence": [
+        "validation/underpromotions-9850x3d/tests/windows-core.log",
+        "validation/underpromotions-9850x3d/tests/windows-uci.log",
+        "validation/underpromotions-9850x3d/tests/windows-ponder-console.log"
+      ],
+      "native_windows": false,
+      "physical_ryzen": false,
+      "valid_strength_evidence": false
+    },
+    {
+      "id": "forge642-portable-bundle-wine-aa-attempt1-20261019",
+      "candidate_id": "forge642-underpromotions-20261019",
+      "scope": "runtime_readiness",
+      "status": "aa_passed_manifest_completeness_claim_rejected",
+      "settings": {
+        "tc": "inf",
+        "nodes_per_move": 10000,
+        "pairs": 4,
+        "concurrency": 2
+      },
+      "result": {
+        "statistics": {
+          "pairs": 4,
+          "games": 8,
+          "candidate_wins_draws_losses": [
+            3,
+            2,
+            3
+          ],
+          "pentanomial_0_half_1_1half_2": [
+            0,
+            0,
+            4,
+            0,
+            0
+          ],
+          "unique_openings": 4,
+          "terminations": {
+            "normal": 8
+          },
+          "score_fraction": 0.5,
+          "elo_claim": null,
+          "note": "Outcome bookkeeping only, not evidence of an Elo gain."
+        },
+        "declared_inputs_unchanged": true,
+        "manifest_sha256": "ef712d7c44499ffa6137db824f0a010bb19f5e5c2795e03849ca3a09e3712349",
+        "limitation": "A/A normal/deterministic result and all 2344 declared input checks remain valid; whole-bundle inventory-completeness claim was invalid",
+        "next_gate": "Fresh attempt2 A/A readiness must pass against corrected complete manifest before packaging/release",
+        "next_gate_status": "Fulfilled separately by fresh corrected-manifest attempt2; original incomplete inventory claim remains rejected."
+      },
+      "binaries_sha256": {
+        "fastchess_sha256": "4faf9592df9a7955fa326f3281cd4bdcabe8b651101cd65629b49dd9c7e83729",
+        "candidate_sha256": "7928cfbf3e5da6e508c4da5b4c6d4c2a6582a3058951ed5d5479c3098909e324",
+        "original_sha256": "593dae1d6ac7afa83112a9db0a647aa640767f9edf838855ac998a2b1f969e04",
+        "runner_sha256": "0fa959b97cedd340db57957cbae5cd9701d4468bdc4689f0131edc4984072719"
+      },
+      "command": {
+        "path": "validation/underpromotions-9850x3d/windows-native-readiness/attempt1/command.json",
+        "sha256": "afa8dc9cce7893b9efe62d476610d7e54371e1801937a2441899879c433110d9"
+      },
+      "provenance": {
+        "path": "validation/underpromotions-9850x3d/windows-native-readiness/attempt1/bundle-freeze.json",
+        "sha256": "14d3924beb401bc7c4c490437a4dcc69bc432543b9fb495c34c460fb256d47db"
+      },
+      "evidence": [
+        "validation/underpromotions-9850x3d/windows-native-readiness/attempt1/result.json",
+        "validation/underpromotions-9850x3d/windows-native-readiness/attempt1/independent-audit.json",
+        "validation/underpromotions-9850x3d/windows-native-readiness/attempt1/original-results.zip",
+        "validation/underpromotions-9850x3d/windows-native-readiness/manifest-discrepancy.json",
+        "validation/underpromotions-9850x3d/windows-native-readiness/manifest-repair.json"
+      ],
+      "native_windows": false,
+      "physical_ryzen": false,
+      "valid_strength_evidence": false
+    },
+    {
+      "id": "forge642-portable-bundle-manifest-repair-20261019",
+      "candidate_id": "forge642-underpromotions-20261019",
+      "scope": "artifact_integrity",
+      "status": "corrected_complete_manifest_verified_fresh_aa_completed",
+      "result": {
+        "manifest_sha256": "576cf088dda67c060934f1f533fa8a69a5d5c4642a36bb2af6b01103c45296e8",
+        "previous_manifest_sha256": "ef712d7c44499ffa6137db824f0a010bb19f5e5c2795e03849ca3a09e3712349",
+        "unchanged_nonmanifest_bytes": true,
+        "repair": "List two unchanged source-only metadata manifests omitted by first helper.",
+        "manifest_listed_files": 2345,
+        "actual_regular_files_including_root_manifest": 2346,
+        "fresh_aa_experiment_id": "forge642-portable-bundle-wine-aa-attempt2-20261019"
+      },
+      "evidence": [
+        "validation/underpromotions-9850x3d/windows-native-readiness/manifest-discrepancy.json",
+        "validation/underpromotions-9850x3d/windows-native-readiness/manifest-repair.json",
+        "validation/underpromotions-9850x3d/windows-native-readiness/repair-manifest.py"
+      ],
+      "valid_strength_evidence": false
+    },
+    {
+      "id": "forge642-native-windows-equal-clock-20261019",
+      "candidate_id": "forge642-underpromotions-20261019",
+      "scope": "equal_clock_strength",
+      "status": "not_executed_on_native_windows",
+      "settings": {
+        "aa_pairs": 4,
+        "aa_nodes_per_move": 10000,
+        "pilot_pairs": 8,
+        "tc": "10+0.1",
+        "threads": 1,
+        "hash_mib": 32,
+        "ownbook": false,
+        "move_overhead_ms": 100,
+        "timed_concurrency": 1,
+        "sprt": {
+          "elo0": 0,
+          "elo1": 5,
+          "alpha": 0.05,
+          "beta": 0.05,
+          "model": "logistic",
+          "max_pairs": 5000
+        }
+      },
+      "comparison": "Complete original Windows6.4 znver4 release versus6.4.2 Zen5; compiler/architecture differences are included.",
+      "command_record": "tools/match/windows_validate.py",
+      "protocol_record": "validation/underpromotions-9850x3d/windows-native-readiness/attempt1/manifest.json",
+      "evidence": [
+        "validation/underpromotions-9850x3d/README.md",
+        "tools/match/tests/test_windows_validate.py"
+      ],
+      "accepted_elo_gain": null,
+      "valid_strength_evidence": false
+    },
+    {
+      "id": "forge642-tt-coherence-full-engine-20261019",
+      "scope": "correctness",
+      "status": "actual_baseline_data_race_reproduced",
+      "accepted_reference_commit": "9108d012526be80c6d163f7cab684e6acd9abf8d",
+      "isolated_baseline_commit": "f6f0a00b2f98a7a9f117790e2c8f19a340b6769f",
+      "baseline_tt_matches_accepted": true,
+      "baseline_sanitized_binary": {
+        "path": "/workspace/.cloud-setup/forge-tt-baseline-tsan/forge",
+        "sha256": "43b32429cc33b2bf98a851860254d5aca65100f0434f0d59667a87ea76cc3381"
+      },
+      "startup_only_result": {
+        "exit_code": 0,
+        "scope": "sanitizer startup only; no multithreaded search"
+      },
+      "proposed_patch_status": "Original models/proposals retained. Actual coherent-snapshot source now exists separately as df5d839; acceptance requires its own validation.",
+      "workspace_only_evidence": [
+        "/workspace/.cloud-setup/tt-investigation/full-engine-baseline-export.json",
+        "/workspace/.cloud-setup/tt-investigation/accepted-tt-source-parity.json",
+        "/workspace/.cloud-setup/tt-investigation/baseline-startup-attempt1/result.json",
+        "/workspace/.cloud-setup/tt-investigation/provenance.json",
+        "/workspace/.cloud-setup/tt-investigation/research-inventory.json"
+      ],
+      "next_gate": "Candidate full-engine checks are recorded separately; storage/parity/speed and strength gates remain pending.",
+      "valid_strength_evidence": false,
+      "candidate_id": "forge642-underpromotions-20261019",
+      "result": {
+        "actual_data_race_reported": true,
+        "exit_code": 66,
+        "elapsed_seconds": 4.544527292251587,
+        "completed_search": false,
+        "bestmove_observed": false,
+        "report": "Worker write at src/search.cpp:222 conflicts with another worker read at :199; TSan halted before bestmove.",
+        "scope": "Actual Forge full-engine failing correctness control, not a completed search or match."
+      },
+      "settings": {
+        "threads": 4,
+        "hash_mib": 1,
+        "ownbook": false,
+        "position": "startpos",
+        "go": "nodes 200000",
+        "TSAN_OPTIONS": "halt_on_error=1:exitcode=66"
+      },
+      "source_commit": "f6f0a00b2f98a7a9f117790e2c8f19a340b6769f",
+      "archive": {
+        "path": "validation/tt-coherence-20261019/baseline-and-proposals-checkpoint.zip",
+        "sha256": "50ae109cddbe8e7212e613d8c722097b1507683af3e5f80434a11bf1a3262e8d",
+        "bytes": 66799
+      },
+      "archived_evidence_members": [
+        "full-engine-baseline-export.json",
+        "accepted-tt-source-parity.json",
+        "baseline-startup-attempt1/result.json",
+        "baseline-full-engine-race-attempt1/result.json",
+        "baseline-full-engine-race-attempt1/stdin.json",
+        "baseline-full-engine-race-attempt1/stderr.bin",
+        "provenance.json"
+      ],
+      "command": {
+        "archive": "validation/tt-coherence-20261019/baseline-and-proposals-checkpoint.zip",
+        "member": "baseline-full-engine-race-attempt1/stdin.json",
+        "representation": "Timestamped exact UCI command sequence; engine path and TSAN_OPTIONS in result.json"
+      },
+      "evidence": [
+        {
+          "path": "validation/tt-coherence-20261019/STATUS.md",
+          "sha256": "b161f0a37df1a8721403be50303be287f57113d4ff2464e9e849292fcec0f3b1"
+        },
+        {
+          "path": "validation/tt-coherence-20261019/build-tools-current.json",
+          "sha256": "cdd300daff9c90f5b4e649be6f1916b2b408e49fba7fe2ef81a165d93aac32b5"
+        }
+      ]
+    },
+    {
+      "id": "forge643-tt-build-readiness-20261019",
+      "candidate_id": "forge643-tt-coherence-20261019",
+      "scope": "build_readiness",
+      "status": "release_and_tsan_builds_passed",
+      "source_commit": "df5d839a6a03f705310bb958601375fa9411e810",
+      "settings": {
+        "release": "GCC14.2.0; Release -O3 -DNDEBUG -march=x86-64-v3 -mtune=znver5 -fno-fast-math -ffp-contract=off",
+        "tsan": "GCC14.2.0; Debug -O1 -g -fsanitize=thread -fno-omit-frame-pointer -fno-pie; link -fsanitize=thread -no-pie; -fno-fast-math -ffp-contract=off"
+      },
+      "result": {
+        "release_targets": [
+          "forge",
+          "forge_tests",
+          "forge_tt_tests",
+          "forge_bench"
+        ],
+        "tsan_targets": [
+          "forge",
+          "forge_tests",
+          "forge_tt_tests"
+        ],
+        "engine_binary_hashes": {
+          "linux_release": {
+            "path": "/workspace/.cloud-setup/forge-tt-coherent-release/forge",
+            "sha256": "8a940f603fe57d5ec9cdbd2c4a04b2401f3cff3df1923e5203505a0090a5f370"
+          },
+          "linux_tsan": {
+            "path": "/workspace/.cloud-setup/forge-tt-coherent-tsan/forge",
+            "sha256": "70ad38a30d6bb38f57bde68a49fd3280bddb4865b878e7d99b462f9f5ea2f163"
+          }
+        },
+        "strength_claim": null
+      },
+      "evidence": [
+        {
+          "path": "/workspace/.cloud-setup/tt-investigation/candidate-release-configure.log",
+          "sha256": "e9dede0d7bb8bb3632e0590a4845d9c756341db8e53d5d2aed3404637da3c773"
+        },
+        {
+          "path": "/workspace/.cloud-setup/tt-investigation/candidate-release-build-attempt1.log",
+          "sha256": "ff8afe425bc5d2b1a22004170d4ff6624e4051f28a5108d28e89fca1d255e409"
+        },
+        {
+          "path": "/workspace/.cloud-setup/tt-investigation/candidate-tsan-configure.log",
+          "sha256": "2c4509e2d71ab1ca88d503348305a8aa0f9be3cb8edd7472802d3ad54aad00d6"
+        },
+        {
+          "path": "/workspace/.cloud-setup/tt-investigation/candidate-tsan-build-attempt1.log",
+          "sha256": "4ff208a81e5e76acf2708b6e6c0af895b3d33da682936fff647664a58eb71649"
+        }
+      ],
+      "exact_configured_flags": [
+        {
+          "path": "/workspace/.cloud-setup/forge-tt-coherent-release/CMakeFiles/forge_core.dir/flags.make",
+          "sha256": "2fa4e7c27b573a4179c73a6a7f04ab2b96cbb9f2e014230ee37713d357570ccd"
+        },
+        {
+          "path": "/workspace/.cloud-setup/forge-tt-coherent-tsan/CMakeFiles/forge_core.dir/flags.make",
+          "sha256": "e0ca84ec3345f4f00f51ecb254797a2e04de74fea565622c06641097e463c7de"
+        }
+      ],
+      "evidence_retention": "Workspace logs awaiting next persistent checkpoint.",
+      "valid_strength_evidence": false
+    },
+    {
+      "id": "forge643-tt-regression-attempt1-20261019",
+      "candidate_id": "forge643-tt-coherence-20261019",
+      "scope": "correctness",
+      "status": "failed_synthetic_fixture_diagnosed",
+      "source_commit": "df5d839a6a03f705310bb958601375fa9411e810",
+      "test_fixture_sha256": "9224055fe92defefec27ababb297c86db25897e45e5407aa7bd80e087e4062d4",
+      "result": {
+        "ctest_passed": 5,
+        "ctest_total": 6,
+        "failed_test": "forge_tt_tests",
+        "failure": "concurrent probe observed a torn tuple",
+        "diagnosis": "Synthetic from==to moves are Move::none. Correct same-key TT store preserves the old move, violating the fixture tuple correlation.",
+        "affected_publications": 311,
+        "production_fix_needed_for_this_failure": false,
+        "repair": "Guarantee nonempty synthetic move by from!=to; preserve original source and failed run."
+      },
+      "evidence": [
+        {
+          "path": "/workspace/.cloud-setup/tt-investigation/candidate-release-ctest-attempt1.log",
+          "sha256": "bc9ac9609b820f27284dd2d115f3df25770c4611eda89cf06746092c39e4f453"
+        },
+        {
+          "path": "/workspace/.cloud-setup/tt-investigation/stress-fixture-error.json",
+          "sha256": "cea6653ca8c38d030c1bc639eb47f1895ebcff459b183d922e86502e70abe626"
+        }
+      ],
+      "valid_strength_evidence": false,
+      "command_record": {
+        "path": "/workspace/.cloud-setup/tt-investigation/candidate-release-ctest-attempt1.log",
+        "sha256": "bc9ac9609b820f27284dd2d115f3df25770c4611eda89cf06746092c39e4f453",
+        "representation": "Captured CTest output records build directory and tests; literal launcher argv was not separately captured."
+      }
+    },
+    {
+      "id": "forge643-tt-regression-attempt2-20261019",
+      "candidate_id": "forge643-tt-coherence-20261019",
+      "scope": "correctness",
+      "status": "passed_after_fixture_only_correction",
+      "source_commit": "df5d839a6a03f705310bb958601375fa9411e810",
+      "test_fixture_sha256": "6d053ad0eee60af73c85b6eada03ca1e9226f06e3fb375f7a442da0e62609150",
+      "production_source_unchanged_from_commit": true,
+      "result": {
+        "release_ctest_passed": 6,
+        "release_ctest_total": 6,
+        "release_tt_groups_passed": 7,
+        "tsan_tt_groups_passed": 7,
+        "tt_groups": [
+          "snapshot and current-slot admission",
+          "delayed store retains probe destination",
+          "replacement ties, age and late changes",
+          "invalid handles and lifecycle",
+          "resize allocation failure preserves table",
+          "hashfull current generation and wrap",
+          "concurrent correlated snapshots and hashfull"
+        ],
+        "limitation": "Finite regression and stress coverage; no performance or strength conclusion."
+      },
+      "evidence": [
+        {
+          "path": "/workspace/.cloud-setup/tt-investigation/candidate-release-ctest-attempt2.log",
+          "sha256": "c259c9405901bb9468fcd18517e68e29478f57559d47b6875189380c0a5a9455"
+        },
+        {
+          "path": "/workspace/.cloud-setup/tt-investigation/candidate-release-tt-tests-attempt2.log",
+          "sha256": "5a6140eaf84b2c3de5061d3272dd90583d2de2a0c7bfb2abf4f44910a8c0951e"
+        },
+        {
+          "path": "/workspace/.cloud-setup/tt-investigation/candidate-tsan-tt-tests-attempt2.log",
+          "sha256": "5a6140eaf84b2c3de5061d3272dd90583d2de2a0c7bfb2abf4f44910a8c0951e"
+        },
+        {
+          "path": "/workspace/.cloud-setup/tt-investigation/candidate-release-test-build-attempt2.log",
+          "sha256": "9621b03938434c80a90449f31b354c2b4c8ffb31c2e9e9d4e24e9e68f253a0c4"
+        },
+        {
+          "path": "/workspace/.cloud-setup/tt-investigation/candidate-tsan-test-build-attempt2.log",
+          "sha256": "9621b03938434c80a90449f31b354c2b4c8ffb31c2e9e9d4e24e9e68f253a0c4"
+        }
+      ],
+      "valid_strength_evidence": false
+    },
+    {
+      "id": "tt-full-engine-driver-contracts-20261019",
+      "scope": "audit_tool_readiness",
+      "status": "six_contract_checks_passed_after_preserved_failures",
+      "driver_sha256": "ca40222fe51cd2cb2908871bf18237d671992a1e665c5f680c9977f5022990cb",
+      "attempts": [
+        {
+          "id": "contract-attempt1",
+          "exit_code": 1,
+          "classification": "invalid unittest module path; no tests ran",
+          "record": {
+            "path": "/workspace/.cloud-setup/tt-investigation/full-driver-contract-attempt1.json",
+            "sha256": "3d4e2fdd4d3f43c3462d2a344a72a28504821fbfd9402ed708ce3828643e17d5"
+          }
+        },
+        {
+          "id": "contract-attempt2",
+          "exit_code": 1,
+          "classification": "five tests ran; one incorrect fixture stdout suffix expectation failed",
+          "record": {
+            "path": "/workspace/.cloud-setup/tt-investigation/full-driver-contract-attempt2.json",
+            "sha256": "6b0c2f52b9538b083432e38722b2920c7f32961d8f27a5b66e954c61daeeae1e"
+          },
+          "log": {
+            "path": "/workspace/.cloud-setup/tt-investigation/full-driver-contract-attempt2.log",
+            "sha256": "152fe5a7828ca091111e886e3bcf6dcd3d871143aafa98a7e2c5bf7c4b10531e"
+          }
+        },
+        {
+          "id": "contract-attempt3",
+          "exit_code": 0,
+          "record": {
+            "path": "/workspace/.cloud-setup/tt-investigation/full-driver-contract-attempt3.json",
+            "sha256": "c4429550365e28192999631fdd60519ab3e690315ffb980ac2a67ef298f0d1ff"
+          },
+          "log": {
+            "path": "/workspace/.cloud-setup/tt-investigation/full-driver-contract-attempt3.log",
+            "sha256": "7da12f52eefe5f77126d2ac5b749bb76867ea81d9b1792346e24eb10d50e911d"
+          }
+        },
+        {
+          "id": "reader-red-attempt1",
+          "exit_code": 1,
+          "classification": "Red control: reader capture exception was not retained as failure evidence",
+          "record": {
+            "path": "/workspace/.cloud-setup/tt-investigation/full-driver-reader-red-attempt1.json",
+            "sha256": "1638bbcae54a45a1bcb8393fb66092696c88d60f7d8725ac92fbb9e319973428"
+          },
+          "log": {
+            "path": "/workspace/.cloud-setup/tt-investigation/full-driver-reader-red-attempt1.log",
+            "sha256": "e8756179a92b19a8c777bb24345391663e852eacaf7d781013c0dc65ea132e74"
+          }
+        },
+        {
+          "id": "contract-attempt4",
+          "exit_code": 0,
+          "record": {
+            "path": "/workspace/.cloud-setup/tt-investigation/full-driver-contract-attempt4.json",
+            "sha256": "c4429550365e28192999631fdd60519ab3e690315ffb980ac2a67ef298f0d1ff"
+          },
+          "log": {
+            "path": "/workspace/.cloud-setup/tt-investigation/full-driver-contract-attempt4.log",
+            "sha256": "4256a927e7af86b7237861d7c2e6b195dd9e8e0b75b319b41369f54095028392"
+          }
+        },
+        {
+          "id": "contract-attempt5-venv",
+          "exit_code": 0,
+          "tests_run": 6,
+          "skipped": 0,
+          "record": {
+            "path": "/workspace/.cloud-setup/tt-investigation/full-driver-contract-attempt5-venv.json",
+            "sha256": "94f794d821bece72856e003f3625ef2dbd9ae0be34c7c198f56c3447c88b2631"
+          },
+          "log": {
+            "path": "/workspace/.cloud-setup/tt-investigation/full-driver-contract-attempt5-venv.log",
+            "sha256": "1bff26acd4422f943017521fd7bfa882850c752d7b845b28316ba52eecd85715"
+          }
+        }
+      ],
+      "evidence": [
+        {
+          "path": "/workspace/.cloud-setup/tt-investigation/full-driver-readiness.json",
+          "sha256": "b1c020802e566e8ca0492240b443fd92c114ec6814311a624e94a69db182f8b9"
+        },
+        {
+          "path": "/workspace/.cloud-setup/tt-investigation/integrated-driver-contracts.log",
+          "sha256": "89c611c6c444e7bb36133f63070bf46492018e4ca14e2da99d75d38cc4e19e75"
+        }
+      ],
+      "limitation": "Harness contract tests use controlled fixture processes; actual engine validation is recorded separately.",
+      "valid_strength_evidence": false
+    },
+    {
+      "id": "forge643-tt-full-engine-tsan-attempt1-20261019",
+      "candidate_id": "forge643-tt-coherence-20261019",
+      "scope": "correctness",
+      "status": "passed_bounded_full_engine_tsan_lifecycle",
+      "source_commit": "df5d839a6a03f705310bb958601375fa9411e810",
+      "engine": {
+        "path": "/workspace/.cloud-setup/forge-tt-coherent-tsan/forge",
+        "sha256": "70ad38a30d6bb38f57bde68a49fd3280bddb4865b878e7d99b462f9f5ea2f163"
+      },
+      "settings": {
+        "process_restarts": 2,
+        "cycles_per_process": 2,
+        "nodes_per_ordinary_search": 50000,
+        "threads": [
+          4,
+          2,
+          1
+        ],
+        "hash_mib": [
+          1,
+          4
+        ],
+        "ownbook": false,
+        "tsan_options": "halt_on_error=1:exitcode=66",
+        "positions": [
+          "startpos",
+          "fen r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1",
+          "fen 8/2p5/3p4/KP5r/1R3p1k/8/4P1P1/8 w - - 0 1"
+        ],
+        "terminal_cases": [
+          [
+            "mate",
+            "fen 7k/6Q1/6K1/8/8/8/8/8 b - - 0 1",
+            "mate 0"
+          ],
+          [
+            "stalemate",
+            "fen 7k/5Q2/6K1/8/8/8/8/8 b - - 0 1",
+            "cp 0"
+          ],
+          [
+            "draw-with-legal-moves",
+            "fen 7k/8/8/8/8/8/8/K7 w - - 0 1",
+            "cp 0"
+          ]
+        ],
+        "lifecycle": [
+          "explicit stop/join",
+          "clear hash",
+          "resize hash",
+          "change threads",
+          "new game",
+          "quit"
+        ]
+      },
+      "command": {
+        "path": "/workspace/.cloud-setup/tt-investigation/candidate-full-engine-tsan-attempt1/configuration.json",
+        "sha256": "33312c43219ebed712a0e7c1361a5a44657d7c33a5cd81c33d3a574ee9b8847b",
+        "representation": "Resolved driver configuration; exact per-process argv and UCI input retained in session records/streams."
+      },
+      "result": {
+        "completed_all_scenarios": true,
+        "processes": 2,
+        "completed_searches": 38,
+        "legality_checked_searches": 38,
+        "explicitly_stopped_searches": 4,
+        "exit_codes": [
+          0,
+          0
+        ],
+        "sanitizer_classifications": [
+          "none",
+          "none"
+        ],
+        "stderr_bytes": [
+          0,
+          0
+        ],
+        "stream_capture_complete": true,
+        "reader_threads_joined": true,
+        "engine_hash_unchanged": true,
+        "max_reported_hashfull": [
+          366,
+          374
+        ],
+        "python_chess": {
+          "available": true,
+          "module": "python-chess",
+          "version": "1.11.2"
+        },
+        "limitation": "No TSan report in these finite searches; this does not prove universal race freedom, throughput, or playing-strength improvement."
+      },
+      "evidence": [
+        {
+          "path": "/workspace/.cloud-setup/tt-investigation/candidate-full-engine-tsan-attempt1/summary.json",
+          "sha256": "fb38ad1391ad54fdb2538474d9aae7e3f88375c2d90bf1c4f9684d855baab7af"
+        },
+        {
+          "path": "/workspace/.cloud-setup/tt-investigation/candidate-full-engine-tsan-attempt1/events.jsonl",
+          "sha256": "e69b5ad0c8e570f2ce7b82d10baa2d574d1c4b943453a9d36f5c446787d3b34f"
+        },
+        {
+          "path": "/workspace/.cloud-setup/tt-investigation/candidate-full-engine-tsan-attempt1/process-00/result.json",
+          "sha256": "db6a1c32592c42a88a3d55d05dfc830ee1faa06f6ea359cd749f4f8c751f10a8"
+        },
+        {
+          "path": "/workspace/.cloud-setup/tt-investigation/candidate-full-engine-tsan-attempt1/process-01/result.json",
+          "sha256": "5bbb0e569655914d36a2a771f63d122e65162fb25f4920ae453026e42c8fa126"
+        }
+      ],
+      "raw_stream_directory": "/workspace/.cloud-setup/tt-investigation/candidate-full-engine-tsan-attempt1",
+      "archive_status": {
+        "path": "validation/tt-coherence-20261019/complete-linux-correctness-checkpoint.zip",
+        "prefix": "tt-investigation/candidate-full-engine-tsan-attempt1/",
+        "sha256": "e786c377fed2b728cc43adba5cd8b504ce369cec2ab252fe31020123634bc2c6"
+      },
+      "valid_strength_evidence": false
+    },
+    {
+      "id": "forge643-rule50-qsearch-tt-investigation-20261019",
+      "candidate_id": "forge643-tt-coherence-20261019",
+      "scope": "correctness",
+      "status": "actual_engine_bug_reproduced_isolated_fix_pending",
+      "source_commit": "df5d839a6a03f705310bb958601375fa9411e810",
+      "research_source": {
+        "ref": "origin/forge/research-20261019-2115",
+        "commit": "56c90436f1f85de5cad0a762be75d50d6b71c247",
+        "role": "Research-only hypothesis; actual reproduction below uses current Forge Worker."
+      },
+      "settings": {
+        "fen": "7k/8/8/8/8/8/8/K6R b - - 99 80",
+        "ply": 1,
+        "qsearch_window": [
+          -1,
+          0
+        ],
+        "tt_warmup": "Actual full-window qsearch of identical position at halfmove0; reset worker history/caches/stack while preserving TT.",
+        "implementation": "Friend diagnostic invokes actual Worker functions linked to current Release libforge_core.a."
+      },
+      "command": {
+        "path": "/workspace/.cloud-setup/rule50-investigation/compile-command.json",
+        "sha256": "c29e498e605ee2b3545cbec92e3981154e4f61aa84693465e434d5223aedf3ed"
+      },
+      "run_command": {
+        "path": "/workspace/.cloud-setup/rule50-investigation/run-command.json",
+        "sha256": "34b7b5f4ba7b3fab81c1860b4c8d66a7421e8173f0059a1a6a02cefd1e491baa"
+      },
+      "provenance": {
+        "path": "/workspace/.cloud-setup/rule50-investigation/provenance.json",
+        "sha256": "f3996cd8f22346e0b4f6e67cecf810949790b3eb487a4fa0606af43bf717e8f3"
+      },
+      "result": {
+        "compile_exit_code": 0,
+        "diagnostic_exit_code": 1,
+        "exit_code_meaning": "1 means demonstrated; 0 not demonstrated; 2 invalid fixture/control.",
+        "naturally_learned_lowclock_exact_score": -426,
+        "same_tt_key_across_halfmove_clocks": true,
+        "clock99_qsearch_warm": -426,
+        "clock99_qsearch_cold": 0,
+        "clock99_main_depth1_warm": 0,
+        "clock99_fullwindow_qsearch_warm": 0,
+        "legal_evasions": [
+          "h8g7",
+          "h8g8"
+        ],
+        "every_evasion_nonzeroing_to_halfmove100_with_legal_reply": true,
+        "forced_draw_oracle": 0,
+        "clock100_qsearch_warm": 0,
+        "clock100_checkmate_score": -31999,
+        "mechanism": "Qsearch consumes a context-inappropriate low-clock TT bound; key excludes halfmove counter.",
+        "accepted_production_fix": false,
+        "strength_implication": null
+      },
+      "evidence": [
+        {
+          "path": "/workspace/.cloud-setup/rule50-investigation/compile-result.json",
+          "sha256": "4884375a210a7f886ac7ca68578ee13d0e55619481b9aedf5dea960e132cf0b4"
+        },
+        {
+          "path": "/workspace/.cloud-setup/rule50-investigation/run-result.json",
+          "sha256": "9d5c36d9c2b58c988dcec8ceba74d28902bd479de77d0f4be1da42639d39c233"
+        },
+        {
+          "path": "/workspace/.cloud-setup/rule50-investigation/probe.stdout",
+          "sha256": "4502d144a1e14f1ae5661a3f241b7abb7d49088c80e335b752a6a8fa35218dff"
+        },
+        {
+          "path": "/workspace/.cloud-setup/rule50-investigation/probe.stderr",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "/workspace/.cloud-setup/rule50-investigation/python-chess-oracle.json",
+          "sha256": "4e496e3596876eabf9ff0227a0f4ddb163548b49cab49e4458f3ce0ea99289eb"
+        },
+        {
+          "path": "/workspace/.cloud-setup/rule50-investigation/rule50_worker_probe.cpp",
+          "sha256": "53a4e6caa31b0f60e4afe6aa4eb8e35f6e36179b9e556181ef6f4414ec60e041"
+        },
+        {
+          "path": "/workspace/.cloud-setup/rule50-investigation/PLAN.md",
+          "sha256": "f5706069ce2e2cc33a5422e2d3180c78c00471e5bc2de0e9ced8d149c9802490"
+        }
+      ],
+      "evidence_note": "Original preparation-time research/PLAN retained; actual compile/run records and refreshed provenance establish execution. Research-only claims are not treated as measurements.",
+      "archive_status": {
+        "path": "validation/rule50-context-20261019/investigation-before-integration.zip",
+        "prefix": "rule50-investigation/",
+        "sha256": "3d4e5008c54fe35ea4bd681743dd0b459d4b22acc22bfce084d15ee4b9eea87a"
+      },
+      "valid_strength_evidence": false
+    },
+    {
+      "id": "forge642-portable-bundle-wine-aa-attempt2-20261019",
+      "candidate_id": "forge642-underpromotions-20261019",
+      "scope": "runtime_readiness",
+      "status": "passed_under_wine",
+      "settings": {
+        "tc": "inf",
+        "nodes_per_move": 10000,
+        "pairs": 4,
+        "concurrency": 2,
+        "engines": "Original release versus itself; fresh deterministic transport A/A.",
+        "threads": 1,
+        "hash_mib": 32,
+        "ownbook": false,
+        "ponder": false,
+        "move_overhead_ms": 100
+      },
+      "result": {
+        "statistics": {
+          "pairs": 4,
+          "games": 8,
+          "candidate_wins_draws_losses": [
+            3,
+            2,
+            3
+          ],
+          "pentanomial_0_half_1_1half_2": [
+            0,
+            0,
+            4,
+            0,
+            0
+          ],
+          "unique_openings": 4,
+          "terminations": {
+            "normal": 8
+          },
+          "score_fraction": 0.5,
+          "elo_claim": null,
+          "note": "Outcome bookkeeping only, not evidence of an Elo gain."
+        },
+        "exit_code": 0,
+        "manifest_sha256": "576cf088dda67c060934f1f533fa8a69a5d5c4642a36bb2af6b01103c45296e8",
+        "frozen_inputs": 2346,
+        "all_declared_input_hashes_unchanged": true,
+        "complete_manifest_verified_before_run": true,
+        "independent_copied_audit_matches_attempt2": true,
+        "limitation": "Wine readiness only. Fixed-node run overlapped an authorized -j2 TSan compilation after four games; no speed or clock stability claim.",
+        "independent_audit_status": "passed",
+        "independent_pgn_and_opening_audit_passed": true,
+        "results_zip_sha256": "bfff775e1bbc38e22288ce2b771cf9b35c4e79108d738f9627ee0aeacc7b1e17",
+        "results_zip_bytes": 895556
+      },
+      "command": {
+        "path": "validation/underpromotions-9850x3d/windows-native-readiness/attempt2/command.json",
+        "sha256": "3cdfcc51fd65fb22199664ad2b1ba5a5972c204725766859722da00ccdf5c6a4"
+      },
+      "provenance": {
+        "path": "validation/underpromotions-9850x3d/windows-native-readiness/attempt2/bundle-freeze.json",
+        "sha256": "19bfc09df8f16b6e75f4f7567ee48db77d4b06c723e1ade3980db1ce9936f725"
+      },
+      "evidence": [
+        {
+          "path": "validation/underpromotions-9850x3d/windows-native-readiness/attempt2/protocol.json",
+          "sha256": "ebe18b8b7e17291727710944d94d6ceca2e619bade1906715ec38934f3b16d02"
+        },
+        {
+          "path": "validation/underpromotions-9850x3d/windows-native-readiness/attempt2/result.json",
+          "sha256": "362ddd519e8cace7f64f16c0e9c3a368a8135c7cf97e6ab84d75afc07007b61e"
+        },
+        {
+          "path": "validation/underpromotions-9850x3d/windows-native-readiness/attempt2/aa-result.json",
+          "sha256": "d9f02869308d655b13737562e1ea89120c9756a37666fe3f6a2f8bc7b3d3ecd3"
+        },
+        {
+          "path": "validation/underpromotions-9850x3d/windows-native-readiness/attempt2/state.json",
+          "sha256": "280775c49c84bab376f52728d618c7d0b231e73e0adbebdfc3ada1de3470de01"
+        },
+        {
+          "path": "validation/underpromotions-9850x3d/windows-native-readiness/attempt2/games.pgn",
+          "sha256": "b875ad89f1ac5da82b8d7475ca37be556fc36def5e10237b94391149238beb24"
+        },
+        {
+          "path": "validation/underpromotions-9850x3d/windows-native-readiness/attempt2/console.txt",
+          "sha256": "8271384c30a71add69665fc87f8d35e86d4bfcfac78a3d42ffd3c1c72c79e16c"
+        },
+        {
+          "path": "validation/underpromotions-9850x3d/windows-native-readiness/attempt2/independent-audit.json",
+          "sha256": "07d5da15bfb1265def9997ef6b75935711c518a5fa7246a2743902238e2b91b4"
+        },
+        {
+          "path": "validation/underpromotions-9850x3d/windows-native-readiness/attempt2/launch.json",
+          "sha256": "84ae69813f5d1c2c59d9eac8915628d173c02064cf77345d6537f982be69dce8"
+        },
+        {
+          "path": "validation/underpromotions-9850x3d/windows-native-readiness/attempt2/original-results.zip",
+          "sha256": "bfff775e1bbc38e22288ce2b771cf9b35c4e79108d738f9627ee0aeacc7b1e17"
+        }
+      ],
+      "native_windows": false,
+      "physical_ryzen": false,
+      "valid_strength_evidence": false
+    },
+    {
+      "id": "forge642-windows-validation-bundle-package-20261019",
+      "candidate_id": "forge642-underpromotions-20261019",
+      "scope": "artifact_integrity",
+      "status": "packaged_bytes_and_source_audits_passed",
+      "artifact": {
+        "path": "releases/forge-6.4.2-windows-validation-bundle.zip",
+        "sha256": "27022666ef6e9eb14ce5b84109810be3f6caa1d97a25066409f915dd0029367c",
+        "bytes": 30978229
+      },
+      "source_commit": "f6f0a00b2f98a7a9f117790e2c8f19a340b6769f",
+      "result": {
+        "manifest_sha256": "576cf088dda67c060934f1f533fa8a69a5d5c4642a36bb2af6b01103c45296e8",
+        "manifest_listed_files": 2345,
+        "archive_regular_files": 2346,
+        "all_crc_membership_manifest_and_frozen_bytes_verified": true,
+        "candidate_source_matches_git_commit": "f6f0a00b2f98a7a9f117790e2c8f19a340b6769f",
+        "original_source_and_release_pe_match_user_archive": true,
+        "readiness_results_zip_sha256_claimed_by_package_record": "bfff775e1bbc38e22288ce2b771cf9b35c4e79108d738f9627ee0aeacc7b1e17",
+        "readiness_audit_reference_status": "Independent attempt2 audit passed",
+        "claim_scope": "Portable artifact integrity; no native Windows, physical Ryzen, equal-clock Elo, or Stockfish result."
+      },
+      "evidence": [
+        {
+          "path": "validation/underpromotions-9850x3d/windows-native-readiness/bundle-verification.json",
+          "sha256": "242f13090fe4636d5afb21dffdff121982183044ce24c241fa91011d9a83281a"
+        },
+        {
+          "path": "validation/underpromotions-9850x3d/windows-native-readiness/archive-independent-inspection.json",
+          "sha256": "b97954de1a632dce0287d449fdad1bd43126b425bbcd2418bf92f46a2de08ce1"
+        },
+        {
+          "path": "validation/underpromotions-9850x3d/windows-native-readiness/package-and-verify.py",
+          "sha256": "f27645265d7aee299ea804c165ec7ecd2aa6f5df6f5322928cd59976da0d3cd3"
+        },
+        {
+          "path": "validation/underpromotions-9850x3d/windows-native-readiness/inspect-archive.py",
+          "sha256": "2d021d90641eff9fda4a567a5e6baf0f8f400392928c27ab1dc8ee806f2d34d7"
+        },
+        {
+          "path": "validation/underpromotions-9850x3d/windows-native-readiness/README.md",
+          "sha256": "eeaa0d7df7b94293dff0c8cb625497ec8f8ce783c9f52ed4accc1d8263b8d7b2"
+        }
+      ],
+      "valid_strength_evidence": false
+    },
+    {
+      "id": "forge642-portable-bundle-evidence-copy-repair-20261019",
+      "candidate_id": "forge642-underpromotions-20261019",
+      "scope": "artifact_integrity",
+      "status": "metadata_copy_failure_preserved_and_corrected",
+      "result": {
+        "failure": "Packager used attempt2 run path but retained explicit attempt1 audit and launch source filenames; full console capture was omitted.",
+        "affected_files": [
+          "attempt2/independent-audit.json",
+          "attempt2/launch.json",
+          "attempt2/full-console.log (missing capture)"
+        ],
+        "unchanged": [
+          "bundle ZIP",
+          "corrected root manifest",
+          "raw AA2 game/output bytes",
+          "actual AA2 original-results.zip"
+        ],
+        "correction": "Rerun actual AA2 independent audit; copy fresh report and actual AA2 launch/full console; independently verify manifest, attempt, raw result, ZIP, script and copied output identity.",
+        "final_manifest_sha256": "576cf088dda67c060934f1f533fa8a69a5d5c4642a36bb2af6b01103c45296e8",
+        "final_result_sha256": "362ddd519e8cace7f64f16c0e9c3a368a8135c7cf97e6ab84d75afc07007b61e",
+        "final_results_zip_sha256": "bfff775e1bbc38e22288ce2b771cf9b35c4e79108d738f9627ee0aeacc7b1e17",
+        "final_packaged_evidence_verification": "passed",
+        "independent_read_only_recheck": "19 identity/CRC/metadata checks passed, including eight normal games and preserved failed copy; recorded in agent tool transcript.",
+        "strength_implication": null
+      },
+      "evidence": [
+        {
+          "path": "validation/underpromotions-9850x3d/windows-native-readiness/attempt2/packaging-failed-copy/diagnosis.json",
+          "sha256": "67ab2028011a114b2017e971f13a407b5c47acd42a4c95e161b547279d04fe95"
+        },
+        {
+          "path": "validation/underpromotions-9850x3d/windows-native-readiness/attempt2/packaging-failed-copy/package-and-verify.py",
+          "sha256": "0de9b276ee0e9b0c13f2c600179e4013523dfa4cd2d1fcea5968c6e75a956036"
+        },
+        {
+          "path": "validation/underpromotions-9850x3d/windows-native-readiness/attempt2/packaging-failed-copy/independent-audit.py",
+          "sha256": "647574a480b79b372ec1d47587ec4324b0714d77c7e8f1bf4965e159ba8dbd60"
+        },
+        {
+          "path": "validation/underpromotions-9850x3d/windows-native-readiness/attempt2/packaging-failed-copy/independent-audit.json",
+          "sha256": "35ba45d04335f8e55c657da698a43ee15833ead3b72f5455857ee19fa5ed25c6"
+        },
+        {
+          "path": "validation/underpromotions-9850x3d/windows-native-readiness/attempt2/packaging-failed-copy/launch.json",
+          "sha256": "ee9f6dbb1d4550792db8bdb81eaab8aa71ac032786d402db44c7c0f1a84fd645"
+        },
+        {
+          "path": "validation/underpromotions-9850x3d/windows-native-readiness/attempt2/packaging-failed-copy/bundle-verification.json",
+          "sha256": "f4eec3c265d7470589c4d79e7ed1973a4ec9a346db2fe5e364e281a3db9ccff1"
+        },
+        {
+          "path": "validation/underpromotions-9850x3d/windows-native-readiness/verify-packaged-evidence.py",
+          "sha256": "a7a44d6cd60466d70615df831f80ff3b7713da0363d116cac2fa56b2a1a38d9f"
+        },
+        {
+          "path": "validation/underpromotions-9850x3d/windows-native-readiness/packaged-evidence-verification.json",
+          "sha256": "99424862a19d202727fc7eb5c49d40661aad6abc2622fd367a6ee68d4c7211c9"
+        }
+      ],
+      "valid_strength_evidence": false
+    },
+    {
+      "id": "forge643-asan-ubsan-20261019",
+      "candidate_id": "forge643-tt-coherence-20261019",
+      "scope": "correctness",
+      "status": "passed",
+      "production_commit": "df5d839a6a03f705310bb958601375fa9411e810",
+      "result": {
+        "ctest_suites_passed": 6,
+        "ctest_suites_total": 6,
+        "actual_engine_processes": 1,
+        "actual_engine_legality_checked_searches": 11,
+        "reports": 0
+      },
+      "evidence": {
+        "archive": "validation/tt-coherence-20261019/complete-linux-correctness-checkpoint.zip",
+        "sha256": "e786c377fed2b728cc43adba5cd8b504ce369cec2ab252fe31020123634bc2c6",
+        "members": [
+          "tt-investigation/candidate-asan-ctest-attempt1.log",
+          "tt-investigation/candidate-full-engine-asan-attempt1/summary.json",
+          "tt-investigation/candidate-asan-build-attempt1.log",
+          "tt-investigation/candidate-asan-configure.log"
+        ]
+      },
+      "valid_strength_evidence": false
+    },
+    {
+      "id": "forge643-cold-warm-parity-20261019",
+      "candidate_id": "forge643-tt-coherence-20261019",
+      "scope": "behavior_parity",
+      "status": "passed",
+      "baseline_commit": "f6f0a00b2f98a7a9f117790e2c8f19a340b6769f",
+      "production_commit": "df5d839a6a03f705310bb958601375fa9411e810",
+      "result": {
+        "threads": 1,
+        "cold_and_warm_search_output": "exact after time/nps/hashfull normalization",
+        "both_bench11_signatures": 419798,
+        "performance_complete": false
+      },
+      "evidence": {
+        "archive": "validation/tt-coherence-20261019/complete-linux-correctness-checkpoint.zip",
+        "sha256": "e786c377fed2b728cc43adba5cd8b504ce369cec2ab252fe31020123634bc2c6",
+        "members": [
+          "parity/result.json",
+          "parity/plan.json",
+          "parity/inputs.json"
+        ]
+      },
+      "valid_strength_evidence": false
+    }
+  ]
+}
