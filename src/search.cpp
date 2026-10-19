@@ -284,16 +284,6 @@ public:
                 counter_ = (*searcher_.counter_moves_)[static_cast<std::size_t>(previous->moved_piece)][previous->current_move.to];
             }
         }
-        // Squares from which each piece type would give direct check.
-        const Color them = opposite(board.side_to_move());
-        const int enemy_king = board.king_square(them);
-        const Bitboard occupancy = board.occupied();
-        check_squares_[Pawn] = attacks::pawn(them, enemy_king);
-        check_squares_[Knight] = attacks::knight(enemy_king);
-        check_squares_[Bishop] = attacks::bishop(enemy_king, occupancy);
-        check_squares_[Rook] = attacks::rook(enemy_king, occupancy);
-        check_squares_[Queen] = check_squares_[Bishop] | check_squares_[Rook];
-        check_squares_[King] = 0;
     }
 
     [[nodiscard]] Move next(bool skip_quiets) {
@@ -410,6 +400,19 @@ private:
     bool sorted_ = false;
     std::array<Bitboard, 7> check_squares_{};
 
+    // Quiet/evasion generation are mutually exclusive stages, each reached at most once.
+    void init_check_squares() {
+        const Color them = opposite(board_.side_to_move());
+        const int enemy_king = board_.king_square(them);
+        const Bitboard occupancy = board_.occupied();
+        check_squares_[Pawn] = attacks::pawn(them, enemy_king);
+        check_squares_[Knight] = attacks::knight(enemy_king);
+        check_squares_[Bishop] = attacks::bishop(enemy_king, occupancy);
+        check_squares_[Rook] = attacks::rook(enemy_king, occupancy);
+        check_squares_[Queen] = check_squares_[Bishop] | check_squares_[Rook];
+        check_squares_[King] = 0;
+    }
+
     [[nodiscard]] bool direct_check(Move move) const {
         const int type = piece_type(board_.moved_piece(move));
         return (check_squares_[static_cast<std::size_t>(type)] & square_bb(move.to)) != 0;
@@ -460,6 +463,7 @@ private:
     }
 
     void generate_quiets() {
+        init_check_squares();
         buffer_.clear();
         board_.generate_pseudo_legal(buffer_, false);
         index_ = 0;
@@ -474,6 +478,7 @@ private:
     }
 
     void generate_evasions() {
+        init_check_squares();
         buffer_.clear();
         board_.generate_pseudo_legal(buffer_, false);
         index_ = 0;
