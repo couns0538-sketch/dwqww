@@ -102,3 +102,32 @@ The pilot requires all sixteen games to terminate normally, complete unique
 color-swapped pairs, matching independent/native pentanomial counts, and
 unchanged inputs. Any forfeit or interrupted pair invalidates the attempt.
 It is an infrastructure pilot, not a superiority test or accepted SPRT.
+
+The 100 ms-reserve pilot failed in game 4 at Black's 59th move, with 308 ms
+remaining. It is invalidated in full. The final position, exact history and
+clocks are in `diagnostics/timed-pilot-failure-forensics.json`.
+
+## Scheduling isolation and buffered pilot
+
+A direct replay bypassed Fastchess and tested that final position 100 times
+per engine. One candidate response took 594.184 ms. Linux task scheduling
+counters recorded approximately 121.705 ms of CPU runtime and **465.623 ms
+of runnable-queue wait** in the search thread. That is concrete scheduling
+starvation in this reproduction; it does not attribute every archived
+forfeit. Neither a longer internal search nor the old `info time` alone
+would establish this finding.
+
+All 200 trials, thread states, scheduling counters, outputs, protocol and
+diagnostic code are retained in `diagnostics/deadline-probe.zip` and adjacent
+files. Proc-file samples are not atomic: their timestamp precedes several
+reads and those reads can themselves be delayed. Interpret cumulative
+counter deltas and complete response times, rather than treating those
+timestamps as precise endpoints. These are diagnostics, not games or a
+relative reliability comparison between builds.
+
+`run-buffered-pilot.py` registers a separate eight-pair pilot using the same
+10+0.1 clocks and a symmetric **1000 ms Move Overhead**. This follows the
+measured 465.6 ms scheduling stall. It selects fresh openings and preserves
+its own protocol, hashes and results. The earlier failed pilot contributes
+no data. The large reserve is a shared-VM test setting, not a measured
+optimal setting for a native Ryzen computer.
