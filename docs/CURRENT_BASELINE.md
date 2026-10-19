@@ -5,9 +5,9 @@ Snapshot: 2026-10-19. Correctness validation and playing strength have separate 
 | Role | Exact reference |
 | --- | --- |
 | Accepted development baseline | `forge/6.4-hourly-20261019` — `9108d012526be80c6d163f7cab684e6acd9abf8d` |
-| Last fully validated correctness candidate | Forge 6.4.4 source/tests `816423b1ddac23a00244449deef59dba736055a9` |
+| Last fully tested correctness candidate | Forge 6.4.5 source/tests `82cd2c24062d07cbacbe5b722b6ec0b718981abd` |
 | Published 6.4.4 checkpoint | `cb1cafa6048976382da6bcd8616da53771176af0` |
-| Active, unfinished candidate | Forge 6.4.5 legal witness — `82cd2c24062d07cbacbe5b722b6ec0b718981abd`, branch `forge/legal-witness-20261019` |
+| Latest isolated candidate | Forge 6.4.5 legal witness — `82cd2c24062d07cbacbe5b722b6ec0b718981abd`, branch `forge/legal-witness-20261019` |
 
 The [6.4.4 Windows Zen5 ZIP](../releases/forge-6.4.4-candidate-windows-zen5.zip) has SHA256 `d4fc94a529b1b0be89a37adb229433aade6923c8453a565fcf0b06e280171439`. It preserves the AVX2, clock, terminal, promotion and coherent-TT work, and adds the bounded halfmove-context score policy. NNUE weights and float operation order remain unchanged.
 
@@ -15,4 +15,10 @@ The [6.4.4 Windows Zen5 ZIP](../releases/forge-6.4.4-candidate-windows-zen5.zip)
 
 No equal-clock Elo gain, reliable whole-engine speed gain or full-strength Stockfish superiority is established. The accepted reference therefore stays `9108d012`. The exact original 6.4.0 ZIP remains a separate comparison reference.
 
-Finish the active 6.4.5 validation before starting another candidate. Both parent and candidate now passed 18,947 legal-move oracle comparisons. Candidate Release8/8, ASan/UBSan8/8 and exact cold/warm parity passed; kernel/Windows gates remain pending. Follow [live status](../validation/legal-witness-20261019/STATUS.md), the [experiment summary](EXPERIMENT_LEDGER.md) and [60-record machine ledger](../validation/EXPERIMENTS.json).
+6.4.5 passed Release8/8, ASan/UBSan8/8,18,947 dual-oracle checks, exact cold/warm
+parent parity and seven Wine checks; Linux/Windows signatures remain419798/351063.
+Its [Windows ZIP](../releases/forge-6.4.5-candidate-windows-zen5.zip) is separately
+packaged. Kernel60/60 blocks completed, but AA noise failed despite pinning, so
+speed is inconclusive and the whole-engine screen was not run. Independent
+artifact review is pending. No new games/Elo. Follow [status](../validation/legal-witness-20261019/STATUS.md),
+[experiment summary](EXPERIMENT_LEDGER.md) and [62-record machine ledger](../validation/EXPERIMENTS.json).

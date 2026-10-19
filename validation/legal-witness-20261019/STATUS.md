@@ -1,4 +1,4 @@
-# Legal witness: Linux correctness passed, timing/Windows pending
+# Legal witness: correctness passed; speed and strength inconclusive
 
 Candidate6.4.5 source/tests `82cd2c24062d07cbacbe5b722b6ec0b718981abd`,
 on `forge/legal-witness-20261019`, preserves the tested6.4.4 parent and every
@@ -17,9 +17,19 @@ validation tooling. Six cold/warm1T cases and bench11 match parent exactly;
 Linux node signature419798. Original logs, commands and source/build hashes
 are in [Linux checkpoint](linux-validation-checkpoint.zip) and its manifest.
 
-Kernel harness compiles and emitted indirect dispatch checks pass. Measurement
-waits for all other jobs to finish. API-kernel timing has translation-unit/inlining
-limits and cannot establish whole-engine NPS or Elo. Windows checks/packaging
-are running from frozen82cd source. No strength games or new Elo estimate exist.
-Keep failed attempts; finish bounded kernel and Windows gates before the next
-candidate. Native equal-clock/Ryzen testing remains independently required.
+Kernel compilation and emitted dispatch checks passed. All60 paired API-kernel
+blocks completed with matching checksums, but preregistered AA noise failed:
+CPU ratios0.736..1.444. No speed acceptance is made. The prepared pinned
+whole-engine screen was NOT run because this prerequisite failed; no retry.
+Original records are in [kernel checkpoint](kernel-attempt1.zip). The public-helper
+reference has different translation-unit inlining opportunities; kernel ratios
+cannot establish whole-engine NPS or Elo even with good calibration.
+
+Seven Windows functional/signature checks passed under Wine from frozen82cd
+source, including18,947 comparisons and351063bench nodes. [Windows ZIP](../../releases/forge-6.4.5-candidate-windows-zen5.zip):
+SHA256 `336624514ae0c93f5ee5b35a5a34e3422b4d9ea6855cd04aeb22cdd03f08dd4f`.
+Independent package review is pending; native Windows/Ryzen tests remain pending.
+
+Decision: retain as a correctness-tested isolated speed candidate, with performance
+and strength inconclusive. Zero new match games; no Elo estimate. Next experiment:
+reuse the reviewed upstream qsearch query deferral in another isolated branch.

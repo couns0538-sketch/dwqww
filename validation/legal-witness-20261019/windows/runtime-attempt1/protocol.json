@@ -1,0 +1,98 @@
+{
+  "created_utc": "2026-10-19T20:54:28.438811+00:00",
+  "source_and_tests_commit": "82cd2c24062d07cbacbe5b722b6ec0b718981abd",
+  "input_sha256_before": {
+    "forge_legal_witness_tests.exe": "5a9922074977ebed1160117f8e99047364af18fb7f19eb08524724d53f3fd8d0",
+    "forge_bench.exe": "175415676a12456cf3e416cc0d16f5491987bf1132f8c45f442ac4d32420f044",
+    "forge_tt_tests.exe": "01c68601c7ac130b3315abe4e990c54cb2e6ed96fc9e7f256f509cc18835583c",
+    "forge_rule50_tests.exe": "349e08112ee7736841ffe5715c30d7bd559c2a006e0d9ca56c792bc3e9144120",
+    "forge.exe": "b2b5edf95d6db8307b9a0418bd6c4ee81bcbd1d92c14d92e2a582dac495c61fc",
+    "forge_tests.exe": "89cfe03bb372e58da471e3ec41510e2660525452c03347281d947f415bce12cf",
+    "uci_tool": "0ecfbdd3b04bf0ef4f6669ed43581d124e75ff3224926874da98c451649ee4cc",
+    "ponder_tool": "26cb1169916522db1baf99c7f57cabb92ea1c5cd66bb6534a27464a2356404d0",
+    "fixtures": "e88f4d859ce1c923b900e2c4012e7e601c247140223876a18cca6e0648d47c77",
+    "corpus": "de36a48f856a5a0c10d0865747965a7b2f5d89149078923ba2d766979238bf6c",
+    "wrapper": "57019e451058092cde6fb0e6edf7a620af3e9b89141f6efc941358f96f8b81aa",
+    "wine_loader": "9ee2a1e03236ca651d57bda9b1007c8ccb30542d9a5602596849287ea466b23c",
+    "disassembler": "14170da3056e00b4a809203b267fb0e5cb5b437b5704634252b3a3fc128e79b9"
+  },
+  "commands": [
+    [
+      "core",
+      [
+        "/workspace/.cloud-setup/wine/usr/lib/wine/wine64",
+        "/workspace/.cloud-setup/forge-windows-legal-witness/forge_tests.exe"
+      ]
+    ],
+    [
+      "coherent-tt",
+      [
+        "/workspace/.cloud-setup/wine/usr/lib/wine/wine64",
+        "/workspace/.cloud-setup/forge-windows-legal-witness/forge_tt_tests.exe"
+      ]
+    ],
+    [
+      "rule50",
+      [
+        "/workspace/.cloud-setup/wine/usr/lib/wine/wine64",
+        "/workspace/.cloud-setup/forge-windows-legal-witness/forge_rule50_tests.exe"
+      ]
+    ],
+    [
+      "legal-witness",
+      [
+        "/workspace/.cloud-setup/wine/usr/lib/wine/wine64",
+        "/workspace/.cloud-setup/forge-windows-legal-witness/forge_legal_witness_tests.exe",
+        "Z:\\workspace\\.cloud-setup\\forge-windows-legal-witness-source\\tests\\legal_witness_fixtures.tsv",
+        "Z:\\workspace\\.cloud-setup\\forge-windows-legal-witness-source\\tools\\openings\\forge-10000.epd"
+      ]
+    ],
+    [
+      "uci",
+      [
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3",
+        "/workspace/.cloud-setup/forge-windows-legal-witness-source/tools/uci_regression.py",
+        "/workspace/.cloud-setup/forge-legal-witness-wine",
+        "--log",
+        "/workspace/.cloud-setup/forge-windows-legal-witness-evidence/runtime-attempt1/uci-transcript.log"
+      ]
+    ],
+    [
+      "ponder",
+      [
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3",
+        "/workspace/.cloud-setup/forge-windows-legal-witness-source/tools/ponder_regression.py",
+        "/workspace/.cloud-setup/forge-legal-witness-wine"
+      ]
+    ]
+  ],
+  "bench_command": [
+    "/workspace/.cloud-setup/wine/usr/lib/wine/wine64",
+    "/workspace/.cloud-setup/forge-windows-legal-witness/forge.exe"
+  ],
+  "bench_stdin": "bench 11\nquit\n",
+  "bench_hash_mib": 16,
+  "bench_threads": 1,
+  "bench_expected_same_platform_parent_nodes": 351063,
+  "simd_command": [
+    "/workspace/.cloud-setup/toolchains/llvm-mingw-20261006-ucrt-ubuntu-22.04-x86_64/bin/llvm-objdump",
+    "-d",
+    "--no-show-raw-insn",
+    "/workspace/.cloud-setup/forge-windows-legal-witness/forge.exe"
+  ],
+  "environment_subset": {
+    "WINEPREFIX": "/workspace/.cloud-setup/wine-prefix-ready",
+    "WINEDEBUG": "-all",
+    "XDG_CACHE_HOME": "/workspace/.cloud-setup/font-cache",
+    "PYTHONDONTWRITEBYTECODE": "1"
+  },
+  "scope": "Wine functional correctness and bounded node signature only; no performance, Elo or native hardware claim",
+  "core_perft_cases": {
+    "start_depth4": 197281,
+    "kiwipete_depth3": 97862,
+    "position3_depth4": 43238,
+    "position4_depth3": 9467,
+    "position5_depth3": 62379,
+    "position6_depth3": 89890
+  }
+}
