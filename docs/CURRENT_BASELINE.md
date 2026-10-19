@@ -21,6 +21,6 @@ Its [Windows ZIP](../releases/forge-6.4.5-candidate-windows-zen5.zip) is separat
 packaged. Kernel60/60 blocks completed, but AA noise failed despite pinning, so
 speed is inconclusive and the whole-engine screen was not run. Independent
 artifact review is pending. No new games/Elo. Follow [status](../validation/legal-witness-20261019/STATUS.md),
-[experiment summary](EXPERIMENT_LEDGER.md) and [62-record machine ledger](../validation/EXPERIMENTS.json).
+[experiment summary](EXPERIMENT_LEDGER.md) and [65-record machine ledger](../validation/EXPERIMENTS.json).
 
-Active unfinished experiment: 6.4.6 qsearch query deferral on `forge/qsearch-query-20261019`, based on tested6.4.5, with production patch reused from upstream3dddd864. Validation is pending.
+Active unfinished experiment: 6.4.6 qsearch query deferral on `forge/qsearch-query-20261019`, based on tested6.4.5, source `4e15dea025c4b1ced9cbb5c9000a0cb627edcf15` reused from upstream3dddd864. Release8/8, ASan8/8, exact parity and7Wine checks passed; speed/Elo unmeasured.

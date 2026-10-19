@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "updated_utc": "2026-10-19T20:59:55.757629+00:00",
+  "updated_utc": "2026-10-19T21:05:24.863658+00:00",
   "project": "Forge",
   "target": "Native Windows x64 on Ryzen7 9850X3D",
   "scope": "2026-10-19 accepted development reference, preserved candidate artifacts and failures, audited original-ZIP fixed-node SPRT, complete TT correctness phases, inconclusive same-binary speed calibration and isolated rule50-context6.4.4 correctness candidate.",
@@ -43,9 +43,10 @@
     "tt_overhead_calibration_experiment_id": "tt-speed-same-binary-aa-20261019",
     "rule50_fix_candidate_id": "forge644-rule50-context-20261019",
     "rule50_fix_correctness_experiment_id": "forge644-rule50-context-release-20261019",
-    "latest_correctness_candidate_id": "forge645-legal-witness-20261019",
-    "latest_correctness_windows_artifact": "releases/forge-6.4.5-candidate-windows-zen5.zip",
-    "newer_645_strength_status": "No games/Elo; Release8/8, ASan8/8,18947 parent and candidate oracle checks, exact parent parity and7Winechecks passed. Kernel AA noise gate failed; full-engine timing not run."
+    "latest_correctness_candidate_id": "forge646-qsearch-query-20261019",
+    "latest_correctness_windows_artifact": "releases/forge-6.4.6-candidate-windows-zen5.zip",
+    "newer_645_strength_status": "No games/Elo; Release8/8, ASan8/8,18947 parent and candidate oracle checks, exact parent parity and7Winechecks passed. Kernel AA noise gate failed; full-engine timing not run.",
+    "newer_646_strength_status": "Release8/8, ASan8/8, exactparentparity and7Winechecks passed; timing andstrengthnotmeasured becausehostAAfailed. No new games/Elo."
   },
   "candidates": [
     {
@@ -373,6 +374,41 @@
         "bench11_nodes": 351063,
         "scope": "Wine correctness and bounded node signature; no speed, Elo or native hardware result"
       }
+    },
+    {
+      "id": "forge646-qsearch-query-20261019",
+      "code_commit": "4e15dea025c4b1ced9cbb5c9000a0cb627edcf15",
+      "branch": "forge/qsearch-query-20261019",
+      "parent_candidate_id": "forge645-legal-witness-20261019",
+      "change": "Pure qsearch gives_check query declaration moved inside its sole use guard; reused actual3dddd864 upstream source diff.",
+      "status": "published_correctness_candidate_no_speed_or_strength_result",
+      "builds": {
+        "release": {
+          "engine_sha256": "b93e1e103e7092a0a32666f032d046bc52c83c7de26942a6b48a172446722f51",
+          "core_library_sha256": "5d9409395a339baa02c1f0884e219784570453390b2cef6c69e3e7f4b2d43a10",
+          "ctest_result": "8/8 passed"
+        },
+        "asan": {
+          "engine_sha256": "8314891d2314119d5a7b5b1f11604423da543d4a57bd051cccdfb908fc31fa99",
+          "core_library_sha256": "b35f33998d7ae1f66d7d4b415fc17172019d2ad184f05c2cf12f3c653e8b5c3d",
+          "ctest_result": "8/8 passed"
+        }
+      },
+      "artifact": {
+        "status": "packaged_and_verified",
+        "artifact": "releases/forge-6.4.6-candidate-windows-zen5.zip",
+        "sha256": "4c7d9a0ae9c14922406d0846665e61dedafce1f6b73472cad11ecd7745bb9513",
+        "bytes": 3616109,
+        "source_and_tests_commit": "4e15dea025c4b1ced9cbb5c9000a0cb627edcf15",
+        "engine_sha256": "18d4facdfebd9869406dc9f4dfa363464fa2d9498043b0ab2a21eee0074e37d0",
+        "runtime_checks": 7,
+        "legal_witness_comparisons": 18947,
+        "bench11_nodes": 351063,
+        "scope": "Wine correctness and bounded node signature; no speed, Elo or native hardware result"
+      },
+      "network_sha256": "41487f328ff51f27417564df45b6f3139d038b7e940dedb121340bd61be9a4d3",
+      "native_windows_tested": false,
+      "physical_ryzen_tested": false
     }
   ],
   "experiments": [
@@ -4202,7 +4238,11 @@
         "sha256": "a4c22fb830e69efce7467336ae296776c3b7592fd5dc68178065704851085342",
         "prefix": "kernel/"
       },
-      "valid_strength_evidence": false
+      "valid_strength_evidence": false,
+      "independent_audit": {
+        "path": "validation/legal-witness-20261019/kernel-independent-audit.json",
+        "sha256": "c3076b48cab20c2e523da65fea189f28176b92fda33c08b3cc80c634269e47f9"
+      }
     },
     {
       "id": "forge645-windows-correctness-20261019",
@@ -4312,6 +4352,210 @@
       "valid_strength_evidence": false,
       "native_windows_tested": false,
       "physical_ryzen_tested": false
+    },
+    {
+      "id": "forge646-linux-release-asan-20261019",
+      "candidate_id": "forge646-qsearch-query-20261019",
+      "candidate_production_commit": "4e15dea025c4b1ced9cbb5c9000a0cb627edcf15",
+      "baseline_production_commit": "82cd2c24062d07cbacbe5b722b6ec0b718981abd",
+      "valid_strength_evidence": false,
+      "scope": "correctness",
+      "status": "passed",
+      "result": {
+        "release_ctest": "8/8 passed",
+        "asan_ubsan_ctest": "8/8 passed",
+        "legal_witness_comparisons": 18947,
+        "existing_rule50_checked_qsearch_evasions": "passed",
+        "new_tests": "No redundant pure-relocation mirror test; existing actual Worker regressions exercise skipped-query checked evasions."
+      },
+      "archive_evidence": {
+        "path": "validation/qsearch-query-20261019/linux-validation-checkpoint.zip",
+        "sha256": "e7a6a4019aa4525019bc75ca8bfd7c94d7bd0b8ff7661419dafde4b1383e15fb",
+        "prefix": "linux-validation/"
+      },
+      "provenance_member": "linux-validation/validated-linux-provenance.json"
+    },
+    {
+      "id": "forge646-parent-cold-warm-parity-20261019",
+      "candidate_id": "forge646-qsearch-query-20261019",
+      "candidate_production_commit": "4e15dea025c4b1ced9cbb5c9000a0cb627edcf15",
+      "baseline_production_commit": "82cd2c24062d07cbacbe5b722b6ec0b718981abd",
+      "valid_strength_evidence": false,
+      "scope": "behavior_parity",
+      "status": "parity_only_passed",
+      "result": {
+        "status": "parity_only_completed",
+        "elo_claim": null,
+        "parity_passed": true,
+        "performance_complete": false,
+        "elapsed_seconds": 6.631334544999845,
+        "resource_after": {
+          "monotonic_ns": 13752449329591,
+          "affinity": [
+            0,
+            1,
+            2,
+            3,
+            4
+          ],
+          "loadavg": [
+            1.79443359375,
+            1.00439453125,
+            0.99560546875
+          ],
+          "self_cgroup": {
+            "path": "/proc/self/cgroup",
+            "text": "0::/\n"
+          },
+          "cgroups": [
+            {
+              "path": "/sys/fs/cgroup/cpu.max",
+              "text": "400000 100000\n"
+            },
+            {
+              "path": "/sys/fs/cgroup/cpu.stat",
+              "text": "usage_usec 14903989366\nuser_usec 10990764615\nsystem_usec 3913224750\nnice_usec 0\nnr_periods 123850\nnr_throttled 10825\nthrottled_usec 1415168090\nnr_bursts 0\nburst_usec 0\n"
+            },
+            {
+              "path": "/sys/fs/cgroup/cpuset.cpus.effective",
+              "text": "0-4\n"
+            }
+          ]
+        },
+        "input_hash_errors": [],
+        "input_hashes_unchanged": true,
+        "interpretation": "Correctness parity and conditional throughput only. Shared-VM noise, CPU tick quantization and SMP variable work remain limitations. No Elo, equal-clock or native Ryzen claim."
+      },
+      "settings": {
+        "threads": 1,
+        "hash_mib": 32,
+        "ownbook": false,
+        "passes": [
+          "cold",
+          "warm"
+        ],
+        "normalize_only": [
+          "time",
+          "nps",
+          "hashfull"
+        ],
+        "bench11_nodes": 419798
+      },
+      "archive_evidence": {
+        "path": "validation/qsearch-query-20261019/linux-validation-checkpoint.zip",
+        "sha256": "e7a6a4019aa4525019bc75ca8bfd7c94d7bd0b8ff7661419dafde4b1383e15fb",
+        "prefix": "linux-validation/parity-parent-attempt1/"
+      }
+    },
+    {
+      "id": "forge646-windows-correctness-20261019",
+      "candidate_id": "forge646-qsearch-query-20261019",
+      "candidate_production_commit": "4e15dea025c4b1ced9cbb5c9000a0cb627edcf15",
+      "baseline_production_commit": "82cd2c24062d07cbacbe5b722b6ec0b718981abd",
+      "valid_strength_evidence": false,
+      "scope": "runtime_readiness",
+      "status": "all_seven_wine_checks_passed_packaged_correctness_candidate",
+      "artifact": {
+        "status": "packaged_and_verified",
+        "artifact": "releases/forge-6.4.6-candidate-windows-zen5.zip",
+        "sha256": "4c7d9a0ae9c14922406d0846665e61dedafce1f6b73472cad11ecd7745bb9513",
+        "bytes": 3616109,
+        "source_and_tests_commit": "4e15dea025c4b1ced9cbb5c9000a0cb627edcf15",
+        "engine_sha256": "18d4facdfebd9869406dc9f4dfa363464fa2d9498043b0ab2a21eee0074e37d0",
+        "runtime_checks": 7,
+        "legal_witness_comparisons": 18947,
+        "bench11_nodes": 351063,
+        "scope": "Wine correctness and bounded node signature; no speed, Elo or native hardware result"
+      },
+      "result": {
+        "status": "passed",
+        "source_and_tests_commit": "4e15dea025c4b1ced9cbb5c9000a0cb627edcf15",
+        "checks": [
+          {
+            "name": "core",
+            "exit_code": 0,
+            "elapsed_seconds": 4.1284585619996506
+          },
+          {
+            "name": "coherent-tt",
+            "exit_code": 0,
+            "elapsed_seconds": 0.2182708710006409
+          },
+          {
+            "name": "rule50",
+            "exit_code": 0,
+            "elapsed_seconds": 0.37573098500070046
+          },
+          {
+            "name": "legal-witness",
+            "exit_code": 0,
+            "elapsed_seconds": 0.7225815159999911
+          },
+          {
+            "name": "uci",
+            "exit_code": 0,
+            "elapsed_seconds": 0.7878570339998987
+          },
+          {
+            "name": "ponder",
+            "exit_code": 0,
+            "elapsed_seconds": 1.4669135010008176
+          },
+          {
+            "name": "stdin-bench11-signature",
+            "exit_code": 0,
+            "nodes": 351063
+          }
+        ],
+        "tt_groups": 8,
+        "rule50_targeted_failures": 0,
+        "legal_witness_comparisons": 18947,
+        "bench11_nodes": 351063,
+        "core_reference_perft_passed": true,
+        "simd": {
+          "avx2_minmax_ymm": true,
+          "avx2_multiply_ymm": true,
+          "avx2_add_ymm": true,
+          "fused_operations": []
+        },
+        "input_sha256_before": {
+          "forge_legal_witness_tests.exe": "b3bac0dbe51d80616fc1b6341ca08fe59c1a6ae7d6b7f3de975d8f4dda9f1268",
+          "forge_bench.exe": "26b2ea269b92d39921c2826b8277ce757b31eb2a38872ed0299c6f6b6ef6a251",
+          "forge_tt_tests.exe": "7a755f677d401294e601c1d4137576a2a298db274897d94ae3b1feb22974013b",
+          "forge_rule50_tests.exe": "00d2992e4aca31993cf5de3531c2af173a60e2ddda94433c0789fb739b63c6da",
+          "forge.exe": "18d4facdfebd9869406dc9f4dfa363464fa2d9498043b0ab2a21eee0074e37d0",
+          "forge_tests.exe": "7f26a74860b4cb5bd4f6d529616afcf8f55b5f7fb2d803176f67c2c80dd17204",
+          "uci_tool": "0ecfbdd3b04bf0ef4f6669ed43581d124e75ff3224926874da98c451649ee4cc",
+          "ponder_tool": "26cb1169916522db1baf99c7f57cabb92ea1c5cd66bb6534a27464a2356404d0",
+          "fixtures": "e88f4d859ce1c923b900e2c4012e7e601c247140223876a18cca6e0648d47c77",
+          "corpus": "de36a48f856a5a0c10d0865747965a7b2f5d89149078923ba2d766979238bf6c",
+          "wrapper": "5a6f13ea148fce9131b5e1b3e12c670a80217511e7a139f415f8c306379c06dd",
+          "wine_loader": "9ee2a1e03236ca651d57bda9b1007c8ccb30542d9a5602596849287ea466b23c",
+          "disassembler": "14170da3056e00b4a809203b267fb0e5cb5b437b5704634252b3a3fc128e79b9"
+        },
+        "input_sha256_after": {
+          "forge_legal_witness_tests.exe": "b3bac0dbe51d80616fc1b6341ca08fe59c1a6ae7d6b7f3de975d8f4dda9f1268",
+          "forge_bench.exe": "26b2ea269b92d39921c2826b8277ce757b31eb2a38872ed0299c6f6b6ef6a251",
+          "forge_tt_tests.exe": "7a755f677d401294e601c1d4137576a2a298db274897d94ae3b1feb22974013b",
+          "forge_rule50_tests.exe": "00d2992e4aca31993cf5de3531c2af173a60e2ddda94433c0789fb739b63c6da",
+          "forge.exe": "18d4facdfebd9869406dc9f4dfa363464fa2d9498043b0ab2a21eee0074e37d0",
+          "forge_tests.exe": "7f26a74860b4cb5bd4f6d529616afcf8f55b5f7fb2d803176f67c2c80dd17204",
+          "uci_tool": "0ecfbdd3b04bf0ef4f6669ed43581d124e75ff3224926874da98c451649ee4cc",
+          "ponder_tool": "26cb1169916522db1baf99c7f57cabb92ea1c5cd66bb6534a27464a2356404d0",
+          "fixtures": "e88f4d859ce1c923b900e2c4012e7e601c247140223876a18cca6e0648d47c77",
+          "corpus": "de36a48f856a5a0c10d0865747965a7b2f5d89149078923ba2d766979238bf6c",
+          "wrapper": "5a6f13ea148fce9131b5e1b3e12c670a80217511e7a139f415f8c306379c06dd",
+          "wine_loader": "9ee2a1e03236ca651d57bda9b1007c8ccb30542d9a5602596849287ea466b23c",
+          "disassembler": "14170da3056e00b4a809203b267fb0e5cb5b437b5704634252b3a3fc128e79b9"
+        },
+        "source_inputs_unchanged": true,
+        "scope": "Wine correctness and node signatures only; native hardware, speed and Elo unproven"
+      },
+      "command_evidence": "validation/qsearch-query-20261019/windows/commands.json",
+      "runtime_evidence": "validation/qsearch-query-20261019/windows/runtime-attempt1/protocol.json",
+      "independent_artifact_review": "pending",
+      "native_windows_tested": false,
+      "physical_ryzen_tested": false
     }
   ],
   "evidence_archives": [
@@ -4356,6 +4600,12 @@
       "sha256": "a4c22fb830e69efce7467336ae296776c3b7592fd5dc68178065704851085342",
       "bytes": 70348,
       "manifest_path": "validation/legal-witness-20261019/kernel-attempt1.json"
+    },
+    {
+      "path": "validation/qsearch-query-20261019/linux-validation-checkpoint.zip",
+      "sha256": "e7a6a4019aa4525019bc75ca8bfd7c94d7bd0b8ff7661419dafde4b1383e15fb",
+      "bytes": 123320,
+      "manifest_path": "validation/qsearch-query-20261019/linux-validation-checkpoint.json"
     }
   ]
 }
