@@ -15,7 +15,7 @@ commands, source/library/binary hashes are in the Linux archive and manifest.
 
 Seven Windows Wine checks passed, including perft,TT8,rule50,18,947witness checks,
 UCI,ponder and351063bench nodes. [Windows ZIP](../../releases/forge-6.4.6-candidate-windows-zen5.zip)
-SHA256 `4c7d9a0ae9c14922406d0846665e61dedafce1f6b73472cad11ecd7745bb9513`. Independent static package audit is pending.
+SHA256 `4c7d9a0ae9c14922406d0846665e61dedafce1f6b73472cad11ecd7745bb9513`. Independent static package audit passed.
 
 Retain as correctness-tested isolated performance candidate. No NPS/Elo gain is
 established; zero new games. Prior shared-host and pinned calibration failures

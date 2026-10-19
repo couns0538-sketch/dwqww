@@ -28,7 +28,7 @@ cannot establish whole-engine NPS or Elo even with good calibration.
 Seven Windows functional/signature checks passed under Wine from frozen82cd
 source, including18,947 comparisons and351063bench nodes. [Windows ZIP](../../releases/forge-6.4.5-candidate-windows-zen5.zip):
 SHA256 `336624514ae0c93f5ee5b35a5a34e3422b4d9ea6855cd04aeb22cdd03f08dd4f`.
-Independent package review is pending; native Windows/Ryzen tests remain pending.
+Independent package review passed; native Windows/Ryzen tests remain pending.
 
 Decision: retain as a correctness-tested isolated speed candidate, with performance
 and strength inconclusive. Zero new match games; no Elo estimate. Next experiment:

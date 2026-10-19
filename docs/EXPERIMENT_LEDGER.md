@@ -1,6 +1,6 @@
 # Experiment ledger
 
-The authoritative [machine ledger](../validation/EXPERIMENTS.json) preserves 65 experiments, exact inputs, hashes, settings, failures and evidence links. This is the concise reading index as of 2026-10-19.
+The authoritative [machine ledger](../validation/EXPERIMENTS.json) preserves 69 experiments, exact inputs, hashes, settings, failures and evidence links. This is the concise reading index as of 2026-10-19.
 
 | Experiment | Observed result | Acceptance scope |
 | --- | --- | --- |
@@ -20,3 +20,5 @@ Immutable archives: [TT correctness](../validation/tt-coherence-20261019/complet
 6.4.5 original [kernel records](../validation/legal-witness-20261019/kernel-attempt1.zip) retain all60 blocks, failed calibration and descriptive ratios; they are not an accepted speed result.
 
 6.4.6 qsearch pure-query deferral (`4e15dea`): Release8/8, ASan8/8, exact cold/warm parent parity and7Wine checks passed.419798/351063 signatures unchanged; no measured NPS/Elo. [Evidence](../validation/qsearch-query-20261019/STATUS.md).
+
+6.4.7 lazy masks (`2c0c7ef`): Release8/8, ASan8/8, exact parent parity,60,138 byte-identical actual picker rows,7Wine checks and independent artifact audit passed. Speed/Elo remain pending. [Raw evidence](../validation/lazy-movepicker-20261019/STATUS.md).
