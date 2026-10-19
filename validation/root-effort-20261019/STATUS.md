@@ -27,4 +27,4 @@ unchanged-input gates pass. Independent package audit52/52passed, zero findings.
 Decision: retain the correctness-tested isolated bug repair. Actual changed timed
 stop, deadline safety on native hardware, NPS and equal-clock Elo remain unmeasured.
 Zero6.4.8matchgames. Offline factor differences are not observed stopping decisions.
-Next: audit pending6.4.7hosted evidence; test this repair separately before promotion.
+The hosted 6.4.7 evidence is now audited: its 147-record attempt is SPRT-inconclusive. See ../hosted-strength-20261019/STATUS.md. Next: test this 6.4.8 repair separately before promotion.
