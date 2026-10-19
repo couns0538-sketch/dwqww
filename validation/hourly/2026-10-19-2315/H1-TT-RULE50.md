@@ -1,0 +1,5 @@
+# H1 — TT source halfmove provenance
+Baseline 9108d012526be80c6d163f7cab684e6acd9abf8d. Priority 1; correctness risk high, measurement cost moderate, Elo unknown.
+TTEntry has no origin halfmove: include/forge/search.hpp:60-80. Probe/store: src/search.cpp:195-229. Cached scores used at search.cpp:685-719 (qsearch) and :798-834 (main); store near :1088-1100.
+Hypothesis: a score stored at clock 90-99 and probed by the same key at clock 0-89 causes a real invalid bound/eval. 22:00 model demonstrated eligibility only.
+Instrument source/probe clock, key, score, bound, depth, use site. Test legal same-board FEN clocks 0/89/90/95/99/100, cold/warm 99->0 and 0->99, independent oracle, Threads=1. Compare consumer-only guard vs producer suppression vs provenance tag separately. Failure: no actual oracle error; TT/cache regression; inconsistent history or hash reset. No Elo claim.
