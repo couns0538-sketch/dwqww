@@ -1,0 +1,30 @@
+> uci
+id name Chess Engine Forge 6.4.0
+id author OpenAI
+option name Hash type spin default 32 min 1 max 2048
+option name Threads type spin default 1 min 1 max 256
+option name Move Overhead type spin default 10 min 0 max 1000
+option name Ponder type check default false
+option name OwnBook type check default true
+option name Book File type string default <empty>
+option name Book Depth type spin default 30 min 0 max 100
+option name Book Variety type spin default 30 min 0 max 100
+option name UseNNUE type check default true
+option name Clear Hash type button
+uciok
+> setoption name OwnBook value false
+> setoption name Threads value 1
+> isready
+readyok
+> position startpos
+> go nodes 10000
+info depth 1 seldepth 1 score cp 36 nodes 24 nps 24000 hashfull 0 time 1 pv e2e3
+info depth 2 seldepth 2 score cp 23 nodes 66 nps 33000 hashfull 0 time 2 pv e2e3 e7e6
+info depth 3 seldepth 3 score cp 21 nodes 190 nps 95000 hashfull 0 time 2 pv g1f3 c7c6 e2e3
+info depth 4 seldepth 5 score cp 35 nodes 402 nps 201000 hashfull 0 time 2 pv g1f3 h7h6 c2c3 e7e6
+info depth 5 seldepth 5 score cp -3 nodes 817 nps 136166 hashfull 0 time 6 pv g1f3 e7e6 c2c3 g8f6 e2e3
+info depth 6 seldepth 7 score cp 12 nodes 1211 nps 201833 hashfull 0 time 6 pv g1f3 e7e6 c2c3 g8f6 h2h3 h7h6
+info depth 7 seldepth 12 score cp 9 nodes 3122 nps 141909 hashfull 0 time 22 pv g1f3 e7e6 e2e4 c7c5 h2h3 b8c6 b1c3
+info depth 8 seldepth 19 score cp 11 nodes 5914 nps 164277 hashfull 0 time 36 pv g1f3 g8f6 e2e3 e7e6 d2d4 d7d5 c2c3 c8d7
+bestmove g1f3
+> quit

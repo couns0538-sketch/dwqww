@@ -131,3 +131,57 @@ measured 465.6 ms scheduling stall. It selects fresh openings and preserves
 its own protocol, hashes and results. The earlier failed pilot contributes
 no data. The large reserve is a shared-VM test setting, not a measured
 optimal setting for a native Ryzen computer.
+
+
+The buffered pilot also failed: after four normal games the reference
+forfeited game 5 by 450 ms. Its final request had 4290 ms remaining and
+the response arrived roughly 5.3 seconds after the logged request. The
+last completed iteration's 260 ms report excludes the unfinished search.
+The entire pilot is invalid; its four completed games contribute no Elo
+information. Increasing the reserve again is not a defensible strength test.
+
+## Preregistered fixed-node search-quality comparison
+
+The next protocol compares the current candidate with the **exact original
+user-supplied 6.4 ZIP**, not the clock-only reference. `original-baseline/`
+records archive CRC validation, the 52 extracted files and their hashes,
+matching compiler flags, build logs, all four passing CTest suites, and
+UCI smoke checks. The archive SHA256 is
+`98d2ff2c523a25931897794bad3c39d40398799b8907d51596dad3e326a2ba9d`.
+The Linux baseline binary SHA256 is
+`025e836782af559a620ce78dc1a8a66bb2c49ae798f3f7c320175494d9a060e0`.
+The production code comparison against the later `9108d01` reference
+isolates the known transposition-table tag correction; evaluation and
+network data are unchanged.
+
+`run-quality-sprt.py` freezes 10,000 nodes per move, unlimited wall clock,
+Threads=1, Hash=32 MiB, OwnBook=false, fresh color-swapped openings and
+restarted processes. First run four original-vs-original A/A pairs. If
+that passes, run one native Fastchess paired SPRT: H0=0, H1=+20,
+alpha=beta=0.05, logistic model, maximum 500 pairs. SPRT uses concurrency=1
+because this Fastchess version can abort another pair's return game at an
+early boundary with concurrent play. No adjudication or pooling is used.
+A cap without native acceptance is inconclusive. H1 acceptance does not
+prove the improvement is at least 20 Elo. A/A retains full tracing;
+the larger node-only test retains warnings, full PGNs and console statistics.
+
+This measures **search quality at 10,000 nodes per move against original
+Forge 6.4**. It cannot establish equal-clock, Windows or Ryzen Elo, isolate
+which code change helped, or demonstrate superiority to Stockfish. Clock
+failures and earlier A/A games contribute no outcomes. The frozen protocol,
+inputs, complete paired normal terminations, independent pentanomial audit
+and explicit native acceptance are all required before any quality claim.
+
+
+Calibration outcome: `matches/quality-aa/` finished all eight games normally
+but failed its strict opening audit because Fastchess normalized an unusable
+EP target from `a6` to `-`. Its outcomes are excluded. The exact old runner
+and diagnosis are retained there. Before A/B play, the protocol was narrowed
+to **unchanged original corpus entries whose EP field is `-`**; legal EP
+rights are never silently removed. The corrected audit requires the exact
+scheduled opening prefix. A separate fresh `matches/quality-aa-v2/` passed:
+four deterministic color-swapped pairs, eight normal games, native and
+independent pentanomial `[0, 0, 4, 0, 0]`, unchanged hashes. An independent
+review also found and fixed final-LLR parsing: a final nonfinite value must
+be rejected even if an earlier finite value exists. Audit fixtures are
+recorded under `tests/quality-runner-audit-checks.json`.
