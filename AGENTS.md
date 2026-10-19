@@ -10,4 +10,6 @@ For Forge 6.x matches, disable OwnBook when isolating search changes; `tools/mat
 
 Keep float operation order and `-ffp-contract=off`; do not enable fast-math to obtain a passing performance result. Run the relevant full CTest suite. Use `PYTHONDONTWRITEBYTECODE=1` because this repository contains tracked Python bytecode. Generated builds and toolchains belong outside the checkout.
 
-Details, hashes and unresolved limitations are in `validation/nnue-avx2-9850x3d/`. Saved environment startup instructions describe installed tools. Running jobs and hourly reporting are not guaranteed to survive a finished or disconnected session; report actual monitoring state.
+Details, hashes and unresolved limitations are in `validation/nnue-avx2-9850x3d/` and `validation/clock-safety-9850x3d/`. The 6.4.1 candidate adds request-time accounting and stalemate detection before pruning. For its isolated search comparison, use clock-corrected reference `9cf3793`, not an opponent with the known late clock epoch. No Elo gain is accepted for this candidate. Preserve exact failed UCI exchanges; a last `info time` excludes unfinished later iterations and cannot identify output delay by itself. Shared-VM benchmark variance remains substantial, including CPU-time measurements.
+
+Saved environment startup instructions describe installed tools. Running jobs and hourly reporting are not guaranteed to survive a finished or disconnected session; report actual monitoring state.

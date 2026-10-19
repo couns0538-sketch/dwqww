@@ -56,5 +56,49 @@ bestmove g6f7
 
 `g6f7` leaves Black stalemated. Its score must be zero. Non-check
 quiescence nodes previously reached stand-pat evaluation without checking
-whether any legal move existed. A regression and a narrowly scoped terminal
-check will be validated separately from clock accounting and Elo.
+whether any legal move existed. Positive-depth pruning could likewise skip
+terminal detection. The shared draw check now identifies stalemate before
+either path reaches cached scores or pruning.
+
+## Validated 6.4.1 candidate
+
+- Clock source checkpoint: `9cf37933596c6777870ef6aac626f7e766255f51`.
+- Candidate source: `fab979c`; unchanged evaluation weights and AVX2 arithmetic.
+- Clock tests: seven expected failures before the fix, passing afterward.
+- Stalemate tests: nine expected failures before the fix, passing afterward.
+  They cover depth-one search, opposite null windows, positive-depth pruning,
+  seeded nonzero TT entries, quiet legal positions, and checkmate.
+- All four Linux CTest suites passed. Windows core, UCI and ponder checks
+  passed under Wine 10. No native Windows or physical Ryzen test was performed.
+- Direct UCI checks against old/new Linux and Windows executables reproduce
+  **+930 cp before, 0 cp after** on the stalemate fixture.
+- Final Linux and Windows binaries pass the AVX2 instruction check without
+  fused arithmetic. `bench 11` records 417491 Linux nodes and 350867 Windows
+  nodes. The old Windows candidate had 343022 nodes; this behavioral search
+  correction need not preserve the old tree.
+- Seven counterbalanced repetitions retained under `search-unoptimized/`
+  and `search-cpu/` show substantial shared-VM variation. Even identical perft
+  code varies widely. CPU-time medians do not establish a stable engine speedup
+  or regression; no physical Ryzen speed claim follows. The CPU driver is
+  included with its raw CSVs. No speculative board optimization was added.
+- Fixed-node A/A calibration passed four color-swapped pairs, with identical
+  move sequences within each pair and all eight normal terminations.
+
+The Windows ZIP is `releases/forge-6.4.1-candidate-windows-zen5.zip`.
+Its exact checksums are in `artifact.json`. The delivered executable matches
+the runtime-tested build byte-for-byte. This is a correctness candidate;
+it is not an accepted Elo release.
+
+## Paired clock pilot
+
+`run-pilot.py` registers eight fresh opening pairs at 10+0.1, Threads=1,
+Hash=32 MiB, OwnBook=false, Move Overhead=100 ms, concurrency=1. It uses
+the clock-corrected reference `9cf3793`, so both engines charge dispatch time.
+Both native engines inherit the permitted CPU set instead of sharing one
+explicitly pinned CPU. Owned builds, benchmarks and Wine jobs are stopped
+before play. Deferred UCI tracing retains failed positions and clocks.
+
+The pilot requires all sixteen games to terminate normally, complete unique
+color-swapped pairs, matching independent/native pentanomial counts, and
+unchanged inputs. Any forfeit or interrupted pair invalidates the attempt.
+It is an infrastructure pilot, not a superiority test or accepted SPRT.
