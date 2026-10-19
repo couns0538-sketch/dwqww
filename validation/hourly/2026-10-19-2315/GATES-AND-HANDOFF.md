@@ -1,0 +1,4 @@
+# Regression gates and handoff — 23:15 CEST
+Research branch only; accepted SHA 9108d012526be80c6d163f7cab684e6acd9abf8d unchanged. This stage ran no builds, matches or benchmarks.
+Required: C++20 Release, all available CTest suites, UCI/ponder, perft 119060324 / 4085603 / 674624, ASan/UBSan, reproducible source/binary/opening hashes. Threads=1 until production TT race tested separately. Speed-only H2 must preserve moves/scores/PV/nodes; a correctness fix can change nodes if backed by a legal oracle. For Elo: predeclare color-swapped equal-time fastchess 10+0.1 SPRT (0 vs +5 Elo, alpha=beta=.05), preserve original PGNs/logs and report uncertainty.
+:30 tester: validate existing 22:45 qsearch candidate, then TT origin instrumentation. :45 lead: keep candidates isolated; inspect any newly published 23:00 bug finding; do not merge model-only fixes. No new Elo claimed.
