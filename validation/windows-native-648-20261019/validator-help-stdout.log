@@ -1,0 +1,22 @@
+usage: windows_validate.py [-h] [--bundle BUNDLE] [--out OUT] [--aa-only]
+                           [--zip-results]
+
+Offline native-Windows Forge validation; run with runtime/python.exe -I -B.
+Bundle manifest schema (version 1): ``files`` maps relative POSIX filenames to
+SHA-256 strings. It must cover this runner, pgn_stats.py, both engine/*.exe,
+fastchess/fastchess.exe, runtime/python.exe, and openings/{aa,pilot,sprt}.epd.
+``provenance`` contains fastchess_source (the full PIN below), and nonempty
+candidate/original objects recording source/archive, compiler, flags and build
+evidence. Include all runtime/DLL/license/provenance files in ``files`` too.
+Manifest itself is frozen separately, avoiding a self-referential checksum. No
+network access, resume, retry, game pooling, adjudication or automatic upload.
+An accepted H1 is evidence for this opponent/control; it does not prove +5
+Elo.
+
+options:
+  -h, --help       show this help message and exit
+  --bundle BUNDLE
+  --out OUT        New results directory; an existing directory is never
+                   resumed
+  --aa-only        Only deterministic fixed-node readiness calibration
+  --zip-results    Package all retained results after final status is written

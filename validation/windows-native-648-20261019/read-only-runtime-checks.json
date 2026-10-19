@@ -1,0 +1,34 @@
+{
+  "status": "passed",
+  "checks": [
+    {
+      "name": "python-isolated-imports",
+      "argv": [
+        "/workspace/.cloud-setup/wine/usr/lib/wine/wine64",
+        "/workspace/.cloud-setup/forge-6.4.8-windows-validation-bundle with spaces/runtime/python.exe",
+        "-I",
+        "-B",
+        "-c",
+        "import sys,pathlib,hashlib,subprocess,json,threading,queue,ctypes,ssl,zlib; print(json.dumps({\"python\":sys.version,\"isolated\":sys.flags.isolated,\"dont_write_bytecode\":sys.dont_write_bytecode,\"sha256_abc\":hashlib.sha256(b\"abc\").hexdigest()}))"
+      ],
+      "exit_code": 0,
+      "scope": "Isolated imports/argument help only; no engines or games launched"
+    },
+    {
+      "name": "validator-help",
+      "argv": [
+        "/workspace/.cloud-setup/wine/usr/lib/wine/wine64",
+        "/workspace/.cloud-setup/forge-6.4.8-windows-validation-bundle with spaces/runtime/python.exe",
+        "-I",
+        "-B",
+        "Z:\\workspace\\.cloud-setup\\forge-6.4.8-windows-validation-bundle with spaces\\windows_validate.py",
+        "--help"
+      ],
+      "exit_code": 0,
+      "scope": "Isolated imports/argument help only; no engines or games launched"
+    }
+  ],
+  "all_manifest_files_unchanged_after_readonly_checks": true,
+  "bundle_games_launched": 0,
+  "wine_only": true
+}

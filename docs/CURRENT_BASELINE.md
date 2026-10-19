@@ -17,13 +17,15 @@ packages passed independent static audit. Signatures419798Linux/351063Windows.
 [6.4.8 Windows Zen5 ZIP](../releases/forge-6.4.8-candidate-windows-zen5.zip) SHA256
 `4b4de385808f5a383aa60de6bfc09cf48c02e5d23c191624540026cdac95b55e`. Wine tests do not establish native Ryzen performance.
 
-NPS and equal-clock Elo remain unproven: whole-engine and pinned-kernel identical-
-code calibration failed on this host. All failures are retained. A bounded hosted
-Linux pilot is running: [39325939081](https://github.com/couns0538-sketch/dwqww/actions/runs/39325939081), build/tests step passed; games/result remain unverified. It compares6.4.4 source
-816423b against6.4.7 to isolate the3speed changes; the original6.4ZIP and accepted
-9108 reference remain distinct. No full-strength Stockfish superiority exists.
+NPS and accepted equal-clock Elo remain unproven. The hosted647versus644run
+completed with a positive native144game snapshot(+43.66±28.69Elo), but its
+16min deadline left an orphan among147normal records; no SPRTboundary was
+reached. Independent73pairGLR0.815 remains inside±2.944. These are promising
+descriptive results, with originals preserved; nothing transfers to648orStockfish.
+The [new648offlineWindowsbundle](../releases/forge-6.4.8-windows-validation-bundle.zip)
+is manifest/read-only-runtime verified; nativeAA/pilot/SPRT remain pending.
 
-See [75-record ledger](../validation/EXPERIMENTS.json), [concise ledger](EXPERIMENT_LEDGER.md),
+See [76-record ledger](../validation/EXPERIMENTS.json), [concise ledger](EXPERIMENT_LEDGER.md),
 [active status](../validation/lazy-movepicker-20261019/STATUS.md) and [next work](NEXT_EXPERIMENTS.md).
 
 6.4.8 separately repairs demonstrated root-effort attribution: c3d5 now601nodes rather than1355mixedordinalnodes. Release8/8,ASan8/8,all28actualtraceoracleiterations,parentuntimedparity and7Winechecks+52/52artifactauditpassed. Timed/Eloeffect unmeasured; hosted6.4.7results do not transfer. See [root status](../validation/root-effort-20261019/STATUS.md).

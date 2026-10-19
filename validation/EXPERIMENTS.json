@@ -1,9 +1,9 @@
 {
   "schema_version": 1,
-  "updated_utc": "2026-10-19T21:26:22.253944+00:00",
+  "updated_utc": "2026-10-19T21:40:37.750944+00:00",
   "project": "Forge",
   "target": "Native Windows x64 on Ryzen7 9850X3D",
-  "scope": "2026-10-19 accepted development reference, preserved candidate artifacts and failures, audited original-ZIP fixed-node SPRT, complete TT correctness phases, inconclusive same-binary speed calibration and isolated rule50-context6.4.4 correctness candidate.",
+  "scope": "Preserved Forge accepted reference and cumulative isolated candidates through6.4.8,actualcorrectnessproofs,failedtimingcontrols,originalhosted647timedrunandnative648offlinebundle; no acceptedElogain.",
   "historical_ledger": "validation/release-6.0.0/EXPERIMENTS.md",
   "accepted_development": {
     "branch": "forge/6.4-hourly-20261019",
@@ -47,9 +47,10 @@
     "latest_correctness_windows_artifact": "releases/forge-6.4.8-candidate-windows-zen5.zip",
     "newer_645_strength_status": "No games/Elo; Release8/8, ASan8/8,18947 parent and candidate oracle checks, exact parent parity and7Winechecks passed. Kernel AA noise gate failed; full-engine timing not run.",
     "newer_646_strength_status": "Release8/8, ASan8/8, exactparentparity and7Winechecks passed; timing andstrengthnotmeasured becausehostAAfailed. No new games/Elo.",
-    "newer_647_strength_status": "Release8/8, ASan8/8, exactparentparity,60,138actualordered-pickerrowsbyteidentical and7Winechecks+independentpackageaudit passed; no measuredNPS/Elo, hostedpilotpreparedpendinglaunch.",
-    "hosted_linux_pilot_status": "Run39325939081 started21:14:41Z; build/tests succeeded21:16:24Z; calibration/SPRT step active; no game/result inferred",
-    "newer_648_strength_status": "Release8/8,ASan8/8,untimedparentparity419798,28actualcounter-oracleiterations and7Winechecks351063 plus52/52independentartifactaudit passed. Actualtimedstop/Elo/NPSunknown. Hosted647resultdoesnottransfer."
+    "newer_647_strength_status": "Positive earlier144game nativeestimate+43.66\u00b128.69 versus644; full147recordattemptdeadline/orphan/stopwarnings => no acceptedElogain. 73completepairGLR0.815insidebounds. Alloriginalrecordsretained.",
+    "hosted_linux_pilot_status": "Completed at16min cap:147normalgames,73pairs+orphan; no nativeboundary,strictinconclusive. Native144snapshot+43.66\u00b128.69 is descriptiveonly.",
+    "newer_648_strength_status": "Release8/8,ASan8/8,untimedparentparity419798,28actualcounter-oracleiterations and7Winechecks351063 plus52/52independentartifactaudit passed. Actualtimedstop/Elo/NPSunknown. Hosted647resultdoesnottransfer.",
+    "native_648_bundle_status": "Manifest/read-onlyWinechecks+43independentauditpass; nativeAA/pilot/SPRTpending; originalbaselinecomparison,not647isolatedEloevidence."
   },
   "candidates": [
     {
@@ -419,7 +420,7 @@
       "branch": "forge/lazy-movepicker-20261019",
       "parent_candidate_id": "forge646-qsearch-query-20261019",
       "change": "Compute identical MovePicker direct-check masks only in mutually exclusive quiet/evasion generation stages; zero-or-one init per picker, no added state.",
-      "status": "published_correctness_candidate_no_speed_or_strength_result",
+      "status": "published_correctness_candidate_promising_timed_snapshot_SPRT_inconclusive_no_accepted_gain",
       "builds": {
         "release": {
           "engine_sha256": "12098be8260565c2692e7b82521d58db8f3327431f9ef3fdfb8662e74d3d4f78",
@@ -4869,7 +4870,7 @@
       "id": "forge647-hosted-linux-pilot-attempt1-20261019",
       "candidate_id": "forge647-lazy-movepicker-20261019",
       "scope": "hosted_native_linux_equal_clock_attempt",
-      "status": "hosted_job_running_build_tests_step_passed_result_unverified",
+      "status": "inconclusive_deadline_with_orphan_no_native_boundary",
       "candidate_production_commit": "2c0c7efa49023d8e3f49de3f5596f333a3f01202",
       "baseline_production_commit": "816423b1ddac23a00244449deef59dba736055a9",
       "workflow_branch": "forge/hosted-strength-20261019-2115",
@@ -4883,12 +4884,79 @@
       },
       "elo_claim": null,
       "valid_strength_evidence": false,
-      "games": null,
-      "decision": "Running; no actual match/likelihood result visible yet",
+      "games": 147,
+      "decision": "No accepted gain:16min cap,73completepairs+oneorphan,shutdownwarnings,no nativeH0/H1.",
       "run_id": 39325939081,
       "run_url": "https://github.com/couns0538-sketch/dwqww/actions/runs/39325939081",
       "head_commit": "52d90152f88868e433f3dc6c6ceab7a229fc3cbe",
-      "progress_record": "validation/hosted-strength-20261019/progress-2116.json"
+      "progress_record": "validation/hosted-strength-20261019/progress-2116.json",
+      "results_ref": "results/hosted-strength-39325939081-1",
+      "results_commit": "1e9361d0e35a17c0d63a90d9431a6bb875d0817d",
+      "result": {
+        "host": "AMD EPYC7763 hostedLinux, GCC14.2 x86-64-v3 generic",
+        "calibration": "both same-binary benchmark gates passed;4normal readiness pairs passed",
+        "retained_normal_completed_games": 147,
+        "all_records_wins_draws_losses": [
+          62,
+          43,
+          42
+        ],
+        "complete_pairs": 73,
+        "orphan_round": 74,
+        "unrecorded_started_game": 148,
+        "complete_pair_games": 146,
+        "complete_pair_wins_draws_losses": [
+          61,
+          43,
+          42
+        ],
+        "complete_pair_pentanomial": [
+          1,
+          4,
+          47,
+          17,
+          4
+        ],
+        "complete_pair_independent_glr": 0.815076605,
+        "sprt_bounds": [
+          -2.94443897916644,
+          2.94443897916644
+        ],
+        "native_acceptance": null,
+        "last_native_snapshot": {
+          "games": 144,
+          "wins_draws_losses": [
+            60,
+            42,
+            42
+          ],
+          "logistic_elo": 43.66,
+          "printed_elo_interval_half_width": 28.69,
+          "printed_llr": 0.79,
+          "independent_glr": 0.789741647,
+          "interpretation": "Descriptive earlier144game snapshot,notfinal147recordresult; no accepted gain, interval coverage not independently certified."
+        },
+        "independent_legal_replay": {
+          "sprt_legal_plies": 20018,
+          "readiness_legal_plies": 1048,
+          "illegal_moves": 0
+        },
+        "limitations": [
+          "OriginalwholePGNfailsstrictpaircompleteness; no trimming/pooling/resume",
+          "Twostop/quitwarningsduringdeadlineshutdown; no predeadlinefaultattributed",
+          "Actualhostedexecutablesnotretained,onlyrecordedlinkedbuild/binaryhashes",
+          "Deadlinepathlackscompletedfinalfrozeninputrehash"
+        ]
+      },
+      "archive_evidence": {
+        "path": "validation/hosted-strength-20261019/original-results-and-observations.zip",
+        "sha256": "0b1bd257fb106cb2eb873ade6cdef253442a192dd47d7945bde81cc37f95b9ec",
+        "prefix": "result-snapshot/"
+      },
+      "independent_audit": {
+        "path": "validation/hosted-strength-20261019/independent-result-audit.json",
+        "sha256": "fc35f7f9ea0238d45001fc453f51005872417e149a937b604f332a1b7838ff32"
+      }
     },
     {
       "id": "forge647-root-effort-actual-misattribution-20261019",
@@ -5440,6 +5508,40 @@
       },
       "native_windows_tested": false,
       "physical_ryzen_tested": false
+    },
+    {
+      "id": "forge648-native-windows-bundle-20261019",
+      "candidate_id": "forge648-root-effort-20261019",
+      "scope": "offline_package_readiness_only",
+      "status": "packaged_manifest_and_readonly_runtime_checks_passed_native_games_pending",
+      "source_commit": "7125b3379a850de34041d42529cf95993607f93c",
+      "artifact": {
+        "path": "releases/forge-6.4.8-windows-validation-bundle.zip",
+        "sha256": "253f33c129c0f5d4301354f755e03e876c7a76c6da18e13307facaceba7b4e73",
+        "bytes": 30272872,
+        "zip_members": 2354,
+        "manifest_files": 2353
+      },
+      "result": {
+        "independent_audit_checks": "43/43 passed,zero packagefindings",
+        "unchanged_old_component_reference_files": 2283,
+        "frozen_candidate_source_build_inputs": 64,
+        "embedded_python_imports": "passed under Wine,isolated-I-B",
+        "validator_help": "passed under Wine,no engines/games",
+        "new_native_aa": "pending",
+        "new_native_pilot": "pending",
+        "new_native_sprt": "pending",
+        "old_bundle": "unchanged;oldreadinessnottransferred",
+        "checker_false_positive": "Overbroad README negative checker corrected; originalfailure/diagnosisretained"
+      },
+      "evidence": "validation/windows-native-648-20261019",
+      "independent_audit": {
+        "path": "validation/windows-native-648-20261019/independent-bundle-audit.json",
+        "sha256": "9957b21ab761c5d7fd2c2c69f7f4ab29323d41995c04c5402e13b89b1714c015"
+      },
+      "valid_strength_evidence": false,
+      "native_windows_tested": false,
+      "physical_ryzen_tested": false
     }
   ],
   "evidence_archives": [
@@ -5514,6 +5616,12 @@
       "sha256": "bfd7f417491e9841b572c266ff3cce1ec9596c70739bac5a73bd4770d86da9ff",
       "bytes": 2275978,
       "manifest_path": "validation/root-effort-20261019/actual-candidate-validation.json"
+    },
+    {
+      "path": "validation/hosted-strength-20261019/original-results-and-observations.zip",
+      "sha256": "0b1bd257fb106cb2eb873ade6cdef253442a192dd47d7945bde81cc37f95b9ec",
+      "bytes": 2141811,
+      "manifest_path": "validation/hosted-strength-20261019/original-results-and-observations.json"
     }
   ]
 }
