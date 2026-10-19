@@ -1,0 +1,32 @@
+--- /mnt/data/forge_run9/src520/chess-engine-forge-5.20.0/tests/tests.cpp	2026-10-05 22:15:26.000000000 +0000
++++ /mnt/data/forge_run9/final521/chess-engine-forge-5.21.0/tests/tests.cpp	2026-10-05 22:29:38.381564066 +0000
+@@ -692,6 +692,29 @@
+     check(reverse_futility_board.fen() == reverse_futility_fen,
+           "reverse-futility full-window regression restores the board");
+ 
++    // A zero-window node without a TT move must still search its nominal depth.
++    // 5.20.0 reduced this entire depth-4 node to depth 3 and falsely failed low
++    // at [138,139], despite a full depth-4 score of +139 on the same position.
++    forge::Board whole_node_board;
++    check(whole_node_board.set_fen(
++              "rnbqkb1r/pp1pn1pp/2p5/3P4/2P1pp2/4B2N/PP2PPPP/RN1QKB1R w KQkq - 0 1"),
++          "whole-node reduction regression FEN parses");
++    const std::string whole_node_fen = whole_node_board.fen();
++    forge::Searcher whole_node_full_searcher(4);
++    const int whole_node_full = forge::SearcherTestProbe::alpha_beta(
++        whole_node_full_searcher, whole_node_board, 4, -30000, 30000);
++    check(whole_node_full == 139,
++          "whole-node reduction regression retains the full depth-4 score");
++    check(whole_node_board.fen() == whole_node_fen,
++          "full depth-4 whole-node regression restores the board");
++    forge::Searcher whole_node_window_searcher(4);
++    const int whole_node_window = forge::SearcherTestProbe::alpha_beta(
++        whole_node_window_searcher, whole_node_board, 4, 138, 139);
++    check(whole_node_window == 139,
++          "TT-miss zero-window node searches nominal depth instead of falsely failing low");
++    check(whole_node_board.fen() == whole_node_fen,
++          "zero-window whole-node regression restores the board");
++
+     check(board.set_fen("2rqNN2/4k3/ppp2pB1/3p4/PPPp1Prb/n3P2b/K7/4Q3 b - - 0 34"),
+           "shallow null PVS regression FEN parses");
+     const auto null_a3b5 = board.parse_uci("a3b5");
