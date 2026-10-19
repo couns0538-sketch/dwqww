@@ -1,0 +1,104 @@
+{
+  "schema": 1,
+  "created_utc": "2026-10-19T22:04:34.272868+00:00",
+  "purpose": "Bounded cold-state replay of the game-8 move-25 Black timeout; diagnostic only, not a match or Elo gate.",
+  "inputs": {
+    "baseline": {
+      "relative_path": "validation/hourly/2026-10-19-initial/bin/forge64-baseline-linux",
+      "sha256": "aa51d6b62ab8a1ff8f5bfb348d074c981ccf5166eea094bcb9f9259df3ba7aa4"
+    },
+    "candidate": {
+      "relative_path": "validation/hourly/2026-10-19-initial/bin/forge64-tt-tag-linux",
+      "sha256": "ac97db014a1b19a37c633d58f6514d0aa0ccc38d8d8fb3bf8ae355144a2e45ad"
+    }
+  },
+  "source_failure_protocol_sha256": "7cc725dddece0cb1b1db04f9644c98c2420072aeda3b2ced6e0bef0837c3b885",
+  "source_failure_engine_log_sha256": "f339ff570a8ca8540919083064f8885348caed78c6ee8d260e1ae22248aafb74",
+  "position_command": "position fen r1bqkb1r/pp4pp/n1p1pp1n/3p4/2PP1P2/4P2N/PP2B1PP/RNBQK2R w KQkq - 0 1 moves e1g1 h6f5 b1c3 f8e7 h3f2 e8g8 e2d3 a6c7 b2b3 b7b6 d1c2 c8a6 g2g4 f5h4 d3h7 g8h8 h7d3 e6e5 d4e5 f6e5 c4d5 c6d5 c2e2 d5d4 f1d1 a6b7 d3e4 b7a6 e4d3 d4c3 d3a6 d8e8 a6d3 e5f4 e3f4 e7c5 e2f1 a8d8 f1h3 e8e7 d1f1 c7e6 g4g5 d8d3 h3d3 e6f4 c1f4 f8f4 d3g3",
+  "go_command": "go wtime 401 btime 596 winc 100 binc 100",
+  "options": {
+    "Hash": "64",
+    "Threads": "1",
+    "OwnBook": "false",
+    "Ponder": "false",
+    "UseNNUE": "true",
+    "Move Overhead": "10"
+  },
+  "matrix": [
+    {
+      "sequence": 1,
+      "engine": "baseline",
+      "repeat": 1
+    },
+    {
+      "sequence": 2,
+      "engine": "candidate",
+      "repeat": 1
+    },
+    {
+      "sequence": 3,
+      "engine": "baseline",
+      "repeat": 2
+    },
+    {
+      "sequence": 4,
+      "engine": "candidate",
+      "repeat": 2
+    },
+    {
+      "sequence": 5,
+      "engine": "baseline",
+      "repeat": 3
+    },
+    {
+      "sequence": 6,
+      "engine": "candidate",
+      "repeat": 3
+    },
+    {
+      "sequence": 7,
+      "engine": "baseline",
+      "repeat": 4
+    },
+    {
+      "sequence": 8,
+      "engine": "candidate",
+      "repeat": 4
+    },
+    {
+      "sequence": 9,
+      "engine": "baseline",
+      "repeat": 5
+    },
+    {
+      "sequence": 10,
+      "engine": "candidate",
+      "repeat": 5
+    }
+  ],
+  "execution": "one fresh engine process at a time; five alternating baseline/candidate repeats; CPU 0 affinity; no simultaneous match or compile on that CPU",
+  "cpu_affinity": [
+    0
+  ],
+  "startup_phase_timeout_seconds": 5,
+  "search_bestmove_deadline_seconds": 2,
+  "explicit_stop_response_deadline_seconds": 1,
+  "normal_quit_deadline_seconds": 1,
+  "failure_policy": "If no bestmove by 2 s, send stop; observe for at most 1 s, then terminate only the owned child if needed. Preserve every timeout, stderr, abnormal exit, and output. No retries replacing failed repeats.",
+  "capture": [
+    "every UCI input/output line with UTC and monotonic timestamp",
+    "first info delay from go",
+    "bestmove observed elapsed from go",
+    "last reported info depth/nodes/time",
+    "2 s expiry and explicit stop latency",
+    "process exit and owned-child termination if required",
+    "engine/input hashes before and after"
+  ],
+  "state_limitations": "All repeats start with a new process and ucinewgame. Board/repetition history is reconstructed by the exact original position command. Prior search-generated TT/history state is unavailable, so this is not an exact warm-state reproduction. Event timestamps are observer receive/write times, not engine-internal syscall timestamps.",
+  "derived_original_budget_ms": {
+    "available": 586,
+    "soft": 101,
+    "hard": 351
+  },
+  "strength_games_started": 0
+}
