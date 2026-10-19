@@ -1,0 +1,16 @@
+--- /mnt/data/forge_work/baseline/chess-engine-forge-5.13.0/src/search.cpp	2026-10-05 16:35:08.000000000 +0000
++++ /mnt/data/forge_work/chess-engine-forge-5.14.0/src/search.cpp	2026-10-05 17:39:05.794899928 +0000
+@@ -1,4 +1,5 @@
+ #include "forge/search.hpp"
++#include "forge/uci_output.hpp"
+ 
+ #include <algorithm>
+ #include <bit>
+@@ -727,6 +728,7 @@
+         result.elapsed_ms = static_cast<std::uint64_t>(std::chrono::duration_cast<std::chrono::milliseconds>(
+             std::chrono::steady_clock::now() - start_).count());
+         if (emit_info) {
++            const std::lock_guard<std::mutex> output_lock(uci_output_mutex());
+             std::cout << "info depth " << depth << " score ";
+             if (std::abs(score) > MateScore - 128) {
+                 const int mate = (MateScore - std::abs(score) + 1) / 2;
