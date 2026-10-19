@@ -103,6 +103,17 @@ private:
     std::size_t cluster_count_ = 0;
     std::uint8_t generation_ = 0;
 
+    [[nodiscard]] static constexpr std::uint32_t verification_key(std::uint64_t key) {
+#if defined(__SIZEOF_INT128__)
+        // Multiply-high indexing consumes high key bits. Keep the independent
+        // low bits as the tag, rather than reusing the bucket's index bits.
+        return static_cast<std::uint32_t>(key);
+#else
+        // Modulo indexing consumes low bits for power-of-two table sizes.
+        return static_cast<std::uint32_t>(key >> 32U);
+#endif
+    }
+
     [[nodiscard]] TTCluster& cluster_for(std::uint64_t key) const {
 #if defined(__SIZEOF_INT128__)
         __extension__ using u128 = unsigned __int128;

@@ -1,0 +1,86 @@
+Test project /workspace/scratch/41fe08b6f73a/forge64/build-sanitizer
+    Start 1: forge_tests
+1/4 Test #1: forge_tests ......................***Failed    9.25 sec
+==270==Can't open /proc/260/task for reading.
+==260==LeakSanitizer has encountered a fatal error.
+==260==HINT: For debugging, try setting environment variable LSAN_OPTIONS=verbosity=1:log_threads=1
+==260==HINT: LeakSanitizer does not work under ptrace (strace, gdb, etc)
+
+    Start 2: match_tool_tests
+2/4 Test #2: match_tool_tests .................   Passed    0.17 sec
+    Start 3: uci_regression
+3/4 Test #3: uci_regression ...................***Failed    2.41 sec
+{
+  "passed": [
+    "handshake/readiness",
+    "finite depth and non-power-of-two Hash",
+    "restricted searchmoves",
+    "restricted-root search reports the restricted move with a finite score",
+    "explicit zero nodes is an immediate bounded search",
+    "one-node restricted fallback",
+    "empty restricted intersection",
+    "in-check empty searchmoves reports no result, not mate",
+    "true mate is preserved under restriction",
+    "true stalemate is preserved under restriction",
+    "nonempty restricted root still searches allowed move",
+    "mate in one",
+    "underpromotion restriction",
+    "legal and pinned en passant",
+    "threefold history",
+    "cold rule-50 draw (not TT cross-context safety)",
+    "rule-50 checkmate has no legal move",
+    "terminal infinite waits for stop",
+    "adjudicated legal-move infinite waits for stop",
+    "atomic concurrent info/readiness records and stop",
+    "finite movetime responsiveness",
+    "explicit zero movetime is bounded",
+    "explicit zero side clocks are bounded",
+    "maximum signed-int clock/increment",
+    "malformed options and clear hash",
+    "transactional invalid move sequence",
+    "perft zero and invalid depths"
+  ],
+  "known_failures": [],
+  "timings": {
+    "nodes_0_wall_seconds": 0.0007971960003487766,
+    "terminal_infinite_stop_seconds": 0.0008717519995116163,
+    "stop_seconds": 0.009473166999669047,
+    "movetime_50_wall_seconds": 0.0003341430001455592,
+    "movetime_0_wall_seconds": 0.00101791300039622,
+    "white_clock_0_wall_seconds": 0.0002491489995009033,
+    "black_clock_0_wall_seconds": 0.0005164159993000794
+  }
+}
+Traceback (most recent call last):
+  File "/workspace/scratch/41fe08b6f73a/forge64/tools/uci_regression.py", line 317, in <module>
+    main()
+  File "/workspace/scratch/41fe08b6f73a/forge64/tools/uci_regression.py", line 310, in main
+    e.close()
+  File "/workspace/scratch/41fe08b6f73a/forge64/tools/uci_regression.py", line 114, in close
+    assert self.process.returncode == 0, f"engine exited {self.process.returncode}"
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: engine exited 1
+
+    Start 4: ponder_regression
+4/4 Test #4: ponder_regression ................***Failed    1.41 sec
+Traceback (most recent call last):
+  File "/workspace/scratch/41fe08b6f73a/forge64/tools/ponder_regression.py", line 97, in <module>
+    for item in run(a.engine):
+                ^^^^^^^^^^^^^
+  File "/workspace/scratch/41fe08b6f73a/forge64/tools/ponder_regression.py", line 89, in run
+    e.close()
+  File "/workspace/scratch/41fe08b6f73a/forge64/tools/uci_regression.py", line 114, in close
+    assert self.process.returncode == 0, f"engine exited {self.process.returncode}"
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: engine exited 1
+
+
+25% tests passed, 3 tests failed out of 4
+
+Total Test time (real) =  13.24 sec
+
+The following tests FAILED:
+	  1 - forge_tests (Failed)
+	  3 - uci_regression (Failed)
+	  4 - ponder_regression (Failed)
+Errors while running CTest

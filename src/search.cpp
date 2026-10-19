@@ -194,7 +194,7 @@ void TranspositionTable::clear() {
 
 TTEntry* TranspositionTable::probe(std::uint64_t key, bool& hit) {
     TTCluster& cluster = cluster_for(key);
-    const std::uint32_t key32 = static_cast<std::uint32_t>(key >> 32U);
+    const std::uint32_t key32 = verification_key(key);
     for (TTEntry& entry : cluster.entries) {
         if (entry.key32 == key32 && entry.occupied()) {
             hit = true;
@@ -215,7 +215,7 @@ TTEntry* TranspositionTable::probe(std::uint64_t key, bool& hit) {
 
 void TranspositionTable::store(TTEntry* entry, std::uint64_t key, int score, int eval, Move move, int depth,
                                Bound bound, bool pv) {
-    const std::uint32_t key32 = static_cast<std::uint32_t>(key >> 32U);
+    const std::uint32_t key32 = verification_key(key);
     const bool same_position = entry->key32 == key32 && entry->occupied();
     if (!move.is_none() || !same_position) entry->move = move;
     if (bound == BoundExact || !same_position || depth + 4 > entry->depth || entry->generation() != generation_) {

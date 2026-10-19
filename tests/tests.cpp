@@ -481,6 +481,38 @@ void test_transposition_table() {
     check(!hit, "clear empties the table");
 }
 
+void test_transposition_tag_independence() {
+    // With multiply-high indexing the first group shares a cluster and must
+    // be distinguished by its low key bits. With modulo indexing the second
+    // group shares a cluster and must be distinguished by its high key bits.
+    // Exercise a power-of-two and a non-power-of-two table size.
+    constexpr std::array<std::array<std::uint64_t, 4>, 2> groups{{
+        {{0x1234567800000001ULL, 0x1234567800000002ULL,
+          0x1234567800000003ULL, 0x1234567800000004ULL}},
+        {{0x123456789abcdef0ULL, 0x423456789abcdef0ULL,
+          0x723456789abcdef0ULL, 0xa23456789abcdef0ULL}},
+    }};
+    for (const std::size_t mb : {std::size_t{1}, std::size_t{3}}) {
+        forge::TranspositionTable tt(mb);
+        for (const auto& keys : groups) {
+            tt.clear();
+            for (std::size_t i = 0; i < keys.size(); ++i) {
+                bool hit = true;
+                forge::TTEntry* entry = tt.probe(keys[i], hit);
+                check(!hit, "TT tag distinguishes keys sharing index bits before store");
+                tt.store(entry, keys[i], 100 + static_cast<int>(i), 45,
+                         forge::Move{12, 28, 0, 0}, 7, forge::BoundExact, true);
+            }
+            for (std::size_t i = 0; i < keys.size(); ++i) {
+                bool hit = false;
+                const forge::TTEntry* entry = tt.probe(keys[i], hit);
+                check(hit && entry->score == 100 + static_cast<int>(i),
+                      "TT colliding-cluster entries retain their own scores");
+            }
+        }
+    }
+}
+
 } // namespace
 
 int main() {
@@ -490,6 +522,7 @@ int main() {
     test_static_exchange();
     test_evaluation();
     test_transposition_table();
+    test_transposition_tag_independence();
     test_search();
     test_threads();
     test_nnue();

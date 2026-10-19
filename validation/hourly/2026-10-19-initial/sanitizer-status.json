@@ -1,0 +1,39 @@
+[
+  {
+    "stage": "configure",
+    "exit": 0,
+    "argv": [
+      "/tmp/forge64-build-tools/cmake/data/bin/cmake",
+      "-S",
+      ".",
+      "-B",
+      "build-sanitizer",
+      "-DCMAKE_BUILD_TYPE=Debug",
+      "-DFORGE_ENABLE_SANITIZERS=ON",
+      "-DCMAKE_CXX_FLAGS=-Werror"
+    ]
+  },
+  {
+    "stage": "build",
+    "exit": 0,
+    "argv": [
+      "/tmp/forge64-build-tools/cmake/data/bin/cmake",
+      "--build",
+      "build-sanitizer",
+      "--parallel",
+      "2"
+    ]
+  },
+  {
+    "stage": "ctest",
+    "exit": 8,
+    "argv": [
+      "/tmp/forge64-build-tools/cmake/data/bin/ctest",
+      "--test-dir",
+      "build-sanitizer",
+      "--output-on-failure",
+      "-j",
+      "1"
+    ]
+  }
+]
