@@ -1,0 +1,4 @@
+# H3 — root effort attribution
+Baseline 9108d012526be80c6d163f7cab684e6acd9abf8d. Priority 3, medium risk/cost.
+include/forge/search.hpp:268-274 indexes root_move_nodes_ by ordinal; src/search.cpp:1044-1064 stores by move_count-1; :1230-1270 resets once per search; :1294-1315 uses cumulative ordinal effort for soft-stop time.
+Hypothesis: when root ordering changes between depths or aspiration retries, effort from another move changes the stop decision. Log depth, retry, UCI move, ordinal, node delta, per-move vs ordinal effort, factor and would-stop on 100+ 10+0.1 positions with Threads=1. Code only after a changed stop decision is observed. Reject if no effect or if overhead/time forfeits outweigh benefit. No Elo measured.
