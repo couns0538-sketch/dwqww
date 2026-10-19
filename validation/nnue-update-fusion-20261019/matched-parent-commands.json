@@ -1,0 +1,29 @@
+[
+  {
+    "command": [
+      "/workspace/.cloud-setup/venv/bin/cmake",
+      "-S",
+      "/workspace/.cloud-setup/forge-ownbook-control-source",
+      "-B",
+      "/workspace/.cloud-setup/forge-nnue-update-parent-release",
+      "-DCMAKE_BUILD_TYPE=Release",
+      "-DCMAKE_CXX_FLAGS=-march=x86-64-v3 -mtune=znver5 -fno-fast-math -ffp-contract=off -fno-lto",
+      "-DCMAKE_EXPORT_COMPILE_COMMANDS=ON"
+    ],
+    "return_code": 0,
+    "log": "matched-parent-configure.log"
+  },
+  {
+    "command": [
+      "/workspace/.cloud-setup/venv/bin/cmake",
+      "--build",
+      "/workspace/.cloud-setup/forge-nnue-update-parent-release",
+      "--target",
+      "forge",
+      "--parallel",
+      "2"
+    ],
+    "return_code": 0,
+    "log": "matched-parent-build.log"
+  }
+]

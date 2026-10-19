@@ -1,0 +1,50 @@
+[
+  {
+    "command": [
+      "/workspace/.cloud-setup/venv/bin/cmake",
+      "-S",
+      "/workspace/.cloud-setup/forge-nnue-update-source",
+      "-B",
+      "/workspace/.cloud-setup/forge-nnue-update-sse-release",
+      "-DCMAKE_BUILD_TYPE=Release",
+      "-DCMAKE_CXX_FLAGS=-march=x86-64-v2 -mtune=generic -fno-fast-math -ffp-contract=off -fno-lto",
+      "-DCMAKE_EXPORT_COMPILE_COMMANDS=ON"
+    ],
+    "return_code": 0,
+    "log": "sse-configure.log"
+  },
+  {
+    "command": [
+      "/workspace/.cloud-setup/venv/bin/cmake",
+      "--build",
+      "/workspace/.cloud-setup/forge-nnue-update-sse-release",
+      "--target",
+      "forge_core",
+      "--parallel",
+      "2"
+    ],
+    "return_code": 0,
+    "log": "sse-build.log"
+  },
+  {
+    "command": [
+      "g++",
+      "-std=c++20",
+      "-O3",
+      "-march=x86-64-v2",
+      "-mtune=generic",
+      "-fno-fast-math",
+      "-ffp-contract=off",
+      "-fno-lto",
+      "-I",
+      "/workspace/.cloud-setup/forge-nnue-update-source/include",
+      "/workspace/.cloud-setup/forge-nnue-update-source/tools/nnue_update_snapshot.cpp",
+      "/workspace/.cloud-setup/forge-nnue-update-sse-release/libforge_core.a",
+      "-pthread",
+      "-o",
+      "/workspace/.cloud-setup/forge-nnue-update-sse-release/nnue_update_snapshot"
+    ],
+    "return_code": 0,
+    "log": "sse-update-driver-build.log"
+  }
+]

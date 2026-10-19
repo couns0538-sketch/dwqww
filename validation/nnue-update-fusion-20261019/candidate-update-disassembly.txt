@@ -1,0 +1,466 @@
+00000000000007c0 <forge::nnue::update(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&)>:
+     7c0:	55                   	push   rbp
+     7c1:	48 89 e5             	mov    rbp,rsp
+     7c4:	41 57                	push   r15
+     7c6:	41 56                	push   r14
+     7c8:	41 55                	push   r13
+     7ca:	41 54                	push   r12
+     7cc:	53                   	push   rbx
+     7cd:	49 89 fe             	mov    r14,rdi
+     7d0:	49 89 f7             	mov    r15,rsi
+     7d3:	48 83 e4 e0          	and    rsp,0xffffffffffffffe0
+     7d7:	48 83 ec 60          	sub    rsp,0x60
+     7db:	48 89 54 24 48       	mov    QWORD PTR [rsp+0x48],rdx
+     7e0:	e8 3b f8 ff ff       	call   20 <forge::nnue::(anonymous namespace)::weights()>
+     7e5:	48 8b 74 24 48       	mov    rsi,QWORD PTR [rsp+0x48]
+     7ea:	48 89 44 24 40       	mov    QWORD PTR [rsp+0x40],rax
+     7ef:	8b 7e 20             	mov    edi,DWORD PTR [rsi+0x20]
+     7f2:	83 ff 02             	cmp    edi,0x2
+     7f5:	0f 84 a6 04 00 00    	je     ca1 <forge::nnue::update(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&)+0x4e1>
+     7fb:	48 8b 05 00 00 00 00 	mov    rax,QWORD PTR [rip+0x0]        # 802 <forge::nnue::update(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&)+0x42>	7fe: R_X86_64_PC32	.LC52-0x4
+     802:	4c 8d 6c 24 58       	lea    r13,[rsp+0x58]
+     807:	89 7c 24 34          	mov    DWORD PTR [rsp+0x34],edi
+     80b:	48 89 74 24 28       	mov    QWORD PTR [rsp+0x28],rsi
+     810:	48 89 44 24 58       	mov    QWORD PTR [rsp+0x58],rax
+     815:	48 8d 44 24 60       	lea    rax,[rsp+0x60]
+     81a:	48 89 44 24 38       	mov    QWORD PTR [rsp+0x38],rax
+     81f:	48 63 c7             	movsxd rax,edi
+     822:	4c 8d 24 c6          	lea    r12,[rsi+rax*8]
+     826:	49 63 45 00          	movsxd rax,DWORD PTR [r13+0x0]
+     82a:	ba 00 02 00 00       	mov    edx,0x200
+     82f:	48 89 c3             	mov    rbx,rax
+     832:	48 c1 e0 09          	shl    rax,0x9
+     836:	49 8d 0c 07          	lea    rcx,[r15+rax*1]
+     83a:	49 8d 34 06          	lea    rsi,[r14+rax*1]
+     83e:	48 89 cf             	mov    rdi,rcx
+     841:	e8 00 00 00 00       	call   846 <forge::nnue::update(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&)+0x86>	842: R_X86_64_PLT32	memcpy-0x4
+     846:	48 89 c1             	mov    rcx,rax
+     849:	8b 44 24 34          	mov    eax,DWORD PTR [rsp+0x34]
+     84d:	85 c0                	test   eax,eax
+     84f:	0f 8e 41 02 00 00    	jle    a96 <forge::nnue::update(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&)+0x2d6>
+     855:	48 8b 44 24 40       	mov    rax,QWORD PTR [rsp+0x40]
+     85a:	4c 8b 44 24 28       	mov    r8,QWORD PTR [rsp+0x28]
+     85f:	45 31 db             	xor    r11d,r11d
+     862:	85 db                	test   ebx,ebx
+     864:	4c 89 6c 24 48       	mov    QWORD PTR [rsp+0x48],r13
+     869:	41 0f 95 c3          	setne  r11b
+     86d:	45 31 d2             	xor    r10d,r10d
+     870:	83 fb 01             	cmp    ebx,0x1
+     873:	41 0f 95 c2          	setne  r10b
+     877:	4c 8b 08             	mov    r9,QWORD PTR [rax]
+     87a:	66 0f 1f 44 00 00    	nop    WORD PTR [rax+rax*1+0x0]
+     880:	41 8b 00             	mov    eax,DWORD PTR [r8]
+     883:	41 0f b6 78 04       	movzx  edi,BYTE PTR [r8+0x4]
+     888:	83 f8 06             	cmp    eax,0x6
+     88b:	0f 8f 97 03 00 00    	jg     c28 <forge::nnue::update(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&)+0x468>
+     891:	49 63 d3             	movsxd rdx,r11d
+     894:	48 c7 c6 ff ff ff ff 	mov    rsi,0xffffffffffffffff
+     89b:	85 c0                	test   eax,eax
+     89d:	74 27                	je     8c6 <forge::nnue::update(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&)+0x106>
+     89f:	ff c8                	dec    eax
+     8a1:	48 63 f0             	movsxd rsi,eax
+     8a4:	41 89 c5             	mov    r13d,eax
+     8a7:	41 c1 fd 1f          	sar    r13d,0x1f
+     8ab:	48 69 f6 ab aa aa 2a 	imul   rsi,rsi,0x2aaaaaab
+     8b2:	48 c1 ee 20          	shr    rsi,0x20
+     8b6:	44 29 ee             	sub    esi,r13d
+     8b9:	44 8d 2c 76          	lea    r13d,[rsi+rsi*2]
+     8bd:	45 01 ed             	add    r13d,r13d
+     8c0:	44 29 e8             	sub    eax,r13d
+     8c3:	48 63 f0             	movsxd rsi,eax
+     8c6:	89 f8                	mov    eax,edi
+     8c8:	83 f0 38             	xor    eax,0x38
+     8cb:	85 db                	test   ebx,ebx
+     8cd:	0f 45 f8             	cmovne edi,eax
+     8d0:	89 d0                	mov    eax,edx
+     8d2:	48 f7 da             	neg    rdx
+     8d5:	f7 d8                	neg    eax
+     8d7:	83 e2 06             	and    edx,0x6
+     8da:	44 0f b6 ef          	movzx  r13d,dil
+     8de:	40 0f b6 ff          	movzx  edi,dil
+     8e2:	83 e0 06             	and    eax,0x6
+     8e5:	48 01 f2             	add    rdx,rsi
+     8e8:	01 f0                	add    eax,esi
+     8ea:	c1 e0 06             	shl    eax,0x6
+     8ed:	48 c1 e2 06          	shl    rdx,0x6
+     8f1:	44 01 e8             	add    eax,r13d
+     8f4:	48 01 fa             	add    rdx,rdi
+     8f7:	48 c1 e2 09          	shl    rdx,0x9
+     8fb:	48 98                	cdqe
+     8fd:	49 8d 7c 11 04       	lea    rdi,[r9+rdx*1+0x4]
+     902:	48 c1 e0 09          	shl    rax,0x9
+     906:	48 89 ce             	mov    rsi,rcx
+     909:	48 29 fe             	sub    rsi,rdi
+     90c:	4c 01 c8             	add    rax,r9
+     90f:	41 80 78 05 00       	cmp    BYTE PTR [r8+0x5],0x0
+     914:	0f 84 a2 01 00 00    	je     abc <forge::nnue::update(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&)+0x2fc>
+     91a:	48 83 fe 18          	cmp    rsi,0x18
+     91e:	0f 86 0c 03 00 00    	jbe    c30 <forge::nnue::update(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&)+0x470>
+     924:	49 8d 04 11          	lea    rax,[r9+rdx*1]
+     928:	c5 fc 10 00          	vmovups ymm0,YMMWORD PTR [rax]
+     92c:	c5 fc 58 01          	vaddps ymm0,ymm0,YMMWORD PTR [rcx]
+     930:	c5 fc 11 01          	vmovups YMMWORD PTR [rcx],ymm0
+     934:	c5 fc 10 40 20       	vmovups ymm0,YMMWORD PTR [rax+0x20]
+     939:	c5 fc 58 41 20       	vaddps ymm0,ymm0,YMMWORD PTR [rcx+0x20]
+     93e:	c5 fc 11 41 20       	vmovups YMMWORD PTR [rcx+0x20],ymm0
+     943:	c5 fc 10 40 40       	vmovups ymm0,YMMWORD PTR [rax+0x40]
+     948:	c5 fc 58 41 40       	vaddps ymm0,ymm0,YMMWORD PTR [rcx+0x40]
+     94d:	c5 fc 11 41 40       	vmovups YMMWORD PTR [rcx+0x40],ymm0
+     952:	c5 fc 10 40 60       	vmovups ymm0,YMMWORD PTR [rax+0x60]
+     957:	c5 fc 58 41 60       	vaddps ymm0,ymm0,YMMWORD PTR [rcx+0x60]
+     95c:	c5 fc 11 41 60       	vmovups YMMWORD PTR [rcx+0x60],ymm0
+     961:	c5 fc 10 80 80 00 00 00 	vmovups ymm0,YMMWORD PTR [rax+0x80]
+     969:	c5 fc 58 81 80 00 00 00 	vaddps ymm0,ymm0,YMMWORD PTR [rcx+0x80]
+     971:	c5 fc 11 81 80 00 00 00 	vmovups YMMWORD PTR [rcx+0x80],ymm0
+     979:	c5 fc 10 80 a0 00 00 00 	vmovups ymm0,YMMWORD PTR [rax+0xa0]
+     981:	c5 fc 58 81 a0 00 00 00 	vaddps ymm0,ymm0,YMMWORD PTR [rcx+0xa0]
+     989:	c5 fc 11 81 a0 00 00 00 	vmovups YMMWORD PTR [rcx+0xa0],ymm0
+     991:	c5 fc 10 80 c0 00 00 00 	vmovups ymm0,YMMWORD PTR [rax+0xc0]
+     999:	c5 fc 58 81 c0 00 00 00 	vaddps ymm0,ymm0,YMMWORD PTR [rcx+0xc0]
+     9a1:	c5 fc 11 81 c0 00 00 00 	vmovups YMMWORD PTR [rcx+0xc0],ymm0
+     9a9:	c5 fc 10 80 e0 00 00 00 	vmovups ymm0,YMMWORD PTR [rax+0xe0]
+     9b1:	c5 fc 58 81 e0 00 00 00 	vaddps ymm0,ymm0,YMMWORD PTR [rcx+0xe0]
+     9b9:	c5 fc 11 81 e0 00 00 00 	vmovups YMMWORD PTR [rcx+0xe0],ymm0
+     9c1:	c5 fc 10 80 00 01 00 00 	vmovups ymm0,YMMWORD PTR [rax+0x100]
+     9c9:	c5 fc 58 81 00 01 00 00 	vaddps ymm0,ymm0,YMMWORD PTR [rcx+0x100]
+     9d1:	c5 fc 11 81 00 01 00 00 	vmovups YMMWORD PTR [rcx+0x100],ymm0
+     9d9:	c5 fc 10 80 20 01 00 00 	vmovups ymm0,YMMWORD PTR [rax+0x120]
+     9e1:	c5 fc 58 81 20 01 00 00 	vaddps ymm0,ymm0,YMMWORD PTR [rcx+0x120]
+     9e9:	c5 fc 11 81 20 01 00 00 	vmovups YMMWORD PTR [rcx+0x120],ymm0
+     9f1:	c5 fc 10 80 40 01 00 00 	vmovups ymm0,YMMWORD PTR [rax+0x140]
+     9f9:	c5 fc 58 81 40 01 00 00 	vaddps ymm0,ymm0,YMMWORD PTR [rcx+0x140]
+     a01:	c5 fc 11 81 40 01 00 00 	vmovups YMMWORD PTR [rcx+0x140],ymm0
+     a09:	c5 fc 10 80 60 01 00 00 	vmovups ymm0,YMMWORD PTR [rax+0x160]
+     a11:	c5 fc 58 81 60 01 00 00 	vaddps ymm0,ymm0,YMMWORD PTR [rcx+0x160]
+     a19:	c5 fc 11 81 60 01 00 00 	vmovups YMMWORD PTR [rcx+0x160],ymm0
+     a21:	c5 fc 10 80 80 01 00 00 	vmovups ymm0,YMMWORD PTR [rax+0x180]
+     a29:	c5 fc 58 81 80 01 00 00 	vaddps ymm0,ymm0,YMMWORD PTR [rcx+0x180]
+     a31:	c5 fc 11 81 80 01 00 00 	vmovups YMMWORD PTR [rcx+0x180],ymm0
+     a39:	c5 fc 10 80 a0 01 00 00 	vmovups ymm0,YMMWORD PTR [rax+0x1a0]
+     a41:	c5 fc 58 81 a0 01 00 00 	vaddps ymm0,ymm0,YMMWORD PTR [rcx+0x1a0]
+     a49:	c5 fc 11 81 a0 01 00 00 	vmovups YMMWORD PTR [rcx+0x1a0],ymm0
+     a51:	c5 fc 10 80 c0 01 00 00 	vmovups ymm0,YMMWORD PTR [rax+0x1c0]
+     a59:	c5 fc 58 81 c0 01 00 00 	vaddps ymm0,ymm0,YMMWORD PTR [rcx+0x1c0]
+     a61:	c5 fc 11 81 c0 01 00 00 	vmovups YMMWORD PTR [rcx+0x1c0],ymm0
+     a69:	c5 fc 10 81 e0 01 00 00 	vmovups ymm0,YMMWORD PTR [rcx+0x1e0]
+     a71:	c5 fc 58 80 e0 01 00 00 	vaddps ymm0,ymm0,YMMWORD PTR [rax+0x1e0]
+     a79:	c5 fc 11 81 e0 01 00 00 	vmovups YMMWORD PTR [rcx+0x1e0],ymm0
+     a81:	49 83 c0 08          	add    r8,0x8
+     a85:	4d 39 e0             	cmp    r8,r12
+     a88:	0f 85 f2 fd ff ff    	jne    880 <forge::nnue::update(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&)+0xc0>
+     a8e:	4c 8b 6c 24 48       	mov    r13,QWORD PTR [rsp+0x48]
+     a93:	c5 f8 77             	vzeroupper
+     a96:	49 83 c5 04          	add    r13,0x4
+     a9a:	4c 39 6c 24 38       	cmp    QWORD PTR [rsp+0x38],r13
+     a9f:	0f 85 81 fd ff ff    	jne    826 <forge::nnue::update(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&)+0x66>
+     aa5:	41 c6 87 00 04 00 00 01 	mov    BYTE PTR [r15+0x400],0x1
+     aad:	48 8d 65 d8          	lea    rsp,[rbp-0x28]
+     ab1:	5b                   	pop    rbx
+     ab2:	41 5c                	pop    r12
+     ab4:	41 5d                	pop    r13
+     ab6:	41 5e                	pop    r14
+     ab8:	41 5f                	pop    r15
+     aba:	5d                   	pop    rbp
+     abb:	c3                   	ret
+     abc:	48 83 fe 18          	cmp    rsi,0x18
+     ac0:	0f 86 9b 01 00 00    	jbe    c61 <forge::nnue::update(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&)+0x4a1>
+     ac6:	49 8d 04 11          	lea    rax,[r9+rdx*1]
+     aca:	c5 fc 10 01          	vmovups ymm0,YMMWORD PTR [rcx]
+     ace:	c5 fc 5c 00          	vsubps ymm0,ymm0,YMMWORD PTR [rax]
+     ad2:	c5 fc 11 01          	vmovups YMMWORD PTR [rcx],ymm0
+     ad6:	c5 fc 10 41 20       	vmovups ymm0,YMMWORD PTR [rcx+0x20]
+     adb:	c5 fc 5c 40 20       	vsubps ymm0,ymm0,YMMWORD PTR [rax+0x20]
+     ae0:	c5 fc 11 41 20       	vmovups YMMWORD PTR [rcx+0x20],ymm0
+     ae5:	c5 fc 10 41 40       	vmovups ymm0,YMMWORD PTR [rcx+0x40]
+     aea:	c5 fc 5c 40 40       	vsubps ymm0,ymm0,YMMWORD PTR [rax+0x40]
+     aef:	c5 fc 11 41 40       	vmovups YMMWORD PTR [rcx+0x40],ymm0
+     af4:	c5 fc 10 41 60       	vmovups ymm0,YMMWORD PTR [rcx+0x60]
+     af9:	c5 fc 5c 40 60       	vsubps ymm0,ymm0,YMMWORD PTR [rax+0x60]
+     afe:	c5 fc 11 41 60       	vmovups YMMWORD PTR [rcx+0x60],ymm0
+     b03:	c5 fc 10 81 80 00 00 00 	vmovups ymm0,YMMWORD PTR [rcx+0x80]
+     b0b:	c5 fc 5c 80 80 00 00 00 	vsubps ymm0,ymm0,YMMWORD PTR [rax+0x80]
+     b13:	c5 fc 11 81 80 00 00 00 	vmovups YMMWORD PTR [rcx+0x80],ymm0
+     b1b:	c5 fc 10 81 a0 00 00 00 	vmovups ymm0,YMMWORD PTR [rcx+0xa0]
+     b23:	c5 fc 5c 80 a0 00 00 00 	vsubps ymm0,ymm0,YMMWORD PTR [rax+0xa0]
+     b2b:	c5 fc 11 81 a0 00 00 00 	vmovups YMMWORD PTR [rcx+0xa0],ymm0
+     b33:	c5 fc 10 81 c0 00 00 00 	vmovups ymm0,YMMWORD PTR [rcx+0xc0]
+     b3b:	c5 fc 5c 80 c0 00 00 00 	vsubps ymm0,ymm0,YMMWORD PTR [rax+0xc0]
+     b43:	c5 fc 11 81 c0 00 00 00 	vmovups YMMWORD PTR [rcx+0xc0],ymm0
+     b4b:	c5 fc 10 81 e0 00 00 00 	vmovups ymm0,YMMWORD PTR [rcx+0xe0]
+     b53:	c5 fc 5c 80 e0 00 00 00 	vsubps ymm0,ymm0,YMMWORD PTR [rax+0xe0]
+     b5b:	c5 fc 11 81 e0 00 00 00 	vmovups YMMWORD PTR [rcx+0xe0],ymm0
+     b63:	c5 fc 10 81 00 01 00 00 	vmovups ymm0,YMMWORD PTR [rcx+0x100]
+     b6b:	c5 fc 5c 80 00 01 00 00 	vsubps ymm0,ymm0,YMMWORD PTR [rax+0x100]
+     b73:	c5 fc 11 81 00 01 00 00 	vmovups YMMWORD PTR [rcx+0x100],ymm0
+     b7b:	c5 fc 10 81 20 01 00 00 	vmovups ymm0,YMMWORD PTR [rcx+0x120]
+     b83:	c5 fc 5c 80 20 01 00 00 	vsubps ymm0,ymm0,YMMWORD PTR [rax+0x120]
+     b8b:	c5 fc 11 81 20 01 00 00 	vmovups YMMWORD PTR [rcx+0x120],ymm0
+     b93:	c5 fc 10 81 40 01 00 00 	vmovups ymm0,YMMWORD PTR [rcx+0x140]
+     b9b:	c5 fc 5c 80 40 01 00 00 	vsubps ymm0,ymm0,YMMWORD PTR [rax+0x140]
+     ba3:	c5 fc 11 81 40 01 00 00 	vmovups YMMWORD PTR [rcx+0x140],ymm0
+     bab:	c5 fc 10 81 60 01 00 00 	vmovups ymm0,YMMWORD PTR [rcx+0x160]
+     bb3:	c5 fc 5c 80 60 01 00 00 	vsubps ymm0,ymm0,YMMWORD PTR [rax+0x160]
+     bbb:	c5 fc 11 81 60 01 00 00 	vmovups YMMWORD PTR [rcx+0x160],ymm0
+     bc3:	c5 fc 10 81 80 01 00 00 	vmovups ymm0,YMMWORD PTR [rcx+0x180]
+     bcb:	c5 fc 5c 80 80 01 00 00 	vsubps ymm0,ymm0,YMMWORD PTR [rax+0x180]
+     bd3:	c5 fc 11 81 80 01 00 00 	vmovups YMMWORD PTR [rcx+0x180],ymm0
+     bdb:	c5 fc 10 81 a0 01 00 00 	vmovups ymm0,YMMWORD PTR [rcx+0x1a0]
+     be3:	c5 fc 5c 80 a0 01 00 00 	vsubps ymm0,ymm0,YMMWORD PTR [rax+0x1a0]
+     beb:	c5 fc 11 81 a0 01 00 00 	vmovups YMMWORD PTR [rcx+0x1a0],ymm0
+     bf3:	c5 fc 10 81 c0 01 00 00 	vmovups ymm0,YMMWORD PTR [rcx+0x1c0]
+     bfb:	c5 fc 5c 80 c0 01 00 00 	vsubps ymm0,ymm0,YMMWORD PTR [rax+0x1c0]
+     c03:	c5 fc 11 81 c0 01 00 00 	vmovups YMMWORD PTR [rcx+0x1c0],ymm0
+     c0b:	c5 fc 10 81 e0 01 00 00 	vmovups ymm0,YMMWORD PTR [rcx+0x1e0]
+     c13:	c5 fc 5c 80 e0 01 00 00 	vsubps ymm0,ymm0,YMMWORD PTR [rax+0x1e0]
+     c1b:	c5 fc 11 81 e0 01 00 00 	vmovups YMMWORD PTR [rcx+0x1e0],ymm0
+     c23:	e9 59 fe ff ff       	jmp    a81 <forge::nnue::update(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&)+0x2c1>
+     c28:	49 63 d2             	movsxd rdx,r10d
+     c2b:	e9 6f fc ff ff       	jmp    89f <forge::nnue::update(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&)+0xdf>
+     c30:	31 d2                	xor    edx,edx
+     c32:	66 66 2e 0f 1f 84 00 00 00 00 00 	data16 cs nop WORD PTR [rax+rax*1+0x0]
+     c3d:	0f 1f 00             	nop    DWORD PTR [rax]
+     c40:	c5 fa 10 04 11       	vmovss xmm0,DWORD PTR [rcx+rdx*1]
+     c45:	c5 fa 58 04 10       	vaddss xmm0,xmm0,DWORD PTR [rax+rdx*1]
+     c4a:	c5 fa 11 04 11       	vmovss DWORD PTR [rcx+rdx*1],xmm0
+     c4f:	48 83 c2 04          	add    rdx,0x4
+     c53:	48 81 fa 00 02 00 00 	cmp    rdx,0x200
+     c5a:	75 e4                	jne    c40 <forge::nnue::update(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&)+0x480>
+     c5c:	e9 20 fe ff ff       	jmp    a81 <forge::nnue::update(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&)+0x2c1>
+     c61:	31 d2                	xor    edx,edx
+     c63:	66 66 2e 0f 1f 84 00 00 00 00 00 	data16 cs nop WORD PTR [rax+rax*1+0x0]
+     c6e:	66 66 2e 0f 1f 84 00 00 00 00 00 	data16 cs nop WORD PTR [rax+rax*1+0x0]
+     c79:	0f 1f 80 00 00 00 00 	nop    DWORD PTR [rax+0x0]
+     c80:	c5 fa 10 04 11       	vmovss xmm0,DWORD PTR [rcx+rdx*1]
+     c85:	c5 fa 5c 04 10       	vsubss xmm0,xmm0,DWORD PTR [rax+rdx*1]
+     c8a:	c5 fa 11 04 11       	vmovss DWORD PTR [rcx+rdx*1],xmm0
+     c8f:	48 83 c2 04          	add    rdx,0x4
+     c93:	48 81 fa 00 02 00 00 	cmp    rdx,0x200
+     c9a:	75 e4                	jne    c80 <forge::nnue::update(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&)+0x4c0>
+     c9c:	e9 e0 fd ff ff       	jmp    a81 <forge::nnue::update(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&)+0x2c1>
+     ca1:	80 7e 05 00          	cmp    BYTE PTR [rsi+0x5],0x0
+     ca5:	0f 85 50 fb ff ff    	jne    7fb <forge::nnue::update(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&)+0x3b>
+     cab:	80 7e 0d 00          	cmp    BYTE PTR [rsi+0xd],0x0
+     caf:	0f 84 46 fb ff ff    	je     7fb <forge::nnue::update(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&)+0x3b>
+     cb5:	48 8b 05 00 00 00 00 	mov    rax,QWORD PTR [rip+0x0]        # cbc <forge::nnue::update(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&)+0x4fc>	cb8: R_X86_64_PC32	.LC52-0x4
+     cbc:	0f b6 5e 04          	movzx  ebx,BYTE PTR [rsi+0x4]
+     cc0:	44 0f b6 56 0c       	movzx  r10d,BYTE PTR [rsi+0xc]
+     cc5:	4c 8d 5c 24 58       	lea    r11,[rsp+0x58]
+     cca:	48 89 44 24 58       	mov    QWORD PTR [rsp+0x58],rax
+     ccf:	48 8b 44 24 40       	mov    rax,QWORD PTR [rsp+0x40]
+     cd4:	88 5c 24 33          	mov    BYTE PTR [rsp+0x33],bl
+     cd8:	83 f3 38             	xor    ebx,0x38
+     cdb:	44 88 54 24 32       	mov    BYTE PTR [rsp+0x32],r10b
+     ce0:	41 83 f2 38          	xor    r10d,0x38
+     ce4:	88 5c 24 30          	mov    BYTE PTR [rsp+0x30],bl
+     ce8:	44 88 54 24 31       	mov    BYTE PTR [rsp+0x31],r10b
+     ced:	4c 8b 28             	mov    r13,QWORD PTR [rax]
+     cf0:	8b 06                	mov    eax,DWORD PTR [rsi]
+     cf2:	8d 50 ff             	lea    edx,[rax-0x1]
+     cf5:	89 44 24 48          	mov    DWORD PTR [rsp+0x48],eax
+     cf9:	48 63 c2             	movsxd rax,edx
+     cfc:	89 d1                	mov    ecx,edx
+     cfe:	c1 f9 1f             	sar    ecx,0x1f
+     d01:	48 69 c0 ab aa aa 2a 	imul   rax,rax,0x2aaaaaab
+     d08:	48 c1 e8 20          	shr    rax,0x20
+     d0c:	89 c7                	mov    edi,eax
+     d0e:	29 cf                	sub    edi,ecx
+     d10:	8d 04 7f             	lea    eax,[rdi+rdi*2]
+     d13:	01 c0                	add    eax,eax
+     d15:	89 d7                	mov    edi,edx
+     d17:	29 c7                	sub    edi,eax
+     d19:	8b 46 08             	mov    eax,DWORD PTR [rsi+0x8]
+     d1c:	8d 50 ff             	lea    edx,[rax-0x1]
+     d1f:	89 44 24 40          	mov    DWORD PTR [rsp+0x40],eax
+     d23:	48 63 c2             	movsxd rax,edx
+     d26:	89 d1                	mov    ecx,edx
+     d28:	c1 f9 1f             	sar    ecx,0x1f
+     d2b:	48 69 c0 ab aa aa 2a 	imul   rax,rax,0x2aaaaaab
+     d32:	48 c1 e8 20          	shr    rax,0x20
+     d36:	89 c3                	mov    ebx,eax
+     d38:	29 cb                	sub    ebx,ecx
+     d3a:	8d 04 5b             	lea    eax,[rbx+rbx*2]
+     d3d:	01 c0                	add    eax,eax
+     d3f:	89 d3                	mov    ebx,edx
+     d41:	29 c3                	sub    ebx,eax
+     d43:	48 8d 44 24 60       	lea    rax,[rsp+0x60]
+     d48:	48 89 44 24 18       	mov    QWORD PTR [rsp+0x18],rax
+     d4d:	49 63 03             	movsxd rax,DWORD PTR [r11]
+     d50:	83 7c 24 48 06       	cmp    DWORD PTR [rsp+0x48],0x6
+     d55:	48 89 c6             	mov    rsi,rax
+     d58:	0f 8e fb 02 00 00    	jle    1059 <forge::nnue::update(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&)+0x899>
+     d5e:	31 c9                	xor    ecx,ecx
+     d60:	83 f8 01             	cmp    eax,0x1
+     d63:	0f 95 c1             	setne  cl
+     d66:	41 89 fa             	mov    r10d,edi
+     d69:	0f b6 54 24 33       	movzx  edx,BYTE PTR [rsp+0x33]
+     d6e:	44 0f b6 4c 24 30    	movzx  r9d,BYTE PTR [rsp+0x30]
+     d74:	85 f6                	test   esi,esi
+     d76:	41 0f 45 d1          	cmovne edx,r9d
+     d7a:	83 7c 24 40 06       	cmp    DWORD PTR [rsp+0x40],0x6
+     d7f:	88 54 24 38          	mov    BYTE PTR [rsp+0x38],dl
+     d83:	0f 8e f0 02 00 00    	jle    1079 <forge::nnue::update(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&)+0x8b9>
+     d89:	31 d2                	xor    edx,edx
+     d8b:	83 fe 01             	cmp    esi,0x1
+     d8e:	0f 95 c2             	setne  dl
+     d91:	41 89 d9             	mov    r9d,ebx
+     d94:	85 f6                	test   esi,esi
+     d96:	44 0f b6 44 24 31    	movzx  r8d,BYTE PTR [rsp+0x31]
+     d9c:	0f b6 74 24 32       	movzx  esi,BYTE PTR [rsp+0x32]
+     da1:	4d 63 e2             	movsxd r12,r10d
+     da4:	41 0f 45 f0          	cmovne esi,r8d
+     da8:	4c 63 c1             	movsxd r8,ecx
+     dab:	49 f7 d8             	neg    r8
+     dae:	40 88 74 24 34       	mov    BYTE PTR [rsp+0x34],sil
+     db3:	41 83 e0 06          	and    r8d,0x6
+     db7:	4d 01 e0             	add    r8,r12
+     dba:	44 0f b6 64 24 38    	movzx  r12d,BYTE PTR [rsp+0x38]
+     dc0:	49 c1 e0 06          	shl    r8,0x6
+     dc4:	48 c1 e0 09          	shl    rax,0x9
+     dc8:	4d 01 e0             	add    r8,r12
+     dcb:	4d 63 e1             	movsxd r12,r9d
+     dce:	49 8d 34 07          	lea    rsi,[r15+rax*1]
+     dd2:	49 c1 e0 09          	shl    r8,0x9
+     dd6:	4c 89 44 24 20       	mov    QWORD PTR [rsp+0x20],r8
+     ddb:	4c 63 c2             	movsxd r8,edx
+     dde:	49 f7 d8             	neg    r8
+     de1:	41 83 e0 06          	and    r8d,0x6
+     de5:	4d 01 e0             	add    r8,r12
+     de8:	44 0f b6 64 24 34    	movzx  r12d,BYTE PTR [rsp+0x34]
+     dee:	49 c1 e0 06          	shl    r8,0x6
+     df2:	4d 01 e0             	add    r8,r12
+     df5:	4d 89 c4             	mov    r12,r8
+     df8:	49 c1 e4 09          	shl    r12,0x9
+     dfc:	4c 89 64 24 28       	mov    QWORD PTR [rsp+0x28],r12
+     e01:	4f 8d 64 25 04       	lea    r12,[r13+r12*1+0x4]
+     e06:	49 89 f0             	mov    r8,rsi
+     e09:	4d 29 e0             	sub    r8,r12
+     e0c:	49 83 f8 18          	cmp    r8,0x18
+     e10:	0f 86 83 02 00 00    	jbe    1099 <forge::nnue::update(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&)+0x8d9>
+     e16:	4c 8b 44 24 20       	mov    r8,QWORD PTR [rsp+0x20]
+     e1b:	4f 8d 64 05 04       	lea    r12,[r13+r8*1+0x4]
+     e20:	49 89 f0             	mov    r8,rsi
+     e23:	4d 29 e0             	sub    r8,r12
+     e26:	49 83 f8 18          	cmp    r8,0x18
+     e2a:	0f 86 69 02 00 00    	jbe    1099 <forge::nnue::update(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&)+0x8d9>
+     e30:	4c 8b 44 24 20       	mov    r8,QWORD PTR [rsp+0x20]
+     e35:	4c 8b 64 24 28       	mov    r12,QWORD PTR [rsp+0x28]
+     e3a:	4c 01 f0             	add    rax,r14
+     e3d:	c5 fc 10 00          	vmovups ymm0,YMMWORD PTR [rax]
+     e41:	4d 01 e8             	add    r8,r13
+     e44:	4d 01 ec             	add    r12,r13
+     e47:	c4 c1 7c 5c 00       	vsubps ymm0,ymm0,YMMWORD PTR [r8]
+     e4c:	c4 c1 7c 58 04 24    	vaddps ymm0,ymm0,YMMWORD PTR [r12]
+     e52:	c5 fc 11 06          	vmovups YMMWORD PTR [rsi],ymm0
+     e56:	c5 fc 10 40 20       	vmovups ymm0,YMMWORD PTR [rax+0x20]
+     e5b:	c4 c1 7c 5c 40 20    	vsubps ymm0,ymm0,YMMWORD PTR [r8+0x20]
+     e61:	c4 c1 7c 58 44 24 20 	vaddps ymm0,ymm0,YMMWORD PTR [r12+0x20]
+     e68:	c5 fc 11 46 20       	vmovups YMMWORD PTR [rsi+0x20],ymm0
+     e6d:	c5 fc 10 40 40       	vmovups ymm0,YMMWORD PTR [rax+0x40]
+     e72:	c4 c1 7c 5c 40 40    	vsubps ymm0,ymm0,YMMWORD PTR [r8+0x40]
+     e78:	c4 c1 7c 58 44 24 40 	vaddps ymm0,ymm0,YMMWORD PTR [r12+0x40]
+     e7f:	c5 fc 11 46 40       	vmovups YMMWORD PTR [rsi+0x40],ymm0
+     e84:	c5 fc 10 40 60       	vmovups ymm0,YMMWORD PTR [rax+0x60]
+     e89:	c4 c1 7c 5c 40 60    	vsubps ymm0,ymm0,YMMWORD PTR [r8+0x60]
+     e8f:	c4 c1 7c 58 44 24 60 	vaddps ymm0,ymm0,YMMWORD PTR [r12+0x60]
+     e96:	c5 fc 11 46 60       	vmovups YMMWORD PTR [rsi+0x60],ymm0
+     e9b:	c5 fc 10 80 80 00 00 00 	vmovups ymm0,YMMWORD PTR [rax+0x80]
+     ea3:	c4 c1 7c 5c 80 80 00 00 00 	vsubps ymm0,ymm0,YMMWORD PTR [r8+0x80]
+     eac:	c4 c1 7c 58 84 24 80 00 00 00 	vaddps ymm0,ymm0,YMMWORD PTR [r12+0x80]
+     eb6:	c5 fc 11 86 80 00 00 00 	vmovups YMMWORD PTR [rsi+0x80],ymm0
+     ebe:	c5 fc 10 80 a0 00 00 00 	vmovups ymm0,YMMWORD PTR [rax+0xa0]
+     ec6:	c4 c1 7c 5c 80 a0 00 00 00 	vsubps ymm0,ymm0,YMMWORD PTR [r8+0xa0]
+     ecf:	c4 c1 7c 58 84 24 a0 00 00 00 	vaddps ymm0,ymm0,YMMWORD PTR [r12+0xa0]
+     ed9:	c5 fc 11 86 a0 00 00 00 	vmovups YMMWORD PTR [rsi+0xa0],ymm0
+     ee1:	c5 fc 10 80 c0 00 00 00 	vmovups ymm0,YMMWORD PTR [rax+0xc0]
+     ee9:	c4 c1 7c 5c 80 c0 00 00 00 	vsubps ymm0,ymm0,YMMWORD PTR [r8+0xc0]
+     ef2:	c4 c1 7c 58 84 24 c0 00 00 00 	vaddps ymm0,ymm0,YMMWORD PTR [r12+0xc0]
+     efc:	c5 fc 11 86 c0 00 00 00 	vmovups YMMWORD PTR [rsi+0xc0],ymm0
+     f04:	c5 fc 10 80 e0 00 00 00 	vmovups ymm0,YMMWORD PTR [rax+0xe0]
+     f0c:	c4 c1 7c 5c 80 e0 00 00 00 	vsubps ymm0,ymm0,YMMWORD PTR [r8+0xe0]
+     f15:	c4 c1 7c 58 84 24 e0 00 00 00 	vaddps ymm0,ymm0,YMMWORD PTR [r12+0xe0]
+     f1f:	c5 fc 11 86 e0 00 00 00 	vmovups YMMWORD PTR [rsi+0xe0],ymm0
+     f27:	c5 fc 10 80 00 01 00 00 	vmovups ymm0,YMMWORD PTR [rax+0x100]
+     f2f:	c4 c1 7c 5c 80 00 01 00 00 	vsubps ymm0,ymm0,YMMWORD PTR [r8+0x100]
+     f38:	c4 c1 7c 58 84 24 00 01 00 00 	vaddps ymm0,ymm0,YMMWORD PTR [r12+0x100]
+     f42:	c5 fc 11 86 00 01 00 00 	vmovups YMMWORD PTR [rsi+0x100],ymm0
+     f4a:	c5 fc 10 80 20 01 00 00 	vmovups ymm0,YMMWORD PTR [rax+0x120]
+     f52:	c4 c1 7c 5c 80 20 01 00 00 	vsubps ymm0,ymm0,YMMWORD PTR [r8+0x120]
+     f5b:	c4 c1 7c 58 84 24 20 01 00 00 	vaddps ymm0,ymm0,YMMWORD PTR [r12+0x120]
+     f65:	c5 fc 11 86 20 01 00 00 	vmovups YMMWORD PTR [rsi+0x120],ymm0
+     f6d:	c5 fc 10 80 40 01 00 00 	vmovups ymm0,YMMWORD PTR [rax+0x140]
+     f75:	c4 c1 7c 5c 80 40 01 00 00 	vsubps ymm0,ymm0,YMMWORD PTR [r8+0x140]
+     f7e:	c4 c1 7c 58 84 24 40 01 00 00 	vaddps ymm0,ymm0,YMMWORD PTR [r12+0x140]
+     f88:	c5 fc 11 86 40 01 00 00 	vmovups YMMWORD PTR [rsi+0x140],ymm0
+     f90:	c5 fc 10 80 60 01 00 00 	vmovups ymm0,YMMWORD PTR [rax+0x160]
+     f98:	c4 c1 7c 5c 80 60 01 00 00 	vsubps ymm0,ymm0,YMMWORD PTR [r8+0x160]
+     fa1:	c4 c1 7c 58 84 24 60 01 00 00 	vaddps ymm0,ymm0,YMMWORD PTR [r12+0x160]
+     fab:	c5 fc 11 86 60 01 00 00 	vmovups YMMWORD PTR [rsi+0x160],ymm0
+     fb3:	c5 fc 10 80 80 01 00 00 	vmovups ymm0,YMMWORD PTR [rax+0x180]
+     fbb:	c4 c1 7c 5c 80 80 01 00 00 	vsubps ymm0,ymm0,YMMWORD PTR [r8+0x180]
+     fc4:	c4 c1 7c 58 84 24 80 01 00 00 	vaddps ymm0,ymm0,YMMWORD PTR [r12+0x180]
+     fce:	c5 fc 11 86 80 01 00 00 	vmovups YMMWORD PTR [rsi+0x180],ymm0
+     fd6:	c5 fc 10 80 a0 01 00 00 	vmovups ymm0,YMMWORD PTR [rax+0x1a0]
+     fde:	c4 c1 7c 5c 80 a0 01 00 00 	vsubps ymm0,ymm0,YMMWORD PTR [r8+0x1a0]
+     fe7:	c4 c1 7c 58 84 24 a0 01 00 00 	vaddps ymm0,ymm0,YMMWORD PTR [r12+0x1a0]
+     ff1:	c5 fc 11 86 a0 01 00 00 	vmovups YMMWORD PTR [rsi+0x1a0],ymm0
+     ff9:	c5 fc 10 80 c0 01 00 00 	vmovups ymm0,YMMWORD PTR [rax+0x1c0]
+    1001:	c4 c1 7c 5c 80 c0 01 00 00 	vsubps ymm0,ymm0,YMMWORD PTR [r8+0x1c0]
+    100a:	c4 c1 7c 58 84 24 c0 01 00 00 	vaddps ymm0,ymm0,YMMWORD PTR [r12+0x1c0]
+    1014:	c5 fc 11 86 c0 01 00 00 	vmovups YMMWORD PTR [rsi+0x1c0],ymm0
+    101c:	c5 fc 10 80 e0 01 00 00 	vmovups ymm0,YMMWORD PTR [rax+0x1e0]
+    1024:	c4 c1 7c 5c 80 e0 01 00 00 	vsubps ymm0,ymm0,YMMWORD PTR [r8+0x1e0]
+    102d:	c4 c1 7c 58 84 24 e0 01 00 00 	vaddps ymm0,ymm0,YMMWORD PTR [r12+0x1e0]
+    1037:	c5 fc 11 86 e0 01 00 00 	vmovups YMMWORD PTR [rsi+0x1e0],ymm0
+    103f:	48 8b 44 24 18       	mov    rax,QWORD PTR [rsp+0x18]
+    1044:	49 83 c3 04          	add    r11,0x4
+    1048:	49 39 c3             	cmp    r11,rax
+    104b:	0f 85 fc fc ff ff    	jne    d4d <forge::nnue::update(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&)+0x58d>
+    1051:	c5 f8 77             	vzeroupper
+    1054:	e9 4c fa ff ff       	jmp    aa5 <forge::nnue::update(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&)+0x2e5>
+    1059:	44 8b 4c 24 48       	mov    r9d,DWORD PTR [rsp+0x48]
+    105e:	31 c9                	xor    ecx,ecx
+    1060:	85 c0                	test   eax,eax
+    1062:	41 ba ff ff ff ff    	mov    r10d,0xffffffff
+    1068:	0f 95 c1             	setne  cl
+    106b:	45 85 c9             	test   r9d,r9d
+    106e:	0f 84 f5 fc ff ff    	je     d69 <forge::nnue::update(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&)+0x5a9>
+    1074:	e9 ed fc ff ff       	jmp    d66 <forge::nnue::update(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&)+0x5a6>
+    1079:	44 8b 44 24 40       	mov    r8d,DWORD PTR [rsp+0x40]
+    107e:	31 d2                	xor    edx,edx
+    1080:	85 f6                	test   esi,esi
+    1082:	41 b9 ff ff ff ff    	mov    r9d,0xffffffff
+    1088:	0f 95 c2             	setne  dl
+    108b:	45 85 c0             	test   r8d,r8d
+    108e:	0f 84 00 fd ff ff    	je     d94 <forge::nnue::update(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&)+0x5d4>
+    1094:	e9 f8 fc ff ff       	jmp    d91 <forge::nnue::update(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&)+0x5d1>
+    1099:	44 0f b6 44 24 38    	movzx  r8d,BYTE PTR [rsp+0x38]
+    109f:	f7 d9                	neg    ecx
+    10a1:	f7 da                	neg    edx
+    10a3:	48 8d b0 00 02 00 00 	lea    rsi,[rax+0x200]
+    10aa:	83 e1 06             	and    ecx,0x6
+    10ad:	83 e2 06             	and    edx,0x6
+    10b0:	44 01 d1             	add    ecx,r10d
+    10b3:	44 01 ca             	add    edx,r9d
+    10b6:	c1 e1 06             	shl    ecx,0x6
+    10b9:	44 01 c1             	add    ecx,r8d
+    10bc:	44 0f b6 44 24 34    	movzx  r8d,BYTE PTR [rsp+0x34]
+    10c2:	48 63 c9             	movsxd rcx,ecx
+    10c5:	c1 e2 06             	shl    edx,0x6
+    10c8:	48 c1 e1 09          	shl    rcx,0x9
+    10cc:	44 01 c2             	add    edx,r8d
+    10cf:	48 29 c1             	sub    rcx,rax
+    10d2:	48 63 d2             	movsxd rdx,edx
+    10d5:	4c 01 e9             	add    rcx,r13
+    10d8:	48 c1 e2 09          	shl    rdx,0x9
+    10dc:	48 29 c2             	sub    rdx,rax
+    10df:	4c 01 ea             	add    rdx,r13
+    10e2:	c4 c1 7a 10 04 06    	vmovss xmm0,DWORD PTR [r14+rax*1]
+    10e8:	c5 fa 5c 04 01       	vsubss xmm0,xmm0,DWORD PTR [rcx+rax*1]
+    10ed:	c5 fa 58 04 02       	vaddss xmm0,xmm0,DWORD PTR [rdx+rax*1]
+    10f2:	c4 c1 7a 11 04 07    	vmovss DWORD PTR [r15+rax*1],xmm0
+    10f8:	48 83 c0 04          	add    rax,0x4
+    10fc:	48 39 f0             	cmp    rax,rsi
+    10ff:	75 e1                	jne    10e2 <forge::nnue::update(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&)+0x922>
+    1101:	e9 39 ff ff ff       	jmp    103f <forge::nnue::update(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&)+0x87f>
+    1106:	66 2e 0f 1f 84 00 00 00 00 00 	cs nop WORD PTR [rax+rax*1+0x0]
+

@@ -1,6 +1,6 @@
 # Experiment ledger
 
-The authoritative [machine ledger](../validation/EXPERIMENTS.json) preserves 78 experiments, exact inputs, hashes, settings, failures and evidence links. This is the concise reading index as of 2026-10-19.
+The authoritative [machine ledger](../validation/EXPERIMENTS.json) preserves 80 experiments, exact inputs, hashes, settings, failures and evidence links. This is the concise reading index as of 2026-10-19.
 
 | Experiment | Observed result | Acceptance scope |
 | --- | --- | --- |
@@ -32,3 +32,7 @@ Hosted647final:147normalrecords(W/D/L62/43/42),73completepairs+oneorphan;16minca
 6.4.9 external-book control (`4edda780`): actual parent RED and five-transition candidate GREEN; Release9/9,ASan/UBSan9/9,exact parent parity. Eight Wine checks and independent artifact audit pass. No NPS/Elo claim. [Evidence](../validation/ownbook-control-20261019/STATUS.md).
 
 Fresh 647-versus-644 confirmation was preregistered and pushed once at `f1b44cc`: [0,+10] SPRT, 160 natural pairs, disjoint openings, retained actual binaries/UCI exchanges/final rehash. Outcome pending; prior attempt is never pooled.
+
+6.4.10 NNUE fusion (`36f5b2f`): Release9/9, exact4.1MB update/21.2MB NNUE streams, six cold/warm parent search cases passed. ASan9/9+ASanstream,8Winechecks+bothWindowsstreams and independent audit pass; SSEstream matches too. Independent-host primaryAAfailed; noAB/kernel. NoNPS/Elogain.
+
+Hosted NNUE performance39334266771: allsource/build checks passed, but twelve same-binary primaryAAprocesses failed the strict3%gate (maximum wallratio1.04843). No A/B or kernel comparison ran. Final frozenhashes pass; originalsource/executables/results preserved on the immutable results branch. No retry or speed claim.

@@ -1,0 +1,33 @@
+{
+  "created_utc": "2026-10-19T22:14:46.856107+00:00",
+  "source_and_tests_commit": "36f5b2f6e1ff519e82a4b52edc85caceaf15aed0",
+  "source_directory": "/workspace/.cloud-setup/forge-windows-nnue-update-source",
+  "build_directory": "/workspace/.cloud-setup/forge-windows-nnue-update",
+  "commands": [
+    [
+      "/workspace/.cloud-setup/venv/bin/cmake",
+      "-S",
+      "/workspace/.cloud-setup/forge-windows-nnue-update-source",
+      "-B",
+      "/workspace/.cloud-setup/forge-windows-nnue-update",
+      "-DCMAKE_BUILD_TYPE=Release",
+      "-DCMAKE_TOOLCHAIN_FILE=/workspace/.cloud-setup/forge-windows-nnue-update-source/tools/windows-zen5.cmake",
+      "-DCMAKE_EXPORT_COMPILE_COMMANDS=ON"
+    ],
+    [
+      "/workspace/.cloud-setup/venv/bin/cmake",
+      "--build",
+      "/workspace/.cloud-setup/forge-windows-nnue-update",
+      "--parallel",
+      "2"
+    ]
+  ],
+  "environment_subset": {
+    "LLVM_MINGW_ROOT": "/workspace/.cloud-setup/toolchains/llvm-mingw-20261006-ucrt-ubuntu-22.04-x86_64",
+    "PYTHONDONTWRITEBYTECODE": "1"
+  },
+  "configuration": "Release -march=znver5 -mtune=znver5 -fno-fast-math -ffp-contract=off -static",
+  "parallel_jobs": 2,
+  "runtime_checks": "pending",
+  "scope": "Build only; no performance/strength result"
+}

@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "updated_utc": "2026-10-19T22:20:39.643067+00:00",
+  "updated_utc": "2026-10-19T22:28:17.754221+00:00",
   "project": "Forge",
   "target": "Native Windows x64 on Ryzen7 9850X3D",
   "scope": "Preserved Forge accepted reference and cumulative isolated candidates through6.4.8,actualcorrectnessproofs,failedtimingcontrols,originalhosted647timedrunandnative648offlinebundle; no acceptedElogain.",
@@ -524,16 +524,39 @@
       "branch": "forge/nnue-update-fusion-20261019",
       "parent_candidate_id": "forge649-ownbook-control-20261019",
       "change": "Single pass for exact2-change remove/add NNUE updates; preserve lane subtraction-then-addition, arbitrary dirty fallback, validity and in-place use. Residual weights unchanged.",
-      "status": "release_and_differential_passed_sanitizers_windows_pending_not_strength_accepted",
+      "status": "published_correctness_candidate_not_strength_accepted",
       "builds": {
         "release": {
           "engine_sha256": "71dea93a28fb274296cf230911f78fb49d10ce6c8a4bb60c36493b729730c046",
           "core_library_sha256": "380018fa3ee5ae25ca5d63abb39cc276466e24d5144339271686abf197a5df6a",
           "ctest_result": "9/9 passed"
+        },
+        "asan": {
+          "engine_sha256": "9a1371e1291e71f8480d385721e221817b34dfde3c774a800376a8988ccc3690",
+          "core_library_sha256": "6518c58b6ad5f855741334bf5c3e7ae5f4c217965a0992cee84c69d72e8806a1",
+          "ctest_result": "9/9passed plusASanupdatebytesexact"
         }
       },
       "network_sha256": "41487f328ff51f27417564df45b6f3139d038b7e940dedb121340bd61be9a4d3",
-      "valid_strength_evidence": false
+      "valid_strength_evidence": false,
+      "artifact": {
+        "status": "packaged_and_verified",
+        "artifact": "releases/forge-6.4.10-candidate-windows-zen5.zip",
+        "sha256": "771ea7ab84bd86a006c6197af56e81911625224144f33d3fd59ebcb51d5ecd2a",
+        "bytes": 3628551,
+        "source_and_tests_commit": "36f5b2f6e1ff519e82a4b52edc85caceaf15aed0",
+        "engine_sha256": "26e14102ea01e02091f0983ffbf777c248bc562b66f3d1c2eb0713b4d99dce01",
+        "runtime_checks": 8,
+        "ownbook_transitions": 5,
+        "nnue_update_stream_bytes": 4097860,
+        "nnue_original_snapshot_bytes": 21192328,
+        "nnue_windows_and_linux_streams_identical": true,
+        "legal_witness_comparisons": 18947,
+        "bench11_nodes": 351063,
+        "scope": "Wine correctness and bounded node signature; no speed, Elo or native hardware result"
+      },
+      "performance": "Inconclusive; freshhosted strictAAfailed, noAB/kernel allowed",
+      "sse": "actualAPIbyteidentity passed"
     }
   ],
   "experiments": [
@@ -5733,32 +5756,94 @@
         },
         "parent_parity": "Six cold/warm1T cases exact and both bench419798; parity-only, no throughput test",
         "network_sha256": "41487f328ff51f27417564df45b6f3139d038b7e940dedb121340bd61be9a4d3",
-        "asan": "running from immutable source export",
-        "windows": "running separately from source commit",
+        "asan": "9/9passed plus ASan actual1644case update stream matches Release",
+        "windows": "8Winechecks+bothsnapshotstreams match parent/Linux; independent artifact audit passed",
         "nps_difference": null,
-        "elo_gain": null
+        "elo_gain": null,
+        "asan_binaries": {
+          "forge": {
+            "sha256": "9a1371e1291e71f8480d385721e221817b34dfde3c774a800376a8988ccc3690",
+            "bytes": 10503232
+          },
+          "libforge_core.a": {
+            "sha256": "6518c58b6ad5f855741334bf5c3e7ae5f4c217965a0992cee84c69d72e8806a1",
+            "bytes": 17281662
+          },
+          "nnue_update_snapshot": {
+            "sha256": "4d8292aa354d2119a7aef3081bbf491b970fefe833e27bf27d3be09795d668c8",
+            "bytes": 2563968
+          }
+        },
+        "sse": "x86-64-v2/SSE actualupdate stream byte-identical to AVX2/ASan/Windows; notfullSSEengine"
       },
       "evidence": "validation/nnue-update-fusion-20261019",
       "failed_approaches": [
         "Disassembly excerpt attempt1 regex matched remaining same function header, produced one-character excerpt. Original complete object dumps and bad excerpt/JSON retained; anchored extraction now verified full bodies."
       ],
-      "decision": "Isolated candidate retained; no speed or Elo claim; sanitizer/Windows/performance validation running",
-      "next": "Complete sanitizer, Windows differential and independent calibrated hosted performance; separate strength confirmation tests647notthissource",
-      "valid_strength_evidence": false
+      "decision": "Retain isolated correctness-tested optimization; speed attempt inconclusive, noElogain",
+      "next": "Extend sameoperation-order-preserving fusion to generated3-change captures asisolated6.4.11, then validate andtest strength onfreshpinned8moves openings",
+      "valid_strength_evidence": false,
+      "archives": {
+        "linux-correctness-attempt1": "05f367064c717ace5df8df078b297919a155c859e7d30cb9175b9248933fb6d3",
+        "windows-validation-attempt1": "b2feaf7427d18b5d54831e3c90d2e693a98d697304215549ff2fde086c5d57fe",
+        "sse-validation-attempt1": "3c985257baab268aca82d8628efe2169baac4b315f3e33975888191bc39c742b"
+      }
     },
     {
       "id": "forge6410-hosted-performance-20261019",
       "candidate_id": "forge6410-nnue-update-fusion-20261019",
       "baseline_sha": "4edda780c68a742f20565d4e6a54a0c99a2c88a6",
       "candidate_sha": "36f5b2f6e1ff519e82a4b52edc85caceaf15aed0",
-      "status": "preregistered_reviewed_not_launched_yet",
+      "status": "completed_inconclusive_primary_noise_gate_failed_no_ab",
       "hypothesis": "FusedquietNNUEupdate reduceswholeenginefixedsuiteCPUtime; publicupdatekernel diagnosticseparatelycalibrated. Newisolatedhost rather than noisysharedVM.",
       "protocol": ".github/hosted-nnue-performance/protocol.json",
       "evidence": "validation/nnue-update-fusion-20261019/hosted-performance",
       "strength_games": 0,
       "elo_estimate": null,
       "valid_strength_evidence": false,
-      "raw_results_branch": "pending_actual_run_id"
+      "raw_results_branch": "results/nnue-performance-39334266771-1",
+      "result": {
+        "run_id": 39334266771,
+        "url": "https://github.com/couns0538-sketch/dwqww/actions/runs/39334266771",
+        "results_ref": "results/nnue-performance-39334266771-1",
+        "results_commit": "b3bf48525540e64db12b592c913b160298bad6d1",
+        "status": "failed_primary_calibration_no_ab",
+        "aa_calibration": {
+          "cpu": {
+            "ratios": [
+              0.9779746970333036,
+              1.0142985934967326,
+              1.0329386002802807,
+              1.00967519727259,
+              0.9780256772981446,
+              1.0472249068040853
+            ],
+            "median": 1.0119868953846614,
+            "passed": false
+          },
+          "wall": {
+            "ratios": [
+              0.9772402859698365,
+              1.0135423649340312,
+              1.0337375655593846,
+              1.0079057757275274,
+              0.9795777539748349,
+              1.0484324974942478
+            ],
+            "median": 1.0107240703307792,
+            "passed": false
+          },
+          "passed": false
+        },
+        "aa_processes": 12,
+        "ab_performed": false,
+        "kernel_performed": false,
+        "final_input_rehash_status": "passed",
+        "claim": null,
+        "decision": "Keep correctness-tested6.4.10; strict3%noisegate failed, so no candidate timing/speed/NPS/Elo result and no retry."
+      },
+      "raw_results_commit": "b3bf48525540e64db12b592c913b160298bad6d1",
+      "nps_difference": null
     }
   ],
   "evidence_archives": [

@@ -1,0 +1,1104 @@
+000000014000d5f0 <forge::nnue::update(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&)>:
+14000d5f0:     	pushq	%r15
+14000d5f2:     	pushq	%r14
+14000d5f4:     	pushq	%r13
+14000d5f6:     	pushq	%r12
+14000d5f8:     	pushq	%rsi
+14000d5f9:     	pushq	%rdi
+14000d5fa:     	pushq	%rbp
+14000d5fb:     	pushq	%rbx
+14000d5fc:     	subq	$0x28, %rsp
+14000d600:     	movzbl	0x11a599(%rip), %eax    # 0x140127ba0 <guard variable for forge::nnue::(anonymous namespace)::weights()::instance>
+14000d607:     	movq	%r8, %rbx
+14000d60a:     	movq	%rdx, %rsi
+14000d60d:     	movq	%rcx, %rdi
+14000d610:     	testb	%al, %al
+14000d612:     	je	0x14000f064 <forge::nnue::update(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&)+0x1a74>
+14000d618:     	cmpl	$0x2, 0x20(%rbx)
+14000d61c:     	jne	0x14000d7f6 <forge::nnue::update(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&)+0x206>
+14000d622:     	cmpb	$0x0, 0x5(%rbx)
+14000d626:     	jne	0x14000d7f6 <forge::nnue::update(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&)+0x206>
+14000d62c:     	cmpb	$0x1, 0xd(%rbx)
+14000d630:     	jne	0x14000d7f6 <forge::nnue::update(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&)+0x206>
+14000d636:     	movl	0x8(%rbx), %r8d
+14000d63a:     	movzbl	0x4(%rbx), %r15d
+14000d63f:     	movl	(%rbx), %r9d
+14000d642:     	movzbl	0xc(%rbx), %r14d
+14000d647:     	leal	-0x1(%r8), %eax
+14000d64b:     	movq	%r15, %rdx
+14000d64e:     	movq	%r14, %rcx
+14000d651:     	leal	-0x1(%r9), %r11d
+14000d655:     	xorq	$0x38, %rdx
+14000d659:     	xorq	$0x38, %rcx
+14000d65d:     	cltq
+14000d65f:     	imulq	$0x2aaaaaab, %rax, %rax # imm = 0x2AAAAAAB
+14000d666:     	movq	%rax, %r10
+14000d669:     	shrq	$0x3f, %r10
+14000d66d:     	shrq	$0x20, %rax
+14000d671:     	addl	%r10d, %eax
+14000d674:     	addl	%eax, %eax
+14000d676:     	leal	(%rax,%rax,2), %r10d
+14000d67a:     	movq	0x119edf(%rip), %rax    # 0x140127560 <forge::nnue::(anonymous namespace)::weights()::instance>
+14000d681:     	negl	%r10d
+14000d684:     	leal	-0x1(%r8,%r10), %r10d
+14000d689:     	cmpl	$0x1, %r9d
+14000d68d:     	jae	0x14000e330 <forge::nnue::update(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&)+0xd40>
+14000d693:     	leal	0x6(%r10), %r9d
+14000d697:     	cmpl	$0x7, %r8d
+14000d69b:     	movl	%r9d, %r11d
+14000d69e:     	cmovll	%r10d, %r11d
+14000d6a2:     	movslq	%r11d, %rbx
+14000d6a5:     	movq	%rdi, %r11
+14000d6a8:     	subq	%rsi, %r11
+14000d6ab:     	shlq	$0x6, %rbx
+14000d6af:     	addq	%r14, %rbx
+14000d6b2:     	movl	%r15d, %r14d
+14000d6b5:     	shll	$0x9, %r14d
+14000d6b9:     	shlq	$0x9, %rbx
+14000d6bd:     	cmpq	$-0x100, %r11
+14000d6c4:     	ja	0x14000e4c4 <forge::nnue::update(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&)+0xed4>
+14000d6ca:     	leaq	(%rbx,%rax), %r12
+14000d6ce:     	subq	%rsi, %r12
+14000d6d1:     	cmpq	$-0x100, %r12
+14000d6d8:     	ja	0x14000e4c4 <forge::nnue::update(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&)+0xed4>
+14000d6de:     	leaq	(%r14,%rax), %r12
+14000d6e2:     	negq	%r12
+14000d6e5:     	leaq	0x7fff(%rsi,%r12), %r12
+14000d6ed:     	cmpq	$0xfe, %r12
+14000d6f4:     	jbe	0x14000e4c4 <forge::nnue::update(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&)+0xed4>
+14000d6fa:     	shll	$0x9, %r15d
+14000d6fe:     	vmovups	(%rdi), %zmm0
+14000d704:     	vmovups	0x40(%rdi), %zmm1
+14000d70b:     	vmovups	0x80(%rdi), %zmm2
+14000d712:     	vmovups	0xc0(%rdi), %zmm3
+14000d719:     	addq	$-0x8000, %r15          # imm = 0x8000
+14000d720:     	vsubps	(%rax,%r15), %zmm0, %zmm0
+14000d727:     	vsubps	0x40(%rax,%r15), %zmm1, %zmm1
+14000d72f:     	vsubps	0x80(%rax,%r15), %zmm2, %zmm2
+14000d737:     	vsubps	0xc0(%rax,%r15), %zmm3, %zmm3
+14000d73f:     	vaddps	(%rax,%rbx), %zmm0, %zmm0
+14000d746:     	vaddps	0x40(%rax,%rbx), %zmm1, %zmm1
+14000d74e:     	vaddps	0x80(%rax,%rbx), %zmm2, %zmm2
+14000d756:     	vaddps	0xc0(%rax,%rbx), %zmm3, %zmm3
+14000d75e:     	vmovups	%zmm0, (%rsi)
+14000d764:     	vmovups	%zmm1, 0x40(%rsi)
+14000d76b:     	vmovups	%zmm2, 0x80(%rsi)
+14000d772:     	vmovups	%zmm3, 0xc0(%rsi)
+14000d779:     	vmovups	0x100(%rdi), %zmm0
+14000d780:     	vmovups	0x140(%rdi), %zmm1
+14000d787:     	vmovups	0x180(%rdi), %zmm2
+14000d78e:     	vmovups	0x1c0(%rdi), %zmm3
+14000d795:     	vsubps	0x100(%rax,%r15), %zmm0, %zmm0
+14000d79d:     	vsubps	0x140(%rax,%r15), %zmm1, %zmm1
+14000d7a5:     	vsubps	0x180(%rax,%r15), %zmm2, %zmm2
+14000d7ad:     	vsubps	0x1c0(%rax,%r15), %zmm3, %zmm3
+14000d7b5:     	vaddps	0x100(%rax,%rbx), %zmm0, %zmm0
+14000d7bd:     	vaddps	0x140(%rax,%rbx), %zmm1, %zmm1
+14000d7c5:     	vaddps	0x180(%rax,%rbx), %zmm2, %zmm2
+14000d7cd:     	vaddps	0x1c0(%rax,%rbx), %zmm3, %zmm3
+14000d7d5:     	vmovups	%zmm0, 0x100(%rsi)
+14000d7dc:     	vmovups	%zmm1, 0x140(%rsi)
+14000d7e3:     	vmovups	%zmm2, 0x180(%rsi)
+14000d7ea:     	vmovups	%zmm3, 0x1c0(%rsi)
+14000d7f1:     	jmp	0x14000e5cd <forge::nnue::update(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&)+0xfdd>
+14000d7f6:     	vmovups	0x1c0(%rdi), %zmm0
+14000d7fd:     	vmovups	%zmm0, 0x1c0(%rsi)
+14000d804:     	vmovups	0x180(%rdi), %zmm0
+14000d80b:     	vmovups	%zmm0, 0x180(%rsi)
+14000d812:     	vmovups	0x140(%rdi), %zmm0
+14000d819:     	vmovups	%zmm0, 0x140(%rsi)
+14000d820:     	vmovups	0x100(%rdi), %zmm0
+14000d827:     	vmovups	%zmm0, 0x100(%rsi)
+14000d82e:     	vmovups	(%rdi), %zmm0
+14000d834:     	vmovups	0x40(%rdi), %zmm1
+14000d83b:     	vmovups	0x80(%rdi), %zmm2
+14000d842:     	vmovups	0xc0(%rdi), %zmm3
+14000d849:     	vmovups	%zmm3, 0xc0(%rsi)
+14000d850:     	vmovups	%zmm2, 0x80(%rsi)
+14000d857:     	vmovups	%zmm1, 0x40(%rsi)
+14000d85e:     	vmovups	%zmm0, (%rsi)
+14000d864:     	movslq	0x20(%rbx), %rax
+14000d868:     	testq	%rax, %rax
+14000d86b:     	jle	0x14000dd8e <forge::nnue::update(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&)+0x79e>
+14000d871:     	movq	0x119ce8(%rip), %rcx    # 0x140127560 <forge::nnue::(anonymous namespace)::weights()::instance>
+14000d878:     	leaq	0x200(%rsi), %rdx
+14000d87f:     	leaq	0x3c(%rsi), %r10
+14000d883:     	xorl	%r11d, %r11d
+14000d886:     	leaq	0x200(%rcx), %r8
+14000d88d:     	leaq	0x3c(%rcx), %r9
+14000d891:     	jmp	0x14000d951 <forge::nnue::update(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&)+0x361>
+14000d896:     	nopw	%cs:(%rax,%rax)
+14000d8a0:     	vmovups	(%rsi), %zmm0
+14000d8a6:     	vmovups	0x40(%rsi), %zmm1
+14000d8ad:     	vmovups	0x80(%rsi), %zmm2
+14000d8b4:     	vmovups	0xc0(%rsi), %zmm3
+14000d8bb:     	vsubps	(%r15), %zmm0, %zmm0
+14000d8c1:     	vsubps	0x40(%r15), %zmm1, %zmm1
+14000d8c8:     	vsubps	0x80(%r15), %zmm2, %zmm2
+14000d8cf:     	vsubps	0xc0(%r15), %zmm3, %zmm3
+14000d8d6:     	vmovups	%zmm0, (%rsi)
+14000d8dc:     	vmovups	%zmm1, 0x40(%rsi)
+14000d8e3:     	vmovups	%zmm2, 0x80(%rsi)
+14000d8ea:     	vmovups	%zmm3, 0xc0(%rsi)
+14000d8f1:     	vmovups	0x100(%rsi), %zmm0
+14000d8f8:     	vmovups	0x140(%rsi), %zmm1
+14000d8ff:     	vmovups	0x180(%rsi), %zmm2
+14000d906:     	vmovups	0x1c0(%rsi), %zmm3
+14000d90d:     	vsubps	0x100(%r15), %zmm0, %zmm0
+14000d914:     	vsubps	0x140(%r15), %zmm1, %zmm1
+14000d91b:     	vsubps	0x180(%r15), %zmm2, %zmm2
+14000d922:     	vsubps	0x1c0(%r15), %zmm3, %zmm3
+14000d929:     	vmovups	%zmm0, 0x100(%rsi)
+14000d930:     	vmovups	%zmm1, 0x140(%rsi)
+14000d937:     	vmovups	%zmm2, 0x180(%rsi)
+14000d93e:     	vmovups	%zmm3, 0x1c0(%rsi)
+14000d945:     	incq	%r11
+14000d948:     	cmpq	%rax, %r11
+14000d94b:     	je	0x14000dd8e <forge::nnue::update(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&)+0x79e>
+14000d951:     	movl	(%rbx,%r11,8), %r14d
+14000d955:     	testl	%r14d, %r14d
+14000d958:     	je	0x14000d990 <forge::nnue::update(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&)+0x3a0>
+14000d95a:     	leal	-0x1(%r14), %ebp
+14000d95e:     	movslq	%ebp, %r15
+14000d961:     	imulq	$0x2aaaaaab, %r15, %r12 # imm = 0x2AAAAAAB
+14000d968:     	movq	%r12, %r13
+14000d96b:     	shrq	$0x3f, %r13
+14000d96f:     	shrq	$0x20, %r12
+14000d973:     	addl	%r13d, %r12d
+14000d976:     	addl	%r12d, %r12d
+14000d979:     	leal	(%r12,%r12,2), %ebp
+14000d97d:     	subl	%ebp, %r15d
+14000d980:     	jmp	0x14000d996 <forge::nnue::update(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&)+0x3a6>
+14000d982:     	nopw	%cs:(%rax,%rax)
+14000d990:     	movl	$0xffffffff, %r15d      # imm = 0xFFFFFFFF
+14000d996:     	movzbl	0x4(%rbx,%r11,8), %ebp
+14000d99c:     	leal	0x6(%r15), %r12d
+14000d9a0:     	cmpl	$0x7, %r14d
+14000d9a4:     	cmovll	%r15d, %r12d
+14000d9a8:     	shll	$0x6, %r12d
+14000d9ac:     	addl	%ebp, %r12d
+14000d9af:     	movslq	%r12d, %r14
+14000d9b2:     	shlq	$0x9, %r14
+14000d9b6:     	cmpb	$0x0, 0x5(%rbx,%r11,8)
+14000d9bc:     	leaq	(%rcx,%r14), %r15
+14000d9c0:     	je	0x14000db60 <forge::nnue::update(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&)+0x570>
+14000d9c6:     	cmpq	%rdx, %r15
+14000d9c9:     	leaq	(%r8,%r14), %r12
+14000d9cd:     	setae	%bpl
+14000d9d1:     	cmpq	%r12, %rsi
+14000d9d4:     	setae	%r12b
+14000d9d8:     	orb	%bpl, %r12b
+14000d9db:     	jne	0x14000dd00 <forge::nnue::update(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&)+0x710>
+14000d9e1:     	addq	%r9, %r14
+14000d9e4:     	xorl	%r15d, %r15d
+14000d9e7:     	nopw	(%rax,%rax)
+14000d9f0:     	vmovss	-0x3c(%r14,%r15,4), %xmm0
+14000d9f7:     	vaddss	-0x3c(%r10,%r15,4), %xmm0, %xmm0
+14000d9fe:     	vmovss	%xmm0, -0x3c(%r10,%r15,4)
+14000da05:     	vmovss	-0x38(%r14,%r15,4), %xmm0
+14000da0c:     	vaddss	-0x38(%r10,%r15,4), %xmm0, %xmm0
+14000da13:     	vmovss	%xmm0, -0x38(%r10,%r15,4)
+14000da1a:     	vmovss	-0x34(%r14,%r15,4), %xmm0
+14000da21:     	vaddss	-0x34(%r10,%r15,4), %xmm0, %xmm0
+14000da28:     	vmovss	%xmm0, -0x34(%r10,%r15,4)
+14000da2f:     	vmovss	-0x30(%r14,%r15,4), %xmm0
+14000da36:     	vaddss	-0x30(%r10,%r15,4), %xmm0, %xmm0
+14000da3d:     	vmovss	%xmm0, -0x30(%r10,%r15,4)
+14000da44:     	vmovss	-0x2c(%r14,%r15,4), %xmm0
+14000da4b:     	vaddss	-0x2c(%r10,%r15,4), %xmm0, %xmm0
+14000da52:     	vmovss	%xmm0, -0x2c(%r10,%r15,4)
+14000da59:     	vmovss	-0x28(%r14,%r15,4), %xmm0
+14000da60:     	vaddss	-0x28(%r10,%r15,4), %xmm0, %xmm0
+14000da67:     	vmovss	%xmm0, -0x28(%r10,%r15,4)
+14000da6e:     	vmovss	-0x24(%r14,%r15,4), %xmm0
+14000da75:     	vaddss	-0x24(%r10,%r15,4), %xmm0, %xmm0
+14000da7c:     	vmovss	%xmm0, -0x24(%r10,%r15,4)
+14000da83:     	vmovss	-0x20(%r14,%r15,4), %xmm0
+14000da8a:     	vaddss	-0x20(%r10,%r15,4), %xmm0, %xmm0
+14000da91:     	vmovss	%xmm0, -0x20(%r10,%r15,4)
+14000da98:     	vmovss	-0x1c(%r14,%r15,4), %xmm0
+14000da9f:     	vaddss	-0x1c(%r10,%r15,4), %xmm0, %xmm0
+14000daa6:     	vmovss	%xmm0, -0x1c(%r10,%r15,4)
+14000daad:     	vmovss	-0x18(%r14,%r15,4), %xmm0
+14000dab4:     	vaddss	-0x18(%r10,%r15,4), %xmm0, %xmm0
+14000dabb:     	vmovss	%xmm0, -0x18(%r10,%r15,4)
+14000dac2:     	vmovss	-0x14(%r14,%r15,4), %xmm0
+14000dac9:     	vaddss	-0x14(%r10,%r15,4), %xmm0, %xmm0
+14000dad0:     	vmovss	%xmm0, -0x14(%r10,%r15,4)
+14000dad7:     	vmovss	-0x10(%r14,%r15,4), %xmm0
+14000dade:     	vaddss	-0x10(%r10,%r15,4), %xmm0, %xmm0
+14000dae5:     	vmovss	%xmm0, -0x10(%r10,%r15,4)
+14000daec:     	vmovss	-0xc(%r14,%r15,4), %xmm0
+14000daf3:     	vaddss	-0xc(%r10,%r15,4), %xmm0, %xmm0
+14000dafa:     	vmovss	%xmm0, -0xc(%r10,%r15,4)
+14000db01:     	vmovss	-0x8(%r14,%r15,4), %xmm0
+14000db08:     	vaddss	-0x8(%r10,%r15,4), %xmm0, %xmm0
+14000db0f:     	vmovss	%xmm0, -0x8(%r10,%r15,4)
+14000db16:     	vmovss	-0x4(%r14,%r15,4), %xmm0
+14000db1d:     	vaddss	-0x4(%r10,%r15,4), %xmm0, %xmm0
+14000db24:     	vmovss	%xmm0, -0x4(%r10,%r15,4)
+14000db2b:     	vmovss	(%r14,%r15,4), %xmm0
+14000db31:     	vaddss	(%r10,%r15,4), %xmm0, %xmm0
+14000db37:     	vmovss	%xmm0, (%r10,%r15,4)
+14000db3d:     	addq	$0x10, %r15
+14000db41:     	cmpq	$0x80, %r15
+14000db48:     	jne	0x14000d9f0 <forge::nnue::update(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&)+0x400>
+14000db4e:     	jmp	0x14000d945 <forge::nnue::update(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&)+0x355>
+14000db53:     	nopw	%cs:(%rax,%rax)
+14000db60:     	cmpq	%rdx, %r15
+14000db63:     	leaq	(%r8,%r14), %r12
+14000db67:     	setae	%bpl
+14000db6b:     	cmpq	%r12, %rsi
+14000db6e:     	setae	%r12b
+14000db72:     	orb	%bpl, %r12b
+14000db75:     	jne	0x14000d8a0 <forge::nnue::update(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&)+0x2b0>
+14000db7b:     	addq	%r9, %r14
+14000db7e:     	xorl	%r15d, %r15d
+14000db81:     	nopw	%cs:(%rax,%rax)
+14000db90:     	vmovss	-0x3c(%r10,%r15,4), %xmm0
+14000db97:     	vmovss	-0x38(%r10,%r15,4), %xmm1
+14000db9e:     	vsubss	-0x3c(%r14,%r15,4), %xmm0, %xmm0
+14000dba5:     	vmovss	%xmm0, -0x3c(%r10,%r15,4)
+14000dbac:     	vsubss	-0x38(%r14,%r15,4), %xmm1, %xmm0
+14000dbb3:     	vmovss	%xmm0, -0x38(%r10,%r15,4)
+14000dbba:     	vmovss	-0x34(%r10,%r15,4), %xmm0
+14000dbc1:     	vsubss	-0x34(%r14,%r15,4), %xmm0, %xmm0
+14000dbc8:     	vmovss	%xmm0, -0x34(%r10,%r15,4)
+14000dbcf:     	vmovss	-0x30(%r10,%r15,4), %xmm0
+14000dbd6:     	vsubss	-0x30(%r14,%r15,4), %xmm0, %xmm0
+14000dbdd:     	vmovss	%xmm0, -0x30(%r10,%r15,4)
+14000dbe4:     	vmovss	-0x2c(%r10,%r15,4), %xmm0
+14000dbeb:     	vsubss	-0x2c(%r14,%r15,4), %xmm0, %xmm0
+14000dbf2:     	vmovss	%xmm0, -0x2c(%r10,%r15,4)
+14000dbf9:     	vmovss	-0x28(%r10,%r15,4), %xmm0
+14000dc00:     	vsubss	-0x28(%r14,%r15,4), %xmm0, %xmm0
+14000dc07:     	vmovss	%xmm0, -0x28(%r10,%r15,4)
+14000dc0e:     	vmovss	-0x24(%r10,%r15,4), %xmm0
+14000dc15:     	vsubss	-0x24(%r14,%r15,4), %xmm0, %xmm0
+14000dc1c:     	vmovss	%xmm0, -0x24(%r10,%r15,4)
+14000dc23:     	vmovss	-0x20(%r10,%r15,4), %xmm0
+14000dc2a:     	vsubss	-0x20(%r14,%r15,4), %xmm0, %xmm0
+14000dc31:     	vmovss	%xmm0, -0x20(%r10,%r15,4)
+14000dc38:     	vmovss	-0x1c(%r10,%r15,4), %xmm0
+14000dc3f:     	vsubss	-0x1c(%r14,%r15,4), %xmm0, %xmm0
+14000dc46:     	vmovss	%xmm0, -0x1c(%r10,%r15,4)
+14000dc4d:     	vmovss	-0x18(%r10,%r15,4), %xmm0
+14000dc54:     	vsubss	-0x18(%r14,%r15,4), %xmm0, %xmm0
+14000dc5b:     	vmovss	%xmm0, -0x18(%r10,%r15,4)
+14000dc62:     	vmovss	-0x14(%r10,%r15,4), %xmm0
+14000dc69:     	vsubss	-0x14(%r14,%r15,4), %xmm0, %xmm0
+14000dc70:     	vmovss	%xmm0, -0x14(%r10,%r15,4)
+14000dc77:     	vmovss	-0x10(%r10,%r15,4), %xmm0
+14000dc7e:     	vsubss	-0x10(%r14,%r15,4), %xmm0, %xmm0
+14000dc85:     	vmovss	%xmm0, -0x10(%r10,%r15,4)
+14000dc8c:     	vmovss	-0xc(%r10,%r15,4), %xmm0
+14000dc93:     	vsubss	-0xc(%r14,%r15,4), %xmm0, %xmm0
+14000dc9a:     	vmovss	%xmm0, -0xc(%r10,%r15,4)
+14000dca1:     	vmovss	-0x8(%r10,%r15,4), %xmm0
+14000dca8:     	vsubss	-0x8(%r14,%r15,4), %xmm0, %xmm0
+14000dcaf:     	vmovss	%xmm0, -0x8(%r10,%r15,4)
+14000dcb6:     	vmovss	-0x4(%r10,%r15,4), %xmm0
+14000dcbd:     	vsubss	-0x4(%r14,%r15,4), %xmm0, %xmm0
+14000dcc4:     	vmovss	%xmm0, -0x4(%r10,%r15,4)
+14000dccb:     	vmovss	(%r10,%r15,4), %xmm0
+14000dcd1:     	vsubss	(%r14,%r15,4), %xmm0, %xmm0
+14000dcd7:     	vmovss	%xmm0, (%r10,%r15,4)
+14000dcdd:     	addq	$0x10, %r15
+14000dce1:     	cmpq	$0x80, %r15
+14000dce8:     	jne	0x14000db90 <forge::nnue::update(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&)+0x5a0>
+14000dcee:     	jmp	0x14000d945 <forge::nnue::update(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&)+0x355>
+14000dcf3:     	nopw	%cs:(%rax,%rax)
+14000dd00:     	vmovups	(%r15), %zmm0
+14000dd06:     	vmovups	0x40(%r15), %zmm1
+14000dd0d:     	vmovups	0x80(%r15), %zmm2
+14000dd14:     	vmovups	0xc0(%r15), %zmm3
+14000dd1b:     	vaddps	(%rsi), %zmm0, %zmm0
+14000dd21:     	vaddps	0x40(%rsi), %zmm1, %zmm1
+14000dd28:     	vaddps	0x80(%rsi), %zmm2, %zmm2
+14000dd2f:     	vaddps	0xc0(%rsi), %zmm3, %zmm3
+14000dd36:     	vmovups	%zmm0, (%rsi)
+14000dd3c:     	vmovups	%zmm1, 0x40(%rsi)
+14000dd43:     	vmovups	%zmm2, 0x80(%rsi)
+14000dd4a:     	vmovups	%zmm3, 0xc0(%rsi)
+14000dd51:     	vmovups	0x100(%r15), %zmm0
+14000dd58:     	vmovups	0x140(%r15), %zmm1
+14000dd5f:     	vmovups	0x180(%r15), %zmm2
+14000dd66:     	vmovups	0x1c0(%r15), %zmm3
+14000dd6d:     	vaddps	0x100(%rsi), %zmm0, %zmm0
+14000dd74:     	vaddps	0x140(%rsi), %zmm1, %zmm1
+14000dd7b:     	vaddps	0x180(%rsi), %zmm2, %zmm2
+14000dd82:     	vaddps	0x1c0(%rsi), %zmm3, %zmm3
+14000dd89:     	jmp	0x14000d929 <forge::nnue::update(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&)+0x339>
+14000dd8e:     	vmovups	0x3c0(%rdi), %zmm0
+14000dd95:     	vmovups	%zmm0, 0x3c0(%rsi)
+14000dd9c:     	vmovups	0x380(%rdi), %zmm0
+14000dda3:     	vmovups	%zmm0, 0x380(%rsi)
+14000ddaa:     	vmovups	0x340(%rdi), %zmm0
+14000ddb1:     	vmovups	%zmm0, 0x340(%rsi)
+14000ddb8:     	vmovups	0x300(%rdi), %zmm0
+14000ddbf:     	vmovups	%zmm0, 0x300(%rsi)
+14000ddc6:     	vmovups	0x200(%rdi), %zmm0
+14000ddcd:     	vmovups	0x240(%rdi), %zmm1
+14000ddd4:     	vmovups	0x280(%rdi), %zmm2
+14000dddb:     	vmovups	0x2c0(%rdi), %zmm3
+14000dde2:     	vmovups	%zmm3, 0x2c0(%rsi)
+14000dde9:     	vmovups	%zmm2, 0x280(%rsi)
+14000ddf0:     	vmovups	%zmm1, 0x240(%rsi)
+14000ddf7:     	vmovups	%zmm0, 0x200(%rsi)
+14000ddfe:     	movslq	0x20(%rbx), %rax
+14000de02:     	testq	%rax, %rax
+14000de05:     	jle	0x14000ef32 <forge::nnue::update(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&)+0x1942>
+14000de0b:     	movq	0x11974e(%rip), %rdx    # 0x140127560 <forge::nnue::(anonymous namespace)::weights()::instance>
+14000de12:     	leaq	0x200(%rsi), %rcx
+14000de19:     	leaq	0x400(%rsi), %r8
+14000de20:     	leaq	0x23c(%rsi), %r11
+14000de27:     	xorl	%edi, %edi
+14000de29:     	leaq	0x200(%rdx), %r9
+14000de30:     	leaq	0x3c(%rdx), %r10
+14000de34:     	jmp	0x14000def3 <forge::nnue::update(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&)+0x903>
+14000de39:     	nopl	(%rax)
+14000de40:     	vmovups	0x200(%rsi), %zmm0
+14000de47:     	vmovups	0x240(%rsi), %zmm1
+14000de4e:     	vmovups	0x280(%rsi), %zmm2
+14000de55:     	vmovups	0x2c0(%rsi), %zmm3
+14000de5c:     	vsubps	(%r15), %zmm0, %zmm0
+14000de62:     	vsubps	0x40(%r15), %zmm1, %zmm1
+14000de69:     	vsubps	0x80(%r15), %zmm2, %zmm2
+14000de70:     	vsubps	0xc0(%r15), %zmm3, %zmm3
+14000de77:     	vmovups	%zmm0, 0x200(%rsi)
+14000de7e:     	vmovups	%zmm1, 0x240(%rsi)
+14000de85:     	vmovups	%zmm2, 0x280(%rsi)
+14000de8c:     	vmovups	%zmm3, 0x2c0(%rsi)
+14000de93:     	vmovups	0x300(%rsi), %zmm0
+14000de9a:     	vmovups	0x340(%rsi), %zmm1
+14000dea1:     	vmovups	0x380(%rsi), %zmm2
+14000dea8:     	vmovups	0x3c0(%rsi), %zmm3
+14000deaf:     	vsubps	0x100(%r15), %zmm0, %zmm0
+14000deb6:     	vsubps	0x140(%r15), %zmm1, %zmm1
+14000debd:     	vsubps	0x180(%r15), %zmm2, %zmm2
+14000dec4:     	vsubps	0x1c0(%r15), %zmm3, %zmm3
+14000decb:     	vmovups	%zmm0, 0x300(%rsi)
+14000ded2:     	vmovups	%zmm1, 0x340(%rsi)
+14000ded9:     	vmovups	%zmm2, 0x380(%rsi)
+14000dee0:     	vmovups	%zmm3, 0x3c0(%rsi)
+14000dee7:     	incq	%rdi
+14000deea:     	cmpq	%rax, %rdi
+14000deed:     	je	0x14000ef32 <forge::nnue::update(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&)+0x1942>
+14000def3:     	movl	(%rbx,%rdi,8), %r14d
+14000def7:     	testl	%r14d, %r14d
+14000defa:     	je	0x14000df30 <forge::nnue::update(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&)+0x940>
+14000defc:     	leal	-0x1(%r14), %ebp
+14000df00:     	movslq	%ebp, %r15
+14000df03:     	imulq	$0x2aaaaaab, %r15, %r12 # imm = 0x2AAAAAAB
+14000df0a:     	movq	%r12, %r13
+14000df0d:     	shrq	$0x3f, %r13
+14000df11:     	shrq	$0x20, %r12
+14000df15:     	addl	%r13d, %r12d
+14000df18:     	addl	%r12d, %r12d
+14000df1b:     	leal	(%r12,%r12,2), %ebp
+14000df1f:     	subl	%ebp, %r15d
+14000df22:     	jmp	0x14000df36 <forge::nnue::update(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&)+0x946>
+14000df24:     	nopw	%cs:(%rax,%rax)
+14000df30:     	movl	$0xffffffff, %r15d      # imm = 0xFFFFFFFF
+14000df36:     	movzbl	0x4(%rbx,%rdi,8), %ebp
+14000df3b:     	leal	0x6(%r15), %r12d
+14000df3f:     	xorl	$0x38, %ebp
+14000df42:     	cmpl	$0x7, %r14d
+14000df46:     	cmovgel	%r15d, %r12d
+14000df4a:     	shll	$0x6, %r12d
+14000df4e:     	addl	%ebp, %r12d
+14000df51:     	movslq	%r12d, %r14
+14000df54:     	shlq	$0x9, %r14
+14000df58:     	cmpb	$0x0, 0x5(%rbx,%rdi,8)
+14000df5d:     	leaq	(%rdx,%r14), %r15
+14000df61:     	je	0x14000e100 <forge::nnue::update(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&)+0xb10>
+14000df67:     	cmpq	%r8, %r15
+14000df6a:     	leaq	(%r9,%r14), %r12
+14000df6e:     	setae	%bpl
+14000df72:     	cmpq	%r12, %rcx
+14000df75:     	setae	%r12b
+14000df79:     	orb	%bpl, %r12b
+14000df7c:     	jne	0x14000e2a0 <forge::nnue::update(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&)+0xcb0>
+14000df82:     	addq	%r10, %r14
+14000df85:     	xorl	%r15d, %r15d
+14000df88:     	nopl	(%rax,%rax)
+14000df90:     	vmovss	-0x3c(%r14,%r15,4), %xmm0
+14000df97:     	vaddss	-0x3c(%r11,%r15,4), %xmm0, %xmm0
+14000df9e:     	vmovss	%xmm0, -0x3c(%r11,%r15,4)
+14000dfa5:     	vmovss	-0x38(%r14,%r15,4), %xmm0
+14000dfac:     	vaddss	-0x38(%r11,%r15,4), %xmm0, %xmm0
+14000dfb3:     	vmovss	%xmm0, -0x38(%r11,%r15,4)
+14000dfba:     	vmovss	-0x34(%r14,%r15,4), %xmm0
+14000dfc1:     	vaddss	-0x34(%r11,%r15,4), %xmm0, %xmm0
+14000dfc8:     	vmovss	%xmm0, -0x34(%r11,%r15,4)
+14000dfcf:     	vmovss	-0x30(%r14,%r15,4), %xmm0
+14000dfd6:     	vaddss	-0x30(%r11,%r15,4), %xmm0, %xmm0
+14000dfdd:     	vmovss	%xmm0, -0x30(%r11,%r15,4)
+14000dfe4:     	vmovss	-0x2c(%r14,%r15,4), %xmm0
+14000dfeb:     	vaddss	-0x2c(%r11,%r15,4), %xmm0, %xmm0
+14000dff2:     	vmovss	%xmm0, -0x2c(%r11,%r15,4)
+14000dff9:     	vmovss	-0x28(%r14,%r15,4), %xmm0
+14000e000:     	vaddss	-0x28(%r11,%r15,4), %xmm0, %xmm0
+14000e007:     	vmovss	%xmm0, -0x28(%r11,%r15,4)
+14000e00e:     	vmovss	-0x24(%r14,%r15,4), %xmm0
+14000e015:     	vaddss	-0x24(%r11,%r15,4), %xmm0, %xmm0
+14000e01c:     	vmovss	%xmm0, -0x24(%r11,%r15,4)
+14000e023:     	vmovss	-0x20(%r14,%r15,4), %xmm0
+14000e02a:     	vaddss	-0x20(%r11,%r15,4), %xmm0, %xmm0
+14000e031:     	vmovss	%xmm0, -0x20(%r11,%r15,4)
+14000e038:     	vmovss	-0x1c(%r14,%r15,4), %xmm0
+14000e03f:     	vaddss	-0x1c(%r11,%r15,4), %xmm0, %xmm0
+14000e046:     	vmovss	%xmm0, -0x1c(%r11,%r15,4)
+14000e04d:     	vmovss	-0x18(%r14,%r15,4), %xmm0
+14000e054:     	vaddss	-0x18(%r11,%r15,4), %xmm0, %xmm0
+14000e05b:     	vmovss	%xmm0, -0x18(%r11,%r15,4)
+14000e062:     	vmovss	-0x14(%r14,%r15,4), %xmm0
+14000e069:     	vaddss	-0x14(%r11,%r15,4), %xmm0, %xmm0
+14000e070:     	vmovss	%xmm0, -0x14(%r11,%r15,4)
+14000e077:     	vmovss	-0x10(%r14,%r15,4), %xmm0
+14000e07e:     	vaddss	-0x10(%r11,%r15,4), %xmm0, %xmm0
+14000e085:     	vmovss	%xmm0, -0x10(%r11,%r15,4)
+14000e08c:     	vmovss	-0xc(%r14,%r15,4), %xmm0
+14000e093:     	vaddss	-0xc(%r11,%r15,4), %xmm0, %xmm0
+14000e09a:     	vmovss	%xmm0, -0xc(%r11,%r15,4)
+14000e0a1:     	vmovss	-0x8(%r14,%r15,4), %xmm0
+14000e0a8:     	vaddss	-0x8(%r11,%r15,4), %xmm0, %xmm0
+14000e0af:     	vmovss	%xmm0, -0x8(%r11,%r15,4)
+14000e0b6:     	vmovss	-0x4(%r14,%r15,4), %xmm0
+14000e0bd:     	vaddss	-0x4(%r11,%r15,4), %xmm0, %xmm0
+14000e0c4:     	vmovss	%xmm0, -0x4(%r11,%r15,4)
+14000e0cb:     	vmovss	(%r14,%r15,4), %xmm0
+14000e0d1:     	vaddss	(%r11,%r15,4), %xmm0, %xmm0
+14000e0d7:     	vmovss	%xmm0, (%r11,%r15,4)
+14000e0dd:     	addq	$0x10, %r15
+14000e0e1:     	cmpq	$0x80, %r15
+14000e0e8:     	jne	0x14000df90 <forge::nnue::update(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&)+0x9a0>
+14000e0ee:     	jmp	0x14000dee7 <forge::nnue::update(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&)+0x8f7>
+14000e0f3:     	nopw	%cs:(%rax,%rax)
+14000e100:     	cmpq	%r8, %r15
+14000e103:     	leaq	(%r9,%r14), %r12
+14000e107:     	setae	%bpl
+14000e10b:     	cmpq	%r12, %rcx
+14000e10e:     	setae	%r12b
+14000e112:     	orb	%bpl, %r12b
+14000e115:     	jne	0x14000de40 <forge::nnue::update(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&)+0x850>
+14000e11b:     	addq	%r10, %r14
+14000e11e:     	xorl	%r15d, %r15d
+14000e121:     	nopw	%cs:(%rax,%rax)
+14000e130:     	vmovss	-0x3c(%r11,%r15,4), %xmm0
+14000e137:     	vmovss	-0x38(%r11,%r15,4), %xmm1
+14000e13e:     	vsubss	-0x3c(%r14,%r15,4), %xmm0, %xmm0
+14000e145:     	vmovss	%xmm0, -0x3c(%r11,%r15,4)
+14000e14c:     	vsubss	-0x38(%r14,%r15,4), %xmm1, %xmm0
+14000e153:     	vmovss	%xmm0, -0x38(%r11,%r15,4)
+14000e15a:     	vmovss	-0x34(%r11,%r15,4), %xmm0
+14000e161:     	vsubss	-0x34(%r14,%r15,4), %xmm0, %xmm0
+14000e168:     	vmovss	%xmm0, -0x34(%r11,%r15,4)
+14000e16f:     	vmovss	-0x30(%r11,%r15,4), %xmm0
+14000e176:     	vsubss	-0x30(%r14,%r15,4), %xmm0, %xmm0
+14000e17d:     	vmovss	%xmm0, -0x30(%r11,%r15,4)
+14000e184:     	vmovss	-0x2c(%r11,%r15,4), %xmm0
+14000e18b:     	vsubss	-0x2c(%r14,%r15,4), %xmm0, %xmm0
+14000e192:     	vmovss	%xmm0, -0x2c(%r11,%r15,4)
+14000e199:     	vmovss	-0x28(%r11,%r15,4), %xmm0
+14000e1a0:     	vsubss	-0x28(%r14,%r15,4), %xmm0, %xmm0
+14000e1a7:     	vmovss	%xmm0, -0x28(%r11,%r15,4)
+14000e1ae:     	vmovss	-0x24(%r11,%r15,4), %xmm0
+14000e1b5:     	vsubss	-0x24(%r14,%r15,4), %xmm0, %xmm0
+14000e1bc:     	vmovss	%xmm0, -0x24(%r11,%r15,4)
+14000e1c3:     	vmovss	-0x20(%r11,%r15,4), %xmm0
+14000e1ca:     	vsubss	-0x20(%r14,%r15,4), %xmm0, %xmm0
+14000e1d1:     	vmovss	%xmm0, -0x20(%r11,%r15,4)
+14000e1d8:     	vmovss	-0x1c(%r11,%r15,4), %xmm0
+14000e1df:     	vsubss	-0x1c(%r14,%r15,4), %xmm0, %xmm0
+14000e1e6:     	vmovss	%xmm0, -0x1c(%r11,%r15,4)
+14000e1ed:     	vmovss	-0x18(%r11,%r15,4), %xmm0
+14000e1f4:     	vsubss	-0x18(%r14,%r15,4), %xmm0, %xmm0
+14000e1fb:     	vmovss	%xmm0, -0x18(%r11,%r15,4)
+14000e202:     	vmovss	-0x14(%r11,%r15,4), %xmm0
+14000e209:     	vsubss	-0x14(%r14,%r15,4), %xmm0, %xmm0
+14000e210:     	vmovss	%xmm0, -0x14(%r11,%r15,4)
+14000e217:     	vmovss	-0x10(%r11,%r15,4), %xmm0
+14000e21e:     	vsubss	-0x10(%r14,%r15,4), %xmm0, %xmm0
+14000e225:     	vmovss	%xmm0, -0x10(%r11,%r15,4)
+14000e22c:     	vmovss	-0xc(%r11,%r15,4), %xmm0
+14000e233:     	vsubss	-0xc(%r14,%r15,4), %xmm0, %xmm0
+14000e23a:     	vmovss	%xmm0, -0xc(%r11,%r15,4)
+14000e241:     	vmovss	-0x8(%r11,%r15,4), %xmm0
+14000e248:     	vsubss	-0x8(%r14,%r15,4), %xmm0, %xmm0
+14000e24f:     	vmovss	%xmm0, -0x8(%r11,%r15,4)
+14000e256:     	vmovss	-0x4(%r11,%r15,4), %xmm0
+14000e25d:     	vsubss	-0x4(%r14,%r15,4), %xmm0, %xmm0
+14000e264:     	vmovss	%xmm0, -0x4(%r11,%r15,4)
+14000e26b:     	vmovss	(%r11,%r15,4), %xmm0
+14000e271:     	vsubss	(%r14,%r15,4), %xmm0, %xmm0
+14000e277:     	vmovss	%xmm0, (%r11,%r15,4)
+14000e27d:     	addq	$0x10, %r15
+14000e281:     	cmpq	$0x80, %r15
+14000e288:     	jne	0x14000e130 <forge::nnue::update(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&)+0xb40>
+14000e28e:     	jmp	0x14000dee7 <forge::nnue::update(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&)+0x8f7>
+14000e293:     	nopw	%cs:(%rax,%rax)
+14000e2a0:     	vmovups	(%r15), %zmm0
+14000e2a6:     	vmovups	0x40(%r15), %zmm1
+14000e2ad:     	vmovups	0x80(%r15), %zmm2
+14000e2b4:     	vmovups	0xc0(%r15), %zmm3
+14000e2bb:     	vaddps	0x200(%rsi), %zmm0, %zmm0
+14000e2c2:     	vaddps	0x240(%rsi), %zmm1, %zmm1
+14000e2c9:     	vaddps	0x280(%rsi), %zmm2, %zmm2
+14000e2d0:     	vaddps	0x2c0(%rsi), %zmm3, %zmm3
+14000e2d7:     	vmovups	%zmm0, 0x200(%rsi)
+14000e2de:     	vmovups	%zmm1, 0x240(%rsi)
+14000e2e5:     	vmovups	%zmm2, 0x280(%rsi)
+14000e2ec:     	vmovups	%zmm3, 0x2c0(%rsi)
+14000e2f3:     	vmovups	0x100(%r15), %zmm0
+14000e2fa:     	vmovups	0x140(%r15), %zmm1
+14000e301:     	vmovups	0x180(%r15), %zmm2
+14000e308:     	vmovups	0x1c0(%r15), %zmm3
+14000e30f:     	vaddps	0x300(%rsi), %zmm0, %zmm0
+14000e316:     	vaddps	0x340(%rsi), %zmm1, %zmm1
+14000e31d:     	vaddps	0x380(%rsi), %zmm2, %zmm2
+14000e324:     	vaddps	0x3c0(%rsi), %zmm3, %zmm3
+14000e32b:     	jmp	0x14000decb <forge::nnue::update(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&)+0x8db>
+14000e330:     	movslq	%r11d, %r11
+14000e333:     	imulq	$0x2aaaaaab, %r11, %rbx # imm = 0x2AAAAAAB
+14000e33a:     	movq	%rbx, %r12
+14000e33d:     	shrq	$0x3f, %r12
+14000e341:     	shrq	$0x20, %rbx
+14000e345:     	addl	%r12d, %ebx
+14000e348:     	addl	%ebx, %ebx
+14000e34a:     	leal	(%rbx,%rbx,2), %ebx
+14000e34d:     	subl	%ebx, %r11d
+14000e350:     	cmpl	$0x7, %r9d
+14000e354:     	leal	0x6(%r11), %ebp
+14000e358:     	movl	%ebp, %ebx
+14000e35a:     	cmovll	%r11d, %ebx
+14000e35e:     	shll	$0x6, %ebx
+14000e361:     	addl	%r15d, %ebx
+14000e364:     	movslq	%ebx, %r12
+14000e367:     	shlq	$0x9, %r12
+14000e36b:     	testl	%r8d, %r8d
+14000e36e:     	je	0x14000e834 <forge::nnue::update(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&)+0x1244>
+14000e374:     	movl	%ebp, 0x24(%rsp)
+14000e378:     	leal	0x6(%r10), %ebp
+14000e37c:     	cmpl	$0x7, %r8d
+14000e380:     	movq	%rdi, %r15
+14000e383:     	movl	%ebp, %ebx
+14000e385:     	cmovll	%r10d, %ebx
+14000e389:     	subq	%rsi, %r15
+14000e38c:     	movslq	%ebx, %r13
+14000e38f:     	shlq	$0x6, %r13
+14000e393:     	addq	%r14, %r13
+14000e396:     	movq	%rsi, %r14
+14000e399:     	subq	%rax, %r14
+14000e39c:     	shlq	$0x9, %r13
+14000e3a0:     	cmpq	$-0x100, %r15
+14000e3a7:     	ja	0x14000e979 <forge::nnue::update(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&)+0x1389>
+14000e3ad:     	movq	%r13, %rbx
+14000e3b0:     	subq	%r14, %rbx
+14000e3b3:     	cmpq	$-0x100, %rbx
+14000e3ba:     	ja	0x14000e979 <forge::nnue::update(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&)+0x1389>
+14000e3c0:     	movq	%r12, %rbx
+14000e3c3:     	subq	%r14, %rbx
+14000e3c6:     	cmpq	$-0xff, %rbx
+14000e3cd:     	jae	0x14000e979 <forge::nnue::update(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&)+0x1389>
+14000e3d3:     	vmovups	(%rdi), %zmm0
+14000e3d9:     	vmovups	0x40(%rdi), %zmm1
+14000e3e0:     	vmovups	0x80(%rdi), %zmm2
+14000e3e7:     	vmovups	0xc0(%rdi), %zmm3
+14000e3ee:     	vsubps	(%rax,%r12), %zmm0, %zmm0
+14000e3f5:     	vsubps	0x40(%rax,%r12), %zmm1, %zmm1
+14000e3fd:     	vsubps	0x80(%rax,%r12), %zmm2, %zmm2
+14000e405:     	vsubps	0xc0(%rax,%r12), %zmm3, %zmm3
+14000e40d:     	vaddps	(%rax,%r13), %zmm0, %zmm0
+14000e414:     	vaddps	0x40(%rax,%r13), %zmm1, %zmm1
+14000e41c:     	vaddps	0x80(%rax,%r13), %zmm2, %zmm2
+14000e424:     	vaddps	0xc0(%rax,%r13), %zmm3, %zmm3
+14000e42c:     	vmovups	%zmm0, (%rsi)
+14000e432:     	vmovups	%zmm1, 0x40(%rsi)
+14000e439:     	vmovups	%zmm2, 0x80(%rsi)
+14000e440:     	vmovups	%zmm3, 0xc0(%rsi)
+14000e447:     	vmovups	0x100(%rdi), %zmm0
+14000e44e:     	vmovups	0x140(%rdi), %zmm1
+14000e455:     	vmovups	0x180(%rdi), %zmm2
+14000e45c:     	vmovups	0x1c0(%rdi), %zmm3
+14000e463:     	vsubps	0x100(%rax,%r12), %zmm0, %zmm0
+14000e46b:     	vsubps	0x140(%rax,%r12), %zmm1, %zmm1
+14000e473:     	vsubps	0x180(%rax,%r12), %zmm2, %zmm2
+14000e47b:     	vsubps	0x1c0(%rax,%r12), %zmm3, %zmm3
+14000e483:     	vaddps	0x100(%rax,%r13), %zmm0, %zmm0
+14000e48b:     	vaddps	0x140(%rax,%r13), %zmm1, %zmm1
+14000e493:     	vaddps	0x180(%rax,%r13), %zmm2, %zmm2
+14000e49b:     	vaddps	0x1c0(%rax,%r13), %zmm3, %zmm3
+14000e4a3:     	vmovups	%zmm0, 0x100(%rsi)
+14000e4aa:     	vmovups	%zmm1, 0x140(%rsi)
+14000e4b1:     	vmovups	%zmm2, 0x180(%rsi)
+14000e4b8:     	vmovups	%zmm3, 0x1c0(%rsi)
+14000e4bf:     	jmp	0x14000ea6e <forge::nnue::update(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&)+0x147e>
+14000e4c4:     	leaq	-0x7fe4(%r14,%rax), %r14
+14000e4cc:     	leaq	0x1c(%rbx,%rax), %rbx
+14000e4d1:     	xorl	%r15d, %r15d
+14000e4d4:     	nopw	%cs:(%rax,%rax)
+14000e4e0:     	vmovss	(%rdi,%r15), %xmm0
+14000e4e6:     	vsubss	-0x1c(%r14,%r15), %xmm0, %xmm0
+14000e4ed:     	vaddss	-0x1c(%rbx,%r15), %xmm0, %xmm0
+14000e4f4:     	vmovss	%xmm0, (%rsi,%r15)
+14000e4fa:     	vmovss	0x4(%rdi,%r15), %xmm0
+14000e501:     	vsubss	-0x18(%r14,%r15), %xmm0, %xmm0
+14000e508:     	vaddss	-0x18(%rbx,%r15), %xmm0, %xmm0
+14000e50f:     	vmovss	%xmm0, 0x4(%rsi,%r15)
+14000e516:     	vmovss	0x8(%rdi,%r15), %xmm0
+14000e51d:     	vsubss	-0x14(%r14,%r15), %xmm0, %xmm0
+14000e524:     	vaddss	-0x14(%rbx,%r15), %xmm0, %xmm0
+14000e52b:     	vmovss	%xmm0, 0x8(%rsi,%r15)
+14000e532:     	vmovss	0xc(%rdi,%r15), %xmm0
+14000e539:     	vsubss	-0x10(%r14,%r15), %xmm0, %xmm0
+14000e540:     	vaddss	-0x10(%rbx,%r15), %xmm0, %xmm0
+14000e547:     	vmovss	%xmm0, 0xc(%rsi,%r15)
+14000e54e:     	vmovss	0x10(%rdi,%r15), %xmm0
+14000e555:     	vsubss	-0xc(%r14,%r15), %xmm0, %xmm0
+14000e55c:     	vaddss	-0xc(%rbx,%r15), %xmm0, %xmm0
+14000e563:     	vmovss	%xmm0, 0x10(%rsi,%r15)
+14000e56a:     	vmovss	0x14(%rdi,%r15), %xmm0
+14000e571:     	vsubss	-0x8(%r14,%r15), %xmm0, %xmm0
+14000e578:     	vaddss	-0x8(%rbx,%r15), %xmm0, %xmm0
+14000e57f:     	vmovss	%xmm0, 0x14(%rsi,%r15)
+14000e586:     	vmovss	0x18(%rdi,%r15), %xmm0
+14000e58d:     	vsubss	-0x4(%r14,%r15), %xmm0, %xmm0
+14000e594:     	vaddss	-0x4(%rbx,%r15), %xmm0, %xmm0
+14000e59b:     	vmovss	%xmm0, 0x18(%rsi,%r15)
+14000e5a2:     	vmovss	0x1c(%rdi,%r15), %xmm0
+14000e5a9:     	vsubss	(%r14,%r15), %xmm0, %xmm0
+14000e5af:     	vaddss	(%rbx,%r15), %xmm0, %xmm0
+14000e5b5:     	vmovss	%xmm0, 0x1c(%rsi,%r15)
+14000e5bc:     	addq	$0x20, %r15
+14000e5c0:     	cmpq	$0x200, %r15            # imm = 0x200
+14000e5c7:     	jne	0x14000e4e0 <forge::nnue::update(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&)+0xef0>
+14000e5cd:     	shll	$0x9, %edx
+14000e5d0:     	cmpl	$0x7, %r8d
+14000e5d4:     	cmovll	%r9d, %r10d
+14000e5d8:     	movslq	%r10d, %r8
+14000e5db:     	shlq	$0x6, %r8
+14000e5df:     	addq	%rcx, %r8
+14000e5e2:     	shlq	$0x9, %r8
+14000e5e6:     	cmpq	$-0x100, %r11
+14000e5ed:     	ja	0x14000e71b <forge::nnue::update(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&)+0x112b>
+14000e5f3:     	leaq	(%r8,%rax), %rcx
+14000e5f7:     	negq	%rcx
+14000e5fa:     	leaq	0x1ff(%rsi,%rcx), %rcx
+14000e602:     	cmpq	$0xff, %rcx
+14000e609:     	jb	0x14000e71b <forge::nnue::update(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&)+0x112b>
+14000e60f:     	leaq	(%rax,%rdx), %rcx
+14000e613:     	negq	%rcx
+14000e616:     	leaq	-0x27e01(%rsi,%rcx), %rcx
+14000e61e:     	cmpq	$0xfe, %rcx
+14000e625:     	jbe	0x14000e71b <forge::nnue::update(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&)+0x112b>
+14000e62b:     	vmovups	0x200(%rdi), %zmm0
+14000e632:     	vmovups	0x240(%rdi), %zmm1
+14000e639:     	vmovups	0x280(%rdi), %zmm2
+14000e640:     	vmovups	0x2c0(%rdi), %zmm3
+14000e647:     	vsubps	0x28000(%rax,%rdx), %zmm0, %zmm0
+14000e652:     	vsubps	0x28040(%rax,%rdx), %zmm1, %zmm1
+14000e65d:     	vsubps	0x28080(%rax,%rdx), %zmm2, %zmm2
+14000e668:     	vsubps	0x280c0(%rax,%rdx), %zmm3, %zmm3
+14000e673:     	vaddps	(%rax,%r8), %zmm0, %zmm0
+14000e67a:     	vaddps	0x40(%rax,%r8), %zmm1, %zmm1
+14000e682:     	vaddps	0x80(%rax,%r8), %zmm2, %zmm2
+14000e68a:     	vaddps	0xc0(%rax,%r8), %zmm3, %zmm3
+14000e692:     	vmovups	%zmm0, 0x200(%rsi)
+14000e699:     	vmovups	%zmm1, 0x240(%rsi)
+14000e6a0:     	vmovups	%zmm2, 0x280(%rsi)
+14000e6a7:     	vmovups	%zmm3, 0x2c0(%rsi)
+14000e6ae:     	vmovups	0x300(%rdi), %zmm0
+14000e6b5:     	vmovups	0x340(%rdi), %zmm1
+14000e6bc:     	vmovups	0x380(%rdi), %zmm2
+14000e6c3:     	vmovups	0x3c0(%rdi), %zmm3
+14000e6ca:     	vsubps	0x28100(%rax,%rdx), %zmm0, %zmm0
+14000e6d5:     	vsubps	0x28140(%rax,%rdx), %zmm1, %zmm1
+14000e6e0:     	vsubps	0x28180(%rax,%rdx), %zmm2, %zmm2
+14000e6eb:     	vsubps	0x281c0(%rax,%rdx), %zmm3, %zmm3
+14000e6f6:     	vaddps	0x100(%rax,%r8), %zmm0, %zmm0
+14000e6fe:     	vaddps	0x140(%rax,%r8), %zmm1, %zmm1
+14000e706:     	vaddps	0x180(%rax,%r8), %zmm2, %zmm2
+14000e70e:     	vaddps	0x1c0(%rax,%r8), %zmm3, %zmm3
+14000e716:     	jmp	0x14000ef16 <forge::nnue::update(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&)+0x1926>
+14000e71b:     	leaq	0x2801c(%rdx,%rax), %rcx
+14000e723:     	leaq	0x1c(%r8,%rax), %rax
+14000e728:     	xorl	%edx, %edx
+14000e72a:     	nopw	(%rax,%rax)
+14000e730:     	vmovss	0x200(%rdi,%rdx), %xmm0
+14000e739:     	vsubss	-0x1c(%rcx,%rdx), %xmm0, %xmm0
+14000e73f:     	vaddss	-0x1c(%rax,%rdx), %xmm0, %xmm0
+14000e745:     	vmovss	%xmm0, 0x200(%rsi,%rdx)
+14000e74e:     	vmovss	0x204(%rdi,%rdx), %xmm0
+14000e757:     	vsubss	-0x18(%rcx,%rdx), %xmm0, %xmm0
+14000e75d:     	vaddss	-0x18(%rax,%rdx), %xmm0, %xmm0
+14000e763:     	vmovss	%xmm0, 0x204(%rsi,%rdx)
+14000e76c:     	vmovss	0x208(%rdi,%rdx), %xmm0
+14000e775:     	vsubss	-0x14(%rcx,%rdx), %xmm0, %xmm0
+14000e77b:     	vaddss	-0x14(%rax,%rdx), %xmm0, %xmm0
+14000e781:     	vmovss	%xmm0, 0x208(%rsi,%rdx)
+14000e78a:     	vmovss	0x20c(%rdi,%rdx), %xmm0
+14000e793:     	vsubss	-0x10(%rcx,%rdx), %xmm0, %xmm0
+14000e799:     	vaddss	-0x10(%rax,%rdx), %xmm0, %xmm0
+14000e79f:     	vmovss	%xmm0, 0x20c(%rsi,%rdx)
+14000e7a8:     	vmovss	0x210(%rdi,%rdx), %xmm0
+14000e7b1:     	vsubss	-0xc(%rcx,%rdx), %xmm0, %xmm0
+14000e7b7:     	vaddss	-0xc(%rax,%rdx), %xmm0, %xmm0
+14000e7bd:     	vmovss	%xmm0, 0x210(%rsi,%rdx)
+14000e7c6:     	vmovss	0x214(%rdi,%rdx), %xmm0
+14000e7cf:     	vsubss	-0x8(%rcx,%rdx), %xmm0, %xmm0
+14000e7d5:     	vaddss	-0x8(%rax,%rdx), %xmm0, %xmm0
+14000e7db:     	vmovss	%xmm0, 0x214(%rsi,%rdx)
+14000e7e4:     	vmovss	0x218(%rdi,%rdx), %xmm0
+14000e7ed:     	vsubss	-0x4(%rcx,%rdx), %xmm0, %xmm0
+14000e7f3:     	vaddss	-0x4(%rax,%rdx), %xmm0, %xmm0
+14000e7f9:     	vmovss	%xmm0, 0x218(%rsi,%rdx)
+14000e802:     	vmovss	0x21c(%rdi,%rdx), %xmm0
+14000e80b:     	vsubss	(%rcx,%rdx), %xmm0, %xmm0
+14000e810:     	vaddss	(%rax,%rdx), %xmm0, %xmm0
+14000e815:     	vmovss	%xmm0, 0x21c(%rsi,%rdx)
+14000e81e:     	addq	$0x20, %rdx
+14000e822:     	cmpq	$0x200, %rdx            # imm = 0x200
+14000e829:     	jne	0x14000e730 <forge::nnue::update(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&)+0x1140>
+14000e82f:     	jmp	0x14000ef32 <forge::nnue::update(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&)+0x1942>
+14000e834:     	movq	%rdi, %r8
+14000e837:     	subq	%rsi, %r8
+14000e83a:     	cmpq	$-0x100, %r8
+14000e841:     	ja	0x14000ecc4 <forge::nnue::update(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&)+0x16d4>
+14000e847:     	movl	%r14d, %r10d
+14000e84a:     	shll	$0x9, %r10d
+14000e84e:     	addq	%rax, %r10
+14000e851:     	negq	%r10
+14000e854:     	leaq	0x7fff(%rsi,%r10), %r10
+14000e85c:     	cmpq	$0xff, %r10
+14000e863:     	jb	0x14000ecc4 <forge::nnue::update(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&)+0x16d4>
+14000e869:     	leaq	(%r12,%rax), %r10
+14000e86d:     	subq	%rsi, %r10
+14000e870:     	cmpq	$-0xff, %r10
+14000e877:     	jae	0x14000ecc4 <forge::nnue::update(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&)+0x16d4>
+14000e87d:     	vmovups	(%rdi), %zmm0
+14000e883:     	vmovups	0x40(%rdi), %zmm1
+14000e88a:     	vmovups	0x80(%rdi), %zmm2
+14000e891:     	vmovups	0xc0(%rdi), %zmm3
+14000e898:     	shll	$0x9, %r14d
+14000e89c:     	vsubps	(%rax,%r12), %zmm0, %zmm0
+14000e8a3:     	vsubps	0x40(%rax,%r12), %zmm1, %zmm1
+14000e8ab:     	vsubps	0x80(%rax,%r12), %zmm2, %zmm2
+14000e8b3:     	vsubps	0xc0(%rax,%r12), %zmm3, %zmm3
+14000e8bb:     	addq	$-0x8000, %r14          # imm = 0x8000
+14000e8c2:     	vaddps	(%rax,%r14), %zmm0, %zmm0
+14000e8c9:     	vaddps	0x40(%rax,%r14), %zmm1, %zmm1
+14000e8d1:     	vaddps	0x80(%rax,%r14), %zmm2, %zmm2
+14000e8d9:     	vaddps	0xc0(%rax,%r14), %zmm3, %zmm3
+14000e8e1:     	vmovups	%zmm0, (%rsi)
+14000e8e7:     	vmovups	%zmm1, 0x40(%rsi)
+14000e8ee:     	vmovups	%zmm2, 0x80(%rsi)
+14000e8f5:     	vmovups	%zmm3, 0xc0(%rsi)
+14000e8fc:     	vmovups	0x100(%rdi), %zmm0
+14000e903:     	vmovups	0x140(%rdi), %zmm1
+14000e90a:     	vmovups	0x180(%rdi), %zmm2
+14000e911:     	vmovups	0x1c0(%rdi), %zmm3
+14000e918:     	vsubps	0x100(%rax,%r12), %zmm0, %zmm0
+14000e920:     	vsubps	0x140(%rax,%r12), %zmm1, %zmm1
+14000e928:     	vsubps	0x180(%rax,%r12), %zmm2, %zmm2
+14000e930:     	vsubps	0x1c0(%rax,%r12), %zmm3, %zmm3
+14000e938:     	vaddps	0x100(%rax,%r14), %zmm0, %zmm0
+14000e940:     	vaddps	0x140(%rax,%r14), %zmm1, %zmm1
+14000e948:     	vaddps	0x180(%rax,%r14), %zmm2, %zmm2
+14000e950:     	vaddps	0x1c0(%rax,%r14), %zmm3, %zmm3
+14000e958:     	vmovups	%zmm0, 0x100(%rsi)
+14000e95f:     	vmovups	%zmm1, 0x140(%rsi)
+14000e966:     	vmovups	%zmm2, 0x180(%rsi)
+14000e96d:     	vmovups	%zmm3, 0x1c0(%rsi)
+14000e974:     	jmp	0x14000edcd <forge::nnue::update(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&)+0x17dd>
+14000e979:     	leaq	0x1c(%r12,%rax), %r12
+14000e97e:     	leaq	0x1c(%r13,%rax), %r13
+14000e983:     	xorl	%ebx, %ebx
+14000e985:     	nopw	%cs:(%rax,%rax)
+14000e990:     	vmovss	(%rdi,%rbx,4), %xmm0
+14000e995:     	vsubss	-0x1c(%r12,%rbx,4), %xmm0, %xmm0
+14000e99c:     	vaddss	-0x1c(%r13,%rbx,4), %xmm0, %xmm0
+14000e9a3:     	vmovss	%xmm0, (%rsi,%rbx,4)
+14000e9a8:     	vmovss	0x4(%rdi,%rbx,4), %xmm0
+14000e9ae:     	vsubss	-0x18(%r12,%rbx,4), %xmm0, %xmm0
+14000e9b5:     	vaddss	-0x18(%r13,%rbx,4), %xmm0, %xmm0
+14000e9bc:     	vmovss	%xmm0, 0x4(%rsi,%rbx,4)
+14000e9c2:     	vmovss	0x8(%rdi,%rbx,4), %xmm0
+14000e9c8:     	vsubss	-0x14(%r12,%rbx,4), %xmm0, %xmm0
+14000e9cf:     	vaddss	-0x14(%r13,%rbx,4), %xmm0, %xmm0
+14000e9d6:     	vmovss	%xmm0, 0x8(%rsi,%rbx,4)
+14000e9dc:     	vmovss	0xc(%rdi,%rbx,4), %xmm0
+14000e9e2:     	vsubss	-0x10(%r12,%rbx,4), %xmm0, %xmm0
+14000e9e9:     	vaddss	-0x10(%r13,%rbx,4), %xmm0, %xmm0
+14000e9f0:     	vmovss	%xmm0, 0xc(%rsi,%rbx,4)
+14000e9f6:     	vmovss	0x10(%rdi,%rbx,4), %xmm0
+14000e9fc:     	vsubss	-0xc(%r12,%rbx,4), %xmm0, %xmm0
+14000ea03:     	vaddss	-0xc(%r13,%rbx,4), %xmm0, %xmm0
+14000ea0a:     	vmovss	%xmm0, 0x10(%rsi,%rbx,4)
+14000ea10:     	vmovss	0x14(%rdi,%rbx,4), %xmm0
+14000ea16:     	vsubss	-0x8(%r12,%rbx,4), %xmm0, %xmm0
+14000ea1d:     	vaddss	-0x8(%r13,%rbx,4), %xmm0, %xmm0
+14000ea24:     	vmovss	%xmm0, 0x14(%rsi,%rbx,4)
+14000ea2a:     	vmovss	0x18(%rdi,%rbx,4), %xmm0
+14000ea30:     	vsubss	-0x4(%r12,%rbx,4), %xmm0, %xmm0
+14000ea37:     	vaddss	-0x4(%r13,%rbx,4), %xmm0, %xmm0
+14000ea3e:     	vmovss	%xmm0, 0x18(%rsi,%rbx,4)
+14000ea44:     	vmovss	0x1c(%rdi,%rbx,4), %xmm0
+14000ea4a:     	vsubss	(%r12,%rbx,4), %xmm0, %xmm0
+14000ea50:     	vaddss	(%r13,%rbx,4), %xmm0, %xmm0
+14000ea57:     	vmovss	%xmm0, 0x1c(%rsi,%rbx,4)
+14000ea5d:     	addq	$0x8, %rbx
+14000ea61:     	cmpq	$0x80, %rbx
+14000ea68:     	jne	0x14000e990 <forge::nnue::update(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&)+0x13a0>
+14000ea6e:     	cmpl	$0x7, %r9d
+14000ea72:     	cmovll	0x24(%rsp), %r11d
+14000ea78:     	shll	$0x6, %r11d
+14000ea7c:     	addl	%edx, %r11d
+14000ea7f:     	movslq	%r11d, %rdx
+14000ea82:     	shlq	$0x9, %rdx
+14000ea86:     	cmpl	$0x7, %r8d
+14000ea8a:     	cmovll	%ebp, %r10d
+14000ea8e:     	shll	$0x6, %r10d
+14000ea92:     	addl	%ecx, %r10d
+14000ea95:     	movslq	%r10d, %rcx
+14000ea98:     	shlq	$0x9, %rcx
+14000ea9c:     	cmpq	$-0x100, %r15
+14000eaa3:     	ja	0x14000ebad <forge::nnue::update(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&)+0x15bd>
+14000eaa9:     	addq	$0x200, %r14            # imm = 0x200
+14000eab0:     	movq	%rcx, %r8
+14000eab3:     	subq	%r14, %r8
+14000eab6:     	cmpq	$-0x100, %r8
+14000eabd:     	ja	0x14000ebad <forge::nnue::update(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&)+0x15bd>
+14000eac3:     	movq	%rdx, %r8
+14000eac6:     	subq	%r14, %r8
+14000eac9:     	cmpq	$-0xff, %r8
+14000ead0:     	jae	0x14000ebad <forge::nnue::update(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&)+0x15bd>
+14000ead6:     	vmovups	0x200(%rdi), %zmm0
+14000eadd:     	vmovups	0x240(%rdi), %zmm1
+14000eae4:     	vmovups	0x280(%rdi), %zmm2
+14000eaeb:     	vmovups	0x2c0(%rdi), %zmm3
+14000eaf2:     	vsubps	(%rax,%rdx), %zmm0, %zmm0
+14000eaf9:     	vsubps	0x40(%rax,%rdx), %zmm1, %zmm1
+14000eb01:     	vsubps	0x80(%rax,%rdx), %zmm2, %zmm2
+14000eb09:     	vsubps	0xc0(%rax,%rdx), %zmm3, %zmm3
+14000eb11:     	vaddps	(%rax,%rcx), %zmm0, %zmm0
+14000eb18:     	vaddps	0x40(%rax,%rcx), %zmm1, %zmm1
+14000eb20:     	vaddps	0x80(%rax,%rcx), %zmm2, %zmm2
+14000eb28:     	vaddps	0xc0(%rax,%rcx), %zmm3, %zmm3
+14000eb30:     	vmovups	%zmm0, 0x200(%rsi)
+14000eb37:     	vmovups	%zmm1, 0x240(%rsi)
+14000eb3e:     	vmovups	%zmm2, 0x280(%rsi)
+14000eb45:     	vmovups	%zmm3, 0x2c0(%rsi)
+14000eb4c:     	vmovups	0x300(%rdi), %zmm0
+14000eb53:     	vmovups	0x340(%rdi), %zmm1
+14000eb5a:     	vmovups	0x380(%rdi), %zmm2
+14000eb61:     	vmovups	0x3c0(%rdi), %zmm3
+14000eb68:     	vsubps	0x100(%rax,%rdx), %zmm0, %zmm0
+14000eb70:     	vsubps	0x140(%rax,%rdx), %zmm1, %zmm1
+14000eb78:     	vsubps	0x180(%rax,%rdx), %zmm2, %zmm2
+14000eb80:     	vsubps	0x1c0(%rax,%rdx), %zmm3, %zmm3
+14000eb88:     	vaddps	0x100(%rax,%rcx), %zmm0, %zmm0
+14000eb90:     	vaddps	0x140(%rax,%rcx), %zmm1, %zmm1
+14000eb98:     	vaddps	0x180(%rax,%rcx), %zmm2, %zmm2
+14000eba0:     	vaddps	0x1c0(%rax,%rcx), %zmm3, %zmm3
+14000eba8:     	jmp	0x14000ef16 <forge::nnue::update(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&)+0x1926>
+14000ebad:     	leaq	0x1c(%rdx,%rax), %rdx
+14000ebb2:     	leaq	0x1c(%rcx,%rax), %rax
+14000ebb7:     	xorl	%ecx, %ecx
+14000ebb9:     	nopl	(%rax)
+14000ebc0:     	vmovss	0x200(%rdi,%rcx), %xmm0
+14000ebc9:     	vsubss	-0x1c(%rdx,%rcx), %xmm0, %xmm0
+14000ebcf:     	vaddss	-0x1c(%rax,%rcx), %xmm0, %xmm0
+14000ebd5:     	vmovss	%xmm0, 0x200(%rsi,%rcx)
+14000ebde:     	vmovss	0x204(%rdi,%rcx), %xmm0
+14000ebe7:     	vsubss	-0x18(%rdx,%rcx), %xmm0, %xmm0
+14000ebed:     	vaddss	-0x18(%rax,%rcx), %xmm0, %xmm0
+14000ebf3:     	vmovss	%xmm0, 0x204(%rsi,%rcx)
+14000ebfc:     	vmovss	0x208(%rdi,%rcx), %xmm0
+14000ec05:     	vsubss	-0x14(%rdx,%rcx), %xmm0, %xmm0
+14000ec0b:     	vaddss	-0x14(%rax,%rcx), %xmm0, %xmm0
+14000ec11:     	vmovss	%xmm0, 0x208(%rsi,%rcx)
+14000ec1a:     	vmovss	0x20c(%rdi,%rcx), %xmm0
+14000ec23:     	vsubss	-0x10(%rdx,%rcx), %xmm0, %xmm0
+14000ec29:     	vaddss	-0x10(%rax,%rcx), %xmm0, %xmm0
+14000ec2f:     	vmovss	%xmm0, 0x20c(%rsi,%rcx)
+14000ec38:     	vmovss	0x210(%rdi,%rcx), %xmm0
+14000ec41:     	vsubss	-0xc(%rdx,%rcx), %xmm0, %xmm0
+14000ec47:     	vaddss	-0xc(%rax,%rcx), %xmm0, %xmm0
+14000ec4d:     	vmovss	%xmm0, 0x210(%rsi,%rcx)
+14000ec56:     	vmovss	0x214(%rdi,%rcx), %xmm0
+14000ec5f:     	vsubss	-0x8(%rdx,%rcx), %xmm0, %xmm0
+14000ec65:     	vaddss	-0x8(%rax,%rcx), %xmm0, %xmm0
+14000ec6b:     	vmovss	%xmm0, 0x214(%rsi,%rcx)
+14000ec74:     	vmovss	0x218(%rdi,%rcx), %xmm0
+14000ec7d:     	vsubss	-0x4(%rdx,%rcx), %xmm0, %xmm0
+14000ec83:     	vaddss	-0x4(%rax,%rcx), %xmm0, %xmm0
+14000ec89:     	vmovss	%xmm0, 0x218(%rsi,%rcx)
+14000ec92:     	vmovss	0x21c(%rdi,%rcx), %xmm0
+14000ec9b:     	vsubss	(%rdx,%rcx), %xmm0, %xmm0
+14000eca0:     	vaddss	(%rax,%rcx), %xmm0, %xmm0
+14000eca5:     	vmovss	%xmm0, 0x21c(%rsi,%rcx)
+14000ecae:     	addq	$0x20, %rcx
+14000ecb2:     	cmpq	$0x200, %rcx            # imm = 0x200
+14000ecb9:     	jne	0x14000ebc0 <forge::nnue::update(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&)+0x15d0>
+14000ecbf:     	jmp	0x14000ef32 <forge::nnue::update(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&)+0x1942>
+14000ecc4:     	shll	$0x9, %r14d
+14000ecc8:     	leaq	0x1c(%r12,%rax), %r10
+14000eccd:     	xorl	%r15d, %r15d
+14000ecd0:     	leaq	-0x7fe4(%r14,%rax), %r14
+14000ecd8:     	nopl	(%rax,%rax)
+14000ece0:     	vmovss	(%rdi,%r15), %xmm0
+14000ece6:     	vsubss	-0x1c(%r10,%r15), %xmm0, %xmm0
+14000eced:     	vaddss	-0x1c(%r14,%r15), %xmm0, %xmm0
+14000ecf4:     	vmovss	%xmm0, (%rsi,%r15)
+14000ecfa:     	vmovss	0x4(%rdi,%r15), %xmm0
+14000ed01:     	vsubss	-0x18(%r10,%r15), %xmm0, %xmm0
+14000ed08:     	vaddss	-0x18(%r14,%r15), %xmm0, %xmm0
+14000ed0f:     	vmovss	%xmm0, 0x4(%rsi,%r15)
+14000ed16:     	vmovss	0x8(%rdi,%r15), %xmm0
+14000ed1d:     	vsubss	-0x14(%r10,%r15), %xmm0, %xmm0
+14000ed24:     	vaddss	-0x14(%r14,%r15), %xmm0, %xmm0
+14000ed2b:     	vmovss	%xmm0, 0x8(%rsi,%r15)
+14000ed32:     	vmovss	0xc(%rdi,%r15), %xmm0
+14000ed39:     	vsubss	-0x10(%r10,%r15), %xmm0, %xmm0
+14000ed40:     	vaddss	-0x10(%r14,%r15), %xmm0, %xmm0
+14000ed47:     	vmovss	%xmm0, 0xc(%rsi,%r15)
+14000ed4e:     	vmovss	0x10(%rdi,%r15), %xmm0
+14000ed55:     	vsubss	-0xc(%r10,%r15), %xmm0, %xmm0
+14000ed5c:     	vaddss	-0xc(%r14,%r15), %xmm0, %xmm0
+14000ed63:     	vmovss	%xmm0, 0x10(%rsi,%r15)
+14000ed6a:     	vmovss	0x14(%rdi,%r15), %xmm0
+14000ed71:     	vsubss	-0x8(%r10,%r15), %xmm0, %xmm0
+14000ed78:     	vaddss	-0x8(%r14,%r15), %xmm0, %xmm0
+14000ed7f:     	vmovss	%xmm0, 0x14(%rsi,%r15)
+14000ed86:     	vmovss	0x18(%rdi,%r15), %xmm0
+14000ed8d:     	vsubss	-0x4(%r10,%r15), %xmm0, %xmm0
+14000ed94:     	vaddss	-0x4(%r14,%r15), %xmm0, %xmm0
+14000ed9b:     	vmovss	%xmm0, 0x18(%rsi,%r15)
+14000eda2:     	vmovss	0x1c(%rdi,%r15), %xmm0
+14000eda9:     	vsubss	(%r10,%r15), %xmm0, %xmm0
+14000edaf:     	vaddss	(%r14,%r15), %xmm0, %xmm0
+14000edb5:     	vmovss	%xmm0, 0x1c(%rsi,%r15)
+14000edbc:     	addq	$0x20, %r15
+14000edc0:     	cmpq	$0x200, %r15            # imm = 0x200
+14000edc7:     	jne	0x14000ece0 <forge::nnue::update(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&)+0x16f0>
+14000edcd:     	cmpl	$0x7, %r9d
+14000edd1:     	cmovll	%ebp, %r11d
+14000edd5:     	shll	$0x9, %ecx
+14000edd8:     	shll	$0x6, %r11d
+14000eddc:     	addl	%edx, %r11d
+14000eddf:     	movslq	%r11d, %rdx
+14000ede2:     	shlq	$0x9, %rdx
+14000ede6:     	cmpq	$-0x100, %r8
+14000eded:     	ja	0x14000ef4d <forge::nnue::update(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&)+0x195d>
+14000edf3:     	leaq	(%rax,%rcx), %r8
+14000edf7:     	negq	%r8
+14000edfa:     	leaq	-0x27e01(%rsi,%r8), %r8
+14000ee02:     	cmpq	$0xff, %r8
+14000ee09:     	jb	0x14000ef4d <forge::nnue::update(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&)+0x195d>
+14000ee0f:     	leaq	(%rdx,%rax), %r8
+14000ee13:     	negq	%r8
+14000ee16:     	leaq	0x1ff(%rsi,%r8), %r8
+14000ee1e:     	cmpq	$0xfe, %r8
+14000ee25:     	jbe	0x14000ef4d <forge::nnue::update(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&)+0x195d>
+14000ee2b:     	vmovups	0x200(%rdi), %zmm0
+14000ee32:     	vmovups	0x240(%rdi), %zmm1
+14000ee39:     	vmovups	0x280(%rdi), %zmm2
+14000ee40:     	vmovups	0x2c0(%rdi), %zmm3
+14000ee47:     	vsubps	(%rax,%rdx), %zmm0, %zmm0
+14000ee4e:     	vsubps	0x40(%rax,%rdx), %zmm1, %zmm1
+14000ee56:     	vsubps	0x80(%rax,%rdx), %zmm2, %zmm2
+14000ee5e:     	vsubps	0xc0(%rax,%rdx), %zmm3, %zmm3
+14000ee66:     	vaddps	0x28000(%rax,%rcx), %zmm0, %zmm0
+14000ee71:     	vaddps	0x28040(%rax,%rcx), %zmm1, %zmm1
+14000ee7c:     	vaddps	0x28080(%rax,%rcx), %zmm2, %zmm2
+14000ee87:     	vaddps	0x280c0(%rax,%rcx), %zmm3, %zmm3
+14000ee92:     	vmovups	%zmm0, 0x200(%rsi)
+14000ee99:     	vmovups	%zmm1, 0x240(%rsi)
+14000eea0:     	vmovups	%zmm2, 0x280(%rsi)
+14000eea7:     	vmovups	%zmm3, 0x2c0(%rsi)
+14000eeae:     	vmovups	0x300(%rdi), %zmm0
+14000eeb5:     	vmovups	0x340(%rdi), %zmm1
+14000eebc:     	vmovups	0x380(%rdi), %zmm2
+14000eec3:     	vmovups	0x3c0(%rdi), %zmm3
+14000eeca:     	vsubps	0x100(%rax,%rdx), %zmm0, %zmm0
+14000eed2:     	vsubps	0x140(%rax,%rdx), %zmm1, %zmm1
+14000eeda:     	vsubps	0x180(%rax,%rdx), %zmm2, %zmm2
+14000eee2:     	vsubps	0x1c0(%rax,%rdx), %zmm3, %zmm3
+14000eeea:     	vaddps	0x28100(%rax,%rcx), %zmm0, %zmm0
+14000eef5:     	vaddps	0x28140(%rax,%rcx), %zmm1, %zmm1
+14000ef00:     	vaddps	0x28180(%rax,%rcx), %zmm2, %zmm2
+14000ef0b:     	vaddps	0x281c0(%rax,%rcx), %zmm3, %zmm3
+14000ef16:     	vmovups	%zmm0, 0x300(%rsi)
+14000ef1d:     	vmovups	%zmm1, 0x340(%rsi)
+14000ef24:     	vmovups	%zmm2, 0x380(%rsi)
+14000ef2b:     	vmovups	%zmm3, 0x3c0(%rsi)
+14000ef32:     	movb	$0x1, 0x400(%rsi)
+14000ef39:     	addq	$0x28, %rsp
+14000ef3d:     	popq	%rbx
+14000ef3e:     	popq	%rbp
+14000ef3f:     	popq	%rdi
+14000ef40:     	popq	%rsi
+14000ef41:     	popq	%r12
+14000ef43:     	popq	%r13
+14000ef45:     	popq	%r14
+14000ef47:     	popq	%r15
+14000ef49:     	vzeroupper
+14000ef4c:     	retq
+14000ef4d:     	leaq	0x1c(%rdx,%rax), %rdx
+14000ef52:     	leaq	0x2801c(%rcx,%rax), %rax
+14000ef5a:     	xorl	%ecx, %ecx
+14000ef5c:     	nopl	(%rax)
+14000ef60:     	vmovss	0x200(%rdi,%rcx), %xmm0
+14000ef69:     	vsubss	-0x1c(%rdx,%rcx), %xmm0, %xmm0
+14000ef6f:     	vaddss	-0x1c(%rax,%rcx), %xmm0, %xmm0
+14000ef75:     	vmovss	%xmm0, 0x200(%rsi,%rcx)
+14000ef7e:     	vmovss	0x204(%rdi,%rcx), %xmm0
+14000ef87:     	vsubss	-0x18(%rdx,%rcx), %xmm0, %xmm0
+14000ef8d:     	vaddss	-0x18(%rax,%rcx), %xmm0, %xmm0
+14000ef93:     	vmovss	%xmm0, 0x204(%rsi,%rcx)
+14000ef9c:     	vmovss	0x208(%rdi,%rcx), %xmm0
+14000efa5:     	vsubss	-0x14(%rdx,%rcx), %xmm0, %xmm0
+14000efab:     	vaddss	-0x14(%rax,%rcx), %xmm0, %xmm0
+14000efb1:     	vmovss	%xmm0, 0x208(%rsi,%rcx)
+14000efba:     	vmovss	0x20c(%rdi,%rcx), %xmm0
+14000efc3:     	vsubss	-0x10(%rdx,%rcx), %xmm0, %xmm0
+14000efc9:     	vaddss	-0x10(%rax,%rcx), %xmm0, %xmm0
+14000efcf:     	vmovss	%xmm0, 0x20c(%rsi,%rcx)
+14000efd8:     	vmovss	0x210(%rdi,%rcx), %xmm0
+14000efe1:     	vsubss	-0xc(%rdx,%rcx), %xmm0, %xmm0
+14000efe7:     	vaddss	-0xc(%rax,%rcx), %xmm0, %xmm0
+14000efed:     	vmovss	%xmm0, 0x210(%rsi,%rcx)
+14000eff6:     	vmovss	0x214(%rdi,%rcx), %xmm0
+14000efff:     	vsubss	-0x8(%rdx,%rcx), %xmm0, %xmm0
+14000f005:     	vaddss	-0x8(%rax,%rcx), %xmm0, %xmm0
+14000f00b:     	vmovss	%xmm0, 0x214(%rsi,%rcx)
+14000f014:     	vmovss	0x218(%rdi,%rcx), %xmm0
+14000f01d:     	vsubss	-0x4(%rdx,%rcx), %xmm0, %xmm0
+14000f023:     	vaddss	-0x4(%rax,%rcx), %xmm0, %xmm0
+14000f029:     	vmovss	%xmm0, 0x218(%rsi,%rcx)
+14000f032:     	vmovss	0x21c(%rdi,%rcx), %xmm0
+14000f03b:     	vsubss	(%rdx,%rcx), %xmm0, %xmm0
+14000f040:     	vaddss	(%rax,%rcx), %xmm0, %xmm0
+14000f045:     	vmovss	%xmm0, 0x21c(%rsi,%rcx)
+14000f04e:     	addq	$0x20, %rcx
+14000f052:     	cmpq	$0x200, %rcx            # imm = 0x200
+14000f059:     	jne	0x14000ef60 <forge::nnue::update(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&)+0x1970>
+14000f05f:     	jmp	0x14000ef32 <forge::nnue::update(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&)+0x1942>
+14000f064:     	leaq	0x118b35(%rip), %rcx    # 0x140127ba0 <guard variable for forge::nnue::(anonymous namespace)::weights()::instance>
+14000f06b:     	callq	0x14007ee54 <__cxa_guard_acquire>
+14000f070:     	testl	%eax, %eax
+14000f072:     	je	0x14000d618 <forge::nnue::update(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&)+0x28>
+14000f078:     	callq	0x14000f7c0 <forge::nnue::(anonymous namespace)::weights()::$_0::operator()() const>
+14000f07d:     	leaq	0xbac(%rip), %rcx       # 0x14000fc30 <__dtor__ZZN5forge4nnue12_GLOBAL__N_17weightsEvE8instance>
+14000f084:     	callq	0x1400013d0 <atexit>
+14000f089:     	leaq	0x118b10(%rip), %rcx    # 0x140127ba0 <guard variable for forge::nnue::(anonymous namespace)::weights()::instance>
+14000f090:     	callq	0x14007ef16 <__cxa_guard_release>
+14000f095:     	jmp	0x14000d618 <forge::nnue::update(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&)+0x28>
+14000f09a:     	leaq	0x118aff(%rip), %rcx    # 0x140127ba0 <guard variable for forge::nnue::(anonymous namespace)::weights()::instance>
+14000f0a1:     	movq	%rax, %rsi
+14000f0a4:     	callq	0x14007ef9d <__cxa_guard_abort>
+14000f0a9:     	movq	%rsi, %rcx
+14000f0ac:     	callq	0x14007e070 <_Unwind_Resume>
+14000f0b1:     	int3
+14000f0b2:     	nopw	%cs:(%rax,%rax)

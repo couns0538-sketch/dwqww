@@ -1,0 +1,28 @@
+{
+  "status": "passed",
+  "auditor": "independent read-only subagent /root/windows649/audit_windows649",
+  "engine_sha256": "26e14102ea01e02091f0983ffbf777c248bc562b66f3d1c2eb0713b4d99dce01",
+  "symbol": "_ZN5forge4nnue6updateERKNS0_11AccumulatorERS1_RKNS0_11DirtyPiecesE",
+  "command": [
+    "llvm-objdump",
+    "-d",
+    "--no-show-raw-insn",
+    "--disassemble-symbols=_ZN5forge4nnue6updateERKNS0_11AccumulatorERS1_RKNS0_11DirtyPiecesE",
+    "actual-delivered-forge.exe"
+  ],
+  "guard": "0x14000d618..d630: dirty.count==2, first.add==0, second.add==1; failures branch to original copy/change-loop fallback0x14000d7f6",
+  "vector_blocks": [
+    "0x14000e3d3..e4b8",
+    "0x14000ead6..ef2b"
+  ],
+  "vector_coverage": "All128floats per perspective;8ZMM groups each with parent load -> removed-weight vsubps -> added-weight vaddps -> one child store; no initial copy or separate read/write passes",
+  "scalar_alias_blocks": [
+    "0x14000e990..ea68",
+    "0x14000ebc0..ecb9"
+  ],
+  "scalar_alias_order": "vmovss parent -> vsubss removed -> vaddss added -> vmovss child;8lanes per iteration to128; runtime alias checks retain these alternatives",
+  "fused_arithmetic_count": 0,
+  "output_layer_check_is_separate": true,
+  "hardware_scope": "ZMM is actual LLVM output under Zen5-target flags; requires compatible Zen5hardware",
+  "scope": "Static emitted fastpath validation only; no speed, NPS, timing or Elo claim"
+}

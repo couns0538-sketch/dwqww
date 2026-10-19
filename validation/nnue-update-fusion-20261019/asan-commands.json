@@ -1,0 +1,82 @@
+{
+  "source_commit": "36f5b2f6e1ff519e82a4b52edc85caceaf15aed0",
+  "source_export": "/workspace/.cloud-setup/forge-nnue-update-source",
+  "environment": {
+    "PYTHONDONTWRITEBYTECODE": "1",
+    "ASAN_OPTIONS": "detect_leaks=1:halt_on_error=1",
+    "UBSAN_OPTIONS": "halt_on_error=1:print_stacktrace=1"
+  },
+  "phases": [
+    {
+      "command": [
+        "/workspace/.cloud-setup/venv/bin/cmake",
+        "-S",
+        "/workspace/.cloud-setup/forge-nnue-update-source",
+        "-B",
+        "/workspace/.cloud-setup/forge-nnue-update-asan",
+        "-DCMAKE_BUILD_TYPE=RelWithDebInfo",
+        "-DFORGE_ENABLE_SANITIZERS=ON",
+        "-DCMAKE_CXX_FLAGS=-march=x86-64-v3 -mtune=znver5 -fno-fast-math -ffp-contract=off -fno-lto -fno-pie",
+        "-DCMAKE_EXE_LINKER_FLAGS=-no-pie",
+        "-DCMAKE_EXPORT_COMPILE_COMMANDS=ON"
+      ],
+      "return_code": 0,
+      "log": "asan-configure.log"
+    },
+    {
+      "command": [
+        "/workspace/.cloud-setup/venv/bin/cmake",
+        "--build",
+        "/workspace/.cloud-setup/forge-nnue-update-asan",
+        "--parallel",
+        "2"
+      ],
+      "return_code": 0,
+      "log": "asan-build.log"
+    },
+    {
+      "command": [
+        "/workspace/.cloud-setup/venv/bin/ctest",
+        "--test-dir",
+        "/workspace/.cloud-setup/forge-nnue-update-asan",
+        "--output-on-failure"
+      ],
+      "return_code": 0,
+      "log": "asan-ctest.log"
+    },
+    {
+      "command": [
+        "g++",
+        "-std=c++20",
+        "-O2",
+        "-g",
+        "-march=x86-64-v3",
+        "-mtune=znver5",
+        "-fno-fast-math",
+        "-ffp-contract=off",
+        "-fno-lto",
+        "-fsanitize=address,undefined",
+        "-fno-omit-frame-pointer",
+        "-fno-pie",
+        "-no-pie",
+        "-I",
+        "/workspace/.cloud-setup/forge-nnue-update-source/include",
+        "/workspace/.cloud-setup/forge-nnue-update-source/tools/nnue_update_snapshot.cpp",
+        "/workspace/.cloud-setup/forge-nnue-update-asan/libforge_core.a",
+        "-pthread",
+        "-o",
+        "/workspace/.cloud-setup/forge-nnue-update-asan/nnue_update_snapshot"
+      ],
+      "return_code": 0,
+      "log": "asan-update-driver-build.log"
+    },
+    {
+      "command": [
+        "/workspace/.cloud-setup/forge-nnue-update-asan/nnue_update_snapshot"
+      ],
+      "return_code": 0,
+      "binary_output": "asan-update-snapshot.bin"
+    }
+  ],
+  "asan_release_update_bytes_equal": true
+}

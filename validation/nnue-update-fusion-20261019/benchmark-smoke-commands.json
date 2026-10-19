@@ -1,0 +1,64 @@
+[
+  {
+    "compile_command": [
+      "g++",
+      "-std=c++20",
+      "-O3",
+      "-march=x86-64-v3",
+      "-mtune=znver5",
+      "-fno-fast-math",
+      "-ffp-contract=off",
+      "-fno-lto",
+      "-I",
+      "include",
+      "tools/nnue_update_benchmark.cpp",
+      "/workspace/.cloud-setup/forge-nnue-update-parent-release/libforge_core.a",
+      "-pthread",
+      "-o",
+      "/workspace/.cloud-setup/nnue-fusion-parent-benchmark"
+    ],
+    "compile_return_code": 0,
+    "execute_command": [
+      "/workspace/.cloud-setup/nnue-fusion-parent-benchmark",
+      "--group",
+      "all",
+      "--iterations",
+      "1024"
+    ],
+    "execute_return_code": 0,
+    "binary_sha256": "2e9d5dbf8aacfd2fbb67ef97417a35b041798fa9321231584ad3812d8cc8f57a",
+    "core_sha256": "7719912f773e34fdd7174e71e2fe60e2263684cf0cc384824cfaffb56fc63860",
+    "scope": "Only functional microbenchmark smoke; uncalibrated 1024-call timings must not be compared"
+  },
+  {
+    "compile_command": [
+      "g++",
+      "-std=c++20",
+      "-O3",
+      "-march=x86-64-v3",
+      "-mtune=znver5",
+      "-fno-fast-math",
+      "-ffp-contract=off",
+      "-fno-lto",
+      "-I",
+      "include",
+      "tools/nnue_update_benchmark.cpp",
+      "/workspace/.cloud-setup/forge-nnue-update-release/libforge_core.a",
+      "-pthread",
+      "-o",
+      "/workspace/.cloud-setup/nnue-fusion-candidate-benchmark"
+    ],
+    "compile_return_code": 0,
+    "execute_command": [
+      "/workspace/.cloud-setup/nnue-fusion-candidate-benchmark",
+      "--group",
+      "all",
+      "--iterations",
+      "1024"
+    ],
+    "execute_return_code": 0,
+    "binary_sha256": "f3c101c185c56685ad02d792eb74fb87486d999ed0a9314c311da1872fa0a87a",
+    "core_sha256": "380018fa3ee5ae25ca5d63abb39cc276466e24d5144339271686abf197a5df6a",
+    "scope": "Only functional microbenchmark smoke; uncalibrated 1024-call timings must not be compared"
+  }
+]

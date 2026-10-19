@@ -1,31 +1,35 @@
 # Current baseline
 
-Snapshot2026-10-19. Accepted integration `forge/6.4-hourly-20261019` remains
-`9108d012526be80c6d163f7cab684e6acd9abf8d`; no strength candidate was merged.
+Accepted integration `forge/6.4-hourly-20261019` remains
+`9108d012526be80c6d163f7cab684e6acd9abf8d`. Do not reset newer candidates.
 
-Latest fully tested isolated correctness candidate: **Forge6.4.8**, source/tests
-`7125b3379a850de34041d42529cf95993607f93c`, branch `forge/root-effort-20261019`.
-It cumulatively preserves earlier AVX2, clock/terminal, promotion, coherent-TT and
-bounded rule50 repairs. The accepted residual NNUE weights are unchanged.
+Latest fully correctness-tested isolated source is **Forge6.4.10**,
+`36f5b2f6e1ff519e82a4b52edc85caceaf15aed0`, branch
+`forge/nnue-update-fusion-20261019`. It preserves6.4.9 and every earlier candidate
+repair, the accepted residual NNUE and training infrastructure. Its new count-two
+remove/add update fuses three passes into one with identical float operation order.
 
-Three sequential speed candidates:6.4.5 legal pawn witness;6.4.6 qsearch pure-query
-deferral;6.4.7 lazy MovePicker masks. Each passed Release8/8,ASan/UBSan8/8,
-18,947 legal-query comparisons, exact parent cold/warm parity and7Wine checks.
-6.4.7 additionally passed60,138 actual ordered-picker comparisons; all3Windows
-packages passed independent static audit. Signatures419798Linux/351063Windows.
+Release9/9 and ASan/UBSan9/9 pass. The1644case update stream and original
+21.2MBNNUEstream match parent and Windows byte-for-byte; the new ASan and
+x86-64-v2/SSE update streams match too. Eight Winechecks and independent
+Windowsartifactaudit pass. Exact cold/warm1T parent search parity and benchmark
+signatures419798Linux/351063Windows remain unchanged.
 
-[6.4.8 Windows Zen5 ZIP](../releases/forge-6.4.8-candidate-windows-zen5.zip) SHA256
-`4b4de385808f5a383aa60de6bfc09cf48c02e5d23c191624540026cdac95b55e`. Wine tests do not establish native Ryzen performance.
+WindowsZIP: `releases/forge-6.4.10-candidate-windows-zen5.zip`,
+SHA256 `771ea7ab84bd86a006c6197af56e81911625224144f33d3fd59ebcb51d5ecd2a`.
+These are Wine results, not nativeRyzen performance.
 
-NPS and accepted equal-clock Elo remain unproven. The hosted647versus644run
-completed with a positive native144game snapshot(+43.66±28.69Elo), but its
-16min deadline left an orphan among147normal records; no SPRTboundary was
-reached. Independent73pairGLR0.815 remains inside±2.944. These are promising
-descriptive results, with originals preserved; nothing transfers to648orStockfish.
-The [new648offlineWindowsbundle](../releases/forge-6.4.8-windows-validation-bundle.zip)
-is manifest/read-only-runtime verified; nativeAA/pilot/SPRT remain pending.
+NPS/Elo remain unproven. Fresh hosted performance39334266771 stopped after
+12same-binaryAAprocesses failed its strict3%noisegate. No A/B/kernel ran; all
+actualsource/binaries and finalhashes survive on results/nnue-performance-39334266771-1.
+Do not repeat the same attempt or widen its gate. Retain the optimization.
 
-See [76-record ledger](../validation/EXPERIMENTS.json), [concise ledger](EXPERIMENT_LEDGER.md),
-[active status](../validation/lazy-movepicker-20261019/STATUS.md) and [next work](NEXT_EXPERIMENTS.md).
+Fresh equal-clock647versus644run39332822379 is active and separate. Its sources
+do not include6.4.8–6.4.10. Earlier147gameattempt is inconclusive; the144game
++43.66±28.69snapshot is descriptive and never pooled with the fresh test.
 
-6.4.8 separately repairs demonstrated root-effort attribution: c3d5 now601nodes rather than1355mixedordinalnodes. Release8/8,ASan8/8,all28actualtraceoracleiterations,parentuntimedparity and7Winechecks+52/52artifactauditpassed. Timed/Eloeffect unmeasured; hosted6.4.7results do not transfer. See [root status](../validation/root-effort-20261019/STATUS.md).
+Next bounded source experiment: extend exactoperation-order one-pass updates to
+three-change captures, as a new isolated6.4.11candidate. A larger independently
+frozen official8movesbook is available for subsequent strength testing.
+Read [ledger](EXPERIMENT_LEDGER.md), [next work](NEXT_EXPERIMENTS.md) and
+[active evidence](../validation/nnue-update-fusion-20261019/STATUS.md).
