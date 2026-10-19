@@ -11,7 +11,7 @@ passes: external-file positive control, disable, reenable, load-while-disabled
 (without a second false toggle), reenable; successful one-entry loads and spaced
 paths are asserted. Choosing the same searched move is allowed. Original
 transcripts and the unmodified upstream harness are retained. Full Release9/9
-passed after all build targets completed. ASan/UBSan and Windows are pending.
+passed after all build targets completed. ASan/UBSan 9/9 passed from the frozen 4edda780 source export. Eight actual Windows checks passed under Wine 10; independent source/byte/package audit passed with no blockers. ZIP f34560a98bdc7c2f6d39d470d25ddb1d85fdef460292b28b5741af82ee9affa1. Native Ryzen remains untested.
 
 An initial CTest was mistakenly launched before build completion; four test
 executables were absent. Raw incomplete logs and the masked wrapper exit are

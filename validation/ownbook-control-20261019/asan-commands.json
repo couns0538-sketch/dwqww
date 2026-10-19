@@ -1,0 +1,48 @@
+{
+  "source_commit": "4edda780c68a742f20565d4e6a54a0c99a2c88a6",
+  "source_export": "/workspace/.cloud-setup/forge-ownbook-control-source",
+  "environment": {
+    "PYTHONDONTWRITEBYTECODE": "1",
+    "ASAN_OPTIONS": "detect_leaks=1:halt_on_error=1",
+    "UBSAN_OPTIONS": "halt_on_error=1:print_stacktrace=1"
+  },
+  "phases": [
+    {
+      "command": [
+        "/workspace/.cloud-setup/venv/bin/cmake",
+        "-S",
+        "/workspace/.cloud-setup/forge-ownbook-control-source",
+        "-B",
+        "/workspace/.cloud-setup/forge-ownbook-control-asan",
+        "-DCMAKE_BUILD_TYPE=RelWithDebInfo",
+        "-DFORGE_ENABLE_SANITIZERS=ON",
+        "-DCMAKE_CXX_FLAGS=-march=x86-64-v3 -mtune=znver5 -fno-fast-math -ffp-contract=off -fno-pie",
+        "-DCMAKE_EXE_LINKER_FLAGS=-no-pie",
+        "-DCMAKE_EXPORT_COMPILE_COMMANDS=ON"
+      ],
+      "return_code": 0,
+      "log": "asan-configure.log"
+    },
+    {
+      "command": [
+        "/workspace/.cloud-setup/venv/bin/cmake",
+        "--build",
+        "/workspace/.cloud-setup/forge-ownbook-control-asan",
+        "--parallel",
+        "2"
+      ],
+      "return_code": 0,
+      "log": "asan-build.log"
+    },
+    {
+      "command": [
+        "/workspace/.cloud-setup/venv/bin/ctest",
+        "--test-dir",
+        "/workspace/.cloud-setup/forge-ownbook-control-asan",
+        "--output-on-failure"
+      ],
+      "return_code": 0,
+      "log": "asan-ctest.log"
+    }
+  ]
+}
