@@ -1,0 +1,2 @@
+# P0: test instructions
+Run the frozen 5 baseline/candidate alternating fresh-process pairs, serial on CPU0. Record timestamped UCI IO, bestmove, stderr, stop latency, exit and original hashes; keep failures. If cold replay passes, separately preregister warm-state and concurrency tests. Limitations: cold run lacks historical TT state and OS scheduling is noisy. Do not resume the failed match or claim Elo.
