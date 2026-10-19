@@ -726,8 +726,8 @@ int Worker::qsearch(Board& board, SearchStack* ss, int alpha, int beta) {
     while (!(move = picker.next(false)).is_none()) {
         if (!board.is_legal(move)) continue;
         ++move_count;
-        const bool gives_check = board.gives_check(move);
         if (!in_check && best_score > -MateInMaxPly) {
+            const bool gives_check = board.gives_check(move);
             // Futility: even winning the captured piece cannot raise alpha.
             if (!gives_check && !move.is_promotion() && futility_base + capture_value(board, move) <= alpha) {
                 best_score = std::max(best_score, futility_base + capture_value(board, move));
