@@ -1,0 +1,4 @@
+# H2 — qsearch checking-query elision
+Baseline SHA 9108d012526be80c6d163f7cab684e6acd9abf8d. Priority 2, low risk and low cost.
+At src/search.cpp:724-745, every legal qsearch move calls board.gives_check though its result is used only if !in_check and best_score > -MateInMaxPly. Existing unmerged one-line candidate: forge/candidate-qsearch-check-20261019-2245, SHA 3dddd864d45288787b6e949dca5528e88be9f535. Do not duplicate.
+Test 4/4 CTest, UCI/ponder, canonical perfts, sanitizers, 20 exact score/move/PV probes and bench11 = 417491 nodes. Count eliminated calls; run 10-20 interleaved same-core AB/BA timings on tactical FENs. Reject on changed search tree, noise or no measurable speedup. No Elo claim.
