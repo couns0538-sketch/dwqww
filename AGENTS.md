@@ -1,6 +1,6 @@
 # Forge development
 
-The user targets Windows on a Ryzen 7 9850X3D and wants measured playing-strength improvements. Use relevant available skills and plugins automatically. For SIMD/NNUE work, read `.agents/skills/validating-chess-simd/SKILL.md`.
+The user targets Windows on a Ryzen 7 9850X3D and wants measured playing-strength improvements. Use relevant available skills and plugins automatically. For SIMD/NNUE work, read `.agents/skills/validating-chess-simd/SKILL.md`. For match design and strength claims, read `.agents/skills/validating-chess-strength/SKILL.md`.
 
 Use the existing isolated checkout. Do not create worktrees unless requested. Preserve existing branches, archives and evidence. Save meaningful checkpoints in Git and upload tested candidates to new branches; never force-push or replace a release with an unproven candidate.
 
@@ -13,3 +13,5 @@ Keep float operation order and `-ffp-contract=off`; do not enable fast-math to o
 Details, hashes and unresolved limitations are in `validation/nnue-avx2-9850x3d/` and `validation/clock-safety-9850x3d/`. The 6.4.1 candidate adds request-time accounting and stalemate detection before pruning. For its isolated search comparison, use clock-corrected reference `9cf3793`, not an opponent with the known late clock epoch. No Elo gain is accepted for this candidate. Preserve exact failed UCI exchanges; a last `info time` excludes unfinished later iterations and cannot identify output delay by itself. Shared-VM benchmark variance remains substantial, including CPU-time measurements.
 
 Saved environment startup instructions describe installed tools. Running jobs and hourly reporting are not guaranteed to survive a finished or disconnected session; report actual monitoring state.
+
+The preregistered original-ZIP comparison uses fixed 10,000-node searches and unlimited wall clocks because both timed pilots failed. A native SPRT result here applies only to that node budget and opponent; it cannot establish equal-clock, Ryzen, Windows or Stockfish superiority. Keep the exact original ZIP reference distinct from the clock-only causal reference. Run native SPRT serially with pinned Fastchess to avoid orphan pairs at an early boundary.
