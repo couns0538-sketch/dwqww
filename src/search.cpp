@@ -227,7 +227,7 @@ TTProbe TranspositionTable::probe(std::uint64_t key) const {
 }
 
 void TranspositionTable::store(const TTProbe& probe, std::uint64_t key, int score, int eval, Move move, int depth,
-                               Bound bound, bool pv) {
+                               Bound bound, bool pv, std::uint16_t halfmove_clock) {
     // Reject default, foreign or lifecycle-stale handles without touching storage.
     // Lifecycle operations themselves must not run concurrently with search.
     if (probe.owner_ != this || probe.epoch_ != epoch_ || probe.key_ != key ||
@@ -240,6 +240,7 @@ void TranspositionTable::store(const TTProbe& probe, std::uint64_t key, int scor
     if (bound == BoundExact || !same_position || depth + 4 > entry->depth || entry->generation() != generation_) {
         entry->key32 = key32;
         entry->score = static_cast<std::int16_t>(std::clamp(score, -32767, 32767));
+        entry->rule50_clock = static_cast<std::uint8_t>(std::min<int>(halfmove_clock, 100));
         entry->eval = static_cast<std::int16_t>(std::clamp(eval, -32767, 32767));
         entry->depth = static_cast<std::uint8_t>(std::clamp(depth, 0, 255));
         entry->gen_bound = static_cast<std::uint8_t>((static_cast<unsigned>(generation_) << 3U) | (pv ? 4U : 0U) | static_cast<unsigned>(bound));
@@ -710,7 +711,8 @@ int Worker::qsearch(Board& board, SearchStack* ss, int alpha, int beta) {
     const bool tt_hit = tt_probe.hit;
     const TTEntry& tte = tt_probe.entry;
     const Move tt_move = tt_hit ? tte.move : Move::none();
-    const int tt_score = tt_hit ? score_from_tt(tte.score, ply) : ValueNone;
+    const int tt_score = tt_hit && tte.score_usable(board.halfmove_clock())
+                             ? score_from_tt(tte.score, ply) : ValueNone;
     const Bound tt_bound = tt_hit ? tte.bound() : BoundNone;
     const bool tt_pv = pv_node || (tt_hit && tte.pv());
     if (!pv_node && tt_hit && tt_score != ValueNone &&
@@ -736,7 +738,7 @@ int Worker::qsearch(Board& board, SearchStack* ss, int alpha, int beta) {
         }
         best_score = eval;
         if (best_score >= beta) {
-            if (!tt_hit) shared_.tt.store(tt_probe, board.key(), score_to_tt(best_score, ply), ss->raw_eval, Move::none(), 0, BoundLower, false);
+            if (!tt_hit) shared_.tt.store(tt_probe, board.key(), score_to_tt(best_score, ply), ss->raw_eval, Move::none(), 0, BoundLower, false, board.halfmove_clock());
             return best_score;
         }
         if (best_score > alpha) alpha = best_score;
@@ -787,7 +789,7 @@ int Worker::qsearch(Board& board, SearchStack* ss, int alpha, int beta) {
     if (in_check && move_count == 0) return mated_in(ply);
 
     const Bound bound = best_score >= beta ? BoundLower : (pv_node && !best_move.is_none() ? BoundExact : BoundUpper);
-    shared_.tt.store(tt_probe, board.key(), score_to_tt(best_score, ply), in_check ? ValueNone : ss->raw_eval, best_move, 0, bound, tt_pv);
+    shared_.tt.store(tt_probe, board.key(), score_to_tt(best_score, ply), in_check ? ValueNone : ss->raw_eval, best_move, 0, bound, tt_pv, board.halfmove_clock());
     return best_score;
 }
 
@@ -829,7 +831,8 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
     const bool tt_hit = tt_probe.hit;
     const TTEntry& tte = tt_probe.entry;
     const Move tt_move = tt_hit ? tte.move : Move::none();
-    const int tt_score = tt_hit ? score_from_tt(tte.score, ply) : ValueNone;
+    const int tt_score = tt_hit && tte.score_usable(board.halfmove_clock())
+                             ? score_from_tt(tte.score, ply) : ValueNone;
     const int tt_depth = tt_hit ? tte.depth : -1;
     const Bound tt_bound = tt_hit ? tte.bound() : BoundNone;
     const bool tt_capture = !tt_move.is_none() && tt_move.is_capture();
@@ -937,7 +940,7 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
                 board.unmake_move(move, undo);
                 if (aborted_) return 0;
                 if (value >= probcut_beta) {
-                    shared_.tt.store(tt_probe, board.key(), score_to_tt(value, ply), ss->raw_eval, move, depth - 3, BoundLower, ss->tt_pv);
+                    shared_.tt.store(tt_probe, board.key(), score_to_tt(value, ply), ss->raw_eval, move, depth - 3, BoundLower, ss->tt_pv, board.halfmove_clock());
                     return value;
                 }
             }
@@ -1117,7 +1120,7 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
 
     const Bound bound = best_score >= beta ? BoundLower : (pv_node && !best_move.is_none() ? BoundExact : BoundUpper);
     if (excluded.is_none() && !(root_node && root_restricted_)) {
-        shared_.tt.store(tt_probe, board.key(), score_to_tt(best_score, ply), ss->raw_eval, best_move, depth, bound, ss->tt_pv);
+        shared_.tt.store(tt_probe, board.key(), score_to_tt(best_score, ply), ss->raw_eval, best_move, depth, bound, ss->tt_pv, board.halfmove_clock());
     }
     // Teach the static evaluation about this pawn structure when the search
     // result is a usable bound in the direction of the difference.

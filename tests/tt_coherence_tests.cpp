@@ -60,9 +60,10 @@ Move move_for(int score) {
 }
 
 void put(TranspositionTable& tt, std::uint64_t key, int score, int depth = 8,
-         Move move = Move::none(), forge::Bound bound = BoundExact) {
+         Move move = Move::none(), forge::Bound bound = BoundExact,
+         std::uint16_t clock = 0) {
     const auto probe = tt.probe(key);
-    tt.store(probe, key, score, -score, move, depth, bound, (score & 1) != 0);
+    tt.store(probe, key, score, -score, move, depth, bound, (score & 1) != 0, clock);
 }
 
 int score_of(const TranspositionTable& tt, std::uint64_t key) {
@@ -80,18 +81,18 @@ void test_snapshot_and_current_slot_admission() {
     old.entry.key32 ^= 0xffffffffU;
     old.hit = false;
     require(score_of(tt, key) == 101, "mutating a local snapshot changed table");
-    tt.store(old, key, 202, -202, move_for(202), 20, BoundExact, false);
+    tt.store(old, key, 202, -202, move_for(202), 20, BoundExact, false, 0);
     require(score_of(tt, key) == 202, "local snapshot mutation changed private destination");
     require(old.entry.score == -123 && !old.hit, "store mutated caller snapshot");
 
     // Admission must use the CURRENT selected slot, not the old entry snapshot.
     const auto stale_contents = tt.probe(key);
     put(tt, key, 303, 30, move_for(303));
-    tt.store(stale_contents, key, 404, -404, Move::none(), 1, BoundUpper, false);
+    tt.store(stale_contents, key, 404, -404, Move::none(), 1, BoundUpper, false, 0);
     auto current = tt.probe(key);
     require(current.entry.score == 303 && current.entry.depth == 30 &&
             current.entry.move == move_for(303), "store admitted shallow payload using stale snapshot");
-    tt.store(stale_contents, key, 404, -404, move_for(404), 1, BoundUpper, false);
+    tt.store(stale_contents, key, 404, -404, move_for(404), 1, BoundUpper, false, 0);
     current = tt.probe(key);
     require(current.entry.score == 303 && current.entry.move == move_for(404),
             "rejected shallow payload did not preserve baseline independent move update");
@@ -104,7 +105,7 @@ void test_delayed_store_keeps_probe_destination() {
     const auto before_x = tt.probe(x); // Empty slot0 is frozen in this handle.
     require(!before_x.hit, "empty table unexpectedly hit");
     put(tt, y, 111); // Independent probe also chooses empty slot0.
-    tt.store(before_x, x, 222, -222, move_for(222), 8, BoundExact, false);
+    tt.store(before_x, x, 222, -222, move_for(222), 8, BoundExact, false, 0);
     require(!tt.probe(y).hit && score_of(tt, x) == 222,
             "delayed miss store reselected another slot or rejected ordinary overwrite");
     require(!before_x.entry.occupied(), "old empty snapshot changed after intervening store");
@@ -116,7 +117,7 @@ void test_replacement_ties_age_and_late_changes() {
     for (unsigned i = 0; i < keys.size(); ++i) keys[i] = collision_key(tt, i);
     for (unsigned i = 0; i < 4; ++i) put(tt, keys[i], 100 + static_cast<int>(i), 8);
     // A later matching key must be found even if an earlier slot is empty.
-    tt.store(tt.probe(keys[0]), keys[0], 0, 0, Move::none(), 30, forge::BoundNone, false);
+    tt.store(tt.probe(keys[0]), keys[0], 0, 0, Move::none(), 30, forge::BoundNone, false, 0);
     require(tt.probe(keys[2]).hit, "probe chose earlier empty slot before later matching key");
     tt.clear();
     for (unsigned i = 0; i < 4; ++i) put(tt, keys[i], 100 + static_cast<int>(i), 8);
@@ -128,7 +129,7 @@ void test_replacement_ties_age_and_late_changes() {
     put(tt, keys[1], 201, 1);
     const auto delayed = tt.probe(keys[5]);
     put(tt, keys[2], 202, 0);
-    tt.store(delayed, keys[5], 203, -203, Move::none(), 8, BoundExact, false);
+    tt.store(delayed, keys[5], 203, -203, Move::none(), 8, BoundExact, false, 0);
     require(!tt.probe(keys[1]).hit && tt.probe(keys[2]).hit && tt.probe(keys[5]).hit,
             "store reselected victim after another slot's priority changed");
 
@@ -149,31 +150,31 @@ void test_invalid_handles_and_lifecycle() {
     const auto elsewhere = std::numeric_limits<std::uint64_t>::max();
     put(tt, key, 101);
     const auto valid = tt.probe(key);
-    tt.store(forge::TTProbe{}, key, 999, -999, Move::none(), 8, BoundExact, false);
-    tt.store(other.probe(key), key, 999, -999, Move::none(), 8, BoundExact, false);
-    tt.store(valid, same_cluster, 999, -999, Move::none(), 8, BoundExact, false);
-    tt.store(valid, elsewhere, 999, -999, Move::none(), 8, BoundExact, false);
+    tt.store(forge::TTProbe{}, key, 999, -999, Move::none(), 8, BoundExact, false, 0);
+    tt.store(other.probe(key), key, 999, -999, Move::none(), 8, BoundExact, false, 0);
+    tt.store(valid, same_cluster, 999, -999, Move::none(), 8, BoundExact, false, 0);
+    tt.store(valid, elsewhere, 999, -999, Move::none(), 8, BoundExact, false, 0);
     require(score_of(tt, key) == 101 && !tt.probe(same_cluster).hit && !tt.probe(elsewhere).hit,
             "default/foreign/key-mismatched handle changed table");
 
     tt.new_search();
-    tt.store(valid, key, 999, -999, Move::none(), 8, BoundExact, false);
+    tt.store(valid, key, 999, -999, Move::none(), 8, BoundExact, false, 0);
     require(score_of(tt, key) == 101, "new_search did not invalidate old handle");
     put(tt, key, 202);
     auto before_clear = tt.probe(key);
     tt.clear();
-    tt.store(before_clear, key, 999, -999, Move::none(), 8, BoundExact, false);
+    tt.store(before_clear, key, 999, -999, Move::none(), 8, BoundExact, false, 0);
     require(!tt.probe(key).hit && before_clear.entry.score == 202,
             "clear did not invalidate handle/preserve local snapshot");
     put(tt, key, 303);
     const auto before_resize = tt.probe(key);
     tt.resize(2);
-    tt.store(before_resize, key, 999, -999, Move::none(), 8, BoundExact, false);
+    tt.store(before_resize, key, 999, -999, Move::none(), 8, BoundExact, false, 0);
     require(!tt.probe(key).hit && before_resize.entry.score == 303, "resize did not invalidate handle");
     put(tt, key, 404);
     const auto before_shrink = tt.probe(key);
     tt.resize(1);
-    tt.store(before_shrink, key, 999, -999, Move::none(), 8, BoundExact, false);
+    tt.store(before_shrink, key, 999, -999, Move::none(), 8, BoundExact, false, 0);
     require(!tt.probe(key).hit, "shrinking table left stale handle usable");
     put(tt, key, 505);
     require(score_of(tt, key) == 505, "fresh handle failed after lifecycle transitions");
@@ -195,7 +196,7 @@ void test_resize_allocation_failure_preserves_table() {
     require(threw && !unconsumed, "deterministic TT allocation fault was not exercised");
     require(tt.cluster_count() == count && tt.generation() == generation && score_of(tt, key) == 101,
             "failed resize changed published count/generation/storage");
-    tt.store(before, key, 202, -202, Move::none(), 8, BoundExact, false);
+    tt.store(before, key, 202, -202, Move::none(), 8, BoundExact, false, 0);
     require(score_of(tt, key) == 202, "failed resize invalidated still-live old handle");
 }
 
@@ -213,13 +214,40 @@ void test_hashfull_current_generation_and_wrap() {
     require(score_of(tt, collision_key(tt, 0)) == 300, "fresh handle failed after generation wrap");
 }
 
+void test_score_context_tracks_admitted_payload() {
+    TranspositionTable tt(1);
+    const auto key = collision_key(tt, 0);
+    put(tt, key, 101, 30, move_for(101), BoundExact, 99);
+    auto probe = tt.probe(key);
+    require(probe.hit && probe.entry.rule50_clock == 99 &&
+            !probe.entry.score_usable(0) && !probe.entry.score_usable(98) &&
+            probe.entry.score_usable(99), "near-limit score context is not selective");
+
+    tt.store(probe, key, 202, -202, move_for(202), 1, BoundUpper, false, 0);
+    probe = tt.probe(key);
+    require(probe.entry.move == move_for(202) && probe.entry.score == 101 &&
+            probe.entry.rule50_clock == 99,
+            "independent move update changed rejected score's context");
+    put(tt, key, 303, 30, move_for(303), BoundExact, 0);
+    probe = tt.probe(key);
+    require(probe.entry.score == 303 && probe.entry.rule50_clock == 0 &&
+            probe.entry.score_usable(89) && !probe.entry.score_usable(90),
+            "admitted score did not update clock or retain below90 reuse");
+
+    put(tt, key, 404, 30, move_for(404), BoundExact,
+        std::numeric_limits<std::uint16_t>::max());
+    probe = tt.probe(key);
+    require(probe.entry.rule50_clock == 100 && probe.entry.score_usable(65535) &&
+            !probe.entry.score_usable(99), "rule50 clock storage did not saturate safely");
+}
+
 void test_concurrent_correlated_snapshots_and_hashfull() {
     TranspositionTable tt(1);
     const std::array<std::uint64_t, 2> keys{collision_key(tt, 0), collision_key(tt, 1)};
     auto publish = [&](int value, unsigned bucket) {
         const auto probe = tt.probe(keys[bucket]);
         tt.store(probe, keys[bucket], value, -value, move_for(value), 1 + value % 64,
-                 BoundExact, (value & 1) != 0);
+                 BoundExact, (value & 1) != 0, static_cast<std::uint16_t>(value % 101));
     };
     publish(1, 0);
     publish(2, 1);
@@ -242,7 +270,8 @@ void test_concurrent_correlated_snapshots_and_hashfull() {
             const int value = e.score;
             if (!probe.hit || value < 1 || value > 2 * Iterations || e.eval != -value ||
                 e.depth != 1 + value % 64 || e.move != move_for(value) ||
-                e.pv() != ((value & 1) != 0) || e.bound() != BoundExact || e.generation() != 0)
+                e.pv() != ((value & 1) != 0) || e.bound() != BoundExact || e.generation() != 0 ||
+                e.rule50_clock != value % 101)
                 errors.fetch_add(1, std::memory_order_relaxed);
         }
     };
@@ -269,8 +298,9 @@ int main() {
         test_invalid_handles_and_lifecycle();
         test_resize_allocation_failure_preserves_table();
         test_hashfull_current_generation_and_wrap();
+        test_score_context_tracks_admitted_payload();
         test_concurrent_correlated_snapshots_and_hashfull();
-        std::cout << "All7 TT coherence/regression groups passed\n";
+        std::cout << "All8 TT coherence/regression groups passed\n";
         return 0;
     } catch (const std::exception& error) {
         std::cerr << "FAIL: " << error.what() << '\n';

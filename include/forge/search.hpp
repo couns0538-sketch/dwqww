@@ -68,17 +68,25 @@ struct TTEntry {
     std::uint8_t depth = 0;
     // Bits 0..1 bound, bit 2 was-PV, bits 3..7 generation.
     std::uint8_t gen_bound = 0;
-    std::uint16_t padding = 0;
+    std::uint8_t rule50_clock = 0; // Capped at100; belongs to admitted score payload.
+    std::uint8_t padding = 0;
 
     [[nodiscard]] Bound bound() const { return static_cast<Bound>(gen_bound & 3U); }
     [[nodiscard]] bool pv() const { return (gen_bound & 4U) != 0; }
     [[nodiscard]] std::uint8_t generation() const { return static_cast<std::uint8_t>(gen_bound >> 3U); }
     [[nodiscard]] bool occupied() const { return bound() != BoundNone; }
+    // Existing below90 policy, plus exact near50 context; not a repetition key.
+    [[nodiscard]] bool score_usable(std::uint16_t current_clock) const {
+        const int capped = current_clock < 100 ? current_clock : 100;
+        return (rule50_clock < 90 && capped < 90) || rule50_clock == capped;
+    }
 };
 
 struct alignas(64) TTCluster {
     std::array<TTEntry, 4> entries{};
 };
+static_assert(sizeof(TTEntry) == 16);
+static_assert(sizeof(TTCluster) == 64);
 
 class TranspositionTable;
 
@@ -106,7 +114,7 @@ public:
     void clear();
     void new_search() { generation_ = static_cast<std::uint8_t>((generation_ + 1U) & 31U); ++epoch_; }
     [[nodiscard]] TTProbe probe(std::uint64_t key) const;
-    void store(const TTProbe& probe, std::uint64_t key, int score, int eval, Move move, int depth, Bound bound, bool pv);
+    void store(const TTProbe& probe, std::uint64_t key, int score, int eval, Move move, int depth, Bound bound, bool pv, std::uint16_t halfmove_clock);
     [[nodiscard]] int hashfull() const;
     [[nodiscard]] std::uint8_t generation() const { return generation_; }
     [[nodiscard]] std::size_t cluster_count() const { return cluster_count_; }

@@ -36,7 +36,7 @@ struct SearcherTestProbe {
         nnue::refresh(board, ss->accumulator);
         if (seed_tt) {
             const auto entry = worker.shared_.tt.probe(board.key());
-            worker.shared_.tt.store(entry, board.key(), 900, 900, Move::none(), 8, BoundExact, false);
+            worker.shared_.tt.store(entry, board.key(), 900, 900, Move::none(), 8, BoundExact, false, board.halfmove_clock());
         }
         return worker.search(board, ss, depth, alpha, beta, false);
     }
@@ -672,13 +672,13 @@ void test_transposition_table() {
     forge::TranspositionTable tt(1);
     auto probe = tt.probe(0x123456789abcdefULL);
     check(!probe.hit, "empty table misses");
-    tt.store(probe, 0x123456789abcdefULL, 123, 45, forge::Move{12, 28, 0, 0}, 7, forge::BoundExact, true);
+    tt.store(probe, 0x123456789abcdefULL, 123, 45, forge::Move{12, 28, 0, 0}, 7, forge::BoundExact, true, 0);
     probe = tt.probe(0x123456789abcdefULL);
     const auto& entry = probe.entry;
     check(probe.hit && entry.score == 123 && entry.eval == 45 && entry.depth == 7 && entry.bound() == forge::BoundExact &&
               entry.pv() && entry.move == forge::Move{12, 28, 0, 0},
           "stored entry is retrieved intact");
-    tt.store(probe, 0x123456789abcdefULL, 50, 45, forge::Move::none(), 2, forge::BoundUpper, false);
+    tt.store(probe, 0x123456789abcdefULL, 50, 45, forge::Move::none(), 2, forge::BoundUpper, false, 0);
     probe = tt.probe(0x123456789abcdefULL);
     check(probe.hit && probe.entry.depth == 7 && probe.entry.move == forge::Move{12, 28, 0, 0},
           "a much shallower bound does not overwrite a deep exact entry in the same search");
@@ -706,7 +706,7 @@ void test_transposition_tag_independence() {
                 const auto entry = tt.probe(keys[i]);
                 check(!entry.hit, "TT tag distinguishes keys sharing index bits before store");
                 tt.store(entry, keys[i], 100 + static_cast<int>(i), 45,
-                         forge::Move{12, 28, 0, 0}, 7, forge::BoundExact, true);
+                         forge::Move{12, 28, 0, 0}, 7, forge::BoundExact, true, 0);
             }
             for (std::size_t i = 0; i < keys.size(); ++i) {
                 const auto entry = tt.probe(keys[i]);
