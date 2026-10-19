@@ -31,8 +31,6 @@ for label, binary in engines.items():
 for run in range(a.runs):
     labels = list(engines)
     labels = labels[run % len(labels):] + labels[:run % len(labels)]
-    if run % 2:
-        labels.reverse()
     for mode in ('shallow', 'deep'):
         for order, label in enumerate(labels):
             command = [engines[label]] + (['--deep'] if mode == 'deep' else [])

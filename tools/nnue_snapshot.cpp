@@ -7,6 +7,11 @@
 #include <cstdint>
 #include <iostream>
 #include <stdexcept>
+#if defined(_WIN32)
+#include <cstdio>
+#include <fcntl.h>
+#include <io.h>
+#endif
 
 namespace {
 std::uint64_t state = 0x243f6a8885a308d3ULL;
@@ -26,6 +31,9 @@ void snapshot(const forge::Board& board, const forge::nnue::Accumulator& acc) {
 }
 
 int main() {
+#if defined(_WIN32)
+    if (_setmode(_fileno(stdout), _O_BINARY) == -1) throw std::runtime_error("binary stdout unavailable");
+#endif
     if (!forge::nnue::available()) throw std::runtime_error("NNUE weights are required");
     constexpr std::array<const char*, 6> starts{
         "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
