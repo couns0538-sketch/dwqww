@@ -98,6 +98,27 @@ void refresh(const Board& board, Accumulator& accumulator) {
 
 void update(const Accumulator& parent, Accumulator& child, const DirtyPieces& dirty) {
     const Weights& w = weights();
+    // Quiet moves (including noncapturing promotions) remove one feature and
+    // add one. Keep each lane's subtraction-then-addition order while avoiding
+    // a full copy and two separate read/write passes over the child.
+    if (dirty.count == 2 && !dirty.changes[0].add && dirty.changes[1].add) {
+        for (const Color perspective : {White, Black}) {
+            const auto& source = parent.values[static_cast<std::size_t>(perspective)];
+            auto& destination = child.values[static_cast<std::size_t>(perspective)];
+            const PieceChange& removed = dirty.changes[0];
+            const PieceChange& added = dirty.changes[1];
+            const float* removed_column = w.w1.get() +
+                static_cast<std::size_t>(feature_index(perspective, removed.piece, removed.square)) * HiddenSize;
+            const float* added_column = w.w1.get() +
+                static_cast<std::size_t>(feature_index(perspective, added.piece, added.square)) * HiddenSize;
+            for (int h = 0; h < HiddenSize; ++h) {
+                const std::size_t index = static_cast<std::size_t>(h);
+                destination[index] = (source[index] - removed_column[index]) + added_column[index];
+            }
+        }
+        child.valid = true;
+        return;
+    }
     for (const Color perspective : {White, Black}) {
         auto& acc = child.values[static_cast<std::size_t>(perspective)];
         acc = parent.values[static_cast<std::size_t>(perspective)];
