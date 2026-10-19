@@ -1,0 +1,3 @@
+# Forge 6.4 independent testing, 2026-10-19 19:30 CEST
+
+Baseline: 9108d012526be80c6d163f7cab684e6acd9abf8d. Decision: INCONCLUSIVE. Source-only checks PASS; actual Forge build, UCI, perft, sanitizers, benchmark and SPRT BLOCKED. No games started, no Elo claim, no merge. Previous research :15 checkpoint not published; 19:00 OwnBook finding source-confirmed, policy ambiguous. Container GitHub clone DNS unavailable. Next: execute book fixture and qsearch candidate regressions against actual engine; preserve raw logs and hashes.
