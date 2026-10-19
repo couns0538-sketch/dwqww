@@ -15,6 +15,10 @@
 #define FORGE_NNUE_SSE 0
 #endif
 
+#if defined(__AVX2__)
+#include <immintrin.h>
+#endif
+
 #if __has_include("nnue_weights.inc")
 #include "nnue_weights.inc"
 #define FORGE_HAS_NNUE 1
@@ -120,7 +124,22 @@ int evaluate(const Board& board, const Accumulator& accumulator) {
     constexpr int Lanes = 16;
     static_assert(HiddenSize % Lanes == 0, "HiddenSize must be a multiple of the lane count");
     alignas(64) float lanes[Lanes];
-#if FORGE_NNUE_SSE
+#if defined(__AVX2__)
+    const __m256 zero = _mm256_setzero_ps();
+    const __m256 one = _mm256_set1_ps(1.0F);
+    __m256 sums[2] = {zero, zero};
+    for (int h = 0; h < HiddenSize; h += Lanes) {
+        for (int k = 0; k < 2; ++k) {
+            const std::size_t base = static_cast<std::size_t>(h + 8 * k);
+            const __m256 a = _mm256_min_ps(_mm256_max_ps(_mm256_load_ps(ours.data() + base), zero), one);
+            const __m256 b = _mm256_min_ps(_mm256_max_ps(_mm256_load_ps(theirs.data() + base), zero), one);
+            const __m256 term = _mm256_add_ps(_mm256_mul_ps(_mm256_mul_ps(a, a), _mm256_load_ps(w.w2.data() + base)),
+                                            _mm256_mul_ps(_mm256_mul_ps(b, b), _mm256_load_ps(w.w2.data() + HiddenSize + base)));
+            sums[k] = _mm256_add_ps(sums[k], term);
+        }
+    }
+    for (int k = 0; k < 2; ++k) _mm256_store_ps(lanes + 8 * k, sums[k]);
+#elif FORGE_NNUE_SSE
     const __m128 zero = _mm_setzero_ps();
     const __m128 one = _mm_set1_ps(1.0F);
     __m128 sums[4] = {zero, zero, zero, zero};
