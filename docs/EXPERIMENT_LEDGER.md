@@ -1,6 +1,6 @@
 # Experiment ledger
 
-The authoritative [machine ledger](../validation/EXPERIMENTS.json) preserves 70 experiments, exact inputs, hashes, settings, failures and evidence links. This is the concise reading index as of 2026-10-19.
+The authoritative [machine ledger](../validation/EXPERIMENTS.json) preserves 75 experiments, exact inputs, hashes, settings, failures and evidence links. This is the concise reading index as of 2026-10-19.
 
 | Experiment | Observed result | Acceptance scope |
 | --- | --- | --- |
@@ -24,3 +24,5 @@ Immutable archives: [TT correctness](../validation/tt-coherence-20261019/complet
 6.4.7 lazy masks (`2c0c7ef`): Release8/8, ASan8/8, exact parent parity,60,138 byte-identical actual picker rows,7Wine checks and independent artifact audit passed. Speed/Elo remain pending. [Raw evidence](../validation/lazy-movepicker-20261019/STATUS.md).
 
 Hosted equal-clock attempt: run39325939081 actually started; build/tests succeeded, calibration/match step running. No game count, NPS or Elo result inferred until original artifacts are audited. Progress is saved on a separate non-triggering checkpoint branch to avoid a second workflow attempt.
+
+6.4.8 root effort (`7125b337`): actual mixed-bucket parent reproduction; stable full-Move repair passed28actual-iteration oracles, Release8/8,ASan8/8,untimedparentparity and7Winechecks+52/52audit.601ratherthan1355forc3d5; no actualtimed-stop/Elo evidence. [Original data](../validation/root-effort-20261019/STATUS.md).

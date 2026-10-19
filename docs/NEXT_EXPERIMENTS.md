@@ -18,10 +18,7 @@ standalone ZIP is tested under Wine only. The old portable native validator rema
 frozen6.4.2; do not silently replace its engine or manifest. Native equal-clock
 strength and reliable NPS are separately required before integration promotion.
 
-3. Investigate stable root-move effort accounting only after these tests/checkpoints.
-Existing reports hypothesize ordinal indexing across root reorder, but supply no
-actual changed stop decision. Reproduce with stable move identities and record
-resulting time allocation before any source repair. Preserve the exact6.4.7 parent.
+3. Validate6.4.8time-management strength separately. Actual647traces reproduced ordinal mixing;648source7125repairsit, with all28counter oracles and required correctness gates passed. Still record actual changed timed decisions, deadline behavior and paired equal-clock strength on a calibrated host before promotion. Do not transfer the running647hosted result to648.
 
 All source candidates remain isolated from accepted9108. A failed measurement
 or small inconclusive Elo estimate does not erase useful source/correctness work.

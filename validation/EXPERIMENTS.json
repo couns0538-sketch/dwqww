@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "updated_utc": "2026-10-19T21:17:06.624252+00:00",
+  "updated_utc": "2026-10-19T21:26:22.253944+00:00",
   "project": "Forge",
   "target": "Native Windows x64 on Ryzen7 9850X3D",
   "scope": "2026-10-19 accepted development reference, preserved candidate artifacts and failures, audited original-ZIP fixed-node SPRT, complete TT correctness phases, inconclusive same-binary speed calibration and isolated rule50-context6.4.4 correctness candidate.",
@@ -43,12 +43,13 @@
     "tt_overhead_calibration_experiment_id": "tt-speed-same-binary-aa-20261019",
     "rule50_fix_candidate_id": "forge644-rule50-context-20261019",
     "rule50_fix_correctness_experiment_id": "forge644-rule50-context-release-20261019",
-    "latest_correctness_candidate_id": "forge647-lazy-movepicker-20261019",
-    "latest_correctness_windows_artifact": "releases/forge-6.4.7-candidate-windows-zen5.zip",
+    "latest_correctness_candidate_id": "forge648-root-effort-20261019",
+    "latest_correctness_windows_artifact": "releases/forge-6.4.8-candidate-windows-zen5.zip",
     "newer_645_strength_status": "No games/Elo; Release8/8, ASan8/8,18947 parent and candidate oracle checks, exact parent parity and7Winechecks passed. Kernel AA noise gate failed; full-engine timing not run.",
     "newer_646_strength_status": "Release8/8, ASan8/8, exactparentparity and7Winechecks passed; timing andstrengthnotmeasured becausehostAAfailed. No new games/Elo.",
     "newer_647_strength_status": "Release8/8, ASan8/8, exactparentparity,60,138actualordered-pickerrowsbyteidentical and7Winechecks+independentpackageaudit passed; no measuredNPS/Elo, hostedpilotpreparedpendinglaunch.",
-    "hosted_linux_pilot_status": "Run39325939081 started21:14:41Z; build/tests succeeded21:16:24Z; calibration/SPRT step active; no game/result inferred"
+    "hosted_linux_pilot_status": "Run39325939081 started21:14:41Z; build/tests succeeded21:16:24Z; calibration/SPRT step active; no game/result inferred",
+    "newer_648_strength_status": "Release8/8,ASan8/8,untimedparentparity419798,28actualcounter-oracleiterations and7Winechecks351063 plus52/52independentartifactaudit passed. Actualtimedstop/Elo/NPSunknown. Hosted647resultdoesnottransfer."
   },
   "candidates": [
     {
@@ -438,6 +439,41 @@
         "bytes": 3617670,
         "source_and_tests_commit": "2c0c7efa49023d8e3f49de3f5596f333a3f01202",
         "engine_sha256": "08df7b9d333f7d1cb0c0b304d8b20e18590fab43cd749459709820c08cc76c59",
+        "runtime_checks": 7,
+        "legal_witness_comparisons": 18947,
+        "bench11_nodes": 351063,
+        "scope": "Wine correctness and bounded node signature; no speed, Elo or native hardware result"
+      },
+      "network_sha256": "41487f328ff51f27417564df45b6f3139d038b7e940dedb121340bd61be9a4d3",
+      "native_windows_tested": false,
+      "physical_ryzen_tested": false
+    },
+    {
+      "id": "forge648-root-effort-20261019",
+      "code_commit": "7125b3379a850de34041d42529cf95993607f93c",
+      "branch": "forge/root-effort-20261019",
+      "parent_candidate_id": "forge647-lazy-movepicker-20261019",
+      "change": "Fix actual cumulative root-effort ordinal misattribution: canonical full-Move fixed storage and root-only lookup, preserving node deltas/retries/denominator/constants.",
+      "status": "published_correctness_candidate_not_strength_accepted",
+      "builds": {
+        "release": {
+          "engine_sha256": "c2b674441f4f4750bcadfb0e69ceda2800b19660865bd0fc5d7cec2bed8013c9",
+          "core_library_sha256": "7719912f773e34fdd7174e71e2fe60e2263684cf0cc384824cfaffb56fc63860",
+          "ctest_result": "8/8 passed"
+        },
+        "asan": {
+          "engine_sha256": "5bd884dfa622c9928d5ca8901489a73e40ae92b0d82087d2b5c076a8f2aa60b6",
+          "core_library_sha256": "7d4be1c20d2e2f897f8ae6c5d760d94610bf42a8bc98c0d80ec57d93bba21243",
+          "ctest_result": "8/8 passed"
+        }
+      },
+      "artifact": {
+        "status": "packaged_and_verified",
+        "artifact": "releases/forge-6.4.8-candidate-windows-zen5.zip",
+        "sha256": "4b4de385808f5a383aa60de6bfc09cf48c02e5d23c191624540026cdac95b55e",
+        "bytes": 3619122,
+        "source_and_tests_commit": "7125b3379a850de34041d42529cf95993607f93c",
+        "engine_sha256": "e39a240e3f7380e84c4e585013c2d602cba379f15e9e23d7a036a9712c415644",
         "runtime_checks": 7,
         "legal_witness_comparisons": 18947,
         "bench11_nodes": 351063,
@@ -4853,6 +4889,557 @@
       "run_url": "https://github.com/couns0538-sketch/dwqww/actions/runs/39325939081",
       "head_commit": "52d90152f88868e433f3dc6c6ceab7a229fc3cbe",
       "progress_record": "validation/hosted-strength-20261019/progress-2116.json"
+    },
+    {
+      "id": "forge647-root-effort-actual-misattribution-20261019",
+      "candidate_id": "forge648-root-effort-20261019",
+      "candidate_production_commit": "7125b3379a850de34041d42529cf95993607f93c",
+      "baseline_production_commit": "2c0c7efa49023d8e3f49de3f5596f333a3f01202",
+      "valid_strength_evidence": false,
+      "scope": "actual_engine_bug_reproduction",
+      "status": "reproduced",
+      "result": {
+        "fixed_depth_cases": 4,
+        "untouched_vs_traced_pv_score_node_parity": true,
+        "depth6_7_changed_offline_factor_samples": 7,
+        "depth6_7_samples": 8,
+        "example": {
+          "bestmove": "c3d5",
+          "ordinal_bucket_nodes": 1355,
+          "actual_move_nodes": 601,
+          "local_nodes": 3355,
+          "ordinal_bucket_distinct_moves": 4,
+          "old_effort_multiplier": 1.1461251863,
+          "stable_effort_multiplier": 1.3708643815
+        },
+        "actual_timed_stop_observed": false,
+        "elo_claim": null
+      },
+      "archive_evidence": {
+        "path": "validation/root-effort-20261019/actual-baseline-and-proposals.zip",
+        "sha256": "3400656c04671b440fa2707d988f9a9a44f4133a5d6f209a8651463b50239cd4"
+      }
+    },
+    {
+      "id": "forge648-linux-release-asan-20261019",
+      "candidate_id": "forge648-root-effort-20261019",
+      "candidate_production_commit": "7125b3379a850de34041d42529cf95993607f93c",
+      "baseline_production_commit": "2c0c7efa49023d8e3f49de3f5596f333a3f01202",
+      "valid_strength_evidence": false,
+      "scope": "correctness",
+      "status": "passed",
+      "result": {
+        "release_ctest": "8/8 passed",
+        "asan_ubsan_ctest": "8/8 passed",
+        "legal_witness_comparisons": 18947,
+        "timed_stopping": "Actual stopped-depth/deadline/Elo effect not established by these regressions."
+      },
+      "archive_evidence": {
+        "path": "validation/root-effort-20261019/linux-validation-checkpoint.zip",
+        "sha256": "afe22b0603a96271a833a75647ab813f682da357452b42c579ea45c08ba71114",
+        "prefix": "linux-validation/"
+      },
+      "provenance_member": "linux-validation/validated-linux-provenance.json"
+    },
+    {
+      "id": "forge648-parent-cold-warm-parity-20261019",
+      "candidate_id": "forge648-root-effort-20261019",
+      "candidate_production_commit": "7125b3379a850de34041d42529cf95993607f93c",
+      "baseline_production_commit": "2c0c7efa49023d8e3f49de3f5596f333a3f01202",
+      "valid_strength_evidence": false,
+      "scope": "untimed_behavior_parity",
+      "status": "parity_only_passed",
+      "result": {
+        "status": "parity_only_completed",
+        "elo_claim": null,
+        "parity_passed": true,
+        "performance_complete": false,
+        "elapsed_seconds": 11.011832917998618,
+        "resource_after": {
+          "monotonic_ns": 14967937277690,
+          "affinity": [
+            0,
+            1,
+            2,
+            3,
+            4
+          ],
+          "loadavg": [
+            1.806640625,
+            0.92529296875,
+            0.94287109375
+          ],
+          "self_cgroup": {
+            "path": "/proc/self/cgroup",
+            "text": "0::/\n"
+          },
+          "cgroups": [
+            {
+              "path": "/sys/fs/cgroup/cpu.max",
+              "text": "400000 100000\n"
+            },
+            {
+              "path": "/sys/fs/cgroup/cpu.stat",
+              "text": "usage_usec 15965325126\nuser_usec 11890488309\nsystem_usec 4074836817\nnice_usec 0\nnr_periods 132976\nnr_throttled 11091\nthrottled_usec 1434656891\nnr_bursts 0\nburst_usec 0\n"
+            },
+            {
+              "path": "/sys/fs/cgroup/cpuset.cpus.effective",
+              "text": "0-4\n"
+            }
+          ]
+        },
+        "input_hash_errors": [],
+        "input_hashes_unchanged": true,
+        "interpretation": "Correctness parity and conditional throughput only. Shared-VM noise, CPU tick quantization and SMP variable work remain limitations. No Elo, equal-clock or native Ryzen claim."
+      },
+      "settings": {
+        "threads": 1,
+        "hash_mib": 32,
+        "ownbook": false,
+        "passes": [
+          "cold",
+          "warm"
+        ],
+        "normalize_only": [
+          "time",
+          "nps",
+          "hashfull"
+        ],
+        "bench11_nodes": 419798
+      },
+      "archive_evidence": {
+        "path": "validation/root-effort-20261019/linux-validation-checkpoint.zip",
+        "sha256": "afe22b0603a96271a833a75647ab813f682da357452b42c579ea45c08ba71114",
+        "prefix": "linux-validation/parity-parent-attempt1/"
+      }
+    },
+    {
+      "id": "forge648-actual-root-counter-oracle-20261019",
+      "candidate_id": "forge648-root-effort-20261019",
+      "candidate_production_commit": "7125b3379a850de34041d42529cf95993607f93c",
+      "baseline_production_commit": "2c0c7efa49023d8e3f49de3f5596f333a3f01202",
+      "valid_strength_evidence": false,
+      "scope": "actual_engine_counter_correctness",
+      "status": "passed",
+      "result": {
+        "status": "passed",
+        "every_iteration_counters_match_independent_actual_trace": true,
+        "untimed_exact_baseline_parity": true,
+        "checks": [
+          {
+            "case": 0,
+            "depth": 1,
+            "best": "e2e3",
+            "independent_best_nodes": 2,
+            "stored_best_nodes": 2,
+            "total_nodes": 24,
+            "effort": 0.08333333333333333,
+            "effort_factor_at_depth6plus": null
+          },
+          {
+            "case": 0,
+            "depth": 2,
+            "best": "e2e3",
+            "independent_best_nodes": 10,
+            "stored_best_nodes": 10,
+            "total_nodes": 66,
+            "effort": 0.15151515151515152,
+            "effort_factor_at_depth6plus": null
+          },
+          {
+            "case": 0,
+            "depth": 3,
+            "best": "g1f3",
+            "independent_best_nodes": 41,
+            "stored_best_nodes": 41,
+            "total_nodes": 190,
+            "effort": 0.21578947368421053,
+            "effort_factor_at_depth6plus": null
+          },
+          {
+            "case": 0,
+            "depth": 4,
+            "best": "g1f3",
+            "independent_best_nodes": 153,
+            "stored_best_nodes": 153,
+            "total_nodes": 402,
+            "effort": 0.3805970149253731,
+            "effort_factor_at_depth6plus": null
+          },
+          {
+            "case": 0,
+            "depth": 5,
+            "best": "g1f3",
+            "independent_best_nodes": 356,
+            "stored_best_nodes": 356,
+            "total_nodes": 817,
+            "effort": 0.4357405140758874,
+            "effort_factor_at_depth6plus": null
+          },
+          {
+            "case": 0,
+            "depth": 6,
+            "best": "g1f3",
+            "independent_best_nodes": 512,
+            "stored_best_nodes": 512,
+            "total_nodes": 1211,
+            "effort": 0.4227910817506193,
+            "effort_factor_at_depth6plus": 1.1272089182493807
+          },
+          {
+            "case": 0,
+            "depth": 7,
+            "best": "g1f3",
+            "independent_best_nodes": 1354,
+            "stored_best_nodes": 1354,
+            "total_nodes": 3122,
+            "effort": 0.4336963484945548,
+            "effort_factor_at_depth6plus": 1.1163036515054452
+          },
+          {
+            "case": 1,
+            "depth": 1,
+            "best": "e2a6",
+            "independent_best_nodes": 20,
+            "stored_best_nodes": 20,
+            "total_nodes": 114,
+            "effort": 0.17543859649122806,
+            "effort_factor_at_depth6plus": null
+          },
+          {
+            "case": 1,
+            "depth": 2,
+            "best": "e2a6",
+            "independent_best_nodes": 29,
+            "stored_best_nodes": 29,
+            "total_nodes": 172,
+            "effort": 0.1686046511627907,
+            "effort_factor_at_depth6plus": null
+          },
+          {
+            "case": 1,
+            "depth": 3,
+            "best": "e2a6",
+            "independent_best_nodes": 101,
+            "stored_best_nodes": 101,
+            "total_nodes": 568,
+            "effort": 0.17781690140845072,
+            "effort_factor_at_depth6plus": null
+          },
+          {
+            "case": 1,
+            "depth": 4,
+            "best": "e2a6",
+            "independent_best_nodes": 149,
+            "stored_best_nodes": 149,
+            "total_nodes": 774,
+            "effort": 0.1925064599483204,
+            "effort_factor_at_depth6plus": null
+          },
+          {
+            "case": 1,
+            "depth": 5,
+            "best": "e2a6",
+            "independent_best_nodes": 322,
+            "stored_best_nodes": 322,
+            "total_nodes": 1801,
+            "effort": 0.1787895613548029,
+            "effort_factor_at_depth6plus": null
+          },
+          {
+            "case": 1,
+            "depth": 6,
+            "best": "e2a6",
+            "independent_best_nodes": 526,
+            "stored_best_nodes": 526,
+            "total_nodes": 2147,
+            "effort": 0.2449930135072194,
+            "effort_factor_at_depth6plus": 1.3050069864927807
+          },
+          {
+            "case": 1,
+            "depth": 7,
+            "best": "d5e6",
+            "independent_best_nodes": 1883,
+            "stored_best_nodes": 1883,
+            "total_nodes": 10607,
+            "effort": 0.17752427642123125,
+            "effort_factor_at_depth6plus": 1.3724757235787688
+          },
+          {
+            "case": 2,
+            "depth": 1,
+            "best": "h2h3",
+            "independent_best_nodes": 6,
+            "stored_best_nodes": 6,
+            "total_nodes": 63,
+            "effort": 0.09523809523809523,
+            "effort_factor_at_depth6plus": null
+          },
+          {
+            "case": 2,
+            "depth": 2,
+            "best": "c4b3",
+            "independent_best_nodes": 15,
+            "stored_best_nodes": 15,
+            "total_nodes": 136,
+            "effort": 0.11029411764705882,
+            "effort_factor_at_depth6plus": null
+          },
+          {
+            "case": 2,
+            "depth": 3,
+            "best": "c4b3",
+            "independent_best_nodes": 45,
+            "stored_best_nodes": 45,
+            "total_nodes": 224,
+            "effort": 0.20089285714285715,
+            "effort_factor_at_depth6plus": null
+          },
+          {
+            "case": 2,
+            "depth": 4,
+            "best": "h2h3",
+            "independent_best_nodes": 68,
+            "stored_best_nodes": 68,
+            "total_nodes": 511,
+            "effort": 0.13307240704500978,
+            "effort_factor_at_depth6plus": null
+          },
+          {
+            "case": 2,
+            "depth": 5,
+            "best": "c4b3",
+            "independent_best_nodes": 470,
+            "stored_best_nodes": 470,
+            "total_nodes": 1089,
+            "effort": 0.4315886134067952,
+            "effort_factor_at_depth6plus": null
+          },
+          {
+            "case": 2,
+            "depth": 6,
+            "best": "c4b3",
+            "independent_best_nodes": 758,
+            "stored_best_nodes": 758,
+            "total_nodes": 1708,
+            "effort": 0.44379391100702575,
+            "effort_factor_at_depth6plus": 1.1062060889929743
+          },
+          {
+            "case": 2,
+            "depth": 7,
+            "best": "c3d5",
+            "independent_best_nodes": 601,
+            "stored_best_nodes": 601,
+            "total_nodes": 3355,
+            "effort": 0.17913561847988077,
+            "effort_factor_at_depth6plus": 1.3708643815201194
+          },
+          {
+            "case": 3,
+            "depth": 1,
+            "best": "b4c4",
+            "independent_best_nodes": 2,
+            "stored_best_nodes": 2,
+            "total_nodes": 19,
+            "effort": 0.10526315789473684,
+            "effort_factor_at_depth6plus": null
+          },
+          {
+            "case": 3,
+            "depth": 2,
+            "best": "b4f4",
+            "independent_best_nodes": 9,
+            "stored_best_nodes": 9,
+            "total_nodes": 70,
+            "effort": 0.12857142857142856,
+            "effort_factor_at_depth6plus": null
+          },
+          {
+            "case": 3,
+            "depth": 3,
+            "best": "b4f4",
+            "independent_best_nodes": 20,
+            "stored_best_nodes": 20,
+            "total_nodes": 112,
+            "effort": 0.17857142857142858,
+            "effort_factor_at_depth6plus": null
+          },
+          {
+            "case": 3,
+            "depth": 4,
+            "best": "e2e3",
+            "independent_best_nodes": 130,
+            "stored_best_nodes": 130,
+            "total_nodes": 390,
+            "effort": 0.3333333333333333,
+            "effort_factor_at_depth6plus": null
+          },
+          {
+            "case": 3,
+            "depth": 5,
+            "best": "b4f4",
+            "independent_best_nodes": 157,
+            "stored_best_nodes": 157,
+            "total_nodes": 678,
+            "effort": 0.23156342182890854,
+            "effort_factor_at_depth6plus": null
+          },
+          {
+            "case": 3,
+            "depth": 6,
+            "best": "b4f4",
+            "independent_best_nodes": 293,
+            "stored_best_nodes": 293,
+            "total_nodes": 936,
+            "effort": 0.31303418803418803,
+            "effort_factor_at_depth6plus": 1.236965811965812
+          },
+          {
+            "case": 3,
+            "depth": 7,
+            "best": "b4f4",
+            "independent_best_nodes": 937,
+            "stored_best_nodes": 937,
+            "total_nodes": 2146,
+            "effort": 0.43662628145386767,
+            "effort_factor_at_depth6plus": 1.1133737185461323
+          }
+        ]
+      },
+      "summary": {
+        "checked_completed_iterations": 28,
+        "fen_cases": 4,
+        "all_stored_counters_match_independent_root_child_sums": true,
+        "final_untouched_parent_signatures_byte_equal": true,
+        "example_c3d5_correct_counter": 601,
+        "timed_stop_or_elo_claim": null
+      },
+      "archive_evidence": {
+        "path": "validation/root-effort-20261019/actual-candidate-validation.zip",
+        "sha256": "bfd7f417491e9841b572c266ff3cce1ec9596c70739bac5a73bd4770d86da9ff",
+        "manifest_path": "validation/root-effort-20261019/actual-candidate-validation.json"
+      }
+    },
+    {
+      "id": "forge648-windows-correctness-20261019",
+      "candidate_id": "forge648-root-effort-20261019",
+      "candidate_production_commit": "7125b3379a850de34041d42529cf95993607f93c",
+      "baseline_production_commit": "2c0c7efa49023d8e3f49de3f5596f333a3f01202",
+      "valid_strength_evidence": false,
+      "scope": "runtime_readiness",
+      "status": "all_seven_wine_checks_passed_packaged_correctness_candidate",
+      "artifact": {
+        "status": "packaged_and_verified",
+        "artifact": "releases/forge-6.4.8-candidate-windows-zen5.zip",
+        "sha256": "4b4de385808f5a383aa60de6bfc09cf48c02e5d23c191624540026cdac95b55e",
+        "bytes": 3619122,
+        "source_and_tests_commit": "7125b3379a850de34041d42529cf95993607f93c",
+        "engine_sha256": "e39a240e3f7380e84c4e585013c2d602cba379f15e9e23d7a036a9712c415644",
+        "runtime_checks": 7,
+        "legal_witness_comparisons": 18947,
+        "bench11_nodes": 351063,
+        "scope": "Wine correctness and bounded node signature; no speed, Elo or native hardware result"
+      },
+      "result": {
+        "status": "passed",
+        "source_and_tests_commit": "7125b3379a850de34041d42529cf95993607f93c",
+        "checks": [
+          {
+            "name": "core",
+            "exit_code": 0,
+            "elapsed_seconds": 6.5500222020000365
+          },
+          {
+            "name": "coherent-tt",
+            "exit_code": 0,
+            "elapsed_seconds": 0.32178109400047106
+          },
+          {
+            "name": "rule50",
+            "exit_code": 0,
+            "elapsed_seconds": 1.0222585050014459
+          },
+          {
+            "name": "legal-witness",
+            "exit_code": 0,
+            "elapsed_seconds": 1.9550748219990055
+          },
+          {
+            "name": "uci",
+            "exit_code": 0,
+            "elapsed_seconds": 1.028002999999444
+          },
+          {
+            "name": "ponder",
+            "exit_code": 0,
+            "elapsed_seconds": 1.0274712319987884
+          },
+          {
+            "name": "stdin-bench11-signature",
+            "exit_code": 0,
+            "nodes": 351063
+          }
+        ],
+        "tt_groups": 8,
+        "rule50_targeted_failures": 0,
+        "legal_witness_comparisons": 18947,
+        "bench11_nodes": 351063,
+        "core_reference_perft_passed": true,
+        "simd": {
+          "avx2_minmax_ymm": true,
+          "avx2_multiply_ymm": true,
+          "avx2_add_ymm": true,
+          "fused_operations": []
+        },
+        "input_sha256_before": {
+          "forge_legal_witness_tests.exe": "33f7b37f97e51447e0ec1417cb296ea5e866c0dc06da6f10caeb2091e984f06e",
+          "forge_bench.exe": "0a3b84f5255f00403577eba5e1e4739c469f99bf13c104154643a43c2c41543e",
+          "forge_tt_tests.exe": "a213bb6da7ef2058e15feb913a758f649b359cca3d5298c64cc35084c065732d",
+          "forge_rule50_tests.exe": "a5097a251a5d163ad24897fa4913939f9f70eea1eabf8f16be8c133edb69ee77",
+          "forge.exe": "e39a240e3f7380e84c4e585013c2d602cba379f15e9e23d7a036a9712c415644",
+          "forge_tests.exe": "d97720ca1c5ba2ca2f00dd75cf5a72607e1597f965f87ef00c56ff3aaa6cdc00",
+          "core_library": "bb1b0b8cf31db9f872679521110883783ba93ff1a10a10a42aba24d1995ec939",
+          "core_flags": "10104a99302cefccb7645c3069f98fcd658cb5ec8727735902f1a6f155d24bcb",
+          "compile_commands": "dd0674852d1051b1e9bb06e6aad8e46c5925dbd8100cf78b8419578f81653b80",
+          "uci_tool": "0ecfbdd3b04bf0ef4f6669ed43581d124e75ff3224926874da98c451649ee4cc",
+          "ponder_tool": "26cb1169916522db1baf99c7f57cabb92ea1c5cd66bb6534a27464a2356404d0",
+          "fixtures": "e88f4d859ce1c923b900e2c4012e7e601c247140223876a18cca6e0648d47c77",
+          "corpus": "de36a48f856a5a0c10d0865747965a7b2f5d89149078923ba2d766979238bf6c",
+          "wrapper": "9025d5bdd6c5232ca40e72dc7837a9e7d269f92df745a8d69d16194df7d89acf",
+          "wine_loader": "9ee2a1e03236ca651d57bda9b1007c8ccb30542d9a5602596849287ea466b23c",
+          "disassembler": "14170da3056e00b4a809203b267fb0e5cb5b437b5704634252b3a3fc128e79b9"
+        },
+        "input_sha256_after": {
+          "forge_legal_witness_tests.exe": "33f7b37f97e51447e0ec1417cb296ea5e866c0dc06da6f10caeb2091e984f06e",
+          "forge_bench.exe": "0a3b84f5255f00403577eba5e1e4739c469f99bf13c104154643a43c2c41543e",
+          "forge_tt_tests.exe": "a213bb6da7ef2058e15feb913a758f649b359cca3d5298c64cc35084c065732d",
+          "forge_rule50_tests.exe": "a5097a251a5d163ad24897fa4913939f9f70eea1eabf8f16be8c133edb69ee77",
+          "forge.exe": "e39a240e3f7380e84c4e585013c2d602cba379f15e9e23d7a036a9712c415644",
+          "forge_tests.exe": "d97720ca1c5ba2ca2f00dd75cf5a72607e1597f965f87ef00c56ff3aaa6cdc00",
+          "core_library": "bb1b0b8cf31db9f872679521110883783ba93ff1a10a10a42aba24d1995ec939",
+          "core_flags": "10104a99302cefccb7645c3069f98fcd658cb5ec8727735902f1a6f155d24bcb",
+          "compile_commands": "dd0674852d1051b1e9bb06e6aad8e46c5925dbd8100cf78b8419578f81653b80",
+          "uci_tool": "0ecfbdd3b04bf0ef4f6669ed43581d124e75ff3224926874da98c451649ee4cc",
+          "ponder_tool": "26cb1169916522db1baf99c7f57cabb92ea1c5cd66bb6534a27464a2356404d0",
+          "fixtures": "e88f4d859ce1c923b900e2c4012e7e601c247140223876a18cca6e0648d47c77",
+          "corpus": "de36a48f856a5a0c10d0865747965a7b2f5d89149078923ba2d766979238bf6c",
+          "wrapper": "9025d5bdd6c5232ca40e72dc7837a9e7d269f92df745a8d69d16194df7d89acf",
+          "wine_loader": "9ee2a1e03236ca651d57bda9b1007c8ccb30542d9a5602596849287ea466b23c",
+          "disassembler": "14170da3056e00b4a809203b267fb0e5cb5b437b5704634252b3a3fc128e79b9"
+        },
+        "source_inputs_unchanged": true,
+        "scope": "Wine correctness and node signatures only; native hardware, speed and Elo unproven"
+      },
+      "command_evidence": "validation/root-effort-20261019/windows/commands.json",
+      "runtime_evidence": "validation/root-effort-20261019/windows/runtime-attempt1/protocol.json",
+      "independent_artifact_review": {
+        "path": "validation/root-effort-20261019/windows/independent-artifact-audit.json",
+        "sha256": "08ba901d560bfee6679f151297c26c4ee4aa52cd7bf5afcd2a9820069868cdcd"
+      },
+      "native_windows_tested": false,
+      "physical_ryzen_tested": false
     }
   ],
   "evidence_archives": [
@@ -4915,6 +5502,18 @@
       "sha256": "2e78c6e9b85ffd085d61ce5020a5e711117db0ec3054f90681e67f545cb04a33",
       "bytes": 3733824,
       "manifest_path": "validation/lazy-movepicker-20261019/differential-attempt1.json"
+    },
+    {
+      "path": "validation/root-effort-20261019/linux-validation-checkpoint.zip",
+      "sha256": "afe22b0603a96271a833a75647ab813f682da357452b42c579ea45c08ba71114",
+      "bytes": 123701,
+      "manifest_path": "validation/root-effort-20261019/linux-validation-checkpoint.json"
+    },
+    {
+      "path": "validation/root-effort-20261019/actual-candidate-validation.zip",
+      "sha256": "bfd7f417491e9841b572c266ff3cce1ec9596c70739bac5a73bd4770d86da9ff",
+      "bytes": 2275978,
+      "manifest_path": "validation/root-effort-20261019/actual-candidate-validation.json"
     }
   ]
 }
