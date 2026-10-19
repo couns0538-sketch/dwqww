@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.16)
-project(ChessEngineForge VERSION 6.4.1 LANGUAGES CXX)
+project(ChessEngineForge VERSION 6.4.2 LANGUAGES CXX)
 find_package(Threads REQUIRED)
 
 option(FORGE_ENABLE_SANITIZERS "Enable AddressSanitizer and UndefinedBehaviorSanitizer" OFF)
@@ -70,6 +70,8 @@ find_package(Python3 3.10 COMPONENTS Interpreter QUIET)
 if(Python3_Interpreter_FOUND)
     add_test(NAME match_tool_tests
         COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tools/match/test_match_tools.py)
+    add_test(NAME windows_validation_tests
+        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tools/match/tests/test_windows_validate.py)
     add_test(NAME uci_regression
         COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tools/uci_regression.py
                 $<TARGET_FILE:forge> --log ${CMAKE_CURRENT_BINARY_DIR}/uci-regression.log)

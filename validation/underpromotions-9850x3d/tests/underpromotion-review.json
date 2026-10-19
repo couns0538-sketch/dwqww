@@ -1,0 +1,45 @@
+{
+  "review_kind": "read-only source and existing-log review; no builds, tests, engines, games or benchmarks run by reviewer",
+  "branch": "forge/underpromotions-9850x3d",
+  "base_head": "e6d17c90e77c163d82a73d1e2170265cd06321ce",
+  "reviewed_working_tree_sha256": {
+    "CMakeLists.txt": "572e094d9f03b934761ddd44a7c87b1eca5c03f73421dd47ad5e2549d5e14a57",
+    "include/forge/board.hpp": "5b42d3557730edc65f795a097e45d18a3cb621d56bdfa8b379773bb496204c77",
+    "src/board.cpp": "d20d61d77f199e97e3e2c2f0c80b5d9db0fdea185f72baef9d746b6d4bbfa4cb",
+    "src/search.cpp": "330ec3068b7805da8ed3af90c3816d9c7faf687eb7f032165975c1db81166f63",
+    "src/uci.cpp": "fb080e8fc14eefaddc488b1db6b26ac87ff6611018b328c475e91e606dd89636",
+    "tests/tests.cpp": "b07d726946bd2c01bb2f62769589d5cecc57d1137b241616f9b971f735b75dd6",
+    "tools/uci_regression.py": "0ecfbdd3b04bf0ef4f6669ed43581d124e75ff3224926874da98c451649ee4cc"
+  },
+  "result": "no actionable issues found in scoped underpromotion correction",
+  "findings": [],
+  "checks": [
+    "Shared promotion helper emits Q/R/B/N for both quiet pushes and captures, for either color; full-generation branch behavior is unchanged.",
+    "Noisy-generation production callers are the main, quiescence and ProbCut pickers. Header describes quiet-promotion inclusion.",
+    "Promotion choices are distinguished by Move equality. TT duplicate suppression and quiet-stage promotion exclusion avoid duplicate searches.",
+    "Noisy moves remain a subset of full pseudo-legal moves using the existing 256-entry buffer and picker storage. New capture promotions pass existing SEE zero test; no concrete new overflow of the unchanged 64-entry bad-capture buffer was demonstrated.",
+    "Existing scoring and Q/R/B/N emission order are retained; added underpromotions can change tree, move order among newly available choices, and strength.",
+    "Tests assert exactly one of each of four quiet/capture promotion types for both colors; cold restricted Q/R/B/N tests require a searched PV and child node; cold unrestricted tests require winning rook promotion for both colors.",
+    "UCI regression now rejects the prior legal-fallback-only result by requiring rook PV and positive centipawn score.",
+    "CMake and UCI versions both identify 6.4.2; fifth suite references the present Windows-validator test file.",
+    "No changes to src/search.cpp, SEE, TT rule-50 context, evaluation weights or arithmetic were included in the reviewed engine correction."
+  ],
+  "existing_logs_observed": {
+    "red_core": {
+      "path": "validation/underpromotions-9850x3d/tests/promotions-red.log",
+      "sha256": "6e5bd00f7bb1772dec2227ef303c7a91d172e12dad39f0130b5a97de3e442f13",
+      "outcome": "23 targeted failures including generation, restricted searched PVs and unrestricted rook choice"
+    },
+    "red_uci": {
+      "path": "validation/underpromotions-9850x3d/tests/uci-red-console.log",
+      "sha256": "b6014bf663122a0f2d8186d976845dc619bd6ba6da799266c5fee5da4df9c6e1",
+      "outcome": "Assertion rejected empty PV, score0, nodes1 with legal fallback c7c8r"
+    },
+    "green_core": {
+      "path": "validation/underpromotions-9850x3d/tests/promotions-green.log",
+      "sha256": "754ca4482055366f097c1dcfbbf228fbbf398ff7776c4867487a4c53944eb55b",
+      "outcome": "All tests passed"
+    }
+  },
+  "limitations": "Static review and retained logs only. No independent runtime execution, exhaustive move-capacity proof, Windows validation or playing-strength claim. Windows-validator implementation/statistical logic is outside this engine-patch review."
+}

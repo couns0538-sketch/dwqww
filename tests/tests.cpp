@@ -203,7 +203,25 @@ void test_move_generation() {
 
     check(board.set_fen("4k3/P7/8/8/8/8/8/4K3 w - - 0 1"), "promotion FEN parses");
     check(board.parse_uci("a7a8q").has_value() && board.parse_uci("a7a8n").has_value(), "promotions are legal");
-    check(board.legal_moves(true).size() == 1, "captures-only generation keeps only the queen promotion");
+    check(board.legal_moves(true).size() == 4, "noisy generation includes every quiet promotion");
+    for (const std::string_view fen : {
+             "1r2k3/P7/8/8/8/8/8/4K3 w - - 0 1",
+             "4k3/8/8/8/8/8/p7/1R2K3 b - - 0 1"}) {
+        check(board.set_fen(fen), "quiet and capture promotion FEN parses");
+        std::array<int, 7> quiet_promotions{};
+        std::array<int, 7> capture_promotions{};
+        for (const forge::Move move : board.legal_moves(true)) {
+            if (!move.is_promotion()) continue;
+            auto& counts = move.is_capture() ? capture_promotions : quiet_promotions;
+            ++counts[move.promotion];
+        }
+        for (const int promotion : {forge::Queen, forge::Rook, forge::Bishop, forge::Knight}) {
+            check(quiet_promotions[static_cast<std::size_t>(promotion)] == 1,
+                  "noisy generation includes each quiet promotion exactly once for either color");
+            check(capture_promotions[static_cast<std::size_t>(promotion)] == 1,
+                  "noisy generation includes each capture promotion exactly once for either color");
+        }
+    }
     check(board.set_fen("4k3/8/8/3pP3/8/8/8/4K3 w - d6 0 1"), "en-passant FEN parses");
     check(board.parse_uci("e5d6").has_value(), "en-passant is legal");
     check(board.set_fen("k3r3/8/8/3pP3/8/8/8/4K3 w - d6 0 1"), "pinned en-passant FEN parses");
@@ -367,6 +385,42 @@ void test_search_stalemate() {
     for (const int depth : {0, 1})
         check(forge::SearcherTestProbe::terminal_search(searcher, board, depth, -forge::Infinite, forge::Infinite) ==
                   -forge::MateValue + 1, "in-check terminal positions retain mate scores");
+}
+
+void test_search_promotions() {
+    forge::Board board;
+    const std::string white_fen = "8/k1P5/2K5/8/8/8/8/8 w - - 0 1";
+    for (const bool mirrored : {false, true}) {
+        check(board.set_fen(mirrored ? mirror_fen(white_fen) : white_fen), "underpromotion search FEN parses");
+        const std::array<std::string_view, 4> moves = mirrored
+            ? std::array<std::string_view, 4>{"c2c1q", "c2c1r", "c2c1b", "c2c1n"}
+            : std::array<std::string_view, 4>{"c7c8q", "c7c8r", "c7c8b", "c7c8n"};
+        forge::Searcher searcher(1);
+        forge::SearchLimits limits;
+        limits.depth = 1;
+        limits.search_moves_specified = true;
+        for (const std::string_view text : moves) {
+            const auto move = board.parse_uci(text);
+            check(move.has_value(), "restricted promotion is legal");
+            if (!move.has_value()) continue;
+            searcher.clear();
+            limits.search_moves = {*move};
+            const auto result = searcher.search(board, limits);
+            check(result.best_move == *move && !result.pv.empty() && result.pv.front() == *move &&
+                      result.nodes > 1 && result.depth == 1,
+                  "every restricted promotion is searched and appears in the PV");
+            if (text.back() == 'r') check(result.score > 100, "rook underpromotion retains a winning score");
+            if (text.back() == 'q') check(result.score == 0, "queen promotion is scored as stalemate");
+        }
+        searcher.clear();
+        limits.search_moves_specified = false;
+        limits.search_moves.clear();
+        const auto result = searcher.search(board, limits);
+        const auto rook = board.parse_uci(moves[1]);
+        check(rook.has_value() && result.best_move == *rook && !result.pv.empty() && result.pv.front() == *rook &&
+                  result.score > 100 && result.depth == 1,
+              "unrestricted search chooses the winning rook underpromotion over stalemating queen promotion");
+    }
 }
 
 void test_search() {
@@ -678,6 +732,7 @@ int main() {
     test_transposition_tag_independence();
     test_search();
     test_search_stalemate();
+    test_search_promotions();
     test_search_request_time();
     test_threads();
     test_nnue();
