@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "updated_utc": "2026-10-19T20:36:42.536980+00:00",
+  "updated_utc": "2026-10-19T20:55:16.195601+00:00",
   "project": "Forge",
   "target": "Native Windows x64 on Ryzen7 9850X3D",
   "scope": "2026-10-19 accepted development reference, preserved candidate artifacts and failures, audited original-ZIP fixed-node SPRT, complete TT correctness phases, inconclusive same-binary speed calibration and isolated rule50-context6.4.4 correctness candidate.",
@@ -44,7 +44,8 @@
     "rule50_fix_candidate_id": "forge644-rule50-context-20261019",
     "rule50_fix_correctness_experiment_id": "forge644-rule50-context-release-20261019",
     "latest_correctness_candidate_id": "forge644-rule50-context-20261019",
-    "latest_correctness_windows_artifact": "releases/forge-6.4.4-candidate-windows-zen5.zip"
+    "latest_correctness_windows_artifact": "releases/forge-6.4.4-candidate-windows-zen5.zip",
+    "newer_645_strength_status": "untested; Release8/8, ASan/UBSan8/8,18947 oracle comparisons and exact parent parity passed; kernel/Windows pending"
   },
   "candidates": [
     {
@@ -324,6 +325,42 @@
       },
       "parent_counterfactual_experiment_id": "forge644-current-regression-on-parent-20261019",
       "behavior_parity_experiment_id": "forge644-parent-cold-warm-parity-20261019"
+    },
+    {
+      "id": "forge645-legal-witness-20261019",
+      "code_commit": "82cd2c24062d07cbacbe5b722b6ec0b718981abd",
+      "branch": "forge/legal-witness-20261019",
+      "parent_candidate_id": "forge644-rule50-context-20261019",
+      "baseline_production_commit": "816423b1ddac23a00244449deef59dba736055a9",
+      "change": "Sound nonpromotion quiet-pawn-push legal witness before unchanged complete pseudo-legal fallback; no search/evaluation/NNUE changes.",
+      "status": "linux_correctness_passed_kernel_and_windows_pending",
+      "network_sha256": "41487f328ff51f27417564df45b6f3139d038b7e940dedb121340bd61be9a4d3",
+      "native_windows_tested": false,
+      "physical_ryzen_tested": false,
+      "binaries": {
+        "release": {
+          "engine_sha256": "744c89044c0084ffcb4273a3d9bd796f1951cbb801109a956c9e797b55436a32",
+          "core_library_sha256": "06e4ea08d2852809640debde1dc020e3cc2380fe25835f662931ad37e067a177",
+          "build_files_sha256": {
+            "CMakeCache.txt": "84ccb15718e46dbeb9f3639f6ce4fa01d025f41532599cb635a31e4802fece63",
+            "CMakeFiles/forge_core.dir/flags.make": "2fa4e7c27b573a4179c73a6a7f04ab2b96cbb9f2e014230ee37713d357570ccd",
+            "CMakeFiles/forge.dir/link.txt": "1a253b4e6d910c95266edbfc1377ef2e94f2c89ff33c4ddc9aabdf9235bf756d",
+            "Testing/Temporary/LastTest.log": "a44f54a36c3b678b973ae182c7e994032acef8e967cf0dc226b5073cdc320e6f",
+            "uci-regression.log": "a6f75274bfbc8a72bba2e6631d535b613825caa05241f92b68d66d191383a739"
+          }
+        },
+        "asan": {
+          "engine_sha256": "3cd17dd7bb7bdf27a097b4162126248f41139a5c6342f4541dd56a7542c88fa1",
+          "core_library_sha256": "77ccf3c19fb0cbd837743f721aa07936b8d1fb1d277789353cc1a97c391ce884",
+          "build_files_sha256": {
+            "CMakeCache.txt": "da318a26dad8084600692ee0caa8e82a11cd7397a9b1f78f373d4e7ccb0d9bb1",
+            "CMakeFiles/forge_core.dir/flags.make": "75ac3819f432f6d3dce7e963ceb1f6ab51565355b062106540e4ea0c40433321",
+            "CMakeFiles/forge.dir/link.txt": "fd0a141fe5513cc235c9f6a981cb0a2943651ffbb57542433167efb67b90f0a0",
+            "Testing/Temporary/LastTest.log": "5e04c83a3f794f55de1392088474ad2acdcf7e3680db0a319d551e4f82c8f5ae",
+            "uci-regression.log": "f5688a48fcbef9fa2f3d2c0ecf202e221b6283af8a1915201f71a32a89d7fb2e"
+          }
+        }
+      }
     }
   ],
   "experiments": [
@@ -3857,6 +3894,141 @@
       "native_windows": false,
       "physical_ryzen": false,
       "valid_strength_evidence": false
+    },
+    {
+      "id": "forge645-parent-legal-oracle-20261019",
+      "candidate_id": "forge645-legal-witness-20261019",
+      "scope": "correctness_baseline",
+      "status": "passed",
+      "baseline_production_commit": "816423b1ddac23a00244449deef59dba736055a9",
+      "result": {
+        "boolean_comparisons": 18947,
+        "oracles": [
+          "exact old full generation/is_legal",
+          "make/unmake king safety"
+        ],
+        "state_unchanged": [
+          "fen",
+          "key",
+          "pawn_key",
+          "checkers"
+        ],
+        "limitation": "Both oracle paths share move generation/attacks and the castling transit filter; not an independent complete chess library."
+      },
+      "archive_evidence": {
+        "path": "validation/legal-witness-20261019/preparation-and-parent-baseline.zip",
+        "sha256": "4e0c5c11501a36b3a5e6f9f1a6aede15048d38165e525fe2e08d80f9b06a057a",
+        "prefix": "parent-baseline/"
+      },
+      "valid_strength_evidence": false
+    },
+    {
+      "id": "forge645-linux-release-asan-20261019",
+      "candidate_id": "forge645-legal-witness-20261019",
+      "candidate_production_commit": "82cd2c24062d07cbacbe5b722b6ec0b718981abd",
+      "baseline_production_commit": "816423b1ddac23a00244449deef59dba736055a9",
+      "valid_strength_evidence": false,
+      "archive_evidence": {
+        "path": "validation/legal-witness-20261019/linux-validation-checkpoint.zip",
+        "sha256": "2f8c108a06517ad67a663667c3f1bda12c7b2810e60bfbde99e3ec0906e71bd3",
+        "prefix": "linux-validation/"
+      },
+      "scope": "correctness",
+      "status": "passed",
+      "result": {
+        "release_ctest": "8/8 passed",
+        "asan_ubsan_ctest": "8/8 passed",
+        "legal_witness_boolean_comparisons": 18947,
+        "parent_boolean_comparisons": 18947,
+        "search_parity": "six positions, cold/warm, exact normalized score/PV/nodes/depth/bestmove",
+        "bench11_nodes": 419798,
+        "strength_games": 0,
+        "speed_claim": null,
+        "elo_claim": null,
+        "sanitizer_environment": {
+          "ASAN_OPTIONS": "detect_leaks=1:halt_on_error=1",
+          "UBSAN_OPTIONS": "halt_on_error=1:print_stacktrace=1"
+        }
+      },
+      "source_and_build_provenance": {
+        "archive_member": "linux-validation/validated-linux-provenance.json",
+        "sha256": "4d7cf68bbc7e1547b86af83d4c5ee4f09f86b0f53ad84b48fe09f1051e38157f"
+      }
+    },
+    {
+      "id": "forge645-parent-cold-warm-parity-20261019",
+      "candidate_id": "forge645-legal-witness-20261019",
+      "candidate_production_commit": "82cd2c24062d07cbacbe5b722b6ec0b718981abd",
+      "baseline_production_commit": "816423b1ddac23a00244449deef59dba736055a9",
+      "valid_strength_evidence": false,
+      "archive_evidence": {
+        "path": "validation/legal-witness-20261019/linux-validation-checkpoint.zip",
+        "sha256": "2f8c108a06517ad67a663667c3f1bda12c7b2810e60bfbde99e3ec0906e71bd3",
+        "prefix": "linux-validation/"
+      },
+      "scope": "behavior_parity",
+      "status": "parity_only_passed",
+      "settings": {
+        "threads": 1,
+        "hash_mib": 32,
+        "ownbook": false,
+        "passes": [
+          "cold",
+          "warm"
+        ],
+        "normalize_only": [
+          "time",
+          "nps",
+          "hashfull"
+        ]
+      },
+      "result": {
+        "status": "parity_only_completed",
+        "elo_claim": null,
+        "parity_passed": true,
+        "performance_complete": false,
+        "elapsed_seconds": 7.861120560999552,
+        "resource_after": {
+          "monotonic_ns": 13143467026046,
+          "affinity": [
+            0,
+            1,
+            2,
+            3,
+            4
+          ],
+          "loadavg": [
+            0.67529296875,
+            0.548828125,
+            0.94140625
+          ],
+          "self_cgroup": {
+            "path": "/proc/self/cgroup",
+            "text": "0::/\n"
+          },
+          "cgroups": [
+            {
+              "path": "/sys/fs/cgroup/cpu.max",
+              "text": "400000 100000\n"
+            },
+            {
+              "path": "/sys/fs/cgroup/cpu.stat",
+              "text": "usage_usec 14280391752\nuser_usec 10460335325\nsystem_usec 3820056427\nnice_usec 0\nnr_periods 119042\nnr_throttled 10638\nthrottled_usec 1404970956\nnr_bursts 0\nburst_usec 0\n"
+            },
+            {
+              "path": "/sys/fs/cgroup/cpuset.cpus.effective",
+              "text": "0-4\n"
+            }
+          ]
+        },
+        "input_hash_errors": [],
+        "input_hashes_unchanged": true,
+        "interpretation": "Correctness parity and conditional throughput only. Shared-VM noise, CPU tick quantization and SMP variable work remain limitations. No Elo, equal-clock or native Ryzen claim."
+      },
+      "plan": {
+        "archive_member": "linux-validation/parity-attempt1/plan.json",
+        "sha256": "bac1bc342737d96bb7f5c19c4bb28582ac0cc33267a5db1d11095d9ea880ddfa"
+      }
     }
   ],
   "evidence_archives": [
@@ -3889,6 +4061,12 @@
       "path": "validation/tt-coherence-20261019/speed-aa-calibration.zip",
       "sha256": "688544fa4f768a46a1f35d0e1f4f2bb38dfba926703207bd583667f9dff5d795",
       "bytes": 1461628
+    },
+    {
+      "path": "validation/legal-witness-20261019/linux-validation-checkpoint.zip",
+      "sha256": "2f8c108a06517ad67a663667c3f1bda12c7b2810e60bfbde99e3ec0906e71bd3",
+      "bytes": 127321,
+      "manifest_path": "validation/legal-witness-20261019/linux-validation-checkpoint.json"
     }
   ]
 }

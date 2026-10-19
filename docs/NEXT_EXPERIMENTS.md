@@ -1,0 +1,11 @@
+# Next experiments
+
+Work within the current approximately 60-minute budget, at most three candidates, sequentially. Finish and preserve the active experiment before starting the next. No retraining, network changes, multi-hour batches or further CI infrastructure work in this budget.
+
+1. **Finish the legal-witness fast path — active 6.4.5, `82cd2c24062d07cbacbe5b722b6ec0b718981abd`.** One exactly legal nonpromotion pawn push can witness a legal move; retain the full fallback. Complete eight Release suites, candidate dual-oracle/state comparisons, exact cold/warm search parity and appropriate sanitizer checks. Only then run the preregistered bounded kernel calibration/comparison. Preserve the 18,947-check parent control and all failures. Kernel/API timing cannot establish whole-engine speed or Elo. [Plan](plans/2026-10-19-legal-witness.md) and [status](../validation/legal-witness-20261019/STATUS.md).
+
+2. **Defer the qsearch `gives_check` query until its guard needs it.** Reusable unapplied patch: commit `72024984b2153a0c440bedca354a7e6a1ebc2f8f`, path `validation/hourly/2026-10-19-1845/qsearch-gives-check.patch`, SHA256 `6c5dcfbab7086a32bf4e8eb9de68eb0ecb48593ab28efd5d5f551a72e22fd10a`. Current qsearch still evaluates the query before `!in_check && best_score > -MateInMaxPly`. Port only this pure-query deferral; require full suites and exact search parity. Existing evidence is model-only; speed/Elo are unmeasured.
+
+3. **Initialize MovePicker check masks only when consumed.** Current `src/search.cpp` eagerly fills six `check_squares_` entries in the constructor; quiet generation/evasion scoring consumes them. Preserve mask values, restored-parent board state, stage order and tie order. No implementation exists in the lazy-named remote refs: both resolve to baseline `9108d012`. Require special-move/evasion coverage and exact search parity before bounded measurement. This remains a source-grounded hypothesis.
+
+Stop on a correctness/parity failure, unavailable remaining budget or failed timing calibration; retain the candidate and evidence with an explicit inconclusive status. Do not repeat the failed whole-engine A/A protocol or promote speed to Elo. Equal-clock paired testing on a calibrated stable environment remains a separate strength gate.
