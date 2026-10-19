@@ -57,6 +57,13 @@ constexpr int ValueNone = 32002;
 
 enum Bound : std::uint8_t { BoundNone = 0, BoundUpper = 1, BoundLower = 2, BoundExact = 3 };
 
+// Position Zobrist keys omit the rule-50 halfmove clock. Preserve the existing
+// main-search conservative cutoff threshold for ALL TT search-score consumers.
+// Hash moves and raw static evaluations remain position-dependent and reusable.
+[[nodiscard]] constexpr bool tt_score_reusable(int halfmove_clock) noexcept {
+    return halfmove_clock < 90;
+}
+
 struct TTEntry {
     std::uint32_t key32 = 0;
     Move move{};

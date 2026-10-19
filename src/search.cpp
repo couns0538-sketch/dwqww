@@ -687,9 +687,10 @@ int Worker::qsearch(Board& board, SearchStack* ss, int alpha, int beta) {
     TTEntry* tte = shared_.tt.probe(board.key(), tt_hit);
     const Move tt_move = tt_hit ? tte->move : Move::none();
     const int tt_score = tt_hit ? score_from_tt(tte->score, ply) : ValueNone;
+    const bool tt_score_allowed = tt_score_reusable(board.halfmove_clock());
     const Bound tt_bound = tt_hit ? tte->bound() : BoundNone;
     const bool tt_pv = pv_node || (tt_hit && tte->pv());
-    if (!pv_node && tt_hit && tt_score != ValueNone &&
+    if (!pv_node && tt_hit && tt_score != ValueNone && tt_score_allowed &&
         (tt_bound == BoundExact || (tt_bound == BoundLower && tt_score >= beta) ||
          (tt_bound == BoundUpper && tt_score <= alpha))) {
         return tt_score;
@@ -705,7 +706,7 @@ int Worker::qsearch(Board& board, SearchStack* ss, int alpha, int beta) {
         if (tt_hit && tte->eval != ValueNone) ss->raw_eval = tte->eval;
         else ss->raw_eval = static_evaluate(board, ss);
         eval = ss->static_eval = corrected_eval(board, ss->raw_eval);
-        if (tt_hit && tt_score != ValueNone &&
+        if (tt_hit && tt_score != ValueNone && tt_score_allowed &&
             ((tt_bound == BoundLower && tt_score > eval) || (tt_bound == BoundUpper && tt_score < eval) ||
              tt_bound == BoundExact)) {
             eval = tt_score;
@@ -805,13 +806,14 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
     TTEntry* tte = shared_.tt.probe(board.key(), tt_hit);
     const Move tt_move = tt_hit ? tte->move : Move::none();
     const int tt_score = tt_hit ? score_from_tt(tte->score, ply) : ValueNone;
+    const bool tt_score_allowed = tt_score_reusable(board.halfmove_clock());
     const int tt_depth = tt_hit ? tte->depth : -1;
     const Bound tt_bound = tt_hit ? tte->bound() : BoundNone;
     const bool tt_capture = !tt_move.is_none() && tt_move.is_capture();
     ss->tt_pv = pv_node || (tt_hit && tte->pv());
 
     if (!pv_node && excluded.is_none() && tt_hit && tt_score != ValueNone && tt_depth >= depth &&
-        board.halfmove_clock() < 90 &&
+        tt_score_allowed &&
         (tt_bound == BoundExact || (tt_bound == BoundLower && tt_score >= beta) ||
          (tt_bound == BoundUpper && tt_score <= alpha))) {
         return tt_score;
@@ -827,7 +829,7 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
         if (tt_hit && tte->eval != ValueNone) ss->raw_eval = tte->eval;
         else ss->raw_eval = static_evaluate(board, ss);
         eval = ss->static_eval = corrected_eval(board, ss->raw_eval);
-        if (tt_hit && tt_score != ValueNone &&
+        if (tt_hit && tt_score != ValueNone && tt_score_allowed &&
             ((tt_bound == BoundLower && tt_score > eval) || (tt_bound == BoundUpper && tt_score < eval) ||
              tt_bound == BoundExact)) {
             eval = tt_score;
@@ -857,7 +859,7 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
         if (depth >= tune::NullMoveMinDepth && eval >= beta && ss->static_eval >= beta - 24 * depth + 180 &&
             ss->null_move_allowed && !(ss - 1)->current_move.is_none() &&
             board.has_non_pawn_material(board.side_to_move()) &&
-            !(tt_hit && tt_bound == BoundUpper && tt_score < beta)) {
+            !(tt_hit && tt_score_allowed && tt_bound == BoundUpper && tt_score < beta)) {
             ++null_tries_;
             const int reduction = tune::NullMoveBase + depth / tune::NullMoveDepthDivisor +
                                   std::min((eval - beta) / tune::NullMoveEvalDivisor, 3);
@@ -892,7 +894,7 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
         // ProbCut: a good capture that beats beta by a margin at reduced depth.
         const int probcut_beta = beta + tune::ProbcutMargin - 50 * improving;
         if (depth >= tune::ProbcutDepth && !is_mate_score(beta) &&
-            !(tt_hit && tt_depth >= depth - 3 && tt_score != ValueNone && tt_score < probcut_beta)) {
+            !(tt_hit && tt_score_allowed && tt_depth >= depth - 3 && tt_score != ValueNone && tt_score < probcut_beta)) {
             MovePicker picker(board, *this, ss, tt_move, MovePicker::Mode::Quiescence);
             Move move;
             while (!(move = picker.next(false)).is_none()) {
@@ -977,7 +979,7 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
         // Extensions.
         int extension = 0;
         if (!root_node && depth >= tune::SingularDepth && move == tt_move && excluded.is_none() && tt_bound != BoundUpper &&
-            tt_score != ValueNone && !is_mate_score(tt_score) && tt_depth >= depth - 3) {
+            tt_score_allowed && tt_score != ValueNone && !is_mate_score(tt_score) && tt_depth >= depth - 3) {
             const int singular_beta = tt_score - tune::SingularMargin * depth;
             const int singular_depth = (depth - 1) / 2;
             ss->excluded_move = move;

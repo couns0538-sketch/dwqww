@@ -513,6 +513,23 @@ void test_transposition_tag_independence() {
     }
 }
 
+
+void test_tt_rule50_score_policy() {
+    // TT keys exclude the rule-50 clock; stored search bounds need their own
+    // eligibility check, whereas raw static evaluations and moves do not.
+    forge::Board low_clock;
+    forge::Board high_clock;
+    check(low_clock.set_fen("7k/8/8/8/8/8/8/KR6 w - - 0 1"), "rule50 low-clock FEN parses");
+    check(high_clock.set_fen("7k/8/8/8/8/8/8/KR6 w - - 99 1"), "rule50 high-clock FEN parses");
+    check(low_clock.key() == high_clock.key(), "TT key intentionally excludes rule50 clock");
+    for (const int clock : {0, 25, 89}) {
+        check(forge::tt_score_reusable(clock), "TT search scores reusable below 90 plies");
+    }
+    for (const int clock : {90, 91, 98, 99, 100}) {
+        check(!forge::tt_score_reusable(clock), "TT search scores suppressed near rule50 boundary");
+    }
+}
+
 } // namespace
 
 int main() {
@@ -523,6 +540,7 @@ int main() {
     test_evaluation();
     test_transposition_table();
     test_transposition_tag_independence();
+    test_tt_rule50_score_policy();
     test_search();
     test_threads();
     test_nnue();
