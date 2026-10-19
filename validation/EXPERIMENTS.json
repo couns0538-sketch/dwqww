@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "updated_utc": "2026-10-19T22:09:38.656423+00:00",
+  "updated_utc": "2026-10-19T22:20:39.643067+00:00",
   "project": "Forge",
   "target": "Native Windows x64 on Ryzen7 9850X3D",
   "scope": "Preserved Forge accepted reference and cumulative isolated candidates through6.4.8,actualcorrectnessproofs,failedtimingcontrols,originalhosted647timedrunandnative648offlinebundle; no acceptedElogain.",
@@ -517,6 +517,23 @@
         "bench11_nodes": 351063,
         "scope": "Wine correctness and bounded node signature; no speed, Elo or native hardware result"
       }
+    },
+    {
+      "id": "forge6410-nnue-update-fusion-20261019",
+      "code_commit": "36f5b2f6e1ff519e82a4b52edc85caceaf15aed0",
+      "branch": "forge/nnue-update-fusion-20261019",
+      "parent_candidate_id": "forge649-ownbook-control-20261019",
+      "change": "Single pass for exact2-change remove/add NNUE updates; preserve lane subtraction-then-addition, arbitrary dirty fallback, validity and in-place use. Residual weights unchanged.",
+      "status": "release_and_differential_passed_sanitizers_windows_pending_not_strength_accepted",
+      "builds": {
+        "release": {
+          "engine_sha256": "71dea93a28fb274296cf230911f78fb49d10ce6c8a4bb60c36493b729730c046",
+          "core_library_sha256": "380018fa3ee5ae25ca5d63abb39cc276466e24d5144339271686abf197a5df6a",
+          "ctest_result": "9/9 passed"
+        }
+      },
+      "network_sha256": "41487f328ff51f27417564df45b6f3139d038b7e940dedb121340bd61be9a4d3",
+      "valid_strength_evidence": false
     }
   ],
   "experiments": [
@@ -5647,6 +5664,101 @@
       "raw_results_branch": "pending_run_id",
       "strength_result": null,
       "valid_strength_evidence": false
+    },
+    {
+      "id": "forge6410-nnue-update-fusion-20261019",
+      "candidate_id": "forge6410-nnue-update-fusion-20261019",
+      "baseline_sha": "4edda780c68a742f20565d4e6a54a0c99a2c88a6",
+      "candidate_sha": "36f5b2f6e1ff519e82a4b52edc85caceaf15aed0",
+      "date_utc": "2026-10-19T22:16:27.941556+00:00",
+      "hypothesis": "Reduce copy-plus-two full accumulator passes to one loop for generated quiet moves; less memory traffic may improve inference/search throughput. Previously identified but unimplemented initial-audit opportunity.",
+      "baseline": "Actual oldcore update1644cases/3940snapshots/4,097,860bytes; sameDriver, noncopied oracle. Matched-fnoLTOparent rebuild yields identical library bytes to original649.",
+      "result": {
+        "source_commit": "36f5b2f6e1ff519e82a4b52edc85caceaf15aed0",
+        "source_inputs_match_frozen_release_build": true,
+        "input_sha256": {
+          "CMakeLists.txt": "ca59b03e44b04bb15ed8c2f63dd4317a8f28ca194ee628bfc0a9e89631b061a2",
+          "include/forge/bitboard.hpp": "e493ce1186b339840d156979da4532231b6daf8919ef194c616c9091813d1b7a",
+          "include/forge/board.hpp": "5b42d3557730edc65f795a097e45d18a3cb621d56bdfa8b379773bb496204c77",
+          "include/forge/book.hpp": "10a283bd0474568c0e378f7117d4869336384599307305c405dac81e1569663e",
+          "include/forge/eval.hpp": "f74e38cd600baee3d6b6e24c5f7176f6ac6447f7d3871fbbc03a957307a3f8bf",
+          "include/forge/eval_params.hpp": "56f6ae706d53dfb6e76169e86d0cf09e74e096b17885f60632a92f080ee77a96",
+          "include/forge/nnue.hpp": "d87106d1716388375332ea20e97d9a703c74f479ffa5236c75608b356ab5aace",
+          "include/forge/search.hpp": "2b4685145205c5cb66d3a10cc3e337680f67f25df105b752f8f7f859e6d396a6",
+          "include/forge/uci_output.hpp": "3bc09a099ae04bf6d8972125b0778be342de78ba39fcb8510321238e788dbef3",
+          "src/bitboard.cpp": "3af5ffa7a79d149990f0aa2248b7f9093184f582672ba5da086edf58d9138989",
+          "src/board.cpp": "5baa16d3f04f5aea2622480c02ba09fa094044bfc93754a075929ed39f3ff1e2",
+          "src/book.cpp": "464c91efee889d7cbf5f07c7051f0f741de06f091d9bdc2cda98692cfa63aca5",
+          "src/book_data.inc": "9209c608ca3f07285c3f8b2739a3399c3385c8ed8ffc739fd16a273eb8190149",
+          "src/eval.cpp": "05f23be48f04149e1ab0b6988160928a64a5a193e5b6d472ec5156cf0245bd1a",
+          "src/eval_params.cpp": "ac0050c6dce6b75d704454fc981c0372476597f6b739ca39d014df515dcb910d",
+          "src/eval_params_table.inc": "acfd94c951d5212b3ec095edbe7859fe2707f982741b0afaf1d23be58c91400c",
+          "src/nnue.cpp": "3786b57c5de16427646a865a6685a91e2c41b47ae98e4d6c0d1fe16e62310d67",
+          "src/nnue_weights.inc": "41487f328ff51f27417564df45b6f3139d038b7e940dedb121340bd61be9a4d3",
+          "src/polyglot_keys.inc": "7deca335907224e422adab41c8238851fba27a72b50ab37d01af7b0dd3b8fbb5",
+          "src/search.cpp": "d7c7bc1fc1ab807344aa78499d93c8f7866616ee514c45ac825160c2869ef8e4",
+          "src/uci.cpp": "e8494132e71545152d533074aa2ebd0d9dd3d72be0cc92b07e33db7a7b905a6b",
+          "tests/legal_witness_fixtures.tsv": "e88f4d859ce1c923b900e2c4012e7e601c247140223876a18cca6e0648d47c77",
+          "tests/legal_witness_tests.cpp": "a57a3484c7510bf5712678ff2738c9070de74dc71de31186cb46b9eede70e775",
+          "tests/rule50_tests.cpp": "c6faa20bf0ac2327d792e9dbacb867bdbbb93db0f5d8aafa188c3ad76a066673",
+          "tests/tests.cpp": "d172cf44e50ad58a66c22b0e67086630fe05c092afde930644c11d38ee854b6c",
+          "tests/tt_coherence_tests.cpp": "a9aebd7b41c3acfcd7cb3b044cbc7811aa6bf963d7b86499fb9f51b45d42a127"
+        },
+        "binaries": {
+          "forge": {
+            "sha256": "71dea93a28fb274296cf230911f78fb49d10ce6c8a4bb60c36493b729730c046",
+            "bytes": 505144
+          },
+          "libforge_core.a": {
+            "sha256": "380018fa3ee5ae25ca5d63abb39cc276466e24d5144339271686abf197a5df6a",
+            "bytes": 536736
+          }
+        },
+        "compiler": "GCC14.2;C++20",
+        "flags": "Release -O3 -DNDEBUG -march=x86-64-v3 -mtune=znver5 -fno-fast-math -ffp-contract=off -fno-lto",
+        "release_ctest": "9/9 passed",
+        "differential": {
+          "status": "passed",
+          "update_cases": 1644,
+          "snapshots": 3940,
+          "parent_checks": 1644,
+          "in_place_checks": 1644,
+          "dirty_masks": 31,
+          "new_update_stream_bytes": 4097860,
+          "update_stream_sha256": "ca9e7405c5f7b7506455a3b6b104683ccc8d83e75b0bbaf8d9c17c3ecce1ff45",
+          "existing_snapshot_stream_bytes": 21192328,
+          "existing_snapshot_sha256": "3ef4bacc1877f34b929c6c4cd349c56ff0c07c93545b292914775bcd9ae173a5",
+          "synthetic_output_evaluations": 100000,
+          "scope": "Finite-input byte-exact actual original vs candidate APIs, sameGCC/strictFP; no performance/Elo"
+        },
+        "parent_parity": "Six cold/warm1T cases exact and both bench419798; parity-only, no throughput test",
+        "network_sha256": "41487f328ff51f27417564df45b6f3139d038b7e940dedb121340bd61be9a4d3",
+        "asan": "running from immutable source export",
+        "windows": "running separately from source commit",
+        "nps_difference": null,
+        "elo_gain": null
+      },
+      "evidence": "validation/nnue-update-fusion-20261019",
+      "failed_approaches": [
+        "Disassembly excerpt attempt1 regex matched remaining same function header, produced one-character excerpt. Original complete object dumps and bad excerpt/JSON retained; anchored extraction now verified full bodies."
+      ],
+      "decision": "Isolated candidate retained; no speed or Elo claim; sanitizer/Windows/performance validation running",
+      "next": "Complete sanitizer, Windows differential and independent calibrated hosted performance; separate strength confirmation tests647notthissource",
+      "valid_strength_evidence": false
+    },
+    {
+      "id": "forge6410-hosted-performance-20261019",
+      "candidate_id": "forge6410-nnue-update-fusion-20261019",
+      "baseline_sha": "4edda780c68a742f20565d4e6a54a0c99a2c88a6",
+      "candidate_sha": "36f5b2f6e1ff519e82a4b52edc85caceaf15aed0",
+      "status": "preregistered_reviewed_not_launched_yet",
+      "hypothesis": "FusedquietNNUEupdate reduceswholeenginefixedsuiteCPUtime; publicupdatekernel diagnosticseparatelycalibrated. Newisolatedhost rather than noisysharedVM.",
+      "protocol": ".github/hosted-nnue-performance/protocol.json",
+      "evidence": "validation/nnue-update-fusion-20261019/hosted-performance",
+      "strength_games": 0,
+      "elo_estimate": null,
+      "valid_strength_evidence": false,
+      "raw_results_branch": "pending_actual_run_id"
     }
   ],
   "evidence_archives": [
