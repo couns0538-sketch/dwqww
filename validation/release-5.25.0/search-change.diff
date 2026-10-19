@@ -1,0 +1,15 @@
+--- /mnt/data/forge524/chess-engine-forge-5.24.0/src/search.cpp	2026-10-06 02:33:08.000000000 +0000
++++ /mnt/data/forge525-work/src/search.cpp	2026-10-06 03:29:07.539165255 +0000
+@@ -572,9 +572,9 @@
+         if (first_move) {
+             score = -alpha_beta(board, depth - 1, ply + 1, -beta, -alpha, true, null_branch, move);
+         } else {
+-            // One-ply LMR at nominal depths 3-4 can skip the only move that
+-            // raises alpha; keep those shallow nodes at full depth.
+-            const bool reduce = depth >= 5 && moves_searched >= 3 && !checked &&
++            // LMR through nominal depth 5 can skip the only move that raises
++            // alpha; keep those shallow nodes at full depth.
++            const bool reduce = depth >= 6 && moves_searched >= 3 && !checked &&
+                                 !move.is_capture() && (move.flags & Promotion) == 0U;
+             const bool reduce_more = reduce && depth >= 6 && moves_searched >= 12 &&
+                                      history_[move.from][move.to] <= 0;
