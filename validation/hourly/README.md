@@ -1,5 +1,23 @@
 # Forge 6.4 improvement work
 
+## Current checkpoint
+
+Read [the latest report](2026-10-19-initial/REPORT.md) and `STATE.json` first.
+The TT-tag repair is correctness-verified; strength remains unproven. The first
+SPRT attempt failed on a Candidate timeout and must not be resumed or pooled.
+Ten cold replay summaries record normal completion; nine raw transcripts match
+their original digests, while the sixth is truncated and explicitly retained
+as incomplete.
+
+The final raw evidence archive is blocked from public upload by automatic
+approval review, pending explicit user approval for the exact metadata-bearing
+payload. Do not retry through another endpoint or as raw files. Two earlier
+runtime/recovery archives and their 45 encoded pieces are already committed.
+`ARTIFACT_TRANSFER.json` records what is saved. Source work and safe progress
+reporting may continue. If the original trace is unavailable, report that
+limitation rather than inventing or silently replacing it.
+
+
 User authorization, 19 October 2026: inspect `couns0538-sketch/dwqww`, improve
 Forge 6.4, preserve code and all experiment evidence, and deliver an update
 after each hourly development cycle. Source changes and isolated experiments
@@ -47,8 +65,6 @@ Recovery commands, from the repository root:
 
 ```sh
 python3 tools/match/restore_hourly_artifacts.py
-PYTHONDONTWRITEBYTECODE=1 python3 tools/match/run_hourly_sprt.py --prepare-only
-PYTHONDONTWRITEBYTECODE=1 python3 tools/match/run_hourly_sprt.py
 ```
 
 `ARTIFACTS.json` authenticates the encoded archive pieces, complete archives and
@@ -108,7 +124,8 @@ Do not claim physical Ryzen or Windows validation from Linux tests.
 
 These are hypotheses unless accompanied by a reproducer in a later run.
 
-1. Complete the TT-tag candidate's equal-clock strength assessment.
+1. Resolve the observed timeout with bounded warmed-state and controlled-load
+   diagnostics, then commit a separate protocol for a replacement strength test.
 2. Defer move-picker direct-check masks until quiet/evasion scoring needs them;
    require exact per-position search results and credible paired timing.
 3. Attribute root search effort to stable move identities across iterative

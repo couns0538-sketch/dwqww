@@ -5,10 +5,10 @@
   "work_branch": "forge/6.4-hourly-20261019",
   "baseline_commit": "24cc2cce3eda0e12ddfa4036cd25f7d50e8a3b0b",
   "experiment": "20261019-tt-tag-independent-bits",
-  "candidate_status": "correctness_verified_strength_pending",
+  "candidate_status": "correctness_verified_strength_blocked",
   "release_version": "6.4.0",
   "latest_run": "validation/hourly/2026-10-19-initial",
-  "updated_utc": "2026-10-19T22:05:37.626392+00:00",
+  "updated_utc": "2026-10-19T22:22:04Z",
   "correctness": {
     "baseline_ctest": "4/4 pass",
     "new_regression_baseline": "12 failures as expected",
@@ -26,7 +26,7 @@
     "forge64-tt-tag-linux": "ac97db014a1b19a37c633d58f6514d0aa0ccc38d8d8fb3bf8ae355144a2e45ad"
   },
   "strength": {
-    "decision": "failed_no_resume_timeout_diagnosis",
+    "decision": "failed_no_resume_timeout_unresolved",
     "protocol": "paired equal-clock fastchess improvement SPRT",
     "elo0": 0,
     "elo1": 5,
@@ -38,19 +38,22 @@
     "hash_mib": 64,
     "concurrency": 6,
     "maximum_complete_pairs": 10000,
-    "first_tranche_complete_pairs": 100,
     "stopping": "actual H0/H1 boundary or natural completion of declared cumulative round tranche; no planned SIGINT resume",
     "protocol_file": "validation/hourly/2026-10-19-initial/matches/tt-tag-sprt/protocol.json",
     "protocol_sha256": "7cc725dddece0cb1b1db04f9644c98c2420072aeda3b2ced6e0bef0837c3b885",
     "first_attempt": "validation/hourly/2026-10-19-initial/matches/tt-tag-sprt/tranche-00100-result.json",
-    "note": "First match stopped with runner exit1, Candidate Timeouts1 after54.27s. No Elo claim. Preserve complete and orphan PGNs; native checkpoint cannot resume normally. Investigate timing before a separately preregistered match."
+    "note": "The first attempt stopped after 54.27 seconds with one Candidate timeout and no native H0/H1 decision. No Elo claim. Preserve the failed trial; do not resume it or pool its games with a replacement.",
+    "intended_first_tranche_pairs": 100,
+    "actual_completed_games": 6,
+    "actual_completed_pairs": 3,
+    "counts_usable_for_strength": false
   },
   "lease": {
-    "owner": "foreground-20261019-finalizing",
-    "status": "active",
-    "heartbeat_utc": "2026-10-19T22:05:37.626392+00:00",
-    "expires_after_minutes": 60,
-    "instruction": "Check saved progress and actual owned job state; do not duplicate a live experiment."
+    "owner": "foreground-20261019-complete",
+    "status": "inactive",
+    "finished_utc": "2026-10-19T22:22:04Z",
+    "heartbeat_utc": "2026-10-19T22:22:04Z",
+    "instruction": "No owned engine or runner job was active at final process check. Check actual jobs before new execution; do not duplicate a live experiment."
   },
   "recovery": {
     "utc": "2026-10-19T13:21:54.494804+00:00",
@@ -66,5 +69,37 @@
     "timezone": "America/Los_Angeles",
     "first_scheduled_local": "2026-10-19T15:30:00-07:00"
   },
-  "next_action": "Complete the frozen baseline/candidate cold timing replay, then diagnose load or engine deadline behavior before a new strength test."
+  "next_action": "Investigate timing with a bounded warmed-state and controlled-load diagnostic when execution and original traces are available. Do not repeat the completed cold test as new evidence, resume the failed SPRT, or pool its counts. If the raw archive is unavailable, disclose that and continue another bounded source investigation. Before any replacement strength match, commit a separate protocol. Public upload of the prepared raw archive remains blocked pending explicit user approval.",
+  "latest_report": "validation/hourly/2026-10-19-initial/REPORT.md",
+  "diagnostic": {
+    "status": "completed_cold_timeout_not_reproduced_with_raw_log_limitation",
+    "recorded_trials": 10,
+    "baseline_trials": 5,
+    "candidate_trials": 5,
+    "recorded_abnormal_exits": 0,
+    "recorded_forced_terminations": 0,
+    "recorded_bestmove": "e7e4",
+    "recorded_depth": 11,
+    "recorded_nodes": 98549,
+    "raw_transcripts_matching_original_digest": 9,
+    "raw_transcripts_truncated": 1,
+    "result_summaries_matching_original_digest": 10,
+    "limitation": "The sixth raw transcript is truncated; its original result summary and console entry remain. A fresh single-lane search does not reproduce the original warmed-state/concurrent-run conditions.",
+    "integrity_finding": "validation/hourly/2026-10-19-initial/diagnostic-evidence-integrity.md"
+  },
+  "artifact_publication": {
+    "status": "explicit_user_approval_required_for_final_raw_archive",
+    "repository": "couns0538-sketch/dwqww",
+    "branch": "forge/6.4-hourly-20261019",
+    "archive": "validation/hourly/2026-10-19-initial/tt-tag-first-attempt-evidence.zip",
+    "bytes": 871904,
+    "sha256": "a46354a38c4866a748aca459e794be33a934957e8e1c1f041a99d85c73b9533e",
+    "members": 43,
+    "committed_archives": 2,
+    "committed_encoded_parts": 45,
+    "blocked_archive_parts": 18,
+    "explanation": "Automatic review rejected the original upload and the same-payload retry after full content inspection. Exact public disclosure of the retained workspace/process/resource metadata needs explicit user approval. No credentials or unrelated private documents were identified.",
+    "instruction": "Do not upload the blocked archive, remaining encoded chunks, or raw metadata via another endpoint or representation without explicit approval. Uncommitted Git objects are not a saved branch checkpoint. Safe source work and progress summaries can continue."
+  },
+  "execution_limitations": "The execution connection became unavailable during final local checkpoint preparation. GitHub source/evidence records and this safe handoff were saved through the repository connector. No work is claimed during unavailable execution."
 }
