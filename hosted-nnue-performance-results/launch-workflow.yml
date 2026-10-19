@@ -1,0 +1,91 @@
+name: Bounded isolated native Linux NNUE performance
+on:
+  push:
+    branches: ['forge/hosted-nnue-performance-20261019-*']
+permissions:
+  contents: write
+jobs:
+  performance:
+    if: github.run_attempt == 1
+    runs-on: ubuntu-24.04
+    timeout-minutes: 18
+    env:
+      PYTHONDONTWRITEBYTECODE: '1'
+      BASELINE_SHA: '4edda780c68a742f20565d4e6a54a0c99a2c88a6'
+      CANDIDATE_SHA: '36f5b2f6e1ff519e82a4b52edc85caceaf15aed0'
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          fetch-depth: 0
+      - name: Review gate and driver unit tests before any engine build
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p hosted-nnue-performance-results
+          cp -R .github/hosted-nnue-performance hosted-nnue-performance-results/launch-package
+          cp .github/workflows/forge-hosted-nnue-performance.yml hosted-nnue-performance-results/launch-workflow.yml
+          exec > >(tee hosted-nnue-performance-results/review-and-unit-tests.log) 2>&1
+          python3 -B - <<'PY'
+          import importlib.util, json, os
+          from pathlib import Path
+          path = Path('.github/hosted-nnue-performance/build_frozen.py')
+          spec = importlib.util.spec_from_file_location('frozen_build', path)
+          module = importlib.util.module_from_spec(spec)
+          spec.loader.exec_module(module)
+          module.validate_protocol(json.loads(Path('.github/hosted-nnue-performance/protocol.json').read_text()), os.environ)
+          PY
+          python3 -B -m unittest discover -s .github/hosted-nnue-performance -p 'test_*.py' -v
+      - name: Freeze serial matched builds and complete correctness before timing
+        timeout-minutes: 6
+        shell: bash
+        run: |
+          set -euo pipefail
+          if ! command -v g++-14; then
+            timeout 60s sudo apt-get update
+            timeout 60s sudo apt-get install -y g++-14
+          fi
+          python3 -B .github/hosted-nnue-performance/build_frozen.py --repo "$GITHUB_WORKSPACE" --package "$GITHUB_WORKSPACE/.github/hosted-nnue-performance" --out "$GITHUB_WORKSPACE/hosted-nnue-performance-results" --work "$RUNNER_TEMP/nnue-performance-build"
+      - name: One fixed calibration and eligible finite A/B phases
+        timeout-minutes: 10
+        shell: bash
+        run: |
+          set -euo pipefail
+          frozen="$GITHUB_WORKSPACE/hosted-nnue-performance-results/frozen"
+          python3 -B "$frozen/package/run_hosted.py" --package "$frozen/package" --out "$GITHUB_WORKSPACE/hosted-nnue-performance-results/performance" --baseline "$frozen/artifacts/baseline/forge" --candidate "$frozen/artifacts/candidate/forge" --baseline-kernel "$frozen/artifacts/baseline/nnue_update_benchmark" --candidate-kernel "$frozen/artifacts/candidate/nnue_update_benchmark" --frozen-root "$frozen" --timeout 45
+      - name: Preserve final frozen hashes even on an ordinary failure
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p hosted-nnue-performance-results
+          python3 -B - <<'PY'
+          import hashlib, json
+          from pathlib import Path
+          root = Path('hosted-nnue-performance-results')
+          frozen = root / 'frozen'
+          hashes = {p.relative_to(frozen).as_posix(): hashlib.sha256(p.read_bytes()).hexdigest() for p in sorted(frozen.rglob('*')) if p.is_file()}
+          (root / 'workflow-final-frozen-SHA256.json').write_text(json.dumps(hashes, indent=2) + '\n')
+          initial = root / 'frozen-build-SHA256.json'
+          if initial.exists() and json.loads(initial.read_text()) != hashes:
+              raise SystemExit('Immutable frozen inputs changed; result invalid')
+          PY
+      - name: Upload all raw evidence even on failure
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: forge-hosted-nnue-performance-${{ github.run_id }}-${{ github.run_attempt }}
+          path: hosted-nnue-performance-results/
+          if-no-files-found: error
+          retention-days: 30
+      - name: Preserve all evidence on a fresh results branch
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          branch="results/nnue-performance-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+          mkdir -p hosted-nnue-performance-results
+          git switch --orphan "$branch"
+          git rm -rf --cached --ignore-unmatch . >/dev/null
+          git add -f hosted-nnue-performance-results
+          git -c user.name='Forge validation CI' -c user.email='forge-validation@users.noreply.github.com' commit -m "Preserve bounded NNUE performance $GITHUB_RUN_ID attempt $GITHUB_RUN_ATTEMPT"
+          git push origin "HEAD:refs/heads/$branch"

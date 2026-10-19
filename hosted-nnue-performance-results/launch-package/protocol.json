@@ -1,0 +1,94 @@
+{
+  "status": "PREREGISTERED_REVIEWED_READY_FOR_SINGLE_PUSH",
+  "experiment": "forge-6.4.10-fused-nnue-update-vs-6.4.9-hosted-linux",
+  "baseline_sha": "4edda780c68a742f20565d4e6a54a0c99a2c88a6",
+  "candidate_sha": "36f5b2f6e1ff519e82a4b52edc85caceaf15aed0",
+  "driver_source_sha": "36f5b2f6e1ff519e82a4b52edc85caceaf15aed0",
+  "attempts": 1,
+  "fault_retries": 0,
+  "compiler": "g++-14",
+  "release_flags": "-O3 -DNDEBUG -march=x86-64-v3 -mtune=generic -fno-fast-math -ffp-contract=off -fno-lto",
+  "build_parallelism": 2,
+  "cpu_affinity": "one logical CPU, minimum inherited allowed CPU, recorded before timing",
+  "primary": {
+    "metric": "external wait4 user+system CPU seconds per whole fresh engine process",
+    "secondary_metric": "external monotonic wall seconds per whole fresh engine process",
+    "bench_depth": 11,
+    "benches_per_process": 12,
+    "expected_nodes": 419798,
+    "aa_pairs": 6,
+    "ab_blocks": [
+      "ABBA",
+      "BAAB",
+      "ABBA",
+      "BAAB",
+      "ABBA",
+      "BAAB"
+    ],
+    "startup_included": true,
+    "partial_info_nps_used": false
+  },
+  "kernel": {
+    "role": "separate diagnostic, never a whole-engine/NPS/Elo claim",
+    "metric": "driver clock CPU seconds for public out-of-line update loop",
+    "secondary_metric": "driver steady-clock wall seconds for update loop",
+    "external_process_cpu_and_wall_also_retained": true,
+    "iterations": 2000000,
+    "group": "quiet",
+    "aa_pairs": 6,
+    "ab_blocks": [
+      "ABBA",
+      "BAAB",
+      "ABBA",
+      "BAAB",
+      "ABBA",
+      "BAAB"
+    ],
+    "require_input_output_hashes_and_work_counts_equal": true
+  },
+  "calibration": {
+    "each_ratio_min": 0.97,
+    "each_ratio_max": 1.03,
+    "median_min": 0.99,
+    "median_max": 1.01,
+    "metrics": [
+      "cpu",
+      "wall"
+    ],
+    "primary_failure_action": "stop entire experiment before any A/B; preserve failure; no retries",
+    "kernel_failure_action": "no kernel A/B; primary remains independently assessable"
+  },
+  "analysis": {
+    "block_ratio": "sum baseline seconds / sum candidate seconds within block",
+    "blocks": 6,
+    "summary": "geometric mean of six block ratios; interval assumes independent approximately normal block log ratios",
+    "confidence_interval": "exp(mean(log ratios) +/- t * sample_stdev(log ratios)/sqrt(6))",
+    "t_critical_df5": 2.57058,
+    "confidence": 0.95,
+    "assumptions": "six finite completed counterbalanced blocks; independent block log ratios approximately normal; a finite pilot interval, not a sequential test or guarantee",
+    "claim_cpu_geomean_min": 1.03,
+    "claim_cpu_lower_ci_exclusive_min": 1.0,
+    "claim_wall_geomean_exclusive_min": 1.0,
+    "permitted_claim": "observed >=3% CPU speedup with 95% CI excluding no gain under this hosted suite",
+    "otherwise": "inconclusive or descriptive; no acceptance claim",
+    "scope_exclusions": [
+      "Ryzen performance",
+      "Windows performance",
+      "NPS from partial info",
+      "Elo",
+      "playing strength",
+      "Stockfish superiority"
+    ]
+  },
+  "bounds": {
+    "job_minutes": 18,
+    "build_and_correctness_minutes": 6,
+    "timing_minutes": 10,
+    "per_process_timeout_seconds": 45,
+    "no_other_owned_compute_during_timing": true,
+    "no_gameplay": true,
+    "no_adaptive_iterations_or_retries": true
+  },
+  "retention": "all commands, raw stdout/stderr, return status, resource readouts, source exports, drivers, actual core/executable bytes, correctness logs, hashes before and after (finally), failure evidence; upload and unique results branch even on failure",
+  "trigger": "push only forge/hosted-nnue-performance-20261019-*, run_attempt 1 only; ready status required before builds/timing"
+}
