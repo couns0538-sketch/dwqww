@@ -295,8 +295,9 @@ private:
     std::unique_ptr<CorrectionHistory> correction_history_;
     std::unique_ptr<CorrectionHistory> material_correction_;
     std::array<SearchStack, MaxPly + 8> stack_{};
+    std::array<Move, 256> root_effort_moves_{};
     std::array<std::uint64_t, 256> root_move_nodes_{};
-    int root_best_index_ = -1;
+    std::size_t root_effort_count_ = 0;
 
     bool pondering_ = false;
     std::chrono::steady_clock::time_point start_{};

@@ -1045,6 +1045,12 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
         (void)board.make_move(move, undo);
         shared_.tt.prefetch(board.key());
         const std::uint64_t nodes_before = local_nodes_;
+        std::size_t root_effort_index = 0;
+        if (root_node) {
+            const auto root_effort_end = root_effort_moves_.begin() + static_cast<std::ptrdiff_t>(root_effort_count_);
+            root_effort_index = static_cast<std::size_t>(std::find(root_effort_moves_.begin(), root_effort_end, move) - root_effort_moves_.begin());
+            assert(root_effort_index < root_effort_count_);
+        }
 
         int score = -Infinite;
         bool full_depth_needed = !pv_node || move_count > 1;
@@ -1078,7 +1084,8 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
         }
         board.unmake_move(move, undo);
         if (aborted_) return 0;
-        if (root_node) root_move_nodes_[static_cast<std::size_t>(move_count - 1)] += local_nodes_ - nodes_before;
+        if (root_node && root_effort_index < root_effort_count_)
+            root_move_nodes_[root_effort_index] += local_nodes_ - nodes_before;
 
         if (score > best_score) {
             best_score = score;
@@ -1089,7 +1096,6 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
                     std::copy_n((ss + 1)->pv.begin(), (ss + 1)->pv_length, ss->pv.begin() + 1);
                     ss->pv_length = (ss + 1)->pv_length + 1;
                 }
-                if (root_node) root_best_index_ = move_count - 1;
                 if (score >= beta) {
                     ++ss->cutoff_count;
                     break;
@@ -1278,8 +1284,10 @@ SearchInfo Worker::search(Board board, const SearchLimits& limits, bool emit_inf
     int stable_iterations = 0;
     int score = 0;
     int previous_score = ValueNone;
+    root_effort_count_ = root_candidates.size();
+    assert(root_effort_count_ <= root_effort_moves_.size());
+    std::copy(root_candidates.begin(), root_candidates.end(), root_effort_moves_.begin());
     root_move_nodes_.fill(0);
-    root_best_index_ = -1;
     for (int depth = 1; depth <= max_depth; ++depth) {
         root_depth_ = depth;
         int delta = tune::AspirationDelta;
@@ -1342,10 +1350,14 @@ SearchInfo Worker::search(Board board, const SearchLimits& limits, bool emit_inf
             else if (stable_iterations == 0 && depth >= 6) factor = tune::TmUnstableFactor / 100.0;
             // A best move that absorbed most of the effort is clearly best;
             // spend longer when the alternatives still draw attention.
-            if (root_best_index_ >= 0 && local_nodes_ > 0 && depth >= 6) {
-                const double effort = static_cast<double>(root_move_nodes_[static_cast<std::size_t>(root_best_index_)]) /
-                                      static_cast<double>(local_nodes_);
-                factor *= std::clamp(tune::TmEffortBase / 100.0 - effort, 0.6, 1.4);
+            if (local_nodes_ > 0 && depth >= 6) {
+                const auto effort_end = root_effort_moves_.begin() + static_cast<std::ptrdiff_t>(root_effort_count_);
+                const auto best_effort = std::find(root_effort_moves_.begin(), effort_end, result.best_move);
+                if (best_effort != effort_end) {
+                    const auto index = static_cast<std::size_t>(best_effort - root_effort_moves_.begin());
+                    const double effort = static_cast<double>(root_move_nodes_[index]) / static_cast<double>(local_nodes_);
+                    factor *= std::clamp(tune::TmEffortBase / 100.0 - effort, 0.6, 1.4);
+                }
             }
             // A falling evaluation deserves more thought.
             if (iteration_previous_score != ValueNone && !is_mate_score(score) && score < iteration_previous_score) {
