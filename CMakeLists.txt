@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.16)
-project(ChessEngineForge VERSION 6.4.2 LANGUAGES CXX)
+project(ChessEngineForge VERSION 6.4.3 LANGUAGES CXX)
 find_package(Threads REQUIRED)
 
 option(FORGE_ENABLE_SANITIZERS "Enable AddressSanitizer and UndefinedBehaviorSanitizer" OFF)
@@ -43,11 +43,15 @@ endif()
 add_executable(forge_tests tests/tests.cpp)
 target_link_libraries(forge_tests PRIVATE forge_core Threads::Threads)
 
+add_executable(forge_tt_tests tests/tt_coherence_tests.cpp)
+target_link_libraries(forge_tt_tests PRIVATE forge_core Threads::Threads)
+
 add_executable(forge_bench bench/benchmark.cpp)
 target_link_libraries(forge_bench PRIVATE forge_core Threads::Threads)
 
 enable_testing()
 add_test(NAME forge_tests COMMAND forge_tests)
+add_test(NAME forge_tt_tests COMMAND forge_tt_tests)
 
 # Support tooling does not change engine behavior or add runtime dependencies.
 option(FORGE_BUILD_VALIDATION_TOOLS "Build the original opening corpus generator" OFF)

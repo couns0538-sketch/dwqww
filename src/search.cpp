@@ -182,39 +182,58 @@ void tune::refresh() { Reductions.refresh(); }
 
 void TranspositionTable::resize(std::size_t mb) {
     const std::size_t bytes = std::max<std::size_t>(1, mb) * 1024U * 1024U;
-    cluster_count_ = std::max<std::size_t>(1, bytes / sizeof(TTCluster));
-    clusters_ = std::make_unique<TTCluster[]>(cluster_count_);
+    const std::size_t new_count = std::max<std::size_t>(1, bytes / sizeof(TTCluster));
+    auto new_clusters = std::make_unique<TTCluster[]>(new_count);
+    clusters_ = std::move(new_clusters);
+    cluster_count_ = new_count;
     generation_ = 0;
+    ++epoch_;
 }
 
 void TranspositionTable::clear() {
     for (std::size_t i = 0; i < cluster_count_; ++i) clusters_[i] = TTCluster{};
     generation_ = 0;
+    ++epoch_;
 }
 
-TTEntry* TranspositionTable::probe(std::uint64_t key, bool& hit) {
-    TTCluster& cluster = cluster_for(key);
+TTProbe TranspositionTable::probe(std::uint64_t key) const {
+    const TTCluster& cluster = cluster_for(key);
+    const std::size_t index = static_cast<std::size_t>(&cluster - clusters_.get());
+    const std::lock_guard<std::mutex> lock(stripes_[index % StripeCount].mutex);
+    auto snapshot = [&](const TTEntry& entry, bool hit) {
+        TTProbe result;
+        result.entry = entry;
+        result.hit = hit;
+        result.owner_ = this;
+        result.cluster_ = index;
+        result.slot_ = static_cast<std::uint8_t>(&entry - cluster.entries.data());
+        result.epoch_ = epoch_;
+        result.key_ = key;
+        return result;
+    };
     const std::uint32_t key32 = verification_key(key);
-    for (TTEntry& entry : cluster.entries) {
-        if (entry.key32 == key32 && entry.occupied()) {
-            hit = true;
-            return &entry;
-        }
+    for (const TTEntry& entry : cluster.entries) {
+        if (entry.key32 == key32 && entry.occupied()) return snapshot(entry, true);
     }
-    hit = false;
-    TTEntry* replace = &cluster.entries[0];
+    const TTEntry* replace = &cluster.entries[0];
     auto relative_age = [this](const TTEntry& entry) {
         return static_cast<int>((32 + generation_ - entry.generation()) & 31U);
     };
-    for (TTEntry& entry : cluster.entries) {
-        if (!entry.occupied()) return &entry;
+    for (const TTEntry& entry : cluster.entries) {
+        if (!entry.occupied()) return snapshot(entry, false);
         if (entry.depth - 4 * relative_age(entry) < replace->depth - 4 * relative_age(*replace)) replace = &entry;
     }
-    return replace;
+    return snapshot(*replace, false);
 }
 
-void TranspositionTable::store(TTEntry* entry, std::uint64_t key, int score, int eval, Move move, int depth,
+void TranspositionTable::store(const TTProbe& probe, std::uint64_t key, int score, int eval, Move move, int depth,
                                Bound bound, bool pv) {
+    // Reject default, foreign or lifecycle-stale handles without touching storage.
+    // Lifecycle operations themselves must not run concurrently with search.
+    if (probe.owner_ != this || probe.epoch_ != epoch_ || probe.key_ != key ||
+        probe.cluster_ >= cluster_count_ || probe.slot_ >= 4) return;
+    const std::lock_guard<std::mutex> lock(stripes_[probe.cluster_ % StripeCount].mutex);
+    TTEntry* entry = &clusters_[probe.cluster_].entries[probe.slot_];
     const std::uint32_t key32 = verification_key(key);
     const bool same_position = entry->key32 == key32 && entry->occupied();
     if (!move.is_none() || !same_position) entry->move = move;
@@ -231,6 +250,7 @@ int TranspositionTable::hashfull() const {
     int count = 0;
     const std::size_t sample = std::min<std::size_t>(1000, cluster_count_);
     for (std::size_t i = 0; i < sample; ++i) {
+        const std::lock_guard<std::mutex> lock(stripes_[i % StripeCount].mutex);
         for (const TTEntry& entry : clusters_[i].entries) {
             if (entry.occupied() && entry.generation() == generation_) ++count;
         }
@@ -686,12 +706,13 @@ int Worker::qsearch(Board& board, SearchStack* ss, int alpha, int beta) {
     const bool in_check = board.in_check();
     ss->in_check = in_check;
 
-    bool tt_hit = false;
-    TTEntry* tte = shared_.tt.probe(board.key(), tt_hit);
-    const Move tt_move = tt_hit ? tte->move : Move::none();
-    const int tt_score = tt_hit ? score_from_tt(tte->score, ply) : ValueNone;
-    const Bound tt_bound = tt_hit ? tte->bound() : BoundNone;
-    const bool tt_pv = pv_node || (tt_hit && tte->pv());
+    const TTProbe tt_probe = shared_.tt.probe(board.key());
+    const bool tt_hit = tt_probe.hit;
+    const TTEntry& tte = tt_probe.entry;
+    const Move tt_move = tt_hit ? tte.move : Move::none();
+    const int tt_score = tt_hit ? score_from_tt(tte.score, ply) : ValueNone;
+    const Bound tt_bound = tt_hit ? tte.bound() : BoundNone;
+    const bool tt_pv = pv_node || (tt_hit && tte.pv());
     if (!pv_node && tt_hit && tt_score != ValueNone &&
         (tt_bound == BoundExact || (tt_bound == BoundLower && tt_score >= beta) ||
          (tt_bound == BoundUpper && tt_score <= alpha))) {
@@ -705,7 +726,7 @@ int Worker::qsearch(Board& board, SearchStack* ss, int alpha, int beta) {
         best_score = futility_base = -Infinite;
     } else {
         int eval;
-        if (tt_hit && tte->eval != ValueNone) ss->raw_eval = tte->eval;
+        if (tt_hit && tte.eval != ValueNone) ss->raw_eval = tte.eval;
         else ss->raw_eval = static_evaluate(board, ss);
         eval = ss->static_eval = corrected_eval(board, ss->raw_eval);
         if (tt_hit && tt_score != ValueNone &&
@@ -715,7 +736,7 @@ int Worker::qsearch(Board& board, SearchStack* ss, int alpha, int beta) {
         }
         best_score = eval;
         if (best_score >= beta) {
-            if (!tt_hit) shared_.tt.store(tte, board.key(), score_to_tt(best_score, ply), ss->raw_eval, Move::none(), 0, BoundLower, false);
+            if (!tt_hit) shared_.tt.store(tt_probe, board.key(), score_to_tt(best_score, ply), ss->raw_eval, Move::none(), 0, BoundLower, false);
             return best_score;
         }
         if (best_score > alpha) alpha = best_score;
@@ -766,7 +787,7 @@ int Worker::qsearch(Board& board, SearchStack* ss, int alpha, int beta) {
     if (in_check && move_count == 0) return mated_in(ply);
 
     const Bound bound = best_score >= beta ? BoundLower : (pv_node && !best_move.is_none() ? BoundExact : BoundUpper);
-    shared_.tt.store(tte, board.key(), score_to_tt(best_score, ply), in_check ? ValueNone : ss->raw_eval, best_move, 0, bound, tt_pv);
+    shared_.tt.store(tt_probe, board.key(), score_to_tt(best_score, ply), in_check ? ValueNone : ss->raw_eval, best_move, 0, bound, tt_pv);
     return best_score;
 }
 
@@ -804,14 +825,15 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
     (ss + 2)->killers = {};
 
     // Transposition table probe.
-    bool tt_hit = false;
-    TTEntry* tte = shared_.tt.probe(board.key(), tt_hit);
-    const Move tt_move = tt_hit ? tte->move : Move::none();
-    const int tt_score = tt_hit ? score_from_tt(tte->score, ply) : ValueNone;
-    const int tt_depth = tt_hit ? tte->depth : -1;
-    const Bound tt_bound = tt_hit ? tte->bound() : BoundNone;
+    const TTProbe tt_probe = shared_.tt.probe(board.key());
+    const bool tt_hit = tt_probe.hit;
+    const TTEntry& tte = tt_probe.entry;
+    const Move tt_move = tt_hit ? tte.move : Move::none();
+    const int tt_score = tt_hit ? score_from_tt(tte.score, ply) : ValueNone;
+    const int tt_depth = tt_hit ? tte.depth : -1;
+    const Bound tt_bound = tt_hit ? tte.bound() : BoundNone;
     const bool tt_capture = !tt_move.is_none() && tt_move.is_capture();
-    ss->tt_pv = pv_node || (tt_hit && tte->pv());
+    ss->tt_pv = pv_node || (tt_hit && tte.pv());
 
     if (!pv_node && excluded.is_none() && tt_hit && tt_score != ValueNone && tt_depth >= depth &&
         board.halfmove_clock() < 90 &&
@@ -827,7 +849,7 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
     } else if (!excluded.is_none()) {
         eval = ss->static_eval;
     } else {
-        if (tt_hit && tte->eval != ValueNone) ss->raw_eval = tte->eval;
+        if (tt_hit && tte.eval != ValueNone) ss->raw_eval = tte.eval;
         else ss->raw_eval = static_evaluate(board, ss);
         eval = ss->static_eval = corrected_eval(board, ss->raw_eval);
         if (tt_hit && tt_score != ValueNone &&
@@ -915,7 +937,7 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
                 board.unmake_move(move, undo);
                 if (aborted_) return 0;
                 if (value >= probcut_beta) {
-                    shared_.tt.store(tte, board.key(), score_to_tt(value, ply), ss->raw_eval, move, depth - 3, BoundLower, ss->tt_pv);
+                    shared_.tt.store(tt_probe, board.key(), score_to_tt(value, ply), ss->raw_eval, move, depth - 3, BoundLower, ss->tt_pv);
                     return value;
                 }
             }
@@ -1095,7 +1117,7 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
 
     const Bound bound = best_score >= beta ? BoundLower : (pv_node && !best_move.is_none() ? BoundExact : BoundUpper);
     if (excluded.is_none() && !(root_node && root_restricted_)) {
-        shared_.tt.store(tte, board.key(), score_to_tt(best_score, ply), ss->raw_eval, best_move, depth, bound, ss->tt_pv);
+        shared_.tt.store(tt_probe, board.key(), score_to_tt(best_score, ply), ss->raw_eval, best_move, depth, bound, ss->tt_pv);
     }
     // Teach the static evaluation about this pawn structure when the search
     // result is a usable bound in the direction of the difference.

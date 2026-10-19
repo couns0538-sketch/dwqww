@@ -38,6 +38,11 @@ H0 after178 normal games; no equal-clock or Stockfish gain is accepted. The
 
 ## Next actions
 
+The coherent snapshot implementation and seven TT regression groups have now
+been applied on this isolated branch as a **not-yet-validated 6.4.3 candidate**.
+Both build directories are configured; compile/test results will be recorded
+separately. Do not promote this source checkpoint based on compilation plans.
+
 1. Finish the corrected Windows bundle's fresh Wine A/A readiness check and
    preserve both manifest-inventory attempts. No native Windows/Ryzen result
    exists yet; no timed Wine/VM pilots will be repeated.

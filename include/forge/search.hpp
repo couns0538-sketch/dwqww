@@ -10,6 +10,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <memory>
+#include <mutex>
 #include <thread>
 #include <vector>
 
@@ -79,16 +80,33 @@ struct alignas(64) TTCluster {
     std::array<TTEntry, 4> entries{};
 };
 
-// Shared between all search threads. Entries are written without locks; a
-// torn entry is caught by the key check and by hash-move legality tests.
+class TranspositionTable;
+
+// Immutable entry copy plus an opaque probe-time replacement destination.
+struct TTProbe {
+    TTEntry entry{};
+    bool hit = false;
+private:
+    friend class TranspositionTable;
+    const TranspositionTable* owner_ = nullptr;
+    std::size_t cluster_ = 0;
+    std::uint8_t slot_ = 0;
+    std::uint64_t epoch_ = 0;
+    std::uint64_t key_ = 0;
+};
+
+// Search reads and writes are coherent under striped locks. clear/resize/
+// new_search/destruction require all accessors quiescent (including diagnostic
+// readers and prefetch callers) and invalidate old probes. Handles must not
+// outlive the table; lifecycle operations are not safe concurrently with search.
 class TranspositionTable {
 public:
     explicit TranspositionTable(std::size_t mb = 32) { resize(mb); }
     void resize(std::size_t mb);
     void clear();
-    void new_search() { generation_ = static_cast<std::uint8_t>((generation_ + 1U) & 31U); }
-    [[nodiscard]] TTEntry* probe(std::uint64_t key, bool& hit);
-    void store(TTEntry* entry, std::uint64_t key, int score, int eval, Move move, int depth, Bound bound, bool pv);
+    void new_search() { generation_ = static_cast<std::uint8_t>((generation_ + 1U) & 31U); ++epoch_; }
+    [[nodiscard]] TTProbe probe(std::uint64_t key) const;
+    void store(const TTProbe& probe, std::uint64_t key, int score, int eval, Move move, int depth, Bound bound, bool pv);
     [[nodiscard]] int hashfull() const;
     [[nodiscard]] std::uint8_t generation() const { return generation_; }
     [[nodiscard]] std::size_t cluster_count() const { return cluster_count_; }
@@ -101,6 +119,10 @@ public:
     }
 
 private:
+    static constexpr std::size_t StripeCount = 1024;
+    struct alignas(64) Stripe { std::mutex mutex; };
+    mutable std::array<Stripe, StripeCount> stripes_{};
+    std::uint64_t epoch_ = 0;
     std::unique_ptr<TTCluster[]> clusters_;
     std::size_t cluster_count_ = 0;
     std::uint8_t generation_ = 0;

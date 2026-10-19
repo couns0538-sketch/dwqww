@@ -35,8 +35,7 @@ struct SearcherTestProbe {
         ss->ply = 1;
         nnue::refresh(board, ss->accumulator);
         if (seed_tt) {
-            bool hit = false;
-            auto* entry = worker.shared_.tt.probe(board.key(), hit);
+            const auto entry = worker.shared_.tt.probe(board.key());
             worker.shared_.tt.store(entry, board.key(), 900, 900, Move::none(), 8, BoundExact, false);
         }
         return worker.search(board, ss, depth, alpha, beta, false);
@@ -671,21 +670,21 @@ void test_nnue() {
 
 void test_transposition_table() {
     forge::TranspositionTable tt(1);
-    bool hit = true;
-    forge::TTEntry* entry = tt.probe(0x123456789abcdefULL, hit);
-    check(!hit && entry != nullptr, "empty table misses");
-    tt.store(entry, 0x123456789abcdefULL, 123, 45, forge::Move{12, 28, 0, 0}, 7, forge::BoundExact, true);
-    entry = tt.probe(0x123456789abcdefULL, hit);
-    check(hit && entry->score == 123 && entry->eval == 45 && entry->depth == 7 && entry->bound() == forge::BoundExact &&
-              entry->pv() && entry->move == forge::Move{12, 28, 0, 0},
+    auto probe = tt.probe(0x123456789abcdefULL);
+    check(!probe.hit, "empty table misses");
+    tt.store(probe, 0x123456789abcdefULL, 123, 45, forge::Move{12, 28, 0, 0}, 7, forge::BoundExact, true);
+    probe = tt.probe(0x123456789abcdefULL);
+    const auto& entry = probe.entry;
+    check(probe.hit && entry.score == 123 && entry.eval == 45 && entry.depth == 7 && entry.bound() == forge::BoundExact &&
+              entry.pv() && entry.move == forge::Move{12, 28, 0, 0},
           "stored entry is retrieved intact");
-    tt.store(entry, 0x123456789abcdefULL, 50, 45, forge::Move::none(), 2, forge::BoundUpper, false);
-    entry = tt.probe(0x123456789abcdefULL, hit);
-    check(hit && entry->depth == 7 && entry->move == forge::Move{12, 28, 0, 0},
+    tt.store(probe, 0x123456789abcdefULL, 50, 45, forge::Move::none(), 2, forge::BoundUpper, false);
+    probe = tt.probe(0x123456789abcdefULL);
+    check(probe.hit && probe.entry.depth == 7 && probe.entry.move == forge::Move{12, 28, 0, 0},
           "a much shallower bound does not overwrite a deep exact entry in the same search");
     tt.clear();
-    entry = tt.probe(0x123456789abcdefULL, hit);
-    check(!hit, "clear empties the table");
+    probe = tt.probe(0x123456789abcdefULL);
+    check(!probe.hit, "clear empties the table");
 }
 
 void test_transposition_tag_independence() {
@@ -704,16 +703,14 @@ void test_transposition_tag_independence() {
         for (const auto& keys : groups) {
             tt.clear();
             for (std::size_t i = 0; i < keys.size(); ++i) {
-                bool hit = true;
-                forge::TTEntry* entry = tt.probe(keys[i], hit);
-                check(!hit, "TT tag distinguishes keys sharing index bits before store");
+                const auto entry = tt.probe(keys[i]);
+                check(!entry.hit, "TT tag distinguishes keys sharing index bits before store");
                 tt.store(entry, keys[i], 100 + static_cast<int>(i), 45,
                          forge::Move{12, 28, 0, 0}, 7, forge::BoundExact, true);
             }
             for (std::size_t i = 0; i < keys.size(); ++i) {
-                bool hit = false;
-                const forge::TTEntry* entry = tt.probe(keys[i], hit);
-                check(hit && entry->score == 100 + static_cast<int>(i),
+                const auto entry = tt.probe(keys[i]);
+                check(entry.hit && entry.entry.score == 100 + static_cast<int>(i),
                       "TT colliding-cluster entries retain their own scores");
             }
         }
