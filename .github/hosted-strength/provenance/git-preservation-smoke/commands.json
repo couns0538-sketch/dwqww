@@ -1,0 +1,313 @@
+[
+  {
+    "argv": [
+      "/usr/bin/git",
+      "init",
+      "-b",
+      "main"
+    ],
+    "cwd": "/workspace/.cloud-setup/hosted-strength-pilot/provenance/git-preservation-smoke/throwaway-repo",
+    "started_wall_ns": 1792444346224797004,
+    "finished_wall_ns": 1792444346276339739,
+    "exit_code": 0,
+    "stdout": "Initialized empty Git repository in /workspace/.cloud-setup/hosted-strength-pilot/provenance/git-preservation-smoke/throwaway-repo/.git/\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/git",
+      "add",
+      "source-marker.txt"
+    ],
+    "cwd": "/workspace/.cloud-setup/hosted-strength-pilot/provenance/git-preservation-smoke/throwaway-repo",
+    "started_wall_ns": 1792444346278537064,
+    "finished_wall_ns": 1792444346285621084,
+    "exit_code": 0,
+    "stdout": "",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/git",
+      "-c",
+      "user.name=Preservation smoke",
+      "-c",
+      "user.email=smoke@example.invalid",
+      "commit",
+      "-m",
+      "Seed throwaway source branch"
+    ],
+    "cwd": "/workspace/.cloud-setup/hosted-strength-pilot/provenance/git-preservation-smoke/throwaway-repo",
+    "started_wall_ns": 1792444346286790851,
+    "finished_wall_ns": 1792444346304089288,
+    "exit_code": 0,
+    "stdout": "[main (root-commit) da33678] Seed throwaway source branch\n 1 file changed, 1 insertion(+)\n create mode 100644 source-marker.txt\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/git",
+      "rev-parse",
+      "main"
+    ],
+    "cwd": "/workspace/.cloud-setup/hosted-strength-pilot/provenance/git-preservation-smoke/throwaway-repo",
+    "started_wall_ns": 1792444346305538192,
+    "finished_wall_ns": 1792444346308809387,
+    "exit_code": 0,
+    "stdout": "da336786ee26ea421f4e9c87e3ed0f038e2b38a1\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/git",
+      "ls-tree",
+      "-r",
+      "--name-only",
+      "main"
+    ],
+    "cwd": "/workspace/.cloud-setup/hosted-strength-pilot/provenance/git-preservation-smoke/throwaway-repo",
+    "started_wall_ns": 1792444346310025914,
+    "finished_wall_ns": 1792444346314227537,
+    "exit_code": 0,
+    "stdout": "source-marker.txt\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/git",
+      "show",
+      "main:source-marker.txt"
+    ],
+    "cwd": "/workspace/.cloud-setup/hosted-strength-pilot/provenance/git-preservation-smoke/throwaway-repo",
+    "started_wall_ns": 1792444346315899841,
+    "finished_wall_ns": 1792444346319905970,
+    "exit_code": 0,
+    "stdout": "Seed source marker; never an engine source.\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "bash",
+      "-c",
+      "set -euo pipefail\ngit switch --orphan results/original\ngit rm -rf --cached .\ngit add -f hosted-results\ngit -c user.name=\"Preservation smoke\" -c user.email=smoke@example.invalid commit -m original\n"
+    ],
+    "cwd": "/workspace/.cloud-setup/hosted-strength-pilot/provenance/git-preservation-smoke/throwaway-repo",
+    "started_wall_ns": 1792444346325324207,
+    "finished_wall_ns": 1792444346526943791,
+    "exit_code": 128,
+    "stdout": "",
+    "stderr": "Switched to a new branch 'results/original'\nfatal: pathspec '.' did not match any files\n"
+  },
+  {
+    "argv": [
+      "/usr/bin/git",
+      "switch",
+      "--orphan",
+      "results/original"
+    ],
+    "cwd": "/workspace/.cloud-setup/hosted-strength-pilot/provenance/git-preservation-smoke/throwaway-repo",
+    "started_wall_ns": 1792444346422745538,
+    "finished_wall_ns": 1792444346429817501,
+    "exit_code": 0,
+    "stdout": "",
+    "stderr": "Switched to a new branch 'results/original'\n"
+  },
+  {
+    "argv": [
+      "/usr/bin/git",
+      "rm",
+      "-rf",
+      "--cached",
+      "."
+    ],
+    "cwd": "/workspace/.cloud-setup/hosted-strength-pilot/provenance/git-preservation-smoke/throwaway-repo",
+    "started_wall_ns": 1792444346510626510,
+    "finished_wall_ns": 1792444346516615276,
+    "exit_code": 128,
+    "stdout": "",
+    "stderr": "fatal: pathspec '.' did not match any files\n"
+  },
+  {
+    "argv": [
+      "/usr/bin/git",
+      "ls-files"
+    ],
+    "cwd": "/workspace/.cloud-setup/hosted-strength-pilot/provenance/git-preservation-smoke/throwaway-repo",
+    "started_wall_ns": 1792444346528169472,
+    "finished_wall_ns": 1792444346533152510,
+    "exit_code": 0,
+    "stdout": "",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/git",
+      "rev-parse",
+      "--verify",
+      "refs/heads/results/original"
+    ],
+    "cwd": "/workspace/.cloud-setup/hosted-strength-pilot/provenance/git-preservation-smoke/throwaway-repo",
+    "started_wall_ns": 1792444346533624028,
+    "finished_wall_ns": 1792444346540419364,
+    "exit_code": 128,
+    "stdout": "",
+    "stderr": "fatal: Needed a single revision\n"
+  },
+  {
+    "argv": [
+      "/usr/bin/git",
+      "switch",
+      "main"
+    ],
+    "cwd": "/workspace/.cloud-setup/hosted-strength-pilot/provenance/git-preservation-smoke/throwaway-repo",
+    "started_wall_ns": 1792444346542773877,
+    "finished_wall_ns": 1792444346550215309,
+    "exit_code": 0,
+    "stdout": "",
+    "stderr": "Switched to branch 'main'\n"
+  },
+  {
+    "argv": [
+      "bash",
+      "-c",
+      "set -euo pipefail\ngit switch --orphan results/fixed\ngit rm -rf --cached --ignore-unmatch .\ngit add -f hosted-results\ngit -c user.name=\"Preservation smoke\" -c user.email=smoke@example.invalid commit -m fixed\n"
+    ],
+    "cwd": "/workspace/.cloud-setup/hosted-strength-pilot/provenance/git-preservation-smoke/throwaway-repo",
+    "started_wall_ns": 1792444346551141252,
+    "finished_wall_ns": 1792444346912199037,
+    "exit_code": 0,
+    "stdout": "[results/fixed (root-commit) 0f8718d] fixed\n 3 files changed, 6 insertions(+)\n create mode 100644 hosted-results/fastchess.log\n create mode 100644 hosted-results/games.pgn\n create mode 100644 hosted-results/summary.json\n",
+    "stderr": "Switched to a new branch 'results/fixed'\n"
+  },
+  {
+    "argv": [
+      "/usr/bin/git",
+      "switch",
+      "--orphan",
+      "results/fixed"
+    ],
+    "cwd": "/workspace/.cloud-setup/hosted-strength-pilot/provenance/git-preservation-smoke/throwaway-repo",
+    "started_wall_ns": 1792444346621489097,
+    "finished_wall_ns": 1792444346629957982,
+    "exit_code": 0,
+    "stdout": "",
+    "stderr": "Switched to a new branch 'results/fixed'\n"
+  },
+  {
+    "argv": [
+      "/usr/bin/git",
+      "rm",
+      "-rf",
+      "--cached",
+      "--ignore-unmatch",
+      "."
+    ],
+    "cwd": "/workspace/.cloud-setup/hosted-strength-pilot/provenance/git-preservation-smoke/throwaway-repo",
+    "started_wall_ns": 1792444346719580242,
+    "finished_wall_ns": 1792444346723402407,
+    "exit_code": 0,
+    "stdout": "",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/git",
+      "add",
+      "-f",
+      "hosted-results"
+    ],
+    "cwd": "/workspace/.cloud-setup/hosted-strength-pilot/provenance/git-preservation-smoke/throwaway-repo",
+    "started_wall_ns": 1792444346796746772,
+    "finished_wall_ns": 1792444346803217444,
+    "exit_code": 0,
+    "stdout": "",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/git",
+      "-c",
+      "user.name=Preservation smoke",
+      "-c",
+      "user.email=smoke@example.invalid",
+      "commit",
+      "-m",
+      "fixed"
+    ],
+    "cwd": "/workspace/.cloud-setup/hosted-strength-pilot/provenance/git-preservation-smoke/throwaway-repo",
+    "started_wall_ns": 1792444346886847193,
+    "finished_wall_ns": 1792444346903493942,
+    "exit_code": 0,
+    "stdout": "[results/fixed (root-commit) 0f8718d] fixed\n 3 files changed, 6 insertions(+)\n create mode 100644 hosted-results/fastchess.log\n create mode 100644 hosted-results/games.pgn\n create mode 100644 hosted-results/summary.json\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/git",
+      "rev-parse",
+      "HEAD"
+    ],
+    "cwd": "/workspace/.cloud-setup/hosted-strength-pilot/provenance/git-preservation-smoke/throwaway-repo",
+    "started_wall_ns": 1792444346912720742,
+    "finished_wall_ns": 1792444346916512022,
+    "exit_code": 0,
+    "stdout": "0f8718db46e70e70ecff4f9f8fbad9fdad9bf254\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/git",
+      "ls-tree",
+      "-r",
+      "--name-only",
+      "HEAD"
+    ],
+    "cwd": "/workspace/.cloud-setup/hosted-strength-pilot/provenance/git-preservation-smoke/throwaway-repo",
+    "started_wall_ns": 1792444346917375717,
+    "finished_wall_ns": 1792444346921541114,
+    "exit_code": 0,
+    "stdout": "hosted-results/fastchess.log\nhosted-results/games.pgn\nhosted-results/summary.json\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/git",
+      "rev-parse",
+      "main"
+    ],
+    "cwd": "/workspace/.cloud-setup/hosted-strength-pilot/provenance/git-preservation-smoke/throwaway-repo",
+    "started_wall_ns": 1792444346922902013,
+    "finished_wall_ns": 1792444346927642030,
+    "exit_code": 0,
+    "stdout": "da336786ee26ea421f4e9c87e3ed0f038e2b38a1\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/git",
+      "ls-tree",
+      "-r",
+      "--name-only",
+      "main"
+    ],
+    "cwd": "/workspace/.cloud-setup/hosted-strength-pilot/provenance/git-preservation-smoke/throwaway-repo",
+    "started_wall_ns": 1792444346928036091,
+    "finished_wall_ns": 1792444346933175919,
+    "exit_code": 0,
+    "stdout": "source-marker.txt\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/git",
+      "show",
+      "main:source-marker.txt"
+    ],
+    "cwd": "/workspace/.cloud-setup/hosted-strength-pilot/provenance/git-preservation-smoke/throwaway-repo",
+    "started_wall_ns": 1792444346935745273,
+    "finished_wall_ns": 1792444346939503935,
+    "exit_code": 0,
+    "stdout": "Seed source marker; never an engine source.\n",
+    "stderr": ""
+  }
+]
