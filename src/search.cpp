@@ -598,7 +598,10 @@ bool Worker::is_draw(const Board& board, int ply) const {
         // Checkmate on the hundredth half-move still wins; everything else is a draw.
         return !board.in_check() || board.has_legal_move();
     }
-    return board.is_repetition(root_history_index_) || board.is_insufficient_material();
+    // Detect stalemate before TT cutoffs, stand pat or forward pruning can
+    // replace its terminal draw score with a material evaluation.
+    return board.is_repetition(root_history_index_) || board.is_insufficient_material() ||
+           (!board.in_check() && !board.has_legal_move());
 }
 
 int Worker::quiet_history(const Board& board, const SearchStack* ss, Move move) const {

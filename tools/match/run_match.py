@@ -85,7 +85,7 @@ def main() -> int:
     command = [str(a.fastchess), "-config", "outname=state.json",
                "-engine", f"cmd={a.candidate}", "name=Candidate",
                "-engine", f"cmd={a.baseline}", "name=Baseline",
-               "-each", "proto=uci", f"tc={a.tc}", f"option.Hash={a.hash_mb}",
+               "-each", "proto=uci", f"tc={a.tc}", "option.Threads=1", f"option.Hash={a.hash_mb}",
                f"option.Move Overhead={a.overhead_ms}", "restart=on",
                "-openings", f"file={selected}", "format=epd", "order=sequential",
                "-srand", str(a.seed), "-rounds", str(a.pairs), "-games", "2",

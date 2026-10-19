@@ -20,6 +20,27 @@ struct SearcherTestProbe {
     static std::uint64_t null_tries(Searcher& searcher) { return searcher.main_worker().null_tries_; }
     static std::uint64_t null_cutoffs(Searcher& searcher) { return searcher.main_worker().null_cutoffs_; }
     static TranspositionTable& tt(Searcher& searcher) { return searcher.transposition_table(); }
+    static int terminal_search(Searcher& searcher, Board board, int depth, int alpha, int beta, bool seed_tt = false) {
+        auto& worker = searcher.main_worker();
+        worker.clear();
+        worker.shared_.tt.clear();
+        worker.shared_.stop.store(false, std::memory_order_relaxed);
+        worker.all_workers_ = nullptr;
+        worker.aborted_ = false;
+        worker.local_nodes_ = 0;
+        worker.node_limit_specified_ = false;
+        worker.hard_limit_ms_ = 0;
+        worker.root_history_index_ = board.history_size() - 1;
+        SearchStack* ss = &worker.stack_[5];
+        ss->ply = 1;
+        nnue::refresh(board, ss->accumulator);
+        if (seed_tt) {
+            bool hit = false;
+            auto* entry = worker.shared_.tt.probe(board.key(), hit);
+            worker.shared_.tt.store(entry, board.key(), 900, 900, Move::none(), 8, BoundExact, false);
+        }
+        return worker.search(board, ss, depth, alpha, beta, false);
+    }
     static void ponderhit_at(Searcher& searcher, std::chrono::steady_clock::time_point hit) {
         const auto ns = std::chrono::duration_cast<std::chrono::nanoseconds>(hit.time_since_epoch()).count();
         searcher.main_worker().shared_.ponder_hit_ns.store(ns, std::memory_order_relaxed);
@@ -315,6 +336,37 @@ void test_evaluation() {
     check(forge::Searcher::evaluate(board) < 60, "a lone minor piece is scaled down to a draw");
     check(board.set_fen("4k3/8/8/8/8/8/8/3QK3 w - - 0 1"), "lone queen FEN parses");
     check(forge::Searcher::evaluate(board) > 500, "a lone queen still wins");
+}
+
+void test_search_stalemate() {
+    forge::Searcher searcher(1);
+    forge::Board board;
+    check(board.set_fen("7k/8/5KQ1/8/8/8/8/8 w - - 0 1"), "stalemate parent parses");
+    forge::SearchLimits limits;
+    limits.depth = 1;
+    limits.search_moves_specified = true;
+    limits.search_moves.push_back(*board.parse_uci("g6f7"));
+    const auto result = searcher.search(board, limits);
+    check(result.score == 0 && forge::Board::move_to_uci(result.best_move) == "g6f7",
+          "depth-one search recognises stalemate at the horizon");
+    play(board, "g6f7");
+    check(!board.in_check() && !board.has_legal_move(), "stalemate fixture has no legal move and no check");
+    for (const int depth : {0, 1}) {
+        for (const int alpha : {-1000, 1000}) {
+            check(forge::SearcherTestProbe::terminal_search(searcher, board, depth, alpha, alpha + 1) == 0,
+                  "stalemate is drawn before null-window stand-pat or pruning");
+            check(forge::SearcherTestProbe::terminal_search(searcher, board, depth, alpha, alpha + 1, true) == 0,
+                  "stalemate overrides a cached nonzero TT score");
+        }
+    }
+    check(board.set_fen("7k/8/8/8/8/8/8/KQ6 b - - 0 1"), "quiet nonterminal control parses");
+    check(!board.in_check() && board.has_legal_move(), "quiet control has legal moves");
+    check(forge::SearcherTestProbe::terminal_search(searcher, board, 0, -forge::Infinite, forge::Infinite) < -100,
+          "quiet positions with legal moves retain their material evaluation");
+    check(board.set_fen("7k/6Q1/6K1/8/8/8/8/8 b - - 0 1"), "checkmate control parses");
+    for (const int depth : {0, 1})
+        check(forge::SearcherTestProbe::terminal_search(searcher, board, depth, -forge::Infinite, forge::Infinite) ==
+                  -forge::MateValue + 1, "in-check terminal positions retain mate scores");
 }
 
 void test_search() {
@@ -625,6 +677,7 @@ int main() {
     test_transposition_table();
     test_transposition_tag_independence();
     test_search();
+    test_search_stalemate();
     test_search_request_time();
     test_threads();
     test_nnue();
