@@ -119,6 +119,29 @@ void update(const Accumulator& parent, Accumulator& child, const DirtyPieces& di
         child.valid = true;
         return;
     }
+    // Captures remove the mover and captured piece before adding the mover
+    // (or promoted piece). Preserve both intermediate subtractions per lane.
+    if (dirty.count == 3 && !dirty.changes[0].add && !dirty.changes[1].add && dirty.changes[2].add) {
+        for (const Color perspective : {White, Black}) {
+            const auto& source = parent.values[static_cast<std::size_t>(perspective)];
+            auto& destination = child.values[static_cast<std::size_t>(perspective)];
+            const PieceChange& removed0 = dirty.changes[0];
+            const PieceChange& removed1 = dirty.changes[1];
+            const PieceChange& added = dirty.changes[2];
+            const float* removed0_column = w.w1.get() +
+                static_cast<std::size_t>(feature_index(perspective, removed0.piece, removed0.square)) * HiddenSize;
+            const float* removed1_column = w.w1.get() +
+                static_cast<std::size_t>(feature_index(perspective, removed1.piece, removed1.square)) * HiddenSize;
+            const float* added_column = w.w1.get() +
+                static_cast<std::size_t>(feature_index(perspective, added.piece, added.square)) * HiddenSize;
+            for (int h = 0; h < HiddenSize; ++h) {
+                const std::size_t index = static_cast<std::size_t>(h);
+                destination[index] = ((source[index] - removed0_column[index]) - removed1_column[index]) + added_column[index];
+            }
+        }
+        child.valid = true;
+        return;
+    }
     for (const Color perspective : {White, Black}) {
         auto& acc = child.values[static_cast<std::size_t>(perspective)];
         acc = parent.values[static_cast<std::size_t>(perspective)];
