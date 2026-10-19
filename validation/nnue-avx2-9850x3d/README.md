@@ -31,6 +31,8 @@ The short-clock Windows SPRT, Linux SPRT and Stockfish pilot stopped on timeouts
 
 ## Reproduce builds and checks
 
+For this prepared Debian cloud environment, `bash tools/cloud-setup.sh` reproduces both builds and their functional checks, using a workspace-local CMake and checksum-pinned LLVM-MinGW/Wine packages. The complete script passed in the current instance. It does not run or establish strength matches. Its first Windows core-test launch warms Wine before the protocol checks.
+
 Use an immutable export of the baseline and the candidate checkout in separate source/build directories. The Linux comparison uses GCC 14.2, Release, `-march=x86-64-v3 -mtune=znver5 -fno-fast-math -ffp-contract=off` for both.
 
 ```sh
