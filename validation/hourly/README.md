@@ -43,6 +43,37 @@ records for current acceptance status.
 
 ## Operating procedure
 
+Recovery commands, from the repository root:
+
+```sh
+python3 tools/match/restore_hourly_artifacts.py
+PYTHONDONTWRITEBYTECODE=1 python3 tools/match/run_hourly_sprt.py --prepare-only
+PYTHONDONTWRITEBYTECODE=1 python3 tools/match/run_hourly_sprt.py
+```
+
+`ARTIFACTS.json` authenticates the encoded archive pieces, complete archives and
+every extracted file. The runtime archive retains the exact three executed
+Linux binaries and runner license notices. Full upstream runner source remains
+identified by immutable official commit
+`ebfd64cb7fac80d4822c50b07dca4fe934779d21` in its provenance record. The recovery
+archive retains all 30 raw A/A files including complete UCI traces. Earlier
+large binary-upload attempts did not complete; the smaller encoded transport
+is explicit and independently hash-checked. Never count an attempted upload
+as a successful save.
+
+The restoration helper also recreates the exact selected opening permutation
+from the tracked original book and frozen protocol, with a hash check. For a
+continuation, restore the latest full match archive first, including its native
+checkpoint, cumulative PGN and prior immutable result/log files. Source and
+runner paths may be rebased only through the reviewed driver. A native terminal
+SPRT cannot be resumed. First natural tranche is 100 pairs, then cumulative
+200, 300, and so on; this is one test up to its fixed 10,000-pair maximum.
+
+The 19 October native recovery check passed: a two-round A/A run resumed to four
+rounds matched the uninterrupted four-round control in pair IDs, positions,
+colors, moves, results and native statistics. This verifies natural checkpoint
+recovery, not arbitrary interruption or playing strength.
+
 1. Recover this branch and the latest completed checkpoint. Inspect upstream
    changes without replacing the verified baseline with another project or a
    newer filename. Preserve all original branches and raw evidence.
