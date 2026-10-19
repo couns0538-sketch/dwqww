@@ -154,6 +154,7 @@ int main() {
 
     std::string line;
     while (std::getline(std::cin, line)) {
+        const auto command_start = std::chrono::steady_clock::now();
         std::istringstream input(line);
         std::string command;
         input >> command;
@@ -317,6 +318,7 @@ int main() {
                 input.clear();
                 input.seekg(position);
                 forge::SearchLimits limits = parse_limits(input, board);
+                limits.request_start = command_start;
                 limits.move_overhead_ms = move_overhead_ms;
                 // Book moves apply to game play (clock or movetime searches), not
                 // to analysis, pondering or restricted searches.

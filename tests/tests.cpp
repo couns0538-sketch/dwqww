@@ -6,6 +6,7 @@
 #include <algorithm>
 #include <array>
 #include <cctype>
+#include <chrono>
 #include <cstdint>
 #include <cstdlib>
 #include <iostream>
@@ -19,6 +20,10 @@ struct SearcherTestProbe {
     static std::uint64_t null_tries(Searcher& searcher) { return searcher.main_worker().null_tries_; }
     static std::uint64_t null_cutoffs(Searcher& searcher) { return searcher.main_worker().null_cutoffs_; }
     static TranspositionTable& tt(Searcher& searcher) { return searcher.transposition_table(); }
+    static void ponderhit_at(Searcher& searcher, std::chrono::steady_clock::time_point hit) {
+        const auto ns = std::chrono::duration_cast<std::chrono::nanoseconds>(hit.time_since_epoch()).count();
+        searcher.main_worker().shared_.ponder_hit_ns.store(ns, std::memory_order_relaxed);
+    }
 };
 
 } // namespace forge
@@ -388,6 +393,102 @@ void test_search() {
     check(info.score > 300, "WAC 008 is recognised as winning");
 }
 
+void test_search_request_time() {
+    using Clock = std::chrono::steady_clock;
+    const auto expired_start = Clock::now() - std::chrono::hours(2);
+    forge::Board board;
+    forge::Searcher searcher(1);
+    auto legal_result = [&](const forge::SearchInfo& info) {
+        return !info.best_move.is_none() && board.parse_uci(forge::Board::move_to_uci(info.best_move)).has_value();
+    };
+
+    forge::SearchLimits expired;
+    expired.depth = 1;
+    expired.movetime_ms = 60000;
+    expired.request_start = expired_start;
+    forge::SearchInfo info = searcher.search(board, expired);
+    check(legal_result(info) && info.nodes == 0 && info.depth == 0,
+          "dispatch time consumes movetime before any search nodes");
+    check(info.elapsed_ms >= 7200000, "elapsed time includes time since the search request");
+
+    expired.movetime_ms = -1;
+    expired.time_ms = 60000;
+    info = searcher.search(board, expired);
+    check(legal_result(info) && info.nodes == 0 && info.depth == 0,
+          "dispatch time consumes the sudden-death clock budget");
+    expired.moves_to_go = 30;
+    info = searcher.search(board, expired);
+    check(legal_result(info) && info.nodes == 0 && info.depth == 0,
+          "dispatch time consumes the moves-to-go clock budget");
+
+    expired.search_moves_specified = true;
+    expired.search_moves.push_back(*board.parse_uci("e2e4"));
+    info = searcher.search(board, expired);
+    check(forge::Board::move_to_uci(info.best_move) == "e2e4" && info.nodes == 0,
+          "an expired request respects the legal root restriction");
+    expired.search_moves_specified = false;
+    expired.search_moves.clear();
+
+    forge::SharedSearchState helper_shared(1);
+    forge::Worker helper(helper_shared, 1);
+    const std::vector<forge::Worker*> helpers{&helper};
+    forge::SearchLimits helper_warmup;
+    helper_warmup.depth = 1;
+    (void)helper.search(board, helper_warmup, false, helpers);
+    check(helper.nodes() > 0, "the helper warmup visits search nodes");
+    info = helper.search(board, expired, false, helpers);
+    check(legal_result(info) && info.nodes == 0 && helper.nodes() == 0,
+          "an expired helper resets old node counts without searching");
+
+    searcher.set_threads(4);
+    info = searcher.search(board, expired);
+    check(legal_result(info) && info.nodes == 0 && info.depth == 0,
+          "helpers do not search an already-expired request");
+    searcher.set_threads(1);
+
+    forge::SearchLimits ponder;
+    ponder.depth = 1;
+    ponder.movetime_ms = 60000;
+    ponder.ponder = true;
+    ponder.request_start = expired_start;
+    searcher.reset_stop();
+    info = searcher.search(board, ponder);
+    check(legal_result(info) && info.nodes > 0 && info.depth == 1,
+          "an old request does not expire pondering before ponderhit");
+    searcher.reset_stop();
+    searcher.ponderhit();
+    info = searcher.search(board, ponder);
+    check(legal_result(info) && info.nodes > 0 && info.depth == 1,
+          "ponderhit starts the clock instead of reusing the old request time");
+    searcher.reset_stop();
+    forge::SearcherTestProbe::ponderhit_at(searcher, expired_start);
+    ponder.request_start = Clock::now();
+    info = searcher.search(board, ponder);
+    check(legal_result(info) && info.nodes == 0 && info.depth == 0,
+          "an expired ponderhit budget takes precedence over a fresh request time");
+
+    searcher.reset_stop();
+    forge::SearchLimits limits;
+    limits.depth = 1;
+    limits.movetime_ms = 60000;
+    info = searcher.search(board, limits);
+    check(legal_result(info) && info.nodes > 0 && info.depth == 1,
+          "programmatic timed searches start a fresh clock when no request timestamp is given");
+    limits.request_start = expired_start;
+    limits.infinite = true;
+    limits.movetime_ms = 1;
+    info = searcher.search(board, limits);
+    check(legal_result(info) && info.nodes > 0 && info.depth == 1,
+          "infinite search ignores elapsed request time and movetime");
+    limits.infinite = false;
+    limits.movetime_ms = -1;
+    limits.nodes_specified = true;
+    limits.nodes = 1;
+    info = searcher.search(board, limits);
+    check(legal_result(info) && info.nodes == 1,
+          "a fixed node budget ignores an old request timestamp when no clock is given");
+}
+
 void test_threads() {
     forge::Board board;
     forge::Searcher searcher(16, 4);
@@ -524,6 +625,7 @@ int main() {
     test_transposition_table();
     test_transposition_tag_independence();
     test_search();
+    test_search_request_time();
     test_threads();
     test_nnue();
     if (failures == 0) {

@@ -30,6 +30,8 @@ struct SearchLimits {
     bool ponder = false;
     bool search_moves_specified = false;
     std::vector<Move> search_moves;
+    // Request receipt on steady_clock; zero starts timing at Searcher::search entry.
+    std::chrono::steady_clock::time_point request_start{};
 };
 
 struct SearchInfo {

@@ -1109,7 +1109,8 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
 // Iterative deepening driver
 
 SearchInfo Worker::search(Board board, const SearchLimits& limits, bool emit_info, const std::vector<Worker*>& all) {
-    start_ = std::chrono::steady_clock::now();
+    start_ = limits.request_start == std::chrono::steady_clock::time_point{}
+        ? std::chrono::steady_clock::now() : limits.request_start;
     local_nodes_ = 0;
     nodes_.store(0, std::memory_order_relaxed);
     all_workers_ = &all;
@@ -1151,12 +1152,6 @@ SearchInfo Worker::search(Board board, const SearchLimits& limits, bool emit_inf
         hard_limit_ms_ = std::max<std::int64_t>(1, std::min(hard, available));
         time_managed_ = true;
     }
-    if (!is_main()) {
-        // Helpers run until the main thread stops them.
-        soft_limit_ms_ = hard_limit_ms_ = 0;
-        time_managed_ = false;
-    }
-
     SearchInfo result;
     const MoveList legal = board.legal_moves();
     MoveList root_candidates;
@@ -1214,6 +1209,20 @@ SearchInfo Worker::search(Board board, const SearchLimits& limits, bool emit_inf
         result.best_move = root_candidates.front();
         result.depth = 0;
         return result;
+    }
+
+    // Dispatch and root setup may already have consumed the entire budget.
+    // Check helpers too before they switch to the main worker's stop signal.
+    if (hard_limit_ms_ > 0 && elapsed_ms() >= hard_limit_ms_) {
+        result.best_move = root_candidates.front();
+        result.elapsed_ms = static_cast<std::uint64_t>(std::chrono::duration_cast<std::chrono::milliseconds>(
+            std::chrono::steady_clock::now() - start_).count());
+        return result;
+    }
+    if (!is_main()) {
+        // Helpers run until the main thread stops them.
+        soft_limit_ms_ = hard_limit_ms_ = 0;
+        time_managed_ = false;
     }
 
     for (SearchStack& ss : stack_) {
@@ -1354,6 +1363,10 @@ void Searcher::clear() {
 }
 
 SearchInfo Searcher::search(Board board, const SearchLimits& limits, bool emit_info) {
+    const auto request_start = limits.request_start == std::chrono::steady_clock::time_point{}
+        ? std::chrono::steady_clock::now() : limits.request_start;
+    SearchLimits worker_limits = limits;
+    worker_limits.request_start = request_start;
     std::vector<Worker*> all;
     all.reserve(workers_.size());
     for (auto& worker : workers_) all.push_back(worker.get());
@@ -1361,9 +1374,11 @@ SearchInfo Searcher::search(Board board, const SearchLimits& limits, bool emit_i
     shared_.tt.new_search();
     std::vector<std::thread> helpers;
     for (std::size_t i = 1; i < workers_.size(); ++i) {
-        helpers.emplace_back([this, i, board, &limits, &all]() { (void)workers_[i]->search(board, limits, false, all); });
+        helpers.emplace_back([this, i, board, &worker_limits, &all]() {
+            (void)workers_[i]->search(board, worker_limits, false, all);
+        });
     }
-    SearchInfo result = workers_.front()->search(board, limits, emit_info, all);
+    SearchInfo result = workers_.front()->search(board, worker_limits, emit_info, all);
     // Wind down the helpers without clobbering an externally requested stop.
     const bool external_stop = shared_.stop.load(std::memory_order_relaxed);
     shared_.stop.store(true, std::memory_order_relaxed);
