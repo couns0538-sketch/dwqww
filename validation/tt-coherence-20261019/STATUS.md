@@ -43,6 +43,30 @@ been applied on this isolated branch as a **not-yet-validated 6.4.3 candidate**.
 Both build directories are configured; compile/test results will be recorded
 separately. Do not promote this source checkpoint based on compilation plans.
 
+### Completed validation checkpoint
+
+Production source is `df5d839a6a03f705310bb958601375fa9411e810`.
+The complete Release and TSan engine builds succeeded. All six Release CTest
+suites pass, including core/perft, the TT checks, match tools, Windows validator
+safety, UCI and pondering. Explicit GCC C++20 compilation/execution and Windows
+Clang C++20 object compilation succeeded.
+
+The original first TT stress fixture emitted 311 synthetic null moves in its
+20,000-value publication range, violating its correlated-move premise because
+same-key stores correctly preserve the previous move for Move::none. That failed
+CTest run and source remain preserved. Only its generator was corrected; all
+seven TT groups now pass normally and under TSan.
+
+Actual instrumented Forge then completed two independent processes with 38
+legality-checked searches and supported lifecycle changes, exit0, complete
+stdout/stderr capture, no sanitizer report, and unchanged binary hash
+`70ad38a30d6bb38f57bde68a49fd3280bddb4865b878e7d99b462f9f5ea2f163`.
+The stream/event hashes were independently checked. These finite workloads are
+evidence of the repair; they do not prove absence of all possible races.
+
+ASan/UBSan compilation is in progress. Single-thread parity, comparative speed,
+SMP scaling and equal-clock Elo are still pending; accepted branch is unchanged.
+
 1. Finish the corrected Windows bundle's fresh Wine A/A readiness check and
    preserve both manifest-inventory attempts. No native Windows/Ryzen result
    exists yet; no timed Wine/VM pilots will be repeated.
