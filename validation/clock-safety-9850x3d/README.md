@@ -1,5 +1,7 @@
 # Forge clock and terminal-search investigation
 
+**Strength status:** the original-ZIP fixed-node SPRT completed with H0 accepted after 178 normal games; no accepted Elo gain. Equal-clock and full-strength Stockfish superiority remain unproven.
+
 This branch continues the AVX2 candidate at `5a3a28d2ddbe05691d3a0df85ece5f9a15300275`.
 No playing-strength gain or win over full-strength Stockfish has been established.
 
@@ -185,3 +187,29 @@ independent pentanomial `[0, 0, 4, 0, 0]`, unchanged hashes. An independent
 review also found and fixed final-LLR parsing: a final nonfinite value must
 be rejected even if an earlier finite value exists. Audit fixtures are
 recorded under `tests/quality-runner-audit-checks.json`.
+
+
+## Completed original-ZIP quality result
+
+`matches/original-quality-sprt/` ended normally after **89 pairs / 178 games**:
+Candidate 66 wins, 44 draws, 68 losses; 49.4382% score. Native pentanomial
+counts are `[1, 10, 68, 10, 0]`. The preregistered [0,+20] logistic SPRT
+accepted **H0** at printed LLR -3.03. It establishes no accepted search-quality
+gain over original Forge 6.4 under this 10,000-node protocol. H0 acceptance
+is not proof of exact equality, a regression of a particular size, or an
+equal-clock outcome. The native descriptive estimate was -3.90 +/-18.74;
+it is not a sequentially adjusted confidence statement.
+
+A separate parser audited all 178 normal game terminations, chronological
+opening/color pairs, native WDL/pentanomial counts, eight unchanged inputs
+and nine final output hashes. An independent constrained multinomial MLE
+using bisection computed **LLR -3.0256529003603494**, below the lower bound
+-2.9444389791664403. It agrees with native rounding. The final audit passed;
+see `tests/original-quality-sprt-independent-audit.json`. The auditor and
+its eight passing safety tests are preserved alongside it. No partial,
+failed, timed-pilot or A/A outcomes are pooled into this result.
+
+The exact two Linux ELF inputs are archived in `quality-inputs-linux.zip`
+for preservation. They require compatible Linux runtime libraries; the
+user-facing deliverable remains the Windows Zen 5 candidate ZIP. The source,
+compiler and target limitations still apply.
