@@ -19,9 +19,9 @@ packages passed independent static audit. Signatures419798Linux/351063Windows.
 
 NPS and equal-clock Elo remain unproven: whole-engine and pinned-kernel identical-
 code calibration failed on this host. All failures are retained. A bounded hosted
-Linux pilot is prepared, pending launch/actual results. It compares6.4.4 source
+Linux pilot is running: [39325939081](https://github.com/couns0538-sketch/dwqww/actions/runs/39325939081), build/tests step passed; games/result remain unverified. It compares6.4.4 source
 816423b against6.4.7 to isolate the3speed changes; the original6.4ZIP and accepted
 9108 reference remain distinct. No full-strength Stockfish superiority exists.
 
-See [69-record ledger](../validation/EXPERIMENTS.json), [concise ledger](EXPERIMENT_LEDGER.md),
+See [70-record ledger](../validation/EXPERIMENTS.json), [concise ledger](EXPERIMENT_LEDGER.md),
 [active status](../validation/lazy-movepicker-20261019/STATUS.md) and [next work](NEXT_EXPERIMENTS.md).

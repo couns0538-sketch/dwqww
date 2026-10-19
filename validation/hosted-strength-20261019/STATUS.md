@@ -5,7 +5,7 @@ Frozen candidate6.4.7 source2c0c7efa49023d8e3f49de3f5596f333a3f01202 versus
 candidates. Both have completed local correctness gates; no new gain is accepted.
 
 Workflow branch forge/hosted-strength-20261019-2115. One push requests execution;
-actual Actions availability, authorization, start and completion are unverified.
+run39325939081 actually started21:14:41Z. Build/tests step succeeded21:16:24Z; calibration/SPRT step is active. Game counts and final result remain unverified.
 No retry/auth workaround if submission is blocked. The accepted branch stays9108.
 
 Identical GCC14C++20 flags, native Linux1CPU, fresh same-binary benchmark AA gate,
