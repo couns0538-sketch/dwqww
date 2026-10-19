@@ -1,0 +1,5 @@
+# Upstream checkpoint — 2026-10-19 23:15 CEST
+Accepted development branch forge/6.4-hourly-20261019 HEAD 9108d012526be80c6d163f7cab684e6acd9abf8d.
+23:00 bug branch forge/audit-perft-uci-responsiveness-20261019-2300 exists but comparison was 0 ahead / 0 behind: no published finding at inspection. Latest substantive bug audit: forge/audit-rule50-reverse-contamination-20261019-2200, 33-case standalone policy model; no production Forge result.
+22:15 research: forge/research-20261019-2215, already addressed rule50, qsearch, root effort. 22:30 tester branch forge/test-20261019-2230 unchanged from accepted source, so last verified test record is forge/test-20261019-2130: isolated TT race TSan model, full engine untested.
+22:45 developer: forge/candidate-qsearch-check-20261019-2245 at 3dddd864d45288787b6e949dca5528e88be9f535 (one-line change, untested). No new gains verified.
