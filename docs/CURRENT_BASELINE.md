@@ -22,3 +22,5 @@ packaged. Kernel60/60 blocks completed, but AA noise failed despite pinning, so
 speed is inconclusive and the whole-engine screen was not run. Independent
 artifact review is pending. No new games/Elo. Follow [status](../validation/legal-witness-20261019/STATUS.md),
 [experiment summary](EXPERIMENT_LEDGER.md) and [62-record machine ledger](../validation/EXPERIMENTS.json).
+
+Active unfinished experiment: 6.4.6 qsearch query deferral on `forge/qsearch-query-20261019`, based on tested6.4.5, with production patch reused from upstream3dddd864. Validation is pending.
