@@ -1,0 +1,3 @@
+A bounded functional signature check sent exact stdin `bench 11\nquit\n` to the frozen Windows6.4.3 and6.4.4 executables through Wine. Both exited0 and reported **351,063 nodes** at depth11 with the internal Hash16MiB/Threads1 bench. All input binaries and frozen bench-source/header hashes were unchanged. Full commands, stdin and separate stdout/stderr are in `benchmark-signature-logs/`; `benchmark-signatures.json` records the comparison.
+
+Only node signatures are compared. Logged time/NPS fields are retained as raw output and are not used as performance, Elo or native-hardware evidence. The candidate ZIPs were not repacked.

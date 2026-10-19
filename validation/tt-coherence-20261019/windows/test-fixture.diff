@@ -1,0 +1,18 @@
+diff --git a/tests/tt_coherence_tests.cpp b/tests/tt_coherence_tests.cpp
+index 72e76a3..aded5bc 100644
+--- a/tests/tt_coherence_tests.cpp
++++ b/tests/tt_coherence_tests.cpp
+@@ -52,8 +52,11 @@ std::uint64_t collision_key(const TranspositionTable& tt, unsigned number) {
+ }
+ 
+ Move move_for(int score) {
+-    return Move{static_cast<std::uint8_t>(score % 64),
+-                static_cast<std::uint8_t>((score / 64) % 64), 0, 0};
++    const auto from = static_cast<std::uint8_t>(score % 64);
++    // from==to means Move::none(), whose correct store policy preserves the
++    // previous move. Publish a nonempty move so the whole tuple is correlated.
++    const auto to = static_cast<std::uint8_t>((from + 1 + (score / 64) % 63) % 64);
++    return Move{from, to, 0, 0};
+ }
+ 
+ void put(TranspositionTable& tt, std::uint64_t key, int score, int depth = 8,

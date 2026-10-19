@@ -1,0 +1,5 @@
+Frozen 6.4.4 Windows build and tests use production/test commit `816423b1ddac23a00244449deef59dba736055a9`. Wine core, all8 TT groups, targeted rule50 regressions, UCI and ponder passed; source, binaries and tools stayed unchanged. SIMD inspection found YMM clamp/multiply/add with no fused operations. Exact commands, all logs, source/test hashes, compiler/link records and full compressed disassembly are preserved here.
+
+The score-context policy permits both capped clocks below90 or exact capped-clock equality (cap100), retains the main current-clock<90 cutoff guard, and leaves raw static eval/hash moves reusable. Below90 compatibility is heuristic and does not solve every repetition/history issue. TT entry/cluster layout remains16/64 bytes.
+
+This is targeted correctness evidence only. Shared-VM same-binary A/A was too variable to resolve conditional NPS gains; no accepted Elo, native Windows/Ryzen or Stockfish result exists. No timed games or Wine A/A repeats were run. The existing portable6.4.2 validator bundle is unchanged and remains pinned to6.4.2.

@@ -1,9 +1,9 @@
 {
   "schema_version": 1,
-  "updated_utc": "2026-10-19T20:19:08.515655+00:00",
+  "updated_utc": "2026-10-19T20:36:42.536980+00:00",
   "project": "Forge",
   "target": "Native Windows x64 on Ryzen7 9850X3D",
-  "scope": "2026-10-19 accepted development reference, preserved candidate artifacts, correctness/speed/readiness trials, all failed timed attempts, audited original-ZIP fixed-node SPRT, actual TT race/candidate validation and isolated rule-50 investigation.",
+  "scope": "2026-10-19 accepted development reference, preserved candidate artifacts and failures, audited original-ZIP fixed-node SPRT, complete TT correctness phases, inconclusive same-binary speed calibration and isolated rule50-context6.4.4 correctness candidate.",
   "historical_ledger": "validation/release-6.0.0/EXPERIMENTS.md",
   "accepted_development": {
     "branch": "forge/6.4-hourly-20261019",
@@ -34,11 +34,17 @@
     "full_strength_stockfish_superiority_proven": false,
     "valid_fixed_node_result_id": "forge641-vs-original-10knodes-sprt-20261019",
     "newer_642_strength_status": "untested; prior6.4.1 H0 does not transfer",
-    "newer_643_strength_status": "untested; bounded correctness/TSan results only; not promoted to accepted reference",
+    "newer_643_strength_status": "untested; Linux/Wine correctness checks passed, overhead inconclusive after noisy same-binary A/A, known rule50 issue addressed in separate6.4.4 candidate",
     "tt_baseline_race_experiment_id": "forge642-tt-coherence-full-engine-20261019",
     "tt_candidate_correctness_experiment_id": "forge643-tt-full-engine-tsan-attempt1-20261019",
     "rule50_qsearch_bug_experiment_id": "forge643-rule50-qsearch-tt-investigation-20261019",
-    "portable_windows_readiness_status": "Corrected complete bundle passed Wine readiness; no native Windows result"
+    "portable_windows_readiness_status": "Corrected complete bundle passed Wine readiness; no native Windows result",
+    "newer_644_strength_status": "untested; Release7/7, bounded ASan/UBSan/TSan, explicit current-regression parent RED and parent behavior parity passed; all5Windows checks passed under Wine only; controlled speed/native strength gates unfinished",
+    "tt_overhead_calibration_experiment_id": "tt-speed-same-binary-aa-20261019",
+    "rule50_fix_candidate_id": "forge644-rule50-context-20261019",
+    "rule50_fix_correctness_experiment_id": "forge644-rule50-context-release-20261019",
+    "latest_correctness_candidate_id": "forge644-rule50-context-20261019",
+    "latest_correctness_windows_artifact": "releases/forge-6.4.4-candidate-windows-zen5.zip"
   },
   "candidates": [
     {
@@ -165,7 +171,7 @@
       "parent_production_source_commit": "f6f0a00b2f98a7a9f117790e2c8f19a340b6769f",
       "parent_artifact_checkpoint_commit": "842c02ef432f730d7083e3c22d36a5f3cc5d5184",
       "change": "Coherent immutable TT snapshots and opaque probe-time replacement slots protected by striped locks; preserve prior SIMD, clock, stalemate and promotion fixes.",
-      "status": "isolated_correctness_candidate_bounded_tsan_and_release_passed_not_promoted",
+      "status": "isolated_correctness_candidate_linux_and_wine_checks_passed_known_rule50_issue_no_strength_result",
       "binaries": {
         "linux_release": {
           "path": "/workspace/.cloud-setup/forge-tt-coherent-release/forge",
@@ -174,6 +180,10 @@
         "linux_tsan": {
           "path": "/workspace/.cloud-setup/forge-tt-coherent-tsan/forge",
           "sha256": "70ad38a30d6bb38f57bde68a49fd3280bddb4865b878e7d99b462f9f5ea2f163"
+        },
+        "windows": {
+          "path": "releases/forge-6.4.3-candidate-windows-zen5/forge-6.4.3-ryzen-9850x3d.exe",
+          "sha256": "142cbd41fceafabfef59cc405517bb4b14c4f9a3b3f15a908a43ec52926c1cee"
         }
       },
       "production_source_sha256": {
@@ -190,20 +200,130 @@
       },
       "test_fixture": {
         "committed_sha256": "9224055fe92defefec27ababb297c86db25897e45e5407aa7bd80e087e4062d4",
-        "corrected_uncommitted_sha256": "6d053ad0eee60af73c85b6eada03ca1e9226f06e3fb375f7a442da0e62609150",
         "change": "Guarantee from!=to in synthetic correlated-tuple moves; production synchronization unchanged.",
-        "first_failure_experiment_id": "forge643-tt-regression-attempt1-20261019"
+        "first_failure_experiment_id": "forge643-tt-regression-attempt1-20261019",
+        "corrected_sha256": "6d053ad0eee60af73c85b6eada03ca1e9226f06e3fb375f7a442da0e62609150",
+        "correction_checkpoint_commit": "77ee53bdae40fbffee42be406b73f245f4434993",
+        "measurement_note": "Correction was uncommitted at initial rerun, then preserved in checkpoint77ee53b; production source remains df5d839."
       },
       "pending_gates": [
-        "storage sanitizers",
-        "exact single-thread output/node parity",
-        "repeated Release overhead/scaling benchmarks",
-        "preregistered strength validation"
+        "Controlled Release overhead/scaling comparison remains inconclusive after noisy same-binary calibration; full A/B stopped.",
+        "Preregistered native equal-clock strength validation."
       ],
-      "windows_artifact": null,
+      "windows_artifact": {
+        "path": "releases/forge-6.4.3-candidate-windows-zen5.zip",
+        "sha256": "03e7e00b4e3723e7107d75befd984b1b252e333d860eaf5d2168dfb83eba1164",
+        "bytes": 2229957,
+        "engine_exe_sha256": "142cbd41fceafabfef59cc405517bb4b14c4f9a3b3f15a908a43ec52926c1cee",
+        "production_source_commit": "df5d839a6a03f705310bb958601375fa9411e810",
+        "fixture_commit": "77ee53bdae40fbffee42be406b73f245f4434993"
+      },
       "native_windows_tested": false,
       "physical_ryzen_tested": false,
-      "accepted_equal_clock_elo_gain": null
+      "accepted_equal_clock_elo_gain": null,
+      "known_issue_experiment_id": "forge643-rule50-context-red-regression-20261019",
+      "artifact": {
+        "path": "releases/forge-6.4.3-candidate-windows-zen5.zip",
+        "sha256": "03e7e00b4e3723e7107d75befd984b1b252e333d860eaf5d2168dfb83eba1164",
+        "bytes": 2229957,
+        "engine_exe_sha256": "142cbd41fceafabfef59cc405517bb4b14c4f9a3b3f15a908a43ec52926c1cee",
+        "production_source_commit": "df5d839a6a03f705310bb958601375fa9411e810",
+        "fixture_commit": "77ee53bdae40fbffee42be406b73f245f4434993"
+      },
+      "windows_provenance": {
+        "path": "releases/forge-6.4.3-candidate-windows-zen5/provenance.json",
+        "sha256": "12a5afb6625bebabcd7b9cab5ce2d4e28b9be4e799053d2ccb0b6f6f92d42820"
+      },
+      "bounded_checks": {
+        "release_ctest": "6/6",
+        "tsan": "2processes/38searches and7 TT groups",
+        "asan_ubsan": "6/6CTest and1process/11searches",
+        "single_thread_behavior_parity": "cold/warm exact normalized transcripts vs6.4.2",
+        "windows": "core/TT/frozen-UCI/ponder under Wine only"
+      }
+    },
+    {
+      "id": "forge644-rule50-context-20261019",
+      "code_commit": "816423b1ddac23a00244449deef59dba736055a9",
+      "branch": "forge/rule50-context-20261019",
+      "source_parent_commit": "ec6a8dff7ab3779e9c328001537acdf7721aff7f",
+      "parent_candidate_id": "forge643-tt-coherence-20261019",
+      "parent_production_source_commit": "df5d839a6a03f705310bb958601375fa9411e810",
+      "change": "Store capped score halfmove context in one byte of existing TT padding; gate both qsearch/main TT score conversions, including bound and score-as-evaluation consumers.",
+      "status": "isolated_correctness_candidate_linux_and_wine_checks_passed_no_strength_result",
+      "production_source_sha256": {
+        "CMakeLists.txt": "e6909ee941179bc5d16856b08c088698b4645e2e1200bfed54f8b03ef756cfdb",
+        "include/forge/search.hpp": "ce33dbcb9ff6fb56029cf3d37c1bf51ba8c2e7b1b89696adec0e1a594df5b6b4",
+        "src/search.cpp": "5c3fff17a744c326bb3d49f3e47204c41df5d4416481b610b08113726120e94e",
+        "src/uci.cpp": "5c195fbfdd9aac9590881fca7be95a086d57eed03dae4fc1ba5558e9199e4588",
+        "src/nnue_weights.inc": "41487f328ff51f27417564df45b6f3139d038b7e940dedb121340bd61be9a4d3",
+        "tests/rule50_tests.cpp": "c6faa20bf0ac2327d792e9dbacb867bdbbb93db0f5d8aafa188c3ad76a066673",
+        "tests/tt_coherence_tests.cpp": "a9aebd7b41c3acfcd7cb3b044cbc7811aa6bf963d7b86499fb9f51b45d42a127"
+      },
+      "network_sha256": "41487f328ff51f27417564df45b6f3139d038b7e940dedb121340bd61be9a4d3",
+      "binaries": {
+        "linux_release": {
+          "path": "/workspace/.cloud-setup/forge-rule50-context-release/forge",
+          "sha256": "0b1dfd450ca02a87664005d687e5160308a4ef419f93dd153eb4b23acb20fe77"
+        },
+        "linux_tsan": {
+          "path": "/workspace/.cloud-setup/forge-rule50-context-tsan/forge",
+          "sha256": "e8890fe5cbf732f337c078e4409e8a0272872c6ad34b08702b64086accd0a36c"
+        },
+        "linux_asan_ubsan": {
+          "path": "/workspace/.cloud-setup/forge-rule50-context-asan/forge",
+          "sha256": "29f46d06033904af99047745613802d8334458fe8a7360e72a5a66965ecc3ea7"
+        },
+        "windows": {
+          "path": "releases/forge-6.4.4-candidate-windows-zen5/forge-6.4.4-ryzen-9850x3d.exe",
+          "sha256": "7eff14ef8ab43763a34b92aa32391cf86b77ab6ee248a5342cb948d8639ee33b"
+        }
+      },
+      "tt_layout": {
+        "entry_bytes": 16,
+        "cluster_bytes": 64,
+        "rule50_clock_bytes": 1,
+        "remaining_padding_bytes": 1,
+        "increased_entry_or_cluster_size": false
+      },
+      "context_policy": {
+        "score_usable": "Both capped clocks below90, or capped clocks equal exactly; cap100.",
+        "score_context_updated": "Only when score payload is admitted; rejected score stores retain old context.",
+        "preserved_reuse": [
+          "TT move",
+          "raw static evaluation",
+          "matching near-limit searched score"
+        ],
+        "limitation": "Inherited below90 grouping is heuristic; not a complete repetition/history key or proof of all context-sensitive TT reuse."
+      },
+      "pending_gates": [
+        "Controlled performance comparison remains unresolved after noisy shared-VM calibration.",
+        "Native Windows/physical Ryzen functional validation and preregistered equal-clock strength validation."
+      ],
+      "windows_artifact": {
+        "path": "releases/forge-6.4.4-candidate-windows-zen5.zip",
+        "sha256": "d4fc94a529b1b0be89a37adb229433aade6923c8453a565fcf0b06e280171439",
+        "bytes": 2948493,
+        "engine_exe_sha256": "7eff14ef8ab43763a34b92aa32391cf86b77ab6ee248a5342cb948d8639ee33b",
+        "source_and_tests_commit": "816423b1ddac23a00244449deef59dba736055a9"
+      },
+      "windows_validation_status": "Core,8 TT groups, targeted forward/reverse rule50, frozen UCI and ponder checks all passed under Wine; not native hardware.",
+      "native_windows_tested": false,
+      "physical_ryzen_tested": false,
+      "accepted_equal_clock_elo_gain": null,
+      "artifact": {
+        "path": "releases/forge-6.4.4-candidate-windows-zen5.zip",
+        "sha256": "d4fc94a529b1b0be89a37adb229433aade6923c8453a565fcf0b06e280171439",
+        "bytes": 2948493,
+        "engine_exe_sha256": "7eff14ef8ab43763a34b92aa32391cf86b77ab6ee248a5342cb948d8639ee33b",
+        "source_and_tests_commit": "816423b1ddac23a00244449deef59dba736055a9"
+      },
+      "windows_provenance": {
+        "path": "releases/forge-6.4.4-candidate-windows-zen5/provenance.json",
+        "sha256": "3b22a1d1cb8954f7e3ffb2730bffe647a345118dc2aec60872085f4f2aa279bc"
+      },
+      "parent_counterfactual_experiment_id": "forge644-current-regression-on-parent-20261019",
+      "behavior_parity_experiment_id": "forge644-parent-cold-warm-parity-20261019"
     }
   ],
   "experiments": [
@@ -2028,7 +2148,7 @@
       "evidence": [
         {
           "path": "validation/tt-coherence-20261019/STATUS.md",
-          "sha256": "b161f0a37df1a8721403be50303be287f57113d4ff2464e9e849292fcec0f3b1"
+          "role": "Mutable continuation status; immutable phase archives and per-run outputs provide measurement provenance."
         },
         {
           "path": "validation/tt-coherence-20261019/build-tools-current.json",
@@ -2098,8 +2218,14 @@
           "sha256": "e0ca84ec3345f4f00f51ecb254797a2e04de74fea565622c06641097e463c7de"
         }
       ],
-      "evidence_retention": "Workspace logs awaiting next persistent checkpoint.",
-      "valid_strength_evidence": false
+      "evidence_retention": "Configure/build logs, failed fixture attempt, corrected tests, driver failures, actual TSan/ASan streams and behavior parity retained in complete-linux-correctness-checkpoint.zip.",
+      "valid_strength_evidence": false,
+      "archive_evidence": {
+        "path": "validation/tt-coherence-20261019/complete-linux-correctness-checkpoint.zip",
+        "sha256": "e786c377fed2b728cc43adba5cd8b504ce369cec2ab252fe31020123634bc2c6",
+        "prefix": "tt-investigation/",
+        "manifest": "validation/tt-coherence-20261019/complete-linux-correctness-checkpoint.json"
+      }
     },
     {
       "id": "forge643-tt-regression-attempt1-20261019",
@@ -2133,6 +2259,12 @@
         "path": "/workspace/.cloud-setup/tt-investigation/candidate-release-ctest-attempt1.log",
         "sha256": "bc9ac9609b820f27284dd2d115f3df25770c4611eda89cf06746092c39e4f453",
         "representation": "Captured CTest output records build directory and tests; literal launcher argv was not separately captured."
+      },
+      "archive_evidence": {
+        "path": "validation/tt-coherence-20261019/complete-linux-correctness-checkpoint.zip",
+        "sha256": "e786c377fed2b728cc43adba5cd8b504ce369cec2ab252fe31020123634bc2c6",
+        "prefix": "tt-investigation/",
+        "manifest": "validation/tt-coherence-20261019/complete-linux-correctness-checkpoint.json"
       }
     },
     {
@@ -2181,7 +2313,14 @@
           "sha256": "9621b03938434c80a90449f31b354c2b4c8ffb31c2e9e9d4e24e9e68f253a0c4"
         }
       ],
-      "valid_strength_evidence": false
+      "valid_strength_evidence": false,
+      "archive_evidence": {
+        "path": "validation/tt-coherence-20261019/complete-linux-correctness-checkpoint.zip",
+        "sha256": "e786c377fed2b728cc43adba5cd8b504ce369cec2ab252fe31020123634bc2c6",
+        "prefix": "tt-investigation/",
+        "manifest": "validation/tt-coherence-20261019/complete-linux-correctness-checkpoint.json"
+      },
+      "fixture_checkpoint_commit": "77ee53bdae40fbffee42be406b73f245f4434993"
     },
     {
       "id": "tt-full-engine-driver-contracts-20261019",
@@ -2274,7 +2413,13 @@
         }
       ],
       "limitation": "Harness contract tests use controlled fixture processes; actual engine validation is recorded separately.",
-      "valid_strength_evidence": false
+      "valid_strength_evidence": false,
+      "archive_evidence": {
+        "path": "validation/tt-coherence-20261019/complete-linux-correctness-checkpoint.zip",
+        "sha256": "e786c377fed2b728cc43adba5cd8b504ce369cec2ab252fe31020123634bc2c6",
+        "prefix": "tt-investigation/",
+        "manifest": "validation/tt-coherence-20261019/complete-linux-correctness-checkpoint.json"
+      }
     },
     {
       "id": "forge643-tt-full-engine-tsan-attempt1-20261019",
@@ -2399,7 +2544,7 @@
       "id": "forge643-rule50-qsearch-tt-investigation-20261019",
       "candidate_id": "forge643-tt-coherence-20261019",
       "scope": "correctness",
-      "status": "actual_engine_bug_reproduced_isolated_fix_pending",
+      "status": "actual_engine_bug_reproduced_fix_candidate_tested_separately",
       "source_commit": "df5d839a6a03f705310bb958601375fa9411e810",
       "research_source": {
         "ref": "origin/forge/research-20261019-2115",
@@ -2425,8 +2570,12 @@
         "sha256": "34b7b5f4ba7b3fab81c1860b4c8d66a7421e8173f0059a1a6a02cefd1e491baa"
       },
       "provenance": {
-        "path": "/workspace/.cloud-setup/rule50-investigation/provenance.json",
-        "sha256": "f3996cd8f22346e0b4f6e67cecf810949790b3eb487a4fa0606af43bf717e8f3"
+        "archive": "validation/rule50-context-20261019/investigation-before-integration.zip",
+        "archive_sha256": "3d4e5008c54fe35ea4bd681743dd0b459d4b22acc22bfce084d15ee4b9eea87a",
+        "member": "rule50-investigation/provenance.json",
+        "member_sha256": "f3996cd8f22346e0b4f6e67cecf810949790b3eb487a4fa0606af43bf717e8f3",
+        "workspace_preparation_path": "/workspace/.cloud-setup/rule50-investigation/provenance.json",
+        "note": "Archived final investigation manifest; earlier mutable preparation versions were not all preserved, as documented in PROVENANCE-HISTORY.md."
       },
       "result": {
         "compile_exit_code": 0,
@@ -2486,7 +2635,9 @@
         "prefix": "rule50-investigation/",
         "sha256": "3d4e5008c54fe35ea4bd681743dd0b459d4b22acc22bfce084d15ee4b9eea87a"
       },
-      "valid_strength_evidence": false
+      "valid_strength_evidence": false,
+      "next_candidate_id": "forge644-rule50-context-20261019",
+      "history_note": "Mutable preparation metadata was updated without preserving every earlier manifest version; archived PROVENANCE-HISTORY.md documents this. Original executed per-run commands/results and raw stdout/stderr remain authoritative."
     },
     {
       "id": "forge642-portable-bundle-wine-aa-attempt2-20261019",
@@ -2747,6 +2898,997 @@
         ]
       },
       "valid_strength_evidence": false
+    },
+    {
+      "id": "forge643-windows-correctness-20261019",
+      "candidate_id": "forge643-tt-coherence-20261019",
+      "scope": "runtime_readiness",
+      "status": "passed_under_wine_packaged_correctness_candidate",
+      "source_commit": "df5d839a6a03f705310bb958601375fa9411e810",
+      "fixture_commit": "77ee53bdae40fbffee42be406b73f245f4434993",
+      "fixture_sha256": "6d053ad0eee60af73c85b6eada03ca1e9226f06e3fb375f7a442da0e62609150",
+      "artifact": {
+        "path": "releases/forge-6.4.3-candidate-windows-zen5.zip",
+        "sha256": "03e7e00b4e3723e7107d75befd984b1b252e333d860eaf5d2168dfb83eba1164",
+        "bytes": 2229957
+      },
+      "engine_sha256": "142cbd41fceafabfef59cc405517bb4b14c4f9a3b3f15a908a43ec52926c1cee",
+      "settings": {
+        "compiler": "LLVM-MinGW20261006 Clang23.1.3",
+        "flags": "Release -march=znver5 -mtune=znver5 -fno-fast-math -ffp-contract=off -static",
+        "jobs": 1,
+        "environment": "Wine10 on Linux; frozen exported6.4.3 source and corrected TT fixture"
+      },
+      "command": {
+        "path": "validation/tt-coherence-20261019/windows/commands.json",
+        "sha256": "ea7ed1dcaa44a6369051a7e9cf781f80b2e0f0bfff5efd37647c764e7b964e73"
+      },
+      "runtime_command": {
+        "path": "validation/tt-coherence-20261019/windows/runtime-attempt1/protocol.json",
+        "sha256": "d945c14a6ce4065c0f951c1ad3ce9b97ce4421b072f1e23210ef7c8956167295"
+      },
+      "result": {
+        "checks": [
+          {
+            "name": "core",
+            "exit_code": 0,
+            "elapsed_seconds": 6.028020566000123
+          },
+          {
+            "name": "coherent-tt",
+            "exit_code": 0,
+            "elapsed_seconds": 0.36894079400008195
+          },
+          {
+            "name": "uci",
+            "exit_code": 0,
+            "elapsed_seconds": 1.22825393399944
+          },
+          {
+            "name": "ponder",
+            "exit_code": 0,
+            "elapsed_seconds": 1.2757873330010625
+          }
+        ],
+        "all_exit_zero": true,
+        "simd": {
+          "avx2_minmax_ymm": true,
+          "avx2_multiply_ymm": true,
+          "avx2_add_ymm": true,
+          "fused_operations": []
+        },
+        "binary_and_tool_hashes_unchanged": true,
+        "production_source_unchanged": true,
+        "claim_scope": "Wine correctness/artifact only; native Windows, physical Ryzen, controlled performance and Elo unproven."
+      },
+      "evidence": [
+        {
+          "path": "validation/tt-coherence-20261019/windows/artifact.json",
+          "sha256": "1f6d040f3af0ce0c27c8880f57964a7a61307a258ac9d4b6a625600a8f40f706"
+        },
+        {
+          "path": "validation/tt-coherence-20261019/windows/configure.log",
+          "sha256": "eb56b7121047386be33393ac85638eb1cf739342c46686db2d2a0222a54e709f"
+        },
+        {
+          "path": "validation/tt-coherence-20261019/windows/build.log",
+          "sha256": "f4386ca6575d17c3c020e0d45f05239533314615c055abfca34a6db68e4c33ac"
+        },
+        {
+          "path": "validation/tt-coherence-20261019/windows/test-fixture.diff",
+          "sha256": "c5cc9a6be4301fd7eb67a9b5f6a966b09e1bf02a98da70f3fc3e17ecab8b6544"
+        },
+        {
+          "path": "validation/tt-coherence-20261019/windows/runtime-attempt1/protocol.json",
+          "sha256": "d945c14a6ce4065c0f951c1ad3ce9b97ce4421b072f1e23210ef7c8956167295"
+        },
+        {
+          "path": "validation/tt-coherence-20261019/windows/runtime-attempt1/result.json",
+          "sha256": "d7906be99e29eb95c19e120978d3340540c909b6c08f7fe3d0776636639519a9"
+        },
+        {
+          "path": "validation/tt-coherence-20261019/windows/runtime-attempt1/core.log",
+          "sha256": "2cffbe19f6d623d858a1cccbb0566fa84ed64e8edc00d71408108529f8600672"
+        },
+        {
+          "path": "validation/tt-coherence-20261019/windows/runtime-attempt1/coherent-tt.log",
+          "sha256": "0ef15ce74dc867f5a166dabaf7f8075c65e3b60f32efcd7a35f4457718b2c53d"
+        },
+        {
+          "path": "validation/tt-coherence-20261019/windows/runtime-attempt1/uci.log",
+          "sha256": "f083bccb6c8820ccc4c180fb92c412bc58377940f695ce524523e18f9d92dfe1"
+        },
+        {
+          "path": "validation/tt-coherence-20261019/windows/runtime-attempt1/uci-transcript.log",
+          "sha256": "abef681d4594fb5d7c6ab770d26bcc193b229a8a4881321fadb52383bca16ce4"
+        },
+        {
+          "path": "validation/tt-coherence-20261019/windows/runtime-attempt1/ponder.log",
+          "sha256": "9e7173fbe0bc6d40e21a7ab486363f4c2f7fe06442b30daf7326bb2db71777be"
+        },
+        {
+          "path": "validation/tt-coherence-20261019/windows/runtime-attempt1/simd.json",
+          "sha256": "8893084dc230d02c010dd188e3b0ffe3f470ac4b4777df64c93c874252efeb8e"
+        },
+        {
+          "path": "releases/forge-6.4.3-candidate-windows-zen5/provenance.json",
+          "sha256": "12a5afb6625bebabcd7b9cab5ce2d4e28b9be4e799053d2ccb0b6f6f92d42820"
+        }
+      ],
+      "native_windows": false,
+      "physical_ryzen": false,
+      "valid_strength_evidence": false
+    },
+    {
+      "id": "forge643-windows-package-documentation-repair-20261019",
+      "candidate_id": "forge643-tt-coherence-20261019",
+      "scope": "artifact_integrity",
+      "status": "incorrect_documentation_preserved_and_corrected_before_publication",
+      "result": {
+        "cause": "README incorrectly described atomic snapshots and per-worker generation; df5 uses striped mutex-protected copies and quiescent generation changes",
+        "old_unpublished_zip_sha256": "6a33a3ec64af0f46a5fc5c5191e040cebcd2aba002022384b820aedea8f3bd91",
+        "old_unpublished_zip_bytes": 2229925,
+        "corrected_zip_sha256": "03e7e00b4e3723e7107d75befd984b1b252e333d860eaf5d2168dfb83eba1164",
+        "corrected_zip_bytes": 2229957,
+        "changes": "README wording and its SHA256SUMS digest only",
+        "engine_test_and_source_bytes_unchanged": true,
+        "old_package_claim": "Incorrect atomic snapshot/per-worker generation wording; implementation actually uses striped mutex-protected copies and quiescent generation changes.",
+        "native_or_strength_implication": null
+      },
+      "evidence": [
+        {
+          "path": "validation/tt-coherence-20261019/windows/documentation-correction/diagnosis.json",
+          "sha256": "5546df5376ee803aebcf526e9fece39d7e1cc398e72a042e19057722db0f83e6"
+        },
+        {
+          "path": "validation/tt-coherence-20261019/windows/documentation-correction/artifact.json",
+          "sha256": "d6ee2428fbf750cb80b39a52f35bd929b3034cd53796b7a726a63750633e2ae1"
+        },
+        {
+          "path": "validation/tt-coherence-20261019/windows/documentation-correction/README.txt",
+          "sha256": "f24283aa3081f8ca82012de8d7518feee656e1aff70fc03acfb3d5c22f7db15b"
+        },
+        {
+          "path": "validation/tt-coherence-20261019/windows/documentation-correction/SHA256SUMS",
+          "sha256": "e8fa3e3556d09c354267b5400b506731f30e05ae9391de078c56604ae00d8209"
+        },
+        {
+          "path": "validation/tt-coherence-20261019/windows/documentation-correction/package-driver.py",
+          "sha256": "e563539bfedab221ed4e05f0fc0df79cb382bc32cedd2085fa8ea97ce03e8061"
+        },
+        {
+          "path": "validation/tt-coherence-20261019/windows/documentation-correction/original-unpublished.zip",
+          "sha256": "6a33a3ec64af0f46a5fc5c5191e040cebcd2aba002022384b820aedea8f3bd91"
+        }
+      ],
+      "valid_strength_evidence": false
+    },
+    {
+      "id": "tt-speed-same-binary-aa-20261019",
+      "scope": "calibration",
+      "status": "completed_calibration_insufficient_to_resolve_whole_engine_overhead",
+      "calibrates_candidate_id": "forge643-tt-coherence-20261019",
+      "tested_source_candidate_id": "forge642-underpromotions-20261019",
+      "source_commit": "f6f0a00b2f98a7a9f117790e2c8f19a340b6769f",
+      "same_binary": {
+        "baseline_path": "/workspace/.cloud-setup/forge-underpromotions-build/forge",
+        "candidate_path": "/workspace/.cloud-setup/forge-underpromotions-build/forge",
+        "both_sha256": "b18ee2db5402c1fd22f11e25ffd44255709d499efbd5c4d61c4c5890c9507763",
+        "hashes_unchanged": true
+      },
+      "settings": {
+        "hash_mib": 32,
+        "ownbook": false,
+        "ponder": false,
+        "cpus": [
+          0,
+          1,
+          2,
+          3,
+          4
+        ],
+        "threads": [
+          1,
+          2,
+          4
+        ],
+        "blocks_per_thread": 6,
+        "nodes_per_performance_search": 200000,
+        "warmup_nodes": 50000,
+        "performance_searches": 216,
+        "response_timeout_seconds": 30,
+        "overall_timeout_seconds": 480
+      },
+      "command": {
+        "path": "/workspace/.cloud-setup/tt-speed-aa-attempt1/plan.json",
+        "sha256": "46a4702f5c9da6056993040407dcb2020927e4d5583e5bd58570a571ccafb68c",
+        "json_pointer": "/argv"
+      },
+      "provenance": {
+        "path": "/workspace/.cloud-setup/tt-speed-aa-attempt1/inputs.json",
+        "sha256": "12fccf195d2c57f8681ec73856a8b1ab5021c662b14165d6316edb3a0bd218b1"
+      },
+      "result": {
+        "counts": {
+          "measured_sessions": 72,
+          "measured_searches": 216,
+          "threads": [
+            1,
+            2,
+            4
+          ],
+          "blocks_per_threads": 6,
+          "one_thread_sessions": 24,
+          "one_thread_searches": 72,
+          "requested_nodes_per_search": 200000,
+          "requested_node_units_total": 43200000,
+          "elapsed_seconds": 219.9077334169997
+        },
+        "one_thread_wall_ratio_range": [
+          0.6566339636764777,
+          1.4703504666906462
+        ],
+        "one_thread_cpu_ratio_range": [
+          0.6579406631762653,
+          1.4056338028169013
+        ],
+        "ratios_meaning": "Baseline time divided by candidate time for same requested work; both labels are the same executable.",
+        "normalized_one_thread_transcripts_identical_sessions": 24,
+        "per_position_one_thread_transcript_signatures": {
+          "start": {
+            "d006c323869bd5d705f9b99756a336407eb16089da7ed6ef7cfe9eb5627fc5b0": 24
+          },
+          "kiwipete": {
+            "b1bc167b138e9a338c75694abf507f91bc7f5a97f7b90cde10f3d336abe62bab": 24
+          },
+          "middlegame": {
+            "3c35379c97b80769f8cb4d2d15311bc48fca754fcf72ee2c624235bda6363c8b": 24
+          }
+        },
+        "independent_checks": {
+          "raw_stdin_option_and_exact_cold_reset_sequences_verified": 72,
+          "raw_stdout_search_groups_match_stored_output": 216,
+          "cpu_tick_deltas_recomputed": 216,
+          "cpu_ticks_per_second": 100,
+          "cpu_fields": "/proc/tgid/stat fields14+15; parsed after final closing parenthesis in comm; aggregate process threads",
+          "go_bestmove_event_endpoints_and_cpu_order_verified": 216,
+          "normal_exit_empty_stderr_and_wait4_accounting_verified_sessions": 72,
+          "all_18_block_wall_cpu_ratios_recomputed": true,
+          "search_cpu_below_whole_session_wait4_minimum_offset_seconds": 0.19239400000000018,
+          "final_cumulative_proc_cpu_to_wait4_offsets_seconds": [
+            0.008894999999999875,
+            0.07799099999999948
+          ]
+        },
+        "same_work_timing_examples": [
+          {
+            "label": "fast",
+            "directory": "/workspace/.cloud-setup/tt-speed-aa-attempt1/perf-t1-b00-s2-candidate",
+            "block": 0,
+            "slot": 2,
+            "engine_label": "candidate",
+            "position": "middlegame",
+            "engine_reported_ms": 339,
+            "wall_ms": 342.763369,
+            "process_cpu_seconds": 0.34,
+            "last_completed_nodes": 197935,
+            "last_info": "info depth 14 seldepth 26 score cp -24 nodes 197935 nps 583879 hashfull 59 time 339 pv c3d5 f6d5 c4d5 e7f6 e2e3 c6b4 d5b3 a8e8 h1e1 b4c6 c1b1 g4f3 g2f3 f6h4 f3f4"
+          },
+          {
+            "label": "slow",
+            "directory": "/workspace/.cloud-setup/tt-speed-aa-attempt1/perf-t1-b00-s0-baseline",
+            "block": 0,
+            "slot": 0,
+            "engine_label": "baseline",
+            "position": "middlegame",
+            "engine_reported_ms": 1730,
+            "wall_ms": 1740.695479,
+            "process_cpu_seconds": 1.69,
+            "last_completed_nodes": 197935,
+            "last_info": "info depth 14 seldepth 26 score cp -24 nodes 197935 nps 114413 hashfull 59 time 1730 pv c3d5 f6d5 c4d5 e7f6 e2e3 c6b4 d5b3 a8e8 h1e1 b4c6 c1b1 g4f3 g2f3 f6h4 f3f4"
+          }
+        ],
+        "cause_assessment": "Execution-cost variability is present independently in engine elapsed time, external wall and process CPU. Shared execution environment is consistent with the evidence, but precise causes are not isolated. Shared-cgroup activity is diagnostic, not attribution to a named process or engine-only CPU.",
+        "whole_engine_overhead": "inconclusive",
+        "full_ab_executed": false,
+        "action": "Stop full A/B after failed sensitivity calibration; no trimming, extension or rerun to rescue this attempt.",
+        "bookkeeping_note": "status.json retains a stale running snapshot, while final result.json is completed; this known bookkeeping issue does not explain the timing spread or change the outcome.",
+        "strength_claim": null
+      },
+      "evidence": [
+        {
+          "path": "/workspace/.cloud-setup/tt-speed-aa-attempt1/plan.json",
+          "sha256": "46a4702f5c9da6056993040407dcb2020927e4d5583e5bd58570a571ccafb68c"
+        },
+        {
+          "path": "/workspace/.cloud-setup/tt-speed-aa-attempt1/inputs.json",
+          "sha256": "12fccf195d2c57f8681ec73856a8b1ab5021c662b14165d6316edb3a0bd218b1"
+        },
+        {
+          "path": "/workspace/.cloud-setup/tt-speed-aa-attempt1/result.json",
+          "sha256": "b4e689e0b9ec6d1227b9099ee68ae47de5513e061edbd8e9f8ac7510a8b70e6e"
+        },
+        {
+          "path": "/workspace/.cloud-setup/tt-speed-aa-attempt1/performance-raw.json",
+          "sha256": "6f12742a563fa0ea38810eea13b77c531c6cb85aefe8d2f0c1df8c56124aecb2"
+        },
+        {
+          "path": "/workspace/.cloud-setup/tt-speed-aa-attempt1/status.json",
+          "sha256": "fa479789b154f5faf6208b52ecd0feb63dba207e8f3bfe3cccd1dd881427d665"
+        },
+        {
+          "path": "/workspace/.cloud-setup/tt-investigation/speed-aa-independent-audit.json",
+          "sha256": "5abbfec220e1b41bccfd435ef9603f4d79fa87ad88e6d88a8150e71a94dba038"
+        },
+        {
+          "path": "/workspace/.cloud-setup/tt-investigation/speed-aa-independent-audit.md",
+          "sha256": "f2ab80050e080844cf5395f67147f0328f87b301dc54ef1f932f553be2cfedbb"
+        }
+      ],
+      "raw_retention": "Complete A/A895-file attempt and audit/driver snapshots preserved in901-member immutable speed-aa-calibration.zip.",
+      "valid_strength_evidence": false,
+      "archive_evidence": {
+        "path": "validation/tt-coherence-20261019/speed-aa-calibration.zip",
+        "sha256": "688544fa4f768a46a1f35d0e1f4f2bb38dfba926703207bd583667f9dff5d795",
+        "raw_prefix": "speed-aa/",
+        "audit_prefix": "audit-and-driver/",
+        "manifest": "validation/tt-coherence-20261019/speed-aa-calibration.json"
+      }
+    },
+    {
+      "id": "forge643-rule50-context-red-regression-20261019",
+      "candidate_id": "forge643-tt-coherence-20261019",
+      "scope": "correctness",
+      "status": "five_forward_red_assertions_and_two_reverse_errors_observed",
+      "production_source_commit": "df5d839a6a03f705310bb958601375fa9411e810",
+      "observed_head": "77ee53bdae40fbffee42be406b73f245f4434993",
+      "command": {
+        "archive": "validation/rule50-context-20261019/investigation-before-integration.zip",
+        "member": "rule50-investigation/regression-red-result.json",
+        "compile_json_pointer": "/compile_command",
+        "run_json_pointer": "/run_command"
+      },
+      "result": {
+        "compile_exit_code": 0,
+        "run_exit_code": 1,
+        "forward_regression_failures": 5,
+        "clock99_warm_cold": [
+          -426,
+          0
+        ],
+        "reverse_direct_high99_draw_reused_at_low0_warm_cold": [
+          0,
+          -426
+        ],
+        "reverse_pv_score_as_eval_low0_warm_cold": [
+          0,
+          453
+        ],
+        "reverse_observation_note": "Reverse cases were LIMITATION diagnostics in the original RED run, outside the five-failure assertion count; new6.4.4 tests assert both.",
+        "zeroing_pawn_capture_and_mate100_controls": "passed",
+        "minimal_one_line_proposal": "Unapplied direct-cutoff<90 guard is insufficient for reverse and PV score-as-eval cases.",
+        "exact_chess_score_claim": null
+      },
+      "evidence": {
+        "path": "validation/rule50-context-20261019/investigation-before-integration.zip",
+        "sha256": "3d4e5008c54fe35ea4bd681743dd0b459d4b22acc22bfce084d15ee4b9eea87a",
+        "bytes": 574583,
+        "members": [
+          "rule50-investigation/regression-red-protocol.json",
+          "rule50-investigation/regression-red-result.json",
+          "rule50-investigation/regression-red.stdout",
+          "rule50-investigation/regression-red.stderr",
+          "rule50-investigation/RED-RESULTS.md",
+          "rule50-investigation/PROVENANCE-HISTORY.md",
+          "rule50-investigation/CONTEXT-PROPOSAL.md"
+        ]
+      },
+      "valid_strength_evidence": false
+    },
+    {
+      "id": "forge644-rule50-context-release-20261019",
+      "candidate_id": "forge644-rule50-context-20261019",
+      "scope": "correctness",
+      "status": "release_build_and_all_seven_ctest_suites_passed",
+      "source_commit": "816423b1ddac23a00244449deef59dba736055a9",
+      "engine": {
+        "path": "/workspace/.cloud-setup/forge-rule50-context-release/forge",
+        "sha256": "0b1dfd450ca02a87664005d687e5160308a4ef419f93dd153eb4b23acb20fe77"
+      },
+      "settings": {
+        "compiler": "GCC14.2.0",
+        "flags": "Release -O3 -DNDEBUG -march=x86-64-v3 -mtune=znver5 -fno-fast-math -ffp-contract=off"
+      },
+      "command_record": {
+        "path": "/workspace/.cloud-setup/rule50-context-validation/release-ctest-attempt1.log",
+        "sha256": "371a1a45a0fb6470ead73f4438a00dc7000b7974841a2f19bf5492baff940537",
+        "representation": "Captured CTest directory/tests/outcomes; literal build/test launcher argv not separately recorded here."
+      },
+      "result": {
+        "ctest_passed": 7,
+        "ctest_total": 7,
+        "rule50_targeted_failures": 0,
+        "tt_regression_groups": 8,
+        "clock99_forward_warm_cold": [
+          0,
+          0
+        ],
+        "reverse_direct_low0_warm_cold": [
+          -426,
+          -426
+        ],
+        "reverse_pv_eval_low0_warm_cold": [
+          453,
+          453
+        ],
+        "matching_near_limit_qscore_reuse": "passed",
+        "below90_tt_cutoff_reuse": "passed",
+        "mate100_and_zeroing_pawn_capture_controls": "passed",
+        "metadata_tuple_and_rejected_store_controls": "included in8TT groups",
+        "claim_scope": "Finite actual-Worker correctness regressions; no performance, exact game-theoretic score or Elo conclusion."
+      },
+      "evidence": [
+        {
+          "path": "/workspace/.cloud-setup/rule50-context-validation/release-configure-attempt1.log",
+          "sha256": "d8810b38a7b04e40444ca1c37e89d34aa9727ad62620f1c158fc505091bd9a92"
+        },
+        {
+          "path": "/workspace/.cloud-setup/rule50-context-validation/release-build-attempt1.log",
+          "sha256": "8048d4a88a4dfa347139cd0dc4b65a90d9db088c803fe6d55da0a44ec6292c34"
+        },
+        {
+          "path": "/workspace/.cloud-setup/rule50-context-validation/release-ctest-attempt1.log",
+          "sha256": "371a1a45a0fb6470ead73f4438a00dc7000b7974841a2f19bf5492baff940537"
+        },
+        {
+          "path": "/workspace/.cloud-setup/rule50-context-validation/rule50-detail-attempt1.log",
+          "sha256": "94fe15dea003817c3a7380ec4e2768e033402fbf9a4370e04bf12ce47631288f"
+        },
+        {
+          "path": "docs/plans/2026-10-19-rule50-context.md",
+          "sha256": "8e4236b4390bf9f5d1ee83494b53296ae1f166f93f14d367687c7d4e2a391c56"
+        },
+        {
+          "path": "validation/rule50-context-20261019/STATUS.md",
+          "role": "Mutable continuation status; immutable phase archives and per-run outputs provide measurement provenance."
+        }
+      ],
+      "evidence_retention": "Immutable linux-validation-checkpoint.zip preserves logs, actual-engine streams, parent RED control and parity outputs.",
+      "valid_strength_evidence": false,
+      "archive_evidence": {
+        "path": "validation/rule50-context-20261019/linux-validation-checkpoint.zip",
+        "sha256": "ffa23aab8e312361b68acc8e2bb869e4d4a36fba44c242c47e5b7fe0bdaa7dd5",
+        "prefix": "linux-validation/",
+        "manifest": "validation/rule50-context-20261019/linux-validation-checkpoint.json"
+      }
+    },
+    {
+      "id": "forge644-rule50-context-asan-ubsan-20261019",
+      "candidate_id": "forge644-rule50-context-20261019",
+      "scope": "correctness",
+      "status": "build_and_seven_ctest_suites_passed",
+      "source_commit": "816423b1ddac23a00244449deef59dba736055a9",
+      "engine": {
+        "path": "/workspace/.cloud-setup/forge-rule50-context-asan/forge",
+        "sha256": "29f46d06033904af99047745613802d8334458fe8a7360e72a5a66965ecc3ea7"
+      },
+      "result": {
+        "ctest_passed": 7,
+        "ctest_total": 7,
+        "separate_full_engine_lifecycle_run": "not recorded for this ASan phase",
+        "limitation": "Finite ASan/UBSan CTest coverage only."
+      },
+      "configured_flags": {
+        "path": "/workspace/.cloud-setup/forge-rule50-context-asan/CMakeFiles/forge_core.dir/flags.make",
+        "sha256": "437da25ddd33fe8cafb956599f5ab62743d8847315ac0a6a4b2efa04bb4f57b1"
+      },
+      "evidence": [
+        {
+          "path": "/workspace/.cloud-setup/rule50-context-validation/asan-configure-attempt1.log",
+          "sha256": "4ae03bdc7e9237e079736c700050cafbd803d4160c787edbd4dc1d0a64d662a2"
+        },
+        {
+          "path": "/workspace/.cloud-setup/rule50-context-validation/asan-build-attempt1.log",
+          "sha256": "156fa2874050acbe9855dc2e8f911cf06319f3b807cbedd07d45be38ff89053d"
+        },
+        {
+          "path": "/workspace/.cloud-setup/rule50-context-validation/asan-ctest-attempt1.log",
+          "sha256": "40d1b028bf7b4fa77756e508b4865ca42d12c75ddb827897d415610d3ba8d7d1"
+        }
+      ],
+      "valid_strength_evidence": false,
+      "archive_evidence": {
+        "path": "validation/rule50-context-20261019/linux-validation-checkpoint.zip",
+        "sha256": "ffa23aab8e312361b68acc8e2bb869e4d4a36fba44c242c47e5b7fe0bdaa7dd5",
+        "prefix": "linux-validation/",
+        "manifest": "validation/rule50-context-20261019/linux-validation-checkpoint.json"
+      },
+      "evidence_retention": "Immutable linux-validation-checkpoint.zip preserves logs, actual-engine streams, parent RED control and parity outputs."
+    },
+    {
+      "id": "forge644-rule50-context-tsan-20261019",
+      "candidate_id": "forge644-rule50-context-20261019",
+      "scope": "correctness",
+      "status": "targeted_regressions_and_bounded_full_engine_lifecycle_passed",
+      "source_commit": "816423b1ddac23a00244449deef59dba736055a9",
+      "engine": {
+        "path": "/workspace/.cloud-setup/forge-rule50-context-tsan/forge",
+        "sha256": "e8890fe5cbf732f337c078e4409e8a0272872c6ad34b08702b64086accd0a36c"
+      },
+      "settings": {
+        "process_restarts": 1,
+        "cycles_per_process": 1,
+        "nodes_per_ordinary_search": 10000,
+        "threads": [
+          4,
+          2,
+          1
+        ],
+        "hash_mib": [
+          1,
+          4
+        ],
+        "tsan_options": "halt_on_error=1:exitcode=66",
+        "positions": [
+          "startpos",
+          "fen r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1",
+          "fen 8/2p5/3p4/KP5r/1R3p1k/8/4P1P1/8 w - - 0 1"
+        ],
+        "terminal_cases": [
+          [
+            "mate",
+            "fen 7k/6Q1/6K1/8/8/8/8/8 b - - 0 1",
+            "mate 0"
+          ],
+          [
+            "stalemate",
+            "fen 7k/5Q2/6K1/8/8/8/8/8 b - - 0 1",
+            "cp 0"
+          ],
+          [
+            "draw-with-legal-moves",
+            "fen 7k/8/8/8/8/8/8/K7 w - - 0 1",
+            "cp 0"
+          ]
+        ]
+      },
+      "command": {
+        "path": "/workspace/.cloud-setup/rule50-context-validation/full-engine-tsan-attempt1/configuration.json",
+        "sha256": "ca183ddfee684ae372622979e83c7926d582b7f91d82990d68df249d8cc740e8",
+        "representation": "Resolved driver configuration; exact process argv/UCI streams retained in session results."
+      },
+      "result": {
+        "targeted_rule50_failures": 0,
+        "tt_groups_passed": 8,
+        "completed_all_scenarios": true,
+        "processes": 1,
+        "completed_searches": 11,
+        "legality_checked_searches": 11,
+        "explicitly_stopped_searches": 1,
+        "exit_codes": [
+          0
+        ],
+        "sanitizer_classifications": [
+          "none"
+        ],
+        "engine_hash_unchanged": true,
+        "limitation": "No sanitizer report in this finite lifecycle; no universal race-freedom, throughput or strength conclusion."
+      },
+      "evidence": [
+        {
+          "path": "/workspace/.cloud-setup/rule50-context-validation/tsan-configure-attempt1.log",
+          "sha256": "d557ac2e9b26c2fa3a9b354be4ce966cf85a4e823cdbd4570f2f8c63d49b9e6d"
+        },
+        {
+          "path": "/workspace/.cloud-setup/rule50-context-validation/tsan-build-attempt1.log",
+          "sha256": "e850cef2bef269f18f8a334cac86cbe7a5d6a57fb24e03fb3fdb877c106822b6"
+        },
+        {
+          "path": "/workspace/.cloud-setup/rule50-context-validation/tsan-tt-tests-attempt1.log",
+          "sha256": "37eb37186190732e891a70d9e0a23ca8371897f635c86cca1d4ebd1c2c6dd3ef"
+        },
+        {
+          "path": "/workspace/.cloud-setup/rule50-context-validation/tsan-rule50-tests-attempt1.log",
+          "sha256": "94fe15dea003817c3a7380ec4e2768e033402fbf9a4370e04bf12ce47631288f"
+        },
+        {
+          "path": "/workspace/.cloud-setup/rule50-context-validation/full-engine-tsan-attempt1/summary.json",
+          "sha256": "ec7ac256702ef77a4c9ba1b16a87108943d475865a94d75580b560708e73591f"
+        },
+        {
+          "path": "/workspace/.cloud-setup/rule50-context-validation/full-engine-tsan-attempt1/events.jsonl",
+          "sha256": "6fb3a03f4475861458c5d56aa50d387dd2c94206053531154e110369f3925115"
+        },
+        {
+          "path": "/workspace/.cloud-setup/rule50-context-validation/full-engine-tsan-attempt1/process-00/result.json",
+          "sha256": "5fb096308ce4dcd2f8865e9011c59a601eaec7582be3e9d72b488da5a4c87bf9"
+        }
+      ],
+      "raw_stream_directory": "/workspace/.cloud-setup/rule50-context-validation/full-engine-tsan-attempt1",
+      "archive_status": {
+        "path": "validation/rule50-context-20261019/linux-validation-checkpoint.zip",
+        "sha256": "ffa23aab8e312361b68acc8e2bb869e4d4a36fba44c242c47e5b7fe0bdaa7dd5",
+        "prefix": "linux-validation/full-engine-tsan-attempt1/"
+      },
+      "valid_strength_evidence": false,
+      "archive_evidence": {
+        "path": "validation/rule50-context-20261019/linux-validation-checkpoint.zip",
+        "sha256": "ffa23aab8e312361b68acc8e2bb869e4d4a36fba44c242c47e5b7fe0bdaa7dd5",
+        "prefix": "linux-validation/",
+        "manifest": "validation/rule50-context-20261019/linux-validation-checkpoint.json"
+      },
+      "evidence_retention": "Immutable linux-validation-checkpoint.zip preserves logs, actual-engine streams, parent RED control and parity outputs."
+    },
+    {
+      "id": "forge644-current-regression-on-parent-20261019",
+      "candidate_id": "forge644-rule50-context-20261019",
+      "scope": "correctness",
+      "status": "seven_current_assertions_fail_on_frozen_parent_as_expected",
+      "tested_production_source_commit": "df5d839a6a03f705310bb958601375fa9411e810",
+      "test_source_commit": "816423b1ddac23a00244449deef59dba736055a9",
+      "test_source_sha256": "c6faa20bf0ac2327d792e9dbacb867bdbbb93db0f5d8aafa188c3ad76a066673",
+      "parent_library": {
+        "path": "/workspace/.cloud-setup/forge-tt-coherent-release/libforge_core.a",
+        "sha256": "618a793cdd36012c3fe4b9a5b8f2a99150c2bccd54a9a186b4f557702af50417"
+      },
+      "frozen_parent_header_files_sha256": {
+        "include/forge/bitboard.hpp": "e493ce1186b339840d156979da4532231b6daf8919ef194c616c9091813d1b7a",
+        "include/forge/board.hpp": "5b42d3557730edc65f795a097e45d18a3cb621d56bdfa8b379773bb496204c77",
+        "include/forge/book.hpp": "10a283bd0474568c0e378f7117d4869336384599307305c405dac81e1569663e",
+        "include/forge/eval.hpp": "f74e38cd600baee3d6b6e24c5f7176f6ac6447f7d3871fbbc03a957307a3f8bf",
+        "include/forge/eval_params.hpp": "56f6ae706d53dfb6e76169e86d0cf09e74e096b17885f60632a92f080ee77a96",
+        "include/forge/nnue.hpp": "d87106d1716388375332ea20e97d9a703c74f479ffa5236c75608b356ab5aace",
+        "include/forge/search.hpp": "3e286a93b15a50b7e8a0230ca3d85a02b727909516119aa1947d9189b29e2d70",
+        "include/forge/uci_output.hpp": "3bc09a099ae04bf6d8972125b0778be342de78ba39fcb8510321238e788dbef3"
+      },
+      "command": {
+        "path": "/workspace/.cloud-setup/rule50-context-validation/current-regression-on-parent/result.json",
+        "sha256": "ebcaa0d348eab62d30c37187d6f9a156545e093bc38a27f66e48eeb2f1865e44",
+        "compile_json_pointer": "/compile_command",
+        "run_json_pointer": "/run_command"
+      },
+      "result": {
+        "compile_exit_code": 0,
+        "run_exit_code": 1,
+        "targeted_regression_failures": 7,
+        "forward_clock99_warm_cold": [
+          -426,
+          0
+        ],
+        "reverse_direct_low0_warm_cold": [
+          0,
+          -426
+        ],
+        "reverse_pv_eval_low0_warm_cold": [
+          0,
+          453
+        ],
+        "both_reverse_paths_are_explicit_failing_assertions": true,
+        "same_current_tests_on_candidate_targeted_failures": 0,
+        "meaning": "Current actual-Worker regression detects forward and both reverse errors in unmodified6.4.3; candidate6.4.4 passes these assertions.",
+        "earlier_separate_control": "Original RED run had five forward failing assertions and reverse LIMITATION diagnostics; preserved independently."
+      },
+      "evidence": [
+        {
+          "path": "/workspace/.cloud-setup/rule50-context-validation/current-regression-on-parent/result.json",
+          "sha256": "ebcaa0d348eab62d30c37187d6f9a156545e093bc38a27f66e48eeb2f1865e44"
+        },
+        {
+          "path": "/workspace/.cloud-setup/rule50-context-validation/current-regression-on-parent/stdout",
+          "sha256": "fed17ae6a985ddf7220235e156bcb3fe52d6595259c126bce87804079e4c7120"
+        },
+        {
+          "path": "/workspace/.cloud-setup/rule50-context-validation/current-regression-on-parent/stderr",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "/workspace/.cloud-setup/rule50-context-validation/current-regression-on-parent/compile.stdout",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "/workspace/.cloud-setup/rule50-context-validation/current-regression-on-parent/compile.stderr",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "/workspace/.cloud-setup/rule50-context-validation/current-regression-on-parent/rule50_tests.cpp",
+          "sha256": "c6faa20bf0ac2327d792e9dbacb867bdbbb93db0f5d8aafa188c3ad76a066673"
+        }
+      ],
+      "archive_evidence": {
+        "path": "validation/rule50-context-20261019/linux-validation-checkpoint.zip",
+        "sha256": "ffa23aab8e312361b68acc8e2bb869e4d4a36fba44c242c47e5b7fe0bdaa7dd5",
+        "prefix": "linux-validation/current-regression-on-parent/"
+      },
+      "valid_strength_evidence": false
+    },
+    {
+      "id": "forge644-parent-cold-warm-parity-20261019",
+      "candidate_id": "forge644-rule50-context-20261019",
+      "scope": "behavior_parity",
+      "status": "parity_only_passed",
+      "baseline_production_commit": "df5d839a6a03f705310bb958601375fa9411e810",
+      "candidate_production_commit": "816423b1ddac23a00244449deef59dba736055a9",
+      "engines": {
+        "baseline": {
+          "path": "/workspace/.cloud-setup/forge-tt-coherent-release/forge",
+          "sha256": "8a940f603fe57d5ec9cdbd2c4a04b2401f3cff3df1923e5203505a0090a5f370"
+        },
+        "candidate": {
+          "path": "/workspace/.cloud-setup/forge-rule50-context-release/forge",
+          "sha256": "0b1dfd450ca02a87664005d687e5160308a4ef419f93dd153eb4b23acb20fe77"
+        }
+      },
+      "command": {
+        "path": "/workspace/.cloud-setup/rule50-context-validation/parity-parent-attempt1/plan.json",
+        "sha256": "5f2f357ce86c1f993c92d0ffc001eac3cabc1e39d4de4b6176443cdc24d20e2c",
+        "json_pointer": "/argv"
+      },
+      "provenance": {
+        "path": "/workspace/.cloud-setup/rule50-context-validation/parity-parent-attempt1/inputs.json",
+        "sha256": "75483a4f5121d9d2ce6606f901e5e2f4bc7f99045d9feca9f90675a0aecf4740"
+      },
+      "settings": {
+        "threads": 1,
+        "hash_mib": 32,
+        "ownbook": false,
+        "ponder": false,
+        "cases": [
+          [
+            "start",
+            "startpos",
+            7
+          ],
+          [
+            "kiwipete",
+            "fen r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1",
+            6
+          ],
+          [
+            "middlegame",
+            "fen r4rk1/1pp1qppp/p1np1n2/8/2B1P1b1/2N2N2/PPP1QPPP/2KR3R w - - 0 10",
+            6
+          ],
+          [
+            "endgame",
+            "fen 8/2p5/3p4/KP5r/1R3p1k/8/4P1P1/8 w - - 0 1",
+            7
+          ],
+          [
+            "promotion_white",
+            "fen 8/k1P5/2K5/8/8/8/8/8 w - - 0 1",
+            1
+          ],
+          [
+            "promotion_black",
+            "fen 8/8/8/8/8/2k5/K1p5/8 b - - 0 1",
+            1
+          ]
+        ],
+        "passes": [
+          "cold",
+          "warm"
+        ],
+        "normalize_only": [
+          "time",
+          "nps",
+          "hashfull"
+        ]
+      },
+      "result": {
+        "parity_passed": true,
+        "ordered_depth_seldepth_score_bound_nodes_pv_bestmove": "exact after declared normalization",
+        "bench11_node_signatures": {
+          "baseline": 419798,
+          "candidate": 419798
+        },
+        "input_hashes_unchanged": true,
+        "performance_searches": 0,
+        "performance_complete": false,
+        "speed_or_strength_claim": null,
+        "limitation": "Only these six cases/depths and benchmark signature; targeted rule50 cases intentionally differ from parent and are tested separately."
+      },
+      "evidence": [
+        {
+          "path": "/workspace/.cloud-setup/rule50-context-validation/parity-parent-attempt1/result.json",
+          "sha256": "3882ea6c89235f53772f819ac6c81c17399d3db50d3274fbc1060cdfb3d7a9a9"
+        },
+        {
+          "path": "/workspace/.cloud-setup/rule50-context-validation/parity-parent-attempt1/plan.json",
+          "sha256": "5f2f357ce86c1f993c92d0ffc001eac3cabc1e39d4de4b6176443cdc24d20e2c"
+        },
+        {
+          "path": "/workspace/.cloud-setup/rule50-context-validation/parity-parent-attempt1/inputs.json",
+          "sha256": "75483a4f5121d9d2ce6606f901e5e2f4bc7f99045d9feca9f90675a0aecf4740"
+        },
+        {
+          "path": "/workspace/.cloud-setup/rule50-context-validation/parity-parent-attempt1/bench-baseline/result.json",
+          "sha256": "d498f55f6017c3301ddadfd3efabbf5b4b03e41c5dd0033067b086b9a03535ef"
+        },
+        {
+          "path": "/workspace/.cloud-setup/rule50-context-validation/parity-parent-attempt1/bench-candidate/result.json",
+          "sha256": "2fe258e858136a70152501e9b56f3e3fe0e49049434ddef818a24a126a71fc91"
+        }
+      ],
+      "archive_evidence": {
+        "path": "validation/rule50-context-20261019/linux-validation-checkpoint.zip",
+        "sha256": "ffa23aab8e312361b68acc8e2bb869e4d4a36fba44c242c47e5b7fe0bdaa7dd5",
+        "prefix": "linux-validation/parity-parent-attempt1/"
+      },
+      "valid_strength_evidence": false
+    },
+    {
+      "id": "forge644-windows-correctness-20261019",
+      "candidate_id": "forge644-rule50-context-20261019",
+      "scope": "runtime_readiness",
+      "status": "all_five_wine_checks_passed_packaged_correctness_candidate",
+      "source_and_tests_commit": "816423b1ddac23a00244449deef59dba736055a9",
+      "artifact": {
+        "path": "releases/forge-6.4.4-candidate-windows-zen5.zip",
+        "sha256": "d4fc94a529b1b0be89a37adb229433aade6923c8453a565fcf0b06e280171439",
+        "bytes": 2948493
+      },
+      "engine_sha256": "7eff14ef8ab43763a34b92aa32391cf86b77ab6ee248a5342cb948d8639ee33b",
+      "settings": {
+        "compiler": "LLVM-MinGW20261006 Clang23.1.3",
+        "flags": "Release -march=znver5 -mtune=znver5 -fno-fast-math -ffp-contract=off -static",
+        "build_jobs": 1,
+        "runtime": "Wine10 on Linux, frozen source816423b tools"
+      },
+      "command": {
+        "path": "validation/rule50-context-20261019/windows/commands.json",
+        "sha256": "e82d2ff801eb8cbbf33c384a93603a1628546e32f04a63a90f8ee9da26f35f4a"
+      },
+      "runtime_command": {
+        "path": "validation/rule50-context-20261019/windows/runtime-attempt1/protocol.json",
+        "sha256": "7c0610a59aee281d9598d58b8d71abfb494d9d3e91214086e2af095da5600a94"
+      },
+      "result": {
+        "checks": [
+          {
+            "name": "core",
+            "exit_code": 0,
+            "elapsed_seconds": 4.850680649999049
+          },
+          {
+            "name": "coherent-tt",
+            "exit_code": 0,
+            "elapsed_seconds": 0.4225489780001226
+          },
+          {
+            "name": "rule50",
+            "exit_code": 0,
+            "elapsed_seconds": 0.5235755539997626
+          },
+          {
+            "name": "uci",
+            "exit_code": 0,
+            "elapsed_seconds": 0.8318478590008453
+          },
+          {
+            "name": "ponder",
+            "exit_code": 0,
+            "elapsed_seconds": 1.290049254999758
+          }
+        ],
+        "tt_groups_passed": 8,
+        "rule50_targeted_failures": 0,
+        "both_reverse_rule50_paths": "explicitly passed",
+        "simd": {
+          "avx2_minmax_ymm": true,
+          "avx2_multiply_ymm": true,
+          "avx2_add_ymm": true,
+          "fused_operations": []
+        },
+        "source_binary_and_tool_hashes_unchanged": true,
+        "zip_crc_members_sha_list_and_source_hashes": "verified",
+        "claim_scope": "Wine correctness and portable artifact; native Windows/physical Ryzen performance and equal-clock Elo remain unmeasured."
+      },
+      "evidence": [
+        {
+          "path": "validation/rule50-context-20261019/windows/artifact.json",
+          "sha256": "7fc971bc805d1e7d02a38daa60414b842dd798fb5c80ab83d4fc6ad44bec41a5"
+        },
+        {
+          "path": "validation/rule50-context-20261019/windows/result.json",
+          "sha256": "f1114139c69581bbe52700ca8cb3cfc9b2584ae572b2d7c20d6f2b8834a3b230"
+        },
+        {
+          "path": "validation/rule50-context-20261019/windows/configure.log",
+          "sha256": "f0991dd4dfd4defa79db44aa528f49d24051d815da137038862f761feddb7cde"
+        },
+        {
+          "path": "validation/rule50-context-20261019/windows/build.log",
+          "sha256": "c47e379a7615969e6c7371df433f807aa36bebad9ce1782ee6ae33c7644daf58"
+        },
+        {
+          "path": "validation/rule50-context-20261019/windows/source-hashes.json",
+          "sha256": "9947aedecfc9a3b61cb058716b6e1454d1b51dad1ec20790061bd0dbacea28c7"
+        },
+        {
+          "path": "validation/rule50-context-20261019/windows/production-hashes.json",
+          "sha256": "58d3427059513a19d8f919e10f2cbeac45382a142b9a781f04053d9d3464e52b"
+        },
+        {
+          "path": "validation/rule50-context-20261019/windows/test-hashes.json",
+          "sha256": "3fea5f05545048fc14862096a31584a5b075e503d090c2ef5efe8b5c0dd3b520"
+        },
+        {
+          "path": "validation/rule50-context-20261019/windows/runtime-attempt1/result.json",
+          "sha256": "5fd64a8ebf00a0b8e1d158430d1ce0e15bbe19c52e253b7e7b667451de55cc1b"
+        },
+        {
+          "path": "validation/rule50-context-20261019/windows/runtime-attempt1/protocol.json",
+          "sha256": "7c0610a59aee281d9598d58b8d71abfb494d9d3e91214086e2af095da5600a94"
+        },
+        {
+          "path": "validation/rule50-context-20261019/windows/runtime-attempt1/core.log",
+          "sha256": "2cffbe19f6d623d858a1cccbb0566fa84ed64e8edc00d71408108529f8600672"
+        },
+        {
+          "path": "validation/rule50-context-20261019/windows/runtime-attempt1/coherent-tt.log",
+          "sha256": "6922ac520337d7374efdf940ad965624dc71833d052cdead5ae9a35b0e6401d1"
+        },
+        {
+          "path": "validation/rule50-context-20261019/windows/runtime-attempt1/rule50.log",
+          "sha256": "533cda163621660b9026102cc27c909ab60846840c9a4af6b26b82c3c772f055"
+        },
+        {
+          "path": "validation/rule50-context-20261019/windows/runtime-attempt1/uci.log",
+          "sha256": "b14d54df1d6608acb2f1577c84b7a1fba9863b2d7620b78e70260262cc93e38d"
+        },
+        {
+          "path": "validation/rule50-context-20261019/windows/runtime-attempt1/uci-transcript.log",
+          "sha256": "5a01f2f95394fc2327bbb171937ae637bbc8b849a6db6c9aba9639afaf6969dd"
+        },
+        {
+          "path": "validation/rule50-context-20261019/windows/runtime-attempt1/ponder.log",
+          "sha256": "9e7173fbe0bc6d40e21a7ab486363f4c2f7fe06442b30daf7326bb2db71777be"
+        },
+        {
+          "path": "validation/rule50-context-20261019/windows/runtime-attempt1/simd.json",
+          "sha256": "8893084dc230d02c010dd188e3b0ffe3f470ac4b4777df64c93c874252efeb8e"
+        },
+        {
+          "path": "releases/forge-6.4.4-candidate-windows-zen5/provenance.json",
+          "sha256": "3b22a1d1cb8954f7e3ffb2730bffe647a345118dc2aec60872085f4f2aa279bc"
+        }
+      ],
+      "evidence_note": "Build-phase result.json records runtime pending at build completion; later runtime-attempt1/result.json records all five completed checks.",
+      "native_windows": false,
+      "physical_ryzen": false,
+      "valid_strength_evidence": false
+    }
+  ],
+  "evidence_archives": [
+    {
+      "path": "validation/tt-coherence-20261019/baseline-and-proposals-checkpoint.zip",
+      "sha256": "50ae109cddbe8e7212e613d8c722097b1507683af3e5f80434a11bf1a3262e8d",
+      "bytes": 66799
+    },
+    {
+      "path": "validation/tt-coherence-20261019/release-and-tsan-validation-checkpoint.zip",
+      "sha256": "24187357f4564fcec9a4312a4b540b8e69a31c8e2ca0f821d008697492151d5f",
+      "bytes": 232561
+    },
+    {
+      "path": "validation/tt-coherence-20261019/complete-linux-correctness-checkpoint.zip",
+      "sha256": "e786c377fed2b728cc43adba5cd8b504ce369cec2ab252fe31020123634bc2c6",
+      "bytes": 405020
+    },
+    {
+      "path": "validation/rule50-context-20261019/investigation-before-integration.zip",
+      "sha256": "3d4e5008c54fe35ea4bd681743dd0b459d4b22acc22bfce084d15ee4b9eea87a",
+      "bytes": 574583
+    },
+    {
+      "path": "validation/rule50-context-20261019/linux-validation-checkpoint.zip",
+      "sha256": "ffa23aab8e312361b68acc8e2bb869e4d4a36fba44c242c47e5b7fe0bdaa7dd5",
+      "bytes": 463434
+    },
+    {
+      "path": "validation/tt-coherence-20261019/speed-aa-calibration.zip",
+      "sha256": "688544fa4f768a46a1f35d0e1f4f2bb38dfba926703207bd583667f9dff5d795",
+      "bytes": 1461628
     }
   ]
 }

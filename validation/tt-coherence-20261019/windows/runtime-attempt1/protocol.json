@@ -1,0 +1,57 @@
+{
+  "created_utc": "2026-10-19T20:26:18.344078+00:00",
+  "production_commit": "df5d839a6a03f705310bb958601375fa9411e810",
+  "fixture_commit": "77ee53bdae40fbffee42be406b73f245f4434993",
+  "fixture_sha256": "6d053ad0eee60af73c85b6eada03ca1e9226f06e3fb375f7a442da0e62609150",
+  "input_sha256": {
+    "forge.exe": "142cbd41fceafabfef59cc405517bb4b14c4f9a3b3f15a908a43ec52926c1cee",
+    "forge_tests.exe": "e152648c3f8b7543e2ac79c6983fc156988cee752354fbe0015db7ff811f2662",
+    "forge_tt_tests.exe": "a83eab0acceb0aff1b07063596a8388d2b4b207073f12de0985b60500af97d13",
+    "forge_bench.exe": "3959e6f6d776d50ff5ac6a8e409419b918359d51b2de57a0d273915e5694db6e",
+    "uci_tool": "0ecfbdd3b04bf0ef4f6669ed43581d124e75ff3224926874da98c451649ee4cc",
+    "ponder_tool": "26cb1169916522db1baf99c7f57cabb92ea1c5cd66bb6534a27464a2356404d0",
+    "wrapper": "d4bb4ca543872d515ea5b4c456f44bfa912aae4c170157af94cfc62af06dbb0d"
+  },
+  "commands": [
+    [
+      "core",
+      [
+        "/workspace/.cloud-setup/wine/usr/lib/wine/wine64",
+        "/workspace/.cloud-setup/forge-windows-tt-coherent/forge_tests.exe"
+      ]
+    ],
+    [
+      "coherent-tt",
+      [
+        "/workspace/.cloud-setup/wine/usr/lib/wine/wine64",
+        "/workspace/.cloud-setup/forge-windows-tt-coherent/forge_tt_tests.exe"
+      ]
+    ],
+    [
+      "uci",
+      [
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3",
+        "/workspace/.cloud-setup/forge-windows-tt-coherent-source/tools/uci_regression.py",
+        "/workspace/.cloud-setup/forge-tt-coherent-wine",
+        "--log",
+        "/workspace/.cloud-setup/forge-windows-tt-coherent-evidence/runtime-attempt1/uci-transcript.log"
+      ]
+    ],
+    [
+      "ponder",
+      [
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3",
+        "/workspace/.cloud-setup/forge-windows-tt-coherent-source/tools/ponder_regression.py",
+        "/workspace/.cloud-setup/forge-tt-coherent-wine"
+      ]
+    ]
+  ],
+  "environment_subset": {
+    "WINEPREFIX": "/workspace/.cloud-setup/wine-prefix-ready",
+    "WINEDEBUG": "-all",
+    "XDG_CACHE_HOME": "/workspace/.cloud-setup/font-cache",
+    "PYTHONDONTWRITEBYTECODE": "1"
+  },
+  "scope": "Wine functional correctness only; no native Windows/Ryzen, speed or Elo claim",
+  "concurrent_load": "Root authorized a separate -j2 6.4.4 Release build; no performance measurement"
+}

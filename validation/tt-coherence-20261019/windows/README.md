@@ -1,0 +1,3 @@
+Windows 6.4.3 candidate checks passed under Wine only: core, coherent-TT, frozen-source UCI and ponder. SIMD inspection found 256-bit clamp/multiply/add and no fused arithmetic. Source, binaries and test-tool hashes stayed unchanged. Exact commands, all logs, fixture delta, compiler/link flags and a gzip of the full disassembly are preserved here. Production is df5d839; the fixture matches 77ee53b.
+
+This is TT correctness evidence. Speed calibration was inconclusive; native Windows, physical Ryzen, Elo advancement and Stockfish superiority remain unproven. No timed games or Wine A/A repeats were run.

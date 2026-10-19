@@ -1,0 +1,31 @@
+{
+  "created_utc": "2026-10-19T20:30:21.688528+00:00",
+  "source_commit": "816423b1ddac23a00244449deef59dba736055a9",
+  "commands": [
+    [
+      "/workspace/.cloud-setup/venv/bin/cmake",
+      "-S",
+      "/workspace/.cloud-setup/forge-windows-rule50-context-source",
+      "-B",
+      "/workspace/.cloud-setup/forge-windows-rule50-context",
+      "-DCMAKE_BUILD_TYPE=Release",
+      "-DCMAKE_TOOLCHAIN_FILE=/workspace/.cloud-setup/forge-windows-rule50-context-source/tools/windows-zen5.cmake"
+    ],
+    [
+      "/workspace/.cloud-setup/venv/bin/cmake",
+      "--build",
+      "/workspace/.cloud-setup/forge-windows-rule50-context",
+      "--parallel",
+      "1"
+    ]
+  ],
+  "source_directory": "/workspace/.cloud-setup/forge-windows-rule50-context-source",
+  "build_directory": "/workspace/.cloud-setup/forge-windows-rule50-context",
+  "environment_subset": {
+    "LLVM_MINGW_ROOT": "/workspace/.cloud-setup/toolchains/llvm-mingw-20261006-ucrt-ubuntu-22.04-x86_64",
+    "PYTHONDONTWRITEBYTECODE": "1"
+  },
+  "configuration": "Release -march=znver5 -mtune=znver5 -fno-fast-math -ffp-contract=off -static",
+  "parallel_jobs": 1,
+  "scope": "Functional candidate; no performance or strength measurement"
+}
