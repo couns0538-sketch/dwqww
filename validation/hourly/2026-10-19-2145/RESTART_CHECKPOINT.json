@@ -1,0 +1,30 @@
+{
+  "project": "Forge 6.4",
+  "cycle_local": "2026-10-19T21:45:00+02:00",
+  "accepted_ref": "forge/6.4-hourly-20261019",
+  "accepted_sha": "9108d012526be80c6d163f7cab684e6acd9abf8d",
+  "candidate_ref": "forge/candidate-rule50-all-uses-20261019-2145",
+  "candidate_patch_commit": "ed06daf99875b99c9b73749b6c00bc796f8089e7",
+  "evidence_commit": "a1216c717581dc2f0587fa099dc4438282023a2e",
+  "change": "Conservative TT search-score eligibility under rule50 clock>=90; gate 7 score consumer classes",
+  "correctness": {
+    "original_guard_model": "15 scenarios passed, 6 cutoff mismatches and 6 eval reuse mismatches",
+    "candidate_model": "GCC+Clang+ASan/UBSan PASS, 21 low paths preserved, 21 high paths gated",
+    "actual_engine": "NOT_TESTED"
+  },
+  "strength": {
+    "games_started": 0,
+    "pgn_files": [],
+    "sprt": "NOT_STARTED",
+    "elo_verified": null
+  },
+  "github_sync": "candidate and model raw logs successfully committed and checked against local blob SHA",
+  "ci": "GitHub Actions workflow creation blocked by safety checks",
+  "decision": "INCONCLUSIVE_DO_NOT_MERGE",
+  "next": [
+    "Independently reproduce wrong rule-50 score using actual Forge FEN/history and warm/cold TT",
+    "Build current candidate, run CTest/perft/UCI/ponder/ASan/UBSan/bench11",
+    "Independent diff review and paired equal-clock fastchess if a correctness fix is confirmed",
+    "Audit TT-score stores and lower-halfmove contamination, separately verify SMP snapshot repair"
+  ]
+}

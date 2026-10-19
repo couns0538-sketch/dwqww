@@ -1,0 +1,130 @@
+diff --git a/include/forge/search.hpp b/include/forge/search.hpp
+--- a/include/forge/search.hpp
++++ b/include/forge/search.hpp
+@@ -57,6 +57,13 @@ constexpr int ValueNone = 32002;
+ 
+ enum Bound : std::uint8_t { BoundNone = 0, BoundUpper = 1, BoundLower = 2, BoundExact = 3 };
+ 
++// Position Zobrist keys omit the rule-50 halfmove clock. Preserve the existing
++// main-search conservative cutoff threshold for ALL TT search-score consumers.
++// Hash moves and raw static evaluations remain position-dependent and reusable.
++[[nodiscard]] constexpr bool tt_score_reusable(int halfmove_clock) noexcept {
++    return halfmove_clock < 90;
++}
++
+ struct TTEntry {
+     std::uint32_t key32 = 0;
+     Move move{};
+
+diff --git a/src/search.cpp b/src/search.cpp
+--- a/src/search.cpp
++++ b/src/search.cpp
+@@ -687,9 +687,10 @@ int Worker::qsearch(Board& board, SearchStack* ss, int alpha, int beta) {
+     TTEntry* tte = shared_.tt.probe(board.key(), tt_hit);
+     const Move tt_move = tt_hit ? tte->move : Move::none();
+     const int tt_score = tt_hit ? score_from_tt(tte->score, ply) : ValueNone;
++    const bool tt_score_allowed = tt_score_reusable(board.halfmove_clock());
+     const Bound tt_bound = tt_hit ? tte->bound() : BoundNone;
+     const bool tt_pv = pv_node || (tt_hit && tte->pv());
+-    if (!pv_node && tt_hit && tt_score != ValueNone &&
++    if (!pv_node && tt_hit && tt_score != ValueNone && tt_score_allowed &&
+         (tt_bound == BoundExact || (tt_bound == BoundLower && tt_score >= beta) ||
+          (tt_bound == BoundUpper && tt_score <= alpha))) {
+         return tt_score;
+@@ -705,7 +706,7 @@ int Worker::qsearch(Board& board, SearchStack* ss, int alpha, int beta) {
+         if (tt_hit && tte->eval != ValueNone) ss->raw_eval = tte->eval;
+         else ss->raw_eval = static_evaluate(board, ss);
+         eval = ss->static_eval = corrected_eval(board, ss->raw_eval);
+-        if (tt_hit && tt_score != ValueNone &&
++        if (tt_hit && tt_score != ValueNone && tt_score_allowed &&
+             ((tt_bound == BoundLower && tt_score > eval) || (tt_bound == BoundUpper && tt_score < eval) ||
+              tt_bound == BoundExact)) {
+             eval = tt_score;
+@@ -805,13 +806,14 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
+     TTEntry* tte = shared_.tt.probe(board.key(), tt_hit);
+     const Move tt_move = tt_hit ? tte->move : Move::none();
+     const int tt_score = tt_hit ? score_from_tt(tte->score, ply) : ValueNone;
++    const bool tt_score_allowed = tt_score_reusable(board.halfmove_clock());
+     const int tt_depth = tt_hit ? tte->depth : -1;
+     const Bound tt_bound = tt_hit ? tte->bound() : BoundNone;
+     const bool tt_capture = !tt_move.is_none() && tt_move.is_capture();
+     ss->tt_pv = pv_node || (tt_hit && tte->pv());
+ 
+     if (!pv_node && excluded.is_none() && tt_hit && tt_score != ValueNone && tt_depth >= depth &&
+-        board.halfmove_clock() < 90 &&
++        tt_score_allowed &&
+         (tt_bound == BoundExact || (tt_bound == BoundLower && tt_score >= beta) ||
+          (tt_bound == BoundUpper && tt_score <= alpha))) {
+         return tt_score;
+@@ -827,7 +829,7 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
+         if (tt_hit && tte->eval != ValueNone) ss->raw_eval = tte->eval;
+         else ss->raw_eval = static_evaluate(board, ss);
+         eval = ss->static_eval = corrected_eval(board, ss->raw_eval);
+-        if (tt_hit && tt_score != ValueNone &&
++        if (tt_hit && tt_score != ValueNone && tt_score_allowed &&
+             ((tt_bound == BoundLower && tt_score > eval) || (tt_bound == BoundUpper && tt_score < eval) ||
+              tt_bound == BoundExact)) {
+             eval = tt_score;
+@@ -857,7 +859,7 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
+         if (depth >= tune::NullMoveMinDepth && eval >= beta && ss->static_eval >= beta - 24 * depth + 180 &&
+             ss->null_move_allowed && !(ss - 1)->current_move.is_none() &&
+             board.has_non_pawn_material(board.side_to_move()) &&
+-            !(tt_hit && tt_bound == BoundUpper && tt_score < beta)) {
++            !(tt_hit && tt_score_allowed && tt_bound == BoundUpper && tt_score < beta)) {
+             ++null_tries_;
+             const int reduction = tune::NullMoveBase + depth / tune::NullMoveDepthDivisor +
+                                   std::min((eval - beta) / tune::NullMoveEvalDivisor, 3);
+@@ -892,7 +894,7 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
+         // ProbCut: a good capture that beats beta by a margin at reduced depth.
+         const int probcut_beta = beta + tune::ProbcutMargin - 50 * improving;
+         if (depth >= tune::ProbcutDepth && !is_mate_score(beta) &&
+-            !(tt_hit && tt_depth >= depth - 3 && tt_score != ValueNone && tt_score < probcut_beta)) {
++            !(tt_hit && tt_score_allowed && tt_depth >= depth - 3 && tt_score != ValueNone && tt_score < probcut_beta)) {
+             MovePicker picker(board, *this, ss, tt_move, MovePicker::Mode::Quiescence);
+             Move move;
+             while (!(move = picker.next(false)).is_none()) {
+@@ -977,7 +979,7 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
+         // Extensions.
+         int extension = 0;
+         if (!root_node && depth >= tune::SingularDepth && move == tt_move && excluded.is_none() && tt_bound != BoundUpper &&
+-            tt_score != ValueNone && !is_mate_score(tt_score) && tt_depth >= depth - 3) {
++            tt_score_allowed && tt_score != ValueNone && !is_mate_score(tt_score) && tt_depth >= depth - 3) {
+             const int singular_beta = tt_score - tune::SingularMargin * depth;
+             const int singular_depth = (depth - 1) / 2;
+             ss->excluded_move = move;
+
+diff --git a/tests/tests.cpp b/tests/tests.cpp
+--- a/tests/tests.cpp
++++ b/tests/tests.cpp
+@@ -513,6 +513,23 @@ void test_transposition_tag_independence() {
+     }
+ }
+ 
++
++void test_tt_rule50_score_policy() {
++    // TT keys exclude the rule-50 clock; stored search bounds need their own
++    // eligibility check, whereas raw static evaluations and moves do not.
++    forge::Board low_clock;
++    forge::Board high_clock;
++    check(low_clock.set_fen("7k/8/8/8/8/8/8/KR6 w - - 0 1"), "rule50 low-clock FEN parses");
++    check(high_clock.set_fen("7k/8/8/8/8/8/8/KR6 w - - 99 1"), "rule50 high-clock FEN parses");
++    check(low_clock.key() == high_clock.key(), "TT key intentionally excludes rule50 clock");
++    for (const int clock : {0, 25, 89}) {
++        check(forge::tt_score_reusable(clock), "TT search scores reusable below 90 plies");
++    }
++    for (const int clock : {90, 91, 98, 99, 100}) {
++        check(!forge::tt_score_reusable(clock), "TT search scores suppressed near rule50 boundary");
++    }
++}
++
+ } // namespace
+ 
+ int main() {
+@@ -523,6 +540,7 @@ int main() {
+     test_evaluation();
+     test_transposition_table();
+     test_transposition_tag_independence();
++    test_tt_rule50_score_policy();
+     test_search();
+     test_threads();
+     test_nnue();
