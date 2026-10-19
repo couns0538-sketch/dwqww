@@ -1,0 +1,53 @@
+--- /mnt/data/forge_run50/src/chess-engine-forge-5.17.0/tests/tests.cpp	2026-10-05 19:11:12.000000000 +0000
++++ tests/tests.cpp	2026-10-05 21:10:42.671363606 +0000
+@@ -391,8 +391,8 @@
+         check(forge::SearcherTestProbe::quiescence(qsearcher, see_board) ==
+                   forge::Searcher::evaluate(see_board),
+               "quiescence does not bypass SEE for a losing back-rank capture");
+-        check(forge::SearcherTestProbe::nodes(qsearcher) == 1,
+-              "losing promotion-recapture branch is actually pruned");
++        check(see_board.fen() == "7k/8/8/8/8/7K/p7/1rR5 w - - 0 1",
++              "losing promotion-recapture qsearch restores board");
+     }
+     check(see_board.set_fen("1Rr5/P7/7k/8/8/8/8/7K b - - 0 1"),
+           "SEE mirrored promotion-recapture FEN parses");
+@@ -405,9 +405,37 @@
+         check(forge::SearcherTestProbe::quiescence(qsearcher, see_board) ==
+                   forge::Searcher::evaluate(see_board),
+               "quiescence handles mirrored losing back-rank captures");
+-        check(forge::SearcherTestProbe::nodes(qsearcher) == 1,
+-              "mirrored losing promotion-recapture branch is actually pruned");
++        check(see_board.fen() == "1Rr5/P7/7k/8/8/8/8/7K b - - 0 1",
++              "mirrored losing promotion-recapture qsearch restores board");
+     }
++    forge::Board qsee_board;
++    check(qsee_board.set_fen("rnbq1b1r/1p3ppp/p1p1k2n/3pp1B1/6PP/N2P1P1B/PPP1P3/R2QK1NR w KQ - 2 8"),
++          "negative-SEE qsearch regression FEN parses");
++    {
++        const std::string original = qsee_board.fen();
++        forge::Searcher qsearcher(4);
++        check(forge::SearcherTestProbe::quiescence(qsearcher, qsee_board) == 689,
++              "qsearch does not discard a negative-SEE capture that improves the evaluated bound");
++        check(qsee_board.fen() == original,
++              "negative-SEE qsearch regression restores board");
++    }
++    {
++        forge::Searcher searcher(4);
++        forge::SearchLimits limits;
++        limits.depth = 1;
++        const forge::SearchInfo result = searcher.search(qsee_board, limits);
++        check(result.score == 689,
++              "depth-1 public search inherits the corrected qsearch score");
++        check(forge::Board::move_to_uci(result.best_move) == "g5d8",
++              "depth-1 public search preserves the tactical best move");
++    }
++    forge::Board qsee_child;
++    check(qsee_child.set_fen("rnbB1b1r/1p3ppp/p1p1k2n/3pp3/6PP/N2P1P1B/PPP1P3/R2QK1NR b KQ - 0 8"),
++          "negative-SEE child regression FEN parses");
++    const auto qsee_reply = qsee_child.parse_uci("f8a3");
++    check(qsee_reply.has_value() && qsee_child.static_exchange(*qsee_reply) == -10,
++          "negative-SEE tactical reply remains correctly classified by material SEE");
++
+     check(board.legal_moves().size() == 20, "start position has 20 moves");
+     check(board.perft(0) == 1 && board.perft(-1) == 1,
+           "non-positive perft depths terminate at the current leaf");
