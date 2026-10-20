@@ -15,7 +15,9 @@ version19 passed12Release CTests,37320mask checks and95public cached/uncached/fu
 trace positions (61465integers identical). Original first fixture and one relocated
 link-dependency-path failure are preserved; final label-only fixture passes.
 Frozen20 differs from final prototype only in CMake/UCI version strings.
-**Full frozen20native qualification is running; no20speed/Elo/Windows result yet.**
+**Frozen20 first Release12/12 and56cold/warm parent19search parity PASS;**
+bench321912 and compiled NNUE object byte-identical to19. ASan/UBSan remains
+running; full native qualification, Windows and20speed/Elo are not yet established.
 [Source freeze](../validation/pawn-span-fill-native-20261020/ROOT-FROZEN-SOURCE-GATES.json).
 [Public trace evidence](../validation/pawn-span-fill-20261020/independent-review/PUBLIC-DIFFERENTIAL.md).
 Latest fully qualified workload-speed source remains19 below; accepted5101unchanged.
@@ -99,7 +101,7 @@ Final enabled-metadata review PASS; payload `1203e13cfd80451d7194c7fba2f775de71d
 was published and one trigger push remotely verified at21:39:20UTC. Run
 [39502109381](https://github.com/couns0538-sketch/dwqww/actions/runs/39502109381)
 has passed the hosted source-build/test step; combined readiness/SPRT step is
-running at22:44:08UTC. Public metadata does not expose games or prove a particular
+running at23:11:15UTC. Public metadata does not expose games or prove a particular
 readiness subgate. Frozen0/+10,.05errors,equal10+0.1,256paired openings; no observed
 game statistics or Elo result. Do not trigger/retry/resume this experiment.
 Historical17binary/source47proofs remain genuinely labeled47; all72build inputs

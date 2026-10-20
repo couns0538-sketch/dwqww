@@ -1,0 +1,337 @@
+--- .github/hosted-runtime-psqt-performance/analysis.py
++++ .github/hosted-pawn-span-performance/analysis.py
+@@ -2,7 +2,7 @@
+ import math,random,re,statistics
+ EXPECTED_NODES=321912
+ BENCHES_PER_PROCESS=5
+-BOOTSTRAP_SEED=20261027
++BOOTSTRAP_SEED=20261028
+ BOOTSTRAP_DRAWS=10000
+ BENCH_LINE=re.compile(rb'info string bench depth ([1-9][0-9]*) nodes ([1-9][0-9]*) time ([1-9][0-9]*) nps ([1-9][0-9]*)(\r?\n)')
+ def parse_bench(raw):
+--- .github/hosted-runtime-psqt-performance/build_evidence.py
++++ .github/hosted-pawn-span-performance/build_evidence.py
+@@ -8,9 +8,9 @@
+ import tarfile
+ 
+ RELEASE_FLAGS='-O3 -DNDEBUG -march=x86-64-v3 -mtune=generic -fno-fast-math -ffp-contract=off -fno-lto'
+-BASELINE_TESTS=('forge_tests','forge_correction_history_tests','forge_tt_tests','forge_rule50_tests','forge_legal_witness_tests',
++BASELINE_TESTS=('forge_tests','forge_correction_history_tests','forge_runtime_psqt_tests','forge_tt_tests','forge_rule50_tests','forge_legal_witness_tests',
+                 'match_tool_tests','windows_validation_tests','uci_regression','ponder_regression','ownbook_regression')
+-CANDIDATE_TESTS=(*BASELINE_TESTS[:2],'forge_runtime_psqt_tests',*BASELINE_TESTS[2:])
++CANDIDATE_TESTS=(*BASELINE_TESTS[:3],'forge_pawn_span_tests',*BASELINE_TESTS[3:])
+ 
+ def sha(path):return hashlib.sha256(Path(path).read_bytes()).hexdigest()
+ 
+--- .github/hosted-runtime-psqt-performance/common.py
++++ .github/hosted-pawn-span-performance/common.py
+@@ -1,18 +1,26 @@
+ """Frozen preparation gates and byte/mode integrity; no engine execution."""
+ import hashlib,json,os,re,stat
+ from pathlib import Path,PurePosixPath
+-BASELINE='fc51e43c26f735cbc1ffabf0fcf64f48a4592c0b'
+-CANDIDATE='61f598056572dfade6994af8ad2e38817cd28aa3'
++BASELINE='61f598056572dfade6994af8ad2e38817cd28aa3'
++CANDIDATE='fc2391870b3bf2cd4d8fc20c7406ea6439c69c5e'
+ FLAGS='-O3 -DNDEBUG -march=x86-64-v3 -mtune=generic -fno-fast-math -ffp-contract=off -fno-lto'
+-WORKFLOW='.github/workflows/forge-hosted-runtime-psqt-performance.yml'
++WORKFLOW='.github/workflows/forge-hosted-pawn-span-performance.yml'
+ READY='PREREGISTERED_REVIEWED_READY_FOR_SINGLE_PUSH'
+ REQUIRED_PROOFS=(
+- 'validation/correction-history-native-20261020/ROOT-NATIVE-PROOFS.json',
+- 'validation/correction-history-windows-20261020/ROOT-WINDOWS-PROOFS.json',
+  'validation/lazy-runtime-psqt-20261020/root-verification/NATIVE.json',
+- 'validation/lazy-runtime-psqt-native-20261020/ROOT-FROZEN-SOURCE-GATES.json',
+- 'validation/lazy-runtime-psqt-native-20261020/release-parity-wrapper-attempt1/summary.json',
+- 'validation/lazy-runtime-psqt-20261020/root-verification/WINDOWS.json')
++ 'validation/lazy-runtime-psqt-20261020/root-verification/WINDOWS.json',
++ 'validation/pawn-span-fill-20261020/root-verification/NATIVE.json',
++ 'validation/pawn-span-fill-20261020/root-verification/WINDOWS.json',
++ 'validation/pawn-span-fill-native-20261020/ROOT-FROZEN-SOURCE-GATES.json',
++ 'validation/pawn-span-fill-native-20261020/FINAL-RECEIPT.json',
++ 'validation/pawn-span-fill-native-20261020/release-parity-wrapper-attempt1/summary.json',
++ 'validation/pawn-span-fill-20261020/independent-review/SOURCE-CHECK.json',
++ 'validation/pawn-span-fill-20261020/independent-review/PROBE-RECEIPT.json',
++ 'validation/pawn-span-fill-20261020/independent-review/public-diff-attempt1/RESULT.json',
++ 'validation/hosted-pawn-span-performance-20261020/ROOT-PREPARATION-REVIEW.json',
++ 'validation/hosted-pawn-span-performance-20261020/ROOT-ONE-ATTEMPT-AUTHORIZATION.json',
++ 'validation/hosted-pawn-span-performance-20261020/independent-review/REVIEW.json',
++)
+ 
+ STDIN=b'bench 11\n'*5+b'quit\n'
+ def sha(path):return hashlib.sha256(Path(path).read_bytes()).hexdigest()
+@@ -24,12 +32,14 @@
+     return target
+ 
+ def require_ready(cfg):
++    if any(not re.fullmatch('[0-9a-f]{40}',pin) for pin in (BASELINE,CANDIDATE)) or BASELINE==CANDIDATE:
++        raise ValueError('Candidate20 source is not frozen; placeholder cannot become READY')
+     fixed={'status':READY,'baseline_sha':BASELINE,'candidate_sha':CANDIDATE,'compiler':'g++-14','release_flags':FLAGS,'attempts':1,'fault_retries':0,
+-           'bench_depth':11,'expected_nodes':321912,'benches_per_process':5,'excluded_warmup_order':'ABBA','aa_blocks':15,'ab_blocks':31,'bootstrap_seed':20261027,'bootstrap_draws':10000,'sample_timeout_seconds':60,'timing_work_seconds':3600,'build_work_seconds':690,
++           'bench_depth':11,'expected_nodes':321912,'benches_per_process':5,'excluded_warmup_order':'ABBA','aa_blocks':15,'ab_blocks':31,'bootstrap_seed':20261028,'bootstrap_draws':10000,'sample_timeout_seconds':60,'timing_work_seconds':3600,'build_work_seconds':690,
+            'source_gates_status':'PASSED','parity_review_status':'PASSED','capture_review_status':'PASSED','root_review_status':'PASSED','independent_review_status':'PASSED','workflow_status':'FROZEN','operational_qualification_status':'authorized_for_one_fresh_host_calibration_attempt_with_prior_anomalies_unresolved'}
+     if any(cfg.get(k)!=v or type(cfg.get(k)) is not type(v) for k,v in fixed.items()):raise ValueError('Protocol remains blocked or differs from frozen design')
+     if not cfg.get('correctness_evidence_sha256') or not re.fullmatch('[0-9a-f]{64}',str(cfg.get('workflow_sha256',''))):raise ValueError('Proof/workflow freeze missing')
+-    if not set(REQUIRED_PROOFS).issubset(cfg['correctness_evidence_sha256']):raise ValueError('Full current/native/Windows/parity proof binding missing')
++    if cfg.get('mandatory_finite_proof_paths')!=list(REQUIRED_PROOFS) or not set(REQUIRED_PROOFS).issubset(cfg['correctness_evidence_sha256']):raise ValueError('Full current/native/Windows/parity proof binding missing')
+     if set(cfg.get('transport_captures',{}))!={'baseline','candidate'}:raise ValueError('Actual five-command captures pending')
+ 
+ def inventory(repo,package):
+--- .github/hosted-runtime-psqt-performance/prepare_hosted.py
++++ .github/hosted-pawn-span-performance/prepare_hosted.py
+@@ -109,11 +109,11 @@
+     out.mkdir(parents=True,exist_ok=False);work.mkdir(parents=True,exist_ok=False)
+     (out/'source').mkdir();(out/'artifacts').mkdir()
+     cfg=json.loads((HERE/'protocol.json').read_text());deadline=time.monotonic()+BUILD_WORK_SECONDS
+-    state={'status':'pending','protocol':cfg,'source_scope':'Fresh actual18/19source/builds; baseline10/candidate11CTest, no gameplay.'}
++    state={'status':'pending','protocol':cfg,'source_scope':'Fresh actual19/20source/builds; baseline11/candidate12CTest, no gameplay.'}
+     def interrupted(signum,frame):raise KeyboardInterrupt('Build termination signal '+str(signum))
+     signal.signal(signal.SIGTERM,interrupted);signal.signal(signal.SIGINT,interrupted)
+     try:
+-        shutil.copytree(HERE,out/'package');shutil.copyfile(repo/'.github/workflows/forge-hosted-runtime-psqt-performance.yml',out/'workflow.yml')
++        shutil.copytree(HERE,out/'package');shutil.copyfile(repo/'.github/workflows/forge-hosted-pawn-span-performance.yml',out/'workflow.yml')
+         common.require_ready(cfg);common.inventory(repo,HERE)
+         for label in ('baseline','candidate'):
+             if os.environ.get(label.upper()+'_SHA')!=cfg[label+'_sha']:
+--- .github/hosted-runtime-psqt-performance/protocol.json
++++ .github/hosted-pawn-span-performance/protocol.json
+@@ -1,10 +1,10 @@
+ {
+-  "status": "PREREGISTERED_REVIEWED_READY_FOR_SINGLE_PUSH",
+-  "experiment": "hosted-runtime-psqt-performance-20261020-v1",
+-  "baseline_sha": "fc51e43c26f735cbc1ffabf0fcf64f48a4592c0b",
+-  "candidate_sha": "61f598056572dfade6994af8ad2e38817cd28aa3",
+-  "baseline_version": "6.4.18",
+-  "candidate_version": "6.4.19",
++  "status": "DRAFT_BLOCKED_PREPARATION_ONLY",
++  "experiment": "hosted-pawn-span-performance-20261020-v1",
++  "baseline_sha": "61f598056572dfade6994af8ad2e38817cd28aa3",
++  "candidate_sha": "fc2391870b3bf2cd4d8fc20c7406ea6439c69c5e",
++  "baseline_version": "6.4.19",
++  "candidate_version": "6.4.20-FROZEN-IDENTITY-QUALIFICATION-PENDING",
+   "compiler": "g++-14",
+   "release_flags": "-O3 -DNDEBUG -march=x86-64-v3 -mtune=generic -fno-fast-math -ffp-contract=off -fno-lto",
+   "build_parallelism": 2,
+@@ -22,8 +22,8 @@
+   "ab_blocks": 31,
+   "order": "ABBA for even0-basedblock, BAAB for oddblock; resetindexeachphase",
+   "aa_sources": "A andB bothbaselineexactSAMEbinary",
+-  "ab_sources": "A baseline18, B candidate19",
+-  "bootstrap_seed": 20261027,
++  "ab_sources": "A baseline19, B candidate20",
++  "bootstrap_seed": 20261028,
+   "bootstrap_draws": 10000,
+   "bootstrap_unit": "31 whole counterbalanced blocks; sameindices CPU/wall",
+   "bootstrap_percentile": "linear interpolation at(N-1)*q forq.025/.975",
+@@ -45,87 +45,50 @@
+     "planned_fresh_processes": 188,
+     "planned_bench_commands": 940
+   },
+-  "source_gates_status": "PASSED",
+-  "parity_review_status": "PASSED",
+-  "capture_review_status": "PASSED",
+-  "root_review_status": "PASSED",
+-  "independent_review_status": "PASSED",
+-  "operational_qualification_status": "authorized_for_one_fresh_host_calibration_attempt_with_prior_anomalies_unresolved",
+-  "correctness_evidence_sha256": {
+-    "validation/hosted-runtime-psqt-performance-20261020/actual-five-captures/baseline/stdin.txt": "e11d38857ffe822b5b7d777db2a69365a4bb19031862ea5c767d60847fd2dcec",
+-    "validation/hosted-runtime-psqt-performance-20261020/actual-five-captures/baseline/stdout.txt": "c1d3cf3b3d265964cc8935e9bf65eca1e0587fe58bd39acb45c4e5c23114b561",
+-    "validation/hosted-runtime-psqt-performance-20261020/actual-five-captures/baseline/stderr.txt": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+-    "validation/hosted-runtime-psqt-performance-20261020/actual-five-captures/baseline/status.json": "deaca64a4a261d9fe0555255da24d98dfcffa978f40fab8da15f2a29fee9ebad",
+-    "validation/hosted-runtime-psqt-performance-20261020/actual-five-captures/PROVENANCE.json": "9ccbaa8ece34c52daaed8b7b6326ad8319f5bb67ae58a0b443ee86a57a4586df",
+-    "validation/hosted-runtime-psqt-performance-20261020/actual-five-captures/baseline/command.json": "8f57c2a1fc74d36130bcb7f6bd4cb4955bf3fcb1ea002acfa55ed60333c5b4e6",
+-    "validation/hosted-runtime-psqt-performance-20261020/actual-five-captures/baseline/status-before-verdict.json": "92218275ee82eeb81c64a0dea9ffa2390d8208bef1f7dfde1be5b1148770b10c",
+-    "validation/correction-history-native-20261020/frozen-source-fc51e43-files.json": "29db01f9a89a275f3a603c54606a07233a75caebd0212240ba38ebd7282ec08a",
+-    "validation/hosted-runtime-psqt-performance-20261020/actual-five-captures/candidate/stdin.txt": "e11d38857ffe822b5b7d777db2a69365a4bb19031862ea5c767d60847fd2dcec",
+-    "validation/hosted-runtime-psqt-performance-20261020/actual-five-captures/candidate/stdout.txt": "8840fd39c7bb68158a7844da14c1f8d18334fbea015497e92247e1a295784a8e",
+-    "validation/hosted-runtime-psqt-performance-20261020/actual-five-captures/candidate/stderr.txt": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+-    "validation/hosted-runtime-psqt-performance-20261020/actual-five-captures/candidate/status.json": "4c3932e8e50a8f88347bb2a9864e7064167f0ccd1f6735679cdc519f09b7f8e5",
+-    "validation/hosted-runtime-psqt-performance-20261020/actual-five-captures/candidate/command.json": "12a91c86468a5377afcf146571079696f6670af6fadf732094a40eb897aba7ec",
+-    "validation/hosted-runtime-psqt-performance-20261020/actual-five-captures/candidate/status-before-verdict.json": "78b01cb262f5e5674c6c43d819a6bb14076588f646f705a568cd146a89bc07ba",
+-    "validation/lazy-runtime-psqt-native-20261020/ROOT-FROZEN-SOURCE-GATES.json": "42659ddc80fe913ece31d5182b58d4727ea7f454fc41830b5015ac316c8ec714",
+-    "validation/hosted-runtime-psqt-performance-20261020/actual-five-captures/owned_process.executed.py": "de13ad7c32832144a75f9c5080558f3c3e08952390eece6d70bd249058dcebea",
+-    "validation/hosted-runtime-psqt-performance-20261020/capture_actual_five.py": "0cae2cd9fd072947033b7941eb48eb723d3c2c35d62ff366d73e0252543d0f4f",
+-    "validation/correction-history-native-20261020/ROOT-NATIVE-PROOFS.json": "c6b2788a1fc562e757eb9c5958b96dbf6662a7fec858493099a418f7084d1741",
+-    "validation/correction-history-windows-20261020/ROOT-WINDOWS-PROOFS.json": "07c5e66ca6fa88fe6136e3386fa0fc5f8b0ecea0c403448640068bf6f454ad9f",
+-    "validation/lazy-runtime-psqt-20261020/root-verification/NATIVE.json": "853b415e4b149cbe12e67f28cb9710bdf86332578dba640d87cd228475254f1f",
+-    "validation/lazy-runtime-psqt-native-20261020/release-parity-wrapper-attempt1/summary.json": "2db14e24a58e0f46cb75c6a42689a4601e509327dd1bf1ba1e68d9bea98ba7dd",
+-    "validation/lazy-runtime-psqt-20261020/root-verification/WINDOWS.json": "d7f9c74d0874f4f799da49ae286523e2b02eb82b1d0b81b98b286bac6ee1659c",
+-    "validation/lazy-runtime-psqt-native-20261020/FINAL-RECEIPT.json": "0b967e961a559decc091a0a446a36514e6d4f9a103d7d5c44c5cd3b909410f81",
+-    "validation/lazy-runtime-psqt-native-20261020/EVIDENCE-SHA256SUMS": "a7d04202c52d2826b51b76a47e46a7761d79236f0d4b3c8c5a83c2a452754bd5",
+-    "validation/lazy-runtime-psqt-windows-20261020/FINAL-STATUS.json": "db17bc09d7718641a9352dca833855c1579218e171cb93da09dc4bf53943bdcc",
+-    "validation/lazy-runtime-psqt-windows-20261020/independent-audit.json": "a3fdce21e9c06feef16c1d7b4def6758794d5c5c70d76b35def889975d5ba47f",
+-    "validation/lazy-runtime-psqt-windows-20261020/windows-originals-verification.json": "f70b979f15312e9ca079ee36708c57d2757eda75743e272005c225401e836dcc",
+-    "validation/hosted-runtime-psqt-performance-20261020/ROOT-ONE-ATTEMPT-AUTHORIZATION.json": "4071c8c702f50c3e2c73e445dc45784de5536cff1d14fb26d47e8d8a58478326",
+-    "validation/hosted-runtime-psqt-performance-20261020/ROOT-PREPARATION-REVIEW.json": "68427a236da2053f55d8c4f70b1d572cf37171e1b0761411dc7e631c43b5b682",
+-    "validation/hosted-runtime-psqt-performance-20261020/independent-review/REVIEW.json": "db301bab3a0b574816c309599477f2a416f3890d4fd7020c433fb5a72bc20ea0",
+-    "validation/hosted-runtime-psqt-performance-20261020/independent-review/REPORT.md": "e6214265b0b8b080ecc9e3df5b1e8e474816131621f1b1690c9009dc9aa469aa"
+-  },
+-  "transport_captures": {
+-    "baseline": {
+-      "source_commit": "fc51e43c26f735cbc1ffabf0fcf64f48a4592c0b",
+-      "engine_sha256": "aade76ec56ee89f013d94712c1185a0bbb06a4aa18ce47665b76afc9f5a3d40d",
+-      "stdin_path": "validation/hosted-runtime-psqt-performance-20261020/actual-five-captures/baseline/stdin.txt",
+-      "stdout_path": "validation/hosted-runtime-psqt-performance-20261020/actual-five-captures/baseline/stdout.txt",
+-      "stderr_path": "validation/hosted-runtime-psqt-performance-20261020/actual-five-captures/baseline/stderr.txt",
+-      "facts_path": "validation/hosted-runtime-psqt-performance-20261020/actual-five-captures/baseline/status.json",
+-      "provenance_path": "validation/hosted-runtime-psqt-performance-20261020/actual-five-captures/PROVENANCE.json",
+-      "source_manifest_path": "validation/correction-history-native-20261020/frozen-source-fc51e43-files.json"
+-    },
+-    "candidate": {
+-      "source_commit": "61f598056572dfade6994af8ad2e38817cd28aa3",
+-      "engine_sha256": "6f253b3dcab093816bb8228ad970ce013bfaee3a496e9c4dc87d0b9358476534",
+-      "stdin_path": "validation/hosted-runtime-psqt-performance-20261020/actual-five-captures/candidate/stdin.txt",
+-      "stdout_path": "validation/hosted-runtime-psqt-performance-20261020/actual-five-captures/candidate/stdout.txt",
+-      "stderr_path": "validation/hosted-runtime-psqt-performance-20261020/actual-five-captures/candidate/stderr.txt",
+-      "facts_path": "validation/hosted-runtime-psqt-performance-20261020/actual-five-captures/candidate/status.json",
+-      "provenance_path": "validation/hosted-runtime-psqt-performance-20261020/actual-five-captures/PROVENANCE.json",
+-      "source_manifest_path": "validation/lazy-runtime-psqt-native-20261020/ROOT-FROZEN-SOURCE-GATES.json"
+-    }
+-  },
+-  "workflow_status": "FROZEN",
+-  "workflow_sha256": "ef4b1e7c41a41fd0797ed4720278071b372dedf03a649e91b8fa63c0684953ca",
++  "source_gates_status": "BLOCKED_PENDING_GENUINE_20_INPUTS",
++  "parity_review_status": "BLOCKED_PENDING_GENUINE_20_INPUTS",
++  "capture_review_status": "BLOCKED_PENDING_GENUINE_20_INPUTS",
++  "root_review_status": "BLOCKED_PENDING_GENUINE_20_INPUTS",
++  "independent_review_status": "BLOCKED_PENDING_GENUINE_20_INPUTS",
++  "operational_qualification_status": "BLOCKED_NO_LAUNCH_AUTHORIZATION",
++  "correctness_evidence_sha256": {},
++  "transport_captures": {},
++  "workflow_status": "DISABLED",
++  "workflow_sha256": "3a67871f1371b5a8b08c26ed0aa9c6d14588057c0166a4ffd39a719fb9f2239a",
+   "scope_exclusions": [
+     "Elo/playingstrength",
+     "nativeWindows/Ryzen",
+     "absoluteNPSfrominfo",
+-    "purePSQTkernel",
++    "purepawnspankernel",
+     "generalclockreliability"
+   ],
+   "prior_anomalies": "LocalA/Anativeenvironmentfailednoisegates; no localrepeat. Old14bench60stimeout/16failedbatch/17harnessfailure/TTforfeit retainedunresolved. Onefreshhostedcalibrationattemptonlyafterfullcurrentgates/reviews; notoldretry.",
+-  "retention": "Allcommands/stdin/stdoutstderr/status/perprocessuser/systemCPU/wall/preverdict+postcleanupfacts; exactsources/sourceTAR/cores/binaries/compilerflags/configs/10baseline+11candidateoriginalCTest/LastTest; finallybyteANDmoderehash; verifiedsplitarchives/upload/freshresultsbranch evenonfailure.",
+-  "actual_five_capture_gate": "Bothrootactualfive-command originals independentlyreplayed/hash/source/binary/process/affinityverified; oldexecutedhelperde13preservedexact, futurefault-onlyhelperfixseparatelyproven. Transportproofonly, no speedinference.",
+-  "remaining_proof_inputs": [],
++  "retention": "Allcommands/stdin/stdoutstderr/status/perprocessuser/systemCPU/wall/preverdict+postcleanupfacts; exactsources/sourceTAR/cores/binaries/compilerflags/configs/11baseline+12candidateoriginalCTest/LastTest; finallybyteANDmoderehash; verifiedsplitarchives/upload/freshresultsbranch evenonfailure.",
++  "actual_five_capture_gate": "BLOCKED: actual frozen20 candidate five-command capture and truthful original19 baseline provenance required; historical18/19 fixtures are unit parser bytes only",
++  "remaining_proof_inputs": [
++    "frozen20 identity fc2391870b3bf2cd4d8fc20c7406ea6439c69c5e supplied; actual75 source proof final binding and complete native qualification pending",
++    "actual source19 baseline11 and source20 candidate12 fresh hosted build evidence",
++    "actual complete candidate20 native and Windows root proofs",
++    "actual exact cold/warm source19/source20 parity and public trace/source proofs",
++    "genuine frozen-source actual five-command transport capture provenance",
++    "root preparation and independent reviews of final enabled metadata",
++    "one-attempt root authorization before any trigger"
++  ],
+   "launches_during_preparation": 0,
+   "mandatory_finite_proof_paths": [
+-    "validation/correction-history-native-20261020/ROOT-NATIVE-PROOFS.json",
+-    "validation/correction-history-windows-20261020/ROOT-WINDOWS-PROOFS.json",
+     "validation/lazy-runtime-psqt-20261020/root-verification/NATIVE.json",
+-    "validation/lazy-runtime-psqt-native-20261020/ROOT-FROZEN-SOURCE-GATES.json",
+-    "validation/lazy-runtime-psqt-native-20261020/release-parity-wrapper-attempt1/summary.json",
+-    "validation/lazy-runtime-psqt-20261020/root-verification/WINDOWS.json"
+-  ]
++    "validation/lazy-runtime-psqt-20261020/root-verification/WINDOWS.json",
++    "validation/pawn-span-fill-20261020/root-verification/NATIVE.json",
++    "validation/pawn-span-fill-20261020/root-verification/WINDOWS.json",
++    "validation/pawn-span-fill-native-20261020/ROOT-FROZEN-SOURCE-GATES.json",
++    "validation/pawn-span-fill-native-20261020/FINAL-RECEIPT.json",
++    "validation/pawn-span-fill-native-20261020/release-parity-wrapper-attempt1/summary.json",
++    "validation/pawn-span-fill-20261020/independent-review/SOURCE-CHECK.json",
++    "validation/pawn-span-fill-20261020/independent-review/PROBE-RECEIPT.json",
++    "validation/pawn-span-fill-20261020/independent-review/public-diff-attempt1/RESULT.json",
++    "validation/hosted-pawn-span-performance-20261020/ROOT-PREPARATION-REVIEW.json",
++    "validation/hosted-pawn-span-performance-20261020/ROOT-ONE-ATTEMPT-AUTHORIZATION.json",
++    "validation/hosted-pawn-span-performance-20261020/independent-review/REVIEW.json"
++  ],
++  "prototype_note": "Initial prototype5ad72e16 remains historical; final frozen20 identity fc2391870b3bf2cd4d8fc20c7406ea6439c69c5e is not a native/Windows/capture/performance qualification."
+ }
+--- .github/hosted-runtime-psqt-performance/README.md
++++ .github/hosted-pawn-span-performance/README.md
+@@ -1,44 +1,46 @@
+-This frozen package permits one restricted first-attempt trigger push after the
+-final enabled-metadata review. Root authorization and prior failed attempts are
+-retained in validation/hosted-runtime-psqt-performance-20261020/. No performance
+-result follows from READY metadata or workflow status.
++Preparation checkpoint only. The workflow has `on: []` and `if: false`.
++Source20 is frozen as `fc2391870b3bf2cd4d8fc20c7406ea6439c69c5e`; this is
++source identity only. Complete actual native/Windows/capture qualification and
++reviews remain blocked. The source guard also explicitly rejects pending pins.
+ 
+-This compares source18 fc51e43 with exact-evaluation optimization19 61f5980 on
+-one native GitHub Linux CPU. Fresh GCC14 builds use identical x86-64-v3/generic,
+-no-LTO and strict floating-point flags. Complete original baseline10 and
+-candidate11 named CTests, exact source archives, actual compiled cores/binaries,
+-compiler/cache/commands and process evidence are mandatory before sampling.
++This prepares source19 `61f598056572dfade6994af8ad2e38817cd28aa3` versus future
++frozen20 pawn-span fill. Source20 is not the initial prototype5ad72e16. Actual
++source20 native/Windows/parity/root review and source/public-trace proofs plus
++both genuine source19/source20 five-command captures remain required. Initial
++public-differential and source-review records keep their genuine prototype
++identities; final root binding must document actual source equivalence, not
++rewrite original labels. No PASSED metadata or real capture is assumed here.
+ 
+-Each sample is one fresh process receiving five `bench 11` commands and `quit`.
+-It must emit exactly five canonical 321912-node rows with empty stderr and normal
+-process/group completion. The existing bench path uses T1 and Hash16, creates
+-five Searcher objects and searches40 fixed FENs. External exact-child user+system
+-CPU and whole-process wall include startup/weights initialization and allocation;
+-internal info time/NPS are retained but do not estimate the performance gain.
++The trusted19 collector, parser and analysis are reused. `owned_process.py`,
++`archive_results.py` and `run_hosted.py` are byte-identical to19. Analysis changes
++only bootstrap seed20261027 to preregistered20261028, before any new timings.
++Build guard changes only the named suites: baseline11, candidate12 with
++`forge_pawn_span_tests` fourth after core/correction/runtime PSQT. Collector
++changes package/workflow naming and truthful19/20/11/12 labels only.
+ 
+-One excluded ABBA warmup block precedes15 same-baseline A/A blocks. A/A must meet
+-the frozen CPU and wall median .99..1.01 and every-block .95..1.05 gates. Failure
+-stops before A/B without retry or waiver. Then31 A/B blocks alternate ABBA/BAAB.
+-The paired whole-block log ratios use a seeded10000-draw bootstrap. A gain is
+-verified only when both95% lower limits exceed1 and all final byte/mode checks
+-pass. This supports this whole-process Linux workload only; it does not establish
+-Elo, a pure PSQT kernel gain, Ryzen behavior, or native Windows performance.
++The frozen design is one excluded ABBA warmup,15 same-baseline A/A blocks,
++then31 alternating ABBA/BAAB A/B blocks:188 fresh processes,940 bench commands.
++Each process receives five `bench 11` commands and `quit`, requires exactly five
++canonical321912-node rows, normal observed completion and empty stderr. Bench
++uses T1/Hash16. Exact-child user+system CPU and whole-process wall include
++startup/weights/allocation. GCC14 x86-64-v3/generic flags retain strict FP,
++no fast-math, no LTO. All actual source archives/PAX/inventories, source-export
++facts, cores/executables, compiler/config/commands, named CTests/LastTest and all
++consumed proofs join the final byte AND mode rehash. Missing inputs fail closed.
+ 
+-The actual18/19 five-command producer fixtures are copied without transformation
+-and bound to original source/binary/process provenance. Derived CRLF/numerical
+-unit fixtures are identified as derived. Root captures used the preserved de13
+-helper. The future helper adds fault-only cleanup when ownership construction
+-fails after Popen or evidence persistence raises; it does not relabel or repeat
+-the original captures.
++A/A CPU and wall median ratios must both lie .99..1.01 and every block within
++.95..1.05. Failure stops before A/B without retry. Only complete31-block A/B,
++both95% whole-block bootstrap lower limits>1 and final unchanged inputs permit
++a gain claim. Sample limit60s, work3600s, build690s retain the19 cleanup headroom.
++This addresses this whole-process hosted Linux workload only; Elo, Ryzen,
++native Windows and isolated pawn-span kernel gain require separate evidence.
+ 
+-Run offline checks with `python3 -B -m unittest discover -s
+-validation/hosted-runtime-psqt-performance-20261020 -p 'test_*.py' -v`. Those checks
+-use benign child processes and real captured benchmark bytes. The historical
+-draft-only assertion is preserved under pre-enable-disabled; its READY successor
+-checks the actual frozen protocol and a deliberately blocked metadata control.
+-The fixture metadata-only READY case is synthetic and never verifies real gates.
+-
+-All raw stage/sample streams and facts are retained before verdict, frozen input
+-bytes and modes are rehashed finally, and the unchanged trusted archive helper
+-verifies split archives. Original prior failures and local A/A noise remain in
+-their original evidence trees; no prior performance or strength outcomes are pooled.
++`fixtures/historical-18-19/` preserves immutable actual18/19 fixture bytes and
++original ORIGIN.json without transformation. Those historical candidate19
++labels never denote20. Offline tests reuse them for grammar/sample validation;
++the new eleven/twelve-suite build schema uses explicitly DERIVED inert records
++and a dummy unit PAX pin. It does not establish actual20 build qualification.
++Run `python3 -B -m unittest discover -s
++validation/hosted-pawn-span-performance-20261020 -p 'test_*.py' -v`.
++Unchanged helper fault coverage is reused by exact source-byte identity; the
++trusted19 49-test evidence and final audit remain immutable.

@@ -4,7 +4,8 @@ Active20sourcefc2391870b3bf2cd4d8fc20c7406ea6439c69c5e is now frozen and publish
 pawn attack-span fill, preserving19qualified gains. Prototype12Release/37320mask
 checks and95publictracepositions PASS. Root authorized ONE serial freshnativechain:
 Release12→bench321912+56parent19cold/warmsearches→ASan12→defaultTSan12→8activeUCI→
-originalsnapshot→independentfullaudit. It is running; no frozen20pass assertedyet.
+originalsnapshot→independentfullaudit. First frozen20Release12/12 and56search parity passed; ASan is running. No full
+native/Windows qualification or20speed/Elo result yet.
 Do not duplicate any process or mutate frozen source. Windows20preparation is closed
 untilrootfullnativeclearance. New performance-only packet is explicitly disabled,
 with actual20native/Windows proofs and five-command captures still pending.
@@ -21,7 +22,7 @@ with actual20native/Windows proofs and five-command captures still pending.
    based only on this workload speed result. Next bounded source is20pawn-span fill described above.
 2. Monitor the separate18vs17 equal10+0.1 SPRT run
    [39502109381](https://github.com/couns0538-sketch/dwqww/actions/runs/39502109381).
-   Payload1203e13, baselineb5908f0 versusfc51e43. At22:44:08UTC its build/test step
+   Payload1203e13, baselineb5908f0 versusfc51e43. At23:11:15UTC its build/test step
    passed and combinedreadiness/SPRT remained running; game counts/WLD/Elo unknown.
    Its frozen0/+10,.05errors,4AA+256SPRTpairs,serialT1/Hash32/OwnBookfalse and18000s
    emergency remain unchanged. Results branch is
@@ -58,7 +59,10 @@ now covers canonical producer captures, mandatory source/build/final-hash eviden
 permissions/time-budget headroom, and unconditional owned-child cleanup plus
 original affinity restoration even when evidence hashing/saving fails. New scenario
 and independent seven-criterion application pass; repository-local files are saved.
-Cloud/executor skill catalogs and skill-creator are not exposed; no global/cloud
-installation is claimed. Native C++20/GCC14.2 and crossLLVM-MinGW23.1.3 are verified.
+Root cloud/executor catalogs and skill-creator are not exposed. A preparation
+subagent could read four scoped cloud SKILL.md resources; exact tool receipts and
+contents are retained in validation/hosted-pawn-span-performance-20261020/skills/.
+Their eight required reference reads failed and are documented; no bundled helpers
+or root/global installation are claimed. Native C++20/GCC14.2 and crossLLVM-MinGW23.1.3 are verified.
 Hosted jobs can continue independently; no persistent12hour model, automatic restart
 or sixhour chat-report scheduler is verified. Save actual observations frequently.
