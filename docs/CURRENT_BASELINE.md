@@ -1,9 +1,11 @@
 # Current baseline
 
-Accepted integration `forge/6.4-hourly-20261019` is still
-`356e863dbd86d2ce24b8ee9486d7406f1d525480` (remote checked2026-10-20 20:42UTC).
-It preserves the TT index/signature and timed-only admission-clock repairs.
-No accepted equal-time Elo gain is established.
+Accepted integration `forge/6.4-hourly-20261019` is now
+`5101c2529d386b7c3a04ba9156a69ee34df6bb43` (remote fast-forward verified
+2026-10-20 20:44:42UTC). It adds the existing one-line OwnBook repair af19413 and
+its unchanged native regression to356e863, preserving the TT and timed-only clock
+repairs. Acceptance is for the finite book contract; no accepted equal-time Elo gain.
+[Integration receipt](../validation/accepted-ownbook-integration-20261020/INTEGRATION.json).
 
 Latest isolated finite-correctness-tested engine is **Forge6.4.17**, source
 `47f0560221d986e41a309853e1295c557fcf5bf6`, on
@@ -38,14 +40,16 @@ no Elo estimate, confidence interval, NPS comparison or H0/H1 decision.**
 [Independent audit](../validation/hosted-promotion-see-strength-20261020/final-audit/REPORT.md).
 No match is currently running; no retry, resume or second trigger has occurred.
 
-The accepted356lineage still has the external-book OwnBook=false bypass. Existing
-repair `af1941375111717f415a46d9ce0224c329034466` and regression-test child
-`5101c2529d386b7c3a04ba9156a69ee34df6bb43` are being independently validated;
-source17already contains the semantic repair. Fresh baseline/candidate Release4/4
-and candidateASan/UBSan4/4 pass; unchanged original book tests reproduce the parent
-leak and suppress it in the candidate. Integration review is pending. Historical
-CI success metadata was verified, but its authenticated original artifact could
-not be retrieved; the fresh local originals are separate evidence.
+The accepted-lineage OwnBook bypass was reproduced on356e863. Exactexisting
+repair af1941375111717f415a46d9ce0224c329034466 and child5101c252 passed both
+Release4/4 suites and candidateASan/UBSan4/4; unchanged original book tests
+reproduced the parent leak and suppressed it in both candidate profiles.
+The independent807check audit and root76payload/binary-byte review passed.
+Evidence was published at67aa4fed2a4f0d9d46d395e7815420001028e3fb before the
+non-forced fast-forward. Current17lineage merges5101at3105720 with every production
+byte unchanged; source47f0560 and its failed frozen attempt remain immutable.
+Historical CI success metadata was verified, but authenticated original artifacts
+could not be retrieved; the fresh local originals are separate evidence.
 
 Both user handoffs are manifest/byte verified (145shutdown +28clock-replay payloads).
 The original108.696ms response,84.647ms last-info discrepancy and0.049ms final gap

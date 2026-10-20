@@ -1,0 +1,65 @@
+test_nonzero_exit_is_preserved (__main__.RealBenignProcessFacts.test_nonzero_exit_is_preserved) ... FAIL
+test_original_ten_second_guard_and_cleanup_are_preserved (__main__.RealBenignProcessFacts.test_original_ten_second_guard_and_cleanup_are_preserved) ... FAIL
+test_parser_rejection_retains_exit_zero_and_hashes (__main__.RealBenignProcessFacts.test_parser_rejection_retains_exit_zero_and_hashes) ... FAIL
+test_stderr_rejection_retains_exit_zero (__main__.RealBenignProcessFacts.test_stderr_rejection_retains_exit_zero) ... FAIL
+test_success_facts (__main__.RealBenignProcessFacts.test_success_facts) ... FAIL
+
+======================================================================
+FAIL: test_nonzero_exit_is_preserved (__main__.RealBenignProcessFacts.test_nonzero_exit_is_preserved)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/dwqww/validation/chess-bench-parser-repair-20261020/test_process_facts.py", line 59, in test_nonzero_exit_is_preserved
+    def test_nonzero_exit_is_preserved(self): self.probe('nonzero', 7, False)
+                                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/dwqww/validation/chess-bench-parser-repair-20261020/test_process_facts.py", line 35, in probe
+    self.assertTrue(facts_path.exists(), f'Completed-process facts missing after {mode}: {error}')
+AssertionError: False is not true : Completed-process facts missing after nonzero: Candidate bench signature/exit/warning failure
+
+======================================================================
+FAIL: test_original_ten_second_guard_and_cleanup_are_preserved (__main__.RealBenignProcessFacts.test_original_ten_second_guard_and_cleanup_are_preserved)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/dwqww/validation/chess-bench-parser-repair-20261020/test_process_facts.py", line 61, in test_original_ten_second_guard_and_cleanup_are_preserved
+    def test_original_ten_second_guard_and_cleanup_are_preserved(self): self.probe('timeout', -signal.SIGINT, False)
+                                                                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/dwqww/validation/chess-bench-parser-repair-20261020/test_process_facts.py", line 35, in probe
+    self.assertTrue(facts_path.exists(), f'Completed-process facts missing after {mode}: {error}')
+AssertionError: False is not true : Completed-process facts missing after timeout: Command '['/workspace/dwqww/validation/chess-bench-parser-repair-20261020/benign_fixture.py']' timed out after 9.997593436011812 seconds
+
+======================================================================
+FAIL: test_parser_rejection_retains_exit_zero_and_hashes (__main__.RealBenignProcessFacts.test_parser_rejection_retains_exit_zero_and_hashes)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/dwqww/validation/chess-bench-parser-repair-20261020/test_process_facts.py", line 58, in test_parser_rejection_retains_exit_zero_and_hashes
+    def test_parser_rejection_retains_exit_zero_and_hashes(self): self.probe('malformed', 0, False)
+                                                                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/dwqww/validation/chess-bench-parser-repair-20261020/test_process_facts.py", line 35, in probe
+    self.assertTrue(facts_path.exists(), f'Completed-process facts missing after {mode}: {error}')
+AssertionError: False is not true : Completed-process facts missing after malformed: None
+
+======================================================================
+FAIL: test_stderr_rejection_retains_exit_zero (__main__.RealBenignProcessFacts.test_stderr_rejection_retains_exit_zero)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/dwqww/validation/chess-bench-parser-repair-20261020/test_process_facts.py", line 60, in test_stderr_rejection_retains_exit_zero
+    def test_stderr_rejection_retains_exit_zero(self): self.probe('stderr', 0, False)
+                                                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/dwqww/validation/chess-bench-parser-repair-20261020/test_process_facts.py", line 35, in probe
+    self.assertTrue(facts_path.exists(), f'Completed-process facts missing after {mode}: {error}')
+AssertionError: False is not true : Completed-process facts missing after stderr: Candidate bench signature/exit/warning failure
+
+======================================================================
+FAIL: test_success_facts (__main__.RealBenignProcessFacts.test_success_facts)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/dwqww/validation/chess-bench-parser-repair-20261020/test_process_facts.py", line 57, in test_success_facts
+    def test_success_facts(self): self.probe('canonical', 0, True)
+                                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/dwqww/validation/chess-bench-parser-repair-20261020/test_process_facts.py", line 35, in probe
+    self.assertTrue(facts_path.exists(), f'Completed-process facts missing after {mode}: {error}')
+AssertionError: False is not true : Completed-process facts missing after canonical: Candidate bench signature/exit/warning failure
+
+----------------------------------------------------------------------
+Ran 5 tests in 10.948s
+
+FAILED (failures=5)

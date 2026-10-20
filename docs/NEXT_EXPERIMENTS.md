@@ -1,11 +1,10 @@
 # Next experiments
 
-1. Finish and independently review the existing accepted-lineage OwnBook repair:
-   baseline356e863 versus exact child5101c252 (one production-line fix plus original
-   regression). Release4/4 each and candidateASan/UBSan4/4 passed; original book tests
-   reproduce/suppress the bypass. Publish raw evidence before integration. Recheck
-   remote integration head; fast-forward only if ancestry and validation remain
-   appropriate. Preserve any newer accepted work and current17candidate.
+1. OwnBook integration is complete: accepted5101c252 fast-forwarded from356e863
+   after12CTest/15original book checks, independent807check and root76payload audit.
+   Verify/archive all live source/build originals and publish the integration receipt.
+   Candidate17lineage merges the accepted test with production bytes unchanged.
+
 2. Complete offline future-only readiness-parser regression using the actual native
    and hosted17stdout/stderr bytes. Require canonical `info string bench ...`,
    strict expected node count, malformed/duplicate/status/stderr/warning rejection,

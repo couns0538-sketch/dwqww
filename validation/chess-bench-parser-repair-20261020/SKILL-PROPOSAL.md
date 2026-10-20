@@ -1,0 +1,7 @@
+Proposed addition to existing `.agents/skills/validating-chess-strength/SKILL.md`, under “Operational gates”; **not applied**:
+
+> Before launch, test each readiness/acceptance parser against byte-exact canonical output captured from the actual frozen producer and intended transport. Preserve capture provenance/hashes and distinguish original bytes from derived LF/CRLF cases. A synthetic GOOD fixture must not invent a dialect absent from the producer. Verify captured positive cases and malformed, duplicate, warning, stderr and nonzero-exit negative controls before freezing the harness.
+>
+> Persist process observations before evaluating assertions: command/stdin, return code (or explicit unknown), stdout/stderr hashes and owned process-group observations. On every failure/timeout, retain both pre-verdict and post-cleanup observations, including distinct hashes, cleanup actions/errors and final return code/group state. A passing parser replay with an assumed exit code does not establish the failed original process's exit status or rescue its experiment.
+
+This extends the existing strength skill instead of creating a duplicate. The accompanying captured-byte RED/GREEN and benign-process failure tests validate the concrete practice; they establish no engine speed, clock reliability or Elo. No cloud skill creation/installation is claimed, and the repository skill remains unchanged pending root review.

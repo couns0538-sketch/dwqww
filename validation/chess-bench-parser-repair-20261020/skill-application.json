@@ -1,0 +1,103 @@
+{
+  "status": "PASS_READ_ONLY_APPLICATION_AND_STATIC_DOCUMENT_CHECKS",
+  "checked_at_utc": "2026-10-20T20:49:37.849451+00:00",
+  "agent_task": "strength_skill_application",
+  "scope": "Fresh application of the current repository-local skill to three supplied cases, plus static frontmatter/link checks; writes limited to these two application artifacts.",
+  "source_sha256": {
+    ".agents/skills/validating-chess-strength/SKILL.md": "98346e940173878d2dd0b7f21f908343cf9fef7b400baed312a6f62de2e59b37",
+    ".agents/skills/validating-chess-strength/scenarios.md": "1e2ee8a55381a1205fb985f08995f96213b1bc0cac64157f6eb32fd355988337",
+    "validation/chess-bench-parser-repair-20261020/REPORT.md": "b11e22f6587ee6eea0f4f353d9f5be82d39abf6ce2b826ceb3b53f144d8bb62f",
+    "validation/chess-bench-parser-repair-20261020/SKILL-PROPOSAL.md": "be705c328a80e7073134a89a07f07b429b0cead3a8d4594396a07d2acc762201",
+    "validation/chess-bench-parser-repair-20261020/FINAL-VERIFY.json": "985a1cc8e7ce12f034e24a00125f7faa1f0c1180b79c1c3f1a66163a1afef334"
+  },
+  "frontmatter": {
+    "status": "PASS",
+    "python_executable": "/usr/bin/python3",
+    "pyyaml_version": "6.0.2",
+    "pyyaml_module": "/usr/lib/python3/dist-packages/yaml/__init__.py",
+    "parsed": {
+      "name": "validating-chess-strength",
+      "description": "Use when evaluating chess-engine Elo or Stockfish claims, planning Fastchess paired matches or SPRT, encountering timeouts or incomplete pairs, or comparing fixed-node search quality with equal-clock strength."
+    },
+    "checks": "YAML parses; exactly name/description; expected name; nonempty string description"
+  },
+  "relative_markdown_links": {
+    "status": "PASS",
+    "checked_documents": [
+      ".agents/skills/validating-chess-strength/SKILL.md",
+      ".agents/skills/validating-chess-strength/scenarios.md"
+    ],
+    "links": [
+      {
+        "source": ".agents/skills/validating-chess-strength/SKILL.md",
+        "target": "../../../validation/clock-safety-9850x3d/run-quality-sprt.py",
+        "resolved": "/workspace/dwqww/validation/clock-safety-9850x3d/run-quality-sprt.py",
+        "exists": true,
+        "is_file": true
+      },
+      {
+        "source": ".agents/skills/validating-chess-strength/SKILL.md",
+        "target": "scenarios.md",
+        "resolved": "/workspace/dwqww/.agents/skills/validating-chess-strength/scenarios.md",
+        "exists": true,
+        "is_file": true
+      },
+      {
+        "source": ".agents/skills/validating-chess-strength/scenarios.md",
+        "target": "../../../validation/chess-bench-parser-repair-20261020/REPORT.md",
+        "resolved": "/workspace/dwqww/validation/chess-bench-parser-repair-20261020/REPORT.md",
+        "exists": true,
+        "is_file": true
+      }
+    ],
+    "method_limit": "Checks inline relative Markdown file targets outside fenced code blocks. No network checks or heading-anchor validation were needed for these targets."
+  },
+  "cases": [
+    {
+      "id": "invented_good_fixture",
+      "input": "63 mock tests pass with prefixless GOOD; actual frozen producer emits info string bench.",
+      "decision": "REJECT_PACKAGE_FREEZE",
+      "answer": "No package-freeze PASS is justified. The positive fixture invents a dialect the frozen producer does not emit; mock counts cannot establish real-producer readiness. Preserve byte-exact actual captures with producer/transport provenance and hashes, distinguish derived newline variants, and validate canonical positive captures plus malformed/duplicate/warning/stderr/nonzero-exit controls before any future harness freeze. The original failed experiment stays failed.",
+      "skill_basis": "Operational gates: canonical output from the actual frozen producer and intended transport; synthetic GOOD fixtures must use the real dialect."
+    },
+    {
+      "id": "replay_assumed_zero",
+      "input": "Captured stdout has expected nodes and stderr is empty, but original return code and owned-group facts were not recorded; replay supplies 0 and passes.",
+      "decision": "PARSER_ONLY_CONDITIONAL_PROOF_ORIGINAL_PROCESS_UNKNOWN",
+      "answer": "A passing replay establishes only that the replayed parser accepts those exact captured bytes and node expectation under the supplied exit-code assumption. In comparison with the actual frozen parser rejection it isolates the formatting defect. It does not recover the original return code, establish original process success or group quiescence, demonstrate full hosted readiness, rescue the failed experiment, or establish speed/strength. Original missing process facts remain explicitly UNKNOWN.",
+      "skill_basis": "Persist observations before assertions; a replay with an assumed exit code does not recover original process status or rescue the experiment."
+    },
+    {
+      "id": "timeout_cleanup_diagnostic",
+      "input": "Timeout process emits a diagnostic during cleanup; pre-verdict stderr hash is empty, post-cleanup stderr hash differs.",
+      "decision": "PRESERVE_DISTINCT_BEFORE_AND_AFTER_EVIDENCE_FAILURE_REMAINS",
+      "answer": "Preserve the original timeout/failure, command/stdin, original/raw output and error records, separately labeled pre-verdict and post-cleanup stdout/stderr bytes and hashes, return code or explicit unknown at each stage, owned-process-group observations at each stage, cleanup actions/attempts/errors, and final return code/group state. Never overwrite the empty pre-verdict stderr hash with the cleanup diagnostic hash or reinterpret the original timeout as a pass. Hashes identify bytes but do not replace retaining the diagnostic itself.",
+      "reported_fixture_facts": {
+        "guard_seconds": 10,
+        "returncode_before_verdict": null,
+        "returncode_before_meaning": "UNKNOWN",
+        "returncode_after_cleanup": -2,
+        "owned_group_empty_before_verdict": false,
+        "owned_group_empty_after_cleanup": true,
+        "stderr_sha256_before_verdict": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stderr_sha256_after_cleanup": "5950af9042d116bd9e6c6073b454de77af87a3b2c69b83954d7f8519009233d1",
+        "cleanup_attempted": true,
+        "verdict": "failed",
+        "source": "REPORT.md and FINAL-VERIFY.json; not rerun by this agent"
+      },
+      "skill_basis": "On failure or timeout retain distinct pre-verdict and post-cleanup observations, cleanup actions/errors and final return code/group state."
+    }
+  ],
+  "historical_evidence": {
+    "observed_red": "Actual frozen parser rejects actual canonical captures; REPORT.md records 5 expected failing methods out of 15. This is an observed parser failure, not a fabricated no-skill model baseline.",
+    "prior_root_verification": "Parent reports 117 payloads and 15 parser methods verified; not rerun or independently certified by this agent.",
+    "temporal_scope": "REPORT.md, SKILL-PROPOSAL.md and FINAL-VERIFY.json describe the earlier future-only helper stage where the proposal was unapplied and skill unchanged. The current SKILL.md and scenarios.md now contain the added guidance; this application binds their current hashes rather than relabeling historical records."
+  },
+  "limits": [
+    "No no-skill control was run for these three cases. No causal improvement in model behavior is claimed.",
+    "No chess engine, match, parser/process test suite, build, Git command, cloud skill operation, installation or network request was executed.",
+    "Historical RED/GREEN and runtime facts are reported from the preserved evidence documents, not newly reproduced.",
+    "This application is not a fresh 63-test certification or full-hosted-readiness pass and does not authorize retry, resume, pooling, package acceptance or a launch.",
+    "No correctness, speed, clock reliability, Elo, Ryzen/Windows or full-strength Stockfish gain is established."
+  ]
+}

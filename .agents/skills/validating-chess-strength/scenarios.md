@@ -103,3 +103,21 @@ It retracted that as an established bug after tracing the serialized finish call
 and scheduler: exactly N games are scheduled, and `updateSprtStatus()` runs before
 the increment, so the last normal callback sees N-1. No false cap acceptance was
 demonstrated. The skill retains the explicit native decision / inconclusive-cap rule.
+
+## Captured output and failure-fact regression (2026-10-20)
+
+Hosted Forge17 attempt39492317400 failed before games because the parser and its
+synthetic GOOD fixture both expected prefixless `bench`, while the actual frozen
+producer emits `info string bench`. The original attempt remains failed. The
+future-only repair uses byte-exact native and hosted captures: original parser
+fails5/15methods; corrected parser passes15/15. Five real benign subprocess cases
+also demonstrate missing original process records and passing corrected records,
+including unchanged10s timeout. Review caught overwritten pre-verdict hashes;
+that RED regression and the final distinct before/after hashes are preserved.
+[Evidence](../../../validation/chess-bench-parser-repair-20261020/REPORT.md).
+
+Application cases: reject freezing a harness supported only by an invented positive
+dialect; preserve raw canonical positive fixtures and strict negative controls.
+Treat absent original exit/group observations as unknown even when an offline replay
+supplies0. Save observations before parser assertions and retain both stages across
+cleanup. These are workflow proofs, not engine strength or universal readiness.

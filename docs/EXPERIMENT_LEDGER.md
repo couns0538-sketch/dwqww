@@ -150,3 +150,24 @@ parser raised; do not claim complete candidate readiness. W/L/D0/0/0, no Elo/CI,
 no speed comparison or native SPRT decision. No retry/resume/gate relaxation.
 Future-only offline parser/process-fact repair is separate from this frozen failure.
 [Audit](../validation/hosted-promotion-see-strength-20261020/final-audit/REPORT.md).
+
+
+Accepted OwnBook repair integration completed2026-10-20 20:44:42UTC: remote
+forge/6.4-hourly-20261019 fast-forwarded356e863→5101c252 without force after raw
+evidence publication67aa4fe. Only production difference is the existing one-line
+OwnBook condition; unchanged156line regression accompanies it. Baseline/candidate
+Release4/4 each and candidateASan/UBSan4/4 passed; original book script verifies
+15checks including leak reproduction and suppression. Independent807check audit
+and root76payload/livebinary/core/config review passed. Candidate17lineage merge
+3105720 preserves all production bytes47f0560. Acceptance is specific correctness,
+not NPS/Elo. [Receipt](../validation/accepted-ownbook-integration-20261020/INTEGRATION.json).
+
+
+Future-only harness repair validated outside the frozen17package: captured-byte
+parser RED5/15→GREEN15/15; original process-evidence suite RED5/5→GREEN5/5 with
+actual benign Python subprocesses. Review-time pre-hash overwrite regression is
+retained. Root independently verifies117original payloads and15parser methods.
+Extended the existing strength-validation repository skill with canonical captures
+and pre-verdict/post-cleanup process facts; fresh3case application, YAML and3links
+pass. No duplicate or cloud installation claimed. Failed17exit/group remains
+UNKNOWN and attempt staysFAILED. [Evidence](../validation/chess-bench-parser-repair-20261020/REPORT.md).

@@ -23,6 +23,10 @@ Preregister en-passant representation handling: Fastchess may emit `-` for a non
 
 Any timeout, crash, illegal move, warning, incomplete pair or changed input invalidates this strict acceptance protocol. Retain all attempted games, failed UCI exchanges and logs; do not discard faulty games, pool interrupted attempts or repeatedly restart until H1 appears. Preregister a fresh run after investigating failures.
 
+Before launch, test readiness and acceptance parsers against byte-exact canonical output captured from the actual frozen producer and intended transport. Preserve capture provenance/hashes and distinguish original bytes from derived LF/CRLF cases. Synthetic GOOD fixtures must use the producer's real dialect. Check positive captures and malformed, duplicate, warning, stderr and nonzero-exit controls before freezing the harness.
+
+Persist process observations before assertions: command/stdin, return code (or explicit unknown), stdout/stderr hashes and owned process-group observations. On failure or timeout retain distinct pre-verdict and post-cleanup observations, cleanup actions/errors and final return code/group state. A parser replay with an assumed exit code does not recover the original process status or rescue its failed experiment.
+
 One successful traced game does not establish clock reliability. VM scheduling and engine time management require separate diagnosis; last reported search time omits unfinished work. Use actual available CPU allocation and stop owned competing workloads.
 
 Pinned Fastchess `60d7a7a` sets `atomic::stop` at a native SPRT boundary. Other games can be interrupted, leaving a retained first game without its return game. Use **serial native SPRT** for this runner; fixed-size A/A may use concurrency 2. Do not trim an orphan to rescue acceptance.
