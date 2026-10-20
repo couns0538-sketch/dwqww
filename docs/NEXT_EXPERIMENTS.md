@@ -1,7 +1,11 @@
 # Next experiments
 
-1. Finish the final enabled-metadata review, then publish and trigger exactly one
-   new18vs17 attempt. Proof-final-rehash and mandatory build-provenance gaps are
+1. Monitor the single new18vs17 run39502109381; do not retrigger or resume it.
+   Hosted source-build/test step passed; combined readiness/SPRT step running
+   at21:41:47UTC. Public metadata does not expose game counts. Retrieve original
+   results branch when actually published and independently audit every payload,
+   input hash, normal color-swapped game pair, likelihood and stopping condition.
+   Proof-final-rehash and mandatory build-provenance gaps are
    closed;335 exact proof files and24 package entries are bound.96 phase2 tests
    and94 applicable READY-state tests plus9 missing-gate controls pass. Original
    phase2 and every RED result remain preserved at be203388 and in current Git.
@@ -11,7 +15,8 @@
 2. Publish complete18source/native/Windows evidence and candidate ZIP, verify remote
    bytes, then freeze exactly one fresh native equal10+0.1 SPRT attempt:0/+10,
    alpha=beta=.05, serialT1/Hash32/OwnBookfalse,4AA+256SPRT pairs,18000s emergency.
-   Final enabled-metadata review pending; unlaunched. Natural pair cap without boundary is inconclusive;
+   Final enabled-metadata review passed; sole trigger payload1203e13 published.
+   Natural pair cap without boundary is inconclusive;
    any fault invalidates acceptance. No retries/resume/pooling/gate relaxation.
 3. Complete18archive is verified:1,434live originals/1,446payloads,123,154,486B
    split into67,108,864+56,045,622B. Publish bothparts andreceipts; no raw files
@@ -29,6 +34,14 @@
 6. Test the actual Stockfish target separately after valid engine-strength evidence.
    Installed Stockfish19 advertises UCI_Elo1320..3190; exact3200unsupported.
    Forge absolute rating and a200Elo gap are unestablished; zero target games run.
+
+Next bounded implementation: investigate lazy runtime PSQT/unclamped-phase reuse
+along existing NNUE dirty-state replay. Keep Board/public cached/uncached/traced
+evaluator semantics unchanged and initialize from live parameters each new search.
+Do not introduce a blind params-dependent Board cache. Require exact old evaluator
+oracle, special moves/null/unmake/promoted phase>24 and parameter-mutation controls,
+then complete CTest/sanitizers and identical cold/warm fixed-node signatures before
+any speed claim. Research only so far; no implementation/benefit established.
 
 18first-attempt gates: Release10/ASanUBSan10/TSan10,8activeUCI,9Wine and1064artifact
 checks PASS. Root verifies113native evidence records/484live source-build originals,

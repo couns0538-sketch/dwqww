@@ -40,8 +40,13 @@ Root binds335 exact finite proof files and verifies24 package/workflow entries.
 After enabling the restricted first-attempt-only push workflow,94 applicable
 offline tests and9 actual missing-gate controls pass. Two historical draft-state
 assertions remain unchanged and are replaced by explicit READY/negative checks.
-Final enabled-metadata review precedes the sole trigger push; **not launched yet**.
-Frozen0/+10,.05errors,equal10+0.1,256paired openings; no games or Elo result.
+Final enabled-metadata review PASS; payload `1203e13cfd80451d7194c7fba2f775de71dc9604`
+was published and one trigger push remotely verified at21:39:20UTC. Run
+[39502109381](https://github.com/couns0538-sketch/dwqww/actions/runs/39502109381)
+has passed the hosted source-build/test step; combined readiness/SPRT step is
+running at21:41:47UTC. Public metadata does not expose games or prove a particular
+readiness subgate. Frozen0/+10,.05errors,equal10+0.1,256paired openings; no observed
+game statistics or Elo result. Do not trigger/retry/resume this experiment.
 Historical17binary/source47proofs remain genuinely labeled47; all72build inputs
 equal baselineb590byte-for-byte. The hosted attempt must build actualb590 and
 pass all9baseline CTests before games; candidate must pass all10.
@@ -77,7 +82,8 @@ Candidate returncode/group-empty facts were not separately saved before the pars
 raised, so full candidate readiness is not independently proved. **Games0; W/L/D0/0/0;
 no Elo estimate, confidence interval, NPS comparison or H0/H1 decision.**
 [Independent audit](../validation/hosted-promotion-see-strength-20261020/final-audit/REPORT.md).
-No match is currently running; no retry, resume or second trigger has occurred.
+That17attempt has not been retried or resumed. The independent18vs17run above
+uses a different hypothesis and fresh opening cohort, with no pooling.
 
 The accepted-lineage OwnBook bypass was reproduced on356e863. Exactexisting
 repair af1941375111717f415a46d9ce0224c329034466 and child5101c252 passed both

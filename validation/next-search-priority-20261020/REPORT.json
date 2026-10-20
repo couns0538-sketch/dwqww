@@ -1,0 +1,187 @@
+{
+  "status": "READ_ONLY_RESEARCH_COMPLETE_NOT_IMPLEMENTED",
+  "observed_utc": "2026-10-20T21:40:17.638004+00:00",
+  "source_commit": "fc51e43c26f735cbc1ffabf0fcf64f48a4592c0b",
+  "source_identity": "All inspected production bytes SHA256-match exactfc51Gitobject review; no Git commands executed in this research task.",
+  "ranked_opportunities": [
+    {
+      "rank": 1,
+      "name": "Incremental classical PSQT and unclamped phase within runtime evaluation",
+      "classification": "Source-demonstrated repeatedwork; netruntimebenefit remains hypothesis. No correctness defect demonstrated.",
+      "call_chain": [
+        {
+          "file": "src/search.cpp",
+          "lines": "588-603",
+          "fact": "Default residualNNUE static_evaluate computes NNUE output then full Evaluator::evaluate; nonNNUE path also calls full Evaluator::evaluate."
+        },
+        {
+          "file": "src/nnue_weights.inc",
+          "lines": "1-3",
+          "fact": "Current compiled weights declare residual1."
+        },
+        {
+          "file": "src/eval.cpp",
+          "lines": "383-400",
+          "fact": "Every evaluate_position rebuilds taperedPSQT sum and phase, onepop_lsb/tableadd per occupiedpiece plus source12popcount expressions before the pawncache."
+        },
+        {
+          "file": "src/eval.cpp",
+          "lines": "399-420",
+          "fact": "Existing pawncache preserves pawnstructure/passedpawns only, not PSQT orphase."
+        },
+        {
+          "file": "src/eval.cpp",
+          "lines": "478-484",
+          "fact": "Evaluator::evaluate and evaluate_uncached call full evaluate_position."
+        },
+        {
+          "file": "src/board.cpp",
+          "lines": "180-202,719-821",
+          "fact": "Existing centralized pieceupdates and make/unmake provide deltaevents; Board has no cachedPSQT/phase state."
+        }
+      ],
+      "best_specific_hypothesis": "For fixed evalparameters, maintain exactinteger PSQT and unclampedphase state along runtime searchmoves and reuse it in evaluate_position, removing repeated fullpiece rescans while preserving all NNUE floatoperations and searchresults.",
+      "counted_work": "Per uncached residualstatic eval: up to32occupiedpiece PSQT tableadds/pop_lsb iterations;12popcount expressions in source (compiler may eliminate/transform some). This is not measured machineinstruction count or cost.",
+      "why_first": "One bounded exact-behavior optimization on an actually active per-leaf path; existing make/unmake/NNUEdelta infrastructure and fullrecomputeoracle make it falsifiable. No new pruning family, tuning, retraining or strength claim.",
+      "cheap_counterfactual_design": [
+        {
+          "step": 1,
+          "action": "Before optimization, count residualHCE evaluations, evaluatedpiececount and runtime move-delta events on a small frozen legalposition set. Count added delta work as well as removed scans; abandon if cost balance is poor. This probe is proposed, not run."
+        },
+        {
+          "step": 2,
+          "action": "Keep original full PSQT/phase evaluator as oracle. Assert exact packedScore, unclampedphase and completeclassical/rawstatic eval after quiet/capture/enpassant/castling/all Q/R/B/Npromotion moves, null moves, FEN/rootinitialization and every unmake."
+        },
+        {
+          "step": 3,
+          "action": "Include a promotedmaterial phase>24 fixture then captures: cache the rawphase and clamp only when evaluating, never cache a saturated24 that cannot be reversed correctly."
+        },
+        {
+          "step": 4,
+          "action": "Keep Board/publicEvaluator/Trace/tuning/uncached paths unchanged; runtimeWorker-only PSQTstate initializes at everynewsearch. Mandatorymutationcontrol: setFENfirst, mutate occupiedsquare params::table PSQTentry, compare publicevaluate/evaluate_uncached/evaluate_traced and newsearch to fulloracle, then restoreexception-safely. ActualTexel evaluate_traced and NNUEtrainer evaluate_uncached offsets must remain identical. No blindBoardcache ornewglobalmutationAPI."
+        },
+        {
+          "step": 5,
+          "action": "Require exact cold/warm fixed-node moves/scores/PVs/nodes plus fullcorrectness gates; only then independently calibrated speed evidence, followed by a separate preregistered equalclock experiment if worthwhile."
+        }
+      ],
+      "falsification": "Any oracle/parity difference rejects the implementation as behaviorpreserving; no measurable wholeenginegain after a validcalibration rejects its performance justification. Counted sourcework alone is insufficient.",
+      "risks": [
+        "Delta maintenance also runs on moves whose static eval is never computed, so savings may not exceed addedwork.",
+        "params::table is mutable by tuning tools; no current EvalFile/PSQT-loading UCI path was found. Do not silently cache stale coefficients.",
+        "Promotion/capture phase can exceed24; saturating cachedphase breaks reversibility.",
+        "Maintain exact signed packedScore semantics and black square/color orientation; do not change NNUE floatassociation orweights."
+      ],
+      "implementation_scope_proposed_only": [
+        "Runtime PSQT/phase state plus evaluator optionalprecomputedinput or equivalent boundeddesign.",
+        "Permanent fullrecompute differential oracle; keep tuning/trace behavior.",
+        "No NNUE weightchange or pruning parameterchange."
+      ],
+      "expected_gain": "Unknown; no percentage,NPS orElo gain asserted.",
+      "independent_review": "Separate read-only evalscan confirmed exactactive callchain/unimplementedcache and matchingfrozen sourcehashes; reviewer made no writes/runtimecalls.",
+      "parameter_mutation_and_tool_contract": {
+        "prohibited_design": "Do not place a params-dependent defaultcachedscore blindly in Board: mutatingparams::table afterFEN/construction must notsilentlyreuseold PSQT. No broadnewparameter mutationAPI isproposed.",
+        "bounded_design": "Keep Board and public Evaluator::evaluate/evaluate_uncached/evaluate_traced behavior unchanged. Prototype a Worker/runtimeevaluation-specific PSQTstate initialized from currentparams at each newsearch; leave all publictooloraclepaths recomputing. Any alternative must explicitly prove equivalent tablemutation behavior.",
+        "actual_tools": [
+          {
+            "path": "tools/tune/texel.cpp",
+            "line": 139,
+            "call": "evaluate_traced(board,trace)"
+          },
+          {
+            "path": "tools/tune/nnue_train.cpp",
+            "line": 259,
+            "call": "Evaluator::evaluate_uncached(board) forresidualHCEoffset"
+          }
+        ],
+        "required_counterfactual": "ConstructBoard/setFEN FIRST, recordbaseline, mutate one occupiedsquare PSQT coefficient in params::table, then require publiccached/uncached/traced evaluators to observe the same changedPSQT and preserve tracecoefficients/phase/scale. Start a newWorkersearch aftermutation and compare to fullrecompute; repeat afterrestoration. Testmutation/restoration must be exception-safe. Keep pawncache clear/unchanged asappropriate; no out-of-scope pawncache semanticrepair."
+      }
+    }
+  ],
+  "not_pursued": "Completed TT/rule50/qsearch/movepicker/root-effort/promotionSEE/clock investigations excluded. No speculative threefeature pile; only one recommendation retained.",
+  "skills": {
+    "applied": "improve-grokchess adapted toForge (sourcegroundedshortlist,counterfactual,evidence/claim separation)",
+    "package": "c6/6ad5f735d9348191801692aff597a91b/improve-grokchess",
+    "resource": "skill://user/6ad5f735d9348191801692aff597a91b/improve-grokchess/SKILL.md",
+    "referenced_engineering_and_project_context": "Provider returned failed toreadskillresource; no installation or availability claim beyond successfulmainread."
+  },
+  "source_hashes": {
+    "src/search.cpp": {
+      "actual_sha256": "5cba75f2227d4e69cff8769a18785c2c55c899d5e6bd96c0c58b5368b6322225",
+      "frozen_fc51_sha256": "5cba75f2227d4e69cff8769a18785c2c55c899d5e6bd96c0c58b5368b6322225",
+      "matches": true
+    },
+    "src/eval.cpp": {
+      "actual_sha256": "05f23be48f04149e1ab0b6988160928a64a5a193e5b6d472ec5156cf0245bd1a",
+      "frozen_fc51_sha256": "05f23be48f04149e1ab0b6988160928a64a5a193e5b6d472ec5156cf0245bd1a",
+      "matches": true
+    },
+    "src/eval_params.cpp": {
+      "actual_sha256": "ac0050c6dce6b75d704454fc981c0372476597f6b739ca39d014df515dcb910d",
+      "frozen_fc51_sha256": "ac0050c6dce6b75d704454fc981c0372476597f6b739ca39d014df515dcb910d",
+      "matches": true
+    },
+    "src/board.cpp": {
+      "actual_sha256": "ad3290611e5f88d95b8fd0f674370eadc17e0c529902fba3e92ac48ac46ed239",
+      "frozen_fc51_sha256": "ad3290611e5f88d95b8fd0f674370eadc17e0c529902fba3e92ac48ac46ed239",
+      "matches": true
+    },
+    "src/uci.cpp": {
+      "actual_sha256": "a7cb09c22fbcd4ca2f0ad63c64c5208fd18a1b5d01b64edeb3e6f878da6d6fa8",
+      "frozen_fc51_sha256": "a7cb09c22fbcd4ca2f0ad63c64c5208fd18a1b5d01b64edeb3e6f878da6d6fa8",
+      "matches": true
+    },
+    "src/nnue.cpp": {
+      "actual_sha256": "86aec39feecf029e73510e7e5fadf9e9878c94744f0380c4149edf04da02cdcd",
+      "frozen_fc51_sha256": "86aec39feecf029e73510e7e5fadf9e9878c94744f0380c4149edf04da02cdcd",
+      "matches": true
+    },
+    "src/nnue_weights.inc": {
+      "actual_sha256": "41487f328ff51f27417564df45b6f3139d038b7e940dedb121340bd61be9a4d3",
+      "frozen_fc51_sha256": "41487f328ff51f27417564df45b6f3139d038b7e940dedb121340bd61be9a4d3",
+      "matches": true
+    },
+    "include/forge/eval.hpp": {
+      "actual_sha256": "f74e38cd600baee3d6b6e24c5f7176f6ac6447f7d3871fbbc03a957307a3f8bf",
+      "frozen_fc51_sha256": "f74e38cd600baee3d6b6e24c5f7176f6ac6447f7d3871fbbc03a957307a3f8bf",
+      "matches": true
+    },
+    "include/forge/eval_params.hpp": {
+      "actual_sha256": "56f6ae706d53dfb6e76169e86d0cf09e74e096b17885f60632a92f080ee77a96",
+      "frozen_fc51_sha256": "56f6ae706d53dfb6e76169e86d0cf09e74e096b17885f60632a92f080ee77a96",
+      "matches": true
+    },
+    "include/forge/board.hpp": {
+      "actual_sha256": "5b42d3557730edc65f795a097e45d18a3cb621d56bdfa8b379773bb496204c77",
+      "frozen_fc51_sha256": "5b42d3557730edc65f795a097e45d18a3cb621d56bdfa8b379773bb496204c77",
+      "matches": true
+    },
+    "include/forge/search.hpp": {
+      "actual_sha256": "a8f905e88a71def150249749282a0e36d5e75557555718570dc7c6db31f68763",
+      "frozen_fc51_sha256": "a8f905e88a71def150249749282a0e36d5e75557555718570dc7c6db31f68763",
+      "matches": true
+    },
+    "include/forge/nnue.hpp": {
+      "actual_sha256": "d87106d1716388375332ea20e97d9a703c74f479ffa5236c75608b356ab5aace",
+      "frozen_fc51_sha256": "d87106d1716388375332ea20e97d9a703c74f479ffa5236c75608b356ab5aace",
+      "matches": true
+    },
+    "tools/tune/texel.cpp": {
+      "actual_sha256": "1da263f66e41b2c878bb6e569630c7a2dbee93d06f69ba95e23cf8a468712651",
+      "frozen_fc51_sha256": "1da263f66e41b2c878bb6e569630c7a2dbee93d06f69ba95e23cf8a468712651",
+      "matches": true
+    },
+    "tools/tune/nnue_train.cpp": {
+      "actual_sha256": "57186e129418d5aca0fe91211bcc74db2d626e54fbf33df6c85c1972cef0efcd",
+      "frozen_fc51_sha256": "57186e129418d5aca0fe91211bcc74db2d626e54fbf33df6c85c1972cef0efcd",
+      "matches": true
+    }
+  },
+  "concise_ledger_context_sha256": {
+    "docs/CURRENT_BASELINE.md": "d385260d34961e40003719c85dfa6c8992d25f37417ee8e42db85e08074907bb",
+    "docs/NEXT_EXPERIMENTS.md": "2ac8e13f5c51ab1320a04492c501655e6a20ad0117623ef64cc084dc7ccbfad7",
+    "docs/EXPERIMENT_LEDGER.md": "d7f33f889d73eca6bb8aed89de64dd793c2de03283c86c1200cfd9c7a560bd34"
+  },
+  "execution_scope": "Only source/doc reads and SHA256 calculations plus these two reportwrites. No engine,build,test,benchmark,match,Git/indexwrite or sourcefeature mutation.",
+  "root_decision_required": "Root may select after distinct18vs17 launch; no action inferred from strengthoutcomes and no active18input changes."
+}

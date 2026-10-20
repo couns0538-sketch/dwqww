@@ -235,3 +235,13 @@ explicit READY/negative controls. No18 engine execution or match by preparation;
 no games, NPS ratio, Elo estimate or source acceptance. One new attempt only,
 serial10+0.1 SPRT0/+10,.05errors,4AA+256SPRT pairs; prior anomalies remain open.
 [Ready checks](../validation/hosted-correction-history-strength-20261020/ROOT-READY-METADATA.json).
+
+18vs17 final enabled review PASS (24inventory/335proofs). Frozen payload1203e13c
+was pushed to the existing isolated branch with remoteSHA and public raw workflow/
+protocol/inventory byte readback PASS. Exactly one new trigger branch
+forge/hosted-correction-history-strength-20261020-213918 was created and verified.
+Run39502109381/job118901918661 links the exact payload; source-build/test step
+SUCCESS and combined readiness/SPRT step in progress at21:41:47UTC. No original
+game evidence or count is exposed by that metadata; W/L/D and Elo remain unknown.
+Do not retry/resume/pool. Baseline b590 and candidate fc51 source pins unchanged.
+[Launch](../validation/hosted-correction-history-strength-20261020/publication-attempt1/LAUNCH.json).
