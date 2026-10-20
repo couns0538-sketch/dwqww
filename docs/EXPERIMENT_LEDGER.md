@@ -370,3 +370,14 @@ equivalence rehashed201inputs and19corefiles; only3metadata/diagnostic changes
 from historical95position probe, no newfrozen20probe execution asserted.
 Rootcloud6relevantSKILL.md reads now succeed aftercatalogrefresh; three specific
 reference reads failed once. Availability changed, no installation/helperclaim.
+
+20Windowscomplete23:34: firstbuild9PE/11Wine/1538artifactchecks PASS. Rootverified
+225raworiginals+manifest,72sourcefilesequalnativeGit,483unchangedparent19files,
+9builtPE,21distributionmembers/20checksums. ZIP14531624B SHA92cf639dad35d5f44d6ef492eab1a927606aaaf609eec447a41f05775420e63c.
+Two readonlyauditorprovenanceassertions addedbeforefirstaudit, original/diff
+preserved; noengine/auditretry. Wineonly, no nativeRyzen or20speed/Elo claim.
+Existingstrengthskill nowmapsactualperrevisionproofschemas;41sourceonlychecks
+including3negativecontrols and144priorproofhashes pass. Rootrehashed15records.
+OneinitialnewREPORTlinkmissing and rootgenericstatusassumptionfailures retained;
+correctedderivedcheckers preserveallgenuine engine outcomes. Skillcreator absent;
+repositorylocalskillavailable, no globalinstallationclaimed.

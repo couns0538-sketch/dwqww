@@ -5,8 +5,8 @@ First native36CTest/8active/56exact cold-warm searches passed, independent2363au
 and root242evidence/564originals/9singles/75Gitblobs verified. All source and raw
 native evidence is immutable. Two genuine19/20 five-command producer
 streams with provenance completed normally;178inputs rehashed, outertoolreturn
-unknown retained without repeating commands. Windows20firstj1build passed; finish
-11Wine/audit and calibrated hosted
+unknown retained without repeating commands. Windows20firstj1build/11Wine/1538audit and root225raw/72source/483parent/9PE
+verification pass. Next run one calibrated hosted
 performance after all final gates/reviews. Do not duplicate any completed gate
 or mutate frozen source. Disabled42test performance packet is not launch-ready.
 Native schemas differ: read genuine20native_ctests/default_tsan_active_checks/

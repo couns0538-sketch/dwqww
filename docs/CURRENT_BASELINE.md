@@ -20,11 +20,15 @@ including37320pawn+347runtime checks in each profile,8activeUCI and56cold/warm
 parent19search comparisons. Bench321912; compiled NNUE object byte-identical19.
 Independent2363check audit passes; root rehashed242evidence files,564whole-tree
 originals,9consumed parent originals and75actualGit source blobs. Windows72source
-export/five-filedelta/483parentpreservation pass; first Windows build passed and
-11Wine checks are running. Two actual19/20 five-command producer captures pass,
-178frozen inputs unchanged. Outer tool call was interrupted after dispatch; shell
-returnunknown is retained, both child command results are explicitly normal. No
-repeat or speed/Elo inference. Calibrated20performance remains gated. [Root native proof](../validation/pawn-span-fill-20261020/root-verification/NATIVE.json).
+export/five-filedelta/483parentpreservation pass. First Windows9PEbuild,
+11Wine checks and1538independent artifact checks PASS; rootbyteverified225raw
+originals,72sourcefiles,483parentfiles,9builtPE and21distributionmembers.
+[Windows20 Zen5 ZIP](../releases/forge-6.4.20-candidate-windows-zen5.zip), SHA256
+`92cf639dad35d5f44d6ef492eab1a927606aaaf609eec447a41f05775420e63c`.
+This is Wine validation, not native Ryzen execution. Two actual19/20five-command
+producer captures pass and178inputs remain unchanged. Outer toolreturnunknown is
+retained, normalchildresultsexplicit; no repeats. Calibrated20speed/Elo pending.
+[Root Windows proof](../validation/pawn-span-fill-20261020/root-verification/WINDOWS.json).
 [Source freeze](../validation/pawn-span-fill-native-20261020/ROOT-FROZEN-SOURCE-GATES.json).
 [Public trace evidence](../validation/pawn-span-fill-20261020/independent-review/PUBLIC-DIFFERENTIAL.md).
 Latest fully qualified workload-speed source remains19 below; accepted5101unchanged.

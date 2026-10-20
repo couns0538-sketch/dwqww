@@ -21,6 +21,7 @@ FREEZE = load_freeze()
 COMMIT = FREEZE['source_commit']
 PARENT = FREEZE['parent_source_commit']
 assert COMMIT != PARENT, 'Windows20 source must be a distinct root-frozen revision'
+assert COMMIT == 'fc2391870b3bf2cd4d8fc20c7406ea6439c69c5e', 'Incorrect root-authorized frozen20 source'
 assert PARENT == '61f598056572dfade6994af8ad2e38817cd28aa3'
 assert FREEZE['runtime_summary_checks'] == 347 and FREEZE['pawn_span_checks'] == 37320
 assert FREEZE['bench_expected_nodes'] == 352313
@@ -144,6 +145,7 @@ check('only_reviewed_production_delta', sorted(changed)==['CMakeLists.txt','incl
 check('exact_reviewed_search_source', source_hashes['src/search.cpp'] == '5e05140e69729f5764414d3b8240b533f7a0a7b315aef971ecaa51c756e2f22b')
 check('exact_reviewed_correction_test', source_hashes['tests/correction_history_tests.cpp'] == '3f5523ac462cde0a36ce3df4f5bfb99e59dbe34a08c9e2d06dcb9ecad5dad66d')
 frozen_root=load(HERE/'ROOT-FROZEN-SOURCE-GATES.json')
+check('root_frozen_source_proof_sha256',sha((HERE/'ROOT-FROZEN-SOURCE-GATES.json').read_bytes())==FREEZE['root_source_gates_sha256'])
 check('root_frozen_source_identity',frozen_root['source_commit']==COMMIT and frozen_root['baseline_commit']==PARENT)
 check('root_frozen_source_inventory',source_hashes=={n:h for n,h in frozen_root['inputs'].items() if not n.endswith('.pyc')} and len(source_hashes)==72)
 reviewed_fill_hashes={n:frozen_root['inputs'][n] for n in ['CMakeLists.txt','include/forge/bitboard.hpp','src/eval.cpp','src/uci.cpp','tests/pawn_span_tests.cpp']}
