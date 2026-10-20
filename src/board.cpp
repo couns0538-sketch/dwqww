@@ -859,18 +859,30 @@ bool Board::see_ge(const Move& move, int threshold) const {
         stm = opposite(stm);
         attackers &= occupancy;
         Bitboard stm_attackers = attackers & occupied(stm);
-        // Exchange occupants are virtual: original piece bitboards retain the
-        // captured victim on `to`, and consumed recapturers at empty origins.
-        // A candidate moves to the occupied target, so only its origin leaves
-        // occupancy. Keeping the target occupied also permits along-pin moves.
-        const Bitboard removed = ~occupancy | square_bb(to);
-        Bitboard candidates = stm_attackers & ~pieces(stm, King);
-        while (candidates != 0) {
-            const int square = pop_lsb(candidates);
-            if (square_attacked_with_occupancy(king_square(stm), opposite(stm),
-                                              occupancy ^ square_bb(square), removed)) {
-                stm_attackers &= ~square_bb(square);
+        // Every candidate only removes its own origin; the target stays occupied.
+        // Existing checks reject every non-king; singleton ray blockers identify
+        // exactly the origins whose departure would expose a live enemy slider.
+        const Bitboard king_attackers = stm_attackers & pieces(stm, King);
+        if ((stm_attackers & ~king_attackers) != 0) {
+            const Color enemy = opposite(stm);
+            const int king = king_square(stm);
+            const Bitboard live = occupancy & ~square_bb(to);
+            const Bitboard queens = pieces(enemy, Queen) & live;
+            bool checked =
+                (attacks::pawn(stm, king) & pieces(enemy, Pawn) & live) != 0 ||
+                (attacks::knight(king) & pieces(enemy, Knight) & live) != 0 ||
+                (attacks::king(king) & pieces(enemy, King) & live) != 0;
+            Bitboard pinners =
+                (attacks::bishop(king, 0) & ((pieces(enemy, Bishop) & live) | queens)) |
+                (attacks::rook(king, 0) & ((pieces(enemy, Rook) & live) | queens));
+            Bitboard forbidden = 0;
+            while (!checked && pinners != 0) {
+                const int pinner = pop_lsb(pinners);
+                const Bitboard blockers = attacks::between(king, pinner) & occupancy;
+                if (blockers == 0) checked = true;
+                else if (!more_than_one(blockers)) forbidden |= blockers;
             }
+            stm_attackers = checked ? king_attackers : stm_attackers & ~forbidden;
         }
         if (stm_attackers == 0) break;
         result ^= 1;
