@@ -1,0 +1,26 @@
+--- validation/correction-history-windows-20261020/prepare-source.py
++++ validation/lazy-runtime-psqt-windows-20261020/prepare-source.py
+@@ -6,11 +6,13 @@
+ import shutil
+ import subprocess
+ 
+-COMMIT='fc51e43c26f735cbc1ffabf0fcf64f48a4592c0b'
++from pipeline_gate import load_freeze
++FREEZE=load_freeze('source')
++COMMIT=FREEZE['source_commit']
+ REPO=Path('/workspace/dwqww')
+-SOURCE=Path('/workspace/.cloud-setup/windows6418-source')
+-BUILD=Path('/workspace/.cloud-setup/windows6418-build')
+-OUT=Path('/workspace/dwqww/validation/correction-history-windows-20261020')
++SOURCE=Path('/workspace/.cloud-setup/windows6419-source')
++BUILD=Path('/workspace/.cloud-setup/windows6419-build')
++OUT=Path('/workspace/dwqww/validation/lazy-runtime-psqt-windows-20261020')
+ TOOLCHAIN=Path('/workspace/.cloud-setup/toolchains/llvm-mingw-20261006-ucrt-ubuntu-22.04-x86_64')
+ CMAKE='/workspace/.cloud-setup/venv/bin/cmake'
+ sha=lambda p:hashlib.sha256(p.read_bytes()).hexdigest()
+@@ -29,4 +31,4 @@
+                               if name=='CMakeLists.txt' or name.startswith(('src/','include/'))})
+ write('test-hashes.json',{name:value for name,value in all_hashes.items() if name.startswith('tests/')})
+ write('PREPARED-SOURCE.json',{'status':'EXPORTED_ONLY_NO_COMPILER_OR_ENGINE','source_commit':COMMIT,'source_directory':str(SOURCE),'build_directory':str(BUILD),'source_files':len(all_hashes)})
+-print('Exported frozen18 source only:',len(all_hashes),'files')
++print('Exported frozen19 source only:',len(all_hashes),'files')

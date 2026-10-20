@@ -2,7 +2,7 @@
 
 1. Monitor the single new18vs17 run39502109381; do not retrigger or resume it.
    Hosted source-build/test step passed; combined readiness/SPRT step running
-   at21:41:47UTC. Public metadata does not expose game counts. Retrieve original
+   at22:23:32UTC. Public metadata does not expose game counts. Retrieve original
    results branch when actually published and independently audit every payload,
    input hash, normal color-swapped game pair, likelihood and stopping condition.
    Proof-final-rehash and mandatory build-provenance gaps are
@@ -35,14 +35,21 @@
    Installed Stockfish19 advertises UCI_Elo1320..3190; exact3200unsupported.
    Forge absolute rating and a200Elo gap are unestablished; zero target games run.
 
-Next bounded implementation is now frozen19 `61f598056572dfade6994af8ad2e38817cd28aa3`:
-private lazy runtime PSQT/unclamped-phase reuse, no Board-dependent cache. First
-Release11/347actual-method assertions and56exact cold/warm default/NNUE-off searches
-against18 PASS; bench321912. Finish ASan11/TSan11/8active and Windows10checks/audit,
-preserve all source/build/prototype originals, then qualify speed on a separately
-calibrated host. A disabled performance-only workflow is being prepared; it must
-bind actual finite proofs and pass independent/root review before any launch.
-Do not repeat the failed local-host small-speed calibration or infer Elo from NPS.
+Current bounded implementation19 is frozen `61f598056572dfade6994af8ad2e38817cd28aa3`:
+private lazy runtime PSQT/unclamped-phase reuse, no Board-dependent cache. Complete
+native33CTest/347assertions each/8active TSan UCI/56exact cold-warm searches PASS.
+Native audit2298/2298 after saved checker-field correction; engine gates first attempt.
+Windows10checks/1184artifact checks PASS first attempt, rootoriginal/payload verification
+PASS. Publish19source/evidence/ZIP and full recoverable archive; preserve originalRED,
+initial warning, original failed checkers and refined GREEN sources with genuine labels.
+Next qualify speed on a separately calibrated hosted CPU. Disabled performance-only
+packet is under independent review, no launch yet. Each actual sample is one fresh
+process with5bench11commands; actual producer Hash16/T1,8FEN percommand. Root captured
+both actual frozen producers, preserving exact helper de13, status and source/build
+provenance. These captures establish parser/transport behavior, not a speed comparison.
+Do not repeat failed local shared-host calibration or infer Elo from NPS. Review and
+freeze all final proofs/package before one hosted performance job; retain faults, no
+retry/waiver or selective timing removal. Do not modify frozen19production source.
 
 18first-attempt gates: Release10/ASanUBSan10/TSan10,8activeUCI,9Wine and1064artifact
 checks PASS. Root verifies113native evidence records/484live source-build originals,

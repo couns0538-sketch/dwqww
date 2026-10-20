@@ -1,0 +1,20 @@
+--- independent-audit.py
++++ independent-audit-attempt2.py
+@@ -445,7 +445,7 @@
+ def whole_originals():
+     path = HERE / 'ORIGINALS-FINAL-SHA256.json'
+     snapshot = load(path)
+-    record('whole_originals_snapshot_source', snapshot['source_commit'] == REV and snapshot['engines_or_builds_executed_for_this_snapshot'] is False)
++    record('whole_originals_snapshot_source', snapshot['source_commit'] == REV and snapshot['engines_or_builds_executed_for_snapshot'] is False)
+     expected_roots = {'source': str(SOURCE), **{profile: str(BASE / ('lazy-runtime-psqt-native-' + profile)) for profile in ['release', 'asan', 'tsan']}}
+     record('whole_originals_exact_four_roots', {label: tree['root'] for label, tree in snapshot['trees'].items()} == expected_roots)
+     counts = {}
+@@ -489,7 +489,7 @@
+     parser = argparse.ArgumentParser()
+     parser.add_argument('--require-active', action='store_true')
+     args = parser.parse_args()
+-    paths = [HERE / ('independent-audit' + suffix) for suffix in ['.json', '.md', '-facts.jsonl']]
++    paths = [HERE / ('independent-audit-attempt2' + suffix) for suffix in ['.json', '.md', '-facts.jsonl']]
+     if any(path.exists() for path in paths):
+         raise SystemExit('Refusing to overwrite a previous audit attempt')
+     with paths[2].open('x') as fact_stream:

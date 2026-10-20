@@ -1,6 +1,6 @@
 # Experiment ledger
 
-The authoritative [machine ledger](../validation/EXPERIMENTS.json) contains 98 records, preserving all 83 earlier IDs, exact inputs, hashes, settings, failures and evidence links. This is the concise reading index as of 2026-10-20.
+The authoritative [machine ledger](../validation/EXPERIMENTS.json) contains 104 records, preserving all 83 earlier IDs, exact inputs, hashes, settings, failures and evidence links. This is the concise reading index as of 2026-10-20.
 
 | Experiment | Observed result | Acceptance scope |
 | --- | --- | --- |
@@ -269,3 +269,20 @@ are available. Cloud/executor skill catalogs are empty and skill-creator is not
 exposed; no cloud/global installation claimed. Original18failed parser remains
 failed; no skill-based Elo or causal efficiency gain claimed.
 [Skill validation](../validation/strength-skill-provenance-20261020/SKILL-APPLIED.json).
+
+19completed qualification (2026-10-20T22:24UTC): first Release11/ASanUBSan11/TSan11,
+347actual-Worker runtime assertions each,8active TSan UCI,56exact parent cold/warm
+searches PASS. Bench321912. Native independent audit first failed only on its own
+wrong snapshot-key lookup; unchanged originals and corrected read-only audit2298/2298
+PASS. All failed checker evidence retained. Root rehashed251evidence+524whole-tree+
+6single originals. NNUE compiled object is bit-identical to18.
+Windows19 first build8PE+10Wine checks+1184audit PASS; bench352313. ZIP13,577,092B,
+SHAf0ec03308098bf8e675647f091b3b1afeb74d2632d9c972883e5907cfcb23d85.
+Rootverified205rawpayloads+manifest,71sources,219parentfiles,20distributionmembers
+and19checksums. Root checker first incorrectly expected205rawZIPmembers rather than
+205payloadsPLUSmanifest; saved/corrected checker PASS without engine rerun. No speed
+orElo claim. Separate disabled performance packet in review; full19archive being built.
+[Root proofs](../validation/lazy-runtime-psqt-20261020/root-verification/).
+
+18vs17 single run39502109381 stillrunning at22:23:32UTC after hosted build/testPASS.
+Gamecounts/WLD/Elo unavailable from public metadata; no retry/resume or pooling.

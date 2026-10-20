@@ -12,12 +12,23 @@ New isolated performance candidate **Forge6.4.19** is frozen at
 `forge/lazy-runtime-psqt-20261020`, remotely verified. It reuses classical PSQT
 and unclamped phase alongside existing lazy NNUE dirty-state replay, privately per
 Worker. Board, NNUE/weights and public evaluator/tuner contracts are preserved.
-**First frozen Release11/11,347runtime assertions and56cold/warm one-thread
-searches PASS** against exact18, including NNUE on/off and rule50. Logical output
-rows/PVs match exactly, excluding only time/NPS; bench remains321912.
-ASan/UBSan, TSan/active-UCI and Windows19 validation are pending. No calibrated
-speed or Elo gain is established; this is not accepted into integration.
-[Release receipt](../validation/lazy-runtime-psqt-native-20261020/RELEASE-RECEIPT.json).
+**First-attempt Release11/11, ASan/UBSan11/11, default unsuppressed TSan11/11,
+347runtime assertions in each profile, and8active TSan UCI checks PASS.**
+56cold/warm searches match18 exactly (including NNUE-off), excluding only time/NPS;
+bench321912. Independent native audit2298/2298 PASS after one saved checker-key
+correction; all engine gates passed first attempt. Root rehashed251evidence files,
+524live source/build originals and6single originals. The NNUE compiled object is
+byte-identical to18, preserving the existing strict floating-kernel validation.
+Windows19 first build, all10Wine checks,1184independent artifact checks PASS;
+347runtime assertions,18947legal comparisons, exact352313. Root byte-verified all
+205raw payloads,71sources,219unchanged parent files and8actual built PEs.
+[Native proof](../validation/lazy-runtime-psqt-20261020/root-verification/NATIVE.json).
+[Windows proof](../validation/lazy-runtime-psqt-20261020/root-verification/WINDOWS.json).
+[Windows19 Zen5 ZIP](../releases/forge-6.4.19-candidate-windows-zen5.zip), SHA256
+`f0ec03308098bf8e675647f091b3b1afeb74d2632d9c972883e5907cfcb23d85`.
+No calibrated speed, Elo gain, native Windows/Ryzen or Stockfish result is established;
+19is not accepted into integration. A separately calibrated performance-only hosted
+experiment is being reviewed, not launched. Full recoverable19archive is in preparation.
 [Prototype history](../validation/lazy-runtime-psqt-20261020/REPORT.md).
 
 Latest isolated finite-tested candidate is **Forge6.4.18**, source
@@ -57,7 +68,7 @@ Final enabled-metadata review PASS; payload `1203e13cfd80451d7194c7fba2f775de71d
 was published and one trigger push remotely verified at21:39:20UTC. Run
 [39502109381](https://github.com/couns0538-sketch/dwqww/actions/runs/39502109381)
 has passed the hosted source-build/test step; combined readiness/SPRT step is
-running at21:41:47UTC. Public metadata does not expose games or prove a particular
+running at22:23:32UTC. Public metadata does not expose games or prove a particular
 readiness subgate. Frozen0/+10,.05errors,equal10+0.1,256paired openings; no observed
 game statistics or Elo result. Do not trigger/retry/resume this experiment.
 Historical17binary/source47proofs remain genuinely labeled47; all72build inputs

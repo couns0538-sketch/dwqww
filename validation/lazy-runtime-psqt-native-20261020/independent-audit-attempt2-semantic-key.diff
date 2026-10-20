@@ -1,0 +1,11 @@
+--- independent-audit.py
++++ lookup-key-only
+@@ -445,7 +445,7 @@
+ def whole_originals():
+     path = HERE / 'ORIGINALS-FINAL-SHA256.json'
+     snapshot = load(path)
+-    record('whole_originals_snapshot_source', snapshot['source_commit'] == REV and snapshot['engines_or_builds_executed_for_this_snapshot'] is False)
++    record('whole_originals_snapshot_source', snapshot['source_commit'] == REV and snapshot['engines_or_builds_executed_for_snapshot'] is False)
+     expected_roots = {'source': str(SOURCE), **{profile: str(BASE / ('lazy-runtime-psqt-native-' + profile)) for profile in ['release', 'asan', 'tsan']}}
+     record('whole_originals_exact_four_roots', {label: tree['root'] for label, tree in snapshot['trees'].items()} == expected_roots)
+     counts = {}
