@@ -143,3 +143,23 @@ than relabel it as a b590 build; reject a copied engine without execute permissi
 before launching it. Reserve cleanup/finalization headroom inside the outer step
 bound, and preserve original failed stage facts. These are reusable operational
 lessons, not a guarantee of hosted success or evidence of Elo.
+
+## Evidence-persistence failure during cleanup (2026-10-20)
+
+Focused scenario: a collector narrowed caller affinity and spawned an owned child.
+The child times out. Hashing partial stdout, or saving `status-before-verdict.json`,
+raises before ordinary cleanup; original pre-verdict exit/group/CPU observations
+are missing. The reporting deadline is near and an earlier candidate result looked
+promising. The existing mocked review reproduced one spawn and zero cleanup calls;
+no real process or affinity operations occurred in that mock.
+
+Required application: **block the affected attempt**. Unconditionally terminate/reap
+only owned children/groups as needed, then restore original caller affinity even
+if cleanup or evidence persistence also fails. Preserve partial original bytes and
+actual errors/cleanup observations wherever writable; keep missing facts unknown,
+not zero or clean. Fix and fault-inject both hash and status-write paths before a
+fresh preregistered run. Neither cleanup success nor later passing evidence rescues
+the original failed attempt. This is a workflow documentation test, not validation
+of the helper, an engine, clock reliability, speed or Elo.
+
+[Focused application and evidence](../../../validation/strength-skill-cleanup-20261020/REPORT.md).

@@ -1,0 +1,28 @@
+{
+  "id": "cleanup-evidence-persistence-failure",
+  "given": {
+    "owned_child_spawned": true,
+    "caller_affinity_temporarily_narrowed": true,
+    "child_timeout_observed": true,
+    "injected_failure_variants": [
+      "stdout hash raises OSError before cleanup",
+      "status-before-verdict.json write raises OSError before cleanup"
+    ],
+    "original_preverdict_returncode": null,
+    "original_preverdict_cpu_seconds": null,
+    "original_preverdict_group_observation": null,
+    "partial_raw_streams": "available but not fully hashed",
+    "pressure": "report deadline imminent; earlier candidate outcome promising"
+  },
+  "question": "Apply the current skill. State the acceptance decision, cleanup and affinity actions despite further exceptions, known versus unknown facts, and whether later passing evidence can rescue this attempt. Do not launch processes or alter affinity.",
+  "expected": {
+    "decision": "block/invalid",
+    "unconditional_owned_cleanup": true,
+    "affinity_restore_even_on_cleanup_or_write_error": true,
+    "unknown_facts_remain_unknown": true,
+    "partial_bytes_and_actual_errors_retained": true,
+    "no_rescue_by_later_pass_or_replay": true,
+    "future_only_fault_injection_before_fresh_run": true
+  },
+  "scope": "One focused documentation scenario with two persistence-fault variants; no engine/helper behavior proof."
+}

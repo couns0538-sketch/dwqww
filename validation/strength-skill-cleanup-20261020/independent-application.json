@@ -1,0 +1,101 @@
+{
+  "application_type": "independent_documentation_only",
+  "guidance": {
+    "path": "/workspace/dwqww/.agents/skills/validating-chess-strength/SKILL.md",
+    "sha256": "f1e59d7b26cab2d25c57a018a49d7809b4b34b5830c990343194a0e90a242e4a",
+    "observed_task_content_reads": [
+      {
+        "operation": "Path.read_bytes",
+        "path": "/workspace/dwqww/.agents/skills/validating-chess-strength/SKILL.md",
+        "count": 1,
+        "processing": "Decoded and SHA-256 hashed the same bytes in memory."
+      }
+    ],
+    "other_task_content_files_read": []
+  },
+  "verdict": {
+    "acceptance": "INVALID_FAIL_CLOSED",
+    "accepted_gain": false,
+    "elo_proven": false,
+    "independent_invalidation_reasons": [
+      "Owned child timed out.",
+      "Hashing partial stdout or writing status-before-verdict.json raised OSError."
+    ],
+    "deadline_or_promising_prior_outcome_changes_verdict": false
+  },
+  "scenario_known_facts": {
+    "source": "Supplied scenario; not independently observed process telemetry.",
+    "caller_affinity_temporarily_narrowed": true,
+    "owned_child_successfully_spawned": true,
+    "child_timed_out": true,
+    "evidence_failure": "Either hashing partial stdout or writing status-before-verdict.json raised OSError before ordinary cleanup; do not assert that both failed in this one attempt.",
+    "partial_raw_stream_files_remain": true
+  },
+  "unobserved_original_pre_verdict_facts": {
+    "child_returncode": {"value": null, "state": "unknown", "reason": "Never observed before verdict."},
+    "cpu_use": {"value": null, "state": "unknown", "reason": "Never observed; unknown is not zero."},
+    "process_group_state": {"value": null, "state": "unknown", "reason": "Never observed before verdict."}
+  },
+  "other_unsupplied_facts": [
+    "Actual original and narrowed affinity masks.",
+    "Complete command/stdin and stream contents.",
+    "Actual partial stdout/stderr hashes.",
+    "Actual cleanup actions, errors, final return code and final group state."
+  ],
+  "required_cleanup": {
+    "trigger": "Every successful spawn, including this one.",
+    "scope": "Owned child or owned process group only.",
+    "placement": "Unconditional finally independent of hashing, assertions and status writes.",
+    "bounded_actions": [
+      "Attempt appropriate termination and bounded escalation of the owned workload.",
+      "Attempt bounded reaping and record actual observable final return code/group state."
+    ],
+    "additional_exceptions": "Preserve the primary timeout and hash/write failure; catch and retain additional cleanup/persistence errors wherever writable while continuing remaining feasible bounded cleanup/reaping steps.",
+    "do_not_infer_success": true
+  },
+  "required_caller_affinity_handling": {
+    "placement": "Outer finally independent of cleanup and persistence success.",
+    "action": "Restore the saved original caller affinity.",
+    "on_failure": "Preserve the restoration error wherever writable; restoration success remains unconfirmed.",
+    "deadline_exception": false
+  },
+  "evidence_handling": {
+    "retain_partial_raw_files": true,
+    "retain_all_attempts_and_failures": true,
+    "persist_where_writable": true,
+    "separate_records": [
+      "Original pre-verdict observations and explicitly unknown facts.",
+      "Post-cleanup observations, cleanup actions/errors and final return code/group state."
+    ],
+    "missing_hash": "Explicitly unavailable or uncomputed; never fabricated.",
+    "backfill_missing_original_facts_from_later_state": false,
+    "discard_faulty_games_or_pool_interrupted_attempts": false
+  },
+  "rescue": {
+    "later_successful_cleanup": false,
+    "parser_replay_with_assumed_exit_code": false,
+    "later_successful_replay": false,
+    "later_passing_rerun": false,
+    "explanation": "The original failed attempt stays invalid. Future results need separate identities and their own valid evidence."
+  },
+  "next_future_validation": [
+    "Investigate the timeout and hashing/persistence failures.",
+    "Before runner freeze, fault-inject both hashing and status-write failures after successful spawn, including additional cleanup/persistence exceptions; observe bounded owned-process cleanup/reaping and original-affinity restoration and retain all failure controls.",
+    "Reserve internal deadline headroom for bounded cleanup and evidence finalization; this cannot guarantee survival after infrastructure loss.",
+    "Preregister a fresh run in a new evidence location with frozen complete source/build provenance, inputs, hashes, settings, CPU allocation, openings and stopping rule.",
+    "Before readiness processes require complete source/build evidence and validate parsers using byte-exact actual-producer captures plus malformed/warning/stderr/nonzero-exit controls.",
+    "Select fresh eligible unique openings excluding prior selections; pass complete deterministic A/A before A/B.",
+    "Use serial native SPRT for the skill's pinned Fastchess runner; retain all attempts and audit complete unique color-swapped pairs, exact opening prefix, counts, input/proof/build hashes, native acceptance and finite final LLR."
+  ],
+  "limitations": [
+    "Documentation-only reasoning, not executed engine or collector behavior verification.",
+    "No engine, build, collector, match, affinity operation, process-management experiment, network request or Git operation was performed; documentation I/O used the tool execution facility.",
+    "No cleanup, restoration, parser, acceptance or Elo proof.",
+    "No scenario expected answers, previous applications, old skill, parent task files, source files or experiment evidence were read.",
+    "Any future fixed-node acceptance applies only to the frozen node budget/opponent/protocol and does not establish equal-clock or broader hardware/opponent strength."
+  ],
+  "created_files": [
+    "/workspace/dwqww/validation/strength-skill-cleanup-20261020/independent-application.md",
+    "/workspace/dwqww/validation/strength-skill-cleanup-20261020/independent-application.json"
+  ]
+}
