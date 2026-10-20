@@ -1,0 +1,102 @@
+{
+  "status": "expected_baseline_RED_reproduced",
+  "actual_core_tests": 12,
+  "capture_legality_matches_independent_oracle": 12,
+  "legal_recapture_sets_match_independent_oracle": 10,
+  "legal_capture_see0_cases": 10,
+  "pruning_false_negatives": [
+    {
+      "id": "absolute_pin_white",
+      "actual_see_ge0": false,
+      "oracle_expected_legal_exchange_ge0": true,
+      "actual_static_exchange": -800,
+      "legal_recaptures": []
+    },
+    {
+      "id": "absolute_pin_black",
+      "actual_see_ge0": false,
+      "oracle_expected_legal_exchange_ge0": true,
+      "actual_static_exchange": -800,
+      "legal_recaptures": []
+    }
+  ],
+  "passed_see0_controls": [
+    {
+      "id": "unpinned_white",
+      "actual_see_ge0": false,
+      "oracle_expected_legal_exchange_ge0": false,
+      "actual_static_exchange": -800,
+      "legal_recaptures": [
+        "e7d5"
+      ]
+    },
+    {
+      "id": "unpinned_black",
+      "actual_see_ge0": false,
+      "oracle_expected_legal_exchange_ge0": false,
+      "actual_static_exchange": -800,
+      "legal_recaptures": [
+        "e2d4"
+      ]
+    },
+    {
+      "id": "along_pin_white",
+      "actual_see_ge0": false,
+      "oracle_expected_legal_exchange_ge0": false,
+      "actual_static_exchange": -300,
+      "legal_recaptures": [
+        "e7e2"
+      ]
+    },
+    {
+      "id": "along_pin_black",
+      "actual_see_ge0": false,
+      "oracle_expected_legal_exchange_ge0": false,
+      "actual_static_exchange": -300,
+      "legal_recaptures": [
+        "e2e7"
+      ]
+    },
+    {
+      "id": "king_recapture_legal_white",
+      "actual_see_ge0": false,
+      "oracle_expected_legal_exchange_ge0": false,
+      "actual_static_exchange": -800,
+      "legal_recaptures": [
+        "e6d5"
+      ]
+    },
+    {
+      "id": "king_recapture_legal_black",
+      "actual_see_ge0": false,
+      "oracle_expected_legal_exchange_ge0": false,
+      "actual_static_exchange": -800,
+      "legal_recaptures": [
+        "e3d4"
+      ]
+    },
+    {
+      "id": "king_recapture_illegal_white",
+      "actual_see_ge0": true,
+      "oracle_expected_legal_exchange_ge0": true,
+      "actual_static_exchange": 100,
+      "legal_recaptures": []
+    },
+    {
+      "id": "king_recapture_illegal_black",
+      "actual_see_ge0": true,
+      "oracle_expected_legal_exchange_ge0": true,
+      "actual_static_exchange": 100,
+      "legal_recaptures": []
+    }
+  ],
+  "illegal_initial_capture_controls": {
+    "count": 2,
+    "actual_see0": true,
+    "interpretation": "SEE does not validate initial capture legality. Search checks board.is_legal before qsearch/main pruning; MovePicker may use SEE earlier for ordering. This is an API precondition/approximation, not emitted illegal-move evidence."
+  },
+  "king_recapture_controls": "Both colors: legal unprotected king recapture correctly reports losing; protected square makes king recapture illegal and correctly reports +100, threshold100 true/101 false. Do not alter working king branch blindly.",
+  "along_pin_controls": "Both colors: pinned rook may legally capture along its ray, and current SEE reports -300; blanket removal of all pinned attackers is invalid.",
+  "source_commit": "8865666cc0ab4961cd507bae40ff6ce44e9319df",
+  "scope": "Actual Board API linked to frozen Release core; no production edit, fullsearch correctness result, performance or Elo claim."
+}

@@ -38,7 +38,9 @@ Both original strength runs completed validly and **inconclusively**:
 
 The fresh 6.4.12 versus 6.4.11 protocol is **launched once**, run39403471059 at frozen launchb48af4c:0/+5 SPRT,1024 fresh pairs, equal2+0.02, serial
 Threads1/Hash32/OwnBookfalse. All30proof hashes/23package entries pass.
-[Live job](https://github.com/couns0538-sketch/dwqww/actions/runs/39403471059); no completed result yet.
+[Finished job](https://github.com/couns0538-sketch/dwqww/actions/runs/39403471059) failed on a baseline time forfeit by45ms. Original84records/42pairs (W13/D59/L12) are invalid for strength acceptance. Final frozen-input rehash passed; raw resultsffc598ad. No retry; exact UCI failure audit is underway.
+
+New isolated6.4.13 source `cecf0b9e3af5602053bcaf5c5d16ffc09f58850d` merges accepted356e and preserves886. It scopes automatic origin to finite timed searches and retains both timestamp names with accepted start_time priority. Release9/9 passed; remaining sanitizer/API/Windows proof is underway. This clock-reporting correction is not a demonstrated remedy for the baseline time forfeit.
 
 No NPS/Elo gain is accepted; no result transfers across candidates or games are
 pooled. Failed strict3% timing A/A receives no retry or widened threshold.

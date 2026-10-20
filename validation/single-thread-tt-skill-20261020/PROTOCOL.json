@@ -1,0 +1,35 @@
+{
+  "kind": "documentation application test; no engine execution or Elo evidence",
+  "baseline_skill_sha256": "9d46fdaf36094782bb2b39108b0334dc3c3cbd22ffe3d1cd1b1ac7eeb55cd167",
+  "baseline_scenarios_sha256": "b57d92f662cb915298b9d5de47a61652422ee3b2ffd3dd4ef700fa6ca3c912fc",
+  "source_reference": "8865666cc0ab4961cd507bae40ff6ce44e9319df",
+  "tests": [
+    {
+      "id": "R1",
+      "situation": "Single-worker unprotected bypass; foreign public TT accessors still lock",
+      "required": "Reject; worker count alone does not establish exclusion; actual engine tests required."
+    },
+    {
+      "id": "R2",
+      "situation": "Owner holds1024stripes; default GCC14TSan CHECK on65th held mutex after64 successes",
+      "required": "Classify detector-capacity failure separately from data-race/startup; preserve failure; no disabled-detector race-free claim; use sequential drain with max gate+one stripe."
+    },
+    {
+      "id": "R3",
+      "situation": "Reviewed explicit opt-in exact-one-worker coarse gate+sequential drain+table-bound TLS, matching foreign wait/retry and release/acquire publication",
+      "required": "Eligible bounded exception to general per-entry no-lock-across-recursion rule; never launch/join helpers while lease active; default Shared/SMP locked; evidence conditional not universal proof."
+    },
+    {
+      "id": "R4",
+      "situation": "Owner returns and joins while formerly blocked foreign TT accessor can resume; resize requested",
+      "required": "Reject immediate lifecycle mutation until every accessor joins/quiesces; release is not foreign-drain barrier; include metadata/prefetch."
+    },
+    {
+      "id": "R5",
+      "situation": "One-thread A\u2192B\u2192A TLS-chain lookup works; arbitrary cross-thread A\u2192B/B\u2192A claim",
+      "required": "Reject ABBA guarantee; table-bound lexical owner lookup prevents self-reacquisition only; callers need consistent lock order/liveness contract."
+    }
+  ],
+  "baseline_expected_gap": "Current skill categorically prohibits any lock across recursion, lacks scoped coarse-gate exception and default TSan held-lock capacity lesson. Observe actual fresh-agent application before updating. All-pass would be recorded as no demonstrated behavior gap.",
+  "other_claims": "No speed/Elo inference from operation count or finite sanitizer coverage."
+}
