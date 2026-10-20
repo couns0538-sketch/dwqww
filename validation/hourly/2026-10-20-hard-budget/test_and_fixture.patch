@@ -1,0 +1,38 @@
+--- a/test_warm_timeout_probe.py
++++ b/test_warm_timeout_probe.py
+@@ -67,6 +67,28 @@
+             self.assertTrue(result["abnormal_exit"])
+             self.assertEqual(result["raw_events_sha256"], sha256(raw))
+ 
++    def test_source_grounded_hard_limit_is_351_ms(self):
++        from warm_timeout_probe import HARD_LIMIT_MS
++        self.assertEqual(HARD_LIMIT_MS, 351)
++
++    def test_reply_after_hard_limit_before_watchdog_is_not_pass(self):
++        # A 0.65 second bestmove violates the frozen engine hard limit of
++        # 351 ms even though it satisfies the 2 second diagnostic watchdog.
++        with tempfile.TemporaryDirectory() as d:
++            os.environ["MOCK_DELAY_MS"] = "650"
++            try:
++                raw = Path(d) / "overrun.jsonl"
++                result = trial(HERE / "fake_uci.py", "cold", raw, None,
++                               deadline=2.0)
++            finally:
++                os.environ.pop("MOCK_DELAY_MS", None)
++            self.assertFalse(result["deadline_expired"], result)
++            self.assertEqual(result["bestmove"], "bestmove e7e4")
++            self.assertTrue(result["hard_limit_violated"], result)
++            self.assertGreater(result["hard_limit_overrun_ms"], 200)
++            self.assertFalse(result["completed_normally"], result)
++            self.assertEqual(result["raw_events_sha256"], sha256(raw))
++
+     def test_raw_journal_available_before_engine_exits(self):
+--- a/fake_uci.py
++++ b/fake_uci.py
+@@ -17,7 +17,7 @@
+         if os.environ.get("MOCK_HANG") == "1":
+             print("info depth 1 nodes 2", flush=True)
+         else:
+-            time.sleep(0.02)
++            time.sleep(float(os.environ.get("MOCK_DELAY_MS", "20")) / 1000.0)
+             print("bestmove e7e4", flush=True)

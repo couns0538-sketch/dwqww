@@ -1,0 +1,55 @@
+--- a/warm_timeout_probe.py
++++ b/warm_timeout_probe.py
+@@ -27,6 +27,17 @@
+ OPTIONS = (("Hash", "64"), ("Threads", "1"), ("OwnBook", "false"),
+            ("Ponder", "false"), ("UseNNUE", "true"), ("Move Overhead", "10"))
+ 
++# Freeze the engine's *internal* hard allocation independently of the harness's
++# broader wall-clock watchdog. From Forge 6.4 search.cpp, for Black's 596 ms:
++# available = 596 - 10 = 586; soft = 586//22 + 100*75//100 = 101;
++# hard = min(586*60//100, 101*5) = 351 ms. This value applies only to
++# the frozen TT-tag binaries and UCI options recorded in this protocol.
++# A wall-clock overrun is evidence of a timing anomaly, not proof of where
++# the delay occurred (engine, kernel scheduler, harness or I/O transport).
++HARD_LIMIT_MS = min((596 - 10) * 60 // 100,
++                    ((596 - 10) // 22 + 100 * 75 // 100) * 5)
++assert HARD_LIMIT_MS == 351
++
+ 
+ def sha256(path):
+@@ -160,7 +171,9 @@
+ def trial(binary, mode, events_path, cpu, warm_depth=10, deadline=2.0):
+     p = Engine([str(binary)], events_path, cpu=cpu)
+     status = {"binary_sha256": sha256(binary), "mode": mode,
+-              "warm_depth": warm_depth, "deadline_seconds": deadline}
++              "warm_depth": warm_depth, "deadline_seconds": deadline,
++              "hard_limit_ms": HARD_LIMIT_MS, "hard_limit_overrun_ms": None,
++              "hard_limit_violated": None}
+@@ -192,14 +205,27 @@
+             status["deadline_expired"] = False
+         end_ns = time.monotonic_ns()
+         after_ticks = cpu_ticks(p.proc.pid)
+-        status.update(bestmove=result["text"] if result is not None else None,
++        # Deadline is intentionally generous for collecting the late response.
++        # It is NOT the engine's 351 ms hard budget. A bestmove after that
++        # budget must not be silently reported as a clean timing pass.
++        search_bestmove_ms = ((result["monotonic_ns"] - start_ns) / 1e6
++                              if result is not None and not status["deadline_expired"]
++                              else None)
++        hard_limit_violated = (search_bestmove_ms is not None and
++                               search_bestmove_ms > HARD_LIMIT_MS)
++        status.update(hard_limit_ms=HARD_LIMIT_MS,
++                      hard_limit_overrun_ms=(max(0.0, search_bestmove_ms - HARD_LIMIT_MS)
++                                             if search_bestmove_ms is not None else None),
++                      hard_limit_violated=hard_limit_violated,
++                      bestmove=result["text"] if result is not None else None,
+                       bestmove_observed_ms=(result["monotonic_ns"] - start_ns) / 1e6
+                       if result is not None else None,
+                       elapsed_ms=(end_ns - start_ns) / 1e6,
+                       stop_response_ms=stop_latency,
+                       cpu_ticks_delta=(after_ticks-before_ticks)
+                       if before_ticks is not None and after_ticks is not None else None,
+-                      completed_normally=result is not None and not status["deadline_expired"])
++                      completed_normally=(result is not None and not status["deadline_expired"]
++                                          and not hard_limit_violated))
+     except Exception as exc:
