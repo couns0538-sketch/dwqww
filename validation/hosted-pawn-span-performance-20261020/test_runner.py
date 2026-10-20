@@ -13,7 +13,10 @@ class Runner(unittest.TestCase):
             self.assertEqual(len(m.validate_sample(facts,CAPTURE/label,facts['cpu'])),5)
             for stream in ('stdin','stdout','stderr'):
                 self.assertEqual((CAPTURE/label/(stream+'.txt')).read_bytes(),(PKG/'fixtures/historical-18-19'/(label+'-five.'+stream+'.bin')).read_bytes())
-        self.assertEqual(CFG['transport_captures'],{})
+        draft=json.loads((ROOT/'pre-enable-disabled/package/protocol.json').read_text())
+        self.assertEqual(draft['transport_captures'],{})
+        for entry in CFG['transport_captures'].values():
+            self.assertNotIn('fixtures/historical-18-19',entry['stdout_path'])
     def test_derived_crlf_historical_rows_remain_canonical(self):
         for label in ('baseline','candidate'):
             self.assertEqual(len(m.analysis.parse_bench((CAPTURE/label/'stdout.txt').read_bytes().replace(b'\n',b'\r\n'))),5)
@@ -97,7 +100,7 @@ class Integrity(unittest.TestCase):
         return cfg
     def test_draft_and_forced_ready_pending_source_fail_before_process(self):
         with mock.patch.object(m.owned,'run_owned') as spawn,self.assertRaisesRegex(ValueError,'blocked'):
-            m.common.require_ready(CFG)
+            m.common.require_ready({**CFG,'status':'DRAFT_BLOCKED_PREPARATION_ONLY'})
         spawn.assert_not_called()
         cfg=copy.deepcopy(CFG);cfg['status']=m.common.READY;cfg['candidate_sha']='PENDING_FROZEN_CANDIDATE_20_SHA'
         with mock.patch.object(m.common,'CANDIDATE',cfg['candidate_sha']),mock.patch.object(m.owned,'run_owned') as spawn,self.assertRaisesRegex(ValueError,'source is not frozen'):

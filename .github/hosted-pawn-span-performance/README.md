@@ -1,15 +1,7 @@
-Preparation checkpoint only. The workflow has `on: []` and `if: false`.
-Source20 is frozen as `fc2391870b3bf2cd4d8fc20c7406ea6439c69c5e`; this is
-source identity only. Complete actual native/Windows/capture qualification and
-reviews remain blocked. The source guard also explicitly rejects pending pins.
-
-This prepares source19 `61f598056572dfade6994af8ad2e38817cd28aa3` versus future
-frozen20 pawn-span fill. Source20 is not the initial prototype5ad72e16. Actual
-source20 native/Windows/parity/root review and source/public-trace proofs plus
-both genuine source19/source20 five-command captures remain required. Initial
-public-differential and source-review records keep their genuine prototype
-identities; final root binding must document actual source equivalence, not
-rewrite original labels. No PASSED metadata or real capture is assumed here.
+Frozen source19 versus20 performance-only protocol. Native/Windows/source/parity
+and actualfive-command producer gates passed. One restricted first-attempt push
+may occur only after offlineREADY and independent finalenabled review pass.
+Historical initialDRAFT and tests are retained at pre-enable-disabled/.
 
 The trusted19 collector, parser and analysis are reused. `owned_process.py`,
 `archive_results.py` and `run_hosted.py` are byte-identical to19. Analysis changes
