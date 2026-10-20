@@ -69,6 +69,20 @@ constexpr Bitboard KingSide = FileEBB | FileFBB | FileGBB | FileHBB;
 [[nodiscard]] constexpr Bitboard shift_south_east(Bitboard bb) { return (bb & ~FileHBB) >> 7; }
 [[nodiscard]] constexpr Bitboard shift_south_west(Bitboard bb) { return (bb & ~FileABB) >> 9; }
 
+// Include every square ahead on the same file, retaining the input squares.
+[[nodiscard]] constexpr Bitboard forward_fill(Color color, Bitboard squares) {
+    if (color == White) {
+        squares |= squares << 8;
+        squares |= squares << 16;
+        squares |= squares << 32;
+    } else {
+        squares |= squares >> 8;
+        squares |= squares >> 16;
+        squares |= squares >> 32;
+    }
+    return squares;
+}
+
 [[nodiscard]] constexpr Bitboard pawn_push(Color color, Bitboard bb) {
     return color == White ? shift_north(bb) : shift_south(bb);
 }
