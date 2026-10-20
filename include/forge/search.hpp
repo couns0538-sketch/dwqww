@@ -279,6 +279,7 @@ struct SearchStack {
     // NNUE state: the accumulator is refreshed lazily from the nearest valid
     // ancestor using the piece changes recorded for each ply.
     nnue::Accumulator accumulator{};
+    Evaluator::RuntimePsqt runtime_psqt{};
     nnue::DirtyPieces dirty{};
 };
 
@@ -360,6 +361,7 @@ private:
     void update_correction(const Board& board, int depth, int best_score, int static_eval);
     [[nodiscard]] int static_evaluate(const Board& board, SearchStack* ss);
     void record_move(SearchStack* ss, const Board& board, const Move& move);
+    void record_null_move(SearchStack* ss);
 };
 
 // Public search facade: a shared transposition table plus one or more workers.

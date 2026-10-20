@@ -7,6 +7,9 @@
 
 namespace forge {
 
+namespace nnue { struct DirtyPieces; }
+class Worker;
+
 // Packed tapered score: middlegame in the low 16 bits, endgame in the high 16.
 using Score = int;
 
@@ -30,6 +33,14 @@ constexpr std::array<int, 7> SeePieceValue{0, 100, 300, 300, 500, 900, 0};
 
 class Evaluator {
 public:
+    // Search-local state only: public evaluation and tuning always recompute.
+    // Phase is deliberately not capped until the final evaluation taper.
+    struct RuntimePsqt {
+        Score score = 0;
+        int phase = 0;
+        bool valid = false;
+    };
+
     Evaluator();
     // Static evaluation from the side to move's point of view, in centipawns.
     [[nodiscard]] int evaluate(const Board& board);
@@ -46,6 +57,10 @@ public:
     };
 
 private:
+    friend class Worker;
+    [[nodiscard]] static RuntimePsqt refresh_runtime_psqt(const Board& board);
+    static void update_runtime_psqt(const RuntimePsqt& parent, RuntimePsqt& child, const nnue::DirtyPieces& dirty);
+    [[nodiscard]] int evaluate_runtime(const Board& board, const RuntimePsqt& psqt);
     static constexpr std::size_t PawnCacheSize = 1U << 15U;
     std::vector<PawnEntry> pawn_cache_;
 };

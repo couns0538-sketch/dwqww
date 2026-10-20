@@ -55,12 +55,16 @@ target_link_libraries(forge_legal_witness_tests PRIVATE forge_core Threads::Thre
 add_executable(forge_correction_history_tests tests/correction_history_tests.cpp)
 target_link_libraries(forge_correction_history_tests PRIVATE forge_core Threads::Threads)
 
+add_executable(forge_runtime_psqt_tests tests/runtime_psqt_tests.cpp)
+target_link_libraries(forge_runtime_psqt_tests PRIVATE forge_core Threads::Threads)
+
 add_executable(forge_bench bench/benchmark.cpp)
 target_link_libraries(forge_bench PRIVATE forge_core Threads::Threads)
 
 enable_testing()
 add_test(NAME forge_tests COMMAND forge_tests)
 add_test(NAME forge_correction_history_tests COMMAND forge_correction_history_tests)
+add_test(NAME forge_runtime_psqt_tests COMMAND forge_runtime_psqt_tests)
 add_test(NAME forge_tt_tests COMMAND forge_tt_tests)
 add_test(NAME forge_rule50_tests COMMAND forge_rule50_tests)
 add_test(NAME forge_legal_witness_tests COMMAND forge_legal_witness_tests

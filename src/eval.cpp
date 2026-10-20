@@ -1,9 +1,11 @@
 #include "forge/eval.hpp"
 #include "forge/eval_params.hpp"
+#include "forge/nnue.hpp"
 
 #include <algorithm>
 #include <array>
 #include <cstdlib>
+#include <limits>
 
 namespace forge {
 namespace {
@@ -380,18 +382,25 @@ int scale_factor(const Board& board, int eg) {
 }
 
 template <bool Trace>
-int evaluate_position(const Board& board, Evaluator::PawnEntry* cache, EvalTrace* trace) {
+int evaluate_position(const Board& board, Evaluator::PawnEntry* cache, EvalTrace* trace,
+                      const Evaluator::RuntimePsqt* runtime = nullptr) {
     EvalInfo info{};
     Accumulator<Trace> acc;
     acc.trace = trace;
     int phase = 0;
 
-    for (int type = Pawn; type <= King; ++type) {
-        Bitboard white = board.pieces(White, static_cast<PieceType>(type));
-        Bitboard black = board.pieces(Black, static_cast<PieceType>(type));
-        phase += PhaseValue[static_cast<std::size_t>(type)] * (popcount(white) + popcount(black));
-        while (white != 0) acc.template add<White>(Psqt + (type - 1) * 64 + pop_lsb(white));
-        while (black != 0) acc.template add<Black>(Psqt + (type - 1) * 64 + flip_square(pop_lsb(black)));
+    if (!Trace && runtime != nullptr && runtime->valid) {
+        acc.score = runtime->score;
+        phase = runtime->phase;
+    } else {
+        // Public and traced evaluation retain the original live-table oracle.
+        for (int type = Pawn; type <= King; ++type) {
+            Bitboard white = board.pieces(White, static_cast<PieceType>(type));
+            Bitboard black = board.pieces(Black, static_cast<PieceType>(type));
+            phase += PhaseValue[static_cast<std::size_t>(type)] * (popcount(white) + popcount(black));
+            while (white != 0) acc.template add<White>(Psqt + (type - 1) * 64 + pop_lsb(white));
+            while (black != 0) acc.template add<Black>(Psqt + (type - 1) * 64 + flip_square(pop_lsb(black)));
+        }
     }
     phase = std::min(phase, MaxPhase);
 
@@ -482,6 +491,47 @@ int Evaluator::evaluate(const Board& board) {
 
 int Evaluator::evaluate_uncached(const Board& board) {
     return evaluate_position<false>(board, nullptr, nullptr);
+}
+
+Evaluator::RuntimePsqt Evaluator::refresh_runtime_psqt(const Board& board) {
+    RuntimePsqt state;
+    std::int64_t score = 0;
+    Bitboard occupied = board.occupied();
+    while (occupied != 0) {
+        const int square = pop_lsb(occupied);
+        const Piece piece = board.piece_at(square);
+        const int type = piece_type(piece);
+        const int relative = color_of(piece) == White ? square : flip_square(square);
+        const std::int64_t term = params::table[static_cast<std::size_t>(params::Psqt + (type - 1) * 64 + relative)];
+        score += color_of(piece) == White ? term : -term;
+        state.phase += PhaseValue[static_cast<std::size_t>(type)];
+    }
+    // Do not introduce an overflowing delta intermediate for unusual tool values.
+    state.valid = score >= std::numeric_limits<Score>::min() && score <= std::numeric_limits<Score>::max();
+    if (state.valid) state.score = static_cast<Score>(score);
+    return state;
+}
+
+void Evaluator::update_runtime_psqt(const RuntimePsqt& parent, RuntimePsqt& child, const nnue::DirtyPieces& dirty) {
+    child = parent;
+    if (!parent.valid) return;
+    std::int64_t score = parent.score;
+    for (int i = 0; i < dirty.count; ++i) {
+        const nnue::PieceChange& change = dirty.changes[static_cast<std::size_t>(i)];
+        const int type = piece_type(change.piece);
+        const int relative = color_of(change.piece) == White ? change.square : flip_square(change.square);
+        const std::int64_t term = params::table[static_cast<std::size_t>(params::Psqt + (type - 1) * 64 + relative)];
+        const std::int64_t signed_term = color_of(change.piece) == White ? term : -term;
+        score += change.add ? signed_term : -signed_term;
+        child.phase += change.add ? PhaseValue[static_cast<std::size_t>(type)] : -PhaseValue[static_cast<std::size_t>(type)];
+    }
+    child.valid = score >= std::numeric_limits<Score>::min() && score <= std::numeric_limits<Score>::max();
+    if (child.valid) child.score = static_cast<Score>(score);
+}
+
+int Evaluator::evaluate_runtime(const Board& board, const RuntimePsqt& psqt) {
+    PawnEntry& entry = pawn_cache_[static_cast<std::size_t>(board.pawn_key()) & (PawnCacheSize - 1U)];
+    return evaluate_position<false>(board, &entry, nullptr, &psqt);
 }
 
 int evaluate_traced(const Board& board, EvalTrace& trace) {

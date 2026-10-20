@@ -587,20 +587,26 @@ namespace {
 
 int Worker::static_evaluate(const Board& board, SearchStack* ss) {
     if (!nnue::enabled || !nnue::available()) return evaluator_.evaluate(board);
+    const bool residual = nnue::residual();
     if (!ss->accumulator.valid) {
         // Walk back to the nearest valid accumulator, then replay the moves.
         int back = 0;
         while (back < ss->ply && !(ss - back - 1)->accumulator.valid) ++back;
         if (back >= ss->ply && !(ss - back - 1)->accumulator.valid) {
             nnue::refresh(board, ss->accumulator);
+            if (residual) ss->runtime_psqt = Evaluator::refresh_runtime_psqt(board);
         } else {
-            for (int i = back; i >= 0; --i) nnue::update((ss - i - 1)->accumulator, (ss - i)->accumulator, (ss - i)->dirty);
+            for (int i = back; i >= 0; --i) {
+                nnue::update((ss - i - 1)->accumulator, (ss - i)->accumulator, (ss - i)->dirty);
+                if (residual) Evaluator::update_runtime_psqt((ss - i - 1)->runtime_psqt, (ss - i)->runtime_psqt, (ss - i)->dirty);
+            }
         }
     }
     const int network = nnue::evaluate(board, ss->accumulator);
-    if (!nnue::residual()) return network;
+    if (!residual) return network;
+    if (!ss->runtime_psqt.valid) ss->runtime_psqt = Evaluator::refresh_runtime_psqt(board);
     // A residual network is a learned correction on top of the hand-crafted evaluation.
-    return std::clamp(evaluator_.evaluate(board) + network, -MateInMaxPly + 1, MateInMaxPly - 1);
+    return std::clamp(evaluator_.evaluate_runtime(board, ss->runtime_psqt) + network, -MateInMaxPly + 1, MateInMaxPly - 1);
 }
 
 void Worker::record_move(SearchStack* ss, const Board& board, const Move& move) {
@@ -609,6 +615,13 @@ void Worker::record_move(SearchStack* ss, const Board& board, const Move& move) 
     if (!nnue::enabled || !nnue::available()) return;
     (ss + 1)->dirty = nnue::dirty_pieces(board, move);
     (ss + 1)->accumulator.valid = false;
+    (ss + 1)->runtime_psqt.valid = false;
+}
+
+void Worker::record_null_move(SearchStack* ss) {
+    (ss + 1)->dirty.count = 0;
+    (ss + 1)->accumulator.valid = false;
+    (ss + 1)->runtime_psqt.valid = false;
 }
 
 int Worker::corrected_eval(const Board& board, int raw_eval) const {
@@ -949,8 +962,7 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
             ss->moved_piece = Empty;
             ss->continuation = &(*continuation_history_)[Empty][0];
             (ss + 1)->ply = ply + 1;
-            (ss + 1)->dirty.count = 0;
-            (ss + 1)->accumulator.valid = false;
+            record_null_move(ss);
             NullUndo undo;
             board.make_null_move(undo);
             int null_score = -search(board, ss + 1, depth - reduction, -beta, -beta + 1, !cut_node);
@@ -1331,8 +1343,14 @@ SearchInfo Worker::search(Board board, const SearchLimits& limits, bool emit_inf
     }
     SearchStack* ss = &stack_[4];
     for (int i = 0; i < MaxPly + 4; ++i) stack_[static_cast<std::size_t>(i)].ply = i - 4;
-    for (SearchStack& entry : stack_) entry.accumulator.valid = false;
-    if (nnue::enabled && nnue::available()) nnue::refresh(board, ss->accumulator);
+    for (SearchStack& entry : stack_) {
+        entry.accumulator.valid = false;
+        entry.runtime_psqt.valid = false;
+    }
+    if (nnue::enabled && nnue::available()) {
+        nnue::refresh(board, ss->accumulator);
+        if (nnue::residual()) ss->runtime_psqt = Evaluator::refresh_runtime_psqt(board);
+    }
 
     Move previous_best = Move::none();
     int stable_iterations = 0;
