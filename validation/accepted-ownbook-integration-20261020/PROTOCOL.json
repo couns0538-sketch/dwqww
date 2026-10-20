@@ -1,0 +1,220 @@
+{
+  "created_utc": "2026-10-20T20:35:17.105844+00:00",
+  "commits": {
+    "baseline": "356e863dbd86d2ce24b8ee9486d7406f1d525480",
+    "candidate": "5101c2529d386b7c3a04ba9156a69ee34df6bb43"
+  },
+  "gcc_path": "/usr/bin/g++-14",
+  "gcc_sha256": "6b3696e4dcb85e1c949c732a02befa50e3983ecf94ce7e8e58d9d503b954b79d",
+  "cmake_path": "/workspace/.cloud-setup/venv/bin/cmake",
+  "cmake_sha256": "5da416f11de034bb948be0ef01ad61bbd6708b3a66040ea71604968fbbead1a9",
+  "python_path": "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3",
+  "python_sha256": "fa67443527ed9647f760d807e2a38f26340757123e643c4639cf273ed15d5ea7",
+  "common_release_flags": "-fno-fast-math -ffp-contract=off -fno-lto",
+  "forge_native": false,
+  "jobs": 2,
+  "phases_serial": true,
+  "phase_timeout_seconds": 1200,
+  "no_retries": true,
+  "candidate_original_test": "/workspace/.cloud-setup/accepted-ownbook-candidate-source/validation/hourly/2026-10-20-ownbook-native/test_ownbook.py",
+  "candidate_original_test_sha256": "220648e27b1a45af593174321a093c0947b4599b3fe315048f0f4001529f8588",
+  "asan_additional_flags": "-g -fno-pie; linker-no-pie; fatal ASan/UBSan + leak checks, no disabled sanitizer checks",
+  "commands": {
+    "baseline-release": [
+      [
+        "configure",
+        [
+          "/workspace/.cloud-setup/venv/bin/cmake",
+          "-S",
+          "/workspace/.cloud-setup/accepted-ownbook-baseline-source",
+          "-B",
+          "/workspace/.cloud-setup/accepted-ownbook-baseline-release",
+          "-DCMAKE_BUILD_TYPE=Release",
+          "-DCMAKE_CXX_COMPILER=/usr/bin/g++-14",
+          "-DPython3_EXECUTABLE=/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3",
+          "-DFORGE_NATIVE=OFF",
+          "-DFORGE_ENABLE_SANITIZERS=OFF",
+          "-DCMAKE_CXX_FLAGS=-fno-fast-math -ffp-contract=off -fno-lto",
+          "-DCMAKE_EXPORT_COMPILE_COMMANDS=ON"
+        ]
+      ],
+      [
+        "build",
+        [
+          "/workspace/.cloud-setup/venv/bin/cmake",
+          "--build",
+          "/workspace/.cloud-setup/accepted-ownbook-baseline-release",
+          "--parallel",
+          "2"
+        ]
+      ],
+      [
+        "ctest-discovery",
+        [
+          "/workspace/.cloud-setup/venv/bin/ctest",
+          "--test-dir",
+          "/workspace/.cloud-setup/accepted-ownbook-baseline-release",
+          "--show-only=json-v1"
+        ]
+      ],
+      [
+        "ctest",
+        [
+          "/workspace/.cloud-setup/venv/bin/ctest",
+          "--test-dir",
+          "/workspace/.cloud-setup/accepted-ownbook-baseline-release",
+          "--output-on-failure",
+          "--parallel",
+          "1",
+          "--timeout",
+          "300"
+        ]
+      ],
+      [
+        "ownbook",
+        [
+          "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3",
+          "-B",
+          "/workspace/.cloud-setup/accepted-ownbook-candidate-source/validation/hourly/2026-10-20-ownbook-native/test_ownbook.py",
+          "/workspace/.cloud-setup/accepted-ownbook-baseline-release/forge",
+          "--expect-leak",
+          "yes",
+          "--out",
+          "/workspace/dwqww/validation/accepted-ownbook-integration-20261020/baseline-release-attempt1/ownbook-original"
+        ]
+      ]
+    ],
+    "candidate-release": [
+      [
+        "configure",
+        [
+          "/workspace/.cloud-setup/venv/bin/cmake",
+          "-S",
+          "/workspace/.cloud-setup/accepted-ownbook-candidate-source",
+          "-B",
+          "/workspace/.cloud-setup/accepted-ownbook-candidate-release",
+          "-DCMAKE_BUILD_TYPE=Release",
+          "-DCMAKE_CXX_COMPILER=/usr/bin/g++-14",
+          "-DPython3_EXECUTABLE=/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3",
+          "-DFORGE_NATIVE=OFF",
+          "-DFORGE_ENABLE_SANITIZERS=OFF",
+          "-DCMAKE_CXX_FLAGS=-fno-fast-math -ffp-contract=off -fno-lto",
+          "-DCMAKE_EXPORT_COMPILE_COMMANDS=ON"
+        ]
+      ],
+      [
+        "build",
+        [
+          "/workspace/.cloud-setup/venv/bin/cmake",
+          "--build",
+          "/workspace/.cloud-setup/accepted-ownbook-candidate-release",
+          "--parallel",
+          "2"
+        ]
+      ],
+      [
+        "ctest-discovery",
+        [
+          "/workspace/.cloud-setup/venv/bin/ctest",
+          "--test-dir",
+          "/workspace/.cloud-setup/accepted-ownbook-candidate-release",
+          "--show-only=json-v1"
+        ]
+      ],
+      [
+        "ctest",
+        [
+          "/workspace/.cloud-setup/venv/bin/ctest",
+          "--test-dir",
+          "/workspace/.cloud-setup/accepted-ownbook-candidate-release",
+          "--output-on-failure",
+          "--parallel",
+          "1",
+          "--timeout",
+          "300"
+        ]
+      ],
+      [
+        "ownbook",
+        [
+          "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3",
+          "-B",
+          "/workspace/.cloud-setup/accepted-ownbook-candidate-source/validation/hourly/2026-10-20-ownbook-native/test_ownbook.py",
+          "/workspace/.cloud-setup/accepted-ownbook-candidate-release/forge",
+          "--expect-leak",
+          "no",
+          "--out",
+          "/workspace/dwqww/validation/accepted-ownbook-integration-20261020/candidate-release-attempt1/ownbook-original"
+        ]
+      ]
+    ],
+    "candidate-asan": [
+      [
+        "configure",
+        [
+          "/workspace/.cloud-setup/venv/bin/cmake",
+          "-S",
+          "/workspace/.cloud-setup/accepted-ownbook-candidate-source",
+          "-B",
+          "/workspace/.cloud-setup/accepted-ownbook-candidate-asan",
+          "-DCMAKE_BUILD_TYPE=Release",
+          "-DCMAKE_CXX_COMPILER=/usr/bin/g++-14",
+          "-DPython3_EXECUTABLE=/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3",
+          "-DFORGE_NATIVE=OFF",
+          "-DFORGE_ENABLE_SANITIZERS=ON",
+          "-DCMAKE_CXX_FLAGS=-fno-fast-math -ffp-contract=off -fno-lto -g -fno-pie",
+          "-DCMAKE_EXPORT_COMPILE_COMMANDS=ON",
+          "-DCMAKE_EXE_LINKER_FLAGS=-no-pie"
+        ]
+      ],
+      [
+        "build",
+        [
+          "/workspace/.cloud-setup/venv/bin/cmake",
+          "--build",
+          "/workspace/.cloud-setup/accepted-ownbook-candidate-asan",
+          "--parallel",
+          "2"
+        ]
+      ],
+      [
+        "ctest-discovery",
+        [
+          "/workspace/.cloud-setup/venv/bin/ctest",
+          "--test-dir",
+          "/workspace/.cloud-setup/accepted-ownbook-candidate-asan",
+          "--show-only=json-v1"
+        ]
+      ],
+      [
+        "ctest",
+        [
+          "/workspace/.cloud-setup/venv/bin/ctest",
+          "--test-dir",
+          "/workspace/.cloud-setup/accepted-ownbook-candidate-asan",
+          "--output-on-failure",
+          "--parallel",
+          "1",
+          "--timeout",
+          "300"
+        ]
+      ],
+      [
+        "ownbook",
+        [
+          "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3",
+          "-B",
+          "/workspace/.cloud-setup/accepted-ownbook-candidate-source/validation/hourly/2026-10-20-ownbook-native/test_ownbook.py",
+          "/workspace/.cloud-setup/accepted-ownbook-candidate-asan/forge",
+          "--expect-leak",
+          "no",
+          "--out",
+          "/workspace/dwqww/validation/accepted-ownbook-integration-20261020/candidate-asan-attempt1/ownbook-original"
+        ]
+      ]
+    ]
+  },
+  "rationale": "New local exact accepted-lineage evidence; priorCI metadataSUCCESS does not provide accessible rawartifact. No proof transfer from17.",
+  "process_policy": "Per-command owned new session/process group; local child-subreaper; preserve timeout/failure; TERM/KILL/reap owned leftovers only; unexpected live leftovers fail gate.",
+  "scope": "No branch/Git/source edit, integration, benchmark,match,Elo orNPS claim."
+}

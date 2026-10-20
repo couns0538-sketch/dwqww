@@ -135,3 +135,18 @@ verified unchanged. Full27tests include perft/UCI/ponder/OwnBook. Separate
 Windows17eightWine checks PASS, observed382424benchsignature frozen before
 packaging. Artifact audit and full-search witness pending. Source16failedbatch
 staysFAILED and unlaunched16strengthpoolreserved. No speed/Elo accepted.
+
+
+6.4.17 hosted strength attempt39492317400 is **FAILED IN HARNESS BEFORE GAMES**.
+Frozen source47f0560 versus14source21538ec; trigger payload352b6ff. Both complete
+Release builds/CTest passed and baseline grossAA passed. Real candidate output
+`info string bench depth 11 nodes 385781 time 222 nps 1737752` was rejected by
+an anchored prefixless parser; the mock GOOD fixture repeated that false assumption.
+Independent audit verifies75original payloads,40frozen inputs and both72-file
+source inventories/provenance. Original results0e292d6193918fa71a06b99798808ecb60e5807a,
+archive08e9ffaa5f62652d9ab56959acd5588ea2b63384950a06971648c1fe27e5d1d2.
+The candidate returncode/group-empty facts were not separately archived before the
+parser raised; do not claim complete candidate readiness. W/L/D0/0/0, no Elo/CI,
+no speed comparison or native SPRT decision. No retry/resume/gate relaxation.
+Future-only offline parser/process-fact repair is separate from this frozen failure.
+[Audit](../validation/hosted-promotion-see-strength-20261020/final-audit/REPORT.md).

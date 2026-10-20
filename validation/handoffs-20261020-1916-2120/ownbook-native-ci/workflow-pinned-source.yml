@@ -1,0 +1,56 @@
+name: Forge OwnBook native regression (isolated)
+on:
+  push:
+    branches:
+      - research/forge-ownbook-native-verify-20261020-1706
+    paths:
+      - .github/workflows/forge-ownbook-independent.yml
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: forge-ownbook-native-20261020-1706
+  cancel-in-progress: false
+jobs:
+  baseline-versus-fix:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+      - name: Build pinned source revisions and execute existing native OwnBook regression
+        shell: bash
+        run: |
+          set -euo pipefail
+          BASE_SHA=356e863dbd86d2ce24b8ee9486d7406f1d525480
+          FIX_SHA=5101c2529d386b7c3a04ba9156a69ee34df6bb43
+          OUT="$RUNNER_TEMP/forge-ownbook-evidence"
+          mkdir -p "$OUT" "$RUNNER_TEMP/base-src" "$RUNNER_TEMP/fix-src"
+          printf 'Baseline source: %s\nFix+test source: %s\nRunner OS: %s\n' "$BASE_SHA" "$FIX_SHA" "$RUNNER_OS" > "$OUT/provenance.txt"
+          git fetch --no-tags --depth=1 origin "$BASE_SHA"
+          git fetch --no-tags --depth=1 origin "$FIX_SHA"
+          git cat-file -e "$BASE_SHA^{commit}"
+          git cat-file -e "$FIX_SHA^{commit}"
+          git archive "$BASE_SHA" | tar -xf - -C "$RUNNER_TEMP/base-src"
+          git archive "$FIX_SHA" | tar -xf - -C "$RUNNER_TEMP/fix-src"
+          git diff "$BASE_SHA" "$FIX_SHA" -- src/uci.cpp > "$OUT/uci-source-change.patch"
+          git diff --stat "$BASE_SHA" "$FIX_SHA" > "$OUT/source-diff-stat.txt"
+          cmake -S "$RUNNER_TEMP/base-src" -B "$RUNNER_TEMP/base-build" -DCMAKE_BUILD_TYPE=Release -DFORGE_NATIVE=OFF 2>&1 | tee "$OUT/baseline-configure.log"
+          cmake -S "$RUNNER_TEMP/fix-src" -B "$RUNNER_TEMP/fix-build" -DCMAKE_BUILD_TYPE=Release -DFORGE_NATIVE=OFF 2>&1 | tee "$OUT/fix-configure.log"
+          cmake --build "$RUNNER_TEMP/base-build" --target forge forge_tests -j 2 2>&1 | tee "$OUT/baseline-build.log"
+          cmake --build "$RUNNER_TEMP/fix-build" --target forge forge_tests -j 2 2>&1 | tee "$OUT/fix-build.log"
+          sha256sum "$RUNNER_TEMP/base-build/forge" "$RUNNER_TEMP/fix-build/forge" > "$OUT/executable-sha256.txt"
+          ctest --test-dir "$RUNNER_TEMP/base-build" --output-on-failure 2>&1 | tee "$OUT/baseline-ctest.log"
+          ctest --test-dir "$RUNNER_TEMP/fix-build" --output-on-failure 2>&1 | tee "$OUT/fix-ctest.log"
+          python3 "$RUNNER_TEMP/fix-src/validation/hourly/2026-10-20-ownbook-native/test_ownbook.py" "$RUNNER_TEMP/base-build/forge" --expect-leak yes --out "$OUT/baseline" 2>&1 | tee "$OUT/baseline-ownbook-console.log"
+          python3 "$RUNNER_TEMP/fix-src/validation/hourly/2026-10-20-ownbook-native/test_ownbook.py" "$RUNNER_TEMP/fix-build/forge" --expect-leak no --out "$OUT/fix" 2>&1 | tee "$OUT/fix-ownbook-console.log"
+          echo "RESULT: both 4-test suites passed; baseline reproduced and candidate repaired OwnBook" | tee "$OUT/decision.txt"
+      - name: Preserve unmodified generated logs and test transcripts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: forge-ownbook-native-baseline-vs-fix-20261020
+          path: ${{ runner.temp }}/forge-ownbook-evidence/
+          if-no-files-found: warn
+          retention-days: 14

@@ -1,0 +1,75 @@
+> uci
+< id name Chess Engine Forge 6.4.0
+< id author OpenAI
+< option name Hash type spin default 32 min 1 max 2048
+< option name Threads type spin default 1 min 1 max 256
+< option name Move Overhead type spin default 10 min 0 max 1000
+< option name Ponder type check default false
+< option name OwnBook type check default true
+< option name Book File type string default <empty>
+< option name Book Depth type spin default 30 min 0 max 100
+< option name Book Variety type spin default 30 min 0 max 100
+< option name UseNNUE type check default true
+< option name Clear Hash type button
+< uciok
+> isready
+< readyok
+> setoption name OwnBook value false
+> setoption name Book Variety value 0
+> setoption name Book Depth value 30
+> setoption name Book File value /tmp/forge-book-001bqcm0/book with spaces.bin
+> isready
+< info string loaded book /tmp/forge-book-001bqcm0/book with spaces.bin with 1 entries
+< readyok
+> position startpos
+> isready
+< readyok
+> go movetime 150
+< info depth 1 seldepth 1 score cp 36 nodes 24 nps 24000 hashfull 0 time 1 pv e2e3
+< info depth 2 seldepth 2 score cp 23 nodes 66 nps 66000 hashfull 0 time 1 pv e2e3 e7e6
+< info depth 3 seldepth 3 score cp 21 nodes 190 nps 190000 hashfull 0 time 1 pv g1f3 c7c6 e2e3
+< info depth 4 seldepth 5 score cp 35 nodes 402 nps 201000 hashfull 0 time 2 pv g1f3 h7h6 c2c3 e7e6
+< info depth 5 seldepth 5 score cp -3 nodes 817 nps 272333 hashfull 0 time 3 pv g1f3 e7e6 c2c3 g8f6 e2e3
+< info depth 6 seldepth 7 score cp 12 nodes 1211 nps 302750 hashfull 0 time 4 pv g1f3 e7e6 c2c3 g8f6 h2h3 h7h6
+< info depth 7 seldepth 12 score cp 9 nodes 3122 nps 312200 hashfull 0 time 10 pv g1f3 e7e6 e2e4 c7c5 h2h3 b8c6 b1c3
+< info depth 8 seldepth 19 score cp 11 nodes 5914 nps 281619 hashfull 0 time 21 pv g1f3 g8f6 e2e3 e7e6 d2d4 d7d5 c2c3 c8d7
+< info depth 9 seldepth 19 score cp 10 nodes 10002 nps 200040 hashfull 1 time 50 pv g1f3 g8f6 c2c4 e7e6 d2d4 f8e7 b1c3 d7d5 c4d5
+< info depth 10 seldepth 21 score cp 18 nodes 18265 nps 202944 hashfull 2 time 90 pv g1f3 g8f6 c2c4 e7e6 e2e3 d7d5 d2d4 f8e7 b1c3 c7c6
+< bestmove g1f3
+> setoption name OwnBook value true
+> isready
+< readyok
+> position startpos
+> isready
+< readyok
+> go movetime 150
+< info string book move e2e4
+< bestmove e2e4
+> position startpos
+> isready
+< readyok
+> go depth 2
+< info depth 1 seldepth 1 score cp 29 nodes 22 nps 0 hashfull 0 time 0 pv e2e4
+< info depth 2 seldepth 2 score cp 22 nodes 50 nps 0 hashfull 0 time 0 pv e2e4 e7e6
+< bestmove e2e4
+> setoption name OwnBook value false
+> isready
+< readyok
+> position startpos
+> isready
+< readyok
+> go movetime 150
+< info depth 1 seldepth 1 score cp 22 nodes 21 nps 0 hashfull 0 time 0 pv e2e4
+< info depth 2 seldepth 2 score cp 21 nodes 47 nps 0 hashfull 0 time 0 pv e2e4 e7e6
+< info depth 3 seldepth 3 score cp 11 nodes 139 nps 0 hashfull 0 time 0 pv g1f3 e7e6 e2e3
+< info depth 4 seldepth 6 score cp 22 nodes 299 nps 0 hashfull 0 time 0 pv e2e4 e7e6 g1f3 d7d5
+< info depth 5 seldepth 6 score cp 22 nodes 425 nps 425000 hashfull 0 time 1 pv e2e4 e7e6 g1f3 d7d5 e4d5
+< info depth 6 seldepth 9 score cp 19 nodes 866 nps 866000 hashfull 0 time 1 pv e2e4 b8c6 d2d4 d7d5 e4d5 d8d5
+< info depth 7 seldepth 12 score cp 19 nodes 1752 nps 438000 hashfull 0 time 4 pv e2e4 c7c5 g1f3 b8c6 f1e2 d8c7 d2d4 c5d4
+< info depth 8 seldepth 12 score cp 22 nodes 2646 nps 441000 hashfull 0 time 6 pv e2e4 e7e6 g1f3 d7d5 e4d5 e6d5 f1e2 g8f6
+< info depth 9 seldepth 14 score cp 19 nodes 3726 nps 465750 hashfull 0 time 8 pv e2e4 e7e6 g1f3 d7d5 e4d5 e6d5 f1e2 f8e7 d2d4
+< info depth 10 seldepth 14 score cp 18 nodes 6185 nps 386562 hashfull 1 time 16 pv e2e4 e7e6 g1f3 d7d5 e4d5 e6d5 f1e2 f8e7 d2d4 g8f6
+< info depth 11 seldepth 17 score cp 20 nodes 15722 nps 308274 hashfull 4 time 51 pv e2e4 e7e6 d2d4 d7d5 b1c3 h7h6 f1e2 d5e4 c3e4 g8f6 e4f6 d8f6
+< info depth 12 seldepth 23 score cp 18 nodes 41229 nps 298760 hashfull 9 time 138 pv e2e4 c7c5 g1f3 e7e6 f1e2 d7d5 d2d3 b8c6 e1g1 f8d6 e4d5 e6d5
+< bestmove e2e4
+> quit

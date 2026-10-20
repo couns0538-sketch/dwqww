@@ -1,113 +1,62 @@
 # Current baseline
 
-Latest finite-correctness-tested candidate is isolated **6.4.17**, source
-`47f0560221d986e41a309853e1295c557fcf5bf6`, branch
-`forge/promotion-see-20261020`. It repairs pawn-promotion material in SEE before
-threshold shortcuts, preserving the ordinary16path and all accepted work.
-Permanent parent tests fail16assertions;324legal oracle cases and30actual-margin
-answers pass. Actual forced qsearch trace shows16skippingQxb8 at-40 and17searching
-it. This is finite search-correction evidence, not Elo.
+Accepted integration `forge/6.4-hourly-20261019` is still
+`356e863dbd86d2ce24b8ee9486d7406f1d525480` (remote checked2026-10-20 20:42UTC).
+It preserves the TT index/signature and timed-only admission-clock repairs.
+No accepted equal-time Elo gain is established.
 
-First-attempt Release9/9, ASan/UBSan9/9, TSan9/9,8activeUCI TSan and8Wine checks
-PASS. Independent Windows audit1211checks PASS after one README case-comparison
-checker correction; original failure/checker/logs retained, binary/package unchanged.
-Native/Windows bench11signatures385781/382424. No calibrated NPS or positive Elo.
-[Proofs](../validation/promotion-see-20261020/native/ROOT-NATIVE-PROOFS.json).
-[Windows Zen5 ZIP](../releases/forge-6.4.17-candidate-windows-zen5.zip), SHA256
-`9c532d5394b58f8654e316de99b4a5771149e75327c31586ae179814212e85f9`.
-Wine checks do not establish native Windows/Ryzen performance.
+Latest isolated finite-correctness-tested engine is **Forge6.4.17**, source
+`47f0560221d986e41a309853e1295c557fcf5bf6`, on
+`forge/promotion-see-20261020`. It preserves prior accepted work, residual NNUE
+and its weights, and repairs promotion-recapture SEE before threshold shortcuts.
+First-attempt Release9/9, ASan/UBSan9/9, TSan9/9 and8active UCI TSan checks PASS.
+The actual qsearch witness changes SKIP_SEE to a searched legal Qxb8 capture;
+324legal oracle cases and30actual search-margin answers pass. These are correctness
+results, not Elo or a general startup/clock-reliability claim.
+[Native proofs](../validation/promotion-see-20261020/native/ROOT-NATIVE-PROOFS.json).
 
-The fresh17vs14 equal10+0.1SPRTH0=0/H1=10 package has closed current source gates,
-63runner+8archive mock checks, fresh4AA+128SPRT openings and a root READY check.
-No launch at this checkpoint. Old15/16unused pools remain reserved/excluded.
-Newuserhandoffs verified:145shutdownaudit+28clockreplaypayloads; original
-108.696/84.647/0.049ms gaps recomputed, rootcause unresolved. OwnBookrepair
-is alreadyin17; accepted356e863stillhasexternalbookbypass. Forgepriority,
-GrokChessport deferred. Reviewreports andoriginalZIPs are under
-validation/handoffs-20261020-1916-2120/.
-Prior anomalies remain unresolved; exactly one newhost readiness attempt is
-qualified, not general operational reliability. Natural128paircap may be inconclusive.
+[Windows Zen5 candidate ZIP](../releases/forge-6.4.17-candidate-windows-zen5.zip)
+SHA256 `9c532d5394b58f8654e316de99b4a5771149e75327c31586ae179814212e85f9`.
+Eight Wine checks passed;1211artifact checks passed after one README case-comparison
+checker repair, with the original failed checker/logs retained and binary unchanged.
+Linux/Windows bench11signatures385781/382424 are reproducibility checks.
+No calibrated NPS difference or native Windows/Ryzen result is established.
+Complete source/build/raw/qsearch/Windows evidence is verified and split-archived in
+[archive-complete](../validation/promotion-see-20261020/archive-complete/).
 
-Applied isolated **6.4.16** source `553caef144ae2e1b696ba35d7a0eb1a50a03fde9`
-on `forge/pin-mask-see-20261020` replaces repeated SEE king queries with one
-dynamic forbidden-origin mask. Release9/9 and ASan/UBSan9/9 passed; TSan passed
-8/9 tests, with an initial UCI handshake deadline in the OwnBook test before
-any book/search command. Cause remains unresolved. One bounded timestamped pair passed the parent
-handshake and candidate five OwnBook transitions without reproducing the timeout;
-the original batch stays FAILED. Eight Wine checks,
-parent search-signature parity and 1151 artifact
-checks passed. The prototype's 316 API cases and eight actual search result
-traces match 6.4.15 exactly. Query-work reduction is measured; runtime/NPS/Elo
-is not. Current16 finite gates and the separate fresh strength package remain
-pending; source15 below was the latest completed native checkpoint at the16failure.
+**The one hosted17vs14 attempt failed in the harness before any games.**
+Run[39492317400](https://github.com/couns0538-sketch/dwqww/actions/runs/39492317400),
+results commit `0e292d6193918fa71a06b99798808ecb60e5807a`.
+Both frozen engine builds and their CTests passed; baseline gross A/A passed.
+The candidate emitted the correct `info string bench depth 11 nodes 385781 ...`,
+but the readiness parser expected prefixless `bench ...`. Its mock GOOD fixture
+shared that error. The original failed attempt and frozen package remain unchanged.
+All75original payloads and40frozen inputs have been independently verified.
+Candidate returncode/group-empty facts were not separately saved before the parser
+raised, so full candidate readiness is not independently proved. **Games0; W/L/D0/0/0;
+no Elo estimate, confidence interval, NPS comparison or H0/H1 decision.**
+[Independent audit](../validation/hosted-promotion-see-strength-20261020/final-audit/REPORT.md).
+No match is currently running; no retry, resume or second trigger has occurred.
 
-The previous complete native checkpoint is isolated **6.4.15** pin-aware SEE, source
-`8d303e4ca0428e9750bbf3e2663c64d9fafbd1ad`, branch
-`forge/pin-aware-see-20261020`. Release, ASan/UBSan and TSan each passed all nine
-CTest suites, including perft and UCI. Eight active UCI TSan transitions and
-eight Wine checks passed; the independent Windows audit passed 929 checks.
-The initial 302 legal API cases correct eight baseline errors, and ten targeted
-controls correct nine more. Two inherited recapture-promotion limitations remain
-explicit. Permanent 46-case regressions fail against the parent and pass now.
-Bench signatures are 385792 Linux / 382424 Windows; no calibrated NPS or Elo
-gain is established. Prior operational anomalies remain unresolved below.
-[Evidence](../validation/pin-aware-see-20261020/STATUS.md).
-[Windows Zen5 candidate ZIP](../releases/forge-6.4.15-candidate-windows-zen5.zip),
-SHA256 `1eb3a128e4e905921e0440482076b0fd47bf0194e08a91eb099efe7fbce5df42`.
+The accepted356lineage still has the external-book OwnBook=false bypass. Existing
+repair `af1941375111717f415a46d9ce0224c329034466` and regression-test child
+`5101c2529d386b7c3a04ba9156a69ee34df6bb43` are being independently validated;
+source17already contains the semantic repair. Fresh baseline/candidate Release4/4
+and candidateASan/UBSan4/4 pass; unchanged original book tests reproduce the parent
+leak and suppress it in the candidate. Integration review is pending. Historical
+CI success metadata was verified, but its authenticated original artifact could
+not be retrieved; the fresh local originals are separate evidence.
 
-Accepted integration `forge/6.4-hourly-20261019` remains
-`356e863dbd86d2ce24b8ee9486d7406f1d525480`, with timed-only admission repair
-`294cf1b`. Preserve it; no accepted Elo gain is established.
+Both user handoffs are manifest/byte verified (145shutdown +28clock-replay payloads).
+The original108.696ms response,84.647ms last-info discrepancy and0.049ms final gap
+were independently recomputed; they do not locate the historical time-forfeit cause.
+No new clock patch follows. Forge is the priority; GrokChess port is deferred.
+[Handoff reviews](../validation/handoffs-20261020-1916-2120/HANDOFF.md).
 
-The previous isolated candidate is **Forge6.4.14**, source
-`21538ec5416c909fc98a08688242a0b3b9710b25`, on
-`forge/double-extension-path-20261020`. It repairs extension-path count reuse
-across siblings and same-ply verification. All27CTest suites,21actualTTAPI
-groups,8active-UCI TSan transitions,8Winechecks and914artifactchecks passed.
-An original60-second bare Linux bench timeout remains unexplained; three later
-syscall diagnostics passed at419798nodes. Keep the candidate isolated and this
-operational qualification explicit. No NPS or Elo gain is accepted.
-[Evidence](../validation/double-extension-path-20261020/STATUS-6414.md).
-[Windows6.4.14 ZIP](../releases/forge-6.4.14-candidate-windows-zen5.zip), SHA256
-`6364f10a3aa1240fe1a8567e67b0720e1d015ce0bd1f0f26e384813b517ec269`.
-
-The fully tested parent is **Forge6.4.13**, source
-`cecf0b9e3af5602053bcaf5c5d16ffc09f58850d`, branch
-`forge/clock-contract-reconcile-20261020`. It merges the newer accepted work
-and preserves6.4.12's TT gate, both NNUE fusions, weights and earlier repairs.
-Accepted start_time takes precedence over legacy request_start. Automatic
-clock origins apply only to finite timed searches; untimed/ponder reporting
-stays worker-local. Ponder budgets still start at hit.
-
-Release, ASan/UBSan and TSan each passed9CTest+7main-origin+7actualTTAPI groups.
-Eight active UCI TSan transitions and six exact parent cold/warm cases passed.
-Bench signatures419798Linux/351063Windows are unchanged. Original invalid
-GNU-wrap observation is retained; corrected interposition observes three helpers
-and demonstrates actual old5RED/new7GREEN. Windows8Winechecks and872independent
-artifact checks passed. [Proof](../validation/upstream-clock-reconcile-20261020/STATUS.md).
-
-[Windows Zen5 ZIP](../releases/forge-6.4.13-candidate-windows-zen5.zip), SHA256
-`ca2512f2b7a91a3b9e391992fa8e5ebc622e79daa5a9fcc088f3b2819a74cbb7`.
-Wine is not native Ryzen performance. No calibrated NPS or positive Elo gain.
-
-The6.4.12-versus6.4.11 TT run39403471059 is invalid: Baseline forfeited in
-started game85. All84completedrecords (W13/D59/L12) remain retained; no strength
-or TT regression inference. Response observation108.696ms versus63ms remaining
-does not isolate the delay. [Original evidence audit](../validation/tt-strength-20261020/final-audit/REPORT.md),
-results `ffc598ad12760e5cdc8cb1ee15383f13787acad8`. No retry or threshold change.
-The6.4.13 reporting repair is not a demonstrated remedy for this forfeit.
-One frozen local causal replay subsequently completed, with final responses
-24.888 ms cold and 32.140 ms warm. The original 108.696 ms stall did not recur;
-10 warm move choices differed. Its cause remains unresolved. This is not a
-match or clock-reliability acceptance.
-[Diagnostic evidence](../validation/time-forfeit-causal-20261020/REPORT.md).
-
-Earlier valid capped matches are inconclusive:6.4.7vs6.4.4 W114/D101/L105
-(320games, results61aabe2 recovered original evidence), and6.4.11vs6.4.9
-W427/D1194/L427 (2048games, resultseb1c1b7). No accepted gain or game pooling.
-
-The applied6.4.14 candidate repairs extension-path bookkeeping. Actual bench trace
-found5038child-count mismatches; an isolated17-line proposal clears all seven
-mismatch classes with the same419798nodes. Eligibility mismatches were already
-zero in this shallow workload, so neither changed decisions nor Elo is proven.
-[Investigation](../validation/double-extension-path-20261020/REPORT.md).
+Preserve prior failures:16original TSan batch8/9 initial UCI deadline,14original
+60s barebench timeout, and12vs11 baseline time forfeit in startedgame85. Later
+successful bounded diagnostics did not reproduce or explain those anomalies.
+Earlier valid capped647vs644 (320games,W114/D101/L105) and6411vs649
+(2048games,W427/D1194/L427) remain separate/inconclusive. Never pool them.
+Details and next work are in[ledger](EXPERIMENT_LEDGER.md) and
+[next experiments](NEXT_EXPERIMENTS.md); historical records remain in Git.

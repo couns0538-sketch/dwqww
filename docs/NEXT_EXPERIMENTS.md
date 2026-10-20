@@ -1,42 +1,45 @@
 # Next experiments
 
-1. Publish all completed6.4.17source/proofs/WindowsZIP and run exactly one fresh
-   hosted17versus14readiness+equal10+0.1SPRT attempt using the READY frozen
-   package. Source17=47f0560; baseline14=21538ec. H0=0/H1=10, alpha=beta=.05,
-   serialT1/Hash32/OwnBookfalse;4deterministicAA+128naturalSPRTpairs. All faults
-   invalidate acceptance; cap withoutboundary is inconclusive. No retry/pooling.
-2. Preserve full17native/Windows/source/raw/qsearch-causal evidence in the
-   prepared verifiedsplitarchive once all writers are stable. Root must verify
-   everypayload and redundantraworiginals before precise ignores. Keep failed
-   firstartifactchecker and originalscripts/logs unchanged.
-3. Forge remains the priority; GrokChesssource/SMPport is deferred byuser.
-   Verify/integrate the existing OwnBookrepair on the acceptedbranch separately,
-   preserving current17whichalreadyhasthatrepair. Accepted356e863stillhas
-   theexternal-book bypass. Uploadedhandoffs173payloads verified; exacttiming
-   source/logreview supports no new clockpatch or historicalrootcauseclaim.
-4. Review targeted next-search opportunity report after currentcandidate is
-   checkpointed/tested. Changes must stay separate from frozen17strength source.
-   Runtime magic freezing is a later initialization-work opportunity only;
-   it does not demonstrate a remedy for the unlocated startup/time stalls.
-5. After engine strength evidence, test the actual Stockfish target separately.
+1. Finish and independently review the existing accepted-lineage OwnBook repair:
+   baseline356e863 versus exact child5101c252 (one production-line fix plus original
+   regression). Release4/4 each and candidateASan/UBSan4/4 passed; original book tests
+   reproduce/suppress the bypass. Publish raw evidence before integration. Recheck
+   remote integration head; fast-forward only if ancestry and validation remain
+   appropriate. Preserve any newer accepted work and current17candidate.
+2. Complete offline future-only readiness-parser regression using the actual native
+   and hosted17stdout/stderr bytes. Require canonical `info string bench ...`,
+   strict expected node count, malformed/duplicate/status/stderr/warning rejection,
+   and saving process/cleanup facts before assertions. Keep the failed launched
+   package, protocol, source47f0560 and original75payload archive immutable.
+   Update the existing strength-validation skill after demonstrated RED/GREEN;
+   no duplicate skill or cloud installation claim. No unchanged17retry/resume.
+3. Test one independently motivated search ablation: correction-history EMA targets
+   an already-corrected residual. Invoke actual methods with fixed keys and one/two
+   tables; compare current EMA with a residual increment under unchanged clamps,
+   signs/rounding, weights and caller guards. Attenuation may be useful regularization,
+   not a proven bug. Keep source changes separate from frozen17. Only pursue an
+   equal-time match after finite correctness and independently reviewed harness gates.
+4. Any later strength experiment needs a fresh prospectively frozen protocol,
+   exact-source baseline/candidate, fresh openings and operational gates; retain
+   every failed attempt. The failed17run39492317400 played0games and gives no Elo.
+   No source18 or new run is justified solely to bypass this harness failure.
+5. Forge remains the priority; GrokChess source/SMP port is deferred. Timing handoff
+   does not establish the old forfeit cause or justify another speculative clock fix.
+   Runtime magic freezing is initialization work only, not a demonstrated clock fix.
+6. Test the actual Stockfish target separately after valid engine-strength evidence.
    Installed Stockfish19 advertises UCI_Elo1320..3190; exact3200unsupported.
-   No absolute Forge rating or200Elo gap established; zero target games so far.
+   Forge absolute rating and a200Elo gap are unestablished; zero target games run.
 
-Completed17finitegates: firstattemptRelease9/ASanUBSan9/TSan9 plus8activeUCI,
-8Wine and1211artifactchecks (attempt2onecase-comparisoncheckerrepair only).
-The326case corpus includes324legal oracle cases and2initial-illegal controls.
-Actual qsearch witness16SKIP_SEE→17SEARCH_ENTER, not speed/Elo evidence.
-Linux/Windows signatures385781/382424. Current17source retains accepted356e863,
-all previousNNUE/TT/clock/search repairs and network.
+Source17first-attempt finite gates: Release9/ASanUBSan9/TSan9 +8activeUCI,
+8Wine and1211artifact checks (checker-only case correction on attempt2).
+Linux/Windows signatures385781/382424; no calibrated speed result.
+The once-launched17attempt built both sources, passed baseline grossAA and then
+failed on a parser prefix mismatch; candidate exit/group facts were not separately
+saved before that failure. No matches are running. Preserve unused opening cohorts,
+16failedTSan batch,14timeout and historical invalidTTforfeit as unresolved.
 
-Preserve16originalTSanbatchFAILED8/9initial15suciokdeadline. Laterobserved5book
-transitionsPASS did not reproduce timeout; causeunresolved. Do not launch its
-blocked package or reuse unused15/16cohorts. Older14barebench60stimeout and
-TTtimeforfeit game85 remain unresolved. One causal cold/warm replay did not
-reproduce forfeit; zero reliability/strength acceptance. Historical valid647/644
-and6411/649cappedcohorts remain separate/inconclusive; invalidpilot/TTgames neverpool.
-
-Use existing relevant skills; skill-creator is not exposed in checked catalogs.
-NativeGCC14.2/C++20verified, LLVMMinGWClang23.1.3usedforWindows; nativeclang++
-is absent fromdefaultPATH butdoesnotblockGCCbuilds. No persistent12-hour agent or
-automatic6-hour chat scheduler verified. Save actual monitoring/checkpoint state.
+Use existing relevant repository skills automatically. Skill-creator/cloud skills
+are not currently exposed; don't claim a tool or installation is available without
+checking. GCC14.2/C++20 and cross-LLVM-MinGW23.1.3 are verified. Nativeclang++ is
+absent from PATH, which does not block GCC builds. No persistent12-hour agent,
+automatic restart or6-hour chat scheduler has been verified. Save actual state.
