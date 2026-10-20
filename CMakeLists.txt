@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.16)
-project(ChessEngineForge VERSION 6.4.17 LANGUAGES CXX)
+project(ChessEngineForge VERSION 6.4.18 LANGUAGES CXX)
 find_package(Threads REQUIRED)
 
 option(FORGE_ENABLE_SANITIZERS "Enable AddressSanitizer and UndefinedBehaviorSanitizer" OFF)
@@ -52,11 +52,15 @@ target_link_libraries(forge_rule50_tests PRIVATE forge_core Threads::Threads)
 add_executable(forge_legal_witness_tests tests/legal_witness_tests.cpp)
 target_link_libraries(forge_legal_witness_tests PRIVATE forge_core Threads::Threads)
 
+add_executable(forge_correction_history_tests tests/correction_history_tests.cpp)
+target_link_libraries(forge_correction_history_tests PRIVATE forge_core Threads::Threads)
+
 add_executable(forge_bench bench/benchmark.cpp)
 target_link_libraries(forge_bench PRIVATE forge_core Threads::Threads)
 
 enable_testing()
 add_test(NAME forge_tests COMMAND forge_tests)
+add_test(NAME forge_correction_history_tests COMMAND forge_correction_history_tests)
 add_test(NAME forge_tt_tests COMMAND forge_tt_tests)
 add_test(NAME forge_rule50_tests COMMAND forge_rule50_tests)
 add_test(NAME forge_legal_witness_tests COMMAND forge_legal_witness_tests

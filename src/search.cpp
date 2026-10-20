@@ -625,7 +625,7 @@ void Worker::update_correction(const Board& board, int depth, int best_score, in
     const int diff = std::clamp((best_score - static_eval) * CorrectionGrain, -CorrectionLimit / 4, CorrectionLimit / 4);
     const int weight = std::min(depth + 1, 16);
     auto apply = [&](std::int32_t& entry) {
-        entry = std::clamp((entry * (256 - weight) + diff * weight) / 256, -CorrectionLimit, CorrectionLimit);
+        entry = std::clamp(entry + diff * weight / 256, -CorrectionLimit, CorrectionLimit);
     };
     apply((*correction_history_)[side][board.pawn_key() & (CorrectionSize - 1U)]);
     if (tune::MaterialCorrectionWeight > 0) apply((*material_correction_)[side][material_key(board) & (CorrectionSize - 1U)]);
