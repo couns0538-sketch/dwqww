@@ -1,0 +1,12 @@
+--- archive_complete.pre-prototype-manifest-base.py
++++ archive_complete.py
+@@ -174,7 +174,8 @@
+         assert len(receipt['ctest_names']) == 12
+     # Preserve the existing prototype manifest honestly as historical coverage.
+     # The archive's own frozen inventory, not this older list, defines its scope.
+-    prototype_manifest = verify_hash_manifest(EXPERIMENT, EXPERIMENT / 'EVIDENCE-SHA256SUMS', exact=False)
++    # Prototype20 records repository-relative names; native20 remains local-relative.
++    prototype_manifest = verify_hash_manifest(REPO, EXPERIMENT / 'EVIDENCE-SHA256SUMS', exact=False)
+     assert len(prototype_manifest) >= 112
+     capture = load(CAPTURES / 'PROVENANCE.json')
+     assert capture['status'] == 'PASS_BOTH_ACTUAL_FIVE_COMMAND_CAPTURES_NOT_SPEED_EVIDENCE'

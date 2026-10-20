@@ -1,18 +1,21 @@
 # Next experiments
 
-Active20sourcefc2391870b3bf2cd4d8fc20c7406ea6439c69c5e is frozen/published.
-First native36CTest/8active/56exact cold-warm searches passed, independent2363audit
-and root242evidence/564originals/9singles/75Gitblobs verified. All source and raw
-native evidence is immutable. Two genuine19/20 five-command producer
-streams with provenance completed normally;178inputs rehashed, outertoolreturn
-unknown retained without repeating commands. Windows20firstj1build/11Wine/1538audit and root225raw/72source/483parent/9PE
-verification pass. Next run one calibrated hosted
-performance after all final gates/reviews. Do not duplicate any completed gate
-or mutate frozen source. Disabled42test performance packet is not launch-ready.
-Native schemas differ: read genuine20native_ctests/default_tsan_active_checks/
-exact_cold_warm_searches plus all3 explicit attempts=1, do not assume19keys.
-The first root metadata extension made a nonexistent-key lookup before any write;
-it is retained separately, and genuine native receipts remain unchanged.
+Latestqualified20sourcefc2391870b3bf2cd4d8fc20c7406ea6439c69c5e preserves19.
+First native36/8active/56parity+2363audit and Windows11/1538audit/rootbytechecks
+pass. One actualhostedrun39516786979 independently passed: CPUthroughput+1.0393%
+95%CI+0.5660..+1.5047%;wall+1.0375%,CI+0.5611..+1.5074%. All188processes/940rows,
+15AA/31AB/final178inputs+211Gitblobs pass. No retry/resume/retrigger/pooling orElo
+inference. Originalresultf563ef02441eab0ea58ee209535cc4fc5aa105af/payload5651d28.
+Retain separate19gain; do not multiply ratios into cumulativeclaims. Complete20
+archive1937payloads/1889originals and actualfreshscratch recovery passed9912/6089
+independentchecks. Publishexactparts and retain allfailures/oldschema consumers.
+
+Active nextprototype nearest-pawn distance uses76sourcefiles (stillversion20),
+791680actual geometry comparisons +6constexpr,13Release,56exact parent20searches,
+95publictracepositions/61465fields PASS. Freeze sourceas21 on isolatedbranch,
+then fullfresh13Release/ASan/defaultTSan/8active and Windows before separately
+calibratedperformance. Preserve compiled NNUEobject/source/weights and all20gains.
+No source21speed/Elo established. Queenray idea dropped: compileralreadyreusesit.
 
 1. Keep qualified19source61f5980 and its immutable evidence. The one performance
    run39510219605 completed and was independently audited: CPUthroughput+1.6084%

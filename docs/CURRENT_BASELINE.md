@@ -7,7 +7,7 @@ its unchanged native regression to356e863, preserving the TT and timed-only cloc
 repairs. Acceptance is for the finite book contract; no accepted equal-time Elo gain.
 [Integration receipt](../validation/accepted-ownbook-integration-20261020/INTEGRATION.json).
 
-Active next candidate **Forge6.4.20**, source
+Latest correctness-qualified and measured-workload candidate **Forge6.4.20**, source
 `fc2391870b3bf2cd4d8fc20c7406ea6439c69c5e`, branch
 `forge/pawn-span-fill-20261020`, replaces a per-enemy-pawn outpost-span traversal
 with an unsigned8/16/32 directional fill of the existing attack mask. Prototype
@@ -27,11 +27,25 @@ originals,72sourcefiles,483parentfiles,9builtPE and21distributionmembers.
 `92cf639dad35d5f44d6ef492eab1a927606aaaf609eec447a41f05775420e63c`.
 This is Wine validation, not native Ryzen execution. Two actual19/20five-command
 producer captures pass and178inputs remain unchanged. Outer toolreturnunknown is
-retained, normalchildresultsexplicit; no repeats. Calibrated20speed/Elo pending.
+retained, normalchildresultsexplicit; no repeats. **Verified20vs19 hosted throughput gain:**
+CPU+1.0393% (95%wholeblockCI+0.5660..+1.5047%); wall+1.0375%
+(+0.5611..+1.5074%). All188processes/940canonicalrows,15AA/31AB and finalintegrity
+pass. Rootchecked178frozeninputs/211actualGitblobs; bothNNUEobjectsidentical.
+Originalresultf563ef0/run39516786979, frozenpayload5651d28. This is thishostedLinux
+wholeprocessworkload only; noElo/nativeRyzen or cumulative19+20claim.
+[Independent20performanceaudit](../validation/hosted-pawn-span-performance-20261020/final-audit/REPORT.md).
+Full20archive1889originals/1937payloads is verified, with ONE actualscratch
+restoration and6089independentrecoverychecks PASS (9912archivechecks).
+[Archiveproof](../validation/pawn-span-fill-20261020/root-verification/ARCHIVE.json).
 [Root Windows proof](../validation/pawn-span-fill-20261020/root-verification/WINDOWS.json).
 [Source freeze](../validation/pawn-span-fill-native-20261020/ROOT-FROZEN-SOURCE-GATES.json).
 [Public trace evidence](../validation/pawn-span-fill-20261020/independent-review/PUBLIC-DIFFERENTIAL.md).
-Latest fully qualified workload-speed source remains19 below; accepted5101unchanged.
+Accepted5101unchanged. New nearest-pawn prototype (version20, noGitSHA yet)
+passes13Release/791680geometrychecks,56parent20searches and95publictracepositions.
+It replaces perking pawn scans with three inclusive-radius queries; performance
+is unmeasured. Freeze actual21version/source before finalsanitizers/Windows.
+[Prototype21](../validation/nearest-pawn-distance-20261020/BASELINE.json).
+Earlier qualified19 result below remains separate.
 
 New isolated performance candidate **Forge6.4.19** is frozen at
 `61f598056572dfade6994af8ad2e38817cd28aa3`, branch

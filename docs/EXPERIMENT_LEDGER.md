@@ -381,3 +381,25 @@ including3negativecontrols and144priorproofhashes pass. Rootrehashed15records.
 OneinitialnewREPORTlinkmissing and rootgenericstatusassumptionfailures retained;
 correctedderivedcheckers preserveallgenuine engine outcomes. Skillcreator absent;
 repositorylocalskillavailable, no globalinstallationclaimed.
+
+20onehostedperformance39516786979 completed; originalresultf563ef02441eab0ea58ee209535cc4fc5aa105af, frozen5651d289829220e63f664e12d04d11f3ed7e1b14.
+All188normalprocesses/940canonicalrows/15AA/31AB PASS. Independent10000wholeblock
+bootstrapseed20261028 CPUratio1.01039308101871 CI[1.0056595328510705,1.0150465194332539];
+wallratio1.0103754037395853 CI[1.0056107834671206,1.0150741750849877].
+Keepqualified+1.04%wholeprocessworkloadgain. Rootall178frozenbytes/211actualGit
+blobschecked; hostedNNUEobjectsboth5ad1a3b7004e073e0f67cbe53eb3dba635eabf2a1878235716895ee7fb685839.
+All1246rawpayloads in4217704BZIP SHAb79e39ab775aa0a06850de2c170b728d68a05d5511d10932cdfc7c74d8e857e7 verified.
+49READYchecks passafteronepreserved48/49staleDRAFT-emptycapturefixturefailure;
+source/harness/timinggates unchanged. NoElo/nativeRyzen or compounded19claim.
+
+20completearchive1937payloads/1889originals/113855291B SHAee1bdd21707175cd57107a3a4a1c1daacd106975974b53d40338f0b9f1a22f7e verified.
+FirstactualNEWscratch restoreexit0; allfilemodes/nanosecondmtimes/306dirmodes
+independentlyverified,9912archivechecks/6089recoverychecks PASS. Rootall75sidecars
+andbothpartsrehashed. Pre-executionconsumer-schema/modeprojection failures all
+retained, originalengine outcomesunchanged. Fullrestore performed,noengineexecuted.
+
+Nextnearest-pawnprototype source76stillversion20: sixcompiletime assertions and
+791680runtimecomparisons/395840sets PASS againstscalarandkingflood. FullRelease13,
+56parent20cold/warmNNUEon-offsearches and95publictracepositions/61465fields PASS.
+NNUEobjecte8df... unchanged; source-review no blocker. No21speed/Elo claim.
+Freeze actualversion/source21 thenfullsanitizers/Windows/performance.

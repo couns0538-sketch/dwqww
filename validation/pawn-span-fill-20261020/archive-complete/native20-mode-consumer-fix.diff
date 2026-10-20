@@ -1,0 +1,31 @@
+--- archive_complete.pre-native20-mode-schema.py
++++ archive_complete.py
+@@ -119,20 +119,26 @@
+     assert len(native_manifest) == 242
+     for label, tree in native['trees'].items():
+         root = Path(tree['root'])
+-        actual = {p.relative_to(root).as_posix(): {'sha256': sha(p), 'bytes': p.stat().st_size}
++        actual = {p.relative_to(root).as_posix(): {'sha256': sha(p), 'bytes': p.stat().st_size,
++                                                'mode': stat.S_IMODE(p.stat().st_mode)}
+                   for p in root.rglob('*') if p.is_file()}
+         assert actual == tree['files'], 'Frozen native tree mismatch: ' + label
+         assert len(actual) == final['original_counts'][label]
++        directories = {'.': stat.S_IMODE(root.stat().st_mode)}
++        directories.update({p.relative_to(root).as_posix(): stat.S_IMODE(p.stat().st_mode)
++                            for p in root.rglob('*') if p.is_dir()})
++        assert directories == tree['directory_modes'], 'Frozen native directory-mode mismatch: ' + label
+     for label, item in native['single_files'].items():
+         path = Path(item['path'])
+         assert sha(path) == item['sha256'] and path.stat().st_size == item['bytes'], label
++        assert stat.S_IMODE(path.stat().st_mode) == item['mode'], label
+     original_tar = NATIVE / 'frozen-source-fc23918.tar'
+     assert sha(original_tar) == final['source_archive_sha256']
+     with tarfile.open(original_tar, 'r:') as archive:
+         members = [member for member in archive.getmembers() if member.isfile()]
+         assert len({member.name for member in members}) == len(members) == 75
+         tar_files = {member.name: {'sha256': hashlib.sha256(archive.extractfile(member).read()).hexdigest(),
+-                                  'bytes': member.size} for member in members}
++                                  'bytes': member.size, 'mode': member.mode} for member in members}
+     assert tar_files == native['trees']['source']['files']
+     root_native = load(EXPERIMENT / 'root-verification/NATIVE.json')
+     assert root_native['status'] == 'PASS_ROOT_FULL_NATIVE20_ORIGINALS_AND_GIT_SOURCE_REVIEW'

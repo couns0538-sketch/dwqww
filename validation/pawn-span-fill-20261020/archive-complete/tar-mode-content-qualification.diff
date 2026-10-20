@@ -1,0 +1,42 @@
+--- archive_complete.pre-tar-content-projection.py
++++ archive_complete.py
+@@ -139,7 +139,12 @@
+         assert len({member.name for member in members}) == len(members) == 75
+         tar_files = {member.name: {'sha256': hashlib.sha256(archive.extractfile(member).read()).hexdigest(),
+                                   'bytes': member.size, 'mode': member.mode} for member in members}
+-    assert tar_files == native['trees']['source']['files']
++    # TAR mode metadata and post-extraction live modes are different identities.
++    # Authenticate TAR contents; live file/directory modes were checked above.
++    assert {name: {'sha256': item['sha256'], 'bytes': item['bytes']}
++            for name, item in tar_files.items()} == {
++        name: {'sha256': item['sha256'], 'bytes': item['bytes']}
++        for name, item in native['trees']['source']['files'].items()}
+     root_native = load(EXPERIMENT / 'root-verification/NATIVE.json')
+     assert root_native['status'] == 'PASS_ROOT_FULL_NATIVE20_ORIGINALS_AND_GIT_SOURCE_REVIEW'
+     assert root_native['source_commit'] == COMMIT and root_native['ctest'] == 36
+@@ -225,9 +230,16 @@
+     assert not STAGE.exists(), 'Never reuse staging or overwrite evidence'
+     assert not (OUT / 'RESULTS.json').exists(), 'Never overwrite an archive receipt'
+     assert sha(ARCHIVER) == EXPECTED_ARCHIVER
++    assert not any(OUT.glob(NAME + '.zip*')), 'Never reuse prior archive parts'
++    # Freeze only preparation filenames here, before generating archive receipts.
++    # This preserves every original checker failure and its exact before-driver.
++    preparation_names = sorted(path.name for path in OUT.iterdir() if path.is_file())
+     validate_frozen_sources()
+     roots, originals = roots_and_originals()
+     before = inventory(roots, originals)
++    declared = load(OUT / 'INPUT-SCOPE.json').get('explicit_included_via_directory_roots', [])
++    for row in declared:
++        assert sum(item['original'] == row['path'] for item in before['files']) == 1, row['path']
+     save(OUT / 'LIVE-BEFORE.json', before)
+     STAGE.mkdir()
+     for row in before['directories']:
+@@ -244,7 +256,7 @@
+     assert after_staging == before, 'Included originals changed during staging; retain this failed attempt'
+     provenance = STAGE / 'archive-provenance'
+     provenance.mkdir()
+-    for name in ['archive_complete.py', 'INPUT-SCOPE.json', 'PREPARATION.json', 'DRIVER-REVIEW.json', 'PARENT-ADAPTATION.json', 'STATIC-CHECKS.json', 'SCOPE-QUALIFICATIONS.json', 'driver-adaptation.diff', 'ROOT-CLEARANCE.json', 'restore_new_scratch.py', 'test_restore_new_scratch.py', 'RECOVERY-TESTS.json', 'RECOVERY-CHECKED-COMMAND.json', 'recovery-tests.stdout', 'recovery-tests.stderr', 'recovery-tests-checked.stdout', 'recovery-tests-checked.stderr', 'DRIVER-REVIEW-attempt1.json']:
++    for name in preparation_names:
+         shutil.copy2(OUT / name, provenance / name)
+     save(provenance / 'LIVE-FILES-AND-MODES.json', before)
+     command = {'operation': 'unchanged trusted archive_results.archive_results followed by verify_archive',
