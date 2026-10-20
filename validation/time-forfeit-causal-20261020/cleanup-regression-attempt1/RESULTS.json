@@ -1,0 +1,60 @@
+{
+  "status": "cleanup_contracts_red_green_passed",
+  "scope": "Owned Python fixture process groups only; no chess engine, build, game or causal timing run.",
+  "recorded_utc": "2026-10-20T17:40:31.935111+00:00",
+  "steps": [
+    {
+      "label": "relative-path-harness-attempt0",
+      "exit_code": 1,
+      "result": "Invalid control: two fixture-path errors, preserved; no cleanup-behavior conclusion."
+    },
+    {
+      "label": "baseline-red",
+      "command": [
+        "/workspace/.cloud-setup/venv/bin/python",
+        "-B",
+        "validation/time-forfeit-causal-20261020/test_cleanup.py",
+        "--runner",
+        "validation/time-forfeit-causal-20261020/pre-build-attempt0/run_diagnostic.py",
+        "--artifacts",
+        "validation/time-forfeit-causal-20261020/cleanup-regression-attempt1/red-valid"
+      ],
+      "exit_code": 1,
+      "tests": 2,
+      "assertion_failures": 2,
+      "errors": 0,
+      "result": "Expected original cleanup failures: premature finished and reaped leader/live child."
+    },
+    {
+      "label": "candidate-green",
+      "command": [
+        "/workspace/.cloud-setup/venv/bin/python",
+        "-B",
+        "validation/time-forfeit-causal-20261020/test_cleanup.py",
+        "--runner",
+        "validation/time-forfeit-causal-20261020/run_diagnostic.py",
+        "--artifacts",
+        "validation/time-forfeit-causal-20261020/cleanup-regression-attempt1/green"
+      ],
+      "exit_code": 0,
+      "tests": 2,
+      "assertion_failures": 0,
+      "errors": 0,
+      "result": "Real fixture cleanup, retry and idempotence passed."
+    }
+  ],
+  "baseline_runner_sha256": "54365b0f88aec15e743393e50d0610e431dc768b8593c2696751ce4cdf20360b",
+  "corrected_runner_sha256": "c8101d5f551be0cdab194b506692c7805952cf70844b572b39ca7d259a25a7ea",
+  "test_sha256": "29e9616fc0a37eb6b5d11b28db26d884d74cc3b8ea3fd6bfe3238bdf6cde5681",
+  "first_fixture_path_snapshot_is_original": true,
+  "fixture_pgids_checked": [
+    275241,
+    275247,
+    275784,
+    275789
+  ],
+  "active_fixture_group_members_after_tests": [],
+  "main_capture_cleanup_budget": "min(active deadline +4seconds, close-entry +3seconds); waits/joins use remaining budget",
+  "new_phase_checks": "Info prelock/preoutput/preflush/postflush counts match actual consumed and raw info-depth lines for each search. Timer begin/end counts match and occur only for target final search. Implemented, not exercised with chess engine in this subtask.",
+  "original_exchange_hash": "Included by shared frozen_inputs helper in both before/after maps; parent will bind exact value in protocol."
+}

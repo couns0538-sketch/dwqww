@@ -1,6 +1,6 @@
 # Experiment ledger
 
-The authoritative [machine ledger](../validation/EXPERIMENTS.json) preserves all 83 earlier IDs and six new records (89 total), exact inputs, hashes, settings, failures and evidence links. This is the concise reading index as of 2026-10-20.
+The authoritative [machine ledger](../validation/EXPERIMENTS.json) contains 94 records, preserving all 83 earlier IDs, exact inputs, hashes, settings, failures and evidence links. This is the concise reading index as of 2026-10-20.
 
 | Experiment | Observed result | Acceptance scope |
 | --- | --- | --- |
@@ -66,3 +66,18 @@ and full legal replay pass, original resultsffc598ad. Do not retry or change gat
 Actual extension-path trace found5038child counter mismatches; isolated proposal
 clears all seven classes at unchanged419798nodes. Production patch is next;
 shallow eligibility was already unchanged, so no decision/Elo gain established.
+
+6.4.14 (`21538ec`) applies the independently reviewed extension-path repair.
+Release/ASan/TSan each9CTest+7actualTTAPI,8activeUCI,8Wine and914artifactchecks pass.
+Actual normaltrace5038counter mismatches->0; synthetic inherited6 old8/new7.
+One originalbarebench60-second timeout remains unexplained despite three later
+normal syscall diagnostics. No NPS/Elo acceptance; candidate stays isolated.
+[Proof](../validation/double-extension-path-20261020/STATUS-6414.md).
+
+The baseline-forfeit causal replay completed once: one cold search and the original
+50-search warm history. Final responses were 24.888 ms cold and 32.140 ms warm,
+versus the original hosted 108.696 ms with 63 ms remaining. All frozen inputs and
+51 legal bestmoves checked. Ten warm moves differed from the historical run;
+the original stall did not recur and its cause remains unresolved. This is
+diagnostic evidence, with zero games and no strength or reliability acceptance.
+[Original capture and phase analysis](../validation/time-forfeit-causal-20261020/REPORT.md).

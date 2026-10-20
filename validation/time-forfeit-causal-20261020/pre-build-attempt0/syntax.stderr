@@ -1,0 +1,21 @@
+/workspace/.cloud-setup/forge-forfeit-causal-source/src/search.cpp: In member function ‘forge::SearchInfo forge::Worker::search(forge::Board, const forge::SearchLimits&, bool, const std::vector<forge::Worker*>&)’:
+/workspace/.cloud-setup/forge-forfeit-causal-source/src/search.cpp:1220:102: error: ‘depth’ was not declared in this scope
+ 1220 |             std::chrono::duration_cast<std::chrono::nanoseconds>(start_.time_since_epoch()).count(), depth, elapsed);
+      |                                                                                                      ^~~~~
+/workspace/.cloud-setup/forge-forfeit-causal-source/src/search.cpp:1220:109: error: ‘elapsed’ was not declared in this scope; did you mean ‘elapsed_ms’?
+ 1220 |             std::chrono::duration_cast<std::chrono::nanoseconds>(start_.time_since_epoch()).count(), depth, elapsed);
+      |                                                                                                             ^~~~~~~
+      |                                                                                                             elapsed_ms
+/workspace/.cloud-setup/forge-forfeit-causal-source/src/search.cpp:1219:49: error: invalid use of non-static member function ‘uint64_t forge::Worker::nodes() const’
+ 1219 |         time_diagnostic::event("info_pre_lock", nodes,
+      |                                                 ^~~~~
+In file included from /workspace/.cloud-setup/forge-forfeit-causal-source/src/search.cpp:1:
+/workspace/.cloud-setup/forge-forfeit-causal-source/include/forge/search.hpp:281:33: note: declared here
+  281 |     [[nodiscard]] std::uint64_t nodes() const { return nodes_.load(std::memory_order_relaxed); }
+      |                                 ^~~~~
+/workspace/.cloud-setup/forge-forfeit-causal-source/src/search.cpp:1222:51: error: invalid use of non-static member function ‘uint64_t forge::Worker::nodes() const’
+ 1222 |         time_diagnostic::event("info_pre_output", nodes, 0, depth, elapsed);
+      |                                                   ^~~~~
+/workspace/.cloud-setup/forge-forfeit-causal-source/include/forge/search.hpp:281:33: note: declared here
+  281 |     [[nodiscard]] std::uint64_t nodes() const { return nodes_.load(std::memory_order_relaxed); }
+      |                                 ^~~~~

@@ -1,0 +1,75 @@
+{
+  "label": "extension-release",
+  "sanitizer": "none",
+  "status": "passed",
+  "stages": [
+    {
+      "stage": "compile",
+      "command": [
+        "g++",
+        "-std=c++20",
+        "-O3",
+        "-DNDEBUG",
+        "-march=x86-64-v3",
+        "-mtune=znver5",
+        "-fno-fast-math",
+        "-ffp-contract=off",
+        "-fno-lto",
+        "-Wall",
+        "-Wextra",
+        "-Wpedantic",
+        "-Wconversion",
+        "-Wshadow",
+        "-I/workspace/.cloud-setup/forge-extension-path-source/include",
+        "/workspace/dwqww/validation/double-extension-path-20261020/native6414/actual-api-concurrency.cpp",
+        "/workspace/.cloud-setup/forge-extension-path-release/libforge_core.a",
+        "-pthread",
+        "-Wl,--wrap=pthread_mutex_lock",
+        "-o",
+        "/workspace/.cloud-setup/forge-extension-path-diagnostics/release/actual-api-concurrency-extension-release"
+      ],
+      "timeout_seconds": 120,
+      "exit_code": 0,
+      "elapsed_seconds": 8.334519602,
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "stage": "run",
+      "command": [
+        "/workspace/.cloud-setup/forge-extension-path-diagnostics/release/actual-api-concurrency-extension-release"
+      ],
+      "timeout_seconds": 90,
+      "exit_code": 0,
+      "elapsed_seconds": 0.275307825,
+      "stdout_sha256": "5f37713f65f99fca8d6dff1a474a9e30002681493b019790c209a4197b198226",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  ],
+  "engine_source_root": "/workspace/.cloud-setup/forge-extension-path-source",
+  "sanitizer_options": {
+    "ASAN_OPTIONS": null,
+    "UBSAN_OPTIONS": null,
+    "TSAN_OPTIONS": null
+  },
+  "sha256_before": {
+    "validation/double-extension-path-20261020/native6414/run-actual-api.py": "a90ff841e5b698f7f8c553d158e84a4ee3225d6c4a042bf0968e0c59751a0dac",
+    "validation/double-extension-path-20261020/native6414/actual-api-concurrency.cpp": "25813c23a296b86bc90c045c3f123bfc82db2ed0404cc8de8b069156280e42b1",
+    "/workspace/.cloud-setup/forge-extension-path-source/include/forge/search.hpp": "a8f905e88a71def150249749282a0e36d5e75557555718570dc7c6db31f68763",
+    "/workspace/.cloud-setup/forge-extension-path-source/src/search.cpp": "e766f20fb1fe21262b8ba45f46987fee949340f9af0f92ec296db5c158028bad",
+    "/workspace/.cloud-setup/forge-extension-path-release/libforge_core.a": "88a6564c1dad8186d46153575caaa50eda049a21722d8f4eabdc0c819ce5eadb"
+  },
+  "binary_sha256": "030d5f941cca71b6fac04b2a0e09039ceb48dbd8e30bfbf392f9fe7fbc9a4914",
+  "completed_groups": [
+    "PASS default-shared1 ",
+    "PASS exclusive-request-smp4-fallback ",
+    "PASS exclusive1-after-1to4to1 ",
+    "PASS post-return-default-api-and-zero-node-cleanup",
+    "PASS nested-other-table-owner-restoration",
+    "PASS actual-search-exception-unwind",
+    "PASS partial-drain-constructor-exception"
+  ],
+  "tsan_options": null,
+  "diagnostic_classification": "none",
+  "source_unchanged_during_driver": true
+}

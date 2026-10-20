@@ -1,0 +1,128 @@
+{
+  "status": "FAILED_OR_INCOMPLETE",
+  "steps": [
+    {
+      "label": "baseline-compile",
+      "command": [
+        "/usr/bin/c++",
+        "-I/workspace/.cloud-setup/double-extension-boundary-baseline-source/include",
+        "-march=x86-64-v3",
+        "-mtune=znver5",
+        "-fno-fast-math",
+        "-ffp-contract=off",
+        "-fno-lto",
+        "-O3",
+        "-DNDEBUG",
+        "-std=gnu++20",
+        "-Wall",
+        "-Wextra",
+        "-Wpedantic",
+        "-Wconversion",
+        "-Wshadow",
+        "-ffp-contract=off",
+        "-o",
+        "/workspace/.cloud-setup/double-extension-boundary-baseline-build/search.cpp.o",
+        "-c",
+        "/workspace/.cloud-setup/double-extension-boundary-baseline-source/src/search.cpp"
+      ],
+      "cwd": "/workspace/.cloud-setup/double-extension-boundary-baseline-build",
+      "exit_code": 0,
+      "timeout_seconds": 180,
+      "elapsed_seconds_diagnostic_only": 63.924369854998076,
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderr_sha256": "67fdaffcc6ec65241f098e126ed926ac1adb93be48cff598f09631699ec82df2"
+    },
+    {
+      "label": "baseline-core",
+      "command": [
+        "ar",
+        "r",
+        "/workspace/.cloud-setup/double-extension-boundary-baseline-build/libforge_core.a",
+        "/workspace/.cloud-setup/double-extension-boundary-baseline-build/search.cpp.o"
+      ],
+      "cwd": "/workspace/.cloud-setup/double-extension-boundary-baseline-build",
+      "exit_code": 0,
+      "timeout_seconds": 180,
+      "elapsed_seconds_diagnostic_only": 0.07215121599438135,
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "label": "baseline-link",
+      "command": [
+        "/usr/bin/c++",
+        "-march=x86-64-v3",
+        "-mtune=znver5",
+        "-fno-fast-math",
+        "-ffp-contract=off",
+        "-fno-lto",
+        "-O3",
+        "-DNDEBUG",
+        "-Wl,--dependency-file=CMakeFiles/forge.dir/link.d",
+        "/workspace/.cloud-setup/forge-clock-contract-release/CMakeFiles/forge.dir/src/uci.cpp.o",
+        "-o",
+        "forge",
+        "libforge_core.a"
+      ],
+      "cwd": "/workspace/.cloud-setup/double-extension-boundary-baseline-build",
+      "exit_code": 0,
+      "timeout_seconds": 180,
+      "elapsed_seconds_diagnostic_only": 0.5701138260046719,
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  ],
+  "cases": {},
+  "started_utc": "2026-10-20T12:33:14.629523+00:00",
+  "scope": "Synthetic ancestral-state coverage, not a natural-root overflow, full-engine validation, speed or Elo claim.",
+  "runtime_budget_seconds": 60,
+  "runtime_used_seconds": 0,
+  "seed_mechanism": "Diagnostic env seeds root parent sentinel and independent shadow. Unset env retains zero. No tuning parameter changes.",
+  "originals_before": {
+    "/workspace/.cloud-setup/forge-clock-contract-release/forge": "07c34213bde5d5e280649b86916982dc1828b2d58766a6e068b5db218d448a02",
+    "/workspace/.cloud-setup/forge-clock-contract-release/libforge_core.a": "e4593fc2e13ee72078008f2c8d077a537c6982fe846ee0c7b7184baf05860785",
+    "/workspace/.cloud-setup/forge-clock-contract-release/compile_commands.json": "b27431140b3778041a694e066f041df3b2cf59fee1cc5a55ae66e49ef7e680e7",
+    "/workspace/.cloud-setup/forge-clock-contract-release/CMakeFiles/forge.dir/src/uci.cpp.o": "b1e7a1f1d97c699fd74a15555275f06c35c7e3de1ce355f856a55fa8f70a9adb",
+    "/workspace/.cloud-setup/forge-clock-contract-release/CMakeFiles/forge.dir/link.txt": "14166a484cd690f52f4de8fe8109b4dcda4fb1c29544335d0d3b9445f4e38787"
+  },
+  "baseline_core_members": {
+    "bitboard.cpp.o": {
+      "baseline_sha256": "a819f9ba4cc35cfcd1eeaa46ef8e2dfdd4e60fa96ce4becda41583cb2eef16d7",
+      "variant_sha256": "a819f9ba4cc35cfcd1eeaa46ef8e2dfdd4e60fa96ce4becda41583cb2eef16d7",
+      "identical": true
+    },
+    "board.cpp.o": {
+      "baseline_sha256": "f0e53aae19e2e89fb4c03703433bc8ea0614b719c905bcb15b613ef0481bdd8c",
+      "variant_sha256": "f0e53aae19e2e89fb4c03703433bc8ea0614b719c905bcb15b613ef0481bdd8c",
+      "identical": true
+    },
+    "book.cpp.o": {
+      "baseline_sha256": "3119b90d0aa950d0b4c0c37af2c869765bf473154b0d760b0ec359cb98d81707",
+      "variant_sha256": "3119b90d0aa950d0b4c0c37af2c869765bf473154b0d760b0ec359cb98d81707",
+      "identical": true
+    },
+    "eval.cpp.o": {
+      "baseline_sha256": "694bcd8cdf3d68d2668bc3ec1e471015ef020091b7f76d9f4967e5b9239d013c",
+      "variant_sha256": "694bcd8cdf3d68d2668bc3ec1e471015ef020091b7f76d9f4967e5b9239d013c",
+      "identical": true
+    },
+    "eval_params.cpp.o": {
+      "baseline_sha256": "64fbb86cc5bce814a2434eb656d846c04b8e361b42c11af45cb7b004c2399358",
+      "variant_sha256": "64fbb86cc5bce814a2434eb656d846c04b8e361b42c11af45cb7b004c2399358",
+      "identical": true
+    },
+    "nnue.cpp.o": {
+      "baseline_sha256": "e8dfc576e6b42ffa4de5d4991d0f3ae7c3e9be7f5a818126c520dee386f6a967",
+      "variant_sha256": "e8dfc576e6b42ffa4de5d4991d0f3ae7c3e9be7f5a818126c520dee386f6a967",
+      "identical": true
+    },
+    "search.cpp.o": {
+      "baseline_sha256": "6e157db1d748cdf9e2391773c51c6423bd2edcf9a485bd40317f2a86b086f500",
+      "variant_sha256": "527977842ea2a226f825fc94cad95700efbf4650a02452aeb59ca66757af99e8",
+      "identical": false
+    }
+  },
+  "baseline_binary_sha256": "31a932f56c3bf40d497fdd23dad1113b2c57571f8db99c5c3a951854e60b8da7",
+  "baseline_core_sha256": "802f601a5570ffb92b3c9ec6cc500ff1d8243aa384827b53bcdc5bbe22db4eab",
+  "error": "BrokenPipeError(32, 'Broken pipe')"
+}

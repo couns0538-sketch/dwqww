@@ -4,7 +4,19 @@ Accepted integration `forge/6.4-hourly-20261019` remains
 `356e863dbd86d2ce24b8ee9486d7406f1d525480`, with timed-only admission repair
 `294cf1b`. Preserve it; no accepted Elo gain is established.
 
-Latest isolated correctness-tested engine is **Forge6.4.13**, source
+Latest isolated candidate is **Forge6.4.14**, source
+`21538ec5416c909fc98a08688242a0b3b9710b25`, on
+`forge/double-extension-path-20261020`. It repairs extension-path count reuse
+across siblings and same-ply verification. All27CTest suites,21actualTTAPI
+groups,8active-UCI TSan transitions,8Winechecks and914artifactchecks passed.
+An original60-second bare Linux bench timeout remains unexplained; three later
+syscall diagnostics passed at419798nodes. Keep the candidate isolated and this
+operational qualification explicit. No NPS or Elo gain is accepted.
+[Evidence](../validation/double-extension-path-20261020/STATUS-6414.md).
+[Windows6.4.14 ZIP](../releases/forge-6.4.14-candidate-windows-zen5.zip), SHA256
+`6364f10a3aa1240fe1a8567e67b0720e1d015ce0bd1f0f26e384813b517ec269`.
+
+The fully tested parent is **Forge6.4.13**, source
 `cecf0b9e3af5602053bcaf5c5d16ffc09f58850d`, branch
 `forge/clock-contract-reconcile-20261020`. It merges the newer accepted work
 and preserves6.4.12's TT gate, both NNUE fusions, weights and earlier repairs.
@@ -29,12 +41,17 @@ or TT regression inference. Response observation108.696ms versus63ms remaining
 does not isolate the delay. [Original evidence audit](../validation/tt-strength-20261020/final-audit/REPORT.md),
 results `ffc598ad12760e5cdc8cb1ee15383f13787acad8`. No retry or threshold change.
 The6.4.13 reporting repair is not a demonstrated remedy for this forfeit.
+One frozen local causal replay subsequently completed, with final responses
+24.888 ms cold and 32.140 ms warm. The original 108.696 ms stall did not recur;
+10 warm move choices differed. Its cause remains unresolved. This is not a
+match or clock-reliability acceptance.
+[Diagnostic evidence](../validation/time-forfeit-causal-20261020/REPORT.md).
 
 Earlier valid capped matches are inconclusive:6.4.7vs6.4.4 W114/D101/L105
 (320games, results61aabe2 recovered original evidence), and6.4.11vs6.4.9
 W427/D1194/L427 (2048games, resultseb1c1b7). No accepted gain or game pooling.
 
-Next bounded candidate repairs extension-path bookkeeping. Actual bench trace
+The applied6.4.14 candidate repairs extension-path bookkeeping. Actual bench trace
 found5038child-count mismatches; an isolated17-line proposal clears all seven
 mismatch classes with the same419798nodes. Eligibility mismatches were already
 zero in this shallow workload, so neither changed decisions nor Elo is proven.

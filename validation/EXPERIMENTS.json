@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "updated_utc": "2026-10-20T17:34:05.147503+00:00",
+  "updated_utc": "2026-10-20T18:49:54.298242+00:00",
   "project": "Forge",
   "target": "Native Windows x64 on Ryzen7 9850X3D",
   "scope": "Accepted integration356e863 with timed-only admission-clock repair294cf1b; isolated correctness-tested6.4.12 source8865666; completed valid capped-inconclusive647confirmation and6411NNUE matches; fresh6412vs6411protocol ready, unlaunched. No accepted Elo gain.",
@@ -65,8 +65,8 @@
     "tt_overhead_calibration_experiment_id": "tt-speed-same-binary-aa-20261019",
     "rule50_fix_candidate_id": "forge644-rule50-context-20261019",
     "rule50_fix_correctness_experiment_id": "forge644-rule50-context-release-20261019",
-    "latest_correctness_candidate_id": "forge6413-clock-contract-reconcile-20261020",
-    "latest_correctness_windows_artifact": "releases/forge-6.4.13-candidate-windows-zen5.zip",
+    "latest_correctness_candidate_id": "forge6414-extension-path-accounting-20261020",
+    "latest_correctness_windows_artifact": "releases/forge-6.4.14-candidate-windows-zen5.zip",
     "newer_645_strength_status": "No games/Elo; Release8/8, ASan8/8,18947 parent and candidate oracle checks, exact parent parity and7Winechecks passed. Kernel AA noise gate failed; full-engine timing not run.",
     "newer_646_strength_status": "Release8/8, ASan8/8, exactparentparity and7Winechecks passed; timing andstrengthnotmeasured becausehostAAfailed. No new games/Elo.",
     "newer_647_strength_status": "Fresh confirmation completed validly at320games/160pairs:W114D101L105, independentLLR0.4574291989231206, naturalcap inconclusive;2794offlineauditchecks passed. Earlier147-game pilot remains separate, neverpooled. No acceptedgain.",
@@ -79,7 +79,8 @@
     "untimed_reporting_followup_status": "Separate regression/follow-up underway: frozen886 already includes timedadmission but differs from accepted untimed/ponder reporting. No follow-up correctness result claimed; do not mutate frozenstrengthsource.",
     "next_strength_experiment_id": "forge6412-vs6411-hosted-strength-20261020",
     "active_strength_run_id": null,
-    "newer_6413_strength_status": "All finitecorrectness gates pass; no measuredspeed/Elo. Not demonstrated to repair hostedforfeit."
+    "newer_6413_strength_status": "All finitecorrectness gates pass; no measuredspeed/Elo. Not demonstrated to repair hostedforfeit.",
+    "newer_6414_strength_status": "Finite27CTest/21TTAPI/8activeUCI/8Wine/914artifactchecks pass; one originalbarebench deadline unresolved. No NPS/Elo acceptance."
   },
   "candidates": [
     {
@@ -678,9 +679,15 @@
       "code_commit": "21538ec5416c909fc98a08688242a0b3b9710b25",
       "branch": "forge/double-extension-path-20261020",
       "parent_source": "cecf0b9e3af5602053bcaf5c5d16ffc09f58850d",
-      "status": "isolated_pending_full_validation",
+      "status": "finite_correctness_passed_with_unresolved_operational_timeout",
       "change": "Capture inherited count at positive-depth entry; initialize frame before null/ProbCut; restore after both same-ply verification calls; use stable inherited eligibility; assign every selected child inherited+(extension==2). Existing <=6 threshold unchanged.",
-      "valid_strength_evidence": false
+      "valid_strength_evidence": false,
+      "correctness_evidence": "validation/double-extension-path-20261020/STATUS-6414.md",
+      "artifact": {
+        "path": "releases/forge-6.4.14-candidate-windows-zen5.zip",
+        "sha256": "6364f10a3aa1240fe1a8567e67b0720e1d015ce0bd1f0f26e384813b517ec269",
+        "runtime_checks": 8
+      }
     }
   ],
   "experiments": [
@@ -6358,17 +6365,58 @@
       "candidate_sha": "21538ec5416c909fc98a08688242a0b3b9710b25",
       "hypothesis": "Stale double-extension counts transfer sibling/verification state and misallocate selective depth. A stable inherited path budget restores the intended limit.",
       "implementation": "Capture inherited count at positive-depth entry; initialize frame before null/ProbCut; restore after both same-ply verification calls; use stable inherited eligibility; assign every selected child inherited+(extension==2). Existing <=6 threshold unchanged.",
-      "status": "implemented_full_engine_validation_in_progress",
+      "status": "finite_tests_passed_operational_bench_timeout_unresolved",
       "evidence": "validation/double-extension-path-20261020/",
-      "correctness": "Isolated actual-source normalRED/GREEN trace and independent review passed; new full source builds/tests are pending. Synthetic boundary fixtures finalizing separately.",
+      "correctness": "Release/ASanUBSan/TSan each9CTest+7TTAPI;8activeUCI TSan;8Wine+914artifactchecks;normaltrace5038->0;syntheticancestral6budget old8/new7.",
       "benchmark_nodes": {
-        "linux_isolated_proposal": 419798
+        "linux_later_diagnostics": 419798,
+        "windows": 351063
       },
       "strength_games": 0,
       "elo_estimate": null,
       "nps_difference": null,
       "valid_strength_evidence": false,
-      "decision": "Do not integrate until validation. No Elo or speed claim; previous invalid TT match does not test this source."
+      "decision": "Keep isolated candidate. No Elo/NPS gain; retain unexplained original60s bench deadline despite later normal syscall diagnostics. Do not promote unconditionally.",
+      "failed_approaches": [
+        {
+          "attempt": "Release extras bench1",
+          "result": "Timeout60seconds, empty stdout/stderr. Later fixed5-second syscall controls passed unchanged binaries; cause unresolved."
+        },
+        {
+          "attempt": "Boundary fixture harness1",
+          "result": "BrokenPipe after completed baseline compile; preserved and resumed verified baseline."
+        },
+        {
+          "attempt": "Boundary oracle7 assumption",
+          "result": "Incorrectly required old count7 overflow. All actualcases retained; budget/accounting properties checked offline, no engine retry."
+        }
+      ]
+    },
+    {
+      "id": "time-forfeit-causal-replay-20261020",
+      "date": "2026-10-20",
+      "baseline_sha": "c5cbf97a7291a3bd960c71dcd77a29bf7c95ad8e",
+      "hypothesis": "Separate local dispatch/search/output/controller phases on one cold and one original warm-history replay; do not infer hosted cause from lastinfo.",
+      "status": "completed_original_hosted_stall_not_reproduced_cause_unresolved",
+      "results": {
+        "status": "completed_original_hosted_stall_not_reproduced_cause_unresolved",
+        "baseline_sha": "c5cbf97a7291a3bd960c71dcd77a29bf7c95ad8e",
+        "protocol_sha256": "538f9708e463bfe5dabbe946671d7c6427ad4e112fa407ee85825f6557993d7c",
+        "cold_final_response_ms": 24.887898,
+        "warm_final_response_ms": 32.13998,
+        "original_hosted_response_ms": 108.696,
+        "clock_remaining_ms": 63,
+        "source_hard_budget_ms": 31,
+        "fixed_cold_searches": 1,
+        "fixed_warm_searches": 50,
+        "warm_move_divergences": 10,
+        "inputs_unchanged": true,
+        "games": 0,
+        "elo_claim": null,
+        "nps_claim": null
+      },
+      "evidence": "validation/time-forfeit-causal-20261020/REPORT.md",
+      "decision": "Keep originalforfeit unresolved. This is diagnostic only; no games, retry, NPS or Elo inference."
     }
   ],
   "evidence_archives": [

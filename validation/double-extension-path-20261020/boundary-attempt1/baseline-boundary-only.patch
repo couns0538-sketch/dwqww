@@ -1,0 +1,73 @@
+--- a/src/search.cpp
++++ b/src/search.cpp
+@@ -4,6 +4,7 @@
+ #include <algorithm>
+ #include <cmath>
+ #include <cstring>
++#include <cstdlib>
+ #include <iostream>
+ #include <limits>
+ #include <optional>
+@@ -14,7 +15,10 @@
+ namespace {
+ struct ExtensionDiagnostic {
+     std::array<int, MaxPly + 8> expected{};
+-    std::array<std::uint64_t, 8> events{};
++    std::array<std::uint64_t, 9> events{};
++    int ancestral_seed = 0;
++    int max_true_path = 0;
++    int max_actual_path = 0;
+     std::uint64_t children = 0;
+     std::uint64_t single_extensions = 0;
+     std::uint64_t double_extensions = 0;
+@@ -34,7 +38,15 @@
+ };
+ thread_local ExtensionDiagnostic ExtensionDiag;
+ struct ExtensionDiagnosticRun {
+-    ExtensionDiagnosticRun() { ExtensionDiag = {}; }
++    ExtensionDiagnosticRun() {
++        ExtensionDiag = {};
++        const char* value = std::getenv("FORGE_EXTENSION_ANCESTRAL_SEED");
++        if (value != nullptr && std::strcmp(value, "6") != 0 && std::strcmp(value, "7") != 0) std::abort();
++        ExtensionDiag.ancestral_seed = value == nullptr ? 0 : (std::strcmp(value, "6") == 0 ? 6 : 7);
++        ExtensionDiag.expected[0] = ExtensionDiag.ancestral_seed;
++        ExtensionDiag.max_true_path = ExtensionDiag.ancestral_seed;
++        ExtensionDiag.max_actual_path = ExtensionDiag.ancestral_seed;
++    }
+     ~ExtensionDiagnosticRun() {
+         std::cerr << "DE_SUMMARY {\"children\":" << ExtensionDiag.children
+                   << ",\"single_extensions\":" << ExtensionDiag.single_extensions
+@@ -47,7 +59,11 @@
+                   << ",\"actual_vs_true_path_mismatch\":" << ExtensionDiag.events[4]
+                   << ",\"null_parent_path_mismatch\":" << ExtensionDiag.events[5]
+                   << ",\"probcut_parent_path_mismatch\":" << ExtensionDiag.events[6]
+-                  << ",\"incoming_parent_path_mismatch\":" << ExtensionDiag.events[7] << "}\n";
++                  << ",\"incoming_parent_path_mismatch\":" << ExtensionDiag.events[7]
++                  << ",\"ancestral_seed\":" << ExtensionDiag.ancestral_seed
++                  << ",\"max_true_path\":" << ExtensionDiag.max_true_path
++                  << ",\"max_actual_path\":" << ExtensionDiag.max_actual_path
++                  << ",\"true_path_limit_breaches\":" << ExtensionDiag.events[8] << "}\n";
+     }
+ };
+ } // namespace
+@@ -1153,6 +1169,11 @@
+         }
+         if (extension == 2) ++ExtensionDiag.double_extensions;
+         const int diagnostic_expected_child = ExtensionDiag.expected[static_cast<std::size_t>(ply)] + (extension == 2);
++        ExtensionDiag.max_true_path = std::max(ExtensionDiag.max_true_path, diagnostic_expected_child);
++        ExtensionDiag.max_actual_path = std::max(ExtensionDiag.max_actual_path, ss->double_extensions);
++        if (diagnostic_expected_child > 7)
++            ExtensionDiag.trace(8, "synthetic_ancestral_true_path_limit_breach", board, ss, move, depth,
++                                extension, ss->double_extensions, ss->double_extensions, !excluded.is_none());
+         if (ss->double_extensions != diagnostic_expected_child)
+             ExtensionDiag.trace(4, "actual_child_vs_true_path_mismatch", board, ss, move, depth, extension, ss->double_extensions, ss->double_extensions, !excluded.is_none());
+         ExtensionDiag.expected[static_cast<std::size_t>(ply + 1)] = diagnostic_expected_child;
+@@ -1401,6 +1422,8 @@
+         ss.killers = {};
+     }
+     SearchStack* ss = &stack_[4];
++    // DIAGNOSTIC ONLY: synthetic already-consumed ancestral budget, not normal root state.
++    (ss - 1)->double_extensions = ExtensionDiag.ancestral_seed;
+     for (int i = 0; i < MaxPly + 4; ++i) stack_[static_cast<std::size_t>(i)].ply = i - 4;
+     for (SearchStack& entry : stack_) entry.accumulator.valid = false;
+     if (nnue::enabled && nnue::available()) nnue::refresh(board, ss->accumulator);

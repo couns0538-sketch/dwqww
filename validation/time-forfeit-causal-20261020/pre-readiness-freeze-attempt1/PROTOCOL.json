@@ -1,0 +1,100 @@
+{
+  "schema_version": 1,
+  "status": "PREPARED_COMPILED_PENDING_ROOT_RESOURCE_CLEARANCE",
+  "experiment": "baseline-time-forfeit-causal-20261020-v1",
+  "baseline_sha": "c5cbf97a7291a3bd960c71dcd77a29bf7c95ad8e",
+  "hypothesis": "A phase-observed local cold/fixed warm replay may separate new search work from dispatch/output/controller delays. It cannot retroactively locate the original hosted stall.",
+  "source_manifest_sha256": "a2b49bf516882f4477fe5e0f5980016b5828ef17fb90555f2d9c20392e815bab",
+  "source_export": "/workspace/.cloud-setup/forge-forfeit-causal-source-v2",
+  "build_provenance_sha256": "f8b9e196c25870ff02c3f6e3aca9bd04e94f393cdc3e42c468f8378a4fced3cc",
+  "engine": {
+    "path": "/workspace/.cloud-setup/forge-forfeit-causal-build-v2/forge",
+    "sha256": "861bb31fc0bf07fe95aa0e06d28facff0af3722285c23536879d4c99b2ee65a1",
+    "bytes": 523160
+  },
+  "core_library": {
+    "path": "/workspace/.cloud-setup/forge-forfeit-causal-build-v2/libforge_core.a",
+    "sha256": "b32af6f8a47bef33947b0bc040f66cf1f2b5ae4e058d841df1f6c07193a351b9",
+    "bytes": 560842
+  },
+  "runner_sha256": "c8101d5f551be0cdab194b506692c7805952cf70844b572b39ca7d259a25a7ea",
+  "analysis_sha256": "4c1003092c57e2d132e7e1ca6922ec92a9d471560f77621c79679854bd54b16f",
+  "diagnostic_header_sha256": "44212eab699acb5740ef10bdcb1c2294e1ba67afc0e6e7418f8b4558d8726f1b",
+  "instrumentation_patch_sha256": "dfe9e1f9a5a52d6b328ce8740aa7032a7dd6a3a992dd74d6f3d578a9c42132d6",
+  "original_inputs": {
+    "game85-baseline-original-input.txt": {
+      "path": "validation/tt-strength-20261020/final-audit/game85-baseline-original-input.txt",
+      "sha256": "cd4b74174c8536dc83e1c5e55c0374e08a889f678958744b395dddc1fec9e41d"
+    },
+    "game85-original-protocol.log.gz": {
+      "path": "validation/tt-strength-20261020/final-audit/game85-original-protocol.log.gz",
+      "sha256": "cf3288d2062557ab991df3535096770b005cafa701509bad3fdbd5a39b969b9e"
+    },
+    "forfeit-exchange.json": {
+      "path": "validation/tt-strength-20261020/final-audit/forfeit-exchange.json",
+      "sha256": "a2c590fdf934ffcb0f196b214b7dca212fb8277a8bc910432ed77cd78c8cadcb"
+    }
+  },
+  "original_go_to_bestmove_ms": 108.69600000296487,
+  "original_clock_remaining_ms": 63,
+  "original_source_hard_budget_ms": 31,
+  "case_order": [
+    "cold",
+    "warm"
+  ],
+  "case_contract": {
+    "cold": "Derived14command setup/finalFEN/go/isready/stop/stop/quit; fresh process and no prior repetition/search state.",
+    "warm": "All260original Baseline commands,50go requests, byte-for-byte order and historical clocks; wait each actual handshake/ready/bestmove. Force original next positions; record move divergence.",
+    "runs": "One fixed cold-then-warm execution; no repetitions, filtering, engine outcome selection, games, PGN reconstruction, match acceptance or changed original tolerance."
+  },
+  "runtime_guards": {
+    "active_global_seconds": 56,
+    "total_target_including_cleanup_seconds": 60,
+    "raw_stdout_stderr_cap_bytes": 16777216,
+    "engine_telemetry_cap_bytes": 33554432,
+    "timing_starts_only_with_root_clearance_bound_to_protocol_sha": true,
+    "output_reuse_forbidden": true,
+    "known_heavy_process_preflight": true,
+    "root_must_also_stop_archive_compression_and_other_unlisted_work": true
+  },
+  "engine_settings": "OriginalThreads1/Hash32/MoveOverhead10/OwnBookfalse; actual source/network/clock allocation remain c5 except telemetry observer cost. Strict C++20 Release v3/znver5 non-fast-math/non-LTO/ffp-contractoff.",
+  "telemetry_contract": {
+    "clock_ids": [
+      "CLOCK_MONOTONIC",
+      "CLOCK_THREAD_CPUTIME_ID",
+      "CLOCK_PROCESS_CPUTIME_ID"
+    ],
+    "pid_tid_search_and_event_ids": true,
+    "engine_phases": [
+      "go_receipt",
+      "worker_dispatch_begin",
+      "facade_enter",
+      "worker_search_begin",
+      "worker_origin",
+      "budget_ready",
+      "timer_poll_begin/end only cold1/warm50",
+      "iteration_search_enter/return",
+      "info_pre_lock/pre_output/pre_flush/post_flush",
+      "worker_result",
+      "facade_result",
+      "uci_search_return",
+      "bestmove_pre_lock/pre_output/post_flush"
+    ],
+    "controller_phases": [
+      "pipe write before/after",
+      "actual os.read",
+      "line decoding",
+      "consumer dequeue"
+    ],
+    "cpu_comparisons": "Process CPU deltas only samepid; thread CPU only samepid/tid. Sequential clock samples are not simultaneous.",
+    "previous_write_metrics": "Prior complete event formatting+clock+append costs, not syscall-only. Last event per thread is not carried to later output. Offline summary filters previous IDs to the same search.",
+    "missing_telemetry": "Reject incomplete or duplicate IDs, phase mismatches, dropped/truncated writes, unjoined capture or illegal bestmoves; retain failures."
+  },
+  "interpretation_limits": [
+    "No games, Elo, throughput, native Ryzen/Windows or general clock-reliability inference.",
+    "Warm forced board history is retained; timed local execution and instrumentation need not recreate original TT/history/search state.",
+    "Outgoing-go to receipt includes scheduling and transport; wall-minus-CPU includes blocking/I/O/scheduling and cannot uniquely identify host preemption.",
+    "No local reproduction, including failure to observe a stall, resolves the original hosted cause without corresponding original phase telemetry."
+  ],
+  "preregistered_before_any_diagnostic_engine_execution_utc": "2026-10-20T17:41:08.065134+00:00"
+}

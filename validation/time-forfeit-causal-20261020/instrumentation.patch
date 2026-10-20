@@ -1,0 +1,207 @@
+--- a/src/uci.cpp
++++ b/src/uci.cpp
+@@ -2,6 +2,7 @@
+ #include "forge/book.hpp"
+ #include "forge/nnue.hpp"
+ #include "forge/search.hpp"
++#include "forge/time_diagnostic.hpp"
+ #include "forge/uci_output.hpp"
+ 
+ #include <algorithm>
+@@ -285,6 +286,8 @@
+             stop_search();
+             apply_position(board, input);
+         } else if (command == "go") {
++            const auto diagnostic_sequence = forge::time_diagnostic::begin_go(
++                std::chrono::duration_cast<std::chrono::nanoseconds>(command_start.time_since_epoch()).count());
+             stop_search();
+             std::string first;
+             const auto position = input.tellg();
+@@ -350,8 +353,11 @@
+                 ponder_search_active = limits.ponder;
+                 searcher.reset_stop();
+                 worker = std::thread([&searcher, &stop_mutex, &stop_cv, &stop_requested,
+-                                      &ponder_hit_received, search_board, limits, ponder_enabled]() mutable {
++                                      &ponder_hit_received, search_board, limits, ponder_enabled, diagnostic_sequence]() mutable {
++                    forge::time_diagnostic::enter_search(diagnostic_sequence);
++                    forge::time_diagnostic::event("worker_dispatch_begin");
+                     const forge::SearchInfo result = searcher.search(search_board, limits, true);
++                    forge::time_diagnostic::event("uci_search_return", result.nodes, 0, 0, static_cast<long long>(result.elapsed_ms));
+                     if (limits.infinite || limits.ponder) {
+                         std::unique_lock<std::mutex> lock(stop_mutex);
+                         stop_cv.wait(lock, [&stop_requested, &ponder_hit_received, &limits] {
+@@ -367,8 +373,11 @@
+                         result.pv.front().promotion == result.best_move.promotion) {
+                         prediction = " ponder " + forge::Board::move_to_uci(result.pv[1]);
+                     }
+-                    const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex());
++                    forge::time_diagnostic::event("bestmove_pre_lock", result.nodes);
++                    const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex());
++                    forge::time_diagnostic::event("bestmove_pre_output", result.nodes);
+                     std::cout << "bestmove " << best << prediction << std::endl;
++                    forge::time_diagnostic::event("bestmove_post_flush", result.nodes);
+                 });
+             }
+         } else if (command == "bench") {
+--- a/src/search.cpp
++++ b/src/search.cpp
+@@ -1,4 +1,5 @@
+ #include "forge/search.hpp"
++#include "forge/time_diagnostic.hpp"
+ #include "forge/uci_output.hpp"
+ 
+ #include <algorithm>
+@@ -606,16 +607,23 @@
+ }
+ 
+ bool Worker::should_stop() {
++    const bool diagnostic_poll = time_diagnostic::poll_enabled();
++    const auto diagnostic_origin = std::chrono::duration_cast<std::chrono::nanoseconds>(start_.time_since_epoch()).count();
++    if (diagnostic_poll) time_diagnostic::event("timer_poll_begin", local_nodes_, diagnostic_origin, hard_limit_ms_);
++    const auto diagnostic_return = [&](bool decision, int reason) {
++        if (diagnostic_poll) time_diagnostic::event("timer_poll_end", local_nodes_, diagnostic_origin, hard_limit_ms_, reason);
++        return decision;
++    };
+     // Publish this thread's node count for the others at the same cadence.
+     nodes_.store(local_nodes_, std::memory_order_relaxed);
+-    if (shared_.stop.load(std::memory_order_relaxed)) return true;
+-    if (!is_main()) return false;
+-    if (node_limit_specified_ && total_nodes() >= node_limit_) return true;
++    if (shared_.stop.load(std::memory_order_relaxed)) return diagnostic_return(true, 1);
++    if (!is_main()) return diagnostic_return(false, 2);
++    if (node_limit_specified_ && total_nodes() >= node_limit_) return diagnostic_return(true, 3);
+     if (hard_limit_ms_ > 0) {
+-        if (pondering_ && shared_.ponder_hit_ns.load(std::memory_order_relaxed) == 0) return false;
+-        if (elapsed_ms() >= hard_limit_ms_) return true;
+-    }
+-    return false;
++        if (pondering_ && shared_.ponder_hit_ns.load(std::memory_order_relaxed) == 0) return diagnostic_return(false, 4);
++        if (elapsed_ms() >= hard_limit_ms_) return diagnostic_return(true, 5);
++    }
++    return diagnostic_return(false, 0);
+ }
+ 
+ bool Worker::is_draw(const Board& board, int ply) const {
+@@ -1148,8 +1156,11 @@
+ // Iterative deepening driver
+ 
+ SearchInfo Worker::search(Board board, const SearchLimits& limits, bool emit_info, const std::vector<Worker*>& all) {
++    time_diagnostic::event("worker_search_begin");
+     start_ = limits.request_start == std::chrono::steady_clock::time_point{}
+         ? std::chrono::steady_clock::now() : limits.request_start;
++    time_diagnostic::event("worker_origin", 0,
++        std::chrono::duration_cast<std::chrono::nanoseconds>(start_.time_since_epoch()).count());
+     local_nodes_ = 0;
+     nodes_.store(0, std::memory_order_relaxed);
+     all_workers_ = &all;
+@@ -1191,6 +1202,9 @@
+         hard_limit_ms_ = std::max<std::int64_t>(1, std::min(hard, available));
+         time_managed_ = true;
+     }
++    time_diagnostic::event("budget_ready", 0,
++        std::chrono::duration_cast<std::chrono::nanoseconds>(start_.time_since_epoch()).count(),
++        hard_limit_ms_, soft_limit_ms_);
+     SearchInfo result;
+     const MoveList legal = board.legal_moves();
+     MoveList root_candidates;
+@@ -1216,11 +1230,16 @@
+             std::chrono::steady_clock::now() - start_).count();
+         const std::uint64_t nodes = total_nodes();
+         const std::uint64_t nps = elapsed > 0 ? nodes * 1000U / static_cast<std::uint64_t>(elapsed) : 0;
++        time_diagnostic::event("info_pre_lock", nodes,
++            std::chrono::duration_cast<std::chrono::nanoseconds>(start_.time_since_epoch()).count(), depth, elapsed);
+         const std::lock_guard<std::mutex> output_lock(uci_output_mutex());
++        time_diagnostic::event("info_pre_output", nodes, 0, depth, elapsed);
+         std::cout << "info depth " << depth << " seldepth " << std::max(seldepth_, depth) << " score " << format_score(score)
+                   << " nodes " << nodes << " nps " << nps << " hashfull " << shared_.tt.hashfull() << " time " << elapsed << " pv";
+         for (const Move move : pv) std::cout << ' ' << Board::move_to_uci(move);
++        time_diagnostic::event("info_pre_flush", nodes, 0, depth, elapsed);
+         std::cout << std::endl;
++        time_diagnostic::event("info_post_flush", nodes, 0, depth, elapsed);
+     };
+ 
+     // Terminal or adjudicated roots: report without searching.
+@@ -1240,6 +1259,9 @@
+         nodes_.store(local_nodes_, std::memory_order_relaxed);
+         result.elapsed_ms = static_cast<std::uint64_t>(std::chrono::duration_cast<std::chrono::milliseconds>(
+             std::chrono::steady_clock::now() - start_).count());
++        time_diagnostic::event("worker_result", result.nodes,
++            std::chrono::duration_cast<std::chrono::nanoseconds>(start_.time_since_epoch()).count(),
++            hard_limit_ms_, static_cast<long long>(result.elapsed_ms));
+         return result;
+     }
+ 
+@@ -1247,6 +1269,9 @@
+     if (limits.nodes_specified && limits.nodes == 0) {
+         result.best_move = root_candidates.front();
+         result.depth = 0;
++        time_diagnostic::event("worker_result", result.nodes,
++            std::chrono::duration_cast<std::chrono::nanoseconds>(start_.time_since_epoch()).count(),
++            hard_limit_ms_, static_cast<long long>(result.elapsed_ms));
+         return result;
+     }
+ 
+@@ -1256,6 +1281,9 @@
+         result.best_move = root_candidates.front();
+         result.elapsed_ms = static_cast<std::uint64_t>(std::chrono::duration_cast<std::chrono::milliseconds>(
+             std::chrono::steady_clock::now() - start_).count());
++        time_diagnostic::event("worker_result", result.nodes,
++            std::chrono::duration_cast<std::chrono::nanoseconds>(start_.time_since_epoch()).count(),
++            hard_limit_ms_, static_cast<long long>(result.elapsed_ms));
+         return result;
+     }
+     if (!is_main()) {
+@@ -1300,7 +1328,11 @@
+         int iteration_score = score;
+         while (true) {
+             ss->ply = 0;
++            time_diagnostic::event("iteration_search_enter", local_nodes_,
++                std::chrono::duration_cast<std::chrono::nanoseconds>(start_.time_since_epoch()).count(), depth);
+             iteration_score = search(board, ss, depth, alpha, beta, false);
++            time_diagnostic::event("iteration_search_return", local_nodes_,
++                std::chrono::duration_cast<std::chrono::nanoseconds>(start_.time_since_epoch()).count(), depth, aborted_ ? 1 : 0);
+             if (aborted_) break;
+             if (iteration_score <= alpha) {
+                 beta = (alpha + beta) / 2;
+@@ -1365,7 +1397,12 @@
+                 factor *= 1.0 + drop * tune::TmFallingEvalPercent / 10000.0;
+             }
+             factor = std::max(factor, tune::TmMinFactorPercent / 100.0);
+-            if (elapsed_ms() >= static_cast<std::int64_t>(static_cast<double>(soft_limit_ms_) * factor)) break;
++            if (elapsed_ms() >= static_cast<std::int64_t>(static_cast<double>(soft_limit_ms_) * factor)) {
++                time_diagnostic::event("soft_budget_stop", local_nodes_,
++                    std::chrono::duration_cast<std::chrono::nanoseconds>(start_.time_since_epoch()).count(),
++                    soft_limit_ms_, static_cast<std::int64_t>(static_cast<double>(soft_limit_ms_) * factor));
++                break;
++            }
+         }
+     }
+ 
+@@ -1375,7 +1412,10 @@
+     result.elapsed_ms = static_cast<std::uint64_t>(std::chrono::duration_cast<std::chrono::milliseconds>(
+         std::chrono::steady_clock::now() - start_).count());
+     if (result.best_move.is_none()) result.best_move = root_candidates.front();
+-    return result;
++    time_diagnostic::event("worker_result", result.nodes,
++            std::chrono::duration_cast<std::chrono::nanoseconds>(start_.time_since_epoch()).count(),
++            hard_limit_ms_, static_cast<long long>(result.elapsed_ms));
++        return result;
+ }
+ 
+ // ---------------------------------------------------------------------------
+@@ -1408,6 +1448,7 @@
+ }
+ 
+ SearchInfo Searcher::search(Board board, const SearchLimits& limits, bool emit_info) {
++    time_diagnostic::event("facade_enter");
+     const auto request_start = limits.request_start == std::chrono::steady_clock::time_point{}
+         ? std::chrono::steady_clock::now() : limits.request_start;
+     SearchLimits worker_limits = limits;
+@@ -1429,6 +1470,7 @@
+     shared_.stop.store(true, std::memory_order_relaxed);
+     for (auto& helper : helpers) helper.join();
+     shared_.stop.store(external_stop, std::memory_order_relaxed);
++    time_diagnostic::event("facade_result", result.nodes, 0, 0, static_cast<long long>(result.elapsed_ms));
+     return result;
+ }
+ 

@@ -1,0 +1,117 @@
+{
+  "case": "cold",
+  "original_or_derived_commands": [
+    "uci",
+    "setoption name Threads value 1",
+    "setoption name Hash value 32",
+    "setoption name Move Overhead value 10",
+    "setoption name OwnBook value false",
+    "ucinewgame",
+    "isready",
+    "position fen 1R6/5k2/1P2r3/3K1p1p/5R1P/8/8/8 b - - 4 50",
+    "isready",
+    "go wtime 423 btime 63 winc 20 binc 20",
+    "isready",
+    "stop",
+    "stop",
+    "quit"
+  ],
+  "expected_go_count": 1,
+  "environment_overrides": {
+    "FORGE_TIME_DIAGNOSTIC_PATH": "/workspace/dwqww/validation/time-forfeit-causal-20261020/diagnostic-attempt1/cold/engine-events.jsonl",
+    "FORGE_TIME_DIAGNOSTIC_POLL_SEARCH": "1"
+  },
+  "status": "PASS_DIAGNOSTIC_CAPTURE",
+  "go_count": 1,
+  "searches": [
+    {
+      "search": 1,
+      "position_fen": "1R6/5k2/1P2r3/3K1p1p/5R1P/8/8/8 b - - 4 50",
+      "go_original": "go wtime 423 btime 63 winc 20 binc 20",
+      "manager_go_prewrite": {
+        "wall_ns": 92010074612689,
+        "thread_cpu_ns": 457132468,
+        "process_cpu_ns": 458469767,
+        "pid": 284592,
+        "tid": 284592
+      },
+      "manager_observed_bestmove": {
+        "text": "bestmove f7e7",
+        "observed": {
+          "wall_ns": 92010099500587,
+          "thread_cpu_ns": 1694216,
+          "process_cpu_ns": 459840804,
+          "pid": 284592,
+          "tid": 284594
+        },
+        "line_decoded": {
+          "wall_ns": 92010099585797,
+          "thread_cpu_ns": 1773645,
+          "process_cpu_ns": 459924714,
+          "pid": 284592,
+          "tid": 284594
+        }
+      },
+      "bestmove": "f7e7",
+      "legal": true,
+      "original_expected_bestmove": "e6e1",
+      "differs_from_original": true
+    }
+  ],
+  "telemetry_events": 149,
+  "telemetry_complete_ids": true,
+  "telemetry_phase_counts": [
+    {
+      "search": 1,
+      "info_depth_lines": 9,
+      "event_counts": {
+        "go_receipt": 1,
+        "worker_dispatch_begin": 1,
+        "facade_enter": 1,
+        "worker_search_begin": 1,
+        "worker_origin": 1,
+        "budget_ready": 1,
+        "iteration_search_enter": 21,
+        "timer_poll_begin": 29,
+        "timer_poll_end": 29,
+        "iteration_search_return": 21,
+        "info_pre_lock": 9,
+        "info_pre_output": 9,
+        "info_pre_flush": 9,
+        "info_post_flush": 9,
+        "soft_budget_stop": 1,
+        "worker_result": 1,
+        "facade_result": 1,
+        "uci_search_return": 1,
+        "bestmove_pre_lock": 1,
+        "bestmove_pre_output": 1,
+        "bestmove_post_flush": 1
+      }
+    }
+  ],
+  "cleanup": [],
+  "exit_code": 0,
+  "readers_joined": true,
+  "raw_files": {
+    "engine-events.jsonl": {
+      "bytes": 50665,
+      "sha256": "692f52351a746d08faceee0f6eb7950370b58c4e873ec3087e3e53b81547359c"
+    },
+    "manager-events.jsonl": {
+      "bytes": 28093,
+      "sha256": "b3428469b4d8a92c2ede122d9bcdf041f5f76fe5bd35483b2dcd0fd4be6d6471"
+    },
+    "stderr.bin": {
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "stdin.bin": {
+      "bytes": 281,
+      "sha256": "9b99433630b43b238184f44621a573bef88b6575af6ec60585d8b94a8dce9bd0"
+    },
+    "stdout.bin": {
+      "bytes": 1671,
+      "sha256": "cf9c616064ae6b2f430deee5207f8c18e43e4cc99e2c1025e5accfaa483f7791"
+    }
+  }
+}

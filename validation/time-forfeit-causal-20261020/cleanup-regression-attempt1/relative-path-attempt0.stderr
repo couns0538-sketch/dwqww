@@ -1,0 +1,45 @@
+test_early_cleanup_exception_allows_real_retry (__main__.CleanupContracts.test_early_cleanup_exception_allows_real_retry) ... ERROR
+test_exited_leader_does_not_leave_live_descendant (__main__.CleanupContracts.test_exited_leader_does_not_leave_live_descendant) ... ERROR
+
+======================================================================
+ERROR: test_early_cleanup_exception_allows_real_retry (__main__.CleanupContracts.test_early_cleanup_exception_allows_real_retry)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/dwqww/validation/time-forfeit-causal-20261020/test_cleanup.py", line 121, in test_early_cleanup_exception_allows_real_retry
+    capture = self.fixture(orphan=False)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/dwqww/validation/time-forfeit-causal-20261020/test_cleanup.py", line 66, in fixture
+    capture = runner.Capture(helper, directory/'capture', 1, time.monotonic()+5)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/dwqww/validation/time-forfeit-causal-20261020/pre-build-attempt0/run_diagnostic.py", line 35, in __init__
+    self.proc=subprocess.Popen([str(engine)],stdin=subprocess.PIPE,stdout=subprocess.PIPE,stderr=subprocess.PIPE,env=env,cwd=engine.parent,start_new_session=True,bufsize=0)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/subprocess.py", line 1026, in __init__
+    self._execute_child(args, executable, preexec_fn, close_fds,
+  File "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/subprocess.py", line 1955, in _execute_child
+    raise child_exception_type(errno_num, err_msg, err_filename)
+FileNotFoundError: [Errno 2] No such file or directory: 'validation/time-forfeit-causal-20261020/cleanup-regression-attempt1/red/test_early_cleanup_exception_allows_real_retry/fixture.py'
+
+======================================================================
+ERROR: test_exited_leader_does_not_leave_live_descendant (__main__.CleanupContracts.test_exited_leader_does_not_leave_live_descendant)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/dwqww/validation/time-forfeit-causal-20261020/test_cleanup.py", line 110, in test_exited_leader_does_not_leave_live_descendant
+    capture = self.fixture(orphan=True)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/dwqww/validation/time-forfeit-causal-20261020/test_cleanup.py", line 66, in fixture
+    capture = runner.Capture(helper, directory/'capture', 1, time.monotonic()+5)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/dwqww/validation/time-forfeit-causal-20261020/pre-build-attempt0/run_diagnostic.py", line 35, in __init__
+    self.proc=subprocess.Popen([str(engine)],stdin=subprocess.PIPE,stdout=subprocess.PIPE,stderr=subprocess.PIPE,env=env,cwd=engine.parent,start_new_session=True,bufsize=0)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/subprocess.py", line 1026, in __init__
+    self._execute_child(args, executable, preexec_fn, close_fds,
+  File "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/subprocess.py", line 1955, in _execute_child
+    raise child_exception_type(errno_num, err_msg, err_filename)
+FileNotFoundError: [Errno 2] No such file or directory: 'validation/time-forfeit-causal-20261020/cleanup-regression-attempt1/red/test_exited_leader_does_not_leave_live_descendant/fixture.py'
+
+----------------------------------------------------------------------
+Ran 2 tests in 0.021s
+
+FAILED (errors=2)

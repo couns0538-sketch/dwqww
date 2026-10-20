@@ -1,18 +1,19 @@
 # Next experiments
 
-1. Finish validation of the applied6.4.14 extension-path repair, source21538ec
-   on forge/double-extension-path-20261020, from frozen6.4.13. Reuse the saved actual RED/GREEN traces and unchanged
-   oracle; validate count6/7 boundaries explicitly as synthetic inherited-state
-   fixtures. Compile full engine, run Release/ASan/TSan and preserve original
-   commands/source/binaries. No normal-root overflow or Elo gain is yet observed.
-2. Finish the separately prepared baseline-forfeit causal diagnostic after all
-   competing builds/archive work is idle. Observe UCI receipt, Worker entry,
-   polls, iterations, result/output flush and controller receipt using monotonic
-   wall and same-thread CPU clocks. One cold case plus original warm history,
-   fixed diagnostic clocks,60-second guard; no games, retries or acceptance.
-3. Consider pin-aware SEE only after current candidate finishes. Two mirrored
-   legal pawn wins with no recapture currently return-800; independent legal
-   controls include along-pin and king captures. Preserve those working cases.
+1. Preserve the completed6.4.14 validation/source21538ec and candidate ZIP.
+   All27CTest/21TTAPI/8active-UCI/8Wine/914artifactchecks pass. Keep the original
+   unexplained60-second bench timeout alongside later passing syscall controls;
+   do not infer its cause or promote operational readiness from later passes.
+   Synthetic count6 boundary reproduces old8/repaired7, with all raw cases kept.
+2. Preserve the completed single baseline-forfeit causal replay. Final responses
+   were 24.888 ms cold / 32.140 ms warm, so the original 108.696 ms stall was not
+   reproduced. Ten warm move choices differed; cause remains unresolved. Keep
+   all original telemetry, failures and analysis. No retry, games or acceptance.
+3. Finish the isolated pin-aware SEE prototype from source21538ec. Two mirrored
+   legal pawn wins with no recapture currently return -800. Validate dynamic
+   occupancy against independent legal recapture oracles, preserving along-pin,
+   king, removed/new pinner, en-passant and promotion behavior. Only then consider
+   a separate production candidate and controlled performance/strength testing.
 
 Keep all candidates and newer accepted integration356e863. The TT run39403471059
 is invalid due to baseline time forfeit; keep84records/started85 and original
