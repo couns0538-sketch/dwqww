@@ -1,0 +1,40 @@
+--- a/uci/main.js
++++ b/uci/main.js
+@@ -220,6 +220,18 @@
+                             send('bestmove 0000');
+                     }
+                 }
++                catch (error) {
++                    // A worker may fail at startup or during search admission.
++                    // Never turn a recoverable SMP failure into an unhandled
++                    // promise rejection that kills the UCI process.
++                    const detail = error instanceof Error ? error.message : String(error);
++                    send(`info string warning: SMP search failed (${detail}); using legal fallback`);
++                    const legal = (0, movegen_1.generateLegalMoves)(board);
++                    if (legal.length)
++                        send(`bestmove ${(0, movegen_1.moveToUci)(legal[0])}`);
++                    else
++                        send('bestmove 0000');
++                }
+                 finally {
+                     if (hardTimer)
+                         clearTimeout(hardTimer);
+--- a/search/smp.js
++++ b/search/smp.js
+@@ -311,7 +311,15 @@
+     Atomics.store(stopFlag, 0, 0);
+     activeStopFlag = stopFlag;
+     activeMain = null;
+-    await ensurePool(n);
++    try {
++        await ensurePool(n);
++    }
++    catch (error) {
++        // A startup failure must not leave a stale stop flag or busy-worker
++        // state visible to the next UCI go after the caller handles the error.
++        clearActive();
++        throw error;
++    }
+     const fen = board.getFen();
+     // rephist3: game-history keys strictly after the last irreversible move (capture or pawn move)
+     const { hi: rootHistHi, lo: rootHistLo } = buildRootHist(board);
