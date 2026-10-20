@@ -55,7 +55,7 @@ Bitboard original_fill(Color color, Bitboard squares) {
 void verify(Color color, Bitboard pawns) {
     const Bitboard expected = original_span(color, pawns);
     check(forward_fill(color, pawn_attacks_bb(color, pawns)), expected, color, pawns, "span from bitboard attacks");
-    check(forward_fill(color, table_pawn_attacks(color, pawns)), expected, color, pawns, "span from independent attack tables");
+    check(forward_fill(color, table_pawn_attacks(color, pawns)), expected, color, pawns, "span from stored pawn attack tables");
     check(forward_fill(color, pawns), original_fill(color, pawns), color, pawns, "inclusive arbitrary-square fill");
 }
 

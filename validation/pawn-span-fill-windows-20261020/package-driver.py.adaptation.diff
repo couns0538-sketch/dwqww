@@ -1,0 +1,253 @@
+--- validation/lazy-runtime-psqt-windows-20261020/package-driver.py
++++ validation/pawn-span-fill-windows-20261020/package-driver.py
+@@ -12,11 +12,11 @@
+ from pipeline_gate import load_freeze
+ FREEZE=load_freeze()
+ COMMIT = FREEZE['source_commit']
+-PARENT = 'fc51e43c26f735cbc1ffabf0fcf64f48a4592c0b'
+-SOURCE = Path('/workspace/.cloud-setup/windows6419-source')
+-BUILD = Path('/workspace/.cloud-setup/windows6419-build')
+-OUT = REPO / 'validation/lazy-runtime-psqt-windows-20261020'
+-PACKAGE = REPO / 'releases/forge-6.4.19-candidate-windows-zen5'
++PARENT = '61f598056572dfade6994af8ad2e38817cd28aa3'
++SOURCE = Path('/workspace/.cloud-setup/windows6420-source')
++BUILD = Path('/workspace/.cloud-setup/windows6420-build')
++OUT = REPO / 'validation/pawn-span-fill-windows-20261020'
++PACKAGE = REPO / 'releases/forge-6.4.20-candidate-windows-zen5'
+ ARCHIVE = PACKAGE.with_name(PACKAGE.name + '.zip')
+ TOOLS = Path('/workspace/.cloud-setup/toolchains/llvm-mingw-20261006-ucrt-ubuntu-22.04-x86_64/bin')
+ sha = lambda p: hashlib.sha256(p.read_bytes()).hexdigest()
+@@ -24,15 +24,16 @@
+ def write(path, value):
+     path.write_text(json.dumps(value, indent=2) + '\n')
+ 
+-assert load(OUT/'WINDOWS-BUILD-CLEAR.json')['authorization']=='19 WINDOWS BUILD CLEAR'
++assert load(OUT/'WINDOWS-BUILD-CLEAR.json')['authorization']=='20 WINDOWS BUILD CLEAR'
+ assert not PACKAGE.exists() and not ARCHIVE.exists()
+ runtime = load(OUT / 'runtime-attempt1/result.json')
+ build = load(OUT / 'result.json')
+ assert runtime['status'] == 'passed' and build['status'] == 'build_passed'
+ assert runtime['source_and_tests_commit'] == build['source_and_tests_commit'] == COMMIT
+-assert len(runtime['checks']) == 10 and all(c['exit_code'] == 0 for c in runtime['checks'])
++assert len(runtime['checks']) == 11 and all(c['exit_code'] == 0 for c in runtime['checks'])
+ assert runtime['correction_history_checks'] == 54 and runtime['correction_history_failures'] == 0
+ assert runtime['runtime_psqt_checks'] == FREEZE['runtime_summary_checks'] and runtime['runtime_psqt_failures'] == 0
++assert runtime['pawn_span_checks'] == FREEZE['pawn_span_checks'] == 37320 and runtime['pawn_span_failures'] == 0
+ assert runtime['legal_witness_comparisons'] == 18947 and runtime['bench11_nodes'] == 352313
+ assert runtime['input_sha256_before'] == runtime['input_sha256_after']
+ assert len(runtime['ownbook_transitions']) == 5 and all(t['PASS'] for t in runtime['ownbook_transitions'])
+@@ -47,20 +48,20 @@
+ assert {p.relative_to(SOURCE).as_posix(): sha(p) for p in SOURCE.rglob('*') if p.is_file()} == source_hashes
+ for name, digest in source_hashes.items():
+     assert hashlib.sha256(subprocess.check_output(['git', '-C', str(REPO), 'show', COMMIT + ':' + name])).hexdigest() == digest
+-parent_hashes = load(REPO / 'validation/correction-history-windows-20261020/source-hashes.json')
++parent_hashes = load(REPO / 'validation/lazy-runtime-psqt-windows-20261020/source-hashes.json')
+ production = load(OUT / 'production-hashes.json')
+ changed_production = sorted(name for name, digest in production.items() if parent_hashes.get(name) != digest)
+-assert changed_production == ['CMakeLists.txt','include/forge/eval.hpp','include/forge/search.hpp','src/eval.cpp','src/search.cpp','src/uci.cpp']
+-assert sorted(name for name,h in source_hashes.items() if parent_hashes.get(name)!=h)==['CMakeLists.txt','include/forge/eval.hpp','include/forge/search.hpp','src/eval.cpp','src/search.cpp','src/uci.cpp','tests/runtime_psqt_tests.cpp']
+-assert all(parent_hashes[name]==h for name,h in load(OUT/'test-hashes.json').items() if name!='tests/runtime_psqt_tests.cpp')
+-unchanged_names = ['src/nnue.cpp','src/nnue_weights.inc','include/forge/nnue.hpp','src/board.cpp','include/forge/board.hpp','src/eval_params.cpp','include/forge/eval_params.hpp']
++assert changed_production == ['CMakeLists.txt','include/forge/bitboard.hpp','src/eval.cpp','src/uci.cpp']
++assert sorted(name for name,h in source_hashes.items() if parent_hashes.get(name)!=h)==['CMakeLists.txt','include/forge/bitboard.hpp','src/eval.cpp','src/uci.cpp','tests/pawn_span_tests.cpp']
++assert all(parent_hashes[name]==h for name,h in load(OUT/'test-hashes.json').items() if name!='tests/pawn_span_tests.cpp')
++unchanged_names = ['src/nnue.cpp','src/nnue_weights.inc','include/forge/nnue.hpp','src/board.cpp','include/forge/board.hpp','src/eval_params.cpp','src/eval_params_table.inc','include/forge/eval_params.hpp','include/forge/eval.hpp','include/forge/search.hpp','src/search.cpp']
+ nnue = {'candidate_source_commit': COMMIT, 'parent_source_commit': PARENT,
+         'changed_production_files': changed_production,
+         'unchanged_source_guards': {name: {'candidate_sha256': source_hashes[name], 'parent_sha256': parent_hashes[name],
+                                          'identical': source_hashes[name] == parent_hashes[name]} for name in unchanged_names},
+         'network_sha256': source_hashes['src/nnue_weights.inc'],
+         'new_snapshot_differential_run': False,
+-        'reason': 'Private Worker lazy PSQT and unclamped phase cache piggybacks inherited NNUE dirty replay. Eval/search implementation and their headers intentionally change; Board, NNUE implementation/weights, evaluation parameter definitions and all old tests are byte-identical to18. Exact behavior parity is intended, not a speed or Elo result.',
++        'reason': 'Pawn-span geometry replaces the per-pawn loop with a pure unsigned constexpr forward_fill8/16/32 of the existing enemy pawn attack mask. Only bitboard.hpp/eval.cpp and version/test metadata change; Board, NNUE implementation/weights, parameters, search and all old tests remain byte-identical to19. Exact evaluation/search parity is intended; no speed or Elo result.',
+         'inherited_differential_evidence': 'validation/nnue-capture-fusion-20261019/windows/differential-attempt1/result.json'}
+ assert all(record['identical'] for record in nnue['unchanged_source_guards'].values())
+ write(OUT / 'nnue-parent-identity.json', nnue)
+@@ -106,14 +107,14 @@
+       'adapter_sha256': sha(OUT / 'runtime-attempt1/ownbook-wine-regression.py'),
+       'adapter_changes': 'Only import root and Linux tempfile book path to existing Wine Z: mapping; all assertions/five transitions retained.',
+       'test_harness_engine_field': 'Harness engine hash identifies the immutable Wine wrapper; actual PE hash is recorded separately.',
+-      'wrapper_path': str(OUT / 'forge-lazy-runtime-psqt-wine'), 'wrapper_sha256': sha(OUT / 'forge-lazy-runtime-psqt-wine'),
++      'wrapper_path': str(OUT / 'forge-pawn-span-fill-wine'), 'wrapper_sha256': sha(OUT / 'forge-pawn-span-fill-wine'),
+       'actual_windows_engine': str(BUILD / 'forge.exe'), 'actual_windows_engine_sha256': sha(BUILD / 'forge.exe'),
+       'transitions': runtime['ownbook_transitions'], 'scope': 'Wine correctness only; no speed/NPS/Elo/native-hardware claim'})
+ 
+-preserved_before = load(OUT / 'parent6418-preservation-before.json')
++preserved_before = load(OUT / 'parent6419-preservation-before.json')
+ preserved_after = {name: sha(Path(name)) for name in preserved_before}
+ assert preserved_before == preserved_after
+-write(OUT / 'parent6418-preservation-check.json', {'status': 'unchanged', 'files': len(preserved_before),
++write(OUT / 'parent6419-preservation-check.json', {'status': 'unchanged', 'files': len(preserved_before),
+       'input_sha256_before': preserved_before, 'input_sha256_after': preserved_after})
+ 
+ originals = OUT / 'originals'
+@@ -130,28 +131,34 @@
+ shutil.copyfile(runtime_object,originals/'objects/runtime_psqt_tests.cpp.obj')
+ assert sha(runtime_object)==sha(originals/'objects/runtime_psqt_tests.cpp.obj')
+ write(OUT/'runtime-object-provenance.json',{'object_sha256':sha(runtime_object),'runtime_test_source_sha256':source_hashes['tests/runtime_psqt_tests.cpp'],'tested_pe_sha256':sha(BUILD/'forge_runtime_psqt_tests.exe'),'compile_records':[r for r in load(OUT/'compile_commands.json') if r['file'].endswith('/tests/runtime_psqt_tests.cpp')],'scope':'Actual runtime test object/source/PE identity; no independent native result'})
++pawn_object=BUILD/'CMakeFiles/forge_pawn_span_tests.dir/tests/pawn_span_tests.cpp.obj'
++assert pawn_object.is_file()
++shutil.copyfile(pawn_object,originals/'objects/pawn_span_tests.cpp.obj')
++assert sha(pawn_object)==sha(originals/'objects/pawn_span_tests.cpp.obj')
++write(OUT/'pawn-object-provenance.json',{'object_sha256':sha(pawn_object),'pawn_test_source_sha256':source_hashes['tests/pawn_span_tests.cpp'],'tested_pe_sha256':sha(BUILD/'forge_pawn_span_tests.exe'),'compile_records':[r for r in load(OUT/'compile_commands.json') if r['file'].endswith('/tests/pawn_span_tests.cpp')],'constexpr_assertions':3,'scope':'Actual pawn test object/source/testedPE identity; no independent native or speed result'})
+ assert sha(originals / 'static-core/libforge_core.a') == runtime['input_sha256_after']['core_library']
+ shutil.copytree(SOURCE, originals / 'frozen-source')
+ write(OUT / 'README-checks.json', {'status': 'passed', 'source_and_tests_commit': COMMIT,
+       'wine_functional_and_signature_checks': runtime['checks'], 'simd': runtime['simd'],
+-      'output_layer_checker_exit_code': checked.returncode, 'tt_groups': 8, 'runtime_psqt_checks':runtime['runtime_psqt_checks'],'runtime_psqt_failures':0,'correction_history_checks':runtime['correction_history_checks'], 'correction_history_failures':0, 'rule50_targeted_failures': 0,
++      'output_layer_checker_exit_code': checked.returncode, 'tt_groups': 8, 'pawn_span_checks':runtime['pawn_span_checks'],'pawn_span_failures':0,'pawn_constexpr_assertions':3, 'runtime_psqt_checks':runtime['runtime_psqt_checks'],'runtime_psqt_failures':0,'correction_history_checks':runtime['correction_history_checks'], 'correction_history_failures':0, 'rule50_targeted_failures': 0,
+       'legal_witness_comparisons': 18947, 'ownbook_transitions': 5, 'bench11_nodes': runtime['bench11_nodes'],
+       'native_windows_tested': False, 'physical_ryzen_tested': False, 'accepted_elo_gain': None,
+       'new_nps_measurement': False, 'full_candidate_asan_ubsan': 'reported separately in repository; not asserted by Windows packaging',
+       'full_candidate_tsan': 'reported separately in repository; not asserted by Windows packaging'})
+-(OUT / 'README.md').write_text(f'''# Frozen Forge 6.4.19 Windows correctness evidence
+-
+-Source/tests `{COMMIT}`, parent `{PARENT}` (6.4.18).
++(OUT / 'README.md').write_text(f'''# Frozen Forge 6.4.20 Windows correctness evidence
++
++Source/tests `{COMMIT}`, parent `{PARENT}` (6.4.19).
+ Strict static LLVM-MinGW 23.1.3 Zen5 C++20 Release, j1, no FMA/LTO/fast-math.
+-Ten Wine checks passed: core/perft, 54 correction-history checks, private runtime PSQT
+-contract ({runtime['runtime_psqt_checks']} checks), eight TT groups, rule50, 18,947 legal witnesses,
+-UCI, ponder, five OwnBook transitions and exact parent bench signature 352313.
+-Private Worker lazy PSQT/unclamped phase replay intends exact evaluation/search
+-parity. Eval/search source and headers intentionally change; Board and NNUE
+-weights/implementation are unchanged. Native 19 gates/differential evidence are
+-separate; no speed, NPS, Elo, native Ryzen or Stockfish claim follows.
+-Original 6.4.16 TSan FAILED 8/9 remains qualified; later finite diagnostics do not erase it.
+-All actual PEs, core, runtime object, source, commands and raw logs remain retained.
++Eleven Wine checks passed: core/perft, 54 correction-history checks, 347 runtime
++PSQT checks, {runtime['pawn_span_checks']:,} pawn-span checks, eight TT groups,
++rule50, 18,947 legal witnesses, UCI, ponder, five OwnBook transitions and exact
++preregistered parent bench signature 352313. Three constexpr assertions compiled.
++Pawn-span geometry fill intends exact evaluation/search parity. bitboard.hpp and
++eval.cpp intentionally change; Board, NNUE source/weights, search, parameters and
++all earlier tests remain unchanged. Native 20 gates/differential evidence remain
++separate. Original 6.4.16 TSan FAILED 8/9 remains qualified. No speed, NPS, Elo,
++native Windows/physical Ryzen or Stockfish claim follows. Actual PEs/core/runtime
++and pawn test objects, source, commands and original logs are retained.
+ ''')
+ 
+ # Snapshot every original Windows record before creating the archive metadata.
+@@ -176,11 +183,12 @@
+       'originals_retained': True, 'scope': 'All original Windows validation, core, executable, frozen-source and log records at packaging; audit/report outputs follow separately.'})
+ 
+ PACKAGE.mkdir()
+-members = {'forge.exe': 'forge-6.4.19-ryzen-9850x3d.exe', 'forge_tests.exe': 'forge_tests.exe',
++members = {'forge.exe': 'forge-6.4.20-ryzen-9850x3d.exe', 'forge_tests.exe': 'forge_tests.exe',
+            'forge_tt_tests.exe': 'forge_tt_tests.exe', 'forge_rule50_tests.exe': 'forge_rule50_tests.exe',
+            'forge_legal_witness_tests.exe': 'forge_legal_witness_tests.exe',
+            'forge_correction_history_tests.exe': 'forge_correction_history_tests.exe',
+-           'forge_runtime_psqt_tests.exe': 'forge_runtime_psqt_tests.exe'}
++           'forge_runtime_psqt_tests.exe': 'forge_runtime_psqt_tests.exe',
++           'forge_pawn_span_tests.exe': 'forge_pawn_span_tests.exe'}
+ for source, name in members.items():
+     shutil.copyfile(BUILD / source, PACKAGE / name)
+ for source, name in [(SOURCE / 'LICENSE', 'LICENSE'), (OUT / 'production-hashes.json', 'source-hashes.json'),
+@@ -193,7 +201,7 @@
+                      (OUT / 'nnue-parent-identity.json', 'nnue-parent-identity.json')]:
+     shutil.copyfile(source, PACKAGE / name)
+ provenance = {
+-    'engine_version': '6.4.19 candidate', 'source_and_tests_commit': COMMIT, 'parent_source_commit': PARENT,
++    'engine_version': '6.4.20 candidate', 'source_and_tests_commit': COMMIT, 'parent_source_commit': PARENT,
+     'source_url': 'https://github.com/couns0538-sketch/dwqww/tree/' + COMMIT,
+     'production_source_sha256': production, 'test_source_sha256': load(OUT / 'test-hashes.json'),
+     'compiler': build['compiler'], 'flags': 'C++20 Release -march=znver5 -mtune=znver5 -fno-fast-math -ffp-contract=off -static',
+@@ -201,21 +209,21 @@
+     'inherited_tt_policy': 'Explicit UCI go/bench exclusive request for exactly one worker, one coarse gate plus atomic request plus sequential 1024-stripe drain, table-bound lexical owner TLS bypass; default library/SMP callers retain shared stripes.',
+     'lifecycle_limit': 'Clear, resize, new_search and destruction still require all accessors quiescent; foreign entry-call safety assumes stable storage/generation. Arbitrary concurrent lifecycle operations unsupported.',
+     'board_nnue_network_replacement_unchanged': True, 'evaluation_implementation_changed':True, 'intended_eval_search_parity':True, 'search_change_accepted':False, 'known_bug_repair':False,
+-    'native_gate_status':'Separate candidate19 native gates; Windows packaging alone does not accept this candidate or establish release readiness. Original 6.4.16 TSan suite FAILED 8/9; its separate five-case OwnBook diagnostic remains finite coverage only.',
++    'native_gate_status':'Separate candidate20 native gates; Windows packaging alone does not accept this candidate or establish release readiness. Original 6.4.16 TSan suite FAILED 8/9; its separate five-case OwnBook diagnostic remains finite coverage only.',
+     'prior_6414_native_bench_output_anomaly':'Remains qualified in validation/double-extension-path-20261020/native6414; this Windows evidence does not resolve it.',
+-    'search_policy_change': 'Private Worker runtime PSQT/phase cache intends exact18 evaluation and search behavior; no policy/tuning change, accepted speed or Elo claim. Native differential evidence remains separate.',
++    'search_policy_change': 'Pawn-span geometry fill intends exact19 evaluation and search behavior; no policy/tuning change, accepted speed or Elo claim. Native differential evidence remains separate.',
+     'inherited_clock_policy': 'Finite timed UCI admission accounting; unset untimed/infinite/ponder origins are worker-local; start_time authoritative, request_start supported, ponder budget begins at hit.', 'nnue_parent_identity': nnue,
+     'entry_bytes': 16, 'cluster_bytes': 64,
+     'inherited_halfmove_policy': 'Both capped clocks below90 or exact capped match (cap100); old main-search current-clock<90 guard retained. This remains a heuristic, not universal history correctness.',
+-    'wine_version': wine_version, 'wine_checks': runtime['checks'], 'tt_groups': 8, 'runtime_psqt_checks':runtime['runtime_psqt_checks'],'runtime_psqt_failures':0,'correction_history_checks':runtime['correction_history_checks'], 'correction_history_failures':0,
++    'wine_version': wine_version, 'wine_checks': runtime['checks'], 'tt_groups': 8, 'pawn_span_checks':runtime['pawn_span_checks'],'pawn_span_failures':0,'pawn_constexpr_assertions':3, 'runtime_psqt_checks':runtime['runtime_psqt_checks'],'runtime_psqt_failures':0,'correction_history_checks':runtime['correction_history_checks'], 'correction_history_failures':0,
+     'legal_witness_comparisons': 18947, 'ownbook_transitions': runtime['ownbook_transitions'],
+-    'bench11_nodes': runtime['bench11_nodes'], 'bench_signature_freeze':freeze, 'bench_signature_freeze_sha256':sha(OUT/'BENCH-SIGNATURE-FREEZE.json'), 'bench_scope': 'Hash16MiB/Threads1 expected exact parent18 signature352313; no time/NPS comparison',
++    'bench11_nodes': runtime['bench11_nodes'], 'bench_signature_freeze':freeze, 'bench_signature_freeze_sha256':sha(OUT/'BENCH-SIGNATURE-FREEZE.json'), 'bench_scope': 'Hash16MiB/Threads1 expected exact parent19 signature352313; no time/NPS comparison',
+     'simd': runtime['simd'], 'output_layer_checker_exit_code': checked.returncode,
+     'source_binary_and_tool_hashes_unchanged': True, 'static_libraries': build['libraries'],
+     'binaries': {p.name: {'sha256': sha(p), 'bytes': p.stat().st_size} for p in PACKAGE.glob('*.exe')},
+     'raw_windows_evidence_archive': raw_archive.name, 'raw_windows_evidence_sha256': sha(raw_archive),
+     'raw_windows_evidence_file_count': len(raw_files), 'raw_windows_originals_retained': True,
+-    'evidence_directory': 'validation/lazy-runtime-psqt-windows-20261020/',
++    'evidence_directory': 'validation/pawn-span-fill-windows-20261020/',
+     'full_candidate_asan_ubsan': 'reported separately in repository; not asserted by Windows packaging', 'full_candidate_tsan': 'reported separately in repository; not asserted by Windows packaging',
+     'native_windows_tested': False, 'physical_ryzen_tested': False, 'accepted_elo_gain': None,
+     'stockfish_superiority_proven': False, 'new_nps_measurement': False,
+@@ -224,35 +232,37 @@
+     'link_record': (BUILD / 'CMakeFiles/forge.dir/link.txt').read_text(),
+ }
+ write(PACKAGE / 'provenance.json', provenance)
+-(PACKAGE / 'README.txt').write_text(f'''Forge 6.4.19 candidate - Windows x64 Zen5 / Ryzen 7 9850X3D
+-
+-Load forge-6.4.19-ryzen-9850x3d.exe as a UCI engine.
+-Source/tests {COMMIT}; parent {PARENT} (6.4.18).
+-
+-Private Worker lazy packed PSQT and unclamped phase cache reuses inherited NNUE
+-dirty replay. This performance hypothesis intends exact 6.4.18 evaluation and search
+-parity. Eval/search implementation and their headers change; Board, NNUE source
+-and weights, evaluation parameters and all earlier tests remain unchanged.
+-
+-Ten Wine checks passed: core/perft, 54 correction-history assertions, runtime PSQT
+-contract ({runtime['runtime_psqt_checks']} assertions), eight TT groups, rule50, 18,947 legal witnesses,
+-UCI, ponder, five OwnBook transitions and exact preregistered parent bench signature 352313.
++(PACKAGE / 'README.txt').write_text(f'''Forge 6.4.20 candidate - Windows x64 Zen5 / Ryzen 7 9850X3D
++
++Load forge-6.4.20-ryzen-9850x3d.exe as a UCI engine.
++Source/tests {COMMIT}; parent {PARENT} (6.4.19).
++
++Pawn-span geometry replaces a per-pawn loop with a pure constexpr unsigned
++forward_fill using unsigned shifts of 8/16/32 bits of the existing enemy pawn attack mask. This
++performance hypothesis intends exact 6.4.19 evaluation and search parity. bitboard.hpp
++and eval.cpp change; Board, NNUE source/headers/weights, search, evaluation
++parameters and all earlier tests remain unchanged.
++
++Eleven Wine checks passed: core/perft, 54 correction-history assertions, 347 runtime
++PSQT assertions, {runtime['pawn_span_checks']:,} pawn-span assertions, eight TT
++groups, rule50, 18,947 legal witnesses, UCI, ponder, five OwnBook transitions and
++exact preregistered parent bench signature 352313. Three constexpr assertions compiled.
+ AVX2 clamp/multiply/add and output-layer checks passed without fused arithmetic.
+-Strict LLVM-MinGW 23.1.3 C++20 Release, -march=znver5 -mtune=znver5,
++Strict LLVM-MinGW 23.1.3 C++20 Release -march=znver5 -mtune=znver5,
+ -fno-fast-math -ffp-contract=off, static linking, j1, no LTO.
+-Eight actual built PEs, core, runtime test object, frozen source and all original
+-commands/stdout/stderr/disassembly remain in verified windows-originals.zip.
+-
+-This is an unaccepted candidate. Native 19 gates and differential checks are
++Nine actual built PEs, core, both runtime and pawn test objects, frozen source and
++all original commands/stdout/stderr/disassembly remain in windows-originals.zip.
++
++This is an unaccepted candidate. Native 20 gates and differential checks are
+ reported separately. Original 6.4.16 TSan FAILED 8/9 remains qualified. No measured
+ speed, NPS or Elo improvement, native Windows/physical Ryzen testing, or Stockfish
+ superiority is established.
+ 
+ Optional tests: forge_tests.exe; forge_correction_history_tests.exe;
+-forge_runtime_psqt_tests.exe; forge_tt_tests.exe; forge_rule50_tests.exe;
+-forge_legal_witness_tests.exe legal_witness_fixtures.tsv forge-10000.epd.
+-See provenance.json, source-hashes.json, test-hashes.json, nnue-parent-identity.json,
+-windows-originals-SHA256.json and SHA256SUMS. Native differential evidence is separate.
++forge_runtime_psqt_tests.exe; forge_pawn_span_tests.exe; forge_tt_tests.exe;
++forge_rule50_tests.exe; forge_legal_witness_tests.exe legal_witness_fixtures.tsv
++forge-10000.epd. See provenance.json, source-hashes.json, test-hashes.json,
++nnue-parent-identity.json, windows-originals-SHA256.json and SHA256SUMS.
+ ''')
+ 
+ (PACKAGE / 'SHA256SUMS').write_text(''.join(f'{sha(p)}  {p.name}\n' for p in sorted(PACKAGE.iterdir()) if p.is_file()))
+@@ -273,8 +283,8 @@
+ assert {name: sha(Path(name)) for name in preserved_before} == preserved_before
+ report = {'status': 'packaged_and_verified', 'artifact': str(ARCHIVE.relative_to(REPO)),
+           'sha256': sha(ARCHIVE), 'bytes': ARCHIVE.stat().st_size, 'source_and_tests_commit': COMMIT,
+-          'engine_sha256': sha(PACKAGE / 'forge-6.4.19-ryzen-9850x3d.exe'),
+-          'core_sha256': sha(BUILD / 'libforge_core.a'), 'runtime_checks': 10, 'ownbook_transitions': 5,
++          'engine_sha256': sha(PACKAGE / 'forge-6.4.20-ryzen-9850x3d.exe'),
++          'core_sha256': sha(BUILD / 'libforge_core.a'), 'runtime_checks': 11, 'ownbook_transitions': 5,
+           'legal_witness_comparisons': 18947, 'bench11_nodes': runtime['bench11_nodes'],
+           'raw_archive': str(raw_archive.relative_to(REPO)), 'raw_archive_sha256': sha(raw_archive),
+           'raw_original_files': len(raw_files), 'all_archived_original_bytes_sha256_verified': True,

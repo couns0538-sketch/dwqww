@@ -1,0 +1,1 @@
+Native20 validation prepared, execution DISABLED. Frozen source SHA and actual pawn-span check count are pending root. No engines, compilers, timings, builds, Git commands or archives ran. See PREPARATION-STATUS.json and COMMANDS.md. All prior19 immutable evidence remains unchanged; known historical failures are linked, not relabeled as fixed.

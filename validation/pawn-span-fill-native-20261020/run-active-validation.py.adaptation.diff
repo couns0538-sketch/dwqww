@@ -1,0 +1,31 @@
+--- 19/run-active-validation.py
++++ 20/run-active-validation.py
+@@ -7,8 +7,8 @@
+ sys.dont_write_bytecode=True
+ from process_facts import cleanup
+ HERE=Path(__file__).resolve().parent
+-SOURCE=Path('/workspace/.cloud-setup/lazy-runtime-psqt-native-source')
+-BUILD=Path('/workspace/.cloud-setup/lazy-runtime-psqt-native-tsan')
++SOURCE=Path('/workspace/.cloud-setup/pawn-span-fill-native-source')
++BUILD=Path('/workspace/.cloud-setup/pawn-span-fill-native-tsan')
+ def sha(p):return hashlib.sha256(Path(p).read_bytes()).hexdigest()
+ def tree(p):return {str(x.relative_to(p)):sha(x) for x in sorted(p.rglob('*')) if x.is_file()}
+ def save(p,v):p.write_text(json.dumps(v,indent=2)+'\n')
+@@ -16,7 +16,7 @@
+ clear=json.loads((HERE/'ROOT-CLEARANCE.json').read_text())
+ assert clear.get('authorized') is True and isinstance(clear.get('source_commit'),str), 'Root clearance required'
+ gate=json.loads((HERE/'frozen-tsan-attempt1/summary.json').read_text())
+-assert gate['status']=='PASS' and len(gate['ctest_names'])==11 and gate['source_commit']==clear['source_commit']
++assert gate['status']=='PASS' and len(gate['ctest_names'])==12 and gate['source_commit']==clear['source_commit']
+ assert tree(SOURCE)==gate['source_sha256_after_tests'], 'Frozen source changed since full TSan suite'
+ assert all(sha(BUILD/name)==digest for name,digest in gate['binary_sha256_after'].items()), 'TSan artifacts changed before active session'
+ OUT=HERE/'active-uci-wrapper-attempt1';OUT.mkdir(exist_ok=False)
+@@ -24,7 +24,7 @@
+ for k in ['ASAN_OPTIONS','UBSAN_OPTIONS','TSAN_OPTIONS','LSAN_OPTIONS']:ENV.pop(k,None)
+ ENV.update(PYTHONDONTWRITEBYTECODE='1',TSAN_OPTIONS='halt_on_error=1:exitcode=66')
+ inputs={'engine':BUILD/'forge','core':BUILD/'libforge_core.a','runtime_psqt_test_object':BUILD/'CMakeFiles/forge_runtime_psqt_tests.dir/tests/runtime_psqt_tests.cpp.o','runtime_psqt_test_executable':BUILD/'forge_runtime_psqt_tests',
+-        'active_driver':HERE/'active-uci-edges.py','trusted_driver':HERE/'trusted-run-full-engine-tt.py'}
++        'pawn_span_test_object':BUILD/'CMakeFiles/forge_pawn_span_tests.dir/tests/pawn_span_tests.cpp.o','pawn_span_test_executable':BUILD/'forge_pawn_span_tests','nnue_object':BUILD/'CMakeFiles/forge_core.dir/src/nnue.cpp.o','active_driver':HERE/'active-uci-edges.py','trusted_driver':HERE/'trusted-run-full-engine-tt.py'}
+ before={k:sha(p) for k,p in inputs.items()};source_before=tree(SOURCE)
+ cmd=['/workspace/.cloud-setup/venv/bin/python','-B',str(HERE/'active-uci-edges.py'),'--engine',str(BUILD/'forge'),'--output',str(HERE/'active-uci-tsan-attempt1'),'--session-timeout','90']
+ facts={'status':'RUNNING','source_commit':gate['source_commit'],'command':cmd,'cwd':str(HERE.parents[1]),'timeout_seconds':120,

@@ -1,0 +1,21 @@
+--- validation/lazy-runtime-psqt-windows-20261020/build-driver.py
++++ validation/pawn-span-fill-windows-20261020/build-driver.py
+@@ -10,14 +10,14 @@
+ FREEZE=load_freeze()
+ COMMIT=FREEZE['source_commit']
+ REPO=Path('/workspace/dwqww')
+-SOURCE=Path('/workspace/.cloud-setup/windows6419-source')
+-BUILD=Path('/workspace/.cloud-setup/windows6419-build')
+-OUT=Path('/workspace/dwqww/validation/lazy-runtime-psqt-windows-20261020')
++SOURCE=Path('/workspace/.cloud-setup/windows6420-source')
++BUILD=Path('/workspace/.cloud-setup/windows6420-build')
++OUT=Path('/workspace/dwqww/validation/pawn-span-fill-windows-20261020')
+ TOOLCHAIN=Path('/workspace/.cloud-setup/toolchains/llvm-mingw-20261006-ucrt-ubuntu-22.04-x86_64')
+ CMAKE='/workspace/.cloud-setup/venv/bin/cmake'
+ sha=lambda p:hashlib.sha256(p.read_bytes()).hexdigest()
+ def write(name,value):(OUT/name).write_text(json.dumps(value,indent=2)+'\n')
+-assert json.loads((OUT/'WINDOWS-BUILD-CLEAR.json').read_text())['authorization']=='19 WINDOWS BUILD CLEAR'
++assert json.loads((OUT/'WINDOWS-BUILD-CLEAR.json').read_text())['authorization']=='20 WINDOWS BUILD CLEAR'
+ assert not BUILD.exists() and SOURCE.is_dir()
+ all_hashes=json.loads((OUT/'source-hashes.json').read_text())
+ assert {p.relative_to(SOURCE).as_posix():sha(p) for p in SOURCE.rglob('*') if p.is_file()}==all_hashes

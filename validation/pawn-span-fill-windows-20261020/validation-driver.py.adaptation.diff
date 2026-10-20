@@ -1,0 +1,83 @@
+--- validation/lazy-runtime-psqt-windows-20261020/validation-driver.py
++++ validation/pawn-span-fill-windows-20261020/validation-driver.py
+@@ -12,21 +12,21 @@
+ from pipeline_gate import load_freeze
+ FREEZE=load_freeze()
+ COMMIT=FREEZE['source_commit']
+-SOURCE=Path('/workspace/.cloud-setup/windows6419-source')
+-BUILD=Path('/workspace/.cloud-setup/windows6419-build')
+-BASE=Path('/workspace/dwqww/validation/lazy-runtime-psqt-windows-20261020')
++SOURCE=Path('/workspace/.cloud-setup/windows6420-source')
++BUILD=Path('/workspace/.cloud-setup/windows6420-build')
++BASE=Path('/workspace/dwqww/validation/pawn-span-fill-windows-20261020')
+ OUT=BASE/'runtime-attempt1'
+ WINE=Path('/workspace/.cloud-setup/wine/usr/lib/wine/wine64')
+ TOOLS=Path('/workspace/.cloud-setup/toolchains/llvm-mingw-20261006-ucrt-ubuntu-22.04-x86_64/bin')
+-WRAPPER=BASE/'forge-lazy-runtime-psqt-wine'
++WRAPPER=BASE/'forge-pawn-span-fill-wine'
+ sha=lambda p:hashlib.sha256(p.read_bytes()).hexdigest()
+ win=lambda p:'Z:'+str(p).replace('/','\\')
+ def write(name,data):(OUT/name).write_text(json.dumps(data,indent=2)+'\n')
+-assert json.loads((BASE/'WINDOWS-BUILD-CLEAR.json').read_text())['authorization']=='19 WINDOWS BUILD CLEAR'
++assert json.loads((BASE/'WINDOWS-BUILD-CLEAR.json').read_text())['authorization']=='20 WINDOWS BUILD CLEAR'
+ OUT.mkdir(exist_ok=False)
+ environment=os.environ.copy();environment.update(WINEPREFIX='/workspace/.cloud-setup/wine-prefix-ready',
+  WINEDEBUG='-all',XDG_CACHE_HOME='/workspace/.cloud-setup/font-cache',PYTHONDONTWRITEBYTECODE='1')
+-WRAPPER.write_text('#!/usr/bin/env bash\nexport WINEPREFIX=/workspace/.cloud-setup/wine-prefix-ready\nexport WINEDEBUG=-all\nexport XDG_CACHE_HOME=/workspace/.cloud-setup/font-cache\nexec /workspace/.cloud-setup/wine/usr/lib/wine/wine64 /workspace/.cloud-setup/windows6419-build/forge.exe "$@"\n')
++WRAPPER.write_text('#!/usr/bin/env bash\nexport WINEPREFIX=/workspace/.cloud-setup/wine-prefix-ready\nexport WINEDEBUG=-all\nexport XDG_CACHE_HOME=/workspace/.cloud-setup/font-cache\nexec /workspace/.cloud-setup/wine/usr/lib/wine/wine64 /workspace/.cloud-setup/windows6420-build/forge.exe "$@"\n')
+ WRAPPER.chmod(0o755)
+ # Evidence-only adapter: preserve every production test assertion and exchange,
+ # translating only the Linux-created book path to Wine's existing Z: drive.
+@@ -56,6 +56,7 @@
+ commands=[('core',[str(WINE),str(BUILD/'forge_tests.exe')]),
+  ('correction-history',[str(WINE),str(BUILD/'forge_correction_history_tests.exe')]),
+  ('runtime-psqt',[str(WINE),str(BUILD/'forge_runtime_psqt_tests.exe')]),
++ ('pawn-span',[str(WINE),str(BUILD/'forge_pawn_span_tests.exe')]),
+  ('coherent-tt',[str(WINE),str(BUILD/'forge_tt_tests.exe')]),
+  ('rule50',[str(WINE),str(BUILD/'forge_rule50_tests.exe')]),
+  ('legal-witness',[str(WINE),str(BUILD/'forge_legal_witness_tests.exe'),win(inputs['fixtures']),win(inputs['corpus'])]),
+@@ -68,7 +69,7 @@
+ write('protocol.json',{'created_utc':datetime.datetime.now(datetime.timezone.utc).isoformat(),
+  'source_and_tests_commit':COMMIT,'input_sha256_before':before,'commands':commands,
+  'bench_command':bench_command,'bench_stdin':bench_stdin.decode(),'bench_hash_mib':16,'bench_threads':1,
+- 'bench_expected_same_platform_parent_nodes':352313,'candidate_bench_expectation':352313,'bench_signature_policy':'Private runtime cache intends exact evaluation/search parity to18. Require frozen parent352313; preserve any mismatch and stop, never update expectation from candidate outcome','simd_command':simd_command,
++ 'bench_expected_same_platform_parent_nodes':352313,'candidate_bench_expectation':352313,'bench_signature_policy':'Pawn-span geometry fill intends exact evaluation/search parity to19. Require frozen parent352313; preserve any mismatch and stop, never update expectation from candidate outcome','simd_command':simd_command,
+  'environment_subset':{k:environment[k] for k in ('WINEPREFIX','WINEDEBUG','XDG_CACHE_HOME','PYTHONDONTWRITEBYTECODE')},
+  'scope':'Wine functional correctness and bounded node signature only; no performance, Elo or native hardware claim',
+  'core_perft_cases':{'start_depth4':197281,'kiwipete_depth3':97862,'position3_depth4':43238,
+@@ -90,6 +91,9 @@
+     runtime_summary=re.findall(r'^SUMMARY checks=(\d+) failures=(\d+)\s*$',runtime_psqt,re.M)
+     assert runtime_summary==[(str(FREEZE['runtime_summary_checks']),'0')]
+     assert len(re.findall(r'^PASS ',runtime_psqt,re.M))==FREEZE['runtime_summary_checks'] and not re.search(r'^FAIL ',runtime_psqt,re.M)
++    pawn_raw=(OUT/'pawn-span-stdout.log').read_text()
++    pawn_summary=re.findall(r'^pawn_span_tests: (\d+) checks, (\d+) failures\s*$',pawn_raw,re.M)
++    assert pawn_summary==[(str(FREEZE['pawn_span_checks']),'0')] and not re.search(r'^FAIL ',pawn_raw,re.M)
+     assert 'Correction-history residual increment contract' in correction and 'FAIL ' not in correction
+     ownbook_result=json.loads((OUT/'ownbook-transcript.json').read_text())
+     assert ownbook_result['error'] is None and len(ownbook_result['checks'])==5
+@@ -104,9 +108,9 @@
+                                  stdout=stdout,stderr=stderr,timeout=300)
+     signature=re.findall(r'^info string bench depth 11 nodes (\d+) time \d+ nps \d+\s*$',
+                          (OUT/'bench-stdout.log').read_text(),re.M)
+-    assert completed.returncode==0 and len(signature)==1 and int(signature[0])>0, 'Missing/invalid candidate19 bench signature: '+repr(signature)
++    assert completed.returncode==0 and len(signature)==1 and int(signature[0])>0, 'Missing/invalid candidate20 bench signature: '+repr(signature)
+     bench_nodes=int(signature[0])
+-    assert bench_nodes==352313, 'Candidate19 differs from preregistered same-platform parent signature'
++    assert bench_nodes==352313, 'Candidate20 differs from preregistered same-platform parent signature'
+     checks.append({'name':'stdin-bench11-signature','exit_code':completed.returncode,'nodes':bench_nodes})
+     print(json.dumps(checks[-1]),flush=True)
+     disassembly=subprocess.check_output(simd_command,text=True);(OUT/'disassembly.log').write_text(disassembly)
+@@ -119,11 +123,11 @@
+     after={name:sha(path) for name,path in inputs.items()};assert after==before
+     assert {p.relative_to(SOURCE).as_posix():sha(p) for p in SOURCE.rglob('*') if p.is_file()}==source_before
+     write('result.json',{'status':'passed','source_and_tests_commit':COMMIT,'checks':checks,'tt_groups':8,
+-     'runtime_psqt_checks':int(runtime_summary[0][0]),'runtime_psqt_failures':0,'correction_history_checks':int(correction_summary[0][0]),'correction_history_failures':0,'rule50_targeted_failures':0,'legal_witness_comparisons':int(oracle[1]),'bench11_nodes':bench_nodes,
++     'pawn_span_checks':int(pawn_summary[0][0]),'pawn_span_failures':0,'pawn_constexpr_assertions':3,'runtime_psqt_checks':int(runtime_summary[0][0]),'runtime_psqt_failures':0,'correction_history_checks':int(correction_summary[0][0]),'correction_history_failures':0,'rule50_targeted_failures':0,'legal_witness_comparisons':int(oracle[1]),'bench11_nodes':bench_nodes,
+      'core_reference_perft_passed':True,'ownbook_transitions':ownbook_result['checks'],'wine_book_path_adaptation_only':True,'simd':simd,'input_sha256_before':before,'input_sha256_after':after,
+      'source_inputs_unchanged':True,'scope':'Wine correctness and node signatures only; native hardware, speed and Elo unproven'})
+ except Exception as error:
+     write('result.json',{'status':'failed','source_and_tests_commit':COMMIT,'checks':checks,'error':str(error),
+                          'input_sha256_after':{name:sha(path) for name,path in inputs.items()}})
+     raise
+-print('All frozen6.4.19 Windows functional, oracle, signature and SIMD checks passed',flush=True)
++print('All frozen6.4.20 Windows functional, oracle, signature and SIMD checks passed',flush=True)
