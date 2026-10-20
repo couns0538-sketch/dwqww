@@ -854,6 +854,10 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
     const int ply = ss->ply;
 
     if (depth <= 0) return qsearch(board, ss, alpha, beta);
+    // The frame is reused across siblings and same-ply verification searches.
+    // Keep this call's inherited path budget independent of those mutations.
+    const int inherited_double_extensions = (ss - 1)->double_extensions;
+    ss->double_extensions = inherited_double_extensions;
     if (((local_nodes_ & 1023U) == 0 || node_limit_specified_) && should_stop()) aborted_ = true;
     if (aborted_) return 0;
     ++local_nodes_;
@@ -961,6 +965,7 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
                 // Verification search at high depth guards against zugzwang.
                 ss->null_move_allowed = false;
                 const int verification = search(board, ss, depth - reduction, beta - 1, beta, false);
+                ss->double_extensions = inherited_double_extensions;
                 ss->null_move_allowed = true;
                 if (aborted_) return 0;
                 if (verification >= beta) {
@@ -1062,13 +1067,13 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
             const int singular_depth = (depth - 1) / 2;
             ss->excluded_move = move;
             const int singular_score = search(board, ss, singular_depth, singular_beta - 1, singular_beta, cut_node);
+            ss->double_extensions = inherited_double_extensions;
             ss->excluded_move = Move::none();
             if (aborted_) return 0;
             if (singular_score < singular_beta) {
                 extension = 1;
-                if (!pv_node && singular_score < singular_beta - 24 && ss->double_extensions <= 6) {
+                if (!pv_node && singular_score < singular_beta - 24 && inherited_double_extensions <= 6) {
                     extension = 2;
-                    ss->double_extensions = (ss - 1)->double_extensions + 1;
                 }
             } else if (singular_beta >= beta) {
                 return singular_beta;
@@ -1080,7 +1085,7 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
         } else if (gives_check && depth >= tune::CheckExtensionDepth && !root_node && board.see_ge(move, 0)) {
             extension = 1;
         }
-        if (extension <= 0) ss->double_extensions = (ss - 1)->double_extensions;
+        ss->double_extensions = inherited_double_extensions + (extension == 2);
         const int new_depth = depth - 1 + extension;
 
         ss->current_move = move;
