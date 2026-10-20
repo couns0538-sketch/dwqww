@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "updated_utc": "2026-10-20T12:32:04.087834+00:00",
+  "updated_utc": "2026-10-20T17:34:05.147503+00:00",
   "project": "Forge",
   "target": "Native Windows x64 on Ryzen7 9850X3D",
   "scope": "Accepted integration356e863 with timed-only admission-clock repair294cf1b; isolated correctness-tested6.4.12 source8865666; completed valid capped-inconclusive647confirmation and6411NNUE matches; fresh6412vs6411protocol ready, unlaunched. No accepted Elo gain.",
@@ -671,6 +671,15 @@
         "sha256": "ca2512f2b7a91a3b9e391992fa8e5ebc622e79daa5a9fcc088f3b2819a74cbb7",
         "runtime_checks": 8
       },
+      "valid_strength_evidence": false
+    },
+    {
+      "id": "forge6414-extension-path-accounting-20261020",
+      "code_commit": "21538ec5416c909fc98a08688242a0b3b9710b25",
+      "branch": "forge/double-extension-path-20261020",
+      "parent_source": "cecf0b9e3af5602053bcaf5c5d16ffc09f58850d",
+      "status": "isolated_pending_full_validation",
+      "change": "Capture inherited count at positive-depth entry; initialize frame before null/ProbCut; restore after both same-ply verification calls; use stable inherited eligibility; assign every selected child inherited+(extension==2). Existing <=6 threshold unchanged.",
       "valid_strength_evidence": false
     }
   ],
@@ -6340,6 +6349,26 @@
       "evidence": "validation/single-thread-tt-skill-20261020/",
       "results": "Fresh five-scenario applications before/after, one each;26 static checks passed. No engine or efficiency inference.",
       "decision": "Existing repository skill updated; no duplicate or global plugin installation claimed."
+    },
+    {
+      "id": "forge6414-extension-path-accounting-20261020",
+      "candidate_id": "forge6414-extension-path-accounting-20261020",
+      "date": "2026-10-20",
+      "baseline_sha": "cecf0b9e3af5602053bcaf5c5d16ffc09f58850d",
+      "candidate_sha": "21538ec5416c909fc98a08688242a0b3b9710b25",
+      "hypothesis": "Stale double-extension counts transfer sibling/verification state and misallocate selective depth. A stable inherited path budget restores the intended limit.",
+      "implementation": "Capture inherited count at positive-depth entry; initialize frame before null/ProbCut; restore after both same-ply verification calls; use stable inherited eligibility; assign every selected child inherited+(extension==2). Existing <=6 threshold unchanged.",
+      "status": "implemented_full_engine_validation_in_progress",
+      "evidence": "validation/double-extension-path-20261020/",
+      "correctness": "Isolated actual-source normalRED/GREEN trace and independent review passed; new full source builds/tests are pending. Synthetic boundary fixtures finalizing separately.",
+      "benchmark_nodes": {
+        "linux_isolated_proposal": 419798
+      },
+      "strength_games": 0,
+      "elo_estimate": null,
+      "nps_difference": null,
+      "valid_strength_evidence": false,
+      "decision": "Do not integrate until validation. No Elo or speed claim; previous invalid TT match does not test this source."
     }
   ],
   "evidence_archives": [

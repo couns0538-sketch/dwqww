@@ -1,7 +1,7 @@
 # Next experiments
 
-1. Apply the independently reviewed17-line extension-path repair in a new6.4.14
-   branch from frozen6.4.13. Reuse the saved actual RED/GREEN traces and unchanged
+1. Finish validation of the applied6.4.14 extension-path repair, source21538ec
+   on forge/double-extension-path-20261020, from frozen6.4.13. Reuse the saved actual RED/GREEN traces and unchanged
    oracle; validate count6/7 boundaries explicitly as synthetic inherited-state
    fixtures. Compile full engine, run Release/ASan/TSan and preserve original
    commands/source/binaries. No normal-root overflow or Elo gain is yet observed.
