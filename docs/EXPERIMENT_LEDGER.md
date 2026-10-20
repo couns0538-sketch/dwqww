@@ -305,3 +305,14 @@ Existing strength skill extended for persistence-failure cleanup and affinity
 restoration, reusing the skill instead of creating a duplicate. Frontmatter/sixlinks,
 fresh seven-criterion application and root20-record rehash pass. No causal efficiency
 or Elo claim. [Skill evidence](../validation/strength-skill-cleanup-20261020/REPORT.md).
+
+19qualified workload speed result: actualrun39510219605/result0124dbd completed.
+All188processes/940rows,15AA/31ABblocks,21package/31proof/160frozeninputs PASS.
+Independent stdlib whole-block bootstrap: CPUratio1.0160844162440468,
+95%CI[1.0123361440981815,1.019498290677596]; wallratio1.0159896183154886,
+CI[1.0122172959743965,1.0194589268676844]. Keep+1.6%workloadthroughput gain;
+minimumAAblocks near.95boundary are retained. Original1237payload/4169887BZIP
+SHA8971727a40556de34edd201123af8211cef15b341d9b0b352baa936de24bfcdf.
+Rootalso compared200actual frozen Git blobs; both hosted NNUEobjects identical.
+No Elo/nativeRyzen/Windows/Stockfish claim. Accepted5101unchanged;18SPRT running.
+[Audit](../validation/hosted-runtime-psqt-performance-20261020/final-audit/REPORT.md).

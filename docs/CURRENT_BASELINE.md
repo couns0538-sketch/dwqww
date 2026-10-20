@@ -26,20 +26,25 @@ Windows19 first build, all10Wine checks,1184independent artifact checks PASS;
 [Windows proof](../validation/lazy-runtime-psqt-20261020/root-verification/WINDOWS.json).
 [Windows19 Zen5 ZIP](../releases/forge-6.4.19-candidate-windows-zen5.zip), SHA256
 `f0ec03308098bf8e675647f091b3b1afeb74d2632d9c972883e5907cfcb23d85`.
-No calibrated speed, Elo gain, native Windows/Ryzen or Stockfish result is established;
-19is not accepted into integration. One separately calibrated performance-only hosted experiment was launched once:
-[39510219605](https://github.com/couns0538-sketch/dwqww/actions/runs/39510219605),
-frozen payload `5e50d99a93a381a881b4f1813dce462a3e4106bf`, first observation22:44:08UTC.
-All49READY offline checks and independent final metadata review passed before push.
-The new host must build actual18/19 and pass10/11CTest before15same-binary A/A
-blocks and, only if calibrated,31A/B blocks. No retries or gate waivers.
+**Verified hosted whole-process throughput gain versus18:** CPU+1.6084%
+(95%block-bootstrap interval+1.2336..+1.9498%); wall+1.5990%
+(+1.2217..+1.9459%). One frozen run39510219605 passed15same-binary A/A blocks,
+31A/B blocks, all188processes/940canonical rows and every final integrity gate.
+Independent calculation agrees within1e-12. Root compared all160consumed byte
+records and200actual Git blobs, including both complete73/74source exports;
+both hosted compiled NNUE objects are bit-identical. Keep this optimization as a
+qualified Linux workload improvement. **No Elo gain, nativeWindows/Ryzen result or
+Stockfish superiority is established; accepted integration remains5101.**
+[Independent performance audit](../validation/hosted-runtime-psqt-performance-20261020/final-audit/REPORT.md).
+[Root Git/input audit](../validation/hosted-runtime-psqt-performance-20261020/ROOT-INPUT-AUDIT.json).
+Original result commit0124dbd075b252552a27264996b72cf2ef800598; frozen launch
+payload5e50d99a93a381a881b4f1813dce462a3e4106bf. No retries or pooled outcomes.
 Complete19checkpoint is independently verified:1762originals/1774payloads,
 112207796bytes, combinedSHA256
 `d90110e326c6d24c3045c8601ed4dd37ba7b9fbfc35c1bffcabddab6cf733f31`.
-Both published parts were independently downloaded and hash verified. Original file
-and directory modes are recorded; ZIP extraction alone yields generic0600modes.
-Recovery instructions apply those modes in a NEW empty scratch destination; actual
-extraction/chmod recovery was not executed.
+Both published parts were downloaded and hash verified. File/directory modes are
+recorded; generic0600ZIP modes require explicit restoration in a NEW empty scratch
+destination. Actual extraction/chmod recovery was not run.
 [Archive proof](../validation/lazy-runtime-psqt-20261020/archive-complete/ROOT-VERIFY.json).
 [Published part verification](../validation/lazy-runtime-psqt-20261020/archive-complete/REMOTE-PARTS-VERIFY.json).
 [Prototype history](../validation/lazy-runtime-psqt-20261020/REPORT.md).

@@ -1,16 +1,15 @@
 # Next experiments
 
-1. Monitor the single19vs18 performance run
-   [39510219605](https://github.com/couns0538-sketch/dwqww/actions/runs/39510219605).
-   Payload5e50d99, source61f5980 versusfc51e43. Exactly one matching push occurred.
-   Do not retry/resume/retrigger it or change the frozen runner/protocol/workflow.
-   Fresh actual GCC14 strictv3/generic builds must pass baseline10/candidate11named
-   CTests. The design is one excluded ABBA warmup,15same-binary A/A blocks, then
-   31A/B blocks only if BOTH CPU and wall calibration pass. Whole-block bootstrap
-   lower95%limits must both exceed1 and final hashes/modes must match for a workload
-   speed gain. No Elo inference. Retrieve original results only after actually
-   published on results/runtime-psqt-performance-39510219605-1; independently audit
-   every retained sample, ordered block, fault, calibration, interval and input hash.
+1. Keep qualified19source61f5980 and its immutable evidence. The one performance
+   run39510219605 completed and was independently audited: CPUthroughput+1.6084%
+   (95%interval+1.2336..+1.9498%),wall+1.5990%(+1.2217..+1.9459%). All188normal
+   processes,940canonical rows,15AA/31ABblocks,160input records and actual source
+   provenance passed. No retry/resume/retrigger or Elo inference. Original results
+   commit0124dbd075b252552a27264996b72cf2ef800598,4.17MBrawZIP with1237payloads
+   retained in original-result/. Latest accepted integration remains5101; the new
+   source retains an unaccepted18search change, so do not merge its entire lineage
+   based only on this workload speed result. Next bounded source investigation is
+   being selected from actual remaining HCE/NNUE repeated work; no20patch yet.
 2. Monitor the separate18vs17 equal10+0.1 SPRT run
    [39502109381](https://github.com/couns0538-sketch/dwqww/actions/runs/39502109381).
    Payload1203e13, baselineb5908f0 versusfc51e43. At22:44:08UTC its build/test step
