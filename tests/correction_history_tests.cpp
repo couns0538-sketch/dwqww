@@ -44,6 +44,7 @@ std::size_t find_material(Worker& w, const Board& b) {
         if (Probe::material(w)[side][i] != 0) { found = i; ++count; }
     }
     check(count == 1, "actual method writes exactly one material index");
+    if (count != 1) throw std::runtime_error("material-slot discovery failed");
     w.clear();
     return found;
 }
