@@ -1,0 +1,19 @@
+# Fresh pin-aware SEE hosted strength protocol
+
+Preparation only. Current finite source proofs pass and root authorizes exactly one fresh hosted readiness attempt with prior anomalies unresolved. Final root package review/trigger remains PENDING. Unchanged runtime grossAA and deterministic moveAA must pass before any AB; static authorization does not establish that they passed. Preparation runs no engine, build, timing trial or match and mutates no Git state.
+
+Frozen comparison: isolated Forge6.4.15 `8d303e4ca0428e9750bbf3e2663c64d9fafbd1ad` versus6.4.14 `21538ec5416c909fc98a08688242a0b3b9710b25`, pinned Fastchess60d7a7a. Native serial logistic SPRT H0=0/H1=10, alpha=beta=.05 at equal10+0.1, Threads1, Hash32, OwnBookfalse, MoveOverhead10, restarton, advertised Ponderfalse. Native boundary or natural128pairs/256games; cap without boundary is inconclusive. Emergency12000seconds invalidates acceptance. No draw/resign/maxmoves adjudication.
+
+Before games, retain the unchanged gross A/A readiness gate: baseline419798nodes, two fresh-process warmups plus three pairs, entire30s, wall/process-CPU median ratios.95..1.05 and every ratio.85..1.15. Then four deterministic baseline/baseline color-swapped10000node pairs with unlimited clocks, exact moves/results and90s emergency guard. These gates establish readiness only and provide no matched-timing performance claim.
+
+The previous baseline14 bare bench60s timeout is unexplained. Longer10+0.1 is a fresh intended latency/headroom condition, not a failed-match rescue or demonstrated remedy. The old TT2+0.02 attempt with84records and baseline forfeit is invalid and receives no retry, pooling, trimming or transferred inference.
+
+Fresh4AA+128SPRT openings come from the frozen official book with actual en-passant square absent. Every old registry and all current EPD inputs, confirmation positions, full NNUE and TT reservations including unused tails are excluded. Selection seed20261020-pin-see-v1; runtimeCLIseed20261023. No engines/outcomes influence selection. Provenance records original book hashes, exact selection, deterministic order, and frozen historical exclusions.
+
+All warnings, timeouts, crashes, illegal moves, orphans, incomplete pairs, changed inputs or output replacement/truncation/deletion invalidate the whole attempt. Preserve every original PGN/log/state/status byte and final input hashes; never restart, resume, discard failed games or pool attempts. Complete original source exports, compiler metadata, test logs, actual engine/core/Fastchess binaries, commands, hardware/cgroup and affinity are archived before/after play. Streamed ZIPs split at64MiB have verified archive/part/per-file hashes; fresh results publication is verified against the remote ref. Platform hard loss can prevent cleanup/upload/publication.
+
+Only a single push to a new `forge/hosted-pin-see-strength-20261020-*` branch may trigger attempt1; no manual dispatch, schedule or retry. Job240min/build8/match210. This is one bounded hosted native Linux experiment. No speed, native Windows, Ryzen or Stockfish superiority claim follows.
+
+Checks: `PYTHONDONTWRITEBYTECODE=1 python3 -B validation/hosted-pin-see-strength-20261020/check_prelaunch.py --out validation/hosted-pin-see-strength-20261020/static-check.json`. Add `--require-ready` only to verify root's final proof fill. Explicitly refresh package inventory only after reviewed root metadata edits; exact relative-POSIX file ordering and selfhashes are checked before any compiler, affinity or engine process.
+
+Root authorizes one fresh hosted readiness attempt under `authorized_for_one_fresh_host_readiness_attempt_with_prior_anomalies_unresolved`; this is attempt authorization, not a completed operational gate or repaired cause. The exact root decision is frozen in package provenance. No retry or pooling follows a fault.

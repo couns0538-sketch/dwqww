@@ -82,10 +82,14 @@ the original stall did not recur and its cause remains unresolved. This is
 diagnostic evidence, with zero games and no strength or reliability acceptance.
 [Original capture and phase analysis](../validation/time-forfeit-causal-20261020/REPORT.md).
 
-6.4.15 pin-aware SEE (`8d303e4`) is a separate applied candidate undergoing full
-native validation. Its actual API prototype corrected eight errors across 302
+6.4.15 pin-aware SEE (`8d303e4`) passed all 27 native CTest suites, eight active
+UCI TSan transitions, eight Wine checks and 929 artifact checks. Its actual API
+prototype corrected eight errors across 302
 legal cases with no candidate oracle mismatch. The permanent 46-case mirrored
 tests produced 16 expected failing assertions against frozen parent21538ec.
 Independent review found no patch-specific blocker; hot-path overhead and the
-inherited recapture-promotion limitation remain explicit. No NPS/Elo acceptance.
+inherited recapture-promotion limitation remain explicit. Ten additional targeted
+controls correct nine more baseline errors; two promotion limitations are retained
+as known failures. Linux/Windows bench signatures are 385792/382424, with no
+NPS/Elo acceptance. Source, binaries, commands and raw logs are retained.
 [Experiment](../validation/pin-aware-see-20261020/HYPOTHESIS.md).

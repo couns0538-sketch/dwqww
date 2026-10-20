@@ -1,17 +1,24 @@
 # Current baseline
 
-The newest applied experiment is isolated **6.4.15** pin-aware SEE, source
+The newest finite-correctness-tested candidate is isolated **6.4.15** pin-aware SEE, source
 `8d303e4ca0428e9750bbf3e2663c64d9fafbd1ad`, branch
-`forge/pin-aware-see-20261020`. Full native validation is in progress. Its
-prototype corrected eight pinned-recapture errors across 302 legal cases;
-permanent parent regression tests fail as expected. No full-engine, speed or
-Elo acceptance yet. The latest completed finite validation is 6.4.14 below.
+`forge/pin-aware-see-20261020`. Release, ASan/UBSan and TSan each passed all nine
+CTest suites, including perft and UCI. Eight active UCI TSan transitions and
+eight Wine checks passed; the independent Windows audit passed 929 checks.
+The initial 302 legal API cases correct eight baseline errors, and ten targeted
+controls correct nine more. Two inherited recapture-promotion limitations remain
+explicit. Permanent 46-case regressions fail against the parent and pass now.
+Bench signatures are 385792 Linux / 382424 Windows; no calibrated NPS or Elo
+gain is established. Prior operational anomalies remain unresolved below.
+[Evidence](../validation/pin-aware-see-20261020/STATUS.md).
+[Windows Zen5 candidate ZIP](../releases/forge-6.4.15-candidate-windows-zen5.zip),
+SHA256 `1eb3a128e4e905921e0440482076b0fd47bf0194e08a91eb099efe7fbce5df42`.
 
 Accepted integration `forge/6.4-hourly-20261019` remains
 `356e863dbd86d2ce24b8ee9486d7406f1d525480`, with timed-only admission repair
 `294cf1b`. Preserve it; no accepted Elo gain is established.
 
-Latest isolated candidate is **Forge6.4.14**, source
+The previous isolated candidate is **Forge6.4.14**, source
 `21538ec5416c909fc98a08688242a0b3b9710b25`, on
 `forge/double-extension-path-20261020`. It repairs extension-path count reuse
 across siblings and same-ply verification. All27CTest suites,21actualTTAPI

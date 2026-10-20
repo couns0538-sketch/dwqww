@@ -1,20 +1,22 @@
 # Next experiments
 
-1. Preserve the completed6.4.14 validation/source21538ec and candidate ZIP.
-   All27CTest/21TTAPI/8active-UCI/8Wine/914artifactchecks pass. Keep the original
-   unexplained60-second bench timeout alongside later passing syscall controls;
-   do not infer its cause or promote operational readiness from later passes.
-   Synthetic count6 boundary reproduces old8/repaired7, with all raw cases kept.
-2. Preserve the completed single baseline-forfeit causal replay. Final responses
-   were 24.888 ms cold / 32.140 ms warm, so the original 108.696 ms stall was not
-   reproduced. Ten warm move choices differed; cause remains unresolved. Keep
-   all original telemetry, failures and analysis. No retry, games or acceptance.
-3. Finish full native validation of applied pin-aware SEE candidate8d303e4,
-   branchforge/pin-aware-see-20261020. The prototype's 302 legal oracle cases
-   correct eight baseline errors without a new mismatch; permanent 46-case
-   tests produce 16 expected parent failures. Keep inherited recapture-promotion
-   limitations separate. Complete the bounded EP/quiet/deeper-pin coverage and
-   measure added work before a fresh performance/strength protocol.
+1. Preserve completed 6.4.15 source8d303e4 and its Windows ZIP. All 27 native
+   CTest suites, eight active UCI TSan transitions, eight Wine checks and 929
+   artifact checks pass. Complete the verified source/build/raw-evidence archive.
+2. Finish the isolated cheaper pin-filter prototype. Require exact API and actual
+   search parity with 6.4.15 before considering another source candidate. Count
+   actual attack-query work; runtime speed remains a separately calibrated claim.
+3. Keep the reproduced recapture-promotion SEE limitation separate: both current
+   and parent return -400 where the legal promotion-aware exchange oracle says
+   -1200. Do not count these as passing exact-SEE controls. Assess a bounded fix
+   only after the current experiment is preserved.
+
+A fresh 6.4.15-versus-6.4.14 hosted SPRT package is being prepared, with source
+gates and operational qualification still pending. It is not launched. Its new
+openings/settings must stay separate from the failed TT match. Prior 6.4.14's
+unexplained bare-bench timeout and the original hosted time forfeit remain
+unresolved. One later cold/warm causal replay did not reproduce the stall;
+it supplies no games, retry, speed or clock-reliability acceptance.
 
 Keep all candidates and newer accepted integration356e863. The TT run39403471059
 is invalid due to baseline time forfeit; keep84records/started85 and original

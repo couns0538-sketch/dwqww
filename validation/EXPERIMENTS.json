@@ -1,9 +1,9 @@
 {
   "schema_version": 1,
-  "updated_utc": "2026-10-20T19:01:48.530463+00:00",
+  "updated_utc": "2026-10-20T19:12:23.833678+00:00",
   "project": "Forge",
   "target": "Native Windows x64 on Ryzen7 9850X3D",
-  "scope": "Accepted integration356e863 retained; isolated6.4.14 finitecorrectness passed with unexplained barebench timeout;6.4.15 pin-aware SEE frozen8d303e4 undergoing fullnativevalidation. Prior validcappedmatches inconclusive, TTmatch invalidbaselineforfeit. No accepted Elo gain.",
+  "scope": "Accepted integration356e863 retained; isolated6.4.15 source8d303e4 passed fullfinitecorrectness with prioroperationalanomalies unresolved. Priorvalidcappedmatches inconclusive, TTmatch invalidbaselineforfeit. No accepted Elo gain.",
   "historical_ledger": "validation/release-6.0.0/EXPERIMENTS.md",
   "accepted_development": {
     "branch": "forge/6.4-hourly-20261019",
@@ -65,8 +65,8 @@
     "tt_overhead_calibration_experiment_id": "tt-speed-same-binary-aa-20261019",
     "rule50_fix_candidate_id": "forge644-rule50-context-20261019",
     "rule50_fix_correctness_experiment_id": "forge644-rule50-context-release-20261019",
-    "latest_correctness_candidate_id": "forge6414-extension-path-accounting-20261020",
-    "latest_correctness_windows_artifact": "releases/forge-6.4.14-candidate-windows-zen5.zip",
+    "latest_correctness_candidate_id": "forge6415-pin-aware-see-20261020",
+    "latest_correctness_windows_artifact": "releases/forge-6.4.15-candidate-windows-zen5.zip",
     "newer_645_strength_status": "No games/Elo; Release8/8, ASan8/8,18947 parent and candidate oracle checks, exact parent parity and7Winechecks passed. Kernel AA noise gate failed; full-engine timing not run.",
     "newer_646_strength_status": "Release8/8, ASan8/8, exactparentparity and7Winechecks passed; timing andstrengthnotmeasured becausehostAAfailed. No new games/Elo.",
     "newer_647_strength_status": "Fresh confirmation completed validly at320games/160pairs:W114D101L105, independentLLR0.4574291989231206, naturalcap inconclusive;2794offlineauditchecks passed. Earlier147-game pilot remains separate, neverpooled. No acceptedgain.",
@@ -81,8 +81,9 @@
     "active_strength_run_id": null,
     "newer_6413_strength_status": "All finitecorrectness gates pass; no measuredspeed/Elo. Not demonstrated to repair hostedforfeit.",
     "newer_6414_strength_status": "Finite27CTest/21TTAPI/8activeUCI/8Wine/914artifactchecks pass; one originalbarebench deadline unresolved. No NPS/Elo acceptance.",
-    "pending_correctness_candidate_id": "forge6415-pin-aware-see-20261020",
-    "causal_forfeit_diagnostic": "Singlecoldwarm replay completed51searches; final24.888/32.140ms versusoriginal108.696ms. Originalstallnotreproduced,causeunresolved."
+    "pending_correctness_candidate_id": null,
+    "causal_forfeit_diagnostic": "Singlecoldwarm replay completed51searches; final24.888/32.140ms versusoriginal108.696ms. Originalstallnotreproduced,causeunresolved.",
+    "newer_6415_strength_status": "All27CTest/8activeUCI/8Wine/929artifactchecks pass; no NPS/Elo. Prioroperationalanomalies and inheritedpromotionlimitation retained."
   },
   "candidates": [
     {
@@ -6427,8 +6428,8 @@
       "candidate_sha": "8d303e4ca0428e9750bbf3e2663c64d9fafbd1ad",
       "hypothesis": "Illegal pinned recaptures can misclassify captures and pruning. Current virtual occupancy king-safety filtering restores those SEE values. Strength and overhead unmeasured.",
       "implementation": "Filter every non-king geometric recapturer before LVA with square_attacked_with_occupancy on origin-removed occupancy; exclude ghostvictim and consumedorigins; keep targetoccupied and existingkingbranch.",
-      "correctness": "Prototype304cases/302legal,20thresholds andexactSEE;8baselineerrors corrected/0candidateerrors. Permanent46case tests show16expectedRED assertions against frozenparentcore. Fullnativegates underway.",
-      "status": "full_native_validation_in_progress",
+      "correctness": "Release/ASanUBSan/TSan each9CTest;8active-UCI TSan;8Wine+929artifactchecks. Actual302legalAPIcases plus10targetedcontrols GREEN;2inheritedpromotionlimitations separatelyRED. Permanent46cases parent16RED/candidateGREEN.",
+      "status": "finite_correctness_passed_performance_strength_unmeasured",
       "evidence": [
         "validation/pin-aware-see-20261020/",
         "validation/pinned-see-prototype-20261020/",
@@ -6443,7 +6444,12 @@
       "elo_estimate": null,
       "nps_difference": null,
       "valid_strength_evidence": false,
-      "decision": "Isolatedcandidate only; await fullnativegates and qualified performance evidence."
+      "decision": "Retain isolated correctness candidate. No calibrated NPS/Elo gain; inheritedpromotionlimit and prior operationalanomalies retained.",
+      "benchmark_nodes": {
+        "linux": 385792,
+        "windows": 382424
+      },
+      "windows_candidate_zip_sha256": "1eb3a128e4e905921e0440482076b0fd47bf0194e08a91eb099efe7fbce5df42"
     }
   ],
   "evidence_archives": [

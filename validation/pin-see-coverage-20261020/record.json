@@ -1,0 +1,353 @@
+{
+  "utc": "2026-10-20T19:02:43.019904+00:00",
+  "status": "PASS_targeted_controls_WITH_inherited_SEE_limitation",
+  "oracle": "python-chess 1.11.2",
+  "engine_budget_seconds": 60,
+  "selection_rule": "Twelve authored legal controls fixed before running SEE; no selection on diagnostic outcomes. Two recapture-promotion cases are separately tested inherited limitations, never green exact-SEE assertions.",
+  "phases": [
+    {
+      "command": [
+        "/workspace/dwqww/validation/pinned-see-prototype-20261020/see-baseline",
+        "/workspace/dwqww/validation/pin-see-coverage-20261020/cases.tsv"
+      ],
+      "return_code": 0,
+      "elapsed_seconds_budget_only": 0.1268873859953601,
+      "timeout_seconds": 20
+    },
+    {
+      "command": [
+        "/workspace/dwqww/validation/pinned-see-prototype-20261020/see-candidate",
+        "/workspace/dwqww/validation/pin-see-coverage-20261020/cases.tsv"
+      ],
+      "return_code": 0,
+      "elapsed_seconds_budget_only": 0.10423270100727677,
+      "timeout_seconds": 20
+    }
+  ],
+  "oracle_corpus_sha256": "94ab830bb7886b6ac444ccff6de259ef780eb98a50bfbd337712aa744bbae30a",
+  "cases_sha256": "0b19deb1f68cae10cbc4145241351be7d00d04ce1381faea93f6043922be0154",
+  "thresholds": [
+    -2000,
+    -1000,
+    -900,
+    -800,
+    -600,
+    -500,
+    -300,
+    -1,
+    0,
+    1,
+    99,
+    100,
+    101,
+    299,
+    300,
+    500,
+    899,
+    900,
+    901,
+    1700
+  ],
+  "input_exe_sha256": {
+    "baseline": "67b4d0f6989c870fea526dd3bc98612d2f6cc904db2cd7e37bbc34b3565bcbcd",
+    "candidate": "800f706dab31cefd11bc5670f5846687480051f6aaf9fe4b2f3712df5b3b6e48"
+  },
+  "comparisons": [
+    {
+      "id": "ep_opens_two_square_rank_pin_white",
+      "oracle": 100,
+      "limitation": false,
+      "baseline": {
+        "static_exchange": 0,
+        "bad_thresholds": [
+          1,
+          99,
+          100
+        ]
+      },
+      "candidate": {
+        "static_exchange": 100,
+        "bad_thresholds": []
+      }
+    },
+    {
+      "id": "ep_opens_two_square_rank_pin_black",
+      "oracle": 100,
+      "limitation": false,
+      "baseline": {
+        "static_exchange": 0,
+        "bad_thresholds": [
+          1,
+          99,
+          100
+        ]
+      },
+      "candidate": {
+        "static_exchange": 100,
+        "bad_thresholds": []
+      }
+    },
+    {
+      "id": "legal_quiet_absolute_pin_white",
+      "oracle": 0,
+      "limitation": false,
+      "baseline": {
+        "static_exchange": -900,
+        "bad_thresholds": [
+          -800,
+          -600,
+          -500,
+          -300,
+          -1,
+          0
+        ]
+      },
+      "candidate": {
+        "static_exchange": 0,
+        "bad_thresholds": []
+      }
+    },
+    {
+      "id": "legal_quiet_absolute_pin_black",
+      "oracle": 0,
+      "limitation": false,
+      "baseline": {
+        "static_exchange": -900,
+        "bad_thresholds": [
+          -800,
+          -600,
+          -500,
+          -300,
+          -1,
+          0
+        ]
+      },
+      "candidate": {
+        "static_exchange": 0,
+        "bad_thresholds": []
+      }
+    },
+    {
+      "id": "three_recaptures_pin_released_white",
+      "oracle": -200,
+      "limitation": false,
+      "baseline": {
+        "static_exchange": -600,
+        "bad_thresholds": [
+          -500,
+          -300
+        ]
+      },
+      "candidate": {
+        "static_exchange": -200,
+        "bad_thresholds": []
+      }
+    },
+    {
+      "id": "three_recaptures_pin_released_black",
+      "oracle": -200,
+      "limitation": false,
+      "baseline": {
+        "static_exchange": -600,
+        "bad_thresholds": [
+          -500,
+          -300
+        ]
+      },
+      "candidate": {
+        "static_exchange": -200,
+        "bad_thresholds": []
+      }
+    },
+    {
+      "id": "all_nonking_rejected_then_legal_king",
+      "oracle": -800,
+      "limitation": false,
+      "baseline": {
+        "static_exchange": -800,
+        "bad_thresholds": []
+      },
+      "candidate": {
+        "static_exchange": -800,
+        "bad_thresholds": []
+      }
+    },
+    {
+      "id": "all_nonking_rejected_king_blocked_by_pinned_defender",
+      "oracle": 100,
+      "limitation": false,
+      "baseline": {
+        "static_exchange": -800,
+        "bad_thresholds": [
+          -600,
+          -500,
+          -300,
+          -1,
+          0,
+          1,
+          99,
+          100
+        ]
+      },
+      "candidate": {
+        "static_exchange": 100,
+        "bad_thresholds": []
+      }
+    },
+    {
+      "id": "initial_check_evasion_capture_pinned_recapturer",
+      "oracle": 500,
+      "limitation": false,
+      "baseline": {
+        "static_exchange": -100,
+        "bad_thresholds": [
+          -1,
+          0,
+          1,
+          99,
+          100,
+          101,
+          299,
+          300,
+          500
+        ]
+      },
+      "candidate": {
+        "static_exchange": 500,
+        "bad_thresholds": []
+      }
+    },
+    {
+      "id": "initial_discovered_check_invalidates_unrelated_recapture",
+      "oracle": 100,
+      "limitation": false,
+      "baseline": {
+        "static_exchange": -200,
+        "bad_thresholds": [
+          -1,
+          0,
+          1,
+          99,
+          100
+        ]
+      },
+      "candidate": {
+        "static_exchange": 100,
+        "bad_thresholds": []
+      }
+    },
+    {
+      "id": "inherited_recapture_promotion_white",
+      "oracle": -1200,
+      "limitation": true,
+      "baseline": {
+        "static_exchange": -400,
+        "bad_thresholds": [
+          -1000,
+          -900,
+          -800,
+          -600,
+          -500
+        ]
+      },
+      "candidate": {
+        "static_exchange": -400,
+        "bad_thresholds": [
+          -1000,
+          -900,
+          -800,
+          -600,
+          -500
+        ]
+      }
+    },
+    {
+      "id": "inherited_recapture_promotion_black",
+      "oracle": -1200,
+      "limitation": true,
+      "baseline": {
+        "static_exchange": -400,
+        "bad_thresholds": [
+          -1000,
+          -900,
+          -800,
+          -600,
+          -500
+        ]
+      },
+      "candidate": {
+        "static_exchange": -400,
+        "bad_thresholds": [
+          -1000,
+          -900,
+          -800,
+          -600,
+          -500
+        ]
+      }
+    }
+  ],
+  "candidate_control_failures": [],
+  "separate_inherited_limitations": [
+    {
+      "id": "inherited_recapture_promotion_white",
+      "kind": "baseline",
+      "actual": -400,
+      "oracle": -1200,
+      "bad_thresholds": [
+        -1000,
+        -900,
+        -800,
+        -600,
+        -500
+      ]
+    },
+    {
+      "id": "inherited_recapture_promotion_white",
+      "kind": "candidate",
+      "actual": -400,
+      "oracle": -1200,
+      "bad_thresholds": [
+        -1000,
+        -900,
+        -800,
+        -600,
+        -500
+      ]
+    },
+    {
+      "id": "inherited_recapture_promotion_black",
+      "kind": "baseline",
+      "actual": -400,
+      "oracle": -1200,
+      "bad_thresholds": [
+        -1000,
+        -900,
+        -800,
+        -600,
+        -500
+      ]
+    },
+    {
+      "id": "inherited_recapture_promotion_black",
+      "kind": "candidate",
+      "actual": -400,
+      "oracle": -1200,
+      "bad_thresholds": [
+        -1000,
+        -900,
+        -800,
+        -600,
+        -500
+      ]
+    }
+  ],
+  "actual_cases": 12,
+  "pin_controls": 10,
+  "known_limitation_cases": 2,
+  "total_engine_seconds_budget_only": 0.23112008700263686,
+  "input_exe_sha256_after": {
+    "baseline": "67b4d0f6989c870fea526dd3bc98612d2f6cc904db2cd7e37bbc34b3565bcbcd",
+    "candidate": "800f706dab31cefd11bc5670f5846687480051f6aaf9fe4b2f3712df5b3b6e48"
+  }
+}
