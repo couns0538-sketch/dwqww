@@ -1,0 +1,51 @@
+diff --git a/include/forge/search.hpp b/include/forge/search.hpp
+--- a/include/forge/search.hpp
++++ b/include/forge/search.hpp
+@@ -25,6 +25,10 @@ struct SearchLimits {
+     int moves_to_go = 0;
+     int mate_moves = 0;
+     int move_overhead_ms = 10;
++    // Start clock-managed searches when the UCI 'go' command arrives, not
++    // after dispatch, thread admission and root initialization.
++    // The default leaves direct (non-UCI) searcher callers unchanged.
++    std::chrono::steady_clock::time_point start_time{};
+     bool infinite = false;
+     bool ponder = false;
+     bool search_moves_specified = false;
+diff --git a/src/search.cpp b/src/search.cpp
+--- a/src/search.cpp
++++ b/src/search.cpp
+@@ -1109,7 +1109,9 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta, bool cut_node) {
+ // Iterative deepening driver
+ 
+ SearchInfo Worker::search(Board board, const SearchLimits& limits, bool emit_info, const std::vector<Worker*>& all) {
+-    start_ = std::chrono::steady_clock::now();
++    start_ = limits.start_time == std::chrono::steady_clock::time_point{}
++                 ? std::chrono::steady_clock::now()
++                 : limits.start_time;
+     local_nodes_ = 0;
+     nodes_.store(0, std::memory_order_relaxed);
+     all_workers_ = &all;
+diff --git a/src/uci.cpp b/src/uci.cpp
+--- a/src/uci.cpp
++++ b/src/uci.cpp
+@@ -285,6 +285,8 @@ int main() {
+             stop_search();
+             apply_position(board, input);
+         } else if (command == "go") {
++            // The GUI's clock continues running while we dispatch this command.
++            const auto go_received = std::chrono::steady_clock::now();
+             stop_search();
+             std::string first;
+             const auto position = input.tellg();
+@@ -318,5 +320,10 @@ int main() {
+                 input.seekg(position);
+                 forge::SearchLimits limits = parse_limits(input, board);
+                 limits.move_overhead_ms = move_overhead_ms;
++                // Only externally clocked searches pay UCI dispatch latency.
++                // Unbounded analysis, node/depth and ponder searches retain
++                // their original worker-local timing semantics.
++                if (!limits.infinite && !limits.ponder &&
++                    (limits.time_ms >= 0 || limits.movetime_ms >= 0)) limits.start_time = go_received;
+                 // Book moves apply to game play (clock or movetime searches), not
+                 // to analysis, pondering or restricted searches.
