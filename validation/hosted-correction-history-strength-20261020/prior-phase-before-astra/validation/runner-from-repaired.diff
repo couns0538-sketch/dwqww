@@ -1,0 +1,248 @@
+--- verified-future17-helper.py
++++ draft-correction-history-runner.py
+@@ -1,5 +1,5 @@
+ #!/usr/bin/env python3
+-"""Isolated preregistered hosted promotion-aware SEE strength wrapper; one bounded native 0/+10 Elo test."""
++"""Isolated preregistered hosted correction-history strength wrapper; one bounded native 0/+10 Elo test."""
+ import argparse
+ import hashlib
+ import importlib.util
+@@ -17,7 +17,8 @@
+ import time
+ 
+ sys.dont_write_bytecode = True
+-CANDIDATE_SHA = '47f0560221d986e41a309853e1295c557fcf5bf6'
++CANDIDATE_SHA = 'fc51e43c26f735cbc1ffabf0fcf64f48a4592c0b'
++CANDIDATE_BENCHMARK_NODES = 321912  # First actual current18 native capture; not a speed claim.
+ 
+ 
+ def sha(path):
+@@ -230,7 +231,7 @@
+ 
+ def verify_candidate_bench_signature(stdout, stderr, returncode, expected_nodes):
+     matches = re.findall(r'\Ainfo string bench depth 11 nodes ([0-9]+) time ([0-9]+) nps ([0-9]+)(?:\r?\n)?\Z', stdout)
+-    if (type(expected_nodes) is not int or expected_nodes != 385781 or returncode != 0 or
++    if (type(expected_nodes) is not int or expected_nodes <= 0 or returncode != 0 or
+             stderr or len(matches) != 1 or int(matches[0][0]) != expected_nodes or
+             re.search(r'^\s*(?:warning|error|fatal)\b|\[(?:WARN(?:ING)?|ERR(?:OR)?|FATAL)\s*\]', stdout, re.I | re.M)):
+         raise ValueError('Candidate bench signature/exit/warning failure')
+@@ -247,10 +248,26 @@
+ 
+ 
+ def candidate_bench_readiness(engine, out, expected_nodes):
+-    stdout_path, stderr_path = out / 'candidate-bench11.stdout', out / 'candidate-bench11.stderr'
+-    command = {'command': [str(engine)], 'stdin': 'bench 11\nquit\n', 'expected_nodes': expected_nodes,
+-               'guard_seconds': 10, 'scope': 'Signature readiness only; no timing ratio'}
+-    save(out / 'candidate-bench11-command.json', command)
++    return _owned_readiness_probe(engine, out, expected_nodes, 10)
++
++
++def verify_uci_transport(stdout, stderr, returncode):
++    rows = stdout.splitlines()
++    required = ('option name Ponder type check default false',
++                'option name Book File type string default <empty>')
++    if (returncode != 0 or stderr or rows.count('uciok') != 1 or not rows or rows[-1] != 'uciok' or
++            any(rows.count(line) != 1 for line in required) or
++            re.search(r'^\s*(?:info string )?(?:warning|error|fatal)\b|\[(?:WARN(?:ING)?|ERR(?:OR)?|FATAL)\s*\]', stdout, re.I | re.M)):
++        raise ValueError('UCI transport/handshake/advertisement failure')
++    return {'scope': 'Completed UCI handshake and exact required advertisements only'}
++
++
++def _owned_readiness_probe(engine, out, expected_nodes, guard_seconds,
++                           stdin='bench 11\nquit\n', prefix='candidate-bench11', verify_signature=True):
++    stdout_path, stderr_path = out / (prefix + '.stdout'), out / (prefix + '.stderr')
++    command = {'command': [str(engine)], 'stdin': stdin, 'expected_nodes': expected_nodes,
++               'guard_seconds': guard_seconds, 'scope': ('Signature readiness only; no timing ratio' if verify_signature else 'UCI handshake readiness only')}
++    save(out / (prefix + '-command.json'), command)
+     facts = {**command, 'verdict': 'pending', 'cleanup_attempted': False,
+              'returncode_before_verdict': None, 'owned_group_empty_before_verdict': None,
+              'stdout_sha256_before_verdict': None, 'stderr_sha256_before_verdict': None}
+@@ -262,7 +279,7 @@
+                                        stderr=stderr, text=True, start_new_session=True)
+             facts['pid'] = process.pid
+             try:
+-                process.communicate(input=command['stdin'], timeout=max(.001, 10 - (time.monotonic() - started)))
++                process.communicate(input=command['stdin'], timeout=max(.001, guard_seconds - (time.monotonic() - started)))
+             finally:
+                 stdout.flush()
+                 stderr.flush()
+@@ -271,16 +288,19 @@
+                              stdout_sha256_before_verdict=sha(stdout_path),
+                              stderr_sha256_before_verdict=sha(stderr_path))
+                 # Persist observations before any parser or process-group assertion can fail.
+-                save(out / 'candidate-bench11-process.json', facts)
+-            result = verify_candidate_bench_signature(stdout_path.read_text(), stderr_path.read_text(),
+-                                                     process.returncode, expected_nodes)
++                save(out / (prefix + '-process.json'), facts)
++            if verify_signature:
++                result = verify_candidate_bench_signature(stdout_path.read_text(), stderr_path.read_text(),
++                                                         process.returncode, expected_nodes)
++            else:
++                result = verify_uci_transport(stdout_path.read_text(), stderr_path.read_text(), process.returncode)
+             if not facts['owned_group_empty_before_verdict']:
+                 raise ValueError('Owned candidate bench descendant survived leader exit')
+-            result.update(command=command['command'], stdin=command['stdin'], guard_seconds=10,
++            result.update(command=command['command'], stdin=command['stdin'], guard_seconds=guard_seconds,
+                           elapsed_seconds=time.monotonic() - started,
+                           owned_process_group_empty=True, stdout_sha256=sha(stdout_path),
+                           stderr_sha256=sha(stderr_path))
+-            save(out / 'candidate-bench11.json', result)
++            save(out / (prefix + '.json'), result)
+             facts['verdict'] = 'passed'
+             return result
+         except BaseException as error:
+@@ -300,28 +320,33 @@
+                          stdout_sha256_after_cleanup=sha(stdout_path), stderr_sha256_after_cleanup=sha(stderr_path),
+                          stdout_sha256=sha(stdout_path), stderr_sha256=sha(stderr_path),
+                          elapsed_seconds=time.monotonic() - started)
+-            save(out / 'candidate-bench11-process.json', facts)
++            save(out / (prefix + '-process.json'), facts)
+ 
+ 
+ def require_launch_protocol(cfg):
+     if cfg.get('status') != 'PREREGISTERED_REVIEWED_READY_FOR_SINGLE_PUSH':
+         raise ValueError('Protocol review has not authorized this frozen package')
+-    if (cfg.get('baseline_sha') != '21538ec5416c909fc98a08688242a0b3b9710b25' or
++    if (cfg.get('baseline_sha') != 'b5908f0fe9db227158d39e156652f2467252e68a' or
+             cfg.get('candidate_sha') != CANDIDATE_SHA or
+-            not re.fullmatch('[0-9a-f]{40}', CANDIDATE_SHA) or
++            not isinstance(CANDIDATE_SHA, str) or not re.fullmatch('[0-9a-f]{40}', CANDIDATE_SHA) or
+             cfg.get('candidate_sha') == cfg.get('baseline_sha') or
+             cfg.get('fastchess_sha') != '60d7a7a26c6b0582a15c112fb29a1829bef2adb3' or
+-            cfg.get('baseline_version') != '6.4.14' or
+-            cfg.get('candidate_version') != '6.4.17' or
+-            cfg.get('candidate_benchmark_nodes') != 385781 or
+-            cfg.get('source_gates_status') != 'PASSED' or
++            cfg.get('baseline_version') != '6.4.17' or cfg.get('candidate_version') != '6.4.18' or
++            cfg.get('baseline_benchmark_nodes') != 385781 or
++            type(CANDIDATE_BENCHMARK_NODES) is not int or CANDIDATE_BENCHMARK_NODES <= 0 or
++            cfg.get('candidate_benchmark_nodes') != CANDIDATE_BENCHMARK_NODES or
++            any(cfg.get(key) != 'PASSED' for key in ('source_gates_status', 'source_scope_review_status',
++                                                      'root_review_status', 'astra_review_status')) or
+             not cfg.get('correctness_evidence_sha256') or
++            cfg.get('workflow_status') != 'FROZEN' or
++            not isinstance(cfg.get('workflow_sha256'), str) or
++            not re.fullmatch('[0-9a-f]{64}', cfg['workflow_sha256']) or
+             cfg.get('operational_qualification_status') != 'authorized_for_one_fresh_host_readiness_attempt_with_prior_anomalies_unresolved'):
+-        raise ValueError('Source freeze and full correctness review are incomplete')
+-    if cfg.get('seed') != 20261025 or cfg.get('sprt_settings') != {
++        raise ValueError('Source freeze, benchmark, workflow and independent reviews are incomplete')
++    if cfg.get('seed') != 20261026 or cfg.get('sprt_settings') != {
+             'elo0': 0, 'elo1': 10, 'alpha': .05, 'beta': .05,
+-            'pair_cap': 128, 'game_cap': 256, 'tc': '10+0.1',
+-            'concurrency': 1, 'emergency_seconds': 12000}:
++            'pair_cap': 256, 'game_cap': 512, 'tc': '10+0.1',
++            'concurrency': 1, 'emergency_seconds': 18000}:
+         raise ValueError('Protocol differs from this frozen bounded strength design')
+ 
+ 
+@@ -340,7 +365,9 @@
+         expected[relative] = digest
+         order.append(relative)
+     actual = [p.relative_to(repo).as_posix() for p in package.rglob('*') if p.is_file() and p != inventory]
+-    actual.append('.github/workflows/forge-hosted-promotion-see-strength.yml')
++    workflow = repo / '.github/workflows/forge-hosted-correction-history-strength.yml'
++    if workflow.is_file():
++        actual.append(workflow.relative_to(repo).as_posix())
+     actual.sort()
+     if order != actual or any('__pycache__' in Path(p).parts or p.endswith('.pyc') for p in actual):
+         raise ValueError('Package inventory file set/order mismatch')
+@@ -365,6 +392,9 @@
+     cfg = json.loads((a.package / 'protocol.json').read_text())
+     require_launch_protocol(cfg)
+     verify_package_inventory(a.repo, a.package)
++    workflow = a.repo / '.github/workflows/forge-hosted-correction-history-strength.yml'
++    if not workflow.is_file() or sha(workflow) != cfg['workflow_sha256']:
++        raise ValueError('Future workflow is absent or differs from reviewed freeze')
+     for path, digest in cfg['correctness_evidence_sha256'].items():
+         proof = Path(path)
+         if proof.is_absolute() or '..' in proof.parts or sha(a.repo / proof) != digest:
+@@ -381,7 +411,7 @@
+     inputs = [a.baseline, a.candidate, a.fastchess,
+               a.repo / 'tools/match/windows_validate.py',
+               a.baseline.parent / 'libforge_core.a', a.candidate.parent / 'libforge_core.a',
+-              a.repo / '.github/workflows/forge-hosted-promotion-see-strength.yml']
++              a.repo / '.github/workflows/forge-hosted-correction-history-strength.yml']
+     inputs += sorted(path for path in a.package.rglob('*') if path.is_file())
+     # Freeze source-to-binary provenance alongside actual runtime bytes.
+     for pattern in ('source/*.tar', '*-build-provenance.json', '*-compile-commands.json',
+@@ -410,26 +440,18 @@
+                 raise ValueError('Frozen input changed: ' + name)
+ 
+     def bench(index, deadline):
+-        log = a.out / ('bench-%02d.stdout' % index)
+-        err = a.out / ('bench-%02d.stderr' % index)
+         before = resource.getrusage(resource.RUSAGE_CHILDREN)
+         start = time.perf_counter()
+-        with log.open('w') as stdout, err.open('w') as stderr:
+-            completed = subprocess.run([str(a.baseline)], input='bench 11\nquit\n',
+-                text=True, stdout=stdout, stderr=stderr,
+-                timeout=max(0.001, deadline - time.perf_counter()), check=False)
++        signature = _owned_readiness_probe(a.baseline, a.out, cfg['baseline_benchmark_nodes'],
++            max(.001, deadline - start), prefix='bench-%02d' % index)
+         end = time.perf_counter()
+         after = resource.getrusage(resource.RUSAGE_CHILDREN)
+-        text = log.read_text()
+-        matches = re.findall(r'bench depth 11 nodes (\d+) time (\d+) nps (\d+)', text)
+-        if completed.returncode or err.stat().st_size or len(matches) != 1 or int(matches[0][0]) != 419798:
+-            raise ValueError('Bench signature/exit failure: ' + str(index))
+         row = {'index': index, 'warmup': index < 2, 'command': [str(a.baseline)],
+                'stdin': 'bench 11\nquit\n', 'wall_seconds': end - start,
+                'user_seconds': after.ru_utime - before.ru_utime,
+                'system_seconds': after.ru_stime - before.ru_stime,
+-               'engine_nodes': int(matches[0][0]), 'engine_ms': int(matches[0][1]),
+-               'engine_nps': int(matches[0][2])}
++               'engine_nodes': signature['engine_nodes'], 'engine_ms': signature['engine_ms'],
++               'engine_nps': signature['engine_nps']}
+         row['cpu_seconds'] = row['user_seconds'] + row['system_seconds']
+         save(a.out / ('bench-%02d.json' % index), row)
+         return row
+@@ -441,7 +463,7 @@
+                    '--candidate', str(a.baseline if phase == 'aa' else a.candidate),
+                    '--openings', str(a.package / ('openings/' + phase + '.epd')),
+                    '--out', str(out), '--mode', 'smoke' if phase == 'aa' else 'sprt',
+-                   '--pairs', '4' if phase == 'aa' else '128', '--seed', str(cfg['seed']),
++                   '--pairs', '4' if phase == 'aa' else '256', '--seed', str(cfg['seed']),
+                    '--tc', 'inf' if phase == 'aa' else '10+0.1', '--cpu', str(cpu),
+                    '--hash-mb', '32', '--overhead-ms', '10', '--disable-book']
+         if phase == 'aa':
+@@ -484,7 +506,7 @@
+             decision, likelihood = 'aa_operational_readiness_only', None
+         else:
+             decision, likelihood = audit_likelihood(console,
+-                stats['pentanomial_0_half_1_1half_2'], pairs, 128, validator)
++                stats['pentanomial_0_half_1_1half_2'], pairs, 256, validator)
+         checked_inputs()
+         result = {'statistics': stats, 'decision': decision, 'likelihood_audit': likelihood,
+                   'no_screen_reset_resume_or_pooling': True}
+@@ -511,27 +533,12 @@
+         for name in ('baseline', 'candidate'):
+             command = [str(getattr(a, name))]
+             save(a.out / (name + '-uci-command.json'), {'command': command, 'stdin': 'uci\nquit\n'})
+-            try:
+-                completed = subprocess.run(command, input='uci\nquit\n',
+-                    text=True, capture_output=True, timeout=10, check=False)
+-            except subprocess.TimeoutExpired as error:
+-                for suffix, content in (('stdout', error.stdout), ('stderr', error.stderr)):
+-                    if isinstance(content, bytes):
+-                        content = content.decode(errors='replace')
+-                    (a.out / (name + '-uci.' + suffix)).write_text(content or '')
+-                raise
+-            (a.out / (name + '-uci.stdout')).write_text(completed.stdout)
+-            (a.out / (name + '-uci.stderr')).write_text(completed.stderr)
+-            if completed.returncode or completed.stderr:
+-                raise ValueError('UCI handshake exit/stderr failure: ' + name)
+-            for advertised in ('option name Ponder type check default false',
+-                               'option name Book File type string default <empty>'):
+-                if advertised not in completed.stdout:
+-                    raise ValueError('Frozen UCI default not confirmed: ' + advertised)
++            _owned_readiness_probe(getattr(a, name), a.out, None, 10, stdin='uci\nquit\n',
++                                   prefix=name + '-uci', verify_signature=False)
+         report['aa'] = match('aa', 90)
+         report['status'] = 'aa_passed_starting_sprt'
+         save(a.out / 'summary.json', report)
+-        report['sprt'] = match('sprt', 12000)
++        report['sprt'] = match('sprt', 18000)
+         report['status'] = 'completed_independently_audited'
+     except BaseException as error:
+         report['status'] = 'failed_or_inconclusive_no_acceptance'
