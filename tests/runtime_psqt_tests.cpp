@@ -121,16 +121,21 @@ int main() {
 
     Board before=position("rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR w KQkq - 0 1"); const params::Table original=params::table;
     struct Restore { params::Table saved; ~Restore(){params::table=saved;nnue::enabled=true;} } restore{original};
-    const int old_eval=Evaluator::evaluate_uncached(before);
+    Evaluator evaluator; EvalTrace old_trace; (void)evaluate_traced(before,old_trace);
+    const int old_eval=evaluator.evaluate(before);
     const int index=params::Psqt+28; // White pawn e4: this Board predates the table mutation.
     params::table[static_cast<std::size_t>(index)]+=S(17,23);
-    Evaluator evaluator; EvalTrace trace; const int direct=Evaluator::evaluate_uncached(before);
+    EvalTrace trace; const int direct=Evaluator::evaluate_uncached(before);
     check(direct==old_eval+17,"PSQT mutation changes the actual occupied-square evaluation");
     check(evaluator.evaluate(before)==direct,"public evaluate sees mutation after FEN");
     check(evaluate_traced(before,trace)==direct,"public trace sees current PSQT after FEN");
     check(trace.coefficients[static_cast<std::size_t>(index)]==1,"public trace retains occupied-square PSQT coefficient");
+    check(trace.coefficients==old_trace.coefficients && trace.phase==old_trace.phase && trace.scale==old_trace.scale,
+          "table mutation preserves all public trace coefficients phase and scale");
     root=begin(w,before); verify(w,before,root,"new search current mutated params");
-    params::table=original; SearchLimits limits; limits.depth=1; const std::vector<Worker*> all{&w}; (void)w.search(before,limits,false,all);
+    params::table=original; check(evaluator.evaluate(before)==old_eval,"same public Evaluator sees restored params");
+    check(params::table==params::defaults(),"default parameter table restored");
+    SearchLimits limits; limits.depth=1; const std::vector<Worker*> all{&w}; (void)w.search(before,limits,false,all);
     verify(w,before,Probe::root(w),"reused Worker new search after params restored");
     nnue::enabled=false; verify(w,before,Probe::root(w),"NNUE-disabled original public HCE path"); nnue::enabled=true;
     std::cout<<"SUMMARY checks="<<checks<<" failures="<<failures<<'\n'; return failures==0?0:1;

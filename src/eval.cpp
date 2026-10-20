@@ -496,15 +496,12 @@ int Evaluator::evaluate_uncached(const Board& board) {
 Evaluator::RuntimePsqt Evaluator::refresh_runtime_psqt(const Board& board) {
     RuntimePsqt state;
     std::int64_t score = 0;
-    Bitboard occupied = board.occupied();
-    while (occupied != 0) {
-        const int square = pop_lsb(occupied);
-        const Piece piece = board.piece_at(square);
-        const int type = piece_type(piece);
-        const int relative = color_of(piece) == White ? square : flip_square(square);
-        const std::int64_t term = params::table[static_cast<std::size_t>(params::Psqt + (type - 1) * 64 + relative)];
-        score += color_of(piece) == White ? term : -term;
-        state.phase += PhaseValue[static_cast<std::size_t>(type)];
+    for (int type = Pawn; type <= King; ++type) {
+        Bitboard white = board.pieces(White, static_cast<PieceType>(type));
+        Bitboard black = board.pieces(Black, static_cast<PieceType>(type));
+        state.phase += PhaseValue[static_cast<std::size_t>(type)] * (popcount(white) + popcount(black));
+        while (white != 0) score += params::table[static_cast<std::size_t>(params::Psqt + (type - 1) * 64 + pop_lsb(white))];
+        while (black != 0) score -= params::table[static_cast<std::size_t>(params::Psqt + (type - 1) * 64 + flip_square(pop_lsb(black)))];
     }
     // Do not introduce an overflowing delta intermediate for unusual tool values.
     state.valid = score >= std::numeric_limits<Score>::min() && score <= std::numeric_limits<Score>::max();
