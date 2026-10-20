@@ -7,6 +7,17 @@ its unchanged native regression to356e863, preserving the TT and timed-only cloc
 repairs. Acceptance is for the finite book contract; no accepted equal-time Elo gain.
 [Integration receipt](../validation/accepted-ownbook-integration-20261020/INTEGRATION.json).
 
+An independent **6.4.18 search ablation** is implemented on
+`forge/correction-history-residual-20261020`, source
+`fc51e43c26f735cbc1ffabf0fcf64f48a4592c0b`. It replaces correction-history EMA
+with residual increments under unchanged guards, weights and clamps. Actual-method
+Release/ASan checks pass54/54 for both models; the new behavior differs17times
+from the parent. Fixed6cp residual fixtures learn6cp versus old3/4cp, but expanded
+64cp combined range and retained noisy history are risks. This is not a proven bug
+or Elo gain. Full10CTest/profile validation is running; fresh strength preparation
+is blocked until source gates and independent harness review. Preserve17below.
+[Experiment](../validation/correction-history-residual-20261020/RESULTS.md).
+
 Latest isolated finite-correctness-tested engine is **Forge6.4.17**, source
 `47f0560221d986e41a309853e1295c557fcf5bf6`, on
 `forge/promotion-see-20261020`. It preserves prior accepted work, residual NNUE

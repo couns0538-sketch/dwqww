@@ -171,3 +171,19 @@ Extended the existing strength-validation repository skill with canonical captur
 and pre-verdict/post-cleanup process facts; fresh3case application, YAML and3links
 pass. No duplicate or cloud installation claimed. Failed17exit/group remains
 UNKNOWN and attempt staysFAILED. [Evidence](../validation/chess-bench-parser-repair-20261020/REPORT.md).
+
+
+6.4.18 independent correction-history ablation sourcefc51e43 is implemented on a
+new isolated branch fromb5908f0 (17engine47+accepted5101 preserved). Exactly one
+search arithmetic assignment changes: EMA toward already-corrected residual becomes
+residual increment with unchanged guards/weights/clamps. Exact-core Release and
+ASan/UBSan54/54 each for both variants (216PASS); original intentionally differs
+17/54 under the new behavior contract. Fixed6cp target oldone/twotables3/4cp versus
+increment6cp. Combined reachable range expands15→64cp in saturation fixture;
+retained disparities/stale material feedback are explicit risks, not a knownbug.
+Initial missing-cmake-PATH attempt preserved; exact tool path attempt2 completed
+in~5minutes under external600s monitor (executed runner had no subprocess timeout).
+Full permanent54check regression is registered as10thCTest; finaltestguard avoids
+out-of-range slot access on fixture discovery failure. Astra production review has
+no remaining implementation blocker; root69payload/source/216check review PASS.
+Fullnative/Windows/strength results remain pending. [Evidence](../validation/correction-history-residual-20261020/RESULTS.md).

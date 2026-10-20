@@ -1,0 +1,89 @@
+MODEL_EXPECTATION increment grain=256 limit=8192
+PASS actual method writes exactly one material index
+PASS actual method writes exactly one material index
+PASS fixtures share actual material index and have distinct pawn indices
+FIXTURE a=4k3/8/8/8/8/8/P7/4K3 w - - 0 1 pawn_index=7058 material_index=675
+FIXTURE b=4k3/8/8/8/8/8/1P6/4K3 w - - 0 1 pawn_index=9655 material_index=675
+PASS signed depth weight depth=0 sign=-1
+PASS signed depth weight depth=0 sign=1
+PASS signed depth weight depth=14 sign=-1
+PASS signed depth weight depth=14 sign=1
+PASS signed depth weight depth=15 sign=-1
+PASS signed depth weight depth=15 sign=1
+PASS signed depth weight depth=100 sign=-1
+PASS signed depth weight depth=100 sign=1
+PASS diff clips at signed eight cp
+PASS two fixed-point tables combine before division
+FAIL zero-residual seeded history decay or retention
+FAIL signed truncation on subgrain seeded entry
+FAIL seeded endpoint with outward residual
+STATE endpoint iteration=1 pawn=-7808 material=0 corrected=70
+PASS signed material coefficient33 rounds before grain division
+PASS signed subgrain material correction truncates toward zero
+FAIL material coefficient affects read scale but not update gain
+STATE delta-6_material0 iteration=1 pawn=-96 material=0 corrected=100
+STATE delta-6_material0 iteration=16 pawn=-737 material=0 corrected=98
+STATE delta-6_material0 iteration=64 pawn=-768 material=0 corrected=97
+STATE delta-6_material0 iteration=256 pawn=-768 material=0 corrected=97
+STATE delta-6_material0 iteration=4096 pawn=-768 material=0 corrected=97
+FAIL fixed delta6 convergence delta-6_material0
+PASS one-table isolation or equal two-table entries
+PASS opposite-side table remains untouched
+PASS shared material transfers correction to distinct pawn structure
+PASS disabled material control
+STATE delta-6_material0_after_conflict iteration=4097 pawn=-768 material=0 corrected=97
+STATE large_residual_material0 iteration=4096 pawn=-2033 material=0 corrected=93
+FAIL reachable range under constant clipped residual
+STATE delta-6_material100 iteration=1 pawn=-96 material=-96 corrected=100
+STATE delta-6_material100 iteration=16 pawn=-513 material=-513 corrected=96
+STATE delta-6_material100 iteration=64 pawn=-512 material=-512 corrected=96
+STATE delta-6_material100 iteration=256 pawn=-512 material=-512 corrected=96
+STATE delta-6_material100 iteration=4096 pawn=-512 material=-512 corrected=96
+FAIL fixed delta6 convergence delta-6_material100
+PASS one-table isolation or equal two-table entries
+PASS opposite-side table remains untouched
+PASS shared material transfers correction to distinct pawn structure
+PASS other pawn structure changes shared material entry
+STATE delta-6_material100_after_conflict iteration=4097 pawn=-512 material=-352 corrected=97
+STATE large_residual_material100 iteration=4096 pawn=-2033 material=-2033 corrected=85
+FAIL reachable range under constant clipped residual
+PASS diff clips at signed eight cp
+PASS two fixed-point tables combine before division
+FAIL zero-residual seeded history decay or retention
+FAIL signed truncation on subgrain seeded entry
+FAIL seeded endpoint with outward residual
+STATE endpoint iteration=1 pawn=7808 material=0 corrected=130
+PASS signed material coefficient33 rounds before grain division
+PASS signed subgrain material correction truncates toward zero
+FAIL material coefficient affects read scale but not update gain
+STATE delta6_material0 iteration=1 pawn=96 material=0 corrected=100
+STATE delta6_material0 iteration=16 pawn=737 material=0 corrected=102
+STATE delta6_material0 iteration=64 pawn=768 material=0 corrected=103
+STATE delta6_material0 iteration=256 pawn=768 material=0 corrected=103
+STATE delta6_material0 iteration=4096 pawn=768 material=0 corrected=103
+FAIL fixed delta6 convergence delta6_material0
+PASS one-table isolation or equal two-table entries
+PASS opposite-side table remains untouched
+PASS shared material transfers correction to distinct pawn structure
+PASS disabled material control
+STATE delta6_material0_after_conflict iteration=4097 pawn=768 material=0 corrected=103
+STATE large_residual_material0 iteration=4096 pawn=2033 material=0 corrected=107
+FAIL reachable range under constant clipped residual
+STATE delta6_material100 iteration=1 pawn=96 material=96 corrected=100
+STATE delta6_material100 iteration=16 pawn=513 material=513 corrected=104
+STATE delta6_material100 iteration=64 pawn=512 material=512 corrected=104
+STATE delta6_material100 iteration=256 pawn=512 material=512 corrected=104
+STATE delta6_material100 iteration=4096 pawn=512 material=512 corrected=104
+FAIL fixed delta6 convergence delta6_material100
+PASS one-table isolation or equal two-table entries
+PASS opposite-side table remains untouched
+PASS shared material transfers correction to distinct pawn structure
+PASS other pawn structure changes shared material entry
+STATE delta6_material100_after_conflict iteration=4097 pawn=512 material=352 corrected=103
+STATE large_residual_material100 iteration=4096 pawn=2033 material=2033 corrected=115
+FAIL reachable range under constant clipped residual
+FAIL unequal tables consume same precomputed joint residual
+STATE unequal_tables iteration=1 pawn=1024 material=-416 corrected=102
+PASS upper output mate boundary clamps
+PASS lower output mate boundary clamps
+SUMMARY checks=54 failures=17
