@@ -36,10 +36,9 @@ Both original strength runs completed validly and **inconclusively**:
   41-input, opening, full legal-replay and complete raw-log audit passed;
   results `eb1c1b7`.
 
-The fresh 6.4.12 versus 6.4.11 protocol is **reviewed/ready, not launched** at
-this checkpoint:0/+5 SPRT,1024 fresh pairs, equal2+0.02, serial
+The fresh 6.4.12 versus 6.4.11 protocol is **launched once**, run39403471059 at frozen launchb48af4c:0/+5 SPRT,1024 fresh pairs, equal2+0.02, serial
 Threads1/Hash32/OwnBookfalse. All30proof hashes/23package entries pass.
-Root will record the actual run ID after its single trigger push.
+[Live job](https://github.com/couns0538-sketch/dwqww/actions/runs/39403471059); no completed result yet.
 
 No NPS/Elo gain is accepted; no result transfers across candidates or games are
 pooled. Failed strict3% timing A/A receives no retry or widened threshold.

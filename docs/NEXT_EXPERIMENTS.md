@@ -1,10 +1,10 @@
 # Next experiments
 
-1. Launch the reviewed **6.4.12 versus 6.4.11** test once from
+1. Monitor the once-launched **6.4.12 versus 6.4.11** test from
    `.github/hosted-tt-strength/`:0/+5 SPRT,1024 fresh pairs, equal2+0.02,
    serialThreads1/Hash32/OwnBookfalse; frozen8865666 versus c5cbf97.
-   It is ready and unlaunched at this checkpoint. Record the actual run ID
-   after the single trigger push. Preserve complete logs/PGNs, actual binaries,
+   Run39403471059 uses immutable launchb48af4c and branch
+   forge/hosted-tt-strength-20261020-0950; no repeat push or rerun. Preserve complete logs/PGNs, actual binaries,
    source exports and final hashes in verified split archives. A natural cap
    is inconclusive; faults/deadlines/orphans/changed inputs invalidate acceptance.
 2. Finish the separate regression/follow-up reconciling frozen886 with accepted
