@@ -1,0 +1,17 @@
+--- a/uci/main.js
++++ b/uci/main.js
+@@ -295,7 +295,13 @@
+                 }
+                 else if (opt === 'Threads') {
+                     threads = Math.max(1, Math.min(8, parseInt(val, 10) || 1));
+-                    void (0, smp_1.ensurePool)(threads);
++                    // Warming workers is optional, but the returned Promise can reject.
++                    // Do not let a failed Threads warmup terminate the UCI process:
++                    // isready/go can retry and go has its own legal fallback.
++                    void (0, smp_1.ensurePool)(threads).catch((error) => {
++                        const detail = error instanceof Error ? error.message : String(error);
++                        send(`info string warning: SMP worker warmup failed (${detail}); retrying on next isready/go`);
++                    });
+                 }
+             }
+             break;
