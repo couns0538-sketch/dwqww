@@ -19,12 +19,23 @@ printf 'Source commit: %s\n' "$SOURCE_REV" > "$OUTPUT/identities.txt"
 printf 'Build platform: Linux %s\n' "$(uname -m)" >> "$OUTPUT/identities.txt"
 printf 'Compiler: %s\n' "$(g++ -dumpfullversion -dumpversion)" >> "$OUTPUT/identities.txt"
 sha256sum "$HERE/uci-clock-origin-scoped.patch" "$REPO/src/nnue_weights.inc" >> "$OUTPUT/identities.txt"
-(git -C "$REPO" archive "$SOURCE_REV") | tar -x -C "$TEMP/baseline"
+# Pin the authentic pre-fix work-branch commit. Reversing the historical
+# patch fails against the integrated source because its UCI hunks were reordered.
+# Do not invent a baseline by editing the candidate or reverting newer changes.
+PRE_FIX_REV="06c581895708a6eb9ff26b380d818f72f7bd9ebf"
+printf 'Pre-fix source commit: %s\n' "$PRE_FIX_REV" >> "$OUTPUT/identities.txt"
+if ! git -C "$REPO" cat-file -e "$PRE_FIX_REV^{commit}" 2>/dev/null; then
+  if ! git -C "$REPO" fetch --no-tags --depth=1 origin "$PRE_FIX_REV" > "$OUTPUT/prefix-fetch.stdout" 2> "$OUTPUT/prefix-fetch.stderr"; then
+    echo "Unable to retrieve pinned pre-fix commit" >&2
+    tail -n 70 "$OUTPUT/prefix-fetch.stderr" >&2 || true
+    exit 1
+  fi
+fi
+git -C "$REPO" cat-file -e "$PRE_FIX_REV^{commit}"
+(git -C "$REPO" archive "$PRE_FIX_REV") | tar -x -C "$TEMP/baseline"
 (git -C "$REPO" archive "$SOURCE_REV") | tar -x -C "$TEMP/candidate"
-# Production candidate is precisely HEAD. Recover the pre-fix comparison
-# only inside an isolated snapshot, without touching original branch/source.
-(cd "$TEMP/baseline" && git apply -R --check "$HERE/uci-clock-origin-scoped.patch" && git apply -R "$HERE/uci-clock-origin-scoped.patch")
-printf 'Production candidate=HEAD; pre-fix baseline is patch-reversed disposable tree\n' >> "$OUTPUT/identities.txt"
+printf 'Production candidate=HEAD; pre-fix baseline=pinned authentic earlier commit\n' >> "$OUTPUT/identities.txt"
+git -C "$REPO" diff --stat "$PRE_FIX_REV" "$SOURCE_REV" -- src/uci.cpp src/search.cpp include/forge/search.hpp > "$OUTPUT/source-diff-stat.txt"
 logged() {
   local name="$1"; shift
   if "$@" > "$OUTPUT/$name.stdout" 2> "$OUTPUT/$name.stderr"; then
