@@ -6,6 +6,7 @@
 #include <algorithm>
 #include <array>
 #include <cctype>
+#include <chrono>
 #include <cstdint>
 #include <cstdlib>
 #include <iostream>
@@ -19,6 +20,30 @@ struct SearcherTestProbe {
     static std::uint64_t null_tries(Searcher& searcher) { return searcher.main_worker().null_tries_; }
     static std::uint64_t null_cutoffs(Searcher& searcher) { return searcher.main_worker().null_cutoffs_; }
     static TranspositionTable& tt(Searcher& searcher) { return searcher.transposition_table(); }
+    static int terminal_search(Searcher& searcher, Board board, int depth, int alpha, int beta, bool seed_tt = false) {
+        auto& worker = searcher.main_worker();
+        worker.clear();
+        worker.shared_.tt.clear();
+        worker.shared_.stop.store(false, std::memory_order_relaxed);
+        worker.all_workers_ = nullptr;
+        worker.aborted_ = false;
+        worker.local_nodes_ = 0;
+        worker.node_limit_specified_ = false;
+        worker.hard_limit_ms_ = 0;
+        worker.root_history_index_ = board.history_size() - 1;
+        SearchStack* ss = &worker.stack_[5];
+        ss->ply = 1;
+        nnue::refresh(board, ss->accumulator);
+        if (seed_tt) {
+            const auto entry = worker.shared_.tt.probe(board.key());
+            worker.shared_.tt.store(entry, board.key(), 900, 900, Move::none(), 8, BoundExact, false, board.halfmove_clock());
+        }
+        return worker.search(board, ss, depth, alpha, beta, false);
+    }
+    static void ponderhit_at(Searcher& searcher, std::chrono::steady_clock::time_point hit) {
+        const auto ns = std::chrono::duration_cast<std::chrono::nanoseconds>(hit.time_since_epoch()).count();
+        searcher.main_worker().shared_.ponder_hit_ns.store(ns, std::memory_order_relaxed);
+    }
 };
 
 } // namespace forge
@@ -177,7 +202,25 @@ void test_move_generation() {
 
     check(board.set_fen("4k3/P7/8/8/8/8/8/4K3 w - - 0 1"), "promotion FEN parses");
     check(board.parse_uci("a7a8q").has_value() && board.parse_uci("a7a8n").has_value(), "promotions are legal");
-    check(board.legal_moves(true).size() == 1, "captures-only generation keeps only the queen promotion");
+    check(board.legal_moves(true).size() == 4, "noisy generation includes every quiet promotion");
+    for (const std::string_view fen : {
+             "1r2k3/P7/8/8/8/8/8/4K3 w - - 0 1",
+             "4k3/8/8/8/8/8/p7/1R2K3 b - - 0 1"}) {
+        check(board.set_fen(fen), "quiet and capture promotion FEN parses");
+        std::array<int, 7> quiet_promotions{};
+        std::array<int, 7> capture_promotions{};
+        for (const forge::Move move : board.legal_moves(true)) {
+            if (!move.is_promotion()) continue;
+            auto& counts = move.is_capture() ? capture_promotions : quiet_promotions;
+            ++counts[move.promotion];
+        }
+        for (const int promotion : {forge::Queen, forge::Rook, forge::Bishop, forge::Knight}) {
+            check(quiet_promotions[static_cast<std::size_t>(promotion)] == 1,
+                  "noisy generation includes each quiet promotion exactly once for either color");
+            check(capture_promotions[static_cast<std::size_t>(promotion)] == 1,
+                  "noisy generation includes each capture promotion exactly once for either color");
+        }
+    }
     check(board.set_fen("4k3/8/8/3pP3/8/8/8/4K3 w - d6 0 1"), "en-passant FEN parses");
     check(board.parse_uci("e5d6").has_value(), "en-passant is legal");
     check(board.set_fen("k3r3/8/8/3pP3/8/8/8/4K3 w - d6 0 1"), "pinned en-passant FEN parses");
@@ -312,6 +355,73 @@ void test_evaluation() {
     check(forge::Searcher::evaluate(board) > 500, "a lone queen still wins");
 }
 
+void test_search_stalemate() {
+    forge::Searcher searcher(1);
+    forge::Board board;
+    check(board.set_fen("7k/8/5KQ1/8/8/8/8/8 w - - 0 1"), "stalemate parent parses");
+    forge::SearchLimits limits;
+    limits.depth = 1;
+    limits.search_moves_specified = true;
+    limits.search_moves.push_back(*board.parse_uci("g6f7"));
+    const auto result = searcher.search(board, limits);
+    check(result.score == 0 && forge::Board::move_to_uci(result.best_move) == "g6f7",
+          "depth-one search recognises stalemate at the horizon");
+    play(board, "g6f7");
+    check(!board.in_check() && !board.has_legal_move(), "stalemate fixture has no legal move and no check");
+    for (const int depth : {0, 1}) {
+        for (const int alpha : {-1000, 1000}) {
+            check(forge::SearcherTestProbe::terminal_search(searcher, board, depth, alpha, alpha + 1) == 0,
+                  "stalemate is drawn before null-window stand-pat or pruning");
+            check(forge::SearcherTestProbe::terminal_search(searcher, board, depth, alpha, alpha + 1, true) == 0,
+                  "stalemate overrides a cached nonzero TT score");
+        }
+    }
+    check(board.set_fen("7k/8/8/8/8/8/8/KQ6 b - - 0 1"), "quiet nonterminal control parses");
+    check(!board.in_check() && board.has_legal_move(), "quiet control has legal moves");
+    check(forge::SearcherTestProbe::terminal_search(searcher, board, 0, -forge::Infinite, forge::Infinite) < -100,
+          "quiet positions with legal moves retain their material evaluation");
+    check(board.set_fen("7k/6Q1/6K1/8/8/8/8/8 b - - 0 1"), "checkmate control parses");
+    for (const int depth : {0, 1})
+        check(forge::SearcherTestProbe::terminal_search(searcher, board, depth, -forge::Infinite, forge::Infinite) ==
+                  -forge::MateValue + 1, "in-check terminal positions retain mate scores");
+}
+
+void test_search_promotions() {
+    forge::Board board;
+    const std::string white_fen = "8/k1P5/2K5/8/8/8/8/8 w - - 0 1";
+    for (const bool mirrored : {false, true}) {
+        check(board.set_fen(mirrored ? mirror_fen(white_fen) : white_fen), "underpromotion search FEN parses");
+        const std::array<std::string_view, 4> moves = mirrored
+            ? std::array<std::string_view, 4>{"c2c1q", "c2c1r", "c2c1b", "c2c1n"}
+            : std::array<std::string_view, 4>{"c7c8q", "c7c8r", "c7c8b", "c7c8n"};
+        forge::Searcher searcher(1);
+        forge::SearchLimits limits;
+        limits.depth = 1;
+        limits.search_moves_specified = true;
+        for (const std::string_view text : moves) {
+            const auto move = board.parse_uci(text);
+            check(move.has_value(), "restricted promotion is legal");
+            if (!move.has_value()) continue;
+            searcher.clear();
+            limits.search_moves = {*move};
+            const auto result = searcher.search(board, limits);
+            check(result.best_move == *move && !result.pv.empty() && result.pv.front() == *move &&
+                      result.nodes > 1 && result.depth == 1,
+                  "every restricted promotion is searched and appears in the PV");
+            if (text.back() == 'r') check(result.score > 100, "rook underpromotion retains a winning score");
+            if (text.back() == 'q') check(result.score == 0, "queen promotion is scored as stalemate");
+        }
+        searcher.clear();
+        limits.search_moves_specified = false;
+        limits.search_moves.clear();
+        const auto result = searcher.search(board, limits);
+        const auto rook = board.parse_uci(moves[1]);
+        check(rook.has_value() && result.best_move == *rook && !result.pv.empty() && result.pv.front() == *rook &&
+                  result.score > 100 && result.depth == 1,
+              "unrestricted search chooses the winning rook underpromotion over stalemating queen promotion");
+    }
+}
+
 void test_search() {
     constexpr std::array<TacticalCase, 8> cases{{
         {"white back-rank mate", "6k1/5ppp/8/8/8/8/8/4R1K1 w - - 0 1", 3, "e1e8", forge::MateValue - 1},
@@ -386,6 +496,102 @@ void test_search() {
     info = mate_searcher.search(board, mate_limits);
     check(forge::Board::move_to_uci(info.best_move) == "e7f7", "WAC 008 finds Rxf7");
     check(info.score > 300, "WAC 008 is recognised as winning");
+}
+
+void test_search_request_time() {
+    using Clock = std::chrono::steady_clock;
+    const auto expired_start = Clock::now() - std::chrono::hours(2);
+    forge::Board board;
+    forge::Searcher searcher(1);
+    auto legal_result = [&](const forge::SearchInfo& info) {
+        return !info.best_move.is_none() && board.parse_uci(forge::Board::move_to_uci(info.best_move)).has_value();
+    };
+
+    forge::SearchLimits expired;
+    expired.depth = 1;
+    expired.movetime_ms = 60000;
+    expired.request_start = expired_start;
+    forge::SearchInfo info = searcher.search(board, expired);
+    check(legal_result(info) && info.nodes == 0 && info.depth == 0,
+          "dispatch time consumes movetime before any search nodes");
+    check(info.elapsed_ms >= 7200000, "elapsed time includes time since the search request");
+
+    expired.movetime_ms = -1;
+    expired.time_ms = 60000;
+    info = searcher.search(board, expired);
+    check(legal_result(info) && info.nodes == 0 && info.depth == 0,
+          "dispatch time consumes the sudden-death clock budget");
+    expired.moves_to_go = 30;
+    info = searcher.search(board, expired);
+    check(legal_result(info) && info.nodes == 0 && info.depth == 0,
+          "dispatch time consumes the moves-to-go clock budget");
+
+    expired.search_moves_specified = true;
+    expired.search_moves.push_back(*board.parse_uci("e2e4"));
+    info = searcher.search(board, expired);
+    check(forge::Board::move_to_uci(info.best_move) == "e2e4" && info.nodes == 0,
+          "an expired request respects the legal root restriction");
+    expired.search_moves_specified = false;
+    expired.search_moves.clear();
+
+    forge::SharedSearchState helper_shared(1);
+    forge::Worker helper(helper_shared, 1);
+    const std::vector<forge::Worker*> helpers{&helper};
+    forge::SearchLimits helper_warmup;
+    helper_warmup.depth = 1;
+    (void)helper.search(board, helper_warmup, false, helpers);
+    check(helper.nodes() > 0, "the helper warmup visits search nodes");
+    info = helper.search(board, expired, false, helpers);
+    check(legal_result(info) && info.nodes == 0 && helper.nodes() == 0,
+          "an expired helper resets old node counts without searching");
+
+    searcher.set_threads(4);
+    info = searcher.search(board, expired);
+    check(legal_result(info) && info.nodes == 0 && info.depth == 0,
+          "helpers do not search an already-expired request");
+    searcher.set_threads(1);
+
+    forge::SearchLimits ponder;
+    ponder.depth = 1;
+    ponder.movetime_ms = 60000;
+    ponder.ponder = true;
+    ponder.request_start = expired_start;
+    searcher.reset_stop();
+    info = searcher.search(board, ponder);
+    check(legal_result(info) && info.nodes > 0 && info.depth == 1,
+          "an old request does not expire pondering before ponderhit");
+    searcher.reset_stop();
+    searcher.ponderhit();
+    info = searcher.search(board, ponder);
+    check(legal_result(info) && info.nodes > 0 && info.depth == 1,
+          "ponderhit starts the clock instead of reusing the old request time");
+    searcher.reset_stop();
+    forge::SearcherTestProbe::ponderhit_at(searcher, expired_start);
+    ponder.request_start = Clock::now();
+    info = searcher.search(board, ponder);
+    check(legal_result(info) && info.nodes == 0 && info.depth == 0,
+          "an expired ponderhit budget takes precedence over a fresh request time");
+
+    searcher.reset_stop();
+    forge::SearchLimits limits;
+    limits.depth = 1;
+    limits.movetime_ms = 60000;
+    info = searcher.search(board, limits);
+    check(legal_result(info) && info.nodes > 0 && info.depth == 1,
+          "programmatic timed searches start a fresh clock when no request timestamp is given");
+    limits.request_start = expired_start;
+    limits.infinite = true;
+    limits.movetime_ms = 1;
+    info = searcher.search(board, limits);
+    check(legal_result(info) && info.nodes > 0 && info.depth == 1,
+          "infinite search ignores elapsed request time and movetime");
+    limits.infinite = false;
+    limits.movetime_ms = -1;
+    limits.nodes_specified = true;
+    limits.nodes = 1;
+    info = searcher.search(board, limits);
+    check(legal_result(info) && info.nodes == 1,
+          "a fixed node budget ignores an old request timestamp when no clock is given");
 }
 
 void test_threads() {
@@ -464,21 +670,21 @@ void test_nnue() {
 
 void test_transposition_table() {
     forge::TranspositionTable tt(1);
-    bool hit = true;
-    forge::TTEntry* entry = tt.probe(0x123456789abcdefULL, hit);
-    check(!hit && entry != nullptr, "empty table misses");
-    tt.store(entry, 0x123456789abcdefULL, 123, 45, forge::Move{12, 28, 0, 0}, 7, forge::BoundExact, true);
-    entry = tt.probe(0x123456789abcdefULL, hit);
-    check(hit && entry->score == 123 && entry->eval == 45 && entry->depth == 7 && entry->bound() == forge::BoundExact &&
-              entry->pv() && entry->move == forge::Move{12, 28, 0, 0},
+    auto probe = tt.probe(0x123456789abcdefULL);
+    check(!probe.hit, "empty table misses");
+    tt.store(probe, 0x123456789abcdefULL, 123, 45, forge::Move{12, 28, 0, 0}, 7, forge::BoundExact, true, 0);
+    probe = tt.probe(0x123456789abcdefULL);
+    const auto& entry = probe.entry;
+    check(probe.hit && entry.score == 123 && entry.eval == 45 && entry.depth == 7 && entry.bound() == forge::BoundExact &&
+              entry.pv() && entry.move == forge::Move{12, 28, 0, 0},
           "stored entry is retrieved intact");
-    tt.store(entry, 0x123456789abcdefULL, 50, 45, forge::Move::none(), 2, forge::BoundUpper, false);
-    entry = tt.probe(0x123456789abcdefULL, hit);
-    check(hit && entry->depth == 7 && entry->move == forge::Move{12, 28, 0, 0},
+    tt.store(probe, 0x123456789abcdefULL, 50, 45, forge::Move::none(), 2, forge::BoundUpper, false, 0);
+    probe = tt.probe(0x123456789abcdefULL);
+    check(probe.hit && probe.entry.depth == 7 && probe.entry.move == forge::Move{12, 28, 0, 0},
           "a much shallower bound does not overwrite a deep exact entry in the same search");
     tt.clear();
-    entry = tt.probe(0x123456789abcdefULL, hit);
-    check(!hit, "clear empties the table");
+    probe = tt.probe(0x123456789abcdefULL);
+    check(!probe.hit, "clear empties the table");
 }
 
 void test_transposition_tag_independence() {
@@ -497,16 +703,14 @@ void test_transposition_tag_independence() {
         for (const auto& keys : groups) {
             tt.clear();
             for (std::size_t i = 0; i < keys.size(); ++i) {
-                bool hit = true;
-                forge::TTEntry* entry = tt.probe(keys[i], hit);
-                check(!hit, "TT tag distinguishes keys sharing index bits before store");
+                const auto entry = tt.probe(keys[i]);
+                check(!entry.hit, "TT tag distinguishes keys sharing index bits before store");
                 tt.store(entry, keys[i], 100 + static_cast<int>(i), 45,
-                         forge::Move{12, 28, 0, 0}, 7, forge::BoundExact, true);
+                         forge::Move{12, 28, 0, 0}, 7, forge::BoundExact, true, 0);
             }
             for (std::size_t i = 0; i < keys.size(); ++i) {
-                bool hit = false;
-                const forge::TTEntry* entry = tt.probe(keys[i], hit);
-                check(hit && entry->score == 100 + static_cast<int>(i),
+                const auto entry = tt.probe(keys[i]);
+                check(entry.hit && entry.entry.score == 100 + static_cast<int>(i),
                       "TT colliding-cluster entries retain their own scores");
             }
         }
@@ -524,6 +728,9 @@ int main() {
     test_transposition_table();
     test_transposition_tag_independence();
     test_search();
+    test_search_stalemate();
+    test_search_promotions();
+    test_search_request_time();
     test_threads();
     test_nnue();
     if (failures == 0) {

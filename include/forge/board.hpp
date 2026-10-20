@@ -103,8 +103,8 @@ public:
     [[nodiscard]] std::string fen() const;
 
     // Move generation. Pseudo-legal moves may leave the own king in check;
-    // is_legal() filters them. Captures-only generation also includes queen
-    // promotions, so quiescence search sees every material-changing move.
+    // is_legal() filters them. Captures-only generation also includes every
+    // quiet promotion, so search sees every material-changing move.
     [[nodiscard]] MoveList pseudo_legal_moves(bool captures_only = false) const;
     void generate_pseudo_legal(MoveList& moves, bool captures_only) const;
     [[nodiscard]] MoveList legal_moves(bool captures_only = false) const;

@@ -1,0 +1,32 @@
+{
+  "created_utc": "2026-10-19T21:01:47.506569+00:00",
+  "source_and_tests_commit": "4e15dea025c4b1ced9cbb5c9000a0cb627edcf15",
+  "source_directory": "/workspace/.cloud-setup/forge-windows-qsearch-query-source",
+  "build_directory": "/workspace/.cloud-setup/forge-windows-qsearch-query",
+  "commands": [
+    [
+      "/workspace/.cloud-setup/venv/bin/cmake",
+      "-S",
+      "/workspace/.cloud-setup/forge-windows-qsearch-query-source",
+      "-B",
+      "/workspace/.cloud-setup/forge-windows-qsearch-query",
+      "-DCMAKE_BUILD_TYPE=Release",
+      "-DCMAKE_TOOLCHAIN_FILE=/workspace/.cloud-setup/forge-windows-qsearch-query-source/tools/windows-zen5.cmake"
+    ],
+    [
+      "/workspace/.cloud-setup/venv/bin/cmake",
+      "--build",
+      "/workspace/.cloud-setup/forge-windows-qsearch-query",
+      "--parallel",
+      "2"
+    ]
+  ],
+  "environment_subset": {
+    "LLVM_MINGW_ROOT": "/workspace/.cloud-setup/toolchains/llvm-mingw-20261006-ucrt-ubuntu-22.04-x86_64",
+    "PYTHONDONTWRITEBYTECODE": "1"
+  },
+  "configuration": "Release -march=znver5 -mtune=znver5 -fno-fast-math -ffp-contract=off -static",
+  "parallel_jobs": 2,
+  "runtime_checks": "pending",
+  "scope": "Build only; no performance/strength result"
+}

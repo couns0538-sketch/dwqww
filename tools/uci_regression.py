@@ -200,9 +200,14 @@ def main():
         move, lines = e.search("go mate 1")
         assert move == "e1e8" and any("score mate 1" in line for line in lines)
         passed.append("mate in one")
-        e.position("fen 4k3/P7/8/8/8/8/8/4K3 w - - 0 1")
-        assert e.search("go depth 2 searchmoves a7a8n")[0] == "a7a8n"
-        passed.append("underpromotion restriction")
+        e.position("fen 8/k1P5/2K5/8/8/8/8/8 w - - 0 1")
+        move, lines = e.search("go depth 1 searchmoves c7c8r")
+        depth1 = [line for line in lines if line.startswith("info depth 1 ")]
+        assert move == "c7c8r" and depth1, lines
+        assert all(re.search(r"\bpv c7c8r(?:\s|$)", line) for line in depth1), lines
+        scores = [re.search(r"\bscore cp (-?\d+)\b", line) for line in depth1]
+        assert all(score and int(score[1]) > 100 for score in scores), lines
+        passed.append("underpromotion is searched and avoids stalemate")
         e.position("fen 4k3/8/8/3pP3/8/8/8/4K3 w - d6 0 1")
         assert e.search("go depth 2 searchmoves e5d6")[0] == "e5d6"
         e.position("fen k3r3/8/8/3pP3/8/8/8/4K3 w - d6 0 1")

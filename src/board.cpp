@@ -341,11 +341,9 @@ void Board::generate_pseudo_legal(MoveList& moves, bool captures_only) const {
     auto push_promotions = [&](int from, int to, std::uint8_t flags) {
         moves.push_back(Move{static_cast<std::uint8_t>(from), static_cast<std::uint8_t>(to), Queen,
                              static_cast<std::uint8_t>(flags | Promotion)});
-        if (!captures_only) {
-            for (const int promotion : {Rook, Bishop, Knight}) {
-                moves.push_back(Move{static_cast<std::uint8_t>(from), static_cast<std::uint8_t>(to), static_cast<std::uint8_t>(promotion),
-                                     static_cast<std::uint8_t>(flags | Promotion)});
-            }
+        for (const int promotion : {Rook, Bishop, Knight}) {
+            moves.push_back(Move{static_cast<std::uint8_t>(from), static_cast<std::uint8_t>(to), static_cast<std::uint8_t>(promotion),
+                                 static_cast<std::uint8_t>(flags | Promotion)});
         }
     };
 
@@ -462,6 +460,16 @@ MoveList Board::legal_moves(bool captures_only) const {
 }
 
 bool Board::has_legal_move() const {
+    // A single legal quiet pawn push proves non-terminal without generating
+    // the full move list. Promotions and every failed witness use the original
+    // complete fallback; exact king-safety testing handles checks and pins.
+    const Bitboard pushes = pawn_push(side_, pieces(side_, Pawn)) & ~occupied() & ~(Rank1BB | Rank8BB);
+    if (pushes != 0) {
+        const int to = lsb(pushes);
+        const Move witness{static_cast<std::uint8_t>(to - pawn_push_delta(side_)),
+                           static_cast<std::uint8_t>(to), 0, Quiet};
+        if (is_legal(witness)) return true;
+    }
     MoveList moves;
     generate_pseudo_legal(moves, false);
     for (const Move move : moves) {

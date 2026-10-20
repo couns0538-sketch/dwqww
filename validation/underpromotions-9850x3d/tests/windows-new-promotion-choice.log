@@ -1,0 +1,36 @@
+> uci
+< id name Chess Engine Forge 6.4.2 candidate
+< id author OpenAI
+< option name Hash type spin default 32 min 1 max 2048
+< option name Threads type spin default 1 min 1 max 256
+< option name Move Overhead type spin default 10 min 0 max 1000
+< option name Ponder type check default false
+< option name OwnBook type check default true
+< option name Book File type string default <empty>
+< option name Book Depth type spin default 30 min 0 max 100
+< option name Book Variety type spin default 30 min 0 max 100
+< option name UseNNUE type check default true
+< option name Clear Hash type button
+< uciok
+> setoption name OwnBook value false
+> isready
+< readyok
+> ucinewgame
+> isready
+< readyok
+> position fen 8/k1P5/2K5/8/8/8/8/8 w - - 0 1
+> isready
+< readyok
+> go depth 1 searchmoves c7c8q c7c8r c7c8b c7c8n
+< info depth 1 seldepth 1 score cp 467 nodes 6 nps 333 hashfull 0 time 18 pv c7c8r
+< bestmove c7c8r
+> ucinewgame
+> isready
+< readyok
+> position fen 8/8/8/8/8/2k5/K1p5/8 b - - 0 1
+> isready
+< readyok
+> go depth 1 searchmoves c2c1q c2c1r c2c1b c2c1n
+< info depth 1 seldepth 1 score cp 467 nodes 6 nps 750 hashfull 0 time 8 pv c2c1r
+< bestmove c2c1r
+> quit

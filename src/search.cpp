@@ -182,45 +182,65 @@ void tune::refresh() { Reductions.refresh(); }
 
 void TranspositionTable::resize(std::size_t mb) {
     const std::size_t bytes = std::max<std::size_t>(1, mb) * 1024U * 1024U;
-    cluster_count_ = std::max<std::size_t>(1, bytes / sizeof(TTCluster));
-    clusters_ = std::make_unique<TTCluster[]>(cluster_count_);
+    const std::size_t new_count = std::max<std::size_t>(1, bytes / sizeof(TTCluster));
+    auto new_clusters = std::make_unique<TTCluster[]>(new_count);
+    clusters_ = std::move(new_clusters);
+    cluster_count_ = new_count;
     generation_ = 0;
+    ++epoch_;
 }
 
 void TranspositionTable::clear() {
     for (std::size_t i = 0; i < cluster_count_; ++i) clusters_[i] = TTCluster{};
     generation_ = 0;
+    ++epoch_;
 }
 
-TTEntry* TranspositionTable::probe(std::uint64_t key, bool& hit) {
-    TTCluster& cluster = cluster_for(key);
+TTProbe TranspositionTable::probe(std::uint64_t key) const {
+    const TTCluster& cluster = cluster_for(key);
+    const std::size_t index = static_cast<std::size_t>(&cluster - clusters_.get());
+    const std::lock_guard<std::mutex> lock(stripes_[index % StripeCount].mutex);
+    auto snapshot = [&](const TTEntry& entry, bool hit) {
+        TTProbe result;
+        result.entry = entry;
+        result.hit = hit;
+        result.owner_ = this;
+        result.cluster_ = index;
+        result.slot_ = static_cast<std::uint8_t>(&entry - cluster.entries.data());
+        result.epoch_ = epoch_;
+        result.key_ = key;
+        return result;
+    };
     const std::uint32_t key32 = verification_key(key);
-    for (TTEntry& entry : cluster.entries) {
-        if (entry.key32 == key32 && entry.occupied()) {
-            hit = true;
-            return &entry;
-        }
+    for (const TTEntry& entry : cluster.entries) {
+        if (entry.key32 == key32 && entry.occupied()) return snapshot(entry, true);
     }
-    hit = false;
-    TTEntry* replace = &cluster.entries[0];
+    const TTEntry* replace = &cluster.entries[0];
     auto relative_age = [this](const TTEntry& entry) {
         return static_cast<int>((32 + generation_ - entry.generation()) & 31U);
     };
-    for (TTEntry& entry : cluster.entries) {
-        if (!entry.occupied()) return &entry;
+    for (const TTEntry& entry : cluster.entries) {
+        if (!entry.occupied()) return snapshot(entry, false);
         if (entry.depth - 4 * relative_age(entry) < replace->depth - 4 * relative_age(*replace)) replace = &entry;
     }
-    return replace;
+    return snapshot(*replace, false);
 }
 
-void TranspositionTable::store(TTEntry* entry, std::uint64_t key, int score, int eval, Move move, int depth,
-                               Bound bound, bool pv) {
+void TranspositionTable::store(const TTProbe& probe, std::uint64_t key, int score, int eval, Move move, int depth,
+                               Bound bound, bool pv, std::uint16_t halfmove_clock) {
+    // Reject default, foreign or lifecycle-stale handles without touching storage.
+    // Lifecycle operations themselves must not run concurrently with search.
+    if (probe.owner_ != this || probe.epoch_ != epoch_ || probe.key_ != key ||
+        probe.cluster_ >= cluster_count_ || probe.slot_ >= 4) return;
+    const std::lock_guard<std::mutex> lock(stripes_[probe.cluster_ % StripeCount].mutex);
+    TTEntry* entry = &clusters_[probe.cluster_].entries[probe.slot_];
     const std::uint32_t key32 = verification_key(key);
     const bool same_position = entry->key32 == key32 && entry->occupied();
     if (!move.is_none() || !same_position) entry->move = move;
     if (bound == BoundExact || !same_position || depth + 4 > entry->depth || entry->generation() != generation_) {
         entry->key32 = key32;
         entry->score = static_cast<std::int16_t>(std::clamp(score, -32767, 32767));
+        entry->rule50_clock = static_cast<std::uint8_t>(std::min<int>(halfmove_clock, 100));
         entry->eval = static_cast<std::int16_t>(std::clamp(eval, -32767, 32767));
         entry->depth = static_cast<std::uint8_t>(std::clamp(depth, 0, 255));
         entry->gen_bound = static_cast<std::uint8_t>((static_cast<unsigned>(generation_) << 3U) | (pv ? 4U : 0U) | static_cast<unsigned>(bound));
@@ -231,6 +251,7 @@ int TranspositionTable::hashfull() const {
     int count = 0;
     const std::size_t sample = std::min<std::size_t>(1000, cluster_count_);
     for (std::size_t i = 0; i < sample; ++i) {
+        const std::lock_guard<std::mutex> lock(stripes_[i % StripeCount].mutex);
         for (const TTEntry& entry : clusters_[i].entries) {
             if (entry.occupied() && entry.generation() == generation_) ++count;
         }
@@ -263,16 +284,6 @@ public:
                 counter_ = (*searcher_.counter_moves_)[static_cast<std::size_t>(previous->moved_piece)][previous->current_move.to];
             }
         }
-        // Squares from which each piece type would give direct check.
-        const Color them = opposite(board.side_to_move());
-        const int enemy_king = board.king_square(them);
-        const Bitboard occupancy = board.occupied();
-        check_squares_[Pawn] = attacks::pawn(them, enemy_king);
-        check_squares_[Knight] = attacks::knight(enemy_king);
-        check_squares_[Bishop] = attacks::bishop(enemy_king, occupancy);
-        check_squares_[Rook] = attacks::rook(enemy_king, occupancy);
-        check_squares_[Queen] = check_squares_[Bishop] | check_squares_[Rook];
-        check_squares_[King] = 0;
     }
 
     [[nodiscard]] Move next(bool skip_quiets) {
@@ -389,6 +400,19 @@ private:
     bool sorted_ = false;
     std::array<Bitboard, 7> check_squares_{};
 
+    // Quiet/evasion generation are mutually exclusive stages, each reached at most once.
+    void init_check_squares() {
+        const Color them = opposite(board_.side_to_move());
+        const int enemy_king = board_.king_square(them);
+        const Bitboard occupancy = board_.occupied();
+        check_squares_[Pawn] = attacks::pawn(them, enemy_king);
+        check_squares_[Knight] = attacks::knight(enemy_king);
+        check_squares_[Bishop] = attacks::bishop(enemy_king, occupancy);
+        check_squares_[Rook] = attacks::rook(enemy_king, occupancy);
+        check_squares_[Queen] = check_squares_[Bishop] | check_squares_[Rook];
+        check_squares_[King] = 0;
+    }
+
     [[nodiscard]] bool direct_check(Move move) const {
         const int type = piece_type(board_.moved_piece(move));
         return (check_squares_[static_cast<std::size_t>(type)] & square_bb(move.to)) != 0;
@@ -439,6 +463,7 @@ private:
     }
 
     void generate_quiets() {
+        init_check_squares();
         buffer_.clear();
         board_.generate_pseudo_legal(buffer_, false);
         index_ = 0;
@@ -453,6 +478,7 @@ private:
     }
 
     void generate_evasions() {
+        init_check_squares();
         buffer_.clear();
         board_.generate_pseudo_legal(buffer_, false);
         index_ = 0;
@@ -598,7 +624,10 @@ bool Worker::is_draw(const Board& board, int ply) const {
         // Checkmate on the hundredth half-move still wins; everything else is a draw.
         return !board.in_check() || board.has_legal_move();
     }
-    return board.is_repetition(root_history_index_) || board.is_insufficient_material();
+    // Detect stalemate before TT cutoffs, stand pat or forward pruning can
+    // replace its terminal draw score with a material evaluation.
+    return board.is_repetition(root_history_index_) || board.is_insufficient_material() ||
+           (!board.in_check() && !board.has_legal_move());
 }
 
 int Worker::quiet_history(const Board& board, const SearchStack* ss, Move move) const {
@@ -683,12 +712,14 @@ int Worker::qsearch(Board& board, SearchStack* ss, int alpha, int beta) {
     const bool in_check = board.in_check();
     ss->in_check = in_check;
 
-    bool tt_hit = false;
-    TTEntry* tte = shared_.tt.probe(board.key(), tt_hit);
-    const Move tt_move = tt_hit ? tte->move : Move::none();
-    const int tt_score = tt_hit ? score_from_tt(tte->score, ply) : ValueNone;
-    const Bound tt_bound = tt_hit ? tte->bound() : BoundNone;
-    const bool tt_pv = pv_node || (tt_hit && tte->pv());
+    const TTProbe tt_probe = shared_.tt.probe(board.key());
+    const bool tt_hit = tt_probe.hit;
+    const TTEntry& tte = tt_probe.entry;
+    const Move tt_move = tt_hit ? tte.move : Move::none();
+    const int tt_score = tt_hit && tte.score_usable(board.halfmove_clock())
+                             ? score_from_tt(tte.score, ply) : ValueNone;
+    const Bound tt_bound = tt_hit ? tte.bound() : BoundNone;
+    const bool tt_pv = pv_node || (tt_hit && tte.pv());
     if (!pv_node && tt_hit && tt_score != ValueNone &&
         (tt_bound == BoundExact || (tt_bound == BoundLower && tt_score >= beta) ||
          (tt_bound == BoundUpper && tt_score <= alpha))) {
@@ -702,7 +733,7 @@ int Worker::qsearch(Board& board, SearchStack* ss, int alpha, int beta) {
         best_score = futility_base = -Infinite;
     } else {
         int eval;
-        if (tt_hit && tte->eval != ValueNone) ss->raw_eval = tte->eval;
+        if (tt_hit && tte.eval != ValueNone) ss->raw_eval = tte.eval;
         else ss->raw_eval = static_evaluate(board, ss);
         eval = ss->static_eval = corrected_eval(board, ss->raw_eval);
         if (tt_hit && tt_score != ValueNone &&
@@ -712,7 +743,7 @@ int Worker::qsearch(Board& board, SearchStack* ss, int alpha, int beta) {
         }
         best_score = eval;
         if (best_score >= beta) {
-            if (!tt_hit) shared_.tt.store(tte, board.key(), score_to_tt(best_score, ply), ss->raw_eval, Move::none(), 0, BoundLower, false);
+            if (!tt_hit) shared_.tt.store(tt_probe, board.key(), score_to_tt(best_score, ply), ss->raw_eval, Move::none(), 0, BoundLower, false, board.halfmove_clock());
             return best_score;
         }
         if (best_score > alpha) alpha = best_score;
@@ -726,8 +757,8 @@ int Worker::qsearch(Board& board, SearchStack* ss, int alpha, int beta) {
     while (!(move = picker.next(false)).is_none()) {
         if (!board.is_legal(move)) continue;
         ++move_count;
-        const bool gives_check = board.gives_check(move);
         if (!in_check && best_score > -MateInMaxPly) {
+            const bool gives_check = board.gives_check(move);
             // Futility: even winning the captured piece cannot raise alpha.
             if (!gives_check && !move.is_promotion() && futility_base + capture_value(board, move) <= alpha) {
                 best_score = std::max(best_score, futility_base + capture_value(board, move));
@@ -763,7 +794,7 @@ int Worker::qsearch(Board& board, SearchStack* ss, int alpha, int beta) {
     if (in_check && move_count == 0) return mated_in(ply);
 
     const Bound bound = best_score >= beta ? BoundLower : (pv_node && !best_move.is_none() ? BoundExact : BoundUpper);
-    shared_.tt.store(tte, board.key(), score_to_tt(best_score, ply), in_check ? ValueNone : ss->raw_eval, best_move, 0, bound, tt_pv);
+    shared_.tt.store(tt_probe, board.key(), score_to_tt(best_score, ply), in_check ? ValueNone : ss->raw_eval, best_move, 0, bound, tt_pv, board.halfmove_clock());
     return best_score;
 }
 
@@ -801,14 +832,16 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
     (ss + 2)->killers = {};
 
     // Transposition table probe.
-    bool tt_hit = false;
-    TTEntry* tte = shared_.tt.probe(board.key(), tt_hit);
-    const Move tt_move = tt_hit ? tte->move : Move::none();
-    const int tt_score = tt_hit ? score_from_tt(tte->score, ply) : ValueNone;
-    const int tt_depth = tt_hit ? tte->depth : -1;
-    const Bound tt_bound = tt_hit ? tte->bound() : BoundNone;
+    const TTProbe tt_probe = shared_.tt.probe(board.key());
+    const bool tt_hit = tt_probe.hit;
+    const TTEntry& tte = tt_probe.entry;
+    const Move tt_move = tt_hit ? tte.move : Move::none();
+    const int tt_score = tt_hit && tte.score_usable(board.halfmove_clock())
+                             ? score_from_tt(tte.score, ply) : ValueNone;
+    const int tt_depth = tt_hit ? tte.depth : -1;
+    const Bound tt_bound = tt_hit ? tte.bound() : BoundNone;
     const bool tt_capture = !tt_move.is_none() && tt_move.is_capture();
-    ss->tt_pv = pv_node || (tt_hit && tte->pv());
+    ss->tt_pv = pv_node || (tt_hit && tte.pv());
 
     if (!pv_node && excluded.is_none() && tt_hit && tt_score != ValueNone && tt_depth >= depth &&
         board.halfmove_clock() < 90 &&
@@ -824,7 +857,7 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
     } else if (!excluded.is_none()) {
         eval = ss->static_eval;
     } else {
-        if (tt_hit && tte->eval != ValueNone) ss->raw_eval = tte->eval;
+        if (tt_hit && tte.eval != ValueNone) ss->raw_eval = tte.eval;
         else ss->raw_eval = static_evaluate(board, ss);
         eval = ss->static_eval = corrected_eval(board, ss->raw_eval);
         if (tt_hit && tt_score != ValueNone &&
@@ -912,7 +945,7 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
                 board.unmake_move(move, undo);
                 if (aborted_) return 0;
                 if (value >= probcut_beta) {
-                    shared_.tt.store(tte, board.key(), score_to_tt(value, ply), ss->raw_eval, move, depth - 3, BoundLower, ss->tt_pv);
+                    shared_.tt.store(tt_probe, board.key(), score_to_tt(value, ply), ss->raw_eval, move, depth - 3, BoundLower, ss->tt_pv, board.halfmove_clock());
                     return value;
                 }
             }
@@ -1012,6 +1045,12 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
         (void)board.make_move(move, undo);
         shared_.tt.prefetch(board.key());
         const std::uint64_t nodes_before = local_nodes_;
+        std::size_t root_effort_index = 0;
+        if (root_node) {
+            const auto root_effort_end = root_effort_moves_.begin() + static_cast<std::ptrdiff_t>(root_effort_count_);
+            root_effort_index = static_cast<std::size_t>(std::find(root_effort_moves_.begin(), root_effort_end, move) - root_effort_moves_.begin());
+            assert(root_effort_index < root_effort_count_);
+        }
 
         int score = -Infinite;
         bool full_depth_needed = !pv_node || move_count > 1;
@@ -1045,7 +1084,8 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
         }
         board.unmake_move(move, undo);
         if (aborted_) return 0;
-        if (root_node) root_move_nodes_[static_cast<std::size_t>(move_count - 1)] += local_nodes_ - nodes_before;
+        if (root_node && root_effort_index < root_effort_count_)
+            root_move_nodes_[root_effort_index] += local_nodes_ - nodes_before;
 
         if (score > best_score) {
             best_score = score;
@@ -1056,7 +1096,6 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
                     std::copy_n((ss + 1)->pv.begin(), (ss + 1)->pv_length, ss->pv.begin() + 1);
                     ss->pv_length = (ss + 1)->pv_length + 1;
                 }
-                if (root_node) root_best_index_ = move_count - 1;
                 if (score >= beta) {
                     ++ss->cutoff_count;
                     break;
@@ -1092,7 +1131,7 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
 
     const Bound bound = best_score >= beta ? BoundLower : (pv_node && !best_move.is_none() ? BoundExact : BoundUpper);
     if (excluded.is_none() && !(root_node && root_restricted_)) {
-        shared_.tt.store(tte, board.key(), score_to_tt(best_score, ply), ss->raw_eval, best_move, depth, bound, ss->tt_pv);
+        shared_.tt.store(tt_probe, board.key(), score_to_tt(best_score, ply), ss->raw_eval, best_move, depth, bound, ss->tt_pv, board.halfmove_clock());
     }
     // Teach the static evaluation about this pawn structure when the search
     // result is a usable bound in the direction of the difference.
@@ -1109,7 +1148,8 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
 // Iterative deepening driver
 
 SearchInfo Worker::search(Board board, const SearchLimits& limits, bool emit_info, const std::vector<Worker*>& all) {
-    start_ = std::chrono::steady_clock::now();
+    start_ = limits.request_start == std::chrono::steady_clock::time_point{}
+        ? std::chrono::steady_clock::now() : limits.request_start;
     local_nodes_ = 0;
     nodes_.store(0, std::memory_order_relaxed);
     all_workers_ = &all;
@@ -1151,12 +1191,6 @@ SearchInfo Worker::search(Board board, const SearchLimits& limits, bool emit_inf
         hard_limit_ms_ = std::max<std::int64_t>(1, std::min(hard, available));
         time_managed_ = true;
     }
-    if (!is_main()) {
-        // Helpers run until the main thread stops them.
-        soft_limit_ms_ = hard_limit_ms_ = 0;
-        time_managed_ = false;
-    }
-
     SearchInfo result;
     const MoveList legal = board.legal_moves();
     MoveList root_candidates;
@@ -1216,6 +1250,20 @@ SearchInfo Worker::search(Board board, const SearchLimits& limits, bool emit_inf
         return result;
     }
 
+    // Dispatch and root setup may already have consumed the entire budget.
+    // Check helpers too before they switch to the main worker's stop signal.
+    if (hard_limit_ms_ > 0 && elapsed_ms() >= hard_limit_ms_) {
+        result.best_move = root_candidates.front();
+        result.elapsed_ms = static_cast<std::uint64_t>(std::chrono::duration_cast<std::chrono::milliseconds>(
+            std::chrono::steady_clock::now() - start_).count());
+        return result;
+    }
+    if (!is_main()) {
+        // Helpers run until the main thread stops them.
+        soft_limit_ms_ = hard_limit_ms_ = 0;
+        time_managed_ = false;
+    }
+
     for (SearchStack& ss : stack_) {
         ss.pv_length = 0;
         ss.current_move = Move::none();
@@ -1236,8 +1284,10 @@ SearchInfo Worker::search(Board board, const SearchLimits& limits, bool emit_inf
     int stable_iterations = 0;
     int score = 0;
     int previous_score = ValueNone;
+    root_effort_count_ = root_candidates.size();
+    assert(root_effort_count_ <= root_effort_moves_.size());
+    std::copy(root_candidates.begin(), root_candidates.end(), root_effort_moves_.begin());
     root_move_nodes_.fill(0);
-    root_best_index_ = -1;
     for (int depth = 1; depth <= max_depth; ++depth) {
         root_depth_ = depth;
         int delta = tune::AspirationDelta;
@@ -1300,10 +1350,14 @@ SearchInfo Worker::search(Board board, const SearchLimits& limits, bool emit_inf
             else if (stable_iterations == 0 && depth >= 6) factor = tune::TmUnstableFactor / 100.0;
             // A best move that absorbed most of the effort is clearly best;
             // spend longer when the alternatives still draw attention.
-            if (root_best_index_ >= 0 && local_nodes_ > 0 && depth >= 6) {
-                const double effort = static_cast<double>(root_move_nodes_[static_cast<std::size_t>(root_best_index_)]) /
-                                      static_cast<double>(local_nodes_);
-                factor *= std::clamp(tune::TmEffortBase / 100.0 - effort, 0.6, 1.4);
+            if (local_nodes_ > 0 && depth >= 6) {
+                const auto effort_end = root_effort_moves_.begin() + static_cast<std::ptrdiff_t>(root_effort_count_);
+                const auto best_effort = std::find(root_effort_moves_.begin(), effort_end, result.best_move);
+                if (best_effort != effort_end) {
+                    const auto index = static_cast<std::size_t>(best_effort - root_effort_moves_.begin());
+                    const double effort = static_cast<double>(root_move_nodes_[index]) / static_cast<double>(local_nodes_);
+                    factor *= std::clamp(tune::TmEffortBase / 100.0 - effort, 0.6, 1.4);
+                }
             }
             // A falling evaluation deserves more thought.
             if (iteration_previous_score != ValueNone && !is_mate_score(score) && score < iteration_previous_score) {
@@ -1354,6 +1408,10 @@ void Searcher::clear() {
 }
 
 SearchInfo Searcher::search(Board board, const SearchLimits& limits, bool emit_info) {
+    const auto request_start = limits.request_start == std::chrono::steady_clock::time_point{}
+        ? std::chrono::steady_clock::now() : limits.request_start;
+    SearchLimits worker_limits = limits;
+    worker_limits.request_start = request_start;
     std::vector<Worker*> all;
     all.reserve(workers_.size());
     for (auto& worker : workers_) all.push_back(worker.get());
@@ -1361,9 +1419,11 @@ SearchInfo Searcher::search(Board board, const SearchLimits& limits, bool emit_i
     shared_.tt.new_search();
     std::vector<std::thread> helpers;
     for (std::size_t i = 1; i < workers_.size(); ++i) {
-        helpers.emplace_back([this, i, board, &limits, &all]() { (void)workers_[i]->search(board, limits, false, all); });
+        helpers.emplace_back([this, i, board, &worker_limits, &all]() {
+            (void)workers_[i]->search(board, worker_limits, false, all);
+        });
     }
-    SearchInfo result = workers_.front()->search(board, limits, emit_info, all);
+    SearchInfo result = workers_.front()->search(board, worker_limits, emit_info, all);
     // Wind down the helpers without clobbering an externally requested stop.
     const bool external_stop = shared_.stop.load(std::memory_order_relaxed);
     shared_.stop.store(true, std::memory_order_relaxed);

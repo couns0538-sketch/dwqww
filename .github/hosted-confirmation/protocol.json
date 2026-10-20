@@ -1,0 +1,22 @@
+{
+  "schema_version": 1,
+  "status": "PREREGISTERED_REVIEWED_READY_FOR_SINGLE_PUSH",
+  "baseline_sha": "816423b1ddac23a00244449deef59dba736055a9",
+  "candidate_sha": "2c0c7efa49023d8e3f49de3f5596f333a3f01202",
+  "fastchess_sha": "60d7a7a26c6b0582a15c112fb29a1829bef2adb3",
+  "compiler": "GCC 14 C++20",
+  "release_flags": "-O3 -DNDEBUG -march=x86-64-v3 -mtune=generic -fno-fast-math -ffp-contract=off",
+  "seed": 20261020,
+  "calibration": "Same frozen baseline, 2 excluded fresh-process warmups then 3 AA pairs; each bench11 signature419798; 30s entire calibration; both external wall and process CPU median ratio0.95..1.05 and all0.85..1.15; otherwise no games/no retry.",
+  "aa": "4 serial color-swapped pairs, same baseline, 10000nodes tc=inf; exact deterministic normal paired games required; smoke runner has existing maxmoves200 safety limit; operational readiness only.",
+  "sprt": "One prospective uninterrupted serial logistic SPRT H0=0/H1=10 Elo, alpha=beta=.05, tc2+0.02; natural cap160pairs/320games. No outcome screen, reset, resume, retries, pooling, adjudication or maxmoves. The48min wall deadline is an emergency failure guard, never an acceptance stop.",
+  "engine_options": "Threads1 Hash32 OwnBookfalse MoveOverhead10 restarton; Ponderfalse is verified runtime default, not an explicit frozen-runner option.",
+  "scope": "Native hosted Linux only; exact6.4.7 versus6.4.4 sources. No6.4.8/6.4.9, native Windows/Ryzen or Stockfish inference. H1 is conditional evidence against H0 under this protocol, not proof of a +10 Elo minimum. Cap/no boundary is inconclusive.",
+  "preservation": "Keep every original PGN/log/failed UCI exchange and incomplete record without trimming; archive actual baseline/candidate forge and libforge_core.a plus actual Fastchess bytes before timing. Final input rehash runs in finally including faults/signals/deadline; missing/changed inputs forbid acceptance. Artifact upload and a new results branch attempted always; hard58minjob loss may prevent cleanup.",
+  "fail_fast": "Poll every0.5s during matches; any non-normal PGN Termination or console/log warning/error stops owned group, preserves raw, and prevents acceptance; no reset.",
+  "source_gates": "Frozen647and644 existing source gates; prelaunch independent review required. Source649OwnBook bug has separate provenance and does not change either frozen comparison source.",
+  "experiment": "hosted-confirmation-20261019-v1",
+  "ownbook_dependency": "Independently reviewed before launch: both frozen647/644 initialize book_file empty and load_embedded; their custom-book override requires !book_file.empty(). The frozen CLI sends OwnBook=false and no Book File option, so this separate649bug path is unreachable here. Both runtime handshakes must also advertise Book File default <empty>.",
+  "independence": "164 new corpus positions (4AA+160SPRT), disjoint from every discovered prior registry and all504 previously frozen hosted positions, including their unused tail. Prior hosted pilot is exploratory context only; no statistical pooling.",
+  "uci_logging": "Pinned Fastchess -log file=fastchess.log level=warn engine=true append=false preserves all engine communication for both sides, with the same logging I/O overhead throughout calibration readiness and strength play. Full raw exchanges are retained; live scanner reads only appended bytes plus incomplete-line tails. Observed output replacement/truncation/deletion invalidates this attempt."
+}

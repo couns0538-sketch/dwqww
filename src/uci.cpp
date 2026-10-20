@@ -154,12 +154,13 @@ int main() {
 
     std::string line;
     while (std::getline(std::cin, line)) {
+        const auto command_start = std::chrono::steady_clock::now();
         std::istringstream input(line);
         std::string command;
         input >> command;
         if (command == "uci") {
             const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex());
-            std::cout << "id name Chess Engine Forge 6.4.0\n"
+            std::cout << "id name Chess Engine Forge 6.4.9 candidate\n"
                          "id author OpenAI\n"
                          "option name Hash type spin default 32 min 1 max 2048\n"
                          "option name Threads type spin default 1 min 1 max 256\n"
@@ -317,12 +318,13 @@ int main() {
                 input.clear();
                 input.seekg(position);
                 forge::SearchLimits limits = parse_limits(input, board);
+                limits.request_start = command_start;
                 limits.move_overhead_ms = move_overhead_ms;
                 // Book moves apply to game play (clock or movetime searches), not
                 // to analysis, pondering or restricted searches.
                 const bool game_search = (limits.time_ms >= 0 || limits.movetime_ms >= 0) && !limits.infinite &&
                                          !limits.ponder && !limits.search_moves_specified && limits.mate_moves == 0;
-                if (game_search && (own_book || !book_file.empty()) && !book.empty() && game_ply(board) < book_depth) {
+                if (game_search && own_book && !book.empty() && game_ply(board) < book_depth) {
                     const forge::Move book_move = book.probe(board, book_variety, book_rng);
                     if (!book_move.is_none()) {
                         std::string prediction;

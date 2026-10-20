@@ -1,0 +1,90 @@
+from pathlib import Path
+import datetime
+import hashlib
+import json
+import os
+import re
+import subprocess
+import sys
+import time
+
+COMMIT='4e15dea025c4b1ced9cbb5c9000a0cb627edcf15'
+SOURCE=Path('/workspace/.cloud-setup/forge-windows-qsearch-query-source')
+BUILD=Path('/workspace/.cloud-setup/forge-windows-qsearch-query')
+BASE=Path('/workspace/.cloud-setup/forge-windows-qsearch-query-evidence')
+OUT=BASE/'runtime-attempt1'
+WINE=Path('/workspace/.cloud-setup/wine/usr/lib/wine/wine64')
+TOOLS=Path('/workspace/.cloud-setup/toolchains/llvm-mingw-20261006-ucrt-ubuntu-22.04-x86_64/bin')
+WRAPPER=Path('/workspace/.cloud-setup/forge-qsearch-query-wine')
+sha=lambda p:hashlib.sha256(p.read_bytes()).hexdigest()
+win=lambda p:'Z:'+str(p).replace('/','\\')
+def write(name,data):(OUT/name).write_text(json.dumps(data,indent=2)+'\n')
+OUT.mkdir(exist_ok=False)
+environment=os.environ.copy();environment.update(WINEPREFIX='/workspace/.cloud-setup/wine-prefix-ready',
+ WINEDEBUG='-all',XDG_CACHE_HOME='/workspace/.cloud-setup/font-cache',PYTHONDONTWRITEBYTECODE='1')
+WRAPPER.write_text('#!/usr/bin/env bash\nexport WINEPREFIX=/workspace/.cloud-setup/wine-prefix-ready\nexport WINEDEBUG=-all\nexport XDG_CACHE_HOME=/workspace/.cloud-setup/font-cache\nexec /workspace/.cloud-setup/wine/usr/lib/wine/wine64 /workspace/.cloud-setup/forge-windows-qsearch-query/forge.exe "$@"\n')
+WRAPPER.chmod(0o755)
+inputs={p.name:p for p in BUILD.glob('*.exe')}
+inputs.update(uci_tool=SOURCE/'tools/uci_regression.py',ponder_tool=SOURCE/'tools/ponder_regression.py',
+ fixtures=SOURCE/'tests/legal_witness_fixtures.tsv',corpus=SOURCE/'tools/openings/forge-10000.epd',
+ wrapper=WRAPPER,wine_loader=WINE,disassembler=TOOLS/'llvm-objdump')
+before={name:sha(path) for name,path in inputs.items()}
+source_before=json.loads((BASE/'source-hashes.json').read_text())
+assert {p.relative_to(SOURCE).as_posix():sha(p) for p in SOURCE.rglob('*') if p.is_file()}==source_before
+commands=[('core',[str(WINE),str(BUILD/'forge_tests.exe')]),
+ ('coherent-tt',[str(WINE),str(BUILD/'forge_tt_tests.exe')]),
+ ('rule50',[str(WINE),str(BUILD/'forge_rule50_tests.exe')]),
+ ('legal-witness',[str(WINE),str(BUILD/'forge_legal_witness_tests.exe'),win(inputs['fixtures']),win(inputs['corpus'])]),
+ ('uci',[sys.executable,str(inputs['uci_tool']),str(WRAPPER),'--log',str(OUT/'uci-transcript.log')]),
+ ('ponder',[sys.executable,str(inputs['ponder_tool']),str(WRAPPER)])]
+bench_command=[str(WINE),str(BUILD/'forge.exe')]
+bench_stdin=b'bench 11\nquit\n';(OUT/'bench-stdin.txt').write_bytes(bench_stdin)
+simd_command=[str(TOOLS/'llvm-objdump'),'-d','--no-show-raw-insn',str(BUILD/'forge.exe')]
+write('protocol.json',{'created_utc':datetime.datetime.now(datetime.timezone.utc).isoformat(),
+ 'source_and_tests_commit':COMMIT,'input_sha256_before':before,'commands':commands,
+ 'bench_command':bench_command,'bench_stdin':bench_stdin.decode(),'bench_hash_mib':16,'bench_threads':1,
+ 'bench_expected_same_platform_parent_nodes':351063,'simd_command':simd_command,
+ 'environment_subset':{k:environment[k] for k in ('WINEPREFIX','WINEDEBUG','XDG_CACHE_HOME','PYTHONDONTWRITEBYTECODE')},
+ 'scope':'Wine functional correctness and bounded node signature only; no performance, Elo or native hardware claim',
+ 'core_perft_cases':{'start_depth4':197281,'kiwipete_depth3':97862,'position3_depth4':43238,
+                    'position4_depth3':9467,'position5_depth3':62379,'position6_depth3':89890}})
+checks=[]
+try:
+    for name,command in commands:
+        started=time.monotonic()
+        with (OUT/(name+'-stdout.log')).open('x') as stdout,(OUT/(name+'-stderr.log')).open('x') as stderr:
+            completed=subprocess.run(command,env=environment,cwd=BUILD,stdout=stdout,stderr=stderr,timeout=300)
+        item={'name':name,'exit_code':completed.returncode,'elapsed_seconds':time.monotonic()-started}
+        checks.append(item);write('progress.json',checks);print(json.dumps(item),flush=True)
+        if completed.returncode:raise RuntimeError(name+' failed')
+    assert 'All8 TT coherence/regression groups passed' in (OUT/'coherent-tt-stdout.log').read_text()
+    rule50=(OUT/'rule50-stdout.log').read_text()
+    assert all(marker in rule50 for marker in ('targeted_regression_failures=0','reverse_q_direct','reverse_q_score_as_eval'))
+    oracle=re.search(r'All (\d+) legal-witness Boolean comparisons passed',(OUT/'legal-witness-stdout.log').read_text())
+    assert oracle and int(oracle[1])>10023
+    with (OUT/'bench-stdout.log').open('xb') as stdout,(OUT/'bench-stderr.log').open('xb') as stderr:
+        completed=subprocess.run(bench_command,input=bench_stdin,env=environment,cwd=BUILD,
+                                 stdout=stdout,stderr=stderr,timeout=300)
+    signature=re.findall(r'^info string bench depth 11 nodes (\d+) time \d+ nps \d+\s*$',
+                         (OUT/'bench-stdout.log').read_text(),re.M)
+    assert completed.returncode==0 and signature==['351063']
+    checks.append({'name':'stdin-bench11-signature','exit_code':completed.returncode,'nodes':351063})
+    print(json.dumps(checks[-1]),flush=True)
+    disassembly=subprocess.check_output(simd_command,text=True);(OUT/'disassembly.log').write_text(disassembly)
+    simd={'avx2_minmax_ymm':bool(re.search(r'v(?:max|min)ps[^\n]*ymm',disassembly)),
+          'avx2_multiply_ymm':bool(re.search(r'vmulps[^\n]*ymm',disassembly)),
+          'avx2_add_ymm':bool(re.search(r'vaddps[^\n]*ymm',disassembly)),
+          'fused_operations':re.findall(r'\bv(?:fmadd|fmsub|fnmadd|fnmsub)\w*\b',disassembly)}
+    write('simd.json',simd)
+    assert all(simd[key] for key in ('avx2_minmax_ymm','avx2_multiply_ymm','avx2_add_ymm')) and not simd['fused_operations']
+    after={name:sha(path) for name,path in inputs.items()};assert after==before
+    assert {p.relative_to(SOURCE).as_posix():sha(p) for p in SOURCE.rglob('*') if p.is_file()}==source_before
+    write('result.json',{'status':'passed','source_and_tests_commit':COMMIT,'checks':checks,'tt_groups':8,
+     'rule50_targeted_failures':0,'legal_witness_comparisons':int(oracle[1]),'bench11_nodes':351063,
+     'core_reference_perft_passed':True,'simd':simd,'input_sha256_before':before,'input_sha256_after':after,
+     'source_inputs_unchanged':True,'scope':'Wine correctness and node signatures only; native hardware, speed and Elo unproven'})
+except Exception as error:
+    write('result.json',{'status':'failed','source_and_tests_commit':COMMIT,'checks':checks,'error':str(error),
+                         'input_sha256_after':{name:sha(path) for name,path in inputs.items()}})
+    raise
+print('All frozen6.4.6 Windows functional, oracle, signature and SIMD checks passed',flush=True)

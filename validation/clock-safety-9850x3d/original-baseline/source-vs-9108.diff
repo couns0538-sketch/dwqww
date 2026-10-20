@@ -1,0 +1,89 @@
+--- /workspace/.cloud-setup/forge-original-6.4-source/include/forge/search.hpp	2026-10-19 19:12:05.986557996 +0000
++++ /workspace/.cloud-setup/forge-6.4-source/include/forge/search.hpp	2026-10-19 13:22:40.000000000 +0000
+@@ -103,6 +103,17 @@
+     std::size_t cluster_count_ = 0;
+     std::uint8_t generation_ = 0;
+ 
++    [[nodiscard]] static constexpr std::uint32_t verification_key(std::uint64_t key) {
++#if defined(__SIZEOF_INT128__)
++        // Multiply-high indexing consumes high key bits. Keep the independent
++        // low bits as the tag, rather than reusing the bucket's index bits.
++        return static_cast<std::uint32_t>(key);
++#else
++        // Modulo indexing consumes low bits for power-of-two table sizes.
++        return static_cast<std::uint32_t>(key >> 32U);
++#endif
++    }
++
+     [[nodiscard]] TTCluster& cluster_for(std::uint64_t key) const {
+ #if defined(__SIZEOF_INT128__)
+         __extension__ using u128 = unsigned __int128;
+--- /workspace/.cloud-setup/forge-original-6.4-source/src/search.cpp	2026-10-19 19:12:05.924599450 +0000
++++ /workspace/.cloud-setup/forge-6.4-source/src/search.cpp	2026-10-19 13:22:40.000000000 +0000
+@@ -194,7 +194,7 @@
+ 
+ TTEntry* TranspositionTable::probe(std::uint64_t key, bool& hit) {
+     TTCluster& cluster = cluster_for(key);
+-    const std::uint32_t key32 = static_cast<std::uint32_t>(key >> 32U);
++    const std::uint32_t key32 = verification_key(key);
+     for (TTEntry& entry : cluster.entries) {
+         if (entry.key32 == key32 && entry.occupied()) {
+             hit = true;
+@@ -215,7 +215,7 @@
+ 
+ void TranspositionTable::store(TTEntry* entry, std::uint64_t key, int score, int eval, Move move, int depth,
+                                Bound bound, bool pv) {
+-    const std::uint32_t key32 = static_cast<std::uint32_t>(key >> 32U);
++    const std::uint32_t key32 = verification_key(key);
+     const bool same_position = entry->key32 == key32 && entry->occupied();
+     if (!move.is_none() || !same_position) entry->move = move;
+     if (bound == BoundExact || !same_position || depth + 4 > entry->depth || entry->generation() != generation_) {
+--- /workspace/.cloud-setup/forge-original-6.4-source/tests/tests.cpp	2026-10-19 19:12:05.923945633 +0000
++++ /workspace/.cloud-setup/forge-6.4-source/tests/tests.cpp	2026-10-19 13:22:40.000000000 +0000
+@@ -481,6 +481,38 @@
+     check(!hit, "clear empties the table");
+ }
+ 
++void test_transposition_tag_independence() {
++    // With multiply-high indexing the first group shares a cluster and must
++    // be distinguished by its low key bits. With modulo indexing the second
++    // group shares a cluster and must be distinguished by its high key bits.
++    // Exercise a power-of-two and a non-power-of-two table size.
++    constexpr std::array<std::array<std::uint64_t, 4>, 2> groups{{
++        {{0x1234567800000001ULL, 0x1234567800000002ULL,
++          0x1234567800000003ULL, 0x1234567800000004ULL}},
++        {{0x123456789abcdef0ULL, 0x423456789abcdef0ULL,
++          0x723456789abcdef0ULL, 0xa23456789abcdef0ULL}},
++    }};
++    for (const std::size_t mb : {std::size_t{1}, std::size_t{3}}) {
++        forge::TranspositionTable tt(mb);
++        for (const auto& keys : groups) {
++            tt.clear();
++            for (std::size_t i = 0; i < keys.size(); ++i) {
++                bool hit = true;
++                forge::TTEntry* entry = tt.probe(keys[i], hit);
++                check(!hit, "TT tag distinguishes keys sharing index bits before store");
++                tt.store(entry, keys[i], 100 + static_cast<int>(i), 45,
++                         forge::Move{12, 28, 0, 0}, 7, forge::BoundExact, true);
++            }
++            for (std::size_t i = 0; i < keys.size(); ++i) {
++                bool hit = false;
++                const forge::TTEntry* entry = tt.probe(keys[i], hit);
++                check(hit && entry->score == 100 + static_cast<int>(i),
++                      "TT colliding-cluster entries retain their own scores");
++            }
++        }
++    }
++}
++
+ } // namespace
+ 
+ int main() {
+@@ -490,6 +522,7 @@
+     test_static_exchange();
+     test_evaluation();
+     test_transposition_table();
++    test_transposition_tag_independence();
+     test_search();
+     test_threads();
+     test_nnue();

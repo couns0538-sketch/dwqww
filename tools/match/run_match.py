@@ -55,6 +55,8 @@ def main() -> int:
     p.add_argument("--hash-mb", type=int, default=32)
     p.add_argument("--overhead-ms", type=int, default=10)
     p.add_argument("--aa", action="store_true")
+    p.add_argument("--disable-book", action="store_true",
+                   help="send OwnBook=false to engines that advertise it (Forge 6.x)")
     a = p.parse_args()
     for field in ("fastchess", "baseline", "candidate", "openings"):
         path = getattr(a, field).resolve(strict=True)
@@ -83,7 +85,7 @@ def main() -> int:
     command = [str(a.fastchess), "-config", "outname=state.json",
                "-engine", f"cmd={a.candidate}", "name=Candidate",
                "-engine", f"cmd={a.baseline}", "name=Baseline",
-               "-each", "proto=uci", f"tc={a.tc}", f"option.Hash={a.hash_mb}",
+               "-each", "proto=uci", f"tc={a.tc}", "option.Threads=1", f"option.Hash={a.hash_mb}",
                f"option.Move Overhead={a.overhead_ms}", "restart=on",
                "-openings", f"file={selected}", "format=epd", "order=sequential",
                "-srand", str(a.seed), "-rounds", str(a.pairs), "-games", "2",
@@ -91,6 +93,8 @@ def main() -> int:
                "-pgnout", "file=games.pgn", "append=false", "notation=uci", "nodes=true",
                "timeleft=true", "-log", "file=fastchess.log", "level=warn", "append=false",
                "-autosaveinterval", "2", "-strict"]
+    if a.disable_book:
+        command += ["-each", "option.OwnBook=false"]
     if a.nodes:
         command += ["-each", f"nodes={a.nodes}"]
     if a.mode == "sprt":

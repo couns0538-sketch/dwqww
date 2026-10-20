@@ -1,0 +1,114 @@
+name: Independent native Linux strength confirmation
+on:
+  push:
+    branches: ['forge/hosted-confirmation-20261019-*']
+permissions:
+  contents: write
+jobs:
+  confirmation:
+    if: github.run_attempt == 1
+    runs-on: ubuntu-24.04
+    timeout-minutes: 58
+    env:
+      PYTHONDONTWRITEBYTECODE: '1'
+      BASELINE_SHA: '816423b1ddac23a00244449deef59dba736055a9'
+      CANDIDATE_SHA: '2c0c7efa49023d8e3f49de3f5596f333a3f01202'
+      FASTCHESS_SHA: '60d7a7a26c6b0582a15c112fb29a1829bef2adb3'
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          fetch-depth: 0
+      - name: Freeze/build serially before any timing
+        timeout-minutes: 4
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p hosted-results/artifacts/baseline hosted-results/artifacts/candidate hosted-results/artifacts/runner
+          cp -R .github/hosted-confirmation hosted-results/package
+          cp .github/workflows/forge-hosted-confirmation.yml hosted-results/workflow.yml
+          cp tools/match/windows_validate.py hosted-results/windows_validate.py
+          exec > >(tee hosted-results/build.log) 2>&1
+          if ! command -v g++-14; then
+            timeout 60s sudo apt-get update
+            timeout 60s sudo apt-get install -y g++-14
+          fi
+          command -v g++-14
+          g++-14 --version
+          python3 - <<'PY'
+          import json, os, re
+          from pathlib import Path
+          p = json.loads(Path('.github/hosted-confirmation/protocol.json').read_text())
+          assert p['status'] == 'PREREGISTERED_REVIEWED_READY_FOR_SINGLE_PUSH', 'Protocol review has not authorized this frozen package'
+          for key in ('baseline', 'candidate', 'fastchess'):
+              value = os.environ[key.upper() + '_SHA']
+              assert re.fullmatch('[0-9a-f]{40}', value), 'Unfrozen source SHA'
+              assert p[key + '_sha'] == value, 'Workflow/protocol SHA mismatch'
+          PY
+          for label in baseline candidate; do
+            if [ "$label" = baseline ]; then rev="$BASELINE_SHA"; else rev="$CANDIDATE_SHA"; fi
+            mkdir -p "$RUNNER_TEMP/src-$label"
+            git cat-file -e "$rev^{commit}"
+            git archive "$rev" | tar -x -C "$RUNNER_TEMP/src-$label"
+            cmake -S "$RUNNER_TEMP/src-$label" -B "$RUNNER_TEMP/build-$label" -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_COMPILER=g++-14 -DCMAKE_CXX_FLAGS= -DCMAKE_CXX_FLAGS_RELEASE='-O3 -DNDEBUG -march=x86-64-v3 -mtune=generic -fno-fast-math -ffp-contract=off' -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
+            cmake --build "$RUNNER_TEMP/build-$label" -j2
+            cp "$RUNNER_TEMP/build-$label/forge" "hosted-results/artifacts/$label/forge"
+            cp "$RUNNER_TEMP/build-$label/libforge_core.a" "hosted-results/artifacts/$label/libforge_core.a"
+            ctest_rc=0
+            ctest --test-dir "$RUNNER_TEMP/build-$label" --output-on-failure || ctest_rc=$?
+            cp "$RUNNER_TEMP/build-$label/Testing/Temporary/LastTest.log" "hosted-results/$label-LastTest.log"
+            python3 - "$label" "$rev" <<'PYBUILD'
+          import hashlib, json, os, sys
+          from pathlib import Path
+          label, commit = sys.argv[1:]
+          src = Path(os.environ['RUNNER_TEMP']) / ('src-' + label)
+          build = Path(os.environ['RUNNER_TEMP']) / ('build-' + label)
+          files = [src / 'CMakeLists.txt'] + [p for d in ('src','include','tests') for p in (src/d).rglob('*') if p.is_file()]
+          digest = lambda p: hashlib.sha256(p.read_bytes()).hexdigest()
+          record = {'source_commit': commit, 'exported_source_sha256': {p.relative_to(src).as_posix(): digest(p) for p in sorted(files)}, 'built_artifacts_sha256': {name: digest(build/name) for name in ('forge','libforge_core.a')}, 'last_test_log_sha256': digest(build/'Testing/Temporary/LastTest.log')}
+          Path('hosted-results/'+label+'-build-provenance.json').write_text(json.dumps(record,indent=2)+'\n')
+          PYBUILD
+            test "$ctest_rc" = 0
+            cp "$RUNNER_TEMP/build-$label/compile_commands.json" "hosted-results/$label-compile-commands.json"
+            cp "$RUNNER_TEMP/build-$label/CMakeCache.txt" "hosted-results/$label-CMakeCache.txt"
+          done
+          git clone https://github.com/Disservin/fastchess.git "$RUNNER_TEMP/fastchess"
+          git -C "$RUNNER_TEMP/fastchess" checkout --detach "$FASTCHESS_SHA"
+          test "$(git -C "$RUNNER_TEMP/fastchess" rev-parse HEAD)" = "$FASTCHESS_SHA"
+          make -C "$RUNNER_TEMP/fastchess" -j2 CXX=g++-14
+          "$RUNNER_TEMP/fastchess/fastchess" -version
+          cp "$RUNNER_TEMP/fastchess/fastchess" hosted-results/artifacts/runner/fastchess
+          python3 - <<'PYARCHIVE'
+          import hashlib, json
+          from pathlib import Path
+          root = Path('hosted-results/artifacts')
+          files = {str(p.relative_to(root)): hashlib.sha256(p.read_bytes()).hexdigest() for p in sorted(root.rglob('*')) if p.is_file()}
+          Path('hosted-results/artifacts-SHA256.json').write_text(json.dumps(files, indent=2)+'\n')
+          PYARCHIVE
+          cp .github/hosted-confirmation/protocol.json hosted-results/
+          cp .github/hosted-confirmation/provenance/openings-selection.json hosted-results/
+      - name: Calibrate then run one independent finite-pair SPRT
+        timeout-minutes: 52
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -B .github/hosted-confirmation/run_hosted.py --repo "$GITHUB_WORKSPACE" --package "$GITHUB_WORKSPACE/.github/hosted-confirmation" --baseline "$GITHUB_WORKSPACE/hosted-results/artifacts/baseline/forge" --candidate "$GITHUB_WORKSPACE/hosted-results/artifacts/candidate/forge" --fastchess "$GITHUB_WORKSPACE/hosted-results/artifacts/runner/fastchess" --out "$GITHUB_WORKSPACE/hosted-results/confirmation" 2>&1 | tee hosted-results/wrapper.log
+      - name: Upload all raw evidence even on failure
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: forge-hosted-confirmation-${{ github.run_id }}-${{ github.run_attempt }}
+          path: hosted-results/
+          if-no-files-found: error
+          retention-days: 30
+      - name: Preserve evidence on a fresh results branch
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          branch="results/hosted-confirmation-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+          mkdir -p hosted-results
+          git switch --orphan "$branch"
+          git rm -rf --cached --ignore-unmatch . >/dev/null
+          git add -f hosted-results
+          git -c user.name='Forge validation CI' -c user.email='forge-validation@users.noreply.github.com' commit -m "Preserve independent native Linux confirmation $GITHUB_RUN_ID attempt $GITHUB_RUN_ATTEMPT"
+          git push origin "HEAD:refs/heads/$branch"

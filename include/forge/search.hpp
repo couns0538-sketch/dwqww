@@ -10,6 +10,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <memory>
+#include <mutex>
 #include <thread>
 #include <vector>
 
@@ -30,6 +31,8 @@ struct SearchLimits {
     bool ponder = false;
     bool search_moves_specified = false;
     std::vector<Move> search_moves;
+    // Request receipt on steady_clock; zero starts timing at Searcher::search entry.
+    std::chrono::steady_clock::time_point request_start{};
 };
 
 struct SearchInfo {
@@ -65,28 +68,53 @@ struct TTEntry {
     std::uint8_t depth = 0;
     // Bits 0..1 bound, bit 2 was-PV, bits 3..7 generation.
     std::uint8_t gen_bound = 0;
-    std::uint16_t padding = 0;
+    std::uint8_t rule50_clock = 0; // Capped at100; belongs to admitted score payload.
+    std::uint8_t padding = 0;
 
     [[nodiscard]] Bound bound() const { return static_cast<Bound>(gen_bound & 3U); }
     [[nodiscard]] bool pv() const { return (gen_bound & 4U) != 0; }
     [[nodiscard]] std::uint8_t generation() const { return static_cast<std::uint8_t>(gen_bound >> 3U); }
     [[nodiscard]] bool occupied() const { return bound() != BoundNone; }
+    // Existing below90 policy, plus exact near50 context; not a repetition key.
+    [[nodiscard]] bool score_usable(std::uint16_t current_clock) const {
+        const int capped = current_clock < 100 ? current_clock : 100;
+        return (rule50_clock < 90 && capped < 90) || rule50_clock == capped;
+    }
 };
 
 struct alignas(64) TTCluster {
     std::array<TTEntry, 4> entries{};
 };
+static_assert(sizeof(TTEntry) == 16);
+static_assert(sizeof(TTCluster) == 64);
 
-// Shared between all search threads. Entries are written without locks; a
-// torn entry is caught by the key check and by hash-move legality tests.
+class TranspositionTable;
+
+// Immutable entry copy plus an opaque probe-time replacement destination.
+struct TTProbe {
+    TTEntry entry{};
+    bool hit = false;
+private:
+    friend class TranspositionTable;
+    const TranspositionTable* owner_ = nullptr;
+    std::size_t cluster_ = 0;
+    std::uint8_t slot_ = 0;
+    std::uint64_t epoch_ = 0;
+    std::uint64_t key_ = 0;
+};
+
+// Search reads and writes are coherent under striped locks. clear/resize/
+// new_search/destruction require all accessors quiescent (including diagnostic
+// readers and prefetch callers) and invalidate old probes. Handles must not
+// outlive the table; lifecycle operations are not safe concurrently with search.
 class TranspositionTable {
 public:
     explicit TranspositionTable(std::size_t mb = 32) { resize(mb); }
     void resize(std::size_t mb);
     void clear();
-    void new_search() { generation_ = static_cast<std::uint8_t>((generation_ + 1U) & 31U); }
-    [[nodiscard]] TTEntry* probe(std::uint64_t key, bool& hit);
-    void store(TTEntry* entry, std::uint64_t key, int score, int eval, Move move, int depth, Bound bound, bool pv);
+    void new_search() { generation_ = static_cast<std::uint8_t>((generation_ + 1U) & 31U); ++epoch_; }
+    [[nodiscard]] TTProbe probe(std::uint64_t key) const;
+    void store(const TTProbe& probe, std::uint64_t key, int score, int eval, Move move, int depth, Bound bound, bool pv, std::uint16_t halfmove_clock);
     [[nodiscard]] int hashfull() const;
     [[nodiscard]] std::uint8_t generation() const { return generation_; }
     [[nodiscard]] std::size_t cluster_count() const { return cluster_count_; }
@@ -99,6 +127,10 @@ public:
     }
 
 private:
+    static constexpr std::size_t StripeCount = 1024;
+    struct alignas(64) Stripe { std::mutex mutex; };
+    mutable std::array<Stripe, StripeCount> stripes_{};
+    std::uint64_t epoch_ = 0;
     std::unique_ptr<TTCluster[]> clusters_;
     std::size_t cluster_count_ = 0;
     std::uint8_t generation_ = 0;
@@ -263,8 +295,9 @@ private:
     std::unique_ptr<CorrectionHistory> correction_history_;
     std::unique_ptr<CorrectionHistory> material_correction_;
     std::array<SearchStack, MaxPly + 8> stack_{};
+    std::array<Move, 256> root_effort_moves_{};
     std::array<std::uint64_t, 256> root_move_nodes_{};
-    int root_best_index_ = -1;
+    std::size_t root_effort_count_ = 0;
 
     bool pondering_ = false;
     std::chrono::steady_clock::time_point start_{};

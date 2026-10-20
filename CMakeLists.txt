@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.16)
-project(ChessEngineForge VERSION 6.4.0 LANGUAGES CXX)
+project(ChessEngineForge VERSION 6.4.9 LANGUAGES CXX)
 find_package(Threads REQUIRED)
 
 option(FORGE_ENABLE_SANITIZERS "Enable AddressSanitizer and UndefinedBehaviorSanitizer" OFF)
@@ -43,11 +43,25 @@ endif()
 add_executable(forge_tests tests/tests.cpp)
 target_link_libraries(forge_tests PRIVATE forge_core Threads::Threads)
 
+add_executable(forge_tt_tests tests/tt_coherence_tests.cpp)
+target_link_libraries(forge_tt_tests PRIVATE forge_core Threads::Threads)
+
+add_executable(forge_rule50_tests tests/rule50_tests.cpp)
+target_link_libraries(forge_rule50_tests PRIVATE forge_core Threads::Threads)
+
+add_executable(forge_legal_witness_tests tests/legal_witness_tests.cpp)
+target_link_libraries(forge_legal_witness_tests PRIVATE forge_core Threads::Threads)
+
 add_executable(forge_bench bench/benchmark.cpp)
 target_link_libraries(forge_bench PRIVATE forge_core Threads::Threads)
 
 enable_testing()
 add_test(NAME forge_tests COMMAND forge_tests)
+add_test(NAME forge_tt_tests COMMAND forge_tt_tests)
+add_test(NAME forge_rule50_tests COMMAND forge_rule50_tests)
+add_test(NAME forge_legal_witness_tests COMMAND forge_legal_witness_tests
+    ${CMAKE_CURRENT_SOURCE_DIR}/tests/legal_witness_fixtures.tsv
+    ${CMAKE_CURRENT_SOURCE_DIR}/tools/openings/forge-10000.epd)
 
 # Support tooling does not change engine behavior or add runtime dependencies.
 option(FORGE_BUILD_VALIDATION_TOOLS "Build the original opening corpus generator" OFF)
@@ -70,10 +84,15 @@ find_package(Python3 3.10 COMPONENTS Interpreter QUIET)
 if(Python3_Interpreter_FOUND)
     add_test(NAME match_tool_tests
         COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tools/match/test_match_tools.py)
+    add_test(NAME windows_validation_tests
+        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tools/match/tests/test_windows_validate.py)
     add_test(NAME uci_regression
         COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tools/uci_regression.py
                 $<TARGET_FILE:forge> --log ${CMAKE_CURRENT_BINARY_DIR}/uci-regression.log)
     add_test(NAME ponder_regression
         COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tools/ponder_regression.py
                 $<TARGET_FILE:forge>)
+    add_test(NAME ownbook_regression
+        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tools/ownbook_regression.py
+                $<TARGET_FILE:forge> ${CMAKE_CURRENT_BINARY_DIR}/ownbook-regression.json)
 endif()

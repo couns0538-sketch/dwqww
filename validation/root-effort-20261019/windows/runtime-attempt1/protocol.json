@@ -1,0 +1,101 @@
+{
+  "created_utc": "2026-10-19T21:23:02.970234+00:00",
+  "source_and_tests_commit": "7125b3379a850de34041d42529cf95993607f93c",
+  "input_sha256_before": {
+    "forge_legal_witness_tests.exe": "33f7b37f97e51447e0ec1417cb296ea5e866c0dc06da6f10caeb2091e984f06e",
+    "forge_bench.exe": "0a3b84f5255f00403577eba5e1e4739c469f99bf13c104154643a43c2c41543e",
+    "forge_tt_tests.exe": "a213bb6da7ef2058e15feb913a758f649b359cca3d5298c64cc35084c065732d",
+    "forge_rule50_tests.exe": "a5097a251a5d163ad24897fa4913939f9f70eea1eabf8f16be8c133edb69ee77",
+    "forge.exe": "e39a240e3f7380e84c4e585013c2d602cba379f15e9e23d7a036a9712c415644",
+    "forge_tests.exe": "d97720ca1c5ba2ca2f00dd75cf5a72607e1597f965f87ef00c56ff3aaa6cdc00",
+    "core_library": "bb1b0b8cf31db9f872679521110883783ba93ff1a10a10a42aba24d1995ec939",
+    "core_flags": "10104a99302cefccb7645c3069f98fcd658cb5ec8727735902f1a6f155d24bcb",
+    "compile_commands": "dd0674852d1051b1e9bb06e6aad8e46c5925dbd8100cf78b8419578f81653b80",
+    "uci_tool": "0ecfbdd3b04bf0ef4f6669ed43581d124e75ff3224926874da98c451649ee4cc",
+    "ponder_tool": "26cb1169916522db1baf99c7f57cabb92ea1c5cd66bb6534a27464a2356404d0",
+    "fixtures": "e88f4d859ce1c923b900e2c4012e7e601c247140223876a18cca6e0648d47c77",
+    "corpus": "de36a48f856a5a0c10d0865747965a7b2f5d89149078923ba2d766979238bf6c",
+    "wrapper": "9025d5bdd6c5232ca40e72dc7837a9e7d269f92df745a8d69d16194df7d89acf",
+    "wine_loader": "9ee2a1e03236ca651d57bda9b1007c8ccb30542d9a5602596849287ea466b23c",
+    "disassembler": "14170da3056e00b4a809203b267fb0e5cb5b437b5704634252b3a3fc128e79b9"
+  },
+  "commands": [
+    [
+      "core",
+      [
+        "/workspace/.cloud-setup/wine/usr/lib/wine/wine64",
+        "/workspace/.cloud-setup/forge-windows-root-effort/forge_tests.exe"
+      ]
+    ],
+    [
+      "coherent-tt",
+      [
+        "/workspace/.cloud-setup/wine/usr/lib/wine/wine64",
+        "/workspace/.cloud-setup/forge-windows-root-effort/forge_tt_tests.exe"
+      ]
+    ],
+    [
+      "rule50",
+      [
+        "/workspace/.cloud-setup/wine/usr/lib/wine/wine64",
+        "/workspace/.cloud-setup/forge-windows-root-effort/forge_rule50_tests.exe"
+      ]
+    ],
+    [
+      "legal-witness",
+      [
+        "/workspace/.cloud-setup/wine/usr/lib/wine/wine64",
+        "/workspace/.cloud-setup/forge-windows-root-effort/forge_legal_witness_tests.exe",
+        "Z:\\workspace\\.cloud-setup\\forge-windows-root-effort-source\\tests\\legal_witness_fixtures.tsv",
+        "Z:\\workspace\\.cloud-setup\\forge-windows-root-effort-source\\tools\\openings\\forge-10000.epd"
+      ]
+    ],
+    [
+      "uci",
+      [
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3",
+        "/workspace/.cloud-setup/forge-windows-root-effort-source/tools/uci_regression.py",
+        "/workspace/.cloud-setup/forge-root-effort-wine",
+        "--log",
+        "/workspace/.cloud-setup/forge-windows-root-effort-evidence/runtime-attempt1/uci-transcript.log"
+      ]
+    ],
+    [
+      "ponder",
+      [
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3",
+        "/workspace/.cloud-setup/forge-windows-root-effort-source/tools/ponder_regression.py",
+        "/workspace/.cloud-setup/forge-root-effort-wine"
+      ]
+    ]
+  ],
+  "bench_command": [
+    "/workspace/.cloud-setup/wine/usr/lib/wine/wine64",
+    "/workspace/.cloud-setup/forge-windows-root-effort/forge.exe"
+  ],
+  "bench_stdin": "bench 11\nquit\n",
+  "bench_hash_mib": 16,
+  "bench_threads": 1,
+  "bench_expected_same_platform_parent_nodes": 351063,
+  "simd_command": [
+    "/workspace/.cloud-setup/toolchains/llvm-mingw-20261006-ucrt-ubuntu-22.04-x86_64/bin/llvm-objdump",
+    "-d",
+    "--no-show-raw-insn",
+    "/workspace/.cloud-setup/forge-windows-root-effort/forge.exe"
+  ],
+  "environment_subset": {
+    "WINEPREFIX": "/workspace/.cloud-setup/wine-prefix-ready",
+    "WINEDEBUG": "-all",
+    "XDG_CACHE_HOME": "/workspace/.cloud-setup/font-cache",
+    "PYTHONDONTWRITEBYTECODE": "1"
+  },
+  "scope": "Wine functional correctness and bounded node signature only; no performance, Elo or native hardware claim",
+  "core_perft_cases": {
+    "start_depth4": 197281,
+    "kiwipete_depth3": 97862,
+    "position3_depth4": 43238,
+    "position4_depth3": 9467,
+    "position5_depth3": 62379,
+    "position6_depth3": 89890
+  }
+}

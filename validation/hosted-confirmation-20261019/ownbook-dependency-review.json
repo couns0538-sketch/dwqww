@@ -1,0 +1,31 @@
+{
+  "baseline": {
+    "source_commit": "816423b1ddac23a00244449deef59dba736055a9",
+    "uci_cpp_sha256": "5c195fbfdd9aac9590881fca7be95a086d57eed03dae4fc1ba5558e9199e4588",
+    "excerpts": [
+      "std::string book_file;",
+      "else if (value_text == \"false\") own_book = false;",
+      "book_file.clear();",
+      "book_file = path;",
+      "if (game_search && (own_book || !book_file.empty()) && !book.empty() && game_ply(board) < book_depth) {"
+    ]
+  },
+  "candidate": {
+    "source_commit": "2c0c7efa49023d8e3f49de3f5596f333a3f01202",
+    "uci_cpp_sha256": "69d14b26c11665f5f7b9ba44addee279e7a8b4da214e14e0ffe4121803d33836",
+    "excerpts": [
+      "std::string book_file;",
+      "else if (value_text == \"false\") own_book = false;",
+      "book_file.clear();",
+      "book_file = path;",
+      "if (game_search && (own_book || !book_file.empty()) && !book.empty() && game_ply(board) < book_depth) {"
+    ]
+  },
+  "frozen_options": {
+    "OwnBook": false,
+    "Book_File_option_sent": false,
+    "runtime_empty_default_required": true,
+    "match_cli_sha256": "0b097ee1369be69486e75d16c4c699e5fa0d1b2f9b03852232dc19cc1d80d897"
+  },
+  "conclusion": "Custom-book override requires nonempty book_file; both sources initialize empty and frozen options never set Book File. Separate649bug path unreachable in this test."
+}
