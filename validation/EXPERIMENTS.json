@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "updated_utc": "2026-10-20T19:43:06.863015+00:00",
+  "updated_utc": "2026-10-20T19:50:54.440920+00:00",
   "project": "Forge",
   "target": "Native Windows x64 on Ryzen7 9850X3D",
   "scope": "Accepted integration356e863 unchanged; isolated15allfinitegatespassed;16source553caef Release/ASan/Windowspassed butTSan8of9 initialOwnBookuciokdeadline failed. Fresh16SPRTunlaunched, diagnosticpending. No accepted Elo gain.",
@@ -70,7 +70,7 @@
     "newer_645_strength_status": "No games/Elo; Release8/8, ASan8/8,18947 parent and candidate oracle checks, exact parent parity and7Winechecks passed. Kernel AA noise gate failed; full-engine timing not run.",
     "newer_646_strength_status": "Release8/8, ASan8/8, exactparentparity and7Winechecks passed; timing andstrengthnotmeasured becausehostAAfailed. No new games/Elo.",
     "newer_647_strength_status": "Fresh confirmation completed validly at320games/160pairs:W114D101L105, independentLLR0.4574291989231206, naturalcap inconclusive;2794offlineauditchecks passed. Earlier147-game pilot remains separate, neverpooled. No acceptedgain.",
-    "hosted_linux_pilot_status": "Completed at16min cap:147normalgames,73pairs+orphan; no nativeboundary,strictinconclusive. Native144snapshot+43.66\u00b128.69 is descriptiveonly.",
+    "hosted_linux_pilot_status": "Completed at16min cap:147normalgames,73pairs+orphan; no nativeboundary,strictinconclusive. Native144snapshot+43.66±28.69 is descriptiveonly.",
     "newer_648_strength_status": "Release8/8,ASan8/8,untimedparentparity419798,28actualcounter-oracleiterations and7Winechecks351063 plus52/52independentartifactaudit passed. Actualtimedstop/Elo/NPSunknown. Hosted647resultdoesnottransfer.",
     "native_648_bundle_status": "Manifest/read-onlyWinechecks+43independentauditpass; nativeAA/pilot/SPRTpending; originalbaselinecomparison,not647isolatedEloevidence.",
     "newer_6411_strength_status": "Valid2048game/1024pair run39348571407:W427D1194L427, independentLLR-0.7565242360831034; naturalcap inconclusive. Final99payload/41input/source/opening/fulllegalreplay/rawlog audit passed; no acceptedgain/equivalence.",
@@ -6477,7 +6477,7 @@
         "validation/pin-see-filter-cost-20261020/",
         "validation/pin-mask-see-20261020/"
       ],
-      "correctness": "Release9/ASan9 and8Wine1151artifact passed. TSan8/9CTest; ownbooktest initial15suciok deadline failed before isready/book/go. NoTSanreport inretainedoutput; cannotdistinguishenginewritevsreaderlatency withouttimestamps. Oneboundedtimestampdiagnosticpending, no fullbatchrerun.",
+      "correctness": "Release9/ASan9 and8Wine1151artifact passed. OriginalTSanbatch8/9FAILED: initial15suciok beforesearch. Oneobservedpair once: parenthandshakePASS, candidateOwnBook5/5PASS, unchangeddeadlines/hashes/cleanexit/capture. Timeoutnotreproduced; causeunresolved.",
       "operation_counts": {
         "old_full_king_queries": 371702,
         "old_occupied_slider_queries": 742109,
@@ -6488,14 +6488,15 @@
       "elo_estimate": null,
       "strength_games": 0,
       "valid_strength_evidence": false,
-      "decision": "PreserveisolatedcandidatewithTSanstartupcoveragefailure. No strengthlaunch oroperationalacceptance; investigateoneboundedtimestampdiagnostic retainingoriginal.",
+      "decision": "Preserveisolatedcandidateandoriginalfailedbatch; separatefiniteobservedcoverage doesnoterasefailure. No16strengthlaunch/NPS/Eloacceptance.",
       "failed_approaches": [
         {
           "attempt": "native/frozen-tsan-attempt1",
           "test": "ownbook_regression",
           "outcome": "15s initialUCIresponse deadline; checks=[]; >uci >quit thennormalidentificationendinguciok. TSanunchanged. No sourcecauseasserted."
         }
-      ]
+      ],
+      "diagnostic": "validation/pin-mask-see-20261020/tsan-triage/diagnostic-attempt1/RESULT-SUMMARY.json"
     },
     {
       "id": "forge6416-vs6414-hosted-strength-20261020",
@@ -6523,6 +6524,20 @@
       "games": 0,
       "valid_strength_evidence": false,
       "decision": "Requireallcurrent16proofs/rootreviewandstrictnewhostreadinessgates. Prioranomaliesunresolved. No launches/retries/pooling orstrengthclaims."
+    },
+    {
+      "id": "forge6417-promotion-recapture-prototype-20261020",
+      "date": "2026-10-20",
+      "baseline_sha": "553caef144ae2e1b696ba35d7a0eb1a50a03fde9",
+      "candidate_sha": null,
+      "status": "outside_production_prototype_passed",
+      "hypothesis": "Later pawn promotions change exchange gain and following victim value; legacythresholdshortcutscanmisprune atzero.",
+      "implementation": "Rarelast-rankpawn guard beforelegacybounds andfull LVA gain-stack withqueenpromotiongain; ordinary16pathunchanged.",
+      "correctness": "Research10legalcases:6values/44thresholdanswerswrong. Prototype326cases:324legaloraclepass;30newadjacentbracketspass;314nonguardrowsbyteexact including2initialillegalcontrols excludedfromoracleclaims.",
+      "evidence": "validation/see-recapture-promotion-20261020/",
+      "strength_games": 0,
+      "elo_estimate": null,
+      "decision": "Applyminimalproductionrepair andpermanentregressions; fullengine/sanitizer/performance/strengthpending."
     }
   ],
   "evidence_archives": [

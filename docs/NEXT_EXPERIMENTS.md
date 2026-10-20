@@ -1,17 +1,17 @@
 # Next experiments
 
-Current priority: diagnose 6.4.16's TSan OwnBook startup failure. The batch passed
-8/9 tests; initial15s uciok deadline expired before any book/search command.
-Keep the original failed run. One authorized timestamped parent15handshake plus
-candidate16fullOwnBook diagnostic is pending, with unchanged deadlines/detector.
-No strength launch or claim of9/9batchPASS. Astra independently reviews the
-evidence. A later passing probe cannot identify the original missing phase.
+Apply and fully test the narrowly guarded promotion-recapture SEE repair as
+isolated6.4.17. The outside-production prototype matches the frozen oracle on
+all324legal cases, corrects eight parent mismatch rows, passes30new adjacent
+threshold brackets, and preserves all314non-guard API rows byte-for-byte.
+Two initial-illegal controls are excluded from oracle claims. Source17 is not
+yet applied; full engine, sanitizers and playing strength remain untested.
 
-The next source opportunity is promotion-recapture SEE: a legal queen capture
-is +500 by the oracle but -100 in source16, causing see_ge(0) to reject it.
-Its mirror and false-positive controls are preserved. A narrowly guarded
-gain-stack fallback is an outside-production prototype; no17source applied.
-Wait for the quiet startup diagnostic before compiling that prototype.
+Preserve6.4.16 source553caef and its original TSan batch failure:8/9PASS,
+initial15suciok deadline expired before book/search. One unchanged-deadline
+observed diagnostic passed the parent handshake and candidate5OwnBook transitions;
+the timeout did not recur and cause remains unresolved. No full-batch retry,
+no erased failure, no16strength launch. Astra's independent review is retained.
 
 1. Preserve completed 6.4.15 source8d303e4 and its Windows ZIP. All 27 native
    CTest suites, eight active UCI TSan transitions, eight Wine checks and 929

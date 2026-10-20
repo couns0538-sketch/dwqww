@@ -99,7 +99,21 @@ and eight actual benchmark-position scores/moves/PVs match15 exactly,385792
 nodes. Occupied slider queries742109 are replaced by474626 empty-board lookups
 and49015 path classifications; no speed claim. Release9/ASan9 and8Wine/1151
 artifact checks pass. TSan8/9 passed, with OwnBook's initial UCI handshake deadline
-before any search; cause unresolved and one timestamped diagnostic pending.
+before any search; cause unresolved. A separate once-run timestamped pair passed the parent
+handshake and candidate5OwnBook transitions; the timeout was not reproduced.
+The original8/9batch remains FAILED.
 The unlaunched15strength package/pool
 is preserved, and a separate fresh16versus14 package is pending final gates.
 [Source and counter proof](../validation/pin-see-filter-cost-20261020/README.md).
+
+
+Promotion-recapture SEE investigation on16 reproduced six exchange-value errors
+and44wrong threshold answers across10legal cases, including both false-negative
+and false-positive see_ge(0) pairs. A guarded outside-production gain-stack
+prototype matches all324legal oracle cases/30adjacent brackets and preserves
+314ordinary API rows byte-for-byte. No production17/full tests/Elo claim yet.
+[Evidence](../validation/see-recapture-promotion-20261020/SUMMARY.json).
+
+Installed Stockfish19 advertises UCI_Elo1320..3190. Exact3200 is unsupported;
+3190 is the nearest supported limited-strength target. Zero target games run;
+Forge's absolute rating and a200Elo gap remain unestablished.
