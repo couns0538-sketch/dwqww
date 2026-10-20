@@ -1,0 +1,40 @@
+{
+  "baseline_source": "c5cbf97a7291a3bd960c71dcd77a29bf7c95ad8e",
+  "prior_prototype_source": "a5d2fcb5b3270c50b96bcc1b2ebd3bc42db5f2fc",
+  "candidate": "uncommittedisolated652gated",
+  "phases": [
+    {
+      "command": [
+        "/workspace/.cloud-setup/venv/bin/cmake",
+        "-S",
+        "/workspace/dwqww",
+        "-B",
+        "/workspace/.cloud-setup/forge-tt-single-worker-gated-release",
+        "-DCMAKE_BUILD_TYPE=Release",
+        "-DCMAKE_CXX_FLAGS=-march=x86-64-v3 -mtune=znver5 -fno-fast-math -ffp-contract=off -fno-lto",
+        "-DCMAKE_EXPORT_COMPILE_COMMANDS=ON"
+      ],
+      "return_code": 0
+    },
+    {
+      "command": [
+        "/workspace/.cloud-setup/venv/bin/cmake",
+        "--build",
+        "/workspace/.cloud-setup/forge-tt-single-worker-gated-release",
+        "--parallel",
+        "2"
+      ],
+      "return_code": 0
+    },
+    {
+      "command": [
+        "/workspace/.cloud-setup/venv/bin/ctest",
+        "--test-dir",
+        "/workspace/.cloud-setup/forge-tt-single-worker-gated-release",
+        "--output-on-failure"
+      ],
+      "return_code": 0
+    }
+  ],
+  "source_inputs_unchanged": true
+}

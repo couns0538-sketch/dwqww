@@ -1,0 +1,58 @@
+{
+  "label": "gated-release-v2",
+  "sanitizer": "none",
+  "status": "passed",
+  "stages": [
+    {
+      "stage": "compile",
+      "command": [
+        "g++",
+        "-std=c++20",
+        "-O3",
+        "-DNDEBUG",
+        "-march=x86-64-v3",
+        "-mtune=znver5",
+        "-fno-fast-math",
+        "-ffp-contract=off",
+        "-fno-lto",
+        "-Wall",
+        "-Wextra",
+        "-Wpedantic",
+        "-I/workspace/dwqww/include",
+        "/workspace/dwqww/validation/single-thread-tt-20261020/actual-api-concurrency.cpp",
+        "/workspace/.cloud-setup/forge-tt-single-worker-gated-release/libforge_core.a",
+        "-pthread",
+        "-Wl,--wrap=pthread_mutex_lock",
+        "-o",
+        "/workspace/dwqww/validation/single-thread-tt-20261020/actual-api-concurrency-gated-release-v2"
+      ],
+      "timeout_seconds": 60,
+      "exit_code": 0
+    },
+    {
+      "stage": "run",
+      "command": [
+        "/workspace/dwqww/validation/single-thread-tt-20261020/actual-api-concurrency-gated-release-v2"
+      ],
+      "timeout_seconds": 90,
+      "exit_code": 0
+    }
+  ],
+  "sha256_before": {
+    "validation/single-thread-tt-20261020/actual-api-concurrency.cpp": "806eb9676cedcabe274c47983799e722690cbe0e51fd403c8d2ff86da8ba7ad5",
+    "include/forge/search.hpp": "c08a86d47976bd71dc85548a7a3e232f06871d005bfd2aff62c12ecd3fd5b15c",
+    "src/search.cpp": "a2667c72d5c927cf18b60715876759b1fd2216c2a8be082eadc255502f455825",
+    "/workspace/.cloud-setup/forge-tt-single-worker-gated-release/libforge_core.a": "349979d0132b9a729fe6c6743befa16d82d0666434d268b9168288d1f47f0a9d"
+  },
+  "binary_sha256": "dabc55ebb5263347607203993a2312879dd16f8216a206faa13fd5e957f7e9a5",
+  "completed_groups": [
+    "PASS default-shared1 ",
+    "PASS exclusive-request-smp4-fallback ",
+    "PASS exclusive1-after-1to4to1 ",
+    "PASS post-return-default-api-and-zero-node-cleanup",
+    "PASS nested-other-table-owner-restoration",
+    "PASS actual-search-exception-unwind"
+  ],
+  "tsan_options": null,
+  "source_unchanged_during_driver": true
+}

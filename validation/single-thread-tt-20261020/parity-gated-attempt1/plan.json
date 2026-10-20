@@ -1,0 +1,169 @@
+{
+  "created_utc": "2026-10-20T00:49:56.993865+00:00",
+  "kind": "TT exact-behavior parity and conditional requested-budget throughput; not games/Elo",
+  "mode": "parity_only",
+  "driver_sha256": "377fb31f04c03b8d521d0caaa9c91a48b1332456f3a9b20d468aae53cacc0a2e",
+  "argv": [
+    "/workspace/.cloud-setup/tt-investigation/compare-search.py",
+    "--parity-only",
+    "--baseline",
+    "/workspace/.cloud-setup/forge-nnue-capture-release/forge",
+    "--candidate",
+    "/workspace/.cloud-setup/forge-tt-single-worker-gated-release/forge",
+    "--out",
+    "/workspace/.cloud-setup/tt-single-worker-gated-parity-attempt1"
+  ],
+  "cwd": "/workspace/dwqww",
+  "engines": {
+    "baseline": "/workspace/.cloud-setup/forge-nnue-capture-release/forge",
+    "candidate": "/workspace/.cloud-setup/forge-tt-single-worker-gated-release/forge"
+  },
+  "settings": {
+    "hash_mib": 32,
+    "ownbook": false,
+    "ponder": false,
+    "cpus": [
+      0,
+      1,
+      2,
+      3,
+      4
+    ],
+    "threads": [
+      1,
+      2,
+      4
+    ],
+    "blocks_per_thread": 6,
+    "nodes_per_performance_search": 200000,
+    "warmup_nodes": 50000,
+    "performance_searches": 0,
+    "response_timeout_seconds": 30,
+    "overall_timeout_seconds": 480
+  },
+  "parity": {
+    "threads": 1,
+    "cases": [
+      [
+        "start",
+        "startpos",
+        7
+      ],
+      [
+        "kiwipete",
+        "fen r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1",
+        6
+      ],
+      [
+        "middlegame",
+        "fen r4rk1/1pp1qppp/p1np1n2/8/2B1P1b1/2N2N2/PPP1QPPP/2KR3R w - - 0 10",
+        6
+      ],
+      [
+        "endgame",
+        "fen 8/2p5/3p4/KP5r/1R3p1k/8/4P1P1/8 w - - 0 1",
+        7
+      ],
+      [
+        "promotion_white",
+        "fen 8/k1P5/2K5/8/8/8/8/8 w - - 0 1",
+        1
+      ],
+      [
+        "promotion_black",
+        "fen 8/8/8/8/8/2k5/K1p5/8 b - - 0 1",
+        1
+      ]
+    ],
+    "passes": [
+      "cold",
+      "warm"
+    ],
+    "normalize_only": [
+      "time",
+      "nps",
+      "hashfull"
+    ],
+    "compare": "All ordered depth/seldepth/score/bound/nodes/PV/bestmove records"
+  },
+  "bench": {
+    "command_via_stdin": "bench 11",
+    "hash_mib": 16,
+    "threads": 1,
+    "expected_baseline_nodes": 419798,
+    "must_match": "candidate node signature"
+  },
+  "warmups": [],
+  "schedule": [],
+  "resource_before": {
+    "monotonic_ns": 27402475759516,
+    "affinity": [
+      0,
+      1,
+      2,
+      3,
+      4
+    ],
+    "loadavg": [
+      1.02978515625,
+      0.888671875,
+      0.6396484375
+    ],
+    "self_cgroup": {
+      "path": "/proc/self/cgroup",
+      "text": "0::/\n"
+    },
+    "cgroups": [
+      {
+        "path": "/sys/fs/cgroup/cpu.max",
+        "text": "400000 100000\n"
+      },
+      {
+        "path": "/sys/fs/cgroup/cpu.stat",
+        "text": "usage_usec 21329565528\nuser_usec 15676301101\nsystem_usec 5653264426\nnice_usec 0\nnr_periods 213816\nnr_throttled 13232\nthrottled_usec 1643385647\nnr_bursts 0\nburst_usec 0\n"
+      },
+      {
+        "path": "/sys/fs/cgroup/cpuset.cpus.effective",
+        "text": "0-4\n"
+      }
+    ]
+  },
+  "cpu_accounting": {
+    "clock_ticks_per_second": 100,
+    "search_window": "/proc/tgid/stat user+system tick deltas sampled before go and after bestmove; aggregate all process threads",
+    "high_resolution": "wait4 rusage for whole session includes setup, hash clears and exit; separate estimand",
+    "endpoint": "monotonic timestamp of go before write/flush to reader-observed bestmove; includes transport/observer scheduling",
+    "node_limit": "Last UCI info nodes is NOT final work accounting. Rates use requested budget units; helper overshoot and variable SMP trees prevent exact-node NPS or equal-quality claims.",
+    "cgroup": "Shared-cgroup counter deltas are diagnostic only, not engine-specific CPU"
+  },
+  "session_setup_commands": [
+    "uci",
+    "setoption name Hash value 32",
+    "setoption name Threads value <frozen_threads>",
+    "setoption name OwnBook value false",
+    "setoption name Ponder value false",
+    "isready"
+  ],
+  "search_commands": {
+    "cold_prefix": [
+      "ucinewgame",
+      "position <frozen_position>",
+      "isready"
+    ],
+    "warm_prefix": [
+      "position <same_position>",
+      "isready"
+    ],
+    "fixed_depth": [
+      "go depth 7",
+      "go depth 6",
+      "go depth 6",
+      "go depth 7",
+      "go depth 1",
+      "go depth 1"
+    ],
+    "performance": "go nodes 200000",
+    "shutdown": "quit"
+  },
+  "stopping_rule": "No retries, substitutions, trimming or adaptive counts. Parity/bench mismatch or any timeout/error aborts the attempt. All six blocks for each of1/2/4threads required for complete performance status."
+}

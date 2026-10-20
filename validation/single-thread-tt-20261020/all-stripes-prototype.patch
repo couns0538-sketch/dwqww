@@ -1,0 +1,193 @@
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index 9460da4..b89f129 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -1,5 +1,5 @@
+ cmake_minimum_required(VERSION 3.16)
+-project(ChessEngineForge VERSION 6.4.11 LANGUAGES CXX)
++project(ChessEngineForge VERSION 6.4.12 LANGUAGES CXX)
+ find_package(Threads REQUIRED)
+ 
+ option(FORGE_ENABLE_SANITIZERS "Enable AddressSanitizer and UndefinedBehaviorSanitizer" OFF)
+diff --git a/include/forge/search.hpp b/include/forge/search.hpp
+index 3939a8b..0253874 100644
+--- a/include/forge/search.hpp
++++ b/include/forge/search.hpp
+@@ -127,8 +127,28 @@ public:
+     }
+ 
+ private:
++    friend class Searcher;
+     static constexpr std::size_t StripeCount = 1024;
+     struct alignas(64) Stripe { std::mutex mutex; };
++    // Opt-in controller ownership: acquire every stripe before publishing TLS.
++    // Other threads keep taking ordinary locks; lifecycle still needs quiescence.
++    class ExclusiveLease {
++    public:
++        explicit ExclusiveLease(TranspositionTable& table);
++        ~ExclusiveLease();
++        ExclusiveLease(const ExclusiveLease&) = delete;
++        ExclusiveLease& operator=(const ExclusiveLease&) = delete;
++        ExclusiveLease(ExclusiveLease&&) = delete;
++        ExclusiveLease& operator=(ExclusiveLease&&) = delete;
++    private:
++        friend class TranspositionTable;
++        TranspositionTable& table_;
++        const ExclusiveLease* previous_;
++        std::array<std::unique_lock<std::mutex>, StripeCount> locks_{};
++    };
++    static thread_local const ExclusiveLease* active_lease_;
++    [[nodiscard]] bool has_exclusive_access() const;
++    [[nodiscard]] std::unique_lock<std::mutex> lock_stripe(std::size_t index) const;
+     mutable std::array<Stripe, StripeCount> stripes_{};
+     std::uint64_t epoch_ = 0;
+     std::unique_ptr<TTCluster[]> clusters_;
+@@ -339,12 +359,18 @@ private:
+ // Public search facade: a shared transposition table plus one or more workers.
+ class Searcher {
+ public:
++    // Exclusive is for a controller with no concurrent diagnostics: at one
++    // worker it holds all TT stripes until search returns. Foreign TT calls
++    // block for the whole search and must not hold locks needed by search.
++    // Multiple workers and the default library entry retain shared locking.
++    enum class TTAccess { Shared, Exclusive };
+     explicit Searcher(std::size_t hash_mb = 32, int threads = 1);
+     ~Searcher();
+     Searcher(const Searcher&) = delete;
+     Searcher& operator=(const Searcher&) = delete;
+ 
+-    SearchInfo search(Board board, const SearchLimits& limits, bool emit_info = false);
++    SearchInfo search(Board board, const SearchLimits& limits, bool emit_info = false,
++                      TTAccess table_access = TTAccess::Shared);
+     void stop() { shared_.stop.store(true, std::memory_order_relaxed); }
+     void reset_stop() {
+         shared_.stop.store(false, std::memory_order_relaxed);
+diff --git a/src/search.cpp b/src/search.cpp
+index 401e936..c06e558 100644
+--- a/src/search.cpp
++++ b/src/search.cpp
+@@ -6,6 +6,7 @@
+ #include <cstring>
+ #include <iostream>
+ #include <limits>
++#include <optional>
+ 
+ namespace forge {
+ 
+@@ -180,6 +181,36 @@ void tune::refresh() { Reductions.refresh(); }
+ // ---------------------------------------------------------------------------
+ // Transposition table
+ 
++thread_local const TranspositionTable::ExclusiveLease* TranspositionTable::active_lease_ = nullptr;
++
++TranspositionTable::ExclusiveLease::ExclusiveLease(TranspositionTable& table)
++    : table_(table), previous_(active_lease_) {
++    if (!table_.has_exclusive_access()) {
++        for (std::size_t i = 0; i < StripeCount; ++i) {
++            locks_[i] = std::unique_lock<std::mutex>(table_.stripes_[i].mutex);
++        }
++    }
++    active_lease_ = this;
++}
++
++TranspositionTable::ExclusiveLease::~ExclusiveLease() {
++    // Member destruction unlocks only after ownership has been restored.
++    active_lease_ = previous_;
++}
++
++bool TranspositionTable::has_exclusive_access() const {
++    for (const ExclusiveLease* lease = active_lease_; lease != nullptr; lease = lease->previous_) {
++        if (&lease->table_ == this) return true;
++    }
++    return false;
++}
++
++std::unique_lock<std::mutex> TranspositionTable::lock_stripe(std::size_t index) const {
++    std::unique_lock<std::mutex> lock(stripes_[index % StripeCount].mutex, std::defer_lock);
++    if (!has_exclusive_access()) lock.lock();
++    return lock;
++}
++
+ void TranspositionTable::resize(std::size_t mb) {
+     const std::size_t bytes = std::max<std::size_t>(1, mb) * 1024U * 1024U;
+     const std::size_t new_count = std::max<std::size_t>(1, bytes / sizeof(TTCluster));
+@@ -199,7 +230,7 @@ void TranspositionTable::clear() {
+ TTProbe TranspositionTable::probe(std::uint64_t key) const {
+     const TTCluster& cluster = cluster_for(key);
+     const std::size_t index = static_cast<std::size_t>(&cluster - clusters_.get());
+-    const std::lock_guard<std::mutex> lock(stripes_[index % StripeCount].mutex);
++    const auto lock = lock_stripe(index);
+     auto snapshot = [&](const TTEntry& entry, bool hit) {
+         TTProbe result;
+         result.entry = entry;
+@@ -232,7 +263,7 @@ void TranspositionTable::store(const TTProbe& probe, std::uint64_t key, int scor
+     // Lifecycle operations themselves must not run concurrently with search.
+     if (probe.owner_ != this || probe.epoch_ != epoch_ || probe.key_ != key ||
+         probe.cluster_ >= cluster_count_ || probe.slot_ >= 4) return;
+-    const std::lock_guard<std::mutex> lock(stripes_[probe.cluster_ % StripeCount].mutex);
++    const auto lock = lock_stripe(probe.cluster_);
+     TTEntry* entry = &clusters_[probe.cluster_].entries[probe.slot_];
+     const std::uint32_t key32 = verification_key(key);
+     const bool same_position = entry->key32 == key32 && entry->occupied();
+@@ -251,7 +282,7 @@ int TranspositionTable::hashfull() const {
+     int count = 0;
+     const std::size_t sample = std::min<std::size_t>(1000, cluster_count_);
+     for (std::size_t i = 0; i < sample; ++i) {
+-        const std::lock_guard<std::mutex> lock(stripes_[i % StripeCount].mutex);
++        const auto lock = lock_stripe(i);
+         for (const TTEntry& entry : clusters_[i].entries) {
+             if (entry.occupied() && entry.generation() == generation_) ++count;
+         }
+@@ -1407,7 +1438,7 @@ void Searcher::clear() {
+     for (auto& worker : workers_) worker->clear();
+ }
+ 
+-SearchInfo Searcher::search(Board board, const SearchLimits& limits, bool emit_info) {
++SearchInfo Searcher::search(Board board, const SearchLimits& limits, bool emit_info, TTAccess table_access) {
+     const auto request_start = limits.request_start == std::chrono::steady_clock::time_point{}
+         ? std::chrono::steady_clock::now() : limits.request_start;
+     SearchLimits worker_limits = limits;
+@@ -1417,6 +1448,10 @@ SearchInfo Searcher::search(Board board, const SearchLimits& limits, bool emit_i
+     for (auto& worker : workers_) all.push_back(worker.get());
+     // Age the table once per search, before any worker can probe it.
+     shared_.tt.new_search();
++    std::optional<TranspositionTable::ExclusiveLease> exclusive;
++    if (table_access == TTAccess::Exclusive && workers_.size() == 1) {
++        exclusive.emplace(shared_.tt);
++    }
+     std::vector<std::thread> helpers;
+     for (std::size_t i = 1; i < workers_.size(); ++i) {
+         helpers.emplace_back([this, i, board, &worker_limits, &all]() {
+diff --git a/src/uci.cpp b/src/uci.cpp
+index dfb85b7..8450a36 100644
+--- a/src/uci.cpp
++++ b/src/uci.cpp
+@@ -160,7 +160,7 @@ int main() {
+         input >> command;
+         if (command == "uci") {
+             const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex());
+-            std::cout << "id name Chess Engine Forge 6.4.11 candidate\n"
++            std::cout << "id name Chess Engine Forge 6.4.12 candidate\n"
+                          "id author OpenAI\n"
+                          "option name Hash type spin default 32 min 1 max 2048\n"
+                          "option name Threads type spin default 1 min 1 max 256\n"
+@@ -351,7 +351,8 @@ int main() {
+                 searcher.reset_stop();
+                 worker = std::thread([&searcher, &stop_mutex, &stop_cv, &stop_requested,
+                                       &ponder_hit_received, search_board, limits, ponder_enabled]() mutable {
+-                    const forge::SearchInfo result = searcher.search(search_board, limits, true);
++                    const forge::SearchInfo result = searcher.search(
++                        search_board, limits, true, forge::Searcher::TTAccess::Exclusive);
+                     if (limits.infinite || limits.ponder) {
+                         std::unique_lock<std::mutex> lock(stop_mutex);
+                         stop_cv.wait(lock, [&stop_requested, &ponder_hit_received, &limits] {
+@@ -396,7 +397,8 @@ int main() {
+                 forge::SearchLimits limits;
+                 limits.depth = depth;
+                 bench_searcher.clear();
+-                total_nodes += bench_searcher.search(bench_board, limits).nodes;
++                total_nodes += bench_searcher.search(
++                    bench_board, limits, false, forge::Searcher::TTAccess::Exclusive).nodes;
+             }
+             const auto elapsed_ms = std::chrono::duration_cast<std::chrono::milliseconds>(
+                 std::chrono::steady_clock::now() - start).count();
