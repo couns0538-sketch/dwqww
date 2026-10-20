@@ -1,0 +1,31 @@
+--- prototype-first-GREEN/CMakeLists.txt
++++ frozen20/CMakeLists.txt
+@@ -1,5 +1,5 @@
+ cmake_minimum_required(VERSION 3.16)
+-project(ChessEngineForge VERSION 6.4.19 LANGUAGES CXX)
++project(ChessEngineForge VERSION 6.4.20 LANGUAGES CXX)
+ find_package(Threads REQUIRED)
+ 
+ option(FORGE_ENABLE_SANITIZERS "Enable AddressSanitizer and UndefinedBehaviorSanitizer" OFF)
+--- prototype-first-GREEN/src/uci.cpp
++++ frozen20/src/uci.cpp
+@@ -160,7 +160,7 @@
+         input >> command;
+         if (command == "uci") {
+             const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex());
+-            std::cout << "id name Chess Engine Forge 6.4.19 candidate\n"
++            std::cout << "id name Chess Engine Forge 6.4.20 candidate\n"
+                          "id author OpenAI\n"
+                          "option name Hash type spin default 32 min 1 max 2048\n"
+                          "option name Threads type spin default 1 min 1 max 256\n"
+--- prototype-first-GREEN/tests/pawn_span_tests.cpp
++++ frozen20/tests/pawn_span_tests.cpp
+@@ -55,7 +55,7 @@
+ void verify(Color color, Bitboard pawns) {
+     const Bitboard expected = original_span(color, pawns);
+     check(forward_fill(color, pawn_attacks_bb(color, pawns)), expected, color, pawns, "span from bitboard attacks");
+-    check(forward_fill(color, table_pawn_attacks(color, pawns)), expected, color, pawns, "span from independent attack tables");
++    check(forward_fill(color, table_pawn_attacks(color, pawns)), expected, color, pawns, "span from stored pawn attack tables");
+     check(forward_fill(color, pawns), original_fill(color, pawns), color, pawns, "inclusive arbitrary-square fill");
+ }
+ 

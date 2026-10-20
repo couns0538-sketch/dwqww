@@ -1,0 +1,23 @@
+Preparer source-equivalence check passed; root review remains pending. This addendum preserves the original public evaluation experiment as the first GREEN prototype, still version19. It does not describe that historical execution as a frozen20 probe.
+
+The original release summary has SHA-256 `5d2f549005c36f19ec635d0c0e4399456046db79afe62a09f473551558548e13`. Its complete before/after build maps equal the 75-file `EXPECTED-SOURCE-75.json`, hash `3ab4e1ee58348d91a7055fddaf10bc1e1846c904595d36a944a7d216aa7c520e`. All actual prototype-export bytes still match. `FINAL-SOURCE-75.json`, hash `74012cdabd3090d567e43552d13c001dabdea6ba5ecfcf91b915993c032d1636`, is the intermediate test-label-only map; it still has the old project/UCI version and must retain that identity.
+
+Frozen20 root source record `ROOT-FROZEN-SOURCE-GATES.json`, hash `9d20b35515e4be3e9230039869409a4a46003fede3a11949e93c720e3c4ab770`, identifies commit `fc2391870b3bf2cd4d8fc20c7406ea6439c69c5e`. Its complete 75-file map equals the actual native export, native file-map record and every regular member of the retained Git archive. The archive hash is `d462b5d67d41ff448f2d3c830d49a774c2ec0b072972be73bb0a2fc1a95d73c5`; its PAX comment is the exact commit. No Git operation was needed for this check. This verifies identity against the existing root record and archive, without independently re-authenticating remote Git history.
+
+Exactly 72 files are unchanged between the first GREEN prototype and frozen20. The complete differences are preserved in `prototype-to-frozen20.diff`:
+
+- CMake project version `6.4.19` → `6.4.20`.
+- The UCI executable's identification string `6.4.19` → `6.4.20`.
+- One pawn-span test failure diagnostic `independent attack tables` → `stored pawn attack tables`.
+
+All seven `forge_core` translation units, all eight headers, and four included data files are byte identical. In particular, `src/eval.cpp` remains `2afdabb3f3eebe01e883367ee2f9f384661bc3e821a896b5912859908ed44b89` and `include/forge/bitboard.hpp` remains `e8e7dc21572bf45482fabd32e5d1fae951f9f128bf503cefefd35716be9cf58d`. The public evaluation/trace declarations, parameters, board, NNUE, weights and search boundaries retain their recorded hashes. The exact CMake diff changes no compile flags, definitions or target source list; there is no generated production version header. UCI and test files are outside `forge_core`.
+
+The original public differential's before/after observations are identical: 55 consumed inputs, including all 20 prototype include/src paths and the original build summary. Both observation files hash to `7d4321ae190a095347ada8b8531723b565ad249a7a8a755bff9e0b7a25d906a8`. All 55 inputs also retain those bytes and modes now. Original baseline19/prototype stdout files remain byte identical: 95 rows ×647 integer fields =61,465 fields, hash `c2832e305926d6d533f2250498b1c561cd00623ef3362a76298b619c9cc97513`. Original result `034543768d280fcdc9e319c2f7a5372fde9923492b8c487d76e83554a03af3cb` and receipt `48fbe61ab46930a24f45bed504e9bdb9e86bbea2c0ce5c2f3910d454fa05df82` retain their prototype labels and scope qualifications.
+
+This supports a source-level bridge from the finite historical evaluation/trace check to unchanged frozen20 evaluation code. It does not assert a new frozen20 probe execution, byte-identical compiled cores, new correctness acceptance, or a performance/Elo result. Root must review and bind this addendum before using it as qualification evidence.
+
+Reproduce with `python3 -B validation/hosted-pawn-span-performance-20261020/source-equivalence/check_source_equivalence.py`. It uses standard-library file reads, archive inspection, hashing and comparison; it imports no runner and starts no subprocess. It checks the saved JSON and exact diff, and verifies consumed bytes/modes again after analysis. `PREPARER-SOURCE-EQUIVALENCE.json` contains every consumed input path, hash and mode. The default verification exited zero; `verification.stdout` and empty `verification.stderr` preserve that observation.
+
+The preparer's first check failed because it counted only the project `VERSION`, overlooking `cmake_minimum_required(VERSION 3.16)`. The failed script and `attempt1-note.json` remain separate. The corrected check requires exactly the two actual occurrences, the exact version-only source diff, and no generated configuration header. No engine, build or probe failed or ran during this addendum.
+
+Stable addendum hashes: check script `8f03c98d8d45d20c43c686bd8abb68915e8236d0b66127ed07e3564f9d1566c5`; preparer JSON `6ccb9e872a5e69d2ac36ddc821e6fced88d2e685234966ca6d411b5f0248eeb6`; exact diff `8963d7f860dc5753d55b7000c0b275692bbd96c529d0e008225fbd2d5080576f`.

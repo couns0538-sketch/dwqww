@@ -3,8 +3,10 @@
 Active20sourcefc2391870b3bf2cd4d8fc20c7406ea6439c69c5e is frozen/published.
 First native36CTest/8active/56exact cold-warm searches passed, independent2363audit
 and root242evidence/564originals/9singles/75Gitblobs verified. All source and raw
-native evidence is immutable. Next capture two genuine19/20 five-command producer
-streams with provenance, then Windows20j1/11Wine/audit and calibrated hosted
+native evidence is immutable. Two genuine19/20 five-command producer
+streams with provenance completed normally;178inputs rehashed, outertoolreturn
+unknown retained without repeating commands. Windows20firstj1build passed; finish
+11Wine/audit and calibrated hosted
 performance after all final gates/reviews. Do not duplicate any completed gate
 or mutate frozen source. Disabled42test performance packet is not launch-ready.
 Native schemas differ: read genuine20native_ctests/default_tsan_active_checks/
@@ -60,7 +62,9 @@ now covers canonical producer captures, mandatory source/build/final-hash eviden
 permissions/time-budget headroom, and unconditional owned-child cleanup plus
 original affinity restoration even when evidence hashing/saving fails. New scenario
 and independent seven-criterion application pass; repository-local files are saved.
-Root cloud/executor catalogs and skill-creator are not exposed. A preparation
+Aftercatalogrefresh root successfully read6relevantcloudSKILL.md resources;
+three requested references still failed once, no bundledhelperexecutionclaimed.
+Skill-creator remains unavailable. Earlier, a preparation
 subagent could read four scoped cloud SKILL.md resources; exact tool receipts and
 contents are retained in validation/hosted-pawn-span-performance-20261020/skills/.
 Their eight required reference reads failed and are documented; no bundled helpers

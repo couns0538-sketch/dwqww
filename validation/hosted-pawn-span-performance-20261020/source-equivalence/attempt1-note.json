@@ -1,0 +1,9 @@
+{
+  "status": "FAILED_PREPARER_CHECK_NO_OUTPUT_ARTIFACTS_WRITTEN",
+  "command": "python3 -B validation/hosted-pawn-span-performance-20261020/source-equivalence/check_source_equivalence.py --write",
+  "exit_code": 1,
+  "observed_error": "ValueError: Project version may affect generated production source",
+  "cause": "The preparer asserted one occurrence of VERSION, overlooking cmake_minimum_required(VERSION 3.16). There are two: the CMake minimum and the project version. This was a source-check assertion error, not an engine/build/probe failure.",
+  "failed_source_copy": "check_source_equivalence.attempt1.py",
+  "correction": "Require exactly the two genuine VERSION occurrences while retaining the exact one-line CMake diff and no configure_file guard."
+}

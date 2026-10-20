@@ -358,3 +358,15 @@ Windows and20speed/Elo remain pending. Actualqueenray codegen already reusesboth
 rays in traced/normal bothcolors, so drop that speculative optimization with
 disassembly evidence. Next remaining source hypothesis is nearestpawn distance,
 after20qualification/performance.
+
+20actualproducer captures: both frozen19/20 engine commands normally completed
+with5canonical321912rows, empty stderr, explicitchildexit0/groupsclosed and all
+178frozen inputs unchanged. Outer toolresponseabortedafter1.1s duringenvironment
+metadata transition; outershellreturnunknown retained. Inspectedoriginalfinal
+provenance afterrecovery and reran noengine. This is transport evidence only.
+Native20checkpointedccef220cf540e25ded6086fb8775e74b62f7f1 is remotely/publicbyte
+verified. Windowsfirstj1build9PE passed,11Wine underway. Rootpublictrace source
+equivalence rehashed201inputs and19corefiles; only3metadata/diagnostic changes
+from historical95position probe, no newfrozen20probe execution asserted.
+Rootcloud6relevantSKILL.md reads now succeed aftercatalogrefresh; three specific
+reference reads failed once. Availability changed, no installation/helperclaim.
