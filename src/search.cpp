@@ -6,6 +6,7 @@
 #include <cstring>
 #include <iostream>
 #include <limits>
+#include <optional>
 
 namespace forge {
 
@@ -180,6 +181,36 @@ void tune::refresh() { Reductions.refresh(); }
 // ---------------------------------------------------------------------------
 // Transposition table
 
+thread_local const TranspositionTable::ExclusiveLease* TranspositionTable::active_lease_ = nullptr;
+
+TranspositionTable::ExclusiveLease::ExclusiveLease(TranspositionTable& table)
+    : table_(table), previous_(active_lease_) {
+    if (!table_.has_exclusive_access()) {
+        for (std::size_t i = 0; i < StripeCount; ++i) {
+            locks_[i] = std::unique_lock<std::mutex>(table_.stripes_[i].mutex);
+        }
+    }
+    active_lease_ = this;
+}
+
+TranspositionTable::ExclusiveLease::~ExclusiveLease() {
+    // Member destruction unlocks only after ownership has been restored.
+    active_lease_ = previous_;
+}
+
+bool TranspositionTable::has_exclusive_access() const {
+    for (const ExclusiveLease* lease = active_lease_; lease != nullptr; lease = lease->previous_) {
+        if (&lease->table_ == this) return true;
+    }
+    return false;
+}
+
+std::unique_lock<std::mutex> TranspositionTable::lock_stripe(std::size_t index) const {
+    std::unique_lock<std::mutex> lock(stripes_[index % StripeCount].mutex, std::defer_lock);
+    if (!has_exclusive_access()) lock.lock();
+    return lock;
+}
+
 void TranspositionTable::resize(std::size_t mb) {
     const std::size_t bytes = std::max<std::size_t>(1, mb) * 1024U * 1024U;
     const std::size_t new_count = std::max<std::size_t>(1, bytes / sizeof(TTCluster));
@@ -199,7 +230,7 @@ void TranspositionTable::clear() {
 TTProbe TranspositionTable::probe(std::uint64_t key) const {
     const TTCluster& cluster = cluster_for(key);
     const std::size_t index = static_cast<std::size_t>(&cluster - clusters_.get());
-    const std::lock_guard<std::mutex> lock(stripes_[index % StripeCount].mutex);
+    const auto lock = lock_stripe(index);
     auto snapshot = [&](const TTEntry& entry, bool hit) {
         TTProbe result;
         result.entry = entry;
@@ -232,7 +263,7 @@ void TranspositionTable::store(const TTProbe& probe, std::uint64_t key, int scor
     // Lifecycle operations themselves must not run concurrently with search.
     if (probe.owner_ != this || probe.epoch_ != epoch_ || probe.key_ != key ||
         probe.cluster_ >= cluster_count_ || probe.slot_ >= 4) return;
-    const std::lock_guard<std::mutex> lock(stripes_[probe.cluster_ % StripeCount].mutex);
+    const auto lock = lock_stripe(probe.cluster_);
     TTEntry* entry = &clusters_[probe.cluster_].entries[probe.slot_];
     const std::uint32_t key32 = verification_key(key);
     const bool same_position = entry->key32 == key32 && entry->occupied();
@@ -251,7 +282,7 @@ int TranspositionTable::hashfull() const {
     int count = 0;
     const std::size_t sample = std::min<std::size_t>(1000, cluster_count_);
     for (std::size_t i = 0; i < sample; ++i) {
-        const std::lock_guard<std::mutex> lock(stripes_[i % StripeCount].mutex);
+        const auto lock = lock_stripe(i);
         for (const TTEntry& entry : clusters_[i].entries) {
             if (entry.occupied() && entry.generation() == generation_) ++count;
         }
@@ -1407,7 +1438,7 @@ void Searcher::clear() {
     for (auto& worker : workers_) worker->clear();
 }
 
-SearchInfo Searcher::search(Board board, const SearchLimits& limits, bool emit_info) {
+SearchInfo Searcher::search(Board board, const SearchLimits& limits, bool emit_info, TTAccess table_access) {
     const auto request_start = limits.request_start == std::chrono::steady_clock::time_point{}
         ? std::chrono::steady_clock::now() : limits.request_start;
     SearchLimits worker_limits = limits;
@@ -1417,6 +1448,10 @@ SearchInfo Searcher::search(Board board, const SearchLimits& limits, bool emit_i
     for (auto& worker : workers_) all.push_back(worker.get());
     // Age the table once per search, before any worker can probe it.
     shared_.tt.new_search();
+    std::optional<TranspositionTable::ExclusiveLease> exclusive;
+    if (table_access == TTAccess::Exclusive && workers_.size() == 1) {
+        exclusive.emplace(shared_.tt);
+    }
     std::vector<std::thread> helpers;
     for (std::size_t i = 1; i < workers_.size(); ++i) {
         helpers.emplace_back([this, i, board, &worker_limits, &all]() {

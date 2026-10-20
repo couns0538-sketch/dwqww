@@ -160,7 +160,7 @@ int main() {
         input >> command;
         if (command == "uci") {
             const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex());
-            std::cout << "id name Chess Engine Forge 6.4.11 candidate\n"
+            std::cout << "id name Chess Engine Forge 6.4.12 candidate\n"
                          "id author OpenAI\n"
                          "option name Hash type spin default 32 min 1 max 2048\n"
                          "option name Threads type spin default 1 min 1 max 256\n"
@@ -351,7 +351,8 @@ int main() {
                 searcher.reset_stop();
                 worker = std::thread([&searcher, &stop_mutex, &stop_cv, &stop_requested,
                                       &ponder_hit_received, search_board, limits, ponder_enabled]() mutable {
-                    const forge::SearchInfo result = searcher.search(search_board, limits, true);
+                    const forge::SearchInfo result = searcher.search(
+                        search_board, limits, true, forge::Searcher::TTAccess::Exclusive);
                     if (limits.infinite || limits.ponder) {
                         std::unique_lock<std::mutex> lock(stop_mutex);
                         stop_cv.wait(lock, [&stop_requested, &ponder_hit_received, &limits] {
@@ -396,7 +397,8 @@ int main() {
                 forge::SearchLimits limits;
                 limits.depth = depth;
                 bench_searcher.clear();
-                total_nodes += bench_searcher.search(bench_board, limits).nodes;
+                total_nodes += bench_searcher.search(
+                    bench_board, limits, false, forge::Searcher::TTAccess::Exclusive).nodes;
             }
             const auto elapsed_ms = std::chrono::duration_cast<std::chrono::milliseconds>(
                 std::chrono::steady_clock::now() - start).count();

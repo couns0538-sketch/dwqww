@@ -127,8 +127,28 @@ public:
     }
 
 private:
+    friend class Searcher;
     static constexpr std::size_t StripeCount = 1024;
     struct alignas(64) Stripe { std::mutex mutex; };
+    // Opt-in controller ownership: acquire every stripe before publishing TLS.
+    // Other threads keep taking ordinary locks; lifecycle still needs quiescence.
+    class ExclusiveLease {
+    public:
+        explicit ExclusiveLease(TranspositionTable& table);
+        ~ExclusiveLease();
+        ExclusiveLease(const ExclusiveLease&) = delete;
+        ExclusiveLease& operator=(const ExclusiveLease&) = delete;
+        ExclusiveLease(ExclusiveLease&&) = delete;
+        ExclusiveLease& operator=(ExclusiveLease&&) = delete;
+    private:
+        friend class TranspositionTable;
+        TranspositionTable& table_;
+        const ExclusiveLease* previous_;
+        std::array<std::unique_lock<std::mutex>, StripeCount> locks_{};
+    };
+    static thread_local const ExclusiveLease* active_lease_;
+    [[nodiscard]] bool has_exclusive_access() const;
+    [[nodiscard]] std::unique_lock<std::mutex> lock_stripe(std::size_t index) const;
     mutable std::array<Stripe, StripeCount> stripes_{};
     std::uint64_t epoch_ = 0;
     std::unique_ptr<TTCluster[]> clusters_;
@@ -339,12 +359,18 @@ private:
 // Public search facade: a shared transposition table plus one or more workers.
 class Searcher {
 public:
+    // Exclusive is for a controller with no concurrent diagnostics: at one
+    // worker it holds all TT stripes until search returns. Foreign TT calls
+    // block for the whole search and must not hold locks needed by search.
+    // Multiple workers and the default library entry retain shared locking.
+    enum class TTAccess { Shared, Exclusive };
     explicit Searcher(std::size_t hash_mb = 32, int threads = 1);
     ~Searcher();
     Searcher(const Searcher&) = delete;
     Searcher& operator=(const Searcher&) = delete;
 
-    SearchInfo search(Board board, const SearchLimits& limits, bool emit_info = false);
+    SearchInfo search(Board board, const SearchLimits& limits, bool emit_info = false,
+                      TTAccess table_access = TTAccess::Shared);
     void stop() { shared_.stop.store(true, std::memory_order_relaxed); }
     void reset_stop() {
         shared_.stop.store(false, std::memory_order_relaxed);
