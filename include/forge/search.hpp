@@ -26,6 +26,9 @@ struct SearchLimits {
     int moves_to_go = 0;
     int mate_moves = 0;
     int move_overhead_ms = 10;
+    // Optional UCI dispatch origin for externally clocked searches. Other
+    // Searcher callers retain worker-local timing by leaving this unset.
+    std::chrono::steady_clock::time_point start_time{};
     bool infinite = false;
     bool ponder = false;
     bool search_moves_specified = false;

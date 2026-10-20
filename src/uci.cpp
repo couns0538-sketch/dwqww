@@ -284,6 +284,8 @@ int main() {
             stop_search();
             apply_position(board, input);
         } else if (command == "go") {
+            // The match clock starts before synchronous UCI command dispatch.
+            const auto go_received = std::chrono::steady_clock::now();
             stop_search();
             std::string first;
             const auto position = input.tellg();
@@ -318,6 +320,10 @@ int main() {
                 input.seekg(position);
                 forge::SearchLimits limits = parse_limits(input, board);
                 limits.move_overhead_ms = move_overhead_ms;
+                // Only time-controlled searches pay pre-worker admission costs;
+                // depth/nodes/infinite/ponder searches keep their old origin.
+                if (!limits.infinite && !limits.ponder &&
+                    (limits.time_ms >= 0 || limits.movetime_ms >= 0)) limits.start_time = go_received;
                 // Book moves apply to game play (clock or movetime searches), not
                 // to analysis, pondering or restricted searches.
                 const bool game_search = (limits.time_ms >= 0 || limits.movetime_ms >= 0) && !limits.infinite &&

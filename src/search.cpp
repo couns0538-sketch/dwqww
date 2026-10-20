@@ -1109,7 +1109,9 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
 // Iterative deepening driver
 
 SearchInfo Worker::search(Board board, const SearchLimits& limits, bool emit_info, const std::vector<Worker*>& all) {
-    start_ = std::chrono::steady_clock::now();
+    start_ = limits.start_time == std::chrono::steady_clock::time_point{}
+                 ? std::chrono::steady_clock::now()
+                 : limits.start_time;
     local_nodes_ = 0;
     nodes_.store(0, std::memory_order_relaxed);
     all_workers_ = &all;

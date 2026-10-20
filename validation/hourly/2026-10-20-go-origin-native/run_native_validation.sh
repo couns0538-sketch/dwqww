@@ -21,8 +21,10 @@ printf 'Compiler: %s\n' "$(g++ -dumpfullversion -dumpversion)" >> "$OUTPUT/ident
 sha256sum "$HERE/uci-clock-origin-scoped.patch" "$REPO/src/nnue_weights.inc" >> "$OUTPUT/identities.txt"
 (git -C "$REPO" archive "$SOURCE_REV") | tar -x -C "$TEMP/baseline"
 (git -C "$REPO" archive "$SOURCE_REV") | tar -x -C "$TEMP/candidate"
-(cd "$TEMP/candidate" && git apply --check "$HERE/uci-clock-origin-scoped.patch" && git apply "$HERE/uci-clock-origin-scoped.patch")
-printf 'Patch applied to disposable candidate tree; immutable baseline untouched\n' >> "$OUTPUT/identities.txt"
+# Production candidate is precisely HEAD. Recover the pre-fix comparison
+# only inside an isolated snapshot, without touching original branch/source.
+(cd "$TEMP/baseline" && git apply -R --check "$HERE/uci-clock-origin-scoped.patch" && git apply -R "$HERE/uci-clock-origin-scoped.patch")
+printf 'Production candidate=HEAD; pre-fix baseline is patch-reversed disposable tree\n' >> "$OUTPUT/identities.txt"
 logged() {
   local name="$1"; shift
   if "$@" > "$OUTPUT/$name.stdout" 2> "$OUTPUT/$name.stderr"; then
