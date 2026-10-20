@@ -1,0 +1,13 @@
+# Promotion SEE strength preparation
+
+PENDING current candidate17 full correctness proofs and final root review; unlaunched. Exact17source47f0560221d986e41a309853e1295c557fcf5bf6 versus14source21538ec5416c909fc98a08688242a0b3b9710b25. The comparison measures combined pin-aware SEE, mask refinement and promotion repair; no component Elo isolation.
+
+Root reports Release9/9 and one actual nativebench11 signature385781. Its timing/NPS is uncalibrated and not a performance comparison. Baseline14grossAA remains419798. One candidate signature-only385781/10second readiness check precedes all games; no timing ratio or search parity claim. Current17ASan/UBSan/TSan, activeUCI and Windows/independent artifact proofs remain pending until actually verified.
+
+Original16TSanfullbatch remains FAILED at initial15second OwnBook uciok wait. Its separate observed five-transition diagnostic passed with no reproduced stall; that does not explain or waive the original failure. Earlier source proofs do not transfer, and no17 failure or baseline14 anomaly is pre-cleared.
+
+Fresh4AA+128SPRT openings reuse the exact verified official-book cache without another full replay. Both15 and16 unused132position pools, NNUE/TT full reservations, all historical registries/current EPD inputs are excluded. New selector/runtime seeds20261020-promotion-see-v1/20261025 are frozen before outcomes; independent source-game/legal/order audit is required.
+
+Root authorizes one fresh hosted readiness attempt with prior anomalies unresolved, not completed readiness or a repaired cause. Baseline grossAA, candidate signature and deterministic four-pair moveAA all precede AB. Any fault invalidates the attempt; no retry, pooling or trimming.128pair cap or nativeSPRTboundary at10+.1/0+10 remain prospective;12000s emergency invalidates acceptance. No engines, builds, timing tests, matches, launch, network or Git mutation during preparation; old packages remain untouched.
+
+Preparation checks pass:63runner mocks and8archive tests, including single candidate385781 signature/10second guard and fault/orphan cleanup. Initial malformed-signature regex RED is preserved. Independent freshness audit verifies81historical hashes,15276canonical keys and all reserved tails:2320official source positions excluded,29283fresh eligible,132selected original games legally replayed. Entire unused15/16pools132each remain excluded; both seeds/order pass. CacheSHA42735af2eb7ef9a43695de69b256e519075e3a30ef6a565febcabf0abd2bdcff is reused byte-exact with original generator/full-replay proof; zero full-corpus replays performed. Current17fullsource gates remain PENDING.

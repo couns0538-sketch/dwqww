@@ -7,7 +7,8 @@ parent16assertion failures and pass with the reviewed repair. The prototype
 passes324legal oracle cases and preserves314ordinary API rows. Frozen Release9/9PASS, with core byte-identical to the reviewed prototype.
 Thirty API answers at actual search thresholds pass (parent10wrong); bench11
 is385781nodes. ASan/UBSan9/9 and TSan9/9PASS, first attempts with source/binary hashes
-unchanged. ActiveUCI TSan and Windows gates are in progress; no NPS/Elo acceptance.
+unchanged. Eight activeUCI TSan transitions and eight Windows Wine checks passed.
+Windows artifact audit is finishing; no NPS/Elo acceptance.
 The original16startup failure remains unresolved and its strength package blocked.
 
 

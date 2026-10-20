@@ -127,3 +127,11 @@ Thirty actual-margin API answers pass at-40/-150/-450 versus10parentwrong;
 bench11signature385781nodes. Raw uncalibrated1016ms/379705NPS is not a speed
 comparison. ASan/TSan and Windows gates pending, zero games/Elo claims.
 [Source and tests](../validation/promotion-see-20261020/HYPOTHESIS.md).
+
+
+6.4.17frozen native validation completed on firstattempts: Release9/9,
+ASan/UBSan9/9, TSan9/9 and8activeUCI transitions PASS; exact17sources/binaries
+verified unchanged. Full27tests include perft/UCI/ponder/OwnBook. Separate
+Windows17eightWine checks PASS, observed382424benchsignature frozen before
+packaging. Artifact audit and full-search witness pending. Source16failedbatch
+staysFAILED and unlaunched16strengthpoolreserved. No speed/Elo accepted.

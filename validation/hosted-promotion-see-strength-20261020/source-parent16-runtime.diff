@@ -1,0 +1,184 @@
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index b81e6f7..817577b 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -1,5 +1,5 @@
+ cmake_minimum_required(VERSION 3.16)
+-project(ChessEngineForge VERSION 6.4.16 LANGUAGES CXX)
++project(ChessEngineForge VERSION 6.4.17 LANGUAGES CXX)
+ find_package(Threads REQUIRED)
+ 
+ option(FORGE_ENABLE_SANITIZERS "Enable AddressSanitizer and UndefinedBehaviorSanitizer" OFF)
+diff --git a/src/board.cpp b/src/board.cpp
+index 7bf0f20..19d4ff2 100644
+--- a/src/board.cpp
++++ b/src/board.cpp
+@@ -16,6 +16,102 @@ constexpr std::uint8_t BlackQueenSide = 8;
+ 
+ constexpr std::array<int, 7> SeeValue{0, 100, 300, 300, 500, 900, 0};
+ 
++// Rare target-only LVA exchange path. The ordinary threshold SEE is unchanged.
++// Pawn promotions add material immediately and change the next victim's value.
++int promotion_recapture_exchange(const Board& board, const Move& move, int captured_square) {
++    const Color us = board.side_to_move();
++    const int from = move.from;
++    const int to = move.to;
++    std::array<int, 64> gain{};
++    gain[0] = SeeValue[static_cast<std::size_t>(piece_type(board.piece_at(captured_square)))];
++    int victim = SeeValue[static_cast<std::size_t>(piece_type(board.piece_at(from)))];
++    if (move.is_promotion()) {
++        gain[0] += SeeValue[move.promotion] - SeeValue[Pawn];
++        victim = SeeValue[move.promotion];
++    }
++
++    Bitboard occupancy = (board.occupied() ^ square_bb(from) ^ square_bb(captured_square)) | square_bb(to);
++    Color stm = us;
++    Bitboard attackers = board.attackers_to(to, occupancy);
++    const Bitboard diagonals = board.pieces(Bishop) | board.pieces(Queen);
++    const Bitboard lines = board.pieces(Rook) | board.pieces(Queen);
++    std::size_t depth = 0;
++    // Each accepted recapture consumes a distinct occupied origin; a king ends
++    // the exchange. The bound also makes every gain write fit for any board.
++    while (depth + 1 < gain.size()) {
++        stm = opposite(stm);
++        attackers &= occupancy;
++        Bitboard stm_attackers = attackers & board.occupied(stm);
++        const Bitboard king_attackers = stm_attackers & board.pieces(stm, King);
++        if ((stm_attackers & ~king_attackers) != 0) {
++            const Color enemy = opposite(stm);
++            const int king = board.king_square(stm);
++            const Bitboard live = occupancy & ~square_bb(to);
++            const Bitboard queens = board.pieces(enemy, Queen) & live;
++            bool checked =
++                (attacks::pawn(stm, king) & board.pieces(enemy, Pawn) & live) != 0 ||
++                (attacks::knight(king) & board.pieces(enemy, Knight) & live) != 0 ||
++                (attacks::king(king) & board.pieces(enemy, King) & live) != 0;
++            Bitboard pinners =
++                (attacks::bishop(king, 0) & ((board.pieces(enemy, Bishop) & live) | queens)) |
++                (attacks::rook(king, 0) & ((board.pieces(enemy, Rook) & live) | queens));
++            Bitboard forbidden = 0;
++            while (!checked && pinners != 0) {
++                const int pinner = pop_lsb(pinners);
++                const Bitboard blockers = attacks::between(king, pinner) & occupancy;
++                if (blockers == 0) checked = true;
++                else if (!more_than_one(blockers)) forbidden |= blockers;
++            }
++            stm_attackers = checked ? king_attackers : stm_attackers & ~forbidden;
++        }
++        if (stm_attackers == 0) break;
++
++        Bitboard bb = 0;
++        PieceType attacker_type = NoPieceType;
++        if ((bb = stm_attackers & board.pieces(stm, Pawn)) != 0) {
++            attacker_type = Pawn;
++        } else if ((bb = stm_attackers & board.pieces(stm, Knight)) != 0) {
++            attacker_type = Knight;
++        } else if ((bb = stm_attackers & board.pieces(stm, Bishop)) != 0) {
++            attacker_type = Bishop;
++        } else if ((bb = stm_attackers & board.pieces(stm, Rook)) != 0) {
++            attacker_type = Rook;
++        } else if ((bb = stm_attackers & board.pieces(stm, Queen)) != 0) {
++            attacker_type = Queen;
++        } else {
++            // Preserve source16's geometric king-defender test. A king capture
++            // is terminal, and a defended target permits no king capture.
++            if ((attackers & ~board.occupied(stm)) != 0) break;
++            const std::size_t next = depth + 1;
++            gain[next] = victim - gain[depth];
++            depth = next;
++            break;
++        }
++
++        const bool promotes = attacker_type == Pawn && rank_of(to) == (stm == White ? 7 : 0);
++        const int promotion_gain = promotes ? SeeValue[Queen] - SeeValue[Pawn] : 0;
++        const std::size_t next = depth + 1;
++        gain[next] = victim + promotion_gain - gain[depth];
++        depth = next;
++        victim = promotes ? SeeValue[Queen] : SeeValue[static_cast<std::size_t>(attacker_type)];
++
++        occupancy ^= square_bb(lsb(bb));
++        if (attacker_type == Pawn || attacker_type == Bishop) {
++            attackers |= attacks::bishop(to, occupancy) & diagonals;
++        } else if (attacker_type == Rook) {
++            attackers |= attacks::rook(to, occupancy) & lines;
++        } else if (attacker_type == Queen) {
++            attackers |= (attacks::bishop(to, occupancy) & diagonals) | (attacks::rook(to, occupancy) & lines);
++        }
++    }
++    while (depth != 0) {
++        gain[depth - 1] = std::min(gain[depth - 1], -gain[depth]);
++        --depth;
++    }
++    return gain[0];
++}
++
++
+ constexpr std::uint64_t mix(std::uint64_t x) {
+     x += 0x9e3779b97f4a7c15ULL;
+     x = (x ^ (x >> 30U)) * 0xbf58476d1ce4e5b9ULL;
+@@ -839,6 +935,17 @@ bool Board::see_ge(const Move& move, int threshold) const {
+     const int from = move.from;
+     const int to = move.to;
+     const int captured_square = (move.flags & EnPassant) != 0U ? to - pawn_push_delta(us) : to;
++    const int target_rank = rank_of(to);
++    if ((target_rank == 0 || target_rank == 7) &&
++        piece_type(squares_[static_cast<std::size_t>(from)]) != King) {
++        const Color promoter = target_rank == 7 ? White : Black;
++        const Bitboard promoting_pawns =
++            pieces(promoter, Pawn) & attacks::pawn(opposite(promoter), to) &
++            ~(square_bb(from) | square_bb(captured_square));
++        if (promoting_pawns != 0) {
++            return promotion_recapture_exchange(*this, move, captured_square) >= threshold;
++        }
++    }
+     int swap = SeeValue[static_cast<std::size_t>(piece_type(squares_[static_cast<std::size_t>(captured_square)]))] - threshold;
+     int attacker_value = SeeValue[static_cast<std::size_t>(piece_type(squares_[static_cast<std::size_t>(from)]))];
+     if (move.is_promotion()) {
+diff --git a/src/uci.cpp b/src/uci.cpp
+index fc136d7..52fb424 100644
+--- a/src/uci.cpp
++++ b/src/uci.cpp
+@@ -160,7 +160,7 @@ int main() {
+         input >> command;
+         if (command == "uci") {
+             const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex());
+-            std::cout << "id name Chess Engine Forge 6.4.16 candidate\n"
++            std::cout << "id name Chess Engine Forge 6.4.17 candidate\n"
+                          "id author OpenAI\n"
+                          "option name Hash type spin default 32 min 1 max 2048\n"
+                          "option name Threads type spin default 1 min 1 max 256\n"
+diff --git a/tests/tests.cpp b/tests/tests.cpp
+index 6f1b824..298d803 100644
+--- a/tests/tests.cpp
++++ b/tests/tests.cpp
+@@ -334,7 +334,7 @@ void test_pinned_static_exchange() {
+         int gain;
+     };
+     // Legal same-target capture oracles; mirror every case for the other side.
+-    const std::array<ExchangeCase, 23> cases{{
++    const std::array<ExchangeCase, 28> cases{{
+         {"absolute pin", "4k3/4n3/8/3p4/8/8/8/3QR1K1 w - - 0 1", "d1d5", 100},
+         {"unpinned defender", "4k3/4n3/8/3p4/8/8/8/3Q2K1 w - - 0 1", "d1d5", -800},
+         {"capture along pin", "4k3/4r3/8/8/8/8/4p3/3QR1K1 w - - 0 1", "d1e2", -300},
+@@ -358,6 +358,13 @@ void test_pinned_static_exchange() {
+         {"quiet knight promotion", "1r5k/P7/8/8/8/8/8/7K w - - 0 1", "a7a8n", -100},
+         {"captured bishop ghost", "k7/8/8/8/8/2p2N2/3b4/3QK3 w - - 0 1", "d1d2", -500},
+         {"new diagonal pin", "b7/7k/8/8/3Q1p2/5r2/6N1/7K w - - 0 1", "d4f4", -800},
++        // Later recaptures can promote either side's pawn. SEE must account
++        // for that material before using its ordinary threshold shortcuts.
++        {"later promotion saves capture", "1r6/P1Q5/2n4k/8/8/8/8/7K w - - 0 1", "c7b8", 500},
++        {"enemy promotion poisons capture", "7k/8/8/8/8/7K/p2N4/1r6 w - - 0 1", "d2b1", -600},
++        {"pinned promoting recapturer", "k7/8/8/8/8/7K/p2N4/Rr6 w - - 0 1", "d2b1", 500},
++        {"promoted recapturer taken by king", "7k/8/8/8/8/8/p2N4/1rK5 w - - 0 1", "d2b1", 300},
++        {"promotion recapture changes victim", "7k/8/8/8/8/1Q5K/p7/1r6 w - - 0 1", "b3b1", -1200},
+     }};
+     for (const auto& item : cases) {
+         for (const bool mirrored : {false, true}) {
+@@ -374,6 +381,7 @@ void test_pinned_static_exchange() {
+             const std::string before = board.fen();
+             const auto key = board.key();
+             check(board.static_exchange(*move) == item.gain, item.name);
++            check(board.see_ge(*move, 0) == (item.gain >= 0), item.name);
+             check(board.see_ge(*move, item.gain - 1) && board.see_ge(*move, item.gain) &&
+                   !board.see_ge(*move, item.gain + 1), item.name);
+             check(board.fen() == before && board.key() == key, "SEE preserves board state");
