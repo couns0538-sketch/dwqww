@@ -1,0 +1,114 @@
+name: Preserve original hosted confirmation evidence
+on:
+  push:
+    branches: ['forge/recover-confirmation-20261020-*']
+permissions:
+  contents: write
+  actions: read
+concurrency:
+  group: confirmation-recovery-${{ github.ref }}
+  cancel-in-progress: false
+jobs:
+  recovery:
+    if: github.run_attempt == 1 && startsWith(github.ref, 'refs/heads/forge/recover-confirmation-20261020-')
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    env:
+      PYTHONDONTWRITEBYTECODE: '1'
+      RECOVERY_PACKAGE: validation/confirmation-recovery-20261019
+    steps:
+      - name: Check out trusted recovery source
+        timeout-minutes: 1
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          fetch-depth: 1
+      - name: Assert original artifact, run, and job identity using official REST metadata
+        id: source
+        timeout-minutes: 1
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -B "$RECOVERY_PACKAGE/recover.py" metadata --out recovery-raw
+      - name: Preserve original job-log bytes and original artifact ZIP
+        id: original_bytes
+        timeout-minutes: 2
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -B "$RECOVERY_PACKAGE/recover.py" original-bytes --out recovery-raw
+      - name: Download only the identified original artifact with the official action
+        id: download
+        if: always() && steps.source.outcome == 'success'
+        timeout-minutes: 2
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        with:
+          artifact-ids: '12226439147'
+          run-id: '39332822379'
+          repository: ${{ github.repository }}
+          github-token: ${{ github.token }}
+          path: recovery-raw/original-artifact-files
+          merge-multiple: true
+      - name: Verify the extracted tree against every original ZIP member
+        id: extraction
+        if: always() && steps.source.outcome == 'success' && steps.original_bytes.outcome == 'success' && steps.download.outcome == 'success'
+        timeout-minutes: 1
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -B "$RECOVERY_PACKAGE/recover.py" verify-extracted --out recovery-raw
+      - name: Record exact publication-failure lines without guessing a cause
+        if: always()
+        timeout-minutes: 1
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -B "$RECOVERY_PACKAGE/recover.py" diagnose --out recovery-raw
+      - name: Archive and verify every original byte with 64 MiB maximum parts
+        id: archive
+        if: always()
+        timeout-minutes: 3
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p recovery-raw
+          python3 -B "$RECOVERY_PACKAGE/recover.py" check-raw-tree --out recovery-raw
+          name="confirmation-recovery-39332822379-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+          python3 -B .github/hosted-nnue-strength/archive_results.py --input recovery-raw --out archived-results --name "$name" --split-size 67108864
+          python3 -B "$RECOVERY_PACKAGE/recover.py" verify-publication --out recovery-raw --manifest "archived-results/$name.manifest.json" --pathspec "$RUNNER_TEMP/confirmation-recovery-pathspec"
+      - name: Upload raw originals and archives even if recovery or publication fails
+        id: upload
+        if: always()
+        timeout-minutes: 2
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: forge-confirmation-recovery-39332822379-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            recovery-raw/
+            archived-results/
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 30
+      - name: Publish only verified archive files on a fresh results branch
+        if: success() && steps.source.outcome == 'success' && steps.original_bytes.outcome == 'success' && steps.download.outcome == 'success' && steps.extraction.outcome == 'success' && steps.archive.outcome == 'success' && steps.upload.outcome == 'success'
+        timeout-minutes: 1
+        shell: bash
+        run: |
+          set -euo pipefail
+          branch="results/confirmation-recovery-39332822379-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+          git check-ref-format "refs/heads/$branch"
+          if git ls-remote --exit-code origin "refs/heads/$branch" > "$RUNNER_TEMP/confirmation-recovery-existing-ref"; then
+            echo 'Refusing to publish over an existing results branch' >&2
+            exit 1
+          else
+            status=$?
+            test "$status" -eq 2
+          fi
+          git switch --orphan "$branch"
+          git rm -rf --cached --ignore-unmatch . >/dev/null
+          git add -f --pathspec-from-file="$RUNNER_TEMP/confirmation-recovery-pathspec" --pathspec-file-nul
+          git -c user.name='Forge validation CI' -c user.email='forge-validation@users.noreply.github.com' commit -m "Preserve original confirmation 39332822379 evidence; recovery $GITHUB_RUN_ID attempt $GITHUB_RUN_ATTEMPT"
+          git push origin "HEAD:refs/heads/$branch"
