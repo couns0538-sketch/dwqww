@@ -27,8 +27,21 @@ Windows19 first build, all10Wine checks,1184independent artifact checks PASS;
 [Windows19 Zen5 ZIP](../releases/forge-6.4.19-candidate-windows-zen5.zip), SHA256
 `f0ec03308098bf8e675647f091b3b1afeb74d2632d9c972883e5907cfcb23d85`.
 No calibrated speed, Elo gain, native Windows/Ryzen or Stockfish result is established;
-19is not accepted into integration. A separately calibrated performance-only hosted
-experiment is being reviewed, not launched. Full recoverable19archive is in preparation.
+19is not accepted into integration. One separately calibrated performance-only hosted experiment was launched once:
+[39510219605](https://github.com/couns0538-sketch/dwqww/actions/runs/39510219605),
+frozen payload `5e50d99a93a381a881b4f1813dce462a3e4106bf`, first observation22:44:08UTC.
+All49READY offline checks and independent final metadata review passed before push.
+The new host must build actual18/19 and pass10/11CTest before15same-binary A/A
+blocks and, only if calibrated,31A/B blocks. No retries or gate waivers.
+Complete19checkpoint is independently verified:1762originals/1774payloads,
+112207796bytes, combinedSHA256
+`d90110e326c6d24c3045c8601ed4dd37ba7b9fbfc35c1bffcabddab6cf733f31`.
+Both published parts were independently downloaded and hash verified. Original file
+and directory modes are recorded; ZIP extraction alone yields generic0600modes.
+Recovery instructions apply those modes in a NEW empty scratch destination; actual
+extraction/chmod recovery was not executed.
+[Archive proof](../validation/lazy-runtime-psqt-20261020/archive-complete/ROOT-VERIFY.json).
+[Published part verification](../validation/lazy-runtime-psqt-20261020/archive-complete/REMOTE-PARTS-VERIFY.json).
 [Prototype history](../validation/lazy-runtime-psqt-20261020/REPORT.md).
 
 Latest isolated finite-tested candidate is **Forge6.4.18**, source
@@ -68,7 +81,7 @@ Final enabled-metadata review PASS; payload `1203e13cfd80451d7194c7fba2f775de71d
 was published and one trigger push remotely verified at21:39:20UTC. Run
 [39502109381](https://github.com/couns0538-sketch/dwqww/actions/runs/39502109381)
 has passed the hosted source-build/test step; combined readiness/SPRT step is
-running at22:23:32UTC. Public metadata does not expose games or prove a particular
+running at22:44:08UTC. Public metadata does not expose games or prove a particular
 readiness subgate. Frozen0/+10,.05errors,equal10+0.1,256paired openings; no observed
 game statistics or Elo result. Do not trigger/retry/resume this experiment.
 Historical17binary/source47proofs remain genuinely labeled47; all72build inputs

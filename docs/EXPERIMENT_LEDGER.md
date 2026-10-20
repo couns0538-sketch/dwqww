@@ -1,6 +1,6 @@
 # Experiment ledger
 
-The authoritative [machine ledger](../validation/EXPERIMENTS.json) contains 104 records, preserving all 83 earlier IDs, exact inputs, hashes, settings, failures and evidence links. This is the concise reading index as of 2026-10-20.
+The authoritative [machine ledger](../validation/EXPERIMENTS.json) contains 105 records, preserving all 83 earlier IDs, exact inputs, hashes, settings, failures and evidence links. This is the concise reading index as of 2026-10-20.
 
 | Experiment | Observed result | Acceptance scope |
 | --- | --- | --- |
@@ -286,3 +286,22 @@ orElo claim. Separate disabled performance packet in review; full19archive being
 
 18vs17 single run39502109381 stillrunning at22:23:32UTC after hosted build/testPASS.
 Gamecounts/WLD/Elo unavailable from public metadata; no retry/resume or pooling.
+
+19complete recoverable archive published at5e50d99:1762live originals/1774payloads,
+112207796B combinedSHA d90110e326c6d24c3045c8601ed4dd37ba7b9fbfc35c1bffcabddab6cf733f31.
+Root independently reassembled parts, rehashed all payloads and compared all live
+original bytes/modes. Both rawGitHub part downloads match. ZIPexternal0600modes
+require embedded mode restoration; scratch recovery itself was not executed.
+
+19speed attempt launched ONCE at22:43:53UTC, observed run39510219605/job118929090351
+on exact5e50d99payload. Preregistered whole-process fivebench11samples,15AA/31AB
+blocks, CPU+wall calibration and95%block-bootstrap gates. All31proofs/21package
+entries and seven unchanged execution files reviewed;49READYchecks PASS in4.671s.
+Original disabledpacketd9c4071 and failedcombined45check/60swrapper retained; only
+syntheticfixtureIO changed, actualbenchmarkdeadlines unchanged. No actual speed,
+NPS or Elo result available atlaunch. [Protocol](../.github/hosted-runtime-psqt-performance/protocol.json).
+
+Existing strength skill extended for persistence-failure cleanup and affinity
+restoration, reusing the skill instead of creating a duplicate. Frontmatter/sixlinks,
+fresh seven-criterion application and root20-record rehash pass. No causal efficiency
+or Elo claim. [Skill evidence](../validation/strength-skill-cleanup-20261020/REPORT.md).
