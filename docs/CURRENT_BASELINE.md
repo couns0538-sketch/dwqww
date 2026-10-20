@@ -6,7 +6,8 @@ Applied isolated **6.4.17** promotion-recapture SEE, source
 parent16assertion failures and pass with the reviewed repair. The prototype
 passes324legal oracle cases and preserves314ordinary API rows. Frozen Release9/9PASS, with core byte-identical to the reviewed prototype.
 Thirty API answers at actual search thresholds pass (parent10wrong); bench11
-is385781nodes. ASan+UBSan/TSan validation is in progress; no NPS/Elo acceptance.
+is385781nodes. ASan/UBSan9/9PASS with source/binary hashes unchanged. TSan validation is
+in progress; no NPS/Elo acceptance.
 The original16startup failure remains unresolved and its strength package blocked.
 
 
