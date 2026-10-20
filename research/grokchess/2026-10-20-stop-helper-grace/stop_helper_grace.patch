@@ -1,0 +1,62 @@
+diff --git a/search/smp.js b/search/smp.js
+--- a/search/smp.js
++++ b/search/smp.js
+@@ -72,6 +72,9 @@
+ let poolReady = [];
+ let activeStopFlag = null;
+ let activeMain = null;
++// External stop/deadline requested: do not wait for unresponsive helpers
++// after thread 0 has delivered its legal best move.
++let externalAbortRequested = false;
+ // Distinguish late completions from a prior UCI go on persistent workers.
+ let nextJobId = 0;
+ let busyWorkers = [];
+@@ -128,6 +131,7 @@
+ }
+ function abortSmpSearch() {
+     if (activeStopFlag) {
++        externalAbortRequested = true;
+         try {
+             Atomics.store(activeStopFlag, 0, 1);
+         }
+@@ -143,6 +147,7 @@
+     }
+ }
+ function clearActive() {
++    externalAbortRequested = false;
+     activeStopFlag = null;
+     activeMain = null;
+     busyWorkers = [];
+@@ -258,6 +263,8 @@
+ async function searchLazySmp(board, limits, threads, onInfo) {
+     const n = Math.max(1, Math.min(8, threads | 0));
+     const jobId = ++nextJobId;
++    // The UCI stop may precede the asynchronous worker launch.
++    externalAbortRequested = !!limits.preCancelled;
+     // Clock-managed searches must count worker admission and any helper wait
+     // against the same deadline as the UCI caller.
+     const goOriginMs = Number.isFinite(limits.startTime) ? limits.startTime : Date.now();
+@@ -375,6 +382,10 @@
+     if (assigned.length > 1) {
+         const timed = limits.moveTime !== undefined || limits.wtime !== undefined || limits.btime !== undefined;
+         let waitMs = timed ? helperGraceMs(limits) : 180000;
++        // A requested UCI stop (or expired clock deadline) is not a request
++        // for deeper helper analysis. Thread 0 has already finished; waiting
++        // can otherwise delay bestmove for minutes and select a late helper.
++        if (externalAbortRequested) waitMs = 0;
+         if (timed && Number.isFinite(limits.moveTime)) {
+             // The old unconditional >=80 ms grace could exceed a short UCI
+             // movetime even when thread 0 already completed its search.
+
+diff --git a/uci/main.js b/uci/main.js
+--- a/uci/main.js
++++ b/uci/main.js
+@@ -194,7 +194,7 @@
+             setImmediate(async () => {
+                 try {
+                     if (stopPending) {
+-                        searchLimits = { maxDepth: 1 };
++                        searchLimits = { maxDepth: 1, preCancelled: true };
+                         if (hardTimer) {
+                             clearTimeout(hardTimer);
+                             hardTimer = null;
