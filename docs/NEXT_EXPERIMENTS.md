@@ -4,7 +4,7 @@ Active20sourcefc2391870b3bf2cd4d8fc20c7406ea6439c69c5e is now frozen and publish
 pawn attack-span fill, preserving19qualified gains. Prototype12Release/37320mask
 checks and95publictracepositions PASS. Root authorized ONE serial freshnativechain:
 Release12→bench321912+56parent19cold/warmsearches→ASan12→defaultTSan12→8activeUCI→
-originalsnapshot→independentfullaudit. First frozen20Release12/12 and56search parity passed; ASan is running. No full
+originalsnapshot→independentfullaudit. First frozen20Release12/12, ASan12/12 and56search parity passed; TSan is running. No full
 native/Windows qualification or20speed/Elo result yet.
 Do not duplicate any process or mutate frozen source. Windows20preparation is closed
 untilrootfullnativeclearance. New performance-only packet is explicitly disabled,

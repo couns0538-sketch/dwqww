@@ -16,8 +16,9 @@ trace positions (61465integers identical). Original first fixture and one reloca
 link-dependency-path failure are preserved; final label-only fixture passes.
 Frozen20 differs from final prototype only in CMake/UCI version strings.
 **Frozen20 first Release12/12 and56cold/warm parent19search parity PASS;**
-bench321912 and compiled NNUE object byte-identical to19. ASan/UBSan remains
-running; full native qualification, Windows and20speed/Elo are not yet established.
+bench321912 and compiled NNUE object byte-identical to19. FirstASan/UBSan12/12
+passed withoutdiagnostics; defaultTSan is running. Windows72source-only export
+and exact5filedelta pass; full native, Windows runtime and20speed/Elo remain pending.
 [Source freeze](../validation/pawn-span-fill-native-20261020/ROOT-FROZEN-SOURCE-GATES.json).
 [Public trace evidence](../validation/pawn-span-fill-20261020/independent-review/PUBLIC-DIFFERENTIAL.md).
 Latest fully qualified workload-speed source remains19 below; accepted5101unchanged.
