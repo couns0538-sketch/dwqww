@@ -9,11 +9,12 @@
    were 24.888 ms cold / 32.140 ms warm, so the original 108.696 ms stall was not
    reproduced. Ten warm move choices differed; cause remains unresolved. Keep
    all original telemetry, failures and analysis. No retry, games or acceptance.
-3. Finish the isolated pin-aware SEE prototype from source21538ec. Two mirrored
-   legal pawn wins with no recapture currently return -800. Validate dynamic
-   occupancy against independent legal recapture oracles, preserving along-pin,
-   king, removed/new pinner, en-passant and promotion behavior. Only then consider
-   a separate production candidate and controlled performance/strength testing.
+3. Finish full native validation of applied pin-aware SEE candidate8d303e4,
+   branchforge/pin-aware-see-20261020. The prototype's 302 legal oracle cases
+   correct eight baseline errors without a new mismatch; permanent 46-case
+   tests produce 16 expected parent failures. Keep inherited recapture-promotion
+   limitations separate. Complete the bounded EP/quiet/deeper-pin coverage and
+   measure added work before a fresh performance/strength protocol.
 
 Keep all candidates and newer accepted integration356e863. The TT run39403471059
 is invalid due to baseline time forfeit; keep84records/started85 and original

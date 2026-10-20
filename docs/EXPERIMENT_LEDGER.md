@@ -1,6 +1,6 @@
 # Experiment ledger
 
-The authoritative [machine ledger](../validation/EXPERIMENTS.json) contains 94 records, preserving all 83 earlier IDs, exact inputs, hashes, settings, failures and evidence links. This is the concise reading index as of 2026-10-20.
+The authoritative [machine ledger](../validation/EXPERIMENTS.json) contains 95 records, preserving all 83 earlier IDs, exact inputs, hashes, settings, failures and evidence links. This is the concise reading index as of 2026-10-20.
 
 | Experiment | Observed result | Acceptance scope |
 | --- | --- | --- |
@@ -81,3 +81,11 @@ versus the original hosted 108.696 ms with 63 ms remaining. All frozen inputs an
 the original stall did not recur and its cause remains unresolved. This is
 diagnostic evidence, with zero games and no strength or reliability acceptance.
 [Original capture and phase analysis](../validation/time-forfeit-causal-20261020/REPORT.md).
+
+6.4.15 pin-aware SEE (`8d303e4`) is a separate applied candidate undergoing full
+native validation. Its actual API prototype corrected eight errors across 302
+legal cases with no candidate oracle mismatch. The permanent 46-case mirrored
+tests produced 16 expected failing assertions against frozen parent21538ec.
+Independent review found no patch-specific blocker; hot-path overhead and the
+inherited recapture-promotion limitation remain explicit. No NPS/Elo acceptance.
+[Experiment](../validation/pin-aware-see-20261020/HYPOTHESIS.md).

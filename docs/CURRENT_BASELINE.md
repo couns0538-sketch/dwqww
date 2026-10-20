@@ -1,5 +1,12 @@
 # Current baseline
 
+The newest applied experiment is isolated **6.4.15** pin-aware SEE, source
+`8d303e4ca0428e9750bbf3e2663c64d9fafbd1ad`, branch
+`forge/pin-aware-see-20261020`. Full native validation is in progress. Its
+prototype corrected eight pinned-recapture errors across 302 legal cases;
+permanent parent regression tests fail as expected. No full-engine, speed or
+Elo acceptance yet. The latest completed finite validation is 6.4.14 below.
+
 Accepted integration `forge/6.4-hourly-20261019` remains
 `356e863dbd86d2ce24b8ee9486d7406f1d525480`, with timed-only admission repair
 `294cf1b`. Preserve it; no accepted Elo gain is established.

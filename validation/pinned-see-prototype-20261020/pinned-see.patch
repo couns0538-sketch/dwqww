@@ -1,0 +1,24 @@
+--- a/src/board.cpp
++++ b/src/board.cpp
+@@ -858,7 +858,20 @@
+     while (true) {
+         stm = opposite(stm);
+         attackers &= occupancy;
+-        const Bitboard stm_attackers = attackers & occupied(stm);
++        Bitboard stm_attackers = attackers & occupied(stm);
++        // Exchange occupants are virtual: original piece bitboards retain the
++        // captured victim on `to`, and consumed recapturers at empty origins.
++        // A candidate moves to the occupied target, so only its origin leaves
++        // occupancy. Keeping the target occupied also permits along-pin moves.
++        const Bitboard removed = ~occupancy | square_bb(to);
++        Bitboard candidates = stm_attackers & ~pieces(stm, King);
++        while (candidates != 0) {
++            const int square = pop_lsb(candidates);
++            if (square_attacked_with_occupancy(king_square(stm), opposite(stm),
++                                              occupancy ^ square_bb(square), removed)) {
++                stm_attackers &= ~square_bb(square);
++            }
++        }
+         if (stm_attackers == 0) break;
+         result ^= 1;
+         Bitboard bb = 0;

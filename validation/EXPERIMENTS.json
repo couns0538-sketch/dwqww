@@ -1,9 +1,9 @@
 {
   "schema_version": 1,
-  "updated_utc": "2026-10-20T18:49:54.298242+00:00",
+  "updated_utc": "2026-10-20T19:01:48.530463+00:00",
   "project": "Forge",
   "target": "Native Windows x64 on Ryzen7 9850X3D",
-  "scope": "Accepted integration356e863 with timed-only admission-clock repair294cf1b; isolated correctness-tested6.4.12 source8865666; completed valid capped-inconclusive647confirmation and6411NNUE matches; fresh6412vs6411protocol ready, unlaunched. No accepted Elo gain.",
+  "scope": "Accepted integration356e863 retained; isolated6.4.14 finitecorrectness passed with unexplained barebench timeout;6.4.15 pin-aware SEE frozen8d303e4 undergoing fullnativevalidation. Prior validcappedmatches inconclusive, TTmatch invalidbaselineforfeit. No accepted Elo gain.",
   "historical_ledger": "validation/release-6.0.0/EXPERIMENTS.md",
   "accepted_development": {
     "branch": "forge/6.4-hourly-20261019",
@@ -76,11 +76,13 @@
     "newer_6411_strength_status": "Valid2048game/1024pair run39348571407:W427D1194L427, independentLLR-0.7565242360831034; naturalcap inconclusive. Final99payload/41input/source/opening/fulllegalreplay/rawlog audit passed; no acceptedgain/equivalence.",
     "newer_6412_strength_status": "Invalid wholeattempt: baseline time forfeit in game85,84retainedrecords. NoEloacceptance orTTregression; originalresultsffc598ad audited.",
     "accepted_clock_origin_status": "Accepted356e863 includes timed-only294cf1b admissionclockrepair, preserving TTrepair and untimed/ponder analysis; correctness evidence only.",
-    "untimed_reporting_followup_status": "Separate regression/follow-up underway: frozen886 already includes timedadmission but differs from accepted untimed/ponder reporting. No follow-up correctness result claimed; do not mutate frozenstrengthsource.",
+    "untimed_reporting_followup_status": "Completed6.4.13 cecf0b9 reconciles acceptedtimed-onlyorigin; allfinitegates pass. Doesnotdemonstratehostedforfeitremedy.",
     "next_strength_experiment_id": "forge6412-vs6411-hosted-strength-20261020",
     "active_strength_run_id": null,
     "newer_6413_strength_status": "All finitecorrectness gates pass; no measuredspeed/Elo. Not demonstrated to repair hostedforfeit.",
-    "newer_6414_strength_status": "Finite27CTest/21TTAPI/8activeUCI/8Wine/914artifactchecks pass; one originalbarebench deadline unresolved. No NPS/Elo acceptance."
+    "newer_6414_strength_status": "Finite27CTest/21TTAPI/8activeUCI/8Wine/914artifactchecks pass; one originalbarebench deadline unresolved. No NPS/Elo acceptance.",
+    "pending_correctness_candidate_id": "forge6415-pin-aware-see-20261020",
+    "causal_forfeit_diagnostic": "Singlecoldwarm replay completed51searches; final24.888/32.140ms versusoriginal108.696ms. Originalstallnotreproduced,causeunresolved."
   },
   "candidates": [
     {
@@ -6417,6 +6419,31 @@
       },
       "evidence": "validation/time-forfeit-causal-20261020/REPORT.md",
       "decision": "Keep originalforfeit unresolved. This is diagnostic only; no games, retry, NPS or Elo inference."
+    },
+    {
+      "id": "forge6415-pin-aware-see-20261020",
+      "date": "2026-10-20",
+      "baseline_sha": "21538ec5416c909fc98a08688242a0b3b9710b25",
+      "candidate_sha": "8d303e4ca0428e9750bbf3e2663c64d9fafbd1ad",
+      "hypothesis": "Illegal pinned recaptures can misclassify captures and pruning. Current virtual occupancy king-safety filtering restores those SEE values. Strength and overhead unmeasured.",
+      "implementation": "Filter every non-king geometric recapturer before LVA with square_attacked_with_occupancy on origin-removed occupancy; exclude ghostvictim and consumedorigins; keep targetoccupied and existingkingbranch.",
+      "correctness": "Prototype304cases/302legal,20thresholds andexactSEE;8baselineerrors corrected/0candidateerrors. Permanent46case tests show16expectedRED assertions against frozenparentcore. Fullnativegates underway.",
+      "status": "full_native_validation_in_progress",
+      "evidence": [
+        "validation/pin-aware-see-20261020/",
+        "validation/pinned-see-prototype-20261020/",
+        "validation/pinned-see-review-20261020/REVIEW.md"
+      ],
+      "limitations": [
+        "LVA remains approximate; recapture-promotions inheritedlimitation unchanged.",
+        "Added per-recapturer kingattacklookup cost unmeasured.",
+        "No candidate strength games or NPS difference."
+      ],
+      "strength_games": 0,
+      "elo_estimate": null,
+      "nps_difference": null,
+      "valid_strength_evidence": false,
+      "decision": "Isolatedcandidate only; await fullnativegates and qualified performance evidence."
     }
   ],
   "evidence_archives": [

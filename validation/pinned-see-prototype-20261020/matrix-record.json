@@ -1,0 +1,253 @@
+{
+  "oracle": "python-chess 1.11.2",
+  "seed": 20261020,
+  "corpus_rule": "original 12 + mirrored authored controls + first 256 legal captures from seeded valid sparse positions; no filtering by SEE result",
+  "phases": [
+    {
+      "label": "compile-driver-baseline",
+      "command": [
+        "/usr/bin/c++",
+        "-march=x86-64-v3",
+        "-mtune=znver5",
+        "-fno-fast-math",
+        "-ffp-contract=off",
+        "-fno-lto",
+        "-O3",
+        "-DNDEBUG",
+        "-std=gnu++20",
+        "-Wall",
+        "-Wextra",
+        "-Wpedantic",
+        "-Wconversion",
+        "-Wshadow",
+        "-ffp-contract=off",
+        "-I/workspace/pinned-see-prototype-20261020/source/include",
+        "/workspace/dwqww/validation/pinned-see-prototype-20261020/see_diagnostic.cpp",
+        "/workspace/dwqww/validation/pinned-see-prototype-20261020/baseline-libforge_core.a",
+        "-pthread",
+        "-o",
+        "/workspace/dwqww/validation/pinned-see-prototype-20261020/see-baseline"
+      ],
+      "return_code": 0,
+      "elapsed_seconds": 9.238288010004908,
+      "timeout_seconds": 45
+    },
+    {
+      "label": "run-baseline",
+      "command": [
+        "/workspace/dwqww/validation/pinned-see-prototype-20261020/see-baseline",
+        "/workspace/dwqww/validation/pinned-see-prototype-20261020/cases.tsv"
+      ],
+      "return_code": 0,
+      "elapsed_seconds": 0.12083739900845103,
+      "timeout_seconds": 20
+    },
+    {
+      "label": "compile-driver-candidate",
+      "command": [
+        "/usr/bin/c++",
+        "-march=x86-64-v3",
+        "-mtune=znver5",
+        "-fno-fast-math",
+        "-ffp-contract=off",
+        "-fno-lto",
+        "-O3",
+        "-DNDEBUG",
+        "-std=gnu++20",
+        "-Wall",
+        "-Wextra",
+        "-Wpedantic",
+        "-Wconversion",
+        "-Wshadow",
+        "-ffp-contract=off",
+        "-I/workspace/pinned-see-prototype-20261020/source/include",
+        "/workspace/dwqww/validation/pinned-see-prototype-20261020/see_diagnostic.cpp",
+        "/workspace/dwqww/validation/pinned-see-prototype-20261020/candidate-libforge_core.a",
+        "-pthread",
+        "-o",
+        "/workspace/dwqww/validation/pinned-see-prototype-20261020/see-candidate"
+      ],
+      "return_code": 0,
+      "elapsed_seconds": 2.7972191129956627,
+      "timeout_seconds": 45
+    },
+    {
+      "label": "run-candidate",
+      "command": [
+        "/workspace/dwqww/validation/pinned-see-prototype-20261020/see-candidate",
+        "/workspace/dwqww/validation/pinned-see-prototype-20261020/cases.tsv"
+      ],
+      "return_code": 0,
+      "elapsed_seconds": 0.1540176329872338,
+      "timeout_seconds": 20
+    }
+  ],
+  "engine_execution_budget_seconds": 120,
+  "cases": 300,
+  "generation_attempts": 728,
+  "oracle_corpus_sha256": "7c68497eb24388e76113493321b0951a9de8fe6b610862e3eb905d5a7be3425d",
+  "cases_sha256": "1e84fc9714104ba4595db0c0f355fe129ba4b4a36a07cfa1d9f6ae204388f830",
+  "thresholds": [
+    -2000,
+    -1000,
+    -900,
+    -800,
+    -600,
+    -500,
+    -300,
+    -1,
+    0,
+    1,
+    99,
+    100,
+    101,
+    299,
+    300,
+    500,
+    899,
+    900,
+    901,
+    1700
+  ],
+  "pre_run_utc": "2026-10-20T18:53:03.794265+00:00",
+  "baseline_exe_sha256": "67b4d0f6989c870fea526dd3bc98612d2f6cc904db2cd7e37bbc34b3565bcbcd",
+  "candidate_exe_sha256": "800f706dab31cefd11bc5670f5846687480051f6aaf9fe4b2f3712df5b3b6e48",
+  "api_oracle_failures": [],
+  "oracle_mismatches": {
+    "baseline": [
+      {
+        "id": "absolute_pin_white",
+        "group": "original12",
+        "strict": true,
+        "oracle": 100,
+        "actual": -800,
+        "bad_thresholds": [
+          -600,
+          -500,
+          -300,
+          -1,
+          0,
+          1,
+          99,
+          100
+        ]
+      },
+      {
+        "id": "absolute_pin_black",
+        "group": "original12",
+        "strict": true,
+        "oracle": 100,
+        "actual": -800,
+        "bad_thresholds": [
+          -600,
+          -500,
+          -300,
+          -1,
+          0,
+          1,
+          99,
+          100
+        ]
+      },
+      {
+        "id": "newly_exposed_orthogonal_pin_white",
+        "group": "authored",
+        "strict": true,
+        "oracle": -800,
+        "actual": -500,
+        "bad_thresholds": [
+          -600,
+          -500
+        ]
+      },
+      {
+        "id": "newly_exposed_orthogonal_pin_black",
+        "group": "authored",
+        "strict": true,
+        "oracle": -800,
+        "actual": -500,
+        "bad_thresholds": [
+          -600,
+          -500
+        ]
+      },
+      {
+        "id": "absolute_diagonal_pin_white",
+        "group": "authored",
+        "strict": true,
+        "oracle": 100,
+        "actual": -800,
+        "bad_thresholds": [
+          -600,
+          -500,
+          -300,
+          -1,
+          0,
+          1,
+          99,
+          100
+        ]
+      },
+      {
+        "id": "absolute_diagonal_pin_black",
+        "group": "authored",
+        "strict": true,
+        "oracle": 100,
+        "actual": -800,
+        "bad_thresholds": [
+          -600,
+          -500,
+          -300,
+          -1,
+          0,
+          1,
+          99,
+          100
+        ]
+      }
+    ],
+    "candidate": []
+  },
+  "strict_candidate_failures": [],
+  "improvements": [
+    {
+      "id": "absolute_pin_white",
+      "baseline": -800,
+      "candidate": 100,
+      "oracle": 100
+    },
+    {
+      "id": "absolute_pin_black",
+      "baseline": -800,
+      "candidate": 100,
+      "oracle": 100
+    },
+    {
+      "id": "newly_exposed_orthogonal_pin_white",
+      "baseline": -500,
+      "candidate": -800,
+      "oracle": -800
+    },
+    {
+      "id": "newly_exposed_orthogonal_pin_black",
+      "baseline": -500,
+      "candidate": -800,
+      "oracle": -800
+    },
+    {
+      "id": "absolute_diagonal_pin_white",
+      "baseline": -800,
+      "candidate": 100,
+      "oracle": 100
+    },
+    {
+      "id": "absolute_diagonal_pin_black",
+      "baseline": -800,
+      "candidate": 100,
+      "oracle": 100
+    }
+  ],
+  "new_or_worse_mismatches": [],
+  "status": "PASS_bounded_prototype_correctness",
+  "scope": "actual public Board API; serial one-board compile only; no full engine gates, NPS, strength or integration acceptance"
+}
