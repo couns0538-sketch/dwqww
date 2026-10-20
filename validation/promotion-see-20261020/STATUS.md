@@ -1,0 +1,26 @@
+# Forge6.4.17 finite-correctness checkpoint
+
+Source47f0560221d986e41a309853e1295c557fcf5bf6, isolated branchforge/promotion-see-20261020.
+FirstattemptRelease9/ASanUBSan9/TSan9 and8activeUCITSanPASS. EightWinechecksPASS.
+Windowsartifactaudit1211PASS afteroneprecisecasecomparisoncheckerrepair;
+originalfailedchecker/trace retained, no engine/packagechanges or reruns.
+
+Promotionrepair precedes legacySEEthresholdshortcuts. Permanentparent16tests
+fail16assertions; candidatepasses. Prototype324legaloraclecases/6480thresholds,
+30adjacentbrackets and314nonguardrows exact. ActualsearchmarginAPI30PASS versus
+10parenterrors. Actualqsearchdiagnostic fromidenticalpregatestate:16SKIP_SEE at-40,
+17SEARCH_ENTER/RETURN Qb1xb8. Oneforcedposition, not bestmove/Eloevidence.
+
+Native/Windowsbench11385781/382424. No calibratedNPSdifference oracceptedElo.
+WindowsZen5candidate ZIP9c532d5394b58f8654e316de99b4a5771149e75327c31586ae179814212e85f9.
+Wine is notnativeWindows/Ryzenmeasurement. User'sinstalledStockfish19max3190;
+exact3200unsupported, zeroStockfishtargetgames.
+
+Fresh17vs14SPRTpackageREADY butunlaunchedhere: equal10+0.1,0/+10,.05/.05,
+4AA+128SPRTfreshpairs,serialT1Hash32ownbookfalse; capmayinconclusive. Exactlyone
+newhostreadinessattempt; no retry, rescue, pooling or waived16failedbatch.
+Source16initialTSanstall,14barebenchtimeout,olderhostedforfeitremainunresolved.
+
+Newhandoffs145+28payloadsverified, timingrecomputedsource/logidentityexact;
+no newclockfixjustified. OwnBookrepairalreadyin17butmissingaccepted356e863.
+Forge remains active, GrokChessportdeferred. Allsource/weights/gains preserved.

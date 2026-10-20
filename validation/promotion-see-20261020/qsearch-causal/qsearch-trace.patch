@@ -1,0 +1,57 @@
+--- a/src/search.cpp
++++ b/src/search.cpp
+@@ -3,6 +3,7 @@
+ 
+ #include <algorithm>
+ #include <cmath>
++#include <cstdio>
+ #include <cstring>
+ #include <iostream>
+ #include <limits>
+@@ -803,15 +804,33 @@
+     Move move;
+     while (!(move = picker.next(false)).is_none()) {
+         if (!board.is_legal(move)) continue;
++        const Bitboard trace_occupancy = square_bb(1) | square_bb(42) | square_bb(50) |
++                                         square_bb(57) | square_bb(58) | square_bb(63);
++        const bool trace_target = move.from == 1 && move.to == 57 &&
++            board.side_to_move() == White && board.occupied() == trace_occupancy &&
++            board.piece_at(1) == WQ && board.piece_at(50) == WP &&
++            board.piece_at(57) == BB && board.piece_at(58) == BR &&
++            board.king_square(White) == 42 && board.king_square(Black) == 63;
++        if (trace_target) std::fprintf(stderr,
++            "QSEARCH_TRACE stage=ENTER move=b1b8 ply=%d alpha=%d beta=%d in_check=%d static_eval=%d futility_base=%d fen=%s\n",
++            ply, alpha, beta, static_cast<int>(in_check), ss->static_eval, futility_base, board.fen().c_str());
+         ++move_count;
+         if (!in_check && best_score > -MateInMaxPly) {
+             const bool gives_check = board.gives_check(move);
+             // Futility: even winning the captured piece cannot raise alpha.
+             if (!gives_check && !move.is_promotion() && futility_base + capture_value(board, move) <= alpha) {
++                if (trace_target) std::fprintf(stderr, "QSEARCH_TRACE stage=SKIP_FUTILITY move=b1b8\n");
+                 best_score = std::max(best_score, futility_base + capture_value(board, move));
+                 continue;
+             }
+-            if (!board.see_ge(move, -tune::QsSeeMargin)) continue;
++            const bool see_pass = board.see_ge(move, -tune::QsSeeMargin);
++            if (trace_target) std::fprintf(stderr,
++                "QSEARCH_TRACE stage=SEE move=b1b8 threshold=%d passed=%d\n",
++                -tune::QsSeeMargin, static_cast<int>(see_pass));
++            if (!see_pass) {
++                if (trace_target) std::fprintf(stderr, "QSEARCH_TRACE stage=SKIP_SEE move=b1b8\n");
++                continue;
++            }
+         }
+         ss->current_move = move;
+         ss->moved_piece = board.moved_piece(move);
+@@ -820,9 +839,11 @@
+         record_move(ss, board, move);
+         Undo undo;
+         (void)board.make_move(move, undo);
++        if (trace_target) std::fprintf(stderr, "QSEARCH_TRACE stage=SEARCH_ENTER move=b1b8 fen=%s\n", board.fen().c_str());
+         shared_.tt.prefetch(board.key());
+         const int score = -qsearch(board, ss + 1, -beta, -alpha);
+         board.unmake_move(move, undo);
++        if (trace_target) std::fprintf(stderr, "QSEARCH_TRACE stage=SEARCH_RETURN move=b1b8 score=%d\n", score);
+         if (aborted_) return 0;
+         if (score > best_score) {
+             best_score = score;

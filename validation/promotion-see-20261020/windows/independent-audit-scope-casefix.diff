@@ -1,0 +1,11 @@
+--- independent-audit.py
++++ independent-audit-scope-casefix.py
+@@ -197,7 +197,7 @@
+ check('embedded_bench_freeze_provenance', provenance['bench_signature_freeze'] == freeze)
+ readme = (PACKAGE/'README.txt').read_text()
+ check('honest_claim_flags', provenance['native_windows_tested'] is False and provenance['physical_ryzen_tested'] is False and provenance['accepted_elo_gain'] is None and provenance['stockfish_superiority_proven'] is False and provenance['new_nps_measurement'] is False)
+-check('readme_scope', 'no accepted NPS or Elo improvement exists' in readme and 'Native Windows, physical Ryzen' in readme and 'Stockfish superiority remain' in readme)
++check('readme_scope', 'no accepted NPS or Elo improvement exists'.casefold() in readme.casefold() and 'Native Windows, physical Ryzen' in readme and 'Stockfish superiority remain' in readme)
+ check('search_policy_not_mislabelled_unchanged', provenance.get('evaluation_network_replacement_unchanged') is True and 'search_policy_eval_network_replacement_unchanged' not in provenance and 'promotion' in provenance.get('search_policy_change','').lower())
+ claim_text = ' '.join(readme.lower().split())
+ check('windows_stage_scope_explicit', 'windows stage' in claim_text and 'only' in claim_text)

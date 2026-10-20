@@ -1,50 +1,42 @@
 # Next experiments
 
-Finish frozen full-engine validation of the applied promotion-recapture SEE
-repair, isolated6.4.17 source47f0560. The outside-production prototype matches the frozen oracle on
-all324legal cases, corrects eight parent mismatch rows, passes30new adjacent
-threshold brackets, and preserves all314non-guard API rows byte-for-byte.
-Two initial-illegal controls are excluded from oracle claims. Source17is applied; full engine/sanitizer builds are in progress, playing
-strength remains untested.
+1. Publish all completed6.4.17source/proofs/WindowsZIP and run exactly one fresh
+   hosted17versus14readiness+equal10+0.1SPRT attempt using the READY frozen
+   package. Source17=47f0560; baseline14=21538ec. H0=0/H1=10, alpha=beta=.05,
+   serialT1/Hash32/OwnBookfalse;4deterministicAA+128naturalSPRTpairs. All faults
+   invalidate acceptance; cap withoutboundary is inconclusive. No retry/pooling.
+2. Preserve full17native/Windows/source/raw/qsearch-causal evidence in the
+   prepared verifiedsplitarchive once all writers are stable. Root must verify
+   everypayload and redundantraworiginals before precise ignores. Keep failed
+   firstartifactchecker and originalscripts/logs unchanged.
+3. Forge remains the priority; GrokChesssource/SMPport is deferred byuser.
+   Verify/integrate the existing OwnBookrepair on the acceptedbranch separately,
+   preserving current17whichalreadyhasthatrepair. Accepted356e863stillhas
+   theexternal-book bypass. Uploadedhandoffs173payloads verified; exacttiming
+   source/logreview supports no new clockpatch or historicalrootcauseclaim.
+4. Review targeted next-search opportunity report after currentcandidate is
+   checkpointed/tested. Changes must stay separate from frozen17strength source.
+   Runtime magic freezing is a later initialization-work opportunity only;
+   it does not demonstrate a remedy for the unlocated startup/time stalls.
+5. After engine strength evidence, test the actual Stockfish target separately.
+   Installed Stockfish19 advertises UCI_Elo1320..3190; exact3200unsupported.
+   No absolute Forge rating or200Elo gap established; zero target games so far.
 
-Preserve6.4.16 source553caef and its original TSan batch failure:8/9PASS,
-initial15suciok deadline expired before book/search. One unchanged-deadline
-observed diagnostic passed the parent handshake and candidate5OwnBook transitions;
-the timeout did not recur and cause remains unresolved. No full-batch retry,
-no erased failure, no16strength launch. Astra's independent review is retained.
+Completed17finitegates: firstattemptRelease9/ASanUBSan9/TSan9 plus8activeUCI,
+8Wine and1211artifactchecks (attempt2onecase-comparisoncheckerrepair only).
+The326case corpus includes324legal oracle cases and2initial-illegal controls.
+Actual qsearch witness16SKIP_SEE→17SEARCH_ENTER, not speed/Elo evidence.
+Linux/Windows signatures385781/382424. Current17source retains accepted356e863,
+all previousNNUE/TT/clock/search repairs and network.
 
-1. Preserve completed 6.4.15 source8d303e4 and its Windows ZIP. All 27 native
-   CTest suites, eight active UCI TSan transitions, eight Wine checks and 929
-   artifact checks pass. Complete the verified source/build/raw-evidence archive.
-2. Finish the isolated cheaper pin-filter prototype. Require exact API and actual
-   search parity with 6.4.15 before considering another source candidate. Count
-   actual attack-query work; runtime speed remains a separately calibrated claim.
-3. Keep the reproduced recapture-promotion SEE limitation separate: both current
-   and parent return -400 where the legal promotion-aware exchange oracle says
-   -1200. Do not count these as passing exact-SEE controls. Assess a bounded fix
-   only after the current experiment is preserved.
+Preserve16originalTSanbatchFAILED8/9initial15suciokdeadline. Laterobserved5book
+transitionsPASS did not reproduce timeout; causeunresolved. Do not launch its
+blocked package or reuse unused15/16cohorts. Older14barebench60stimeout and
+TTtimeforfeit game85 remain unresolved. One causal cold/warm replay did not
+reproduce forfeit; zero reliability/strength acceptance. Historical valid647/644
+and6411/649cappedcohorts remain separate/inconclusive; invalidpilot/TTgames neverpool.
 
-A fresh 6.4.15-versus-6.4.14 hosted SPRT package is being prepared, with source
-gates and operational qualification still pending. It is not launched. Its new
-openings/settings must stay separate from the failed TT match. Prior 6.4.14's
-unexplained bare-bench timeout and the original hosted time forfeit remain
-unresolved. One later cold/warm causal replay did not reproduce the stall;
-it supplies no games, retry, speed or clock-reliability acceptance.
-
-Keep all candidates and newer accepted integration356e863. The TT run39403471059
-is invalid due to baseline time forfeit; keep84records/started85 and original
-resultsffc598ad. Do not retry its launch branch, change tolerance or rescue its
-reserved openings. A longer/new equal-clock test requires a fresh frozen protocol
-and justified operational readiness. Last info time24ms does not locate the stall.
-
-Prior647/644 and651/649 completed cap results remain inconclusive; never pool
-cohorts. Old TT-tag timeout/truncated replay remains under its publication hold.
-Failed strict3% and local A/A profiles supply no NPS estimate; do not widen gates
-or rerun them. The NNUE duplicate counter found0.5139%; no cache was implemented.
-No native Ryzen/Windows strength or full-strength Stockfish superiority exists.
-
-Use relevant available skills automatically. Reuse repository skills first;
-validate changes. The existing TT skill update passed its saved scenario checks.
-Skill-creator is not exposed in the checked cloud/executor catalog; do not claim
-it installed. No persistent12-hour agent or automatic six-hour chat scheduler
-is available; preserve actual checkpoints and monitoring state.
+Use existing relevant skills; skill-creator is not exposed in checked catalogs.
+NativeGCC14.2/C++20verified, LLVMMinGWClang23.1.3usedforWindows; nativeclang++
+is absent fromdefaultPATH butdoesnotblockGCCbuilds. No persistent12-hour agent or
+automatic6-hour chat scheduler verified. Save actual monitoring/checkpoint state.

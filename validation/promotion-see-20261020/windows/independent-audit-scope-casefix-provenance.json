@@ -1,0 +1,19 @@
+{
+  "schema_version": 1,
+  "status": "AUTHORIZED_SINGLE_PREDICATE_CASE_COMPARISON_CORRECTION",
+  "recorded_utc": "2026-10-20T20:10:52.331850+00:00",
+  "authorization": "Root explicitly authorized exact case-comparison correction via parent agent; all other checks remain exact.",
+  "source_and_tests_commit": "47f0560221d986e41a309853e1295c557fcf5bf6",
+  "original_checker": "independent-audit.py",
+  "original_checker_sha256": "3b4ae5c93ea865927f30c4faefbf41a8890e9b17c7a6c68032441ec553c095e3",
+  "corrected_checker": "independent-audit-scope-casefix.py",
+  "corrected_checker_sha256": "bb7990d617635e869e9d78ac8a2215d5c1774e7d255bd13aee5486a6cc363a38",
+  "exact_unified_diff": "--- independent-audit.py\n+++ independent-audit-scope-casefix.py\n@@ -197,7 +197,7 @@\n check('embedded_bench_freeze_provenance', provenance['bench_signature_freeze'] == freeze)\n readme = (PACKAGE/'README.txt').read_text()\n check('honest_claim_flags', provenance['native_windows_tested'] is False and provenance['physical_ryzen_tested'] is False and provenance['accepted_elo_gain'] is None and provenance['stockfish_superiority_proven'] is False and provenance['new_nps_measurement'] is False)\n-check('readme_scope', 'no accepted NPS or Elo improvement exists' in readme and 'Native Windows, physical Ryzen' in readme and 'Stockfish superiority remain' in readme)\n+check('readme_scope', 'no accepted NPS or Elo improvement exists'.casefold() in readme.casefold() and 'Native Windows, physical Ryzen' in readme and 'Stockfish superiority remain' in readme)\n check('search_policy_not_mislabelled_unchanged', provenance.get('evaluation_network_replacement_unchanged') is True and 'search_policy_eval_network_replacement_unchanged' not in provenance and 'promotion' in provenance.get('search_policy_change','').lower())\n claim_text = ' '.join(readme.lower().split())\n check('windows_stage_scope_explicit', 'windows stage' in claim_text and 'only' in claim_text)\n",
+  "exact_diff_file": "independent-audit-scope-casefix.diff",
+  "exact_diff_sha256": "ec828379350584306d3587ac2fd5cd135a347d3ff5d8c7fcb122ede5da4aaccf",
+  "changed_predicate_count": 1,
+  "diagnosis": "independent-audit-scope-casefix-diagnosis.json",
+  "engine_gate_waiver": false,
+  "engine_executed": false,
+  "source_package_runtime_raw_archive_or_freeze_changes": false
+}

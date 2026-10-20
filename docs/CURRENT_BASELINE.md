@@ -1,16 +1,32 @@
 # Current baseline
 
-Applied isolated **6.4.17** promotion-recapture SEE, source
+Latest finite-correctness-tested candidate is isolated **6.4.17**, source
 `47f0560221d986e41a309853e1295c557fcf5bf6`, branch
-`forge/promotion-see-20261020`. Permanent mirrored regressions show16expected
-parent16assertion failures and pass with the reviewed repair. The prototype
-passes324legal oracle cases and preserves314ordinary API rows. Frozen Release9/9PASS, with core byte-identical to the reviewed prototype.
-Thirty API answers at actual search thresholds pass (parent10wrong); bench11
-is385781nodes. ASan/UBSan9/9 and TSan9/9PASS, first attempts with source/binary hashes
-unchanged. Eight activeUCI TSan transitions and eight Windows Wine checks passed.
-Windows artifact audit is finishing; no NPS/Elo acceptance.
-The original16startup failure remains unresolved and its strength package blocked.
+`forge/promotion-see-20261020`. It repairs pawn-promotion material in SEE before
+threshold shortcuts, preserving the ordinary16path and all accepted work.
+Permanent parent tests fail16assertions;324legal oracle cases and30actual-margin
+answers pass. Actual forced qsearch trace shows16skippingQxb8 at-40 and17searching
+it. This is finite search-correction evidence, not Elo.
 
+First-attempt Release9/9, ASan/UBSan9/9, TSan9/9,8activeUCI TSan and8Wine checks
+PASS. Independent Windows audit1211checks PASS after one README case-comparison
+checker correction; original failure/checker/logs retained, binary/package unchanged.
+Native/Windows bench11signatures385781/382424. No calibrated NPS or positive Elo.
+[Proofs](../validation/promotion-see-20261020/native/ROOT-NATIVE-PROOFS.json).
+[Windows Zen5 ZIP](../releases/forge-6.4.17-candidate-windows-zen5.zip), SHA256
+`9c532d5394b58f8654e316de99b4a5771149e75327c31586ae179814212e85f9`.
+Wine checks do not establish native Windows/Ryzen performance.
+
+The fresh17vs14 equal10+0.1SPRTH0=0/H1=10 package has closed current source gates,
+63runner+8archive mock checks, fresh4AA+128SPRT openings and a root READY check.
+No launch at this checkpoint. Old15/16unused pools remain reserved/excluded.
+Newuserhandoffs verified:145shutdownaudit+28clockreplaypayloads; original
+108.696/84.647/0.049ms gaps recomputed, rootcause unresolved. OwnBookrepair
+is alreadyin17; accepted356e863stillhasexternalbookbypass. Forgepriority,
+GrokChessport deferred. Reviewreports andoriginalZIPs are under
+validation/handoffs-20261020-1916-2120/.
+Prior anomalies remain unresolved; exactly one newhost readiness attempt is
+qualified, not general operational reliability. Natural128paircap may be inconclusive.
 
 Applied isolated **6.4.16** source `553caef144ae2e1b696ba35d7a0eb1a50a03fde9`
 on `forge/pin-mask-see-20261020` replaces repeated SEE king queries with one
@@ -23,9 +39,9 @@ parent search-signature parity and 1151 artifact
 checks passed. The prototype's 316 API cases and eight actual search result
 traces match 6.4.15 exactly. Query-work reduction is measured; runtime/NPS/Elo
 is not. Current16 finite gates and the separate fresh strength package remain
-pending; source15 below is the latest completed native correctness checkpoint.
+pending; source15 below was the latest completed native checkpoint at the16failure.
 
-The newest finite-correctness-tested candidate is isolated **6.4.15** pin-aware SEE, source
+The previous complete native checkpoint is isolated **6.4.15** pin-aware SEE, source
 `8d303e4ca0428e9750bbf3e2663c64d9fafbd1ad`, branch
 `forge/pin-aware-see-20261020`. Release, ASan/UBSan and TSan each passed all nine
 CTest suites, including perft and UCI. Eight active UCI TSan transitions and
