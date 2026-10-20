@@ -272,6 +272,7 @@ def verify_publication(out, manifest_path, pathspec):
     require(manifest.get("split_size") == SPLIT_SIZE, "Archive split size mismatch")
     inventory = [{"path": path.relative_to(out).as_posix(), "size": path.stat().st_size, "sha256": digest(path)}
                  for path in sorted(out.rglob("*")) if path.is_file()]
+    inventory.sort(key=lambda row: row["path"])
     require(inventory == manifest["files"], "Archive does not preserve every current raw file")
     files = [manifest_path]
     for part in manifest["parts"]:

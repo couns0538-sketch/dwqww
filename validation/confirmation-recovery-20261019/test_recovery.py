@@ -196,6 +196,30 @@ class PreservationTests(unittest.TestCase):
                 with self.assertRaisesRegex(ValueError, "every current raw file"):
                     recovery.verify_publication(out, manifest, pathspec)
 
+    def test_nested_artifact_inventory_uses_manifest_posix_string_order(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            out = root / "raw"
+            binary = out / "original-artifact-files/artifacts/baseline/forge"
+            binary.parent.mkdir(parents=True)
+            binary.write_bytes(b"frozen binary bytes\x00\xff")
+            (out / "original-artifact-files/artifacts-SHA256.json").write_bytes(b'{"frozen":true}\n')
+            manifest = archiver.archive_results(out, root / "archives", "nested-recovery", recovery.SPLIT_SIZE)
+            verified = archiver.verify_archive(manifest)
+            path_order = [{"path": path.relative_to(out).as_posix(), "size": path.stat().st_size,
+                           "sha256": recovery.digest(path)} for path in sorted(out.rglob("*")) if path.is_file()]
+            self.assertCountEqual(path_order, verified["files"], "Every archived byte must match before testing order")
+            self.assertNotEqual([row["path"] for row in path_order], [row["path"] for row in verified["files"]],
+                                "The regression fixture must distinguish Path ordering from POSIX string ordering")
+            with mock.patch.object(recovery, "ARCHIVER", REPO / recovery.ARCHIVER):
+                try:
+                    recovery.verify_publication(out, manifest, root / "pathspec")
+                except ValueError as error:
+                    self.fail("Byte-identical nested inputs rejected because Path order differs from manifest POSIX string order: "
+                              + str(error) + "; Path order=" + repr([row["path"] for row in path_order])
+                              + "; manifest order=" + repr([row["path"] for row in verified["files"]]))
+            self.assertTrue((root / "pathspec").is_file())
+
     def test_unverified_extra_publication_file_is_rejected(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
