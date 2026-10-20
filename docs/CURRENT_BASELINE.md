@@ -7,19 +7,33 @@ its unchanged native regression to356e863, preserving the TT and timed-only cloc
 repairs. Acceptance is for the finite book contract; no accepted equal-time Elo gain.
 [Integration receipt](../validation/accepted-ownbook-integration-20261020/INTEGRATION.json).
 
-An independent **6.4.18 search ablation** is implemented on
-`forge/correction-history-residual-20261020`, source
-`fc51e43c26f735cbc1ffabf0fcf64f48a4592c0b`. It replaces correction-history EMA
-with residual increments under unchanged guards, weights and clamps. Actual-method
-Release/ASan checks pass54/54 for both models; the new behavior differs17times
-from the parent. Fixed6cp residual fixtures learn6cp versus old3/4cp, but expanded
-64cp combined range and retained noisy history are risks. This is not a proven bug
-or Elo gain. First-attempt Release10/10 and ASan/UBSan10/10 pass; TSan is running. Native
-bench11signature321912 is uncalibrated, with no NPS comparison. Fresh strength preparation
-is blocked until source gates and independent harness review. Preserve17below.
+Latest isolated finite-tested candidate is **Forge6.4.18**, source
+`fc51e43c26f735cbc1ffabf0fcf64f48a4592c0b`, branch
+`forge/correction-history-residual-20261020`. It changes one correction-history
+update from EMA toward an already-corrected residual to residual increments under
+unchanged guards, weights and clamps. It preserves all17work and accepted5101.
+**First-attempt Release10/10, ASan/UBSan10/10, default TSan10/10 and8active UCI
+transitions PASS. Nine Wine checks and1064independent artifact checks PASS.**
+[Native proofs](../validation/correction-history-native-20261020/ROOT-NATIVE-PROOFS.json).
+[Windows proofs](../validation/correction-history-windows-20261020/ROOT-WINDOWS-PROOFS.json).
+
+[Windows Zen5 candidate ZIP](../releases/forge-6.4.18-candidate-windows-zen5.zip),
+SHA256 `286a913f8bb6366d28020ef83bce5235809d1d991d41023609f0ea6446284ebc`.
+Actual native/Windows bench11signatures321912/352313 are reproducibility checks;
+no calibrated NPS difference, Elo gain or native Windows/Ryzen result follows.
+The actual-method fixed6cp target learns6cp versus old3/4cp, while the larger64cp
+reachable envelope and retention of noisy/aliased feedback are explicit risks.
+This is an **unaccepted search ablation**, not a demonstrated bug repair.
 [Experiment](../validation/correction-history-residual-20261020/RESULTS.md).
 
-Latest isolated finite-correctness-tested engine is **Forge6.4.17**, source
+Fresh18vs17 strength preparation is BLOCKED/unlaunched: actual canonical captures
+now pass; independent review requires final rehash coverage for proof files and
+mandatory source/build provenance before READY. Draft0/+10,.05errors,equal10+0.1,
+256paired openings; no games or Elo result. Historical17binary/source47proofs remain
+genuinely labeled47; all72build inputs equal baselineb590byte-for-byte. A future
+hosted attempt must build actualb590 and pass all9baseline CTests before games.
+
+Previous isolated finite-correctness-tested engine is **Forge6.4.17**, source
 `47f0560221d986e41a309853e1295c557fcf5bf6`, on
 `forge/promotion-see-20261020`. It preserves prior accepted work, residual NNUE
 and its weights, and repairs promotion-recapture SEE before threshold shortcuts.

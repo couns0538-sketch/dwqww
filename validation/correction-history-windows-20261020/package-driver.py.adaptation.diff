@@ -1,0 +1,238 @@
+--- 17/package-driver.py
++++ 18/package-driver.py
+@@ -9,12 +9,12 @@
+ import zipfile
+ 
+ REPO = Path('/workspace/dwqww')
+-COMMIT = '47f0560221d986e41a309853e1295c557fcf5bf6'
+-PARENT = '553caef144ae2e1b696ba35d7a0eb1a50a03fde9'
+-SOURCE = Path('/workspace/.cloud-setup/forge-promotion-windows-source')
+-BUILD = Path('/workspace/.cloud-setup/forge-promotion-windows-build')
+-OUT = REPO / 'validation/promotion-see-20261020/windows'
+-PACKAGE = REPO / 'releases/forge-6.4.17-candidate-windows-zen5'
++COMMIT = 'fc51e43c26f735cbc1ffabf0fcf64f48a4592c0b'
++PARENT = '47f0560221d986e41a309853e1295c557fcf5bf6'
++SOURCE = Path('/workspace/.cloud-setup/windows6418-source')
++BUILD = Path('/workspace/.cloud-setup/windows6418-build')
++OUT = REPO / 'validation/correction-history-windows-20261020'
++PACKAGE = REPO / 'releases/forge-6.4.18-candidate-windows-zen5'
+ ARCHIVE = PACKAGE.with_name(PACKAGE.name + '.zip')
+ TOOLS = Path('/workspace/.cloud-setup/toolchains/llvm-mingw-20261006-ucrt-ubuntu-22.04-x86_64/bin')
+ sha = lambda p: hashlib.sha256(p.read_bytes()).hexdigest()
+@@ -22,13 +22,14 @@
+ def write(path, value):
+     path.write_text(json.dumps(value, indent=2) + '\n')
+ 
+-assert load(OUT/'WINDOWS-BUILD-CLEAR.json')['authorization']=='17 WINDOWS BUILD CLEAR'
++assert load(OUT/'WINDOWS-BUILD-CLEAR.json')['authorization']=='18 WINDOWS BUILD CLEAR'
+ assert not PACKAGE.exists() and not ARCHIVE.exists()
+ runtime = load(OUT / 'runtime-attempt1/result.json')
+ build = load(OUT / 'result.json')
+ assert runtime['status'] == 'passed' and build['status'] == 'build_passed'
+ assert runtime['source_and_tests_commit'] == build['source_and_tests_commit'] == COMMIT
+-assert len(runtime['checks']) == 8 and all(c['exit_code'] == 0 for c in runtime['checks'])
++assert len(runtime['checks']) == 9 and all(c['exit_code'] == 0 for c in runtime['checks'])
++assert runtime['correction_history_checks'] > 0 and runtime['correction_history_failures'] == 0
+ assert runtime['legal_witness_comparisons'] == 18947 and runtime['bench11_nodes'] > 0
+ assert runtime['input_sha256_before'] == runtime['input_sha256_after']
+ assert len(runtime['ownbook_transitions']) == 5 and all(t['PASS'] for t in runtime['ownbook_transitions'])
+@@ -43,12 +44,12 @@
+ assert {p.relative_to(SOURCE).as_posix(): sha(p) for p in SOURCE.rglob('*') if p.is_file()} == source_hashes
+ for name, digest in source_hashes.items():
+     assert hashlib.sha256(subprocess.check_output(['git', '-C', str(REPO), 'show', COMMIT + ':' + name])).hexdigest() == digest
+-parent_hashes = load(REPO / 'validation/pin-mask-see-20261020/windows/source-hashes.json')
++parent_hashes = load(REPO / 'validation/promotion-see-20261020/windows/source-hashes.json')
+ production = load(OUT / 'production-hashes.json')
+ changed_production = sorted(name for name, digest in production.items() if parent_hashes.get(name) != digest)
+-assert changed_production == ['CMakeLists.txt', 'src/board.cpp', 'src/uci.cpp']
+-assert sorted(name for name,h in source_hashes.items() if parent_hashes.get(name)!=h)==['CMakeLists.txt','src/board.cpp','src/uci.cpp','tests/tests.cpp']
+-assert all(parent_hashes[name]==h for name,h in load(OUT/'test-hashes.json').items() if name!='tests/tests.cpp')
++assert changed_production == ['CMakeLists.txt', 'src/search.cpp', 'src/uci.cpp']
++assert sorted(name for name,h in source_hashes.items() if parent_hashes.get(name)!=h)==['CMakeLists.txt','src/search.cpp','src/uci.cpp','tests/correction_history_tests.cpp']
++assert all(parent_hashes[name]==h for name,h in load(OUT/'test-hashes.json').items() if name!='tests/correction_history_tests.cpp')
+ unchanged_names = ['src/nnue.cpp', 'src/nnue_weights.inc', 'include/forge/nnue.hpp',
+                    'src/eval.cpp', 'src/eval_params.cpp', 'include/forge/eval.hpp', 'include/forge/eval_params.hpp']
+ nnue = {'candidate_source_commit': COMMIT, 'parent_source_commit': PARENT,
+@@ -57,7 +58,7 @@
+                                          'identical': source_hashes[name] == parent_hashes[name]} for name in unchanged_names},
+         'network_sha256': source_hashes['src/nnue_weights.inc'],
+         'new_snapshot_differential_run': False,
+-        'reason': 'Only promotion recapture SEE, five mirrored fixtures plus zero-threshold assertions, and version labels changed; NNUE/eval sources, headers and weights are byte-identical to frozen 6.4.16.',
++        'reason': 'Only the correction-history EMA-to-residual increment search ablation, its dedicated actual-method test/registration and version labels changed; NNUE/eval sources, headers and weights are byte-identical to frozen 6.4.17.',
+         'inherited_differential_evidence': 'validation/nnue-capture-fusion-20261019/windows/differential-attempt1/result.json'}
+ assert all(record['identical'] for record in nnue['unchanged_source_guards'].values())
+ write(OUT / 'nnue-parent-identity.json', nnue)
+@@ -103,14 +104,14 @@
+       'adapter_sha256': sha(OUT / 'runtime-attempt1/ownbook-wine-regression.py'),
+       'adapter_changes': 'Only import root and Linux tempfile book path to existing Wine Z: mapping; all assertions/five transitions retained.',
+       'test_harness_engine_field': 'Harness engine hash identifies the immutable Wine wrapper; actual PE hash is recorded separately.',
+-      'wrapper_path': str(OUT / 'forge-promotion-wine'), 'wrapper_sha256': sha(OUT / 'forge-promotion-wine'),
++      'wrapper_path': str(OUT / 'forge-correction-history-wine'), 'wrapper_sha256': sha(OUT / 'forge-correction-history-wine'),
+       'actual_windows_engine': str(BUILD / 'forge.exe'), 'actual_windows_engine_sha256': sha(BUILD / 'forge.exe'),
+       'transitions': runtime['ownbook_transitions'], 'scope': 'Wine correctness only; no speed/NPS/Elo/native-hardware claim'})
+ 
+-preserved_before = load(OUT / 'parent6416-preservation-before.json')
++preserved_before = load(OUT / 'parent6417-preservation-before.json')
+ preserved_after = {name: sha(Path(name)) for name in preserved_before}
+ assert preserved_before == preserved_after
+-write(OUT / 'parent6416-preservation-check.json', {'status': 'unchanged', 'files': len(preserved_before),
++write(OUT / 'parent6417-preservation-check.json', {'status': 'unchanged', 'files': len(preserved_before),
+       'input_sha256_before': preserved_before, 'input_sha256_after': preserved_after})
+ 
+ originals = OUT / 'originals'
+@@ -125,26 +126,27 @@
+ shutil.copytree(SOURCE, originals / 'frozen-source')
+ write(OUT / 'README-checks.json', {'status': 'passed', 'source_and_tests_commit': COMMIT,
+       'wine_functional_and_signature_checks': runtime['checks'], 'simd': runtime['simd'],
+-      'output_layer_checker_exit_code': checked.returncode, 'tt_groups': 8, 'rule50_targeted_failures': 0,
++      'output_layer_checker_exit_code': checked.returncode, 'tt_groups': 8, 'correction_history_checks':runtime['correction_history_checks'], 'correction_history_failures':0, 'rule50_targeted_failures': 0,
+       'legal_witness_comparisons': 18947, 'ownbook_transitions': 5, 'bench11_nodes': runtime['bench11_nodes'],
+       'native_windows_tested': False, 'physical_ryzen_tested': False, 'accepted_elo_gain': None,
+       'new_nps_measurement': False, 'full_candidate_asan_ubsan': 'reported separately in repository; not asserted by Windows packaging',
+       'full_candidate_tsan': 'reported separately in repository; not asserted by Windows packaging'})
+-(OUT / 'README.md').write_text(f'''Frozen Forge 6.4.17 Windows correctness evidence
+-
+-Source/tests: `{COMMIT}`. Parent: `{PARENT}` (6.4.16).
++(OUT / 'README.md').write_text(f'''Frozen Forge 6.4.18 Windows correctness evidence
++
++Source/tests: `{COMMIT}`. Parent: `{PARENT}` (6.4.17).
+ Strict static LLVM-MinGW23.1.3 Zen5 C++20 Release build, one job, no FMA/LTO/fast-math.
+-Eight Wine checks passed: core/perft with 28 mirrored SEE cases, eight TT groups,
++Nine Wine checks passed: core/perft with 28 mirrored SEE cases, correction-history
++actual-method contract ({runtime['correction_history_checks']} checks), eight TT groups,
+ rule50, 18,947 legal-witness comparisons, UCI, ponder, five OwnBook transitions and
+-first observed candidate17 bench11 signature {runtime['bench11_nodes']}.
++first observed candidate18 bench11 signature {runtime['bench11_nodes']}.
+ That signature was unknown before execution. No prior-version count was imposed.
+ 
+-A rare back-rank SEE path accounts for later pawn promotion recaptures and their
+-new victim/material values. Ordinary threshold SEE remains inherited; promotion
+-exchange behavior intentionally changes. Only board.cpp, tests/tests.cpp and two
+-version labels differ from frozen16; NNUE/eval sources, headers and weights match.
++This independent unaccepted search ablation changes correction-history EMA decay
++to a residual increment. It is not a known-bug repair or accepted strength
++improvement. Only search.cpp, its dedicated test, CMake registration/version and UCI
++version label differ from frozen17; NNUE/eval sources, headers and weights match.
+ Original 6.4.16 full TSan FAILED 8/9; its separate five-case OwnBook diagnostic remains
+-finite coverage only. Candidate 6.4.17 native gates are reported separately.
++finite coverage only. Candidate 6.4.18 native gates are reported separately.
+ This Windows stage establishes bounded correctness only; it is not an accepted release.
+ No NPS/Elo/native Windows/Ryzen claim follows. All original PEs/core/source/logs retained.
+ ''')
+@@ -171,9 +173,10 @@
+       'originals_retained': True, 'scope': 'All original Windows validation, core, executable, frozen-source and log records at packaging; audit/report outputs follow separately.'})
+ 
+ PACKAGE.mkdir()
+-members = {'forge.exe': 'forge-6.4.17-ryzen-9850x3d.exe', 'forge_tests.exe': 'forge_tests.exe',
++members = {'forge.exe': 'forge-6.4.18-ryzen-9850x3d.exe', 'forge_tests.exe': 'forge_tests.exe',
+            'forge_tt_tests.exe': 'forge_tt_tests.exe', 'forge_rule50_tests.exe': 'forge_rule50_tests.exe',
+-           'forge_legal_witness_tests.exe': 'forge_legal_witness_tests.exe'}
++           'forge_legal_witness_tests.exe': 'forge_legal_witness_tests.exe',
++           'forge_correction_history_tests.exe': 'forge_correction_history_tests.exe'}
+ for source, name in members.items():
+     shutil.copyfile(BUILD / source, PACKAGE / name)
+ for source, name in [(SOURCE / 'LICENSE', 'LICENSE'), (OUT / 'production-hashes.json', 'source-hashes.json'),
+@@ -186,29 +189,29 @@
+                      (OUT / 'nnue-parent-identity.json', 'nnue-parent-identity.json')]:
+     shutil.copyfile(source, PACKAGE / name)
+ provenance = {
+-    'engine_version': '6.4.17 candidate', 'source_and_tests_commit': COMMIT, 'parent_source_commit': PARENT,
++    'engine_version': '6.4.18 candidate', 'source_and_tests_commit': COMMIT, 'parent_source_commit': PARENT,
+     'source_url': 'https://github.com/couns0538-sketch/dwqww/tree/' + COMMIT,
+     'production_source_sha256': production, 'test_source_sha256': load(OUT / 'test-hashes.json'),
+     'compiler': build['compiler'], 'flags': 'C++20 Release -march=znver5 -mtune=znver5 -fno-fast-math -ffp-contract=off -static',
+     'target': 'Windows x64 Ryzen 7 9850X3D / Zen5', 'parallel_build_jobs': 1,
+     'inherited_tt_policy': 'Explicit UCI go/bench exclusive request for exactly one worker, one coarse gate plus atomic request plus sequential 1024-stripe drain, table-bound lexical owner TLS bypass; default library/SMP callers retain shared stripes.',
+     'lifecycle_limit': 'Clear, resize, new_search and destruction still require all accessors quiescent; foreign entry-call safety assumes stable storage/generation. Arbitrary concurrent lifecycle operations unsupported.',
+-    'evaluation_network_replacement_unchanged': True,
+-    'native_gate_status':'Separate candidate17 native gates; Windows packaging alone does not accept this candidate or establish release readiness. Original 6.4.16 TSan suite FAILED 8/9; its separate five-case OwnBook diagnostic remains finite coverage only.',
++    'evaluation_network_replacement_unchanged': True, 'search_change_accepted':False, 'known_bug_repair':False,
++    'native_gate_status':'Separate candidate18 native gates; Windows packaging alone does not accept this candidate or establish release readiness. Original 6.4.16 TSan suite FAILED 8/9; its separate five-case OwnBook diagnostic remains finite coverage only.',
+     'prior_6414_native_bench_output_anomaly':'Remains qualified in validation/double-extension-path-20261020/native6414; this Windows evidence does not resolve it.',
+-    'search_policy_change': 'Rare back-rank SEE path accounts for later pawn promotion recaptures, new victim value and promotion material; ordinary threshold path remains inherited. This intentionally changes promotion exchange behavior.',
++    'search_policy_change': 'Independent unaccepted search ablation: correction-history EMA decay becomes a residual increment, retaining signed depth weight/clipping and table read policy. This intentionally changes learned correction and search behavior; no established bug or Elo gain is claimed.',
+     'inherited_clock_policy': 'Finite timed UCI admission accounting; unset untimed/infinite/ponder origins are worker-local; start_time authoritative, request_start supported, ponder budget begins at hit.', 'nnue_parent_identity': nnue,
+     'entry_bytes': 16, 'cluster_bytes': 64,
+     'inherited_halfmove_policy': 'Both capped clocks below90 or exact capped match (cap100); old main-search current-clock<90 guard retained. This remains a heuristic, not universal history correctness.',
+-    'wine_version': wine_version, 'wine_checks': runtime['checks'], 'tt_groups': 8,
++    'wine_version': wine_version, 'wine_checks': runtime['checks'], 'tt_groups': 8, 'correction_history_checks':runtime['correction_history_checks'], 'correction_history_failures':0,
+     'legal_witness_comparisons': 18947, 'ownbook_transitions': runtime['ownbook_transitions'],
+-    'bench11_nodes': runtime['bench11_nodes'], 'bench_signature_freeze':freeze, 'bench_signature_freeze_sha256':sha(OUT/'BENCH-SIGNATURE-FREEZE.json'), 'bench_scope': 'Hash16MiB/Threads1 first observed candidate17 signature; prior-version counts were not expectations; no time/NPS comparison',
++    'bench11_nodes': runtime['bench11_nodes'], 'bench_signature_freeze':freeze, 'bench_signature_freeze_sha256':sha(OUT/'BENCH-SIGNATURE-FREEZE.json'), 'bench_scope': 'Hash16MiB/Threads1 first observed candidate18 signature; prior-version counts were not expectations; no time/NPS comparison',
+     'simd': runtime['simd'], 'output_layer_checker_exit_code': checked.returncode,
+     'source_binary_and_tool_hashes_unchanged': True, 'static_libraries': build['libraries'],
+     'binaries': {p.name: {'sha256': sha(p), 'bytes': p.stat().st_size} for p in PACKAGE.glob('*.exe')},
+     'raw_windows_evidence_archive': raw_archive.name, 'raw_windows_evidence_sha256': sha(raw_archive),
+     'raw_windows_evidence_file_count': len(raw_files), 'raw_windows_originals_retained': True,
+-    'evidence_directory': 'validation/promotion-see-20261020/windows/',
++    'evidence_directory': 'validation/correction-history-windows-20261020/',
+     'full_candidate_asan_ubsan': 'reported separately in repository; not asserted by Windows packaging', 'full_candidate_tsan': 'reported separately in repository; not asserted by Windows packaging',
+     'native_windows_tested': False, 'physical_ryzen_tested': False, 'accepted_elo_gain': None,
+     'stockfish_superiority_proven': False, 'new_nps_measurement': False,
+@@ -217,37 +220,40 @@
+     'link_record': (BUILD / 'CMakeFiles/forge.dir/link.txt').read_text(),
+ }
+ write(PACKAGE / 'provenance.json', provenance)
+-(PACKAGE / 'README.txt').write_text(f'''Forge 6.4.17 candidate - Windows x64 Zen5 / Ryzen 7 9850X3D
+-
+-Load forge-6.4.17-ryzen-9850x3d.exe as a UCI engine in your chess GUI.
+-Frozen source/tests: {COMMIT}. Parent: {PARENT} (6.4.16).
+-
+-This candidate adds a rare SEE path for later back-rank pawn promotion recaptures,
+-accounting for promotion material and the promoted victim's value. The ordinary
+-threshold SEE path remains inherited. Promotion exchange behavior intentionally
+-changes. Five new fixtures are mirrored within 28 authored cases, with zero-threshold
+-and boundary checks. NNUE/eval source, headers and weights remain byte-identical16.
+-
+-Eight Wine checks passed: core/perft with 28 mirrored SEE cases, eight TT groups,
++(PACKAGE / 'README.txt').write_text(f'''Forge 6.4.18 candidate - Windows x64 Zen5 / Ryzen 7 9850X3D
++
++Load forge-6.4.18-ryzen-9850x3d.exe as a UCI engine in your chess GUI.
++Frozen source/tests: {COMMIT}. Parent: {PARENT} (6.4.17).
++
++This independent unaccepted search ablation changes correction-history EMA decay
++to a residual increment. It is not a known-bug repair or accepted strength
++improvement. The new dedicated test exercises the actual worker methods for signed
++depth/clipping, learned-entry retention, feedback convergence, material/pawn-table
++coupling, saturation and mate-score output clamps. NNUE/eval source, headers and
++weights remain byte-identical to 6.4.17; inherited 6.4.17 promotion SEE remains.
++
++Nine Wine checks passed: core/perft with 28 mirrored SEE cases, correction-history
++actual-method contract ({runtime['correction_history_checks']} checks), eight TT groups,
+ rule50, 18,947 legal-witness comparisons, UCI, ponder, five OwnBook transitions and
+-first observed candidate17 bench11 signature {runtime['bench11_nodes']}.
++first observed candidate18 bench11 signature {runtime['bench11_nodes']}.
+ The new signature was unknown before execution; prior-version counts were not imposed.
+ AVX2 clamp/multiply/add and output-layer checks passed without fused arithmetic.
+ 
+ Compiler: LLVM-MinGW23.1.3, strict C++20 Release, -march=znver5 -mtune=znver5,
+--fno-fast-math -ffp-contract=off, static linking, no LTO. Six original PEs, actual
++-fno-fast-math -ffp-contract=off, static linking, no LTO. Seven original PEs, actual
+ core, frozen source, commands, stdout/stderr and disassembly remain retained and archived
+ in manifest-verified windows-originals.zip. Earlier clock/TT/legal/rule50/OwnBook and
+ path-accounting policies remain inherited with their existing limits.
+ 
+ This Windows stage establishes bounded correctness only; native gates are separate.
+ This is not an accepted release. Original 6.4.16 full TSan FAILED 8/9; the separate 6.4.16
+-five-case OwnBook diagnostic provides finite coverage only. Candidate 6.4.17 native gates
++five-case OwnBook diagnostic provides finite coverage only. Candidate 6.4.18 native gates
+ are reported separately. No accepted NPS or Elo improvement exists. No throughput
+ or timed match ran. Native Windows, physical Ryzen and Stockfish superiority remain unproven.
+ 
+ Optional tests:
+ forge_tests.exe
++forge_correction_history_tests.exe
+ forge_tt_tests.exe
+ forge_rule50_tests.exe
+ forge_legal_witness_tests.exe legal_witness_fixtures.tsv forge-10000.epd
+@@ -274,8 +280,8 @@
+ assert {name: sha(Path(name)) for name in preserved_before} == preserved_before
+ report = {'status': 'packaged_and_verified', 'artifact': str(ARCHIVE.relative_to(REPO)),
+           'sha256': sha(ARCHIVE), 'bytes': ARCHIVE.stat().st_size, 'source_and_tests_commit': COMMIT,
+-          'engine_sha256': sha(PACKAGE / 'forge-6.4.17-ryzen-9850x3d.exe'),
+-          'core_sha256': sha(BUILD / 'libforge_core.a'), 'runtime_checks': 8, 'ownbook_transitions': 5,
++          'engine_sha256': sha(PACKAGE / 'forge-6.4.18-ryzen-9850x3d.exe'),
++          'core_sha256': sha(BUILD / 'libforge_core.a'), 'runtime_checks': 9, 'ownbook_transitions': 5,
+           'legal_witness_comparisons': 18947, 'bench11_nodes': runtime['bench11_nodes'],
+           'raw_archive': str(raw_archive.relative_to(REPO)), 'raw_archive_sha256': sha(raw_archive),
+           'raw_original_files': len(raw_files), 'all_archived_original_bytes_sha256_verified': True,

@@ -1,0 +1,83 @@
+--- 17/validation-driver.py
++++ 18/validation-driver.py
+@@ -9,22 +9,22 @@
+ import sys
+ import time
+ 
+-COMMIT='47f0560221d986e41a309853e1295c557fcf5bf6'
+-SOURCE=Path('/workspace/.cloud-setup/forge-promotion-windows-source')
+-BUILD=Path('/workspace/.cloud-setup/forge-promotion-windows-build')
+-BASE=Path('/workspace/dwqww/validation/promotion-see-20261020/windows')
++COMMIT='fc51e43c26f735cbc1ffabf0fcf64f48a4592c0b'
++SOURCE=Path('/workspace/.cloud-setup/windows6418-source')
++BUILD=Path('/workspace/.cloud-setup/windows6418-build')
++BASE=Path('/workspace/dwqww/validation/correction-history-windows-20261020')
+ OUT=BASE/'runtime-attempt1'
+ WINE=Path('/workspace/.cloud-setup/wine/usr/lib/wine/wine64')
+ TOOLS=Path('/workspace/.cloud-setup/toolchains/llvm-mingw-20261006-ucrt-ubuntu-22.04-x86_64/bin')
+-WRAPPER=BASE/'forge-promotion-wine'
++WRAPPER=BASE/'forge-correction-history-wine'
+ sha=lambda p:hashlib.sha256(p.read_bytes()).hexdigest()
+ win=lambda p:'Z:'+str(p).replace('/','\\')
+ def write(name,data):(OUT/name).write_text(json.dumps(data,indent=2)+'\n')
+-assert json.loads((BASE/'WINDOWS-BUILD-CLEAR.json').read_text())['authorization']=='17 WINDOWS BUILD CLEAR'
++assert json.loads((BASE/'WINDOWS-BUILD-CLEAR.json').read_text())['authorization']=='18 WINDOWS BUILD CLEAR'
+ OUT.mkdir(exist_ok=False)
+ environment=os.environ.copy();environment.update(WINEPREFIX='/workspace/.cloud-setup/wine-prefix-ready',
+  WINEDEBUG='-all',XDG_CACHE_HOME='/workspace/.cloud-setup/font-cache',PYTHONDONTWRITEBYTECODE='1')
+-WRAPPER.write_text('#!/usr/bin/env bash\nexport WINEPREFIX=/workspace/.cloud-setup/wine-prefix-ready\nexport WINEDEBUG=-all\nexport XDG_CACHE_HOME=/workspace/.cloud-setup/font-cache\nexec /workspace/.cloud-setup/wine/usr/lib/wine/wine64 /workspace/.cloud-setup/forge-promotion-windows-build/forge.exe "$@"\n')
++WRAPPER.write_text('#!/usr/bin/env bash\nexport WINEPREFIX=/workspace/.cloud-setup/wine-prefix-ready\nexport WINEDEBUG=-all\nexport XDG_CACHE_HOME=/workspace/.cloud-setup/font-cache\nexec /workspace/.cloud-setup/wine/usr/lib/wine/wine64 /workspace/.cloud-setup/windows6418-build/forge.exe "$@"\n')
+ WRAPPER.chmod(0o755)
+ # Evidence-only adapter: preserve every production test assertion and exchange,
+ # translating only the Linux-created book path to Wine's existing Z: drive.
+@@ -52,6 +52,7 @@
+ source_before=json.loads((BASE/'source-hashes.json').read_text())
+ assert {p.relative_to(SOURCE).as_posix():sha(p) for p in SOURCE.rglob('*') if p.is_file()}==source_before
+ commands=[('core',[str(WINE),str(BUILD/'forge_tests.exe')]),
++ ('correction-history',[str(WINE),str(BUILD/'forge_correction_history_tests.exe')]),
+  ('coherent-tt',[str(WINE),str(BUILD/'forge_tt_tests.exe')]),
+  ('rule50',[str(WINE),str(BUILD/'forge_rule50_tests.exe')]),
+  ('legal-witness',[str(WINE),str(BUILD/'forge_legal_witness_tests.exe'),win(inputs['fixtures']),win(inputs['corpus'])]),
+@@ -64,7 +65,7 @@
+ write('protocol.json',{'created_utc':datetime.datetime.now(datetime.timezone.utc).isoformat(),
+  'source_and_tests_commit':COMMIT,'input_sha256_before':before,'commands':commands,
+  'bench_command':bench_command,'bench_stdin':bench_stdin.decode(),'bench_hash_mib':16,'bench_threads':1,
+- 'bench_expected_same_platform_parent_nodes':None,'candidate_bench_expectation':'UNKNOWN before first actual17run','bench_signature_policy':'Promotion recapture behavior intentionally changes; preserve one actual positive signature without imposing prior-version counts','simd_command':simd_command,
++ 'bench_expected_same_platform_parent_nodes':None,'candidate_bench_expectation':'UNKNOWN before first actual18run','bench_signature_policy':'Correction-history residual-increment search behavior intentionally changes; preserve one actual positive signature without imposing prior-version counts','simd_command':simd_command,
+  'environment_subset':{k:environment[k] for k in ('WINEPREFIX','WINEDEBUG','XDG_CACHE_HOME','PYTHONDONTWRITEBYTECODE')},
+  'scope':'Wine functional correctness and bounded node signature only; no performance, Elo or native hardware claim',
+  'core_perft_cases':{'start_depth4':197281,'kiwipete_depth3':97862,'position3_depth4':43238,
+@@ -78,6 +79,10 @@
+         item={'name':name,'exit_code':completed.returncode,'elapsed_seconds':time.monotonic()-started}
+         checks.append(item);write('progress.json',checks);print(json.dumps(item),flush=True)
+         if completed.returncode:raise RuntimeError(name+' failed')
++    correction=(OUT/'correction-history-stdout.log').read_text()
++    correction_summary=re.findall(r'^SUMMARY checks=(\d+) failures=(\d+)\s*$',correction,re.M)
++    assert len(correction_summary)==1 and int(correction_summary[0][0])>0 and int(correction_summary[0][1])==0
++    assert 'Correction-history residual increment contract' in correction and 'FAIL ' not in correction
+     ownbook_result=json.loads((OUT/'ownbook-transcript.json').read_text())
+     assert ownbook_result['error'] is None and len(ownbook_result['checks'])==5
+     assert all(c['PASS'] and c['actual_book']==c['expected_book'] for c in ownbook_result['checks'])
+@@ -91,7 +96,7 @@
+                                  stdout=stdout,stderr=stderr,timeout=300)
+     signature=re.findall(r'^info string bench depth 11 nodes (\d+) time \d+ nps \d+\s*$',
+                          (OUT/'bench-stdout.log').read_text(),re.M)
+-    assert completed.returncode==0 and len(signature)==1 and int(signature[0])>0, 'Missing/invalid candidate17 bench signature: '+repr(signature)
++    assert completed.returncode==0 and len(signature)==1 and int(signature[0])>0, 'Missing/invalid candidate18 bench signature: '+repr(signature)
+     bench_nodes=int(signature[0])
+     checks.append({'name':'stdin-bench11-signature','exit_code':completed.returncode,'nodes':bench_nodes})
+     print(json.dumps(checks[-1]),flush=True)
+@@ -105,11 +110,11 @@
+     after={name:sha(path) for name,path in inputs.items()};assert after==before
+     assert {p.relative_to(SOURCE).as_posix():sha(p) for p in SOURCE.rglob('*') if p.is_file()}==source_before
+     write('result.json',{'status':'passed','source_and_tests_commit':COMMIT,'checks':checks,'tt_groups':8,
+-     'rule50_targeted_failures':0,'legal_witness_comparisons':int(oracle[1]),'bench11_nodes':bench_nodes,
++     'correction_history_checks':int(correction_summary[0][0]),'correction_history_failures':0,'rule50_targeted_failures':0,'legal_witness_comparisons':int(oracle[1]),'bench11_nodes':bench_nodes,
+      'core_reference_perft_passed':True,'ownbook_transitions':ownbook_result['checks'],'wine_book_path_adaptation_only':True,'simd':simd,'input_sha256_before':before,'input_sha256_after':after,
+      'source_inputs_unchanged':True,'scope':'Wine correctness and node signatures only; native hardware, speed and Elo unproven'})
+ except Exception as error:
+     write('result.json',{'status':'failed','source_and_tests_commit':COMMIT,'checks':checks,'error':str(error),
+                          'input_sha256_after':{name:sha(path) for name,path in inputs.items()}})
+     raise
+-print('All frozen6.4.17 Windows functional, oracle, signature and SIMD checks passed',flush=True)
++print('All frozen6.4.18 Windows functional, oracle, signature and SIMD checks passed',flush=True)

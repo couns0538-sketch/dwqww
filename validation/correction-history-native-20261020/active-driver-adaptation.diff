@@ -1,0 +1,11 @@
+--- validation/upstream-clock-reconcile-20261020/active-uci-edges.py
++++ active-uci-edges.py
+@@ -13,7 +13,7 @@
+ import chess
+ 
+ root = Path(__file__).resolve().parents[2]
+-trusted_path = root / 'tools/audit/run-full-engine-tt.py'
++trusted_path = Path(__file__).with_name('trusted-run-full-engine-tt.py')
+ spec = importlib.util.spec_from_file_location('trusted_full_engine_tt', trusted_path)
+ trusted = importlib.util.module_from_spec(spec)
+ spec.loader.exec_module(trusted)

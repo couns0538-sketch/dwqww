@@ -196,3 +196,16 @@ source/testbeforeafter equality and16live executable/core hashes. One barebench1
 signature321912nodes,1738ms/185219NPS; timing is uncalibrated, no speed ratio or
 strength result. TSan is running; Windows and all match gates remain pending.
 [Native evidence](../validation/correction-history-native-20261020/ROOT-RELEASE-ASAN-PROOFS.json).
+
+
+6.4.18fc51e43 finite validation is complete: firstattemptRelease10/ASanUBSan10/
+defaultTSan10,8activeUCI,9Wine and1064artifact checks PASS. Root independently
+rehashes113native records/484live source-build files and196Windows records,
+compares19ZIPpayloads toexpanded bytes and verifies183originalraws. FinalWindows
+ZIP286a913f8bb6366d28020ef83bce5235809d1d991d41023609f0ea6446284ebc,
+native/Windows bench321912/352313. No NPS/Elo acceptance or nativeWindows/Ryzen
+proof. RootZIPchecker initially used Path.with_suffix on a versioned folder and
+failed before ZIP verdict; exactpath corrected, original candidate/audit unchanged.
+Fresh strength draft remains BLOCKED on two independently identified provenance/
+final-rehash harness gaps; no18launch or games. All72baselineb590build inputs equal
+genuinelybuilt47source; no binaries relabeled and futureactualb590CI9CTest required.
