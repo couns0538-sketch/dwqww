@@ -1195,8 +1195,10 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
 // Iterative deepening driver
 
 SearchInfo Worker::search(Board board, const SearchLimits& limits, bool emit_info, const std::vector<Worker*>& all) {
-    start_ = limits.request_start == std::chrono::steady_clock::time_point{}
-        ? std::chrono::steady_clock::now() : limits.request_start;
+    const auto origin = limits.start_time != std::chrono::steady_clock::time_point{}
+        ? limits.start_time : limits.request_start;
+    start_ = origin == std::chrono::steady_clock::time_point{}
+        ? std::chrono::steady_clock::now() : origin;
     local_nodes_ = 0;
     nodes_.store(0, std::memory_order_relaxed);
     all_workers_ = &all;
@@ -1455,10 +1457,14 @@ void Searcher::clear() {
 }
 
 SearchInfo Searcher::search(Board board, const SearchLimits& limits, bool emit_info, TTAccess table_access) {
-    const auto request_start = limits.request_start == std::chrono::steady_clock::time_point{}
-        ? std::chrono::steady_clock::now() : limits.request_start;
+    const auto supplied_start = limits.start_time != std::chrono::steady_clock::time_point{}
+        ? limits.start_time : limits.request_start;
+    const bool clocked = !limits.infinite && !limits.ponder &&
+        (limits.time_ms >= 0 || limits.movetime_ms >= 0);
+    const auto origin = supplied_start == std::chrono::steady_clock::time_point{} && clocked
+        ? std::chrono::steady_clock::now() : supplied_start;
     SearchLimits worker_limits = limits;
-    worker_limits.request_start = request_start;
+    worker_limits.start_time = origin;
     std::vector<Worker*> all;
     all.reserve(workers_.size());
     for (auto& worker : workers_) all.push_back(worker.get());

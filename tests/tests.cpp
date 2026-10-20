@@ -17,6 +17,9 @@
 namespace forge {
 
 struct SearcherTestProbe {
+    static std::chrono::steady_clock::time_point start_time(Searcher& searcher) {
+        return searcher.main_worker().start_;
+    }
     static std::uint64_t null_tries(Searcher& searcher) { return searcher.main_worker().null_tries_; }
     static std::uint64_t null_cutoffs(Searcher& searcher) { return searcher.main_worker().null_cutoffs_; }
     static TranspositionTable& tt(Searcher& searcher) { return searcher.transposition_table(); }
@@ -507,11 +510,37 @@ void test_search_request_time() {
         return !info.best_move.is_none() && board.parse_uci(forge::Board::move_to_uci(info.best_move)).has_value();
     };
 
+    forge::SearchLimits accepted;
+    accepted.depth = 1;
+    accepted.movetime_ms = 60000;
+    accepted.start_time = expired_start;
+    forge::SearchInfo info = searcher.search(board, accepted);
+    check(legal_result(info) && info.nodes == 0 && info.depth == 0,
+          "the accepted start_time field consumes an expired movetime budget");
+    check(forge::SearcherTestProbe::start_time(searcher) == expired_start,
+          "the accepted start_time is the exact worker clock origin");
+
+    accepted.start_time = Clock::now();
+    accepted.request_start = expired_start;
+    info = searcher.search(board, accepted);
+    check(legal_result(info) && info.nodes > 0 && info.depth == 1,
+          "a fresh start_time takes precedence over an expired legacy request_start");
+    check(forge::SearcherTestProbe::start_time(searcher) == accepted.start_time,
+          "conflicting timestamp fields retain the authoritative start_time exactly");
+
+    accepted.start_time = expired_start;
+    accepted.request_start = Clock::now();
+    info = searcher.search(board, accepted);
+    check(legal_result(info) && info.nodes == 0 && info.depth == 0,
+          "an expired start_time takes precedence over a fresh legacy request_start");
+
     forge::SearchLimits expired;
     expired.depth = 1;
     expired.movetime_ms = 60000;
     expired.request_start = expired_start;
-    forge::SearchInfo info = searcher.search(board, expired);
+    info = searcher.search(board, expired);
+    check(forge::SearcherTestProbe::start_time(searcher) == expired_start,
+          "legacy request_start remains the exact origin when start_time is unset");
     check(legal_result(info) && info.nodes == 0 && info.depth == 0,
           "dispatch time consumes movetime before any search nodes");
     check(info.elapsed_ms >= 7200000, "elapsed time includes time since the search request");
@@ -544,6 +573,9 @@ void test_search_request_time() {
     info = helper.search(board, expired, false, helpers);
     check(legal_result(info) && info.nodes == 0 && helper.nodes() == 0,
           "an expired helper resets old node counts without searching");
+    info = helper.search(board, accepted, false, helpers);
+    check(legal_result(info) && info.nodes == 0 && helper.nodes() == 0,
+          "a direct helper honors accepted start_time ahead of a fresh legacy timestamp");
 
     searcher.set_threads(4);
     info = searcher.search(board, expired);

@@ -1,0 +1,10 @@
+# CI attempt 1: fixture validated; native timing harness failed at book bypass
+2026-10-20 06:47 UTC. GitHub Actions run: https://github.com/couns0538-sketch/dwqww/actions/runs/39382382647
+
+Directly inspected authentic CI artifact 12245034489, SHA-256 4f56cef95216ae53edef7f9e743be994cec083aa9b530961a417806fa3f0ed0c. CMake Release compilation succeeded for BOTH exact Forge baseline and disposable patched candidate, compiler GCC 13.3.0 on ubuntu-24.04. All four original CTest suites passed for baseline (4/4) AND scoped candidate (4/4), including UCI and ponder regression. GitHub workflow ended FAILURE because the timing probe expected a search-info line but Forge's default embedded book immediately returned a book move (raw first journal showed `info string book move c2c4` and `bestmove c2c4`). Thus the probe **never exercised the candidate time-accounting change**.
+
+The run's raw `probe/result.json` reports `RuntimeError('no complete depth/time information before bestmove')`; this is a harness configuration error, NOT a Forge compiler failure or demonstrated clock bug. The baseline probe had normal UCI exit, but search was bypassed. The artifact includes 20 original CI files and SHA-256s of compiled baseline/candidate/shim; its original failure is permanently retained by the GitHub Actions artifact, expires 2026-11-03 per GitHub metadata.
+
+Harness correction: explicitly disable OwnBook and Book Depth at UCI setup, wait for readiness and preserve all other resources/options. The diagnostic now prints stdout/stderr on subsequent failing commands and retains all attempts unchanged in CI artifact storage.
+
+No native fastchess strength games were started. Previous first TT-tag strength attempt stays terminated: 6 games, 3 pairs, 1 Candidate timeout, no native SPRT decision. The previously blocked original metadata-bearing raw match archive remains unpublished. The time-origin patch remains disposable/review-only; no production source modified. Next: rerun CI on new commit and verify actual native UCI clock latency classification before considering timed search tests.

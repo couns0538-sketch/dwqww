@@ -31,8 +31,12 @@ struct SearchLimits {
     bool ponder = false;
     bool search_moves_specified = false;
     std::vector<Move> search_moves;
-    // Request receipt on steady_clock; zero starts timing at Searcher::search entry.
+    // Optional steady-clock receipt origin. start_time takes precedence;
+    // request_start remains a compatibility spelling for existing callers.
+    // With both unset, finite timed searches start at Searcher entry; other
+    // searches retain a worker-local origin. Ponder budgets start at ponderhit.
     std::chrono::steady_clock::time_point request_start{};
+    std::chrono::steady_clock::time_point start_time{};
 };
 
 struct SearchInfo {

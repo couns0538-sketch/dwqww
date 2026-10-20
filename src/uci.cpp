@@ -160,7 +160,7 @@ int main() {
         input >> command;
         if (command == "uci") {
             const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex());
-            std::cout << "id name Chess Engine Forge 6.4.12 candidate\n"
+            std::cout << "id name Chess Engine Forge 6.4.13 candidate\n"
                          "id author OpenAI\n"
                          "option name Hash type spin default 32 min 1 max 2048\n"
                          "option name Threads type spin default 1 min 1 max 256\n"
@@ -318,8 +318,10 @@ int main() {
                 input.clear();
                 input.seekg(position);
                 forge::SearchLimits limits = parse_limits(input, board);
-                limits.request_start = command_start;
                 limits.move_overhead_ms = move_overhead_ms;
+                // Charge dispatch admission only to finite externally clocked searches.
+                if (!limits.infinite && !limits.ponder &&
+                    (limits.time_ms >= 0 || limits.movetime_ms >= 0)) limits.start_time = command_start;
                 // Book moves apply to game play (clock or movetime searches), not
                 // to analysis, pondering or restricted searches.
                 const bool game_search = (limits.time_ms >= 0 || limits.movetime_ms >= 0) && !limits.infinite &&
