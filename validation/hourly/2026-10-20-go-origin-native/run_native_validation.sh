@@ -25,7 +25,15 @@ sha256sum "$HERE/uci-clock-origin-scoped.patch" "$REPO/src/nnue_weights.inc" >> 
 printf 'Patch applied to disposable candidate tree; immutable baseline untouched\n' >> "$OUTPUT/identities.txt"
 logged() {
   local name="$1"; shift
-  "$@" > "$OUTPUT/$name.stdout" 2> "$OUTPUT/$name.stderr"
+  if "$@" > "$OUTPUT/$name.stdout" 2> "$OUTPUT/$name.stderr"; then
+    printf '%s PASS\n' "$name" >> "$OUTPUT/steps.txt"
+  else
+    local rc=$?
+    printf '%s FAIL exit=%s\n' "$name" "$rc" | tee -a "$OUTPUT/steps.txt" >&2
+    tail -n 70 "$OUTPUT/$name.stderr" >&2 || true
+    tail -n 70 "$OUTPUT/$name.stdout" >&2 || true
+    return "$rc"
+  fi
 }
 logged base_config cmake -S "$TEMP/baseline" -B "$TEMP/basebuild" -DCMAKE_BUILD_TYPE=Release -DFORGE_NATIVE=OFF
 logged base_build cmake --build "$TEMP/basebuild" --parallel 2

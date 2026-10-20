@@ -67,6 +67,16 @@ def run_trial(binary: Path, shim: Path, label: str, command: str, out: Path, del
                 until(lambda s: s == "uciok", 8.0)
                 issue("isready")
                 until(lambda s: s == "readyok", 8.0)
+                # Forge 6.4 defaults OwnBook to true when its embedded book
+                # exists. A book hit bypasses the search worker entirely and
+                # invalidates admission-delay timing; disable it explicitly.
+                issue("setoption name OwnBook value false")
+                issue("setoption name Book Depth value 0")
+                issue("setoption name Ponder value false")
+                issue("setoption name Threads value 1")
+                issue("setoption name Hash value 64")
+                issue("isready")
+                until(lambda s: s == "readyok", 8.0)
                 issue("position startpos")
                 sent_go = time.monotonic()
                 issue(command)
