@@ -163,3 +163,30 @@ the original failed attempt. This is a workflow documentation test, not validati
 of the helper, an engine, clock reliability, speed or Elo.
 
 [Focused application and evidence](../../../validation/strength-skill-cleanup-20261020/REPORT.md).
+
+## Per-revision native-proof schema (2026-10-20)
+
+A new proof consumer is copied from19 to20 during a deadline. It assumes the
+final receipt has `engine_gate_retries`, reuses old capture-driver count names,
+and treats a failed lookup as permission to rerun the native chain. Actual20
+metadata extension raised KeyError on that nonexistent field; the original
+receipt remained unchanged. This is a checker-schema failure, not an engine RED.
+
+Required application: inspect the genuine20 producer and frozen receipts first.
+In `validation/pawn-span-fill-native-20261020/FINAL-RECEIPT.json`, map total CTest
+count to `native_ctests` (36), per-profile count to
+`native_profiles.<release|asan|tsan>.ctest_count` (12), and each explicit
+`native_profiles.<profile>.attempts` to1. Require those attempts independently;
+absence is unknown, not zero retries. Per-profile pawn-span checks are37320;
+runtime-PSQT checks are347. The originals snapshot uses `trees.<label>.files`
+under `ORIGINALS-FINAL-SHA256.json`, with75 source files and163 for each build
+profile. These are this frozen20 schema's facts, not future universal constants.
+
+Record exact field/type/value mappings and producer/receipt hashes, then apply
+them read-only to all three retained profile receipts. Missing or wrongly typed
+facts block the gate before any engine process. Retain the original failed
+consumer, original receipt and19/20 labels; write corrected adapter evidence
+separately. A passing source-only adapter check does not justify an engine retry,
+relabel a historical build, prove skill-caused efficiency or establish speed/Elo.
+
+[Fresh source-only schema application](../../../validation/strength-skill-schema-20261020/REPORT.md).
