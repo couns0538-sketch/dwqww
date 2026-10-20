@@ -117,3 +117,13 @@ prototype matches all324legal oracle cases/30adjacent brackets and preserves
 Installed Stockfish19 advertises UCI_Elo1320..3190. Exact3200 is unsupported;
 3190 is the nearest supported limited-strength target. Zero target games run;
 Forge's absolute rating and a200Elo gap remain unestablished.
+
+
+Applied6.4.17 promotion-recapture SEE source47f0560 is isolated/pushed. Permanent
+parent16tests produce16expected assertion failures; reviewed repair passes.
+Complete Release9/9PASS including perft/UCI; compiled core equals prototype
+d772f89980edb0e9f7fd5da99ef5c7bdb402aa8319082907b2bf31180359bd12.
+Thirty actual-margin API answers pass at-40/-150/-450 versus10parentwrong;
+bench11signature385781nodes. Raw uncalibrated1016ms/379705NPS is not a speed
+comparison. ASan/TSan and Windows gates pending, zero games/Elo claims.
+[Source and tests](../validation/promotion-see-20261020/HYPOTHESIS.md).

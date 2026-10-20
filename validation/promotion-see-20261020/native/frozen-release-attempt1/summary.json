@@ -1,0 +1,85 @@
+{
+  "source_commit": "47f0560221d986e41a309853e1295c557fcf5bf6",
+  "source_export": "/workspace/.cloud-setup/forge-promotion-source",
+  "source_archive_sha256": "3f447828a627c3221ec39ef8f58c06d7d1807925674c5275171075d4b1278fb5",
+  "profile": "release",
+  "started_utc": "2026-10-20T19:56:32.831426+00:00",
+  "steps": [
+    {
+      "label": "configure",
+      "command": [
+        "/workspace/.cloud-setup/venv/bin/cmake",
+        "-S",
+        "/workspace/.cloud-setup/forge-promotion-source",
+        "-B",
+        "/workspace/.cloud-setup/forge-promotion-release",
+        "-DCMAKE_EXPORT_COMPILE_COMMANDS=ON",
+        "-DCMAKE_BUILD_TYPE=Release",
+        "-DFORGE_ENABLE_SANITIZERS=OFF",
+        "-DCMAKE_CXX_FLAGS=-march=x86-64-v3 -mtune=znver5 -fno-fast-math -ffp-contract=off -fno-lto"
+      ],
+      "cwd": "/workspace/dwqww",
+      "timeout_seconds": 1200,
+      "exit_code": 0,
+      "elapsed_seconds": 2.8982266130042262,
+      "stdout_sha256": "b464b2f2542bfdbc065f95ccfbf836da43eadee6a37ea8045fa985f10e92451a",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "label": "build",
+      "command": [
+        "/workspace/.cloud-setup/venv/bin/cmake",
+        "--build",
+        "/workspace/.cloud-setup/forge-promotion-release",
+        "--parallel",
+        "2"
+      ],
+      "cwd": "/workspace/dwqww",
+      "timeout_seconds": 1200,
+      "exit_code": 0,
+      "elapsed_seconds": 53.418965418008156,
+      "stdout_sha256": "e1df280f69ae35d84a8638a1080d313536a752b31d303a3be67c8ce14fab66ce",
+      "stderr_sha256": "355c11db93f8a89b0da6914a49a9baf5b0b6f6d9fc07315472d3288469727788"
+    },
+    {
+      "label": "ctest",
+      "command": [
+        "/workspace/.cloud-setup/venv/bin/ctest",
+        "--test-dir",
+        "/workspace/.cloud-setup/forge-promotion-release",
+        "--output-on-failure",
+        "-j",
+        "1"
+      ],
+      "cwd": "/workspace/dwqww",
+      "timeout_seconds": 1200,
+      "exit_code": 0,
+      "elapsed_seconds": 11.789184529014165,
+      "stdout_sha256": "c406e5b6635f4530b3693c7602f12c816f91b775388f436d17bed17e0d52328f",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  ],
+  "environment_overrides": {
+    "PYTHONDONTWRITEBYTECODE": "1"
+  },
+  "tsan_deadlock_detector": "default enabled; no disabling options",
+  "status": "PASS",
+  "binary_sha256_before": {
+    "forge": "8272c2c9f58f77f7deea06418cc71b9fe88a1ee61394a0ec27c3bb174476ff6e",
+    "forge_tests": "8173bef3cd882ae1cf67d3a5c5d0df751b7f9fd5f0bf2c5d2249d5dc15dc9925",
+    "forge_tt_tests": "52214d010b7078034b8385c3df5c6656c6c3bbeea23ed2415241730cb655cb9a",
+    "forge_rule50_tests": "69b71d56ad74c764f863f6e6cd435425b4afa827f292e1c265177b632ebd975f",
+    "forge_legal_witness_tests": "7477be748e740f8f0e1631285bfb7198bfeb0766a64c8db6c079446f23ccd9d6",
+    "libforge_core.a": "d772f89980edb0e9f7fd5da99ef5c7bdb402aa8319082907b2bf31180359bd12"
+  },
+  "binary_sha256_after": {
+    "forge": "8272c2c9f58f77f7deea06418cc71b9fe88a1ee61394a0ec27c3bb174476ff6e",
+    "forge_tests": "8173bef3cd882ae1cf67d3a5c5d0df751b7f9fd5f0bf2c5d2249d5dc15dc9925",
+    "forge_tt_tests": "52214d010b7078034b8385c3df5c6656c6c3bbeea23ed2415241730cb655cb9a",
+    "forge_rule50_tests": "69b71d56ad74c764f863f6e6cd435425b4afa827f292e1c265177b632ebd975f",
+    "forge_legal_witness_tests": "7477be748e740f8f0e1631285bfb7198bfeb0766a64c8db6c079446f23ccd9d6",
+    "libforge_core.a": "d772f89980edb0e9f7fd5da99ef5c7bdb402aa8319082907b2bf31180359bd12"
+  },
+  "source_files_unchanged": true,
+  "completed_utc": "2026-10-20T19:57:41.074113+00:00"
+}

@@ -1,11 +1,11 @@
 # Next experiments
 
-Apply and fully test the narrowly guarded promotion-recapture SEE repair as
-isolated6.4.17. The outside-production prototype matches the frozen oracle on
+Finish frozen full-engine validation of the applied promotion-recapture SEE
+repair, isolated6.4.17 source47f0560. The outside-production prototype matches the frozen oracle on
 all324legal cases, corrects eight parent mismatch rows, passes30new adjacent
 threshold brackets, and preserves all314non-guard API rows byte-for-byte.
-Two initial-illegal controls are excluded from oracle claims. Source17 is not
-yet applied; full engine, sanitizers and playing strength remain untested.
+Two initial-illegal controls are excluded from oracle claims. Source17is applied; full engine/sanitizer builds are in progress, playing
+strength remains untested.
 
 Preserve6.4.16 source553caef and its original TSan batch failure:8/9PASS,
 initial15suciok deadline expired before book/search. One unchanged-deadline

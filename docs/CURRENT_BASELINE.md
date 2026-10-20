@@ -1,5 +1,15 @@
 # Current baseline
 
+Applied isolated **6.4.17** promotion-recapture SEE, source
+`47f0560221d986e41a309853e1295c557fcf5bf6`, branch
+`forge/promotion-see-20261020`. Permanent mirrored regressions show16expected
+parent16assertion failures and pass with the reviewed repair. The prototype
+passes324legal oracle cases and preserves314ordinary API rows. Frozen Release9/9PASS, with core byte-identical to the reviewed prototype.
+Thirty API answers at actual search thresholds pass (parent10wrong); bench11
+is385781nodes. ASan+UBSan/TSan validation is in progress; no NPS/Elo acceptance.
+The original16startup failure remains unresolved and its strength package blocked.
+
+
 Applied isolated **6.4.16** source `553caef144ae2e1b696ba35d7a0eb1a50a03fde9`
 on `forge/pin-mask-see-20261020` replaces repeated SEE king queries with one
 dynamic forbidden-origin mask. Release9/9 and ASan/UBSan9/9 passed; TSan passed
