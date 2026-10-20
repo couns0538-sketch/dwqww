@@ -1,5 +1,14 @@
 # Current baseline
 
+Applied isolated **6.4.16** source `553caef144ae2e1b696ba35d7a0eb1a50a03fde9`
+on `forge/pin-mask-see-20261020` replaces repeated SEE king queries with one
+dynamic forbidden-origin mask. Release9/9 and ASan/UBSan9/9 passed; TSan is
+running. Eight Wine checks, parent search-signature parity and 1151 artifact
+checks passed. The prototype's 316 API cases and eight actual search result
+traces match 6.4.15 exactly. Query-work reduction is measured; runtime/NPS/Elo
+is not. Current16 finite gates and the separate fresh strength package remain
+pending; source15 below is the latest completed native correctness checkpoint.
+
 The newest finite-correctness-tested candidate is isolated **6.4.15** pin-aware SEE, source
 `8d303e4ca0428e9750bbf3e2663c64d9fafbd1ad`, branch
 `forge/pin-aware-see-20261020`. Release, ASan/UBSan and TSan each passed all nine

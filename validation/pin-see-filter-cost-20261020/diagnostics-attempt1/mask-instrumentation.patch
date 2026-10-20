@@ -1,0 +1,153 @@
+--- a/src/board.cpp
++++ b/src/board.cpp
+@@ -4,6 +4,7 @@
+ #include <array>
+ #include <cctype>
+ #include <cstdlib>
++#include <cstdio>
+ #include <sstream>
+ 
+ namespace forge {
+@@ -15,6 +16,54 @@
+ constexpr std::uint8_t BlackQueenSide = 8;
+ 
+ constexpr std::array<int, 7> SeeValue{0, 100, 300, 300, 500, 900, 0};
++
++// Diagnostic-only counters: these binaries are restricted to one search thread.
++struct SeeFilterDiagnostics {
++    std::uint64_t see_calls = 0;
++    std::uint64_t exchange_plies = 0;
++    std::uint64_t active_plies = 0;
++    std::uint64_t candidate_origins = 0;
++    std::uint64_t surviving_origins = 0;
++    std::uint64_t primary_full_query_calls = 0;
++    std::uint64_t occupied_bishop_queries = 0;
++    std::uint64_t occupied_rook_queries = 0;
++    std::uint64_t empty_bishop_queries = 0;
++    std::uint64_t empty_rook_queries = 0;
++    std::uint64_t between_classifications = 0;
++    std::uint64_t pawn_tests = 0;
++    std::uint64_t knight_tests = 0;
++    std::uint64_t king_tests = 0;
++    std::uint64_t aligned_sliders = 0;
++    std::uint64_t max_candidates = 0;
++    std::uint64_t mask_states_verified = 0;
++    std::uint64_t verification_shadow_queries = 0;
++    std::uint64_t mask_mismatches = 0;
++    bool verify_masks = std::getenv("FORGE_SEE_VERIFY_MASKS") != nullptr;
++    ~SeeFilterDiagnostics() {
++        std::fprintf(stderr, "SEE_FILTER_COUNTERS {\"see_calls\":%llu,\"exchange_plies\":%llu,\"active_plies\":%llu,\"candidate_origins\":%llu,\"surviving_origins\":%llu,\"primary_full_query_calls\":%llu,\"occupied_bishop_queries\":%llu,\"occupied_rook_queries\":%llu,\"empty_bishop_queries\":%llu,\"empty_rook_queries\":%llu,\"between_classifications\":%llu,\"pawn_tests\":%llu,\"knight_tests\":%llu,\"king_tests\":%llu,\"aligned_sliders\":%llu,\"max_candidates\":%llu,\"mask_states_verified\":%llu,\"verification_shadow_queries\":%llu,\"mask_mismatches\":%llu}\n",
++            static_cast<unsigned long long>(see_calls),
++            static_cast<unsigned long long>(exchange_plies),
++            static_cast<unsigned long long>(active_plies),
++            static_cast<unsigned long long>(candidate_origins),
++            static_cast<unsigned long long>(surviving_origins),
++            static_cast<unsigned long long>(primary_full_query_calls),
++            static_cast<unsigned long long>(occupied_bishop_queries),
++            static_cast<unsigned long long>(occupied_rook_queries),
++            static_cast<unsigned long long>(empty_bishop_queries),
++            static_cast<unsigned long long>(empty_rook_queries),
++            static_cast<unsigned long long>(between_classifications),
++            static_cast<unsigned long long>(pawn_tests),
++            static_cast<unsigned long long>(knight_tests),
++            static_cast<unsigned long long>(king_tests),
++            static_cast<unsigned long long>(aligned_sliders),
++            static_cast<unsigned long long>(max_candidates),
++            static_cast<unsigned long long>(mask_states_verified),
++            static_cast<unsigned long long>(verification_shadow_queries),
++            static_cast<unsigned long long>(mask_mismatches));
++    }
++};
++SeeFilterDiagnostics see_filter_diagnostics;
++thread_local bool see_filter_query_active = false;
+ 
+ constexpr std::uint64_t mix(std::uint64_t x) {
+     x += 0x9e3779b97f4a7c15ULL;
+@@ -302,12 +351,18 @@
+ }
+ 
+ bool Board::square_attacked_with_occupancy(int square, Color by, Bitboard occupancy, Bitboard removed) const {
++    if (see_filter_query_active) ++see_filter_diagnostics.primary_full_query_calls;
+     const Bitboard available = ~removed;
++    if (see_filter_query_active) ++see_filter_diagnostics.pawn_tests;
+     if ((attacks::pawn(opposite(by), square) & pieces(by, Pawn) & available) != 0) return true;
++    if (see_filter_query_active) ++see_filter_diagnostics.knight_tests;
+     if ((attacks::knight(square) & pieces(by, Knight) & available) != 0) return true;
++    if (see_filter_query_active) ++see_filter_diagnostics.king_tests;
+     if ((attacks::king(square) & pieces(by, King) & available) != 0) return true;
+     const Bitboard queens = pieces(by, Queen) & available;
++    if (see_filter_query_active) ++see_filter_diagnostics.occupied_bishop_queries;
+     if ((attacks::bishop(square, occupancy) & ((pieces(by, Bishop) & available) | queens)) != 0) return true;
++    if (see_filter_query_active) ++see_filter_diagnostics.occupied_rook_queries;
+     return (attacks::rook(square, occupancy) & ((pieces(by, Rook) & available) | queens)) != 0;
+ }
+ 
+@@ -834,6 +889,7 @@
+ }
+ 
+ bool Board::see_ge(const Move& move, int threshold) const {
++    ++see_filter_diagnostics.see_calls;
+     if (move.is_castle()) return 0 >= threshold;
+     const Color us = side_;
+     const int from = move.from;
+@@ -859,6 +915,12 @@
+         stm = opposite(stm);
+         attackers &= occupancy;
+         Bitboard stm_attackers = attackers & occupied(stm);
++        const Bitboard filter_input = stm_attackers;
++        const auto diagnostic_candidates = static_cast<std::uint64_t>(popcount(stm_attackers & ~pieces(stm, King)));
++        ++see_filter_diagnostics.exchange_plies;
++        see_filter_diagnostics.active_plies += diagnostic_candidates != 0;
++        see_filter_diagnostics.candidate_origins += diagnostic_candidates;
++        see_filter_diagnostics.max_candidates = std::max(see_filter_diagnostics.max_candidates, diagnostic_candidates);
+         // Every candidate only removes its own origin; the target stays occupied.
+         // Existing checks reject every non-king; singleton ray blockers identify
+         // exactly the origins whose departure would expose a live enemy slider.
+@@ -869,20 +931,44 @@
+             const Bitboard live = occupancy & ~square_bb(to);
+             const Bitboard queens = pieces(enemy, Queen) & live;
+             bool checked =
+-                (attacks::pawn(stm, king) & pieces(enemy, Pawn) & live) != 0 ||
+-                (attacks::knight(king) & pieces(enemy, Knight) & live) != 0 ||
+-                (attacks::king(king) & pieces(enemy, King) & live) != 0;
++                (++see_filter_diagnostics.pawn_tests, (attacks::pawn(stm, king) & pieces(enemy, Pawn) & live) != 0) ||
++                (++see_filter_diagnostics.knight_tests, (attacks::knight(king) & pieces(enemy, Knight) & live) != 0) ||
++                (++see_filter_diagnostics.king_tests, (attacks::king(king) & pieces(enemy, King) & live) != 0);
++            ++see_filter_diagnostics.empty_bishop_queries;
++            ++see_filter_diagnostics.empty_rook_queries;
+             Bitboard pinners =
+                 (attacks::bishop(king, 0) & ((pieces(enemy, Bishop) & live) | queens)) |
+                 (attacks::rook(king, 0) & ((pieces(enemy, Rook) & live) | queens));
++            see_filter_diagnostics.aligned_sliders += static_cast<std::uint64_t>(popcount(pinners));
+             Bitboard forbidden = 0;
+             while (!checked && pinners != 0) {
++                ++see_filter_diagnostics.between_classifications;
+                 const int pinner = pop_lsb(pinners);
+                 const Bitboard blockers = attacks::between(king, pinner) & occupancy;
+                 if (blockers == 0) checked = true;
+                 else if (!more_than_one(blockers)) forbidden |= blockers;
+             }
+             stm_attackers = checked ? king_attackers : stm_attackers & ~forbidden;
++        }
++        see_filter_diagnostics.surviving_origins += static_cast<std::uint64_t>(popcount(stm_attackers & ~pieces(stm, King)));
++        if (see_filter_diagnostics.verify_masks) {
++            Bitboard reference_attackers = filter_input;
++            Bitboard reference_candidates = reference_attackers & ~pieces(stm, King);
++            const Bitboard reference_removed = ~occupancy | square_bb(to);
++            while (reference_candidates != 0) {
++                const int origin = pop_lsb(reference_candidates);
++                ++see_filter_diagnostics.verification_shadow_queries;
++                if (square_attacked_with_occupancy(king_square(stm), opposite(stm),
++                                                  occupancy ^ square_bb(origin), reference_removed)) {
++                    reference_attackers &= ~square_bb(origin);
++                }
++            }
++            ++see_filter_diagnostics.mask_states_verified;
++            if (reference_attackers != stm_attackers) {
++                ++see_filter_diagnostics.mask_mismatches;
++                std::fprintf(stderr, "SEE_FILTER_MASK_MISMATCH target=%d side=%d\n", to, static_cast<int>(stm));
++                std::abort();
++            }
+         }
+         if (stm_attackers == 0) break;
+         result ^= 1;

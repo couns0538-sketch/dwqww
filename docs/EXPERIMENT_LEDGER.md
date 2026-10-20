@@ -1,6 +1,6 @@
 # Experiment ledger
 
-The authoritative [machine ledger](../validation/EXPERIMENTS.json) contains 95 records, preserving all 83 earlier IDs, exact inputs, hashes, settings, failures and evidence links. This is the concise reading index as of 2026-10-20.
+The authoritative [machine ledger](../validation/EXPERIMENTS.json) contains 98 records, preserving all 83 earlier IDs, exact inputs, hashes, settings, failures and evidence links. This is the concise reading index as of 2026-10-20.
 
 | Experiment | Observed result | Acceptance scope |
 | --- | --- | --- |
@@ -93,3 +93,11 @@ controls correct nine more baseline errors; two promotion limitations are retain
 as known failures. Linux/Windows bench signatures are 385792/382424, with no
 NPS/Elo acceptance. Source, binaries, commands and raw logs are retained.
 [Experiment](../validation/pin-aware-see-20261020/HYPOTHESIS.md).
+
+6.4.16 (`553caef`) applies the equivalent dynamic SEE mask. All 316 API outputs
+and eight actual benchmark-position scores/moves/PVs match15 exactly,385792
+nodes. Occupied slider queries742109 are replaced by474626 empty-board lookups
+and49015 path classifications; no speed claim. Release9/ASan9 and8Wine/1151
+artifact checks pass; TSan is pending. The unlaunched15strength package/pool
+is preserved, and a separate fresh16versus14 package is pending final gates.
+[Source and counter proof](../validation/pin-see-filter-cost-20261020/README.md).

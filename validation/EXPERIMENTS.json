@@ -1,9 +1,9 @@
 {
   "schema_version": 1,
-  "updated_utc": "2026-10-20T19:12:23.833678+00:00",
+  "updated_utc": "2026-10-20T19:29:57.042083+00:00",
   "project": "Forge",
   "target": "Native Windows x64 on Ryzen7 9850X3D",
-  "scope": "Accepted integration356e863 retained; isolated6.4.15 source8d303e4 passed fullfinitecorrectness with prioroperationalanomalies unresolved. Priorvalidcappedmatches inconclusive, TTmatch invalidbaselineforfeit. No accepted Elo gain.",
+  "scope": "Accepted integration356e863 retained; isolated15allfinitegatespassed,16exactmaskrefinement553caef passedRelease/ASan/Windowsgates withTSanpending. Fresh16vs14strengthpackageunlaunched. No accepted Elo gain.",
   "historical_ledger": "validation/release-6.0.0/EXPERIMENTS.md",
   "accepted_development": {
     "branch": "forge/6.4-hourly-20261019",
@@ -81,7 +81,7 @@
     "active_strength_run_id": null,
     "newer_6413_strength_status": "All finitecorrectness gates pass; no measuredspeed/Elo. Not demonstrated to repair hostedforfeit.",
     "newer_6414_strength_status": "Finite27CTest/21TTAPI/8activeUCI/8Wine/914artifactchecks pass; one originalbarebench deadline unresolved. No NPS/Elo acceptance.",
-    "pending_correctness_candidate_id": null,
+    "pending_correctness_candidate_id": "forge6416-pin-mask-see-20261020",
     "causal_forfeit_diagnostic": "Singlecoldwarm replay completed51searches; final24.888/32.140ms versusoriginal108.696ms. Originalstallnotreproduced,causeunresolved.",
     "newer_6415_strength_status": "All27CTest/8activeUCI/8Wine/929artifactchecks pass; no NPS/Elo. Prioroperationalanomalies and inheritedpromotionlimitation retained."
   },
@@ -6450,6 +6450,72 @@
         "windows": 382424
       },
       "windows_candidate_zip_sha256": "1eb3a128e4e905921e0440482076b0fd47bf0194e08a91eb099efe7fbce5df42"
+    },
+    {
+      "id": "forge6415-vs6414-hosted-strength-preparation-20261020",
+      "date": "2026-10-20",
+      "baseline_sha": "21538ec5416c909fc98a08688242a0b3b9710b25",
+      "candidate_sha": "8d303e4ca0428e9750bbf3e2663c64d9fafbd1ad",
+      "status": "prepared_frozen_unlaunched_superseded_before_outcomes",
+      "hypothesis": "Measure pin-aware SEE at equal wall clocks; sourcegatespassed, newhostreadinessrequired.",
+      "protocol": "0/+10SPRT,10+0.1,128pairs,serialT1Hash32OwnBookfalseMoveOverhead10,12000s emergencyinvalidates.",
+      "evidence": "validation/hosted-pin-see-strength-20261020/preparation-verification.json",
+      "tests": "51runner+8archive, fullfreshopening/sourcechecks passed.",
+      "games": 0,
+      "valid_strength_evidence": false,
+      "decision": "Neverlaunched. Preservedfrozenpackage and132unusedreservedopenings; rootselected equivalent16refinement before anystrengthoutcomes. NoElo claim."
+    },
+    {
+      "id": "forge6416-pin-mask-see-20261020",
+      "date": "2026-10-20",
+      "baseline_sha": "8d303e4ca0428e9750bbf3e2663c64d9fafbd1ad",
+      "candidate_sha": "553caef144ae2e1b696ba35d7a0eb1a50a03fde9",
+      "hypothesis": "One dynamic forbidden-origin mask preserves pin-aware SEE while reducing repeated attack-query work.",
+      "implementation": "Liveenemy non-slidercheckor empty sliderbetweenray rejectsallnonkings; singletonblockers forbidtheirorigin; targetoccupied andghostexcluded; kingbranchunchanged.",
+      "status": "release_asan_windows_passed_tsan_in_progress",
+      "evidence": [
+        "validation/pin-see-filter-cost-20261020/",
+        "validation/pin-mask-see-20261020/"
+      ],
+      "correctness": "Prototype316APIbyteexact/6320thresholdanswers;3614shadowmasks no mismatch;8actualsearchscores/moves/PVs/nodesexact385792. ProductionRelease9/ASan9;8Wine/1151artifact passed.",
+      "operation_counts": {
+        "old_full_king_queries": 371702,
+        "old_occupied_slider_queries": 742109,
+        "new_empty_board_slider_queries": 474626,
+        "new_between_classifications": 49015
+      },
+      "nps_difference": null,
+      "elo_estimate": null,
+      "strength_games": 0,
+      "valid_strength_evidence": false,
+      "decision": "Isolatedcandidate, fullTSangatespending. Workcountsnotruntimebenefit; no strengthacceptance."
+    },
+    {
+      "id": "forge6416-vs6414-hosted-strength-20261020",
+      "date": "2026-10-20",
+      "baseline_sha": "21538ec5416c909fc98a08688242a0b3b9710b25",
+      "candidate_sha": "553caef144ae2e1b696ba35d7a0eb1a50a03fde9",
+      "status": "prepared_unlaunched_current_source_gates_pending",
+      "hypothesis": "Measurecombined pin-correctness andequivalentfilterimplementation vs14 at equal10+0.1. ComponentElo effectsnotisolated.",
+      "evidence": "validation/hosted-pin-mask-strength-20261020/preparation-verification.json",
+      "protocol": {
+        "elo0": 0,
+        "elo1": 10,
+        "alpha": 0.05,
+        "beta": 0.05,
+        "pairs": 128,
+        "time_control": "10+0.1",
+        "concurrency": 1,
+        "threads": 1,
+        "hash_mb": 32,
+        "move_overhead_ms": 10,
+        "ownbook": false,
+        "emergency_seconds": 12000
+      },
+      "tests": "53runner+8archive andindependentfreshopening checks passed; source16gatespending.",
+      "games": 0,
+      "valid_strength_evidence": false,
+      "decision": "Requireallcurrent16proofs/rootreviewandstrictnewhostreadinessgates. Prioranomaliesunresolved. No launches/retries/pooling orstrengthclaims."
     }
   ],
   "evidence_archives": [

@@ -1,0 +1,136 @@
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index 843a017..b81e6f7 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -1,5 +1,5 @@
+ cmake_minimum_required(VERSION 3.16)
+-project(ChessEngineForge VERSION 6.4.14 LANGUAGES CXX)
++project(ChessEngineForge VERSION 6.4.16 LANGUAGES CXX)
+ find_package(Threads REQUIRED)
+ 
+ option(FORGE_ENABLE_SANITIZERS "Enable AddressSanitizer and UndefinedBehaviorSanitizer" OFF)
+diff --git a/src/board.cpp b/src/board.cpp
+index a555a9f..7bf0f20 100644
+--- a/src/board.cpp
++++ b/src/board.cpp
+@@ -858,7 +858,32 @@ bool Board::see_ge(const Move& move, int threshold) const {
+     while (true) {
+         stm = opposite(stm);
+         attackers &= occupancy;
+-        const Bitboard stm_attackers = attackers & occupied(stm);
++        Bitboard stm_attackers = attackers & occupied(stm);
++        // Every candidate only removes its own origin; the target stays occupied.
++        // Existing checks reject every non-king; singleton ray blockers identify
++        // exactly the origins whose departure would expose a live enemy slider.
++        const Bitboard king_attackers = stm_attackers & pieces(stm, King);
++        if ((stm_attackers & ~king_attackers) != 0) {
++            const Color enemy = opposite(stm);
++            const int king = king_square(stm);
++            const Bitboard live = occupancy & ~square_bb(to);
++            const Bitboard queens = pieces(enemy, Queen) & live;
++            bool checked =
++                (attacks::pawn(stm, king) & pieces(enemy, Pawn) & live) != 0 ||
++                (attacks::knight(king) & pieces(enemy, Knight) & live) != 0 ||
++                (attacks::king(king) & pieces(enemy, King) & live) != 0;
++            Bitboard pinners =
++                (attacks::bishop(king, 0) & ((pieces(enemy, Bishop) & live) | queens)) |
++                (attacks::rook(king, 0) & ((pieces(enemy, Rook) & live) | queens));
++            Bitboard forbidden = 0;
++            while (!checked && pinners != 0) {
++                const int pinner = pop_lsb(pinners);
++                const Bitboard blockers = attacks::between(king, pinner) & occupancy;
++                if (blockers == 0) checked = true;
++                else if (!more_than_one(blockers)) forbidden |= blockers;
++            }
++            stm_attackers = checked ? king_attackers : stm_attackers & ~forbidden;
++        }
+         if (stm_attackers == 0) break;
+         result ^= 1;
+         Bitboard bb = 0;
+diff --git a/src/uci.cpp b/src/uci.cpp
+index d4ba01f..fc136d7 100644
+--- a/src/uci.cpp
++++ b/src/uci.cpp
+@@ -160,7 +160,7 @@ int main() {
+         input >> command;
+         if (command == "uci") {
+             const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex());
+-            std::cout << "id name Chess Engine Forge 6.4.14 candidate\n"
++            std::cout << "id name Chess Engine Forge 6.4.16 candidate\n"
+                          "id author OpenAI\n"
+                          "option name Hash type spin default 32 min 1 max 2048\n"
+                          "option name Threads type spin default 1 min 1 max 256\n"
+diff --git a/tests/tests.cpp b/tests/tests.cpp
+index 330155b..6f1b824 100644
+--- a/tests/tests.cpp
++++ b/tests/tests.cpp
+@@ -326,6 +326,61 @@ void test_static_exchange() {
+           "quiet move into a pawn attack loses the piece");
+ }
+ 
++void test_pinned_static_exchange() {
++    struct ExchangeCase {
++        std::string_view name;
++        std::string_view fen;
++        std::string_view move;
++        int gain;
++    };
++    // Legal same-target capture oracles; mirror every case for the other side.
++    const std::array<ExchangeCase, 23> cases{{
++        {"absolute pin", "4k3/4n3/8/3p4/8/8/8/3QR1K1 w - - 0 1", "d1d5", 100},
++        {"unpinned defender", "4k3/4n3/8/3p4/8/8/8/3Q2K1 w - - 0 1", "d1d5", -800},
++        {"capture along pin", "4k3/4r3/8/8/8/8/4p3/3QR1K1 w - - 0 1", "d1e2", -300},
++        {"legal king recapture", "8/8/4k3/3p4/8/8/8/3Q2K1 w - - 0 1", "d1d5", -800},
++        {"protected king destination", "8/8/4k3/3p4/8/8/6B1/3Q2K1 w - - 0 1", "d1d5", 100},
++        {"captured rook ghost", "k7/8/8/8/8/2Np4/4r3/3QK3 w - - 0 1", "d1e2", -300},
++        {"new orthogonal pin", "k3r3/8/8/8/3p4/4b3/4N3/3QK3 w - - 0 1", "d1d4", -800},
++        {"diagonal pin", "7k/6n1/8/5p2/8/8/8/B4Q1K w - - 0 1", "f1f5", 100},
++        {"capture along diagonal pin", "7k/8/5b2/8/3p4/8/8/B2Q3K w - - 0 1", "d1d4", -500},
++        {"departed pinner", "4k3/8/8/8/8/4n3/8/3bR1K1 w - - 0 1", "e1d1", -200},
++        {"second same-value attacker legal", "4k3/8/5n2/3p4/8/4n3/8/3QR1K1 w - - 0 1", "d1d5", -800},
++        {"en passant unrecaptured", "7k/8/8/3pP3/8/8/8/7K w - d6 0 1", "e5d6", 100},
++        {"en passant rook recapture", "3r3k/8/8/3pP3/8/8/8/7K w - d6 0 1", "e5d6", 0},
++        {"capture queen promotion", "r6k/1P6/8/8/8/8/8/7K w - - 0 1", "b7a8q", 1300},
++        {"quiet queen promotion", "1r5k/P7/8/8/8/8/8/7K w - - 0 1", "a7a8q", -100},
++        {"capture rook promotion", "r6k/1P6/8/8/8/8/8/7K w - - 0 1", "b7a8r", 900},
++        {"quiet rook promotion", "1r5k/P7/8/8/8/8/8/7K w - - 0 1", "a7a8r", -100},
++        {"capture bishop promotion", "r6k/1P6/8/8/8/8/8/7K w - - 0 1", "b7a8b", 700},
++        {"quiet bishop promotion", "1r5k/P7/8/8/8/8/8/7K w - - 0 1", "a7a8b", -100},
++        {"capture knight promotion", "r6k/1P6/8/8/8/8/8/7K w - - 0 1", "b7a8n", 700},
++        {"quiet knight promotion", "1r5k/P7/8/8/8/8/8/7K w - - 0 1", "a7a8n", -100},
++        {"captured bishop ghost", "k7/8/8/8/8/2p2N2/3b4/3QK3 w - - 0 1", "d1d2", -500},
++        {"new diagonal pin", "b7/7k/8/8/3Q1p2/5r2/6N1/7K w - - 0 1", "d4f4", -800},
++    }};
++    for (const auto& item : cases) {
++        for (const bool mirrored : {false, true}) {
++            forge::Board board;
++            check(board.set_fen(mirrored ? mirror_fen(item.fen) : std::string(item.fen)), item.name);
++            std::string text(item.move);
++            if (mirrored) {
++                text[1] = static_cast<char>('9' - text[1] + '0');
++                text[3] = static_cast<char>('9' - text[3] + '0');
++            }
++            const auto move = board.parse_uci(text);
++            check(move.has_value(), item.name);
++            if (!move) continue;
++            const std::string before = board.fen();
++            const auto key = board.key();
++            check(board.static_exchange(*move) == item.gain, item.name);
++            check(board.see_ge(*move, item.gain - 1) && board.see_ge(*move, item.gain) &&
++                  !board.see_ge(*move, item.gain + 1), item.name);
++            check(board.fen() == before && board.key() == key, "SEE preserves board state");
++        }
++    }
++}
++
+ void test_evaluation() {
+     forge::Board board;
+     check(forge::Searcher::evaluate(board) > 0 && forge::Searcher::evaluate(board) < 40,
+@@ -756,6 +811,7 @@ int main() {
+     test_move_generation();
+     test_repetition_and_null_moves();
+     test_static_exchange();
++    test_pinned_static_exchange();
+     test_evaluation();
+     test_transposition_table();
+     test_transposition_tag_independence();
