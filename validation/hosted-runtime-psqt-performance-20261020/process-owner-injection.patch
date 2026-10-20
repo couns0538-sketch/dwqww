@@ -1,0 +1,35 @@
+--- old-de13/owned_process.py
++++ new/owned_process.py
+@@ -109,7 +109,8 @@
+                 started=time.monotonic()
+                 process=subprocess.Popen(row['command'],stdin=source,stdout=stdout,stderr=stderr,
+                     start_new_session=True,preexec_fn=lambda:pin_cpu(cpu),env=dict(os.environ,PYTHONDONTWRITEBYTECODE='1'))
+-                owner=_Wait4Owner(process);row['pid']=process.pid
++                row['pid']=process.pid
++                owner=_Wait4Owner(process)
+                 try:owner.wait(timeout=timeout)
+                 except subprocess.TimeoutExpired:row['timed_out']=True
+             except BaseException as exc:
+@@ -133,7 +134,7 @@
+                 save(out/'status.json',row)
+                 if process is not None and (row['timed_out'] or process.returncode!=0 or not row['owned_group_empty_before_verdict']):
+                     row['cleanup_attempted']=True
+-                    try:stop_group(owner)
++                    try:stop_group(owner if owner is not None else process)
+                     except BaseException as exc:row['cleanup_error']=repr(exc)
+                 stdout.flush();stderr.flush()
+                 row.update(returncode=process.returncode if process is not None else None,
+@@ -155,6 +156,13 @@
+             if error is None:error=exc
+         row['affinity_after_restore']=sorted(os.sched_getaffinity(0))
+         row['total_elapsed_seconds']=time.monotonic()-overall_started
++        row['cpu_observation_status']='complete_exact_child_wait4' if owner is not None and owner.usage is not None else 'unavailable_no_exact_wait4_usage'
++        # This describes process observations only, never canonical bench acceptance.
++        row['process_observations_valid']=(error is None and owner is not None and owner.usage is not None
++            and not row['timed_out'] and row.get('returncode')==0
++            and row.get('owned_group_empty_before_verdict') is True
++            and row.get('owned_group_empty_after_cleanup') is True
++            and not row.get('cleanup_error') and not row.get('affinity_restore_error'))
+         save(out/'status.json',row)
+     if error is not None:raise error
+     return row

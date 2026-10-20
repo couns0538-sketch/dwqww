@@ -1,0 +1,84 @@
+--- validation/hosted-runtime-psqt-performance-20261020/process-before-write-failure-helper.py
++++ .github/hosted-runtime-psqt-performance/owned_process.py
+@@ -118,37 +118,50 @@
+             finally:
+                 if owner is not None:observed=owner.completed_monotonic or owner.timeout_observed_monotonic or observed
+                 if observed is None:observed=time.monotonic()
+-                stdout.flush();stderr.flush()
+-                row.update(returncode_before_verdict=process.returncode if process is not None else None,
+-                    wait_status_before_verdict=owner.status if owner is not None else None,
+-                    owned_group_empty_before_verdict=_owned_group_empty(process) if process is not None else None,
+-                    wall_seconds_before_verdict=observed-started if started is not None else None,
+-                    wall_stop_reason='wait4_leader_observed' if owner is not None and owner.completed_monotonic is not None else 'timeout_observed' if row['timed_out'] else 'launch_or_observation_error',
+-                    stdout_sha256_before_verdict=sha(stdout_path),stderr_sha256_before_verdict=sha(stderr_path))
+-                if owner is not None and owner.usage is not None:
+-                    row.update(user_seconds_before_verdict=owner.usage.ru_utime,
+-                        system_seconds_before_verdict=owner.usage.ru_stime,
+-                        cpu_seconds_before_verdict=owner.usage.ru_utime+owner.usage.ru_stime)
+-                else:row.update(user_seconds_before_verdict=None,system_seconds_before_verdict=None,cpu_seconds_before_verdict=None)
+-                save(out/'status-before-verdict.json',row)
+-                save(out/'status.json',row)
+-                if process is not None and (row['timed_out'] or process.returncode!=0 or not row['owned_group_empty_before_verdict']):
+-                    row['cleanup_attempted']=True
+-                    try:stop_group(owner if owner is not None else process)
+-                    except BaseException as exc:row['cleanup_error']=repr(exc)
+-                stdout.flush();stderr.flush()
+-                row.update(returncode=process.returncode if process is not None else None,
+-                    returncode_after_cleanup=process.returncode if process is not None else None,
+-                    owned_group_empty_after_cleanup=_owned_group_empty(process) if process is not None else None,
+-                    wall_seconds=row['wall_seconds_before_verdict'],wall_seconds_after_cleanup=time.monotonic()-started if started is not None else None,
+-                    elapsed_after_cleanup=time.monotonic()-started if started is not None else None,
+-                    stdout_sha256_after_cleanup=sha(stdout_path),stderr_sha256_after_cleanup=sha(stderr_path),
+-                    stdout_sha256=sha(stdout_path),stderr_sha256=sha(stderr_path),
+-                    wait_status=owner.status if owner is not None else None)
+-                if owner is not None and owner.usage is not None:
+-                    row.update(user_seconds=owner.usage.ru_utime,system_seconds=owner.usage.ru_stime,
+-                        cpu_seconds=owner.usage.ru_utime+owner.usage.ru_stime)
+-                else:row.update(user_seconds=None,system_seconds=None,cpu_seconds=None)
++                # Observation/persistence is fallible. Cleanup belongs in its own
++                # finally so disk/hash errors cannot bypass owned-group teardown.
++                try:
++                    row.update(returncode_before_verdict=process.returncode if process is not None else None,
++                        wait_status_before_verdict=owner.status if owner is not None else None,
++                        owned_group_empty_before_verdict=_owned_group_empty(process) if process is not None else None,
++                        wall_seconds_before_verdict=observed-started if started is not None else None,
++                        wall_stop_reason='wait4_leader_observed' if owner is not None and owner.completed_monotonic is not None else 'timeout_observed' if row['timed_out'] else 'launch_or_observation_error')
++                    stdout.flush();stderr.flush()
++                    row.update(stdout_sha256_before_verdict=sha(stdout_path),stderr_sha256_before_verdict=sha(stderr_path))
++                    if owner is not None and owner.usage is not None:
++                        row.update(user_seconds_before_verdict=owner.usage.ru_utime,
++                            system_seconds_before_verdict=owner.usage.ru_stime,
++                            cpu_seconds_before_verdict=owner.usage.ru_utime+owner.usage.ru_stime)
++                    else:row.update(user_seconds_before_verdict=None,system_seconds_before_verdict=None,cpu_seconds_before_verdict=None)
++                    save(out/'status-before-verdict.json',row)
++                    save(out/'status.json',row)
++                except BaseException as exc:
++                    row['observation_error']=repr(exc)
++                    if error is None:error=exc;row['error']=repr(exc)
++                finally:
++                    if process is not None and (error is not None or row['timed_out'] or process.returncode!=0 or row.get('owned_group_empty_before_verdict') is not True):
++                        row['cleanup_attempted']=True
++                        try:stop_group(owner if owner is not None else process)
++                        except BaseException as exc:row['cleanup_error']=repr(exc)
++                    # Save process facts before more fallible stream observations.
++                    row.update(returncode=process.returncode if process is not None else None,
++                        returncode_after_cleanup=process.returncode if process is not None else None,
++                        owned_group_empty_after_cleanup=_owned_group_empty(process) if process is not None else None,
++                        wall_seconds=observed-started if started is not None else None,
++                        wall_seconds_after_cleanup=time.monotonic()-started if started is not None else None,
++                        elapsed_after_cleanup=time.monotonic()-started if started is not None else None,
++                        wait_status=owner.status if owner is not None else None)
++                    if owner is not None and owner.usage is not None:
++                        row.update(user_seconds=owner.usage.ru_utime,system_seconds=owner.usage.ru_stime,
++                            cpu_seconds=owner.usage.ru_utime+owner.usage.ru_stime)
++                    else:row.update(user_seconds=None,system_seconds=None,cpu_seconds=None)
++                    try:
++                        stdout.flush();stderr.flush()
++                        row.update(stdout_sha256_after_cleanup=sha(stdout_path),stderr_sha256_after_cleanup=sha(stderr_path),
++                            stdout_sha256=sha(stdout_path),stderr_sha256=sha(stderr_path))
++                    except BaseException as exc:
++                        row['final_observation_error']=repr(exc)
++                        if error is None:error=exc;row['error']=repr(exc)
+     finally:
+         try:os.sched_setaffinity(0,original_affinity)
+         except BaseException as exc:

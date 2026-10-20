@@ -1,0 +1,46 @@
+test_draft_intentionally_blocked_before_any_child (test_runner.Integrity.test_draft_intentionally_blocked_before_any_child) ... ok
+test_final_freeze_catches_bytes_mode_missing_and_symlink (test_runner.Integrity.test_final_freeze_catches_bytes_mode_missing_and_symlink) ... ok
+test_metadata_only_fixture_requires_all_fullproof_bindings (test_runner.Integrity.test_metadata_only_fixture_requires_all_fullproof_bindings) ... ok
+test_missing_or_mutated_proof_bytes_reject (test_runner.Integrity.test_missing_or_mutated_proof_bytes_reject) ... ok
+test_original_capture_proofs_rehash_unchanged (test_runner.Integrity.test_original_capture_proofs_rehash_unchanged) ... ok
+test_aa_failure_stops_exactly_after64_no_ab (test_runner.Runner.test_aa_failure_stops_exactly_after64_no_ab) ... ok
+test_actual_capture_candidate_paths_cannot_use_baseline (test_runner.Runner.test_actual_capture_candidate_paths_cannot_use_baseline) ... FAIL
+test_actual_capture_declared_binary_hash_cannot_change (test_runner.Runner.test_actual_capture_declared_binary_hash_cannot_change) ... FAIL
+test_actual_original_five_rows_and_process_facts_both_sources (test_runner.Runner.test_actual_original_five_rows_and_process_facts_both_sources) ... ok
+test_aggregate_deadline_before_any_process (test_runner.Runner.test_aggregate_deadline_before_any_process) ... ok
+test_complete188samples_and_correct_roles_warmup_excluded (test_runner.Runner.test_complete188samples_and_correct_roles_warmup_excluded) ... ok
+test_derived_crlf_actual_five_rows_remain_canonical (test_runner.Runner.test_derived_crlf_actual_five_rows_remain_canonical) ... ok
+test_final_sample_crossing_aggregate_deadline_invalidates (test_runner.Runner.test_final_sample_crossing_aggregate_deadline_invalidates) ... FAIL
+test_real_capture_facts_faults_rejected (test_runner.Runner.test_real_capture_facts_faults_rejected) ... ok
+
+======================================================================
+FAIL: test_actual_capture_candidate_paths_cannot_use_baseline (test_runner.Runner.test_actual_capture_candidate_paths_cannot_use_baseline)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/dwqww/validation/hosted-runtime-psqt-performance-20261020/test_runner.py", line 24, in test_actual_capture_candidate_paths_cannot_use_baseline
+    with self.assertRaisesRegex(ValueError,'provenance'):m.common.transport_paths(REPO,cfg,m.analysis)
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: ValueError not raised
+
+======================================================================
+FAIL: test_actual_capture_declared_binary_hash_cannot_change (test_runner.Runner.test_actual_capture_declared_binary_hash_cannot_change)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/dwqww/validation/hosted-runtime-psqt-performance-20261020/test_runner.py", line 27, in test_actual_capture_declared_binary_hash_cannot_change
+    with self.assertRaisesRegex(ValueError,'provenance'):m.common.transport_paths(REPO,cfg,m.analysis)
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: ValueError not raised
+
+======================================================================
+FAIL: test_final_sample_crossing_aggregate_deadline_invalidates (test_runner.Runner.test_final_sample_crossing_aggregate_deadline_invalidates)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/dwqww/validation/hosted-runtime-psqt-performance-20261020/test_runner.py", line 78, in test_final_sample_crossing_aggregate_deadline_invalidates
+    with mock.patch.object(m.time,'monotonic',side_effect=lambda:clock[0]),mock.patch.object(m.common,'save',side_effect=lambda p,v:None if Path(p).name=='summary.json' else save(p,v)),self.assertRaises(TimeoutError):
+                                                                                                                                                                                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: TimeoutError not raised
+
+----------------------------------------------------------------------
+Ran 14 tests in 1.028s
+
+FAILED (failures=3)

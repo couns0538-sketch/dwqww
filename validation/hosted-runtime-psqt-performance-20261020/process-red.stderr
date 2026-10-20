@@ -1,0 +1,64 @@
+test_affinity_is_singleton_in_child_and_parent_is_restored (test_owned_process.OwnedProcessObservations.test_affinity_is_singleton_in_child_and_parent_is_restored) ... FAIL
+test_leader_exit_orphan_cannot_look_clean_before_cleanup (test_owned_process.OwnedProcessObservations.test_leader_exit_orphan_cannot_look_clean_before_cleanup) ... FAIL
+test_nonzero_and_stderr_are_observed_before_verdict (test_owned_process.OwnedProcessObservations.test_nonzero_and_stderr_are_observed_before_verdict) ... FAIL
+test_spawn_error_still_preserves_command_streams_and_unknown_facts (test_owned_process.OwnedProcessObservations.test_spawn_error_still_preserves_command_streams_and_unknown_facts) ... FAIL
+test_success_preserves_raw_bytes_and_exact_wait4_cpu (test_owned_process.OwnedProcessObservations.test_success_preserves_raw_bytes_and_exact_wait4_cpu) ... FAIL
+test_timeout_preserves_unknown_before_and_killed_after (test_owned_process.OwnedProcessObservations.test_timeout_preserves_unknown_before_and_killed_after) ... FAIL
+
+======================================================================
+FAIL: test_affinity_is_singleton_in_child_and_parent_is_restored (test_owned_process.OwnedProcessObservations.test_affinity_is_singleton_in_child_and_parent_is_restored)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/dwqww/validation/hosted-runtime-psqt-performance-20261020/test_owned_process.py", line 54, in test_affinity_is_singleton_in_child_and_parent_is_restored
+    self.assertEqual(row.get('measurement_affinity'),[self.cpu])
+AssertionError: None != [0]
+
+======================================================================
+FAIL: test_leader_exit_orphan_cannot_look_clean_before_cleanup (test_owned_process.OwnedProcessObservations.test_leader_exit_orphan_cannot_look_clean_before_cleanup)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/dwqww/validation/hosted-runtime-psqt-performance-20261020/test_owned_process.py", line 47, in test_leader_exit_orphan_cannot_look_clean_before_cleanup
+    self.assertEqual(row['returncode'],0);self.assertFalse(row.get('owned_group_empty_before_verdict',True))
+                                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: True is not false
+
+======================================================================
+FAIL: test_nonzero_and_stderr_are_observed_before_verdict (test_owned_process.OwnedProcessObservations.test_nonzero_and_stderr_are_observed_before_verdict)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/dwqww/validation/hosted-runtime-psqt-performance-20261020/test_owned_process.py", line 38, in test_nonzero_and_stderr_are_observed_before_verdict
+    self.assertEqual(row['returncode'],7);self.assertEqual(row.get('returncode_before_verdict'),7)
+                                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: None != 7
+
+======================================================================
+FAIL: test_spawn_error_still_preserves_command_streams_and_unknown_facts (test_owned_process.OwnedProcessObservations.test_spawn_error_still_preserves_command_streams_and_unknown_facts)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/dwqww/validation/hosted-runtime-psqt-performance-20261020/test_owned_process.py", line 58, in test_spawn_error_still_preserves_command_streams_and_unknown_facts
+    self.assertTrue((self.out/'status-before-verdict.json').is_file());self.assertEqual((self.out/'stdin.txt').read_bytes(),b'input')
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: False is not true
+
+======================================================================
+FAIL: test_success_preserves_raw_bytes_and_exact_wait4_cpu (test_owned_process.OwnedProcessObservations.test_success_preserves_raw_bytes_and_exact_wait4_cpu)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/dwqww/validation/hosted-runtime-psqt-performance-20261020/test_owned_process.py", line 32, in test_success_preserves_raw_bytes_and_exact_wait4_cpu
+    self.assertEqual(row['returncode'],0);self.assertEqual(row.get('returncode_before_verdict'),0)
+                                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: None != 0
+
+======================================================================
+FAIL: test_timeout_preserves_unknown_before_and_killed_after (test_owned_process.OwnedProcessObservations.test_timeout_preserves_unknown_before_and_killed_after)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/dwqww/validation/hosted-runtime-psqt-performance-20261020/test_owned_process.py", line 43, in test_timeout_preserves_unknown_before_and_killed_after
+    self.assertNotEqual(row['returncode'],0);self.assertTrue(row.get('cleanup_attempted'))
+                                             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: None is not true
+
+----------------------------------------------------------------------
+Ran 6 tests in 0.619s
+
+FAILED (failures=6)

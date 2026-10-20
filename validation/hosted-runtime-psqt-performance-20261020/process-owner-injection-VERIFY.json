@@ -1,0 +1,74 @@
+{
+  "status": "8_OF_8_BENIGN_PROCESS_TESTS_PASS",
+  "new_helper_sha256": "729189b97aa0bcd724dcac108908d0a9fa5fb9f1607be64453229e159126ae95",
+  "new_test_sha256": "3ccd2ed587c8b530657e97a460db330eecd3301ab30db5ecc38fd8cd6ee55982",
+  "prior7_helper_sha256": "de13ad7c32832144a75f9c5080558f3c3e08952390eece6d70bd249058dcebea",
+  "prior7_test_sha256": "959d951d73b78bb030f0aca9d49ef4ceb5a36ce97bd26864687abc0acf224133",
+  "prior7_sources_preserved": [
+    "process-owned-helper-before-injection.py",
+    "process-owned-tests-before-injection.py"
+  ],
+  "red": {
+    "tests": 8,
+    "failures": 1,
+    "exit_code": 1,
+    "phase": "owner-injection-red",
+    "observed": "OwnerconstructionthrewafterPopen; oldstop_group(None)failedandgroupremainedactive. Testfinallyterminatedthatbenignchild."
+  },
+  "green": {
+    "tests": 8,
+    "failures": 0,
+    "exit_code": 0,
+    "phase": "owner-injection-green",
+    "observed": "PIDrecordedbeforeownerconstruction; fallbackcleanupusesactualPopenwhenownerisunavailable. Preverdictreturncodeunknown/finalkilledknown; groupemptyaftercleanup; exactwait4CPUunknown/explicitinvalid."
+  },
+  "exact_extracted_cleanup_functions_unchanged": true,
+  "normal_wall_cpu_measurement_code_unchanged": true,
+  "actual_five_engine_capture_policy": "No rerun; prioractualfivebenchcapturesremainboundtoexecutedoldde13helper. Newhelperfixcoversfaultonlyanddoesnotrelabeloriginalproducer/processprovenance.",
+  "commands": [
+    {
+      "environment_overrides": {
+        "PROCESS_TEST_PHASE": "owner-injection-red",
+        "PYTHONDONTWRITEBYTECODE": "1"
+      },
+      "argv": [
+        "python3",
+        "-B",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "validation/hosted-runtime-psqt-performance-20261020",
+        "-p",
+        "test_owned_process.py",
+        "-v"
+      ],
+      "stdout": "process-owner-injection-red.stdout",
+      "stderr": "process-owner-injection-red.stderr",
+      "exit_code": 1
+    },
+    {
+      "environment_overrides": {
+        "PROCESS_TEST_PHASE": "owner-injection-green",
+        "PYTHONDONTWRITEBYTECODE": "1"
+      },
+      "argv": [
+        "python3",
+        "-B",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "validation/hosted-runtime-psqt-performance-20261020",
+        "-p",
+        "test_owned_process.py",
+        "-v"
+      ],
+      "stdout": "process-owner-injection-green.stdout",
+      "stderr": "process-owner-injection-green.stderr",
+      "exit_code": 0
+    }
+  ],
+  "engines_builds_git_network_executions": 0,
+  "origin_json_update_required_by_parent": "ExistingPROCESS-HELPER-ORIGIN.jsonmodule_sha256stilldescribessavedpriorphase; parentmustrecordnewhelperSHAwithoutrelabelingoldcaptureexecutedhelper."
+}
