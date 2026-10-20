@@ -19,12 +19,14 @@ printf 'Source commit: %s\n' "$SOURCE_REV" > "$OUTPUT/identities.txt"
 printf 'Build platform: Linux %s\n' "$(uname -m)" >> "$OUTPUT/identities.txt"
 printf 'Compiler: %s\n' "$(g++ -dumpfullversion -dumpversion)" >> "$OUTPUT/identities.txt"
 sha256sum "$HERE/uci-clock-origin-scoped.patch" "$REPO/src/nnue_weights.inc" >> "$OUTPUT/identities.txt"
-(git -C "$REPO" archive "$SOURCE_REV") | tar -x -C "$TEMP/baseline"
+# Pin the unpatched source directly. Reverse-applying the staged patch is
+# fragile because the integrated source uses different comments and context.
+# Fetch into the disposable CI clone; never modify the release or work branch.
+PRE_FIX_REV="06c581895708a6eb9ff26b380d818f72f7bd9ebf"
+git -C "$REPO" fetch --no-tags --depth=1 origin "$PRE_FIX_REV"
+(git -C "$REPO" archive "$PRE_FIX_REV") | tar -x -C "$TEMP/baseline"
 (git -C "$REPO" archive "$SOURCE_REV") | tar -x -C "$TEMP/candidate"
-# Production candidate is precisely HEAD. Recover the pre-fix comparison
-# only inside an isolated snapshot, without touching original branch/source.
-(cd "$TEMP/baseline" && git apply -R --check "$HERE/uci-clock-origin-scoped.patch" && git apply -R "$HERE/uci-clock-origin-scoped.patch")
-printf 'Production candidate=HEAD; pre-fix baseline is patch-reversed disposable tree\n' >> "$OUTPUT/identities.txt"
+printf 'Production candidate: %s; exact unpatched baseline: %s\n' "$SOURCE_REV" "$PRE_FIX_REV" >> "$OUTPUT/identities.txt"
 logged() {
   local name="$1"; shift
   if "$@" > "$OUTPUT/$name.stdout" 2> "$OUTPUT/$name.stderr"; then
