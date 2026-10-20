@@ -1,0 +1,228 @@
+{
+  "status": "PASS_BOUNDED_API_GATE",
+  "started_utc": "2026-10-20T19:48:52.248885+00:00",
+  "phases": [
+    {
+      "label": "compile-candidate-board",
+      "command": [
+        "/usr/bin/c++",
+        "-march=x86-64-v3",
+        "-mtune=znver5",
+        "-fno-fast-math",
+        "-ffp-contract=off",
+        "-fno-lto",
+        "-O3",
+        "-DNDEBUG",
+        "-std=gnu++20",
+        "-Wall",
+        "-Wextra",
+        "-Wpedantic",
+        "-Wconversion",
+        "-Wshadow",
+        "-ffp-contract=off",
+        "-I/workspace/see-recapture-promotion-prototype-20261020/source-candidate/include",
+        "-c",
+        "/workspace/see-recapture-promotion-prototype-20261020/source-candidate/src/board.cpp",
+        "-o",
+        "/workspace/dwqww/validation/see-recapture-promotion-20261020/prototype/attempt1/board.cpp.o"
+      ],
+      "exit_code": 0,
+      "timeout_seconds": 90,
+      "engine_execution": false,
+      "elapsed_seconds_operational_only": 11.151386429002741,
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "label": "replace-candidate-board",
+      "command": [
+        "ar",
+        "r",
+        "/workspace/dwqww/validation/see-recapture-promotion-20261020/prototype/attempt1/candidate-libforge_core.a",
+        "/workspace/dwqww/validation/see-recapture-promotion-20261020/prototype/attempt1/board.cpp.o"
+      ],
+      "exit_code": 0,
+      "timeout_seconds": 60,
+      "engine_execution": false,
+      "elapsed_seconds_operational_only": 0.020328768994659185,
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "label": "ranlib-candidate",
+      "command": [
+        "ranlib",
+        "/workspace/dwqww/validation/see-recapture-promotion-20261020/prototype/attempt1/candidate-libforge_core.a"
+      ],
+      "exit_code": 0,
+      "timeout_seconds": 60,
+      "engine_execution": false,
+      "elapsed_seconds_operational_only": 0.04050874001404736,
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "label": "reference-members",
+      "command": [
+        "ar",
+        "t",
+        "/workspace/.cloud-setup/forge-pin-mask-release/libforge_core.a"
+      ],
+      "exit_code": 0,
+      "timeout_seconds": 60,
+      "engine_execution": false,
+      "elapsed_seconds_operational_only": 0.0062952989974291995,
+      "stdout_sha256": "3e43a82c29635f2d6aa7889b8fed7b6c34c2ce004ef86fb513af0e95586d0eb6",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "label": "compile-api-driver",
+      "command": [
+        "/usr/bin/c++",
+        "-march=x86-64-v3",
+        "-mtune=znver5",
+        "-fno-fast-math",
+        "-ffp-contract=off",
+        "-fno-lto",
+        "-O3",
+        "-DNDEBUG",
+        "-std=gnu++20",
+        "-Wall",
+        "-Wextra",
+        "-Wpedantic",
+        "-Wconversion",
+        "-Wshadow",
+        "-ffp-contract=off",
+        "-I/workspace/see-recapture-promotion-prototype-20261020/source-reference/include",
+        "-c",
+        "/workspace/dwqww/validation/see-recapture-promotion-20261020/prototype/api_driver.cpp",
+        "-o",
+        "/workspace/dwqww/validation/see-recapture-promotion-20261020/prototype/attempt1/api_driver.o"
+      ],
+      "exit_code": 0,
+      "timeout_seconds": 60,
+      "engine_execution": false,
+      "elapsed_seconds_operational_only": 16.827703254006337,
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "label": "link-api-reference",
+      "command": [
+        "/usr/bin/c++",
+        "-march=x86-64-v3",
+        "-mtune=znver5",
+        "-fno-fast-math",
+        "-ffp-contract=off",
+        "-fno-lto",
+        "-O3",
+        "-DNDEBUG",
+        "-std=gnu++20",
+        "-Wall",
+        "-Wextra",
+        "-Wpedantic",
+        "-Wconversion",
+        "-Wshadow",
+        "-ffp-contract=off",
+        "/workspace/dwqww/validation/see-recapture-promotion-20261020/prototype/attempt1/api_driver.o",
+        "/workspace/dwqww/validation/see-recapture-promotion-20261020/prototype/attempt1/reference-libforge_core.a",
+        "-pthread",
+        "-o",
+        "/workspace/dwqww/validation/see-recapture-promotion-20261020/prototype/attempt1/api-reference"
+      ],
+      "exit_code": 0,
+      "timeout_seconds": 60,
+      "engine_execution": false,
+      "elapsed_seconds_operational_only": 3.289419263994205,
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "label": "link-api-candidate",
+      "command": [
+        "/usr/bin/c++",
+        "-march=x86-64-v3",
+        "-mtune=znver5",
+        "-fno-fast-math",
+        "-ffp-contract=off",
+        "-fno-lto",
+        "-O3",
+        "-DNDEBUG",
+        "-std=gnu++20",
+        "-Wall",
+        "-Wextra",
+        "-Wpedantic",
+        "-Wconversion",
+        "-Wshadow",
+        "-ffp-contract=off",
+        "/workspace/dwqww/validation/see-recapture-promotion-20261020/prototype/attempt1/api_driver.o",
+        "/workspace/dwqww/validation/see-recapture-promotion-20261020/prototype/attempt1/candidate-libforge_core.a",
+        "-pthread",
+        "-o",
+        "/workspace/dwqww/validation/see-recapture-promotion-20261020/prototype/attempt1/api-candidate"
+      ],
+      "exit_code": 0,
+      "timeout_seconds": 60,
+      "engine_execution": false,
+      "elapsed_seconds_operational_only": 0.44086609000805765,
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "label": "api-reference",
+      "command": [
+        "/workspace/dwqww/validation/see-recapture-promotion-20261020/prototype/attempt1/api-reference",
+        "/workspace/dwqww/validation/see-recapture-promotion-20261020/prototype/inputs/all326.tsv",
+        "/workspace/dwqww/validation/see-recapture-promotion-20261020/prototype/inputs/adjacent-brackets.tsv"
+      ],
+      "exit_code": 0,
+      "timeout_seconds": 10,
+      "engine_execution": true,
+      "elapsed_seconds_operational_only": 0.28302478199475445,
+      "stdout_sha256": "8eded513b93fdac14f0d97b16310ddc4d9cae47f949cbe3fb851a001501cab8f",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "label": "api-candidate",
+      "command": [
+        "/workspace/dwqww/validation/see-recapture-promotion-20261020/prototype/attempt1/api-candidate",
+        "/workspace/dwqww/validation/see-recapture-promotion-20261020/prototype/inputs/all326.tsv",
+        "/workspace/dwqww/validation/see-recapture-promotion-20261020/prototype/inputs/adjacent-brackets.tsv"
+      ],
+      "exit_code": 0,
+      "timeout_seconds": 10,
+      "engine_execution": true,
+      "elapsed_seconds_operational_only": 0.18976166800712235,
+      "stdout_sha256": "07e1c78e7bb8d9f23c0eefda224999c4e11c14e92a1a6311bdd8d4c7f45b294d",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  ],
+  "engine_budget_seconds": 30.0,
+  "engine_seconds": 0.4727864500018768,
+  "source16_commit": "553caef144ae2e1b696ba35d7a0eb1a50a03fde9",
+  "performance_claim": null,
+  "strength_claim": null,
+  "original_core_sha256_before": "a7718ec0555715e45b3aa96789754047e03db3104748a0fe8e03404e8695c267",
+  "core_member_sha256": {
+    "reference": {
+      "bitboard.cpp.o": "a819f9ba4cc35cfcd1eeaa46ef8e2dfdd4e60fa96ce4becda41583cb2eef16d7",
+      "board.cpp.o": "383631dd6056fa1019263d6519731db6403f5119d50969954c5bb621bf58dce6",
+      "book.cpp.o": "3119b90d0aa950d0b4c0c37af2c869765bf473154b0d760b0ec359cb98d81707",
+      "eval.cpp.o": "694bcd8cdf3d68d2668bc3ec1e471015ef020091b7f76d9f4967e5b9239d013c",
+      "eval_params.cpp.o": "64fbb86cc5bce814a2434eb656d846c04b8e361b42c11af45cb7b004c2399358",
+      "nnue.cpp.o": "e8dfc576e6b42ffa4de5d4991d0f3ae7c3e9be7f5a818126c520dee386f6a967",
+      "search.cpp.o": "2303c740a019e09cf1918a262f03fc78585e4fe578ad3d347f40d4bbcaa5afe2"
+    },
+    "candidate": {
+      "bitboard.cpp.o": "a819f9ba4cc35cfcd1eeaa46ef8e2dfdd4e60fa96ce4becda41583cb2eef16d7",
+      "board.cpp.o": "da4111e46f5312423d6dbd8abe424c75c91ae838bb93e0f475dbdbe34c129de6",
+      "book.cpp.o": "3119b90d0aa950d0b4c0c37af2c869765bf473154b0d760b0ec359cb98d81707",
+      "eval.cpp.o": "694bcd8cdf3d68d2668bc3ec1e471015ef020091b7f76d9f4967e5b9239d013c",
+      "eval_params.cpp.o": "64fbb86cc5bce814a2434eb656d846c04b8e361b42c11af45cb7b004c2399358",
+      "nnue.cpp.o": "e8dfc576e6b42ffa4de5d4991d0f3ae7c3e9be7f5a818126c520dee386f6a967",
+      "search.cpp.o": "2303c740a019e09cf1918a262f03fc78585e4fe578ad3d347f40d4bbcaa5afe2"
+    }
+  },
+  "original_core_sha256_after": "a7718ec0555715e45b3aa96789754047e03db3104748a0fe8e03404e8695c267",
+  "completed_utc": "2026-10-20T19:49:24.838574+00:00"
+}

@@ -1,0 +1,49 @@
+{
+  "baseline_sha": "553caef144ae2e1b696ba35d7a0eb1a50a03fde9",
+  "test_sha256": "27f490648dde076c83224d2956c27e5145cbc0910ac2fff5c669e6aef7b69190",
+  "baseline_core_sha256": "a7718ec0555715e45b3aa96789754047e03db3104748a0fe8e03404e8695c267",
+  "steps": [
+    {
+      "label": "compile",
+      "command": [
+        "/usr/bin/c++",
+        "-march=x86-64-v3",
+        "-mtune=znver5",
+        "-fno-fast-math",
+        "-ffp-contract=off",
+        "-fno-lto",
+        "-O3",
+        "-DNDEBUG",
+        "-std=gnu++20",
+        "-I/workspace/.cloud-setup/forge-pin-mask-source/include",
+        "-c",
+        "/workspace/dwqww/validation/promotion-see-20261020/native/permanent-red-attempt1/tests.cpp",
+        "-o",
+        "/workspace/.cloud-setup/forge-promotion-parent-red/tests.o"
+      ],
+      "returncode": 0,
+      "elapsed_seconds": 16.890398153002025
+    },
+    {
+      "label": "link",
+      "command": [
+        "/usr/bin/c++",
+        "-fno-lto",
+        "/workspace/.cloud-setup/forge-promotion-parent-red/tests.o",
+        "/workspace/.cloud-setup/forge-pin-mask-release/libforge_core.a",
+        "-o",
+        "/workspace/.cloud-setup/forge-promotion-parent-red/forge_tests"
+      ],
+      "returncode": 0,
+      "elapsed_seconds": 0.39086481399135664
+    },
+    {
+      "label": "test",
+      "command": [
+        "/workspace/.cloud-setup/forge-promotion-parent-red/forge_tests"
+      ],
+      "returncode": 1,
+      "elapsed_seconds": 1.0769844769965857
+    }
+  ]
+}

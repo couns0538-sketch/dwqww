@@ -334,7 +334,7 @@ void test_pinned_static_exchange() {
         int gain;
     };
     // Legal same-target capture oracles; mirror every case for the other side.
-    const std::array<ExchangeCase, 23> cases{{
+    const std::array<ExchangeCase, 28> cases{{
         {"absolute pin", "4k3/4n3/8/3p4/8/8/8/3QR1K1 w - - 0 1", "d1d5", 100},
         {"unpinned defender", "4k3/4n3/8/3p4/8/8/8/3Q2K1 w - - 0 1", "d1d5", -800},
         {"capture along pin", "4k3/4r3/8/8/8/8/4p3/3QR1K1 w - - 0 1", "d1e2", -300},
@@ -358,6 +358,13 @@ void test_pinned_static_exchange() {
         {"quiet knight promotion", "1r5k/P7/8/8/8/8/8/7K w - - 0 1", "a7a8n", -100},
         {"captured bishop ghost", "k7/8/8/8/8/2p2N2/3b4/3QK3 w - - 0 1", "d1d2", -500},
         {"new diagonal pin", "b7/7k/8/8/3Q1p2/5r2/6N1/7K w - - 0 1", "d4f4", -800},
+        // Later recaptures can promote either side's pawn. SEE must account
+        // for that material before using its ordinary threshold shortcuts.
+        {"later promotion saves capture", "1r6/P1Q5/2n4k/8/8/8/8/7K w - - 0 1", "c7b8", 500},
+        {"enemy promotion poisons capture", "7k/8/8/8/8/7K/p2N4/1r6 w - - 0 1", "d2b1", -600},
+        {"pinned promoting recapturer", "k7/8/8/8/8/7K/p2N4/Rr6 w - - 0 1", "d2b1", 500},
+        {"promoted recapturer taken by king", "7k/8/8/8/8/8/p2N4/1rK5 w - - 0 1", "d2b1", 300},
+        {"promotion recapture changes victim", "7k/8/8/8/8/1Q5K/p7/1r6 w - - 0 1", "b3b1", -1200},
     }};
     for (const auto& item : cases) {
         for (const bool mirrored : {false, true}) {
@@ -374,6 +381,7 @@ void test_pinned_static_exchange() {
             const std::string before = board.fen();
             const auto key = board.key();
             check(board.static_exchange(*move) == item.gain, item.name);
+            check(board.see_ge(*move, 0) == (item.gain >= 0), item.name);
             check(board.see_ge(*move, item.gain - 1) && board.see_ge(*move, item.gain) &&
                   !board.see_ge(*move, item.gain + 1), item.name);
             check(board.fen() == before && board.key() == key, "SEE preserves board state");
