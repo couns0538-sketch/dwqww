@@ -1,5 +1,15 @@
 # Next experiments
 
+Active20sourcefc2391870b3bf2cd4d8fc20c7406ea6439c69c5e is now frozen and published:
+pawn attack-span fill, preserving19qualified gains. Prototype12Release/37320mask
+checks and95publictracepositions PASS. Root authorized ONE serial freshnativechain:
+Release12→bench321912+56parent19cold/warmsearches→ASan12→defaultTSan12→8activeUCI→
+originalsnapshot→independentfullaudit. It is running; no frozen20pass assertedyet.
+Do not duplicate any process or mutate frozen source. Windows20preparation is closed
+untilrootfullnativeclearance. New performance-only packet is explicitly disabled,
+with actual20native/Windows proofs and five-command captures still pending.
+
+
 1. Keep qualified19source61f5980 and its immutable evidence. The one performance
    run39510219605 completed and was independently audited: CPUthroughput+1.6084%
    (95%interval+1.2336..+1.9498%),wall+1.5990%(+1.2217..+1.9459%). All188normal
@@ -8,8 +18,7 @@
    commit0124dbd075b252552a27264996b72cf2ef800598,4.17MBrawZIP with1237payloads
    retained in original-result/. Latest accepted integration remains5101; the new
    source retains an unaccepted18search change, so do not merge its entire lineage
-   based only on this workload speed result. Next bounded source investigation is
-   being selected from actual remaining HCE/NNUE repeated work; no20patch yet.
+   based only on this workload speed result. Next bounded source is20pawn-span fill described above.
 2. Monitor the separate18vs17 equal10+0.1 SPRT run
    [39502109381](https://github.com/couns0538-sketch/dwqww/actions/runs/39502109381).
    Payload1203e13, baselineb5908f0 versusfc51e43. At22:44:08UTC its build/test step

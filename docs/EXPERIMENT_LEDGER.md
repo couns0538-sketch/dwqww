@@ -1,6 +1,6 @@
 # Experiment ledger
 
-The authoritative [machine ledger](../validation/EXPERIMENTS.json) contains 105 records, preserving all 83 earlier IDs, exact inputs, hashes, settings, failures and evidence links. This is the concise reading index as of 2026-10-20.
+The authoritative [machine ledger](../validation/EXPERIMENTS.json) contains 106 records, preserving all 83 earlier IDs, exact inputs, hashes, settings, failures and evidence links. This is the concise reading index as of 2026-10-20.
 
 | Experiment | Observed result | Acceptance scope |
 | --- | --- | --- |
@@ -316,3 +316,16 @@ SHA8971727a40556de34edd201123af8211cef15b341d9b0b352baa936de24bfcdf.
 Rootalso compared200actual frozen Git blobs; both hosted NNUEobjects identical.
 No Elo/nativeRyzen/Windows/Stockfish claim. Accepted5101unchanged;18SPRT running.
 [Audit](../validation/hosted-runtime-psqt-performance-20261020/final-audit/REPORT.md).
+
+20pawn-span-fill sourcefc2391870b3bf2cd4d8fc20c7406ea6439c69c5e frozen/published.
+Old span loop replaced by exact unsignedforwardfill8/16/32 using existing pawn
+attack mask. Source19baseline61f5980. Prototypefirst12Release/37320maskchecks PASS;
+final wording-onlyfixture compiled/directpassed against unchanged actualcore.
+One relocated link dependency-output path failed and is retained; corrected path
+links same object/core, no engine/sourcefault claim. Original table lookup shares
+its generator; independent oracles are oldpassedmaskloop and explicitrankwalk.
+Publiccached/hot/uncached/fulltrace95positions/61465integers match19; two normal
+compiles/two probes, allinputs unchanged. Frozen20onlychangesversionmetadata from
+finalprototype75. Native36/8active/56parity chain started after root sourcegate and
+explicit clearance; allresults pending. Windows+performance20are gated/disabled.
+[Prototype](../validation/pawn-span-fill-20261020/CHECKPOINT.json).

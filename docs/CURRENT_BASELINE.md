@@ -7,6 +7,19 @@ its unchanged native regression to356e863, preserving the TT and timed-only cloc
 repairs. Acceptance is for the finite book contract; no accepted equal-time Elo gain.
 [Integration receipt](../validation/accepted-ownbook-integration-20261020/INTEGRATION.json).
 
+Active next candidate **Forge6.4.20**, source
+`fc2391870b3bf2cd4d8fc20c7406ea6439c69c5e`, branch
+`forge/pawn-span-fill-20261020`, replaces a per-enemy-pawn outpost-span traversal
+with an unsigned8/16/32 directional fill of the existing attack mask. Prototype
+version19 passed12Release CTests,37320mask checks and95public cached/uncached/full
+trace positions (61465integers identical). Original first fixture and one relocated
+link-dependency-path failure are preserved; final label-only fixture passes.
+Frozen20 differs from final prototype only in CMake/UCI version strings.
+**Full frozen20native qualification is running; no20speed/Elo/Windows result yet.**
+[Source freeze](../validation/pawn-span-fill-native-20261020/ROOT-FROZEN-SOURCE-GATES.json).
+[Public trace evidence](../validation/pawn-span-fill-20261020/independent-review/PUBLIC-DIFFERENTIAL.md).
+Latest fully qualified workload-speed source remains19 below; accepted5101unchanged.
+
 New isolated performance candidate **Forge6.4.19** is frozen at
 `61f598056572dfade6994af8ad2e38817cd28aa3`, branch
 `forge/lazy-runtime-psqt-20261020`, remotely verified. It reuses classical PSQT
