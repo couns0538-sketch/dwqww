@@ -1,6 +1,7 @@
-Preparation only: the workflow has `on: []` and its job is disabled. Final root
-and independent review, authorization, and the enabled workflow hash remain
-pending. No performance experiment was launched while preparing this package.
+This frozen package permits one restricted first-attempt trigger push after the
+final enabled-metadata review. Root authorization and prior failed attempts are
+retained in validation/hosted-runtime-psqt-performance-20261020/. No performance
+result follows from READY metadata or workflow status.
 
 This compares source18 fc51e43 with exact-evaluation optimization19 61f5980 on
 one native GitHub Linux CPU. Fresh GCC14 builds use identical x86-64-v3/generic,
@@ -27,13 +28,14 @@ The actual18/19 five-command producer fixtures are copied without transformation
 and bound to original source/binary/process provenance. Derived CRLF/numerical
 unit fixtures are identified as derived. Root captures used the preserved de13
 helper. The future helper adds fault-only cleanup when ownership construction
-fails after Popen; it does not relabel or repeat the original captures.
+fails after Popen or evidence persistence raises; it does not relabel or repeat
+the original captures.
 
 Run offline checks with `python3 -B -m unittest discover -s
 validation/hosted-runtime-psqt-performance-20261020 -p 'test_*.py' -v`. Those checks
-use benign child processes and real captured benchmark bytes. One test
-intentionally asserts that the current draft is blocked; update that test as an
-explicit final-authorization transition if root later changes protocol status.
+use benign child processes and real captured benchmark bytes. The historical
+draft-only assertion is preserved under pre-enable-disabled; its READY successor
+checks the actual frozen protocol and a deliberately blocked metadata control.
 The fixture metadata-only READY case is synthetic and never verifies real gates.
 
 All raw stage/sample streams and facts are retained before verdict, frozen input

@@ -1,7 +1,10 @@
-# PREPARATION ONLY. Root/independent review and all proof bindings remain pending.
-# Prospective single trigger: one NEW forge/hosted-runtime-psqt-performance-20261020-* push.
-name: Calibrated native Linux runtime PSQT performance (DRAFT DISABLED)
-on: []
+# Restricted to one reviewed first-attempt push; retain failure evidence.
+# Final enabled metadata must pass independent review before the sole trigger.
+name: Calibrated native Linux runtime PSQT performance
+on:
+  push:
+    branches:
+      - 'forge/hosted-runtime-psqt-performance-20261020-*'
 permissions:
   contents: write
 concurrency:
@@ -9,7 +12,7 @@ concurrency:
   cancel-in-progress: false
 jobs:
   performance:
-    if: ${{ false }}
+    if: ${{ github.run_attempt == 1 }}
     runs-on: ubuntu-24.04
     timeout-minutes: 90
     env:

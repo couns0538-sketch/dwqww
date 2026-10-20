@@ -88,8 +88,10 @@ class Runner(unittest.TestCase):
                 m.run_experiment(CFG,'baseline-inert','candidate-inert',out,0,100.,report,sampler)
             self.assertEqual(len(calls),188);self.assertNotIn('gain_qualifies_before_final_rehash',report)
 class Integrity(unittest.TestCase):
-    def test_draft_intentionally_blocked_before_any_child(self):
-        with self.assertRaisesRegex(ValueError,'blocked'):m.common.require_ready(CFG)
+    def test_ready_metadata_and_explicit_blocked_control(self):
+        m.common.require_ready(CFG)
+        blocked=copy.deepcopy(CFG);blocked['status']='DRAFT_BLOCKED'
+        with self.assertRaisesRegex(ValueError,'blocked'):m.common.require_ready(blocked)
     def test_metadata_only_fixture_requires_all_fullproof_bindings(self):
         cfg=copy.deepcopy(CFG)
         cfg.update(status=m.common.READY,source_gates_status='PASSED',parity_review_status='PASSED',root_review_status='PASSED',independent_review_status='PASSED',workflow_status='FROZEN',workflow_sha256='1'*64,operational_qualification_status='authorized_for_one_fresh_host_calibration_attempt_with_prior_anomalies_unresolved')
