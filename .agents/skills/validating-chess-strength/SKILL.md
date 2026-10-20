@@ -27,6 +27,10 @@ Before launch, test readiness and acceptance parsers against byte-exact canonica
 
 Persist process observations before assertions: command/stdin, return code (or explicit unknown), stdout/stderr hashes and owned process-group observations. On failure or timeout retain distinct pre-verdict and post-cleanup observations, cleanup actions/errors and final return code/group state. A parser replay with an assumed exit code does not recover the original process status or rescue its failed experiment.
 
+Require an explicit source/build evidence set before readiness processes: actual Git archive identity and complete source inventory, compiler/configuration/flags, core and executable hashes, original build commands/streams/status and exact named CTest passes. Missing evidence fails closed; optional file globs cannot establish completeness. Keep byte-equivalent historical validation labeled with its genuine source revision; build the actual frozen revision when the protocol requires it. Include every consumed proof and build-evidence file in the final rehash, rather than checking them only at startup.
+
+Preserve executable permissions when copying native artifacts, and require executable access before probes. Inert artifact tests can verify mode preservation without running engines. Keep internal work deadlines below the outer job-step timeout to reserve bounded cleanup and evidence-finalization time; this headroom does not guarantee survival after infrastructure loss. Retain failure controls and actual process observations separately from later successful checks.
+
 One successful traced game does not establish clock reliability. VM scheduling and engine time management require separate diagnosis; last reported search time omits unfinished work. Use actual available CPU allocation and stop owned competing workloads.
 
 Pinned Fastchess `60d7a7a` sets `atomic::stop` at a native SPRT boundary. Other games can be interrupted, leaving a retained first game without its return game. Use **serial native SPRT** for this runner; fixed-size A/A may use concurrency 2. Do not trim an orphan to rescue acceptance.

@@ -121,3 +121,25 @@ dialect; preserve raw canonical positive fixtures and strict negative controls.
 Treat absent original exit/group observations as unknown even when an offline replay
 supplies0. Save observations before parser assertions and retain both stages across
 cleanup. These are workflow proofs, not engine strength or universal readiness.
+
+## Required build evidence and artifact modes (2026-10-20)
+
+The independent18 preparation review found optional source/build-evidence globs
+and proof files omitted from final rehash. Fourteen initial regression methods
+produced18 failing cases/subcases; mandatory evidence and final-freeze guards
+then passed. Review also found `copyfile` removed native executable permissions:
+two RED methods produced four failures, followed by mode-preserving copies and
+preflight executable checks. Final blocked phase2 passed96 offline methods; the
+enabled package passed94 applicable methods plus9 explicit missing-gate controls.
+The two old actual-DRAFT assertions remain preserved, with READY-state controls
+applied separately. No engine-strength inference follows from those unit tests.
+[Original RED/GREEN and closure](../../../validation/hosted-correction-history-strength-20261020/PHASE2-CLOSURE.md).
+[Independent enabled review](../../../validation/hosted-correction-history-strength-20261020/independent-review/FINAL-ENABLED-REVIEW.md).
+
+Application cases: reject a source declaration without its actual required archive,
+core/compiler/CTest evidence; invalidate a changed proof at final rehash even if
+its initial hash matched; retain genuine historical47 validation under47 rather
+than relabel it as a b590 build; reject a copied engine without execute permission
+before launching it. Reserve cleanup/finalization headroom inside the outer step
+bound, and preserve original failed stage facts. These are reusable operational
+lessons, not a guarantee of hosted success or evidence of Elo.
