@@ -2,8 +2,11 @@
 
 Applied isolated **6.4.16** source `553caef144ae2e1b696ba35d7a0eb1a50a03fde9`
 on `forge/pin-mask-see-20261020` replaces repeated SEE king queries with one
-dynamic forbidden-origin mask. Release9/9 and ASan/UBSan9/9 passed; TSan is
-running. Eight Wine checks, parent search-signature parity and 1151 artifact
+dynamic forbidden-origin mask. Release9/9 and ASan/UBSan9/9 passed; TSan passed
+8/9 tests, with an initial UCI handshake deadline in the OwnBook test before
+any book/search command. Cause remains unresolved; one timestamped diagnostic
+is pending, and the original failure stays preserved. Eight Wine checks,
+parent search-signature parity and 1151 artifact
 checks passed. The prototype's 316 API cases and eight actual search result
 traces match 6.4.15 exactly. Query-work reduction is measured; runtime/NPS/Elo
 is not. Current16 finite gates and the separate fresh strength package remain

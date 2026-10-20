@@ -98,6 +98,8 @@ NPS/Elo acceptance. Source, binaries, commands and raw logs are retained.
 and eight actual benchmark-position scores/moves/PVs match15 exactly,385792
 nodes. Occupied slider queries742109 are replaced by474626 empty-board lookups
 and49015 path classifications; no speed claim. Release9/ASan9 and8Wine/1151
-artifact checks pass; TSan is pending. The unlaunched15strength package/pool
+artifact checks pass. TSan8/9 passed, with OwnBook's initial UCI handshake deadline
+before any search; cause unresolved and one timestamped diagnostic pending.
+The unlaunched15strength package/pool
 is preserved, and a separate fresh16versus14 package is pending final gates.
 [Source and counter proof](../validation/pin-see-filter-cost-20261020/README.md).
