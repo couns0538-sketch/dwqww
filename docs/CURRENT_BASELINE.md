@@ -14,7 +14,8 @@ with residual increments under unchanged guards, weights and clamps. Actual-meth
 Release/ASan checks pass54/54 for both models; the new behavior differs17times
 from the parent. Fixed6cp residual fixtures learn6cp versus old3/4cp, but expanded
 64cp combined range and retained noisy history are risks. This is not a proven bug
-or Elo gain. Full10CTest/profile validation is running; fresh strength preparation
+or Elo gain. First-attempt Release10/10 and ASan/UBSan10/10 pass; TSan is running. Native
+bench11signature321912 is uncalibrated, with no NPS comparison. Fresh strength preparation
 is blocked until source gates and independent harness review. Preserve17below.
 [Experiment](../validation/correction-history-residual-20261020/RESULTS.md).
 

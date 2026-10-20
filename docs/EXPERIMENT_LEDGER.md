@@ -187,3 +187,12 @@ Full permanent54check regression is registered as10thCTest; finaltestguard avoid
 out-of-range slot access on fixture discovery failure. Astra production review has
 no remaining implementation blocker; root69payload/source/216check review PASS.
 Fullnative/Windows/strength results remain pending. [Evidence](../validation/correction-history-residual-20261020/RESULTS.md).
+
+
+6.4.18 fc51e43 first full Release10/10 and ASan/UBSan10/10 PASS. Exactpermanent
+testobject linked with frozen17core produces17/54 expectedbehavior differences,
+while candidate54/54 passes. Root independently verified both10CTest transcripts,
+source/testbeforeafter equality and16live executable/core hashes. One barebench11
+signature321912nodes,1738ms/185219NPS; timing is uncalibrated, no speed ratio or
+strength result. TSan is running; Windows and all match gates remain pending.
+[Native evidence](../validation/correction-history-native-20261020/ROOT-RELEASE-ASAN-PROOFS.json).
