@@ -1,0 +1,51 @@
+--- first-green/tests/runtime_psqt_tests.cpp
++++ final/tests/runtime_psqt_tests.cpp
+@@ -121,16 +121,21 @@
+ 
+     Board before=position("rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR w KQkq - 0 1"); const params::Table original=params::table;
+     struct Restore { params::Table saved; ~Restore(){params::table=saved;nnue::enabled=true;} } restore{original};
+-    const int old_eval=Evaluator::evaluate_uncached(before);
++    Evaluator evaluator; EvalTrace old_trace; (void)evaluate_traced(before,old_trace);
++    const int old_eval=evaluator.evaluate(before);
+     const int index=params::Psqt+28; // White pawn e4: this Board predates the table mutation.
+     params::table[static_cast<std::size_t>(index)]+=S(17,23);
+-    Evaluator evaluator; EvalTrace trace; const int direct=Evaluator::evaluate_uncached(before);
++    EvalTrace trace; const int direct=Evaluator::evaluate_uncached(before);
+     check(direct==old_eval+17,"PSQT mutation changes the actual occupied-square evaluation");
+     check(evaluator.evaluate(before)==direct,"public evaluate sees mutation after FEN");
+     check(evaluate_traced(before,trace)==direct,"public trace sees current PSQT after FEN");
+     check(trace.coefficients[static_cast<std::size_t>(index)]==1,"public trace retains occupied-square PSQT coefficient");
++    check(trace.coefficients==old_trace.coefficients && trace.phase==old_trace.phase && trace.scale==old_trace.scale,
++          "table mutation preserves all public trace coefficients phase and scale");
+     root=begin(w,before); verify(w,before,root,"new search current mutated params");
+-    params::table=original; SearchLimits limits; limits.depth=1; const std::vector<Worker*> all{&w}; (void)w.search(before,limits,false,all);
++    params::table=original; check(evaluator.evaluate(before)==old_eval,"same public Evaluator sees restored params");
++    check(params::table==params::defaults(),"default parameter table restored");
++    SearchLimits limits; limits.depth=1; const std::vector<Worker*> all{&w}; (void)w.search(before,limits,false,all);
+     verify(w,before,Probe::root(w),"reused Worker new search after params restored");
+     nnue::enabled=false; verify(w,before,Probe::root(w),"NNUE-disabled original public HCE path"); nnue::enabled=true;
+     std::cout<<"SUMMARY checks="<<checks<<" failures="<<failures<<'\n'; return failures==0?0:1;
+--- first-green/src/eval.cpp
++++ final/src/eval.cpp
+@@ -496,15 +496,12 @@
+ Evaluator::RuntimePsqt Evaluator::refresh_runtime_psqt(const Board& board) {
+     RuntimePsqt state;
+     std::int64_t score = 0;
+-    Bitboard occupied = board.occupied();
+-    while (occupied != 0) {
+-        const int square = pop_lsb(occupied);
+-        const Piece piece = board.piece_at(square);
+-        const int type = piece_type(piece);
+-        const int relative = color_of(piece) == White ? square : flip_square(square);
+-        const std::int64_t term = params::table[static_cast<std::size_t>(params::Psqt + (type - 1) * 64 + relative)];
+-        score += color_of(piece) == White ? term : -term;
+-        state.phase += PhaseValue[static_cast<std::size_t>(type)];
++    for (int type = Pawn; type <= King; ++type) {
++        Bitboard white = board.pieces(White, static_cast<PieceType>(type));
++        Bitboard black = board.pieces(Black, static_cast<PieceType>(type));
++        state.phase += PhaseValue[static_cast<std::size_t>(type)] * (popcount(white) + popcount(black));
++        while (white != 0) score += params::table[static_cast<std::size_t>(params::Psqt + (type - 1) * 64 + pop_lsb(white))];
++        while (black != 0) score -= params::table[static_cast<std::size_t>(params::Psqt + (type - 1) * 64 + flip_square(pop_lsb(black)))];
+     }
+     // Do not introduce an overflowing delta intermediate for unusual tool values.
+     state.valid = score >= std::numeric_limits<Score>::min() && score <= std::numeric_limits<Score>::max();

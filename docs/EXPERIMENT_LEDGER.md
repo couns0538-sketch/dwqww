@@ -245,3 +245,27 @@ SUCCESS and combined readiness/SPRT step in progress at21:41:47UTC. No original
 game evidence or count is exposed by that metadata; W/L/D and Elo remain unknown.
 Do not retry/resume/pool. Baseline b590 and candidate fc51 source pins unchanged.
 [Launch](../validation/hosted-correction-history-strength-20261020/publication-attempt1/LAUNCH.json).
+
+19 runtime-PSQT candidate frozen61f598056572dfade6994af8ad2e38817cd28aa3 on
+forge/lazy-runtime-psqt-20261020. One exact-behavior optimization: Worker-private
+PSQT/unclampedphase replay along unchanged NNUE dirty-state path; root refresh
+uses current parameters. Public evaluator, trace, Board, network and float order
+preserved. Prototype parent344/227missing-cache-state RED has no failed eval
+oracle assertions; source was hash-verified reconstructed after execution and
+is explicitly not an atomic before/after capture. Initial344 and refined347
+GREEN fixtures differ; all original fixtures/logs/cores/exes remain retained.
+Both prototype11CTest batches passed; final typed refresh removes a new GCC
+inference warning, with inherited TT warnings preserved. Source review/addendum
+has no blocker. Final frozen19 Release11/11 and347/347 runtime checks PASS;
+56cold/warm searches (7positions xNNUEon/off xparent/candidate xcold/warm)
+match every logical row, PV/ponder legality passes, hashes unchanged. Bench321912.
+ASan/TSan/8active/Windows pending; speed/Elo unmeasured. No accepted branch change.
+[19 evidence](../validation/lazy-runtime-psqt-native-20261020/RELEASE-RECEIPT.json).
+
+Existing strength skill extended with mandatory source/build proof sets, final
+rehash coverage, execute-mode preservation and internal/outer timeout headroom.
+Frontmatter/five links and fresh four-case application pass; project-local files
+are available. Cloud/executor skill catalogs are empty and skill-creator is not
+exposed; no cloud/global installation claimed. Original18failed parser remains
+failed; no skill-based Elo or causal efficiency gain claimed.
+[Skill validation](../validation/strength-skill-provenance-20261020/SKILL-APPLIED.json).

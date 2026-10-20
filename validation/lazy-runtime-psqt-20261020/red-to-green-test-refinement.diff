@@ -1,0 +1,23 @@
+--- red/tests/runtime_psqt_tests.cpp
++++ green/tests/runtime_psqt_tests.cpp
+@@ -34,6 +34,11 @@
+     }
+     template<class S=SearchStack> static void invalidate(S* ss) {
+         if constexpr (requires { ss->runtime_psqt.valid; }) ss->runtime_psqt.valid=false;
++    }
++    template<class S=SearchStack> static void poison(S* ss) {
++        if constexpr (requires { ss->runtime_psqt.valid; }) {
++            ss->runtime_psqt.score=123; ss->runtime_psqt.phase=-7; ss->runtime_psqt.valid=true;
++        }
+     }
+ };
+ }
+@@ -101,7 +106,7 @@
+     }
+     verify(w,chain,ss,"four unevaluated ancestor edges");
+     Probe::invalidate(ss); verify(w,chain,ss,"NNUE valid PSQT invalid fallback");
+-    Probe::invalidate(root); ss->accumulator.valid=false; Probe::invalidate(ss);
++    Probe::invalidate(ss-1); ss->accumulator.valid=false; Probe::poison(ss);
+     verify(w,chain,ss,"NNUE replay with invalid PSQT ancestor fallback");
+     while(!history.empty()) { chain.unmake_move(history.back().first,history.back().second); history.pop_back(); --ss; }
+     verify(w,chain,root,"full chain unmake");

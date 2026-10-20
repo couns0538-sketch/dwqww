@@ -7,6 +7,19 @@ its unchanged native regression to356e863, preserving the TT and timed-only cloc
 repairs. Acceptance is for the finite book contract; no accepted equal-time Elo gain.
 [Integration receipt](../validation/accepted-ownbook-integration-20261020/INTEGRATION.json).
 
+New isolated performance candidate **Forge6.4.19** is frozen at
+`61f598056572dfade6994af8ad2e38817cd28aa3`, branch
+`forge/lazy-runtime-psqt-20261020`, remotely verified. It reuses classical PSQT
+and unclamped phase alongside existing lazy NNUE dirty-state replay, privately per
+Worker. Board, NNUE/weights and public evaluator/tuner contracts are preserved.
+**First frozen Release11/11,347runtime assertions and56cold/warm one-thread
+searches PASS** against exact18, including NNUE on/off and rule50. Logical output
+rows/PVs match exactly, excluding only time/NPS; bench remains321912.
+ASan/UBSan, TSan/active-UCI and Windows19 validation are pending. No calibrated
+speed or Elo gain is established; this is not accepted into integration.
+[Release receipt](../validation/lazy-runtime-psqt-native-20261020/RELEASE-RECEIPT.json).
+[Prototype history](../validation/lazy-runtime-psqt-20261020/REPORT.md).
+
 Latest isolated finite-tested candidate is **Forge6.4.18**, source
 `fc51e43c26f735cbc1ffabf0fcf64f48a4592c0b`, branch
 `forge/correction-history-residual-20261020`. It changes one correction-history

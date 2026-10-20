@@ -1,0 +1,33 @@
+In file included from /workspace/dwqww/include/forge/bitboard.hpp:3,
+                 from /workspace/dwqww/include/forge/board.hpp:3,
+                 from /workspace/dwqww/include/forge/eval.hpp:3,
+                 from /workspace/dwqww/src/eval.cpp:1:
+In member function ‘constexpr std::array<_Tp, _Nm>::value_type& std::array<_Tp, _Nm>::operator[](size_type) [with _Tp = int; long unsigned int _Nm = 639]’,
+    inlined from ‘static forge::Evaluator::RuntimePsqt forge::Evaluator::refresh_runtime_psqt(const forge::Board&)’ at /workspace/dwqww/src/eval.cpp:505:116:
+/usr/include/c++/14/array:209:24: warning: array subscript 18446744073709551552 is above array bounds of ‘std::__array_traits<int, 639>::_Type’ {aka ‘int [639]’} [-Warray-bounds=]
+  209 |         return _M_elems[__n];
+      |                ~~~~~~~~^
+/usr/include/c++/14/array: In static member function ‘static forge::Evaluator::RuntimePsqt forge::Evaluator::refresh_runtime_psqt(const forge::Board&)’:
+/usr/include/c++/14/array:115:55: note: while referencing ‘std::array<int, 639>::_M_elems’
+  115 |       typename __array_traits<_Tp, _Nm>::_Type        _M_elems;
+      |                                                       ^~~~~~~~
+/workspace/dwqww/src/search.cpp: In member function ‘int forge::Worker::qsearch(forge::Board&, forge::SearchStack*, int, int)’:
+/workspace/dwqww/src/search.cpp:779:73: warning: conversion from ‘int’ to ‘uint16_t’ {aka ‘short unsigned int’} may change value [-Wconversion]
+  779 |     const int tt_score = tt_hit && tte.score_usable(board.halfmove_clock())
+      |                                                     ~~~~~~~~~~~~~~~~~~~~^~
+/workspace/dwqww/src/search.cpp:806:166: warning: conversion from ‘int’ to ‘uint16_t’ {aka ‘short unsigned int’} may change value [-Wconversion]
+  806 |             if (!tt_hit) shared_.tt.store(tt_probe, board.key(), score_to_tt(best_score, ply), ss->raw_eval, Move::none(), 0, BoundLower, false, board.halfmove_clock());
+      |                                                                                                                                                  ~~~~~~~~~~~~~~~~~~~~^~
+/workspace/dwqww/src/search.cpp:857:160: warning: conversion from ‘int’ to ‘uint16_t’ {aka ‘short unsigned int’} may change value [-Wconversion]
+  857 |     shared_.tt.store(tt_probe, board.key(), score_to_tt(best_score, ply), in_check ? ValueNone : ss->raw_eval, best_move, 0, bound, tt_pv, board.halfmove_clock());
+      |                                                                                                                                            ~~~~~~~~~~~~~~~~~~~~^~
+/workspace/dwqww/src/search.cpp: In member function ‘int forge::Worker::search(forge::Board&, forge::SearchStack*, int, int, int, bool)’:
+/workspace/dwqww/src/search.cpp:903:73: warning: conversion from ‘int’ to ‘uint16_t’ {aka ‘short unsigned int’} may change value [-Wconversion]
+  903 |     const int tt_score = tt_hit && tte.score_usable(board.halfmove_clock())
+      |                                                     ~~~~~~~~~~~~~~~~~~~~^~
+/workspace/dwqww/src/search.cpp:1012:160: warning: conversion from ‘int’ to ‘uint16_t’ {aka ‘short unsigned int’} may change value [-Wconversion]
+ 1012 |                     shared_.tt.store(tt_probe, board.key(), score_to_tt(value, ply), ss->raw_eval, move, depth - 3, BoundLower, ss->tt_pv, board.halfmove_clock());
+      |                                                                                                                                            ~~~~~~~~~~~~~~~~~~~~^~
+/workspace/dwqww/src/search.cpp:1198:149: warning: conversion from ‘int’ to ‘uint16_t’ {aka ‘short unsigned int’} may change value [-Wconversion]
+ 1198 |         shared_.tt.store(tt_probe, board.key(), score_to_tt(best_score, ply), ss->raw_eval, best_move, depth, bound, ss->tt_pv, board.halfmove_clock());
+      |                                                                                                                                 ~~~~~~~~~~~~~~~~~~~~^~

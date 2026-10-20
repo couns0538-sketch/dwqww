@@ -35,13 +35,14 @@
    Installed Stockfish19 advertises UCI_Elo1320..3190; exact3200unsupported.
    Forge absolute rating and a200Elo gap are unestablished; zero target games run.
 
-Next bounded implementation: investigate lazy runtime PSQT/unclamped-phase reuse
-along existing NNUE dirty-state replay. Keep Board/public cached/uncached/traced
-evaluator semantics unchanged and initialize from live parameters each new search.
-Do not introduce a blind params-dependent Board cache. Require exact old evaluator
-oracle, special moves/null/unmake/promoted phase>24 and parameter-mutation controls,
-then complete CTest/sanitizers and identical cold/warm fixed-node signatures before
-any speed claim. Research only so far; no implementation/benefit established.
+Next bounded implementation is now frozen19 `61f598056572dfade6994af8ad2e38817cd28aa3`:
+private lazy runtime PSQT/unclamped-phase reuse, no Board-dependent cache. First
+Release11/347actual-method assertions and56exact cold/warm default/NNUE-off searches
+against18 PASS; bench321912. Finish ASan11/TSan11/8active and Windows10checks/audit,
+preserve all source/build/prototype originals, then qualify speed on a separately
+calibrated host. A disabled performance-only workflow is being prepared; it must
+bind actual finite proofs and pass independent/root review before any launch.
+Do not repeat the failed local-host small-speed calibration or infer Elo from NPS.
 
 18first-attempt gates: Release10/ASanUBSan10/TSan10,8activeUCI,9Wine and1064artifact
 checks PASS. Root verifies113native evidence records/484live source-build originals,

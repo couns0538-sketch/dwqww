@@ -1,0 +1,11 @@
+Preparation only; waiting for the final frozen source, permanent-test check count and explicit root build clearance. No compilers, engines, source exports, archives or Git mutations have run.
+
+The trusted18 workflow is copied into fresh19 paths. All three sequential j2 profiles require the exact eleven test names and commands, preserve source/core/executable/test-object hashes and raw process/cleanup facts, scan every expected original diagnostic log, and retain complete outside source/build originals. Default TSan uses no suppressions or disabled checks; its eight genuinely active transitions follow a successful full11CTest run.
+
+Release parity uses the immutable18 Release engine/core and all four baseline public Evaluator/Board source identities, candidate byte-identical Board files, and root-reviewed candidate public Evaluator semantics. Seven positions (start, kiwipete, middlegame, endgame, white/black promotions, rule50 halfmove95) run with default NNUE and UseNNUE=false, each cold and warm, totaling56 fixed-depth searches across baseline/candidate. All emitted search fields including hashfull, bestmove and ponder must match after excluding only time/NPS; every reported PV and final continuation is checked with python-chess. The one default bench11 signature must remain321912. No parent RED is planned because private Worker ABI changes.
+
+The future source is exported only from the root-frozen exact Git SHA. ROOT-CLEARANCE.json is currently unauthorized and all execution drivers refuse to proceed. Use the recorded venv Python with -B/PYTHONDONTWRITEBYTECODE=1. No strength, performance, Windows or hardware conclusion is claimed by this preparation.
+
+The original overbroad evaluator-file equality schema and root review finding are retained in prelaunch-review-attempt0. Schema v2 requires only candidate Board files to remain byte-identical; full candidate evaluator files are recorded before/after and may include the intended helper/guard additions. No engine gate was executed under the superseded schema.
+
+Independent preparation review found no remaining static blocker. Python syntax and all113 covered18 evidence files were verified without importing/executing drivers. Runtime validation remains pending; root clearance is still unauthorized/null.
