@@ -1,0 +1,54 @@
+--- checkpoint/stage-2-guarded/warm_timeout_probe.py
++++ stage-3-deadline/warm_timeout_probe.py
+@@ -102,20 +102,33 @@
+         self.proc.stdin.write(command + "\n")
+         self.proc.stdin.flush()
+ 
+-    def until(self, predicate, seconds):
+-        deadline = time.monotonic() + seconds
++    def until(self, predicate, seconds, *, start_ns=None):
++        # Anchor search deadlines to the go dispatch, not to the next moment
++        # this Python consumer gets scheduled. The reader timestamps events
++        # when they enter our journal; dequeue time can be much later.
++        if start_ns is None:
++            start_ns = time.monotonic_ns()
++        deadline_ns = start_ns + int(seconds * 1_000_000_000)
+         while True:
+-            remaining = deadline - time.monotonic()
+-            if remaining <= 0:
+-                return None
+             try:
+-                item = self.output.get(timeout=min(remaining, 0.1))
++                # Drain an already-observed event even if this thread resumed
++                # after its deadline. Compare the recorded arrival time below.
++                item = self.output.get_nowait()
+             except queue.Empty:
+-                if self.proc.poll() is not None and self.output.empty():
++                remaining_ns = deadline_ns - time.monotonic_ns()
++                if remaining_ns <= 0:
+                     return None
+-                continue
++                try:
++                    item = self.output.get(timeout=min(remaining_ns / 1e9, 0.1))
++                except queue.Empty:
++                    # Child exit does not guarantee its stdout reader has
++                    # drained the pipe and appended the final bestmove yet.
++                    if self.proc.poll() is not None and self.output.empty() and \
++                            all(not thread.is_alive() for thread in self.threads):
++                        return None
++                    continue
+             if predicate(item["text"]):
+-                return item
++                return item if item["monotonic_ns"] <= deadline_ns else None
+ 
+     def ready(self):
+         self.send("isready")
+@@ -166,7 +179,7 @@
+         before_ticks = cpu_ticks(p.proc.pid)
+         start_ns = time.monotonic_ns()
+         p.send(CLOCK)
+-        result = p.until(lambda x: x.startswith("bestmove "), deadline)
++        result = p.until(lambda x: x.startswith("bestmove "), deadline, start_ns=start_ns)
+         stop_latency = None
+         if result is None:
+             status["deadline_expired"] = True
