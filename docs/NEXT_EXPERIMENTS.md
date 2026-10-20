@@ -1,30 +1,28 @@
 # Next experiments
 
-1. Finish the bounded6.4.11capture-update extension atop6.4.10: specialize only
-generated count-three remove/remove/add, preserve each lane
-`((parent-removed0)-removed1)+added2`, existing count-two path and all fallback
-patterns. Reuse actual1644case/all31mask and21.2MBsnapshot gold streams, both
-object-alias forms, parent parity,9Release/9ASan andWindowschecks. No new network
-or search/timing tuning. This targets capture-heavy quiescence evaluation.
+1. Launch the reviewed 6.4.11 versus 6.4.9 paired strength test once. Use the
+   frozen `.github/hosted-nnue-strength/` protocol: 0/+5 SPRT, 1,024 fresh pairs,
+   equal 2+0.02, serial Threads1/Hash32/OwnBookfalse. Preserve complete original
+   PGNs, logs, actual binaries and source exports. Any fault, deadline, orphan
+   or changed input invalidates acceptance. A natural cap is inconclusive.
+2. Audit the separate 6.4.7 versus 6.4.4 confirmation run39332822379 when its
+   actual results branch appears. Do not infer completion from elapsed time or
+   pool earlier pilot games. Replay original PGNs and rehash actual binaries.
+3. Finish the bounded actual-search counter investigation of repeated NNUE
+   output inference. Implement a cache only if duplicate calls are demonstrated;
+   invalidate on every real/null move, new search and clear. Retain TT priority
+   and recompute HCE/corrections. Keep the long test's frozen source unchanged.
 
-2. Audit the fresh647vs644confirmationrun39332822379 when it publishes actual
-results. Frozenworkflowf1b44cc, natural160pairs, equal2+0.02,SPRT[0,+10]. No
-rerun, pooling, trimming or transferring results to later sources. Preserve
-actualbinaries/UCIlogs/finalhashes. The old147recordattempt stays inconclusive.
+Keep all existing candidate branches and the accepted integration's newer
+2fc649e metadata. The accepted engine source remains9108. The older TT-tag
+timeout/truncated replay remains unresolved; its blocked archive must retain
+its publication hold. It uses different sources/settings/runner and proves
+neither failure nor clock reliability for the new serial tests.
 
-3. After source validation, preregister one longer equal-clock NNUE-fusion match
-against6.4.9, using the pinned official8moves_v3PGN opening suite. Prospective
-1028positionpool is frozen outsidecheckout; copy originalarchive/license/hash/
-replay/selection evidence intoGit beforeplay. No suite changes or outcome filters.
-Each future candidate comparison needs its exactsource,stoppingrule andscope.
+The strict hosted performance profile39334266771 failed same-binary AA and
+ran noAB/kernel. Do not retry it or widen its threshold. Local shared-VM
+small-speed measurements also failed calibration. No NPS or Elo gain is
+accepted; no native Windows/Ryzen or full-strength Stockfish superiority exists.
 
-4. NativeRyzen validation remains pending. Standalone6.4.10WindowsZIP is tested
-underWine. The offline648validator and older642bundle remain immutable and
-compare their own frozen versions; they do not test6.4.10 automatically.
-
-The first hosted NNUE performance attempt failed its preregistered strictAA
-noise gate: noAB/kerneldata, noNPSclaim, no retry/widenedgate. Preserve promising
-correctness-tested candidates. Acceptedintegration remains9108d012. Stockfish
-superiority and positive Elo are unproven. No optionalplugin work or retraining
-is needed. Checkpoint every completed cycle; no24hagent/sixhourchat scheduler
-is available, and continuous session survival cannot be guaranteed.
+The new bounded job may continue independently of chat. There is no persistent
+24-hour agent or six-hour chat scheduler; record actual run and monitoring state.

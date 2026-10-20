@@ -1,0 +1,79 @@
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index 065cac8..9460da4 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -1,5 +1,5 @@
+ cmake_minimum_required(VERSION 3.16)
+-project(ChessEngineForge VERSION 6.4.9 LANGUAGES CXX)
++project(ChessEngineForge VERSION 6.4.11 LANGUAGES CXX)
+ find_package(Threads REQUIRED)
+ 
+ option(FORGE_ENABLE_SANITIZERS "Enable AddressSanitizer and UndefinedBehaviorSanitizer" OFF)
+diff --git a/src/nnue.cpp b/src/nnue.cpp
+index 1e9478f..e88cfc5 100644
+--- a/src/nnue.cpp
++++ b/src/nnue.cpp
+@@ -98,6 +98,50 @@ void refresh(const Board& board, Accumulator& accumulator) {
+ 
+ void update(const Accumulator& parent, Accumulator& child, const DirtyPieces& dirty) {
+     const Weights& w = weights();
++    // Quiet moves (including noncapturing promotions) remove one feature and
++    // add one. Keep each lane's subtraction-then-addition order while avoiding
++    // a full copy and two separate read/write passes over the child.
++    if (dirty.count == 2 && !dirty.changes[0].add && dirty.changes[1].add) {
++        for (const Color perspective : {White, Black}) {
++            const auto& source = parent.values[static_cast<std::size_t>(perspective)];
++            auto& destination = child.values[static_cast<std::size_t>(perspective)];
++            const PieceChange& removed = dirty.changes[0];
++            const PieceChange& added = dirty.changes[1];
++            const float* removed_column = w.w1.get() +
++                static_cast<std::size_t>(feature_index(perspective, removed.piece, removed.square)) * HiddenSize;
++            const float* added_column = w.w1.get() +
++                static_cast<std::size_t>(feature_index(perspective, added.piece, added.square)) * HiddenSize;
++            for (int h = 0; h < HiddenSize; ++h) {
++                const std::size_t index = static_cast<std::size_t>(h);
++                destination[index] = (source[index] - removed_column[index]) + added_column[index];
++            }
++        }
++        child.valid = true;
++        return;
++    }
++    // Captures remove the mover and captured piece before adding the mover
++    // (or promoted piece). Preserve both intermediate subtractions per lane.
++    if (dirty.count == 3 && !dirty.changes[0].add && !dirty.changes[1].add && dirty.changes[2].add) {
++        for (const Color perspective : {White, Black}) {
++            const auto& source = parent.values[static_cast<std::size_t>(perspective)];
++            auto& destination = child.values[static_cast<std::size_t>(perspective)];
++            const PieceChange& removed0 = dirty.changes[0];
++            const PieceChange& removed1 = dirty.changes[1];
++            const PieceChange& added = dirty.changes[2];
++            const float* removed0_column = w.w1.get() +
++                static_cast<std::size_t>(feature_index(perspective, removed0.piece, removed0.square)) * HiddenSize;
++            const float* removed1_column = w.w1.get() +
++                static_cast<std::size_t>(feature_index(perspective, removed1.piece, removed1.square)) * HiddenSize;
++            const float* added_column = w.w1.get() +
++                static_cast<std::size_t>(feature_index(perspective, added.piece, added.square)) * HiddenSize;
++            for (int h = 0; h < HiddenSize; ++h) {
++                const std::size_t index = static_cast<std::size_t>(h);
++                destination[index] = ((source[index] - removed0_column[index]) - removed1_column[index]) + added_column[index];
++            }
++        }
++        child.valid = true;
++        return;
++    }
+     for (const Color perspective : {White, Black}) {
+         auto& acc = child.values[static_cast<std::size_t>(perspective)];
+         acc = parent.values[static_cast<std::size_t>(perspective)];
+diff --git a/src/uci.cpp b/src/uci.cpp
+index 8746d65..dfb85b7 100644
+--- a/src/uci.cpp
++++ b/src/uci.cpp
+@@ -160,7 +160,7 @@ int main() {
+         input >> command;
+         if (command == "uci") {
+             const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex());
+-            std::cout << "id name Chess Engine Forge 6.4.9 candidate\n"
++            std::cout << "id name Chess Engine Forge 6.4.11 candidate\n"
+                          "id author OpenAI\n"
+                          "option name Hash type spin default 32 min 1 max 2048\n"
+                          "option name Threads type spin default 1 min 1 max 256\n"

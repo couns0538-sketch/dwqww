@@ -31,3 +31,36 @@ g++ -std=c++20 -O3 -march=x86-64-v3 -mtune=znver5 -fno-fast-math -ffp-contract=o
 Set `LLVM_MINGW_ROOT` to a checksum-verified LLVM-MinGW release. Configure a separate Release build with `-DCMAKE_TOOLCHAIN_FILE=tools/windows-zen5.cmake`. Inspect PE architecture/imports and run the delivered executable's UCI, pondering, legal-search and bench checks. Report Wine and native Windows separately; PE inspection alone is insufficient runtime evidence.
 
 Run a pinned Fastchess A/A calibration before A/B. Freeze settings, openings, hashes and stopping rules. Equal-clock SPRT acceptance supports an improvement over its specified opponent; fixed-node identity and faster inference do not. A positive estimate before the stopping boundary is inconclusive. A claim against Stockfish requires a pinned full-strength opponent (`UCI_LimitStrength=false`), documented resources, audited terminations and complete paired PGNs. Publish the exact tested artifact and evidence, with unresolved checks named.
+
+## Exact-order accumulator loop fusion
+
+Use the actual engine API in `tools/nnue_update_snapshot.cpp`, linked separately
+to each frozen actual core. It covers every dirty-count/flag pattern, both
+perspectives, legal capture/EP/promotion/castling transitions, distinct and
+in-place updates, unchanged parents and finite boundary inputs. Compare the
+entire binary stream, including every float bit, evaluation, validity and MXCSR;
+retain both original streams. Also run `tools/nnue_snapshot.cpp`: a new driver
+does not replace the older independent corpus. Signed zero, subnormals and
+rounding cancellation matter. Do not claim coverage for NaN or other rounding
+modes unless explicitly added and verified.
+
+Preserve every original per-lane intermediate operation. For remove/remove/add,
+compute `((parent - removed0) - removed1) + added`, never combine feature columns
+first. Guard the exact dirty pattern and retain all other fallback cases.
+Accumulator-array validity alone does not validate a cached output score.
+
+Inspect the complete actual `nnue::update` symbol, using anchored disassembly
+headers. An instruction inventory is weaker than tracing the pattern guard to
+the fused loop and its store. Preserve compiler flags and prove no FMA. Keep
+source-level traffic reductions separate from measured throughput and Elo.
+
+An immutable build export must include `CMakeLists.txt LICENSE bench include
+src tests tools`; omitting `bench/` prevents the existing CMake configuration.
+Retain failed exports/configure logs and use a new attempt directory. Freeze
+source hashes before building, then prove they match the final commit.
+
+Useful evidence: `validation/nnue-update-fusion-20261019/` and
+`validation/nnue-capture-fusion-20261019/`. The strict hosted timing profile
+39334266771 failed its same-binary noise gate and ran no A/B. Do not retry it or
+widen its gate; a separately preregistered equal-clock strength experiment is a
+different question and must state that distinction.

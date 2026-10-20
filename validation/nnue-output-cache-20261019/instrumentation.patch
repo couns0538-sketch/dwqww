@@ -1,0 +1,215 @@
+--- a/include/forge/nnue.hpp
++++ b/include/forge/nnue.hpp
+@@ -53,6 +53,8 @@
+ [[nodiscard]] bool residual();
+ // Runtime switch (UCI option); only effective when available().
+ extern bool enabled;
++// Audit-only: actual public output-layer entries, per search thread.
++extern thread_local std::uint64_t audit_output_calls;
+ 
+ void refresh(const Board& board, Accumulator& accumulator);
+ void update(const Accumulator& parent, Accumulator& child, const DirtyPieces& dirty);
+--- a/include/forge/search.hpp
++++ b/include/forge/search.hpp
+@@ -299,6 +299,29 @@
+     std::array<std::uint64_t, 256> root_move_nodes_{};
+     std::size_t root_effort_count_ = 0;
+ 
++    // Audit state is separate from SearchStack and never used by search decisions.
++    struct AuditSlot {
++        bool seen = false;
++        std::uint64_t key = 0;
++        int halfmove = 0;
++        Color side = White;
++        std::string fen;
++        nnue::Accumulator input{};
++        int output = 0;
++    };
++    std::array<AuditSlot, MaxPly + 8> audit_slots_{};
++    std::uint64_t audit_network_calls_ = 0;
++    std::uint64_t audit_duplicate_identity_ = 0;
++    std::uint64_t audit_duplicate_exact_input_ = 0;
++    std::uint64_t audit_changed_input_ = 0;
++    std::uint64_t audit_output_mismatch_ = 0;
++    std::uint64_t audit_key_fen_mismatch_ = 0;
++    std::uint64_t audit_unmarked_position_change_ = 0;
++    std::uint64_t audit_real_invalidations_ = 0;
++    std::uint64_t audit_null_invalidations_ = 0;
++    std::uint64_t audit_tt_raw_hits_ = 0;
++    void audit_emit(const Board& board, const SearchInfo& result);
++
+     bool pondering_ = false;
+     std::chrono::steady_clock::time_point start_{};
+     std::atomic<std::uint64_t> nodes_{0};
+--- a/src/nnue.cpp
++++ b/src/nnue.cpp
+@@ -40,6 +40,7 @@
+ namespace forge::nnue {
+ 
+ bool enabled = true;
++thread_local std::uint64_t audit_output_calls = 0;
+ 
+ namespace {
+ 
+@@ -157,6 +158,7 @@
+ }
+ 
+ int evaluate(const Board& board, const Accumulator& accumulator) {
++    ++audit_output_calls;
+     const Weights& w = weights();
+     const Color us = board.side_to_move();
+     const auto& ours = accumulator.values[static_cast<std::size_t>(us)];
+--- a/src/search.cpp
++++ b/src/search.cpp
+@@ -550,7 +550,41 @@
+             for (int i = back; i >= 0; --i) nnue::update((ss - i - 1)->accumulator, (ss - i)->accumulator, (ss - i)->dirty);
+         }
+     }
++    AuditSlot& audit = audit_slots_[static_cast<std::size_t>(ss - stack_.data())];
++    const std::string audit_fen = board.fen();
++    const bool same_key = audit.seen && audit.key == board.key() &&
++        audit.halfmove == board.halfmove_clock() && audit.side == board.side_to_move();
++    const bool same_identity = same_key && audit.fen == audit_fen;
++    const bool exact_input = same_identity &&
++        std::memcmp(audit.input.values.data(), ss->accumulator.values.data(),
++                    sizeof(ss->accumulator.values)) == 0;
++    if (audit.seen && !same_identity) ++audit_unmarked_position_change_;
++    if (same_key && !same_identity) ++audit_key_fen_mismatch_;
++    ++audit_network_calls_;
+     const int network = nnue::evaluate(board, ss->accumulator);
++    if (same_identity) {
++        ++audit_duplicate_identity_;
++        if (exact_input) ++audit_duplicate_exact_input_;
++        else ++audit_changed_input_;
++        if (exact_input && network != audit.output) ++audit_output_mismatch_;
++        if (audit_duplicate_identity_ <= 16) {
++            const std::lock_guard<std::mutex> lock(uci_output_mutex());
++            std::cerr << "{\"event\":\"duplicate_nnue_call\",\"call\":" << audit_network_calls_
++                      << ",\"ply\":" << ss->ply << ",\"key\":" << board.key()
++                      << ",\"halfmove\":" << board.halfmove_clock()
++                      << ",\"side\":" << static_cast<int>(board.side_to_move())
++                      << ",\"exact_input\":" << (exact_input ? "true" : "false")
++                      << ",\"same_output\":" << (network == audit.output ? "true" : "false")
++                      << ",\"fen\":\"" << audit_fen << "\"}\n";
++        }
++    }
++    audit.seen = true;
++    audit.key = board.key();
++    audit.halfmove = board.halfmove_clock();
++    audit.side = board.side_to_move();
++    audit.fen = audit_fen;
++    audit.input = ss->accumulator;
++    audit.output = network;
+     if (!nnue::residual()) return network;
+     // A residual network is a learned correction on top of the hand-crafted evaluation.
+     return std::clamp(evaluator_.evaluate(board) + network, -MateInMaxPly + 1, MateInMaxPly - 1);
+@@ -562,6 +596,8 @@
+     if (!nnue::enabled || !nnue::available()) return;
+     (ss + 1)->dirty = nnue::dirty_pieces(board, move);
+     (ss + 1)->accumulator.valid = false;
++    audit_slots_[static_cast<std::size_t>(ss + 1 - stack_.data())].seen = false;
++    ++audit_real_invalidations_;
+ }
+ 
+ int Worker::corrected_eval(const Board& board, int raw_eval) const {
+@@ -733,8 +769,10 @@
+         best_score = futility_base = -Infinite;
+     } else {
+         int eval;
+-        if (tt_hit && tte.eval != ValueNone) ss->raw_eval = tte.eval;
+-        else ss->raw_eval = static_evaluate(board, ss);
++        if (tt_hit && tte.eval != ValueNone) {
++            ++audit_tt_raw_hits_;
++            ss->raw_eval = tte.eval;
++        } else ss->raw_eval = static_evaluate(board, ss);
+         eval = ss->static_eval = corrected_eval(board, ss->raw_eval);
+         if (tt_hit && tt_score != ValueNone &&
+             ((tt_bound == BoundLower && tt_score > eval) || (tt_bound == BoundUpper && tt_score < eval) ||
+@@ -857,8 +895,10 @@
+     } else if (!excluded.is_none()) {
+         eval = ss->static_eval;
+     } else {
+-        if (tt_hit && tte.eval != ValueNone) ss->raw_eval = tte.eval;
+-        else ss->raw_eval = static_evaluate(board, ss);
++        if (tt_hit && tte.eval != ValueNone) {
++            ++audit_tt_raw_hits_;
++            ss->raw_eval = tte.eval;
++        } else ss->raw_eval = static_evaluate(board, ss);
+         eval = ss->static_eval = corrected_eval(board, ss->raw_eval);
+         if (tt_hit && tt_score != ValueNone &&
+             ((tt_bound == BoundLower && tt_score > eval) || (tt_bound == BoundUpper && tt_score < eval) ||
+@@ -900,6 +940,8 @@
+             (ss + 1)->ply = ply + 1;
+             (ss + 1)->dirty.count = 0;
+             (ss + 1)->accumulator.valid = false;
++            audit_slots_[static_cast<std::size_t>(ss + 1 - stack_.data())].seen = false;
++            ++audit_null_invalidations_;
+             NullUndo undo;
+             board.make_null_move(undo);
+             int null_score = -search(board, ss + 1, depth - reduction, -beta, -beta + 1, !cut_node);
+@@ -1148,6 +1190,11 @@
+ // Iterative deepening driver
+ 
+ SearchInfo Worker::search(Board board, const SearchLimits& limits, bool emit_info, const std::vector<Worker*>& all) {
++    for (auto& audit : audit_slots_) audit.seen = false;
++    audit_network_calls_ = audit_duplicate_identity_ = audit_duplicate_exact_input_ = 0;
++    audit_changed_input_ = audit_output_mismatch_ = audit_key_fen_mismatch_ = 0;
++    audit_unmarked_position_change_ = audit_real_invalidations_ = audit_null_invalidations_ = audit_tt_raw_hits_ = 0;
++    nnue::audit_output_calls = 0;
+     start_ = limits.request_start == std::chrono::steady_clock::time_point{}
+         ? std::chrono::steady_clock::now() : limits.request_start;
+     local_nodes_ = 0;
+@@ -1240,6 +1287,7 @@
+         nodes_.store(local_nodes_, std::memory_order_relaxed);
+         result.elapsed_ms = static_cast<std::uint64_t>(std::chrono::duration_cast<std::chrono::milliseconds>(
+             std::chrono::steady_clock::now() - start_).count());
++        audit_emit(board, result);
+         return result;
+     }
+ 
+@@ -1247,6 +1295,7 @@
+     if (limits.nodes_specified && limits.nodes == 0) {
+         result.best_move = root_candidates.front();
+         result.depth = 0;
++        audit_emit(board, result);
+         return result;
+     }
+ 
+@@ -1256,6 +1305,7 @@
+         result.best_move = root_candidates.front();
+         result.elapsed_ms = static_cast<std::uint64_t>(std::chrono::duration_cast<std::chrono::milliseconds>(
+             std::chrono::steady_clock::now() - start_).count());
++        audit_emit(board, result);
+         return result;
+     }
+     if (!is_main()) {
+@@ -1375,7 +1425,28 @@
+     result.elapsed_ms = static_cast<std::uint64_t>(std::chrono::duration_cast<std::chrono::milliseconds>(
+         std::chrono::steady_clock::now() - start_).count());
+     if (result.best_move.is_none()) result.best_move = root_candidates.front();
+-    return result;
++    audit_emit(board, result);
++        return result;
++}
++
++void Worker::audit_emit(const Board& board, const SearchInfo& result) {
++    const std::lock_guard<std::mutex> lock(uci_output_mutex());
++    std::cerr << "{\"event\":\"nnue_reuse_summary\",\"worker\":" << id_
++              << ",\"network_calls\":" << audit_network_calls_
++              << ",\"actual_public_evaluate_calls\":" << nnue::audit_output_calls
++              << ",\"duplicate_identity\":" << audit_duplicate_identity_
++              << ",\"duplicate_exact_input\":" << audit_duplicate_exact_input_
++              << ",\"changed_input_same_identity\":" << audit_changed_input_
++              << ",\"output_mismatch\":" << audit_output_mismatch_
++              << ",\"key_fen_mismatch\":" << audit_key_fen_mismatch_
++              << ",\"unmarked_position_change\":" << audit_unmarked_position_change_
++              << ",\"real_invalidations\":" << audit_real_invalidations_
++              << ",\"null_invalidations\":" << audit_null_invalidations_
++              << ",\"tt_raw_eval_hits\":" << audit_tt_raw_hits_
++              << ",\"nodes\":" << result.nodes << ",\"depth\":" << result.depth
++              << ",\"score\":" << result.score
++              << ",\"bestmove\":\"" << Board::move_to_uci(result.best_move)
++              << "\",\"root_fen\":\"" << board.fen() << "\"}\n";
+ }
+ 
+ // ---------------------------------------------------------------------------

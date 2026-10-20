@@ -1,0 +1,44 @@
+{
+  "status": "passed",
+  "auditor": "independent read-only subagent /root/windows649/audit_windows649",
+  "engine_sha256": "a14eaeeac37707075134f42f4c68a2fb6d3121ef65b77f7754511766749093e2",
+  "core_sha256": "9855bc83fd2dbeca89129e8d510d1d8c33235201e557e4dfe0e13b6e112a6364",
+  "symbol": "_ZN5forge4nnue6updateERKNS0_11AccumulatorERS1_RKNS0_11DirtyPiecesE",
+  "symbol_start": "0x14000d5f0",
+  "command": [
+    "llvm-objdump",
+    "-d",
+    "--no-show-raw-insn",
+    "--disassemble-symbols=_ZN5forge4nnue6updateERKNS0_11AccumulatorERS1_RKNS0_11DirtyPiecesE",
+    "actual-forge.exe"
+  ],
+  "guard": "dirty.count loaded at0x14000d618, count==3 atd61b dispatches tod81c; flagsd81c..d834 require remove/remove/add, otherwise original fallback0x14000dab2",
+  "vector_blocks": [
+    "0x14000ea17..eb3b",
+    "0x14000efe5..f10b"
+  ],
+  "vector_coverage_per_perspective": {
+    "floats": 128,
+    "zmm_parent_loads": 8,
+    "sequential_removed0_then_removed1_vsubps": 16,
+    "vaddps": 8,
+    "child_stores": 8,
+    "initial_child_copy": false,
+    "separate_child_passes": false
+  },
+  "scalar_alias_blocks": [
+    "0x14000ee20..ef3f",
+    "0x14000f2c0..f410"
+  ],
+  "scalar_alias_order": "vmovss parent -> vsubss removed0 -> vsubss removed1 -> vaddss added -> vmovss child;8lanes periteration to512bytes",
+  "inherited_count2_guard": "0x14000d624..d63b",
+  "inherited_count2_routes": [
+    "0x14000d72b..d810 vector",
+    "0x14000e600..e6e7 scalar"
+  ],
+  "original_other_pattern_fallback_preserved": true,
+  "fused_arithmetic_count": 0,
+  "output_layer_check_is_separate": true,
+  "hardware_scope": "Actual LLVM ZMM vectors under Zen5-target flags; compatible hardware required",
+  "scope": "Static emitted capture-fastpath correctness only; no speed/NPS/timing/Elo claim"
+}

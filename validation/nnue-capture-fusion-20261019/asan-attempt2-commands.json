@@ -1,0 +1,80 @@
+{
+  "source_commit": "c5cbf97a7291a3bd960c71dcd77a29bf7c95ad8e",
+  "source_export": "/workspace/.cloud-setup/forge-nnue-capture-source-complete",
+  "source_tar_sha256": "ed3f394724f75d4695f12e576d99be27855d374619427aa7fbceac605a45aa77",
+  "prior_attempt": "asan-commands.json: incomplete export omittedbench; configureonlyfailed; retainedoriginal",
+  "phases": [
+    {
+      "command": [
+        "/workspace/.cloud-setup/venv/bin/cmake",
+        "-S",
+        "/workspace/.cloud-setup/forge-nnue-capture-source-complete",
+        "-B",
+        "/workspace/.cloud-setup/forge-nnue-capture-asan-attempt2",
+        "-DCMAKE_BUILD_TYPE=RelWithDebInfo",
+        "-DFORGE_ENABLE_SANITIZERS=ON",
+        "-DCMAKE_CXX_FLAGS=-march=x86-64-v3 -mtune=znver5 -fno-fast-math -ffp-contract=off -fno-lto -fno-pie",
+        "-DCMAKE_EXE_LINKER_FLAGS=-no-pie",
+        "-DCMAKE_EXPORT_COMPILE_COMMANDS=ON"
+      ],
+      "return_code": 0,
+      "log": "asan-attempt2-configure.log"
+    },
+    {
+      "command": [
+        "/workspace/.cloud-setup/venv/bin/cmake",
+        "--build",
+        "/workspace/.cloud-setup/forge-nnue-capture-asan-attempt2",
+        "--parallel",
+        "2"
+      ],
+      "return_code": 0,
+      "log": "asan-attempt2-build.log"
+    },
+    {
+      "command": [
+        "/workspace/.cloud-setup/venv/bin/ctest",
+        "--test-dir",
+        "/workspace/.cloud-setup/forge-nnue-capture-asan-attempt2",
+        "--output-on-failure"
+      ],
+      "return_code": 0,
+      "log": "asan-attempt2-ctest.log"
+    },
+    {
+      "command": [
+        "g++",
+        "-std=c++20",
+        "-O2",
+        "-g",
+        "-march=x86-64-v3",
+        "-mtune=znver5",
+        "-fno-fast-math",
+        "-ffp-contract=off",
+        "-fno-lto",
+        "-fsanitize=address,undefined",
+        "-fno-omit-frame-pointer",
+        "-fno-pie",
+        "-no-pie",
+        "-I",
+        "/workspace/.cloud-setup/forge-nnue-capture-source-complete/include",
+        "/workspace/.cloud-setup/forge-nnue-capture-source-complete/tools/nnue_update_snapshot.cpp",
+        "/workspace/.cloud-setup/forge-nnue-capture-asan-attempt2/libforge_core.a",
+        "-pthread",
+        "-o",
+        "/workspace/.cloud-setup/forge-nnue-capture-asan-attempt2/nnue_update_snapshot"
+      ],
+      "return_code": 0,
+      "log": "asan-attempt2-update-driver-build.log"
+    },
+    {
+      "command": [
+        "/workspace/.cloud-setup/forge-nnue-capture-asan-attempt2/nnue_update_snapshot"
+      ],
+      "return_code": 0,
+      "binary_output": "asan-attempt2-update-snapshot.bin"
+    }
+  ],
+  "asan_release_update_bytes_equal": true,
+  "stream_sha256": "ca9e7405c5f7b7506455a3b6b104683ccc8d83e75b0bbaf8d9c17c3ecce1ff45"
+}

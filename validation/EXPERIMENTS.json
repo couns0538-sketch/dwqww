@@ -1,13 +1,13 @@
 {
   "schema_version": 1,
-  "updated_utc": "2026-10-19T22:28:17.754221+00:00",
+  "updated_utc": "2026-10-20T00:34:29.348436+00:00",
   "project": "Forge",
   "target": "Native Windows x64 on Ryzen7 9850X3D",
-  "scope": "Preserved Forge accepted reference and cumulative isolated candidates through6.4.8,actualcorrectnessproofs,failedtimingcontrols,originalhosted647timedrunandnative648offlinebundle; no acceptedElogain.",
+  "scope": "Preserved accepted integration metadata2fc649e (engine source9108) and cumulative isolated candidates through6.4.11; actual correctness proofs, failed timing controls, original hosted runs and new preregistered long NNUE strength test; no acceptedElogain.",
   "historical_ledger": "validation/release-6.0.0/EXPERIMENTS.md",
   "accepted_development": {
     "branch": "forge/6.4-hourly-20261019",
-    "commit": "9108d012526be80c6d163f7cab684e6acd9abf8d",
+    "commit": "2fc649effb6d2f09f4fdf63b44d59283fe26b616",
     "acceptance": "User-designated development/correctness reference; no accepted measured Elo gain.",
     "original_archive": {
       "path": "chess-engine-forge-6.4.0.zip",
@@ -17,7 +17,10 @@
     "evidence": [
       "validation/hourly/2026-10-19-initial/candidate.patch",
       "validation/hourly/2026-10-19-initial/candidate-ctest.log"
-    ]
+    ],
+    "engine_source_reference": "9108d012526be80c6d163f7cab684e6acd9abf8d",
+    "newer_record_preservation_merge": "3cabc1b24fb19b66226892deda2e29273aef769f",
+    "newer_source_status": "Last3integrationcommits tools/evidence only; no src/include/tests/bench/CMake diff."
   },
   "policy": {
     "ids": "Stable IDs identify frozen attempts; append new attempts and preserve failures.",
@@ -43,14 +46,15 @@
     "tt_overhead_calibration_experiment_id": "tt-speed-same-binary-aa-20261019",
     "rule50_fix_candidate_id": "forge644-rule50-context-20261019",
     "rule50_fix_correctness_experiment_id": "forge644-rule50-context-release-20261019",
-    "latest_correctness_candidate_id": "forge648-root-effort-20261019",
-    "latest_correctness_windows_artifact": "releases/forge-6.4.8-candidate-windows-zen5.zip",
+    "latest_correctness_candidate_id": "forge6411-nnue-capture-fusion-20261019",
+    "latest_correctness_windows_artifact": "releases/forge-6.4.11-candidate-windows-zen5.zip",
     "newer_645_strength_status": "No games/Elo; Release8/8, ASan8/8,18947 parent and candidate oracle checks, exact parent parity and7Winechecks passed. Kernel AA noise gate failed; full-engine timing not run.",
     "newer_646_strength_status": "Release8/8, ASan8/8, exactparentparity and7Winechecks passed; timing andstrengthnotmeasured becausehostAAfailed. No new games/Elo.",
     "newer_647_strength_status": "Positive earlier144game nativeestimate+43.66\u00b128.69 versus644; full147recordattemptdeadline/orphan/stopwarnings => no acceptedElogain. 73completepairGLR0.815insidebounds. Alloriginalrecordsretained.",
     "hosted_linux_pilot_status": "Completed at16min cap:147normalgames,73pairs+orphan; no nativeboundary,strictinconclusive. Native144snapshot+43.66\u00b128.69 is descriptiveonly.",
     "newer_648_strength_status": "Release8/8,ASan8/8,untimedparentparity419798,28actualcounter-oracleiterations and7Winechecks351063 plus52/52independentartifactaudit passed. Actualtimedstop/Elo/NPSunknown. Hosted647resultdoesnottransfer.",
-    "native_648_bundle_status": "Manifest/read-onlyWinechecks+43independentauditpass; nativeAA/pilot/SPRTpending; originalbaselinecomparison,not647isolatedEloevidence."
+    "native_648_bundle_status": "Manifest/read-onlyWinechecks+43independentauditpass; nativeAA/pilot/SPRTpending; originalbaselinecomparison,not647isolatedEloevidence.",
+    "newer_6411_strength_status": "Release9/9, ASan/UBSan9/9+instrumentedstreamidentity, bothactualcoreNNUEstreamsparent/crossplatformidentity, sixcold/warmparity and8Winechecks+independentauditpass. No measuredNPS/Elogain;0/+5longSPRTpreregisterednotlaunchedyet."
   },
   "candidates": [
     {
@@ -557,6 +561,46 @@
       },
       "performance": "Inconclusive; freshhosted strictAAfailed, noAB/kernel allowed",
       "sse": "actualAPIbyteidentity passed"
+    },
+    {
+      "id": "forge6411-nnue-capture-fusion-20261019",
+      "code_commit": "c5cbf97a7291a3bd960c71dcd77a29bf7c95ad8e",
+      "branch": "forge/nnue-capture-fusion-20261019",
+      "parent_candidate_id": "forge6410-nnue-update-fusion-20261019",
+      "change": "Exact guardedthree-change remove/remove/add fusedNNUEupdate; preserves per-lane2subtractions+addition, validity, inplace, originalfallback, networkweights andallpriorwork.",
+      "status": "published_correctness_candidate_not_strength_accepted",
+      "builds": {
+        "release": {
+          "engine_sha256": "d458d4fbeeda4f4173128beb63bb54e17090731b92b47f6e81a53edef37c4167",
+          "core_library_sha256": "7862b2b8e1d6f8a03ec1ae981ec24414c4c6449a9b3f8de54451687b120988c3",
+          "ctest_result": "9/9passed9.57seconds"
+        },
+        "asan": {
+          "engine_sha256": "aaaa0bb8cdd2c2a01d9dde209543eedd66d875d89191da87918043d479b0e9a5",
+          "core_library_sha256": "e5b2a797f6b18afe9e5ef4dc784ce4936cfb68f192373f42412199c6a315f811",
+          "ctest_result": "9/9passed42.56seconds; actualAPIupdateexactRelease"
+        }
+      },
+      "network_sha256": "41487f328ff51f27417564df45b6f3139d038b7e940dedb121340bd61be9a4d3",
+      "valid_strength_evidence": false,
+      "artifact": {
+        "status": "packaged_and_verified",
+        "artifact": "releases/forge-6.4.11-candidate-windows-zen5.zip",
+        "sha256": "59978ffd9c38688663179642541859d7540d620b9669bfe9e1186f0a0184aa46",
+        "bytes": 3630828,
+        "source_and_tests_commit": "c5cbf97a7291a3bd960c71dcd77a29bf7c95ad8e",
+        "engine_sha256": "a14eaeeac37707075134f42f4c68a2fb6d3121ef65b77f7754511766749093e2",
+        "runtime_checks": 8,
+        "ownbook_transitions": 5,
+        "nnue_update_stream_bytes": 4097860,
+        "nnue_original_snapshot_bytes": 21192328,
+        "nnue_windows_and_linux_streams_identical": true,
+        "legal_witness_comparisons": 18947,
+        "bench11_nodes": 351063,
+        "scope": "Wine correctness and bounded node signature; no speed, Elo or native hardware result"
+      },
+      "correctness_evidence": "validation/nnue-capture-fusion-20261019/",
+      "performance": "Unmeasured; retain priorfailedstrictAA/noAB; no NPS orElo claim."
     }
   ],
   "experiments": [
@@ -5844,6 +5888,82 @@
       },
       "raw_results_commit": "b3bf48525540e64db12b592c913b160298bad6d1",
       "nps_difference": null
+    },
+    {
+      "id": "forge6411-nnue-capture-fusion-20261019",
+      "candidate_id": "forge6411-nnue-capture-fusion-20261019",
+      "date": "2026-10-19",
+      "baseline_sha": "36f5b2f6e1ff519e82a4b52edc85caceaf15aed0",
+      "candidate_sha": "c5cbf97a7291a3bd960c71dcd77a29bf7c95ad8e",
+      "hypothesis": "CaptureNNUEupdate copy+3wholearraypasses ->1 exact-operation-orderpass; predictedtraffic11KiB->5KiB acrossbothperspectives, unmeasured.",
+      "status": "correctness_validated_performance_and_strength_inconclusive",
+      "build_and_test_commands": "validation/nnue-capture-fusion-20261019/{release-commands,asan-attempt2-commands,differential-results}.json andWindowsfrozencommandrecords",
+      "correctness": "Release9/9;ASan/UBSan9/9; instrumentedupdateexact;1644actualAPIcases(all31masks) andoriginalNNUEstreamsexactparentLinux/Windows;79capturecasesdistinct+inplace;6cold/warm1Tparity;8Winechecks+independentartifact/codegenaudit",
+      "benchmark_nodes": {
+        "linux": 419798,
+        "windows": 351063
+      },
+      "nps_difference": null,
+      "strength_games": 0,
+      "elo_estimate": null,
+      "valid_strength_evidence": false,
+      "evidence": "validation/nnue-capture-fusion-20261019/",
+      "failed_approaches": [
+        {
+          "attempt": "ASanconfigure1",
+          "cause": "Root omittedbench fromimmutablegitexport; configurationfailedbeforeenginebuild/execution. Newcompleteexport/builddirectoryattempt2passed; originals retained."
+        }
+      ],
+      "decision": "Keep isolated correctness-tested6.4.11; do not modify integrationengine withoutsufficientacceptance. Combinedquiet+capturefusionversus6.4.9prospectivepairednativeSPRTnext.",
+      "next": "Launch newfrozen0/+5SPRT aftercompleteartifactpreservation; counter-auditactualNNUEoutputduplicatesbeforecaching."
+    },
+    {
+      "id": "forge6411-nnue-output-reuse-counter-20261019",
+      "date": "2026-10-19",
+      "baseline_sha": "c5cbf97a7291a3bd960c71dcd77a29bf7c95ad8e",
+      "hypothesis": "A per-position output cache might skip repeated NNUE output inference during re-searches; first count actual duplicate calls.",
+      "status": "completed_hypothesis_deprioritized_no_cache_implemented",
+      "correctness": "All21fixedworkengineprocesses normal; exact cold/warmsearchparity +bench419798 + deterministiccounterrepeat; no changedinputs/outputmismatches/keyFENcollision/unmarkedpositionchange.",
+      "results": {
+        "actual_network_calls": 275743,
+        "same_position_exact_input_duplicates": 1417,
+        "fraction": 0.005138843053132809,
+        "tt_raw_eval_hits": 77798
+      },
+      "decision": "Observed0.5139% of outputcalls is too small to prioritize statefulcache/lifecyclecost. Retainnegativefinding andoriginalevidence; noenginechange.",
+      "evidence": "validation/nnue-output-cache-20261019/REPORT.md",
+      "strength_games": 0,
+      "elo_estimate": null,
+      "nps_difference": null,
+      "valid_strength_evidence": false
+    },
+    {
+      "id": "forge6411-vs649-hosted-strength-20261019",
+      "candidate_id": "forge6411-nnue-capture-fusion-20261019",
+      "baseline_sha": "4edda780c68a742f20565d4e6a54a0c99a2c88a6",
+      "candidate_sha": "c5cbf97a7291a3bd960c71dcd77a29bf7c95ad8e",
+      "status": "preregistered_ready_not_launched",
+      "hypothesis": "Combined exact-order quiet andcapturefusion could improve equal-clock playingstrength through reduced NNUE updatework.",
+      "protocol": ".github/hosted-nnue-strength/protocol.json",
+      "sprt": {
+        "elo0": 0,
+        "elo1": 5,
+        "alpha": 0.05,
+        "beta": 0.05,
+        "max_complete_pairs": 1024,
+        "tc": "2+0.02",
+        "threads": 1,
+        "hash_mb": 32,
+        "concurrency": 1,
+        "ownbook": false,
+        "seed": 20261021,
+        "emergency_seconds": 18000
+      },
+      "evidence": "validation/nnue-strength-20261019/",
+      "strength_games": 0,
+      "elo_estimate": null,
+      "valid_strength_evidence": false,
+      "decision": "No resultbeforeactualmatch; naturalcapwithoutboundary inconclusive; anyfault/deadline/orphan/changedinput invalidatesacceptance; neverpoololdgames."
     }
   ],
   "evidence_archives": [
@@ -5924,6 +6044,26 @@
       "sha256": "0b1bd257fb106cb2eb873ade6cdef253442a192dd47d7945bde81cc37f95b9ec",
       "bytes": 2141811,
       "manifest_path": "validation/hosted-strength-20261019/original-results-and-observations.json"
+    },
+    {
+      "archive": "validation/nnue-capture-fusion-20261019/linux-correctness-attempt2.zip",
+      "bytes": 41793471,
+      "sha256": "2da2a380ef8381460b55e10edb938a3bda6ffcbc17a23304639acc1848ac6bb3",
+      "all_members_verified": true,
+      "scope": "Completed Linux release/ASan/source/parity/rawsnapshot evidence including failed firstconfigure; Windows preserved separately; timings diagnosticonly; noElogain"
+    },
+    {
+      "archive": "validation/nnue-output-cache-20261019/counter-evidence.zip",
+      "bytes": 3344430,
+      "sha256": "e4204cf3d3fa4dc26227716ba94dae3a58911ba94e2487230bce0c700e6b6b51",
+      "all_members_verified": true
+    },
+    {
+      "artifact": "validation/nnue-capture-fusion-20261019/windows-validation-attempt1.zip",
+      "bytes": 21952117,
+      "sha256": "4a5bacd89e60b8a646f331186e5c0242f637cb9becc2e840a5fc60fe8a401499",
+      "member_count": 111,
+      "status": "archived_and_verified"
     }
   ]
 }
