@@ -130,8 +130,8 @@ private:
     friend class Searcher;
     static constexpr std::size_t StripeCount = 1024;
     struct alignas(64) Stripe { std::mutex mutex; };
-    // Opt-in controller ownership: acquire every stripe before publishing TLS.
-    // Other threads keep taking ordinary locks; lifecycle still needs quiescence.
+    // Opt-in controller ownership: request exclusive access, drain each stripe,
+    // then publish TLS. Lifecycle mutations still require all users quiescent.
     class ExclusiveLease {
     public:
         explicit ExclusiveLease(TranspositionTable& table);
@@ -144,12 +144,14 @@ private:
         friend class TranspositionTable;
         TranspositionTable& table_;
         const ExclusiveLease* previous_;
-        std::array<std::unique_lock<std::mutex>, StripeCount> locks_{};
+        std::unique_lock<std::mutex> gate_;
     };
     static thread_local const ExclusiveLease* active_lease_;
     [[nodiscard]] bool has_exclusive_access() const;
     [[nodiscard]] std::unique_lock<std::mutex> lock_stripe(std::size_t index) const;
     mutable std::array<Stripe, StripeCount> stripes_{};
+    mutable std::mutex exclusive_gate_;
+    std::atomic<bool> exclusive_requested_{false};
     std::uint64_t epoch_ = 0;
     std::unique_ptr<TTCluster[]> clusters_;
     std::size_t cluster_count_ = 0;
@@ -360,7 +362,7 @@ private:
 class Searcher {
 public:
     // Exclusive is for a controller with no concurrent diagnostics: at one
-    // worker it holds all TT stripes until search returns. Foreign TT calls
+    // worker it drains the stripes and holds an exclusive gate. Foreign TT calls
     // block for the whole search and must not hold locks needed by search.
     // Multiple workers and the default library entry retain shared locking.
     enum class TTAccess { Shared, Exclusive };

@@ -184,18 +184,28 @@ void tune::refresh() { Reductions.refresh(); }
 thread_local const TranspositionTable::ExclusiveLease* TranspositionTable::active_lease_ = nullptr;
 
 TranspositionTable::ExclusiveLease::ExclusiveLease(TranspositionTable& table)
-    : table_(table), previous_(active_lease_) {
+    : table_(table), previous_(active_lease_), gate_(table.exclusive_gate_, std::defer_lock) {
     if (!table_.has_exclusive_access()) {
-        for (std::size_t i = 0; i < StripeCount; ++i) {
-            locks_[i] = std::unique_lock<std::mutex>(table_.stripes_[i].mutex);
+        gate_.lock();
+        table_.exclusive_requested_.store(true, std::memory_order_release);
+        try {
+            // A foreign accessor either completes before its stripe drains,
+            // or observes the request after acquiring that drained stripe.
+            for (std::size_t i = 0; i < StripeCount; ++i) {
+                const std::lock_guard<std::mutex> drain(table_.stripes_[i].mutex);
+            }
+        } catch (...) {
+            table_.exclusive_requested_.store(false, std::memory_order_release);
+            throw;
         }
     }
     active_lease_ = this;
 }
 
 TranspositionTable::ExclusiveLease::~ExclusiveLease() {
-    // Member destruction unlocks only after ownership has been restored.
+    // Publish completed writes before member destruction releases the gate.
     active_lease_ = previous_;
+    if (gate_.owns_lock()) table_.exclusive_requested_.store(false, std::memory_order_release);
 }
 
 bool TranspositionTable::has_exclusive_access() const {
@@ -206,9 +216,15 @@ bool TranspositionTable::has_exclusive_access() const {
 }
 
 std::unique_lock<std::mutex> TranspositionTable::lock_stripe(std::size_t index) const {
-    std::unique_lock<std::mutex> lock(stripes_[index % StripeCount].mutex, std::defer_lock);
-    if (!has_exclusive_access()) lock.lock();
-    return lock;
+    std::mutex& stripe = stripes_[index % StripeCount].mutex;
+    if (has_exclusive_access()) return std::unique_lock<std::mutex>(stripe, std::defer_lock);
+    for (;;) {
+        std::unique_lock<std::mutex> lock(stripe);
+        if (!exclusive_requested_.load(std::memory_order_acquire)) return lock;
+        // Never wait for the gate while holding a stripe: the owner drains it.
+        lock.unlock();
+        const std::lock_guard<std::mutex> wait(exclusive_gate_);
+    }
 }
 
 void TranspositionTable::resize(std::size_t mb) {
