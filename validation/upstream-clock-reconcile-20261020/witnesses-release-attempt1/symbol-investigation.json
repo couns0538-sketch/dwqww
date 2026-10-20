@@ -1,0 +1,45 @@
+[
+  {
+    "command": [
+      "nm",
+      "-D",
+      "/workspace/.cloud-setup/forge-clock-contract-diagnostics/release/automatic-origin-red"
+    ],
+    "exit_code": 0,
+    "stdout": "symbol-investigation-1.stdout",
+    "stderr": "symbol-investigation-1.stderr",
+    "relevant_lines": [
+      "                 U _ZNSt6thread15_M_start_threadESt10unique_ptrINS_6_StateESt14default_deleteIS1_EEPFvvE@GLIBCXX_3.4.22",
+      "                 U pthread_create@GLIBC_2.34"
+    ]
+  },
+  {
+    "command": [
+      "nm",
+      "-u",
+      "/workspace/.cloud-setup/forge-tt-single-worker-gated-release/libforge_core.a"
+    ],
+    "exit_code": 0,
+    "stdout": "symbol-investigation-2.stdout",
+    "stderr": "symbol-investigation-2.stderr",
+    "relevant_lines": [
+      "                 U _ZNSt6thread15_M_start_threadESt10unique_ptrINS_6_StateESt14default_deleteIS1_EEPFvvE"
+    ]
+  },
+  {
+    "command": [
+      "objdump",
+      "-T",
+      "/usr/lib/x86_64-linux-gnu/libstdc++.so.6"
+    ],
+    "exit_code": 0,
+    "stdout": "symbol-investigation-3.stdout",
+    "stderr": "symbol-investigation-3.stderr",
+    "relevant_lines": [
+      "0000000000000000      DF *UND*\t0000000000000000 (GLIBC_2.34) pthread_create",
+      "00000000000e12e0 g    DF .text\t000000000000002a  GLIBCXX_3.4.22 _ZNSt6thread15_M_start_threadESt10unique_ptrINS_6_StateESt14default_deleteIS1_EEPFvvE",
+      "00000000000e1450 g    DF .text\t000000000000010f  GLIBCXX_3.4.21 _ZNSt6thread15_M_start_threadESt10shared_ptrINS_10_Impl_baseEEPFvvE",
+      "00000000000e1560 g    DF .text\t00000000000000e5  GLIBCXX_3.4.11 _ZNSt6thread15_M_start_threadESt10shared_ptrINS_10_Impl_baseEE"
+    ]
+  }
+]

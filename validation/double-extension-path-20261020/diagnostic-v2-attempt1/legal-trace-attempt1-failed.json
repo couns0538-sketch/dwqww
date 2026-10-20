@@ -1,0 +1,6 @@
+{
+  "status": "audit_harness_failure",
+  "error": "chess.InvalidMoveError: invalid uci (use 0000 for null moves): 'a1a1'",
+  "cause": "Initial auditor incorrectly assumed Forge move_to_uci(Move::none()) emits0000. Actual none diagnostic rows use a1a1; these are entry/null metadata records, not played moves.",
+  "correction": "Explicitly identify no-move event classes, require their actual a1a1 sentinel, and legality-check all actual candidate-move events. No raw trace or engine byte changed."
+}

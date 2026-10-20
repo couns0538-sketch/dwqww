@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "updated_utc": "2026-10-20T12:18:31.592776+00:00",
+  "updated_utc": "2026-10-20T12:32:04.087834+00:00",
   "project": "Forge",
   "target": "Native Windows x64 on Ryzen7 9850X3D",
   "scope": "Accepted integration356e863 with timed-only admission-clock repair294cf1b; isolated correctness-tested6.4.12 source8865666; completed valid capped-inconclusive647confirmation and6411NNUE matches; fresh6412vs6411protocol ready, unlaunched. No accepted Elo gain.",
@@ -65,8 +65,8 @@
     "tt_overhead_calibration_experiment_id": "tt-speed-same-binary-aa-20261019",
     "rule50_fix_candidate_id": "forge644-rule50-context-20261019",
     "rule50_fix_correctness_experiment_id": "forge644-rule50-context-release-20261019",
-    "latest_correctness_candidate_id": "forge6412-gated-exclusive-tt-20261020",
-    "latest_correctness_windows_artifact": "releases/forge-6.4.12-candidate-windows-zen5.zip",
+    "latest_correctness_candidate_id": "forge6413-clock-contract-reconcile-20261020",
+    "latest_correctness_windows_artifact": "releases/forge-6.4.13-candidate-windows-zen5.zip",
     "newer_645_strength_status": "No games/Elo; Release8/8, ASan8/8,18947 parent and candidate oracle checks, exact parent parity and7Winechecks passed. Kernel AA noise gate failed; full-engine timing not run.",
     "newer_646_strength_status": "Release8/8, ASan8/8, exactparentparity and7Winechecks passed; timing andstrengthnotmeasured becausehostAAfailed. No new games/Elo.",
     "newer_647_strength_status": "Fresh confirmation completed validly at320games/160pairs:W114D101L105, independentLLR0.4574291989231206, naturalcap inconclusive;2794offlineauditchecks passed. Earlier147-game pilot remains separate, neverpooled. No acceptedgain.",
@@ -74,11 +74,12 @@
     "newer_648_strength_status": "Release8/8,ASan8/8,untimedparentparity419798,28actualcounter-oracleiterations and7Winechecks351063 plus52/52independentartifactaudit passed. Actualtimedstop/Elo/NPSunknown. Hosted647resultdoesnottransfer.",
     "native_648_bundle_status": "Manifest/read-onlyWinechecks+43independentauditpass; nativeAA/pilot/SPRTpending; originalbaselinecomparison,not647isolatedEloevidence.",
     "newer_6411_strength_status": "Valid2048game/1024pair run39348571407:W427D1194L427, independentLLR-0.7565242360831034; naturalcap inconclusive. Final99payload/41input/source/opening/fulllegalreplay/rawlog audit passed; no acceptedgain/equivalence.",
-    "newer_6412_strength_status": "Frozen886:Release9/9,ASan9/9,TSan9/9;7actualAPIgroups/profile,8activeUCIedges,8Winechecks+artifactaudit pass. Count706157to8204 is mutexoperations only. Fresh0/+5SPRT reviewedready, notlaunched.",
+    "newer_6412_strength_status": "Invalid wholeattempt: baseline time forfeit in game85,84retainedrecords. NoEloacceptance orTTregression; originalresultsffc598ad audited.",
     "accepted_clock_origin_status": "Accepted356e863 includes timed-only294cf1b admissionclockrepair, preserving TTrepair and untimed/ponder analysis; correctness evidence only.",
     "untimed_reporting_followup_status": "Separate regression/follow-up underway: frozen886 already includes timedadmission but differs from accepted untimed/ponder reporting. No follow-up correctness result claimed; do not mutate frozenstrengthsource.",
     "next_strength_experiment_id": "forge6412-vs6411-hosted-strength-20261020",
-    "active_strength_run_id": null
+    "active_strength_run_id": null,
+    "newer_6413_strength_status": "All finitecorrectness gates pass; no measuredspeed/Elo. Not demonstrated to repair hostedforfeit."
   },
   "candidates": [
     {
@@ -655,6 +656,22 @@
       "valid_strength_evidence": false,
       "nps_difference": null,
       "followup": "Separate regression/follow-up underway: frozen886 already includes timedadmission but differs from accepted untimed/ponder reporting. No follow-up correctness result claimed; do not mutate frozenstrengthsource."
+    },
+    {
+      "id": "forge6413-clock-contract-reconcile-20261020",
+      "code_commit": "cecf0b9e3af5602053bcaf5c5d16ffc09f58850d",
+      "branch": "forge/clock-contract-reconcile-20261020",
+      "parent_source": "8865666cc0ab4961cd507bae40ff6ce44e9319df",
+      "accepted_integration_merge": "356e863dbd86d2ce24b8ee9486d7406f1d525480",
+      "status": "published_correctness_candidate_not_strength_accepted",
+      "change": "Accepted timed-only origins with legacy caller compatibility; all newer TT/NNUE source preserved.",
+      "correctness_evidence": "validation/upstream-clock-reconcile-20261020",
+      "artifact": {
+        "path": "releases/forge-6.4.13-candidate-windows-zen5.zip",
+        "sha256": "ca2512f2b7a91a3b9e391992fa8e5ebc622e79daa5a9fcc088f3b2819a74cbb7",
+        "runtime_checks": 8
+      },
+      "valid_strength_evidence": false
     }
   ],
   "experiments": [
@@ -6271,6 +6288,58 @@
       "raw_results_commit": "ffc598ad12760e5cdc8cb1ee15383f13787acad8",
       "raw_results_branch": "results/tt-strength-39403471059-1",
       "failure": "Original Baseline loses on time by45ms; firstwarning rejects wholeattempt. Finalfrozeninputrehash passed. Audit/lastUCIexchange investigation underway; no retry."
+    },
+    {
+      "id": "forge6413-clock-contract-reconcile-20261020",
+      "date": "2026-10-20",
+      "baseline_sha": "8865666cc0ab4961cd507bae40ff6ce44e9319df",
+      "candidate_sha": "cecf0b9e3af5602053bcaf5c5d16ffc09f58850d",
+      "accepted_merge_sha": "356e863dbd86d2ce24b8ee9486d7406f1d525480",
+      "branch": "forge/clock-contract-reconcile-20261020",
+      "hypothesis": "Restore accepted timed-only automatic origins and worker-local analysis clocks while preserving legacy callers and all newer TT/NNUE repairs.",
+      "implementation": "Accepted start_time takes precedence over legacy request_start. Automatic facade origin and UCI receipt origin apply only to finite timed searches.",
+      "status": "finite_correctness_validated_performance_strength_unmeasured",
+      "correctness": "Release/ASanUBSan/TSan each9CTest+7main-origin+7actualTTAPI;8activeUCI TSan;6parentcold/warm exact;bench419798Linux/351063Windows;8Wine+872artifactchecks.",
+      "evidence": "validation/upstream-clock-reconcile-20261020/",
+      "failed_approaches": [
+        {
+          "attempt": "Release witness1",
+          "cause": "GNU --wrap missed shared-library pthread_create calls; zero observed helpers invalidated diagnostic. Preserve attempt1. Delegating ELF interposition observes three helpers and permits actual RED/GREEN."
+        }
+      ],
+      "windows_zip": "releases/forge-6.4.13-candidate-windows-zen5.zip",
+      "windows_zip_sha256": "ca2512f2b7a91a3b9e391992fa8e5ebc622e79daa5a9fcc088f3b2819a74cbb7",
+      "benchmark_nodes": {
+        "windows": 351063,
+        "linux": 419798
+      },
+      "strength_games": 0,
+      "elo_estimate": null,
+      "nps_difference": null,
+      "valid_strength_evidence": false,
+      "decision": "Keep isolated correctness repair; no NPS/Elo or hosted-forfeit-remedy claim."
+    },
+    {
+      "id": "forge6413-pinned-see-red-20261020",
+      "date": "2026-10-20",
+      "baseline_sha": "8865666cc0ab4961cd507bae40ff6ce44e9319df",
+      "status": "actual_core_red_reproduced_no_production_patch",
+      "hypothesis": "SEE includes illegal pinned recaptures and can prune a winning capture.",
+      "results": "Two mirrored pawn-winning captures/no legal recapture return see_ge0=false and -800. All12 legality and10 recapture sets match independent oracle; eight legal controls including along-pin and king captures pass.",
+      "evidence": "validation/next-search-20261020/pinned-see-red/",
+      "strength_games": 0,
+      "elo_estimate": null,
+      "valid_strength_evidence": false,
+      "decision": "Preserve actual RED; no emitted-illegal-move or Elo claim. A fix must preserve legal along-ray and king captures."
+    },
+    {
+      "id": "shared-tt-skill-validation-20261020",
+      "date": "2026-10-20",
+      "status": "documentation_validated_existing_skill_improved",
+      "hypothesis": "Clarify reviewed single-worker ownership without weakening ordinary recursion/lifecycle/sanitizer rules.",
+      "evidence": "validation/single-thread-tt-skill-20261020/",
+      "results": "Fresh five-scenario applications before/after, one each;26 static checks passed. No engine or efficiency inference.",
+      "decision": "Existing repository skill updated; no duplicate or global plugin installation claimed."
     }
   ],
   "evidence_archives": [

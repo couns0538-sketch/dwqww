@@ -1,35 +1,33 @@
 # Next experiments
 
-1. Audit the once-launched **6.4.12 versus 6.4.11** test from
-   `.github/hosted-tt-strength/`:0/+5 SPRT,1024 fresh pairs, equal2+0.02,
-   serialThreads1/Hash32/OwnBookfalse; frozen8865666 versus c5cbf97.
-   Run39403471059 failed on a baseline time forfeit; no acceptance. Immutable
-   launchb48af4c/resultsffc598ad and all84records remain retained. Investigate
-   the exact final UCI exchange before another timed experiment; no repeat push
-   or rerun of forge/hosted-tt-strength-20261020-0950. Preserve complete logs/PGNs, actual binaries,
-   source exports and final hashes in verified split archives. A natural cap
-   is inconclusive; faults/deadlines/orphans/changed inputs invalidate acceptance.
-2. Finish the separate regression/follow-up reconciling frozen886 with accepted
-   timed-only clock repair294cf1b on integration356e863. Timed admission is
-   already accounted for; untimed/ponder reporting differs. Preserve the parent
-   failure and validate a new source without changing the strength candidate.
-3. Checkpoint the completed audits: original confirmation39332822379 is valid
-   but capped inconclusive after320 games; recovery2 succeeded at61aabe2 after
-   retained recovery1 inventory-order failure and17/17 corrected checks. NNUE
-   run39348571407 is valid but capped inconclusive after2048 games; final audit
-   passed at results eb1c1b7. No old-game pooling or replay.
+1. Apply the independently reviewed17-line extension-path repair in a new6.4.14
+   branch from frozen6.4.13. Reuse the saved actual RED/GREEN traces and unchanged
+   oracle; validate count6/7 boundaries explicitly as synthetic inherited-state
+   fixtures. Compile full engine, run Release/ASan/TSan and preserve original
+   commands/source/binaries. No normal-root overflow or Elo gain is yet observed.
+2. Finish the separately prepared baseline-forfeit causal diagnostic after all
+   competing builds/archive work is idle. Observe UCI receipt, Worker entry,
+   polls, iterations, result/output flush and controller receipt using monotonic
+   wall and same-thread CPU clocks. One cold case plus original warm history,
+   fixed diagnostic clocks,60-second guard; no games, retries or acceptance.
+3. Consider pin-aware SEE only after current candidate finishes. Two mirrored
+   legal pawn wins with no recapture currently return-800; independent legal
+   controls include along-pin and king captures. Preserve those working cases.
 
-Preserve all candidate branches and the newer accepted clock repair. The older
-TT-tag timeout/truncated replay remains unresolved; its blocked archive retains
-its publication hold. Different sources/settings/runner prevent transferring
-clock reliability or strength conclusions.
+Keep all candidates and newer accepted integration356e863. The TT run39403471059
+is invalid due to baseline time forfeit; keep84records/started85 and original
+resultsffc598ad. Do not retry its launch branch, change tolerance or rescue its
+reserved openings. A longer/new equal-clock test requires a fresh frozen protocol
+and justified operational readiness. Last info time24ms does not locate the stall.
 
-The failed hosted strict3% A/A and noisy local timing trials supply no NPS
-estimate; do not retry their profiles or widen thresholds. The706157→8204 mutex
-count is operations only. The NNUE output counter found0.5139% repeated inputs;
-no cache was implemented. No native Windows/Ryzen strength or full-strength
-Stockfish superiority exists.
+Prior647/644 and651/649 completed cap results remain inconclusive; never pool
+cohorts. Old TT-tag timeout/truncated replay remains under its publication hold.
+Failed strict3% and local A/A profiles supply no NPS estimate; do not widen gates
+or rerun them. The NNUE duplicate counter found0.5139%; no cache was implemented.
+No native Ryzen/Windows strength or full-strength Stockfish superiority exists.
 
-A bounded hosted job may continue independently of chat. Record actual job
-and monitoring state; no persistent24-hour agent or six-hour chat scheduler
-is available.
+Use relevant available skills automatically. Reuse repository skills first;
+validate changes. The existing TT skill update passed its saved scenario checks.
+Skill-creator is not exposed in the checked cloud/executor catalog; do not claim
+it installed. No persistent12-hour agent or automatic six-hour chat scheduler
+is available; preserve actual checkpoints and monitoring state.

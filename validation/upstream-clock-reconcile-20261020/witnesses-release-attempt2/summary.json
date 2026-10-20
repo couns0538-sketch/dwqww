@@ -1,0 +1,206 @@
+{
+  "profile": "release",
+  "source_commit": "cecf0b9e3af5602053bcaf5c5d16ffc09f58850d",
+  "started_utc": "2026-10-20T12:17:25.878057+00:00",
+  "steps": [
+    {
+      "label": "old-origin-compile",
+      "command": [
+        "g++",
+        "-std=c++20",
+        "-O2",
+        "-DNDEBUG",
+        "-march=x86-64-v3",
+        "-mtune=znver5",
+        "-fno-fast-math",
+        "-ffp-contract=off",
+        "-fno-lto",
+        "-Wall",
+        "-Wextra",
+        "-Wpedantic",
+        "-Wconversion",
+        "-Wshadow",
+        "-I/workspace/.cloud-setup/forge-tt-single-worker-gated-source/include",
+        "/workspace/dwqww/validation/upstream-clock-reconcile-20261020/automatic-origin-api.cpp",
+        "/workspace/.cloud-setup/forge-tt-single-worker-gated-release/libforge_core.a",
+        "-pthread",
+        "-Wl,--export-dynamic-symbol=pthread_create",
+        "-ldl",
+        "-o",
+        "/workspace/.cloud-setup/forge-clock-contract-diagnostics/release-attempt2/automatic-origin-red"
+      ],
+      "cwd": "/workspace/dwqww",
+      "expected_exit": 0,
+      "exit_code": 0,
+      "timeout_seconds": 180,
+      "elapsed_seconds": 8.141168970003491,
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "label": "old-origin-red",
+      "command": [
+        "/workspace/.cloud-setup/forge-clock-contract-diagnostics/release-attempt2/automatic-origin-red"
+      ],
+      "cwd": "/workspace/dwqww",
+      "expected_exit": 1,
+      "exit_code": 1,
+      "timeout_seconds": 180,
+      "elapsed_seconds": 0.1793349140061764,
+      "stdout_sha256": "5af7682e1d2161a46371a2faa48c1a7c9f50b9ec6958d0eceb5e828e7ebb41b4",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "label": "origin-compile",
+      "command": [
+        "g++",
+        "-std=c++20",
+        "-O2",
+        "-DNDEBUG",
+        "-march=x86-64-v3",
+        "-mtune=znver5",
+        "-fno-fast-math",
+        "-ffp-contract=off",
+        "-fno-lto",
+        "-Wall",
+        "-Wextra",
+        "-Wpedantic",
+        "-Wconversion",
+        "-Wshadow",
+        "-I/workspace/.cloud-setup/forge-clock-contract-source/include",
+        "/workspace/dwqww/validation/upstream-clock-reconcile-20261020/automatic-origin-api.cpp",
+        "/workspace/.cloud-setup/forge-clock-contract-release/libforge_core.a",
+        "-pthread",
+        "-Wl,--export-dynamic-symbol=pthread_create",
+        "-ldl",
+        "-o",
+        "/workspace/.cloud-setup/forge-clock-contract-diagnostics/release-attempt2/automatic-origin-green"
+      ],
+      "cwd": "/workspace/dwqww",
+      "expected_exit": 0,
+      "exit_code": 0,
+      "timeout_seconds": 180,
+      "elapsed_seconds": 15.737820492009632,
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "label": "origin-green",
+      "command": [
+        "/workspace/.cloud-setup/forge-clock-contract-diagnostics/release-attempt2/automatic-origin-green"
+      ],
+      "cwd": "/workspace/dwqww",
+      "expected_exit": 0,
+      "exit_code": 0,
+      "timeout_seconds": 180,
+      "elapsed_seconds": 0.2710003259999212,
+      "stdout_sha256": "57035456f5783b4a6577975010d8d575dde41d8f8501aa6d210f08235c3e530b",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "label": "actual-api",
+      "command": [
+        "/workspace/.cloud-setup/venv/bin/python",
+        "/workspace/dwqww/validation/upstream-clock-reconcile-20261020/run-actual-api.py",
+        "--build",
+        "/workspace/.cloud-setup/forge-clock-contract-release",
+        "--label",
+        "clock-release",
+        "--source-root",
+        "/workspace/.cloud-setup/forge-clock-contract-source",
+        "--output-dir",
+        "/workspace/dwqww/validation/upstream-clock-reconcile-20261020/witnesses-release-attempt2/actual-api",
+        "--binary-dir",
+        "/workspace/.cloud-setup/forge-clock-contract-diagnostics/release-attempt2",
+        "--optimization",
+        "O3",
+        "--sanitizer",
+        "none"
+      ],
+      "cwd": "/workspace/dwqww",
+      "expected_exit": 0,
+      "exit_code": 0,
+      "timeout_seconds": 180,
+      "elapsed_seconds": 12.805172716995003,
+      "stdout_sha256": "5ddd5b4686e35d8653e15f5ac75f233d60a4e5383b54445fa505555b392e21e7",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "label": "uci-origin-green",
+      "command": [
+        "/workspace/.cloud-setup/venv/bin/python",
+        "/workspace/dwqww/validation/upstream-clock-reconcile-20261020/red-attempt1/candidate-origin-probe.py",
+        "/workspace/.cloud-setup/forge-clock-contract-release/forge",
+        "/tmp/forge-clock-red-gu5ljkgk/libdelay.so",
+        "/workspace/dwqww/validation/upstream-clock-reconcile-20261020/red-attempt1/native_clock_probe.py",
+        "/workspace/dwqww/validation/upstream-clock-reconcile-20261020/witnesses-release-attempt2/uci-origin"
+      ],
+      "cwd": "/workspace/dwqww",
+      "expected_exit": 0,
+      "exit_code": 0,
+      "timeout_seconds": 180,
+      "elapsed_seconds": 3.6857254240021575,
+      "stdout_sha256": "d27736d1e4163d9cca61e7439353a91bd4ff73de029f45aec34a20876a8e0c30",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  ],
+  "sha256_before": {
+    "/workspace/dwqww/validation/upstream-clock-reconcile-20261020/automatic-origin-api.cpp": "f17a3444e7be71dd3443c294d27c92b5b380933471fb9b63cd66c6ccf33174a5",
+    "/workspace/dwqww/validation/upstream-clock-reconcile-20261020/run-actual-api.py": "74d81a326dd3f6f5c310c4da3e982bad7160c1a71fe43e1fd74c5d437e461ed5",
+    "/workspace/dwqww/validation/upstream-clock-reconcile-20261020/actual-api-concurrency.cpp": "25813c23a296b86bc90c045c3f123bfc82db2ed0404cc8de8b069156280e42b1",
+    "/workspace/.cloud-setup/forge-clock-contract-source/include/forge/search.hpp": "a8f905e88a71def150249749282a0e36d5e75557555718570dc7c6db31f68763",
+    "/workspace/.cloud-setup/forge-clock-contract-source/src/search.cpp": "e643a7e2754b4cde2d45cec9e2dcc2e3785879e58f1c23307f97d2268ed6eb7a",
+    "/workspace/.cloud-setup/forge-clock-contract-release/libforge_core.a": "e4593fc2e13ee72078008f2c8d077a537c6982fe846ee0c7b7184baf05860785",
+    "/workspace/.cloud-setup/forge-clock-contract-release/forge": "07c34213bde5d5e280649b86916982dc1828b2d58766a6e068b5db218d448a02",
+    "/workspace/.cloud-setup/forge-tt-single-worker-gated-source/include/forge/search.hpp": "c08a86d47976bd71dc85548a7a3e232f06871d005bfd2aff62c12ecd3fd5b15c",
+    "/workspace/.cloud-setup/forge-tt-single-worker-gated-release/libforge_core.a": "349979d0132b9a729fe6c6743befa16d82d0666434d268b9168288d1f47f0a9d"
+  },
+  "environment_overrides": {
+    "PYTHONDONTWRITEBYTECODE": "1"
+  },
+  "status": "PASS",
+  "uci_result": {
+    "status": "PASS",
+    "scope": "candidate-side origin checks from unchanged accepted probe; not full baseline comparison",
+    "binary_sha256": "07c34213bde5d5e280649b86916982dc1828b2d58766a6e068b5db218d448a02",
+    "checks": {
+      "timed_origin": true,
+      "analysis_origin": true
+    },
+    "results": [
+      {
+        "label": "candidate_timed",
+        "command": "go movetime 1200",
+        "first_info_time_ms": 456,
+        "bestmove_wall_ms": 1203.559,
+        "bestmove": "bestmove e2e4",
+        "exit": 0,
+        "journal_sha256": "7edb1a6b7050b4de4b361293949b3ce5dcc2964c7de97bafe94ffce8bce3e1a3",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "label": "candidate_depth",
+        "command": "go depth 1",
+        "first_info_time_ms": 1,
+        "bestmove_wall_ms": 448.053,
+        "bestmove": "bestmove e2e3",
+        "exit": 0,
+        "journal_sha256": "c611e580d12e6b3c6b93aa7df8279ec32f7b317b486ec4856194e9da28e1b9a9",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    ]
+  },
+  "sha256_after": {
+    "/workspace/dwqww/validation/upstream-clock-reconcile-20261020/automatic-origin-api.cpp": "f17a3444e7be71dd3443c294d27c92b5b380933471fb9b63cd66c6ccf33174a5",
+    "/workspace/dwqww/validation/upstream-clock-reconcile-20261020/run-actual-api.py": "74d81a326dd3f6f5c310c4da3e982bad7160c1a71fe43e1fd74c5d437e461ed5",
+    "/workspace/dwqww/validation/upstream-clock-reconcile-20261020/actual-api-concurrency.cpp": "25813c23a296b86bc90c045c3f123bfc82db2ed0404cc8de8b069156280e42b1",
+    "/workspace/.cloud-setup/forge-clock-contract-source/include/forge/search.hpp": "a8f905e88a71def150249749282a0e36d5e75557555718570dc7c6db31f68763",
+    "/workspace/.cloud-setup/forge-clock-contract-source/src/search.cpp": "e643a7e2754b4cde2d45cec9e2dcc2e3785879e58f1c23307f97d2268ed6eb7a",
+    "/workspace/.cloud-setup/forge-clock-contract-release/libforge_core.a": "e4593fc2e13ee72078008f2c8d077a537c6982fe846ee0c7b7184baf05860785",
+    "/workspace/.cloud-setup/forge-clock-contract-release/forge": "07c34213bde5d5e280649b86916982dc1828b2d58766a6e068b5db218d448a02",
+    "/workspace/.cloud-setup/forge-tt-single-worker-gated-source/include/forge/search.hpp": "c08a86d47976bd71dc85548a7a3e232f06871d005bfd2aff62c12ecd3fd5b15c",
+    "/workspace/.cloud-setup/forge-tt-single-worker-gated-release/libforge_core.a": "349979d0132b9a729fe6c6743befa16d82d0666434d268b9168288d1f47f0a9d"
+  },
+  "inputs_unchanged": true,
+  "completed_utc": "2026-10-20T12:18:06.828196+00:00"
+}

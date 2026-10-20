@@ -53,3 +53,16 @@ Rejected6.4.12 all-stripes prototype `a5d2fcb5b3270c50b96bcc1b2ebd3bc42db5f2fc`:
 Revised6.4.12 gated source `8865666cc0ab4961cd507bae40ff6ce44e9319df`:Release9/9,ASan/UBSan9/9,TSan9/9;7actualAPIgroups/profile,8activeUCITSanedges,8Winechecks+independentartifactaudit pass. Six parent cold/warm cases exact;419798Linux/351063Windows signatures unchanged. Mutex operations706157→8204 are not NPS/Elo. Shared/default/SMP stay synchronized; foreign calls block; lifecycle requires all accessors quiescent. Full1427-file evidence archive is verified in two parts. [Evidence](../validation/single-thread-tt-20261020/STATUS.md).
 
 Fresh6.4.12-versus6.4.11 package reviewed/ready, **not launched at this checkpoint**:0/+5SPRT,1024freshpairs,equal2+0.02,serialThreads1/Hash32/OwnBookfalse. All30proofhashes/23packageentries and root-ready check pass; root will record actual launch ID. A separate regression/follow-up must reconcile accepted timed-only clock contract294cf1b with frozen886 untimed/ponder reporting; timed admission is already accounted for. Keep frozenstrengthsource unchanged. No NPS/Elo or Windows/Ryzen/Stockfish inference.
+
+6.4.13 clock reconciliation (`cecf0b9`): all27CTest suites,21origin+21TTAPI groups,
+8active-UCI TSan edges, exact parent parity and8Wine/872artifact checks passed.
+No NPS/Elo or hosted-forfeit remedy proven. Actual GNU-wrap observation failure
+was retained and corrected with verified ELF interposition. Source and full
+proofs: validation/upstream-clock-reconcile-20261020/.
+
+The once-launched TT run39403471059 failed on a baseline time forfeit in started
+game85. Original84records/42pairs remain invalid for acceptance;126-checkaudit
+and full legal replay pass, original resultsffc598ad. Do not retry or change gates.
+Actual extension-path trace found5038child counter mismatches; isolated proposal
+clears all seven classes at unchanged419798nodes. Production patch is next;
+shallow eligibility was already unchanged, so no decision/Elo gain established.

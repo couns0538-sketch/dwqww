@@ -107,3 +107,39 @@ Frozen Release engine SHA-256 before and after: `d0a556c75e944ebcb9a25b4a836f545
 Actual Forge returned valid `bestmove e2e4` for movetime and `bestmove e2e3` for depth-1, both engine exits 0 with empty stderr. Bestmove walls were 1202.511ms and 553.142ms. These walls are observations, not pass criteria. The controlled shim requests 440ms; substantial extra shared-host scheduling delay is visible, including in fixture wall times. The engine result is a candidate-side reproduction of the accepted origin assertions, not a full actual-engine pre-fix-baseline comparison, a clock-forfeit test, or evidence of speed/strength. Source tracing independently locates the discrepant assignment at frozen UCI `limits.request_start = command_start` for untimed go.
 
 `recommended-engine-only.patch` is an **unapplied** three-file minimal diff against exact frozen 886. It preserves both public field spellings and authoritative accepted precedence, scopes automatic UCI/facade origins, and leaves the deadline/helper/TT code unchanged. It is a recommendation for the separately checkpointed 6.4.13 integration; it does not incorporate accepted metadata/ancestry and must not be mistaken for a full Git merge. Tests and actual GREEN remain pending production-path authorization.
+
+## Authorized implementation prepared (builds pending controller freeze)
+
+Root created `forge/clock-contract-reconcile-20261020` and began a no-commit merge of accepted 356. The assigned worktree resolution now preserves accepted metadata and all frozen 886 source except the reviewed timing selectors plus CMake/UCI 6.4.13 version. `start_time` is appended after the legacy field; accepted automatic timed scope is retained, and the earlier 886 receipt point and finite-timed facade admission accounting remain intact. Explicit accepted origins override legacy origins; direct Worker calls also retain fallback compatibility.
+
+`tests/tests.cpp` adds exact-origin and real search assertions for accepted expiry, both precedence directions, legacy fallback and direct-helper accepted expiry. New `automatic-origin-api.cpp` is a Linux-only standalone witness using a pthread-create timestamp boundary with no delays or new production hooks; exact old and new header/core pairs can verify automatic analysis/facade policy independently of UCI. The actual UCI RED already executed before source edits remains immutable. `BUILD_COMMANDS.md` documents the pending frozen builds, automatic-origin RED/GREEN and unchanged UCI probe GREEN. No Git operation or heavy build was performed by this implementation worker.
+
+A read-only byte comparison found exactly three changed engine paths versus 886: include/forge/search.hpp, src/search.cpp, src/uci.cpp. In src/search.cpp only Worker origin selection and facade origin selection differ; TT/NNUE, legal-root/expired-budget/helper cleanup, ponderhit logic, and search body remain unchanged. Index resolution/staging, merge commit, source freeze and all GREEN verification belong to the controller's next step.
+
+
+## Completed native follow-up validation
+
+Frozen 6.4.13 source `cecf0b9e3af5602053bcaf5c5d16ffc09f58850d` preserves
+accepted356 ancestry and the complete886 candidate. Release, ASan/UBSan and
+TSan each passed all nine CTests, seven main-worker origin groups and seven
+actual TT API groups. The unchanged active-UCI driver passed eight transitions
+under the actual TSan engine, including legal bestmoves, joined readiness and
+complete capture. Default TSan deadlock detection remained enabled. Six frozen
+parent886/candidate cold-warm cases match all ordered nonvolatile search
+records; both native bench11 signatures remain419798nodes. No throughput phase
+ran. Original command lines, raw byte captures and before/after source, header,
+core and binary hashes are retained in the adjacent profile directories.
+
+The first automatic-origin diagnostic attempt was invalid: GNU `--wrap` could
+not observe pthread calls originating inside shared libstdc++, yielding zero
+observed helpers in every case. Its failed validity gate, original sources and
+symbol investigation remain in witnesses-release-attempt1. The corrected
+diagnostic exports pthread_create and delegates unchanged via RTLD_NEXT. New
+attempt2 observes all three real helper admissions, reproduces five old-core
+origin failures with two timed passes, then passes all seven new-core cases.
+The exact accepted candidate-side440ms UCI probe passes: first timed info456ms,
+untimed depth1info1ms, both legal bestmoves/normal exits/empty stderr. This is
+origin validation, not a bestmove-deadline or strength test. REVIEW.md records
+the earlier static production review and original diagnostic version; the
+corrected runtime proof is explicitly separate. No production changes were
+made during this validation. See FINAL_NATIVE_VALIDATION.json for exact scope.

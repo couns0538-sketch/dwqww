@@ -1,0 +1,133 @@
+--- a/src/search.cpp
++++ b/src/search.cpp
+@@ -9,6 +9,49 @@
+ #include <optional>
+ 
+ namespace forge {
++
++// DIAGNOSTIC ONLY: independent true-path counters and bounded untimed traces.
++namespace {
++struct ExtensionDiagnostic {
++    std::array<int, MaxPly + 8> expected{};
++    std::array<std::uint64_t, 8> events{};
++    std::uint64_t children = 0;
++    std::uint64_t single_extensions = 0;
++    std::uint64_t double_extensions = 0;
++    std::uint64_t singular_attempts = 0;
++    void trace(int kind, const char* event, const Board& board, const SearchStack* ss,
++               Move move, int depth, int extension, int before, int after, bool outer_excluded) {
++        if (++events[static_cast<std::size_t>(kind)] > 12) return;
++        std::cerr << "DE_TRACE {\"event\":\"" << event << "\",\"fen\":\"" << board.fen()
++                  << "\",\"move\":\"" << Board::move_to_uci(move) << "\",\"depth\":" << depth
++                  << ",\"ply\":" << ss->ply << ",\"extension\":" << extension
++                  << ",\"frame_before\":" << before << ",\"frame_after\":" << after
++                  << ",\"parent_actual\":" << (ss - 1)->double_extensions
++                  << ",\"expected_path_before_move\":" << expected[static_cast<std::size_t>(ss->ply)]
++                  << ",\"outer_excluded\":" << outer_excluded
++                  << ",\"current_excluded\":" << !ss->excluded_move.is_none() << "}\n";
++    }
++};
++thread_local ExtensionDiagnostic ExtensionDiag;
++struct ExtensionDiagnosticRun {
++    ExtensionDiagnosticRun() { ExtensionDiag = {}; }
++    ~ExtensionDiagnosticRun() {
++        std::cerr << "DE_SUMMARY {\"children\":" << ExtensionDiag.children
++                  << ",\"single_extensions\":" << ExtensionDiag.single_extensions
++                  << ",\"double_extensions\":" << ExtensionDiag.double_extensions
++                  << ",\"singular_attempts\":" << ExtensionDiag.singular_attempts
++                  << ",\"same_ply_before\":" << ExtensionDiag.events[0]
++                  << ",\"same_ply_changed\":" << ExtensionDiag.events[1]
++                  << ",\"single_parent_mismatch\":" << ExtensionDiag.events[2]
++                  << ",\"eligibility_mismatch\":" << ExtensionDiag.events[3]
++                  << ",\"actual_vs_true_path_mismatch\":" << ExtensionDiag.events[4]
++                  << ",\"null_parent_path_mismatch\":" << ExtensionDiag.events[5]
++                  << ",\"probcut_parent_path_mismatch\":" << ExtensionDiag.events[6]
++                  << ",\"incoming_parent_path_mismatch\":" << ExtensionDiag.events[7] << "}\n";
++    }
++};
++} // namespace
++
+ 
+ namespace tune {
+ int LmrQuietBase = 85;
+@@ -882,6 +925,11 @@
+     // Children share killers with their siblings; grandchildren start afresh.
+     (ss + 2)->killers = {};
+ 
++    // Diagnostic checks the inherited outgoing-edge count against independent true path.
++    if (!root_node && (ss - 1)->double_extensions != ExtensionDiag.expected[static_cast<std::size_t>(ply)])
++        ExtensionDiag.trace(7, "incoming_parent_path_mismatch", board, ss, Move::none(), depth, 0,
++                            ss->double_extensions, ss->double_extensions, !excluded.is_none());
++
+     // Transposition table probe.
+     const TTProbe tt_probe = shared_.tt.probe(board.key());
+     const bool tt_hit = tt_probe.hit;
+@@ -952,7 +1000,11 @@
+             (ss + 1)->dirty.count = 0;
+             (ss + 1)->accumulator.valid = false;
+             NullUndo undo;
++            if (ss->double_extensions != ExtensionDiag.expected[static_cast<std::size_t>(ply)])
++                ExtensionDiag.trace(5, "null_parent_path_mismatch", board, ss, Move::none(), depth, 0,
++                                    ss->double_extensions, ss->double_extensions, !excluded.is_none());
+             board.make_null_move(undo);
++            ExtensionDiag.expected[static_cast<std::size_t>(ply + 1)] = ExtensionDiag.expected[static_cast<std::size_t>(ply)];
+             int null_score = -search(board, ss + 1, depth - reduction, -beta, -beta + 1, !cut_node);
+             board.unmake_null_move(undo);
+             if (aborted_) return 0;
+@@ -989,7 +1041,11 @@
+                 (ss + 1)->ply = ply + 1;
+                 record_move(ss, board, move);
+                 Undo undo;
++                if (ss->double_extensions != ExtensionDiag.expected[static_cast<std::size_t>(ply)])
++                    ExtensionDiag.trace(6, "probcut_parent_path_mismatch", board, ss, move, depth, 0,
++                                        ss->double_extensions, ss->double_extensions, !excluded.is_none());
+                 (void)board.make_move(move, undo);
++                ExtensionDiag.expected[static_cast<std::size_t>(ply + 1)] = ExtensionDiag.expected[static_cast<std::size_t>(ply)];
+                 int value = -qsearch(board, ss + 1, -probcut_beta, -probcut_beta + 1);
+                 if (value >= probcut_beta && !aborted_) {
+                     value = -search(board, ss + 1, depth - 4, -probcut_beta, -probcut_beta + 1, !cut_node);
+@@ -1065,10 +1121,18 @@
+             tt_score != ValueNone && !is_mate_score(tt_score) && tt_depth >= depth - 3) {
+             const int singular_beta = tt_score - tune::SingularMargin * depth;
+             const int singular_depth = (depth - 1) / 2;
++            const int diagnostic_before = ss->double_extensions;
++            ++ExtensionDiag.singular_attempts;
+             ss->excluded_move = move;
++            ExtensionDiag.trace(0, "singular_same_ply_before", board, ss, move, depth, 0, diagnostic_before, ss->double_extensions, !excluded.is_none());
+             const int singular_score = search(board, ss, singular_depth, singular_beta - 1, singular_beta, cut_node);
+             ss->double_extensions = inherited_double_extensions;
+             ss->excluded_move = Move::none();
++            if (ss->double_extensions != diagnostic_before)
++                ExtensionDiag.trace(1, "singular_same_ply_changed", board, ss, move, depth, 0, diagnostic_before, ss->double_extensions, !excluded.is_none());
++            if (!pv_node && singular_score < singular_beta - 24 &&
++                ((ss->double_extensions <= 6) != (ExtensionDiag.expected[static_cast<std::size_t>(ply)] <= 6)))
++                ExtensionDiag.trace(3, "double_eligibility_mismatch_true_path", board, ss, move, depth, 0, diagnostic_before, ss->double_extensions, !excluded.is_none());
+             if (aborted_) return 0;
+             if (singular_score < singular_beta) {
+                 extension = 1;
+@@ -1086,6 +1150,17 @@
+             extension = 1;
+         }
+         ss->double_extensions = inherited_double_extensions + (extension == 2);
++        ++ExtensionDiag.children;
++        if (extension == 1) {
++            ++ExtensionDiag.single_extensions;
++            if (ss->double_extensions != (ss - 1)->double_extensions)
++                ExtensionDiag.trace(2, "single_extension_parent_mismatch", board, ss, move, depth, extension, ss->double_extensions, ss->double_extensions, !excluded.is_none());
++        }
++        if (extension == 2) ++ExtensionDiag.double_extensions;
++        const int diagnostic_expected_child = ExtensionDiag.expected[static_cast<std::size_t>(ply)] + (extension == 2);
++        if (ss->double_extensions != diagnostic_expected_child)
++            ExtensionDiag.trace(4, "actual_child_vs_true_path_mismatch", board, ss, move, depth, extension, ss->double_extensions, ss->double_extensions, !excluded.is_none());
++        ExtensionDiag.expected[static_cast<std::size_t>(ply + 1)] = diagnostic_expected_child;
+         const int new_depth = depth - 1 + extension;
+ 
+         ss->current_move = move;
+@@ -1200,6 +1275,7 @@
+ // Iterative deepening driver
+ 
+ SearchInfo Worker::search(Board board, const SearchLimits& limits, bool emit_info, const std::vector<Worker*>& all) {
++    const ExtensionDiagnosticRun diagnostic_run;
+     const auto origin = limits.start_time != std::chrono::steady_clock::time_point{}
+         ? limits.start_time : limits.request_start;
+     start_ = origin == std::chrono::steady_clock::time_point{}

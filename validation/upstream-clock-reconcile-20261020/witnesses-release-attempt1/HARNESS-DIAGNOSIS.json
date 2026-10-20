@@ -1,0 +1,8 @@
+{
+  "classification": "diagnostic instrumentation failure; not engine correctness result",
+  "cause": "GNU --wrap only rewrites static link references; shared libstdc++ std::thread calls bind pthread_create directly and bypassed wrapper.",
+  "evidence": "nm -u actual core imports std::thread::_M_start_thread; objdump -T libstdc++.so.6 shows undefined pthread_create; all original witness rows recorded helpers=0.",
+  "fix": "Diagnostic executable exports actual pthread_create and delegates unchanged via dlsym(RTLD_NEXT); no sleep, no engine hook or source modification.",
+  "followup": "New attempt2 must reproduce all three actual helper creations per case, old5RED/2PASS and new7PASS; default sanitizer instrumentation remains enabled.",
+  "engine_source_commit": "cecf0b9e3af5602053bcaf5c5d16ffc09f58850d"
+}
