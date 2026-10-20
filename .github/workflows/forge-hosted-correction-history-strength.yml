@@ -1,7 +1,9 @@
-# PREPARATION ONLY: disabled until root and Astra review all proofs and inventory.
-# Future trigger, if separately authorized: one new forge/hosted-correction-history-strength-20261020-* push.
-name: Bounded native Linux correction-history strength test (DRAFT DISABLED)
-on: []
+# Frozen one-attempt experiment; source, correctness proofs and workflow hash are gated before builds.
+name: Bounded native Linux correction-history strength test
+on:
+  push:
+    branches:
+      - 'forge/hosted-correction-history-strength-20261020-*'
 permissions:
   contents: write
 concurrency:
@@ -9,7 +11,7 @@ concurrency:
   cancel-in-progress: false
 jobs:
   correction-history-strength:
-    if: ${{ false }} # Root must explicitly replace this only after final review.
+    if: ${{ github.run_attempt == 1 && startsWith(github.ref, 'refs/heads/forge/hosted-correction-history-strength-20261020-') }}
     runs-on: ubuntu-24.04
     timeout-minutes: 360
     env:

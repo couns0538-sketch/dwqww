@@ -33,12 +33,18 @@ reachable envelope and retention of noisy/aliased feedback are explicit risks.
 This is an **unaccepted search ablation**, not a demonstrated bug repair.
 [Experiment](../validation/correction-history-residual-20261020/RESULTS.md).
 
-Fresh18vs17 strength preparation is BLOCKED/unlaunched: actual canonical captures
-now pass; independent review requires final rehash coverage for proof files and
-mandatory source/build provenance before READY. Draft0/+10,.05errors,equal10+0.1,
-256paired openings; no games or Elo result. Historical17binary/source47proofs remain
-genuinely labeled47; all72build inputs equal baselineb590byte-for-byte. A future
-hosted attempt must build actualb590 and pass all9baseline CTests before games.
+Fresh18vs17 strength preparation has closed the independently identified proof
+rehash and mandatory-provenance gaps. The original disabled phase2 is preserved
+at `be2033884a2cd82c5c9bd8d4b56dc2ca6ed72acd`;96 offline tests passed there.
+Root binds335 exact finite proof files and verifies24 package/workflow entries.
+After enabling the restricted first-attempt-only push workflow,94 applicable
+offline tests and9 actual missing-gate controls pass. Two historical draft-state
+assertions remain unchanged and are replaced by explicit READY/negative checks.
+Final enabled-metadata review precedes the sole trigger push; **not launched yet**.
+Frozen0/+10,.05errors,equal10+0.1,256paired openings; no games or Elo result.
+Historical17binary/source47proofs remain genuinely labeled47; all72build inputs
+equal baselineb590byte-for-byte. The hosted attempt must build actualb590 and
+pass all9baseline CTests before games; candidate must pass all10.
 
 Previous isolated finite-correctness-tested engine is **Forge6.4.17**, source
 `47f0560221d986e41a309853e1295c557fcf5bf6`, on

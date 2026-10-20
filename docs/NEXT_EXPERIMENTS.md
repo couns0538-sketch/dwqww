@@ -1,16 +1,17 @@
 # Next experiments
 
-1. Complete the18vs17 strength harness before launch: include every external proof
-   in final frozen-input rehash and require exact source/build provenance, source
-   exports, compiler configs, binary/core hashes and9baseline/10candidate CTests.
-   Preserve prior draft/review/RED evidence; obtain final independent/root review.
+1. Finish the final enabled-metadata review, then publish and trigger exactly one
+   new18vs17 attempt. Proof-final-rehash and mandatory build-provenance gaps are
+   closed;335 exact proof files and24 package entries are bound.96 phase2 tests
+   and94 applicable READY-state tests plus9 missing-gate controls pass. Original
+   phase2 and every RED result remain preserved at be203388 and in current Git.
    Actual18sourcefc51e43, baselineb590checkpoint with17engine identical47; genuine
    historical47validation plus explicit72input equivalence avoids a redundant local
    build, but the future host must build actualb590 and pass its9tests before games.
 2. Publish complete18source/native/Windows evidence and candidate ZIP, verify remote
    bytes, then freeze exactly one fresh native equal10+0.1 SPRT attempt:0/+10,
    alpha=beta=.05, serialT1/Hash32/OwnBookfalse,4AA+256SPRT pairs,18000s emergency.
-   Currently BLOCKED/unlaunched. Natural pair cap without boundary is inconclusive;
+   Final enabled-metadata review pending; unlaunched. Natural pair cap without boundary is inconclusive;
    any fault invalidates acceptance. No retries/resume/pooling/gate relaxation.
 3. Complete18archive is verified:1,434live originals/1,446payloads,123,154,486B
    split into67,108,864+56,045,622B. Publish bothparts andreceipts; no raw files

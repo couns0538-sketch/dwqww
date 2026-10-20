@@ -221,3 +221,17 @@ reassembled/hashchecked everypayload and comparedall1,434live bytes. Trustedarch
 unchanged; no ignores/untracking/deletions. Mutable futurestrength package excluded.
 Candidate WindowsZIP and native/Windows proof publicbyte-readbackPASS atdaa09e7.
 [Archive](../validation/correction-history-native-20261020/archive-complete/ROOT-VERIFY.json).
+
+18vs17 phase2 collector/review closure: original blocked package preserved at
+be2033884a2cd82c5c9bd8d4b56dc2ca6ed72acd. Required source/build evidence, final
+proof rehash, executable-mode copying/preflight and450s/480s cleanup headroom
+are repaired without changing engine code.96/96 original offline tests PASS;
+independent16/16 PASS. Exact source review proves one arithmetic line plus
+version/test metadata, NNUE unchanged. Root rehashes/binds335 actual finite
+proofs;24 package/workflow hashes PASS. Enabled-only-final review pending,
+94 applicable offline tests PASS23.282s and9missing-gate controls rejected;
+2 historical actual-DRAFT assertions remain preserved and are replaced by
+explicit READY/negative controls. No18 engine execution or match by preparation;
+no games, NPS ratio, Elo estimate or source acceptance. One new attempt only,
+serial10+0.1 SPRT0/+10,.05errors,4AA+256SPRT pairs; prior anomalies remain open.
+[Ready checks](../validation/hosted-correction-history-strength-20261020/ROOT-READY-METADATA.json).
