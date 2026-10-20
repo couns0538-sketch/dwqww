@@ -1,0 +1,1 @@
+2026-10-20 03:00 CEST: P1 possible SMP transposition-table torn entry publication in src/search.cpp. Base 2fc649effb6d2f09f4fdf63b44d59283fe26b616. Engine not run; local isolated interleaving test passed. Verify with ThreadSanitizer. Do not merge without testing.
