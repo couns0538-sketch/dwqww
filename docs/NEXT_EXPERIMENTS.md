@@ -1,15 +1,16 @@
 # Next experiments
 
-Active20sourcefc2391870b3bf2cd4d8fc20c7406ea6439c69c5e is now frozen and published:
-pawn attack-span fill, preserving19qualified gains. Prototype12Release/37320mask
-checks and95publictracepositions PASS. Root authorized ONE serial freshnativechain:
-Release12→bench321912+56parent19cold/warmsearches→ASan12→defaultTSan12→8activeUCI→
-originalsnapshot→independentfullaudit. First frozen20Release12/12, ASan12/12 and56search parity passed; TSan is running. No full
-native/Windows qualification or20speed/Elo result yet.
-Do not duplicate any process or mutate frozen source. Windows20preparation is closed
-untilrootfullnativeclearance. New performance-only packet is explicitly disabled,
-with actual20native/Windows proofs and five-command captures still pending.
-
+Active20sourcefc2391870b3bf2cd4d8fc20c7406ea6439c69c5e is frozen/published.
+First native36CTest/8active/56exact cold-warm searches passed, independent2363audit
+and root242evidence/564originals/9singles/75Gitblobs verified. All source and raw
+native evidence is immutable. Next capture two genuine19/20 five-command producer
+streams with provenance, then Windows20j1/11Wine/audit and calibrated hosted
+performance after all final gates/reviews. Do not duplicate any completed gate
+or mutate frozen source. Disabled42test performance packet is not launch-ready.
+Native schemas differ: read genuine20native_ctests/default_tsan_active_checks/
+exact_cold_warm_searches plus all3 explicit attempts=1, do not assume19keys.
+The first root metadata extension made a nonexistent-key lookup before any write;
+it is retained separately, and genuine native receipts remain unchanged.
 
 1. Keep qualified19source61f5980 and its immutable evidence. The one performance
    run39510219605 completed and was independently audited: CPUthroughput+1.6084%

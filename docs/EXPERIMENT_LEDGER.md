@@ -347,3 +347,14 @@ no compiler/runtime/package executed. Independent disabledperformance packet
 review clear but actual qualification/captures still missing. Environment recovery
 draft revision8 saved and backendreadbackverified atpublished8fa2e10; installed
 script/network/secrets/runtime unchanged, not applied/published/restoration-tested.
+
+20nativeclosed23:21: first36CTest/37320pawn+347runtime perprofile,8activeTSan,
+56exactsearches/321912 PASS; independent2363checks and root all242closedfiles,
+564originals/modes+9singles+75actualGitblobs verified. NNUEobject equals19. No
+source/engine failure or enginegate retry. Root metadata extension initially
+assumed19engine_gate_retries key in20final and raised KeyError beforewrites;
+actual20schema/profileattempts used, originalcoreproof retained, no receipt mutation.
+Windows and20speed/Elo remain pending. Actualqueenray codegen already reusesboth
+rays in traced/normal bothcolors, so drop that speculative optimization with
+disassembly evidence. Next remaining source hypothesis is nearestpawn distance,
+after20qualification/performance.

@@ -1,0 +1,7 @@
+Actual frozen20 GCC14.2 Release code **already reuses both queen rays** for Trace=false and Trace=true, for both colors. Drop ranked proposal2 for this target; source duplication does not survive code generation. No production change or timing is warranted by that premise.
+
+Core SHA256 `fa303b864212fee05dbde962462462fb713eb58be7684188e28cfaa4dc25b876`; extracted eval.cpp.o SHA256 `0c33626adeb5e8dbe3942a3f70092786ac3b6db36e3711e1029f6ab208b6fc8a`. Actual flags are O3,strictx86-64-v3,znver5,no-fast-math,no-FMA-contraction,no-LTO; object's compiler comment is GCC14.2.0.
+
+All offsets are relocatable .text offsets. Trace=false white ray results are loaded once into r9/r8 at0xdd9/0xdff, combined for mobility at0xe03..0xe06, and reused for WeakQueen at0xeac..0xed1. Black analog loads0x11d0/0x11f6, combines0x11fa..0x11fd, reuses0x12bb..0x12dd. Trace=true white loads r8/rdi at0x3ab7/0x3ad2, combines0x3ad6..0x3ad9, reuses0x3b81..0x3bad (trace636 increment0x3ba5); black loads r8/rsi at0x3eb4/0x3ecf, combines0x3ed3..0x3ed6, reuses0x3f90..0x3fbc (trace636 decrement0x3fb4). There is no second magic-index computation or slider-table lookup between each mobility union and WeakQueen predicate.
+
+Full disassembly, flags and structured hashes/commands are saved alongside this note. Extracted object remains in unique external scratch. No compiler, engine, build, timing or Git mutation was run. This conclusion is specific to the inspected Linux object, not a speed measurement or a Windows codegen result. Ranked proposal1 remains a separate unmeasured hypothesis.

@@ -15,10 +15,13 @@ version19 passed12Release CTests,37320mask checks and95public cached/uncached/fu
 trace positions (61465integers identical). Original first fixture and one relocated
 link-dependency-path failure are preserved; final label-only fixture passes.
 Frozen20 differs from final prototype only in CMake/UCI version strings.
-**Frozen20 first Release12/12 and56cold/warm parent19search parity PASS;**
-bench321912 and compiled NNUE object byte-identical to19. FirstASan/UBSan12/12
-passed withoutdiagnostics; defaultTSan is running. Windows72source-only export
-and exact5filedelta pass; full native, Windows runtime and20speed/Elo remain pending.
+**Frozen20 first Release12/12, ASan/UBSan12/12 and defaultTSan12/12 PASS,**
+including37320pawn+347runtime checks in each profile,8activeUCI and56cold/warm
+parent19search comparisons. Bench321912; compiled NNUE object byte-identical19.
+Independent2363check audit passes; root rehashed242evidence files,564whole-tree
+originals,9consumed parent originals and75actualGit source blobs. Windows72source
+export/five-filedelta/483parentpreservation pass; Windows runtime and calibrated
+20speed/Elo remain pending. [Root native proof](../validation/pawn-span-fill-20261020/root-verification/NATIVE.json).
 [Source freeze](../validation/pawn-span-fill-native-20261020/ROOT-FROZEN-SOURCE-GATES.json).
 [Public trace evidence](../validation/pawn-span-fill-20261020/independent-review/PUBLIC-DIFFERENTIAL.md).
 Latest fully qualified workload-speed source remains19 below; accepted5101unchanged.

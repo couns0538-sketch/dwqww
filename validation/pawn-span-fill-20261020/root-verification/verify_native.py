@@ -1,0 +1,88 @@
+#!/usr/bin/env python3
+"""Root read-only rehash of frozen native20 originals; executes no engine/build."""
+from pathlib import Path
+import datetime, hashlib, io, json, stat, subprocess, tarfile
+
+REPO = Path('/workspace/dwqww')
+HERE = Path(__file__).resolve().parent
+EVIDENCE = REPO / 'validation/pawn-span-fill-native-20261020'
+REV = 'fc2391870b3bf2cd4d8fc20c7406ea6439c69c5e'
+
+def sha(path):
+    return hashlib.sha256(path.read_bytes()).hexdigest()
+
+def load(path):
+    return json.loads(path.read_text())
+
+def check_file(path, expected):
+    assert path.is_file() and not path.is_symlink(), str(path)
+    assert sha(path) == expected['sha256'], str(path)
+    assert path.stat().st_size == expected['bytes'], str(path)
+    assert stat.S_IMODE(path.stat().st_mode) == expected['mode'], str(path)
+
+def main():
+    receipt = load(EVIDENCE / 'FINAL-RECEIPT.json')
+    snapshot = load(EVIDENCE / 'ORIGINALS-FINAL-SHA256.json')
+    assert snapshot['source_commit'] == REV
+    assert snapshot['engines_or_builds_executed_for_snapshot'] is False
+    counts = {}
+    for label, tree in snapshot['trees'].items():
+        root = Path(tree['root'])
+        actual = {str(p.relative_to(root)) for p in root.rglob('*') if p.is_file()}
+        assert actual == set(tree['files']), label
+        for name, expected in tree['files'].items():
+            check_file(root / name, expected)
+        directories = {'.': stat.S_IMODE(root.stat().st_mode), **{
+            str(p.relative_to(root)): stat.S_IMODE(p.stat().st_mode)
+            for p in root.rglob('*') if p.is_dir()}}
+        assert directories == tree['directory_modes'], label
+        counts[label] = len(actual)
+    assert counts == {'source': 75, 'release': 163, 'asan': 163, 'tsan': 163}
+    for record in snapshot['single_files'].values():
+        check_file(Path(record['path']), record)
+    compiler = snapshot['compiler']
+    assert sha(Path(compiler['path'])) == compiler['sha256']
+    assert str(Path(compiler['path']).resolve()) == compiler['resolved_path']
+    archive = subprocess.check_output(['git', 'archive', REV, 'CMakeLists.txt', 'LICENSE', 'bench', 'include', 'src', 'tests', 'tools'], cwd=REPO)
+    with tarfile.open(fileobj=io.BytesIO(archive)) as stream:
+        git_inputs = {m.name: hashlib.sha256(stream.extractfile(m).read()).hexdigest()
+                      for m in stream.getmembers() if m.isfile()}
+    source = {n: v['sha256'] for n, v in snapshot['trees']['source']['files'].items()}
+    assert git_inputs == source
+    gate = load(EVIDENCE / 'ROOT-FROZEN-SOURCE-GATES.json')
+    assert gate['inputs'] == source and gate['source_commit'] == REV
+    audit = load(EVIDENCE / 'independent-audit.json')
+    assert audit['status'] == 'passed' and audit['source_commit'] == REV
+    assert audit['check_count'] == len(audit['checks']) == 2363
+    assert audit['failed_check_count'] == 0 and all(c['passed'] for c in audit['checks'])
+    assert audit['engine_compiler_or_test_execution_during_audit'] is False
+    for profile in ('release', 'asan', 'tsan'):
+        result = load(EVIDENCE / ('frozen-' + profile + '-attempt1/summary.json'))
+        assert result['status'] == 'PASS' and result['source_commit'] == REV
+        assert len(result['ctest_names']) == 12
+    assert load(EVIDENCE / 'release-parity-wrapper-attempt1/summary.json')['status'] == 'PASS'
+    assert load(EVIDENCE / 'active-uci-wrapper-attempt1/COMMAND.json')['status'] == 'PASS'
+    nnue = Path(snapshot['trees']['release']['root']) / 'CMakeFiles/forge_core.dir/src/nnue.cpp.o'
+    assert sha(nnue) == snapshot['single_files']['baseline_nnue_object']['sha256']
+    report = {'status': 'PASS_ROOT_FULL_NATIVE20_ORIGINALS_AND_GIT_SOURCE_REVIEW',
+              'utc': datetime.datetime.now(datetime.timezone.utc).isoformat(),
+              'source_commit': REV, 'whole_live_original_trees': counts,
+              'whole_live_original_files': sum(counts.values()),
+              'single_originals_rehashed': len(snapshot['single_files']),
+              'source_git_blobs_verified': len(git_inputs),
+              'ctest': 36, 'runtime_psqt_checks_each_profile': 347,
+              'pawn_span_checks_each_profile': 37320,
+              'active_uci': 8, 'exact_cold_warm_searches': 56,
+              'independent_audit_passed': audit['check_count'],
+              'native_final_receipt_sha256': sha(EVIDENCE / 'FINAL-RECEIPT.json'),
+              'originals_snapshot_sha256': sha(EVIDENCE / 'ORIGINALS-FINAL-SHA256.json'),
+              'native_nnue_object_bit_identical_to_parent19': True,
+              'nnue_object_sha256': sha(nnue),
+              'engine_or_build_execution_by_this_review': 0,
+              'nps_difference': None, 'elo_gain': None}
+    with (HERE / 'NATIVE.json').open('x') as output:
+        json.dump(report, output, indent=2); output.write('\n')
+    print(json.dumps(report, indent=2))
+
+if __name__ == '__main__':
+    main()
