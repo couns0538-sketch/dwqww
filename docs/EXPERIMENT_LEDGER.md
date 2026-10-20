@@ -209,3 +209,15 @@ failed before ZIP verdict; exactpath corrected, original candidate/audit unchang
 Fresh strength draft remains BLOCKED on two independently identified provenance/
 final-rehash harness gaps; no18launch or games. All72baselineb590build inputs equal
 genuinelybuilt47source; no binaries relabeled and futureactualb590CI9CTest required.
+
+
+6.4.18 complete checkpoint independently verified:1,434live originals unchanged
+before/copy/after,1,446payloads,123,154,486B split67,108,864+56,045,622B.
+CombinedSHAfc000c6fc58b38c023d636880e82bf191b297fc8b7ea529d9c14153c8fbe5868;
+manifest3000a9c26a427104eed73a51da6a344e49e76ae23b58450823df4a542a1028d4.
+Full native3builds/source, both prototypeattempts, Windows fullbuild/source/capture,
+release ZIP/expanded bytes and all current finite proof records retained. Root
+reassembled/hashchecked everypayload and comparedall1,434live bytes. Trustedarchiver
+unchanged; no ignores/untracking/deletions. Mutable futurestrength package excluded.
+Candidate WindowsZIP and native/Windows proof publicbyte-readbackPASS atdaa09e7.
+[Archive](../validation/correction-history-native-20261020/archive-complete/ROOT-VERIFY.json).

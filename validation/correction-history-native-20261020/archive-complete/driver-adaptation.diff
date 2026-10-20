@@ -1,0 +1,210 @@
+--- archive17/archive_complete.py
++++ archive18/archive_complete.py
+@@ -1,7 +1,7 @@
+ #!/usr/bin/env python3
+-"""Freeze complete isolated 6.4.17 evidence after explicit root clearance.
+-
+-No engine execution, Git mutation, ignore edit, deletion, or prior-6.4.16 archive copy.
++"""Freeze complete isolated 6.4.18 evidence after explicit root clearance.
++
++No engine execution, Git mutation, ignore edit, deletion, or prior-6.4.17 archive copy.
+ Originals, stage, trusted-archiver split outputs and verification receipts remain local.
+ """
+ from pathlib import Path
+@@ -12,18 +12,19 @@
+ import os
+ import shutil
+ import stat
+-import subprocess
+ import sys
++import tarfile
+ 
+ REPO = Path('/workspace/dwqww')
+-EXPERIMENT = REPO / 'validation/promotion-see-20261020'
++EXPERIMENT = REPO / 'validation/correction-history-native-20261020'
++WINDOWS = REPO / 'validation/correction-history-windows-20261020'
+ OUT = EXPERIMENT / 'archive-complete'
+-STAGE = Path('/workspace/.cloud-setup/forge-promotion-47f0560-complete-evidence-stage')
++STAGE = Path('/workspace/.cloud-setup/forge-correction-fc51-complete-evidence-stage')
+ ARCHIVER = REPO / '.github/hosted-tt-strength/archive_results.py'
+ EXPECTED_ARCHIVER = '952a090fee4f5ce67df93f5f389be5e46138f5b5787161c96156d80ad1fbaf6c'
+-COMMIT = '47f0560221d986e41a309853e1295c557fcf5bf6'
+-PARENT = '553caef144ae2e1b696ba35d7a0eb1a50a03fde9'
+-NAME = 'forge-promotion-47f0560-20261020-complete'
++COMMIT = 'fc51e43c26f735cbc1ffabf0fcf64f48a4592c0b'
++PARENT = '47f0560221d986e41a309853e1295c557fcf5bf6'
++NAME = 'forge-correction-fc51e43-20261020-complete'
+ SPLIT_SIZE = 64 * 1024 * 1024
+ 
+ 
+@@ -43,10 +44,6 @@
+ 
+ def load(path):
+     return json.loads(path.read_text())
+-
+-
+-def git(*arguments):
+-    return subprocess.check_output(['git', *arguments], cwd=REPO)
+ 
+ 
+ def identity(group, path):
+@@ -80,7 +77,7 @@
+     files.sort(key=lambda row: row['payload_path'])
+     directories.sort(key=lambda row: row['payload_path'])
+     assert len({row['payload_path'] for row in files}) == len(files), 'Duplicate payload paths'
+-    assert all(not any('/' + old + '/' in row['original'] for old in ['pin-mask-see-20261020', 'pin-aware-see-20261020', 'double-extension-path-20261020']) for row in files)
++    assert all(not any('/validation/' + old + '/' in row['original'] for old in ['promotion-see-20261020', 'pin-mask-see-20261020', 'pin-aware-see-20261020', 'double-extension-path-20261020']) for row in files)
+     return {'files': files, 'directories': directories}
+ 
+ 
+@@ -91,49 +88,72 @@
+ 
+ 
+ def validate_frozen_sources():
+-    for directory, manifest in [
+-        (Path('/workspace/.cloud-setup/forge-promotion-source'), EXPERIMENT / 'native/frozen-source-47f0560-files.json'),
+-        (Path('/workspace/.cloud-setup/forge-promotion-windows-source'), EXPERIMENT / 'windows/source-hashes.json')]:
+-        expected = load(manifest)
+-        actual = {path.relative_to(directory).as_posix(): sha(path) for path in directory.rglob('*') if path.is_file()}
+-        assert actual == expected, str(directory) + ' differs from frozen manifest'
+-        for name, digest in expected.items():
+-            assert hashlib.sha256(git('show', COMMIT + ':' + name)).hexdigest() == digest, name
+-    # Preservation can retain a completed failed gate; it never turns failure
+-    # into acceptance. Root clearance attests that every included writer stopped.
++    # IO-only: validate saved root-audited source/build maps and original TAR.
++    # This repeats byte identity, not an independent Git revision authenticity audit.
++    native = load(EXPERIMENT / 'ORIGINALS-FINAL-SHA256.json')
++    final = load(EXPERIMENT / 'FINAL-RECEIPT.json')
++    assert native['source_commit'] == final['source_commit'] == COMMIT
++    for label, tree in native['trees'].items():
++        root = Path(tree['root'])
++        actual = {p.relative_to(root).as_posix(): {'sha256': sha(p), 'bytes': p.stat().st_size}
++                  for p in root.rglob('*') if p.is_file()}
++        assert actual == tree['files'], 'Frozen native tree mismatch: ' + label
++    for label, item in native['single_files'].items():
++        path = Path(item['path'])
++        assert sha(path) == item['sha256'] and path.stat().st_size == item['bytes'], label
++    original_tar = EXPERIMENT / 'frozen-source-fc51e43.tar'
++    assert sha(original_tar) == final['source_archive_sha256']
++    with tarfile.open(original_tar, 'r:') as archive:
++        members = [member for member in archive.getmembers() if member.isfile()]
++        assert len({member.name for member in members}) == len(members)
++        tar_files = {member.name: {'sha256': hashlib.sha256(archive.extractfile(member).read()).hexdigest(),
++                                   'bytes': member.size} for member in members}
++    assert tar_files == native['trees']['source']['files']
++    windows_source = Path('/workspace/.cloud-setup/windows6418-source')
++    expected = load(WINDOWS / 'source-hashes.json')
++    actual = {p.relative_to(windows_source).as_posix(): sha(p)
++              for p in windows_source.rglob('*') if p.is_file()}
++    assert actual == expected, 'Frozen Windows source manifest mismatch'
++    native_source = native['trees']['source']['files']
++    assert all(name in native_source and native_source[name]['sha256'] == value
++               for name, value in expected.items()), 'Native/Windows source mismatch'
++    windows_evidence = load(WINDOWS / 'evidence-SHA256.json')
++    for name, item in windows_evidence.items():
++        path = WINDOWS / name
++        assert sha(path) == item['sha256'] and path.stat().st_size == item['bytes'], name
+     for profile in ['release', 'asan', 'tsan']:
+-        result = load(EXPERIMENT / ('native/frozen-' + profile + '-attempt1/summary.json'))
++        result = load(EXPERIMENT / ('frozen-' + profile + '-attempt1/summary.json'))
+         assert result['status'] in {'PASS', 'FAILED'}, 'Native writer still running: ' + profile
+-    for name in ['windows/final-verification.json', 'windows/independent-audit.json']:
+-        result = load(EXPERIMENT / name)
+-        assert result['status'] in {'passed', 'failed'}, 'Windows writer not complete: ' + name
++    win_final = load(WINDOWS / 'final-verification.json')
++    assert win_final['source_and_tests_commit'] == COMMIT
++    assert win_final['status'] in {'passed', 'failed'}, 'Windows writer not complete'
+ 
+ 
+ def prospective_ignore(path):
+-    # Only new17 validation raw files. User-facing releases and prototype files
+-    # remain outside this list even though their bytes are archived.
+-    if not path.is_relative_to(EXPERIMENT):
++    # Only exact duplicate raw inputs from the new18 validation trees qualify.
++    # User release ZIP/EXEs and all outside prototypes remain excluded.
++    if path.is_relative_to(EXPERIMENT):
++        relative = path.relative_to(EXPERIMENT).as_posix()
++        return relative.startswith('frozen-source-') and path.suffix.lower() == '.tar'
++    if not path.is_relative_to(WINDOWS):
+         return False
+-    relative = path.relative_to(EXPERIMENT).as_posix()
+-    if relative.startswith('native/') and path.suffix.lower() == '.tar':
++    relative = path.relative_to(WINDOWS).as_posix()
++    if relative.startswith('originals/binaries/') and path.suffix.lower() == '.exe':
+         return True
+-    if relative.startswith('windows/originals/binaries/') and path.suffix.lower() == '.exe':
++    if relative.startswith('originals/static-core/') and path.suffix.lower() == '.a':
+         return True
+-    if relative.startswith('windows/originals/static-core/') and path.suffix.lower() == '.a':
+-        return True
+-    return relative in {'windows/runtime-attempt1/disassembly.log', 'windows/windows-originals.zip'}
++    return relative in {'runtime-attempt1/disassembly.log', 'windows-originals.zip'}
+ 
+ 
+ def main():
+     assert sys.dont_write_bytecode, 'Use Python -B / PYTHONDONTWRITEBYTECODE=1 to keep imported helpers unchanged'
+-    assert sys.argv[1:] == ['--root-clearance', '17-ARCHIVE-CLEAR'], 'Explicit root-clearance invocation required'
++    assert sys.argv[1:] == ['--root-clearance', '18-ARCHIVE-AUTHORIZED'], 'Explicit root-clearance invocation required'
+     clearance = load(OUT / 'ROOT-CLEARANCE.json')
+-    assert clearance['authorization'] == '17 ARCHIVE CLEAR' and clearance['provided_by'] == '/root'
++    assert clearance['authorization'] == '18 COMPLETE ARCHIVE TASK AUTHORIZED' and clearance['provided_by'] == '/root'
+     assert clearance['included_writers_quiescent'] is True
+     assert not STAGE.exists(), 'Never reuse staging or overwrite evidence'
+     assert not (OUT / 'RESULTS.json').exists(), 'Never overwrite an archive receipt'
+     assert sha(ARCHIVER) == EXPECTED_ARCHIVER
+-    assert git('show', 'HEAD:.github/hosted-tt-strength/archive_results.py') == ARCHIVER.read_bytes()
+     validate_frozen_sources()
+     roots, originals = roots_and_originals()
+     before = inventory(roots, originals)
+@@ -153,19 +173,19 @@
+     assert after_staging == before, 'Included originals changed during staging; retain this failed attempt'
+     provenance = STAGE / 'archive-provenance'
+     provenance.mkdir()
+-    for name in ['archive_complete.py', 'INPUT-SCOPE.json', 'PREPARATION.json', 'DRIVER-REVIEW.json', 'PARENT-ADAPTATION.json', 'STATIC-CHECKS.json', 'STATIC-CHECKS-FAILED-ATTEMPT1.json', 'driver-adaptation.diff', 'ROOT-CLEARANCE.json']:
++    for name in ['archive_complete.py', 'INPUT-SCOPE.json', 'PREPARATION.json', 'DRIVER-REVIEW.json', 'PARENT-ADAPTATION.json', 'STATIC-CHECKS.json', 'PREPARATION-READ-NOTES.json', 'driver-adaptation.diff', 'ROOT-CLEARANCE.json']:
+         shutil.copy2(OUT / name, provenance / name)
+     save(provenance / 'LIVE-FILES-AND-MODES.json', before)
+     command = {'operation': 'unchanged trusted archive_results.archive_results followed by verify_archive',
+-               'driver_command': [sys.executable, '-B', str(Path(__file__)), '--root-clearance', '17-ARCHIVE-CLEAR'],
++               'driver_command': [sys.executable, '-B', str(Path(__file__)), '--root-clearance', '18-ARCHIVE-AUTHORIZED'],
+                'archiver_path': str(ARCHIVER), 'archiver_sha256': EXPECTED_ARCHIVER,
+-               'archiver_byte_matches_git_HEAD': True, 'git_head_at_clearance': git('rev-parse', 'HEAD').decode().strip(),
++               'trusted_archiver_exact_pinned_hash': True, 'git_commands_executed': False,
+                'frozen_candidate_source': COMMIT, 'parent_source': PARENT,
+                'input': str(STAGE), 'output': str(OUT), 'archive_name': NAME,
+                'split_size_bytes': SPLIT_SIZE, 'engine_executed': False,
+                'excluded_to_prevent_recursion': [str(OUT)],
+-               'separate_experiments_excluded': ['.github/hosted-promotion-see-strength', 'validation/hosted-promotion-see-strength-20261020'],
+-               'older_evidence_reference':'Parent16 and older experiment trees remain in their verified archives and Git. Full local promotion research/prototype is included because it directly establishes this repair; no older validation/build/release tree is recopied.',
++               'separate_experiments_excluded': ['.github/hosted-correction-history-strength', 'validation/hosted-correction-history-strength-20261020'],
++               'older_evidence_reference':'Parent17andolder experiment trees remain in verified archives/Git. Only exact parent17core referenced by nativeREDproof is included, not its whole build. Full correction-history original attempt1andattempt2 prototype trees are directly included.',
+                'recorded_utc': datetime.datetime.now(datetime.timezone.utc).isoformat()}
+     save(provenance / 'ARCHIVE-COMMAND.json', command)
+     save(provenance / 'STAGING-CHECK.json', {'status': 'PASS', 'live_before_equals_after_staging': True,
+@@ -198,9 +218,9 @@
+         candidates.append({'gitignore_line': '/' + path.relative_to(REPO).as_posix(), 'live_path': str(path),
+                            'archive_member': 'files/' + archived['path'], 'size': archived['size'],
+                            'sha256': archived['sha256'], 'verified_live_and_archive_byte_match': True, 'ignore_applied': False})
+-    save(OUT / 'IGNORE-CANDIDATES.json', {'scope': 'Only exact new17 validation raw TAR, Windows original binaries/core, disassembly and windows-originals.zip paths verified against archive. User-facing release ZIP/exes and prototype files excluded; no Git or ignore edit.', 'candidates': candidates})
++    save(OUT / 'IGNORE-CANDIDATES.json', {'scope': 'Only exact new18 validation raw TAR, Windows original binaries/core, disassembly and windows-originals.zip paths verified against archive. User-facing release ZIP/exes and prototype files excluded; no Git or ignore edit.', 'candidates': candidates})
+     counts = {group: sum(row['group'] == group for row in before['files']) for group in sorted({row['group'] for row in before['files']})}
+-    receipt = {'status': 'PASS_COMPLETE_17_ARCHIVE_VERIFIED', 'recorded_utc': datetime.datetime.now(datetime.timezone.utc).isoformat(),
++    receipt = {'status': 'PASS_COMPLETE_18_ARCHIVE_VERIFIED', 'recorded_utc': datetime.datetime.now(datetime.timezone.utc).isoformat(),
+                'source_commit': COMMIT, 'parent_source_commit': PARENT, 'archive': manifest['archive'],
+                'manifest': str(manifest_path), 'manifest_sha256': sha(manifest_path), 'parts': manifest['parts'],
+                'split_size_bytes': manifest['split_size'], 'live_file_counts': counts, 'live_file_count': len(before['files']),
+@@ -209,11 +229,11 @@
+                'live_originals_unchanged_before_after_staging_and_archive': True,
+                'all_staged_and_reassembled_payload_hashes_verified': True, 'all_original_modes_recorded_and_file_modes_copied': True,
+                'originals_and_staging_retained': True, 'engine_executed': False, 'new_games_or_searches': 0,
+-               'archiver_sha256': EXPECTED_ARCHIVER, 'prior_16_or_older_experiment_trees_recopied': False,
++               'archiver_sha256': EXPECTED_ARCHIVER, 'prior_17_or_older_experiment_trees_recopied': False,
+                'separate_hosted_strength_experiment_excluded': True,
+-               'complete_promotion_research_and_prototype_included':True, 'user_release_zip_and_exes_ignored':False,
++               'complete_correction_history_research_and_both_prototype_attempts_included':True, 'user_release_zip_and_exes_ignored':False,
+                'prospective_ignore_binary_archive_paths': len(candidates), 'ignore_applied': False,
+-               'scope': 'Complete local 6.4.17 evidence preservation, not validation, publication or an Elo/NPS/native hardware claim.'}
++               'scope': 'Complete local 6.4.18 evidence preservation, not validation, publication or an Elo/NPS/native hardware claim.'}
+     save(OUT / 'RESULTS.json', receipt)
+     print(json.dumps({key: receipt[key] for key in ['status', 'archive', 'manifest_sha256', 'parts', 'live_file_counts', 'live_file_count', 'archive_payload_file_count', 'prospective_ignore_binary_archive_paths', 'engine_executed']}, indent=2), flush=True)
+ 

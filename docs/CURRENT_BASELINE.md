@@ -16,6 +16,13 @@ unchanged guards, weights and clamps. It preserves all17work and accepted5101.
 transitions PASS. Nine Wine checks and1064independent artifact checks PASS.**
 [Native proofs](../validation/correction-history-native-20261020/ROOT-NATIVE-PROOFS.json).
 [Windows proofs](../validation/correction-history-windows-20261020/ROOT-WINDOWS-PROOFS.json).
+Complete checkpoint:1,434live originals and1,446archive payloads independently
+byte verified, including full native/prototype/Windows source and build trees.
+Two parts, combinedSHA256
+`fc000c6fc58b38c023d636880e82bf191b297fc8b7ea529d9c14153c8fbe5868`.
+[Archive receipt](../validation/correction-history-native-20261020/archive-complete/ROOT-VERIFY.json).
+All earlier failed attempts and directly published raw files remain retained.
+
 
 [Windows Zen5 candidate ZIP](../releases/forge-6.4.18-candidate-windows-zen5.zip),
 SHA256 `286a913f8bb6366d28020ef83bce5235809d1d991d41023609f0ea6446284ebc`.

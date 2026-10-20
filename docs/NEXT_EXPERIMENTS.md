@@ -12,9 +12,11 @@
    alpha=beta=.05, serialT1/Hash32/OwnBookfalse,4AA+256SPRT pairs,18000s emergency.
    Currently BLOCKED/unlaunched. Natural pair cap without boundary is inconclusive;
    any fault invalidates acceptance. No retries/resume/pooling/gate relaxation.
-3. Preserve full native/build/prototype/Windows originals in a verified split archive
-   after all writers finish. Root checks every payload and duplicate originals before
-   precise ignores. Accepted OwnBook356→5101 and its complete22.9MB archive are done.
+3. Complete18archive is verified:1,434live originals/1,446payloads,123,154,486B
+   split into67,108,864+56,045,622B. Publish bothparts andreceipts; no raw files
+   ignored/untracked/deleted. Mutable strength preparation is excluded and needs
+   its own final frozen publication. Accepted OwnBook complete22.9MB archive is done.
+
 4. Decide correction-history ablation only from valid equal-time evidence. Finite
    tests establish intended feedback behavior, not superiority. Keep rejected or
    inconclusive code/evidence; do not tune range/weights simultaneously or merge an
