@@ -1,0 +1,51 @@
+{
+  "source_commit": "8865666cc0ab4961cd507bae40ff6ce44e9319df",
+  "source_export": "/workspace/.cloud-setup/forge-tt-single-worker-gated-source",
+  "source_tar_sha256": "132cf06bc1175d3309dcd1ea9953307144efda6c792ccec4aa3e991c25d99451",
+  "source_hashes_match_release_freeze": true,
+  "environment_override": {
+    "PYTHONDONTWRITEBYTECODE": "1",
+    "ASAN_OPTIONS": "detect_leaks=1:halt_on_error=1",
+    "UBSAN_OPTIONS": "halt_on_error=1:print_stacktrace=1"
+  },
+  "phases": [
+    {
+      "command": [
+        "/workspace/.cloud-setup/venv/bin/cmake",
+        "-S",
+        "/workspace/.cloud-setup/forge-tt-single-worker-gated-source",
+        "-B",
+        "/workspace/.cloud-setup/forge-tt-single-worker-gated-asan",
+        "-DCMAKE_BUILD_TYPE=RelWithDebInfo",
+        "-DFORGE_ENABLE_SANITIZERS=ON",
+        "-DCMAKE_CXX_FLAGS=-march=x86-64-v3 -mtune=znver5 -fno-fast-math -ffp-contract=off -fno-lto -fno-pie",
+        "-DCMAKE_EXE_LINKER_FLAGS=-no-pie",
+        "-DCMAKE_EXPORT_COMPILE_COMMANDS=ON"
+      ],
+      "return_code": 0,
+      "log": "gated-asan-configure.log"
+    },
+    {
+      "command": [
+        "/workspace/.cloud-setup/venv/bin/cmake",
+        "--build",
+        "/workspace/.cloud-setup/forge-tt-single-worker-gated-asan",
+        "--parallel",
+        "2"
+      ],
+      "return_code": 0,
+      "log": "gated-asan-build.log"
+    },
+    {
+      "command": [
+        "/workspace/.cloud-setup/venv/bin/ctest",
+        "--test-dir",
+        "/workspace/.cloud-setup/forge-tt-single-worker-gated-asan",
+        "--output-on-failure"
+      ],
+      "return_code": 0,
+      "log": "gated-asan-ctest.log"
+    }
+  ],
+  "source_inputs_unchanged": true
+}

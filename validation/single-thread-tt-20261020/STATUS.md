@@ -11,7 +11,7 @@ The earlier all-held-stripes prototype `a5d2fcb5` passed Release9/9 and exact
 search parity, but a default TSan smoke hit the runtime's64-held-lock limit at65.
 Its source and evidence remain on the all-stripes branch. No sanitizer check
 was disabled. The revised sequential drain holds at most two mutexes and its
-default-TSan lock-pattern smoke passes; actual-engine TSan is still pending.
+default-TSan lock-pattern smoke passes; actual-engine TSan subsequently passed all nine CTests and seven API groups.
 
 Gated Release9/9 and seven actual-API groups pass, including foreign
 probe/store/hashfull, default/SMP behavior,1→4→1, externally stopped infinite
@@ -23,9 +23,10 @@ fails on baseline and passes on candidate. This is an operation count, not a
 measured speedup. TLS checks, flag loads and fixed drain cost may offset gains,
 especially with multiple workers or very small searches.
 
-Full ASan/UBSan, actual-engine TSan and Windows validation are underway.
+Full Release, ASan/UBSan and TSan each passed all nine CTests. Seven actual public-API groups passed in each profile. Eight positive-node active UCI transitions passed under TSan, with legal bestmoves, complete capture and joined shutdown. The default deadlock detector stayed enabled. Eight Windows/Wine checks plus an independent artifact audit passed. No native Ryzen performance is established.
 No NPS or Elo gain is accepted, and the integration engine is unchanged.
-The active649-versus651run39348571407 tests the previous NNUE hypothesis; it
-does not validate652. A separate fresh651-versus652SPRT remains gated pending
-correctness. Original647confirmation recovery is separately preserving the
-existing artifact; no games are replayed or pooled.
+The completed649-versus651run39348571407 reached its natural1024-pair cap: W427/D1194/L427, no boundary; inconclusive. It does not validate652. A separate fresh651-versus652SPRT is prepared. Original647-versus644confirmation recovery and independent2794-check audit passed:320games, capped inconclusive; no games are pooled.
+
+Newer accepted integration356e863dbd86d2ce24b8ee9486d7406f1d525480 adds timed-only admission accounting and evidence. Preserve it. Frozen886 already includes timed admission accounting but differs on untimed/ponder reporting. A follow-up candidate must reconcile this contract without mutating886 or discarding accepted work.
+
+The original mixed-header diagnostic API helper was never executed; preserve it only as unused provenance. Final v3 and frozen886 drivers are authoritative. The immutable Windows package records sanitizers as pending at its earlier packaging time; completed cross-profile results here supersede that historical status.

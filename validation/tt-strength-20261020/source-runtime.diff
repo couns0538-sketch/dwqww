@@ -1,0 +1,717 @@
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index 9460da4..b89f129 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -1,5 +1,5 @@
+ cmake_minimum_required(VERSION 3.16)
+-project(ChessEngineForge VERSION 6.4.11 LANGUAGES CXX)
++project(ChessEngineForge VERSION 6.4.12 LANGUAGES CXX)
+ find_package(Threads REQUIRED)
+ 
+ option(FORGE_ENABLE_SANITIZERS "Enable AddressSanitizer and UndefinedBehaviorSanitizer" OFF)
+diff --git a/include/forge/search.hpp b/include/forge/search.hpp
+index 3939a8b..74941c2 100644
+--- a/include/forge/search.hpp
++++ b/include/forge/search.hpp
+@@ -127,9 +127,31 @@ public:
+     }
+ 
+ private:
++    friend class Searcher;
+     static constexpr std::size_t StripeCount = 1024;
+     struct alignas(64) Stripe { std::mutex mutex; };
++    // Opt-in controller ownership: request exclusive access, drain each stripe,
++    // then publish TLS. Lifecycle mutations still require all users quiescent.
++    class ExclusiveLease {
++    public:
++        explicit ExclusiveLease(TranspositionTable& table);
++        ~ExclusiveLease();
++        ExclusiveLease(const ExclusiveLease&) = delete;
++        ExclusiveLease& operator=(const ExclusiveLease&) = delete;
++        ExclusiveLease(ExclusiveLease&&) = delete;
++        ExclusiveLease& operator=(ExclusiveLease&&) = delete;
++    private:
++        friend class TranspositionTable;
++        TranspositionTable& table_;
++        const ExclusiveLease* previous_;
++        std::unique_lock<std::mutex> gate_;
++    };
++    static thread_local const ExclusiveLease* active_lease_;
++    [[nodiscard]] bool has_exclusive_access() const;
++    [[nodiscard]] std::unique_lock<std::mutex> lock_stripe(std::size_t index) const;
+     mutable std::array<Stripe, StripeCount> stripes_{};
++    mutable std::mutex exclusive_gate_;
++    std::atomic<bool> exclusive_requested_{false};
+     std::uint64_t epoch_ = 0;
+     std::unique_ptr<TTCluster[]> clusters_;
+     std::size_t cluster_count_ = 0;
+@@ -339,12 +361,18 @@ private:
+ // Public search facade: a shared transposition table plus one or more workers.
+ class Searcher {
+ public:
++    // Exclusive is for a controller with no concurrent diagnostics: at one
++    // worker it drains the stripes and holds an exclusive gate. Foreign TT calls
++    // block for the whole search and must not hold locks needed by search.
++    // Multiple workers and the default library entry retain shared locking.
++    enum class TTAccess { Shared, Exclusive };
+     explicit Searcher(std::size_t hash_mb = 32, int threads = 1);
+     ~Searcher();
+     Searcher(const Searcher&) = delete;
+     Searcher& operator=(const Searcher&) = delete;
+ 
+-    SearchInfo search(Board board, const SearchLimits& limits, bool emit_info = false);
++    SearchInfo search(Board board, const SearchLimits& limits, bool emit_info = false,
++                      TTAccess table_access = TTAccess::Shared);
+     void stop() { shared_.stop.store(true, std::memory_order_relaxed); }
+     void reset_stop() {
+         shared_.stop.store(false, std::memory_order_relaxed);
+diff --git a/src/search.cpp b/src/search.cpp
+index 401e936..5b93be0 100644
+--- a/src/search.cpp
++++ b/src/search.cpp
+@@ -6,6 +6,7 @@
+ #include <cstring>
+ #include <iostream>
+ #include <limits>
++#include <optional>
+ 
+ namespace forge {
+ 
+@@ -180,6 +181,52 @@ void tune::refresh() { Reductions.refresh(); }
+ // ---------------------------------------------------------------------------
+ // Transposition table
+ 
++thread_local const TranspositionTable::ExclusiveLease* TranspositionTable::active_lease_ = nullptr;
++
++TranspositionTable::ExclusiveLease::ExclusiveLease(TranspositionTable& table)
++    : table_(table), previous_(active_lease_), gate_(table.exclusive_gate_, std::defer_lock) {
++    if (!table_.has_exclusive_access()) {
++        gate_.lock();
++        table_.exclusive_requested_.store(true, std::memory_order_release);
++        try {
++            // A foreign accessor either completes before its stripe drains,
++            // or observes the request after acquiring that drained stripe.
++            for (std::size_t i = 0; i < StripeCount; ++i) {
++                const std::lock_guard<std::mutex> drain(table_.stripes_[i].mutex);
++            }
++        } catch (...) {
++            table_.exclusive_requested_.store(false, std::memory_order_release);
++            throw;
++        }
++    }
++    active_lease_ = this;
++}
++
++TranspositionTable::ExclusiveLease::~ExclusiveLease() {
++    // Publish completed writes before member destruction releases the gate.
++    active_lease_ = previous_;
++    if (gate_.owns_lock()) table_.exclusive_requested_.store(false, std::memory_order_release);
++}
++
++bool TranspositionTable::has_exclusive_access() const {
++    for (const ExclusiveLease* lease = active_lease_; lease != nullptr; lease = lease->previous_) {
++        if (&lease->table_ == this) return true;
++    }
++    return false;
++}
++
++std::unique_lock<std::mutex> TranspositionTable::lock_stripe(std::size_t index) const {
++    std::mutex& stripe = stripes_[index % StripeCount].mutex;
++    if (has_exclusive_access()) return std::unique_lock<std::mutex>(stripe, std::defer_lock);
++    for (;;) {
++        std::unique_lock<std::mutex> lock(stripe);
++        if (!exclusive_requested_.load(std::memory_order_acquire)) return lock;
++        // Never wait for the gate while holding a stripe: the owner drains it.
++        lock.unlock();
++        const std::lock_guard<std::mutex> wait(exclusive_gate_);
++    }
++}
++
+ void TranspositionTable::resize(std::size_t mb) {
+     const std::size_t bytes = std::max<std::size_t>(1, mb) * 1024U * 1024U;
+     const std::size_t new_count = std::max<std::size_t>(1, bytes / sizeof(TTCluster));
+@@ -199,7 +246,7 @@ void TranspositionTable::clear() {
+ TTProbe TranspositionTable::probe(std::uint64_t key) const {
+     const TTCluster& cluster = cluster_for(key);
+     const std::size_t index = static_cast<std::size_t>(&cluster - clusters_.get());
+-    const std::lock_guard<std::mutex> lock(stripes_[index % StripeCount].mutex);
++    const auto lock = lock_stripe(index);
+     auto snapshot = [&](const TTEntry& entry, bool hit) {
+         TTProbe result;
+         result.entry = entry;
+@@ -232,7 +279,7 @@ void TranspositionTable::store(const TTProbe& probe, std::uint64_t key, int scor
+     // Lifecycle operations themselves must not run concurrently with search.
+     if (probe.owner_ != this || probe.epoch_ != epoch_ || probe.key_ != key ||
+         probe.cluster_ >= cluster_count_ || probe.slot_ >= 4) return;
+-    const std::lock_guard<std::mutex> lock(stripes_[probe.cluster_ % StripeCount].mutex);
++    const auto lock = lock_stripe(probe.cluster_);
+     TTEntry* entry = &clusters_[probe.cluster_].entries[probe.slot_];
+     const std::uint32_t key32 = verification_key(key);
+     const bool same_position = entry->key32 == key32 && entry->occupied();
+@@ -251,7 +298,7 @@ int TranspositionTable::hashfull() const {
+     int count = 0;
+     const std::size_t sample = std::min<std::size_t>(1000, cluster_count_);
+     for (std::size_t i = 0; i < sample; ++i) {
+-        const std::lock_guard<std::mutex> lock(stripes_[i % StripeCount].mutex);
++        const auto lock = lock_stripe(i);
+         for (const TTEntry& entry : clusters_[i].entries) {
+             if (entry.occupied() && entry.generation() == generation_) ++count;
+         }
+@@ -1407,7 +1454,7 @@ void Searcher::clear() {
+     for (auto& worker : workers_) worker->clear();
+ }
+ 
+-SearchInfo Searcher::search(Board board, const SearchLimits& limits, bool emit_info) {
++SearchInfo Searcher::search(Board board, const SearchLimits& limits, bool emit_info, TTAccess table_access) {
+     const auto request_start = limits.request_start == std::chrono::steady_clock::time_point{}
+         ? std::chrono::steady_clock::now() : limits.request_start;
+     SearchLimits worker_limits = limits;
+@@ -1417,6 +1464,10 @@ SearchInfo Searcher::search(Board board, const SearchLimits& limits, bool emit_i
+     for (auto& worker : workers_) all.push_back(worker.get());
+     // Age the table once per search, before any worker can probe it.
+     shared_.tt.new_search();
++    std::optional<TranspositionTable::ExclusiveLease> exclusive;
++    if (table_access == TTAccess::Exclusive && workers_.size() == 1) {
++        exclusive.emplace(shared_.tt);
++    }
+     std::vector<std::thread> helpers;
+     for (std::size_t i = 1; i < workers_.size(); ++i) {
+         helpers.emplace_back([this, i, board, &worker_limits, &all]() {
+diff --git a/src/uci.cpp b/src/uci.cpp
+index dfb85b7..8450a36 100644
+--- a/src/uci.cpp
++++ b/src/uci.cpp
+@@ -160,7 +160,7 @@ int main() {
+         input >> command;
+         if (command == "uci") {
+             const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex());
+-            std::cout << "id name Chess Engine Forge 6.4.11 candidate\n"
++            std::cout << "id name Chess Engine Forge 6.4.12 candidate\n"
+                          "id author OpenAI\n"
+                          "option name Hash type spin default 32 min 1 max 2048\n"
+                          "option name Threads type spin default 1 min 1 max 256\n"
+@@ -351,7 +351,8 @@ int main() {
+                 searcher.reset_stop();
+                 worker = std::thread([&searcher, &stop_mutex, &stop_cv, &stop_requested,
+                                       &ponder_hit_received, search_board, limits, ponder_enabled]() mutable {
+-                    const forge::SearchInfo result = searcher.search(search_board, limits, true);
++                    const forge::SearchInfo result = searcher.search(
++                        search_board, limits, true, forge::Searcher::TTAccess::Exclusive);
+                     if (limits.infinite || limits.ponder) {
+                         std::unique_lock<std::mutex> lock(stop_mutex);
+                         stop_cv.wait(lock, [&stop_requested, &ponder_hit_received, &limits] {
+@@ -396,7 +397,8 @@ int main() {
+                 forge::SearchLimits limits;
+                 limits.depth = depth;
+                 bench_searcher.clear();
+-                total_nodes += bench_searcher.search(bench_board, limits).nodes;
++                total_nodes += bench_searcher.search(
++                    bench_board, limits, false, forge::Searcher::TTAccess::Exclusive).nodes;
+             }
+             const auto elapsed_ms = std::chrono::duration_cast<std::chrono::milliseconds>(
+                 std::chrono::steady_clock::now() - start).count();
+diff --git a/tools/audit/tt-mutex-count.cpp b/tools/audit/tt-mutex-count.cpp
+new file mode 100644
+index 0000000..1b5ff11
+--- /dev/null
++++ b/tools/audit/tt-mutex-count.cpp
+@@ -0,0 +1,35 @@
++// Linux/GNU-linker audit helper. Link actual engine objects with
++// -Wl,--wrap=pthread_mutex_lock -Wl,--wrap=pthread_mutex_unlock.
++// Counts are deterministic operation evidence, never timing measurements.
++#include <atomic>
++#include <cstdio>
++#include <cstdint>
++#include <pthread.h>
++
++namespace {
++std::atomic<std::uint64_t> acquired{0};
++std::atomic<std::uint64_t> released{0};
++std::atomic<std::uint64_t> errors{0};
++}
++
++extern "C" int __real_pthread_mutex_lock(pthread_mutex_t*);
++extern "C" int __real_pthread_mutex_unlock(pthread_mutex_t*);
++
++extern "C" int __wrap_pthread_mutex_lock(pthread_mutex_t* mutex) {
++    const int result = __real_pthread_mutex_lock(mutex);
++    (result == 0 ? acquired : errors).fetch_add(1, std::memory_order_relaxed);
++    return result;
++}
++
++extern "C" int __wrap_pthread_mutex_unlock(pthread_mutex_t* mutex) {
++    const int result = __real_pthread_mutex_unlock(mutex);
++    (result == 0 ? released : errors).fetch_add(1, std::memory_order_relaxed);
++    return result;
++}
++
++__attribute__((destructor)) static void report_mutex_counts() {
++    std::fprintf(stderr, "FORGE_MUTEX_COUNTS acquired=%llu released=%llu errors=%llu\n",
++        static_cast<unsigned long long>(acquired.load(std::memory_order_relaxed)),
++        static_cast<unsigned long long>(released.load(std::memory_order_relaxed)),
++        static_cast<unsigned long long>(errors.load(std::memory_order_relaxed)));
++}
+diff --git a/tools/match/restore_hourly_artifacts.py b/tools/match/restore_hourly_artifacts.py
+new file mode 100644
+index 0000000..707c7d3
+--- /dev/null
++++ b/tools/match/restore_hourly_artifacts.py
+@@ -0,0 +1,90 @@
++#!/usr/bin/env python3
++"""Restore the exact saved Forge experiment archives and execution files.
++
++Run from any directory: python3 tools/match/restore_hourly_artifacts.py
++All transport chunks, reconstructed archives and extracted members are checked.
++Existing differing files are never overwritten.
++"""
++from __future__ import annotations
++
++import base64
++import hashlib
++import io
++import json
++from pathlib import Path
++import zipfile
++
++
++def sha(data: bytes) -> str:
++    return hashlib.sha256(data).hexdigest()
++
++
++def safe_path(root: Path, relative: str) -> Path:
++    target = (root / relative).resolve()
++    if not target.is_relative_to(root.resolve()):
++        raise ValueError(f"Archive path escapes destination: {relative}")
++    return target
++
++
++def write_verified(path: Path, data: bytes) -> None:
++    if path.exists():
++        if path.read_bytes() != data:
++            raise ValueError(f"Existing file differs; preserve and investigate: {path}")
++        return
++    path.parent.mkdir(parents=True, exist_ok=True)
++    with path.open("xb") as target:
++        target.write(data)
++
++
++def main() -> None:
++    root = Path(__file__).resolve().parents[2] / "validation/hourly"
++    manifest = json.loads((root / "ARTIFACTS.json").read_text())
++    for archive in manifest["archives"]:
++        blocks = []
++        for part in archive["parts"]:
++            data = base64.b64decode(safe_path(root, part["path"]).read_text().strip(), validate=True)
++            if len(data) != part["decoded_bytes"] or sha(data) != part["sha256"]:
++                raise ValueError(f"Transport chunk mismatch: {part['path']}")
++            blocks.append(data)
++        data = b"".join(blocks)
++        if len(data) != archive["bytes"] or sha(data) != archive["sha256"]:
++            raise ValueError(f"Archive mismatch: {archive['path']}")
++        write_verified(safe_path(root, archive["path"]), data)
++        destination = safe_path(root, archive["extract_root"])
++        expected = {member["path"]: member for member in archive["members"]}
++        with zipfile.ZipFile(io.BytesIO(data)) as source:
++            if len(source.namelist()) != len(expected) or set(source.namelist()) != set(expected):
++                raise ValueError("Unexpected or duplicate archive members")
++            for name, entry in expected.items():
++                member = source.read(name)
++                if len(member) != entry["bytes"] or sha(member) != entry["sha256"]:
++                    raise ValueError(f"Archive member mismatch: {name}")
++                path = safe_path(destination, name)
++                write_verified(path, member)
++                if name.startswith("bin/"):
++                    path.chmod(path.stat().st_mode | 0o111)
++        print(f"Verified and restored {archive['path']}: {len(expected)} files")
++    # The selected 10,000-position book is a frozen permutation of the tracked
++    # source book. Reconstruct it exactly if the archive has not restored it.
++    for protocol_path in root.glob("*/matches/tt-tag-sprt/protocol.json"):
++        protocol = json.loads(protocol_path.read_text())
++        selected = protocol_path.parent / "selected.epd"
++        if selected.exists():
++            if sha(selected.read_bytes()) != protocol["selected_sha256"]:
++                raise ValueError("Existing selected opening file differs")
++            continue
++        repository = root.parents[1]
++        original = repository / protocol["opening_source"]["relative_path"]
++        if sha(original.read_bytes()) != protocol["opening_source"]["sha256"]:
++            raise ValueError("Original opening book differs")
++        positions = [" ".join(line.split()[:4]) for line in original.read_text().splitlines() if line.strip()]
++        positions.sort(key=lambda fen: hashlib.sha256(f"{protocol['seed']}\n{fen}".encode("ascii")).digest())
++        data = ("\n".join(positions) + "\n").encode("ascii")
++        if sha(data) != protocol["selected_sha256"]:
++            raise ValueError("Reconstructed opening permutation differs")
++        write_verified(selected, data)
++        print(f"Verified and restored {selected.relative_to(root)}")
++
++
++if __name__ == "__main__":
++    main()
+diff --git a/tools/match/run_hourly_sprt.py b/tools/match/run_hourly_sprt.py
+new file mode 100644
+index 0000000..d7b13b7
+--- /dev/null
++++ b/tools/match/run_hourly_sprt.py
+@@ -0,0 +1,362 @@
++#!/usr/bin/env python3
++"""Frozen Forge 6.4 TT-tag SPRT, advanced by one natural 100-pair tranche.
++
++Prepare: python3 tools/match/run_hourly_sprt.py --prepare-only
++Run/continue: python3 tools/match/run_hourly_sprt.py
++Never interrupt a tranche to manufacture a resumable checkpoint. Native fastchess
++owns the SPRT decision; this driver independently checks bookkeeping, not Elo.
++"""
++from __future__ import annotations
++
++import argparse
++import collections
++import copy
++import datetime
++import gzip
++import hashlib
++import json
++import math
++import os
++from pathlib import Path
++import re
++import shutil
++import subprocess
++import sys
++import time
++
++from pgn_stats import RESULTS, games
++
++RUN = Path("validation/hourly/2026-10-19-initial")
++BINS = ("WW", "WD", "WL", "DD", "LD", "LL")
++OPTIONS = {"Hash": "64", "Threads": "1", "OwnBook": "false",
++           "Ponder": "false", "UseNNUE": "true", "Move Overhead": "10"}
++INPUTS = {
++    "baseline": (str(RUN / "bin/forge64-baseline-linux"),
++                 "aa51d6b62ab8a1ff8f5bfb348d074c981ccf5166eea094bcb9f9259df3ba7aa4"),
++    "candidate": (str(RUN / "bin/forge64-tt-tag-linux"),
++                  "ac97db014a1b19a37c633d58f6514d0aa0ccc38d8d8fb3bf8ae355144a2e45ad"),
++    "runner": (str(RUN / "bin/fastchess-linux"),
++               "b0e113170f9feedf6e1ab63c679ddd9fcc47edcc18c133d18881b381c89a3bf5")}
++SPRT = {"elo0": 0, "elo1": 5, "alpha": .05, "beta": .05,
++        "model": "logistic", "enabled": True}
++
++
++def require(condition, message):
++    if not condition:
++        raise RuntimeError(message)
++
++
++def digest(path):
++    h = hashlib.sha256()
++    with Path(path).open("rb") as source:
++        for block in iter(lambda: source.read(1024 * 1024), b""):
++            h.update(block)
++    return h.hexdigest()
++
++
++def save_new(path, value):
++    with Path(path).open("x", encoding="utf-8") as out:
++        json.dump(value, out, indent=2, sort_keys=True)
++        out.write("\n")
++
++
++def utc():
++    return datetime.datetime.now(datetime.timezone.utc).isoformat()
++
++
++def prepare(repo, out):
++    protocol_path = out / "protocol.json"
++    if not protocol_path.exists():
++        require(not out.exists() or not any(out.iterdir()),
++                "Refusing to prepare over an existing nonempty experiment")
++        out.mkdir(parents=True, exist_ok=True)
++        for name, (path, sha) in INPUTS.items():
++            require(digest(repo / path) == sha, f"Wrong frozen {name} binary")
++        source = repo / "tools/openings/forge-10000.epd"
++        fens = [" ".join(line.split()[:4]) for line in source.read_text().splitlines()
++                if line.strip()]
++        require(len(fens) == len(set(fens)) == 10000, "Expected 10,000 unique openings")
++        fens.sort(key=lambda fen: hashlib.sha256(f"20261019\n{fen}".encode("ascii")).digest())
++        selected = out / "selected.epd"
++        with selected.open("x", encoding="ascii") as target:
++            target.write("\n".join(fens) + "\n")
++        protocol = {
++            "schema": 1, "created_utc": utc(), "original_repo": str(repo),
++            "original_out": str(out), "baseline_commit":
++            "24cc2cce3eda0e12ddfa4036cd25f7d50e8a3b0b",
++            "experiment": "Forge 6.4 independent TT verification bits",
++            "inputs": {name: {"relative_path": path, "sha256": sha}
++                       for name, (path, sha) in INPUTS.items()},
++            "opening_source": {"relative_path": str(source.relative_to(repo)),
++                               "sha256": digest(source)},
++            "selected_sha256": digest(selected), "selected_count": 10000,
++            "opening_order": "SHA256(ASCII(seed + newline + first four FEN fields)); sequential",
++            "seed": 20261019, "sprt": SPRT, "tc": "10+0.1",
++            "options": OPTIONS, "external_book": None, "external_network": None,
++            "nodes": 0, "depth": 0, "adjudication": "disabled",
++            "concurrency": 6, "affinity_cpus": list(range(6)), "games_per_pair": 2,
++            "max_pairs": 10000, "tranche_pairs": 100,
++            "driver_sha256": digest(Path(__file__)),
++            "pgn_checker_sha256": digest(Path(__file__).with_name("pgn_stats.py")),
++            "resume_policy": "Only verified natural complete prefixes; never resume terminal or interrupted runs",
++            "limitations": "Cloud CPU allocation is not dedicated hardware; this opening suite does not establish an absolute Elo rating."
++        }
++        save_new(protocol_path, protocol)
++        (out / "protocol.sha256").write_text(digest(protocol_path) + "\n")
++    require(digest(protocol_path) == (out / "protocol.sha256").read_text().strip(),
++            "Frozen protocol was modified")
++    protocol = json.loads(protocol_path.read_text())
++    verify_inputs(repo, out, protocol)
++    return protocol
++
++
++def verify_inputs(repo, out, protocol):
++    require(protocol["sprt"] == SPRT and protocol["options"] == OPTIONS,
++            "Unexpected frozen protocol")
++    require(protocol["inputs"] == {name: {"relative_path": path, "sha256": sha}
++                                   for name, (path, sha) in INPUTS.items()},
++            "Unexpected frozen binary identity")
++    for name, spec in protocol["inputs"].items():
++        require(digest(repo / spec["relative_path"]) == spec["sha256"],
++                f"Frozen input changed: {name}")
++    spec = protocol["opening_source"]
++    require(digest(repo / spec["relative_path"]) == spec["sha256"], "Source openings changed")
++    require(digest(out / "selected.epd") == protocol["selected_sha256"], "Selected openings changed")
++    require(digest(Path(__file__)) == protocol["driver_sha256"], "Driver changed after preparation")
++    require(digest(Path(__file__).with_name("pgn_stats.py")) == protocol["pgn_checker_sha256"],
++            "PGN checker changed after preparation")
++
++
++def check_config(cfg, protocol, roots, outs):
++    """Check the exact match inputs before allowing a path-only continuation."""
++    expected = {"seed": 20261019, "games": 2, "concurrency": 6,
++                "report_penta": True, "noswap": False, "reverse": False,
++                "variant": 0, "type": 0, "recover": False, "affinity": True}
++    for key, value in expected.items():
++        require(cfg.get(key) == value, f"Checkpoint setting changed: {key}")
++    require(cfg["sprt"] == SPRT, "SPRT settings changed")
++    for key in ("resign", "draw", "maxmoves", "tb_adjudication"):
++        require(cfg[key]["enabled"] is False, f"Unexpected adjudication: {key}")
++    opening = cfg["opening"]
++    require({key: opening[key] for key in ("format", "order", "plies", "start")}
++            == {"format": 0, "order": 1, "plies": -1, "start": 1}, "Opening policy changed")
++    require(opening["file"] in {str(x / "selected.epd") for x in outs}, "Unexpected opening path")
++    require(cfg["pgn"]["file"] in {str(x / "games.pgn") for x in outs}, "Unexpected PGN path")
++    require(len(cfg["engines"]) == 2, "Unexpected engine count")
++    for engine, name, kind in zip(cfg["engines"], ("Candidate", "Baseline"), ("candidate", "baseline")):
++        require(engine["name"] == name and engine["args"] == "" and engine["dir"] == ""
++                and engine["restart"] is True and engine["variant"] == 0, "Engine identity changed")
++        require(engine["cmd"] in {str(root / INPUTS[kind][0]) for root in roots},
++                f"Unexpected {name} path")
++        require(len(engine["options"]) == len(OPTIONS) and dict(engine["options"]) == OPTIONS,
++                f"{name} options changed")
++        require(engine["limit"] == {"nodes": 0, "plies": 0, "tc": {
++            "increment": 100, "fixed_time": 0, "time": 10000, "moves": 0, "timemargin": 0}},
++                f"{name} time or search limits changed")
++
++
++def verify_outcomes(pgn, cfg, selected, cap, terminal):
++    parsed = games(pgn.read_text())
++    groups = collections.defaultdict(list)
++    positions = selected.read_text().splitlines()
++    normalized_ep_rounds = set()
++    for tags, moves in parsed:
++        require({tags.get("White"), tags.get("Black")} == {"Candidate", "Baseline"},
++                "Unexpected PGN players")
++        require(tags.get("Termination") == "normal", f"Non-normal game: {tags}")
++        rnd = int(tags["Round"])
++        require(1 <= rnd <= cap, "Round outside cumulative tranche")
++        actual = tags["FEN"].split()[:4]
++        expected = positions[rnd - 1].split()
++        # The pinned runner removes uncapturable EP targets when writing FENs.
++        # Check this allowed serialization normalization, not literal FEN bytes.
++        # This is bookkeeping, not a separate chess-legality implementation.
++        require(actual[:3] == expected[:3] and
++                (actual[3] == expected[3] or actual[3] == "-"),
++                f"Opening sequence mismatch in round {rnd}")
++        if actual[3] != expected[3]:
++            normalized_ep_rounds.add(rnd)
++        score = RESULTS[tags["Result"]]
++        if tags["Black"] == "Candidate":
++            score = 2 - score
++        groups[rnd].append((tags, moves, score))
++    counts = dict.fromkeys(BINS, 0)
++    wdl = [0, 0, 0]  # wins, draws, losses for complete pairs only
++    orphans = []
++    complete = []
++    pair_bin = {(2, 2): "WW", (1, 2): "WD", (0, 2): "WL",
++                (1, 1): "DD", (0, 1): "LD", (0, 0): "LL"}
++    for rnd, pair in sorted(groups.items()):
++        require(len(pair) <= 2, f"Duplicated round {rnd}")
++        if len(pair) == 1:
++            require(terminal, f"Incomplete natural round {rnd}")
++            orphans.append({"round": rnd, "tags": pair[0][0]})
++            continue
++        a, b = pair
++        require(a[0]["White"] == b[0]["Black"] and a[0]["Black"] == b[0]["White"]
++                and a[0]["FEN"] == b[0]["FEN"], f"Color/FEN pairing failure {rnd}")
++        counts[pair_bin[tuple(sorted((a[2], b[2])))]] += 1
++        wdl[2 - a[2]] += 1
++        wdl[2 - b[2]] += 1
++        complete.append(rnd)
++    native = cfg["stats"]
++    require(set(native) == {"Candidate vs Baseline"}, "Unexpected native scoreboard")
++    native = native["Candidate vs Baseline"]
++    require(wdl == [native["wins"], native["draws"], native["losses"]],
++            "Native WDL disagrees with complete PGN pairs")
++    require(all(native["penta_" + key] == value for key, value in counts.items()),
++            "Native six-bin pentanomial disagrees with PGN")
++    require(sum(wdl) == 2 * sum(counts.values()), "Native pair totals inconsistent")
++    if not terminal:
++        require(complete == list(range(1, cap + 1)) and len(parsed) == 2 * cap,
++                "Natural checkpoint is not a complete round prefix")
++    return {"complete_pairs": len(complete), "all_pgn_games": len(parsed),
++            "candidate_wins_draws_losses_complete_pairs": wdl, "penta6": counts,
++            "complete_rounds": complete, "orphan_games": orphans,
++            "ep_normalized_rounds": sorted(normalized_ep_rounds),
++            "terminations": {"normal": len(parsed)}, "elo_claim": None}
++
++
++def initial_command(repo, out, cap, checkpoint, trace):
++    command = [str(repo / INPUTS["runner"][0]), "-config", f"outname={checkpoint}"]
++    for name, kind in (("Candidate", "candidate"), ("Baseline", "baseline")):
++        command += ["-engine", f"cmd={repo / INPUTS[kind][0]}", f"name={name}"]
++    command += ["-each", "proto=uci", "tc=10+0.1", "restart=on"]
++    command += [f"option.{name}={value}" for name, value in OPTIONS.items()]
++    command += ["-openings", f"file={out / 'selected.epd'}", "format=epd", "order=sequential",
++                "-srand", "20261019", "-games", "2", "-rounds", str(cap), "-concurrency", "6",
++                "-sprt", "elo0=0", "elo1=5", "alpha=0.05", "beta=0.05", "model=logistic",
++                "-report", "penta=true", "-ratinginterval", "2", "-pgnout",
++                f"file={out / 'games.pgn'}", "notation=uci", "nodes=true", "nps=true",
++                "timeleft=true", "append=false"]
++    return command + runtime_options(trace)
++
++
++def runtime_options(trace):
++    # Affinity CPU IDs and strictness are omitted from native JSON serialization.
++    return ["-use-affinity", "0,1,2,3,4,5", "-log", f"file={trace}",
++            "level=trace", "engine=true", "append=false", "-autosaveinterval", "2", "-strict"]
++
++
++
++def native_sprt_status(text):
++    text = re.sub(r"\x1b\[[0-9;]*m", "", text)
++    decisions = re.findall(r"SPRT[^\n]*completed - (H[01]) was accepted", text)
++    require(len(set(decisions)) <= 1, "Conflicting native SPRT decisions")
++    llrs = re.findall(r"LLR:\s*(\S+)", text)
++    require(llrs and math.isfinite(float(llrs[-1])), "Missing finite final native LLR output")
++    return decisions[-1] if decisions else None, float(llrs[-1])
++
++
++def run_tranche(repo, out, protocol):
++    require(hasattr(os, "sched_getaffinity") and set(range(6)) <= os.sched_getaffinity(0),
++            "Frozen cloud affinity CPUs 0..5 are unavailable; do not silently alter resources")
++    history = sorted(out.glob("tranche-*-result.json"))
++    attempts = sorted(out.glob("tranche-*-command.json"))
++    require(len(history) == len(attempts), "Unfinished/interrupted attempt: manual recovery required")
++    roots = {repo, Path(protocol["original_repo"])}
++    outs = {out, Path(protocol["original_out"])}
++    cap = 100
++    previous = None
++    if history:
++        previous = json.loads(history[-1].read_text())
++        require(previous["status"] == "natural_complete_inconclusive", "Prior test is terminal or failed")
++        cap = previous["cumulative_pair_cap"] + 100
++        require(cap <= 10000, "Predeclared 10,000-pair cap reached; no automatic extension")
++        roots.add(Path(previous["repo"]))
++        outs.add(Path(previous["out"]))
++        for filename, sha in previous["outputs"].items():
++            require(digest(out / filename) == sha, f"Prior evidence changed: {filename}")
++    suffix = f"{cap:05d}"
++    prefix = out / f"tranche-{suffix}"
++    checkpoint = out / f"checkpoint-{suffix}.json"
++    trace = out / f"tranche-{suffix}-engine.log"
++    console = out / f"tranche-{suffix}-runner.log"
++    require(not any(out.glob(f"*{suffix}*")), "Tranche filenames already exist; refusing overwrite")
++    lock = out / "active.lock"
++    with lock.open("x") as handle:
++        handle.write(f"pid={os.getpid()} utc={utc()}\n")
++    result = {"started_utc": utc(), "cumulative_pair_cap": cap,
++              "repo": str(repo), "out": str(out), "status": "failed_no_resume",
++              "protocol_sha256": digest(out / "protocol.json"), "elo_claim": None}
++    try:
++        if previous:
++            cfg = json.loads((out / previous["checkpoint"]).read_text())
++            check_config(cfg, protocol, roots, outs)
++            require(cfg["rounds"] == cap - 100, "Prior cumulative round cap changed")
++            verify_outcomes(out / "games.pgn", cfg, out / "selected.epd", cap - 100, False)
++            # Keep the original checkpoint immutable. Rebase only verified path identities.
++            rebased = copy.deepcopy(cfg)
++            for engine, kind in zip(rebased["engines"], ("candidate", "baseline")):
++                engine["cmd"] = str(repo / INPUTS[kind][0])
++            rebased["opening"]["file"] = str(out / "selected.epd")
++            rebased["pgn"]["file"] = str(out / "games.pgn")
++            rebased["log"]["file"] = str(trace)
++            rebased["config_name"] = str(checkpoint)
++            resume_input = out / f"resume-input-{suffix}.json"
++            save_new(resume_input, rebased)
++            command = [str(repo / INPUTS["runner"][0]), "-config", f"file={resume_input}",
++                       "stats=true", f"outname={checkpoint}", "-rounds", str(cap)]
++            command += runtime_options(trace)
++        else:
++            require(not (out / "games.pgn").exists(), "Unexpected PGN before initial tranche")
++            command = initial_command(repo, out, cap, checkpoint, trace)
++        save_new(str(prefix) + "-command.json", {"argv": command, "cwd": str(out),
++                 "started_utc": result["started_utc"], "protocol_sha256": result["protocol_sha256"]})
++        started = time.monotonic()
++        with console.open("x") as log:
++            proc = subprocess.run(command, cwd=out, stdout=log, stderr=subprocess.STDOUT,
++                                  env={**os.environ, "NO_COLOR": "1"}, check=False)
++        result["exit_code"] = proc.returncode
++        result["elapsed_seconds"] = time.monotonic() - started
++        require(proc.returncode == 0, f"fastchess exited {proc.returncode}; no automatic resume")
++        verify_inputs(repo, out, protocol)
++        terminal, final_llr = native_sprt_status(console.read_text())
++        result["native_sprt_decision"] = terminal
++        result["native_final_llr"] = final_llr
++        cfg = json.loads(checkpoint.read_text())
++        check_config(cfg, protocol, roots, outs)
++        require(cfg["rounds"] == cap, "Unexpected cumulative round cap")
++        result["statistics"] = verify_outcomes(out / "games.pgn", cfg, out / "selected.epd", cap, terminal)
++        snapshot = out / f"games-through-{suffix}.pgn.gz"
++        with (out / "games.pgn").open("rb") as source, snapshot.open("xb") as target:
++            with gzip.GzipFile(filename="games.pgn", mode="wb", fileobj=target, mtime=0) as zipped:
++                shutil.copyfileobj(source, zipped)
++        result["status"] = (f"{terminal}_accepted_terminal" if terminal else
++                            "inconclusive_at_total_cap" if cap == 10000 else "natural_complete_inconclusive")
++        result["checkpoint"] = checkpoint.name
++        result["outputs"] = {path.name: digest(path) for path in
++                             (out / "games.pgn", checkpoint, trace, console, snapshot)}
++    except BaseException as error:
++        result["error"] = f"{type(error).__name__}: {error}"
++        raise
++    finally:
++        result["finished_utc"] = utc()
++        save_new(str(prefix) + "-result.json", result)
++        lock.unlink()
++        print(json.dumps(result, indent=2), flush=True)
++
++
++def main():
++    parser = argparse.ArgumentParser(description=__doc__)
++    parser.add_argument("--repo", type=Path, default=Path(__file__).resolve().parents[2])
++    parser.add_argument("--out", type=Path, help="Default: initial validation run/matches/tt-tag-sprt")
++    parser.add_argument("--prepare-only", action="store_true", help="Freeze/verify protocol without starting games")
++    args = parser.parse_args()
++    repo = args.repo.resolve(strict=True)
++    out = args.out.resolve() if args.out else repo / RUN / "matches/tt-tag-sprt"
++    protocol = prepare(repo, out)
++    if args.prepare_only:
++        print(json.dumps({"status": "prepared_verified", "protocol": str(out / "protocol.json"),
++                          "protocol_sha256": digest(out / "protocol.json"), "games_started": 0}, indent=2))
++        return 0
++    run_tranche(repo, out, protocol)
++    return 0
++
++
++if __name__ == "__main__":
++    try:
++        sys.exit(main())
++    except (RuntimeError, OSError, ValueError, KeyError) as error:
++        print(f"ERROR: {error}", file=sys.stderr)
++        sys.exit(1)

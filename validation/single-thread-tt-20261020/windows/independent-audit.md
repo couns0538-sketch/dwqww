@@ -1,0 +1,15 @@
+Independent artifact audit passed with no blockers within the stated scope.
+
+Forge 6.4.12 Windows ZIP: 10,505,759 bytes, 18 files, SHA256 `09a445d6bc14ffd866bc90b5a3530cb45bb858a158bfc9028fdc408790e298b3`. CRC, all 17 SHA256SUMS entries and exact package-directory bytes passed. Both outer and raw archives have no duplicate members, Windows case collisions, unsafe paths or symlinks.
+
+The embedded raw archive is 6,914,152 bytes, SHA256 `95b1e151b4414d2b84c705a31cc74a24ccf880930e7d35ce147f1dabc89324db`. Its 148 original files plus manifest passed every size/hash/archive-byte comparison. All originals remain byte-identical on disk, including six Windows executables, the actual static core, all 69 frozen source files, exact commands, logs and the full original disassembly. The release embeds the exact raw archive and manifest.
+
+All 69 export files match frozen source `8865666cc0ab4961cd507bae40ff6ce44e9319df` and their manifests, including 21 production and five test entries. Relative to frozen 6.4.11, only CMakeLists.txt, include/forge/search.hpp, src/search.cpp and src/uci.cpp change. NNUE/eval sources, headers and weights are unchanged; network SHA256 `41487f328ff51f27417564df45b6f3139d038b7e940dedb121340bd61be9a4d3`. No new large NNUE snapshot differential was run.
+
+All 13 compilation records retain C++20 Release, znver5, -fno-fast-math and -ffp-contract=off; all executable link records retain -static. Fresh inspection of all six built PEs confirms AMD64 and 13 imports each, limited to KERNEL32/UCRT. Five packaged executables exactly match build/runtime/retained/provenance hashes. Engine SHA256 `352fa39faca5a9f42ebeee2e717694a17b88d42eefda1e9f3e3b99f65050f8a8`; actual core SHA256 `4c790b582a0b2a19c3b08878bc467da2c8a8acd081bb6a4bfd2d703c7f4990bf`.
+
+Raw Wine evidence supports eight successful checks: core/reference perft, eight TT groups, rule50 with zero targeted failures, 18,947 legal-witness comparisons, 27 UCI checks, ten ponder checks, five OwnBook transitions and bench11 at 351,063 nodes. Exact tool and wrapper hashes match before/after records; the wrapper resolves to the tested PE. The OwnBook adapter only changes its import root and temporary Wine path mapping. Fresh full disassembly matches the retained 10,255,031 bytes and contains zero fused operations; the existing output-layer 256-bit checker also passed freshly.
+
+All 125 prior 6.4.11 preservation records remain unchanged. Package documentation accurately limits the exclusive TT path to opted-in one-worker searches, retains shared defaults/multiworker locking and quiescent lifecycle requirements, and records full candidate ASan/UBSan and TSan as pending separately at packaging.
+
+This is an artifact/source/raw-runtime/static audit. The auditor ran read-only Git/archive/hash/PE/disassembly checks and the static output-layer checker, and wrote only these two audit reports. No build, engine execution, Wine test, timed trial, match or network job was run by the auditor. The audit does not establish race freedom, speed, NPS, Elo, native Windows, physical Ryzen or Stockfish superiority.

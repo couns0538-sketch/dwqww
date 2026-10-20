@@ -1,0 +1,144 @@
+[
+  {
+    "label": "shim-build",
+    "command": [
+      "cc",
+      "-std=gnu11",
+      "-O2",
+      "-fPIC",
+      "-shared",
+      "-Wall",
+      "-Wextra",
+      "-Werror",
+      "-o",
+      "/tmp/forge-clock-red-gu5ljkgk/libdelay.so",
+      "/tmp/forge-clock-red-gu5ljkgk/delayed_pthread_create.c",
+      "-ldl"
+    ],
+    "cwd": "/workspace/dwqww",
+    "exit_code": 0,
+    "expected_exit_code": 0,
+    "elapsed_seconds": 1.5821496050048154,
+    "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "label": "fixture-build-baseline",
+    "command": [
+      "g++",
+      "-std=c++20",
+      "-O2",
+      "-pthread",
+      "/tmp/forge-clock-red-gu5ljkgk/native_probe_fixture.cpp",
+      "-o",
+      "/tmp/forge-clock-red-gu5ljkgk/fixture-baseline"
+    ],
+    "cwd": "/workspace/dwqww",
+    "exit_code": 0,
+    "expected_exit_code": 0,
+    "elapsed_seconds": 13.651432899998326,
+    "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "label": "fixture-build-scoped",
+    "command": [
+      "g++",
+      "-std=c++20",
+      "-O2",
+      "-pthread",
+      "-DFIX_GO_ORIGIN",
+      "/tmp/forge-clock-red-gu5ljkgk/native_probe_fixture.cpp",
+      "-o",
+      "/tmp/forge-clock-red-gu5ljkgk/fixture-scoped"
+    ],
+    "cwd": "/workspace/dwqww",
+    "exit_code": 0,
+    "expected_exit_code": 0,
+    "elapsed_seconds": 8.112539616995491,
+    "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "label": "fixture-build-unscoped",
+    "command": [
+      "g++",
+      "-std=c++20",
+      "-O2",
+      "-pthread",
+      "-DBAD_GO_ORIGIN_ALL",
+      "/tmp/forge-clock-red-gu5ljkgk/native_probe_fixture.cpp",
+      "-o",
+      "/tmp/forge-clock-red-gu5ljkgk/fixture-unscoped"
+    ],
+    "cwd": "/workspace/dwqww",
+    "exit_code": 0,
+    "expected_exit_code": 0,
+    "elapsed_seconds": 16.769850627002597,
+    "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "label": "fixture-probe-scoped",
+    "command": [
+      "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3",
+      "/tmp/forge-clock-red-gu5ljkgk/native_clock_probe.py",
+      "--baseline",
+      "/tmp/forge-clock-red-gu5ljkgk/fixture-baseline",
+      "--candidate",
+      "/tmp/forge-clock-red-gu5ljkgk/fixture-scoped",
+      "--shim",
+      "/tmp/forge-clock-red-gu5ljkgk/libdelay.so",
+      "--out",
+      "/workspace/dwqww/validation/upstream-clock-reconcile-20261020/red-attempt1/fixture-scoped",
+      "--delay-ms",
+      "440"
+    ],
+    "cwd": "/workspace/dwqww",
+    "exit_code": 0,
+    "expected_exit_code": 0,
+    "elapsed_seconds": 1.9108009429983213,
+    "stdout_sha256": "19097448bad56c578c5c6ee6b33b1f6f4e2689f97487d233d4c5f26074c3a02d",
+    "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "label": "fixture-probe-unscoped",
+    "command": [
+      "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3",
+      "/tmp/forge-clock-red-gu5ljkgk/native_clock_probe.py",
+      "--baseline",
+      "/tmp/forge-clock-red-gu5ljkgk/fixture-baseline",
+      "--candidate",
+      "/tmp/forge-clock-red-gu5ljkgk/fixture-unscoped",
+      "--shim",
+      "/tmp/forge-clock-red-gu5ljkgk/libdelay.so",
+      "--out",
+      "/workspace/dwqww/validation/upstream-clock-reconcile-20261020/red-attempt1/fixture-unscoped",
+      "--delay-ms",
+      "440"
+    ],
+    "cwd": "/workspace/dwqww",
+    "exit_code": 1,
+    "expected_exit_code": 1,
+    "elapsed_seconds": 3.812574579998909,
+    "stdout_sha256": "24cfd685bd19118d105d8a428b363a1c2b5bbe7aca60501f717aaf5e0a83483c",
+    "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "label": "frozen886-candidate-probe",
+    "command": [
+      "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3",
+      "/workspace/dwqww/validation/upstream-clock-reconcile-20261020/red-attempt1/candidate-origin-probe.py",
+      "/workspace/.cloud-setup/forge-tt-single-worker-gated-release/forge",
+      "/tmp/forge-clock-red-gu5ljkgk/libdelay.so",
+      "/tmp/forge-clock-red-gu5ljkgk/native_clock_probe.py",
+      "/workspace/dwqww/validation/upstream-clock-reconcile-20261020/red-attempt1/frozen886"
+    ],
+    "cwd": "/workspace/dwqww",
+    "exit_code": 1,
+    "expected_exit_code": 1,
+    "elapsed_seconds": 8.928606447007041,
+    "stdout_sha256": "0da6ca6bb88a524056c12dc4babd976cb30cb7c7a098644d4d4c10762a48c341",
+    "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  }
+]

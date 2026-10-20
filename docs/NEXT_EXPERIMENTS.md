@@ -1,28 +1,33 @@
 # Next experiments
 
-1. Launch the reviewed 6.4.11 versus 6.4.9 paired strength test once. Use the
-   frozen `.github/hosted-nnue-strength/` protocol: 0/+5 SPRT, 1,024 fresh pairs,
-   equal 2+0.02, serial Threads1/Hash32/OwnBookfalse. Preserve complete original
-   PGNs, logs, actual binaries and source exports. Any fault, deadline, orphan
-   or changed input invalidates acceptance. A natural cap is inconclusive.
-2. Audit the separate 6.4.7 versus 6.4.4 confirmation run39332822379 when its
-   actual results branch appears. Do not infer completion from elapsed time or
-   pool earlier pilot games. Replay original PGNs and rehash actual binaries.
-3. Finish the bounded actual-search counter investigation of repeated NNUE
-   output inference. Implement a cache only if duplicate calls are demonstrated;
-   invalidate on every real/null move, new search and clear. Retain TT priority
-   and recompute HCE/corrections. Keep the long test's frozen source unchanged.
+1. Launch the reviewed **6.4.12 versus 6.4.11** test once from
+   `.github/hosted-tt-strength/`:0/+5 SPRT,1024 fresh pairs, equal2+0.02,
+   serialThreads1/Hash32/OwnBookfalse; frozen8865666 versus c5cbf97.
+   It is ready and unlaunched at this checkpoint. Record the actual run ID
+   after the single trigger push. Preserve complete logs/PGNs, actual binaries,
+   source exports and final hashes in verified split archives. A natural cap
+   is inconclusive; faults/deadlines/orphans/changed inputs invalidate acceptance.
+2. Finish the separate regression/follow-up reconciling frozen886 with accepted
+   timed-only clock repair294cf1b on integration356e863. Timed admission is
+   already accounted for; untimed/ponder reporting differs. Preserve the parent
+   failure and validate a new source without changing the strength candidate.
+3. Checkpoint the completed audits: original confirmation39332822379 is valid
+   but capped inconclusive after320 games; recovery2 succeeded at61aabe2 after
+   retained recovery1 inventory-order failure and17/17 corrected checks. NNUE
+   run39348571407 is valid but capped inconclusive after2048 games; final audit
+   passed at results eb1c1b7. No old-game pooling or replay.
 
-Keep all existing candidate branches and the accepted integration's newer
-2fc649e metadata. The accepted engine source remains9108. The older TT-tag
-timeout/truncated replay remains unresolved; its blocked archive must retain
-its publication hold. It uses different sources/settings/runner and proves
-neither failure nor clock reliability for the new serial tests.
+Preserve all candidate branches and the newer accepted clock repair. The older
+TT-tag timeout/truncated replay remains unresolved; its blocked archive retains
+its publication hold. Different sources/settings/runner prevent transferring
+clock reliability or strength conclusions.
 
-The strict hosted performance profile39334266771 failed same-binary AA and
-ran noAB/kernel. Do not retry it or widen its threshold. Local shared-VM
-small-speed measurements also failed calibration. No NPS or Elo gain is
-accepted; no native Windows/Ryzen or full-strength Stockfish superiority exists.
+The failed hosted strict3% A/A and noisy local timing trials supply no NPS
+estimate; do not retry their profiles or widen thresholds. The706157→8204 mutex
+count is operations only. The NNUE output counter found0.5139% repeated inputs;
+no cache was implemented. No native Windows/Ryzen strength or full-strength
+Stockfish superiority exists.
 
-The new bounded job may continue independently of chat. There is no persistent
-24-hour agent or six-hour chat scheduler; record actual run and monitoring state.
+A bounded hosted job may continue independently of chat. Record actual job
+and monitoring state; no persistent24-hour agent or six-hour chat scheduler
+is available.

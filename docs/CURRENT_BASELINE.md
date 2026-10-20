@@ -1,38 +1,50 @@
 # Current baseline
 
 Accepted integration `forge/6.4-hourly-20261019` is
-`2fc649effb6d2f09f4fdf63b44d59283fe26b616`. Its last three commits add tools/evidence;
-engine source is unchanged from `9108d012526be80c6d163f7cab684e6acd9abf8d`.
-Merge `3cabc1b` preserves these newer records without changing the candidate.
+`356e863dbd86d2ce24b8ee9486d7406f1d525480`. Engine repair
+`294cf1ba7d2e3e77a70a08578958a5faea3b54dd` charges timed UCI admission delay,
+preserving the earlier TT repair and untimed/ponder behavior. The former
+`2fc649e` metadata / `9108d012` source checkpoint is historical. This is timing
+correctness, not an accepted Elo gain. [Integration evidence](https://github.com/couns0538-sketch/dwqww/blob/294cf1ba7d2e3e77a70a08578958a5faea3b54dd/validation/hourly/2026-10-20-go-origin-native/INTEGRATION_REPORT.md).
 
-Latest fully correctness-tested isolated source is **Forge6.4.11**,
-`c5cbf97a7291a3bd960c71dcd77a29bf7c95ad8e`, branch
-`forge/nnue-capture-fusion-20261019`. It preserves6.4.10 and all earlier repairs,
-accepted residualNNUE weights and training infrastructure. Its guarded capture
-path fuses copy+threepasses into one while keeping both subtractions then addition.
+Latest correctness-tested isolated candidate is **Forge 6.4.12**,
+`8865666cc0ab4961cd507bae40ff6ce44e9319df`, preserving 6.4.11 and earlier work.
+Its opt-in single-worker TT gate drains stripes sequentially; shared/default
+and SMP remain synchronized. Release, ASan/UBSan and TSan each passed 9/9
+CTests; seven actual-API groups per profile, eight active-UCI TSan edges and
+eight Wine checks plus independent artifact audit passed. Six parent cold/warm
+cases remain exact; bench signatures remain 419798 Linux / 351063 Windows.
+Mutex acquisitions 706157→8204 establish fewer operations only. The rejected
+all-held-stripes prototype `a5d2fcb5` and its default TSan held-lock-limit failure
+remain retained; no detector was disabled.
 
-Release9/9, ASan/UBSan9/9 and instrumentedupdateidentity pass. All1644actualAPI
-cases and original21.2MBstream match6.4.10 and Windows byte-for-byte;79capture
-cases cover distinct/in-place use. EightWinechecks plus independentWindows
-artifact/codegenaudit pass. Sixcold/warm1Tparentcomparisons remain exact;
-benchmark signatures419798Linux/351063Windows. InitialASanconfigure omittedbench
-inexport; failedattempt retained, newcompleteexportattempt2 passed.
+Windows ZIP `releases/forge-6.4.12-candidate-windows-zen5.zip`, SHA-256
+`09a445d6bc14ffd866bc90b5a3530cb45bb858a158bfc9028fdc408790e298b3`.
+This is Wine correctness, not native Ryzen performance. Frozen886 already
+accounts for timed admission but differs from the newer accepted untimed/ponder
+reporting contract. A separate regression/follow-up is underway; do not mutate
+the frozen strength source.
 
-WindowsZIP: `releases/forge-6.4.11-candidate-windows-zen5.zip`,
-SHA256 `59978ffd9c38688663179642541859d7540d620b9669bfe9e1186f0a0184aa46`.
-This is Wine correctness, not nativeRyzen performance.
+Both original strength runs completed validly and **inconclusively**:
 
-NPS/Elo remain unproven. Hostedperformance39334266771 failed its strict3%AA
-noisegate and ran noAB/kernel; keep originalthreshold and no retry.
-Fresh647-versus644confirmation39332822379 is active and separate; no public
-gamecounts/result yet. It does not test6.4.8–6.4.11. Earlier147gamepilot is
-inconclusive; never pool its descriptive144game estimate with freshgames.
+- 6.4.7 versus 6.4.4: 320 games, W114 D101 L105, independent LLR0.457429,
+  natural160-pair cap; all2794 final-audit checks passed. Original push failed
+  on its152.78MB log. Recovery1 failed an inventory-order check; corrected
+  tests17/17 passed; recovery2 succeeded at results `61aabe2`.
+- 6.4.11 versus 6.4.9, run39348571407: 2048 games, W427 D1194 L427,
+  independent LLR−0.756524236, natural1024-pair cap. Final archive/source,
+  41-input, opening, full legal-replay and complete raw-log audit passed;
+  results `eb1c1b7`.
 
-New649-versus651long0/+5SPRT package is reviewed/preregistered, launch pending:
-1024freshpairs, equal2+0.02, naturalboundary/cap,300minuteemergencyfailureguard,
-originalsource/binaries/UCI/PGN/logs and finalhashes archived. No24hcontinuous
-agent or6hchat scheduler is available. Next sourceinvestigation counts actual
-duplicateNNUEoutputcalls before considering a safelyinvalidatedcache.
+The fresh 6.4.12 versus 6.4.11 protocol is **reviewed/ready, not launched** at
+this checkpoint:0/+5 SPRT,1024 fresh pairs, equal2+0.02, serial
+Threads1/Hash32/OwnBookfalse. All30proof hashes/23package entries pass.
+Root will record the actual run ID after its single trigger push.
 
-Read [ledger](EXPERIMENT_LEDGER.md), [next work](NEXT_EXPERIMENTS.md), and
-[6.4.11 evidence](../validation/nnue-capture-fusion-20261019/HYPOTHESIS.md).
+No NPS/Elo gain is accepted; no result transfers across candidates or games are
+pooled. Failed strict3% timing A/A receives no retry or widened threshold.
+Native Windows/Ryzen and full-strength Stockfish superiority remain unproven.
+Read the [ledger](EXPERIMENT_LEDGER.md), [next work](NEXT_EXPERIMENTS.md),
+[6.4.12 evidence](../validation/single-thread-tt-20261020/STATUS.md),
+[confirmation audit](../validation/hosted-confirmation-20261019/final-audit/REPORT.md)
+and [NNUE audit](../validation/nnue-strength-20261019/final-audit/AUDIT.md).

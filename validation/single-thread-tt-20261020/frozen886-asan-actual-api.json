@@ -1,0 +1,79 @@
+{
+  "label": "frozen886-asan",
+  "sanitizer": "address",
+  "status": "passed",
+  "stages": [
+    {
+      "stage": "compile",
+      "command": [
+        "g++",
+        "-std=c++20",
+        "-O2",
+        "-DNDEBUG",
+        "-march=x86-64-v3",
+        "-mtune=znver5",
+        "-fno-fast-math",
+        "-ffp-contract=off",
+        "-fno-lto",
+        "-Wall",
+        "-Wextra",
+        "-Wpedantic",
+        "-Wconversion",
+        "-Wshadow",
+        "-fno-pie",
+        "-no-pie",
+        "-fsanitize=address,undefined",
+        "-g",
+        "-fno-omit-frame-pointer",
+        "-I/workspace/.cloud-setup/forge-tt-single-worker-gated-source/include",
+        "/workspace/dwqww/validation/single-thread-tt-20261020/actual-api-concurrency.cpp",
+        "/workspace/.cloud-setup/forge-tt-single-worker-gated-asan/libforge_core.a",
+        "-pthread",
+        "-Wl,--wrap=pthread_mutex_lock",
+        "-o",
+        "/workspace/dwqww/validation/single-thread-tt-20261020/actual-api-concurrency-frozen886-asan"
+      ],
+      "timeout_seconds": 60,
+      "exit_code": 0,
+      "elapsed_seconds": 32.481746214,
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "stage": "run",
+      "command": [
+        "/workspace/dwqww/validation/single-thread-tt-20261020/actual-api-concurrency-frozen886-asan"
+      ],
+      "timeout_seconds": 90,
+      "exit_code": 0,
+      "elapsed_seconds": 0.774146566,
+      "stdout_sha256": "d4ea95f4e7c96a5240550504b04e5d0e859ca7f631872b35ef73ccacda064f58",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  ],
+  "engine_source_root": "/workspace/.cloud-setup/forge-tt-single-worker-gated-source",
+  "sanitizer_options": {
+    "ASAN_OPTIONS": "detect_leaks=1:halt_on_error=1",
+    "UBSAN_OPTIONS": "halt_on_error=1",
+    "TSAN_OPTIONS": null
+  },
+  "sha256_before": {
+    "validation/single-thread-tt-20261020/actual-api-concurrency.cpp": "25813c23a296b86bc90c045c3f123bfc82db2ed0404cc8de8b069156280e42b1",
+    "/workspace/.cloud-setup/forge-tt-single-worker-gated-source/include/forge/search.hpp": "c08a86d47976bd71dc85548a7a3e232f06871d005bfd2aff62c12ecd3fd5b15c",
+    "/workspace/.cloud-setup/forge-tt-single-worker-gated-source/src/search.cpp": "a2667c72d5c927cf18b60715876759b1fd2216c2a8be082eadc255502f455825",
+    "/workspace/.cloud-setup/forge-tt-single-worker-gated-asan/libforge_core.a": "1cdf983f66338ad8de880768a651a6ace842193f4aff8783c0fc262773f8a743"
+  },
+  "binary_sha256": "ce10c0814a0727e5d0085f53d8921de9e763b07dc28015d08680aecc6f0ddaff",
+  "completed_groups": [
+    "PASS default-shared1 ",
+    "PASS exclusive-request-smp4-fallback ",
+    "PASS exclusive1-after-1to4to1 ",
+    "PASS post-return-default-api-and-zero-node-cleanup",
+    "PASS nested-other-table-owner-restoration",
+    "PASS actual-search-exception-unwind",
+    "PASS partial-drain-constructor-exception"
+  ],
+  "tsan_options": null,
+  "diagnostic_classification": "none",
+  "source_unchanged_during_driver": true
+}

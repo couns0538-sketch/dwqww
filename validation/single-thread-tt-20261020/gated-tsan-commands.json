@@ -1,0 +1,48 @@
+{
+  "source_commit": "8865666cc0ab4961cd507bae40ff6ce44e9319df",
+  "source_export": "/workspace/.cloud-setup/forge-tt-single-worker-gated-source",
+  "environment_override": {
+    "PYTHONDONTWRITEBYTECODE": "1",
+    "TSAN_OPTIONS": "halt_on_error=1:exitcode=66"
+  },
+  "deadlock_detector": "default enabled; nocheckdisabled",
+  "phases": [
+    {
+      "command": [
+        "/workspace/.cloud-setup/venv/bin/cmake",
+        "-S",
+        "/workspace/.cloud-setup/forge-tt-single-worker-gated-source",
+        "-B",
+        "/workspace/.cloud-setup/forge-tt-single-worker-gated-tsan",
+        "-DCMAKE_BUILD_TYPE=RelWithDebInfo",
+        "-DFORGE_ENABLE_SANITIZERS=OFF",
+        "-DCMAKE_CXX_FLAGS=-march=x86-64-v3 -mtune=znver5 -fno-fast-math -ffp-contract=off -fno-lto -fsanitize=thread -fno-omit-frame-pointer -fno-pie",
+        "-DCMAKE_EXE_LINKER_FLAGS=-fsanitize=thread -no-pie",
+        "-DCMAKE_EXPORT_COMPILE_COMMANDS=ON"
+      ],
+      "return_code": 0,
+      "log": "gated-tsan-configure.log"
+    },
+    {
+      "command": [
+        "/workspace/.cloud-setup/venv/bin/cmake",
+        "--build",
+        "/workspace/.cloud-setup/forge-tt-single-worker-gated-tsan",
+        "--parallel",
+        "2"
+      ],
+      "return_code": 0,
+      "log": "gated-tsan-build.log"
+    },
+    {
+      "command": [
+        "/workspace/.cloud-setup/venv/bin/ctest",
+        "--test-dir",
+        "/workspace/.cloud-setup/forge-tt-single-worker-gated-tsan",
+        "--output-on-failure"
+      ],
+      "return_code": 0,
+      "log": "gated-tsan-ctest.log"
+    }
+  ]
+}

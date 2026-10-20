@@ -191,5 +191,17 @@ remain unsupported.
   prototype-linked driver artifact was never executed after the header layout
   changed; its separate not-run record is retained.
 
-Full-engine TSan, ASan and target Windows validation remain root-owned checks;
-the independent driver and smokes do not replace them. No speed/Elo claim.
+- The final driver hash `25813c23a296b86bc90c045c3f123bfc82db2ed0404cc8de8b069156280e42b1`
+  subsequently passed all7 groups against **both** frozen886 ASan/UBSan and
+  TSan cores on their first runs, exit0 and empty stderr. Headers came only
+  from the frozen source export. Flags match O2/x86-64-v3/znver5/non-PIE,
+  no-LTO, no-fast-math and ffp-contract=off. ASan used detect_leaks=1 and
+  halt_on_error=1; UBSan halt_on_error=1; TSan halt_on_error=1:exitcode=66 with
+  its deadlock detector unchanged. No retries or disabled checks. Exact commands,
+  raw stdout/stderr, stage elapsed durations and actual binary/core/header/source
+  hashes are in `frozen886-asan-actual-api.json` and
+  `frozen886-tsan-actual-api.json`; every input remained unchanged during its run.
+
+Full-engine sanitizer suites, UCI lifecycle stress and target Windows validation
+remain root-owned checks; these independent driver checks do not replace them.
+No speed/Elo claim.

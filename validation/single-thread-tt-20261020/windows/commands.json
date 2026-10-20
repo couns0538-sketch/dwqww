@@ -1,0 +1,33 @@
+{
+  "created_utc": "2026-10-20T00:53:01.703308+00:00",
+  "source_and_tests_commit": "8865666cc0ab4961cd507bae40ff6ce44e9319df",
+  "source_directory": "/workspace/.cloud-setup/forge-windows-tt-gated-source",
+  "build_directory": "/workspace/.cloud-setup/forge-windows-tt-gated",
+  "commands": [
+    [
+      "/workspace/.cloud-setup/venv/bin/cmake",
+      "-S",
+      "/workspace/.cloud-setup/forge-windows-tt-gated-source",
+      "-B",
+      "/workspace/.cloud-setup/forge-windows-tt-gated",
+      "-DCMAKE_BUILD_TYPE=Release",
+      "-DCMAKE_TOOLCHAIN_FILE=/workspace/.cloud-setup/forge-windows-tt-gated-source/tools/windows-zen5.cmake",
+      "-DCMAKE_EXPORT_COMPILE_COMMANDS=ON"
+    ],
+    [
+      "/workspace/.cloud-setup/venv/bin/cmake",
+      "--build",
+      "/workspace/.cloud-setup/forge-windows-tt-gated",
+      "--parallel",
+      "2"
+    ]
+  ],
+  "environment_subset": {
+    "LLVM_MINGW_ROOT": "/workspace/.cloud-setup/toolchains/llvm-mingw-20261006-ucrt-ubuntu-22.04-x86_64",
+    "PYTHONDONTWRITEBYTECODE": "1"
+  },
+  "configuration": "Release -march=znver5 -mtune=znver5 -fno-fast-math -ffp-contract=off -static",
+  "parallel_jobs": 2,
+  "runtime_checks": "pending",
+  "scope": "Build only; no performance/strength result"
+}
