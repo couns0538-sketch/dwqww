@@ -1,0 +1,29 @@
+name: Forge 6.4 UCI clock-origin validation
+on:
+  push:
+    branches: ['forge/6.4-hourly-20261019']
+    paths:
+      - '.github/workflows/forge64-clock-origin.yml'
+      - 'validation/hourly/2026-10-20-go-origin-native/**'
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: forge64-clock-origin-${{ github.ref }}
+  cancel-in-progress: false
+jobs:
+  native-validation:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build both isolated engines, execute all CTests and measure clock origin
+        run: bash validation/hourly/2026-10-20-go-origin-native/run_native_validation.sh "$RUNNER_TEMP/forge64-origin-results"
+      - name: Save newly generated diagnostic logs (not prior blocked match archive)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: forge64-go-origin-validation
+          path: ${{ runner.temp }}/forge64-origin-results/
+          if-no-files-found: warn
+          retention-days: 14
