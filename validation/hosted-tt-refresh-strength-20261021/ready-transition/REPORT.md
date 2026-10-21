@@ -1,0 +1,11 @@
+# Authorized READY transition — final independent review required
+
+Applied exactly the root-approved proposal4c17088c after verifying all504 recorded byte/mode inputs and317 proofs. Preserved original protocol, runner, workflow, inventory, full before-map and historical DRAFT test source under before/. Only those four canonical files changed. The runner is exactly the approved single constantNone→292545 proposal1a31; five other Python execution files and all engine/native/capture/proof317 bytes remain unchanged. Old22 package references also rehash unchanged.
+
+The actual READY metadata check passed24 package inventory entries,317 proof hashes, all504 post-transition inputs,13 actual mandatory-map omission negatives and nine runner metadata negatives. Named mandatory paths are checked by the binding checker, not misrepresented as a hardcoded runner contract. Native42/8/TT12/PV56 and both five-row captures retain their actual source/owned-process qualifications; no Windows23 dependency was introduced.
+
+One applicable offline run passed98 tests in23.487seconds, observed outer tool exit0. Two unchanged assertions that expressly describe the historical DRAFT phase were excluded by exact full IDs in READY-TEST-SCOPE.json; the original100-test DRAFT run, raw files and assertions remain preserved. No new engine, compiler, capture, Fastchess, Git or hosted execution occurred. Python process fixtures are benign test children. Post-suite byte/mode/proof/source checks passed.
+
+Workflow trigger is restricted to forge/hosted-tt-refresh-strength-20261021-* push and run_attempt1. Original calibration, equal1+0.01 timed4AA pairs then512pair logistic0/+10SPRT, limits, cleanup, no-retry/no-pooling policy and fresh seed20261101 are unchanged. A cap without crossing remains inconclusive; no speed, Elo or bug claim follows from readiness.
+
+The package README retains its historical disabled-phase wording because root authorized exactly four canonical file changes; current authoritative state is the exact READY protocol/workflow and this explicit transition receipt. A separate final enabled metadata review remains required, bound outside the protocol proof map to avoid a cycle. Root alone owns payload publication and the sole trigger. No launch was performed.
