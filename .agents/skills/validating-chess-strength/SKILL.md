@@ -13,7 +13,7 @@ Record source commits/diffs, original archive, network, compiler/flags, executab
 
 Choose the baseline for the question: the exact original archive measures the combined change; a reference containing shared clock fixes isolates a later search change. State which comparison is performed.
 
-Run A/A first with the same binary, node budget, options and transport. Require normal complete color-swapped pairs and identical deterministic moves/results. Neutral A/A is calibration, not precise zero Elo. Keep it separate from A/B.
+Preregister the A/A purpose and gate, using the same binary, resource policy, options and transport. For deterministic fixed-node A/A with unlimited clocks, require identical paired moves/results as well as normal complete color-swapped pairs. For timed operational A/A, use the frozen equal-clock settings: scheduling can change reached depth, moves and results, so require the preregistered normal-game, pairing, legality, fault and input-integrity checks. Different timed moves/results alone are not a harness fault without a preregistered, justified identity requirement. Neither mode establishes precise zero Elo; keep A/A separate from A/B. Do not retrospectively relax a frozen deterministic gate to rescue a failed attempt.
 
 Use fresh unique opening positions, comparing their first four FEN fields. Exclude prior calibration/pilot/test selections. Set Threads=1, Hash equally, OwnBook=false and restart per game when isolating search. Freeze concurrency and settings before outcomes are visible.
 
