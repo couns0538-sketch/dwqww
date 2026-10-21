@@ -13,12 +13,15 @@ Current isolated trial **Forge 6.4.23** is source
 existing synchronization. Four new real-table regression groups preserve all eight
 older groups; the expected old-policy contrast against unchanged22 passed.
 All77 source inputs are pinned, with73 unchanged and exactly four delta paths.
-First native Release/ASan/TSan/active validation is authorized; completion and all
+First native validation passed42CTest (14Release/14ASan/14defaultTSan),12TTgroups
+and56PVassertions each, plus8activeUCIchecks. Independent1185checks/0fail and root
+644originals/17parentsingles/77Git/138evidence rehash passed. Single firstbench
+captured292545nodes; the compiled NNUE object is bit-identical22. Windows23 and all
 strength evidence are pending. This changes replacement, shallow admission and
 hashfull and is not a demonstrated correctness fix, speedup or Elo gain.
 [Trial and next gate](../validation/tt-refresh-20261021/EXPERIMENT.md).
 
-Latest fully qualified isolated candidate **Forge 6.4.22**, source
+Latest Windows-qualified isolated candidate **Forge 6.4.22**, source
 `ff2e269c6058be84456e3b98344826d17b0056eb`, is on
 `forge/singular-pv-metadata-20261021`; published clearance checkpoint
 `1bccee28457d8e587be5b768437f199e180ae3c6`.

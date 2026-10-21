@@ -1,0 +1,291 @@
+--- independent-audit.reference22.py
++++ independent-audit.py
+@@ -1,5 +1,5 @@
+ #!/usr/bin/env python3
+-"""Audit saved PV-metadata evidence; never run engines, compilers or tests.
++"""Audit saved TT-refresh search-policy evidence; never run engines, compilers or tests.
+ 
+ Every check is appended and flushed to a new facts JSONL before the final gate.
+ Independent stages continue after a discrepancy when their inputs remain readable.
+@@ -18,10 +18,12 @@
+ import tarfile
+ 
+ ROOT = Path('/workspace/dwqww')
+-HERE = ROOT / 'validation/pv-metadata-native-20261021'
+-SOURCE = Path('/workspace/.cloud-setup/pv-metadata-native-source')
++HERE = ROOT / 'validation/tt-refresh-native-20261021'
++SOURCE = Path('/workspace/.cloud-setup/tt-refresh-native-source')
+ REV = None  # Set only in main after explicit root clearance for the frozen source.
+-PARENT_REV = '2e151d019bc58dff2ab4e76e99ef99516af8d222'
++PARENT_REV = 'ff2e269c6058be84456e3b98344826d17b0056eb'
++PV_RED_REV = '2e151d019bc58dff2ab4e76e99ef99516af8d222'
++ALLOWED_SOURCE_CHANGES = {'CMakeLists.txt', 'src/uci.cpp', 'src/search.cpp', 'tests/tt_coherence_tests.cpp'}
+ BASE = Path('/workspace/.cloud-setup')
+ CMAKE = '/workspace/.cloud-setup/venv/bin/cmake'
+ CTEST = '/workspace/.cloud-setup/venv/bin/ctest'
+@@ -83,7 +85,7 @@
+ 
+ def frozen_source():
+     clear = load(HERE / 'ROOT-CLEARANCE.json')
+-    record('exact_root_clearance', clear['authorized'] is True and clear['source_commit'] == REV and clear['baseline_source_commit'] == PARENT_REV and clear['required_version'] == '6.4.22' and clear['expected_runtime_psqt_checks'] == 347 and clear['expected_pawn_span_checks'] == 37320 and clear['expected_nearest_checks'] == 791680 and clear['expected_nearest_sets'] == 395840 and clear['expected_nearest_constexpr_assertions'] == 6 and clear['expected_pv_metadata_assertions'] == 56 and clear['expected_pv_metadata_test_source_sha256'] == '8000b717a298c4c8bb637752fcc57a0ce485110a12edc4a505f3d0452620bd1e' and clear['exact_search_parity_required'] is False and clear['observational_cold_warm_searches'] == 0 and clear['source_files'] == 77 and clear['expected_ctest_per_profile'] == 14 and clear['expected_bench11_nodes'] == 292545 and clear['strict_fp'] is True and clear['no_lto'] is True and clear['profiles_sequential'] is True and clear['build_jobs'] == 2 and clear['default_tsan_options'] == 'halt_on_error=1:exitcode=66' and clear['suppression_or_deadlock_detector_disabled'] is False and clear['performance_or_strength_inference'] is False)
++    record('exact_root_clearance', clear['authorized'] is True and clear['source_commit'] == REV and clear['baseline_source_commit'] == PARENT_REV and clear['required_version'] == '6.4.23' and clear['expected_runtime_psqt_checks'] == 347 and clear['expected_pawn_span_checks'] == 37320 and clear['expected_nearest_checks'] == 791680 and clear['expected_nearest_sets'] == 395840 and clear['expected_nearest_constexpr_assertions'] == 6 and clear['expected_pv_metadata_assertions'] == 56 and clear['expected_pv_metadata_test_source_sha256'] == '8000b717a298c4c8bb637752fcc57a0ce485110a12edc4a505f3d0452620bd1e' and clear['exact_search_parity_required'] is False and clear['observational_cold_warm_searches'] == 0 and clear['source_files'] == 77 and clear['expected_ctest_per_profile'] == 14 and clear['expected_bench11_nodes'] is None and clear['benchmark_signature_mode'] == 'FIRST_CAPTURE_EXCLUSIVE_FREEZE' and clear['strict_fp'] is True and clear['no_lto'] is True and clear['profiles_sequential'] is True and clear['build_jobs'] == 2 and clear['default_tsan_options'] == 'halt_on_error=1:exitcode=66' and clear['suppression_or_deadlock_detector_disabled'] is False and clear['performance_or_strength_inference'] is False)
+     data = git('archive', REV, 'CMakeLists.txt', 'LICENSE', 'src', 'include', 'tests', 'bench', 'tools')
+     expected = {}
+     with tarfile.open(fileobj=io.BytesIO(data)) as archive:
+@@ -94,8 +96,9 @@
+     record('exact_frozen_source_git_tar', (HERE / ('frozen-source-' + REV[:7] + '.tar')).read_bytes() == data)
+     record('exact77_source_git_export_manifest', len(expected) == 77 and expected == actual == load(HERE / ('frozen-source-' + REV[:7] + '-files.json')))
+     context['source'] = expected
++    record('root_frozen_tt_regression_source', expected['tests/tt_coherence_tests.cpp'] == clear['expected_tt_test_source_sha256'])
+     root_gate = load(HERE / 'ROOT-FROZEN-SOURCE-GATES.json')
+-    record('root_frozen_source_gate_identity', root_gate['source_commit'] == REV and root_gate['baseline_commit'] == PARENT_REV and root_gate['inputs'] == expected)
++    record('root_frozen_source_gate_identity', root_gate['source_commit'] == REV and root_gate['baseline_commit'] == PARENT_REV and root_gate['inputs'] == expected and set(root_gate['unchanged_boundaries']) == set(expected) - ALLOWED_SOURCE_CHANGES)
+     for name in root_gate['unchanged_boundaries']:
+         record('root_unchanged_boundary:' + name, expected[name] == sha(git('show', PARENT_REV + ':' + name)))
+     provenance = load(HERE / 'DRIVER-PROVENANCE.json')
+@@ -106,10 +109,10 @@
+     protocol = load(HERE / 'RELEASE-SIGNATURE-PROTOCOL.json')
+     schema_path = Path(protocol['pv_metadata_test_schema_path'])
+     schema = load(schema_path)
+-    record('actual_red_test_schema_identity', digest(schema_path) == protocol['pv_metadata_test_schema_sha256'] == '0b146976915b9a40b25873b0be2c168322331cd68bc352608db49bc860d6d252' and expected['tests/pv_metadata_tests.cpp'] == protocol['pv_metadata_test_source_sha256'] == schema['source_sha256'] == '8000b717a298c4c8bb637752fcc57a0ce485110a12edc4a505f3d0452620bd1e')
++    record('actual_red_test_schema_identity', protocol['historical_pv_red_source_commit'] == PV_RED_REV and digest(schema_path) == protocol['pv_metadata_test_schema_sha256'] == '0b146976915b9a40b25873b0be2c168322331cd68bc352608db49bc860d6d252' and expected['tests/pv_metadata_tests.cpp'] == protocol['pv_metadata_test_source_sha256'] == schema['source_sha256'] == '8000b717a298c4c8bb637752fcc57a0ce485110a12edc4a505f3d0452620bd1e')
+     red_path = schema_path.parent / 'baseline-attempt1/result.json'
+     red = load(red_path)
+-    record('actual_saved_baseline21_red', digest(red_path) == schema['baseline_result_sha256'] and red['status'] == 'EXPECTED_BASELINE_RED_PERMANENT_REGRESSION' and red['source_commit'] == PARENT_REV and red['assertions'] == schema['observed_baseline_assertions'] == 56 and schema['observed_baseline_failures'] == 2 and schema['observed_baseline_exit_code'] == 1 and red['inputs_before'] == red['inputs_after'] and red['core_unchanged'] is True and red['all_other_assertions_passed'] is True)
++    record('actual_saved_baseline21_red', digest(red_path) == schema['baseline_result_sha256'] and red['status'] == 'EXPECTED_BASELINE_RED_PERMANENT_REGRESSION' and red['source_commit'] == PV_RED_REV and red['assertions'] == schema['observed_baseline_assertions'] == 56 and schema['observed_baseline_failures'] == 2 and schema['observed_baseline_exit_code'] == 1 and red['inputs_before'] == red['inputs_after'] and red['core_unchanged'] is True and red['all_other_assertions_passed'] is True)
+     red_steps = red['steps']
+     record('baseline_red_expected_process_exits', [row['label'] for row in red_steps] == ['compile-link', 'actual-core-unit'] and [row['exit_code'] for row in red_steps] == [0, 1] and all(row['cleanup']['no_live_owned_processes'] and not row['cleanup']['unexpected_live_members_after_command'] for row in red_steps))
+     for row in red_steps:
+@@ -119,7 +122,36 @@
+     red_stderr = (red_path.parent / 'actual-core-unit.stderr').read_text()
+     record('baseline_red_actual56_two_failures', re.findall(r'^PV metadata: assertions (\d+) failures (\d+)\s*$', red_stdout, re.M) == [('56', '2')] and re.findall(r'^FAIL (.*)$', red_stderr, re.M) == schema['observed_failed_assertions'] == red['expected_failures'])
+     record('baseline_red_actual_five_rows', [list(row) for row in re.findall(r'^PV_METADATA_CASE (\w+) nodes=(\d+) aborted=([01]) flag=([01]) pv_moves=(\d+)\s*$', red_stdout, re.M)] == schema['case_rows'] == red['case_rows'])
+-    return {'source_commit': REV, 'source_files': len(expected), 'source_tar_sha256': sha(data), 'runtime_psqt_checks': 347, 'pawn_span_checks': clear['expected_pawn_span_checks'], 'nearest_pawn_checks': 791680, 'nearest_pawn_sets': 395840, 'nearest_constexpr_assertions': 6, 'correction_history_checks': 54, 'baseline_red_saved_assertions': 56, 'baseline_red_saved_failures': 2, 'parent_red_executed_during_audit': False}
++    return {'source_commit': REV, 'source_files': len(expected), 'source_tar_sha256': sha(data), 'runtime_psqt_checks': 347, 'pawn_span_checks': clear['expected_pawn_span_checks'], 'nearest_pawn_checks': 791680, 'nearest_pawn_sets': 395840, 'nearest_constexpr_assertions': 6, 'correction_history_checks': 54, 'historical_pv_red_source_commit': PV_RED_REV, 'historical_pv_red_saved_assertions': 56, 'historical_pv_red_saved_failures': 2, 'parent_red_executed_during_audit': False}
++
++
++def parent_policy_contrast():
++    directory = ROOT / 'validation/tt-refresh-20261021/parent-policy-red-attempt1'
++    result = load(directory / 'RESULT.json')
++    protocol = load(HERE / 'RELEASE-SIGNATURE-PROTOCOL.json')
++    record('parent22_policy_contrast_protocol_path', protocol['parent_policy_contrast_receipt_path'] == str(directory / 'RESULT.json'))
++    expected_proof_sha256 = {'RESULT.json': '8944b0d74a0fa92c0d886e78a7baa6f5b126033cacd0c5eaebe6af41527ee924', 'actual-parent-policy-red.stderr': '3aafc59461936e750dcc442cf7414fce305190a46d8a820fa61555c40a746114', 'actual-parent-policy-red.stdout': 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855', 'compile.stderr': 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855', 'compile.stdout': 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855', 'tt_coherence_tests.cpp': 'cc2fe3e9fb0059f409876345e8cfb3c008ede401751a4dad76b022f743238fd5'}
++    record('parent22_policy_contrast_all_saved_files', {name: digest(directory / name) for name in expected_proof_sha256} == expected_proof_sha256)
++    record('parent22_policy_contrast_is_expected_policy_not_bug', result['status'] == 'PASS_EXPECTED_OLD_POLICY_CONTRAST' and result['baseline_source_commit'] == PARENT_REV and result['purpose'] == 'Expected policy contrast, not a claim of a parent correctness defect')
++    expected_inputs = {'core': BASE / 'pv-metadata-native-release/libforge_core.a', 'new_policy_test_source': ROOT / 'tests/tt_coherence_tests.cpp', 'parent_header': BASE / 'pv-metadata-native-source/include/forge/search.hpp', 'driver': ROOT / 'validation/tt-refresh-20261021/run-parent-policy-red-once.py'}
++    current_inputs = {name: digest(path) for name, path in expected_inputs.items()}
++    record('parent22_policy_contrast_actual_input_paths_and_bytes', result['inputs'] == {name: str(path) for name, path in expected_inputs.items()} and current_inputs == result['input_sha256_before'] == result['input_sha256_after'])
++    record('parent22_policy_contrast_source_and_core_pins', current_inputs['new_policy_test_source'] == digest(directory / 'tt_coherence_tests.cpp') == context['source']['tests/tt_coherence_tests.cpp'] == context['clear']['expected_tt_test_source_sha256'] and current_inputs['core'] == '374275cc7f3d973204747e8c0befae30d0a0c8f495a7f36dda96fa275fe720b6' and current_inputs['parent_header'] == '3d9208de205b4bd2f8e82f6c64137be253eb51aa0a418d5e39e1c06392e95eb9' and current_inputs['driver'] == '2df925d752325fbd9d3341a8aa9fc4467c7241b27fefb6a36b3b89ebc227f06a')
++    executable = BASE / 'tt-refresh-parent-policy-red/forge_tt_policy_red'
++    expected_compile = [CXX, '-std=c++20', '-O3', '-DNDEBUG', *FLAGS, '-I/workspace/.cloud-setup/pv-metadata-native-source/include', str(directory / 'tt_coherence_tests.cpp'), str(expected_inputs['core']), '-pthread', '-o', str(executable)]
++    steps = result['steps']
++    record('parent22_policy_contrast_exact_two_commands', [row['label'] for row in steps] == ['compile', 'actual-parent-policy-red'] and [row['command'] for row in steps] == [expected_compile, [str(executable)]] and [row['timeout_seconds'] for row in steps] == [120, 30] and [row['expected_exit'] for row in steps] == [0, 1] and [row['exit_code'] for row in steps] == [0, 1] and all(row['error'] is None and row['timed_out'] is False for row in steps))
++    for row in steps:
++        streams('parent22_policy_contrast:' + row['label'], directory, row, '')
++        cleanup_fact('parent22_policy_contrast:' + row['label'], row['cleanup'])
++    record('parent22_policy_contrast_saved_executable', digest(executable) == result['executable_sha256'])
++    record('parent22_policy_contrast_exact_first_new_failure', (directory / 'actual-parent-policy-red.stdout').read_bytes() == b'' and (directory / 'actual-parent-policy-red.stderr').read_bytes() == b'FAIL: old occupied hit did not refresh only generation bits\n')
++    source = (directory / 'tt_coherence_tests.cpp').read_text()
++    main = source[source.index('int main() {'):]
++    calls = re.findall(r'^\s*(test_\w+)\(\);', main, re.M)
++    first_seven = ['test_snapshot_and_current_slot_admission', 'test_delayed_store_keeps_probe_destination', 'test_replacement_ties_age_and_late_changes', 'test_invalid_handles_and_lifecycle', 'test_resize_allocation_failure_preserves_table', 'test_hashfull_current_generation_and_wrap', 'test_score_context_tracks_admitted_payload']
++    record('parent22_policy_contrast_first_seven_before_first_new_failure', calls[:8] == first_seven + ['test_generation_refresh_payload_and_handles'])
++    return {'status': result['status'], 'source_commit': PARENT_REV, 'proof_result_sha256': digest(directory / 'RESULT.json'), 'expected_parent_exit': 1, 'first_seven_old_groups_completed_before_new_policy_failure': first_seven, 'first_seven_completion_evidence': 'Derived from pinned sequential test call order and exact first-new-group failure, not separately printed group receipts.', 'parent_correctness_defect_claimed': False, 'parent_test_executed_during_audit': False}
+ 
+ 
+ def cleanup_fact(label, value):
+@@ -161,7 +193,7 @@
+ 
+ def audit_profile(profile):
+     directory = HERE / ('frozen-' + profile + '-attempt1')
+-    build = BASE / ('pv-metadata-native-' + profile)
++    build = BASE / ('tt-refresh-native-' + profile)
+     summary = load(directory / 'summary.json')
+     record('profile_pass:' + profile, summary['status'] == 'PASS' and summary['source_commit'] == REV, observed_status=summary['status'])
+     record('profile_tar_identity:' + profile, summary['source_archive_sha256'] == digest(HERE / ('frozen-source-' + REV[:7] + '.tar')))
+@@ -204,6 +236,12 @@
+     block = re.search(r'\n\d+/14 Testing: forge_correction_history_tests\n(.*?)(?=\n\d+/14 Testing:|\Z)', last, re.S)
+     correction = block[1] if block else ''
+     record('actual54_correction_checks:' + profile, re.findall(r'^SUMMARY checks=(\d+) failures=(\d+)\s*$', correction, re.M) == [('54', '0')] and len(re.findall(r'^PASS ', correction, re.M)) == 54 and not re.search(r'^FAIL ', correction, re.M))
++    tt_block = re.search(r'\n\d+/14 Testing: forge_tt_tests\n(.*?)(?=\n\d+/14 Testing:|\Z)', last, re.S)
++    tt_text = tt_block[1] if tt_block else ''
++    tt_groups = context['clear']['expected_tt_groups']
++    tt_success = context['clear']['expected_tt_group_success_line']
++    record('actual_root_frozen_tt_groups:' + profile, re.findall(r'^All(\d+) TT coherence/regression groups passed\s*$', tt_text, re.M) == summary['tt_coherence_contract_actual_groups'] == [str(tt_groups)] and tt_text.splitlines().count(tt_success) == 1 and summary['tt_coherence_actual_success_lines'] == [tt_success] and not re.search(r'^FAIL ', tt_text, re.M))
++
+     runtime_block = re.search(r'\n\d+/14 Testing: forge_runtime_psqt_tests\n(.*?)(?=\n\d+/14 Testing:|\Z)', last, re.S)
+     runtime_text = runtime_block[1] if runtime_block else ''
+     record('actual347_runtime_psqt_checks:' + profile, re.findall(r'^SUMMARY checks=(\d+) failures=(\d+)\s*$', runtime_text, re.M) == [('347', '0')] and len(re.findall(r'^PASS ', runtime_text, re.M)) == 347 and not re.search(r'^FAIL ', runtime_text, re.M) and summary['runtime_psqt_contract_actual_summaries'] == [['347', '0']])
+@@ -252,7 +290,7 @@
+         record('actual_sanitizer_link:' + profile, ('-fsanitize=address,undefined' if profile == 'asan' else '-fsanitize=thread') in link and '-no-pie' in link)
+     diagnostics = scan_logs(profile, [directory / 'ctest.stdout', directory / 'ctest.stderr', last_path, directory / 'original-uci-regression.log', directory / 'original-ownbook-regression.json'])
+     context[profile] = summary
+-    return {'profile': profile, 'recorded_status': summary['status'], 'ctest_passes': 14, 'correction_checks': 54, 'runtime_psqt_checks': 347, 'pawn_span_checks': int(pawn_checks), 'nearest_pawn_checks': 791680, 'nearest_pawn_sets': 395840, 'nearest_constexpr_assertions': nearest_assertions, 'pv_metadata_assertions': 56, 'pv_metadata_cases': [list(row) for row in pv_rows], 'binaries': current, 'diagnostics': diagnostics, 'started_utc': summary['started_utc'], 'completed_utc': summary['completed_utc']}
++    return {'profile': profile, 'recorded_status': summary['status'], 'ctest_passes': 14, 'correction_checks': 54, 'tt_coherence_groups': tt_groups, 'tt_coherence_success_line': tt_success, 'runtime_psqt_checks': 347, 'pawn_span_checks': int(pawn_checks), 'nearest_pawn_checks': 791680, 'nearest_pawn_sets': 395840, 'nearest_constexpr_assertions': nearest_assertions, 'pv_metadata_assertions': 56, 'pv_metadata_cases': [list(row) for row in pv_rows], 'binaries': current, 'diagnostics': diagnostics, 'started_utc': summary['started_utc'], 'completed_utc': summary['completed_utc']}
+ 
+ 
+ def release_signature():
+@@ -262,33 +300,28 @@
+     protocol = load(protocol_path)
+     clear = context['clear']
+     record('release_signature_wrapper_pass', wrapper['status'] == 'PASS' and wrapper['source_commit'] == REV and wrapper['timing_comparison'] is False)
+-    record('explicit_zero_observer_protocol', protocol['schema'] == 'pv-metadata-release-signature-v1' and protocol['baseline_source_commit'] == PARENT_REV and protocol['exact_parent_search_parity_required'] is False and protocol['observational_cold_warm_searches'] == 0 and clear['exact_search_parity_required'] is False and clear['observational_cold_warm_searches'] == 0 and wrapper['exact_search_parity_required'] is False and wrapper['observational_cold_warm_searches'] == 0)
++    record('explicit_zero_observer_protocol', protocol['schema'] == 'tt-refresh-release-signature-v1' and protocol['baseline_source_commit'] == PARENT_REV and protocol['exact_parent_search_parity_required'] is False and protocol['observational_cold_warm_searches'] == 0 and clear['exact_search_parity_required'] is False and clear['observational_cold_warm_searches'] == 0 and wrapper['exact_search_parity_required'] is False and wrapper['observational_cold_warm_searches'] == 0)
+     baseline_source = Path(protocol['baseline_source_root'])
+     parent_data = git('archive', PARENT_REV, 'CMakeLists.txt', 'LICENSE', 'src', 'include', 'tests', 'bench', 'tools')
+     with tarfile.open(fileobj=io.BytesIO(parent_data)) as archive:
+         parent_source = {item.name: sha(archive.extractfile(item).read()) for item in archive.getmembers() if item.isfile()}
+     actual_parent = {p.relative_to(baseline_source).as_posix(): digest(p) for p in baseline_source.rglob('*') if p.is_file()}
+-    record('baseline21_complete_source_preserved', len(parent_source) == 76 and actual_parent == parent_source == wrapper['baseline_source_sha256_before'] == wrapper['baseline_source_sha256_after'])
++    record('baseline22_complete_source_preserved', len(parent_source) == 77 and actual_parent == parent_source == wrapper['baseline_source_sha256_before'] == wrapper['baseline_source_sha256_after'])
+     record('candidate_complete_source_signature_bound', wrapper['source_sha256_before'] == wrapper['source_sha256_after'] == context.get('source'))
+-    allowed_existing = {'CMakeLists.txt', 'src/uci.cpp', 'src/search.cpp'}
+     candidate_source = context.get('source', {})
+-    record('only_declared_frozen22_source_changes', set(candidate_source) == set(parent_source) | {'tests/pv_metadata_tests.cpp'} and all(candidate_source[name] == value for name, value in parent_source.items() if name not in allowed_existing))
+-    baseline_search = (baseline_source / 'src/search.cpp').read_text()
+-    anchor = '            ss->excluded_move = move;\n            const int singular_score = search(board, ss, singular_depth, singular_beta - 1, singular_beta, cut_node);\n'
+-    fixed = '            const bool saved_tt_pv = ss->tt_pv;\n' + anchor + '            ss->tt_pv = saved_tt_pv;\n'
+-    record('exact_two_line_caller_tt_pv_save_restore', baseline_search.count(anchor) == 1 and (SOURCE / 'src/search.cpp').read_text() == baseline_search.replace(anchor, fixed, 1))
++    record('only_root_declared_frozen23_source_changes', set(candidate_source) == set(parent_source) and len(parent_source) == 77 and all(candidate_source[name] == value for name, value in parent_source.items() if name not in ALLOWED_SOURCE_CHANGES))
+     paths = {name: Path(value) for name, value in wrapper['input_paths'].items()}
+     release_gate = context['release']
+-    expected_paths = {'candidate/' + name: BASE / 'pv-metadata-native-release' / name for name in BINARY_NAMES}
++    expected_paths = {'candidate/' + name: BASE / 'tt-refresh-native-release' / name for name in BINARY_NAMES}
+     expected_paths.update(baseline_engine=Path(protocol['baseline_engine']), baseline_core=Path(protocol['baseline_core']), baseline_nnue_object=Path(protocol['baseline_nnue_object']), release_signature_protocol=protocol_path)
+     expected_paths.update({'baseline_source/' + name: baseline_source / name for name in protocol['protected_nonsearch_source_sha256']})
+     record('exact_release_signature_input_paths', paths == expected_paths)
+     current = {name: digest(path) for name, path in paths.items()}
+     record('all_signature_inputs_preserved', current == wrapper['input_sha256_before'] == wrapper['input_sha256_after'])
+     record('candidate_all17_bound_to_release', len(release_gate['binary_sha256_after']) == 17 and all(current['candidate/' + name] == value for name, value in release_gate['binary_sha256_after'].items()))
+-    record('baseline21_engine_core_pinned', current['baseline_engine'] == protocol['baseline_engine_sha256'] == '769583f71cf6af053010f1ea9033bd92b5104e4a7235af1b9f61b689d5a5174b' and current['baseline_core'] == protocol['baseline_core_sha256'] == 'f2c3d5f5ecd14d97e19ba32af67e0b3c2579339dc3b7266bf85f9df9c275fde3')
+-    record('baseline21_nnue_object_pinned', current['baseline_nnue_object'] == protocol['baseline_nnue_object_sha256'] == 'e8dfc576e6b42ffa4de5d4991d0f3ae7c3e9be7f5a818126c520dee386f6a967')
+-    record('candidate_nnue_object_exact_parent21', current['candidate/CMakeFiles/forge_core.dir/src/nnue.cpp.o'] == current['baseline_nnue_object'])
++    record('baseline22_engine_core_pinned', current['baseline_engine'] == protocol['baseline_engine_sha256'] == '7bc7b576a81f453874e424d5372e7a754f64cf6414194e09038db2d217d7e12c' and current['baseline_core'] == protocol['baseline_core_sha256'] == '374275cc7f3d973204747e8c0befae30d0a0c8f495a7f36dda96fa275fe720b6')
++    record('baseline22_nnue_object_pinned', current['baseline_nnue_object'] == protocol['baseline_nnue_object_sha256'] == 'e8dfc576e6b42ffa4de5d4991d0f3ae7c3e9be7f5a818126c520dee386f6a967')
++    record('candidate_nnue_object_exact_parent22', current['candidate/CMakeFiles/forge_core.dir/src/nnue.cpp.o'] == current['baseline_nnue_object'])
+     protected = protocol['protected_nonsearch_source_sha256']
+     root_gate = load(HERE / 'ROOT-FROZEN-SOURCE-GATES.json')
+     record('protected_nonsearch_boundaries', set(protected).issubset(root_gate['unchanged_boundaries']) and all(candidate_source[name] == parent_source[name] == current['baseline_source/' + name] == value for name, value in protected.items()))
+@@ -296,16 +329,24 @@
+     record('exact_one_signature_step', [row['label'] for row in steps] == ['bench11'])
+     for row in steps:
+         saved = load(directory / 'bench11-command.json')
+-        record('signature_command_facts', {key: value for key, value in row.items() if key != 'label'} == saved and row['command'] == [str(BASE / 'pv-metadata-native-release/forge')] and row['cwd'] == str(ROOT) and row['timeout_seconds'] == 30 and row['exit_code'] == 0 and row['error'] is None and row['timed_out'] is False and row['input_sha256_after'] == current and row['source_sha256_after'] == candidate_source and row['baseline_source_sha256_after'] == parent_source)
++        record('signature_command_facts', {key: value for key, value in row.items() if key != 'label'} == saved and row['command'] == [str(BASE / 'tt-refresh-native-release/forge')] and row['cwd'] == str(ROOT) and row['timeout_seconds'] == 30 and row['exit_code'] == 0 and row['error'] is None and row['timed_out'] is False and row['input_sha256_after'] == current and row['source_sha256_after'] == candidate_source and row['baseline_source_sha256_after'] == parent_source)
+         streams('signature:bench11', directory, row, '.bin')
+         cleanup_fact('signature:bench11', row['cleanup'])
+         record('signature_exact_stdin', (directory / 'bench11.stdin.bin').read_bytes() == b'bench 11\nquit\n' and digest(directory / 'bench11.stdin.bin') == row['stdin_sha256'])
+     raw = (directory / 'bench11.stdout.bin').read_bytes()
+     signatures = [int(value) for value in re.findall(rb'^info string bench depth 11 nodes (\d+) time \d+ nps \d+\s*$', raw, re.M)]
+-    record('preregistered_frozen22_bench292545', signatures == wrapper['actual_bench11_signatures'] == [292545] and wrapper['bench11_expected_nodes'] == protocol['default_bench11_expected_nodes'] == clear['expected_bench11_nodes'] == 292545)
++    record('first_actual_bench11_capture_mode', wrapper['bench11_expected_nodes'] is None and protocol['default_bench11_expected_nodes'] is None and clear['expected_bench11_nodes'] is None and wrapper['benchmark_signature_mode'] == protocol['benchmark_signature_mode'] == clear['benchmark_signature_mode'] == 'FIRST_CAPTURE_EXCLUSIVE_FREEZE')
++    record('one_positive_actual_bench11_signature', signatures == wrapper['actual_bench11_signatures'] and len(signatures) == 1 and signatures[0] > 0)
++    freeze_path = HERE / 'BENCH-SIGNATURE-FREEZE.json'
++    freeze = load(freeze_path)
++    record('exclusive_bench_signature_freeze_identity', wrapper['bench_signature_freeze_path'] == freeze_path.name and wrapper['bench_signature_freeze_sha256'] == digest(freeze_path))
++    record('frozen_first_actual_bench_source_artifacts', freeze['status'] == 'FROZEN_FIRST_ACTUAL_RELEASE_BENCH11' and freeze['source_commit'] == REV and freeze['release_engine_sha256'] == current['candidate/forge'] and freeze['release_core_sha256'] == current['candidate/libforge_core.a'] and freeze['benchmark_depth'] == 11 and type(freeze['nodes']) is int and freeze['nodes'] > 0 and signatures == [freeze['nodes']] and freeze['signature_processes'] == 1 and freeze['timing_or_elo_inference'] is False)
++    record('frozen_first_actual_bench_original_streams', all(freeze['raw_' + stream + '_sha256'] == digest(directory / ('bench11.' + stream + '.bin')) for stream in ['stdin', 'stdout', 'stderr']))
++    record('frozen_first_actual_bench_all_inputs', freeze['input_sha256_before'] == freeze['input_sha256_after'] == wrapper['input_sha256_before'] == wrapper['input_sha256_after'] == current)
++    record('frozen_first_actual_bench_capture_time', datetime.datetime.fromisoformat(wrapper['started_utc']) <= datetime.datetime.fromisoformat(freeze['captured_utc']) <= datetime.datetime.fromisoformat(wrapper['completed_utc']))
+     record('signature_between_release_and_asan', datetime.datetime.fromisoformat(context['release']['completed_utc']) <= datetime.datetime.fromisoformat(wrapper['started_utc']) <= datetime.datetime.fromisoformat(wrapper['completed_utc']) <= datetime.datetime.fromisoformat(context['asan']['started_utc']))
+     diagnostics = scan_logs('release_signature', [directory / 'bench11.stdout.bin', directory / 'bench11.stderr.bin'])
+-    return {'preregistered_default_bench11_nodes': signatures, 'signature_processes': len(steps), 'exact_parent_search_parity_required': False, 'observational_cold_warm_searches': 0, 'protected_nonsearch_files': len(protected), 'baseline_complete_source_files': len(parent_source), 'diagnostics': diagnostics}
++    return {'first_captured_default_bench11_nodes': signatures, 'bench_signature_freeze_sha256': digest(freeze_path), 'signature_processes': len(steps), 'exact_parent_search_parity_required': False, 'observational_cold_warm_searches': 0, 'protected_nonsearch_files': len(protected), 'baseline_complete_source_files': len(parent_source), 'diagnostics': diagnostics}
+ 
+ def optional_active(required):
+     import chess
+@@ -323,8 +364,8 @@
+     cleanup_fact('active_wrapper', wrapper['cleanup'])
+     record('active_default_unsuppressed_tsan', wrapper['tsan_options'] == config['tsan_options'] == 'halt_on_error=1:exitcode=66' and wrapper['tsan_disabled_checks'] == [] and config['attempts'] == 1 and config['stop_before_active_mutations'] is False)
+     record('active_source_unchanged', wrapper['source_sha256_before'] == wrapper['source_sha256_after'] == context.get('source'))
+-    record('active_exact_wrapper_command', wrapper['command'] == [PYTHON, '-B', str(HERE / 'active-uci-edges.py'), '--engine', str(BASE / 'pv-metadata-native-tsan/forge'), '--output', str(directory), '--session-timeout', '90'] and wrapper['cwd'] == str(ROOT) and wrapper['timeout_seconds'] == 120 and config['engine'] == str(BASE / 'pv-metadata-native-tsan/forge') and config['session_timeout_seconds'] == 90)
+-    inputs = {'engine': BASE / 'pv-metadata-native-tsan/forge', 'core': BASE / 'pv-metadata-native-tsan/libforge_core.a', 'runtime_psqt_test_object': BASE / 'pv-metadata-native-tsan/CMakeFiles/forge_runtime_psqt_tests.dir/tests/runtime_psqt_tests.cpp.o', 'runtime_psqt_test_executable': BASE / 'pv-metadata-native-tsan/forge_runtime_psqt_tests', 'pawn_span_test_object': BASE / 'pv-metadata-native-tsan/CMakeFiles/forge_pawn_span_tests.dir/tests/pawn_span_tests.cpp.o', 'pawn_span_test_executable': BASE / 'pv-metadata-native-tsan/forge_pawn_span_tests', 'nnue_object': BASE / 'pv-metadata-native-tsan/CMakeFiles/forge_core.dir/src/nnue.cpp.o', 'nearest_pawn_test_object': BASE / 'pv-metadata-native-tsan/CMakeFiles/forge_nearest_pawn_tests.dir/tests/nearest_pawn_tests.cpp.o', 'nearest_pawn_test_executable': BASE / 'pv-metadata-native-tsan/forge_nearest_pawn_tests', 'pv_metadata_test_object': BASE / 'pv-metadata-native-tsan/CMakeFiles/forge_pv_metadata_tests.dir/tests/pv_metadata_tests.cpp.o', 'pv_metadata_test_executable': BASE / 'pv-metadata-native-tsan/forge_pv_metadata_tests', 'active_driver': HERE / 'active-uci-edges.py', 'trusted_driver': HERE / 'trusted-run-full-engine-tt.py'}
++    record('active_exact_wrapper_command', wrapper['command'] == [PYTHON, '-B', str(HERE / 'active-uci-edges.py'), '--engine', str(BASE / 'tt-refresh-native-tsan/forge'), '--output', str(directory), '--session-timeout', '90'] and wrapper['cwd'] == str(ROOT) and wrapper['timeout_seconds'] == 120 and config['engine'] == str(BASE / 'tt-refresh-native-tsan/forge') and config['session_timeout_seconds'] == 90)
++    inputs = {'engine': BASE / 'tt-refresh-native-tsan/forge', 'core': BASE / 'tt-refresh-native-tsan/libforge_core.a', 'runtime_psqt_test_object': BASE / 'tt-refresh-native-tsan/CMakeFiles/forge_runtime_psqt_tests.dir/tests/runtime_psqt_tests.cpp.o', 'runtime_psqt_test_executable': BASE / 'tt-refresh-native-tsan/forge_runtime_psqt_tests', 'pawn_span_test_object': BASE / 'tt-refresh-native-tsan/CMakeFiles/forge_pawn_span_tests.dir/tests/pawn_span_tests.cpp.o', 'pawn_span_test_executable': BASE / 'tt-refresh-native-tsan/forge_pawn_span_tests', 'nnue_object': BASE / 'tt-refresh-native-tsan/CMakeFiles/forge_core.dir/src/nnue.cpp.o', 'nearest_pawn_test_object': BASE / 'tt-refresh-native-tsan/CMakeFiles/forge_nearest_pawn_tests.dir/tests/nearest_pawn_tests.cpp.o', 'nearest_pawn_test_executable': BASE / 'tt-refresh-native-tsan/forge_nearest_pawn_tests', 'pv_metadata_test_object': BASE / 'tt-refresh-native-tsan/CMakeFiles/forge_pv_metadata_tests.dir/tests/pv_metadata_tests.cpp.o', 'pv_metadata_test_executable': BASE / 'tt-refresh-native-tsan/forge_pv_metadata_tests', 'active_driver': HERE / 'active-uci-edges.py', 'trusted_driver': HERE / 'trusted-run-full-engine-tt.py'}
+     hashes = {name: digest(path) for name, path in inputs.items()}
+     record('active_all_input_identities', hashes == wrapper['input_sha256_before'] == wrapper['input_sha256_after'])
+     record('active_frozen_helper_identity', hashes['trusted_driver'] == context.get('source', {}).get('tools/audit/run-full-engine-tt.py') == protocol['trusted_driver_sha256'])
+@@ -390,7 +431,7 @@
+     path = HERE / 'ORIGINALS-FINAL-SHA256.json'
+     snapshot = load(path)
+     record('whole_originals_snapshot_source', snapshot['source_commit'] == REV and snapshot['engines_or_builds_executed_for_snapshot'] is False)
+-    expected_roots = {'source': str(SOURCE), **{profile: str(BASE / ('pv-metadata-native-' + profile)) for profile in ['release', 'asan', 'tsan']}}
++    expected_roots = {'source': str(SOURCE), **{profile: str(BASE / ('tt-refresh-native-' + profile)) for profile in ['release', 'asan', 'tsan']}}
+     record('whole_originals_exact_four_roots', {label: tree['root'] for label, tree in snapshot['trees'].items()} == expected_roots)
+     counts = {}
+     for label, tree in snapshot['trees'].items():
+@@ -435,7 +476,7 @@
+ def main():
+     global fact_stream, REV
+     parser = argparse.ArgumentParser()
+-    parser.add_argument('--require-active', action='store_true', default=True, help='Frozen22 final audit always requires the eight active-TSan searches')
++    parser.add_argument('--require-active', action='store_true', default=True, help='Frozen23 final audit always requires the eight active-TSan searches')
+     args = parser.parse_args()
+     clear = load(HERE / 'ROOT-CLEARANCE.json')
+     if clear.get('authorized') is not True:
+@@ -448,7 +489,15 @@
+     if clear.get('expected_nearest_checks') != 791680 or clear.get('expected_nearest_sets') != 395840 or clear.get('expected_nearest_constexpr_assertions') != 6:
+         raise SystemExit('Exact frozen nearest-pawn schema required; no audit attempted')
+     if clear.get('exact_search_parity_required') is not False or clear.get('observational_cold_warm_searches') != 0 or clear.get('expected_pv_metadata_assertions') != 56:
+-        raise SystemExit('Explicit frozen22 zero-observer/PV56 root protocol required; no audit attempted')
++        raise SystemExit('Explicit frozen23 zero-observer/PV56 root protocol required; no audit attempted')
++    if type(clear.get('expected_tt_groups')) is not int or clear['expected_tt_groups'] <= 0:
++        raise SystemExit('Root-frozen actual TT group count required; no audit attempted')
++    if not isinstance(clear.get('expected_tt_test_source_sha256'), str) or re.fullmatch(r'[0-9a-f]{64}', clear['expected_tt_test_source_sha256']) is None:
++        raise SystemExit('Root-frozen TT regression source SHA required; no audit attempted')
++    if not isinstance(clear.get('expected_tt_group_success_line'), str) or not clear['expected_tt_group_success_line'] or '\n' in clear['expected_tt_group_success_line'] or '\r' in clear['expected_tt_group_success_line']:
++        raise SystemExit('Root-frozen exact TT group success line required; no audit attempted')
++    if clear.get('expected_bench11_nodes', 'missing') is not None or clear.get('benchmark_signature_mode') != 'FIRST_CAPTURE_EXCLUSIVE_FREEZE':
++        raise SystemExit('First actual benchmark capture/freeze mode required; no audit attempted')
+     REV = candidate
+     context['clear'] = clear
+     paths = [HERE / ('independent-audit' + suffix) for suffix in ['.json', '.md', '-facts.jsonl']]
+@@ -456,6 +505,7 @@
+         raise SystemExit('Refusing to overwrite a previous audit attempt')
+     with paths[2].open('x') as fact_stream:
+         stage('frozen_source', frozen_source)
++        stage('parent_policy_contrast', parent_policy_contrast)
+         for profile in ['release', 'asan', 'tsan']:
+             stage(profile, lambda profile=profile: audit_profile(profile))
+         stage('release_signature', release_signature)
+@@ -466,26 +516,31 @@
+         if all(profile_records):
+             record('three_profiles_executed_serially', all(datetime.datetime.fromisoformat(profile_records[i]['completed_utc']) <= datetime.datetime.fromisoformat(profile_records[i + 1]['started_utc']) for i in [0, 1]))
+         failed = [row for row in checks if not row['passed']]
+-        report = {'status': 'passed' if not failed else 'failed', 'audited_utc': datetime.datetime.now(datetime.timezone.utc).isoformat(), 'source_commit': REV, 'parent_source_commit': PARENT_REV, 'check_count': len(checks), 'failed_check_count': len(failed), 'checks': checks, 'facts': facts, 'facts_stream': paths[2].name, 'facts_stream_sha256': digest(paths[2]), 'checker_sha256': digest(Path(__file__)), 'engine_compiler_or_test_execution_during_audit': False, 'original_evidence_mutated': False, 'qualified_driver_limitations': ['The 1200-second profile timeout applies per recorded command.', 'The release signature is one30-second bounded process; exact parent search-response equality is intentionally invalid for this fix, and the root-approved observational count is0.', 'Finite fixtures and TSan coverage do not establish universal correctness or playing strength.'], 'scope': 'Bounded PV-metadata search-correctness evidence: saved baseline21 RED and actual frozen22 core regression, single benchmark signature and active-TSan coverage; no private-ABI cross-link or exact parent-response equality claim. No NPS, Elo or native-Ryzen performance claim.'}
++        report = {'status': 'passed' if not failed else 'failed', 'audited_utc': datetime.datetime.now(datetime.timezone.utc).isoformat(), 'source_commit': REV, 'parent_source_commit': PARENT_REV, 'check_count': len(checks), 'failed_check_count': len(failed), 'checks': checks, 'facts': facts, 'facts_stream': paths[2].name, 'facts_stream_sha256': digest(paths[2]), 'checker_sha256': digest(Path(__file__)), 'engine_compiler_or_test_execution_during_audit': False, 'original_evidence_mutated': False, 'qualified_driver_limitations': ['The 1200-second profile timeout applies per recorded command.', 'The release signature is one30-second bounded process; exact parent search-response equality is intentionally invalid for this search-policy trial, and the root-approved observational count is0.', 'Finite fixtures and TSan coverage do not establish universal correctness or playing strength.'], 'scope': 'Bounded TT-refresh search-policy trial evidence: root-pinned TT regression groups, preserved historic baseline21 PV RED, actual parent22 expected policy contrast, frozen23 PV regression, one first-captured benchmark signature and active-TSan coverage; no private-ABI cross-link or exact parent-response equality claim. No NPS, Elo or native-Ryzen performance claim.'}
+         with paths[0].open('x') as stream:
+             json.dump(report, stream, indent=2, allow_nan=False); stream.write('\n')
+         details = 'All independent checks passed.' if not failed else 'Failed checks: ' + ', '.join(row['name'] for row in failed)
+-        text = f"""PV-metadata independent evidence audit: {report['status']}.
++        text = f"""TT-refresh independent evidence audit: {report['status']}.
+ 
+ {details} Check count: {len(checks)}. Every check/stage fact was flushed before
+ the final gate. No engines, compilers or tests ran and no originals were changed.
+ 
+ Exact source77/Git/root gates; fourteen CTests per profile (42total), actual PV56
+-assertions/five raw cases, nearest791680/395840sets+6constexpr, pawn37320,
++assertions/five raw cases, root-pinned TT groups, nearest791680/395840sets+6constexpr, pawn37320,
+ runtime347 and correction54; fatal default TSan, strict flags, cleanup and
+ seventeen-artifact identities; source+three-build byte/size/mode originals.
+ 
+-Saved actual unmodified21 RED is pinned (56assertions,2expected failures).
+-Parent21 complete76source, protected nonsearch boundaries, engine/core/NNUE
+-object are pinned; only the two-line caller tt_pv save/restore is allowed in
+-search.cpp. Candidate Release NNUE object must equal the parent object.
+-
+-One default bench292545 signature follows Release and precedes ASan. Root must
++Saved historical unmodified21 PV RED is pinned (56assertions,2expected failures).
++Immediate parent22 policy contrast is separately pinned: first seven old groups
++precede the first new-policy failure; this is no parent correctness-defect claim.
++Parent22 complete77source, all73 boundaries outside the four declared paths,
++engine/core/NNUE object are pinned. CMakeLists.txt, src/uci.cpp, src/search.cpp
++and tests/tt_coherence_tests.cpp are the only allowed source changes. Candidate
++Release NNUE object must equal the parent object.
++
++One first actual positive bench11 signature follows Release and precedes ASan,
++with a separate exclusive source/artifact/raw-stream-bound freeze. No candidate
++node count is presumed. Root must
+ explicitly authorize exact_search_parity_required=false and observation count0;
+ no exact parent search equality or cold/warm observation is claimed. All eight
+ active TSan transitions remain required. Finite coverage does not establish

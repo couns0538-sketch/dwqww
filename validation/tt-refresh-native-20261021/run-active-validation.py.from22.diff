@@ -1,0 +1,13 @@
+--- /workspace/dwqww/validation/pv-metadata-native-20261021/run-active-validation.py
++++ /workspace/dwqww/validation/tt-refresh-native-20261021/run-active-validation.py
+@@ -7,8 +7,8 @@
+ sys.dont_write_bytecode=True
+ from process_facts import cleanup
+ HERE=Path(__file__).resolve().parent
+-SOURCE=Path('/workspace/.cloud-setup/pv-metadata-native-source')
+-BUILD=Path('/workspace/.cloud-setup/pv-metadata-native-tsan')
++SOURCE=Path('/workspace/.cloud-setup/tt-refresh-native-source')
++BUILD=Path('/workspace/.cloud-setup/tt-refresh-native-tsan')
+ def sha(p):return hashlib.sha256(Path(p).read_bytes()).hexdigest()
+ def tree(p):return {str(x.relative_to(p)):sha(x) for x in sorted(p.rglob('*')) if x.is_file()}
+ def save(p,v):p.write_text(json.dumps(v,indent=2)+'\n')

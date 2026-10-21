@@ -1,0 +1,76 @@
+import pathlib,json,hashlib,datetime,ast,difflib
+R=pathlib.Path('/workspace/dwqww');OLD=R/'validation/pv-metadata-windows-20261021';NEW=R/'validation/tt-refresh-windows-20261021';NEW.mkdir(exist_ok=True)
+sha=lambda p:hashlib.sha256(p.read_bytes()).hexdigest();write=lambda n,d:(NEW/n).write_text(json.dumps(d,indent=2)+'\n')
+gate_path=R/'validation/tt-refresh-20261021/ROOT-FROZEN23-SOURCE-GATES.json';root=json.loads(gate_path.read_text());assert sha(gate_path)=='f029228717c97678b124722efdba0ed7c9b356d90e4e79236597674ba82b7294';assert root['source_commit']=='1d3ed25bea2c8b781f7ee5a178af0f66061b3984'
+source_map={n:h for n,h in root['inputs'].items() if not n.endswith('.pyc')};parent_map=json.loads((OLD/'source-hashes.json').read_text());assert len(root['inputs'])==77 and len(source_map)==len(parent_map)==74 and set(source_map)==set(parent_map)
+changed=sorted(n for n,h in source_map.items() if parent_map[n]!=h);assert changed==['CMakeLists.txt','src/search.cpp','src/uci.cpp','tests/tt_coherence_tests.cpp'];assert source_map['tests/tt_coherence_tests.cpp']=='cc2fe3e9fb0059f409876345e8cfb3c008ede401751a4dad76b022f743238fd5'
+scripts=['pipeline_gate.py','prepare-source.py','prepare-records.py','build-driver.py','validation-driver.py','freeze-bench-signature.py','package-driver.py','independent-artifact-audit.py','run-phase.py','run-package.py'];(NEW/'original-qualified22-drivers').mkdir(exist_ok=False)
+texts={}
+replaces=[('validation/pv-metadata-windows-20261021','validation/tt-refresh-windows-20261021'),('validation/nearest-pawn-windows-20261021','validation/pv-metadata-windows-20261021'),('windows6422','windows6423'),('6.4.22','6.4.23'),('ff2e269c6058be84456e3b98344826d17b0056eb','1d3ed25bea2c8b781f7ee5a178af0f66061b3984'),('2e151d019bc58dff2ab4e76e99ef99516af8d222','ff2e269c6058be84456e3b98344826d17b0056eb'),('candidate22','candidate23'),('Candidate22','Candidate23'),('Windows22','Windows23'),('Root22','Root23'),('root22','root23'),('frozen22','frozen23'),('Frozen22','Frozen23'),('22 WINDOWS','23 WINDOWS'),('22 Windows','23 Windows'),('during22','during23'),('Native 22','Native 23'),('native 22','native 23'),('No 22','No 23'),('new 22','new 23'),('forge-pv-metadata-wine','forge-tt-refresh-wine'),('parent6421','parent6422'),('parent21_preservation','parent22_preservation'),('Windows 21','Windows 22')]
+for n in scripts:
+ raw=(OLD/n).read_bytes();(NEW/'original-qualified22-drivers'/n).write_bytes(raw);s=raw.decode()
+ for a,b in replaces:s=s.replace(a,b)
+ s=s.replace("'tt_groups':8","'tt_groups':12").replace("'tt_groups': 8","'tt_groups': 12").replace("runtime['tt_groups'] == 8","runtime['tt_groups'] == 12").replace('All8 TT coherence/regression groups passed','All12 TT coherence/regression groups passed').replace('raw_tt8_pass','raw_tt12_pass')
+ texts[n]=s
+s=texts['pipeline_gate.py'];s=s.replace("'source_files',74)","'source_files',74),('tt_groups',12)")
+s=s.replace("'validation/pv-metadata-20261021/root-verification'","'validation/tt-refresh-20261021'")
+s=s.replace("    return data","    assert data.get('root_source_gates_path')=='/workspace/dwqww/validation/tt-refresh-20261021/ROOT-FROZEN23-SOURCE-GATES.json','Incorrect reviewed23 source-gate path'\n    assert data.get('root_source_gates_sha256')=='f029228717c97678b124722efdba0ed7c9b356d90e4e79236597674ba82b7294','Incorrect reviewed23 source-gate bytes'\n    assert data.get('tt_test_sha256')=='cc2fe3e9fb0059f409876345e8cfb3c008ede401751a4dad76b022f743238fd5','Incorrect reviewed23 TT test'\n    return data")
+texts['pipeline_gate.py']=s
+s=texts['prepare-records.py'].replace("'tests/pv_metadata_tests.cpp']\nchanged=","'tests/tt_coherence_tests.cpp']\nchanged=").replace('set(parent).issubset(source) and len(source)==len(parent)+1==74','set(parent)==set(source) and len(source)==len(parent)==74')
+s=s.replace("parent_search=Path('/workspace/.cloud-setup/windows6421-source/src/search.cpp').read_text()\nnew_search=(SOURCE/'src/search.cpp').read_text()\nassert new_search.replace('            const bool saved_tt_pv = ss->tt_pv;\\n','',1).replace('            ss->tt_pv = saved_tt_pv;\\n','',1)==parent_search","assert sha(SOURCE/'tests/tt_coherence_tests.cpp')==FREEZE['tt_test_sha256']\nassert 'All12 TT coherence/regression groups passed' in (SOURCE/'tests/tt_coherence_tests.cpp').read_text()")
+s=s.replace('immutable21','immutable22').replace("'expected_bench_nodes':None","'tt_groups':12,'expected_bench_nodes':None")
+texts['prepare-records.py']=s
+s=texts['validation-driver.py'].replace('intended PV metadata search change','intended TT generation-refresh policy change')
+texts['validation-driver.py']=s
+s=texts['freeze-bench-signature.py'].replace('intended PV metadata search change','intended TT generation-refresh policy change')
+texts['freeze-bench-signature.py']=s
+s=texts['package-driver.py'];s=s.replace("'src/uci.cpp','tests/pv_metadata_tests.cpp']","'src/uci.cpp','tests/tt_coherence_tests.cpp']").replace("if name!='tests/pv_metadata_tests.cpp'","if name!='tests/tt_coherence_tests.cpp'")
+s=s.replace('PV metadata save/restore repairs same-frame singular verification flag loss. Only search.cpp and version/test metadata change; Board, NNUE source/weights, evaluation, parameters and all old tests match21. Search behavior intentionally changes; no22 speed or Elo result.','TT occupied-hit generation refresh changes replacement/admission/hashfull policy under the existing lock/lease. Only search.cpp, existing TT tests and version metadata change; Board, NNUE source/weights, evaluation, parameters and all other tests match22. Search behavior intentionally changes; no23 speed or Elo result.')
+s=s.replace("'known_bug_repair':True","'known_bug_repair':False,'coupled_tt_policy_trial':True")
+s=s.replace('PV metadata save/restore repairs caller flag loss during same-frame singular verification. Intentional search change, unchanged evaluation; no accepted speed or Elo claim. Native correctness and sanitizer evidence remain separate.','TT occupied-hit generation refresh is a coupled replacement/admission/hashfull policy trial under the existing lock/lease. Intentional search change, unchanged evaluation; no accepted speed or Elo claim. Native correctness and sanitizer evidence remain separate.')
+s=s.replace('PV metadata save/restore intentionally changes search behavior. Only search.cpp\nand version/test metadata change; Board, NNUE, evaluation, parameters and all earlier tests remain unchanged.','TT occupied-hit generation refresh intentionally changes replacement/admission/hashfull policy.\nOnly search.cpp, existing TT tests and version metadata change; Board, NNUE,\nevaluation, parameters and all other tests remain unchanged.')
+s=s.replace('Singular verification preserves the caller PV metadata flag around its same-frame\nrecursive null-window search. This intentionally changes search behavior; only\nsearch.cpp and version/test metadata change. Board, NNUE source/headers/weights,\nevaluation and evaluation parameters and all earlier tests remain unchanged.','Occupied TT hits refresh their generation under the existing lock/lease. This is\na coupled replacement/admission/hashfull policy trial with intentional search\nchanges. Only search.cpp, existing TT tests and version metadata change.\nBoard, NNUE source/headers/weights, evaluation and evaluation parameters and\nall other tests remain unchanged; the accepted PV metadata fix is retained.')
+s=s.replace('parent `{PARENT}` (6.4.21)','parent `{PARENT}` (6.4.22)').replace('parent {PARENT} (6.4.21)','parent {PARENT} (6.4.22)').replace('eight TT groups','twelve TT groups').replace('22 speed, NPS','23 speed, NPS').replace('Parent 21 performance does not validate 22.','Parent 22 performance does not validate 23.')
+s=s.replace('runtime/pawn/nearest/PV metadata objects','runtime/pawn/nearest/PV metadata/TT objects').replace('runtime/pawn/nearest/PV metadata test objects','runtime/pawn/nearest/PV metadata/TT test objects')
+anchor="assert sha(originals / 'static-core/libforge_core.a') == runtime['input_sha256_after']['core_library']"
+insert="""tt_object=BUILD/'CMakeFiles/forge_tt_tests.dir/tests/tt_coherence_tests.cpp.obj'
+assert tt_object.is_file()
+shutil.copyfile(tt_object,originals/'objects/tt_coherence_tests.cpp.obj')
+assert sha(tt_object)==sha(originals/'objects/tt_coherence_tests.cpp.obj')
+write(OUT/'tt-object-provenance.json',{'object_sha256':sha(tt_object),'tt_test_source_sha256':source_hashes['tests/tt_coherence_tests.cpp'],'tested_pe_sha256':sha(BUILD/'forge_tt_tests.exe'),'compile_records':[r for r in load(OUT/'compile_commands.json') if r['file'].endswith('/tests/tt_coherence_tests.cpp')],'groups':12,'scope':'Actual TT test object/source/testedPE identity only; no cross-build raw object bit-identity claim'})
+"""
+s=s.replace(anchor,insert+anchor)
+s=s.replace("'board_nnue_network_replacement_unchanged': True,","'whole_nnue_object_raw_identity_claimed':False, 'board_nnue_network_replacement_unchanged': True,")
+texts['package-driver.py']=s
+s=texts['independent-artifact-audit.py'].replace("'src/uci.cpp','tests/pv_metadata_tests.cpp']","'src/uci.cpp','tests/tt_coherence_tests.cpp']").replace("n != 'tests/pv_metadata_tests.cpp'","n != 'tests/tt_coherence_tests.cpp'").replace('reviewed_pv_hashes','reviewed_tt_hashes').replace('reviewed_pv_source','reviewed_tt_source')
+s=s.replace("check('pv_metadata_ctest_registered'", "check('tt12_frozen_test_source',source_hashes['tests/tt_coherence_tests.cpp']==FREEZE['tt_test_sha256'])\ncheck('tt12_source_success_line','All12 TT coherence/regression groups passed' in (SOURCE/'tests/tt_coherence_tests.cpp').read_text())\ncheck('pv_metadata_ctest_registered'")
+s=s.replace("with zipfile.ZipFile(raw) as z:","check('tt_object_raw_archive_members',all(n in manifest for n in ('originals/objects/tt_coherence_tests.cpp.obj','tt-object-provenance.json','originals/frozen-source/tests/tt_coherence_tests.cpp','originals/binaries/forge_tt_tests.exe')))\nwith zipfile.ZipFile(raw) as z:")
+anchor="check('no_fused_operations'"
+insert="""tt_object=BUILD/'CMakeFiles/forge_tt_tests.dir/tests/tt_coherence_tests.cpp.obj'
+tt_provenance=load(HERE/'tt-object-provenance.json')
+tt_records=[r for r in commands if r['file'].endswith('/tests/tt_coherence_tests.cpp')]
+check('tt_actual_object_retained',tt_object.read_bytes()==(HERE/'originals/objects/tt_coherence_tests.cpp.obj').read_bytes() and sha(tt_object.read_bytes())==tt_provenance['object_sha256'])
+check('tt_object_source_identity',tt_provenance['tt_test_source_sha256']==source_hashes['tests/tt_coherence_tests.cpp'])
+check('tt_object_tested_pe_identity',tt_provenance['tested_pe_sha256']==runtime['input_sha256_after']['forge_tt_tests.exe'])
+check('tt_object_compile_identity',len(tt_records)==1 and tt_provenance['compile_records']==tt_records and tt_records[0]['file']==str(SOURCE/'tests/tt_coherence_tests.cpp') and 'CMakeFiles/forge_tt_tests.dir/tests/tt_coherence_tests.cpp.obj' in tt_records[0]['command'])
+check('tt_twelve_groups_recorded',tt_provenance['groups']==12)
+"""
+s=s.replace(anchor,insert+anchor)
+s=s.replace("check('pv_metadata_fix_scope_explicit',all(term in provenance.get('search_policy_change','').lower() for term in ('pv metadata','same-frame singular verification','intentional search change','unchanged evaluation','native correctness and sanitizer evidence remain separate')))","check('tt_refresh_policy_scope_explicit',all(term in provenance.get('search_policy_change','').lower() for term in ('tt occupied-hit generation refresh','coupled replacement/admission/hashfull policy trial','intentional search change','unchanged evaluation','native correctness and sanitizer evidence remain separate')))")
+s=s.replace('native\\s*22 gates','native\\s*23 gates').replace("provenance.get('known_bug_repair') is True","provenance.get('known_bug_repair') is False and provenance.get('coupled_tt_policy_trial') is True")
+s=s.replace("('search.cpp and version/test metadata change','board, nnue source/headers/weights','all earlier tests remain unchanged')","('search.cpp, existing tt tests and version metadata change','board, nnue source/headers/weights','all other tests remain unchanged')")
+s=s.replace('all_four_test_objects_declared','all_five_test_objects_declared').replace('runtime/pawn/nearest/pv metadata test objects','runtime/pawn/nearest/pv metadata/tt test objects')
+s=s.replace("'pv_metadata_assertions':56,","'tt_groups':12,'tt_object_sha256':tt_provenance['object_sha256'],'pv_metadata_assertions':56,")
+s=s.replace('The four changes are CMake/UCI metadata, search.cpp and new PV metadata tests;\nall old tests, Board, NNUE, evaluation and evaluation parameters are unchanged.','The four changes are CMake/UCI metadata, search.cpp and extended TT tests;\nall other tests, Board, NNUE, evaluation and evaluation parameters are unchanged.')
+s=s.replace('runtime/pawn/nearest/PV metadata object/source/PE','runtime/pawn/nearest/PV metadata/TT object/source/PE').replace('54 correction, 8 TT groups','54 correction, 12 TT groups')
+texts['independent-artifact-audit.py']=s
+for name,s in texts.items():
+ ast.parse(s);(NEW/name).write_text(s);(NEW/(name+'.adaptation.diff')).write_text(''.join(difflib.unified_diff((OLD/name).read_text().splitlines(True),s.splitlines(True),fromfile='qualified22/'+name,tofile='prepared23/'+name)))
+# Protect all immediate-parent outputs, including previously external capture/ready originals.
+paths=[OLD,pathlib.Path('/workspace/.cloud-setup/windows6422-source'),pathlib.Path('/workspace/.cloud-setup/windows6422-build'),R/'releases/forge-6.4.22-candidate-windows-zen5',R/'releases/forge-6.4.22-candidate-windows-zen5.zip',pathlib.Path('/workspace/.cloud-setup/windows6422-package-capture'),pathlib.Path('/workspace/.cloud-setup/windows6422-package-ready')];protected={};counts={}
+for path in paths:
+ files=[f for f in sorted(path.rglob('*')) if f.is_file()] if path.is_dir() else [path];counts[str(path)]=len(files)
+ for f in files:protected[str(f)]=sha(f)
+write('parent6422-preservation-before.json',protected)
+write('PIPELINE-ADAPTATION.json',{'status':'STATIC_PREPARATION_ONLY_NO_EXPORT','utc':datetime.datetime.now(datetime.timezone.utc).isoformat(),'qualified22_driver_hashes':{n:sha(OLD/n) for n in scripts},'prepared23_driver_hashes':{n:sha(NEW/n) for n in scripts},'protected_parent22_files':len(protected),'protected_parent22_counts':counts,'source_gate_path':str(gate_path),'source_gate_sha256':sha(gate_path),'static_frozen_map_changes':changed,'source_export_build_engine_wine_package_audit_git_executions':0})
+print(json.dumps({'scripts':len(scripts),'protected_parent22_files':len(protected),'counts':counts,'root_gate_sha256':sha(gate_path)},indent=2))

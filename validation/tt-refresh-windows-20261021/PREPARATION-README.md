@@ -1,0 +1,15 @@
+# Forge 6.4.23 Windows preparation
+
+Frozen source `1d3ed25bea2c8b781f7ee5a178af0f66061b3984`, parent22 `ff2e269c6058be84456e3b98344826d17b0056eb`. Root source-gate SHA256 `f029228717c97678b124722efdba0ed7c9b356d90e4e79236597674ba82b7294` is pinned. Its actual77-input map filters to74 Windows inputs and changes exactly CMakeLists.txt, src/search.cpp, src/uci.cpp and existing tests/tt_coherence_tests.cpp. No source export has occurred here.
+
+This is a coupled TT occupied-hit generation-refresh, replacement/admission/hashfull policy trial under the existing lock/lease. Search behavior intentionally changes. Board, NNUE source/header/weights, evaluation and all tests other than the extended TT test remain unchanged; accepted PV metadata coverage stays56. TT test SHA is `cc2fe3e9fb0059f409876345e8cfb3c008ede401751a4dad76b022f743238fd5`; its required unique success line reports12 groups.
+
+The ten prepared helpers preserve strict LLVM-MinGW23.1.3 Zen5 C++20 Release/static, j1, no LTO/FMA/fast-math. Inventory remains14 CTests,13 named Wine checks,11 built PEs and10 shipped PEs. Prior runtime/pawn/nearest/PV object/source/compile/testedPE evidence remains; the changed TT test now retains its actual object/provenance too. All604 immediate-parent22 files are protected:283 Windows qualification files,74 frozen sources,220 full build files,23 distribution files, one release ZIP, two external package captures and the ready marker.
+
+The Windows23 bench signature is unknown. The first authorized runtime performs one canonical positive depth11 capture, requiring normal exit and one unique summary. Its original source/PE/stdout/stdin/runtime/settings identities are exclusively frozen before closed-writer packaging. No parent or Linux node signature is required, and no speed or Elo conclusion follows from the node count.
+
+Source/build/runtime/package/audit gates remain closed until root explicitly clears full native42/eight-active and supplies the native proof path/hash. The exact root source gate andTT/PV source hashes are already bound in the closed template. Future source/build/capture paths use windows6423; output is releases/forge-6.4.23-candidate-windows-zen5.zip. The template's root_proof_namespace is validation/tt-refresh-20261021.
+
+Independent static review confirmed removal of inherited two-line-PV-only and new-test/+1-inventory assumptions, proper unchanged-test guards, TT12 propagation and policy wording. The unique actual TT summary count is required by runtime, package and auditor. No definite preparation blocker remains. Initial read-only tool responses were delayed, then completed normally; no producer was run or retried.
+
+The existing repo-local SIMD skill governs any future auxiliary object comparison: retain raw hashes, authenticate actual GNU/COFF names/layout, distinguish raw identity from strictly timestamp-qualified evidence, and preserve failures. No optional core comparison was added or run. Whole cross-build Windows NNUE object byte identity, native Windows/physical Ryzen measurements, playing-strength acceptance and global plugin/skill installation are not claimed.

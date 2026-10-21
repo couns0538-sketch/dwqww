@@ -1,0 +1,74 @@
+--- qualified22/validation-driver.py
++++ prepared23/validation-driver.py
+@@ -12,21 +12,21 @@
+ from pipeline_gate import load_freeze
+ FREEZE=load_freeze()
+ COMMIT=FREEZE['source_commit']
+-SOURCE=Path('/workspace/.cloud-setup/windows6422-source')
+-BUILD=Path('/workspace/.cloud-setup/windows6422-build')
+-BASE=Path('/workspace/dwqww/validation/pv-metadata-windows-20261021')
++SOURCE=Path('/workspace/.cloud-setup/windows6423-source')
++BUILD=Path('/workspace/.cloud-setup/windows6423-build')
++BASE=Path('/workspace/dwqww/validation/tt-refresh-windows-20261021')
+ OUT=BASE/'runtime-attempt1'
+ WINE=Path('/workspace/.cloud-setup/wine/usr/lib/wine/wine64')
+ TOOLS=Path('/workspace/.cloud-setup/toolchains/llvm-mingw-20261006-ucrt-ubuntu-22.04-x86_64/bin')
+-WRAPPER=BASE/'forge-pv-metadata-wine'
++WRAPPER=BASE/'forge-tt-refresh-wine'
+ sha=lambda p:hashlib.sha256(p.read_bytes()).hexdigest()
+ win=lambda p:'Z:'+str(p).replace('/','\\')
+ def write(name,data):(OUT/name).write_text(json.dumps(data,indent=2)+'\n')
+-assert json.loads((BASE/'WINDOWS-BUILD-CLEAR.json').read_text())['authorization']=='22 WINDOWS BUILD CLEAR'
++assert json.loads((BASE/'WINDOWS-BUILD-CLEAR.json').read_text())['authorization']=='23 WINDOWS BUILD CLEAR'
+ OUT.mkdir(exist_ok=False)
+ environment=os.environ.copy();environment.update(WINEPREFIX='/workspace/.cloud-setup/wine-prefix-ready',
+  WINEDEBUG='-all',XDG_CACHE_HOME='/workspace/.cloud-setup/font-cache',PYTHONDONTWRITEBYTECODE='1')
+-WRAPPER.write_text('#!/usr/bin/env bash\nexport WINEPREFIX=/workspace/.cloud-setup/wine-prefix-ready\nexport WINEDEBUG=-all\nexport XDG_CACHE_HOME=/workspace/.cloud-setup/font-cache\nexec /workspace/.cloud-setup/wine/usr/lib/wine/wine64 /workspace/.cloud-setup/windows6422-build/forge.exe "$@"\n')
++WRAPPER.write_text('#!/usr/bin/env bash\nexport WINEPREFIX=/workspace/.cloud-setup/wine-prefix-ready\nexport WINEDEBUG=-all\nexport XDG_CACHE_HOME=/workspace/.cloud-setup/font-cache\nexec /workspace/.cloud-setup/wine/usr/lib/wine/wine64 /workspace/.cloud-setup/windows6423-build/forge.exe "$@"\n')
+ WRAPPER.chmod(0o755)
+ # Evidence-only adapter: preserve every production test assertion and exchange,
+ # translating only the Linux-created book path to Wine's existing Z: drive.
+@@ -71,7 +71,7 @@
+ write('protocol.json',{'created_utc':datetime.datetime.now(datetime.timezone.utc).isoformat(),
+  'source_and_tests_commit':COMMIT,'input_sha256_before':before,'commands':commands,
+  'bench_command':bench_command,'bench_stdin':bench_stdin.decode(),'bench_hash_mib':16,'bench_threads':1,
+- 'bench_expected_same_platform_parent_nodes':None,'candidate_bench_expectation':None,'bench_signature_policy':'FIRST_NORMAL_CANDIDATE_CAPTURE_ONLY: intended PV metadata search change; one canonical positive bench11 capture, no reruns or parent/Linux signature assumption; freeze original capture before package','simd_command':simd_command,
++ 'bench_expected_same_platform_parent_nodes':None,'candidate_bench_expectation':None,'bench_signature_policy':'FIRST_NORMAL_CANDIDATE_CAPTURE_ONLY: intended TT generation-refresh policy change; one canonical positive bench11 capture, no reruns or parent/Linux signature assumption; freeze original capture before package','simd_command':simd_command,
+  'environment_subset':{k:environment[k] for k in ('WINEPREFIX','WINEDEBUG','XDG_CACHE_HOME','PYTHONDONTWRITEBYTECODE')},
+  'scope':'Wine functional correctness and bounded node signature only; no performance, Elo or native hardware claim',
+  'core_perft_cases':{'start_depth4':197281,'kiwipete_depth3':97862,'position3_depth4':43238,
+@@ -107,7 +107,9 @@
+     ownbook_result=json.loads((OUT/'ownbook-transcript.json').read_text())
+     assert ownbook_result['error'] is None and len(ownbook_result['checks'])==5
+     assert all(c['PASS'] and c['actual_book']==c['expected_book'] for c in ownbook_result['checks'])
+-    assert 'All8 TT coherence/regression groups passed' in (OUT/'coherent-tt-stdout.log').read_text()
++    tt_raw=(OUT/'coherent-tt-stdout.log').read_text()
++    tt_summary=re.findall(r'^All(\d+) TT coherence/regression groups passed\s*$',tt_raw,re.M)
++    assert tt_summary==[str(FREEZE['tt_groups'])]
+     rule50=(OUT/'rule50-stdout.log').read_text()
+     assert all(marker in rule50 for marker in ('targeted_regression_failures=0','reverse_q_direct','reverse_q_score_as_eval'))
+     oracle=re.search(r'All (\d+) legal-witness Boolean comparisons passed',(OUT/'legal-witness-stdout.log').read_text())
+@@ -117,7 +119,7 @@
+                                  stdout=stdout,stderr=stderr,timeout=300)
+     signature=re.findall(r'^info string bench depth 11 nodes (\d+) time \d+ nps \d+\s*$',
+                          (OUT/'bench-stdout.log').read_text(),re.M)
+-    assert completed.returncode==0 and len(signature)==1 and int(signature[0])>0, 'Missing/invalid candidate22 bench signature: '+repr(signature)
++    assert completed.returncode==0 and len(signature)==1 and int(signature[0])>0, 'Missing/invalid candidate23 bench signature: '+repr(signature)
+     bench_nodes=int(signature[0])
+     assert FREEZE['bench_expected_nodes'] is None, 'First-capture search-change policy required'
+     checks.append({'name':'stdin-bench11-signature','exit_code':completed.returncode,'nodes':bench_nodes})
+@@ -131,7 +133,7 @@
+     assert all(simd[key] for key in ('avx2_minmax_ymm','avx2_multiply_ymm','avx2_add_ymm')) and not simd['fused_operations']
+     after={name:sha(path) for name,path in inputs.items()};assert after==before
+     assert {p.relative_to(SOURCE).as_posix():sha(p) for p in SOURCE.rglob('*') if p.is_file()}==source_before
+-    write('result.json',{'status':'passed','source_and_tests_commit':COMMIT,'checks':checks,'tt_groups':8,
++    write('result.json',{'status':'passed','source_and_tests_commit':COMMIT,'checks':checks,'tt_groups':int(tt_summary[0]),
+      'pv_metadata_assertions':int(pv_summary[0][0]),'pv_metadata_failures':0,'nearest_pawn_sets':int(nearest_summary[0][0]),'nearest_pawn_checks':int(nearest_summary[0][1]),'nearest_pawn_failures':0,'nearest_constexpr_assertions':6,'pawn_span_checks':int(pawn_summary[0][0]),'pawn_span_failures':0,'pawn_constexpr_assertions':3,'runtime_psqt_checks':int(runtime_summary[0][0]),'runtime_psqt_failures':0,'correction_history_checks':int(correction_summary[0][0]),'correction_history_failures':0,'rule50_targeted_failures':0,'legal_witness_comparisons':int(oracle[1]),'bench11_nodes':bench_nodes,
+      'core_reference_perft_passed':True,'ownbook_transitions':ownbook_result['checks'],'wine_book_path_adaptation_only':True,'simd':simd,'input_sha256_before':before,'input_sha256_after':after,
+      'source_inputs_unchanged':True,'scope':'Wine correctness and node signatures only; native hardware, speed and Elo unproven'})
+@@ -139,4 +141,4 @@
+     write('result.json',{'status':'failed','source_and_tests_commit':COMMIT,'checks':checks,'error':str(error),
+                          'input_sha256_after':{name:sha(path) for name,path in inputs.items()}})
+     raise
+-print('All frozen6.4.22 Windows functional, oracle, signature and SIMD checks passed',flush=True)
++print('All frozen6.4.23 Windows functional, oracle, signature and SIMD checks passed',flush=True)

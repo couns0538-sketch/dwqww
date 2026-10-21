@@ -39,6 +39,9 @@ SPRT logistic[0,+10], alpha=beta=.05, cap512pairs. Freeze actual source, build,
 runner, opening selection and acceptance rule before play. Any operational fault
 invalidates acceptance; natural cap is inconclusive. No retry, resume or pooling.
 
-Current status: implemented, expected parent policy contrast passed; candidate
-native validation and all strength evidence pending. Windows23 is not yet built.
+Current status: implemented, expected parent policy contrast passed; first full
+native validation passed42CTest/8active, TT12/PV56 each, independent1185checks and
+root644originals/17parentsingles/77Git/138evidence rehash. First actual benchmark
+captured292545nodes with an exclusive source/core/exe/raw freeze. All strength
+evidence remains pending. Windows23 is not yet built.
 Do not change the frozen22 hosted payload or accepted integration branch.

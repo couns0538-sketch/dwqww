@@ -1,0 +1,195 @@
+--- qualified22/independent-artifact-audit.py
++++ prepared23/independent-artifact-audit.py
+@@ -1,5 +1,5 @@
+ #!/usr/bin/env python3
+-"""Read-only Windows 6.4.22 artifact/provenance audit; executes no engine."""
++"""Read-only Windows 6.4.23 artifact/provenance audit; executes no engine."""
+ from pathlib import Path, PurePosixPath
+ import datetime
+ import hashlib
+@@ -11,18 +11,18 @@
+ import zipfile
+ 
+ ROOT = Path('/workspace/dwqww')
+-HERE = ROOT / 'validation/pv-metadata-windows-20261021'
+-SOURCE = Path('/workspace/.cloud-setup/windows6422-source')
+-BUILD = Path('/workspace/.cloud-setup/windows6422-build')
+-PACKAGE = ROOT / 'releases/forge-6.4.22-candidate-windows-zen5'
++HERE = ROOT / 'validation/tt-refresh-windows-20261021'
++SOURCE = Path('/workspace/.cloud-setup/windows6423-source')
++BUILD = Path('/workspace/.cloud-setup/windows6423-build')
++PACKAGE = ROOT / 'releases/forge-6.4.23-candidate-windows-zen5'
+ ARCHIVE = PACKAGE.with_name(PACKAGE.name + '.zip')
+ from pipeline_gate import load_freeze, SOURCE_COMMIT
+ FREEZE = load_freeze()
+ COMMIT = FREEZE['source_commit']
+ PARENT = FREEZE['parent_source_commit']
+-assert COMMIT != PARENT, 'Windows22 source must be a distinct root-frozen revision'
+-assert COMMIT == SOURCE_COMMIT, 'Incorrect root-authorized frozen22 source'
+-assert PARENT == '2e151d019bc58dff2ab4e76e99ef99516af8d222'
++assert COMMIT != PARENT, 'Windows23 source must be a distinct root-frozen revision'
++assert COMMIT == SOURCE_COMMIT, 'Incorrect root-authorized frozen23 source'
++assert PARENT == 'ff2e269c6058be84456e3b98344826d17b0056eb'
+ assert FREEZE['runtime_summary_checks'] == 347 and FREEZE['pawn_span_checks'] == 37320
+ assert FREEZE['bench_expected_nodes'] is None
+ sha = lambda data: hashlib.sha256(data).hexdigest()
+@@ -73,7 +73,7 @@
+         at += 20
+     return result
+ 
+-assert Path('/workspace/.cloud-setup/windows6422-package-ready').exists(), 'Package not final yet'
++assert Path('/workspace/.cloud-setup/windows6423-package-ready').exists(), 'Package not final yet'
+ runtime = load(HERE/'runtime-attempt1/result.json')
+ build = load(HERE/'result.json')
+ artifact = load(HERE/'artifact.json')
+@@ -82,7 +82,7 @@
+ check('frozen_source_identity', runtime['source_and_tests_commit'] == build['source_and_tests_commit'] == artifact['source_and_tests_commit'] == COMMIT)
+ check('thirteen_runtime_checks', len(runtime['checks']) == 13 and all(c['exit_code'] == 0 for c in runtime['checks']))
+ check('thirteen_named_checks', {c['name'] for c in runtime['checks']} == {'core','coherent-tt','rule50','legal-witness','correction-history','runtime-psqt','pawn-span','nearest-pawn','pv-metadata','uci','ponder','ownbook','stdin-bench11-signature'})
+-check('tt_groups', runtime['tt_groups'] == 8)
++check('tt_groups', runtime['tt_groups'] == 12)
+ check('legal_witness_count', runtime['legal_witness_comparisons'] == 18947)
+ check('rule50_pass', runtime['rule50_targeted_failures'] == 0)
+ check('first_normal_candidate_bench_signature',type(runtime['bench11_nodes']) is int and runtime['bench11_nodes']>0 and FREEZE['bench_expected_nodes'] is None)
+@@ -111,7 +111,8 @@
+ check('actual_pv_metadata_summary',pv_summary==[('56','0')] and not re.search(r'^FAIL ',pv_raw,re.M))
+ check('actual_pv_metadata_runtime_count',runtime['pv_metadata_assertions']==56 and runtime['pv_metadata_failures']==0)
+ check('raw_core_tests_pass', 'All tests passed' in (HERE/'runtime-attempt1/core-stdout.log').read_text())
+-check('raw_tt8_pass', 'All8 TT coherence/regression groups passed' in (HERE/'runtime-attempt1/coherent-tt-stdout.log').read_text())
++tt_summary=re.findall(r'^All(\d+) TT coherence/regression groups passed\s*$',(HERE/'runtime-attempt1/coherent-tt-stdout.log').read_text(),re.M)
++check('raw_tt12_unique_success_summary',tt_summary==['12'] and int(tt_summary[0])==runtime['tt_groups']==FREEZE['tt_groups'])
+ check('raw_rule50_pass', 'targeted_regression_failures=0' in (HERE/'runtime-attempt1/rule50-stdout.log').read_text())
+ check('raw_legal_oracle_pass', 'All 18947 legal-witness Boolean comparisons passed' in (HERE/'runtime-attempt1/legal-witness-stdout.log').read_text())
+ correction_raw = (HERE/'runtime-attempt1/correction-history-stdout.log').read_text()
+@@ -162,16 +163,16 @@
+ check('root_frozen_source_identity',frozen_root['source_commit']==COMMIT and frozen_root['baseline_commit']==PARENT)
+ check('root_native77_filtered74_inventory',len(frozen_root['inputs'])==77 and sum(n.endswith('.pyc') for n in frozen_root['inputs'])==3)
+ check('root_frozen_source_inventory',source_hashes=={n:h for n,h in frozen_root['inputs'].items() if not n.endswith('.pyc')} and len(source_hashes)==74)
+-reviewed_pv_hashes={n:frozen_root['inputs'][n] for n in ['CMakeLists.txt','src/search.cpp','src/uci.cpp','tests/pv_metadata_tests.cpp']}
+-for name,digest in reviewed_pv_hashes.items():
+-    check('reviewed_pv_source:'+name,source_hashes[name]==digest)
++reviewed_tt_hashes={n:frozen_root['inputs'][n] for n in ['CMakeLists.txt','src/search.cpp','src/uci.cpp','tests/tt_coherence_tests.cpp']}
++for name,digest in reviewed_tt_hashes.items():
++    check('reviewed_tt_source:'+name,source_hashes[name]==digest)
+ changed_all = []
+ for name, digest in source_hashes.items():
+     parent = subprocess.run(['git','show',PARENT+':'+name],cwd=ROOT,stdout=subprocess.PIPE,stderr=subprocess.PIPE)
+     if parent.returncode or sha(parent.stdout) != digest:
+         changed_all.append(name)
+-check('only_declared_four_export_changes', sorted(changed_all) == sorted(reviewed_pv_hashes))
+-for name in [n for n in source_hashes if n.startswith('tests/') and n != 'tests/pv_metadata_tests.cpp']:
++check('only_declared_four_export_changes', sorted(changed_all) == sorted(reviewed_tt_hashes))
++for name in [n for n in source_hashes if n.startswith('tests/') and n != 'tests/tt_coherence_tests.cpp']:
+     check('unchanged_parent_test:'+name,sha(subprocess.check_output(['git','show',PARENT+':'+name],cwd=ROOT))==source_hashes[name])
+ permanent_tests = (SOURCE/'tests/tests.cpp').read_text()
+ check('permanent_pin_regression_registered', 'void test_pinned_static_exchange()' in permanent_tests and '    test_pinned_static_exchange();' in permanent_tests)
+@@ -193,6 +194,8 @@
+ pawn_test=(SOURCE/'tests/pawn_span_tests.cpp').read_text()
+ check('three_pawn_constexpr_assertions_compiled',pawn_test.count('static_assert(')==3)
+ check('pawn_independent_geometry_oracles_retained',all(x in pawn_test for x in ['original_span','original_fill','table_pawn_attacks','passed_pawn_mask','pawn_attacks_bb','4096','256']))
++check('tt12_frozen_test_source',source_hashes['tests/tt_coherence_tests.cpp']==FREEZE['tt_test_sha256'])
++check('tt12_source_success_line','All12 TT coherence/regression groups passed' in (SOURCE/'tests/tt_coherence_tests.cpp').read_text())
+ check('pv_metadata_ctest_registered','add_executable(forge_pv_metadata_tests tests/pv_metadata_tests.cpp)' in cmake_text and 'add_test(NAME forge_pv_metadata_tests COMMAND forge_pv_metadata_tests)' in cmake_text)
+ check('pv_metadata_sixth_ctest',[line.split('NAME ',1)[1].split()[0] for line in cmake_text.splitlines() if 'add_test(NAME ' in line][5]=='forge_pv_metadata_tests')
+ check('pv_metadata_frozen_test_source',source_hashes['tests/pv_metadata_tests.cpp']==FREEZE['pv_metadata_test_sha256'])
+@@ -240,11 +243,11 @@
+     check('tested_actual_pe:' + p.name, sha(p.read_bytes()) == runtime['input_sha256_after'][p.name])
+     imports[p.name] = pe_imports(p.read_bytes())
+     check('system_crt_imports_only:' + p.name, bool(imports[p.name]) and all(n.lower() == 'kernel32.dll' or n.lower().startswith('api-ms-win-crt-') for n in imports[p.name]))
+-check('packaged_tested_engine', sha((PACKAGE/'forge-6.4.22-ryzen-9850x3d.exe').read_bytes()) == runtime['input_sha256_after']['forge.exe'])
++check('packaged_tested_engine', sha((PACKAGE/'forge-6.4.23-ryzen-9850x3d.exe').read_bytes()) == runtime['input_sha256_after']['forge.exe'])
+ for name in ['forge_tests.exe', 'forge_tt_tests.exe', 'forge_rule50_tests.exe', 'forge_legal_witness_tests.exe', 'forge_correction_history_tests.exe', 'forge_runtime_psqt_tests.exe','forge_pawn_span_tests.exe','forge_nearest_pawn_tests.exe','forge_pv_metadata_tests.exe']:
+     check('packaged_tested_helper:' + name, sha((PACKAGE/name).read_bytes()) == runtime['input_sha256_after'][name])
+ check('tested_core', sha((BUILD/'libforge_core.a').read_bytes()) == runtime['input_sha256_after']['core_library'])
+-check('ten_distributed_pe_inventory', {p.name for p in PACKAGE.glob('*.exe')} == (expected_built_pe - {'forge.exe','forge_bench.exe'}) | {'forge-6.4.22-ryzen-9850x3d.exe'})
++check('ten_distributed_pe_inventory', {p.name for p in PACKAGE.glob('*.exe')} == (expected_built_pe - {'forge.exe','forge_bench.exe'}) | {'forge-6.4.23-ryzen-9850x3d.exe'})
+ 
+ raw = HERE/'windows-originals.zip'
+ manifest = load(HERE/'windows-originals-SHA256.json')
+@@ -253,6 +256,7 @@
+ check('pawn_object_raw_archive_members',all(n in manifest for n in ('originals/objects/pawn_span_tests.cpp.obj','pawn-object-provenance.json','originals/frozen-source/tests/pawn_span_tests.cpp','originals/binaries/forge_pawn_span_tests.exe')))
+ check('nearest_object_raw_archive_members',all(n in manifest for n in ('originals/objects/nearest_pawn_tests.cpp.obj','nearest-object-provenance.json','originals/frozen-source/tests/nearest_pawn_tests.cpp','originals/binaries/forge_nearest_pawn_tests.exe')))
+ check('pv_metadata_object_raw_archive_members',all(n in manifest for n in ('originals/objects/pv_metadata_tests.cpp.obj','pv-metadata-object-provenance.json','originals/frozen-source/tests/pv_metadata_tests.cpp','originals/binaries/forge_pv_metadata_tests.exe')))
++check('tt_object_raw_archive_members',all(n in manifest for n in ('originals/objects/tt_coherence_tests.cpp.obj','tt-object-provenance.json','originals/frozen-source/tests/tt_coherence_tests.cpp','originals/binaries/forge_tt_tests.exe')))
+ with zipfile.ZipFile(raw) as z:
+     archive_safety(z)
+     check('raw_exact_inventory', set(z.namelist()) == set(manifest) | {'windows-originals-SHA256.json'})
+@@ -307,10 +311,18 @@
+ check('pv_metadata_object_tested_pe_identity',pv_provenance['tested_pe_sha256']==runtime['input_sha256_after']['forge_pv_metadata_tests.exe'])
+ check('pv_metadata_object_compile_identity',len(pv_records)==1 and pv_provenance['compile_records']==pv_records and pv_records[0]['file']==str(SOURCE/'tests/pv_metadata_tests.cpp') and 'CMakeFiles/forge_pv_metadata_tests.dir/tests/pv_metadata_tests.cpp.obj' in pv_records[0]['command'])
+ check('pv_metadata_assertion_count_recorded',pv_provenance['assertions']==56)
++tt_object=BUILD/'CMakeFiles/forge_tt_tests.dir/tests/tt_coherence_tests.cpp.obj'
++tt_provenance=load(HERE/'tt-object-provenance.json')
++tt_records=[r for r in commands if r['file'].endswith('/tests/tt_coherence_tests.cpp')]
++check('tt_actual_object_retained',tt_object.read_bytes()==(HERE/'originals/objects/tt_coherence_tests.cpp.obj').read_bytes() and sha(tt_object.read_bytes())==tt_provenance['object_sha256'])
++check('tt_object_source_identity',tt_provenance['tt_test_source_sha256']==source_hashes['tests/tt_coherence_tests.cpp'])
++check('tt_object_tested_pe_identity',tt_provenance['tested_pe_sha256']==runtime['input_sha256_after']['forge_tt_tests.exe'])
++check('tt_object_compile_identity',len(tt_records)==1 and tt_provenance['compile_records']==tt_records and tt_records[0]['file']==str(SOURCE/'tests/tt_coherence_tests.cpp') and 'CMakeFiles/forge_tt_tests.dir/tests/tt_coherence_tests.cpp.obj' in tt_records[0]['command'])
++check('tt_twelve_groups_recorded',tt_provenance['groups']==12)
+ check('no_fused_operations', re.search(r'\bv(?:fmadd|fmsub|fnmadd|fnmsub)\w*\b', disassembly) is None)
+ check('output_layer_checker_rc0', load(HERE/'output-layer-checker.json')['exit_code'] == 0)
+-before = load(HERE/'parent6421-preservation-before.json')
+-check('parent21_preservation_inventory', len(before) == load(HERE/'PROTOCOL.json')['preserved_parent_files'])
++before = load(HERE/'parent6422-preservation-before.json')
++check('parent22_preservation_inventory', len(before) == load(HERE/'PROTOCOL.json')['preserved_parent_files'])
+ for name, digest in before.items():
+     check('parent_preserved:' + name, sha(Path(name).read_bytes()) == digest)
+ crlf_logs = [p.name for p in (HERE/'runtime-attempt1').glob('*stdout.log') if b'\r\n' in p.read_bytes()]
+@@ -322,34 +334,34 @@
+ claim_text = ' '.join(readme.lower().split())
+ check('readme_scope', all(term in claim_text for term in ('no measured','speed','nps','elo improvement','native windows/physical ryzen','stockfish superiority','is established')))
+ check('pv_metadata_scope_honest', provenance.get('board_nnue_network_replacement_unchanged') is True and provenance.get('evaluation_implementation_changed') is False and provenance.get('intended_eval_search_parity') is False and provenance.get('intended_evaluation_parity') is True and 'evaluation_network_replacement_unchanged' not in provenance)
+-check('pv_metadata_fix_scope_explicit',all(term in provenance.get('search_policy_change','').lower() for term in ('pv metadata','same-frame singular verification','intentional search change','unchanged evaluation','native correctness and sanitizer evidence remain separate')))
+-check('native_gates_separate_explicit', re.search(r'native\s*22 gates',claim_text) is not None and all(term in claim_text for term in ('reported separately',)))
++check('tt_refresh_policy_scope_explicit',all(term in provenance.get('search_policy_change','').lower() for term in ('tt occupied-hit generation refresh','coupled replacement/admission/hashfull policy trial','intentional search change','unchanged evaluation','native correctness and sanitizer evidence remain separate')))
++check('native_gates_separate_explicit', re.search(r'native\s*23 gates',claim_text) is not None and all(term in claim_text for term in ('reported separately',)))
+ check('unaccepted_candidate_explicit', 'this is an unaccepted candidate' in claim_text)
+ check('parent16_original_tsan_failure_qualified', all(term in claim_text for term in ('6.4.16','tsan')) and re.search(r'failed\s*8/9',claim_text) is not None and 'FAILED 8/9' in provenance['native_gate_status'])
+-check('strength_acceptance_not_inherited', provenance.get('search_change_accepted') is False and provenance.get('known_bug_repair') is True)
+-check('implementation_changes_declared', all(term in claim_text for term in ('search.cpp and version/test metadata change','board, nnue source/headers/weights','all earlier tests remain unchanged')))
+-check('all_four_test_objects_declared','runtime/pawn/nearest/pv metadata test objects' in claim_text)
++check('strength_acceptance_not_inherited', provenance.get('search_change_accepted') is False and provenance.get('known_bug_repair') is False and provenance.get('coupled_tt_policy_trial') is True)
++check('implementation_changes_declared', all(term in claim_text for term in ('search.cpp, existing tt tests and version metadata change','board, nnue source/headers/weights','all other tests remain unchanged')))
++check('all_five_test_objects_declared','runtime/pawn/nearest/pv metadata/tt test objects' in claim_text)
+ check('first_capture_signature_not_speed_claim','first normal candidate capture' in provenance['bench_scope'].lower() and 'no time/nps comparison' in provenance['bench_scope'].lower())
+ 
+-report = {'status':'passed', 'audited_utc':datetime.datetime.now(datetime.timezone.utc).isoformat(), 'auditor':'prepared read-only Windows22 artifact auditor; runtime invocation recorded separately', 'source_and_tests_commit':COMMIT, 'parent_source_commit':PARENT, 'engine_execution_during_audit':False, 'new_build_during_audit':False, 'check_count':len(checks), 'checks':checks, 'declared_export_changes':sorted(changed_all), 'bench_policy':'First normal candidate22 signature captured once and frozen before packaging; intended search change, no parent/Linux assumption or timing/NPS/Elo inference', 'bench_signature_freeze':freeze, 'native_gate_status_not_asserted':True, 'parent16_original_tsan_failure_qualification_retained':True, 'bench11_nodes':runtime['bench11_nodes'], 'pv_metadata_assertions':56,'pv_metadata_failures':0,'pv_metadata_object_sha256':pv_provenance['object_sha256'],'correction_history_checks':correction_checks, 'correction_history_failures':0, 'nearest_pawn_checks':791680,'nearest_pawn_sets':395840,'nearest_pawn_failures':0,'nearest_constexpr_assertions':6,'nearest_object_sha256':nearest_provenance['object_sha256'],'pawn_span_checks':37320,'pawn_span_failures':0,'pawn_constexpr_assertions':3,'pawn_object_sha256':pawn_provenance['object_sha256'],'runtime_psqt_checks':347, 'runtime_psqt_failures':0, 'runtime_object_sha256':object_provenance['object_sha256'], 'source_files':len(source_hashes), 'release_members':release_members, 'release_sha_entries':len(sums), 'artifact':str(ARCHIVE.relative_to(ROOT)), 'artifact_bytes':ARCHIVE.stat().st_size, 'artifact_sha256':sha(ARCHIVE.read_bytes()), 'raw_files':len(manifest), 'raw_members':len(manifest)+1, 'raw_sha256':sha(raw.read_bytes()), 'raw_bytes':raw.stat().st_size, 'engine_sha256':runtime['input_sha256_after']['forge.exe'], 'core_sha256':runtime['input_sha256_after']['core_library'], 'pe_imports':imports, 'parent_preserved_files':len(before), 'crlf_stdout_logs':crlf_logs, 'scope':'Bounded Windows/Wine correctness and artifact provenance. No speed, NPS, Elo, native Windows, physical Ryzen or Stockfish superiority result.'}
++report = {'status':'passed', 'audited_utc':datetime.datetime.now(datetime.timezone.utc).isoformat(), 'auditor':'prepared read-only Windows23 artifact auditor; runtime invocation recorded separately', 'source_and_tests_commit':COMMIT, 'parent_source_commit':PARENT, 'engine_execution_during_audit':False, 'new_build_during_audit':False, 'check_count':len(checks), 'checks':checks, 'declared_export_changes':sorted(changed_all), 'bench_policy':'First normal candidate23 signature captured once and frozen before packaging; intended search change, no parent/Linux assumption or timing/NPS/Elo inference', 'bench_signature_freeze':freeze, 'native_gate_status_not_asserted':True, 'parent16_original_tsan_failure_qualification_retained':True, 'bench11_nodes':runtime['bench11_nodes'], 'tt_groups':12,'tt_object_sha256':tt_provenance['object_sha256'],'pv_metadata_assertions':56,'pv_metadata_failures':0,'pv_metadata_object_sha256':pv_provenance['object_sha256'],'correction_history_checks':correction_checks, 'correction_history_failures':0, 'nearest_pawn_checks':791680,'nearest_pawn_sets':395840,'nearest_pawn_failures':0,'nearest_constexpr_assertions':6,'nearest_object_sha256':nearest_provenance['object_sha256'],'pawn_span_checks':37320,'pawn_span_failures':0,'pawn_constexpr_assertions':3,'pawn_object_sha256':pawn_provenance['object_sha256'],'runtime_psqt_checks':347, 'runtime_psqt_failures':0, 'runtime_object_sha256':object_provenance['object_sha256'], 'source_files':len(source_hashes), 'release_members':release_members, 'release_sha_entries':len(sums), 'artifact':str(ARCHIVE.relative_to(ROOT)), 'artifact_bytes':ARCHIVE.stat().st_size, 'artifact_sha256':sha(ARCHIVE.read_bytes()), 'raw_files':len(manifest), 'raw_members':len(manifest)+1, 'raw_sha256':sha(raw.read_bytes()), 'raw_bytes':raw.stat().st_size, 'engine_sha256':runtime['input_sha256_after']['forge.exe'], 'core_sha256':runtime['input_sha256_after']['core_library'], 'pe_imports':imports, 'parent_preserved_files':len(before), 'crlf_stdout_logs':crlf_logs, 'scope':'Bounded Windows/Wine correctness and artifact provenance. No speed, NPS, Elo, native Windows, physical Ryzen or Stockfish superiority result.'}
+ (HERE/'independent-audit.json').write_text(json.dumps(report,indent=2)+'\n')
+-(HERE/'independent-audit.md').write_text(f'''# Independent Windows 6.4.22 artifact audit
++(HERE/'independent-audit.md').write_text(f'''# Independent Windows 6.4.23 artifact audit
+ 
+ All **{len(checks)} checks passed** for source `{COMMIT}`, parent `{PARENT}`.
+ No engine or rebuild ran. All {len(source_hashes)} source files match frozen Git
+ and the root proof whose byte hash is explicitly pinned to root authorization.
+-The four changes are CMake/UCI metadata, search.cpp and new PV metadata tests;
+-all old tests, Board, NNUE, evaluation and evaluation parameters are unchanged.
++The four changes are CMake/UCI metadata, search.cpp and extended TT tests;
++all other tests, Board, NNUE, evaluation and evaluation parameters are unchanged.
+ 
+ The ZIP has {release_members} safe verified members and {len(sums)} checksum entries.
+ All eleven built and ten shipped PEs match tested bytes and system-CRT AMD64 PE32+
+-requirements. Core and all runtime/pawn/nearest/PV metadata object/source/PE/compile identities
+-match originals. All {len(manifest)} raw files and {len(before)} protected Windows 21
++requirements. Core and all runtime/pawn/nearest/PV metadata/TT object/source/PE/compile identities
++match originals. All {len(manifest)} raw files and {len(before)} protected Windows 22
+ files retain exact bytes/hashes, including original CRLF stream bytes.
+ 
+ Thirteen Wine checks passed with 791680 nearest comparisons across 395840 sets,
+ six nearest constexpr assertions, 37320 pawn-span/three constexpr assertions,
+-56 PV metadata assertions, 347 runtime PSQT, 54 correction, 8 TT groups, rule50, 18947 legal comparisons,
++56 PV metadata assertions, 347 runtime PSQT, 54 correction, 12 TT groups, rule50, 18947 legal comparisons,
+ UCI/ponder, 5 OwnBook transitions and first normal candidate signature {runtime['bench11_nodes']}. Strict
+ Zen5 C++20 Release/static j1/noLTO/noFMA and AVX2 records agree with provenance.
+ 
+@@ -357,8 +369,8 @@
+ Engine SHA256: `{report['engine_sha256']}`.
+ Raw SHA256: `{report['raw_sha256']}`.
+ 
+-This is bounded Windows/Wine artifact correctness only. Native 22 qualification
+-is separate; original 6.4.16 TSan FAILED 8/9 remains qualified. No 22 speed, NPS,
++This is bounded Windows/Wine artifact correctness only. Native 23 qualification
++is separate; original 6.4.16 TSan FAILED 8/9 remains qualified. No 23 speed, NPS,
+ Elo, native Windows/physical Ryzen or Stockfish superiority result is established.
+ ''')
+ 
