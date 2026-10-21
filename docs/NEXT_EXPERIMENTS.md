@@ -11,11 +11,16 @@ Finish one bounded task first: frozen22 PV-metadata repair
    root266raw/74source/543parent/23members and282closedfinalevidence checks. ZIP
    SHA32870657…16965395bytes; Wineonly/no nativeRyzen performance. AuxiliaryCOFF
    checkerfailures/rootstatus-labelcorrection remain originalseparateevidence.
-3. Finish the disabled actual22 strength packet with genuine22 producer captures,
-   proof hashes and readiness. Fresh516opening selection excludes historical
-   reserved cohorts. Four timed A/A pairs are operational calibration, not a
-   deterministic identity or precise zero-Elo claim. Run only the predefined
-   512pair SPRT after all gates pass; no pooling/retries/subset acceptance.
+3. Monitor ONLYactual22vs21run39528641493 (fixedpayload452a4a9/soletrigger014000).
+   Actualnative/Windows/captures/READY98/449proofs/final3873+60review+root636rehash
+   passed; public4recordreadbackpassed beforepush01:40:02UTC. At01:43:05UTC hosted
+   buildstepreported success; combinedreadiness/playrunning. Games/WLD/Elounknown.
+   Retrieveoriginalresultbranchresults/pv-metadata-strength-39528641493-1onclosure,
+   verifycompletePGNs/rawLLR/pairs/legalmoves/inputintegrity. No retry/resume/pooling.
+   Nextnativelead is actualold-generationTT-hits/replacementpressurediagnostic on
+   isolatedff2source, notyetappliedrefreshpolicy. Baseline+observermustpreservecold/
+   warmresponses; anyfuturegeneration-refreshcandidatechangesTTpolicyintentionally
+   andrequiresitsownfullgates/equal-clockSPRT. No newElo claim.
 4. Publish complete21archive actual121548290bytes/2045originals/2078payloads,
    combined6df303ff…/manifest7cdb6d4b…. Independent13,783checkaudit retains1finding:
    a nonoriginal outermetadata note wording changedafterarchiving. Allpayloads,

@@ -52,7 +52,7 @@ The initial rootproof's descriptiveWINDOWS21literal was corrected with oldproof,
 writer and outputs retained; no engine/build/runtime was repeated.
 
 Two firstactual21/22 five-command nativeproducer captures pass,185consumed byte/mode
-inputs unchanged, normalouterexit0 and source76/77correspondence. Independentraw/canonicalreview609checks+22parsercasesPASS. READYbinding449proofs/636byte-modeinputs/24inventory and98applicableoffline tests+13bindingomissioncontrols+9runnernegativesPASS. Finalindependentreview3873source/data+60workflowchecksPASS;rootfresh636rehashafterenvironment-readyPASS. Fixedpayloadpublication/readbackandsoletriggerpending. The disabled strength
+inputs unchanged, normalouterexit0 and source76/77correspondence. Independentraw/canonicalreview609checks+22parsercasesPASS. READYbinding449proofs/636byte-modeinputs/24inventory and98applicableoffline tests+13bindingomissioncontrols+9runnernegativesPASS. Finalindependentreview3873source/data+60workflowchecksPASS;rootfresh636rehashafterenvironment-readyPASS. Fixedpayload452a4a9ca96afd7356c8dadc2203efd41c162e47 wasactuallypublished and fourpublicREADYrecorddownloads matched. Soletriggerforge/hosted-pv-metadata-strength-20261021-014000 pushed01:40:02UTC; run[39528641493](https://github.com/couns0538-sketch/dwqww/actions/runs/39528641493) reports hostedbuild/teststep success and combinedreadiness/playrunning at01:43:05UTC. Games/WLD/EloUNKNOWN; no repeat/resume/retrigger/pooling. Resultbranchresults/pv-metadata-strength-39528641493-1. The disabled strength
 packet's outer-affinityrepair passes9focused faultcontrols and100offline tests;
 independentreview816+56checksPASS, originalRED/extractorfailurepreserved. No games
 have run for22 and no Elo gain is accepted.

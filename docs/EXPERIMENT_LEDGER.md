@@ -561,3 +561,15 @@ SevenfreshcloudmainSkillreads succeeded;5resource-reference readsfailedonce; the
 catalogreportednone. Nooptionalplugintroubleshooting/globalinstallationclaimed.
 Windows22public16965395Bdownload200/32870657… actualverifiedat6892a0d. Nextfixed
 READYpayloadcommit+publicreadbackthenONEfreshpushtrigger; no games/Elo observed.
+
+
+2026-10-21 01:43UTC — Single22vs21 equal-time job39528641493 observed LIVE.
+Fixedpayload452a4a9ca96afd7356c8dadc2203efd41c162e47/soletriggerforge/hosted-pv-metadata-strength-20261021-014000;
+4publicmetadataGETs matched beforeactualpush01:40:02. Remoteexactrefverified.
+At01:43:05GitHubreportsactual21baseline13/candidate22fourteentestsbuildstepSUCCESS;
+combinedfreshreadiness/timed4AApairs/512pairSPRTstepRUNNING. Publicmetadataonly,
+notrawbuildorPGNstatistics; games/WLD/Elounknown. Originalresultbranchwillbe
+results/pv-metadata-strength-39528641493-1. No retrigger/resume/pooling. Source2e151d0
+versusff2e269, equal1+0.01,T1Hash32,OwnBookfalse,0/+10/.05unchanged. Nextbounded
+TToldgeneration-hitpolicyinvestigation authorizedinff2isolateddiagnosticcopy;
+no production23policyappliedyet. Forgepriority/GrokChessdeferred/accepted5101unchanged.
