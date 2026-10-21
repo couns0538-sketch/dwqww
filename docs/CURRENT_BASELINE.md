@@ -23,18 +23,29 @@ parent21 core, including aborted verification. All original RED/GREEN logs,
 source hashes and expected parent failures remain preserved.
 [Investigation](../validation/pv-metadata-20261021/RED-RESULT.md).
 
-The first full frozen22 native chain is running: Release14, one canonical benchmark,
-ASan/UBSan14, default unsuppressed TSan14, eight active TSan checks, complete
-originals snapshot and independent audit. Outcomes remain pending. Root verified
-all 77 actual Git inputs, the exact four-path delta and the unchanged parent
-inputs before clearing execution. Root gate SHA256
+The first full frozen22 native chain passed: Release14, ASan/UBSan14,
+default unsuppressed TSan14 and eight active UCI concurrency checks. The permanent
+PV regression passes all56assertions in each profile, including aborted verification.
+One canonical benchmark produced292545nodes. Independent audit1161/1161PASS;
+root independently rehashed all644source/build originals,17consumed parent21
+originals,77actualGit source inputs and123closed evidence files. The compiled NNUE
+object remains bit-identical21. All profile attempts were1; no diagnostic or live
+owned process remained. No exact parentsearch parity was required because this fix
+intentionally changes search. Source gate SHA256
 `4510f8908b628429c0e88115d7c9f3ed9ae7d9981b53ac4ff7cd6729ea6dd413`.
-[Native clearance](../validation/pv-metadata-native-20261021/ROOT-CLEARANCE.json).
-Windows22 and a disabled equal-time SPRT packet are prepared; neither has run.
+[Root native proof](../validation/pv-metadata-20261021/root-verification/NATIVE.json)
+SHA256 `73be33c8ae94838a582ae8705e903c8d994619fbc05f798bfc1952efed7e5b62`.
+Windows22 first strictj1build is running after successful74source prechecks.
+Its thirteen Wine checks, first actualWindows signature and artifact audit remain
+pending. The disabled equal-time SPRT packet passed100offline tests; independent
+review found a runneraffinity cleanup blocker. New22-only outer restoration guard
+passes9focused fault controls and100offline tests, with originalRED/loaderfailure
+retained. Independentrepairreview816checksPASS; actual22captures/proofbinding and
+finalenabledreview remain pending. No games or Elo result yet.
 Planned strength comparison is source21 versus source22, four timed operational
 A/A pairs then at most512 paired SPRT openings, 1+0.01, T1/Hash32/OwnBook=false,
 logistic H0=0/H1=+10 and alpha=beta=.05. Finite gates and actual producer capture
-must pass before launch. No22 correctness acceptance, NPS or Elo claim yet.
+must pass before launch. Finite native correctness is qualified; Windows, NPS and Elo conclusions remain pending.
 
 Previous finite-qualified **Forge6.4.21**, source
 `2e151d019bc58dff2ab4e76e99ef99516af8d222`, replaces scalar king-to-own-pawn

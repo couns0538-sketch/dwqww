@@ -4,12 +4,13 @@ Finish one bounded task first: frozen22 PV-metadata repair
 `ff2e269c6058be84456e3b98344826d17b0056eb` versus frozen21
 `2e151d019bc58dff2ab4e76e99ef99516af8d222`.
 
-1. Finish the already-running first42CTest/eight-active native chain and one
-   292545-node benchmark. Do not run a second attempt to erase a failure.
-2. Root independently verifies the complete source/build/original evidence and
-   actual Git correspondence. Then clear the prepared first Windows22 build,
-   13Wine checks and artifact audit. Windows22 signature is unknown until its
-   first canonical capture; parent352313/Linux292545 must not be imposed on it.
+1. Native22 first42CTest/eight-active/PV56/292545benchmark and1161audit passed.
+   Root644wholeoriginals/17parentsingles/77Git/123evidence verified. Preserve these
+   results and all historical failures; no duplicate nativeattempt is needed.
+2. Finish the already-running first strictj1Windows22 build, thirteen Wine checks,
+   first actualWindows signature and artifact audit. Rootactualnativeproof73be33c
+   and clear8e61fc1a are saved. Windows22 signature is unknown until its first
+   canonical capture; parent352313/Linux292545 must not be imposed on it.
 3. Finish the disabled actual22 strength packet with genuine22 producer captures,
    proof hashes and readiness. Fresh516opening selection excludes historical
    reserved cohorts. Four timed A/A pairs are operational calibration, not a

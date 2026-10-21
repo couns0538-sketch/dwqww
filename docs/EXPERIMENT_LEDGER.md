@@ -498,3 +498,23 @@ Initialtransportcheckerrejectedwrongfiles/prefix assumptionbeforeextraction;
 originalnote retained, correctedread-onlyschema, noengine rerun. Both independent
 stat/lifecycleaudits androotGitaudit firstexecutionexit0; allrawlogs preserved.
 Evidencevalidation/hosted-nearest-pawn-performance-20261021/final-audit.
+
+
+2026-10-21 01:07UTC — Frozen22 firstfullnative qualificationPASS:14Release+14ASan/
+UBSan+14defaultunsuppressedTSan=42CTest,PV56/0ineachprofile/fivecorrectcases,
+onecanonical292545signature,eightactiveUCItransitions. Allnearest791680/395840+6,
+pawn37320/runtime347/correction54checks retained. Independent1161/0auditPASS;
+count differs21 becauseobsolete56parity checksintentionallyremoved. Rootfullnative
+verifier firstexit0/empty stderr independentlychecked644wholeoriginals(77+3x189),
+17consumedparentsingles,77actualGitinputs,123evidencerecords. RootNATIVE73be33c8…;
+FINALaa1a16ba…/manifestf9c0b41a…/snapshot50f7d8fb…. NNUEe8dfbitexact21.
+Allthreeprofilesattempt1/ownedgroupsclosed/no diagnostic/noobserversearches.
+Windows22firstchaincleared8e61fc1a withactualrootproof/sourcegate;74sourceprechecks
+PASS,firstj1strictLLVM-MinGWbuildrunning. Windows13/signature/artifact,NPS/Elo pending.
+
+New22strengthpacketindependentdisabledreview275+30 foundmissingouteraffinityrestore.
+Originalrunner/sealed194evidence retained. Small22-onlyouterguardfix: original9RED
+faultcases/repaired9GREEN; full100PASSafteronepreservedtestASTextractorimporterror
+(98otherstestspassed). Independentrepair816checksPASS, all533phase2receipts/original18
+bytesverified. Protocol/workflowremain disabled; noengine/matchrunfor22. Actualcapture,
+fullfiniteproofbinding/rootREADYchecks stillneededbeforefresh512pairSPRT.
