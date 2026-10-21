@@ -11,6 +11,8 @@ A match establishes evidence only for its frozen opponent, resource limit and st
 
 Record source commits/diffs, original archive, network, compiler/flags, executable and runner SHA-256, runner version/source pin, settings, exact openings, seed, CPU allocation/affinity/cgroup and stopping rule. Preserve source-to-binary build provenance: a declared commit plus executable hash alone does not authenticate that relationship.
 
+When resuming a frozen build, inspect its actual CMakeCache.txt CMAKE_COMMAND, CMAKE_CTEST_COMMAND and CMAKE_CXX_COMPILER entries before assuming missing PATH commands mean missing tools. Verify and use those existing absolute tools with the recorded flags; retain pre-spawn tool-launch failures separately from real compiler or engine attempts, and stop dependent commands after the first failure.
+
 Choose the baseline for the question: the exact original archive measures the combined change; a reference containing shared clock fixes isolates a later search change. State which comparison is performed.
 
 Preregister the A/A purpose and gate, using the same binary, resource policy, options and transport. For deterministic fixed-node A/A with unlimited clocks, require identical paired moves/results as well as normal complete color-swapped pairs. For timed operational A/A, use the frozen equal-clock settings: scheduling can change reached depth, moves and results, so require the preregistered normal-game, pairing, legality, fault and input-integrity checks. Different timed moves/results alone are not a harness fault without a preregistered, justified identity requirement. Neither mode establishes precise zero Elo; keep A/A separate from A/B. Do not retrospectively relax a frozen deterministic gate to rescue a failed attempt.

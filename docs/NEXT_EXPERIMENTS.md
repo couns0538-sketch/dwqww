@@ -1,13 +1,19 @@
 # Next experiments
 
-Immediate local work: finish frozen24source7db08eac6ead99d641834c56ccec06a06600586a
-native14Release→firstactualsignature→56exactcold/warm parent23searches→14ASan→
-14defaultTSan→8activeUCI qualification. Source77/fourdelta/73same/independentreview
-passed; candidate benchmark/runtime stillUNKNOWN. Use existing CMake/CTest absolute
+Immediate local work: finish root byte verification/publication of the CLOSED
+Windows24 package and the calibrated23→24 performance packet. Frozen24source
+7db08eac6ead99d641834c56ccec06a06600586a passed42native CTests/eight active checks/
+56exactparent searches,2593independent audit checks and13Wine/1870artifact checks.
+First Linux292545/Windows334752 signatures match their respective parents.
+The genuine24one-process/five-command capture passed;23reuses original bytes.
+Complete actualproof binding/offline controls/final independent enabled review
+before one frozen hosted performance launch. Preserve disabled61file seal and
+118check review as their original phases. Do not rerun completed qualifications.
+Use existing CMake/CTest absolute
 paths under /workspace/.cloud-setup/venv/lib/python3.12/site-packages/cmake/data/bin;
 these verified3.31.6 tools are absent from bare PATH. Do not reinstall or confuse
 pre-spawn PATH failures with actual compiler/runtime attempts. Windows24 and
-calibrated same-settings performance comparison follow; no speed/Elo accepted.
+calibrated same-settings performance comparison is pending; no speed/Elo accepted.
 
 1. Finish the frozen23-versus22 TT-policy test. Candidate23 is
    `1d3ed25bea2c8b781f7ee5a178af0f66061b3984`; baseline22 is

@@ -1,0 +1,76 @@
+--- qualified23/validation-driver.py
++++ prepared24/validation-driver.py
+@@ -12,21 +12,21 @@
+ from pipeline_gate import load_freeze
+ FREEZE=load_freeze()
+ COMMIT=FREEZE['source_commit']
+-SOURCE=Path('/workspace/.cloud-setup/windows6423-source')
+-BUILD=Path('/workspace/.cloud-setup/windows6423-build')
+-BASE=Path('/workspace/dwqww/validation/tt-refresh-windows-20261021')
++SOURCE=Path('/workspace/.cloud-setup/windows6424-source')
++BUILD=Path('/workspace/.cloud-setup/windows6424-build')
++BASE=Path('/workspace/dwqww/validation/see-proof-reuse-windows-20261021')
+ OUT=BASE/'runtime-attempt1'
+ WINE=Path('/workspace/.cloud-setup/wine/usr/lib/wine/wine64')
+ TOOLS=Path('/workspace/.cloud-setup/toolchains/llvm-mingw-20261006-ucrt-ubuntu-22.04-x86_64/bin')
+-WRAPPER=BASE/'forge-tt-refresh-wine'
++WRAPPER=BASE/'forge-see-proof-reuse-wine'
+ sha=lambda p:hashlib.sha256(p.read_bytes()).hexdigest()
+ win=lambda p:'Z:'+str(p).replace('/','\\')
+ def write(name,data):(OUT/name).write_text(json.dumps(data,indent=2)+'\n')
+-assert json.loads((BASE/'WINDOWS-BUILD-CLEAR.json').read_text())['authorization']=='23 WINDOWS BUILD CLEAR'
++assert json.loads((BASE/'WINDOWS-BUILD-CLEAR.json').read_text())['authorization']=='24 WINDOWS BUILD CLEAR'
+ OUT.mkdir(exist_ok=False)
+ environment=os.environ.copy();environment.update(WINEPREFIX='/workspace/.cloud-setup/wine-prefix-ready',
+  WINEDEBUG='-all',XDG_CACHE_HOME='/workspace/.cloud-setup/font-cache',PYTHONDONTWRITEBYTECODE='1')
+-WRAPPER.write_text('#!/usr/bin/env bash\nexport WINEPREFIX=/workspace/.cloud-setup/wine-prefix-ready\nexport WINEDEBUG=-all\nexport XDG_CACHE_HOME=/workspace/.cloud-setup/font-cache\nexec /workspace/.cloud-setup/wine/usr/lib/wine/wine64 /workspace/.cloud-setup/windows6423-build/forge.exe "$@"\n')
++WRAPPER.write_text('#!/usr/bin/env bash\nexport WINEPREFIX=/workspace/.cloud-setup/wine-prefix-ready\nexport WINEDEBUG=-all\nexport XDG_CACHE_HOME=/workspace/.cloud-setup/font-cache\nexec /workspace/.cloud-setup/wine/usr/lib/wine/wine64 /workspace/.cloud-setup/windows6424-build/forge.exe "$@"\n')
+ WRAPPER.chmod(0o755)
+ # Evidence-only adapter: preserve every production test assertion and exchange,
+ # translating only the Linux-created book path to Wine's existing Z: drive.
+@@ -71,7 +71,7 @@
+ write('protocol.json',{'created_utc':datetime.datetime.now(datetime.timezone.utc).isoformat(),
+  'source_and_tests_commit':COMMIT,'input_sha256_before':before,'commands':commands,
+  'bench_command':bench_command,'bench_stdin':bench_stdin.decode(),'bench_hash_mib':16,'bench_threads':1,
+- 'bench_expected_same_platform_parent_nodes':None,'candidate_bench_expectation':None,'bench_signature_policy':'FIRST_NORMAL_CANDIDATE_CAPTURE_ONLY: intended TT generation-refresh policy change; one canonical positive bench11 capture, no reruns or parent/Linux signature assumption; freeze original capture before package','simd_command':simd_command,
++ 'bench_expected_same_platform_parent_nodes':334752,'candidate_bench_expectation':None,'bench_signature_policy':'FIRST_NORMAL_CANDIDATE_CAPTURE_ONLY: pure SEE proof reuse optimization; first canonical positive capture then require exact parent23 same-platform334752; no rerun, Linux/time/NPS/Elo inference','simd_command':simd_command,
+  'environment_subset':{k:environment[k] for k in ('WINEPREFIX','WINEDEBUG','XDG_CACHE_HOME','PYTHONDONTWRITEBYTECODE')},
+  'scope':'Wine functional correctness and bounded node signature only; no performance, Elo or native hardware claim',
+  'core_perft_cases':{'start_depth4':197281,'kiwipete_depth3':97862,'position3_depth4':43238,
+@@ -85,6 +85,9 @@
+         item={'name':name,'exit_code':completed.returncode,'elapsed_seconds':time.monotonic()-started}
+         checks.append(item);write('progress.json',checks);print(json.dumps(item),flush=True)
+         if completed.returncode:raise RuntimeError(name+' failed')
++    core_raw=(OUT/'core-stdout.log').read_text()
++    see_summary=re.findall(r'^SEE threshold contract: assertions (\d+) failures (\d+)\s*$',core_raw,re.M)
++    assert see_summary==[(str(FREEZE['see_threshold_assertions']),'0')] and not re.search(r'^FAIL',core_raw,re.M)
+     pv_raw=(OUT/'pv-metadata-stdout.log').read_text()
+     pv_summary=re.findall(r'^PV metadata: assertions (\d+) failures (\d+)\s*$',pv_raw,re.M)
+     assert pv_summary==[(str(FREEZE['pv_metadata_assertions']),'0')] and not re.search(r'^FAIL ',pv_raw,re.M)
+@@ -119,9 +122,10 @@
+                                  stdout=stdout,stderr=stderr,timeout=300)
+     signature=re.findall(r'^info string bench depth 11 nodes (\d+) time \d+ nps \d+\s*$',
+                          (OUT/'bench-stdout.log').read_text(),re.M)
+-    assert completed.returncode==0 and len(signature)==1 and int(signature[0])>0, 'Missing/invalid candidate23 bench signature: '+repr(signature)
++    assert completed.returncode==0 and len(signature)==1 and int(signature[0])>0, 'Missing/invalid candidate24 bench signature: '+repr(signature)
+     bench_nodes=int(signature[0])
+-    assert FREEZE['bench_expected_nodes'] is None, 'First-capture search-change policy required'
++    assert FREEZE['bench_expected_nodes'] is None, 'First-capture policy required'
++    assert bench_nodes==FREEZE['parent_bench_parity_nodes']==334752, 'Pure optimization must preserve first actual parent23 Windows signature'
+     checks.append({'name':'stdin-bench11-signature','exit_code':completed.returncode,'nodes':bench_nodes})
+     print(json.dumps(checks[-1]),flush=True)
+     disassembly=subprocess.check_output(simd_command,text=True);(OUT/'disassembly.log').write_text(disassembly)
+@@ -134,11 +138,11 @@
+     after={name:sha(path) for name,path in inputs.items()};assert after==before
+     assert {p.relative_to(SOURCE).as_posix():sha(p) for p in SOURCE.rglob('*') if p.is_file()}==source_before
+     write('result.json',{'status':'passed','source_and_tests_commit':COMMIT,'checks':checks,'tt_groups':int(tt_summary[0]),
+-     'pv_metadata_assertions':int(pv_summary[0][0]),'pv_metadata_failures':0,'nearest_pawn_sets':int(nearest_summary[0][0]),'nearest_pawn_checks':int(nearest_summary[0][1]),'nearest_pawn_failures':0,'nearest_constexpr_assertions':6,'pawn_span_checks':int(pawn_summary[0][0]),'pawn_span_failures':0,'pawn_constexpr_assertions':3,'runtime_psqt_checks':int(runtime_summary[0][0]),'runtime_psqt_failures':0,'correction_history_checks':int(correction_summary[0][0]),'correction_history_failures':0,'rule50_targeted_failures':0,'legal_witness_comparisons':int(oracle[1]),'bench11_nodes':bench_nodes,
++     'see_threshold_assertions':int(see_summary[0][0]),'see_threshold_failures':0,'pv_metadata_assertions':int(pv_summary[0][0]),'pv_metadata_failures':0,'nearest_pawn_sets':int(nearest_summary[0][0]),'nearest_pawn_checks':int(nearest_summary[0][1]),'nearest_pawn_failures':0,'nearest_constexpr_assertions':6,'pawn_span_checks':int(pawn_summary[0][0]),'pawn_span_failures':0,'pawn_constexpr_assertions':3,'runtime_psqt_checks':int(runtime_summary[0][0]),'runtime_psqt_failures':0,'correction_history_checks':int(correction_summary[0][0]),'correction_history_failures':0,'rule50_targeted_failures':0,'legal_witness_comparisons':int(oracle[1]),'bench11_nodes':bench_nodes,
+      'core_reference_perft_passed':True,'ownbook_transitions':ownbook_result['checks'],'wine_book_path_adaptation_only':True,'simd':simd,'input_sha256_before':before,'input_sha256_after':after,
+      'source_inputs_unchanged':True,'scope':'Wine correctness and node signatures only; native hardware, speed and Elo unproven'})
+ except Exception as error:
+     write('result.json',{'status':'failed','source_and_tests_commit':COMMIT,'checks':checks,'error':str(error),
+                          'input_sha256_after':{name:sha(path) for name,path in inputs.items()}})
+     raise
+-print('All frozen6.4.23 Windows functional, oracle, signature and SIMD checks passed',flush=True)
++print('All frozen6.4.24 Windows functional, oracle, signature and SIMD checks passed',flush=True)

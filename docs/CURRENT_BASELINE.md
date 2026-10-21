@@ -14,9 +14,21 @@ consumers, with no new state and a nonpositive-threshold guard. Existing28 mirro
 exchange oracles add504 threshold-bound assertions. Exactly4 source paths changed,
 73 unchanged/77 total; source review passed. Parent23 observer showed exactsearch
 parity and13387 repeated queries/344945 (3.88% opportunity), plus1877582actualSEE
-checks; this is not a speed measurement. Full24 native/Windows/performance tests
-are PENDING. [Experiment](../validation/see-proof-reuse-candidate-20261021/EXPERIMENT.md).
-Do not replace a qualified release or accepted5101 with unqualified24.
+checks; this is not a speed measurement. The first full native24 chain passed
+42 CTests (14 Release/14 ASan+UBSan/14 default unsuppressed TSan), eight active UCI
+checks and 56 exact parent cold/warm searches. SEE504/TT12/PV56 pass per profile;
+independent2593checks and root644originals/17parentinputs/77Git/262evidence checks
+pass. First Linux signature292545 and the NNUE object match parent23.
+[Native root proof](../validation/see-proof-reuse-candidate-20261021/root-verification/NATIVE.json).
+Windows24 first strict Zen5 build,13Wine checks and1870artifact checks passed;
+first Windows signature334752 matches parent23. ZIP17077385B SHA256
+`0db112fab29653eb43ac74924fb08a4a956bbf5085555f1a166a64d83fc392db`.
+Root Windows byte verification and publication are pending. This is Wine testing,
+not physical Ryzen execution. The first actual one-process/five-command24 capture
+passed, reusing genuine23 originals without rerunning23; all362inputs unchanged.
+Calibrated performance and equal-time Elo remain unmeasured for24.
+[Experiment](../validation/see-proof-reuse-candidate-20261021/EXPERIMENT.md).
+Keep24 isolated; finite correctness does not accept its unaccepted search lineage.
 
 Parent isolated policy trial **Forge 6.4.23** is source
 `1d3ed25bea2c8b781f7ee5a178af0f66061b3984`, branch

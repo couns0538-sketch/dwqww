@@ -1,0 +1,14 @@
+--- before/execute-first-chain.py
++++ after/execute-first-chain.py
+@@ -3,7 +3,10 @@
+ import subprocess,os,signal,time,json,hashlib,sys
+ E=Path('/workspace/dwqww/validation/see-proof-reuse-windows-20261021')
+ def run(name,argv,timeout=180,env_extra=None,stdin=None,cwd=None):
+- out=E/(name+'.stdout');err=E/(name+'.stderr');status={'name':name,'argv':argv,'timeout_seconds':timeout,'cwd':str(cwd) if cwd else None,'start_utc':time.strftime('%Y-%m-%dT%H:%M:%SZ',time.gmtime()),'returncode':None,'timeout':False,'owned_group_closed':False}
++ outroot=E
++ if name=='first-package':
++  outroot=Path('/workspace/.cloud-setup/windows6424-package-supervisor');outroot.mkdir(exist_ok=False)
++ out=outroot/(name+'.stdout');err=outroot/(name+'.stderr');status={'name':name,'argv':argv,'timeout_seconds':timeout,'cwd':str(cwd) if cwd else None,'start_utc':time.strftime('%Y-%m-%dT%H:%M:%SZ',time.gmtime()),'returncode':None,'timeout':False,'owned_group_closed':False}
+  env=dict(os.environ,PYTHONDONTWRITEBYTECODE='1');env.update(env_extra or {})
+  proc=None;fault=None
+  try:
