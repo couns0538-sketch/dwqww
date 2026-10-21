@@ -1,0 +1,94 @@
+--- immutable21/run-frozen-validation.py
++++ prepared22/run-frozen-validation.py
+@@ -20,11 +20,11 @@
+ REPO=Path("/workspace/dwqww")
+ HERE=Path(__file__).resolve().parent
+ REV=None # Read only from explicit root clearance after the source is frozen.
+-SOURCE=Path("/workspace/.cloud-setup/nearest-pawn-native-source")
++SOURCE=Path("/workspace/.cloud-setup/pv-metadata-native-source")
+ CMAKE="/workspace/.cloud-setup/venv/bin/cmake"
+ CTEST="/workspace/.cloud-setup/venv/bin/ctest"
+ FLAGS="-march=x86-64-v3 -mtune=znver5 -fno-fast-math -ffp-contract=off -fno-lto"
+-ARTIFACT_NAMES=['forge', 'forge_tests', 'forge_tt_tests', 'forge_rule50_tests', 'forge_legal_witness_tests', 'forge_correction_history_tests', 'forge_runtime_psqt_tests', 'forge_pawn_span_tests', 'forge_nearest_pawn_tests', 'forge_bench', 'libforge_core.a', 'CMakeFiles/forge_runtime_psqt_tests.dir/tests/runtime_psqt_tests.cpp.o', 'CMakeFiles/forge_pawn_span_tests.dir/tests/pawn_span_tests.cpp.o', 'CMakeFiles/forge_core.dir/src/nnue.cpp.o', 'CMakeFiles/forge_nearest_pawn_tests.dir/tests/nearest_pawn_tests.cpp.o']
++ARTIFACT_NAMES=['forge', 'forge_tests', 'forge_tt_tests', 'forge_rule50_tests', 'forge_legal_witness_tests', 'forge_correction_history_tests', 'forge_runtime_psqt_tests', 'forge_pawn_span_tests', 'forge_nearest_pawn_tests', 'forge_pv_metadata_tests', 'forge_bench', 'libforge_core.a', 'CMakeFiles/forge_runtime_psqt_tests.dir/tests/runtime_psqt_tests.cpp.o', 'CMakeFiles/forge_pawn_span_tests.dir/tests/pawn_span_tests.cpp.o', 'CMakeFiles/forge_core.dir/src/nnue.cpp.o', 'CMakeFiles/forge_nearest_pawn_tests.dir/tests/nearest_pawn_tests.cpp.o', 'CMakeFiles/forge_pv_metadata_tests.dir/tests/pv_metadata_tests.cpp.o']
+ SANITIZER_DIAGNOSTIC=re.compile(rb"AddressSanitizer|LeakSanitizer|UndefinedBehaviorSanitizer|ThreadSanitizer|runtime error:",re.I)
+ def digest(path): return hashlib.sha256(Path(path).read_bytes()).hexdigest()
+ def files(root): return {str(p.relative_to(root)):digest(p) for p in sorted(root.rglob("*")) if p.is_file()}
+@@ -40,9 +40,11 @@
+ assert isinstance(clear.get('expected_runtime_psqt_checks'),int) and clear['expected_runtime_psqt_checks']>0, 'Root-frozen permanent test check count required'
+ assert isinstance(clear.get('expected_pawn_span_checks'),int) and clear['expected_pawn_span_checks']>0, 'Root-frozen pawn-span test check count required'
+ assert clear.get('expected_nearest_checks')==791680 and clear.get('expected_nearest_sets')==395840 and clear.get('expected_nearest_constexpr_assertions')==6, 'Frozen nearest-square schema required'
+-assert clear.get('source_files')==76 and clear.get('expected_ctest_per_profile')==13, 'Exact76-source/13-suite protocol required'
++assert clear.get('expected_pv_metadata_assertions')==56 and clear.get('exact_search_parity_required') is False and clear.get('observational_cold_warm_searches')==0, 'Root-approved bounded PV regression protocol required'
++assert clear.get('source_files')==77 and clear.get('expected_ctest_per_profile')==14, 'Exact77-source/14-suite protocol required'
+ root_source=json.loads((HERE/'ROOT-FROZEN-SOURCE-GATES.json').read_text())
+-assert root_source['source_commit']==REV and len(root_source['inputs'])==76, 'Root source gate required'
++assert root_source['source_commit']==REV and len(root_source['inputs'])==77, 'Root source gate required'
++assert root_source['inputs']['tests/pv_metadata_tests.cpp']==clear['expected_pv_metadata_test_source_sha256']=='8000b717a298c4c8bb637752fcc57a0ce485110a12edc4a505f3d0452620bd1e', 'Exact RED-tested permanent PV regression source required'
+ prior={'asan':'release','tsan':'asan'}.get(profile)
+ if prior:
+     previous=json.loads((HERE/('frozen-'+prior+'-attempt1/summary.json')).read_text())
+@@ -50,7 +52,7 @@
+ assert ctypes.CDLL(None,use_errno=True).prctl(36,1,0,0,0)==0
+ OUT=HERE/("frozen-"+profile+"-attempt1")
+ OUT.mkdir(exist_ok=False)
+-BUILD=Path("/workspace/.cloud-setup/nearest-pawn-native-"+profile)
++BUILD=Path("/workspace/.cloud-setup/pv-metadata-native-"+profile)
+ if BUILD.exists(): raise SystemExit("Refusing existing build directory: "+str(BUILD))
+ archive=subprocess.check_output(["git","archive",REV,"CMakeLists.txt","LICENSE","src","include","tests","bench","tools"],cwd=REPO)
+ expected_tar=HERE/("frozen-source-"+REV[:7]+".tar")
+@@ -64,7 +66,7 @@
+ with tarfile.open(fileobj=io.BytesIO(archive)) as tar:
+     for member in tar.getmembers():
+         if member.isfile(): archive_members[member.name]=hashlib.sha256(tar.extractfile(member).read()).hexdigest()
+-assert len(before)==76 and before==archive_members==root_source['inputs']
++assert len(before)==77 and before==archive_members==root_source['inputs']
+ write(HERE/("frozen-source-"+REV[:7]+"-files.json"),before)
+ ENV=os.environ.copy()
+ for key in ['ASAN_OPTIONS','UBSAN_OPTIONS','TSAN_OPTIONS','LSAN_OPTIONS']: ENV.pop(key,None)
+@@ -128,13 +130,14 @@
+     summary['expected_ctest_commands']=expected
+     summary['actual_ctest_commands']=actual
+     write(OUT/'summary.json',summary)
+-    assert len(discovery['tests'])==13 and len(actual)==13 and actual==expected
++    assert len(discovery['tests'])==14 and len(actual)==14 and actual==expected
++    assert summary['ctest_names'][4:6]==['forge_nearest_pawn_tests','forge_pv_metadata_tests'], 'Actual PV metadata suite must be sixth after nearest'
+     run("ctest",[CTEST,"--test-dir",str(BUILD),"--output-on-failure","-j","1","--timeout","300"])
+     summary["source_sha256_after_tests"]=files(SOURCE)
+     summary["test_source_sha256_after_tests"]={n:h for n,h in files(SOURCE).items() if n.startswith("tests/")}
+     summary["binary_sha256_after_tests"]={name:digest(BUILD/name) for name in binary_before}
+     write(OUT/"summary.json",summary)
+-    assert "100% tests passed, 0 tests failed out of 13" in (OUT/"ctest.stdout").read_text()
++    assert "100% tests passed, 0 tests failed out of 14" in (OUT/"ctest.stdout").read_text()
+     diagnostic_files=[OUT/'ctest.stdout',OUT/'ctest.stderr',BUILD/'Testing/Temporary/LastTest.log',BUILD/'uci-regression.log',BUILD/'ownbook-regression.json']
+     summary['sanitizer_diagnostic_file_presence']={str(f):f.is_file() for f in diagnostic_files}
+     summary['sanitizer_diagnostic_scan']={str(f):{'sha256':digest(f),'matches':[m.group().decode('utf-8','replace') for m in SANITIZER_DIAGNOSTIC.finditer(f.read_bytes())]} for f in diagnostic_files if f.is_file()}
+@@ -149,6 +152,10 @@
+     summary['nearest_pawn_log_block_present']=nearest_block is not None
+     summary['nearest_pawn_contract_actual_summaries']=re.findall(r'^Nearest pawn distance: sets (\d+) checks (\d+) failures (\d+)\s*$',nearest_block.group() if nearest_block else '',re.M)
+     summary['nearest_constexpr_assertions']=len(re.findall(r'(?m)^static_assert\(', (SOURCE/'tests/nearest_pawn_tests.cpp').read_text()))
++    pv_block=re.search(r'(?ms)^\d+/\d+ Testing: forge_pv_metadata_tests\n.*?(?=^\d+/\d+ Testing: |\Z)',log)
++    summary['pv_metadata_log_block_present']=pv_block is not None
++    summary['pv_metadata_contract_actual_summaries']=re.findall(r'^PV metadata: assertions (\d+) failures (\d+)\s*$',pv_block.group() if pv_block else '',re.M)
++    summary['pv_metadata_case_rows']=re.findall(r'^PV_METADATA_CASE (\w+) nodes=(\d+) aborted=([01]) flag=([01]) pv_moves=(\d+)\s*$',pv_block.group() if pv_block else '',re.M)
+     write(OUT/'summary.json',summary)
+     assert all(summary['sanitizer_diagnostic_file_presence'].values()), 'Expected original diagnostic files missing'
+     assert not any(v['matches'] for v in summary['sanitizer_diagnostic_scan'].values())
+@@ -156,6 +163,8 @@
+     assert summary['pawn_span_contract_actual_summaries']==[(str(clear['expected_pawn_span_checks']),'0')]
+     assert summary['nearest_pawn_contract_actual_summaries']==[(str(clear['expected_nearest_sets']),str(clear['expected_nearest_checks']),'0')]
+     assert summary['nearest_constexpr_assertions']==clear['expected_nearest_constexpr_assertions']
++    assert summary['pv_metadata_contract_actual_summaries']==[(str(clear['expected_pv_metadata_assertions']),'0')]
++    assert [row[0] for row in summary['pv_metadata_case_rows']]==['PV_nonPVhit','PV_PVhit','PV_nohit','nullwindow_TTcut','PV_abort_verification']
+     binary_after={name:digest(BUILD/name) for name in binary_before}
+     after=files(SOURCE)
+     assert before==after
+@@ -163,7 +172,7 @@
+     summary.update({"binary_sha256_before":binary_before,"binary_sha256_after":binary_after,
+                     "source_files_unchanged":True,"status":"PASS","completed_utc":datetime.now(timezone.utc).isoformat()})
+     write(OUT/"summary.json",summary)
+-    print("PASS "+profile+" full CTest 13/13; source and binary hashes unchanged",flush=True)
++    print("PASS "+profile+" full CTest 14/14; source and binary hashes unchanged",flush=True)
+ except Exception as exc:
+     summary["binary_sha256_after_failure"] = {name:digest(BUILD/name) for name in ARTIFACT_NAMES if (BUILD/name).is_file()}
+     summary["source_sha256_after_failure"] = files(SOURCE)
