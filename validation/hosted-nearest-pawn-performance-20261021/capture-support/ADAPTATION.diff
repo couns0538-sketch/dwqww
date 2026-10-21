@@ -1,0 +1,121 @@
+--- preserved20/capture_actual_five.py
++++ prepared21/capture_actual_five.py
+@@ -1,7 +1,7 @@
+-"""Prepared actual19/20 transport capture, inactive until explicit root authorization.
++"""Prepared actual20/21 transport capture, inactive until explicit root authorization.
+ 
+ Adapted from the preserved actual18/19 capture driver. --inspect-inputs reads
+-source/build evidence only. --execute requires complete native19/20 proof and a
++source/build evidence only. --execute requires complete native20/21 proof and a
+ hash-bound root authorization. No timing comparison, retry or launch is implied.
+ """
+ import argparse
+@@ -12,28 +12,28 @@
+ 
+ REPO=Path('/workspace/dwqww')
+ HERE=Path(__file__).resolve().parent
+-PACKAGE=REPO/'.github/hosted-pawn-span-performance'
++PACKAGE=REPO/'.github/hosted-nearest-pawn-performance'
+ HELPER=HERE/'capture-support/owned_process.frozen.py'
+ EXPECTED_HELPER='461a65d2fecdf208994749cb0d44c56bf2f8524610f211a4bf76bd019c25704d'
+ AUTH_STATUS='ROOT_AUTHORIZED_TWO_SEQUENTIAL_ACTUAL_FIVE_COMMAND_CAPTURES'
+-BASELINE='61f598056572dfade6994af8ad2e38817cd28aa3'
+-CANDIDATE='fc2391870b3bf2cd4d8fc20c7406ea6439c69c5e'
++BASELINE='fc2391870b3bf2cd4d8fc20c7406ea6439c69c5e'
++CANDIDATE='2e151d019bc58dff2ab4e76e99ef99516af8d222'
+ STDIN=b'bench 11\n'*5+b'quit\n'
+ PLANS={
+- 'baseline':{'source_sha':BASELINE,'version':19,'files':74,'ctests':11,
+-  'final_count_keys':('native_ctest_total_passed','active_default_tsan_scenarios_passed','exact_cold_warm_parity_depth_searches'),
+-  'root_status':'PASS_ROOT_FULL_NATIVE19_EVIDENCE_REVIEW',
+-  'source':Path('/workspace/.cloud-setup/lazy-runtime-psqt-native-source'),
+-  'build':Path('/workspace/.cloud-setup/lazy-runtime-psqt-native-release'),
+-  'native':REPO/'validation/lazy-runtime-psqt-native-20261020',
+-  'root_proof':REPO/'validation/lazy-runtime-psqt-20261020/root-verification/NATIVE.json'},
+- 'candidate':{'source_sha':CANDIDATE,'version':20,'files':75,'ctests':12,
+-  'final_count_keys':('native_ctests','default_tsan_active_checks','exact_cold_warm_searches'),
++ 'baseline':{'source_sha':BASELINE,'version':20,'files':75,'ctests':12,
+   'root_status':'PASS_ROOT_FULL_NATIVE20_ORIGINALS_AND_GIT_SOURCE_REVIEW',
+   'source':Path('/workspace/.cloud-setup/pawn-span-fill-native-source'),
+   'build':Path('/workspace/.cloud-setup/pawn-span-fill-native-release'),
+   'native':REPO/'validation/pawn-span-fill-native-20261020',
+-  'root_proof':REPO/'validation/pawn-span-fill-20261020/root-verification/NATIVE.json'}}
++  'root_proof':REPO/'validation/pawn-span-fill-20261020/root-verification/NATIVE.json',
++  'windows_source_files':72,'windows_checks':11},
++ 'candidate':{'source_sha':CANDIDATE,'version':21,'files':76,'ctests':13,
++  'root_status':'PASS_ROOT_FULL_NATIVE21_ORIGINALS_AND_GIT_SOURCE_REVIEW',
++  'source':Path('/workspace/.cloud-setup/nearest-pawn-native-source'),
++  'build':Path('/workspace/.cloud-setup/nearest-pawn-native-release'),
++  'native':REPO/'validation/nearest-pawn-native-20261020',
++  'root_proof':REPO/'validation/nearest-pawn-distance-20261020/root-verification/NATIVE.json',
++  'windows_source_files':73,'windows_checks':12}}
+ 
+ def load(name,path):
+  spec=importlib.util.spec_from_file_location(name,path);m=importlib.util.module_from_spec(spec);spec.loader.exec_module(m);return m
+@@ -76,30 +76,39 @@
+   paths += [plan['root_proof'],plan['native']/'FINAL-RECEIPT.json']
+   paths += [plan['native']/('frozen-'+profile+'-attempt1/summary.json') for profile in ('release','asan','tsan')]
+   paths += [plan['native']/'active-uci-wrapper-attempt1/COMMAND.json',plan['native']/'EVIDENCE-SHA256SUMS']
+-  if plan['version']==20:paths += [plan['root_proof'].with_name('NATIVE-EVIDENCE.json')]
++  paths += [plan['root_proof'].with_name('WINDOWS.json')]
+  return paths
+ def require_full_native():
+  for plan in PLANS.values():
+   final_path=plan['native']/'FINAL-RECEIPT.json';final=read(final_path);proof=read(plan['root_proof'])
+   count=plan['ctests']*3
+   require(final.get('status')=='STABLE' and final.get('source_commit')==plan['source_sha'],'Full native receipt not STABLE for this source')
+-  require(tuple(final.get(key) for key in plan['final_count_keys'])==(count,8,56),'Complete native gate counts differ')
+-  if plan['version']==19:
+-   require(final.get('engine_gate_retries')==0,'Native19 retry count differs')
+-   require(proof.get('native_manifest_sha256')==digest(plan['native']/'EVIDENCE-SHA256SUMS'),'Root19 native evidence manifest binding differs')
++  require(tuple(final.get(key) for key in ('native_ctests','default_tsan_active_checks','exact_cold_warm_searches'))==(count,8,56),'Complete native gate counts differ')
++  profiles=final.get('native_profiles',{})
++  require(set(profiles)=={'release','asan','tsan'},'Native profile set differs')
++  require(final.get('independent_audit_failed')==0 and final.get('all_owned_processes_closed') is True,'Native final audit/process closure differs')
++  if plan['version']==20:
++   require(final.get('engine_tests_builds_failed')==0,'Native20 final engine/build failures differ')
+   else:
+-   profiles=final.get('native_profiles',{})
+-   require(all(profiles.get(profile,{}).get('attempts')==1 for profile in ('release','asan','tsan')),'Native20 profile first-attempt evidence differs')
+-   require(final.get('engine_tests_builds_failed')==0 and final.get('independent_audit_failed')==0 and final.get('all_owned_processes_closed') is True,'Native20 final gate failures/process closure differ')
+-   evidence=read(plan['root_proof'].with_name('NATIVE-EVIDENCE.json'))
+-   require(evidence.get('status')=='PASS_ROOT_ALL242_CLOSED_EVIDENCE_FILES_AND_EXACT_SET' and evidence.get('evidence_records')==242 and evidence.get('manifest_sha256')==digest(plan['native']/'EVIDENCE-SHA256SUMS') and evidence.get('final_receipt_sha256')==digest(final_path),'Root20 complete evidence inventory binding differs')
++   require(final.get('driver_source_mutations_after_start') is False and final.get('all_originals_retained') is True,'Native21 source/original retention differs')
+   require(proof.get('status')==plan['root_status'] and proof.get('source_commit')==plan['source_sha'],'Root full native review pending/differs')
+   require(proof.get('ctest')==count and proof.get('active_uci')==8 and proof.get('exact_cold_warm_searches')==56 and proof.get('engine_gate_retries')==0 and proof.get('native_final_receipt_sha256')==digest(final_path),'Root full native proof counts/final receipt binding differ')
++  require(proof.get('native_manifest_sha256')==digest(plan['native']/'EVIDENCE-SHA256SUMS') and proof.get('exact_evidence_tree_verified') is True,'Root complete evidence manifest binding differs')
++  require(proof.get('native_profile_attempts')=={'release':1,'asan':1,'tsan':1},'Root native attempt map differs')
+   for profile in ('release','asan','tsan'):
+-   receipt=read(plan['native']/('frozen-'+profile+'-attempt1/summary.json'))
++   relative='frozen-'+profile+'-attempt1/summary.json';entry=profiles[profile];receipt_file=plan['native']/relative;receipt=read(receipt_file)
++   require(type(entry.get('attempts')) is int and entry['attempts']==1 and type(entry.get('ctest_count')) is int and entry['ctest_count']==plan['ctests'],'Native profile first-attempt/count evidence differs')
++   require(entry.get('status')=='PASS' and entry.get('receipt_path')==relative and entry.get('receipt_sha256')==digest(receipt_file),'Native profile receipt binding differs')
+    require(receipt.get('status')=='PASS' and receipt.get('source_commit')==plan['source_sha'] and len(receipt.get('ctest_names',[]))==plan['ctests'],'Native '+profile+' gate pending/differs')
++   if plan['version']==21:
++    require(entry.get('nearest_pawn_checks')==791680 and entry.get('nearest_target_sets')==395840 and entry.get('nearest_constexpr_assertions')==6,'Native21 nearest-pawn finite checks differ')
++  if plan['version']==21:
++   require(proof.get('nearest_pawn_checks_each_profile')==791680 and proof.get('nearest_target_sets_each_profile')==395840 and proof.get('nearest_constexpr_assertions_each_profile')==6,'Root21 nearest-pawn checks differ')
+   active=read(plan['native']/'active-uci-wrapper-attempt1/COMMAND.json')
+   require(active.get('status')=='PASS' and active.get('source_commit')==plan['source_sha'] and active.get('exit_code')==0,'Native active gate pending/differs')
++  windows=read(plan['root_proof'].with_name('WINDOWS.json'))
++  require(windows.get('status')=='PASS_ROOT_WINDOWS'+str(plan['version'])+'_ORIGINALS_AND_ARTIFACT_REVIEW' and windows.get('source_commit')==plan['source_sha'] and windows.get('source_files_rehashed')==plan['windows_source_files'] and windows.get('wine_checks_passed')==plan['windows_checks'],'Root Windows qualification pending/differs')
++
+ def proof_paths():
+  paths=[Path(__file__).resolve(),HELPER,PACKAGE/'owned_process.py',PACKAGE/'common.py',PACKAGE/'run_hosted.py',PACKAGE/'analysis.py',PACKAGE/'build_evidence.py']
+  for plan in PLANS.values():paths += [manifest_path(plan),receipt_path(plan)]
+@@ -123,13 +132,13 @@
+  frozen=common.snapshot(paths);out=HERE/'actual-five-captures';out.mkdir(exist_ok=False)
+  executed=out/'owned_process.executed.py';shutil.copy2(HELPER,executed)
+  require(digest(executed)==EXPECTED_HELPER,'Executed helper copy differs')
+- helper=load('native_19_20_five_capture_owner',executed)
++ helper=load('native_20_21_five_capture_owner',executed)
+  shutil.copy2(authorization,out/'ROOT-CAPTURE-AUTHORIZATION.executed.json')
+  original_affinity=sorted(os.sched_getaffinity(0));cpu=min(original_affinity);deadline=time.monotonic()+150
+  provenance={'status':'CAPTURING_NOT_A_PERFORMANCE_COMPARISON','utc':datetime.now(timezone.utc).isoformat(),
+   'helper_sha256':EXPECTED_HELPER,'helper_executed_path':str(executed),'driver_sha256':digest(Path(__file__)),
+   'original_affinity':original_affinity,'capture_cpu':cpu,'stdin_sha256':hashlib.sha256(STDIN).hexdigest(),
+-  'captures':{},'frozen_inputs':frozen,'scope':'Two sequential genuine19/20 producer/transport captures only. CPU/wall/NPS values are raw process facts, not a comparative speed estimate or Elo result.'}
++  'captures':{},'frozen_inputs':frozen,'scope':'Two sequential genuine20/21 producer/transport captures only. CPU/wall/NPS values are raw process facts, not a comparative speed estimate or Elo result.'}
+  save(out/'PROVENANCE.json',provenance)
+  try:
+   for label,plan in PLANS.items():

@@ -1,0 +1,74 @@
+# PREPARATION ONLY. Explicitly disabled. No push trigger; no engine/build launch authorized.
+# Genuine frozen21 proofs, captures and final root/independent review are pending.
+name: DISABLED calibrated native Linux nearest-pawn performance
+on: []
+permissions:
+  contents: write
+concurrency:
+  group: forge-nearest-pawn-performance-20261021
+  cancel-in-progress: false
+jobs:
+  performance:
+    if: false
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    env:
+      PYTHONDONTWRITEBYTECODE: '1'
+      BASELINE_SHA: 'fc2391870b3bf2cd4d8fc20c7406ea6439c69c5e'
+      CANDIDATE_SHA: 'PENDING_FROZEN_CANDIDATE_21_SHA'
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          fetch-depth: 0
+      - name: Freeze actual sources, matched GCC14 cores and complete baseline12/candidate13 CTests
+        timeout-minutes: 12
+        shell: bash
+        run: |
+          set -euo pipefail
+          collector_rc=0
+          python3 -B .github/hosted-nearest-pawn-performance/prepare_hosted.py --repo "$GITHUB_WORKSPACE" --out "$GITHUB_WORKSPACE/hosted-performance-results" --work "$RUNNER_TEMP/nearest-pawn-fresh-build" > "$RUNNER_TEMP/nearest-pawn-collector.stdout" 2> "$RUNNER_TEMP/nearest-pawn-collector.stderr" || collector_rc=$?
+          mkdir -p hosted-performance-results
+          cp "$RUNNER_TEMP/nearest-pawn-collector.stdout" hosted-performance-results/collector.stdout
+          cp "$RUNNER_TEMP/nearest-pawn-collector.stderr" hosted-performance-results/collector.stderr
+          printf '%s\n' "$collector_rc" > hosted-performance-results/collector-exit-code.txt
+          python3 -B .github/hosted-nearest-pawn-performance/prepare_hosted.py --repo "$GITHUB_WORKSPACE" --out "$GITHUB_WORKSPACE/hosted-performance-results" --work "$RUNNER_TEMP/nearest-pawn-fresh-build" --finalize-only
+          exit "$collector_rc"
+      - name: One fixed A/A calibration and eligible 31-block A/B whole-process experiment
+        timeout-minutes: 65
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -B .github/hosted-nearest-pawn-performance/run_hosted.py --repo "$GITHUB_WORKSPACE" --baseline "$GITHUB_WORKSPACE/hosted-performance-results/artifacts/baseline/forge" --candidate "$GITHUB_WORKSPACE/hosted-performance-results/artifacts/candidate/forge" --out "$GITHUB_WORKSPACE/hosted-performance-results/performance" 2>&1 | tee hosted-performance-results/wrapper.log
+      - name: Preserve and verify split archives on all ordinary failure paths
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p hosted-performance-results
+          for stream in stdout stderr; do
+            if [ -f "$RUNNER_TEMP/nearest-pawn-collector.$stream" ]; then cp "$RUNNER_TEMP/nearest-pawn-collector.$stream" "hosted-performance-results/collector.$stream"; fi
+          done
+          python3 -B .github/hosted-nearest-pawn-performance/archive_results.py --input "$GITHUB_WORKSPACE/hosted-performance-results" --out "$GITHUB_WORKSPACE/archived-performance-results" --name "nearest-pawn-performance-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+      - name: Upload all original evidence even on failure
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: forge-nearest-pawn-performance-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            hosted-performance-results/
+            archived-performance-results/
+          if-no-files-found: error
+          retention-days: 30
+      - name: Preserve verified archives on a fresh results branch
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          branch="results/nearest-pawn-performance-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+          git switch --orphan "$branch"
+          git rm -rf --cached --ignore-unmatch . >/dev/null
+          test -n "$(find archived-performance-results -name '*.manifest.json' -print -quit)"
+          git add -f archived-performance-results
+          git -c user.name='Forge validation CI' -c user.email='forge-validation@users.noreply.github.com' commit -m "Preserve calibrated native nearest-pawn performance $GITHUB_RUN_ID attempt $GITHUB_RUN_ATTEMPT"
+          git push origin "HEAD:refs/heads/$branch"
+          test "$(git ls-remote origin "refs/heads/$branch" | cut -f1)" = "$(git rev-parse HEAD)"

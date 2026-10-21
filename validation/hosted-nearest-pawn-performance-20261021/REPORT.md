@@ -1,0 +1,13 @@
+# Disabled 6.4.21 performance packet preparation
+
+Prepared the isolated nearest-pawn packet for baseline20 `fc2391870b3bf2cd4d8fc20c7406ea6439c69c5e` versus candidate21 `2e151d019bc58dff2ab4e76e99ef99516af8d222`. This is preparation only: the workflow has `on: []` and `if: false`; all approval gates remain blocked and proof/capture maps are empty. Native/Windows qualification, two authorized actual producer captures, independent review and final root authorization remain necessary.
+
+The design retains 15 AA and 31 AB blocks, 188 processes, 940 canonical bench commands at 321912 nodes, no trimming/retries, and whole-block bootstrap seed20261029. Future fresh hosted builds must pass the exact baseline12/candidate13 named CTests; nearest-pawn is fifth. The source inventory guard now explicitly requires75/76 files. A preserved expected RED accepts a fully rehashed extra source file under the old guard; targeted GREEN rejects it under the new guard. This is a narrow guard strengthening, not an engine change.
+
+All43 offline tests passed in5.731seconds (exit0): analysis12, build evidence12, collector4, pending pin1, runner14. The first preparation path error and subsequent valid RED are retained separately. Only README wording and its inventory entry changed after that suite; static checks verify all execution inputs still match the tested inventory. No engine, compiler, benchmark, hosted job or Git operation ran in this preparation.
+
+`PREPARER-STATIC-CHECKS.json` verifies all21 inventory entries, the exact disabled workflow and source pins, all13 mandatory proof refusals, missing capture rejection, source-count rejection, historical18/19 fixture preservation, and unchanged original20 package/workflow. Runner, archive and trusted461a process helper are byte-identical to20; analysis changes only its seed. Collector changes are namespaces, source identities and12/13 counts. Synthetic build fixtures explicitly derive from actual20-format evidence with an inert candidate13th test/source and dummy candidate identity; they do not constitute actual21 evidence. The initial placeholder draft is preserved in `initial-draft-before-source-pin/`.
+
+An initial independent child spawn was unavailable because the agent limit was reached. Root subsequently assigned `archive_clock_complete` to review the stable packet separately; this report is the preparer’s report, not independent clearance. That reviewer owns `independent-review-initial/`, excluded from this preparation seal. Subsequent capture support will likewise be separately sealed and will not alter this package.
+
+No local speed comparison, Elo inference or candidate acceptance is claimed.
