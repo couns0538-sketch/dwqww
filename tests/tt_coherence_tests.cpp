@@ -241,6 +241,190 @@ void test_score_context_tracks_admitted_payload() {
             !probe.entry.score_usable(99), "rule50 clock storage did not saturate safely");
 }
 
+// Compare every stored field except the intentionally refreshed generation bits.
+bool same_payload_except_generation(const forge::TTEntry& a, const forge::TTEntry& b) {
+    return a.key32 == b.key32 && a.move == b.move && a.score == b.score &&
+           a.eval == b.eval && a.depth == b.depth && a.rule50_clock == b.rule50_clock &&
+           a.padding == b.padding && (a.gen_bound & 7U) == (b.gen_bound & 7U);
+}
+
+void test_generation_refresh_payload_and_handles() {
+    TranspositionTable tt(1);
+    const auto key = collision_key(tt, 0), other_key = collision_key(tt, 1);
+    for (const auto bound : {BoundUpper, forge::BoundLower, BoundExact}) {
+        for (const bool pv : {false, true}) {
+            tt.clear();
+            tt.store(tt.probe(key), key, 123, -456, move_for(123), 23, bound, pv, 97);
+            const auto before = tt.probe(key);
+            tt.new_search();
+            const auto refreshed = tt.probe(key);
+            require(refreshed.hit && refreshed.entry.generation() == tt.generation() &&
+                    same_payload_except_generation(refreshed.entry, before.entry),
+                    "old occupied hit did not refresh only generation bits");
+            require(before.entry.generation() == 0, "refresh mutated an older local snapshot");
+            const auto repeated = tt.probe(key);
+            require(repeated.entry.gen_bound == refreshed.entry.gen_bound &&
+                    same_payload_except_generation(repeated.entry, refreshed.entry),
+                    "current-generation repeated hit changed payload");
+
+            // A newly refreshed hit is current for admission, even if the
+            // requested nonexact score is shallower. Move updates stay independent.
+            tt.store(refreshed, key, 777, -888, Move::none(), 1, BoundUpper, false, 0);
+            require(same_payload_except_generation(tt.probe(key).entry, refreshed.entry),
+                    "refresh failed to suppress age-only shallow overwrite or retain move");
+            auto expected = refreshed.entry;
+            expected.move = move_for(777);
+            tt.store(refreshed, key, 777, -888, expected.move, 1, BoundUpper, false, 0);
+            require(same_payload_except_generation(tt.probe(key).entry, expected),
+                    "rejected shallow payload lost independent move update");
+
+            // Refresh neither revives a previous epoch nor weakens key ownership.
+            tt.store(before, key, 999, -999, Move::none(), 30, BoundExact, false, 0);
+            tt.store(refreshed, other_key, 999, -999, Move::none(), 30, BoundExact, false, 0);
+            require(same_payload_except_generation(tt.probe(key).entry, expected) &&
+                    !tt.probe(other_key).hit, "refresh accepted stale or mismatched handle");
+        }
+    }
+}
+
+void test_generation_refresh_misses_and_zero_key() {
+    TranspositionTable tt(1);
+    tt.new_search();
+    const auto empty = tt.probe(0);
+    require(!empty.hit && !empty.entry.occupied() && empty.entry.gen_bound == 0 &&
+            tt.hashfull() == 0, "empty zero-tag slot was refreshed or treated as a hit");
+    // Zero is a valid occupied verification key, not an empty-slot sentinel.
+    tt.store(empty, 0, 101, -101, move_for(101), 23, BoundExact, true, 97);
+    const auto zero_before = tt.probe(0);
+    tt.new_search();
+    const auto zero_after = tt.probe(0);
+    require(zero_after.hit && zero_after.entry.generation() == tt.generation() &&
+            same_payload_except_generation(zero_after.entry, zero_before.entry),
+            "occupied zero key was not refreshed");
+    tt.store(zero_after, 0, 202, -202, move_for(202), 30, forge::BoundNone, true, 98);
+    const auto unoccupied_before = tt.probe(0);
+    tt.new_search();
+    const auto unoccupied_after = tt.probe(0);
+    require(!unoccupied_before.hit && !unoccupied_after.hit &&
+            unoccupied_after.entry.gen_bound == unoccupied_before.entry.gen_bound &&
+            same_payload_except_generation(unoccupied_after.entry, unoccupied_before.entry),
+            "matching BoundNone tag was refreshed");
+
+    tt.clear();
+    for (unsigned i = 0; i < 4; ++i) put(tt, collision_key(tt, i), 100 + static_cast<int>(i));
+    tt.new_search();
+    const auto first = tt.probe(collision_key(tt, 4));
+    const auto again = tt.probe(collision_key(tt, 4));
+    require(!first.hit && first.entry.occupied() && first.entry.generation() == 0 &&
+            !again.hit && again.entry.gen_bound == first.entry.gen_bound &&
+            same_payload_except_generation(again.entry, first.entry) && tt.hashfull() == 0,
+            "miss refreshed its occupied replacement candidate or changed first-slot tie");
+}
+
+void test_generation_refresh_replacement_hashfull_and_wrap() {
+    TranspositionTable tt(1);
+    std::array<std::uint64_t, 5> keys{};
+    for (unsigned i = 0; i < keys.size(); ++i) keys[i] = collision_key(tt, i);
+    put(tt, keys[0], 301, 12);
+    tt.new_search();
+    for (unsigned i = 1; i < 4; ++i) put(tt, keys[i], 301 + static_cast<int>(i), 8);
+    // Old A has priority12-4=8, tying B/C/D. A miss alone keeps A the victim.
+    const auto old_victim = tt.probe(keys[4]);
+    require(!old_victim.hit && old_victim.entry.score == 301 &&
+            old_victim.entry.generation() == 0 && tt.hashfull() == 0,
+            "unreused old first-slot tie or hashfull changed");
+    require(tt.probe(keys[0]).entry.generation() == 1 && tt.hashfull() == 1,
+            "reused old occupied entry did not count toward current-generation hashfull");
+    const auto new_victim = tt.probe(keys[4]);
+    require(!new_victim.hit && new_victim.entry.score == 302,
+            "refreshed depth12 slot was still evicted before current depth8 slot");
+    tt.store(new_victim, keys[4], 305, -305, Move::none(), 8, BoundExact, false, 0);
+    require(tt.probe(keys[0]).hit && !tt.probe(keys[1]).hit &&
+            tt.probe(keys[2]).hit && tt.probe(keys[3]).hit && tt.probe(keys[4]).hit,
+            "refresh replacement policy did not retain reused entry and evict slot1");
+
+    tt.clear();
+    for (int i = 0; i < 31; ++i) tt.new_search();
+    put(tt, keys[0], 505, 23, move_for(505), forge::BoundLower, 99);
+    const auto before_wrap = tt.probe(keys[0]);
+    tt.new_search();
+    const auto after_wrap = tt.probe(keys[0]);
+    require(tt.generation() == 0 && before_wrap.entry.generation() == 31 &&
+            after_wrap.hit && after_wrap.entry.generation() == 0 &&
+            same_payload_except_generation(after_wrap.entry, before_wrap.entry),
+            "31-to0 refresh changed payload, flags or old snapshot");
+    tt.store(before_wrap, keys[0], 999, -999, Move::none(), 30, BoundExact, false, 0);
+    require(same_payload_except_generation(tt.probe(keys[0]).entry, after_wrap.entry),
+            "generation wrap revived a stale lifecycle handle");
+}
+
+void test_generation_refresh_concurrent_aged_hits() {
+    TranspositionTable tt(1);
+    std::array<std::uint64_t, 4> keys{};
+    for (unsigned i = 0; i < keys.size(); ++i) keys[i] = collision_key(tt, i);
+    auto publish = [&](int value, unsigned bucket) {
+        tt.store(tt.probe(keys[bucket]), keys[bucket], value, -value, move_for(value),
+                 1 + value % 64, BoundExact, (value & 1) != 0,
+                 static_cast<std::uint16_t>(value % 101));
+    };
+    for (unsigned i = 0; i < keys.size(); ++i) publish(1 + static_cast<int>(i), i);
+    const auto old_snapshot = tt.probe(keys[0]);
+    tt.new_search(); // All accessors quiescent; no lifecycle operation in threads.
+    require(old_snapshot.entry.generation() == 0 && tt.hashfull() == 0,
+            "aged concurrent fixture did not start with old occupied entries");
+    std::atomic<int> ready{0}, aged_readers{0}, errors{0};
+    std::atomic<bool> start{false};
+    auto gate = [&] {
+        ready.fetch_add(1, std::memory_order_release);
+        while (!start.load(std::memory_order_acquire)) std::this_thread::yield();
+    };
+    auto check = [&](unsigned bucket, int expected_initial = 0) {
+        const auto probe = tt.probe(keys[bucket]);
+        const auto& e = probe.entry;
+        const int value = e.score;
+        if (!probe.hit || value < 1 || value > 10004 ||
+            (expected_initial != 0 && value != expected_initial) ||
+            e.eval != -value || e.depth != 1 + value % 64 || e.move != move_for(value) ||
+            e.pv() != ((value & 1) != 0) || e.bound() != BoundExact ||
+            e.generation() != 1 || e.rule50_clock != value % 101)
+            errors.fetch_add(1, std::memory_order_relaxed);
+    };
+    auto wait_for_aged_reads = [&] {
+        while (aged_readers.load(std::memory_order_acquire) != 2) std::this_thread::yield();
+    };
+    constexpr int Iterations = 10000;
+    auto reader = [&](unsigned parity) {
+        gate();
+        // Disjoint keys and a writer barrier guarantee four actual aged hits,
+        // rather than allowing stores to refresh everything before readers run.
+        for (unsigned bucket = parity; bucket < keys.size(); bucket += 2)
+            check(bucket, 1 + static_cast<int>(bucket));
+        aged_readers.fetch_add(1, std::memory_order_release);
+        wait_for_aged_reads();
+        for (int i = 0; i < Iterations; ++i) check(static_cast<unsigned>(i) % 4);
+    };
+    std::thread writer([&] {
+        gate();
+        wait_for_aged_reads();
+        for (int i = 1; i <= Iterations; ++i) publish(i + 4, static_cast<unsigned>(i) % 4);
+    });
+    std::thread r1(reader, 0), r2(reader, 1);
+    std::thread monitor([&] {
+        gate();
+        for (int i = 0; i < 128; ++i) {
+            const int count = tt.hashfull();
+            if (count < 0 || count > 1) errors.fetch_add(1, std::memory_order_relaxed);
+        }
+    });
+    while (ready.load(std::memory_order_acquire) != 4) std::this_thread::yield();
+    start.store(true, std::memory_order_release);
+    writer.join(); r1.join(); r2.join(); monitor.join();
+    require(aged_readers.load(std::memory_order_relaxed) == 2 &&
+            errors.load(std::memory_order_relaxed) == 0 && tt.hashfull() == 1 &&
+            old_snapshot.entry.generation() == 0,
+            "concurrent aged-hit refresh tore payload, lost recency or mutated snapshot");
+}
+
 void test_concurrent_correlated_snapshots_and_hashfull() {
     TranspositionTable tt(1);
     const std::array<std::uint64_t, 2> keys{collision_key(tt, 0), collision_key(tt, 1)};
@@ -299,8 +483,12 @@ int main() {
         test_resize_allocation_failure_preserves_table();
         test_hashfull_current_generation_and_wrap();
         test_score_context_tracks_admitted_payload();
+        test_generation_refresh_payload_and_handles();
+        test_generation_refresh_misses_and_zero_key();
+        test_generation_refresh_replacement_hashfull_and_wrap();
+        test_generation_refresh_concurrent_aged_hits();
         test_concurrent_correlated_snapshots_and_hashfull();
-        std::cout << "All8 TT coherence/regression groups passed\n";
+        std::cout << "All12 TT coherence/regression groups passed\n";
         return 0;
     } catch (const std::exception& error) {
         std::cerr << "FAIL: " << error.what() << '\n';

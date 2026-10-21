@@ -1,0 +1,90 @@
+{
+  "status": "PASS_EXPECTED_OLD_POLICY_CONTRAST",
+  "utc": "2026-10-21T01:59:12.755772+00:00",
+  "baseline_source_commit": "ff2e269c6058be84456e3b98344826d17b0056eb",
+  "purpose": "Expected policy contrast, not a claim of a parent correctness defect",
+  "inputs": {
+    "core": "/workspace/.cloud-setup/pv-metadata-native-release/libforge_core.a",
+    "new_policy_test_source": "/workspace/dwqww/tests/tt_coherence_tests.cpp",
+    "parent_header": "/workspace/.cloud-setup/pv-metadata-native-source/include/forge/search.hpp",
+    "driver": "/workspace/dwqww/validation/tt-refresh-20261021/run-parent-policy-red-once.py"
+  },
+  "input_sha256_before": {
+    "core": "374275cc7f3d973204747e8c0befae30d0a0c8f495a7f36dda96fa275fe720b6",
+    "new_policy_test_source": "cc2fe3e9fb0059f409876345e8cfb3c008ede401751a4dad76b022f743238fd5",
+    "parent_header": "3d9208de205b4bd2f8e82f6c64137be253eb51aa0a418d5e39e1c06392e95eb9",
+    "driver": "2df925d752325fbd9d3341a8aa9fc4467c7241b27fefb6a36b3b89ebc227f06a"
+  },
+  "steps": [
+    {
+      "label": "compile",
+      "command": [
+        "/usr/bin/g++-14",
+        "-std=c++20",
+        "-O3",
+        "-DNDEBUG",
+        "-march=x86-64-v3",
+        "-mtune=znver5",
+        "-fno-fast-math",
+        "-ffp-contract=off",
+        "-fno-lto",
+        "-I/workspace/.cloud-setup/pv-metadata-native-source/include",
+        "/workspace/dwqww/validation/tt-refresh-20261021/parent-policy-red-attempt1/tt_coherence_tests.cpp",
+        "/workspace/.cloud-setup/pv-metadata-native-release/libforge_core.a",
+        "-pthread",
+        "-o",
+        "/workspace/.cloud-setup/tt-refresh-parent-policy-red/forge_tt_policy_red"
+      ],
+      "timeout_seconds": 120,
+      "expected_exit": 0,
+      "exit_code": 0,
+      "timed_out": false,
+      "error": null,
+      "cleanup": {
+        "group_id": 422678,
+        "before": [],
+        "actions": [],
+        "reaped_children": [],
+        "after": [],
+        "no_live_owned_processes": true,
+        "unexpected_live_members_after_command": false
+      },
+      "pid": 422678,
+      "elapsed_seconds_operational_only": 8.20914423299837,
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "label": "actual-parent-policy-red",
+      "command": [
+        "/workspace/.cloud-setup/tt-refresh-parent-policy-red/forge_tt_policy_red"
+      ],
+      "timeout_seconds": 30,
+      "expected_exit": 1,
+      "exit_code": 1,
+      "timed_out": false,
+      "error": null,
+      "cleanup": {
+        "group_id": 422700,
+        "before": [],
+        "actions": [],
+        "reaped_children": [],
+        "after": [],
+        "no_live_owned_processes": true,
+        "unexpected_live_members_after_command": false
+      },
+      "pid": 422700,
+      "elapsed_seconds_operational_only": 0.1521362009953009,
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderr_sha256": "3aafc59461936e750dcc442cf7414fce305190a46d8a820fa61555c40a746114"
+    }
+  ],
+  "executable_sha256": "6ca2e75a745b389fcf76ebc8c4d33323896188965efdd7c44d0c202391c666e6",
+  "input_sha256_after": {
+    "core": "374275cc7f3d973204747e8c0befae30d0a0c8f495a7f36dda96fa275fe720b6",
+    "new_policy_test_source": "cc2fe3e9fb0059f409876345e8cfb3c008ede401751a4dad76b022f743238fd5",
+    "parent_header": "3d9208de205b4bd2f8e82f6c64137be253eb51aa0a418d5e39e1c06392e95eb9",
+    "driver": "2df925d752325fbd9d3341a8aa9fc4467c7241b27fefb6a36b3b89ebc227f06a"
+  },
+  "completed_utc": "2026-10-21T01:59:21.124083+00:00"
+}
