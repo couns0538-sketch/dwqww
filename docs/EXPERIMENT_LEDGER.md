@@ -423,3 +423,19 @@ resumes or pooling. Accepted5101unchanged. Commands/clearance and originalprotot
 logs are in validation/nearest-pawn-native-20261020 and
 validation/nearest-pawn-distance-20261020. Next: finish actualnative gates then
 Windows/calibratedperformance; static nextsearchreview runs without an engine.
+
+
+2026-10-21 00:13UTC — Frozen21 native completed firstattempt:39CTest (13Release,
+13ASan/UBSan,13defaultTSan),8mandatoryactiveUCI checks,56exactparent20NNUEon/off
+cold/warm searches,bench321912. Allnearest395840sets/791680checks+6constexpr,
+pawn37320/runtime347/correction54pass ineachprofile. Independent2421/0audit.
+Root verify_native.py completed exit0/empty stderr:604whole source/build originals,
+consumedparent singles,76actualGit inputs and245exactevidencefiles unchanged.
+RootNATIVE SHAfea7ace3bddaa69bf6b840f8d1901b448905f79ef24744188d704bfd01fb95fb.
+Source2e151d0 remainsfixed; publiccheckpoint1bfed89a9d475cdcc58e1f3ea0129e1e9001537c.
+Windows21 firstchain nowcleared with actual copiedrootsourcegate SHA476f854b and
+fullnativeproof;73source/10PE/12Wineplanned, no runtimeresultyet. Sourceandcompiled
+NNUEobject unchanged20; no21NPS/Elo result. NextfinishWindows/rootartifactproofs,
+actualproducer captures and onefresh calibratedhostedcomparison. Preserveall20
+workloadgain/evidence/publicactualrestore; accepted5101unchanged. Subsequent search
+lead is sameframePVmetadata overwrite; actual-core+naturaltraceprobes preparedonly.

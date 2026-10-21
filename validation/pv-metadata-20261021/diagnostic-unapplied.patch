@@ -1,0 +1,56 @@
+--- a/src/search.cpp
++++ b/src/search.cpp
+@@ -9,6 +9,31 @@
+ #include <optional>
+ 
+ namespace forge {
++
++// Diagnostic only. Counters observe actual singular calls; never alter search state.
++namespace pv_diagnostic {
++thread_local std::uint64_t key_filter=0, events=0, changed=0, emitted=0;
++struct State { bool pv,in_check; int raw,eval; Move current; };
++void observe(const Board& board, SearchStack* ss, int depth, bool pv_node, Move move, State before) {
++ if(key_filter && (board.key()!=key_filter || ss->ply!=1))return;
++ ++events;const bool mismatch=before.pv!=ss->tt_pv;if(mismatch)++changed;
++ if(emitted<64 && (mismatch || key_filter)){
++  ++emitted;
++  std::cerr<<"PV_TRACE {\"fen\":\""<<board.fen()<<"\",\"move\":\""<<Board::move_to_uci(move)
++   <<"\",\"ply\":"<<ss->ply<<",\"depth\":"<<depth<<",\"caller_pv\":"<<pv_node
++   <<",\"before\":"<<before.pv<<",\"after\":"<<ss->tt_pv
++   <<",\"in_check_before\":"<<before.in_check<<",\"in_check_after\":"<<ss->in_check
++   <<",\"raw_before\":"<<before.raw<<",\"raw_after\":"<<ss->raw_eval
++   <<",\"eval_before\":"<<before.eval<<",\"eval_after\":"<<ss->static_eval
++   <<",\"current_before\":\""<<Board::move_to_uci(before.current)
++   <<"\",\"current_after\":\""<<Board::move_to_uci(ss->current_move)<<"\"}\n";
++ }
++}
++struct Summary { ~Summary(){std::cerr<<"PV_SUMMARY {\"events\":"<<events<<",\"changed\":"<<changed<<",\"emitted\":"<<emitted<<"}\n";} };
++}
++extern "C" void forge_pv_diag_reset(std::uint64_t key){pv_diagnostic::key_filter=key;pv_diagnostic::events=pv_diagnostic::changed=pv_diagnostic::emitted=0;}
++extern "C" std::uint64_t forge_pv_diag_events(){return pv_diagnostic::events;}
++extern "C" std::uint64_t forge_pv_diag_changed(){return pv_diagnostic::changed;}
+ 
+ namespace tune {
+ int LmrQuietBase = 85;
+@@ -1077,10 +1102,12 @@
+             tt_score != ValueNone && !is_mate_score(tt_score) && tt_depth >= depth - 3) {
+             const int singular_beta = tt_score - tune::SingularMargin * depth;
+             const int singular_depth = (depth - 1) / 2;
++            const pv_diagnostic::State pv_before{ss->tt_pv, ss->in_check, ss->raw_eval, ss->static_eval, ss->current_move};
+             ss->excluded_move = move;
+             const int singular_score = search(board, ss, singular_depth, singular_beta - 1, singular_beta, cut_node);
+             ss->double_extensions = inherited_double_extensions;
+             ss->excluded_move = Move::none();
++            pv_diagnostic::observe(board, ss, depth, pv_node, move, pv_before);
+             if (aborted_) return 0;
+             if (singular_score < singular_beta) {
+                 extension = 1;
+@@ -1212,6 +1239,8 @@
+ // Iterative deepening driver
+ 
+ SearchInfo Worker::search(Board board, const SearchLimits& limits, bool emit_info, const std::vector<Worker*>& all) {
++    forge_pv_diag_reset(0);
++    pv_diagnostic::Summary pv_summary;
+     const auto origin = limits.start_time != std::chrono::steady_clock::time_point{}
+         ? limits.start_time : limits.request_start;
+     start_ = origin == std::chrono::steady_clock::time_point{}

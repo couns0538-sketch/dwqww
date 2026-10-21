@@ -18,9 +18,15 @@ singleton and empty-set behavior. The prototype genuinely used version20 metadat
 positions/61465integers passed on first attempt. Actual21 differs from that
 prototype only in the two version strings. Rootverified all76actualGit inputs,
 75parent inputs and11protected Board/search/NNUE/evaluation-parameter boundaries.
-The full frozen21 Release→parity→ASan→defaultTSan→activeUCI chain is now running;
-39CTest/8active results are not yet established. Windows and calibrated speed are
-pending. No21speed/Elo claim. Published source, new test and both root gate bytes
+The full frozen21 firstattemptRelease13/13,ASan13/13,defaultTSan13/13,
+8activeUCI checks and56exact cold/warm parent20searches PASS. Eachprofile verifies
+791680geometry comparisons/395840sets/6constexpr plus37320pawn/347runtime/54correction.
+Bench321912; ReleaseNNUEobjecte8df is byte-identical20. Independent2421checkaudit
+passes; rootrehashedall604source/build originals,consumedparent singles,76actualGit
+inputs and245closed evidence files. NativeFINALreceipt4b24b57/manifest8a5489d9;
+[rootproof](../validation/nearest-pawn-distance-20261020/root-verification/NATIVE.json).
+Windows73-source10PE/12Wine firstchain is cleared and running; calibrated speed
+stillpending. No21speed/Elo claim. Published source, new test and both root gate bytes
 were independently downloaded and matched to the exact Git blobs.
 [Source publication](../validation/nearest-pawn-distance-20261020/root-verification/SOURCE-PUBLICATION.json).
 [First native clearance](../validation/nearest-pawn-native-20261020/ROOT-CLEARANCE.json).

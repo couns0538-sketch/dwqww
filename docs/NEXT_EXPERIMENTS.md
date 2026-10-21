@@ -14,14 +14,16 @@ Active nearest-pawn distance21 is frozen at2e151d019bc58dff2ab4e76e99ef99516af8d
 on forge/nearest-pawn-distance-20261020; publiccheckpointf42ce13verified. Original
 prototypeversion20records passed13Release/791680checks/6constexpr/56parent20searches
 and95publictracepositions/61465fields. Actual21 differs only by2versionstrings.
-First fullfrozen13Release→parity→13ASan→13defaultTSan→8active→snapshot/audit is now
-running under explicit rootclearance. Keep firstattempts and abort on actualfailure.
-Then require Windows21 exact73filteredinputs and static/noLTOstrictFP10PEbuild,
-all relevant Wine/artifact checks, rootbyteproofs and two actual canonical producer
+First frozen39CTest/8active/56parity/321912 and2421auditPASS; root604originals+
+76Git+245evidence rehashPASS. Noenginegate retries. Windows21 firstchain nowrunning:
+exact73filteredinputs,static/noLTOstrictFP10PEbuild,12Wine checks. Then require its
+independentartifactaudit,rootbyteproofs and two actual canonical producer
 captures before a separately calibrated21vs20performance launch. A disabled package
 is being prepared; no timings/launch authorized yet. Preserve NNUEobject/source/
 weights and all20gains. No21speed/Elo established. Queenray idea dropped because
-compileralreadyreusesit. A targeted nextsearchreview is independent static work.
+compileralreadyreusesit. Nextsearchreviewfound possiblePVflagclobberacrosssameplysingularverification;
+friend-onlyactualcore+naturaltraceRED/GREENprotocolpreparedanddisabled. Finish21
+Windows before its j1diagnostic; no seededTTfixturealone proves naturaloccurrence.
 
 1. Keep qualified19source61f5980 and its immutable evidence. The one performance
    run39510219605 completed and was independently audited: CPUthroughput+1.6084%
