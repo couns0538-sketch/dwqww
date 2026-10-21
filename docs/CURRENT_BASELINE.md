@@ -7,47 +7,55 @@ its unchanged native regression to356e863, preserving the TT and timed-only cloc
 repairs. Acceptance is for the finite book contract; no accepted equal-time Elo gain.
 [Integration receipt](../validation/accepted-ownbook-integration-20261020/INTEGRATION.json).
 
-Active isolated candidate **Forge6.4.21** is frozen at
-`2e151d019bc58dff2ab4e76e99ef99516af8d222`, branch
-`forge/nearest-pawn-distance-20261020`, public checkpoint
-`f42ce13fbafe4558d95939fd532bef11ae03d97a`. It replaces repeated king-to-own-pawn
-scans with three exact inclusive Chebyshev radius queries, retaining direct
-singleton and empty-set behavior. The prototype genuinely used version20 metadata:
-13Release CTests,791680 independent geometry comparisons over395840sets,
-6constexpr assertions,56exact parent20 cold/warm searches and95public trace
-positions/61465integers passed on first attempt. Actual21 differs from that
-prototype only in the two version strings. Rootverified all76actualGit inputs,
-75parent inputs and11protected Board/search/NNUE/evaluation-parameter boundaries.
-The full frozen21 firstattemptRelease13/13,ASan13/13,defaultTSan13/13,
-8activeUCI checks and56exact cold/warm parent20searches PASS. Eachprofile verifies
-791680geometry comparisons/395840sets/6constexpr plus37320pawn/347runtime/54correction.
-Bench321912; ReleaseNNUEobjecte8df is byte-identical20. Independent2421checkaudit
-passes; rootrehashedall604source/build originals,consumedparent singles,76actualGit
-inputs and245closed evidence files. NativeFINALreceipt4b24b57/manifest8a5489d9;
-[rootproof](../validation/nearest-pawn-distance-20261020/root-verification/NATIVE.json).
-Windows73-source/10PEbuild/12Wine/1615independentartifactchecks firstPASS.
-Rootverified229raw originals,73sourcefiles,521unchangedparentfiles,10PEs and
-22distributionmembers/21checksums. ZIP15445676bytes SHA256
-`e2af16d497f5c1560d413d601c3af50e364c3dfa30e3a17d49936812ac712227`;
-[Windows21 Zen5candidate](../releases/forge-6.4.21-candidate-windows-zen5.zip).
-Wineonly; no nativeRyzen test. Bothactual20/21 five-command producer captures
-PASS (5canonical321912rows each),181frozenbyte/modeinputs unchanged and normal
-outerexit0. Canonical independent777finite/transportchecksPASS. READYmetadata53offline/13missingproofcontrols and407independentfinalenabledchecks
-PASS; rootrehashed322boundinputs. No21hostedlaunchyet.
-No21speed/Elo claim. Source21neveroverwrote accepted5101.
-Newbounded same-plyPVmetadata investigation has actualRED:25flaglosses/716natural
-singularcalls, unchanged321912diagnosticbench; all25moveslegal. The2linefix in separateinstrumentedGREEN sourcepassedall4probecases and618natural
-singularcalls/0flaglosses; bench292545is changedsearchwork,notspeedorElo. Permanent
-diagnostic-freeactualcore regression has56assertions/2expectedparent21failures
-(includingabortedverification); production22version/sourcefreeze is next.
-[ActualRED](../validation/pv-metadata-20261021/RED-RESULT.md). Published source, new test and both root gate bytes
-were independently downloaded and matched to the exact Git blobs.
-[Source publication](../validation/nearest-pawn-distance-20261020/root-verification/SOURCE-PUBLICATION.json).
-[First native clearance](../validation/nearest-pawn-native-20261020/ROOT-CLEARANCE.json).
-Cloud skills catalog is currently empty; existing project skills remain available.
-Existing strength skill was improved and validated for explicit per-revision receipt
-schemas; skill-creator/global installation is unavailable. No optional plugin
-troubleshooting or GrokChess work is blocking native Forge development.
+Active isolated candidate **Forge 6.4.22**, source
+`ff2e269c6058be84456e3b98344826d17b0056eb`, is on
+`forge/singular-pv-metadata-20261021`; published clearance checkpoint
+`1bccee28457d8e587be5b768437f199e180ae3c6`.
+The two-line search change saves the caller's `tt_pv` before same-frame singular
+verification and restores it before the abort check. It preserves the accepted
+network, all evaluation changes and all 73 unchanged parent source inputs.
+The actual parent21 diagnostic reproduces 25 flag losses in 716 natural singular
+calls. The isolated repaired diagnostic passes four probe cases and 618 natural
+singular calls without flag loss. Its 292545-node benchmark changes search work;
+this is neither an NPS measurement nor Elo evidence. The diagnostic-free permanent
+regression has 56 assertions and reproduces exactly two failures on the original
+parent21 core, including aborted verification. All original RED/GREEN logs,
+source hashes and expected parent failures remain preserved.
+[Investigation](../validation/pv-metadata-20261021/RED-RESULT.md).
+
+The first full frozen22 native chain is running: Release14, one canonical benchmark,
+ASan/UBSan14, default unsuppressed TSan14, eight active TSan checks, complete
+originals snapshot and independent audit. Outcomes remain pending. Root verified
+all 77 actual Git inputs, the exact four-path delta and the unchanged parent
+inputs before clearing execution. Root gate SHA256
+`4510f8908b628429c0e88115d7c9f3ed9ae7d9981b53ac4ff7cd6729ea6dd413`.
+[Native clearance](../validation/pv-metadata-native-20261021/ROOT-CLEARANCE.json).
+Windows22 and a disabled equal-time SPRT packet are prepared; neither has run.
+Planned strength comparison is source21 versus source22, four timed operational
+A/A pairs then at most512 paired SPRT openings, 1+0.01, T1/Hash32/OwnBook=false,
+logistic H0=0/H1=+10 and alpha=beta=.05. Finite gates and actual producer capture
+must pass before launch. No22 correctness acceptance, NPS or Elo claim yet.
+
+Previous finite-qualified **Forge6.4.21**, source
+`2e151d019bc58dff2ab4e76e99ef99516af8d222`, replaces scalar king-to-own-pawn
+distance scans with three exact radius queries. First native39 CTests,
+8active TSan checks,56exact parent20 cold/warm searches and2421independent
+checks pass. Root rehashed604whole source/build originals and76Git inputs.
+Windows12Wine checks and1615independent artifact checks pass; no native Ryzen test.
+[Windows21 Zen5candidate](../releases/forge-6.4.21-candidate-windows-zen5.zip),
+SHA256 `e2af16d497f5c1560d413d601c3af50e364c3dfa30e3a17d49936812ac712227`,
+was actually downloaded from public GitHub and hash-verified.
+The single frozen performance run
+[39522912590](https://github.com/couns0538-sketch/dwqww/actions/runs/39522912590),
+payload `1f492e72158df9314b86bdea7c7ed4aa56fa32e0`, started00:42:14UTC.
+Hosted baseline12/candidate13 build-tests passed; timing step is running at the
+last00:46:54UTC observation. Game counts do not apply; speed statistics remain
+unknown until originals are published and audited. Do not retrigger or rescue it.
+[Monitor](../validation/hosted-nearest-pawn-performance-20261021/live-monitor/LATEST-OBSERVATION.json).
+
+Existing repository-local skills are reused and improved when helpful. The cloud
+skills catalog is currently empty; skill-creator/global installation is unavailable.
+No optional plugin or GrokChess work blocks native Forge development.
 
 Latest correctness-qualified and measured-workload candidate **Forge6.4.20**, source
 `fc2391870b3bf2cd4d8fc20c7406ea6439c69c5e`, branch

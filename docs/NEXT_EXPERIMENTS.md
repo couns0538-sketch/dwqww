@@ -1,34 +1,33 @@
 # Next experiments
 
-Latestqualified20sourcefc2391870b3bf2cd4d8fc20c7406ea6439c69c5e preserves19.
-First native36/8active/56parity+2363audit and Windows11/1538audit/rootbytechecks
-pass. One actualhostedrun39516786979 independently passed: CPUthroughput+1.0393%
-95%CI+0.5660..+1.5047%;wall+1.0375%,CI+0.5611..+1.5074%. All188processes/940rows,
-15AA/31AB/final178inputs+211Gitblobs pass. No retry/resume/retrigger/pooling orElo
-inference. Originalresultf563ef02441eab0ea58ee209535cc4fc5aa105af/payload5651d28.
-Retain separate19gain; do not multiply ratios into cumulativeclaims. Complete20
-archive1937payloads/1889originals and actualfreshscratch recovery passed9912/6089
-independentchecks. Publishexactparts and retain allfailures/oldschema consumers.
+Finish one bounded task first: frozen22 PV-metadata repair
+`ff2e269c6058be84456e3b98344826d17b0056eb` versus frozen21
+`2e151d019bc58dff2ab4e76e99ef99516af8d222`.
 
-Active nearest-pawn distance21 is frozen at2e151d019bc58dff2ab4e76e99ef99516af8d222
-on forge/nearest-pawn-distance-20261020; publiccheckpointf42ce13verified. Original
-prototypeversion20records passed13Release/791680checks/6constexpr/56parent20searches
-and95publictracepositions/61465fields. Actual21 differs only by2versionstrings.
-First frozen39CTest/8active/56parity/321912 and2421auditPASS; root604originals+
-76Git+245evidence rehashPASS. Noenginegate retries. Windows21 first10PEbuild/12Wine/1615audit/root229raw73source521parent/22membersPASS.
-Twoactualcanonicalproducer captures PASS181byte/modeinputs/normalouterexit0;
-canonical777currentreviewPASS. Finish READYrestrictedworkflow/offlinechecks and
-finalindependentenabledmetadatareview, then rootsolefresh21vs20performancepush. A disabled package
-is being prepared; no timings/launch authorized yet. Preserve NNUEobject/source/
-weights and all20gains. No21speed/Elo established. Queenray idea dropped because
-compileralreadyreusesit. Nextsearchreviewfound possiblePVflagclobberacrosssameplysingularverification;
-friend-onlyactualcoreREDreproduced1targetedflaglosswith3passingcontrols and25natural
-flaglosses/716singularcalls, legal25FEN/moves/exact321912observersignature. Metadata
-preflightfailedbeforeanychildbecauseonevariantshaunbound; originalpreserved, corrected
-metadataonly, firstactualREDall6groupsclosed. RootindependentreplayPASS. FirstGREEN
-source+j1diagnostic nowcleared/running; no productionpatch/Eloacceptanceyet. Require
-GREENtargetcalls>0/nochanges andnaturalcalls>0/nochanges, then permanentactualcore
-regression+isolated22production2linefix/freshfullnative/Windows/strengthqualification.
+1. Finish the already-running first42CTest/eight-active native chain and one
+   292545-node benchmark. Do not run a second attempt to erase a failure.
+2. Root independently verifies the complete source/build/original evidence and
+   actual Git correspondence. Then clear the prepared first Windows22 build,
+   13Wine checks and artifact audit. Windows22 signature is unknown until its
+   first canonical capture; parent352313/Linux292545 must not be imposed on it.
+3. Finish the disabled actual22 strength packet with genuine22 producer captures,
+   proof hashes and readiness. Fresh516opening selection excludes historical
+   reserved cohorts. Four timed A/A pairs are operational calibration, not a
+   deterministic identity or precise zero-Elo claim. Run only the predefined
+   512pair SPRT after all gates pass; no pooling/retries/subset acceptance.
+4. Preserve complete21 and22 source/build originals in recoverable archives while
+   hosted matches run. The21 archive driver is prepared but has not executed.
+5. Monitor the sole21 performance run39522912590. Hosted build-test gate passed,
+   timing was running00:46:54UTC. On publication retrieve the authentic result
+   archive, verify manifests and run the prepared independent audit. Any A/A
+   failure is terminal for this attempt; do not use its A/B subset or rerun.
+6. Keep accepted integration5101 unchanged until justified integration. This
+   candidate lineage contains the still-unaccepted18 correction-history ablation.
+   Completed19 and20 throughput gains are separate workload results, not Elo or
+   cumulative percentage gains. Complete20 archive/recovery/public downloads are
+   verified; preserve all old experiments, including failures.
+
+Earlier verified history and separate continuing tasks:
 
 1. Keep qualified19source61f5980 and its immutable evidence. The one performance
    run39510219605 completed and was independently audited: CPUthroughput+1.6084%

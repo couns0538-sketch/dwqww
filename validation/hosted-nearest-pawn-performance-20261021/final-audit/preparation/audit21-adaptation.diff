@@ -1,0 +1,94 @@
+--- qualified20/audit.py
++++ prepared21/audit_complete_21.py
+@@ -33,20 +33,20 @@
+     summary = read(root / 'performance/summary.json')
+     cfg = read(root / 'package/protocol.json')
+     assert summary['protocol'] == cfg
+-    assert digest(root / 'package/protocol.json') == '80afff9e831a17034610e157b0c031fc6574696d3f07ee683b91c34fa3ef53d4'
+-    assert digest(root / 'workflow.yml') == 'cb478e18e6693de0012b4c4cc3cfff817c115cefb8469dbbd471ce769a688d93'
+-    assert digest(root / 'package/PACKAGE-SHA256SUMS') == 'fcb5f3c64d0ad2c58a34b7b45cf2d1b9720bc366c5eea280656f00d0f86681ba'
++    assert digest(root / 'package/protocol.json') == '229be7aafc47d8337b9691bb4b323fcf832b6ab31e28c015e2150c1e51709aef'
++    assert digest(root / 'workflow.yml') == '3bc1003fb7e8340993a35d2fb328efdcd1a2971bc9a14621d8fd4848e15d6afd'
++    assert digest(root / 'package/PACKAGE-SHA256SUMS') == '9ece2241f9a11bdc906bab7036abdae9f15fcbe0de39df431201633404e14742'
+     package_map = {}
+     for line in (root / 'package/PACKAGE-SHA256SUMS').read_text().splitlines():
+         h, name = line.split('  ', 1)
+-        p = root / 'workflow.yml' if name.startswith('.github/workflows/') else root / 'package' / Path(name).relative_to('.github/hosted-pawn-span-performance')
++        p = root / 'workflow.yml' if name.startswith('.github/workflows/') else root / 'package' / Path(name).relative_to('.github/hosted-nearest-pawn-performance')
+         assert digest(p) == h == digest(repo / name)
+         package_map[name] = p
+     assert len(package_map) == 21
+-    assert set(p.relative_to(root / 'package').as_posix() for p in (root / 'package').rglob('*') if p.is_file()) == {str(Path(n).relative_to('.github/hosted-pawn-span-performance')) for n in package_map if not n.startswith('.github/workflows/')} | {'PACKAGE-SHA256SUMS'}
++    assert set(p.relative_to(root / 'package').as_posix() for p in (root / 'package').rglob('*') if p.is_file()) == {str(Path(n).relative_to('.github/hosted-nearest-pawn-performance')) for n in package_map if not n.startswith('.github/workflows/')} | {'PACKAGE-SHA256SUMS'}
+     for name, h in cfg['correctness_evidence_sha256'].items():
+         assert digest(root / 'proofs' / name) == h == digest(repo / name)
+-    assert len(cfg['correctness_evidence_sha256']) == 40
++    assert len(cfg['correctness_evidence_sha256']) == 67
+ 
+     frozen = summary['frozen_inputs']
+     final = summary['final_rehash']
+@@ -58,7 +58,7 @@
+         elif '/.github/' in name:
+             relative = '.github/' + name.split('/.github/', 1)[1]
+             p = package_map.get(relative, root / 'package/PACKAGE-SHA256SUMS')
+-            assert relative in package_map or relative == '.github/hosted-pawn-span-performance/PACKAGE-SHA256SUMS'
++            assert relative in package_map or relative == '.github/hosted-nearest-pawn-performance/PACKAGE-SHA256SUMS'
+         elif '/validation/' in name:
+             p = root / 'proofs' / ('validation/' + name.split('/validation/', 1)[1])
+         else:
+@@ -97,11 +97,11 @@
+                 out = root / 'source' / (stem.removeprefix('source-') + '.tar')
+             assert digest(out) == rec[stream + '_sha256']
+         stages.append(stem)
+-    tests = ['forge_tests', 'forge_correction_history_tests', 'forge_runtime_psqt_tests', 'forge_tt_tests', 'forge_rule50_tests', 'forge_legal_witness_tests', 'match_tool_tests', 'windows_validation_tests', 'uci_regression', 'ponder_regression', 'ownbook_regression']
++    tests = ['forge_tests', 'forge_correction_history_tests', 'forge_runtime_psqt_tests', 'forge_pawn_span_tests', 'forge_tt_tests', 'forge_rule50_tests', 'forge_legal_witness_tests', 'match_tool_tests', 'windows_validation_tests', 'uci_regression', 'ponder_regression', 'ownbook_regression']
+     builds = {}
+     flags = '-O3 -DNDEBUG -march=x86-64-v3 -mtune=generic -fno-fast-math -ffp-contract=off -fno-lto'
+     assert re.search(r'g\+\+.*\b14\.', (root / 'compiler.stdout').read_text())
+-    for label, commit in [('baseline', '61f598056572dfade6994af8ad2e38817cd28aa3'), ('candidate', 'fc2391870b3bf2cd4d8fc20c7406ea6439c69c5e')]:
++    for label, commit in [('baseline', 'fc2391870b3bf2cd4d8fc20c7406ea6439c69c5e'), ('candidate', '2e151d019bc58dff2ab4e76e99ef99516af8d222')]:
+         tar = root / 'source' / (label + '.tar')
+         inventory = {}
+         with tarfile.open(tar) as archive:
+@@ -112,7 +112,7 @@
+                 assert member.isfile() and member.name not in inventory
+                 assert not PurePosixPath(member.name).is_absolute() and '..' not in PurePosixPath(member.name).parts
+                 inventory[member.name] = hashlib.sha256(archive.extractfile(member).read()).hexdigest()
+-        assert len(inventory) == (74 if label == 'baseline' else 75)
++        assert len(inventory) == (75 if label == 'baseline' else 76)
+         prov = read(root / (label + '-build-provenance.json'))
+         assert prov['source_commit'] == cfg[label + '_sha'] == commit
+         assert prov['source_tar_sha256'] == digest(tar)
+@@ -121,7 +121,7 @@
+         assert prov['last_test_log_sha256'] == digest(root / (label + '-LastTest.log'))
+         source_rec = read(root / ('source-' + label + '-command.json'))
+         assert source_rec['command'][:3] == ['git', 'archive', commit]
+-        expected = tests if label == 'baseline' else tests[:3] + ['forge_pawn_span_tests'] + tests[3:]
++        expected = tests if label == 'baseline' else tests[:4] + ['forge_nearest_pawn_tests'] + tests[4:]
+         out = (root / (label + '-ctest.stdout')).read_text()
+         passes = re.findall(r'^\s*(\d+)/(\d+)\s+Test\s+#\d+:\s+(\S+)\s+\.*\s+Passed\b', out, re.M)
+         assert [(int(i), int(n), test) for i, n, test in passes] == [(i, len(expected), test) for i, test in enumerate(expected, 1)]
+@@ -217,7 +217,7 @@
+         for x, y in zip(ratios, summary['calibration'][metric]['block_ratios']): close(x, y)
+         calibration[metric] = dict(median=median, minimum=min(ratios), maximum=max(ratios), passed=passed, block_ratios=ratios)
+     assert summary['calibration']['passed'] is True
+-    rng = random.Random(20261028)
++    rng = random.Random(20261029)
+     draws = {'cpu': [], 'wall': []}
+     for _ in range(10000):
+         indices = [rng.randrange(31) for _ in range(31)]
+@@ -241,11 +241,12 @@
+     assert qualifies == summary['analysis']['both_metrics_positive'] == summary['verified_hosted_gain']
+     assert summary['status'] == ('completed_verified_hosted_cpu_and_wall_gain' if qualifies else 'completed_no_verified_gain')
+     assert not any(k in summary for k in ['error', 'package_integrity_error', 'affinity_restore_error'])
+-    return {'status': 'PASS_INDEPENDENT_ORIGINAL_EVIDENCE_AND_STATISTICS_AUDIT', 'summary_sha256': digest(root / 'performance/summary.json'), 'payload_commit': '5651d289829220e63f664e12d04d11f3ed7e1b14', 'package_entries': 21, 'bound_proofs': 40, 'frozen_inputs': len(frozen), 'frozen_input_mapping': mapped, 'hosted_recorded_byte_and_mode_identity': True, 'extracted_and_frozen_static_bytes_rehashed': True, 'mode_qualification': 'Hosted pre/post mode observations match. ZIP preserves payload bytes, not original filesystem permissions; extraction modes are not represented as a second hosted mode observation.', 'build_stages': stages, 'builds': builds, 'selected_cpu': cpu, 'normal_processes': 188, 'canonical_rows': 940, 'AA': calibration, 'AB': result, 'bootstrap': {'seed': 20261028, 'draws': 10000, 'unit': '31 whole blocks with shared CPU/wall indices', 'quantile': 'linear at (N-1)*q in log space then exp'}, 'producer_comparison_tolerance': 1e-12, 'verified_hosted_gain': qualifies, 'samples': sample_checks, 'script_sha256': digest(__file__), 'scope': 'One Linux host, fresh-process startup plus five fixed bench11 commands; no Elo/native Windows/Ryzen/pure-kernel/general clock inference.', 'reviewer_engine_build_git_network_runs': 0}
++    return {'status': 'PASS_INDEPENDENT_ORIGINAL_EVIDENCE_AND_STATISTICS_AUDIT', 'summary_sha256': digest(root / 'performance/summary.json'), 'payload_commit': '1f492e72158df9314b86bdea7c7ed4aa56fa32e0', 'package_entries': 21, 'bound_proofs': 67, 'frozen_inputs': len(frozen), 'frozen_input_mapping': mapped, 'hosted_recorded_byte_and_mode_identity': True, 'extracted_and_frozen_static_bytes_rehashed': True, 'mode_qualification': 'Hosted pre/post mode observations match. ZIP preserves payload bytes, not original filesystem permissions; extraction modes are not represented as a second hosted mode observation.', 'build_stages': stages, 'builds': builds, 'selected_cpu': cpu, 'normal_processes': 188, 'canonical_rows': 940, 'AA': calibration, 'AB': result, 'bootstrap': {'seed': 20261029, 'draws': 10000, 'unit': '31 whole blocks with shared CPU/wall indices', 'quantile': 'linear at (N-1)*q in log space then exp'}, 'producer_comparison_tolerance': 1e-12, 'verified_hosted_gain': qualifies, 'samples': sample_checks, 'script_sha256': digest(__file__), 'scope': 'One Linux host, fresh-process startup plus five fixed bench11 commands; no Elo/native Windows/Ryzen/pure-kernel/general clock inference.', 'reviewer_engine_build_git_network_runs': 0}
+ 
+ 
+ if __name__ == '__main__':
+     p = argparse.ArgumentParser();p.add_argument('--root', type=Path, required=True);p.add_argument('--repo', type=Path, required=True);p.add_argument('--out', type=Path, required=True);args=p.parse_args()
+     result = main(args.root.resolve(), args.repo.resolve())
+-    args.out.write_text(json.dumps(result, indent=2) + '\n')
++    with args.out.open('x') as output:
++        output.write(json.dumps(result, indent=2) + '\n')
+     print(json.dumps({k: result[k] for k in ['status', 'normal_processes', 'canonical_rows', 'verified_hosted_gain', 'AA', 'AB']}, indent=2))

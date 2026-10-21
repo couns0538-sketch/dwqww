@@ -464,3 +464,23 @@ source1c97568a, exact75otherinputs preserved; firstj1compile/probe/naturaldiagno
 running. No productionsearchchange/22SHA/strengthresult yet. Evidence:
 validation/pv-metadata-20261021. NextifGREENpasses:permanentactualcoreRED/GREENunit,
 production2linecandidate22,freshfullqualification and equal-time strengthtesting.
+
+
+2026-10-21 00:53UTC — Production22 sourceff2e269 frozen/pushed on
+forge/singular-pv-metadata-20261021, parent21source2e151d0. Same-frame singular
+verification now saves/restores caller tt_pv before abort handling: exact2line
+productiondiff, all73other parent inputs unchanged,77actualGit source inputs.
+RED actualWorker and naturalbenchmark25flaglosses/716calls, GREEN4cases plus
+618naturalcalls/0loss; all originallogs/legality/provenance retained. Permanent
+unit56assertions reproduces2expectedparentfailures including abortedverification.
+Rootclearance7e52e6ae/sourcegate4510f890 published1bccee2; firstRelease14 ->one
+292545signature ->ASan14 ->defaultTSan14 ->8active ->snapshot/audit chain RUNNING.
+Native22final/Windows22/NPSdifference/WLD/Elo pending; no acceptedstrengthgain.
+Disabled22equal1+0.01 pairedSPRT preparation100offline testsPASS; rootfiniteproofs,
+actualproductioncapture andlaunch stillpending. Baseline21source2e151d0, H0=0/H1=10,
+alpha=beta=.05, fourtimedAApairs/512SPRTpairs, freshseed20261031. Noengine matchyet.
+
+Single21vs20 performance run39522912590 launched00:42:14UTC, exactpayload1f492e7;
+baseline12/candidate13hosted CTests passed, timingrunning00:46:54UTC, statistics
+unknown. No retry/retrigger. Separate18vs17 run39502109381 remainscombined
+readiness/play at00:51:37UTC; games/WLD/Elounknown. Accepted5101unchanged.
