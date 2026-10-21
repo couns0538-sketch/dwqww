@@ -484,3 +484,17 @@ Single21vs20 performance run39522912590 launched00:42:14UTC, exactpayload1f492e7
 baseline12/candidate13hosted CTests passed, timingrunning00:46:54UTC, statistics
 unknown. No retry/retrigger. Separate18vs17 run39502109381 remainscombined
 readiness/play at00:51:37UTC; games/WLD/Elounknown. Accepted5101unchanged.
+
+
+2026-10-21 01:01UTC — Single21vs20 run39522912590 completed independentlyaudited.
+Originalresulte0ca5ba962c9972761d045db0cc68c285d7efe8d, payload1f492e7. All188normal
+processes/940canonical321912rows/15AA/31AB pass. Independentwholeblock10000draw
+seed20261029 CPUratio1.0172673473801408, CI[1.0141920214291562,1.0202363615222378];
+wall1.0172122432821094, CI[1.0140778817529745,1.0202229000792205]. KEEP+1.73%CPU/
++1.72%wall hostedwholeprocessgain, noElo/nativeRyzen/cumulativeclaim. Rootall232
+inputs/240actualGitblobs/75baseline76candidateSource verified; NNUEobjectsidentical.
+Original4380093BZIP558d8ed…/1273payloads plusmanifest verified/extractedsafely.
+Initialtransportcheckerrejectedwrongfiles/prefix assumptionbeforeextraction;
+originalnote retained, correctedread-onlyschema, noengine rerun. Both independent
+stat/lifecycleaudits androotGitaudit firstexecutionexit0; allrawlogs preserved.
+Evidencevalidation/hosted-nearest-pawn-performance-20261021/final-audit.

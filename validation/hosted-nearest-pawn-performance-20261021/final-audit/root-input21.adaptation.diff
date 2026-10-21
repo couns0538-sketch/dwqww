@@ -1,0 +1,57 @@
+--- qualified20
++++ actual21
+@@ -9,13 +9,13 @@
+ 
+ repo = Path(__file__).resolve().parents[2]
+ out = Path(__file__).resolve().parent
+-original = Path('/workspace/.cloud-setup/pawn-span-hosted-result-39516786979')
+-payload = '5651d289829220e63f664e12d04d11f3ed7e1b14'
++original = Path('/workspace/.cloud-setup/nearest-pawn-hosted-result-39522912590/files')
++payload = '1f492e72158df9314b86bdea7c7ed4aa56fa32e0'
+ prefix = '/home/runner/work/dwqww/dwqww/'
+ digest = lambda b: hashlib.sha256(b).hexdigest()
+ summary = json.loads((original / 'performance/summary.json').read_text())
+ frozen = summary['frozen_inputs']
+-assert len(frozen) == 178
++assert len(frozen) == 232
+ assert summary['final_rehash']['status'] == 'passed'
+ assert not summary['final_rehash']['mismatches']
+ assert summary['final_rehash']['observed'] == frozen
+@@ -31,16 +31,16 @@
+     else:
+         expected[payload + ':' + relative] = record['sha256']
+         repo_count += 1
+-        if relative.startswith('.github/hosted-pawn-span-performance/'):
+-            source = original / 'package' / relative.removeprefix('.github/hosted-pawn-span-performance/')
++        if relative.startswith('.github/hosted-nearest-pawn-performance/'):
++            source = original / 'package' / relative.removeprefix('.github/hosted-nearest-pawn-performance/')
+         elif relative.startswith('.github/workflows/'):
+             source = original / 'workflow.yml'
+         else:
+             source = original / 'proofs' / relative
+         assert digest(source.read_bytes()) == record['sha256']
+ source_counts = {}
+-for label, commit in [('baseline', '61f598056572dfade6994af8ad2e38817cd28aa3'),
+-                      ('candidate', 'fc2391870b3bf2cd4d8fc20c7406ea6439c69c5e')]:
++for label, commit in [('baseline', 'fc2391870b3bf2cd4d8fc20c7406ea6439c69c5e'),
++                      ('candidate', '2e151d019bc58dff2ab4e76e99ef99516af8d222')]:
+     provenance = json.loads((original / (label + '-build-provenance.json')).read_text())
+     assert provenance['source_commit'] == commit
+     raw = (original / 'source' / (label + '.tar')).read_bytes()
+@@ -70,7 +70,7 @@
+     data = stream.read(int(header[2]))
+     assert stream.read(1) == b'\n' and digest(data) == expected[spec], spec
+ assert stream.read() == b''
+-assert source_counts == {'baseline':74,'candidate':75}
++assert source_counts == {'baseline':75,'candidate':76}
+ objects = {}
+ for label in ['baseline', 'candidate']:
+     data = subprocess.check_output(['ar', 'p', str(original / 'artifacts' / label / 'libforge_core.a'),
+@@ -90,5 +90,6 @@
+     'engine_compile_benchmark_match_or_network_execution': False,
+     'statistics': 'Separate independent final-audit script recomputes all samples/calibration/bootstrap.',
+ }
+-(out / 'ROOT-INPUT-AUDIT.json').write_text(json.dumps(result, indent=2) + '\n')
++with (out / 'ROOT-INPUT-AUDIT.json').open('x') as output:
++    output.write(json.dumps(result, indent=2) + '\n')
+ print(json.dumps(result))

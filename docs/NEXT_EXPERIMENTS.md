@@ -17,10 +17,10 @@ Finish one bounded task first: frozen22 PV-metadata repair
    512pair SPRT after all gates pass; no pooling/retries/subset acceptance.
 4. Preserve complete21 and22 source/build originals in recoverable archives while
    hosted matches run. The21 archive driver is prepared but has not executed.
-5. Monitor the sole21 performance run39522912590. Hosted build-test gate passed,
-   timing was running00:46:54UTC. On publication retrieve the authentic result
-   archive, verify manifests and run the prepared independent audit. Any A/A
-   failure is terminal for this attempt; do not use its A/B subset or rerun.
+5. Preserve completed21performance run39522912590: all188normal/940rows/15AA/31AB
+   plus232input/240Gitblob auditsPASS. KeepCPU+1.7267% andwall+1.7212% hosted
+   throughput gains, noElo/nativeRyzen inference or cumulative19/20claim. Original
+   result e0ca5ba and4380093-byteZIP/1273payloads are retained. Do not rerun.
 6. Keep accepted integration5101 unchanged until justified integration. This
    candidate lineage contains the still-unaccepted18 correction-history ablation.
    Completed19 and20 throughput gains are separate workload results, not Elo or

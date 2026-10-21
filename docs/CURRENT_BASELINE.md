@@ -48,9 +48,14 @@ was actually downloaded from public GitHub and hash-verified.
 The single frozen performance run
 [39522912590](https://github.com/couns0538-sketch/dwqww/actions/runs/39522912590),
 payload `1f492e72158df9314b86bdea7c7ed4aa56fa32e0`, started00:42:14UTC.
-Hosted baseline12/candidate13 build-tests passed; timing step is running at the
-last00:46:54UTC observation. Game counts do not apply; speed statistics remain
-unknown until originals are published and audited. Do not retrigger or rescue it.
+Hosted baseline12/candidate13 build-tests and the single experiment completed.
+Independent188process/940row/15AA/31AB audit PASS: CPUthroughput+1.7267%
+(95%CI+1.4192..+2.0236%), wall+1.7212%(+1.4078..+2.0223%). Rootverified all232
+consumed inputs and240actualGitblobs; NNUEobjects identical. Original result
+`e0ca5ba962c9972761d045db0cc68c285d7efe8d`, 4380093-byte ZIP/1273payloads retained.
+This is hostedLinux whole-process throughput, not Elo or nativeRyzen performance.
+[Independent21audit](../validation/hosted-nearest-pawn-performance-20261021/final-audit/REPORT.md).
+Do not retrigger, rescue or combine this with separate19/20percentageclaims.
 [Monitor](../validation/hosted-nearest-pawn-performance-20261021/live-monitor/LATEST-OBSERVATION.json).
 
 Existing repository-local skills are reused and improved when helpful. The cloud
