@@ -1,0 +1,73 @@
+"""Offline capture preparation checks. No child launch, timing comparison or authorization."""
+import copy,importlib.util,json,subprocess,tempfile,unittest
+from pathlib import Path
+from unittest.mock import patch
+ROOT=Path(__file__).resolve().parent
+spec=importlib.util.spec_from_file_location('nearest_capture_preparation_test',ROOT/'capture_actual_five.py')
+m=importlib.util.module_from_spec(spec);spec.loader.exec_module(m)
+class CapturePreparation(unittest.TestCase):
+ def test_actual_source_release_exact20_21_identities(self):
+  with patch.object(subprocess,'Popen',side_effect=AssertionError('No children')):
+   for label,plan in m.PLANS.items():
+    row=m.inspect_plan(label,plan)
+    self.assertEqual(row['source_commit'],plan['source_sha'])
+    self.assertEqual(len(row['source_sha256_before']),75 if label=='baseline' else 76)
+ def test_frozen_helper_exact461a(self):
+  self.assertEqual(m.digest(m.HELPER),m.EXPECTED_HELPER)
+  self.assertEqual(m.HELPER.read_bytes(),(m.PACKAGE/'owned_process.py').read_bytes())
+ def test_missing_authorization_fails_before_helper_or_child(self):
+  with tempfile.TemporaryDirectory(dir=ROOT) as tmp,patch.object(m,'load',side_effect=AssertionError('No helper load')),patch.object(subprocess,'Popen',side_effect=AssertionError('No child')):
+   with self.assertRaisesRegex(ValueError,'Missing/unsafe proof'):m.capture(Path(tmp)/'missing.json')
+ def test_example_authorization_cannot_launch(self):
+  with patch.object(m,'load',side_effect=AssertionError('No helper load')),patch.object(subprocess,'Popen',side_effect=AssertionError('No child')):
+   with self.assertRaisesRegex(ValueError,'authorization required'):m.capture(ROOT/'ROOT-CAPTURE-AUTHORIZATION.example.json')
+ def test_wrong_driver_pin_cannot_authorize(self):
+  auth=json.loads((ROOT/'ROOT-CAPTURE-AUTHORIZATION.example.json').read_text());auth.update(authorized=True,status=m.AUTH_STATUS,driver_sha256='0'*64)
+  with tempfile.TemporaryDirectory(dir=ROOT) as tmp,patch.object(m,'load',side_effect=AssertionError('No helper load')),patch.object(subprocess,'Popen',side_effect=AssertionError('No child')):
+   p=Path(tmp)/'authorization.json';p.write_text(json.dumps(auth))
+   with self.assertRaisesRegex(ValueError,'driver/helper authorization pin'):m.capture(p)
+ def test_source_inventory_rejects_missing_or_extra(self):
+  with tempfile.TemporaryDirectory(dir=ROOT) as tmp:
+   source=Path(tmp);(source/'one').write_bytes(b'one');expected={'one':m.digest(source/'one')}
+   self.assertEqual(m.source_map({'source':source},expected),expected)
+   (source/'extra').write_bytes(b'extra')
+   with self.assertRaisesRegex(ValueError,'Complete source inventory'):m.source_map({'source':source},expected)
+ def synthetic_qualification(self):
+  # Real receipt shapes plus explicitly DERIVED root21/Windows21 proof mocks.
+  # These dictionaries are never written as actual qualification evidence.
+  docs={}
+  for label,p in m.PLANS.items():
+   docs[p['native']/'FINAL-RECEIPT.json']=m.read(p['native']/'FINAL-RECEIPT.json')
+   for profile in ('release','asan','tsan'):
+    path=p['native']/('frozen-'+profile+'-attempt1/summary.json');docs[path]=m.read(path)
+   path=p['native']/'active-uci-wrapper-attempt1/COMMAND.json';docs[path]=m.read(path)
+  base=m.PLANS['baseline'];candidate=m.PLANS['candidate']
+  docs[base['root_proof']]=m.read(base['root_proof'])
+  docs[base['root_proof'].with_name('WINDOWS.json')]=m.read(base['root_proof'].with_name('WINDOWS.json'))
+  proof=copy.deepcopy(docs[base['root_proof']]);proof.update(status=candidate['root_status'],source_commit=m.CANDIDATE,ctest=39,native_final_receipt_sha256=m.digest(candidate['native']/'FINAL-RECEIPT.json'),native_manifest_sha256=m.digest(candidate['native']/'EVIDENCE-SHA256SUMS'),nearest_pawn_checks_each_profile=791680,nearest_target_sets_each_profile=395840,nearest_constexpr_assertions_each_profile=6)
+  docs[candidate['root_proof']]=proof
+  windows=copy.deepcopy(docs[base['root_proof'].with_name('WINDOWS.json')]);windows.update(status='PASS_ROOT_WINDOWS21_ORIGINALS_AND_ARTIFACT_REVIEW',source_commit=m.CANDIDATE,source_files_rehashed=73,wine_checks_passed=12)
+  docs[candidate['root_proof'].with_name('WINDOWS.json')]=windows
+  return docs
+ def test_explicit_actual_receipt_shapes_with_derived_root21_pass(self):
+  docs=self.synthetic_qualification()
+  with patch.object(m,'read',side_effect=lambda p:copy.deepcopy(docs[p])),patch.object(subprocess,'Popen',side_effect=AssertionError('No child')):
+   m.require_full_native()
+ def test_missing_or_changed_native_and_windows_controls(self):
+  original=self.synthetic_qualification();p=m.PLANS['candidate'];final=p['native']/'FINAL-RECEIPT.json';windows=p['root_proof'].with_name('WINDOWS.json')
+  mutations=[('attempts',lambda d:d[final]['native_profiles']['release'].update(attempts=2)),('boolean_attempt',lambda d:d[final]['native_profiles']['release'].update(attempts=True)),('wrong_count',lambda d:d[final].update(native_ctests=36)),('receipt_hash',lambda d:d[final]['native_profiles']['release'].update(receipt_sha256='0'*64)),('nearest_checks',lambda d:d[final]['native_profiles']['release'].pop('nearest_pawn_checks')),('windows_pending',lambda d:d[windows].update(status='PENDING')),('windows_source',lambda d:d[windows].update(source_commit=m.BASELINE)),('windows_missing',lambda d:d.pop(windows))]
+  for name,change in mutations:
+   with self.subTest(name=name):
+    docs=copy.deepcopy(original);change(docs)
+    def read(p):
+     if p not in docs:raise ValueError('Missing proof')
+     return copy.deepcopy(docs[p])
+    with patch.object(m,'read',side_effect=read),patch.object(subprocess,'Popen',side_effect=AssertionError('No child')):
+     with self.assertRaises(ValueError):m.require_full_native()
+ def test_proof_paths_bind_both_windows_and_all_native(self):
+  paths=set(m.proof_paths())
+  for p in m.PLANS.values():
+   self.assertIn(p['root_proof'].with_name('WINDOWS.json'),paths)
+   self.assertIn(p['native']/'FINAL-RECEIPT.json',paths)
+   for profile in ('release','asan','tsan'):self.assertIn(p['native']/('frozen-'+profile+'-attempt1/summary.json'),paths)
+if __name__=='__main__':unittest.main(verbosity=2)

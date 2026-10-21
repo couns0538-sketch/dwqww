@@ -1,8 +1,10 @@
-Preparation only: the workflow has `on: []` and job `if: false`. Baseline20
-is fc2391870b3bf2cd4d8fc20c7406ea6439c69c5e; frozen21 identity is
-2e151d019bc58dff2ab4e76e99ef99516af8d222. Native, Windows, capture, root and
-independent qualification and one-attempt authorization remain pending.
-No build, engine, benchmark or launch is authorized by this draft.
+Reviewed metadata for one future restricted first-attempt push, pending final
+independent enabled-metadata review and root publication/trigger. Baseline20 is
+fc2391870b3bf2cd4d8fc20c7406ea6439c69c5e; frozen21 is
+2e151d019bc58dff2ab4e76e99ef99516af8d222. Actual native39/8active/56parity,
+Windows12/1615audit, two genuine five-command captures and their181 unchanged
+inputs, root/canonical independent reviews and conditional one-attempt root
+authorization are bound. No hosted performance result exists for21 yet.
 
 The audited461a ownership/cleanup helper, timing runner and archive helper are
 unchanged from20. Analysis changes only the preregistered bootstrap seed to
@@ -34,5 +36,7 @@ Run offline checks with `python3 -B -m unittest discover -s
 validation/hosted-nearest-pawn-performance-20261021 -p 'test_*.py' -v`.
 They use mock children, synthetic timings and original parser bytes; no engine
 or benchmark is launched. Trusted helper fault coverage is reused by exact461a
-identity. Future genuine20/21 captures, final native/Windows/source proofs and
-independent enabled-metadata review must precede the sole authorized trigger.
+identity. Historical95-row public trace evidence remains prototype version20 with
+source_commit:null; source-only160-input correspondence proves only two version
+strings differ from frozen21. Final independent enabled-metadata review and
+root publication/authorization checks must precede the sole restricted trigger.

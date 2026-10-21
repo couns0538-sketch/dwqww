@@ -32,12 +32,14 @@ Rootverified229raw originals,73sourcefiles,521unchangedparentfiles,10PEs and
 [Windows21 Zen5candidate](../releases/forge-6.4.21-candidate-windows-zen5.zip).
 Wineonly; no nativeRyzen test. Bothactual20/21 five-command producer captures
 PASS (5canonical321912rows each),181frozenbyte/modeinputs unchanged and normal
-outerexit0. Canonical independent777finite/transportchecksPASS. READYmetadata/
-restrictedworkflow offlinechecks are being completed; no21hostedlaunchyet.
+outerexit0. Canonical independent777finite/transportchecksPASS. READYmetadata53offline/13missingproofcontrols and407independentfinalenabledchecks
+PASS; rootrehashed322boundinputs. No21hostedlaunchyet.
 No21speed/Elo claim. Source21neveroverwrote accepted5101.
 Newbounded same-plyPVmetadata investigation has actualRED:25flaglosses/716natural
-singularcalls, unchanged321912diagnosticbench; all25moveslegal. The2linefix is now
-in a separateinstrumentedGREENsourcecopy/firstj1diagnostic, not production21.
+singularcalls, unchanged321912diagnosticbench; all25moveslegal. The2linefix in separateinstrumentedGREEN sourcepassedall4probecases and618natural
+singularcalls/0flaglosses; bench292545is changedsearchwork,notspeedorElo. Permanent
+diagnostic-freeactualcore regression has56assertions/2expectedparent21failures
+(includingabortedverification); production22version/sourcefreeze is next.
 [ActualRED](../validation/pv-metadata-20261021/RED-RESULT.md). Published source, new test and both root gate bytes
 were independently downloaded and matched to the exact Git blobs.
 [Source publication](../validation/nearest-pawn-distance-20261020/root-verification/SOURCE-PUBLICATION.json).

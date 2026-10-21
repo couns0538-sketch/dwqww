@@ -1,7 +1,10 @@
-# PREPARATION ONLY. Explicitly disabled. No push trigger; no engine/build launch authorized.
-# Genuine frozen21 proofs, captures and final root/independent review are pending.
-name: DISABLED calibrated native Linux nearest-pawn performance
-on: []
+# Restricted to one reviewed first-attempt push; retain failure evidence.
+# Final enabled metadata must pass independent review before sole root trigger.
+name: Calibrated native Linux nearest-pawn performance
+on:
+  push:
+    branches:
+      - 'forge/hosted-nearest-pawn-performance-20261021-*'
 permissions:
   contents: write
 concurrency:
@@ -9,7 +12,7 @@ concurrency:
   cancel-in-progress: false
 jobs:
   performance:
-    if: false
+    if: ${{ github.event_name == 'push' && github.run_attempt == 1 }}
     runs-on: ubuntu-24.04
     timeout-minutes: 90
     env:

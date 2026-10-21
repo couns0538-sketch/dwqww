@@ -1,0 +1,149 @@
+{
+  "status": "EXPECTED_BASELINE_RED_PERMANENT_REGRESSION",
+  "source_commit": "2e151d019bc58dff2ab4e76e99ef99516af8d222",
+  "inputs_before": {
+    "/workspace/dwqww/validation/pv-metadata-20261021/permanent-test-preparation/run-baseline-once.py": "7720726602693196a9b91940acc6c93a6c3efdc635d5573e405383fe77ee885f",
+    "/workspace/dwqww/validation/pv-metadata-20261021/permanent-test-preparation/pv_metadata_tests.cpp": "8000b717a298c4c8bb637752fcc57a0ce485110a12edc4a505f3d0452620bd1e",
+    "/workspace/dwqww/validation/pv-metadata-20261021/permanent-test-preparation/EXPECTED-BASELINE.json": "3bb586f977a04de77de587f48aacebd01e25d11071e40821f9fd1d2cadc126a7",
+    "/workspace/dwqww/validation/pv-metadata-20261021/process_facts.py": "f396e30473f2870dbc057ac16e1532c3ab916f6eb723d5fb8f5accd5d96f1d33",
+    "/workspace/dwqww/validation/nearest-pawn-native-20261020/FINAL-RECEIPT.json": "4b24b57e087ffc97149e66fc15bcfc551ccd6649692660010513502c5b9d3390",
+    "/workspace/.cloud-setup/nearest-pawn-native-release/libforge_core.a": "f2c3d5f5ecd14d97e19ba32af67e0b3c2579339dc3b7266bf85f9df9c275fde3",
+    "/workspace/.cloud-setup/nearest-pawn-native-source/include/forge/bitboard.hpp": "9d6a023d2f42ebbff9b5e85c92cd467299d8e0189249cb287d117663b4ff2bba",
+    "/workspace/.cloud-setup/nearest-pawn-native-source/include/forge/board.hpp": "5b42d3557730edc65f795a097e45d18a3cb621d56bdfa8b379773bb496204c77",
+    "/workspace/.cloud-setup/nearest-pawn-native-source/include/forge/book.hpp": "10a283bd0474568c0e378f7117d4869336384599307305c405dac81e1569663e",
+    "/workspace/.cloud-setup/nearest-pawn-native-source/include/forge/eval.hpp": "e6cb2b620f5c7fd87cef7a680aea04c4ba756f106b78d5a8fa7ab3cdd5d0cc35",
+    "/workspace/.cloud-setup/nearest-pawn-native-source/include/forge/eval_params.hpp": "56f6ae706d53dfb6e76169e86d0cf09e74e096b17885f60632a92f080ee77a96",
+    "/workspace/.cloud-setup/nearest-pawn-native-source/include/forge/nnue.hpp": "d87106d1716388375332ea20e97d9a703c74f479ffa5236c75608b356ab5aace",
+    "/workspace/.cloud-setup/nearest-pawn-native-source/include/forge/search.hpp": "3d9208de205b4bd2f8e82f6c64137be253eb51aa0a418d5e39e1c06392e95eb9",
+    "/workspace/.cloud-setup/nearest-pawn-native-source/include/forge/uci_output.hpp": "3bc09a099ae04bf6d8972125b0778be342de78ba39fcb8510321238e788dbef3"
+  },
+  "steps": [
+    {
+      "label": "compile-link",
+      "command": [
+        "/usr/bin/g++-14",
+        "-std=c++20",
+        "-O3",
+        "-DNDEBUG",
+        "-march=x86-64-v3",
+        "-mtune=znver5",
+        "-fno-fast-math",
+        "-ffp-contract=off",
+        "-fno-lto",
+        "-Wall",
+        "-Wextra",
+        "-Wpedantic",
+        "-I/workspace/.cloud-setup/nearest-pawn-native-source/include",
+        "/workspace/dwqww/validation/pv-metadata-20261021/permanent-test-preparation/pv_metadata_tests.cpp",
+        "/workspace/.cloud-setup/nearest-pawn-native-release/libforge_core.a",
+        "-pthread",
+        "-o",
+        "/workspace/.cloud-setup/pv-metadata-permanent-red-build-attempt1/forge_pv_metadata_tests"
+      ],
+      "cwd": "/workspace/.cloud-setup/pv-metadata-permanent-red-build-attempt1",
+      "stdin": "empty",
+      "exit_code": 0,
+      "pid": 395681,
+      "pgid": 395681,
+      "cleanup": {
+        "group_id": 395681,
+        "before": [],
+        "actions": [],
+        "reaped_children": [],
+        "after": [],
+        "no_live_owned_processes": true,
+        "unexpected_live_members_after_command": false
+      },
+      "post_cleanup_exit_code": 0,
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "label": "actual-core-unit",
+      "command": [
+        "/workspace/.cloud-setup/pv-metadata-permanent-red-build-attempt1/forge_pv_metadata_tests"
+      ],
+      "cwd": "/workspace/.cloud-setup/pv-metadata-permanent-red-build-attempt1",
+      "stdin": "empty",
+      "exit_code": 1,
+      "pid": 395690,
+      "pgid": 395690,
+      "cleanup": {
+        "group_id": 395690,
+        "before": [],
+        "actions": [],
+        "reaped_children": [],
+        "after": [],
+        "no_live_owned_processes": true,
+        "unexpected_live_members_after_command": false
+      },
+      "post_cleanup_exit_code": 1,
+      "stdout_sha256": "94c1b1b51a9dba9bff5831a6c61bf8e861e1441026e4578bd040ba59fc1c084e",
+      "stderr_sha256": "78285de5c67261459305c0bf187d2413eb9456bdb58a9de6da3db4ab0d36c750"
+    }
+  ],
+  "production_edits": false,
+  "purpose": "Permanent diagnostic-free actual-core regression; new question, not a repeated diagnostic experiment",
+  "binary_sha256": "141d9fac4f5d54b94f9310612a7092eecd382f4be5112ee30264ec9d499d4e62",
+  "assertions": 56,
+  "expected_failures": [
+    "PV_nonPVhit preserves caller PV flag",
+    "PV_abort_verification preserves caller PV flag"
+  ],
+  "case_rows": [
+    [
+      "PV_nonPVhit",
+      "423",
+      "0",
+      "0",
+      "1"
+    ],
+    [
+      "PV_PVhit",
+      "423",
+      "0",
+      "1",
+      "1"
+    ],
+    [
+      "PV_nohit",
+      "2",
+      "0",
+      "1",
+      "1"
+    ],
+    [
+      "nullwindow_TTcut",
+      "1",
+      "0",
+      "0",
+      "0"
+    ],
+    [
+      "PV_abort_verification",
+      "2",
+      "1",
+      "0",
+      "0"
+    ]
+  ],
+  "core_unchanged": true,
+  "all_other_assertions_passed": true,
+  "inputs_after": {
+    "/workspace/dwqww/validation/pv-metadata-20261021/permanent-test-preparation/run-baseline-once.py": "7720726602693196a9b91940acc6c93a6c3efdc635d5573e405383fe77ee885f",
+    "/workspace/dwqww/validation/pv-metadata-20261021/permanent-test-preparation/pv_metadata_tests.cpp": "8000b717a298c4c8bb637752fcc57a0ce485110a12edc4a505f3d0452620bd1e",
+    "/workspace/dwqww/validation/pv-metadata-20261021/permanent-test-preparation/EXPECTED-BASELINE.json": "3bb586f977a04de77de587f48aacebd01e25d11071e40821f9fd1d2cadc126a7",
+    "/workspace/dwqww/validation/pv-metadata-20261021/process_facts.py": "f396e30473f2870dbc057ac16e1532c3ab916f6eb723d5fb8f5accd5d96f1d33",
+    "/workspace/dwqww/validation/nearest-pawn-native-20261020/FINAL-RECEIPT.json": "4b24b57e087ffc97149e66fc15bcfc551ccd6649692660010513502c5b9d3390",
+    "/workspace/.cloud-setup/nearest-pawn-native-release/libforge_core.a": "f2c3d5f5ecd14d97e19ba32af67e0b3c2579339dc3b7266bf85f9df9c275fde3",
+    "/workspace/.cloud-setup/nearest-pawn-native-source/include/forge/bitboard.hpp": "9d6a023d2f42ebbff9b5e85c92cd467299d8e0189249cb287d117663b4ff2bba",
+    "/workspace/.cloud-setup/nearest-pawn-native-source/include/forge/board.hpp": "5b42d3557730edc65f795a097e45d18a3cb621d56bdfa8b379773bb496204c77",
+    "/workspace/.cloud-setup/nearest-pawn-native-source/include/forge/book.hpp": "10a283bd0474568c0e378f7117d4869336384599307305c405dac81e1569663e",
+    "/workspace/.cloud-setup/nearest-pawn-native-source/include/forge/eval.hpp": "e6cb2b620f5c7fd87cef7a680aea04c4ba756f106b78d5a8fa7ab3cdd5d0cc35",
+    "/workspace/.cloud-setup/nearest-pawn-native-source/include/forge/eval_params.hpp": "56f6ae706d53dfb6e76169e86d0cf09e74e096b17885f60632a92f080ee77a96",
+    "/workspace/.cloud-setup/nearest-pawn-native-source/include/forge/nnue.hpp": "d87106d1716388375332ea20e97d9a703c74f479ffa5236c75608b356ab5aace",
+    "/workspace/.cloud-setup/nearest-pawn-native-source/include/forge/search.hpp": "3d9208de205b4bd2f8e82f6c64137be253eb51aa0a418d5e39e1c06392e95eb9",
+    "/workspace/.cloud-setup/nearest-pawn-native-source/include/forge/uci_output.hpp": "3bc09a099ae04bf6d8972125b0778be342de78ba39fcb8510321238e788dbef3"
+  },
+  "completed_utc": "2026-10-21T00:37:06.867483+00:00"
+}

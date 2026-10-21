@@ -1,0 +1,19 @@
+--- review_disabled_packet.py
++++ review_disabled_packet.attempt2.py
+@@ -108,7 +108,7 @@
+ calls=[(n.lineno,ast.unparse(n.func)) for n in ast.walk(main) if isinstance(n,ast.Call)]
+ line=lambda name:min(n for n,f in calls if f==name)
+ check('Collector READY/inventory/hashproof checks precede any stage',line('common.require_ready')<=line('common.inventory')<line('common.proof_paths')<line('stage'))
+-check('Actual 20/21 capture labels/source/binary/streams/process facts all checked before timing','Actual capture label/source/binary/process provenance differs' in (PKG/'common.py').read_text() and 'Original transport process was not normal' in (PKG/'common.py').read_text())
++check('Actual 20/21 capture labels/source/binary/streams/process facts all checked before timing','Actual capture label/source/binary/process provenance differs' in (PKG/'common.py').read_text() and 'Actual transport process was not normal' in (PKG/'common.py').read_text())
+ status=j(EVID/'OFFLINE-STATUS.json');run=status['actual_final_suite']
+ check('Original saved43offline suite rc0; not rerun by reviewer',run['tests']==43 and run['exit_code']==0 and len(re.findall(r'^test_.* \.\.\. ok$',(EVID/'offline-attempt1.stderr').read_text(),re.M))==43 and 'Ran 43 tests in 5.731s' in (EVID/'offline-attempt1.stderr').read_text() and (EVID/'offline-attempt1.stderr').read_text().rstrip().endswith('OK'))
+ for stream in ['stdout','stderr']:check('Original offline '+stream+' hash matches savedstatus',sha(EVID/('offline-attempt1.'+stream))==run[stream+'_sha256'])
+@@ -130,6 +130,6 @@
+ for name,expected in observed.items():check('Final selected file bytes/mode unchanged:'+name,identity(ROOT/name)==expected)
+ failed=[c for c in checks if not c['passed']]
+ result={'status':'PASS_INITIAL_DISABLED_21_PACKET_STATIC_REVIEW_NOT_LAUNCH_AUTHORIZATION' if not failed else 'FAILED_INITIAL_DISABLED_21_PACKET_REVIEW','reviewer':'/root/archive_clock_complete','started_utc':started,'completed_utc':now(),'script_sha256':sha(Path(__file__)),'check_count':len(checks),'failed_check_count':len(failed),'findings':failed,'checks':checks,'baseline_sha':BASE,'candidate_sha':CAND,'selected_file_identities_unchanged_before_after':observed,'source_counts':{'baseline':75,'candidate':76},'named_ctests':{'baseline':12,'candidate':13,'nearest_test_candidate_ordinal':5},'observed_offline_test_count':43,'offline_tests_rerun_by_this_reviewer':False,'launch_ready':False,'runtime_inputs_and_final_metadata_require_new_review':True,'qualifications':['Read-only stdlib AST/hash/regex review. No reviewed module or test imported/executed. No engine/compiler/Git/network/timing execution.','This initial disabled snapshot has empty correctness-proof and capture maps. It is neither genuine source/native/Windows qualification nor final enabled workflow review.','Saved43offline tests and RED/GREEN runs were performed by preparer; reviewer authenticated originals and unchanged execution inputs without repeating them.','13 current proof paths, genuine20/21 captures including full executed461a helper provenance, root one-attempt authorization and final source-bound reviews must be independently reviewed before enabling.','Later capture-support files and descriptive additions outside the exact selected seal are outside this initial review.','Referenced native-experiment-integrity frozen-files skill resource was unavailable through provider; no optional troubleshooting repeated.']}
+-with (OUT/'STATIC-REVIEW.json').open('x') as f:json.dump(result,f,indent=2);f.write('\n')
++with (OUT/'STATIC-REVIEW-attempt2.json').open('x') as f:json.dump(result,f,indent=2);f.write('\n')
+ print(json.dumps({'status':result['status'],'checks':len(checks),'failed':len(failed),'findings':failed},indent=2))
+ raise SystemExit(1 if failed else 0)

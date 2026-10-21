@@ -1,0 +1,5 @@
+Preparation only: workflow on:[] and job if:false. Frozen21 identity and all qualification gates are pending. No engine, build, benchmark, or launch is authorized by this packet.
+
+This is a separate20vs21 whole-process performance experiment. Trusted461a ownership/cleanup helper, timing runner and archive helper are unchanged. Same strictGCC14 v3/generic flags,12baseline/13candidate namedCTests (nearest fifth),75/76 source files,15AA then31AB,188processes/940commands,canonical321912 nodes,60s sample/3600s work/690s build,seed20261029. AA median .99..1.01 and everyblock .95..1.05 for bothCPU/wall; bothbootstraplowerCI>1 plusfinalintegrity required. No retries, trimming, pooling, Elo or nativeWindows/Ryzen inference.
+
+Historical18/19 fixture bytes and provenance remain unmodified parser/unit inputs. Derived12/13 build fixtures use inert artifacts and explicitly synthetic candidate source, never21 build evidence. Actual20/21 producer captures, fullnative/Windows/rootproofs, authorization and enabledmetadatareview remain mandatory. InitialDRAFT snapshot is retained separately.
