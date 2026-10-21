@@ -1,0 +1,98 @@
+{
+  "status": "PASS_STATIC_READ_ONLY_TRANSPORT_REVIEW_PENDING_ACTUAL_GETS",
+  "reviewer": "/root/archive_clock_complete/review20_archive_preparation",
+  "reviewed_utc": "2026-10-21T00:04:47.520088+00:00",
+  "helper_sha256": "7bc05adb7ecc60200635a67f0163bbb227a32bcf4048ac4144c95cabd61b6a0b",
+  "published_commit": "7aed6c969135c5761f8b7c89db2220668b871db0",
+  "checks": [
+    {
+      "name": "initial URLs pin exact published commit",
+      "passed": true
+    },
+    {
+      "name": "public raw URL construction has fixed repository/path",
+      "passed": true
+    },
+    {
+      "name": "external manifest identity pinned",
+      "passed": true
+    },
+    {
+      "name": "final receipt identity pinned",
+      "passed": true
+    },
+    {
+      "name": "combined public archive size and hash pinned",
+      "passed": true
+    },
+    {
+      "name": "all outputs exclusive and limited to helper directory",
+      "passed": true
+    },
+    {
+      "name": "requests are read-only GET with identity body encoding",
+      "passed": true
+    },
+    {
+      "name": "helper supplies no credentials or secret lookup",
+      "passed": true
+    },
+    {
+      "name": "actual success status final URL and headers retained",
+      "passed": true
+    },
+    {
+      "name": "non200 response is not accepted",
+      "passed": true
+    },
+    {
+      "name": "large bodies streamed directly into part and combined digests",
+      "passed": true
+    },
+    {
+      "name": "part responses do not accumulate or reconstruct body files",
+      "passed": true
+    },
+    {
+      "name": "combined digest follows authenticated manifest part order",
+      "passed": true
+    },
+    {
+      "name": "combined pass requires every complete valid part and aggregate identity",
+      "passed": true
+    },
+    {
+      "name": "final success requires all four top-level fetches plus combined match",
+      "passed": true
+    },
+    {
+      "name": "failed transport receipt propagates nonzero exit",
+      "passed": true
+    },
+    {
+      "name": "HTTP errors and partial small bodies retained",
+      "passed": true
+    },
+    {
+      "name": "partial byte count and hash saved on failures",
+      "passed": true
+    },
+    {
+      "name": "no engine compiler Git extraction or archive rewrite execution",
+      "passed": true
+    },
+    {
+      "name": "reviewed helper unchanged during static review",
+      "passed": true
+    }
+  ],
+  "check_count": 20,
+  "blocking_findings": [],
+  "reviewer_network_requests": 0,
+  "reviewer_git_engine_build_or_archive_executions": 0,
+  "execution_clearance_scope": "Safe for parent to invoke this read-only helper once; no actual transport has been verified by this static review.",
+  "redirect_qualification": "urllib follows redirects by default. The helper records each actual final URL; four requests means four top-level fetch calls, not an independently logged wire-request count. Do not claim no redirects or HTTPS final endpoints until actual final URLs are examined. Pinned hashes still authenticate every accepted response byte.",
+  "error_scope": "Per-request failures preserve original metadata and partial hashes; an exception before final RESULT may leave only wrapper stdout/stderr plus completed request receipts. Parent must require actual exit0 and complete PASS result.",
+  "credential_scope": "No credentials or secret lookup are supplied by this helper; configured environment proxy routing remains in use.",
+  "next_step": "Parent runs the four fetch calls once, then reviewer inspects actual exit/result/HTTP records and saved small-body hashes without another network download."
+}
