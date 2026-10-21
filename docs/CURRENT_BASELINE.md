@@ -7,7 +7,18 @@ its unchanged native regression to356e863, preserving the TT and timed-only cloc
 repairs. Acceptance is for the finite book contract; no accepted equal-time Elo gain.
 [Integration receipt](../validation/accepted-ownbook-integration-20261020/INTEGRATION.json).
 
-Active isolated candidate **Forge 6.4.22**, source
+Current isolated trial **Forge 6.4.23** is source
+`1d3ed25bea2c8b781f7ee5a178af0f66061b3984`, branch
+`forge/tt-refresh-20261021`. It refreshes occupied old TT generations under the
+existing synchronization. Four new real-table regression groups preserve all eight
+older groups; the expected old-policy contrast against unchanged22 passed.
+All77 source inputs are pinned, with73 unchanged and exactly four delta paths.
+First native Release/ASan/TSan/active validation is authorized; completion and all
+strength evidence are pending. This changes replacement, shallow admission and
+hashfull and is not a demonstrated correctness fix, speedup or Elo gain.
+[Trial and next gate](../validation/tt-refresh-20261021/EXPERIMENT.md).
+
+Latest fully qualified isolated candidate **Forge 6.4.22**, source
 `ff2e269c6058be84456e3b98344826d17b0056eb`, is on
 `forge/singular-pv-metadata-20261021`; published clearance checkpoint
 `1bccee28457d8e587be5b768437f199e180ae3c6`.
@@ -273,4 +284,4 @@ Earlier valid capped647vs644 (320games,W114/D101/L105) and6411vs649
 Details and next work are in[ledger](EXPERIMENT_LEDGER.md) and
 [next experiments](NEXT_EXPERIMENTS.md); historical records remain in Git.
 
-2026-10-21 01:57UTC checkpoint: actual parent22 TT investigation completed9table checks and12legal cold/warm root comparisons with exact response parity. 58683probes/6461old hits/3366eligible old cutoffs without stores;0tracked later victims, so replacement benefit unproven. Unapplied refresh policy retained; independent review/test preparation underway. Existing SIMD skill extended and validated27checks plus independent actual-object application; repo-local only, no skill-creator/global installation available. Environment configuration draft9 readback verified with unchanged install/network/secrets/runtime; requires user publication, no activation performed. Both hosted strength jobs observed running01:53UTC, games/Elo still unknown.
+2026-10-21 01:54UTC checkpoint (actual root receipt time; prior checkpoint label corrected): actual parent22 TT investigation completed9table checks and12legal cold/warm root comparisons with exact response parity. 58683probes/6461old hits/3366eligible old cutoffs without stores;0tracked later victims, so replacement benefit unproven. Unapplied refresh policy retained; independent review/test preparation underway. Existing SIMD skill extended and validated27checks plus independent actual-object application; repo-local only, no skill-creator/global installation available. Environment configuration draft9 readback verified with unchanged install/network/secrets/runtime; requires user publication, no activation performed. Both hosted strength jobs observed running01:53UTC, games/Elo still unknown.
