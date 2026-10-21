@@ -52,8 +52,7 @@ The initial rootproof's descriptiveWINDOWS21literal was corrected with oldproof,
 writer and outputs retained; no engine/build/runtime was repeated.
 
 Two firstactual21/22 five-command nativeproducer captures pass,185consumed byte/mode
-inputs unchanged, normalouterexit0 and source76/77correspondence. Independentraw/
-canonicalparser review and finalREADYbinding are pending. The disabled strength
+inputs unchanged, normalouterexit0 and source76/77correspondence. Independentraw/canonicalreview609checks+22parsercasesPASS. READYbinding449proofs/636byte-modeinputs/24inventory and98applicableoffline tests+13bindingomissioncontrols+9runnernegativesPASS. Finalindependentreview3873source/data+60workflowchecksPASS;rootfresh636rehashafterenvironment-readyPASS. Fixedpayloadpublication/readbackandsoletriggerpending. The disabled strength
 packet's outer-affinityrepair passes9focused faultcontrols and100offline tests;
 independentreview816+56checksPASS, originalRED/extractorfailurepreserved. No games
 have run for22 and no Elo gain is accepted.

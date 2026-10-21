@@ -1,6 +1,9 @@
-# Preparation only; disabled until actual22 proofs, reviews and one-attempt authorization.
-name: DISABLED bounded native Linux PV-metadata strength test
-on: []
+# One preregistered attempt; final enabled metadata review required before root trigger.
+name: Bounded native Linux PV-metadata strength test
+on:
+  push:
+    branches:
+      - 'forge/hosted-pv-metadata-strength-20261021-*'
 permissions:
   contents: write
 concurrency:
@@ -8,7 +11,7 @@ concurrency:
   cancel-in-progress: false
 jobs:
   pv-metadata-strength:
-    if: ${{ false }}
+    if: ${{ github.event_name == 'push' && github.run_attempt == 1 }}
     runs-on: ubuntu-24.04
     timeout-minutes: 360
     env:

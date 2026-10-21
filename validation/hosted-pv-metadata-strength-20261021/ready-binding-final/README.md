@@ -1,0 +1,7 @@
+# Actual22 source-only binding proposal
+
+Run `PYTHONDONTWRITEBYTECODE=1 python3 -B validation/hosted-pv-metadata-strength-20261021/ready-binding-final/prepare_binding.py --out /workspace/dwqww/validation/hosted-pv-metadata-strength-20261021/ready-binding-final/PROPOSED-BINDING.json` only after the three genuine root/independent records exist. The helper reads and hashes evidence and never starts any process, writes canonicalmetadata, enables a workflow, or pushes Git. Output must be a new file.
+
+The13 mandatory proof omissions are rejected by this binding checker, not by the unchanged strength runner. The actual runner is separately checked for its existing metadata rejections. The proposal contains a complete protocol and proposedrestrictedpush workflow text with its exacthash; neither is applied. Rootstillmust preserve disabledphase, applyreviewedmetadata, recomputeinventory, runapplicableREADYofflinechecks, secureindependentfinalenabledreview and publish exactproof payload before onepush.
+
+Attempt1 returned a truthful BLOCKED result, exit0, naming only absent ROOT-PREPARATION-REVIEW/ROOT-ONE-ATTEMPT-AUTHORIZATION/independent-capture-review/REVIEW. It verified actual transport before reaching this result. Its exact checker is preserved asprepare_binding.attempt1.py. The current checker additionally binds genuine rootpublication/schema/verifier and originalincorrectWindowsstatuslabel pluscorrectionnote; this preserves history and adds no enginework or relaxation. Originalcanonicalpacket and original194/533phase seals are untouched.
