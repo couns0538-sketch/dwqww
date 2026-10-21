@@ -23,7 +23,10 @@ pass. First Linux signature292545 and the NNUE object match parent23.
 Windows24 first strict Zen5 build,13Wine checks and1870artifact checks passed;
 first Windows signature334752 matches parent23. ZIP17077385B SHA256
 `0db112fab29653eb43ac74924fb08a4a956bbf5085555f1a166a64d83fc392db`.
-Root Windows byte verification and publication are pending. This is Wine testing,
+Root Windows byte verification passed10428checks (287evidence/323outside/597parent/
+77Git/271raw); actual public GitHub download matches the ZIP hash.
+[Windows root proof](../validation/see-proof-reuse-candidate-20261021/root-verification/WINDOWS.json),
+[Windows24 download](https://raw.githubusercontent.com/couns0538-sketch/dwqww/7def48b9eabdc60ef52718052d9e79fa2ab8bc23/releases/forge-6.4.24-candidate-windows-zen5.zip). This is Wine testing,
 not physical Ryzen execution. The first actual one-process/five-command24 capture
 passed, reusing genuine23 originals without rerunning23; all362inputs unchanged.
 Calibrated performance and equal-time Elo remain unmeasured for24.

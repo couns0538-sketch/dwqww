@@ -1,0 +1,13 @@
+--- c380/verify-windows.py
++++ proposed/verify-windows.py
+@@ -196,8 +196,8 @@
+   original='forge.exe' if name=='forge-6.4.24-ryzen-9850x3d.exe' else name
+   data=release.read(prefix+name);pe(data,name);require(data==(BASE/'originals/binaries'/original).read_bytes(),'Shipped PE differs from tested original: '+name)
+  require(release.read(prefix+'windows-originals.zip')==rawpath.read_bytes(),'Release retained raw ZIP differs')
+- for name in ('source-hashes.json','test-hashes.json','windows-originals-SHA256.json'):
+-  require(release.read(prefix+name)==(BASE/name).read_bytes(),'Release source/raw provenance differs: '+name)
++ for release_name,original_name in [('source-hashes.json','production-hashes.json'),('test-hashes.json','test-hashes.json'),('windows-originals-SHA256.json','windows-originals-SHA256.json')]:
++  require(release.read(prefix+release_name)==(BASE/original_name).read_bytes(),'Release source/raw provenance differs: '+release_name)
+ 
+ outer=final['actual_outer_owned_process_group_records'];require(set(outer)=={'source-export','source-records','first-build','first-runtime','first-signature-freeze','first-package','first-artifact-audit'},'Actual outer group set differs')
+ for name,record in outer.items():

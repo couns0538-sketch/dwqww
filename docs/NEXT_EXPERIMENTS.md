@@ -1,7 +1,7 @@
 # Next experiments
 
-Immediate local work: finish root byte verification/publication of the CLOSED
-Windows24 package and the calibrated23→24 performance packet. Frozen24source
+Immediate local work: finish calibrated23→24 performance packet binding and launch.
+Windows24 root byte verification and public download/hash verification passed. Frozen24source
 7db08eac6ead99d641834c56ccec06a06600586a passed42native CTests/eight active checks/
 56exactparent searches,2593independent audit checks and13Wine/1870artifact checks.
 First Linux292545/Windows334752 signatures match their respective parents.
