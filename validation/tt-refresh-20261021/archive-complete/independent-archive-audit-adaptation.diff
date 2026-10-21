@@ -1,0 +1,399 @@
+--- independent_archive_audit.reference21.py
++++ independent_archive_audit.py
+@@ -3,13 +3,16 @@
+ 
+ Only the new audit receipt is written. Parts are combined into an anonymous
+ temporary file, and ZIP members are streamed; no member is extracted or chmoded.
+-The expected hashes below came from the independent task, not RESULTS.json.
++Expected hashes/counts come from a separately root-bound EXTERNAL-PINS.json,
++not from RESULTS.json. Preparation does not authorize audit or recovery.
+ """
++import argparse
+ import collections
+ import datetime
+ import hashlib
+ import json
+ import os
++import re
+ from pathlib import Path, PurePosixPath
+ import stat
+ import sys
+@@ -17,22 +20,17 @@
+ import traceback
+ import zipfile
+ 
+-BASE = Path('/workspace/dwqww/validation/nearest-pawn-distance-20261020/archive-complete')
++BASE = Path('/workspace/dwqww/validation/tt-refresh-20261021/archive-complete')
+ REPO = Path('/workspace/dwqww')
+-STAGE = Path('/workspace/.cloud-setup/forge-nearest-pawn-2e151d0-complete-evidence-stage')
++STAGE = Path('/workspace/.cloud-setup/forge-tt-refresh-1d3ed25-complete-evidence-stage')
+ RECEIPT = BASE / 'INDEPENDENT-ARCHIVE-AUDIT.json'
+-MANIFEST = 'forge-nearest-pawn-2e151d0-20261020-complete.manifest.json'
+-SOURCE = '2e151d019bc58dff2ab4e76e99ef99516af8d222'
+-MANIFEST_SHA = '7cdb6d4b63dfb8dcf8511638b3503cbca46d8d9f18def2b4e796ef43ff77af32'
+-ZIP_SHA = '6df303ff995b3f68984a803d5ebb63a8244a3d1e5bd8bf1e20b21de2d6c3948c'
+-ZIP_SIZE = 121548290
+-HELPER_SHA = '461a65d2fecdf208994749cb0d44c56bf2f8524610f211a4bf76bd019c25704d'
+-PARTS = [
+-    {'file': 'forge-nearest-pawn-2e151d0-20261020-complete.zip.part0001', 'size': 67108864,
+-     'sha256': '03cfa23b8ce8dd95ad6f78412e63f5acf4afebc522289775beacc5d910b46402'},
+-    {'file': 'forge-nearest-pawn-2e151d0-20261020-complete.zip.part0002', 'size': 54439426,
+-     'sha256': '04bf32944a05ad2b2369d1455d1ccc0f6284be055ff12d0f46e8192e62c3e504'},
+-]
++NAME = 'forge-tt-refresh-1d3ed25-20261021-complete'
++MANIFEST = NAME + '.manifest.json'
++SOURCE = '1d3ed25bea2c8b781f7ee5a178af0f66061b3984'
++PARENT_SOURCE = 'ff2e269c6058be84456e3b98344826d17b0056eb'
++SPLIT_SIZE = 64 * 1024 * 1024
++PINS = None
++MANIFEST_SHA = ZIP_SHA = ZIP_SIZE = PARTS = None
+ REPORT = {
+     'schema_version': 1,
+     'status': 'RUNNING',
+@@ -126,26 +124,28 @@
+     require('External manifest matches independently supplied hash',
+             manifest_id['sha256'] == MANIFEST_SHA, observed=manifest_id)
+     external = json_file(BASE / MANIFEST)
++    require('External manifest canonical producer JSON bytes', (BASE / MANIFEST).read_bytes() == canonical_json(external))
+     require('External manifest schema and archive identity',
+             external['schema_version'] == 1 and external['format'] == 'raw-split-zip'
+             and external['archive'] == {
+-                'file': 'forge-nearest-pawn-2e151d0-20261020-complete.zip',
++                'file': NAME + '.zip',
+                 'size': ZIP_SIZE, 'sha256': ZIP_SHA}
+             and external['parts'] == PARTS and external['split_size'] == 67108864
+             and external['manifest_member'] == 'manifest.json')
+     entries = external['files']
+     paths = [r['path'] for r in entries]
+-    require('2078 unique safe payload paths', len(paths) == 2078
++    require('Unique safe externally counted payload paths', len(paths) == PINS['counts']['payload_files']
+             and len(set(paths)) == len(paths) and all(map(safe_relative, paths)))
+     files = dict(zip(paths, entries))
+     REPORT['external_manifest'] = {'file': MANIFEST, **manifest_id}
+     REPORT['archive_payload_file_count'] = len(entries)
+     REPORT['archive_payload_bytes'] = sum(r['size'] for r in entries)
++    require('Archive payload bytes match external pins', REPORT['archive_payload_bytes'] == PINS['counts']['payload_bytes'])
+ 
+     before = json_file(BASE / 'LIVE-BEFORE.json')
+     live_rows, dir_rows = before['files'], before['directories']
+-    require('Frozen live counts and bytes', len(live_rows) == 2045
+-            and len(dir_rows) == 319 and sum(r['size'] for r in live_rows) == 317150918)
++    require('Frozen live counts and bytes match external pins', len(live_rows) == PINS['counts']['live_files']
++            and len(dir_rows) == PINS['counts']['live_directories'] and sum(r['size'] for r in live_rows) == PINS['counts']['live_bytes'])
+     require('Unique frozen original and payload file/directory paths',
+             all(len({r[k] for r in rows}) == len(rows)
+                 for rows in [live_rows, dir_rows] for k in ['original', 'payload_path']))
+@@ -161,6 +161,7 @@
+         check('Exact frozen list including modes and mtimes: ' + name,
+               (BASE / name).read_bytes() == (BASE / 'LIVE-BEFORE.json').read_bytes())
+ 
++    require('Retained stage is a real directory', stat.S_ISDIR(STAGE.lstat().st_mode))
+     stage_files, stage_dirs, special = stage_inventory()
+     check('Stage inventory exactly equals manifest, with no symlinks/special files',
+           stage_files == set(paths) and not special,
+@@ -171,9 +172,9 @@
+     check('Stage directory inventory exactly frozen mapped plus structural parents',
+           stage_dirs == expected_stage_dirs,
+           extra=sorted(stage_dirs-expected_stage_dirs), missing=sorted(expected_stage_dirs-stage_dirs))
+-    require('Archive payload is exactly frozen live files plus33 provenance files',
++    require('Archive payload is exactly frozen live files plus externally counted provenance',
+             {p for p in paths if p.startswith('payload/')} == set(live_by_payload)
+-            and len([p for p in paths if p.startswith('archive-provenance/')]) == 33
++            and len([p for p in paths if p.startswith('archive-provenance/')]) == PINS['counts']['provenance_files']
+             and all(p.startswith(('payload/', 'archive-provenance/')) for p in paths))
+ 
+     staged_observations = {}
+@@ -235,8 +236,8 @@
+         with zipfile.ZipFile(combined) as archive:
+             infos = archive.infolist()
+             names = [info.filename for info in infos]
+-            require('ZIP exactly2078 unique payload members plus internal manifest',
+-                    len(names) == 2079 and len(set(names)) == len(names)
++            require('ZIP exactly unique payload members plus internal manifest',
++                    len(names) == PINS['counts']['payload_files'] + 1 and len(set(names)) == len(names)
+                     and set(names) == {'files/' + p for p in paths} | {'manifest.json'}
+                     and all(map(safe_relative, names)))
+             require('ZIP contains no encrypted, directory, symlink or special members',
+@@ -246,7 +247,8 @@
+             internal_bytes = archive.read('manifest.json')
+             internal = json.loads(internal_bytes)
+             require('Internal manifest schema and exact external payload records',
+-                    internal['schema_version'] == 1 and internal['files'] == entries)
++                    internal == {'schema_version': 1, 'files': entries})
++            require('Internal manifest canonical producer JSON bytes', internal_bytes == canonical_json(internal))
+             REPORT['internal_manifest'] = {'size': len(internal_bytes),
+                 'sha256': hashlib.sha256(internal_bytes).hexdigest()}
+             for path, expected in files.items():
+@@ -266,114 +268,184 @@
+             REPORT['zip_member_modes_octal'] = [oct(mode) for mode in zip_modes]
+     print('Checked independent ZIP members:', len(entries), 'payloads', flush=True)
+ 
+-    result = json_file(BASE/'RESULTS.json')
+-    driver_exit = json_file(BASE/'DRIVER-EXIT.json')
+-    require('Actual21 producer completion receipt schema', result['status']=='PASS_COMPLETE_21_ARCHIVE_VERIFIED' and result['source_commit']==SOURCE and result['live_file_count']==2045 and result['archive_payload_file_count']==2078 and result['live_bytes']==317150918 and result['archive_payload_bytes']==318369343 and result['archive']==external['archive'] and result['parts']==PARTS and result['manifest_sha256']==MANIFEST_SHA)
+-    require('Actual21 one authorized archive driver exit and raw streams retained', driver_exit['status']=='PASS_COMMAND_EXIT' and driver_exit['exit_code']==0 and driver_exit['timed_out'] is False and driver_exit['error'] is None and driver_exit['command'][-2:]==['--root-clearance','21-ARCHIVE-AUTHORIZED'] and driver_exit['source_engine_compiler_or_git_execution'] is False and all(identity(BASE/('driver.'+leaf))['sha256']==driver_exit[leaf+'_sha256'] for leaf in ['stdout','stderr']) and (BASE/'driver.stderr').stat().st_size==0)
+-    completion=(BASE/'ARCHIVE-COMPLETION.md').read_text()
+-    check('Actual21 completion narrative retains matching source/archive and readback qualification', SOURCE in completion and ZIP_SHA in completion and MANIFEST_SHA in completion and '2045' in completion and '2078' in completion and 'FINAL-VERIFICATION' in completion)
+-    REPORT['producer_sidecar_identities']={name:identity(BASE/name) for name in ['RESULTS.json','DRIVER-EXIT.json','ARCHIVE-COMPLETION.md','POST-LAUNCH-READBACK-NOTE.json']}
+-    clearance=json_file(BASE/'ROOT-CLEARANCE.json')
+-    require('Root exact21 authorization and quiescent included writers', clearance['authorized'] is True and clearance['authorization']=='21 COMPLETE ARCHIVE TASK AUTHORIZED' and clearance['provided_by']=='/root' and clearance['source_commit']==SOURCE and clearance['included_writers_quiescent'] is True)
+-    bindings=clearance['frozen_inputs_sha256']
+-    require('Root actual65 absolute closed hash bindings',len(bindings)==65)
+-    REPORT['root_bound_files']=[]
+-    for path,expected_sha in bindings.items():
+-        original=Path(path)
+-        require('Safe absolute repository root binding: '+path,original.is_absolute() and under(path,str(REPO)) and '..' not in original.parts)
+-        observed=identity(original)
+-        payload=live_by_original[path]['payload_path'] if path in live_by_original else 'archive-provenance/'+original.name
+-        archived=files.get(payload,{})
+-        check('Root bound live and archived bytes unchanged: '+path,observed['sha256']==expected_sha==archived.get('sha256'))
+-        REPORT['root_bound_files'].append({'path':path,'expected_sha256':expected_sha,'archive_payload':payload,'observed_sha256':observed['sha256']})
+-    scope=json_file(BASE/'INPUT-SCOPE.json')
+-    require('Actual ready scope has18roots and28 explicit originals',scope['ready'] is True and len(scope['directory_roots'])==18 and len(scope['original_files'])==28 and scope['source_commit']==SOURCE)
+-    excluded={Path(x) for x in scope['excluded_subtrees']}
+-    observed_files={};observed_directories={}
+-    def scope_file(group,path):
+-        require('Declared original path selected only once: '+str(path),str(path) not in observed_files)
+-        observed_files[str(path)]=group
++    result = json_file(BASE / 'RESULTS.json')
++    require('Actual23 producer completion agrees with independently supplied pins',
++            result['status'] == 'PASS_COMPLETE_23_ARCHIVE_VERIFIED'
++            and result['source_commit'] == SOURCE and result['parent_source_commit'] == PARENT_SOURCE
++            and result['live_file_count'] == PINS['counts']['live_files']
++            and result['archive_payload_file_count'] == PINS['counts']['payload_files']
++            and result['live_bytes'] == PINS['counts']['live_bytes']
++            and result['archive_payload_bytes'] == PINS['counts']['payload_bytes']
++            and result['archive'] == external['archive'] == PINS['archive']
++            and result['parts'] == PARTS and result['manifest_sha256'] == MANIFEST_SHA
++            and result['split_size_bytes'] == SPLIT_SIZE)
++    REPORT['producer_results_identity'] = identity(BASE / 'RESULTS.json')
++    clearance = json_file(BASE / 'ROOT-CLEARANCE.json')
++    require('Root exact23 authorization and quiescent included writers',
++            clearance['authorized'] is True and clearance['provided_by'] == '/root'
++            and clearance['source_commit'] == SOURCE
++            and clearance['included_writers_quiescent'] is True)
++    bindings = clearance['frozen_inputs_sha256']
++    require('Root exact external binding count', len(bindings) == PINS['counts']['root_bindings'])
++    REPORT['root_bound_files'] = []
++    for path, expected_sha in bindings.items():
++        original = Path(path)
++        require('Safe absolute root binding: ' + path, safe_absolute(path) and under(path, str(REPO)))
++        if path in live_by_original:
++            payload = live_by_original[path]['payload_path']
++        else:
++            require('Non-live root binding is immediate archive provenance: ' + path, original.parent == BASE)
++            payload = 'archive-provenance/' + original.name
++        observed = identity(original)
++        check('Root bound live and archived bytes unchanged: ' + path,
++              observed['sha256'] == expected_sha == files.get(payload, {}).get('sha256'))
++        REPORT['root_bound_files'].append({'path': path, 'expected_sha256': expected_sha,
++                                          'archive_payload': payload, 'observed_sha256': observed['sha256']})
++    scope = json_file(BASE / 'INPUT-SCOPE.json')
++    require('Ready scope matches external root/single counts and source',
++            scope['ready'] is True and scope['source_commit'] == SOURCE
++            and len(scope['directory_roots']) == PINS['counts']['directory_roots']
++            and len(scope['original_files']) == PINS['counts']['original_files'])
++    for value in [r['path'] for r in scope['directory_roots'] + scope['original_files']] + scope['excluded_subtrees']:
++        require('Safe absolute declared scope path: ' + value, safe_absolute(value))
++    excluded = {Path(x) for x in scope['excluded_subtrees']}
++    observed_files, observed_directories, additions_special = {}, {}, []
++    def scope_file(group, path):
++        require('Declared original path selected only once: ' + str(path), str(path) not in observed_files)
++        observed_files[str(path)] = group
+     for root in scope['directory_roots']:
+-        root_path=Path(root['path']);require('Declared scope root is real directory: '+str(root_path),root_path.is_dir() and not root_path.is_symlink())
+-        for current,dirs,leaves in os.walk(root_path,followlinks=False):
+-            current=Path(current);dirs[:]=sorted(n for n in dirs if current/n not in excluded)
+-            require('Declared scope directory nonsymlink: '+str(current),not current.is_symlink())
+-            require('Declared directory selected only once: '+str(current),str(current) not in observed_directories)
+-            observed_directories[str(current)]=root['group']
+-            for name in dirs:require('Declared child directory nonsymlink: '+str(current/name),not(current/name).is_symlink())
+-            for name in sorted(leaves):scope_file(root['group'],current/name)
+-    for row in scope['original_files']:scope_file(row['group'],Path(row['path']))
+-    frozen_file_groups={row['original']:row['group'] for row in live_rows}
+-    frozen_directory_groups={row['original']:row['group'] for row in dir_rows}
++        root_path = Path(root['path'])
++        require('Declared scope root is real directory: ' + str(root_path),
++                stat.S_ISDIR(root_path.lstat().st_mode))
++        for current, dirs, leaves in os.walk(root_path, followlinks=False):
++            current = Path(current)
++            dirs[:] = sorted(n for n in dirs if current / n not in excluded)
++            require('Declared directory selected only once: ' + str(current), str(current) not in observed_directories)
++            observed_directories[str(current)] = root['group']
++            real_dirs = []
++            for name in dirs:
++                child = current / name
++                if stat.S_ISLNK(child.lstat().st_mode):
++                    scope_file(root['group'], child)
++                    additions_special.append({'path': str(child), 'kind': 'symlink_directory_not_followed'})
++                else:
++                    real_dirs.append(name)
++            dirs[:] = real_dirs
++            for name in sorted(leaves):
++                child = current / name
++                scope_file(root['group'], child)
++                if not stat.S_ISREG(child.lstat().st_mode):
++                    additions_special.append({'path': str(child), 'kind': 'nonregular_not_read'})
++    for row in scope['original_files']:
++        scope_file(row['group'], Path(row['path']))
++    frozen_file_groups = {row['original']: row['group'] for row in live_rows}
++    frozen_directory_groups = {row['original']: row['group'] for row in dir_rows}
+     check('Every frozen scope original remains present in its exact declared group',
+-          {path:observed_files.get(path) for path in frozen_file_groups}==frozen_file_groups,
+-          missing=sorted(set(frozen_file_groups)-set(observed_files)))
++          {path: observed_files.get(path) for path in frozen_file_groups} == frozen_file_groups,
++          missing=sorted(set(frozen_file_groups) - set(observed_files)))
+     check('Every frozen scope directory remains present in its exact declared group',
+-          {path:observed_directories.get(path) for path in frozen_directory_groups}==frozen_directory_groups,
+-          missing=sorted(set(frozen_directory_groups)-set(observed_directories)))
+-    REPORT['post_freeze_scope_additions_not_claimed_archived']={
+-        'files':sorted(set(observed_files)-set(frozen_file_groups)),
+-        'directories':sorted(set(observed_directories)-set(frozen_directory_groups)),
+-        'qualification':'Only the exact frozen originals and recorded directories are audited as archived; later additions are listed separately.'}
+-
+-    for row in live_rows:
+-        selected=any(row['group']==r['group'] and under(row['original'],r['path']) for r in scope['directory_roots']) or any(row['group']==r['group'] and row['original']==r['path'] for r in scope['original_files'])
+-        check('Frozen original fits declared scope: '+row['original'],selected)
+-    counts=collections.Counter(row['group'] for row in live_rows)
+-    check('Actual21 frozen group counts match producer receipt exactly',dict(sorted(counts.items()))==result['live_file_counts'])
+-    check('Actual native/windows/prototype and immutable capture/result audit group counts',counts['immutable-native-validation']==246 and counts['windows-validation']==243 and counts['prototype-and-rootproofs']==255 and counts['immutable-actual-five-producers']==15 and counts['immutable-hosted21-original-result']==4 and counts['immutable-hosted21-independent-final-audit']==20)
+-    consumed={k:v for k,v in counts.items() if k.startswith('consumed-baseline20-')}
+-    check('Only88 exact consumed20 originals, no complete older archives',consumed=={'consumed-baseline20-source':75,'consumed-baseline20-engine':1,'consumed-baseline20-core':1,'consumed-baseline20-nnue-object':1,'consumed-baseline20-proof':8,'consumed-baseline20-rootproof':2} and not any('/archive-complete/' in row['original'] or '.zip.part' in row['original'] for row in live_rows))
+-    check('No22/future/coordination/live skill-doc scope accidentally selected',not any('/pv-metadata-' in row['original'] or '/.agents/' in row['original'] or '/docs/' in row['original'] or '/coordination/' in row['original'] or '/archive-complete-preparation/' in row['original'] for row in live_rows))
+-    capture_root='/workspace/dwqww/validation/hosted-nearest-pawn-performance-20261021/actual-five-captures'
+-    captures=[row for row in live_rows if under(row['original'],capture_root)]
+-    helper_path=capture_root+'/owned_process.executed.py'
+-    capture=json_file(Path(capture_root)/'PROVENANCE.json');authorization=json_file(Path(capture_root)/'ROOT-CAPTURE-AUTHORIZATION.executed.json')
+-    check('Actual15 closed captures include original461a executed helper identity',len(captures)==15 and live_by_original[helper_path]['sha256']==HELPER_SHA and capture['helper_sha256']==HELPER_SHA and capture['helper_executed_path']==helper_path and authorization['helper_sha256']==HELPER_SHA)
+-    for label in ['baseline','candidate']:
+-        status=json_file(Path(capture_root)/label/'status.json');prefix='payload'+capture_root+'/'+label+'/'
+-        check('Closed capture output/input hash provenance retained: '+label,all(status[n+'_sha256']==files[prefix+n+'.txt']['sha256'] for n in ['stdin','stdout','stderr']) and status['returncode']==0 and status['process_observations_valid'] is True)
+-    REPORT['immutable_captures']={'file_count':len(captures),'helper_executed_path':helper_path,'helper_sha256':HELPER_SHA,'performance_acceptance_claimed_by_archive_audit':False}
+-    note=json_file(BASE/'ROOT-METADATA-CHECK-NOTE.json')
+-    check('Original57vsactual65 preauthorization assumption note preserved',note['assumed_leaf_count']==57 and note['actual_proposed_leaf_count']==65 and note['mutation_or_archive_execution_before_failure'] is False and 'archive-provenance/ROOT-METADATA-CHECK-NOTE.json' in files)
+-    promotion=json_file(BASE/'PROMOTION-ASSUMPTION-FAILURE.json')
+-    check('Original promotion dictionary-schema assumption and partialcontract preserved',promotion['status']=='PRESERVED_METADATA_ONLY_SCHEMA_ASSUMPTION' and all('archive-provenance/'+name in files for name in ['PROMOTION-ASSUMPTION-FAILURE.json','CLOSED-EVIDENCE-CONTRACT.partial-promotion.json','ROOT-METADATA-CHECK-NOTE.json']))
+-    readback=json_file(BASE/'POST-LAUNCH-READBACK-NOTE.json')
+-    check('Optional oldFINAL filename readback error preserved with no archive rerun',readback['status']=='ORIGINAL_OPTIONAL_READBACK_ERROR_RETAINED' and readback['archive_or_helper_reexecuted'] is False and readback['archive_result_unchanged'] is True)
+-    differences=[]
++          {path: observed_directories.get(path) for path in frozen_directory_groups} == frozen_directory_groups,
++          missing=sorted(set(frozen_directory_groups) - set(observed_directories)))
++    REPORT['post_freeze_scope_additions_not_claimed_archived'] = {
++        'files': sorted(set(observed_files) - set(frozen_file_groups)),
++        'directories': sorted(set(observed_directories) - set(frozen_directory_groups)),
++        'special_additions_not_read': [r for r in additions_special if r['path'] not in frozen_file_groups],
++        'qualification': 'Only the exact frozen originals and directories are audited as archived; later additions are listed separately.'}
++    for row in live_rows + dir_rows:
++        selected = (any(row['group'] == r['group'] and under(row['original'], r['path']) for r in scope['directory_roots'])
++                    or any(row['group'] == r['group'] and row['original'] == r['path'] for r in scope['original_files']))
++        check('Frozen original fits declared scope: ' + row['original'], selected
++              and not any(under(row['original'], str(x)) for x in excluded))
++    counts = dict(sorted(collections.Counter(row['group'] for row in live_rows).items()))
++    check('Frozen group counts equal external pins and producer receipt',
++          counts == PINS['live_file_counts'] == result['live_file_counts'])
++    differences = []
+     for path in paths:
+         if path.startswith('archive-provenance/'):
+-            outer=BASE/Path(path).name
++            require('Immediate archive provenance filename: ' + path, len(PurePosixPath(path).parts) == 2)
++            outer = BASE / Path(path).name
+             if outer.exists():
+-                observed=identity(outer)
+-                if any(observed[k]!=files[path][k] for k in ['size','sha256']):differences.append({'outer_path':str(outer),'archive_payload':path,'archived_sha256':files[path]['sha256'],'current_outer_sha256':observed['sha256']})
+-    REPORT['outer_provenance_differences_not_live_originals']=differences
+-    check('Archived preparation provenance remains byteidentical to current outer versions',not differences,observed=differences)
++                observed = identity(outer)
++                if any(observed[k] != files[path][k] for k in ['size', 'sha256']):
++                    differences.append({'outer_path': str(outer), 'archive_payload': path,
++                                        'archived_sha256': files[path]['sha256'], 'current_outer_sha256': observed['sha256']})
++    REPORT['outer_provenance_differences_not_live_originals'] = differences
++    REPORT['qualifications'].append('Current outer provenance differences are reported separately; archived bytes are independently verified, and root-bound files remain mandatory.')
+     REPORT['live_file_count'] = len(live_rows)
+     REPORT['live_directory_count'] = len(dir_rows)
+     REPORT['live_bytes'] = sum(r['size'] for r in live_rows)
+     REPORT['live_group_counts'] = dict(sorted(collections.Counter(r['group'] for r in live_rows).items()))
+-    REPORT['qualifications'] = [
+-        'ZIP members carry generic0600 permissions. Original file and directory modes are preserved in the independently verified embedded mode map and stage; unzip alone is not executable-permission restoration.',
+-        'No real archive recovery, extraction or chmod was performed. A successful byte/mode audit is not a recovery execution claim.',
+-        'Source commit is checked for consistency with supplied and archived provenance; no independent Git authenticity or remote publication audit was performed.',
+-        'No engine correctness, calibrated speed, native hardware, NPS or Elo acceptance follows from this data-preservation audit.',
+-        'Actual21 RESULTS/DRIVER-EXIT/ARCHIVE-COMPLETION schemas were used; old20 optional FINAL filename was not required. The original preauthorization57vs65 and postlaunchreadback notes remain unchanged.',
+-        'Raw originals, retained stage and previous evidence were read without writes. No original artifact was deleted, replaced, ignored or untracked by this audit.',
++    REPORT['qualifications'] += [
++        'ZIP members carry generic0600 permissions. Original file/directory modes and file mtimes are preserved in the independently verified embedded map and retained stage; unzip alone does not restore executable permissions.',
++        'No real recovery, extraction or chmod was performed by this auditor. Recovery requires its own root-authorized NEW scratch step after audit PASS.',
++        'Source and parent commits are checked for consistency with root-supplied and archived provenance; no independent Git or remote-publication authentication is performed.',
++        'No engine correctness, speed, NPS, native hardware or Elo acceptance follows from this data-preservation audit.',
++        'Only actual INPUT-SCOPE, frozen ledgers, producer RESULTS and independently bound external pins define archive23 counts; no inherited21 fixture/capture/prototype counts or assumption notes are required.',
++        'No original or stage artifact was written, deleted, chmoded, ignored or untracked. Anonymous reassembly is outside Git and leaves no persistent combined ZIP.',
+     ]
+ 
+ 
++
++def canonical_json(value):
++    return (json.dumps(value, indent=2, ensure_ascii=True, allow_nan=False) + '\n').encode('utf-8')
++
++
++def safe_absolute(path):
++    return isinstance(path, str) and path.startswith('/workspace/') and safe_relative(path[1:])
++
++
++def load_external_pins(expected_sha):
++    global PINS, MANIFEST_SHA, ZIP_SHA, ZIP_SIZE, PARTS
++    if re.fullmatch(r'[0-9a-f]{64}', expected_sha) is None:
++        raise SystemExit('Root-bound external pins SHA256 is required; no audit attempted')
++    pins_path = BASE / 'EXTERNAL-PINS.json'
++    observed = identity(pins_path)
++    if observed['sha256'] != expected_sha:
++        raise SystemExit('External pins SHA256 mismatch; no audit attempted')
++    pins = json_file(pins_path)
++    if not (pins['authorized'] is True and pins['provided_by'] == '/root' and pins['source_commit'] == SOURCE):
++        raise SystemExit('Explicit root-authorized actual23 pins required; no audit attempted')
++    if pins['manifest']['file'] != MANIFEST or pins['archive']['file'] != NAME + '.zip':
++        raise SystemExit('Exact actual23 archive/manifest names required; no audit attempted')
++    counts = pins['counts']
++    count_names = {'live_files', 'live_directories', 'live_bytes', 'payload_files', 'payload_bytes',
++                   'provenance_files', 'directory_roots', 'original_files', 'root_bindings'}
++    if set(counts) != count_names or not all(type(n) is int and n >= 0 for n in counts.values()):
++        raise SystemExit('Exact root-observed nonnegative count schema required; no audit attempted')
++    if not (counts['live_files'] > 0 and counts['payload_files'] == counts['live_files'] + counts['provenance_files']
++            and counts['payload_bytes'] >= counts['live_bytes'] > 0
++            and sum(pins['live_file_counts'].values()) == counts['live_files']):
++        raise SystemExit('Root-observed count relations invalid; no audit attempted')
++    archive, parts = pins['archive'], pins['parts']
++    hashes = [pins['manifest']['sha256'], archive['sha256']] + [p['sha256'] for p in parts]
++    if not all(isinstance(h, str) and re.fullmatch(r'[0-9a-f]{64}', h) for h in hashes):
++        raise SystemExit('Exact root-observed SHA256 pins required; no audit attempted')
++    if not (parts and type(archive['size']) is int and archive['size'] > 0
++            and sum(p['size'] for p in parts) == archive['size']
++            and all(type(p['size']) is int and 0 < p['size'] <= SPLIT_SIZE for p in parts)
++            and all(p['size'] == SPLIT_SIZE for p in parts[:-1])
++            and [p['file'] for p in parts] == [NAME + '.zip.part' + str(i).zfill(4) for i in range(1, len(parts) + 1)]):
++        raise SystemExit('Canonical ordered64MiB split part pins required; no audit attempted')
++    PINS = pins
++    MANIFEST_SHA, ZIP_SHA, ZIP_SIZE, PARTS = pins['manifest']['sha256'], archive['sha256'], archive['size'], parts
++    REPORT['external_pins'] = {'file': str(pins_path), 'sha256_supplied_independently': expected_sha, **observed}
++
++
+ def main():
++    parser = argparse.ArgumentParser(description=__doc__)
++    parser.add_argument('--audit-authorized', required=True, choices=['23-ARCHIVE-AUDIT-AUTHORIZED'])
++    parser.add_argument('--external-pins-sha256', required=True)
++    args = parser.parse_args()
+     if RECEIPT.exists() or RECEIPT.is_symlink():
+         raise SystemExit('Refusing to overwrite existing independent audit receipt')
++    load_external_pins(args.external_pins_sha256)
+     try:
+         audit()
+     except Exception as error:
+-        REPORT['findings'].append({'name': 'Audit exception', 'type': type(error).__name__,
+-                                   'message': str(error)})
++        REPORT['findings'].append({'name': 'Audit exception', 'type': type(error).__name__, 'message': str(error)})
+         traceback.print_exc(file=sys.stderr)
+-    REPORT['status'] = ('PASS_INDEPENDENT_COMPLETE_21_ARCHIVE_AUDIT'
+-                        if not REPORT['findings'] else 'FAIL_INDEPENDENT_COMPLETE_21_ARCHIVE_AUDIT')
++    REPORT['status'] = ('PASS_INDEPENDENT_COMPLETE_23_ARCHIVE_AUDIT'
++                        if not REPORT['findings'] else 'FAIL_INDEPENDENT_COMPLETE_23_ARCHIVE_AUDIT')
+     REPORT['completed_utc'] = datetime.datetime.now(datetime.timezone.utc).isoformat()
+     REPORT['check_count'] = len(REPORT['checks'])
+     REPORT['failed_check_count'] = sum(not c['passed'] for c in REPORT['checks'])

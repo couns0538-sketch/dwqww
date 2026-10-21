@@ -1,5 +1,14 @@
 # Next experiments
 
+Immediate local work: finish frozen24source7db08eac6ead99d641834c56ccec06a06600586a
+native14Release→firstactualsignature→56exactcold/warm parent23searches→14ASan→
+14defaultTSan→8activeUCI qualification. Source77/fourdelta/73same/independentreview
+passed; candidate benchmark/runtime stillUNKNOWN. Use existing CMake/CTest absolute
+paths under /workspace/.cloud-setup/venv/lib/python3.12/site-packages/cmake/data/bin;
+these verified3.31.6 tools are absent from bare PATH. Do not reinstall or confuse
+pre-spawn PATH failures with actual compiler/runtime attempts. Windows24 and
+calibrated same-settings performance comparison follow; no speed/Elo accepted.
+
 1. Finish the frozen23-versus22 TT-policy test. Candidate23 is
    `1d3ed25bea2c8b781f7ee5a178af0f66061b3984`; baseline22 is
    `ff2e269c6058be84456e3b98344826d17b0056eb`. Native42 CTests/eight active,

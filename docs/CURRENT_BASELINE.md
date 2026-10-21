@@ -7,7 +7,18 @@ its unchanged native regression to356e863, preserving the TT and timed-only cloc
 repairs. Acceptance is for the finite book contract; no accepted equal-time Elo gain.
 [Integration receipt](../validation/accepted-ownbook-integration-20261020/INTEGRATION.json).
 
-Current isolated trial **Forge 6.4.23** is source
+Newest isolated code is **Forge 6.4.24**, frozen source
+`7db08eac6ead99d641834c56ccec06a06600586a`, branch
+`forge/see-proof-reuse-20261021`. It reuses GoodCaptures SEE>=0 at two search
+consumers, with no new state and a nonpositive-threshold guard. Existing28 mirrored
+exchange oracles add504 threshold-bound assertions. Exactly4 source paths changed,
+73 unchanged/77 total; source review passed. Parent23 observer showed exactsearch
+parity and13387 repeated queries/344945 (3.88% opportunity), plus1877582actualSEE
+checks; this is not a speed measurement. Full24 native/Windows/performance tests
+are PENDING. [Experiment](../validation/see-proof-reuse-candidate-20261021/EXPERIMENT.md).
+Do not replace a qualified release or accepted5101 with unqualified24.
+
+Parent isolated policy trial **Forge 6.4.23** is source
 `1d3ed25bea2c8b781f7ee5a178af0f66061b3984`, branch
 `forge/tt-refresh-20261021`. It refreshes occupied old TT generations under the
 existing synchronization. Four new real-table regression groups preserve all eight
@@ -23,6 +34,15 @@ originals,604parentfiles,74sourcefiles and275finalrecords. ZIP
 All23strength evidence remains pending. This changes replacement, shallow admission and
 hashfull and is not a demonstrated correctness fix, speedup or Elo gain.
 [Trial and next gate](../validation/tt-refresh-20261021/EXPERIMENT.md).
+Its complete qualification archive now passed one actual fresh scratch recovery:
+2222originals/2241payloads/219recordeddirs, combined203969966B SHA
+`2855b301c0adf184ec1ee92ff53aa1dcef4c0886303c913c8a3ff7686392cdbd`,
+four Git-safe parts. Independent14809archive/4704recovery checks PASS; rootrehash
+all2222originals/2241restoredpayloads and77actualGit-source blobs PASS. This archive
+excludes active match/launch/latestdocs metadata and contains qualification only.
+[Recovery instructions](../validation/tt-refresh-20261021/archive-complete/ARCHIVE-COMPLETION.md),
+[root verification](../validation/tt-refresh-20261021/root-verification/ARCHIVE.json).
+
 
 The separate23-versus22 strength attempt is now actually launched. Fixedpayload
 `3e938ffbe71a97f181d2cdffa0226247bba9939c` passed finalindependentreview,

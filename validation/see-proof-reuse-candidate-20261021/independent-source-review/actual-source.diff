@@ -1,0 +1,89 @@
+--- frozen23/CMakeLists.txt
++++ reviewed24/CMakeLists.txt
+@@ -1,5 +1,5 @@
+ cmake_minimum_required(VERSION 3.16)
+-project(ChessEngineForge VERSION 6.4.23 LANGUAGES CXX)
++project(ChessEngineForge VERSION 6.4.24 LANGUAGES CXX)
+ find_package(Threads REQUIRED)
+ 
+ option(FORGE_ENABLE_SANITIZERS "Enable AddressSanitizer and UndefinedBehaviorSanitizer" OFF)
+--- frozen23/src/search.cpp
++++ reviewed24/src/search.cpp
+@@ -425,6 +425,10 @@
+         }
+     }
+ 
++    // Valid for the move just returned by next(), until the next next() call.
++    // Only Main/GoodCaptures returns after a successful SEE >= 0 test.
++    [[nodiscard]] bool last_move_see_nonnegative() const { return stage_ == GoodCaptures; }
++
+ private:
+     enum Stage : int {
+         MainTT, GenerateCaptures, GoodCaptures, Killer1, Killer2, CounterMove, GenerateQuiets, QuietMoves, BadCaptures,
+@@ -1074,7 +1078,9 @@
+                             capture_value(board, move) + history / 8 <= alpha) {
+                     continue;
+                 }
+-                if (!board.see_ge(move, -tune::SeeNoisyMultiplier * depth)) continue;
++                const int see_threshold = -tune::SeeNoisyMultiplier * depth;
++                if (!(picker.last_move_see_nonnegative() && see_threshold <= 0) &&
++                    !board.see_ge(move, see_threshold)) continue;
+             }
+         }
+ 
+@@ -1103,7 +1109,8 @@
+             } else if (cut_node) {
+                 extension = -1;
+             }
+-        } else if (gives_check && depth >= tune::CheckExtensionDepth && !root_node && board.see_ge(move, 0)) {
++        } else if (gives_check && depth >= tune::CheckExtensionDepth && !root_node &&
++                   (picker.last_move_see_nonnegative() || board.see_ge(move, 0))) {
+             extension = 1;
+         }
+         ss->double_extensions = inherited_double_extensions + (extension == 2);
+--- frozen23/src/uci.cpp
++++ reviewed24/src/uci.cpp
+@@ -160,7 +160,7 @@
+         input >> command;
+         if (command == "uci") {
+             const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex());
+-            std::cout << "id name Chess Engine Forge 6.4.23 candidate\n"
++            std::cout << "id name Chess Engine Forge 6.4.24 candidate\n"
+                          "id author OpenAI\n"
+                          "option name Hash type spin default 32 min 1 max 2048\n"
+                          "option name Threads type spin default 1 min 1 max 256\n"
+--- frozen23/tests/tests.cpp
++++ reviewed24/tests/tests.cpp
+@@ -327,6 +327,8 @@
+ }
+ 
+ void test_pinned_static_exchange() {
++    int threshold_assertions = 0;
++    int threshold_failures = 0;
+     struct ExchangeCase {
+         std::string_view name;
+         std::string_view fen;
+@@ -384,9 +386,23 @@
+             check(board.see_ge(*move, 0) == (item.gain >= 0), item.name);
+             check(board.see_ge(*move, item.gain - 1) && board.see_ge(*move, item.gain) &&
+                   !board.see_ge(*move, item.gain + 1), item.name);
++            // Search reuses successful SEE0 only for nonpositive thresholds.
++            // Exercise that monotonic contract, and its failure direction, on
++            // both-color pin, king, en-passant and every promotion oracle.
++            const bool nonnegative = board.see_ge(*move, 0);
++            for (const int threshold : {-128000, -64000, -900, -1, 0, 1, 100, 900, 128000}) {
++                const bool passes = board.see_ge(*move, threshold);
++                const bool monotone = threshold <= 0 ? (!nonnegative || passes)
++                                                     : (nonnegative || !passes);
++                check(monotone, "SEE threshold contract preserves an established bound");
++                ++threshold_assertions;
++                threshold_failures += !monotone;
++            }
+             check(board.fen() == before && board.key() == key, "SEE preserves board state");
+         }
+     }
++    std::cout << "SEE threshold contract: assertions " << threshold_assertions
++              << " failures " << threshold_failures << '\n';
+ }
+ 
+ void test_evaluation() {
