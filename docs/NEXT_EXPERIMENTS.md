@@ -4,8 +4,10 @@
    `1d3ed25bea2c8b781f7ee5a178af0f66061b3984`; baseline22 is
    `ff2e269c6058be84456e3b98344826d17b0056eb`. Native42 CTests/eight active,
    Windows13 and both five-command captures passed. Actual READY98 applicable
-   offline tests/317proofs/504byte-modeinputs passed; final independent enabled
-   review and root fixed-payload/public-readback/sole trigger remain pending.
+   offline tests/317proofs/504byte-modeinputs, finalreview/rootfreshrehash and
+   public5readbacks passed. Soletrigger031253 launched run39537333958 at03:12:53UTC;
+   source linkage observed03:13:23. Monitor original resultbranch
+   results/tt-refresh-strength-39537333958-1; games/Elo still UNKNOWN.
    Protocol: four separate TIMED AA pairs then serial512-pair0/+10 SPRT at
    equal1+0.01, T1/Hash32/OwnBookfalse/seed20261101. No retry/resume/pooling.
    This is coupled replacement/admission/hashfull policy, not a bug or speed claim.

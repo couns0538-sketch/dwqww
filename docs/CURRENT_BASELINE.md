@@ -24,6 +24,19 @@ All23strength evidence remains pending. This changes replacement, shallow admiss
 hashfull and is not a demonstrated correctness fix, speedup or Elo gain.
 [Trial and next gate](../validation/tt-refresh-20261021/EXPERIMENT.md).
 
+The separate23-versus22 strength attempt is now actually launched. Fixedpayload
+`3e938ffbe71a97f181d2cdffa0226247bba9939c` passed finalindependentreview,
+rootfresh504byte-mode/317proof/154Git-source checks and five HTTP200 public
+readbacks. Soletrigger `forge/hosted-tt-refresh-strength-20261021-031253` pushed
+03:12:53UTC. Actual [run39537333958](https://github.com/couns0538-sketch/dwqww/actions/runs/39537333958)
+source linkage verified03:13:23UTC; setupsuccess/checkoutrunning only. Games/Elo
+UNKNOWN; hosted14+14suite proofs and match results still require original audit.
+Four separate timedA/A pairs precede serial512pair logistic0/+10SPRT at1+0.01,
+T1Hash32/OwnBookfalse/seed20261101. No retry/resume/retrigger/pooling. Preserve
+[launch](../validation/hosted-tt-refresh-strength-20261021/publication-attempt1/LAUNCH.json)
+and audit resultbranch `results/tt-refresh-strength-39537333958-1` on completion.
+
+
 Parent Windows-qualified isolated candidate **Forge 6.4.22**, source
 `ff2e269c6058be84456e3b98344826d17b0056eb`, is on
 `forge/singular-pv-metadata-20261021`; published clearance checkpoint
