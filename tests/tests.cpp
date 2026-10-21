@@ -327,6 +327,8 @@ void test_static_exchange() {
 }
 
 void test_pinned_static_exchange() {
+    int threshold_assertions = 0;
+    int threshold_failures = 0;
     struct ExchangeCase {
         std::string_view name;
         std::string_view fen;
@@ -384,9 +386,23 @@ void test_pinned_static_exchange() {
             check(board.see_ge(*move, 0) == (item.gain >= 0), item.name);
             check(board.see_ge(*move, item.gain - 1) && board.see_ge(*move, item.gain) &&
                   !board.see_ge(*move, item.gain + 1), item.name);
+            // Search reuses successful SEE0 only for nonpositive thresholds.
+            // Exercise that monotonic contract, and its failure direction, on
+            // both-color pin, king, en-passant and every promotion oracle.
+            const bool nonnegative = board.see_ge(*move, 0);
+            for (const int threshold : {-128000, -64000, -900, -1, 0, 1, 100, 900, 128000}) {
+                const bool passes = board.see_ge(*move, threshold);
+                const bool monotone = threshold <= 0 ? (!nonnegative || passes)
+                                                     : (nonnegative || !passes);
+                check(monotone, "SEE threshold contract preserves an established bound");
+                ++threshold_assertions;
+                threshold_failures += !monotone;
+            }
             check(board.fen() == before && board.key() == key, "SEE preserves board state");
         }
     }
+    std::cout << "SEE threshold contract: assertions " << threshold_assertions
+              << " failures " << threshold_failures << '\n';
 }
 
 void test_evaluation() {

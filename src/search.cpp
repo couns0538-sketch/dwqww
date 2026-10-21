@@ -425,6 +425,10 @@ public:
         }
     }
 
+    // Valid for the move just returned by next(), until the next next() call.
+    // Only Main/GoodCaptures returns after a successful SEE >= 0 test.
+    [[nodiscard]] bool last_move_see_nonnegative() const { return stage_ == GoodCaptures; }
+
 private:
     enum Stage : int {
         MainTT, GenerateCaptures, GoodCaptures, Killer1, Killer2, CounterMove, GenerateQuiets, QuietMoves, BadCaptures,
@@ -1074,7 +1078,9 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
                             capture_value(board, move) + history / 8 <= alpha) {
                     continue;
                 }
-                if (!board.see_ge(move, -tune::SeeNoisyMultiplier * depth)) continue;
+                const int see_threshold = -tune::SeeNoisyMultiplier * depth;
+                if (!(picker.last_move_see_nonnegative() && see_threshold <= 0) &&
+                    !board.see_ge(move, see_threshold)) continue;
             }
         }
 
@@ -1103,7 +1109,8 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
             } else if (cut_node) {
                 extension = -1;
             }
-        } else if (gives_check && depth >= tune::CheckExtensionDepth && !root_node && board.see_ge(move, 0)) {
+        } else if (gives_check && depth >= tune::CheckExtensionDepth && !root_node &&
+                   (picker.last_move_see_nonnegative() || board.see_ge(move, 0))) {
             extension = 1;
         }
         ss->double_extensions = inherited_double_extensions + (extension == 2);

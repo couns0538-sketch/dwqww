@@ -1,0 +1,10 @@
+--- frozen23/CMakeLists.txt
++++ observer/CMakeLists.txt
+@@ -116,3 +116,7 @@
+         COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tools/ownbook_regression.py
+                 $<TARGET_FILE:forge> ${CMAKE_CURRENT_BINARY_DIR}/ownbook-regression.json)
+ endif()
++
++# Observer-only actual-Board driver; production source is unchanged.
++add_executable(forge_see_threshold tests/see_threshold_driver.cpp)
++target_link_libraries(forge_see_threshold PRIVATE forge_core Threads::Threads)
