@@ -1,0 +1,238 @@
+--- validation/pawn-span-fill-windows-20261020/independent-artifact-audit.py
++++ validation/nearest-pawn-windows-20261021/independent-artifact-audit.py
+@@ -1,5 +1,5 @@
+ #!/usr/bin/env python3
+-"""Read-only Windows 6.4.20 artifact/provenance audit; executes no engine."""
++"""Read-only Windows 6.4.21 artifact/provenance audit; executes no engine."""
+ from pathlib import Path, PurePosixPath
+ import datetime
+ import hashlib
+@@ -11,18 +11,18 @@
+ import zipfile
+ 
+ ROOT = Path('/workspace/dwqww')
+-HERE = ROOT / 'validation/pawn-span-fill-windows-20261020'
+-SOURCE = Path('/workspace/.cloud-setup/windows6420-source')
+-BUILD = Path('/workspace/.cloud-setup/windows6420-build')
+-PACKAGE = ROOT / 'releases/forge-6.4.20-candidate-windows-zen5'
++HERE = ROOT / 'validation/nearest-pawn-windows-20261021'
++SOURCE = Path('/workspace/.cloud-setup/windows6421-source')
++BUILD = Path('/workspace/.cloud-setup/windows6421-build')
++PACKAGE = ROOT / 'releases/forge-6.4.21-candidate-windows-zen5'
+ ARCHIVE = PACKAGE.with_name(PACKAGE.name + '.zip')
+ from pipeline_gate import load_freeze
+ FREEZE = load_freeze()
+ COMMIT = FREEZE['source_commit']
+ PARENT = FREEZE['parent_source_commit']
+-assert COMMIT != PARENT, 'Windows20 source must be a distinct root-frozen revision'
+-assert COMMIT == 'fc2391870b3bf2cd4d8fc20c7406ea6439c69c5e', 'Incorrect root-authorized frozen20 source'
+-assert PARENT == '61f598056572dfade6994af8ad2e38817cd28aa3'
++assert COMMIT != PARENT, 'Windows21 source must be a distinct root-frozen revision'
++assert COMMIT == '2e151d019bc58dff2ab4e76e99ef99516af8d222', 'Incorrect root-authorized frozen21 source'
++assert PARENT == 'fc2391870b3bf2cd4d8fc20c7406ea6439c69c5e'
+ assert FREEZE['runtime_summary_checks'] == 347 and FREEZE['pawn_span_checks'] == 37320
+ assert FREEZE['bench_expected_nodes'] == 352313
+ sha = lambda data: hashlib.sha256(data).hexdigest()
+@@ -73,15 +73,15 @@
+         at += 20
+     return result
+ 
+-assert Path('/workspace/.cloud-setup/windows6420-package-ready').exists(), 'Package not final yet'
++assert Path('/workspace/.cloud-setup/windows6421-package-ready').exists(), 'Package not final yet'
+ runtime = load(HERE/'runtime-attempt1/result.json')
+ build = load(HERE/'result.json')
+ artifact = load(HERE/'artifact.json')
+ check('runtime_passed', runtime['status'] == 'passed')
+ check('build_passed', build['status'] == 'build_passed')
+ check('frozen_source_identity', runtime['source_and_tests_commit'] == build['source_and_tests_commit'] == artifact['source_and_tests_commit'] == COMMIT)
+-check('eleven_runtime_checks', len(runtime['checks']) == 11 and all(c['exit_code'] == 0 for c in runtime['checks']))
+-check('eleven_named_checks', {c['name'] for c in runtime['checks']} == {'core','coherent-tt','rule50','legal-witness','correction-history','runtime-psqt','pawn-span','uci','ponder','ownbook','stdin-bench11-signature'})
++check('twelve_runtime_checks', len(runtime['checks']) == 12 and all(c['exit_code'] == 0 for c in runtime['checks']))
++check('twelve_named_checks', {c['name'] for c in runtime['checks']} == {'core','coherent-tt','rule50','legal-witness','correction-history','runtime-psqt','pawn-span','nearest-pawn','uci','ponder','ownbook','stdin-bench11-signature'})
+ check('tt_groups', runtime['tt_groups'] == 8)
+ check('legal_witness_count', runtime['legal_witness_comparisons'] == 18947)
+ check('rule50_pass', runtime['rule50_targeted_failures'] == 0)
+@@ -121,6 +121,10 @@
+ pawn_summary=re.findall(r'^pawn_span_tests: (\d+) checks, (\d+) failures\s*$',pawn_raw,re.M)
+ check('actual_pawn_span_summary',pawn_summary==[('37320','0')] and not re.search(r'^FAIL ',pawn_raw,re.M))
+ check('actual_pawn_span_runtime_count',runtime['pawn_span_checks']==37320 and runtime['pawn_span_failures']==0)
++nearest_raw=(HERE/'runtime-attempt1/nearest-pawn-stdout.log').read_text()
++nearest_summary=re.findall(r'^Nearest pawn distance: sets (\d+) checks (\d+) failures (\d+)\s*$',nearest_raw,re.M)
++check('actual_nearest_summary',nearest_summary==[('395840','791680','0')] and not re.search(r'^nearest mismatch ',nearest_raw,re.M))
++check('actual_nearest_runtime_counts',runtime['nearest_pawn_checks']==791680 and runtime['nearest_pawn_sets']==395840 and runtime['nearest_pawn_failures']==0)
+ check('raw_bench_matches_record',re.findall(r'^info string bench depth 11 nodes (\d+) time \d+ nps \d+\s*$', (HERE/'runtime-attempt1/bench-stdout.log').read_text(),re.M)==[str(runtime['bench11_nodes'])])
+ check('five_book_transitions', len(runtime['ownbook_transitions']) == 5 and all(c['PASS'] and c['expected_book'] == c['actual_book'] for c in runtime['ownbook_transitions']))
+ check('runtime_inputs_unchanged', runtime['input_sha256_before'] == runtime['input_sha256_after'])
+@@ -147,17 +151,17 @@
+ frozen_root=load(HERE/'ROOT-FROZEN-SOURCE-GATES.json')
+ check('root_frozen_source_proof_sha256',sha((HERE/'ROOT-FROZEN-SOURCE-GATES.json').read_bytes())==FREEZE['root_source_gates_sha256'])
+ check('root_frozen_source_identity',frozen_root['source_commit']==COMMIT and frozen_root['baseline_commit']==PARENT)
+-check('root_frozen_source_inventory',source_hashes=={n:h for n,h in frozen_root['inputs'].items() if not n.endswith('.pyc')} and len(source_hashes)==72)
+-reviewed_fill_hashes={n:frozen_root['inputs'][n] for n in ['CMakeLists.txt','include/forge/bitboard.hpp','src/eval.cpp','src/uci.cpp','tests/pawn_span_tests.cpp']}
+-for name,digest in reviewed_fill_hashes.items():
+-    check('reviewed_pawn_fill_source:'+name,source_hashes[name]==digest)
++check('root_frozen_source_inventory',source_hashes=={n:h for n,h in frozen_root['inputs'].items() if not n.endswith('.pyc')} and len(source_hashes)==73)
++reviewed_nearest_hashes={n:frozen_root['inputs'][n] for n in ['CMakeLists.txt','include/forge/bitboard.hpp','src/eval.cpp','src/uci.cpp','tests/nearest_pawn_tests.cpp']}
++for name,digest in reviewed_nearest_hashes.items():
++    check('reviewed_nearest_source:'+name,source_hashes[name]==digest)
+ changed_all = []
+ for name, digest in source_hashes.items():
+     parent = subprocess.run(['git','show',PARENT+':'+name],cwd=ROOT,stdout=subprocess.PIPE,stderr=subprocess.PIPE)
+     if parent.returncode or sha(parent.stdout) != digest:
+         changed_all.append(name)
+-check('only_declared_five_export_changes', sorted(changed_all) == sorted(reviewed_fill_hashes))
+-for name in [n for n in source_hashes if n.startswith('tests/') and n != 'tests/pawn_span_tests.cpp']:
++check('only_declared_five_export_changes', sorted(changed_all) == sorted(reviewed_nearest_hashes))
++for name in [n for n in source_hashes if n.startswith('tests/') and n != 'tests/nearest_pawn_tests.cpp']:
+     check('unchanged_parent_test:'+name,sha(subprocess.check_output(['git','show',PARENT+':'+name],cwd=ROOT))==source_hashes[name])
+ permanent_tests = (SOURCE/'tests/tests.cpp').read_text()
+ check('permanent_pin_regression_registered', 'void test_pinned_static_exchange()' in permanent_tests and '    test_pinned_static_exchange();' in permanent_tests)
+@@ -174,11 +178,16 @@
+ cmake_text = (SOURCE/'CMakeLists.txt').read_text()
+ check('correction_ctest_registered', 'add_executable(forge_correction_history_tests tests/correction_history_tests.cpp)' in cmake_text and 'add_test(NAME forge_correction_history_tests COMMAND forge_correction_history_tests)' in cmake_text)
+ check('runtime_psqt_ctest_registered', 'add_executable(forge_runtime_psqt_tests tests/runtime_psqt_tests.cpp)' in cmake_text and 'add_test(NAME forge_runtime_psqt_tests COMMAND forge_runtime_psqt_tests)' in cmake_text)
+-check('twelve_ctests_registered', len(re.findall(r'^\s*add_test\(', cmake_text, re.M)) == 12)
++check('thirteen_ctests_registered', len(re.findall(r'^\s*add_test\(', cmake_text, re.M)) == 13)
+ check('pawn_ctest_registered','add_executable(forge_pawn_span_tests tests/pawn_span_tests.cpp)' in cmake_text and 'add_test(NAME forge_pawn_span_tests COMMAND forge_pawn_span_tests)' in cmake_text)
+ pawn_test=(SOURCE/'tests/pawn_span_tests.cpp').read_text()
+ check('three_pawn_constexpr_assertions_compiled',pawn_test.count('static_assert(')==3)
+ check('pawn_independent_geometry_oracles_retained',all(x in pawn_test for x in ['original_span','original_fill','table_pawn_attacks','passed_pawn_mask','pawn_attacks_bb','4096','256']))
++check('nearest_ctest_registered','add_executable(forge_nearest_pawn_tests tests/nearest_pawn_tests.cpp)' in cmake_text and 'add_test(NAME forge_nearest_pawn_tests COMMAND forge_nearest_pawn_tests)' in cmake_text)
++check('nearest_fifth_ctest',[line.split('NAME ',1)[1].split()[0] for line in cmake_text.splitlines() if 'add_test(NAME ' in line][4]=='forge_nearest_pawn_tests')
++nearest_test=(SOURCE/'tests/nearest_pawn_tests.cpp').read_text()
++check('six_nearest_constexpr_assertions_compiled',nearest_test.count('static_assert(')==6)
++check('nearest_two_independent_oracles',all(x in nearest_test for x in ['scalar_reference','flood_reference','std::array<int, 2> expected','std::abs','reachable','2048','256']))
+ parent_search = subprocess.check_output(['git','show',PARENT+':src/search.cpp'],cwd=ROOT,text=True)
+ search_text = (SOURCE/'src/search.cpp').read_text()
+ increment = 'entry = std::clamp(entry + diff * weight / 256, -CorrectionLimit, CorrectionLimit);'
+@@ -212,23 +221,24 @@
+ for record in list(build['binaries'].values()) + list(build['libraries'].values()):
+     check('built_bytes:' + Path(record['path']).name, sha(Path(record['path']).read_bytes()) == record['sha256'] and Path(record['path']).stat().st_size == record['bytes'])
+ imports = {}
+-expected_built_pe = {'forge.exe','forge_bench.exe','forge_tests.exe','forge_tt_tests.exe','forge_rule50_tests.exe','forge_legal_witness_tests.exe','forge_correction_history_tests.exe','forge_runtime_psqt_tests.exe','forge_pawn_span_tests.exe'}
+-check('nine_built_pe_inventory', {p.name for p in BUILD.glob('*.exe')} == expected_built_pe)
++expected_built_pe = {'forge.exe','forge_bench.exe','forge_tests.exe','forge_tt_tests.exe','forge_rule50_tests.exe','forge_legal_witness_tests.exe','forge_correction_history_tests.exe','forge_runtime_psqt_tests.exe','forge_pawn_span_tests.exe','forge_nearest_pawn_tests.exe'}
++check('ten_built_pe_inventory', {p.name for p in BUILD.glob('*.exe')} == expected_built_pe)
+ for p in sorted(BUILD.glob('*.exe')):
+     check('tested_actual_pe:' + p.name, sha(p.read_bytes()) == runtime['input_sha256_after'][p.name])
+     imports[p.name] = pe_imports(p.read_bytes())
+     check('system_crt_imports_only:' + p.name, bool(imports[p.name]) and all(n.lower() == 'kernel32.dll' or n.lower().startswith('api-ms-win-crt-') for n in imports[p.name]))
+-check('packaged_tested_engine', sha((PACKAGE/'forge-6.4.20-ryzen-9850x3d.exe').read_bytes()) == runtime['input_sha256_after']['forge.exe'])
+-for name in ['forge_tests.exe', 'forge_tt_tests.exe', 'forge_rule50_tests.exe', 'forge_legal_witness_tests.exe', 'forge_correction_history_tests.exe', 'forge_runtime_psqt_tests.exe','forge_pawn_span_tests.exe']:
++check('packaged_tested_engine', sha((PACKAGE/'forge-6.4.21-ryzen-9850x3d.exe').read_bytes()) == runtime['input_sha256_after']['forge.exe'])
++for name in ['forge_tests.exe', 'forge_tt_tests.exe', 'forge_rule50_tests.exe', 'forge_legal_witness_tests.exe', 'forge_correction_history_tests.exe', 'forge_runtime_psqt_tests.exe','forge_pawn_span_tests.exe','forge_nearest_pawn_tests.exe']:
+     check('packaged_tested_helper:' + name, sha((PACKAGE/name).read_bytes()) == runtime['input_sha256_after'][name])
+ check('tested_core', sha((BUILD/'libforge_core.a').read_bytes()) == runtime['input_sha256_after']['core_library'])
+-check('eight_distributed_pe_inventory', {p.name for p in PACKAGE.glob('*.exe')} == (expected_built_pe - {'forge.exe','forge_bench.exe'}) | {'forge-6.4.20-ryzen-9850x3d.exe'})
++check('nine_distributed_pe_inventory', {p.name for p in PACKAGE.glob('*.exe')} == (expected_built_pe - {'forge.exe','forge_bench.exe'}) | {'forge-6.4.21-ryzen-9850x3d.exe'})
+ 
+ raw = HERE/'windows-originals.zip'
+ manifest = load(HERE/'windows-originals-SHA256.json')
+ check('bench_freeze_raw_archive_member', 'BENCH-SIGNATURE-FREEZE.json' in manifest)
+ check('runtime_object_raw_archive_members', all(n in manifest for n in ('originals/objects/runtime_psqt_tests.cpp.obj','runtime-object-provenance.json','originals/frozen-source/tests/runtime_psqt_tests.cpp','originals/binaries/forge_runtime_psqt_tests.exe')))
+ check('pawn_object_raw_archive_members',all(n in manifest for n in ('originals/objects/pawn_span_tests.cpp.obj','pawn-object-provenance.json','originals/frozen-source/tests/pawn_span_tests.cpp','originals/binaries/forge_pawn_span_tests.exe')))
++check('nearest_object_raw_archive_members',all(n in manifest for n in ('originals/objects/nearest_pawn_tests.cpp.obj','nearest-object-provenance.json','originals/frozen-source/tests/nearest_pawn_tests.cpp','originals/binaries/forge_nearest_pawn_tests.exe')))
+ with zipfile.ZipFile(raw) as z:
+     archive_safety(z)
+     check('raw_exact_inventory', set(z.namelist()) == set(manifest) | {'windows-originals-SHA256.json'})
+@@ -259,6 +269,15 @@
+ check('pawn_object_tested_pe_identity',pawn_provenance['tested_pe_sha256']==runtime['input_sha256_after']['forge_pawn_span_tests.exe'])
+ check('pawn_object_compile_identity',len(pawn_records)==1 and pawn_provenance['compile_records']==pawn_records and pawn_records[0]['file']==str(SOURCE/'tests/pawn_span_tests.cpp') and 'CMakeFiles/forge_pawn_span_tests.dir/tests/pawn_span_tests.cpp.obj' in pawn_records[0]['command'])
+ check('pawn_constexpr_count_recorded',pawn_provenance['constexpr_assertions']==3)
++nearest_object=BUILD/'CMakeFiles/forge_nearest_pawn_tests.dir/tests/nearest_pawn_tests.cpp.obj'
++nearest_copy=HERE/'originals/objects/nearest_pawn_tests.cpp.obj'
++nearest_provenance=load(HERE/'nearest-object-provenance.json')
++nearest_records=[r for r in commands if r['file'].endswith('/tests/nearest_pawn_tests.cpp')]
++check('nearest_actual_object_retained',nearest_object.read_bytes()==nearest_copy.read_bytes() and sha(nearest_object.read_bytes())==nearest_provenance['object_sha256'])
++check('nearest_object_source_identity',nearest_provenance['nearest_test_source_sha256']==source_hashes['tests/nearest_pawn_tests.cpp'])
++check('nearest_object_tested_pe_identity',nearest_provenance['tested_pe_sha256']==runtime['input_sha256_after']['forge_nearest_pawn_tests.exe'])
++check('nearest_object_compile_identity',len(nearest_records)==1 and nearest_provenance['compile_records']==nearest_records and nearest_records[0]['file']==str(SOURCE/'tests/nearest_pawn_tests.cpp') and 'CMakeFiles/forge_nearest_pawn_tests.dir/tests/nearest_pawn_tests.cpp.obj' in nearest_records[0]['command'])
++check('nearest_constexpr_count_recorded',nearest_provenance['constexpr_assertions']==6)
+ for row in commands:
+     text = row['command']
+     check('strict_compiler_flags:' + row['file'], all(s in text for s in ['-march=znver5', '-mtune=znver5', '-O3', '-DNDEBUG', '-std=gnu++20', '-fno-fast-math', '-ffp-contract=off']) and '-ffast-math' not in text and '-flto' not in text)
+@@ -268,8 +287,8 @@
+ check('avx2_instructions', all(re.search(expr, disassembly) for expr in [r'v(?:max|min)ps[^\n]*ymm', r'vmulps[^\n]*ymm', r'vaddps[^\n]*ymm']))
+ check('no_fused_operations', re.search(r'\bv(?:fmadd|fmsub|fnmadd|fnmsub)\w*\b', disassembly) is None)
+ check('output_layer_checker_rc0', load(HERE/'output-layer-checker.json')['exit_code'] == 0)
+-before = load(HERE/'parent6419-preservation-before.json')
+-check('parent19_preservation_inventory', len(before) == load(HERE/'PROTOCOL.json')['preserved_parent_files'])
++before = load(HERE/'parent6420-preservation-before.json')
++check('parent20_preservation_inventory', len(before) == load(HERE/'PROTOCOL.json')['preserved_parent_files'])
+ for name, digest in before.items():
+     check('parent_preserved:' + name, sha(Path(name).read_bytes()) == digest)
+ crlf_logs = [p.name for p in (HERE/'runtime-attempt1').glob('*stdout.log') if b'\r\n' in p.read_bytes()]
+@@ -281,44 +300,44 @@
+ claim_text = ' '.join(readme.lower().split())
+ check('readme_scope', all(term in claim_text for term in ('no measured','speed','nps','elo improvement','native windows/physical ryzen','stockfish superiority','is established')))
+ check('geometry_scope_honest', provenance.get('board_nnue_network_replacement_unchanged') is True and provenance.get('evaluation_implementation_changed') is True and provenance.get('intended_eval_search_parity') is True and 'evaluation_network_replacement_unchanged' not in provenance)
+-check('pawn_fill_hypothesis_explicit',all(term in provenance.get('search_policy_change','').lower() for term in ('pawn-span geometry fill','exact19 evaluation and search','no policy/tuning change','native differential evidence remains separate')))
+-check('native_gates_separate_explicit', re.search(r'native\s*20 gates',claim_text) is not None and all(term in claim_text for term in ('differential','reported separately')))
++check('nearest_geometry_hypothesis_explicit',all(term in provenance.get('search_policy_change','').lower() for term in ('nearest-pawn distance geometry','exact20 evaluation and search','no policy/tuning change','native differential evidence remains separate')))
++check('native_gates_separate_explicit', re.search(r'native\s*21 gates',claim_text) is not None and all(term in claim_text for term in ('differential','reported separately')))
+ check('unaccepted_candidate_explicit', 'this is an unaccepted candidate' in claim_text)
+ check('parent16_original_tsan_failure_qualified', all(term in claim_text for term in ('6.4.16','tsan')) and re.search(r'failed\s*8/9',claim_text) is not None and 'FAILED 8/9' in provenance['native_gate_status'])
+ check('strength_acceptance_not_inherited', provenance.get('search_change_accepted') is False and provenance.get('known_bug_repair') is False)
+-check('implementation_changes_declared', all(term in claim_text for term in ('bitboard.hpp','eval.cpp change','board, nnue source/headers/weights','all earlier tests remain unchanged')))
+-check('runtime_and_pawn_objects_declared','both runtime and pawn test objects' in claim_text)
+-check('equal_signature_not_speed_claim', 'expected exact parent19 signature352313; no time/nps comparison' in provenance['bench_scope'].lower())
+-
+-report = {'status':'passed', 'audited_utc':datetime.datetime.now(datetime.timezone.utc).isoformat(), 'auditor':'prepared read-only Windows20 artifact auditor; runtime invocation recorded separately', 'source_and_tests_commit':COMMIT, 'parent_source_commit':PARENT, 'engine_execution_during_audit':False, 'new_build_during_audit':False, 'check_count':len(checks), 'checks':checks, 'declared_export_changes':sorted(changed_all), 'bench_policy':'Preregistered Windows19 same-platform signature352313 required before packaging; no timing/NPS or Elo inference', 'bench_signature_freeze':freeze, 'native_gate_status_not_asserted':True, 'parent16_original_tsan_failure_qualification_retained':True, 'bench11_nodes':runtime['bench11_nodes'], 'correction_history_checks':correction_checks, 'correction_history_failures':0, 'pawn_span_checks':37320,'pawn_span_failures':0,'pawn_constexpr_assertions':3,'pawn_object_sha256':pawn_provenance['object_sha256'],'runtime_psqt_checks':347, 'runtime_psqt_failures':0, 'runtime_object_sha256':object_provenance['object_sha256'], 'source_files':len(source_hashes), 'release_members':release_members, 'release_sha_entries':len(sums), 'artifact':str(ARCHIVE.relative_to(ROOT)), 'artifact_bytes':ARCHIVE.stat().st_size, 'artifact_sha256':sha(ARCHIVE.read_bytes()), 'raw_files':len(manifest), 'raw_members':len(manifest)+1, 'raw_sha256':sha(raw.read_bytes()), 'raw_bytes':raw.stat().st_size, 'engine_sha256':runtime['input_sha256_after']['forge.exe'], 'core_sha256':runtime['input_sha256_after']['core_library'], 'pe_imports':imports, 'parent_preserved_files':len(before), 'crlf_stdout_logs':crlf_logs, 'scope':'Bounded Windows/Wine correctness and artifact provenance. No speed, NPS, Elo, native Windows, physical Ryzen or Stockfish superiority result.'}
++check('implementation_changes_declared', all(term in claim_text for term in ('bitboard.hpp and eval.cpp change','board, nnue source/headers/weights','all earlier tests remain unchanged')))
++check('all_three_test_objects_declared','runtime/pawn/nearest test objects' in claim_text)
++check('equal_signature_not_speed_claim', 'expected exact parent20 signature 352313; no time/nps comparison' in provenance['bench_scope'].lower())
++
++report = {'status':'passed', 'audited_utc':datetime.datetime.now(datetime.timezone.utc).isoformat(), 'auditor':'prepared read-only Windows21 artifact auditor; runtime invocation recorded separately', 'source_and_tests_commit':COMMIT, 'parent_source_commit':PARENT, 'engine_execution_during_audit':False, 'new_build_during_audit':False, 'check_count':len(checks), 'checks':checks, 'declared_export_changes':sorted(changed_all), 'bench_policy':'Preregistered Windows20 same-platform signature352313 required before packaging; no timing/NPS or Elo inference', 'bench_signature_freeze':freeze, 'native_gate_status_not_asserted':True, 'parent16_original_tsan_failure_qualification_retained':True, 'bench11_nodes':runtime['bench11_nodes'], 'correction_history_checks':correction_checks, 'correction_history_failures':0, 'nearest_pawn_checks':791680,'nearest_pawn_sets':395840,'nearest_pawn_failures':0,'nearest_constexpr_assertions':6,'nearest_object_sha256':nearest_provenance['object_sha256'],'pawn_span_checks':37320,'pawn_span_failures':0,'pawn_constexpr_assertions':3,'pawn_object_sha256':pawn_provenance['object_sha256'],'runtime_psqt_checks':347, 'runtime_psqt_failures':0, 'runtime_object_sha256':object_provenance['object_sha256'], 'source_files':len(source_hashes), 'release_members':release_members, 'release_sha_entries':len(sums), 'artifact':str(ARCHIVE.relative_to(ROOT)), 'artifact_bytes':ARCHIVE.stat().st_size, 'artifact_sha256':sha(ARCHIVE.read_bytes()), 'raw_files':len(manifest), 'raw_members':len(manifest)+1, 'raw_sha256':sha(raw.read_bytes()), 'raw_bytes':raw.stat().st_size, 'engine_sha256':runtime['input_sha256_after']['forge.exe'], 'core_sha256':runtime['input_sha256_after']['core_library'], 'pe_imports':imports, 'parent_preserved_files':len(before), 'crlf_stdout_logs':crlf_logs, 'scope':'Bounded Windows/Wine correctness and artifact provenance. No speed, NPS, Elo, native Windows, physical Ryzen or Stockfish superiority result.'}
+ (HERE/'independent-audit.json').write_text(json.dumps(report,indent=2)+'\n')
+-(HERE/'independent-audit.md').write_text(f'''# Independent Windows 6.4.20 artifact audit
+-
+-All **{len(checks)} checks passed** for frozen source `{COMMIT}`, parent `{PARENT}`.
+-The audit ran no engine and performed no rebuild. {len(source_hashes)} source files
+-match frozen Git and root-source-gate bytes. The five declared export changes are
+-CMake/UCI version metadata, bitboard.hpp, eval.cpp and the new pawn-span test.
+-Board, NNUE source/weights, search, parameters and all old tests remain unchanged.
+-
+-The package has {release_members} verified members and {len(sums)} checksum entries;
+-all nine built PEs and eight shipped PEs match their tested bytes and have AMD64
+-PE32+/system-CRT imports only. The actual static core and both runtime/pawn test
+-objects match original source, PE and compile identities. All {len(manifest)} raw
+-originals and all {len(before)} protected Windows 19 files retain exact bytes and hashes.
+-
+-Original logs show eleven Wine checks, 37,320 pawn-span checks, three compiled
+-constexpr assertions, 347 runtime PSQT and 54 correction checks, core/perft, eight TT groups,
+-rule50, 18,947 legal witnesses, UCI/ponder, five OwnBook transitions and the exact
+-preregistered parent 352313 signature. Strict Zen5 Release/static/noLTO/noFMA flags,
+-AVX2 instructions and retained raw CRLF logs agree with original records.
++(HERE/'independent-audit.md').write_text(f'''# Independent Windows 6.4.21 artifact audit
++
++All **{len(checks)} checks passed** for source `{COMMIT}`, parent `{PARENT}`.
++No engine or rebuild ran. All {len(source_hashes)} source files match frozen Git
++and the root proof whose byte hash is explicitly pinned to root authorization.
++The five changes are CMake/UCI metadata, bitboard.hpp, eval.cpp and new nearest-pawn
++tests; all old tests, Board, NNUE, search and evaluation parameters are unchanged.
++
++The ZIP has {release_members} safe verified members and {len(sums)} checksum entries.
++All ten built and nine shipped PEs match tested bytes and system-CRT AMD64 PE32+
++requirements. Core and all runtime/pawn/nearest object/source/PE/compile identities
++match originals. All {len(manifest)} raw files and {len(before)} protected Windows 20
++files retain exact bytes/hashes, including original CRLF stream bytes.
++
++Twelve Wine checks passed with 791680 nearest comparisons across 395840 sets,
++six nearest constexpr assertions, 37320 pawn-span/three constexpr assertions,
++347 runtime PSQT, 54 correction, 8 TT groups, rule50, 18947 legal comparisons,
++UCI/ponder, 5 OwnBook transitions and exact preregistered 352313 signature. Strict
++Zen5 C++20 Release/static j1/noLTO/noFMA and AVX2 records agree with provenance.
+ 
+ ZIP SHA256: `{report['artifact_sha256']}`.
+ Engine SHA256: `{report['engine_sha256']}`.
+ Raw SHA256: `{report['raw_sha256']}`.
+ 
+-This unaccepted candidate intends exact geometry/evaluation/search parity. Native 20
+-qualification is separate. Original 6.4.16 TSan FAILED 8/9 remains qualified. No speed,
+-NPS, Elo, native Windows/physical Ryzen or Stockfish superiority is established.
++This is bounded Windows/Wine artifact correctness only. Native 21 qualification
++is separate; original 6.4.16 TSan FAILED 8/9 remains qualified. No 21 speed, NPS,
++Elo, native Windows/physical Ryzen or Stockfish superiority result is established.
+ ''')
+ 
+ print(json.dumps({k:report[k] for k in ['status','check_count','source_files','release_members','release_sha_entries','raw_files','artifact_sha256','engine_sha256','parent_preserved_files']},indent=2))
