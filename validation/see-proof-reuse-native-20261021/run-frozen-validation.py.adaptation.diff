@@ -1,0 +1,70 @@
+--- /workspace/dwqww/validation/tt-refresh-native-20261021/run-frozen-validation.py
++++ /workspace/dwqww/validation/see-proof-reuse-native-20261021/run-frozen-validation.py
+@@ -20,9 +20,9 @@
+ REPO=Path("/workspace/dwqww")
+ HERE=Path(__file__).resolve().parent
+ REV=None # Read only from explicit root clearance after the source is frozen.
+-SOURCE=Path("/workspace/.cloud-setup/tt-refresh-native-source")
+-CMAKE="/workspace/.cloud-setup/venv/bin/cmake"
+-CTEST="/workspace/.cloud-setup/venv/bin/ctest"
++SOURCE=Path("/workspace/.cloud-setup/see-proof-reuse-native-source")
++CMAKE="/workspace/.cloud-setup/venv/lib/python3.12/site-packages/cmake/data/bin/cmake"
++CTEST="/workspace/.cloud-setup/venv/lib/python3.12/site-packages/cmake/data/bin/ctest"
+ FLAGS="-march=x86-64-v3 -mtune=znver5 -fno-fast-math -ffp-contract=off -fno-lto"
+ ARTIFACT_NAMES=['forge', 'forge_tests', 'forge_tt_tests', 'forge_rule50_tests', 'forge_legal_witness_tests', 'forge_correction_history_tests', 'forge_runtime_psqt_tests', 'forge_pawn_span_tests', 'forge_nearest_pawn_tests', 'forge_pv_metadata_tests', 'forge_bench', 'libforge_core.a', 'CMakeFiles/forge_runtime_psqt_tests.dir/tests/runtime_psqt_tests.cpp.o', 'CMakeFiles/forge_pawn_span_tests.dir/tests/pawn_span_tests.cpp.o', 'CMakeFiles/forge_core.dir/src/nnue.cpp.o', 'CMakeFiles/forge_nearest_pawn_tests.dir/tests/nearest_pawn_tests.cpp.o', 'CMakeFiles/forge_pv_metadata_tests.dir/tests/pv_metadata_tests.cpp.o']
+ SANITIZER_DIAGNOSTIC=re.compile(rb"AddressSanitizer|LeakSanitizer|UndefinedBehaviorSanitizer|ThreadSanitizer|runtime error:",re.I)
+@@ -40,15 +40,17 @@
+ assert isinstance(clear.get('expected_runtime_psqt_checks'),int) and clear['expected_runtime_psqt_checks']>0, 'Root-frozen permanent test check count required'
+ assert isinstance(clear.get('expected_pawn_span_checks'),int) and clear['expected_pawn_span_checks']>0, 'Root-frozen pawn-span test check count required'
+ assert clear.get('expected_nearest_checks')==791680 and clear.get('expected_nearest_sets')==395840 and clear.get('expected_nearest_constexpr_assertions')==6, 'Frozen nearest-square schema required'
+-assert clear.get('expected_pv_metadata_assertions')==56 and clear.get('exact_search_parity_required') is False and clear.get('observational_cold_warm_searches')==0, 'Root-approved bounded PV regression protocol required'
++assert clear.get('expected_pv_metadata_assertions')==56 and clear.get('exact_search_parity_required') is True and clear.get('expected_cold_warm_searches')==56, 'Root-approved bounded PV regression protocol required'
++assert clear.get('expected_see_threshold_assertions')==504 and clear.get('expected_see_threshold_success_line')=='SEE threshold contract: assertions 504 failures 0', 'Frozen SEE monotonic contract schema required'
+ assert clear.get('source_files')==77 and clear.get('expected_ctest_per_profile')==14, 'Exact77-source/14-suite protocol required'
+-assert clear.get('required_version')=='6.4.23' and clear.get('baseline_source_commit')=='ff2e269c6058be84456e3b98344826d17b0056eb', 'Actual23 and parent22 source protocol required'
++assert clear.get('required_version')=='6.4.24' and clear.get('baseline_source_commit')=='1d3ed25bea2c8b781f7ee5a178af0f66061b3984', 'Actual24 and parent23 source protocol required'
+ assert type(clear.get('expected_tt_groups')) is int and clear['expected_tt_groups']>0 and isinstance(clear.get('expected_tt_group_success_line'),str), 'Root-frozen actual TT test schema required'
+-assert clear.get('benchmark_signature_mode')=='FIRST_CAPTURE_EXCLUSIVE_FREEZE' and clear.get('expected_bench11_nodes') is None, 'Unknown23 benchmark must be captured once, not inherited'
++assert clear.get('benchmark_signature_mode')=='FIRST_CAPTURE_EXCLUSIVE_FREEZE' and clear.get('expected_bench11_nodes') is None, 'Unknown24 benchmark must be captured once, not inherited'
+ root_source=json.loads((HERE/'ROOT-FROZEN-SOURCE-GATES.json').read_text())
+ assert root_source['source_commit']==REV and len(root_source['inputs'])==77, 'Root source gate required'
+ assert root_source['inputs']['tests/pv_metadata_tests.cpp']==clear['expected_pv_metadata_test_source_sha256']=='8000b717a298c4c8bb637752fcc57a0ce485110a12edc4a505f3d0452620bd1e', 'Exact RED-tested permanent PV regression source required'
+ assert root_source['inputs']['tests/tt_coherence_tests.cpp']==clear['expected_tt_test_source_sha256'] and re.fullmatch(r'[0-9a-f]{64}',clear['expected_tt_test_source_sha256']), 'Exact root-frozen TT regression source required'
++assert root_source['inputs']['tests/tests.cpp']==clear['expected_core_tests_source_sha256'] and re.fullmatch(r'[0-9a-f]{64}',clear['expected_core_tests_source_sha256']), 'Exact monotonic-contract core test source required'
+ prior={'asan':'release','tsan':'asan'}.get(profile)
+ if prior:
+     previous=json.loads((HERE/('frozen-'+prior+'-attempt1/summary.json')).read_text())
+@@ -56,11 +58,13 @@
+ if profile=='asan':
+     signature=json.loads((HERE/'release-signature-wrapper-attempt1/summary.json').read_text())
+     frozen_signature=json.loads((HERE/'BENCH-SIGNATURE-FREEZE.json').read_text())
++    parity=json.loads((HERE/'release-parity-wrapper-attempt1/summary.json').read_text())
++    assert parity['status']=='PASS' and parity['source_commit']==REV and len(parity['parity_comparisons'])==14
+     assert signature['status']=='PASS' and frozen_signature['source_commit']==REV and frozen_signature['status']=='FROZEN_FIRST_ACTUAL_RELEASE_BENCH11'
+ assert ctypes.CDLL(None,use_errno=True).prctl(36,1,0,0,0)==0
+ OUT=HERE/("frozen-"+profile+"-attempt1")
+ OUT.mkdir(exist_ok=False)
+-BUILD=Path("/workspace/.cloud-setup/tt-refresh-native-"+profile)
++BUILD=Path("/workspace/.cloud-setup/see-proof-reuse-native-"+profile)
+ if BUILD.exists(): raise SystemExit("Refusing existing build directory: "+str(BUILD))
+ archive=subprocess.check_output(["git","archive",REV,"CMakeLists.txt","LICENSE","src","include","tests","bench","tools"],cwd=REPO)
+ expected_tar=HERE/("frozen-source-"+REV[:7]+".tar")
+@@ -150,6 +154,9 @@
+     summary['sanitizer_diagnostic_file_presence']={str(f):f.is_file() for f in diagnostic_files}
+     summary['sanitizer_diagnostic_scan']={str(f):{'sha256':digest(f),'matches':[m.group().decode('utf-8','replace') for m in SANITIZER_DIAGNOSTIC.finditer(f.read_bytes())]} for f in diagnostic_files if f.is_file()}
+     log=(BUILD/'Testing/Temporary/LastTest.log').read_text()
++    core_block=re.search(r'(?ms)^\d+/\d+ Testing: forge_tests\n.*?(?=^\d+/\d+ Testing: |\Z)',log)
++    summary['see_threshold_contract_actual_summaries']=re.findall(r'^SEE threshold contract: assertions (\d+) failures (\d+)\s*$',core_block.group() if core_block else '',re.M)
++    summary['core_tests_source_sha256']=digest(SOURCE/'tests/tests.cpp')
+     tt_block=re.search(r'(?ms)^\d+/\d+ Testing: forge_tt_tests\n.*?(?=^\d+/\d+ Testing: |\Z)',log)
+     summary['tt_coherence_log_block_present']=tt_block is not None
+     summary['tt_coherence_contract_actual_groups']=re.findall(r'^All(\d+) TT coherence/regression groups passed\s*$',tt_block.group() if tt_block else '',re.M)
+@@ -172,6 +179,8 @@
+     write(OUT/'summary.json',summary)
+     assert all(summary['sanitizer_diagnostic_file_presence'].values()), 'Expected original diagnostic files missing'
+     assert not any(v['matches'] for v in summary['sanitizer_diagnostic_scan'].values())
++    assert summary['see_threshold_contract_actual_summaries']==[(str(clear['expected_see_threshold_assertions']),'0')]
++    assert summary['core_tests_source_sha256']==clear['expected_core_tests_source_sha256']
+     assert summary['tt_coherence_contract_actual_groups']==[str(clear['expected_tt_groups'])]
+     assert summary['tt_coherence_actual_success_lines']==[clear['expected_tt_group_success_line']]
+     assert summary['runtime_psqt_contract_actual_summaries']==[(str(clear['expected_runtime_psqt_checks']),'0')]

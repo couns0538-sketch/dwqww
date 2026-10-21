@@ -1,0 +1,422 @@
+--- /workspace/dwqww/validation/tt-refresh-native-20261021/independent-audit.py
++++ /workspace/dwqww/validation/see-proof-reuse-native-20261021/independent-audit.py
+@@ -1,5 +1,5 @@
+ #!/usr/bin/env python3
+-"""Audit saved TT-refresh search-policy evidence; never run engines, compilers or tests.
++"""Audit saved24 pure SEE proof-reuse/parity evidence; never run engines, compilers or tests.
+ 
+ Every check is appended and flushed to a new facts JSONL before the final gate.
+ Independent stages continue after a discrepancy when their inputs remain readable.
+@@ -18,15 +18,15 @@
+ import tarfile
+ 
+ ROOT = Path('/workspace/dwqww')
+-HERE = ROOT / 'validation/tt-refresh-native-20261021'
+-SOURCE = Path('/workspace/.cloud-setup/tt-refresh-native-source')
++HERE = ROOT / 'validation/see-proof-reuse-native-20261021'
++SOURCE = Path('/workspace/.cloud-setup/see-proof-reuse-native-source')
+ REV = None  # Set only in main after explicit root clearance for the frozen source.
+-PARENT_REV = 'ff2e269c6058be84456e3b98344826d17b0056eb'
++PARENT_REV = '1d3ed25bea2c8b781f7ee5a178af0f66061b3984'
+ PV_RED_REV = '2e151d019bc58dff2ab4e76e99ef99516af8d222'
+-ALLOWED_SOURCE_CHANGES = {'CMakeLists.txt', 'src/uci.cpp', 'src/search.cpp', 'tests/tt_coherence_tests.cpp'}
++ALLOWED_SOURCE_CHANGES = {'CMakeLists.txt', 'src/uci.cpp', 'src/search.cpp', 'tests/tests.cpp'}
+ BASE = Path('/workspace/.cloud-setup')
+-CMAKE = '/workspace/.cloud-setup/venv/bin/cmake'
+-CTEST = '/workspace/.cloud-setup/venv/bin/ctest'
++CMAKE = '/workspace/.cloud-setup/venv/lib/python3.12/site-packages/cmake/data/bin/cmake'
++CTEST = '/workspace/.cloud-setup/venv/lib/python3.12/site-packages/cmake/data/bin/ctest'
+ PYTHON = '/workspace/.cloud-setup/venv/bin/python'
+ CXX = '/usr/bin/g++-14'
+ BINARY_NAMES = ['forge', 'forge_tests', 'forge_tt_tests', 'forge_rule50_tests',
+@@ -85,7 +85,7 @@
+ 
+ def frozen_source():
+     clear = load(HERE / 'ROOT-CLEARANCE.json')
+-    record('exact_root_clearance', clear['authorized'] is True and clear['source_commit'] == REV and clear['baseline_source_commit'] == PARENT_REV and clear['required_version'] == '6.4.23' and clear['expected_runtime_psqt_checks'] == 347 and clear['expected_pawn_span_checks'] == 37320 and clear['expected_nearest_checks'] == 791680 and clear['expected_nearest_sets'] == 395840 and clear['expected_nearest_constexpr_assertions'] == 6 and clear['expected_pv_metadata_assertions'] == 56 and clear['expected_pv_metadata_test_source_sha256'] == '8000b717a298c4c8bb637752fcc57a0ce485110a12edc4a505f3d0452620bd1e' and clear['exact_search_parity_required'] is False and clear['observational_cold_warm_searches'] == 0 and clear['source_files'] == 77 and clear['expected_ctest_per_profile'] == 14 and clear['expected_bench11_nodes'] is None and clear['benchmark_signature_mode'] == 'FIRST_CAPTURE_EXCLUSIVE_FREEZE' and clear['strict_fp'] is True and clear['no_lto'] is True and clear['profiles_sequential'] is True and clear['build_jobs'] == 2 and clear['default_tsan_options'] == 'halt_on_error=1:exitcode=66' and clear['suppression_or_deadlock_detector_disabled'] is False and clear['performance_or_strength_inference'] is False)
++    record('exact_root_clearance', clear['authorized'] is True and clear['source_commit'] == REV and clear['baseline_source_commit'] == PARENT_REV and clear['required_version'] == '6.4.24' and clear['expected_runtime_psqt_checks'] == 347 and clear['expected_pawn_span_checks'] == 37320 and clear['expected_nearest_checks'] == 791680 and clear['expected_nearest_sets'] == 395840 and clear['expected_nearest_constexpr_assertions'] == 6 and clear['expected_pv_metadata_assertions'] == 56 and clear['expected_pv_metadata_test_source_sha256'] == '8000b717a298c4c8bb637752fcc57a0ce485110a12edc4a505f3d0452620bd1e' and clear['exact_search_parity_required'] is True and clear['expected_cold_warm_searches'] == 56 and clear['source_files'] == 77 and clear['expected_ctest_per_profile'] == 14 and clear['expected_bench11_nodes'] is None and clear['benchmark_signature_mode'] == 'FIRST_CAPTURE_EXCLUSIVE_FREEZE' and clear['strict_fp'] is True and clear['no_lto'] is True and clear['profiles_sequential'] is True and clear['build_jobs'] == 2 and clear['default_tsan_options'] == 'halt_on_error=1:exitcode=66' and clear['suppression_or_deadlock_detector_disabled'] is False and clear['performance_or_strength_inference'] is False)
+     data = git('archive', REV, 'CMakeLists.txt', 'LICENSE', 'src', 'include', 'tests', 'bench', 'tools')
+     expected = {}
+     with tarfile.open(fileobj=io.BytesIO(data)) as archive:
+@@ -96,6 +96,8 @@
+     record('exact_frozen_source_git_tar', (HERE / ('frozen-source-' + REV[:7] + '.tar')).read_bytes() == data)
+     record('exact77_source_git_export_manifest', len(expected) == 77 and expected == actual == load(HERE / ('frozen-source-' + REV[:7] + '-files.json')))
+     context['source'] = expected
++    record('root_frozen_504_SEE_contract_schema', clear['expected_see_threshold_assertions']==504 and clear['expected_see_threshold_success_line']=='SEE threshold contract: assertions 504 failures 0')
++    record('root_frozen_monotonic_core_test_source', expected['tests/tests.cpp'] == clear['expected_core_tests_source_sha256'])
+     record('root_frozen_tt_regression_source', expected['tests/tt_coherence_tests.cpp'] == clear['expected_tt_test_source_sha256'])
+     root_gate = load(HERE / 'ROOT-FROZEN-SOURCE-GATES.json')
+     record('root_frozen_source_gate_identity', root_gate['source_commit'] == REV and root_gate['baseline_commit'] == PARENT_REV and root_gate['inputs'] == expected and set(root_gate['unchanged_boundaries']) == set(expected) - ALLOWED_SOURCE_CHANGES)
+@@ -125,35 +127,6 @@
+     return {'source_commit': REV, 'source_files': len(expected), 'source_tar_sha256': sha(data), 'runtime_psqt_checks': 347, 'pawn_span_checks': clear['expected_pawn_span_checks'], 'nearest_pawn_checks': 791680, 'nearest_pawn_sets': 395840, 'nearest_constexpr_assertions': 6, 'correction_history_checks': 54, 'historical_pv_red_source_commit': PV_RED_REV, 'historical_pv_red_saved_assertions': 56, 'historical_pv_red_saved_failures': 2, 'parent_red_executed_during_audit': False}
+ 
+ 
+-def parent_policy_contrast():
+-    directory = ROOT / 'validation/tt-refresh-20261021/parent-policy-red-attempt1'
+-    result = load(directory / 'RESULT.json')
+-    protocol = load(HERE / 'RELEASE-SIGNATURE-PROTOCOL.json')
+-    record('parent22_policy_contrast_protocol_path', protocol['parent_policy_contrast_receipt_path'] == str(directory / 'RESULT.json'))
+-    expected_proof_sha256 = {'RESULT.json': '8944b0d74a0fa92c0d886e78a7baa6f5b126033cacd0c5eaebe6af41527ee924', 'actual-parent-policy-red.stderr': '3aafc59461936e750dcc442cf7414fce305190a46d8a820fa61555c40a746114', 'actual-parent-policy-red.stdout': 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855', 'compile.stderr': 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855', 'compile.stdout': 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855', 'tt_coherence_tests.cpp': 'cc2fe3e9fb0059f409876345e8cfb3c008ede401751a4dad76b022f743238fd5'}
+-    record('parent22_policy_contrast_all_saved_files', {name: digest(directory / name) for name in expected_proof_sha256} == expected_proof_sha256)
+-    record('parent22_policy_contrast_is_expected_policy_not_bug', result['status'] == 'PASS_EXPECTED_OLD_POLICY_CONTRAST' and result['baseline_source_commit'] == PARENT_REV and result['purpose'] == 'Expected policy contrast, not a claim of a parent correctness defect')
+-    expected_inputs = {'core': BASE / 'pv-metadata-native-release/libforge_core.a', 'new_policy_test_source': ROOT / 'tests/tt_coherence_tests.cpp', 'parent_header': BASE / 'pv-metadata-native-source/include/forge/search.hpp', 'driver': ROOT / 'validation/tt-refresh-20261021/run-parent-policy-red-once.py'}
+-    current_inputs = {name: digest(path) for name, path in expected_inputs.items()}
+-    record('parent22_policy_contrast_actual_input_paths_and_bytes', result['inputs'] == {name: str(path) for name, path in expected_inputs.items()} and current_inputs == result['input_sha256_before'] == result['input_sha256_after'])
+-    record('parent22_policy_contrast_source_and_core_pins', current_inputs['new_policy_test_source'] == digest(directory / 'tt_coherence_tests.cpp') == context['source']['tests/tt_coherence_tests.cpp'] == context['clear']['expected_tt_test_source_sha256'] and current_inputs['core'] == '374275cc7f3d973204747e8c0befae30d0a0c8f495a7f36dda96fa275fe720b6' and current_inputs['parent_header'] == '3d9208de205b4bd2f8e82f6c64137be253eb51aa0a418d5e39e1c06392e95eb9' and current_inputs['driver'] == '2df925d752325fbd9d3341a8aa9fc4467c7241b27fefb6a36b3b89ebc227f06a')
+-    executable = BASE / 'tt-refresh-parent-policy-red/forge_tt_policy_red'
+-    expected_compile = [CXX, '-std=c++20', '-O3', '-DNDEBUG', *FLAGS, '-I/workspace/.cloud-setup/pv-metadata-native-source/include', str(directory / 'tt_coherence_tests.cpp'), str(expected_inputs['core']), '-pthread', '-o', str(executable)]
+-    steps = result['steps']
+-    record('parent22_policy_contrast_exact_two_commands', [row['label'] for row in steps] == ['compile', 'actual-parent-policy-red'] and [row['command'] for row in steps] == [expected_compile, [str(executable)]] and [row['timeout_seconds'] for row in steps] == [120, 30] and [row['expected_exit'] for row in steps] == [0, 1] and [row['exit_code'] for row in steps] == [0, 1] and all(row['error'] is None and row['timed_out'] is False for row in steps))
+-    for row in steps:
+-        streams('parent22_policy_contrast:' + row['label'], directory, row, '')
+-        cleanup_fact('parent22_policy_contrast:' + row['label'], row['cleanup'])
+-    record('parent22_policy_contrast_saved_executable', digest(executable) == result['executable_sha256'])
+-    record('parent22_policy_contrast_exact_first_new_failure', (directory / 'actual-parent-policy-red.stdout').read_bytes() == b'' and (directory / 'actual-parent-policy-red.stderr').read_bytes() == b'FAIL: old occupied hit did not refresh only generation bits\n')
+-    source = (directory / 'tt_coherence_tests.cpp').read_text()
+-    main = source[source.index('int main() {'):]
+-    calls = re.findall(r'^\s*(test_\w+)\(\);', main, re.M)
+-    first_seven = ['test_snapshot_and_current_slot_admission', 'test_delayed_store_keeps_probe_destination', 'test_replacement_ties_age_and_late_changes', 'test_invalid_handles_and_lifecycle', 'test_resize_allocation_failure_preserves_table', 'test_hashfull_current_generation_and_wrap', 'test_score_context_tracks_admitted_payload']
+-    record('parent22_policy_contrast_first_seven_before_first_new_failure', calls[:8] == first_seven + ['test_generation_refresh_payload_and_handles'])
+-    return {'status': result['status'], 'source_commit': PARENT_REV, 'proof_result_sha256': digest(directory / 'RESULT.json'), 'expected_parent_exit': 1, 'first_seven_old_groups_completed_before_new_policy_failure': first_seven, 'first_seven_completion_evidence': 'Derived from pinned sequential test call order and exact first-new-group failure, not separately printed group receipts.', 'parent_correctness_defect_claimed': False, 'parent_test_executed_during_audit': False}
+-
+-
+ def cleanup_fact(label, value):
+     record('cleanup:' + label, value['no_live_owned_processes'] is True and value.get('unexpected_live_members_after_command') is False and not any(row['state'] != 'Z' for row in value['after']), observed=value)
+     groups.add(value['group_id'])
+@@ -193,7 +166,7 @@
+ 
+ def audit_profile(profile):
+     directory = HERE / ('frozen-' + profile + '-attempt1')
+-    build = BASE / ('tt-refresh-native-' + profile)
++    build = BASE / ('see-proof-reuse-native-' + profile)
+     summary = load(directory / 'summary.json')
+     record('profile_pass:' + profile, summary['status'] == 'PASS' and summary['source_commit'] == REV, observed_status=summary['status'])
+     record('profile_tar_identity:' + profile, summary['source_archive_sha256'] == digest(HERE / ('frozen-source-' + REV[:7] + '.tar')))
+@@ -236,6 +209,9 @@
+     block = re.search(r'\n\d+/14 Testing: forge_correction_history_tests\n(.*?)(?=\n\d+/14 Testing:|\Z)', last, re.S)
+     correction = block[1] if block else ''
+     record('actual54_correction_checks:' + profile, re.findall(r'^SUMMARY checks=(\d+) failures=(\d+)\s*$', correction, re.M) == [('54', '0')] and len(re.findall(r'^PASS ', correction, re.M)) == 54 and not re.search(r'^FAIL ', correction, re.M))
++    core_block = re.search(r'(?ms)^\d+/\d+ Testing: forge_tests\n.*?(?=^\d+/\d+ Testing: |\Z)', last)
++    core_text = core_block.group() if core_block else ''
++    record('actual504_SEE_threshold_contract:' + profile, re.findall(r'^SEE threshold contract: assertions (\d+) failures (\d+)\s*$',core_text,re.M)==[('504','0')] and summary['see_threshold_contract_actual_summaries']==[['504','0']] and summary['core_tests_source_sha256']==context['source']['tests/tests.cpp']==context['clear']['expected_core_tests_source_sha256'])
+     tt_block = re.search(r'\n\d+/14 Testing: forge_tt_tests\n(.*?)(?=\n\d+/14 Testing:|\Z)', last, re.S)
+     tt_text = tt_block[1] if tt_block else ''
+     tt_groups = context['clear']['expected_tt_groups']
+@@ -300,28 +276,28 @@
+     protocol = load(protocol_path)
+     clear = context['clear']
+     record('release_signature_wrapper_pass', wrapper['status'] == 'PASS' and wrapper['source_commit'] == REV and wrapper['timing_comparison'] is False)
+-    record('explicit_zero_observer_protocol', protocol['schema'] == 'tt-refresh-release-signature-v1' and protocol['baseline_source_commit'] == PARENT_REV and protocol['exact_parent_search_parity_required'] is False and protocol['observational_cold_warm_searches'] == 0 and clear['exact_search_parity_required'] is False and clear['observational_cold_warm_searches'] == 0 and wrapper['exact_search_parity_required'] is False and wrapper['observational_cold_warm_searches'] == 0)
++    record('explicit_exact56_parity_protocol', protocol['schema'] == 'see-proof-reuse-release-signature-v1' and protocol['baseline_source_commit'] == PARENT_REV and protocol['exact_parent_search_parity_required'] is True and protocol['required_cold_warm_searches'] == 56 and clear['exact_search_parity_required'] is True and clear['expected_cold_warm_searches'] == 56 and wrapper['exact_search_parity_required'] is True and wrapper['expected_cold_warm_searches'] == 56)
+     baseline_source = Path(protocol['baseline_source_root'])
+     parent_data = git('archive', PARENT_REV, 'CMakeLists.txt', 'LICENSE', 'src', 'include', 'tests', 'bench', 'tools')
+     with tarfile.open(fileobj=io.BytesIO(parent_data)) as archive:
+         parent_source = {item.name: sha(archive.extractfile(item).read()) for item in archive.getmembers() if item.isfile()}
+     actual_parent = {p.relative_to(baseline_source).as_posix(): digest(p) for p in baseline_source.rglob('*') if p.is_file()}
+-    record('baseline22_complete_source_preserved', len(parent_source) == 77 and actual_parent == parent_source == wrapper['baseline_source_sha256_before'] == wrapper['baseline_source_sha256_after'])
++    record('baseline23_complete_source_preserved', len(parent_source) == 77 and actual_parent == parent_source == wrapper['baseline_source_sha256_before'] == wrapper['baseline_source_sha256_after'])
+     record('candidate_complete_source_signature_bound', wrapper['source_sha256_before'] == wrapper['source_sha256_after'] == context.get('source'))
+     candidate_source = context.get('source', {})
+-    record('only_root_declared_frozen23_source_changes', set(candidate_source) == set(parent_source) and len(parent_source) == 77 and all(candidate_source[name] == value for name, value in parent_source.items() if name not in ALLOWED_SOURCE_CHANGES))
++    record('only_root_declared_frozen24_source_changes', set(candidate_source) == set(parent_source) and len(parent_source) == 77 and all(candidate_source[name] == value for name, value in parent_source.items() if name not in ALLOWED_SOURCE_CHANGES))
+     paths = {name: Path(value) for name, value in wrapper['input_paths'].items()}
+     release_gate = context['release']
+-    expected_paths = {'candidate/' + name: BASE / 'tt-refresh-native-release' / name for name in BINARY_NAMES}
++    expected_paths = {'candidate/' + name: BASE / 'see-proof-reuse-native-release' / name for name in BINARY_NAMES}
+     expected_paths.update(baseline_engine=Path(protocol['baseline_engine']), baseline_core=Path(protocol['baseline_core']), baseline_nnue_object=Path(protocol['baseline_nnue_object']), release_signature_protocol=protocol_path)
+     expected_paths.update({'baseline_source/' + name: baseline_source / name for name in protocol['protected_nonsearch_source_sha256']})
+     record('exact_release_signature_input_paths', paths == expected_paths)
+     current = {name: digest(path) for name, path in paths.items()}
+     record('all_signature_inputs_preserved', current == wrapper['input_sha256_before'] == wrapper['input_sha256_after'])
+     record('candidate_all17_bound_to_release', len(release_gate['binary_sha256_after']) == 17 and all(current['candidate/' + name] == value for name, value in release_gate['binary_sha256_after'].items()))
+-    record('baseline22_engine_core_pinned', current['baseline_engine'] == protocol['baseline_engine_sha256'] == '7bc7b576a81f453874e424d5372e7a754f64cf6414194e09038db2d217d7e12c' and current['baseline_core'] == protocol['baseline_core_sha256'] == '374275cc7f3d973204747e8c0befae30d0a0c8f495a7f36dda96fa275fe720b6')
+-    record('baseline22_nnue_object_pinned', current['baseline_nnue_object'] == protocol['baseline_nnue_object_sha256'] == 'e8dfc576e6b42ffa4de5d4991d0f3ae7c3e9be7f5a818126c520dee386f6a967')
+-    record('candidate_nnue_object_exact_parent22', current['candidate/CMakeFiles/forge_core.dir/src/nnue.cpp.o'] == current['baseline_nnue_object'])
++    record('baseline23_engine_core_pinned', current['baseline_engine'] == protocol['baseline_engine_sha256'] == '85a3eeaf4c513e1790cb4c2593edb02063cba42d91eb7fc1bd303de026bd2b07' and current['baseline_core'] == protocol['baseline_core_sha256'] == '310ea85577ddd8a4b88479256dbe57fb576a384f24958d46324e82583dbd77c9')
++    record('baseline23_nnue_object_pinned', current['baseline_nnue_object'] == protocol['baseline_nnue_object_sha256'] == 'e8dfc576e6b42ffa4de5d4991d0f3ae7c3e9be7f5a818126c520dee386f6a967')
++    record('candidate_nnue_object_exact_parent23', current['candidate/CMakeFiles/forge_core.dir/src/nnue.cpp.o'] == current['baseline_nnue_object'])
+     protected = protocol['protected_nonsearch_source_sha256']
+     root_gate = load(HERE / 'ROOT-FROZEN-SOURCE-GATES.json')
+     record('protected_nonsearch_boundaries', set(protected).issubset(root_gate['unchanged_boundaries']) and all(candidate_source[name] == parent_source[name] == current['baseline_source/' + name] == value for name, value in protected.items()))
+@@ -329,7 +305,7 @@
+     record('exact_one_signature_step', [row['label'] for row in steps] == ['bench11'])
+     for row in steps:
+         saved = load(directory / 'bench11-command.json')
+-        record('signature_command_facts', {key: value for key, value in row.items() if key != 'label'} == saved and row['command'] == [str(BASE / 'tt-refresh-native-release/forge')] and row['cwd'] == str(ROOT) and row['timeout_seconds'] == 30 and row['exit_code'] == 0 and row['error'] is None and row['timed_out'] is False and row['input_sha256_after'] == current and row['source_sha256_after'] == candidate_source and row['baseline_source_sha256_after'] == parent_source)
++        record('signature_command_facts', {key: value for key, value in row.items() if key != 'label'} == saved and row['command'] == [str(BASE / 'see-proof-reuse-native-release/forge')] and row['cwd'] == str(ROOT) and row['timeout_seconds'] == 30 and row['exit_code'] == 0 and row['error'] is None and row['timed_out'] is False and row['input_sha256_after'] == current and row['source_sha256_after'] == candidate_source and row['baseline_source_sha256_after'] == parent_source)
+         streams('signature:bench11', directory, row, '.bin')
+         cleanup_fact('signature:bench11', row['cleanup'])
+         record('signature_exact_stdin', (directory / 'bench11.stdin.bin').read_bytes() == b'bench 11\nquit\n' and digest(directory / 'bench11.stdin.bin') == row['stdin_sha256'])
+@@ -339,6 +315,7 @@
+     record('one_positive_actual_bench11_signature', signatures == wrapper['actual_bench11_signatures'] and len(signatures) == 1 and signatures[0] > 0)
+     freeze_path = HERE / 'BENCH-SIGNATURE-FREEZE.json'
+     freeze = load(freeze_path)
++    record('observed_first_signature_then_parent_comparison', freeze['nodes'] == protocol['baseline_default_bench11_nodes'] == 292545 and wrapper['parent_signature_comparison_after_capture'] == 'PASS')
+     record('exclusive_bench_signature_freeze_identity', wrapper['bench_signature_freeze_path'] == freeze_path.name and wrapper['bench_signature_freeze_sha256'] == digest(freeze_path))
+     record('frozen_first_actual_bench_source_artifacts', freeze['status'] == 'FROZEN_FIRST_ACTUAL_RELEASE_BENCH11' and freeze['source_commit'] == REV and freeze['release_engine_sha256'] == current['candidate/forge'] and freeze['release_core_sha256'] == current['candidate/libforge_core.a'] and freeze['benchmark_depth'] == 11 and type(freeze['nodes']) is int and freeze['nodes'] > 0 and signatures == [freeze['nodes']] and freeze['signature_processes'] == 1 and freeze['timing_or_elo_inference'] is False)
+     record('frozen_first_actual_bench_original_streams', all(freeze['raw_' + stream + '_sha256'] == digest(directory / ('bench11.' + stream + '.bin')) for stream in ['stdin', 'stdout', 'stderr']))
+@@ -346,7 +323,165 @@
+     record('frozen_first_actual_bench_capture_time', datetime.datetime.fromisoformat(wrapper['started_utc']) <= datetime.datetime.fromisoformat(freeze['captured_utc']) <= datetime.datetime.fromisoformat(wrapper['completed_utc']))
+     record('signature_between_release_and_asan', datetime.datetime.fromisoformat(context['release']['completed_utc']) <= datetime.datetime.fromisoformat(wrapper['started_utc']) <= datetime.datetime.fromisoformat(wrapper['completed_utc']) <= datetime.datetime.fromisoformat(context['asan']['started_utc']))
+     diagnostics = scan_logs('release_signature', [directory / 'bench11.stdout.bin', directory / 'bench11.stderr.bin'])
+-    return {'first_captured_default_bench11_nodes': signatures, 'bench_signature_freeze_sha256': digest(freeze_path), 'signature_processes': len(steps), 'exact_parent_search_parity_required': False, 'observational_cold_warm_searches': 0, 'protected_nonsearch_files': len(protected), 'baseline_complete_source_files': len(parent_source), 'diagnostics': diagnostics}
++    return {'first_captured_default_bench11_nodes': signatures, 'bench_signature_freeze_sha256': digest(freeze_path), 'signature_processes': len(steps), 'exact_parent_search_parity_required': True, 'required_cold_warm_searches': 56, 'protected_nonsearch_files': len(protected), 'baseline_complete_source_files': len(parent_source), 'diagnostics': diagnostics}
++
++def release_parity():
++    import chess
++    directory = HERE / 'release-parity-wrapper-attempt1'
++    output = HERE / 'search-parity-attempt1'
++    wrapper = load(directory / 'summary.json')
++    protocol = load(HERE / 'PARITY-PROTOCOL.json')
++    config = load(output / 'configuration.json')
++    summary = load(output / 'summary.json')
++    record('release_parity_wrapper_pass', wrapper['status'] == 'PASS' and wrapper['source_commit'] == REV and wrapper['no_parent_red'] is True and wrapper['timing_comparison'] is False)
++    record('parity_schema_v1', protocol['schema'] == 'see-proof-reuse-parity-v1' and protocol['candidate_evaluator_file_byte_equality_required'] is False and protocol['parent_red'] is False and protocol['private_worker_crosslink'] is False)
++    cases = [
++        {'name': 'start', 'position': 'startpos', 'depth': 7},
++        {'name': 'kiwipete', 'position': 'fen r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1', 'depth': 6},
++        {'name': 'middlegame', 'position': 'fen r4rk1/1pp1qppp/p1np1n2/8/2B1P1b1/2N2N2/PPP1QPPP/2KR3R w - - 0 10', 'depth': 6},
++        {'name': 'endgame', 'position': 'fen 8/2p5/3p4/KP5r/1R3p1k/8/4P1P1/8 w - - 0 1', 'depth': 7},
++        {'name': 'promotion-white', 'position': 'fen 8/k1P5/2K5/8/8/8/8/8 w - - 0 1', 'depth': 1},
++        {'name': 'promotion-black', 'position': 'fen 8/8/8/8/8/2k5/K1p5/8 b - - 0 1', 'depth': 1},
++        {'name': 'rule50-near95', 'position': 'fen 7k/8/8/8/8/8/8/K6R b - - 95 80', 'depth': 7}]
++    record('parity_exact_preregistered_cases_modes', protocol['cases'] == cases and protocol['nnue_modes'] == ['default', 'disabled'] and protocol['threads'] == 1 and protocol['hash_mib'] == 32 and protocol['ownbook'] is False and protocol['ponder'] is False and protocol['total_depth_searches'] == 56 and protocol['exact_comparison_excludes'] == ['time', 'nps'])
++    baseline_source = Path(protocol['baseline_public_source_root'])
++    parent_data = git('archive', PARENT_REV, 'CMakeLists.txt', 'LICENSE', 'src', 'include', 'tests', 'bench', 'tools')
++    parent_source = {}
++    with tarfile.open(fileobj=io.BytesIO(parent_data)) as archive:
++        for item in archive.getmembers():
++            if item.isfile():
++                parent_source[item.name] = sha(archive.extractfile(item).read())
++    actual_parent_source = {path.relative_to(baseline_source).as_posix(): digest(path) for path in baseline_source.rglob('*') if path.is_file()}
++    record('baseline23_complete_source_preserved', len(parent_source) == 77 and actual_parent_source == parent_source == wrapper['baseline_source_sha256_before'] == wrapper['baseline_source_sha256_after'])
++    record('candidate_complete_source_parity_bound', wrapper['source_sha256_before'] == wrapper['source_sha256_after'] == context.get('source'))
++    paths = {name: Path(value) for name, value in wrapper['input_paths'].items()}
++    current = {name: digest(value) for name, value in paths.items()}
++    record('all_parity_wrapper_inputs_preserved', current == wrapper['input_sha256_before'] == wrapper['input_sha256_after'])
++    release_gate = context.get('release', {})
++    record('parity_candidate_all17_bound_to_release', all(current.get('candidate/' + name) == value for name, value in release_gate['binary_sha256_after'].items()) and len(release_gate['binary_sha256_after']) == 17)
++    record('baseline23_engine_core_pinned', current['baseline_engine'] == protocol['baseline_engine_sha256'] == '85a3eeaf4c513e1790cb4c2593edb02063cba42d91eb7fc1bd303de026bd2b07' and current['baseline_core'] == protocol['baseline_core_sha256'] == '310ea85577ddd8a4b88479256dbe57fb576a384f24958d46324e82583dbd77c9')
++    record('baseline23_nnue_object_pinned', paths.get('baseline_nnue_object') == Path(protocol['baseline_nnue_object']) and current['baseline_nnue_object'] == protocol['baseline_nnue_object_sha256'] == 'e8dfc576e6b42ffa4de5d4991d0f3ae7c3e9be7f5a818126c520dee386f6a967')
++    record('candidate_nnue_object_exact_parent23', current['candidate/CMakeFiles/forge_core.dir/src/nnue.cpp.o'] == current['baseline_nnue_object'])
++    public_names = {'include/forge/eval.hpp', 'src/eval.cpp', 'include/forge/board.hpp', 'src/board.cpp'}
++    record('baseline_all4_public_pins', set(protocol['baseline_public_source_sha256']) == public_names and all(current['baseline_public/' + name] == protocol['baseline_public_source_sha256'][name] == parent_source[name] for name in public_names))
++    candidate_public = {name: digest(SOURCE / name) for name in public_names}
++    board_names = {'include/forge/board.hpp', 'src/board.cpp'}
++    record('candidate_board_only_byte_equality', set(protocol['unchanged_board_source_sha256']) == board_names and {name: candidate_public[name] for name in board_names} == wrapper['candidate_board_source_sha256'] == protocol['unchanged_board_source_sha256'])
++    record('candidate_evaluator_additions_hashed_not_rejected', candidate_public == wrapper['candidate_public_source_sha256'] and all(candidate_public[name] == context.get('source', {}).get(name) for name in public_names) and wrapper['candidate_evaluator_file_byte_equality_required'] is False)
++    expected_steps = [('cold-warm-parity', [PYTHON, '-B', str(HERE / 'search-parity.py')], 1200)]
++    record('exact_one_release_parity_step', [row['label'] for row in wrapper['steps']] == [row[0] for row in expected_steps])
++    for row, (label, command, timeout) in zip(wrapper['steps'], expected_steps):
++        saved = load(directory / (label + '-command.json'))
++        record('parity_command_facts:' + label, {key: value for key, value in row.items() if key != 'label'} == saved and row['command'] == command and row['timeout_seconds'] == timeout and row['exit_code'] == 0 and row['error'] is None and row['timed_out'] is False and row['input_sha256_after'] == current and row['source_sha256_after'] == context.get('source') and row['baseline_source_sha256_after'] == parent_source)
++        streams('parity:' + label, directory, row, '.bin')
++        cleanup_fact('parity:' + label, row['cleanup'])
++    freeze_path=HERE/'BENCH-SIGNATURE-FREEZE.json';freeze=load(freeze_path)
++    record('separate_first_benchmark_frozen_before_parity', wrapper['bench_signature_freeze_sha256']==digest(freeze_path) and freeze['source_commit']==REV and freeze['nodes']==protocol['baseline_default_bench11_nodes']==292545 and protocol['default_bench11_expected_nodes'] is None)
++    record('parity_after_first_signature_before_asan', datetime.datetime.fromisoformat(load(HERE/'release-signature-wrapper-attempt1/summary.json')['completed_utc']) <= datetime.datetime.fromisoformat(wrapper['started_utc']) <= datetime.datetime.fromisoformat(wrapper['completed_utc']) <= datetime.datetime.fromisoformat(context['asan']['started_utc']))
++    record('parity_complete_bound_configuration', summary['status'] == 'passed' and summary['configuration'] == config and config['protocol'] == protocol and config['source_commit'] == REV and config['attempts'] == 1 and config['timing_comparison'] is False and config['engine_sha256_before'] == summary['engine_sha256_after'] == {'baseline': current['baseline_engine'], 'candidate': current['candidate/forge']} and config['driver_sha256'] == current['parity_driver'] and config['trusted_driver_sha256'] == current['trusted_driver'])
++    record('parity_oracle_version', config['python_chess_version'] == chess.__version__, oracle_version=chess.__version__)
++    raw_events = (output / 'events.jsonl').read_bytes()
++    events = [json.loads(line) for line in raw_events.splitlines()]
++    record('parity_event_sequence_and_hash', sha(raw_events) == summary['events_sha256'] and [row['sequence'] for row in events] == list(range(1, len(events) + 1)))
++    record('parity_no_error_kill_events', not any(row['kind'] in ['reader_error', 'forced_kill', 'hard_session_deadline_expired'] for row in events))
++    sessions = summary['sessions']
++    expected_order = [(mode, case['name'], label) for mode in ['default', 'disabled'] for case in cases for label in ['baseline', 'candidate']]
++    record('exact28_sessions_no_replacements', len(sessions) == 28 and [(row['nnue_mode'], row['case'], row['engine_label']) for row in sessions] == expected_order and [row['index'] for row in sessions] == list(range(28)))
++    info_re = re.compile(r'^info depth (?P<depth>\d+) seldepth (?P<seldepth>\d+) score (?P<kind>cp|mate) (?P<score>-?\d+)(?: (?P<bound>lowerbound|upperbound))? nodes (?P<nodes>\d+) nps (?P<nps>\d+) hashfull (?P<hashfull>\d+) time (?P<time>\d+) pv(?: (?P<pv>.*))?$')
++    best_re = re.compile(r'^bestmove (?P<best>[a-h][1-8][a-h][1-8][qrbn]?)(?: ponder (?P<ponder>[a-h][1-8][a-h][1-8][qrbn]?))?$')
++    volatile = re.compile(r'\b(time|nps)\s+\d+\b')
++    data = {}
++    search_count, info_rows = 0, 0
++    def legal_sequence(board, moves):
++        position = board.copy()
++        for text in moves:
++            move = chess.Move.from_uci(text)
++            if move not in position.legal_moves:
++                return False
++            position.push(move)
++        return True
++    all_output_logs = []
++    for session in sessions:
++        index = session['index']
++        process = output / ('process-' + str(index).zfill(2))
++        result = load(process / 'result.json')
++        prefix = str(index) + ':' + session['engine_label'] + ':' + session['nnue_mode'] + ':' + session['case']
++        record('parity_complete_session:' + prefix, result == session and result['completed'] is True and result['exit_code'] == 0 and result['signal'] is None and result['capture_complete'] is True and result['reader_threads_joined'] is True and result['stream_hashes_final'] is True and result['reader_errors'] == [] and result['sanitizer_classification'] == 'none' and all(item in ['sent stop', 'sent quit'] for item in result['cleanup']))
++        expected_engine = protocol['engines'][session['engine_label']]
++        record('parity_actual_process_engine:' + prefix, result['argv'] == [expected_engine] and result['cwd'] == str(Path(expected_engine).parent))
++        process_events = [row for row in events if row.get('process') == index]
++        raw = {}
++        for stream in ['stdin', 'stdout', 'stderr']:
++            raw[stream] = (process / (stream + '.bin')).read_bytes()
++            decoded = b''.join(base64.b64decode(row['base64'], validate=True) for row in process_events if row['kind'] == 'bytes' and row['stream'] == stream)
++            record('parity_raw_bytes_reconstructed:' + prefix + ':' + stream, raw[stream] == decoded and sha(raw[stream]) == result['stream_sha256'][stream])
++        commands = [row['text'] for row in process_events if row['kind'] == 'command']
++        record('parity_command_bytes:' + prefix, raw['stdin'] == ''.join(command + '\n' for command in commands).encode('ascii'))
++        record('parity_stream_eofs:' + prefix, {row['stream'] for row in process_events if row['kind'] == 'eof'} == {'stdout', 'stderr'} and [row['exit_code'] for row in process_events if row['kind'] == 'exit'] == [0])
++        consumed_lines = [row['text'] for row in process_events if row['kind'] == 'line']
++        stdout_lines = raw['stdout'].split(b'\n')
++        if stdout_lines and stdout_lines[-1] == b'':
++            stdout_lines.pop()
++        decoded_lines = [line.rstrip(b'\r').decode('utf-8', errors='replace') for line in stdout_lines]
++        record('parity_every_emitted_stdout_line_consumed:' + prefix, decoded_lines == consumed_lines)
++        case = next(row for row in cases if row['name'] == session['case'])
++        record('parity_exact_two_search_requests:' + prefix, [command for command in commands if command.startswith('go ')] == ['go depth ' + str(case['depth'])] * 2 and len(re.findall(rb'(?m)^bestmove ', raw['stdout'])) == 2)
++        record('parity_modes_threads_hash_book:' + prefix, 'option name UseNNUE type check default true' in result['identification'] and 'setoption name OwnBook value false' in commands and 'setoption name Ponder value false' in commands and 'setoption name Threads value 1' in commands and 'setoption name Hash value 32' in commands and [command for command in commands if command.startswith('setoption name UseNNUE ')] == (['setoption name UseNNUE value false'] if session['nnue_mode'] == 'disabled' else []))
++        searches = result['searches']
++        record('parity_cold_warm_pair_present:' + prefix, len(searches) == 2 and [row['state'] for row in searches] == ['cold', 'warm'])
++        start_events = [row for row in process_events if row['kind'] == 'search_start']
++        record('parity_single_newgame_before_cold:' + prefix, commands.count('ucinewgame') == 1 and any(row['kind'] == 'command' and row['text'] == 'ucinewgame' and row['sequence'] < start_events[0]['sequence'] for row in process_events))
++        between = [row['text'] for row in process_events if row['kind'] == 'command' and start_events[0]['sequence'] < row['sequence'] < start_events[1]['sequence']]
++        record('parity_warm_state_preserved:' + prefix, not any(command == 'ucinewgame' or command == 'setoption name Clear Hash' or command.startswith(('setoption name Hash ', 'setoption name Threads ', 'setoption name UseNNUE ')) for command in between))
++        normalized_pair = []
++        for search in searches:
++            search_count += 1
++            label = prefix + ':' + search['state']
++            board = chess.Board() if case['position'] == 'startpos' else chess.Board(case['position'].removeprefix('fen '))
++            record('parity_search_identity:' + label, search['completed'] is True and search['label'] == case['name'] + '/' + search['state'] and search['position'] == case['position'] and search['depth_limit'] == case['depth'])
++            rows = search['raw_lines']
++            parsed = []
++            for number, line in enumerate(rows[:-1]):
++                match = info_re.fullmatch(line)
++                record('parity_info_grammar:' + label + ':' + str(number), match is not None)
++                if match is None:
++                    continue
++                fact = match.groupdict()
++                for key in ['depth', 'seldepth', 'score', 'nodes', 'nps', 'hashfull', 'time']:
++                    fact[key] = int(fact[key])
++                fact['pv'] = (fact['pv'] or '').split()
++                record('parity_info_logical_values:' + label + ':' + str(number), fact['nodes'] > 0 and 0 <= fact['hashfull'] <= 1000 and bool(fact['pv']) and legal_sequence(board, fact['pv']))
++                parsed.append(fact)
++                info_rows += 1
++            record('parity_all_structured_fields_reparsed:' + label, parsed == search['structured_info'] and bool(parsed))
++            best = best_re.fullmatch(rows[-1])
++            record('parity_bestmove_grammar:' + label, best is not None)
++            if best is not None and parsed:
++                move_sequence = [best['best']] + ([best['ponder']] if best['ponder'] else [])
++                record('parity_bestmove_ponder_legal:' + label, legal_sequence(board, move_sequence) and best['best'] == search['bestmove'] and best['ponder'] == search['ponder'] and parsed[-1]['pv'][0] == best['best'])
++                record('parity_requested_depth_or_early_mate:' + label, 1 <= parsed[-1]['depth'] <= case['depth'] and (parsed[-1]['depth'] == case['depth'] or parsed[-1]['kind'] == 'mate'))
++            normalized = [volatile.sub(lambda match: match[1] + ' <excluded>', row) for row in rows]
++            record('parity_only_time_nps_excluded:' + label, normalized == search['normalized_lines'])
++            normalized_pair.append(normalized)
++            purpose = search['label'] + ': bestmove'
++            event_rows = [row['text'] for row in process_events if row['kind'] == 'line' and row.get('purpose') == purpose]
++            captured = [row for row in process_events if row['kind'] == 'search_output_captured' and row['label'] == search['label']]
++            completed = [row for row in process_events if row['kind'] == 'search_complete' and row['label'] == search['label']]
++            record('parity_search_rows_match_events:' + label, event_rows == rows and len(captured) == 1 and captured[0]['raw_lines'] == rows and len(completed) == 1 and all(completed[0][key] == value for key, value in search.items()))
++        data[(session['nnue_mode'], session['case'], session['engine_label'])] = normalized_pair
++        all_output_logs.extend([process / 'stdout.bin', process / 'stderr.bin'])
++    comparisons = []
++    for mode in ['default', 'disabled']:
++        for case in cases:
++            baseline = data[(mode, case['name'], 'baseline')]
++            candidate = data[(mode, case['name'], 'candidate')]
++            comparison = {'nnue_mode': mode, 'case': case['name'], 'cold_exact': baseline[0] == candidate[0], 'warm_exact': baseline[1] == candidate[1], 'excluded_fields': ['time', 'nps']}
++            comparisons.append(comparison)
++            record('all_rows_baseline_candidate_exact:' + mode + ':' + case['name'], comparison['cold_exact'] and comparison['warm_exact'])
++    record('exact14_comparison_receipts', comparisons == summary['comparisons'] == wrapper['parity_comparisons'] and len(comparisons) == 14 and search_count == 56)
++    diagnostics = scan_logs('parity_all_stdout_stderr', [directory / 'cold-warm-parity.stdout.bin', directory / 'cold-warm-parity.stderr.bin', *all_output_logs])
++    return {'sessions': len(sessions), 'depth_searches': search_count, 'comparison_pairs': len(comparisons), 'structured_info_rows': info_rows, 'all_logical_rows_exact': all(row['cold_exact'] and row['warm_exact'] for row in comparisons), 'separately_observed_default_bench11_nodes': freeze['nodes'], 'oracle': 'python-chess ' + chess.__version__, 'baseline_public_files_pinned': 4, 'candidate_byte_equal_board_files': 2, 'candidate_evaluator_byte_equality_required': False, 'parent_red_performed': False, 'diagnostics': diagnostics}
++
+ 
+ def optional_active(required):
+     import chess
+@@ -364,8 +499,8 @@
+     cleanup_fact('active_wrapper', wrapper['cleanup'])
+     record('active_default_unsuppressed_tsan', wrapper['tsan_options'] == config['tsan_options'] == 'halt_on_error=1:exitcode=66' and wrapper['tsan_disabled_checks'] == [] and config['attempts'] == 1 and config['stop_before_active_mutations'] is False)
+     record('active_source_unchanged', wrapper['source_sha256_before'] == wrapper['source_sha256_after'] == context.get('source'))
+-    record('active_exact_wrapper_command', wrapper['command'] == [PYTHON, '-B', str(HERE / 'active-uci-edges.py'), '--engine', str(BASE / 'tt-refresh-native-tsan/forge'), '--output', str(directory), '--session-timeout', '90'] and wrapper['cwd'] == str(ROOT) and wrapper['timeout_seconds'] == 120 and config['engine'] == str(BASE / 'tt-refresh-native-tsan/forge') and config['session_timeout_seconds'] == 90)
+-    inputs = {'engine': BASE / 'tt-refresh-native-tsan/forge', 'core': BASE / 'tt-refresh-native-tsan/libforge_core.a', 'runtime_psqt_test_object': BASE / 'tt-refresh-native-tsan/CMakeFiles/forge_runtime_psqt_tests.dir/tests/runtime_psqt_tests.cpp.o', 'runtime_psqt_test_executable': BASE / 'tt-refresh-native-tsan/forge_runtime_psqt_tests', 'pawn_span_test_object': BASE / 'tt-refresh-native-tsan/CMakeFiles/forge_pawn_span_tests.dir/tests/pawn_span_tests.cpp.o', 'pawn_span_test_executable': BASE / 'tt-refresh-native-tsan/forge_pawn_span_tests', 'nnue_object': BASE / 'tt-refresh-native-tsan/CMakeFiles/forge_core.dir/src/nnue.cpp.o', 'nearest_pawn_test_object': BASE / 'tt-refresh-native-tsan/CMakeFiles/forge_nearest_pawn_tests.dir/tests/nearest_pawn_tests.cpp.o', 'nearest_pawn_test_executable': BASE / 'tt-refresh-native-tsan/forge_nearest_pawn_tests', 'pv_metadata_test_object': BASE / 'tt-refresh-native-tsan/CMakeFiles/forge_pv_metadata_tests.dir/tests/pv_metadata_tests.cpp.o', 'pv_metadata_test_executable': BASE / 'tt-refresh-native-tsan/forge_pv_metadata_tests', 'active_driver': HERE / 'active-uci-edges.py', 'trusted_driver': HERE / 'trusted-run-full-engine-tt.py'}
++    record('active_exact_wrapper_command', wrapper['command'] == [PYTHON, '-B', str(HERE / 'active-uci-edges.py'), '--engine', str(BASE / 'see-proof-reuse-native-tsan/forge'), '--output', str(directory), '--session-timeout', '90'] and wrapper['cwd'] == str(ROOT) and wrapper['timeout_seconds'] == 120 and config['engine'] == str(BASE / 'see-proof-reuse-native-tsan/forge') and config['session_timeout_seconds'] == 90)
++    inputs = {'engine': BASE / 'see-proof-reuse-native-tsan/forge', 'core': BASE / 'see-proof-reuse-native-tsan/libforge_core.a', 'runtime_psqt_test_object': BASE / 'see-proof-reuse-native-tsan/CMakeFiles/forge_runtime_psqt_tests.dir/tests/runtime_psqt_tests.cpp.o', 'runtime_psqt_test_executable': BASE / 'see-proof-reuse-native-tsan/forge_runtime_psqt_tests', 'pawn_span_test_object': BASE / 'see-proof-reuse-native-tsan/CMakeFiles/forge_pawn_span_tests.dir/tests/pawn_span_tests.cpp.o', 'pawn_span_test_executable': BASE / 'see-proof-reuse-native-tsan/forge_pawn_span_tests', 'nnue_object': BASE / 'see-proof-reuse-native-tsan/CMakeFiles/forge_core.dir/src/nnue.cpp.o', 'nearest_pawn_test_object': BASE / 'see-proof-reuse-native-tsan/CMakeFiles/forge_nearest_pawn_tests.dir/tests/nearest_pawn_tests.cpp.o', 'nearest_pawn_test_executable': BASE / 'see-proof-reuse-native-tsan/forge_nearest_pawn_tests', 'pv_metadata_test_object': BASE / 'see-proof-reuse-native-tsan/CMakeFiles/forge_pv_metadata_tests.dir/tests/pv_metadata_tests.cpp.o', 'pv_metadata_test_executable': BASE / 'see-proof-reuse-native-tsan/forge_pv_metadata_tests', 'active_driver': HERE / 'active-uci-edges.py', 'trusted_driver': HERE / 'trusted-run-full-engine-tt.py'}
+     hashes = {name: digest(path) for name, path in inputs.items()}
+     record('active_all_input_identities', hashes == wrapper['input_sha256_before'] == wrapper['input_sha256_after'])
+     record('active_frozen_helper_identity', hashes['trusted_driver'] == context.get('source', {}).get('tools/audit/run-full-engine-tt.py') == protocol['trusted_driver_sha256'])
+@@ -431,7 +566,7 @@
+     path = HERE / 'ORIGINALS-FINAL-SHA256.json'
+     snapshot = load(path)
+     record('whole_originals_snapshot_source', snapshot['source_commit'] == REV and snapshot['engines_or_builds_executed_for_snapshot'] is False)
+-    expected_roots = {'source': str(SOURCE), **{profile: str(BASE / ('tt-refresh-native-' + profile)) for profile in ['release', 'asan', 'tsan']}}
++    expected_roots = {'source': str(SOURCE), **{profile: str(BASE / ('see-proof-reuse-native-' + profile)) for profile in ['release', 'asan', 'tsan']}}
+     record('whole_originals_exact_four_roots', {label: tree['root'] for label, tree in snapshot['trees'].items()} == expected_roots)
+     counts = {}
+     for label, tree in snapshot['trees'].items():
+@@ -476,7 +611,7 @@
+ def main():
+     global fact_stream, REV
+     parser = argparse.ArgumentParser()
+-    parser.add_argument('--require-active', action='store_true', default=True, help='Frozen23 final audit always requires the eight active-TSan searches')
++    parser.add_argument('--require-active', action='store_true', default=True, help='Frozen24 final audit always requires the eight active-TSan searches')
+     args = parser.parse_args()
+     clear = load(HERE / 'ROOT-CLEARANCE.json')
+     if clear.get('authorized') is not True:
+@@ -488,8 +623,8 @@
+         raise SystemExit('Root-frozen pawn-span check count required; no audit attempted')
+     if clear.get('expected_nearest_checks') != 791680 or clear.get('expected_nearest_sets') != 395840 or clear.get('expected_nearest_constexpr_assertions') != 6:
+         raise SystemExit('Exact frozen nearest-pawn schema required; no audit attempted')
+-    if clear.get('exact_search_parity_required') is not False or clear.get('observational_cold_warm_searches') != 0 or clear.get('expected_pv_metadata_assertions') != 56:
+-        raise SystemExit('Explicit frozen23 zero-observer/PV56 root protocol required; no audit attempted')
++    if clear.get('exact_search_parity_required') is not True or clear.get('expected_cold_warm_searches') != 56 or clear.get('expected_pv_metadata_assertions') != 56:
++        raise SystemExit('Explicit frozen24 exact56search/PV56 root protocol required; no audit attempted')
+     if type(clear.get('expected_tt_groups')) is not int or clear['expected_tt_groups'] <= 0:
+         raise SystemExit('Root-frozen actual TT group count required; no audit attempted')
+     if not isinstance(clear.get('expected_tt_test_source_sha256'), str) or re.fullmatch(r'[0-9a-f]{64}', clear['expected_tt_test_source_sha256']) is None:
+@@ -505,10 +640,10 @@
+         raise SystemExit('Refusing to overwrite a previous audit attempt')
+     with paths[2].open('x') as fact_stream:
+         stage('frozen_source', frozen_source)
+-        stage('parent_policy_contrast', parent_policy_contrast)
+         for profile in ['release', 'asan', 'tsan']:
+             stage(profile, lambda profile=profile: audit_profile(profile))
+         stage('release_signature', release_signature)
++        stage('release_parity', release_parity)
+         stage('active_uci', lambda: optional_active(args.require_active))
+         stage('whole_originals', whole_originals)
+         stage('process_groups', no_live_groups)
+@@ -516,35 +651,23 @@
+         if all(profile_records):
+             record('three_profiles_executed_serially', all(datetime.datetime.fromisoformat(profile_records[i]['completed_utc']) <= datetime.datetime.fromisoformat(profile_records[i + 1]['started_utc']) for i in [0, 1]))
+         failed = [row for row in checks if not row['passed']]
+-        report = {'status': 'passed' if not failed else 'failed', 'audited_utc': datetime.datetime.now(datetime.timezone.utc).isoformat(), 'source_commit': REV, 'parent_source_commit': PARENT_REV, 'check_count': len(checks), 'failed_check_count': len(failed), 'checks': checks, 'facts': facts, 'facts_stream': paths[2].name, 'facts_stream_sha256': digest(paths[2]), 'checker_sha256': digest(Path(__file__)), 'engine_compiler_or_test_execution_during_audit': False, 'original_evidence_mutated': False, 'qualified_driver_limitations': ['The 1200-second profile timeout applies per recorded command.', 'The release signature is one30-second bounded process; exact parent search-response equality is intentionally invalid for this search-policy trial, and the root-approved observational count is0.', 'Finite fixtures and TSan coverage do not establish universal correctness or playing strength.'], 'scope': 'Bounded TT-refresh search-policy trial evidence: root-pinned TT regression groups, preserved historic baseline21 PV RED, actual parent22 expected policy contrast, frozen23 PV regression, one first-captured benchmark signature and active-TSan coverage; no private-ABI cross-link or exact parent-response equality claim. No NPS, Elo or native-Ryzen performance claim.'}
++        report = {'status': 'passed' if not failed else 'failed', 'audited_utc': datetime.datetime.now(datetime.timezone.utc).isoformat(), 'source_commit': REV, 'parent_source_commit': PARENT_REV, 'check_count': len(checks), 'failed_check_count': len(failed), 'checks': checks, 'facts': facts, 'facts_stream': paths[2].name, 'facts_stream_sha256': digest(paths[2]), 'checker_sha256': digest(Path(__file__)), 'engine_compiler_or_test_execution_during_audit': False, 'original_evidence_mutated': False, 'qualified_driver_limitations': ['The1200-second profile timeout applies per recorded command.', 'One first-captured benchmark is frozen before comparison with parent23;56exact cold/warm dual-NNUE searches are mandatory.', 'Finite fixtures and TSan coverage do not establish universal correctness or playing strength.'], 'scope': 'Pure SEE proof reuse optimization: root-pinned77source/14CTest each profile, TT12/PV56, exact56cold/warm parity including NNUEdisabled, firstactual benchmark comparedaftercapture to parent23 and8active defaultTSan. No timing/Elo claim.'}
+         with paths[0].open('x') as stream:
+             json.dump(report, stream, indent=2, allow_nan=False); stream.write('\n')
+         details = 'All independent checks passed.' if not failed else 'Failed checks: ' + ', '.join(row['name'] for row in failed)
+-        text = f"""TT-refresh independent evidence audit: {report['status']}.
++        text = f"""SEE proof reuse independent evidence audit: {report['status']}.
+ 
+ {details} Check count: {len(checks)}. Every check/stage fact was flushed before
+ the final gate. No engines, compilers or tests ran and no originals were changed.
+ 
+-Exact source77/Git/root gates; fourteen CTests per profile (42total), actual PV56
+-assertions/five raw cases, root-pinned TT groups, nearest791680/395840sets+6constexpr, pawn37320,
+-runtime347 and correction54; fatal default TSan, strict flags, cleanup and
+-seventeen-artifact identities; source+three-build byte/size/mode originals.
+-
+-Saved historical unmodified21 PV RED is pinned (56assertions,2expected failures).
+-Immediate parent22 policy contrast is separately pinned: first seven old groups
+-precede the first new-policy failure; this is no parent correctness-defect claim.
+-Parent22 complete77source, all73 boundaries outside the four declared paths,
+-engine/core/NNUE object are pinned. CMakeLists.txt, src/uci.cpp, src/search.cpp
+-and tests/tt_coherence_tests.cpp are the only allowed source changes. Candidate
+-Release NNUE object must equal the parent object.
+-
+-One first actual positive bench11 signature follows Release and precedes ASan,
+-with a separate exclusive source/artifact/raw-stream-bound freeze. No candidate
+-node count is presumed. Root must
+-explicitly authorize exact_search_parity_required=false and observation count0;
+-no exact parent search equality or cold/warm observation is claimed. All eight
+-active TSan transitions remain required. Finite coverage does not establish
+-universal correctness, source authenticity beyond Git/root pins, speed or Elo.
++Exact77source/Git/root gates;14CTest per profile42total, PV56/TT12 and preserved
++other finite tests; fatal default TSan, strict flags, cleanup and17artifact identity.
++Parent23 full77source and NNUEobject identity; only root-declared CMake/UCI/search/core-test changes.
++One first actual candidate benchmark is frozen before comparing with parent292545.
++All56cold/warm searches across7cases and default/disabledNNUE must match every
++logical info/PV/bestmove field, excluding onlytime/NPS. Eight activeTSan transitions required.
++This pure-optimization qualification differs from23's intentional TTpolicy trial.
++Finite coverage does not prove universal correctness, speed or Elo.
+ """
+         with paths[1].open('x') as stream:
+             stream.write(text)

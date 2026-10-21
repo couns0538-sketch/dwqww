@@ -1,0 +1,39 @@
+#!/usr/bin/env python3
+"""First authorized serial native24 chain. Records original streams/exits; never retries."""
+from pathlib import Path
+from datetime import datetime,timezone
+import hashlib,json,os,subprocess,sys,time
+ROOT=Path('/workspace/dwqww');HERE=ROOT/'validation/see-proof-reuse-native-20261021'
+PY='/workspace/.cloud-setup/venv/bin/python'
+SOURCE='7db08eac6ead99d641834c56ccec06a06600586a'
+def sha(p):return hashlib.sha256(p.read_bytes()).hexdigest()
+def save(p,v):p.write_text(json.dumps(v,indent=2)+'\n')
+clear=json.loads((HERE/'ROOT-CLEARANCE.json').read_text());provenance=json.loads((HERE/'DRIVER-PROVENANCE.json').read_text())
+assert clear['authorized'] is True and clear['source_commit']==SOURCE
+assert clear['exact_search_parity_required'] is True and clear['expected_cold_warm_searches']==56 and clear['expected_see_threshold_assertions']==504
+assert sha(HERE/'ROOT-FROZEN-SOURCE-GATES.json')=='27701976ac22dba0d2e38063e92459b3015f3fe1f386524aeac1b6d47f6ef2db'
+assert sha(HERE/'DRIVER-PROVENANCE.json')=='57e27cfdf647cefc09a5bfde63b12e6e251f4908e4945d46e2a8c9ab3ba7416e'
+assert sha(HERE/'independent-audit.py')=='5ac5d5b8227180f481ccf1f6c3592d572d94b88d07d6a053195f4170f950b4ac'
+assert all(sha(HERE/name)==value for name,value in provenance['scripts'].items())
+sealed={**provenance['scripts'],**{name:sha(HERE/name) for name in ['ROOT-CLEARANCE.json','ROOT-FROZEN-SOURCE-GATES.json','DRIVER-PROVENANCE.json','RELEASE-SIGNATURE-PROTOCOL.json','PARITY-PROTOCOL.json','ACTIVE-UCI-PROTOCOL.json','EXPECTED-CTEST-COMMANDS.json']}}
+freeze={'source_commit':SOURCE,'frozen_utc':datetime.now(timezone.utc).isoformat(),'frozen_files_sha256':sealed,'execution_controller_sha256':sha(Path(__file__)),'first_attempt_only':True}
+with (HERE/'SOURCE-AND-DRIVER-FREEZE.json').open('x') as f:json.dump(freeze,f,indent=2);f.write('\n')
+commands=[('release',['run-frozen-validation.py','release']),('release-signature',['run-release-signature.py']),('release-parity',['run-release-parity.py']),('asan',['run-frozen-validation.py','asan']),('tsan',['run-frozen-validation.py','tsan']),('active',['run-active-validation.py']),('snapshot',['snapshot-originals.py']),('audit',['independent-audit.py','--require-active'])]
+record={'status':'RUNNING_FIRST_AUTHORIZED_NATIVE24_CHAIN','source_commit':SOURCE,'started_utc':datetime.now(timezone.utc).isoformat(),'steps':[],'engine_gate_retries_performed':False}
+save(HERE/'DRIVER-EXECUTIONS.json',record)
+for label,args in commands:
+    assert all(sha(HERE/name)==value for name,value in sealed.items()),'Sealed source driver/protocol/clearance changed'
+    command=[PY,'-B',str(HERE/args[0]),*args[1:]]
+    facts={'label':label,'command':command,'cwd':str(ROOT),'started_utc':datetime.now(timezone.utc).isoformat(),'attempt':1}
+    with (HERE/(label+'-driver-command.json')).open('x') as f:json.dump(facts,f,indent=2);f.write('\n')
+    print('START_NATIVE24 '+label,flush=True);started=time.monotonic();error=None;rc=None
+    with (HERE/(label+'-driver.stdout')).open('xb') as out,(HERE/(label+'-driver.stderr')).open('xb') as err:
+        try:rc=subprocess.run(command,cwd=ROOT,env={**os.environ,'PYTHONDONTWRITEBYTECODE':'1'},stdout=out,stderr=err,check=False).returncode
+        except Exception as e:error=repr(e)
+    facts.update(exit_code=rc,error=error,completed_utc=datetime.now(timezone.utc).isoformat(),elapsed_seconds_operational_only=time.monotonic()-started,stdout_sha256=sha(HERE/(label+'-driver.stdout')),stderr_sha256=sha(HERE/(label+'-driver.stderr')),sealed_inputs_unchanged=all(sha(HERE/name)==value for name,value in sealed.items()))
+    save(HERE/(label+'-driver-command.json'),facts);record['steps'].append(facts);save(HERE/'DRIVER-EXECUTIONS.json',record)
+    print('FINISH_NATIVE24 '+label+' '+json.dumps(facts,sort_keys=True),flush=True)
+    if rc!=0 or error or not facts['sealed_inputs_unchanged']:
+        record.update(status='FAILED_FIRST_AUTHORIZED_NATIVE24_CHAIN',failed_stage=label,completed_utc=datetime.now(timezone.utc).isoformat());save(HERE/'DRIVER-EXECUTIONS.json',record);raise SystemExit(1)
+record.update(status='PASS_FIRST_AUTHORIZED_NATIVE24_CHAIN',completed_utc=datetime.now(timezone.utc).isoformat());save(HERE/'DRIVER-EXECUTIONS.json',record)
+print(record['status'],flush=True)

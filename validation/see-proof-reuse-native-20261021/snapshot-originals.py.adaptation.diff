@@ -1,0 +1,34 @@
+--- /workspace/dwqww/validation/tt-refresh-native-20261021/snapshot-originals.py
++++ /workspace/dwqww/validation/see-proof-reuse-native-20261021/snapshot-originals.py
+@@ -14,10 +14,11 @@
+     receipt=load(HERE/('frozen-'+profile+'-attempt1/summary.json'))
+     assert receipt['status']=='PASS' and receipt['source_commit']==clear['source_commit'] and len(receipt['ctest_names'])==14
+ assert load(HERE/'release-signature-wrapper-attempt1/summary.json')['status']=='PASS'
++assert load(HERE/'release-parity-wrapper-attempt1/summary.json')['status']=='PASS'
+ assert load(HERE/'active-uci-wrapper-attempt1/COMMAND.json')['status']=='PASS'
+ output=HERE/'ORIGINALS-FINAL-SHA256.json'
+ assert not output.exists(), 'Refusing previous snapshot'
+-roots={'source':BASE/'tt-refresh-native-source',**{p:BASE/('tt-refresh-native-'+p) for p in ['release','asan','tsan']}}
++roots={'source':BASE/'see-proof-reuse-native-source',**{p:BASE/('see-proof-reuse-native-'+p) for p in ['release','asan','tsan']}}
+ trees={}
+ for label,root in roots.items():
+     paths=sorted(root.rglob('*'))
+@@ -27,14 +28,14 @@
+     trees[label]={'root':str(root),'files':files,'directory_modes':{'.':stat.S_IMODE(root.stat().st_mode),**{str(p.relative_to(root)):stat.S_IMODE(p.stat().st_mode) for p in paths if p.is_dir()}}}
+ protocol=load(HERE/'RELEASE-SIGNATURE-PROTOCOL.json')
+ singles={'baseline_engine':Path(protocol['baseline_engine']),'baseline_core':Path(protocol['baseline_core']),
+- 'baseline_nnue_object':BASE/'pv-metadata-native-release/CMakeFiles/forge_core.dir/src/nnue.cpp.o',
+- 'baseline_source_manifest':HERE.parent/'pv-metadata-native-20261021/frozen-source-ff2e269-files.json',
+- 'baseline_release_receipt':HERE.parent/'pv-metadata-native-20261021/frozen-release-attempt1/summary.json'}
++ 'baseline_nnue_object':BASE/'tt-refresh-native-release/CMakeFiles/forge_core.dir/src/nnue.cpp.o',
++ 'baseline_source_manifest':HERE.parent/'tt-refresh-native-20261021/frozen-source-1d3ed25-files.json',
++ 'baseline_release_receipt':HERE.parent/'tt-refresh-native-20261021/frozen-release-attempt1/summary.json'}
+ for name in protocol['protected_nonsearch_source_sha256']:singles['baseline_nonsearch/'+name]=Path(protocol['baseline_source_root'])/name
+ compiler=Path('/usr/bin/g++-14')
+ record={'recorded_utc':datetime.now(timezone.utc).isoformat(),'source_commit':clear['source_commit'],'engines_or_builds_executed_for_snapshot':False,
+  'trees':trees,'single_files':{label:{'path':str(p),**item(p)} for label,p in singles.items()},
+  'compiler':{'path':str(compiler),'resolved_path':str(compiler.resolve()),'sha256':sha(compiler)},
+- 'scope':'Complete native source and three builds, actual consumed parent22 originals; no speed or Elo inference.'}
++ 'scope':'Complete native source and three builds, actual consumed parent23 originals; no speed or Elo inference.'}
+ with output.open('x') as stream:json.dump(record,stream,indent=2);stream.write('\n')
+ print(json.dumps({'status':'SNAPSHOT_SAVED','file_counts':{k:len(v['files']) for k,v in trees.items()},'sha256':sha(output),'engines_or_builds_executed_for_snapshot':False}))
