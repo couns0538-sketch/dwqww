@@ -1,0 +1,512 @@
+{
+  "status": "PASS_ACTUAL_TABLE_AND_ONE_PARITY_PRESERVING_OBSERVER_WALK",
+  "steps": [
+    {
+      "label": "compile-actual-table-fixture",
+      "command": [
+        "/usr/bin/g++-14",
+        "-std=c++20",
+        "-O3",
+        "-DNDEBUG",
+        "-march=x86-64-v3",
+        "-mtune=znver5",
+        "-fno-fast-math",
+        "-ffp-contract=off",
+        "-fno-lto",
+        "-I/workspace/.cloud-setup/tt-generation-observer-source/include",
+        "/workspace/dwqww/validation/tt-generation-investigation-20261021/table_fixture.cpp",
+        "/workspace/.cloud-setup/pv-metadata-native-release/libforge_core.a",
+        "-pthread",
+        "-o",
+        "/workspace/.cloud-setup/tt-generation-investigation-attempt1/table_fixture"
+      ],
+      "exit_code": 0,
+      "pid": 417964,
+      "cleanup": {
+        "group_id": 417964,
+        "before": [],
+        "actions": [],
+        "reaped_children": [],
+        "after": [],
+        "no_live_owned_processes": true,
+        "unexpected_live_members_after_command": false
+      },
+      "after_cleanup_exit": 0,
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "label": "actual-table-fixture",
+      "command": [
+        "/workspace/.cloud-setup/tt-generation-investigation-attempt1/table_fixture"
+      ],
+      "exit_code": 0,
+      "pid": 417998,
+      "cleanup": {
+        "group_id": 417998,
+        "before": [],
+        "actions": [],
+        "reaped_children": [],
+        "after": [],
+        "no_live_owned_processes": true,
+        "unexpected_live_members_after_command": false
+      },
+      "after_cleanup_exit": 0,
+      "stdout_sha256": "ef62f9f44956bd8eac9d39d8f866949ec01d285b2a4fc17fd37ed448ad2e47e9",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "label": "compile-baseline-walk",
+      "command": [
+        "/usr/bin/g++-14",
+        "-std=c++20",
+        "-O3",
+        "-DNDEBUG",
+        "-march=x86-64-v3",
+        "-mtune=znver5",
+        "-fno-fast-math",
+        "-ffp-contract=off",
+        "-fno-lto",
+        "-I/workspace/.cloud-setup/tt-generation-observer-source/include",
+        "/workspace/dwqww/validation/tt-generation-investigation-20261021/search_walk.cpp",
+        "/workspace/.cloud-setup/pv-metadata-native-release/libforge_core.a",
+        "-pthread",
+        "-o",
+        "/workspace/.cloud-setup/tt-generation-investigation-attempt1/baseline_walk"
+      ],
+      "exit_code": 0,
+      "pid": 418555,
+      "cleanup": {
+        "group_id": 418555,
+        "before": [],
+        "actions": [],
+        "reaped_children": [],
+        "after": [],
+        "no_live_owned_processes": true,
+        "unexpected_live_members_after_command": false
+      },
+      "after_cleanup_exit": 0,
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "label": "compile-observer-search",
+      "command": [
+        "/usr/bin/g++-14",
+        "-I/workspace/.cloud-setup/tt-generation-observer-source/include",
+        "-march=x86-64-v3",
+        "-mtune=znver5",
+        "-fno-fast-math",
+        "-ffp-contract=off",
+        "-fno-lto",
+        "-O3",
+        "-DNDEBUG",
+        "-std=gnu++20",
+        "-Wall",
+        "-Wextra",
+        "-Wpedantic",
+        "-Wconversion",
+        "-Wshadow",
+        "-ffp-contract=off",
+        "-o",
+        "/workspace/.cloud-setup/tt-generation-investigation-attempt1/search.cpp.o",
+        "-c",
+        "/workspace/.cloud-setup/tt-generation-observer-source/src/search.cpp"
+      ],
+      "exit_code": 0,
+      "pid": 418614,
+      "cleanup": {
+        "group_id": 418614,
+        "before": [],
+        "actions": [],
+        "reaped_children": [],
+        "after": [],
+        "no_live_owned_processes": true,
+        "unexpected_live_members_after_command": false
+      },
+      "after_cleanup_exit": 0,
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderr_sha256": "00567d9f92219a99fcb179b834ab12c947dbdbd3b04a8e533ff248c83fed7715"
+    },
+    {
+      "label": "replace-isolated-search-member",
+      "command": [
+        "ar",
+        "r",
+        "/workspace/.cloud-setup/tt-generation-investigation-attempt1/libforge_core.a",
+        "/workspace/.cloud-setup/tt-generation-investigation-attempt1/search.cpp.o"
+      ],
+      "exit_code": 0,
+      "pid": 418747,
+      "cleanup": {
+        "group_id": 418747,
+        "before": [],
+        "actions": [],
+        "reaped_children": [],
+        "after": [],
+        "no_live_owned_processes": true,
+        "unexpected_live_members_after_command": false
+      },
+      "after_cleanup_exit": 0,
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "label": "compile-observer-walk",
+      "command": [
+        "/usr/bin/g++-14",
+        "-std=c++20",
+        "-O3",
+        "-DNDEBUG",
+        "-march=x86-64-v3",
+        "-mtune=znver5",
+        "-fno-fast-math",
+        "-ffp-contract=off",
+        "-fno-lto",
+        "-I/workspace/.cloud-setup/tt-generation-observer-source/include",
+        "/workspace/dwqww/validation/tt-generation-investigation-20261021/search_walk.cpp",
+        "/workspace/.cloud-setup/tt-generation-investigation-attempt1/libforge_core.a",
+        "-pthread",
+        "-o",
+        "/workspace/.cloud-setup/tt-generation-investigation-attempt1/observer_walk"
+      ],
+      "exit_code": 0,
+      "pid": 418772,
+      "cleanup": {
+        "group_id": 418772,
+        "before": [],
+        "actions": [],
+        "reaped_children": [],
+        "after": [],
+        "no_live_owned_processes": true,
+        "unexpected_live_members_after_command": false
+      },
+      "after_cleanup_exit": 0,
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "label": "baseline-walk",
+      "command": [
+        "/workspace/.cloud-setup/tt-generation-investigation-attempt1/baseline_walk"
+      ],
+      "exit_code": 0,
+      "pid": 418868,
+      "cleanup": {
+        "group_id": 418868,
+        "before": [],
+        "actions": [],
+        "reaped_children": [],
+        "after": [],
+        "no_live_owned_processes": true,
+        "unexpected_live_members_after_command": false
+      },
+      "after_cleanup_exit": 0,
+      "stdout_sha256": "6286d3918cf1873995c245839c127a91f7cdf985d0b343e29d6bc42f6a488b11",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "label": "observer-walk",
+      "command": [
+        "/workspace/.cloud-setup/tt-generation-investigation-attempt1/observer_walk"
+      ],
+      "exit_code": 0,
+      "pid": 418877,
+      "cleanup": {
+        "group_id": 418877,
+        "before": [],
+        "actions": [],
+        "reaped_children": [],
+        "after": [],
+        "no_live_owned_processes": true,
+        "unexpected_live_members_after_command": false
+      },
+      "after_cleanup_exit": 0,
+      "stdout_sha256": "6286d3918cf1873995c245839c127a91f7cdf985d0b343e29d6bc42f6a488b11",
+      "stderr_sha256": "60a3fb98b95e2e8e73210bb97a0d2d5a6e250a3132475912a1d654901b4361df"
+    }
+  ],
+  "parent_core_sha256": "374275cc7f3d973204747e8c0befae30d0a0c8f495a7f36dda96fa275fe720b6",
+  "policy_changed": false,
+  "observer_input_pins": {
+    "/workspace/.cloud-setup/pv-metadata-native-release/libforge_core.a": "374275cc7f3d973204747e8c0befae30d0a0c8f495a7f36dda96fa275fe720b6",
+    "/workspace/.cloud-setup/pv-metadata-native-release/compile_commands.json": "abca2c3e27301abc3575222c4ea27c0dc3a80fc8e9753765e09e1356af3bdc18",
+    "/workspace/dwqww/validation/tt-generation-investigation-20261021/search_walk.cpp": "3eac4f612ba8d972a3cd1679dc4c4b7addb3a87553390d951671dfb4bdc7ea78",
+    "/workspace/dwqww/validation/tt-generation-investigation-20261021/observer.patch": "ee167281d1a4721fa76ededc7239d08749e56f018ac14885dfac0d9e519760ce",
+    "/workspace/dwqww/validation/tt-generation-investigation-20261021/OBSERVER-SOURCE-77.json": "934d4692707e94f573fd6621f69c054438bd84c9178654a5821f2447ac8564b1",
+    "/workspace/dwqww/validation/tt-generation-investigation-20261021/run-observer-once.py": "bf3ac130c99ea88ce645e19387b5a9bf38ac95b795a98b5622bfad043ad7fbbd",
+    "/workspace/dwqww/validation/tt-generation-investigation-20261021/process_facts.py": "f396e30473f2870dbc057ac16e1532c3ab916f6eb723d5fb8f5accd5d96f1d33"
+  },
+  "observer_source77": {
+    "CMakeLists.txt": "81d967e6e5d8b4cb1e2485f0d7949effe2761beeac27dee2a854b297bad0953e",
+    "LICENSE": "7de1e115d165f176e68f962acdb809b5ab8d8ae78d3981e0701392b2ac50c713",
+    "tests/rule50_tests.cpp": "c6faa20bf0ac2327d792e9dbacb867bdbbb93db0f5d8aafa188c3ad76a066673",
+    "tests/pawn_span_tests.cpp": "dfbcef1dc8e90ad1237fdac67328a172aec4012d775be75c326b1bd541bfe83e",
+    "tests/pv_metadata_tests.cpp": "8000b717a298c4c8bb637752fcc57a0ce485110a12edc4a505f3d0452620bd1e",
+    "tests/nearest_pawn_tests.cpp": "ebe71961e32781acf055d421d9627256bbe9781cbf881962f882325db86e559d",
+    "tests/tests.cpp": "27f490648dde076c83224d2956c27e5145cbc0910ac2fff5c669e6aef7b69190",
+    "tests/legal_witness_tests.cpp": "a57a3484c7510bf5712678ff2738c9070de74dc71de31186cb46b9eede70e775",
+    "tests/correction_history_tests.cpp": "3f5523ac462cde0a36ce3df4f5bfb99e59dbe34a08c9e2d06dcb9ecad5dad66d",
+    "tests/runtime_psqt_tests.cpp": "8691c62974492d95a389eb584bdf9e69947fc38c506ad704b7c5cd588a08ad8b",
+    "tests/tt_coherence_tests.cpp": "a9aebd7b41c3acfcd7cb3b044cbc7811aa6bf963d7b86499fb9f51b45d42a127",
+    "tests/legal_witness_fixtures.tsv": "e88f4d859ce1c923b900e2c4012e7e601c247140223876a18cca6e0648d47c77",
+    "src/eval_params_table.inc": "acfd94c951d5212b3ec095edbe7859fe2707f982741b0afaf1d23be58c91400c",
+    "src/eval.cpp": "21b82c53e2ea83120d58a024bd3eaa20b579bcdca63cd38e290944467b5cb8a3",
+    "src/book_data.inc": "9209c608ca3f07285c3f8b2739a3399c3385c8ed8ffc739fd16a273eb8190149",
+    "src/uci.cpp": "a28e646700a0890747c5db3aa60794811e3309124e21fe31a132b0cbbf17acff",
+    "src/book.cpp": "464c91efee889d7cbf5f07c7051f0f741de06f091d9bdc2cda98692cfa63aca5",
+    "src/nnue_weights.inc": "41487f328ff51f27417564df45b6f3139d038b7e940dedb121340bd61be9a4d3",
+    "src/search.cpp": "4459b0fee7c4399ed106578cb029d29b056c673003d8a26b1475d1c16f82d326",
+    "src/eval_params.cpp": "ac0050c6dce6b75d704454fc981c0372476597f6b739ca39d014df515dcb910d",
+    "src/nnue.cpp": "86aec39feecf029e73510e7e5fadf9e9878c94744f0380c4149edf04da02cdcd",
+    "src/bitboard.cpp": "3af5ffa7a79d149990f0aa2248b7f9093184f582672ba5da086edf58d9138989",
+    "src/board.cpp": "ad3290611e5f88d95b8fd0f674370eadc17e0c529902fba3e92ac48ac46ed239",
+    "src/polyglot_keys.inc": "7deca335907224e422adab41c8238851fba27a72b50ab37d01af7b0dd3b8fbb5",
+    "tools/cloud-setup.sh": "2b984fa72f250f4d1621097243048cfbb8f988790be4ae6fc08b8494c6f86889",
+    "tools/verify_openings.cpp": "ea39105b899436b752ae003bba2b27726d6891a9299048acc65ec10cf81c5dc4",
+    "tools/nnue_update_snapshot.cpp": "f6508b7d9dff95c251d1569745be8c2c81cdf580171cba122ce2552ee3407955",
+    "tools/ownbook_regression.py": "2ebd2c43ba7d05caee77a10fc823214f16e46f3a4cee2c5dd8e21550b8d2f801",
+    "tools/ponder_regression.py": "26cb1169916522db1baf99c7f57cabb92ea1c5cd66bb6534a27464a2356404d0",
+    "tools/benchmark_compare.py": "d637845fb29e034e9109ebdb236d3000d06f2a2c088309fc8b94346439c7bd22",
+    "tools/nnue_snapshot.cpp": "ef6d111546c675efce7a358d762ff0259aea2f3a1fe8a8c6e7658a596b4e2a03",
+    "tools/windows-zen5.cmake": "1759565348322edb670e8eb0b454b4f69f464e940020c07587b155ad0d1e7200",
+    "tools/nnue_update_benchmark.cpp": "dd919a38e7f96f504a480d8e6b39b201c3039f63e1157f3cfe1551ebf011cb6a",
+    "tools/generate_openings.cpp": "c9f6543385b646fb30071e956410344a639882ac73a98bb30621a56980522662",
+    "tools/uci_regression.py": "0ecfbdd3b04bf0ef4f6669ed43581d124e75ff3224926874da98c451649ee4cc",
+    "tools/search_benchmark.cpp": "f12fb4681ac91c782a29b7ca77959278c03a1f1db1424fefe16cc3feaa1cb83f",
+    "tools/check_nnue_simd.py": "37b05ab8fc1170036672f9b3cf6cddc6e5a4a98f0a15fee557756093c9aa6cbe",
+    "tools/nnue_benchmark.cpp": "1a77ec431cb73aab4e21d4d26f8a5193bf1d692f307cda6855ee463cac133100",
+    "bench/benchmark.cpp": "a5687cfdf30ce846c56938eb1534c5de63d6148e6c013d415c3c9eb0543d05ad",
+    "include/forge/uci_output.hpp": "3bc09a099ae04bf6d8972125b0778be342de78ba39fcb8510321238e788dbef3",
+    "include/forge/eval_params.hpp": "56f6ae706d53dfb6e76169e86d0cf09e74e096b17885f60632a92f080ee77a96",
+    "include/forge/eval.hpp": "e6cb2b620f5c7fd87cef7a680aea04c4ba756f106b78d5a8fa7ab3cdd5d0cc35",
+    "include/forge/book.hpp": "10a283bd0474568c0e378f7117d4869336384599307305c405dac81e1569663e",
+    "include/forge/search.hpp": "3d9208de205b4bd2f8e82f6c64137be253eb51aa0a418d5e39e1c06392e95eb9",
+    "include/forge/nnue.hpp": "d87106d1716388375332ea20e97d9a703c74f479ffa5236c75608b356ab5aace",
+    "include/forge/bitboard.hpp": "9d6a023d2f42ebbff9b5e85c92cd467299d8e0189249cb287d117663b4ff2bba",
+    "include/forge/board.hpp": "5b42d3557730edc65f795a097e45d18a3cb621d56bdfa8b379773bb496204c77",
+    "tools/tune/extract.cpp": "45f66b97fcc1337b92eb04bb324cead65268bfa9c1db57401cd536c0aceeb80a",
+    "tools/tune/texel.cpp": "1da263f66e41b2c878bb6e569630c7a2dbee93d06f69ba95e23cf8a468712651",
+    "tools/tune/nnue_train.cpp": "57186e129418d5aca0fe91211bcc74db2d626e54fbf33df6c85c1972cef0efcd",
+    "tools/audit/material_pin.cpp": "c7ed229d7a40c5b280161c4aceb8a0674294c3199ed21a6d45cdb3feb5df0acb",
+    "tools/audit/test_full_engine_driver.py": "d7f5be4c912f75ee655fe8625f1e95c5b80ad70ccf12beef7d73d52cfe0db8a7",
+    "tools/audit/tt-mutex-count.cpp": "04717c1797b4eb3a3524cbfc86c13ccca7c6a62c847d92bd45ecc1d6746da605",
+    "tools/audit/audit_match_archive.py": "af2503816d8f95bb42f3812c446ca356625a92ebaf3b118f134cde18da5d9fc4",
+    "tools/audit/see_and_tt_probe.cpp": "c101ca101b0ab69566e066f473b480a556f560c1f85a31002fd2ada34e9b3e06",
+    "tools/audit/run-full-engine-tt.py": "ca40222fe51cd2cb2908871bf18237d671992a1e665c5f680c9977f5022990cb",
+    "tools/audit/tt_public.cpp": "61df4e59303e3345253d80f30022e908c3eef9753467aefd3f69707ccc20eaeb",
+    "tools/audit/extreme_clock.cpp": "eac0b0538e73c15df52a752064db36eab1967768365934917e46d3915e2ed1af",
+    "tools/audit/README.md": "3e2f7d1d052b1fbdb0d31a9a29ee383cc05a5717b497f62bb701562f0074b05b",
+    "tools/match/run_hourly_sprt.py": "7829a8699941f79dce60e0f001d6c9b8f3a86592c284ceade67e80585303edc5",
+    "tools/match/FASTCHESS-LICENSE.txt": "5860e7607afbf4c7e91bad5549b71d16fc4eceb90f0c671cd77a343ae7461a2a",
+    "tools/match/run_match.py": "61bea690358f4da2e18e1d0beab44b86a96ab7807a71aeae4596b4de719dfb19",
+    "tools/match/test_match_tools.py": "10bef317d445df048e14252d60a9f04a898ff1384ffdb898b91433f403a7a050",
+    "tools/match/pgn_stats.py": "a5a6b46e1d5381fc063475fb90f012051653cefbca485c46a01179fafbeec2bf",
+    "tools/match/fastchess-provenance.json": "5200bea9edc7d0c1d0c053eb64a5fcdead846b4eebee67b02eccf6d5bb562381",
+    "tools/match/windows_validate.py": "0fa959b97cedd340db57957cbae5cd9701d4468bdc4689f0131edc4984072719",
+    "tools/match/restore_hourly_artifacts.py": "48e6dded55ab6dd45ae35a76ae9e16618abb3674ade9beb3b7da2531f7a4de2b",
+    "tools/match/README.md": "26b0732e864396be4f4a77422fc85b87a4d809c28c713c062eeb31a4fb64bcb9",
+    "tools/__pycache__/uci_regression.cpython-312.pyc": "1ed4613409f92bbc062c96b9f4162dcb2b487e4c7139387eec311891670500c1",
+    "tools/book/bookgen.cpp": "63f37ef0acb0ba572eb3d87c501d5c128e57f61fbf9490ee4a3277b8d7d82d20",
+    "tools/openings/forge-10000.moves": "7516f1bf1da95530f762cd77b8c2de7f4910f8c15f918dd1af5eaa8f6b332058",
+    "tools/openings/LICENSE": "7de1e115d165f176e68f962acdb809b5ab8d8ae78d3981e0701392b2ac50c713",
+    "tools/openings/manifest.json": "b3bc1840a87765f8ff70c01fe9a1697f3fb3a3a3d20298d19f24ad1dbf1aabb7",
+    "tools/openings/forge-10000.epd": "de36a48f856a5a0c10d0865747965a7b2f5d89149078923ba2d766979238bf6c",
+    "tools/match/tests/test_windows_validate.py": "056e4a6559349d00e0c0f4bddabfe1e32b0591f4ac6e01fb3d519f5f8741cf89",
+    "tools/match/__pycache__/run_match.cpython-312.pyc": "e2a12cd0acf537f40871580a16529d549d2f833a501dcc77ed1372860097b8e7",
+    "tools/match/__pycache__/pgn_stats.cpython-312.pyc": "75334a677c935380ae4d49def6425611857995581b26eaa82d32131d6182d1a1"
+  },
+  "frozen_walk": {
+    "depth": 8,
+    "roots": 12,
+    "HashMB": 16,
+    "Threads": 1,
+    "book_path": "Direct actual Searcher bypasses UCI book exactly as OwnBook=false",
+    "first_root_cold_second_identical_root_warm": true,
+    "walk_plies": [
+      "e2e4",
+      "e7e5",
+      "g1f3",
+      "b8c6",
+      "f1b5",
+      "a7a6",
+      "b5a4",
+      "g8f6",
+      "e1g1",
+      "f8e7"
+    ],
+    "search_wall_deadline_combined_seconds": 90,
+    "performance_inference": false
+  },
+  "core_members": [
+    {
+      "member": "bitboard.cpp.o",
+      "original_sha256": "a819f9ba4cc35cfcd1eeaa46ef8e2dfdd4e60fa96ce4becda41583cb2eef16d7",
+      "observer_sha256": "a819f9ba4cc35cfcd1eeaa46ef8e2dfdd4e60fa96ce4becda41583cb2eef16d7",
+      "identical": true
+    },
+    {
+      "member": "board.cpp.o",
+      "original_sha256": "da4111e46f5312423d6dbd8abe424c75c91ae838bb93e0f475dbdbe34c129de6",
+      "observer_sha256": "da4111e46f5312423d6dbd8abe424c75c91ae838bb93e0f475dbdbe34c129de6",
+      "identical": true
+    },
+    {
+      "member": "book.cpp.o",
+      "original_sha256": "3119b90d0aa950d0b4c0c37af2c869765bf473154b0d760b0ec359cb98d81707",
+      "observer_sha256": "3119b90d0aa950d0b4c0c37af2c869765bf473154b0d760b0ec359cb98d81707",
+      "identical": true
+    },
+    {
+      "member": "eval.cpp.o",
+      "original_sha256": "2dd5313719e40ad3d95d6363d7af748ffa9311fc8b2d5ce906d6226296b67254",
+      "observer_sha256": "2dd5313719e40ad3d95d6363d7af748ffa9311fc8b2d5ce906d6226296b67254",
+      "identical": true
+    },
+    {
+      "member": "eval_params.cpp.o",
+      "original_sha256": "64fbb86cc5bce814a2434eb656d846c04b8e361b42c11af45cb7b004c2399358",
+      "observer_sha256": "64fbb86cc5bce814a2434eb656d846c04b8e361b42c11af45cb7b004c2399358",
+      "identical": true
+    },
+    {
+      "member": "nnue.cpp.o",
+      "original_sha256": "e8dfc576e6b42ffa4de5d4991d0f3ae7c3e9be7f5a818126c520dee386f6a967",
+      "observer_sha256": "e8dfc576e6b42ffa4de5d4991d0f3ae7c3e9be7f5a818126c520dee386f6a967",
+      "identical": true
+    },
+    {
+      "member": "search.cpp.o",
+      "original_sha256": "89aef0c487ccdc9dfa8efb4ead00254e2e30d43f2d45908430725a6e9b938ad9",
+      "observer_sha256": "87226efe88572c049fd242fee84b86f5e413550a93fbbdaa827e4b899204f3ad",
+      "identical": false
+    }
+  ],
+  "observer_rows": [
+    {
+      "fen": "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
+      "probes": 10941,
+      "old_hits": 0,
+      "main_old_cut": 0,
+      "qs_old_cut": 0,
+      "selected_old_hit": 0,
+      "evicted_old_hit": 0
+    },
+    {
+      "fen": "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
+      "probes": 2880,
+      "old_hits": 749,
+      "main_old_cut": 417,
+      "qs_old_cut": 86,
+      "selected_old_hit": 0,
+      "evicted_old_hit": 0
+    },
+    {
+      "fen": "rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq e3 0 1",
+      "probes": 2660,
+      "old_hits": 751,
+      "main_old_cut": 332,
+      "qs_old_cut": 86,
+      "selected_old_hit": 0,
+      "evicted_old_hit": 0
+    },
+    {
+      "fen": "rnbqkbnr/pppp1ppp/8/4p3/4P3/8/PPPP1PPP/RNBQKBNR w KQkq e6 0 2",
+      "probes": 4736,
+      "old_hits": 320,
+      "main_old_cut": 72,
+      "qs_old_cut": 75,
+      "selected_old_hit": 0,
+      "evicted_old_hit": 0
+    },
+    {
+      "fen": "rnbqkbnr/pppp1ppp/8/4p3/4P3/5N2/PPPP1PPP/RNBQKB1R b KQkq - 1 2",
+      "probes": 3165,
+      "old_hits": 882,
+      "main_old_cut": 383,
+      "qs_old_cut": 101,
+      "selected_old_hit": 0,
+      "evicted_old_hit": 0
+    },
+    {
+      "fen": "r1bqkbnr/pppp1ppp/2n5/4p3/4P3/5N2/PPPP1PPP/RNBQKB1R w KQkq - 2 3",
+      "probes": 3425,
+      "old_hits": 599,
+      "main_old_cut": 155,
+      "qs_old_cut": 139,
+      "selected_old_hit": 0,
+      "evicted_old_hit": 0
+    },
+    {
+      "fen": "r1bqkbnr/pppp1ppp/2n5/1B2p3/4P3/5N2/PPPP1PPP/RNBQK2R b KQkq - 3 3",
+      "probes": 5791,
+      "old_hits": 281,
+      "main_old_cut": 61,
+      "qs_old_cut": 49,
+      "selected_old_hit": 0,
+      "evicted_old_hit": 0
+    },
+    {
+      "fen": "r1bqkbnr/1ppp1ppp/p1n5/1B2p3/4P3/5N2/PPPP1PPP/RNBQK2R w KQkq - 0 4",
+      "probes": 4531,
+      "old_hits": 37,
+      "main_old_cut": 0,
+      "qs_old_cut": 10,
+      "selected_old_hit": 0,
+      "evicted_old_hit": 0
+    },
+    {
+      "fen": "r1bqkbnr/1ppp1ppp/p1n5/4p3/B3P3/5N2/PPPP1PPP/RNBQK2R b KQkq - 1 4",
+      "probes": 5135,
+      "old_hits": 247,
+      "main_old_cut": 39,
+      "qs_old_cut": 71,
+      "selected_old_hit": 0,
+      "evicted_old_hit": 0
+    },
+    {
+      "fen": "r1bqkb1r/1ppp1ppp/p1n2n2/4p3/B3P3/5N2/PPPP1PPP/RNBQK2R w KQkq - 2 5",
+      "probes": 4383,
+      "old_hits": 1030,
+      "main_old_cut": 404,
+      "qs_old_cut": 126,
+      "selected_old_hit": 0,
+      "evicted_old_hit": 0
+    },
+    {
+      "fen": "r1bqkb1r/1ppp1ppp/p1n2n2/4p3/B3P3/5N2/PPPP1PPP/RNBQ1RK1 b kq - 3 5",
+      "probes": 5388,
+      "old_hits": 458,
+      "main_old_cut": 104,
+      "qs_old_cut": 108,
+      "selected_old_hit": 0,
+      "evicted_old_hit": 0
+    },
+    {
+      "fen": "r1bqk2r/1pppbppp/p1n2n2/4p3/B3P3/5N2/PPPP1PPP/RNBQ1RK1 w kq - 4 6",
+      "probes": 5648,
+      "old_hits": 1107,
+      "main_old_cut": 397,
+      "qs_old_cut": 151,
+      "selected_old_hit": 0,
+      "evicted_old_hit": 0
+    }
+  ],
+  "observer_totals": {
+    "probes": 58683,
+    "old_hits": 6461,
+    "main_old_cut": 2364,
+    "qs_old_cut": 1002,
+    "selected_old_hit": 0,
+    "evicted_old_hit": 0
+  },
+  "fixed_depth_full_signature_bytes_identical": true,
+  "all12_root_and_fullPV_rows_legal": true,
+  "artifacts_sha256": {
+    "table_fixture": "3e1e7c94bfb5f24514a79dcb1be0180edc210ac458e7322825dc6eafd23dd7c3",
+    "baseline_walk": "953d4f63ac2bd6b952ce841fece32c3ea67af8f35bf742e8b41991a56728953b",
+    "observer_walk": "5e3eedb1f109c41c5470a9d81928fed53a63db69fdaca85b51d13f1cd2381f07",
+    "search.cpp.o": "87226efe88572c049fd242fee84b86f5e413550a93fbbdaa827e4b899204f3ad",
+    "libforge_core.a": "b8a51f9bf24a4da907939e1dd2f5c39d3b69d8a8a2ddbc1d0b889d3a18256e0a"
+  }
+}

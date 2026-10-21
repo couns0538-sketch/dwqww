@@ -1,0 +1,65 @@
+--- actual22/src/search.cpp
++++ observer-only/src/search.cpp
+@@ -9,6 +9,18 @@
+ #include <optional>
+ 
+ namespace forge {
++
++namespace tt_gen_obs {
++struct Counts { std::uint64_t probes=0, old_hits=0, main_old_cut=0, qs_old_cut=0, selected_old_hit=0, evicted_old_hit=0; };
++struct Record { std::uintptr_t owner=0, slot=0; std::uint32_t tag=0; };
++thread_local Counts c;
++thread_local std::array<Record,1024> recent{};
++Record& record(const void* slot){return recent[(reinterpret_cast<std::uintptr_t>(slot)>>4U)&1023U];}
++void old_hit(const void* owner,const void* slot,std::uint32_t tag){++c.old_hits;record(slot)={reinterpret_cast<std::uintptr_t>(owner),reinterpret_cast<std::uintptr_t>(slot),tag};}
++bool remembered(const void* owner,const void* slot,std::uint32_t tag){const auto& r=record(slot);return r.owner==reinterpret_cast<std::uintptr_t>(owner)&&r.slot==reinterpret_cast<std::uintptr_t>(slot)&&r.tag==tag;}
++void reset(){c={};recent={};}
++struct Summary { std::string fen; ~Summary(){std::cerr<<"TT_GEN {\"fen\":\""<<fen<<"\",\"probes\":"<<c.probes<<",\"old_hits\":"<<c.old_hits<<",\"main_old_cut\":"<<c.main_old_cut<<",\"qs_old_cut\":"<<c.qs_old_cut<<",\"selected_old_hit\":"<<c.selected_old_hit<<",\"evicted_old_hit\":"<<c.evicted_old_hit<<"}\n";} };
++}
+ 
+ namespace tune {
+ int LmrQuietBase = 85;
+@@ -247,7 +259,10 @@
+     const TTCluster& cluster = cluster_for(key);
+     const std::size_t index = static_cast<std::size_t>(&cluster - clusters_.get());
+     const auto lock = lock_stripe(index);
++    ++tt_gen_obs::c.probes;
+     auto snapshot = [&](const TTEntry& entry, bool hit) {
++        if (hit && entry.generation()!=generation_) tt_gen_obs::old_hit(this,&entry,entry.key32);
++        if (!hit && entry.occupied() && tt_gen_obs::remembered(this,&entry,entry.key32)) ++tt_gen_obs::c.selected_old_hit;
+         TTProbe result;
+         result.entry = entry;
+         result.hit = hit;
+@@ -285,6 +300,7 @@
+     const bool same_position = entry->key32 == key32 && entry->occupied();
+     if (!move.is_none() || !same_position) entry->move = move;
+     if (bound == BoundExact || !same_position || depth + 4 > entry->depth || entry->generation() != generation_) {
++        if (!same_position && entry->occupied() && tt_gen_obs::remembered(this,entry,entry->key32)) { ++tt_gen_obs::c.evicted_old_hit; tt_gen_obs::record(entry)={}; }
+         entry->key32 = key32;
+         entry->score = static_cast<std::int16_t>(std::clamp(score, -32767, 32767));
+         entry->rule50_clock = static_cast<std::uint8_t>(std::min<int>(halfmove_clock, 100));
+@@ -783,6 +799,7 @@
+     if (!pv_node && tt_hit && tt_score != ValueNone &&
+         (tt_bound == BoundExact || (tt_bound == BoundLower && tt_score >= beta) ||
+          (tt_bound == BoundUpper && tt_score <= alpha))) {
++        if(tte.generation()!=shared_.tt.generation()) ++tt_gen_obs::c.qs_old_cut;
+         return tt_score;
+     }
+ 
+@@ -911,6 +928,7 @@
+         board.halfmove_clock() < 90 &&
+         (tt_bound == BoundExact || (tt_bound == BoundLower && tt_score >= beta) ||
+          (tt_bound == BoundUpper && tt_score <= alpha))) {
++        if(tte.generation()!=shared_.tt.generation()) ++tt_gen_obs::c.main_old_cut;
+         return tt_score;
+     }
+ 
+@@ -1214,6 +1232,8 @@
+ // Iterative deepening driver
+ 
+ SearchInfo Worker::search(Board board, const SearchLimits& limits, bool emit_info, const std::vector<Worker*>& all) {
++    tt_gen_obs::reset();
++    tt_gen_obs::Summary tt_observation{board.fen()};
+     const auto origin = limits.start_time != std::chrono::steady_clock::time_point{}
+         ? limits.start_time : limits.request_start;
+     start_ = origin == std::chrono::steady_clock::time_point{}

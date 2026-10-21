@@ -272,3 +272,5 @@ Earlier valid capped647vs644 (320games,W114/D101/L105) and6411vs649
 (2048games,W427/D1194/L427) remain separate/inconclusive. Never pool them.
 Details and next work are in[ledger](EXPERIMENT_LEDGER.md) and
 [next experiments](NEXT_EXPERIMENTS.md); historical records remain in Git.
+
+2026-10-21 01:57UTC checkpoint: actual parent22 TT investigation completed9table checks and12legal cold/warm root comparisons with exact response parity. 58683probes/6461old hits/3366eligible old cutoffs without stores;0tracked later victims, so replacement benefit unproven. Unapplied refresh policy retained; independent review/test preparation underway. Existing SIMD skill extended and validated27checks plus independent actual-object application; repo-local only, no skill-creator/global installation available. Environment configuration draft9 readback verified with unchanged install/network/secrets/runtime; requires user publication, no activation performed. Both hosted strength jobs observed running01:53UTC, games/Elo still unknown.

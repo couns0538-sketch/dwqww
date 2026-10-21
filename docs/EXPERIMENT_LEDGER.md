@@ -573,3 +573,5 @@ results/pv-metadata-strength-39528641493-1. No retrigger/resume/pooling. Source2
 versusff2e269, equal1+0.01,T1Hash32,OwnBookfalse,0/+10/.05unchanged. Nextbounded
 TToldgeneration-hitpolicyinvestigation authorizedinff2isolateddiagnosticcopy;
 no production23policyappliedyet. Forgepriority/GrokChessdeferred/accepted5101unchanged.
+
+2026-10-21 01:57UTC checkpoint: actual parent22 TT investigation completed9table checks and12legal cold/warm root comparisons with exact response parity. 58683probes/6461old hits/3366eligible old cutoffs without stores;0tracked later victims, so replacement benefit unproven. Unapplied refresh policy retained; independent review/test preparation underway. Existing SIMD skill extended and validated27checks plus independent actual-object application; repo-local only, no skill-creator/global installation available. Environment configuration draft9 readback verified with unchanged install/network/secrets/runtime; requires user publication, no activation performed. Both hosted strength jobs observed running01:53UTC, games/Elo still unknown.

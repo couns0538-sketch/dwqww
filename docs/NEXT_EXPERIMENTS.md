@@ -96,3 +96,5 @@ Their eight required reference reads failed and are documented; no bundled helpe
 or root/global installation are claimed. Native C++20/GCC14.2 and crossLLVM-MinGW23.1.3 are verified.
 Hosted jobs can continue independently; no persistent12hour model, automatic restart
 or sixhour chat-report scheduler is verified. Save actual observations frequently.
+
+2026-10-21 01:57UTC checkpoint: actual parent22 TT investigation completed9table checks and12legal cold/warm root comparisons with exact response parity. 58683probes/6461old hits/3366eligible old cutoffs without stores;0tracked later victims, so replacement benefit unproven. Unapplied refresh policy retained; independent review/test preparation underway. Existing SIMD skill extended and validated27checks plus independent actual-object application; repo-local only, no skill-creator/global installation available. Environment configuration draft9 readback verified with unchanged install/network/secrets/runtime; requires user publication, no activation performed. Both hosted strength jobs observed running01:53UTC, games/Elo still unknown.

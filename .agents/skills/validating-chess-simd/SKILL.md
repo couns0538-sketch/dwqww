@@ -64,3 +64,21 @@ Useful evidence: `validation/nnue-update-fusion-20261019/` and
 39334266771 failed its same-binary noise gate and ran no A/B. Do not retry it or
 widen its gate; a separately preregistered equal-clock strength experiment is a
 different question and must state that distinction.
+
+## Comparing build objects
+
+Preserve raw archives/member bytes and whole-file hashes. Decode the actual AR
+long-name format: GNU `/\n` or COFF NUL terminators, with bounded offsets and
+rejection of unknown formats and duplicate/unexpected object members.
+
+Report raw identity first. A timestamp-qualified comparison requires a validated
+ordinary AMD64 COFF object (machine `0x8664`, 20-byte header and valid section
+table; not PE, bigobj or an unknown layout), equal lengths, and **every byte
+outside header TimeDateStamp offsets 4–7 identical**. Retain raw hashes and exact
+difference offsets. Never call a timestamp-qualified NNUE object raw bit-exact,
+ignore sections/code/data/relocations, or mask additional bytes.
+
+This limited structural evidence supplements arithmetic/search parity and
+runtime tests; it does not establish full semantic equivalence. Preserve original
+failed parsers/assertions, streams and unknown exit facts. Do not rebuild or
+rewrite objects/flags to force matching hashes.
