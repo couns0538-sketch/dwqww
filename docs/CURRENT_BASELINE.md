@@ -59,6 +59,9 @@ wholeprocessworkload only; noElo/nativeRyzen or cumulative19+20claim.
 Full20archive1889originals/1937payloads is verified, with ONE actualscratch
 restoration and6089independentrecoverychecks PASS (9912archivechecks).
 [Archiveproof](../validation/pawn-span-fill-20261020/root-verification/ARCHIVE.json).
+Bothparts andcombined113855291bytes were actually streamed from publicGitHub
+at7aed6c9 and verified; all4GETs200/67transportchecksPASS.
+[Publicreadback](../validation/pawn-span-fill-20261020/root-verification/ARCHIVE-PUBLICATION.json).
 [Root Windows proof](../validation/pawn-span-fill-20261020/root-verification/WINDOWS.json).
 [Source freeze](../validation/pawn-span-fill-native-20261020/ROOT-FROZEN-SOURCE-GATES.json).
 [Public trace evidence](../validation/pawn-span-fill-20261020/independent-review/PUBLIC-DIFFERENTIAL.md).
