@@ -100,6 +100,29 @@ constexpr Bitboard KingSide = FileEBB | FileFBB | FileGBB | FileHBB;
     return adf > adr ? adf : adr;
 }
 
+namespace detail {
+// Inclusive Chebyshev radii0..6; radius7 covers the entire board implicitly.
+inline constexpr auto DistanceMasks = [] {
+    std::array<std::array<Bitboard, 7>, 64> masks{};
+    for (int square = 0; square < 64; ++square)
+        for (int radius = 0; radius < 7; ++radius)
+            for (int target = 0; target < 64; ++target)
+                if (square_distance(square, target) <= radius)
+                    masks[static_cast<std::size_t>(square)][static_cast<std::size_t>(radius)] |= square_bb(target);
+    return masks;
+}();
+} // namespace detail
+
+// Exact minimum distance; retain7 for an empty set, as in the scalar scan.
+[[nodiscard]] constexpr int nearest_square_distance(int square, Bitboard targets) {
+    if (!more_than_one(targets))
+        return targets != 0 ? square_distance(square, std::countr_zero(targets)) : 7;
+    const auto& masks = detail::DistanceMasks[static_cast<std::size_t>(square)];
+    int distance = (targets & masks[3]) != 0 ? 3 : 7;
+    if ((targets & masks[static_cast<std::size_t>(distance - 2)]) != 0) distance -= 2;
+    return distance - static_cast<int>((targets & masks[static_cast<std::size_t>(distance - 1)]) != 0);
+}
+
 namespace attacks {
 
 // Precomputed attack tables. Initialisation is idempotent and cheap; the Board

@@ -1,0 +1,11 @@
+--- frozen20/search-parity.py
++++ prototype76/search-parity.py
+@@ -56,7 +56,7 @@
+ def main():
+     protocol=json.loads((HERE/'PARITY-PROTOCOL.json').read_text())
+     clear=json.loads((HERE/'ROOT-CLEARANCE.json').read_text())
+-    assert clear.get('authorized') is True and isinstance(clear.get('source_commit'),str)
++    assert clear.get('authorized') is True and clear.get('source_commit') is None and clear.get('prototype') is True
+     release=json.loads((HERE/'frozen-release-attempt1/summary.json').read_text())
+     assert release['status']=='PASS' and release['source_commit']==clear['source_commit']
+     output=HERE/'search-parity-attempt1';output.mkdir(exist_ok=False)

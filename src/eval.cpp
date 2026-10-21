@@ -268,10 +268,7 @@ void evaluate_king(const Board& board, Accumulator<Trace>& acc, const EvalInfo& 
 
     // King distance to the nearest own pawn (endgame term).
     if (own_pawns != 0) {
-        int nearest = 7;
-        Bitboard pawns = own_pawns;
-        while (pawns != 0) nearest = std::min(nearest, square_distance(king, pop_lsb(pawns)));
-        acc.template add<Us>(KingPawnDistance, nearest);
+        acc.template add<Us>(KingPawnDistance, nearest_square_distance(king, own_pawns));
     }
 }
 

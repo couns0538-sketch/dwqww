@@ -1,0 +1,92 @@
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index 4c78c6a..a48019d 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -1,5 +1,5 @@
+ cmake_minimum_required(VERSION 3.16)
+-project(ChessEngineForge VERSION 6.4.20 LANGUAGES CXX)
++project(ChessEngineForge VERSION 6.4.21 LANGUAGES CXX)
+ find_package(Threads REQUIRED)
+ 
+ option(FORGE_ENABLE_SANITIZERS "Enable AddressSanitizer and UndefinedBehaviorSanitizer" OFF)
+@@ -61,6 +61,9 @@ target_link_libraries(forge_runtime_psqt_tests PRIVATE forge_core Threads::Threa
+ add_executable(forge_pawn_span_tests tests/pawn_span_tests.cpp)
+ target_link_libraries(forge_pawn_span_tests PRIVATE forge_core Threads::Threads)
+ 
++add_executable(forge_nearest_pawn_tests tests/nearest_pawn_tests.cpp)
++target_link_libraries(forge_nearest_pawn_tests PRIVATE forge_core Threads::Threads)
++
+ add_executable(forge_bench bench/benchmark.cpp)
+ target_link_libraries(forge_bench PRIVATE forge_core Threads::Threads)
+ 
+@@ -69,6 +72,7 @@ add_test(NAME forge_tests COMMAND forge_tests)
+ add_test(NAME forge_correction_history_tests COMMAND forge_correction_history_tests)
+ add_test(NAME forge_runtime_psqt_tests COMMAND forge_runtime_psqt_tests)
+ add_test(NAME forge_pawn_span_tests COMMAND forge_pawn_span_tests)
++add_test(NAME forge_nearest_pawn_tests COMMAND forge_nearest_pawn_tests)
+ add_test(NAME forge_tt_tests COMMAND forge_tt_tests)
+ add_test(NAME forge_rule50_tests COMMAND forge_rule50_tests)
+ add_test(NAME forge_legal_witness_tests COMMAND forge_legal_witness_tests
+diff --git a/include/forge/bitboard.hpp b/include/forge/bitboard.hpp
+index b2fcb39..05c0ccd 100644
+--- a/include/forge/bitboard.hpp
++++ b/include/forge/bitboard.hpp
+@@ -100,6 +100,29 @@ constexpr Bitboard KingSide = FileEBB | FileFBB | FileGBB | FileHBB;
+     return adf > adr ? adf : adr;
+ }
+ 
++namespace detail {
++// Inclusive Chebyshev radii0..6; radius7 covers the entire board implicitly.
++inline constexpr auto DistanceMasks = [] {
++    std::array<std::array<Bitboard, 7>, 64> masks{};
++    for (int square = 0; square < 64; ++square)
++        for (int radius = 0; radius < 7; ++radius)
++            for (int target = 0; target < 64; ++target)
++                if (square_distance(square, target) <= radius)
++                    masks[static_cast<std::size_t>(square)][static_cast<std::size_t>(radius)] |= square_bb(target);
++    return masks;
++}();
++} // namespace detail
++
++// Exact minimum distance; retain7 for an empty set, as in the scalar scan.
++[[nodiscard]] constexpr int nearest_square_distance(int square, Bitboard targets) {
++    if (!more_than_one(targets))
++        return targets != 0 ? square_distance(square, std::countr_zero(targets)) : 7;
++    const auto& masks = detail::DistanceMasks[static_cast<std::size_t>(square)];
++    int distance = (targets & masks[3]) != 0 ? 3 : 7;
++    if ((targets & masks[static_cast<std::size_t>(distance - 2)]) != 0) distance -= 2;
++    return distance - static_cast<int>((targets & masks[static_cast<std::size_t>(distance - 1)]) != 0);
++}
++
+ namespace attacks {
+ 
+ // Precomputed attack tables. Initialisation is idempotent and cheap; the Board
+diff --git a/src/eval.cpp b/src/eval.cpp
+index cc92254..8e0ae37 100644
+--- a/src/eval.cpp
++++ b/src/eval.cpp
+@@ -268,10 +268,7 @@ void evaluate_king(const Board& board, Accumulator<Trace>& acc, const EvalInfo&
+ 
+     // King distance to the nearest own pawn (endgame term).
+     if (own_pawns != 0) {
+-        int nearest = 7;
+-        Bitboard pawns = own_pawns;
+-        while (pawns != 0) nearest = std::min(nearest, square_distance(king, pop_lsb(pawns)));
+-        acc.template add<Us>(KingPawnDistance, nearest);
++        acc.template add<Us>(KingPawnDistance, nearest_square_distance(king, own_pawns));
+     }
+ }
+ 
+diff --git a/src/uci.cpp b/src/uci.cpp
+index 140038c..3158b95 100644
+--- a/src/uci.cpp
++++ b/src/uci.cpp
+@@ -160,7 +160,7 @@ int main() {
+         input >> command;
+         if (command == "uci") {
+             const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex());
+-            std::cout << "id name Chess Engine Forge 6.4.20 candidate\n"
++            std::cout << "id name Chess Engine Forge 6.4.21 candidate\n"
+                          "id author OpenAI\n"
+                          "option name Hash type spin default 32 min 1 max 2048\n"
+                          "option name Threads type spin default 1 min 1 max 256\n"
