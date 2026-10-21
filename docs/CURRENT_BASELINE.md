@@ -16,12 +16,15 @@ All77 source inputs are pinned, with73 unchanged and exactly four delta paths.
 First native validation passed42CTest (14Release/14ASan/14defaultTSan),12TTgroups
 and56PVassertions each, plus8activeUCIchecks. Independent1185checks/0fail and root
 644originals/17parentsingles/77Git/138evidence rehash passed. Single firstbench
-captured292545nodes; the compiled NNUE object is bit-identical22. Windows23 and all
-strength evidence are pending. This changes replacement, shallow admission and
+captured292545nodes; the compiled NNUE object is bit-identical22. Windows23 passed13Winechecks/TT12/PV56 and1827artifactchecks; root rehashed259raw
+originals,604parentfiles,74sourcefiles and275finalrecords. ZIP
+`releases/forge-6.4.23-candidate-windows-zen5.zip` SHA
+`c3ae058154624a2c91ff32e89d78cdb222cb02d166664cddcbd7f2d4bfa17b50`.
+All23strength evidence remains pending. This changes replacement, shallow admission and
 hashfull and is not a demonstrated correctness fix, speedup or Elo gain.
 [Trial and next gate](../validation/tt-refresh-20261021/EXPERIMENT.md).
 
-Latest Windows-qualified isolated candidate **Forge 6.4.22**, source
+Parent Windows-qualified isolated candidate **Forge 6.4.22**, source
 `ff2e269c6058be84456e3b98344826d17b0056eb`, is on
 `forge/singular-pv-metadata-20261021`; published clearance checkpoint
 `1bccee28457d8e587be5b768437f199e180ae3c6`.

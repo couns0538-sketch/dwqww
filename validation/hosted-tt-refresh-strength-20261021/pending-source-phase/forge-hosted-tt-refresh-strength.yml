@@ -1,0 +1,75 @@
+# Preparation only; disabled until actual23 source/native/capture/root qualification.
+name: DISABLED bounded native Linux TT generation-refresh strength test
+on: []
+permissions:
+  contents: write
+concurrency:
+  group: forge-tt-refresh-strength-20261021
+  cancel-in-progress: false
+jobs:
+  tt-refresh-strength:
+    if: ${{ false }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 360
+    env:
+      PYTHONDONTWRITEBYTECODE: '1'
+      BASELINE_SHA: 'ff2e269c6058be84456e3b98344826d17b0056eb'
+      CANDIDATE_SHA: 'PENDING_PRODUCTION23_SOURCE'
+      FASTCHESS_SHA: '60d7a7a26c6b0582a15c112fb29a1829bef2adb3'
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          fetch-depth: 0
+      - name: Gate, freeze and build actual22 baseline14 and candidate23 fourteen-test suites serially
+        timeout-minutes: 8
+        shell: bash
+        run: |
+          set -euo pipefail
+          collector_rc=0
+          python3 -B .github/hosted-tt-refresh-strength/prepare_hosted.py --repo "$GITHUB_WORKSPACE" --out "$GITHUB_WORKSPACE/hosted-results" --work "$RUNNER_TEMP/correction-history-fresh-build" > "$RUNNER_TEMP/correction-collector.stdout" 2> "$RUNNER_TEMP/correction-collector.stderr" || collector_rc=$?
+          mkdir -p hosted-results
+          cp "$RUNNER_TEMP/correction-collector.stdout" hosted-results/collector.stdout
+          cp "$RUNNER_TEMP/correction-collector.stderr" hosted-results/collector.stderr
+          printf '%s\n' "$collector_rc" > hosted-results/collector-exit-code.txt
+          python3 -B .github/hosted-tt-refresh-strength/prepare_hosted.py --repo "$GITHUB_WORKSPACE" --out "$GITHUB_WORKSPACE/hosted-results" --work "$RUNNER_TEMP/correction-history-fresh-build" --finalize-only
+          exit "$collector_rc"
+      - name: Fresh readiness gates timed baseline AA then one bounded512-pair native SPRT
+        timeout-minutes: 310
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -B .github/hosted-tt-refresh-strength/run_hosted.py --repo "$GITHUB_WORKSPACE" --package "$GITHUB_WORKSPACE/.github/hosted-tt-refresh-strength" --baseline "$GITHUB_WORKSPACE/hosted-results/artifacts/baseline/forge" --candidate "$GITHUB_WORKSPACE/hosted-results/artifacts/candidate/forge" --fastchess "$GITHUB_WORKSPACE/hosted-results/artifacts/runner/fastchess" --out "$GITHUB_WORKSPACE/hosted-results/strength" 2>&1 | tee hosted-results/wrapper.log
+      - name: Archive every original evidence byte for permanent Git preservation
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p hosted-results
+          for stream in stdout stderr; do
+            if [ -f "$RUNNER_TEMP/correction-collector.$stream" ]; then cp "$RUNNER_TEMP/correction-collector.$stream" "hosted-results/collector.$stream"; fi
+          done
+          python3 -B .github/hosted-tt-refresh-strength/archive_results.py --input "$GITHUB_WORKSPACE/hosted-results" --out "$GITHUB_WORKSPACE/archived-results" --name "pv-metadata-strength-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+      - name: Upload all raw evidence even on failure
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: forge-hosted-tt-refresh-strength-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            hosted-results/
+            archived-results/
+          if-no-files-found: error
+          retention-days: 30
+      - name: Preserve evidence on a fresh results branch
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          branch="results/pv-metadata-strength-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+          mkdir -p hosted-results
+          git switch --orphan "$branch"
+          git rm -rf --cached --ignore-unmatch . >/dev/null
+          test -n "$(find archived-results -name '*.manifest.json' -print -quit)"
+          git add -f archived-results
+          git -c user.name='Forge validation CI' -c user.email='forge-validation@users.noreply.github.com' commit -m "Preserve bounded native Linux correction-history strength evidence $GITHUB_RUN_ID attempt $GITHUB_RUN_ATTEMPT"
+          git push origin "HEAD:refs/heads/$branch"
+          test "$(git ls-remote origin "refs/heads/$branch" | cut -f1)" = "$(git rev-parse HEAD)"

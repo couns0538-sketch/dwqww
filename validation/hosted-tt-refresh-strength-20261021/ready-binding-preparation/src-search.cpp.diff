@@ -1,0 +1,29 @@
+--- frozen22/src/search.cpp
++++ frozen23/src/search.cpp
+@@ -244,7 +244,7 @@
+ }
+ 
+ TTProbe TranspositionTable::probe(std::uint64_t key) const {
+-    const TTCluster& cluster = cluster_for(key);
++    TTCluster& cluster = cluster_for(key);
+     const std::size_t index = static_cast<std::size_t>(&cluster - clusters_.get());
+     const auto lock = lock_stripe(index);
+     auto snapshot = [&](const TTEntry& entry, bool hit) {
+@@ -259,8 +259,15 @@
+         return result;
+     };
+     const std::uint32_t key32 = verification_key(key);
+-    for (const TTEntry& entry : cluster.entries) {
+-        if (entry.key32 == key32 && entry.occupied()) return snapshot(entry, true);
++    for (TTEntry& entry : cluster.entries) {
++        if (entry.key32 == key32 && entry.occupied()) {
++            // Reused entries remain recent even when search returns a TT cutoff.
++            if (entry.generation() != generation_) {
++                entry.gen_bound = static_cast<std::uint8_t>(
++                    (static_cast<unsigned>(generation_) << 3U) | (entry.gen_bound & 7U));
++            }
++            return snapshot(entry, true);
++        }
+     }
+     const TTEntry* replace = &cluster.entries[0];
+     auto relative_age = [this](const TTEntry& entry) {

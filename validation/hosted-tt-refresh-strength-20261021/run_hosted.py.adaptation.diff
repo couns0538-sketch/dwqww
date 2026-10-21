@@ -1,0 +1,79 @@
+--- .github/hosted-pv-metadata-strength/run_hosted.py
++++ .github/hosted-tt-refresh-strength/run_hosted.py
+@@ -1,5 +1,5 @@
+ #!/usr/bin/env python3
+-"""Isolated preregistered hosted correction-history strength wrapper; one bounded native 0/+10 Elo test."""
++"""Isolated preregistered TT generation-refresh policy strength trial; one bounded 0/+10 Elo test."""
+ import argparse
+ import hashlib
+ import importlib.util
+@@ -17,8 +17,8 @@
+ import time
+ 
+ sys.dont_write_bytecode = True
+-CANDIDATE_SHA = 'ff2e269c6058be84456e3b98344826d17b0056eb'
+-CANDIDATE_BENCHMARK_NODES = 292545  # Prototype GREEN only; actual frozen22 capture remains mandatory/pending.
++CANDIDATE_SHA = '1d3ed25bea2c8b781f7ee5a178af0f66061b3984'  # Actual frozen production23; benchmark signature remains pending.
++CANDIDATE_BENCHMARK_NODES = None  # First actual frozen23 canonical capture is required.
+ 
+ 
+ def sha(path):
+@@ -326,17 +326,17 @@
+ def require_launch_protocol(cfg):
+     if cfg.get('status') != 'PREREGISTERED_REVIEWED_READY_FOR_SINGLE_PUSH':
+         raise ValueError('Protocol review has not authorized this frozen package')
+-    if (cfg.get('baseline_sha') != '2e151d019bc58dff2ab4e76e99ef99516af8d222' or
++    if (cfg.get('baseline_sha') != 'ff2e269c6058be84456e3b98344826d17b0056eb' or
+             cfg.get('candidate_sha') != CANDIDATE_SHA or
+             not isinstance(CANDIDATE_SHA, str) or not re.fullmatch('[0-9a-f]{40}', CANDIDATE_SHA) or
+             cfg.get('candidate_sha') == cfg.get('baseline_sha') or
+             cfg.get('fastchess_sha') != '60d7a7a26c6b0582a15c112fb29a1829bef2adb3' or
+-            cfg.get('baseline_version') != '6.4.21' or cfg.get('candidate_version') != '6.4.22' or
+-            cfg.get('baseline_benchmark_nodes') != 321912 or
++            cfg.get('baseline_version') != '6.4.22' or cfg.get('candidate_version') != '6.4.23' or
++            cfg.get('baseline_benchmark_nodes') != 292545 or
+             type(CANDIDATE_BENCHMARK_NODES) is not int or CANDIDATE_BENCHMARK_NODES <= 0 or
+             cfg.get('candidate_benchmark_nodes') != CANDIDATE_BENCHMARK_NODES or
+-            cfg.get('candidate_bench_capture_status') != 'PASSED_ACTUAL_FROZEN22_CANONICAL_CAPTURE' or
+-            cfg.get('source_file_counts') != {'baseline':76,'candidate':77} or
++            cfg.get('candidate_bench_capture_status') != 'PASSED_ACTUAL_FROZEN23_CANONICAL_CAPTURE' or
++            cfg.get('source_file_counts') != {'baseline':77,'candidate':77} or
+             any(cfg.get(key) != 'PASSED' for key in ('source_gates_status', 'source_scope_review_status',
+                                                       'root_review_status', 'astra_review_status')) or
+             not cfg.get('correctness_evidence_sha256') or
+@@ -347,7 +347,7 @@
+         raise ValueError('Source freeze, benchmark, workflow and independent reviews are incomplete')
+     if cfg.get('aa_settings') != {'pairs':4,'tc':'1+0.01','nodes':0,'identical_moves_required':False,'binary':'baseline'}:
+         raise ValueError('Timed baseline AA differs from frozen operational gate')
+-    if cfg.get('seed') != 20261031 or cfg.get('sprt_settings') != {
++    if cfg.get('seed') != 20261101 or cfg.get('sprt_settings') != {
+             'elo0': 0, 'elo1': 10, 'alpha': .05, 'beta': .05,
+             'pair_cap': 512, 'game_cap': 1024, 'tc': '1+0.01',
+             'concurrency': 1, 'emergency_seconds': 18000}:
+@@ -369,7 +369,7 @@
+         expected[relative] = digest
+         order.append(relative)
+     actual = [p.relative_to(repo).as_posix() for p in package.rglob('*') if p.is_file() and p != inventory]
+-    workflow = repo / '.github/workflows/forge-hosted-pv-metadata-strength.yml'
++    workflow = repo / '.github/workflows/forge-hosted-tt-refresh-strength.yml'
+     if workflow.is_file():
+         actual.append(workflow.relative_to(repo).as_posix())
+     actual.sort()
+@@ -396,7 +396,7 @@
+     cfg = json.loads((a.package / 'protocol.json').read_text())
+     require_launch_protocol(cfg)
+     verify_package_inventory(a.repo, a.package)
+-    workflow = a.repo / '.github/workflows/forge-hosted-pv-metadata-strength.yml'
++    workflow = a.repo / '.github/workflows/forge-hosted-tt-refresh-strength.yml'
+     if not workflow.is_file() or sha(workflow) != cfg['workflow_sha256']:
+         raise ValueError('Future workflow is absent or differs from reviewed freeze')
+     proof_paths = []
+@@ -435,7 +435,7 @@
+         inputs = [a.baseline, a.candidate, a.fastchess,
+                   a.repo / 'tools/match/windows_validate.py',
+                   a.baseline.parent / 'libforge_core.a', a.candidate.parent / 'libforge_core.a',
+-                  a.repo / '.github/workflows/forge-hosted-pv-metadata-strength.yml']
++                  a.repo / '.github/workflows/forge-hosted-tt-refresh-strength.yml']
+         inputs += sorted(path for path in a.package.rglob('*') if path.is_file())
+         # Every initially verified proof and mandatory build byte participates in final rehash.
+         inputs += proof_paths + build_paths

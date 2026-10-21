@@ -1,0 +1,26 @@
+--- before
++++ after
+@@ -48,7 +48,7 @@
+           for stream in stdout stderr; do
+             if [ -f "$RUNNER_TEMP/correction-collector.$stream" ]; then cp "$RUNNER_TEMP/correction-collector.$stream" "hosted-results/collector.$stream"; fi
+           done
+-          python3 -B .github/hosted-tt-refresh-strength/archive_results.py --input "$GITHUB_WORKSPACE/hosted-results" --out "$GITHUB_WORKSPACE/archived-results" --name "pv-metadata-strength-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
++          python3 -B .github/hosted-tt-refresh-strength/archive_results.py --input "$GITHUB_WORKSPACE/hosted-results" --out "$GITHUB_WORKSPACE/archived-results" --name "tt-refresh-strength-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+       - name: Upload all raw evidence even on failure
+         if: always()
+         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+@@ -64,12 +64,12 @@
+         shell: bash
+         run: |
+           set -euo pipefail
+-          branch="results/pv-metadata-strength-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
++          branch="results/tt-refresh-strength-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+           mkdir -p hosted-results
+           git switch --orphan "$branch"
+           git rm -rf --cached --ignore-unmatch . >/dev/null
+           test -n "$(find archived-results -name '*.manifest.json' -print -quit)"
+           git add -f archived-results
+-          git -c user.name='Forge validation CI' -c user.email='forge-validation@users.noreply.github.com' commit -m "Preserve bounded native Linux correction-history strength evidence $GITHUB_RUN_ID attempt $GITHUB_RUN_ATTEMPT"
++          git -c user.name='Forge validation CI' -c user.email='forge-validation@users.noreply.github.com' commit -m "Preserve bounded native Linux TT refresh strength evidence $GITHUB_RUN_ID attempt $GITHUB_RUN_ATTEMPT"
+           git push origin "HEAD:refs/heads/$branch"
+           test "$(git ls-remote origin "refs/heads/$branch" | cut -f1)" = "$(git rev-parse HEAD)"

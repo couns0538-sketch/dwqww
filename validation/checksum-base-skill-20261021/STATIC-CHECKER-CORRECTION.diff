@@ -1,0 +1,24 @@
+--- validate_checksum_bases.py
++++ validate_checksum_bases.corrected.py
+@@ -50,7 +50,12 @@
+    if '://' in target or target.startswith('#'):continue
+    resolved=(p.parent/target.split('#',1)[0]).resolve();assert resolved.is_file()
+    links.append({'source':str(p.relative_to(ROOT)),'target':target,'resolved':str(resolved.relative_to(ROOT))})
+- assert len(links)==6;report['relative_links']=links
++ expected_links=[]
++ for source_path,snapshot_name in [(SKILL,'before-SKILL.md'),(SKILL.with_name('scenarios.md'),'before-scenarios.md')]:
++  for target in re.findall(r'(?<!!)\[[^\]]+\]\(([^)]+)\)',(OUT/snapshot_name).read_text()):
++   if '://' not in target and not target.startswith('#'):expected_links.append((str(source_path.relative_to(ROOT)),target))
++ assert [(x['source'],x['target']) for x in links]==expected_links
++ report['relative_links']=links;report['relative_link_count']=len(links);report['checks']['exact_existing_link_set_retained']=True
+  change=json.loads((OUT/'CHANGE.json').read_text());assert text.replace(change['inserted_paragraph'],'',1)==(OUT/'before-SKILL.md').read_text() and text.count(change['inserted_paragraph'])==1
+  assert SKILL.with_name('scenarios.md').read_bytes()==(OUT/'before-scenarios.md').read_bytes()
+  report['checks']['one_insertion_all_preexisting_AA_stopping_schema_lifecycle_bytes_unchanged']=True;report['checks']['scenarios_unchanged']=True
+@@ -83,6 +88,6 @@
+ except Exception as error:
+  report.update(status='FAILED',error_type=type(error).__name__,error=str(error));traceback.print_exc()
+ finally:
+- with (OUT/'CHECKS.json').open('x') as f:json.dump(report,f,indent=2);f.write('\n')
++ with (OUT/'CHECKS-corrected.json').open('x') as f:json.dump(report,f,indent=2);f.write('\n')
+ print(json.dumps({k:v for k,v in report.items() if k not in ['manifests','relative_links','metadata']},indent=2))
+ sys.exit(0 if report['status'].startswith('PASS_') else 1)

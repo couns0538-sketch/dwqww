@@ -1,0 +1,33 @@
+{
+  "created_utc": "2026-10-21T02:23:13.318305+00:00",
+  "source_and_tests_commit": "1d3ed25bea2c8b781f7ee5a178af0f66061b3984",
+  "source_directory": "/workspace/.cloud-setup/windows6423-source",
+  "build_directory": "/workspace/.cloud-setup/windows6423-build",
+  "commands": [
+    [
+      "/workspace/.cloud-setup/venv/bin/cmake",
+      "-S",
+      "/workspace/.cloud-setup/windows6423-source",
+      "-B",
+      "/workspace/.cloud-setup/windows6423-build",
+      "-DCMAKE_BUILD_TYPE=Release",
+      "-DCMAKE_TOOLCHAIN_FILE=/workspace/.cloud-setup/windows6423-source/tools/windows-zen5.cmake",
+      "-DCMAKE_EXPORT_COMPILE_COMMANDS=ON"
+    ],
+    [
+      "/workspace/.cloud-setup/venv/bin/cmake",
+      "--build",
+      "/workspace/.cloud-setup/windows6423-build",
+      "--parallel",
+      "1"
+    ]
+  ],
+  "environment_subset": {
+    "LLVM_MINGW_ROOT": "/workspace/.cloud-setup/toolchains/llvm-mingw-20261006-ucrt-ubuntu-22.04-x86_64",
+    "PYTHONDONTWRITEBYTECODE": "1"
+  },
+  "configuration": "Release -march=znver5 -mtune=znver5 -fno-fast-math -ffp-contract=off -static",
+  "parallel_jobs": 1,
+  "runtime_checks": "pending",
+  "scope": "Build only; no performance/strength result"
+}
