@@ -1,0 +1,183 @@
+{
+  "status": "BLOCKED_STATIC_STRENGTH_PACKET_LIFECYCLE_REVIEW_DISABLED_NO_EXECUTION",
+  "reviewed_utc": "2026-10-21T00:57:23.953214+00:00",
+  "reviewer": "/root/archive_clock_complete/review20_archive_preparation",
+  "check_count": 31,
+  "passed_checks": 30,
+  "checks": [
+    {
+      "name": "run_hosted.py matches sealed static source hash",
+      "passed": true
+    },
+    {
+      "name": "run_match.py matches sealed static source hash",
+      "passed": true
+    },
+    {
+      "name": "pgn_stats.py matches sealed static source hash",
+      "passed": true
+    },
+    {
+      "name": "forge-hosted-pv-metadata-strength.yml matches sealed static source hash",
+      "passed": true
+    },
+    {
+      "name": "checkpoint protocol inventory original sealed identities",
+      "passed": true
+    },
+    {
+      "name": "workflow disabled without event or hidden dispatch trigger",
+      "passed": true
+    },
+    {
+      "name": "actual qualification and launch authorization still absent",
+      "passed": true
+    },
+    {
+      "name": "matched actual source pin declarations",
+      "passed": true
+    },
+    {
+      "name": "fresh output directories refuse prior experiments",
+      "passed": true
+    },
+    {
+      "name": "AA is4pairs8normalgames samebaseline executable timed settings",
+      "passed": true
+    },
+    {
+      "name": "AA disables deterministic moves or outcome gate",
+      "passed": true
+    },
+    {
+      "name": "serial1thread equalhash wall-time native logistic0plus10 SPRT",
+      "passed": true
+    },
+    {
+      "name": "wrapper uses no node cap for strength and runner rejects node SPRT",
+      "passed": true
+    },
+    {
+      "name": "no configured adjudication move cap retry resume rescue or match pooling",
+      "passed": true
+    },
+    {
+      "name": "AA completes before single strength SPRT call",
+      "passed": true
+    },
+    {
+      "name": "live scanner detects warning error fatal nonnormalterm and output replacement truncation deletion",
+      "passed": true
+    },
+    {
+      "name": "whole process wall timeout is explicit failure inconclusive",
+      "passed": true
+    },
+    {
+      "name": "successful owned runner exit requires no descendant process group",
+      "passed": true
+    },
+    {
+      "name": "runner owned cleanup encloses live faults deadlines and nonzero returns",
+      "passed": true
+    },
+    {
+      "name": "readiness write hash parser errors reach cleanup exception handler",
+      "passed": true
+    },
+    {
+      "name": "PGN final result required completed consistent",
+      "passed": true
+    },
+    {
+      "name": "PGN illegal timeout crash terminations rejected",
+      "passed": true
+    },
+    {
+      "name": "PGN exactly2games eachround swappedcolors sameFEN uniqueopening",
+      "passed": true
+    },
+    {
+      "name": "pentanomial rawoutcome counts match both native reports",
+      "passed": true
+    },
+    {
+      "name": "independent0plus10 LLRAudit validates boundaries and cap",
+      "passed": true
+    },
+    {
+      "name": "input hashes rechecked before acceptance and in finally",
+      "passed": true
+    },
+    {
+      "name": "all ordinary workflow error paths preserve raw and archive outputs",
+      "passed": true
+    },
+    {
+      "name": "original100offline result retained without rerun",
+      "passed": true
+    },
+    {
+      "name": "blocker factual evidence onlyone parent affinity mutation and no restoration",
+      "passed": true
+    },
+    {
+      "name": "unconditional parent affinity restoration including setup hash and write faults",
+      "passed": false,
+      "finding_id": "STRENGTH22-LIFECYCLE-001"
+    },
+    {
+      "name": "reviewed sources still equal sealed first draft hashes",
+      "passed": true
+    }
+  ],
+  "blocking_findings": [
+    {
+      "id": "STRENGTH22-LIFECYCLE-001",
+      "severity": "blocking",
+      "file": ".github/hosted-pv-metadata-strength/run_hosted.py",
+      "line": 428,
+      "title": "Parent affinity is never restored; post-pin setup and final persistence are outside an unconditional restoration guard",
+      "evidence": [
+        "original_affinity is recorded at line427 and affinity is pinned at line428. AST finds exactly one sched_setaffinity call in main, the pin; no restoration exists.",
+        "Dynamic module loading, frozen input hashes and initial host-context/summary writes follow the pin before the try at line533. Any exception there escapes the existing finalization block.",
+        "The finally at lines564-573 performs final rehash and several writes, any of which can raise. There is no outer finally to restore affinity independently of those failures."
+      ],
+      "impact": "Fails the explicitly required unconditional restoration after normal completion, launch/setup faults, hash faults and persistence failures. The disabled packet is not ready for execution.",
+      "required_change": "Owner should guard the complete post-pin lifecycle with an outer try/finally that restores and verifies original affinity independently of all fallible rehash/host-context/persistence operations. Preserve the sealed failing source/evidence and validate the changed lifecycle with focused fault controls before resealing; this reviewer makes no edit or test call."
+    }
+  ],
+  "source_sha256": {
+    ".github/hosted-pv-metadata-strength/run_hosted.py": "c341c9121e0d1f98a19d581e66943b8c334ee618295d0fb6d812adcb00b4abe8",
+    ".github/hosted-pv-metadata-strength/match/run_match.py": "6cddd135550320a460bc4695e33311077511e53941fdb802ca5fdc908e0033df",
+    ".github/hosted-pv-metadata-strength/match/pgn_stats.py": "a5a6b46e1d5381fc063475fb90f012051653cefbca485c46a01179fafbeec2bf",
+    ".github/workflows/forge-hosted-pv-metadata-strength.yml": "e7da594ca86445c56a63a77a1c25d6a4ad445091c0ee16447aa7b4b2bf3c0432"
+  },
+  "preparation_checkpoint_sha256": "8bc8db1fcc0bf679830933a81bbd8bc343abb76a92913289605cb05fc20b70b8",
+  "readiness": "Source-only disabled preparation; actual22 native42CTest/8active and Windows13 qualification and authorization remain pending.",
+  "matched_timed_design": {
+    "aa_pairs": 4,
+    "aa_games": 8,
+    "aa_same_baseline_binary": true,
+    "tc": "1+0.01",
+    "threads": 1,
+    "hash_mb": 32,
+    "move_overhead_ms": 10,
+    "sprt_elo0": 0,
+    "sprt_elo1": 10,
+    "alpha": 0.05,
+    "beta": 0.05,
+    "pair_cap": 512,
+    "game_cap": 1024,
+    "concurrency": 1,
+    "deterministic_AA_moves_or_results_required": false
+  },
+  "ownership_qualification": "run_match is a child within the outer owned process group. Parent run_owned cleans the group for faults/timeouts/orphans. Standalone child process affinity is not a substitute for restoring the root wrapper caller affinity.",
+  "test_scope": "Original100offline result authenticated via closed checkpoint only. No packet/test/helper imports or tests executed; this source review identifies an uncovered lifecycle requirement despite the earlier passing suite.",
+  "claim_scope": "No strength match or Elo result exists from this review. Static passing checks do not waive the blocker.",
+  "reviewer_engines_builds_matches_packet_imports_tests_network_git_runs": 0,
+  "skills_applied": [
+    "validate-chess-engine main SKILL.md for equal-time strength/paired counts and separation of correctness from Elo",
+    "preserve-chess-evidence for sealed evidence and failed-attempt retention"
+  ]
+}

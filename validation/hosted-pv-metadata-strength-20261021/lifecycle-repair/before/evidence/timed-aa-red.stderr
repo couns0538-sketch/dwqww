@@ -1,0 +1,49 @@
+test_timed_aa_accepts_normal_nonidentical_moves_without_strength_decision (test_timed_aa.TimedAAGate.test_timed_aa_accepts_normal_nonidentical_moves_without_strength_decision) ... FAIL
+test_timed_aa_still_rejects_any_nonnormal_termination (test_timed_aa.TimedAAGate.test_timed_aa_still_rejects_any_nonnormal_termination) ... FAIL
+
+======================================================================
+FAIL: test_timed_aa_accepts_normal_nonidentical_moves_without_strength_decision (test_timed_aa.TimedAAGate.test_timed_aa_accepts_normal_nonidentical_moves_without_strength_decision)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/dwqww/validation/hosted-pv-metadata-strength-20261021/test_timed_aa.py", line 29, in test_timed_aa_accepts_normal_nonidentical_moves_without_strength_decision
+    result=self.run_fixture();self.assertEqual(result['statistics']['pairs'],4);self.assertEqual(result['decision'],'aa_operational_readiness_only');self.assertIsNone(result['likelihood_audit'])
+           ^^^^^^^^^^^^^^^^^^
+  File "/workspace/dwqww/validation/hosted-pv-metadata-strength-20261021/test_timed_aa.py", line 27, in run_fixture
+    result=namespace['match']('aa',90);self.assertEqual(len(commands),1);return result
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/dwqww/.github/hosted-correction-history-strength/run_hosted.py", line 488, in match
+    code = run_owned(command, a.out / (phase + '-wrapper.stdout'), scanner, seconds)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/dwqww/validation/hosted-pv-metadata-strength-20261021/test_timed_aa.py", line 17, in fake_run
+    commands.append(command);self.assertEqual(seconds,90);self.assertEqual(command[command.index('--tc')+1],'1+0.01');self.assertEqual(command[command.index('--pairs')+1],'4');self.assertEqual(command[command.index('--candidate')+1],str(a.baseline));self.assertNotIn('--aa',command);self.assertNotIn('--nodes',command)
+                                                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 'inf' != '1+0.01'
+- inf
++ 1+0.01
+
+
+======================================================================
+FAIL: test_timed_aa_still_rejects_any_nonnormal_termination (test_timed_aa.TimedAAGate.test_timed_aa_still_rejects_any_nonnormal_termination)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/dwqww/validation/hosted-pv-metadata-strength-20261021/test_timed_aa.py", line 31, in test_timed_aa_still_rejects_any_nonnormal_termination
+    with self.assertRaisesRegex(ValueError,'non-normal termination'):self.run_fixture('time forfeit')
+                                                                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/dwqww/validation/hosted-pv-metadata-strength-20261021/test_timed_aa.py", line 27, in run_fixture
+    result=namespace['match']('aa',90);self.assertEqual(len(commands),1);return result
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/dwqww/.github/hosted-correction-history-strength/run_hosted.py", line 488, in match
+    code = run_owned(command, a.out / (phase + '-wrapper.stdout'), scanner, seconds)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/dwqww/validation/hosted-pv-metadata-strength-20261021/test_timed_aa.py", line 17, in fake_run
+    commands.append(command);self.assertEqual(seconds,90);self.assertEqual(command[command.index('--tc')+1],'1+0.01');self.assertEqual(command[command.index('--pairs')+1],'4');self.assertEqual(command[command.index('--candidate')+1],str(a.baseline));self.assertNotIn('--aa',command);self.assertNotIn('--nodes',command)
+                                                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 'inf' != '1+0.01'
+- inf
++ 1+0.01
+
+
+----------------------------------------------------------------------
+Ran 2 tests in 0.023s
+
+FAILED (failures=2)

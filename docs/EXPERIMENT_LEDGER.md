@@ -518,3 +518,29 @@ faultcases/repaired9GREEN; full100PASSafteronepreservedtestASTextractorimporterr
 (98otherstestspassed). Independentrepair816checksPASS, all533phase2receipts/original18
 bytesverified. Protocol/workflowremain disabled; noengine/matchrunfor22. Actualcapture,
 fullfiniteproofbinding/rootREADYchecks stillneededbeforefresh512pairSPRT.
+
+
+2026-10-21 01:20UTC — Frozen22 firstWindowsqualificationPASS:11PEstrictj1build,
+13Winechecks/PV56/0, canonicalactual334752signature,1779artifactaudit. Rootverified
+266raworiginals/74source/543parentfiles/11PE/23members22checksums and282finalrecords.
+RootWINDOWS8c266b37; ZIP16965395B/328706574973ca49ef185cc1fbfdf321b6dfac78c52a22db0e087553a1ca1205.
+Engine56c55eb6…, raw10294666B/559fd23a…. AuxiliaryreaderfirstfailedGNUterminator,
+correctedreaderthenfailedwholeobjectidentity; rootshowedall6nonsearchCOFFobjects
+onlydifferinstandardheader timestamps4..7, allotherbytesidentical. Originalfailed
+readers/unknownfirstauxexit retained; no actualbuild/engine/runtimefailure orrerun.
+RootstatusliteralWINDOWS21leftinnewproofwaspreserved/corrected; read-onlyrehash
+only. Winequalificationonly, no nativeRyzen/NPS/Elo claim. Sourceff2unchanged.
+
+Twoactual21/22 fivecommandproducer captures firstPASS, outerexec93832normal0;
+5canonical321912+5canonical292545 rows,185byte/modeinputs unchanged, originalaffinity
+restored/ownedgroupsclosed/empty stderr. CapturePROVENANCE721611d1…/auth1ec3b23f…;
+source76/77/releasecorrespondence/genuine39/42+Windows12/13proofs reviewedbeforelaunch.
+Actualcapture/canonicalparserindependentreview andfinalREADYbinding pending.
+
+Complete21archive actualproducerPASS2045originals/2078payloads/121548290B across
+67108864+54439426parts, combined6df303ff995b3f68984a803d5ebb63a8244a3d1e5bd8bf1e20b21de2d6c3948c.
+Manifest7cdb6d4b…. Independent13783checksretains1finding: rootupdatednonoriginalouter
+metadata-note resolutionwording afterfrozenarchivecompleted. All2045originals,
+2078stage/ZIPpayloads,319dirs,65bindings andparts/combinedpass. Bothnoteversions/diff/
+qualifieddisposition2067d801… preserved, originalauditnotrerun/rescued. Scratchrecovery
+notrun; metadatafindingdisposition/recoverabilityqualification remainsseparate.

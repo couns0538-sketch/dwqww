@@ -1,0 +1,28 @@
+--- untouched-preparation/archive_complete.py
++++ promoted-disabled/archive_complete.py
+@@ -171,8 +171,9 @@
+     assert actual==expected and len(expected)==73
+     assert all(native['trees']['source']['files'][n]['sha256']==value for n,value in expected.items())
+     win_final=load(WINDOWS/'FINAL-STATUS.json')
+-    assert win_final['source_commit']==COMMIT and win_final['status']=='WINDOWS21_CANDIDATE_VALIDATED_NOT_ELO_ACCEPTED'
++    assert win_final['source_commit']==COMMIT and win_final['status']=='WINDOWS21_FIRST_CHAIN_QUALIFIED_NOT_ELO_ACCEPTED'
+     assert sha(REPO/win_final['artifact'])==win_final['artifact_sha256']
++    for key,value in closed['observed_windows_final_values'].items():assert win_final[key]==value,key
+     runtime=load(WINDOWS/'runtime-attempt1/result.json')
+     assert runtime['status']=='passed' and runtime['source_and_tests_commit']==COMMIT
+     assert len(runtime['checks'])==12 and all(row['exit_code']==0 for row in runtime['checks'])
+@@ -184,7 +185,14 @@
+     assert capture['status']=='PASS_BOTH_ACTUAL_FIVE_COMMAND_CAPTURES_NOT_SPEED_EVIDENCE' and capture['final_rehash']['status']=='passed'
+     helper=captures/'owned_process.executed.py'
+     assert sha(helper)==capture['helper_sha256']==capture['helper_sha256_after']==closed['actual_producer_helper_sha256']
++    assert len(capture['frozen_inputs'])==len(capture['final_rehash']['observed'])==181 and capture['final_rehash']['mismatches']==[]
++    assert sha(captures/'ROOT-CAPTURE-AUTHORIZATION.executed.json')==closed['actual_capture_executed_authorization_sha256']
++    review=load(Path(closed['actual_capture_root_review']))
++    assert review['normal_outer_tool_exit_code']==0 and review['frozen_inputs_rehashed']==181 and review['provenance_sha256']==sha(captures/'PROVENANCE.json')
+     for label,entry in capture['captures'].items():
++        facts=entry['process_facts']
++        assert entry['status']=='PASS_ACTUAL_FIVE_CANONICAL_ROWS' and entry['rows']==5
++        assert facts['returncode']==facts['returncode_after_cleanup']==0 and facts['owned_group_empty_after_cleanup'] is True and facts['process_observations_valid'] is True and facts['timed_out'] is False
+         source=Path(closed['actual_capture_source_roots'][label])
+         assert entry['source_sha256_before']==entry['source_sha256_after'] and len(entry['source_sha256_before'])==closed['actual_capture_source_counts'][label]
+         assert all(sha(source/name)==value for name,value in entry['source_sha256_before'].items())

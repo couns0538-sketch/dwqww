@@ -1,0 +1,9 @@
+# Preregistered prospective22-versus21 screen
+
+Before any actual test: one equal-time logistic SPRT, H0=0 Elo and H1=+10 Elo, alpha=beta=.05,1+0.01, serial T1/Hash32, OwnBookfalse, MoveOverhead10, Ponderfalse verified default, restarton. Stop at the first native boundary or512 completed color-swapped pairs/1024games; an unbounded decision is not forced at the cap. A natural cap without a boundary is inconclusive. The emergency18000-second wall bound invalidates acceptance and is not a statistical sample cap.
+
+Four separate timed baseline21/baseline21 pairs at the same settings must complete normally before SPRT. They are operational fault checks only; no identical-move requirement, rating inference or pooled outcome. No preliminary32-pair screen is planned. Every abnormal termination, warning/error, crash, orphan, incomplete pair or changed consumed input invalidates acceptance; no retry, resume, reset, trimming, adjudication, maxmoves or pooling.
+
+The hypothesis concerns the demonstrated parentPV metadata repair, not a guaranteed strength gain. The512-pair budget may not resolve a small real change. Any boundary result applies to this exact short-TC Linux comparison and selected opening cohort; no transfer to10-second play, physical Ryzen/nativeWindows, Stockfish3200 or absolute ratings is established. Bench321912/292545 signatures only identify behavior; node reduction is neither an NPS nor Elo claim.
+
+Fresh4AA+512SPRT positions use selector20261021-pv-metadata-v1 and runtime seed20261031, excluding every known historical/reserved cohort including all260 reserved18 positions. Candidate22 actualsource ff2e269c6058be84456e3b98344826d17b0056eb is pinned, but actual complete native/Windows/canonical capture/root/independent review and one-attempt authorization remain prerequisites. The workflow stays disabled. Statistical choices must not change after observing results.

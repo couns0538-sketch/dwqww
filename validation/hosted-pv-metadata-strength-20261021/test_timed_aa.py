@@ -7,7 +7,7 @@ def load(name,path):
  s=importlib.util.spec_from_file_location(name,path);m=importlib.util.module_from_spec(s);s.loader.exec_module(m);return m
 runner=load('pv_aa_runner',PKG/'run_hosted.py');stats=load('pv_aa_stats',PKG/'match/pgn_stats.py');validator=load('pv_aa_validator',REPO/'tools/match/windows_validate.py')
 main=next(n for n in ast.parse(SOURCE.read_text()).body if isinstance(n,ast.FunctionDef) and n.name=='main')
-function=next(n for n in main.body if isinstance(n,ast.FunctionDef) and n.name=='match')
+function=next(n for n in ast.walk(main) if isinstance(n,ast.FunctionDef) and n.name=='match')
 class TimedAAGate(unittest.TestCase):
  def run_fixture(self,termination='normal'):
   with tempfile.TemporaryDirectory(dir=ROOT) as tmp:

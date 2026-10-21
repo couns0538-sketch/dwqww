@@ -35,13 +35,28 @@ intentionally changes search. Source gate SHA256
 `4510f8908b628429c0e88115d7c9f3ed9ae7d9981b53ac4ff7cd6729ea6dd413`.
 [Root native proof](../validation/pv-metadata-20261021/root-verification/NATIVE.json)
 SHA256 `73be33c8ae94838a582ae8705e903c8d994619fbc05f798bfc1952efed7e5b62`.
-Windows22 first strictj1build is running after successful74source prechecks.
-Its thirteen Wine checks, first actualWindows signature and artifact audit remain
-pending. The disabled equal-time SPRT packet passed100offline tests; independent
-review found a runneraffinity cleanup blocker. New22-only outer restoration guard
-passes9focused fault controls and100offline tests, with originalRED/loaderfailure
-retained. Independentrepairreview816checksPASS; actual22captures/proofbinding and
-finalenabledreview remain pending. No games or Elo result yet.
+Windows22 first strictLLVM-MinGW Zen5Release j1build11PEs, thirteen Winechecks,
+PV56/0 and independent1779artifactchecks PASS. Root rehashed266raw originals,
+74frozen sources,11builtPEs,543unchangedparentfiles and23release members/22checksums;
+all282closed final records also rehashed. Actual first Windows signature334752 is
+frozen; it was unknown before capture and implies no speed/Elo result.
+[RootWindowsproof](../validation/pv-metadata-20261021/root-verification/WINDOWS.json)
+SHA8c266b37; [Windows22 Zen5ZIP](../releases/forge-6.4.22-candidate-windows-zen5.zip),
+16965395bytes, SHA256
+`328706574973ca49ef185cc1fbfdf321b6dfac78c52a22db0e087553a1ca1205`.
+This is Winequalification, not nativeRyzen execution. Two auxiliaryread-only
+checkerfailures are retained: GNU-only archive-name parsing, then inappropriate
+wholeCOFFobjectidentity. Root demonstrated allsixnonsearchobjects differonlyin
+standardCOFF timestampbytes4..7; wholeWindowsNNUEobjectidentity is not claimed.
+The initial rootproof's descriptiveWINDOWS21literal was corrected with oldproof,
+writer and outputs retained; no engine/build/runtime was repeated.
+
+Two firstactual21/22 five-command nativeproducer captures pass,185consumed byte/mode
+inputs unchanged, normalouterexit0 and source76/77correspondence. Independentraw/
+canonicalparser review and finalREADYbinding are pending. The disabled strength
+packet's outer-affinityrepair passes9focused faultcontrols and100offline tests;
+independentreview816+56checksPASS, originalRED/extractorfailurepreserved. No games
+have run for22 and no Elo gain is accepted.
 Planned strength comparison is source21 versus source22, four timed operational
 A/A pairs then at most512 paired SPRT openings, 1+0.01, T1/Hash32/OwnBook=false,
 logistic H0=0/H1=+10 and alpha=beta=.05. Finite gates and actual producer capture

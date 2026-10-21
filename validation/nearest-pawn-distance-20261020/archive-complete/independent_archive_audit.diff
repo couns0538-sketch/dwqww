@@ -1,0 +1,315 @@
+--- independent_archive_audit.reference20.py
++++ independent_archive_audit.py
+@@ -17,26 +17,26 @@
+ import traceback
+ import zipfile
+ 
+-BASE = Path('/workspace/dwqww/validation/pawn-span-fill-20261020/archive-complete')
++BASE = Path('/workspace/dwqww/validation/nearest-pawn-distance-20261020/archive-complete')
+ REPO = Path('/workspace/dwqww')
+-STAGE = Path('/workspace/.cloud-setup/forge-pawn-span-fc23918-complete-evidence-stage')
++STAGE = Path('/workspace/.cloud-setup/forge-nearest-pawn-2e151d0-complete-evidence-stage')
+ RECEIPT = BASE / 'INDEPENDENT-ARCHIVE-AUDIT.json'
+-MANIFEST = 'forge-pawn-span-fc23918-20261020-complete.manifest.json'
+-SOURCE = 'fc2391870b3bf2cd4d8fc20c7406ea6439c69c5e'
+-MANIFEST_SHA = '9f12841fbdba3a9575d53c36bae5e6ae105d3f5c78a42c44b358c696fb789478'
+-ZIP_SHA = 'ee1bdd21707175cd57107a3a4a1c1daacd106975974b53d40338f0b9f1a22f7e'
+-ZIP_SIZE = 113855291
++MANIFEST = 'forge-nearest-pawn-2e151d0-20261020-complete.manifest.json'
++SOURCE = '2e151d019bc58dff2ab4e76e99ef99516af8d222'
++MANIFEST_SHA = '7cdb6d4b63dfb8dcf8511638b3503cbca46d8d9f18def2b4e796ef43ff77af32'
++ZIP_SHA = '6df303ff995b3f68984a803d5ebb63a8244a3d1e5bd8bf1e20b21de2d6c3948c'
++ZIP_SIZE = 121548290
+ HELPER_SHA = '461a65d2fecdf208994749cb0d44c56bf2f8524610f211a4bf76bd019c25704d'
+ PARTS = [
+-    {'file': 'forge-pawn-span-fc23918-20261020-complete.zip.part0001', 'size': 67108864,
+-     'sha256': '44de1a6ff175ecf9ae74b93e31663d312393b1b380ca8bef92a7d52cefad01d9'},
+-    {'file': 'forge-pawn-span-fc23918-20261020-complete.zip.part0002', 'size': 46746427,
+-     'sha256': 'f7e7e3bddd083e01ac9bd051f47774195c78e26f3d87bc7c5634f18df0d42398'},
++    {'file': 'forge-nearest-pawn-2e151d0-20261020-complete.zip.part0001', 'size': 67108864,
++     'sha256': '03cfa23b8ce8dd95ad6f78412e63f5acf4afebc522289775beacc5d910b46402'},
++    {'file': 'forge-nearest-pawn-2e151d0-20261020-complete.zip.part0002', 'size': 54439426,
++     'sha256': '04bf32944a05ad2b2369d1455d1ccc0f6284be055ff12d0f46e8192e62c3e504'},
+ ]
+ REPORT = {
+     'schema_version': 1,
+     'status': 'RUNNING',
+-    'auditor': '/root/archive_clock_complete/audit20_archive_fresh',
++    'auditor': '/root/archive6417',
+     'started_utc': datetime.datetime.now(datetime.timezone.utc).isoformat(),
+     'source_commit_recorded_not_independently_git_authenticated': SOURCE,
+     'method': 'Independent Python standard library hashing, JSON, zipfile and anonymous tempfile; no producer/helper import or execution.',
+@@ -129,13 +129,13 @@
+     require('External manifest schema and archive identity',
+             external['schema_version'] == 1 and external['format'] == 'raw-split-zip'
+             and external['archive'] == {
+-                'file': 'forge-pawn-span-fc23918-20261020-complete.zip',
++                'file': 'forge-nearest-pawn-2e151d0-20261020-complete.zip',
+                 'size': ZIP_SIZE, 'sha256': ZIP_SHA}
+             and external['parts'] == PARTS and external['split_size'] == 67108864
+             and external['manifest_member'] == 'manifest.json')
+     entries = external['files']
+     paths = [r['path'] for r in entries]
+-    require('1937 unique safe payload paths', len(paths) == 1937
++    require('2078 unique safe payload paths', len(paths) == 2078
+             and len(set(paths)) == len(paths) and all(map(safe_relative, paths)))
+     files = dict(zip(paths, entries))
+     REPORT['external_manifest'] = {'file': MANIFEST, **manifest_id}
+@@ -144,8 +144,8 @@
+ 
+     before = json_file(BASE / 'LIVE-BEFORE.json')
+     live_rows, dir_rows = before['files'], before['directories']
+-    require('Frozen live counts and bytes', len(live_rows) == 1889
+-            and len(dir_rows) == 306 and sum(r['size'] for r in live_rows) == 303693001)
++    require('Frozen live counts and bytes', len(live_rows) == 2045
++            and len(dir_rows) == 319 and sum(r['size'] for r in live_rows) == 317150918)
+     require('Unique frozen original and payload file/directory paths',
+             all(len({r[k] for r in rows}) == len(rows)
+                 for rows in [live_rows, dir_rows] for k in ['original', 'payload_path']))
+@@ -166,9 +166,14 @@
+           stage_files == set(paths) and not special,
+           extra=sorted(stage_files - set(paths)), missing=sorted(set(paths) - stage_files),
+           special=special)
+-    require('Archive payload is exactly frozen live files plus48 provenance files',
++    expected_stage_dirs = {str(parent) for path in paths for parent in PurePosixPath(path).parents if str(parent) != '.'}
++    expected_stage_dirs.update(row['payload_path'] for row in dir_rows)
++    check('Stage directory inventory exactly frozen mapped plus structural parents',
++          stage_dirs == expected_stage_dirs,
++          extra=sorted(stage_dirs-expected_stage_dirs), missing=sorted(expected_stage_dirs-stage_dirs))
++    require('Archive payload is exactly frozen live files plus33 provenance files',
+             {p for p in paths if p.startswith('payload/')} == set(live_by_payload)
+-            and len([p for p in paths if p.startswith('archive-provenance/')]) == 48
++            and len([p for p in paths if p.startswith('archive-provenance/')]) == 33
+             and all(p.startswith(('payload/', 'archive-provenance/')) for p in paths))
+ 
+     staged_observations = {}
+@@ -185,7 +190,7 @@
+         observed = identity(Path(row['original']))
+         staged = staged_observations[row['payload_path']]
+         equal = all(observed[k] == row[k] for k in ['size', 'sha256', 'mode', 'mtime_ns'])
+-        stage_equal = all(staged[k] == row[k] for k in ['size', 'sha256', 'mode'])
++        stage_equal = all(staged[k] == row[k] for k in ['size', 'sha256', 'mode', 'mtime_ns'])
+         check('Live original hash/size/mode/mtime and stage hash/size/mode: ' + row['original'],
+               equal and stage_equal)
+         check('Frozen live identity equals external archive entry: ' + row['payload_path'],
+@@ -230,8 +235,8 @@
+         with zipfile.ZipFile(combined) as archive:
+             infos = archive.infolist()
+             names = [info.filename for info in infos]
+-            require('ZIP exactly1937 unique payload members plus internal manifest',
+-                    len(names) == 1938 and len(set(names)) == len(names)
++            require('ZIP exactly2078 unique payload members plus internal manifest',
++                    len(names) == 2079 and len(set(names)) == len(names)
+                     and set(names) == {'files/' + p for p in paths} | {'manifest.json'}
+                     and all(map(safe_relative, names)))
+             require('ZIP contains no encrypted, directory, symlink or special members',
+@@ -261,110 +266,89 @@
+             REPORT['zip_member_modes_octal'] = [oct(mode) for mode in zip_modes]
+     print('Checked independent ZIP members:', len(entries), 'payloads', flush=True)
+ 
+-    clearance = json_file(BASE / 'ROOT-CLEARANCE.json')
+-    require('Root clearance binds exact source and quiescent included writers',
+-            clearance['source_commit'] == SOURCE
+-            and clearance['included_writers_quiescent'] is True)
+-    bindings = clearance['frozen_inputs_sha256']
+-    require('Root clearance contains15 bound files', len(bindings) == 15)
+-    REPORT['root_bound_files'] = []
+-    for path, sha in bindings.items():
+-        require('Safe repository-relative root binding: ' + path, safe_relative(path))
+-        observed = identity(REPO / path)
+-        if str(REPO / path) in live_by_original:
+-            payload = live_by_original[str(REPO / path)]['payload_path']
+-        else:
+-            payload = 'archive-provenance/' + Path(path).name
+-        archived = files.get(payload, {})
+-        check('Root-bound original and archived identity unchanged: ' + path,
+-              observed['sha256'] == sha == archived.get('sha256'))
+-        REPORT['root_bound_files'].append({'path': path, 'expected_sha256': sha,
+-                                         'observed_sha256': observed['sha256'],
+-                                         'archive_payload': payload})
+-
+-    scope = json_file(BASE / 'INPUT-SCOPE.json')
++    result = json_file(BASE/'RESULTS.json')
++    driver_exit = json_file(BASE/'DRIVER-EXIT.json')
++    require('Actual21 producer completion receipt schema', result['status']=='PASS_COMPLETE_21_ARCHIVE_VERIFIED' and result['source_commit']==SOURCE and result['live_file_count']==2045 and result['archive_payload_file_count']==2078 and result['live_bytes']==317150918 and result['archive_payload_bytes']==318369343 and result['archive']==external['archive'] and result['parts']==PARTS and result['manifest_sha256']==MANIFEST_SHA)
++    require('Actual21 one authorized archive driver exit and raw streams retained', driver_exit['status']=='PASS_COMMAND_EXIT' and driver_exit['exit_code']==0 and driver_exit['timed_out'] is False and driver_exit['error'] is None and driver_exit['command'][-2:]==['--root-clearance','21-ARCHIVE-AUTHORIZED'] and driver_exit['source_engine_compiler_or_git_execution'] is False and all(identity(BASE/('driver.'+leaf))['sha256']==driver_exit[leaf+'_sha256'] for leaf in ['stdout','stderr']) and (BASE/'driver.stderr').stat().st_size==0)
++    completion=(BASE/'ARCHIVE-COMPLETION.md').read_text()
++    check('Actual21 completion narrative retains matching source/archive and readback qualification', SOURCE in completion and ZIP_SHA in completion and MANIFEST_SHA in completion and '2045' in completion and '2078' in completion and 'FINAL-VERIFICATION' in completion)
++    REPORT['producer_sidecar_identities']={name:identity(BASE/name) for name in ['RESULTS.json','DRIVER-EXIT.json','ARCHIVE-COMPLETION.md','POST-LAUNCH-READBACK-NOTE.json']}
++    clearance=json_file(BASE/'ROOT-CLEARANCE.json')
++    require('Root exact21 authorization and quiescent included writers', clearance['authorized'] is True and clearance['authorization']=='21 COMPLETE ARCHIVE TASK AUTHORIZED' and clearance['provided_by']=='/root' and clearance['source_commit']==SOURCE and clearance['included_writers_quiescent'] is True)
++    bindings=clearance['frozen_inputs_sha256']
++    require('Root actual65 absolute closed hash bindings',len(bindings)==65)
++    REPORT['root_bound_files']=[]
++    for path,expected_sha in bindings.items():
++        original=Path(path)
++        require('Safe absolute repository root binding: '+path,original.is_absolute() and under(path,str(REPO)) and '..' not in original.parts)
++        observed=identity(original)
++        payload=live_by_original[path]['payload_path'] if path in live_by_original else 'archive-provenance/'+original.name
++        archived=files.get(payload,{})
++        check('Root bound live and archived bytes unchanged: '+path,observed['sha256']==expected_sha==archived.get('sha256'))
++        REPORT['root_bound_files'].append({'path':path,'expected_sha256':expected_sha,'archive_payload':payload,'observed_sha256':observed['sha256']})
++    scope=json_file(BASE/'INPUT-SCOPE.json')
++    require('Actual ready scope has18roots and28 explicit originals',scope['ready'] is True and len(scope['directory_roots'])==18 and len(scope['original_files'])==28 and scope['source_commit']==SOURCE)
++    excluded={Path(x) for x in scope['excluded_subtrees']}
++    observed_files={};observed_directories={}
++    def scope_file(group,path):
++        require('Declared original path selected only once: '+str(path),str(path) not in observed_files)
++        observed_files[str(path)]=group
++    for root in scope['directory_roots']:
++        root_path=Path(root['path']);require('Declared scope root is real directory: '+str(root_path),root_path.is_dir() and not root_path.is_symlink())
++        for current,dirs,leaves in os.walk(root_path,followlinks=False):
++            current=Path(current);dirs[:]=sorted(n for n in dirs if current/n not in excluded)
++            require('Declared scope directory nonsymlink: '+str(current),not current.is_symlink())
++            require('Declared directory selected only once: '+str(current),str(current) not in observed_directories)
++            observed_directories[str(current)]=root['group']
++            for name in dirs:require('Declared child directory nonsymlink: '+str(current/name),not(current/name).is_symlink())
++            for name in sorted(leaves):scope_file(root['group'],current/name)
++    for row in scope['original_files']:scope_file(row['group'],Path(row['path']))
++    frozen_file_groups={row['original']:row['group'] for row in live_rows}
++    frozen_directory_groups={row['original']:row['group'] for row in dir_rows}
++    check('Every frozen scope original remains present in its exact declared group',
++          {path:observed_files.get(path) for path in frozen_file_groups}==frozen_file_groups,
++          missing=sorted(set(frozen_file_groups)-set(observed_files)))
++    check('Every frozen scope directory remains present in its exact declared group',
++          {path:observed_directories.get(path) for path in frozen_directory_groups}==frozen_directory_groups,
++          missing=sorted(set(frozen_directory_groups)-set(observed_directories)))
++    REPORT['post_freeze_scope_additions_not_claimed_archived']={
++        'files':sorted(set(observed_files)-set(frozen_file_groups)),
++        'directories':sorted(set(observed_directories)-set(frozen_directory_groups)),
++        'qualification':'Only the exact frozen originals and recorded directories are audited as archived; later additions are listed separately.'}
++
+     for row in live_rows:
+-        selected = any(row['group'] == r['group'] and under(row['original'], r['path'])
+-                       for r in scope['directory_roots']) or any(
+-                           row['group'] == r['group'] and row['original'] == r['path']
+-                           for r in scope['original_files'])
+-        check('Frozen original fits independently parsed declared scope: ' + row['original'], selected)
+-    publication = '/workspace/dwqww/validation/pawn-span-fill-20261020/root-verification/WINDOWS-PUBLICATION.json'
+-    check('Mandatory WINDOWS-PUBLICATION selected exactly once',
+-          sum(row['original'] == publication for row in live_rows) == 1
+-          and sum(path.endswith('/root-verification/WINDOWS-PUBLICATION.json') for path in paths) == 1)
+-    consumed = [r for r in live_rows if r['group'].startswith('consumed-baseline19-')]
+-    check('Only83 explicitly consumed19 files; no earlier complete archives recopied',
+-          len(consumed) == 83
+-          and collections.Counter(r['group'] for r in consumed) == {
+-              'consumed-baseline19-source': 74, 'consumed-baseline19-engine': 1,
+-              'consumed-baseline19-core': 1, 'consumed-baseline19-nnue-object': 1,
+-              'consumed-baseline19-proof': 5, 'consumed-baseline19-rootproof': 1}
+-          and not any('/archive-complete/' in r['original'] or '.zip.part' in r['original']
+-                      for r in live_rows))
+-    capture_root = '/workspace/dwqww/validation/hosted-pawn-span-performance-20261020/actual-five-captures'
+-    captures = [r for r in live_rows if under(r['original'], capture_root)]
+-    check('Performance root excluded except15 immutable capture files; no monitoring',
+-          len(captures) == 15 and all(
+-              not ('/validation/hosted-pawn-span-performance-20261020/' in r['original'])
+-              or under(r['original'], capture_root) for r in live_rows)
+-          and not any('/.github/hosted-pawn-span-performance/' in r['original']
+-                      or '/coordination/' in r['original']
+-                      or 'monitor' in Path(r['original']).name.lower() for r in live_rows))
+-    helper_path = capture_root + '/owned_process.executed.py'
+-    capture_provenance = json_file(Path(capture_root) / 'PROVENANCE.json')
+-    authorization = json_file(Path(capture_root) / 'ROOT-CAPTURE-AUTHORIZATION.executed.json')
+-    check('Executed461a helper included and linked by immutable capture records',
+-          live_by_original[helper_path]['sha256'] == HELPER_SHA
+-          and capture_provenance['helper_sha256'] == HELPER_SHA
+-          and capture_provenance['helper_executed_path'] == helper_path
+-          and authorization['helper_sha256'] == HELPER_SHA)
+-    REPORT['immutable_captures'] = {'file_count': len(captures),
+-        'helper_executed_path': helper_path, 'helper_sha256': HELPER_SHA,
+-        'performance_acceptance_claimed': False}
+-    for label in ['baseline', 'candidate']:
+-        status = json_file(Path(capture_root) / label / 'status.json')
+-        prefix = 'payload' + capture_root + '/' + label + '/'
+-        check('Retained capture output and input identities: ' + label,
+-              all(status[name + '_sha256'] == files[prefix + name + '.txt']['sha256']
+-                  for name in ['stdin', 'stdout', 'stderr'])
+-              and status['returncode'] == 0 and status['process_observations_valid'] is True)
+-
+-    history = [
+-        'archive_complete.pre-native20-mode-schema.py', 'archive_complete.pre-tar-content-projection.py',
+-        'archive_complete.pre-prototype-manifest-base.py', 'archive_complete.pre-windows20-schema.py',
+-        'DRIVER-REVIEW-attempt1.json', 'DRIVER-REVIEW-attempt2.json',
+-        'native20-mode-consumer-fix.diff', 'tar-mode-content-qualification.diff',
+-        'prototype-manifest-base-consumer-fix.diff', 'windows20-status-consumer-fix.diff',
+-    ]
+-    check('Prior driver versions, reviews and exact correction diffs retained',
+-          all('archive-provenance/' + p in files for p in history))
+-    for label, command, version in [
+-        ('live-gates', 'LIVE-GATES-COMMAND.json', 'archive_complete.pre-native20-mode-schema.py'),
+-        ('live-gates-attempt2', 'LIVE-GATES-ATTEMPT2-COMMAND.json', 'archive_complete.pre-tar-content-projection.py'),
+-        ('live-gates-attempt3', 'LIVE-GATES-ATTEMPT3-COMMAND.json', 'archive_complete.pre-prototype-manifest-base.py'),
+-        ('live-gates-attempt4', 'LIVE-GATES-ATTEMPT4-COMMAND.json', 'archive_complete.py'),
+-    ]:
+-        command_row = json_file(STAGE / 'archive-provenance' / command)
+-        check('Preflight logs and exact executed driver identity retained: ' + label,
+-              command_row['driver_sha256'] == files['archive-provenance/' + version]['sha256']
+-              and all(command_row[k + '_sha256'] == files['archive-provenance/' + label + '.' + k]['sha256']
+-                      for k in ['stdout', 'stderr'])
+-              and command_row['exit_code'] == (0 if label.endswith('attempt4') else 1))
+-
+-    metadata_outer_differences = []
++        selected=any(row['group']==r['group'] and under(row['original'],r['path']) for r in scope['directory_roots']) or any(row['group']==r['group'] and row['original']==r['path'] for r in scope['original_files'])
++        check('Frozen original fits declared scope: '+row['original'],selected)
++    counts=collections.Counter(row['group'] for row in live_rows)
++    check('Actual21 frozen group counts match producer receipt exactly',dict(sorted(counts.items()))==result['live_file_counts'])
++    check('Actual native/windows/prototype and immutable capture/result audit group counts',counts['immutable-native-validation']==246 and counts['windows-validation']==243 and counts['prototype-and-rootproofs']==255 and counts['immutable-actual-five-producers']==15 and counts['immutable-hosted21-original-result']==4 and counts['immutable-hosted21-independent-final-audit']==20)
++    consumed={k:v for k,v in counts.items() if k.startswith('consumed-baseline20-')}
++    check('Only88 exact consumed20 originals, no complete older archives',consumed=={'consumed-baseline20-source':75,'consumed-baseline20-engine':1,'consumed-baseline20-core':1,'consumed-baseline20-nnue-object':1,'consumed-baseline20-proof':8,'consumed-baseline20-rootproof':2} and not any('/archive-complete/' in row['original'] or '.zip.part' in row['original'] for row in live_rows))
++    check('No22/future/coordination/live skill-doc scope accidentally selected',not any('/pv-metadata-' in row['original'] or '/.agents/' in row['original'] or '/docs/' in row['original'] or '/coordination/' in row['original'] or '/archive-complete-preparation/' in row['original'] for row in live_rows))
++    capture_root='/workspace/dwqww/validation/hosted-nearest-pawn-performance-20261021/actual-five-captures'
++    captures=[row for row in live_rows if under(row['original'],capture_root)]
++    helper_path=capture_root+'/owned_process.executed.py'
++    capture=json_file(Path(capture_root)/'PROVENANCE.json');authorization=json_file(Path(capture_root)/'ROOT-CAPTURE-AUTHORIZATION.executed.json')
++    check('Actual15 closed captures include original461a executed helper identity',len(captures)==15 and live_by_original[helper_path]['sha256']==HELPER_SHA and capture['helper_sha256']==HELPER_SHA and capture['helper_executed_path']==helper_path and authorization['helper_sha256']==HELPER_SHA)
++    for label in ['baseline','candidate']:
++        status=json_file(Path(capture_root)/label/'status.json');prefix='payload'+capture_root+'/'+label+'/'
++        check('Closed capture output/input hash provenance retained: '+label,all(status[n+'_sha256']==files[prefix+n+'.txt']['sha256'] for n in ['stdin','stdout','stderr']) and status['returncode']==0 and status['process_observations_valid'] is True)
++    REPORT['immutable_captures']={'file_count':len(captures),'helper_executed_path':helper_path,'helper_sha256':HELPER_SHA,'performance_acceptance_claimed_by_archive_audit':False}
++    note=json_file(BASE/'ROOT-METADATA-CHECK-NOTE.json')
++    check('Original57vsactual65 preauthorization assumption note preserved',note['assumed_leaf_count']==57 and note['actual_proposed_leaf_count']==65 and note['mutation_or_archive_execution_before_failure'] is False and 'archive-provenance/ROOT-METADATA-CHECK-NOTE.json' in files)
++    promotion=json_file(BASE/'PROMOTION-ASSUMPTION-FAILURE.json')
++    check('Original promotion dictionary-schema assumption and partialcontract preserved',promotion['status']=='PRESERVED_METADATA_ONLY_SCHEMA_ASSUMPTION' and all('archive-provenance/'+name in files for name in ['PROMOTION-ASSUMPTION-FAILURE.json','CLOSED-EVIDENCE-CONTRACT.partial-promotion.json','ROOT-METADATA-CHECK-NOTE.json']))
++    readback=json_file(BASE/'POST-LAUNCH-READBACK-NOTE.json')
++    check('Optional oldFINAL filename readback error preserved with no archive rerun',readback['status']=='ORIGINAL_OPTIONAL_READBACK_ERROR_RETAINED' and readback['archive_or_helper_reexecuted'] is False and readback['archive_result_unchanged'] is True)
++    differences=[]
+     for path in paths:
+         if path.startswith('archive-provenance/'):
+-            outer = BASE / Path(path).name
++            outer=BASE/Path(path).name
+             if outer.exists():
+-                observed = identity(outer)
+-                if any(observed[k] != files[path][k] for k in ['size', 'sha256']):
+-                    metadata_outer_differences.append({'outer_path': str(outer),
+-                        'archive_payload': path, 'archived_sha256': files[path]['sha256'],
+-                        'current_outer_sha256': observed['sha256']})
+-    REPORT['outer_provenance_differences_not_frozen_live_originals'] = metadata_outer_differences
+-    check('Only operational outer README differs from archived preparation metadata',
+-          all(Path(r['outer_path']).name == 'README.md' for r in metadata_outer_differences))
++                observed=identity(outer)
++                if any(observed[k]!=files[path][k] for k in ['size','sha256']):differences.append({'outer_path':str(outer),'archive_payload':path,'archived_sha256':files[path]['sha256'],'current_outer_sha256':observed['sha256']})
++    REPORT['outer_provenance_differences_not_live_originals']=differences
++    check('Archived preparation provenance remains byteidentical to current outer versions',not differences,observed=differences)
+     REPORT['live_file_count'] = len(live_rows)
+     REPORT['live_directory_count'] = len(dir_rows)
+     REPORT['live_bytes'] = sum(r['size'] for r in live_rows)
+@@ -374,7 +358,7 @@
+         'No real archive recovery, extraction or chmod was performed. A successful byte/mode audit is not a recovery execution claim.',
+         'Source commit is checked for consistency with supplied and archived provenance; no independent Git authenticity or remote publication audit was performed.',
+         'No engine correctness, calibrated speed, native hardware, NPS or Elo acceptance follows from this data-preservation audit.',
+-        'The archived preparation README remains preserved; an outer operational README may advance after packaging and is outside the frozen LIVE ledger and15 root-bound files.',
++        'Actual21 RESULTS/DRIVER-EXIT/ARCHIVE-COMPLETION schemas were used; old20 optional FINAL filename was not required. The original preauthorization57vs65 and postlaunchreadback notes remain unchanged.',
+         'Raw originals, retained stage and previous evidence were read without writes. No original artifact was deleted, replaced, ignored or untracked by this audit.',
+     ]
+ 
+@@ -388,8 +372,8 @@
+         REPORT['findings'].append({'name': 'Audit exception', 'type': type(error).__name__,
+                                    'message': str(error)})
+         traceback.print_exc(file=sys.stderr)
+-    REPORT['status'] = ('PASS_INDEPENDENT_DATA_ONLY_ARCHIVE_AUDIT'
+-                        if not REPORT['findings'] else 'FAIL_INDEPENDENT_DATA_ONLY_ARCHIVE_AUDIT')
++    REPORT['status'] = ('PASS_INDEPENDENT_COMPLETE_21_ARCHIVE_AUDIT'
++                        if not REPORT['findings'] else 'FAIL_INDEPENDENT_COMPLETE_21_ARCHIVE_AUDIT')
+     REPORT['completed_utc'] = datetime.datetime.now(datetime.timezone.utc).isoformat()
+     REPORT['check_count'] = len(REPORT['checks'])
+     REPORT['failed_check_count'] = sum(not c['passed'] for c in REPORT['checks'])

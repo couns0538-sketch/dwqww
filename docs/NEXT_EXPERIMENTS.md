@@ -7,17 +7,21 @@ Finish one bounded task first: frozen22 PV-metadata repair
 1. Native22 first42CTest/eight-active/PV56/292545benchmark and1161audit passed.
    Root644wholeoriginals/17parentsingles/77Git/123evidence verified. Preserve these
    results and all historical failures; no duplicate nativeattempt is needed.
-2. Finish the already-running first strictj1Windows22 build, thirteen Wine checks,
-   first actualWindows signature and artifact audit. Rootactualnativeproof73be33c
-   and clear8e61fc1a are saved. Windows22 signature is unknown until its first
-   canonical capture; parent352313/Linux292545 must not be imposed on it.
+2. Preserve completedWindows22 first11PEbuild/13Wine/PV56/334752signature/1779audit,
+   root266raw/74source/543parent/23members and282closedfinalevidence checks. ZIP
+   SHA32870657…16965395bytes; Wineonly/no nativeRyzen performance. AuxiliaryCOFF
+   checkerfailures/rootstatus-labelcorrection remain originalseparateevidence.
 3. Finish the disabled actual22 strength packet with genuine22 producer captures,
    proof hashes and readiness. Fresh516opening selection excludes historical
    reserved cohorts. Four timed A/A pairs are operational calibration, not a
    deterministic identity or precise zero-Elo claim. Run only the predefined
    512pair SPRT after all gates pass; no pooling/retries/subset acceptance.
-4. Preserve complete21 and22 source/build originals in recoverable archives while
-   hosted matches run. The21 archive driver is prepared but has not executed.
+4. Publish complete21archive actual121548290bytes/2045originals/2078payloads,
+   combined6df303ff…/manifest7cdb6d4b…. Independent13,783checkaudit retains1finding:
+   a nonoriginal outermetadata note wording changedafterarchiving. Allpayloads,
+   liveoriginals,319directories,65pins andcombinedparts pass; bothnoteversions/
+   exactdiff/disposition preserved. No actual21scratchrecovery has run. Preserve
+   complete22source/build/REDGREEN originals next whilehosted matches run.
 5. Preserve completed21performance run39522912590: all188normal/940rows/15AA/31AB
    plus232input/240Gitblob auditsPASS. KeepCPU+1.7267% andwall+1.7212% hosted
    throughput gains, noElo/nativeRyzen inference or cumulative19/20claim. Original

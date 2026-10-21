@@ -1,0 +1,58 @@
+{
+  "status": "BLOCKED_STRENGTH22_LIFECYCLE_001_DISABLED_INITIAL_PACKET",
+  "reviewer": "/root/archive_clock_complete",
+  "reviewed_utc": "2026-10-21T01:00:34.350181+00:00",
+  "scope": "Independent bounded static/source-only initial disabled packet review; no packet edits or execution",
+  "source_pins": {
+    "baseline21": "2e151d019bc58dff2ab4e76e99ef99516af8d222",
+    "candidate22": "ff2e269c6058be84456e3b98344826d17b0056eb"
+  },
+  "frozen_package": {
+    "checkpoint_sha256": "8bc8db1fcc0bf679830933a81bbd8bc343abb76a92913289605cb05fc20b70b8",
+    "protocol_sha256": "093473bb503170d5370705f62639970db1b2faba04a2cc2283baf32c5f96bfd3",
+    "inventory_sha256": "4b1d8f43a00105e8be290e1d87ad518a15237ee69febd97365237e83df377750",
+    "workflow_sha256": "e7da594ca86445c56a63a77a1c25d6a4ad445091c0ee16447aa7b4b2bf3c0432",
+    "runner_sha256": "c341c9121e0d1f98a19d581e66943b8c334ee618295d0fb6d812adcb00b4abe8"
+  },
+  "source_data_checks": {
+    "passed": 275,
+    "failed": 0,
+    "receipt": "SOURCE-ONLY-CHECKS.json",
+    "sha256": "826f432c698d25e2fca07f32fbe1f473b9538871b5a841db21d34eed3266dca8"
+  },
+  "independent_lifecycle_checks": {
+    "passed": 30,
+    "blockers": 1,
+    "receipt": "LIFECYCLE-REVIEW.json",
+    "sha256": "bce9e23590f69ed8ce50f72bef858617dbe0956347cc0cf4cf7b7d2ca7b245d8"
+  },
+  "unconditional_blockers": [
+    {
+      "existing_adaptation_diff_sha256": "2859eefdf4429328195a0a6ac443aa35552be758137133fe6ee4b49d7c8847c0",
+      "finding": "The only affinity mutation pins the caller. original_affinity is never restored on success or failure. Post-pin imports, hashes and initial writes precede the inner operational try; final rehash/status persistence also has no outer restoration guard.",
+      "id": "STRENGTH22-LIFECYCLE-001",
+      "operational_try_line": 533,
+      "path": ".github/hosted-pv-metadata-strength/run_hosted.py",
+      "pin_line": 428,
+      "required_repair": "Preserve this draft, then add an unconditional outer affinity try/finally covering every post-pin setup, owned-child cleanup and final rehash/status write. Focused no-engine fault injection must cover hash/write/cleanup failures and prove original affinity restoration.",
+      "runner_sha256": "c341c9121e0d1f98a19d581e66943b8c334ee618295d0fb6d812adcb00b4abe8",
+      "sched_setaffinity_call_lines": [
+        428
+      ],
+      "source_excerpt": {
+        "425-442": "            raise ValueError('Freeze full commit SHA before launch: ' + key)\n    cpu = min(os.sched_getaffinity(0))\n    original_affinity = sorted(os.sched_getaffinity(0))\n    os.sched_setaffinity(0, {cpu})\n    tools = a.package / 'match'\n    stats_module = load('hosted_pgn_stats', tools / 'pgn_stats.py')\n    validator = load('hosted_windows_validator', a.repo / 'tools/match/windows_validate.py')\n    inputs = [a.baseline, a.candidate, a.fastchess,\n              a.repo / 'tools/match/windows_validate.py',\n              a.baseline.parent / 'libforge_core.a', a.candidate.parent / 'libforge_core.a',\n              a.repo / '.github/workflows/forge-hosted-pv-metadata-strength.yml']\n    inputs += sorted(path for path in a.package.rglob('*') if path.is_file())\n    # Every initially verified proof and mandatory build byte participates in final rehash.\n    inputs += proof_paths + build_paths\n    frozen = {str(path): sha(path) for path in inputs}\n    report = {'status': 'running', 'protocol': cfg, 'frozen_inputs': frozen,\n              'original_affinity': original_affinity, 'selected_cpu': cpu,\n              'scope': 'Native hosted Linux only; no native Windows/Ryzen claim.',",
+        "533-573": "    try:\n        checked_inputs()\n        deadline = time.perf_counter() + 30\n        rows = [bench(i, deadline) for i in range(8)]\n        if time.perf_counter() > deadline:\n            raise RuntimeError('AA bench wall deadline exceeded')\n        gates = {}\n        for field in ('wall_seconds', 'cpu_seconds'):\n            ratios = [rows[i + 1][field] / rows[i][field] for i in (2, 4, 6)]\n            gates[field] = {'ratios': ratios, 'median': statistics.median(ratios),\n                'pass': 0.95 <= statistics.median(ratios) <= 1.05 and all(0.85 <= x <= 1.15 for x in ratios)}\n        report['bench_aa'] = gates\n        save(a.out / 'summary.json', report)\n        if not all(gate['pass'] for gate in gates.values()):\n            raise RuntimeError('Whole-engine AA calibration failed; no games permitted')\n        report['candidate_bench_signature'] = candidate_bench_readiness(a.candidate, a.out, cfg['candidate_benchmark_nodes'])\n        checked_inputs()\n        for name in ('baseline', 'candidate'):\n            command = [str(getattr(a, name))]\n            save(a.out / (name + '-uci-command.json'), {'command': command, 'stdin': 'uci\\nquit\\n'})\n            _owned_readiness_probe(getattr(a, name), a.out, None, 10, stdin='uci\\nquit\\n',\n                                   prefix=name + '-uci', verify_signature=False)\n        report['aa'] = match('aa', 90)\n        report['status'] = 'aa_passed_starting_sprt'\n        save(a.out / 'summary.json', report)\n        report['sprt'] = match('sprt', 18000)\n        report['status'] = 'completed_independently_audited'\n    except BaseException as error:\n        report['status'] = 'failed_or_inconclusive_no_acceptance'\n        report['error'] = repr(error)\n        raise\n    finally:\n        ensure_final_inputs(report, frozen)\n        save(a.out / 'final-input-rehash.json', report['final_input_rehash'])\n        report['host_context_after'] = host_context()\n        save(a.out / 'host-context-after.json', report['host_context_after'])\n        report['finished_utc'] = time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime())\n        report['raw_files_preserved_without_trimming'] = True\n        save(a.out / 'summary.json', report)\n        if report.get('final_input_error'):\n            raise RuntimeError(report['final_input_error'])"
+      }
+    }
+  ],
+  "other_concrete_blockers": [],
+  "pending_before_ready": [
+    "Actual22 complete native42/active8, Windows13/root and permanent56-case/source-scope proofs",
+    "Actual frozen22 canonical capture with original process/stream facts",
+    "Full mandatory proof-path and hash-map review; a nonempty map alone is not evidence completeness",
+    "Root authorization and separate final enabled workflow review"
+  ],
+  "report_sha256": "b5025d86a40dc8d52ad5a2ce433615472b8891c6b6eaf855bd3e259c21cee072",
+  "no_engines_compilers_matches_tests_network_git_or_packet_mutation": true,
+  "no_speed_or_elo_claim": true
+}

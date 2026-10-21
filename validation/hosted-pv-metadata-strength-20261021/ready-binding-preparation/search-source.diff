@@ -1,0 +1,13 @@
+--- frozen21/src/search.cpp
++++ frozen22/src/search.cpp
+@@ -1077,8 +1077,10 @@
+             tt_score != ValueNone && !is_mate_score(tt_score) && tt_depth >= depth - 3) {
+             const int singular_beta = tt_score - tune::SingularMargin * depth;
+             const int singular_depth = (depth - 1) / 2;
++            const bool saved_tt_pv = ss->tt_pv;
+             ss->excluded_move = move;
+             const int singular_score = search(board, ss, singular_depth, singular_beta - 1, singular_beta, cut_node);
++            ss->tt_pv = saved_tt_pv;
+             ss->double_extensions = inherited_double_extensions;
+             ss->excluded_move = Move::none();
+             if (aborted_) return 0;

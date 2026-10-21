@@ -1,0 +1,36 @@
+--- frozen-source/tools/ownbook_regression.py
++++ evidence/ownbook-wine-regression.py
+@@ -6,7 +6,7 @@
+ import sys
+ import tempfile
+ 
+-ROOT = Path(__file__).resolve().parents[1]
++ROOT = Path('/workspace/.cloud-setup/windows6422-source')
+ sys.path.insert(0, str(ROOT))
+ from tools.uci_regression import Engine
+ 
+@@ -21,19 +21,20 @@
+         with tempfile.TemporaryDirectory(prefix="forge-ownbook-") as directory:
+             book = Path(directory) / "external book.bin"
+             book.write_bytes(bytes.fromhex("463b96181691fc9c031c000100000000"))
+-            e.send("setoption name Book File value " + str(book))
++            book_sent = "Z:" + str(book).replace("/", "\\")
++            e.send("setoption name Book File value " + book_sent)
+             loaded = e.until(lambda row: row.startswith("info string loaded book ") or
+                              row.startswith("info string cannot load book "))
+-            assert loaded[-1] == f"info string loaded book {book} with 1 entries", loaded
++            assert loaded[-1] == f"info string loaded book {book_sent} with 1 entries", loaded
+             e.send("setoption name Book Depth value 30")
+             e.send("setoption name Book Variety value 0")
+             for setting, expected in ((True, True), (False, False), (True, True), (False, False), (True, True)):
+                 if len(checks) == 3:
+                     e.send("setoption name OwnBook value false")
+-                    e.send("setoption name Book File value " + str(book))
++                    e.send("setoption name Book File value " + book_sent)
+                     loaded = e.until(lambda row: row.startswith("info string loaded book ") or
+                                      row.startswith("info string cannot load book "))
+-                    assert loaded[-1] == f"info string loaded book {book} with 1 entries", loaded
++                    assert loaded[-1] == f"info string loaded book {book_sent} with 1 entries", loaded
+                 else:
+                     e.send("setoption name OwnBook value " + str(setting).lower())
+                 e.ready()

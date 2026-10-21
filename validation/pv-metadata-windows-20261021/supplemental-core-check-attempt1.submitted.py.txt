@@ -1,0 +1,15 @@
+import pathlib,json,hashlib,datetime
+p=pathlib.Path('validation/pv-metadata-windows-20261021');r=json.loads((p/'result.json').read_text());assert r['status']=='build_passed' and len(r['binaries'])==11 and len(r['libraries'])==1
+print('FIRST BUILD PASS: 11 PEs, static core, frozen source unchanged.')
+def members(path):
+ data=path.read_bytes();assert data[:8]==b'!<arch>\n';pos=8;names=b'';out={}
+ while pos<len(data):
+  h=data[pos:pos+60];assert h[58:60]==b'`\n';name=h[:16].decode().strip();n=int(h[48:58]);pos+=60;b=data[pos:pos+n];pos+=n+n%2
+  if name=='//':names=b;continue
+  if name in ('/','/SYM64/'):continue
+  if name.startswith('/') and name[1:].isdigit():off=int(name[1:]);name=names[off:names.index(b'/\n',off)].decode()
+  else:name=name.rstrip('/')
+  assert name not in out;out[name]=hashlib.sha256(b).hexdigest()
+ return out
+parent=pathlib.Path('/workspace/.cloud-setup/windows6421-build/libforge_core.a');candidate=pathlib.Path('/workspace/.cloud-setup/windows6422-build/libforge_core.a');a=members(parent);b=members(candidate);assert set(a)==set(b);changed=[n for n in a if a[n]!=b[n]]
+assert changed==['search.cpp.obj'];report={'status':'PASS_ONLY_SEARCH_CORE_OBJECT_CHANGED','utc':datetime.datetime.now(datetime.timezone.utc).isoformat(),'source_commit':r['source_and_tests_commit'],'parent_core':str(parent),'candidate_core':str(candidate),'members':[{'member':n,'parent_sha256':a[n],'candidate_sha256':b[n],'identical':a[n]==b[n]} for n in a],'unchanged_nonsearch_core_objects':6,'compiler_or_engine_execution_during_this_comparison':False};(p/'WINDOWS-CORE-PARENT-IDENTITY.json').write_text(json.dumps(report,indent=2)+'\n');print('Actual six nonsearch Windows core objects byte-identical to qualified21, including NNUE/evaluation/Board.')

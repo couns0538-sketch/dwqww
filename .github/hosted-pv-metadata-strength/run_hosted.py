@@ -425,152 +425,175 @@ def main():
             raise ValueError('Freeze full commit SHA before launch: ' + key)
     cpu = min(os.sched_getaffinity(0))
     original_affinity = sorted(os.sched_getaffinity(0))
-    os.sched_setaffinity(0, {cpu})
-    tools = a.package / 'match'
-    stats_module = load('hosted_pgn_stats', tools / 'pgn_stats.py')
-    validator = load('hosted_windows_validator', a.repo / 'tools/match/windows_validate.py')
-    inputs = [a.baseline, a.candidate, a.fastchess,
-              a.repo / 'tools/match/windows_validate.py',
-              a.baseline.parent / 'libforge_core.a', a.candidate.parent / 'libforge_core.a',
-              a.repo / '.github/workflows/forge-hosted-pv-metadata-strength.yml']
-    inputs += sorted(path for path in a.package.rglob('*') if path.is_file())
-    # Every initially verified proof and mandatory build byte participates in final rehash.
-    inputs += proof_paths + build_paths
-    frozen = {str(path): sha(path) for path in inputs}
-    report = {'status': 'running', 'protocol': cfg, 'frozen_inputs': frozen,
-              'original_affinity': original_affinity, 'selected_cpu': cpu,
-              'scope': 'Native hosted Linux only; no native Windows/Ryzen claim.',
-              'started_utc': time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime())}
-    report['host_context_before'] = host_context()
-    save(a.out / 'host-context-before.json', report['host_context_before'])
-    save(a.out / 'summary.json', report)
-
-    def interrupted(signum, frame):
-        signal.signal(signal.SIGTERM, signal.SIG_IGN)
-        signal.signal(signal.SIGINT, signal.SIG_IGN)
-        raise KeyboardInterrupt('Termination signal ' + str(signum))
-
-    signal.signal(signal.SIGTERM, interrupted)
-    signal.signal(signal.SIGINT, interrupted)
-
-    def checked_inputs():
-        for name, digest in frozen.items():
-            if sha(name) != digest:
-                raise ValueError('Frozen input changed: ' + name)
-
-    def bench(index, deadline):
-        before = resource.getrusage(resource.RUSAGE_CHILDREN)
-        start = time.perf_counter()
-        signature = _owned_readiness_probe(a.baseline, a.out, cfg['baseline_benchmark_nodes'],
-            max(.001, deadline - start), prefix='bench-%02d' % index)
-        end = time.perf_counter()
-        after = resource.getrusage(resource.RUSAGE_CHILDREN)
-        row = {'index': index, 'warmup': index < 2, 'command': [str(a.baseline)],
-               'stdin': 'bench 11\nquit\n', 'wall_seconds': end - start,
-               'user_seconds': after.ru_utime - before.ru_utime,
-               'system_seconds': after.ru_stime - before.ru_stime,
-               'engine_nodes': signature['engine_nodes'], 'engine_ms': signature['engine_ms'],
-               'engine_nps': signature['engine_nps']}
-        row['cpu_seconds'] = row['user_seconds'] + row['system_seconds']
-        save(a.out / ('bench-%02d.json' % index), row)
-        return row
-
-    def match(phase, seconds):
-        out = a.out / phase
-        command = [sys.executable, '-B', str(tools / 'run_match.py'),
-                   '--fastchess', str(a.fastchess), '--baseline', str(a.baseline),
-                   '--candidate', str(a.baseline if phase == 'aa' else a.candidate),
-                   '--openings', str(a.package / ('openings/' + phase + '.epd')),
-                   '--out', str(out), '--mode', 'smoke' if phase == 'aa' else 'sprt',
-                   '--pairs', '4' if phase == 'aa' else '512', '--seed', str(cfg['seed']),
-                   '--tc', '1+0.01', '--cpu', str(cpu),
-                   '--hash-mb', '32', '--overhead-ms', '10', '--disable-book']
-        save(a.out / (phase + '-command.json'), command)
-        scanner = FaultScanner(out)
-        code = run_owned(command, a.out / (phase + '-wrapper.stdout'), scanner, seconds)
-        if code:
-            raise RuntimeError(phase + '_runner_failed; raw files preserved')
-        console = re.sub(r'\x1b\[[0-9;]*m', '', (out / 'console.txt').read_text())
-        if re.search(r'^\s*(?:warning|error|fatal)\b', console, re.I | re.M):
-            raise ValueError('Fastchess console warning/error')
-        log = (out / 'fastchess.log').read_text()
-        if re.search(r'\[(?:WARN|ERR|FATAL)\s*\]', log):
-            raise ValueError('Fastchess log warning/error')
-        text = (out / 'games.pgn').read_text()
-        stats = stats_module.summarize(text, require_identical_pairs=False)
-        pairs = stats['pairs']
-        runtime = json.loads((a.package / 'provenance/runtime-order.json').read_text())[phase]
-        selected_bytes = (out / 'selected.epd').read_bytes()
-        if (sha(out / 'selected.epd') != runtime['selected_epd_sha256'] or
-                selected_bytes.decode('ascii').splitlines() != runtime['ordered_fens']):
-            raise ValueError('Runtime opening order differs from frozen prospective order')
-        expected = runtime['ordered_fens'][:pairs]
-        grouped = {}
-        for tags, _ in stats_module.games(text):
-            grouped.setdefault(tags['Round'], ' '.join(tags['FEN'].split()[:4]))
-        if set(grouped) != {str(i) for i in range(1, pairs + 1)} or any(
-                grouped[str(i)] != fen for i, fen in enumerate(expected, 1)):
-            raise ValueError('Games do not follow exact frozen opening prefix')
-        penta = re.findall(r'Ptnml\(0-2\):\s*\[([^\]]+)\]', console)
-        if not penta or [int(n.strip()) for n in penta[-1].split(',')] != stats['pentanomial_0_half_1_1half_2']:
-            raise ValueError('Native/independent pentanomial mismatch')
-        manifest = json.loads((out / 'manifest.json').read_text())
-        if manifest['selected_sha256'] != sha(out / 'selected.epd'):
-            raise ValueError('Selected openings changed')
-        if phase == 'aa':
-            if pairs != 4 or validator.native_acceptance(console):
-                raise ValueError('AA incomplete or unexpected SPRT decision')
-            decision, likelihood = 'aa_operational_readiness_only', None
-        else:
-            decision, likelihood = audit_likelihood(console,
-                stats['pentanomial_0_half_1_1half_2'], pairs, 512, validator)
-        checked_inputs()
-        result = {'statistics': stats, 'decision': decision, 'likelihood_audit': likelihood,
-                  'no_screen_reset_resume_or_pooling': True}
-        save(out / 'independent-audit.json', result)
-        return result
-
+    operation_error = None
+    report = None
     try:
-        checked_inputs()
-        deadline = time.perf_counter() + 30
-        rows = [bench(i, deadline) for i in range(8)]
-        if time.perf_counter() > deadline:
-            raise RuntimeError('AA bench wall deadline exceeded')
-        gates = {}
-        for field in ('wall_seconds', 'cpu_seconds'):
-            ratios = [rows[i + 1][field] / rows[i][field] for i in (2, 4, 6)]
-            gates[field] = {'ratios': ratios, 'median': statistics.median(ratios),
-                'pass': 0.95 <= statistics.median(ratios) <= 1.05 and all(0.85 <= x <= 1.15 for x in ratios)}
-        report['bench_aa'] = gates
+        os.sched_setaffinity(0, {cpu})
+        tools = a.package / 'match'
+        stats_module = load('hosted_pgn_stats', tools / 'pgn_stats.py')
+        validator = load('hosted_windows_validator', a.repo / 'tools/match/windows_validate.py')
+        inputs = [a.baseline, a.candidate, a.fastchess,
+                  a.repo / 'tools/match/windows_validate.py',
+                  a.baseline.parent / 'libforge_core.a', a.candidate.parent / 'libforge_core.a',
+                  a.repo / '.github/workflows/forge-hosted-pv-metadata-strength.yml']
+        inputs += sorted(path for path in a.package.rglob('*') if path.is_file())
+        # Every initially verified proof and mandatory build byte participates in final rehash.
+        inputs += proof_paths + build_paths
+        frozen = {str(path): sha(path) for path in inputs}
+        report = {'status': 'running', 'protocol': cfg, 'frozen_inputs': frozen,
+                  'original_affinity': original_affinity, 'selected_cpu': cpu,
+                  'scope': 'Native hosted Linux only; no native Windows/Ryzen claim.',
+                  'started_utc': time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime())}
+        report['host_context_before'] = host_context()
+        save(a.out / 'host-context-before.json', report['host_context_before'])
         save(a.out / 'summary.json', report)
-        if not all(gate['pass'] for gate in gates.values()):
-            raise RuntimeError('Whole-engine AA calibration failed; no games permitted')
-        report['candidate_bench_signature'] = candidate_bench_readiness(a.candidate, a.out, cfg['candidate_benchmark_nodes'])
-        checked_inputs()
-        for name in ('baseline', 'candidate'):
-            command = [str(getattr(a, name))]
-            save(a.out / (name + '-uci-command.json'), {'command': command, 'stdin': 'uci\nquit\n'})
-            _owned_readiness_probe(getattr(a, name), a.out, None, 10, stdin='uci\nquit\n',
-                                   prefix=name + '-uci', verify_signature=False)
-        report['aa'] = match('aa', 90)
-        report['status'] = 'aa_passed_starting_sprt'
-        save(a.out / 'summary.json', report)
-        report['sprt'] = match('sprt', 18000)
-        report['status'] = 'completed_independently_audited'
+
+        def interrupted(signum, frame):
+            signal.signal(signal.SIGTERM, signal.SIG_IGN)
+            signal.signal(signal.SIGINT, signal.SIG_IGN)
+            raise KeyboardInterrupt('Termination signal ' + str(signum))
+
+        signal.signal(signal.SIGTERM, interrupted)
+        signal.signal(signal.SIGINT, interrupted)
+
+        def checked_inputs():
+            for name, digest in frozen.items():
+                if sha(name) != digest:
+                    raise ValueError('Frozen input changed: ' + name)
+
+        def bench(index, deadline):
+            before = resource.getrusage(resource.RUSAGE_CHILDREN)
+            start = time.perf_counter()
+            signature = _owned_readiness_probe(a.baseline, a.out, cfg['baseline_benchmark_nodes'],
+                max(.001, deadline - start), prefix='bench-%02d' % index)
+            end = time.perf_counter()
+            after = resource.getrusage(resource.RUSAGE_CHILDREN)
+            row = {'index': index, 'warmup': index < 2, 'command': [str(a.baseline)],
+                   'stdin': 'bench 11\nquit\n', 'wall_seconds': end - start,
+                   'user_seconds': after.ru_utime - before.ru_utime,
+                   'system_seconds': after.ru_stime - before.ru_stime,
+                   'engine_nodes': signature['engine_nodes'], 'engine_ms': signature['engine_ms'],
+                   'engine_nps': signature['engine_nps']}
+            row['cpu_seconds'] = row['user_seconds'] + row['system_seconds']
+            save(a.out / ('bench-%02d.json' % index), row)
+            return row
+
+        def match(phase, seconds):
+            out = a.out / phase
+            command = [sys.executable, '-B', str(tools / 'run_match.py'),
+                       '--fastchess', str(a.fastchess), '--baseline', str(a.baseline),
+                       '--candidate', str(a.baseline if phase == 'aa' else a.candidate),
+                       '--openings', str(a.package / ('openings/' + phase + '.epd')),
+                       '--out', str(out), '--mode', 'smoke' if phase == 'aa' else 'sprt',
+                       '--pairs', '4' if phase == 'aa' else '512', '--seed', str(cfg['seed']),
+                       '--tc', '1+0.01', '--cpu', str(cpu),
+                       '--hash-mb', '32', '--overhead-ms', '10', '--disable-book']
+            save(a.out / (phase + '-command.json'), command)
+            scanner = FaultScanner(out)
+            code = run_owned(command, a.out / (phase + '-wrapper.stdout'), scanner, seconds)
+            if code:
+                raise RuntimeError(phase + '_runner_failed; raw files preserved')
+            console = re.sub(r'\x1b\[[0-9;]*m', '', (out / 'console.txt').read_text())
+            if re.search(r'^\s*(?:warning|error|fatal)\b', console, re.I | re.M):
+                raise ValueError('Fastchess console warning/error')
+            log = (out / 'fastchess.log').read_text()
+            if re.search(r'\[(?:WARN|ERR|FATAL)\s*\]', log):
+                raise ValueError('Fastchess log warning/error')
+            text = (out / 'games.pgn').read_text()
+            stats = stats_module.summarize(text, require_identical_pairs=False)
+            pairs = stats['pairs']
+            runtime = json.loads((a.package / 'provenance/runtime-order.json').read_text())[phase]
+            selected_bytes = (out / 'selected.epd').read_bytes()
+            if (sha(out / 'selected.epd') != runtime['selected_epd_sha256'] or
+                    selected_bytes.decode('ascii').splitlines() != runtime['ordered_fens']):
+                raise ValueError('Runtime opening order differs from frozen prospective order')
+            expected = runtime['ordered_fens'][:pairs]
+            grouped = {}
+            for tags, _ in stats_module.games(text):
+                grouped.setdefault(tags['Round'], ' '.join(tags['FEN'].split()[:4]))
+            if set(grouped) != {str(i) for i in range(1, pairs + 1)} or any(
+                    grouped[str(i)] != fen for i, fen in enumerate(expected, 1)):
+                raise ValueError('Games do not follow exact frozen opening prefix')
+            penta = re.findall(r'Ptnml\(0-2\):\s*\[([^\]]+)\]', console)
+            if not penta or [int(n.strip()) for n in penta[-1].split(',')] != stats['pentanomial_0_half_1_1half_2']:
+                raise ValueError('Native/independent pentanomial mismatch')
+            manifest = json.loads((out / 'manifest.json').read_text())
+            if manifest['selected_sha256'] != sha(out / 'selected.epd'):
+                raise ValueError('Selected openings changed')
+            if phase == 'aa':
+                if pairs != 4 or validator.native_acceptance(console):
+                    raise ValueError('AA incomplete or unexpected SPRT decision')
+                decision, likelihood = 'aa_operational_readiness_only', None
+            else:
+                decision, likelihood = audit_likelihood(console,
+                    stats['pentanomial_0_half_1_1half_2'], pairs, 512, validator)
+            checked_inputs()
+            result = {'statistics': stats, 'decision': decision, 'likelihood_audit': likelihood,
+                      'no_screen_reset_resume_or_pooling': True}
+            save(out / 'independent-audit.json', result)
+            return result
+
+        try:
+            checked_inputs()
+            deadline = time.perf_counter() + 30
+            rows = [bench(i, deadline) for i in range(8)]
+            if time.perf_counter() > deadline:
+                raise RuntimeError('AA bench wall deadline exceeded')
+            gates = {}
+            for field in ('wall_seconds', 'cpu_seconds'):
+                ratios = [rows[i + 1][field] / rows[i][field] for i in (2, 4, 6)]
+                gates[field] = {'ratios': ratios, 'median': statistics.median(ratios),
+                    'pass': 0.95 <= statistics.median(ratios) <= 1.05 and all(0.85 <= x <= 1.15 for x in ratios)}
+            report['bench_aa'] = gates
+            save(a.out / 'summary.json', report)
+            if not all(gate['pass'] for gate in gates.values()):
+                raise RuntimeError('Whole-engine AA calibration failed; no games permitted')
+            report['candidate_bench_signature'] = candidate_bench_readiness(a.candidate, a.out, cfg['candidate_benchmark_nodes'])
+            checked_inputs()
+            for name in ('baseline', 'candidate'):
+                command = [str(getattr(a, name))]
+                save(a.out / (name + '-uci-command.json'), {'command': command, 'stdin': 'uci\nquit\n'})
+                _owned_readiness_probe(getattr(a, name), a.out, None, 10, stdin='uci\nquit\n',
+                                       prefix=name + '-uci', verify_signature=False)
+            report['aa'] = match('aa', 90)
+            report['status'] = 'aa_passed_starting_sprt'
+            save(a.out / 'summary.json', report)
+            report['sprt'] = match('sprt', 18000)
+            report['status'] = 'completed_independently_audited'
+        except BaseException as error:
+            report['status'] = 'failed_or_inconclusive_no_acceptance'
+            report['error'] = repr(error)
+            raise
+        finally:
+            ensure_final_inputs(report, frozen)
+            save(a.out / 'final-input-rehash.json', report['final_input_rehash'])
+            report['host_context_after'] = host_context()
+            save(a.out / 'host-context-after.json', report['host_context_after'])
+            report['finished_utc'] = time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime())
+            report['raw_files_preserved_without_trimming'] = True
+            save(a.out / 'summary.json', report)
+            if report.get('final_input_error'):
+                raise RuntimeError(report['final_input_error'])
     except BaseException as error:
-        report['status'] = 'failed_or_inconclusive_no_acceptance'
-        report['error'] = repr(error)
+        operation_error = error
         raise
     finally:
-        ensure_final_inputs(report, frozen)
-        save(a.out / 'final-input-rehash.json', report['final_input_rehash'])
-        report['host_context_after'] = host_context()
-        save(a.out / 'host-context-after.json', report['host_context_after'])
-        report['finished_utc'] = time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime())
-        report['raw_files_preserved_without_trimming'] = True
-        save(a.out / 'summary.json', report)
-        if report.get('final_input_error'):
-            raise RuntimeError(report['final_input_error'])
+        try:
+            os.sched_setaffinity(0, original_affinity)
+        except BaseException as restore_error:
+            # Restoration is independent of all setup, hashing and persistence.
+            # A restoration fault invalidates acceptance even after a completed run.
+            if report is not None:
+                report['status'] = 'failed_or_inconclusive_no_acceptance'
+                report['affinity_restore_error'] = repr(restore_error)
+                try:
+                    save(a.out / 'summary.json', report)
+                except BaseException as save_error:
+                    restore_error.add_note('Could not persist affinity failure: ' + repr(save_error))
+            if operation_error is not None:
+                operation_error.add_note('Original affinity restoration also failed: ' + repr(restore_error))
+                raise operation_error from restore_error
+            raise
 
 
 if __name__ == '__main__':
