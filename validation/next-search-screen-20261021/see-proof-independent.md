@@ -1,0 +1,26 @@
+# Independent source argument: reuse successful SEE0
+
+**Supported for the same board/full move and defined integer arithmetic.** Actual23 `Board::see_ge(m,0)==true` implies `see_ge(m,t)==true` for every nonpositive threshold for which the original function is defined. This is a property of this approximate implementation; it does not assert exact exchange minimax or a playing-strength defect. No engine/build/timing or production/Git mutation was performed for this review.
+
+Source23: `1d3ed25bea2c8b781f7ee5a178af0f66061b3984`. SHA256: `src/board.cpp` = `ad3290611e5f88d95b8fd0f674370eadc17e0c529902fba3e92ac48ac46ed239`; `src/search.cpp` = `1ef518e8c6f87824a70e653e237bc09acdd64493c4cf183330b573c25e88ec11`; `include/forge/board.hpp` = `5b42d3557730edc65f795a097e45d18a3cb621d56bdfa8b379773bb496204c77`; `include/forge/search.hpp` = `3d9208de205b4bd2f8e82f6c64137be253eb51aa0a418d5e39e1c06392e95eb9`.
+
+## Why the actual threshold SEE is monotone
+
+- Castle returns0>=threshold (board.cpp933). The promotion-recapture path computes one threshold-independent scalar in helper21–111 and compares it at946; promotion choices, pins, king handling and gain backpropagation never inspect threshold. These paths have the required implication directly.
+- Ordinary SEE949–957 starts with captured value plus initial-promotion gain minus threshold, G−t. Lowering t cannot turn its initial nonnegative test into failure. Its next swap is S0=A−G+t; lowering t decreases S0, preserving an immediate success S0<=0.
+- If the loop is reached, all attacker filtering, pin/check exclusion, least-valuable/lsb choice, occupancy removal and xray discovery963–1015 are threshold-independent until a threshold exit. Along a shared attacker prefix, Sk=Vk−S(k−1), so its threshold coefficient alternates: (−1)^k. `result` starts1 and toggles at995: odd k has result0, even k has result1.
+- At an odd step, the swap<result exit returns false. Lowering t increases that odd swap, so it cannot create an earlier false exit that did not exist at0. At an even step it decreases the swap, possibly creating an earlier true exit, which is safe. If threshold0 succeeds on an even exit, the lower threshold also succeeds there or earlier. Otherwise both reach the same no-attacker or king endpoint with identical board-independent parity/defender result (994,1016–1022). This proves the implication without assuming the geometric king/pin approximation is perfect.
+
+EP only changes the fixed captured square/initial occupancy (938,958); initial and later promotions are covered above. Existing approximation choices do not defeat this threshold argument. Literal INT_MIN can make the original captured-minus-threshold arithmetic overflow, so no all-int C++ result is claimed outside defined arithmetic; preserve the original bounded expressions rather than adding unrelated arithmetic changes.
+
+## Proof lifetime and permitted consumers
+
+`GoodCaptures` checks exact0 at search.cpp360 because `move_score_threshold` returns0 (475). Its only returned move is364 after success; TT duplicates are skipped359. TT, evasion, QS, ordinary quiet/killer/counter and bad-capture stages have no such proof. Captures-only generation includes noncapture promotions: those are noisy promotions, not ordinary quiet-stage witnesses.
+
+A stage-derived getter is valid **after a completed next() call, for its exact returned full Move, before the next call**: the only return leaving stage_==GoodCaptures is364. MainTT advances to GenerateCaptures349; every other returned move/none has another stage. This naturally avoids stale proof across stage transitions. If a separate flag is used instead, clear it at entry of every next(), including skipped duplicates/none paths, and set only on the successful GoodCaptures return. Never mutate stage_ merely to clear a derived proof. Bind/copy any proof to the actual returned full move, including flags/promotion.
+
+Main search1041–1077 performs only const board queries between picker return and noisy SEE pruning. Reuse at1077 needs **actual computed threshold<=0**; do not generalize success to positive thresholds. UCI currently advertises SeeNoisyMultiplier0..1000 (81), but programmatic/future negative values must take the original call. Checking extension1106 uses0 and can reuse the same proof. Proven GoodCaptures cannot be the TT move, so same-frame singular verification1083 cannot intervene on that marked move. Child make occurs1118; unmake1158 precedes the next picker call. No board-dependent proof may be used on the child or another move.
+
+## Bounded validation still needed
+
+Use archive6414's authorized actual-source observer, not a second experiment: verify full-move/per-next stage identity, board/key/pawnkey/checkers/history restoration, threshold sweep over actual returned legal moves including pin/xray/king/EP/all promotions, and false controls for TT/evasion/QS/quiet/bad/none/positive thresholds. Before acceptance of any suppression patch require actual call reduction plus exact cold/warm1T move/score/depth/node/PV parity, relevant complete correctness/sanitizer suites and a separately qualified workload measurement. Source duplication or logical redundancy alone establishes no speed or Elo gain. No behavior/policy change or new SEE repair is proposed here.

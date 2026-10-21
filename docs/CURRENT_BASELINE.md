@@ -29,8 +29,9 @@ The separate23-versus22 strength attempt is now actually launched. Fixedpayload
 rootfresh504byte-mode/317proof/154Git-source checks and five HTTP200 public
 readbacks. Soletrigger `forge/hosted-tt-refresh-strength-20261021-031253` pushed
 03:12:53UTC. Actual [run39537333958](https://github.com/couns0538-sketch/dwqww/actions/runs/39537333958)
-source linkage verified03:13:23UTC; setupsuccess/checkoutrunning only. Games/Elo
-UNKNOWN; hosted14+14suite proofs and match results still require original audit.
+source linkage verified03:13:23UTC. Hostedbuildstep reported success03:15:26;
+combinedreadiness/play observedrunning03:17:02UTC. Games/Elo UNKNOWN; original
+hosted14+14suite proofs and match results still require audit.
 Four separate timedA/A pairs precede serial512pair logistic0/+10SPRT at1+0.01,
 T1Hash32/OwnBookfalse/seed20261101. No retry/resume/retrigger/pooling. Preserve
 [launch](../validation/hosted-tt-refresh-strength-20261021/publication-attempt1/LAUNCH.json)
