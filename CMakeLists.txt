@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.16)
-project(ChessEngineForge VERSION 6.4.21 LANGUAGES CXX)
+project(ChessEngineForge VERSION 6.4.22 LANGUAGES CXX)
 find_package(Threads REQUIRED)
 
 option(FORGE_ENABLE_SANITIZERS "Enable AddressSanitizer and UndefinedBehaviorSanitizer" OFF)
@@ -64,6 +64,9 @@ target_link_libraries(forge_pawn_span_tests PRIVATE forge_core Threads::Threads)
 add_executable(forge_nearest_pawn_tests tests/nearest_pawn_tests.cpp)
 target_link_libraries(forge_nearest_pawn_tests PRIVATE forge_core Threads::Threads)
 
+add_executable(forge_pv_metadata_tests tests/pv_metadata_tests.cpp)
+target_link_libraries(forge_pv_metadata_tests PRIVATE forge_core Threads::Threads)
+
 add_executable(forge_bench bench/benchmark.cpp)
 target_link_libraries(forge_bench PRIVATE forge_core Threads::Threads)
 
@@ -73,6 +76,7 @@ add_test(NAME forge_correction_history_tests COMMAND forge_correction_history_te
 add_test(NAME forge_runtime_psqt_tests COMMAND forge_runtime_psqt_tests)
 add_test(NAME forge_pawn_span_tests COMMAND forge_pawn_span_tests)
 add_test(NAME forge_nearest_pawn_tests COMMAND forge_nearest_pawn_tests)
+add_test(NAME forge_pv_metadata_tests COMMAND forge_pv_metadata_tests)
 add_test(NAME forge_tt_tests COMMAND forge_tt_tests)
 add_test(NAME forge_rule50_tests COMMAND forge_rule50_tests)
 add_test(NAME forge_legal_witness_tests COMMAND forge_legal_witness_tests
