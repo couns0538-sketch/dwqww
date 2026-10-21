@@ -68,15 +68,22 @@ standardCOFF timestampbytes4..7; wholeWindowsNNUEobjectidentity is not claimed.
 The initial rootproof's descriptiveWINDOWS21literal was corrected with oldproof,
 writer and outputs retained; no engine/build/runtime was repeated.
 
-Two firstactual21/22 five-command nativeproducer captures pass,185consumed byte/mode
-inputs unchanged, normalouterexit0 and source76/77correspondence. Independentraw/canonicalreview609checks+22parsercasesPASS. READYbinding449proofs/636byte-modeinputs/24inventory and98applicableoffline tests+13bindingomissioncontrols+9runnernegativesPASS. Finalindependentreview3873source/data+60workflowchecksPASS;rootfresh636rehashafterenvironment-readyPASS. Fixedpayload452a4a9ca96afd7356c8dadc2203efd41c162e47 wasactuallypublished and fourpublicREADYrecorddownloads matched. Soletriggerforge/hosted-pv-metadata-strength-20261021-014000 pushed01:40:02UTC; run[39528641493](https://github.com/couns0538-sketch/dwqww/actions/runs/39528641493) reports hostedbuild/teststep success and combinedreadiness/playrunning at01:43:05UTC. Games/WLD/EloUNKNOWN; no repeat/resume/retrigger/pooling. Resultbranchresults/pv-metadata-strength-39528641493-1. The disabled strength
-packet's outer-affinityrepair passes9focused faultcontrols and100offline tests;
-independentreview816+56checksPASS, originalRED/extractorfailurepreserved. No games
-have run for22 and no Elo gain is accepted.
-Planned strength comparison is source21 versus source22, four timed operational
-A/A pairs then at most512 paired SPRT openings, 1+0.01, T1/Hash32/OwnBook=false,
-logistic H0=0/H1=+10 and alpha=beta=.05. Finite gates and actual producer capture
-must pass before launch. Finite native correctness is qualified; Windows, NPS and Elo conclusions remain pending.
+The single22-versus21 equal-time test is complete and independently audited.
+Original result `fd20551497f670aa11133ce4727ee0a1c5a1ba56`, run39528641493:
+1024 normal games/512 pairs, W221/D573/L230, penta[27,120,220,125,20].
+Native finalLLR-1.62 agrees with independent/root-1.617959894461137, inside
+±log19. Naturalcap is INCONCLUSIVE: neitherH0norH1 and no accepted gain.
+Native descriptiveElo-3.05±13.84 includeszero. Separate timedA/A4pairs/8normal
+operationalgames passed and is not pooled. All1032games/137807plies legal;
+all1012frozeninputs/449proofs/537buildpaths/525sourceGitblobs/475payloadGitblobs
+verified; faultscan clean. Exact originalZIP65131331B SHA
+`98bab142a8492f1f176d3f474f6be17b18346eb565baff6f8516183d64b1394a`.
+The ZIP serializer loses executable modes (0600): original live checks and normal
+processes are preserved; the data-only archive adapter does not invent original
+mode receipts. [Independent audit](../validation/hosted-pv-metadata-strength-20261021/final-audit/REPORT.md),
+[root byte/source/LLR verification](../validation/hosted-pv-metadata-strength-20261021/root-result-review/ROOT.json).
+No replay, retry, resume or pooling. Retain22 as a finite-qualified correctness
+repair; this match does not prove a positive Elo gain for it or descendants.
 
 Previous finite-qualified **Forge6.4.21**, source
 `2e151d019bc58dff2ab4e76e99ef99516af8d222`, replaces scalar king-to-own-pawn

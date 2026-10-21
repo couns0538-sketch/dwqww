@@ -583,3 +583,20 @@ no production23policyappliedyet. Forgepriority/GrokChessdeferred/accepted5101unc
 2026-10-21T02:28:43.330218+00:00 — Completed18vs17 actualequal10+0.1 result is VALID NATURALCAP/INCONCLUSIVE, notH0/H1:512games256pairs W92/D341/L79, penta[4,51,138,54,9], nativeLLR0.53/rootMLE0.533210492135936, descriptive+8.82±16.65 includeszero. SeparateAA fixed10000nodes/tc=inf4pairs8gamesdeterministic; neverpool. Independentall520games/74698legalplies,335proofs/784finalinput/517publicGitblobs/423buildpathsverified; rootrehash504payloads+784inputs+335proofs+517Git+auditmanifest exit0. Immutableoriginalresulta265945b62d955db454b1d0b9afc346ac3f3998b has72579119BZIPsplit2, SHAcbb517a2099b96f11dd4925e7e29d10a3f32b827b00233fc551dce389b9cb0d5. RawZIP0600transportmodegapexplicit; no numericoriginalpostrunmodesinvented/no livegate relaxed. Candidate18 retainedpromisingbutUNACCEPTED; descendants19..23 do notinheritacceptedElo. Exactnext18strengthtask isafreshlargerpreregisteredmatch, neverresume/poolthiscap; current23trialfirst.
 
 2026-10-21T02:47:31.960171+00:00 — Source23/1d3 nowWindows/Winequalified: first13checks/TT12/PV56/0, singlefirst334752signature,1827artifactaudit, root259raw+604parent+74source+275finalrecords/23release members22checksums PASS. ZIP17008953B SHAc3ae058154624a2c91ff32e89d78cdb222cb02d166664cddcbd7f2d4bfa17b50; engine58705c2f. All originalstargetclosed. Two actualnative5commandcaptures/189byte-modes/30proofs/rawindependent22parsercases PASS; outerrealtool19877exit0 documented,noexactcompletiontimeinvented. No timing/Elo inference. Existingstrengthskill checksum-baseparagraph validated157genuinehashes/8negatives/freshindependentapplication, localonly; allprevioussafety/AAinstructionbytes retained. Readybindingsupportpreparedbutworkflowstilldisabled; finalconditionalrootauthorization/completebinding/READYtests/finalenabledreviewbeforeonesoletrigger remain.
+
+
+2026-10-21 03:06UTC — Completed22-versus21 actualequal1+0.01 run39528641493,
+immutable resultfd20551497f670aa11133ce4727ee0a1c5a1ba56. Valid natural512paircap:
+1024games W221/D573/L230, penta[27,120,220,125,20], nativeLLR-1.62,
+rootindependent-1.617959894461137; descriptive-3.05±13.84 includeszero.
+NeitherH0norH1/no accepted gain. Separate TIMED AA4pairs/8normal2W4D2L passed.
+Independent all1032games/137807plies,3042097fault-cleanloglines,537buildpaths,
+449proofs/1012finalinputs exact. Root verifier first attempt exit0/empty stderr:
+618rawpayloads/525actualsourceGitblobs/475publicpayloadGitblobs/18auditrecords.
+OriginalZIP65131331B SHA98bab142a8492f1f176d3f474f6be17b18346eb565baff6f8516183d64b1394a.
+RawZIP0600transport mode gap explicitly retained; no original permissions invented
+or operational gate relaxed. Commands/code/raw logs/PGNs and root independent MLE
+are linked by validation/hosted-pv-metadata-strength-20261021/final-audit/REPORT.md
+and root-result-review/ROOT.json. No engines/matches rerun or pooled.
+23 READY317proofs/504inputs/98offline passed; separatefinalreview then soletrigger
+pending. Correctness22 remains finite-qualified; accepted5101 and Elo=null unchanged.

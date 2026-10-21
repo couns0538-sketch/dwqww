@@ -1,41 +1,31 @@
 # Next experiments
 
-Finish one bounded task first: frozen22 PV-metadata repair
-`ff2e269c6058be84456e3b98344826d17b0056eb` versus frozen21
-`2e151d019bc58dff2ab4e76e99ef99516af8d222`.
-
-1. Native22 first42CTest/eight-active/PV56/292545benchmark and1161audit passed.
-   Root644wholeoriginals/17parentsingles/77Git/123evidence verified. Preserve these
-   results and all historical failures; no duplicate nativeattempt is needed.
-2. Preserve completedWindows22 first11PEbuild/13Wine/PV56/334752signature/1779audit,
-   root266raw/74source/543parent/23members and282closedfinalevidence checks. ZIP
-   SHA32870657…16965395bytes; Wineonly/no nativeRyzen performance. AuxiliaryCOFF
-   checkerfailures/rootstatus-labelcorrection remain originalseparateevidence.
-3. Monitor ONLYactual22vs21run39528641493 (fixedpayload452a4a9/soletrigger014000).
-   Actualnative/Windows/captures/READY98/449proofs/final3873+60review+root636rehash
-   passed; public4recordreadbackpassed beforepush01:40:02UTC. At01:43:05UTC hosted
-   buildstepreported success; combinedreadiness/playrunning. Games/WLD/Elounknown.
-   Retrieveoriginalresultbranchresults/pv-metadata-strength-39528641493-1onclosure,
-   verifycompletePGNs/rawLLR/pairs/legalmoves/inputintegrity. No retry/resume/pooling.
-   Nextnativelead is actualold-generationTT-hits/replacementpressurediagnostic on
-   isolatedff2source, notyetappliedrefreshpolicy. Baseline+observermustpreservecold/
-   warmresponses; anyfuturegeneration-refreshcandidatechangesTTpolicyintentionally
-   andrequiresitsownfullgates/equal-clockSPRT. No newElo claim.
-4. Publish complete21archive actual121548290bytes/2045originals/2078payloads,
-   combined6df303ff…/manifest7cdb6d4b…. Independent13,783checkaudit retains1finding:
-   a nonoriginal outermetadata note wording changedafterarchiving. Allpayloads,
-   liveoriginals,319directories,65pins andcombinedparts pass; bothnoteversions/
-   exactdiff/disposition preserved. No actual21scratchrecovery has run. Preserve
-   complete22source/build/REDGREEN originals next whilehosted matches run.
-5. Preserve completed21performance run39522912590: all188normal/940rows/15AA/31AB
-   plus232input/240Gitblob auditsPASS. KeepCPU+1.7267% andwall+1.7212% hosted
-   throughput gains, noElo/nativeRyzen inference or cumulative19/20claim. Original
-   result e0ca5ba and4380093-byteZIP/1273payloads are retained. Do not rerun.
-6. Keep accepted integration5101 unchanged until justified integration. This
-   candidate lineage contains the still-unaccepted18 correction-history ablation.
-   Completed19 and20 throughput gains are separate workload results, not Elo or
-   cumulative percentage gains. Complete20 archive/recovery/public downloads are
-   verified; preserve all old experiments, including failures.
+1. Finish the frozen23-versus22 TT-policy test. Candidate23 is
+   `1d3ed25bea2c8b781f7ee5a178af0f66061b3984`; baseline22 is
+   `ff2e269c6058be84456e3b98344826d17b0056eb`. Native42 CTests/eight active,
+   Windows13 and both five-command captures passed. Actual READY98 applicable
+   offline tests/317proofs/504byte-modeinputs passed; final independent enabled
+   review and root fixed-payload/public-readback/sole trigger remain pending.
+   Protocol: four separate TIMED AA pairs then serial512-pair0/+10 SPRT at
+   equal1+0.01, T1/Hash32/OwnBookfalse/seed20261101. No retry/resume/pooling.
+   This is coupled replacement/admission/hashfull policy, not a bug or speed claim.
+2. Preserve completed22run39528641493 originalresultfd205514 and its valid naturalcap:
+   1024games/512pairs W221/D573/L230, nativeLLR-1.62/root-1.617959894461137;
+   descriptive-3.05±13.84 includeszero. NeitherH0norH1/no accepted gain.
+   All1032games legal and rawsource/build/proof/input audits pass. No repeat.
+3. Preserve23 closed fullqualification originals and WindowsZIPc3ae0581…,
+   17008953bytes; publicdownloadhash verified. Complete qualification recovery
+   archive in its own namespace without touching frozen strength inputs.
+4. Continue a bounded source-grounded search-state investigation after23launch,
+   preferring a reproducible actual-core defect. Reuse existing regression
+   friendship/TT/source evidence; no speculative patch accumulation.
+5. Accepted integration5101 remains unchanged. Lineage18 correction-history
+   ablation remains inconclusive/unaccepted (512games+8.82±16.65).
+   Do not merge whole19..23lineage on finite tests or separate measured speed gains.
+   Preserve19/20/21 hosted throughput results separately; never sum them into Elo.
+6. Forge remains primary. GrokChess deferred; historical forfeit cause unresolved.
+   No physicalRyzen/nativeWindows strength or full-strengthStockfish superiority
+   established. InstalledStockfish limiter tops at3190; exact3200unsupported.
 
 Earlier verified history and separate continuing tasks:
 
