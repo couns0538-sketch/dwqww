@@ -10,12 +10,18 @@ Retain separate19gain; do not multiply ratios into cumulativeclaims. Complete20
 archive1937payloads/1889originals and actualfreshscratch recovery passed9912/6089
 independentchecks. Publishexactparts and retain allfailures/oldschema consumers.
 
-Active nextprototype nearest-pawn distance uses76sourcefiles (stillversion20),
-791680actual geometry comparisons +6constexpr,13Release,56exact parent20searches,
-95publictracepositions/61465fields PASS. Freeze sourceas21 on isolatedbranch,
-then fullfresh13Release/ASan/defaultTSan/8active and Windows before separately
-calibratedperformance. Preserve compiled NNUEobject/source/weights and all20gains.
-No source21speed/Elo established. Queenray idea dropped: compileralreadyreusesit.
+Active nearest-pawn distance21 is frozen at2e151d019bc58dff2ab4e76e99ef99516af8d222
+on forge/nearest-pawn-distance-20261020; publiccheckpointf42ce13verified. Original
+prototypeversion20records passed13Release/791680checks/6constexpr/56parent20searches
+and95publictracepositions/61465fields. Actual21 differs only by2versionstrings.
+First fullfrozen13Release→parity→13ASan→13defaultTSan→8active→snapshot/audit is now
+running under explicit rootclearance. Keep firstattempts and abort on actualfailure.
+Then require Windows21 exact73filteredinputs and static/noLTOstrictFP10PEbuild,
+all relevant Wine/artifact checks, rootbyteproofs and two actual canonical producer
+captures before a separately calibrated21vs20performance launch. A disabled package
+is being prepared; no timings/launch authorized yet. Preserve NNUEobject/source/
+weights and all20gains. No21speed/Elo established. Queenray idea dropped because
+compileralreadyreusesit. A targeted nextsearchreview is independent static work.
 
 1. Keep qualified19source61f5980 and its immutable evidence. The one performance
    run39510219605 completed and was independently audited: CPUthroughput+1.6084%
@@ -28,7 +34,7 @@ No source21speed/Elo established. Queenray idea dropped: compileralreadyreusesit
    based only on this workload speed result. Next bounded source is20pawn-span fill described above.
 2. Monitor the separate18vs17 equal10+0.1 SPRT run
    [39502109381](https://github.com/couns0538-sketch/dwqww/actions/runs/39502109381).
-   Payload1203e13, baselineb5908f0 versusfc51e43. At23:11:15UTC its build/test step
+   Payload1203e13, baselineb5908f0 versusfc51e43. At00:02:19UTC on2026-10-21 its build/test step
    passed and combinedreadiness/SPRT remained running; game counts/WLD/Elo unknown.
    Its frozen0/+10,.05errors,4AA+256SPRTpairs,serialT1/Hash32/OwnBookfalse and18000s
    emergency remain unchanged. Results branch is

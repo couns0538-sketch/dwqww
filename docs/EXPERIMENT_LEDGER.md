@@ -403,3 +403,23 @@ Nextnearest-pawnprototype source76stillversion20: sixcompiletime assertions and
 56parent20cold/warmNNUEon-offsearches and95publictracepositions/61465fields PASS.
 NNUEobjecte8df... unchanged; source-review no blocker. No21speed/Elo claim.
 Freeze actualversion/source21 thenfullsanitizers/Windows/performance.
+
+
+2026-10-21 00:06UTC — Frozen Forge6.4.21 nearest-pawn integer-distance candidate.
+Parent sourcefc2391870b3bf2cd4d8fc20c7406ea6439c69c5e; candidate
+2e151d019bc58dff2ab4e76e99ef99516af8d222, published isolatedcheckpointf42ce13.
+Hypothesis: replace repeated perking/perpawn scalar distance scans with three
+inclusive radius-mask queries (3584readonly bytes); preserve empty/singleton path,
+trace/parameter contracts, search/Board/NNUE and strict floating order. Prototype
+version20 first13Release/791680checks over395840sets+6constexpr,56exact cold/warm
+searches,95public positions/61465integers passed; original evidence kept unchanged.
+Actual21source differs from finalprototype only CMake/UCI version strings.
+Rootchecked all76actualGitblobs/75parent/11protected boundaries and actual5file
+delta. GitHubbranch/ref and four source/gate downloads matched exactcommittedbytes.
+First39CTest+8active+56parity chain explicitlycleared and RUNNING; frozen21final
+results, Windows, NPSdifference, games/WLD/Elo unknown. Separate18vs17run39502109381
+remains in combinedreadiness/play at00:02:19UTC; no statistics inferred. No retries,
+resumes or pooling. Accepted5101unchanged. Commands/clearance and originalprototype
+logs are in validation/nearest-pawn-native-20261020 and
+validation/nearest-pawn-distance-20261020. Next: finish actualnative gates then
+Windows/calibratedperformance; static nextsearchreview runs without an engine.

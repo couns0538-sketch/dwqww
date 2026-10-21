@@ -7,6 +7,28 @@ its unchanged native regression to356e863, preserving the TT and timed-only cloc
 repairs. Acceptance is for the finite book contract; no accepted equal-time Elo gain.
 [Integration receipt](../validation/accepted-ownbook-integration-20261020/INTEGRATION.json).
 
+Active isolated candidate **Forge6.4.21** is frozen at
+`2e151d019bc58dff2ab4e76e99ef99516af8d222`, branch
+`forge/nearest-pawn-distance-20261020`, public checkpoint
+`f42ce13fbafe4558d95939fd532bef11ae03d97a`. It replaces repeated king-to-own-pawn
+scans with three exact inclusive Chebyshev radius queries, retaining direct
+singleton and empty-set behavior. The prototype genuinely used version20 metadata:
+13Release CTests,791680 independent geometry comparisons over395840sets,
+6constexpr assertions,56exact parent20 cold/warm searches and95public trace
+positions/61465integers passed on first attempt. Actual21 differs from that
+prototype only in the two version strings. Rootverified all76actualGit inputs,
+75parent inputs and11protected Board/search/NNUE/evaluation-parameter boundaries.
+The full frozen21 Release→parity→ASan→defaultTSan→activeUCI chain is now running;
+39CTest/8active results are not yet established. Windows and calibrated speed are
+pending. No21speed/Elo claim. Published source, new test and both root gate bytes
+were independently downloaded and matched to the exact Git blobs.
+[Source publication](../validation/nearest-pawn-distance-20261020/root-verification/SOURCE-PUBLICATION.json).
+[First native clearance](../validation/nearest-pawn-native-20261020/ROOT-CLEARANCE.json).
+Cloud skills catalog is currently empty; existing project skills remain available.
+Existing strength skill was improved and validated for explicit per-revision receipt
+schemas; skill-creator/global installation is unavailable. No optional plugin
+troubleshooting or GrokChess work is blocking native Forge development.
+
 Latest correctness-qualified and measured-workload candidate **Forge6.4.20**, source
 `fc2391870b3bf2cd4d8fc20c7406ea6439c69c5e`, branch
 `forge/pawn-span-fill-20261020`, replaces a per-enemy-pawn outpost-span traversal
@@ -40,10 +62,8 @@ restoration and6089independentrecoverychecks PASS (9912archivechecks).
 [Root Windows proof](../validation/pawn-span-fill-20261020/root-verification/WINDOWS.json).
 [Source freeze](../validation/pawn-span-fill-native-20261020/ROOT-FROZEN-SOURCE-GATES.json).
 [Public trace evidence](../validation/pawn-span-fill-20261020/independent-review/PUBLIC-DIFFERENTIAL.md).
-Accepted5101unchanged. New nearest-pawn prototype (version20, noGitSHA yet)
-passes13Release/791680geometrychecks,56parent20searches and95publictracepositions.
-It replaces perking pawn scans with three inclusive-radius queries; performance
-is unmeasured. Freeze actual21version/source before finalsanitizers/Windows.
+Accepted5101unchanged. Nearest-pawn21source is now frozen and independently published as described above.
+The original prototypeversion20records remain unchanged and honestly labeled.
 [Prototype21](../validation/nearest-pawn-distance-20261020/BASELINE.json).
 Earlier qualified19 result below remains separate.
 
@@ -126,7 +146,7 @@ Final enabled-metadata review PASS; payload `1203e13cfd80451d7194c7fba2f775de71d
 was published and one trigger push remotely verified at21:39:20UTC. Run
 [39502109381](https://github.com/couns0538-sketch/dwqww/actions/runs/39502109381)
 has passed the hosted source-build/test step; combined readiness/SPRT step is
-running at23:11:15UTC. Public metadata does not expose games or prove a particular
+running at00:02:19UTC on2026-10-21. Public metadata does not expose games or prove a particular
 readiness subgate. Frozen0/+10,.05errors,equal10+0.1,256paired openings; no observed
 game statistics or Elo result. Do not trigger/retry/resume this experiment.
 Historical17binary/source47proofs remain genuinely labeled47; all72build inputs
