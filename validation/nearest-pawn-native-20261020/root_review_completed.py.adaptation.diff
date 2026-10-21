@@ -1,0 +1,48 @@
+--- immutable20/root_review_completed.py
++++ prepared21/root_review_completed.py
+@@ -18,22 +18,24 @@
+         root = HERE/('frozen-'+profile+'-attempt1')
+         receipt = json.loads((root/'summary.json').read_text())
+         assert receipt['status']=='PASS' and receipt['source_commit']==SHA
+-        assert len(receipt['ctest_names'])==12
++        assert len(receipt['ctest_names'])==13
+         assert receipt['actual_ctest_commands']==receipt['expected_ctest_commands']
+         assert receipt['source_sha256_before_tests']==receipt['source_sha256_after_tests']==source_gate['inputs']
+         assert receipt['binary_sha256_before']==receipt['binary_sha256_after']
+         assert receipt['runtime_psqt_contract_actual_summaries']==[['347','0']]
+         assert receipt['pawn_span_contract_actual_summaries']==[[str(CLEAR['expected_pawn_span_checks']),'0']]
++        assert receipt['nearest_pawn_contract_actual_summaries']==[[str(CLEAR['expected_nearest_sets']),str(CLEAR['expected_nearest_checks']),'0']]
++        assert receipt['nearest_constexpr_assertions']==6
+         assert not any(record['matches'] for record in receipt['sanitizer_diagnostic_scan'].values())
+         raw=(root/'ctest.stdout').read_text()
+-        assert '100% tests passed, 0 tests failed out of 12' in raw
++        assert '100% tests passed, 0 tests failed out of 13' in raw
+         last=(root/'original-LastTest.log').read_text()
+         block=re.search(r'(?ms)^\d+/\d+ Testing: forge_runtime_psqt_tests\n.*?(?=^\d+/\d+ Testing: |\Z)',last)
+         assert block and 'SUMMARY checks=347 failures=0' in block.group()
+         exported=Path(receipt['source_export'])
+         for name, expected in source_gate['inputs'].items():
+             assert digest(exported/name)==expected,name
+-        build=Path('/workspace/.cloud-setup/pawn-span-fill-native-'+profile)
++        build=Path('/workspace/.cloud-setup/nearest-pawn-native-'+profile)
+         for name,expected in receipt['binary_sha256_after'].items():
+             assert digest(build/name)==expected,name
+         for step in receipt['steps']:
+@@ -42,7 +44,7 @@
+             label=step['label']
+             assert digest(root/(label+'.stdout'))==step['stdout_sha256']
+             assert digest(root/(label+'.stderr'))==step['stderr_sha256']
+-        profiles.append({'profile':profile,'ctest_passed':12,'runtime_checks':347,
++        profiles.append({'profile':profile,'ctest_passed':13,'runtime_checks':347,'pawn_span_checks':37320,'nearest_checks':791680,'nearest_sets':395840,'nearest_constexpr_assertions':6,
+             'receipt_sha256':digest(root/'summary.json'),'raw_ctest_sha256':digest(root/'ctest.stdout'),
+             'engine_sha256':receipt['binary_sha256_after']['forge']})
+     parity=json.loads((HERE/'search-parity-attempt1/summary.json').read_text())
+@@ -66,7 +68,7 @@
+     assert re.fullmatch(rb'info string bench depth 11 nodes 321912 time \d+ nps \d+\s*',bench.read_bytes())
+     record={'status':'PASS_ROOT_RELEASE_ASAN_AND_LOGICAL_PARITY_REVIEW',
+         'utc':datetime.now(timezone.utc).isoformat(),'source_commit':SHA,'profiles':profiles,
+-        'source_files_each':75,'searches':56,'independent_normalized_pair_comparisons':14,
++        'source_files_each':76,'searches':56,'independent_normalized_pair_comparisons':14,
+         'bench11_nodes':321912,'bench_stdout_sha256':digest(bench),
+         'tsan_and_active_uci':'PENDING_SEPARATE_REVIEW','engine_executions_by_reviewer':0,
+         'nps_ratio':None,'elo_gain':None}

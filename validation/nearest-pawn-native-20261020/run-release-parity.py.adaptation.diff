@@ -1,0 +1,45 @@
+--- immutable20/run-release-parity.py
++++ prepared21/run-release-parity.py
+@@ -1,20 +1,20 @@
+ #!/usr/bin/env python3
+-"""One default bench signature and bounded full cold/warm parity after Release12."""
++"""One default bench signature and bounded full cold/warm parity after Release13."""
+ from pathlib import Path
+ from datetime import datetime,timezone
+ import ctypes,hashlib,json,os,re,signal,subprocess,sys,time
+ sys.dont_write_bytecode=True
+ from process_facts import cleanup
+ HERE=Path(__file__).resolve().parent
+-SOURCE=Path('/workspace/.cloud-setup/pawn-span-fill-native-source')
+-BUILD=Path('/workspace/.cloud-setup/pawn-span-fill-native-release')
++SOURCE=Path('/workspace/.cloud-setup/nearest-pawn-native-source')
++BUILD=Path('/workspace/.cloud-setup/nearest-pawn-native-release')
+ def sha(path):return hashlib.sha256(Path(path).read_bytes()).hexdigest()
+ def tree(path):return {str(p.relative_to(path)):sha(p) for p in sorted(path.rglob('*')) if p.is_file()}
+ def save(path,value):path.write_text(json.dumps(value,indent=2)+'\n')
+ clear=json.loads((HERE/'ROOT-CLEARANCE.json').read_text())
+ assert clear.get('authorized') is True and isinstance(clear.get('source_commit'),str), 'Root build clearance required'
+ gate=json.loads((HERE/'frozen-release-attempt1/summary.json').read_text())
+-assert gate['status']=='PASS' and gate['source_commit']==clear['source_commit'] and len(gate['ctest_names'])==12
++assert gate['status']=='PASS' and gate['source_commit']==clear['source_commit'] and len(gate['ctest_names'])==13
+ protocol=json.loads((HERE/'PARITY-PROTOCOL.json').read_text())
+ assert ctypes.CDLL(None,use_errno=True).prctl(36,1,0,0,0)==0
+ OUT=HERE/'release-parity-wrapper-attempt1';OUT.mkdir(exist_ok=False)
+@@ -54,7 +54,7 @@
+     assert all(before['candidate/'+name]==value for name,value in gate['binary_sha256_after'].items())
+     assert before['baseline_engine']==protocol['baseline_engine_sha256'] and before['baseline_core']==protocol['baseline_core_sha256']
+     assert before['baseline_nnue_object']==protocol['baseline_nnue_object_sha256']
+-    assert before['candidate/CMakeFiles/forge_core.dir/src/nnue.cpp.o']==before['baseline_nnue_object'], 'Release NNUE object must remain byte-identical to matched parent19'
++    assert before['candidate/CMakeFiles/forge_core.dir/src/nnue.cpp.o']==before['baseline_nnue_object'], 'Release NNUE object must remain byte-identical to matched parent20'
+     public_actual={name:sha(SOURCE/name) for name in protocol['baseline_public_source_sha256']}
+     summary['candidate_public_source_sha256']=public_actual;save(OUT/'summary.json',summary)
+     board_actual={name:public_actual[name] for name in protocol['unchanged_board_source_sha256']}
+@@ -66,7 +66,7 @@
+     run('bench11',[str(BUILD/'forge')],30,b'bench 11\nquit\n')
+     signatures=re.findall(rb'^info string bench depth 11 nodes (\d+) time \d+ nps \d+\s*$',(OUT/'bench11.stdout.bin').read_bytes(),re.M)
+     summary['actual_bench11_signatures']=[int(value) for value in signatures];save(OUT/'summary.json',summary)
+-    assert summary['actual_bench11_signatures']==[321912], 'Required default19 bench signature differs'
++    assert summary['actual_bench11_signatures']==[321912], 'Required default20 bench signature differs'
+     run('cold-warm-parity',['/workspace/.cloud-setup/venv/bin/python','-B',str(HERE/'search-parity.py')],1200)
+     inner=json.loads((HERE/'search-parity-attempt1/summary.json').read_text())
+     summary['parity_summary_status']=inner['status'];summary['parity_comparisons']=inner['comparisons'];save(OUT/'summary.json',summary)
