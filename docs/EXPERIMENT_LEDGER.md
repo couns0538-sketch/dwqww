@@ -439,3 +439,28 @@ NNUEobject unchanged20; no21NPS/Elo result. NextfinishWindows/rootartifactproofs
 actualproducer captures and onefresh calibratedhostedcomparison. Preserveall20
 workloadgain/evidence/publicactualrestore; accepted5101unchanged. Subsequent search
 lead is sameframePVmetadata overwrite; actual-core+naturaltraceprobes preparedonly.
+
+
+2026-10-21 00:30UTC — Forge21 Windows first10PEbuild/12Wine/1615artifactchecksPASS;
+73frozenexports/229raw/22members/21checksums,521parent files unchanged. Root independently
+verified allbytes/source/nativeidentity/actualPEs; proof SHA
+f1ab747d91f7662ccfb1a071f7e76816c459503872732cb626a39192894a60b5.
+ZIP15445676bytes e2af16d497f5c1560d413d601c3af50e364c3dfa30e3a17d49936812ac712227.
+Both actual20/21 canonical5-command captures firstPASS, normalouterexit0, each5rows321912,
+all181finalbyte/mode/affinityinputs stable. Root capture review and canonical777checks
+PASS; this is producertransport, no speedestimate. READYmetadata/offline/finalenabledreview
+pending before exactlyonefreshcalibratedhosted21comparison. Accepted5101unchanged.
+
+Newsource21singularsame-framePV investigation: targetedactualWorker1call/1flagloss,
+3controls1/0,0/0,0/0; natural8benchpositions716singularcalls/25flaglosses, all25FEN/
+selectedmoveslegal,raw/static/incheckunchanged. Observer321912matchesuninstrumented21;
+all6nonsearchcoremembersNNUEbyteexact. Rootindependentlyreplayed25traces and every
+stepinput/raw/exit/group hash. Proposed2linefix preservescallerflag before recursive
+singularsearch and restoresbeforeabortcheck. Firstpreflightinvocation rejected missing
+variants_sha256 BEFOREanychild/attempt/builddir; original350746approval/logs preserved.
+Rootboundactual81b34fvariants metadataonly; FIRSTactualRED6ownedgroupsnormalclosed,
+receipt75b75b5. Rootreview062a8d4. GREENauthorizedab66778 on fresh isolatedversion21
+source1c97568a, exact75otherinputs preserved; firstj1compile/probe/naturaldiagnostic
+running. No productionsearchchange/22SHA/strengthresult yet. Evidence:
+validation/pv-metadata-20261021. NextifGREENpasses:permanentactualcoreRED/GREENunit,
+production2linecandidate22,freshfullqualification and equal-time strengthtesting.

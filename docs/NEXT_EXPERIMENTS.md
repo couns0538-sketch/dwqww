@@ -15,15 +15,20 @@ on forge/nearest-pawn-distance-20261020; publiccheckpointf42ce13verified. Origin
 prototypeversion20records passed13Release/791680checks/6constexpr/56parent20searches
 and95publictracepositions/61465fields. Actual21 differs only by2versionstrings.
 First frozen39CTest/8active/56parity/321912 and2421auditPASS; root604originals+
-76Git+245evidence rehashPASS. Noenginegate retries. Windows21 firstchain nowrunning:
-exact73filteredinputs,static/noLTOstrictFP10PEbuild,12Wine checks. Then require its
-independentartifactaudit,rootbyteproofs and two actual canonical producer
-captures before a separately calibrated21vs20performance launch. A disabled package
+76Git+245evidence rehashPASS. Noenginegate retries. Windows21 first10PEbuild/12Wine/1615audit/root229raw73source521parent/22membersPASS.
+Twoactualcanonicalproducer captures PASS181byte/modeinputs/normalouterexit0;
+canonical777currentreviewPASS. Finish READYrestrictedworkflow/offlinechecks and
+finalindependentenabledmetadatareview, then rootsolefresh21vs20performancepush. A disabled package
 is being prepared; no timings/launch authorized yet. Preserve NNUEobject/source/
 weights and all20gains. No21speed/Elo established. Queenray idea dropped because
 compileralreadyreusesit. Nextsearchreviewfound possiblePVflagclobberacrosssameplysingularverification;
-friend-onlyactualcore+naturaltraceRED/GREENprotocolpreparedanddisabled. Finish21
-Windows before its j1diagnostic; no seededTTfixturealone proves naturaloccurrence.
+friend-onlyactualcoreREDreproduced1targetedflaglosswith3passingcontrols and25natural
+flaglosses/716singularcalls, legal25FEN/moves/exact321912observersignature. Metadata
+preflightfailedbeforeanychildbecauseonevariantshaunbound; originalpreserved, corrected
+metadataonly, firstactualREDall6groupsclosed. RootindependentreplayPASS. FirstGREEN
+source+j1diagnostic nowcleared/running; no productionpatch/Eloacceptanceyet. Require
+GREENtargetcalls>0/nochanges andnaturalcalls>0/nochanges, then permanentactualcore
+regression+isolated22production2linefix/freshfullnative/Windows/strengthqualification.
 
 1. Keep qualified19source61f5980 and its immutable evidence. The one performance
    run39510219605 completed and was independently audited: CPUthroughput+1.6084%
@@ -36,7 +41,7 @@ Windows before its j1diagnostic; no seededTTfixturealone proves naturaloccurrenc
    based only on this workload speed result. Next bounded source is20pawn-span fill described above.
 2. Monitor the separate18vs17 equal10+0.1 SPRT run
    [39502109381](https://github.com/couns0538-sketch/dwqww/actions/runs/39502109381).
-   Payload1203e13, baselineb5908f0 versusfc51e43. At00:02:19UTC on2026-10-21 its build/test step
+   Payload1203e13, baselineb5908f0 versusfc51e43. At00:17:32UTC on2026-10-21 its build/test step
    passed and combinedreadiness/SPRT remained running; game counts/WLD/Elo unknown.
    Its frozen0/+10,.05errors,4AA+256SPRTpairs,serialT1/Hash32/OwnBookfalse and18000s
    emergency remain unchanged. Results branch is

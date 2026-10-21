@@ -25,8 +25,20 @@ Bench321912; ReleaseNNUEobjecte8df is byte-identical20. Independent2421checkaudi
 passes; rootrehashedall604source/build originals,consumedparent singles,76actualGit
 inputs and245closed evidence files. NativeFINALreceipt4b24b57/manifest8a5489d9;
 [rootproof](../validation/nearest-pawn-distance-20261020/root-verification/NATIVE.json).
-Windows73-source10PE/12Wine firstchain is cleared and running; calibrated speed
-stillpending. No21speed/Elo claim. Published source, new test and both root gate bytes
+Windows73-source/10PEbuild/12Wine/1615independentartifactchecks firstPASS.
+Rootverified229raw originals,73sourcefiles,521unchangedparentfiles,10PEs and
+22distributionmembers/21checksums. ZIP15445676bytes SHA256
+`e2af16d497f5c1560d413d601c3af50e364c3dfa30e3a17d49936812ac712227`;
+[Windows21 Zen5candidate](../releases/forge-6.4.21-candidate-windows-zen5.zip).
+Wineonly; no nativeRyzen test. Bothactual20/21 five-command producer captures
+PASS (5canonical321912rows each),181frozenbyte/modeinputs unchanged and normal
+outerexit0. Canonical independent777finite/transportchecksPASS. READYmetadata/
+restrictedworkflow offlinechecks are being completed; no21hostedlaunchyet.
+No21speed/Elo claim. Source21neveroverwrote accepted5101.
+Newbounded same-plyPVmetadata investigation has actualRED:25flaglosses/716natural
+singularcalls, unchanged321912diagnosticbench; all25moveslegal. The2linefix is now
+in a separateinstrumentedGREENsourcecopy/firstj1diagnostic, not production21.
+[ActualRED](../validation/pv-metadata-20261021/RED-RESULT.md). Published source, new test and both root gate bytes
 were independently downloaded and matched to the exact Git blobs.
 [Source publication](../validation/nearest-pawn-distance-20261020/root-verification/SOURCE-PUBLICATION.json).
 [First native clearance](../validation/nearest-pawn-native-20261020/ROOT-CLEARANCE.json).
