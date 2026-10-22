@@ -1,0 +1,56 @@
+--- /mnt/data/forge522_work/chess-engine-forge-5.22.0/tests/tests.cpp	2026-10-05 23:28:22.000000000 +0000
++++ /mnt/data/forge523_work/chess-engine-forge-5.23.0/tests/tests.cpp	2026-10-06 01:41:16.067763165 +0000
+@@ -657,7 +657,7 @@
+     for (const TacticalCase& item : TacticalCases) check_tactical_case(item);
+ 
+     forge::SearchLimits null_limits;
+-    null_limits.depth = 6;
++    null_limits.depth = 8;
+     forge::Searcher null_searcher(4);
+     check(board.set_fen("8/8/8/3k4/8/4K3/4P3/8 w - - 0 1"), "pawn-only null guard FEN parses");
+     (void)null_searcher.search(board, null_limits);
+@@ -715,6 +715,44 @@
+     check(whole_node_board.fen() == whole_node_fen,
+           "zero-window whole-node regression restores the board");
+ 
++    // Unverified shallow null probes can manufacture a false lower bound.
++    forge::Board shallow_null_bound_board;
++    check(shallow_null_bound_board.set_fen(
++              "r1bqkb1r/1p1pn1pp/n1p1pp2/p7/7P/N1PPBN2/PP2PPP1/R2QKB1R w KQkq - 0 1"),
++          "shallow null false-bound regression FEN parses");
++    const std::string shallow_null_bound_fen = shallow_null_bound_board.fen();
++    forge::Searcher shallow_null_full_searcher(4);
++    const int shallow_null_full = forge::SearcherTestProbe::alpha_beta(
++        shallow_null_full_searcher, shallow_null_bound_board, 3, -32000, 32000, 1);
++    check(shallow_null_full == 36,
++          "shallow null false-bound regression retains the full depth-3 score");
++    check(shallow_null_bound_board.fen() == shallow_null_bound_fen,
++          "shallow null full-window regression restores the board");
++    forge::Searcher shallow_null_bound_searcher(4);
++    const int shallow_null_bound = forge::SearcherTestProbe::alpha_beta(
++        shallow_null_bound_searcher, shallow_null_bound_board, 3, 36, 37, 1);
++    check(shallow_null_bound == 36,
++          "depth-3 zero-window search fails low instead of accepting an unverified null cutoff");
++    check(forge::SearcherTestProbe::null_cutoffs(shallow_null_bound_searcher) == 0,
++          "depth-3 false-bound regression records no shallow null cutoff");
++    check(shallow_null_bound_board.fen() == shallow_null_bound_fen,
++          "shallow null zero-window regression restores the board");
++
++    forge::Board shallow_null_depth5_board;
++    check(shallow_null_depth5_board.set_fen(
++              "rnbqkbnr/1p3ppp/2p5/p2ppP2/1P6/B1N4N/P1PPP1PP/R2QKB1R w KQkq - 0 1"),
++          "depth-5 null false-bound regression FEN parses");
++    const std::string shallow_null_depth5_fen = shallow_null_depth5_board.fen();
++    forge::Searcher shallow_null_depth5_searcher(4);
++    const int shallow_null_depth5 = forge::SearcherTestProbe::alpha_beta(
++        shallow_null_depth5_searcher, shallow_null_depth5_board, 5, -177, -176, 1);
++    check(shallow_null_depth5 == -177,
++          "depth-5 zero-window search fails low instead of accepting a shallow null false bound");
++    check(forge::SearcherTestProbe::null_cutoffs(shallow_null_depth5_searcher) == 0,
++          "depth-5 false-bound regression records no shallow null cutoff");
++    check(shallow_null_depth5_board.fen() == shallow_null_depth5_fen,
++          "depth-5 null regression restores the board");
++
+     check(board.set_fen("2rqNN2/4k3/ppp2pB1/3p4/PPPp1Prb/n3P2b/K7/4Q3 b - - 0 34"),
+           "shallow null PVS regression FEN parses");
+     const auto null_a3b5 = board.parse_uci("a3b5");
