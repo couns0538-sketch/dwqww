@@ -1,0 +1,41 @@
+# Null-verification metadata observer — preparation only
+
+No build/run, production edit, engine invocation, Git action, or diagnostic authorization is implied. Root must close the current archive and launch24 before authorizing an isolated observer build/run. No correctness defect, saved cost, performance, or Elo result is claimed.
+
+Inspected actual frozen24 tree: `/workspace/.cloud-setup/see-proof-reuse-native-source`. SHA256: `src/search.cpp` `44680416e008f4ccc0ac7d95a1452ae3db34459f945ea3311dc456536fcb0e55`; `include/forge/search.hpp` `3d9208de205b4bd2f8e82f6c64137be253eb51aa0a418d5e39e1c06392e95eb9`. Line numbers below refer to that tree. Read the prior screen `validation/next-search-screen-20261021/REPORT.md:17–25` as a lead, with this narrowing: local `eval` has **no later read** after its reduction use at971. Local `improving` remains live at1001/1062/1140. This does not reopen the repaired singular-PV path1093–1096.
+
+## Minimal observing change, if subsequently authorized
+
+Use a separately copied frozen24 tree and the actual core. Add bounded, observer-only event recording inside `Worker::search`; change no return value, condition, parameter, TT operation, or frame restoration in the default mode. Existing `friend struct SearcherTestProbe` (`search.hpp:312`, `tests/tests.cpp:19–44`) can read Worker counters/correction state and drain records after a normal public `Searcher::search`. Do not use its direct `terminal_search`/seeded-TT path as natural evidence.
+
+Give each search invocation a local call ID and each same-frame verification a local event token; a stack address alone aliases the recursive call. Count every event, retain at most128 complete event records, and report record overflow explicitly. No unbounded per-node stdout. Store compact field data in memory and serialize full witness FEN/history/path after the search; if the buffer overflows, retain counts but mark detailed coverage incomplete. Stop after the bounded matrix rather than adding positions automatically.
+
+Observe these actual sites:
+
+1. At actual corrected-eval assignment937 and before the null child969–979, retain the outer evaluation/correction origin. Immediately before989–990 retain the same-frame entry after the null child has been unmade. These are different phases: the null child's descendants may already have trained correction entries.
+2. At recursive entry875–919 and after its existing TT probe, tag the verification call and record whether it returns through921–925 before evaluation. Record the recursive evaluation at937 when reached. **Use the already obtained TTProbe/TTEntry copies; no extra `probe()` is allowed**, since the current generation-refresh policy can mutate metadata on a probe.
+3. Immediately after990 returns, snapshot before991–992 restore the existing two fields, then snapshot after restoration. Classify `aborted_`, `verification>=beta` (verified cutoff994–996), or `verification<beta` (outer continuation1000 onward). Count the separate depth<14 fail-high return984–986 too.
+4. For an outer fail-low continuation, retain that invocation's token and log actual first live reads, not just changed bytes: ProbCut beta's saved `improving`1001; SEE margin's stack static_eval1008; ProbCut TT raw_eval/tt_pv1023; quiet/capture futility1066/1077; LMP/LMR1062/1137–1140; final TT raw_eval/tt_pv1214; correction guard/value1220–1222. Mark reads not reached. Record branch operands/results and any value difference relative to the outer entry. Do not replace an operand with a counterfactual value.
+
+Target fields: root search/iteration ID, call/event/parent IDs, node ordinal, root depth, actual remaining depth/reduction, ply, alpha/beta, cut/PV/check flags, null and verification scores; Board FEN/key/pawn-key/side/halfmove/checkers and full key-history identity; outer TT hit/depth/bound/score/PV/usable-clock data from the existing snapshot; `raw_eval`, `static_eval`, `tt_pv`, `in_check`, `double_extensions`, `null_move_allowed`, PV length/content, move_count, current/excluded Move identities, moved_piece, continuation identity, accumulator/runtime-valid flags; outer `improving` and its `(ss-2)/(ss-4)` comparison source. Pointer identities are diagnostic labels only; do not serialize raw padded structs or treat intentionally overwritten current_move/continuation as defects.
+
+For each evaluation/correction phase, retain the pawn and material correction side/index/value, `MaterialCorrectionWeight`, and the exact `corrected_eval` result. At actual writes647–655, count/write-tag matching observed entries, including collisions from a **different full pawn/material key**. Track writes during both the null child and verification. Correction is integer division/clamping at638–644; default material weight is100. A changed corrected value can be legitimate learning while raw eval and Board remain constant. Do not freeze, clear, disable or roll back histories inside a default session to manufacture an invariant.
+
+## Bounded natural searches and controls
+
+Use normal public iterative deepening, Threads1/Hash32, OwnBook false, default NNUE and all default search parameters, unrestricted legal roots, fresh Searcher per cold session, and no TT seeding. Pin actual source/network/binary/settings and preserve raw output. First confirm each FEN parses and has legal moves through the actual Board API. Existing FENs:
+
+| Role | FEN / existing origin |
+| --- | --- |
+| Natural main A | `rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1` — `tests/tests.cpp:527–531` already exercises ordinary null tries/cutoffs at depth8. |
+| Natural main B | `r4rk1/1pp1qppp/p1np1n2/8/2B1P1b1/2N2N2/PPP1QPPP/2KR3R w - - 0 10` — existing SEE-proof baseline-fixtures.records.json middlegame. |
+| Pawn-only negative | `8/8/8/3k4/8/4K3/4P3/8 w - - 0 1` — `tests/tests.cpp:524–526` depth8 no-null control. |
+
+Proposed finite matrix, subject to root's later authorization: A/B each at requested depth15 with2,000,000-node cap, then depth16 with4,000,000-node cap; observer and uninstrumented frozen24 run the identical four sessions serially. Preserve actual completed depth and maximum observed verification-entry depth: a cap reached before coverage is **uncovered**, not a passing test. Compare canonical scores/nodes/PV/bestmove/ponder and actual-Board replay legality; omit only time/NPS. This is observer noninterference, not speed measurement. No automatic cap increase or additional FEN search.
+
+- **Below14:** one cold A depth12/100,000-node control plus naturally observed null fail-high calls whose *actual remaining depth* is<14. Root requested depth alone does not prove all internal calls are below14 because extensions exist.
+- **Null disabled:** pawn-only negative at depth8/100,000 nodes. If a same-FEN no-null control is needed, a clearly labeled isolated test driver may temporarily set `tune::NullMoveMinDepth` to `INT_MAX` and restore it outside the complete session. That exceeds the supported UCI range1..10 and is deliberately nondefault diagnostic coverage, never natural proof or a proposed policy change.
+- **Verified cutoff / early TT return:** classify naturally observed verification fail-high and recursive early-TT-return events separately; require zero later outer live reads for the cutoff. If absent, report missing coverage. Do not seed or force them.
+- **Abort:** a separate observer control may request stop at the first natural verification entry; retain the actual restored state and zero later outer consumers. This deliberately injected stop tests abort handling only. Ordinary node-cap aborts count as in-verification coverage only when the event trace shows that location.
+
+Close with counts of null tries, depth<14 cutoffs, depth>=14 verification entries, recursive TT early returns, verified cutoffs, fail-low continuations, aborts, changed fields, correction-attributed deltas, and actual changed live reads. A natural fail-low event with a changed live read is only a witness to assess. Calling it a correctness RED additionally requires a justified field-lifetime invariant and evidence that legitimate correction learning/TT classification does not explain it. Zero events or only synthetic/control events leave the lead unproven. Do not prepare a speculative frame rollback, pruning retune or correction-history ablation.

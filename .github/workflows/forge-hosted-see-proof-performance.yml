@@ -1,0 +1,77 @@
+# Restricted reviewed first-attempt branch push; no dispatch or tag event.
+# Independent final enabled review and root exact-payload publication/readback precede sole trigger.
+name: Calibrated native Linux see-proof performance
+on:
+  push:
+    branches:
+      - 'forge/hosted-see-proof-performance-20261021-*'
+permissions:
+  contents: write
+concurrency:
+  group: forge-see-proof-performance-20261021
+  cancel-in-progress: false
+jobs:
+  performance:
+    if: ${{ github.event_name == 'push' && github.run_attempt == 1 }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    env:
+      PYTHONDONTWRITEBYTECODE: '1'
+      BASELINE_SHA: '1d3ed25bea2c8b781f7ee5a178af0f66061b3984'
+      CANDIDATE_SHA: '7db08eac6ead99d641834c56ccec06a06600586a'
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          fetch-depth: 0
+      - name: Freeze actual sources, matched GCC14 cores and complete baseline14/candidate14 CTests
+        timeout-minutes: 12
+        shell: bash
+        run: |
+          set -euo pipefail
+          collector_rc=0
+          python3 -B .github/hosted-see-proof-performance/prepare_hosted.py --repo "$GITHUB_WORKSPACE" --out "$GITHUB_WORKSPACE/hosted-performance-results" --work "$RUNNER_TEMP/see-proof-fresh-build" > "$RUNNER_TEMP/see-proof-collector.stdout" 2> "$RUNNER_TEMP/see-proof-collector.stderr" || collector_rc=$?
+          mkdir -p hosted-performance-results
+          cp "$RUNNER_TEMP/see-proof-collector.stdout" hosted-performance-results/collector.stdout
+          cp "$RUNNER_TEMP/see-proof-collector.stderr" hosted-performance-results/collector.stderr
+          printf '%s\n' "$collector_rc" > hosted-performance-results/collector-exit-code.txt
+          python3 -B .github/hosted-see-proof-performance/prepare_hosted.py --repo "$GITHUB_WORKSPACE" --out "$GITHUB_WORKSPACE/hosted-performance-results" --work "$RUNNER_TEMP/see-proof-fresh-build" --finalize-only
+          exit "$collector_rc"
+      - name: One fixed A/A calibration and eligible 31-block A/B whole-process experiment
+        timeout-minutes: 65
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -B .github/hosted-see-proof-performance/run_hosted.py --repo "$GITHUB_WORKSPACE" --baseline "$GITHUB_WORKSPACE/hosted-performance-results/artifacts/baseline/forge" --candidate "$GITHUB_WORKSPACE/hosted-performance-results/artifacts/candidate/forge" --out "$GITHUB_WORKSPACE/hosted-performance-results/performance" 2>&1 | tee hosted-performance-results/wrapper.log
+      - name: Preserve and verify split archives on all ordinary failure paths
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p hosted-performance-results
+          for stream in stdout stderr; do
+            if [ -f "$RUNNER_TEMP/see-proof-collector.$stream" ]; then cp "$RUNNER_TEMP/see-proof-collector.$stream" "hosted-performance-results/collector.$stream"; fi
+          done
+          python3 -B .github/hosted-see-proof-performance/archive_results.py --input "$GITHUB_WORKSPACE/hosted-performance-results" --out "$GITHUB_WORKSPACE/archived-performance-results" --name "see-proof-performance-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+      - name: Upload all original evidence even on failure
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: forge-see-proof-performance-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            hosted-performance-results/
+            archived-performance-results/
+          if-no-files-found: error
+          retention-days: 30
+      - name: Preserve verified archives on a fresh results branch
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          branch="results/see-proof-performance-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+          git switch --orphan "$branch"
+          git rm -rf --cached --ignore-unmatch . >/dev/null
+          test -n "$(find archived-performance-results -name '*.manifest.json' -print -quit)"
+          git add -f archived-performance-results
+          git -c user.name='Forge validation CI' -c user.email='forge-validation@users.noreply.github.com' commit -m "Preserve calibrated native see-proof performance $GITHUB_RUN_ID attempt $GITHUB_RUN_ATTEMPT"
+          git push origin "HEAD:refs/heads/$branch"
+          test "$(git ls-remote origin "refs/heads/$branch" | cut -f1)" = "$(git rev-parse HEAD)"

@@ -1,0 +1,91 @@
+--- qualified23/independent_archive_audit.py
++++ prepared24/independent_archive_audit.py
+@@ -20,21 +20,21 @@
+ import traceback
+ import zipfile
+ 
+-BASE = Path('/workspace/dwqww/validation/tt-refresh-20261021/archive-complete')
++BASE = Path('/workspace/dwqww/validation/see-proof-reuse-candidate-20261021/archive-complete')
+ REPO = Path('/workspace/dwqww')
+-STAGE = Path('/workspace/.cloud-setup/forge-tt-refresh-1d3ed25-complete-evidence-stage')
++STAGE = Path('/workspace/.cloud-setup/see-proof-reuse24-complete-stage')
+ RECEIPT = BASE / 'INDEPENDENT-ARCHIVE-AUDIT.json'
+-NAME = 'forge-tt-refresh-1d3ed25-20261021-complete'
++NAME = 'forge-see-proof-reuse-7db08ea-20261021-complete'
+ MANIFEST = NAME + '.manifest.json'
+-SOURCE = '1d3ed25bea2c8b781f7ee5a178af0f66061b3984'
+-PARENT_SOURCE = 'ff2e269c6058be84456e3b98344826d17b0056eb'
++SOURCE = '7db08eac6ead99d641834c56ccec06a06600586a'
++PARENT_SOURCE = '1d3ed25bea2c8b781f7ee5a178af0f66061b3984'
+ SPLIT_SIZE = 64 * 1024 * 1024
+ PINS = None
+ MANIFEST_SHA = ZIP_SHA = ZIP_SIZE = PARTS = None
+ REPORT = {
+     'schema_version': 1,
+     'status': 'RUNNING',
+-    'auditor': '/root/archive6417',
++    'auditor': '/root/archive6414',
+     'started_utc': datetime.datetime.now(datetime.timezone.utc).isoformat(),
+     'source_commit_recorded_not_independently_git_authenticated': SOURCE,
+     'method': 'Independent Python standard library hashing, JSON, zipfile and anonymous tempfile; no producer/helper import or execution.',
+@@ -269,8 +269,8 @@
+     print('Checked independent ZIP members:', len(entries), 'payloads', flush=True)
+ 
+     result = json_file(BASE / 'RESULTS.json')
+-    require('Actual23 producer completion agrees with independently supplied pins',
+-            result['status'] == 'PASS_COMPLETE_23_ARCHIVE_VERIFIED'
++    require('Actual24 producer completion agrees with independently supplied pins',
++            result['status'] == 'PASS_COMPLETE_24_ARCHIVE_VERIFIED'
+             and result['source_commit'] == SOURCE and result['parent_source_commit'] == PARENT_SOURCE
+             and result['live_file_count'] == PINS['counts']['live_files']
+             and result['archive_payload_file_count'] == PINS['counts']['payload_files']
+@@ -281,7 +281,7 @@
+             and result['split_size_bytes'] == SPLIT_SIZE)
+     REPORT['producer_results_identity'] = identity(BASE / 'RESULTS.json')
+     clearance = json_file(BASE / 'ROOT-CLEARANCE.json')
+-    require('Root exact23 authorization and quiescent included writers',
++    require('Root exact24 authorization and quiescent included writers',
+             clearance['authorized'] is True and clearance['provided_by'] == '/root'
+             and clearance['source_commit'] == SOURCE
+             and clearance['included_writers_quiescent'] is True)
+@@ -380,7 +380,7 @@
+         'No real recovery, extraction or chmod was performed by this auditor. Recovery requires its own root-authorized NEW scratch step after audit PASS.',
+         'Source and parent commits are checked for consistency with root-supplied and archived provenance; no independent Git or remote-publication authentication is performed.',
+         'No engine correctness, speed, NPS, native hardware or Elo acceptance follows from this data-preservation audit.',
+-        'Only actual INPUT-SCOPE, frozen ledgers, producer RESULTS and independently bound external pins define archive23 counts; no inherited21 fixture/capture/prototype counts or assumption notes are required.',
++        'Only actual INPUT-SCOPE, frozen ledgers, producer RESULTS and independently bound external pins define archive24 counts; no inherited21 fixture/capture/prototype counts or assumption notes are required.',
+         'No original or stage artifact was written, deleted, chmoded, ignored or untracked. Anonymous reassembly is outside Git and leaves no persistent combined ZIP.',
+     ]
+ 
+@@ -404,9 +404,9 @@
+         raise SystemExit('External pins SHA256 mismatch; no audit attempted')
+     pins = json_file(pins_path)
+     if not (pins['authorized'] is True and pins['provided_by'] == '/root' and pins['source_commit'] == SOURCE):
+-        raise SystemExit('Explicit root-authorized actual23 pins required; no audit attempted')
++        raise SystemExit('Explicit root-authorized actual24 pins required; no audit attempted')
+     if pins['manifest']['file'] != MANIFEST or pins['archive']['file'] != NAME + '.zip':
+-        raise SystemExit('Exact actual23 archive/manifest names required; no audit attempted')
++        raise SystemExit('Exact actual24 archive/manifest names required; no audit attempted')
+     counts = pins['counts']
+     count_names = {'live_files', 'live_directories', 'live_bytes', 'payload_files', 'payload_bytes',
+                    'provenance_files', 'directory_roots', 'original_files', 'root_bindings'}
+@@ -433,7 +433,7 @@
+ 
+ def main():
+     parser = argparse.ArgumentParser(description=__doc__)
+-    parser.add_argument('--audit-authorized', required=True, choices=['23-ARCHIVE-AUDIT-AUTHORIZED'])
++    parser.add_argument('--audit-authorized', required=True, choices=['24-ARCHIVE-AUDIT-AUTHORIZED'])
+     parser.add_argument('--external-pins-sha256', required=True)
+     args = parser.parse_args()
+     if RECEIPT.exists() or RECEIPT.is_symlink():
+@@ -444,8 +444,8 @@
+     except Exception as error:
+         REPORT['findings'].append({'name': 'Audit exception', 'type': type(error).__name__, 'message': str(error)})
+         traceback.print_exc(file=sys.stderr)
+-    REPORT['status'] = ('PASS_INDEPENDENT_COMPLETE_23_ARCHIVE_AUDIT'
+-                        if not REPORT['findings'] else 'FAIL_INDEPENDENT_COMPLETE_23_ARCHIVE_AUDIT')
++    REPORT['status'] = ('PASS_INDEPENDENT_COMPLETE_24_ARCHIVE_AUDIT'
++                        if not REPORT['findings'] else 'FAIL_INDEPENDENT_COMPLETE_24_ARCHIVE_AUDIT')
+     REPORT['completed_utc'] = datetime.datetime.now(datetime.timezone.utc).isoformat()
+     REPORT['check_count'] = len(REPORT['checks'])
+     REPORT['failed_check_count'] = sum(not c['passed'] for c in REPORT['checks'])

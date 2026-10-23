@@ -1,0 +1,77 @@
+--- retained-first/archive_complete.py
++++ attempt2/archive_complete.attempt2.py
+@@ -24,7 +24,7 @@
+ CAPTURES = None  # Exact closed capture path is supplied by root, never guessed.
+ OUT = EXPERIMENT / 'archive-complete'
+ PREPARATION = EXPERIMENT / 'archive-complete-preparation'
+-STAGE = Path('/workspace/.cloud-setup/see-proof-reuse24-complete-stage')
++STAGE = Path('/workspace/.cloud-setup/see-proof-reuse24-complete-stage-attempt2')
+ ARCHIVER = REPO / '.github/hosted-tt-strength/archive_results.py'
+ EXPECTED_ARCHIVER = '952a090fee4f5ce67df93f5f389be5e46138f5b5787161c96156d80ad1fbaf6c'
+ COMMIT = '7db08eac6ead99d641834c56ccec06a06600586a'
+@@ -130,6 +130,13 @@
+     for label, item in snapshot['single_files'].items():
+         path = Path(item['path'])
+         assert sha(path)==item['sha256'] and path.stat().st_size==item['bytes'] and stat.S_IMODE(path.stat().st_mode)==item['mode'], label
++
++
++def capture_record(value):
++    assert type(value) is dict and set(value)=={'sha256','mode'}, 'Exact capture sha256/mode record required'
++    assert type(value['sha256']) is str and re.fullmatch(r'[0-9a-f]{64}',value['sha256'])
++    assert type(value['mode']) is int and 0<=value['mode']<=0o777
++    return value
+ 
+ 
+ def validate_frozen_sources():
+@@ -178,7 +185,14 @@
+     assert runtime['status']=='passed' and runtime['source_and_tests_commit']==COMMIT and len(runtime['checks'])==13 and all(x['exit_code']==0 for x in runtime['checks']) and runtime['input_sha256_before']==runtime['input_sha256_after']
+     assert runtime['bench11_nodes']==win['bench11_nodes']==334752 and runtime['see_threshold_assertions']==504 and runtime['see_threshold_failures']==0
+     consumed=load(OUT/'CONSUMED-INPUT-MAPPINGS.json')
+-    for path,expected in consumed['expected_original_hashes'].items():assert sha(Path(path))==expected,path
++    capture_values=load(Path(closed['actual_captures_path'])/'PROVENANCE.json')['frozen_inputs']
++    for path,expected in consumed['expected_original_hashes'].items():
++        if path in capture_values:  # Explicit capture producer schema, never a fallback.
++            record=capture_record(expected);assert record==capture_values[path]
++            assert sha(Path(path))==record['sha256'] and stat.S_IMODE(Path(path).stat().st_mode)==record['mode'],path
++        else:  # Genuine native/Windows/observer digest maps contain strings.
++            assert type(expected) is str and re.fullmatch(r'[0-9a-f]{64}',expected)
++            assert sha(Path(path))==expected,path
+     # Distinct source-grounded observation precursor, including its failed PATH starts.
+     observer=REPO/'validation/see-proof-reuse-20261021'
+     assert len(verify_hash_manifest(observer,observer/'FINAL-SHA256SUMS',exact=True))==86
+@@ -192,8 +206,15 @@
+     assert preauth['input_count']==len(preauth['input_sha256'])==362
+     auth=str(preparation/'ROOT-CAPTURE-AUTHORIZATION.json')
+     assert set(cap['frozen_inputs'])-set(preauth['input_sha256'])=={auth}
+-    assert all(cap['frozen_inputs'][path]==value for path,value in preauth['input_sha256'].items())
+-    assert cap['frozen_inputs'][auth]==sha(Path(auth))
++    assert set(preauth['input_sha256'])==set(preauth['input_bytes_modes'])
++    for path,digest in preauth['input_sha256'].items():
++        assert type(digest) is str and re.fullmatch(r'[0-9a-f]{64}',digest)
++        before_record=capture_record(preauth['input_bytes_modes'][path])
++        capture_item=capture_record(cap['frozen_inputs'][path])
++        assert before_record==capture_item and before_record['sha256']==digest
++        assert sha(Path(path))==digest and stat.S_IMODE(Path(path).stat().st_mode)==before_record['mode'],path
++    authorization_record=capture_record(cap['frozen_inputs'][auth])
++    assert authorization_record['sha256']==sha(Path(auth)) and authorization_record['mode']==stat.S_IMODE(Path(auth).stat().st_mode)
+     row=cap['captures']['candidate']
+     assert row['status']=='PASS_ACTUAL_FIVE_CANONICAL_ROWS' and row['rows']==5 and row['source_commit']==COMMIT
+     assert row['source_sha256_before']==row['source_sha256_after'] and row['binary_sha256_before']==row['binary_sha256_after']
+@@ -227,7 +248,7 @@
+     assert Path(__file__).resolve().parent==OUT, 'Preparation source is not an execution location; root must promote reviewed files first'
+     assert sys.dont_write_bytecode, 'Use Python -B / PYTHONDONTWRITEBYTECODE=1 to keep imported helpers unchanged'
+     assert sys.argv[1:] == ['--root-clearance', '24-ARCHIVE-AUTHORIZED'], 'Explicit root-clearance invocation required'
+-    clearance = load(OUT / 'ROOT-CLEARANCE.json')
++    clearance = load(OUT / 'ROOT-CLEARANCE-attempt2.json')
+     assert clearance['authorization'] == '24 COMPLETE ARCHIVE TASK AUTHORIZED' and clearance['provided_by'] == '/root'
+     assert clearance.get('authorized') is True and clearance['included_writers_quiescent'] is True
+     assert clearance['source_commit'] == COMMIT, 'Root clearance source identity differs'
+@@ -345,7 +366,7 @@
+     try:
+         main()
+     except BaseException as error:
+-        failure = OUT / 'FAILURE.json'
++        failure = OUT / 'FAILURE-attempt2.json'
+         if OUT.is_dir() and Path(__file__).resolve().parent==OUT and not failure.exists():
+             save(failure, {'status': 'FAILED_ATTEMPT_RETAINED', 'error_type': type(error).__name__, 'error': str(error),
+                           'recorded_utc': datetime.datetime.now(datetime.timezone.utc).isoformat(), 'engine_executed': False})

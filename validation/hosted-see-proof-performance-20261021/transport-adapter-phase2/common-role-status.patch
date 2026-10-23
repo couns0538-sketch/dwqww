@@ -1,0 +1,19 @@
+--- disabled24-phase1/common.py
++++ postcapture24-phase2/common.py
+@@ -76,11 +76,14 @@
+         analysis.parse_bench(paths['stdout'].read_bytes())
+         facts=json.loads(paths['facts'].read_text())
+         provenance=json.loads(paths['provenance'].read_text());capture_label=entry.get('provenance_capture_label',label)
+-        if capture_label not in ('baseline','candidate'):raise ValueError('Invalid original provenance capture label')
++        if capture_label!='candidate':raise ValueError('Original23/24 producer must retain candidate provenance label')
++        expected_status='PASS_BOTH_ACTUAL_FIVE_COMMAND_CAPTURES_NOT_SPEED_EVIDENCE' if label=='baseline' else 'PASS_ONE_ACTUAL24_FIVE_COMMAND_CAPTURE_NOT_SPEED_EVIDENCE'
++        expected_labels={'baseline','candidate'} if label=='baseline' else {'candidate'}
++        if provenance.get('status')!=expected_status or set(provenance.get('captures',{}))!=expected_labels:raise ValueError('Original producer status/label set differs for source role')
+         capture=provenance.get('captures',{}).get(capture_label,{})
+         before=capture.get('binary_sha256_before',{});after=capture.get('binary_sha256_after',{})
+         source=capture.get('source_sha256_before',{})
+-        if (provenance.get('status')!='PASS_BOTH_ACTUAL_FIVE_COMMAND_CAPTURES_NOT_SPEED_EVIDENCE' or
++        if (provenance.get('status')!=expected_status or
+                 capture.get('status')!='PASS_ACTUAL_FIVE_CANONICAL_ROWS' or capture.get('rows')!=5 or
+                 capture.get('source_commit')!=commit or before!=after or set(before)!={'forge','libforge_core.a'} or
+                 before.get('forge')!=entry['engine_sha256'] or any(not re.fullmatch('[0-9a-f]{64}',str(v)) for v in before.values()) or

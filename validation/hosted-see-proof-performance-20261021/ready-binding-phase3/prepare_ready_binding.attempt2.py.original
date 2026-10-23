@@ -1,0 +1,85 @@
+"""Source/data-only actual READY proposal; never applies or triggers anything.
+All positive bytes are genuine completed records. Examples are excluded.
+"""
+import argparse,ast,copy,difflib,hashlib,importlib.util,json,stat
+from pathlib import Path
+R=Path('/workspace/dwqww');V=R/'validation/hosted-see-proof-performance-20261021';D=V/'ready-binding-phase3';Q=D/'proposals';P=R/'.github/hosted-see-proof-performance'
+BASE='1d3ed25bea2c8b781f7ee5a178af0f66061b3984';CAND='7db08eac6ead99d641834c56ccec06a06600586a'
+sha=lambda p:hashlib.sha256(p.read_bytes()).hexdigest()
+def read(p):return json.loads(p.read_text())
+def load(name,path):
+ s=importlib.util.spec_from_file_location(name,path);m=importlib.util.module_from_spec(s);s.loader.exec_module(m);return m
+
+def prepare(proof_map):
+ missing=[p for p in [proof_map,V/'independent-review/REVIEW.json',V/'ROOT-PREPARATION-REVIEW.json',V/'ROOT-ONE-ATTEMPT-AUTHORIZATION.json'] if not p.is_file()]
+ if missing:return {'status':'BLOCKED_ACTUAL_BINDING_INPUTS_MISSING_NOT_APPLIED','missing':[str(p) for p in missing]}
+ common=load('see_ready_proposal_common',Q/'common.py');analysis=load('see_ready_proposal_analysis',Q/'analysis.py')
+ proofs=read(proof_map);assert isinstance(proofs,dict) and proofs
+ for p in [proof_map,proof_map.parent/'RESULT.json',proof_map.parent/'SOURCE-CORRESPONDENCE.json',proof_map.parent/'POST-ADAPTER-CODE-PIN.json',proof_map.parent/'SCHEMA-CAPTURE-MAPPING.json',V/'independent-review/REVIEW.json',V/'ROOT-PREPARATION-REVIEW.json',V/'ROOT-ONE-ATTEMPT-AUTHORIZATION.json',V/'transport-adapter-phase2/RECEIPT.json',V/'transport-adapter-phase2/common.py.post-adapter']:
+  assert p.is_file(),str(p);proofs[p.relative_to(R).as_posix()]=sha(p)
+ for p in sorted((V/'independent-review').rglob('*')):
+  if p.is_file():proofs[p.relative_to(R).as_posix()]=sha(p)
+ assert not any('.example.' in n or '/proposals/' in n or '/final-enabled-review/' in n or '/ready-binding-phase3/PROPOSED-BINDING' in n for n in proofs)
+ for n,d in proofs.items():assert sha(common.safe(R,n))==d,n
+ prep=read(V/'ROOT-PREPARATION-REVIEW.json');auth=read(V/'ROOT-ONE-ATTEMPT-AUTHORIZATION.json');ind=read(V/'independent-review/REVIEW.json');source=read(proof_map.parent/'SOURCE-CORRESPONDENCE.json')
+ assert prep['status']=='PASS_ROOT_ACTUAL24_SOURCE_NATIVE_CAPTURE_AND_BOUNDED_TRANSPORT_PREPARATION'
+ assert auth['status']=='ROOT_CONDITIONAL_AUTHORIZATION_ONE_NEW_HOSTED_CALIBRATION_ATTEMPT' and auth['launch_authorized_now'] is False and auth['authorized_by']=='/root'
+ assert auth['root_preparation_review_sha256']==sha(V/'ROOT-PREPARATION-REVIEW.json')
+ assert auth['attempts']==1 and auth['fault_retries']==0 and auth['aa_blocks']==15 and auth['ab_blocks']==31 and auth['benches_per_process']==5 and auth['must_pass_aa_before_ab'] is True
+ assert prep['baseline_sha']==auth['baseline_sha']==BASE and prep['candidate_sha']==auth['candidate_sha']==CAND
+ assert prep['source_files_each']==77 and prep['source_unchanged']==73 and prep['source_deltas']==4 and prep['native_ctests_each']==42 and prep['active_tsan_each']==8 and prep['candidate_exact_parent_searches']==56 and prep['candidate_see_assertions_each_profile']==504 and prep['first_actual_native_signature']==292545
+ assert sha(V/'transport-adapter-phase2/common.py.post-adapter')==prep['consumed_evidence']['actual_adapter_current']['sha256']
+ # Final finite independent review schema is read as actual data; report exact missing
+ # status/source properties rather than inventing a gate if its producer differs.
+ assert source['baseline']['commit']==BASE and source['candidate']['commit']==CAND
+ assert len(source['baseline']['source_inputs'])==len(source['candidate']['source_inputs'])==77 and source['unchanged']==73 and len(source['changed_paths'])==4
+ assert source['independent_source_review_actual77_hashes_equal_frozen24'] is True
+ assert ind['status']=='PASS_INDEPENDENT_FINITE_NATIVE_SOURCE_CAPTURE_ADAPTER_REVIEW_NOT_READY_NOT_LAUNCHED'
+ assert sha(V/'independent-review/REVIEW.json')=='d197472db9eacc3d5c0ea0f064d8b359e65eb7e99492610f6a43959b5fda662b'
+ assert ind.get('baseline_sha')==BASE and ind.get('candidate_sha')==CAND, 'Independent actual source identities required'
+ assert ind['findings']==[]
+ cfg=read(P/'protocol.json');cfg.update(status=common.READY,expected_nodes=292545,candidate_first_native_signature_nodes=292545,source_gates_status='PASSED',parity_review_status='PASSED',capture_review_status='PASSED',root_review_status='PASSED',independent_review_status='PASSED',operational_qualification_status='authorized_for_one_fresh_host_calibration_attempt_with_prior_anomalies_unresolved',correctness_evidence_sha256=proofs,workflow_status='FROZEN',workflow_sha256=sha(Q/'forge-hosted-see-proof-performance.yml'),mandatory_finite_proof_paths=list(common.REQUIRED_PROOFS),actual_five_capture_gate='PASSED genuine23 original-side reuse plus one actual24 producer; no throughput/Elo evidence',remaining_proof_inputs=['Separate independent final enabled-metadata review of exact frozen hashes; root exact-payload publication/readback before sole trigger'],prototype_note='Observer source23 query counts are preserved as source-specific work/equality evidence only. Actual24 native42/active8/56coldwarm/SEE504 and one genuine24 producer are separately bound; original23 side is reused without relabeling or rerun.')
+ c24=read(V/'capture-preparation/actual-five-captures/PROVENANCE.json');entry={'source_commit':CAND,'engine_sha256':c24['captures']['candidate']['binary_sha256_before']['forge'],'provenance_capture_label':'candidate','source_manifest_path':'validation/see-proof-reuse-native-20261021/ROOT-FROZEN-SOURCE-GATES.json','facts_path':'validation/hosted-see-proof-performance-20261021/capture-preparation/actual-five-captures/candidate/status.json','provenance_path':'validation/hosted-see-proof-performance-20261021/capture-preparation/actual-five-captures/PROVENANCE.json'}
+ for stream in ['stdin','stdout','stderr']:entry[stream+'_path']='validation/hosted-see-proof-performance-20261021/capture-preparation/actual-five-captures/candidate/'+stream+'.txt'
+ cfg['transport_captures']={'baseline':copy.deepcopy(c24['reused23_entry']),'candidate':entry}
+ common.require_ready(cfg);consumed_proofs=common.proof_paths(R,cfg);transport=common.transport_paths(R,cfg,analysis)
+ # Mandatory omissions and metadata negatives derive from the genuine complete map.
+ controls={}
+ for n in common.REQUIRED_PROOFS:
+  bad=copy.deepcopy(cfg);del bad['correctness_evidence_sha256'][n]
+  try:common.require_ready(bad)
+  except ValueError as e:controls[n]=str(e)
+  else:raise AssertionError('Missing actual finite proof accepted '+n)
+ assert len(controls)==13
+ negatives={}
+ for label,values in [('DRAFT',{'status':'DRAFT'}),('signature',{'expected_nodes':292546}),('source',{'candidate_sha':BASE}),('count',{'source_file_counts':{'baseline':76,'candidate':77}}),('capture',{'transport_captures':{}}),('root',{'root_review_status':'PENDING'}),('proofs',{'correctness_evidence_sha256':{}}),('workflow',{'workflow_sha256':None}),('attempt_type',{'attempts':True}),('signature_type',{'expected_nodes':True}),('blocks_type',{'aa_blocks':'15'}),('seed_type',{'bootstrap_seed':20261102.0})]:
+  bad=copy.deepcopy(cfg);bad.update(values)
+  try:common.require_ready(bad)
+  except ValueError as e:negatives[label]=str(e)
+  else:raise AssertionError('Bad metadata accepted '+label)
+ (Q/'protocol.json').write_text(json.dumps(cfg,indent=2)+'\n')
+ (Q/'README.md').write_text('''# Forge24 calibrated throughput packet, READY metadata proposal
+
+Actual source23 1d3ed25bea2c8b781f7ee5a178af0f66061b3984 versus24 7db08eac6ead99d641834c56ccec06a06600586a is frozen. Both require77 exported files and the exact14 named CTests, nearest fifth/PV sixth, before hosted readiness. Actual native42/active8/PV56/TT12/SEE504 and56 parent cold/warm searches passed; first native24 signature292545 is now bound. Actual23 original candidate-side capture is reused under its original BOTH receipt/label; one new24 process supplies genuine ONE24 receipt/five rows. Complete original source/core/raw/native/root/independent receipts are bound.
+
+The calibrated design remains excluded ABBA warmup,15 same-binary A/A blocks then31 counterbalanced A/B blocks,5bench11 commands per process,188processes/940commands. Exact-child wait4 CPU and whole-process monotonic wall use identical calibration gates and shared-index whole-block10000-draw bootstrap seed20261102; both95% lower bounds must exceed1 after normal completion/final byte-mode integrity. Failure stops acceptance without retry/rescue/pooling. Bounds remain690s build/3600s timing/60s sample,90/12/65minute workflow/job steps as declared. This measures startup+five complete engine benchmarks, not a pure SEE kernel or Elo.
+
+Owned helper461a and archive952a remain unchanged. NEW24 alone carries the reviewed outer affinity-finally repair; hash/context/save and restoration failures are fatal when Python finally runs. Original21 code, initial42 tests/61seal/118disabled review and genuine adapter RED/GREEN/46test phase remain retained separately. Current code differs from approved postcapture consumer only by the genuine292545 scalar and literal finite-proof capture path; analysis changes only that scalar.
+
+READY metadata permits no inference of a completed hosted run or gain. Root authorization remains launch_authorized_now=false until separate independent final enabled review, root fixed-payload rehash/publication/readback and sole authorized prefix push. Branch-only event excludes tags; per-run attempt1 is not a global one-use guard, and no fixed HEAD guard exists in workflow. Root must ensure the sole trigger uses the exact reviewed object. No Windows/Ryzen, Stockfish or Elo claim is made. All original normal/failure logs and raw evidence are preserved through separate always archive/upload/fresh-results steps when the host can execute them.
+''')
+ changes={str(P/'common.py'):Q/'common.py',str(P/'analysis.py'):Q/'analysis.py',str(P/'protocol.json'):Q/'protocol.json',str(P/'README.md'):Q/'README.md',str(R/common.WORKFLOW):Q/'forge-hosted-see-proof-performance.yml'}
+ manifest=[]
+ for p in sorted([p for p in P.rglob('*') if p.is_file() and p.name!='PACKAGE-SHA256SUMS']+[R/common.WORKFLOW]):
+  replacement=changes.get(str(p),p);manifest.append(sha(replacement)+'  '+p.relative_to(R).as_posix()+'\n')
+ (Q/'PACKAGE-SHA256SUMS').write_text(''.join(manifest));changes[str(P/'PACKAGE-SHA256SUMS')]=Q/'PACKAGE-SHA256SUMS'
+ frozen=common.snapshot(list(consumed_proofs)+transport+common.inventory(R,P));assert common.rehash(frozen)['status']=='passed'
+ code={p.relative_to(R).as_posix():sha(changes.get(str(p),p)) for p in sorted(P.glob('*.py'))}
+ result={'status':'PASS_ACTUAL_READY_PROPOSAL_NOT_APPLIED_NOT_LAUNCHED','baseline_sha':BASE,'candidate_sha':CAND,'current_native_ctests_each':42,'current_active_tsan_each':8,'actual_source_files_each':77,'actual_proof_count':len(proofs),'transport_records':len(transport),'mandatory_omission_controls':controls,'metadata_negative_controls':negatives,'frozen_inputs':frozen,'frozen_input_count':len(frozen),'proposed_execution_code_sha256':code,'proposed_replacements':{n:{'proposal_path':str(p),'sha256':sha(p),'current_sha256':sha(Path(n)),'current_mode':stat.S_IMODE(Path(n).stat().st_mode)} for n,p in changes.items()},'proposed_workflow_sha256':cfg['workflow_sha256'],'root_preparation_sha256':sha(V/'ROOT-PREPARATION-REVIEW.json'),'root_authorization_sha256':sha(V/'ROOT-ONE-ATTEMPT-AUTHORIZATION.json'),'independent_finite_review_sha256':sha(V/'independent-review/REVIEW.json'),'oldphase61_118_42_and_current46_preserved':True,'tests_run_by_this_builder':False,'engines_builds_helpers_matches_git_network_triggers':0,'final_independent_enabled_review_required':True,'root_launch_authorized_now':False,'speed_or_elo_claim':None}
+ return result
+
+def main():
+ p=argparse.ArgumentParser();p.add_argument('--proof-map',type=Path,required=True);p.add_argument('--out',type=Path,required=True);a=p.parse_args();result=prepare(a.proof_map.resolve(strict=True))
+ with a.out.open('x') as f:json.dump(result,f,indent=2);f.write('\n')
+ print(json.dumps({k:v for k,v in result.items() if k not in ['frozen_inputs','mandatory_omission_controls','metadata_negative_controls','proposed_execution_code_sha256','proposed_replacements']}))
+if __name__=='__main__':main()

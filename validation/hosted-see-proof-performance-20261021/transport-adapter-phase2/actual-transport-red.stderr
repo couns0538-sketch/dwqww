@@ -1,0 +1,36 @@
+test_actual24_bytes_reject_derived_duplicate_or_warning (__main__.GenuineTransport.test_actual24_bytes_reject_derived_duplicate_or_warning) ... ok
+test_both_actual_sources_and_original_roles_pass (__main__.GenuineTransport.test_both_actual_sources_and_original_roles_pass) ... ERROR
+test_candidate24_cannot_use_old_both_status (__main__.GenuineTransport.test_candidate24_cannot_use_old_both_status) ... FAIL
+test_new24_source_and_engine_cannot_be_relabelled (__main__.GenuineTransport.test_new24_source_and_engine_cannot_be_relabelled) ... ok
+test_reused23_cannot_use_new_single24_status (__main__.GenuineTransport.test_reused23_cannot_use_new_single24_status) ... ok
+test_reused23_must_keep_original_candidate_label (__main__.GenuineTransport.test_reused23_must_keep_original_candidate_label) ... ok
+test_single24_receipt_cannot_contain_an_extra_baseline (__main__.GenuineTransport.test_single24_receipt_cannot_contain_an_extra_baseline) ... ok
+
+======================================================================
+ERROR: test_both_actual_sources_and_original_roles_pass (__main__.GenuineTransport.test_both_actual_sources_and_original_roles_pass)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/dwqww/validation/hosted-see-proof-performance-20261021/transport-adapter-phase2/test_actual_transport.py", line 30, in test_both_actual_sources_and_original_roles_pass
+    paths=self.validate();self.assertIn(R/C24/'candidate/stdout.txt',paths);self.assertIn(R/P24['reused23_entry']['stdout_path'],paths)
+          ^^^^^^^^^^^^^^^
+  File "/workspace/dwqww/validation/hosted-see-proof-performance-20261021/transport-adapter-phase2/test_actual_transport.py", line 25, in validate
+    with patch.object(a,'EXPECTED_NODES',292545),patch.object(m.json,'loads',side_effect=loads):return m.transport_paths(R,c or cfg(),a)
+                                                                                                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/dwqww/.github/hosted-see-proof-performance/common.py", line 88, in transport_paths
+    facts.get('command')!=[capture.get('binary_paths',{}).get('forge')]):raise ValueError('Actual capture label/source/binary/process provenance differs')
+                                                                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: Actual capture label/source/binary/process provenance differs
+
+======================================================================
+FAIL: test_candidate24_cannot_use_old_both_status (__main__.GenuineTransport.test_candidate24_cannot_use_old_both_status)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/dwqww/validation/hosted-see-proof-performance-20261021/transport-adapter-phase2/test_actual_transport.py", line 32, in test_candidate24_cannot_use_old_both_status
+    with self.assertRaises(ValueError):self.validate(mutation=lambda d:d.update(status='PASS_BOTH_ACTUAL_FIVE_COMMAND_CAPTURES_NOT_SPEED_EVIDENCE'))
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: ValueError not raised
+
+----------------------------------------------------------------------
+Ran 7 tests in 0.038s
+
+FAILED (failures=1, errors=1)
