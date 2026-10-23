@@ -5,6 +5,7 @@ find_package(Threads REQUIRED)
 option(FORGE_ENABLE_SANITIZERS "Enable AddressSanitizer and UndefinedBehaviorSanitizer" OFF)
 option(FORGE_NATIVE "Optimise for the build machine's CPU (-march=native)" OFF)
 option(FORGE_EXPOSE_TUNABLES "Advertise search tuning constants as UCI options (development builds)" OFF)
+set(FORGE_NNUE_WEIGHTS_FILE "" CACHE FILEPATH "Explicit NNUE export for validation; default uses src/nnue_weights.inc")
 
 add_library(forge_core
     src/bitboard.cpp
@@ -17,6 +18,12 @@ add_library(forge_core
 )
 target_include_directories(forge_core PUBLIC include)
 target_compile_features(forge_core PUBLIC cxx_std_20)
+if(NOT "${FORGE_NNUE_WEIGHTS_FILE}" STREQUAL "")
+    if(NOT EXISTS "${FORGE_NNUE_WEIGHTS_FILE}" OR IS_DIRECTORY "${FORGE_NNUE_WEIGHTS_FILE}")
+        message(FATAL_ERROR "Requested NNUE export is not an existing file: ${FORGE_NNUE_WEIGHTS_FILE}")
+    endif()
+    target_compile_definitions(forge_core PRIVATE FORGE_NNUE_WEIGHTS_FILE="${FORGE_NNUE_WEIGHTS_FILE}")
+endif()
 
 if(MSVC)
     target_compile_options(forge_core PRIVATE /W4 /permissive-)
@@ -67,6 +74,12 @@ target_link_libraries(forge_nearest_pawn_tests PRIVATE forge_core Threads::Threa
 add_executable(forge_pv_metadata_tests tests/pv_metadata_tests.cpp)
 target_link_libraries(forge_pv_metadata_tests PRIVATE forge_core Threads::Threads)
 
+add_executable(forge_nnue_bucket_tests tests/nnue_bucket_tests.cpp)
+target_link_libraries(forge_nnue_bucket_tests PRIVATE forge_core Threads::Threads)
+
+add_executable(forge_nnue_probe tools/nnue/engine_probe.cpp)
+target_link_libraries(forge_nnue_probe PRIVATE forge_core Threads::Threads)
+
 add_executable(forge_bench bench/benchmark.cpp)
 target_link_libraries(forge_bench PRIVATE forge_core Threads::Threads)
 
@@ -77,6 +90,7 @@ add_test(NAME forge_runtime_psqt_tests COMMAND forge_runtime_psqt_tests)
 add_test(NAME forge_pawn_span_tests COMMAND forge_pawn_span_tests)
 add_test(NAME forge_nearest_pawn_tests COMMAND forge_nearest_pawn_tests)
 add_test(NAME forge_pv_metadata_tests COMMAND forge_pv_metadata_tests)
+add_test(NAME forge_nnue_bucket_tests COMMAND forge_nnue_bucket_tests)
 add_test(NAME forge_tt_tests COMMAND forge_tt_tests)
 add_test(NAME forge_rule50_tests COMMAND forge_rule50_tests)
 add_test(NAME forge_legal_witness_tests COMMAND forge_legal_witness_tests

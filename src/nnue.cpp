@@ -19,7 +19,12 @@
 #include <immintrin.h>
 #endif
 
-#if __has_include("nnue_weights.inc")
+#if defined(FORGE_NNUE_WEIGHTS_FILE)
+// Explicit validation/training exports must exist; never silently fall back
+// to another network when a requested file is missing.
+#include FORGE_NNUE_WEIGHTS_FILE
+#define FORGE_HAS_NNUE 1
+#elif __has_include("nnue_weights.inc")
 #include "nnue_weights.inc"
 #define FORGE_HAS_NNUE 1
 #else
@@ -30,11 +35,19 @@
 #ifndef FORGE_NNUE_RESIDUAL
 #define FORGE_NNUE_RESIDUAL 0
 #endif
+#ifndef FORGE_NNUE_OUTPUT_BUCKETS
+#define FORGE_NNUE_OUTPUT_BUCKETS 1
+#endif
+static_assert(FORGE_NNUE_OUTPUT_BUCKETS == 1 || FORGE_NNUE_OUTPUT_BUCKETS == 8,
+              "Only legacy single-output or eight piece-count heads are supported");
 #if FORGE_HAS_NNUE
 static_assert(sizeof(NnueW1) / sizeof(NnueW1[0]) == static_cast<std::size_t>(forge::nnue::InputCount) * forge::nnue::HiddenSize,
               "nnue_weights.inc was trained for a different FORGE_NNUE_HIDDEN");
 static_assert(sizeof(NnueB1) / sizeof(NnueB1[0]) == static_cast<std::size_t>(forge::nnue::HiddenSize), "nnue_weights.inc b1 size");
-static_assert(sizeof(NnueW2) / sizeof(NnueW2[0]) == 2 * static_cast<std::size_t>(forge::nnue::HiddenSize), "nnue_weights.inc w2 size");
+static_assert(sizeof(NnueW2) / sizeof(NnueW2[0]) == FORGE_NNUE_OUTPUT_BUCKETS * 2 * static_cast<std::size_t>(forge::nnue::HiddenSize), "nnue_weights.inc w2 size");
+#if FORGE_NNUE_OUTPUT_BUCKETS == 8
+static_assert(sizeof(NnueB2) / sizeof(NnueB2[0]) == 8, "nnue_weights.inc b2 size");
+#endif
 #endif
 
 namespace forge::nnue {
@@ -46,8 +59,8 @@ namespace {
 struct Weights {
     std::unique_ptr<float[]> w1;   // [InputCount][HiddenSize]
     alignas(32) std::array<float, HiddenSize> b1{};
-    alignas(32) std::array<float, 2 * HiddenSize> w2{};
-    float b2 = 0.0F;
+    alignas(32) std::array<std::array<float, 2 * HiddenSize>, FORGE_NNUE_OUTPUT_BUCKETS> w2{};
+    std::array<float, FORGE_NNUE_OUTPUT_BUCKETS> b2{};
 };
 
 const Weights& weights() {
@@ -59,8 +72,16 @@ const Weights& weights() {
             w.w1[i] = static_cast<float>(NnueW1[i]) / WeightScale;
         }
         for (std::size_t i = 0; i < HiddenSize; ++i) w.b1[i] = static_cast<float>(NnueB1[i]) / WeightScale;
-        for (std::size_t i = 0; i < 2 * HiddenSize; ++i) w.w2[i] = static_cast<float>(NnueW2[i]) / OutputScale;
-        w.b2 = static_cast<float>(NnueB2) / OutputScale;
+        for (std::size_t bucket = 0; bucket < FORGE_NNUE_OUTPUT_BUCKETS; ++bucket) {
+            for (std::size_t i = 0; i < 2 * HiddenSize; ++i) {
+                w.w2[bucket][i] = static_cast<float>(NnueW2[bucket * 2 * HiddenSize + i]) / OutputScale;
+            }
+#if FORGE_NNUE_OUTPUT_BUCKETS == 1
+            w.b2[bucket] = static_cast<float>(NnueB2) / OutputScale;
+#else
+            w.b2[bucket] = static_cast<float>(NnueB2[bucket]) / OutputScale;
+#endif
+        }
 #endif
         return w;
     }();
@@ -80,6 +101,13 @@ inline void sub_feature(std::array<float, HiddenSize>& acc, const float* column)
 bool available() { return FORGE_HAS_NNUE != 0; }
 
 bool residual() { return FORGE_HAS_NNUE != 0 && FORGE_NNUE_RESIDUAL != 0; }
+
+int output_bucket_count() { return FORGE_NNUE_OUTPUT_BUCKETS; }
+
+int output_bucket(const Board& board) {
+    if constexpr (FORGE_NNUE_OUTPUT_BUCKETS == 1) return 0;
+    return std::clamp((popcount(board.occupied()) - 1) / 4, 0, 7);
+}
 
 void refresh(const Board& board, Accumulator& accumulator) {
     const Weights& w = weights();
@@ -158,6 +186,8 @@ void update(const Accumulator& parent, Accumulator& child, const DirtyPieces& di
 
 int evaluate(const Board& board, const Accumulator& accumulator) {
     const Weights& w = weights();
+    const std::size_t bucket = static_cast<std::size_t>(output_bucket(board));
+    const auto& output_weights = w.w2[bucket];
     const Color us = board.side_to_move();
     const auto& ours = accumulator.values[static_cast<std::size_t>(us)];
     const auto& theirs = accumulator.values[static_cast<std::size_t>(opposite(us))];
@@ -177,8 +207,8 @@ int evaluate(const Board& board, const Accumulator& accumulator) {
             const std::size_t base = static_cast<std::size_t>(h + 8 * k);
             const __m256 a = _mm256_min_ps(_mm256_max_ps(_mm256_load_ps(ours.data() + base), zero), one);
             const __m256 b = _mm256_min_ps(_mm256_max_ps(_mm256_load_ps(theirs.data() + base), zero), one);
-            const __m256 term = _mm256_add_ps(_mm256_mul_ps(_mm256_mul_ps(a, a), _mm256_load_ps(w.w2.data() + base)),
-                                            _mm256_mul_ps(_mm256_mul_ps(b, b), _mm256_load_ps(w.w2.data() + HiddenSize + base)));
+            const __m256 term = _mm256_add_ps(_mm256_mul_ps(_mm256_mul_ps(a, a), _mm256_load_ps(output_weights.data() + base)),
+                                            _mm256_mul_ps(_mm256_mul_ps(b, b), _mm256_load_ps(output_weights.data() + HiddenSize + base)));
             sums[k] = _mm256_add_ps(sums[k], term);
         }
     }
@@ -192,8 +222,8 @@ int evaluate(const Board& board, const Accumulator& accumulator) {
             const std::size_t base = static_cast<std::size_t>(h + 4 * k);
             const __m128 a = _mm_min_ps(_mm_max_ps(_mm_load_ps(ours.data() + base), zero), one);
             const __m128 b = _mm_min_ps(_mm_max_ps(_mm_load_ps(theirs.data() + base), zero), one);
-            const __m128 term = _mm_add_ps(_mm_mul_ps(_mm_mul_ps(a, a), _mm_load_ps(w.w2.data() + base)),
-                                           _mm_mul_ps(_mm_mul_ps(b, b), _mm_load_ps(w.w2.data() + HiddenSize + base)));
+            const __m128 term = _mm_add_ps(_mm_mul_ps(_mm_mul_ps(a, a), _mm_load_ps(output_weights.data() + base)),
+                                           _mm_mul_ps(_mm_mul_ps(b, b), _mm_load_ps(output_weights.data() + HiddenSize + base)));
             sums[k] = _mm_add_ps(sums[k], term);
         }
     }
@@ -205,11 +235,11 @@ int evaluate(const Board& board, const Accumulator& accumulator) {
             const std::size_t index = static_cast<std::size_t>(h + j);
             const float a = std::min(std::max(ours[index], 0.0F), 1.0F);
             const float b = std::min(std::max(theirs[index], 0.0F), 1.0F);
-            lanes[j] += a * a * w.w2[index] + b * b * w.w2[static_cast<std::size_t>(HiddenSize) + index];
+            lanes[j] += a * a * output_weights[index] + b * b * output_weights[static_cast<std::size_t>(HiddenSize) + index];
         }
     }
 #endif
-    float out = w.b2;
+    float out = w.b2[bucket];
     for (int j = 0; j < Lanes; ++j) out += lanes[j];
     const float centipawns = out * 400.0F / SigmoidK;
     return static_cast<int>(std::clamp(centipawns, -30000.0F, 30000.0F));

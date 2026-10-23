@@ -9,7 +9,8 @@ namespace forge::nnue {
 
 // Architecture: for each colour's perspective, 768 piece-square inputs feed a
 // HiddenSize accumulator (incrementally updated); SCReLU of the side-to-move
-// and opponent accumulators is combined by a single linear output. The shipped
+// and opponent accumulators is combined by a piece-count-selected linear
+// output. Legacy single-output includes remain supported. The shipped
 // network (src/nnue_weights.inc) is a residual correction added to the
 // hand-crafted evaluation; see nnue::residual().
 constexpr int InputCount = 768;
@@ -51,6 +52,11 @@ struct DirtyPieces {
 // Whether the compiled-in network is a residual correction that the engine
 // adds to the hand-crafted evaluation (false when no network is compiled in).
 [[nodiscard]] bool residual();
+// The compiled include supplies either one legacy output or eight heads.
+[[nodiscard]] int output_bucket_count();
+// Eight-head networks count all pieces, including kings: 2..4 -> 0,
+// 5..8 -> 1, ..., 29..32 -> 7. Legacy networks always select head zero.
+[[nodiscard]] int output_bucket(const Board& board);
 // Runtime switch (UCI option); only effective when available().
 extern bool enabled;
 

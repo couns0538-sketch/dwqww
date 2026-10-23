@@ -1,0 +1,29 @@
+{
+  "schema_version": 1,
+  "purpose": "Optional eight-output trainer template; no actual training performed by this job",
+  "dataset_manifest_sha256": "8dfdaf3df08500ba1befa3e821adaa825f5425bdc2f1111dcf5e9190bfe7eb7d",
+  "target": {
+    "kind": "teacher_probability_game_result_blend",
+    "result_weight": 0.4,
+    "sigmoid_k": 2.25,
+    "cp_scale": 400.0
+  },
+  "training": {
+    "epochs": 8,
+    "output_buckets": 8,
+    "selection_metric": "target_mse_combined",
+    "include_initial": false,
+    "seed": 20261023,
+    "batch_size": 1024,
+    "threads": 4,
+    "lr": 0.0003,
+    "min_lr": 3e-06,
+    "schedule": "cosine",
+    "initial_net_sha256": "0e1585e24207e7f02210bc5a46b7058974a57f1dcb595a03a2232a156b422330"
+  },
+  "limits": [
+    "This protocol selects only by original validation; the CLI never reads final-audit-only data.",
+    "Final acceptance needs a separately frozen audit protocol and game gate; do not call the already inspected main-job audit an unseen new audit.",
+    "The CLI authenticates a caller-trusted manifest hash, role/split metadata and NPZ bytes; it does not replay all original teacher records. Use the preserved data pipeline provenance audit first."
+  ]
+}
