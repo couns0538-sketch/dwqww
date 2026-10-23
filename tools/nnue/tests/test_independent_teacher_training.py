@@ -171,6 +171,47 @@ class FixedTargetTests(unittest.TestCase):
                     self.training.main(args)
                 self.assertFalse(run_dir.exists())
 
+    def qualification_fixture(self, directory):
+        data_dir, manifest = old_training.TrainingRunTests().prepare(directory)
+        manifest.update(provenance_format="independent_teacher_v1", training_permitted=True,
+                        minimum_positions=5000000, retained_total_positions=5000000,
+                        dataset_role="training_and_selection")
+        run_dir = Path(directory) / "run"
+        args = ["--data-dir", str(data_dir), "--run-dir", str(run_dir), "--epochs", "1", "--threads", "1",
+                "--initial-net", str(Path(directory) / "deliberately-missing-net.inc")]
+        return data_dir, manifest, run_dir, args
+
+    def test_unqualified_independent_data_cannot_reach_initial_network_loading(self):
+        cases = [("training_permitted", False), ("training_permitted", 1),
+                 ("minimum_positions", 4999999), ("minimum_positions", 5000000.0),
+                 ("retained_total_positions", 4999999), ("retained_total_positions", 5000000.0),
+                 ("retained_total_positions", None), ("dataset_role", "final_audit_only")]
+        for field, value in cases:
+            with self.subTest(field=field, value=value), tempfile.TemporaryDirectory() as directory:
+                data_dir, manifest, run_dir, args = self.qualification_fixture(directory)
+                manifest[field] = value
+                (data_dir / "manifest.json").write_text(json.dumps(manifest) + "\n")
+                try:
+                    with self.assertRaisesRegex(ValueError, "qualified|minimum|positions|role|audit"):
+                        self.training.main(args)
+                except FileNotFoundError:
+                    self.fail("Unqualified data reached initial network loading")
+                self.assertFalse(run_dir.exists(), "Rejected data must stop before creating any model artifacts")
+
+    def test_qualified_data_and_baseline_inspection_reach_initial_network_loading(self):
+        for baseline_only in (False, True):
+            with self.subTest(baseline_only=baseline_only), tempfile.TemporaryDirectory() as directory:
+                data_dir, manifest, _, args = self.qualification_fixture(directory)
+                if baseline_only:
+                    manifest.update(training_permitted=False, retained_total_positions=6,
+                                    dataset_role="final_audit_only")
+                    args.append("--baseline-only")
+                (data_dir / "manifest.json").write_text(json.dumps(manifest) + "\n")
+                # The deliberately missing include is the next real boundary.
+                # Reaching it proves passage without running an optimizer.
+                with self.assertRaises(FileNotFoundError):
+                    self.training.main(args)
+
     def test_reference_protocol_mismatch_cannot_reuse_equal_blend_metrics(self):
         fixture = old_holdout.RecipeIntegrityTests()
         fixture.report, fixture.shared = self.report, self.shared

@@ -1,5 +1,12 @@
 # Current baseline
 
+Active follow-on job: `forge/independent-teacher-20261023`, parent27070fe.
+[Current compact manifest](../validation/independent-teacher-20261023/manifest.json)
+and [sole job report](../validation/independent-teacher-20261023/FINAL_REPORT.md)
+are authoritative for this six-hour independent-teacher mission. Old data is not
+retrained. The earlier NNUE pipeline below is accepted as complete; its shipped
+net remains default and its isolated trial is not promoted. No strength matches.
+
 Active mission: NNUE pipeline verification on `forge/nnue-pipeline-20261023`,
 off `1ab50b2dd64d9b2f752f7f1285f6968cad2fd792` (Forge6.4.24).
 Production search, evaluator and shipped default weights remain unchanged.

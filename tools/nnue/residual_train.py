@@ -96,6 +96,20 @@ def verify_prepared_protocol(manifest, protocol):
         raise ValueError("Prepared data frozen protocol SHA-256 differs or is absent")
 
 
+def verify_training_qualification(manifest, baseline_only=False):
+    """Partial independent-teacher data and the final audit cannot optimize."""
+    if manifest.get("provenance_format") != "independent_teacher_v1" or baseline_only:
+        return
+    if manifest.get("training_permitted") is not True:
+        raise ValueError("Independent-teacher data is not qualified for training")
+    minimum, retained = manifest.get("minimum_positions"), manifest.get("retained_total_positions")
+    if (type(minimum) is not int or minimum < 5000000
+            or type(retained) is not int or retained < minimum):
+        raise ValueError("Independent-teacher positions do not meet the integer minimum of at least 5000000")
+    if manifest.get("dataset_role") != "training_and_selection":
+        raise ValueError("Independent-teacher dataset role must allow training and selection; final audit is excluded")
+
+
 def _progress(epoch, epochs):
     if type(epochs) is not int or epochs < 1 or type(epoch) is not int or not 0 <= epoch < epochs:
         raise ValueError("Require zero-based epoch in a positive epoch count")
@@ -316,6 +330,7 @@ def main(argv=None):
                                                    not args.exclude_initial_from_selection)
     train, validation, manifest, manifest_sha = load_prepared_data(args.data_dir)
     verify_prepared_protocol(manifest, protocol_identity)
+    verify_training_qualification(manifest, args.baseline_only)
     run_dir = args.run_dir.resolve()
     run_dir.mkdir(parents=True, exist_ok=False)
     (run_dir / "checkpoints").mkdir()

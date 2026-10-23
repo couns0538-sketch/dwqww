@@ -1,0 +1,119 @@
+{
+  "schema_version": 1,
+  "experiment_id": "forge-independent-teacher-20261023",
+  "status": "SCIENTIFIC_PROTOCOL_FROZEN_BEFORE_PRODUCTION_DATA_AND_ANY_MODEL_LOSS",
+  "frozen_utc": "2026-10-23T18:46:59.631885+00:00",
+  "baseline_source_sha": "1ab50b2dd64d9b2f752f7f1285f6968cad2fd792",
+  "secondary_generation_source_sha": "5101c2529d386b7c3a04ba9156a69ee34df6bb43",
+  "dataset": {
+    "minimum_eligible_positions": 5000000,
+    "generation_seed": 2026102301,
+    "whole_game_split_seed": 2026102302,
+    "fractions": {
+      "train": 0.9,
+      "validation": 0.05,
+      "audit": 0.05
+    },
+    "nodes": 64,
+    "opening_plies": [
+      8,
+      24
+    ],
+    "max_ply": 256,
+    "pairing": "gameindexmod4: baseline/baseline,baseline/5101,baseline/baseline,5101/baseline",
+    "split": "game-ID SHA256 split; audit>validation>train exact first4FEN deduplication",
+    "data_stop_rule": "Stop fresh generation at complete-game boundary when committed teacher chunks contain >=5100000 exact unique first4FEN positions, or deadline; label pending already-started chunks to completion. No loss-based data stopping. At least5000000 final retained unique rows required before optimization.",
+    "old_data_used": false,
+    "final_audit_frozen_before_training": true,
+    "one_training_run_only": true
+  },
+  "teacher": {
+    "name": "Stockfish19 external UCI tool",
+    "depth": 6,
+    "binary_sha256": "0f83d24cc46d2c66c60f16001af5444873bc112b7d028594513426894c12da19",
+    "network_sha256": "1a298aa575a085434d29027978dc36867fe9c5bcea9376654b7a8eba1e52dfc2",
+    "options": {
+      "Threads": "1",
+      "Hash": "16",
+      "MultiPV": "1",
+      "Ponder": "false",
+      "Skill Level": "20",
+      "UCI_LimitStrength": "false",
+      "UCI_Chess960": "false",
+      "SyzygyPath": "<empty>"
+    },
+    "policy": {
+      "score_pov": "side_to_move",
+      "score_cap_cp": 1000,
+      "mate_policy": "drop_all",
+      "teacher_move": "legal,noncapture,nonpromotion,not_gives_check",
+      "reset": "ucinewgame+Clear Hash+isready before every whole game",
+      "position_history": "complete authenticated game prefix",
+      "within_game_state": "persistent TT and search history",
+      "normalization": "raw Stockfish cp; fixed downstream sigmoid(cp*2.25/400); no calibration"
+    },
+    "state_isolation": "reset every whole game; retain state only within same game",
+    "workers": 3,
+    "code_or_licence_text_copied": false
+  },
+  "target": {
+    "kind": "teacher_probability_game_result_blend",
+    "result_weight": 0.4,
+    "sigmoid_k": 2.25,
+    "cp_scale": 400.0
+  },
+  "training": {
+    "runs": 1,
+    "initialization": "shipped residual net",
+    "architecture": "768->128x2 SCReLU residual",
+    "epochs": 8,
+    "batch_size": 1024,
+    "lr": 0.0003,
+    "min_lr": 3e-06,
+    "schedule": "cosine",
+    "selection_metric": "target_mse_combined",
+    "include_initial": false,
+    "selection_rule": "lowest fixed40% result-blended original-validation MSE among trainedepochs1..8, earliestepochbreaksties; numericquantizedchangesrequired",
+    "final_audit_not_for_selection": true
+  },
+  "audit_acceptance": {
+    "method": "paired whole-game cluster bootstrap, ratio(sumloss/sumrows)",
+    "draws": 10000,
+    "seed": 2026102303,
+    "comparison": "candidate hybrid vs shipped hybrid on identical frozen audit",
+    "net_only_publication_requires": "95%CI lowerbound of shippedMSE-candidateMSE >0; no alternativeepoch orretrainingafteraudit",
+    "strength_gate": "userPC1000-gameSPRT, not run here"
+  },
+  "publication_gate": {
+    "minimum_total_retained_unique_rows": 5000000,
+    "single_selected_candidate": "minimum fixed.4 blended original-validation selection_mse among trainedepochs1..8,earliesttie; initialexcluded",
+    "numeric_quantized_changes_required": true,
+    "net_only_branch_only_if_audit_ci95_abs_lower_bound_gt_zero_against_shipped": true,
+    "after_audit_no_reselection_or_retraining": true,
+    "if_not_qualified": "Publish dataset,manifest,trainer and honest results; no net-only branch or replacement engine",
+    "strength": "unproven; userPC1000-gameSPRT is separate; no matches here"
+  },
+  "producer_source_sha256": {
+    "tools/nnue/generate_teacher_games.py": "c6d04b1cf9e6054733c477c81e085bd0abfea768f5f4d9183e5251a23a7a4bf1",
+    "tools/nnue/native_game_driver.cpp": "15c32e4095f3804eae82f12f5fa6b0cfe277e826df9f17ca6730aef4c805d065",
+    "tools/nnue/label_teacher_games.py": "67f685f0427842daac9c72bed99356265ed75369123301d522026b899d4ea1b7"
+  },
+  "native_build_provenance_sha256": "283a7a39ac56a898f0cb25bc2d32f5dcb8594a7ea9fb982db980d549cefd9466",
+  "generation_command_prepared_sha256": "f1a0cdcc45fc21fa9b82c9707635c945729246ec5788732f655d3580255d647d",
+  "deadlines": {
+    "start_utc": "2026-10-23T18:04:09+00:00",
+    "stop_starting_new_work_utc": "2026-10-23T23:34:09+00:00",
+    "hard_deadline_utc": "2026-10-24T00:04:09+00:00"
+  },
+  "resources": {
+    "cpu_quota_cores": 4,
+    "production_generator_workers": 1,
+    "production_teacher_workers": 3
+  },
+  "time_control_or_elo_experiment": false,
+  "revision": 2,
+  "supersedes_preproduction_revision": {
+    "sha256": "3459024caa1cb7573c6dc99d69fc56caa4c0b83f21dc14609f14930fb00b0980",
+    "reason": "Add graceful labeler drain stop-file control; no teacher/target/split/selection change and no production data or model losses read"
+  }
+}
