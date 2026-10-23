@@ -682,3 +682,11 @@ main candidate is frozen; overlapmask awaits full1Mtrainingrecipes. The
 independent set never changes the original4149validation or fullrun protocol.
 Git defaultcredential failure and helper503 are retained; helper thenpushed
 dd578c2 and verifiedremote/publicbytes. CPUdependency stack pinned, noGPU.
+
+2026-10-23 NNUE full-data boundary: all13.5M original rows examined;1M retained
+training(14895fresh+985105legacy),4149validation,0exact-position overlap,3038closed
+native batches. Actualprep24911 exit0. Invalidall-partition-games-retain-rows gate
+failed and halted the first controller beforetraining; corrected retained-ID
+subset+freshidentity gate passed separately, alloriginalfailures preserved.
+Unchanged predeclared zero20/warm20 training started under controller47264.
+No final network or Elo result yet. See validation/nnue-pipeline-20261023.

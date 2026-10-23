@@ -8,13 +8,17 @@ engine/core binaries remain identical to the frozen baseline. Actual-core
 Python/C++ parity matched2048/2048 integer NNUE outputs exactly.
 
 The residual trainer's25 tests and data tools'29 tests pass;12 original tool
-regressions also pass. Fresh generation completed256 identified games/21000
-quiet rows. The game split retains14895 training and4149 validation positions
-(200/56 games), with zero exact-position overlap. Supplied13.5M legacy rows
-lack game IDs/best moves and are training-only. The single frozen all-corpus
-reservoir preparation24911 is running (7.5M rows examined/1M retained); do not
-restart it. Controller87815 waits for closedPASS and exact validation identity,
-then runs the predeclared zero20 and separate warm20 full-data experiments.
+regressions also pass (86 combined pipeline tests). Fresh generation completed256
+identified games/21000 quiet rows. Training retains14895 rows from196 games in
+the200-game partition; four completed games retain no rows after filtering.
+Validation is4149 positions/56 games. Full preparation24911 exited0: all13.5M
+legacy rows examined,1951670 unique eligible,985105 selected plus14895 fresh,
+for1000000 training positions. All3038 native batches closed cleanly; validation
+arrays/provenance match the original baseline exactly and exact-position overlap
+is zero. A mistaken closure assertion requiring rows from every partition game
+failed and stopped controller87815 before any training. Original failures are
+preserved. Separately reviewed closure-v2 passed without changing data or sources.
+Controller47264 now runs the unchanged zero20 then separate warm20 protocol.
 
 Measured on the frozen4149 validation positions: HCE teacher MSE
 0.006660536215902123; shipped HCE+NNUE0.006082049055657535 (8.685% lower).

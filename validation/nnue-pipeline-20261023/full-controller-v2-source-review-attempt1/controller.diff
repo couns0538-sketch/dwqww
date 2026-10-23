@@ -1,0 +1,47 @@
+--- original-controller
++++ reviewed-controller-v2
+@@ -4,7 +4,7 @@
+ import hashlib,json,os,signal,subprocess,time,sys
+ root=Path('/workspace/dwqww');hand=Path('/workspace/forge-nnue-handoff-20261023')
+ py='/workspace/.cloud-setup/nnue-pipeline-20261023-venv/bin/python'
+-out=hand/'full-training-controller-attempt1';out.mkdir(exist_ok=False)
++out=hand/'full-training-controller-attempt2';out.mkdir(exist_ok=False)
+ def dump(name,value):(out/name).write_text(json.dumps(value,indent=2,allow_nan=False)+'\n')
+ def digest(path):
+  h=hashlib.sha256()
+@@ -13,16 +13,17 @@
+  return h.hexdigest()
+ source_names=['tools/nnue/residual_train.py','tools/nnue/train_nnue.py','tools/nnue/include_parser.py','tools/nnue/engine_contract.json','tools/nnue/compare_holdout.py','tools/nnue/prepare_residual_data.py','src/search.cpp','src/nnue.cpp','src/nnue_weights.inc','include/forge/nnue.hpp']
+ source_hashes={name:digest(root/name) for name in source_names}
+-protocol={'status':'PREDECLARED_BEFORE_FULL_DATA_TRAINING_OUTCOMES','utc':datetime.now(timezone.utc).isoformat(),'commit':subprocess.check_output(['git','rev-parse','HEAD'],cwd=root,text=True).strip(),'source_hashes':source_hashes,'primary_protocol':str(root/'validation/nnue-pipeline-20261023/TRAINING-PROTOCOL.json'),'sequence':['zero residual output main20epochs','separate shipped-network warm-start20epochs, same other parameters'],'warm_start_justification':'Measured shipped teacherMSE0.006082049055657535 below HCE0.006660536215902123 on frozen4149-row heldout; already allowed by primary protocol. Fresh-only warm run did not improve, retained separately.','data_gate':'Original fullprep24911 closedPASS, strictsource/hash/array validator, same4149-row validation arrays and provenance as baseline, all9sources/13.5Mexamined.','selection':'Keep initial and everyepoch. Fixed complete heldout pureteacher MSE per run. Selection intervals remain conditional, not an independent test or Elo.','retry_policy':'none; preserve firstfailure and stop','gpu':False}
++protocol={'status':'PREDECLARED_BEFORE_FULL_DATA_TRAINING_OUTCOMES','utc':datetime.now(timezone.utc).isoformat(),'commit':subprocess.check_output(['git','rev-parse','HEAD'],cwd=root,text=True).strip(),'source_hashes':source_hashes,'primary_protocol':str(root/'validation/nnue-pipeline-20261023/TRAINING-PROTOCOL.json'),'sequence':['zero residual output main20epochs','separate shipped-network warm-start20epochs, same other parameters'],'warm_start_justification':'Measured shipped teacherMSE0.006082049055657535 below HCE0.006660536215902123 on frozen4149-row heldout; already allowed by primary protocol. Fresh-only warm run did not improve, retained separately.','data_gate':'Original fullprep24911 actualexit0 and separate corrected closure-v2 PASS, strictsource/hash/array validator, same4149-row validation arrays and provenance as baseline, all9sources/13.5Mexamined.','selection':'Keep initial and everyepoch. Fixed complete heldout pureteacher MSE per run. Selection intervals remain conditional, not an independent test or Elo.','retry_policy':'no training retries; original controller stopped before training on invalid closure assertion, preserved unchanged; v2 validates same immutable data with corrected subset check','gpu':False}
+ dump('PROTOCOL.json',protocol)
+ started=time.monotonic();child=None
+ try:
+- receipt=hand/'FULL-PREP-CLOSED.json'
++ receipt=hand/'FULL-PREP-CLOSED-v2.json'
+  while not receipt.exists():
+   if time.monotonic()-started>14400:raise TimeoutError('Original preparer did not close within bounded controller wait')
+   time.sleep(5)
+  closed=json.loads(receipt.read_text());dump('PREP-CLOSED-SNAPSHOT.json',closed)
+  if closed.get('status')!='PASS_PREPARED_DATA_CLOSED':raise RuntimeError('Original preparer did not close PASS; no training attempted')
++ assert closed.get('manifest_sha256')==digest(hand/'prepared-all13m-reservoir-attempt1/manifest.json')
+  sys.path.insert(0,str(root/'tools/nnue'))
+  import numpy as np
+  from residual_train import load_prepared_data
+@@ -50,6 +51,15 @@
+   result={'returncode':rc,'elapsed_seconds':time.monotonic()-start,'utc':datetime.now(timezone.utc).isoformat()};dump(label+'.result.json',result)
+   if rc:raise RuntimeError(label+' actual training failed; originals retained; no retry')
+   summary=json.loads((run_dir/'summary.json').read_text());assert summary['status']=='completed' and summary['epochs_completed']==20 and summary['input_integrity']=='passed'
++  assert summary['manifest_sha256']==manifest_sha and summary['training_count']==1000000 and summary['validation_count']==4149
++  actual_config=summary['config']
++  expected_config={'epochs':20,'batch_size':1024,'threads':4,'lr':.001,'min_lr':.00001,'result_start':0.,'result_end':.1,'seed':20261023,'hidden':128,'residual':True,'sigmoid_k':2.25}
++  for name,value in expected_config.items():assert actual_config[name]==value,(label,name,actual_config[name],value)
++  assert actual_config['data_dir']==str(data.resolve()) and actual_config['run_dir']==str(run_dir)
++  if warm:assert actual_config['initial_net']['sha256']==source_hashes['src/nnue_weights.inc']
++  else:assert actual_config['initial_net'] is None
++  from residual_train import verify_unchanged_inputs
++  verify_unchanged_inputs(data,manifest,manifest_sha)
+   assert {name:digest(root/name) for name in source_names}==source_hashes
+   jobs.append({'label':label,'run':str(run_dir),'best':summary['best'],'training_count':summary['training_count'],'validation_count':summary['validation_count'],'result':result})
+   print(json.dumps(jobs[-1]),flush=True)

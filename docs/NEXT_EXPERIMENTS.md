@@ -1,15 +1,22 @@
 # Next experiments
 
-Current priority: finish the NNUE-only task on base1ab50b2d.
-Preserve tests-first24aa08c, trainera040a76, completed256 fresh games and all
-20 fresh-only pilot epochs (best1 is weaker than shipped net by held-out loss).
-Keep the single frozen13.5M corpus preparation running: after it closes,
-authenticate sources, compare its validation arrays/recipes exactly with the
-fresh-only4149-row baseline, then run the predeclared20-epoch full-data trainer.
-Compare HCE, shipped hybrid, candidate hybrid and residual-only on that same
-set, with whole-game uncertainty; validate the actual exported candidate against
-native C++ inference. Save all weights/logs and deliver a separate net artifact.
-No search changes or Elo claim; QA owns the1000-game strength gate.
+Active NNUE mission: original13.5M preparation24911 actually exited0 and corrected
+closure-v2 passed. Root full-training controller47264 is active: zero20 then warm20
+on the same1M training rows and original4149 validation rows. Do not duplicate it.
+The old closure's all-games-retain-rows assertion was wrong (196/200 retained);
+its failed evidence and stopped-before-training controller remain preserved.
+
+After actual training closure, verify both summary/config/manifest/source bindings.
+Apply the committed CANDIDATE-FREEZE-RULE using originalvalidation only, checking
+actual quantized parameters changed. Freeze/publish the chosen new export before
+independent audit model losses. Run candidate-specific native2048 parity and the
+matched fixed-position report. Independentaudit controller attempt2 waits for
+corrected closure-v2 and masks positions shared with maintrain/originalvalidation;
+no model evaluation untilfreeze. Build the separately labeled Windows Zen5 trial
+from exact1ab plus only the frozen weights, run all14 original checks under Wine,
+and save its genuine changed-net bench signature. Archive all data/checkpoints,
+failed gates, rawlogs and receipts with Git-safe parts and verified recovery.
+No search/defaultweight changes or Elo claims; QA owns1000-game strength gate.
 
 The following performance work is a preserved, paused continuation queue:
 

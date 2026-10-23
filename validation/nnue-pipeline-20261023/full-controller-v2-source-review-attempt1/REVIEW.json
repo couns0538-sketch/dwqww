@@ -1,0 +1,141 @@
+{
+  "status": "PASS_BOUNDED_SOURCE_AND_CONFIG_SCHEMA_REVIEW_PENDING_FULL_TRAINING_EXECUTION",
+  "utc": "2026-10-23T15:34:50.536769+00:00",
+  "independence": "Reviewer did not write controller, closure or trainer; source/config review only",
+  "input_sha256": {
+    "/workspace/forge-nnue-handoff-20261023/run_full_training_cycle_v2.py": "c8286ff370ddbcab9fa521763fa30da333b25dd257a1effcc0bf77b8a6fbcd3f",
+    "/workspace/forge-nnue-handoff-20261023/run_full_training_cycle.py": "305bca5b3d46c7ceedf0dceb613d1a4eabb561977985ec162d5f0756fdc0e3b7",
+    "/workspace/forge-nnue-handoff-20261023/close_full_preparation_v2.py": "cf6f006ad91bb4f3b397456be9e063823fd1928eb51e4064509f6c10daac304e",
+    "/workspace/forge-nnue-handoff-20261023/close_full_preparation.py": "2312118f561fbdffa40b861220b6c65ee9a4ce714dd64950d6f46884713cfddd",
+    "/workspace/dwqww/tools/nnue/residual_train.py": "2fc417411a6ff0a6b0ed7cf411215189879b0634089f9ad6db3d6907c5740ee8",
+    "/workspace/dwqww/validation/nnue-pipeline-20261023/TRAINING-PROTOCOL.json": "176d21ccac59a09deed71dbfa3dc3ff9e10a0d18ccda5022718d566a30ad594a",
+    "/workspace/forge-nnue-handoff-20261023/FULL-PREP-CLOSED-v2.json": "036ff52fcca92dc4aa23392bd36970a5d3ec7f861780efaf88f5c921d1a95a23",
+    "/workspace/forge-nnue-handoff-20261023/FULL-PREP-CLOSED.json": "ed9a205e5cbaca4ee58927614fcc502914919589b7770ad8ebdd112d1de5f004",
+    "/workspace/forge-nnue-handoff-20261023/full-training-controller-attempt1/PROTOCOL.json": "aaa5af93598f2b4a0c1fd4deb0ec845b0d0ccbcbe22a7c0478411a956c5ee1e8",
+    "/workspace/forge-nnue-handoff-20261023/full-training-controller-attempt1/FAILED.json": "b49e00ac0e71306ee147f75fa9eed78e54a81f4fa1dfd3c61bb50ac1b452d077",
+    "/workspace/forge-nnue-handoff-20261023/prepared-all13m-reservoir-attempt1/manifest.json": "0bce5a466e51449dace54bd65f38a0ff2c79a7e0755a963096fa97fb1ea39216",
+    "/workspace/forge-nnue-handoff-20261023/prepared-fresh-only-attempt1/manifest.json": "c4054706afa50324398a6ef6319da5341da10d02a21736aacaf25d9639e00653"
+  },
+  "blocking_findings": [],
+  "controller_sha256": "c8286ff370ddbcab9fa521763fa30da333b25dd257a1effcc0bf77b8a6fbcd3f",
+  "source_freezes_unchanged_since_original_controller": {
+    "tools/nnue/residual_train.py": true,
+    "tools/nnue/train_nnue.py": true,
+    "tools/nnue/include_parser.py": true,
+    "tools/nnue/engine_contract.json": true,
+    "tools/nnue/compare_holdout.py": true,
+    "tools/nnue/prepare_residual_data.py": true,
+    "src/search.cpp": true,
+    "src/nnue.cpp": true,
+    "src/nnue_weights.inc": true,
+    "include/forge/nnue.hpp": true
+  },
+  "expected_config_literal": {
+    "epochs": 20,
+    "batch_size": 1024,
+    "threads": 4,
+    "lr": 0.001,
+    "min_lr": 1e-05,
+    "result_start": 0.0,
+    "result_end": 0.1,
+    "seed": 20261023,
+    "hidden": 128,
+    "residual": true,
+    "sigmoid_k": 2.25
+  },
+  "expected_config_literal_key_count": 11,
+  "separate_config_fields_checked": [
+    "data_dir",
+    "run_dir",
+    "initial_net"
+  ],
+  "actual_existing_summary_config_evidence": {
+    "zero": {
+      "source_path": "/workspace/forge-nnue-handoff-20261023/pilot-fresh14895-zero20-attempt1/summary.json",
+      "source_sha256": "ff0a7159dc3f21e93deae276cace6aaf83173b8afdf36e9f7c25c436a0041faa",
+      "all11expected_config_keys_present": true,
+      "all_shared_values_match_except_declared_full_run_threads4_vs_pilot2": true,
+      "initial_net": null
+    },
+    "warm": {
+      "source_path": "/workspace/forge-nnue-handoff-20261023/pilot-fresh14895-warm20-attempt1/summary.json",
+      "source_sha256": "070636a334562fe837ff7fa3aa31f72ba9f07e1dfd6642dc30c16badf94daed4",
+      "all11expected_config_keys_present": true,
+      "all_shared_values_match_except_declared_full_run_threads4_vs_pilot2": true,
+      "initial_net": {
+        "path": "/workspace/dwqww/src/nnue_weights.inc",
+        "sha256": "41487f328ff51f27417564df45b6f3139d038b7e940dedb121340bd61be9a4d3"
+      }
+    }
+  },
+  "observed_closure": {
+    "status": "PASS_PREPARED_DATA_CLOSED",
+    "tool_session_id": 24911,
+    "actual_tool_exit_code": 0,
+    "actual_preparation_subprocess_exit_code": 0,
+    "manifest_sha256": "0bce5a466e51449dace54bd65f38a0ff2c79a7e0755a963096fa97fb1ea39216",
+    "train_rows": 1000000,
+    "validation_rows": 4149,
+    "fresh_training_partition_games": 200,
+    "actual_retained_fresh_training_games": 196,
+    "zero_retained_training_partition_games": [
+      {
+        "game_id": "ede90bb90c97428c972de42ec62bdf19:151",
+        "original_quiet_rows": 59,
+        "minimum_abs_score_cp": 1005,
+        "maximum_abs_score_cp": 2288,
+        "reason": "Every authentic quiet-row teacher score exceeds the declared +/-1000 cp cap"
+      },
+      {
+        "game_id": "ede90bb90c97428c972de42ec62bdf19:33",
+        "original_quiet_rows": 0,
+        "minimum_abs_score_cp": null,
+        "maximum_abs_score_cp": null,
+        "reason": "Completed game produced zero quiet records in authentic generated JSONL"
+      },
+      {
+        "game_id": "ede90bb90c97428c972de42ec62bdf19:48",
+        "original_quiet_rows": 43,
+        "minimum_abs_score_cp": 1045,
+        "maximum_abs_score_cp": 1833,
+        "reason": "Every authentic quiet-row teacher score exceeds the declared +/-1000 cp cap"
+      },
+      {
+        "game_id": "ede90bb90c97428c972de42ec62bdf19:56",
+        "original_quiet_rows": 47,
+        "minimum_abs_score_cp": 1069,
+        "maximum_abs_score_cp": 2103,
+        "reason": "Every authentic quiet-row teacher score exceeds the declared +/-1000 cp cap"
+      }
+    ]
+  },
+  "reviewed_points": [
+    {
+      "lines": "controller-v2 20-39",
+      "result": "New closure receipt PASS and its manifest SHA are checked; shared strict loader authenticates original inputs; all4149 validation arrays remain exact dtype/shape/value bytes and provenance SHA matches established fresh holdout."
+    },
+    {
+      "lines": "controller-v2 42-45",
+      "result": "Original zero then warm order, distinct full-data run paths and exact20epoch/batch1024/threads4/lr.001/minlr.00001/result0to.1/seed20261023 command are unchanged."
+    },
+    {
+      "lines": "controller-v2 53-63; trainer245-285",
+      "result": "All11literal config keys plus paths and initial_net exist in trainer output; min_lr and sigmoid_k names match; warm initial receipt has path/SHA keys and source hash is checked. Completed/epochs/counts/manifest/input-integrity/source hashes are required after each run."
+    },
+    {
+      "lines": "closure-v2 133-155",
+      "result": "Actual retained fresh ID set must equal established fresh recipe196IDs and be within original200declared partition; original4zero-retained IDs diagnosed exactly. Counts/filters/data/split are unchanged, no game IDs invented."
+    },
+    {
+      "lines": "controller-v2 67-73",
+      "result": "Failures stop instead of automatic training retry; live child group gets SIGINT, then bounded wait/SIGKILL. Old closure failure/old controller attempt remain preserved."
+    }
+  ],
+  "scope_limits": [
+    "No controller/closure/trainer execution by this review; no NPZ loading or repeated13.5M scan",
+    "No new training, engine, native build, benchmark or match",
+    "Closed PASS was inspected and small receipt/manifest integrity bindings rehashed; full closure validation was not replayed",
+    "Source gate checks use the reviewed normal unoptimized Python invocation; training results remain pending",
+    "No loss/generalization/Elo/Stockfish conclusion"
+  ]
+}
