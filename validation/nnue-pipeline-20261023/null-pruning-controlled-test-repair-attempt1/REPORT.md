@@ -1,0 +1,11 @@
+# Controlled null-pruning coverage repair
+
+The original test required a null attempt and cutoff from a public start-position depth8 search. Those events depend on NNUE evaluation and selective-search path; non-pawn material alone does not guarantee them. The assigned tester observed old22/22 versus selected0/0 at depth8, while the selected network has45/25 at the predeclared depth10. This is evidence of a fragile coverage assertion, not removal of null pruning.
+
+The proposed change is **tests/tests.cpp only**. The original pawn-only disabled assertion, public start depth8 search and every other test remain. A fresh test-only friend helper uses a legal e2e4 predecessor and non-root ply1 frame. It clears histories/TT/counters, caches static evaluation0 with unknown root score, and supplies exact score0 for the actual null-board child. At depth9 and window[-1,0], reverse futility cannot preempt the NMP gate. The actual NMP path must visit exactly two nodes, try and cut once, return0 and restore FEN/key/history. No neural score or fixture-depth fishing determines success. The helper owns a separate Searcher, so its synthetic TT entries cannot contaminate the original public-search tests.
+
+Complete patched test translation units compiled against both immutable old and selected-network cores and each exited0, with empty stderr and identical output: prepared1/tries1/cutoffs1/nodes2/score0/restored1; all other assertions passed. This is the complete forge_tests executable, not all14 configured CTests.
+
+A private source copy prepended false&& to only the NMP gate. Its object was linked explicitly before the unchanged selected core. The saved link map proves that the archive search.cpp.o was not linked. This counterfactual executable exited1 with exactly the new NMP assertion failed, tries0/cutoffs0; its board was restored. Thus deleting NMP is detected, rather than passing a weakened test. This private control is never applied to runtime source.
+
+Both old/new core hashes and live tests/search/default weights/header bytes were rehashed unchanged after all runs. Original programs, raw stdout/stderr, command arrays, actual return codes, maps, source copies and patches are retained. Parent owns source review, any live application, fullRelease/ASan/Wine qualification and publication. No Elo or production search change is claimed.

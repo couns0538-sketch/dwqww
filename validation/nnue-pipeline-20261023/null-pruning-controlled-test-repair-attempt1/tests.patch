@@ -1,0 +1,92 @@
+--- a/tests/tests.cpp
++++ b/tests/tests.cpp
+@@ -42,6 +42,72 @@
+             worker.shared_.tt.store(entry, board.key(), 900, 900, Move::none(), 8, BoundExact, false, board.halfmove_clock());
+         }
+         return worker.search(board, ss, depth, alpha, beta, false);
++    }
++    struct NullCutoffResult {
++        bool prepared = false;
++        int score = ValueNone;
++        std::uint64_t tries = 0;
++        std::uint64_t cutoffs = 0;
++        std::uint64_t nodes = 0;
++        bool board_restored = false;
++    };
++    static NullCutoffResult controlled_null_cutoff() {
++        NullCutoffResult result;
++        Board board;
++        if (!board.set_fen(Board::StandardStartFen)) return result;
++        const auto previous = board.parse_uci("e2e4");
++        if (!previous.has_value()) return result;
++        const Piece moved_piece = board.moved_piece(*previous);
++        Undo move_undo;
++        if (!board.make_move(*previous, move_undo)) return result;
++        const std::string original_fen = board.fen();
++        const auto original_key = board.key();
++        const auto original_history_size = board.history_size();
++        Searcher searcher(1);
++        auto& worker = searcher.main_worker();
++        worker.clear();
++        worker.shared_.tt.clear();
++        worker.shared_.stop.store(false, std::memory_order_relaxed);
++        worker.all_workers_ = nullptr;
++        worker.aborted_ = false;
++        worker.local_nodes_ = 0;
++        worker.null_tries_ = worker.null_cutoffs_ = 0;
++        worker.node_limit_specified_ = false;
++        worker.hard_limit_ms_ = worker.soft_limit_ms_ = 0;
++        worker.root_history_index_ = board.history_size() - 1;
++        for (auto& frame : worker.stack_)
++            frame.continuation = &(*worker.continuation_history_)[Empty][0];
++        SearchStack* ss = &worker.stack_[5];
++        ss->ply = 1;
++        (ss - 1)->current_move = *previous;
++        (ss - 1)->moved_piece = moved_piece;
++        nnue::refresh(board, ss->accumulator);
++
++        // Cached static evaluation isolates this branch from network changes.
++        auto& tt = worker.shared_.tt;
++        tt.store(tt.probe(board.key()), board.key(), ValueNone, 0, Move::none(), 0,
++                 BoundExact, false, board.halfmove_clock());
++        Board null_board = board;
++        NullUndo null_undo;
++        null_board.make_null_move(null_undo);
++        tt.store(tt.probe(null_board.key()), null_board.key(), 0, ValueNone, Move::none(), 9,
++                 BoundExact, false, null_board.halfmove_clock());
++        const auto root_entry = tt.probe(board.key());
++        const auto child_entry = tt.probe(null_board.key());
++        result.prepared = !board.in_check() && board.has_non_pawn_material(board.side_to_move()) &&
++            root_entry.hit && root_entry.entry.score == ValueNone && root_entry.entry.eval == 0 &&
++            root_entry.entry.depth == 0 && root_entry.entry.bound() == BoundExact &&
++            child_entry.hit && child_entry.entry.score == 0 && child_entry.entry.depth == 9 &&
++            child_entry.entry.bound() == BoundExact;
++        if (!result.prepared) return result;
++        // Depth9 bypasses RFP; the exact null-child score supplies the fail-high.
++        result.score = worker.search(board, ss, 9, -1, 0, false);
++        result.tries = worker.null_tries_;
++        result.cutoffs = worker.null_cutoffs_;
++        result.nodes = worker.local_nodes_;
++        result.board_restored = board.fen() == original_fen && board.key() == original_key &&
++            board.history_size() == original_history_size;
++        return result;
+     }
+     static void ponderhit_at(Searcher& searcher, std::chrono::steady_clock::time_point hit) {
+         const auto ns = std::chrono::duration_cast<std::chrono::nanoseconds>(hit.time_since_epoch()).count();
+@@ -527,8 +593,14 @@
+     check(board.set_fen(forge::Board::StandardStartFen), "start FEN parses");
+     searcher.clear();
+     (void)searcher.search(board, limits);
+-    check(forge::SearcherTestProbe::null_tries(searcher) > 0 && forge::SearcherTestProbe::null_cutoffs(searcher) > 0,
+-          "null pruning is active with non-pawn material");
++    const auto null_cutoff = forge::SearcherTestProbe::controlled_null_cutoff();
++    std::cout << "Controlled null cutoff: prepared " << null_cutoff.prepared << " tries " << null_cutoff.tries
++              << " cutoffs " << null_cutoff.cutoffs << " nodes " << null_cutoff.nodes
++              << " score " << null_cutoff.score << " restored " << null_cutoff.board_restored << '\n';
++    check(null_cutoff.prepared, "controlled non-pawn null cutoff fixture is prepared");
++    check(null_cutoff.tries == 1 && null_cutoff.cutoffs == 1 && null_cutoff.nodes == 2 && null_cutoff.score == 0,
++          "eligible non-pawn null pruning attempts and cuts off through its child");
++    check(null_cutoff.board_restored, "null cutoff restores board and history");
+ 
+     // searchmoves restrictions.
+     forge::SearchLimits restricted;

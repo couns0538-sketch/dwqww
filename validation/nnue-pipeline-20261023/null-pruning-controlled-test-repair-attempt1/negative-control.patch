@@ -1,0 +1,11 @@
+--- original/src/search.cpp
++++ private-control/search.cpp
+@@ -962,7 +962,7 @@
+             return eval;
+         }
+         // Null move pruning.
+-        if (depth >= tune::NullMoveMinDepth && eval >= beta && ss->static_eval >= beta - 24 * depth + 180 &&
++        if (false && depth >= tune::NullMoveMinDepth && eval >= beta && ss->static_eval >= beta - 24 * depth + 180 &&
+             ss->null_move_allowed && !(ss - 1)->current_move.is_none() &&
+             board.has_non_pawn_material(board.side_to_move()) &&
+             !(tt_hit && tt_bound == BoundUpper && tt_score < beta)) {
