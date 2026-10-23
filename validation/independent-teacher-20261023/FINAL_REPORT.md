@@ -1,71 +1,67 @@
 # Independent-teacher pipeline — progress
 
-Branch `forge/independent-teacher-20261023` preserves accepted pipeline parent
-`27070fe` and engine source `1ab50b2`. Runtime search, shipped weights and core
-binaries are unchanged. No old training rows, matches or Elo claims are included.
-Six-hour window: October 23, 11:04 AM–5:04 PM PDT; new work stops 4:34 PM.
+Accepted engine source is `1ab50b2dd64d9b2f752f7f1285f6968cad2fd792`
+(Forge 6.4.24); pipeline parent `27070fe` is preserved. Search, shipped weights,
+`src/`, `include/` and runtime binaries are unchanged. No old training rows,
+strength matches or Elo claims are included. Six-hour window: October 23,
+18:04–00:04 UTC; new work stops 23:34 UTC.
 
-**The five-million-position corpus is not complete. No training, model-loss
-comparison, audit-loss result or new network is claimed.**
+**The globally deduplicated five-million-position corpus is not complete.
+No training, model-loss comparison, audit-loss result or new network is claimed.**
 
-## Published data and actual progress
+## Published data and current execution
 
 Data branch `forge/independent-teacher-data-20261023` at
-`f33b59b70291e9c2ebc44044e8a6bde35a037118` preserves 8,704 labeled whole games,
-245,248 labels and 237,482 unique first-four-FEN positions. Both archive groups
-were downloaded publicly and their sizes/SHA256 verified. Original games,
-metadata, teacher UCI streams, native arrays and recovery manifests are retained.
-The second group contains the complete aggregate; its count is not additive.
+`ebfd2f49b1683ffe93f2786e3a592512ca7f0e8c` preserves **44,068 labeled whole games,
+1,251,735 labels and 1,200,846 local unique first-four-FEN positions**. All 17
+latest publication files were publicly read back: 402,498,630 bytes, matching
+SHA256 and size. Counts include earlier groups and are not additive. Raw games,
+metadata, UCI streams, original logs and recovery manifests are retained.
 
-Local continuation is healthy: the 20:39:17 UTC snapshot contains 22,308 labeled
-games, 634,095 labels and 610,520 unique positions. These active results remain
-local until sealed publication. The previous whole-game timeout is preserved.
-The exact game passed both reproductions; its original delay remains unexplained.
-A reviewed 13-check guard permitted one unchanged retry at game 14,116, retaining
-all completed labels. No incomplete game was counted or replaced by a draw.
+The local controller was deliberately interrupted to seal this partial backup;
+its original `FAILED` status and signal error remain unchanged. Generator and
+teacher coordinator both actually exited zero. The earlier whole-game timeout
+remains unexplained; exact-game reproductions passed. One reviewed unchanged
+retry retained completed labels. This local corpus is **excluded** from the
+qualifying four-shard training merge.
 
-Native preparation of the initial segment retained 126,155 train, 7,330 validation
-and 6,671 audit rows in 143.398980908 seconds. Both heldouts also replay against
-frozen original source bytes after explicit source relocation. These checks use
-native HCE/features and do not evaluate a neural model on the audit set.
+Hosted retry [40023070082](https://github.com/couns0538-sketch/dwqww/actions/runs/40023070082),
+source `5111164ae0e86ff49804cdd3a3289fcae00d8cd5`, has four verified builds,
+real collectors and published nonzero labels. The closed 21:12 UTC monitor
+recorded 3,553,628 labels and a sum of 3,410,637 within-shard uniques; this sum
+is **not global deduplication or qualification**. Later, shard 3 completed
+collection and native preparation with 1,590,224 within-shard unique positions.
+Recovery verifies every archive/member hash and explicit source relocation;
+original external Stockfish payloads are excluded from Git.
 
 ## Implemented and verified
 
-The trainer licence and checksum mismatch are repaired; both current indices
-now verify all 56 listed entries, and the original index is retained. The existing
-validation skill was improved without creating a duplicate or claiming a global
-installation. Failed startup, resume and handoff attempts remain preserved in
-compact evidence archives.
+Trainer MIT notice and SHA mismatch are repaired; both current indices verify
+all 56 entries, with the original index retained. Existing validation skill was
+improved without duplicating it or claiming a global installation. Failed
+attempts and their original evidence remain in compact archives.
 
-Raw-segment merging preserves metadata exactly and passes six tests plus actual
-coordinator ingestion. Four-process labeling passes its live integration and
-review. Global prepared-shard merging reuses authenticated native arrays and
-applies exact cross-shard audit>validation>train deduplication. A real C++ test
-merges 2,001 positions from 80 games and two seeds; validation 253 and audit 341
-both replay successfully, and optimization is correctly blocked below five million.
-Four final focused tests pass. The broader source run passes 148/149 tests with
-one external skip, plus all 13 generator tests. Native CTests pass 14/14 and the
-unchanged benchmark is 292,545 nodes.
+Prepared-shard merging reuses authenticated native arrays and applies exact
+cross-shard audit>validation>train deduplication. A real C++ two-seed integration
+retains 2,001 positions; all 253 validation and 341 audit rows replay. Optimization
+correctly refuses this partial fixture. Broad source testing passes 148/149
+with one external skip, plus 13 generator tests; focused final changes also pass.
+Native CTests pass **14/14**; unchanged benchmark is **292,545 nodes**.
 
-Four bounded hosted shards are ready: seeds 2026102301–2026102304, identical
-Stockfish 19 depth 3 policy, 64-node game generation and 40% result blend. Each
-stops at 1.45 million committed unique positions or 22:40 UTC and prepares native
-arrays. All four must merge globally before the five-million gate. Six runner
-safety tests and six workflow syntax checks pass. Fresh builds reproduce both
-original cores/adapters byte-for-byte; real 16-game native preparation passes.
-The external Stockfish payload is excluded from Git and recovered by exact hash.
-All four hosted runners started and published exact-source checkpoints in run
-`40021324995`. Observed builds and the external download passed, but generator
-startup rejected the precreated empty discovery directory before accepting data.
-Authentic stderr and original failures are preserved. The runner now releases
-only asserted empty directories before starting the unchanged writer; eight
-tests and two independent reviews pass. Unexpected contents remain untouched.
-A real startup smoke is finishing before an isolated `-r1` retry.
+The first hosted attempt failed before data because a precreated discovery
+directory violated the fresh-output contract. Original stderr is preserved.
+The bounded repair passes eight tests and two reviews. A real 128-game startup
+smoke passes generator, four teacher processes and native preparation: 3,338
+labels, 3,311 unique positions, intentionally below the training gate.
 
-Next: launch the reviewed isolated retry after its real startup smoke, verify
-actual generated/teacher rows, and continue collection. Only a globally qualified, frozen corpus permits the
-single eight-epoch warm start. Original validation selects the earliest minimum
-trained epoch; a once-only 10,000-draw whole-game audit must beat shipped with a
-95% interval excluding zero before any net-only branch is published. No other
-network will be substituted. Exact commands and artifact hashes are in the
-manifest and compact evidence archives. Playing strength remains **unproven**.
+## Next gate
+
+Recover all four closed native-prepared shards, globally deduplicate, and require
+at least **5,000,000 retained positions**. Publish that frozen dataset before
+one preregistered eight-epoch warm start. Original validation selects the earliest
+minimum trained epoch. Freeze genuinely changed quantized weights before one
+10,000-draw whole-game bootstrap audit. Publish a net-only branch only when the
+95% interval for shipped-minus-candidate audit MSE lies wholly above zero.
+Otherwise publish data and honest results only. Artifact hashes, exact commands,
+failures and continuation state are in the manifest and compact archives.
+Playing strength remains **unproven**; the user PC supplies the game gate.

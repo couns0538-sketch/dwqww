@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "experiment_id": "forge-independent-teacher-20261023",
-  "status": "HOSTED_FRESH_OUTPUT_REPAIR_TESTED_RETRY_READY",
+  "status": "RECOVERING_FOUR_HOSTED_SHARDS_BEFORE_GLOBAL_QUALIFICATION",
   "start_utc": "2026-10-23T18:04:09+00:00",
   "stop_starting_new_work_utc": "2026-10-23T23:34:09+00:00",
   "hard_deadline_utc": "2026-10-24T00:04:09+00:00",
@@ -232,8 +232,9 @@
     "previous_native_after_commit": "8dab4dbc51d2435ba1d7c86be2326983f326a282:14/14,292545nodes,source+binaryunchanged"
   },
   "frozen_protocol": {
-    "path": "validation/independent-teacher-20261023/protocol.json",
-    "sha256": "1a8f8eddc90e96099c4e459aa61cb52d112c7fac9dbee8bcf7d04c9e625b4222"
+    "path": "/workspace/dwqww/validation/independent-teacher-20261023/protocol.json",
+    "sha256": "245bf6dd4bcea66d0666e2443ff24602d036bffd76c7c0b5fa2a89c57f2b6b53",
+    "revision": 8
   },
   "preproduction_protocol_revisions": [
     {
@@ -280,7 +281,7 @@
       "production-labels-02",
       "collection-run-02"
     ],
-    "current_phase": "collection04closed;exactnativegamepassesreproduction;causestillunresolved",
+    "current_phase": "HISTORICAL_LOCAL_RUN_CLOSED_AND_PUBLISHED; currentqualifyingplan=parallel_dataset_plan",
     "completed_initial_games": 5120,
     "accepted_initial_labels": 143963,
     "unique_initial_positions": 140156,
@@ -447,7 +448,7 @@
       "remaining_parent_pids": []
     }
   },
-  "updated_utc": "2026-10-23T20:55:00.353938+00:00",
+  "updated_utc": "2026-10-23T21:18:27.407031+00:00",
   "source_files_sha256": {
     "tools/nnue/residual_train.py": "041a0901ae59da8d697b06be9a64e97fa04047e32f9cad428edcb399e0d5c082",
     "tools/nnue/compare_holdout.py": "e415fd09dc2e10f2731da2f1094942dc0a0c174888f9dfb8f0c304f9f129ed46",
@@ -469,7 +470,7 @@
     "tools/nnue/tests/test_teacher_merge.py": "d82f893dd1e38ef2ece4e8f303480e2739b3b39fd924be665f0d2966fad0d33d",
     "tools/nnue/CURRENT_SHA256SUMS.txt": "cbbce11097160f42e38f4325b42964261651aec9106d1fa9517e10dead3b1508"
   },
-  "next_action": "Finish actual full startup smoke; trigger isolated r1 on frozen scientific settings, verify real generated/teacher rows before claiming data readiness. Continue local06 until hosted data verified; preserve closed raw data frequently. No training below globallydeduplicated5M.",
+  "next_action": "Recover all four native-prepared shards; authenticate source maps; globally deduplicate into dataset-02; require >=5000000 retained total; publish frozen dataset before exactly one 8epoch run. Audit once only after selected quantized candidate frozen.",
   "execution": {
     "model": "4_independent_python_labeler_processes_each_one_external_SF_thread",
     "initial_teacher_manifest_sha256": "59557fcf0cecb65436e2e1f0c381f0aeae0393f2fefa1084af18988e5aaec1cc",
@@ -576,6 +577,14 @@
       "bytes": 176379,
       "members": 94,
       "status": "PASS_STABLE_SOURCE_ZIP_CRC_SHA_MODE_READBACK"
+    },
+    {
+      "path": "source-checks-10.zip",
+      "sha256": "2cc7a2e61627dd7261e91473036c3f20d8899134d8265a08e9c59628845ae216",
+      "bytes": 2799863,
+      "members": 141,
+      "status": "PASS_STABLE_SOURCE_ZIP_CRC_SHA_MODE_READBACK",
+      "scope": "Closedlocal05/controllerSIGINTandrawpublication;actual128nativeCIstartup;exact9adpublicreadback;boundedR1nonzerowatcher+firstpreparedshard;privateRecovery/downstreamguards/replays;preservingdiskdedup/cachepruneandoriginalfailedharnessreceipts"
     }
   ],
   "protocol_sha256": "245bf6dd4bcea66d0666e2443ff24602d036bffd76c7c0b5fa2a89c57f2b6b53",
@@ -609,7 +618,7 @@
     "same_next_game_index": 14116
   },
   "hosted_execution": {
-    "availability": "FirstattemptallfourSTARTED+Gitpublicationverified; builds/downloads0, generatorstartupfailedbeforedata; repairedretry execution pending",
+    "availability": "R1 all four actually started, built, and published nonzero independently-labeled game rows; one observed collecting-complete/native-preparation; global qualification pending",
     "source_branch_to_trigger": "forge/independent-teacher-ci-20261023-r1",
     "workflow_sha256": "6a99e60449e9ed9a727100cc42b69114ebea3f215f89130d3a6de227b9b08dd1",
     "workers": "four matrix jobs; actual CPU/cgroup/affinity recorded per shard; configuredonegenerator+fourone-threadSFworkers each",
@@ -620,7 +629,10 @@
     "training_runs": 1,
     "matches": 0,
     "previous_run": "40021324995",
-    "previous_source_sha": "de2c4e8a9caca2691cb0b7a9b396cef16979d746"
+    "previous_source_sha": "de2c4e8a9caca2691cb0b7a9b396cef16979d746",
+    "run": "40023070082",
+    "source_commit": "5111164ae0e86ff49804cdd3a3289fcae00d8cd5",
+    "last_closed_monitor_sha256": "72c86801bce1f9234b991f9819aa65aa1c99fbf9f5b6d48dec4fc0af2224a175"
   },
   "parallel_dataset_plan": {
     "planned_shard_ids": [
@@ -644,12 +656,17 @@
     "no_model_losses_read": true
   },
   "latest_local_progress_snapshot": {
-    "utc": "2026-10-23T20:39:17.768170+00:00",
-    "status": "RUNNING",
-    "rows": 634095,
-    "unique_positions": 610520,
-    "games": 22308,
-    "errors": []
+    "status": "CLOSED_ORIGINAL_CONTROLLER_FAILED_AFTER_DELIBERATE_SIGINT",
+    "games": 44068,
+    "rows": 1251735,
+    "unique_positions": 1200846,
+    "producer_exits": {
+      "generator": 0,
+      "teacher_coordinator": 0
+    },
+    "original_controller_error": "controller interrupted by signal; deliberateverifiedSIGINTstop",
+    "used_in_current_qualifying_training_merge": false,
+    "result_sha256": "e461952d0323006f0ada63db559819a7f69cae1b59f9d456872c119c615073d9"
   },
   "native_multi_shard_proof": {
     "status": "PASS_REAL_TWO_GENERATION_SEED_CPP_NATIVE_MERGE_AND_HELDOUT_REPLAY",
@@ -721,6 +738,87 @@
     "tests": 8,
     "independent_reviews": 2,
     "change": "Remove only asserted empty discovery chunks/root after empty initial teacher and before unchanged fresh generator; preserve unexpected contents.",
-    "full_actual_native_pipeline_smoke": "pending separately; isolated retry not launched in this checkpoint"
+    "full_actual_native_pipeline_smoke": {
+      "status": "PASS_ACTUAL_128_GAME_END_TO_END",
+      "result_sha256": "c01ba13bc971af3a3db3b8007468d5af6886c3b874b54305a5f6287a0eb3ba4b",
+      "games": 128,
+      "accepted_rows": 3338,
+      "unique_positions": 3311,
+      "native_preparation_exit": 2,
+      "training_permitted": false
+    }
+  },
+  "closed_local05_publication": {
+    "status": "PASS_ALL_PUBLIC_DATASET_ARTIFACTS_BYTE_HASH_SIZE_VERIFIED",
+    "commit": "ebfd2f49b1683ffe93f2786e3a592512ca7f0e8c",
+    "branch": "forge/independent-teacher-data-20261023",
+    "files": 17,
+    "total_bytes": 402498630
+  },
+  "hosted_retry_observed": {
+    "run": "40023070082",
+    "source_commit": "5111164ae0e86ff49804cdd3a3289fcae00d8cd5",
+    "closed_monitor_utc": "2026-10-23T21:12:14.219870+00:00",
+    "all_source_pins_verified": true,
+    "by_shard": [
+      {
+        "shard": 0,
+        "status": "COLLECTING_FRESH_WHOLE_GAMES",
+        "ref_commit": "a5c532209c36d5c75d1da588f2ff1acfae967e7c",
+        "accepted_rows": 743087,
+        "within_shard_unique_first4_fen": 714580
+      },
+      {
+        "shard": 1,
+        "status": "COLLECTING_FRESH_WHOLE_GAMES",
+        "ref_commit": "6a7ecfcb12013b3e1e0a620eb043780e3377a23c",
+        "accepted_rows": 736236,
+        "within_shard_unique_first4_fen": 706673
+      },
+      {
+        "shard": 2,
+        "status": "COLLECTING_FRESH_WHOLE_GAMES",
+        "ref_commit": "b22c78fe5e5a375d01b125395b075afd2bb573a9",
+        "accepted_rows": 734769,
+        "within_shard_unique_first4_fen": 705683
+      },
+      {
+        "shard": 3,
+        "status": "COLLECTING_FRESH_WHOLE_GAMES",
+        "ref_commit": "42cbec89bd93170ff70a6aa9e5f9db7c3df59bee",
+        "accepted_rows": 1339536,
+        "within_shard_unique_first4_fen": 1283701
+      }
+    ],
+    "counts_are": "Separate whole-game seed shards; unique sums are NOT globally deduplicated and do not permit training.",
+    "global_qualified": false
+  },
+  "current_downstream_preflight": {
+    "commands_sha256": "1a72e5c374e335c0ea8230f205a8f13001862207e1d53a4eb84f534c5edba297",
+    "preflight_sha256": "d8911bcefbc4abac219da74f71600f12bff7bd7c8dde29fe5acb3c9d8bb815c9",
+    "guard_checks": 12,
+    "models_or_optimizers_run": false
+  },
+  "disk_preservation": {
+    "closed_evidence_hardlink_dedup_receipt_sha256": "cbe9e6f68efcb6421ffb9cf38d58ce764b204dfa8290a20e050693eafe254af0",
+    "verified_temporary_part_cache_prune_receipt_sha256": "04634ed1d4845ebaeed9b0eaefc6a8559f97615340c7a0cadf45a76a2b76fa5d",
+    "source_paths_and_git_objects_retained": true
+  },
+  "latest_native_validation": {
+    "status": "PASS_NATIVE14_UNCHANGED_BENCH_AND_PROTECTED_ENGINE_SOURCE",
+    "commit": "9ad10025dde6a78e3c9d2770a526573a34974fe8",
+    "ctests": 14,
+    "bench11_nodes": 292545,
+    "engine_sha256": "02d6ba2690c8dc5873bca78931d54a39421e95d7a4b1846b0e960ca11acfbdd6",
+    "core_sha256": "aed0d79eb7bb2a997ea1ec59605e85dda49e84abacebc549e35b55817cbe2906",
+    "original_engine_and_core_bit_identical": true,
+    "elo_gain": null
+  },
+  "source_public_readback_9ad1002": {
+    "status": "PASS_EXACT_SOURCE_4_PUBLIC_ARTIFACTS",
+    "commit": "9ad10025dde6a78e3c9d2770a526573a34974fe8",
+    "receipt_sha256": "4922511b6e1290bb562690c646913e2a2f7279b4f6b3188b3bb5c7380ccadee8",
+    "files": 4,
+    "total_bytes": 228797
   }
 }
