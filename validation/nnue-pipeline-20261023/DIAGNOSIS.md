@@ -8,6 +8,10 @@ The Python split hashes individual positions. It prevents exact-position overlap
 
 The generator already filters checks, captures, promotions, mate/bounded labels and large scores. It discards the best move and game identity. The new data path must retain both, reject checking best moves too, and explicitly disable OwnBook. Missing best moves in old data require a conservative filter or actual rescoring.
 
-Actual HCE and HCE+net held-out losses are **not measured yet**. Historical repository results used different objectives and contradict assuming that the shipped residual adds nothing. The new comparison will use one identical frozen held-out set and metric. No Elo conclusion is available.
+The initial diagnosis preceded held-out measurements (now recorded below). Historical repository results used different objectives and contradict assuming that the shipped residual adds nothing. The new comparison will use one identical frozen held-out set and metric. No Elo conclusion is available.
 
 See the engine/training audit reports and input-inspection receipts beside this file for exact source references and observed hashes.
+
+## First measured baseline
+
+On the frozen4149 positions from56 authentic fresh validation games, pure-teacher probability MSE is0.006660536215902123 for HCE and0.006082049055657535 for shipped HCE+NNUE (8.685% lower). The residual term alone is0.07561013420188484; it is a correction, not a complete evaluation. Thus the claim that this shipped net adds nothing is not supported on this set. The teacher is frozen Forge search, not an independent strength oracle. Baseline-only run and input-integrity verification completed with exit0. No Elo conclusion follows.

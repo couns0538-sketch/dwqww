@@ -1,16 +1,26 @@
 # Current baseline
 
-Active user mission: rebuild and verify the NNUE training pipeline on
-`forge/nnue-pipeline-20261023`, directly from
-`1ab50b2dd64d9b2f752f7f1285f6968cad2fd792`. Search and shipped weights are frozen.
-Fresh Release14 and unchanged292545 bench passed; actual-core parity matched
-2048/2048 integer NNUE outputs exactly. The supplied standalone exporter has a
-reproduced residual-mode failure. The13.5M legacy rows lack game IDs/best moves;
-validation will use fresh identified games and exclude their position keys from
-legacy training. No current held-out loss or Elo improvement is claimed.
-[Task and initial diagnosis](../validation/nnue-pipeline-20261023/DIAGNOSIS.md).
-Previous unfinished performance/archive work is preserved remotely at
-`5b9b132bf179df6f9ddae12e97f5fc5f9b4eb894` on its original branch.
+Active mission: NNUE training-pipeline repair on `forge/nnue-pipeline-20261023`,
+directly from `1ab50b2dd64d9b2f752f7f1285f6968cad2fd792` (Forge6.4.24).
+Search and shipped weights are unchanged. Tests-first24aa08c and trainera040a76
+are published; after each commit Release14 and bench292545 passed, and the
+engine/core binaries remain identical to the frozen baseline. Actual-core
+Python/C++ parity matched2048/2048 integer NNUE outputs exactly.
+
+The residual trainer's25 tests and data tools'29 tests pass;12 original tool
+regressions also pass. Fresh generation completed256 identified games/21000
+quiet rows. The game split retains14895 training and4149 validation positions
+(200/56 games), with zero exact-position overlap. Supplied13.5M legacy rows
+lack game IDs/best moves and are training-only. The single frozen all-corpus
+reservoir preparation is running; do not restart or duplicate it.
+
+Measured on the frozen4149 validation positions: HCE teacher MSE
+0.006660536215902123; shipped HCE+NNUE0.006082049055657535 (8.685% lower).
+A separate20-epoch fresh-only pilot completed, best epoch1
+0.006649745635525344: slightly below HCE but worse than the shipped net.
+It is not an accepted replacement. Full-data training remains pending.
+No Elo claim. [Diagnosis/evidence](../validation/nnue-pipeline-20261023/DIAGNOSIS.md).
+Previous unfinished work is preserved remotely at5b9b132 on its original branch.
 
 
 Accepted integration `forge/6.4-hourly-20261019` is now

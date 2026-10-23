@@ -12,7 +12,7 @@ the combined score is then bounded by Forge's non-mate score range.
 
 ## Environment and native probe
 
-Use Python3.10+ with NumPy1.26.4, python-chess1.999/chess1.11.2 and
+Use Python3.10–3.12 with NumPy1.26.4, python-chess1.999/chess1.11.2 and
 PyTorch2.4.1. CPU training is the verified residual path. The older standalone
 DirectML entry point remains available; residual DirectML hardware execution
 has not been verified.
@@ -43,6 +43,17 @@ deterministically and excludes every validation position key from all
 training. Legacy text may be added to training only. Without its best move,
 the conservative legacy filter excludes any position with a legal capture,
 promotion or checking move; this is stricter than a best-move filter.
+
+```sh
+python -B tools/nnue/generate_residual_data.py --engine FROZEN_ENGINE --network src/nnue_weights.inc --source-commit BASELINE_SHA --out NEW_GAMES_DIRECTORY --games 256 --workers 2 --nodes 5000 --seed 20261023
+python -B tools/nnue/prepare_residual_data.py --games-jsonl NEW_GAMES_DIRECTORY/games.jsonl --legacy 'LEGACY_DIRECTORY/*.txt' --probe build/forge_nnue_probe --out NEW_PREPARED_DIRECTORY --max-train 1000000 --score-cap 1000 --seed 20261023
+```
+
+Preparation requires the generator's completed manifest and original JSONL.
+It uses a seeded reservoir across all legacy inputs rather than only the first
+file. Source hashes, game identities, validation exclusion and ordered row
+recipes remain available for replay. Derived native JSON streams are hashed
+and discarded on success; failed probe output is retained.
 
 Prepared `train.npz` and `validation.npz` contain `features` int16[N,2,32]
 with-1 padding, `hce` and `score` int32[N] in STM centipawns, and `result_stm`

@@ -1,0 +1,52 @@
+{
+  "status": "PASS_INDEPENDENT_DATA_COMPONENT_SOURCE_REVIEW",
+  "utc": "2026-10-23T13:50:23.024202+00:00",
+  "reviewer": "/root/nnue_contract_audit",
+  "reviewed_source_sha256": {
+    "tools/nnue/generate_residual_data.py": "902b1c7055a3e32e03d3ba78b73582bcc9a9b55bc4f4c761008b5da62559e04f",
+    "tools/nnue/prepare_residual_data.py": "9df3b9ea272ff35970a6f038941358f565695b2d088d36a9ca99d05abd6662dc",
+    "tools/nnue/forge_selfplay.py": "90eac5b1dcdc0018cdee624ccb86c8e602d8044ea5bf6fb1ca631b06abd414bb",
+    "tools/nnue/tests/test_residual_data.py": "3ec55cc7b04e2a1fb54d3af568ce8abd7c0aeae62c493e63b2a3141646c420d4"
+  },
+  "blocking_findings": 0,
+  "unresolved_findings": [],
+  "resolved_findings": [
+    {
+      "id": "data-raw-stream-retention",
+      "original_problem": "A normal-exit native producer followed by JSON/count/schema rejection lost original streams.",
+      "resolution": "All postprocess acceptance is covered by raw stdin/stdout/stderr retention and a failed receipt.",
+      "regression": "Inert producers returning not-json, zero rows and wrong schema; retained RED then GREEN.",
+      "source": "tools/nnue/prepare_residual_data.py:140"
+    },
+    {
+      "id": "generator-lost-done-hang",
+      "original_problem": "A worker evidence exception could complete its Future without a done message, leaving the parent queue loop waiting indefinitely.",
+      "resolution": "On an empty queue the parent observes actual exceptional Futures, records unknown closure/returncode, stops siblings and emits failed generation.",
+      "regression": "Injected trace-open failure before any engine spawn; retained bounded RED timeout and GREEN failure verdict.",
+      "source": "tools/nnue/generate_residual_data.py:205"
+    }
+  ],
+  "retained_logs_rehashed": {
+    "/workspace/forge-nnue-handoff-20261023/data-tests-final-green.stdout": "f85169dd9171ed260732b22eee18bbe8a123afb0de2671741e58b36d8bb71018",
+    "/workspace/forge-nnue-handoff-20261023/data-tests-final-green.stderr": "a25b229cbc3a3fd0854d5f290f366eb2ca39a0f1e22bd9f40c64d7dd060774cf",
+    "/workspace/forge-nnue-handoff-20261023/data-failure-controls-red.stderr": "3e3e09d8e5949619166533cec0ebe9c005f00ea95fc1e71a73322987dc702498",
+    "/workspace/forge-nnue-handoff-20261023/data-failure-controls-red.json": "5fe1a0d25d4c0f27630a44f510857ae32b4308ad996c3a9a2acd3949400e3a14"
+  },
+  "reported_final_unit_tests": 29,
+  "test_execution_by_reviewer": false,
+  "actual_smoke_manifest_path": "/workspace/forge-nnue-handoff-20261023/generated-games-smoke-2-attempt1/manifest.json",
+  "actual_smoke_manifest_sha256": "48d6261340c25888acefaca5b7f2fdfefcf2d25dd3db570cb48c99dd8968344a",
+  "actual_smoke_completed_games": 2,
+  "actual_smoke_positions": 124,
+  "actual_smoke_closed_returncode_zero_workers": 2,
+  "actual_smoke_generator_sha256": "a1b3a032372fb051ae4b0bd6f796efe3058417c157ad16b62f926839a29cc1f6",
+  "actual_smoke_helper_sha256": "c56696848f43d25b8cc20f1ac52e63964cf41a038700fd812daed5908d9a5165",
+  "actual_smoke_executed_new_failure_guard_source": false,
+  "larger_generation_final_outcome_reviewed": false,
+  "prepared_real_corpus_outcome_reviewed": false,
+  "legacy_game_ids_or_teacher_engine_provenance_reconstructed": false,
+  "own_probe_parser_independently_reviewed": false,
+  "engine_compiler_benchmark_training_or_matches_executed_by_reviewer": false,
+  "elo_gain": null,
+  "markdown_sha256": "11824f878699515417450f39e599afb1d622c0916a404c3ac6efafdc8488b39b"
+}

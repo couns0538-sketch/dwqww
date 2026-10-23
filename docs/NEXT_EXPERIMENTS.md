@@ -1,13 +1,15 @@
 # Next experiments
 
-Current user priority: finish the NNUE-only pipeline task on base1ab50b2d.
-Tests-first commit24aa08c reproduces residual export failure and verifies the
-shipped net against actual C++ inference on2048positions. Implement residual
-HCE-offset loss, schedules, full validation and explicit residual export; then
-finish provenance-aware data generation/preparation, run training and compare
-the same complete held-out set against HCE and the shipped net. Keep allepochs,
-raw evidence and trained net separate. QA owns the1000-game strength gate.
-Search changes and old performance launches are paused for this mission.
+Current priority: finish the NNUE-only task on base1ab50b2d.
+Preserve tests-first24aa08c, trainera040a76, completed256 fresh games and all
+20 fresh-only pilot epochs (best1 is weaker than shipped net by held-out loss).
+Keep the single frozen13.5M corpus preparation running: after it closes,
+authenticate sources, compare its validation arrays/recipes exactly with the
+fresh-only4149-row baseline, then run the predeclared20-epoch full-data trainer.
+Compare HCE, shipped hybrid, candidate hybrid and residual-only on that same
+set, with whole-game uncertainty; validate the actual exported candidate against
+native C++ inference. Save all weights/logs and deliver a separate net artifact.
+No search changes or Elo claim; QA owns the1000-game strength gate.
 
 The following performance work is a preserved, paused continuation queue:
 

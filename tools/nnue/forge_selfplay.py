@@ -382,7 +382,7 @@ def eligible_score(board, move, score, max_cp=3000):
     return cp if cp is not None and abs(cp) <= max_cp else None
 
 
-def play_game(engine, args, rng, stop):
+def play_game(engine, args, rng, stop, record_hook=None):
     board = chess.Board()  # Keep the complete stack; never replace by FEN.
     for _ in range(args.opening_plies):
         if terminal_result(board, args.max_ply) is not None or stop.is_set():
@@ -413,6 +413,9 @@ def play_game(engine, args, rng, stop):
         cp = None if bounded else eligible_score(board, reply.move, score, args.max_score)
         if cp is not None:
             records.append((board.fen(en_passant="fen"), cp))
+            if record_hook is not None:
+                record_hook({"fen": board.fen(en_passant="fen"), "score_cp_stm": cp,
+                             "ply": board.ply(), "bestmove": reply.move.uci()})
         side = None if bounded else decisive_side(score, board.turn, args.adjudicate_cp)
         streak = streak + 1 if side is not None and side == winner else (1 if side is not None else 0)
         winner = side

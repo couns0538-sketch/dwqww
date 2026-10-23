@@ -635,3 +635,16 @@ strengthrun39537333958 remainsseparate, gameresultsUNKNOWN. Accepted5101unchange
 2026-10-21 04:10UTC — Windows24 root read-only verification CLOSEDPASS10428checks:287namespace/323outside7roots/597parent/77Git/74export/271raw/23release entries. RootWINDOWS7875154f0f6800eb2a734c8bca0d8836c2f82cfd6b0032e8e7d05e7285a83194. Actual publicHTTP20017,077,385-byte ZIPdownload hash0db112f matches; source7db08ea, publication7def48b. Retained firstchecker incorrectly compared release21productionhashes against full74hashmap; producerline227 renames production-hashes to release source-hashes. Minimal consumer mapping corrected with oldsource/streams/diff retained; noengine/build/test retries or alteredartifact. Hostedthroughput qualification stillpending; noElogain.
 
 2026-10-23 NNUE pipeline: user-selected1ab50b2d baseline, branchforge/nnue-pipeline-20261023. Supplied88sourcefilesmatchGit; originalstandalone256/residual0 tools mismatchactual128/residual1 mode. Tests-first24aa08c records genuineexport TypeError and2048exactC++/Pythoncp matches/0featuremismatches; freshstrictRelease14passes, bench292545, engine02d6ba/coreaed0 identicalfrozen24. Multipart175245322B SHA3900947d... yielded13,500,000wellformedrows/888183191B butnogameIDs/bestmoves; legacytrainingonly and freshidentifiedgamevalidation required. No loss/Elo claimyet. Previousunfinishedwork andarchiveparts/pendingREADYpacket preservedandremoteverified5b9b132(originalbranch).
+
+2026-10-23 NNUE data cycle: trainera040a76 passed25 new/12 legacy tests and
+post-commit14 native CTests/unchanged292545 bench. Data generation/preparation
+passes29 tests, including malformed-success output and worker-failure controls;
+independent reviewPASS. Actual frozen-v1 generator completed256 games/21000
+rows with both engines quit0; working generator separately adds failure-only
+handling. Fresh split14895train/4149val across200/56games, zero position overlap.
+Shipped baseline-only completed: HCE0.006660536215902123, hybrid
+0.006082049055657535, residual-alone0.07561013420188484. Fresh-only20epoch
+pilot completed44.4s, bestepoch1=0.006649745635525344; retain as a failed
+replacement, not Elo or shipped-net improvement. Full13.5M reservoir scan
+remains the first valid running attempt. Original fresh data/UCI evidence
+archived with25 byte-verified members; no successful full-data training claimed.
