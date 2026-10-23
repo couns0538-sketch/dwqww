@@ -1,0 +1,79 @@
+{
+  "status": "PASS_BOUNDED_FREEZER_SOURCE_REVIEW_PENDING_BOTH_FULL_RUNS_CLOSED_AND_ACTUAL_FREEZE",
+  "utc": "2026-10-23T15:39:45.427836+00:00",
+  "reviewed_selector_sha256": "1da7cc65d3e1e11f91505eb3055dd204e7b6226579490b77a058801c32b8c470",
+  "input_sha256": {
+    "/workspace/forge-nnue-handoff-20261023/freeze_full_trained_net.py": "1da7cc65d3e1e11f91505eb3055dd204e7b6226579490b77a058801c32b8c470",
+    "/workspace/dwqww/validation/nnue-pipeline-20261023/CANDIDATE-FREEZE-RULE.json": "fcb36f64af8600ac92304d5f5aae3fbc1cd008e2f22ca9b33ed63f48caeee2ea",
+    "/workspace/dwqww/tools/nnue/include_parser.py": "48cc169f506e9975c239001bbe3ef5fd220d68c0e0ecc68b16dc4145d3f0d32b",
+    "/workspace/dwqww/tools/nnue/train_nnue.py": "afd8fc9da5a439c307f74670a8fe7950860912763407eaad5f104c7bb96c050c",
+    "/workspace/dwqww/tools/nnue/residual_train.py": "2fc417411a6ff0a6b0ed7cf411215189879b0634089f9ad6db3d6907c5740ee8",
+    "/workspace/forge-nnue-handoff-20261023/full-training-controller-attempt2/PROTOCOL.json": "bf576b5f16e61adf14a316619c94469bda46f58f5c0d97d3b2922ac1d2aee7a3",
+    "/workspace/forge-nnue-handoff-20261023/pilot-fresh14895-zero20-attempt1/summary.json": "ff0a7159dc3f21e93deae276cace6aaf83173b8afdf36e9f7c25c436a0041faa",
+    "/workspace/forge-nnue-handoff-20261023/pilot-fresh14895-zero20-attempt1/exports/epoch-0001.json": "3ac27de4a56c7160f422163b8313c2be6afd8c4760a98060eb66f4ee9a06c40c"
+  },
+  "committed_rule_verified_at_commit": "20877e0ba365d2c33e756e64beaf538a67d2ca6c",
+  "source_freezes_match_pretraining_protocol": {
+    "tools/nnue/residual_train.py": true,
+    "tools/nnue/train_nnue.py": true,
+    "tools/nnue/include_parser.py": true,
+    "tools/nnue/engine_contract.json": true,
+    "tools/nnue/compare_holdout.py": true,
+    "tools/nnue/prepare_residual_data.py": true,
+    "src/search.cpp": true,
+    "src/nnue.cpp": true,
+    "src/nnue_weights.inc": true,
+    "include/forge/nnue.hpp": true
+  },
+  "blocking_findings": [],
+  "checks": [
+    {
+      "lines": "18-25",
+      "result": "Exact committed freeze-rule SHA; requires closed two-run controller,1M/4149 gate; all10source hashes match pretraining protocol; original prepared data/source hashes revalidated. No independent-audit path is opened."
+    },
+    {
+      "lines": "28-40",
+      "result": "Only full1m-zero20-attempt1 and full1m-warm20-attempt1, each completed20 epochs/integrity passed/same manifest/counts. Enumerates exactly1..20, requires each record epoch/count and per-export JSON epoch/manifest; inc/bin digests bound to metadata."
+    },
+    {
+      "lines": "17,26,42-44",
+      "result": "Parser returns feature-major dequantized integer/4096 parameters. Multiplying full w1,b1,w2,b2 vector by4096 recovers exact original quantized values,98689entries, so parameter-count/change/max-delta claims concern numeric weights rather than include comments/format. Both old/candidate H128 shape, candidate residual1 checked."
+    },
+    {
+      "lines": "33,35-49",
+      "result": "Initial checkpoints are recorded as baseline metadata only and are never candidates. Eligibility requires nonzero quantized-parameter change. Ranking min tuple teacher_mse_combined,zero order0/warm1,epoch implements committed exact-tie rule. No pilot substitution when no eligible export."
+    },
+    {
+      "lines": "45-46",
+      "result": "Zero and warm config equality checked except run_dir and initial_net; exact hyperparameters are already required by closed controller-v2, reviewed previously. Actual metadata/config keys exist."
+    },
+    {
+      "lines": "50-55",
+      "result": "Fresh output directory; copy chosen inc/bin/exportJSON/checkpoint; copied inc/checkpoint hashes checked. SHA-bound selection/manifest/checkpoint/parameter deltas/ranked40 candidates saved before any independent-audit model evaluation. Shipped source weights are not written. Frozen does not mean accepted."
+    }
+  ],
+  "quantized_parameter_count": 98689,
+  "selection_metric": "Complete original4149validation pureteacherMSE, conditioned on selection; no independent-audit selection",
+  "exact_tie_order": [
+    "lower pureteacherMSE",
+    "zero before warm",
+    "earlier epoch"
+  ],
+  "eligible_epoch_count_if_all_changed": 40,
+  "initial_checkpoint_candidates": 0,
+  "new_execution_by_review": {
+    "selector": 0,
+    "training": 0,
+    "engine": 0,
+    "data_array_loading": 0,
+    "independent_audit_data_or_loss_reads": 0,
+    "git_writes": 0
+  },
+  "scope_limits": [
+    "Read-only control-flow/source/schema review; actual full-run closure and selector execution remain pending",
+    "Shared include parser was authored earlier by this reviewer; no new independent certification of that parser/probe is claimed",
+    "Original pilot summary/export metadata were used only as existing schema evidence, not as selection candidates",
+    "Freezer authenticates existing training metrics/exports; it does not reevaluate40 losses or prove generalization",
+    "A frozen trial must still pass actual native parity and honest HCE/shipped comparisons. Independent audit must not select another model or trigger retraining; no shipped-weight replacement or Elo approval here"
+  ]
+}

@@ -690,3 +690,14 @@ failed and halted the first controller beforetraining; corrected retained-ID
 subset+freshidentity gate passed separately, alloriginalfailures preserved.
 Unchanged predeclared zero20/warm20 training started under controller47264.
 No final network or Elo result yet. See validation/nnue-pipeline-20261023.
+
+Full NNUE prepared-data recovery:3,143members/466,426,448expandedbytes,
+68,394,258byteZIP SHA7191be0d06df846abf6156270dfe87a5e94b496c502e389882d3f1f746ec6d8f,
+threeGit-safe parts. Independentaudit recovery160members/48,081,808expandedbytes,
+4,806,340byteZIP SHA ff385e0541ad4525dca60b8cf0e93c4764bcee6bc6cf0d74b12bf38e28897920.
+Both archive creators reassembled/readbackchecked allmembers; root independently
+physically extracted everymember into freshdirectories, restored original modes,
+rehashchecked allbytes, and passed the shared strict prepared-data validator.
+Audit remains8,881positions/109representedgames with zero model losses measured;
+18exactpositionoverlaps removed. Fulltraining stillrunning. Allarchive evidence
+is under validation/nnue-pipeline-20261023/*recovery-attempt1/.
