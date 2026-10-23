@@ -28,8 +28,9 @@ protocol 8. No Stockfish binary, network, code or GPL text is published.
 [Hosted run 40023070082](https://github.com/couns0538-sketch/dwqww/actions/runs/40023070082)
 closed all four collectors cleanly. All **48 archive groups** were recovered;
 5,147 file paths and 2,605,540,329 bytes passed SHA256/size/mode checks. Original
-CI data remain on four immutable, indexed GitHub commits. The global corpus is
-frozen locally; its separate publication is the next step before training.
+CI data remain on four immutable, indexed GitHub commits. The global corpus is published at data commit
+`442d5647612591a2d5a387c0513f5b482c07d6e8`: all 27 publication files
+(723,367,402 bytes) passed public SHA256/size verification.
 
 Independent checks authenticate 1,876 input bindings, every frozen output hash,
 array shape/type and whole-game assignment. **63 deterministic row checks** across
@@ -55,9 +56,11 @@ builds are frozen and require fresh build directories.
 
 ## Next gate
 
-**No training, model-loss result, audit-loss result or new network is claimed yet.**
-Publish and publicly verify the frozen global corpus and transitive dependencies.
-Then run one preregistered eight-epoch warm start. Original validation selects the
+The single preregistered eight-epoch warm start began at 21:59:14 UTC.
+Original-validation blended MSE is **0.034083182956426566** for shipped and
+**0.031849118953087376** after epoch 2. These are validation results; no final-audit
+neural loss or new network is claimed. Training continues through all eight
+epochs. Original validation selects the
 earliest minimum trained epoch; freeze changed quantized weights before the
 once-only 10,000-draw whole-game bootstrap audit. Publish a net-only branch only
 if the 95% interval for shipped-minus-candidate audit MSE lies wholly above zero.
