@@ -18,13 +18,13 @@ arrays/provenance match the original baseline exactly and exact-position overlap
 is zero. A mistaken closure assertion requiring rows from every partition game
 failed and stopped controller87815 before any training. Original failures are
 preserved. Separately reviewed closure-v2 passed without changing data or sources.
-Controller47264 completed zero20(actual childexit0): bestepoch3 loss0.006025381044581158. Separate warm20 is still running. Full/data/audit recovery parts are public atd4ee5cd; the zero run now has a separate verified157-member archive.
+Controller47264 actually closed0: zero20 bestepoch3 loss0.006025381044581158; warm20 bestepoch1 loss0.006065743204453543. All source/data/config guards passed. The predeclared40-epoch rule froze zeroepoch3, networkSHA a52efa5f7864b04d0e8fceb3b14af4fc4970e0bb0a0a8706be0959b0bbb98df7. Clean net-only trialsource is6e9622fd5be18e0155fc3ed5fcf6c4586705cca6, onlyweights changed from1ab. Native parity, LinuxRelease/ASan and Windows trial qualification are now starting; no audit model losses yet. Default weights/search and accepted integration remain unchanged.
 
 Measured on the frozen4149 validation positions: HCE teacher MSE
 0.006660536215902123; shipped HCE+NNUE0.006082049055657535 (8.685% lower).
 A separate20-epoch fresh-only pilot completed, best epoch1
 0.006649745635525344: slightly below HCE but worse than the shipped net.
-It is not an accepted replacement. The completed full zero run improves this selection metric; final40-epoch comparison and independent audit remain pending.
+It is not an accepted replacement. The chosen full-data checkpoint improves this selection metric; final native qualification and independent audit remain pending.
 No Elo claim. [Diagnosis/evidence](../validation/nnue-pipeline-20261023/DIAGNOSIS.md).
 Previous unfinished work is preserved remotely at5b9b132 on its original branch.
 

@@ -712,3 +712,14 @@ twoGit-safe parts, archive reassembly/readback and root fresh extraction passed.
 The outercontroller47264 and separate warm run remain active; no final selection
 or independent-audit model result. Prepared Linux28-test and Windows14-check
 runners/recipes are preserved explicitly as unexecuted preparation.
+
+Both full-data runs and outercontroller47264 actuallyclosed0. Warm20bestepoch1
+MSE0.006065743204453543; unchanged20epoch protocol/config/data/source guards pass.
+Committed selectionrule chose zeroepoch3 from40 trained epochs, excludinginitial
+checkpoints and requiring numeric changes:98649/98689quantizedparameters changed.
+FrozenINC SHA a52efa5f7864b04d0e8fceb3b14af4fc4970e0bb0a0a8706be0959b0bbb98df7;
+FREEZE SHA3d945dc1f0e20d3469791eeb36b9ad5b23a1e70c87f6615703d0fda3442e211c.
+Clean net-only sourcecommit6e9622fd5be18e0155fc3ed5fcf6c4586705cca6 off1ab changes
+onlysrc/nnue_weights.inc. Mainactivecheckout/defaultweights/indexcontent unchanged.
+This records a frozen candidate before independent-audit model evaluation;
+Release/ASan/Wine/parity qualification stillpending, noElo or promotion claim.
