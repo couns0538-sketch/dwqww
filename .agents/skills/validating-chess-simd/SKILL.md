@@ -26,6 +26,36 @@ g++ -std=c++20 -O3 -march=x86-64-v3 -mtune=znver5 -fno-fast-math -ffp-contract=o
 "$BUILD/nnue_snapshot" > "$BUILD/nnue-snapshot.bin"
 ```
 
+## Trained residual networks and handoffs
+
+For Forge's residual H128 network, compare pure HCE, HCE plus the candidate,
+and HCE plus the shipped network on identical complete validation data.
+Residual-only output is a diagnostic, not the deployed evaluator. Keep STM
+labels, the fixed HCE logit offset `HCE * 2.25 / 400`, and network conversion
+`logit * 400 / 2.25`; validate exported features and integer scores against the
+actual C++ evaluator with the chosen include. A changed network can change the
+search tree: freeze its first genuine bench signature, then check repeatability
+against that signature rather than the old network's node count.
+
+Assigned game partitions can contain games with zero rows after filtering.
+Require retained recipe IDs to be a subset of the assigned partition, match
+actual fresh IDs and row counts against the authenticated frozen fresh recipe,
+and report zero-retained IDs with their filter reasons. Do not require every
+assigned game to retain a row. Legacy game IDs remain unknown and training-only;
+FEN counters or file boundaries do not authenticate games.
+
+Before reading independent-audit model losses, freeze the candidate using the
+predeclared original-validation rule and record actual changed quantized numeric
+`W1/B1/W2/B2` values, include/checkpoint hashes and data identity. A changed header
+or include checksum alone does not establish trained weights. Audit results
+assess that frozen candidate; they do not select another epoch.
+
+Bind commands, source/net/data hashes, raw streams and actual process exits to
+their receipts. Distinguish a failed closure checker from the original producer's
+exit. Preserve failed gates and their inputs; use fresh output paths for a
+corrected attempt instead of overwriting evidence or changing data to satisfy a
+gate. See [NNUE pipeline evidence](../../../validation/nnue-pipeline-20261023/DIAGNOSIS.md).
+
 ## Windows and match evidence
 
 Set `LLVM_MINGW_ROOT` to a checksum-verified LLVM-MinGW release. Configure a separate Release build with `-DCMAKE_TOOLCHAIN_FILE=tools/windows-zen5.cmake`. Inspect PE architecture/imports and run the delivered executable's UCI, pondering, legal-search and bench checks. Report Wine and native Windows separately; PE inspection alone is insufficient runtime evidence.
