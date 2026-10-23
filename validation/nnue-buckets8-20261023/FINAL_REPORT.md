@@ -32,8 +32,19 @@ original timing processes in reversible nested archives. Build with CMake Releas
 `FORGE_NNUE_WEIGHTS_FILE` supports an explicit diagnostic export and rejects a
 missing path.
 
-A Windows research comparison artifact is being built for the Ryzen 7 9850X3D.
-It will require the original runtime checks and will retain the experimental
-label. **The accepted engine is unchanged. No matches ran; Elo and strength gains
-are unproven.** Next: verify the unchanged speed gate on stable target hardware,
-then preregister any future bucket training and apply the user's PC game gate.
+The Windows Zen5 research comparison package passes **15 regression groups**
+and **10,000-position exact C++ parity under Wine**. A fresh repeat binds
+the actual PE, probe, core, sources and tools before/after execution. Windows
+bench repeats the shipped Windows **334,752-node** signature; Linux
+292,545 is a separate compiler/platform signature. Strict arithmetic, imports
+and actual NNUE SIMD code pass inspection. The package includes the exact
+accepted Windows baseline and a raw-evidence comparison helper. Its process-wall
+diagnostic cannot automatically accept the existing internal bench-NPS gate;
+the original misleading label/draft and corrected unit tests are preserved.
+
+**Native Windows/Ryzen speed, ≤5% overhead and Elo remain unproven.**
+This is an explicitly experimental comparison artifact, not an accepted release.
+The accepted engine remains unchanged. No matches ran. Next: measure the
+unchanged bench-NPS gate on stable target hardware, then preregister any
+future bucket training and apply the user PC game gate. `WINDOWS-EVIDENCE.zip`
+and the manifest retain the original proof and every artifact checksum.
