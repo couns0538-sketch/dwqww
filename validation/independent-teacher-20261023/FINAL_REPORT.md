@@ -45,7 +45,9 @@ A coordinator using four independent Python processes passes five tests,
 independent review and a live 16-game test; all four children exited 0 and native
 holdout replay passed. It reuses completed labels byte-for-byte, preserving all
 scientific settings. Protocol revision 4 changes execution topology only.
-Continuation is ready after publication; two verified archive parts preserve the
+A launch omitted the required `--resume`; the generator refused existing output
+before any mutation. The explicit command is corrected; all processes closed.
+Continuation is ready after publication. Two verified archive parts preserve the
 initial dataset and are awaiting upload. No five-million-row corpus, training
 loss, audit improvement or new net is claimed.
 Exact settings, artifact SHA256 values and next action are in `manifest.json`
