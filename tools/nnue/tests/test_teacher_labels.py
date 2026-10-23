@@ -5,6 +5,7 @@ import importlib
 import json
 import os
 import signal
+import shutil
 import subprocess
 import time
 from pathlib import Path
@@ -216,6 +217,104 @@ class TeacherLabelTests(unittest.TestCase):
             if marker.exists():
                 try:os.kill(int(marker.read_text()),signal.SIGKILL)
                 except ProcessLookupError:pass
+
+    def test_follower_waits_for_games_and_excludes_process_trace(self):
+        engine,_=self.engine();script=Path(engine.process.args[1]);engine.close()
+        script.write_text('#!'+sys.executable+'\n'+script.read_text());script.chmod(0o700)
+        incoming=self.directory/'incoming';(incoming/'chunks').mkdir(parents=True)
+        with gzip.open(incoming/'process-trace.jsonl.gz','wt') as stream:
+            stream.write(json.dumps({'event':'process_started','worker':0})+'\n')
+        output=self.directory/'output';stop=self.directory/'stop'
+        process=subprocess.Popen([sys.executable,str(Path(self.tool.__file__)),
+            '--input-dir',str(incoming),'--output-dir',str(output),'--teacher',str(script),
+            '--depth','6','--workers','1','--follow','--idle-timeout','300','--stop-file',str(stop)],
+            stdout=subprocess.DEVNULL,stderr=subprocess.PIPE)
+        try:
+            deadline=time.monotonic()+10
+            while not (output/'manifest.json').exists() and process.poll() is None and time.monotonic()<deadline:
+                time.sleep(0.02)
+            self.assertTrue((output/'manifest.json').exists())
+            time.sleep(0.3)
+            self.assertIsNone(process.poll(),'process trace must not be scheduled as a game')
+            temporary=incoming/'chunks'/'games-000000.jsonl.gz.part'
+            with gzip.open(temporary,'wt') as stream:stream.write(json.dumps(self.game())+'\n')
+            os.replace(temporary,incoming/'chunks'/'games-000000.jsonl.gz')
+            deadline=time.monotonic()+10
+            while not list((output/'chunks').glob('chunk-*')) and process.poll() is None and time.monotonic()<deadline:
+                time.sleep(0.02)
+            self.assertTrue(list((output/'chunks').glob('chunk-*')))
+            stop.touch();_,errors=process.communicate(timeout=5)
+            self.assertEqual(process.returncode,0,errors.decode())
+            manifest=json.loads((output/'manifest.json').read_text())
+            self.assertEqual(manifest['chunks'][0]['game_ids'],['g1'])
+            self.assertEqual(manifest['status'],'complete')
+        finally:
+            if process.poll() is None:
+                process.terminate()
+                try:process.communicate(timeout=5)
+                except subprocess.TimeoutExpired:process.kill();process.communicate()
+
+    def test_real_generator_chunk_waits_for_atomic_publication_and_ignores_trace(self):
+        fixture=os.environ.get('FORGE_TEACHER_REAL_CHUNK')
+        binary=os.environ.get('FORGE_TEACHER_BINARY')
+        if not fixture or not binary:
+            self.skipTest('Set FORGE_TEACHER_REAL_CHUNK and FORGE_TEACHER_BINARY for external integration')
+        source=Path(fixture);generator=source.parent.parent
+        evidence=os.environ.get('FORGE_TEACHER_EVIDENCE_DIR')
+        directory=Path(evidence) if evidence else self.directory
+        directory.mkdir(parents=True,exist_ok=True)
+        incoming=directory/'incoming';(incoming/'chunks').mkdir(parents=True)
+        shutil.copyfile(generator/'process-trace.jsonl.gz',incoming/'process-trace.jsonl.gz')
+        output=directory/'output';stop=directory/'stop'
+        process=subprocess.Popen([sys.executable,str(Path(self.tool.__file__)),
+            '--input-dir',str(incoming),'--output-dir',str(output),'--teacher',binary,
+            '--depth','6','--workers','1','--follow','--idle-timeout','300','--stop-file',str(stop)],
+            stdout=subprocess.PIPE,stderr=subprocess.PIPE)
+        try:
+            deadline=time.monotonic()+15
+            while not (output/'manifest.json').exists() and process.poll() is None and time.monotonic()<deadline:
+                time.sleep(0.02)
+            self.assertTrue((output/'manifest.json').exists(),'labeler must initialize')
+            # Let the follower observe the trace while no completed game chunk exists.
+            time.sleep(0.5)
+            self.assertIsNone(process.poll(),'generator trace was incorrectly treated as a game chunk')
+            temporary=incoming/'chunks'/'games-000000.jsonl.gz.part'
+            shutil.copyfile(source,temporary)
+            os.replace(temporary,incoming/'chunks'/'games-000000.jsonl.gz')
+            deadline=time.monotonic()+180
+            while not list((output/'chunks').glob('chunk-*')) and process.poll() is None and time.monotonic()<deadline:
+                time.sleep(0.05)
+            self.assertTrue(list((output/'chunks').glob('chunk-*')),'actual generator chunk did not commit')
+            stop.touch();stdout,stderr=process.communicate(timeout=10)
+            self.assertEqual(process.returncode,0,stderr.decode())
+            manifest=json.loads((output/'manifest.json').read_text())
+            with gzip.open(source,'rt') as handle:original=[json.loads(line) for line in handle]
+            self.assertEqual(manifest['status'],'complete')
+            self.assertEqual(manifest['stop_reason'],'stop_file')
+            self.assertEqual(len(manifest['chunks']),1)
+            chunk=manifest['chunks'][0]
+            self.assertEqual(chunk['source_sha256'],self.tool.sha256(source))
+            self.assertEqual(chunk['game_ids'],[game['game_id'] for game in original])
+            self.assertEqual(chunk['games'],len(original))
+            self.assertGreater(chunk['accepted'],0)
+            with gzip.open(output/'chunks'/chunk['path'],'rt') as handle:labelled=[json.loads(line) for line in handle]
+            self.assertEqual([game['game_id'] for game in labelled],[game['game_id'] for game in original])
+            for game in labelled:
+                for sample in game['samples']:
+                    self.assertEqual(sample['teacher_depth'],6)
+                    self.assertEqual(sample['score_cp_stm'],sample['teacher_cp_stm'])
+            summary={'games':chunk['games'],'input_positions':chunk['input_positions'],
+                     'accepted':chunk['accepted'],'source_sha256':chunk['source_sha256'],
+                     'label_sha256':chunk['sha256'],'elapsed_s':chunk['elapsed_s'],
+                     'searched_nodes':chunk['searched_nodes'],'searched_time_ms':chunk['searched_time_ms'],
+                     'tool_sha256':self.tool.sha256(Path(self.tool.__file__))}
+            if evidence:(directory/'integration-summary.json').write_text(json.dumps(summary,sort_keys=True)+'\n')
+            print('REAL_GENERATOR_INTEGRATION '+json.dumps(summary,sort_keys=True),flush=True)
+        finally:
+            if process.poll() is None:
+                process.terminate()
+                try:process.communicate(timeout=10)
+                except subprocess.TimeoutExpired:process.kill();process.communicate()
 
     def test_transcript_rotates_into_bounded_compressed_streams(self):
         trace=self.tool.Transcript(self.directory/'rotate',rotate_bytes=128)

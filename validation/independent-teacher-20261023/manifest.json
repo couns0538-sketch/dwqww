@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "experiment_id": "forge-independent-teacher-20261023",
-  "status": "PRODUCERS_VALIDATED_AND_SCIENTIFIC_PROTOCOL_FROZEN_BEFORE_PRODUCTION",
+  "status": "ATTEMPT02_PROTOCOL_FROZEN_AND_SOURCE_VALIDATED_READY_FOR_PRODUCTION",
   "start_utc": "2026-10-23T18:04:09+00:00",
   "stop_starting_new_work_utc": "2026-10-23T23:34:09+00:00",
   "hard_deadline_utc": "2026-10-24T00:04:09+00:00",
@@ -27,7 +27,9 @@
   "resources": {
     "cpu_quota_cores": 4,
     "gpu_available": false,
-    "initial_disk_free_bytes": 3973124096
+    "initial_disk_free_bytes": 3973124096,
+    "production_generator_workers": 1,
+    "production_teacher_workers": 4
   },
   "dataset": {
     "minimum_eligible_positions": 5000000,
@@ -47,29 +49,33 @@
     "legacy_data_used": false
   },
   "teacher": {
-    "proposed_until_throughput_screen": "Stockfish19 fixeddepth6 with per-game cold state; productionfreezeawaitsgenerationthroughput",
-    "kind": "independent_external_uci_engine",
-    "binary_path": "/workspace/.cloud-setup/stockfish/stockfish/stockfish-linux-x86-64-universal",
+    "name": "Stockfish19 external UCI tool",
+    "depth": 3,
     "binary_sha256": "0f83d24cc46d2c66c60f16001af5444873bc112b7d028594513426894c12da19",
-    "threads": 1,
-    "hash_mb": 16,
-    "multipv": 1,
-    "uci_limitstrength": false,
-    "skill_level": 20,
-    "cold_hash_per_position": false,
-    "raw_score_pov": "side_to_move",
-    "normalization": "Stockfish normalized UCI cp mapped using fixed2.25/400 sigmoid; no data-driven calibration",
-    "code_or_licence_text_copied": false,
-    "depth": 6,
-    "cold_state_per_game": true,
-    "within_game_search_state": "Retained only within one authenticated game; reset before every new game, preventing cross-split state reuse",
-    "filters": {
-      "score_cp_abs_max": 1000,
-      "mate_scores": "drop",
-      "bestmove": "legal, noncapture, nonpromotion, nonchecking"
+    "network_sha256": "1a298aa575a085434d29027978dc36867fe9c5bcea9376654b7a8eba1e52dfc2",
+    "options": {
+      "Threads": "1",
+      "Hash": "16",
+      "MultiPV": "1",
+      "Ponder": "false",
+      "Skill Level": "20",
+      "UCI_LimitStrength": "false",
+      "UCI_Chess960": "false",
+      "SyzygyPath": "<empty>"
     },
-    "production_depth": 6,
-    "teacher_settings_frozen": true
+    "policy": {
+      "score_pov": "side_to_move",
+      "score_cap_cp": 1000,
+      "mate_policy": "drop_all",
+      "teacher_move": "legal,noncapture,nonpromotion,not_gives_check",
+      "reset": "ucinewgame+Clear Hash+isready before every whole game",
+      "position_history": "complete authenticated game prefix",
+      "within_game_state": "persistent TT and search history",
+      "normalization": "raw Stockfish cp; fixed downstream sigmoid(cp*2.25/400); no calibration"
+    },
+    "state_isolation": "reset every whole game; retain state only within same game",
+    "workers": 4,
+    "code_or_licence_text_copied": false
   },
   "target": {
     "kind": "teacher_probability_game_result_blend",
@@ -106,7 +112,7 @@
     },
     {
       "task": "fixed-target trainer and comparator",
-      "state": "DONE fixedtarget+protocol+5Mminimum+audit-onlyoptimizationguard;116PythonNNUEtestsPASS"
+      "state": "DONE fixed.4 target/protocol/min5M/audit-onlyguards, fullsuite137PASS1externalSKIP"
     },
     {
       "task": "fresh mixed-source game generator",
@@ -114,11 +120,11 @@
     },
     {
       "task": "external teacher labeler",
-      "state": "DONE13tests+gracefulstop; independentreviewPASS; depth6representative215accepted/1.361018878sec"
+      "state": "DONE discoveryrepair;14portablePASS+real256integrationPASS+independentlive16PASS; fixeddepth3frozenbeforeproduction"
     },
     {
       "task": "streaming preparation and finalauditfreeze",
-      "state": "Adapterimplemented; scopedreviewfixingdeclaredhash/nativefailurecleanupguardsbeforefullpreparation"
+      "state": "DONE14tests+independentreview; real370unique incompletefixture nativeholdoutreplayPASS; optimizerrejectsbelow5M"
     }
   ],
   "skills": {
@@ -149,6 +155,13 @@
       "bytes": 5086315,
       "files": 130,
       "scope": "Closed producer tests, throughputscreens, exactgameparity/nativebuild/sourcebindings, lifecyclefailedattempts/review, oldpostcommit14proof and actualfirstpublication"
+    },
+    "source-checks-03.zip": {
+      "sha256": "4497fc7cd56f456348dbcb1e6b00576a774a93e87e90c7f4d667dd9c1216a072",
+      "bytes": 7110617,
+      "members": 158,
+      "status": "PASS_STABLE_SOURCE_ZIP_CRC_SHA_MODE_READBACK",
+      "scope": "Original failed production and discovery RED/GREEN; real16game+256game source/teacher integration; depth6/4/3 feasibility; preparer14tests/review/nativepartialfixture; full125+13unitrun; skillrepair; post8dab native14 and publicreadback; source snapshots"
     }
   },
   "preproduction_screens": {
@@ -188,11 +201,21 @@
     "search_changed": false,
     "default_network_changed": false,
     "independent_source_review": "PASS no blocking findings",
-    "previous_full_discovery": "92pass/9labelerconcurrentRED tests; notcompletebranchacceptance"
+    "previous_full_discovery": "92pass/9labelerconcurrentRED tests; notcompletebranchacceptance",
+    "latest_source_suite": {
+      "run": 138,
+      "passed": 137,
+      "skipped": 1,
+      "failures": 0,
+      "errors": 0
+    },
+    "real_external_integration": "256gamesPASS plus independentlive16gamePASS",
+    "preparer_review": "PASS after preserved3initialP2and2relatedP2fixes",
+    "previous_native_after_commit": "8dab4dbc51d2435ba1d7c86be2326983f326a282:14/14,292545nodes,source+binaryunchanged"
   },
   "frozen_protocol": {
     "path": "validation/independent-teacher-20261023/protocol.json",
-    "sha256": "f5cf0b01f55d2060fcc7b840e59d00ea0efc2b66970cbc6ff5db52e5ccd38954"
+    "sha256": "31ea42cb26a709c66b925b842c007a628fc913482ca65b2f9cc7ced29c7b1a2c"
   },
   "preproduction_protocol_revisions": [
     {
@@ -204,17 +227,41 @@
     {
       "revision": 2,
       "sha256": "f5cf0b01f55d2060fcc7b840e59d00ea0efc2b66970cbc6ff5db52e5ccd38954",
-      "status": "finalfrozenbeforeproduction"
+      "status": "superseded_after_zero-label_failed_startup"
+    },
+    {
+      "revision": 3,
+      "sha256": "31ea42cb26a709c66b925b842c007a628fc913482ca65b2f9cc7ced29c7b1a2c",
+      "status": "finalbeforeattempt02",
+      "reason": "First attempt accepted zero labels: discovery fallback read process trace, now fixed and genuine live E2E tested. Fresh output paths preserve failed attempt. Actual 256-game screens show depth6=6781/137.654247s and depth4=6715/52.937017s, unsuitable for 5M plus training within six hours. Freeze independent external Stockfish depth3 and four one-thread workers before any qualifying labels or model losses; no data/loss-based selection, no old or feasibility-screen rows in production."
     }
   ],
   "production_plan": {
-    "generation_command_source": "source-checks-02.zip:generation-agent/production-command.json",
+    "generation_command_source": "source-checks-03.zip:generation-agent/production-command-02.json",
     "generator_workers": 1,
-    "teacher_workers": 3,
-    "teacher_depth": 6,
+    "teacher_workers": 4,
+    "teacher_depth": 3,
     "unique_position_stop_target": 5100000,
     "min_final_positions_to_train": 5000000,
     "source_runtime_changed": false,
-    "production_started": false
-  }
+    "production_started": false,
+    "attempt01": "FAILEDlabelerdiscovery0labels;allparentsclosed;preservedoriginalpaths",
+    "attempt02_expected_directories": [
+      "production-games-02",
+      "production-labels-02",
+      "collection-run-02"
+    ]
+  },
+  "updated_utc": "2026-10-23T19:10:21.531238+00:00",
+  "source_files_sha256": {
+    "tools/nnue/residual_train.py": "041a0901ae59da8d697b06be9a64e97fa04047e32f9cad428edcb399e0d5c082",
+    "tools/nnue/compare_holdout.py": "e415fd09dc2e10f2731da2f1094942dc0a0c174888f9dfb8f0c304f9f129ed46",
+    "tools/nnue/train_nnue.py": "65555913c8047058d090e6b12a2eda76d2945d713da38afc1f43f493af44c898",
+    "tools/nnue/prepare_teacher_data.py": "390dd6d21a3d6bc4fdd7066f431e2af2e0ec6158e78543907ab59983faabc3c0",
+    "tools/nnue/generate_teacher_games.py": "c6d04b1cf9e6054733c477c81e085bd0abfea768f5f4d9183e5251a23a7a4bf1",
+    "tools/nnue/label_teacher_games.py": "cb7cea79fabd1a63d2e3047eba7aed5361f299770f6b346571e3086504c42069",
+    "tools/nnue/native_game_driver.cpp": "15c32e4095f3804eae82f12f5fa6b0cfe277e826df9f17ca6730aef4c805d065",
+    ".agents/skills/validating-chess-simd/SKILL.md": "3578e71b484e4f685ef4dffd1735762d08307c75f09d52fc6b3cb1c04b6ee63f"
+  },
+  "next_action": "Run postcommitnative14+defaultbench, push/readback checkpoint, then root launch attempt02 exactfrozenprotocol; collect>=5Munique or deadline, no trainingbelowminimum."
 }

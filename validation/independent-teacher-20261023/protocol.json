@@ -1,8 +1,8 @@
 {
   "schema_version": 1,
   "experiment_id": "forge-independent-teacher-20261023",
-  "status": "SCIENTIFIC_PROTOCOL_FROZEN_BEFORE_PRODUCTION_DATA_AND_ANY_MODEL_LOSS",
-  "frozen_utc": "2026-10-23T18:46:59.631885+00:00",
+  "status": "FROZEN_BEFORE_QUALIFYING_PRODUCTION_LABELS_AND_ANY_MODEL_LOSS",
+  "frozen_utc": "2026-10-23T19:08:39.920449+00:00",
   "baseline_source_sha": "1ab50b2dd64d9b2f752f7f1285f6968cad2fd792",
   "secondary_generation_source_sha": "5101c2529d386b7c3a04ba9156a69ee34df6bb43",
   "dataset": {
@@ -29,7 +29,7 @@
   },
   "teacher": {
     "name": "Stockfish19 external UCI tool",
-    "depth": 6,
+    "depth": 3,
     "binary_sha256": "0f83d24cc46d2c66c60f16001af5444873bc112b7d028594513426894c12da19",
     "network_sha256": "1a298aa575a085434d29027978dc36867fe9c5bcea9376654b7a8eba1e52dfc2",
     "options": {
@@ -53,7 +53,7 @@
       "normalization": "raw Stockfish cp; fixed downstream sigmoid(cp*2.25/400); no calibration"
     },
     "state_isolation": "reset every whole game; retain state only within same game",
-    "workers": 3,
+    "workers": 4,
     "code_or_licence_text_copied": false
   },
   "target": {
@@ -96,10 +96,10 @@
   "producer_source_sha256": {
     "tools/nnue/generate_teacher_games.py": "c6d04b1cf9e6054733c477c81e085bd0abfea768f5f4d9183e5251a23a7a4bf1",
     "tools/nnue/native_game_driver.cpp": "15c32e4095f3804eae82f12f5fa6b0cfe277e826df9f17ca6730aef4c805d065",
-    "tools/nnue/label_teacher_games.py": "67f685f0427842daac9c72bed99356265ed75369123301d522026b899d4ea1b7"
+    "tools/nnue/label_teacher_games.py": "cb7cea79fabd1a63d2e3047eba7aed5361f299770f6b346571e3086504c42069"
   },
   "native_build_provenance_sha256": "283a7a39ac56a898f0cb25bc2d32f5dcb8594a7ea9fb982db980d549cefd9466",
-  "generation_command_prepared_sha256": "f1a0cdcc45fc21fa9b82c9707635c945729246ec5788732f655d3580255d647d",
+  "generation_command_prepared_sha256": "55e08ac7666938b409e1ffa6b5ab6bcf55e81574ee11fe4bebab72c7f43ea1c4",
   "deadlines": {
     "start_utc": "2026-10-23T18:04:09+00:00",
     "stop_starting_new_work_utc": "2026-10-23T23:34:09+00:00",
@@ -108,12 +108,29 @@
   "resources": {
     "cpu_quota_cores": 4,
     "production_generator_workers": 1,
-    "production_teacher_workers": 3
+    "production_teacher_workers": 4
   },
   "time_control_or_elo_experiment": false,
-  "revision": 2,
+  "revision": 3,
   "supersedes_preproduction_revision": {
-    "sha256": "3459024caa1cb7573c6dc99d69fc56caa4c0b83f21dc14609f14930fb00b0980",
-    "reason": "Add graceful labeler drain stop-file control; no teacher/target/split/selection change and no production data or model losses read"
+    "sha256": "f5cf0b01f55d2060fcc7b840e59d00ea0efc2b66970cbc6ff5db52e5ccd38954",
+    "reason": "First attempt accepted zero labels: discovery fallback read process trace, now fixed and genuine live E2E tested. Fresh output paths preserve failed attempt. Actual 256-game screens show depth6=6781/137.654247s and depth4=6715/52.937017s, unsuitable for 5M plus training within six hours. Freeze independent external Stockfish depth3 and four one-thread workers before any qualifying labels or model losses; no data/loss-based selection, no old or feasibility-screen rows in production."
+  },
+  "preproduction_feasibility": {
+    "same_source_chunk_sha256": "df20ac17fd7c96293deaf34c197fbc8486b3162907b5de5f3c621ecfe39fcec2",
+    "depth6": {
+      "accepted": 6781,
+      "elapsed_seconds": 137.6542470830027
+    },
+    "depth4": {
+      "accepted": 6715,
+      "elapsed_seconds": 52.937017108
+    },
+    "depth3": {
+      "accepted": 6795,
+      "elapsed_seconds": 42.390499219996855
+    },
+    "parallel_scaling": "unproven; resource-feasibility only, not engine NPS or Elo",
+    "screen_rows_used_in_training": false
   }
 }

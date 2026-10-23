@@ -44,6 +44,14 @@ and report zero-retained IDs with their filter reasons. Do not require every
 assigned game to retain a row. Legacy game IDs remain unknown and training-only;
 FEN counters or file boundaries do not authenticate games.
 
+For streamed game data, authenticate declared chunk paths and hashes against
+the producer manifest. An existing empty canonical `chunks/` directory means
+wait for publication; never broaden discovery to process traces or other JSONL
+logs. Before a long collection, run the real producer and consumer with genuine
+traces visible before the first chunk, then verify complete-game labels and
+owned process exits. Preserve failing and corrected receipts with their command,
+source and data hashes.
+
 Before reading independent-audit model losses, freeze the candidate using the
 predeclared original-validation rule and record actual changed quantized numeric
 `W1/B1/W2/B2` values, include/checkpoint hashes and data identity. A changed header

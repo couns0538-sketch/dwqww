@@ -428,8 +428,10 @@ def main(argv=None):
             if args.stop_file is not None and args.stop_file.exists():
                 stop_reason='stop_file';stop.set()
             if not stop.is_set():
-                candidates=sorted((args.input_dir/'chunks').glob('*.jsonl.gz'))
-                if not candidates:candidates=sorted(args.input_dir.glob('*.jsonl.gz'))
+                chunk_directory=args.input_dir/'chunks'
+                # An empty committed-chunks directory means wait for publication;
+                # generator process traces are never game inputs.
+                candidates=sorted(chunk_directory.glob('games*.jsonl.gz')) if chunk_directory.is_dir() else sorted(args.input_dir.glob('games*.jsonl.gz'))
                 for source in candidates:
                     if args.stop_file is not None and args.stop_file.exists():
                         stop_reason='stop_file';stop.set();break
