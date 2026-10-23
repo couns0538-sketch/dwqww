@@ -1,0 +1,62 @@
+{
+  "verified_target": "User-supplied Forge 6.2.0 source; also same declaration in strength-overhaul attachment",
+  "grokchess_runtime_compatibility": "Unknown: no separately identified GrokChess NNUE loader or Engine NNUE interface is available.",
+  "input_count": 768,
+  "default_accumulator_width": 256,
+  "perspectives": 2,
+  "concatenated_width": 512,
+  "architecture": "shared 768 -> H per perspective; concat STM first, opponent second; 2H -> 1",
+  "activation": "clamp(x,0,1)^2",
+  "features_include_kings": true,
+  "feature_formula": "((piece.color == perspective ? 0 : 1) * 6 + piece.type - 1) * 64 + (perspective == White ? square : square XOR 56)",
+  "piece_types": [
+    "pawn",
+    "knight",
+    "bishop",
+    "rook",
+    "queen",
+    "king"
+  ],
+  "square_numbering": "a1=0, h8=63",
+  "perspective_order": [
+    "side to move",
+    "opponent"
+  ],
+  "output": "logit; engine STM cp = truncate(clamp(logit * 400 / 2.25, -30000, 30000))",
+  "quantization": {
+    "weight_scale": 4096,
+    "output_scale": 4096,
+    "storage": "signed int16",
+    "rounding": "half away from zero",
+    "range": [
+      -32767,
+      32767
+    ]
+  },
+  "include_symbols": [
+    "NnueW1[768*H] feature-major",
+    "NnueB1[H]",
+    "NnueW2[2*H] STM then opponent",
+    "NnueB2"
+  ],
+  "float32_trainer_binary_layout": [
+    "W1[768][H]",
+    "B1[H]",
+    "W2[2*H]",
+    "B2[1]"
+  ],
+  "default_float32_trainer_binary_bytes": 789508,
+  "runtime_evalfile_option_in_supplied_forge62": false,
+  "integration": "Place exported include at src/nnue_weights.inc; build with FORGE_NNUE_HIDDEN equal to H (default 256 in Forge 6.2). Export marks standalone, not residual.",
+  "validation": {
+    "original_forge62_nnue_cpp_positions": 916,
+    "integer_cp_mismatches": 0,
+    "platform": "Linux, g++20, CPU training; not a Windows/DirectML hardware test"
+  },
+  "source_sha256": {
+    "chess-engine-forge-6.2.0/src/search.cpp": "6274c6d14aedf8d78422841bb9a4d361531a9287bb37be36f345fb6ab67d687d",
+    "chess-engine-forge-6.2.0/src/nnue.cpp": "aa6d1be02bb2dbae28c5c82b82baf4a9727f2fc2f61fe2bac3a8570fac03fdb3",
+    "chess-engine-forge-6.2.0/tools/tune/nnue_train.cpp": "fc19cde4881d061661cfa669b28eccb4e7a602fafa417f236c8d81b80b31bc31",
+    "chess-engine-forge-6.2.0/include/forge/nnue.hpp": "c46242f019aea2ab6754565431f5db4428e87ab1e4b54f586bd3e4e124d69a4b"
+  }
+}
