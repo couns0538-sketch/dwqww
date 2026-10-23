@@ -2,7 +2,7 @@
   "schema_version": 1,
   "experiment_id": "forge-independent-teacher-20261023",
   "status": "FROZEN_BEFORE_CONTINUED_PRODUCTION_AND_ANY_MODEL_LOSS",
-  "frozen_utc": "2026-10-23T20:20:30.645459+00:00",
+  "frozen_utc": "2026-10-23T20:38:51.198748+00:00",
   "baseline_source_sha": "1ab50b2dd64d9b2f752f7f1285f6968cad2fd792",
   "secondary_generation_source_sha": "5101c2529d386b7c3a04ba9156a69ee34df6bb43",
   "dataset": {
@@ -22,10 +22,31 @@
     "max_ply": 256,
     "pairing": "gameindexmod4: baseline/baseline,baseline/5101,baseline/baseline,5101/baseline",
     "split": "game-ID SHA256 split; audit>validation>train exact first4FEN deduplication",
-    "data_stop_rule": "Stop fresh generation at complete-game boundary when committed teacher chunks contain >=5100000 exact unique first4FEN positions, or deadline; label pending already-started chunks to completion. No loss-based data stopping. At least5000000 final retained unique rows required before optimization.",
+    "data_stop_rule": "Four predeclared fresh CI shards: each stops at1450000 committed unique positions or22:40UTC and drains startedwholechunks. Independently prepare native arrays then globally deduplicate allfour beforequalification. Local continuedpartial corpus remains preserved separately. No loss-based stopping.",
     "old_data_used": false,
     "final_audit_frozen_before_training": true,
-    "one_training_run_only": true
+    "one_training_run_only": true,
+    "parallel_shards": {
+      "planned_shard_ids": [
+        0,
+        1,
+        2,
+        3
+      ],
+      "generation_seeds": {
+        "0": 2026102301,
+        "1": 2026102302,
+        "2": 2026102303,
+        "3": 2026102304
+      },
+      "whole_game_split_seed": 2026102302,
+      "per_shard_committed_unique_stop": 1450000,
+      "minimum_native_retained_per_shard": 1400000,
+      "per_shard_is_training_qualified": false,
+      "qualifying_merge": "All four closed authenticated CI shards; global exact first4FEN deduplication audit>validation>train; minimum5000000 final retained total. Local partial corpus preserved separately and excluded from this qualifying merge.",
+      "collection_stop_utc": "2026-10-23T22:40:00Z",
+      "no_model_losses_read": true
+    }
   },
   "teacher": {
     "name": "Stockfish19 external UCI tool",
@@ -97,7 +118,11 @@
     "tools/nnue/generate_teacher_games.py": "c6d04b1cf9e6054733c477c81e085bd0abfea768f5f4d9183e5251a23a7a4bf1",
     "tools/nnue/native_game_driver.cpp": "15c32e4095f3804eae82f12f5fa6b0cfe277e826df9f17ca6730aef4c805d065",
     "tools/nnue/label_teacher_games.py": "cb7cea79fabd1a63d2e3047eba7aed5361f299770f6b346571e3086504c42069",
-    "tools/nnue/coordinate_teacher_shards.py": "57c04b0a8d38c514ae7dd203283ddaf1035aac0a81005293d8b900bd89591e5a"
+    "tools/nnue/coordinate_teacher_shards.py": "57c04b0a8d38c514ae7dd203283ddaf1035aac0a81005293d8b900bd89591e5a",
+    "tools/nnue/prepare_teacher_data.py": "95078809d5ec60e44f4ef04a80a7738f37cf38e9343e849516a9c16062900eb7",
+    "tools/nnue/merge_teacher_prepared.py": "2fb3da06c9c4e19f207925b611b5d119a64803ba62d824f59c253df3c1a0252c",
+    "tools/nnue/run_teacher_ci_shard.py": "932ce29b047ae9dc4ba7386f4d15d4b54d77e7fb021692290401d6a113232840",
+    "tools/nnue/build_teacher_ci.py": "e6fac2935011b0bedc0ff9f4e60db372e93b6f8f125fce80363ffdc17b0a5023"
   },
   "native_build_provenance_sha256": "283a7a39ac56a898f0cb25bc2d32f5dcb8594a7ea9fb982db980d549cefd9466",
   "generation_command_prepared_sha256": "4db9007c6ae14df672915b89ea15d2ae2b94ca193a20672751e3069dafa4199f",
@@ -112,7 +137,7 @@
     "production_teacher_workers": 4
   },
   "time_control_or_elo_experiment": false,
-  "revision": 6,
+  "revision": 7,
   "preproduction_feasibility": {
     "same_source_chunk_sha256": "df20ac17fd7c96293deaf34c197fbc8486b3162907b5de5f3c621ecfe39fcec2",
     "depth6": {
@@ -151,7 +176,19 @@
     "retry_review_sha256": "c92d44838c70235c6aaed19c7f556d105b18d3825e15c759efcbeef1d3e041e4"
   },
   "supersedes_revision": {
-    "sha256": "1a8f8eddc90e96099c4e459aa61cb52d112c7fac9dbee8bcf7d04c9e625b4222",
-    "reason": "Preserveandreuseall245248authenticlabelswithoutalteringoriginalrawmetadata;oneboundedsameconfigretryafterallworkersclosed. No sourceengine/nodes/timeout/teacher/depth/split/target/training/selection/auditchange. Timeoutrootcauseunresolved."
+    "sha256": "b10a372f9ae525fdd401e94c965b7e2d10a87c6c4db39efc52b0d9969fef3baa",
+    "reason": "Measuredlocalcollection/nativepreparationcannotmeet5M+trainingbudget. Addpredeclaredparallelfreshopeningseeds/nativearraymerge; retainteacher3/node64/splits/blend/architecture/selection/auditand5Mminimum. No model losses read. Local06continuesonitsownimmutableprotocol."
+  },
+  "hosted_execution": {
+    "availability": "UNVERIFIED_UNTIL_ACTUAL_START_RECEIPTS",
+    "source_branch_to_trigger": "forge/independent-teacher-ci-20261023",
+    "workflow_sha256": "cedb46734d79d1d3ea400f6a7f5e6defbc59bff1f1a606131d9957275fcf1751",
+    "workers": "four matrix jobs; actual CPU/cgroup/affinity recorded per shard; configuredonegenerator+fourone-threadSFworkers each",
+    "publication": "Early STARTED then original closed/snapshotted evidence+data inverifiedopaque<=31MiBparts, isolatedper-runshardbranches, ordinaryGitpush+norewrite",
+    "teacher_redistributed": false,
+    "teacher_recovery": "External officialSF19 exactbinarySHA hydration; noStockfishbinary,network,archive,sourceorGPLtextinGit",
+    "native_preparation": "Actual same-core C++ HCE/features ineachshard;globalmerger reusesauthenticatedarrays withoutrecomputing5Mfeatures",
+    "training_runs": 1,
+    "matches": 0
   }
 }

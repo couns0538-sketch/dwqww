@@ -61,6 +61,12 @@ generator's exact observed snapshot separately from appendable live manifests;
 valid committed chunks do not make its failed run successful. A retry must keep
 the uncommitted game index and original search settings.
 
+A new build helper must pass real game data through the actual preparation CLI.
+UCI identification and identical core hashes do not validate the handoff: check
+the probe provenance JSON, its actual linked core and source bindings, then run
+native preparation before a large remote collection. Keep independent tools
+external and record exact download/hash requirements for recovery.
+
 For a large corpus, time actual native preparation on a representative closed
 segment before assigning the remaining budget. Distinguish a projection from a
 measured full-corpus runtime. Parallel shards require global position deduplication

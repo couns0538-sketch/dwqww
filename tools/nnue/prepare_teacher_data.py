@@ -44,6 +44,33 @@ def write_json(path, value):
     Path(path).write_bytes(json.dumps(value, indent=2, allow_nan=False).encode("ascii") + b"\n")
 
 
+class SourceResolver:
+    """Relocate immutable evidence paths explicitly; never rewrite its bytes."""
+    def __init__(self, mappings=None):
+        self.mappings = []
+        for mapping in mappings or []:
+            if not isinstance(mapping, dict) or set(mapping) != {"from", "to"}:
+                raise ValueError("Source mappings require exact from/to roots")
+            source, target = Path(mapping["from"]), Path(mapping["to"])
+            if not source.is_absolute() or not target.is_absolute():
+                raise ValueError("Source relocation roots must be absolute")
+            self.mappings.append((source, target.resolve()))
+        if len({str(source) for source, _ in self.mappings}) != len(self.mappings):
+            raise ValueError("Duplicate source relocation root")
+        self.mappings.sort(key=lambda item: len(item[0].parts), reverse=True)
+
+    def __call__(self, path):
+        path = Path(path)
+        # Already relocated paths must not be translated twice when a target
+        # lives below its original root.
+        if any(path.is_relative_to(target) for _, target in self.mappings):
+            return path.resolve()
+        for source, target in self.mappings:
+            if path.is_relative_to(source):
+                return (target / path.relative_to(source)).resolve()
+        return path.resolve()
+
+
 def validate_protocol(sources, protocol):
     target = protocol.get("target", {})
     weight = target.get("result_weight")
@@ -275,14 +302,15 @@ def native_labels(probe, rows, evidence_dir, batch_index, receipt=None, timeout=
 
 class TeacherSources:
     """Immutable bindings plus bounded streaming replay of matched source chunks."""
-    def __init__(self, teacher_manifest, generation_manifest=None):
+    def __init__(self, teacher_manifest, generation_manifest=None, source_mappings=None):
+        self.resolve = SourceResolver(source_mappings)
         self.teacher_path = Path(teacher_manifest).resolve()
         self.teacher = json.loads(self.teacher_path.read_bytes())
         if self.teacher.get("status") != "complete" or not self.teacher.get("chunks"):
             raise ValueError("Teacher publication is incomplete or empty")
         self.config = self.teacher["configuration"]
         self.generation_path = (Path(generation_manifest).resolve() if generation_manifest else
-                                Path(self.config["input_dir"]) / "manifest.json")
+                                self.resolve(Path(self.config["input_dir"]) / "manifest.json"))
         self.generation = json.loads(self.generation_path.read_bytes())
         self.gconfig = self.generation["configuration"]
         expected = dict(self.gconfig); digest = expected.pop("config_sha256")
@@ -321,7 +349,7 @@ class TeacherSources:
                            for chunk in self.generation["chunks"]}
         self.chunks = []
         for chunk in sorted(self.teacher["chunks"], key=lambda record: record["source_path"]):
-            original = Path(chunk["source_path"]).resolve()
+            original = self.resolve(chunk["source_path"])
             generation_chunk = original_chunks.get(original)
             if generation_chunk is None or generation_chunk["sha256"] != chunk["source_sha256"]:
                 raise ValueError("Teacher source is absent or changed in generator manifest")
@@ -344,7 +372,8 @@ class TeacherSources:
             raise ValueError("Wrong authentic game identity, split or engine pairing")
 
     def add(self, path, kind, expected=None):
-        path = Path(path).resolve(); digest = sha256(path) if expected is None else expected
+        path = getattr(self, "resolve", SourceResolver())(path)
+        digest = sha256(path) if expected is None else expected
         check_hash(path, digest)
         if path in self.bindings:
             if self.bindings[path]["sha256"] != digest:
@@ -399,33 +428,46 @@ def _fill(arrays, index, row, fact):
     arrays["result_stm"][index] = row["result_stm"]
 
 
-def validate_validation_provenance(data_dir, manifest, data):
+def validate_validation_provenance(data_dir, manifest, data, *, _recipe_selection=None):
     """Replay exact recipe rows, both original game streams, and native labels.
 
     ``source_lines_replayed`` counts decoded original *and* teacher compressed
     game JSONL records, not sampled positions; one game line can contain many
     requested positions. ``heldout_rows_replayed`` records the latter count.
     """
+    if manifest.get("provenance_layout") == "multi_shard_v1":
+        from merge_teacher_prepared import validate_merged_validation_provenance
+        return validate_merged_validation_provenance(data_dir, manifest, data)
     data_dir = Path(data_dir).resolve()
+    resolve = SourceResolver(manifest.get("source_mappings"))
     count = len(data["score"])
     binding = manifest.get("artifacts", {}).get("validation-provenance.jsonl", {})
     recipe_path = data_dir / "validation-provenance.jsonl"
+    if _recipe_selection is not None:
+        binding = _recipe_selection
+        recipe_path = Path(binding["path"]).resolve()
     check_hash(recipe_path, binding.get("sha256"))
-    if binding.get("rows") != count or manifest.get("files", {}).get("validation.npz", {}).get("rows") != count:
+    if (binding.get("rows") != count or (_recipe_selection is None
+            and manifest.get("files", {}).get("validation.npz", {}).get("rows") != count)):
         raise ValueError("Held-out recipe and array row counts differ")
     bindings = {}
     for entry in manifest.get("sources", []):
         path = Path(entry["path"])
-        path = (path if path.is_absolute() else data_dir / path).resolve()
+        path = resolve(path if path.is_absolute() else data_dir / path)
         if path in bindings:
-            raise ValueError("Duplicate source identity")
+            if (not manifest.get("source_mappings") or bindings[path]["sha256"] != entry.get("sha256")):
+                raise ValueError("Duplicate source identity")
+            # An explicit relocation may map a mutable original pathname onto
+            # its already-bound immutable exact-byte snapshot.
+            continue
         check_hash(path, entry.get("sha256")); bindings[path] = entry
     def one_kind(kind):
         paths = [path for path, entry in bindings.items() if entry.get("kind") == kind]
         if len(paths) != 1:
             raise ValueError("Need one bound " + kind)
         return paths[0]
-    sources = TeacherSources(one_kind("independent_teacher_manifest"), one_kind("generation_manifest"))
+    sources = TeacherSources(one_kind("independent_teacher_manifest"), one_kind("generation_manifest"),
+                             manifest.get("source_mappings"))
     for path, entry in sources.bindings.items():
         if path not in bindings or bindings[path]["sha256"] != entry["sha256"]:
             raise ValueError("Source chunk/engine binding omitted or changed")
@@ -439,7 +481,8 @@ def validate_validation_provenance(data_dir, manifest, data):
         raise ValueError("Explicit held-out source partition required")
     requests, game_ids, keys, identities = {}, [], [], set()
     valid_paths = {label for _, _, label in sources.chunks}
-    with recipe_path.open(encoding="ascii") as stream:
+    opener = gzip.open if recipe_path.name.endswith(".gz") else open
+    with opener(recipe_path, "rt", encoding="ascii") as stream:
         for row_index, line in enumerate(stream):
             if not line.endswith("\n"):
                 raise ValueError("Truncated held-out recipe")
@@ -450,7 +493,7 @@ def validate_validation_provenance(data_dir, manifest, data):
                     or any(type(row.get(key)) is not int or row[key] < (1 if key == "source_line" else 0)
                            for key in ("source_line", "sample_index", "source_sample_index"))):
                 raise ValueError("Invalid held-out game/ply/source identity")
-            source_path = Path(row["source_path"]).resolve()
+            source_path = resolve(row["source_path"])
             if source_path not in valid_paths:
                 raise ValueError("Unbound held-out teacher chunk")
             identity = (row["game_id"], row["ply"])
