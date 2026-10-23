@@ -1,0 +1,46 @@
+{
+  "status": "blocked_before_compile",
+  "scope": "Unchanged C++ trainer --load/--epochs 0 zero-training round-trip",
+  "identities": [
+    {
+      "path": "/workspace/dwqww/tools/tune/nnue_train.cpp",
+      "bytes": 17865,
+      "sha256": "57186e129418d5aca0fe91211bcc74db2d626e54fbf33df6c85c1972cef0efcd"
+    },
+    {
+      "path": "/workspace/forge-nnue-handoff-20261023/pilot-fresh14895-zero20-attempt1/exports/epoch-0001.bin",
+      "bytes": 394756,
+      "sha256": "f86066835713d1cb2d2c5eabe74f63e8e5538a8217425d45fb4479fe7bbfa262"
+    },
+    {
+      "path": "/workspace/forge-nnue-handoff-20261023/pilot-fresh14895-zero20-attempt1/exports/epoch-0001.inc",
+      "bytes": 466606,
+      "sha256": "433ad84802b4543c3ff672f551569956202e77728d26e19a5076222db0fa3b8b"
+    }
+  ],
+  "source_evidence": {
+    "epoch_loop_line": 318,
+    "validation_export_lines": [
+      358,
+      359
+    ],
+    "ordinary_export_lines": [
+      363,
+      364
+    ],
+    "unconditional_wrote_message_line": 369
+  },
+  "finding": "--epochs 0 skips all net.save and write_include calls because both are inside the epoch loop; the final wrote message is unconditional.",
+  "claims": {
+    "actual_cpp_load_executed": false,
+    "quantized_array_roundtrip_verified": false,
+    "float_bin_roundtrip_verified": false,
+    "training_executed": false
+  },
+  "actions": {
+    "compiler_invocations": 0,
+    "source_changes": 0,
+    "git_mutations": 0
+  },
+  "next_action": "Parent may select an independently scoped read-only loader harness or an explicit export-only trainer change; neither substituted here."
+}

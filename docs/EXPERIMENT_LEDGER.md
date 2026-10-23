@@ -648,3 +648,14 @@ pilot completed44.4s, bestepoch1=0.006649745635525344; retain as a failed
 replacement, not Elo or shipped-net improvement. Full13.5M reservoir scan
 remains the first valid running attempt. Original fresh data/UCI evidence
 archived with25 byte-verified members; no successful full-data training claimed.
+
+2026-10-23 fixed-position validation: combined Python suite86/86PASS, actual
+reporter source-line replay4149/56games and reference-array guardPASS. Zero
+pilot bestepoch1 improvesHCE0.162% but is9.334% worse than shipped teacherMSE;
+conditional whole-game intervals and all per-row losses retained. Warm-start
+pilot20epochs retainsinitial as best (no new improvement). Actual new zero
+pilot export native parity2048/2048exact integercp, no feature mismatch; strict
+separate candidateobject linked before immutablecore, shipped/search untouched.
+All21 checkpoints and all exports per run archived214members/67009675B, each
+readback-hash verified. Original six multipart data files175245322B preserved
+byte-exact; full-corpus prep still running. Neither pilot replaces shipped net.

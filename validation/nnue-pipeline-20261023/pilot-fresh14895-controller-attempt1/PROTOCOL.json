@@ -1,0 +1,43 @@
+{
+  "status": "PREDECLARED_BEFORE_PILOT_TRAINING",
+  "utc": "2026-10-23T14:06:38.202838+00:00",
+  "purpose": "Fresh-only pilot while full 13.5M legacy scan runs; distinct from the predeclared full-data main training run.",
+  "source_commit": "a040a76f31ccfaaa885aac466e1bae4920407b6c",
+  "train_positions": 14895,
+  "validation_positions": 4149,
+  "train_games": 200,
+  "validation_games": 56,
+  "initialization": "zero residual output",
+  "selection": "best complete held-out pure-teacher MSE including initial checkpoint; all20 epochs retained",
+  "no_elo_claim": true,
+  "command": [
+    "/workspace/.cloud-setup/nnue-pipeline-20261023-venv/bin/python",
+    "-B",
+    "tools/nnue/residual_train.py",
+    "--data-dir",
+    "/workspace/forge-nnue-handoff-20261023/prepared-fresh-only-attempt1",
+    "--run-dir",
+    "/workspace/forge-nnue-handoff-20261023/pilot-fresh14895-zero20-attempt1",
+    "--epochs",
+    "20",
+    "--batch-size",
+    "1024",
+    "--threads",
+    "2",
+    "--lr",
+    "0.001",
+    "--min-lr",
+    "0.00001",
+    "--result-start",
+    "0",
+    "--result-end",
+    "0.1",
+    "--seed",
+    "20261023"
+  ],
+  "source_hashes": {
+    "tools/nnue/residual_train.py": "2fc417411a6ff0a6b0ed7cf411215189879b0634089f9ad6db3d6907c5740ee8",
+    "tools/nnue/train_nnue.py": "afd8fc9da5a439c307f74670a8fe7950860912763407eaad5f104c7bb96c050c",
+    "tools/nnue/include_parser.py": "48cc169f506e9975c239001bbe3ef5fd220d68c0e0ecc68b16dc4145d3f0d32b"
+  }
+}

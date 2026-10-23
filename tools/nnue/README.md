@@ -82,3 +82,19 @@ The original attachment and its checksums are preserved under
 `validation/nnue-pipeline-20261023/original-inputs/`. The supplied `README.txt`
 documents that historical standalone bundle; this file describes the current
 residual workflow.
+
+## Fixed-position comparison
+
+```sh
+python -B tools/nnue/compare_holdout.py --data-dir PREPARED_DATA --shipped-net src/nnue_weights.inc --candidate-net NEW_RUN_DIRECTORY/exports/CHOSEN_EPOCH.inc --reference-baseline-run BASELINE_ONLY_RUN --out NEW_REPORT_DIRECTORY --bootstrap-draws 2000 --seed 20261023
+```
+
+The report replays every validation source line/game identity, checks sparse
+feature sets and aggregates against the trainer, and resamples whole games.
+It reports HCE, both hybrids and residual terms separately. Intervals are
+conditional on model selection on this holdout, not an independent test or Elo.
+The reference guard requires all four validation arrays and row recipes to
+match the earlier baseline, including across differently packaged NPZ files.
+
+`SHA256SUMS.txt` is the historical attachment inventory; its original bytes are
+retained. `CURRENT_SHA256SUMS.txt` inventories the current source/test files.

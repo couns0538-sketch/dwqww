@@ -1,0 +1,197 @@
+  55     float b2 = 0.0F;
+  56 
+  57     void randomize(std::uint64_t seed) {
+  58         std::mt19937_64 rng(seed);
+  59         std::normal_distribution<float> input_dist(0.0F, std::sqrt(1.0F / 32.0F));
+  60         std::normal_distribution<float> output_dist(0.0F, std::sqrt(1.0F / static_cast<float>(2 * Hidden)));
+  61         for (float& w : w1) w = input_dist(rng);
+  62         for (float& w : w2) w = output_dist(rng);
+  63         std::fill(b1.begin(), b1.end(), 0.0F);
+  64         b2 = 0.0F;
+  65     }
+  66     bool load(const std::string& path) {
+  67         std::ifstream in(path, std::ios::binary);
+  68         if (!in) return false;
+  69         in.read(reinterpret_cast<char*>(w1.data()), static_cast<std::streamsize>(w1.size() * sizeof(float)));
+  70         in.read(reinterpret_cast<char*>(b1.data()), static_cast<std::streamsize>(b1.size() * sizeof(float)));
+  71         in.read(reinterpret_cast<char*>(w2.data()), static_cast<std::streamsize>(w2.size() * sizeof(float)));
+  72         in.read(reinterpret_cast<char*>(&b2), sizeof(float));
+  73         return static_cast<bool>(in);
+  74     }
+  75     void save(const std::string& path) const {
+  76         std::ofstream out(path, std::ios::binary);
+  77         out.write(reinterpret_cast<const char*>(w1.data()), static_cast<std::streamsize>(w1.size() * sizeof(float)));
+  78         out.write(reinterpret_cast<const char*>(b1.data()), static_cast<std::streamsize>(b1.size() * sizeof(float)));
+  79         out.write(reinterpret_cast<const char*>(w2.data()), static_cast<std::streamsize>(w2.size() * sizeof(float)));
+  80         out.write(reinterpret_cast<const char*>(&b2), sizeof(float));
+
+ 200     bool residual = false;
+ 201     for (int i = 1; i < argc; ++i) {
+ 202         const std::string arg = argv[i];
+ 203         auto next = [&]() -> std::string { return i + 1 < argc ? argv[++i] : ""; };
+ 204         if (arg == "--residual") residual = true;
+ 205         else if (arg == "--epochs") epochs = std::stoi(next());
+ 206         else if (arg == "--lr") learning_rate = std::stof(next());
+ 207         else if (arg == "--lambda") lambda = std::stof(next());
+ 208         else if (arg == "--batch") batch = static_cast<std::size_t>(std::stoul(next()));
+ 209         else if (arg == "--threads") threads = std::stoi(next());
+ 210         else if (arg == "--k") k = std::stof(next());
+ 211         else if (arg == "--out") output_path = next();
+ 212         else if (arg == "--load") load_path = next();
+ 213         else if (arg == "--save") save_path = next();
+ 214         else if (arg == "--seed") seed = std::stoull(next());
+ 215         else if (arg == "--validate") validation_path = next();
+ 216         else inputs.push_back(arg);
+ 217     }
+ 218     if (inputs.empty()) {
+ 219         std::cerr << "usage: forge_nnue_train positions.txt [options]\n";
+ 220         return 2;
+ 221     }
+ 222 
+ 223     auto load_samples = [&](const std::vector<std::string>& paths, std::vector<Sample>& samples) {
+ 224         forge::Board board;
+ 225         std::string line;
+ 226         for (const std::string& path : paths) {
+ 227             std::ifstream in(path);
+ 228             if (!in) {
+ 229                 std::cerr << "cannot open " << path << '\n';
+ 230                 return false;
+ 231             }
+ 232             while (std::getline(in, line)) {
+ 233                 std::istringstream fields(line);
+ 234                 std::string placement, side, castling, ep, half, full, result_text, score_text;
+ 235                 if (!(fields >> placement >> side >> castling >> ep >> half >> full >> result_text)) continue;
+ 236                 fields >> score_text;
+ 237                 if (!board.set_fen(placement + ' ' + side + ' ' + castling + ' ' + ep + ' ' + half + ' ' + full)) continue;
+ 238                 Sample s;
+ 239                 s.side = static_cast<std::uint8_t>(board.side_to_move());
+ 240                 forge::Bitboard occupied = board.occupied();
+ 241                 while (occupied != 0) {
+ 242                     const int square = forge::pop_lsb(occupied);
+ 243                     s.pieces[s.count] = static_cast<std::uint8_t>(board.piece_at(square));
+ 244                     s.squares[s.count] = static_cast<std::uint8_t>(square);
+ 245                     ++s.count;
+ 246                 }
+ 247                 // Targets are from the side to move's point of view.
+ 248                 float result = std::stof(result_text);
+ 249                 if (board.side_to_move() == forge::Black) result = 1.0F - result;
+ 250                 float target = result;
+ 251                 if (!score_text.empty() && score_text != "none") {
+ 252                     float score = std::stof(score_text);
+ 253                     if (board.side_to_move() == forge::Black) score = -score;
+ 254                     target = lambda * result + (1.0F - lambda) * sigmoid(k * score / 400.0F);
+ 255                 }
+ 256                 s.target = target;
+ 257                 if (residual) {
+ 258                     // Side-to-move centipawns, exactly what the engine adds the net to.
+ 259                     const float hce = static_cast<float>(forge::Evaluator::evaluate_uncached(board));
+ 260                     s.offset = k * hce / 400.0F;
+ 261                 }
+ 262                 samples.push_back(s);
+ 263             }
+ 264         }
+ 265         return true;
+ 266     };
+ 267     std::vector<Sample> samples;
+ 268     if (!load_samples(inputs, samples)) return 1;
+ 269     std::cerr << "loaded " << samples.size() << " positions\n";
+ 270     if (samples.empty()) return 1;
+ 271     std::vector<Sample> validation;
+ 272     if (!validation_path.empty()) {
+ 273         if (!load_samples({validation_path}, validation)) return 1;
+ 274         std::cerr << "validation positions " << validation.size() << '\n';
+ 275     }
+ 276     auto validation_loss = [&](const Network& network) {
+ 277         if (validation.empty()) return 0.0;
+ 278         std::vector<double> losses(static_cast<std::size_t>(threads), 0.0);
+ 279         std::vector<std::thread> workers;
+ 280         for (int t = 0; t < threads; ++t) {
+ 281             workers.emplace_back([&, t]() {
+ 282                 Gradients scratch;
+ 283                 const std::size_t lo = validation.size() * static_cast<std::size_t>(t) / static_cast<std::size_t>(threads);
+ 284                 const std::size_t hi = validation.size() * static_cast<std::size_t>(t + 1) / static_cast<std::size_t>(threads);
+ 285                 for (std::size_t i = lo; i < hi; ++i) train_sample(network, validation[i], scratch);
+ 286                 losses[static_cast<std::size_t>(t)] = scratch.loss;
+ 287             });
+ 288         }
+ 289         for (auto& worker : workers) worker.join();
+ 290         double total = 0.0;
+ 291         for (const double l : losses) total += l;
+ 292         return total / static_cast<double>(validation.size());
+ 293     };
+ 294 
+ 295     Network net;
+ 296     if (!load_path.empty() && net.load(load_path)) {
+ 297         std::cerr << "loaded weights from " << load_path << '\n';
+ 298     } else {
+ 299         net.randomize(seed);
+ 300         if (residual) {
+ 301             // Start as the identity correction: the output layer is zero, so the
+ 302             // first forward pass reproduces the HCE and its loss exactly.
+ 303             std::fill(net.w2.begin(), net.w2.end(), 0.0F);
+ 304             net.b2 = 0.0F;
+ 305         }
+
+ 309     const std::size_t n1 = net.w1.size();
+ 310     Adam adam_w1(n1), adam_b1(net.b1.size()), adam_w2(net.w2.size()), adam_b2(1);
+ 311     std::vector<Gradients> thread_grads(static_cast<std::size_t>(threads));
+ 312     std::vector<std::uint32_t> order(samples.size());
+ 313     for (std::uint32_t i = 0; i < order.size(); ++i) order[i] = i;
+ 314     std::mt19937_64 rng(seed);
+ 315     int step = 0;
+ 316     double best_validation = 1e9;
+ 317     const auto start = std::chrono::steady_clock::now();
+ 318     for (int epoch = 1; epoch <= epochs; ++epoch) {
+ 319         std::shuffle(order.begin(), order.end(), rng);
+ 320         double epoch_loss = 0.0;
+ 321         for (std::size_t begin = 0; begin < samples.size(); begin += batch) {
+ 322             const std::size_t end = std::min(samples.size(), begin + batch);
+ 323             std::vector<std::thread> workers;
+ 324             for (int t = 0; t < threads; ++t) {
+ 325                 workers.emplace_back([&, t]() {
+ 326                     Gradients& g = thread_grads[static_cast<std::size_t>(t)];
+ 327                     g.clear();
+ 328                     const std::size_t lo = begin + (end - begin) * static_cast<std::size_t>(t) / static_cast<std::size_t>(threads);
+ 329                     const std::size_t hi = begin + (end - begin) * static_cast<std::size_t>(t + 1) / static_cast<std::size_t>(threads);
+ 330                     for (std::size_t i = lo; i < hi; ++i) train_sample(net, samples[order[i]], g);
+ 331                 });
+ 332             }
+ 333             for (auto& worker : workers) worker.join();
+ 334             Gradients& total = thread_grads[0];
+ 335             for (int t = 1; t < threads; ++t) {
+ 336                 const Gradients& g = thread_grads[static_cast<std::size_t>(t)];
+ 337                 for (std::size_t i = 0; i < n1; ++i) total.w1[i] += g.w1[i];
+ 338                 for (std::size_t i = 0; i < total.b1.size(); ++i) total.b1[i] += g.b1[i];
+ 339                 for (std::size_t i = 0; i < total.w2.size(); ++i) total.w2[i] += g.w2[i];
+ 340                 total.b2 += g.b2;
+ 341                 total.loss += g.loss;
+ 342             }
+ 343             epoch_loss += total.loss;
+ 344             ++step;
+ 345             const float scale = 1.0F / static_cast<float>(end - begin);
+ 346             adam_w1.step(net.w1.data(), total.w1.data(), n1, learning_rate, step, scale);
+ 347             adam_b1.step(net.b1.data(), total.b1.data(), net.b1.size(), learning_rate, step, scale);
+ 348             adam_w2.step(net.w2.data(), total.w2.data(), net.w2.size(), learning_rate, step, scale);
+ 349             adam_b2.step(&net.b2, &total.b2, 1, learning_rate, step, scale);
+ 350         }
+ 351         const auto elapsed = std::chrono::duration_cast<std::chrono::seconds>(std::chrono::steady_clock::now() - start).count();
+ 352         std::cerr << "epoch " << epoch << " loss " << epoch_loss / static_cast<double>(samples.size()) << " lr " << learning_rate;
+ 353         if (!validation.empty()) {
+ 354             const double v = validation_loss(net);
+ 355             std::cerr << " validation " << v;
+ 356             if (v < best_validation) {
+ 357                 best_validation = v;
+ 358                 net.save(save_path);
+ 359                 write_include(output_path, net, residual);
+ 360                 std::cerr << " *";
+ 361             }
+ 362         } else {
+ 363             net.save(save_path);
+ 364             write_include(output_path, net, residual);
+ 365         }
+ 366         std::cerr << " (" << elapsed << "s)\n";
+ 367         if (epoch % 8 == 0) learning_rate *= 0.5F;
+ 368     }
+ 369     std::cerr << "wrote " << output_path << " and " << save_path << '\n';
+ 370     return 0;
+ 371 }
