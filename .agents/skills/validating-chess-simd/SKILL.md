@@ -76,6 +76,20 @@ measured full-corpus runtime. Parallel shards require global position deduplicat
 and authenticated whole-game partitions before the minimum training count can
 be claimed; summing per-shard counts is insufficient.
 
+Budget recovery, native-array scratch space, recipes and publication copies
+separately. Reclaim temporary archive parts only after both public readback and
+local Git-blob SHA256/size verification; retain original data and recovery proofs.
+Never remove a running recovery process's download cache.
+
+Hardlinks couple future writes. If identical closed historical build/evidence
+files are consolidated, first record an immutable path/hash/metadata inventory,
+exclude current runtime and reference paths, and recheck inactivity, full bytes,
+mode, ownership and extended attributes before atomic replacement. Preserve all
+paths and original metadata receipts. Treat every linked historical build as
+frozen: compile in a fresh directory rather than updating its objects or archives.
+When present, inspect `/workspace/.cloud-setup/IMMUTABLE-HARDLINKED-EVIDENCE-20261023.json`
+before choosing an old build directory. Reflink support must be tested, not assumed.
+
 Before reading independent-audit model losses, freeze the candidate using the
 predeclared original-validation rule and record actual changed quantized numeric
 `W1/B1/W2/B2` values, include/checkpoint hashes and data identity. A changed header
