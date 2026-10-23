@@ -54,16 +54,30 @@ exited zero. The earlier isolated generation timeout remains unexplained.
 Historical storage consolidation retained every path and byte; linked historical
 builds are frozen and require fresh build directories.
 
-## Next gate
+## Training and next gate
 
-The single preregistered eight-epoch warm start began at 21:59:14 UTC.
-Original-validation blended MSE is **0.034083182956426566** for shipped and
-**0.031849118953087376** after epoch 2. These are validation results; no final-audit
-neural loss or new network is claimed. Training continues through all eight
-epochs. Original validation selects the
-earliest minimum trained epoch; freeze changed quantized weights before the
-once-only 10,000-draw whole-game bootstrap audit. Publish a net-only branch only
-if the 95% interval for shipped-minus-candidate audit MSE lies wholly above zero.
-Otherwise publish data and results only. Dataset replay currently requires
-canonical Linux `/workspace` paths; native Windows replay is unproven.
-Playing strength remains **unproven**; the user PC supplies the game gate.
+The single preregistered warm start completed **8 epochs in 1,459.119 seconds**,
+with input integrity passing. The fixed rule selected **epoch 7**:
+original-validation blended MSE **0.03154945258561024**, versus shipped
+**0.034083182956426566**. Teacher-only MSE worsened, from
+**0.016892510091424517** to **0.017081781430475423**; the blended target remains
+the preregistered primary metric. An independent closed-run review passed
+**178 checks**.
+
+Selected quantized include SHA256:
+`1ffd149bd0b88b0799e448553162945f6884402a9d855337325bc472f95cc03e`.
+Its source/data/checkpoint binding and 94,507 numeric weight changes were frozen
+before the once-only final audit. On **302,225 positions from 10,781 represented
+whole games**, audit blended MSE fell from **0.03453693078846838** to
+**0.031588403018465105**, an **8.5373% reduction**. The 10,000-draw whole-game
+bootstrap 95% interval for absolute reduction is
+**[0.0025928813212714543, 0.0033175113598455327]**. Input integrity passed;
+the audit ran once in 433.359 seconds. Teacher-only audit MSE was
+0.017071947293679928 shipped and 0.017036363991417138 candidate.
+
+The loss gate qualifies, but native correctness/perft/UCI and 10,000-position
+C++ parity are still running. No new public network is claimed yet. Publish the
+weights-only candidate only after these checks pass; do not reselect or retrain.
+Dataset replay requires canonical Linux `/workspace` paths; native Windows
+replay is unproven. Playing strength remains **unproven**, with no matches run;
+the user PC supplies the game gate.
