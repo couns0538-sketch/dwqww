@@ -670,3 +670,15 @@ mockUCI integration passes5groups with supplied PID-namespace test adapter.
 Main20epoch zero and separate20epoch warm runs are predeclared and gated behind
 closed originalfullprep24911 plus strictdata/identicalvalidation checks; no
 full-data training or completion is claimed while that preparation is running.
+
+2026-10-23 independent labels/audit preregistration: complete original256 raw
+UCI replay verifies33334searches and21000rows, no history/result mismatches.
+85natural/167score-adjudicated/4maxply-only endings; outcome noise explicit.
+Separate128game audit seed20271023 has a disjoint RNG seed range,902b actual
+native generation closesbothengines0,11296rawrows/8899preparedval111games;
+1321train-partition rows17games are UNUSED. All10220preparedrows pass raw
+nativeHCE/features replay. No audit losses or model selection allowed until
+main candidate is frozen; overlapmask awaits full1Mtrainingrecipes. The
+independent set never changes the original4149validation or fullrun protocol.
+Git defaultcredential failure and helper503 are retained; helper thenpushed
+dd578c2 and verifiedremote/publicbytes. CPUdependency stack pinned, noGPU.

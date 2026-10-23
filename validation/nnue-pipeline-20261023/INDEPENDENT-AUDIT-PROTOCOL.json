@@ -1,0 +1,127 @@
+{
+  "status": "PREDECLARED_BEFORE_AUDIT_GENERATION_OR_RESULTS",
+  "utc": "2026-10-23T14:51:59.637169+00:00",
+  "purpose": "Independent one-use audit after candidate is frozen solely by original4149-row selection set; never training, tuning or candidate selection",
+  "source_commit": "1ab50b2dd64d9b2f752f7f1285f6968cad2fd792",
+  "engine": {
+    "path": "/workspace/.cloud-setup/nnue-pipeline-20261023-baseline-build/forge",
+    "bytes": 518552,
+    "sha256": "02d6ba2690c8dc5873bca78931d54a39421e95d7a4b1846b0e960ca11acfbdd6"
+  },
+  "network": {
+    "path": "/workspace/dwqww/src/nnue_weights.inc",
+    "bytes": 568586,
+    "sha256": "41487f328ff51f27417564df45b6f3139d038b7e940dedb121340bd61be9a4d3"
+  },
+  "frozen_sources": [
+    {
+      "source": {
+        "path": "/workspace/dwqww/tools/nnue/generate_residual_data.py",
+        "bytes": 14072,
+        "sha256": "902b1c7055a3e32e03d3ba78b73582bcc9a9b55bc4f4c761008b5da62559e04f"
+      },
+      "frozen_copy": {
+        "path": "/workspace/forge-nnue-handoff-20261023/independent-audit-frozen-sources-attempt1/generate_residual_data.py",
+        "bytes": 14072,
+        "sha256": "902b1c7055a3e32e03d3ba78b73582bcc9a9b55bc4f4c761008b5da62559e04f"
+      }
+    },
+    {
+      "source": {
+        "path": "/workspace/dwqww/tools/nnue/forge_selfplay.py",
+        "bytes": 28295,
+        "sha256": "90eac5b1dcdc0018cdee624ccb86c8e602d8044ea5bf6fb1ca631b06abd414bb"
+      },
+      "frozen_copy": {
+        "path": "/workspace/forge-nnue-handoff-20261023/independent-audit-frozen-sources-attempt1/forge_selfplay.py",
+        "bytes": 28295,
+        "sha256": "90eac5b1dcdc0018cdee624ccb86c8e602d8044ea5bf6fb1ca631b06abd414bb"
+      }
+    },
+    {
+      "source": {
+        "path": "/workspace/dwqww/tools/nnue/prepare_residual_data.py",
+        "bytes": 23318,
+        "sha256": "9df3b9ea272ff35970a6f038941358f565695b2d088d36a9ca99d05abd6662dc"
+      },
+      "frozen_copy": {
+        "path": "/workspace/forge-nnue-handoff-20261023/independent-audit-frozen-sources-attempt1/prepare_residual_data.py",
+        "bytes": 23318,
+        "sha256": "9df3b9ea272ff35970a6f038941358f565695b2d088d36a9ca99d05abd6662dc"
+      }
+    }
+  ],
+  "frozen_probe": {
+    "path": "/workspace/forge-nnue-handoff-20261023/independent-audit-frozen-sources-attempt1/forge_nnue_probe",
+    "bytes": 335688,
+    "sha256": "d2f400df382c1dc4b048f2bfa1d36c3ca09c84d9c34c043d87b327692b473e49"
+  },
+  "generation": {
+    "games": 128,
+    "seed": 20271023,
+    "workers": 2,
+    "nodes": 5000,
+    "Threads": 1,
+    "Hash": 16,
+    "OwnBook": false,
+    "time_limit_seconds": 1800,
+    "opening_rng_formula": "seed + game_index + attempt * games; at most10attempts",
+    "audit_rng_seed_range_inclusive": [
+      20271023,
+      20272302
+    ],
+    "original_rng_seed_range_inclusive": [
+      20261023,
+      20263582
+    ],
+    "nonoverlap_note": "20261024 was rejected before any protocol/process/output because seed+index would overlap original openings. No invalid generation attempt occurred."
+  },
+  "preparation": {
+    "fresh_only": true,
+    "score_cap": 1000,
+    "known_bestmove_filter": "exclude in-check, terminal, capture/promotion/checking bestmove",
+    "game_split_seed": 20271023,
+    "validation_fraction": 0.9,
+    "train_fraction": 0.1,
+    "batch_size": 4096
+  },
+  "all_audit_train_arrays_unused": true,
+  "masking": {
+    "timing": "After original fullprep closes, before any audit model evaluation",
+    "key": "first four FEN fields",
+    "exclude_audit_validation_if_key_in": [
+      "authenticated main full train recipes",
+      "authenticated original4149 validation recipes"
+    ],
+    "preserve_originals": true,
+    "new_masked_manifest_includes_original_main_manifest_and_recipe_hashes": true,
+    "legacy_game_identity_unknown": true,
+    "known_actual_audit_game_ids_must_be_disjoint_main_known_game_ids": true
+  },
+  "allowed_now": [
+    "actual bounded selfplay",
+    "native HCE preparation/provenance validation",
+    "exact-position overlap masking",
+    "source/data/array hashes and counts"
+  ],
+  "forbidden_now": [
+    "model loss calculation",
+    "candidate quality inspection",
+    "audit training",
+    "audit-driven selection/tuning/retraining",
+    "Elo inference"
+  ],
+  "one_use_gate": "Root freezes one full-data candidate using original4149 validation only, then explicitly runs final comparator once; save candidate hash and no further model selection based on audit outcome.",
+  "original_generation_manifest": {
+    "path": "/workspace/forge-nnue-handoff-20261023/generated-games-256-attempt1/manifest.json",
+    "bytes": 15410,
+    "sha256": "4925fd914097ad700db908b7381ddeb21bd3e81603f38c6ddd384300707a1927"
+  },
+  "paths": {
+    "frozen_bundle": "/workspace/forge-nnue-handoff-20261023/independent-audit-frozen-sources-attempt1",
+    "generation": "/workspace/forge-nnue-handoff-20261023/independent-audit-generated128-attempt1",
+    "prepared_original": "/workspace/forge-nnue-handoff-20261023/independent-audit-prepared-original-attempt1",
+    "prepared_masked": "/workspace/forge-nnue-handoff-20261023/independent-audit-prepared-masked-attempt1"
+  },
+  "retry_policy": "No silent retry; preserve any failed/incomplete attempt and receipts."
+}

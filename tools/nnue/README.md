@@ -18,8 +18,7 @@ DirectML entry point remains available; residual DirectML hardware execution
 has not been verified.
 
 ```sh
-python -m pip install numpy==1.26.4 python-chess==1.999 psutil==7.2.2
-python -m pip install torch==2.4.1 --index-url https://download.pytorch.org/whl/cpu
+python -m pip install -r tools/nnue/requirements-residual-cpu.txt
 cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DFORGE_BUILD_NNUE_TOOLS=ON
 cmake --build build -j 4
 python -B tools/nnue/tests/test_engine_parity.py --probe build/forge_nnue_probe --out NEW_PARITY_DIRECTORY --positions 2048
@@ -54,6 +53,13 @@ It uses a seeded reservoir across all legacy inputs rather than only the first
 file. Source hashes, game identities, validation exclusion and ordered row
 recipes remain available for replay. Derived native JSON streams are hashed
 and discarded on success; failed probe output is retained.
+
+Native generation/preparation has been verified on Linux. CPU training uses
+the shared Python/PyTorch code; residual Windows or DirectML execution has not
+been tested. To reproduce a split, reuse the archived game JSONL and its IDs:
+new generation creates a new run UUID. Separate audit runs also need disjoint
+opening-seed ranges and exact-position exclusion; different UUIDs alone do not
+prove independent games.
 
 Prepared `train.npz` and `validation.npz` contain `features` int16[N,2,32]
 with-1 padding, `hce` and `score` int32[N] in STM centipawns, and `result_stm`
