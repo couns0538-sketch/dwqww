@@ -1,0 +1,81 @@
+{
+  "status": "PASS_SOURCE_REVIEW",
+  "utc": "2026-10-23T14:43:06.432257+00:00",
+  "scope": "Read-only source review of queued orchestration before full training; no runtime/full-data closure claim",
+  "identities": {
+    "controller": {
+      "path": "/workspace/forge-nnue-handoff-20261023/run_full_training_cycle.py",
+      "bytes": 5955,
+      "sha256": "305bca5b3d46c7ceedf0dceb613d1a4eabb561977985ec162d5f0756fdc0e3b7"
+    },
+    "queued_protocol": {
+      "path": "/workspace/forge-nnue-handoff-20261023/full-training-controller-attempt1/PROTOCOL.json",
+      "bytes": 2076,
+      "sha256": "aaa5af93598f2b4a0c1fd4deb0ec845b0d0ccbcbe22a7c0478411a956c5ee1e8"
+    },
+    "trainer": {
+      "path": "/workspace/dwqww/tools/nnue/residual_train.py",
+      "bytes": 19594,
+      "sha256": "2fc417411a6ff0a6b0ed7cf411215189879b0634089f9ad6db3d6907c5740ee8"
+    },
+    "fresh_manifest": {
+      "path": "/workspace/forge-nnue-handoff-20261023/prepared-fresh-only-attempt1/manifest.json",
+      "bytes": 14692,
+      "sha256": "c4054706afa50324398a6ef6319da5341da10d02a21736aacaf25d9639e00653"
+    }
+  },
+  "all_ten_frozen_source_hashes_match": {
+    "tools/nnue/residual_train.py": true,
+    "tools/nnue/train_nnue.py": true,
+    "tools/nnue/include_parser.py": true,
+    "tools/nnue/engine_contract.json": true,
+    "tools/nnue/compare_holdout.py": true,
+    "tools/nnue/prepare_residual_data.py": true,
+    "src/search.cpp": true,
+    "src/nnue.cpp": true,
+    "src/nnue_weights.inc": true,
+    "include/forge/nnue.hpp": true
+  },
+  "checks": {
+    "no_engine_or_pipeline_source_mutations": "PASS: controller writes only exclusive new controller and trainer-run outputs (lines 7-8,42-48); trainer saves into its new run_dir",
+    "stable_source_gate": "PASS: exact ten-file hashes before training and after each actual successful child (lines 14-16,37,53)",
+    "data_closure_gate": "PASS_SOURCE: waits for actual receipt and checks PASS_PREPARED_DATA_CLOSED; then strict load_prepared_data (lines 20-29); receipt not yet present at review",
+    "full_corpus_gate": "PASS_SOURCE: >14895 and <=1M train rows, exactly4149 validation,13.5M examined and9sources (lines 31-32)",
+    "fixed_validation_gate": "PASS_SOURCE: exact validation provenance SHA and dtype/shape/bytes of all4arrays against frozen fresh set (lines 33-36)",
+    "first_attempt_no_retry": "PASS: exclusive attempt1 controller and run directories; any failure raises and records FAILED_NO_RETRY; no retry loop (lines 7,42,51,57-63)",
+    "primary_then_separate_warm": "PASS: zero20 followed by independent warm20; all other CLI values identical; optionalinitialnet solely adds shipped weights (lines 41-44)",
+    "actual_child_closure": "PASS_SOURCE: wait return code0 then summarycompleted/20/input_integritypassed and unchanged source hashes (lines 49-54)",
+    "per_run_original_input_reauthentication": "PASS_SOURCE: residual_train.main verifies the exact manifest/source/data identities loaded at that run start before setting completed/input_integritypassed",
+    "shutdown_evidence": "PASS_SOURCE: interrupt active child process group, wait and kill only if needed; record failure without retry (lines 57-63)",
+    "no_strength_claim": "PASS: protocol and final status explicitly exclude Elo; no match or acceptance inference"
+  },
+  "nonblocking_hardening_note": {
+    "location": "controller lines52-54",
+    "finding": "Controller does not separately compare each returned summary manifest_sha256/training_count/validation_count with DATA-GATE. Each trainer already verifies its own input hashes and the current inputs are immutable; no present mismatch or blocker observed.",
+    "future_action": "If orchestrating mutable inputs, explicitly require each child summary to match the controller-frozen manifest SHA and counts before the next job."
+  },
+  "observed_before_training": {
+    "prep_receipt_exists": false,
+    "data_gate_exists": false,
+    "zero_started": false
+  },
+  "blocking_findings": [],
+  "actions": {
+    "source_edits": 0,
+    "training_jobs_started": 0,
+    "data_jobs_started": 0,
+    "git_mutations": 0
+  },
+  "required_external_post_run_validation": {
+    "owner": "root",
+    "status": "REQUIRED_BEFORE_CANDIDATE_ACCEPTANCE_OR_PUBLICATION_NOT_YET_EXECUTED",
+    "checks": [
+      "Each actual child summary manifest_sha256 must equal DATA-GATE.manifest_sha256.",
+      "Each actual child training_count/validation_count must equal DATA-GATE and the other child.",
+      "Actual child configurations must be identical except initialization and run_dir.",
+      "Frozen source, original raw source and prepared input hashes must remain unchanged.",
+      "Preserve an explicit external post-run validation receipt before candidate acceptance/publication."
+    ],
+    "live_controller_policy": "Do not modify or retry the frozen first-attempt controller."
+  }
+}

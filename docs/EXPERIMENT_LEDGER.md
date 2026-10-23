@@ -659,3 +659,14 @@ separate candidateobject linked before immutablecore, shipped/search untouched.
 All21 checkpoints and all exports per run archived214members/67009675B, each
 readback-hash verified. Original six multipart data files175245322B preserved
 byte-exact; full-corpus prep still running. Neither pilot replaces shipped net.
+
+2026-10-23 follow-up diagnostics: constant-target evaluation of all42 pilot
+exports on all14895 training rows confirms train-down/validation-up divergence
+for both initializations, independent of the result-ramp metric. Actual old
+C++ loader API preserves394756float32 bytes and all98689quantized parameters;
+CLIzeroepoch export is unsupported, documented without source changes. Original
+mockUCI integration passes5groups with supplied PID-namespace test adapter.
+8258168 pushed and remote/source/manifest/originalpart006 publicly byte-verified.
+Main20epoch zero and separate20epoch warm runs are predeclared and gated behind
+closed originalfullprep24911 plus strictdata/identicalvalidation checks; no
+full-data training or completion is claimed while that preparation is running.

@@ -1,0 +1,9 @@
+# Queued full-training controller: source review
+
+PASS source review; no present blocker. This is a pre-execution review, not evidence that full preparation or either full training job has completed.
+
+All ten frozen source hashes match the queued protocol. The controller writes only new output directories, waits for a successful original-preparer receipt, authenticates full prepared inputs, checks the 13.5M-row/nine-source scope, and requires all four validation arrays and the provenance hash to match the frozen 4,149-position set. It runs zero-initialized 20 epochs first, followed by a separate shipped-weight warm-start run with the same remaining parameters. Exclusive directories and first-failure handling prevent silent retries. Actual child return codes and completed/20-epoch/input-integrity summaries gate progress; the trainer rehashes its original inputs at closure. Source hashes are checked before training and after each successful run.
+
+Nonblocking hardening: the controller does not separately compare each child summary's manifest SHA and row counts with DATA-GATE. No current mismatch is observed under the immutable-input workflow. Root has required an external post-run validation receipt before any candidate acceptance or publication: both summary manifest SHAs and row counts must exactly match DATA-GATE and each other; actual configurations must match except initialization/run_dir; all source, raw and prepared hashes must remain unchanged. This receipt is still pending. The live first-attempt controller remains unchanged.
+
+Exact controller, protocol, trainer and frozen fresh-manifest hashes, line-specific checks and queued-state observations are in the JSON companion. No source changes, training/data jobs or Git actions were performed by this review. No selection, CI or Elo conclusion is made.

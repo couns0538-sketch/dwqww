@@ -15,3 +15,9 @@ See the engine/training audit reports and input-inspection receipts beside this 
 ## First measured baseline
 
 On the frozen4149 positions from56 authentic fresh validation games, pure-teacher probability MSE is0.006660536215902123 for HCE and0.006082049055657535 for shipped HCE+NNUE (8.685% lower). The residual term alone is0.07561013420188484; it is a correction, not a complete evaluation. Thus the claim that this shipped net adds nothing is not supported on this set. The teacher is frozen Forge search, not an independent strength oracle. Baseline-only run and input-integrity verification completed with exit0. No Elo conclusion follows.
+
+## Controlled small-data pilot diagnosis
+
+Both20-epoch pilots overfit the same14895 clean training positions/4149 held-out positions. Constant pure-teacher train MSE for zero initialization falls0.0061279211→0.0024297396 while validation rises0.0066605362→0.0076272026. Warm initialization train MSE falls0.0055287028→0.0015423693 while validation rises0.0060820491→0.0072062214. These comparisons use the same pure-teacher metric at every epoch; they are not the online training objective whose result blend changes. The zero run selects epoch1; warm selects its unchanged initial shipped net. Neither pilot is a replacement. All42 checkpoints were evaluated on all14895 training rows, and all exports remain preserved.
+
+The unchanged C++ loader API round-trips the Python residual float32 export byte-exactly and reproduces all98689 quantized parameters. Its CLI does not export for `--epochs0`; this existing limitation was preserved rather than modifying the old trainer. The original mock-UCI CLI integration also passes using its supplied test-only PID-namespace adapter. Actual256-game generation and native inference tests are separate production evidence.

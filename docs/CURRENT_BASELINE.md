@@ -12,7 +12,9 @@ regressions also pass. Fresh generation completed256 identified games/21000
 quiet rows. The game split retains14895 training and4149 validation positions
 (200/56 games), with zero exact-position overlap. Supplied13.5M legacy rows
 lack game IDs/best moves and are training-only. The single frozen all-corpus
-reservoir preparation is running; do not restart or duplicate it.
+reservoir preparation24911 is running (7.5M rows examined/1M retained); do not
+restart it. Controller87815 waits for closedPASS and exact validation identity,
+then runs the predeclared zero20 and separate warm20 full-data experiments.
 
 Measured on the frozen4149 validation positions: HCE teacher MSE
 0.006660536215902123; shipped HCE+NNUE0.006082049055657535 (8.685% lower).
