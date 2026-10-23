@@ -1,33 +1,52 @@
 # Current baseline
 
-Active mission: NNUE training-pipeline repair on `forge/nnue-pipeline-20261023`,
-directly from `1ab50b2dd64d9b2f752f7f1285f6968cad2fd792` (Forge6.4.24).
-Search and shipped weights are unchanged. Tests-first24aa08c and trainera040a76
-are published; after each commit Release14 and bench292545 passed, and the
-engine/core binaries remain identical to the frozen baseline. Actual-core
-Python/C++ parity matched2048/2048 integer NNUE outputs exactly.
+Active mission: NNUE pipeline verification on `forge/nnue-pipeline-20261023`,
+off `1ab50b2dd64d9b2f752f7f1285f6968cad2fd792` (Forge6.4.24).
+Production search, evaluator and shipped default weights remain unchanged.
+The clean frozen **net-only trial** is
+`6e9622fd5be18e0155fc3ed5fcf6c4586705cca6`, branch
+`forge/nnue-net-20261023-a52efa5f7864`; its sole delta from1ab is
+`src/nnue_weights.inc`, SHA256
+`a52efa5f7864b04d0e8fceb3b14af4fc4970e0bb0a0a8706be0959b0bbb98df7`.
+This is not a promoted replacement or an Elo-accepted engine.
 
-The residual trainer's25 tests and data tools'29 tests pass;12 original tool
-regressions also pass (86 combined pipeline tests). Fresh generation completed256
-identified games/21000 quiet rows. Training retains14895 rows from196 games in
-the200-game partition; four completed games retain no rows after filtering.
-Validation is4149 positions/56 games. Full preparation24911 exited0: all13.5M
-legacy rows examined,1951670 unique eligible,985105 selected plus14895 fresh,
-for1000000 training positions. All3038 native batches closed cleanly; validation
-arrays/provenance match the original baseline exactly and exact-position overlap
-is zero. A mistaken closure assertion requiring rows from every partition game
-failed and stopped controller87815 before any training. Original failures are
-preserved. Separately reviewed closure-v2 passed without changing data or sources.
-Controller47264 actually closed0: zero20 bestepoch3 loss0.006025381044581158; warm20 bestepoch1 loss0.006065743204453543. All source/data/config guards passed. The predeclared40-epoch rule froze zeroepoch3, networkSHA a52efa5f7864b04d0e8fceb3b14af4fc4970e0bb0a0a8706be0959b0bbb98df7. Clean net-only trialsource is6e9622fd5be18e0155fc3ed5fcf6c4586705cca6, onlyweights changed from1ab. Native parity, LinuxRelease/ASan and Windows trial qualification are now starting; no audit model losses yet. Default weights/search and accepted integration remain unchanged.
+Both full-data20-epoch runs actually closed0. One million training positions
+comprise985105 legacy and14895 fresh positions; original validation is4149/56
+games. The preregistered40-epoch selection froze zero-run epoch3 before public
+publication and the once-only independent audit. All checkpoints, data recovery,
+failed gates, exact commands and raw results are preserved under
+[NNUE evidence](../validation/nnue-pipeline-20261023/).
 
-Measured on the frozen4149 validation positions: HCE teacher MSE
-0.006660536215902123; shipped HCE+NNUE0.006082049055657535 (8.685% lower).
-A separate20-epoch fresh-only pilot completed, best epoch1
-0.006649745635525344: slightly below HCE but worse than the shipped net.
-It is not an accepted replacement. The chosen full-data checkpoint improves this selection metric; final native qualification and independent audit remain pending.
-No Elo claim. [Diagnosis/evidence](../validation/nnue-pipeline-20261023/DIAGNOSIS.md).
-Previous unfinished work is preserved remotely at5b9b132 on its original branch.
+Independent audit8881 positions/109 represented games: HCE MSE
+0.006741170688447828; shipped hybrid0.005970920199524993; candidate hybrid
+0.005991080028522929. Candidate is11.127% below HCE (95% whole-game interval
+5.858..16.472%) but0.338% worse than shipped; improvement interval
+-5.783..+4.286% includes zero. **No improvement over shipped is demonstrated.**
+Retain shipped default. No reselection or retraining using this audit.
+No games or Elo claims; user QA owns the separate1000-game strength gate.
 
+Chosen-net native and Windows parity each pass2048/2048 exact integer scores,
+zero feature mismatches. Original C++ loader roundtrip preserves all394756 binary
+bytes and98689 quantized parameters. Windows Zen5 trial passes all14 original
+checks under Wine; first/repeated new-net bench378596. The delivered EXE hash is
+`2adc0429d238208ae9ae1a7788d6c570d9eb649b58c737bd8358d6004703518e`.
+[Windows trial ZIP](../releases/forge-6.4.24-nnue-a52efa5f7864-trial-windows-zen5.zip),
+13008348 bytes, SHA256
+`276598f6ea45eae76cea7016052e00c37e54ccf5c709c48448c1e3aadbf5c3ca`.
+Wine qualification is not physical Windows/Ryzen testing or measured speed.
+
+Original Linux Release and ASan/UBSan each passed13/14, failing only an
+evaluation-dependent depth8 null-pruning coverage assertion. Raw failures remain
+preserved; no sanitizer diagnostic occurred. Test-only repair `f4a1ed6` uses a
+controlled real search window and passes against old/new actual cores; disabling
+null pruning in a private negative-control object makes the assertion fail.
+Production search is unchanged. The fresh corrected-harness full Release and
+ASan/UBSan qualification is running; it explicitly combines clean6e engine with
+only f4's exact test file, rather than silently substituting another engine.
+Default shipped build after f4 passes14/14 and unchanged bench292545; engine/core
+are bit-identical to the immutable baseline. See
+[qualification status](../validation/nnue-pipeline-20261023/QUALIFICATION_STATUS.md).
+Previous paused work remains preserved remotely at5b9b132 on its original branch.
 
 Accepted integration `forge/6.4-hourly-20261019` is now
 `5101c2529d386b7c3a04ba9156a69ee34df6bb43` (remote fast-forward verified

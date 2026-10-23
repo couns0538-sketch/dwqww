@@ -1,22 +1,25 @@
 # Next experiments
 
-Active NNUE mission: original13.5M preparation24911 actually exited0 and corrected
-closure-v2 passed. Root full-training controller47264 is active: zero20 then warm20
-on the same1M training rows and original4149 validation rows. Do not duplicate it.
-The old closure's all-games-retain-rows assertion was wrong (196/200 retained);
-its failed evidence and stopped-before-training controller remain preserved.
+Active NNUE mission: both full runs and the once-only independent audit are
+closed. Candidate6e/INC a52efa5f7864 is frozen; do not train, tune or choose another
+epoch from audit results. Candidate beats HCE loss but does not demonstrate a
+loss improvement over shipped; shipped default and search remain unchanged.
 
-After actual training closure, verify both summary/config/manifest/source bindings.
-Apply the committed CANDIDATE-FREEZE-RULE using originalvalidation only, checking
-actual quantized parameters changed. Freeze/publish the chosen new export before
-independent audit model losses. Run candidate-specific native2048 parity and the
-matched fixed-position report. Independentaudit controller attempt2 waits for
-corrected closure-v2 and masks positions shared with maintrain/originalvalidation;
-no model evaluation untilfreeze. Build the separately labeled Windows Zen5 trial
-from exact1ab plus only the frozen weights, run all14 original checks under Wine,
-and save its genuine changed-net bench signature. Archive all data/checkpoints,
-failed gates, rawlogs and receipts with Git-safe parts and verified recovery.
-No search/defaultweight changes or Elo claims; QA owns1000-game strength gate.
+1. Consume the sole fresh corrected-harness Linux qualification owned by
+   nnue_sample_inspection: Release14 then ASan/UBSan14, genuine first new-net
+   benchmark and repeat. Source is clean6e plus only the f4 test fixture.
+   Preserve original13/14 failures and all original raw results, no silent retries.
+2. Publish/hash-readback the tested Windows ZIP and completed original/audit loss
+   reports,2048-position native/Windows parity, loader roundtrip and warm archive.
+   Final one-page report must distinguish teacher MSE, runtime checks and Elo.
+3. Preserve the complete original and corrected Linux qualification evidence in
+   verified recovery archives; record exact source, binary and test-harness hashes.
+4. Hand frozen net-only source6e and the exact tested Windows EXE to user QA's
+   separate1000-game gate against6.4.24. No local game or Elo claim was made.
+   Code review should include the trainer/data/export tools and test-only fix.
+5. More clean identified-game data and independent teacher calibration are future
+   work, not a reason to alter this frozen audit. Legacy producer/game IDs remain
+   unknown. Optional output buckets are deferred; no search changes this mission.
 
 The following performance work is a preserved, paused continuation queue:
 

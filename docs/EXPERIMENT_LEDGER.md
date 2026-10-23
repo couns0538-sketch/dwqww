@@ -723,3 +723,15 @@ Clean net-only sourcecommit6e9622fd5be18e0155fc3ed5fcf6c4586705cca6 off1ab chang
 onlysrc/nnue_weights.inc. Mainactivecheckout/defaultweights/indexcontent unchanged.
 This records a frozen candidate before independent-audit model evaluation;
 Release/ASan/Wine/parity qualification stillpending, noElo or promotion claim.
+
+2026-10-23 completed frozen NNUE audit: both20epoch full runs closed0; zeroepoch3
+frozen at6e9622f before independent8881/109 audit. Candidate11.127% belowHCE loss
+(CI5.858..16.472%), but0.338% worse than shipped (improvementCI-5.783..+4.286%);
+no shipped-net gain, no Elo. Retain old default. Actual final2048native+2048Windows
+parity exact, legacy394756byte/98689parameter roundtrip exact. Windowsall14PASS,
+new-net378596bench repeated; ZIP13008348B SHA276598f6ea45eae76cea7016052e00c37e54ccf5c709c48448c1e3aadbf5c3ca.
+OriginalLinuxRelease/ASan13/14 failed only fragile NMP coverage assertion; no
+sanitizer error. Controlled testonlyf4a repair proven old/new cores and disabledNMP
+negativecontrol; productionsearch unchanged. Corrected fullLinux qualification
+running, not yetpassed. Completed reports, raw evidence and warm checkpoints
+preserved; see validation/nnue-pipeline-20261023/QUALIFICATION_STATUS.md.

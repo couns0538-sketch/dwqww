@@ -1,0 +1,125 @@
+{
+  "status": "PREDECLARED_ONCE_ONLY_INDEPENDENT_AUDIT_AFTER_PUBLIC_FROZEN_SELECTION_BEFORE_MODEL_LOSSES",
+  "utc": "2026-10-23T16:26:32.142586+00:00",
+  "root_authorization": "Explicit GO after public freeze/clean-net source push38700 exit0 and exact HTTP200 readback; only fixedzeroepoch3.",
+  "public_selection_commit": "40f3f1551960e95421299cebd70fa2e58f5918ae",
+  "public_net_only_source_commit": "6e9622fd5be18e0155fc3ed5fcf6c4586705cca6",
+  "public_proof": {
+    "path": "/workspace/forge-nnue-handoff-20261023/publication-frozen-net-before-audit-attempt1/VERIFIED.json",
+    "bytes": 1181,
+    "sha256": "ab5ba859f43c7cd6dae32061b1d1c8ce7c8f2d09a0d6583d6e3898bfc8be6f1c"
+  },
+  "frozen_selection": {
+    "path": "/workspace/forge-nnue-handoff-20261023/full-trained-net-freeze-attempt1/FREEZE.json",
+    "bytes": 33193,
+    "sha256": "3d945dc1f0e20d3469791eeb36b9ad5b23a1e70c87f6615703d0fda3442e211c"
+  },
+  "frozen_candidate": {
+    "path": "/workspace/forge-nnue-handoff-20261023/full-trained-net-freeze-attempt1/nnue_weights.inc",
+    "bytes": 536028,
+    "sha256": "a52efa5f7864b04d0e8fceb3b14af4fc4970e0bb0a0a8706be0959b0bbb98df7"
+  },
+  "shipped_network": {
+    "path": "/workspace/dwqww/src/nnue_weights.inc",
+    "bytes": 568586,
+    "sha256": "41487f328ff51f27417564df45b6f3139d038b7e940dedb121340bd61be9a4d3"
+  },
+  "masked_data_manifest": {
+    "path": "/workspace/forge-nnue-handoff-20261023/independent-audit-prepared-masked-attempt1/manifest.json",
+    "bytes": 12361,
+    "sha256": "d7a9a4e01cfcbc1c0bd25ec0aec9d38cf8786ce4309dba9b4d6bef6e659c7c74"
+  },
+  "original_audit_protocol": {
+    "path": "/workspace/forge-nnue-handoff-20261023/INDEPENDENT-AUDIT-PROTOCOL.json",
+    "bytes": 5228,
+    "sha256": "7e0b6dadcb2a7eeddae128680822a65b1cd835120b025fe2a989ded50d78b5eb"
+  },
+  "actual_unused_audit_data_closure": {
+    "path": "/workspace/forge-nnue-handoff-20261023/INDEPENDENT-AUDIT-TOOL-CLOSED.json",
+    "bytes": 2283,
+    "sha256": "35df7b25d04c9a9a950c1f4de09166b0d345914956eb6baef3ca4e661f567816"
+  },
+  "source_hashes": {
+    "tools/nnue/residual_train.py": "2fc417411a6ff0a6b0ed7cf411215189879b0634089f9ad6db3d6907c5740ee8",
+    "tools/nnue/train_nnue.py": "afd8fc9da5a439c307f74670a8fe7950860912763407eaad5f104c7bb96c050c",
+    "tools/nnue/include_parser.py": "48cc169f506e9975c239001bbe3ef5fd220d68c0e0ecc68b16dc4145d3f0d32b",
+    "tools/nnue/engine_contract.json": "63fe81edb25cc700e9b266fba078facdfc69ed40edad0fdd9cb11e7037bce83f",
+    "tools/nnue/compare_holdout.py": "4a5f557f675b5c190544669c1966d6935bb2ba99f95e36a9d78eb62908faedf2",
+    "tools/nnue/prepare_residual_data.py": "9df3b9ea272ff35970a6f038941358f565695b2d088d36a9ca99d05abd6662dc",
+    "src/search.cpp": "44680416e008f4ccc0ac7d95a1452ae3db34459f945ea3311dc456536fcb0e55",
+    "src/nnue.cpp": "86aec39feecf029e73510e7e5fadf9e9878c94744f0380c4149edf04da02cdcd",
+    "src/nnue_weights.inc": "41487f328ff51f27417564df45b6f3139d038b7e940dedb121340bd61be9a4d3",
+    "include/forge/nnue.hpp": "d87106d1716388375332ea20e97d9a703c74f479ffa5236c75608b356ab5aace"
+  },
+  "rows": 8881,
+  "represented_games": 109,
+  "listed_validation_game_ids": 111,
+  "unused_train_rows": 1321,
+  "all_audit_train_arrays_unused": true,
+  "sequence": [
+    "new shipped baseline-only run T1 with NO optimizer steps",
+    "one unchanged compare_holdout job, same data and new same-audit shipped reference"
+  ],
+  "baseline_command": [
+    "/workspace/.cloud-setup/nnue-pipeline-20261023-venv/bin/python",
+    "-B",
+    "tools/nnue/residual_train.py",
+    "--data-dir",
+    "/workspace/forge-nnue-handoff-20261023/independent-audit-prepared-masked-attempt1",
+    "--run-dir",
+    "/workspace/forge-nnue-handoff-20261023/independent-audit-shipped-baseline-attempt1",
+    "--epochs",
+    "1",
+    "--batch-size",
+    "1024",
+    "--threads",
+    "1",
+    "--seed",
+    "20261023",
+    "--baseline-only",
+    "--initial-net",
+    "src/nnue_weights.inc"
+  ],
+  "comparison_command": [
+    "/workspace/.cloud-setup/nnue-pipeline-20261023-venv/bin/python",
+    "-B",
+    "tools/nnue/compare_holdout.py",
+    "--data-dir",
+    "/workspace/forge-nnue-handoff-20261023/independent-audit-prepared-masked-attempt1",
+    "--shipped-net",
+    "src/nnue_weights.inc",
+    "--candidate-net",
+    "/workspace/forge-nnue-handoff-20261023/full-trained-net-freeze-attempt1/nnue_weights.inc",
+    "--out",
+    "/workspace/forge-nnue-handoff-20261023/independent-audit-frozen-zeroep3-report-attempt1",
+    "--batch-size",
+    "1024",
+    "--bootstrap-draws",
+    "2000",
+    "--seed",
+    "20261023",
+    "--reference-baseline-run",
+    "/workspace/forge-nnue-handoff-20261023/independent-audit-shipped-baseline-attempt1"
+  ],
+  "metric": "Pure search-score teacher probability MSE after engine-style quantized correction/clipping/truncation; HCE vs shippedHCE+NNUE vs frozenHCE+NNUE; residual terms alone diagnostic",
+  "bootstrap": {
+    "draws": 2000,
+    "seed": 20261023,
+    "cluster_unit": "complete represented gameID",
+    "estimator": "ratio(sum loss / sum rows) for paired whole-game resamples",
+    "interval": "95% linear percentile"
+  },
+  "torch_threads": 1,
+  "batch_size": 1024,
+  "game_generation_and_split_seed": 20271023,
+  "one_use_definition": "Exactly this baseline plus fixed-candidate comparator job; comparator internally repeats full aggregates for numerical agreement, no other models/hyperparameters or selection loops.",
+  "forbidden": [
+    "audit training",
+    "audit-driven reselection/retraining/tuning",
+    "other candidates",
+    "outcome-based retries",
+    "Elo or full native qualification claim"
+  ],
+  "native_status": "Final candidate native parity/Windows/Linux runtime qualification remains separate and not yet asserted complete.",
+  "failure_policy": "Preserve first failed command/streams/source; stop without automatic retry or reselection."
+}
