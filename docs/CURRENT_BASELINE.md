@@ -18,13 +18,13 @@ arrays/provenance match the original baseline exactly and exact-position overlap
 is zero. A mistaken closure assertion requiring rows from every partition game
 failed and stopped controller87815 before any training. Original failures are
 preserved. Separately reviewed closure-v2 passed without changing data or sources.
-Controller47264 now runs the unchanged zero20 then separate warm20 protocol.
+Controller47264 completed zero20(actual childexit0): bestepoch3 loss0.006025381044581158. Separate warm20 is still running. Full/data/audit recovery parts are public atd4ee5cd; the zero run now has a separate verified157-member archive.
 
 Measured on the frozen4149 validation positions: HCE teacher MSE
 0.006660536215902123; shipped HCE+NNUE0.006082049055657535 (8.685% lower).
 A separate20-epoch fresh-only pilot completed, best epoch1
 0.006649745635525344: slightly below HCE but worse than the shipped net.
-It is not an accepted replacement. Full-data training remains pending.
+It is not an accepted replacement. The completed full zero run improves this selection metric; final40-epoch comparison and independent audit remain pending.
 No Elo claim. [Diagnosis/evidence](../validation/nnue-pipeline-20261023/DIAGNOSIS.md).
 Previous unfinished work is preserved remotely at5b9b132 on its original branch.
 

@@ -1,0 +1,59 @@
+{
+  "status": "PASS_PREPARED_RUNNER_SOURCE_REVIEW",
+  "utc": "2026-10-23T15:59:35.940248+00:00",
+  "scope": "Read-only source review of stable prepared future-use runner and existing exact export helper; no execution or qualification result",
+  "identities": {
+    "runner": {
+      "path": "/workspace/forge-nnue-handoff-20261023/linux-final-net-trial-preparation-attempt1/run_linux_trial.py",
+      "bytes": 15175,
+      "sha256": "43cb0ff0ba193348d9b2bc296afcd68800d129732b718bb82f4e8e9752fb836c"
+    },
+    "pins": {
+      "path": "/workspace/forge-nnue-handoff-20261023/linux-final-net-trial-preparation-attempt1/PINS.json",
+      "bytes": 4749,
+      "sha256": "053f762f2fd2e8d03b8159bb0f955e8efbeb035caed965429ac596bd75df19a5"
+    },
+    "export_helper": {
+      "path": "/workspace/forge-nnue-handoff-20261023/windows-final-net-trial-preparation-attempt1/export_trial.py",
+      "bytes": 4101,
+      "sha256": "d4b19c9e03f826a786fc200c0e050a2a8b7e5852061476b8d2d801bf40bbfb8c"
+    },
+    "include_parser": {
+      "path": "/workspace/dwqww/tools/nnue/include_parser.py",
+      "bytes": 3164,
+      "sha256": "48cc169f506e9975c239001bbe3ef5fd220d68c0e0ecc68b16dc4145d3f0d32b"
+    }
+  },
+  "baseline": "1ab50b2dd64d9b2f752f7f1285f6968cad2fd792",
+  "blocking_findings": [],
+  "source_checks": {
+    "frozen_input_and_tool_bindings": "Runner/PINS SHA match; runner hashes itself, supplied include and all declared tools/helper/parser before and around jobs (lines78-92,111-126,162). Hashing source references does not execute them.",
+    "exact_source_only_export": "Actual pinned export_trial.py reads baseline Git ls-tree/cat-file blobs for CMake/LICENSE/include/src/bench/tests/tools, omits only historical pyc files, validates file set and git modes, changes only src/nnue_weights.inc and rejects an unchanged/other-shape/nonresidual include. Runner verifies baseline/H128/residual/changed-path/includeSHA and then full exported source bytes/modes (lines171-180).",
+    "fresh_configurations": "Exclusive output/build paths, C++20, explicit compiler/CMake/Make/Python and strict non-fast-math/no-contraction/no-LTO flags; fresh Release and separate RelWithDebInfo ASan/UBSan with non-PIE sanitizer link (lines182-215). Actual compile_commands and linker flags are inspected rather than inferred.",
+    "complete_actual_tests": "Exactly14 distinct original CTest names are required from discovery; actual ctest run must return0 and emit matching14-case JUnit withoutfailure/error/skipped plus fullpass summary (lines216-232). This is a future runtime gate, not a result observed by review.",
+    "new_net_benchmark": "New Release binary hash is frozen; first actual positive bench11 node signature is saved in exclusive FIRST-BENCH11.json, second fresh process must match; no old292545 signature assumption (lines233-252). Result makes no timing/NPS/Elo acceptance claim.",
+    "owned_child_lifecycle": "Each Popen uses a new process session. communicate timeout/exception kills that process group, communicates/reaps, records original command/stdin/stdout/stderr/rc/exception before raising; no retry loop (lines125-163). Current native UCI/ponder/book test child launches do not detach from their inherited group.",
+    "failure_preservation": "Exclusive writes retain original evidence; main failure records FAILED and explicitly requires investigation without force-pass source changes, automaticretry or promotion (lines267-273).",
+    "candidate_and_core_binding_scope": "No candidate exists yet at preparation time. Runner accepts explicit chosen include/SHA, proves exact original source plus that file, builds fresh native core and records new engine/core identities. It does not reuse or assume the old native core/binary hash."
+  },
+  "required_external_invocation_binding": {
+    "status": "PENDING_UNTIL_ROOT_FREEZES_FINAL_CANDIDATE",
+    "requirement": "Root must verify the actual --inc path/--sha256 match its chosen frozen artifact and preserve a reference/hash to the final FREEZE.json in the invocation/controller receipt.",
+    "reason": "The intentionally reusable runner accepts an explicit include/SHA; it does not itself inspect FREEZE.json. This is no blocker under the root-owned planned invocation, but the prepared review alone does not prove a final candidate was selected."
+  },
+  "limitations": [
+    "Prepared source review is not a build, test, sanitizer, new-network bench, Windows validation, strength acceptance or Elo result.",
+    "Only runner/PINS/helper/parser bytes were read and hash-verified; no tool version command or tool/helper execution occurred.",
+    "Runtime success and actual process reaping must be established by later original logs/results."
+  ],
+  "actions": {
+    "source_edits": 0,
+    "exports": 0,
+    "builds": 0,
+    "tests_run": 0,
+    "native_jobs": 0,
+    "model_forwards": 0,
+    "audit_data_or_model_metrics_read": 0,
+    "git_mutations": 0
+  }
+}

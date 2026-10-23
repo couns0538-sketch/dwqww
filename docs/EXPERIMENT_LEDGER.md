@@ -701,3 +701,14 @@ rehashchecked allbytes, and passed the shared strict prepared-data validator.
 Audit remains8,881positions/109representedgames with zero model losses measured;
 18exactpositionoverlaps removed. Fulltraining stillrunning. Allarchive evidence
 is under validation/nnue-pipeline-20261023/*recovery-attempt1/.
+
+Fullzero20 child771830 exited0 in1224.7529014889733seconds(sharedCPUload,
+not a performance comparison). Bestepoch3 pure-teacher validation MSE
+0.006025381044581158 versus HCE0.006660536215902123 and shipped0.006082049055657535.
+Finalepoch20 MSE0.006699762487462328. All21checkpoint/export sets archived:
+157members/46,324,742expandedbytes, ZIP34,432,004bytes SHA
+37c76b6d9676174f4ad6c2c9f0491a47141190225a6af726f223671fed205f52,
+twoGit-safe parts, archive reassembly/readback and root fresh extraction passed.
+The outercontroller47264 and separate warm run remain active; no final selection
+or independent-audit model result. Prepared Linux28-test and Windows14-check
+runners/recipes are preserved explicitly as unexecuted preparation.
