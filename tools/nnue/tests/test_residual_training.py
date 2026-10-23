@@ -85,6 +85,20 @@ class ResidualTargetTests(unittest.TestCase):
                     torch.zeros(1), torch.zeros(1), torch.zeros(1), weight,
                 )
 
+    def test_engine_cp_clamps_match_actual_search_constants_at_both_boundaries(self):
+        source = (TOOLS.parents[1] / "include/forge/search.hpp").read_text()
+        mate = int(re.search(r"constexpr int MateValue\s*=\s*(\d+)", source).group(1))
+        ply = int(re.search(r"constexpr int MaxPly\s*=\s*(\d+)", source).group(1))
+        limit = mate - ply - 1
+        contract = json.loads((TOOLS / "engine_contract.json").read_text())
+        self.assertEqual(contract["combined_centipawn_limit"], limit)
+        correction, combined = self.training.engine_centipawns(
+            torch.tensor([300.0, -300.0, 0.0, 0.0]),
+            torch.tensor([20000.0, -20000.0, limit + 1.0, -limit - 1.0]),
+        )
+        torch.testing.assert_close(correction, torch.tensor([30000.0, -30000.0, 0.0, 0.0]))
+        torch.testing.assert_close(combined, torch.tensor([limit, -limit, limit, -limit], dtype=torch.float32))
+
 
 class ScheduleTests(unittest.TestCase):
     @classmethod

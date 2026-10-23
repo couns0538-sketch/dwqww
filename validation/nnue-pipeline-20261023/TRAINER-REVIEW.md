@@ -1,0 +1,17 @@
+# Independent trainer-component source review
+
+PASS within this component: no blocking trainer finding remains in the four exact source hashes recorded in `TRAINER-REVIEW.json`. This review does not approve the independently changing data tools, a newly trained net, or an Elo claim. The reviewer authored the separate probe/include parser and makes no independent-review claim about those files.
+
+The residual target is `(scoreSTM-HCESTM)*2.25/400`; the prediction includes the actual HCE offset in logit units. White results are converted to STM by data preparation, and the trainer does not reflect the score/result again. Teacher and result probabilities are mixed directly, with a recorded result-weight ramp. It uses the existing shared768→128×2 SCReLU model and quantization-aware weights, without changing search.
+
+Validation evaluates every held-out row and uses two distinct engine operations: truncation/clamping of the correction to±30000, followed by HCE addition/clamping to±31871. The final31871 helper and test derive the expected limit from actual engine headers. The original31743 draft/check outputs remain historical; the later targeted test rejects a deliberate31743 mutation. Continuous training logits and quantized exported inference are distinct; a newly trained export still needs actual-C++ parity before acceptance.
+
+The fixed selection metric is complete held-out pure-teacher probability MSE after correction truncation. Mixed-result MSE is reported separately. Initial/HCE loss is evaluated before updates; epoch0 and every epoch are saved using exclusive output publication. Best selection starts from the actual initial network, so a worse first epoch cannot silently replace it. Cosine LR and result-ramp endpoints are tested. The current residual CLI saves optimizer/RNG state but does not expose resume; no resume feature is claimed here.
+
+The exporter change is explicitly opt-in (`residual=False` remains the legacy default). Its original3-argument call stays standalone; residual exports carry the1 flag. Feature-major W1, B1, STM/opponent W2, B2 float32 byte layout is unchanged, with half-away-from-zero int16 quantization and nonfinite/unsupported-scale rejection. Existing no-flag engine includes remain standalone because no engine loader changed.
+
+Prepared-data validation requires the named NPZs and exact source hashes, nonempty real validation-game IDs, disjoint known game sets, explicit unknown-legacy-training status, required filters, correct array names/dtypes/shapes and finite valid results. Final integrity rehashes files without allocating a second NPZ copy. The trainer authenticates a trusted preparer's manifest; it is not an independent reconstruction of raw game assignments. Data-tool source review remains separate.
+
+Verification reviewed, not replayed: final25 new tests PASS;12 legacy tool tests PASS; retained synthetic4train/2validation rows complete2 epochs and baseline-only shipped-net loading; original REDs and deliberate wrong-clamp negative control retained. Eight reported test-log SHA-256s were independently rehashed and matched. The synthetic rows prove the workflow only; they do not establish real-data generalization. Real current-data baseline, candidate loss, exported-candidate C++ parity and QA strength gate remain outstanding.
+
+No engine, compiler, CTest, benchmark, training or match was executed by this source review, and no reviewed source was edited.

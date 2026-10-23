@@ -1,5 +1,18 @@
 # Current baseline
 
+Active user mission: rebuild and verify the NNUE training pipeline on
+`forge/nnue-pipeline-20261023`, directly from
+`1ab50b2dd64d9b2f752f7f1285f6968cad2fd792`. Search and shipped weights are frozen.
+Fresh Release14 and unchanged292545 bench passed; actual-core parity matched
+2048/2048 integer NNUE outputs exactly. The supplied standalone exporter has a
+reproduced residual-mode failure. The13.5M legacy rows lack game IDs/best moves;
+validation will use fresh identified games and exclude their position keys from
+legacy training. No current held-out loss or Elo improvement is claimed.
+[Task and initial diagnosis](../validation/nnue-pipeline-20261023/DIAGNOSIS.md).
+Previous unfinished performance/archive work is preserved remotely at
+`5b9b132bf179df6f9ddae12e97f5fc5f9b4eb894` on its original branch.
+
+
 Accepted integration `forge/6.4-hourly-20261019` is now
 `5101c2529d386b7c3a04ba9156a69ee34df6bb43` (remote fast-forward verified
 2026-10-20 20:44:42UTC). It adds the existing one-line OwnBook repair af19413 and

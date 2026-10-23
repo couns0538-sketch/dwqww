@@ -1,0 +1,115 @@
+{
+  "status": "PASS_SYNTHETIC_FUNCTIONAL_ONLY_NOT_REAL_DATA_OR_ELO",
+  "utc": "2026-10-23T13:40:25.864255+00:00",
+  "commands": [
+    {
+      "label": "original-tools-12",
+      "command": [
+        "/workspace/.cloud-setup/nnue-pipeline-20261023-venv/bin/python",
+        "-B",
+        "tools/nnue/tests/test_tools.py"
+      ],
+      "returncode": 0,
+      "expected_returncode": 0,
+      "elapsed_seconds": 43.11154704896035
+    },
+    {
+      "label": "synthetic-two-epoch",
+      "command": [
+        "/workspace/.cloud-setup/nnue-pipeline-20261023-venv/bin/python",
+        "-B",
+        "tools/nnue/residual_train.py",
+        "--data-dir",
+        "/workspace/forge-nnue-handoff-20261023/residual-functional-smoke-2epoch/data",
+        "--threads",
+        "1",
+        "--batch-size",
+        "3",
+        "--epochs",
+        "2",
+        "--lr",
+        "0.001",
+        "--min-lr",
+        "0.0001",
+        "--result-start",
+        "0",
+        "--result-end",
+        "0.1",
+        "--seed",
+        "17",
+        "--run-dir",
+        "/workspace/forge-nnue-handoff-20261023/residual-functional-smoke-2epoch/run"
+      ],
+      "returncode": 0,
+      "expected_returncode": 0,
+      "elapsed_seconds": 7.425807363004424
+    },
+    {
+      "label": "synthetic-baseline-shipped",
+      "command": [
+        "/workspace/.cloud-setup/nnue-pipeline-20261023-venv/bin/python",
+        "-B",
+        "tools/nnue/residual_train.py",
+        "--data-dir",
+        "/workspace/forge-nnue-handoff-20261023/residual-functional-smoke-2epoch/data",
+        "--threads",
+        "1",
+        "--batch-size",
+        "3",
+        "--epochs",
+        "2",
+        "--lr",
+        "0.001",
+        "--min-lr",
+        "0.0001",
+        "--result-start",
+        "0",
+        "--result-end",
+        "0.1",
+        "--seed",
+        "17",
+        "--run-dir",
+        "/workspace/forge-nnue-handoff-20261023/residual-functional-smoke-2epoch/baseline-shipped",
+        "--baseline-only",
+        "--initial-net",
+        "src/nnue_weights.inc"
+      ],
+      "returncode": 0,
+      "expected_returncode": 0,
+      "elapsed_seconds": 6.85816043196246
+    },
+    {
+      "label": "wrong-31743-limit-negative-control",
+      "command": [
+        "/workspace/.cloud-setup/nnue-pipeline-20261023-venv/bin/python",
+        "-B",
+        "-c",
+        "import sys,unittest\nsys.path.insert(0,\"/workspace/dwqww/tools/nnue\")\nsys.path.insert(0,\"/workspace/dwqww/tools/nnue/tests\")\nimport residual_train\nresidual_train.COMBINED_CP_LIMIT=31743\nsuite=unittest.defaultTestLoader.loadTestsFromName(\"test_residual_training.ResidualTargetTests.test_engine_cp_clamps_match_actual_search_constants_at_both_boundaries\")\nresult=unittest.TextTestRunner(verbosity=2).run(suite)\nsys.exit(0 if result.wasSuccessful() else 1)\n"
+      ],
+      "returncode": 1,
+      "expected_returncode": 1,
+      "elapsed_seconds": 3.502163313969504
+    }
+  ],
+  "source_sha256": {
+    "tools/nnue/residual_train.py": "2fc417411a6ff0a6b0ed7cf411215189879b0634089f9ad6db3d6907c5740ee8",
+    "tools/nnue/train_nnue.py": "afd8fc9da5a439c307f74670a8fe7950860912763407eaad5f104c7bb96c050c",
+    "tools/nnue/engine_contract.json": "63fe81edb25cc700e9b266fba078facdfc69ed40edad0fdd9cb11e7037bce83f",
+    "tools/nnue/tests/test_residual_training.py": "317f2d5a72689d4553ba557ff192a86a4943a5b777f3b49333e6631f5a39e90c"
+  },
+  "training_rows": 4,
+  "validation_rows": 2,
+  "epochs": 2,
+  "preserved_checkpoint_stems": [
+    "initial",
+    "epoch-0001",
+    "epoch-0002"
+  ],
+  "full_heldout": true,
+  "input_integrity": "passed",
+  "baseline_only_status": "baseline_only",
+  "original_tools_tests": 12,
+  "wrong_combined_cp_limit_control": "DELIBERATE_MUTATION_EXPECTED_FAILURE_NOT_AN_ENGINE_ATTEMPT",
+  "engine_or_build_or_match_processes": 0,
+  "elo_claim": null
+}

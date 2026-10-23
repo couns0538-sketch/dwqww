@@ -1,5 +1,16 @@
 # Next experiments
 
+Current user priority: finish the NNUE-only pipeline task on base1ab50b2d.
+Tests-first commit24aa08c reproduces residual export failure and verifies the
+shipped net against actual C++ inference on2048positions. Implement residual
+HCE-offset loss, schedules, full validation and explicit residual export; then
+finish provenance-aware data generation/preparation, run training and compare
+the same complete held-out set against HCE and the shipped net. Keep allepochs,
+raw evidence and trained net separate. QA owns the1000-game strength gate.
+Search changes and old performance launches are paused for this mission.
+
+The following performance work is a preserved, paused continuation queue:
+
 Immediate local work: finish calibrated23→24 performance packet binding and launch.
 Windows24 root byte verification and public download/hash verification passed. Frozen24source
 7db08eac6ead99d641834c56ccec06a06600586a passed42native CTests/eight active checks/
