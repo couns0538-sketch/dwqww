@@ -58,6 +58,44 @@ def residual_probability_target(score_cp, hce_cp, result_stm, weight):
     return (1 - weight) * teacher + weight * result_stm
 
 
+def target_spec(weight):
+    """Portable identity of the probability target, independent of a model."""
+    if not math.isfinite(weight) or not 0 <= weight <= 1:
+        raise ValueError("Result weight must be finite and in [0,1]")
+    return {"kind": "teacher_probability_game_result_blend", "result_weight": weight,
+            "sigmoid_k": K, "cp_scale": CP_SCALE}
+
+
+def fixed_probability_target(score_cp, result_stm, weight):
+    """Independent teacher probability: no HCE subtraction/addition rounding."""
+    target_spec(weight)
+    teacher = torch.sigmoid(score_cp * K / CP_SCALE)
+    return (1 - weight) * teacher + weight * result_stm
+
+
+def load_protocol(path, weight, epochs=None, include_initial=None):
+    """Bind a preregistered fixed target and epoch rule before any model read."""
+    path = Path(path).resolve()
+    raw = path.read_bytes()
+    protocol = json.loads(raw)
+    if (not isinstance(protocol, dict) or type(protocol.get("schema_version")) is not int
+            or protocol["schema_version"] != 1 or protocol.get("target") != target_spec(weight)):
+        raise ValueError("Frozen protocol target blend/schema differs")
+    training = protocol.get("training")
+    if (not isinstance(training, dict) or type(training.get("epochs")) is not int or training["epochs"] < 1
+            or training.get("selection_metric") != "target_mse_combined"
+            or type(training.get("include_initial")) is not bool
+            or (epochs is not None and training["epochs"] != epochs)
+            or (include_initial is not None and training["include_initial"] != include_initial)):
+        raise ValueError("Frozen protocol epoch selection rule differs")
+    return protocol, {"path": str(path), "sha256": hashlib.sha256(raw).hexdigest()}
+
+
+def verify_prepared_protocol(manifest, protocol):
+    if protocol is not None and manifest.get("protocol_sha256") != protocol["sha256"]:
+        raise ValueError("Prepared data frozen protocol SHA-256 differs or is absent")
+
+
 def _progress(epoch, epochs):
     if type(epochs) is not int or epochs < 1 or type(epoch) is not int or not 0 <= epoch < epochs:
         raise ValueError("Require zero-based epoch in a positive epoch count")
@@ -191,11 +229,13 @@ def verify_unchanged_inputs(data_dir, manifest, manifest_sha):
 
 
 @torch.no_grad()
-def evaluate(model, data, batch_size, result_weight=0.0):
+def evaluate(model, data, batch_size, result_weight=0.0, fixed_target=False):
     """Evaluate every held-out row with engine-style correction cp truncation."""
     if batch_size < 1 or len(data["score"]) < 1:
         raise ValueError("Evaluation needs a positive batch size and nonempty rows")
-    names = ("teacher_mse_hce", "teacher_mse_combined", "teacher_mse_net_only", "target_mse_hce", "target_mse_combined")
+    target_spec(result_weight)
+    names = ("teacher_mse_hce", "teacher_mse_combined", "teacher_mse_net_only",
+             "target_mse_hce", "target_mse_combined", "target_mse_net_only")
     sums = dict.fromkeys(names, 0.0)
     was_training = model.training
     model.eval()
@@ -210,12 +250,13 @@ def evaluate(model, data, batch_size, result_weight=0.0):
                 raise RuntimeError("Non-finite network inference during validation")
             correction, combined_cp = engine_centipawns(logits, hce)
             teacher = torch.sigmoid(score * K / CP_SCALE)
-            target = residual_probability_target(score, hce, outcome, result_weight)
+            target = (fixed_probability_target(score, outcome, result_weight) if fixed_target
+                      else residual_probability_target(score, hce, outcome, result_weight))
             hce_probability = torch.sigmoid(hce * K / CP_SCALE)
             combined_probability = torch.sigmoid(combined_cp * K / CP_SCALE)
             net_probability = torch.sigmoid(correction * K / CP_SCALE)
             pairs = ((hce_probability, teacher), (combined_probability, teacher), (net_probability, teacher),
-                     (hce_probability, target), (combined_probability, target))
+                     (hce_probability, target), (combined_probability, target), (net_probability, target))
             for name, (prediction, expected) in zip(names, pairs):
                 sums[name] += float(((prediction.double() - expected.double()) ** 2).sum())
     finally:
@@ -251,6 +292,11 @@ def main(argv=None):
     parser.add_argument("--min-lr", type=float, default=0.00001)
     parser.add_argument("--result-start", type=float, default=0.0)
     parser.add_argument("--result-end", type=float, default=0.1)
+    parser.add_argument("--fixed-result-weight", type=float,
+                        help="Use one result blend for training, validation and epoch selection; overrides the schedule")
+    parser.add_argument("--exclude-initial-from-selection", action="store_true",
+                        help="Select only among completed trained epochs; initial remains a diagnostic/baseline")
+    parser.add_argument("--protocol", type=Path, help="Frozen JSON target and epoch-selection protocol")
     parser.add_argument("--seed", type=int, default=20261023)
     parser.add_argument("--baseline-only", action="store_true")
     parser.add_argument("--initial-net", type=Path)
@@ -259,7 +305,17 @@ def main(argv=None):
         raise ValueError("Batch size must be positive and CPU threads in 1..4")
     learning_rate(0, args.epochs, args.lr, args.min_lr)
     result_weight(0, args.epochs, args.result_start, args.result_end)
+    validation_weight = args.fixed_result_weight if args.fixed_result_weight is not None else 0.0
+    selection_target = target_spec(validation_weight)
+    selection_metric = "target_mse_combined" if args.fixed_result_weight is not None else "teacher_mse_combined"
+    protocol, protocol_identity = None, None
+    if args.protocol is not None:
+        if args.fixed_result_weight is None:
+            raise ValueError("A frozen protocol requires --fixed-result-weight")
+        protocol, protocol_identity = load_protocol(args.protocol, validation_weight, args.epochs,
+                                                   not args.exclude_initial_from_selection)
     train, validation, manifest, manifest_sha = load_prepared_data(args.data_dir)
+    verify_prepared_protocol(manifest, protocol_identity)
     run_dir = args.run_dir.resolve()
     run_dir.mkdir(parents=True, exist_ok=False)
     (run_dir / "checkpoints").mkdir()
@@ -277,14 +333,25 @@ def main(argv=None):
     optimizer = torch.optim.Adam(model.parameters(), lr=args.lr, foreach=False)
     config = {**vars(args), "data_dir": str(args.data_dir.resolve()), "run_dir": str(run_dir),
               "initial_net": initial_net, "hidden": 128, "residual": True, "sigmoid_k": K,
-              "validation_metric": "complete held-out pure-teacher MSE after engine-style correction truncation"}
-    initial = evaluate(model, validation, args.batch_size)
+              "selection_target": selection_target, "selection_metric": selection_metric,
+              "protocol": protocol_identity,
+              "selection_include_initial": not args.exclude_initial_from_selection,
+              "validation_metric": "complete held-out " + selection_metric + " after engine-style correction truncation"}
+    initial = evaluate(model, validation, args.batch_size, result_weight=validation_weight,
+                       fixed_target=args.fixed_result_weight is not None)
+
+    def best_record(epoch, metrics, stem):
+        return {"epoch": epoch, "teacher_mse_combined": metrics["teacher_mse_combined"],
+                "target_mse_combined": metrics["target_mse_combined"],
+                "selection_metric": selection_metric, "selection_mse": metrics[selection_metric],
+                "improves_hce": metrics[selection_metric] < initial[selection_metric.replace("combined", "hce")],
+                "stem": stem}
+
     summary = {"status": "running", "utc": datetime.now(timezone.utc).isoformat(),
                "training_count": len(train["score"]), "validation_count": len(validation["score"]),
                "epochs_completed": 0, "manifest_sha256": manifest_sha,
-               "hce_baseline": initial["teacher_mse_hce"], "initial": initial, "config": config,
-               "best": {"epoch": 0, "teacher_mse_combined": initial["teacher_mse_combined"],
-                        "improves_hce": initial["teacher_mse_combined"] < initial["teacher_mse_hce"], "stem": "initial"},
+               "hce_baseline": initial[selection_metric.replace("combined", "hce")], "initial": initial, "config": config,
+               "best": None if args.exclude_initial_from_selection else best_record(0, initial, "initial"),
                "epochs": [], "elo_claim": None}
 
     def save(stem, epoch, metrics):
@@ -296,17 +363,22 @@ def main(argv=None):
         metadata = export_forge(model, export_stem, K, residual=True)
         _json(export_stem.with_suffix(".json"), {**metadata, "epoch": epoch, "metrics": metrics,
                                                "manifest_sha256": manifest_sha,
+                                               "selection_target": selection_target, "selection_metric": selection_metric,
+                                               "protocol": protocol_identity,
                                                "inc_sha256": sha256(export_stem.with_suffix(".inc")),
                                                "bin_sha256": sha256(export_stem.with_suffix(".bin"))})
 
     save("initial", 0, initial)
     _json(run_dir / "initial-report.json", summary)
     _json(run_dir / "input-manifest.json", manifest)
+    if protocol is not None:
+        _json(run_dir / "protocol.json", protocol)
     try:
         if not args.baseline_only:
             for epoch in range(args.epochs):
                 lr = learning_rate(epoch, args.epochs, args.lr, args.min_lr)
-                weight = result_weight(epoch, args.epochs, args.result_start, args.result_end)
+                weight = (args.fixed_result_weight if args.fixed_result_weight is not None
+                          else result_weight(epoch, args.epochs, args.result_start, args.result_end))
                 optimizer.param_groups[0]["lr"] = lr
                 model.train()
                 order = np.random.default_rng(args.seed + epoch).permutation(len(train["score"]))
@@ -317,7 +389,8 @@ def main(argv=None):
                     score = torch.from_numpy(train["score"][indices].astype(np.float32))
                     outcome = torch.from_numpy(train["result_stm"][indices])
                     logits = model(_dense_features(train["features"][indices])).reshape(-1)
-                    target = residual_probability_target(score, hce, outcome, weight)
+                    target = (fixed_probability_target(score, outcome, weight) if args.fixed_result_weight is not None
+                              else residual_probability_target(score, hce, outcome, weight))
                     loss = F.mse_loss(predicted_probability(logits, hce), target)
                     if not torch.isfinite(loss):
                         raise RuntimeError("Non-finite training loss")
@@ -326,29 +399,33 @@ def main(argv=None):
                     optimizer.step()
                     model.project_weights()
                     loss_sum += float(loss.detach()) * len(indices)
-                metrics = evaluate(model, validation, args.batch_size, result_weight=weight)
+                metrics = evaluate(model, validation, args.batch_size, result_weight=weight,
+                                   fixed_target=args.fixed_result_weight is not None)
                 record = {"epoch": epoch + 1, "lr": lr, "result_weight": weight,
                           "training_target_mse": loss_sum / len(order), **metrics}
                 stem = f"epoch-{epoch + 1:04d}"
                 save(stem, epoch + 1, metrics)
                 summary["epochs_completed"] = epoch + 1
                 summary["epochs"].append(record)
-                if metrics["teacher_mse_combined"] < summary["best"]["teacher_mse_combined"]:
-                    summary["best"] = {"epoch": epoch + 1, "teacher_mse_combined": metrics["teacher_mse_combined"],
-                                       "improves_hce": metrics["teacher_mse_combined"] < summary["hce_baseline"], "stem": stem}
+                if summary["best"] is None or metrics[selection_metric] < summary["best"]["selection_mse"]:
+                    summary["best"] = best_record(epoch + 1, metrics, stem)
                 _json(run_dir / f"epoch-{epoch + 1:04d}-report.json", {**summary, "latest": record})
                 print(json.dumps({"epoch": epoch + 1, "lr": lr, "result_weight": weight,
                                   "teacher_mse_hce": metrics["teacher_mse_hce"],
-                                  "teacher_mse_combined": metrics["teacher_mse_combined"], "count": metrics["count"]}), flush=True)
+                                  "teacher_mse_combined": metrics["teacher_mse_combined"],
+                                  "target_mse_combined": metrics["target_mse_combined"], "count": metrics["count"]}), flush=True)
         # Reauthenticate original raw files and prepared bytes after the run.
         verify_unchanged_inputs(args.data_dir, manifest, manifest_sha)
         if initial_net and sha256(initial_net["path"]) != initial_net["sha256"]:
             raise ValueError("Initial network changed during training")
+        if protocol_identity is not None:
+            _hash_binding(protocol_identity["path"], protocol_identity["sha256"], "frozen protocol")
         summary["status"] = "baseline_only" if args.baseline_only else "completed"
         summary["input_integrity"] = "passed"
     except KeyboardInterrupt:
         save(f"interrupted-after-{summary['epochs_completed']:04d}", summary["epochs_completed"],
-             evaluate(model, validation, args.batch_size))
+             evaluate(model, validation, args.batch_size, result_weight=validation_weight,
+                      fixed_target=args.fixed_result_weight is not None))
         summary["status"] = "interrupted"
         _json(run_dir / "summary.json", summary)
         raise

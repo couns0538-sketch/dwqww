@@ -19,8 +19,9 @@ import torch
 
 from prepare_residual_data import position_key, validate_record
 from residual_train import (CP_SCALE, K, NNUE, _dense_features, _hash_binding,
-                            _json, _load_initial, engine_centipawns, evaluate,
-                            load_prepared_data, sha256, verify_unchanged_inputs)
+                            _json, _load_initial, engine_centipawns, evaluate, fixed_probability_target,
+                            load_prepared_data, load_protocol, sha256,
+                            target_spec, verify_prepared_protocol, verify_unchanged_inputs)
 from train_nnue import atomic_write, feature_indices
 
 
@@ -72,6 +73,9 @@ def cluster_bootstrap(reference, candidate, game_ids, draws=2000, seed=20261023)
 
 def validate_validation_provenance(data_dir, manifest, data):
     """Replay producer-defined source-line recipes against actual held-out arrays."""
+    if manifest.get("provenance_format") == "independent_teacher_v1":
+        from prepare_teacher_data import validate_validation_provenance as validate_teacher_provenance
+        return validate_teacher_provenance(data_dir, manifest, data)
     data_dir = Path(data_dir).resolve()
     count = len(data["score"])
     artifacts = manifest.get("artifacts")
@@ -166,11 +170,13 @@ def validate_validation_provenance(data_dir, manifest, data):
 
 
 @torch.no_grad()
-def per_row_losses(model, data, batch_size=1024):
+def per_row_losses(model, data, batch_size=1024, result_weight=0.0):
     if batch_size < 1 or not len(data["score"]):
         raise ValueError("Positive batch size and nonempty rows required")
     count = len(data["score"])
-    losses = {key: np.empty(count, dtype=np.float64) for key in ("hce", "combined", "net_only")}
+    target_spec(result_weight)
+    losses = {key: np.empty(count, dtype=np.float64)
+              for key in ("hce", "combined", "net_only", "teacher_hce", "teacher_combined", "teacher_net_only")}
     losses.update({key: np.empty(count, dtype=np.int32) for key in ("correction_cp", "combined_cp")})
     was_training = model.training
     model.eval()
@@ -183,10 +189,14 @@ def per_row_losses(model, data, batch_size=1024):
             if not torch.isfinite(logits).all():
                 raise ValueError("Non-finite frozen network output")
             correction, combined = engine_centipawns(logits, hce)
-            target = torch.sigmoid(score * K / CP_SCALE).double()
+            teacher = torch.sigmoid(score * K / CP_SCALE).double()
+            outcome = torch.from_numpy(data["result_stm"][begin:end])
+            target = (fixed_probability_target(score, outcome, result_weight).double()
+                      if result_weight else teacher)
             for key, cp in (("hce", hce), ("combined", combined), ("net_only", correction)):
                 probability = torch.sigmoid(cp * K / CP_SCALE).double()
                 losses[key][begin:end] = ((probability - target) ** 2).cpu().numpy()
+                losses["teacher_" + key][begin:end] = ((probability - teacher) ** 2).cpu().numpy()
             losses["correction_cp"][begin:end] = correction.cpu().numpy().astype(np.int32)
             losses["combined_cp"][begin:end] = combined.cpu().numpy().astype(np.int32)
     finally:
@@ -194,7 +204,8 @@ def per_row_losses(model, data, batch_size=1024):
     return losses
 
 
-def verify_reference_holdout(data, manifest, shipped_metrics, reference_run, shipped_identity):
+def verify_reference_holdout(data, manifest, shipped_metrics, reference_run, shipped_identity,
+                             result_weight=0.0, protocol=None):
     """Authenticate equality with a previously frozen fresh-game baseline run."""
     reference_run = Path(reference_run).resolve()
     summary_path, snapshot_path = reference_run / "summary.json", reference_run / "input-manifest.json"
@@ -204,6 +215,14 @@ def verify_reference_holdout(data, manifest, shipped_metrics, reference_run, shi
             or summary.get("validation_count") != count or summary.get("initial", {}).get("count") != count):
         raise ValueError("Reference is not a completed full-held-out baseline")
     config = summary.get("config", {})
+    target = target_spec(result_weight)
+    previous_weight = config.get("fixed_result_weight")
+    previous_weight = previous_weight if previous_weight is not None else 0.0
+    if previous_weight != result_weight or ("selection_target" in config and config["selection_target"] != target):
+        raise ValueError("Reference baseline target blend/result weight differs")
+    if protocol is not None and (not isinstance(config.get("protocol"), dict)
+                                 or config["protocol"].get("sha256") != protocol.get("sha256")):
+        raise ValueError("Reference baseline frozen protocol differs")
     root = config.get("data_dir")
     if not isinstance(root, str) or not Path(root).is_absolute():
         raise ValueError("Original baseline prepared-data resolution root is absent")
@@ -234,7 +253,10 @@ def verify_reference_holdout(data, manifest, shipped_metrics, reference_run, shi
         raise ValueError("Reference original held-out provenance recipe differs")
     old_recipe_path = old_dir / "validation-provenance.jsonl"
     _hash_binding(old_recipe_path, old_recipe.get("sha256"), "baseline original provenance recipe")
-    for metric in ("teacher_mse_hce", "teacher_mse_combined"):
+    metric_names = ("teacher_mse_hce", "teacher_mse_combined")
+    if result_weight:
+        metric_names += ("target_mse_hce", "target_mse_combined")
+    for metric in metric_names:
         previous = summary["initial"].get(metric)
         if (not isinstance(previous, (float, int)) or not math.isfinite(previous)
                 or not math.isclose(previous, shipped_metrics[metric], abs_tol=1e-12, rel_tol=1e-12)):
@@ -242,6 +264,7 @@ def verify_reference_holdout(data, manifest, shipped_metrics, reference_run, shi
     inputs = [summary_path, snapshot_path, original_manifest, old_npz, old_recipe_path]
     return {"status": "PASS_SAME_FROZEN_VALIDATION_ARRAYS_RECIPE_AND_BASELINE", "rows": count,
             "reference_run": str(reference_run), "array_identity": "exact dtype/shape/value bytes of all four arrays",
+            "target": target,
             "recipe_identity": old_recipe, "metric_tolerance": 1e-12,
             "inputs": [{"path": str(path), "sha256": sha256(path)} for path in inputs]}
 
@@ -268,6 +291,9 @@ def main(argv=None):
     parser.add_argument("--batch-size", type=int, default=1024)
     parser.add_argument("--bootstrap-draws", type=int, default=2000)
     parser.add_argument("--seed", type=int, default=20261023)
+    parser.add_argument("--result-weight", type=float, default=0.0,
+                        help="Fixed game-result blend for primary losses and whole-game intervals")
+    parser.add_argument("--protocol", type=Path, help="Authenticate the same frozen fixed-target protocol as training")
     parser.add_argument("--reference-baseline-run", type=Path,
                         help="Authenticate identical validation arrays/recipe and shipped metrics against this prior run")
     args = parser.parse_args(argv)
@@ -275,24 +301,34 @@ def main(argv=None):
         raise ValueError("Positive batch size/draws and nonnegative seed required")
     if args.out.exists():
         raise FileExistsError("Hold-out comparison output already exists: " + str(args.out))
+    target = target_spec(args.result_weight)
+    protocol_identity = None
+    if args.protocol is not None:
+        _, protocol_identity = load_protocol(args.protocol, args.result_weight)
     torch.set_num_threads(1)
     train, validation, manifest, manifest_sha = load_prepared_data(args.data_dir)
+    verify_prepared_protocol(manifest, protocol_identity)
     del train
     provenance = validate_validation_provenance(args.data_dir, manifest, validation)
     game_ids = provenance["game_ids"]
     shipped, candidate = NNUE([128], qat=True), NNUE([128], qat=True)
     shipped_identity, candidate_identity = _load_initial(shipped, args.shipped_net), _load_initial(candidate, args.candidate_net)
-    old = per_row_losses(shipped, validation, args.batch_size)
-    new = per_row_losses(candidate, validation, args.batch_size)
+    old = per_row_losses(shipped, validation, args.batch_size, result_weight=args.result_weight)
+    new = per_row_losses(candidate, validation, args.batch_size, result_weight=args.result_weight)
     aggregate_metrics = []
     for model, rows in ((shipped, old), (candidate, new)):
-        aggregate = evaluate(model, validation, args.batch_size)
+        aggregate = evaluate(model, validation, args.batch_size, result_weight=args.result_weight,
+                             fixed_target=True)
         aggregate_metrics.append(aggregate)
-        for key, metric in (("hce", "teacher_mse_hce"), ("combined", "teacher_mse_combined"), ("net_only", "teacher_mse_net_only")):
-            if not math.isclose(float(rows[key].mean()), aggregate[metric], abs_tol=1e-12, rel_tol=1e-12):
+        for key in ("hce", "combined", "net_only"):
+            metric = ("target_mse_" if args.result_weight else "teacher_mse_") + key
+            if (not math.isclose(float(rows[key].mean()), aggregate[metric], abs_tol=1e-12, rel_tol=1e-12)
+                    or not math.isclose(float(rows["teacher_" + key].mean()), aggregate["teacher_mse_" + key],
+                                        abs_tol=1e-12, rel_tol=1e-12)):
                 raise ValueError("Per-row loss aggregate differs from the complete trainer metric")
     reference_check = (verify_reference_holdout(validation, manifest, aggregate_metrics[0],
-                                               args.reference_baseline_run, shipped_identity)
+                                               args.reference_baseline_run, shipped_identity,
+                                               result_weight=args.result_weight, protocol=protocol_identity)
                        if args.reference_baseline_run is not None else None)
     comparisons = {
         "hce_vs_shipped": cluster_bootstrap(old["hce"], old["combined"], game_ids, args.bootstrap_draws, args.seed),
@@ -304,6 +340,8 @@ def main(argv=None):
     _hash_binding(args.data_dir / "validation-provenance.jsonl", provenance["recipe_sha256"], "validation-provenance.jsonl")
     for identity in (shipped_identity, candidate_identity):
         _hash_binding(Path(identity["path"]), identity["sha256"], identity["path"])
+    if protocol_identity is not None:
+        _hash_binding(protocol_identity["path"], protocol_identity["sha256"], "frozen protocol")
     if reference_check is not None:
         for identity in reference_check["inputs"]:
             _hash_binding(Path(identity["path"]), identity["sha256"], identity["path"])
@@ -313,11 +351,18 @@ def main(argv=None):
               "hce_cp": validation["hce"], "teacher_cp": validation["score"], "loss_hce": old["hce"],
               "loss_shipped_combined": old["combined"], "loss_candidate_combined": new["combined"],
               "loss_shipped_net_only": old["net_only"], "loss_candidate_net_only": new["net_only"],
+              "result_stm": validation["result_stm"],
+              "teacher_loss_hce": old["teacher_hce"],
+              "teacher_loss_shipped_combined": old["teacher_combined"],
+              "teacher_loss_candidate_combined": new["teacher_combined"],
+              "teacher_loss_shipped_net_only": old["teacher_net_only"],
+              "teacher_loss_candidate_net_only": new["teacher_net_only"],
               "shipped_correction_cp": old["correction_cp"], "candidate_correction_cp": new["correction_cp"],
               "shipped_combined_cp": old["combined_cp"], "candidate_combined_cp": new["combined_cp"]}
     atomic_write(out / "per-row-losses.npz", lambda stream: np.savez_compressed(stream, **arrays))
     metrics = {"status": "PASS_FIXED_HELDOUT_LOSS_COMPARISON_NOT_ELO", "utc": datetime.now(timezone.utc).isoformat(),
                "manifest_sha256": manifest_sha, "shipped_net": shipped_identity, "candidate_net": candidate_identity,
+               "target": target, "protocol": protocol_identity,
                "rows": len(game_ids), "represented_games": len(set(game_ids)),
                "listed_validation_games": provenance["listed_validation_games"],
                "reference_holdout_check": reference_check,
@@ -326,23 +371,30 @@ def main(argv=None):
                             "candidate_hce_plus_net": float(new["combined"].mean()),
                             "shipped_residual_term_only": float(old["net_only"].mean()),
                             "candidate_residual_term_only": float(new["net_only"].mean())},
+               "teacher_loss_mse": {"hce_only": float(old["teacher_hce"].mean()),
+                                    "shipped_hce_plus_net": float(old["teacher_combined"].mean()),
+                                    "candidate_hce_plus_net": float(new["teacher_combined"].mean()),
+                                    "shipped_residual_term_only": float(old["teacher_net_only"].mean()),
+                                    "candidate_residual_term_only": float(new["teacher_net_only"].mean())},
                "comparisons": comparisons, "bootstrap_draws": args.bootstrap_draws, "seed": args.seed,
                "per_row_artifact": {"path": "per-row-losses.npz", "sha256": sha256(out / "per-row-losses.npz"), "rows": len(game_ids)},
                "input_integrity": "passed", "aggregate_agreement_tolerance": 1e-12,
                "limitations": "Intervals condition on the frozen candidate and eligible represented game clusters. They do not correct model selection on this same holdout. Residual-term-only is diagnostic, not the deployed evaluator. No native inference or Elo claim."}
     _json(out / "metrics.json", metrics)
-    losses = metrics["loss_mse"]
+    losses, teacher_losses = metrics["loss_mse"], metrics["teacher_loss_mse"]
     text = f"""# Forge fixed-held-out network comparison
 
 {metrics['rows']} eligible positions from {metrics['represented_games']} represented held-out games ({metrics['listed_validation_games']} listed game IDs). Every source-line recipe, feature set, score and STM result replayed; prepared arrays and original source/network hashes remained unchanged. HCE values are bound by the prepared NPZ/native-probe provenance and were not reexecuted here.
 
-| Evaluator | Pure search-teacher probability MSE |
-|---|---:|
-| HCE only | {losses['hce_only']:.9g} |
-| Shipped HCE + residual | {losses['shipped_hce_plus_net']:.9g} |
-| Candidate HCE + residual | {losses['candidate_hce_plus_net']:.9g} |
-| Shipped residual term only | {losses['shipped_residual_term_only']:.9g} |
-| Candidate residual term only | {losses['candidate_residual_term_only']:.9g} |
+Primary target: {(1 - args.result_weight):.6g} × teacher probability + {args.result_weight:.6g} × STM game result. The same fixed target determines every primary loss and interval below. Pure teacher is diagnostic.
+
+| Evaluator | Fixed-target probability MSE | Pure-teacher probability MSE |
+|---|---:|---:|
+| HCE only | {losses['hce_only']:.9g} | {teacher_losses['hce_only']:.9g} |
+| Shipped HCE + residual | {losses['shipped_hce_plus_net']:.9g} | {teacher_losses['shipped_hce_plus_net']:.9g} |
+| Candidate HCE + residual | {losses['candidate_hce_plus_net']:.9g} | {teacher_losses['candidate_hce_plus_net']:.9g} |
+| Shipped residual term only | {losses['shipped_residual_term_only']:.9g} | {teacher_losses['shipped_residual_term_only']:.9g} |
+| Candidate residual term only | {losses['candidate_residual_term_only']:.9g} | {teacher_losses['candidate_residual_term_only']:.9g} |
 
 Prior baseline comparison: {reference_check['status'] if reference_check else 'not supplied; this report does not authenticate an earlier holdout'}.
 

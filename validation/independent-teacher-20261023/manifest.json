@@ -1,0 +1,185 @@
+{
+  "schema_version": 1,
+  "experiment_id": "forge-independent-teacher-20261023",
+  "status": "MANIFEST_TRAINER_AND_LICENCE_SOURCE_CHECKPOINT_READY_NO_PRODUCTION_DATA_YET",
+  "start_utc": "2026-10-23T18:04:09+00:00",
+  "stop_starting_new_work_utc": "2026-10-23T23:34:09+00:00",
+  "hard_deadline_utc": "2026-10-24T00:04:09+00:00",
+  "client_timezone": "America/Los_Angeles",
+  "branch": "forge/independent-teacher-20261023",
+  "pipeline_parent_sha": "27070febf3532d50ea5fd75daf3829b3e5a68730",
+  "baseline_source_sha": "1ab50b2dd64d9b2f752f7f1285f6968cad2fd792",
+  "secondary_generation_source_sha": "5101c2529d386b7c3a04ba9156a69ee34df6bb43",
+  "request_sha256": "6e6a0b27eae75dcc074b3ae72c97e92097556e92fc4abc0582722e52aff81b8a",
+  "request_utf8": "# Job for Sol 6.1 Ultra: independent-teacher data pipeline (6 hours)\n\nRepo: couns0538-sketch/dwqww. Your first NNUE job is accepted as complete (FINAL_REPORT at 27070fe). Do NOT retrain on the old data.\n\n## Time limit\nYou have 6 hours total. At about 5h30 stop starting new work, push what is finished, and write the handoff. Push in this order so an early stop still leaves usable output: (1) data manifest and trainer, (2) the dataset, (3) the net-only branch (only if it qualifies, see below). Push a small progress note at least every hour so we can see where things are.\n\n## Main job (do this first)\n1. Build a clean dataset of at least 5M positions from fresh, game-identified self-play: Forge vs Forge and Forge vs 5101c252 (forge/6.4-hourly-20261019), varied openings. Every row carries its game ID.\n2. Split train / validation by whole game, never by position. Hold out a final audit set of whole games and freeze it before training.\n3. Label with a teacher that is NOT Forge's own 5000-node search: an independent engine (for example Stockfish at a fixed depth, run only as an external tool, no code copied into our repo) or a much deeper search. Blend the game result in at about 30-50%. Record teacher, settings and blend in the data manifest.\n4. Train once on the existing 768->128x2 SCReLU residual architecture and the existing export format. Pre-register the epoch selection rule and freeze it before the audit, as you did before.\n5. Push a net-only branch (only src/nnue_weights.inc changes) ONLY if audit loss beats the shipped net with a 95% whole-game bootstrap interval that excludes 0. Otherwise push only the dataset, manifest and trainer, and say so plainly.\n6. Fix the licence on train_nnue.py and the SHA mismatch against SHA256SUMS.\n7. Run no matches and make no Elo claims. Our PC gates every net with 1000-game SPRT.\n\n## Optional second job (only if time remains after the main job is pushed)\nAdd 8 output buckets by piece count, end to end, on a separate branch off 6.4.24: nnue.cpp and the .inc format, a bucketed trainer and exporter, and a 10k-position C++ parity test. It must pass perft and the existing tests, and cost at most 5% speed (bench nps). Take the idea only, write your own code. Do not mix it into the data branch.\n\n## Rules\n- Do not touch src/ except src/nnue_weights.inc (main job) or the second-job branch.\n- Keep documentation short: one FINAL_REPORT.md of at most 2 pages plus the manifest. No 300-file evidence dumps.\n- Take ideas only from other engines, never copy code or GPL text.\n- Report exact numbers (loss values, intervals, row counts, SHA256 of every artifact). Say \"unproven\" for anything not tested in games.\n",
+  "constraints": {
+    "src_edits_allowed": false,
+    "old_data_allowed": false,
+    "strength_matches_allowed": false,
+    "elo_claim": "unproven",
+    "maximum_documentation": "one FINAL_REPORT.md at most2pages plus manifest",
+    "publication_order": [
+      "data manifest and trainer",
+      "completed dataset",
+      "net-only branch only after qualifying frozen audit"
+    ]
+  },
+  "resources": {
+    "cpu_quota_cores": 4,
+    "gpu_available": false,
+    "initial_disk_free_bytes": 3973124096
+  },
+  "dataset": {
+    "minimum_eligible_positions": 5000000,
+    "selfplay_pairs": [
+      "Forge6.4.24 vs Forge6.4.24",
+      "Forge6.4.24 vs Forge5101 bothcolors"
+    ],
+    "fresh_game_ids_required": true,
+    "whole_game_split_seed": 2026102302,
+    "fractions": {
+      "train": 0.9,
+      "validation": 0.05,
+      "audit": 0.05
+    },
+    "final_audit_frozen_before_training": true,
+    "exact_position_crosssplit_exclusion": true,
+    "legacy_data_used": false
+  },
+  "teacher": {
+    "proposed_until_throughput_screen": "Stockfish19 fixeddepth6 with per-game cold state; productionfreezeawaitsgenerationthroughput",
+    "kind": "independent_external_uci_engine",
+    "binary_path": "/workspace/.cloud-setup/stockfish/stockfish/stockfish-linux-x86-64-universal",
+    "binary_sha256": "0f83d24cc46d2c66c60f16001af5444873bc112b7d028594513426894c12da19",
+    "threads": 1,
+    "hash_mb": 16,
+    "multipv": 1,
+    "uci_limitstrength": false,
+    "skill_level": 20,
+    "cold_hash_per_position": false,
+    "raw_score_pov": "side_to_move",
+    "normalization": "Stockfish normalized UCI cp mapped using fixed2.25/400 sigmoid; no data-driven calibration",
+    "code_or_licence_text_copied": false,
+    "depth": 6,
+    "cold_state_per_game": true,
+    "within_game_search_state": "Retained only within one authenticated game; reset before every new game, preventing cross-split state reuse",
+    "filters": {
+      "score_cp_abs_max": 1000,
+      "mate_scores": "drop",
+      "bestmove": "legal, noncapture, nonpromotion, nonchecking"
+    }
+  },
+  "target": {
+    "kind": "teacher_probability_game_result_blend",
+    "result_weight": 0.4,
+    "sigmoid_k": 2.25,
+    "cp_scale": 400.0
+  },
+  "training": {
+    "runs": 1,
+    "initialization": "shipped residual net",
+    "architecture": "768->128x2 SCReLU residual",
+    "epochs": 8,
+    "batch_size": 1024,
+    "lr": 0.0003,
+    "min_lr": 3e-06,
+    "schedule": "cosine",
+    "selection_metric": "target_mse_combined",
+    "include_initial": false,
+    "selection_rule": "lowest fixed40% result-blended original-validation MSE among trainedepochs1..8, earliestepochbreaksties; numericquantizedchangesrequired",
+    "final_audit_not_for_selection": true
+  },
+  "audit_acceptance": {
+    "method": "paired whole-game cluster bootstrap, ratio(sumloss/sumrows)",
+    "draws": 10000,
+    "seed": 2026102303,
+    "comparison": "candidate hybrid vs shipped hybrid on identical frozen audit",
+    "net_only_publication_requires": "95%CI lowerbound of shippedMSE-candidateMSE >0; no alternativeepoch orretrainingafteraudit",
+    "strength_gate": "userPC1000-gameSPRT, not run here"
+  },
+  "work_items": [
+    {
+      "task": "licence and checksum repair",
+      "state": "DONE MITnotice, ASTunchanged12testsPASS; current13/26checksumindicespass, original18preserved"
+    },
+    {
+      "task": "fixed-target trainer and comparator",
+      "state": "READY: fixed-target protocolguard/directscoreprobability;8new+25legacytrainer+13holdouttestsPASS;independentreviewclean"
+    },
+    {
+      "task": "fresh mixed-source game generator",
+      "state": "implementing and16gamescreenauthorized"
+    },
+    {
+      "task": "external teacher labeler",
+      "state": "implementing and256FENdepth8screenauthorized"
+    },
+    {
+      "task": "streaming preparation and finalauditfreeze",
+      "state": "rootimplementationnext"
+    }
+  ],
+  "skills": {
+    "reused": [
+      "automatic-tool-selection",
+      "resume-engine-development",
+      "chess-engine-tool-router",
+      "improve-grokchess",
+      "validate-chess-engine",
+      "preserve-chess-evidence",
+      "Superpowers workflow skills"
+    ],
+    "reference_read_failures": [
+      "resume-engine-development/references/forge-profile.md",
+      "chess-engine-tool-router/references/tool-map.md"
+    ],
+    "optional_connected_review_tools": "not exposed in actual active tool metadata; native independent source review planned"
+  },
+  "artifacts": {
+    "source-checks-01.zip": {
+      "sha256": "f9f8f0583d48dee1bf2edb09efd23877a8c33aca07774b71f38ae85495ea3485",
+      "bytes": 47537,
+      "files": 21,
+      "scope": "Actual source/unit/review/licence/hash original receipts; includes preserved original RED checks"
+    }
+  },
+  "preproduction_screens": {
+    "generation_python_uci_256games": {
+      "games": 256,
+      "raw_eligible_rows": 9088,
+      "elapsed_seconds": 32.261,
+      "workers": 2,
+      "rows_per_second": 281.7,
+      "decision": "Insufficient budget headroom; synchronous native public-API helper prototype in progress"
+    },
+    "uci_history_compaction": {
+      "actual_game_move_result_sample_parity_games": 256,
+      "searches": 20044,
+      "rows": 9088,
+      "speedup_demonstrated": false,
+      "elapsed_seconds": 38.085
+    },
+    "teacher_representative_256samples": {
+      "searched": 256,
+      "depth6_accepted": 215,
+      "depth6_seconds": 1.361018878,
+      "depth6_accepted_per_second": 157.9699,
+      "depth4_accepted": 205,
+      "depth4_seconds": 0.792809883,
+      "depth4_accepted_per_second": 258.574,
+      "selection_policy": "Choose depth6 if combinedgenerationlabelbudgetfits; no model/audit losses examined"
+    },
+    "per_position_teacher_full_reset": "measured infeasible; retainedfailedfeasibilityscreen, replaced beforeproduction with whole-game state isolation"
+  },
+  "source_checkpoint": {
+    "trainer_tests_new": 8,
+    "trainer_tests_legacy": 25,
+    "holdout_tests": 13,
+    "licence_header_original_tool_tests": 12,
+    "checksum_verified_entries": 39,
+    "search_changed": false,
+    "default_network_changed": false,
+    "independent_source_review": "PASS no blocking findings",
+    "previous_full_discovery": "92pass/9labelerconcurrentRED tests; notcompletebranchacceptance"
+  }
+}

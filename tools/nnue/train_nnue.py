@@ -1,4 +1,6 @@
 #!/usr/bin/env python3
+# SPDX-License-Identifier: MIT
+# See the repository LICENSE for the licence notice.
 """Streaming Forge-768 NNUE trainer: DirectML, ROCm, or CPU.
 
 Default shape: shared 768->256 accumulator, two SCReLU perspectives, 512->1.
