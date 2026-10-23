@@ -21,7 +21,9 @@ ZIP stream is 56,702,253 bytes; its exact hashes are in the manifest.
 
 Further collection reached 8,704 labeled games, 245,248 labels and 237,482 unique
 first-four-FEN positions. All producer/teacher processes closed and were reaped.
-These additional rows and original logs remain intact and are being published.
+All additional rows, original logs and native arrays are now published at
+`f33b59b70291e9c2ebc44044e8a6bde35a037118`. All seven new public artifacts
+passed SHA256 and size checks.
 The generator timed out on uncommitted game 14,116. That exact game passed both
 cold native and production-reader reproductions in under 0.05 seconds. The
 original delay remains unexplained; no clock fix or causal conclusion is claimed.
@@ -50,8 +52,13 @@ exact `5101c252`; the result blend is 40%. Whole games split 90/5/5. Exact-posit
 deduplication prioritizes audit, then validation, then training. Original raw
 manifests, UCI streams, source and binary hashes remain authenticated.
 
-Next: publish the closed increment, reuse its completed labels and resume only
-with authenticated unchanged settings; test parallel collection/preparation.
+The closed raw segments now merge without changing metadata; six tests and
+unchanged coordinator ingestion pass. A 13-check guard permits one unchanged
+retry at game 14,116, with an exclusive marker preventing a second launch.
+The archive helper is reusable and passes nine tests.
+
+Next: retain completed labels and execute that authenticated retry while
+testing bounded hosted collection and parallel preparation.
 Only a globally qualified corpus of at least five million positions permits one
 eight-epoch warm-start run. Original validation selects the earliest minimum-loss
 trained epoch. A once-only 10,000-draw whole-game audit must beat shipped with a

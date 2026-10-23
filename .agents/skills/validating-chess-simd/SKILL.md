@@ -1,6 +1,6 @@
 ---
 name: validating-chess-simd
-description: Use when changing SIMD or floating-point NNUE code in a UCI chess engine, preparing an x86 Windows executable, or evaluating speed and Elo claims for such a candidate.
+description: Use when changing SIMD or floating-point NNUE code, validating trained-network data and handoffs, preparing an x86 Windows executable, or evaluating speed and Elo claims for a chess engine.
 ---
 
 # Validating chess SIMD
@@ -51,6 +51,21 @@ logs. Before a long collection, run the real producer and consumer with genuine
 traces visible before the first chunk, then verify complete-game labels and
 owned process exits. Preserve failing and corrected receipts with their command,
 source and data hashes.
+
+An aggregate manifest can prefix paths or add segment fields that differ from
+the original per-chunk metadata. Do not pass it to a raw-segment resume reader
+without checking that contract. Merge authenticated closed original segments
+without rewriting their metadata or UCI streams, reject overlapping games and
+sources, and test ingestion through the unchanged consumer. Preserve a failed
+generator's exact observed snapshot separately from appendable live manifests;
+valid committed chunks do not make its failed run successful. A retry must keep
+the uncommitted game index and original search settings.
+
+For a large corpus, time actual native preparation on a representative closed
+segment before assigning the remaining budget. Distinguish a projection from a
+measured full-corpus runtime. Parallel shards require global position deduplication
+and authenticated whole-game partitions before the minimum training count can
+be claimed; summing per-shard counts is insufficient.
 
 Before reading independent-audit model losses, freeze the candidate using the
 predeclared original-validation rule and record actual changed quantized numeric
