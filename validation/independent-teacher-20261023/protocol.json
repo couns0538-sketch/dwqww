@@ -1,8 +1,8 @@
 {
   "schema_version": 1,
   "experiment_id": "forge-independent-teacher-20261023",
-  "status": "FROZEN_BEFORE_QUALIFYING_PRODUCTION_LABELS_AND_ANY_MODEL_LOSS",
-  "frozen_utc": "2026-10-23T19:08:39.920449+00:00",
+  "status": "FROZEN_BEFORE_CONTINUED_PRODUCTION_AND_ANY_MODEL_LOSS",
+  "frozen_utc": "2026-10-23T19:36:07.231402+00:00",
   "baseline_source_sha": "1ab50b2dd64d9b2f752f7f1285f6968cad2fd792",
   "secondary_generation_source_sha": "5101c2529d386b7c3a04ba9156a69ee34df6bb43",
   "dataset": {
@@ -96,7 +96,8 @@
   "producer_source_sha256": {
     "tools/nnue/generate_teacher_games.py": "c6d04b1cf9e6054733c477c81e085bd0abfea768f5f4d9183e5251a23a7a4bf1",
     "tools/nnue/native_game_driver.cpp": "15c32e4095f3804eae82f12f5fa6b0cfe277e826df9f17ca6730aef4c805d065",
-    "tools/nnue/label_teacher_games.py": "cb7cea79fabd1a63d2e3047eba7aed5361f299770f6b346571e3086504c42069"
+    "tools/nnue/label_teacher_games.py": "cb7cea79fabd1a63d2e3047eba7aed5361f299770f6b346571e3086504c42069",
+    "tools/nnue/coordinate_teacher_shards.py": "57c04b0a8d38c514ae7dd203283ddaf1035aac0a81005293d8b900bd89591e5a"
   },
   "native_build_provenance_sha256": "283a7a39ac56a898f0cb25bc2d32f5dcb8594a7ea9fb982db980d549cefd9466",
   "generation_command_prepared_sha256": "55e08ac7666938b409e1ffa6b5ab6bcf55e81574ee11fe4bebab72c7f43ea1c4",
@@ -111,11 +112,7 @@
     "production_teacher_workers": 4
   },
   "time_control_or_elo_experiment": false,
-  "revision": 3,
-  "supersedes_preproduction_revision": {
-    "sha256": "f5cf0b01f55d2060fcc7b840e59d00ea0efc2b66970cbc6ff5db52e5ccd38954",
-    "reason": "First attempt accepted zero labels: discovery fallback read process trace, now fixed and genuine live E2E tested. Fresh output paths preserve failed attempt. Actual 256-game screens show depth6=6781/137.654247s and depth4=6715/52.937017s, unsuitable for 5M plus training within six hours. Freeze independent external Stockfish depth3 and four one-thread workers before any qualifying labels or model losses; no data/loss-based selection, no old or feasibility-screen rows in production."
-  },
+  "revision": 4,
   "preproduction_feasibility": {
     "same_source_chunk_sha256": "df20ac17fd7c96293deaf34c197fbc8486b3162907b5de5f3c621ecfe39fcec2",
     "depth6": {
@@ -132,5 +129,25 @@
     },
     "parallel_scaling": "unproven; resource-feasibility only, not engine NPS or Elo",
     "screen_rows_used_in_training": false
+  },
+  "execution": {
+    "model": "4_independent_python_labeler_processes_each_one_external_SF_thread",
+    "initial_teacher_manifest_sha256": "92940ab81274c99ce38ef36086b4a4276f538795754fd49e998e072f3aa22bbb",
+    "closed_generation_receipt_sha256": "055777fc57d62c7ab77de1a7407e64160ade8e56c4607231c171660fb0cb2982",
+    "collection_controller_sha256": "2eb94c0f3b46d9e7be9b832dee33a041664eb1fea11f74b53aa1939c26fdcba8",
+    "initial_segment": {
+      "games": 5120,
+      "accepted_rows": 143963,
+      "exact_unique_first4_fen": 140156,
+      "teacher_depth": 3,
+      "reuse": "authentic completed labels byte-for-byte; no relabeling"
+    },
+    "input_shards": "canonical declared-and-hashed original chunks via verified symlinks; chunk index modulo4",
+    "aggregate": "original metadata/child manifests/UCI/exit bindings retained, exact output hardlinks",
+    "generator_resume": "same original configuration/source/binaries, next completed game index after authenticated clean shutdown"
+  },
+  "supersedes_revision": {
+    "sha256": "31ea42cb26a709c66b925b842c007a628fc913482ca65b2f9cc7ced29c7b1a2c",
+    "reason": "Sustained 4-thread Python labeling too slow for budget. Execution-only process isolation, no teacher/split/target/selection/training change. Preserve and reuse143963depth3labels; exactgeneratorresume. Live16game4processsmoke+independentall68bindings/nativeholdoutreplayPASS beforeproduction. No model losses read."
   }
 }

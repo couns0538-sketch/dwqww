@@ -39,7 +39,14 @@ is retained. The trainer licence notice is repaired. The existing validation
 skill now includes the real producer-startup check and passes scoped validation.
 Compact archives contain original failures, tests, reviews and artifact hashes.
 
-Attempt 2 is ready to launch after this checkpoint is verified and published.
-No five-million-row corpus, training loss, audit improvement or new net is claimed.
+The initial production segment closed cleanly with 5,120 games, 143,963 labels
+and 140,156 unique positions. Sustained thread-based labeling was too slow.
+A coordinator using four independent Python processes passes five tests,
+independent review and a live 16-game test; all four children exited 0 and native
+holdout replay passed. It reuses completed labels byte-for-byte, preserving all
+scientific settings. Protocol revision 4 changes execution topology only.
+Continuation is ready after publication; two verified archive parts preserve the
+initial dataset and are awaiting upload. No five-million-row corpus, training
+loss, audit improvement or new net is claimed.
 Exact settings, artifact SHA256 values and next action are in `manifest.json`
 and immutable `protocol.json`. Playing strength remains **unproven**.
