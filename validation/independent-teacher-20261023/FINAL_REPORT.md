@@ -54,10 +54,16 @@ arrays. All four must merge globally before the five-million gate. Six runner
 safety tests and six workflow syntax checks pass. Fresh builds reproduce both
 original cores/adapters byte-for-byte; real 16-game native preparation passes.
 The external Stockfish payload is excluded from Git and recovered by exact hash.
-**Hosted runner start, download and token publication remain unverified.**
+All four hosted runners started and published exact-source checkpoints in run
+`40021324995`. Observed builds and the external download passed, but generator
+startup rejected the precreated empty discovery directory before accepting data.
+Authentic stderr and original failures are preserved. The runner now releases
+only asserted empty directories before starting the unchanged writer; eight
+tests and two independent reviews pass. Unexpected contents remain untouched.
+A real startup smoke is finishing before an isolated `-r1` retry.
 
-Next: push the reviewed source/workflow, verify actual hosted start receipts,
-and continue collection. Only a globally qualified, frozen corpus permits the
+Next: launch the reviewed isolated retry after its real startup smoke, verify
+actual generated/teacher rows, and continue collection. Only a globally qualified, frozen corpus permits the
 single eight-epoch warm start. Original validation selects the earliest minimum
 trained epoch; a once-only 10,000-draw whole-game audit must beat shipped with a
 95% interval excluding zero before any net-only branch is published. No other

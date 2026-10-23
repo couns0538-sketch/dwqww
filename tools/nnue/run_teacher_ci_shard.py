@@ -60,6 +60,15 @@ def batches(items, limit):
     return result
 
 
+def release_empty_discovery_input(directory):
+    """Remove only the empty discovery scaffolding before a fresh generator."""
+    directory=Path(directory);chunks=directory/'chunks'
+    if (directory.is_symlink() or chunks.is_symlink() or not chunks.is_dir()
+        or set(directory.iterdir())!={chunks} or any(chunks.iterdir())):
+        raise ValueError('Empty teacher discovery input contains unexpected evidence')
+    chunks.rmdir();directory.rmdir()
+
+
 def scan_chunk(path, metadata, positions, games):
     """Count only hash-verified committed game frames, including zero-row games."""
     if sha(path) != metadata['sha256']: raise ValueError('Teacher chunk SHA differs')
@@ -314,6 +323,7 @@ class Runner:
         initial=self.out/'labels-initial'
         self.command([sys.executable,tool('label_teacher_games.py'),'--input-dir',games,'--output-dir',initial,
             '--teacher',paths['stockfish'],'--teacher-network-sha256',NETWORK,'--depth','3','--workers','1'],'empty-initial',timeout=120)
+        release_empty_discovery_input(games)
         generator=self.start(generation,'generator')
         end=time.monotonic()+60
         while not (games/'manifest.json').exists():
@@ -447,6 +457,21 @@ class Runner:
 
 def self_test():
     class Tests(unittest.TestCase):
+        def test_generator_fresh_output_after_empty_teacher_discovery(self):
+            from generate_teacher_games import ChunkStore
+            with tempfile.TemporaryDirectory() as directory:
+                games=Path(directory)/'games';(games/'chunks').mkdir(parents=True)
+                with self.assertRaisesRegex(ValueError,'must be empty'):ChunkStore(games,{})
+                release_empty_discovery_input(games)
+                store=ChunkStore(games,{})
+                self.assertEqual(store.manifest['status'],'FROZEN_READY')
+                self.assertTrue((games/'chunks').is_dir())
+        def test_empty_discovery_release_preserves_unexpected_evidence(self):
+            with tempfile.TemporaryDirectory() as directory:
+                games=Path(directory)/'games';(games/'chunks').mkdir(parents=True)
+                evidence=games/'chunks/unexpected.gz';evidence.write_bytes(b'preserve')
+                with self.assertRaises(ValueError):release_empty_discovery_input(games)
+                self.assertEqual(evidence.read_bytes(),b'preserve')
         def test_publication_batch_bound(self):
             self.assertEqual(batches([('a',80),('b',40),('c',20)],128),[[('a',80),('b',40)],[('c',20)]])
             with self.assertRaises(ValueError):batches([('oversize',129)],128)

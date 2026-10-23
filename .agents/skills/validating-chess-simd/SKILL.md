@@ -66,6 +66,9 @@ UCI identification and identical core hashes do not validate the handoff: check
 the probe provenance JSON, its actual linked core and source bindings, then run
 native preparation before a large remote collection. Keep independent tools
 external and record exact download/hash requirements for recovery.
+Exercise the real startup sequence too: a reader's empty discovery directory
+can violate a writer's fresh-output contract. Release only verified empty
+directories; preserve and reject unexpected contents instead of deleting them.
 
 For a large corpus, time actual native preparation on a representative closed
 segment before assigning the remaining budget. Distinguish a projection from a
