@@ -28,6 +28,18 @@ g++ -std=c++20 -O3 -march=x86-64-v3 -mtune=znver5 -fno-fast-math -ffp-contract=o
 
 ## Trained residual networks and handoffs
 
+For bucketed outputs, use replicated shipped heads for conversion and behavior
+checks. Verify selection with a separate nonidentical diagnostic export covering
+every material bucket and both sides to move. Require a forced-head-zero control
+to change integer CP in every nonzero bucket; retain actual C++ head metadata,
+original probe streams and source/export hashes. An all-heads-equal fixture alone
+cannot detect incorrect selection.
+
+Keep held-out loss qualification and native acceptance separate. Preserve failed
+fixed-move assertions, then check legality, winning status and mate distance with
+original position transcripts and bounded proofs. Record delayed mate discovery
+even when the alternative still wins; keep the existing gate outcome visible.
+
 For Forge's residual H128 network, compare pure HCE, HCE plus the candidate,
 and HCE plus the shipped network on identical complete validation data.
 Residual-only output is a diagnostic, not the deployed evaluator. Keep STM

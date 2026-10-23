@@ -72,3 +72,17 @@ was improved without duplication or a global-installation claim. Next:
 investigate the evaluation/selectivity interaction behind delayed mate discovery,
 then apply the user's PC game gate. **Elo and playing-strength gains are unproven;
 zero matches were run.**
+
+## Optional eight-output candidate
+
+The separate experimental branch now contains eight piece-count heads, a QAT
+trainer/exporter and regression tests. All heads duplicate the **shipped** net;
+this is not the learned epoch-7 candidate. Linux Release **15/15** and separate
+**ASan/UBSan 15/15** pass; two 10,000-position C++ parity runs match exactly,
+including a distinct-head control. The Windows comparison package passes
+**15 regression groups and 10,000-position exact parity under Wine**. Native
+Windows/Ryzen testing is pending. Both original 20-pair VM speed studies are
+inconclusive, so the ≤5% overhead gate remains **unproven**. Source, original
+raw evidence, exact baseline executable and a target-PC comparison helper are
+published at `bde3dc9d38c270d6c93193f04660b728e866ef13`. The manifest links every artifact.
+No accepted-engine change, matches or Elo claim resulted.
