@@ -1,0 +1,65 @@
+--- /workspace/forge-nnue-handoff-20261023/linux-final-net-trial-preparation-attempt1/run_linux_trial.py
++++ /workspace/forge-nnue-handoff-20261023/linux-final-net-repaired-harness-preparation-attempt1/run_linux_trial.py
+@@ -1,5 +1,5 @@
+ #!/usr/bin/env python3
+-"""Future-use Linux net-only qualification; requires root's frozen include/SHA."""
++"""Selected clean-engine qualification with one explicitly pinned repaired test harness."""
+ import argparse
+ from datetime import datetime, timezone
+ import hashlib
+@@ -15,6 +15,9 @@
+ import xml.etree.ElementTree as ET
+ 
+ BASE = '1ab50b2dd64d9b2f752f7f1285f6968cad2fd792'
++CLEAN_ENGINE = '6e9622fd5be18e0155fc3ed5fcf6c4586705cca6'
++TEST_COMMIT = 'f4a1ed6be3921a024e0d876cac2433153a96c66c'
++TEST_SHA256 = '6dec8511d6107511cae182dc6169122b48b41e00c5033738f8b04ab027441dce'
+ TESTS = {
+     'forge_tests', 'forge_correction_history_tests', 'forge_runtime_psqt_tests',
+     'forge_pawn_span_tests', 'forge_nearest_pawn_tests', 'forge_pv_metadata_tests',
+@@ -165,7 +168,9 @@
+     try:
+         save_new(evidence / 'INVOCATION.json',
+                  {'baseline': BASE, 'chosen_include': file_record(inc), 'pins': file_record(args.pins),
+-                  'runner': file_record(Path(__file__)), 'scope': 'Linux trial correctness only; no Elo/NPS/acceptance'})
++                  'runner': file_record(Path(__file__)), 'clean_engine_source_commit': CLEAN_ENGINE,
++                  'test_harness_commit': TEST_COMMIT, 'test_harness_sha256': TEST_SHA256,
++                  'scope': 'Linux trial with exact controlled-test repair; no production-source edits, Elo/NPS/acceptance'})
+         for role in ('compiler', 'cmake', 'ctest', 'make', 'helper_python', 'test_python'):
+             run('version-' + role, [tools[role]['path'], '--version'], timeout=30)
+         run('export-source', [tools['helper_python']['path'], '-B', pins['export_helper']['path'],
+@@ -174,9 +179,13 @@
+         frozen = json.loads(freeze.read_text())
+         frozen_manifest_sha = sha(freeze)
+         if (frozen['baseline'] != BASE or frozen['hidden'] != 128 or frozen['residual'] is not True
+-                or frozen['changed_paths'] != ['src/nnue_weights.inc']
+-                or frozen['chosen_include_sha256'] != args.sha256):
+-            raise ValueError('Net-only H128/residual source export contract differs')
++                or frozen['changed_paths'] != ['src/nnue_weights.inc', 'tests/tests.cpp']
++                or frozen['chosen_include_sha256'] != args.sha256
++                or frozen['clean_engine_source_commit'] != CLEAN_ENGINE
++                or frozen['test_harness_commit'] != TEST_COMMIT
++                or frozen['test_harness_sha256'] != TEST_SHA256
++                or frozen['delta_from_clean_engine_commit'] != ['tests/tests.cpp']):
++            raise ValueError('Exact clean-engine H128/residual plus pinned-test-repair contract differs')
+         verify_source()
+         profiles = {}
+         for profile in ('release', 'asan-ubsan'):
+@@ -254,13 +263,15 @@
+         for profile in profiles:
+             build = Path(profiles[profile]['build'])
+             save_new(evidence / (profile + '-build-files.json'), tree_record(build))
+-        result = {'status': 'PASS_LINUX_NET_ONLY_RELEASE14_ASAN_UBSAN14_BENCH_REPEATABILITY',
++        result = {'status': 'PASS_LINUX_PINNED_TEST_REPAIR_RELEASE14_ASAN_UBSAN14_BENCH_REPEATABILITY',
+                   'baseline': BASE, 'source_manifest_sha256': frozen_manifest_sha,
+                   'chosen_include_sha256': args.sha256, 'hidden': 128, 'residual': True,
+                   'changed_paths': frozen['changed_paths'], 'profiles': profiles,
++                  'clean_engine_source_commit': CLEAN_ENGINE, 'test_harness_commit': TEST_COMMIT,
++                  'test_harness_sha256': TEST_SHA256, 'production_source_edits_beyond_selected_net': False,
+                   'new_net_bench11_first': nodes[0], 'new_net_bench11_repeat': nodes[1],
+                   'speed_conclusion': None, 'elo_conclusion': None, 'promoted': False,
+-                  'scope': 'Actual Linux full-engine correctness and new-network deterministic bench only; no Windows, speed, Elo or strength acceptance'}
++                  'scope': 'Actual Linux selected-engine correctness with exact controlled-NMP test repair and first genuine new-net bench; no Windows, speed, Elo or strength acceptance'}
+         save_new(evidence / 'RESULT.json', result)
+         print(json.dumps(result, indent=2), flush=True)
+         return 0

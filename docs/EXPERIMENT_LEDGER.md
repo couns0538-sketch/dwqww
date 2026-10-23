@@ -735,3 +735,21 @@ sanitizer error. Controlled testonlyf4a repair proven old/new cores and disabled
 negativecontrol; productionsearch unchanged. Corrected fullLinux qualification
 running, not yetpassed. Completed reports, raw evidence and warm checkpoints
 preserved; see validation/nnue-pipeline-20261023/QUALIFICATION_STATUS.md.
+
+Corrected Linux qualification owner10660 actually exited0: Release14/14 and
+ASan/UBSan14/14 pass. Clean6e production plus exactf4testfixture; Releaseengine
+and corebyte-identicaloriginalfailedprofile. First genuine newnetbench348974,
+repeat348974, no NPS/Elogainclaim. Combined originalfailures/corrected evidence
+archive and independentreviewbeingsealed. Windows509outerfiles recovered from
+10actuala6Gitblobs, bytes/hash/size/modes allmatch; fullwarm158-member physical
+recovery passes. WindowsZIP/auditmetrics/index/warmmanifest/status publicly
+readback HTTP200/byteexact. Finalreport is validation/nnue-pipeline-20261023/FINAL_REPORT.md.
+
+Final NNUE native recovery closed50634exit0. Archive1227members/288455047expanded,
+78234274ZIPbytes SHA4992b63e6bed99d60288c77b62f7ab7006819ab7160bf40895b229930de9479f,
+3Git-safe parts; originalfailedRelease/ASan, fullsources/builds/binaries, controlled
+negativeproof and corrected28PASS remain distinct. Rootfreshphysicalrestoration
+verifiedallbytes/modes/originalsunchanged; independentruntime/source auditPASS130
+sealedproof files. Both trainingfullarchives recoverable, Windows509raw originals
+recoverable. Final handoffreport/qualification/nextsteps saved; no live ownednative
+job, no search/defaultnetchange, no NPS/Elo gain or shipped-net loss gain accepted.

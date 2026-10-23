@@ -40,9 +40,11 @@ evaluation-dependent depth8 null-pruning coverage assertion. Raw failures remain
 preserved; no sanitizer diagnostic occurred. Test-only repair `f4a1ed6` uses a
 controlled real search window and passes against old/new actual cores; disabling
 null pruning in a private negative-control object makes the assertion fail.
-Production search is unchanged. The fresh corrected-harness full Release and
-ASan/UBSan qualification is running; it explicitly combines clean6e engine with
-only f4's exact test file, rather than silently substituting another engine.
+Production search is unchanged. Fresh corrected-harness qualification passed
+14/14 Release plus14/14 ASan/UBSan, owner10660 actual exit0. Its source explicitly
+combines clean6e engine with only f4's exact test file. Release engine/core remain
+byte-identical to the original failed-harness production artifacts. First genuine
+new-net Linux bench348974 matches the repeat; this is not a speed measurement.
 Default shipped build after f4 passes14/14 and unchanged bench292545; engine/core
 are bit-identical to the immutable baseline. See
 [qualification status](../validation/nnue-pipeline-20261023/QUALIFICATION_STATUS.md).

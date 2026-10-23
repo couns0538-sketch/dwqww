@@ -5,18 +5,21 @@ closed. Candidate6e/INC a52efa5f7864 is frozen; do not train, tune or choose ano
 epoch from audit results. Candidate beats HCE loss but does not demonstrate a
 loss improvement over shipped; shipped default and search remain unchanged.
 
-1. Consume the sole fresh corrected-harness Linux qualification owned by
-   nnue_sample_inspection: Release14 then ASan/UBSan14, genuine first new-net
-   benchmark and repeat. Source is clean6e plus only the f4 test fixture.
-   Preserve original13/14 failures and all original raw results, no silent retries.
-2. Publish/hash-readback the tested Windows ZIP and completed original/audit loss
-   reports,2048-position native/Windows parity, loader roundtrip and warm archive.
-   Final one-page report must distinguish teacher MSE, runtime checks and Elo.
-3. Preserve the complete original and corrected Linux qualification evidence in
-   verified recovery archives; record exact source, binary and test-harness hashes.
-4. Hand frozen net-only source6e and the exact tested Windows EXE to user QA's
-   separate1000-game gate against6.4.24. No local game or Elo claim was made.
-   Code review should include the trainer/data/export tools and test-only fix.
+1. User QA: code review and the separately owned1000-game equal-time gate of
+   frozen net-only6e against exact6.4.24 baseline1ab. Retain shipped weights unless
+   the predeclared strength gate supports promotion. No local games were run.
+2. Closed qualification is complete: corrected Linux14Release+14ASan/UBSan,
+   Windows14/Wine, native/Windows2048 exact parity, old loader roundtrip.
+   Genuine candidate Linux348974 and Windows378596 benches repeat separately.
+   No more native reruns are needed without new code or a concrete concern.
+3. All original/corrected Linux runs are recoverable from1227-member archive,
+   three parts, SHA4992b63e6bed99d60288c77b62f7ab7006819ab7160bf40895b229930de9479f;
+   root physically restored every byte/mode and independent runtime review passed.
+   Windows509 originals and both full training archives are also verified.
+4. Publish the final checkpoint, run its required default14/292545 after commit,
+   and preserve that last raw proof using POST_COMMIT_PROOF.md. Verify actual
+   remote/readback receipts before asserting successful publication. On continuation,
+   inspect the matching remote note first; do not repeat completed qualification.
 5. More clean identified-game data and independent teacher calibration are future
    work, not a reason to alter this frozen audit. Legacy producer/game IDs remain
    unknown. Optional output buckets are deferred; no search changes this mission.

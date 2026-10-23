@@ -1,0 +1,64 @@
+{
+  "status": "PASS_REPAIRED_HARNESS_PREPARATION_SOURCE_REVIEW",
+  "utc": "2026-10-23T16:46:53.795663+00:00",
+  "scope": "Bounded read-only diff and source review; root explicitly authorized exact controlled null-pruning test repair. No exporter, compiler, test, engine or model execution.",
+  "identities": {
+    "run_linux_trial.py": {
+      "path": "/workspace/forge-nnue-handoff-20261023/linux-final-net-repaired-harness-preparation-attempt1/run_linux_trial.py",
+      "bytes": 16145,
+      "sha256": "3990a9b643bfb4c6133cb72cd1c0b4eebf66f302bc8114df96810b8083523b8b"
+    },
+    "export_trial.py": {
+      "path": "/workspace/forge-nnue-handoff-20261023/linux-final-net-repaired-harness-preparation-attempt1/export_trial.py",
+      "bytes": 5449,
+      "sha256": "e908b4b7bb25c7299616bcb998a4af6ef31fc616a1b6c8460baf1a14e01b4897"
+    },
+    "PINS.json": {
+      "path": "/workspace/forge-nnue-handoff-20261023/linux-final-net-repaired-harness-preparation-attempt1/PINS.json",
+      "bytes": 7718,
+      "sha256": "ce2549801f1710a0ef9989d018c077572a98f5bf2d13fb77cee18d374de2269e"
+    }
+  },
+  "blocking_findings": [],
+  "original_source_identity": {
+    "runner": {
+      "path": "/workspace/forge-nnue-handoff-20261023/linux-final-net-trial-preparation-attempt1/run_linux_trial.py",
+      "bytes": 15175,
+      "sha256": "43cb0ff0ba193348d9b2bc296afcd68800d129732b718bb82f4e8e9752fb836c"
+    },
+    "export_helper": {
+      "path": "/workspace/forge-nnue-handoff-20261023/windows-final-net-trial-preparation-attempt1/export_trial.py",
+      "bytes": 4101,
+      "sha256": "d4b19c9e03f826a786fc200c0e050a2a8b7e5852061476b8d2d801bf40bbfb8c"
+    }
+  },
+  "baseline": "1ab50b2dd64d9b2f752f7f1285f6968cad2fd792",
+  "clean_engine_commit": "6e9622fd5be18e0155fc3ed5fcf6c4586705cca6",
+  "test_harness_commit": "f4a1ed6be3921a024e0d876cac2433153a96c66c",
+  "test_harness_sha256": "6dec8511d6107511cae182dc6169122b48b41e00c5033738f8b04ab027441dce",
+  "checks": {
+    "diff_integrity": "Both supplied unified diffs exactly match independently computed diffs against original reviewed files. New tool pins equal the original tool pins. Original reviewed files retain hashes43cb0ff0 andd4b19c9e.",
+    "clean_engine_binding": "Helper compares BASE and CLEAN_ENGINE with read-only Git diff-tree, requires exactly src/nnue_weights.inc, and requires input include bytes to equal the clean commit include.",
+    "test_blob_identity": "Read-only Git show of the exact f4a1ed6b tests/tests.cpp blob hashes to pinned6dec8511. Only that blob is read from the test commit; its remaining tree is not exported.",
+    "bounded_source_export": "Pristine1ab source is materialized and verified first, then only selected weights and pinned tests/tests.cpp are written. Exact source file set and changed path list must be [src/nnue_weights.inc,tests/tests.cpp]. Production source beyond selected weights remains unchanged.",
+    "runner_contract": "Runner requires base,H128,residual,chosen includeSHA, clean engine commit, test commit, exact repaired-test SHA and tests-only delta from clean engine. Invocation and result accurately distinguish the two-file qualification tree from the clean production commit.",
+    "test_repair_source_scope": "The pinned change adds a controlled non-pawn null cutoff fixture with cached static evaluation and exact null-child TT result; it checks preparation,one try,one cutoff,two nodes,score0 and restored board/history. It replaces an evaluation-sensitive broad-search activity assertion. This review did not reproduce its separate positive/negative runtime proofs.",
+    "unchanged_runtime_gates": "Process lifecycle, exclusive evidence, source hash/mode verification, strict flags, exact14 CTest/JUnit gates in Release and ASan/UBSan, and first genuine unknown bench signature followed by same-binary repeat retain original reviewed logic.",
+    "preservation": "New preparation paths and pinned original references preserve all original failed runs and scripts. No attempt to overwrite or relabel them is present in the reviewed diffs."
+  },
+  "runtime_boundary": [
+    "Root must bind actual invocation to the frozen selected include/SHA and preserve the FREEZE receipt identity.",
+    "Actual new exports, builds, test and sanitizer passes, bench signature and process closure require original subsequent runtime evidence.",
+    "Qualification scope must continue reporting the exact pinned test-harness replacement; it is not a pristine unchanged-tests run."
+  ],
+  "review_actions": {
+    "read_only_git_inspection": true,
+    "source_edits": 0,
+    "git_mutations": 0,
+    "exports": 0,
+    "builds": 0,
+    "tests_or_fixture_retests": 0,
+    "model_forwards_or_losses": 0,
+    "independent_audit_data_or_model_metrics_read": 0
+  }
+}

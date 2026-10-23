@@ -1,0 +1,17 @@
+# Corrected Linux qualification: independent evidence review
+
+**PASS.** This was a read-only review after the producer explicitly closed and sealed its inputs. No builds, tests, searches, model evaluations, or Git writes were performed by the reviewer. The producer's saved actual tool closure records session **10660**, exit **0**; the independent verifier also exited **0**, with **0 stderr bytes**.
+
+All **74** exported source files were independently compared byte-for-byte with actual Git blobs: selected-net source `6e9622fd5be18e0155fc3ed5fcf6c4586705cca6`, with only `tests/tests.cpp` taken from authorized repair `f4a1ed6be3921a024e0d876cac2433153a96c66c` (SHA-256 `6dec8511d6107511cae182dc6169122b48b41e00c5033738f8b04ab027441dce`). Relative to source baseline `1ab50b2dd64d9b2f752f7f1285f6968cad2fd792`, only the network and this test harness differ. Selected weights remain `a52efa5f7864b04d0e8fceb3b14af4fc4970e0bb0a0a8706be0959b0bbb98df7`, residual, 128 hidden units. No search or other production-source change was introduced.
+
+The actual CTest receipts, discovery outputs, raw JUnit, untruncated LastTest logs, and runner output agree: **14/14 Release** and **14/14 ASan/UBSan** tests passed, with none disabled or skipped. Both full logs show `Controlled null cutoff: prepared 1 tries 1 cutoffs 1 nodes 2 score 0 restored 1`. All recorded build-manifest files still match their hashes, sizes, and modes. Actual GCC 14 C++20 flags retain x86-64-v3, znver5 tuning, no fast-math, contraction off, and no LTO. ASan/UBSan compilation and linking are both instrumented, with halt-on-error/leak detection configured.
+
+Release `forge` and `libforge_core.a` are byte-identical to the original selected-net profile that failed the old evaluation-dependent coverage assertion. That original **13/14**, exit-8 failure is preserved and copied into this review as supporting evidence. The engine SHA-256 is `da9667abf3416280c75b7a0f656bdb8500f53661ab40d6998f5af73900067aac`; the core archive SHA-256 is `c324be9ffce9f10b1fa34ebd12b442bc9affb0174307f2d14da29ea32ccbf079`.
+
+The first genuine new-network depth-11 benchmark and repeat both recorded **348974 nodes**, using the identical bound Release binary and identical `bench 11`/`quit` input. Their raw elapsed times were 720 and 1211 ms, respectively; these observations establish node-signature repeatability only. **No speed or Elo conclusion is drawn.**
+
+No sanitizer diagnostic signatures were observed in **36** complete stdout/stderr/LastTest files. Existing compiler conversion warnings remain recorded; they are not sanitizer findings. All **17** completed subcommand receipts returned 0 without an exception or abandoned process. The before/after inventories for all **562** producer input files are identical.
+
+`EXACT-GIT-SOURCE-PROOF.json`, raw receipts, both JUnit/LastTest pairs, exact script/argv/stdio/exit receipt, and input inventories provide the per-file proof. `FILES-SHA256.json` seals all review evidence except itself and `SEAL-VERIFICATION.json`; the latter binds the manifest after rereading every sealed file.
+
+Scope: this confirms the recorded Linux qualification and artifact identity. It does not prove remote publication, native Windows/Ryzen performance, absence of every possible bug, or playing-strength improvement. Next action: parent preserves this receipt with the original failed and corrected evidence, publishes the qualified trial artifacts, and uses the existing frozen equal-time match protocol for any strength claim.
