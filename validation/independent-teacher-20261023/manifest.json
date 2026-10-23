@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "experiment_id": "forge-independent-teacher-20261023",
-  "status": "EXPLICIT_GENERATOR_RESUME_COMMAND_REPAIRED_READY_FOR_CONTINUATION",
+  "status": "PARTIAL_DATA_PUBLISHED_CONTINUATION_TIMEOUT_CLOSED",
   "start_utc": "2026-10-23T18:04:09+00:00",
   "stop_starting_new_work_utc": "2026-10-23T23:34:09+00:00",
   "hard_deadline_utc": "2026-10-24T00:04:09+00:00",
@@ -280,7 +280,7 @@
       "production-labels-02",
       "collection-run-02"
     ],
-    "current_phase": "initialsegmentcleanlyclosed;4processcontinuationready",
+    "current_phase": "collection04closed;exactnativegamepassesreproduction;causestillunresolved",
     "completed_initial_games": 5120,
     "accepted_initial_labels": 143963,
     "unique_initial_positions": 140156,
@@ -296,9 +296,158 @@
       "collection-run-04"
     ],
     "continuation03": "FAILED rootomitted--resume; generatorrefusedbeforeworkers; dataunchanged; bothparentsclosed",
-    "collection_soft_cutoff_utc": "2026-10-23T22:45:00+00:00"
+    "collection_soft_cutoff_utc": "2026-10-23T22:45:00+00:00",
+    "completed_labeled_games": 8704,
+    "accepted_total_labels": 245248,
+    "exact_unique_first4_fen": 237482,
+    "collection04_result": {
+      "status": "FAILED",
+      "protocol_sha256": "1a8f8eddc90e96099c4e459aa61cb52d112c7fac9dbee8bcf7d04c9e625b4222",
+      "errors": [
+        "generator failed with actual exit 1",
+        "generator manifest is not PASS"
+      ],
+      "rows": 245248,
+      "controller_sha256": "2eb94c0f3b46d9e7be9b832dee33a041664eb1fea11f74b53aa1939c26fdcba8",
+      "stop_at": "2026-10-23T22:45:00+00:00",
+      "target_unique_positions": 5100000,
+      "minimum_positions": 5000000,
+      "started_utc": "2026-10-23T19:47:02.515050+00:00",
+      "children": {
+        "generator": {
+          "argv": [
+            "/workspace/.cloud-setup/nnue-pipeline-20261023-venv/bin/python",
+            "/workspace/dwqww/tools/nnue/generate_teacher_games.py",
+            "--engine",
+            "/workspace/forge-independent-teacher-20261023/generation-agent/native-batch-current",
+            "--opponent",
+            "/workspace/forge-independent-teacher-20261023/generation-agent/native-batch-5101",
+            "--source-commit",
+            "1ab50b2dd64d9b2f752f7f1285f6968cad2fd792",
+            "--opponent-source-commit",
+            "5101c2529d386b7c3a04ba9156a69ee34df6bb43",
+            "--network",
+            "/workspace/dwqww/src/nnue_weights.inc",
+            "--opponent-network",
+            "/workspace/forge-independent-teacher-20261023/generation-agent/5101-nnue_weights.inc",
+            "--engine-core",
+            "/workspace/.cloud-setup/nnue-pipeline-20261023-baseline-build/libforge_core.a",
+            "--opponent-core",
+            "/workspace/.cloud-setup/accepted-ownbook-candidate-release/libforge_core.a",
+            "--engine-reference",
+            "/workspace/.cloud-setup/nnue-pipeline-20261023-baseline-build/forge",
+            "--opponent-reference",
+            "/workspace/.cloud-setup/accepted-ownbook-candidate-release/forge",
+            "--build-provenance",
+            "/workspace/forge-independent-teacher-20261023/generation-agent/native-build.json",
+            "--out",
+            "/workspace/forge-independent-teacher-20261023/production-games-02",
+            "--games",
+            "1000000",
+            "--target-positions",
+            "0",
+            "--workers",
+            "1",
+            "--nodes",
+            "64",
+            "--seed",
+            "2026102301",
+            "--split-seed",
+            "2026102302",
+            "--validation-fraction",
+            ".05",
+            "--audit-fraction",
+            ".05",
+            "--opening-min",
+            "8",
+            "--opening-max",
+            "24",
+            "--max-ply",
+            "256",
+            "--chunk-games",
+            "256",
+            "--native-batch",
+            "--time-limit-seconds",
+            "14400",
+            "--resume"
+          ],
+          "pid": 872961,
+          "actual_exit": 1,
+          "cwd": "/workspace/dwqww",
+          "env_overrides": {
+            "PYTHONDONTWRITEBYTECODE": "1"
+          },
+          "stdout": "/workspace/forge-independent-teacher-20261023/collection-run-04/generator.stdout",
+          "stderr": "/workspace/forge-independent-teacher-20261023/collection-run-04/generator.stderr"
+        },
+        "labeler": {
+          "argv": [
+            "/workspace/.cloud-setup/nnue-pipeline-20261023-venv/bin/python",
+            "/workspace/dwqww/tools/nnue/coordinate_teacher_shards.py",
+            "--input-dir",
+            "/workspace/forge-independent-teacher-20261023/production-games-02",
+            "--output-dir",
+            "/workspace/forge-independent-teacher-20261023/production-labels-04",
+            "--teacher",
+            "/workspace/.cloud-setup/stockfish/stockfish/stockfish-linux-x86-64-universal",
+            "--depth",
+            "3",
+            "--workers",
+            "4",
+            "--follow",
+            "--idle-timeout",
+            "86400",
+            "--stop-file",
+            "/workspace/forge-independent-teacher-20261023/production-labels-04/STOP_LABELING",
+            "--teacher-network-sha256",
+            "1a298aa575a085434d29027978dc36867fe9c5bcea9376654b7a8eba1e52dfc2",
+            "--initial-manifest",
+            "/workspace/forge-independent-teacher-20261023/production-labels-02/manifest.json"
+          ],
+          "pid": 872962,
+          "actual_exit": 0,
+          "cwd": "/workspace/dwqww",
+          "env_overrides": {
+            "PYTHONDONTWRITEBYTECODE": "1"
+          },
+          "stdout": "/workspace/forge-independent-teacher-20261023/collection-run-04/labeler.stdout",
+          "stderr": "/workspace/forge-independent-teacher-20261023/collection-run-04/labeler.stderr"
+        }
+      },
+      "input_pins": {
+        "/workspace/dwqww/validation/independent-teacher-20261023/protocol.json": "1a8f8eddc90e96099c4e459aa61cb52d112c7fac9dbee8bcf7d04c9e625b4222",
+        "/workspace/forge-independent-teacher-20261023/generation-agent/production-command-03.json": "4db9007c6ae14df672915b89ea15d2ae2b94ca193a20672751e3069dafa4199f",
+        "/workspace/.cloud-setup/stockfish/stockfish/stockfish-linux-x86-64-universal": "0f83d24cc46d2c66c60f16001af5444873bc112b7d028594513426894c12da19",
+        "/workspace/dwqww/tools/nnue/generate_teacher_games.py": "c6d04b1cf9e6054733c477c81e085bd0abfea768f5f4d9183e5251a23a7a4bf1",
+        "/workspace/dwqww/tools/nnue/native_game_driver.cpp": "15c32e4095f3804eae82f12f5fa6b0cfe277e826df9f17ca6730aef4c805d065",
+        "/workspace/dwqww/tools/nnue/label_teacher_games.py": "cb7cea79fabd1a63d2e3047eba7aed5361f299770f6b346571e3086504c42069",
+        "/workspace/dwqww/tools/nnue/coordinate_teacher_shards.py": "57c04b0a8d38c514ae7dd203283ddaf1035aac0a81005293d8b900bd89591e5a",
+        "/workspace/forge-independent-teacher-20261023/generation-agent/native-build.json": "283a7a39ac56a898f0cb25bc2d32f5dcb8594a7ea9fb982db980d549cefd9466",
+        "/workspace/forge-independent-teacher-20261023/production-labels-02/manifest.json": "92940ab81274c99ce38ef36086b4a4276f538795754fd49e998e072f3aa22bbb",
+        "/workspace/forge-independent-teacher-20261023/production02-closed-before-sharding/receipt.json": "055777fc57d62c7ab77de1a7407e64160ade8e56c4607231c171660fb0cb2982",
+        "/workspace/forge-independent-teacher-20261023/run_collection_multiprocess.py": "2eb94c0f3b46d9e7be9b832dee33a041664eb1fea11f74b53aa1939c26fdcba8"
+      },
+      "unique_positions": 237482,
+      "games": 8704,
+      "split_rows": {
+        "train": 220165,
+        "validation": 13087,
+        "audit": 11996
+      },
+      "committed_label_chunks": 34,
+      "utc": "2026-10-23T19:52:51.919546+00:00",
+      "free_bytes": 4758908928,
+      "labeler_status": "complete",
+      "labeler_manifest_sha256": "e8a38996b22657faffe24986fff5283465558d284c629aafb4c37538673897a4",
+      "stop_reason": "failure",
+      "generator_status": "INCOMPLETE_OR_FAILED",
+      "generator_manifest_sha256": "cbd39584fe19b96c06daed52d700a8c35f2deac8db024b54389636062603b2fb",
+      "training_permitted": false,
+      "training_status": "requires authenticated preparation and final retained-row qualification",
+      "remaining_parent_pids": []
+    }
   },
-  "updated_utc": "2026-10-23T19:45:18.907784+00:00",
+  "updated_utc": "2026-10-23T20:15:05.715591+00:00",
   "source_files_sha256": {
     "tools/nnue/residual_train.py": "041a0901ae59da8d697b06be9a64e97fa04047e32f9cad428edcb399e0d5c082",
     "tools/nnue/compare_holdout.py": "e415fd09dc2e10f2731da2f1094942dc0a0c174888f9dfb8f0c304f9f129ed46",
@@ -311,7 +460,7 @@
     "tools/nnue/coordinate_teacher_shards.py": "57c04b0a8d38c514ae7dd203283ddaf1035aac0a81005293d8b900bd89591e5a",
     "tools/nnue/tests/test_teacher_shards.py": "3dba592975912a2d0be67e77a60dfba4bb6cfe5ae1b8049d8cd468a4287c0d5a"
   },
-  "next_action": "Push verifiedcheckpoint; launchcontinuation04 withexplicit--resume andsourcegen02originalconfig, initialteacher02labels; softcutoff22:45Z. Publishdatasetinitiala25c8e3 onisolateddatabranch; verifypublicbytes. No optimizationbelow5M.",
+  "next_action": "Publish245248labelclosedincrementandnativearrays;reusealloriginalrawsegments;oneunchangedgeneratorretryafterexactclosedreceiptguard;attemptboundedparallelCIresources. No optimizer before globallydeduplicated5Mqualified.",
   "execution": {
     "model": "4_independent_python_labeler_processes_each_one_external_SF_thread",
     "initial_teacher_manifest_sha256": "92940ab81274c99ce38ef36086b4a4276f538795754fd49e998e072f3aa22bbb",
@@ -331,7 +480,7 @@
     "generator_resume_flag": "--resume explicitly; no configuration/digest or generating-engine change"
   },
   "initial_dataset_archive": {
-    "status": "PACKED_VERIFIED_NOT_YET_PUBLISHED",
+    "status": "PUSHED_ALL_PUBLIC_BYTES_SHA_SIZE_VERIFIED",
     "recovery_manifest_sha256": "e7fbe684a8598549d6bac74f88553e049ed8af3820926e48d1220e807474ebfc",
     "archive": {
       "bytes": 56702253,
@@ -351,6 +500,50 @@
     ],
     "qualifying_unique_positions": 140156,
     "training_permitted": false,
-    "dataset_branch_planned": "forge/independent-teacher-data-20261023"
-  }
+    "dataset_branch_planned": "forge/independent-teacher-data-20261023",
+    "commit": "a25c8e3d5f0a3e5a668f619297f1053f3849b7b1",
+    "files_verified": 6,
+    "public_bytes_verified": 56752612,
+    "branch": "forge/independent-teacher-data-20261023"
+  },
+  "actual_native_preparation": {
+    "status": "PASS_ACTUAL_CLOSED_INITIAL_NATIVE_PREPARATION_INCOMPLETE_BY_DESIGN",
+    "native_retained_rows": 140156,
+    "retained_by_split": {
+      "train": 126155,
+      "validation": 7330,
+      "audit": 6671
+    },
+    "elapsed_seconds": 143.39898090803763,
+    "training_permitted": false,
+    "model_scoring_or_optimizer_or_audit_loss_run": false,
+    "linear_projection_minutes": 85.26153054931507,
+    "projection_scope": "Planning estimate from one 140156-row run under active production load. Not a measured 5M runtime, engine NPS or playing-strength claim. Corpus/disk/memory/load effects may change full-data preparation time.",
+    "output_artifact_sha256": {
+      "audit-prepared/manifest.json": "8adc724be7358888b836c2d4a886761b7d22695f26f66b3372e324a9012c3a48",
+      "audit-prepared/train.npz": "bd7d9c3c03540ab809c8f04357f5a0ebfd653b463741ee7af3740eb60bd7ff30",
+      "audit-prepared/validation-provenance.jsonl": "494f18b54dddd28f92a9191eaedb8096961cfac9471a79f517c05ed8179989fe",
+      "audit-prepared/validation.npz": "a0a24792d56b3ee848e0261f42ba58896e659a6ebf2bf6b3480dcef742487811",
+      "freeze.json": "49947ee1d536deee691a25beb9ea250c0b2c71862bd7c42e181c5d2c7c238758",
+      "inputs/generation-manifest.json": "87ae84cf1e576351a1f7410b1e0887dc6c0cdb6bb40568ea477fe9934484e2e6",
+      "inputs/probe-source.json": "03479c7a2d7f54d5fc877ef1d056f70320a416cc855ab7921e0bfa0d6eda0e40",
+      "inputs/protocol.json": "1a8f8eddc90e96099c4e459aa61cb52d112c7fac9dbee8bcf7d04c9e625b4222",
+      "inputs/teacher-manifest.json": "92940ab81274c99ce38ef36086b4a4276f538795754fd49e998e072f3aa22bbb",
+      "native-probe-receipt.json": "c2338f81dff15374aa623c4954c380d1fa9ef5e0fda1ba78c1e11010400d6142",
+      "prepared/manifest.json": "9f757de431424f0f7b2ecea604c11399b1e551939f0e04685cf68f55ced10e39",
+      "prepared/train-provenance.jsonl.gz": "53a9136ee8c6b8024c28139d938f4a91cf7034c05064fb4b9e0b1a5f08378b9b",
+      "prepared/train.npz": "bd7d9c3c03540ab809c8f04357f5a0ebfd653b463741ee7af3740eb60bd7ff30",
+      "prepared/validation-provenance.jsonl": "1ed8eb8e434e7bd74e8a10929d63444d89edeb42599032bca0fa6e2643a733b6",
+      "prepared/validation.npz": "e766aed05770f4e8a2c120ae6e8ebbcf703ba8a46d070b2a18f45acf213d6f3b"
+    }
+  },
+  "additional_compact_evidence": [
+    {
+      "path": "source-checks-06.zip",
+      "sha256": "2747bd5664367d0663118dfac5777a8036e0301821ec186de39810aeae28e1f6",
+      "bytes": 195346,
+      "members": 45,
+      "status": "PASS_STABLE_SOURCE_ZIP_CRC_SHA_MODE_READBACK"
+    }
+  ]
 }

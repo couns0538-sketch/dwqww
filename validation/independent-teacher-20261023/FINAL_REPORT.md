@@ -1,54 +1,60 @@
 # Independent-teacher pipeline — progress
 
-Branch: `forge/independent-teacher-20261023`, preserving parent `27070fe`.
-The required manifest, trainer and licence checkpoint `776f0a2` and producer
-checkpoint `8dab4db` are public; four byte-identical downloads verify each.
-The latter passes 14 native tests and the unchanged 292,545-node benchmark.
-Runtime search, shipped weights and core binaries remain unchanged.
+Branch `forge/independent-teacher-20261023` preserves accepted parent `27070fe`
+and runtime source `1ab50b2`. Search, shipped weights and core binaries are unchanged.
+The trainer, licence repair, checksum repair and authentic generation/labeling tools
+are public. Current source passes 14 native tests and the unchanged 292,545-node
+benchmark. No old training rows, matches or Elo claims are included.
 
 Six-hour window: October 23, 11:04 AM–5:04 PM PDT; new work stops 4:34 PM.
-No old training data, strength matches or Elo claims are included.
+The required five-million-position dataset is **not complete**. No training,
+model-loss evaluation, audit-loss comparison or new network has been produced.
 
-The first production startup failed before accepting any labels: an empty game
-chunk directory caused the labeler to read a process trace. Both processes exited
-and original evidence is preserved. The corrected discovery passes a real live
-producer/consumer startup test: 16 games, 441 inputs, 372 Stockfish labels, both
-processes exited 0. A separate 256-game integration passes. The full source suite
-runs 138 tests: 137 pass and one external test is skipped there, run separately.
-Preparation passes 14 tests and independent review; a real 370-position fixture
-replays native features/HCE and correctly refuses optimization below five million.
+## Completed and preserved
 
-Actual 256-game feasibility screens accepted 6,781 labels in 137.654247 seconds
-at Stockfish depth 6; 6,715 in 52.937017 at depth 4; and 6,795 in 42.390499 at
-depth 3. These are shared-environment pipeline measurements, not engine speed.
-Before qualifying production labels or any model loss, protocol revision 3 freezes
-external Stockfish 19 at depth 3 with four one-thread workers to fit this budget.
-Earlier settings, failed attempts and original evidence remain preserved. Pilot
-rows are excluded from production. Parallel throughput is still unproven.
+The initial dataset is published on `forge/independent-teacher-data-20261023`
+at `a25c8e3d5f0a3e5a668f619297f1053f3849b7b1`. All six public artifacts
+were downloaded and SHA256/size verified: 56,752,612 bytes. Its two archive parts
+preserve 5,120 labeled whole games, 143,963 labels and 140,156 unique positions,
+plus all original generation chunks and raw teacher transcripts. The recoverable
+ZIP stream is 56,702,253 bytes; its exact hashes are in the manifest.
 
-Fresh Forge 6.4.24 self-play and games against exact `5101c252` use varied openings,
-64-node searches and a 256-ply limit. Whole games split 90/5/5; exact positions
-are deduplicated with audit priority. The result blend is fixed at 40%. At least
-five million unique retained rows are required before one eight-epoch warm-start
-run. Original validation selects the earliest minimum-loss trained epoch; a
-once-only, 10,000-draw whole-game audit must beat shipped with its 95% interval
-excluding zero before any net-only branch is published.
+Further collection reached 8,704 labeled games, 245,248 labels and 237,482 unique
+first-four-FEN positions. All producer/teacher processes closed and were reaped.
+These additional rows and original logs remain intact and are being published.
+The generator timed out on uncommitted game 14,116. That exact game passed both
+cold native and production-reader reproductions in under 0.05 seconds. The
+original delay remains unexplained; no clock fix or causal conclusion is claimed.
+No incomplete game was counted or replaced by an artificial result.
 
-Both current checksum indices verify all 39 listed entries; the original index
-is retained. The trainer licence notice is repaired. The existing validation
-skill now includes the real producer-startup check and passes scoped validation.
-Compact archives contain original failures, tests, reviews and artifact hashes.
+Actual native preparation of the initial segment passed complete history,
+feature/HCE, array, game-partition and cross-split duplicate checks. It retained
+126,155 train, 7,330 validation and 6,671 audit rows in 143.398980908 seconds.
+It correctly refused training below five million. A linear full-size projection
+is about 85 minutes, not a measured five-million-row runtime. Sustained local
+collection is also too slow for the remaining budget; bounded parallel hosted
+resources are being investigated, without assuming their availability.
 
-The initial production segment closed cleanly with 5,120 games, 143,963 labels
-and 140,156 unique positions. Sustained thread-based labeling was too slow.
-A coordinator using four independent Python processes passes five tests,
-independent review and a live 16-game test; all four children exited 0 and native
-holdout replay passed. It reuses completed labels byte-for-byte, preserving all
-scientific settings. Protocol revision 4 changes execution topology only.
-A launch omitted the required `--resume`; the generator refused existing output
-before any mutation. The explicit command is corrected; all processes closed.
-Continuation is ready after publication. Two verified archive parts preserve the
-initial dataset and are awaiting upload. No five-million-row corpus, training
-loss, audit improvement or new net is claimed.
-Exact settings, artifact SHA256 values and next action are in `manifest.json`
-and immutable `protocol.json`. Playing strength remains **unproven**.
+The original empty-chunk discovery failure and omitted explicit resume flag are
+fixed; failed inputs and original process exits are retained. Four-process
+labeling passes five tests, independent review and a live 16-game integration.
+The complete earlier tool suite passes 137 tests with one external test separately
+executed. Preparation passes 14 tests. Both current checksum indices verify all
+39 listed entries; the original index remains preserved. The existing validation
+skill was improved and checked without creating a duplicate.
+
+## Frozen acceptance gate and next action
+
+External Stockfish 19 depth 3 labels fresh Forge 6.4.24 self-play and games against
+exact `5101c252`; the result blend is 40%. Whole games split 90/5/5. Exact-position
+deduplication prioritizes audit, then validation, then training. Original raw
+manifests, UCI streams, source and binary hashes remain authenticated.
+
+Next: publish the closed increment, reuse its completed labels and resume only
+with authenticated unchanged settings; test parallel collection/preparation.
+Only a globally qualified corpus of at least five million positions permits one
+eight-epoch warm-start run. Original validation selects the earliest minimum-loss
+trained epoch. A once-only 10,000-draw whole-game audit must beat shipped with a
+95% interval excluding zero before any net-only branch is published.
+All settings and artifact SHA256 values are in `manifest.json` and `protocol.json`.
+Playing strength remains **unproven**.
