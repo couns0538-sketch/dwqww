@@ -1,5 +1,7 @@
 # Current baseline
 
+Publication complete: source `0741024`, artifacts/report `14ba064fcc1e21404864967f6f7097c1530ef645`; eight actual immutable GitHub downloads match Git bytes. [Public receipt](../validation/sol-next-20261024/PUBLIC_DELIVERY_READBACK.json). No speed or strength acceptance.
+
 ## Completed native research cycle — 2026-10-24 17:17 UTC
 
 Mission lock remains f4911f2, accepted integration untouched. `NnueInt16` remains OFF by default. All five OFF signatures and both perft5 totals match; 100k numerical error mean/max/p99=0.0147/1/1cp, strict flips0; int64 overflow-boundary and T2 mid-search ON/OFF sanitizer lifecycle pass. Full Release/ASan CTest are 14/15 with four known FAIL lines. ON nodes11/13/16/20/22=335382/850773/3130100/10757244/27884195. Fresh WAC274/271/278 is complete; earlier failed trial remains separate with unresolved cause.
