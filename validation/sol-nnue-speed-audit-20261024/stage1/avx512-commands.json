@@ -1,0 +1,93 @@
+{
+  "commands": [
+    {
+      "name": "official-avx512-off",
+      "argv": [
+        "g++",
+        "-std=c++20",
+        "-O3",
+        "-DNDEBUG",
+        "-DFORGE_NNUE_HIDDEN=256",
+        "-ffp-contract=off",
+        "-DFORGE_AVX512=0",
+        "-fno-fast-math",
+        "-march=znver5",
+        "-static",
+        "-pthread",
+        "-Iinclude",
+        "src/bitboard.cpp",
+        "src/board.cpp",
+        "src/book.cpp",
+        "src/eval.cpp",
+        "src/eval_params.cpp",
+        "src/nnue.cpp",
+        "src/search.cpp",
+        "src/uci.cpp",
+        "-o",
+        "/workspace/forge-sol-nnue-speed-audit-20261024/bin/forge-avx512-off"
+      ]
+    },
+    {
+      "name": "official-avx512-on",
+      "argv": [
+        "g++",
+        "-std=c++20",
+        "-O3",
+        "-DNDEBUG",
+        "-DFORGE_NNUE_HIDDEN=256",
+        "-ffp-contract=off",
+        "-DFORGE_AVX512=1",
+        "-fno-fast-math",
+        "-march=znver5",
+        "-static",
+        "-pthread",
+        "-Iinclude",
+        "src/bitboard.cpp",
+        "src/board.cpp",
+        "src/book.cpp",
+        "src/eval.cpp",
+        "src/eval_params.cpp",
+        "src/nnue.cpp",
+        "src/search.cpp",
+        "src/uci.cpp",
+        "-o",
+        "/workspace/forge-sol-nnue-speed-audit-20261024/bin/forge-avx512-on"
+      ]
+    },
+    {
+      "name": "cmake-avx512-on-configure",
+      "argv": [
+        "/workspace/.cloud-setup/venv/lib/python3.12/site-packages/cmake/data/bin/cmake",
+        "-S",
+        "/workspace/dwqww",
+        "-B",
+        "/workspace/forge-sol-nnue-speed-audit-20261024/build-avx512-on",
+        "-DCMAKE_BUILD_TYPE=Release",
+        "-DCMAKE_CXX_EXTENSIONS=OFF",
+        "-DCMAKE_CXX_FLAGS=-DFORGE_NNUE_HIDDEN=256 -DFORGE_AVX512=1 -ffp-contract=off -fno-fast-math -march=znver5",
+        "-DCMAKE_EXE_LINKER_FLAGS=-static"
+      ]
+    },
+    {
+      "name": "cmake-avx512-on-build",
+      "argv": [
+        "/workspace/.cloud-setup/venv/lib/python3.12/site-packages/cmake/data/bin/cmake",
+        "--build",
+        "/workspace/forge-sol-nnue-speed-audit-20261024/build-avx512-on",
+        "--parallel",
+        "2"
+      ]
+    },
+    {
+      "name": "cmake-avx512-on-ctest",
+      "argv": [
+        "/workspace/.cloud-setup/venv/lib/python3.12/site-packages/cmake/data/bin/ctest",
+        "--test-dir",
+        "/workspace/forge-sol-nnue-speed-audit-20261024/build-avx512-on",
+        "--output-on-failure",
+        "--parallel",
+        "1"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,65 @@
+{
+  "commands": [
+    {
+      "name": "official-lock-build",
+      "argv": [
+        "g++",
+        "-std=c++20",
+        "-O3",
+        "-DNDEBUG",
+        "-DFORGE_NNUE_HIDDEN=256",
+        "-ffp-contract=off",
+        "-fno-fast-math",
+        "-march=znver5",
+        "-static",
+        "-pthread",
+        "-Iinclude",
+        "src/bitboard.cpp",
+        "src/board.cpp",
+        "src/book.cpp",
+        "src/eval.cpp",
+        "src/eval_params.cpp",
+        "src/nnue.cpp",
+        "src/search.cpp",
+        "src/uci.cpp",
+        "-o",
+        "/workspace/forge-sol-nnue-speed-audit-20261024/bin/forge-lock"
+      ]
+    },
+    {
+      "name": "cmake-lock-configure",
+      "argv": [
+        "/workspace/.cloud-setup/venv/lib/python3.12/site-packages/cmake/data/bin/cmake",
+        "-S",
+        "/workspace/forge-sol-nnue-speed-audit-20261024/lock-source",
+        "-B",
+        "/workspace/forge-sol-nnue-speed-audit-20261024/build-lock",
+        "-DCMAKE_BUILD_TYPE=Release",
+        "-DCMAKE_CXX_EXTENSIONS=OFF",
+        "-DCMAKE_CXX_FLAGS=-DFORGE_NNUE_HIDDEN=256 -ffp-contract=off -fno-fast-math -march=znver5",
+        "-DCMAKE_EXE_LINKER_FLAGS=-static"
+      ]
+    },
+    {
+      "name": "cmake-lock-build",
+      "argv": [
+        "/workspace/.cloud-setup/venv/lib/python3.12/site-packages/cmake/data/bin/cmake",
+        "--build",
+        "/workspace/forge-sol-nnue-speed-audit-20261024/build-lock",
+        "--parallel",
+        "3"
+      ]
+    },
+    {
+      "name": "cmake-lock-ctest",
+      "argv": [
+        "/workspace/.cloud-setup/venv/lib/python3.12/site-packages/cmake/data/bin/ctest",
+        "--test-dir",
+        "/workspace/forge-sol-nnue-speed-audit-20261024/build-lock",
+        "--output-on-failure",
+        "--parallel",
+        "1"
+      ]
+    }
+  ]
+}

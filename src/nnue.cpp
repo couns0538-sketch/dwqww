@@ -15,7 +15,14 @@
 #define FORGE_NNUE_SSE 0
 #endif
 
-#if defined(__AVX2__)
+#ifndef FORGE_AVX512
+#define FORGE_AVX512 0
+#endif
+#if FORGE_AVX512 && !defined(__AVX512F__)
+#error "FORGE_AVX512=1 requires AVX-512F compiler support"
+#endif
+
+#if defined(__AVX2__) || FORGE_AVX512
 #include <immintrin.h>
 #endif
 
@@ -67,12 +74,55 @@ const Weights& weights() {
     return instance;
 }
 
+#if FORGE_AVX512
+static_assert(HiddenSize % 16 == 0, "AVX-512 requires HiddenSize to be a multiple of 16");
+
+inline void copy_accumulator(float* destination, const float* source) {
+    for (int h = 0; h < HiddenSize; h += 16) {
+        _mm512_storeu_ps(destination + h, _mm512_loadu_ps(source + h));
+    }
+}
+
+// Keep one partial sum for each index modulo 16. Output-head selection can
+// supply another w2/b2 pair without changing this arithmetic kernel.
+inline float evaluate_avx512(const float* ours, const float* theirs, const float* w2, const float* b2) {
+    const __m512 zero = _mm512_setzero_ps();
+    const __m512 one = _mm512_set1_ps(1.0F);
+    __m512 sums = zero;
+    for (int h = 0; h < HiddenSize; h += 16) {
+        const __m512 a = _mm512_min_ps(_mm512_max_ps(_mm512_loadu_ps(ours + h), zero), one);
+        const __m512 b = _mm512_min_ps(_mm512_max_ps(_mm512_loadu_ps(theirs + h), zero), one);
+        const __m512 a_term = _mm512_mul_ps(_mm512_mul_ps(a, a), _mm512_loadu_ps(w2 + h));
+        const __m512 b_term = _mm512_mul_ps(_mm512_mul_ps(b, b), _mm512_loadu_ps(w2 + HiddenSize + h));
+        const __m512 term = _mm512_add_ps(a_term, b_term);
+        sums = _mm512_add_ps(sums, term);
+    }
+    alignas(64) float lanes[16];
+    _mm512_storeu_ps(lanes, sums);
+    float out = *b2;
+    for (int j = 0; j < 16; ++j) out += lanes[j];
+    return out;
+}
+#endif
+
 inline void add_feature(std::array<float, HiddenSize>& acc, const float* column) {
+#if FORGE_AVX512
+    for (int h = 0; h < HiddenSize; h += 16) {
+        _mm512_storeu_ps(acc.data() + h, _mm512_add_ps(_mm512_loadu_ps(acc.data() + h), _mm512_loadu_ps(column + h)));
+    }
+#else
     for (int h = 0; h < HiddenSize; ++h) acc[static_cast<std::size_t>(h)] += column[h];
+#endif
 }
 
 inline void sub_feature(std::array<float, HiddenSize>& acc, const float* column) {
+#if FORGE_AVX512
+    for (int h = 0; h < HiddenSize; h += 16) {
+        _mm512_storeu_ps(acc.data() + h, _mm512_sub_ps(_mm512_loadu_ps(acc.data() + h), _mm512_loadu_ps(column + h)));
+    }
+#else
     for (int h = 0; h < HiddenSize; ++h) acc[static_cast<std::size_t>(h)] -= column[h];
+#endif
 }
 
 } // namespace
@@ -85,7 +135,11 @@ void refresh(const Board& board, Accumulator& accumulator) {
     const Weights& w = weights();
     for (const Color perspective : {White, Black}) {
         auto& acc = accumulator.values[static_cast<std::size_t>(perspective)];
+#if FORGE_AVX512
+        copy_accumulator(acc.data(), w.b1.data());
+#else
         acc = w.b1;
+#endif
         Bitboard occupied = board.occupied();
         while (occupied != 0) {
             const int square = pop_lsb(occupied);
@@ -111,10 +165,17 @@ void update(const Accumulator& parent, Accumulator& child, const DirtyPieces& di
                 static_cast<std::size_t>(feature_index(perspective, removed.piece, removed.square)) * HiddenSize;
             const float* added_column = w.w1.get() +
                 static_cast<std::size_t>(feature_index(perspective, added.piece, added.square)) * HiddenSize;
+#if FORGE_AVX512
+            for (int h = 0; h < HiddenSize; h += 16) {
+                const __m512 after_remove = _mm512_sub_ps(_mm512_loadu_ps(source.data() + h), _mm512_loadu_ps(removed_column + h));
+                _mm512_storeu_ps(destination.data() + h, _mm512_add_ps(after_remove, _mm512_loadu_ps(added_column + h)));
+            }
+#else
             for (int h = 0; h < HiddenSize; ++h) {
                 const std::size_t index = static_cast<std::size_t>(h);
                 destination[index] = (source[index] - removed_column[index]) + added_column[index];
             }
+#endif
         }
         child.valid = true;
         return;
@@ -134,17 +195,29 @@ void update(const Accumulator& parent, Accumulator& child, const DirtyPieces& di
                 static_cast<std::size_t>(feature_index(perspective, removed1.piece, removed1.square)) * HiddenSize;
             const float* added_column = w.w1.get() +
                 static_cast<std::size_t>(feature_index(perspective, added.piece, added.square)) * HiddenSize;
+#if FORGE_AVX512
+            for (int h = 0; h < HiddenSize; h += 16) {
+                const __m512 after_remove0 = _mm512_sub_ps(_mm512_loadu_ps(source.data() + h), _mm512_loadu_ps(removed0_column + h));
+                const __m512 after_remove1 = _mm512_sub_ps(after_remove0, _mm512_loadu_ps(removed1_column + h));
+                _mm512_storeu_ps(destination.data() + h, _mm512_add_ps(after_remove1, _mm512_loadu_ps(added_column + h)));
+            }
+#else
             for (int h = 0; h < HiddenSize; ++h) {
                 const std::size_t index = static_cast<std::size_t>(h);
                 destination[index] = ((source[index] - removed0_column[index]) - removed1_column[index]) + added_column[index];
             }
+#endif
         }
         child.valid = true;
         return;
     }
     for (const Color perspective : {White, Black}) {
         auto& acc = child.values[static_cast<std::size_t>(perspective)];
+#if FORGE_AVX512
+        copy_accumulator(acc.data(), parent.values[static_cast<std::size_t>(perspective)].data());
+#else
         acc = parent.values[static_cast<std::size_t>(perspective)];
+#endif
         for (int i = 0; i < dirty.count; ++i) {
             const PieceChange& change = dirty.changes[static_cast<std::size_t>(i)];
             const int index = feature_index(perspective, change.piece, change.square);
@@ -161,6 +234,9 @@ int evaluate(const Board& board, const Accumulator& accumulator) {
     const Color us = board.side_to_move();
     const auto& ours = accumulator.values[static_cast<std::size_t>(us)];
     const auto& theirs = accumulator.values[static_cast<std::size_t>(opposite(us))];
+#if FORGE_AVX512
+    const float out = evaluate_avx512(ours.data(), theirs.data(), w.w2.data(), &w.b2);
+#else
     // Sixteen independent partial sums (lane j takes the hidden units with
     // index % 16 == j, in increasing order) and then one ordered sum: the
     // association is fixed by the source, so every target (SSE, AVX2, AVX-512,
@@ -211,6 +287,7 @@ int evaluate(const Board& board, const Accumulator& accumulator) {
 #endif
     float out = w.b2;
     for (int j = 0; j < Lanes; ++j) out += lanes[j];
+#endif
     const float centipawns = out * 400.0F / SigmoidK;
     return static_cast<int>(std::clamp(centipawns, -30000.0F, 30000.0F));
 }

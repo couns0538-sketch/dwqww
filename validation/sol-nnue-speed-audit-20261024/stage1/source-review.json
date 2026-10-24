@@ -1,0 +1,142 @@
+{
+  "reviewer": "nocopy_review: authored proposed item2 only, independently reviewed item1",
+  "scope": "Read-only source/math/API review of integrated item1, excluding item2 scratch source; read existing evidence only; no compiler/build/runtime/test commands run by this reviewer.",
+  "source": "/workspace/dwqww/src/nnue.cpp",
+  "source_sha256": "e074f3eaf1a40c929cd16d1937f34fe75d4d7a44ef35a8f8e3fc27014a74cb45",
+  "baseline_source": "/workspace/forge-sol-nnue-speed-audit-20261024/lock-source/src/nnue.cpp",
+  "baseline_source_sha256": "86aec39feecf029e73510e7e5fadf9e9878c94744f0380c4149edf04da02cdcd",
+  "verdict": "NO_BLOCKING_SOURCE_FINDINGS; runtime acceptance remains separate",
+  "blocking_findings": [],
+  "checks": [
+    {
+      "name": "Default-off and absent-ISA guard",
+      "status": "PASS_SOURCE_AND_EXISTING_LOG",
+      "ranges": [
+        "18-27",
+        "77-106"
+      ],
+      "reason": "FORGE_AVX512 defaults to 0; enabled without __AVX512F__ triggers explicit #error; immintrin is included when enabled, even if __AVX2__ is absent. Existing green missing-ISA stderr/metadata records actual rejection."
+    },
+    {
+      "name": "Accumulator/weight ABI and alignment",
+      "status": "PASS_SOURCE",
+      "ranges": [
+        "53-58",
+        "80-83",
+        "93-101",
+        "134-150",
+        "168-178",
+        "198-209",
+        "214-229"
+      ],
+      "reason": "nnue.hpp is byte-identical to lock; accumulator and weights remain 32-byte aligned. Every new 512-bit load/store uses loadu/storeu, so no unjustified 64-byte alignment assumption. HiddenSize multiple-of-16 static_assert bounds complete vector blocks; H256 fits. No new public API or layout change."
+    },
+    {
+      "name": "Refresh order",
+      "status": "PASS_SOURCE",
+      "ranges": [
+        "134-150"
+      ],
+      "reason": "Copy b1 unchanged in value bits; perspective order and ascending-square pop_lsb feature iteration unchanged. add_feature changes only independent hidden-lane width, retaining each lane's complete add sequence. valid=true retained after completion."
+    },
+    {
+      "name": "Quiet/capture operation association",
+      "status": "PASS_SOURCE",
+      "ranges": [
+        "158-181",
+        "185-212"
+      ],
+      "reason": "Original pattern guards retained. Count2 computes explicit subtract then add; count3 computes two explicit subtractions then add. No column precombination, reassociation, or FMA intrinsic. Distinct parent remains untouched; in-place source block loaded before its matching store."
+    },
+    {
+      "name": "Generic dirty counts and aliasing",
+      "status": "PASS_SOURCE",
+      "ranges": [
+        "214-229",
+        "295-313"
+      ],
+      "reason": "Full initial value copy and original per-change loop retained. Count0 is pure bit copy then child.valid=true, including invalid parents. All flag patterns and original -,+,-,+ castle sequence retained. Exact parent=child alias remains valid because block loads precede stores and no lane references another lane. Unsupported out-of-range dirty counts are not broadened into an API promise."
+    },
+    {
+      "name": "Clamp and signed zero",
+      "status": "PASS_SOURCE_WITH_FINITE_DOMAIN_LIMIT",
+      "ranges": [
+        "88-104",
+        "254-257",
+        "269-272"
+      ],
+      "reason": "max(input,+0) then min(result,+1) has the same operand ordering as existing AVX2/SSE. The x86 max equal-zero result comes from the second operand, converting -0 to +0 exactly as existing vector paths do. Multiplication association is (a*a)*w and (b*b)*w, then term addition. Scalar clamp may retain -0 before squaring, which removes its sign before multiplication. No claim for NaNs or nondefault floating-point control modes."
+    },
+    {
+      "name": "Sixteen partial sums and final reduction",
+      "status": "PASS_SOURCE_AND_EXISTING_ASSEMBLY",
+      "ranges": [
+        "88-104",
+        "237-238",
+        "288-292"
+      ],
+      "reason": "One __m512 sum starts at +0; lane j processes h=j,j+16,... in increasing order. Per hidden unit, square, weight multiply, paired-term add, and sum add are separate. Final loop starts at *b2 and adds lanes0..15 in order. Existing evaluate-only.s independently inspected: clamp/multiply/add sequence plus sixteen scalar reduction additions. Centipawn multiplication/division, clamp, and int conversion are shared unchanged."
+    },
+    {
+      "name": "Output-head compatibility",
+      "status": "PASS_SOURCE",
+      "ranges": [
+        "86-104",
+        "237-238"
+      ],
+      "reason": "Anonymous helper accepts explicit ours/theirs/w2/b2 pointers and references no fixed output-head array. New heads can pass their contiguous2*HiddenSize weights and bias without arithmetic changes."
+    },
+    {
+      "name": "OFF binary identity",
+      "status": "PASS_INDEPENDENT_FILE_READ",
+      "reason": "Independently compared completed official OFF executable bytes with completed official lock executable bytes; they are exactly equal. Existing official build result JSONs report exit0. Source-preprocessing witness is supplementary.",
+      "lock_sha256": "d90f5060880c799ef8cdfd41bbef3668610a08619c9edaa266452f1bc656c47f",
+      "off_sha256": "d90f5060880c799ef8cdfd41bbef3668610a08619c9edaa266452f1bc656c47f",
+      "on_sha256": "220de80544d27e566013b682d00ab213c3b3416c36d833d71aea811bad78f6d6",
+      "raw_bytes_equal": true
+    },
+    {
+      "name": "Header/network/search unchanged",
+      "status": "PASS_INDEPENDENT_FILE_READ",
+      "header_sha256": "d87106d1716388375332ea20e97d9a703c74f479ffa5236c75608b356ab5aace",
+      "network_sha256": "74c4009d86b7d3a5ae9e6119d0890e5b923508f4063161bb4bc1539aab275b1b",
+      "search_sha256": "44680416e008f4ccc0ac7d95a1452ae3db34459f945ea3311dc456536fcb0e55",
+      "reason": "Active nnue.hpp and search.cpp hashes equal immutable lock counterparts; network hash equals required74c4009d...75b1b."
+    }
+  ],
+  "evidence_read": [
+    "avx512-agent/REVIEW.md",
+    "avx512-agent/red.log",
+    "avx512-agent/green.log",
+    "avx512-agent/green/metadata.json",
+    "avx512-agent/green/evaluate-only.s",
+    "AVX512-SOURCE-BEFORE-BUILD.json",
+    "avx512-steps/official-avx512-off/result.json",
+    "avx512-steps/official-avx512-on/result.json",
+    "baseline-signatures/RESULT.json"
+  ],
+  "runtime_boundaries": {
+    "baseline_existing_results_read": {
+      "bench_depths": [
+        11,
+        13,
+        16,
+        20,
+        22
+      ],
+      "bench_nodes": [
+        308972,
+        745494,
+        2460422,
+        11901452,
+        31111774
+      ],
+      "startpos_perft5": 4865609
+    },
+    "item1_runtime_oracle_ctest_sanitizer_disassembly_timing": "Not independently run or accepted by this reviewer; root owns remaining complete acceptance. Existing agent compile/disassembly evidence was inspected, not reexecuted.",
+    "fma": "Source contains no FMA intrinsics; existing agent GREEN reports none in complete NNUE emitted translation unit. Final linked forge-function FMA scan remains root acceptance.",
+    "float_environment": "Review assumes the prescribed strict flags, rounding and FTZ/DAZ behavior; arbitrary NaN/sNaN and alternate rounding-mode equivalence are not claimed."
+  },
+  "precommit_requirement": "IDEA_SOURCE.md was absent when inspected. Root must add requested original-implementation/public-source entry before committing item1; this is documentation completion, not a source correctness blocker.",
+  "actions_performed": "Read source/evidence and hash/byte-compare existing artifacts; wrote only this JSON in nocopy-agent. No source edits, Git changes, builds, tests, engine executions or benchmarks."
+}
