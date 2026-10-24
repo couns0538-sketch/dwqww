@@ -84,3 +84,13 @@ history. Source: the user's JOB2 checklist and evidence-preservation contract.
 Implementation original. The single-CPU unsuppressed TSan audit is a finite
 lifecycle check, not a proof of universal race freedom or SMP scaling. No new
 production behavior, external engine code or match result is introduced here.
+
+## Combined optional-flag qualification and final evidence audit
+
+Idea: validate the newly available combination of independent inference and
+interrupted-result flags, then verify the original experiment records against
+their immutable source commits and public raw Git files. Source: the user's
+acceptance and publication contracts. Implementation original. The combined
+profile has native correctness/sanitizer checks, not a new million-position,
+performance or Elo experiment. This checkpoint preserves completed evidence;
+it adds no engine behavior or external implementation.
