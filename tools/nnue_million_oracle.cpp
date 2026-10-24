@@ -5,6 +5,7 @@
 #include <array>
 #include <bit>
 #include <cfenv>
+#include <charconv>
 #include <cmath>
 #include <cstdint>
 #include <iostream>
@@ -141,13 +142,13 @@ forge::nnue::Accumulator start(forge::Board& board, const char* fen) {
     snapshot(board, acc, 0U, 0U, forge::Move::none());
     return acc;
 }
-void emit_header(std::uint64_t count) {
+void emit_header(std::uint64_t count, std::uint64_t seed) {
     emit32(0x314f4d4eU); // NMO1
     emit32(1U);
     emit32(static_cast<std::uint32_t>(forge::nnue::HiddenSize));
     emit32(RecordBytes);
     emit64(count);
-    emit64(Seed);
+    emit64(seed);
 #if defined(__SSE__) || defined(_M_X64) || defined(_M_AMD64)
     emit32(_mm_getcsr() & 0x0000ffc0U);
 #else
@@ -159,7 +160,25 @@ void emit_header(std::uint64_t count) {
     emit32(2U);
     emit32(0U); emit32(0U); emit32(0U);
 }
-void emit_trailer(std::uint64_t count) {
+template<std::size_t N>
+void json_array(const std::array<std::uint32_t, N>& values) {
+    std::cerr << '[';
+    for (std::size_t i = 0; i < N; ++i) {
+        if (i != 0U) std::cerr << ',';
+        std::cerr << values[i];
+    }
+    std::cerr << ']';
+}
+template<std::size_t Rows, std::size_t Cols>
+void json_matrix(const std::array<std::array<std::uint32_t, Cols>, Rows>& values) {
+    std::cerr << '[';
+    for (std::size_t i = 0; i < Rows; ++i) {
+        if (i != 0U) std::cerr << ',';
+        json_array(values[i]);
+    }
+    std::cerr << ']';
+}
+void emit_trailer(std::uint64_t count, std::uint64_t seed) {
     require(coverage.records == count && coverage.fresh == count &&
             coverage.updates + coverage.starts == count &&
             coverage.parent == coverage.updates && coverage.inplace == coverage.updates,
@@ -182,6 +201,32 @@ void emit_trailer(std::uint64_t count) {
               << " updates=" << coverage.updates << " parent_checks=" << coverage.parent
               << " inplace_checks=" << coverage.inplace << " games=" << coverage.games
               << " genuine_boards=yes special_moves=both_colors_all_promotions\n";
+    std::cerr << "{\"kind\":\"nnue_million_oracle\",\"positions\":" << count
+              << ",\"records\":" << coverage.records << ",\"seed\":" << seed
+              << ",\"refresh\":" << coverage.fresh << ",\"updates\":" << coverage.updates
+              << ",\"parent_checks\":" << coverage.parent
+              << ",\"inplace_checks\":" << coverage.inplace << ",\"games\":" << coverage.games
+              << ",\"starts\":" << coverage.starts << ",\"moves\":";
+    json_array(coverage.moves);
+    std::cerr << ",\"captures\":"; json_array(coverage.captures);
+    std::cerr << ",\"en_passant\":"; json_array(coverage.ep);
+    std::cerr << ",\"castles\":"; json_matrix(coverage.castles);
+    std::cerr << ",\"quiet_promotions\":"; json_matrix(coverage.quiet_promotions);
+    std::cerr << ",\"capture_promotions\":"; json_matrix(coverage.capture_promotions);
+    std::cerr << ",\"genuine_boards\":true}\n";
+}
+std::uint64_t unsigned_argument(std::string_view value) {
+    std::uint64_t result = 0;
+    const auto parsed = std::from_chars(value.data(), value.data() + value.size(), result);
+    require(!value.empty() && parsed.ec == std::errc{} && parsed.ptr == value.data() + value.size(),
+            "invalid unsigned decimal argument");
+    return result;
+}
+void wait_for_start() {
+    std::string line;
+    require(static_cast<bool>(std::getline(std::cin, line)), "start command required on stdin");
+    if (!line.empty() && line.back() == '\r') line.pop_back();
+    require(line == "start", "expected start command on stdin");
 }
 } // namespace
 
@@ -191,19 +236,32 @@ int main(int argc, char** argv) {
         require(_setmode(_fileno(stdout), _O_BINARY) != -1, "binary stdout unavailable");
 #endif
         std::uint64_t count = 1000000U;
-        require(argc == 1 || (argc == 3 && std::string_view(argv[1]) == "--positions"),
-                "usage: nnue_million_oracle [--positions COUNT]");
-        if (argc == 3) {
-            std::size_t used = 0;
-            count = std::stoull(argv[2], &used);
-            require(used == std::string_view(argv[2]).size(), "invalid position count");
+        std::uint64_t seed = Seed;
+        bool wait_start = false, positions_seen = false, seed_seen = false;
+        for (int i = 1; i < argc; ++i) {
+            const std::string_view option(argv[i]);
+            if (option == "--positions" || option == "--seed") {
+                require(i + 1 < argc, "option requires an unsigned decimal argument");
+                auto& seen = option == "--positions" ? positions_seen : seed_seen;
+                require(!seen, "duplicate option");
+                seen = true;
+                auto& value = option == "--positions" ? count : seed;
+                value = unsigned_argument(argv[++i]);
+            } else if (option == "--wait-start") {
+                require(!wait_start, "duplicate option");
+                wait_start = true;
+            } else {
+                throw std::runtime_error("usage: nnue_million_oracle [--positions COUNT] [--seed UINT64] [--wait-start]");
+            }
         }
         require(count >= 1024U && count <= std::numeric_limits<std::uint32_t>::max(),
                 "position count must be in [1024, 4294967295]");
+        std::ios::sync_with_stdio(false);
+        if (wait_start) wait_for_start();
+        random_state = seed;
         require(forge::nnue::available(), "NNUE network required");
         require(std::fegetround() == FE_TONEAREST, "round-to-nearest required");
-        std::ios::sync_with_stdio(false);
-        emit_header(count);
+        emit_header(count, seed);
         forge::Board board;
         // Exhaust legal first moves before any random choices, guaranteeing
         // captures, both castles, EP and all promotions for both colors.
@@ -231,7 +289,7 @@ int main(int argc, char** argv) {
                 snapshot(board, acc, ply, 2U, move);
             }
         }
-        emit_trailer(count);
+        emit_trailer(count, seed);
         std::cout.flush();
         require(static_cast<bool>(std::cout), "oracle stdout write failed");
         return 0;

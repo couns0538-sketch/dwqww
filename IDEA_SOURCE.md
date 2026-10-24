@@ -130,3 +130,15 @@ private-buffer writes or production test hooks are introduced.
 The old array's smaller declared capacity is a source-level containment gap;
 the compile-time contract rejects restoring that mismatch. This is a defensive
 repair. It does not establish a reachable native overflow, speed gain or Elo.
+
+## Native Zen5 qualification and portable oracle controls
+
+Idea: enforce d11 before other tests, an actual same-core million-position
+comparison before timing, six A/A palindrome blocks, then fourteen A/B/B/A
+observations with a stated noise band and sign-count verdict. Source: the user's
+SOL_PROMPT_next.md and supplied nps_abba_bc.ps1 protocol. Implementation original.
+Oracle seed/start controls permit bounded interleaved native producers; the
+default raw output remains unchanged. Optional integer timing additionally
+requires an advertised OFF default, actual activation acknowledgement and frozen
+ON node counts. Linux synthetic fixtures establish control flow, not performance.
+The optional original API phase probe is not whole-engine percentage profiling.

@@ -1,0 +1,15 @@
+MODE DRY_RUN_SYNTHETIC_NO_SPEED_CLAIM CPU=1 priority=Normal Threads=1 Hash=16 OwnBook=false depth=16
+PROTOCOL AA=6 palindrome A A A A; ABBA=14 actual pairs/candidate; band=max(abs(all six AA gains)); faster>=12 and median>band; slower>=12 else NOISE
+IDENTITY lock sha256=06023f1191e9cbd8e7c09f5862a38034dc5d0825016e110096ede033b561a576 exe=/tmp/forge-ps-fixtures-co69vhy5/lock.py
+IDENTITY stage1 sha256=06023f1191e9cbd8e7c09f5862a38034dc5d0825016e110096ede033b561a576 exe=/tmp/forge-ps-fixtures-co69vhy5/stage1.py
+IDENTITY stage2 sha256=06023f1191e9cbd8e7c09f5862a38034dc5d0825016e110096ede033b561a576 exe=/tmp/forge-ps-fixtures-co69vhy5/stage2.py
+IDENTITY stage3 sha256=06023f1191e9cbd8e7c09f5862a38034dc5d0825016e110096ede033b561a576 exe=/tmp/forge-ps-fixtures-co69vhy5/stage3.py
+ORACLE_IDENTITY OFF sha256=06023f1191e9cbd8e7c09f5862a38034dc5d0825016e110096ede033b561a576 exe=/tmp/forge-ps-fixtures-co69vhy5/oracle_off.py
+ORACLE_IDENTITY AVX512_stage3 sha256=06023f1191e9cbd8e7c09f5862a38034dc5d0825016e110096ede033b561a576 exe=/tmp/forge-ps-fixtures-co69vhy5/oracle_on.py
+FROZEN_PROTOCOL sha256=c947ae22518c04f5c1963521170eb7372f3e0d34c8c2b8d5e91da870a879ffa2
+NODES PASS lock depth=11 nodes=308972 all_experimental_options=OFF
+NODES PASS lock depth=13 nodes=745494 all_experimental_options=OFF
+NODES PASS lock depth=16 nodes=2460422 all_experimental_options=OFF
+NODES PASS lock depth=20 nodes=11901452 all_experimental_options=OFF
+NODES PASS lock depth=22 nodes=31111774 all_experimental_options=OFF
+STOP BADNODES stage1 depth 11 nodes 308973 expected 308972; no later test/timing
