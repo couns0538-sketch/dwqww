@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
 """Bounded original-stream cmp with independent hashes and lossless retention.
 
-New output directories are mandatory. Equal gzip archives are hardlinked only
-after both original raw streams and both independently compressed streams pass
-cmp, SHA256 and length checks. Historical evidence is never opened for writing.
+New output directories are mandatory. Default mode independently compresses both
+fresh raw streams. Optional reuse mode compares fully decoded canonical bytes to
+each fresh raw output before linking. Every path requires byte/hash/size proofs;
+historical evidence is never opened for writing or chmodded in reuse mode.
 """
 import argparse
 import gzip
@@ -26,6 +27,7 @@ FLOATS = 2 * HIDDEN
 PREFIX_BYTES = 104
 RECORD_BYTES = PREFIX_BYTES + 2 * (FLOATS * 4 + 8)
 RESERVE_BYTES = 512 * 1024 * 1024
+REUSED_COMPRESSION = "CANONICAL_COMPRESSION_REUSED_AFTER_FRESH_RAW_AND_DECOMPRESSED_CANONICAL_CMP"
 
 
 def sha256_file(path):
@@ -146,6 +148,49 @@ def load_reference(path, args):
     return reference, path.parent, info
 
 
+def reuse_reference_compression(raw, compressed, canonical, canonical_root, raw_info):
+    name = canonical["off"]["gzip"]
+    if Path(name).name != name:
+        raise RuntimeError("canonical gzip must be a local archive filename")
+    archive = canonical_root / name
+    expected = canonical["off"]
+    if archive.stat().st_mode & 0o222:
+        raise RuntimeError("canonical archive is writable")
+    compressed_sha = sha256_file(archive)
+    if (compressed_sha != expected["gzip_sha256"] or archive.stat().st_size != expected["gzip_bytes"] or
+            any(raw_info[key] != expected[key] for key in ("raw_bytes", "raw_sha256"))):
+        raise RuntimeError("canonical archive checksum/size or original output differs")
+    decoded, count = hashlib.sha256(), 0
+    log = compressed.with_suffix(".decoded.cmp.log")
+    command = ["cmp", "--", str(raw), "-"]
+    with log.open("wb") as output:
+        comparison = subprocess.Popen(command, stdin=subprocess.PIPE, stdout=output, stderr=subprocess.STDOUT)
+        try:
+            with gzip.open(archive, "rb") as source:
+                for data in iter(lambda: source.read(1024 * 1024), b""):
+                    decoded.update(data)
+                    count += len(data)
+                    comparison.stdin.write(data)
+        except BrokenPipeError:
+            pass
+        finally:
+            try:
+                comparison.stdin.close()
+            except BrokenPipeError:
+                pass
+            raw_info["canonical_decoded_cmp_exit"] = comparison.wait()
+            raw_info["canonical_decoded_bytes"] = count
+            raw_info["canonical_decoded_sha256"] = decoded.hexdigest()
+            log.with_suffix(".exit.json").write_text(json.dumps({"argv": command, "exit_code": comparison.returncode}) + "\n")
+    if (comparison.returncode != 0 or count != raw_info["raw_bytes"] or
+            decoded.hexdigest() != raw_info["raw_sha256"]):
+        raise RuntimeError("decoded canonical cmp/hash/size differs from fresh original output")
+    os.link(archive, compressed)
+    return {"gzip": compressed.name, "gzip_bytes": archive.stat().st_size, "gzip_sha256": compressed_sha,
+            "gzip_roundtrip_bytes": count, "gzip_roundtrip_sha256": decoded.hexdigest(),
+            "compression_method": REUSED_COMPRESSION, "canonical_decoded_cmp_log": log.name}
+
+
 def reference_dedup(output, chunk, canonical, canonical_root):
     for key in ("index", "records", "first_record", "header_bytes", "trailer_bytes", "expected_bytes"):
         if chunk[key] != canonical.get(key):
@@ -222,6 +267,9 @@ def run(args):
         if args.dedup_reference_result is not None:
             reference, canonical_root, info = load_reference(args.dedup_reference_result, args)
             report["dedup_reference_result"] = info
+        if args.reuse_reference_compression:
+            report["compression_method"] = REUSED_COMPRESSION
+            report["dedup_policy"] = "Both fresh actual streams are captured and compared; immutable canonical compression is reused only after full decoded GNU cmp and independent decoded SHA256/size proofs against each fresh raw output. Only new paths are linked."
         for side in ("off", "on"):
             binary = getattr(args, side).resolve()
             command = [str(binary), "--positions", str(args.positions)]
@@ -271,7 +319,11 @@ def run(args):
                 report["negative_controls"] = negative_controls(output, raws["off"], header_bytes)
             for side in ("off", "on"):
                 archive = output / f"chunk-{index:06d}.{side}.bin.gz"
-                chunk[side].update(compress_original(raws[side], archive, args.gzip_level))
+                if args.reuse_reference_compression:
+                    chunk[side].update(reuse_reference_compression(raws[side], archive,
+                        reference["chunks"][index], canonical_root, chunk[side]))
+                else:
+                    chunk[side].update(compress_original(raws[side], archive, args.gzip_level))
             chunk["gzip_cmp_exit"] = cmp_files(output / chunk["off"]["gzip"],
                                                output / chunk["on"]["gzip"],
                                                output / f"chunk-{index:06d}.gzip.cmp.log")
@@ -282,7 +334,8 @@ def run(args):
             left, right = (output / chunk[side]["gzip"] for side in ("off", "on"))
             right.unlink()
             os.link(left, right)
-            left.chmod(0o444)
+            if not args.reuse_reference_compression:
+                left.chmod(0o444)
             chunk["gzip_hardlink_deduplicated_after_proof"] = True
             chunk["retained_physical_gzip_bytes"] = left.stat().st_size
             if reference is not None:
@@ -357,7 +410,11 @@ def main():
                         help="Kill stalled producers at this total run limit and retain actual exit codes")
     parser.add_argument("--dedup-reference-result", type=Path,
                         help="Reuse prior immutable gzip inodes only after fresh execution/cmp/hash proofs")
+    parser.add_argument("--reuse-reference-compression", action="store_true",
+                        help="After fresh raw capture, compare decoded canonical bytes before reusing compression")
     args = parser.parse_args()
+    if args.reuse_reference_compression and args.dedup_reference_result is None:
+        parser.error("--reuse-reference-compression requires --dedup-reference-result")
     if args.positions < 1 or args.chunk_records < 1 or args.timeout_seconds <= 0:
         parser.error("position/chunk counts and timeout must be positive")
     return run(args)

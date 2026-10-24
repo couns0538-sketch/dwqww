@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Unit tests only: fake producers, never a chess engine or benchmark."""
 import importlib.util
+import io
 import json
 from pathlib import Path
 import sys
@@ -189,6 +190,47 @@ class ProtocolTests(unittest.TestCase):
             self.assertEqual(result["actual_exit"], -9)
             self.assertEqual((folder / "stdout.bin").read_bytes(), b"partial interrupt evidence\n")
             self.assertEqual(json.loads((folder / "process.json").read_text())["status"], "INTERRUPTED")
+
+    def test_extra_defines_are_role_correct_metadata_before_launch_and_default_to_none(self):
+        for defines in ([], ["--baseline-extra-define", "FORGE_NNUE_ALIGN64=0",
+                             "--candidate-extra-define", "FORGE_NNUE_ALIGN64=1"]):
+            with self.subTest(defines=defines), tempfile.TemporaryDirectory() as temp:
+                root = Path(temp)
+                (root / "src").mkdir()
+                (root / "src/nnue.cpp").write_text("frozen\n")
+                binary = root / "fake"
+                binary.write_text("not launched")
+                try:
+                    args = abba.arguments(["--baseline", str(binary), "--candidate", str(binary),
+                                           "--out", str(root/"out"), "--baseline-source", str(root),
+                                           "--candidate-source", str(root)] + defines)
+                except SystemExit:
+                    self.fail("role-specific metadata define arguments are missing")
+                def fake_capture(argv, stdin, sample, timeout):
+                    profile = json.loads((root / "out/profile.json").read_text())
+                    for role, suffix in (("OFF", "0"), ("ON", "1")):
+                        expected = abba.FLAGS + " -DFORGE_AVX512=" + suffix
+                        if defines:
+                            expected += " -DFORGE_NNUE_ALIGN64=" + suffix
+                        self.assertEqual(profile["declared_build_flags"][role], expected)
+                    self.assertEqual(argv, ["/fake/taskset", "-c", "4", str(binary)])
+                    self.assertEqual(stdin, abba.INPUT)
+                    self.assertEqual(profile["sequence"], [dict(p, argv=["/fake/taskset", "-c", "4", str(binary)]) for p in abba.sequence(4)])
+                    (sample / "stdout.bin").write_bytes(ROW)
+                    (sample / "stderr.bin").write_bytes(b"intentional stop\n")
+                    return {"status": "EXITED", "actual_exit": 7, "wall_seconds": 0.01}
+                with patch.object(abba.shutil, "which", return_value="/fake/taskset"), \
+                     patch.object(abba.os, "sched_getaffinity", return_value={4}), \
+                     patch.object(abba, "capture", side_effect=fake_capture) as launch:
+                    self.assertEqual(abba.run(args), 1)
+                self.assertEqual(launch.call_count, 1)
+
+    def test_extra_define_syntax_rejects_unapproved_macro_values(self):
+        with tempfile.TemporaryDirectory() as temp:
+            base = ["--baseline", temp, "--candidate", temp, "--out", temp]
+            for value in ("FORGE_NNUE_ALIGN64=2", "OTHER_MACRO=1", "FORGE_NNUE_ALIGN64=1 -ffast-math"):
+                with self.subTest(value=value), patch.object(sys, "stderr", io.StringIO()), self.assertRaises(SystemExit):
+                    abba.arguments(base + ["--candidate-extra-define", value])
 
 
 if __name__ == "__main__":

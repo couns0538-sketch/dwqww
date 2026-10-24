@@ -26,6 +26,7 @@ class OracleRunnerTests(unittest.TestCase):
         path.write_text("""#!/usr/bin/env python3
 import struct, sys, time
 n = int(sys.argv[sys.argv.index('--positions') + 1])
+with open(__file__ + '.executed', 'ab') as marker: marker.write(b'x')
 record_size = 104 + 2 * (512 * 4 + 8)
 h = [0x314f4d4e, 1, 256, record_size, n, 0, 0x85a308d3, 0x243f6a88,
      0x1f80, 0, 192, 10, 2, 0, 0, 0]
@@ -52,16 +53,18 @@ if mode == 'hang': time.sleep(30)
         path.chmod(0o700)
         return path
 
-    def compare(self, off_mode="equal", on_mode="equal", output_name="results", reference=None):
+    def compare(self, off_mode="equal", on_mode="equal", output_name="results", reference=None, reuse=False, timeout=5):
         self.assertTrue(RUNNER.exists(), "bounded oracle runner is not implemented")
         off = self.producer("off", off_mode)
         on = self.producer("on", on_mode)
         out = self.root / output_name
         command = [sys.executable, str(RUNNER), "--off", str(off),
                    "--on", str(on), "--positions", "128",
-                   "--chunk-records", "31", "--timeout-seconds", "1", "--output", str(out)]
+                   "--chunk-records", "31", "--timeout-seconds", str(timeout), "--output", str(out)]
         if reference is not None:
             command += ["--dedup-reference-result", str(reference)]
+        if reuse:
+            command += ["--reuse-reference-compression"]
         result = subprocess.run(command,
                                 capture_output=True, text=True)
         self.assertTrue((out / "result.json").exists(), result.stderr)
@@ -110,7 +113,7 @@ if mode == 'hang': time.sleep(30)
         self.assertIn("producer", report["error"])
 
     def test_hung_producer_is_killed_and_reported_with_actual_exit_code(self):
-        result, _, report = self.compare(on_mode="hang")
+        result, _, report = self.compare(on_mode="hang", timeout=1)
         self.assertNotEqual(result.returncode, 0)
         self.assertIn("timeout", report["error"])
         self.assertLess(report["on"]["exit_code"], 0)
@@ -147,6 +150,86 @@ if mode == 'hang': time.sleep(30)
         self.assertTrue((new / "chunk-000000.off.raw").exists())
         self.assertTrue((new / "chunk-000000.on.raw").exists())
         self.assertEqual(archive.read_bytes(), bytes(bad))
+
+    def test_reused_compression_still_executes_both_fresh_producers(self):
+        result, old, prior = self.compare()
+        self.assertEqual(result.returncode, 0, result.stderr)
+        result, new, report = self.compare(output_name="reuse", reference=old / "result.json", reuse=True)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        method = "CANONICAL_COMPRESSION_REUSED_AFTER_FRESH_RAW_AND_DECOMPRESSED_CANONICAL_CMP"
+        self.assertEqual(report["compression_method"], method)
+        for side in ("off", "on"):
+            self.assertEqual((self.root / (side + '.executed')).read_bytes(), b'xx')
+        for chunk, canonical in zip(report["chunks"], prior["chunks"]):
+            for side in ("off", "on"):
+                self.assertEqual(chunk[side]["compression_method"], method)
+                self.assertEqual(chunk[side]["canonical_decoded_cmp_exit"], 0)
+                self.assertEqual(chunk[side]["gzip_roundtrip_sha256"], chunk[side]["raw_sha256"])
+                self.assertEqual((new / chunk[side]["gzip"]).stat().st_ino,
+                                 (old / canonical["off"]["gzip"]).stat().st_ino)
+
+    def test_reused_compression_preserves_canonical_read_only_permissions(self):
+        result, old, prior = self.compare()
+        self.assertEqual(result.returncode, 0, result.stderr)
+        for chunk in prior["chunks"]:
+            (old / chunk["off"]["gzip"]).chmod(0o400)
+        result, _, report = self.compare(output_name="reuse", reference=old / "result.json", reuse=True)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        for chunk in prior["chunks"]:
+            self.assertEqual((old / chunk["off"]["gzip"]).stat().st_mode & 0o777, 0o400)
+
+    def test_reused_compression_rejects_corrupt_canonical_and_retains_fresh_raw(self):
+        result, old, prior = self.compare()
+        self.assertEqual(result.returncode, 0, result.stderr)
+        archive = old / prior["chunks"][0]["off"]["gzip"]
+        archive.chmod(0o644)
+        bad = bytearray(archive.read_bytes()); bad[-1] ^= 1
+        archive.write_bytes(bad); archive.chmod(0o444)
+        result, new, report = self.compare(output_name="reuse", reference=old / "result.json", reuse=True)
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("canonical", report["error"])
+        for side in ("off", "on"):
+            self.assertTrue((new / f"chunk-000000.{side}.raw").exists())
+        self.assertEqual(archive.read_bytes(), bytes(bad))
+
+    def test_reused_compression_rejects_fresh_mismatch_and_retains_both_raw_streams(self):
+        result, old, _ = self.compare()
+        self.assertEqual(result.returncode, 0, result.stderr)
+        result, new, report = self.compare(on_mode="float", output_name="reuse",
+                                         reference=old / "result.json", reuse=True)
+        self.assertNotEqual(result.returncode, 0)
+        self.assertEqual(report["chunks"][0]["raw_cmp_exit"], 1)
+        for side in ("off", "on"):
+            self.assertTrue((new / f"chunk-000000.{side}.raw").exists())
+
+    def test_reuse_compares_decoded_bytes_even_when_compressed_metadata_matches(self):
+        result, old, prior = self.compare()
+        self.assertEqual(result.returncode, 0, result.stderr)
+        archive = old / prior["chunks"][0]["off"]["gzip"]
+        changed = bytearray(gzip.decompress(archive.read_bytes()))
+        changed[64 + 104] ^= 1
+        encoded = gzip.compress(bytes(changed), compresslevel=6, mtime=0)
+        archive.chmod(0o644); archive.write_bytes(encoded); archive.chmod(0o444)
+        for side in ("off", "on"):
+            prior["chunks"][0][side]["gzip_sha256"] = hashlib.sha256(encoded).hexdigest()
+            prior["chunks"][0][side]["gzip_bytes"] = len(encoded)
+        (old / "result.json").write_text(json.dumps(prior))
+        result, new, report = self.compare(output_name="reuse", reference=old / "result.json", reuse=True)
+        self.assertNotEqual(result.returncode, 0)
+        self.assertEqual(report["chunks"][0]["off"]["canonical_decoded_cmp_exit"], 1)
+        for side in ("off", "on"):
+            self.assertTrue((new / f"chunk-000000.{side}.raw").exists())
+        self.assertEqual(archive.read_bytes(), encoded)
+
+    def test_reused_compression_requires_a_reference_before_launching_producers(self):
+        off = self.producer("off"); on = self.producer("on")
+        result = subprocess.run([sys.executable, str(RUNNER), "--off", str(off), "--on", str(on),
+                                 "--reuse-reference-compression", "--output", str(self.root / "missing-ref")],
+                                capture_output=True, text=True)
+        self.assertEqual(result.returncode, 2)
+        self.assertIn("requires --dedup-reference-result", result.stderr)
+        self.assertFalse((self.root / "off.executed").exists())
+        self.assertFalse((self.root / "on.executed").exists())
 
 
 if __name__ == "__main__":

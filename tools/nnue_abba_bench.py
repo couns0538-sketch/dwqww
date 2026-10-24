@@ -115,6 +115,8 @@ def arguments(argv=None):
     parser.add_argument("--blocks", type=int, default=4)
     for flag in ("baseline-source", "candidate-source"):
         parser.add_argument("--"+flag, type=Path, default=Path(__file__).resolve().parents[1])
+    for role in ("baseline", "candidate"):
+        parser.add_argument("--"+role+"-extra-define", action="append", default=[], choices=("FORGE_NNUE_ALIGN64=0", "FORGE_NNUE_ALIGN64=1"))
     return parser.parse_args(argv)
 
 
@@ -137,7 +139,7 @@ def run(args):
                "metric": "engine-reported bench NPS; process wall is diagnostic only", "timeout_seconds": TIMEOUT,
                "cpu": {"selected": args.cpu, "allowed_affinity": sorted(os.sched_getaffinity(0)), "platform": platform.platform(),
                        "model": next((line.split(":", 1)[1].strip() for line in Path("/proc/cpuinfo").read_text().splitlines() if line.startswith("model name")), "unknown")},
-               "declared_build_flags": {role: FLAGS+" -DFORGE_AVX512="+str(int(role == "ON")) for role in binaries},
+               "declared_build_flags": {role: FLAGS+" -DFORGE_AVX512="+str(int(role == "ON"))+"".join(" -D"+value for value in getattr(args, "baseline_extra_define" if role == "OFF" else "candidate_extra_define")) for role in binaries},
                "build_flags_evidence": "declared from frozen build protocol; not inferred from executable bytes",
                "input_hex": INPUT.hex(), "input_sha256": hashlib.sha256(INPUT).hexdigest(), "effective_bench_options": "bench constructs Searcher(16), default Threads 1; OwnBook is unused by bench",
                "binaries": {role: {"path": str(binary), **pins(binary, sources[role])} for role, binary in binaries.items()},

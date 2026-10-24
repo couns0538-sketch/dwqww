@@ -41,3 +41,15 @@ JOB1 no-copy contract and the existing Forge updater. Implementation original.
 The AVX2/SSE/scalar fallback remains unchanged. Validation and timing outcomes
 are recorded independently; fewer source-level memory passes alone are not a
 measured NPS or playing-strength improvement.
+
+## Exact canonical-compression retention reuse
+
+Idea: execute both actual NNUE producers again, compare their fresh raw chunks,
+then retain an existing immutable compressed representation only after full
+canonical decompression compares byte-for-byte with each fresh raw output and
+independent hashes/counts agree. Source: the user's million-position acceptance
+contract and this project's retained deterministic oracle evidence.
+Implementation original. This saves validation recompression, not inference or
+engine computation. Canonical bytes and permissions remain unchanged, and
+failure raws remain available. Role-specific compile-define metadata also keeps
+the benchmark profile explicit about optional storage alignment.

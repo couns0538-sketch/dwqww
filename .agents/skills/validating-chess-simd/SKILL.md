@@ -82,3 +82,15 @@ This limited structural evidence supplements arithmetic/search parity and
 runtime tests; it does not establish full semantic equivalence. Preserve original
 failed parsers/assertions, streams and unknown exit facts. Do not rebuild or
 rewrite objects/flags to force matching hashes.
+
+## Large deterministic H256 oracle streams
+
+Use the [actual-core oracle runner](../../../tools/nnue_million_oracle.py) with
+both frozen producer executables. For a repeat corpus with retained originals,
+pass `--dedup-reference-result /path/to/closed/result.json` and
+`--reuse-reference-compression`. Both producers still execute and emit fresh
+outputs. Retention reuse requires raw comparisons, independent hashes/counts,
+and full canonical decompression through `cmp` against each fresh raw chunk
+before linking the immutable archive. Preserve canonical bytes and permissions;
+retain failing raw outputs. This saves recompression, not engine computation.
+Without a frozen compatible reference, use the independent-compression default.
