@@ -23,3 +23,12 @@ come from the same user acceptance contract and existing Forge validation APIs;
 implementation original. The default-OFF production executable remains identical
 to the lock. Million-position and timing completion are recorded separately;
 an in-progress checkpoint is not a completed acceptance result.
+
+## ABBA bench capture
+
+Idea: alternate OFF/ON/ON/OFF fresh processes, retain complete paired original
+transcripts, and report the median ratio of internal engine bench NPS separately
+from process-wall time. Source: the user's JOB1 ABBA acceptance contract.
+Implementation original; no external engine or benchmark-runner code imported.
+The source and executable hashes, exact sequence and stopping rule are frozen
+before launch. Failed or incomplete protocols have no ratio summary.
