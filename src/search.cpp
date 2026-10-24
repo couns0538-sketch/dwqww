@@ -1401,6 +1401,7 @@ SearchInfo Worker::search(Board board, const SearchLimits& limits, bool emit_inf
             delta += delta / 2 + 4;
         }
         if (aborted_) {
+#if !defined(FORGE_COMPLETE_ITERATION_ONLY) || !FORGE_COMPLETE_ITERATION_ONLY
             // A partially searched iteration that already raised alpha at the
             // root has found a move at least as good as the previous best.
             if (ss->pv_length > 0 && !(result.pv.size() > 0 && result.pv[0] == ss->pv[0])) {
@@ -1410,6 +1411,7 @@ SearchInfo Worker::search(Board board, const SearchLimits& limits, bool emit_inf
                 // Publish the revised line so GUIs see a PV consistent with the move.
                 emit(depth, result.score, result.pv);
             }
+#endif
             break;
         }
         score = iteration_score;

@@ -64,3 +64,14 @@ https://eel.is/c++draft/new.delete.array . Implementation original.
 `FORGE_NNUE_ALIGN64` defaults to0 and is effective only with `FORGE_AVX512=1`.
 Matching aligned operator new[]/delete[] and RAII preserve allocation semantics;
 value construction preserves positive-zero initialization without a net.
+
+## Optional completed-iteration result coherence
+
+Idea: when a root iteration is interrupted, retain the last completed
+depth/score/PV/bestmove tuple instead of replacing its PV and bestmove with an
+unfinished iteration while retaining the previous score. Source: the user's
+JOB2 stop-mid-iteration audit checklist and the actual cold single-thread
+`go nodes 600` Forge UCI reproducer. Implementation original; no external engine
+source imported. `FORGE_COMPLETE_ITERATION_ONLY=1` enables this policy; undefined
+or zero preserves the legacy partial-iteration policy and lock executable.
+This establishes result coherence, not superior move choice or playing strength.
