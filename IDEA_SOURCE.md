@@ -142,3 +142,17 @@ default raw output remains unchanged. Optional integer timing additionally
 requires an advertised OFF default, actual activation acknowledgement and frozen
 ON node counts. Linux synthetic fixtures establish control flow, not performance.
 The optional original API phase probe is not whole-engine percentage profiling.
+
+## NnueInt16 H256 runtime research, 2026-10-24
+
+Source: the user's supplied Forge H128 `fc_int16_ep10_src.tar.gz` (SHA256 `aa9558c29d6617a3976065682d69ada3cbb95dfabff8992b8a15babf817a8b33`), its CR report, and the exact Forge H256 e12 weights (SHA256 `74c4009d86b7d3a5ae9e6119d0890e5b923508f4063161bb4bc1539aab275b1b`). This is original Forge implementation of the supplied architecture and documented integer multiply/add technique. No source, constants, tables or comments from another engine were opened or copied. Intel intrinsic semantics determine the pack permutation and arithmetic widths.
+
+The scales derive from this network: stored w1/b1/w2/b2 are integers divided by4096; clipping [0,1] becomes [0,4096]; shifting clipped integers left2 and using rounded high multiply produces square scale8192. `sum(square*w2)/2^25+b2/4096`, multiplied by400/2.25, reproduces the intended output units. The current all-feature accumulator bound1,635,680 plus four maximum dirty columns is1,676,972, below2^24; int32 accumulation exactly reproduces the float grid and intermediates.
+
+H256 w2 positive/negative magnitudes306,448/268,352 yield output bounds +2,510,422,016 / -2,198,339,584, both outside signed32. The original redesign widens each16-hidden group's eight signed32 lanes to64 before cross-group addition. A group lane contains only four products, each at most8192*32768, so its pre-widen magnitude is at most2^30 even for arbitrary int16 output weights. The final reduction is int64, including the scalar fallback. No output-scale reduction or net/trainer change occurs.
+
+The square-rounding real error bound is `0.5*574800/2^25*400/2.25=1.522699991862cp`. Conservative float-reference rounding adds0.053542781028cp; the analytical final truncated difference is at most2cp for valid grid accumulators. These are bounds, not measured parity. A deterministic actual-core driver independently reconstructs features/accumulators/int64 output and measures max/mean/p99 against the float path on unique legal-walk FENs.
+
+Runtime activation is OFF by default. Separate float and integer accumulator storage plus an inherited representation tag preserve the float operations and avoid union/aliasing assumptions. Added storage costs2048bytes per H256 accumulator, 278,528bytes across136search-stack entries per worker; OFF performance/layout therefore requires measurement despite unchanged arithmetic. UCI mode changes stop/join existing workers, clear TT and start with fresh root state. Eligibility returns false and selects float without aborting when scales, grid bounds or widths cannot support the integer design.
+
+Preserve existing FORGE_AVX512 / FORGE_NNUE_ALIGN64 choices and `-ffp-contract=off -fno-fast-math`. No speed or Elo claim follows from this implementation or its analytic bounds. No match or gate is authorized by this entry.

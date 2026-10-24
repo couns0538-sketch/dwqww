@@ -14,18 +14,24 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('engine', type=Path)
     parser.add_argument('--out', type=Path, required=True)
+    parser.add_argument('--int16', action='store_true', help='require the OFF-default runtime integer backend to activate')
     args = parser.parse_args()
     args.out.mkdir(parents=True, exist_ok=False)
     before = hashlib.sha256(args.engine.read_bytes()).hexdigest()
-    report = {'status': 'RUNNING', 'engine': str(args.engine.resolve()),
+    report = {'status': 'RUNNING', 'engine': str(args.engine.resolve()), 'nnue_int16': args.int16,
               'before_sha256': before, 'searches': [], 'started_unix': time.time()}
     engine = None
     try:
         engine = Engine(args.engine)
         engine.send('uci')
-        engine.until(lambda line: line == 'uciok')
+        greeting = engine.until(lambda line: line == 'uciok')
         engine.send('setoption name Hash value 16')
         engine.send('setoption name OwnBook value false')
+        if args.int16:
+            assert 'option name NnueInt16 type check default false' in greeting
+            engine.send('setoption name NnueInt16 value true')
+            response = engine.until(lambda line: line.startswith('info string NnueInt16 '))
+            assert response[-1] == 'info string NnueInt16 active', 'integer backend did not activate'
         positions = [
             'startpos',
             'fen r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1',
@@ -53,6 +59,7 @@ def main():
                                            'bestmove': best, 'completed_depth': max(depths),
                                            'legal_moves': len(legal)})
         engine.close()
+        assert engine.process.returncode == 0, 'engine exited abnormally'
         report['actual_engine_exit'] = engine.process.returncode
         diagnostic = re.compile(r'AddressSanitizer|LeakSanitizer|UndefinedBehaviorSanitizer|runtime error:')
         assert not any(diagnostic.search(line) for line in engine.transcript), 'sanitizer diagnostic'
