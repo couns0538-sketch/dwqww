@@ -53,3 +53,14 @@ Implementation original. This saves validation recompression, not inference or
 engine computation. Canonical bytes and permissions remain unchanged, and
 failure raws remain available. Role-specific compile-define metadata also keeps
 the benchmark profile explicit about optional storage alignment.
+
+## Optional private converted-weight alignment
+
+Idea: guarantee 64-byte alignment for private converted float w1/b1/w2 storage,
+removing observed cache-line crossings without changing the public accumulator
+ABI or any arithmetic. Source: the actual original allocation probe and the
+public C++ aligned allocation/deallocation rules,
+https://eel.is/c++draft/new.delete.array . Implementation original.
+`FORGE_NNUE_ALIGN64` defaults to0 and is effective only with `FORGE_AVX512=1`.
+Matching aligned operator new[]/delete[] and RAII preserve allocation semantics;
+value construction preserves positive-zero initialization without a net.

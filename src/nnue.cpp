@@ -22,6 +22,13 @@
 #error "FORGE_AVX512=1 requires AVX-512F compiler support"
 #endif
 
+#ifndef FORGE_NNUE_ALIGN64
+#define FORGE_NNUE_ALIGN64 0
+#endif
+#if FORGE_AVX512 && FORGE_NNUE_ALIGN64
+#include <new>
+#endif
+
 #if defined(__AVX2__) || FORGE_AVX512
 #include <immintrin.h>
 #endif
@@ -50,17 +57,37 @@ bool enabled = true;
 
 namespace {
 
+#if FORGE_AVX512 && FORGE_NNUE_ALIGN64
+struct AlignedFloatArrayDeleter {
+    void operator()(float* pointer) const noexcept {
+        ::operator delete[](pointer, std::align_val_t{64});
+    }
+};
+#endif
+
 struct Weights {
+#if FORGE_AVX512 && FORGE_NNUE_ALIGN64
+    std::unique_ptr<float[], AlignedFloatArrayDeleter> w1;   // [InputCount][HiddenSize]
+    alignas(64) std::array<float, HiddenSize> b1{};
+    alignas(64) std::array<float, 2 * HiddenSize> w2{};
+#else
     std::unique_ptr<float[]> w1;   // [InputCount][HiddenSize]
     alignas(32) std::array<float, HiddenSize> b1{};
     alignas(32) std::array<float, 2 * HiddenSize> w2{};
+#endif
     float b2 = 0.0F;
 };
 
 const Weights& weights() {
     static const Weights instance = [] {
         Weights w;
+#if FORGE_AVX512 && FORGE_NNUE_ALIGN64
+        const std::size_t count = static_cast<std::size_t>(InputCount) * HiddenSize;
+        w.w1.reset(static_cast<float*>(::operator new[](count * sizeof(float), std::align_val_t{64})));
+        std::uninitialized_value_construct_n(w.w1.get(), count);
+#else
         w.w1 = std::make_unique<float[]>(static_cast<std::size_t>(InputCount) * HiddenSize);
+#endif
 #if FORGE_HAS_NNUE
         for (std::size_t i = 0; i < static_cast<std::size_t>(InputCount) * HiddenSize; ++i) {
             w.w1[i] = static_cast<float>(NnueW1[i]) / WeightScale;
