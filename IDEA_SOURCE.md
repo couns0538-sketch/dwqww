@@ -32,3 +32,12 @@ from process-wall time. Source: the user's JOB1 ABBA acceptance contract.
 Implementation original; no external engine or benchmark-runner code imported.
 The source and executable hashes, exact sequence and stopping rule are frozen
 before launch. Failed or incomplete protocols have no ratio summary.
+
+## Generic AVX-512 accumulator copy removal
+
+Idea: load a parent vector once, apply the recorded dirty operations in order,
+then store the child once; count zero remains an exact copy. Source: the user's
+JOB1 no-copy contract and the existing Forge updater. Implementation original.
+The AVX2/SSE/scalar fallback remains unchanged. Validation and timing outcomes
+are recorded independently; fewer source-level memory passes alone are not a
+measured NPS or playing-strength improvement.

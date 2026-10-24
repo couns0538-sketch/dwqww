@@ -211,13 +211,33 @@ void update(const Accumulator& parent, Accumulator& child, const DirtyPieces& di
         child.valid = true;
         return;
     }
+#if FORGE_AVX512
+    // Keep all dirty operations in their recorded order for each lane. The
+    // zero-change case remains a pure copy; parent and child may be identical.
+    for (const Color perspective : {White, Black}) {
+        const auto& source = parent.values[static_cast<std::size_t>(perspective)];
+        auto& destination = child.values[static_cast<std::size_t>(perspective)];
+        std::array<const float*, 4> columns{};
+        for (int i = 0; i < dirty.count; ++i) {
+            const PieceChange& change = dirty.changes[static_cast<std::size_t>(i)];
+            const int index = feature_index(perspective, change.piece, change.square);
+            columns[static_cast<std::size_t>(i)] = w.w1.get() + static_cast<std::size_t>(index) * HiddenSize;
+        }
+        for (int h = 0; h < HiddenSize; h += 16) {
+            __m512 value = _mm512_loadu_ps(source.data() + h);
+            for (int i = 0; i < dirty.count; ++i) {
+                const std::size_t index = static_cast<std::size_t>(i);
+                const __m512 column = _mm512_loadu_ps(columns[index] + h);
+                if (dirty.changes[index].add) value = _mm512_add_ps(value, column);
+                else value = _mm512_sub_ps(value, column);
+            }
+            _mm512_storeu_ps(destination.data() + h, value);
+        }
+    }
+#else
     for (const Color perspective : {White, Black}) {
         auto& acc = child.values[static_cast<std::size_t>(perspective)];
-#if FORGE_AVX512
-        copy_accumulator(acc.data(), parent.values[static_cast<std::size_t>(perspective)].data());
-#else
         acc = parent.values[static_cast<std::size_t>(perspective)];
-#endif
         for (int i = 0; i < dirty.count; ++i) {
             const PieceChange& change = dirty.changes[static_cast<std::size_t>(i)];
             const int index = feature_index(perspective, change.piece, change.square);
@@ -226,6 +246,7 @@ void update(const Accumulator& parent, Accumulator& child, const DirtyPieces& di
             else sub_feature(acc, column);
         }
     }
+#endif
     child.valid = true;
 }
 
