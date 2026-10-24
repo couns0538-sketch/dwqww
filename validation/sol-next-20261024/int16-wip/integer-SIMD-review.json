@@ -1,0 +1,351 @@
+{
+  "status": "PASS_STATIC_EMITTED_INSTRUCTION_AUDIT",
+  "new_builds_or_engine_runs": 0,
+  "binary": "/workspace/forge-sol-next-20261024/build-int16-release/forge",
+  "binary_sha256": "61f3753f8f66ec5b9ee2d43d0f3156b3bc1fedf32fc7da46582354a04c49e509",
+  "disassembly": "/workspace/forge-sol-next-20261024/int16-FMA/forge.objdump.txt",
+  "disassembly_sha256": "c605a3ff6abe3b5c1a6a82df11cc26e862590b565e3288fa5e2eb21fb09efe4e",
+  "existing_objdump_receipt": "/workspace/forge-sol-next-20261024/int16-FMA/forge.receipt.json",
+  "existing_objdump_receipt_sha256": "a778f8f81c5fa971b0534b4861888a4ddef039f19b23ac3e8383db965ab7346d",
+  "objdump_invocation": [
+    "objdump",
+    "-Cd",
+    "/workspace/forge-sol-next-20261024/build-int16-release/forge"
+  ],
+  "source_hashes": {
+    "src/nnue.cpp": "735f01df92331342305d1d87f77fec217218615b3e664e5453708b96ba7bc946",
+    "src/nnue_int16.inc": "38ef63379551c8bee318a93a6aaccd56cf4369b530dcd89093082af40a3279fc",
+    "include/forge/nnue.hpp": "4501a0f0457afc171b3f81e7f9301260b0b28960e545ed1d51945cca37e1e739",
+    "src/nnue_weights.inc": "74c4009d86b7d3a5ae9e6119d0890e5b923508f4063161bb4bc1539aab275b1b"
+  },
+  "source_freeze_reference": "/workspace/forge-sol-next-20261024/int16-agent/SCRATCH_SOURCE_SHA256.json",
+  "source_freeze_reference_sha256": "216823bfd88d93054dda2d775f3cd05b998553a338a1a2c10c443dc5be32d31b",
+  "relevant_sources_match_freeze": true,
+  "compile_flags_file": "/workspace/forge-sol-next-20261024/build-int16-release/CMakeFiles/forge_core.dir/flags.make",
+  "compile_flags_file_sha256": "ce312c148cea0c81367f37dea75d5c68d8e4f57576718e7b86e52bd69dab08f9",
+  "integer_kernel": {
+    "symbol": "forge::nnue::int16_detail::evaluate_integer(forge::Board const&, forge::nnue::Accumulator const&)",
+    "start": "0x41bc70",
+    "next_header_exclusive": "0x41bde0",
+    "header_line": 28012
+  },
+  "integer_kernel_target_mnemonic_counts": {
+    "vpmulhrsw": 2,
+    "vpmaddwd": 2,
+    "vpmovsxdq": 2,
+    "vpaddq": 5,
+    "vpaddd": 1,
+    "vphaddd": 0
+  },
+  "integer_kernel_evidence": [
+    {
+      "address": "0x41bcf7",
+      "mnemonic": "vpmulhrsw",
+      "operands": "%ymm0,%ymm0,%ymm0",
+      "line": 28047,
+      "raw": "  41bcf7:\tc4 e2 7d 0b c0       \tvpmulhrsw %ymm0,%ymm0,%ymm0"
+    },
+    {
+      "address": "0x41bcfc",
+      "mnemonic": "vpmaddwd",
+      "operands": "(%rsi,%rax,1),%ymm0,%ymm1",
+      "line": 28048,
+      "raw": "  41bcfc:\tc5 fd f5 0c 06       \tvpmaddwd (%rsi,%rax,1),%ymm0,%ymm1"
+    },
+    {
+      "address": "0x41bd17",
+      "mnemonic": "vpmulhrsw",
+      "operands": "%ymm0,%ymm0,%ymm0",
+      "line": 28053,
+      "raw": "  41bd17:\tc4 e2 7d 0b c0       \tvpmulhrsw %ymm0,%ymm0,%ymm0"
+    },
+    {
+      "address": "0x41bd1c",
+      "mnemonic": "vpmaddwd",
+      "operands": "(%rcx,%rax,1),%ymm0,%ymm0",
+      "line": 28054,
+      "raw": "  41bd1c:\tc5 fd f5 04 01       \tvpmaddwd (%rcx,%rax,1),%ymm0,%ymm0"
+    },
+    {
+      "address": "0x41bd25",
+      "mnemonic": "vpaddd",
+      "operands": "%ymm1,%ymm0,%ymm0",
+      "line": 28056,
+      "raw": "  41bd25:\tc5 fd fe c1          \tvpaddd %ymm1,%ymm0,%ymm0"
+    },
+    {
+      "address": "0x41bd29",
+      "mnemonic": "vpmovsxdq",
+      "operands": "%xmm0,%ymm1",
+      "line": 28057,
+      "raw": "  41bd29:\tc4 e2 7d 25 c8       \tvpmovsxdq %xmm0,%ymm1"
+    },
+    {
+      "address": "0x41bd2e",
+      "mnemonic": "vextracti64x2",
+      "operands": "$0x1,%ymm0,%xmm0",
+      "line": 28058,
+      "raw": "  41bd2e:\t62 f3 fd 28 39 c0 01 \tvextracti64x2 $0x1,%ymm0,%xmm0"
+    },
+    {
+      "address": "0x41bd35",
+      "mnemonic": "vpmovsxdq",
+      "operands": "%xmm0,%ymm0",
+      "line": 28059,
+      "raw": "  41bd35:\tc4 e2 7d 25 c0       \tvpmovsxdq %xmm0,%ymm0"
+    },
+    {
+      "address": "0x41bd3a",
+      "mnemonic": "vpaddq",
+      "operands": "%ymm2,%ymm1,%ymm2",
+      "line": 28060,
+      "raw": "  41bd3a:\tc5 f5 d4 d2          \tvpaddq %ymm2,%ymm1,%ymm2"
+    },
+    {
+      "address": "0x41bd3e",
+      "mnemonic": "vpaddq",
+      "operands": "%ymm4,%ymm0,%ymm4",
+      "line": 28061,
+      "raw": "  41bd3e:\tc5 fd d4 e4          \tvpaddq %ymm4,%ymm0,%ymm4"
+    },
+    {
+      "address": "0x41bd48",
+      "mnemonic": "jne",
+      "operands": "41bce0 <forge::nnue::int16_detail::evaluate_integer(forge::Board const&, forge::nnue::Accumulator const&)+0x70>",
+      "line": 28063,
+      "raw": "  41bd48:\t75 96                \tjne    41bce0 <forge::nnue::int16_detail::evaluate_integer(forge::Board const&, forge::nnue::Accumulator const&)+0x70>"
+    },
+    {
+      "address": "0x41bd4a",
+      "mnemonic": "vpaddq",
+      "operands": "%ymm4,%ymm2,%ymm2",
+      "line": 28064,
+      "raw": "  41bd4a:\tc5 ed d4 d4          \tvpaddq %ymm4,%ymm2,%ymm2"
+    },
+    {
+      "address": "0x41bd4e",
+      "mnemonic": "vextracti64x2",
+      "operands": "$0x1,%ymm2,%xmm0",
+      "line": 28065,
+      "raw": "  41bd4e:\t62 f3 fd 28 39 d0 01 \tvextracti64x2 $0x1,%ymm2,%xmm0"
+    },
+    {
+      "address": "0x41bd55",
+      "mnemonic": "vpaddq",
+      "operands": "%xmm2,%xmm0,%xmm0",
+      "line": 28066,
+      "raw": "  41bd55:\tc5 f9 d4 c2          \tvpaddq %xmm2,%xmm0,%xmm0"
+    },
+    {
+      "address": "0x41bd66",
+      "mnemonic": "vpaddq",
+      "operands": "%xmm1,%xmm0,%xmm0",
+      "line": 28070,
+      "raw": "  41bd66:\tc5 f9 d4 c1          \tvpaddq %xmm1,%xmm0,%xmm0"
+    },
+    {
+      "address": "0x41bd6a",
+      "mnemonic": "vmovq",
+      "operands": "%xmm0,%rax",
+      "line": 28071,
+      "raw": "  41bd6a:\tc4 e1 f9 7e c0       \tvmovq  %xmm0,%rax"
+    },
+    {
+      "address": "0x41bd73",
+      "mnemonic": "vcvtsi2sd",
+      "operands": "%rax,%xmm0,%xmm0",
+      "line": 28073,
+      "raw": "  41bd73:\tc4 e1 fb 2a c0       \tvcvtsi2sd %rax,%xmm0,%xmm0"
+    }
+  ],
+  "public_evaluate": {
+    "symbol": "forge::nnue::evaluate(forge::Board const&, forge::nnue::Accumulator const&)",
+    "start": "0x41d190",
+    "next_header_exclusive": "0x41d340",
+    "header_line": 29195
+  },
+  "public_dispatch_evidence": [
+    {
+      "address": "0x41d1a5",
+      "mnemonic": "cmpb",
+      "operands": "$0x0,0x1001(%rsi)",
+      "line": 29204,
+      "raw": "  41d1a5:\t80 be 01 10 00 00 00 \tcmpb   $0x0,0x1001(%rsi)"
+    },
+    {
+      "address": "0x41d1ac",
+      "mnemonic": "je",
+      "operands": "41d1c0 <forge::nnue::evaluate(forge::Board const&, forge::nnue::Accumulator const&)+0x30>",
+      "line": 29205,
+      "raw": "  41d1ac:\t74 12                \tje     41d1c0 <forge::nnue::evaluate(forge::Board const&, forge::nnue::Accumulator const&)+0x30>"
+    },
+    {
+      "address": "0x41d1b6",
+      "mnemonic": "jmp",
+      "operands": "41bc70 <forge::nnue::int16_detail::evaluate_integer(forge::Board const&, forge::nnue::Accumulator const&)>",
+      "line": 29210,
+      "raw": "  41d1b6:\te9 b5 ea ff ff       \tjmp    41bc70 <forge::nnue::int16_detail::evaluate_integer(forge::Board const&, forge::nnue::Accumulator const&)>"
+    }
+  ],
+  "kernel_is_inlined_in_public_evaluate": false,
+  "dataflow_review": [
+    "The single vpaddd at 41bd25 combines only the current 16-hidden-unit group from both perspectives.",
+    "vpmovsxdq at 41bd29 and 41bd35 sign-extend the low/high int32 halves before loop-carried vpaddq at 41bd3a/41bd3e.",
+    "The loop back edge 41bd48 targets 41bce0 after the 64-bit accumulators are updated.",
+    "After the loop, vpaddq at 41bd4a/41bd55/41bd66 reduces 64-bit lanes; vmovq then vcvtsi2sd consumes the full 64-bit total.",
+    "There is no final int32 horizontal reduction in the actual integer kernel."
+  ],
+  "all_nnue_function_ranges": [
+    {
+      "symbol": "forge::nnue::(anonymous namespace)::weights() [clone .cold]",
+      "start": "0x401de7",
+      "next_header_exclusive": "0x401e10",
+      "header_line": 897,
+      "fma_count": 0
+    },
+    {
+      "symbol": "forge::nnue::(anonymous namespace)::Weights::~Weights()",
+      "start": "0x41a840",
+      "next_header_exclusive": "0x41a860",
+      "header_line": 26801,
+      "fma_count": 0
+    },
+    {
+      "symbol": "forge::nnue::int16_detail::weights() [clone .part.0]",
+      "start": "0x41a860",
+      "next_header_exclusive": "0x41abc0",
+      "header_line": 26812,
+      "fma_count": 0
+    },
+    {
+      "symbol": "forge::nnue::(anonymous namespace)::weights()",
+      "start": "0x41abc0",
+      "next_header_exclusive": "0x41b0b0",
+      "header_line": 27001,
+      "fma_count": 0
+    },
+    {
+      "symbol": "forge::nnue::int16_detail::weights()",
+      "start": "0x41b0b0",
+      "next_header_exclusive": "0x41b110",
+      "header_line": 27269,
+      "fma_count": 0
+    },
+    {
+      "symbol": "forge::nnue::int16_detail::column(forge::nnue::int16_detail::IntegerWeights const&, forge::Color, forge::nnue::PieceChange const&)",
+      "start": "0x41b110",
+      "next_header_exclusive": "0x41b1a0",
+      "header_line": 27294,
+      "fma_count": 0
+    },
+    {
+      "symbol": "forge::nnue::int16_detail::refresh_integer(forge::Board const&, forge::nnue::Accumulator&)",
+      "start": "0x41b1a0",
+      "next_header_exclusive": "0x41b6e0",
+      "header_line": 27342,
+      "fma_count": 0
+    },
+    {
+      "symbol": "forge::nnue::int16_detail::update_integer(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&)",
+      "start": "0x41b6e0",
+      "next_header_exclusive": "0x41bc70",
+      "header_line": 27632,
+      "fma_count": 0
+    },
+    {
+      "symbol": "forge::nnue::int16_detail::evaluate_integer(forge::Board const&, forge::nnue::Accumulator const&)",
+      "start": "0x41bc70",
+      "next_header_exclusive": "0x41bde0",
+      "header_line": 28012,
+      "fma_count": 0
+    },
+    {
+      "symbol": "forge::nnue::int16_available()",
+      "start": "0x41bde0",
+      "next_header_exclusive": "0x41be40",
+      "header_line": 28103,
+      "fma_count": 0
+    },
+    {
+      "symbol": "forge::nnue::int16_active()",
+      "start": "0x41be40",
+      "next_header_exclusive": "0x41be50",
+      "header_line": 28128,
+      "fma_count": 0
+    },
+    {
+      "symbol": "forge::nnue::set_int16(bool)",
+      "start": "0x41be50",
+      "next_header_exclusive": "0x41bec0",
+      "header_line": 28134,
+      "fma_count": 0
+    },
+    {
+      "symbol": "forge::nnue::available()",
+      "start": "0x41bec0",
+      "next_header_exclusive": "0x41bed0",
+      "header_line": 28164,
+      "fma_count": 0
+    },
+    {
+      "symbol": "forge::nnue::residual()",
+      "start": "0x41bed0",
+      "next_header_exclusive": "0x41bee0",
+      "header_line": 28170,
+      "fma_count": 0
+    },
+    {
+      "symbol": "forge::nnue::refresh(forge::Board const&, forge::nnue::Accumulator&)",
+      "start": "0x41bee0",
+      "next_header_exclusive": "0x41c270",
+      "header_line": 28176,
+      "fma_count": 0
+    },
+    {
+      "symbol": "forge::nnue::update(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&)",
+      "start": "0x41c270",
+      "next_header_exclusive": "0x41d190",
+      "header_line": 28380,
+      "fma_count": 0
+    },
+    {
+      "symbol": "forge::nnue::evaluate(forge::Board const&, forge::nnue::Accumulator const&)",
+      "start": "0x41d190",
+      "next_header_exclusive": "0x41d340",
+      "header_line": 29195,
+      "fma_count": 0
+    },
+    {
+      "symbol": "forge::nnue::dirty_pieces(forge::Board const&, forge::Move const&)",
+      "start": "0x41d340",
+      "next_header_exclusive": "0x41d4c0",
+      "header_line": 29301,
+      "fma_count": 0
+    }
+  ],
+  "all_nnue_function_count": 18,
+  "all_nnue_fma_count": 0,
+  "whole_binary_fma_count": 46,
+  "whole_binary_fma_by_symbol": {
+    "__ieee754_log_fma4": 23,
+    "__ieee754_log_fma": 23
+  },
+  "bounds_reference": "/workspace/forge-sol-next-20261024/int16-review/math-bounds.json",
+  "bounds_reference_sha256": "4a1d284c1bc60ab19f75dff21c83d9ca87e88800aff9a3873c8c6e75bc19dd5b",
+  "numeric_design_bounds": {
+    "squared_activation_max": 8192,
+    "generic_current_group_int32_lane_abs_bound": 1073741824,
+    "locked_net_16unit_group_positive_bound": 240566272,
+    "locked_net_16unit_group_negative_abs_bound": 247578624,
+    "locked_net_final_positive_bound": 2510422016,
+    "locked_net_final_negative_abs_bound": 2198339584,
+    "signed_int32_max": 2147483647,
+    "explanation": "Current groups fit signed int32; the complete total can exceed both signed-int32 limits, so widening before cross-group/final reduction is necessary."
+  },
+  "limits": [
+    "Static emitted-code review supplements the separately run numeric/runtime checks; it proves no speed or Elo result.",
+    "The integer kernel uses AVX2-width YMM instructions; this audit is not an AVX-512 combined-profile qualification.",
+    "Symbol intervals end at the next disassembly header and include any alignment padding; they are not ELF st_size claims.",
+    "No new compiler, objdump, benchmark, overflow checker or input generation was run."
+  ]
+}

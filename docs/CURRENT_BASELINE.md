@@ -1,5 +1,14 @@
 # Current baseline
 
+## 2026-10-24 follow-up checkpoint (17:02 UTC)
+
+Exact mission lock remains `f4911f2709bd5ae7e5fca7aea30aac5d87314a05`; network SHA256 `74c4009d86b7d3a5ae9e6119d0890e5b923508f4063161bb4bc1539aab275b1b` is unchanged. Isolated branch `forge/sol-next-20261024` preserves parent `3afd230`, defensive buffer source `30e703e`, and qualification tools `e123bfc`. Accepted integration is untouched.
+
+The OFF-default `NnueInt16` research path uses int32 accumulator lanes and int64 output reductions for H256. All-OFF five-depth signatures and both perft5 totals match the lock. Release and ASan/UBSan full CTest each pass 14/15, with the four existing FAIL lines inside forge_tests; no new sanitizer finding. Numerical parity on 100,000 unique legal FENs: mean/max/p99 error 0.0147/1/1 cp, strict sign flips 0. Fresh WAC OFF/ON/OFF completed 900 legal positions: 274/271/278 answers. The earlier timed trial FAILED at WAC.193, cause unresolved, and remains separate. Speed is pending; no Elo claim or acceptance.
+
+[Current evidence](../validation/sol-next-20261024/int16/), [buffer evidence](../validation/sol-next-20261024/buffer/), and [Windows qualification package](../releases/sol-next-20261024/sol-zen5-qualification.zip). The 64-entry overflow was not reachable with FENs tried; capacity was fixed defensively. Buffer WAC 276/265/279 is a possible timed regression, not a strength acceptance.
+
+
 ## 2026-10-24 isolated H256 speed/audit mission
 
 This mission's exact lock is `f4911f2709bd5ae7e5fca7aea30aac5d87314a05`:

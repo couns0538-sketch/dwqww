@@ -30,7 +30,11 @@ constexpr float SigmoidK = 2.25F;        // network output is in sigmoid units o
 
 struct Accumulator {
     alignas(32) std::array<std::array<float, HiddenSize>, 2> values{};
+    // Separate storage keeps the OFF float representation and arithmetic intact.
+    // The tag follows a refreshed root through every incremental child.
+    alignas(32) std::array<std::array<std::int32_t, HiddenSize>, 2> integer_values{};
     bool valid = false;
+    bool integer = false;
 };
 
 struct PieceChange {
@@ -53,6 +57,12 @@ struct DirtyPieces {
 [[nodiscard]] bool residual();
 // Runtime switch (UCI option); only effective when available().
 extern bool enabled;
+
+// NnueInt16 is OFF by default. A rejected activation leaves float inference
+// active; callers can report the result without a startup abort.
+[[nodiscard]] bool int16_available();
+[[nodiscard]] bool int16_active();
+[[nodiscard]] bool set_int16(bool requested);
 
 void refresh(const Board& board, Accumulator& accumulator);
 void update(const Accumulator& parent, Accumulator& child, const DirtyPieces& dirty);

@@ -4,6 +4,7 @@
 #include <cmath>
 #include <cstdint>
 #include <memory>
+#include <limits>
 
 // The output layer uses SSE min/max/mul/add directly: compilers may not turn a
 // float clamp into min/max instructions without -ffast-math, which left the
@@ -154,11 +155,18 @@ inline void sub_feature(std::array<float, HiddenSize>& acc, const float* column)
 
 } // namespace
 
+#include "nnue_int16.inc"
+
 bool available() { return FORGE_HAS_NNUE != 0; }
 
 bool residual() { return FORGE_HAS_NNUE != 0 && FORGE_NNUE_RESIDUAL != 0; }
 
 void refresh(const Board& board, Accumulator& accumulator) {
+    if (int16_active()) {
+        int16_detail::refresh_integer(board, accumulator);
+        return;
+    }
+    accumulator.integer = false;
     const Weights& w = weights();
     for (const Color perspective : {White, Black}) {
         auto& acc = accumulator.values[static_cast<std::size_t>(perspective)];
@@ -178,6 +186,11 @@ void refresh(const Board& board, Accumulator& accumulator) {
 }
 
 void update(const Accumulator& parent, Accumulator& child, const DirtyPieces& dirty) {
+    if (parent.integer) {
+        int16_detail::update_integer(parent, child, dirty);
+        return;
+    }
+    child.integer = false;
     const Weights& w = weights();
     // Quiet moves (including noncapturing promotions) remove one feature and
     // add one. Keep each lane's subtraction-then-addition order while avoiding
@@ -278,6 +291,7 @@ void update(const Accumulator& parent, Accumulator& child, const DirtyPieces& di
 }
 
 int evaluate(const Board& board, const Accumulator& accumulator) {
+    if (accumulator.integer) return int16_detail::evaluate_integer(board, accumulator);
     const Weights& w = weights();
     const Color us = board.side_to_move();
     const auto& ours = accumulator.values[static_cast<std::size_t>(us)];

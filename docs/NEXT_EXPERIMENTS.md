@@ -1,5 +1,10 @@
 # Next experiments
 
+## Current follow-up action, 2026-10-24
+
+Finish frozen H256 int16 validation on `forge/sol-next-20261024`: record ON d11/d20/d22 in addition to measured d13=850773 and d16=3130100; verify synthetic output totals beyond both int32 limits against an independent int64 oracle; then run exactly six AA and fourteen ABBA blocks as a Linux dry run on one core. Compare same executable with only NnueInt16 changed; current tested compile-time AVX512/alignment flags are OFF. Preserve the earlier failed WAC independently of the fresh completed trial. No further WAC retry or match is authorized. Package source/patches against f4911f2 and detailed CR drafts. Native Zen5/Windows qualification remains the owner's separate run, and whole-engine phase percentages are unmeasured.
+
+
 Current isolated H256 mission (2026-10-24): preserve source `706da442` and all
 `validation/sol-nnue-speed-audit-20261024/` evidence. Every new flag remains off.
 The next useful external action is the owner's separate PC engine QA of the exact
