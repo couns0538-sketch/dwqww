@@ -102,3 +102,10 @@ flag defaults, platform limits and original-evidence locations together, with
 immutable public readback of the delivery. Source: the user's final-report
 contract. Implementation original. This documentation and receipt commit adds
 no engine behavior, strength result or binary artifact.
+
+## Verified report publication receipt
+
+Idea: preserve the actual HTTP status and byte comparison for all119 changed
+source/report/evidence files at immutable report commit e69a7c2. Source: the
+user's successful-publication requirement. Implementation original. This receipt
+is a publication proof, not a new engine test, implementation or strength claim.
