@@ -1,5 +1,19 @@
 # Experiment ledger
 
+2026-10-24 H256 speed/audit mission: exact lock `f4911f27`, isolated implementation
+`706da442` on `forge/sol-nnue-speed-audit-20261024`. Three default-OFF NNUE
+experiments (AVX-512, cumulative generic no-copy, cumulative private alignment)
+each passed1,000,000 actual OFF/ON positions with stream SHA256
+`e2ccf250bfbf1cc688bba9cbe20a7abffe09ffce8fe9681ea4459ba85341ad6f`.
+Eight-pair ABBA medians0.95625056/0.91541140/1.24888845 have wide variation;
+speed acceptance is inconclusive, not an Elo result. All5 benchmark node counts,
+perft and the exact4 known CTest failure lines are preserved. Guarded completed-
+iteration policy has actual native RED/GREEN,19 UCI/19 direct-API checks and
+ASan/UBSan coverage; it changes return policy and remains off. TT targeted14 and
+frozen-lock TSan lifecycle68 checks found no further confirmed defect. No matches
+were authorized for this mission; original failures and raw text are retained.
+[Evidence index](../validation/sol-nnue-speed-audit-20261024/).
+
 The authoritative [machine ledger](../validation/EXPERIMENTS.json) contains 106 records, preserving all 83 earlier IDs, exact inputs, hashes, settings, failures and evidence links. This is the concise reading index as of 2026-10-20.
 
 | Experiment | Observed result | Acceptance scope |

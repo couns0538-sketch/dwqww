@@ -75,3 +75,12 @@ JOB2 stop-mid-iteration audit checklist and the actual cold single-thread
 source imported. `FORGE_COMPLETE_ITERATION_ONLY=1` enables this policy; undefined
 or zero preserves the legacy partial-iteration policy and lock executable.
 This establishes result coherence, not superior move choice or playing strength.
+
+## Closed search-audit evidence and continuation records
+
+Idea: retain exact original TT, terminal, lifecycle and failed-fixture captures
+with source bindings, then keep current work separate from older integration
+history. Source: the user's JOB2 checklist and evidence-preservation contract.
+Implementation original. The single-CPU unsuppressed TSan audit is a finite
+lifecycle check, not a proof of universal race freedom or SMP scaling. No new
+production behavior, external engine code or match result is introduced here.

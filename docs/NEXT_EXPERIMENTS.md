@@ -1,5 +1,23 @@
 # Next experiments
 
+Current isolated H256 mission (2026-10-24): preserve source `706da442` and all
+`validation/sol-nnue-speed-audit-20261024/` evidence. Every new flag remains off.
+The next useful external action is the owner's separate PC engine QA of the exact
+locked network and individually selected flags. Re-measure optional inference
+variants on the physical target with a controlled timing protocol; do not promote
+the noisy cloud alignment ratio to an accepted speedup. Evaluate interrupted-
+iteration policy separately from bit-exact inference work. No matches, SPRT,
+network changes or crew imports are authorized by this mission.
+
+If a later search audit is authorized, obtain a real sparse-ending null-cutoff
+witness with exact FEN/history/window/depth and an authoritative same-context
+tablebase comparison. Existing source suspicion alone does not justify a patch.
+The 64-entry bad-capture buffer also lacks a capacity proof or native reproducer;
+the blocked native checker was not retried. Keep this unconfirmed.
+
+The historical tasks below are retained; they are not instructions to relaunch
+an old hosted job or replace this mission's lock.
+
 Immediate local work: finish calibrated23→24 performance packet binding and launch.
 Windows24 root byte verification and public download/hash verification passed. Frozen24source
 7db08eac6ead99d641834c56ccec06a06600586a passed42native CTests/eight active checks/

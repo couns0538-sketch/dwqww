@@ -1,5 +1,27 @@
 # Current baseline
 
+## 2026-10-24 isolated H256 speed/audit mission
+
+This mission's exact lock is `f4911f2709bd5ae7e5fca7aea30aac5d87314a05`:
+`1ab50b2dd64d9b2f752f7f1285f6968cad2fd792` plus the supplied H256 network
+SHA256 `74c4009d86b7d3a5ae9e6119d0890e5b923508f4063161bb4bc1539aab275b1b`.
+Latest implementation is `706da4421be204c201fa5615fee298ab44c9d09b`, isolated on
+`forge/sol-nnue-speed-audit-20261024`; the accepted integration was not modified.
+
+Default executable remains byte-identical to the lock:
+`d90f5060880c799ef8cdfd41bbef3668610a08619c9edaa266452f1bc656c47f`.
+Optional `FORGE_AVX512=1` and `FORGE_NNUE_ALIGN64=1` preserve all three actual
+million-position oracle comparisons, five bench node signatures and perft.
+The three observed median NPS ratios versus OFF are0.95625056,0.91541140 and
+1.24888845; wide cloud variation prevents a reliable quantified gain claim.
+`FORGE_COMPLETE_ITERATION_ONLY=1` optionally retains coherent completed results
+on interruption; native UCI/direct API RED/GREEN and sanitizer controls pass.
+Every flag defaults off. No match, Elo acceptance, Windows binary or Ryzen
+measurement was produced in this mission. Details and exact original evidence:
+[mission records](../validation/sol-nnue-speed-audit-20261024/).
+
+The earlier integration and candidate history below is retained unchanged.
+
 Accepted integration `forge/6.4-hourly-20261019` is now
 `5101c2529d386b7c3a04ba9156a69ee34df6bb43` (remote fast-forward verified
 2026-10-20 20:44:42UTC). It adds the existing one-line OwnBook repair af19413 and
