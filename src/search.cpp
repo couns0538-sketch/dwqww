@@ -450,7 +450,10 @@ private:
     std::array<Scored, 256> moves_{};
     std::size_t index_ = 0;
     std::size_t count_ = 0;
-    std::array<Move, 64> bad_captures_{};
+    // Every generated noisy move can be deferred once by the SEE partition.
+    std::array<Move, MoveList::Capacity> bad_captures_{};
+    static_assert(decltype(bad_captures_){}.size() >= MoveList::Capacity,
+                  "deferred captures must fit the full generated move list");
     std::size_t bad_count_ = 0;
     std::size_t bad_index_ = 0;
     MoveList buffer_;

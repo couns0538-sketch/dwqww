@@ -109,3 +109,24 @@ Idea: preserve the actual HTTP status and byte comparison for all119 changed
 source/report/evidence files at immutable report commit e69a7c2. Source: the
 user's successful-publication requirement. Implementation original. This receipt
 is a publication proof, not a new engine test, implementation or strength claim.
+
+# Idea sources
+
+## Defensive deferred-capture capacity repair
+
+Idea: let MovePicker's deferred SEE-losing capture storage hold the complete
+MoveList producer capacity, and assert that containment at compile time.
+Source: the user's SOL_PROMPT_next.md task (b), REVIEW_3afd230_QA.md finding 3,
+and the existing original Forge move-generation/SEE contract. Implementation
+original; no external engine code, constants or tables imported.
+
+The fixed-input CTest uses the two FENs supplied by that review, plus Forge's
+existing poisoned-pawn and both-color promotion fixtures. It calls the actual
+FEN parser, noisy generator, SEE and normal search APIs. A root restriction on
+the existing poisoned-pawn capture verifies that a SEE-losing move remains
+available through the deferred stage. No input search, parser bypass, direct
+private-buffer writes or production test hooks are introduced.
+
+The old array's smaller declared capacity is a source-level containment gap;
+the compile-time contract rejects restoring that mismatch. This is a defensive
+repair. It does not establish a reachable native overflow, speed gain or Elo.
