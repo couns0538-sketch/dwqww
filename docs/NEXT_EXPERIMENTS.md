@@ -2,8 +2,10 @@
 
 ## Next action after native H256 cycle
 
-Complete the source/patch delivery audit and publication for `forge/sol-next-20261024`. The numerical implementation is preserved; Linux speed verdict is NOISE, not a gain. The next independent measurement is the supplied native Zen5/Windows `tools/windows/zen5_qualify_sol.ps1` protocol using exact executable hashes, first-d11 gates, float million-position oracle and fixed AA/ABBA rules. Compile-time SIMD/alignment profiles remain distinct from runtime NnueInt16. Keep unsupported-network runtime coverage and whole-engine phase percentages explicitly open; do not gate/lock NnueInt16 ON or start matches under this mission. Preserve the earlier failed WAC separately; no further same-host WAC/NPS retry. Buffer WAC middle score is lower and unresolved.
+Source/patch reconstruction audits are complete for `forge/sol-next-20261024`; verify final immutable publication before resuming any experiment. The numerical implementation is preserved; Linux speed verdict is NOISE, not a gain. The next independent measurement is the supplied native Zen5/Windows `tools/windows/zen5_qualify_sol.ps1` protocol using exact executable hashes, first-d11 gates, float million-position oracle and fixed AA/ABBA rules. Compile-time SIMD/alignment profiles remain distinct from runtime NnueInt16. Keep unsupported-network runtime coverage and whole-engine phase percentages explicitly open; do not gate/lock NnueInt16 ON or start matches under this mission. Preserve the earlier failed WAC separately; no further same-host WAC/NPS retry. Buffer WAC middle score is lower and unresolved.
 
+
+One bounded source-grounded follow-up, after PC evidence: inspect the emitted MovePicker constructor zeroing. `bad_captures_{};` now contains256 Moves whose four byte members have default zero initializers, versus64 previously (+768 bytes of declared initialization per picker). Whether the compiler actually adds stores and whether they affect speed is unmeasured. This is a hypothesis for the lower buffer timed score, not its proven cause; preserve capacity256 and exact move order in any isolated experiment. Do not implement or rerun a noisy host screen merely to confirm an expected outcome.
 
 ## Current follow-up action, 2026-10-24
 
