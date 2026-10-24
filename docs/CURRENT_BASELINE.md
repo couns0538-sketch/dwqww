@@ -1,6 +1,13 @@
 # Current baseline
 
-## 2026-10-24 follow-up checkpoint (17:02 UTC)
+## Completed native research cycle — 2026-10-24 17:17 UTC
+
+Mission lock remains f4911f2, accepted integration untouched. `NnueInt16` remains OFF by default. All five OFF signatures and both perft5 totals match; 100k numerical error mean/max/p99=0.0147/1/1cp, strict flips0; int64 overflow-boundary and T2 mid-search ON/OFF sanitizer lifecycle pass. Full Release/ASan CTest are 14/15 with four known FAIL lines. ON nodes11/13/16/20/22=335382/850773/3130100/10757244/27884195. Fresh WAC274/271/278 is complete; earlier failed trial remains separate with unresolved cause.
+
+Native same-binary 6AA/14ABBA: **NOISE**, median+0.439691%, mean-1.205930%,8/14 positive, AA band21.467144%. No speed/Elo acceptance. Separate explicit-pthread rebuild is byte-identical for engine/core and passes its own firstd11/all5/perft; original performance records remain unchanged. Exact source SHA will be in releases/sol-next-20261024/int16-source-manifest.json. [Native evidence](../validation/sol-next-20261024/int16/).
+
+
+## 2026-10-24 follow-up checkpoint (16:57 UTC)
 
 Exact mission lock remains `f4911f2709bd5ae7e5fca7aea30aac5d87314a05`; network SHA256 `74c4009d86b7d3a5ae9e6119d0890e5b923508f4063161bb4bc1539aab275b1b` is unchanged. Isolated branch `forge/sol-next-20261024` preserves parent `3afd230`, defensive buffer source `30e703e`, and qualification tools `e123bfc`. Accepted integration is untouched.
 
@@ -96,7 +103,7 @@ rootfresh504byte-mode/317proof/154Git-source checks and five HTTP200 public
 readbacks. Soletrigger `forge/hosted-tt-refresh-strength-20261021-031253` pushed
 03:12:53UTC. Actual [run39537333958](https://github.com/couns0538-sketch/dwqww/actions/runs/39537333958)
 source linkage verified03:13:23UTC. Hostedbuildstep reported success03:15:26;
-combinedreadiness/play observedrunning03:17:02UTC. Games/Elo UNKNOWN; original
+combinedreadiness/play observedrunning03:16:57UTC. Games/Elo UNKNOWN; original
 hosted14+14suite proofs and match results still require audit.
 Four separate timedA/A pairs precede serial512pair logistic0/+10SPRT at1+0.01,
 T1Hash32/OwnBookfalse/seed20261101. No retry/resume/retrigger/pooling. Preserve

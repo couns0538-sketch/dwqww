@@ -1,0 +1,63 @@
+{
+  "utc": "2026-10-24T17:10:02.732038+00:00",
+  "source": "764db5f engine source unchanged",
+  "purpose": "Rectify literal pthread flag deviation; separate build, original timed profile immutable",
+  "commands": [
+    {
+      "name": "configure",
+      "argv": [
+        "/workspace/.cloud-setup/venv/lib/python3.12/site-packages/cmake/data/bin/cmake",
+        "-S",
+        "/workspace/dwqww",
+        "-B",
+        "/workspace/forge-sol-next-20261024/build-int16-strict-pthread",
+        "-DCMAKE_BUILD_TYPE=Release",
+        "-DCMAKE_CXX_EXTENSIONS=OFF",
+        "-DCMAKE_CXX_FLAGS=-DFORGE_NNUE_HIDDEN=256 -ffp-contract=off -fno-fast-math -march=znver5 -pthread",
+        "-DCMAKE_EXE_LINKER_FLAGS=-static -pthread"
+      ]
+    },
+    {
+      "name": "build-forge",
+      "argv": [
+        "taskset",
+        "-c",
+        "2,3",
+        "/workspace/.cloud-setup/venv/lib/python3.12/site-packages/cmake/data/bin/cmake",
+        "--build",
+        "/workspace/forge-sol-next-20261024/build-int16-strict-pthread",
+        "--target",
+        "forge",
+        "--parallel",
+        "2"
+      ]
+    },
+    {
+      "name": "build-all",
+      "argv": [
+        "taskset",
+        "-c",
+        "2,3",
+        "/workspace/.cloud-setup/venv/lib/python3.12/site-packages/cmake/data/bin/cmake",
+        "--build",
+        "/workspace/forge-sol-next-20261024/build-int16-strict-pthread",
+        "--parallel",
+        "2"
+      ]
+    },
+    {
+      "name": "ctest",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/workspace/.cloud-setup/venv/lib/python3.12/site-packages/cmake/data/bin/ctest",
+        "--test-dir",
+        "/workspace/forge-sol-next-20261024/build-int16-strict-pthread",
+        "--output-on-failure",
+        "--parallel",
+        "1"
+      ]
+    }
+  ]
+}

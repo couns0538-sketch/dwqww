@@ -1,5 +1,10 @@
 # Next experiments
 
+## Next action after native H256 cycle
+
+Complete the source/patch delivery audit and publication for `forge/sol-next-20261024`. The numerical implementation is preserved; Linux speed verdict is NOISE, not a gain. The next independent measurement is the supplied native Zen5/Windows `tools/windows/zen5_qualify_sol.ps1` protocol using exact executable hashes, first-d11 gates, float million-position oracle and fixed AA/ABBA rules. Compile-time SIMD/alignment profiles remain distinct from runtime NnueInt16. Keep unsupported-network runtime coverage and whole-engine phase percentages explicitly open; do not gate/lock NnueInt16 ON or start matches under this mission. Preserve the earlier failed WAC separately; no further same-host WAC/NPS retry. Buffer WAC middle score is lower and unresolved.
+
+
 ## Current follow-up action, 2026-10-24
 
 Finish frozen H256 int16 validation on `forge/sol-next-20261024`: record ON d11/d20/d22 in addition to measured d13=850773 and d16=3130100; verify synthetic output totals beyond both int32 limits against an independent int64 oracle; then run exactly six AA and fourteen ABBA blocks as a Linux dry run on one core. Compare same executable with only NnueInt16 changed; current tested compile-time AVX512/alignment flags are OFF. Preserve the earlier failed WAC independently of the fresh completed trial. No further WAC retry or match is authorized. Package source/patches against f4911f2 and detailed CR drafts. Native Zen5/Windows qualification remains the owner's separate run, and whole-engine phase percentages are unmeasured.

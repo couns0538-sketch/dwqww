@@ -1,0 +1,14 @@
+Original development failures, preserved separately from final passing fixtures.
+All fixture execution was synthetic Linux dry-run work, not engine evidence.
+
+1. Private PowerShell initial startup, before task-local XDG paths:
+System.IO.IOException: Read-only file system : '/home/agent/.cache/powershell'
+The shell cannot be started. A failure occurred during initialization:
+Read-only file system : '/home/agent/.local/share/powershell'
+Resolution: scope XDG_CACHE_HOME, XDG_CONFIG_HOME and XDG_DATA_HOME to ps-agent directories for the test subprocess only. No HOME or global settings changed.
+
+2. Newly added unsupported-int16-option fixture initially stopped ERROR before its first engine test:
+STOP The type 'System.Collections.Hashtable' is not supported for serialization or deserialization of a dictionary. Keys must be strings.
+Root cause: expected-node maps intentionally use numeric depth keys, which ConvertTo-Json cannot serialize as dictionary keys.
+Resolution: make a separate string-keyed serialization copy for frozen_protocol.json, leaving numeric expected-node lookup unchanged.
+The same fixture subsequently reaches the intended BADOPTION gate after exactly 26 child invocations.
