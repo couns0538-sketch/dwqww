@@ -94,3 +94,11 @@ acceptance and publication contracts. Implementation original. The combined
 profile has native correctness/sanitizer checks, not a new million-position,
 performance or Elo experiment. This checkpoint preserves completed evidence;
 it adds no engine behavior or external implementation.
+
+## Final bounded-mission report
+
+Idea: report exact qualified source revisions, negative and inconclusive results,
+flag defaults, platform limits and original-evidence locations together, with
+immutable public readback of the delivery. Source: the user's final-report
+contract. Implementation original. This documentation and receipt commit adds
+no engine behavior, strength result or binary artifact.

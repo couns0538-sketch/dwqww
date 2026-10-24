@@ -45,6 +45,7 @@ Do not resume an old live-status paragraph or rebuild a frozen compressed tree.
   avx512-agent/nocopy-qa/asan-restore-map.json. Main ASan engine binaries remain raw.
   NEVER rebuild a frozen compressed build directory in place. Fresh directories only.
 - Job1 stop 13:03:47UTC, engine code stop 14:18:47, hard final 14:33:47UTC,2026-10-24.
-  Next action: finish closing evidence commit, finalize SOL_REPORT_20261024.md,
-  push, verify allchangedfiles via publicrawreadback, print report and actual
-  delivery SHA. No further engine change is needed to complete the bounded jobs.
+  Next action: finish the report delivery commit, push, verify its immutable public
+  files, and print the report and actual delivery SHA. After delivery, the next
+  engineering gate is the owner's separate PC QA, with every optional flag off
+  until separately adopted. No active model restart or chat-report scheduler exists.
