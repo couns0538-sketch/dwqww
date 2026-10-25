@@ -1,0 +1,38 @@
+{
+  "status": "PASS_ACTUAL_REFERENCE_CHECKS",
+  "existing_skill": ".agents/skills/validating-chess-simd/SKILL.md",
+  "before_sha256": "71bb030e24e5a7c38077ae3f9470022f839fa415a68666bcb38a63a47386dc97",
+  "after_sha256": "be2287ce8b0f45f9d36a258a97ddf9534346770ce865fea9d3282ffdbfc765b0",
+  "failure": "Published report copied a malformed61character source SHA256 instead of deriving actual64. Native source bindings unchanged.",
+  "scope": "Existing reference guide improved; actual broken-report and derived-addendum command controls, not an agent pressure test or global installation.",
+  "commands": [
+    {
+      "case": "before_published_report",
+      "argv": [
+        "python3",
+        "-B",
+        "-c",
+        "import hashlib,pathlib,re,sys; actual=hashlib.sha256(pathlib.Path(sys.argv[1]).read_bytes()).hexdigest(); assert re.fullmatch(\"[0-9a-f]{64}\",sys.argv[2]) and sys.argv[2]==actual; print(actual)",
+        "/workspace/forge-pack24-20261025/new_handoff_1435/selected/forge_handoff_full_20261025_1435/files/01c_lockderived_jobC_S01/forge_h256_e12_lockderived_jobC_S01_src/tests/tests.cpp",
+        "55334ba94fd508d5f8e8e0e715c86a6996eddc69b20b1c110a96e46deaa2c"
+      ],
+      "exit": 1,
+      "stdout_b64": "",
+      "stderr_b64": "VHJhY2ViYWNrIChtb3N0IHJlY2VudCBjYWxsIGxhc3QpOgogIEZpbGUgIjxzdHJpbmc+IiwgbGluZSAxLCBpbiA8bW9kdWxlPgpBc3NlcnRpb25FcnJvcgo="
+    },
+    {
+      "case": "after_derived_addendum",
+      "argv": [
+        "python3",
+        "-B",
+        "-c",
+        "import hashlib,pathlib,re,sys; actual=hashlib.sha256(pathlib.Path(sys.argv[1]).read_bytes()).hexdigest(); assert re.fullmatch(\"[0-9a-f]{64}\",sys.argv[2]) and sys.argv[2]==actual; print(actual)",
+        "/workspace/forge-pack24-20261025/new_handoff_1435/selected/forge_handoff_full_20261025_1435/files/01c_lockderived_jobC_S01/forge_h256_e12_lockderived_jobC_S01_src/tests/tests.cpp",
+        "55334ba94fd508d5f8e8e0e715c86a6996eddc69b20b1c110110a96e46deaa2c"
+      ],
+      "exit": 0,
+      "stdout_b64": "NTUzMzRiYTk0ZmQ1MDhkNWY4ZThlMGU3MTVjODZhNjk5NmVkZGM2OWIyMGIxYzExMDExMGE5NmU0NmRlYWEyYwo=",
+      "stderr_b64": ""
+    }
+  ]
+}

@@ -51,6 +51,14 @@ hashes. A GNU patch pass alone does not establish Git application compatibility.
 When tests changed in a later handoff, preserve prior results under their exact
 old tree identities and qualify the new trees separately.
 
+Derive each published SHA256 directly from the frozen file instead of copying a
+prompt or earlier report. Before sealing, validate the declared algorithm, all
+64 hexadecimal characters and equality with the computed source/artifact digest.
+Keep MD5 and Git commit identities labelled separately. If a published digest is
+wrong, preserve its immutable report and issue a dated correction with the
+actual computation and before/after validation; rerun native tests only when
+the tested input identity or results are affected.
+
 ## Windows and match evidence
 
 Set `LLVM_MINGW_ROOT` to a checksum-verified LLVM-MinGW release. Configure a separate Release build with `-DCMAKE_TOOLCHAIN_FILE=tools/windows-zen5.cmake`. Inspect PE architecture/imports and run the delivered executable's UCI, pondering, legal-search and bench checks. Report Wine and native Windows separately; PE inspection alone is insufficient runtime evidence.
