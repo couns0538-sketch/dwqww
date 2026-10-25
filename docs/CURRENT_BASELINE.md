@@ -1,5 +1,9 @@
 # Current baseline
 
+## Resume 15:10 — 2026-10-25
+
+The 15:10 resume is active. h256_e12 and fixed references remain unchanged. New L-prime and B include reviewed Job C/S01 tests; do not use the old B for new validation. S25 prior-tree results are saved without being represented as new-tree qualification. S02/S03 v2 fix-ups now come first.
+
 ## Active ordered job pack — 2026-10-25
 
 Use [the pack31 checkpoint](../validation/forge_sol_pack31_20261025/forge_sol_S00_checkpoint_20261025.json) and [published artifact index](../releases/forge_sol_pack31_20261025/forge_sol_pack31_index_20261025.md) for this continuation. The supplied h256_e12 code base is `1ab50b2dd64d9b2f752f7f1285f6968cad2fd792` plus the explicit net overlay SHA256 `74c4009d86b7d3a5ae9e6119d0890e5b923508f4063161bb4bc1539aab275b1b`; the commit's original network differs. L/B exports and their hashes identify the tested source. Do not treat the checkout's unrelated retained source as an implicit packet build.

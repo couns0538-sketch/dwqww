@@ -1,5 +1,9 @@
 # Experiment ledger
 
+## Resume 15:10 — 2026-10-25
+
+15:10 continuation: received exact 14:35 full handoff and resume bytes; no source reset. S25 frozen package copied unchanged and committed before rework. S02 v2 warning/precheck and S03 v2 stack are active; no new strength experiment or Elo claim.
+
 ## Active ordered job pack — 2026-10-25
 
 - S01: pin follow-up validated; three exact alternate nets missing.

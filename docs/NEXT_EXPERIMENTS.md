@@ -1,5 +1,9 @@
 # Next experiments
 
+## Resume 15:10 — 2026-10-25
+
+Next: finish S02 v2 and S03 v2 on verified L-prime/B, then S28 v2, S04 packaging/requalification, and S05 PC zero-copy recognition. S25 remains sealed; requalify later against newer trees. S23 remains dropped. No PC/GPU or lock promotion here.
+
 ## Active ordered job pack — 2026-10-25
 
 S04 publication is complete with every immutable raw download verified. S05 is published and verified. Execute S25, followed by S27, following the full remaining order in [the current checkpoint](../validation/forge_sol_pack31_20261025/forge_sol_S00_checkpoint_20261025.json). S23 is explicitly dropped. H256 remains float, with fixed h256_e12 references; no PC/GPU work or strength claims. Do not restart completed investigations from older notes below.
