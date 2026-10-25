@@ -2,6 +2,8 @@
 
 ## 2026-10-25 ordered Windows/PGO qualification checkpoint
 
+Publication verified at artifact commit `fed8263813ada5d0f5e4857d058eaa35b9bb8c22`: nine actual immutable public downloads equal Git bytes; downloaded ZIP CRC/all351 payload SHA256 checks pass. [Public receipt](../validation/forge_sol_20261025/forge_sol_public_delivery_readback_20261025.json).
+
 Engine source remains preserved from parent `b425207a`; `NnueInt16` is OFF by default. Exact lock `f4911f2709bd5ae7e5fca7aea30aac5d87314a05`, buffer source `30e703edc90976b9c59fb22912ddabb3b690658f`, int16 source `074102419c90c6b3725cd83c172e1ec22a2d8203`, network SHA256 `74c4009d86b7d3a5ae9e6119d0890e5b923508f4063161bb4bc1539aab275b1b`. No new engine/trainer change or integration acceptance.
 
 Linux GCC14.2 pure-PGO baseline/instrumented/use builds passed all five lock signatures; baseline and PGO passed both perft5 totals and NNUE FMA0. Original CTest13/14 retained exactly four known FAIL lines. One preregistered eight-ABAB-block screen completed32 fresh processes; median of16 adjacent PGO/baseline NPS ratios `0.9963049200833995` (-0.3695%): **DROP below+3%**, no speed/Elo acceptance. Shared Intel host is not native Zen5 evidence. No retry.
