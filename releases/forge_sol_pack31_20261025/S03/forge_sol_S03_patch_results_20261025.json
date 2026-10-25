@@ -1,0 +1,64 @@
+{
+  "status": "PASS",
+  "patch_sha256": "96a2b1bb4bd7bf4bb9ed15e35d024e79f99349feca5b7b6abd6f1c8f73dc1ca7",
+  "changed_paths": [
+    "CMakeLists.txt",
+    "IDEA_SOURCE.md",
+    "tests/forge_sol_S03_fixedrefs_20261025.sh",
+    "tests/forge_sol_S03_fixedrefs_20261025.py",
+    "tests/forge_sol_S03_oracle_20261025.json"
+  ],
+  "all_engine_sources_unchanged": true,
+  "steps": [
+    {
+      "base": "L",
+      "action": "dryrun",
+      "argv": [
+        "patch",
+        "--batch",
+        "--forward",
+        "--fuzz=0",
+        "-p1",
+        "--dry-run"
+      ],
+      "actual_exit": 0
+    },
+    {
+      "base": "L",
+      "action": "apply",
+      "argv": [
+        "patch",
+        "--batch",
+        "--forward",
+        "--fuzz=0",
+        "-p1"
+      ],
+      "actual_exit": 0
+    },
+    {
+      "base": "B",
+      "action": "dryrun",
+      "argv": [
+        "patch",
+        "--batch",
+        "--forward",
+        "--fuzz=0",
+        "-p1",
+        "--dry-run"
+      ],
+      "actual_exit": 0
+    },
+    {
+      "base": "B",
+      "action": "apply",
+      "argv": [
+        "patch",
+        "--batch",
+        "--forward",
+        "--fuzz=0",
+        "-p1"
+      ],
+      "actual_exit": 0
+    }
+  ]
+}

@@ -1,0 +1,46 @@
+{
+  "status": "PASS_EXPECTED_RED",
+  "mutation": "ONLY Board::perft depth<=0 returns2 instead of1 in private scratch TU; no delivered production diff",
+  "commands": [
+    [
+      "g++",
+      "-std=c++20",
+      "-O3",
+      "-DNDEBUG",
+      "-DFORGE_NNUE_HIDDEN=256",
+      "-ffp-contract=off",
+      "-fno-fast-math",
+      "-march=x86-64-v3",
+      "-mtune=znver5",
+      "-pthread",
+      "-I/workspace/forge-pack24-20261025/S03/forge_sol_S03_L_source_20261025/include",
+      "-c",
+      "/workspace/forge-pack24-20261025/S03/forge_sol_S03_perft_mutant_20261025/forge_sol_S03_board_mutant_20261025.cpp",
+      "-o",
+      "/workspace/forge-pack24-20261025/S03/forge_sol_S03_perft_mutant_20261025/forge_sol_S03_board_mutant_20261025.o"
+    ],
+    [
+      "g++",
+      "-pthread",
+      "/workspace/forge-pack24-20261025/forge_sol_S00_L_release_20261025/build/CMakeFiles/forge.dir/src/uci.cpp.o",
+      "/workspace/forge-pack24-20261025/S03/forge_sol_S03_perft_mutant_20261025/forge_sol_S03_board_mutant_20261025.o",
+      "/workspace/forge-pack24-20261025/forge_sol_S00_L_release_20261025/build/libforge_core.a",
+      "-o",
+      "/workspace/forge-pack24-20261025/S03/forge_sol_S03_perft_mutant_20261025/forge_sol_S03_perft_mutant_20261025"
+    ],
+    [
+      "bash",
+      "/workspace/forge-pack24-20261025/S03/forge_sol_S03_fixedrefs_20261025.sh",
+      "/workspace/forge-pack24-20261025/S03/forge_sol_S03_perft_mutant_20261025/forge_sol_S03_perft_mutant_20261025",
+      "--out",
+      "/workspace/forge-pack24-20261025/S03/forge_sol_S03_perft_mutant_20261025/forge_sol_S03_run_20261025"
+    ]
+  ],
+  "actual_checker_exit": 1,
+  "first_d11_gate_passed": true,
+  "perft1_expected": 20,
+  "perft1_actual": 40,
+  "core_sha256": "69d1398dc085ca792e1fb63408d7a7c04d276fb9c3286141d2707116eb9ee7f5",
+  "mutant_board_sha256": "6b445790cf6289309f04cc33a2589fa1a9d43b68cb83c9b42c3ba180b9aafc19",
+  "mutant_binary_sha256": "abb59bc0c518f018ab1c15d1d279d774116ad04b8e1a89d135f9febb1bf583f0"
+}
