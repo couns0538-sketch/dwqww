@@ -1,0 +1,407 @@
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -5,6 +5,7 @@
+ option(FORGE_ENABLE_SANITIZERS "Enable AddressSanitizer and UndefinedBehaviorSanitizer" OFF)
+ option(FORGE_NATIVE "Optimise for the build machine's CPU (-march=native)" OFF)
+ option(FORGE_EXPOSE_TUNABLES "Advertise search tuning constants as UCI options (development builds)" OFF)
++option(FORGE_NNUE_EXACT_INT32_AVX2 "Build the OFF-default exact int32 AVX2 NNUE experiment" OFF)
+ 
+ add_library(forge_core
+     src/bitboard.cpp
+@@ -17,6 +18,9 @@
+ )
+ target_include_directories(forge_core PUBLIC include)
+ target_compile_features(forge_core PUBLIC cxx_std_20)
++if(FORGE_NNUE_EXACT_INT32_AVX2)
++    target_compile_definitions(forge_core PUBLIC FORGE_NNUE_EXACT_INT32_AVX2=1)
++endif()
+ 
+ if(MSVC)
+     target_compile_options(forge_core PRIVATE /W4 /permissive-)
+diff --git a/IDEA_SOURCE.md b/IDEA_SOURCE.md
+--- a/IDEA_SOURCE.md
++++ b/IDEA_SOURCE.md
+@@ -1,4 +1,10 @@
+ # IDEA_SOURCE — fc_nnue_h256_e12_ep12_ep10base  (REAL H256 net on the locked ep10 source base; UNPROVEN)
++
++## Sol exact int32 AVX2 inference idea sources — 20261025
++
++- User Job A contract and supplied Forge fixed-grid numeric review: retain the existing output arithmetic and use a provably exact integer hidden representation.
++- Intel AVX2 instruction semantics for signed widening, integer add/subtract and int32-to-float conversion.
++- Original implementation and tests; no external engine code, tuned constants, network parameters or net-format change.
+ 
+ Forge 6.4.24 (1ab50b2d), same source as the locked ep10 tree `/workspace/forge-coder/fc_nnue_ep10_1ab50b2d` (net-a md5 da65098c…). The ONLY source change is `src/nnue_weights.inc`, replaced by Engine NNUE's own trained H256 residual net:
+ - file: /workspace/chess-tools/nnue/forge_resid/resid_h256_e12_e_ep12.inc ("run e", epoch 12)
+diff --git a/README.md b/README.md
+--- a/README.md
++++ b/README.md
+@@ -1,4 +1,10 @@
+ # fc_nnue_h256_e12_ep12_ep10base — H256 net (run e, epoch 12) on the locked ep10 source base
++
++## Sol exact int32 AVX2 research option — 20261025
++
++The independent `FORGE_NNUE_EXACT_INT32_AVX2` CMake option defaults OFF. Build with it ON and the existing H256/strict FP flags, then set `NnueExactInt32` true before the first go or bench. The runtime option also defaults OFF. Activation is acknowledged once after actual int32 work; bench counters distinguish backend execution.
++
++The ON path widens stored weights into int32 accumulators and converts the exact 1/4096 grid into the unchanged float output calculation. It never requantizes output. Feature-enabled builds add2048 bytes per H256 accumulator even with the runtime option OFF. No speed or Elo claim; adoption requires independent box/Windows evidence. Idea sources: user Job A fixed-grid review and Intel AVX2 semantics; original code and tests only.
+ 
+ Status: **UNPROVEN. No Elo or strength claim.** Built on the box by Engine Coder, 2026-10-23.
+ 
+diff --git a/include/forge/nnue.hpp b/include/forge/nnue.hpp
+--- a/include/forge/nnue.hpp
++++ b/include/forge/nnue.hpp
+@@ -4,6 +4,10 @@
+ 
+ #include <array>
+ #include <cstdint>
++
++#ifndef FORGE_NNUE_EXACT_INT32_AVX2
++#define FORGE_NNUE_EXACT_INT32_AVX2 0
++#endif
+ 
+ namespace forge::nnue {
+ 
+@@ -30,6 +34,12 @@
+ 
+ struct Accumulator {
+     alignas(32) std::array<std::array<float, HiddenSize>, 2> values{};
++#if FORGE_NNUE_EXACT_INT32_AVX2
++    // Integer numerators on the unchanged 1/4096 input grid. The original
++    // float array remains the reference representation when the option is OFF.
++    alignas(32) std::array<std::array<std::int32_t, HiddenSize>, 2> exact_values{};
++    bool exact_int32 = false;
++#endif
+     bool valid = false;
+ };
+ 
+@@ -54,6 +64,24 @@
+ // Runtime switch (UCI option); only effective when available().
+ extern bool enabled;
+ 
++// A root refresh takes an atomic option snapshot; incremental children inherit
++// that representation, so no worker ever observes a mixed accumulator mode.
++[[nodiscard]] bool exact_int32_available();
++void set_exact_int32(bool enabled);
++[[nodiscard]] bool exact_int32_enabled();
++
++// Calling-thread diagnostics. The fixed one-thread UCI bench resets/reports its
++// own counters; these are not an aggregate of Lazy SMP worker threads.
++struct InferenceStats {
++    std::uint64_t refreshes = 0;
++    std::uint64_t updates = 0;
++    std::uint64_t evaluations = 0;
++    std::uint64_t int32_refreshes = 0;
++    std::uint64_t int32_updates = 0;
++};
++[[nodiscard]] InferenceStats inference_stats();
++void reset_inference_stats();
++
+ void refresh(const Board& board, Accumulator& accumulator);
+ void update(const Accumulator& parent, Accumulator& child, const DirtyPieces& dirty);
+ // Side-to-move evaluation in centipawns.
+diff --git a/src/nnue.cpp b/src/nnue.cpp
+--- a/src/nnue.cpp
++++ b/src/nnue.cpp
+@@ -1,8 +1,10 @@
+ #include "forge/nnue.hpp"
+ 
+ #include <algorithm>
++#include <atomic>
+ #include <cmath>
+ #include <cstdint>
++#include <cstdlib>
+ #include <memory>
+ 
+ // The output layer uses SSE min/max/mul/add directly: compilers may not turn a
+@@ -43,6 +45,82 @@
+ 
+ namespace {
+ 
++std::atomic<bool> exact_int32_option{false};
++thread_local InferenceStats current_stats;
++
++#if FORGE_NNUE_EXACT_INT32_AVX2 && defined(__AVX2__) && FORGE_HAS_NNUE
++// Even the stronger all-input subset bound (plus one maximum dirty sequence)
++// must remain exactly representable as a float integer. This also proves every
++// int32 intermediate safe. Reject a future unqualified network rather than
++// silently narrowing it. The current 13-network audit is retained separately.
++bool exact_network_grid_safe() {
++    static const bool safe = [] {
++        for (int h = 0; h < HiddenSize; ++h) {
++            std::int64_t bound = std::abs(static_cast<std::int64_t>(NnueB1[h]));
++            std::int64_t largest = 0;
++            for (int input = 0; input < InputCount; ++input) {
++                const auto magnitude = std::abs(static_cast<std::int64_t>(NnueW1[input * HiddenSize + h]));
++                bound += magnitude;
++                largest = std::max(largest, magnitude);
++            }
++            if (bound + 4 * largest >= (std::int64_t{1} << 24)) return false;
++        }
++        return WeightScale == 4096.0F;
++    }();
++    return safe;
++}
++
++void refresh_exact(const Board& board, Accumulator& accumulator) {
++    for (const Color perspective : {White, Black}) {
++        auto& destination = accumulator.exact_values[static_cast<std::size_t>(perspective)];
++        for (int h = 0; h < HiddenSize; h += 8) {
++            const __m128i bias = _mm_loadu_si128(reinterpret_cast<const __m128i*>(NnueB1 + h));
++            _mm256_store_si256(reinterpret_cast<__m256i*>(destination.data() + h), _mm256_cvtepi16_epi32(bias));
++        }
++        Bitboard occupied = board.occupied();
++        while (occupied != 0) {
++            const int square = pop_lsb(occupied);
++            const int index = feature_index(perspective, board.piece_at(square), square);
++            const auto* column = NnueW1 + static_cast<std::size_t>(index) * HiddenSize;
++            for (int h = 0; h < HiddenSize; h += 8) {
++                const __m128i packed = _mm_loadu_si128(reinterpret_cast<const __m128i*>(column + h));
++                const __m256i sum = _mm256_add_epi32(
++                    _mm256_load_si256(reinterpret_cast<const __m256i*>(destination.data() + h)),
++                    _mm256_cvtepi16_epi32(packed));
++                _mm256_store_si256(reinterpret_cast<__m256i*>(destination.data() + h), sum);
++            }
++        }
++    }
++    accumulator.exact_int32 = true;
++    accumulator.valid = true;
++}
++
++void update_exact(const Accumulator& parent, Accumulator& child, const DirtyPieces& dirty) {
++    for (const Color perspective : {White, Black}) {
++        const auto& source = parent.exact_values[static_cast<std::size_t>(perspective)];
++        auto& destination = child.exact_values[static_cast<std::size_t>(perspective)];
++        std::array<const std::int16_t*, 4> columns{};
++        for (int change = 0; change < dirty.count; ++change) {
++            const auto& piece = dirty.changes[static_cast<std::size_t>(change)];
++            columns[static_cast<std::size_t>(change)] = NnueW1 +
++                static_cast<std::size_t>(feature_index(perspective, piece.piece, piece.square)) * HiddenSize;
++        }
++        for (int h = 0; h < HiddenSize; h += 8) {
++            __m256i sum = _mm256_load_si256(reinterpret_cast<const __m256i*>(source.data() + h));
++            for (int change = 0; change < dirty.count; ++change) {
++                const __m128i packed = _mm_loadu_si128(reinterpret_cast<const __m128i*>(columns[static_cast<std::size_t>(change)] + h));
++                const __m256i delta = _mm256_cvtepi16_epi32(packed);
++                sum = dirty.changes[static_cast<std::size_t>(change)].add
++                    ? _mm256_add_epi32(sum, delta) : _mm256_sub_epi32(sum, delta);
++            }
++            _mm256_store_si256(reinterpret_cast<__m256i*>(destination.data() + h), sum);
++        }
++    }
++    child.exact_int32 = true;
++    child.valid = true;
++}
++#endif
++
+ struct Weights {
+     std::unique_ptr<float[]> w1;   // [InputCount][HiddenSize]
+     alignas(32) std::array<float, HiddenSize> b1{};
+@@ -81,7 +159,35 @@
+ 
+ bool residual() { return FORGE_HAS_NNUE != 0 && FORGE_NNUE_RESIDUAL != 0; }
+ 
++bool exact_int32_available() {
++#if FORGE_NNUE_EXACT_INT32_AVX2 && defined(__AVX2__) && FORGE_HAS_NNUE
++    static_assert(HiddenSize % 8 == 0);
++    return exact_network_grid_safe();
++#else
++    return false;
++#endif
++}
++
++void set_exact_int32(bool value) {
++    exact_int32_option.store(value && exact_int32_available(), std::memory_order_release);
++}
++
++bool exact_int32_enabled() { return exact_int32_option.load(std::memory_order_acquire); }
++InferenceStats inference_stats() { return current_stats; }
++void reset_inference_stats() { current_stats = {}; }
++
+ void refresh(const Board& board, Accumulator& accumulator) {
++    ++current_stats.refreshes;
++#if FORGE_NNUE_EXACT_INT32_AVX2 && defined(__AVX2__) && FORGE_HAS_NNUE
++    if (exact_int32_enabled()) {
++        ++current_stats.int32_refreshes;
++        refresh_exact(board, accumulator);
++        return;
++    }
++#endif
++#if FORGE_NNUE_EXACT_INT32_AVX2
++    accumulator.exact_int32 = false;
++#endif
+     const Weights& w = weights();
+     for (const Color perspective : {White, Black}) {
+         auto& acc = accumulator.values[static_cast<std::size_t>(perspective)];
+@@ -97,6 +203,17 @@
+ }
+ 
+ void update(const Accumulator& parent, Accumulator& child, const DirtyPieces& dirty) {
++    ++current_stats.updates;
++#if FORGE_NNUE_EXACT_INT32_AVX2 && defined(__AVX2__) && FORGE_HAS_NNUE
++    if (parent.exact_int32) {
++        ++current_stats.int32_updates;
++        update_exact(parent, child, dirty);
++        return;
++    }
++#endif
++#if FORGE_NNUE_EXACT_INT32_AVX2
++    child.exact_int32 = false;
++#endif
+     const Weights& w = weights();
+     // Quiet moves (including noncapturing promotions) remove one feature and
+     // add one. Keep each lane's subtraction-then-addition order while avoiding
+@@ -156,11 +273,10 @@
+     child.valid = true;
+ }
+ 
+-int evaluate(const Board& board, const Accumulator& accumulator) {
++namespace {
++int evaluate_values(const std::array<float, HiddenSize>& ours,
++                    const std::array<float, HiddenSize>& theirs) {
+     const Weights& w = weights();
+-    const Color us = board.side_to_move();
+-    const auto& ours = accumulator.values[static_cast<std::size_t>(us)];
+-    const auto& theirs = accumulator.values[static_cast<std::size_t>(opposite(us))];
+     // Sixteen independent partial sums (lane j takes the hidden units with
+     // index % 16 == j, in increasing order) and then one ordered sum: the
+     // association is fixed by the source, so every target (SSE, AVX2, AVX-512,
+@@ -214,6 +330,30 @@
+     const float centipawns = out * 400.0F / SigmoidK;
+     return static_cast<int>(std::clamp(centipawns, -30000.0F, 30000.0F));
+ }
++} // namespace
++
++int evaluate(const Board& board, const Accumulator& accumulator) {
++    ++current_stats.evaluations;
++    const Color us = board.side_to_move();
++#if FORGE_NNUE_EXACT_INT32_AVX2 && defined(__AVX2__) && FORGE_HAS_NNUE
++    if (accumulator.exact_int32) {
++        alignas(32) std::array<float, HiddenSize> ours;
++        alignas(32) std::array<float, HiddenSize> theirs;
++        const auto& our_q = accumulator.exact_values[static_cast<std::size_t>(us)];
++        const auto& their_q = accumulator.exact_values[static_cast<std::size_t>(opposite(us))];
++        const __m256 scale = _mm256_set1_ps(1.0F / WeightScale);
++        for (int h = 0; h < HiddenSize; h += 8) {
++            _mm256_store_ps(ours.data() + h, _mm256_mul_ps(
++                _mm256_cvtepi32_ps(_mm256_load_si256(reinterpret_cast<const __m256i*>(our_q.data() + h))), scale));
++            _mm256_store_ps(theirs.data() + h, _mm256_mul_ps(
++                _mm256_cvtepi32_ps(_mm256_load_si256(reinterpret_cast<const __m256i*>(their_q.data() + h))), scale));
++        }
++        return evaluate_values(ours, theirs);
++    }
++#endif
++    return evaluate_values(accumulator.values[static_cast<std::size_t>(us)],
++                           accumulator.values[static_cast<std::size_t>(opposite(us))]);
++}
+ 
+ DirtyPieces dirty_pieces(const Board& board, const Move& move) {
+     DirtyPieces dirty;
+diff --git a/src/uci.cpp b/src/uci.cpp
+--- a/src/uci.cpp
++++ b/src/uci.cpp
+@@ -6,6 +6,7 @@
+ 
+ #include <algorithm>
+ #include <array>
++#include <atomic>
+ #include <charconv>
+ #include <chrono>
+ #include <condition_variable>
+@@ -136,6 +137,22 @@
+     std::uint64_t book_rng = static_cast<std::uint64_t>(
+         std::chrono::steady_clock::now().time_since_epoch().count()) | 1ULL;
+     bool ponder_search_active = false;
++    bool inference_options_frozen = false;
++    std::atomic<bool> exact_int32_announced{false};
++    auto admit_inference_search = [&]() {
++        inference_options_frozen = true;
++    };
++    auto announce_exact_int32 = [&]() {
++        // Selection alone is not activation: book and perft paths need no NNUE,
++        // and UseNNUE can disable evaluation. Check this caller's actual work.
++        const auto stats = forge::nnue::inference_stats();
++        if (forge::nnue::enabled &&
++            (stats.int32_refreshes != 0 || stats.int32_updates != 0) &&
++            !exact_int32_announced.exchange(true, std::memory_order_relaxed)) {
++            const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex());
++            std::cout << "info string NnueExactInt32 active" << std::endl;
++        }
++    };
+     std::thread worker;
+     std::mutex stop_mutex;
+     std::condition_variable stop_cv;
+@@ -171,6 +188,7 @@
+                          "option name Book Depth type spin default 30 min 0 max 100\n"
+                          "option name Book Variety type spin default 30 min 0 max 100\n";
+             if (forge::nnue::available()) std::cout << "option name UseNNUE type check default true\n";
++            std::cout << "option name NnueExactInt32 type check default false\n";
+ #ifdef FORGE_EXPOSE_TUNABLES
+             // Development builds advertise the search constants so match
+             // runners can set them; release builds accept them silently.
+@@ -258,6 +276,17 @@
+                     book_depth = std::clamp(value, 0, 100);
+                 } else {
+                     book_variety = std::clamp(value, 0, 100);
++                }
++            } else if (name == "NnueExactInt32") {
++                const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex());
++                if (inference_options_frozen) {
++                    std::cout << "info string NnueExactInt32 must be set before the first go or bench" << std::endl;
++                } else if (value_text != "true" && value_text != "false") {
++                    std::cout << "info string invalid value for option NnueExactInt32" << std::endl;
++                } else if (value_text == "true" && !forge::nnue::exact_int32_available()) {
++                    std::cout << "info string NnueExactInt32 unavailable: requires qualified net and AVX2 experiment build" << std::endl;
++                } else {
++                    forge::nnue::set_exact_int32(value_text == "true");
+                 }
+             } else if (name == "UseNNUE") {
+                 if (value_text == "true") forge::nnue::enabled = true;
+@@ -286,6 +315,7 @@
+             apply_position(board, input);
+         } else if (command == "go") {
+             stop_search();
++            admit_inference_search();
+             std::string first;
+             const auto position = input.tellg();
+             input >> first;
+@@ -352,9 +382,11 @@
+                 ponder_search_active = limits.ponder;
+                 searcher.reset_stop();
+                 worker = std::thread([&searcher, &stop_mutex, &stop_cv, &stop_requested,
+-                                      &ponder_hit_received, search_board, limits, ponder_enabled]() mutable {
++                                      &ponder_hit_received, &announce_exact_int32,
++                                      search_board, limits, ponder_enabled]() mutable {
+                     const forge::SearchInfo result = searcher.search(
+                         search_board, limits, true, forge::Searcher::TTAccess::Exclusive);
++                    announce_exact_int32();
+                     if (limits.infinite || limits.ponder) {
+                         std::unique_lock<std::mutex> lock(stop_mutex);
+                         stop_cv.wait(lock, [&stop_requested, &ponder_hit_received, &limits] {
+@@ -378,6 +410,8 @@
+             // Fixed-depth search over a small position set; prints a node
+             // signature and speed for quick regression and performance checks.
+             stop_search();
++            admit_inference_search();
++            forge::nnue::reset_inference_stats();
+             int depth = 13;
+             if (int parsed = 0; input >> parsed) depth = std::clamp(parsed, 1, 64);
+             constexpr std::array<std::string_view, 8> fens{
+@@ -404,9 +438,18 @@
+             }
+             const auto elapsed_ms = std::chrono::duration_cast<std::chrono::milliseconds>(
+                 std::chrono::steady_clock::now() - start).count();
++            announce_exact_int32();
+             const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex());
+             std::cout << "info string bench depth " << depth << " nodes " << total_nodes << " time " << elapsed_ms
+                       << " nps " << (elapsed_ms > 0 ? total_nodes * 1000U / static_cast<std::uint64_t>(elapsed_ms) : 0)
++                      << std::endl;
++            const auto stats = forge::nnue::inference_stats();
++            const std::uint64_t constructions = stats.refreshes + stats.updates;
++            std::cout << "info string NnueExactInt32 stats refreshes " << stats.refreshes
++                      << " updates " << stats.updates << " evaluations " << stats.evaluations
++                      << " int32_refreshes " << stats.int32_refreshes
++                      << " int32_updates " << stats.int32_updates
++                      << " refresh_share_ppm " << (constructions ? stats.refreshes * 1000000U / constructions : 0)
+                       << std::endl;
+         } else if (command == "ponderhit") {
+             if (ponder_search_active) {
