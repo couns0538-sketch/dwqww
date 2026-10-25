@@ -1,0 +1,27 @@
+{
+  "registered_utc": "2026-10-25T13:39:43.251707+00:00",
+  "hypothesis": "A fixed-node-identical default build can still leak a new UCI option and trailing bench statistics; check typed approved option metadata and exact summary EOF independently, aggregating both failures.",
+  "patch_sha256": "a8317834664d249f4d549c29d5bd30975c0fe8058d713c466f4a23aee6a3e5b2",
+  "positive_bases": "Supplied pristineL/B engines unchanged, previously fullyqualified Release+ASan source hashes/ELFs bound",
+  "negative_scope": "Exact shelved e661a145e301d3483ccaeaba65779d1d2002067263c836250e6418b9dccd151d patch on privateL; default compile and runtimeOFF only; no backend activation/adoption/repair",
+  "negative_existing_binary_sha256": "f4365f194f6d781a3ff79b4770495f24f125ef3e65d5ef48bece5183ae993465",
+  "first_engine_invocation": "bare bench11+quit, fixed308972 before UCI; a tail failure does not stop UCI if nodegate passes",
+  "required_negative_failures": [
+    "bench_post_summary_bytes",
+    "unexpected_option:NnueExactInt32"
+  ],
+  "normalization_policy": "Only variable numeric bench time/NPS and LF/CRLF summary terminator accepted; no strip/delete/tail normalization; typed option name/type/default/min/max compared to checked-in trusted10-option JSON.",
+  "cheap_negative_controls": [
+    "blank tail",
+    "stats tail",
+    "duplicate summary",
+    "malformed summary",
+    "missing final newline",
+    "wrong fixednodes",
+    "extra option",
+    "changed default/range",
+    "duplicate/malformed option"
+  ],
+  "no_native_rebuild_required": true,
+  "no_source_feature_stacking": true
+}
