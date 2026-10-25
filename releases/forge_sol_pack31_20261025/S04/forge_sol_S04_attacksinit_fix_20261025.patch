@@ -1,0 +1,162 @@
+diff --git a/src/bitboard.cpp b/src/bitboard.cpp
+--- a/src/bitboard.cpp
++++ b/src/bitboard.cpp
+@@ -2,6 +2,10 @@
+ 
+ #include <algorithm>
+ #include <cstddef>
++
++#if defined(FORGE_ATTACKS_INIT_ONCE) && FORGE_ATTACKS_INIT_ONCE
++#include <mutex>
++#endif
+ 
+ namespace forge::attacks {
+ 
+@@ -110,9 +114,14 @@
+ } // namespace
+ 
+ void init() {
++#if defined(FORGE_ATTACKS_INIT_ONCE) && FORGE_ATTACKS_INIT_ONCE
++    static std::once_flag initialized_once;
++    std::call_once(initialized_once, [] {
++#else
+     static bool initialized = false;
+     if (initialized) return;
+     initialized = true;
++#endif
+ 
+     for (int square = 0; square < 64; ++square) {
+         const std::size_t s = static_cast<std::size_t>(square);
+@@ -169,6 +178,9 @@
+             }
+         }
+     }
++#if defined(FORGE_ATTACKS_INIT_ONCE) && FORGE_ATTACKS_INIT_ONCE
++    });
++#endif
+ }
+ 
+ } // namespace forge::attacks
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -5,6 +5,8 @@
+ option(FORGE_ENABLE_SANITIZERS "Enable AddressSanitizer and UndefinedBehaviorSanitizer" OFF)
+ option(FORGE_NATIVE "Optimise for the build machine's CPU (-march=native)" OFF)
+ option(FORGE_EXPOSE_TUNABLES "Advertise search tuning constants as UCI options (development builds)" OFF)
++
++option(FORGE_ATTACKS_INIT_ONCE "Synchronize the first attack-table initialization" OFF)
+ 
+ add_library(forge_core
+     src/bitboard.cpp
+@@ -17,6 +19,29 @@
+ )
+ target_include_directories(forge_core PUBLIC include)
+ target_compile_features(forge_core PUBLIC cxx_std_20)
++
++if(FORGE_ATTACKS_INIT_ONCE)
++    target_compile_definitions(forge_core PRIVATE FORGE_ATTACKS_INIT_ONCE=1)
++    # Instrument the real Board and attack-table code independently of forge_core,
++    # so the cold race test also coexists with an ASan/UBSan engine profile.
++    if(CMAKE_SYSTEM_NAME STREQUAL "Linux" AND CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
++        add_executable(forge_sol_S04_cold_tsan_test_20261025
++            tests/forge_sol_S04_tsan_test_20261025.cpp
++            src/bitboard.cpp src/board.cpp)
++        target_include_directories(forge_sol_S04_cold_tsan_test_20261025 PRIVATE include)
++        target_compile_features(forge_sol_S04_cold_tsan_test_20261025 PRIVATE cxx_std_20)
++        target_compile_definitions(forge_sol_S04_cold_tsan_test_20261025 PRIVATE FORGE_ATTACKS_INIT_ONCE=1)
++        target_compile_options(forge_sol_S04_cold_tsan_test_20261025 PRIVATE
++            -O1 -g1 -fsanitize=thread -fno-omit-frame-pointer)
++        target_link_options(forge_sol_S04_cold_tsan_test_20261025 PRIVATE -fsanitize=thread)
++        target_link_libraries(forge_sol_S04_cold_tsan_test_20261025 PRIVATE Threads::Threads)
++        enable_testing()
++        add_test(NAME forge_sol_S04_cold_tsan_test_20261025
++            COMMAND forge_sol_S04_cold_tsan_test_20261025)
++        set_tests_properties(forge_sol_S04_cold_tsan_test_20261025 PROPERTIES
++            RUN_SERIAL TRUE LABELS "cold-init;tsan")
++    endif()
++endif()
+ 
+ if(MSVC)
+     target_compile_options(forge_core PRIVATE /W4 /permissive-)
+diff --git a/IDEA_SOURCE.md b/IDEA_SOURCE.md
+--- a/IDEA_SOURCE.md
++++ b/IDEA_SOURCE.md
+@@ -25,0 +26,11 @@
++
++## S04 optional thread-safe first attack-table initialization (20261025)
++
++Idea sources: the user's S4 request, the existing Forge cold-first-Board race
++reproducer and the standard C++ std::call_once publication guarantee documented
++at https://en.cppreference.com/w/cpp/thread/call_once . The implementation is
++original. One optional once flag encloses all existing table writes, so every
++successful caller waits for complete initialization. The old early bool is kept
++only in the OFF branch. No attack values, algorithms or engine data are copied
++from another project. The cold regression uses eight simultaneous first Board
++constructors in each fresh process; it never serially bootstraps a Board.
+diff --git a/tests/forge_sol_S04_tsan_test_20261025.cpp b/tests/forge_sol_S04_tsan_test_20261025.cpp
+--- /dev/null
++++ b/tests/forge_sol_S04_tsan_test_20261025.cpp
+@@ -0,0 +1,62 @@
++// The first Board in this process is constructed behind the eight-thread gate.
++#include "forge/board.hpp"
++
++#include <array>
++#include <barrier>
++#include <cstdint>
++#include <exception>
++#include <iostream>
++#include <string>
++#include <thread>
++
++namespace {
++constexpr int Workers = 8;
++struct Result {
++    bool start_fen = false;
++    bool restored_fen = false;
++    bool kiwi_parsed = false;
++    std::uint64_t start_nodes = 0;
++    std::uint64_t kiwi_nodes = 0;
++    std::string error;
++};
++}
++
++int main() {
++    // No controller Board or attacks::init call is permitted before this gate.
++    std::barrier gate(Workers);
++    std::array<Result, Workers> results{};
++    std::array<std::thread, Workers> threads;
++    for (int i = 0; i < Workers; ++i) {
++        threads[static_cast<std::size_t>(i)] = std::thread([&, i] {
++            gate.arrive_and_wait();
++            auto& row = results[static_cast<std::size_t>(i)];
++            try {
++                forge::Board board;
++                row.start_fen = board.fen() == forge::Board::StandardStartFen;
++                row.start_nodes = board.perft(3);
++                row.restored_fen = board.fen() == forge::Board::StandardStartFen;
++                row.kiwi_parsed = board.set_fen(
++                    "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1");
++                if (row.kiwi_parsed) row.kiwi_nodes = board.perft(2);
++            } catch (const std::exception& error) {
++                row.error = error.what();
++            }
++        });
++    }
++    for (auto& thread : threads) thread.join();
++    bool okay = true;
++    for (int i = 0; i < Workers; ++i) {
++        const auto& row = results[static_cast<std::size_t>(i)];
++        if (!row.start_fen || !row.restored_fen || !row.kiwi_parsed ||
++            row.start_nodes != 8902 || row.kiwi_nodes != 2039 || !row.error.empty()) {
++            std::cerr << "FAIL: cold first Board worker " << i
++                      << " start_nodes=" << row.start_nodes << " kiwi_nodes=" << row.kiwi_nodes
++                      << " start_fen=" << row.start_fen << " restored_fen=" << row.restored_fen
++                      << " kiwi_parsed=" << row.kiwi_parsed << " error=" << row.error << '\n';
++            okay = false;
++        }
++    }
++    if (!okay) return 1;
++    std::cout << "COLD_FIRST_BOARD_PASS workers=8 startpos_d3=8902 kiwipete_d2=2039\n";
++    return 0;
++}

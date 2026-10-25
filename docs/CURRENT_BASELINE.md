@@ -1,5 +1,11 @@
 # Current baseline
 
+## Active ordered job pack — 2026-10-25
+
+Use [the pack31 checkpoint](../validation/forge_sol_pack31_20261025/forge_sol_S00_checkpoint_20261025.json) and [published artifact index](../releases/forge_sol_pack31_20261025/forge_sol_pack31_index_20261025.md) for this continuation. The supplied h256_e12 code base is `1ab50b2dd64d9b2f752f7f1285f6968cad2fd792` plus the explicit net overlay SHA256 `74c4009d86b7d3a5ae9e6119d0890e5b923508f4063161bb4bc1539aab275b1b`; the commit's original network differs. L/B exports and their hashes identify the tested source. Do not treat the checkout's unrelated retained source as an implicit packet build.
+
+S01 is partial only for three missing alternate nets. S02, S03 and high-priority S28 are published and immutable-download verified. S04's optional first-Board initializer repair has passed all eight native Release/ASan profiles and 1,000 fresh eight-thread TSan processes; final publication is being sealed. No accepted lock switch or Elo gain is claimed. e48f006 remains a candidate. Earlier source, failed approaches and accepted history below remain preserved.
+
 ## 2026-10-25 A/C/D final checkpoint
 
 A exact-int32 correctness qualification passes but advisory ratios0.975968/0.929814 fall below+1%; dropped, no adoption. C guarded known-failure relabel passes14/14+8negative controls on both bases; original expectations intact. D stdlib offline filter passes21tests+actualv3bCPU3steps (loss0.029621); real013/014 and binary game isolation remain UNVERIFIED. Accepted engine source untouched. [Combined report](../releases/forge_sol_jobACD_20261025/forge_sol_jobACD_report_20261025.md), [recoverable state](../validation/forge_sol_jobACD_20261025/forge_sol_jobACD_checkpoint_20261025.json).

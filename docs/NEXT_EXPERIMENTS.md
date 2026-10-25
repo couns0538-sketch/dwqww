@@ -1,5 +1,11 @@
 # Next experiments
 
+## Active ordered job pack — 2026-10-25
+
+Finish S04 publication and verify every immutable raw download. Then execute S05, followed by S25 and S27, following the full remaining order in [the current checkpoint](../validation/forge_sol_pack31_20261025/forge_sol_S00_checkpoint_20261025.json). S23 is explicitly dropped. H256 remains float, with fixed h256_e12 references; no PC/GPU work or strength claims. Do not restart completed investigations from older notes below.
+
+The exact updated prompt and original-upload recovery IDs are preserved in [the prompt recovery receipt](../validation/forge_sol_pack31_20261025/forge_sol_S00_active_prompt_recovery_20261025.json). Source and evidence stay in isolated packet copies/branches. Check actual owned processes before resuming a run. The unused CPU-training library and closed compiler caches are losslessly archived locally; [restore instructions](../validation/forge_sol_pack31_20261025/forge_sol_S00_space_recovery_20261025/forge_sol_S00_restore_instructions_20261025.md) distinguish local cache payloads from Git-retained source/results.
+
 ## 2026-10-25 A/C/D final checkpoint
 
 No A speed adoption or same-host retry. Review standalone Cpatch and offline Dtool. Next actualowner action supplies BOTH authoritative013/014 files plus completeorderedtext; verify output position/group audits and hashes, then independentEngineNNUE training. First-ever concurrent Board API initialization race is a separate bounded repair, with unmodified-lock nativeTSan reproducer preserved. [Combined report](../releases/forge_sol_jobACD_20261025/forge_sol_jobACD_report_20261025.md), [recoverable state](../validation/forge_sol_jobACD_20261025/forge_sol_jobACD_checkpoint_20261025.json).

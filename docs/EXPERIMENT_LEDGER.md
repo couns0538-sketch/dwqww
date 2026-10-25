@@ -1,5 +1,15 @@
 # Experiment ledger
 
+## Active ordered job pack — 2026-10-25
+
+- S01: pin follow-up validated; three exact alternate nets missing.
+- S02: OFF-guarded unknown-option diagnostic, six native profiles and84 public files verified.
+- S03: optional fixed-reference suite, both bases, real perft mutant rejected;16 public files verified.
+- S28: ten fresh builds,209 original commands, all3048 manifest entries checked;42 public files verified at `ae3c442f7af79dd11b7bd1f3e16925f82272c998`. Only B/timepack4 needed a CMake-context rebase. Proposed network not adopted.
+- S04: original cold eight-thread race reproduced; OFF-default call_once repair,1,000 clean fresh processes and eight Release/ASan profiles complete. Advisory ratio has large pair variation and is UNPROVEN. Final report/publication pending.
+
+Full commands, hashes, failed attempts and original evidence: [pack31 checkpoint](../validation/forge_sol_pack31_20261025/forge_sol_S00_checkpoint_20261025.json) and [per-job artifact index](../releases/forge_sol_pack31_20261025/forge_sol_pack31_index_20261025.md). These correctness results do not establish playing-strength improvement.
+
 ## 2026-10-25 A/C/D final checkpoint
 
 Completed ordered A/C/D independently on forge/sol-jobACD-20261025. A all5bothbasesOFF/ON/perft/FMA0/1Mexact parity pass; negative advisory drop retained. C tests-only55+/7- patch retains expectations,14/14 fullharness+8negative controls pass. D OFF200000kept, threshold300157666kept/42334drop; suppliedstandinoverlap0/dups0; nativev3bRAM/mmap157666fields match, CPU3steps0.029621. No speed/Elo/training gain claim. [Combined report](../releases/forge_sol_jobACD_20261025/forge_sol_jobACD_report_20261025.md), [recoverable state](../validation/forge_sol_jobACD_20261025/forge_sol_jobACD_checkpoint_20261025.json).
