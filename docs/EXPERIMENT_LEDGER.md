@@ -6,7 +6,7 @@
 - S02: OFF-guarded unknown-option diagnostic, six native profiles and84 public files verified.
 - S03: optional fixed-reference suite, both bases, real perft mutant rejected;16 public files verified.
 - S28: ten fresh builds,209 original commands, all3048 manifest entries checked;42 public files verified at `ae3c442f7af79dd11b7bd1f3e16925f82272c998`. Only B/timepack4 needed a CMake-context rebase. Proposed network not adopted.
-- S04: original cold eight-thread race reproduced; OFF-default call_once repair,1,000 clean fresh processes and eight Release/ASan profiles complete. Advisory ratio has large pair variation and is UNPROVEN. Final report/publication pending.
+- S04: original cold eight-thread race reproduced; OFF-default call_once repair,1,000 clean fresh processes and eight Release/ASan profiles complete. Advisory ratio has large pair variation and is UNPROVEN. Final report and21 public files are download-verified.
 
 Full commands, hashes, failed attempts and original evidence: [pack31 checkpoint](../validation/forge_sol_pack31_20261025/forge_sol_S00_checkpoint_20261025.json) and [per-job artifact index](../releases/forge_sol_pack31_20261025/forge_sol_pack31_index_20261025.md). These correctness results do not establish playing-strength improvement.
 
