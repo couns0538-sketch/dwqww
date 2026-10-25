@@ -1,5 +1,13 @@
 # Next experiments
 
+## Next action after 20261025 checkpoint
+
+Do not rebuild or remeasure the completed Linux PGO screen: median0.996304920 failed the preregistered+3% threshold; raw evidence is frozen. No source/network/trainer improvement is accepted. Job3 backup was not triggered because PGO was buildable.
+
+Verify the immutable delivery receipt under `validation/forge_sol_20261025/`, then the owner runs the exact Job1 PowerShell command in [the dated report](../releases/forge_sol_20261025/forge_sol_report_20261025.md) on native Windows Zen5 with MSYS2 GCC15.2. Preserve its one results TXT, produced binary/source/compiler hashes and all FAIL/UNVERIFIED lines. Native int16+3% is UNVERIFIED; do not infer it from Linux numerical correctness. Stop Job1 if the native gain is below3% or any hard gate fails. Do not run PGO timing concurrently; only consider separate optional PGO measurement after clean closure of Job1 and no reported live child PIDs.
+
+The dated PGO Bash and PowerShell entry points are retained for reproduction, not as an accepted faster release. Native Windows CTest remains open under the user's no-kill rule; original tests were not silently altered. All owned jobs closed; interrupted-session recovery starts from `forge_sol_checkpoint_20261025.json`, never an older source. Keep preexisting untracked teacher/NNUE work untouched.
+
 ## Next action after native H256 cycle
 
 Source/patch reconstruction audits are complete for `forge/sol-next-20261024`; verify final immutable publication before resuming any experiment. The numerical implementation is preserved; Linux speed verdict is NOISE, not a gain. The next independent measurement is the supplied native Zen5/Windows `tools/windows/zen5_qualify_sol.ps1` protocol using exact executable hashes, first-d11 gates, float million-position oracle and fixed AA/ABBA rules. Compile-time SIMD/alignment profiles remain distinct from runtime NnueInt16. Keep unsupported-network runtime coverage and whole-engine phase percentages explicitly open; do not gate/lock NnueInt16 ON or start matches under this mission. Preserve the earlier failed WAC separately; no further same-host WAC/NPS retry. Buffer WAC middle score is lower and unresolved.

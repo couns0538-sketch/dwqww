@@ -1,5 +1,15 @@
 # Experiment ledger
 
+## 20261025 — exact Windows int16 qualification tools and pure compiler PGO
+
+Baseline lockf4911f2; accepted parentb425207a and buffer30e703e/int160741024 preserved. Verified new handoff86 manifest rows/73 original source files. Exact nine PC compiler flags recovered; no source/network tuning. Native Windows/MSYS2 unavailable; API/package attempts403 saved, no fabricated EXEs.
+
+Job1: production PowerShell/C# own-folder supervisor and44 software fixtures pass. Native OFF/ON benches, perft/kiwi, FMA,10k parity and paired Zen5 speed remain UNVERIFIED. Hard Windows memory cap is3GiB private commit, not aggregateRSS; hung-child cleanup cannot be guaranteed under no-kill. Incomplete closure invalidates speed verdict.
+
+Job2: GCC14.2 Linux baseline/generate/use, all3x5 signatures, both final/baseline perfts, NNUE FMA0 and original CTest13/14 exact four-known-FAIL policy pass. Eight training profile files frozen before full instrumented validation; no bench20/22 training leakage. One preregistered8ABAB/32-process screen:16 ratios median0.9963049200833995, **DROP_BELOW_3PCT_LINUX_SCREEN**. No source changes, no retries/outlier selection, no equal-time matches/Elo claim. Windows PGO remains UNVERIFIED; native CTest omitted from no-kill runner because original UCI timeout helper can kill its child. Job3 is not triggered by sub-threshold Linux speed; trainer untouched.
+
+Raw transcripts, source/binary/profile hashes, original failed fixture/package attempts, final exit0/1 fix/proof, full commands and restoration maps are preserved in [dated validation](../validation/forge_sol_20261025/) and [return archive/report](../releases/forge_sol_20261025/forge_sol_report_20261025.md). Three delivered patches apply without offsets/fuzz against the exact full Git lock; every compiled source/test input matches the exported candidate. All351 ZIP payload hashes/CRC verified. No new engine acceptance.
+
 2026-10-24 H256 speed/audit mission: exact lock `f4911f27`, isolated implementation
 `706da442` on `forge/sol-nnue-speed-audit-20261024`. Three default-OFF NNUE
 experiments (AVX-512, cumulative generic no-copy, cumulative private alignment)

@@ -1,5 +1,13 @@
 # Current baseline
 
+## 2026-10-25 ordered Windows/PGO qualification checkpoint
+
+Engine source remains preserved from parent `b425207a`; `NnueInt16` is OFF by default. Exact lock `f4911f2709bd5ae7e5fca7aea30aac5d87314a05`, buffer source `30e703edc90976b9c59fb22912ddabb3b690658f`, int16 source `074102419c90c6b3725cd83c172e1ec22a2d8203`, network SHA256 `74c4009d86b7d3a5ae9e6119d0890e5b923508f4063161bb4bc1539aab275b1b`. No new engine/trainer change or integration acceptance.
+
+Linux GCC14.2 pure-PGO baseline/instrumented/use builds passed all five lock signatures; baseline and PGO passed both perft5 totals and NNUE FMA0. Original CTest13/14 retained exactly four known FAIL lines. One preregistered eight-ABAB-block screen completed32 fresh processes; median of16 adjacent PGO/baseline NPS ratios `0.9963049200833995` (-0.3695%): **DROP below+3%**, no speed/Elo acceptance. Shared Intel host is not native Zen5 evidence. No retry.
+
+Windows MSYS2 GCC15.2 builds/Zen5+3% remain **UNVERIFIED**. New own-folder no-kill PC scripts and frozen source exports are in the [dated return ZIP](../releases/forge_sol_20261025/forge_sol_return_20261025.zip). ZIP SHA256 `4e18172fe50f1701389de9f39be358ad8395245cf77e8ebdc7a68c1449b6a549`; all351 payload hashes/CRC and three clean patch reconstructions pass. No Windows EXE is included; scripts build locally. [Report](../releases/forge_sol_20261025/forge_sol_report_20261025.md), [checkpoint](../validation/forge_sol_20261025/forge_sol_checkpoint_20261025.json). All owned native jobs closed. Job3 not triggered; trainer/RAM fix untouched.
+
 Publication complete: source `0741024`, artifacts/report `14ba064fcc1e21404864967f6f7097c1530ef645`; eight actual immutable GitHub downloads match Git bytes. [Public receipt](../validation/sol-next-20261024/PUBLIC_DELIVERY_READBACK.json). No speed or strength acceptance.
 
 ## Completed native research cycle — 2026-10-24 17:17 UTC
