@@ -1,5 +1,9 @@
 # Experiment ledger
 
+## S02 v2 native qualification — 2026-10-25
+
+Patch `cc1d5823edbf285aab5311f40b22cd515e42d6f9872e24002a3cd237d5f217d9` fixes the empty-name warning, Git patch headers and adds a separate gate-option precheck. All six current L-prime/B profiles passed; OFF main hashes remain canonical, ON fixed references/perfts/FMA pass. Current ASan tests were rebuilt against verified unchanged cores/helpers. Fifteen precheck fixtures and actual clean/typo/warning-disabled controls pass. Full source/evidence review passed; final release publication verification remains pending. No speed or Elo claim.
+
 ## Resume 15:10 — 2026-10-25
 
 15:10 continuation: received exact 14:35 full handoff and resume bytes; no source reset. S25 frozen package copied unchanged and committed before rework. S02 v2 warning/precheck and S03 v2 stack are active; no new strength experiment or Elo claim.
