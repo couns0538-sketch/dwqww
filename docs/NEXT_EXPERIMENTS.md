@@ -2,7 +2,7 @@
 
 ## Verified continuation — 2026-10-25
 
-Finish S28 v2 required fixes: current known-failure/pin helper support, lock-agnostic trusted refs, release/expose hash labels and timepack idea provenance. Exact numbered11point checklist and CAP-LATE definition are missing; clarification is pending, so those specific checks stay UNVERIFIED. Continue S04 v2 and S05 fixes after validated/published S28 work.
+Finish S28 v2 required fixes: current known-failure/pin helper support, lock-agnostic trusted refs, release/expose hash labels and timepack idea provenance. The user supplied the authoritative eleven-point checklist and CAP-LATE additions; implement those directly. Live PC evidence remains UNVERIFIED. Continue S04 v2 and S05 fixes after validated/published S28 work.
 
 ## Resume 15:10 — 2026-10-25
 

@@ -23,6 +23,11 @@ For each new Forge build, run its required lock `bench 11` as the first engine t
 
 Classify switches as compile-time defines or runtime UCI options; bind each to its actual source/executable/settings. Compile-time AVX512/alignment switches require separate builds and cannot be disabled through an invented UCI option.
 
+Bind compile-time switches per target and translation unit. Read the actual
+private/public CMake definitions and complete compile flags before assuming a
+frontend switch also affects its core library. Cache reuse requires matching
+source/header closure and flags for every reused object; record each flavour.
+
 State each checker's accepted ISA, width and symbol scope, and retain its exact result: a 256-bit-only FAIL remains FAIL for an AVX512 build. Report separate ISA-appropriate emitted-code/numerical evidence; never relabel that FAIL as AVX512 PASS.
 
 For a float-locked reference, approximate/int16 inference requires explicit research authorization and its own OFF-default option. An advertised option is insufficient: require the actual active-backend acknowledgement and reject float fallback before attributing ON results.
@@ -58,6 +63,12 @@ Keep MD5 and Git commit identities labelled separately. If a published digest is
 wrong, preserve its immutable report and issue a dated correction with the
 actual computation and before/after validation; rerun native tests only when
 the tested input identity or results are affected.
+
+For source-tree normalization, declare supported text types and validate UTF-8
+without NUL bytes before translating CRLF. Hash binary and unknown files as raw
+bytes, and retain both raw and effective hashes with each file policy. Before
+trusting a net-only checker, test a text CRLF-only positive and planted binary
+and unknown-file changes that must fail.
 
 ## Windows and match evidence
 
