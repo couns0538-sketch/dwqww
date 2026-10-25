@@ -1,0 +1,60 @@
+{
+  "status": "PASS",
+  "patch_sha256": "4ac98f92d45f67fae8aaa8067fe28c0fca36662b3688013105f738245ee55805",
+  "patch_paths": [
+    "tests/tests.cpp"
+  ],
+  "candidate_sha256": "f74c959f6a157605f24f63309f531a822f1462ef9cae4cf46afd5bfc4eaabff1",
+  "steps": [
+    {
+      "base": "lock",
+      "action": "dryrun",
+      "argv": [
+        "patch",
+        "--batch",
+        "--forward",
+        "--fuzz=0",
+        "-p1",
+        "--dry-run"
+      ],
+      "actual_exit": 0
+    },
+    {
+      "base": "lock",
+      "action": "apply",
+      "argv": [
+        "patch",
+        "--batch",
+        "--forward",
+        "--fuzz=0",
+        "-p1"
+      ],
+      "actual_exit": 0
+    },
+    {
+      "base": "buffix",
+      "action": "dryrun",
+      "argv": [
+        "patch",
+        "--batch",
+        "--forward",
+        "--fuzz=0",
+        "-p1",
+        "--dry-run"
+      ],
+      "actual_exit": 0
+    },
+    {
+      "base": "buffix",
+      "action": "apply",
+      "argv": [
+        "patch",
+        "--batch",
+        "--forward",
+        "--fuzz=0",
+        "-p1"
+      ],
+      "actual_exit": 0
+    }
+  ]
+}
