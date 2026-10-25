@@ -2,7 +2,7 @@
 
 ## Verified continuation — 2026-10-25
 
-S02 v2 and S03 v2 are published with immutable-download verification (16 and18 files). S02 report hash correction is published separately (3 files); the original report remains unchanged. S03 fresh Release identities, both70-check suites and two actual perft faults pass; new optional-suite ASan execution remains UNVERIFIED. S28 v2 is published at `4381d35e257f23e1f0e0a01cf700bbbae222c534`: all 36 artifacts plus 4 supporting files are immutable-download/SHA/Git-byte verified. Active work is S04 v2: the format-only patch preserves executable-source bytes, with current L-prime Release OFF/ON and ASan OFF closed PASS (3/8 profiles) and L-prime ASan ON running under acd_c_d_recon as of 2026-10-25T17:55:17.809340+00:00. The remaining current native profiles are pending; the accepted h256_e12 lock is unchanged. Cache payloads remain local-only; the seventh recovery metadata is preserved in the validation checkpoint.
+S04 v2 and S05 v2 are published and immutable-download verified (22 files each). Current native suites pass120/120 and107/107 respectively. S25 v2 current qualification passes66/66 plus default-OFF registration checks; final review/publication is pending. Accepted h256_e12 remains code1ab50b2d plus the explicit6d22 net overlay; no playing-strength or speed acceptance. Next implementation: S27 patch hygiene after the S25 delivery is saved.
 
 ## Resume 15:10 — 2026-10-25
 
