@@ -38,6 +38,19 @@ g++ -std=c++20 -O3 -march=x86-64-v3 -mtune=znver5 -fno-fast-math -ffp-contract=o
 "$BUILD/nnue_snapshot" > "$BUILD/nnue-snapshot.bin"
 ```
 
+## Patch-only source handoffs
+
+Bind each patch to the exact supplied source trees, including test-only merges.
+Generate it with `git diff` in the private candidate repository; stage new paths
+with intent-to-add so their diffs include `new file mode 100644`. Keep full
+context and `a/` / `b/` prefixes. Before compiling, run both
+`git apply --check /absolute/candidate.patch` and
+`patch -p1 -F0 --dry-run < /absolute/candidate.patch` from a pristine copy of
+**each** declared base. Retain commands, exits, original streams and patch/tree
+hashes. A GNU patch pass alone does not establish Git application compatibility.
+When tests changed in a later handoff, preserve prior results under their exact
+old tree identities and qualify the new trees separately.
+
 ## Windows and match evidence
 
 Set `LLVM_MINGW_ROOT` to a checksum-verified LLVM-MinGW release. Configure a separate Release build with `-DCMAKE_TOOLCHAIN_FILE=tools/windows-zen5.cmake`. Inspect PE architecture/imports and run the delivered executable's UCI, pondering, legal-search and bench checks. Report Wine and native Windows separately; PE inspection alone is insufficient runtime evidence.
