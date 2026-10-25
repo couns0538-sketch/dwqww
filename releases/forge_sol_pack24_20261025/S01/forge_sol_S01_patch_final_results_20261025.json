@@ -1,0 +1,64 @@
+{
+  "status": "PASS",
+  "patch_sha256": "bddc961125a25c9d4331a8555b0304653f550c378c38fb480a1ba9b2ba92d528",
+  "prerequisite_sha256": "4ac98f92d45f67fae8aaa8067fe28c0fca36662b3688013105f738245ee55805",
+  "changed_paths": [
+    "tests/tests.cpp",
+    "IDEA_SOURCE.md",
+    "README.md"
+  ],
+  "engine_source_unchanged_on_both": true,
+  "documentation_hunks": "Zero-context insertion at exact verified common-prefix endpoint; B appended notes remain byte-identical",
+  "steps": [
+    {
+      "base": "L+C prerequisite",
+      "action": "dryrun",
+      "argv": [
+        "patch",
+        "--batch",
+        "--forward",
+        "--fuzz=0",
+        "-p1",
+        "--dry-run"
+      ],
+      "actual_exit": 0
+    },
+    {
+      "base": "L+C prerequisite",
+      "action": "apply",
+      "argv": [
+        "patch",
+        "--batch",
+        "--forward",
+        "--fuzz=0",
+        "-p1"
+      ],
+      "actual_exit": 0
+    },
+    {
+      "base": "B+C prerequisite",
+      "action": "dryrun",
+      "argv": [
+        "patch",
+        "--batch",
+        "--forward",
+        "--fuzz=0",
+        "-p1",
+        "--dry-run"
+      ],
+      "actual_exit": 0
+    },
+    {
+      "base": "B+C prerequisite",
+      "action": "apply",
+      "argv": [
+        "patch",
+        "--batch",
+        "--forward",
+        "--fuzz=0",
+        "-p1"
+      ],
+      "actual_exit": 0
+    }
+  ]
+}

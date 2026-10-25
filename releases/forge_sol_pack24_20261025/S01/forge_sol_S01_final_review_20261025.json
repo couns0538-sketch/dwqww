@@ -1,0 +1,67 @@
+{
+  "review_utc": "2026-10-25T09:13:41.957185+00:00",
+  "scope": "Bounded independent source and retained-evidence review; no code or Git changes, no builds or timing runs",
+  "status": "PASS_NO_MATERIAL_REMAINING_ISSUE",
+  "files_sha256": {
+    "forge_sol_S01_pinmsg_20261025.patch": "bddc961125a25c9d4331a8555b0304653f550c378c38fb480a1ba9b2ba92d528",
+    "forge_sol_S01_rerecord_pins_20261025.sh": "4afbc80fec689300763347f781308425650f5d98bacd44117994e7d3c9d9227f",
+    "forge_sol_S01_rerecord_pins_20261025.py": "d64465edb75a69e517e153f394e570766a4debcfedcb5417376bf94cb0c097c6"
+  },
+  "prerequisite_sha256": "4ac98f92d45f67fae8aaa8067fe28c0fca36662b3688013105f738245ee55805",
+  "checks": {
+    "exact_661_pin_and_original_truth_predicates_preserved": true,
+    "no_new_score_floor": true,
+    "WAC_message_documented_and_observed_move_score_depth_PV": true,
+    "promotion_message_specific_and_original_rook_truth_preserved": true,
+    "normal_truth_pass_not_mislabeled_as_pin_failure": true,
+    "README_bash_invocation_fix_present": true,
+    "only_tests_and_existing_docs_in_patch": true,
+    "engine_source_unchanged_by_patch": true,
+    "actual_L_B_pin_observations_match_expected": true,
+    "all_six_retained_raw_JSON_stream_hashes_and_base64_roundtrip": true,
+    "native_controls_preserve_real_failures": true,
+    "no_process_kill_affinity_host_limit_or_caller_state_change_found": true,
+    "no_prohibited_literal_in_added_patch_lines": true,
+    "reader_drain_guard_before_OBSERVED": true,
+    "actual_final_helper_L_B_pins_and_complete_raw_streams": true
+  },
+  "issues": [
+    {
+      "severity": "medium",
+      "file": "forge_sol_S01_rerecord_pins_20261025.py",
+      "location": "after p.wait and thread.join(timeout=1), before OBSERVED",
+      "problem": "The helper does not verify that stdout/stderr reader threads have drained to EOF after bounded joins before claiming OBSERVED and sealing the raw snapshot. An unusually delayed reader can remain alive; current tiny retained transcripts themselves are internally consistent.",
+      "requested_fix": "Require both reader threads to be closed after join before OBSERVED. If either is alive, return UNVERIFIED and do not claim complete raw capture; preserve old helper and focused regression evidence.",
+      "state": "RESOLVED",
+      "resolution": "Explicit any(thread.is_alive()) guard raises before OBSERVED; raw record and case expose stream_capture_complete. Incomplete streams remain UNVERIFIED with retained partial evidence."
+    }
+  ],
+  "missing_input_scope": "Requested e20i/e12f/e16q nets absent in verified regular and nested pack payloads; those native subchecks must remain UNVERIFIED/PARTIAL. Do not substitute other nets.",
+  "not_claimed": [
+    "full native CTest matrix independently rerun",
+    "native alternative-net results",
+    "playing-strength or speed acceptance"
+  ],
+  "resolution_evidence": {
+    "focused_original_inherited_pipe_fixture": "/workspace/forge-pack24-20261025/S01/forge_sol_S01_drain_guard_result_20261025.json",
+    "proof_sha256": "44d7bca84845df9c845cd8bdd4a76c1d5c1000d83cd3633fb55c2fbde8d285db",
+    "old_helper_false_PASS_exit": 0,
+    "new_helper_UNVERIFIED_exit": 1,
+    "fixture_is_not_chess_inference": true,
+    "native_final_helper_reruns": [
+      {
+        "base": "L",
+        "result_sha256": "321cbe84ad546ac1780898bc0f14cd0c39c262f493661d66073c35ee849442be",
+        "cases": 3,
+        "status": "PASS_ACTUAL_PINS_AND_COMPLETE_RAW_STREAMS"
+      },
+      {
+        "base": "B",
+        "result_sha256": "a991c3b8b45a60474fff78b6f1f9d46ab23a320c489ca0b6178d6f643a36008a",
+        "cases": 3,
+        "status": "PASS_ACTUAL_PINS_AND_COMPLETE_RAW_STREAMS"
+      }
+    ],
+    "no_reviewer_execution_claim": "Reviewer read final delta and existing original fixture/native evidence; did not rerun tests or builds."
+  }
+}

@@ -1,0 +1,91 @@
+diff --git a/tests/tests.cpp b/tests/tests.cpp
+--- a/tests/tests.cpp
++++ b/tests/tests.cpp
+@@ -173,13 +173,27 @@
+     // Its exact numeric mate score was not recorded. The locked net instead
+     // returns f6h5, 661cp at d12, and discovers the mate at a greater depth.
+     // Require this complete observed outcome; a new low score is not tolerated.
+-    const bool documented_wac_horizon =
++    constexpr std::string_view documented_wac_move = "f6h5";
++    constexpr int documented_wac_score = 661;
++    constexpr int documented_wac_depth = 12;
++    const bool is_documented_wac_case =
+         item.label == "WAC 001" &&
+         item.fen == "2rr3k/pp3pp1/1nnqbN1p/3pN3/2pP4/2P3Q1/PPB4P/R4RK1 w - - 0 1" &&
+         item.depth == 12 && item.best_move == "g3g6" &&
+-        item.minimum_score == forge::MateValue - 3 && item.alternative_move.empty() &&
+-        best == "f6h5" && result.score == 661 && result.depth == 12 &&
+-        !result.pv.empty() && result.pv.front() == result.best_move;
++        item.minimum_score == forge::MateValue - 3 && item.alternative_move.empty();
++    const bool documented_wac_horizon = is_documented_wac_case &&
++        best == documented_wac_move && result.score == documented_wac_score &&
++        result.depth == documented_wac_depth && !result.pv.empty() &&
++        result.pv.front() == result.best_move;
++    if (is_documented_wac_case && !documented_wac_horizon &&
++        (best != item.best_move || result.score < item.minimum_score)) {
++        std::cerr << "PIN_MISMATCH: WAC 001 documented " << documented_wac_move << '/'
++                  << documented_wac_score << "/d" << documented_wac_depth
++                  << "/PV=" << documented_wac_move << ", observed " << best << '/'
++                  << result.score << "/d" << result.depth << "/PV="
++                  << (result.pv.empty() ? "<empty>" : forge::Board::move_to_uci(result.pv.front()))
++                  << "; re-record Job C pins in a reviewed change if the lock changed\n";
++    }
+     if (best != item.best_move && (item.alternative_move.empty() || best != item.alternative_move)) {
+         if (documented_wac_horizon) {
+             known_failure(item.label, item.best_move, best);
+@@ -533,11 +547,22 @@
+         // 6.4.24 chose c7c8r / c2c1r with score > 100 at d1. Preserve that
+         // expectation above. The locked net chooses the alternative winning king
+         // move; restricted queen-stalemate and rook-win checks remain unchanged.
+-        const auto documented_king = board.parse_uci(mirrored ? "c3d2" : "c6d7");
++        const std::string_view documented_king_text = mirrored ? "c3d2" : "c6d7";
++        constexpr int documented_promotion_depth = 1;
++        const auto documented_king = board.parse_uci(documented_king_text);
+         const bool documented_promotion_horizon =
+             !original_rook_expectation && documented_king.has_value() &&
+             result.best_move == *documented_king && !result.pv.empty() &&
+-            result.pv.front() == *documented_king && result.score > 100 && result.depth == 1;
++            result.pv.front() == *documented_king && result.score > 100 &&
++            result.depth == documented_promotion_depth;
++        if (!original_rook_expectation && !documented_promotion_horizon) {
++            std::cerr << "PIN_MISMATCH: unrestricted promotion documented " << documented_king_text
++                      << "/score>100/d" << documented_promotion_depth << "/PV=" << documented_king_text
++                      << ", observed " << forge::Board::move_to_uci(result.best_move) << '/'
++                      << result.score << "/d" << result.depth << "/PV="
++                      << (result.pv.empty() ? "<empty>" : forge::Board::move_to_uci(result.pv.front()))
++                      << "; re-record Job C pins in a reviewed change if the lock changed\n";
++        }
+         if (documented_promotion_horizon) {
+             known_failure(
+                 "unrestricted search chooses the winning rook underpromotion over stalemating queen promotion",
+diff --git a/IDEA_SOURCE.md b/IDEA_SOURCE.md
+--- a/IDEA_SOURCE.md
++++ b/IDEA_SOURCE.md
+@@ -25,0 +26,10 @@
++
++## S01 explicit known-failure pin diagnostics (20261025)
++
++Idea sources: the user's S1 job and the supplied review
++`CR_PASS_sol_jobC_a0b6811f.txt`, item 7. Implementation is original test
++reporting code. Preserve prerequisite patch SHA256
++`4ac98f92d45f67fae8aaa8067fe28c0fca36662b3688013105f738245ee55805`.
++The follow-up prints the exact documented and observed move, score, depth
++and PV when a guarded known outcome drifts; it never relaxes the score pin
++or changes engine behavior. Re-recording is a separate reviewed action.
+diff --git a/README.md b/README.md
+--- a/README.md
++++ b/README.md
+@@ -51,0 +52,13 @@
++
++## Lock-adoption checklist: re-record Job C pins (20261025)
++
++1. Record the new engine and network SHA256, source revision and build flags.
++2. Run `bash /path/to/forge_sol_S01_rerecord_pins_20261025.sh /path/to/engine --out NEW_FOLDER`.
++   It prints WAC001 at Hash8/depth12 and both promotion mirrors at Hash1/depth1,
++   using Threads1 and OwnBook=false. It records observations and edits no pins.
++3. Compare WAC move/score/depth/PV with the exact `f6h5/661/d12` pin, and compare
++   promotion king moves/PV/depth with `c6d7` and `c3d2` at depth1 (score>100).
++4. A mismatch remains a failure. Review the new outcomes, retain the original
++   mate and rook expectations, and re-record pins in tests/tests.cpp plus the
++   maintained known-failure record only through a separate reviewed change.
++   Never replace exact661 with a score floor. Re-run mutation controls.
