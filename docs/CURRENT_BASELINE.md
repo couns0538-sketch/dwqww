@@ -2,6 +2,8 @@
 
 ## Resume 15:10 — 2026-10-25
 
+Fresh original-script builds of L/L-prime/B passed all five fixed node references and both perfts. L-prime/B full CTest is green with exactly four explicit known failures; scoped and whole-executable FMA counts are zero. Main ELF hashes match the retained canonical e3df99cd/55fa7e81 identities. No lock or strength acceptance changed.
+
 The 15:10 resume is active. h256_e12 and fixed references remain unchanged. New L-prime and B include reviewed Job C/S01 tests; do not use the old B for new validation. S25 prior-tree results are saved without being represented as new-tree qualification. S02/S03 v2 fix-ups now come first.
 
 ## Active ordered job pack — 2026-10-25
