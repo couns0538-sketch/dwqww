@@ -1,0 +1,96 @@
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -5,6 +5,7 @@
+ option(FORGE_ENABLE_SANITIZERS "Enable AddressSanitizer and UndefinedBehaviorSanitizer" OFF)
+ option(FORGE_NATIVE "Optimise for the build machine's CPU (-march=native)" OFF)
+ option(FORGE_EXPOSE_TUNABLES "Advertise search tuning constants as UCI options (development builds)" OFF)
++option(FORGE_WARN_UNKNOWN_OPTIONS "Report unknown UCI option names (experiment)" OFF)
+ 
+ add_library(forge_core
+     src/bitboard.cpp
+@@ -36,6 +37,13 @@
+ 
+ add_executable(forge src/uci.cpp)
+ target_link_libraries(forge PRIVATE forge_core Threads::Threads)
++if(FORGE_WARN_UNKNOWN_OPTIONS)
++    target_compile_definitions(forge PRIVATE FORGE_WARN_UNKNOWN_OPTIONS=1)
++    find_package(Python3 3.10 COMPONENTS Interpreter REQUIRED)
++    add_test(NAME forge_unknown_option_regression
++        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/forge_sol_S02_unknownopt_test_20261025.py
++                --engine $<TARGET_FILE:forge>)
++endif()
+ if(FORGE_EXPOSE_TUNABLES)
+     target_compile_definitions(forge PRIVATE FORGE_EXPOSE_TUNABLES=1)
+ endif()
+diff --git a/IDEA_SOURCE.md b/IDEA_SOURCE.md
+--- a/IDEA_SOURCE.md
++++ b/IDEA_SOURCE.md
+@@ -1,4 +1,8 @@
+ # IDEA_SOURCE — fc_nnue_h256_e12_ep12_ep10base  (REAL H256 net on the locked ep10 source base; UNPROVEN)
++
++## S02 unknown-option diagnostic idea — 20261025
++
++Source: the user S02 contract to make unrecognized UCI option names visible. Original implementation and regression tests; no other engine implementation or tuning values used. The independent compile switch defaults OFF.
+ 
+ Forge 6.4.24 (1ab50b2d), same source as the locked ep10 tree `/workspace/forge-coder/fc_nnue_ep10_1ab50b2d` (net-a md5 da65098c…). The ONLY source change is `src/nnue_weights.inc`, replaced by Engine NNUE's own trained H256 residual net:
+ - file: /workspace/chess-tools/nnue/forge_resid/resid_h256_e12_e_ep12.inc ("run e", epoch 12)
+diff --git a/src/uci.cpp b/src/uci.cpp
+--- a/src/uci.cpp
++++ b/src/uci.cpp
+@@ -281,6 +281,12 @@
+                     move_overhead_ms = std::clamp(value, 0, 1000);
+                 }
+             }
++#if defined(FORGE_WARN_UNKNOWN_OPTIONS) && FORGE_WARN_UNKNOWN_OPTIONS
++            else {
++                const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex());
++                std::cout << "info string unknown option " << name << std::endl;
++            }
++#endif
+         } else if (command == "position") {
+             stop_search();
+             apply_position(board, input);
+diff --git a/tests/forge_sol_S02_unknownopt_test_20261025.py b/tests/forge_sol_S02_unknownopt_test_20261025.py
+--- /dev/null
++++ b/tests/forge_sol_S02_unknownopt_test_20261025.py
+@@ -0,0 +1,39 @@
++#!/usr/bin/env python3
++"""Original UCI warning regression; raw protocol evidence is losslessly encoded."""
++import argparse,base64,hashlib,json,subprocess,sys
++from pathlib import Path
++
++def invoke(exe,commands):
++    child=subprocess.run([str(exe)],input=commands.encode(),stdout=subprocess.PIPE,stderr=subprocess.PIPE)
++    return {'argv':[str(exe)],'commands_base64':base64.b64encode(commands.encode()).decode(),'actual_exit':child.returncode,'stdout_base64':base64.b64encode(child.stdout).decode(),'stderr_base64':base64.b64encode(child.stderr).decode(),'stdout_sha256':hashlib.sha256(child.stdout).hexdigest(),'stderr_sha256':hashlib.sha256(child.stderr).hexdigest()},child.stdout,child.stderr
++
++def parsed_lines(raw):
++    return raw.replace(b'\r\n',b'\n').splitlines(keepends=True)
++
++def handshake(raw):
++    end=0
++    for line in raw.splitlines(keepends=True):
++        end+=len(line)
++        if line.rstrip(b'\r\n')==b'uciok':return raw[:end]
++    return b''
++
++def main():
++    parser=argparse.ArgumentParser(description=__doc__)
++    parser.add_argument('--engine',type=Path,required=True)
++    parser.add_argument('--expect-warning',choices=['on','off'],default='on')
++    parser.add_argument('--reference-engine',type=Path)
++    args=parser.parse_args();engine=args.engine.resolve(strict=True)
++    commands='uci\nsetoption name Threads value 1\nsetoption name Hash value 16\nsetoption name OwnBook value false\nsetoption name AspirationDelta value 18\nsetoption name Forge S02 Missing Option value 7\nsetoption name Hash value not-a-number\nsetoption name Ponder value invalid\nsetoption name Ponder value false\nisready\nquit\n'
++    evidence,out,err=invoke(engine,commands)
++    warning=b'info string unknown option Forge S02 Missing Option\n'
++    lines=parsed_lines(out)
++    warnings=[line for line in lines if line.startswith(b'info string unknown option ')]
++    checks={'normal_exit':evidence['actual_exit']==0,'stderr_empty':not err,'handshake_and_ready':b'uciok\n' in lines and b'readyok\n' in lines,'unknown_full_name':warnings==([warning] if args.expect_warning=='on' else []),'known_invalid_hash_unchanged':lines.count(b'info string invalid value for option Hash\n')==1,'known_invalid_ponder_unchanged':lines.count(b'info string invalid value for option Ponder\n')==1,'no_unknown_option_advertised':not any(b'Forge S02 Missing Option' in x and x.startswith(b'option name ') for x in lines),'hidden_tunable_still_recognized':not any(b'unknown option AspirationDelta' in x for x in lines)}
++    if args.reference_engine:
++        reference,refout,referr=invoke(args.reference_engine.resolve(strict=True),'uci\nquit\n')
++        handshake_bytes=handshake(out)
++        checks['uci_handshake_byte_identical']=reference['actual_exit']==0 and not referr and handshake_bytes==refout
++        evidence['reference']=reference
++    result={'status':'PASS' if all(checks.values()) else 'FAIL','checks':checks,'expect_warning':args.expect_warning,'engine_sha256':hashlib.sha256(engine.read_bytes()).hexdigest(),'test_source_sha256':hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),'evidence':evidence}
++    print(json.dumps(result,indent=2));return 0 if all(checks.values()) else 1
++if __name__=='__main__':sys.exit(main())
