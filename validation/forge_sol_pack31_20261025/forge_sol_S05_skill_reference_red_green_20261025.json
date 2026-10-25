@@ -1,0 +1,107 @@
+{
+  "status": "REFERENCE_GAP_REPRODUCED_AND_CORRECTED_TOOL_CONFIRMED",
+  "scope": "Reference-workflow application test before editing existing repo-local SIMD skill. Legacy guide points to a public-evaluate-only checker that accepts the actual one-FMA NNUE-helper probe. Final v3 rejects that exact object; both accept the unchanged float baseline. No new language/discipline skill created.",
+  "skill_path": "/workspace/dwqww/.agents/skills/validating-chess-simd/SKILL.md",
+  "original_skill_sha256": "adefefb5b7b419e933f9cba76ff9c1087f40855ee2597c341f0f28a43118fe24",
+  "original_reference_line": "4. Verify the emitted arithmetic with `python3 tools/check_nnue_simd.py OBJECT_OR_UNSTRIPPED_EXE`. An unchanged SSE build must fail its 256-bit instruction check; the candidate must pass. Run the complete CTest suite with `PYTHONDONTWRITEBYTECODE=1` and preserve logs.",
+  "skill_creator_callable": false,
+  "fallback_skill": "superpowers:writing-skills; reference-component RED/GREEN application test",
+  "runs": [
+    {
+      "case": "legacy_bad",
+      "argv": [
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python",
+        "-B",
+        "/workspace/dwqww/tools/check_nnue_simd.py",
+        "/workspace/forge-pack24-20261025/S05/forge_sol_S05_private_probe_build_20261025/forge"
+      ],
+      "exit": 0,
+      "checker_sha256": "37b05ab8fc1170036672f9b3cf6cddc6e5a4a98f0a15fee557756093c9aa6cbe",
+      "input_sha256": "7e0717a3b1d0f3a65745e4c477cbe272a3f291704de584b50b3e54e6efe6e577",
+      "stdout": {
+        "encoding": "base64",
+        "bytes": 75,
+        "sha256": "84dcd535346f9e9ed84fb293a60d57a639af7932e1eedb9f1809210163ca2eba",
+        "data": "UEFTUzogTk5VRSBvdXRwdXQgdXNlcyAyNTYtYml0IGNsYW1wL211bHRpcGx5L2FkZCB3aXRob3V0IGZ1c2VkIGFyaXRobWV0aWMK"
+      },
+      "stderr": {
+        "encoding": "base64",
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      }
+    },
+    {
+      "case": "new_bad",
+      "argv": [
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python",
+        "-B",
+        "/workspace/forge-pack24-20261025/S05/forge_sol_S05_fmacheck_v3_20261025.py",
+        "/workspace/forge-pack24-20261025/S05/forge_sol_S05_private_probe_build_20261025/forge"
+      ],
+      "exit": 1,
+      "checker_sha256": "4d6eaae160541b434853077e0d5f14c77a7d32a84a8c62eea7e768f364f6f95a",
+      "input_sha256": "7e0717a3b1d0f3a65745e4c477cbe272a3f291704de584b50b3e54e6efe6e577",
+      "stdout": {
+        "encoding": "base64",
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      },
+      "stderr": {
+        "encoding": "base64",
+        "bytes": 161,
+        "sha256": "147cf92e0a24fe06ed9df463ae96a6c0a4a3afe9b7e85a7baa0e1224ce325de4",
+        "data": "RkFJTDogZnVzZWQgYXJpdGhtZXRpYyBpbiBzY29wZWQgTk5VRSBjb2RlOiBbeyJzeW1ib2wiOiAiZm9yZ2U6Om5udWU6Oihhbm9ueW1vdXMgbmFtZXNwYWNlKTo6czA1X3plcm9fcHJvYmUoKSIsICJpbnN0cnVjdGlvbiI6ICJ2Zm1hZGQxMzJwcyAleW1tMCwleW1tMCwleW1tMCJ9XQo="
+      }
+    },
+    {
+      "case": "legacy_good",
+      "argv": [
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python",
+        "-B",
+        "/workspace/dwqww/tools/check_nnue_simd.py",
+        "/workspace/forge-pack24-20261025/forge_sol_S00_L_release_20261025/build/forge"
+      ],
+      "exit": 0,
+      "checker_sha256": "37b05ab8fc1170036672f9b3cf6cddc6e5a4a98f0a15fee557756093c9aa6cbe",
+      "input_sha256": "e3df99cddb609d9f00168d8df3187fdf6943c10812dd5c4f82206895e594367b",
+      "stdout": {
+        "encoding": "base64",
+        "bytes": 75,
+        "sha256": "84dcd535346f9e9ed84fb293a60d57a639af7932e1eedb9f1809210163ca2eba",
+        "data": "UEFTUzogTk5VRSBvdXRwdXQgdXNlcyAyNTYtYml0IGNsYW1wL211bHRpcGx5L2FkZCB3aXRob3V0IGZ1c2VkIGFyaXRobWV0aWMK"
+      },
+      "stderr": {
+        "encoding": "base64",
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      }
+    },
+    {
+      "case": "new_good",
+      "argv": [
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python",
+        "-B",
+        "/workspace/forge-pack24-20261025/S05/forge_sol_S05_fmacheck_v3_20261025.py",
+        "/workspace/forge-pack24-20261025/forge_sol_S00_L_release_20261025/build/forge"
+      ],
+      "exit": 0,
+      "checker_sha256": "4d6eaae160541b434853077e0d5f14c77a7d32a84a8c62eea7e768f364f6f95a",
+      "input_sha256": "e3df99cddb609d9f00168d8df3187fdf6943c10812dd5c4f82206895e594367b",
+      "stdout": {
+        "encoding": "base64",
+        "bytes": 876,
+        "sha256": "1b684a3b6fbe14b9a4b1644ea0123427a8c00d85e70b92be24c628aa9dfd8ca9",
+        "data": "eyJjaGVja2VyX3ZlcnNpb24iOiAzLCAiZm1hX2NvdW50IjogMCwgInF1YWxpZmllZF9vdXRwdXQiOiBbeyJjbGFtcCI6ICJ2bWF4cHMiLCAic3ltYm9sIjogImZvcmdlOjpubnVlOjpldmFsdWF0ZShmb3JnZTo6Qm9hcmQgY29uc3QmLCBmb3JnZTo6bm51ZTo6QWNjdW11bGF0b3IgY29uc3QmKSJ9XSwgInNjYW5uZWRfc3ltYm9scyI6IFsiZm9yZ2U6Om5udWU6Oihhbm9ueW1vdXMgbmFtZXNwYWNlKTo6d2VpZ2h0cygpIFtjbG9uZSAuY29sZF0iLCAiZm9yZ2U6Om5udWU6Oihhbm9ueW1vdXMgbmFtZXNwYWNlKTo6V2VpZ2h0czo6fldlaWdodHMoKSIsICJmb3JnZTo6bm51ZTo6KGFub255bW91cyBuYW1lc3BhY2UpOjp3ZWlnaHRzKCkiLCAiZm9yZ2U6Om5udWU6OmF2YWlsYWJsZSgpIiwgImZvcmdlOjpubnVlOjpyZXNpZHVhbCgpIiwgImZvcmdlOjpubnVlOjpyZWZyZXNoKGZvcmdlOjpCb2FyZCBjb25zdCYsIGZvcmdlOjpubnVlOjpBY2N1bXVsYXRvciYpIiwgImZvcmdlOjpubnVlOjp1cGRhdGUoZm9yZ2U6Om5udWU6OkFjY3VtdWxhdG9yIGNvbnN0JiwgZm9yZ2U6Om5udWU6OkFjY3VtdWxhdG9yJiwgZm9yZ2U6Om5udWU6OkRpcnR5UGllY2VzIGNvbnN0JikiLCAiZm9yZ2U6Om5udWU6OmV2YWx1YXRlKGZvcmdlOjpCb2FyZCBjb25zdCYsIGZvcmdlOjpubnVlOjpBY2N1bXVsYXRvciBjb25zdCYpIiwgImZvcmdlOjpubnVlOjpkaXJ0eV9waWVjZXMoZm9yZ2U6OkJvYXJkIGNvbnN0JiwgZm9yZ2U6Ok1vdmUgY29uc3QmKSJdLCAic2NvcGUiOiAiQWxsIGRlbWFuZ2xlZCBmb3JnZTo6bm51ZTo6IHN5bWJvbCBib2RpZXMsIGluY2x1ZGluZyBhbm9ueW1vdXMgaGVscGVycyBhbmQgY29tcGlsZXIgY2xvbmVzIiwgInN0YXR1cyI6ICJQQVNTIn0K"
+      },
+      "stderr": {
+        "encoding": "base64",
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      }
+    }
+  ]
+}
