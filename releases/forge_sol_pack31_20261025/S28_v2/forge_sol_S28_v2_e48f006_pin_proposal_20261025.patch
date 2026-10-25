@@ -1,0 +1,100 @@
+diff --git a/IDEA_SOURCE.md b/IDEA_SOURCE.md
+index f2aa8c3afab64e23f12a29904c1a6a8695c7dfc2..d39670f42eb4729332103f5a2361878ae20a679d 100644
+--- a/IDEA_SOURCE.md
++++ b/IDEA_SOURCE.md
+@@ -4,10 +4,14 @@ Forge 6.4.24 (1ab50b2d), same source as the locked ep10 tree `/workspace/forge-c
+ - file: /workspace/chess-tools/nnue/forge_resid/resid_h256_e12_e_ep12.inc ("run e", epoch 12)
+ - md5: 6d22f612c855e17c62d396d32da99ea4  sha256: 74c4009d86b7d3a5ae9e6119d0890e5b923508f4063161bb4bc1539aab275b1b  (size 1126753 bytes, stable)
+ - Engine NNUE reported export parity 10000/10000 exact with HID=256.
+ - Replaced baseline (ep10 tree) nnue_weights.inc: md5 da65098ce0612b7f18706547b0a57c84
+ 
++## S28 v2 isolated e48f006 pin proposal — 20261025
++
++Idea source: the supplied reviewed PROPOSED e48f006 pin re-record and its observed f6h5/629/d12 outcome. This separate candidate-only test/helper/docs patch preserves the prior h256_e12 661 pin and original 6.4.24 mate/rook expectations. It does not change engine code, widen score guards, select a network or adopt a lock.
++
+ Build configuration (not a source change): `-DFORGE_NNUE_HIDDEN=256` in CMAKE_CXX_FLAGS (macro default is 128; it must reach every translation unit). The .inc carries FORGE_NNUE_RESIDUAL 1 and static_asserts (InputCount 768, HiddenSize 256, SigmoidK 2.25, WeightScale/OutputScale 4096).
+ 
+ Idea source: our own NNUE training (Engine NNUE, train_resid.py): residual 768 -> 256x2 SCReLU on Forge's own self-play data. No code, tables, tuned constants or comments from any other engine or project; no source code written for this build (no source edit at all). The net's holdout-loss numbers (teacher 0.004679, b0.6 0.014534 vs ep10 0.004701 / 0.014740) are Engine NNUE's claims, not verified here and NOT strength evidence.
+ 
+ Status: UNPROVEN. No Elo/strength claim. Only games (1000-game SPRT run by QA, no pooling) can decide.
+diff --git a/README.md b/README.md
+index fc20007e31f3bd2a3d1e310f32dd3c1c2ec47d54..2f15d65a264e70412a93dc50690800ff718f19bb 100644
+--- a/README.md
++++ b/README.md
+@@ -48,10 +48,14 @@ H256 is about 16% lower NPS than ep10 (ratio ~0.84, both runs agree; run1 kept f
+ Opponent for any gate = the **locked ep10 tree** (/workspace/forge-coder/fc_nnue_ep10_1ab50b2d, net md5 da65098c…, bench d11 315955, d13 851522, d20 12374513, d22 22765028), NOT forge-strength/base-ep10 (that is the runb net). Candidate must identify as bench d11 308972 / d13 745494 / d20 11901452 / d22 31111774 (Threads=1 Hash=16) before gating; if the PC build differs, the -DFORGE_NNUE_HIDDEN=256 flag was probably missed. Candidate side: no setoption needed (net-only change; no UCI options added). Because NPS is ~16% lower, gate on games only (QA's 1000-game gain-route, no pooling); do not infer anything from loss numbers or NPS.
+ 
+ ## Artifacts
+ artifacts/: diff_rq.txt, changed_files.txt/.sha256, build.log, ctest.log, bench.log, check_nnue_simd.log, uci_smoke.log (+ uci_smoke_proper.py), binary_sha256.txt, timing csv/summary/scripts.
+ 
++## Proposed e48f006 candidate pin profile — 20261025
++
++In an isolated copy with this explicitly reviewed proposal applied, the documented WAC001 guard is exactly f6h5/629/d12 with matching PV; never substitute a score floor. The previous h256_e12 f6h5/661/d12 pin and original 6.4.24 g3g6 >= 31997 expectation stay on record. Promotion guards remain c6d7/c3d2, depth1 and score>100. Record the candidate with S01 observe-only before applying the proposal. The historical h256_e12 checklist below is preserved unchanged; its 661 comparison describes that older accepted profile, while this proposed candidate uses exact629. Applying this tests/helper proposal does not adopt a lock or authorize changes to an accepted tree.
++
+ ## Lock-adoption checklist: re-record Job C pins (20261025)
+ 
+ 1. Record the new engine and network SHA256, source revision and build flags.
+ 2. From the tree root, run `bash tools/rerecord_pins.sh build_release/forge --out NEW_FOLDER`
+    (`tools/rerecord_pins.py` must sit next to the .sh). By default it checks the documented
+diff --git a/tests/tests.cpp b/tests/tests.cpp
+index 183845127f1e9728f91a8a3586af145448b4fb83..1d5df0482e4af400e825de982c31f1e92978d5a4 100644
+--- a/tests/tests.cpp
++++ b/tests/tests.cpp
+@@ -54,15 +54,17 @@ struct SearcherTestProbe {
+ namespace {
+ 
+ int failures = 0;
+ int known_failures = 0;
+ 
+-// These are explicit observations of the locked h256_e12 horizon, not replacement
++// These are explicit observations of the locked e48f006 horizon, not replacement
+ // expectations. Unexpected moves, scores, depths and PVs remain ordinary failures.
++// Pins re-recorded 2026-10-25 for e48f006 (net md5 0fae54a4); previous lock
++// h256_e12 (net md5 6d22f612) pins are kept on record next to each pin below.
+ void known_failure(std::string_view label, std::string_view expected, std::string_view actual) {
+     std::cerr << "KNOWN_FAILURE: " << label << " expected " << expected << " got " << actual
+-              << " (h256_e12 net-evaluation horizon; original 6.4.24 expectation retained)\n";
++              << " (e48f006 net-evaluation horizon; original 6.4.24 expectation retained)\n";
+     ++known_failures;
+ }
+ 
+ void check(bool condition, std::string_view message) {
+     if (!condition) {
+@@ -169,14 +171,15 @@ void check_tactical_case(const TacticalCase& item) {
+     limits.depth = item.depth;
+     const forge::SearchInfo result = searcher.search(board, limits);
+     const std::string best = forge::Board::move_to_uci(result.best_move);
+     // 6.4.24 passed WAC 001 at d12 with g3g6 and >= MateValue - 3 (31997).
+     // Its exact numeric mate score was not recorded. The locked net instead
+-    // returns f6h5, 661cp at d12, and discovers the mate at a greater depth.
++    // returns f6h5, 629cp at d12, and discovers the mate at a greater depth.
++    // Previous lock h256_e12 (net 6d22f612) pin, kept on record: f6h5/661/d12.
+     // Require this complete observed outcome; a new low score is not tolerated.
+     constexpr std::string_view documented_wac_move = "f6h5";
+-    constexpr int documented_wac_score = 661;
++    constexpr int documented_wac_score = 629;
+     constexpr int documented_wac_depth = 12;
+     const bool is_documented_wac_case =
+         item.label == "WAC 001" &&
+         item.fen == "2rr3k/pp3pp1/1nnqbN1p/3pN3/2pP4/2P3Q1/PPB4P/R4RK1 w - - 0 1" &&
+         item.depth == 12 && item.best_move == "g3g6" &&
+diff --git a/tools/rerecord_pins.py b/tools/rerecord_pins.py
+index fa6ed7492b35c2e0564cac3554644cd4d89507fb..be1e6682c8829965623addeca75587c2a09ad33c 100644
+--- a/tools/rerecord_pins.py
++++ b/tools/rerecord_pins.py
+@@ -2,12 +2,14 @@
+ """Observe the exact Job C search cases; preserve raw streams encoded without edits."""
+ from __future__ import annotations
+ import argparse,base64,hashlib,json,os,queue,subprocess,threading,time
+ from pathlib import Path
+ 
++# Documented lock pins. e48f006 (net 0fae54a4) re-record 2026-10-25: WAC001 f6h5/629/d12.
++# Kept on record: h256_e12 (net 6d22f612) WAC001 f6h5/661/d12; 6.4.24 g3g6 >= 31997 at d12.
+ CASES=[
+- ('WAC001','2rr3k/pp3pp1/1nnqbN1p/3pN3/2pP4/2P3Q1/PPB4P/R4RK1 w - - 0 1',12,8,'f6h5',661),
++ ('WAC001','2rr3k/pp3pp1/1nnqbN1p/3pN3/2pP4/2P3Q1/PPB4P/R4RK1 w - - 0 1',12,8,'f6h5',629),
+  ('promotion_white','8/k1P5/2K5/8/8/8/8/8 w - - 0 1',1,1,'c6d7',None),
+  ('promotion_black','8/8/8/8/8/2k5/K1p5/8 b - - 0 1',1,1,'c3d2',None),
+ ]
+ 
+ def raw_record(data):

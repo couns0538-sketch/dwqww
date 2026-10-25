@@ -1,0 +1,37 @@
+{
+  "status": "PASS_REFERENCE_DECODER_CONTROL",
+  "existing_skill": ".agents/skills/validating-chess-simd/SKILL.md",
+  "before_sha256": "e43d9919e08e4b913d5e1244b329f098c3c2e3b4bf36784589a726b0c5e94923",
+  "after_sha256": "33831104021fbe8b56152bc7579fdddae87e94d2ee2318b18e4d847892d825d5",
+  "source_artifact_sha256": "f3369d746ecb38d9f83af551958ea69144bfbe58d07cfc6f0a74cd98860c12d1",
+  "actual_records": 153,
+  "commands": [
+    {
+      "case": "fresh_wrong_decoder_control",
+      "argv": [
+        "python3",
+        "-B",
+        "-c",
+        "import gzip,json,sys; json.loads(gzip.decompress(open(sys.argv[1],\"rb\").read()))",
+        "/workspace/dwqww/releases/forge_sol_pack31_20261025/S02_v2/forge_sol_S02_v2_raw_evidence_20261025.jsonl.gz"
+      ],
+      "exit": 1,
+      "stdout_b64": "",
+      "stderr_b64": "VHJhY2ViYWNrIChtb3N0IHJlY2VudCBjYWxsIGxhc3QpOgogIEZpbGUgIjxzdHJpbmc+IiwgbGluZSAxLCBpbiA8bW9kdWxlPgogIEZpbGUgIi9vcHQvY29kZXgvcnVudGltZXMvY29kZXgtcHJpbWFyeS1ydW50aW1lL2RlcGVuZGVuY2llcy9weXRob24vbGliL3B5dGhvbjMuMTIvanNvbi9fX2luaXRfXy5weSIsIGxpbmUgMzQ2LCBpbiBsb2FkcwogICAgcmV0dXJuIF9kZWZhdWx0X2RlY29kZXIuZGVjb2RlKHMpCiAgICAgICAgICAgXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl4KICBGaWxlICIvb3B0L2NvZGV4L3J1bnRpbWVzL2NvZGV4LXByaW1hcnktcnVudGltZS9kZXBlbmRlbmNpZXMvcHl0aG9uL2xpYi9weXRob24zLjEyL2pzb24vZGVjb2Rlci5weSIsIGxpbmUgMzQxLCBpbiBkZWNvZGUKICAgIHJhaXNlIEpTT05EZWNvZGVFcnJvcigiRXh0cmEgZGF0YSIsIHMsIGVuZCkKanNvbi5kZWNvZGVyLkpTT05EZWNvZGVFcnJvcjogRXh0cmEgZGF0YTogbGluZSAyIGNvbHVtbiAxIChjaGFyIDUxNjkpCg=="
+    },
+    {
+      "case": "declared_jsonl_decoder",
+      "argv": [
+        "python3",
+        "-B",
+        "-c",
+        "import gzip,json,sys; rows=[json.loads(x) for x in gzip.decompress(open(sys.argv[1],\"rb\").read()).splitlines() if x.strip()]; print(json.dumps({\"records\":len(rows),\"format\":\"JSONL\"}))",
+        "/workspace/dwqww/releases/forge_sol_pack31_20261025/S02_v2/forge_sol_S02_v2_raw_evidence_20261025.jsonl.gz"
+      ],
+      "exit": 0,
+      "stdout_b64": "eyJyZWNvcmRzIjogMTUzLCAiZm9ybWF0IjogIkpTT05MIn0K",
+      "stderr_b64": ""
+    }
+  ],
+  "scope": "Fresh independent reproduction of an observer format error, not a reconstruction of prior missing stderr. No engine rerun or new/global skill."
+}
