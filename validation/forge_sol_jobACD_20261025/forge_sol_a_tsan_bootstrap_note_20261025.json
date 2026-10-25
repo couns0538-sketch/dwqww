@@ -1,0 +1,7 @@
+{
+  "first_run": "FAILED_TSAN_EXIT66: Board constructors raced on preexisting attacks::init initialized bool and tables; original trace includes null access",
+  "feature_delta_bitboard": "UNCHANGED byte-for-byte on lock and candidate",
+  "production_lifecycle": "UCI creates controller Board before any search worker; helper initially did not",
+  "repair_scope": "Test initialization only; preserve initialfailure, initialize controller Board before spawning threads. No engine source repair allowed in JobA.",
+  "open_issue": "Concurrent first-ever direct Board construction requires separate initialization API/once-only fix; not fixed here"
+}

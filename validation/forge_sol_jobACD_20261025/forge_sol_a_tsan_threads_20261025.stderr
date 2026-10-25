@@ -1,0 +1,146 @@
+==================
+WARNING: ThreadSanitizer: data race (pid=35831)
+  Read of size 1 at 0x55adf3c21b20 by thread T2:
+    #0 forge::attacks::init() <null> (forge_sol_a_tsan_threads_20261025+0x3a7a) (BuildId: b82aecf41c6b0205bd7484166365ddbac2968488)
+    #1 forge::Board::Board() <null> (forge_sol_a_tsan_threads_20261025+0xded1) (BuildId: b82aecf41c6b0205bd7484166365ddbac2968488)
+    #2 main::{lambda()#1}::operator()() const <null> (forge_sol_a_tsan_threads_20261025+0x1082b) (BuildId: b82aecf41c6b0205bd7484166365ddbac2968488)
+    #3 std::thread::_State_impl<std::thread::_Invoker<std::tuple<main::{lambda()#1}> > >::_M_run() <null> (forge_sol_a_tsan_threads_20261025+0x10d49) (BuildId: b82aecf41c6b0205bd7484166365ddbac2968488)
+    #4 <null> <null> (libstdc++.so.6+0xe1223) (BuildId: 133b71e0013695cc7832680a74edb51008c4fc4c)
+
+  Previous write of size 1 at 0x55adf3c21b20 by thread T1:
+    #0 forge::attacks::init() <null> (forge_sol_a_tsan_threads_20261025+0x3a93) (BuildId: b82aecf41c6b0205bd7484166365ddbac2968488)
+    #1 forge::Board::Board() <null> (forge_sol_a_tsan_threads_20261025+0xded1) (BuildId: b82aecf41c6b0205bd7484166365ddbac2968488)
+    #2 main::{lambda()#1}::operator()() const <null> (forge_sol_a_tsan_threads_20261025+0x1082b) (BuildId: b82aecf41c6b0205bd7484166365ddbac2968488)
+    #3 std::thread::_State_impl<std::thread::_Invoker<std::tuple<main::{lambda()#1}> > >::_M_run() <null> (forge_sol_a_tsan_threads_20261025+0x10d49) (BuildId: b82aecf41c6b0205bd7484166365ddbac2968488)
+    #4 <null> <null> (libstdc++.so.6+0xe1223) (BuildId: 133b71e0013695cc7832680a74edb51008c4fc4c)
+
+  Location is global 'forge::attacks::init()::initialized' of size 1 at 0x55adf3c21b20 (forge_sol_a_tsan_threads_20261025+0x89b20)
+
+  Thread T2 (tid=35834, running) created by main thread at:
+    #0 pthread_create ../../../../src/libsanitizer/tsan/tsan_interceptors_posix.cpp:1022 (libtsan.so.2+0x568a6) (BuildId: 99ef88596cb10a8ccf307fe1a9070f66a44b1624)
+    #1 std::thread::_M_start_thread(std::unique_ptr<std::thread::_State, std::default_delete<std::thread::_State> >, void (*)()) <null> (libstdc++.so.6+0xe12f8) (BuildId: 133b71e0013695cc7832680a74edb51008c4fc4c)
+    #2 <null> <null> (libc.so.6+0x29ca7) (BuildId: 5e5b51f4c39af9ac589408c1dc432ba390a273cc)
+
+  Thread T1 (tid=35833, running) created by main thread at:
+    #0 pthread_create ../../../../src/libsanitizer/tsan/tsan_interceptors_posix.cpp:1022 (libtsan.so.2+0x568a6) (BuildId: 99ef88596cb10a8ccf307fe1a9070f66a44b1624)
+    #1 std::thread::_M_start_thread(std::unique_ptr<std::thread::_State, std::default_delete<std::thread::_State> >, void (*)()) <null> (libstdc++.so.6+0xe12f8) (BuildId: 133b71e0013695cc7832680a74edb51008c4fc4c)
+    #2 <null> <null> (libc.so.6+0x29ca7) (BuildId: 5e5b51f4c39af9ac589408c1dc432ba390a273cc)
+
+SUMMARY: ThreadSanitizer: data race (/workspace/forge-jobACD-20261025/forge_sol_a_tsan_threads_20261025+0x3a7a) (BuildId: b82aecf41c6b0205bd7484166365ddbac2968488) in forge::attacks::init()
+==================
+==================
+WARNING: ThreadSanitizer: data race (pid=35831)
+  Read of size 8 at 0x55adf3c21700 by thread T2:
+    #0 forge::Board::square_attacked_with_occupancy(int, forge::Color, unsigned long, unsigned long) const <null> (forge_sol_a_tsan_threads_20261025+0x4984) (BuildId: b82aecf41c6b0205bd7484166365ddbac2968488)
+    #1 forge::Board::square_attacked(int, forge::Color) const <null> (forge_sol_a_tsan_threads_20261025+0x4c11) (BuildId: b82aecf41c6b0205bd7484166365ddbac2968488)
+    #2 forge::Board::set_fen(std::basic_string_view<char, std::char_traits<char> >, std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >*) <null> (forge_sol_a_tsan_threads_20261025+0xd2cc) (BuildId: b82aecf41c6b0205bd7484166365ddbac2968488)
+    #3 forge::Board::Board() <null> (forge_sol_a_tsan_threads_20261025+0xdf29) (BuildId: b82aecf41c6b0205bd7484166365ddbac2968488)
+    #4 main::{lambda()#1}::operator()() const <null> (forge_sol_a_tsan_threads_20261025+0x1082b) (BuildId: b82aecf41c6b0205bd7484166365ddbac2968488)
+    #5 std::thread::_State_impl<std::thread::_Invoker<std::tuple<main::{lambda()#1}> > >::_M_run() <null> (forge_sol_a_tsan_threads_20261025+0x10d49) (BuildId: b82aecf41c6b0205bd7484166365ddbac2968488)
+    #6 <null> <null> (libstdc++.so.6+0xe1223) (BuildId: 133b71e0013695cc7832680a74edb51008c4fc4c)
+
+  Previous write of size 8 at 0x55adf3c21700 by thread T1:
+    #0 forge::attacks::init() <null> (forge_sol_a_tsan_threads_20261025+0x3cca) (BuildId: b82aecf41c6b0205bd7484166365ddbac2968488)
+    #1 forge::Board::Board() <null> (forge_sol_a_tsan_threads_20261025+0xded1) (BuildId: b82aecf41c6b0205bd7484166365ddbac2968488)
+    #2 main::{lambda()#1}::operator()() const <null> (forge_sol_a_tsan_threads_20261025+0x1082b) (BuildId: b82aecf41c6b0205bd7484166365ddbac2968488)
+    #3 std::thread::_State_impl<std::thread::_Invoker<std::tuple<main::{lambda()#1}> > >::_M_run() <null> (forge_sol_a_tsan_threads_20261025+0x10d49) (BuildId: b82aecf41c6b0205bd7484166365ddbac2968488)
+    #4 <null> <null> (libstdc++.so.6+0xe1223) (BuildId: 133b71e0013695cc7832680a74edb51008c4fc4c)
+
+  Location is global 'forge::attacks::PawnTable' of size 1024 at 0x55adf3c21320 (forge_sol_a_tsan_threads_20261025+0x89700)
+
+  Thread T2 (tid=35834, running) created by main thread at:
+    #0 pthread_create ../../../../src/libsanitizer/tsan/tsan_interceptors_posix.cpp:1022 (libtsan.so.2+0x568a6) (BuildId: 99ef88596cb10a8ccf307fe1a9070f66a44b1624)
+    #1 std::thread::_M_start_thread(std::unique_ptr<std::thread::_State, std::default_delete<std::thread::_State> >, void (*)()) <null> (libstdc++.so.6+0xe12f8) (BuildId: 133b71e0013695cc7832680a74edb51008c4fc4c)
+    #2 <null> <null> (libc.so.6+0x29ca7) (BuildId: 5e5b51f4c39af9ac589408c1dc432ba390a273cc)
+
+  Thread T1 (tid=35833, running) created by main thread at:
+    #0 pthread_create ../../../../src/libsanitizer/tsan/tsan_interceptors_posix.cpp:1022 (libtsan.so.2+0x568a6) (BuildId: 99ef88596cb10a8ccf307fe1a9070f66a44b1624)
+    #1 std::thread::_M_start_thread(std::unique_ptr<std::thread::_State, std::default_delete<std::thread::_State> >, void (*)()) <null> (libstdc++.so.6+0xe12f8) (BuildId: 133b71e0013695cc7832680a74edb51008c4fc4c)
+    #2 <null> <null> (libc.so.6+0x29ca7) (BuildId: 5e5b51f4c39af9ac589408c1dc432ba390a273cc)
+
+SUMMARY: ThreadSanitizer: data race (/workspace/forge-jobACD-20261025/forge_sol_a_tsan_threads_20261025+0x4984) (BuildId: b82aecf41c6b0205bd7484166365ddbac2968488) in forge::Board::square_attacked_with_occupancy(int, forge::Color, unsigned long, unsigned long) const
+==================
+==================
+WARNING: ThreadSanitizer: data race (pid=35831)
+  Read of size 8 at 0x55adf3c21b00 by thread T2:
+    #0 forge::Board::square_attacked_with_occupancy(int, forge::Color, unsigned long, unsigned long) const <null> (forge_sol_a_tsan_threads_20261025+0x49c7) (BuildId: b82aecf41c6b0205bd7484166365ddbac2968488)
+    #1 forge::Board::square_attacked(int, forge::Color) const <null> (forge_sol_a_tsan_threads_20261025+0x4c11) (BuildId: b82aecf41c6b0205bd7484166365ddbac2968488)
+    #2 forge::Board::set_fen(std::basic_string_view<char, std::char_traits<char> >, std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >*) <null> (forge_sol_a_tsan_threads_20261025+0xd2cc) (BuildId: b82aecf41c6b0205bd7484166365ddbac2968488)
+    #3 forge::Board::Board() <null> (forge_sol_a_tsan_threads_20261025+0xdf29) (BuildId: b82aecf41c6b0205bd7484166365ddbac2968488)
+    #4 main::{lambda()#1}::operator()() const <null> (forge_sol_a_tsan_threads_20261025+0x1082b) (BuildId: b82aecf41c6b0205bd7484166365ddbac2968488)
+    #5 std::thread::_State_impl<std::thread::_Invoker<std::tuple<main::{lambda()#1}> > >::_M_run() <null> (forge_sol_a_tsan_threads_20261025+0x10d49) (BuildId: b82aecf41c6b0205bd7484166365ddbac2968488)
+    #6 <null> <null> (libstdc++.so.6+0xe1223) (BuildId: 133b71e0013695cc7832680a74edb51008c4fc4c)
+
+  Previous write of size 8 at 0x55adf3c21b00 by thread T1:
+    #0 forge::attacks::init() <null> (forge_sol_a_tsan_threads_20261025+0x3b83) (BuildId: b82aecf41c6b0205bd7484166365ddbac2968488)
+    #1 forge::Board::Board() <null> (forge_sol_a_tsan_threads_20261025+0xded1) (BuildId: b82aecf41c6b0205bd7484166365ddbac2968488)
+    #2 main::{lambda()#1}::operator()() const <null> (forge_sol_a_tsan_threads_20261025+0x1082b) (BuildId: b82aecf41c6b0205bd7484166365ddbac2968488)
+    #3 std::thread::_State_impl<std::thread::_Invoker<std::tuple<main::{lambda()#1}> > >::_M_run() <null> (forge_sol_a_tsan_threads_20261025+0x10d49) (BuildId: b82aecf41c6b0205bd7484166365ddbac2968488)
+    #4 <null> <null> (libstdc++.so.6+0xe1223) (BuildId: 133b71e0013695cc7832680a74edb51008c4fc4c)
+
+  Location is global 'forge::attacks::KnightTable' of size 512 at 0x55adf3c21920 (forge_sol_a_tsan_threads_20261025+0x89b00)
+
+  Thread T2 (tid=35834, running) created by main thread at:
+    #0 pthread_create ../../../../src/libsanitizer/tsan/tsan_interceptors_posix.cpp:1022 (libtsan.so.2+0x568a6) (BuildId: 99ef88596cb10a8ccf307fe1a9070f66a44b1624)
+    #1 std::thread::_M_start_thread(std::unique_ptr<std::thread::_State, std::default_delete<std::thread::_State> >, void (*)()) <null> (libstdc++.so.6+0xe12f8) (BuildId: 133b71e0013695cc7832680a74edb51008c4fc4c)
+    #2 <null> <null> (libc.so.6+0x29ca7) (BuildId: 5e5b51f4c39af9ac589408c1dc432ba390a273cc)
+
+  Thread T1 (tid=35833, running) created by main thread at:
+    #0 pthread_create ../../../../src/libsanitizer/tsan/tsan_interceptors_posix.cpp:1022 (libtsan.so.2+0x568a6) (BuildId: 99ef88596cb10a8ccf307fe1a9070f66a44b1624)
+    #1 std::thread::_M_start_thread(std::unique_ptr<std::thread::_State, std::default_delete<std::thread::_State> >, void (*)()) <null> (libstdc++.so.6+0xe12f8) (BuildId: 133b71e0013695cc7832680a74edb51008c4fc4c)
+    #2 <null> <null> (libc.so.6+0x29ca7) (BuildId: 5e5b51f4c39af9ac589408c1dc432ba390a273cc)
+
+SUMMARY: ThreadSanitizer: data race (/workspace/forge-jobACD-20261025/forge_sol_a_tsan_threads_20261025+0x49c7) (BuildId: b82aecf41c6b0205bd7484166365ddbac2968488) in forge::Board::square_attacked_with_occupancy(int, forge::Color, unsigned long, unsigned long) const
+==================
+==================
+WARNING: ThreadSanitizer: data race (pid=35831)
+  Read of size 8 at 0x55adf3c21900 by thread T2:
+    #0 forge::Board::square_attacked_with_occupancy(int, forge::Color, unsigned long, unsigned long) const <null> (forge_sol_a_tsan_threads_20261025+0x49fe) (BuildId: b82aecf41c6b0205bd7484166365ddbac2968488)
+    #1 forge::Board::square_attacked(int, forge::Color) const <null> (forge_sol_a_tsan_threads_20261025+0x4c11) (BuildId: b82aecf41c6b0205bd7484166365ddbac2968488)
+    #2 forge::Board::set_fen(std::basic_string_view<char, std::char_traits<char> >, std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >*) <null> (forge_sol_a_tsan_threads_20261025+0xd2cc) (BuildId: b82aecf41c6b0205bd7484166365ddbac2968488)
+    #3 forge::Board::Board() <null> (forge_sol_a_tsan_threads_20261025+0xdf29) (BuildId: b82aecf41c6b0205bd7484166365ddbac2968488)
+    #4 main::{lambda()#1}::operator()() const <null> (forge_sol_a_tsan_threads_20261025+0x1082b) (BuildId: b82aecf41c6b0205bd7484166365ddbac2968488)
+    #5 std::thread::_State_impl<std::thread::_Invoker<std::tuple<main::{lambda()#1}> > >::_M_run() <null> (forge_sol_a_tsan_threads_20261025+0x10d49) (BuildId: b82aecf41c6b0205bd7484166365ddbac2968488)
+    #6 <null> <null> (libstdc++.so.6+0xe1223) (BuildId: 133b71e0013695cc7832680a74edb51008c4fc4c)
+
+  Previous write of size 8 at 0x55adf3c21900 by thread T1:
+    #0 forge::attacks::init() <null> (forge_sol_a_tsan_threads_20261025+0x3c67) (BuildId: b82aecf41c6b0205bd7484166365ddbac2968488)
+    #1 forge::Board::Board() <null> (forge_sol_a_tsan_threads_20261025+0xded1) (BuildId: b82aecf41c6b0205bd7484166365ddbac2968488)
+    #2 main::{lambda()#1}::operator()() const <null> (forge_sol_a_tsan_threads_20261025+0x1082b) (BuildId: b82aecf41c6b0205bd7484166365ddbac2968488)
+    #3 std::thread::_State_impl<std::thread::_Invoker<std::tuple<main::{lambda()#1}> > >::_M_run() <null> (forge_sol_a_tsan_threads_20261025+0x10d49) (BuildId: b82aecf41c6b0205bd7484166365ddbac2968488)
+    #4 <null> <null> (libstdc++.so.6+0xe1223) (BuildId: 133b71e0013695cc7832680a74edb51008c4fc4c)
+
+  Location is global 'forge::attacks::KingTable' of size 512 at 0x55adf3c21720 (forge_sol_a_tsan_threads_20261025+0x89900)
+
+  Thread T2 (tid=35834, running) created by main thread at:
+    #0 pthread_create ../../../../src/libsanitizer/tsan/tsan_interceptors_posix.cpp:1022 (libtsan.so.2+0x568a6) (BuildId: 99ef88596cb10a8ccf307fe1a9070f66a44b1624)
+    #1 std::thread::_M_start_thread(std::unique_ptr<std::thread::_State, std::default_delete<std::thread::_State> >, void (*)()) <null> (libstdc++.so.6+0xe12f8) (BuildId: 133b71e0013695cc7832680a74edb51008c4fc4c)
+    #2 <null> <null> (libc.so.6+0x29ca7) (BuildId: 5e5b51f4c39af9ac589408c1dc432ba390a273cc)
+
+  Thread T1 (tid=35833, running) created by main thread at:
+    #0 pthread_create ../../../../src/libsanitizer/tsan/tsan_interceptors_posix.cpp:1022 (libtsan.so.2+0x568a6) (BuildId: 99ef88596cb10a8ccf307fe1a9070f66a44b1624)
+    #1 std::thread::_M_start_thread(std::unique_ptr<std::thread::_State, std::default_delete<std::thread::_State> >, void (*)()) <null> (libstdc++.so.6+0xe12f8) (BuildId: 133b71e0013695cc7832680a74edb51008c4fc4c)
+    #2 <null> <null> (libc.so.6+0x29ca7) (BuildId: 5e5b51f4c39af9ac589408c1dc432ba390a273cc)
+
+SUMMARY: ThreadSanitizer: data race (/workspace/forge-jobACD-20261025/forge_sol_a_tsan_threads_20261025+0x49fe) (BuildId: b82aecf41c6b0205bd7484166365ddbac2968488) in forge::Board::square_attacked_with_occupancy(int, forge::Color, unsigned long, unsigned long) const
+==================
+ThreadSanitizer:DEADLYSIGNAL
+==35831==ERROR: ThreadSanitizer: SEGV on unknown address 0x000000000000 (pc 0x55adf3b9caee bp 0x7f8a305f74b0 sp 0x7f8a305f7450 T35834)
+==35831==The signal is caused by a READ memory access.
+==35831==Hint: address points to the zero page.
+ThreadSanitizer:DEADLYSIGNAL
+ThreadSanitizer:DEADLYSIGNAL
+    #0 forge::Board::square_attacked_with_occupancy(int, forge::Color, unsigned long, unsigned long) const <null> (forge_sol_a_tsan_threads_20261025+0x4aee) (BuildId: b82aecf41c6b0205bd7484166365ddbac2968488)
+    #1 forge::Board::square_attacked(int, forge::Color) const <null> (forge_sol_a_tsan_threads_20261025+0x4c11) (BuildId: b82aecf41c6b0205bd7484166365ddbac2968488)
+    #2 forge::Board::set_fen(std::basic_string_view<char, std::char_traits<char> >, std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >*) <null> (forge_sol_a_tsan_threads_20261025+0xd2cc) (BuildId: b82aecf41c6b0205bd7484166365ddbac2968488)
+    #3 forge::Board::Board() <null> (forge_sol_a_tsan_threads_20261025+0xdf29) (BuildId: b82aecf41c6b0205bd7484166365ddbac2968488)
+    #4 main::{lambda()#1}::operator()() const <null> (forge_sol_a_tsan_threads_20261025+0x1082b) (BuildId: b82aecf41c6b0205bd7484166365ddbac2968488)
+    #5 std::thread::_State_impl<std::thread::_Invoker<std::tuple<main::{lambda()#1}> > >::_M_run() <null> (forge_sol_a_tsan_threads_20261025+0x10d49) (BuildId: b82aecf41c6b0205bd7484166365ddbac2968488)
+    #6 <null> <null> (libstdc++.so.6+0xe1223) (BuildId: 133b71e0013695cc7832680a74edb51008c4fc4c)
+    #7 __tsan_thread_start_func ../../../../src/libsanitizer/tsan/tsan_interceptors_posix.cpp:1012 (libtsan.so.2+0x4bf49) (BuildId: 99ef88596cb10a8ccf307fe1a9070f66a44b1624)
+    #8 <null> <null> (libc.so.6+0x928ba) (BuildId: 5e5b51f4c39af9ac589408c1dc432ba390a273cc)
+    #9 <null> <null> (libc.so.6+0x110537) (BuildId: 5e5b51f4c39af9ac589408c1dc432ba390a273cc)
+
+ThreadSanitizer can not provide additional info.
+SUMMARY: ThreadSanitizer: SEGV (/workspace/forge-jobACD-20261025/forge_sol_a_tsan_threads_20261025+0x4aee) (BuildId: b82aecf41c6b0205bd7484166365ddbac2968488) in forge::Board::square_attacked_with_occupancy(int, forge::Color, unsigned long, unsigned long) const
+==35831==ABORTING

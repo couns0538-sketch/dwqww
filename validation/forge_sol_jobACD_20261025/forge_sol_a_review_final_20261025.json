@@ -1,0 +1,70 @@
+{
+  "reviewed_at_utc": "2026-10-25T07:40:58.470573+00:00",
+  "review_type": "Independent bounded read-only final source/evidence review; no builds, native execution, CPU timing, or Git mutation",
+  "status": "NO_MATERIAL_REMAINING_DEFECT_FOUND_IN_A_DELTA",
+  "patch_sha256": "e661a145e301d3483ccaeaba65779d1d2002067263c836250e6418b9dccd151d",
+  "source_sha256": {
+    "CMakeLists.txt": "25398683887f8008c3c2b9f821d20d2d5929d5d933addbb68a9438be4879790f",
+    "include/forge/nnue.hpp": "7147b06cd1e47ade61134598abfbc5137fcbb644b314a310552b94d989305ad6",
+    "src/nnue.cpp": "0a5ad4198fb14d0381839a9cbdf611b7809918bdabd5ceae5e1cd73732bef072",
+    "src/uci.cpp": "5bb190c374cdf15a8d118c09ee78abaedc25ad2b09bb5fcd63627c73ab963587",
+    "IDEA_SOURCE.md": "e97eb7b7da494c014fb954dd4247abc1ca674b2db35334b83d4b302dda8daa8a",
+    "README.md": "10934ae318761953c5c20a499daa893480981c48e967aea93b01acede70dfbf5"
+  },
+  "previous_finding": {
+    "issue": "Selection-only active announcement falsely covered UseNNUE=false and go perft",
+    "resolution": "Admission now freezes only; calling thread announces after actual int32 refresh/update work with NNUE enabled. Atomic once flag prevents duplicate announcements; book/perft dispatch never invokes acknowledgement",
+    "review_status": "RESOLVED_BY_SOURCE_INSPECTION; parent retains RED/GREEN native tests"
+  },
+  "checked": [
+    "No int16 accumulator: only on-disk int16 weights/bias sign-widened into int32",
+    "Raw q sums convert exactly through binary 1/4096 scale under per-lane all768-plus4dirty guard; output helper retains original float association",
+    "Atomic option admission before first go/bench and inherited parent representation prevent mixed-mode worker accumulators",
+    "All diagnostics are calling-thread TLS; active-once flag atomic; NNUE enabled writes retain existing stop/join lifecycle",
+    "OFF default macro preserves original Accumulator layout; build-enabled runtime OFF has extra storage",
+    "No make/unmake allocation, search/eval-value/net/TT/move-order change in feature patch",
+    "Final UCI acknowledgement occurs outside timed bench loop and before normal search/ponder wait; no selection-only perft/book acknowledgement",
+    "Patch includes four feature/build source files plus additive README/IDEA_SOURCE notes, no unrelated flags or bundled test/license/agent files"
+  ],
+  "retained_evidence_read": {
+    "forge_sol_a_lock_checks_20261025": {
+      "record_sha256": "ebe39e932a14b3b8644252d1fb31a1f2f29799ab55cc464c4740c1137d6eba6e",
+      "record_status": "PASS",
+      "scope": "retained actual test result read, not rerun by reviewer"
+    },
+    "forge_sol_a_buffix_checks_20261025": {
+      "record_sha256": "544d14bb5c58bbabd71e63ae2b7f8214ef2d2bee01c7ce418389f35960392920",
+      "record_status": "PASS",
+      "scope": "retained actual test result read, not rerun by reviewer"
+    },
+    "forge_sol_a_compiled_out_checks_20261025": {
+      "record_sha256": "ea83f03f00e0bc720055268328d24791bd7f969afdd408c02f4ed78c7d07a8d1",
+      "record_status": "PASS",
+      "scope": "retained actual test result read, not rerun by reviewer"
+    }
+  },
+  "million_parity_result": {
+    "status": "PASS",
+    "unique_positions": 1000000,
+    "incremental_fresh_mismatches": 0,
+    "scalar_avx2_mismatches": 0,
+    "float_output_mismatches": 0,
+    "transitions": 1015022,
+    "castles": 426,
+    "en_passant": 118,
+    "promotions": 6025,
+    "nulls": 232,
+    "q_min": -78343,
+    "q_max": 16160,
+    "corpus_fnv64": 9875227818278805588
+  },
+  "tsan_scope": {
+    "bootstrapped_actual_api": "Retained stdout reports threads4 transitions8000 failures0; stderr empty",
+    "preexisting_open_issue": "Concurrent first-ever direct Board construction races in unchanged attacks initialization; initial failure and lock reproduction must remain preserved. Serial controller Board bootstrap matches UCI lifecycle; JobA does not repair or claim global race freedom"
+  },
+  "measurement_limits": [
+    "Construction-count refresh_share_ppm is not elapsed-time share",
+    "Runtime OFF-vs-ON timing measures representation selection within enlarged instrumented build, not net speed versus untouched lock",
+    "No speed, adoption, Windows, Zen5 or Elo acceptance from this read-only review"
+  ]
+}

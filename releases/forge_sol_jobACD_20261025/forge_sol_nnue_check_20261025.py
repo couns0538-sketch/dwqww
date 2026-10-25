@@ -4,6 +4,7 @@ import argparse,hashlib,json,pathlib,re,subprocess,sys
 LOCK={11:308972,13:745494,16:2460422,20:11901452,22:31111774}
 KIWI='r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1'
 def main():
+ if not __debug__:raise RuntimeError('Qualification requires assertions enabled; unset PYTHONOPTIMIZE and do not use -O')
  ap=argparse.ArgumentParser();ap.add_argument('--engine',type=pathlib.Path,required=True);ap.add_argument('--out',type=pathlib.Path,required=True);ap.add_argument('--reference-engine',type=pathlib.Path);ap.add_argument('--compiled-out',action='store_true');a=ap.parse_args();a.engine=a.engine.resolve();a.out.mkdir(parents=True,exist_ok=False)
  record={'compiled_out':a.compiled_out,'engine_sha256':hashlib.sha256(a.engine.read_bytes()).hexdigest(),'fixed_references':LOCK,'status':'FAIL','modes':{}}
  def run(label,commands):

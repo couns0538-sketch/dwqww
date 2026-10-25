@@ -4,8 +4,9 @@ import argparse,hashlib,json,pathlib,re,subprocess,sys
 LOCK={11:308972,13:745494,16:2460422,20:11901452,22:31111774}
 KIWI='r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1'
 def main():
- ap=argparse.ArgumentParser();ap.add_argument('--engine',type=pathlib.Path,required=True);ap.add_argument('--out',type=pathlib.Path,required=True);ap.add_argument('--reference-engine',type=pathlib.Path);a=ap.parse_args();a.engine=a.engine.resolve();a.out.mkdir(parents=True,exist_ok=False)
- record={'engine_sha256':hashlib.sha256(a.engine.read_bytes()).hexdigest(),'fixed_references':LOCK,'status':'FAIL','modes':{}}
+ if not __debug__:raise RuntimeError('Qualification requires assertions enabled; unset PYTHONOPTIMIZE and do not use -O')
+ ap=argparse.ArgumentParser();ap.add_argument('--engine',type=pathlib.Path,required=True);ap.add_argument('--out',type=pathlib.Path,required=True);ap.add_argument('--reference-engine',type=pathlib.Path);ap.add_argument('--compiled-out',action='store_true');a=ap.parse_args();a.engine=a.engine.resolve();a.out.mkdir(parents=True,exist_ok=False)
+ record={'compiled_out':a.compiled_out,'engine_sha256':hashlib.sha256(a.engine.read_bytes()).hexdigest(),'fixed_references':LOCK,'status':'FAIL','modes':{}}
  def run(label,commands):
   p=subprocess.run([str(a.engine)],input=commands+'quit\n',text=True,stdout=subprocess.PIPE,stderr=subprocess.PIPE)
   (a.out/(label+'.stdout')).write_text(p.stdout);(a.out/(label+'.stderr')).write_text(p.stderr)
@@ -29,9 +30,11 @@ def main():
    for depth,expected in LOCK.items():
     out=run('forge_sol_'+mode.lower()+'_bench_d'+str(depth)+'_20261025',prefix+'bench '+str(depth)+'\n')
     mat=re.search(r'bench depth (\d+) nodes (\d+) time (\d+) nps (\d+)',out);assert mat and int(mat[2])==expected,(mode,depth,'fixed node mismatch')
-    active=out.count('info string NnueExactInt32 active');assert active==(1 if mode=='ON' else 0),(mode,'active proof')
+    active=out.count('info string NnueExactInt32 active');assert active==(1 if mode=='ON' and not a.compiled_out else 0),(mode,'active proof')
     line=next((x for x in out.splitlines() if 'NnueExactInt32 stats ' in x),'');assert line,'missing backend counters'
-    fields={k:int(v) for k,v in re.findall(r'(\w+) (\d+)',line)};assert fields.get('int32_updates',0)>0 if mode=='ON' else fields.get('int32_updates',-1)==0
+    fields={k:int(v) for k,v in re.findall(r'(\w+) (\d+)',line)};assert fields.get('int32_updates',0)>0 if mode=='ON' and not a.compiled_out else fields.get('int32_updates',-1)==0
+    
+    if mode=='ON' and a.compiled_out:assert 'NnueExactInt32 unavailable:' in out,'compiled-out false activation'
     stats.append({'depth':depth,**fields});m[str(depth)]={'nodes':int(mat[2]),'nps':int(mat[4])}
    for label,fen,expected in [('startpos',None,4865609),('kiwipete',KIWI,193690690)]:
     out=run('forge_sol_'+mode.lower()+'_'+label+'_20261025',prefix+('position fen '+fen+'\n' if fen else 'position startpos\n')+'go perft 5\n')
