@@ -1,0 +1,53 @@
+{
+  "review_type": "bounded_read_only_manual_source_contract_review",
+  "utc": "2026-10-25T08:01:51.373693+00:00",
+  "source_sha256_at_receipt": "277395322861f130fdb34cc60cdbf1d1e6cd5f81a778eb37e8f285a6bd46c868",
+  "production_edits": false,
+  "native_large_runs": false,
+  "issues": [
+    {
+      "severity": "medium",
+      "title": "Conservative game segments materialized per entire shard",
+      "evidence": "segments query uses fetchall() and can allocate one tuple perinputrecord for pathological/very short game boundaries",
+      "recommendation": "stream SQLite cursor/currentsegment inO(1)memory",
+      "status": "RESOLVED_BY_FINAL_SOURCE_READBACK"
+    },
+    {
+      "severity": "medium",
+      "title": "Excluded complete holdoutaliases are not represented in input/dropped counts",
+      "evidence": "excluded list storesnamesonly; removedbeforetotalsandper-shardrows",
+      "recommendation": "retain perexcludedshard recordcount andholdout_shard reason; reconcileexplicitcandidate accounting",
+      "status": "RESOLVED_BY_FINAL_SOURCE_READBACK"
+    },
+    {
+      "severity": "low",
+      "title": "Optional text FEN validation is weaker than actualfen2bin inputchecks",
+      "evidence": "text_record doesnot require exactlyonekingeach or <=32pieces unlikeprovidedfen2bin",
+      "recommendation": "reject malformedoptionaltextwhileleavingbinarysyntheticnibble-mode unchanged",
+      "status": "RESOLVED_BY_FINAL_SOURCE_READBACK"
+    }
+  ],
+  "positive_findings": [
+    "Inputs read-only; outputmustbenew andowned; existingpair/refusal guards prevent overwrite",
+    "Columnarreader/writer matchFPOS/FHCElayoutandretainallpairedfields",
+    "Identityboard+STM;collisionguardscomparefullkey;inputHCEalignmentcountvalidationpresent",
+    "ResultfilterOFFdefaultandSTMoutcomeconversioncorrectincludingdrawreason",
+    "Seededshardpriority+orderedrows+canonicalJSON/no timestamps supportdeterminism",
+    "Independentoutputrereadauditspositionholdoutintersectionandduplication",
+    "Position-onlygameoverlapandrealproductionoverlapexplicitlyUNVERIFIED",
+    "Optionalgamegroupscrossshardsandmergeuncertainboundaries; noauthenticgameIDclaim"
+  ],
+  "status": "NO_MATERIAL_REMAINING_DEFECT_FOUND_IN_BOUNDED_REVIEW",
+  "final_readback_utc": "2026-10-25T08:02:43.970927+00:00",
+  "final_source_sha256": "6ccf78c864c44155cea22044fe05d0584bec5241acdc5ebb2b71e23886007ab3",
+  "repairs_readback": [
+    "Game segments now streamed fromSQLite cursor withonecurrenttuple; no per-shard fetchall",
+    "Holdoutalias rows explicitly countinput/kept0/droppedholdout_shard inper-shardandtotalaccounting",
+    "OptionaltextFEN requiresonekingeach and<=32pieces; binarysyntheticformatleftunchanged"
+  ],
+  "limitations": [
+    "Manual source review only; parent owns native sample/trainer proofs",
+    "Conservative game-group exclusion depends on documented trajectory/result assumptions; no authenticgameID claim",
+    "Production013/014 overlap remainsUNVERIFIED withoutactualinputs"
+  ]
+}

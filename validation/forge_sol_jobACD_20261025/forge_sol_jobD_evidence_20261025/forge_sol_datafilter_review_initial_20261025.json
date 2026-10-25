@@ -1,0 +1,41 @@
+{
+  "review_type": "bounded_read_only_manual_source_contract_review",
+  "utc": "2026-10-25T08:01:51.373693+00:00",
+  "source_sha256_at_receipt": "277395322861f130fdb34cc60cdbf1d1e6cd5f81a778eb37e8f285a6bd46c868",
+  "production_edits": false,
+  "native_large_runs": false,
+  "issues": [
+    {
+      "severity": "medium",
+      "title": "Conservative game segments materialized per entire shard",
+      "evidence": "segments query uses fetchall() and can allocate one tuple perinputrecord for pathological/very short game boundaries",
+      "recommendation": "stream SQLite cursor/currentsegment inO(1)memory",
+      "status": "reported; rootimplementer repairing"
+    },
+    {
+      "severity": "medium",
+      "title": "Excluded complete holdoutaliases are not represented in input/dropped counts",
+      "evidence": "excluded list storesnamesonly; removedbeforetotalsandper-shardrows",
+      "recommendation": "retain perexcludedshard recordcount andholdout_shard reason; reconcileexplicitcandidate accounting",
+      "status": "reported"
+    },
+    {
+      "severity": "low",
+      "title": "Optional text FEN validation is weaker than actualfen2bin inputchecks",
+      "evidence": "text_record doesnot require exactlyonekingeach or <=32pieces unlikeprovidedfen2bin",
+      "recommendation": "reject malformedoptionaltextwhileleavingbinarysyntheticnibble-mode unchanged",
+      "status": "reported"
+    }
+  ],
+  "positive_findings": [
+    "Inputs read-only; outputmustbenew andowned; existingpair/refusal guards prevent overwrite",
+    "Columnarreader/writer matchFPOS/FHCElayoutandretainallpairedfields",
+    "Identityboard+STM;collisionguardscomparefullkey;inputHCEalignmentcountvalidationpresent",
+    "ResultfilterOFFdefaultandSTMoutcomeconversioncorrectincludingdrawreason",
+    "Seededshardpriority+orderedrows+canonicalJSON/no timestamps supportdeterminism",
+    "Independentoutputrereadauditspositionholdoutintersectionandduplication",
+    "Position-onlygameoverlapandrealproductionoverlapexplicitlyUNVERIFIED",
+    "Optionalgamegroupscrossshardsandmergeuncertainboundaries; noauthenticgameIDclaim"
+  ],
+  "status": "BOUNDED_REPAIRS_REQUESTED_BEFORE_COMPLETION"
+}
