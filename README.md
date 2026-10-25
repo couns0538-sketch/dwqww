@@ -247,3 +247,7 @@ network costs about 15 % of the nodes per second.
 
 MIT. The engine has no third-party runtime dependencies. Fastchess and
 Stockfish are external testing tools and are not bundled.
+
+## Sol Job ACD idea sources — 20261025
+
+User-supplied H256 fixed-grid numeric review and AVX2 instruction semantics informed the original exact-int32 inference experiment. Existing sources and parameters are preserved; no other engine code or tuned constants were imported. The dated JobA report preserves all bounds, qualification and below-threshold advisory evidence.
