@@ -1,0 +1,87 @@
+{
+  "date": "2026-10-25",
+  "job": "S04",
+  "status": "PASS_SOURCE_REVIEW_NATIVE_VALIDATION_PENDING",
+  "scope": "Read-only independent patch, test, runner and retained original RED review. No builds, native processes, benchmarks, patch applications or Git mutations by reviewer.",
+  "artifacts": {
+    "S04/forge_sol_S04_attacksinit_fix_20261025.patch": {
+      "sha256": "29ee0866e90185a6a50f8389d8792399b890338c4e10f6457459652bbb6c15e7",
+      "bytes": 6485
+    },
+    "S04/forge_sol_S04_tsan_test_20261025.cpp": {
+      "sha256": "24d2fb04cd1982a592f7ed36cdaa348d3a75cfc7a9ecb00a712265f93881ab88",
+      "bytes": 2359
+    },
+    "S04/forge_sol_S04_cold_runs_20261025.py": {
+      "sha256": "afcc96930ecd6da39267163b8594f45ee195d7f233cc6b5bbef804df20afc563",
+      "bytes": 2389
+    },
+    "S04/forge_sol_S04_base_red_20261025.py": {
+      "sha256": "4add74e99251ccbc2c58104adb651c94a508c0be70657ec339121a15b70ac9b8",
+      "bytes": 2116
+    },
+    "S04/forge_sol_S04_build_cold_20261025.py": {
+      "sha256": "d8d18908187db1737f4b2b7e53e70c9d8b6fde6b294f287d87c03b0b89d2d244",
+      "bytes": 1218
+    },
+    "S04/forge_sol_S04_original_metadata_20261025.json": {
+      "sha256": "30f85f22e9be75c92ae8372c05674a5e56aba671e544ea3574dc9e395f358cee",
+      "bytes": 38177
+    },
+    "S04/forge_sol_S04_base_red_20261025/forge_sol_S04_red_result_20261025.json": {
+      "sha256": "845f330bcd425264986959e08abf98f99a0ece1e8ce3b1e86d488647c0b964c3",
+      "bytes": 1552
+    },
+    "S04/forge_sol_S04_base_red_20261025/forge_sol_S04_run_20261025.stdout": {
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    "S04/forge_sol_S04_base_red_20261025/forge_sol_S04_run_20261025.stderr": {
+      "sha256": "6d3dd7fd28c10d3b5c269e26c35951316f3bc70cede77649c83228261dfe9961",
+      "bytes": 4248
+    },
+    "S04/forge_sol_S04_candidate_cold_20261025/forge_sol_S04_build_result_20261025.json": {
+      "sha256": "f94cbfcda2b9693f56994c6a8a35c9bcb1d79e8ca1c32f719a94ec3bbf26930a",
+      "bytes": 1032
+    }
+  },
+  "checks": [
+    {
+      "check": "Minimal guarded initialization",
+      "result": "PASS_SOURCE_REVIEW",
+      "detail": "For both actual source copies, selecting the OFF preprocessor branch gives exactly the original bitboard.cpp token sequence. Selecting ON removes the old early bool and encloses the complete byte-identical old initialization body in one call_once. No table algorithm, value, search, NNUE or move-ordering change."
+    },
+    {
+      "check": "Base preservation",
+      "result": "PASS_SOURCE_REVIEW",
+      "detail": "Only CMakeLists.txt, IDEA_SOURCE.md and src/bitboard.cpp differ among existing files in each source copy; the standalone dated test is added. L/B Board and bitboard code hashes agree, and the adopted buffer repair outside these files is retained."
+    },
+    {
+      "check": "Dedicated CMake TSan target",
+      "result": "PASS_SOURCE_REVIEW",
+      "detail": "One option defaults OFF. The guarded Linux GNU/Clang test target compiles the actual board.cpp and bitboard.cpp directly, links Threads, has its own TSan compile/link flags and does not link forge_core. Target-specific ASan/UBSan flags on forge_core therefore do not contaminate this TSan target. Actual registration/profile execution remains pending."
+    },
+    {
+      "check": "Cold test semantics",
+      "result": "PASS_SOURCE_REVIEW",
+      "detail": "Eight threads pass one barrier before any first Board construction; main creates no Board and invokes no attacks initialization. Each worker checks start FEN, perft3=8902, restored FEN and kiwi perft2=2039. Results are distinct per worker and read after join."
+    },
+    {
+      "check": "Fresh-process driver",
+      "result": "PASS_SOURCE_REVIEW",
+      "detail": "Each iteration creates a separate exec via Popen, communicates to complete EOF, waits for the exit, retains exact base64 stdout/stderr and SHA256, and stops on the first nonzero exit, non-exact PASS line or any stderr. No retry, warm bootstrap, kill, pin, limit adjustment or sanitizer suppression."
+    },
+    {
+      "check": "Original RED",
+      "result": "OBSERVED_ACTUAL_RACE",
+      "detail": "Original retained run exits 66 with an actual ThreadSanitizer race on attacks::init early bool read/write through concurrent first Board constructors. Diagnostic also includes DEADLYSIGNAL; this is retained, not suppressed. It is not a TSan unexpected-memory-mapping startup failure. Test hash matches the candidate test; original source hashes match the provided base."
+    }
+  ],
+  "material_issues": [],
+  "unverified": [
+    "Candidate 1000-fresh-process run is still active; no completion claim.",
+    "Full L/B Release and ASan/UBSan standard qualification, actual CTest registration, fixed references, FMA and advisory timing remain pending.",
+    "Windows and playing strength are outside this source review."
+  ],
+  "next_action": "Audit the closed 1000-process log, dedicated CTest registration and completed standard matrix against exact artifact hashes before publication."
+}
