@@ -1,7 +1,7 @@
 {
   "date": "2026-10-25",
   "job": "S04",
-  "status": "PASS_SOURCE_REVIEW_NATIVE_VALIDATION_PENDING",
+  "status": "PASS_COLD_1000_AND_FOUR_RELEASE_PROFILES_ASAN_PENDING",
   "scope": "Read-only independent patch, test, runner and retained original RED review. No builds, native processes, benchmarks, patch applications or Git mutations by reviewer.",
   "artifacts": {
     "S04/forge_sol_S04_attacksinit_fix_20261025.patch": {
@@ -43,6 +43,46 @@
     "S04/forge_sol_S04_candidate_cold_20261025/forge_sol_S04_build_result_20261025.json": {
       "sha256": "f94cbfcda2b9693f56994c6a8a35c9bcb1d79e8ca1c32f719a94ec3bbf26930a",
       "bytes": 1032
+    },
+    "S04/forge_sol_S04_cold_1000_20261025/forge_sol_S04_cold_result_20261025.json": {
+      "sha256": "08c6bd203ec2633c0d56d235dc7217915e1601b52517b897d4d39bbab747260e",
+      "bytes": 527
+    },
+    "S04/forge_sol_S04_cold_1000_20261025/forge_sol_S04_cold_runs_20261025.jsonl": {
+      "sha256": "ae9212801abc8cc5385b9ee80950e5722c6b616216e0157fef107a63d4f57764",
+      "bytes": 474893
+    },
+    "S04/forge_sol_S04_L_release_OFF_20261025/forge_sol_S04_native_receipt_20261025.json": {
+      "sha256": "22714ac1ef8a92cb4c57ccac394b3979d64ce70019ceeffb368ff8aeecc284a3",
+      "bytes": 8982
+    },
+    "S04/forge_sol_S04_L_release_ON_20261025/build/CMakeFiles/forge_sol_S04_cold_tsan_test_20261025.dir/link.txt": {
+      "sha256": "b03177b103d5058b92a0e1b7213faf1f7c3d447495d8b13fae335e10433e5f32",
+      "bytes": 494
+    },
+    "S04/forge_sol_S04_L_release_ON_20261025/build/CMakeFiles/forge_sol_S04_cold_tsan_test_20261025.dir/flags.make": {
+      "sha256": "6e7aca00d0e007312fb4812bd782ee9321cb3f110cbb53c0855f67715708880c",
+      "bytes": 447
+    },
+    "S04/forge_sol_S04_L_release_ON_20261025/forge_sol_S04_native_receipt_20261025.json": {
+      "sha256": "3da971e903add833cefac9057de37a7ceb4320d8d5190ee5b8f2de279d55288f",
+      "bytes": 9013
+    },
+    "S04/forge_sol_S04_B_release_OFF_20261025/forge_sol_S04_native_receipt_20261025.json": {
+      "sha256": "44c6ca7005594f8d17a18fdc277e7d3712c122602d60ea6cf6f26e1f53172217",
+      "bytes": 9085
+    },
+    "S04/forge_sol_S04_B_release_ON_20261025/build/CMakeFiles/forge_sol_S04_cold_tsan_test_20261025.dir/link.txt": {
+      "sha256": "b03177b103d5058b92a0e1b7213faf1f7c3d447495d8b13fae335e10433e5f32",
+      "bytes": 494
+    },
+    "S04/forge_sol_S04_B_release_ON_20261025/build/CMakeFiles/forge_sol_S04_cold_tsan_test_20261025.dir/flags.make": {
+      "sha256": "fa37d8ac6b49c24d34aeafb845874f57f7805c5687859569cb5906b58c92ab8f",
+      "bytes": 447
+    },
+    "S04/forge_sol_S04_B_release_ON_20261025/forge_sol_S04_native_receipt_20261025.json": {
+      "sha256": "3595f0cdac95380b0f713ce7cac67ec92f8e77b13a15d3ecaf17b09b679dd95f",
+      "bytes": 9116
     }
   },
   "checks": [
@@ -79,9 +119,120 @@
   ],
   "material_issues": [],
   "unverified": [
-    "Candidate 1000-fresh-process run is still active; no completion claim.",
-    "Full L/B Release and ASan/UBSan standard qualification, actual CTest registration, fixed references, FMA and advisory timing remain pending.",
-    "Windows and playing strength are outside this source review."
+    "Four ASan/UBSan profiles remain in progress; this receipt does not claim full eight-profile completion.",
+    "No controlled advisory ABAB timing comparison has yet been reviewed.",
+    "Windows and playing-strength effects are UNVERIFIED."
   ],
-  "next_action": "Audit the closed 1000-process log, dedicated CTest registration and completed standard matrix against exact artifact hashes before publication."
+  "next_action": "Audit the four closed ASan/UBSan receipts and final report, keeping the standalone cold TSan proof distinct from whole-engine standard qualification. Publish with exact hashes only after all required closed evidence is bound.",
+  "previous_receipt_sha256": "5c38e86377e47e19555b8d85aa6c195197530c6a119e8fc87960431fcd44e21a",
+  "cold_evidence_review": {
+    "status": "PASS",
+    "independently_decoded_rows": 1000,
+    "unique_fresh_process_pids": 1000,
+    "workers_per_process": 8,
+    "all_exits": 0,
+    "all_stderr_bytes": 0,
+    "exact_stdout": "COLD_FIRST_BOARD_PASS workers=8 startpos_d3=8902 kiwipete_d2=2039",
+    "probe_sha256": "aa59cb60f392ce77b7f55ba68ab8ed6eed41a3a52e1f5008b92f260e3faeb9c5",
+    "elapsed_seconds_observed": 1336.4806380720038,
+    "scope": "Actual standalone TSan build of unchanged real Board + guarded attack initializer, not the whole search engine; identical relevant code on L/B. No reviewer rerun."
+  },
+  "release_evidence_review": {
+    "status": "PASS",
+    "independently_verified_stream_records": 96,
+    "profiles": [
+      {
+        "base": "L",
+        "profile": "Release",
+        "feature": "OFF",
+        "engine_sha256": "e3df99cddb609d9f00168d8df3187fdf6943c10812dd5c4f82206895e594367b",
+        "bench": [
+          308972,
+          745494,
+          2460422,
+          11901452,
+          31111774
+        ],
+        "perft": [
+          4865609,
+          193690690
+        ],
+        "provided_nnue_fma_checker": "PASS_ZERO_FUSED_ARITHMETIC_IN_CHECKED_SCOPE",
+        "ctest_total": 14,
+        "known_fail_lines": 4,
+        "sole_failed_target": "forge_tests",
+        "dedicated_cold_tsan_registered_and_passed": false,
+        "dedicated_link_has_no_asan_or_core": null
+      },
+      {
+        "base": "L",
+        "profile": "Release",
+        "feature": "ON",
+        "engine_sha256": "73ae743cac18431750e07c2c89878bf6e4caecc0f9b63b3e87dc76e50dbcdaba",
+        "bench": [
+          308972,
+          745494,
+          2460422,
+          11901452,
+          31111774
+        ],
+        "perft": [
+          4865609,
+          193690690
+        ],
+        "provided_nnue_fma_checker": "PASS_ZERO_FUSED_ARITHMETIC_IN_CHECKED_SCOPE",
+        "ctest_total": 15,
+        "known_fail_lines": 4,
+        "sole_failed_target": "forge_tests",
+        "dedicated_cold_tsan_registered_and_passed": true,
+        "dedicated_link_has_no_asan_or_core": true
+      },
+      {
+        "base": "B",
+        "profile": "Release",
+        "feature": "OFF",
+        "engine_sha256": "55fa7e81768452bf62e5c9fa748d88353e37fbec50492077e70d30f14fc7d406",
+        "bench": [
+          308972,
+          745494,
+          2460422,
+          11901452,
+          31111774
+        ],
+        "perft": [
+          4865609,
+          193690690
+        ],
+        "provided_nnue_fma_checker": "PASS_ZERO_FUSED_ARITHMETIC_IN_CHECKED_SCOPE",
+        "ctest_total": 15,
+        "known_fail_lines": 4,
+        "sole_failed_target": "forge_tests",
+        "dedicated_cold_tsan_registered_and_passed": false,
+        "dedicated_link_has_no_asan_or_core": null
+      },
+      {
+        "base": "B",
+        "profile": "Release",
+        "feature": "ON",
+        "engine_sha256": "3a32f15cf87bf47a831f4bbe41d6e206ea18e79967c10eda65e7630fe93190b6",
+        "bench": [
+          308972,
+          745494,
+          2460422,
+          11901452,
+          31111774
+        ],
+        "perft": [
+          4865609,
+          193690690
+        ],
+        "provided_nnue_fma_checker": "PASS_ZERO_FUSED_ARITHMETIC_IN_CHECKED_SCOPE",
+        "ctest_total": 16,
+        "known_fail_lines": 4,
+        "sole_failed_target": "forge_tests",
+        "dedicated_cold_tsan_registered_and_passed": true,
+        "dedicated_link_has_no_asan_or_core": true
+      }
+    ]
+  }
 }
