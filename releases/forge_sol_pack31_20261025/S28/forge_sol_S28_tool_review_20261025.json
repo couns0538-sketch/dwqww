@@ -1,0 +1,491 @@
+{
+  "date": "2026-10-25",
+  "job": "S28",
+  "status": "PASS_NO_MATERIAL_SOURCE_OR_CLOSED_EVIDENCE_ISSUE",
+  "scope": "Independent read-only source and retained-evidence review; no builds, engine runs, timing, patch applications, tests or Git writes by reviewer.",
+  "artifacts": {
+    "S28/forge_sol_S28_lock_transition_20261025.py": {
+      "sha256": "421b156ea48dfbaa5ff0e6b219baa6b4e3e3102b705d0c181144413e8cd39db3",
+      "bytes": 24100
+    },
+    "S28/forge_sol_S28_lock_transition_20261025.sh": {
+      "sha256": "8d6bc4f1e8f455a6839c5e3316bf96f37c392739e4b04f377ba90a1b154de159",
+      "bytes": 173
+    },
+    "S28/forge_sol_S28_lock_transition_tests_20261025.py": {
+      "sha256": "5d630c3ae771c7b6b37818cd54393d403f80bb5ed2bd5cbde9bf5e2c45faec48",
+      "bytes": 14420
+    },
+    "S28/forge_sol_S28_native_pin_postcheck_20261025.py": {
+      "sha256": "a091b30611829ddb8319b5d47e6bb2dea7cdb1b1e3042db6df2d7ac6aee15f08",
+      "bytes": 5555
+    },
+    "S28/forge_sol_S28_lock_transition_guide_20261025.md": {
+      "sha256": "a2d217b278a817aa400179b33581eef246f740ca44b8e9e58324c20e298e49dc",
+      "bytes": 7551
+    },
+    "S28/forge_sol_S28_native_toolfreeze_v2_20261025/forge_sol_S28_lock_transition_20261025.py": {
+      "sha256": "7530b90a4e5dcb2cfdd49f4fc186cabd78b193a8523700dc50637038c7543c7d",
+      "bytes": 22798
+    },
+    "S28/forge_sol_S28_native_toolfreeze_v2_20261025/forge_sol_S28_lock_transition_20261025.sh": {
+      "sha256": "8d6bc4f1e8f455a6839c5e3316bf96f37c392739e4b04f377ba90a1b154de159",
+      "bytes": 173
+    },
+    "S28/forge_sol_S28_tool_tests_v3_postcheck_20261025.txt": {
+      "sha256": "43dad958115877b47eef85710b445df51d0c0666c055d96cb42c46f6a8219bf7",
+      "bytes": 3434
+    },
+    "S28/forge_sol_S28_postcheck_guard_red_20261025.txt": {
+      "sha256": "f2273f67aed3375d007eb52c55e4b50793c42a78318d5d7216bd932c4f3fa58f",
+      "bytes": 1419
+    },
+    "S28/forge_sol_S28_pin_guard_red_20261025.txt": {
+      "sha256": "97c747b5e5ca2015cc3f0375d8386e34e2f8c7c2c671156fce78000be25ae165",
+      "bytes": 4208
+    },
+    "S28/forge_sol_S28_pin_guard_green_20261025.txt": {
+      "sha256": "42bb86f44828946aa3d1c1e8b658eda6241db50d9cf23ef271ab0f50a0a6fdc3",
+      "bytes": 2939
+    },
+    "S28/forge_sol_S28_native_queue_20261025.json": {
+      "sha256": "701a08ad30ef75f9e63aa899b726ff7e75fa78cba37f24fb10888dea850f0fbf",
+      "bytes": 1231
+    },
+    "S28/forge_sol_S28_rebase_e48f006_timepack4_20261025.patch": {
+      "sha256": "791f432b6c82f76e478c25bee98a0439e2c91a42abb662fbeeafc24e8b6638c9",
+      "bytes": 12511
+    },
+    "S28/forge_sol_S28_native_v2_20261025/forge_sol_S28_native_controller_result_20261025.json": {
+      "sha256": "b7d1b62565eff32dabdca9a0dd9415a1d67e1a878faf3fcf21cdbd6b8c23244b",
+      "bytes": 10776
+    },
+    "S28/forge_sol_S28_final_pin_postcheck_20261025.json": {
+      "sha256": "f1407f798650df1cb4ef182c55b5b0adf936cf68fa840fa52be2460a66d3d0cf",
+      "bytes": 333284
+    },
+    "S28/forge_sol_S28_postcheck_command_20261025.json": {
+      "sha256": "9771c5dbd913c7250cce2433f61b2b6900352a46ffbc3a1ed489794918bdc0f2",
+      "bytes": 444991
+    },
+    "S28/forge_sol_S28_source_identity_audit_20261025.py": {
+      "sha256": "50c15d86e9ad3b540b814d8d4b74d0d3601e97533a38c4ec56a7099949b9a957",
+      "bytes": 3414
+    },
+    "S28/forge_sol_S28_source_identity_results_20261025.json": {
+      "sha256": "0e7f6ad17568f5375cf1919f21ca66dd39cd8f6fc50ef9029e8cee4f4311bb98",
+      "bytes": 4475
+    },
+    "S28/forge_sol_S28_source_identity_command_20261025.json": {
+      "sha256": "d6361ffc8c5adb2b14819f4b2556a55d5d2a14a05ad6df80b225dafac441e6a6",
+      "bytes": 1036
+    },
+    "S28/forge_sol_S28_input_hashes_before_20261025.json": {
+      "sha256": "71c6b09100906d3879a58a93df89a6cb1d2cd4341a01dcc4ee0c7f28f45756d8",
+      "bytes": 15234
+    }
+  },
+  "source_findings": [
+    {
+      "check": "New-output containment and dry-run default",
+      "result": "PASS_SOURCE_REVIEW",
+      "detail": "Existing output, dangling or ancestor symlinks, input overlap, baseline/dist path components, unsafe patch paths and wrong full hashes fail before new output. Copies/builds/temp files/raw records are directed into a new output folder. Default mode does not invoke native qualification."
+    },
+    {
+      "check": "Input immutability and exact fixed oracles",
+      "result": "PASS_SOURCE_REVIEW",
+      "detail": "Inputs are snapshotted before/after. Both allowed nets are pinned by full SHA256 and use independently fixed five-depth values. Unknown net hashes are rejected; references are never learned from a produced engine."
+    },
+    {
+      "check": "Queue isolation and necessary repair selection",
+      "result": "PASS_SOURCE_REVIEW",
+      "detail": "Every queued patch starts from a separate fresh copied input tree/net. Original -F0 dry-run and bytes are retained first; only a demonstrated original failure permits a separately hash-pinned repair. Successful originals are applied unchanged. The sole supplied rebase was separately reviewed as CMake-context-only."
+    },
+    {
+      "check": "Actual CTest failure closure",
+      "result": "PASS_SOURCE_REVIEW",
+      "detail": "Full CTest requires exactly the original forge_tests failed target and exact FAIL-line multiset matching independently observed standalone-test allowance. Unexpected sanitizer diagnostics are rejected."
+    },
+    {
+      "check": "Capture integrity and pin comparison",
+      "result": "PASS_SOURCE_REVIEW",
+      "detail": "Subprocess commands wait for completion and retain original byte streams in base64 with byte counts and SHA256. Pinned S01 helper must close three observations cleanly. Final v3 compares full queued OFF move/score/depth/PV signatures and exact FAIL multiset to the independent base stage."
+    },
+    {
+      "check": "Frozen-v2 to final-v3 native equivalence scope",
+      "result": "PASS_READ_ONLY_DIFF",
+      "detail": "Diff adds only pure pin-signature comparison and summary functions, signature recording, post-stage equality gate and printed numeric summaries. Build flags, native commands, fixed references, copy/patch logic, bench/perft/FMA and CTest invocations are unchanged. Revalidating exact closed v2 evidence with the final pure functions is adequate for the added gate; it is not a native v3 matrix rerun."
+    },
+    {
+      "check": "Read-only postcheck",
+      "result": "PASS_SOURCE_REVIEW",
+      "detail": "Validates exact controller captured stdout transport; binds each manifest SHA to original closed-run reply; verifies SHA256SUMS inside that output before trusting result/pin files; checks planned stage list, three exact capture cases, clean exits and EOF; applies final exact base/OFF pin and FAIL multiset comparison. It writes no original evidence."
+    },
+    {
+      "check": "Retained fixture evidence",
+      "result": "OBSERVED_LOGS_NOT_RERUN",
+      "detail": "Latest log records 27 tests OK. Two-test RED retains missing old manifest/capture guard failures. Separate pin-drift RED/GREEN retained. Reviewer did not execute these tests."
+    }
+  ],
+  "material_issues": [],
+  "resolved_preexisting_review_points": [
+    "Exact actual CTest FAIL-line equality and sanitizer diagnostic rejection are present.",
+    "Queued OFF pins cannot redefine their own known-failure allowlist.",
+    "Postcheck verifies original manifest identity and complete pin capture before trusting data."
+  ],
+  "unverified": [
+    "A full native v3 matrix was not executed; frozen-v2 native execution plus final-v3 exact read-only postvalidation is the verified scope.",
+    "Windows, PC adoption, sanitizer qualification and speed or Elo gain are outside this delivery."
+  ],
+  "next_action": "Publish the final independently hashed delivery and verify immutable remote links. Keep native-v2 and postguard-v3 scopes explicit; the candidate net is observational and is not adopted.",
+  "previous_receipt_sha256": "733533c5ae6027cecbb433bc9fbaadfc14c70eb1a5c3a274661e2bbc1c6627db",
+  "native_closure_review": {
+    "scope": "Independent read-only decoding, hashing and consistency audit of closed original records; no native subprocesses or test reruns by reviewer.",
+    "controller_sha256": "b7d1b62565eff32dabdca9a0dd9415a1d67e1a878faf3fcf21cdbd6b8c23244b",
+    "postcheck_sha256": "f1407f798650df1cb4ef182c55b5b0adf936cf68fa840fa52be2460a66d3d0cf",
+    "manifest_file_hashes_independently_verified": 3048,
+    "raw_command_records_independently_decoded": 209,
+    "raw_streams_independently_verified": 627,
+    "original_input_files_independently_unchanged": 151,
+    "four_cases_status": "PASS",
+    "ten_stages_status": "PASS_OBSERVATIONAL_NOT_ADOPTED",
+    "summary": [
+      {
+        "case": "L_lock",
+        "stage": "base",
+        "off": [
+          308972,
+          745494,
+          2460422,
+          11901452,
+          31111774
+        ],
+        "on": null,
+        "perft": [
+          4865609,
+          193690690
+        ],
+        "fma": [
+          0,
+          0
+        ],
+        "known_fail_count": 4,
+        "pc_precheck_depth": null,
+        "engine_sha256": "e3df99cddb609d9f00168d8df3187fdf6943c10812dd5c4f82206895e594367b",
+        "net_sha256": "74c4009d86b7d3a5ae9e6119d0890e5b923508f4063161bb4bc1539aab275b1b",
+        "pin_scores": {
+          "WAC001": 661,
+          "promotion_white": 642,
+          "promotion_black": 642
+        },
+        "used_repair": null
+      },
+      {
+        "case": "B_lock",
+        "stage": "base",
+        "off": [
+          308972,
+          745494,
+          2460422,
+          11901452,
+          31111774
+        ],
+        "on": null,
+        "perft": [
+          4865609,
+          193690690
+        ],
+        "fma": [
+          0,
+          0
+        ],
+        "known_fail_count": 4,
+        "pc_precheck_depth": null,
+        "engine_sha256": "55fa7e81768452bf62e5c9fa748d88353e37fbec50492077e70d30f14fc7d406",
+        "net_sha256": "74c4009d86b7d3a5ae9e6119d0890e5b923508f4063161bb4bc1539aab275b1b",
+        "pin_scores": {
+          "WAC001": 661,
+          "promotion_white": 642,
+          "promotion_black": 642
+        },
+        "used_repair": null
+      },
+      {
+        "case": "L_f006",
+        "stage": "base",
+        "off": [
+          328459,
+          945640,
+          3024381,
+          9162399,
+          20421972
+        ],
+        "on": null,
+        "perft": [
+          4865609,
+          193690690
+        ],
+        "fma": [
+          0,
+          0
+        ],
+        "known_fail_count": 4,
+        "pc_precheck_depth": null,
+        "engine_sha256": "668b8483e349d8c11a36bf0ad95cebdcd657aa24cac5739b09981e50f93066f4",
+        "net_sha256": "0fdf9bdb6bdf4c9f1622bcef29921912acb139fdf388e541b017a948118d4661",
+        "pin_scores": {
+          "WAC001": 629,
+          "promotion_white": 686,
+          "promotion_black": 686
+        },
+        "used_repair": null
+      },
+      {
+        "case": "L_f006",
+        "stage": "P23b",
+        "off": [
+          328459,
+          945640,
+          3024381,
+          9162399,
+          20421972
+        ],
+        "on": [
+          330817,
+          894651,
+          2957682,
+          13763680,
+          24703864
+        ],
+        "perft": [
+          4865609,
+          193690690
+        ],
+        "fma": [
+          0,
+          0
+        ],
+        "known_fail_count": 4,
+        "pc_precheck_depth": 11,
+        "engine_sha256": "8bc18596c1f2f52029c035d2c0c0554e9aba0e4cdb72b31fc4c2d36447c64d99",
+        "net_sha256": "0fdf9bdb6bdf4c9f1622bcef29921912acb139fdf388e541b017a948118d4661",
+        "pin_scores": {
+          "WAC001": 629,
+          "promotion_white": 686,
+          "promotion_black": 686
+        },
+        "used_repair": false
+      },
+      {
+        "case": "L_f006",
+        "stage": "P27R",
+        "off": [
+          328459,
+          945640,
+          3024381,
+          9162399,
+          20421972
+        ],
+        "on": [
+          325245,
+          967224,
+          3037089,
+          13395897,
+          20211191
+        ],
+        "perft": [
+          4865609,
+          193690690
+        ],
+        "fma": [
+          0,
+          0
+        ],
+        "known_fail_count": 4,
+        "pc_precheck_depth": 11,
+        "engine_sha256": "c060437d2a2670fb962e15ced94ed0c172cd9df13d1176467d57994d19828408",
+        "net_sha256": "0fdf9bdb6bdf4c9f1622bcef29921912acb139fdf388e541b017a948118d4661",
+        "pin_scores": {
+          "WAC001": 629,
+          "promotion_white": 686,
+          "promotion_black": 686
+        },
+        "used_repair": false
+      },
+      {
+        "case": "L_f006",
+        "stage": "timepack4",
+        "off": [
+          328459,
+          945640,
+          3024381,
+          9162399,
+          20421972
+        ],
+        "on": [
+          328459,
+          945640,
+          3024381,
+          9162399,
+          20421972
+        ],
+        "perft": [
+          4865609,
+          193690690
+        ],
+        "fma": [
+          0,
+          0
+        ],
+        "known_fail_count": 4,
+        "pc_precheck_depth": null,
+        "engine_sha256": "b81e3b37a583b404695701f92dc73d63ffc06d89985bf96de2de64d22cf5ab9a",
+        "net_sha256": "0fdf9bdb6bdf4c9f1622bcef29921912acb139fdf388e541b017a948118d4661",
+        "pin_scores": {
+          "WAC001": 629,
+          "promotion_white": 686,
+          "promotion_black": 686
+        },
+        "used_repair": false
+      },
+      {
+        "case": "B_f006",
+        "stage": "base",
+        "off": [
+          328459,
+          945640,
+          3024381,
+          9162399,
+          20421972
+        ],
+        "on": null,
+        "perft": [
+          4865609,
+          193690690
+        ],
+        "fma": [
+          0,
+          0
+        ],
+        "known_fail_count": 4,
+        "pc_precheck_depth": null,
+        "engine_sha256": "e8682b8407e1a76d4b927d63273103ec27635148d6f0b1c460b65ef97a2ddd83",
+        "net_sha256": "0fdf9bdb6bdf4c9f1622bcef29921912acb139fdf388e541b017a948118d4661",
+        "pin_scores": {
+          "WAC001": 629,
+          "promotion_white": 686,
+          "promotion_black": 686
+        },
+        "used_repair": null
+      },
+      {
+        "case": "B_f006",
+        "stage": "P23b",
+        "off": [
+          328459,
+          945640,
+          3024381,
+          9162399,
+          20421972
+        ],
+        "on": [
+          330817,
+          894651,
+          2957682,
+          13763680,
+          24703864
+        ],
+        "perft": [
+          4865609,
+          193690690
+        ],
+        "fma": [
+          0,
+          0
+        ],
+        "known_fail_count": 4,
+        "pc_precheck_depth": 11,
+        "engine_sha256": "72047800ab781703d9cf2b7b9b87d7354414195465381140a5f856553cb3471c",
+        "net_sha256": "0fdf9bdb6bdf4c9f1622bcef29921912acb139fdf388e541b017a948118d4661",
+        "pin_scores": {
+          "WAC001": 629,
+          "promotion_white": 686,
+          "promotion_black": 686
+        },
+        "used_repair": false
+      },
+      {
+        "case": "B_f006",
+        "stage": "P27R",
+        "off": [
+          328459,
+          945640,
+          3024381,
+          9162399,
+          20421972
+        ],
+        "on": [
+          325245,
+          967224,
+          3037089,
+          13395897,
+          20211191
+        ],
+        "perft": [
+          4865609,
+          193690690
+        ],
+        "fma": [
+          0,
+          0
+        ],
+        "known_fail_count": 4,
+        "pc_precheck_depth": 11,
+        "engine_sha256": "b7e3fa79bd53d065a5ce3a16b9c9fade73a48fab9dbf09e8beebd9e480049314",
+        "net_sha256": "0fdf9bdb6bdf4c9f1622bcef29921912acb139fdf388e541b017a948118d4661",
+        "pin_scores": {
+          "WAC001": 629,
+          "promotion_white": 686,
+          "promotion_black": 686
+        },
+        "used_repair": false
+      },
+      {
+        "case": "B_f006",
+        "stage": "timepack4",
+        "off": [
+          328459,
+          945640,
+          3024381,
+          9162399,
+          20421972
+        ],
+        "on": [
+          328459,
+          945640,
+          3024381,
+          9162399,
+          20421972
+        ],
+        "perft": [
+          4865609,
+          193690690
+        ],
+        "fma": [
+          0,
+          0
+        ],
+        "known_fail_count": 4,
+        "pc_precheck_depth": null,
+        "engine_sha256": "18a53264874875412e02134c698a46a716613472617b9803a221f5c253fb4738",
+        "net_sha256": "0fdf9bdb6bdf4c9f1622bcef29921912acb139fdf388e541b017a948118d4661",
+        "pin_scores": {
+          "WAC001": 629,
+          "promotion_white": 686,
+          "promotion_black": 686
+        },
+        "used_repair": true
+      }
+    ]
+  }
+}
