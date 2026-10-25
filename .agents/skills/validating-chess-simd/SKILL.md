@@ -43,6 +43,18 @@ do not report that bookkeeping failure as an engine or sanitizer failure.
 
 State each checker's accepted ISA, width and symbol scope, and retain its exact result: a 256-bit-only FAIL remains FAIL for an AVX512 build. Report separate ISA-appropriate emitted-code/numerical evidence; never relabel that FAIL as AVX512 PASS.
 
+When a frozen correct build fails a bounded emission-pattern check, inspect its
+actual disassembly before changing engine arithmetic. Carry a proven full-YMM
+zero through supported unmasked same-width `vmovaps`/`vmovups` register copies;
+invalidate knowledge on alias writes, calls and branches. Unsupported memory,
+masked or narrower patterns remain fail-closed. Retain positive compiler-pattern
+fixtures and unknown-source, clobber and control-flow negatives. Report the
+whole-executable FMA count separately from the scoped NNUE checker result.
+
+CTest fixture directories need a `try`/`finally` cleanup lifetime that preserves
+the test exit on success and failure. Keep explicitly requested output persistent;
+verify both temporary-parent emptiness and retained explicit-output evidence.
+
 For a float-locked reference, approximate/int16 inference requires explicit research authorization and its own OFF-default option. An advertised option is insufficient: require the actual active-backend acknowledgement and reject float fallback before attributing ON results.
 
 For that authorized approximate path, use the [actual-core parity driver](../../../tools/nnue_int16_parity.cpp) on at least 100,000 unique legal positions with an explicit uniqueness key; report mean/max/p99 absolute cp error, strict sign flips/zero crossings, preregistered limits, and accumulator/per-worker memory cost including OFF mode. Numerical PASS is not bit-exactness, speed or strength acceptance.
