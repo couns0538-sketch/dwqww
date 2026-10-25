@@ -1,5 +1,9 @@
 # Current baseline
 
+## 2026-10-25 A/C/D final checkpoint
+
+A exact-int32 correctness qualification passes but advisory ratios0.975968/0.929814 fall below+1%; dropped, no adoption. C guarded known-failure relabel passes14/14+8negative controls on both bases; original expectations intact. D stdlib offline filter passes21tests+actualv3bCPU3steps (loss0.029621); real013/014 and binary game isolation remain UNVERIFIED. Accepted engine source untouched. [Combined report](../releases/forge_sol_jobACD_20261025/forge_sol_jobACD_report_20261025.md), [recoverable state](../validation/forge_sol_jobACD_20261025/forge_sol_jobACD_checkpoint_20261025.json).
+
 ## 2026-10-25 ordered Windows/PGO qualification checkpoint
 
 Publication verified at artifact commit `fed8263813ada5d0f5e4857d058eaa35b9bb8c22`: nine actual immutable public downloads equal Git bytes; downloaded ZIP CRC/all351 payload SHA256 checks pass. [Public receipt](../validation/forge_sol_20261025/forge_sol_public_delivery_readback_20261025.json).

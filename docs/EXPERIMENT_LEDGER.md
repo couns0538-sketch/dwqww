@@ -1,5 +1,9 @@
 # Experiment ledger
 
+## 2026-10-25 A/C/D final checkpoint
+
+Completed ordered A/C/D independently on forge/sol-jobACD-20261025. A all5bothbasesOFF/ON/perft/FMA0/1Mexact parity pass; negative advisory drop retained. C tests-only55+/7- patch retains expectations,14/14 fullharness+8negative controls pass. D OFF200000kept, threshold300157666kept/42334drop; suppliedstandinoverlap0/dups0; nativev3bRAM/mmap157666fields match, CPU3steps0.029621. No speed/Elo/training gain claim. [Combined report](../releases/forge_sol_jobACD_20261025/forge_sol_jobACD_report_20261025.md), [recoverable state](../validation/forge_sol_jobACD_20261025/forge_sol_jobACD_checkpoint_20261025.json).
+
 ## 20261025 — exact Windows int16 qualification tools and pure compiler PGO
 
 Baseline lockf4911f2; accepted parentb425207a and buffer30e703e/int160741024 preserved. Verified new handoff86 manifest rows/73 original source files. Exact nine PC compiler flags recovered; no source/network tuning. Native Windows/MSYS2 unavailable; API/package attempts403 saved, no fabricated EXEs.

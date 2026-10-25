@@ -251,3 +251,5 @@ Stockfish are external testing tools and are not bundled.
 ## Sol Job ACD idea sources — 20261025
 
 User-supplied H256 fixed-grid numeric review and AVX2 instruction semantics informed the original exact-int32 inference experiment. Existing sources and parameters are preserved; no other engine code or tuned constants were imported. The dated JobA report preserves all bounds, qualification and below-threshold advisory evidence.
+
+JobC uses the user-supplied behavior-specific known-failure relabel idea; JobD uses the supplied FPOS/FHCE format and conservative ordered-text grouping idea. Original implementation/tests only; no external engine code or tuned parameters. Source links, hashes and separate decisions are in releases/forge_sol_jobACD_20261025/forge_sol_jobACD_report_20261025.md.

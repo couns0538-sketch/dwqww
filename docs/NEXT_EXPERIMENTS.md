@@ -1,5 +1,9 @@
 # Next experiments
 
+## 2026-10-25 A/C/D final checkpoint
+
+No A speed adoption or same-host retry. Review standalone Cpatch and offline Dtool. Next actualowner action supplies BOTH authoritative013/014 files plus completeorderedtext; verify output position/group audits and hashes, then independentEngineNNUE training. First-ever concurrent Board API initialization race is a separate bounded repair, with unmodified-lock nativeTSan reproducer preserved. [Combined report](../releases/forge_sol_jobACD_20261025/forge_sol_jobACD_report_20261025.md), [recoverable state](../validation/forge_sol_jobACD_20261025/forge_sol_jobACD_checkpoint_20261025.json).
+
 ## Next action after 20261025 checkpoint
 
 Do not rebuild or remeasure the completed Linux PGO screen: median0.996304920 failed the preregistered+3% threshold; raw evidence is frozen. No source/network/trainer improvement is accepted. Job3 backup was not triggered because PGO was buildable.
