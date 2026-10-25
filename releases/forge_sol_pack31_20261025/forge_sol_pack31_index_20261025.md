@@ -8,7 +8,7 @@ Execution order: S01, S02, S03, S28, S04, S05, S25, S27, S06, S07, S26, S08, S09
 |---|---|---|
 |S01|PARTIAL_ONLY_MISSING_ALTERNATE_NETS;PUBLIC17VERIFIED|Unchanged S01 publication retained at commit1f7736ffd2e1d1f84c9d8c63a7a4ff35ed1449f5.|
 |S02|DONE|All six native profiles and 84 immutable public files verified.|
-|S03|IN_PROGRESS|Full lock70 checks pass; B/mutant and CTest validation in progress.|
+|S03|DONE|Both bases:65 fixed comparisons+5 validated PV rows; real defect caught;16 immutable public files verified.|
 |S04|NOT_STARTED|See ordered checkpoint.|
 |S05|NOT_STARTED|See ordered checkpoint.|
 |S06|NOT_STARTED|See ordered checkpoint.|
@@ -33,7 +33,7 @@ Execution order: S01, S02, S03, S28, S04, S05, S25, S27, S06, S07, S26, S08, S09
 |S25|NOT_STARTED|See ordered checkpoint.|
 |S26|NOT_STARTED|See ordered checkpoint.|
 |S27|NOT_STARTED|See ordered checkpoint.|
-|S28|HIGH_PRIORITY_AFTER_S03|See ordered checkpoint.|
+|S28|IN_PROGRESS_HIGH|Next: transition kit and independent queued-patch OFF/ON compatibility on proposed f006, current lock unchanged.|
 |S29|NOT_STARTED|See ordered checkpoint.|
 |S30|NOT_STARTED|See ordered checkpoint.|
 |S31|NOT_STARTED|See ordered checkpoint.|
@@ -155,3 +155,24 @@ Commit `1f7736ffd2e1d1f84c9d8c63a7a4ff35ed1449f5`; PARTIAL only because exact th
 |forge_sol_S01_rerecord_pins_20261025.py|`d64465edb75a69e517e153f394e570766a4debcfedcb5417376bf94cb0c097c6`|[raw](https://raw.githubusercontent.com/couns0538-sketch/dwqww/1f7736ffd2e1d1f84c9d8c63a7a4ff35ed1449f5/releases/forge_sol_pack24_20261025/S01/forge_sol_S01_rerecord_pins_20261025.py)|
 |forge_sol_S01_rerecord_pins_20261025.sh|`4afbc80fec689300763347f781308425650f5d98bacd44117994e7d3c9d9227f`|[raw](https://raw.githubusercontent.com/couns0538-sketch/dwqww/1f7736ffd2e1d1f84c9d8c63a7a4ff35ed1449f5/releases/forge_sol_pack24_20261025/S01/forge_sol_S01_rerecord_pins_20261025.sh)|
 |forge_sol_S01_review_20261025.md|`40f6084932fa82a68628b58a0e446e526340239b5f1e2258fe3dbf561cb2b1a4`|[raw](https://raw.githubusercontent.com/couns0538-sketch/dwqww/1f7736ffd2e1d1f84c9d8c63a7a4ff35ed1449f5/releases/forge_sol_pack24_20261025/S01/forge_sol_S01_review_20261025.md)|
+
+## S03 published artifacts
+
+Artifact commit: `a57839e55d3c2d2cc7578369c9e09cc7be21b62c`.
+
+- [forge_sol_S03_B_results_20261025.json](https://raw.githubusercontent.com/couns0538-sketch/dwqww/a57839e55d3c2d2cc7578369c9e09cc7be21b62c/releases/forge_sol_pack31_20261025/S03/forge_sol_S03_B_results_20261025.json) — SHA256 `d062c6f06782414e77ea952b1ab491b41190248cbac6783baeb7f597b4996e73`
+- [forge_sol_S03_L_results_20261025.json](https://raw.githubusercontent.com/couns0538-sketch/dwqww/a57839e55d3c2d2cc7578369c9e09cc7be21b62c/releases/forge_sol_pack31_20261025/S03/forge_sol_S03_L_results_20261025.json) — SHA256 `ea9c53ec69587e3e3999542231f9e12a70e6ea87d136361830d9541b478d42dc`
+- [forge_sol_S03_SHA256SUMS_20261025.txt](https://raw.githubusercontent.com/couns0538-sketch/dwqww/a57839e55d3c2d2cc7578369c9e09cc7be21b62c/releases/forge_sol_pack31_20261025/S03/forge_sol_S03_SHA256SUMS_20261025.txt) — SHA256 `ec8cbd1c8c67e040e3d010266f5874b6a40d6e2a20d776f9681f42af41f41528`
+- [forge_sol_S03_checkpoint_20261025.json](https://raw.githubusercontent.com/couns0538-sketch/dwqww/a57839e55d3c2d2cc7578369c9e09cc7be21b62c/releases/forge_sol_pack31_20261025/S03/forge_sol_S03_checkpoint_20261025.json) — SHA256 `bc9e765d396f2d6be6504ca292f55f57922cf2a48fc28279cfd9c197d203507a`
+- [forge_sol_S03_cmake_results_20261025.json](https://raw.githubusercontent.com/couns0538-sketch/dwqww/a57839e55d3c2d2cc7578369c9e09cc7be21b62c/releases/forge_sol_pack31_20261025/S03/forge_sol_S03_cmake_results_20261025.json) — SHA256 `4c701c0ee91306b43b51ba02ca0ed723e69a58bada6ffd36ac6bb3fa3b11eb18`
+- [forge_sol_S03_default_results_20261025.json](https://raw.githubusercontent.com/couns0538-sketch/dwqww/a57839e55d3c2d2cc7578369c9e09cc7be21b62c/releases/forge_sol_pack31_20261025/S03/forge_sol_S03_default_results_20261025.json) — SHA256 `cb7c7383afca60dcac633761047bc00d1c5db1716bed7bde10842aec84d3377c`
+- [forge_sol_S03_diffstat_20261025.txt](https://raw.githubusercontent.com/couns0538-sketch/dwqww/a57839e55d3c2d2cc7578369c9e09cc7be21b62c/releases/forge_sol_pack31_20261025/S03/forge_sol_S03_diffstat_20261025.txt) — SHA256 `59e90403e08989cd250df9b39177e14b9c5986c150c596f4338a93230b5ff321`
+- [forge_sol_S03_fixedrefs_20261025.patch](https://raw.githubusercontent.com/couns0538-sketch/dwqww/a57839e55d3c2d2cc7578369c9e09cc7be21b62c/releases/forge_sol_pack31_20261025/S03/forge_sol_S03_fixedrefs_20261025.patch) — SHA256 `96a2b1bb4bd7bf4bb9ed15e35d024e79f99349feca5b7b6abd6f1c8f73dc1ca7`
+- [forge_sol_S03_fixedrefs_20261025.py](https://raw.githubusercontent.com/couns0538-sketch/dwqww/a57839e55d3c2d2cc7578369c9e09cc7be21b62c/releases/forge_sol_pack31_20261025/S03/forge_sol_S03_fixedrefs_20261025.py) — SHA256 `b914d91e742f8836c9f09f2be6fbb287aede307c2e1743a1bafb81a6450c9081`
+- [forge_sol_S03_fixedrefs_20261025.sh](https://raw.githubusercontent.com/couns0538-sketch/dwqww/a57839e55d3c2d2cc7578369c9e09cc7be21b62c/releases/forge_sol_pack31_20261025/S03/forge_sol_S03_fixedrefs_20261025.sh) — SHA256 `39454fe4a8d451e3d4e8cf3b1947a106fbd3aef4e9f0c4e5c4952cd330d4a880`
+- [forge_sol_S03_mutant_result_20261025.json](https://raw.githubusercontent.com/couns0538-sketch/dwqww/a57839e55d3c2d2cc7578369c9e09cc7be21b62c/releases/forge_sol_pack31_20261025/S03/forge_sol_S03_mutant_result_20261025.json) — SHA256 `8aa58a958b44b7924716ec8ca2ee781915e80302665979fe1d4bf800fab41554`
+- [forge_sol_S03_oracle_20261025.json](https://raw.githubusercontent.com/couns0538-sketch/dwqww/a57839e55d3c2d2cc7578369c9e09cc7be21b62c/releases/forge_sol_pack31_20261025/S03/forge_sol_S03_oracle_20261025.json) — SHA256 `d7f9e1d9f93b38565378bb272d41e3a298dcfd8b85dd1d0622fdaecf4a0fb93a`
+- [forge_sol_S03_patch_results_20261025.json](https://raw.githubusercontent.com/couns0538-sketch/dwqww/a57839e55d3c2d2cc7578369c9e09cc7be21b62c/releases/forge_sol_pack31_20261025/S03/forge_sol_S03_patch_results_20261025.json) — SHA256 `d2f6d03f49c351ef5c53c642c47816d5f986e02a038f80072df0c3e7efc187e1`
+- [forge_sol_S03_raw_evidence_20261025.json](https://raw.githubusercontent.com/couns0538-sketch/dwqww/a57839e55d3c2d2cc7578369c9e09cc7be21b62c/releases/forge_sol_pack31_20261025/S03/forge_sol_S03_raw_evidence_20261025.json) — SHA256 `93e68f2da9a275acbd5a9f523db08f27dfaa1198eb4919fe1b68cbacd1a95b0a`
+- [forge_sol_S03_report_20261025.md](https://raw.githubusercontent.com/couns0538-sketch/dwqww/a57839e55d3c2d2cc7578369c9e09cc7be21b62c/releases/forge_sol_pack31_20261025/S03/forge_sol_S03_report_20261025.md) — SHA256 `8cef04bc8aeed07faa482f2271f9a9f99bae2e2efc0360f2ab5d10856e56ae39`
+- [forge_sol_S03_review_20261025.json](https://raw.githubusercontent.com/couns0538-sketch/dwqww/a57839e55d3c2d2cc7578369c9e09cc7be21b62c/releases/forge_sol_pack31_20261025/S03/forge_sol_S03_review_20261025.json) — SHA256 `7206a1caf844710c35c524231489d37cd6bbf1ab7678cab3af0182d498465cb5`
