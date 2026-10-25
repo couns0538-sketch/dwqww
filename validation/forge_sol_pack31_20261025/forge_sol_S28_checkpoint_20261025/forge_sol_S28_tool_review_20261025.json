@@ -1,0 +1,113 @@
+{
+  "date": "2026-10-25",
+  "job": "S28",
+  "status": "PASS_NO_MATERIAL_SOURCE_ISSUE_NATIVE_CLOSURE_PENDING",
+  "scope": "Independent read-only source and retained-evidence review; no builds, engine runs, timing, patch applications, tests or Git writes by reviewer.",
+  "artifacts": {
+    "S28/forge_sol_S28_lock_transition_20261025.py": {
+      "sha256": "421b156ea48dfbaa5ff0e6b219baa6b4e3e3102b705d0c181144413e8cd39db3",
+      "bytes": 24100
+    },
+    "S28/forge_sol_S28_lock_transition_20261025.sh": {
+      "sha256": "8d6bc4f1e8f455a6839c5e3316bf96f37c392739e4b04f377ba90a1b154de159",
+      "bytes": 173
+    },
+    "S28/forge_sol_S28_lock_transition_tests_20261025.py": {
+      "sha256": "5d630c3ae771c7b6b37818cd54393d403f80bb5ed2bd5cbde9bf5e2c45faec48",
+      "bytes": 14420
+    },
+    "S28/forge_sol_S28_native_pin_postcheck_20261025.py": {
+      "sha256": "a091b30611829ddb8319b5d47e6bb2dea7cdb1b1e3042db6df2d7ac6aee15f08",
+      "bytes": 5555
+    },
+    "S28/forge_sol_S28_lock_transition_guide_20261025.md": {
+      "sha256": "a2d217b278a817aa400179b33581eef246f740ca44b8e9e58324c20e298e49dc",
+      "bytes": 7551
+    },
+    "S28/forge_sol_S28_native_toolfreeze_v2_20261025/forge_sol_S28_lock_transition_20261025.py": {
+      "sha256": "7530b90a4e5dcb2cfdd49f4fc186cabd78b193a8523700dc50637038c7543c7d",
+      "bytes": 22798
+    },
+    "S28/forge_sol_S28_native_toolfreeze_v2_20261025/forge_sol_S28_lock_transition_20261025.sh": {
+      "sha256": "8d6bc4f1e8f455a6839c5e3316bf96f37c392739e4b04f377ba90a1b154de159",
+      "bytes": 173
+    },
+    "S28/forge_sol_S28_tool_tests_v3_postcheck_20261025.txt": {
+      "sha256": "43dad958115877b47eef85710b445df51d0c0666c055d96cb42c46f6a8219bf7",
+      "bytes": 3434
+    },
+    "S28/forge_sol_S28_postcheck_guard_red_20261025.txt": {
+      "sha256": "f2273f67aed3375d007eb52c55e4b50793c42a78318d5d7216bd932c4f3fa58f",
+      "bytes": 1419
+    },
+    "S28/forge_sol_S28_pin_guard_red_20261025.txt": {
+      "sha256": "97c747b5e5ca2015cc3f0375d8386e34e2f8c7c2c671156fce78000be25ae165",
+      "bytes": 4208
+    },
+    "S28/forge_sol_S28_pin_guard_green_20261025.txt": {
+      "sha256": "42bb86f44828946aa3d1c1e8b658eda6241db50d9cf23ef271ab0f50a0a6fdc3",
+      "bytes": 2939
+    },
+    "S28/forge_sol_S28_native_queue_20261025.json": {
+      "sha256": "701a08ad30ef75f9e63aa899b726ff7e75fa78cba37f24fb10888dea850f0fbf",
+      "bytes": 1231
+    },
+    "S28/forge_sol_S28_rebase_e48f006_timepack4_20261025.patch": {
+      "sha256": "791f432b6c82f76e478c25bee98a0439e2c91a42abb662fbeeafc24e8b6638c9",
+      "bytes": 12511
+    }
+  },
+  "source_findings": [
+    {
+      "check": "New-output containment and dry-run default",
+      "result": "PASS_SOURCE_REVIEW",
+      "detail": "Existing output, dangling or ancestor symlinks, input overlap, baseline/dist path components, unsafe patch paths and wrong full hashes fail before new output. Copies/builds/temp files/raw records are directed into a new output folder. Default mode does not invoke native qualification."
+    },
+    {
+      "check": "Input immutability and exact fixed oracles",
+      "result": "PASS_SOURCE_REVIEW",
+      "detail": "Inputs are snapshotted before/after. Both allowed nets are pinned by full SHA256 and use independently fixed five-depth values. Unknown net hashes are rejected; references are never learned from a produced engine."
+    },
+    {
+      "check": "Queue isolation and necessary repair selection",
+      "result": "PASS_SOURCE_REVIEW",
+      "detail": "Every queued patch starts from a separate fresh copied input tree/net. Original -F0 dry-run and bytes are retained first; only a demonstrated original failure permits a separately hash-pinned repair. Successful originals are applied unchanged. The sole supplied rebase was separately reviewed as CMake-context-only."
+    },
+    {
+      "check": "Actual CTest failure closure",
+      "result": "PASS_SOURCE_REVIEW",
+      "detail": "Full CTest requires exactly the original forge_tests failed target and exact FAIL-line multiset matching independently observed standalone-test allowance. Unexpected sanitizer diagnostics are rejected."
+    },
+    {
+      "check": "Capture integrity and pin comparison",
+      "result": "PASS_SOURCE_REVIEW",
+      "detail": "Subprocess commands wait for completion and retain original byte streams in base64 with byte counts and SHA256. Pinned S01 helper must close three observations cleanly. Final v3 compares full queued OFF move/score/depth/PV signatures and exact FAIL multiset to the independent base stage."
+    },
+    {
+      "check": "Frozen-v2 to final-v3 native equivalence scope",
+      "result": "PASS_READ_ONLY_DIFF",
+      "detail": "Diff adds only pure pin-signature comparison and summary functions, signature recording, post-stage equality gate and printed numeric summaries. Build flags, native commands, fixed references, copy/patch logic, bench/perft/FMA and CTest invocations are unchanged. Revalidating exact closed v2 evidence with the final pure functions is adequate for the added gate; it is not a native v3 matrix rerun."
+    },
+    {
+      "check": "Read-only postcheck",
+      "result": "PASS_SOURCE_REVIEW",
+      "detail": "Validates exact controller captured stdout transport; binds each manifest SHA to original closed-run reply; verifies SHA256SUMS inside that output before trusting result/pin files; checks planned stage list, three exact capture cases, clean exits and EOF; applies final exact base/OFF pin and FAIL multiset comparison. It writes no original evidence."
+    },
+    {
+      "check": "Retained fixture evidence",
+      "result": "OBSERVED_LOGS_NOT_RERUN",
+      "detail": "Latest log records 27 tests OK. Two-test RED retains missing old manifest/capture guard failures. Separate pin-drift RED/GREEN retained. Reviewer did not execute these tests."
+    }
+  ],
+  "material_issues": [],
+  "resolved_preexisting_review_points": [
+    "Exact actual CTest FAIL-line equality and sanitizer diagnostic rejection are present.",
+    "Queued OFF pins cannot redefine their own known-failure allowlist.",
+    "Postcheck verifies original manifest identity and complete pin capture before trusting data."
+  ],
+  "unverified": [
+    "Four-case native matrix completion and final postcheck execution were still pending at review time.",
+    "Windows results, adoption, performance and playing-strength gain are outside this source review."
+  ],
+  "next_action": "After the native controller closes, retain a successful final postcheck bound to the exact final tool SHA, controller SHA and original manifest SHAs. Report frozen-v2 native execution and final-v3 read-only postvalidation separately."
+}
