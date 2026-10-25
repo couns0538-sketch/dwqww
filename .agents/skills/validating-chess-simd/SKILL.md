@@ -30,6 +30,8 @@ source/header closure and flags for every reused object; record each flavour.
 
 Before any native action that reuses cached products, preflight the complete
 selected set: engines, libraries, object members, support executables and recipes.
+Derive support target names from frozen generated CMake/CTest registrations and
+matching exact-path archive records, not remembered names or source filenames.
 Inventory every archive-generation map and resolve exact original paths, with
 matching full SHA256 and byte counts across duplicate records. Never-archived
 live products need their own frozen build receipt. Verify the selected live
