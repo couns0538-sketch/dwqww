@@ -1,0 +1,254 @@
+{
+  "status": "PASS_QUALIFIED_HISTORICAL_BASE_RED_SOURCE_INHERITANCE",
+  "date": "2026-10-25",
+  "observed_UTC": "2026-10-25T18:02:08.697138+00:00",
+  "scope": "Read-only audit of retained evidence and exact supplied source identities. No fresh execution of the compiler, engine, native probe, controller or Git; no source/cache edits. This inherits one historical RED control, not a new current-tree run.",
+  "native_execution_by_this_audit": false,
+  "source_or_cache_mutations": false,
+  "historical_RED": {
+    "receipt": "/workspace/forge-pack24-20261025/S04/forge_sol_S04_base_red_20261025/forge_sol_S04_red_result_20261025.json",
+    "receipt_sha256": "845f330bcd425264986959e08abf98f99a0ece1e8ce3b1e86d488647c0b964c3",
+    "saved_status": "RED_ACTUAL_LOCK_RACE",
+    "build_exit": 0,
+    "actual_exit": 66,
+    "build_argv": [
+      "g++",
+      "-std=c++20",
+      "-O1",
+      "-g1",
+      "-DNDEBUG",
+      "-DFORGE_NNUE_HIDDEN=256",
+      "-ffp-contract=off",
+      "-fno-fast-math",
+      "-fsanitize=thread",
+      "-fno-omit-frame-pointer",
+      "-pthread",
+      "-I/workspace/forge-pack24-20261025/S04/forge_sol_S04_L_source_20261025/include",
+      "/workspace/forge-pack24-20261025/S04/forge_sol_S04_L_source_20261025/src/bitboard.cpp",
+      "/workspace/forge-pack24-20261025/S04/forge_sol_S04_L_source_20261025/src/board.cpp",
+      "/workspace/forge-pack24-20261025/S04/forge_sol_S04_tsan_test_20261025.cpp",
+      "-o",
+      "/workspace/forge-pack24-20261025/S04/forge_sol_S04_base_red_20261025/forge_sol_S04_base_cold_20261025"
+    ],
+    "run_argv": [
+      "/workspace/forge-pack24-20261025/S04/forge_sol_S04_base_red_20261025/forge_sol_S04_base_cold_20261025"
+    ],
+    "TSAN_OPTIONS": "halt_on_error=1:exitcode=66",
+    "feature_macro": "UNDEFINED; unpatched initialization",
+    "flags_caution": "This original direct TSan probe did not use -march=x86-64-v3 or -mtune=znver5 and is not one of the CMake profile executables.",
+    "probe_path": "/workspace/forge-pack24-20261025/S04/forge_sol_S04_base_red_20261025/forge_sol_S04_base_cold_20261025",
+    "recorded_and_current_probe_sha256": "04c05ed72801c36f6e3b16a8b876f96420c9aaa3fc592eb2fa3c3f47f8896237",
+    "probe_bytes": 229240,
+    "test_source_path": "/workspace/forge-pack24-20261025/S04/forge_sol_S04_tsan_test_20261025.cpp",
+    "recorded_and_current_test_sha256": "24d2fb04cd1982a592f7ed36cdaa348d3a75cfc7a9ecb00a712265f93881ab88",
+    "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "stderr_sha256": "6d3dd7fd28c10d3b5c269e26c35951316f3bc70cede77649c83228261dfe9961",
+    "stderr_bytes": 4248,
+    "actual_race": "Read size 1 T3 versus prior write size 1 T1 at unpatched attacks::init bool lines 114/115; both stacks through Board::Board line175 and gated test worker line34. PID61760, BuildId8562a5366c0b0796f654449f82d37ca5089ecc8d.",
+    "raw_diagnostics": "Three preceding ThreadSanitizer:DEADLYSIGNAL lines are preserved. Full race WARNING and SUMMARY follow. Not an unexpected-memory-mapping-only startup failure.",
+    "test_semantics": "Eight barrier-synchronized workers construct the first Boards after the gate; main makes no Board or attacks::init call. Each worker checks startpos perft3=8902, restored FEN and kiwipete perft2=2039.",
+    "runner_path": "/workspace/forge-pack24-20261025/S04/forge_sol_S04_base_red_20261025.py",
+    "runner_sha256": "4add74e99251ccbc2c58104adb651c94a508c0be70657ec339121a15b70ac9b8"
+  },
+  "closed_raw_evidence": {
+    "bundle_path": "/workspace/forge-pack24-20261025/S04/forge_sol_S04_delivery_20261025/forge_sol_S04_raw_evidence_20261025.json",
+    "bundle_sha256": "b8790df38dbc22e92d03ee9e9f2e9927d37e2ec6b1ebb4978d4a86897c08a2e6",
+    "verified_original_base64_bytes_and_current_files": [
+      {
+        "path": "/workspace/forge-pack24-20261025/S04/forge_sol_S04_base_red_20261025.py",
+        "sha256": "4add74e99251ccbc2c58104adb651c94a508c0be70657ec339121a15b70ac9b8",
+        "bytes": 2116
+      },
+      {
+        "path": "/workspace/forge-pack24-20261025/S04/forge_sol_S04_base_red_20261025/forge_sol_S04_build_20261025.stderr",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "bytes": 0
+      },
+      {
+        "path": "/workspace/forge-pack24-20261025/S04/forge_sol_S04_base_red_20261025/forge_sol_S04_build_20261025.stdout",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "bytes": 0
+      },
+      {
+        "path": "/workspace/forge-pack24-20261025/S04/forge_sol_S04_base_red_20261025/forge_sol_S04_red_result_20261025.json",
+        "sha256": "845f330bcd425264986959e08abf98f99a0ece1e8ce3b1e86d488647c0b964c3",
+        "bytes": 1552
+      },
+      {
+        "path": "/workspace/forge-pack24-20261025/S04/forge_sol_S04_base_red_20261025/forge_sol_S04_run_20261025.stderr",
+        "sha256": "6d3dd7fd28c10d3b5c269e26c35951316f3bc70cede77649c83228261dfe9961",
+        "bytes": 4248
+      },
+      {
+        "path": "/workspace/forge-pack24-20261025/S04/forge_sol_S04_base_red_20261025/forge_sol_S04_run_20261025.stdout",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "bytes": 0
+      },
+      {
+        "path": "/workspace/forge-pack24-20261025/S04/forge_sol_S04_base_red_controller_20261025.stderr",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "bytes": 0
+      },
+      {
+        "path": "/workspace/forge-pack24-20261025/S04/forge_sol_S04_base_red_controller_20261025.stdout",
+        "sha256": "49443de406d0ba9a6e62f4e5a5de1dfc07c294e063fc730dc8446fbfd1b99d7e",
+        "bytes": 29
+      }
+    ]
+  },
+  "authority_original_inputs": {
+    "manifest_path": "/workspace/forge-pack24-20261025/forge_sol_jobpack_24jobs_20261025/files/SHA256SUMS_20261025.txt",
+    "manifest_sha256": "def246b995d9449f7de26be16a52803aae215f09e52f4603414c9501ff932793",
+    "all_relevant_manifest_rows_rehashed": true,
+    "old_original_metadata_path": "/workspace/forge-pack24-20261025/S04/forge_sol_S04_original_metadata_20261025.json",
+    "old_original_metadata_sha256": "30f85f22e9be75c92ae8372c05674a5e56aba671e544ea3574dc9e395f358cee",
+    "old_source_path_caution": "Historical named S04 L/B source paths now contain the patched bitboard cd929a..., so path equality was not used. Original 3af5ffa... is verified from RED receipt, saved original-metadata bytes, unchanged provided originals and both current unpatched roots."
+  },
+  "current_source_bindings": [
+    {
+      "base": "Lp",
+      "unpatched_current_root": "/workspace/forge-pack24-20261025/new_handoff_1435/selected/forge_handoff_full_20261025_1435/files/01c_lockderived_jobC_S01/forge_h256_e12_lockderived_jobC_S01_src",
+      "status": "PASS_EXACT_RELEVANT_SOURCE_IDENTITY_WITH_INDIRECT_HEADER_PROVENANCE",
+      "closure": [
+        {
+          "path": "src/bitboard.cpp",
+          "current_raw_sha256": "3af5ffa7a79d149990f0aa2248b7f9093184f582672ba5da086edf58d9138989",
+          "provided_original_manifest_sha256": "3af5ffa7a79d149990f0aa2248b7f9093184f582672ba5da086edf58d9138989",
+          "S00_preexisting_snapshot_sha256": "3af5ffa7a79d149990f0aa2248b7f9093184f582672ba5da086edf58d9138989",
+          "RED_direct_sha256": "3af5ffa7a79d149990f0aa2248b7f9093184f582672ba5da086edf58d9138989",
+          "local_quoted_includes": [
+            "forge/bitboard.hpp"
+          ],
+          "matches": true
+        },
+        {
+          "path": "src/board.cpp",
+          "current_raw_sha256": "ad3290611e5f88d95b8fd0f674370eadc17e0c529902fba3e92ac48ac46ed239",
+          "provided_original_manifest_sha256": "ad3290611e5f88d95b8fd0f674370eadc17e0c529902fba3e92ac48ac46ed239",
+          "S00_preexisting_snapshot_sha256": "ad3290611e5f88d95b8fd0f674370eadc17e0c529902fba3e92ac48ac46ed239",
+          "RED_direct_sha256": "ad3290611e5f88d95b8fd0f674370eadc17e0c529902fba3e92ac48ac46ed239",
+          "local_quoted_includes": [
+            "forge/board.hpp"
+          ],
+          "matches": true
+        },
+        {
+          "path": "include/forge/bitboard.hpp",
+          "current_raw_sha256": "9d6a023d2f42ebbff9b5e85c92cd467299d8e0189249cb287d117663b4ff2bba",
+          "provided_original_manifest_sha256": "9d6a023d2f42ebbff9b5e85c92cd467299d8e0189249cb287d117663b4ff2bba",
+          "S00_preexisting_snapshot_sha256": "9d6a023d2f42ebbff9b5e85c92cd467299d8e0189249cb287d117663b4ff2bba",
+          "RED_direct_sha256": null,
+          "local_quoted_includes": [],
+          "matches": true
+        },
+        {
+          "path": "include/forge/board.hpp",
+          "current_raw_sha256": "5b42d3557730edc65f795a097e45d18a3cb621d56bdfa8b379773bb496204c77",
+          "provided_original_manifest_sha256": "5b42d3557730edc65f795a097e45d18a3cb621d56bdfa8b379773bb496204c77",
+          "S00_preexisting_snapshot_sha256": "5b42d3557730edc65f795a097e45d18a3cb621d56bdfa8b379773bb496204c77",
+          "RED_direct_sha256": null,
+          "local_quoted_includes": [
+            "forge/bitboard.hpp"
+          ],
+          "matches": true
+        }
+      ],
+      "new_candidate_test_path": "/workspace/forge-pack24-20261025/S04_v2/forge_sol_S04_patchwork_retry_v2_20261025/forge_sol_S04_new_Lp_v2_20261025/tests/forge_sol_S04_tsan_test_20261025.cpp",
+      "new_candidate_test_sha256": "24d2fb04cd1982a592f7ed36cdaa348d3a75cfc7a9ecb00a712265f93881ab88",
+      "same_test_as_RED": true,
+      "prior_S00_source_snapshot": {
+        "path": "/workspace/forge-pack24-20261025/forge_sol_S00_L_release_20261025/forge_sol_S00_native_receipt_20261025.json",
+        "sha256": "3eb6d8f5899ca47588c48476a5487b779312121a4d260ba375b67399b74fe990",
+        "started_utc": "2026-10-25T09:00:54.220126+00:00"
+      },
+      "historical_S04_later_header_snapshot": {
+        "path": "/workspace/forge-pack24-20261025/S04/forge_sol_S04_L_release_OFF_20261025/forge_sol_S04_native_receipt_20261025.json",
+        "sha256": "22714ac1ef8a92cb4c57ccac394b3979d64ce70019ceeffb368ff8aeecc284a3"
+      }
+    },
+    {
+      "base": "B",
+      "unpatched_current_root": "/workspace/forge-pack24-20261025/new_handoff_1435/selected/forge_handoff_full_20261025_1435/files/01b_base_h256_e12_buffix/forge_h256_e12_buffix_jobC_S01_src",
+      "status": "PASS_EXACT_RELEVANT_SOURCE_IDENTITY_WITH_INDIRECT_HEADER_PROVENANCE",
+      "closure": [
+        {
+          "path": "src/bitboard.cpp",
+          "current_raw_sha256": "3af5ffa7a79d149990f0aa2248b7f9093184f582672ba5da086edf58d9138989",
+          "provided_original_manifest_sha256": "3af5ffa7a79d149990f0aa2248b7f9093184f582672ba5da086edf58d9138989",
+          "S00_preexisting_snapshot_sha256": "3af5ffa7a79d149990f0aa2248b7f9093184f582672ba5da086edf58d9138989",
+          "RED_direct_sha256": "3af5ffa7a79d149990f0aa2248b7f9093184f582672ba5da086edf58d9138989",
+          "local_quoted_includes": [
+            "forge/bitboard.hpp"
+          ],
+          "matches": true
+        },
+        {
+          "path": "src/board.cpp",
+          "current_raw_sha256": "ad3290611e5f88d95b8fd0f674370eadc17e0c529902fba3e92ac48ac46ed239",
+          "provided_original_manifest_sha256": "ad3290611e5f88d95b8fd0f674370eadc17e0c529902fba3e92ac48ac46ed239",
+          "S00_preexisting_snapshot_sha256": "ad3290611e5f88d95b8fd0f674370eadc17e0c529902fba3e92ac48ac46ed239",
+          "RED_direct_sha256": "ad3290611e5f88d95b8fd0f674370eadc17e0c529902fba3e92ac48ac46ed239",
+          "local_quoted_includes": [
+            "forge/board.hpp"
+          ],
+          "matches": true
+        },
+        {
+          "path": "include/forge/bitboard.hpp",
+          "current_raw_sha256": "9d6a023d2f42ebbff9b5e85c92cd467299d8e0189249cb287d117663b4ff2bba",
+          "provided_original_manifest_sha256": "9d6a023d2f42ebbff9b5e85c92cd467299d8e0189249cb287d117663b4ff2bba",
+          "S00_preexisting_snapshot_sha256": "9d6a023d2f42ebbff9b5e85c92cd467299d8e0189249cb287d117663b4ff2bba",
+          "RED_direct_sha256": null,
+          "local_quoted_includes": [],
+          "matches": true
+        },
+        {
+          "path": "include/forge/board.hpp",
+          "current_raw_sha256": "5b42d3557730edc65f795a097e45d18a3cb621d56bdfa8b379773bb496204c77",
+          "provided_original_manifest_sha256": "5b42d3557730edc65f795a097e45d18a3cb621d56bdfa8b379773bb496204c77",
+          "S00_preexisting_snapshot_sha256": "5b42d3557730edc65f795a097e45d18a3cb621d56bdfa8b379773bb496204c77",
+          "RED_direct_sha256": null,
+          "local_quoted_includes": [
+            "forge/bitboard.hpp"
+          ],
+          "matches": true
+        }
+      ],
+      "new_candidate_test_path": "/workspace/forge-pack24-20261025/S04_v2/forge_sol_S04_patchwork_retry_v2_20261025/forge_sol_S04_new_B_v2_20261025/tests/forge_sol_S04_tsan_test_20261025.cpp",
+      "new_candidate_test_sha256": "24d2fb04cd1982a592f7ed36cdaa348d3a75cfc7a9ecb00a712265f93881ab88",
+      "same_test_as_RED": true,
+      "prior_S00_source_snapshot": {
+        "path": "/workspace/forge-pack24-20261025/forge_sol_S00_B_release_20261025/forge_sol_S00_native_receipt_20261025.json",
+        "sha256": "1261ccaf99e514ffd5ac11d1341190f65855bd542b4edd53fac8b2a82cd19dee",
+        "started_utc": "2026-10-25T09:00:55.425435+00:00"
+      },
+      "historical_S04_later_header_snapshot": {
+        "path": "/workspace/forge-pack24-20261025/S04/forge_sol_S04_B_release_OFF_20261025/forge_sol_S04_native_receipt_20261025.json",
+        "sha256": "44c6ca7005594f8d17a18fdc277e7d3712c122602d60ea6cf6f26e1f53172217"
+      }
+    }
+  ],
+  "header_closure_evidence": {
+    "local_non_system_headers": [
+      "include/forge/board.hpp",
+      "include/forge/bitboard.hpp"
+    ],
+    "quoted_include_scan": "The two production TUs and test include only these two project headers; bitboard.hpp has no quoted include. System standard library headers are outside this source-identity audit.",
+    "status": "PASS_INDIRECT_PROVIDED_MANIFEST_PLUS_PREEXISTING_AND_LATER_SNAPSHOTS",
+    "direct_RED_receipt_header_hashes": "UNVERIFIED: omitted by the original RED runner. Current headers match unchanged supplied originals, prior S00 snapshots and later S04 source snapshots; do not describe them as directly frozen in the RED receipt."
+  },
+  "inheritance_limits": [
+    "The historical native exit66/race is retained actual evidence; exact relevant current source/test identity supports reusing this one RED control without rerunning.",
+    "Header identity is triangulated from supplied original manifest and before/after source snapshots, not a missing direct RED hash or compiler dependency manifest.",
+    "Full compiler executable/version, system-header/library hashes and complete inherited environment were not frozen in the RED receipt: UNVERIFIED. TSAN_OPTIONS override and build/run argv are recorded.",
+    "The original RED runner recorded its three source hashes after execution, not an immutable pre-build complete tree snapshot. No new claim of such a snapshot is made.",
+    "No claim that every schedule fails, the whole engine is race free, that new CMake executables are byte-identical to this standalone probe, or that current OFF is fixed. ON1000 evidence is a separate test.",
+    "B search/buffer and current tests.cpp changes lie outside this direct Board/bitboard two-TU probe. No search/TT/evaluation or Elo conclusion."
+  ],
+  "previous_scope_audit": {
+    "path": "/workspace/forge-pack24-20261025/S04_v2/forge_sol_S04_controller_scope_audit_v2_20261025.json",
+    "before_sha256": "ac65d42ff5bc2c8aa56c8ac277504dfdd372131d32ca513c2981b41b7634ea5c",
+    "after_sha256": "ac65d42ff5bc2c8aa56c8ac277504dfdd372131d32ca513c2981b41b7634ea5c",
+    "unchanged": true
+  }
+}
