@@ -2,7 +2,7 @@
 
 ## Verified continuation — 2026-10-25
 
-Finish S28 v2 required fixes: current known-failure/pin helper support, lock-agnostic trusted refs, release/expose hash labels and timepack idea provenance. The user supplied the authoritative eleven-point checklist and CAP-LATE additions; implement those directly. Live PC evidence remains UNVERIFIED. Continue S04 v2 and S05 fixes after validated/published S28 work.
+Continue S04 v2 current L-prime/B native qualification under acd_c_d_recon’s exclusive CPU lease. As of 2026-10-25T17:55:17.809340+00:00, L-prime Release OFF/ON and ASan OFF are closed PASS (3/8); L-prime ASan ON is running and must not be duplicated. Preserve the closed source checkpoint, current merged tests and explicit reused-product provenance. Do not repeat the completed original 1000-cold-process investigation. After all required current profiles close, review, seal, publish and verify immutable downloads; then do S05 fix-ups, S25 current-tree requalification and S27 in the saved order. S28 v2 is already published/download-verified at `4381d35e257f23e1f0e0a01cf700bbbae222c534`; do not reopen it. Live PC evidence remains UNVERIFIED, accepted h256_e12 unchanged, speed/Elo UNPROVEN.
 
 ## Resume 15:10 — 2026-10-25
 

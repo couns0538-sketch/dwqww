@@ -1,0 +1,5 @@
+# S04 v2 closed checkpoint, 20261025
+
+Observed 2026-10-25T17:55:17.809340+00:00. Three of eight current profiles are closed: L-prime Release OFF/ON and ASan OFF, CTest 14/14, 15/15 and 14/14, KNOWN=4 and no new failure. This explicitly generated metadata snapshot binds three original closed receipts and is not represented as a raw producer aggregate. Later native results are outside this fixed snapshot. Its earlier helper-lookup failure is preserved separately. L-prime ASan ON is active under acd_c_d_recon; none of its partial files are copied here. The other current profiles are pending.
+
+Main/core/unchanged support are qualified reused products with explicit source, per-target flags and archive-member identity. Current merged tests are freshly compiled; ON cold TSan target is newly built. Historical standalone 1000-process evidence is inherited through exact source/probe identity, not rerun. The original eight-profile qualification is a separate historical result. The earlier closed helper-lookup failure is preserved separately; prior parser/controller receipt stays in the local native archive. No all-target fresh rebuild, speed, Elo or lock-adoption claim.

@@ -1,8 +1,14 @@
 # Experiment ledger
 
+## S28 v2 publication / S04 v2 continuation — 2026-10-25
+
+S28 v2 artifact commit `4381d35e257f23e1f0e0a01cf700bbbae222c534` is verified: 36 HTTP/SHA/Git-byte artifact readbacks plus 4 supporting files, six current native profiles and explicit remaining unverified scopes. No AUTOLOCK, speed or Elo acceptance. S04 v2 patch `b425157e6e9521a544e3612f3c32c3955bb1fd3195735692975d5a6d6d89590b` repairs Git headers/context; C++/CMake/test bytes match the original candidate on all three bases, with the same IDEA paragraph safely relocated. At 2026-10-25T17:55:17.809340+00:00, current L-prime Release OFF/ON and ASan OFF pass full 14/14, 15/15 and 14/14 CTest with KNOWN=4; 3/8 profiles complete. L-prime ASan ON is active under acd_c_d_recon. Main/core/support reuse and historical 1000-cold inheritance are explicit; current merged tests are compiled fresh. The closed first metadata-producer and controller failures are retained. No active partial output was copied.
+
+Seventh closed-cache recovery metadata records 145771276 physical raw bytes and 116506602 reclaimed bytes across 32 hardlink groups; gzip payloads are LOCAL ONLY. Source, logs, main/helper ELFs and evidence are retained. [Current checkpoint](../validation/forge_sol_pack31_20261025/forge_sol_S00_checkpoint_20261025.json).
+
 ## S02 v2 native qualification — 2026-10-25
 
-Patch `cc1d5823edbf285aab5311f40b22cd515e42d6f9872e24002a3cd237d5f217d9` fixes the empty-name warning, Git patch headers and adds a separate gate-option precheck. All six current L-prime/B profiles passed; OFF main hashes remain canonical, ON fixed references/perfts/FMA pass. Current ASan tests were rebuilt against verified unchanged cores/helpers. Fifteen precheck fixtures and actual clean/typo/warning-disabled controls pass. Full source/evidence review passed; final release publication verification remains pending. No speed or Elo claim.
+Patch `cc1d5823edbf285aab5311f40b22cd515e42d6f9872e24002a3cd237d5f217d9` fixes the empty-name warning, Git patch headers and adds a separate gate-option precheck. All six current L-prime/B profiles passed; OFF main hashes remain canonical, ON fixed references/perfts/FMA pass. Current ASan tests were rebuilt against verified unchanged cores/helpers. Fifteen precheck fixtures and actual clean/typo/warning-disabled controls pass. Full source/evidence review passed; all 16 S02 v2 files and the separate 3-file source-hash addendum are now publication-verified. No speed or Elo claim.
 
 ## Resume 15:10 — 2026-10-25
 

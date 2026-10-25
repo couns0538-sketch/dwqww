@@ -28,6 +28,17 @@ private/public CMake definitions and complete compile flags before assuming a
 frontend switch also affects its core library. Cache reuse requires matching
 source/header closure and flags for every reused object; record each flavour.
 
+Before any native action that reuses cached products, preflight the complete
+selected set: engines, libraries, object members, support executables and recipes.
+Inventory every archive-generation map and resolve exact original paths, with
+matching full SHA256 and byte counts across duplicate records. Never-archived
+live products need their own frozen build receipt. Verify the selected live
+bytes, or both compressed and decoded archive identities, before proceeding.
+An unresolved or conflicting identity blocks the observer; a partial map list
+or a matching basename is insufficient provenance. Preserve completed engine
+passes when a lookup fails, repair the inventory and resume only pending gates;
+do not report that bookkeeping failure as an engine or sanitizer failure.
+
 State each checker's accepted ISA, width and symbol scope, and retain its exact result: a 256-bit-only FAIL remains FAIL for an AVX512 build. Report separate ISA-appropriate emitted-code/numerical evidence; never relabel that FAIL as AVX512 PASS.
 
 For a float-locked reference, approximate/int16 inference requires explicit research authorization and its own OFF-default option. An advertised option is insufficient: require the actual active-backend acknowledgement and reject float fallback before attributing ON results.
