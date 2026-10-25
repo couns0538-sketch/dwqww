@@ -1,0 +1,630 @@
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index 915039a49a27e92db4fdec95e38f70b1679156ed..3d6dfb8eac0cdc61333c6a69e47d436b45a185bf 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -114,5 +114,25 @@ if(Python3_Interpreter_FOUND)
+                 $<TARGET_FILE:forge>)
+     add_test(NAME ownbook_regression
+         COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tools/ownbook_regression.py
+                 $<TARGET_FILE:forge> ${CMAKE_CURRENT_BINARY_DIR}/ownbook-regression.json)
+ endif()
++
++# S05 validation infrastructure: no engine definitions or runtime options.
++option(FORGE_BUILD_NNUE_VALIDATION "Build standalone float NNUE validation and scoped FMA checks" OFF)
++if(FORGE_BUILD_NNUE_VALIDATION)
++    find_package(Python3 3.10 COMPONENTS Interpreter REQUIRED)
++    add_executable(forge_sol_S05_float_parity tests/forge_sol_S05_float_parity_20261025.cpp)
++    target_link_libraries(forge_sol_S05_float_parity PRIVATE forge_core Threads::Threads)
++    add_executable(forge_sol_S05_float_threads tests/forge_sol_S05_float_threads_20261025.cpp)
++    target_link_libraries(forge_sol_S05_float_threads PRIVATE forge_core Threads::Threads)
++    add_test(NAME forge_sol_S05_float_parity COMMAND forge_sol_S05_float_parity 20000)
++    add_test(NAME forge_sol_S05_float_threads COMMAND forge_sol_S05_float_threads)
++    add_test(NAME forge_sol_S05_float_uci
++        COMMAND ${Python3_EXECUTABLE} -B ${CMAKE_CURRENT_SOURCE_DIR}/tools/forge_sol_S05_float_uci_20261025.py $<TARGET_FILE:forge>)
++    add_test(NAME forge_sol_S05_fmacheck
++        COMMAND ${Python3_EXECUTABLE} -B ${CMAKE_CURRENT_SOURCE_DIR}/tools/forge_sol_S05_fmacheck_v3_20261025.py $<TARGET_FILE:forge>)
++    add_test(NAME forge_sol_S05_fmacheck_fixtures
++        COMMAND ${Python3_EXECUTABLE} -B ${CMAKE_CURRENT_SOURCE_DIR}/tools/forge_sol_S05_fmacheck_tests_20261025.py
++            --checker ${CMAKE_CURRENT_SOURCE_DIR}/tools/forge_sol_S05_fmacheck_v3_20261025.py
++            --ctest-parent ${CMAKE_CURRENT_BINARY_DIR})
++endif()
+diff --git a/IDEA_SOURCE.md b/IDEA_SOURCE.md
+index e6fc47b569b83783eb10619c4f4205484cdceb10..322588653ccd3ddc5b8e7e6bfbfac056b2b6c595 100644
+--- a/IDEA_SOURCE.md
++++ b/IDEA_SOURCE.md
+@@ -1,6 +1,17 @@
+ # IDEA_SOURCE — fc_nnue_h256_e12_ep12_ep10base  (REAL H256 net on the locked ep10 source base; UNPROVEN)
++## S05 optional NNUE validation, 2026-10-25
++- Idea sources: supplied Forge FMA checker v2, the earlier Forge Job A standalone test designs, and the current float NNUE API/snapshot tools. All new implementation is local validation code; no other engine code or tuned constants are used.
++- One CMake switch, FORGE_BUILD_NNUE_VALIDATION, defaults OFF. It adds test targets/checks only and defines no engine macro, UCI option, counter, inference backend or arithmetic change.
++- The checker scans demangled NNUE symbol bodies, including outlined anonymous evaluation helpers. Standalone tests use the supported float API. Historical integer-backend API/option assertions remain unavailable and are not represented as tested.
++- Status: UNPROVEN. These are validation observations, with no speed, playing-strength or gate claim.
++
++
++## S05 v2 copied-zero recognition and fixture cleanup (20261025)
++
++Idea sources: the observed Windows PC lock clamp disassembly and the existing S05 fixture harness. Recognize only unmasked YMM register copies of an already proven zero, retaining the existing clobber and control-flow checks. Memory, masked and narrower copies remain unsupported. CTest fixture directories are temporary on success and failure; explicit output remains persistent. The validation switch remains OFF by default. C++/CMake and engine arithmetic are unchanged.
++
+ 
+ Forge 6.4.24 (1ab50b2d), same source as the locked ep10 tree `/workspace/forge-coder/fc_nnue_ep10_1ab50b2d` (net-a md5 da65098c…). The ONLY source change is `src/nnue_weights.inc`, replaced by Engine NNUE's own trained H256 residual net:
+ - file: /workspace/chess-tools/nnue/forge_resid/resid_h256_e12_e_ep12.inc ("run e", epoch 12)
+ - md5: 6d22f612c855e17c62d396d32da99ea4  sha256: 74c4009d86b7d3a5ae9e6119d0890e5b923508f4063161bb4bc1539aab275b1b  (size 1126753 bytes, stable)
+ - Engine NNUE reported export parity 10000/10000 exact with HID=256.
+diff --git a/tests/forge_sol_S05_float_parity_20261025.cpp b/tests/forge_sol_S05_float_parity_20261025.cpp
+new file mode 100644
+index 0000000000000000000000000000000000000000..20fd7bcdf9c0957a0e86e845746a6fbded0fae05
+--- /dev/null
++++ b/tests/forge_sol_S05_float_parity_20261025.cpp
+@@ -0,0 +1,171 @@
++// Float-API adaptation of the earlier standalone incremental/fresh test idea.
++// No optional inference backend or engine configuration is changed by this driver.
++#include "forge/board.hpp"
++#include "forge/nnue.hpp"
++
++#include <array>
++#include <bit>
++#include <cmath>
++#include <cstdint>
++#include <iostream>
++#include <random>
++#include <stdexcept>
++#include <string>
++
++namespace {
++using forge::Board;
++using forge::Move;
++using Accumulator = forge::nnue::Accumulator;
++static_assert(forge::nnue::HiddenSize == 256, "S05 qualification requires H256");
++
++struct Counts {
++    std::uint64_t positions = 0, transitions = 0, parent_checks = 0, alias_checks = 0;
++    std::uint64_t castles = 0, en_passant = 0, promotions = 0, nulls = 0;
++    std::uint64_t lane_mismatches = 0, score_mismatches = 0, state_mismatches = 0;
++} counts;
++
++void require(bool ok, const char* message) {
++    if (!ok) throw std::runtime_error(message);
++}
++
++bool same(const Accumulator& a, const Accumulator& b) {
++    if (a.valid != b.valid) return false;
++    for (std::size_t side = 0; side < a.values.size(); ++side)
++        for (std::size_t h = 0; h < a.values[side].size(); ++h)
++            if (!std::isfinite(a.values[side][h]) || !std::isfinite(b.values[side][h]) ||
++                std::bit_cast<std::uint32_t>(a.values[side][h]) !=
++                    std::bit_cast<std::uint32_t>(b.values[side][h])) return false;
++    return true;
++}
++
++void compare_fresh(const Board& board, const Accumulator& incremental) {
++    Accumulator fresh;
++    forge::nnue::refresh(board, fresh);
++    require(fresh.valid && incremental.valid, "invalid accumulator");
++    if (!same(incremental, fresh)) ++counts.lane_mismatches;
++    if (forge::nnue::evaluate(board, incremental) != forge::nnue::evaluate(board, fresh))
++        ++counts.score_mismatches;
++    ++counts.positions;
++}
++
++Accumulator updated(const Accumulator& parent, const forge::nnue::DirtyPieces& dirty) {
++    const Accumulator saved = parent;
++    Accumulator child;
++    forge::nnue::update(parent, child, dirty);
++    ++counts.parent_checks;
++    if (!same(parent, saved)) ++counts.state_mismatches;
++    Accumulator alias = parent;
++    forge::nnue::update(alias, alias, dirty);
++    ++counts.alias_checks;
++    if (!same(child, alias)) ++counts.lane_mismatches;
++    require(child.valid && alias.valid, "update did not mark accumulator valid");
++    return child;
++}
++
++void move_once(Board& board, Accumulator& current, Move move, forge::Undo& undo) {
++    const auto dirty = forge::nnue::dirty_pieces(board, move);
++    auto child = updated(current, dirty);
++    require(board.make_move(move, undo), "legal move rejected");
++    compare_fresh(board, child);
++    current = child;
++    ++counts.transitions;
++    counts.castles += move.is_castle();
++    counts.en_passant += (move.flags & forge::EnPassant) != 0U;
++    counts.promotions += move.is_promotion();
++}
++
++void null_once(Board& board, const Accumulator& current) {
++    const auto child = updated(current, forge::nnue::DirtyPieces{});
++    forge::NullUndo undo;
++    board.make_null_move(undo);
++    compare_fresh(board, child);
++    board.unmake_null_move(undo);
++    compare_fresh(board, current);
++    ++counts.nulls;
++}
++
++constexpr std::array<const char*, 10> fixtures{
++    "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
++    "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR b KQkq - 0 1",
++    "r3k2r/8/8/8/8/8/8/R3K2R w KQkq - 0 1",
++    "r3k2r/8/8/8/8/8/8/R3K2R b KQkq - 0 1",
++    "4k3/8/8/3pP3/8/8/8/4K3 w - d6 0 1",
++    "4k3/8/8/8/3Pp3/8/8/4K3 b - d3 0 1",
++    "1r2k3/P7/8/8/8/8/7p/4K3 w - - 0 1",
++    "4k3/7P/8/8/8/8/p7/1R2K3 b - - 0 1",
++    "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1",
++    "8/2p5/3p4/KP5r/1R3p1k/8/4P1P1/8 w - - 0 1"
++};
++
++void print_summary(const char* status) {
++    std::cout << "{\"status\":\"" << status << "\",\"positions\":" << counts.positions
++        << ",\"transitions\":" << counts.transitions << ",\"parent_checks\":" << counts.parent_checks
++        << ",\"alias_checks\":" << counts.alias_checks << ",\"castles\":" << counts.castles
++        << ",\"en_passant\":" << counts.en_passant << ",\"promotions\":" << counts.promotions
++        << ",\"nulls\":" << counts.nulls << ",\"lane_mismatches\":" << counts.lane_mismatches
++        << ",\"score_mismatches\":" << counts.score_mismatches
++        << ",\"state_mismatches\":" << counts.state_mismatches << "}\n";
++}
++} // namespace
++
++int main(int argc, char** argv) {
++    try {
++        require(argc <= 2, "usage: float_parity [walk_positions]");
++        std::uint64_t target = 20000;
++        if (argc == 2) {
++            const std::string argument(argv[1]);
++            require(!argument.empty() && argument.find_first_not_of("0123456789") == std::string::npos,
++                    "positions must be a positive decimal integer");
++            std::size_t consumed = 0;
++            target = std::stoull(argument, &consumed);
++            require(consumed == argument.size() && target != 0, "positions must be positive");
++        }
++        require(forge::nnue::available(), "no compiled NNUE network");
++        Board board;
++        for (const char* fen : fixtures) {
++            require(board.set_fen(fen), "fixture rejected");
++            Accumulator root;
++            forge::nnue::refresh(board, root);
++            compare_fresh(board, root);
++            for (Move move : board.legal_moves()) {
++                auto current = root;
++                forge::Undo undo;
++                move_once(board, current, move, undo);
++                board.unmake_move(move, undo);
++                compare_fresh(board, root);
++            }
++            if (!board.in_check()) null_once(board, root);
++        }
++
++        std::mt19937_64 random(20261025);
++        Accumulator current;
++        std::uint64_t reset = 0;
++        int ply = 0;
++        auto restart = [&] {
++            require(board.set_fen(fixtures[static_cast<std::size_t>(reset++ % fixtures.size())]), "walk fixture rejected");
++            forge::nnue::refresh(board, current);
++            ply = 0;
++        };
++        restart();
++        for (std::uint64_t position = 0; position < target; ++position) {
++            auto legal = board.legal_moves();
++            if (legal.empty() || ply == 160) {
++                restart();
++                legal = board.legal_moves();
++            }
++            require(!legal.empty(), "walk fixture has no legal move");
++            forge::Undo undo;
++            move_once(board, current, legal[static_cast<std::size_t>(random() % legal.size())], undo);
++            ++ply;
++            if (position % 43 == 0 && !board.in_check()) null_once(board, current);
++        }
++        require(counts.castles && counts.en_passant && counts.promotions && counts.nulls, "special-move coverage missing");
++        const bool pass = counts.lane_mismatches == 0 && counts.score_mismatches == 0 && counts.state_mismatches == 0;
++        print_summary(pass ? "PASS" : "FAIL");
++        return pass ? 0 : 1;
++    } catch (const std::exception& error) {
++        print_summary("FAIL");
++        std::cerr << error.what() << '\n';
++        return 1;
++    }
++}
+diff --git a/tests/forge_sol_S05_float_threads_20261025.cpp b/tests/forge_sol_S05_float_threads_20261025.cpp
+new file mode 100644
+index 0000000000000000000000000000000000000000..bc08f7f7d34836a106913677a1753372a7c337ad
+--- /dev/null
++++ b/tests/forge_sol_S05_float_threads_20261025.cpp
+@@ -0,0 +1,114 @@
++// Warm-initialized, private-board float NNUE workers; not a cold-init race test.
++// Reuses the earlier standalone worker-parity test idea with the current API.
++#include "forge/board.hpp"
++#include "forge/nnue.hpp"
++
++#include <array>
++#include <bit>
++#include <cmath>
++#include <cstdint>
++#include <functional>
++#include <iostream>
++#include <random>
++#include <stdexcept>
++#include <thread>
++
++namespace {
++using Accumulator = forge::nnue::Accumulator;
++static_assert(forge::nnue::HiddenSize == 256, "S05 qualification requires H256");
++constexpr int Workers = 4;
++constexpr int Transitions = 2000;
++
++struct Result {
++    std::uint64_t transitions = 0, lane_mismatches = 0, score_mismatches = 0;
++    std::uint64_t parent_mismatches = 0, alias_mismatches = 0, errors = 0;
++};
++
++bool same(const Accumulator& a, const Accumulator& b) {
++    if (a.valid != b.valid) return false;
++    for (std::size_t side = 0; side < a.values.size(); ++side)
++        for (std::size_t h = 0; h < a.values[side].size(); ++h)
++            if (!std::isfinite(a.values[side][h]) || !std::isfinite(b.values[side][h]) ||
++                std::bit_cast<std::uint32_t>(a.values[side][h]) !=
++                    std::bit_cast<std::uint32_t>(b.values[side][h])) return false;
++    return true;
++}
++
++void worker(int index, Result& result) {
++    try {
++        forge::Board board;
++        Accumulator current;
++        forge::nnue::refresh(board, current);
++        std::mt19937_64 random(20261025U + static_cast<unsigned>(index));
++        int ply = 0;
++        for (int n = 0; n < Transitions; ++n) {
++            auto legal = board.legal_moves();
++            if (legal.empty() || ply == 80) {
++                if (!board.set_fen(forge::Board::StandardStartFen)) throw std::runtime_error("worker reset failed");
++                forge::nnue::refresh(board, current);
++                legal = board.legal_moves();
++                ply = 0;
++            }
++            if (legal.empty() || !current.valid) throw std::runtime_error("invalid worker position");
++            const auto move = legal[static_cast<std::size_t>(random() % legal.size())];
++            const auto dirty = forge::nnue::dirty_pieces(board, move);
++            const auto saved = current;
++            Accumulator child;
++            forge::nnue::update(current, child, dirty);
++            if (!same(saved, current)) ++result.parent_mismatches;
++            auto alias = current;
++            forge::nnue::update(alias, alias, dirty);
++            if (!same(alias, child)) ++result.alias_mismatches;
++            forge::Undo undo;
++            if (!board.make_move(move, undo)) throw std::runtime_error("worker legal move rejected");
++            Accumulator fresh;
++            forge::nnue::refresh(board, fresh);
++            if (!fresh.valid || !child.valid) throw std::runtime_error("worker invalid accumulator");
++            if (!same(child, fresh)) ++result.lane_mismatches;
++            if (forge::nnue::evaluate(board, child) != forge::nnue::evaluate(board, fresh)) ++result.score_mismatches;
++            current = child;
++            ++result.transitions;
++            ++ply;
++        }
++    } catch (...) {
++        ++result.errors;
++    }
++}
++} // namespace
++
++int main() {
++    try {
++        if (!forge::nnue::available()) throw std::runtime_error("no compiled NNUE network");
++        // Board initialization and weight initialization finish before workers exist.
++        forge::Board controller;
++        Accumulator warmed;
++        forge::nnue::refresh(controller, warmed);
++        if (!warmed.valid || controller.legal_moves().empty()) throw std::runtime_error("serial bootstrap failed");
++        (void)forge::nnue::evaluate(controller, warmed);
++        std::array<Result, Workers> results{};
++        std::array<std::jthread, Workers> threads;
++        for (int index = 0; index < Workers; ++index)
++            threads[static_cast<std::size_t>(index)] = std::jthread(worker, index, std::ref(results[static_cast<std::size_t>(index)]));
++        for (auto& thread : threads) thread.join();
++        Result total;
++        for (const auto& result : results) {
++            total.transitions += result.transitions;
++            total.lane_mismatches += result.lane_mismatches;
++            total.score_mismatches += result.score_mismatches;
++            total.parent_mismatches += result.parent_mismatches;
++            total.alias_mismatches += result.alias_mismatches;
++            total.errors += result.errors;
++        }
++        const bool pass = total.transitions == Workers * Transitions && total.lane_mismatches == 0 &&
++            total.score_mismatches == 0 && total.parent_mismatches == 0 && total.alias_mismatches == 0 && total.errors == 0;
++        std::cout << "{\"status\":\"" << (pass ? "PASS" : "FAIL") << "\",\"workers\":" << Workers
++            << ",\"transitions\":" << total.transitions << ",\"lane_mismatches\":" << total.lane_mismatches
++            << ",\"score_mismatches\":" << total.score_mismatches
++            << ",\"parent_mismatches\":" << total.parent_mismatches
++            << ",\"alias_mismatches\":" << total.alias_mismatches << ",\"errors\":" << total.errors << "}\n";
++        return pass ? 0 : 1;
++    } catch (const std::exception& error) {
++        std::cerr << error.what() << '\n';
++        return 1;
++    }
++}
+diff --git a/tools/forge_sol_S05_float_uci_20261025.py b/tools/forge_sol_S05_float_uci_20261025.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..8a968d1337927e5036787b67b2e230efc8efbda5
+--- /dev/null
++++ b/tools/forge_sol_S05_float_uci_20261025.py
+@@ -0,0 +1,71 @@
++#!/usr/bin/env python3
++"""Exercise completed UCI searches and reset-to-reset float NNUE replay."""
++import argparse,base64,hashlib,json,queue,re,subprocess,threading,time
++
++def raw(data):return {'encoding':'base64','bytes':len(data),'sha256':hashlib.sha256(data).hexdigest(),'data':base64.b64encode(data).decode('ascii')}
++def main():
++ ap=argparse.ArgumentParser(description=__doc__);ap.add_argument('engine');args=ap.parse_args()
++ p=subprocess.Popen([args.engine],stdin=subprocess.PIPE,stdout=subprocess.PIPE,stderr=subprocess.PIPE,bufsize=0)
++ chunks={'stdout':[],'stderr':[]};events=queue.Queue();sent=[];checks={};searches=[];error=None;unclosed=None
++ def read(name):
++  for data in iter(getattr(p,name).readline,b''):
++   chunks[name].append(data)
++   if name=='stdout':events.put(data)
++  if name=='stdout':events.put(None)
++ readers=[threading.Thread(target=read,args=(name,),daemon=True) for name in chunks]
++ for t in readers:t.start()
++ def send(text):sent.append(text);p.stdin.write((text+'\n').encode());p.stdin.flush()
++ def until(predicate):
++  deadline=time.monotonic()+30;lines=[]
++  while True:
++   remain=deadline-time.monotonic()
++   if remain<=0:raise RuntimeError('protocol deadline; no process is killed')
++   try:data=events.get(timeout=remain)
++   except queue.Empty:raise RuntimeError('protocol deadline; no process is killed')
++   if data is None:raise RuntimeError('stdout closed before required protocol reply')
++   line=data.decode('utf-8','strict').rstrip('\r\n');lines.append(line)
++   if re.search(r'(?i)^(?:FAIL:|error\b|info string (?:invalid|unknown|error|.*unavailable))',line):raise RuntimeError('unexpected protocol diagnostic: '+line)
++   if predicate(line):return lines
++ def cold(label,enabled):
++  send('setoption name UseNNUE value '+('true' if enabled else 'false'))
++  send('ucinewgame');send('isready');until(lambda x:x=='readyok')
++  send('position startpos');send('go depth 4');lines=until(lambda x:x.startswith('bestmove '))
++  last=None
++  for line in lines:
++   fields=line.split()
++   if fields[:1]==['info'] and all(k in fields for k in ('depth','score','pv')):
++    at=fields.index('score')
++    if int(fields[fields.index('depth')+1])==4:
++     last={'depth':4,'score_kind':fields[at+1],'score':int(fields[at+2]),'pv':fields[fields.index('pv')+1:]}
++  move=lines[-1].split()[1]
++  legal={f'{f}2{f}{rank}' for f in 'abcdefgh' for rank in ('3','4')}|{'b1a3','b1c3','g1f3','g1h3'}
++  if last is None or last['pv'][:1]!=[move] or move not in legal:raise RuntimeError('missing complete d4 score/PV or illegal startpos bestmove')
++  last.update(bestmove=move,label=label,UseNNUE=enabled);searches.append(last)
++  return {k:last[k] for k in ('depth','score_kind','score','pv','bestmove')}
++ try:
++  send('uci');handshake=until(lambda x:x=='uciok')
++  checks['UseNNUE_advertised_default_true']=handshake.count('option name UseNNUE type check default true')==1
++  for command in ('setoption name Threads value 1','setoption name Hash value 16','setoption name OwnBook value false'):send(command)
++  first=cold('cold_nnue_a',True);cold('cold_hce',False);replay=cold('cold_nnue_b',True)
++  checks['three_completed_real_searches']=len(searches)==3
++  checks['reset_to_reset_nnue_signature']=first==replay
++  send('ucinewgame');send('position startpos');send('go perft 1')
++  lines=until(lambda x:x.startswith('nodes '));checks['perft_startpos_1']=lines[-1]=='nodes 20'
++  send('quit');p.stdin.close();p.wait(timeout=10)
++  for t in readers:t.join(timeout=2)
++  checks['exit_zero']=p.returncode==0;checks['reader_EOF']=not any(t.is_alive() for t in readers)
++  checks['stderr_empty']=not b''.join(chunks['stderr'])
++ except BaseException as exc:
++  error=type(exc).__name__+': '+str(exc)
++  try:
++   if p.poll() is None:send('stop');send('quit');p.stdin.close();p.wait(timeout=5)
++  except BaseException:unclosed=p.pid if p.poll() is None else None
++  for t in readers:t.join(timeout=1)
++ stdout=b''.join(chunks['stdout']);stderr=b''.join(chunks['stderr']);complete=not any(t.is_alive() for t in readers)
++ passed=error is None and all(checks.values()) and complete and p.returncode==0 and not stderr
++ print(json.dumps({'status':'PASS' if passed else 'FAIL','checks':checks,'searches':searches,'error':error,
++   'scope':'Three actual depth4 UCI searches, each preceded by ucinewgame; equality only between identically reset NNUE-enabled replays. No integer-backend controls or general warm/cold claim.',
++   'argv':[args.engine],'stdin':raw(('\n'.join(sent)+'\n').encode()),'stdout':raw(stdout),'stderr':raw(stderr),
++   'exit':p.returncode,'unclosed_pid':unclosed,'stream_capture_complete':complete,'child_waited':p.returncode is not None},sort_keys=True))
++ return 0 if passed else 1
++if __name__=='__main__':raise SystemExit(main())
+diff --git a/tools/forge_sol_S05_fmacheck_tests_20261025.py b/tools/forge_sol_S05_fmacheck_tests_20261025.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..95df180028daa6b5db0deaf34de7ed13571ad21c
+--- /dev/null
++++ b/tools/forge_sol_S05_fmacheck_tests_20261025.py
+@@ -0,0 +1,101 @@
++#!/usr/bin/env python3
++"""Disassembly fixtures exercise the actual checker CLI without claiming machine code."""
++import argparse,base64,hashlib,json,os
++from pathlib import Path
++import subprocess,sys,tempfile,unittest
++ap=argparse.ArgumentParser();ap.add_argument('--checker',required=True);ap.add_argument('--old-checker');ap.add_argument('--out');ap.add_argument('--ctest-parent');ap.add_argument('--old-red-only',action='store_true');args,rest=ap.parse_known_args();sys.argv=[sys.argv[0]]+rest
++if bool(args.out)==bool(args.ctest_parent):raise SystemExit('choose exactly one of --out or --ctest-parent')
++CTEST_TEMP=tempfile.TemporaryDirectory(prefix='forge_sol_S05_ctest_20261025_',dir=args.ctest_parent) if args.ctest_parent else None
++OUT=Path(CTEST_TEMP.name) if CTEST_TEMP else Path(args.out)
++if args.out:OUT.mkdir(exist_ok=False)
++PUBLIC='forge::nnue::evaluate(forge::Board const&, forge::nnue::Accumulator const&)'
++HELPER='forge::nnue::(anonymous namespace)::evaluate_values(float const*, float const*)'
++VECTORS=['vmaxps %ymm0,%ymm1,%ymm2','vminps %ymm0,%ymm1,%ymm2','vmulps %ymm0,%ymm1,%ymm2','vaddps %ymm0,%ymm1,%ymm2','ret']
++def body(name,insns,start=4096):
++ return f'{start:016x} <{name}>:\n'+''.join(f' {start+i*8:x}:\t00\t{ins}\n' for i,ins in enumerate(insns))
++def record(b):return {'encoding':'base64','data':base64.b64encode(b).decode(),'bytes':len(b),'sha256':hashlib.sha256(b).hexdigest()}
++def invoke(checker,assembly,label):
++ with tempfile.TemporaryDirectory(prefix='forge_sol_S05_fixture_20261025_',dir=OUT) as d:
++  p=Path(d);fixture=p/'forge_sol_S05_assembly_20261025.txt';fixture.write_text(assembly)
++  shim=p/'objdump';shim.write_text('#!/usr/bin/env python3\nimport os,sys\nsys.stdout.buffer.write(open(os.environ["S05_ASSEMBLY_FIXTURE"],"rb").read())\n');shim.chmod(0o700)
++  env=dict(os.environ,PATH=str(p)+os.pathsep+os.environ['PATH'],S05_ASSEMBLY_FIXTURE=str(fixture),PYTHONDONTWRITEBYTECODE='1')
++  argv=[sys.executable,'-B',checker,str(fixture)];run=subprocess.run(argv,env=env,capture_output=True)
++  receipt={'argv':argv,'exit':run.returncode,'fixture':record(assembly.encode()),'stdout':record(run.stdout),'stderr':record(run.stderr),'scope':'Synthetic disassembly fixture; not an actual executable','child_waited':True,'stream_capture_complete':True}
++  (OUT/f'forge_sol_S05_{label}_20261025.json').write_text(json.dumps(receipt,indent=2)+'\n')
++  return run
++class CheckTests(unittest.TestCase):
++ def test_pc_copied_zero_clamp_passes(self):
++  ins=['vxorps %xmm5,%xmm5,%xmm5','vmovaps %ymm5,%ymm16','vmovaps %ymm5,%ymm2','vcmpgtps %ymm2,%ymm0,%k1','vmovaps %ymm0,%ymm1{%k1}{z}']+VECTORS[1:]
++  self.assertEqual(invoke(args.checker,body(PUBLIC,ins),'fixture_pc_copied_zero').returncode,0)
++ def test_unaligned_copied_zero_clamp_passes(self):
++  ins=['vxorps %xmm5,%xmm5,%xmm5','vmovups %ymm5,%ymm2','vcmpgtps %ymm2,%ymm0,%k1','vmovaps %ymm0,%ymm1{%k1}{z}']+VECTORS[1:]
++  self.assertEqual(invoke(args.checker,body(PUBLIC,ins),'fixture_unaligned_copied_zero').returncode,0)
++ def test_unknown_copy_source_rejected(self):
++  ins=['vxorps %xmm5,%xmm5,%xmm5','vmovaps %ymm7,%ymm2','vcmpgtps %ymm2,%ymm0,%k1','vmovaps %ymm0,%ymm1{%k1}{z}']+VECTORS[1:]
++  self.assertNotEqual(invoke(args.checker,body(PUBLIC,ins),'fixture_unknown_copy_source').returncode,0)
++ def test_masked_zero_copy_rejected(self):
++  ins=['vxorps %xmm5,%xmm5,%xmm5','vmovaps %ymm5,%ymm2{%k2}','vcmpgtps %ymm2,%ymm0,%k1','vmovaps %ymm0,%ymm1{%k1}{z}']+VECTORS[1:]
++  self.assertNotEqual(invoke(args.checker,body(PUBLIC,ins),'fixture_masked_zero_copy').returncode,0)
++ def test_memory_zero_copy_rejected(self):
++  ins=['vxorps %xmm5,%xmm5,%xmm5','vmovaps (%rax),%ymm2','vcmpgtps %ymm2,%ymm0,%k1','vmovaps %ymm0,%ymm1{%k1}{z}']+VECTORS[1:]
++  self.assertNotEqual(invoke(args.checker,body(PUBLIC,ins),'fixture_memory_zero_copy').returncode,0)
++ def test_xmm_copy_does_not_prove_full_ymm_rejected(self):
++  ins=['vxorps %xmm5,%xmm5,%xmm5','vmovaps %xmm5,%xmm2','vcmpgtps %ymm2,%ymm0,%k1','vmovaps %ymm0,%ymm1{%k1}{z}']+VECTORS[1:]
++  self.assertNotEqual(invoke(args.checker,body(PUBLIC,ins),'fixture_xmm_copy').returncode,0)
++ def test_clobbered_copy_source_rejected(self):
++  ins=['vxorps %xmm5,%xmm5,%xmm5','vmovaps %ymm7,%ymm5','vmovaps %ymm5,%ymm2','vcmpgtps %ymm2,%ymm0,%k1','vmovaps %ymm0,%ymm1{%k1}{z}']+VECTORS[1:]
++  self.assertNotEqual(invoke(args.checker,body(PUBLIC,ins),'fixture_clobbered_copy_source').returncode,0)
++ def test_clobbered_copy_destination_rejected(self):
++  ins=['vxorps %xmm5,%xmm5,%xmm5','vmovaps %ymm5,%ymm2','vmovaps %ymm7,%ymm2','vcmpgtps %ymm2,%ymm0,%k1','vmovaps %ymm0,%ymm1{%k1}{z}']+VECTORS[1:]
++  self.assertNotEqual(invoke(args.checker,body(PUBLIC,ins),'fixture_clobbered_copy_destination').returncode,0)
++ def test_copy_before_call_rejected(self):
++  ins=['vxorps %xmm5,%xmm5,%xmm5','vmovaps %ymm5,%ymm2','call 3000 <helper()>','vcmpgtps %ymm2,%ymm0,%k1','vmovaps %ymm0,%ymm1{%k1}{z}']+VECTORS[1:]
++  self.assertNotEqual(invoke(args.checker,body(PUBLIC,ins),'fixture_copy_before_call').returncode,0)
++ def test_copy_before_branch_rejected(self):
++  ins=['vxorps %xmm5,%xmm5,%xmm5','vmovaps %ymm5,%ymm2','jne 3000 <other()>','vcmpgtps %ymm2,%ymm0,%k1','vmovaps %ymm0,%ymm1{%k1}{z}']+VECTORS[1:]
++  self.assertNotEqual(invoke(args.checker,body(PUBLIC,ins),'fixture_copy_before_branch').returncode,0)
++ def test_public_float_output_passes(self):self.assertEqual(invoke(args.checker,body(PUBLIC,VECTORS),'fixture_public').returncode,0)
++ def test_outlined_float_output_passes(self):self.assertEqual(invoke(args.checker,body(PUBLIC,['call 2000 <'+HELPER+'>','ret'])+body(HELPER,VECTORS,8192),'fixture_outlined').returncode,0)
++ def test_outlined_fma_rejected(self):self.assertNotEqual(invoke(args.checker,body(PUBLIC,VECTORS)+body(HELPER,['vfmadd213ps %ymm0,%ymm1,%ymm2','ret'],8192),'fixture_helper_fma').returncode,0)
++ def test_public_fma_rejected(self):self.assertNotEqual(invoke(args.checker,body(PUBLIC,VECTORS+['vfnmsub132ss %xmm0,%xmm1,%xmm2']),'fixture_public_fma').returncode,0)
++ def test_other_nnue_fma_rejected(self):self.assertNotEqual(invoke(args.checker,body(PUBLIC,VECTORS)+body('forge::nnue::refresh(forge::Board const&, forge::nnue::Accumulator&)', ['vfmsub231pd %ymm0,%ymm1,%ymm2'],8192),'fixture_refresh_fma').returncode,0)
++ def test_unrelated_fma_not_misclassified(self):self.assertEqual(invoke(args.checker,body(PUBLIC,VECTORS)+body('unrelated_function()', ['vfmadd213ps %ymm0,%ymm1,%ymm2'],8192),'fixture_unrelated_fma').returncode,0)
++ def test_symbol_name_is_not_instruction(self):self.assertEqual(invoke(args.checker,body(PUBLIC,VECTORS)+body('forge::nnue::vfmadd_name_only()', ['ret'],8192),'fixture_name_only').returncode,0)
++ def test_missing_output_contract_rejected(self):self.assertNotEqual(invoke(args.checker,body(PUBLIC,['ret']),'fixture_missing').returncode,0)
++ def test_masked_clamp_passes(self):
++  ins=['vxorps %ymm0,%ymm0,%ymm0','vcmpgtps %ymm0,%ymm1,%k1','vmovaps %ymm1,%ymm2{%k1}{z}']+VECTORS[1:]
++  self.assertEqual(invoke(args.checker,body(PUBLIC,ins),'fixture_masked').returncode,0)
++ def test_wrong_mask_polarity_rejected(self):
++  ins=['vxorps %ymm0,%ymm0,%ymm0','vcmpltps %ymm0,%ymm1,%k1','vmovaps %ymm1,%ymm2{%k1}{z}']+VECTORS[1:]
++  self.assertNotEqual(invoke(args.checker,body(PUBLIC,ins),'fixture_bad_mask').returncode,0)
++ def test_blend_nonzero_false_lanes_rejected(self):
++  ins=['vxorps %ymm0,%ymm0,%ymm0','vcmpgtps %ymm0,%ymm1,%k1','vblendmps %ymm1,%ymm7,%ymm2{%k1}']+VECTORS[1:]
++  self.assertNotEqual(invoke(args.checker,body(PUBLIC,ins),'fixture_bad_blend').returncode,0)
++ def test_stale_compared_value_rejected(self):
++  ins=['vxorps %ymm0,%ymm0,%ymm0','vcmpgtps %ymm0,%ymm1,%k1','vmovaps %ymm7,%ymm1','vmovaps %ymm1,%ymm2{%k1}{z}']+VECTORS[1:]
++  self.assertNotEqual(invoke(args.checker,body(PUBLIC,ins),'fixture_stale_value').returncode,0)
++ def test_clobbered_zero_blend_rejected(self):
++  ins=['vxorps %ymm0,%ymm0,%ymm0','vcmpgtps %ymm0,%ymm1,%k1','vmovaps %ymm7,%ymm0 # overwritten','vblendmps %ymm1,%ymm0,%ymm2{%k1}']+VECTORS[1:]
++  self.assertNotEqual(invoke(args.checker,body(PUBLIC,ins),'fixture_stale_zero').returncode,0)
++ def test_blend_proven_zero_false_lanes_passes(self):
++  ins=['vxorps %ymm0,%ymm0,%ymm0','vcmpgtps %ymm0,%ymm1,%k1','vblendmps %ymm1,%ymm0,%ymm2{%k1}']+VECTORS[1:]
++  self.assertEqual(invoke(args.checker,body(PUBLIC,ins),'fixture_good_blend').returncode,0)
++ def test_caller_clobbered_zero_before_compare_rejected(self):
++  ins=['vxorps %ymm0,%ymm0,%ymm0','call 3000 <helper()>','vcmpgtps %ymm0,%ymm1,%k1','vmovaps %ymm1,%ymm2{%k1}{z}']+VECTORS[1:]
++  self.assertNotEqual(invoke(args.checker,body(PUBLIC,ins),'fixture_call_clobber').returncode,0)
++ def test_zmm_alias_zero_clobber_rejected(self):
++  ins=['vxorps %ymm0,%ymm0,%ymm0','vmovaps %zmm7,%zmm0','vcmpgtps %ymm0,%ymm1,%k1','vmovaps %ymm1,%ymm2{%k1}{z}']+VECTORS[1:]
++  self.assertNotEqual(invoke(args.checker,body(PUBLIC,ins),'fixture_zmm_alias').returncode,0)
++ def test_zero_reestablished_after_call_passes(self):
++  ins=['call 3000 <helper()>','vxorps %ymm0,%ymm0,%ymm0','vcmpgtps %ymm0,%ymm1,%k1','vmovaps %ymm1,%ymm2{%k1}{z}']+VECTORS[1:]
++  self.assertEqual(invoke(args.checker,body(PUBLIC,ins),'fixture_call_rezero').returncode,0)
++if __name__=='__main__':
++ try:
++  if args.old_red_only:
++   if not args.old_checker:raise SystemExit('--old-checker required')
++   r=invoke(args.old_checker,body(PUBLIC,VECTORS)+body(HELPER,['vfmadd213ps %ymm0,%ymm1,%ymm2','ret'],8192),'old_false_pass')
++   print('old checker helper-FMA rejection expected; actual exit',r.returncode)
++   raise SystemExit(1 if r.returncode==0 else 2)
++  unittest.main()
++ finally:
++  if CTEST_TEMP:CTEST_TEMP.cleanup()
+diff --git a/tools/forge_sol_S05_fmacheck_v3_20261025.py b/tools/forge_sol_S05_fmacheck_v3_20261025.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..8f69793db0696d61e730cc5a022b754a6a88cd75
+--- /dev/null
++++ b/tools/forge_sol_S05_fmacheck_v3_20261025.py
+@@ -0,0 +1,91 @@
++#!/usr/bin/env python3
++"""Check NNUE rounding and 256-bit output, including outlined evaluation helpers."""
++from __future__ import annotations
++import argparse,json,re,subprocess,sys
++HEADER=re.compile(r'^\s*[0-9a-fA-F]+ <(.+)>:\s*$')
++FUSED=re.compile(r'^vf(?:n)?m(?:add|sub)[a-z0-9]*\b',re.I)
++CMP=re.compile(r'^vcmp([a-z_]*)ps\s+(?:\$(0x[0-9a-f]+|\d+),)?%ymm(\d+),%ymm(\d+),%k([0-7])$')
++ZERO=re.compile(r'^(?:vxorps|vpxor|vpxord|vpxorq)\s+%[xy]mm(\d+),%[xy]mm\1,%[xy]mm\1$')
++ZERO_COPY=re.compile(r'^vmov(?:a|u)ps\s+%ymm(\d+),%ymm(\d+)$')
++
++def instruction(line):
++    m=re.match(r'^\s*[0-9a-fA-F]+:\s+(.+)$',line)
++    if not m:return None
++    value=re.sub(r'^(?:[0-9a-fA-F]{2}\s+)+','',m.group(1))
++    return re.sub(r'^\{evex\}\s*','',value.split('#',1)[0].strip())
++
++def symbols(assembly):
++    result=[];current=None
++    for line in assembly.splitlines():
++        header=HEADER.match(line)
++        if header:
++            current={'name':header.group(1),'instructions':[]};result.append(current)
++        elif current is not None:
++            ins=instruction(line)
++            if ins:current['instructions'].append(ins)
++    return result
++
++def vector_destination(ins):
++    fields=ins.split(None,1)
++    if len(fields)!=2:return None
++    m=re.fullmatch(r'%[xyz]mm(\d+)(?:\{.*)?',fields[1].rsplit(',',1)[-1])
++    return m.group(1) if m else None
++
++def update_zeroes(known,ins):
++    dest=vector_destination(ins)
++    if dest is not None:
++        copy=ZERO_COPY.fullmatch(ins)
++        if ZERO.fullmatch(ins) or (copy and copy.group(1) in known):known.add(dest)
++        else:known.discard(dest)
++
++def mask_clamp(insns):
++    zeroes=set()
++    for index,ins in enumerate(insns):
++        if re.match(r'^(?:callq?|retq?|j[a-z]+)\b',ins):zeroes.clear()
++        match=CMP.fullmatch(ins)
++        if match:
++            pred,imm,zero,value,mask=match.groups()
++            valid_predicate=(pred in {'gt','gt_os','gt_oq','nle','nle_us','nle_uq'} and imm is None) if pred else (imm is not None and int(imm,0) in {6,14,22,30})
++            if valid_predicate and mask!='0' and zero in zeroes and value not in zeroes:
++                live_zeroes=set(zeroes)
++                for after in insns[index+1:]:
++                    if re.search(r',%k'+mask+r'$',after):break
++                    source=after.rsplit(',',1)[0]
++                    uses_value=bool(re.search(r'%ymm'+value+r'(?!\d)',source))
++                    if uses_value and '{%k'+mask+'}{z}' in after:return 'mask-zero'
++                    blend=re.fullmatch(r'vblendmps\s+%ymm(\d+),%ymm(\d+),%ymm\d+\{%k'+mask+r'\}',after)
++                    if blend and blend.group(1)==value and blend.group(2) in live_zeroes:return 'mask-blend'
++                    if vector_destination(after) in (value,zero):break
++                    if re.match(r'^(?:callq?|retq?|j[a-z]+)\b',after):break
++                    update_zeroes(live_zeroes,after)
++        update_zeroes(zeroes,ins)
++    return None
++
++def output_contract(insns):
++    for op in ('vminps','vmulps','vaddps'):
++        if not any(re.match(r'^'+op+r'\b',ins) and '%ymm' in ins for ins in insns):return None
++    if any(re.match(r'^vmaxps\b',ins) and '%ymm' in ins for ins in insns):return 'vmaxps'
++    return mask_clamp(insns)
++
++def check_assembly(assembly):
++    rows=[row for row in symbols(assembly) if row['name'].startswith('forge::nnue::')]
++    public=[row for row in rows if row['name'].startswith('forge::nnue::evaluate(')]
++    if not public:raise ValueError('public NNUE evaluate symbol not found')
++    fused=[{'symbol':row['name'],'instruction':ins} for row in rows for ins in row['instructions'] if FUSED.match(ins)]
++    if fused:raise ValueError('fused arithmetic in scoped NNUE code: '+json.dumps(fused))
++    output=[row for row in rows if re.match(r'^forge::nnue::(?:\(anonymous namespace\)::)?evaluate(?:_values)?\(',row['name'])]
++    qualified=[{'symbol':row['name'],'clamp':clamp} for row in output if (clamp:=output_contract(row['instructions']))]
++    if not qualified:raise ValueError('NNUE output lacks 256-bit clamp/min/multiply/add in public or outlined evaluate body')
++    return {'status':'PASS','checker_version':3,'fma_count':0,'scanned_symbols':[row['name'] for row in rows],
++            'qualified_output':qualified,'scope':'All demangled forge::nnue:: symbol bodies, including anonymous helpers and compiler clones'}
++
++def main():
++    p=argparse.ArgumentParser(description=__doc__);p.add_argument('object',help='NNUE object or unstripped executable');args=p.parse_args()
++    result=subprocess.run(['objdump','-d','-C','--no-show-raw-insn',args.object],stdout=subprocess.PIPE,stderr=subprocess.PIPE,check=False)
++    if result.returncode:raise ValueError('objdump failed with exit '+str(result.returncode)+': '+result.stderr.decode('utf-8','replace'))
++    print(json.dumps(check_assembly(result.stdout.decode('utf-8','strict')),sort_keys=True))
++    return 0
++if __name__=='__main__':
++    try:sys.exit(main())
++    except (ValueError,OSError) as exc:
++        print('FAIL: '+str(exc),file=sys.stderr);sys.exit(1)
