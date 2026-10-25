@@ -63,6 +63,10 @@ Keep MD5 and Git commit identities labelled separately. If a published digest is
 wrong, preserve its immutable report and issue a dated correction with the
 actual computation and before/after validation; rerun native tests only when
 the tested input identity or results are affected.
+Derive artifact counts and decoding format from the authenticated manifest and
+record schema as well. Select JSON versus JSONL and gzip/base64 layers explicitly;
+retain parser failures as observer failures and replay the correct decoder on
+the original frozen bytes before passing an audit.
 
 For source-tree normalization, declare supported text types and validate UTF-8
 without NUL bytes before translating CRLF. Hash binary and unknown files as raw
