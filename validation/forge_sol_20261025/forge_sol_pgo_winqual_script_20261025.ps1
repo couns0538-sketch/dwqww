@@ -25,8 +25,44 @@ $invariant = [Globalization.CultureInfo]::InvariantCulture
 $saved = @{}
 $identity = @{}
 $nodes = @{11=[long]308972;13=[long]745494;16=[long]2460422;20=[long]11901452;22=[long]31111774}
+$script:ownRoot = [IO.Path]::GetFullPath($PSScriptRoot)
 
 function Log([string]$Text) { $script:log.WriteLine($Text); $script:log.Flush(); Write-Host $Text }
+function Resolve-OwnOutput([string]$Path) {
+    if ([string]::IsNullOrWhiteSpace($Path)) { throw 'BAD_OUT: output path is empty' }
+    $root = [IO.Path]::GetFullPath($script:ownRoot)
+    $full = if ([IO.Path]::IsPathRooted($Path)) { [IO.Path]::GetFullPath($Path) } else { [IO.Path]::GetFullPath((Join-Path $root $Path)) }
+    $prefix = $root.TrimEnd([IO.Path]::DirectorySeparatorChar) + [IO.Path]::DirectorySeparatorChar
+    $comparison = if ([Runtime.InteropServices.RuntimeInformation]::IsOSPlatform([Runtime.InteropServices.OSPlatform]::Windows)) { [StringComparison]::OrdinalIgnoreCase } else { [StringComparison]::Ordinal }
+    if (-not $full.StartsWith($prefix,$comparison)) { throw 'BAD_OUT: output escapes the script own folder' }
+    $rootItem = Get-Item -LiteralPath $root -Force -ErrorAction Stop
+    if (-not $rootItem.PSIsContainer) { throw 'BAD_OUT: own root must be a directory' }
+    # Inspect every existing ancestor, including the own root and its parents.
+    # No directory or result file is created before this completes.
+    $cursor = $full
+    while ($null -ne $cursor) {
+        $item = $null
+        try { $item = Get-Item -LiteralPath $cursor -Force -ErrorAction Stop } catch [Management.Automation.ItemNotFoundException] { }
+        if ($null -ne $item) {
+            if (($item.Attributes -band [IO.FileAttributes]::ReparsePoint) -ne 0) { throw 'BAD_OUT: reparse point in output ancestry' }
+            if (-not $item.PSIsContainer) { throw 'BAD_OUT: output ancestor is not a directory' }
+        }
+        $parent = [IO.Directory]::GetParent($cursor)
+        $cursor = if ($null -eq $parent) { $null } else { $parent.FullName }
+    }
+    return $full
+}
+function Initialize-Result([string]$Path) {
+    $folder = Resolve-OwnOutput $Path
+    if (Test-Path -LiteralPath $folder) { throw 'BAD_OUT: output must be new; refusing evidence overwrite' }
+    [void][IO.Directory]::CreateDirectory($folder)
+    $null = Resolve-OwnOutput $folder
+    $resultPath = Join-Path $folder 'forge_sol_pgo_results_20261025.txt'
+    $stream = [IO.FileStream]::new($resultPath,[IO.FileMode]::CreateNew,[IO.FileAccess]::Write,[IO.FileShare]::Read)
+    $script:log = [IO.StreamWriter]::new($stream,[Text.UTF8Encoding]::new($false))
+    $script:runFolder = $folder
+    $script:buildFolder = Join-Path $folder 'build'
+}
 function Hash([string]$Path) { (Get-FileHash -LiteralPath $Path -Algorithm SHA256).Hash.ToLowerInvariant() }
 function Median([double[]]$Values) {
     $a = @($Values | Sort-Object); $i = [int][Math]::Floor($a.Count/2)
@@ -106,8 +142,38 @@ function Load([string]$Tag) {
         Log "LOAD tag=$Tag machine_cpu_load_percent=$($samples -join ',') allowed_cpu_indices=0,1,2,3 priority=Idle"
     } catch { throw "LOAD_UNVERIFIED tag=$Tag error=$($_.Exception.Message); no native speed verdict" }
 }
+function Assert-Disassembly($Capture,[string]$Label) {
+    if (-not $Capture.PeX64 -or $Capture.ParseError -or $Capture.UnknownFma -ne 0) { throw "BAD_DISASSEMBLY: $Label format/parser/unattributed FMA" }
+    if ($Capture.DefinedNnueFunctions.Count -eq 0) { throw "BAD_DISASSEMBLY: $Label no defined NNUE functions in COFF inventory" }
+    $apis = @{refresh=0;update=0;evaluate=0}
+    foreach ($symbol in $Capture.DefinedNnueFunctions) {
+        if (-not $Capture.Symbols.ContainsKey($symbol) -or $Capture.Symbols[$symbol].Instructions -le 0) { throw "BAD_DISASSEMBLY: $Label defined NNUE body missing: $symbol" }
+        foreach ($api in @('refresh','update','evaluate')) {
+            if ($symbol.StartsWith("forge::nnue::$api(",[StringComparison]::Ordinal)) { $apis[$api]++ }
+        }
+    }
+    foreach ($api in @('refresh','update','evaluate')) { if ($apis[$api] -eq 0) { throw "BAD_DISASSEMBLY: $Label defined/parsed NNUE API missing: $api" } }
+    $found=0; $nnueFma=[long]0; $externalFma=[long]0
+    foreach ($entry in $Capture.Symbols.GetEnumerator()) {
+        $symbol=$entry.Key; $stats=$entry.Value
+        if ($symbol.Contains('forge::nnue::')) {
+            if ($stats.Instructions -le 0 -or $stats.AllFma -ne 0) { throw "NNUE_FMA_FAIL: $Label empty/fused NNUE symbol: $symbol" }
+            $found++; $nnueFma += $stats.AllFma
+            Log "NNUE_SYMBOL build=$Label instructions=$($stats.Instructions) all_fma=$($stats.AllFma) symbol=$symbol"
+        } elseif ($stats.AllFma -gt 0) { $externalFma += $stats.AllFma }
+    }
+    if ($found -eq 0 -or $nnueFma -ne 0) { throw "NNUE_FMA_FAIL: $Label no parsed NNUE functions or fused arithmetic" }
+    Log "FMA PASS build=$Label defined_NNUE_functions=$($Capture.DefinedNnueFunctions.Count) parsed_NNUE_symbols=$found refresh=$($apis.refresh) update=$($apis.update) evaluate=$($apis.evaluate) all_nnue_fma=$nnueFma external_runtime_all_fma=$externalFma scope=emitted_named_functions_no_LTO"
+}
 
 try {
+    Initialize-Result $Out
+    Log 'STATUS RUNNING_PREFLIGHT native_measurements=UNVERIFIED'
+    foreach ($name in @('TEMP','TMP','TMPDIR','PATH','PYTHONDONTWRITEBYTECODE','FORGE_PGO_REVIEWED_ENVELOPE','FORGE_PGO_ADMISSION_DEADLINE_UNIX','PSModuleAnalysisCachePath','DOTNET_BUNDLE_EXTRACT_BASE_DIR')) {
+        $saved[$name] = [Environment]::GetEnvironmentVariable($name,'Process')
+    }
+    $env:PSModuleAnalysisCachePath = Join-Path $script:runFolder 'forge_sol_pgo_psmodule_cache_20261025.bin'
+    $env:DOTNET_BUNDLE_EXTRACT_BASE_DIR = $script:runFolder
     if ($PSVersionTable.PSVersion.Major -lt 7 -or -not $IsWindows -or -not [Environment]::Is64BitProcess) { throw 'Native 64-bit Windows PowerShell 7 required' }
     $script:sourceFolder = (Resolve-Path -LiteralPath $Source).Path
     $script:recipeFile = (Resolve-Path -LiteralPath $Recipe).Path
@@ -117,15 +183,7 @@ try {
         if (-not (Test-Path -LiteralPath $file -PathType Leaf)) { throw "Required file missing: $file" }
     }
     if ((Hash $script:recipeFile) -ne 'a5c88c838ff91b778501d913de38dc1286e1958268b78810b0483cea5306bd23') { throw 'RECOVERED_RECIPE_HASH_MISMATCH' }
-    $script:runFolder = [IO.Path]::GetFullPath($Out)
-    if (Test-Path -LiteralPath $script:runFolder) { throw 'Out must be a new directory; refusing to replace prior evidence' }
-    [void](New-Item -ItemType Directory -Path $script:runFolder)
     [void](New-Item -ItemType Directory -Path (Join-Path $script:runFolder 'tmp'))
-    $script:buildFolder = Join-Path $script:runFolder 'build'
-    $script:log = [IO.StreamWriter]::new((Join-Path $script:runFolder 'forge_sol_pgo_results_20261025.txt'),$false,[Text.UTF8Encoding]::new($false))
-    foreach ($name in @('TEMP','TMP','TMPDIR','PATH','PYTHONDONTWRITEBYTECODE','FORGE_PGO_REVIEWED_ENVELOPE','FORGE_PGO_ADMISSION_DEADLINE_UNIX')) {
-        $saved[$name] = [Environment]::GetEnvironmentVariable($name,'Process')
-    }
     foreach ($name in @('TEMP','TMP','TMPDIR')) { [Environment]::SetEnvironmentVariable($name,(Join-Path $script:runFolder 'tmp'),'Process') }
     $env:PATH = (Split-Path -Parent $Gpp) + ';' + (Split-Path -Parent $CMake) + ';' + $env:PATH
     $env:PYTHONDONTWRITEBYTECODE = '1'
@@ -161,18 +219,9 @@ try {
         if ($child.Err.Characters -ne 0 -or $matches.Count -ne 1 -or [long]$matches[0].Groups[1].Value -ne $entry[2]) { throw "PERFT_FAIL: $($entry[0])" }
         Log "PERFT PASS position=$($entry[0]) depth=5 nodes=$($entry[2])"
     }
-    $dis = Run $Objdump @('-d','-C','--no-show-raw-insn',$pgo) @() 'pgo-disassembly' $true
-    if (-not $dis.Out.PeX64 -or $dis.Out.ParseError -or $dis.Out.UnknownFma -ne 0 -or $dis.Err.Characters -ne 0) { throw 'DISASSEMBLY_SCOPE_FAILED' }
-    $found=0; $nnueFma=[long]0; $evaluateFma=[long]0; $evaluateInstructions=[long]0
-    foreach ($item in $dis.Out.Symbols.GetEnumerator()) {
-        if ($item.Key.StartsWith('forge::nnue::',[StringComparison]::Ordinal)) { $nnueFma += $item.Value.AllFma }
-        if ($item.Key.StartsWith('forge::nnue::evaluate(',[StringComparison]::Ordinal)) {
-            $found++; $evaluateFma += $item.Value.AllFma; $evaluateInstructions += $item.Value.Instructions
-            Log "FMA_SCOPE symbol=$($item.Key) instructions=$($item.Value.Instructions) all_fma=$($item.Value.AllFma)"
-        }
-    }
-    if ($found -lt 1 -or $evaluateInstructions -le 0 -or $evaluateFma -ne 0 -or $nnueFma -ne 0) { throw 'NNUE_FMA_FAIL' }
-    Log "FMA PASS evaluate_symbols=$found evaluate_fma=$evaluateFma all_nnue_fma=$nnueFma scope=actual_unstripped_PGO_executable"
+    $dis = Run $Objdump @('-d','-t','-C','--no-show-raw-insn',$pgo) @() 'pgo-disassembly' $true
+    if ($dis.Err.Characters -ne 0) { throw 'DISASSEMBLY_STDERR' }
+    Assert-Disassembly $dis.Out 'pgo'
     Log 'NATIVE_CTEST UNVERIFIED_NOT_RUN_KILL_NOTHING_CONTRACT reason=unchanged_uci_regression.py_may_process.kill_on_timeout original_tests_unchanged=true full_release_acceptance=UNVERIFIED'
     Load 'before-timing'
     $null = Bench $baseline @(20) 'baseline-warmup'
@@ -194,7 +243,11 @@ try {
     Log "SUMMARY completed_ABAB_blocks=$Blocks timed_launches=$($Blocks*4) adjacent_AB_pairs=$($Blocks*2) median_block_geometric_ratio=$(Format (Median $blockRatios)) median_adjacent_ratio=$(Format $median) block_ratios=$($blockRatios.ForEach({Format $_}) -join ',') adjacent_ratios=$($adjacentRatios.ForEach({Format $_}) -join ',') comparison_statistic=median_adjacent_ratio threshold=1.03 verdict=$verdict full_release_acceptance=UNVERIFIED native_ctest=UNVERIFIED_NOT_RUN_KILL_NOTHING_CONTRACT Elo=UNPROVEN"
     $status = 'DONE_' + $verdict
 } catch {
-    if ($null -ne $script:log) { Log "STOP UNVERIFIED $($_.Exception.Message)" } else { Write-Error $_ }
+    $status = 'UNVERIFIED'
+    $problem = $_.Exception.Message
+    try { if ($null -ne $script:log) { Log "STOP UNVERIFIED $problem" } else { Write-Host "STOP UNVERIFIED $problem" } } catch {
+        $status='UNVERIFIED_REPORT_ERROR'; Write-Host "STOP UNVERIFIED report unavailable; $problem"
+    }
 } finally {
     try {
         if ($null -ne $script:controls) {
@@ -238,3 +291,4 @@ try {
     }
 }
 if ($status -notlike 'DONE_*') { exit 1 }
+exit 0

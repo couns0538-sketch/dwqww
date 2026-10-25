@@ -58,6 +58,13 @@ files stay in its own new output folder. It never changes HOME, uses a GPU,
 contacts an external service, or stops another process. No process is killed.
 A child that does not respond to stop/quit/EOF is reported by PID and leaves
 status UNVERIFIED; no success is claimed for an incomplete job.
+The output directory must be a new child of the script's own root. Existing
+outputs, prefix escapes and reparse-point ancestors are rejected before writes.
+A new dated result TXT is created with CreateNew before OS/source/tool checks,
+so Linux or missing-tool rejection still leaves one UNVERIFIED result. Invalid
+or unwritable output paths can fail on the console alone. PowerShell module
+cache and .NET bundle extraction paths are set inside the run folder and
+restored on exit; HOME is never changed.
 
 The public Bash entry establishes Linux CPU affinity0–3 with taskset, nice19,
 and inherited soft/hard per-process RLIMIT_AS=3GiB with ulimit, then reads back
@@ -121,7 +128,10 @@ after freezing and can update only the separate runtime profile directory.
 Bench20/22 validation never enters the used training dataset.
 
 The PC script checks final startpos perft5=4865609 and kiwipete5=193690690,
-and audits actual unstripped NNUE/evaluate symbols for zero FMA. Static runtime
+and audits actual unstripped NNUE symbols for zero FMA with objdump
+`-d -t -C --no-show-raw-insn`. A nonempty defined-function COFF inventory, every
+defined NNUE body, all three refresh/update/evaluate APIs and decoded bodies
+are mandatory; absent/stripped/incomplete code cannot pass. Static runtime
 library FMA is separately outside that named scope. **Native CTest is not run**:
 the original UCI regression may kill its owned child on timeout, conflicting
 with the PC's kill-nothing contract. The native result explicitly keeps full
@@ -151,3 +161,8 @@ are UNVERIFIED. This establishes no Elo claim.
 The authoritative v3b trainer is recovered, but Job3 has not begun. Windows
 native unavailability alone is not treated as permission to abandon the valid
 Linux PGO implementation path.
+
+The native orchestrator explicitly exits0 after completed descriptive measurements
+and exits1 on failure. Focused fresh-process fixtures verified actual public
+wrapper forwarding for0/1 and reproduced the old undefined-LASTEXITCODE failure
+using the preserved pre-fix trailer; no native Windows execution is implied.

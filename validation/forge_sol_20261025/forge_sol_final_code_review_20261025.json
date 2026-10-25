@@ -1,0 +1,35 @@
+{
+  "protocol_date": "20261025",
+  "review_type": "bounded_manual_read_only_code_contract_review",
+  "reviewed_at_utc": "2026-10-25T05:52:53.135156+00:00",
+  "scope": "Material functional defects or false code-contract claims in the two PC orchestration paths, shared native controls, PGO worker, and actual-api parity helper. No Git, repository edits, compilation, engine execution, or timing runs. PowerShell semantic probe only.",
+  "files_sha256": {
+    "/workspace/forge-sol-20261025-winqual/forge_sol_int16_winqual_script_20261025.ps1": "328b061754e1c39c3b01b5aaf0e0d49c8e9f6a2e3f178634bb9c7531dc752090",
+    "/workspace/forge-sol-20261025-pgo/forge_sol_pgo_build_20261025.ps1": "e17246549aa00db4e1781e98e8cf7186cb854627bb5888df0b49cf8361bfb60a",
+    "/workspace/forge-sol-20261025-pgo/forge_sol_pgo_winqual_script_20261025.ps1": "28ae0617c10f3312d3e589462c70f094daa87adf6460e501fe7201d52cb39450",
+    "/workspace/forge-sol-20261025-pgo/forge_sol_pgo_worker_20261025.py": "1e6249ceeb76e7c10911fa1d5a889a7fb30fcf2fce70093ce90c80891a6774d7",
+    "/workspace/forge-sol-20261025-pgo/forge_sol_pgo_build_20261025.sh": "f23aac3ecaabbd86bdbc76e2d71c1addc861d321207018079c5de9e5812fe232",
+    "/workspace/forge-sol-20261025-pgo/forge_sol_pgo_native_resource_20261025.cs": "9d5444766da392f196aba233e201bd8e3b4209022bc4c41684923747424b015e",
+    "/workspace/forge-sol-20261025/forge_sol_return_20261025/forge_sol_int16_source_20261025/tools/nnue_int16_parity.cpp": "520f27c9fff3f9efc6060682fb259b072662b5448b4c653ddc5b0794daac5326"
+  },
+  "issues": [
+    {
+      "severity": "major",
+      "file": "/workspace/forge-sol-20261025-pgo/forge_sol_pgo_build_20261025.ps1",
+      "line": 20,
+      "title": "Public PGO entry references unset or stale LASTEXITCODE after successful native orchestration",
+      "evidence": "Wrapper executes the winqual PS1 through & and then exit $LASTEXITCODE. The reviewed winqual script only has exit 1 on failure and no explicit exit 0 for DONE. It spawns all external processes through C# CreateProcessW rather than PowerShell native invocation. A fresh bundled PowerShell StrictMode semantic probe showed LASTEXITCODE unset initially and still unset after a successful scriptblock without explicit exit. Thus a successful native run can end with a StrictMode variable error, or inherit a stale nonzero code.",
+      "recommended_fix": "Add explicit exit 0 to the native winqual success path, or explicitly establish a success return status in the wrapper; verify both success and failure exit propagation using synthetic stubs.",
+      "state": "reported_to_parent; no code edits by reviewer"
+    }
+  ],
+  "native_windows_execution": "UNVERIFIED; no native Windows test or approval claimed",
+  "claims_checked": [
+    "Shared Windows JobObject applies 3GiB private-commit limit, CPUs0-3, Idle and no kill-on-close; not an aggregate RSS hard cap.",
+    "43-minute new-work admission and 45-minute observation budget cannot guarantee exit of uncooperative children without kill; script reports incomplete children and UNVERIFIED.",
+    "PC native CTest is transparently not run because unchanged original UCI timeout code may kill its owned engine.",
+    "PGO baseline/generate/use maintain source/compiler/recipe identity, freeze declared training profiles before extra instrumentation gates, and retain all adjacent ABAB pair ratios.",
+    "Job1 checks manifest source hashes, exact OFF node locks, native-measured ON counts, actual-api 10k parity, FMA scope and paired native timing; native outcomes remain unverified."
+  ],
+  "review_tool_provenance": "Manual read-only reviewer. CodeRabbit not invoked: parent scope forbids Git/repo mutation and bounds this final review to five minutes. No CodeRabbit result or full native approval claimed."
+}
