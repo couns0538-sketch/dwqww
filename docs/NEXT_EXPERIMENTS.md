@@ -1,5 +1,9 @@
 # Next experiments
 
+## Verified continuation — 2026-10-25
+
+Finish S28 v2 required fixes: current known-failure/pin helper support, lock-agnostic trusted refs, release/expose hash labels and timepack idea provenance. Exact numbered11point checklist and CAP-LATE definition are missing; clarification is pending, so those specific checks stay UNVERIFIED. Continue S04 v2 and S05 fixes after validated/published S28 work.
+
 ## Resume 15:10 — 2026-10-25
 
 Next: finish S02 v2 and S03 v2 on verified L-prime/B, then S28 v2, S04 packaging/requalification, and S05 PC zero-copy recognition. S25 remains sealed; requalify later against newer trees. S23 remains dropped. No PC/GPU or lock promotion here.

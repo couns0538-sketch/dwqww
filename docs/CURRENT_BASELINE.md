@@ -1,5 +1,9 @@
 # Current baseline
 
+## Verified continuation — 2026-10-25
+
+S02 v2 and S03 v2 are published with immutable-download verification (16 and18 files). S02 report hash correction is published separately (3 files); the original report remains unchanged. S03 fresh Release identities, both70-check suites and two actual perft faults pass; new optional-suite ASan execution remains UNVERIFIED. Active work is S28 v2; accepted h256_e12 remains unchanged.
+
 ## Resume 15:10 — 2026-10-25
 
 Fresh original-script builds of L/L-prime/B passed all five fixed node references and both perfts. L-prime/B full CTest is green with exactly four explicit known failures; scoped and whole-executable FMA counts are zero. Main ELF hashes match the retained canonical e3df99cd/55fa7e81 identities. No lock or strength acceptance changed.

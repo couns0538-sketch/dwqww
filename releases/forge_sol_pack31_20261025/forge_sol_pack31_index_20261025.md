@@ -1,5 +1,40 @@
 # Forge Sol pack31 — 20261025
 
+## S03 v2 — Release qualification complete
+
+Commit `5a387c36743df1f50e944ab8d14fba89310b478e`; all18 immutable files actually downloaded, rehashed and compared with Git blobs. Four fresh Release main/test identities, two70-check suites and both actualperftmutants PASS. New optional-suite ASan execution UNVERIFIED; speed/Elo UNPROVEN.
+
+|File|SHA256|Verified raw|
+|---|---|---|
+|SHA256SUMS_20261025.txt|`e0956602d9912513bacc2c2553301e5debe371053b16fca61da67125dac5c67a`|[raw](https://raw.githubusercontent.com/couns0538-sketch/dwqww/5a387c36743df1f50e944ab8d14fba89310b478e/releases/forge_sol_pack31_20261025/S03_v2/SHA256SUMS_20261025.txt)|
+|forge_sol_S03_cli_regression_20261025.py|`f3ec0197dea9b553b016c3cb8191dd14dcadbebd40250d223938ee4f80380063`|[raw](https://raw.githubusercontent.com/couns0538-sketch/dwqww/5a387c36743df1f50e944ab8d14fba89310b478e/releases/forge_sol_pack31_20261025/S03_v2/forge_sol_S03_cli_regression_20261025.py)|
+|forge_sol_S03_cmake_validation_20261025.py|`07dff850b53cbf42ec675447ac38f6d97abd67c36de9156b5537fed58f386e35`|[raw](https://raw.githubusercontent.com/couns0538-sketch/dwqww/5a387c36743df1f50e944ab8d14fba89310b478e/releases/forge_sol_pack31_20261025/S03_v2/forge_sol_S03_cmake_validation_20261025.py)|
+|forge_sol_S03_fixedrefs_20261025.py|`321780dedced0daf267a885ac8281d01a0a5e6f3c1813a6779f88941cb038847`|[raw](https://raw.githubusercontent.com/couns0538-sketch/dwqww/5a387c36743df1f50e944ab8d14fba89310b478e/releases/forge_sol_pack31_20261025/S03_v2/forge_sol_S03_fixedrefs_20261025.py)|
+|forge_sol_S03_fixedrefs_20261025.sh|`39454fe4a8d451e3d4e8cf3b1947a106fbd3aef4e9f0c4e5c4952cd330d4a880`|[raw](https://raw.githubusercontent.com/couns0538-sketch/dwqww/5a387c36743df1f50e944ab8d14fba89310b478e/releases/forge_sol_pack31_20261025/S03_v2/forge_sol_S03_fixedrefs_20261025.sh)|
+|forge_sol_S03_fixedrefs_v2_20261025.patch|`0265586224f041140e25e7fe1a46233e0c18f155324f60d83808a8ad30ae5791`|[raw](https://raw.githubusercontent.com/couns0538-sketch/dwqww/5a387c36743df1f50e944ab8d14fba89310b478e/releases/forge_sol_pack31_20261025/S03_v2/forge_sol_S03_fixedrefs_v2_20261025.patch)|
+|forge_sol_S03_oracle_20261025.json|`d7f9e1d9f93b38565378bb272d41e3a298dcfd8b85dd1d0622fdaecf4a0fb93a`|[raw](https://raw.githubusercontent.com/couns0538-sketch/dwqww/5a387c36743df1f50e944ab8d14fba89310b478e/releases/forge_sol_pack31_20261025/S03_v2/forge_sol_S03_oracle_20261025.json)|
+|forge_sol_S03_perft_mutation_20261025.py|`dbd5485bcf34f0acd74cc348635403150e78d344d6ed91f75602003727df68db`|[raw](https://raw.githubusercontent.com/couns0538-sketch/dwqww/5a387c36743df1f50e944ab8d14fba89310b478e/releases/forge_sol_pack31_20261025/S03_v2/forge_sol_S03_perft_mutation_20261025.py)|
+|forge_sol_S03_v2_apply_results_20261025.json|`e90547e7c5b062fda55b43a4fd1a16cc0de89a3d85fda86023a9fed11bf7a6ca`|[raw](https://raw.githubusercontent.com/couns0538-sketch/dwqww/5a387c36743df1f50e944ab8d14fba89310b478e/releases/forge_sol_pack31_20261025/S03_v2/forge_sol_S03_v2_apply_results_20261025.json)|
+|forge_sol_S03_v2_checkpoint_20261025.json|`8476d0af499db398576ea7935e830645c973417505575ee49cf68eccabeb4d8c`|[raw](https://raw.githubusercontent.com/couns0538-sketch/dwqww/5a387c36743df1f50e944ab8d14fba89310b478e/releases/forge_sol_pack31_20261025/S03_v2/forge_sol_S03_v2_checkpoint_20261025.json)|
+|forge_sol_S03_v2_cli_green_result_20261025.json|`eb06afe5dc7985daa1ca0a1033e4254fd47c5ff1cc9a458732ddd17eabe169bd`|[raw](https://raw.githubusercontent.com/couns0538-sketch/dwqww/5a387c36743df1f50e944ab8d14fba89310b478e/releases/forge_sol_pack31_20261025/S03_v2/forge_sol_S03_v2_cli_green_result_20261025.json)|
+|forge_sol_S03_v2_cli_red_result_20261025.json|`36d4e2afa52ec76c1604f5ce01b3497ca4b85205e2bdd8e2b2a7d52bcf8c32d3`|[raw](https://raw.githubusercontent.com/couns0538-sketch/dwqww/5a387c36743df1f50e944ab8d14fba89310b478e/releases/forge_sol_pack31_20261025/S03_v2/forge_sol_S03_v2_cli_red_result_20261025.json)|
+|forge_sol_S03_v2_independent_review_20261025.json|`920ef795aa42c7676ab57889c60e80b95983197c0b774ea537b7f0c2192f471a`|[raw](https://raw.githubusercontent.com/couns0538-sketch/dwqww/5a387c36743df1f50e944ab8d14fba89310b478e/releases/forge_sol_pack31_20261025/S03_v2/forge_sol_S03_v2_independent_review_20261025.json)|
+|forge_sol_S03_v2_native_results_20261025.json|`f78a4c2c5f223d42c0df28d5a87d16df53606a08aa15a2c485cfb2be9dd9e054`|[raw](https://raw.githubusercontent.com/couns0538-sketch/dwqww/5a387c36743df1f50e944ab8d14fba89310b478e/releases/forge_sol_pack31_20261025/S03_v2/forge_sol_S03_v2_native_results_20261025.json)|
+|forge_sol_S03_v2_native_validation_20261025.py|`f1e27116edefab36acc4804269e6297f411b8e418c8caf7c7050127ddf390b98`|[raw](https://raw.githubusercontent.com/couns0538-sketch/dwqww/5a387c36743df1f50e944ab8d14fba89310b478e/releases/forge_sol_pack31_20261025/S03_v2/forge_sol_S03_v2_native_validation_20261025.py)|
+|forge_sol_S03_v2_patch_builder_20261025.py|`5f985feabf5f6bf8cc9446feefd7e3ced27cb8fcf928ee99d94ba0229a23ed62`|[raw](https://raw.githubusercontent.com/couns0538-sketch/dwqww/5a387c36743df1f50e944ab8d14fba89310b478e/releases/forge_sol_pack31_20261025/S03_v2/forge_sol_S03_v2_patch_builder_20261025.py)|
+|forge_sol_S03_v2_raw_evidence_20261025.json|`5e6587a737b3708f586cbe6f2dffe658d2d793c2be9135bb6b37eff9803b6504`|[raw](https://raw.githubusercontent.com/couns0538-sketch/dwqww/5a387c36743df1f50e944ab8d14fba89310b478e/releases/forge_sol_pack31_20261025/S03_v2/forge_sol_S03_v2_raw_evidence_20261025.json)|
+|forge_sol_S03_v2_report_20261025.md|`6436f3dd90bfbf45093351c00a4dcb0b3afdef87e0ce9d446e5486c47d7259e5`|[raw](https://raw.githubusercontent.com/couns0538-sketch/dwqww/5a387c36743df1f50e944ab8d14fba89310b478e/releases/forge_sol_pack31_20261025/S03_v2/forge_sol_S03_v2_report_20261025.md)|
+
+## S02 v2 — published hash correction
+
+Commit `5a387c36743df1f50e944ab8d14fba89310b478e`; all3 immutable files actually downloaded, rehashed and compared with Git blobs. Report-only correction; native inputs/results unchanged and original sealed report preserved.
+
+|File|SHA256|Verified raw|
+|---|---|---|
+|forge_sol_S02_v2_addendum_SHA256SUMS_20261025.txt|`c7b20d9bbf8e8326d84230cb3aa05d8be5917c5045b5af70f78af86bb6bb59ba`|[raw](https://raw.githubusercontent.com/couns0538-sketch/dwqww/5a387c36743df1f50e944ab8d14fba89310b478e/releases/forge_sol_pack31_20261025/S02_v2_addendum/forge_sol_S02_v2_addendum_SHA256SUMS_20261025.txt)|
+|forge_sol_S02_v2_hash_correction_20261025.md|`f2f2b1549322ba64920e76616761a05f292078acedb2c26704de3b790423ee65`|[raw](https://raw.githubusercontent.com/couns0538-sketch/dwqww/5a387c36743df1f50e944ab8d14fba89310b478e/releases/forge_sol_pack31_20261025/S02_v2_addendum/forge_sol_S02_v2_hash_correction_20261025.md)|
+|forge_sol_S02_v2_hash_correction_proof_20261025.json|`c4a9e5afa7f38e360db756f9c26f8cc2b5c61953372772caa6012233defb9ed1`|[raw](https://raw.githubusercontent.com/couns0538-sketch/dwqww/5a387c36743df1f50e944ab8d14fba89310b478e/releases/forge_sol_pack31_20261025/S02_v2_addendum/forge_sol_S02_v2_hash_correction_proof_20261025.json)|
+
 ## S02 v2 published — 2026-10-25
 
 DONE at `9999b5a20bda52eded802dc56f49e90a2b4fe019`: all16 immutable files actual HTTP/Git-byte/SHA256 verified. Six current L-prime/B native profiles,15 precheck fixtures and native clean/typo/warning-OFF controls passed. Strength and speed UNPROVEN. The sealed report has a shortened merged-test source hash; use the dated [hash correction](S02_v2_addendum/forge_sol_S02_v2_hash_correction_20261025.md). Original results/source remain unchanged.
