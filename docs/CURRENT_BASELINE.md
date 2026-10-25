@@ -2,7 +2,7 @@
 
 ## Verified continuation — 2026-10-25
 
-S04 v2 and S05 v2 are published and immutable-download verified (22 files each). Current native suites pass120/120 and107/107 respectively. S25 v2 current qualification passes66/66 plus default-OFF registration checks; final review/publication is pending. Accepted h256_e12 remains code1ab50b2d plus the explicit6d22 net overlay; no playing-strength or speed acceptance. Next implementation: S27 patch hygiene after the S25 delivery is saved.
+S04 v2 and S05 v2 are published and immutable-download verified (22 files each). Current native suites pass120/120 and107/107 respectively. S25 v2 is also published and immutable-download verified (19 files); current qualification passes66/66 plus default-OFF registration checks. Accepted h256_e12 remains code1ab50b2d plus the explicit6d22 net overlay; no playing-strength or speed acceptance. Next implementation: S27 patch hygiene; exact inputs and next action are saved in the pack31 checkpoint. S27 is not implemented.
 
 ## Resume 15:10 — 2026-10-25
 

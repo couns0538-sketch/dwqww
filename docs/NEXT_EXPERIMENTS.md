@@ -173,3 +173,5 @@ or sixhour chat-report scheduler is verified. Save actual observations frequentl
 2026-10-25 continuation: Current bounded task: finish S05v2 properGit patch and6currentLP/B profiles after sealing S04v2 delivery. Then S25 current-tree requalification; preserve earlier results. No PC scripts/PGO/GPU execution; no new lock adoption.
 
 2026-10-25T18:43:45.430482+00:00 — S25 v2 native validation is complete; finish independent review and final delivery/readback. Then implement S27 patch-hygiene precheck from full14:35 prompt. KeepS27read-onlyrecon separate from implementedfeatures; no PGO/PC/GPU/enginebackendrevival. Next afterS27 isS06. All current native/cache leases are closed.
+
+2026-10-25T18:52:30.467376+00:00 — S04v2/S05v2/S25v2 are complete, published and per-file downloadverified. Start S27 implementation from validation/forge_sol_pack31_20261025/forge_sol_S27_recovery_20261025/forge_sol_S27_next_session_checkpoint_20261025.json. Historical JobC/buffixpositivecontrols use pre-patch scratchbases; never reset acceptedcurrentLprime/B. Allnative/cacheleasesclosed.
