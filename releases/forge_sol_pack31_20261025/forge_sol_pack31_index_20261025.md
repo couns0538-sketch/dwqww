@@ -1,5 +1,22 @@
 # Forge Sol pack31 — 20261025
 
+## Active S10 and prepared follow-ups — 2026-10-26 21:05 UTC
+
+The queue remains15 delivered/38 pending/1 dropped. SingularSiblingLmr Lprime completed its original screen263/300 with zero illegal moves and fails the predeclared d20 node-change guard; its full Release/ASan14/14 and ON T2 checks pass. Its B original OFFd22 completed, and ON qualification continues. CaptureHistoryLmp is still queued. Do not adopt a rejected screen or treat S10 as fully delivered.
+
+This checkpoint preserves the second original ImprovingRazorGuard attempt, including the B OFF22 deadline failure, plus the sealed S11 native harness and S17 source/evidence preparation. S11 has28 pure-test methods passing but no native run yet. S18 t200/t400 repeats are byte-identical; t500first kept187141 but the original repeat timed out120s and remains unsealed/FAIL. No Torch training or retry has started. Cause of the timeout is unresolved.
+
+To retain metadata capacity,471 verified, redundant S09 publication working copies were locally omitted with exact restore metadata and a successful independent Git-object restore probe. They remain ordinary complete published Git files, and original/tmp evidence and Git objects remain unchanged. Never interpret local skip-worktree as deleted evidence. No source, accepted network, speed or Elo acceptance changed.
+
+
+## S10 two original cycles closed; further work active — 2026-10-26
+
+QuietCheckLmpSurvival is archived and published at0fbe5a91622b781ae7d4038edaa94671a675ae5b; all21 immutable files byte/hash verified. It passes both-base full Std/T2 but fails WAC269/300, so it is not adopted. ImprovingRazorGuard Lprime passes Std/T2 but fails WAC270/300 and the d20 node guard. Its original B OFF22 hit the frozen180s observer deadline; remaining B qualification is UNVERIFIED, not a crash/Elo conclusion. That failed original and its data archive are preserved without retry.
+
+SingularSiblingLmr Lprime passes Release/ASan14/14; it fails the d20 node guard and its one WAC screen is active. CaptureHistoryLmp remains queued. The complete S10 job is still pending; queue remains15 delivered/38 pending/1 dropped. Source/hash references are in the current checkpoint and per-feature reports. No speed/Elo or lock acceptance.
+
+S17's14-test tool and62-file original evidence are sealed for ordered publication:916 records split774/142 across12 defined groups with zero defined-group/position leakage and exact repeat bytes. Authentic game identity, missingHCE/binary trainer loading and real013/014 remain UNVERIFIED. S18 data/source preparation has started, with no Torch training grant. Existing accepted source/network and earlier source gains are preserved.
+
 ## S10 quiet-check cycle complete; remaining ideas active — 2026-10-26
 
 The first S10 feature completed on Lprime and B: all fixed OFF counts, perft5, FMA0, full Release/ASan14/15 and ON T2 checks pass. Its sole WAC screen scored269/300 below283, so QuietCheckLmpSurvival is rejected and not adopted. Original397-file data is sealed in the verified archiveaa45a3b35995837eff8791295657a239434cd54f4e9e72e9fb237e882570fa40. The separate feature packet is a checkpoint; the complete S10 job remains pending.

@@ -1,0 +1,51 @@
+{
+  "additional_concrete_issues": [],
+  "limits": "No runtime, stress, engine, native, Torch or Git commands. Parent-reported 14 GREEN controls are not independently rerun. This source review does not establish a universal memory bound, authentic game IDs, or training approval.",
+  "prior_executed_v1_sha256_reported_by_parent": "19a70adbc1070aaba302375209d59d0639a62adb98ac9a146a1edc391adc6580",
+  "prior_review": "/tmp/forge_sol_S17_independent_source_review_20261026.json",
+  "resolved": [
+    {
+      "conclusion": "Scratch allocation occurs inside try; allocation exceptions reach FAILED_UNSEALED marker creation.",
+      "id": "S17-R1",
+      "lines": [
+        135,
+        137,
+        226,
+        228
+      ]
+    },
+    {
+      "conclusion": "Full output key dictionaries, expected-line list, whole-file read and join are removed. Verification compares one exported line at a time and stores identities/groups in SQLite; validation assignment no longer builds a full selected-GID list.",
+      "id": "S17-R2",
+      "lines": [
+        149,
+        173,
+        180,
+        196
+      ]
+    },
+    {
+      "conclusion": "Output adds LF to EOF-unterminated source rows, preserves existing LF/CRLF, compares each reread record to the same documented normalization, and rejects extra output bytes.",
+      "id": "S17-EOF-LIMITATION",
+      "lines": [
+        33,
+        35,
+        183,
+        193,
+        211
+      ]
+    }
+  ],
+  "review": "S17 independent source-only fix re-review",
+  "scope": "Only changes addressing the two review findings and EOF-unterminated source rows, plus adjacent failure/HCE/provenance paths.",
+  "source_edits_by_reviewer": false,
+  "source_sha256": "a0331979574f84e12e03b13870951c215ca0f6933417933df23abc2ae1a25894",
+  "tests_executed_by_reviewer": false,
+  "tool": "/tmp/forge_sol_S17_work_20261026/forge_sol_S17_gamesplit_20261026.py",
+  "unchanged_conservative_properties": [
+    "Every retained row requires supplied HCE before any binary output is written.",
+    "Inferred group policy remains non-authentic and authentic overlap UNVERIFIED.",
+    "training_approved remains false.",
+    "Cross-output group and position checks remain present using SQLite."
+  ]
+}

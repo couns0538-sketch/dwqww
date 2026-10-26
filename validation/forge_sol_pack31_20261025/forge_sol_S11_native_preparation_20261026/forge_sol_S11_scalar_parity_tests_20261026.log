@@ -1,0 +1,26 @@
+test_actual_macro_selection_catches_sse_fallback (__main__.ScalarParityTests.test_actual_macro_selection_catches_sse_fallback) ... ok
+test_disassembly_rejects_fma_packed_sse_and_unsupported_width (__main__.ScalarParityTests.test_disassembly_rejects_fma_packed_sse_and_unsupported_width) ... ok
+test_exact_every_byte_comparison_and_eof_not_just_hash (__main__.ScalarParityTests.test_exact_every_byte_comparison_and_eof_not_just_hash) ... ok
+test_full_header_format_and_normally_compiled_fp_control (__main__.ScalarParityTests.test_full_header_format_and_normally_compiled_fp_control) ... ok
+test_link_map_proves_normal_and_explicit_selection (__main__.ScalarParityTests.test_link_map_proves_normal_and_explicit_selection) ... ok
+test_normally_compiled_driver_and_link_order (__main__.ScalarParityTests.test_normally_compiled_driver_and_link_order) ... ok
+test_scalar_command_modifies_only_test_object_and_probe (__main__.ScalarParityTests.test_scalar_command_modifies_only_test_object_and_probe) ... ok
+test_sealed_input_bound_to_original_manifest_bytes (__main__.ScalarParityTests.test_sealed_input_bound_to_original_manifest_bytes) ... ERROR
+test_summary_actual_table_and_restoration_coverage (__main__.ScalarParityTests.test_summary_actual_table_and_restoration_coverage) ... ok
+
+======================================================================
+ERROR: test_sealed_input_bound_to_original_manifest_bytes (__main__.ScalarParityTests.test_sealed_input_bound_to_original_manifest_bytes)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/tmp/forge_sol_S11_native_prep_20261026/forge_sol_S11_scalar_parity_tests_20261026.py", line 96, in test_sealed_input_bound_to_original_manifest_bytes
+    with self.assertRaises(ValueError):m.verify_sealed_input(fd,len(raw),digest)
+                                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/tmp/forge_sol_S11_native_prep_20261026/forge_sol_S11_scalar_parity_20261026.py", line 155, in verify_sealed_input
+    seals=fcntl.fcntl(fd,fcntl.F_GET_SEALS)
+                         ^^^^^^^^^^^^^^^^^
+AttributeError: module 'fcntl' has no attribute 'F_GET_SEALS'. Did you mean: 'F_GETLEASE'?
+
+----------------------------------------------------------------------
+Ran 9 tests in 0.013s
+
+FAILED (errors=1)

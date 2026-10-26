@@ -1,0 +1,54 @@
+{
+  "execution": "No tests, source edits, Git, engine, native or Torch commands executed by reviewer.",
+  "handoff": "Parent informed and is replacing memory audit while preserving executed v1; parent to verify fixes/tests.",
+  "issues": [
+    {
+      "fix": "Initialize db before try and allocate scratch inside protected failure block.",
+      "id": "S17-R1",
+      "impact": "Fresh output directory remains without FAILED_UNSEALED marker because scratch allocation is outside try.",
+      "kind": "failure marker",
+      "lines": [
+        131,
+        132
+      ],
+      "priority": "P2",
+      "trigger": "out.mkdir succeeds, then tempfile.mkdtemp raises (unwritable work directory, exhaustion or allocation race)"
+    },
+    {
+      "fix": "Use SQLite audit tables for output identities/groups and stream original-line comparisons.",
+      "id": "S17-R2",
+      "impact": "Output verification retains full Python key maps and expected line lists, plus read_bytes and joined expected bytes; RAM grows with total corpus size and can exhaust memory. No large-corpus claim was tested.",
+      "kind": "memory scalability",
+      "lines": [
+        179,
+        188
+      ],
+      "priority": "P2",
+      "trigger": "Large retained text/unique position count while disk preflight passes"
+    }
+  ],
+  "review": "bounded independent read-only source review",
+  "reviewed_invariants": [
+    "Retained rows missing supplied HCE suppress all binary exports; no HCE placeholder path found.",
+    "Inferred group policy remains non-authentic and authentic overlap UNVERIFIED.",
+    "Production requires all row-ID maps plus provenance; imported pinned S16 rejects reopened/interleaved IDs.",
+    "training_approved is always false.",
+    "Every enumerated supplied POS shard is row-audited; aliases remain represented and whole POS duplicates are reported separately from row duplicates."
+  ],
+  "safe_failure_limitation": {
+    "case": "An earlier source ends in a valid EOF-terminated record without LF and a later source writes to same output part.",
+    "lines": [
+      178,
+      182
+    ],
+    "recommendation": "Document LF/CRLF termination requirement or reject this case before output generation.",
+    "result": "Raw concatenation joins records and output parser fails with FAILED_UNSEALED; no silent acceptance."
+  },
+  "scope": [
+    "new S17 tool",
+    "12 semantic tests",
+    "unchanged pinned S16 and Job D codec"
+  ],
+  "source_sha256_at_report": "19a70adbc1070aaba302375209d59d0639a62adb98ac9a146a1edc391adc6580",
+  "tool": "/tmp/forge_sol_S17_work_20261026/forge_sol_S17_gamesplit_20261026.py"
+}

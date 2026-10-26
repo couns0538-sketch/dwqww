@@ -1,0 +1,45 @@
+test_actual_macro_selection_catches_sse_fallback (__main__.ScalarParityTests.test_actual_macro_selection_catches_sse_fallback) ... ok
+test_chunk_gaps_reorder_overlap_and_truncation_fail (__main__.ScalarParityTests.test_chunk_gaps_reorder_overlap_and_truncation_fail) ... ok
+test_disassembly_rejects_fma_packed_sse_and_unsupported_width (__main__.ScalarParityTests.test_disassembly_rejects_fma_packed_sse_and_unsupported_width) ... ok
+test_exact_every_byte_comparison_and_eof_not_just_hash (__main__.ScalarParityTests.test_exact_every_byte_comparison_and_eof_not_just_hash) ... ok
+test_fixed_record_chunks_retain_one_header_and_exact_original_stream (__main__.ScalarParityTests.test_fixed_record_chunks_retain_one_header_and_exact_original_stream) ... ok
+test_full_header_format_and_normally_compiled_fp_control (__main__.ScalarParityTests.test_full_header_format_and_normally_compiled_fp_control) ... ok
+test_index_validation_checks_stop_before_hashing_large_chunks (__main__.ScalarParityTests.test_index_validation_checks_stop_before_hashing_large_chunks) ... ERROR
+test_link_map_proves_normal_and_explicit_selection (__main__.ScalarParityTests.test_link_map_proves_normal_and_explicit_selection) ... ok
+test_normally_compiled_driver_and_link_order (__main__.ScalarParityTests.test_normally_compiled_driver_and_link_order) ... ok
+test_original_capture_digest_blocks_self_consistent_index_substitution (__main__.ScalarParityTests.test_original_capture_digest_blocks_self_consistent_index_substitution) ... ERROR
+test_post_success_cleanup_exception_never_returns_pass (__main__.ScalarParityTests.test_post_success_cleanup_exception_never_returns_pass) ... FAIL
+test_python_fixture_transport_captures_owned_raw_bytes_and_failure (__main__.ScalarParityTests.test_python_fixture_transport_captures_owned_raw_bytes_and_failure) ... ok
+test_scalar_command_modifies_only_test_object_and_probe (__main__.ScalarParityTests.test_scalar_command_modifies_only_test_object_and_probe) ... ok
+test_sealed_input_bound_to_original_manifest_bytes (__main__.ScalarParityTests.test_sealed_input_bound_to_original_manifest_bytes) ... ok
+test_summary_actual_table_and_restoration_coverage (__main__.ScalarParityTests.test_summary_actual_table_and_restoration_coverage) ... ok
+
+======================================================================
+ERROR: test_index_validation_checks_stop_before_hashing_large_chunks (__main__.ScalarParityTests.test_index_validation_checks_stop_before_hashing_large_chunks)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/tmp/forge_sol_S11_native_prep_20261026/forge_sol_S11_scalar_parity_tests_20261026.py", line 61, in test_index_validation_checks_stop_before_hashing_large_chunks
+    m.validate_chunk_index(p/'a.stdout.chunks.json',2,1,stop=lambda:'deadline')
+TypeError: validate_chunk_index() got an unexpected keyword argument 'stop'
+
+======================================================================
+ERROR: test_original_capture_digest_blocks_self_consistent_index_substitution (__main__.ScalarParityTests.test_original_capture_digest_blocks_self_consistent_index_substitution)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/tmp/forge_sol_S11_native_prep_20261026/forge_sol_S11_scalar_parity_tests_20261026.py", line 52, in test_original_capture_digest_blocks_self_consistent_index_substitution
+    m.compare_chunked(a,b,2,1,left_capture=ca,right_capture=cb)
+TypeError: compare_chunked() got an unexpected keyword argument 'left_capture'
+
+======================================================================
+FAIL: test_post_success_cleanup_exception_never_returns_pass (__main__.ScalarParityTests.test_post_success_cleanup_exception_never_returns_pass)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/tmp/forge_sol_S11_native_prep_20261026/forge_sol_S11_scalar_parity_tests_20261026.py", line 39, in test_post_success_cleanup_exception_never_returns_pass
+    with mock.patch.object(m,'load_owned_module',return_value=owned),mock.patch.object(owned,'SubreaperScope',FailedRestore),self.assertRaisesRegex(RuntimeError,'native arm failed'):
+                                                                                                                             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: RuntimeError not raised
+
+----------------------------------------------------------------------
+Ran 15 tests in 1.115s
+
+FAILED (failures=1, errors=2)

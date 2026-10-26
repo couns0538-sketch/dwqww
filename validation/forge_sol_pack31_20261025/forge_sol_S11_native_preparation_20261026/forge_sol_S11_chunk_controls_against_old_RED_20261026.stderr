@@ -1,0 +1,50 @@
+test_actual_macro_selection_catches_sse_fallback (__main__.ScalarParityTests.test_actual_macro_selection_catches_sse_fallback) ... ok
+test_chunk_gaps_reorder_overlap_and_truncation_fail (__main__.ScalarParityTests.test_chunk_gaps_reorder_overlap_and_truncation_fail) ... ERROR
+test_disassembly_rejects_fma_packed_sse_and_unsupported_width (__main__.ScalarParityTests.test_disassembly_rejects_fma_packed_sse_and_unsupported_width) ... ok
+test_exact_every_byte_comparison_and_eof_not_just_hash (__main__.ScalarParityTests.test_exact_every_byte_comparison_and_eof_not_just_hash) ... ok
+test_fixed_record_chunks_retain_one_header_and_exact_original_stream (__main__.ScalarParityTests.test_fixed_record_chunks_retain_one_header_and_exact_original_stream) ... ERROR
+test_full_header_format_and_normally_compiled_fp_control (__main__.ScalarParityTests.test_full_header_format_and_normally_compiled_fp_control) ... ok
+test_link_map_proves_normal_and_explicit_selection (__main__.ScalarParityTests.test_link_map_proves_normal_and_explicit_selection) ... ok
+test_normally_compiled_driver_and_link_order (__main__.ScalarParityTests.test_normally_compiled_driver_and_link_order) ... ok
+test_python_fixture_transport_captures_owned_raw_bytes_and_failure (__main__.ScalarParityTests.test_python_fixture_transport_captures_owned_raw_bytes_and_failure) ... ERROR
+test_scalar_command_modifies_only_test_object_and_probe (__main__.ScalarParityTests.test_scalar_command_modifies_only_test_object_and_probe) ... ok
+test_sealed_input_bound_to_original_manifest_bytes (__main__.ScalarParityTests.test_sealed_input_bound_to_original_manifest_bytes) ... ok
+test_summary_actual_table_and_restoration_coverage (__main__.ScalarParityTests.test_summary_actual_table_and_restoration_coverage) ... ok
+
+======================================================================
+ERROR: test_chunk_gaps_reorder_overlap_and_truncation_fail (__main__.ScalarParityTests.test_chunk_gaps_reorder_overlap_and_truncation_fail)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/tmp/forge_sol_S11_native_prep_20261026/forge_sol_S11_chunk_controls_against_old_20261026/forge_sol_S11_scalar_parity_tests_20261026.py", line 47, in test_chunk_gaps_reorder_overlap_and_truncation_fail
+    with m.ChunkedGzip(p,'original',2,1,chunk_records=1) as writer:writer.write(stream())
+         ^^^^^^^^^^^^^
+AttributeError: module 'scalar' has no attribute 'ChunkedGzip'
+
+======================================================================
+ERROR: test_fixed_record_chunks_retain_one_header_and_exact_original_stream (__main__.ScalarParityTests.test_fixed_record_chunks_retain_one_header_and_exact_original_stream)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/tmp/forge_sol_S11_native_prep_20261026/forge_sol_S11_chunk_controls_against_old_20261026/forge_sol_S11_scalar_parity_tests_20261026.py", line 34, in test_fixed_record_chunks_retain_one_header_and_exact_original_stream
+    with m.ChunkedGzip(p,label,2,1,chunk_records=1) as writer:
+         ^^^^^^^^^^^^^
+AttributeError: module 'scalar' has no attribute 'ChunkedGzip'
+
+======================================================================
+ERROR: test_python_fixture_transport_captures_owned_raw_bytes_and_failure (__main__.ScalarParityTests.test_python_fixture_transport_captures_owned_raw_bytes_and_failure)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/tmp/forge_sol_S11_native_prep_20261026/forge_sol_S11_chunk_controls_against_old_20261026/forge_sol_S11_scalar_parity_tests_20261026.py", line 68, in test_python_fixture_transport_captures_owned_raw_bytes_and_failure
+    self.assertEqual(r['status'],'PASS_CAPTURE');index=json.loads((p/'synthetic_good.stdout.chunks.json').read_text());self.assertEqual(b''.join(gzip.open(p/x['path'],'rb').read() for x in index['chunks']),stream())
+                                                                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/pathlib.py", line 1027, in read_text
+    with self.open(mode='r', encoding=encoding, errors=errors) as f:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/pathlib.py", line 1013, in open
+    return io.open(self, mode, buffering, encoding, errors, newline)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+FileNotFoundError: [Errno 2] No such file or directory: '/tmp/tmp3rakwxkv/synthetic_good.stdout.chunks.json'
+
+----------------------------------------------------------------------
+Ran 12 tests in 0.617s
+
+FAILED (errors=3)
