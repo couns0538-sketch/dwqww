@@ -1,0 +1,175 @@
+{
+  "frozen_at_utc": "2026-10-26T10:25:19.971499+00:00",
+  "advice_only": true,
+  "true_elo_units": "logistic",
+  "hypothesis_units": "nelo",
+  "llr": "online empirical-population-variance Gaussian; not exact native fastchess",
+  "profiles": {
+    "G95": {
+      "counts": [
+        13,
+        128,
+        463,
+        137,
+        9
+      ],
+      "concurrency": 5,
+      "kind": "measured-pair-profile"
+    },
+    "G100r": {
+      "counts": [
+        5,
+        121,
+        458,
+        154,
+        12
+      ],
+      "concurrency": 5,
+      "kind": "measured-pair-profile"
+    },
+    "G119": {
+      "counts": [
+        9,
+        130,
+        435,
+        163,
+        13
+      ],
+      "concurrency": 5,
+      "kind": "measured-pair-profile"
+    },
+    "draw0.4": {
+      "draw_ratio": 0.4,
+      "concurrency": null,
+      "kind": "independent-games-model"
+    },
+    "draw0.5": {
+      "draw_ratio": 0.5,
+      "concurrency": null,
+      "kind": "independent-games-model"
+    },
+    "draw0.6": {
+      "draw_ratio": 0.6,
+      "concurrency": null,
+      "kind": "independent-games-model"
+    }
+  },
+  "protocols": [
+    {
+      "name": "n0_10_c1500",
+      "e0": 0.0,
+      "e1": 10.0,
+      "cap_games": 1500
+    },
+    {
+      "name": "n0_10_c2500",
+      "e0": 0.0,
+      "e1": 10.0,
+      "cap_games": 2500
+    },
+    {
+      "name": "n0_10_c3000",
+      "e0": 0.0,
+      "e1": 10.0,
+      "cap_games": 3000
+    },
+    {
+      "name": "n0_5_c3000",
+      "e0": 0.0,
+      "e1": 5.0,
+      "cap_games": 3000
+    },
+    {
+      "name": "n0_5_c4000",
+      "e0": 0.0,
+      "e1": 5.0,
+      "cap_games": 4000
+    },
+    {
+      "name": "nm1_4_c1500",
+      "e0": -1.0,
+      "e1": 4.0,
+      "cap_games": 1500
+    },
+    {
+      "name": "nm3_1_c1500",
+      "e0": -3.0,
+      "e1": 1.0,
+      "cap_games": 1500
+    }
+  ],
+  "validation_cells": [
+    {
+      "id": "V1",
+      "profile": "G119",
+      "true_elo": 9.5,
+      "protocol": "n0_10_c1500"
+    },
+    {
+      "id": "V2",
+      "profile": "G95",
+      "true_elo": 0.0,
+      "protocol": "n0_10_c2500"
+    },
+    {
+      "id": "V3",
+      "profile": "G100r",
+      "true_elo": 10.0,
+      "protocol": "n0_10_c3000"
+    },
+    {
+      "id": "V4",
+      "profile": "draw0.4",
+      "true_elo": 5.0,
+      "protocol": "n0_5_c4000"
+    },
+    {
+      "id": "V5",
+      "profile": "draw0.5",
+      "true_elo": 0.0,
+      "protocol": "nm1_4_c1500"
+    },
+    {
+      "id": "V6",
+      "profile": "draw0.6",
+      "true_elo": -2.5,
+      "protocol": "nm3_1_c1500"
+    }
+  ],
+  "validation_seed": 202610263300,
+  "validation_seed_rule": "VALIDATION_SEED+i in declared cell order",
+  "validation_runs_per_cell": 20000,
+  "validation_acceptance": "All six fixed cells; max absolute MC-vs-analytic difference over H1,H0,cap <=0.03 in each cell; failures retained; no reroll",
+  "common_random_numbers": "same modeled paths across protocol alternatives only; no measured gate pooling",
+  "s06_dependency_explicit": "/workspace/forge-pack24-20261026/S06/forge_sol_S06_statistics_20261026.py",
+  "sha256": {
+    "/workspace/forge-pack24-20261026/S33/forge_sol_S33_sprt_planner_20261026.py": "008819d5387cdd5ac5d512bb2ebafd09f141aafc9b6904cba2f73a8373634d03",
+    "/workspace/forge-pack24-20261026/S33/tests/test_forge_sol_S33_sprt_planner_20261026.py": "6c64f4c6ae809ec9df99ea439353f73ff3f7e8adeaa094d904f6f24d44ce9d2c",
+    "/workspace/forge-pack24-20261026/S06/forge_sol_S06_statistics_20261026.py": "4598c5839519af2ed4680b074669d097b9616dfe7c03c1afb7622b276efecb8a",
+    "/workspace/dwqww/releases/forge_sol_pack31_20261025/S06/forge_sol_S06_statistics_20261026.py": "4598c5839519af2ed4680b074669d097b9616dfe7c03c1afb7622b276efecb8a"
+  },
+  "python": "3.12.14",
+  "numpy": "2.3.5",
+  "cpu_affinity_validation": [
+    3
+  ],
+  "source_gate_csv": "/workspace/forge-pack24-20261025/new_handoff_1435/selected/forge_handoff_full_20261025_1435/files/08_status/gate_results_20261025_1335/GATE_RESULTS.csv",
+  "source_gate_csv_sha256": "c220b9e5ac88ee5fd3d419e93c0bfe45d659818e765b78fd4138a5eb9614c230",
+  "measured_concurrency": "G95,G100r,G119 all 5; no measured conc7/8 profiles available; independent draw models have no measured concurrency",
+  "freeze_version": 3,
+  "supersedes": "forge_sol_S33_frozen_protocol_v2_20261026.json",
+  "review_fixes": [
+    "Both methods reject infeasible model hypothesis scores",
+    "Doc narrows preserved structure to pentanomial shape ratios",
+    "Every MC summary records full sampling layout and Python version",
+    "Validation helper enforces all declared cell identities/order"
+  ],
+  "source_provenance": "Original formulas re-derived from S06 Gaussian paired-score statistics; Brownian image first-passage series and delta-method influence derived mathematically, no copied engine code; source-only ideas.",
+  "validation_receipts_source_sha256": "b04af9f74b0ffc7cb9b9e58a04ac4cf02efff43e4d801991dfc11324a2e2f194",
+  "validation_reuse_justification": "Exact retained AST equality after removing only CLI main/entrypoint and explicit S06 dependency selector/hash metadata. All 24 retained functions, constants and RNG code unchanged. No MC repeat.",
+  "AST_equivalence_proof": "forge_sol_S33_numerical_ast_equivalence_20261026.json",
+  "AST_equivalence_proof_sha256": "2326f41e9b6c0e0fbd5604979afa474770ce63f701bae499627534aa6bc69edf",
+  "retained_AST_sha256": "2c81f5abf2593a9691a6087c789495746848f8a3729bde18808d10d084741614",
+  "s06_dependency_lookup": "Adjacent frozen file first, otherwise ../S06; strict SHA2564598c5839519af2ed4680b074669d097b9616dfe7c03c1afb7622b276efecb8a",
+  "cli_output_policy": "Explicit NEW directory only; refuse existing directories/files and symlink ancestors; mkdir exclusive; result files exclusive-create; output failures are argparse errors without traceback."
+}

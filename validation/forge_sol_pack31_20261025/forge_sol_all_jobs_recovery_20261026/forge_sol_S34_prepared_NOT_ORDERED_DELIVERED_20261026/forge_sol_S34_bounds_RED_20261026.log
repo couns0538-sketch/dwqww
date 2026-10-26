@@ -1,0 +1,76 @@
+test_accepts_object_and_list_manifests_and_boundary_concurrency (__main__.ValidatorTests.test_accepts_object_and_list_manifests_and_boundary_concurrency) ... ok
+test_cli_is_read_only_and_reports_valid_input_and_parse_error (__main__.ValidatorTests.test_cli_is_read_only_and_reports_valid_input_and_parse_error) ... ok
+test_cli_returns_parse_findings_for_deep_or_invalid_json (__main__.ValidatorTests.test_cli_returns_parse_findings_for_deep_or_invalid_json) ... FAIL
+test_confirm_targets_are_exact_tags_not_casefolded_or_trimmed (__main__.ValidatorTests.test_confirm_targets_are_exact_tags_not_casefolded_or_trimmed) ... ok
+test_driver_profile_cannot_fill_partial_or_wrong_typed_overrides (__main__.ValidatorTests.test_driver_profile_cannot_fill_partial_or_wrong_typed_overrides) ... ok
+test_duplicate_logical_tags_and_case_colliding_windows_outputs (__main__.ValidatorTests.test_duplicate_logical_tags_and_case_colliding_windows_outputs) ... ok
+test_early_stop_present_means_complete_and_numbers_exclude_booleans (__main__.ValidatorTests.test_early_stop_present_means_complete_and_numbers_exclude_booleans) ... ok
+test_explicit_driver_profile_keeps_effective_start_collisions (__main__.ValidatorTests.test_explicit_driver_profile_keeps_effective_start_collisions) ... ok
+test_full_tc_match_rejects_newline_suffix_and_accepts_decimals (__main__.ValidatorTests.test_full_tc_match_rejects_newline_suffix_and_accepts_decimals) ... ok
+test_invalid_gate_and_root_shapes_return_findings_not_tracebacks (__main__.ValidatorTests.test_invalid_gate_and_root_shapes_return_findings_not_tracebacks) ... ok
+test_large_finite_sprt_integers_do_not_overflow_numeric_validation (__main__.ValidatorTests.test_large_finite_sprt_integers_do_not_overflow_numeric_validation) ... ERROR
+test_nested_engine_shape_and_full_hash_are_checked (__main__.ValidatorTests.test_nested_engine_shape_and_full_hash_are_checked) ... ok
+test_planted_bad_manifests_are_isolated_and_messages_are_distinct (__main__.ValidatorTests.test_planted_bad_manifests_are_isolated_and_messages_are_distinct) ... 
+  test_planted_bad_manifests_are_isolated_and_messages_are_distinct (__main__.ValidatorTests.test_planted_bad_manifests_are_isolated_and_messages_are_distinct) (case='forge_sol_S34_bad_deep_json_20261026.json') ... FAIL
+test_protected_write_components_survive_windows_normalization (__main__.ValidatorTests.test_protected_write_components_survive_windows_normalization) ... ok
+test_read_paths_may_use_protected_names_and_metadata_is_not_scanned (__main__.ValidatorTests.test_read_paths_may_use_protected_names_and_metadata_is_not_scanned) ... ok
+test_reader_enforces_explicit_small_byte_budget_without_writing (__main__.ValidatorTests.test_reader_enforces_explicit_small_byte_budget_without_writing) ... ERROR
+test_sprt_numeric_booleans_and_nonfinite_numbers_are_rejected (__main__.ValidatorTests.test_sprt_numeric_booleans_and_nonfinite_numbers_are_rejected) ... ok
+test_strict_mode_requires_unset_fields_without_inventing_defaults (__main__.ValidatorTests.test_strict_mode_requires_unset_fields_without_inventing_defaults) ... ok
+test_supplied_manifest_strict_and_secondary_audits_preserve_input (__main__.ValidatorTests.test_supplied_manifest_strict_and_secondary_audits_preserve_input) ... ok
+test_traversing_or_absolute_write_tags_are_rejected_without_resolution (__main__.ValidatorTests.test_traversing_or_absolute_write_tags_are_rejected_without_resolution) ... ok
+test_unknown_fields_cannot_hide_write_paths_even_when_the_path_looks_safe (__main__.ValidatorTests.test_unknown_fields_cannot_hide_write_paths_even_when_the_path_looks_safe) ... ok
+
+======================================================================
+ERROR: test_large_finite_sprt_integers_do_not_overflow_numeric_validation (__main__.ValidatorTests.test_large_finite_sprt_integers_do_not_overflow_numeric_validation)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/forge-pack24-20261026/S34/forge_sol_S34_tests_20261026.py", line 102, in test_large_finite_sprt_integers_do_not_overflow_numeric_validation
+    self.assertEqual(self.codes(data), [])
+                     ^^^^^^^^^^^^^^^^
+  File "/workspace/forge-pack24-20261026/S34/forge_sol_S34_tests_20261026.py", line 36, in codes
+    return [f["code"] for f in self.tool().validate_manifest(manifest, **kwargs)]
+                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/forge-pack24-20261026/S34/forge_sol_S34_validate_manifest_20261026.py", line 185, in validate_manifest
+    if not _number(elo0) or not _number(elo1) or not elo0 < elo1:
+           ^^^^^^^^^^^^^
+  File "/workspace/forge-pack24-20261026/S34/forge_sol_S34_validate_manifest_20261026.py", line 79, in _number
+    return type(value) in (int, float) and math.isfinite(value)
+                                           ^^^^^^^^^^^^^^^^^^^^
+OverflowError: int too large to convert to float
+
+======================================================================
+ERROR: test_reader_enforces_explicit_small_byte_budget_without_writing (__main__.ValidatorTests.test_reader_enforces_explicit_small_byte_budget_without_writing)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/forge-pack24-20261026/S34/forge_sol_S34_tests_20261026.py", line 119, in test_reader_enforces_explicit_small_byte_budget_without_writing
+    tool.load_manifest(HERE / "forge_sol_S34_valid_fixture_20261026.json", max_bytes=16)
+TypeError: load_manifest() got an unexpected keyword argument 'max_bytes'
+
+======================================================================
+FAIL: test_cli_returns_parse_findings_for_deep_or_invalid_json (__main__.ValidatorTests.test_cli_returns_parse_findings_for_deep_or_invalid_json)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/forge-pack24-20261026/S34/forge_sol_S34_tests_20261026.py", line 111, in test_cli_returns_parse_findings_for_deep_or_invalid_json
+    self.assertEqual(result.returncode, 2, result.stderr)
+AssertionError: 1 != 2 : 
+
+======================================================================
+FAIL: test_planted_bad_manifests_are_isolated_and_messages_are_distinct (__main__.ValidatorTests.test_planted_bad_manifests_are_isolated_and_messages_are_distinct) (case='forge_sol_S34_bad_deep_json_20261026.json')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/forge-pack24-20261026/S34/forge_sol_S34_tests_20261026.py", line 59, in test_planted_bad_manifests_are_isolated_and_messages_are_distinct
+    self.assertEqual([f["code"] for f in findings], [case["code"]])
+AssertionError: Lists differ: ['GATE_SHAPE'] != ['JSON_DEPTH']
+
+First differing element 0:
+'GATE_SHAPE'
+'JSON_DEPTH'
+
+- ['GATE_SHAPE']
++ ['JSON_DEPTH']
+
+----------------------------------------------------------------------
+Ran 21 tests in 1.568s
+
+FAILED (failures=2, errors=2)
