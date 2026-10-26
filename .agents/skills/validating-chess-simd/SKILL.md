@@ -70,6 +70,14 @@ g++ -std=c++20 -O3 -march=x86-64-v3 -mtune=znver5 -fno-fast-math -ffp-contract=o
 
 ## Patch-only source handoffs
 
+Treat static guard scans as checks of a declared grammar. Distinguish an
+undefined macro from a macro defined as zero, and mask comments before reading
+preprocessor directives. A CMake OFF declaration alone does not prove the
+compiler leaves that macro undefined. Report unsupported grammar as unverified.
+For native comparisons, require pre/post binary identity and compare compiler
+fingerprints plus effective per-TU compile/link tokens; recording recipe hashes
+alone is insufficient. Resolve and hash response-file contents or reject them.
+
 Bind each patch to the exact supplied source trees, including test-only merges.
 Generate it with `git diff` in the private candidate repository; stage new paths
 with intent-to-add so their diffs include `new file mode 100644`. Keep full
