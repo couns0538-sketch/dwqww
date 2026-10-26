@@ -1,0 +1,105 @@
+{
+  "schema_version": 1,
+  "component": "S06 standalone offline paired-score statistics",
+  "status": "PASS",
+  "test_count": 14,
+  "test_command": "python3 -B -m unittest discover -v -s /workspace/forge-pack24-20261026/S06 -p 'test_forge_sol_S06_statistics_20261026.py'",
+  "shell_login": false,
+  "manifest": {
+    "forge_sol_S06_statistics_20261026.py": {
+      "sha256": "4598c5839519af2ed4680b074669d097b9616dfe7c03c1afb7622b276efecb8a",
+      "bytes": 7538
+    },
+    "test_forge_sol_S06_statistics_20261026.py": {
+      "sha256": "3822f75539e310af766a02e8747ebd605c58ee3c32926d1832882f3b3ffc5b48",
+      "bytes": 10134
+    },
+    "forge_sol_S06_RED_20261026.log": {
+      "sha256": "5f573e1115829445eccf6739c75a3fb60d2165b12f5260e85b36ef91038bb8fe",
+      "bytes": 18236
+    },
+    "forge_sol_S06_GREEN_20261026.log": {
+      "sha256": "c9500cec49c408b80b6d04350da5ff9e98709379596e8d638ccf5592a261d85d",
+      "bytes": 2495
+    }
+  },
+  "public_fixtures": [
+    {
+      "name": "G95",
+      "counts": [
+        13,
+        128,
+        463,
+        137,
+        9
+      ],
+      "actual_logistic_elo_halfwidth_llr": [
+        0.23162375799635665,
+        8.529387704444094,
+        -0.5619847571501702
+      ],
+      "expected_logistic_elo_halfwidth_llr": [
+        0.23162375799634602,
+        8.529387704444096,
+        -0.5619847571501702
+      ],
+      "absolute_tolerance": 0.01
+    },
+    {
+      "name": "G100r",
+      "counts": [
+        5,
+        121,
+        458,
+        154,
+        12
+      ],
+      "actual_logistic_elo_halfwidth_llr": [
+        10.889879760538435,
+        8.379769831474427,
+        2.219838109695718
+      ],
+      "expected_logistic_elo_halfwidth_llr": [
+        10.889879760538442,
+        8.379769831474425,
+        2.219838109695718
+      ],
+      "absolute_tolerance": 0.01
+    },
+    {
+      "name": "G119",
+      "counts": [
+        9,
+        130,
+        435,
+        163,
+        13
+      ],
+      "actual_logistic_elo_halfwidth_llr": [
+        9.498938729987033,
+        8.841725084629944,
+        1.7270936930171612
+      ],
+      "expected_logistic_elo_halfwidth_llr": [
+        9.4989387299871,
+        8.841725084629944,
+        1.7270936930171805
+      ],
+      "absolute_tolerance": 0.01
+    }
+  ],
+  "red_history": [
+    "Initial setUpClass assertion classified as unittest error; retained.",
+    "Changed to per-test assertions; 13 intended missing-implementation failures recorded before production creation.",
+    "First implementation passed all public targets; independent logistic-score literals were corrected using 50-digit Decimal calculations.",
+    "Additional overlap regression failed before its production fix; independent nElo literal was corrected from 50-digit Decimal."
+  ],
+  "limitations": [
+    "Approximate Gaussian paired-score LLR, not exact fastchess arbitrary-profile LLR.",
+    "Fixed 95% normal/delta confidence approximations; low-count flag is diagnostic (<30 positive pair counts).",
+    "No engine acceptance and no Elo-gain claim.",
+    "Pentanomial counts cannot recover individual W/D/L."
+  ],
+  "engine_source_or_binary_changed": false,
+  "network_or_engine_execution": false
+}
