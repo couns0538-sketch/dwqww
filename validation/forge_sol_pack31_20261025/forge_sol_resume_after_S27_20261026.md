@@ -1,0 +1,11 @@
+# Forge continuation after S27 — 2026-10-26
+
+Keep branch forge/sol-pack31-20261025. Root alone mutates Git; use git -c gc.auto=0, no reset/worktree/forcepush. Preserve three unrelated untracked paths.
+
+S27 completed/published at fbe6bb61b2da1913ad6916b6d0192f39c06143c5; all22files actualHTTP/SHA/Gitbyte verified. Main54c66475b4e352ea78e1b47db8ab5c1fb1558863f606feb90958668658c25a8e/helper9ec5f4a4ee64c5e583121ab8a5c9abe5100eabb240ee94daa8af8776489943b3 unchangedthroughnativeproof. Portable tests onlylocator/env changes; class/function ASTsame;58PASSstandard/flat/isolated. Native2freshdefaultRelease underS25testonlyknownpatch/emptyhistory; all5refs/bothperfts/FMA0/typedUCI/symbol/recipe/compiler/binary/source identity pass. BothnewELFs exactcanonical e3df99cddb609d9f00168d8df3187fdf6943c10812dd5c4f82206895e594367b. FullCTest/ASAN explicitlyinherited, notfresh. No speed/Elo/Windows/adoption claim.
+
+Rawarchive135records preservesoriginalpre-portabilitybyteversions. Separateportableproof/currenttests andnewfinalbindercovercorrectflatfixtures. Old47dnegativehelperactualexecution bindsoneEOFmetadata-onlysuccessor9ec, notclaimedrerun. Negativef436staticznver5vsdynamicbase symbolgapnotisolatedcausalproof; directtail/typedoption/staticcounterfindingsareevidence.
+
+Next implementS06 only from forge_sol_S06_recovery_20261026.json andfull14:35spec. ExactsourceCSVnewerthanpromptincludesG104WDL andreportedG120H1; historicalmetadataonly. G104pairing/rawPGNsabsent; no made-upreconstruction/acceptance. UTF8BOMCSVneedsutf-8-sig. ExistingQAGaussiannEloLLR reproduces3requiredcases within tolerance, doesnotverifyG104reported2.95; hypotheticalpentaillustrationproduces3.045, mustremainlabelledsynthetic/approximate. NoS06codeyet.
+
+No activeengine/compiler/cacheleases. Disk~25MiBfree; do notdelete source/main/test/raw. Closed compiler cacheshavecanonicalgzip/maps; largepayloadslocalonly. SourceS27builds/ELFsretainedlocal; newpureS06workneedslittledata. Optionalagentcapacityfailuresresolvedbyrootimplementation/freshsmall-contextreview, no modeloverrideorunrunclaim. ExistinglocalSIMDguidef580b4b3957800f252e77e82e5f87665272cedc1415809f560abee0e9d0b6130 improvedwithactual2RED→2GREENreferenceproof, notnew/globalinstallation.

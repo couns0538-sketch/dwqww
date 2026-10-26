@@ -1,5 +1,9 @@
 # Current baseline
 
+## Latest qualified tooling — 2026-10-26
+
+S27 is implemented and published at fbe6bb61b2da1913ad6916b6d0192f39c06143c5. All22deliverables were immutable-download verified. Tooltests58/58 pass in three layouts; two fresh defaultRelease engines match the five fixed node references and canonical lock bytes, with fresh perft5 and whole/scopedFMA0. Existing source/native/portable reviews pass. The accepted h256_e12 engine is unchanged; no speed/Elo or Windowsruntime claim. Next implementation is S06; its exact recovery record is saved in the pack31 checkpoint.
+
 ## Verified continuation — 2026-10-25
 
 S04 v2 and S05 v2 are published and immutable-download verified (22 files each). Current native suites pass120/120 and107/107 respectively. S25 v2 is also published and immutable-download verified (19 files); current qualification passes66/66 plus default-OFF registration checks. Accepted h256_e12 remains code1ab50b2d plus the explicit6d22 net overlay; no playing-strength or speed acceptance. Next implementation: S27 patch hygiene; exact inputs and next action are saved in the pack31 checkpoint. S27 is not implemented.
