@@ -1,0 +1,47 @@
+{
+  "status": "PASS_EXISTING_REFERENCE_MAINTENANCE",
+  "skill_path": ".agents/skills/validating-chess-simd/SKILL.md",
+  "skill_before_sha256": "05c9de20497b9e9112145bfadc2ee38b3de361f739ff7bf8daab9c2c7b2c1d31",
+  "skill_after_sha256": "f580b4b3957800f252e77e82e5f87665272cedc1415809f560abee0e9d0b6130",
+  "old_checker_sha256": "67383faefe4b3874d789cbbd8d95573c5207cceb02734a111f650b82151a06fc",
+  "new_checker_sha256": "54c66475b4e352ea78e1b47db8ab5c1fb1558863f606feb90958668658c25a8e",
+  "reference_controls": [
+    {
+      "case": "defined_zero",
+      "fixture_utf8": "#define FEATURE 0\n#if defined(FEATURE)\n++current_stats.refreshes;\n#endif\n",
+      "fixture_sha256": "4a8fbb83977a11ec8ba282b9740087f3db3745af601bf3bad8a385dd980d4073",
+      "observed_old": [
+        false,
+        "++current_stats.refreshes;"
+      ],
+      "observed_new": [
+        true,
+        "++current_stats.refreshes;"
+      ],
+      "expected_active": true,
+      "before": "FALSE_SAFE_RED",
+      "after": "PASS_ACTIVE_CODE_RECOGNIZED"
+    },
+    {
+      "case": "comment_fake_guard",
+      "fixture_utf8": "/*\n#if FEATURE\n*/\nvoid extra() { ++current_stats.refreshes; }\n/*\n#endif\n*/\n",
+      "fixture_sha256": "9bc610947f60e4b9c133f2f801e5287b9e23bb3028a48233539bfa7348a8c1d7",
+      "observed_old": [
+        false,
+        "void extra() { ++current_stats.refreshes; }"
+      ],
+      "observed_new": [
+        true,
+        "void extra() { ++current_stats.refreshes; }"
+      ],
+      "expected_active": true,
+      "before": "FALSE_SAFE_RED",
+      "after": "PASS_ACTIVE_CODE_RECOGNIZED"
+    }
+  ],
+  "helper_red_green_evidence": [
+    "forge_sol_S27_buildcompare_integrity_RED_receipt_20261026.json",
+    "forge_sol_S27_buildcompare_integrity_GREEN_receipt_20261026.json"
+  ],
+  "scope": "Existing repository-local reference refined using actual code/control failures and corrected pure controls. Not a new skill, global installation or fresh-agent pressure test. Native results remain separate."
+}

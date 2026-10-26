@@ -1,0 +1,68 @@
+{
+  "status": "PASS_BOUNDED_MAIN_SOURCE_AND_REQUIRED_CONTROLS",
+  "source_sha256": "54c66475b4e352ea78e1b47db8ab5c1fb1558863f606feb90958668658c25a8e",
+  "source_bytes": 33048,
+  "test_source_sha256": "1a46468479f2bad923d78e43a9df9b81e997f30d540f7a22ba356429a06ee53a",
+  "catalogue_sha256": "f60c13fd44c3888537e120602ed2832127fa116ac57b9fa84c9876395560ee9a",
+  "control_capture_sha256": "0b3399a7d68bfd2b577672cecc104503ded662ce4fc8b5b0ef71abe3b26c29e4",
+  "checks": [
+    {
+      "case": "fake_cpp_comment_guard",
+      "status": "PASS_REJECTS_FALSE_GUARD",
+      "counter_state": true
+    },
+    {
+      "case": "defined_zero_macro",
+      "status": "PASS_ACTIVE_BRANCH_RECOGNIZED"
+    },
+    {
+      "case": "git_metadata_path",
+      "path": ".git",
+      "status": "PASS_REJECTED"
+    },
+    {
+      "case": "git_metadata_path",
+      "path": "src/.git",
+      "status": "PASS_REJECTED"
+    },
+    {
+      "case": "unsafe_metadata_header",
+      "status": "PASS_REJECTED"
+    },
+    {
+      "case": "unsafe_metadata_header",
+      "status": "PASS_REJECTED"
+    },
+    {
+      "case": "cmake_bracket_grammar",
+      "status": "PASS_UNVERIFIED_NOT_FALSE"
+    },
+    {
+      "case": "canonical_balanced_description",
+      "status": "PASS_SUPPORTED"
+    },
+    {
+      "case": "catalogue_actual_prior_bytes",
+      "status": "PASS",
+      "entries": 10
+    },
+    {
+      "case": "actual_historical_control_capture",
+      "status": "PASS",
+      "records": 4,
+      "raw_blobs": 30,
+      "source_scope": "Exact historical target-file views; not full-source builds"
+    }
+  ],
+  "reviewer_engine_compiler_Git_executions": 0,
+  "reviewer_source_unchanged": true,
+  "limits": [
+    "Static default-guard analysis is a bounded heuristic, not complete C++ preprocessor/include-graph or CMake semantic proof.",
+    "Complex CMake bracket/multiline forms are conservatively unverified when relevant, rather than given a safe guard.",
+    "Opt-in build mode runs candidate build code; this tool is not a general execution security sandbox.",
+    "Actual current full CLI build qualification and final whole-suite run belong to parent; this source review alone does not claim them."
+  ],
+  "nonblocking_followup": [
+    "Included-header macro definitions and unsupported compiler/language mechanisms need independent semantic/build evidence; do not generalize the recognized-grammar PASS."
+  ]
+}
