@@ -1,0 +1,29 @@
+{
+  "status": "PASS_CPU_AFFINITY_ONLY_SUCCESSOR",
+  "original_sha256": "cebf0424819d69ebb906c083310c28de91e8cd806d050bf507f493ae0ca46394",
+  "successor_sha256": "8468de76d9719a03178561ba7be1d4d27cd6107714c3417824ffeddaab52eceb",
+  "changed_lines": [
+    "--- forge_sol_S09_full_holdout_20261026.py\n",
+    "+++ forge_sol_S09_full_holdout_CPU3_20261026.py\n",
+    "@@ -151,7 +151,7 @@\n",
+    "     resource.setrlimit(resource.RLIMIT_AS,(4*1024**3,4*1024**3))",
+    "     diagnostic=module(DIAGNOSTIC,'forge_s09_holdout_frozen_diagnostic',DIAGNOSTIC_SHA)",
+    "     if args.child:return child(args,diagnostic)",
+    "-    if sorted(os.sched_getaffinity(0))!=[1] or os.getpriority(os.PRIO_PROCESS,0)!=19:ap.error('CPU1 nice19 required')",
+    "+    if sorted(os.sched_getaffinity(0))!=[3] or os.getpriority(os.PRIO_PROCESS,0)!=19:ap.error('CPU3 nice19 required')",
+    "     inputs=verify_inputs();args.out.mkdir(exist_ok=False)",
+    "     owned=module(OWNED,'forge_s09_holdout_owned',OWNED_SHA)",
+    "     command=[str(PRIVATE/'bin/python'),'-B',str(Path(__file__).resolve()),'--execute','--child','--out',str(args.out),",
+    "@@ -165,7 +165,7 @@\n",
+    "         'scope':'actual f006 full50k synthetic-h000 holdout MSE; no optimizer/export/training',",
+    "         'root_authorized_window':args.root_authorized_window,'command':command,",
+    "         'work_seconds':WORK_SECONDS,'hard_seconds':HARD_SECONDS,'reserved_cleanup_seconds':HARD_SECONDS-WORK_SECONDS,",
+    "-        'source_inputs_before':inputs,'cpu':[1],'nice':19,'per_process_RLIMIT_AS_bytes':4*1024**3}",
+    "+        'source_inputs_before':inputs,'cpu':[3],'nice':19,'per_process_RLIMIT_AS_bytes':4*1024**3}",
+    "     start=time.monotonic();process=None",
+    "     try:",
+    "         with (args.out/'stdout').open('xb') as so,(args.out/'stderr').open('xb') as se,owned.SubreaperScope():"
+  ],
+  "evaluation_body_and_budgets_unchanged": true,
+  "original_CPU1_files_preserved": true
+}

@@ -1,0 +1,65 @@
+{
+  "schema": "forge.S09.ASAN.preregister.v1",
+  "status": "SOURCE_READY_NOT_NATIVE_EXECUTED",
+  "recorded_UTC": "2026-10-26T18:24:49.512414+00:00",
+  "build_controller_sha256": "523bc1954cee0b0451722e095695df42641c2922b24de988ec82011eb34e0109",
+  "runtime_controller_sha256": "162da3119d09a63e1152ca855dfe14940e91225feaa1f9bc420f59061d914b39",
+  "compile_recipe": {
+    "build_type": "RelWithDebInfo",
+    "flags": "-O2 -g -DNDEBUG -march=x86-64-v3 -mtune=znver5 -fno-fast-math -ffp-contract=off -DFORGE_NNUE_HIDDEN=256",
+    "sanitizers": "address,undefined",
+    "frame_pointer": true,
+    "shared_core": false,
+    "IPO_PGO_LTO": false,
+    "compiler_sha256": "6b3696e4dcb85e1c949c732a02befa50e3983ecf94ce7e8e58d9d503b954b79d"
+  },
+  "build_limits": {
+    "cpu": [
+      3
+    ],
+    "nice": 19,
+    "jobs": 1,
+    "seconds": 900,
+    "RLIMIT_AS_bytes": 4294967296,
+    "sampled_owned_RSS_limit_bytes": 4294967296
+  },
+  "runtime_limits": {
+    "seconds_per_stage": 600,
+    "CPU": [
+      3
+    ],
+    "nice": 19,
+    "RLIMIT_AS": "unlimited required; no setter in runtime",
+    "sampled_owned_RSS_limit_bytes": 4294967296,
+    "leak_detection": 1,
+    "ASAN_OPTIONS": "detect_leaks=1:halt_on_error=1",
+    "UBSAN_OPTIONS": "halt_on_error=1:print_stacktrace=1",
+    "LSAN_options": "unset; no suppressions",
+    "requires_escaped_runtime": "root existing LeakSanitizer sandbox EPERM proof; actual runtime tool must be escaped"
+  },
+  "runtime_steps": [
+    "FIRST new main ELF bare bench11/quit exactly308972 beforeUCI",
+    "FULL bench11 exactly308972",
+    "startposperft4=197281",
+    "kiwipeteperft4=4085603",
+    "typed unchangedUCI/T1T2 legal/EOF",
+    "fullconfiguredCTest sourceinventory exact (LP16/B17), fourknown/zeroFAIL",
+    "NNUE object+NNUE ELF scope+wholeELF FMA0",
+    "originalinput/private source+fullartifact hashbefore/after",
+    "ownedpgroup reaped, samplesRSS<=4GiB"
+  ],
+  "scope": "correctness only; Release already supplies fivebench/perft5; no speed/strength/PC claims",
+  "prerequisite": "parent notification LP/B Releasequalified beforenativeASANlaunch",
+  "commands": {
+    "Lprime": {
+      "build": "taskset -c 3 nice -n 19 python -B /workspace/forge-pack24-20261026/S09_ASAN_PREP_20261026/forge_sol_S09_build_ASAN_20261026.py --execute --authorization-reference ROOT_ASAN_RELEASE_PASSED_GRANT --role candidate --source /workspace/forge-pack24-20261026/S09_NATIVE_20261026/Lprime_default_source_once_20261026 --source-receipt /workspace/forge-pack24-20261026/S09_NATIVE_20261026/Lprime_default_source_once_20261026/S09_source_view.json --stored-heads 1 --out /tmp/forge_sol_S09_native_20261026/Lprime_ASAN_static_once_20261026 --cpu 3 --max-seconds 900",
+      "FIRST": "taskset -c 3 nice -n 19 python -B /workspace/forge-pack24-20261026/S09_ASAN_PREP_20261026/forge_sol_S09_qualify_ASAN_20261026.py --execute --authorization-reference ROOT_ASAN_RELEASE_PASSED_GRANT --mode FIRST --build-receipt /tmp/forge_sol_S09_native_20261026/Lprime_ASAN_static_once_20261026/forge_sol_S09_build_result_20261026.json --out /tmp/forge_sol_S09_native_20261026/Lprime_ASAN_FIRST_once_20261026 --max-seconds 600",
+      "FULL": "taskset -c 3 nice -n 19 python -B /workspace/forge-pack24-20261026/S09_ASAN_PREP_20261026/forge_sol_S09_qualify_ASAN_20261026.py --execute --authorization-reference ROOT_ASAN_RELEASE_PASSED_GRANT --mode FULL --build-receipt /tmp/forge_sol_S09_native_20261026/Lprime_ASAN_static_once_20261026/forge_sol_S09_build_result_20261026.json --first-runtime-receipt /tmp/forge_sol_S09_native_20261026/Lprime_ASAN_FIRST_once_20261026/forge_sol_S09_runtime_result_20261026.json --out /tmp/forge_sol_S09_native_20261026/Lprime_ASAN_FULL_once_20261026 --max-seconds 600"
+    },
+    "B": {
+      "build": "taskset -c 3 nice -n 19 python -B /workspace/forge-pack24-20261026/S09_ASAN_PREP_20261026/forge_sol_S09_build_ASAN_20261026.py --execute --authorization-reference ROOT_ASAN_RELEASE_PASSED_GRANT --role candidate --source /workspace/forge-pack24-20261026/S09_NATIVE_20261026/B_default_source_once_20261026 --source-receipt /workspace/forge-pack24-20261026/S09_NATIVE_20261026/B_default_source_once_20261026/S09_source_view.json --stored-heads 1 --out /tmp/forge_sol_S09_native_20261026/B_ASAN_static_once_20261026 --cpu 3 --max-seconds 900",
+      "FIRST": "taskset -c 3 nice -n 19 python -B /workspace/forge-pack24-20261026/S09_ASAN_PREP_20261026/forge_sol_S09_qualify_ASAN_20261026.py --execute --authorization-reference ROOT_ASAN_RELEASE_PASSED_GRANT --mode FIRST --build-receipt /tmp/forge_sol_S09_native_20261026/B_ASAN_static_once_20261026/forge_sol_S09_build_result_20261026.json --out /tmp/forge_sol_S09_native_20261026/B_ASAN_FIRST_once_20261026 --max-seconds 600",
+      "FULL": "taskset -c 3 nice -n 19 python -B /workspace/forge-pack24-20261026/S09_ASAN_PREP_20261026/forge_sol_S09_qualify_ASAN_20261026.py --execute --authorization-reference ROOT_ASAN_RELEASE_PASSED_GRANT --mode FULL --build-receipt /tmp/forge_sol_S09_native_20261026/B_ASAN_static_once_20261026/forge_sol_S09_build_result_20261026.json --first-runtime-receipt /tmp/forge_sol_S09_native_20261026/B_ASAN_FIRST_once_20261026/forge_sol_S09_runtime_result_20261026.json --out /tmp/forge_sol_S09_native_20261026/B_ASAN_FULL_once_20261026 --max-seconds 600"
+    }
+  }
+}

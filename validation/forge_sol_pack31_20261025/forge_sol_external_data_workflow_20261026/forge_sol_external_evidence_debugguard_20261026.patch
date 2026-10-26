@@ -1,0 +1,10 @@
+--- forge_sol_external_evidence_rehydrate_v1_20261026.py
++++ forge_sol_external_evidence_rehydrate_v2_20261026.py
+@@ -9,6 +9,7 @@
+ 
+ DATA_SUFFIXES={'.gz','.xz','.zst','.bz2','.jsonl','.epd','.pgn','.log','.stdout','.stderr','.json'}
+ def main():
++    if not __debug__: raise RuntimeError('Run without -O/PYTHONOPTIMIZE')
+     ap=argparse.ArgumentParser(description=__doc__)
+     ap.add_argument('--metadata',type=Path,required=True)
+     ap.add_argument('--git-dir',type=Path,required=True)

@@ -1,0 +1,49 @@
+{
+  "status": "PASS_OPTIMIZATION_GUARD_RED_GREEN",
+  "old_helper_sha256": "8fd927df4453cbc8c86fc14d9ca05ac680b57f90be9ecf8b01e820268d04d900",
+  "new_helper_sha256": "d3c75324060bb11d8362a8fe6e4496cdb28352b6a6e132981cb858a3df0f27ef",
+  "only_delta": "One production debug guard before argparse/integrity",
+  "cases": [
+    {
+      "label": "old_O_RED",
+      "argv": [
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python",
+        "-B",
+        "-O",
+        "/tmp/forge_sol_external_evidence_rehydrate_20261026.py",
+        "--help"
+      ],
+      "returncode": 0,
+      "stdout_sha256": "0ba478bf791d917756a862a3961cd804acf9e16e719464e1b0b7fcc6b9010b12",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "explicit_guard": false
+    },
+    {
+      "label": "v2_O_GREEN",
+      "argv": [
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python",
+        "-B",
+        "-O",
+        "/tmp/forge_sol_external_evidence_rehydrate_v2_20261026.py",
+        "--help"
+      ],
+      "returncode": 1,
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderr_sha256": "3fd3353ca255df78f8119a708763e3a82f1016aad560dc6236cb1d0ca5ef43b5",
+      "explicit_guard": true
+    },
+    {
+      "label": "v2_normal_GREEN",
+      "argv": [
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python",
+        "-B",
+        "/tmp/forge_sol_external_evidence_rehydrate_v2_20261026.py",
+        "--help"
+      ],
+      "returncode": 0,
+      "stdout_sha256": "4d5037fd2d3864ca5a3e81d410ba507106942c9c66b861d3708ed7755aa30374",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "explicit_guard": false
+    }
+  ]
+}

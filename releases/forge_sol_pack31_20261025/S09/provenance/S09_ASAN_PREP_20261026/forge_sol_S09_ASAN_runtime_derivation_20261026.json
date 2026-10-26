@@ -1,0 +1,56 @@
+{
+  "schema": "forge.S09.ASAN.runtime_successor.v1",
+  "frozen_Release_source": "/workspace/forge-pack24-20261026/S09_NATIVE_PREP_20261026/forge_sol_S09_qualify_native_20261026.py",
+  "frozen_Release_sha256": "f7265049e8e8db022a8400f8a2420d6a031a0a4f7c7f28d3f906583fc88cf111",
+  "successor_source": "/workspace/forge-pack24-20261026/S09_ASAN_PREP_20261026/forge_sol_S09_qualify_ASAN_20261026.py",
+  "initial_successor_sha256": "6fb7765329a4105e9f2c89d125a07ebf9c4c55e923b84ce7dc6bde509904c1b1",
+  "replacements": [
+    {
+      "old": "S09 fixed-work qualification",
+      "new": "S09 ASan+UBSan fixed-work qualification"
+    },
+    {
+      "old": "HERE/'forge_sol_S09_build_native_20261026.py'",
+      "new": "HERE/'forge_sol_S09_build_ASAN_20261026.py'"
+    },
+    {
+      "old": "if data.get('schema')!='forge.S09.build.v1' or data.get('status')!='PASS_BUILD_ONLY'",
+      "new": "if data.get('profile')!='ASAN_UBSAN_STATIC_O2_DEBUG' or data.get('schema')!='forge.S09.build.v1' or data.get('status')!='PASS_BUILD_ONLY'"
+    },
+    {
+      "old": "data.get('schema')!='forge.S09.first_runtime.v1' or data.get('status')!='PASS'",
+      "new": "data.get('profile')!='ASAN_UBSAN_STATIC_O2_DEBUG' or data.get('schema')!='forge.S09.first_runtime.v1' or data.get('status')!='PASS'"
+    },
+    {
+      "old": "import re\n",
+      "new": "import re\nimport resource\n"
+    },
+    {
+      "old": "for depth,nodes in q.REFS.items():",
+      "new": "for depth,nodes in [(11,308972)]:"
+    },
+    {
+      "old": "[('startpos','startpos',4865609),('kiwipete','fen '+q.KIWI,193690690)]",
+      "new": "[('startpos','startpos',197281),('kiwipete','fen '+q.KIWI,4085603)]"
+    },
+    {
+      "old": "label='perft5_'+name;lines=q.engine_once(engine,a.out,label,['position '+position,'go perft 5']",
+      "new": "label='perft4_'+name;lines=q.engine_once(engine,a.out,label,['position '+position,'go perft 4']"
+    },
+    {
+      "old": "step(label,{'depth':5,'nodes':expected})",
+      "new": "step(label,{'depth':4,'nodes':expected})"
+    },
+    {
+      "old": "guard=q.Guard(a.out,a.out/'ROOT_STOP',start+a.max_seconds)",
+      "new": "guard=RSSGuard(a.out,a.out/'ROOT_STOP',start+a.max_seconds)"
+    },
+    {
+      "old": "result={'schema':'forge.S09.first_runtime.v1'",
+      "new": "result={'profile':'ASAN_UBSAN_STATIC_O2_DEBUG','runtime_environment':{'ASAN_OPTIONS':os.environ['ASAN_OPTIONS'],'UBSAN_OPTIONS':os.environ['UBSAN_OPTIONS']},'ASAN_address_space_limit':'unlimited; no RLIMIT_AS set by runtime controller','schema':'forge.S09.first_runtime.v1'"
+    }
+  ],
+  "scope": "same FIRST/typedUCI/fullCTest/FMA/immutable source artifact binding; ASANruntimeprofile, bench11only/perft4, canonicalleaksONenv, noRLIMITAS, ownedRSSguard+processcleanup toadd",
+  "native_executions": 0,
+  "original_Release_source_unchanged": true
+}

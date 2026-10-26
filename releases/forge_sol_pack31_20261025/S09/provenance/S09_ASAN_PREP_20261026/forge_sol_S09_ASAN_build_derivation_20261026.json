@@ -1,0 +1,80 @@
+{
+  "schema": "forge.S09.ASAN.build_successor.v1",
+  "frozen_Release_source": "/workspace/forge-pack24-20261026/S09_NATIVE_PREP_20261026/forge_sol_S09_build_native_20261026.py",
+  "frozen_Release_sha256": "de17f7ac6b83a6d7f1e90fc202ffff0343717a5afc0839ce310d473469c4a39d",
+  "successor_source": "/workspace/forge-pack24-20261026/S09_ASAN_PREP_20261026/forge_sol_S09_build_ASAN_20261026.py",
+  "successor_sha256": "523bc1954cee0b0451722e095695df42641c2922b24de988ec82011eb34e0109",
+  "scope": "same source-view/owned-build/artifact inventory protocol; ASAN+UBSANstatic O2g recipe and explicit helper paths; CPU3nice19j1<=900s; no native executions",
+  "replacements": [
+    {
+      "old": "Build-only S09 Release qualification",
+      "new": "Build-only S09 ASan+UBSan qualification"
+    },
+    {
+      "old": "HERE/'forge_sol_S09_prepare_source_view_20261026.py'",
+      "new": "HERE.parent/'S09_NATIVE_PREP_20261026/forge_sol_S09_prepare_source_view_20261026.py'"
+    },
+    {
+      "old": "HARN=HERE/'overlay/tools/nnue/heads_parity.cpp'",
+      "new": "HARN=HERE.parent/'S09_NATIVE_PREP_20261026/overlay/tools/nnue/heads_parity.cpp'"
+    },
+    {
+      "old": "required=set(FLAGS.split())|{'-O3','-DNDEBUG'}",
+      "new": "required=set(FLAGS.split())|{'-O2','-g','-DNDEBUG','-fsanitize=address,undefined','-fno-omit-frame-pointer'}"
+    },
+    {
+      "old": "wrong compiler or incomplete Release recipe",
+      "new": "wrong compiler or incomplete ASan/UBSan recipe"
+    },
+    {
+      "old": "token.startswith(('-flto','-fprofile','-fauto-profile','-UFORGE_','-DFORGE_PROF'))",
+      "new": "token.startswith(('-flto','-fprofile','-fauto-profile','-UFORGE_','-DFORGE_PROF','-fno-sanitize'))"
+    },
+    {
+      "old": "token.startswith('-O') and token!='-O3'",
+      "new": "token.startswith('-O') and token!='-O2'"
+    },
+    {
+      "old": "'CMAKE_BUILD_TYPE':'Release'",
+      "new": "'CMAKE_BUILD_TYPE':'RelWithDebInfo'"
+    },
+    {
+      "old": "'CMAKE_CXX_FLAGS_RELEASE':'-O3 -DNDEBUG'",
+      "new": "'CMAKE_CXX_FLAGS_RELWITHDEBINFO':'-O2 -g -DNDEBUG'"
+    },
+    {
+      "old": "'FORGE_ENABLE_SANITIZERS':'OFF'",
+      "new": "'FORGE_ENABLE_SANITIZERS':'ON'"
+    },
+    {
+      "old": "[str(owned.CXX),'-std=c++20','-O3','-DNDEBUG',*FLAGS.split(),",
+      "new": "[str(owned.CXX),'-std=c++20','-O2','-g','-DNDEBUG',*FLAGS.split(),'-fsanitize=address,undefined','-fno-omit-frame-pointer',"
+    },
+    {
+      "old": "default=600)",
+      "new": "default=900)"
+    },
+    {
+      "old": "default=2)",
+      "new": "default=3)"
+    },
+    {
+      "old": "'-DCMAKE_BUILD_TYPE=Release'",
+      "new": "'-DCMAKE_BUILD_TYPE=RelWithDebInfo'"
+    },
+    {
+      "old": "'-DCMAKE_CXX_FLAGS_RELEASE=-O3 -DNDEBUG'",
+      "new": "'-DCMAKE_CXX_FLAGS_RELWITHDEBINFO=-O2 -g -DNDEBUG'"
+    },
+    {
+      "old": "'-DFORGE_ENABLE_SANITIZERS=OFF'",
+      "new": "'-DFORGE_ENABLE_SANITIZERS=ON'"
+    },
+    {
+      "old": "result={'schema':'forge.S09.build.v1'",
+      "new": "result={'profile':'ASAN_UBSAN_STATIC_O2_DEBUG','schema':'forge.S09.build.v1'"
+    }
+  ],
+  "additional_guard": "reject sanitizer/debug/frame-pointer overrides",
+  "original_Release_source_unchanged": true
+}

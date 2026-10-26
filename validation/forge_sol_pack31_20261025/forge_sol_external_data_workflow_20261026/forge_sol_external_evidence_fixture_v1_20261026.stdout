@@ -1,0 +1,58 @@
+{
+  "status": "PASS_THREE_LOCAL_FIXTURE_CASES",
+  "actual_repository_touched": false,
+  "network_or_credentials_used": false,
+  "git_version": "git version 2.52.0",
+  "helper_sha256": "8fd927df4453cbc8c86fc14d9ca05ac680b57f90be9ecf8b01e820268d04d900",
+  "fixture_sha256": "ca6f1070063db10a6dce13fb73f7a43faa0b9ad5fd3de542fab81cdbd2984794",
+  "cases": [
+    {
+      "status": "PASS",
+      "name": "NORMAL_COMMIT_PUSH_CLEAN_CLONE",
+      "commit": "335f28cfae8a445f0cac9a147c330e0b7f02e777",
+      "oid": "7ef991ba9409cd0427c8efb628fb3704a202d1e9",
+      "sha256": "1a957655d9969cde3f01bbcb2eef4724c12ffc5d773f3a46b4d6a7d2561c32f4",
+      "bytes": 2097152,
+      "working_body_materialized": false,
+      "remote_or_clone_alternates": false,
+      "primary_artifact_loose_object_exists": false
+    },
+    {
+      "status": "PASS",
+      "name": "MISSING_STORE_FAILS_THEN_PINNED_REHYDRATION",
+      "missing_returncode": 1,
+      "restored_sha256": "1a957655d9969cde3f01bbcb2eef4724c12ffc5d773f3a46b4d6a7d2561c32f4",
+      "primary_object_bytes_unchanged": true,
+      "working_tree_unchanged": true,
+      "helper_result": {
+        "artifact_commit": "335f28cfae8a445f0cac9a147c330e0b7f02e777",
+        "external_objects": "/tmp/forge_sol_external_evidence_fixture_20261026/external_objects",
+        "files": [
+          {
+            "bytes": 2097152,
+            "git_blob_oid": "7ef991ba9409cd0427c8efb628fb3704a202d1e9",
+            "path": "validation/forge_fixture_20261026/large evidence.jsonl",
+            "sha256": "1a957655d9969cde3f01bbcb2eef4724c12ffc5d773f3a46b4d6a7d2561c32f4",
+            "source": "PINNED_FIXTURE"
+          }
+        ],
+        "primary_mutations": "NONE",
+        "status": "PASS_REHYDRATED_DATA_OBJECTS"
+      }
+    },
+    {
+      "status": "PASS",
+      "name": "WRONG_PINNED_SHA_REJECTED_BEFORE_GIT_WRITE",
+      "returncode": 1,
+      "expected_stderr_contains": "SHA256/size mismatch",
+      "actual_match": true,
+      "primary_object_bytes_unchanged": true,
+      "new_object_written": false
+    }
+  ],
+  "limitations": [
+    "Local bare/clone protocol tested, GitHub API/actual HTTPS download not executed.",
+    "Real recovery metadata needs the successfully pushed artifact commit pin, not an unpushed branch name.",
+    "External-store disappearance breaks local artifact reads until rehydration; remote ordinary clones remain independent."
+  ]
+}

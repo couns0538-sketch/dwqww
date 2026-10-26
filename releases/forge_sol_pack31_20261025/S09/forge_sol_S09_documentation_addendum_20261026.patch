@@ -1,0 +1,44 @@
+--- a/README.md
++++ b/README.md
+@@ -1,3 +1,20 @@
+ # fc_nnue_h256_e12_ep12_ep10base — H256 net (run e, epoch 12) on the locked ep10 source base
++
++## S09 source addendum, 2026-10-26
++
++This isolated follow-up uses the supplied, reviewed Forge step 1 unchanged:
++`fc_buckets8_h256e12.patch`, SHA256
++`ed28132d48b75496732f0ecf25753ad869787c84a4939aaf004b3de8580a9704`.
++The newly authored engine delta adds a required available/residual/H256/stored-head
++contract test and optional validation-tool targets. It does not rename the
++reviewed core patch as a new implementation or promote a network.
++
++The trainer copy adds `--buckets 1|8` with default 1. The converter reuses the
++original step-1 include parser. The original one-head h256_e12 net remains the
++engine default; there is no new UCI option. Eight replicated heads are separate
++offline validation inputs. Accumulators remain float; existing quantized weight
++storage is dequantized by the original loader. See the separately dated
++`forge_sol_S09_job_report_20261026.md` for evidence and unverified PC/GPU steps.
++No speed or playing-strength claim follows from these checks.
+ 
+ Status: **UNPROVEN. No Elo or strength claim.** Built on the box by Engine Coder, 2026-10-23.
+--- a/IDEA_SOURCE.md
++++ b/IDEA_SOURCE.md
+@@ -1,3 +1,18 @@
+ # IDEA_SOURCE — fc_nnue_h256_e12_ep12_ep10base  (REAL H256 net on the locked ep10 source base; UNPROVEN)
++
++## S09 idea sources, 2026-10-26
++
++- Crew's S09 specification and its CR-passed, original Forge piece-count output
++  head extension: `files/17_buckets8_step1/fc_buckets8_h256e12.patch`, SHA256
++  `ed28132d48b75496732f0ecf25753ad869787c84a4939aaf004b3de8580a9704`.
++- Forge's own supplied v3b trainer and exporter:
++  `files/07_nnue_context/train_resid_v3b.py`, SHA256
++  `5cebba4d44133630e247d9ab4c0085fa6301dde8db1dfe1389452ac19d92313f`.
++- Supplied f006 training-run logs and the crew's explicit recipe/default request.
++  These identify observed run settings, not a recovered complete settings file.
++
++No external engine implementation or tuned constants were imported. Existing
++Forge parsing, native APIs and reviewed implementation are reused as original
++project dependencies, with new work and evidence identified separately.
+ 
+ Forge 6.4.24 (1ab50b2d), same source as the locked ep10 tree `/workspace/forge-coder/fc_nnue_ep10_1ab50b2d` (net-a md5 da65098c…). The ONLY source change is `src/nnue_weights.inc`, replaced by Engine NNUE's own trained H256 residual net:
