@@ -1,5 +1,11 @@
 # Experiment ledger
 
+## S10 first screen rejected; validation continues — 2026-10-26
+
+QuietCheckLmpSurvival passed Lprime full Release14/14 and ASan/UBSan14/14 with four known diagnostics, plus the reviewed ON T2 supplement. Its single WAC screen scored269/300 against the required283: REJECTED_SEARCH_SCREEN, no retry. Original result SHA2568eb34f02d3e3ebf053c7920a5a86a66b1601f40b624cd935b591d025acab600b. B qualification is active under the S10 operator; three frozen ideas follow. This does not finish S10 or change the15-delivered/38-pending/1-dropped queue. No Elo, speed or adoption claim.
+
+The post-S09 continuation checkpoint1610e926c4ce4f8a58afd3712a0caf793dddda51 has191/191 immutable byte/hash readbacks. Complete original S16 evidence is recoverable in its data archive; it remains prepared for ordered delivery. The existing local SIMD validation skill now links to the actually tested data recovery workflow; no duplicate skill or plugin installation is claimed.
+
 ## S09 delivered; S10 running — 2026-10-26
 
 The finite queue is **15 delivered-scope, 38 pending, 1 dropped (S23), 54 unique IDs**. S09 is published at `80199055cdbd9b0257c05dd52e249fbf8ce4241c`; all993 immutable HTTP200/SHA256/Git-byte checks pass. Both bases pass five fixed benchmarks, perft5, FMA0 and full Release/ASan suites16/17 with four known diagnostics. The million-position API comparison and10000-root converted-head comparison have zero differences; separate original float-word streams match. The full50000-row synthetic holdout exited normally; it is not a training-gain result. No speed/Elo/Windows/net-adoption claim.

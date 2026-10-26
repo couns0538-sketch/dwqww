@@ -30,6 +30,20 @@ source/header closure and flags for every reused object; record each flavour.
 
 Before any native action that reuses cached products, preflight the complete
 selected set: engines, libraries, object members, support executables and recipes.
+Check the capacity and filesystem identity of all authorized writable roots
+before retiring caches; a separate `/tmp` may support new builds. Check RAM
+availability when that filesystem is memory-backed. Preserve completed evidence
+in the durable project destination rather than relying on temporary storage.
+
+Large evidence data can use ordinary tracked Git blobs in an external object
+store, with local skip-worktree flags only for those new data paths. Keep source,
+commits, trees and existing objects in primary storage. A successful push and
+immutable byte verification establish durability; normal clones include the data.
+The [tested recovery helper](../../../validation/forge_sol_pack31_20261025/forge_sol_external_data_workflow_20261026/forge_sol_external_evidence_rehydrate_v2_20261026.py)
+requires pinned commit, SHA256 and Git blob IDs, as shown in the
+[verified recovery metadata](../../../validation/forge_sol_pack31_20261025/forge_sol_S09_data_recovery_metadata_20261026.json).
+Rehydrate a lost temporary store before operations that require its blobs.
+
 Derive support target names from frozen generated CMake/CTest registrations and
 matching exact-path archive records, not remembered names or source filenames.
 Inventory every archive-generation map and resolve exact original paths, with
