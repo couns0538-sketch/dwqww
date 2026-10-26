@@ -1,0 +1,131 @@
+--- a/train_resid_v3b.py
++++ b/train_resid_v3b.py
+@@ -9,7 +9,8 @@
+   *.pos  (tools/fen2bin.cpp)  nibble boards + int16 teacher score (STM cp) + meta (stm, WHITE result)
+   *.hce  (tools/hce_dump.cpp) int16 Forge-1ab50b2d evaluate_uncached (STM cp), line-aligned with .pos
+ 
+-Model/export are the same Forge net (768 -> H per perspective, SCReLU, 2H -> 1, int16 QAT, scale 4096).
++S09: optional 8 piece-count output heads on the preserved step-1 contract; buckets=1 keeps the original forward/export math.
++Model/export use 768 -> H per perspective, SCReLU, 2H -> buckets, existing int16 storage/QAT, scale 4096; inference stays float.
+ --residual: logit = net(x) + K*hce/400, output layer starts at zero => first forward == HCE alone,
+ export writes FORGE_NNUE_RESIDUAL 1.  Loss = MSE(sigmoid(logit), blend*sigmoid(K*score/400) + (1-blend)*stm_result).
+ Holdout = whole files (never trained on).  Blend ramps linearly over training progress.
+@@ -263,11 +264,14 @@
+ 
+ 
+ class NNUE(nn.Module):
+-    def __init__(self, hidden, qat=True, residual=True):
++    def __init__(self, hidden, qat=True, residual=True, buckets=1):
+         super().__init__()
+         self.hidden, self.qat, self.residual = hidden, qat, residual
++        if type(buckets) is not int or buckets not in (1, 8):
++            raise ValueError("output buckets must be 1 or 8")
++        self.buckets = buckets
+         self.ft = nn.Linear(FEATURES, hidden)
+-        self.out = nn.Linear(2 * hidden, 1)
++        self.out = nn.Linear(2 * hidden, buckets)
+         nn.init.normal_(self.ft.weight, std=0.02)
+         nn.init.zeros_(self.ft.bias)
+         nn.init.zeros_(self.out.bias)
+@@ -288,7 +292,13 @@
+         w, b = self.q(self.ft.weight), self.q(self.ft.bias)
+         hs = torch.clamp(F.linear(xs, w, b), 0.0, 1.0).square()
+         ho = torch.clamp(F.linear(xo, w, b), 0.0, 1.0).square()
+-        out = F.linear(torch.cat([hs, ho], 1), self.q(self.out.weight), self.q(self.out.bias)).squeeze(1)
++        if self.buckets == 1:
++            out = F.linear(torch.cat([hs, ho], 1), self.q(self.out.weight), self.q(self.out.bias)).squeeze(1)
++        else:
++            logits = F.linear(torch.cat([hs, ho], 1), self.q(self.out.weight), self.q(self.out.bias))
++            pieces = (codes > 0).sum(dim=1)  # includes both kings
++            head = torch.clamp(torch.div(pieces - 1, 4, rounding_mode="floor"), 0, 7).long()
++            out = logits.gather(1, head.unsqueeze(1)).squeeze(1)
+         return out + hce_logit if self.residual else out
+ 
+     @torch.no_grad()
+@@ -394,12 +404,17 @@
+ 
+ def export_forge(model, stem, k, residual):
+     hidden = model.hidden
++    buckets = getattr(model, "buckets", 1)
++    if type(buckets) is not int or buckets not in (1, 8):
++        raise ValueError("output buckets must be 1 or 8")
+     arrays = [model.ft.weight.detach().cpu().t().contiguous().numpy().ravel(),
+               model.ft.bias.detach().cpu().numpy(),
+               model.out.weight.detach().cpu().numpy().ravel(),
+               model.out.bias.detach().cpu().numpy()]
+     if not all(np.isfinite(v).all() for v in arrays):
+         raise RuntimeError("Non-finite parameters; refusing to export")
++    if arrays[0].size != 768 * hidden or arrays[1].size != hidden or arrays[2].size != buckets * 2 * hidden or arrays[3].size != buckets:
++        raise ValueError("NNUE export shape does not match hidden/buckets")
+     quant = []
+     for v in arrays:
+         sc = v.astype(np.float64) * SCALE
+@@ -414,11 +429,18 @@
+              'static_assert(forge::nnue::SigmoidK == 2.25F, "NNUE output scale mismatch");',
+              'static_assert(forge::nnue::WeightScale == 4096.0F && forge::nnue::OutputScale == 4096.0F,',
+              '              "NNUE quantization scale mismatch");']
++    if buckets == 8:
++        lines.insert(3, "#define FORGE_NNUE_OUTPUT_HEADS 8")
+     for name, v in zip(("NnueW1", "NnueB1", "NnueW2"), quant[:3]):
+         lines.append(f"static const std::int16_t {name}[{len(v)}] = {{")
+         lines.extend("  " + ", ".join(map(str, v[i:i + 24])) + "," for i in range(0, len(v), 24))
+         lines.append("};")
+-    lines.append(f"static const std::int16_t NnueB2 = {int(quant[3][0])};")
++    if buckets == 1:
++        lines.append(f"static const std::int16_t NnueB2 = {int(quant[3][0])};")
++    else:
++        lines.append("static const std::int16_t NnueB2[8] = {")
++        lines.append("  " + ", ".join(map(str, quant[3])) + ",")
++        lines.append("};")
+     atomic_write(stem.with_suffix(".inc"), lambda dst: dst.write(("\n".join(lines) + "\n").encode("ascii")))
+     raw = b"".join(np.asarray(v, dtype="<f4").tobytes() for v in arrays)
+     atomic_write(stem.with_suffix(".bin"), lambda dst: dst.write(raw))
+@@ -504,12 +526,14 @@
+     ap.add_argument("--hce-dir", required=True)
+     ap.add_argument("--device", choices=["directml", "cpu"], default="directml")
+     ap.add_argument("--device-index", type=int)
+-    ap.add_argument("--shape", type=int, default=128, help="hidden width H")
+-    ap.add_argument("--residual", action="store_true")
++    ap.add_argument("--shape", type=int, default=256, help="hidden width H")
++    ap.add_argument("--residual", action="store_true", default=True)
++    ap.add_argument("--standalone", dest="residual", action="store_false")
++    ap.add_argument("--buckets", type=int, choices=[1, 8], default=1)
+     ap.add_argument("--baseline-only", action="store_true", help="report HCE-alone loss on the holdout and exit")
+-    ap.add_argument("--epochs", type=int, default=8)
+-    ap.add_argument("--batch-size", type=int, default=4096)
+-    ap.add_argument("--lr", type=float, default=1e-3)
++    ap.add_argument("--epochs", type=int, default=48)
++    ap.add_argument("--batch-size", type=int, default=8192)
++    ap.add_argument("--lr", type=float, default=7.07e-4)
+     ap.add_argument("--min-lr-frac", type=float, default=0.01)
+     ap.add_argument("--warmup-steps", type=int, default=300)
+     ap.add_argument("--blend-start", type=float, default=1.0)
+@@ -518,9 +542,9 @@
+     ap.add_argument("--no-qat", action="store_true")
+     ap.add_argument("--max-train", type=int, default=0, help="limit training positions (file prefixes); 0 = all")
+     ap.add_argument("--val-positions", type=int, default=4_000_000, help="fixed random holdout subset per epoch (0 = all)")
+-    ap.add_argument("--final-full-val", action="store_true")
++    ap.add_argument("--final-full-val", action="store_true", default=True)
+     ap.add_argument("--steps-per-epoch", type=int, default=0)
+-    ap.add_argument("--seed", type=int, default=1)
++    ap.add_argument("--seed", type=int, default=25)
+     ap.add_argument("--run-dir", default="forge-resid-run")
+     ap.add_argument("--resume")
+     ap.add_argument("--log-every", type=float, default=30.0)
+@@ -551,7 +575,7 @@
+     else:
+         val_idx = np.arange(hold["n"], dtype=np.int64)
+     full_idx = np.arange(hold["n"], dtype=np.int64)
+-    model = NNUE(a.shape, qat=not a.no_qat, residual=a.residual or a.baseline_only).to(dev)
++    model = NNUE(a.shape, qat=not a.no_qat, residual=a.residual or a.baseline_only, buckets=a.buckets).to(dev)
+     base_sub, nb = evaluate(model, hold, val_idx, dev, k, a.batch_size, baseline=True)
+     print(f"BASELINE HCE-alone holdout subset n={nb:,}: mse_teacher(blend1.0)={base_sub[1.0]:.6f} mse_blend0.6={base_sub[0.6]:.6f}", flush=True)
+     if a.baseline_only:
+@@ -597,6 +621,7 @@
+         start_epoch, step = ck["next_epoch"], ck["step"]
+         print(f"resumed {a.resume}: next_epoch={start_epoch} step={step}", flush=True)
+     config = {"hidden": a.shape, "residual": bool(a.residual), "qat": not a.no_qat, "sigmoid_k": k,
++              "output_buckets": a.buckets,
+               "features": "forge768-relative-pieces-rank-flip", "epochs": a.epochs, "steps_per_epoch": spe}
+ 
+     def lr_at(s):

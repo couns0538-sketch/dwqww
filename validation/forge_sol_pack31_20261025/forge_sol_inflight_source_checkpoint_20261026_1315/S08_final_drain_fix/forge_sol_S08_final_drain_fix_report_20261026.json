@@ -1,0 +1,98 @@
+{
+  "schema": "forge_sol_S08_independent_source_review_and_bounded_collector_fix_v1",
+  "created_utc": "2026-10-26T13:00:51.273357+00:00",
+  "status": "COLLECTOR_FINAL_DRAIN_BUG_FIXED_SOURCE_REVIEW_COMPLETE_S08_NATIVE_PENDING",
+  "scope": "Independent source review followed by root-authorized bounded collector fix after primary developer reactivation hit platform thread limit. CPU2/nice19; pure source and Python protocol doubles only; no native/compiler/timing/Git/network.",
+  "source_binding": {
+    "core_patch_sha256_unchanged": "5c6310e7881bfb592feab981e132a6cf81a6080b45631f62a37e774ced5b6879",
+    "collector_before_sha256": "5ef437f5ac1951aa7947cdc97536b2bd1dde1c1fe78495bf70f8f4a41415395d",
+    "collector_after_sha256": "bf5d18d25bc1fb342c06092a36bfbac2b4717dc8a3f3c8f5cac34add3c3b1143",
+    "tests_before_sha256": "a054d7a81f91addae428afb61c34cd530a30d710959a49d1400a2bfde9a5075b",
+    "tests_after_sha256": "db16de660651048e547b25eb6b0238f5deff591224bf41e0ae94c97d3bbfa0a5",
+    "only_production_function_AST_changed": "_Process.close",
+    "original19collector_test_class_AST_unchanged": true,
+    "original6source_contract_tests_unchanged": true
+  },
+  "resolved_finding": {
+    "id": "S08-R1",
+    "severity": "blocking_native_collector_acceptance_before_fix",
+    "location": "forge_sol_S08_collect_profiles_20261026.py:_Process.close and collect final child closure",
+    "reproduction": "A valid child emitted complete counter packet/terminal/readyok and then late stdout on graceful quit. Old collect returnedPASS while raw output retained the unexpected line. Same falsePASS occurred for stderr and for bare-bench child. An explicitly prebuffered second line was not rejected.",
+    "root_cause": "until consumed expected terminal/fence but close(True) only drained stdout/stderr and checked returncode; queued tail was not validated. Parser-only trailing-line checks did not exercise this controller path.",
+    "fix": "After graceful EOF and wait, reject nonzero exits, every unconsumed stdout line (including empty/duplicate-readyok tail) and nonempty stderr. Preserve diagnostics/raw files and close receipt. Unconditional finally closes selector/streams, clears line deque and pending bytes, then seals capture hashes/actual returncode. No search/counter core code changed.",
+    "verification": "Final typed-dialect four-test regression suite produces five expected assertion failures on preserved5ef source; existing nonzero control already passed. Final29-test combined suite passes onbf5d. Original persistent falsePASS fixture replay now returnsFAIL with complete raw/receipt and cleared queues."
+  },
+  "verification": {
+    "RED": {
+      "command": "Python unittest FinalDrainTests with MODULE explicitly set to preserved5ef before snapshot; same final db16 tests",
+      "tests": 4,
+      "expected_assertion_failures": 5,
+      "errors": 0,
+      "returncode": 1,
+      "stderr": "terminal_final_fixture_RED.stderr",
+      "stderr_sha256": "75387499f32a9d6dd7b99150e99a48ac70ebe9539e4d769e594fa1af9db188ae"
+    },
+    "GREEN": {
+      "command": "PYTHONDONTWRITEBYTECODE=1 OPENBLAS_NUM_THREADS=1 OMP_NUM_THREADS=1 nice -n 19 taskset -c 2 python3 -B -m unittest discover -s . -p 'test_forge_sol_S08*.py' -v",
+      "tests": 29,
+      "composition": "25existing=19collector+6source;4new final-drain tests",
+      "returncode": 0,
+      "elapsed_test_seconds": 3.176,
+      "stderr": "final_combined_GREEN.stderr",
+      "stderr_sha256": "e869f46c51931efddb457aba16db410fb2782c056834f2de45f40545fbe38d98"
+    },
+    "persistent_probe": {
+      "original_false_PASS": "../forge_sol_S08_independent_terminal_probe_20261026/independent_probe_result.json",
+      "fixed_expected_rejection": "fixed_probe_result.json",
+      "fixed_probe_sha256": "03f6fa3bf8e7d3631ccd56a6eb9044683571b33230595dfbcb8d8366cb32db37",
+      "raw_fixed_capture_directory": "../forge_sol_S08_independent_terminal_probe_20261026/captures_fixed"
+    },
+    "independent_source_checks": {
+      "CPP_enum_descriptions_and_collector_denominators_match": 55,
+      "picker_stage_contiguous_enum_alignment": 15,
+      "real_node_increment_sites": 2,
+      "whole_existing_CollectorTests_class_AST_identical": true,
+      "OFF_projection_contracts_PASS_as_part_of29tests": true
+    }
+  },
+  "core_review": {
+    "counter_placement": "Nodes/MainNodes/QsNodes follow actual node increments. TT hit/miss counters share one probe-result path. Prune/extension fired counters are inside the actual taken branches, separate from eligibility counters. Denominators name their actual executed opportunity counters; some move events may exceed per-node100percent and are not unique-node frequencies.",
+    "picker": "All15 MovePicker stage ordinals align with contiguous counter enum entries; counts represent executed stage visits including fallthrough/empty visits, not returned moves.",
+    "threading_TLS": "Per-Searcher Bank; request flag atomic; active flag captured and bank reset before helper launch. Each Worker Scope sets/restores TLS; helper joins precede quiescent snapshot. No global shared bank or new hot-path heap allocation found.",
+    "OFF_elision": "FORGE_PROF CMake defaultOFF; profile source/definitions/test targets conditional. Existing six source contracts passed; five production source OFF token projections equal original. Full native binary identity remains unverified.",
+    "output": "C++ Profile packets appear before bestmove; bench_prof packet before final bench summary. Ordinary bench does not emit packets and defaultFORGE_PROF-OFF does not advertise Profile. Collector final drain now enforces tail rejection.",
+    "numeric_or_allocation_blocker_found": false
+  },
+  "remaining_exact_requirements": [
+    {
+      "id": "S08-P1",
+      "kind": "publication_binding",
+      "status": "OPEN_ROOT_OWNED",
+      "detail": "Canonical engine-only patch5c631 intentionally excludes README/IDEA_SOURCE contexts. Separate additive IDEA_SOURCE/README binding is required before final delivery compliance; private-tree entries alone are not delivered by the canonical patch."
+    },
+    {
+      "id": "S08-P2",
+      "kind": "coverage_input_gap",
+      "status": "UNVERIFIED",
+      "detail": "Only300 distinct genuine WAC positions available; no genuine STS supplied, gap1700 to required2000. Limited300 runs must remain LIMITED_INCOMPLETE; no duplicates/padding or changed required target establishes full acceptance."
+    },
+    {
+      "id": "S08-P3",
+      "kind": "native_acceptance_not_run_here",
+      "status": "PENDING_ROOT_AFTER_S26",
+      "detail": "Full current L-prime/B OFF and instrumentedON five-depth fixedrefs, perfts/FMA0, full relevant CTest+ASanUBSan and native counter/profile collection are not proved by source/tinyAPI controls. Root native timing clearance follows S26; no duplicate or early native run."
+    }
+  ],
+  "skill_maintenance": {
+    "existing_reference": "/workspace/dwqww/.agents/skills/validating-chess-strength/SKILL.md",
+    "existing_reference_sha256_observed": "678b91b8572152a19f97c3da4a82943b898513da90dcc87174b46845f67caec5",
+    "existing_guidance": "Already requires warning/stderr/nonzero process controls and preserved raw observations. Proposed note makes deferred stdout/EOF queue validation explicit.",
+    "proposal_file": "forge_sol_S08_existing_strength_skill_note_proposal_20261026.md",
+    "proposal_sha256": "522c3e7bba2090633ad134eeb8408be378fc0d35e3199f0e582e07387a37a908",
+    "guide_edits_by_this_worker": false,
+    "new_global_or_duplicate_skill": false
+  },
+  "history_preservation": "Before snapshots, first RED/GREEN, typed-fixture final RED/GREEN, failed falsePASS probe and fixed rejection remain dated files; no old report/source hash record overwritten. Current collector/test files were root-authorized unpublished working sources.",
+  "S08_overall_complete": false,
+  "native_engines_compilers_Git_network_calls": 0
+}

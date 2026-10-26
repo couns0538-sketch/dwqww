@@ -1,0 +1,173 @@
+{
+  "Torch_runtime": "UNVERIFIED; public interpreter absent; private CPU RAM-loader recovery pending root window",
+  "date_utc": "2026-10-26T12:53:59.207605+00:00",
+  "implementation_sha256": {
+    "forge_sol_S09_buckets_20261026.py": "08270b7ec29d467928585fd7433b2588896d41b93fe24cda838006498630bb7e",
+    "forge_sol_S09_prepare_trainer_20261026.py": "4d1c13a7afd2aa55a9a898f9e0a05710a05727453c65e08226f5ebd373aca756",
+    "forge_sol_S09_tests_20261026.py": "f9c6256aef03bd3eb7dd67b4c3143d4f564a362016b844874435c13be90247ed",
+    "forge_sol_S09_train_resid_v3b_20261026.py": "8ea6111cffce3f2ea24096e7af27b8e34e1a7a73f805560fbdd7bbd68fb74f6c",
+    "forge_sol_S09_trainer_20261026.patch": "a939d3ad959948764d558b8ad213d93842cfdabd2c92caafa256bc63d28e0042"
+  },
+  "job": "S09",
+  "numeric": {
+    "cp_mismatches": 0,
+    "cpu_affinity": [
+      1
+    ],
+    "head_counts": [
+      0,
+      109,
+      1442,
+      4163,
+      3274,
+      915,
+      95,
+      2
+    ],
+    "logit_bit_mismatches": 0,
+    "max_abs_cp_difference": 0,
+    "max_abs_logit_difference": 0.0,
+    "negative_bias_control_cp_mismatches": 10000,
+    "peak_rss_linux_KiB": 66720,
+    "positions": 10000,
+    "scope": "NUMPY_FLOAT32_REFERENCE_ONLY; no native or training execution",
+    "thread_environment": {
+      "MKL_NUM_THREADS": "1",
+      "OMP_NUM_THREADS": "1",
+      "OPENBLAS_NUM_THREADS": "1"
+    }
+  },
+  "numeric_report": "forge_sol_S09_numeric_10k_20261026.json",
+  "optimizer_dependency": {
+    "Torch_runtime": "UNVERIFIED_UNAVAILABLE",
+    "sha256": "799faa89bc7b8dbd8c9a8747dd6658085eb0a69b84800af191db5ca7fd660cba",
+    "source": "/workspace/forge-pack24-20261025/new_handoff_1435/selected/forge_handoff_full_20261025_1435/files/06_jobD/trainer/qa_adam_dml.py",
+    "unchanged": true
+  },
+  "ordered_status": "SOURCE_PREPARATION_ONLY; pending ordered root runtime/native integration; not published",
+  "patchcheck": {
+    "applied_bytes_match_prepared_source": true,
+    "commands": [
+      {
+        "argv": [
+          "patch",
+          "-p1",
+          "-F0",
+          "--dry-run",
+          "-i",
+          "/workspace/forge-pack24-20261026/S09/forge_sol_S09_trainer_20261026.patch"
+        ],
+        "returncode": 0,
+        "stderr": "",
+        "stdout": "checking file train_resid_v3b.py\n"
+      },
+      {
+        "argv": [
+          "patch",
+          "-p1",
+          "-F0",
+          "-i",
+          "/workspace/forge-pack24-20261026/S09/forge_sol_S09_trainer_20261026.patch"
+        ],
+        "returncode": 0,
+        "stderr": "",
+        "stdout": "patching file train_resid_v3b.py\n"
+      }
+    ],
+    "engine_patch": "UNCHANGED_PINNED_CR_STEP1_ONLY; native application/build pending root",
+    "git_apply_check": "UNVERIFIED_NOT_RUN_NO_GIT_SCOPE",
+    "patch_sha256": "a939d3ad959948764d558b8ad213d93842cfdabd2c92caafa256bc63d28e0042",
+    "prepared_trainer_sha256": "8ea6111cffce3f2ea24096e7af27b8e34e1a7a73f805560fbdd7bbd68fb74f6c",
+    "source_sha256": "5cebba4d44133630e247d9ab4c0085fa6301dde8db1dfe1389452ac19d92313f"
+  },
+  "recipe": {
+    "actual_observed": {
+      "batch_size": 8192,
+      "blend_end": 0.6,
+      "epochs": 48,
+      "final_full_validation": true,
+      "hidden": 256,
+      "lr_as_displayed": 0.000707,
+      "residual": true,
+      "seed": 25,
+      "warmup_steps": 300
+    },
+    "inherited_not_recovered": {
+      "blend_start": 1.0,
+      "min_lr_frac": 0.01,
+      "val_positions": 4000000
+    },
+    "line": 1627,
+    "referenced_settings_absent": [
+      "settings_1792898583.txt",
+      "settings_1792903932.txt"
+    ],
+    "sha256": "85f5a20e23b8b6b937eb22082e305b3489fa5021476ba7a15a25ddda98f14bbb",
+    "source": "files/18_training_logs/NETS_snapshot_20261025_1030.md",
+    "stale_name_fields": [
+      "bs16k",
+      "lr10e4"
+    ]
+  },
+  "remaining_UNVERIFIED": [
+    "actual Torch single-head bit-identity and bucket8 forward/gradients",
+    "actual data32 holdout loss and CPU training smoke",
+    "native1M buckets1 parity",
+    "engine canonical integration/application/build on L/Lprime/B",
+    "Std test suite/FMA/perft/bench and null-pruning regression for any trained8-head net",
+    "all GPU/PC/training efficacy/playing-strength claims"
+  ],
+  "review": "forge_sol_S09_independent_review_20261026.md",
+  "runtime": "3.12.14 (main, Aug 25 2026, 14:00:49) [Clang 22.1.3 ]",
+  "scope": {
+    "BLAS_MKL_OMP_threads": 1,
+    "CPU": 1,
+    "git_network_compiler_native_engine_training_gpu_execution": false,
+    "new_engine_patch_claim": false,
+    "nice": 19,
+    "other_sealed_jobs_modified": false,
+    "writes": "S09 only"
+  },
+  "source_before": {
+    "extracted_converter": {
+      "path": "make_heads_inc.py",
+      "sha256": "39ec705a93fed1cb80773fc37ea4a2dfe20008c628fcd38b462620c1c112b6b0",
+      "source": "unchanged new-file payload extracted from pinned step1 patch"
+    },
+    "f006_net": {
+      "bytes": 1115142,
+      "path": "/workspace/forge-pack24-20261025/new_handoff_1435/selected/forge_handoff_full_20261025_1435/files/03_nets/resid_h256_e48_f006_b06_ep48.inc",
+      "sha256_before": "0fdf9bdb6bdf4c9f1622bcef29921912acb139fdf388e541b017a948118d4661"
+    },
+    "f006_recipe_log": {
+      "bytes": 343193,
+      "path": "/workspace/forge-pack24-20261025/new_handoff_1435/selected/forge_handoff_full_20261025_1435/files/18_training_logs/NETS_snapshot_20261025_1030.md",
+      "sha256_before": "85f5a20e23b8b6b937eb22082e305b3489fa5021476ba7a15a25ddda98f14bbb"
+    },
+    "legacy_trainer": {
+      "bytes": 34735,
+      "path": "/workspace/forge-pack24-20261025/new_handoff_1435/selected/forge_handoff_full_20261025_1435/files/07_nnue_context/train_resid_v3b.py",
+      "sha256_before": "5cebba4d44133630e247d9ab4c0085fa6301dde8db1dfe1389452ac19d92313f"
+    },
+    "step1_patch": {
+      "bytes": 45780,
+      "path": "/workspace/forge-pack24-20261025/new_handoff_1435/selected/forge_handoff_full_20261025_1435/files/17_buckets8_step1/fc_buckets8_h256e12/fc_buckets8_h256e12.patch",
+      "sha256_before": "ed28132d48b75496732f0ecf25753ad869787c84a4939aaf004b3de8580a9704"
+    }
+  },
+  "source_sha256_after": {
+    "f006_net": "0fdf9bdb6bdf4c9f1622bcef29921912acb139fdf388e541b017a948118d4661",
+    "f006_recipe_log": "85f5a20e23b8b6b937eb22082e305b3489fa5021476ba7a15a25ddda98f14bbb",
+    "legacy_trainer": "5cebba4d44133630e247d9ab4c0085fa6301dde8db1dfe1389452ac19d92313f",
+    "step1_patch": "ed28132d48b75496732f0ecf25753ad869787c84a4939aaf004b3de8580a9704"
+  },
+  "sources_unchanged": true,
+  "unit_tests": {
+    "command": "OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1 OMP_NUM_THREADS=1 taskset -c 1 nice -n19 python3 -B forge_sol_S09_tests_20261026.py",
+    "count": 15,
+    "initial_red": "forge_sol_S09_RED_20261026.log",
+    "log": "forge_sol_S09_final_GREEN_20261026.log",
+    "scope": "Actual exporter functions through AST with NumPy array adapters; no Torch forward/training",
+    "status": "PASS"
+  }
+}
