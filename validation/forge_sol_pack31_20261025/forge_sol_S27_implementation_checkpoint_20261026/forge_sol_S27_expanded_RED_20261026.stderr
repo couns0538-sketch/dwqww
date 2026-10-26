@@ -1,0 +1,39 @@
+.......F...E.....F......
+======================================================================
+ERROR: test_output_path_can_contain_spaces (test_forge_sol_S27_hygiene_20261026.HygieneTests.test_output_path_can_contain_spaces)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/forge-pack24-20261026/S27/tests/test_forge_sol_S27_hygiene_20261026.py", line 168, in test_output_path_can_contain_spaces
+    result = MOD.check_submission(self.input, {'fixture': self.base}, self.root / 'new output')
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/forge-pack24-20261026/S27/forge_sol_S27_hygiene_20261026.py", line 237, in check_submission
+    safe_path('/'.join(out.parts[1:]),directory=True);roots={}
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/forge-pack24-20261026/S27/forge_sol_S27_hygiene_20261026.py", line 35, in safe_path
+    if not value or '\\' in value or '\x00' in value or ':' in value or not re.fullmatch(r'[A-Za-z0-9_./+\-]+',value):raise HygieneError('unsafe_path','Unsupported or unsafe relative path',value)
+                                                                                                                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+s27_hygiene.HygieneError: Unsupported or unsafe relative path
+
+======================================================================
+FAIL: test_ifdef_off_build_option_is_allowed (test_forge_sol_S27_hygiene_20261026.HygieneTests.test_ifdef_off_build_option_is_allowed)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/forge-pack24-20261026/S27/tests/test_forge_sol_S27_hygiene_20261026.py", line 149, in test_ifdef_off_build_option_is_allowed
+    self.assertEqual(result['status'], 'PASS', result)
+AssertionError: 'FAIL' != 'PASS'
+- FAIL
++ PASS
+ : {'schema': 'forge_sol_S27_hygiene_v1', 'status': 'FAIL', 'findings': [{'code': 'default_instrumentation', 'base': 'fixture', 'path': 'src/main.cpp', 'line': 3}, {'code': 'guard_default_unverified', 'base': 'fixture', 'path': 'src/main.cpp', 'line': 3}], 'input': {'sha256': '9266a4de8e61b511a687e7a82585cb25a9b5faeab6984c2b416736d17d2ef6ac', 'bytes': 127, 'kind': 'patch'}, 'bases': [{'name': 'fixture', 'input_files': 2, 'input_inventory_sha256': '4ad27172ac25676c121f76c5239faa21046fa9b49380d7553d943140a08c9378', 'git_check_exit': 0, 'GNU_dry_exit': 0, 'GNU_apply_exit': 0, 'inputs_unchanged': True, 'control_role': 'ordinary_candidate'}], 'options': [], 'raw_records': ['forge_sol_S27_raw_0001_20261026.json', 'forge_sol_S27_raw_0002_20261026.json', 'forge_sol_S27_raw_0003_20261026.json'], 'build_compare': [], 'scope': 'Static guard and Forge literal-option checks are heuristics, not semantic/strength proof. No engine/compiler without explicit build_compare.', 'deterministic_signature_sha256': '8b31c6e74577da7bf59dd722e44397239b11cb216e79de34cfd26099bdca82f2'}
+
+======================================================================
+FAIL: test_unguarded_compile_definition_does_not_hide_work (test_forge_sol_S27_hygiene_20261026.HygieneTests.test_unguarded_compile_definition_does_not_hide_work)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/forge-pack24-20261026/S27/tests/test_forge_sol_S27_hygiene_20261026.py", line 164, in test_unguarded_compile_definition_does_not_hide_work
+    self.assertIn('default_build_configuration', self.codes(result))
+AssertionError: 'default_build_configuration' not found in {'guard_default_unverified', 'default_instrumentation'}
+
+----------------------------------------------------------------------
+Ran 24 tests in 2.946s
+
+FAILED (failures=2, errors=1)

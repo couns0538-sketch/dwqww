@@ -1,0 +1,47 @@
+{
+  "status": "REVIEW_FINDINGS_FIX_REQUIRED_BEFORE_NATIVE",
+  "scope": "Read-only source review only; no engine/compiler/Git or rerun of parent parser tests. Main checker still scaffold at first pass.",
+  "source": {
+    "path": "/workspace/forge-pack24-20261026/S27/forge_sol_S27_buildcompare_20261026.py",
+    "sha256": "c74986fbe6841b715567e153dd832afbbdc6862561771b2602415648218fda57",
+    "bytes": 11011
+  },
+  "findings": [
+    {
+      "id": "S27-R1",
+      "severity": "HIGH",
+      "function": "_probe",
+      "problem": "Executable is hashed only before execution; no final identity check prevents PASS tied to bytes changed during runtime/symbol collection.",
+      "required": "Preserve pre/post SHA256, reject any mismatch and retain failures."
+    },
+    {
+      "id": "S27-R2",
+      "severity": "HIGH",
+      "function": "run_compare",
+      "problem": "Compiler and effective compile/link recipes are recorded, not compared/validated. Candidate CMake can override intended strict recipe and still PASS compatible output.",
+      "required": "Compare exact compiler fingerprint and normalized effective production compile/link signatures; reject unsafe float/native/profile/LTO options and unknown weakening."
+    }
+  ],
+  "source_locations": [
+    {
+      "line": 110,
+      "text": "def _probe(exe,label,cap,expected_nodes,depths):"
+    },
+    {
+      "line": 142,
+      "text": "def run_compare(base_tree,candidate_tree,out,*,cmake,expected_nodes,depths):"
+    },
+    {
+      "line": 166,
+      "text": "   state['sources'][-1]['generated_recipes']=recipes"
+    }
+  ],
+  "otherwise_checked": [
+    "Bench tail/prefix/terminator and fixed-node failure propagation",
+    "Typed UCI metadata, duplicate options and preserved IDs",
+    "Defined-symbol type/name multiplicity without addresses",
+    "Timeout None exit is now rejected by parsers"
+  ],
+  "qualification_scope": "Helper currently lacks perft/FMA/fullCTest; any separate root checks must remain explicitly external, not inferred from helper PASS.",
+  "reviewed_at_utc": "2026-10-26T07:44:01.624874+00:00"
+}
