@@ -1,0 +1,161 @@
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -17,6 +17,11 @@
+ )
+ target_include_directories(forge_core PUBLIC include)
+ target_compile_features(forge_core PUBLIC cxx_std_20)
++
++option(FORGE_S10_IMPROVING_RAZOR "Build the opt-in ImprovingRazorGuard experiment" OFF)
++if(FORGE_S10_IMPROVING_RAZOR)
++    target_compile_definitions(forge_core PUBLIC FORGE_S10_IMPROVING_RAZOR=1)
++endif()
+ 
+ if(MSVC)
+     target_compile_options(forge_core PRIVATE /W4 /permissive-)
+--- a/include/forge/search.hpp
++++ b/include/forge/search.hpp
+@@ -17,6 +17,9 @@
+ namespace forge {
+ 
+ struct SearchLimits {
++#ifdef FORGE_S10_IMPROVING_RAZOR
++    bool s10_improving_razor = false;
++#endif
+     int depth = 64;
+     std::uint64_t nodes = 0;
+     bool nodes_specified = false;
+@@ -287,6 +290,10 @@
+ struct SharedSearchState {
+     explicit SharedSearchState(std::size_t hash_mb) : tt(hash_mb) {}
+     TranspositionTable tt;
++#ifdef FORGE_S10_IMPROVING_RAZOR
++    std::atomic<bool> s10_improving_razor{false};
++    std::atomic<bool> s10_improving_razor_announced{false};
++#endif
+     std::atomic<bool> stop{false};
+     // 0 means pondering has not been converted into a timed search.
+     std::atomic<std::int64_t> ponder_hit_ns{0};
+@@ -326,6 +333,9 @@
+     std::array<std::uint64_t, 256> root_move_nodes_{};
+     std::size_t root_effort_count_ = 0;
+ 
++#ifdef FORGE_S10_IMPROVING_RAZOR
++    bool s10_improving_razor_ = false;
++#endif
+     bool pondering_ = false;
+     std::chrono::steady_clock::time_point start_{};
+     std::atomic<std::uint64_t> nodes_{0};
+@@ -394,6 +404,10 @@
+     void clear_hash();
+     void resize_hash(std::size_t hash_mb);
+     void set_threads(int threads);
++#ifdef FORGE_S10_IMPROVING_RAZOR
++    void set_s10_improving_razor(bool enabled) { shared_.s10_improving_razor.store(enabled, std::memory_order_relaxed); }
++    [[nodiscard]] bool s10_improving_razor_enabled() const { return shared_.s10_improving_razor.load(std::memory_order_relaxed); }
++#endif
+     [[nodiscard]] int threads() const { return static_cast<int>(workers_.size()); }
+     [[nodiscard]] int hashfull_permille() const { return shared_.tt.hashfull(); }
+     [[nodiscard]] static int evaluate(const Board& board) { return Evaluator::evaluate_uncached(board); }
+--- a/src/search.cpp
++++ b/src/search.cpp
+@@ -951,7 +951,11 @@
+ 
+     if (!pv_node && !in_check && excluded.is_none() && !is_mate_score(beta)) {
+         // Razoring: hopeless positions fall back to quiescence.
+-        if (depth <= tune::RazorDepth && eval + tune::RazorBase + tune::RazorMultiplier * depth < alpha) {
++        if (depth <= tune::RazorDepth &&
++#ifdef FORGE_S10_IMPROVING_RAZOR
++            (!s10_improving_razor_ || !improving) &&
++#endif
++            eval + tune::RazorBase + tune::RazorMultiplier * depth < alpha) {
+             const int razor = qsearch(board, ss, alpha - 1, alpha);
+             if (aborted_) return 0;
+             if (razor < alpha) return razor;
+@@ -1228,6 +1232,9 @@
+ // Iterative deepening driver
+ 
+ SearchInfo Worker::search(Board board, const SearchLimits& limits, bool emit_info, const std::vector<Worker*>& all) {
++#ifdef FORGE_S10_IMPROVING_RAZOR
++    s10_improving_razor_ = limits.s10_improving_razor;
++#endif
+     const auto origin = limits.start_time != std::chrono::steady_clock::time_point{}
+         ? limits.start_time : limits.request_start;
+     start_ = origin == std::chrono::steady_clock::time_point{}
+@@ -1503,6 +1510,14 @@
+     const auto origin = supplied_start == std::chrono::steady_clock::time_point{} && clocked
+         ? std::chrono::steady_clock::now() : supplied_start;
+     SearchLimits worker_limits = limits;
++#ifdef FORGE_S10_IMPROVING_RAZOR
++    // Snapshot once before helpers start; recursive search reads only worker-local state.
++    worker_limits.s10_improving_razor = shared_.s10_improving_razor.load(std::memory_order_relaxed);
++    if (worker_limits.s10_improving_razor && !shared_.s10_improving_razor_announced.exchange(true, std::memory_order_relaxed)) {
++        const std::lock_guard<std::mutex> output_lock(uci_output_mutex());
++        std::cout << "info string ImprovingRazorGuard active" << std::endl;
++    }
++#endif
+     worker_limits.start_time = origin;
+     std::vector<Worker*> all;
+     all.reserve(workers_.size());
+--- a/src/uci.cpp
++++ b/src/uci.cpp
+@@ -179,6 +179,9 @@
+                           << " min " << parameter.minimum << " max " << parameter.maximum << "\n";
+             }
+ #endif
++#ifdef FORGE_S10_IMPROVING_RAZOR
++            std::cout << "option name ImprovingRazorGuard type check default false\n";
++#endif
+             std::cout << "option name Clear Hash type button\n"
+                          "uciok" << std::endl;
+         } else if (command == "isready") {
+@@ -216,6 +219,15 @@
+             }
+             if (handled_tunable) {
+                 // Unlisted development options; nothing else to do.
++#ifdef FORGE_S10_IMPROVING_RAZOR
++            } else if (name == "ImprovingRazorGuard") {
++                if (value_text == "true" || value_text == "false") {
++                    searcher.set_s10_improving_razor(value_text == "true");
++                } else {
++                    const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex());
++                    std::cout << "info string invalid value for option ImprovingRazorGuard" << std::endl;
++                }
++#endif
+             } else if (name == "Clear Hash") {
+                 searcher.clear_hash();
+             } else if (name == "Ponder") {
+@@ -393,6 +405,9 @@
+             std::uint64_t total_nodes = 0;
+             const auto start = std::chrono::steady_clock::now();
+             forge::Searcher bench_searcher(16);
++#ifdef FORGE_S10_IMPROVING_RAZOR
++            bench_searcher.set_s10_improving_razor(searcher.s10_improving_razor_enabled());
++#endif
+             for (const std::string_view fen : fens) {
+                 forge::Board bench_board;
+                 if (!bench_board.set_fen(fen)) continue;
+--- a/IDEA_SOURCE.md
++++ b/IDEA_SOURCE.md
+@@ -1,4 +1,9 @@
+ # IDEA_SOURCE — fc_nnue_h256_e12_ep12_ep10base  (REAL H256 net on the locked ep10 source base; UNPROVEN)
++
++## S10 ImprovingRazorGuard idea source — 2026-10-26
++
++Idea sources only: the user-supplied S10 job and the supplied Forge idea-board audit. This independently implemented experiment follows a direct audit of Forge search.cpp and MovePicker. Do not razor a non-PV node whose static evaluation is improving. Preserve the existing razor margin and qsearch fallback for other nodes. No external engine code, tables or tuned values were used. Current Forge thresholds are reused where a threshold is needed. This differs from P22 singular-margin changes, P23 killer/counter LMR, P24 history-scaled futility, P27 qsearch evasions and the time-management packs.
++
+ 
+ Forge 6.4.24 (1ab50b2d), same source as the locked ep10 tree `/workspace/forge-coder/fc_nnue_ep10_1ab50b2d` (net-a md5 da65098c…). The ONLY source change is `src/nnue_weights.inc`, replaced by Engine NNUE's own trained H256 residual net:
+ - file: /workspace/chess-tools/nnue/forge_resid/resid_h256_e12_e_ep12.inc ("run e", epoch 12)
+--- a/README.md
++++ b/README.md
+@@ -1,4 +1,10 @@
+ # fc_nnue_h256_e12_ep12_ep10base — H256 net (run e, epoch 12) on the locked ep10 source base
++
++## S10 ImprovingRazorGuard experiment — 2026-10-26
++
++UNPROVEN. Do not razor a non-PV node whose static evaluation is improving. Preserve the existing razor margin and qsearch fallback for other nodes.
++Build FORGE_S10_IMPROVING_RAZOR=ON, then set UCI ImprovingRazorGuard=true before search. Both defaults are OFF. The option is advertised only in an enabled build. One atomic request is snapshotted before worker launch; hot search reads a worker-local copy. The first active search of a searcher reports `info string ImprovingRazorGuard active`; the bench searcher explicitly inherits the option. No strength or speed conclusion is made. Qualification requires the full fixed OFF references, full correctness suite, all five ON depths, ON d11 differing from308972, and the specified WAC screen.
++
+ 
+ Status: **UNPROVEN. No Elo or strength claim.** Built on the box by Engine Coder, 2026-10-23.
+ 

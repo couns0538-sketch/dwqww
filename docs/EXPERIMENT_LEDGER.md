@@ -1,5 +1,13 @@
 # Experiment ledger
 
+## S09 delivered; S10 running — 2026-10-26
+
+The finite queue is **15 delivered-scope, 38 pending, 1 dropped (S23), 54 unique IDs**. S09 is published at `80199055cdbd9b0257c05dd52e249fbf8ce4241c`; all993 immutable HTTP200/SHA256/Git-byte checks pass. Both bases pass five fixed benchmarks, perft5, FMA0 and full Release/ASan suites16/17 with four known diagnostics. The million-position API comparison and10000-root converted-head comparison have zero differences; separate original float-word streams match. The full50000-row synthetic holdout exited normally; it is not a training-gain result. No speed/Elo/Windows/net-adoption claim.
+
+S10 is active onCPU2/nice19. QuietCheckLmpSurvival passed its first OFFd11=308972 and actual ONd11=342968 with one activation line; remaining qualification is pending. Preserve original attempts and continue all four frozen ideas without tuning/retries after outcomes, then S11 and the full saved queue. S11's exact material-key table patch1ac47bd3 is source-prepared; native gates are UNVERIFIED. S16's full200k deterministic validation and original85-file evidence are sealed for ordered delivery; authentic013/014 and game overlap remain UNVERIFIED.
+
+Large data is ordinary tracked Git content, locally omitted from the cloud worktree with skip-worktree and an alternate object store. Normal clones/downloads are complete. Actual pinned HTTPS recovery of all10 S09 data OIDs (41.3MB) into an independent empty store passed. Keep the pinned metadata and V2helper available if/tmp disappears. Source, commits, trees, old objects and the accepted h256_e12 engine are unchanged. Earlier dated sections are history; do not restart completed experiments or stop after one job.
+
 ## S08 delivered; S09 active — 2026-10-26 18:14 UTC
 
 The finite queue is **14 delivered-scope, 39 pending, 1 dropped (S23), 54 unique IDs**. S08 artifact commit `dee3475e34be1333bc071731ebc0b4d4140ff137` has 428/428 actual immutable HTTP200/SHA256/Git-byte checks. Its optional profiling patch preserves all five fixed node references on Lprime/B; perft5, FMA0, full Release15/16 and ASan/UBSan15/16 pass with four pinned known diagnostics. OFF evidence is canonical reuse backed by complete production-token identity, not a fresh OFF build. The authorized2000 corpus and original failures remain preserved. No speed, Elo, Windows or new-lock acceptance.

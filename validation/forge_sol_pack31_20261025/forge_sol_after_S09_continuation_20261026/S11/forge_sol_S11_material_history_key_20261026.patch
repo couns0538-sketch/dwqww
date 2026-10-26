@@ -1,0 +1,64 @@
+--- a/src/search.cpp
++++ b/src/search.cpp
+@@ -584,15 +584,33 @@
+ }
+ 
+ namespace {
++// Expand the existing material-key polynomial modulo2^64. A population count
++// has65 possible values, so every lookup is in range even for synthetic boards.
++constexpr auto MaterialKeyContributions = [] {
++    constexpr std::size_t slots = static_cast<std::size_t>(2 * (Queen - Pawn + 1));
++    constexpr std::size_t counts = static_cast<std::size_t>(std::numeric_limits<Bitboard>::digits + 1);
++    std::array<std::array<std::uint64_t, counts>, slots> values{};
++    std::uint64_t factor = 0x9E3779B97F4A7C15ULL;
++    for (std::size_t slot = slots; slot-- > 0;) {
++        for (std::size_t count = 0; count < counts; ++count) {
++            values[slot][count] = factor * (static_cast<std::uint64_t>(count) + 1U);
++        }
++        factor *= 1099511628211ULL;
++    }
++    return values;
++}();
++
+ // Hash of the piece counts of both sides, for material-indexed statistics.
+ [[nodiscard]] std::uint64_t material_key(const Board& board) {
+     std::uint64_t key = 0;
++    std::size_t slot = 0;
+     for (const Color color : {White, Black}) {
+         for (int type = Pawn; type <= Queen; ++type) {
+-            key = key * 1099511628211ULL + static_cast<std::uint64_t>(popcount(board.pieces(color, static_cast<PieceType>(type))) + 1);
+-        }
+-    }
+-    return key * 0x9E3779B97F4A7C15ULL;
++            const auto count = static_cast<std::size_t>(popcount(board.pieces(color, static_cast<PieceType>(type))));
++            key += MaterialKeyContributions[slot++][count];
++        }
++    }
++    return key;
+ }
+ } // namespace
+ 
+--- a/IDEA_SOURCE.md
++++ b/IDEA_SOURCE.md
+@@ -1,4 +1,9 @@
+ # IDEA_SOURCE — fc_nnue_h256_e12_ep12_ep10base  (REAL H256 net on the locked ep10 source base; UNPROVEN)
++
++## S11 material-history key contribution table — 2026-10-26
++
++Idea sources only: the supplied Forge profile_notes.md reserve called material_key table-sum and the user S11 job. The implementation expands Forge's own unsigned64 Horner polynomial algebraically; its two existing mixing values remain unchanged. No external code or tuned values were used. This is separate from prior picker/piece-type and TT-prefetch speed work.
++
+ 
+ Forge 6.4.24 (1ab50b2d), same source as the locked ep10 tree `/workspace/forge-coder/fc_nnue_ep10_1ab50b2d` (net-a md5 da65098c…). The ONLY source change is `src/nnue_weights.inc`, replaced by Engine NNUE's own trained H256 residual net:
+ - file: /workspace/chess-tools/nnue/forge_resid/resid_h256_e12_e_ep12.inc ("run e", epoch 12)
+--- a/README.md
++++ b/README.md
+@@ -1,4 +1,9 @@
+ # fc_nnue_h256_e12_ep12_ep10base — H256 net (run e, epoch 12) on the locked ep10 source base
++
++## S11 material-history key experiment — 2026-10-26
++
++UNPROVEN. This always-on S11 experiment replaces the ten dependent Horner products and final mix in the material-correction history key with a 5,200-byte constexpr contribution table and ten additions. Unsigned64 modular arithmetic preserves the exact original key. Counts0..64 are covered. There is no new board state, runtime allocation, NNUE/evaluation formula, TT access, move order, UCI option or build flag. S11 specifically requires an always-on exact-speed patch; no adoption follows from preparing it. Both-base fixed benchmarks, perft5, FMA0, full correctness/sanitizer suites and million-position scalar/AVX2 parity remain required. Linux ABBA is advisory; the owner PC speed CI rule decides eligibility.
++
+ 
+ Status: **UNPROVEN. No Elo or strength claim.** Built on the box by Engine Coder, 2026-10-23.
+ 

@@ -1,0 +1,77 @@
+test_absent_actual_activation_rejected (test_forge_sol_S10_activation_20261026.Activation.test_absent_actual_activation_rejected) ... FAIL
+test_active_off_rejected (test_forge_sol_S10_activation_20261026.Activation.test_active_off_rejected) ... FAIL
+test_changed_nodes_and_announced_option (test_forge_sol_S10_activation_20261026.Activation.test_changed_nodes_and_announced_option) ... ok
+test_duplicate_record_rejected (test_forge_sol_S10_activation_20261026.Activation.test_duplicate_record_rejected) ... ok
+test_silently_ignored_option_cannot_pass (test_forge_sol_S10_activation_20261026.Activation.test_silently_ignored_option_cannot_pass) ... FAIL
+test_unknown_option_cannot_pass (test_forge_sol_S10_activation_20261026.Activation.test_unknown_option_cannot_pass) ... FAIL
+test_wrong_default_cannot_pass (test_forge_sol_S10_activation_20261026.Activation.test_wrong_default_cannot_pass) ... FAIL
+test_wrong_off_reference_rejected (test_forge_sol_S10_activation_20261026.Activation.test_wrong_off_reference_rejected) ... FAIL
+test_wrong_type_cannot_pass (test_forge_sol_S10_activation_20261026.Activation.test_wrong_type_cannot_pass) ... FAIL
+
+======================================================================
+FAIL: test_absent_actual_activation_rejected (test_forge_sol_S10_activation_20261026.Activation.test_absent_actual_activation_rejected)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/forge-pack24-20261026/S10/test_forge_sol_S10_activation_20261026.py", line 22, in test_absent_actual_activation_rejected
+    with self.assertRaises(ValueError):m.validate_activity(UCI,OFF,ON.split('\n',1)[1],OPTION)
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: ValueError not raised
+
+======================================================================
+FAIL: test_active_off_rejected (test_forge_sol_S10_activation_20261026.Activation.test_active_off_rejected)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/forge-pack24-20261026/S10/test_forge_sol_S10_activation_20261026.py", line 28, in test_active_off_rejected
+    with self.assertRaises(ValueError):m.validate_activity(UCI,'info string '+OPTION+' active\n'+OFF,ON,OPTION)
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: ValueError not raised
+
+======================================================================
+FAIL: test_silently_ignored_option_cannot_pass (test_forge_sol_S10_activation_20261026.Activation.test_silently_ignored_option_cannot_pass)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/forge-pack24-20261026/S10/test_forge_sol_S10_activation_20261026.py", line 16, in test_silently_ignored_option_cannot_pass
+    with self.assertRaises(ValueError):m.validate_activity(UCI,OFF,'info string '+OPTION+' active\n'+OFF,OPTION)
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: ValueError not raised
+
+======================================================================
+FAIL: test_unknown_option_cannot_pass (test_forge_sol_S10_activation_20261026.Activation.test_unknown_option_cannot_pass)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/forge-pack24-20261026/S10/test_forge_sol_S10_activation_20261026.py", line 14, in test_unknown_option_cannot_pass
+    with self.assertRaises(ValueError):m.validate_activity('uciok\n',OFF,ON,OPTION)
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: ValueError not raised
+
+======================================================================
+FAIL: test_wrong_default_cannot_pass (test_forge_sol_S10_activation_20261026.Activation.test_wrong_default_cannot_pass)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/forge-pack24-20261026/S10/test_forge_sol_S10_activation_20261026.py", line 18, in test_wrong_default_cannot_pass
+    with self.assertRaises(ValueError):m.validate_activity(UCI.replace('false','true'),OFF,ON,OPTION)
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: ValueError not raised
+
+======================================================================
+FAIL: test_wrong_off_reference_rejected (test_forge_sol_S10_activation_20261026.Activation.test_wrong_off_reference_rejected)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/forge-pack24-20261026/S10/test_forge_sol_S10_activation_20261026.py", line 26, in test_wrong_off_reference_rejected
+    with self.assertRaises(ValueError):m.validate_activity(UCI,OFF.replace('308972','308971'),ON,OPTION)
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: ValueError not raised
+
+======================================================================
+FAIL: test_wrong_type_cannot_pass (test_forge_sol_S10_activation_20261026.Activation.test_wrong_type_cannot_pass)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/forge-pack24-20261026/S10/test_forge_sol_S10_activation_20261026.py", line 20, in test_wrong_type_cannot_pass
+    with self.assertRaises(ValueError):m.validate_activity(UCI.replace('type check','type string'),OFF,ON,OPTION)
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: ValueError not raised
+
+----------------------------------------------------------------------
+Ran 9 tests in 0.002s
+
+FAILED (failures=7)
