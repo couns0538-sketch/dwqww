@@ -1,0 +1,83 @@
+{
+  "schema": "forge-sol-S48-final-independent-review-v1",
+  "created_utc": "2026-10-26T10:40:58.804881+00:00",
+  "status": "PASS_BOUNDED_FINAL_GUARD_AND_SELECTION_REVIEW",
+  "blocking_findings": [],
+  "bound_files": {
+    "/workspace/forge-pack24-20261026/S33/forge_sol_S48_gate_guard_20261026.py": "21713b327007b0cda450200e172f6affb27cd65ac10e26ed8680d9447669d855",
+    "/workspace/forge-pack24-20261026/S33/forge_sol_S48_gate_guard_before_review_20261026.py": "9d1fbeaa4a492facbeab504dd9bd90935dead75310e18c023fb03ae1b0d6c916",
+    "/workspace/forge-pack24-20261026/S33/test_forge_sol_S48_gate_guard_20261026.py": "1d54a12784c71a76847fbe3f6e25523c83c41fc61f18d22d18c03ee6959dfadb",
+    "/workspace/forge-pack24-20261026/S33/forge_sol_S48_guard_review_GREEN_20261026.txt": "49d71030e4283f1ba68dc90fc10e87906bd6a4e391b052932a62a172b36e4c75"
+  },
+  "final_source_sha256": "21713b327007b0cda450200e172f6affb27cd65ac10e26ed8680d9447669d855",
+  "prior_source_sha256": "9d1fbeaa4a492facbeab504dd9bd90935dead75310e18c023fb03ae1b0d6c916",
+  "source_delta_review": {
+    "changed_functions": [
+      "_normalize",
+      "simulate_gate_bias"
+    ],
+    "selection_bias_AST_identical": true,
+    "selection_bias_AST_sha256": "bcd1e4ff5433d89b376aaf06496909c5a306979eeb40465cadf3c2476b55f20f",
+    "only_changes": "concurrency range now1..8; profile concurrency validated through same nonboolean integer/range validator. No selection-bias numeric expression or RNG/statistical path changed."
+  },
+  "tests": {
+    "recorded_root_final_suite": {
+      "tests": 16,
+      "status": "PASS",
+      "includes": "actual4-replicate synthetic positive simulate_gate_bias API control; synthetic only, no real gate inference",
+      "log": "/workspace/forge-pack24-20261026/S33/forge_sol_S48_guard_review_GREEN_20261026.txt",
+      "log_sha256": "49d71030e4283f1ba68dc90fc10e87906bd6a4e391b052932a62a172b36e4c75"
+    },
+    "independent_run_without_MC": {
+      "tests": 15,
+      "status": "PASS",
+      "tests_omitted_to_avoid_MC": [
+        "S48_final_test_review.SelectionBias.test_real_simulation_api_smoke_is_only_synthetic"
+      ],
+      "output": "test_G120_conc7_G104_conc5_blocked_even_same_other_fields (S48_final_test_review.Comparability.test_G120_conc7_G104_conc5_blocked_even_same_other_fields) ... ok\ntest_each_required_difference_blocks (S48_final_test_review.Comparability.test_each_required_difference_blocks) ... ok\ntest_equal_fully_pinned_required_fields (S48_final_test_review.Comparability.test_equal_fully_pinned_required_fields) ... ok\ntest_invalid_provenance_rejected (S48_final_test_review.Comparability.test_invalid_provenance_rejected) ... ok\ntest_missing_both_is_unknown_not_equality (S48_final_test_review.Comparability.test_missing_both_is_unknown_not_equality) ... ok\ntest_no_silent_mutation (S48_final_test_review.Comparability.test_no_silent_mutation) ... ok\ntest_only_equivalent_hash_spelling_and_core_order_normalized (S48_final_test_review.Comparability.test_only_equivalent_hash_spelling_and_core_order_normalized) ... ok\ntest_optional_settings_mismatch_or_one_missing_blocks (S48_final_test_review.Comparability.test_optional_settings_mismatch_or_one_missing_blocks) ... ok\ntest_boolean_profile_concurrency_is_not_integer_one (S48_final_test_review.SelectionBias.test_boolean_profile_concurrency_is_not_integer_one) ... ok\ntest_conditional_bias_does_not_pool_h0_and_cap (S48_final_test_review.SelectionBias.test_conditional_bias_does_not_pool_h0_and_cap) ... ok\ntest_empty_selection_unknown_not_zero_bias (S48_final_test_review.SelectionBias.test_empty_selection_unknown_not_zero_bias) ... ok\ntest_g104_missing_profile_cannot_invent_corrected_elo (S48_final_test_review.SelectionBias.test_g104_missing_profile_cannot_invent_corrected_elo) ... ok\ntest_infinite_selected_estimates_cannot_be_discarded (S48_final_test_review.SelectionBias.test_infinite_selected_estimates_cannot_be_discarded) ... ok\ntest_invalid_samples_rejected (S48_final_test_review.SelectionBias.test_invalid_samples_rejected) ... ok\ntest_profile_from_other_concurrency_cannot_be_borrowed (S48_final_test_review.SelectionBias.test_profile_from_other_concurrency_cannot_be_borrowed) ... ok\n\n----------------------------------------------------------------------\nRan 15 tests in 0.008s\n\nOK\n"
+    }
+  },
+  "three_guard_regressions": [
+    {
+      "case": "concurrency9 direct normalization",
+      "prior": "accepted9",
+      "final": "ValueError"
+    },
+    {
+      "case": "two matching invalid concurrency9 records",
+      "prior": "can_compare=true",
+      "final": "can_compare=false,two unknowns"
+    },
+    {
+      "case": "profileTrue equals gate1",
+      "prior": "reached deterministic no-RNG simulator stub",
+      "final": "ValueError before simulator",
+      "actual_MC_runs": 0
+    }
+  ],
+  "independent_finite_statistics": {
+    "method": "Exact Fraction selected mean/sum-of-squares; sqrt of unbiased selected-sample variance divided by selected count. Nonselected large outliers excluded by explicit outcome.",
+    "selected_values": [
+      4,
+      8,
+      20
+    ],
+    "selected_count": 3,
+    "conditional_mean": 10.666666666666666,
+    "bias_at_assumed_true10": 0.6666666666666661,
+    "bias_MC_standard_error": 4.8074017006186525,
+    "observed40_adjusted_under_model": 39.333333333333336,
+    "corrected_observational_CI": null,
+    "prior_final_outputs_equal_for_each_H1_H0_cap": true,
+    "distinction": "bias_mc_ci95 and adjusted_elo_mc_ci95 quantify simulation error conditional on the model/assumed truth. They are not a corrected observational/post-selection confidence interval or evidence of an Elo gain."
+  },
+  "use_constraints": [
+    "Use G119 true10/H1 grid samples for the upward-selection demonstration; do not rerun MC for this review.",
+    "Use cap-conditioned true10 sensitivity for capped G100r/G119 observations; label assumed true Elo/model and retain MC uncertainty.",
+    "Actual G104/G120 paired profiles are absent; their corrected Elo remains UNVERIFIED/null. Never infer profiles from WDL or borrow another concurrency.",
+    "Concurrency5/7/8 metadata remain separate; missing equal fields are unknown, not equal. Comparator checks declared metadata without authenticating live inputs."
+  ],
+  "MC_replicates_run_by_reviewer": 0,
+  "product_test_or_grid_files_edited": 0,
+  "scope": "Final binding supplements the earlier S33 math review whose S48 hash was historical9d1. No Git/network/engine/compiler/fullgrid work. Reviewer stops writes after this new JSON."
+}
