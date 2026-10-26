@@ -1,0 +1,42 @@
+--- a/test_forge_sol_S26_portable_v4_20261026.py
++++ b/test_forge_sol_S26_portable_v4_20261026.py
+@@ -12,6 +12,7 @@
+ 
+ sys.dont_write_bytecode = True
+ HERE = Path(__file__).resolve().parent
++PACKET_ROOT = HERE.parent
+ SETUP = HERE / 'forge_sol_S26_setup_local_dependencies_20261026.py'
+ LAUNCHER = HERE / 'forge_sol_S26_run_v4_20261026.sh'
+ FIXTURE = HERE / 'successor_ctest_v4/test_forge_sol_S26_netbatch_v4_20261026.py'
+@@ -39,10 +40,11 @@
+         self.declarations = json.loads(source_deps.read_text())
+         shutil.copy2(source_deps, self.s26 / source_deps.name)
+         for key, record in self.declarations.items():
+-            self.assertEqual(sha(record['path']), record['sha256'])
++            provided = PACKET_ROOT / 'provided_tools' / key / Path(record['path']).name
++            self.assertEqual(sha(provided), record['sha256'])
+             target = self.packet / 'provided_tools' / key / Path(record['path']).name
+             target.parent.mkdir(parents=True)
+-            shutil.copy2(record['path'], target)
++            shutil.copy2(provided, target)
+         v4 = HERE / 'successor_ctest_v4/forge_sol_S26_netbatch_v4_20261026.py'
+         self.assertEqual(sha(v4), V4_SHA)
+         self.v4 = self.s26 / 'successor_ctest_v4' / v4.name
+@@ -131,7 +133,7 @@
+         spec.loader.exec_module(fixture_module)
+         suite = self.packet / 'provided_inputs/WAC300_original.epd'
+         suite.parent.mkdir()
+-        shutil.copy2('/workspace/forge-sol-next-20261024/int16-review/wac300.epd', suite)
++        shutil.copy2(PACKET_ROOT / 'provided_inputs/WAC300_original.epd', suite)
+         setup = self.run_setup()
+         self.assertEqual(setup.returncode, 0, setup.stdout + setup.stderr)
+         fixture_module.TOOL = self.v4
+@@ -147,7 +149,7 @@
+         # Allow scheduling headroom at nice19 while preserving the fixture bytes.
+         args[args.index('--timeout') + 1] = '15'
+         before = {str(p): sha(p) for p in base.rglob('*') if p.is_file()}
+-        env = dict(os.environ, PYTHONDONTWRITEBYTECODE='1', PYTHONPATH='/workspace/.cloud-setup/venv/lib/python3.12/site-packages')
++        env = dict(os.environ, PYTHONDONTWRITEBYTECODE='1')
+         run = subprocess.run(['/bin/sh', str(self.s26 / LAUNCHER.name), *args, '--compare-lock', str(base)],
+                              cwd='/', env=env, capture_output=True, text=True, timeout=120)
+         self.assertEqual(run.returncode, 0, run.stdout + run.stderr)
