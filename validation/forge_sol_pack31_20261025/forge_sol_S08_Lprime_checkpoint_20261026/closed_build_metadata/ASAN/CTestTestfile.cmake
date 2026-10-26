@@ -1,0 +1,36 @@
+# CMake generated Testfile for 
+# Source directory: /workspace/forge-pack24-20261026/S08/Lprime_v2
+# Build directory: /workspace/forge-pack24-20261026/S08/forge_sol_S08_ASAN_v2_window1_20261026/build
+# 
+# This file includes the relevant testing commands required for 
+# testing this directory and lists subdirectories to be tested as well.
+add_test(forge_prof_tests "/workspace/forge-pack24-20261026/S08/forge_sol_S08_ASAN_v2_window1_20261026/build/forge_prof_tests")
+set_tests_properties(forge_prof_tests PROPERTIES  _BACKTRACE_TRIPLES "/workspace/forge-pack24-20261026/S08/Lprime_v2/CMakeLists.txt;82;add_test;/workspace/forge-pack24-20261026/S08/Lprime_v2/CMakeLists.txt;0;")
+add_test(forge_tests "/workspace/forge-pack24-20261026/S08/forge_sol_S08_ASAN_v2_window1_20261026/build/forge_tests")
+set_tests_properties(forge_tests PROPERTIES  _BACKTRACE_TRIPLES "/workspace/forge-pack24-20261026/S08/Lprime_v2/CMakeLists.txt;84;add_test;/workspace/forge-pack24-20261026/S08/Lprime_v2/CMakeLists.txt;0;")
+add_test(forge_correction_history_tests "/workspace/forge-pack24-20261026/S08/forge_sol_S08_ASAN_v2_window1_20261026/build/forge_correction_history_tests")
+set_tests_properties(forge_correction_history_tests PROPERTIES  _BACKTRACE_TRIPLES "/workspace/forge-pack24-20261026/S08/Lprime_v2/CMakeLists.txt;85;add_test;/workspace/forge-pack24-20261026/S08/Lprime_v2/CMakeLists.txt;0;")
+add_test(forge_runtime_psqt_tests "/workspace/forge-pack24-20261026/S08/forge_sol_S08_ASAN_v2_window1_20261026/build/forge_runtime_psqt_tests")
+set_tests_properties(forge_runtime_psqt_tests PROPERTIES  _BACKTRACE_TRIPLES "/workspace/forge-pack24-20261026/S08/Lprime_v2/CMakeLists.txt;86;add_test;/workspace/forge-pack24-20261026/S08/Lprime_v2/CMakeLists.txt;0;")
+add_test(forge_pawn_span_tests "/workspace/forge-pack24-20261026/S08/forge_sol_S08_ASAN_v2_window1_20261026/build/forge_pawn_span_tests")
+set_tests_properties(forge_pawn_span_tests PROPERTIES  _BACKTRACE_TRIPLES "/workspace/forge-pack24-20261026/S08/Lprime_v2/CMakeLists.txt;87;add_test;/workspace/forge-pack24-20261026/S08/Lprime_v2/CMakeLists.txt;0;")
+add_test(forge_nearest_pawn_tests "/workspace/forge-pack24-20261026/S08/forge_sol_S08_ASAN_v2_window1_20261026/build/forge_nearest_pawn_tests")
+set_tests_properties(forge_nearest_pawn_tests PROPERTIES  _BACKTRACE_TRIPLES "/workspace/forge-pack24-20261026/S08/Lprime_v2/CMakeLists.txt;88;add_test;/workspace/forge-pack24-20261026/S08/Lprime_v2/CMakeLists.txt;0;")
+add_test(forge_pv_metadata_tests "/workspace/forge-pack24-20261026/S08/forge_sol_S08_ASAN_v2_window1_20261026/build/forge_pv_metadata_tests")
+set_tests_properties(forge_pv_metadata_tests PROPERTIES  _BACKTRACE_TRIPLES "/workspace/forge-pack24-20261026/S08/Lprime_v2/CMakeLists.txt;89;add_test;/workspace/forge-pack24-20261026/S08/Lprime_v2/CMakeLists.txt;0;")
+add_test(forge_tt_tests "/workspace/forge-pack24-20261026/S08/forge_sol_S08_ASAN_v2_window1_20261026/build/forge_tt_tests")
+set_tests_properties(forge_tt_tests PROPERTIES  _BACKTRACE_TRIPLES "/workspace/forge-pack24-20261026/S08/Lprime_v2/CMakeLists.txt;90;add_test;/workspace/forge-pack24-20261026/S08/Lprime_v2/CMakeLists.txt;0;")
+add_test(forge_rule50_tests "/workspace/forge-pack24-20261026/S08/forge_sol_S08_ASAN_v2_window1_20261026/build/forge_rule50_tests")
+set_tests_properties(forge_rule50_tests PROPERTIES  _BACKTRACE_TRIPLES "/workspace/forge-pack24-20261026/S08/Lprime_v2/CMakeLists.txt;91;add_test;/workspace/forge-pack24-20261026/S08/Lprime_v2/CMakeLists.txt;0;")
+add_test(forge_legal_witness_tests "/workspace/forge-pack24-20261026/S08/forge_sol_S08_ASAN_v2_window1_20261026/build/forge_legal_witness_tests" "/workspace/forge-pack24-20261026/S08/Lprime_v2/tests/legal_witness_fixtures.tsv" "/workspace/forge-pack24-20261026/S08/Lprime_v2/tools/openings/forge-10000.epd")
+set_tests_properties(forge_legal_witness_tests PROPERTIES  _BACKTRACE_TRIPLES "/workspace/forge-pack24-20261026/S08/Lprime_v2/CMakeLists.txt;92;add_test;/workspace/forge-pack24-20261026/S08/Lprime_v2/CMakeLists.txt;0;")
+add_test(match_tool_tests "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3.12" "/workspace/forge-pack24-20261026/S08/Lprime_v2/tools/match/test_match_tools.py")
+set_tests_properties(match_tool_tests PROPERTIES  _BACKTRACE_TRIPLES "/workspace/forge-pack24-20261026/S08/Lprime_v2/CMakeLists.txt;115;add_test;/workspace/forge-pack24-20261026/S08/Lprime_v2/CMakeLists.txt;0;")
+add_test(windows_validation_tests "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3.12" "/workspace/forge-pack24-20261026/S08/Lprime_v2/tools/match/tests/test_windows_validate.py")
+set_tests_properties(windows_validation_tests PROPERTIES  _BACKTRACE_TRIPLES "/workspace/forge-pack24-20261026/S08/Lprime_v2/CMakeLists.txt;117;add_test;/workspace/forge-pack24-20261026/S08/Lprime_v2/CMakeLists.txt;0;")
+add_test(uci_regression "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3.12" "/workspace/forge-pack24-20261026/S08/Lprime_v2/tools/uci_regression.py" "/workspace/forge-pack24-20261026/S08/forge_sol_S08_ASAN_v2_window1_20261026/build/forge" "--log" "/workspace/forge-pack24-20261026/S08/forge_sol_S08_ASAN_v2_window1_20261026/build/uci-regression.log")
+set_tests_properties(uci_regression PROPERTIES  _BACKTRACE_TRIPLES "/workspace/forge-pack24-20261026/S08/Lprime_v2/CMakeLists.txt;119;add_test;/workspace/forge-pack24-20261026/S08/Lprime_v2/CMakeLists.txt;0;")
+add_test(ponder_regression "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3.12" "/workspace/forge-pack24-20261026/S08/Lprime_v2/tools/ponder_regression.py" "/workspace/forge-pack24-20261026/S08/forge_sol_S08_ASAN_v2_window1_20261026/build/forge")
+set_tests_properties(ponder_regression PROPERTIES  _BACKTRACE_TRIPLES "/workspace/forge-pack24-20261026/S08/Lprime_v2/CMakeLists.txt;122;add_test;/workspace/forge-pack24-20261026/S08/Lprime_v2/CMakeLists.txt;0;")
+add_test(ownbook_regression "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3.12" "/workspace/forge-pack24-20261026/S08/Lprime_v2/tools/ownbook_regression.py" "/workspace/forge-pack24-20261026/S08/forge_sol_S08_ASAN_v2_window1_20261026/build/forge" "/workspace/forge-pack24-20261026/S08/forge_sol_S08_ASAN_v2_window1_20261026/build/ownbook-regression.json")
+set_tests_properties(ownbook_regression PROPERTIES  _BACKTRACE_TRIPLES "/workspace/forge-pack24-20261026/S08/Lprime_v2/CMakeLists.txt;125;add_test;/workspace/forge-pack24-20261026/S08/Lprime_v2/CMakeLists.txt;0;")

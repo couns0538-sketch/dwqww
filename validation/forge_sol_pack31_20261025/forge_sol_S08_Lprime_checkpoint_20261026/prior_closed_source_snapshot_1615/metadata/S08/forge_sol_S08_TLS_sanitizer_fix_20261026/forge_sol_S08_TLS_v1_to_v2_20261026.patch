@@ -1,0 +1,25 @@
+diff --git a/include/forge/profile.hpp b/include/forge/profile.hpp
+--- a/include/forge/profile.hpp
++++ b/include/forge/profile.hpp
+@@ -56,7 +56,8 @@
+     std::atomic<bool> overflow_{false};
+ };
+ 
+-extern thread_local Bank* current_bank;
++// Constant initialization must be visible to every TU using this TLS slot.
++extern thread_local constinit Bank* current_bank;
+ class Scope {
+ public:
+     explicit Scope(Bank* bank) noexcept:previous_(current_bank) {current_bank=bank;}
+diff --git a/src/profile.cpp b/src/profile.cpp
+--- a/src/profile.cpp
++++ b/src/profile.cpp
+@@ -4,7 +4,7 @@
+ #include <ostream>
+ 
+ namespace forge::prof {
+-thread_local Bank* current_bank=nullptr;
++thread_local constinit Bank* current_bank=nullptr;
+ 
+ namespace {
+ struct Description {const char* name;Counter denominator;};

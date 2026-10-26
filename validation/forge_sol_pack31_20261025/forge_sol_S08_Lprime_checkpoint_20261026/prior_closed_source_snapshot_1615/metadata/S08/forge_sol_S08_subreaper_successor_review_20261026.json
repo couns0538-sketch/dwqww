@@ -1,0 +1,32 @@
+{
+  "status": "PASS_OWNED_SUBREAPER_DESCENDANT_REAP",
+  "new_supervisor_sha256": "698a1ac51f2677090427d2f3c9fa09e00496948baf74e8617f9ff599ede8e86e",
+  "old_supervisor_sha256": "ea8a3869fdf8859e598fc9782120e6261ca73a0e2d9d0f1c4c30be1645b13ae5",
+  "source_freeze_unchanged": true,
+  "partial_receipt_unchanged": true,
+  "core_patch_sha256": "5c6310e7881bfb592feab981e132a6cf81a6080b45631f62a37e774ced5b6879",
+  "changed_existing_functions": [
+    "_close_group",
+    "run_owned",
+    "main"
+  ],
+  "new_helpers": [
+    "SubreaperScope",
+    "_all_members",
+    "_reap_group"
+  ],
+  "RED": "Two expected assertion failures on exact ea8 copy; contained old orphan reaped by test guardian, no new PID1 zombie.",
+  "GREEN": "38 combined tests pass; original7 window tests replay pass against successor; persistent Python grandchild probe passes.",
+  "probe": {
+    "owned_leader_pid": 200027,
+    "grandchild_pid": 200028,
+    "reaped_descendants": [
+      200028
+    ],
+    "all_group_members_after_reap": [],
+    "leader_reaped": true,
+    "raw_receipt_sha256": "e58453debfff4a75569fe48e86ea13d9cb67a351fa8296e868998cbc3dbcbe82"
+  },
+  "safety": "PR_SET_CHILD_SUBREAPER changes this process only and restores prior setting; waitpid restricted to newly owned process group. Existing PID1 children were neither signaled nor waited on.",
+  "execution_scope": "Python synthetic children only; no compiler, Forge, CTest, FMA or native timing."
+}

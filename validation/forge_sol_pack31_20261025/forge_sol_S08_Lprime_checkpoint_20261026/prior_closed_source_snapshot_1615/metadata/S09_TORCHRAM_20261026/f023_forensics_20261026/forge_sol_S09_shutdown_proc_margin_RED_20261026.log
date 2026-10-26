@@ -1,0 +1,42 @@
+test_functional_PASS_does_not_override_forced_process_failure (__main__.ProtocolTests.test_functional_PASS_does_not_override_forced_process_failure) ... ok
+test_journal_is_flushed_monotonic_and_ignores_only_partial_tail (__main__.ProtocolTests.test_journal_is_flushed_monotonic_and_ignores_only_partial_tail) ... ok
+test_proc_snapshot_is_owned_metadata_and_handles_missing_process (__main__.ProtocolTests.test_proc_snapshot_is_owned_metadata_and_handles_missing_process) ... ok
+test_process_disappearance_during_thread_listing_is_recorded_not_raised (__main__.ProtocolTests.test_process_disappearance_during_thread_listing_is_recorded_not_raised) ... ERROR
+test_short_post_report_window_cannot_qualify_shutdown_observation (__main__.ProtocolTests.test_short_post_report_window_cannot_qualify_shutdown_observation) ... ERROR
+test_successful_normal_exit_and_budget_failure_are_distinct (__main__.ProtocolTests.test_successful_normal_exit_and_budget_failure_are_distinct) ... ok
+test_toy_child_exits_normally_with_phase_and_atexit_markers (__main__.ProtocolTests.test_toy_child_exits_normally_with_phase_and_atexit_markers) ... ok
+test_work90_hard150_reserve_cleanup_and_cannot_increase_limits (__main__.ProtocolTests.test_work90_hard150_reserve_cleanup_and_cannot_increase_limits) ... ok
+
+======================================================================
+ERROR: test_process_disappearance_during_thread_listing_is_recorded_not_raised (__main__.ProtocolTests.test_process_disappearance_during_thread_listing_is_recorded_not_raised)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/forge-pack24-20261026/S09_TORCHRAM_20261026/f023_forensics_20261026/forge_sol_S09_shutdown_tests_20261026.py", line 58, in test_process_disappearance_during_thread_listing_is_recorded_not_raised
+    result=tool.proc_snapshot(os.getpid())
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/forge-pack24-20261026/S09_TORCHRAM_20261026/f023_forensics_20261026/forge_sol_S09_shutdown_diagnostic_20261026.py", line 64, in proc_snapshot
+    for task in sorted((folder/'task').iterdir()):
+                       ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/unittest/mock.py", line 1139, in __call__
+    return self._mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/unittest/mock.py", line 1143, in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/unittest/mock.py", line 1198, in _execute_mock_call
+    raise effect
+FileNotFoundError: process exited
+
+======================================================================
+ERROR: test_short_post_report_window_cannot_qualify_shutdown_observation (__main__.ProtocolTests.test_short_post_report_window_cannot_qualify_shutdown_observation)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/forge-pack24-20261026/S09_TORCHRAM_20261026/f023_forensics_20261026/forge_sol_S09_shutdown_tests_20261026.py", line 63, in test_short_post_report_window_cannot_qualify_shutdown_observation
+    self.assertFalse(result['cleanup_observation_eligible'])
+                     ~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+KeyError: 'cleanup_observation_eligible'
+
+----------------------------------------------------------------------
+Ran 8 tests in 0.691s
+
+FAILED (errors=2)

@@ -1,0 +1,359 @@
+"""Parser, corpus-integrity and synthetic-controller checks; no native engines."""
+import hashlib
+import importlib.util
+import json
+from pathlib import Path
+import sys
+import tempfile
+import unittest
+
+MODULE = Path(__file__).with_name('forge_sol_S08_collect_profiles_20261026.py')
+WAC = Path('/workspace/forge-sol-next-20261024/int16-review/wac300.epd')
+
+
+class CollectorTests(unittest.TestCase):
+    def setUp(self):
+        self.assertTrue(MODULE.is_file(), 'S08 collector implementation is missing')
+        spec = importlib.util.spec_from_file_location('s08collector', MODULE)
+        self.api = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(self.api)
+
+    def packet(self, overflow=False):
+        # Deliberately small independent registry; counts/rates hand calculated.
+        return [
+            'info depth 3 nodes 10',
+            'info string prof schema 1 scope search_only setup_excluded 1 overflow %d' % overflow,
+            'info string prof nodes count 10 denominator nodes opportunities 10 pct ' + ('unknown' if overflow else '100'),
+            'info string prof tt_probes count 5 denominator nodes opportunities 10 pct ' + ('unknown' if overflow else '50'),
+            'info string prof tt_hits count 2 denominator tt_probes opportunities 5 pct ' + ('unknown' if overflow else '40'),
+            'bestmove e2e4',
+        ]
+
+    @property
+    def small_registry(self):
+        return {'nodes':'nodes', 'tt_probes':'nodes', 'tt_hits':'tt_probes'}
+
+    def test_real_registry_has_all_55_declared_event_denominators(self):
+        self.assertEqual(len(self.api.COUNTERS), 55)
+        self.assertEqual(self.api.COUNTERS['nnue_refresh'], 'nnue_forward')
+        self.assertEqual(self.api.COUNTERS['singular_double_extensions'], 'singular_searches')
+        self.assertEqual(self.api.COUNTERS['qs_see_prunes'], 'qs_see_checks')
+
+    def test_profile_nodes_match_bench_pin_and_respect_fixed_node_budget(self):
+        self.assertTrue(hasattr(self.api,'verify_profile_work'),'profile work cross-check is missing')
+        packet=self.api.parse_packet(self.packet(), registry=self.small_registry)
+        self.api.verify_profile_work(packet, expected_nodes=10)
+        self.api.verify_profile_work(packet, node_limit=10)
+        with self.assertRaises(ValueError):self.api.verify_profile_work(packet, expected_nodes=11)
+        with self.assertRaises(ValueError):self.api.verify_profile_work(packet, node_limit=9)
+
+    def test_main_plus_qs_accounting_invariant_is_enforced(self):
+        lines=['info string prof schema 1 scope search_only setup_excluded 1 overflow 0',
+               'info string prof nodes count 10 denominator nodes opportunities 10 pct 100',
+               'info string prof main_nodes count 9 denominator nodes opportunities 10 pct 90',
+               'info string prof qs_nodes count 2 denominator nodes opportunities 10 pct 20',
+               'bestmove e2e4']
+        with self.assertRaises(ValueError):
+            self.api.parse_packet(lines,registry={'nodes':'nodes','main_nodes':'nodes','qs_nodes':'nodes'})
+
+    def test_tt_hit_miss_and_picker_stage_totals_are_enforced(self):
+        lines=['info string prof schema 1 scope search_only setup_excluded 1 overflow 0',
+               'info string prof nodes count 10 denominator nodes opportunities 10 pct 100',
+               'info string prof tt_probes count 10 denominator nodes opportunities 10 pct 100',
+               'info string prof tt_hits count 5 denominator tt_probes opportunities 10 pct 50',
+               'info string prof tt_misses count 6 denominator tt_probes opportunities 10 pct 60',
+               'bestmove e2e4']
+        registry={'nodes':'nodes','tt_probes':'nodes','tt_hits':'tt_probes','tt_misses':'tt_probes'}
+        with self.assertRaises(ValueError):self.api.parse_packet(lines,registry=registry)
+        stages=[n for n in self.api.COUNTERS if n.startswith('picker_') and n!='picker_visits']
+        self.assertEqual(len(stages),15)
+        lines=['info string prof schema 1 scope search_only setup_excluded 1 overflow 0',
+               'info string prof nodes count 20 denominator nodes opportunities 20 pct 100',
+               'info string prof picker_visits count 14 denominator nodes opportunities 20 pct 70']
+        lines += ['info string prof '+n+' count 1 denominator picker_visits opportunities 14 pct 7.14286' for n in stages]
+        lines += ['bestmove e2e4']
+        registry={'nodes':'nodes','picker_visits':'nodes',**{n:'picker_visits' for n in stages}}
+        with self.assertRaises(ValueError):self.api.parse_packet(lines,registry=registry)
+
+    def test_parser_records_actual_numerators_opportunities_and_rates(self):
+        p = self.api.parse_packet(self.packet(), registry=self.small_registry)
+        self.assertEqual(p['scope'], 'search_only')
+        self.assertTrue(p['setup_excluded'])
+        self.assertEqual(p['counters']['tt_hits'], {'count':2,'denominator':'tt_probes','opportunities':5,'pct':40.0})
+        self.assertFalse(p['overflow'])
+
+    def test_any_non_fence_output_after_terminal_is_rejected(self):
+        # Catches late non-profile logs silently passing the S25 terminal guard.
+        for terminal in ('bestmove','bench'):
+            packet=self.packet()
+            if terminal=='bench':
+                packet[-1]='info string bench depth 20 nodes 10 time 1 nps 10'
+            for tail in (['unexpected late log'],['info string delayed diagnostic'],
+                         [''],['readyok','late after fence'],['readyok','readyok']):
+                with self.subTest(terminal=terminal,tail=tail), self.assertRaises(ValueError):
+                    self.api.parse_packet(packet+tail,registry=self.small_registry,terminal=terminal)
+
+    def test_one_explicit_ready_fence_after_terminal_is_accepted(self):
+        # The collector deliberately sends one isready command after terminal.
+        for terminal in ('bestmove','bench'):
+            packet=self.packet()
+            if terminal=='bench':
+                packet[-1]='info string bench depth 20 nodes 10 time 1 nps 10'
+            result=self.api.parse_packet(packet+['readyok'],registry=self.small_registry,terminal=terminal)
+            self.assertEqual(result['counters']['nodes']['count'],10)
+
+    def test_missing_duplicate_unknown_and_mismatched_denominators_fail(self):
+        good = self.packet()
+        variants = [good[:3]+good[4:], good[:4]+[good[3]]+good[4:],
+                    [x.replace('tt_hits count','invented count') for x in good],
+                    [x.replace('tt_hits count 2 denominator tt_probes opportunities 5', 'tt_hits count 2 denominator nodes opportunities 10') for x in good],
+                    [x.replace('tt_probes opportunities 5','tt_probes opportunities 6') for x in good],
+                    [x.replace('pct 40','pct 39') for x in good]]
+        for lines in variants:
+            with self.subTest(lines=lines), self.assertRaises(ValueError):
+                self.api.parse_packet(lines, registry=self.small_registry)
+
+    def test_profile_after_terminal_or_bad_schema_is_rejected(self):
+        good = self.packet()
+        for lines in (good+[good[2]], [x.replace('schema 1','schema 2') for x in good],
+                      [x.replace('setup_excluded 1','setup_excluded 0') for x in good]):
+            with self.assertRaises(ValueError):
+                self.api.parse_packet(lines, registry=self.small_registry)
+
+    def test_overflow_and_zero_opportunities_keep_rates_unknown(self):
+        p = self.api.parse_packet(self.packet(True), registry=self.small_registry)
+        self.assertTrue(p['overflow'])
+        self.assertTrue(all(v['pct'] is None for v in p['counters'].values()))
+        lines = ['info string prof schema 1 scope search_only setup_excluded 1 overflow 0',
+                 'info string prof nodes count 0 denominator nodes opportunities 0 pct unknown',
+                 'bestmove 0000']
+        p = self.api.parse_packet(lines, registry={'nodes':'nodes'})
+        self.assertIsNone(p['counters']['nodes']['pct'])
+
+    def test_aggregation_recomputes_weighted_rates_and_undefined_rows(self):
+        a = self.api.parse_packet(self.packet(), registry=self.small_registry)
+        b = self.api.parse_packet(self.packet(), registry=self.small_registry)
+        rows = self.api.firing_table([a,b])
+        hits = next(r for r in rows if r['event']=='tt_hits')
+        self.assertEqual((hits['count'],hits['opportunities'],hits['pct']), (4,10,40.0))
+        self.assertFalse(hits['rare_below_0_1_pct'])
+        self.assertEqual(self.api.firing_table([]), [])
+
+    def test_canonical_wac_deduplicates_and_exposes_exact_coverage_gap(self):
+        meta = self.api.corpus_metadata([WAC,WAC], required=2000, allow_incomplete=True)
+        self.assertEqual(meta['unique_positions'], 300)
+        self.assertEqual(meta['coverage_gap'], 1700)
+        self.assertEqual(meta['coverage_status'], 'LIMITED_INCOMPLETE')
+        self.assertEqual(len(meta['positions']), 300)
+        self.assertEqual(meta['sources'][0]['sha256'], '9bfb7b42cf5bbc7f3d60ff767ca3be460e0ae4d9110ef9a71ddf0bd7071d4d46')
+        with self.assertRaisesRegex(ValueError, '1700'):
+            self.api.corpus_metadata([WAC])
+
+    def test_opening_book_is_not_promoted_to_wac_by_filename(self):
+        with tempfile.TemporaryDirectory() as d:
+            p=Path(d)/'wac2000.epd'
+            p.write_text('8/8/8/8/8/8/4K3/7k w - - id "Forge-1";\n')
+            with self.assertRaises(ValueError):
+                self.api.corpus_metadata([p], required=1)
+
+    def test_manifest_hash_and_benchmark_class_are_required_for_external_sts(self):
+        with tempfile.TemporaryDirectory() as d:
+            p=Path(d)/'sts.epd'
+            p.write_text('8/8/8/8/8/8/4K3/7k w - - bm Kd2; id "STS(v1.0) Undermining.001";\n')
+            manifest={'corpora':[{'path':str(p),'sha256':hashlib.sha256(p.read_bytes()).hexdigest(),'kind':'STS','source':'supplied benchmark fixture; synthetic controller test only'}]}
+            m=self.api.corpus_metadata([p], required=1, manifest=manifest)
+            self.assertEqual(m['coverage_status'],'COMPLETE')
+            self.assertEqual(m['positions'][0]['kind'],'STS')
+            manifest['corpora'][0]['sha256']='0'*64
+            with self.assertRaises(ValueError):
+                self.api.corpus_metadata([p], required=1, manifest=manifest)
+
+    def test_exclusive_output_refuses_existing_and_symlink_ancestors(self):
+        with tempfile.TemporaryDirectory() as d:
+            root=Path(d); existing=root/'existing'; existing.mkdir()
+            with self.assertRaises(FileExistsError):self.api.exclusive_directory(existing)
+            (root/'link').symlink_to(existing, target_is_directory=True)
+            with self.assertRaises(ValueError):self.api.exclusive_directory(root/'link'/'child')
+            out=self.api.exclusive_directory(root/'new')
+            self.assertTrue(out.is_dir())
+
+    def test_exactly_one_fixed_work_limit_is_required(self):
+        for depth,nodes in ((None,None),(2,100),(0,None),(None,-1)):
+            with self.subTest(depth=depth,nodes=nodes), self.assertRaises(ValueError):
+                self.api.validate_limits(depth,nodes)
+        self.assertEqual(self.api.validate_limits(4,None), 'go depth 4')
+        self.assertEqual(self.api.validate_limits(None,100), 'go nodes 100')
+
+    def test_incomplete_coverage_failure_launches_no_process_and_retains_report(self):
+        with tempfile.TemporaryDirectory() as d:
+            out=Path(d)/'failed_coverage'
+            result=self.api.collect(['/nonexistent/not-executed'],[WAC],out,depth=1)
+            self.assertEqual(result['status'],'FAIL')
+            self.assertIn('1700',result['failure']['message'])
+            self.assertFalse((out/'bare_bench11.stdin').exists())
+            self.assertTrue((out/'report.json').is_file())
+
+    def test_capture_limit_failure_preserves_raw_prefix_and_process_receipt(self):
+        with tempfile.TemporaryDirectory() as d:
+            root=Path(d); fixture=root/'synthetic_oversized_protocol_fixture.py'
+            fixture.write_text('import sys\nfor line in sys.stdin:\n print("A"*500,flush=True)\n')
+            out=root/'partial'
+            result=self.api.collect([sys.executable,str(fixture)],[WAC],out,depth=1,
+                                    allow_incomplete=True,timeout=2,max_capture_bytes=100)
+            self.assertEqual(result['status'],'FAIL')
+            self.assertIn('capture limit',result['failure']['message'])
+            receipt=json.loads((out/'bare_bench11.receipt.json').read_text())
+            self.assertFalse(receipt['stdout_complete'])
+            self.assertIsInstance(receipt['returncode'],int)
+            self.assertEqual((out/'bare_bench11.stdout').stat().st_size,100)
+
+    def test_synthetic_controller_captures_fresh_state_packets_and_receipts(self):
+        # This process is a protocol double, never an engine or native result.
+        with tempfile.TemporaryDirectory() as d:
+            root=Path(d); p=root/'sts.epd'
+            p.write_text('8/8/8/8/8/8/4K3/7k w - - bm Kd2; id "STS(v1.0) Fixture.001";\n')
+            manifest={'corpora':[{'path':str(p),'sha256':hashlib.sha256(p.read_bytes()).hexdigest(),'kind':'STS','source':'synthetic protocol fixture'}]}
+            fixture=root/'synthetic_protocol_fixture.py'
+            fixture.write_text('''import json,sys
+registry=json.loads(sys.argv[1])
+def packet(nodecount=10):
+ counts={k:10 for k in registry}
+ counts.update(nodes=nodecount,main_nodes=nodecount-1,qs_nodes=1,tt_hits=5,tt_misses=5,picker_visits=15)
+ for k in counts:
+  if k.startswith('picker_') and k!='picker_visits':counts[k]=1
+ print('info string prof schema 1 scope search_only setup_excluded 1 overflow 0')
+ for k,d in registry.items():print('info string prof '+k+' count '+str(counts[k])+' denominator '+d+' opportunities '+str(counts[d])+' pct '+format(100*counts[k]/counts[d],'.6g'))
+for line in sys.stdin:
+ c=line.strip()
+ if c=='bench 11':print('info string bench depth 11 nodes 308972 time 1 nps 1')
+ elif c=='uci':
+  print('id name S08 SYNTHETIC PROTOCOL FIXTURE')
+  for n,t in [('Threads','spin'),('Hash','spin'),('OwnBook','check'),('Profile','check'),('Clear Hash','button')]:print('option name '+n+' type '+t+' default false')
+  print('uciok')
+ elif c=='isready':print('readyok')
+ elif c=='bench_prof 20':packet(11901452);print('info string bench depth 20 nodes 11901452 time 1 nps 1')
+ elif c.startswith('go '):packet();print('bestmove e2d2')
+ elif c=='quit':break
+ sys.stdout.flush()
+''')
+            out=root/'receipt'
+            result=self.api.collect([sys.executable,str(fixture),json.dumps(self.api.COUNTERS)], [p], out,
+                                    depth=2, required=1, manifest=manifest, timeout=3)
+            self.assertEqual(result['status'],'PASS')
+            self.assertEqual(result['positions_completed'],1)
+            self.assertEqual(result['engine_id'],'S08 SYNTHETIC PROTOCOL FIXTURE')
+            self.assertFalse(result['strength_claim'])
+            transcript=(out/'profile.stdin').read_text()
+            self.assertIn('ucinewgame\nsetoption name Clear Hash\nisready\n',transcript)
+            self.assertIn('go depth 2\n',transcript)
+            self.assertNotIn('movetime',transcript)
+            receipt=json.loads((out/'profile.receipt.json').read_text())
+            self.assertEqual(receipt['returncode'],0)
+            self.assertTrue(receipt['stdout_complete'])
+            self.assertTrue((out/'firing_table.md').is_file())
+
+
+
+
+class FinalDrainTests(unittest.TestCase):
+    def setUp(self):
+        spec=importlib.util.spec_from_file_location('s08_final_drain',MODULE)
+        self.api=importlib.util.module_from_spec(spec);spec.loader.exec_module(self.api)
+
+    def closing_case(self, root, phase, behavior):
+        suite=root/'synthetic_sts.epd'
+        suite.write_text('8/8/8/8/8/8/4K3/7k w - - bm Kd2; id "STS(v1.0) FinalDrain.001";\n')
+        manifest={'corpora':[{'path':str(suite),'sha256':self.api.sha256(suite),'kind':'STS','source':'Synthetic close-path fixture; no native engine.'}]}
+        child=root/'synthetic_closing_protocol.py'
+        child.write_text("""import json,sys
+registry=json.loads(sys.argv[1]);phase,behavior=sys.argv[2:4];profile=False
+def packet(nodes):
+ c={name:10 for name in registry};c.update(nodes=nodes,main_nodes=nodes-1,qs_nodes=1,tt_probes=10,tt_hits=5,tt_misses=5,picker_visits=15)
+ for name in c:
+  if name.startswith('picker_') and name!='picker_visits':c[name]=1
+ print('info string prof schema 1 scope search_only setup_excluded 1 overflow 0')
+ for name,denom in registry.items():print('info string prof '+name+' count '+str(c[name])+' denominator '+denom+' opportunities '+str(c[denom])+' pct '+format(100*c[name]/c[denom],'.6g'))
+for line in sys.stdin:
+ command=line.strip()
+ if command=='bench 11':print('info string bench depth 11 nodes 308972 time 1 nps 1')
+ elif command=='uci':
+  profile=True
+  print('id name S08 SYNTHETIC FINAL DRAIN')
+  print('option name Threads type spin default 1 min 1 max 256')
+  print('option name Hash type spin default 16 min 1 max 2048')
+  print('option name OwnBook type check default true')
+  print('option name Profile type check default false')
+  print('option name Clear Hash type button')
+  print('uciok')
+ elif command=='isready':print('readyok')
+ elif command=='bench_prof 20':packet(11901452);print('info string bench depth 20 nodes 11901452 time 1 nps 1')
+ elif command.startswith('go '):packet(10);print('bestmove e2d2')
+ elif command=='quit':
+  if profile==(phase=='profile'):
+   if behavior=='stdout':print('late stdout after final terminal')
+   elif behavior=='stderr':print('late stderr after final terminal',file=sys.stderr)
+   elif behavior=='nonzero':sys.exit(7)
+  sys.stdout.flush();sys.stderr.flush();break
+ sys.stdout.flush()
+""")
+        out=root/'capture'
+        result=self.api.collect([sys.executable,'-B',str(child),json.dumps(self.api.COUNTERS),phase,behavior],[suite],out,depth=2,required=1,manifest=manifest,timeout=3)
+        label='profile' if phase=='profile' else 'bare_bench11'
+        receipt=json.loads((out/(label+'.receipt.json')).read_text())
+        return result,receipt,out,label
+
+    def test_controller_rejects_late_stdout_for_bare_and_profile_children(self):
+        # Removing final stdout validation must restore the old false PASS.
+        for phase in ('bare','profile'):
+            with self.subTest(phase=phase),tempfile.TemporaryDirectory() as d:
+                result,receipt,out,label=self.closing_case(Path(d),phase,'stdout')
+                self.assertEqual(result['status'],'FAIL')
+                self.assertIn('stdout',result['failure']['message'])
+                self.assertIn('late stdout after final terminal',(out/(label+'.stdout')).read_text())
+                self.assertEqual(receipt['returncode'],0)
+                self.assertTrue(receipt['stdout_complete'])
+
+    def test_controller_rejects_stderr_for_bare_and_profile_children(self):
+        # Captured stderr is evidence of failure, not a silently ignored stream.
+        for phase in ('bare','profile'):
+            with self.subTest(phase=phase),tempfile.TemporaryDirectory() as d:
+                result,receipt,out,label=self.closing_case(Path(d),phase,'stderr')
+                self.assertEqual(result['status'],'FAIL')
+                self.assertIn('stderr',result['failure']['message'])
+                self.assertIn('late stderr after final terminal',(out/(label+'.stderr')).read_text())
+                self.assertEqual(receipt['returncode'],0)
+
+    def test_nonzero_close_exit_for_each_child_is_recorded_as_failure(self):
+        # Existing nonzero rejection must survive the cleanup change.
+        for phase in ('bare','profile'):
+            with self.subTest(phase=phase),tempfile.TemporaryDirectory() as d:
+                result,receipt,out,label=self.closing_case(Path(d),phase,'nonzero')
+                self.assertEqual(result['status'],'FAIL')
+                self.assertEqual(receipt['returncode'],7)
+                self.assertIn('nonzero',result['failure']['message'])
+
+    def test_close_rejects_buffered_deferred_stdout_and_clears_readers(self):
+        # The late line is already queued before close; no scheduling assumption.
+        with tempfile.TemporaryDirectory() as d:
+            root=Path(d);child=root/'synthetic_buffered_output.py'
+            child.write_text("import sys\nfor line in sys.stdin:\n if line.strip()=='bench 11':sys.stdout.write('info string bench depth 11 nodes 308972\\nlate queued line\\n');sys.stdout.flush()\n elif line.strip()=='quit':break\n")
+            process=self.api._Process([sys.executable,'-B',str(child)],root,'queued',3,1<<20)
+            try:
+                process.send('bench 11')
+                for _ in range(100):
+                    if len(process.lines)>=2:break
+                    process._pump(.02)
+                self.assertEqual(len(process.lines),2,'fixture must queue terminal and late line')
+                process.until(lambda line:bool(self.api.BENCH.fullmatch(line)))
+                self.assertEqual(list(process.lines),['late queued line'])
+                with self.assertRaisesRegex(ValueError,'stdout'):process.close(True)
+                self.assertTrue(process.closed)
+                self.assertFalse(process.lines)
+                self.assertEqual(process.pending,b'')
+                self.assertFalse(process.selector.get_map())
+                self.assertTrue(all(f.closed for f in process.handles.values()))
+            finally:
+                if not process.closed:process.close(False)
+
+
+if __name__=='__main__':unittest.main(verbosity=2)

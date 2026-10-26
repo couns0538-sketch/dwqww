@@ -1,0 +1,42 @@
+
+
+## S08 opt-in profiling (ADVICE; compile default OFF)
+
+Configure with `-DFORGE_PROF=ON` only for the profiling executable. It adds one
+UCI check option `Profile`, default false. `setoption name Profile value true`
+profiles ordinary `go` searches; `bench_prof 20` explicitly profiles the same
+eight FENs and fixed-depth search/clear sequence as `bench 20`. Plain `bench`
+continues to use its normal unprofiled local Searcher. All profile lines precede
+the unchanged final bench summary or bestmove. Compile OFF removes the added
+fields, includes, calls, implementation source, option and command branch.
+
+Counts cover Worker::search entry through return only; FEN loading, board setup
+and other work outside that window are excluded. NNUE refresh/forward and HCE
+counts are actual function entries inside that window, not timing estimates.
+Zero refreshes do not show that refresh code is dead. Picker counts are executed
+stage cases (including fallthrough), not elapsed time. Pruning checks are actual
+condition evaluations; searches/prunes/reductions count their taken branches.
+An event's denominator is printed explicitly. Multiple moves can be tested per
+node, so opportunities per node may exceed100%; no opportunities means unknown.
+
+Each Searcher owns its bank. Worker-local TLS scopes restore previous contexts
+on exit, including disabled and nested independent searches. Requested enabling
+is atomic and snapshotted once before worker launch. Workers only add relaxed
+atomic uint64 values. Reset occurs before launch and external snapshot/reset
+operations require the Searcher quiescent, as clear/resize already do. No added
+heap allocation occurs in make/unmake or per-event hooks. uint64 arithmetic wraps
+modulo2^64; a sticky overflow flag also covers aggregation. Any wrapped run must
+be discarded for frequency analysis. No arbitrary infinite-search bound is claimed.
+
+Use fixed depth or node limits and fresh ucinewgame/hash/history per corpus
+position. Counter overhead makes wall-time comparisons unsuitable for strength
+or speed conclusions. The requested2,000 distinct WAC/STS positions are not all
+provided: the real WAC300 suite supplies300 unique boards;1,700 remain missing,
+and no genuine STS corpus was found. Do not pad with duplicate WAC, opening-book
+or training positions. Any300-position result must be labelled a limited screen.
+
+Source-level OFF-token/placement checks and behavioral C++ fixtures accompany
+the patch. Native OFF executable identity, ON five-depth reference nodes, full
+required tests, sanitizer checks and measured frequencies remain unverified until
+run under the frozen validation protocol. Instrumentation is not a playing-strength
+change and authorizes no gate/promotion rule change.

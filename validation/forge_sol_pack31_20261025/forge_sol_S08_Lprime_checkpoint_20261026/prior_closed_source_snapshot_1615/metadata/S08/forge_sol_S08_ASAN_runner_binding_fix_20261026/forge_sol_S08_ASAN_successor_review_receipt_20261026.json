@@ -1,0 +1,52 @@
+{
+  "bindings": [
+    "sourcefreeze2923exactbytesand80filehashmapbefore/after",
+    "exact12completedtargetsandartifactset,size,ELFmagic,SHA256before/after",
+    "compilerfrozenSHA",
+    "actualASanUBSanrecipeequalsclosedreceiptbefore/after",
+    "firstbareASANbench308972andbothoriginalbinarySHAfields",
+    "knownfailureallowlist14b555hashpinned",
+    "CTestbinarySHArecordedbefore/after",
+    "all15configuredandJUnitnames,zerofailedcases,strictstderr",
+    "LSan/ASan/UBSanenabledandrestored",
+    "ownedgroupclosurewithsameverifiedshared85accsubreaper"
+  ],
+  "command": "taskset -c 4 nice -n 19 python -B /workspace/forge-pack24-20261026/S08/forge_sol_S08_ASAN_full_qualification_v2_20261026.py --execute --closed-build-receipt FULL_CLOSED_BUILD_RESULT.json --output NEW_ABSOLUTE_FOLDER --stop-file NEW_ROOT_STOP_FILE",
+  "created_utc": "2026-10-26T16:28:03.714987+00:00",
+  "limitations": [
+    "NoASANnativeexecutionbythisagent",
+    "RequiresfullclosedPASSstageallbuildreceiptand>=20MiBfree",
+    "Sharedbuildcontrollerrawreceiptslegacyengine_executions=0fieldexplicitlyNOTapplicabletonativeCTest;actualinvocationcountnotmeasured",
+    "LSanneedsroot-approvedescalatedruntimeonthishost;nosanitizerdisabled"
+  ],
+  "original_sha256": "e019d64b3ec91623ee6c370fa19f11184f54762b4e5d2c428e1bd0b38c734832",
+  "review_findings": [
+    {
+      "finding": "Original verifies only mainforgeELF, notalltest/helperELFs/sourcefreeze/recipe",
+      "proof": "fouractualoriginalmainmockedCTestmutationcontrolsunexpectedlyPASS;assertmustrejectfails4",
+      "severity": "high"
+    },
+    {
+      "finding": "OriginaltimeoutcleanupwaitsonlyCTestleader;descendantsnotsubreaped",
+      "repair": "reuseunchanged85accsharedrun_owned/_close_group/SubreaperScope;noanothercleanupimplementation",
+      "severity": "high"
+    }
+  ],
+  "status": "PASS_PREPARED_NATIVE_NOT_RUN",
+  "successor_sha256": "663aec9a7bd9c7fcc244bcffdef4ce9711871fd37925020adb93d24bb246ecf8",
+  "tests": {
+    "original": {
+      "assertion_failures": 4,
+      "cases": 11,
+      "downstream_CTest": "mockedPASSsolelytoisolateguardfailures",
+      "native_engine_invocations": 0,
+      "skipped_successor_only": 6,
+      "unchanged_positive_pass": 1
+    },
+    "successor": {
+      "cases": 11,
+      "native_engine_invocations": 0,
+      "pass": 11
+    }
+  }
+}

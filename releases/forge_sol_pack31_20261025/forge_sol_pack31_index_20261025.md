@@ -1,5 +1,25 @@
 # Forge Sol pack31 — 20261025
 
+## S08 Lprime native qualification — 2026-10-26T17:02:18.747865+00:00
+
+S08 TLS-v2 patch `91c28d9f3b70af08885d50239141890813722cf00114bda8a2d12b71eb5e476c` passed all five fixed benchmarks, both depth-5 perfts, FMA=0 and all15 Release CTests. All15 ASan/UBSan CTests pass with leak detection enabled; extra Profile-ON/T2 checks pass. The 2000-position fixed-work counter run passed with 300WAC,7 additional bench and1693 suppliedopening positions. Exact raw streams and2001 packets are in the [recoverable checkpoint](../../validation/forge_sol_pack31_20261025/forge_sol_S08_Lprime_checkpoint_20261026/forge_sol_current_continuation_20261026.json). Original failures are retained. No speed or Elo result is claimed.
+
+The finite queue remains13 delivered/40 pending/1 dropped. S08 is not yet delivered: its separate B_ON Release build is active; B sanitizer and OFF source-equivalence checks remain pending. Preserve the first-bare11 rule for its new executable. ContinueS09 afterS08, then the complete saved queue. Accepted h256_e12 code/net remain unchanged.
+
+## Published S26 and active S08 repair — 2026-10-26 16:33 UTC
+
+The finite queue has **54 unique IDs: 13 delivered-scope, 40 pending, 1 dropped (S23)**. Done: S01–S07, S25, S26, S27, S28, S33 and S48. S24 remains optional and last; Astra A1/A2/A3/A7 follow Sol. Earlier sections are dated history. Prepared source or a passing build is not job completion.
+
+S26 is published at `93e8711b36b7954dc39ff019e09a64db45e42358`; all 64 immutable HTTP 200 downloads match SHA256 and Git bytes. The tool and evidence packet is delivered; no candidate is adopted. The original single attempts remain: f019 WAC 260/286 FAIL, f020 238/279 FAIL (the reference is unconfirmed and informational), f021 242/287 FAIL. f022 scored 226 and f023 scored 238, with no established WAC reference. f023 passed 14/15 CTests and retains a real, unreviewed pin mismatch. Per-net ASAN remains UNVERIFIED. No retry, game, Elo or speed claim. [S26 report](https://raw.githubusercontent.com/couns0538-sketch/dwqww/93e8711b36b7954dc39ff019e09a64db45e42358/releases/forge_sol_pack31_20261025/S26/forge_sol_S26_report_20261026.md).
+
+S08 retains the original sanitizer failure and isolates the TLS v2 `constinit` repair on both declaration and definition. Patch `91c28d9f3b70af08885d50239141890813722cf00114bda8a2d12b71eb5e476c` applies on L/Lprime/B; source freeze is `2923e86c186e357aac177e453f5745993d0839af02422d2622ff9f80dffae5ad`. The actual first v2 Release and ASAN bare d11 runs each returned 308972, exit 0 and empty stderr; leak detection stayed ON. All 12 targets are built in both configurations. ASAN window 3's low-disk pause is preserved; window 4 completed the build. Full five-depth, perft, FMA, UCI, CTest, profiling and B qualification are pending. A prepared runner is not a completed run. Recheck root's current lease before launch.
+
+The authoritative missing-input note permits WAC300 plus bench and opening substitutes. A deterministic corpus of 2,000 distinct legal positions is prepared: 300 WAC, 7 nonduplicate bench and 1,693 original opening rows, with input hashes and provenance. The missing 1,700 original WAC/STS positions remain distinct from this authorized substitute. S09 reuses the reviewed eight-bucket step 1. Prepared trainer and export tests pass, but the actual small CPU proof's outer 150-second timeout remains FAIL. A separate minimal autograd diagnostic exited normally in 71.052 seconds; it does not rehabilitate the full run. GPU execution, real holdouts 013/014 and native million-position parity remain UNVERIFIED.
+
+Accepted h256_e12 remains code 1ab50b2d plus the pinned 6d22 net. Continue S08, S09 and the saved 40-ID queue. Skip only genuinely blocked requirements with precise UNVERIFIED reasons and continue the other jobs. Preserve all newer isolated work.
+
+S26 [immutable readback](../../validation/forge_sol_pack31_20261025/forge_sol_S26_public_readback_20261026.json): 64/64 PASS; receipt SHA256 `383b64cd53a4fb479819e44da4c2865e99450130cfbd188bcd44614ed296c3e8`.
+
 ## Published S33, S48 and S07; remaining queue — 2026-10-26 12:35 UTC
 
 54 unique finite IDs:12 delivered-scope done,41 pending,1 dropped(S23). Prepared source is not completion. S26 native f019–f023 is root-owned CPU4/nice19; S08 full native validation follows. S16/S34 remain prepared, unintegrated and unpublished. Continue the entire remaining unique queue; AstraA1/A2/A3/A7 follow Sol only. Earlier entries are retained history.

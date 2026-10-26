@@ -1,0 +1,40 @@
+test_external_work_cutoff_does_not_depend_on_native_Python_signal_delivery (__main__.ProtocolTests.test_external_work_cutoff_does_not_depend_on_native_Python_signal_delivery) ... ERROR
+test_functional_PASS_does_not_override_forced_process_failure (__main__.ProtocolTests.test_functional_PASS_does_not_override_forced_process_failure) ... ok
+test_journal_is_flushed_monotonic_and_ignores_only_partial_tail (__main__.ProtocolTests.test_journal_is_flushed_monotonic_and_ignores_only_partial_tail) ... ok
+test_observer_IO_error_terminates_and_reaps_only_its_child (__main__.ProtocolTests.test_observer_IO_error_terminates_and_reaps_only_its_child) ... FAIL
+test_proc_snapshot_is_owned_metadata_and_handles_missing_process (__main__.ProtocolTests.test_proc_snapshot_is_owned_metadata_and_handles_missing_process) ... ok
+test_process_disappearance_during_thread_listing_is_recorded_not_raised (__main__.ProtocolTests.test_process_disappearance_during_thread_listing_is_recorded_not_raised) ... ok
+test_short_post_report_window_cannot_qualify_shutdown_observation (__main__.ProtocolTests.test_short_post_report_window_cannot_qualify_shutdown_observation) ... ok
+test_successful_normal_exit_and_budget_failure_are_distinct (__main__.ProtocolTests.test_successful_normal_exit_and_budget_failure_are_distinct) ... ok
+test_toy_child_exits_normally_with_phase_and_atexit_markers (__main__.ProtocolTests.test_toy_child_exits_normally_with_phase_and_atexit_markers) ... FAIL
+test_work90_hard150_reserve_cleanup_and_cannot_increase_limits (__main__.ProtocolTests.test_work90_hard150_reserve_cleanup_and_cannot_increase_limits) ... ok
+
+======================================================================
+ERROR: test_external_work_cutoff_does_not_depend_on_native_Python_signal_delivery (__main__.ProtocolTests.test_external_work_cutoff_does_not_depend_on_native_Python_signal_delivery)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/forge-pack24-20261026/S09_TORCHRAM_20261026/f023_forensics_20261026/forge_sol_S09_shutdown_tests_20261026.py", line 81, in test_external_work_cutoff_does_not_depend_on_native_Python_signal_delivery
+    self.assertTrue(tool.work_cutoff_due(90,[],90))
+                    ^^^^^^^^^^^^^^^^^^^^
+AttributeError: module 'shutdown_diag' has no attribute 'work_cutoff_due'
+
+======================================================================
+FAIL: test_observer_IO_error_terminates_and_reaps_only_its_child (__main__.ProtocolTests.test_observer_IO_error_terminates_and_reaps_only_its_child)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/forge-pack24-20261026/S09_TORCHRAM_20261026/f023_forensics_20261026/forge_sol_S09_shutdown_tests_20261026.py", line 86, in test_observer_IO_error_terminates_and_reaps_only_its_child
+    self.assertTrue(hasattr(tool,'monitor_process'),'bounded owned observer missing')
+AssertionError: False is not true : bounded owned observer missing
+
+======================================================================
+FAIL: test_toy_child_exits_normally_with_phase_and_atexit_markers (__main__.ProtocolTests.test_toy_child_exits_normally_with_phase_and_atexit_markers)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/forge-pack24-20261026/S09_TORCHRAM_20261026/f023_forensics_20261026/forge_sol_S09_shutdown_tests_20261026.py", line 66, in test_toy_child_exits_normally_with_phase_and_atexit_markers
+    self.assertTrue(hasattr(tool,'monitor_process'),'bounded owned observer missing')
+AssertionError: False is not true : bounded owned observer missing
+
+----------------------------------------------------------------------
+Ran 10 tests in 0.051s
+
+FAILED (failures=2, errors=1)
