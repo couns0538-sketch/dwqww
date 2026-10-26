@@ -1,5 +1,19 @@
 # Experiment ledger
 
+## Both S11 Release candidates qualified — 2026-10-26
+
+Lprime and B candidates pass all five fixed node references, both perft5s, full14/15 CTests, UCI and FMA0. The new Lprime baseline O2/g ASAN profile also passes its complete14-test suite; candidate/remainingB ASAN and million-position parity are pending. Original closed stages1–10 are preserved in a data-only checkpoint, with compiled bytes explicitly excluded/hash-bound. No speed or strength acceptance.
+
+The S18 diagnostic's25 original files are preserved losslessly; the historical timeout remainsFAIL. The five-arm read-only histogram wrapper is source-reviewed and held until this checkpoint verifies. No Torch training. Queue remains16 delivered/37 pending/1 dropped. Follow the last-observed-stage continuation snapshot and actual live ownership, rather than starting duplicate work.
+
+
+## Verified S10 delivery; S11 native active — 2026-10-26
+
+The finite queue is16 delivered/37 pending/1 dropped. Whole S10 commit8ba531023e350237009668035080942a9ceeea05 has250/250 immutable byte/hash readbacks. All four candidates are rejected; no strength, speed or source adoption. S11 Lprime Release has passed all five fixed nodes, both perft5s,14 CTests, UCI and FMA0; B firstd11 passed and full Release is running. ASAN/parity remain pending, timing held.
+
+The new S18 diagnostic closed normally and its11 sealed outputs exactly equal the original completed t500first187141/12859. The historical timeout remainsFAIL with cause undetermined. Full histogram source is prepared; no histograms or Torch training have run. Resume through the concise forge_sol_continue_after_S10_20261026.json checkpoint, checking actual live ownership before starting any native stage. Earlier dated sections below are history.
+
+
 ## S10 native closed; next S11 native — 2026-10-26
 
 All four frozen S10 candidates are rejected (WAC269/270/263/258); seven full cases produced202 passing configured Release/ASan CTests and seven ON/T2 supplements. Improving-razor B remains incomplete after its original OFF22 observer deadline. All original failures and1451 evidence files are preserved. No search candidate, speed or Elo gain is adopted. The corrected v2 metadata has accurate six-file diffstats; see the explicit publication scope.

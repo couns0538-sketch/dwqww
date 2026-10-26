@@ -1,0 +1,175 @@
+"""ONE sequential S18 read-only histogram batch; no filtering/Torch/engine.
+Execution requires the coordinator's fresh resource-window reference.
+"""
+import argparse
+import hashlib
+import importlib.util
+import json
+import os
+from pathlib import Path
+import resource
+import subprocess
+import sys
+import time
+import traceback
+
+HERE=Path(__file__).resolve().parent
+PINS=HERE/'forge_sol_S18_histogram_pins_20261026.json'
+PINS_SHA='f4ec07de107a342dcf363d5e8bdad8babfd34f53aa57537434c2830a0e019ca5'
+ORDER=('none','t200','t300','t400','t500')
+
+
+def digest(path,kind='sha256'):
+    h=hashlib.new(kind)
+    with Path(path).open('rb') as stream:
+        for block in iter(lambda:stream.read(65536),b''):h.update(block)
+    return h.hexdigest()
+
+
+def pins():
+    if digest(PINS)!=PINS_SHA:raise ValueError('histogram pins changed')
+    return json.loads(PINS.read_text())
+
+
+def save_new(path,value):
+    with Path(path).open('x') as stream:json.dump(value,stream,indent=2,sort_keys=True);stream.write('\n')
+
+
+def new_output(path,blocked):
+    path=Path(path).absolute()
+    if not path.is_relative_to('/tmp') or '..' in path.parts or any(x.is_symlink() for x in (path,*path.parents)):
+        raise ValueError('new nonsymlink /tmp output required')
+    if path.exists() or any(path.is_relative_to(Path(p).resolve()) for p in blocked):raise ValueError('existing/protected output')
+    if any(x.lower() in ('baseline','locks','.git') or x.lower().startswith('dist-v') for x in path.parts):raise ValueError('protected output name')
+    return path
+
+
+def arguments(p,arm,out):
+    return [p['python'],'-B',p['tool'],'--arm',p['arms'][arm]['path'],'--sample',p['sample'],
+            '--phase-header',p['phase_header'],'--out',str(out)]
+
+
+def verify_sources(p):
+    paths={p['tool']:p['tool_sha256'],p['phase_header']:p['phase_header_sha256'],p['helper']:p['helper_sha256'],**p['dependencies']}
+    for path,h in paths.items():
+        if digest(path)!=h:raise ValueError('source/dependency pin changed: '+path)
+    for arm,a in p['arms'].items():
+        folder=Path(a['path'])
+        if digest(folder/'forge_sol_datafilter_summary_20261026.json')!=a['summary_sha256'] or digest(folder/'forge_sol_datafilter_manifest_20261026.md5')!=a['manifest_sha256']:
+            raise ValueError('sealed arm summary/manifest changed: '+arm)
+    if {n:digest(Path(p['sample'])/n,'md5') for n in p['holdout_md5']}!=p['holdout_md5']:raise ValueError('unfiltered h000 MD5 changed')
+
+
+def validate_output(path,p,arm):
+    if path.is_symlink() or path.stat().st_mode&0o222 or path.stat().st_size>1048576:raise ValueError('unsealed/oversized output')
+    r=json.loads(path.read_text());a=p['arms'][arm]
+    if r['threshold']!=a['threshold'] or r['filter_seed']!=20261025 or r['source_summary_sha256']!=a['summary_sha256']:
+        raise ValueError('histogram source/configuration mismatch')
+    if r['source_output_manifest']['sha256']!=a['manifest_sha256'] or r['phase_definition']['source_sha256']!=p['phase_header_sha256']:
+        raise ValueError('histogram manifest/phase source mismatch')
+    if not r['all_histograms_reconcile'] or not r['source_inputs_unchanged'] or r['training_performed']:
+        raise ValueError('missing accounting/source invariance or training occurred')
+    for field,total in [('input','input'),('kept','kept'),('dropped','dropped')]:
+        if r[field]['rows']!=a['source_totals_reference_not_histogram_observation'][total]:raise ValueError('histogram row total mismatch')
+        hist=r[field]
+        for key in ('phase','piece_count','white_result','stm_result','score_sign','absolute_score_band'):
+            if sum(hist[key].values())!=hist['rows']:raise ValueError('histogram bucket sum mismatch')
+        for buckets in hist['disagreement'].values():
+            if sum(buckets.values())!=hist['rows']:raise ValueError('disagreement bucket sum mismatch')
+    if r['supplied_holdout_overlap']!=0 or r['dedupe']['output_duplicate_positions']!=0:raise ValueError('synthetic holdout/dedupe mismatch')
+    return r
+
+
+def _child_setup():
+    os.sched_setaffinity(0,{4});os.nice(19-os.getpriority(os.PRIO_PROCESS,0))
+    resource.setrlimit(resource.RLIMIT_AS,(805306368,805306368))
+    resource.setrlimit(resource.RLIMIT_FSIZE,(1048576,1048576))
+
+
+def execute(p,out,reference):
+    if sys.platform!='linux' or sorted(os.sched_getaffinity(0))!=[4] or os.getpriority(os.PRIO_PROCESS,0)!=19:
+        raise ValueError('Linux launch with nice -n 19 taskset -c 4 required')
+    if Path(sys.executable).resolve()!=Path(p['python']).resolve():raise ValueError('pinned primary Python required')
+    verify_sources(p)
+    spec=importlib.util.spec_from_file_location('S18_hist_owned_cleanup',p['helper'])
+    helper=importlib.util.module_from_spec(spec);spec.loader.exec_module(helper)
+    out.mkdir(exist_ok=False)
+    batch={'schema':'forge-S18-histogram-batch-result-v1','status':'RUNNING','acceptance':False,'training_performed':False,
+           'authorization_reference':reference,'controller_sha256':digest(__file__),'pins_sha256':PINS_SHA,'cpu':4,'nice':19,
+           'supervisor_soft_AS_bytes':134217728,'child_AS_bytes':805306368,'sum_parent_child_AS_bytes':939524096,
+           'per_arm_supervised_seconds':120,'per_arm_work_seconds':119,'cleanup_reserve_seconds':1,'cases':[],
+           'budget_scope':'Popen through owned cleanup per arm; source preflight/final JSON checks outside interval and separately recorded',
+           'real013014':'UNVERIFIED_ABSENT','authentic_game_overlap':'UNVERIFIED_NO_GAME_IDS','old_t500_repeat':'FAIL_UNCHANGED'}
+    resource.setrlimit(resource.RLIMIT_AS,(134217728,1073741824))
+    start=time.monotonic();completed={};original_sample=None
+    try:
+        for arm in ORDER:
+            verify_sources(p)
+            case=out/arm;case.mkdir();hist=case/('forge_sol_S18_'+arm+'_histograms_20261026.json')
+            command=arguments(p,arm,hist);proc=None;begin=time.monotonic();deadline=begin+120
+            r={'arm':arm,'argv':command,'status':'RUNNING','pid':None,'stop_reason':None,'leader_reaped':False}
+            with (case/'forge_sol_S18_histogram_child_20261026.stdout').open('xb') as stdout,(case/'forge_sol_S18_histogram_child_20261026.stderr').open('xb') as stderr:
+                with helper.SubreaperScope():
+                    try:
+                        proc=subprocess.Popen(command,stdin=subprocess.DEVNULL,stdout=stdout,stderr=stderr,start_new_session=True,
+                            preexec_fn=_child_setup,env=dict(os.environ,PYTHONDONTWRITEBYTECODE='1'))
+                        r.update(pid=proc.pid,process_group=proc.pid)
+                        while proc.poll() is None:
+                            if time.monotonic()>=deadline-1:r['stop_reason']='WORK_DEADLINE';break
+                            if os.fstat(stdout.fileno()).st_size>=1048576 or os.fstat(stderr.fileno()).st_size>=1048576:
+                                r['stop_reason']='RAW_STREAM_LIMIT';break
+                            try:proc.wait(timeout=.05)
+                            except subprocess.TimeoutExpired:pass
+                    except BaseException as e:
+                        r['exception']=type(e).__name__+': '+str(e)[:1000]
+                        stderr.write(traceback.format_exc(limit=12).encode()[:65536]);stderr.flush()
+                    finally:
+                        if proc is not None:
+                            try:
+                                reaped,remaining=helper._close_group(proc)
+                                r.update(returncode=proc.returncode,leader_reaped=proc.returncode is not None,descendant_wait_records=reaped,
+                                    remaining_owned_group=remaining,all_owned_group_members_after_close=helper._all_members(proc.pid))
+                            except BaseException as e:r['cleanup_error']=type(e).__name__+': '+str(e)[:1000]
+            r.update(supervised_elapsed_seconds=time.monotonic()-begin,deadline_overrun_seconds=max(0,time.monotonic()-deadline))
+            try:
+                if r.get('returncode')!=0 or not r['leader_reaped'] or r.get('all_owned_group_members_after_close') or r.get('cleanup_error') or r.get('stop_reason') or r.get('exception'):
+                    raise ValueError('histogram child was not a clean closed full run')
+                if (case/'forge_sol_S18_histogram_child_20261026.stderr').stat().st_size:raise ValueError('nonempty histogram stderr')
+                result=validate_output(hist,p,arm)
+                if original_sample is None:original_sample=result['original_sample_sha256']
+                if result['original_sample_sha256']!=original_sample:raise ValueError('arms did not read identical original sample')
+                verify_sources(p)
+                r.update(status='PASS_COMPLETE_READONLY_HISTOGRAM',histogram_sha256=digest(hist),
+                    observed_input_rows=result['input']['rows'],observed_kept_rows=result['kept']['rows'],observed_dropped_rows=result['dropped']['rows'])
+                completed[arm]={'histogram':str(hist),'sha256':digest(hist),'kept_rows':result['kept']['rows']}
+            except BaseException as e:r.update(status='FAIL',validation_error=type(e).__name__+': '+str(e)[:1000])
+            r['total_with_final_checks_seconds']=time.monotonic()-begin
+            r['raw_captures']={n:{'sha256':digest(case/('forge_sol_S18_histogram_child_20261026.'+n)),
+                'bytes':(case/('forge_sol_S18_histogram_child_20261026.'+n)).stat().st_size} for n in ('stdout','stderr')}
+            save_new(case/'forge_sol_S18_histogram_case_result_20261026.json',r);batch['cases'].append(r)
+            print(json.dumps({'arm':arm,'status':r['status'],'elapsed_seconds':r['supervised_elapsed_seconds']},sort_keys=True),flush=True)
+            if r['status']!='PASS_COMPLETE_READONLY_HISTOGRAM':raise ValueError('batch stopped after first failed arm; no retry')
+        verify_sources(p)
+        batch.update(status='PASS_COMPLETE_READONLY_HISTOGRAM_BATCH',outputs=completed,
+                     actual_kept_row_sum=sum(v['kept_rows'] for v in completed.values()),holdout_md5_verified=p['holdout_md5'],original_sample_sha256=original_sample)
+    except BaseException as e:
+        batch.update(status='FAIL',error=type(e).__name__+': '+str(e)[:1000]);traceback.print_exc(limit=12)
+    finally:
+        batch['elapsed_seconds']=time.monotonic()-start;batch['peak_children_RSS_KiB']=resource.getrusage(resource.RUSAGE_CHILDREN).ru_maxrss
+        save_new(out/'forge_sol_S18_histogram_batch_result_20261026.json',batch)
+    return int(batch['status']!='PASS_COMPLETE_READONLY_HISTOGRAM_BATCH')
+
+
+def main(argv=None):
+    parser=argparse.ArgumentParser(description=__doc__);parser.add_argument('--describe',action='store_true')
+    parser.add_argument('--execute',action='store_true');parser.add_argument('--out',type=Path);parser.add_argument('--authorization-reference')
+    args=parser.parse_args(argv);p=pins()
+    if args.describe:
+        if args.execute:parser.error('describe and execute are exclusive')
+        print(json.dumps({'scope':'READONLY HISTOGRAM ONLY; NOT EXECUTED','pins_sha256':PINS_SHA,
+            'commands':{arm:arguments(p,arm,Path('/tmp/NEW_ROOT')/arm/('forge_sol_S18_'+arm+'_histograms_20261026.json')) for arm in ORDER}},indent=2));return 0
+    if not args.execute or not args.out or not args.authorization_reference:parser.error('execution requires NEW --out and coordinator reference')
+    blocked=[HERE,Path(p['sample']),Path(p['tool']).parent,Path('/tmp/forge_sol_S18_checkpoint_20261026'),Path('/tmp/forge_sol_S18_data_20261026'),Path('/tmp/forge_sol_S18_diagnostic_checkpoint_20261026'),*[Path(a['path']) for a in p['arms'].values()]]
+    return execute(p,new_output(args.out,blocked),args.authorization_reference)
+
+if __name__=='__main__':raise SystemExit(main())

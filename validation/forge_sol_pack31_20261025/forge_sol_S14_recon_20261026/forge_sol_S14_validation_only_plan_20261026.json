@@ -1,0 +1,152 @@
+{
+  "status": "PROPOSED_VALIDATION_ONLY_NOT_IMPLEMENTED",
+  "root_review_required_before_implementation": true,
+  "engine_patch": "NONE_RECOMMENDED; existinggoalalreadysourceimplemented",
+  "reuse_tool": {
+    "archive": "/workspace/dwqww/validation/lazy-movepicker-20261019/differential-attempt1.zip",
+    "archive_sha256": "2e78c6e9b85ffd085d61ce5020a5e711117db0ec3054f90681e67f545cb04a33",
+    "members": {
+      "harness/picker_differential.cpp": {
+        "sha256": "99b2a12b2bfccaf087ab270cdea64828c9064b70dffd0cf9874bd699d8703023",
+        "bytes": 7596
+      },
+      "harness/run_differential.py": {
+        "sha256": "67e09b0d1f018d91770bc5cd3d3e89f544aba5b162c009754b679cabf2e9ae38",
+        "bytes": 6911
+      },
+      "attempt1/protocol.json": {
+        "sha256": "5a7c130fd473e9fa314d624f18027ce869db8343fec945c877d4af2fbf293351",
+        "bytes": 1956
+      }
+    },
+    "original_scope": "6.4.6vs6.4.7;10000openings+23fixtures/6variants/60138rows; notcurrenth256validation"
+  },
+  "bounded_changes_to_tool_only": [
+    "Adapt original corpus-count checks to an explicit fixed20-FEN workload; cap comparison output to first64 returnedmoves percase/mode, record count and terminator forshortlists. Do not alter MovePicker or sorting.",
+    "Reuse own original nonzero histories/TT/killers/countermoves/dynamicquietskip and parent-state-restoration checks. Include actual target search.cpp and prove linkmap excludes duplicatearchive search.cpp.o.",
+    "Add narrowly scoped allocation counting around MovePicker construction and each next() only. Board construction/FENparsing/historysetup/make-unmake/output stringformatting remain outside scope. Name exactly covered operatornew/new[]/aligned/nothrow/Callocation families; no universalheapclaim from partialinterposition.",
+    "Add positive allocation control with observable escaping allocation to prevent optimizerelision, and a dump-comparison control changing one recorded prefix move. Preserve both failure captures.",
+    "Verify existing mailbox against bitboards across selected legalmake/unmake transitions andspecialmoves, ratherthan add another64-squarearray.",
+    "When granted after S11-13, run actual unchanged Lprime/Bsource-oracles, preserve raw streams,alloccounts/coverage,source/core/binary/linkmaps. No S14 candidate gain: same-source A/A proves repeatability only. Any discovered allocation requires a separately scoped fix."
+  ],
+  "proposed_workload_source": {
+    "path": "/workspace/forge-pack24-20261025/new_handoff_1435/selected/forge_handoff_full_20261025_1435/files/01_lock_src_h256_e12/forge_h256_e12_1ab50b2d_src/tests/legal_witness_fixtures.tsv",
+    "bytes": 1361,
+    "sha256": "e88f4d859ce1c923b900e2c4012e7e601c247140223876a18cca6e0648d47c77"
+  },
+  "proposed20FENs": [
+    {
+      "id": "white-start",
+      "fen": "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
+      "source_fixture_witness_field": "1"
+    },
+    {
+      "id": "black-start",
+      "fen": "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR b KQkq - 0 1",
+      "source_fixture_witness_field": "1"
+    },
+    {
+      "id": "black-stalemate",
+      "fen": "7k/5Q2/6K1/8/8/8/8/8 b - - 0 1",
+      "source_fixture_witness_field": "0"
+    },
+    {
+      "id": "black-checkmate",
+      "fen": "7k/6Q1/6K1/8/8/8/8/8 b - - 0 1",
+      "source_fixture_witness_field": "0"
+    },
+    {
+      "id": "white-diagonal-pin",
+      "fen": "7k/8/8/8/8/2b5/3P4/4K3 w - - 0 1",
+      "source_fixture_witness_field": "1"
+    },
+    {
+      "id": "black-diagonal-pin",
+      "fen": "4k3/3p4/2B5/8/8/8/8/7K b - - 0 1",
+      "source_fixture_witness_field": "1"
+    },
+    {
+      "id": "white-file-pin-legal-push",
+      "fen": "4r2k/8/8/8/8/8/4P3/4K3 w - - 0 1",
+      "source_fixture_witness_field": "1"
+    },
+    {
+      "id": "black-file-pin-legal-push",
+      "fen": "4k3/4p3/8/8/8/8/8/4R2K b - - 0 1",
+      "source_fixture_witness_field": "1"
+    },
+    {
+      "id": "pawn-blocks-check",
+      "fen": "7k/8/8/8/1b6/8/2P5/4K3 w - - 0 1",
+      "source_fixture_witness_field": "1"
+    },
+    {
+      "id": "double-check-pawn-does-not-evade",
+      "fen": "4r2k/8/8/8/1b6/8/2P5/4K3 w - - 0 1",
+      "source_fixture_witness_field": "1"
+    },
+    {
+      "id": "white-pinned-pawn-stalemate",
+      "fen": "8/8/8/8/4q3/8/5kP1/5n1K w - - 0 1",
+      "source_fixture_witness_field": "0"
+    },
+    {
+      "id": "black-pinned-pawn-stalemate",
+      "fen": "5N1k/5Kp1/8/4Q3/8/8/8/8 b - - 0 1",
+      "source_fixture_witness_field": "0"
+    },
+    {
+      "id": "white-quiet-promotion",
+      "fen": "4k3/P7/8/8/8/8/8/4K3 w - - 0 1",
+      "source_fixture_witness_field": "1"
+    },
+    {
+      "id": "black-quiet-promotion",
+      "fen": "4k3/8/8/8/8/8/7p/4K3 b - - 0 1",
+      "source_fixture_witness_field": "1"
+    },
+    {
+      "id": "white-capture-promotion",
+      "fen": "1r2k3/P7/8/8/8/8/8/4K3 w - - 0 1",
+      "source_fixture_witness_field": "1"
+    },
+    {
+      "id": "black-capture-promotion",
+      "fen": "4k3/8/8/8/8/8/7p/4K1R1 b - - 0 1",
+      "source_fixture_witness_field": "1"
+    },
+    {
+      "id": "white-ep-forward-blocked",
+      "fen": "4k3/8/4p3/3pP3/8/8/8/4K3 w - d6 0 1",
+      "source_fixture_witness_field": "1"
+    },
+    {
+      "id": "black-ep-forward-blocked",
+      "fen": "4k3/8/8/8/3Pp3/4P3/8/4K3 b - d3 0 1",
+      "source_fixture_witness_field": "1"
+    },
+    {
+      "id": "illegal-ep-rank-pin",
+      "fen": "4k3/8/8/r4pPK/8/8/8/8 w - f6 0 1",
+      "source_fixture_witness_field": "1"
+    },
+    {
+      "id": "castles-no-pawn-witness",
+      "fen": "r3k2r/8/8/8/8/8/8/R3K2R w KQkq - 0 1",
+      "source_fixture_witness_field": "1"
+    }
+  ],
+  "variants": [
+    "Mainnone",
+    "MainTT",
+    "Mainskipquiet",
+    "skipafter3legal",
+    "QSnone",
+    "QSTT"
+  ],
+  "maximum_picks_per_record": 64,
+  "positions": 20,
+  "expected_records": 120,
+  "engine_compiler_runtime_performance": "UNVERIFIED_NOT_RUN",
+  "S29_contribution": "None if existinggoalsvalidated; do not manufacture a speedpatch or stackoldmp/ptypevariants twice."
+}
