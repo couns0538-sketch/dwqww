@@ -1,0 +1,34 @@
+{
+  "status": "OBSERVED_NONMONOTONIC_SMP_INFO_NODES_ROOT_CAUSE_UNVERIFIED",
+  "future_job": "S22",
+  "source_result": "/tmp/forge_sol_S10_native_20261026/quiet_check_survival_Lprime_T2_ON_once/forge_sol_S10_ON_T2_asan_v2_result_20261026.json",
+  "source_result_sha256": "14973ea3bc6687a2c61559f803dbd1b96a6f2a8cb27f5fa2f082c4999da51c0e",
+  "source_controller_sha256": "d6b8b9909373903e2ac3d2aca10e731acffeaff8352db8619d0577945f55b08b",
+  "supplement_sha256": "87328ef3ffa966da21d4a838b0484ceddf3d6d8e101f0880df61c957928473df",
+  "feature": "quiet_check_survival",
+  "settings": {
+    "Hash": 16,
+    "OwnBook": false,
+    "QuietCheckLmpSurvival": true,
+    "Threads": 2
+  },
+  "position": "WAC.003",
+  "original_lines": [
+    "info depth 1 seldepth 5 score cp -26 nodes 6231 nps 1557750 hashfull 0 time 4 pv e3g3",
+    "info depth 2 seldepth 6 score cp 317 nodes 252 nps 19384 hashfull 0 time 13 pv e3g3 g5g3"
+  ],
+  "hypotheses": [
+    "A helper worker atomic node counter may still contain prior-search work when the next search emits its first info, then reset at worker entry.",
+    "Alternatively rule out transport epoch mixing with the original stdin/stdout and a minimal actual-engine reproducer."
+  ],
+  "established": [
+    "The saved T2 observation decreases nodes from6231 at depth1 to252 at depth2.",
+    "This is an info/node-accounting observation, not proof of a data race, root cause, premature stop or Elo loss."
+  ],
+  "not_done": [
+    "No additional native reproducer run",
+    "No baseline comparison",
+    "No source repair"
+  ],
+  "next_action": "AtS22 inspect actualreset/launch/total-node paths and reproduce consecutiveT2/T4 go-nodes requests with command-epoch evidence; reuse existing source and do not relabel oldTT investigations."
+}

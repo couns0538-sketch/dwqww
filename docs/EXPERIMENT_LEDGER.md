@@ -1,5 +1,11 @@
 # Experiment ledger
 
+## S10 quiet-check cycle complete; remaining ideas active — 2026-10-26
+
+The first S10 feature completed on Lprime and B: all fixed OFF counts, perft5, FMA0, full Release/ASan14/15 and ON T2 checks pass. Its sole WAC screen scored269/300 below283, so QuietCheckLmpSurvival is rejected and not adopted. Original397-file data is sealed in the verified archiveaa45a3b35995837eff8791295657a239434cd54f4e9e72e9fb237e882570fa40. The separate feature packet is a checkpoint; the complete S10 job remains pending.
+
+ImprovingRazorGuard Lprime has passed both full Std profiles and T2, but its d20 node count9,011,938 exceeds the predeclared absolute20% change guard, and its WAC270/300 also fails283. B qualification is running; SingularSiblingLmr and CaptureHistoryLmp follow. Preserve all original results without retries or tuning to outcomes. Queue remains15 delivered/38 pending/1 dropped. Accepted source/network unchanged; no speed/Elo claim. The new SMP node-reporting observation is saved as an UNVERIFIED-root-cause S22 question.
+
 ## S10 first screen rejected; validation continues — 2026-10-26
 
 QuietCheckLmpSurvival passed Lprime full Release14/14 and ASan/UBSan14/14 with four known diagnostics, plus the reviewed ON T2 supplement. Its single WAC screen scored269/300 against the required283: REJECTED_SEARCH_SCREEN, no retry. Original result SHA2568eb34f02d3e3ebf053c7920a5a86a66b1601f40b624cd935b591d025acab600b. B qualification is active under the S10 operator; three frozen ideas follow. This does not finish S10 or change the15-delivered/38-pending/1-dropped queue. No Elo, speed or adoption claim.
