@@ -1,0 +1,44 @@
+test_actual_fake_process_batch_copies_each_net_and_retains_inputs (test_forge_sol_S26_netbatch_20261026.NetBatchTests.test_actual_fake_process_batch_copies_each_net_and_retains_inputs) ... ok
+test_allowlist_rejects_pin_mismatch_and_excess_known_failures (test_forge_sol_S26_netbatch_20261026.NetBatchTests.test_allowlist_rejects_pin_mismatch_and_excess_known_failures) ... ok
+test_ctest_no_tests_or_failed_unrelated_test_never_passes (test_forge_sol_S26_netbatch_20261026.NetBatchTests.test_ctest_no_tests_or_failed_unrelated_test_never_passes) ... ok
+test_dependency_hash_drift_is_rejected_before_import (test_forge_sol_S26_netbatch_20261026.NetBatchTests.test_dependency_hash_drift_is_rejected_before_import) ... ok
+test_every_net_gets_a_failed_table_after_ctest_rejects (test_forge_sol_S26_netbatch_20261026.NetBatchTests.test_every_net_gets_a_failed_table_after_ctest_rejects) ... FAIL
+test_existing_output_is_rejected_without_edits (test_forge_sol_S26_netbatch_20261026.NetBatchTests.test_existing_output_is_rejected_without_edits) ... ok
+test_fake_ctest_unexpected_failure_aborts_without_relaxing_pins (test_forge_sol_S26_netbatch_20261026.NetBatchTests.test_fake_ctest_unexpected_failure_aborts_without_relaxing_pins) ... ok
+test_imported_documentary_unknowns_are_not_measured_results (test_forge_sol_S26_netbatch_20261026.NetBatchTests.test_imported_documentary_unknowns_are_not_measured_results) ... ok
+test_owned_sleep_child_is_cleaned_on_ram_drop (test_forge_sol_S26_netbatch_20261026.NetBatchTests.test_owned_sleep_child_is_cleaned_on_ram_drop) ... ok
+test_reference_missing_depth_and_noninteger_are_rejected (test_forge_sol_S26_netbatch_20261026.NetBatchTests.test_reference_missing_depth_and_noninteger_are_rejected) ... ok
+test_resource_guard_stops_before_any_build (test_forge_sol_S26_netbatch_20261026.NetBatchTests.test_resource_guard_stops_before_any_build) ... ok
+test_reviewed_pin_allowlist_requires_both_source_and_net_identity (test_forge_sol_S26_netbatch_20261026.NetBatchTests.test_reviewed_pin_allowlist_requires_both_source_and_net_identity) ... FAIL
+test_source_symlink_is_rejected_before_copy (test_forge_sol_S26_netbatch_20261026.NetBatchTests.test_source_symlink_is_rejected_before_copy) ... ok
+test_unrelated_passing_test_cannot_emit_known_failure_diagnostics (test_forge_sol_S26_netbatch_20261026.NetBatchTests.test_unrelated_passing_test_cannot_emit_known_failure_diagnostics) ... FAIL
+
+======================================================================
+FAIL: test_every_net_gets_a_failed_table_after_ctest_rejects (test_forge_sol_S26_netbatch_20261026.NetBatchTests.test_every_net_gets_a_failed_table_after_ctest_rejects)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/forge-pack24-20261026/S26/test_forge_sol_S26_netbatch_20261026.py", line 147, in test_every_net_gets_a_failed_table_after_ctest_rejects
+    self.assertEqual(len(j.get('failed_nets',[])),2)
+AssertionError: 0 != 2
+
+======================================================================
+FAIL: test_reviewed_pin_allowlist_requires_both_source_and_net_identity (test_forge_sol_S26_netbatch_20261026.NetBatchTests.test_reviewed_pin_allowlist_requires_both_source_and_net_identity)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/forge-pack24-20261026/S26/test_forge_sol_S26_netbatch_20261026.py", line 150, in test_reviewed_pin_allowlist_requires_both_source_and_net_identity
+    self.assertTrue(hasattr(self.mod,'bind_allowlist'),'reviewed pin identity binding missing')
+AssertionError: False is not true : reviewed pin identity binding missing
+
+======================================================================
+FAIL: test_unrelated_passing_test_cannot_emit_known_failure_diagnostics (test_forge_sol_S26_netbatch_20261026.NetBatchTests.test_unrelated_passing_test_cannot_emit_known_failure_diagnostics)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/forge-pack24-20261026/S26/test_forge_sol_S26_netbatch_20261026.py", line 159, in test_unrelated_passing_test_cannot_emit_known_failure_diagnostics
+    with self.assertRaises(ValueError):self.mod.check_ctest(p,0,{'allowed_test_failure':'forge_tests','rules':[{'pattern':'FAIL: known horizon','max_count':1}],'pins':[]})
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: ValueError not raised
+
+----------------------------------------------------------------------
+Ran 14 tests in 18.046s
+
+FAILED (failures=3)

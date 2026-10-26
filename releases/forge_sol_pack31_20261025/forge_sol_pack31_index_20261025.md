@@ -1,5 +1,21 @@
 # Forge Sol pack31 — 20261025
 
+## Published S33, S48 and S07; remaining queue — 2026-10-26 12:35 UTC
+
+54 unique finite IDs:12 delivered-scope done,41 pending,1 dropped(S23). Prepared source is not completion. S26 native f019–f023 is root-owned CPU4/nice19; S08 full native validation follows. S16/S34 remain prepared, unintegrated and unpublished. Continue the entire remaining unique queue; AstraA1/A2/A3/A7 follow Sol only. Earlier entries are retained history.
+
+|Job|Artifact commit|Actual immutable readbacks|Scope|
+|---|---|---:|---|
+|S33|`d9dfc4cf3b11daa2206db8b8a5a5a8fce5f0be62`|220/220|630 advisory cells x20k, six fixed validations,90 raw groups; no engine-gain claim|
+|S48|`e9ea373152200488fb77fdfd0e90434692e7ec43`|10/10|Comparability/conditional MC diagnostics; actual G104/G120 paired correction UNVERIFIED|
+|S07|`ebfb43d061c02f3fe7aba1886b951170559f2720`|29/29|Five fixed refs in both empty-option controls; one271/300 WAC screen, zero illegal; historical gap unknown|
+
+- [S33 report](https://raw.githubusercontent.com/couns0538-sketch/dwqww/d9dfc4cf3b11daa2206db8b8a5a5a8fce5f0be62/releases/forge_sol_pack31_20261025/S33/forge_sol_S33_report_20261026.md) and [manifest](https://raw.githubusercontent.com/couns0538-sketch/dwqww/d9dfc4cf3b11daa2206db8b8a5a5a8fce5f0be62/releases/forge_sol_pack31_20261025/S33/forge_sol_S33_SHA256SUMS_20261026.txt).
+- [S48 report](https://raw.githubusercontent.com/couns0538-sketch/dwqww/e9ea373152200488fb77fdfd0e90434692e7ec43/releases/forge_sol_pack31_20261025/S48/forge_sol_S48_report_20261026.md) and [manifest](https://raw.githubusercontent.com/couns0538-sketch/dwqww/e9ea373152200488fb77fdfd0e90434692e7ec43/releases/forge_sol_pack31_20261025/S48/forge_sol_S48_SHA256SUMS_20261026.txt).
+- [S07 final report](https://raw.githubusercontent.com/couns0538-sketch/dwqww/ebfb43d061c02f3fe7aba1886b951170559f2720/releases/forge_sol_pack31_20261025/S07/forge_sol_S07_final_report_20261026.md) and [manifest](https://raw.githubusercontent.com/couns0538-sketch/dwqww/ebfb43d061c02f3fe7aba1886b951170559f2720/releases/forge_sol_pack31_20261025/S07/forge_sol_S07_SHA256SUMS_20261026.txt).
+
+Accepted h256_e12 stays unchanged. No PC/GPU/PGO or live gate rule is changed. Actual publication receipts are under validation/forge_sol_pack31_20261025; no new HTTP call was made by this checkpoint preparer.
+
 ## S06 — offline miner completed, 2026-10-26
 
 Artifact `0a0262c337fb1919e43676e5d9a6c08abda7243e`; all19files actually downloaded and SHA/Git-byte verified. Final76 tests and30 independent checks pass; three supplied paired-count cases reproduce within.01. All35 supplied metadata rows parse. Old178-game evidence reparses to89 pairs/W66 D44 L68; original timeout correctly rejected. Zero new games, no engine change or speed/Elo claim. G104 actual pair profile/raw gate evidence remains UNVERIFIED.

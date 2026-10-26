@@ -1,0 +1,85 @@
+{
+  "status": "PASS",
+  "old_source_sha256": "b04af9f74b0ffc7cb9b9e58a04ac4cf02efff43e4d801991dfc11324a2e2f194",
+  "new_source_sha256": "008819d5387cdd5ac5d512bb2ebafd09f141aafc9b6904cba2f73a8373634d03",
+  "canonical_retained_AST_sha256": "2c81f5abf2593a9691a6087c789495746848f8a3729bde18808d10d084741614",
+  "retained_function_names": [
+    "_integer",
+    "_lower_cdf",
+    "_moment_llr",
+    "_moments",
+    "_nelo_statistic",
+    "_profile",
+    "_protocol",
+    "_real",
+    "_summary",
+    "_validate_model_hypotheses",
+    "_wilson",
+    "analytic_cell",
+    "brownian_finite_cap",
+    "compare_validation",
+    "draw_profile",
+    "grid_cells",
+    "llr_from_counts",
+    "logistic_score",
+    "named_profile",
+    "online_llr",
+    "run_validation",
+    "simulate_cell",
+    "simulate_protocols",
+    "tilted_profile"
+  ],
+  "retained_function_count": 24,
+  "retained_AST_identical": true,
+  "numerical_functions_constants_RNG_unchanged": true,
+  "old_removed_nodes": [
+    {
+      "reason": "S06 dependency selector/hash metadata only",
+      "node": "S06_DEPENDENCY = Path(__file__).resolve().parents[1] / 'S06' / 'forge_sol_S06_statistics_20261026.py'"
+    },
+    {
+      "reason": "CLI main() only",
+      "node": "def main(argv=None):\n    parser = argparse.ArgumentParser(description=__doc__)\n    parser.add_argument('--screen', action='store_true', help='bounded performance/model screen only, never acceptance validation')\n    parser.add_argument('--validate', action='store_true', help='all six fixed cells, >=20000 runs each')\n    parser.add_argument('--full-grid', action='store_true', help='explicitly authorize 630 cells; default never runs this')\n    parser.add_argument('--runs', type=int, default=20000)\n    parser.add_argument('--seed', type=int, default=DEFAULT_SEED)\n    parser.add_argument('--output-dir', type=Path, default=Path('.'))\n    args = parser.parse_args(argv)\n    args.output_dir.mkdir(parents=True, exist_ok=True)\n    if args.screen:\n        if args.runs > 2000:\n            parser.error('--screen must explicitly select --runs <=2000')\n        p = named_profile('G119', 9.5)\n        r = simulate_cell(p, 9.5, runs=args.runs, seed=args.seed)\n        r['analytic'] = analytic_cell(p, 9.5)\n        r['screen_only'] = True\n        print(json.dumps(r, allow_nan=False, sort_keys=True))\n    if args.validate:\n        result = run_validation(runs=args.runs, seed=args.seed)\n        out = args.output_dir / ('forge_sol_S33_six_cell_validation_' + DATE + '.json')\n        out.write_text(json.dumps(result, indent=2, allow_nan=False) + '\\n')\n        print(json.dumps({'validation': result['status'], 'path': str(out)}))\n    if args.full_grid:\n        if args.runs < 20000:\n            parser.error('--full-grid requires >=20000 runs per cell')\n        out = args.output_dir / ('forge_sol_S33_sprt_plan_table_' + DATE + '.csv')\n        with out.open('w', newline='') as f:\n            writer = csv.DictWriter(f, fieldnames=['profile', 'concurrency', 'kind', 'true_elo_logistic', 'protocol', 'hypothesis_units', 'e0', 'e1', 'cap_games', 'runs', 'seed', 'mc_H1', 'mc_H0', 'mc_cap', 'mc_mean_games', 'mc_median_games', 'a_H1', 'a_H0', 'a_cap', 'a_mean_games', 'a_median_games', 'max_abs_probability_difference'])\n            writer.writeheader()\n            for pi, name in enumerate(PROFILES):\n                for ei in range(15):\n                    elo, seed = (-5 + 2.5 * ei, args.seed + pi * 100000 + ei * 1009)\n                    p = named_profile(name, elo)\n                    results = simulate_protocols(p, elo, PROTOCOLS, runs=args.runs, seed=seed)\n                    for protocol, mc in zip(PROTOCOLS, results):\n                        a = analytic_cell(p, elo, **{k: protocol[k] for k in ('e0', 'e1', 'cap_games')})\n                        row = {'profile': name, 'concurrency': PROFILES[name]['concurrency'], 'kind': PROFILES[name]['kind'], 'true_elo_logistic': elo, 'protocol': protocol['name'], 'hypothesis_units': 'nelo', 'e0': protocol['e0'], 'e1': protocol['e1'], 'cap_games': protocol['cap_games'], 'runs': args.runs, 'seed': seed, 'mc_mean_games': mc['mean_games'], 'mc_median_games': mc['median_games'], 'a_mean_games': a['mean_games'], 'a_median_games': a['median_games'], 'max_abs_probability_difference': max((abs(mc['probabilities'][k] - a['probabilities'][k]) for k in ('H1', 'H0', 'cap')))}\n                        row.update({'mc_' + k: mc['probabilities'][k] for k in ('H1', 'H0', 'cap')})\n                        row.update({'a_' + k: a['probabilities'][k] for k in ('H1', 'H0', 'cap')})\n                        writer.writerow(row)\n                    f.flush()\n                    print(json.dumps({'group_complete': name, 'true_elo': elo, 'seed': seed}), flush=True)\n        print(json.dumps({'full_grid_rows': 630, 'path': str(out), 'advice_only': True}))\n    if not any((args.screen, args.validate, args.full_grid)):\n        parser.print_help()\n    return 0"
+    },
+    {
+      "reason": "CLI entrypoint only",
+      "node": "if __name__ == '__main__':\n    raise SystemExit(main())"
+    }
+  ],
+  "new_removed_nodes": [
+    {
+      "reason": "S06 dependency metadata hashing import only",
+      "node": "import hashlib"
+    },
+    {
+      "reason": "S06 dependency selector/hash metadata only",
+      "node": "_S06_FILENAME = 'forge_sol_S06_statistics_20261026.py'"
+    },
+    {
+      "reason": "S06 dependency selector/hash metadata only",
+      "node": "_S06_ADJACENT = Path(__file__).resolve().parent / _S06_FILENAME"
+    },
+    {
+      "reason": "S06 dependency selector/hash metadata only",
+      "node": "S06_DEPENDENCY = _S06_ADJACENT if _S06_ADJACENT.exists() else Path(__file__).resolve().parents[1] / 'S06' / _S06_FILENAME"
+    },
+    {
+      "reason": "S06 dependency selector/hash metadata only",
+      "node": "S06_DEPENDENCY_SHA256 = '4598c5839519af2ed4680b074669d097b9616dfe7c03c1afb7622b276efecb8a'"
+    },
+    {
+      "reason": "S06 dependency metadata hash verification only",
+      "node": "if S06_DEPENDENCY.is_file() and hashlib.sha256(S06_DEPENDENCY.read_bytes()).hexdigest() != S06_DEPENDENCY_SHA256:\n    raise RuntimeError('S06 dependency SHA256 differs from the frozen original')"
+    },
+    {
+      "reason": "CLI main() only",
+      "node": "def main(argv=None):\n    parser = argparse.ArgumentParser(description=__doc__)\n    parser.add_argument('--screen', action='store_true', help='bounded performance/model screen only, never acceptance validation')\n    parser.add_argument('--validate', action='store_true', help='all six fixed cells, >=20000 runs each')\n    parser.add_argument('--full-grid', action='store_true', help='explicitly authorize 630 cells; default never runs this')\n    parser.add_argument('--runs', type=int, default=20000)\n    parser.add_argument('--seed', type=int, default=DEFAULT_SEED)\n    parser.add_argument('--output-dir', type=Path, help='required new directory; existing paths and symlink ancestors are refused')\n    args = parser.parse_args(argv)\n    if not any((args.screen, args.validate, args.full_grid)):\n        parser.print_help()\n        return 0\n    if args.runs <= 0 or args.seed < 0:\n        parser.error('runs must be positive and seed must be nonnegative')\n    if args.screen and args.runs > 2000:\n        parser.error('--screen must explicitly select --runs <=2000')\n    if (args.validate or args.full_grid) and args.runs < 20000:\n        parser.error('--validate and --full-grid require >=20000 runs per cell')\n    if args.output_dir is None:\n        parser.error('--output-dir must name a new directory')\n    destination = args.output_dir.absolute()\n    if any((path.is_symlink() for path in (destination, *destination.parents))):\n        parser.error('output directory and its parents must not be symlinks')\n    try:\n        destination.mkdir(parents=True, exist_ok=False)\n    except OSError as exc:\n        parser.error('cannot create new output directory: ' + str(exc))\n    args.output_dir = destination\n    if args.screen:\n        p = named_profile('G119', 9.5)\n        r = simulate_cell(p, 9.5, runs=args.runs, seed=args.seed)\n        r['analytic'] = analytic_cell(p, 9.5)\n        r['screen_only'] = True\n        print(json.dumps(r, allow_nan=False, sort_keys=True))\n    if args.validate:\n        result = run_validation(runs=args.runs, seed=args.seed)\n        out = args.output_dir / ('forge_sol_S33_six_cell_validation_' + DATE + '.json')\n        try:\n            with out.open('x') as f:\n                f.write(json.dumps(result, indent=2, allow_nan=False) + '\\n')\n        except OSError as exc:\n            parser.error('cannot create new validation output: ' + str(exc))\n        print(json.dumps({'validation': result['status'], 'path': str(out)}))\n    if args.full_grid:\n        out = args.output_dir / ('forge_sol_S33_sprt_plan_table_' + DATE + '.csv')\n        try:\n            output = out.open('x', newline='')\n        except OSError as exc:\n            parser.error('cannot create new grid output: ' + str(exc))\n        with output as f:\n            writer = csv.DictWriter(f, fieldnames=['profile', 'concurrency', 'kind', 'true_elo_logistic', 'protocol', 'hypothesis_units', 'e0', 'e1', 'cap_games', 'runs', 'seed', 'mc_H1', 'mc_H0', 'mc_cap', 'mc_mean_games', 'mc_median_games', 'a_H1', 'a_H0', 'a_cap', 'a_mean_games', 'a_median_games', 'max_abs_probability_difference'])\n            writer.writeheader()\n            for pi, name in enumerate(PROFILES):\n                for ei in range(15):\n                    elo, seed = (-5 + 2.5 * ei, args.seed + pi * 100000 + ei * 1009)\n                    p = named_profile(name, elo)\n                    results = simulate_protocols(p, elo, PROTOCOLS, runs=args.runs, seed=seed)\n                    for protocol, mc in zip(PROTOCOLS, results):\n                        a = analytic_cell(p, elo, **{k: protocol[k] for k in ('e0', 'e1', 'cap_games')})\n                        row = {'profile': name, 'concurrency': PROFILES[name]['concurrency'], 'kind': PROFILES[name]['kind'], 'true_elo_logistic': elo, 'protocol': protocol['name'], 'hypothesis_units': 'nelo', 'e0': protocol['e0'], 'e1': protocol['e1'], 'cap_games': protocol['cap_games'], 'runs': args.runs, 'seed': seed, 'mc_mean_games': mc['mean_games'], 'mc_median_games': mc['median_games'], 'a_mean_games': a['mean_games'], 'a_median_games': a['median_games'], 'max_abs_probability_difference': max((abs(mc['probabilities'][k] - a['probabilities'][k]) for k in ('H1', 'H0', 'cap')))}\n                        row.update({'mc_' + k: mc['probabilities'][k] for k in ('H1', 'H0', 'cap')})\n                        row.update({'a_' + k: a['probabilities'][k] for k in ('H1', 'H0', 'cap')})\n                        writer.writerow(row)\n                    f.flush()\n                    print(json.dumps({'group_complete': name, 'true_elo': elo, 'seed': seed}), flush=True)\n        print(json.dumps({'full_grid_rows': 630, 'path': str(out), 'advice_only': True}))\n    return 0"
+    },
+    {
+      "reason": "CLI entrypoint only",
+      "node": "if __name__ == '__main__':\n    raise SystemExit(main())"
+    }
+  ],
+  "scope": "Remove only main(), __name__ entrypoint and explicit S06 dependency selector/hash metadata; compare every remaining AST node exactly.",
+  "validation_reuse": "The six 20000-run receipts remain bound to old_source_sha256; this proof binds their identical numerical model to new_source_sha256 without rerunning MC."
+}

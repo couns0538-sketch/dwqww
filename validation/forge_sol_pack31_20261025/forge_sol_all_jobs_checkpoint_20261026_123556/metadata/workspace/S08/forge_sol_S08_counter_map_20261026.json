@@ -1,0 +1,666 @@
+{
+  "scope": "Worker::search search-only; setup excluded",
+  "counter_count": 55,
+  "native_execution": false,
+  "events": [
+    {
+      "counter": "Nodes",
+      "output_name": "nodes",
+      "denominator_counter": "Nodes",
+      "hooks": [
+        {
+          "file": "src/search.cpp",
+          "line": 829,
+          "statement": "prof::count(prof::Counter::Nodes);"
+        },
+        {
+          "file": "src/search.cpp",
+          "line": 961,
+          "statement": "prof::count(prof::Counter::Nodes);"
+        }
+      ]
+    },
+    {
+      "counter": "MainNodes",
+      "output_name": "main_nodes",
+      "denominator_counter": "Nodes",
+      "hooks": [
+        {
+          "file": "src/search.cpp",
+          "line": 962,
+          "statement": "prof::count(prof::Counter::MainNodes);"
+        }
+      ]
+    },
+    {
+      "counter": "QsNodes",
+      "output_name": "qs_nodes",
+      "denominator_counter": "Nodes",
+      "hooks": [
+        {
+          "file": "src/search.cpp",
+          "line": 830,
+          "statement": "prof::count(prof::Counter::QsNodes);"
+        }
+      ]
+    },
+    {
+      "counter": "EvalRequests",
+      "output_name": "eval_requests",
+      "denominator_counter": "Nodes",
+      "hooks": [
+        {
+          "file": "src/search.cpp",
+          "line": 648,
+          "statement": "prof::count(prof::Counter::EvalRequests);"
+        }
+      ]
+    },
+    {
+      "counter": "HceComputations",
+      "output_name": "hce_computations",
+      "denominator_counter": "EvalRequests",
+      "hooks": [
+        {
+          "file": "src/eval.cpp",
+          "line": 381,
+          "statement": "prof::count(prof::Counter::HceComputations);"
+        }
+      ]
+    },
+    {
+      "counter": "NnueForward",
+      "output_name": "nnue_forward",
+      "denominator_counter": "EvalRequests",
+      "hooks": [
+        {
+          "file": "src/nnue.cpp",
+          "line": 168,
+          "statement": "prof::count(prof::Counter::NnueForward);"
+        }
+      ]
+    },
+    {
+      "counter": "NnueRefresh",
+      "output_name": "nnue_refresh",
+      "denominator_counter": "NnueForward",
+      "hooks": [
+        {
+          "file": "src/nnue.cpp",
+          "line": 89,
+          "statement": "prof::count(prof::Counter::NnueRefresh);"
+        }
+      ]
+    },
+    {
+      "counter": "TtProbes",
+      "output_name": "tt_probes",
+      "denominator_counter": "Nodes",
+      "hooks": [
+        {
+          "file": "src/search.cpp",
+          "line": 255,
+          "statement": "prof::count(prof::Counter::TtProbes);"
+        }
+      ]
+    },
+    {
+      "counter": "TtHits",
+      "output_name": "tt_hits",
+      "denominator_counter": "TtProbes",
+      "hooks": [
+        {
+          "file": "src/search.cpp",
+          "line": 256,
+          "statement": "prof::count(hit ? prof::Counter::TtHits : prof::Counter::TtMisses);"
+        }
+      ]
+    },
+    {
+      "counter": "TtMisses",
+      "output_name": "tt_misses",
+      "denominator_counter": "TtProbes",
+      "hooks": [
+        {
+          "file": "src/search.cpp",
+          "line": 256,
+          "statement": "prof::count(hit ? prof::Counter::TtHits : prof::Counter::TtMisses);"
+        }
+      ]
+    },
+    {
+      "counter": "PickerVisits",
+      "output_name": "picker_visits",
+      "denominator_counter": "Nodes",
+      "hooks": []
+    },
+    {
+      "counter": "PickerMainTT",
+      "output_name": "picker_main_tt",
+      "denominator_counter": "PickerVisits",
+      "hooks": [
+        {
+          "file": "src/search.cpp",
+          "event": "executed picker case via contiguous Stage-to-Counter offset",
+          "stage": "MainTT"
+        }
+      ]
+    },
+    {
+      "counter": "PickerGenerateCaptures",
+      "output_name": "picker_generate_captures",
+      "denominator_counter": "PickerVisits",
+      "hooks": [
+        {
+          "file": "src/search.cpp",
+          "event": "executed picker case via contiguous Stage-to-Counter offset",
+          "stage": "GenerateCaptures"
+        }
+      ]
+    },
+    {
+      "counter": "PickerGoodCaptures",
+      "output_name": "picker_good_captures",
+      "denominator_counter": "PickerVisits",
+      "hooks": [
+        {
+          "file": "src/search.cpp",
+          "event": "executed picker case via contiguous Stage-to-Counter offset",
+          "stage": "GoodCaptures"
+        }
+      ]
+    },
+    {
+      "counter": "PickerKiller1",
+      "output_name": "picker_killer1",
+      "denominator_counter": "PickerVisits",
+      "hooks": [
+        {
+          "file": "src/search.cpp",
+          "event": "executed picker case via contiguous Stage-to-Counter offset",
+          "stage": "Killer1"
+        }
+      ]
+    },
+    {
+      "counter": "PickerKiller2",
+      "output_name": "picker_killer2",
+      "denominator_counter": "PickerVisits",
+      "hooks": [
+        {
+          "file": "src/search.cpp",
+          "event": "executed picker case via contiguous Stage-to-Counter offset",
+          "stage": "Killer2"
+        }
+      ]
+    },
+    {
+      "counter": "PickerCounterMove",
+      "output_name": "picker_counter_move",
+      "denominator_counter": "PickerVisits",
+      "hooks": [
+        {
+          "file": "src/search.cpp",
+          "event": "executed picker case via contiguous Stage-to-Counter offset",
+          "stage": "CounterMove"
+        }
+      ]
+    },
+    {
+      "counter": "PickerGenerateQuiets",
+      "output_name": "picker_generate_quiets",
+      "denominator_counter": "PickerVisits",
+      "hooks": [
+        {
+          "file": "src/search.cpp",
+          "event": "executed picker case via contiguous Stage-to-Counter offset",
+          "stage": "GenerateQuiets"
+        }
+      ]
+    },
+    {
+      "counter": "PickerQuietMoves",
+      "output_name": "picker_quiet_moves",
+      "denominator_counter": "PickerVisits",
+      "hooks": [
+        {
+          "file": "src/search.cpp",
+          "event": "executed picker case via contiguous Stage-to-Counter offset",
+          "stage": "QuietMoves"
+        }
+      ]
+    },
+    {
+      "counter": "PickerBadCaptures",
+      "output_name": "picker_bad_captures",
+      "denominator_counter": "PickerVisits",
+      "hooks": [
+        {
+          "file": "src/search.cpp",
+          "event": "executed picker case via contiguous Stage-to-Counter offset",
+          "stage": "BadCaptures"
+        }
+      ]
+    },
+    {
+      "counter": "PickerQsTT",
+      "output_name": "picker_qs_tt",
+      "denominator_counter": "PickerVisits",
+      "hooks": [
+        {
+          "file": "src/search.cpp",
+          "event": "executed picker case via contiguous Stage-to-Counter offset",
+          "stage": "QsTT"
+        }
+      ]
+    },
+    {
+      "counter": "PickerQsGenerate",
+      "output_name": "picker_qs_generate",
+      "denominator_counter": "PickerVisits",
+      "hooks": [
+        {
+          "file": "src/search.cpp",
+          "event": "executed picker case via contiguous Stage-to-Counter offset",
+          "stage": "QsGenerate"
+        }
+      ]
+    },
+    {
+      "counter": "PickerQsCaptures",
+      "output_name": "picker_qs_captures",
+      "denominator_counter": "PickerVisits",
+      "hooks": [
+        {
+          "file": "src/search.cpp",
+          "event": "executed picker case via contiguous Stage-to-Counter offset",
+          "stage": "QsCaptures"
+        }
+      ]
+    },
+    {
+      "counter": "PickerEvasionTT",
+      "output_name": "picker_evasion_tt",
+      "denominator_counter": "PickerVisits",
+      "hooks": [
+        {
+          "file": "src/search.cpp",
+          "event": "executed picker case via contiguous Stage-to-Counter offset",
+          "stage": "EvasionTT"
+        }
+      ]
+    },
+    {
+      "counter": "PickerEvasionGenerate",
+      "output_name": "picker_evasion_generate",
+      "denominator_counter": "PickerVisits",
+      "hooks": [
+        {
+          "file": "src/search.cpp",
+          "event": "executed picker case via contiguous Stage-to-Counter offset",
+          "stage": "EvasionGenerate"
+        }
+      ]
+    },
+    {
+      "counter": "PickerEvasions",
+      "output_name": "picker_evasions",
+      "denominator_counter": "PickerVisits",
+      "hooks": [
+        {
+          "file": "src/search.cpp",
+          "event": "executed picker case via contiguous Stage-to-Counter offset",
+          "stage": "Evasions"
+        }
+      ]
+    },
+    {
+      "counter": "RazorChecks",
+      "output_name": "razor_checks",
+      "denominator_counter": "MainNodes",
+      "hooks": [
+        {
+          "file": "src/search.cpp",
+          "line": 1031,
+          "statement": "prof::count(prof::Counter::RazorChecks);"
+        }
+      ]
+    },
+    {
+      "counter": "RazorSearches",
+      "output_name": "razor_searches",
+      "denominator_counter": "RazorChecks",
+      "hooks": [
+        {
+          "file": "src/search.cpp",
+          "line": 1036,
+          "statement": "prof::count(prof::Counter::RazorSearches);"
+        }
+      ]
+    },
+    {
+      "counter": "RazorCutoffs",
+      "output_name": "razor_cutoffs",
+      "denominator_counter": "RazorSearches",
+      "hooks": [
+        {
+          "file": "src/search.cpp",
+          "line": 1042,
+          "statement": "prof::count(prof::Counter::RazorCutoffs);"
+        }
+      ]
+    },
+    {
+      "counter": "ProbCutChecks",
+      "output_name": "probcut_checks",
+      "denominator_counter": "MainNodes",
+      "hooks": [
+        {
+          "file": "src/search.cpp",
+          "line": 1093,
+          "statement": "prof::count(prof::Counter::ProbCutChecks);"
+        }
+      ]
+    },
+    {
+      "counter": "ProbCutSearches",
+      "output_name": "probcut_searches",
+      "denominator_counter": "ProbCutChecks",
+      "hooks": [
+        {
+          "file": "src/search.cpp",
+          "line": 1110,
+          "statement": "prof::count(prof::Counter::ProbCutSearches);"
+        }
+      ]
+    },
+    {
+      "counter": "ProbCutCutoffs",
+      "output_name": "probcut_cutoffs",
+      "denominator_counter": "ProbCutSearches",
+      "hooks": [
+        {
+          "file": "src/search.cpp",
+          "line": 1120,
+          "statement": "prof::count(prof::Counter::ProbCutCutoffs);"
+        }
+      ]
+    },
+    {
+      "counter": "IirChecks",
+      "output_name": "iir_checks",
+      "denominator_counter": "MainNodes",
+      "hooks": [
+        {
+          "file": "src/search.cpp",
+          "line": 1131,
+          "statement": "prof::count(prof::Counter::IirChecks);"
+        }
+      ]
+    },
+    {
+      "counter": "IirReductions",
+      "output_name": "iir_reductions",
+      "denominator_counter": "IirChecks",
+      "hooks": [
+        {
+          "file": "src/search.cpp",
+          "line": 1136,
+          "statement": "prof::count(prof::Counter::IirReductions);"
+        }
+      ]
+    },
+    {
+      "counter": "LmpChecks",
+      "output_name": "lmp_checks",
+      "denominator_counter": "MainNodes",
+      "hooks": [
+        {
+          "file": "src/search.cpp",
+          "line": 1173,
+          "statement": "prof::count(prof::Counter::LmpChecks);"
+        }
+      ]
+    },
+    {
+      "counter": "LmpActivations",
+      "output_name": "lmp_activations",
+      "denominator_counter": "LmpChecks",
+      "hooks": [
+        {
+          "file": "src/search.cpp",
+          "line": 1177,
+          "statement": "prof::count(prof::Counter::LmpActivations);"
+        }
+      ]
+    },
+    {
+      "counter": "FutilityChecks",
+      "output_name": "futility_checks",
+      "denominator_counter": "MainNodes",
+      "hooks": [
+        {
+          "file": "src/search.cpp",
+          "line": 1186,
+          "statement": "prof::count(prof::Counter::FutilityChecks);"
+        }
+      ]
+    },
+    {
+      "counter": "FutilityPrunes",
+      "output_name": "futility_prunes",
+      "denominator_counter": "FutilityChecks",
+      "hooks": [
+        {
+          "file": "src/search.cpp",
+          "line": 1191,
+          "statement": "prof::count(prof::Counter::FutilityPrunes);"
+        }
+      ]
+    },
+    {
+      "counter": "CaptureFutilityChecks",
+      "output_name": "capture_futility_checks",
+      "denominator_counter": "MainNodes",
+      "hooks": [
+        {
+          "file": "src/search.cpp",
+          "line": 1222,
+          "statement": "prof::count(prof::Counter::CaptureFutilityChecks);"
+        }
+      ]
+    },
+    {
+      "counter": "CaptureFutilityPrunes",
+      "output_name": "capture_futility_prunes",
+      "denominator_counter": "CaptureFutilityChecks",
+      "hooks": [
+        {
+          "file": "src/search.cpp",
+          "line": 1229,
+          "statement": "prof::count(prof::Counter::CaptureFutilityPrunes);"
+        }
+      ]
+    },
+    {
+      "counter": "HistoryChecks",
+      "output_name": "history_checks",
+      "denominator_counter": "MainNodes",
+      "hooks": [
+        {
+          "file": "src/search.cpp",
+          "line": 1197,
+          "statement": "prof::count(prof::Counter::HistoryChecks);"
+        }
+      ]
+    },
+    {
+      "counter": "HistoryPrunes",
+      "output_name": "history_prunes",
+      "denominator_counter": "HistoryChecks",
+      "hooks": [
+        {
+          "file": "src/search.cpp",
+          "line": 1201,
+          "statement": "prof::count(prof::Counter::HistoryPrunes);"
+        }
+      ]
+    },
+    {
+      "counter": "QuietSeeChecks",
+      "output_name": "quiet_see_checks",
+      "denominator_counter": "MainNodes",
+      "hooks": [
+        {
+          "file": "src/search.cpp",
+          "line": 1208,
+          "statement": "prof::count(prof::Counter::QuietSeeChecks);"
+        }
+      ]
+    },
+    {
+      "counter": "QuietSeePrunes",
+      "output_name": "quiet_see_prunes",
+      "denominator_counter": "QuietSeeChecks",
+      "hooks": [
+        {
+          "file": "src/search.cpp",
+          "line": 1212,
+          "statement": "prof::count(prof::Counter::QuietSeePrunes);"
+        }
+      ]
+    },
+    {
+      "counter": "NoisySeeChecks",
+      "output_name": "noisy_see_checks",
+      "denominator_counter": "MainNodes",
+      "hooks": [
+        {
+          "file": "src/search.cpp",
+          "line": 1234,
+          "statement": "prof::count(prof::Counter::NoisySeeChecks);"
+        }
+      ]
+    },
+    {
+      "counter": "NoisySeePrunes",
+      "output_name": "noisy_see_prunes",
+      "denominator_counter": "NoisySeeChecks",
+      "hooks": [
+        {
+          "file": "src/search.cpp",
+          "line": 1240,
+          "statement": "prof::count(prof::Counter::NoisySeePrunes);"
+        }
+      ]
+    },
+    {
+      "counter": "QsFutilityChecks",
+      "output_name": "qs_futility_checks",
+      "denominator_counter": "QsNodes",
+      "hooks": [
+        {
+          "file": "src/search.cpp",
+          "line": 890,
+          "statement": "prof::count(prof::Counter::QsFutilityChecks);"
+        }
+      ]
+    },
+    {
+      "counter": "QsFutilityPrunes",
+      "output_name": "qs_futility_prunes",
+      "denominator_counter": "QsFutilityChecks",
+      "hooks": [
+        {
+          "file": "src/search.cpp",
+          "line": 895,
+          "statement": "prof::count(prof::Counter::QsFutilityPrunes);"
+        }
+      ]
+    },
+    {
+      "counter": "QsSeeChecks",
+      "output_name": "qs_see_checks",
+      "denominator_counter": "QsNodes",
+      "hooks": [
+        {
+          "file": "src/search.cpp",
+          "line": 901,
+          "statement": "prof::count(prof::Counter::QsSeeChecks);"
+        }
+      ]
+    },
+    {
+      "counter": "QsSeePrunes",
+      "output_name": "qs_see_prunes",
+      "denominator_counter": "QsSeeChecks",
+      "hooks": [
+        {
+          "file": "src/search.cpp",
+          "line": 905,
+          "statement": "prof::count(prof::Counter::QsSeePrunes);"
+        }
+      ]
+    },
+    {
+      "counter": "SingularChecks",
+      "output_name": "singular_checks",
+      "denominator_counter": "MainNodes",
+      "hooks": [
+        {
+          "file": "src/search.cpp",
+          "line": 1253,
+          "statement": "prof::count(prof::Counter::SingularChecks);"
+        }
+      ]
+    },
+    {
+      "counter": "SingularSearches",
+      "output_name": "singular_searches",
+      "denominator_counter": "SingularChecks",
+      "hooks": [
+        {
+          "file": "src/search.cpp",
+          "line": 1259,
+          "statement": "prof::count(prof::Counter::SingularSearches);"
+        }
+      ]
+    },
+    {
+      "counter": "SingularExtensions",
+      "output_name": "singular_extensions",
+      "denominator_counter": "SingularSearches",
+      "hooks": [
+        {
+          "file": "src/search.cpp",
+          "line": 1272,
+          "statement": "prof::count(prof::Counter::SingularExtensions);"
+        }
+      ]
+    },
+    {
+      "counter": "SingularDoubleExtensions",
+      "output_name": "singular_double_extensions",
+      "denominator_counter": "SingularSearches",
+      "hooks": [
+        {
+          "file": "src/search.cpp",
+          "line": 1278,
+          "statement": "prof::count(prof::Counter::SingularDoubleExtensions);"
+        }
+      ]
+    },
+    {
+      "counter": "SingularCutoffs",
+      "output_name": "singular_cutoffs",
+      "denominator_counter": "SingularSearches",
+      "hooks": [
+        {
+          "file": "src/search.cpp",
+          "line": 1284,
+          "statement": "prof::count(prof::Counter::SingularCutoffs);"
+        }
+      ]
+    }
+  ]
+}

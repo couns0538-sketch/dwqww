@@ -1,0 +1,345 @@
+{
+  "schema": "forge-sol-S33-independent-math-review-v1",
+  "created_utc": "2026-10-26T10:26:52.900460+00:00",
+  "status": "PASS_BOUNDED_MATH_SOURCE_AND_SIX_ACTUAL_RECEIPT_REVIEW",
+  "blocking_findings": [],
+  "scope": "Independent read-only review of S33 math/source and S48 conditional-bias algebra against full handoff S33 lines375-383 and S48 lines255-259. No product/test edits, Git/network/engine/compiler execution, or large MC. Inventory files unchanged.",
+  "bound_files": {
+    "planner": {
+      "path": "/workspace/forge-pack24-20261026/S33/forge_sol_S33_sprt_planner_20261026.py",
+      "sha256": "008819d5387cdd5ac5d512bb2ebafd09f141aafc9b6904cba2f73a8373634d03"
+    },
+    "planner_tests": {
+      "path": "/workspace/forge-pack24-20261026/S33/tests/test_forge_sol_S33_sprt_planner_20261026.py",
+      "sha256": "6c64f4c6ae809ec9df99ea439353f73ff3f7e8adeaa094d904f6f24d44ce9d2c"
+    },
+    "original_frozen_planner": {
+      "path": "/workspace/forge-pack24-20261026/S33/forge_sol_S33_sprt_planner_prefreeze_review_v1_20261026.py",
+      "sha256": "1ab3bcb41331679dcb33f40031cdf65f60e4cfce1f1e60586dd75fc15b38c4e1"
+    },
+    "S48_guard_bias": {
+      "path": "/workspace/forge-pack24-20261026/S33/forge_sol_S48_gate_guard_20261026.py",
+      "sha256": "9d1fbeaa4a492facbeab504dd9bd90935dead75310e18c023fb03ae1b0d6c916"
+    },
+    "S48_tests": {
+      "path": "/workspace/forge-pack24-20261026/S33/test_forge_sol_S48_gate_guard_20261026.py",
+      "sha256": "1d54a12784c71a76847fbe3f6e25523c83c41fc61f18d22d18c03ee6959dfadb"
+    },
+    "S06_dependency": {
+      "path": "/workspace/forge-pack24-20261026/S06/forge_sol_S06_statistics_20261026.py",
+      "sha256": "4598c5839519af2ed4680b074669d097b9616dfe7c03c1afb7622b276efecb8a"
+    }
+  },
+  "versions": {
+    "numpy": "2.3.5",
+    "scipy": "1.17.0"
+  },
+  "model_conclusions": [
+    {
+      "area": "Pair scale and units",
+      "verdict": "PASS",
+      "reason": "One completed pair contributes X in[0,.25,.5,.75,1], with N=pairs and games=2N. True Elo uses logistic score 1/(1+10^(-E/400)); nElo bounds use s(e)=.5+(e/C)*sqrt(2v), C=800/ln10. No logistic/nElo substitution found."
+    },
+    {
+      "area": "Exponential tilt and draw feasibility",
+      "verdict": "PASS",
+      "reason": "p_i(theta) proportional p_i*exp(theta*x_i); monotone tilted mean is solved for logistic target, zeros remain zero and unreachable support is rejected. Draw model is convolution of[L,D,W] with W=mu-D/2 and L=1-mu-D/2; infeasible probabilities rejected. Updated documentation correctly avoids identifying game WDL/Pearson dependence from pentanomial counts."
+    },
+    {
+      "area": "Online Gaussian LLR algebra",
+      "verdict": "PASS",
+      "reason": "The code equals N*(s1-s0)*(2*mean-s0-s1)/(2*v). nElo simplification is sqrt(2)*Delta/C*N*(mean-.5)/sqrt(v) - Delta*(e0+e1)/C^2*N. Empirical population variance is recomputed at every pair. Zero-variance prefixes are unavailable/NaN and cannot cross, rather than fabricated decisions."
+    },
+    {
+      "area": "Brownian finite-cap OC/ASN",
+      "verdict": "PASS",
+      "reason": "The lower-bound image CDF uses x=-lower and width=upper-lower; upper flux correctly reflects x to width-x and drift to -drift. cap=1-H0-H1. Capped mean is twice the integral of survival to cap_pairs; median is cap when survival(cap)>=.5, otherwise the survival=.5 root. Deterministic diffusion limits and a crossing exactly at cap are correct."
+    },
+    {
+      "area": "Delta-method diffusion",
+      "verdict": "PASS",
+      "reason": "For nElo, h=sqrt(2)*Delta/(C*sqrt(v)), drift=h*(mu-.5)-Delta*(e0+e1)/C^2, IF=h*((X-mu)-(mu-.5)*((X-mu)^2-v)/(2v)); diffusion=E(IF^2). Logistic bounds correctly include the variance-estimation derivative. This is asymptotic Gaussian/Brownian advice, not exact Fastchess GSPRT."
+    },
+    {
+      "area": "Seed and grouping",
+      "verdict": "PASS_WITH_EXPLICIT_LAYOUT",
+      "reason": "Same seed with the same path layout is deterministic; block_size change preserves current row-major draw sequence. Adding a longer-cap protocol changes max_pairs and therefore existing-cell path mapping. Successor now records max_pairs, block_size and protocol group, so an individual grid row must be replayed with its declared group. Grid groups use distinct deterministic profile/Elo seeds; sharing modeled paths across alternatives is not pooling measured gates."
+    },
+    {
+      "area": "S48 conditional bias",
+      "verdict": "PASS_SOURCE_ALGEBRA",
+      "reason": "Bias is mean terminal logistic Elo conditional on explicitly selected H1/H0/cap minus assumed true Elo. Monte-Carlo SE uses selected sample variance/ddof1 over selected count. Observed Elo minus modeled bias is labelled a plug-in sensitivity; its interval is simulation error, not a corrected observational confidence interval. Nonfinite selected values block the mean and are not discarded. Missing paired profiles and different concurrency cannot be borrowed."
+    },
+    {
+      "area": "Claims and missing inputs",
+      "verdict": "PASS_SCOPE",
+      "reason": "Planner labels advice_only/exact_fastchess=false and approximate Gaussian/delta Brownian models. G104/G120 absent actual paired profiles and real conc8 statistics must remain UNVERIFIED. G100r/G119 capped observations require selection=cap for their sensitivity rows. No playing-strength, native-exact LLR or gain conclusion follows."
+    }
+  ],
+  "probe_evidence": {
+    "direct_Gaussian_LLR_checks": {
+      "count": 192,
+      "inputs": "64 deterministic five-bin count patterns x3 bound/unit settings; independent raw-moment Gaussian formula vs online_llr",
+      "max_absolute_error": 1.0658141036401503e-14
+    },
+    "Brownian_independent_eigen_checks": {
+      "count": 7,
+      "method": "Absorbing heat-kernel eigen expansion with1500 modes; independently computed boundary tail fluxes and capped mean from uncapped boundary-value ODE minus survival tail integral. This differs from the product image-CDF integration.",
+      "inputs": [
+        [
+          0,
+          1,
+          -1,
+          1,
+          0.01
+        ],
+        [
+          0,
+          1,
+          -0.7,
+          1.3,
+          1
+        ],
+        [
+          0.0023,
+          0.001657,
+          -2.9444,
+          2.9444,
+          750
+        ],
+        [
+          -0.0023,
+          0.001657,
+          -2.9444,
+          2.9444,
+          750
+        ],
+        [
+          0.001,
+          0.001,
+          -1.9,
+          3.1,
+          1000
+        ],
+        [
+          -0.001,
+          0.001,
+          -1.9,
+          3.1,
+          1000
+        ],
+        [
+          0.005,
+          0.0015,
+          -2.9444,
+          2.9444,
+          2000
+        ]
+      ],
+      "max_probability_error": 4.996003610813204e-16,
+      "max_mean_games_error": 3.2741809263825417e-11
+    },
+    "delta_finite_difference_checks": {
+      "count": 8,
+      "inputs": "G95/-5,G119/9.5,draw0.4/30,draw0.6/-2.5; nElo[0,10] and logistic[-3,1]",
+      "method": "Centered finite differences step1e-6 of drift as function of first and second raw moments; independently formed influence-function variance.",
+      "max_drift_error": 6.505213034913027e-17,
+      "max_diffusion_error": 2.5847509896315124e-12
+    },
+    "full_grid_analytic_only": {
+      "cells": 630,
+      "status": "PASS",
+      "invalid_results": 0,
+      "max_probability_sum_error": 1.1102230246251565e-16,
+      "minimum_probability": 1.7873718193282874e-41,
+      "maximum_probability": 0.9999999999999952,
+      "all_means_and_medians_finite_positive_within_cap": true,
+      "MC_runs": 0
+    },
+    "independent_asymmetric_median": {
+      "input": [
+        0,
+        1,
+        -0.7,
+        1.3,
+        1
+      ],
+      "absolute_error": 4.440892098500626e-16
+    },
+    "deterministic_zero_diffusion_limits": {
+      "checks": 5,
+      "status": "PASS",
+      "covered": "positive/negative/zero drift, crossing at cap, no crossing before cap"
+    },
+    "tiny_MC_API_only": {
+      "independent_random_paths": 96,
+      "protocol_observations": 128,
+      "not_acceptance_evidence": true,
+      "same_seed_block_size_invariant": true,
+      "same_seed_longer_protocol_group_invariant": false,
+      "resolution": "sampling_layout metadata added; replay complete group"
+    },
+    "CLI_existing_directory_regression": {
+      "MC_runs": 0,
+      "exit_code": 2,
+      "existing_empty_directory_preserved": true,
+      "stderr_contains_cannot_create_new_output_directory": true,
+      "resolved_finding": "Earlier main used exist_ok=True and open(w), violating new-output rule; current successor requires a new directory and exclusive output creation."
+    }
+  },
+  "freeze_and_inheritance": {
+    "original_hash": "1ab3bcb41331679dcb33f40031cdf65f60e4cfce1f1e60586dd75fc15b38c4e1",
+    "math_probes_hash": "b04af9f74b0ffc7cb9b9e58a04ac4cf02efff43e4d801991dfc11324a2e2f194",
+    "final_review_hash": "008819d5387cdd5ac5d512bb2ebafd09f141aafc9b6904cba2f73a8373634d03",
+    "unchanged_core_function_AST": [
+      "logistic_score",
+      "tilted_profile",
+      "draw_profile",
+      "_moments",
+      "_nelo_statistic",
+      "_moment_llr",
+      "_lower_cdf",
+      "brownian_finite_cap"
+    ],
+    "simulate_protocols_and_analytic_cell_AST_equivalent_after_removing_new_validation_calls_and_output_metadata": true,
+    "all7declared_protocol_Wald_thresholds_bit_identical_to_original": true,
+    "lower_threshold_hex": "-0x1.78e360604b32cp+1",
+    "upper_threshold_hex": "0x1.78e360604b32cp+1",
+    "scope": "All630 declared model/protocol inputs passed added preflight. New S06 hash/adjacent-path guard, cell identity checks, CLI collision protections and output metadata do not alter the reviewed statistical computation for these inputs. Original MC evidence must still retain its actual executed hash."
+  },
+  "remaining_acceptance_not_claimed_by_this_review": [
+    "Six actual20k validation receipts independently checked PASS from all raw terminal arrays and fixed-cell identities; MC was not rerun. Fullgrid MC, recommendation/report and immutable delivery checks remain root obligations.",
+    "Full630-cell>=20000MC table, recommendation/report files, S48 sensitivity rows and immutable delivery verification remain root/core obligations.",
+    "Numerical agreement of Brownian solver with its own independent diffusion solution does not prove diffusion approximation matches finite-sample online LLR to3pp; actual predefined MC comparison decides that.",
+    "No exact Fastchess arbitrary-profile likelihood, native match, real gate/confirm/lock, speed or Elo gain established."
+  ],
+  "product_and_test_edits_by_reviewer": 0,
+  "six_actual_validation_receipts_review": {
+    "status": "PASS",
+    "validation_summary": {
+      "path": "/workspace/forge-pack24-20261026/S33/forge_sol_S33_six_cell_validation_20261026.json",
+      "sha256": "a1fee477dd067ba06cde45df52b782e8fbdc75a29929f843f494a23c677931a3"
+    },
+    "execution": {
+      "path": "/workspace/forge-pack24-20261026/S33/forge_sol_S33_validation_execution_20261026.json",
+      "sha256": "46b06451bf82be8e45f42284f1b1308187f4ba262311ee0c1fb5e60b0da423b3",
+      "return_code": 0,
+      "executed_source_sha256": "b04af9f74b0ffc7cb9b9e58a04ac4cf02efff43e4d801991dfc11324a2e2f194",
+      "elapsed_seconds": 16.616619348526
+    },
+    "cells": [
+      {
+        "id": "V1",
+        "counts": {
+          "H1": 3646,
+          "H0": 0,
+          "cap": 16354
+        },
+        "runs": 20000,
+        "seed": 202610263300,
+        "max_absolute_probability_difference": 0.0055371972748611276,
+        "raw_path": "/workspace/forge-pack24-20261026/S33/forge_sol_S33_validation_V1_raw_20261026.json",
+        "raw_sha256": "bf1ea6d4e4ba974082251be581593088d58768bfe5a76c300a51343a0d663b12",
+        "terminal_path": "/workspace/forge-pack24-20261026/S33/forge_sol_S33_validation_V1_terminal_20261026.npz",
+        "terminal_sha256": "866f6701e094e98f409bdc0084602d2377f83674557d308124f25e58c623ba7c",
+        "terminal_statistics_recomputed": "PASS",
+        "analytic_recomputed_final_source": "PASS"
+      },
+      {
+        "id": "V2",
+        "counts": {
+          "H1": 137,
+          "H0": 2787,
+          "cap": 17076
+        },
+        "runs": 20000,
+        "seed": 202610263301,
+        "max_absolute_probability_difference": 0.00783050634634741,
+        "raw_path": "/workspace/forge-pack24-20261026/S33/forge_sol_S33_validation_V2_raw_20261026.json",
+        "raw_sha256": "fbbc50d0d882955fcc87b09d4cfbd6f6f5d98cf6606f3fdf8bae2a8bef3d858b",
+        "terminal_path": "/workspace/forge-pack24-20261026/S33/forge_sol_S33_validation_V2_terminal_20261026.npz",
+        "terminal_sha256": "a54a9de5e0a543661b747233038e84bf06daaf4792392de693b30e697c9914c1",
+        "terminal_statistics_recomputed": "PASS",
+        "analytic_recomputed_final_source": "PASS"
+      },
+      {
+        "id": "V3",
+        "counts": {
+          "H1": 16189,
+          "H0": 2,
+          "cap": 3809
+        },
+        "runs": 20000,
+        "seed": 202610263302,
+        "max_absolute_probability_difference": 0.0046929717663490855,
+        "raw_path": "/workspace/forge-pack24-20261026/S33/forge_sol_S33_validation_V3_raw_20261026.json",
+        "raw_sha256": "e48c9e2e61221881eebc0e8b707cdd895fc961c4b3e01cf27b08745583b464af",
+        "terminal_path": "/workspace/forge-pack24-20261026/S33/forge_sol_S33_validation_V3_terminal_20261026.npz",
+        "terminal_sha256": "72d01f60e47d666f974281e4f3c3fc5b92a00314d5e9a5f54c9dd663ea3f79c1",
+        "terminal_statistics_recomputed": "PASS",
+        "analytic_recomputed_final_source": "PASS"
+      },
+      {
+        "id": "V4",
+        "counts": {
+          "H1": 214,
+          "H0": 3,
+          "cap": 19783
+        },
+        "runs": 20000,
+        "seed": 202610263303,
+        "max_absolute_probability_difference": 0.0007412853083316184,
+        "raw_path": "/workspace/forge-pack24-20261026/S33/forge_sol_S33_validation_V4_raw_20261026.json",
+        "raw_sha256": "b75d25b6cfd40f2e6550dda73ab68bca371137baaf2dedef67069a9e61a34c00",
+        "terminal_path": "/workspace/forge-pack24-20261026/S33/forge_sol_S33_validation_V4_terminal_20261026.npz",
+        "terminal_sha256": "502188cd7d37356141b527340707313d9e5ea978972ae021b4b93472a8414175",
+        "terminal_statistics_recomputed": "PASS",
+        "analytic_recomputed_final_source": "PASS"
+      },
+      {
+        "id": "V5",
+        "counts": {
+          "H1": 0,
+          "H0": 0,
+          "cap": 20000
+        },
+        "runs": 20000,
+        "seed": 202610263304,
+        "max_absolute_probability_difference": 3.5571588452576464e-07,
+        "raw_path": "/workspace/forge-pack24-20261026/S33/forge_sol_S33_validation_V5_raw_20261026.json",
+        "raw_sha256": "bc7a786eeccac74787f34b88edb962f1e037f0dc99aa9a5d63e8d006c4c7b4df",
+        "terminal_path": "/workspace/forge-pack24-20261026/S33/forge_sol_S33_validation_V5_terminal_20261026.npz",
+        "terminal_sha256": "1b21c06f20f59d4d920de2f41959cc43111c7e06fe1110bab6591db58ec64d39",
+        "terminal_statistics_recomputed": "PASS",
+        "analytic_recomputed_final_source": "PASS"
+      },
+      {
+        "id": "V6",
+        "counts": {
+          "H1": 0,
+          "H0": 0,
+          "cap": 20000
+        },
+        "runs": 20000,
+        "seed": 202610263305,
+        "max_absolute_probability_difference": 3.408191506792946e-10,
+        "raw_path": "/workspace/forge-pack24-20261026/S33/forge_sol_S33_validation_V6_raw_20261026.json",
+        "raw_sha256": "12495de311130e792aeab82ff06328ce21063d3e883ad73272f244eacf8ca2e1",
+        "terminal_path": "/workspace/forge-pack24-20261026/S33/forge_sol_S33_validation_V6_terminal_20261026.npz",
+        "terminal_sha256": "30a752f99d05a1ec6cd7a3cf266b0998efe9e096653bd0110626875972f8c9be",
+        "terminal_statistics_recomputed": "PASS",
+        "analytic_recomputed_final_source": "PASS"
+      }
+    ],
+    "max_probability_discrepancy": 0.00783050634634741,
+    "prespecified_cells_seed_order_retained": true,
+    "no_reroll_claim": "Original single-run command/execution/raw receipts inspected; no MC rerun by reviewer. Raw terminal data and counts agree.",
+    "independent_24_function_AST_equality": true,
+    "AST_proof": {
+      "path": "/workspace/forge-pack24-20261026/S33/forge_sol_S33_numerical_ast_equivalence_20261026.json",
+      "sha256": "2326f41e9b6c0e0fbd5604979afa474770ce63f701bae499627534aa6bc69edf",
+      "canonical_retained_AST_sha256": "2c81f5abf2593a9691a6087c789495746848f8a3729bde18808d10d084741614"
+    },
+    "MC_runs_by_reviewer": 0
+  }
+}

@@ -1,0 +1,526 @@
+{
+  "audit_kind": "READ_ONLY_WAC_RECIPE_COMPARABILITY_SOURCE_AUDIT",
+  "utc": "2026-10-26T11:20:39.615550+00:00",
+  "status": "SOURCE_FINDINGS_CONFIRMED_GAP_CAUSE_UNVERIFIED",
+  "cpu_used": 2,
+  "independent_reader_cpu": 3,
+  "actions": "Source/metadata reads, hashes and rescoring existing raw/saved move artifacts only. No engines, compilers, tests, timed runs, Git, network, rule changes or native repeats.",
+  "preserved_fresh_observation": {
+    "result_path": "/workspace/forge-pack24-20261026/S07/forge_sol_S07_native_wac300_20261026/result.json",
+    "result_sha256": "9c03f5ad65dbb9e33972e27acfd92f8a22dad689ee9cda2bd0da0630a0b7d8b4",
+    "stdout_path": "/workspace/forge-pack24-20261026/S07/forge_sol_S07_native_wac300_20261026/001_wac300_fixedtime.stdout",
+    "stdout_sha256": "640f8f3e19b0aa832d32dc7ada27f561a93285f9b492d3db1daab3b8594448ab",
+    "engine_sha256": "e3df99cddb609d9f00168d8df3187fdf6943c10812dd5c4f82206895e594367b",
+    "movetime_ms": 1000,
+    "final_bestmove_solved": 271,
+    "positions": 300,
+    "illegal_moves": 0,
+    "suite_sha256": "9bfb7b42cf5bbc7f3d60ff767ca3be460e0ae4d9110ef9a71ddf0bd7071d4d46",
+    "unchanged": true
+  },
+  "main_conclusions": [
+    {
+      "finding": "CR 286/287 are scores of different-net candidates; matching historical lock controls are 283/284, not 286/287.",
+      "status": "CONFIRMED_DOCUMENTARY",
+      "sources": [
+        "cr_f019:3-5,11,14,19",
+        "cr_f021_batch:3,11"
+      ]
+    },
+    {
+      "finding": "Available packc/gcx/old-disabled/Coder tactics sources share full SHA256 5002c3c28f7f6f0b076e3b941e5615359f41e182d66ccad9785c4f4a89a0bf7c. They score final bestmove membership in bm minus am. Info PV and first_mate are recorded but do not set solved. No stop command or early-success exit exists in these supplied 48-line scripts.",
+      "status": "CONFIRMED_SOURCE",
+      "sources": [
+        "packc_tactics:30-45",
+        "gcx_tactics:30-45",
+        "coder_lock_tactics:30-45"
+      ]
+    },
+    {
+      "finding": "An available historical canonical-lock final-SAN artifact independently rescores 283/300 with zero legality, parsing or scoring disagreements. Associated run.log identifies the exact e3df executable, 9bfb suite and 5002 tactics. Raw historical UCI transcripts are unavailable; rescoring verifies saved final moves rather than original timing.",
+      "status": "CONFIRMED_SAVED_ARTIFACT_WITH_PROVENANCE_LIMIT",
+      "sources": [
+        "coder_lock_run_log:1-4",
+        "coder_lock_summary:1-9"
+      ]
+    },
+    {
+      "finding": "The named independent CR cr_netpack_check.sh e45a5204 and f019/f021 raw run directories were not located in the supplied tree or a workspace filename search. Its scoring, settings and guard implementation cannot be proven from related Coder/packc/gcx sources.",
+      "status": "UNVERIFIED_CR_IMPLEMENTATION",
+      "sources": [
+        "cr_f019:3,5",
+        "cr_f021_batch:2-3,11"
+      ]
+    },
+    {
+      "finding": "S07 final 271 remains correct and sealed. Any-PV scoring is not supported as an explanation for the supplied packc/gcx/Coder metrics. CR-specific any-PV behavior is unknown because the exact CR script is missing.",
+      "status": "CONFIRMED_WITH_UNKNOWN_CR_DIALECT",
+      "sources": [
+        "s07_tool:144-153",
+        "packc_tactics:33-45"
+      ]
+    }
+  ],
+  "recipe_comparison": [
+    {
+      "dimension": "suite and parser",
+      "s07": "Exact 9bfb suite; chess.Board.from_epd; all 300 positions valid and unique; legality checked.",
+      "available_historical": "Same 9bfb suite and Board.from_epd; unordered bm/am Move membership.",
+      "comparability": "Same positions and scoring confirmed in available related harnesses; exact CR runtime is unverified.",
+      "sources": [
+        "packc_tactics:28-36",
+        "coder_packer:54-57",
+        "s07_tool:122-154"
+      ]
+    },
+    {
+      "dimension": "Threads/Hash/OwnBook",
+      "s07": "Explicit Threads=1, Hash=16, OwnBook=false.",
+      "available_historical": "Explicit Threads=1, Hash=16, OwnBook=false in all 5002 harness copies.",
+      "comparability": "Matches supplied related harnesses; exact CR option stream is absent.",
+      "sources": [
+        "packc_tactics:21-23",
+        "coder_lock_summary:2"
+      ]
+    },
+    {
+      "dimension": "Move Overhead and timebudget",
+      "s07": "go movetime 1000; no Move Overhead override; canonical default is 10 ms.",
+      "available_historical": "go movetime T; no Move Overhead override in 5002 sources. Canonical engine subtracts default 10 ms from the hard limit.",
+      "comparability": "No evidenced overhead difference; exact CR additional options are unknown.",
+      "sources": [
+        "packc_tactics:21-23,31",
+        "canonical_uci:167",
+        "canonical_search:1249-1257"
+      ]
+    },
+    {
+      "dimension": "process/chunk lifecycle",
+      "s07": "One fresh UCI process for all 300 positions, after a separate bare-bench process.",
+      "available_historical": "Fresh process per 50-position chunk, alternating engine order; each position gets ucinewgame plus Clear Hash.",
+      "comparability": "Structural difference confirmed; causal contribution is unverified.",
+      "sources": [
+        "packc_launcher:10-20",
+        "gcx_launcher:8-13",
+        "coder_lock_launcher:10-21"
+      ]
+    },
+    {
+      "dimension": "history and caches",
+      "s07": "ucinewgame then Clear Hash for each position.",
+      "available_historical": "Same commands for each position.",
+      "comparability": "Canonical ucinewgame calls Searcher::clear, which clears TT and calls Worker::clear. This resets evaluator, main/capture/continuation/counter/correction/material histories and search stack. Ordinary history retention between positions is unsupported. Other process-age, cache or scheduler effects are not ruled out.",
+      "sources": [
+        "canonical_uci:186-189",
+        "canonical_search:575-584,1493-1496",
+        "packc_tactics:30"
+      ]
+    },
+    {
+      "dimension": "CPU affinity/nice/load gating",
+      "s07": "CPU 4, nice 19 under a root-owned lease; no Monte Carlo active; no automatic load-average threshold. Sampled engine threads used CPU 4 and nice 19.",
+      "available_historical": "Coder lock CPU 4; packc default CPU 6; gcx run4 CPU 4; CR documents CPU 3 and nice 19. Coder/packc wait for integer load average below 5 between chunks; gcx run4 has no such gate.",
+      "comparability": "Different core/load-gate policies confirmed. No causal claim or hardware-only attribution.",
+      "sources": [
+        "coder_lock_launcher:5,9-14",
+        "packc_launcher:4,9-13",
+        "gcx_launcher:11",
+        "cr_f021_batch:3",
+        "cr_f019:24"
+      ]
+    },
+    {
+      "dimension": "binary/compiler/network",
+      "s07": "Exact canonical e3df lock ELF and all fixed-depth references.",
+      "available_historical": "Coder log identifies identical e3df ELF. f019 is a net-only candidate, full hash 15ea5c905f288b67a672971f5a98d6ad8bfffee1dd5fbb379622a8cc0f043bf9. f021 is documented as net-only with hash prefix 90f9a939 and suffix 78a3. Coder packer specifies g++-14, x86-64-v3, znver5 tuning, no-fast-math, ffp-contract=off and H256. CR f019 says lock flags without the full command.",
+      "comparability": "Identical canonical binary hash excludes a compiler-byte difference for the linked Coder lock artifact. Full CR candidate build commands/tool versions are unknown. Different nets establish why 286/287 are not lock targets without quantifying their effects.",
+      "sources": [
+        "coder_lock_run_log:2",
+        "coder_packer:46-57",
+        "cr_f019:4,9,11,14",
+        "cr_f021_batch:11"
+      ]
+    },
+    {
+      "dimension": "timeout/stop recovery",
+      "s07": "No early stop; waits for final bestmove with a 120-second plus movetime margin. Timeout fails and reaps children; no actual timeout occurred.",
+      "available_historical": "5002 harness waits for bestmove with a 30-second queue budget and never sends stop. CR documents recovered_by_stop on f020 and other runs; f019/f021 1000 ms runs claim zero hangs.",
+      "comparability": "Exact CR guard, recovery and pre-stop logic is unknown. No evidence of early stop or hang recovery affecting the specific reported f019/f021 runs.",
+      "sources": [
+        "packc_tactics:13-17,31-36",
+        "cr_f019:3,19,24",
+        "cr_f021_batch:9,11"
+      ]
+    },
+    {
+      "dimension": "failure and streamhandling",
+      "s07": "Separate stderr, strict unknown-option/legality/timeout/capture failures; raw receipts retained.",
+      "available_historical": "5002 merges stderr with stdout, has no explicit unknown-option check, uses b.san for move output, and lacks finally-protected cleanup.",
+      "comparability": "Robustness differences confirmed. Current S07 had no illegal moves, errors or timeouts, so no demonstrated scoring effect.",
+      "sources": [
+        "packc_tactics:9-17,35-48",
+        "s07_tool:144-153"
+      ]
+    }
+  ],
+  "counterfactual_diagnostic_only_not_accepted_metric": {
+    "input": "Preserved fresh S07 raw stdout only; no engine was run.",
+    "any_ever_accepted_first_PV_move": 274,
+    "official_final_bestmove_score": 271,
+    "would_add": 3,
+    "would_add_ids": [
+      "WAC.033",
+      "WAC.101",
+      "WAC.247"
+    ],
+    "interpretation": "This diagnostic 274 does not reproduce historical 283 and does not show that historical CR used any-PV scoring. The official 271 metric is unchanged."
+  },
+  "archived_final_move_recheck": {
+    "path": "/workspace/forge-pack24-20261025/new_handoff_1435/selected/forge_handoff_full_20261025_1435/files/13_coder/fc_nnue_h256_e12_ep12_ep10base_meta/artifacts/tactics_wac300/h256_e12_1000.json",
+    "sha256": "0417beb870aeaa743c7c409aac91d98f1f62639dfa6397bfdd4d3e17b536d2a9",
+    "tag": "h256_e12",
+    "movetime_ms": 1000,
+    "recorded_solved": 283,
+    "independently_rescored_final_SAN_solved": 283,
+    "positions": 300,
+    "exceptions": [],
+    "scoring_disagreements": [],
+    "archived_only_vs_fresh_ids": [
+      "WAC.021",
+      "WAC.033",
+      "WAC.049",
+      "WAC.101",
+      "WAC.132",
+      "WAC.165",
+      "WAC.176",
+      "WAC.190",
+      "WAC.196",
+      "WAC.204",
+      "WAC.205",
+      "WAC.258",
+      "WAC.296"
+    ],
+    "fresh_only_vs_archived_ids": [
+      "WAC.228"
+    ],
+    "limitations": "Saved merged JSON has no engine/suite fields. Associated run.log and run_tactics.sh provide the association; original per-position UCI timing transcripts are unavailable."
+  },
+  "unknowns": [
+    "Exact independent CR script bytes, full SHA256 and UCI transcripts.",
+    "CR-specific scoring, early-stop and recovery implementation.",
+    "Full CR f021 build command and complete executable hash.",
+    "Actual relative CPU allocation, load and frequency for historical and current time-limited runs.",
+    "Causal contributions of hardware, load, chunks, allocator/process state and move stability to the 271 versus 283/284 gap."
+  ],
+  "s26_consequence": "Preserve actual 271 and the declared S26 reference comparison without retrofitting rules. A WAC reference FAIL remains FAIL or incomparable under its declared protocol; continue cheap bench/FMA/allowlisted CTest checks and keep pins/receipts. Do not abort those checks merely because the WAC reference failed. Native S26 recipe changes or new runs remain root-authorized scope; this audit does not authorize one.",
+  "independent_source_review": "Child source_review read CR documents and Coder packer source on CPU 3, confirming that CR 286/287 identify different-net candidates and that the exact independent CR implementation is missing. The reviewer wrote no files and ran no engines.",
+  "evidence": {
+    "cr_f019": {
+      "path": "/workspace/forge-pack24-20261025/new_handoff_1435/selected/forge_handoff_full_20261025_1435/files/10_cr/CR_PASS_nnue_e20f019.txt",
+      "relative_to_supplied_files": "10_cr/CR_PASS_nnue_e20f019.txt",
+      "sha256": "90d4c23b2f5fa0cd7e13c34a77487407754044f7a200b7c2f9ba6a1b3891dced",
+      "bytes": 4312,
+      "lines": 27,
+      "excerpts": [
+        {
+          "start_line": 1,
+          "end_line": 5,
+          "text": "CR PASS \u2014 fc_nnue_h256_e20f019_b06_ep20_ep10base   (Code Review, 2026-10-25 07:23 Vienna, CET UTC+1)\nVERDICT: PASS (net-only), no flag. UNPROVEN; no Elo claim. Route: REWORK TAIL (crew votes D/E 05:51: f014 stays the only e20 net; never blocks).\nReason: all cr_netpack_check.sh e45a5204 checks PASS in both runs (exit 0, 0 hangs, 0 MISMATCH in claimed-vs-reproduced). WAC300 1000 ms cand 286 vs lock 284/283; 100 ms cand 258 vs lock 255/255. Box parity PASS_TOL (see below).\nRoute detail: net-only vs lock h256_e12 (fc_nnue_h256_e12_ep12_ep10base, net 6d22f612, forge e3df99cd\u2026, unchanged; checker preflight). Recipe base fc_nnue_h256_e16h_ep16_ep10base differs from the lock only in src/nnue_weights.inc + docs (CR diff -rq), so net-only vs lock == net-only vs recipe. Idea source: own NNUE run resid_h256_e20_f019_bs16k_lr14e4_b06_s38_fb8k, own trainer train_resid_v3b.py, own self-play 001-012,015-023, no Sol data (IDEA_SOURCE.md L4). .inc grep copyright/license/Sol = 0. Float H256 only.\nRuns: 1000 ms cr_netpack_runs/e20f019_1000ms_cr0658 (06:58-07:14 CET, exit 0); 100 ms cr_netpack_runs/e20f019_100ms_cr0714 (07:14-07:16 CET, exit 0). Driver log cr_netpack_runs/driver_f019_023_cr.log."
+        },
+        {
+          "start_line": 9,
+          "end_line": 16,
+          "text": "  src/nnue_weights.inc md5 560c1fcc96362cc3d5584f26b4175ace = claimed = NNUE box file forge_resid/resid_h256_e20_f019_b06_ep20.inc (CR re-hash) = NETS.md L1720. Header FORGE_NNUE_RESIDUAL 1, H256.\n  patch sha256 ee2626ef3b2e3d3b5433bfa1e53904f6cbae321d38f93b9d149e776320ca5304 (src/nnue_weights.inc only; -p1 clean; result == zip tree)\n  forge sha256 15ea5c905f288b67a672971f5a98d6ad8bfffee1dd5fbb379622a8cc0f043bf9 = claimed (CR scratch rebuild, lock flags). vfmadd 0 (forge + nnue.cpp.o); check_nnue_simd PASS.\nChecks:\n  perft5 startpos 4865609, kiwipete 193690690 (fixed refs).\n  bench T1 H16 OwnBook off d11/13/16/20/22: 436412/1053482/3392913/9497467/25814067 = claimed (lock 308972/745494/2460422/11901452/31111774). Net-only, exempt from node rule.\n  uci option list 10 lines, diff vs lock 0.\n  ctest: forge_tests FAILs = rook underpromotion x2 only (WAC 001 solved, Qg6 mate 2); fewer than lock's 4, no new FAIL."
+        },
+        {
+          "start_line": 19,
+          "end_line": 25,
+          "text": "  WAC300 1000 ms: lockA 284, cand 286, lockB 283; cand-only 222 226 247 256 265; lock-only 218 229; max elapsed cand 993 / lockA 1071 / lockB 1041 ms; 0 hangs.\n  WAC300 100 ms: lockA 255, cand 258, lockB 255; max 145/91/92 ms; 0 hangs.\n  -> Coder claim 100 ms 259 vs 255, 1000 ms 286 vs 284: reproduced within 1.\n  Box parity (Coder's artifacts/parity/parity_box.log, read by CR): exact 9999/10000, max|d| 1. The one miss is FEN #1886 \"4r1k1/ppp2ppp/8/8/P5nn/2KB4/1PP5/7b b - - 0 1\": trainer 829.0000915527344 -> trunc 829, engine 828. Distance to the integer 9.2e-5 < 1e-4 -> truncation flip. PASS_TOL (|d|<=1, 99.99% >= 99.9% exact, miss is a flip). NNUE PC-side parity exact 10000/10000 (NETS.md L1721). INFO.\n  blend-end: checker could not find the run in the queue files (warning); by hand NETS.md L1719: v3b, bs8192, lr 9.898e-4, warmup 300, blend-end 0.6, seed 38, 20 ep -> 0.6 confirmed. P29 OK.\n  Lock slow moves: Coder saw a 13.4 s lock move at 1000 ms in its kept run. CR run on core 3: 0 hangs, max lock 1071 ms (WAC.091) -> not repeated on an idle core; INFO (box starvation in Coder's run).\nNot rerun by CR (accepted from Coder's packer): ASan+UBSan T1/T2 smoke, SSE==AVX2 (10000/10000), underpromo probe, box nps (PC nps decides)."
+        }
+      ]
+    },
+    "cr_f021_batch": {
+      "path": "/workspace/forge-pack24-20261025/new_handoff_1435/selected/forge_handoff_full_20261025_1435/files/10_cr/CR_BATCH_nnue_f020-f023.txt",
+      "relative_to_supplied_files": "10_cr/CR_BATCH_nnue_f020-f023.txt",
+      "sha256": "64d4ba8955215f5ced7ef81b39ed9d181f66ad9234a32416e7dce2e9728e27b3",
+      "bytes": 3664,
+      "lines": 17,
+      "excerpts": [
+        {
+          "start_line": 1,
+          "end_line": 3,
+          "text": "CR BATCH (mechanical checklist only) \u2014 net-only packs f020\u2013f023   (Code Review, 2026-10-25 08:45 Vienna, CET UTC+1)\nScope (usage-saving change): all four go to the rework tail (crew votes D/E) and won't run this week, so only the mechanical checklist was done: hashes vs claims, net-only diff, bench at 5 depths = claimed, FMA 0, perft/kiwipete fixed refs, parity PASS_TOL. No WAC verdict, ASan or deep extras. UNPROVEN; no Elo claim. Never blocks.\nTool: cr_netpack_check.sh e45a5204 on core 3, nice 19, flock /tmp/cr_bench.lock, -j2. f020/f021 numbers come from full runs done earlier (e16f020_1000ms_cr0716, e20f021_1000ms_cr0739); f022/f023 come from --wac off runs (e20f022_1000ms_cr0833--wac, e16f023_1000ms_cr0834--wac). All exit 0, 0 MISMATCH. Parity is read from each pack's artifacts/parity/parity_box.log. Perft fixed refs: startpos 4865609, kiwipete 193690690 (all four reproduce them)."
+        },
+        {
+          "start_line": 7,
+          "end_line": 11,
+          "text": "  zip cd6c7b47\u2026 / patch 4c704328\u2026 / net md5 9f4ffb22b6579187e82968c0628339d7 / forge sha256 66f874f0\u202632f1 = claimed; diff vs lock = src/nnue_weights.inc only; vfmadd 0/0; perft OK; bench 363303/799290/2818664/11474211/36089996 = claimed; parity exact 10000/10000 max|d| 0, SSE==AVX2 10000/10000; blend-end 0.6 (queue + NETS.md L1722); ctest FAILs promo x2 only.\n  Sol: sol_indep_train.pos is training data only (IDEA_SOURCE L4); .inc grep copyright/license/Sol 0. e16 placement flag (DR e16 record vs h256_e12: G88 +2.8 undecided, G89 -6.5 undecided, G90 -10.5 H0), not a hold.\n  INFO (not a verdict input, WAC dropped from scope): the earlier full 1000 ms run had lockA 282 / cand 279 / lockB 283 plus one lock hang (WAC.008, 24803 ms, recovered_by_stop). The confirm rerun was cancelled under this change, so this stays unconfirmed. 100 ms: 254/259/254.\nf021 fc_nnue_h256_e20f021_b06_ep20_ep10base: PASS (mechanical)\n  zip ea2f62e0\u2026 / patch 3d1bf9f7\u2026 / net md5 a3390ab5748d5ed99be91f6ba1ac5578 / forge sha256 90f9a939\u202678a3 = claimed; diff = .inc only; vfmadd 0/0; perft OK; bench 319575/794601/3861826/15637403/24860172 = claimed; parity exact 10000/10000 max|d| 0, SSE==AVX2; blend-end 0.6 by hand (NETS.md L1740); ctest promo x2 only. (Earlier full runs: 1000 ms 284/287/284, 0 hangs; 100 ms run e20f021_100ms_cr0002 exit 0.)"
+        },
+        {
+          "start_line": 17,
+          "end_line": 17,
+          "text": "If QA ever pulls one from the tail: full WAC 1000/100 ms + ASan run first, then the standard net-only SPRT [0,10] vs h256_e12 with PC precondition bench d11 = the value above."
+        }
+      ]
+    },
+    "packc_tactics": {
+      "path": "/workspace/forge-pack24-20261025/new_handoff_1435/selected/forge_handoff_full_20261025_1435/files/12_strength/h256tools/packc/tactics_wac300/tactics.py",
+      "relative_to_supplied_files": "12_strength/h256tools/packc/tactics_wac300/tactics.py",
+      "sha256": "5002c3c28f7f6f0b076e3b941e5615359f41e182d66ccad9785c4f4a89a0bf7c",
+      "bytes": 2961,
+      "lines": 48,
+      "excerpts": [
+        {
+          "start_line": 1,
+          "end_line": 9,
+          "text": "#!/usr/bin/env python3\n\"\"\"Pack E copy of /workspace/ep10_lock/tactics.py. Only additions: env OPTS=\"Name=V,Name=V\" -> extra setoption lines;\nrecords final score and the first depth/time at which a mate score appears.\nusage: tactics.py <engine> <tag> <suite.epd> <movetime_ms> <out.json> [ids_file]\nFresh ucinewgame + Clear Hash per position, Threads=1 Hash=16 OwnBook=false, go movetime T. Solved = bestmove in bm (and not in am).\"\"\"\nimport sys, subprocess, threading, queue, json, time, chess\npath, tag, suite, mt, out = sys.argv[1], sys.argv[2], sys.argv[3], int(sys.argv[4]), sys.argv[5]\nonly = set(open(sys.argv[6]).read().split()) if len(sys.argv) > 6 else None\np = subprocess.Popen(['nice','-n','19',path], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, bufsize=1)"
+        },
+        {
+          "start_line": 18,
+          "end_line": 36,
+          "text": "send('uci'); until(lambda l:l=='uciok',10)\nimport os\nextra=[x.split('=') for x in os.environ.get('OPTS','').split(',') if x]\nfor o in ('Threads value 1','Hash value 16','OwnBook value false'): send('setoption name '+o)\nfor k,v in extra: send(f'setoption name {k} value {v}')\nsend('isready'); until(lambda l:l=='readyok',10)\nres = {}\nfor line in open(suite):\n    line=line.strip()\n    if not line: continue\n    b, ops = chess.Board.from_epd(line); pid = ops['id']\n    if only and pid not in only: continue\n    send('ucinewgame'); send('setoption name Clear Hash'); send('isready'); until(lambda l:l=='readyok',10)\n    send('position fen '+b.fen()); send(f'go movetime {mt}')\n    t0=time.monotonic()\n    ls = until(lambda l:l.startswith('bestmove'), 30)\n    el = time.monotonic()-t0\n    bm = chess.Move.from_uci(ls[-1].split()[1])\n    ok = (bm in ops.get('bm',[]) if 'bm' in ops else True) and bm not in ops.get('am',[])"
+        },
+        {
+          "start_line": 37,
+          "end_line": 48,
+          "text": "    info=[l for l in ls if l.startswith('info depth')]\n    d = int(info[-1].split()[2]) if info else 0\n    sc=None; mate_first=None\n    for l in info:\n        t=l.split()\n        if 'score' in t:\n            i=t.index('score'); sc=t[i+1]+' '+t[i+2]\n            if t[i+1]=='mate' and mate_first is None: mate_first={'depth':int(t[2]),'time':int(t[t.index('time')+1]) if 'time' in t else None,'mate':int(t[i+2])}\n    res[pid] = {'solved':ok,'move':b.san(bm),'bm':[b.san(m) for m in ops.get('bm',[])],'depth':d,'elapsed_ms':round(el*1000),'score':sc,'first_mate':mate_first}\nsend('quit'); p.wait(timeout=5)\njson.dump({'tag':tag,'opts':os.environ.get('OPTS',''),'engine':path,'suite':suite,'movetime':mt,'results':res}, open(out,'w'))\nprint(tag, suite.split('/')[-1], mt, 'solved', sum(r['solved'] for r in res.values()), '/', len(res), 'maxelapsed', max(r['elapsed_ms'] for r in res.values()))"
+        }
+      ]
+    },
+    "gcx_tactics": {
+      "path": "/workspace/forge-pack24-20261025/new_handoff_1435/selected/forge_handoff_full_20261025_1435/files/12_strength/h256tools/gcx/wac300/tactics_gcx.py",
+      "relative_to_supplied_files": "12_strength/h256tools/gcx/wac300/tactics_gcx.py",
+      "sha256": "5002c3c28f7f6f0b076e3b941e5615359f41e182d66ccad9785c4f4a89a0bf7c",
+      "bytes": 2961,
+      "lines": 48,
+      "excerpts": [
+        {
+          "start_line": 18,
+          "end_line": 36,
+          "text": "send('uci'); until(lambda l:l=='uciok',10)\nimport os\nextra=[x.split('=') for x in os.environ.get('OPTS','').split(',') if x]\nfor o in ('Threads value 1','Hash value 16','OwnBook value false'): send('setoption name '+o)\nfor k,v in extra: send(f'setoption name {k} value {v}')\nsend('isready'); until(lambda l:l=='readyok',10)\nres = {}\nfor line in open(suite):\n    line=line.strip()\n    if not line: continue\n    b, ops = chess.Board.from_epd(line); pid = ops['id']\n    if only and pid not in only: continue\n    send('ucinewgame'); send('setoption name Clear Hash'); send('isready'); until(lambda l:l=='readyok',10)\n    send('position fen '+b.fen()); send(f'go movetime {mt}')\n    t0=time.monotonic()\n    ls = until(lambda l:l.startswith('bestmove'), 30)\n    el = time.monotonic()-t0\n    bm = chess.Move.from_uci(ls[-1].split()[1])\n    ok = (bm in ops.get('bm',[]) if 'bm' in ops else True) and bm not in ops.get('am',[])"
+        }
+      ]
+    },
+    "gcx_old_disabled_tactics": {
+      "path": "/workspace/forge-pack24-20261025/new_handoff_1435/selected/forge_handoff_full_20261025_1435/files/12_strength/h256tools/gcx/wac300/tactics_old_core6_disabled.py",
+      "relative_to_supplied_files": "12_strength/h256tools/gcx/wac300/tactics_old_core6_disabled.py",
+      "sha256": "5002c3c28f7f6f0b076e3b941e5615359f41e182d66ccad9785c4f4a89a0bf7c",
+      "bytes": 2961,
+      "lines": 48,
+      "excerpts": [
+        {
+          "start_line": 18,
+          "end_line": 36,
+          "text": "send('uci'); until(lambda l:l=='uciok',10)\nimport os\nextra=[x.split('=') for x in os.environ.get('OPTS','').split(',') if x]\nfor o in ('Threads value 1','Hash value 16','OwnBook value false'): send('setoption name '+o)\nfor k,v in extra: send(f'setoption name {k} value {v}')\nsend('isready'); until(lambda l:l=='readyok',10)\nres = {}\nfor line in open(suite):\n    line=line.strip()\n    if not line: continue\n    b, ops = chess.Board.from_epd(line); pid = ops['id']\n    if only and pid not in only: continue\n    send('ucinewgame'); send('setoption name Clear Hash'); send('isready'); until(lambda l:l=='readyok',10)\n    send('position fen '+b.fen()); send(f'go movetime {mt}')\n    t0=time.monotonic()\n    ls = until(lambda l:l.startswith('bestmove'), 30)\n    el = time.monotonic()-t0\n    bm = chess.Move.from_uci(ls[-1].split()[1])\n    ok = (bm in ops.get('bm',[]) if 'bm' in ops else True) and bm not in ops.get('am',[])"
+        }
+      ]
+    },
+    "packc_launcher": {
+      "path": "/workspace/forge-pack24-20261025/new_handoff_1435/selected/forge_handoff_full_20261025_1435/files/12_strength/h256tools/packc/tactics_wac300/run_tactics.sh",
+      "relative_to_supplied_files": "12_strength/h256tools/packc/tactics_wac300/run_tactics.sh",
+      "sha256": "6d1cd2831cc1834d7da079359cccaf889ab671e917f184d21fb50bfc18597d84",
+      "bytes": 1243,
+      "lines": 22,
+      "excerpts": [
+        {
+          "start_line": 1,
+          "end_line": 21,
+          "text": "#!/bin/bash\n# Copy of Engine Coder's h256_e12 WAC300 method (tactics.py verbatim): both engines pinned to the same core, 50-position chunks ABBA, sequential, nice 19, pause while load1 >= 5.\ncd /workspace/forge-strength/h256tools/packc/tactics_wac300\nCORE=${CORE:-6}\nBASE=/workspace/forge-strength/build-h256base-expose/forge\nNEW=/workspace/forge-strength/build-packc-h256/forge\nNEWOPTS=\"AspFailHighReduce=1,AspFailHighMaxReduce=3,EvalSwingMult=24,EvalSwingMax=200\"\nS=/workspace/ep10_lock/suites/x_wacnew.epd\nw(){ while [ \"$(awk '{print int($1)}' /proc/loadavg)\" -ge 5 ]; do echo \"$(date +%T) load high, waiting\"; sleep 20; done; }\none(){ # tag bin mt chunk opts\n  w; L0=$(cut -d' ' -f1 /proc/loadavg)\n  OUT=$(OPTS=$5 taskset -c $CORE nice -n 19 python3 tactics.py $2 $1 $S $3 chunks/$1_$3_c$4.json chunks/ids_$4.txt)\n  echo \"$(date +%T) mt=$3 chunk=$4 tag=$1 core=$CORE load1_start=$L0 load1_end=$(cut -d' ' -f1 /proc/loadavg) :: $OUT\" | tee -a chunk_log.txt\n}\nsha256sum $BASE $NEW $S tactics.py\nfor MT in 1000 100; do\n  for c in 0 1 2 3 4 5; do\n    if [ $((c%2)) -eq 0 ]; then one h256base $BASE $MT $c \"\"; one packc $NEW $MT $c \"$NEWOPTS\"\n    else one packc $NEW $MT $c \"$NEWOPTS\"; one h256base $BASE $MT $c \"\"; fi\n  done\ndone"
+        }
+      ]
+    },
+    "gcx_launcher": {
+      "path": "/workspace/forge-pack24-20261025/new_handoff_1435/selected/forge_handoff_full_20261025_1435/files/12_strength/h256tools/gcx/wac300/run4.sh",
+      "relative_to_supplied_files": "12_strength/h256tools/gcx/wac300/run4.sh",
+      "sha256": "ffe8587a1a2274569c525b7a11e33e06221aac444158af5eb2e98650fb7f3565",
+      "bytes": 781,
+      "lines": 14,
+      "excerpts": [
+        {
+          "start_line": 1,
+          "end_line": 14,
+          "text": "#!/bin/bash\n# usage: run4.sh MT tag=opts ...  core 4 only (box etiquette), nice 19, rotating order per chunk; base = h256 lock EXPOSE exe\ncd /workspace/forge-strength/h256tools/gcx/wac300\nMT=$1; shift\nBASE=/workspace/forge-strength/build-h256base-expose/forge; NEW=/workspace/forge-strength/build-gcx-h256/forge\nS=/workspace/ep10_lock/suites/x_wacnew.epd; mkdir -p c4\nL=(\"$@\"); n=${#L[@]}\nfor c in 0 1 2 3 4 5; do\n  for i in $(seq 0 $((n-1))); do\n    e=${L[$(( (i + c) % n ))]}; t=${e%%=*}; o=${e#*=}; [ \"$t\" = base ] && X=$BASE || X=$NEW\n    OUT=$(OPTS=$o nice -n 19 taskset -c 4 python3 tactics_gcx.py $X $t $S $MT c4/${t}_${MT}_c$c.json chunks/ids_$c.txt)\n    echo \"$(date -u +%T)Z mt=$MT chunk=$c tag=$t opts=$o :: $OUT\" | tee -a chunk_log_c4.txt\n  done\ndone; echo ALLDONE_$MT"
+        }
+      ]
+    },
+    "packc_run_log": {
+      "path": "/workspace/forge-pack24-20261025/new_handoff_1435/selected/forge_handoff_full_20261025_1435/files/12_strength/h256tools/packc/tactics_wac300/run.log",
+      "relative_to_supplied_files": "12_strength/h256tools/packc/tactics_wac300/run.log",
+      "sha256": "06a784451be73157e3af9e25b96737947c4ac042b49f8bcd84521223bb5aec48",
+      "bytes": 3609,
+      "lines": 29,
+      "excerpts": [
+        {
+          "start_line": 1,
+          "end_line": 16,
+          "text": "f233d19f2eee968d64e03a1cc771f2965511249403c58decc6dbd1d21aa92e5b  /workspace/forge-strength/build-h256base-expose/forge\n2c4bc8641c053b1d835d9eea13e4c4f77b1d99d0ae9efdcd928c713ec83604ea  /workspace/forge-strength/build-packc-h256/forge\n9bfb7b42cf5bbc7f3d60ff767ca3be460e0ae4d9110ef9a71ddf0bd7071d4d46  /workspace/ep10_lock/suites/x_wacnew.epd\n5002c3c28f7f6f0b076e3b941e5615359f41e182d66ccad9785c4f4a89a0bf7c  tactics.py\n04:05:30 mt=1000 chunk=0 tag=h256base core=6 load1_start=1.78 load1_end=1.81 :: h256base x_wacnew.epd 1000 solved 49 / 50 maxelapsed 991\n04:06:13 mt=1000 chunk=0 tag=packc core=6 load1_start=1.81 load1_end=1.77 :: packc x_wacnew.epd 1000 solved 49 / 50 maxelapsed 991\n04:06:54 mt=1000 chunk=1 tag=packc core=6 load1_start=1.77 load1_end=1.47 :: packc x_wacnew.epd 1000 solved 49 / 50 maxelapsed 991\n04:07:35 mt=1000 chunk=1 tag=h256base core=6 load1_start=1.47 load1_end=1.40 :: h256base x_wacnew.epd 1000 solved 49 / 50 maxelapsed 993\n04:08:18 mt=1000 chunk=2 tag=h256base core=6 load1_start=1.40 load1_end=3.58 :: h256base x_wacnew.epd 1000 solved 47 / 50 maxelapsed 991\n04:09:01 mt=1000 chunk=2 tag=packc core=6 load1_start=3.58 load1_end=2.21 :: packc x_wacnew.epd 1000 solved 47 / 50 maxelapsed 1029\n04:09:37 mt=1000 chunk=3 tag=packc core=6 load1_start=2.21 load1_end=1.68 :: packc x_wacnew.epd 1000 solved 49 / 50 maxelapsed 991\n04:10:14 mt=1000 chunk=3 tag=h256base core=6 load1_start=1.68 load1_end=1.44 :: h256base x_wacnew.epd 1000 solved 49 / 50 maxelapsed 991\n04:10:58 mt=1000 chunk=4 tag=h256base core=6 load1_start=1.44 load1_end=1.39 :: h256base x_wacnew.epd 1000 solved 43 / 50 maxelapsed 991\n04:11:42 mt=1000 chunk=4 tag=packc core=6 load1_start=1.39 load1_end=1.24 :: packc x_wacnew.epd 1000 solved 46 / 50 maxelapsed 991\n04:12:26 mt=1000 chunk=5 tag=packc core=6 load1_start=1.24 load1_end=1.54 :: packc x_wacnew.epd 1000 solved 48 / 50 maxelapsed 991\n04:13:11 mt=1000 chunk=5 tag=h256base core=6 load1_start=1.54 load1_end=2.30 :: h256base x_wacnew.epd 1000 solved 46 / 50 maxelapsed 991"
+        }
+      ]
+    },
+    "coder_lock_launcher": {
+      "path": "/workspace/forge-pack24-20261025/new_handoff_1435/selected/forge_handoff_full_20261025_1435/files/13_coder/fc_nnue_h256_e12_ep12_ep10base_meta/artifacts/tactics_wac300/run_tactics.sh",
+      "relative_to_supplied_files": "13_coder/fc_nnue_h256_e12_ep12_ep10base_meta/artifacts/tactics_wac300/run_tactics.sh",
+      "sha256": "1ae53d74ea8e6022e5213e0c312511e3f5d6f9433e66478fce7e436f25150fcc",
+      "bytes": 1256,
+      "lines": 23,
+      "excerpts": [
+        {
+          "start_line": 1,
+          "end_line": 23,
+          "text": "#!/bin/bash\n# WAC300, same tactics.py as fc_packe_ep10 (verbatim copy). Both engines pinned to the same core (taskset -c $CORE),\n# alternated in 50-position chunks (ABBA order per chunk), sequential, nice 19, pause while load1 > 5.\ncd /workspace/forge-coder/fc_nnue_h256_e12_ep12_ep10base/artifacts/tactics_wac300\nCORE=${CORE:-4}\nBASE=/workspace/forge-coder/fc_nnue_ep10_1ab50b2d/build_release/forge\nNEW=/workspace/forge-coder/fc_nnue_h256_e12_ep12_ep10base/build_release/forge\nS=/workspace/ep10_lock/suites/x_wacnew.epd\nw(){ while [ \"$(awk '{print int($1)}' /proc/loadavg)\" -ge 5 ]; do echo \"$(date +%T) load $(cut -d' ' -f1 /proc/loadavg) >5, waiting\"; sleep 20; done; }\none(){ # tag bin mt chunk\n  w; L0=$(cut -d' ' -f1 /proc/loadavg)\n  OUT=$(OPTS= taskset -c $CORE nice -n 19 python3 tactics.py $2 $1 $S $3 chunks/$1_$3_c$4.json chunks/ids_$4.txt)\n  L1=$(cut -d' ' -f1 /proc/loadavg)\n  echo \"$(date +%T) mt=$3 chunk=$4 tag=$1 core=$CORE load1_start=$L0 load1_end=$L1 :: $OUT\" | tee -a chunk_log.txt\n}\nsha256sum $BASE $NEW $S tactics.py\nfor MT in 1000 100; do\n  for c in 0 1 2 3 4 5; do\n    if [ $((c%2)) -eq 0 ]; then one ep10 $BASE $MT $c; one h256_e12 $NEW $MT $c\n    else one h256_e12 $NEW $MT $c; one ep10 $BASE $MT $c; fi\n  done\ndone\necho ALLDONE"
+        }
+      ]
+    },
+    "coder_lock_run_log": {
+      "path": "/workspace/forge-pack24-20261025/new_handoff_1435/selected/forge_handoff_full_20261025_1435/files/13_coder/fc_nnue_h256_e12_ep12_ep10base_meta/artifacts/tactics_wac300/run.log",
+      "relative_to_supplied_files": "13_coder/fc_nnue_h256_e12_ep12_ep10base_meta/artifacts/tactics_wac300/run.log",
+      "sha256": "9baace42e74d6af0082c2d405bb5f4e6a587c2750aae0dc0df3c3fef468ce1cd",
+      "bytes": 3623,
+      "lines": 29,
+      "excerpts": [
+        {
+          "start_line": 1,
+          "end_line": 15,
+          "text": "f94f6778ab8422e98af27ce1265af8c34caff7422bdf81d804d703fb6cfac639  /workspace/forge-coder/fc_nnue_ep10_1ab50b2d/build_release/forge\ne3df99cddb609d9f00168d8df3187fdf6943c10812dd5c4f82206895e594367b  /workspace/forge-coder/fc_nnue_h256_e12_ep12_ep10base/build_release/forge\n9bfb7b42cf5bbc7f3d60ff767ca3be460e0ae4d9110ef9a71ddf0bd7071d4d46  /workspace/ep10_lock/suites/x_wacnew.epd\n5002c3c28f7f6f0b076e3b941e5615359f41e182d66ccad9785c4f4a89a0bf7c  tactics.py\n03:55:41 mt=1000 chunk=0 tag=ep10 core=4 load1_start=0.88 load1_end=1.48 :: ep10 x_wacnew.epd 1000 solved 49 / 50 maxelapsed 991\n03:56:24 mt=1000 chunk=0 tag=h256_e12 core=4 load1_start=1.48 load1_end=1.47 :: h256_e12 x_wacnew.epd 1000 solved 49 / 50 maxelapsed 991\n03:57:05 mt=1000 chunk=1 tag=h256_e12 core=4 load1_start=1.47 load1_end=1.64 :: h256_e12 x_wacnew.epd 1000 solved 49 / 50 maxelapsed 992\n03:57:46 mt=1000 chunk=1 tag=ep10 core=4 load1_start=1.64 load1_end=2.08 :: ep10 x_wacnew.epd 1000 solved 49 / 50 maxelapsed 991\n03:58:29 mt=1000 chunk=2 tag=ep10 core=4 load1_start=2.08 load1_end=2.86 :: ep10 x_wacnew.epd 1000 solved 47 / 50 maxelapsed 991\n03:59:12 mt=1000 chunk=2 tag=h256_e12 core=4 load1_start=2.86 load1_end=2.36 :: h256_e12 x_wacnew.epd 1000 solved 47 / 50 maxelapsed 991\n03:59:48 mt=1000 chunk=3 tag=h256_e12 core=4 load1_start=2.36 load1_end=2.30 :: h256_e12 x_wacnew.epd 1000 solved 49 / 50 maxelapsed 991\n04:00:25 mt=1000 chunk=3 tag=ep10 core=4 load1_start=2.30 load1_end=2.51 :: ep10 x_wacnew.epd 1000 solved 48 / 50 maxelapsed 993\n04:01:09 mt=1000 chunk=4 tag=ep10 core=4 load1_start=2.51 load1_end=2.60 :: ep10 x_wacnew.epd 1000 solved 45 / 50 maxelapsed 1017\n04:01:53 mt=1000 chunk=4 tag=h256_e12 core=4 load1_start=2.60 load1_end=2.37 :: h256_e12 x_wacnew.epd 1000 solved 43 / 50 maxelapsed 991\n04:02:38 mt=1000 chunk=5 tag=h256_e12 core=4 load1_start=2.37 load1_end=2.26 :: h256_e12 x_wacnew.epd 1000 solved 46 / 50 maxelapsed 991"
+        }
+      ]
+    },
+    "coder_lock_summary": {
+      "path": "/workspace/forge-pack24-20261025/new_handoff_1435/selected/forge_handoff_full_20261025_1435/files/13_coder/fc_nnue_h256_e12_ep12_ep10base_meta/artifacts/tactics_wac300/summary.txt",
+      "relative_to_supplied_files": "13_coder/fc_nnue_h256_e12_ep12_ep10base_meta/artifacts/tactics_wac300/summary.txt",
+      "sha256": "7e41af0e19032774907410dcbe8d471926d062491649d5887055c72b1f9dd7ae",
+      "bytes": 5793,
+      "lines": 44,
+      "excerpts": [
+        {
+          "start_line": 1,
+          "end_line": 9,
+          "text": "WAC300 (x_wacnew.epd sha256 9bfb7b42...4d46), tactics.py sha256 5002c3c2... (verbatim copy of fc_packe_ep10/artifacts/tactics.py)\nThreads=1 Hash=16 OwnBook=false, ucinewgame+Clear Hash per position, go movetime T; both engines taskset -c 4, nice 19,\nalternated in 6x50-position chunks (ABBA), sequential. ep10 forge sha256 f94f6778...c639, h256_e12 forge sha256 e3df99cd...367b\nPrior Pack E ep10 reference: 286 @1000 ms, 255 @100 ms.\n\nmovetime 1000 ms: ep10 286/300, h256_e12 283/300 (diff -3); median final depth ep10 21.0, h256 21.0\n  max elapsed ms: ep10 1017, h256 992\n  solved by ep10 only (5): WAC.226[ep10 Nf7 / h256 Rd8; bm Nf7], WAC.228[ep10 Bxe4 / h256 Qf3; bm Bxe4], WAC.245[ep10 Qxg6+ / h256 Bxf6; bm Qxg6+], WAC.256[ep10 Nf5 / h256 g3; bm Nf5], WAC.265[ep10 exf6 / h256 Qxe4; bm exf6]\n  solved by h256_e12 only (2): WAC.196[h256 Nb4 / ep10 Rb6; bm Nb4], WAC.229[h256 b4 / ep10 Rh8; bm Rxh4/b4]"
+        },
+        {
+          "start_line": 42,
+          "end_line": 44,
+          "text": "Discordant-pair note: 1000 ms 5 vs 2 (two-sided sign test p~0.45), 100 ms 14 vs 13 (p~1.0). Neither difference is\ndistinguishable from noise on 300 positions; reported as raw counts only. run.log repeats the last chunk line (tee); chunk_log.txt is canonical.\nAn earlier unchunked/unpinned run was aborted before writing any result (aborted_unchunked/run.log) after the parent asked for pinned, chunked runs."
+        }
+      ]
+    },
+    "coder_lock_tactics": {
+      "path": "/workspace/forge-pack24-20261025/new_handoff_1435/selected/forge_handoff_full_20261025_1435/files/13_coder/fc_nnue_h256_e12_ep12_ep10base_meta/artifacts/tactics_wac300/tactics.py",
+      "relative_to_supplied_files": "13_coder/fc_nnue_h256_e12_ep12_ep10base_meta/artifacts/tactics_wac300/tactics.py",
+      "sha256": "5002c3c28f7f6f0b076e3b941e5615359f41e182d66ccad9785c4f4a89a0bf7c",
+      "bytes": 2961,
+      "lines": 48,
+      "excerpts": [
+        {
+          "start_line": 18,
+          "end_line": 36,
+          "text": "send('uci'); until(lambda l:l=='uciok',10)\nimport os\nextra=[x.split('=') for x in os.environ.get('OPTS','').split(',') if x]\nfor o in ('Threads value 1','Hash value 16','OwnBook value false'): send('setoption name '+o)\nfor k,v in extra: send(f'setoption name {k} value {v}')\nsend('isready'); until(lambda l:l=='readyok',10)\nres = {}\nfor line in open(suite):\n    line=line.strip()\n    if not line: continue\n    b, ops = chess.Board.from_epd(line); pid = ops['id']\n    if only and pid not in only: continue\n    send('ucinewgame'); send('setoption name Clear Hash'); send('isready'); until(lambda l:l=='readyok',10)\n    send('position fen '+b.fen()); send(f'go movetime {mt}')\n    t0=time.monotonic()\n    ls = until(lambda l:l.startswith('bestmove'), 30)\n    el = time.monotonic()-t0\n    bm = chess.Move.from_uci(ls[-1].split()[1])\n    ok = (bm in ops.get('bm',[]) if 'bm' in ops else True) and bm not in ops.get('am',[])"
+        }
+      ]
+    },
+    "coder_packer": {
+      "path": "/workspace/forge-pack24-20261025/new_handoff_1435/selected/forge_handoff_full_20261025_1435/files/13_coder/packer_snap_a07f1972/pack_candidate.sh",
+      "relative_to_supplied_files": "13_coder/packer_snap_a07f1972/pack_candidate.sh",
+      "sha256": "a07f1972a056078d87e7b0ddb7348397a33cbc50490ee82250cd2ce61a30da21",
+      "bytes": 37796,
+      "lines": 464,
+      "excerpts": [
+        {
+          "start_line": 38,
+          "end_line": 57,
+          "text": "SELF=$(readlink -f \"$0\"); TOOLDIR=$(dirname \"$SELF\")\nLOCK=/workspace/forge-coder/fc_nnue_h256_e12_ep12_ep10base\nLOCK_EXE_SHA=e3df99cddb609d9f00168d8df3187fdf6943c10812dd5c4f82206895e594367b\nLOCK_NET_MD5=6d22f612c855e17c62d396d32da99ea4\nLOCK_BENCH=\"308972 745494 2460422 11901452 31111774\"\nPERFT_START=4865609; PERFT_KIWI=193690690\nKIWI=\"r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1\"\nDEPTHS=\"11 13 16 20 22\"\nFLAGS=\"-march=x86-64-v3 -mtune=znver5 -fno-fast-math -ffp-contract=off -DFORGE_NNUE_HIDDEN=256\"\nCXX=/usr/bin/g++-14\nSIMDCHK=/workspace/forge-coder/fc_simdcheck_znver5_v2_ep10/tools/check_nnue_simd.py\nSIMDCHK_SHA=0953cafd9854ec0b753bc53c5f710f2fb660c736a05b0367e598dc138063e286\nORACLE_PY=/workspace/forge-hashes/tools/cr_oracle_stream.py\nORACLE_PY_SHA=45b0ffe9d22921bfb0783b0536ba4cfa30d328ee0de7017b09d8abf136ac415c\nORACLE_CPP=/workspace/forge-hashes/tools/cr_netpack/nnue_million_oracle.cpp\nORACLE_CPP_SHA=ea4593539d4d23744b0cc7fb5cf1c21eb9a8385fb6b7cf534f8d55c5e7e6f93e\nWAC_DIR=/workspace/forge-coder/fc_nnue_h256_e16l_ep16_ep10base/artifacts/wac300   # tactics.py + chunks/ids_[0-5].txt (read only)\nWAC_PY_SHA=5002c3c28f7f6f0b076e3b941e5615359f41e182d66ccad9785c4f4a89a0bf7c\nWAC_SUITE=/workspace/ep10_lock/suites/x_wacnew.epd\nWAC_SUITE_SHA=9bfb7b42cf5bbc7f3d60ff767ca3be460e0ae4d9110ef9a71ddf0bd7071d4d46"
+        },
+        {
+          "start_line": 132,
+          "end_line": 139,
+          "text": "waitload(){ # pause while load1 > 5, stop if disk low\n  while :; do\n    local fr; fr=$(df -BM --output=avail / | tail -1 | tr -dc 0-9)\n    [ \"$fr\" -ge 1536 ] || { say \"DISK LOW ${fr}M - STOP\"; finish 9; }\n    awk '{exit !($1<=5)}' /proc/loadavg && break\n    say \"load $(cut -d' ' -f1 /proc/loadavg) > 5, waiting\"; sleep 20; done; }\nrun_bg(){ waitload; nice -n 19 taskset -c \"$CORE\" \"$@\"; }   # heavy job: own launch, pinned at start\nrun_lk(){ waitload; if [ $FLOCK = 1 ] && [ -e $BL ]; then flock $BL nice -n 19 taskset -c \"$CORE\" \"$@\"; else nice -n 19 taskset -c \"$CORE\" \"$@\"; fi; }  # + Coder's build.lock"
+        },
+        {
+          "start_line": 442,
+          "end_line": 458,
+          "text": "# ---------------------------------------------------------------- 10. WAC300 vs lock (optional)\nif [ -n \"$WAC\" ]; then\n  W=$A/wac300; mkdir -p $W/chunks\n  if [ \"$(sha $WAC_DIR/tactics.py)\" != $WAC_PY_SHA ] || [ \"$(sha $WAC_SUITE)\" != $WAC_SUITE_SHA ]; then fail \"WAC harness/suite sha changed\"; else\n    cp $WAC_DIR/tactics.py $W/; cp $WAC_DIR/chunks/ids_[0-5].txt $W/chunks/\n    LB=$LOCK/build_release/forge; CB=$OUT/build_release/forge\n    sha256sum $LB $CB $WAC_SUITE $W/tactics.py > $W/hashes.txt\n    one(){ waitload; local l0; l0=$(cut -d' ' -f1 /proc/loadavg)\n      local o; o=$(cd $W && OPTS= nice -n 19 taskset -c $CORE python3 tactics.py $2 $1 $WAC_SUITE $3 chunks/$1_$3_c$4.json chunks/ids_$4.txt 2>&1)\n      echo \"$(ts) mt=$3 chunk=$4 tag=$1 core=$CORE load1_start=$l0 :: $o\" >> $W/chunk_log.txt; }\n    for MT in ${WAC//,/ }; do for c in 0 1 2 3 4 5; do\n      if [ $((c%2)) -eq 0 ]; then one lock $LB $MT $c; one cand $CB $MT $c; else one cand $CB $MT $c; one lock $LB $MT $c; fi\n    done; say \"wac300 ${MT} ms done\"; done\n    python3 \"$TOOLDIR/pack_candidate_lib.py\" wacsum $W \"$WAC\" > $W/wac_summary.txt; r=$?\n    cat $W/wac_summary.txt; rec WAC_RES \"$(grep '^WAC300' $W/wac_summary.txt | tr '\\n' ';')\"\n    [ $r = 0 ] || fail \"WAC300 harness error (wac_summary.txt / chunk_log.txt)\"\n    grep -q 'maxelapsed_over' $W/wac_summary.txt && warn \"WAC300: a position exceeded movetime+1s (see wac_summary.txt; CR F1-type hang check)\""
+        }
+      ]
+    },
+    "coder_packer_sum": {
+      "path": "/workspace/forge-pack24-20261025/new_handoff_1435/selected/forge_handoff_full_20261025_1435/files/13_coder/packer_snap_a07f1972/pack_candidate_lib.py",
+      "relative_to_supplied_files": "13_coder/packer_snap_a07f1972/pack_candidate_lib.py",
+      "sha256": "d3852d3d2bd132c14cc647de6c01c88714dfe34581e9a5a75704e6b806f57ddf",
+      "bytes": 31279,
+      "lines": 413,
+      "excerpts": [
+        {
+          "start_line": 53,
+          "end_line": 74,
+          "text": "def wacsum(W, mts):\n    import glob\n    rc = 0; out = {}\n    for mt in [int(x) for x in mts.split(\",\")]:\n        r = {}; mx = {}\n        for tag in (\"lock\", \"cand\"):\n            sv = {}; el = 0\n            fs = glob.glob(f\"{W}/chunks/{tag}_{mt}_c*.json\")\n            if len(fs) != 6: print(f\"ERROR: {tag} {mt} ms has {len(fs)}/6 chunks\"); rc = 1\n            for f in fs:\n                for k, v in json.load(open(f))[\"results\"].items(): sv[k] = v[\"solved\"]; el = max(el, v[\"elapsed_ms\"])\n            r[tag] = sv; mx[tag] = el\n        a = sum(r[\"lock\"].values()); b = sum(r[\"cand\"].values())\n        ids = lambda x: \" \".join(sorted(k.split(\".\")[-1][-3:] for k in x))\n        print(f\"WAC300 {mt} ms 1T: lock {a}/{len(r['lock'])}  cand {b}/{len(r['cand'])}  delta {b-a:+d}  maxelapsed lock {mx['lock']} cand {mx['cand']} ms\")\n        print(\"  cand-only: \" + ids([k for k in r[\"cand\"] if r[\"cand\"][k] and not r[\"lock\"].get(k)]))\n        print(\"  lock-only: \" + ids([k for k in r[\"lock\"] if r[\"lock\"][k] and not r[\"cand\"].get(k)]))\n        if mx[\"cand\"] > mt + 1000: print(f\"  maxelapsed_over: cand {mx['cand']} ms > movetime+1000\")\n        out[str(mt)] = {\"lock_solved\": a, \"cand_solved\": b, \"n\": len(r[\"cand\"]), \"delta\": b - a,\n                        \"max_elapsed_ms_lock\": mx[\"lock\"], \"max_elapsed_ms_cand\": mx[\"cand\"]}\n    json.dump(out, open(f\"{W}/wac_summary.json\", \"w\"), indent=1)\n    return rc"
+        }
+      ]
+    },
+    "canonical_uci": {
+      "path": "/workspace/forge-pack24-20261025/new_handoff_1435/selected/forge_handoff_full_20261025_1435/files/01_lock_src_h256_e12/forge_h256_e12_1ab50b2d_src/src/uci.cpp",
+      "relative_to_supplied_files": "01_lock_src_h256_e12/forge_h256_e12_1ab50b2d_src/src/uci.cpp",
+      "sha256": "13c7c87a377ec30616f9a733bc5d74072c697c6e48db9eb39d751409f3cc0f97",
+      "bytes": 21901,
+      "lines": 430,
+      "excerpts": [
+        {
+          "start_line": 161,
+          "end_line": 169,
+          "text": "        if (command == \"uci\") {\n            const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex());\n            std::cout << \"id name Chess Engine Forge 6.4.24 candidate\\n\"\n                         \"id author OpenAI\\n\"\n                         \"option name Hash type spin default 32 min 1 max 2048\\n\"\n                         \"option name Threads type spin default 1 min 1 max 256\\n\"\n                         \"option name Move Overhead type spin default 10 min 0 max 1000\\n\"\n                         \"option name Ponder type check default false\\n\"\n                         \"option name OwnBook type check default \" << (forge::book::embedded_available() ? \"true\" : \"false\") << \"\\n\""
+        },
+        {
+          "start_line": 182,
+          "end_line": 189,
+          "text": "            std::cout << \"option name Clear Hash type button\\n\"\n                         \"uciok\" << std::endl;\n        } else if (command == \"isready\") {\n            { const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex()); std::cout << \"readyok\" << std::endl; }\n        } else if (command == \"ucinewgame\") {\n            stop_search();\n            searcher.clear();\n            (void)board.set_fen(forge::Board::StandardStartFen);"
+        }
+      ]
+    },
+    "canonical_search": {
+      "path": "/workspace/forge-pack24-20261025/new_handoff_1435/selected/forge_handoff_full_20261025_1435/files/01_lock_src_h256_e12/forge_h256_e12_1ab50b2d_src/src/search.cpp",
+      "relative_to_supplied_files": "01_lock_src_h256_e12/forge_h256_e12_1ab50b2d_src/src/search.cpp",
+      "sha256": "44680416e008f4ccc0ac7d95a1452ae3db34459f945ea3311dc456536fcb0e55",
+      "bytes": 69466,
+      "lines": 1531,
+      "excerpts": [
+        {
+          "start_line": 575,
+          "end_line": 584,
+          "text": "void Worker::clear() {\n    evaluator_.clear();\n    *main_history_ = ButterflyHistory{};\n    *capture_history_ = CaptureHistory{};\n    *continuation_history_ = ContinuationHistory{};\n    *counter_moves_ = CounterMoveTable{};\n    *correction_history_ = CorrectionHistory{};\n    *material_correction_ = CorrectionHistory{};\n    for (SearchStack& ss : stack_) ss = SearchStack{};\n}"
+        },
+        {
+          "start_line": 1249,
+          "end_line": 1257,
+          "text": "    // Time allocation.\n    const std::int64_t overhead = std::max<std::int64_t>(0, limits.move_overhead_ms);\n    soft_limit_ms_ = hard_limit_ms_ = 0;\n    time_managed_ = false;\n    if (limits.infinite) {\n        soft_limit_ms_ = hard_limit_ms_ = 0;\n    } else if (limits.movetime_ms >= 0) {\n        hard_limit_ms_ = std::max<std::int64_t>(1, limits.movetime_ms - overhead);\n        soft_limit_ms_ = hard_limit_ms_;"
+        },
+        {
+          "start_line": 1488,
+          "end_line": 1496,
+          "text": "void Searcher::clear_hash() {\n    shared_.tt.clear();\n    for (auto& worker : workers_) worker->clear_caches();\n}\n\nvoid Searcher::clear() {\n    shared_.tt.clear();\n    for (auto& worker : workers_) worker->clear();\n}"
+        }
+      ]
+    },
+    "s07_tool": {
+      "path": "/workspace/forge-pack24-20261026/S07/forge_sol_S07_screen_sweep_20261026.py",
+      "sha256": "7262dcf8259781396849c217e8713868d8f37736e63ec6015ff99c845b57baf7",
+      "excerpts": [
+        {
+          "start_line": 122,
+          "end_line": 154,
+          "text": "    try: chess = importlib.import_module('chess')\n    except ImportError as exc: raise ValueError('python-chess is required for WAC EPD parsing and legality; no engine launched') from exc\n    path = Path(path).resolve(strict=True)\n    digest = sha(path)\n    if digest != WAC_SHA256: raise ValueError('WAC300 suite SHA256 differs from supplied x_wacnew.epd')\n    rows = []; ids = set(); multiple = 0\n    for number, line in enumerate(path.read_text().splitlines(), 1):\n        if not line.strip(): continue\n        try:\n            board, ops = chess.Board.from_epd(line)\n            pid = ops['id']; bm = ops.get('bm', []); am = ops.get('am', [])\n            if not board.is_valid() or not isinstance(pid, str) or pid in ids or not bm: raise ValueError('invalid board, duplicate ID, or missing bm')\n            if any(m not in board.legal_moves for m in [*bm,*am]): raise ValueError('illegal bm/am move')\n        except Exception as exc: raise ValueError('EPD parse error at line %d: %s' % (number,exc)) from exc\n        ids.add(pid); multiple += len(bm)>1\n        rows.append({'id':pid,'board':board,'bm':set(bm),'am':set(am)})\n    if len(rows) != 300 or ids != {'WAC.%03d'%n for n in range(1,301)}: raise ValueError('expected exact 300 WAC.001..WAC.300 positions')\n    return rows, {'path':str(path),'sha256':digest,'bytes':path.stat().st_size,'positions':len(rows),\n                  'unique_ids':len(ids),'valid_boards':len(rows),'legal_bm_am':True,'parse_exceptions':[],\n                  'multiple_bm_positions':multiple,'chess_version':chess.__version__,\n                  'chess_module':str(Path(chess.__file__).resolve()), 'chess_module_sha256':sha(chess.__file__)}\n\ndef score_bestmove(row, text):\n    chess = importlib.import_module('chess')\n    result = {'id':row['id'],'bestmove_uci':text,'legal':False,'bestmove_allowed':False,'exception':None,\n              'bm_uci':sorted(m.uci() for m in row['bm']),'am_uci':sorted(m.uci() for m in row['am'])}\n    try:\n        move = chess.Move.from_uci(text)\n        result['legal'] = move in row['board'].legal_moves\n        result['bestmove_allowed'] = result['legal'] and (not row['bm'] or move in row['bm']) and move not in row['am']\n        if not result['legal']: result['exception'] = 'illegal bestmove for original EPD position'\n    except (ValueError, TypeError) as exc: result['exception'] = type(exc).__name__ + ': ' + str(exc)\n    return result"
+        },
+        {
+          "start_line": 325,
+          "end_line": 343,
+          "text": "            live_ok = off_options==on_options or comparison['option_live']\n            result.update(off_nodes={str(d):n for d,n in series['off'].items()},on_nodes={str(d):n for d,n in series['on'].items()},\n                          comparison=comparison,reference_status='PASS' if reference_ok else 'FAIL',\n                          option_live_required=off_options!=on_options,\n                          status='PASS' if reference_ok and live_ok and comparison['guard_status']=='PASS' else 'FAIL')\n            if not live_ok: result['failure']='different option sets were inert across all five depths; option live check failed'\n        else:\n            def operation(send,until):\n                names = configure(send,until,commands,allow_unadvertised)\n                if 'Clear Hash' not in names: raise ValueError('Clear Hash not advertised')\n                for row in positions:\n                    send('ucinewgame'); send('setoption name Clear Hash'); send('isready'); until(lambda line:line=='readyok')\n                    send('position fen '+row['board'].fen()); send('go movetime %d'%args.movetime_ms)\n                    lines = until(lambda line:line.startswith('bestmove '),timeout=args.timeout+args.movetime_ms/1000)\n                    tokens = lines[-1].split()\n                    if len(tokens) not in (2,4) or (len(tokens)==4 and tokens[2]!='ponder'): raise ValueError('malformed bestmove line')\n                    result['results'].append(score_bestmove(row,tokens[1]))\n            _, receipt = cap.exchange('wac300_fixedtime',operation)\n            illegal = sum(not row['legal'] for row in result['results'])"
+        }
+      ]
+    }
+  },
+  "sealed_files_preserved": {
+    "manifest_path": "/workspace/forge-pack24-20261026/S07/forge_sol_S07_native_SHA256SUMS_20261026.txt",
+    "manifest_sha256": "e9edae0a1d10517f085ac6e0eead308174a647eda4e7f232d1f531578f91bd59",
+    "entries_verified_before": 124,
+    "entries_verified_after": 124,
+    "existing_sealed_files_changed": []
+  }
+}

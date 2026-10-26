@@ -1,5 +1,19 @@
 # Experiment ledger
 
+## Current finite-queue checkpoint — 2026-10-26 12:35 UTC
+
+The finite handoff contains **54 unique IDs: 12 delivered-scope done, 41 pending, 1 dropped (S23)**. Done: S01–S07, S25, S27, S28, S33 and S48. S48 is counted once. S24 remains explicitly optional/last; four Astra jobs follow Sol and never run concurrently. Earlier dated sections below are retained history; their old “next” lines do not override this snapshot.
+
+S33 artifact `d9dfc4cf3b11daa2206db8b8a5a5a8fce5f0be62` has all220 immutable HTTP200/SHA256/Git-byte readbacks; S48 `e9ea373152200488fb77fdfd0e90434692e7ec43` has all10; S07 `ebfb43d061c02f3fe7aba1886b951170559f2720` has all29. S33 completes630 advisory cells at20k trials each, six fixed validation cells and90 retained raw groups. S48 separates concurrency and conditional MC uncertainty; actual G104/G120 pair profiles and corrected observational CI remain UNVERIFIED. S07 retains the actual same-empty-options five-depth controls and one271/300 WAC screen, zero illegal moves; historical283/284 controls do not replace271, and the gap’s cause stays unknown. These tooling results do not adopt an engine, new lock, speed or Elo gain.
+
+S26 is root-owned and active under its frozen one-attempt-per-net f019–f023 protocol, CPU4/nice19. At the dated root observation, f019 was in BENCH; no candidate completion or WAC result is claimed here. The closed B+lock control is separate evidence. Preserve reference-score FAIL and PIN_MISMATCH/unreviewed unapplied proposals while finishing allowed checks; do not repeat successful or failed attempts to fish for scores. Heavy Git/checkpoint writes wait for a future BUILD phase, never BENCH/WAC. Consult root/current lease before resuming; no persistent background continuation is promised.
+
+S08 is prepared: canonical patch `5c6310e7881bfb592feab981e132a6cf81a6080b45631f62a37e774ced5b6879` applies with Git/GNU-F0 on L/L′/B; source/pure checks and a tiny counter API control passed. Full engine native/profile validation remains pending, and1700 of2000 distinct genuine WAC/STS inputs are missing. S16 and S34 are prepared but unintegrated/unpublished; real013/014 and pwsh checks remain open. Continue S26, S08 and the saved unique queue, through all41 unfinished IDs.
+
+Wave11 retained durable metadata for420 external closed compiler-support objects (63,986,184 raw bytes;36,166,823 payload bytes reclaimed). Gzip cache payloads remain local. A prior tracked-library scope error was repaired with exact hash/Git bytes; repository/tracked/source/evidence paths are now excluded from cache retirement. No binary, cache payload or protected preexisting untracked work is included in this checkpoint.
+
+Readback receipts: [S33](../validation/forge_sol_pack31_20261025/forge_sol_S33_public_readback_20261026.json), [S48](../validation/forge_sol_pack31_20261025/forge_sol_S48_public_readback_20261026.json), [S07](../validation/forge_sol_pack31_20261025/forge_sol_S07_public_readback_20261026.json). [S00 checkpoint](../validation/forge_sol_pack31_20261025/forge_sol_S00_checkpoint_20261025.json).
+
 ## S06 offline tool completion — 2026-10-26
 
 Artifact `0a0262c337fb1919e43676e5d9a6c08abda7243e`:19 immutable files verified against HTTP/SHA/Git bytes. Final76 tests in source and isolated flat layouts,30 independent probes,200 Decimal statistics vectors. Supplied G95/G100r/G119 count-only cases within.01;35 BOM CSV rows. Historical178/89pair W66 D44 L68 agrees with original console; original timeout produces expected BLOCKED/exit1. All failures/prior versions retained in122-record gzip archive SHA32a25255617453b8e822335b9b317af1a1efd1aedebd4895ce0cb1c5eab554c1. G104 actual paired likelihood/current raw gates UNVERIFIED. No engine patch or new speed/Elo result. Next S33 (+S48), no accepted-lock change.

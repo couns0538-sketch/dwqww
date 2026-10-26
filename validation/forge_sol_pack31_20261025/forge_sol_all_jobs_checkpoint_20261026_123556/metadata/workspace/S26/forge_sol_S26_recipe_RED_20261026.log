@@ -1,0 +1,34 @@
+test_actual_configure_argv_pins_canonical_h256_v3_recipe (test_forge_sol_S26_netbatch_20261026.NetBatchTests.test_actual_configure_argv_pins_canonical_h256_v3_recipe) ... FAIL
+test_effective_recipe_checks_every_test_and_production_translation_unit (test_forge_sol_S26_netbatch_20261026.NetBatchTests.test_effective_recipe_checks_every_test_and_production_translation_unit) ... FAIL
+test_postbuild_compile_command_drift_blocks_before_any_engine (test_forge_sol_S26_netbatch_20261026.NetBatchTests.test_postbuild_compile_command_drift_blocks_before_any_engine) ... FAIL
+
+======================================================================
+FAIL: test_actual_configure_argv_pins_canonical_h256_v3_recipe (test_forge_sol_S26_netbatch_20261026.NetBatchTests.test_actual_configure_argv_pins_canonical_h256_v3_recipe)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/forge-pack24-20261026/S26/test_forge_sol_S26_netbatch_20261026.py", line 240, in test_actual_configure_argv_pins_canonical_h256_v3_recipe
+    argv=json.loads(p.read_text())['argv'];self.assertIn(expected,argv);self.assertIn('-DFORGE_NATIVE=OFF',argv);self.assertIn('-DCMAKE_INTERPROCEDURAL_OPTIMIZATION=OFF',argv);self.assertIn('-DCMAKE_EXPORT_COMPILE_COMMANDS=ON',argv)
+                                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: '-DCMAKE_CXX_FLAGS=-march=x86-64-v3 -mtune=znver5 -fno-fast-math -ffp-contract=off -DFORGE_NNUE_HIDDEN=256' not found in ['-S', '/workspace/forge-pack24-20261026/S26/SYNTHETIC space vd0nj392/output/01_6c3f251a6041/source', '-B', '/workspace/forge-pack24-20261026/S26/SYNTHETIC space vd0nj392/output/01_6c3f251a6041/build', '-DCMAKE_BUILD_TYPE=Release', '-DFORGE_NATIVE=ON', '-DCMAKE_CXX_FLAGS=-ffp-contract=off -fno-fast-math']
+
+======================================================================
+FAIL: test_effective_recipe_checks_every_test_and_production_translation_unit (test_forge_sol_S26_netbatch_20261026.NetBatchTests.test_effective_recipe_checks_every_test_and_production_translation_unit)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/forge-pack24-20261026/S26/test_forge_sol_S26_netbatch_20261026.py", line 242, in test_effective_recipe_checks_every_test_and_production_translation_unit
+    self.assertTrue(hasattr(self.mod,'audit_build_recipe'),'actual compile-command guard missing')
+AssertionError: False is not true : actual compile-command guard missing
+
+======================================================================
+FAIL: test_postbuild_compile_command_drift_blocks_before_any_engine (test_forge_sol_S26_netbatch_20261026.NetBatchTests.test_postbuild_compile_command_drift_blocks_before_any_engine)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/forge-pack24-20261026/S26/test_forge_sol_S26_netbatch_20261026.py", line 256, in test_postbuild_compile_command_drift_blocks_before_any_engine
+    self.fixture();r=self.invoke(env={'SYNTHETIC_POSTBUILD_DRIFT':'1'});self.assertNotEqual(r.returncode,0)
+                                                                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 0 == 0
+
+----------------------------------------------------------------------
+Ran 3 tests in 10.054s
+
+FAILED (failures=3)

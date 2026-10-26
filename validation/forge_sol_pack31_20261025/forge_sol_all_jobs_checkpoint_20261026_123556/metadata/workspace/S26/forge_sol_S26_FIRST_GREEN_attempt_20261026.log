@@ -1,0 +1,35 @@
+test_actual_fake_process_batch_copies_each_net_and_retains_inputs (test_forge_sol_S26_netbatch_20261026.NetBatchTests.test_actual_fake_process_batch_copies_each_net_and_retains_inputs) ... FAIL
+test_allowlist_rejects_pin_mismatch_and_excess_known_failures (test_forge_sol_S26_netbatch_20261026.NetBatchTests.test_allowlist_rejects_pin_mismatch_and_excess_known_failures) ... ok
+test_ctest_no_tests_or_failed_unrelated_test_never_passes (test_forge_sol_S26_netbatch_20261026.NetBatchTests.test_ctest_no_tests_or_failed_unrelated_test_never_passes) ... ok
+test_dependency_hash_drift_is_rejected_before_import (test_forge_sol_S26_netbatch_20261026.NetBatchTests.test_dependency_hash_drift_is_rejected_before_import) ... ok
+test_existing_output_is_rejected_without_edits (test_forge_sol_S26_netbatch_20261026.NetBatchTests.test_existing_output_is_rejected_without_edits) ... ok
+test_fake_ctest_unexpected_failure_aborts_without_relaxing_pins (test_forge_sol_S26_netbatch_20261026.NetBatchTests.test_fake_ctest_unexpected_failure_aborts_without_relaxing_pins) ... FAIL
+test_imported_documentary_unknowns_are_not_measured_results (test_forge_sol_S26_netbatch_20261026.NetBatchTests.test_imported_documentary_unknowns_are_not_measured_results) ... ok
+test_owned_sleep_child_is_cleaned_on_ram_drop (test_forge_sol_S26_netbatch_20261026.NetBatchTests.test_owned_sleep_child_is_cleaned_on_ram_drop) ... ok
+test_reference_missing_depth_and_noninteger_are_rejected (test_forge_sol_S26_netbatch_20261026.NetBatchTests.test_reference_missing_depth_and_noninteger_are_rejected) ... ok
+test_resource_guard_stops_before_any_build (test_forge_sol_S26_netbatch_20261026.NetBatchTests.test_resource_guard_stops_before_any_build) ... ok
+test_source_symlink_is_rejected_before_copy (test_forge_sol_S26_netbatch_20261026.NetBatchTests.test_source_symlink_is_rejected_before_copy) ... ok
+
+======================================================================
+FAIL: test_actual_fake_process_batch_copies_each_net_and_retains_inputs (test_forge_sol_S26_netbatch_20261026.NetBatchTests.test_actual_fake_process_batch_copies_each_net_and_retains_inputs)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/forge-pack24-20261026/S26/test_forge_sol_S26_netbatch_20261026.py", line 104, in test_actual_fake_process_batch_copies_each_net_and_retains_inputs
+    self.assertEqual(r.returncode,0,r.stdout+r.stderr);j=json.loads((self.root/'output/result.json').read_text())
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 1 != 0 : {"status": "FAIL", "evidence_kind": "SYNTHETIC", "out": "/workspace/forge-pack24-20261026/S26/SYNTHETIC space 560dmzfb/output", "failure": "AttributeError: 'types.SimpleNamespace' object has no attribute 'PIPE'"}
+
+
+======================================================================
+FAIL: test_fake_ctest_unexpected_failure_aborts_without_relaxing_pins (test_forge_sol_S26_netbatch_20261026.NetBatchTests.test_fake_ctest_unexpected_failure_aborts_without_relaxing_pins)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/forge-pack24-20261026/S26/test_forge_sol_S26_netbatch_20261026.py", line 113, in test_fake_ctest_unexpected_failure_aborts_without_relaxing_pins
+    self.fixture();r=self.invoke(env={'SYNTHETIC_BAD_CTEST':'1'});self.assertNotEqual(r.returncode,0);j=json.loads((self.root/'output/result.json').read_text());self.assertEqual(j['status'],'FAIL');self.assertIn('unexpected board corruption',j['failure']);self.assertEqual(len(j['nets']),0)
+                                                                                                                                                                                                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 'unexpected board corruption' not found in "AttributeError: 'types.SimpleNamespace' object has no attribute 'PIPE'"
+
+----------------------------------------------------------------------
+Ran 11 tests in 5.808s
+
+FAILED (failures=2)
