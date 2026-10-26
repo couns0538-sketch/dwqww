@@ -1,0 +1,30 @@
+test_excess_root_stops_immediately_and_owned_child_is_reaped (__main__.PairTests.test_excess_root_stops_immediately_and_owned_child_is_reaped) ... ok
+test_native_integer_schema_and_failures (__main__.PairTests.test_native_integer_schema_and_failures) ... ok
+test_real_child_inherits_input_fd_and_saved_gzip_roundtrips (__main__.PairTests.test_real_child_inherits_input_fd_and_saved_gzip_roundtrips) ... ERROR
+test_same_path_and_hardlink_arm_are_rejected (__main__.PairTests.test_same_path_and_hardlink_arm_are_rejected) ... ERROR
+
+======================================================================
+ERROR: test_real_child_inherits_input_fd_and_saved_gzip_roundtrips (__main__.PairTests.test_real_child_inherits_input_fd_and_saved_gzip_roundtrips)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/forge-pack24-20261026/S09_NATIVE_PREP_20261026/forge_sol_S09_native_pair_tests_20261026.py", line 28, in test_real_child_inherits_input_fd_and_saved_gzip_roundtrips
+    with mock.patch.dict(os.environ,{'PYTHONDONTWRITEBYTECODE':'0'}):r=m.capture(exe,fd,0,p/'captured',5,1)
+                                                                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/forge-pack24-20261026/S09_NATIVE_PREP_20261026/forge_sol_S09_native_pair_20261026.py", line 59, in capture
+    if proc.returncode!=0:raise ValueError('native helper did not exit normally with rc0')
+                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: native helper did not exit normally with rc0
+
+======================================================================
+ERROR: test_same_path_and_hardlink_arm_are_rejected (__main__.PairTests.test_same_path_and_hardlink_arm_are_rejected)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/forge-pack24-20261026/S09_NATIVE_PREP_20261026/forge_sol_S09_native_pair_tests_20261026.py", line 12, in test_same_path_and_hardlink_arm_are_rejected
+    with self.assertRaisesRegex(ValueError,'self-comparison'):m.require_distinct(a,other)
+                                                              ^^^^^^^^^^^^^^^^^^
+AttributeError: module 'pair' has no attribute 'require_distinct'
+
+----------------------------------------------------------------------
+Ran 4 tests in 0.147s
+
+FAILED (errors=2)

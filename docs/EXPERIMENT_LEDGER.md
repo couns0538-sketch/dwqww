@@ -1,5 +1,11 @@
 # Experiment ledger
 
+## S08 delivered; S09 active — 2026-10-26 18:14 UTC
+
+The finite queue is **14 delivered-scope, 39 pending, 1 dropped (S23), 54 unique IDs**. S08 artifact commit `dee3475e34be1333bc071731ebc0b4d4140ff137` has 428/428 actual immutable HTTP200/SHA256/Git-byte checks. Its optional profiling patch preserves all five fixed node references on Lprime/B; perft5, FMA0, full Release15/16 and ASan/UBSan15/16 pass with four pinned known diagnostics. OFF evidence is canonical reuse backed by complete production-token identity, not a fresh OFF build. The authorized2000 corpus and original failures remain preserved. No speed, Elo, Windows or new-lock acceptance.
+
+S09 is active. A fresh reference Release build equals canonical e3df99cd; its first bare d11 passed308972. Candidate builds, million-position parity and full synthetic50k holdout qualification remain pending. Closed controller/source/build evidence and actual active leases are saved in the S09 active checkpoint. Continue S09, then S10 and the complete saved queue; never reset accepted source or treat preparation as completion. /tmp is a separately verified17GB writable build filesystem; preserve completed raw evidence in Git. Earlier dated entries below remain history.
+
 ## S08 Lprime native qualification — 2026-10-26T17:02:18.747865+00:00
 
 S08 TLS-v2 patch `91c28d9f3b70af08885d50239141890813722cf00114bda8a2d12b71eb5e476c` passed all five fixed benchmarks, both depth-5 perfts, FMA=0 and all15 Release CTests. All15 ASan/UBSan CTests pass with leak detection enabled; extra Profile-ON/T2 checks pass. The 2000-position fixed-work counter run passed with 300WAC,7 additional bench and1693 suppliedopening positions. Exact raw streams and2001 packets are in the [recoverable checkpoint](../validation/forge_sol_pack31_20261025/forge_sol_S08_Lprime_checkpoint_20261026/forge_sol_current_continuation_20261026.json). Original failures are retained. No speed or Elo result is claimed.

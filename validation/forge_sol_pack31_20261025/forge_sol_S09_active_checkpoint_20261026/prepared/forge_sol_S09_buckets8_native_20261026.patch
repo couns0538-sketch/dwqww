@@ -1,0 +1,467 @@
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -49,6 +49,12 @@
+ add_executable(forge_rule50_tests tests/rule50_tests.cpp)
+ target_link_libraries(forge_rule50_tests PRIVATE forge_core Threads::Threads)
+ 
++add_executable(forge_nnue_heads_tests tests/nnue_heads_tests.cpp)
++target_link_libraries(forge_nnue_heads_tests PRIVATE forge_core Threads::Threads)
++
++add_executable(forge_nnue_heads_contract tests/nnue_heads_contract.cpp)
++target_link_libraries(forge_nnue_heads_contract PRIVATE forge_core Threads::Threads)
++
+ add_executable(forge_legal_witness_tests tests/legal_witness_tests.cpp)
+ target_link_libraries(forge_legal_witness_tests PRIVATE forge_core Threads::Threads)
+ 
+@@ -82,12 +88,18 @@
+ add_test(NAME forge_legal_witness_tests COMMAND forge_legal_witness_tests
+     ${CMAKE_CURRENT_SOURCE_DIR}/tests/legal_witness_fixtures.tsv
+     ${CMAKE_CURRENT_SOURCE_DIR}/tools/openings/forge-10000.epd)
++add_test(NAME forge_nnue_heads_tests COMMAND forge_nnue_heads_tests)
++add_test(NAME forge_nnue_heads_contract COMMAND forge_nnue_heads_contract 1)
+ 
+ # Support tooling does not change engine behavior or add runtime dependencies.
+ option(FORGE_BUILD_VALIDATION_TOOLS "Build the original opening corpus generator" OFF)
+ if(FORGE_BUILD_VALIDATION_TOOLS)
+     add_executable(forge_openings tools/generate_openings.cpp)
+     target_link_libraries(forge_openings PRIVATE forge_core)
++    add_executable(forge_nnue_heads_parity tools/nnue/heads_parity.cpp)
++    target_link_libraries(forge_nnue_heads_parity PRIVATE forge_core Threads::Threads)
++    add_executable(forge_nnue_bit_snapshot tools/nnue_snapshot.cpp)
++    target_link_libraries(forge_nnue_bit_snapshot PRIVATE forge_core Threads::Threads)
+ endif()
+ option(FORGE_BUILD_TUNING_TOOLS "Build the evaluation tuning tools (position extractor and Texel tuner)" OFF)
+ if(FORGE_BUILD_TUNING_TOOLS)
+diff --git a/include/forge/nnue.hpp b/include/forge/nnue.hpp
+--- a/include/forge/nnue.hpp
++++ b/include/forge/nnue.hpp
+@@ -9,7 +9,8 @@
+ 
+ // Architecture: for each colour's perspective, 768 piece-square inputs feed a
+ // HiddenSize accumulator (incrementally updated); SCReLU of the side-to-move
+-// and opponent accumulators is combined by a single linear output. The shipped
++// and opponent accumulators feeds one of OutputHeads linear output heads,
++// picked by the number of pieces on the board (see output_head()). The shipped
+ // network (src/nnue_weights.inc) is a residual correction added to the
+ // hand-crafted evaluation; see nnue::residual().
+ constexpr int InputCount = 768;
+@@ -26,6 +27,19 @@
+     const int type = piece_type(piece) - 1;
+     const int relative_square = perspective == White ? square : square ^ 56;
+     return (relative_color * 6 + type) * 64 + relative_square;
++}
++
++// Output heads (buckets8): one linear head per piece-count band. All pieces
++// count, kings included, so a legal position has 2..32 pieces:
++//   2-4 -> 0, 5-8 -> 1, 9-12 -> 2, 13-16 -> 3,
++//   17-20 -> 4, 21-24 -> 5, 25-28 -> 6, 29-32 -> 7.
++// Out-of-range counts are clamped, so the index is always valid.
++// A weights include with a single head (legacy format) is copied into every
++// head at load time, which gives exactly the single-head evaluation.
++constexpr int OutputHeads = 8;
++[[nodiscard]] constexpr int output_head(int piece_count) {
++    const int head = (piece_count - 1) >> 2;
++    return head < 0 ? 0 : (head > OutputHeads - 1 ? OutputHeads - 1 : head);
+ }
+ 
+ struct Accumulator {
+@@ -51,6 +65,9 @@
+ // Whether the compiled-in network is a residual correction that the engine
+ // adds to the hand-crafted evaluation (false when no network is compiled in).
+ [[nodiscard]] bool residual();
++// Number of distinct heads stored in the compiled include: 1 (legacy,
++// replicated into all OutputHeads heads) or OutputHeads.
++[[nodiscard]] int stored_output_heads();
+ // Runtime switch (UCI option); only effective when available().
+ extern bool enabled;
+ 
+diff --git a/src/nnue.cpp b/src/nnue.cpp
+--- a/src/nnue.cpp
++++ b/src/nnue.cpp
+@@ -19,7 +19,12 @@
+ #include <immintrin.h>
+ #endif
+ 
+-#if __has_include("nnue_weights.inc")
++#if defined(FORGE_NNUE_WEIGHTS_FILE)
++// Diagnostic builds (parity harnesses, export checks) name an include
++// explicitly; a missing file is a compile error, never a silent fallback.
++#include FORGE_NNUE_WEIGHTS_FILE
++#define FORGE_HAS_NNUE 1
++#elif __has_include("nnue_weights.inc")
+ #include "nnue_weights.inc"
+ #define FORGE_HAS_NNUE 1
+ #else
+@@ -30,11 +35,27 @@
+ #ifndef FORGE_NNUE_RESIDUAL
+ #define FORGE_NNUE_RESIDUAL 0
+ #endif
++// Number of output heads stored in the include. Legacy includes declare none
++// and hold one head (scalar NnueB2). Includes written for the bde3dc9d
++// layout name the same thing FORGE_NNUE_OUTPUT_BUCKETS.
++#if !defined(FORGE_NNUE_OUTPUT_HEADS) && defined(FORGE_NNUE_OUTPUT_BUCKETS)
++#define FORGE_NNUE_OUTPUT_HEADS FORGE_NNUE_OUTPUT_BUCKETS
++#endif
++#ifndef FORGE_NNUE_OUTPUT_HEADS
++#define FORGE_NNUE_OUTPUT_HEADS 1
++#endif
++static_assert(FORGE_NNUE_OUTPUT_HEADS == 1 || FORGE_NNUE_OUTPUT_HEADS == forge::nnue::OutputHeads,
++              "nnue_weights.inc must store 1 (legacy) or OutputHeads output heads");
+ #if FORGE_HAS_NNUE
+ static_assert(sizeof(NnueW1) / sizeof(NnueW1[0]) == static_cast<std::size_t>(forge::nnue::InputCount) * forge::nnue::HiddenSize,
+               "nnue_weights.inc was trained for a different FORGE_NNUE_HIDDEN");
+ static_assert(sizeof(NnueB1) / sizeof(NnueB1[0]) == static_cast<std::size_t>(forge::nnue::HiddenSize), "nnue_weights.inc b1 size");
+-static_assert(sizeof(NnueW2) / sizeof(NnueW2[0]) == 2 * static_cast<std::size_t>(forge::nnue::HiddenSize), "nnue_weights.inc w2 size");
++static_assert(sizeof(NnueW2) / sizeof(NnueW2[0]) ==
++                  static_cast<std::size_t>(FORGE_NNUE_OUTPUT_HEADS) * 2 * static_cast<std::size_t>(forge::nnue::HiddenSize),
++              "nnue_weights.inc w2 size (heads x 2 x HiddenSize, head-major)");
++#if FORGE_NNUE_OUTPUT_HEADS > 1
++static_assert(sizeof(NnueB2) / sizeof(NnueB2[0]) == static_cast<std::size_t>(FORGE_NNUE_OUTPUT_HEADS), "nnue_weights.inc b2 size");
++#endif
+ #endif
+ 
+ namespace forge::nnue {
+@@ -42,12 +63,18 @@
+ bool enabled = true;
+ 
+ namespace {
++
++// One output head: weights for [side to move | opponent] SCReLU features,
++// followed by its bias, so a head's data is contiguous.
++struct OutputHead {
++    alignas(32) std::array<float, 2 * HiddenSize> w{};
++    float bias = 0.0F;
++};
+ 
+ struct Weights {
+     std::unique_ptr<float[]> w1;   // [InputCount][HiddenSize]
+     alignas(32) std::array<float, HiddenSize> b1{};
+-    alignas(32) std::array<float, 2 * HiddenSize> w2{};
+-    float b2 = 0.0F;
++    std::array<OutputHead, OutputHeads> heads{};
+ };
+ 
+ const Weights& weights() {
+@@ -59,8 +86,19 @@
+             w.w1[i] = static_cast<float>(NnueW1[i]) / WeightScale;
+         }
+         for (std::size_t i = 0; i < HiddenSize; ++i) w.b1[i] = static_cast<float>(NnueB1[i]) / WeightScale;
+-        for (std::size_t i = 0; i < 2 * HiddenSize; ++i) w.w2[i] = static_cast<float>(NnueW2[i]) / OutputScale;
+-        w.b2 = static_cast<float>(NnueB2) / OutputScale;
++        for (std::size_t head = 0; head < static_cast<std::size_t>(OutputHeads); ++head) {
++            // Legacy single-head includes fill every head from stored head 0.
++            const std::size_t stored = FORGE_NNUE_OUTPUT_HEADS == 1 ? 0 : head;
++            OutputHead& out = w.heads[head];
++            for (std::size_t i = 0; i < 2 * HiddenSize; ++i) {
++                out.w[i] = static_cast<float>(NnueW2[stored * 2 * HiddenSize + i]) / OutputScale;
++            }
++#if FORGE_NNUE_OUTPUT_HEADS > 1
++            out.bias = static_cast<float>(NnueB2[stored]) / OutputScale;
++#else
++            out.bias = static_cast<float>(NnueB2) / OutputScale;
++#endif
++        }
+ #endif
+         return w;
+     }();
+@@ -80,6 +118,8 @@
+ bool available() { return FORGE_HAS_NNUE != 0; }
+ 
+ bool residual() { return FORGE_HAS_NNUE != 0 && FORGE_NNUE_RESIDUAL != 0; }
++
++int stored_output_heads() { return FORGE_NNUE_OUTPUT_HEADS; }
+ 
+ void refresh(const Board& board, Accumulator& accumulator) {
+     const Weights& w = weights();
+@@ -158,6 +198,7 @@
+ 
+ int evaluate(const Board& board, const Accumulator& accumulator) {
+     const Weights& w = weights();
++    const OutputHead& head = w.heads[static_cast<std::size_t>(output_head(popcount(board.occupied())))];
+     const Color us = board.side_to_move();
+     const auto& ours = accumulator.values[static_cast<std::size_t>(us)];
+     const auto& theirs = accumulator.values[static_cast<std::size_t>(opposite(us))];
+@@ -177,8 +218,8 @@
+             const std::size_t base = static_cast<std::size_t>(h + 8 * k);
+             const __m256 a = _mm256_min_ps(_mm256_max_ps(_mm256_load_ps(ours.data() + base), zero), one);
+             const __m256 b = _mm256_min_ps(_mm256_max_ps(_mm256_load_ps(theirs.data() + base), zero), one);
+-            const __m256 term = _mm256_add_ps(_mm256_mul_ps(_mm256_mul_ps(a, a), _mm256_load_ps(w.w2.data() + base)),
+-                                            _mm256_mul_ps(_mm256_mul_ps(b, b), _mm256_load_ps(w.w2.data() + HiddenSize + base)));
++            const __m256 term = _mm256_add_ps(_mm256_mul_ps(_mm256_mul_ps(a, a), _mm256_load_ps(head.w.data() + base)),
++                                            _mm256_mul_ps(_mm256_mul_ps(b, b), _mm256_load_ps(head.w.data() + HiddenSize + base)));
+             sums[k] = _mm256_add_ps(sums[k], term);
+         }
+     }
+@@ -192,8 +233,8 @@
+             const std::size_t base = static_cast<std::size_t>(h + 4 * k);
+             const __m128 a = _mm_min_ps(_mm_max_ps(_mm_load_ps(ours.data() + base), zero), one);
+             const __m128 b = _mm_min_ps(_mm_max_ps(_mm_load_ps(theirs.data() + base), zero), one);
+-            const __m128 term = _mm_add_ps(_mm_mul_ps(_mm_mul_ps(a, a), _mm_load_ps(w.w2.data() + base)),
+-                                           _mm_mul_ps(_mm_mul_ps(b, b), _mm_load_ps(w.w2.data() + HiddenSize + base)));
++            const __m128 term = _mm_add_ps(_mm_mul_ps(_mm_mul_ps(a, a), _mm_load_ps(head.w.data() + base)),
++                                           _mm_mul_ps(_mm_mul_ps(b, b), _mm_load_ps(head.w.data() + HiddenSize + base)));
+             sums[k] = _mm_add_ps(sums[k], term);
+         }
+     }
+@@ -205,11 +246,11 @@
+             const std::size_t index = static_cast<std::size_t>(h + j);
+             const float a = std::min(std::max(ours[index], 0.0F), 1.0F);
+             const float b = std::min(std::max(theirs[index], 0.0F), 1.0F);
+-            lanes[j] += a * a * w.w2[index] + b * b * w.w2[static_cast<std::size_t>(HiddenSize) + index];
+-        }
+-    }
+-#endif
+-    float out = w.b2;
++            lanes[j] += a * a * head.w[index] + b * b * head.w[static_cast<std::size_t>(HiddenSize) + index];
++        }
++    }
++#endif
++    float out = head.bias;
+     for (int j = 0; j < Lanes; ++j) out += lanes[j];
+     const float centipawns = out * 400.0F / SigmoidK;
+     return static_cast<int>(std::clamp(centipawns, -30000.0F, 30000.0F));
+diff --git a/tests/nnue_heads_contract.cpp b/tests/nnue_heads_contract.cpp
+new file mode 100644
+--- /dev/null
++++ b/tests/nnue_heads_contract.cpp
+@@ -0,0 +1,19 @@
++// S09 requires an actual H256 residual net; unavailable NNUE cannot pass.
++#include "forge/nnue.hpp"
++
++#include <iostream>
++#include <string_view>
++
++int main(int argc, char** argv) {
++    if (argc != 2 || (std::string_view(argv[1]) != "1" && std::string_view(argv[1]) != "8")) {
++        std::cerr << "usage: forge_nnue_heads_contract EXPECTED_STORED_HEADS(1|8)\n";
++        return 2;
++    }
++    const int expected = argv[1][0] - '0';
++    const bool available = forge::nnue::available();
++    const bool residual = forge::nnue::residual();
++    const int stored = forge::nnue::stored_output_heads();
++    std::cout << "available=" << available << " residual=" << residual
++              << " hidden=" << forge::nnue::HiddenSize << " stored_heads=" << stored << '\n';
++    return available && residual && forge::nnue::HiddenSize == 256 && stored == expected ? 0 : 1;
++}
+diff --git a/tests/nnue_heads_tests.cpp b/tests/nnue_heads_tests.cpp
+new file mode 100644
+--- /dev/null
++++ b/tests/nnue_heads_tests.cpp
+@@ -0,0 +1,63 @@
++// buckets8 output heads: piece-count -> head mapping and loader contract.
++#include "forge/board.hpp"
++#include "forge/nnue.hpp"
++
++#include <iostream>
++
++using namespace forge;
++
++static_assert(nnue::OutputHeads == 8);
++// Every legal piece count 2..32 maps to its band; out-of-range counts clamp.
++static_assert(nnue::output_head(0) == 0 && nnue::output_head(1) == 0);
++static_assert(nnue::output_head(2) == 0 && nnue::output_head(4) == 0);
++static_assert(nnue::output_head(5) == 1 && nnue::output_head(8) == 1);
++static_assert(nnue::output_head(9) == 2 && nnue::output_head(12) == 2);
++static_assert(nnue::output_head(13) == 3 && nnue::output_head(16) == 3);
++static_assert(nnue::output_head(17) == 4 && nnue::output_head(20) == 4);
++static_assert(nnue::output_head(21) == 5 && nnue::output_head(24) == 5);
++static_assert(nnue::output_head(25) == 6 && nnue::output_head(28) == 6);
++static_assert(nnue::output_head(29) == 7 && nnue::output_head(32) == 7);
++static_assert(nnue::output_head(33) == 7 && nnue::output_head(64) == 7 && nnue::output_head(-5) == 0);
++
++int main() {
++    int failures = 0;
++    auto check = [&](bool ok, const char* what) {
++        if (!ok) { ++failures; std::cerr << "FAIL " << what << '\n'; }
++    };
++    // Each band is exactly 4 wide (band 0 starts at 1) and bands are monotone.
++    for (int pieces = 1; pieces <= 32; ++pieces) {
++        check(nnue::output_head(pieces) == (pieces - 1) / 4, "band formula");
++        if (pieces > 1) check(nnue::output_head(pieces) >= nnue::output_head(pieces - 1), "monotone");
++    }
++    if (nnue::available()) {
++        const int stored = nnue::stored_output_heads();
++        check(stored == 1 || stored == nnue::OutputHeads, "stored heads is 1 or 8");
++        // Positions spanning every head evaluate without touching invalid
++        // memory (ASan builds catch out-of-bounds head reads) and refresh is
++        // deterministic.
++        const char* fens[] = {
++            "4k3/8/8/8/8/8/8/4K3 w - - 0 1",                                   // 2 -> head 0
++            "4k3/8/8/8/8/8/4P3/R3K3 w - - 0 1",                               // 4 -> 0
++            "4k3/4p3/8/8/8/8/4P3/R3K3 b - - 0 1",                             // 5 -> 1
++            "r3k3/pp6/8/8/8/8/PPP5/R3K2R w - - 0 1",                          // 9 -> 2
++            "r3k2r/pppp4/8/8/8/8/PPPP4/R3K2R w KQkq - 0 1",                   // 14 -> 3
++            "r1bqk2r/pppp4/8/8/8/8/PPPP4/R1BQK2R w KQkq - 0 1",               // 18 -> 4
++            "r1bqk2r/pppppp2/8/8/8/8/PPPPPP2/R1BQK2R w KQkq - 0 1",           // 22 -> 5
++            "rnbqk2r/pppppppp/8/8/8/8/PPPPPPPP/RNBQK2R w KQkq - 0 1",         // 28 -> 6
++            "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",       // 32 -> 7
++        };
++        bool seen[nnue::OutputHeads] = {};
++        for (const char* fen : fens) {
++            Board board;
++            check(board.set_fen(fen), "fixture fen");
++            seen[nnue::output_head(popcount(board.occupied()))] = true;
++            nnue::Accumulator a, b;
++            nnue::refresh(board, a);
++            nnue::refresh(board, b);
++            check(nnue::evaluate(board, a) == nnue::evaluate(board, b), "deterministic eval");
++        }
++        for (int h = 0; h < nnue::OutputHeads; ++h) check(seen[h], "fixtures cover every head");
++    }
++    std::cout << (failures == 0 ? "nnue heads tests passed\n" : "nnue heads tests FAILED\n");
++    return failures == 0 ? 0 : 1;
++}
+diff --git a/tools/nnue/heads_parity.cpp b/tools/nnue/heads_parity.cpp
+new file mode 100644
+--- /dev/null
++++ b/tools/nnue/heads_parity.cpp
+@@ -0,0 +1,59 @@
++// buckets8 parity harness (own tool). Builds against any Forge core, old
++// single-head or new 8-head, so the same source compares both.
++// For each FEN line: refresh + evaluate, then `plies` seeded random legal
++// moves with incremental update; at every step prints
++//   <line> <ply> <pieces> <head> <net_cp> <hce_cp> <incremental==refresh>
++// head = clamp((pieces-1)>>2, 0, 7), computed here so the lock core links too.
++#include "forge/board.hpp"
++#include "forge/eval.hpp"
++#include "forge/nnue.hpp"
++
++#include <cstdint>
++#include <cstdio>
++#include <cstring>
++#include <fstream>
++#include <string>
++
++using namespace forge;
++
++int main(int argc, char** argv) {
++    if (argc < 2) { std::fprintf(stderr, "usage: heads_parity FENS [plies=8]\n"); return 2; }
++    const int plies = argc > 2 ? std::atoi(argv[2]) : 8;
++    std::ifstream in(argv[1]);
++    std::string line;
++    std::uint64_t rng = 0x9e3779b97f4a7c15ULL;
++    long n = 0, acc_mismatch = 0;
++    while (std::getline(in, line)) {
++        std::string fen = line.substr(0, line.find('|'));
++        while (!fen.empty() && (fen.back() == ' ' || fen.back() == '\r')) fen.pop_back();
++        Board board;
++        if (!board.set_fen(fen)) { std::printf("%ld BAD\n", n++); continue; }
++        nnue::Accumulator acc;
++        nnue::refresh(board, acc);
++        for (int ply = 0;; ++ply) {
++            nnue::Accumulator fresh;
++            nnue::refresh(board, fresh);
++            const bool same = std::memcmp(&fresh.values, &acc.values, sizeof(acc.values)) == 0;
++            if (!same) ++acc_mismatch;
++            const int pieces = popcount(board.occupied());
++            int head = (pieces - 1) >> 2; head = head < 0 ? 0 : (head > 7 ? 7 : head);
++            std::printf("%ld %d %d %d %d %d %d\n", n, ply, pieces, head, nnue::evaluate(board, acc),
++                        Evaluator::evaluate_uncached(board), same ? 1 : 0);
++            if (ply == plies) break;
++            const auto moves = board.legal_moves();
++            if (moves.empty()) break;
++            rng = rng * 6364136223846793005ULL + 1442695040888963407ULL;
++            const auto move = moves[static_cast<std::size_t>((rng >> 33) % moves.size())];
++            const auto dirty = nnue::dirty_pieces(board, move);
++            Undo undo;
++            if (!board.make_move(move, undo)) { std::printf("%ld ILLEGAL\n", n); break; }
++            nnue::Accumulator child;
++            nnue::update(acc, child, dirty);
++            acc = child;
++        }
++        ++n;
++    }
++    std::fprintf(stderr, "lines %ld available=%d residual=%d hidden=%d acc_mismatch=%ld\n", n, (int)nnue::available(),
++                 (int)nnue::residual(), (int)nnue::HiddenSize, acc_mismatch);
++    return 0;
++}
+diff --git a/tools/nnue/make_heads_inc.py b/tools/nnue/make_heads_inc.py
+new file mode 100644
+--- /dev/null
++++ b/tools/nnue/make_heads_inc.py
+@@ -0,0 +1,83 @@
++#!/usr/bin/env python3
++"""Forge NNUE output-head include tool (buckets8). Stdlib only.
++
++  make_heads_inc.py replicate SRC.inc DST.inc
++      Legacy single-head include -> 8-head include whose 8 heads are exact
++      copies of the source head. W1/B1 text is copied unchanged.
++  make_heads_inc.py check INC [--hidden N]
++      Validate an include against the layout in README_BUCKETS8.md and
++      report heads, sizes and which heads are identical.
++  make_heads_inc.py control SRC.inc DST.inc
++      TEST ONLY: replicate, then add (head+1)*64 to head k's bias (int16),
++      so each head gives a different eval. Used by the parity harness to
++      prove the head is really selected by piece count. Never ship it.
++
++Layout (head-major): NnueW2[8 * 2 * H] = head0[stm H | opp H], head1[...], ...
++NnueB2[8]. Bucket of a position = output_head(pieces incl. kings) =
++clamp((pieces - 1) >> 2, 0, 7).
++"""
++import re, sys
++
++HEADS = 8
++
++def parse(path):
++    text = open(path).read()
++    arrays = {}
++    for m in re.finditer(r'static const std::int16_t (Nnue\w+)\[(\d+)\] = \{(.*?)\};', text, re.S):
++        vals = [int(v) for v in m.group(3).replace('\n', ' ').split(',') if v.strip()]
++        if len(vals) != int(m.group(2)):
++            sys.exit(f'{path}: {m.group(1)} declares {m.group(2)} values, has {len(vals)}')
++        arrays[m.group(1)] = (m.start(), m.end(), vals)
++    scalar = re.search(r'static const std::int16_t NnueB2 = (-?\d+);', text)
++    heads_def = re.search(r'#define FORGE_NNUE_OUTPUT_(?:HEADS|BUCKETS) (\d+)', text)
++    return text, arrays, scalar, heads_def
++
++def fmt(name, vals, per_line=24):
++    rows = [', '.join(str(v) for v in vals[i:i + per_line]) for i in range(0, len(vals), per_line)]
++    return f'static const std::int16_t {name}[{len(vals)}] = {{\n  ' + ',\n  '.join(rows) + ',\n};'
++
++def replicate(src, dst, bias_step=0):
++    text, arrays, scalar, heads_def = parse(src)
++    if heads_def or scalar is None or 'NnueB2' in arrays:
++        sys.exit(f'{src}: not a legacy single-head include')
++    s, e, w2 = arrays['NnueW2']
++    b2 = int(scalar.group(1))
++    new_w2 = w2 * HEADS
++    new_b2 = [b2 + (k + 1) * bias_step for k in range(HEADS)]
++    if any(not -32768 <= v <= 32767 for v in new_b2):
++        sys.exit('bias out of int16 range')
++    out = text[:s] + fmt('NnueW2', new_w2) + text[e:scalar.start()] + fmt('NnueB2', new_b2, HEADS) + text[scalar.end():]
++    tag = '#define FORGE_NNUE_OUTPUT_HEADS 8\n'
++    note = ('// buckets8: 8 output heads (head-major NnueW2/NnueB2), made by tools/nnue/make_heads_inc.py\n'
++            f'// {"CONTROL (TEST ONLY): head k bias += (k+1)*%d" % bias_step if bias_step else "replicate"} from {src.split("/")[-1]}\n')
++    out = note + out
++    anchor = '#define FORGE_NNUE_RESIDUAL'
++    i = out.find(anchor)
++    i = out.find('\n', i) + 1 if i >= 0 else out.find('\n', out.find('#include <cstdint>')) + 1
++    out = out[:i] + tag + out[i:]
++    open(dst, 'w').write(out)
++    print(f'wrote {dst}: heads {HEADS}, W2 {len(new_w2)}, B2 {new_b2}')
++
++def check(path, hidden=None):
++    text, arrays, scalar, heads_def = parse(path)
++    w1 = arrays['NnueW1'][2]; b1 = arrays['NnueB1'][2]; w2 = arrays['NnueW2'][2]
++    h = len(b1)
++    if hidden and h != hidden: sys.exit(f'FAIL hidden {h} != {hidden}')
++    if len(w1) != 768 * h: sys.exit(f'FAIL W1 {len(w1)} != 768*{h}')
++    heads = int(heads_def.group(1)) if heads_def else 1
++    b2 = arrays['NnueB2'][2] if 'NnueB2' in arrays else [int(scalar.group(1))]
++    if len(w2) != heads * 2 * h or len(b2) != heads:
++        sys.exit(f'FAIL heads {heads}: W2 {len(w2)} (want {heads*2*h}), B2 {len(b2)} (want {heads})')
++    if heads not in (1, HEADS): sys.exit(f'FAIL heads {heads} not 1 or {HEADS}')
++    blocks = [tuple(w2[k * 2 * h:(k + 1) * 2 * h]) + (b2[k],) for k in range(heads)]
++    same = [k for k in range(heads) if blocks[k] == blocks[0]]
++    resid = re.search(r'#define FORGE_NNUE_RESIDUAL (\d)', text)
++    print(f'OK {path}: hidden {h}, heads {heads}, residual {resid.group(1) if resid else 0}, '
++          f'heads identical to head0: {same}, B2 {b2}')
++
++if __name__ == '__main__':
++    a = sys.argv[1:]
++    if len(a) == 3 and a[0] == 'replicate': replicate(a[1], a[2])
++    elif len(a) == 3 and a[0] == 'control': replicate(a[1], a[2], bias_step=64)
++    elif len(a) >= 2 and a[0] == 'check': check(a[1], int(a[3]) if len(a) == 4 and a[2] == '--hidden' else None)
++    else: sys.exit(__doc__)
