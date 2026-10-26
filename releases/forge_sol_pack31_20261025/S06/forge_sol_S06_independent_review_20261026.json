@@ -1,0 +1,788 @@
+{
+  "checks": [
+    {
+      "name": "original_cumulative_regression",
+      "observed": {
+        "input": "Results of Candidate vs Baseline (synthetic):\nGames: 4, Wins: 0, Losses: 0, Draws: 4\nPtnml(0-2): [0, 0, 2, 0, 0]\nResults of Candidate vs Baseline (synthetic):\nGames: 2, Wins: 2, Losses: 0, Draws: 0\nPtnml(0-2): [0, 0, 0, 0, 1]\n",
+        "issues": [
+          "line 4: decreasing cumulative games; possible restart",
+          "line 4: decreasing cumulative wdl; possible restart",
+          "line 4: decreasing cumulative pentabins; possible restart"
+        ],
+        "reported_games": 2,
+        "status": "BLOCKED",
+        "unparsed_records": []
+      },
+      "pass": true
+    },
+    {
+      "name": "original_malformed_finished_record",
+      "observed": {
+        "input": "Finished game 1 (Candidate vs Baseline): 1-0\nFinished game 2 (Baseline vs Candidate): 0-2\n",
+        "issues": [
+          "line 2: malformed Finished game record retained"
+        ],
+        "reported_games": null,
+        "status": "BLOCKED",
+        "unparsed_records": [
+          {
+            "line": 2,
+            "text": "Finished game 2 (Baseline vs Candidate): 0-2"
+          }
+        ]
+      },
+      "pass": true
+    },
+    {
+      "name": "original_invalid_fault_totals",
+      "observed": {
+        "input": "Results of Candidate vs Baseline (synthetic):\nGames: 2, Wins: 2, Losses: 0, Draws: 0\nPtnml(0-2): [0, 0, 0, 0, 1]\nPlayer: Candidate\nTimeouts: NaN\nCrashed: -1\n",
+        "issues": [
+          "line 5: malformed or unbound fault total retained",
+          "line 6: malformed or unbound fault total retained"
+        ],
+        "reported_games": 2,
+        "status": "BLOCKED",
+        "unparsed_records": [
+          {
+            "line": 5,
+            "text": "Timeouts: NaN"
+          },
+          {
+            "line": 6,
+            "text": "Crashed: -1"
+          }
+        ]
+      },
+      "pass": true
+    },
+    {
+      "name": "adaptive_regression_across_empty_snapshot",
+      "observed": {
+        "input": "Results of Candidate vs Baseline (synthetic):\nGames: 4, Wins: 0, Losses: 0, Draws: 4\nPtnml(0-2): [0, 0, 2, 0, 0]\nResults of Candidate vs Baseline (synthetic):\nResults of Candidate vs Baseline (synthetic):\nGames: 2, Wins: 2, Losses: 0, Draws: 0\nPtnml(0-2): [0, 0, 0, 0, 1]\n",
+        "issues": [
+          "line 5: decreasing cumulative games; possible restart",
+          "line 5: decreasing cumulative wdl; possible restart",
+          "line 5: decreasing cumulative pentabins; possible restart"
+        ],
+        "reported_games": 2,
+        "status": "BLOCKED",
+        "unparsed_records": []
+      },
+      "pass": true
+    },
+    {
+      "name": "adaptive_duplicate_summary_fields",
+      "observed": {
+        "input": "Results of Candidate vs Baseline (synthetic):\nGames: 4, Wins: 0, Losses: 0, Draws: 4\nPtnml(0-2): [0, 0, 2, 0, 0]\nGames: 2, Wins: 2, Losses: 0, Draws: 0\nPtnml(0-2): [0,0,0,0,1]\n",
+        "issues": [
+          "line 4: duplicate Games field; original retained",
+          "line 5: duplicate Ptnml field; original retained"
+        ],
+        "reported_games": 4,
+        "status": "BLOCKED",
+        "unparsed_records": [
+          {
+            "line": 4,
+            "text": "Games: 2, Wins: 2, Losses: 0, Draws: 0"
+          },
+          {
+            "line": 5,
+            "text": "Ptnml(0-2): [0,0,0,0,1]"
+          }
+        ]
+      },
+      "pass": true
+    },
+    {
+      "name": "adaptive_empty_player_binding",
+      "observed": {
+        "input": "Results of Candidate vs Baseline (synthetic):\nGames: 2, Wins: 2, Losses: 0, Draws: 0\nPtnml(0-2): [0, 0, 0, 0, 1]\nPlayer: Candidate\nTimeouts: 0\nPlayer:\nCrashed: 0\n",
+        "issues": [
+          "line 6: malformed Player header; fault binding reset",
+          "line 7: malformed or unbound fault total retained"
+        ],
+        "reported_games": 2,
+        "status": "BLOCKED",
+        "unparsed_records": [
+          {
+            "line": 6,
+            "text": "Player:"
+          },
+          {
+            "line": 7,
+            "text": "Crashed: 0"
+          }
+        ]
+      },
+      "pass": true
+    },
+    {
+      "name": "changed_resource_identity",
+      "observed": {
+        "input": "Results of Candidate vs Baseline (synthetic):\nGames: 4, Wins: 0, Losses: 0, Draws: 4\nPtnml(0-2): [0, 0, 2, 0, 0]\nResults of Candidate vs Baseline (other-synthetic):\nGames: 2, Wins: 2, Losses: 0, Draws: 0\nPtnml(0-2): [0, 0, 0, 0, 1]\n",
+        "issues": [
+          "line 4: changed resource/opening description; separate matches cannot be pooled",
+          "line 4: decreasing cumulative games; possible restart",
+          "line 4: decreasing cumulative wdl; possible restart",
+          "line 4: decreasing cumulative pentabins; possible restart"
+        ],
+        "reported_games": 2,
+        "status": "BLOCKED",
+        "unparsed_records": []
+      },
+      "pass": true
+    },
+    {
+      "name": "separate_finished_matches",
+      "observed": {
+        "input": "Results of Candidate vs Baseline (synthetic):\nGames: 4, Wins: 0, Losses: 0, Draws: 4\nPtnml(0-2): [0, 0, 2, 0, 0]\nFinished match\nResults of Candidate vs Baseline (synthetic):\nGames: 2, Wins: 2, Losses: 0, Draws: 0\nPtnml(0-2): [0, 0, 0, 0, 1]\nFinished match\n",
+        "issues": [
+          "line 5: summary after Finished match; separate experiment",
+          "multiple Finished match terminals; separate experiments cannot be pooled",
+          "line 5: decreasing cumulative games; possible restart",
+          "line 5: decreasing cumulative wdl; possible restart",
+          "line 5: decreasing cumulative pentabins; possible restart"
+        ],
+        "reported_games": 2,
+        "status": "BLOCKED",
+        "unparsed_records": []
+      },
+      "pass": true
+    },
+    {
+      "name": "valid_cumulative_snapshots_retained_not_summed",
+      "observed": {
+        "games": 6,
+        "snapshots": 2,
+        "status": "PARSED"
+      },
+      "pass": true
+    },
+    {
+      "name": "final_llr_no_finite_fallback_nan",
+      "observed": {
+        "final_llr": {
+          "line": 5,
+          "text": "LLR: nan",
+          "token": "nan",
+          "value": null
+        },
+        "status": "BLOCKED"
+      },
+      "pass": true
+    },
+    {
+      "name": "final_llr_no_finite_fallback_-nan",
+      "observed": {
+        "final_llr": {
+          "line": 5,
+          "text": "LLR: -nan",
+          "token": "-nan",
+          "value": null
+        },
+        "status": "BLOCKED"
+      },
+      "pass": true
+    },
+    {
+      "name": "final_llr_no_finite_fallback_inf",
+      "observed": {
+        "final_llr": {
+          "line": 5,
+          "text": "LLR: inf",
+          "token": "inf",
+          "value": null
+        },
+        "status": "BLOCKED"
+      },
+      "pass": true
+    },
+    {
+      "name": "final_llr_no_finite_fallback_-inf",
+      "observed": {
+        "final_llr": {
+          "line": 5,
+          "text": "LLR: -inf",
+          "token": "-inf",
+          "value": null
+        },
+        "status": "BLOCKED"
+      },
+      "pass": true
+    },
+    {
+      "name": "final_llr_no_finite_fallback_garbage",
+      "observed": {
+        "final_llr": {
+          "line": 5,
+          "text": "LLR: garbage",
+          "token": "garbage",
+          "value": null
+        },
+        "status": "BLOCKED"
+      },
+      "pass": true
+    },
+    {
+      "name": "final_llr_no_finite_fallback_empty",
+      "observed": {
+        "final_llr": {
+          "line": 5,
+          "text": "LLR:",
+          "token": "",
+          "value": null
+        },
+        "status": "BLOCKED"
+      },
+      "pass": true
+    },
+    {
+      "name": "native_acceptance_is_observation_only",
+      "observed": {
+        "acceptance_authorized": false,
+        "reported_native_acceptance": [
+          {
+            "hypothesis": "H0",
+            "line": 5,
+            "text": "SPRT completed - H0 was accepted"
+          }
+        ]
+      },
+      "pass": true
+    },
+    {
+      "name": "original_malformed_fen_ineligible_retains_outcomes",
+      "observed": {
+        "W": 2,
+        "issues": [
+          {
+            "code": "invalid_opening_fen",
+            "game": 1
+          },
+          {
+            "code": "invalid_opening_fen",
+            "game": 2
+          },
+          {
+            "code": "game_record_issues",
+            "pair_key": "1",
+            "pool_id": "pool-1"
+          },
+          {
+            "code": "opening_unknown",
+            "pair_key": "1",
+            "pool_id": "pool-1"
+          }
+        ],
+        "paired": {
+          "aggregate_eligible": false,
+          "eligible_pairs": 0,
+          "fault_count": 0,
+          "invalid_pairs": 1,
+          "pentabins": [
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "six_bins": {
+            "DD": 0,
+            "LD": 0,
+            "LL": 0,
+            "WD": 0,
+            "WL": 0,
+            "WW": 0
+          },
+          "valid_pairs": 0
+        },
+        "raw_games": 2
+      },
+      "pass": true
+    },
+    {
+      "name": "explicit_match_identity_not_pooled",
+      "observed": {
+        "paired": {
+          "aggregate_eligible": false,
+          "eligible_pairs": 2,
+          "fault_count": 0,
+          "invalid_pairs": 0,
+          "pentabins": null,
+          "six_bins": null,
+          "valid_pairs": 2
+        },
+        "pools": 2,
+        "supported_identity_tags": [
+          "Event",
+          "Site",
+          "TimeControl",
+          "Threads",
+          "Hash",
+          "Concurrency",
+          "Seed",
+          "Gate",
+          "Match",
+          "Run",
+          "Attempt",
+          "Srand",
+          "Variant",
+          "Options",
+          "EngineOptions",
+          "WhiteOptions",
+          "BlackOptions",
+          "WhiteEngineOptions",
+          "BlackEngineOptions",
+          "WhiteOption",
+          "BlackOption",
+          "WhiteConfig",
+          "BlackConfig",
+          "CandidateOptions",
+          "BaselineOptions",
+          "Ponder",
+          "OwnBook",
+          "Book",
+          "BookFile",
+          "BookFormat",
+          "BookOrder",
+          "BookDepth",
+          "BookPlies",
+          "OpeningFile",
+          "OpeningSuite",
+          "OpeningSeed",
+          "OpeningPly",
+          "UCI_Chess960",
+          "UCI_LimitStrength",
+          "UCI_Elo",
+          "SkillLevel",
+          "SyzygyPath",
+          "SyzygyProbeDepth",
+          "SyzygyProbeLimit",
+          "MoveOverhead",
+          "Adjudication",
+          "Resign",
+          "Draw",
+          "Tablebase",
+          "TbPieces",
+          "Timemargin",
+          "TimeMargin",
+          "Restart",
+          "Protocol"
+        ]
+      },
+      "pass": true
+    },
+    {
+      "name": "unknown_termination_and_phase_never_clean_inference",
+      "observed": {
+        "paired": {
+          "aggregate_eligible": false,
+          "eligible_pairs": 0,
+          "fault_count": 0,
+          "invalid_pairs": 0,
+          "pentabins": [
+            0,
+            0,
+            0,
+            0,
+            1
+          ],
+          "six_bins": {
+            "DD": 0,
+            "LD": 0,
+            "LL": 0,
+            "WD": 0,
+            "WL": 0,
+            "WW": 1
+          },
+          "valid_pairs": 1
+        },
+        "phase_keys": [
+          "unknown"
+        ],
+        "raw": {
+          "D": 0,
+          "L": 0,
+          "W": 2,
+          "fault_status": "unknown",
+          "faults": {
+            "baseline": 0,
+            "candidate": 0,
+            "crash": 0,
+            "illegal": 0,
+            "time_loss": 0,
+            "total": 0,
+            "unknown": 0
+          },
+          "games": 2,
+          "termination_unknown": 2,
+          "terminations": {
+            "mystery": 1,
+            "unknown": 1
+          },
+          "unknown": 0
+        }
+      },
+      "pass": true
+    },
+    {
+      "name": "result_conflict_retained_unknown_not_scored",
+      "observed": {
+        "issues": [
+          {
+            "code": "result_mismatch",
+            "game": 1
+          },
+          {
+            "code": "game_record_issues",
+            "pair_key": "1",
+            "pool_id": "pool-1"
+          },
+          {
+            "code": "unknown_score",
+            "pair_key": "1",
+            "pool_id": "pool-1"
+          }
+        ],
+        "raw": {
+          "D": 0,
+          "L": 0,
+          "W": 1,
+          "fault_status": "no_reported_faults",
+          "faults": {
+            "baseline": 0,
+            "candidate": 0,
+            "crash": 0,
+            "illegal": 0,
+            "time_loss": 0,
+            "total": 0,
+            "unknown": 0
+          },
+          "games": 2,
+          "termination_unknown": 0,
+          "terminations": {
+            "normal": 2
+          },
+          "unknown": 1
+        }
+      },
+      "pass": true
+    },
+    {
+      "name": "supplied_unparsed_log_cannot_elevate_outcome_status",
+      "observed": {
+        "comparisons": [
+          {
+            "field": "games",
+            "log": null,
+            "pgn": 2,
+            "status": "UNVERIFIED"
+          },
+          {
+            "field": "wdl",
+            "log": null,
+            "pgn": [
+              2,
+              0,
+              0
+            ],
+            "status": "UNVERIFIED"
+          },
+          {
+            "field": "pentabins",
+            "log": null,
+            "pgn": [
+              0,
+              0,
+              0,
+              0,
+              1
+            ],
+            "status": "UNVERIFIED"
+          }
+        ],
+        "log_status": "UNVERIFIED",
+        "status": "UNVERIFIED"
+      },
+      "pass": true
+    },
+    {
+      "name": "actual_csv_g104_has_wdl_but_no_actual_pairs",
+      "observed": {
+        "acceptance_verified": false,
+        "pentabins": null,
+        "reported_llr": 2.95,
+        "status": "UNVERIFIED",
+        "wdl": [
+          130,
+          497,
+          71
+        ]
+      },
+      "pass": true
+    },
+    {
+      "name": "three_required_known_answer_arithmetic",
+      "observed": [
+        {
+          "actual": [
+            0.23162375799635665,
+            8.529387704444094,
+            -0.5619847571501702
+          ],
+          "expected": [
+            0.23,
+            8.53,
+            -0.56
+          ],
+          "gate": "G95",
+          "pass": true,
+          "supplied_counts": [
+            13,
+            128,
+            463,
+            137,
+            9
+          ],
+          "tolerance": 0.01
+        },
+        {
+          "actual": [
+            10.889879760538435,
+            8.379769831474427,
+            2.219838109695718
+          ],
+          "expected": [
+            10.89,
+            8.38,
+            2.22
+          ],
+          "gate": "G100r",
+          "pass": true,
+          "supplied_counts": [
+            5,
+            121,
+            458,
+            154,
+            12
+          ],
+          "tolerance": 0.01
+        },
+        {
+          "actual": [
+            9.498938729987033,
+            8.841725084629944,
+            1.7270936930171612
+          ],
+          "expected": [
+            9.5,
+            8.84,
+            1.72
+          ],
+          "gate": "G119",
+          "pass": true,
+          "supplied_counts": [
+            9,
+            130,
+            435,
+            163,
+            13
+          ],
+          "tolerance": 0.01
+        }
+      ],
+      "pass": true
+    },
+    {
+      "name": "independent_70_digit_decimal_reference_200_vectors",
+      "observed": {
+        "count_generation": "200 vectors, five random.randrange(0,1000) each",
+        "decimal_precision": 70,
+        "hypotheses_nelo": [
+          -3,
+          12
+        ],
+        "max_absolute_errors": {
+          "elo": 1.1368683772161603e-13,
+          "halfwidth": 5.329070518200751e-15,
+          "llr": 2.5579538487363607e-13,
+          "mean": 1.1102230246251565e-16,
+          "variance": 2.7755575615628914e-17
+        },
+        "reference_formulas": "mu=sum(c[k]*k/4)/N; v=sum(c[k]*(k/4-mu)^2)/N; SE=sqrt(v/N); Elo=400/ln(10)*ln(mu/(1-mu)); HW=1.959963984540054*400/(ln(10)*mu*(1-mu))*SE; C=800/ln(10); s_i=.5+e_i/C*sqrt(2*v); LLR=N*(s1-s0)*(2*mu-s0-s1)/(2*v)",
+        "seed": 20261026
+      },
+      "pass": true
+    },
+    {
+      "name": "astronomical_skew_json_safe_no_llr_decision",
+      "observed": {
+        "llr": null,
+        "null_reasons": [
+          "logistic Elo point estimate is infinite at a boundary and represented as null",
+          "zero paired-score variance: uncertainty, nElo and LLR unavailable"
+        ],
+        "status": "degenerate",
+        "wald_decision": "unknown"
+      },
+      "pass": true
+    },
+    {
+      "name": "astronomical_balanced_json_safe_no_llr_decision",
+      "observed": {
+        "llr": null,
+        "null_reasons": [
+          "nonfinite Gaussian LLR represented as null"
+        ],
+        "status": "blocked",
+        "wald_decision": "unknown"
+      },
+      "pass": true
+    },
+    {
+      "name": "existing_output_rejected_S06",
+      "observed": {
+        "command": [
+          "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python",
+          "-B",
+          "/workspace/forge-pack24-20261026/S06/forge_sol_S06_gatelog_miner_20261026.py",
+          "counts",
+          "--penta",
+          "1",
+          "2",
+          "3",
+          "4",
+          "5",
+          "--out",
+          "/workspace/forge-pack24-20261026/S06"
+        ],
+        "exit_code": 1,
+        "stderr": "S06: output already exists; choose a NEW directory\n",
+        "stdout": ""
+      },
+      "pass": true
+    },
+    {
+      "name": "existing_output_rejected_forge_sol_S06_statistics_20261026.py",
+      "observed": {
+        "command": [
+          "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python",
+          "-B",
+          "/workspace/forge-pack24-20261026/S06/forge_sol_S06_gatelog_miner_20261026.py",
+          "counts",
+          "--penta",
+          "1",
+          "2",
+          "3",
+          "4",
+          "5",
+          "--out",
+          "/workspace/forge-pack24-20261026/S06/forge_sol_S06_statistics_20261026.py"
+        ],
+        "exit_code": 1,
+        "stderr": "S06: output already exists; choose a NEW directory\n",
+        "stdout": ""
+      },
+      "pass": true
+    },
+    {
+      "name": "full_frozen_test_suite",
+      "observed": {
+        "command": [
+          "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python",
+          "-B",
+          "-m",
+          "unittest",
+          "discover",
+          "-s",
+          "/workspace/forge-pack24-20261026/S06",
+          "-p",
+          "test*.py"
+        ],
+        "exit_code": 0,
+        "stderr": "............................................................................\n----------------------------------------------------------------------\nRan 76 tests in 4.694s\n\nOK\n",
+        "stdout": ""
+      },
+      "pass": true
+    },
+    {
+      "name": "all_product_and_test_hashes_stable_during_review",
+      "observed": {
+        "after": {
+          "forge_sol_S06_gatelog_miner_20261026.py": "3e15db5c8bb3dc7807d5690979e16bd3067c61bef8d26777ee9b0ed075230b6b",
+          "forge_sol_S06_logs_20261026.py": "397207f5c2da4a7e529dd67d74655d389df1bd7dd254c45d54dbe598e8cb214c",
+          "forge_sol_S06_pgn_20261026.py": "7b7edba59a5b8859966a3d4080eb19f1abf60a41e7a70ca44314bbdeaab79534",
+          "forge_sol_S06_statistics_20261026.py": "4598c5839519af2ed4680b074669d097b9616dfe7c03c1afb7622b276efecb8a",
+          "test_forge_sol_S06_cli_20261026.py": "50031dbec537045b4e8ed138fb679e7b645ef0ce3188365021243cba5d33da3b",
+          "test_forge_sol_S06_logs_20261026.py": "292021ed64a4fe320a2c9a7d5e0ac76d4cbfbc8749e381f89301d5550d9c206a",
+          "test_forge_sol_S06_pgn_20261026.py": "ec2ec6bae3e48ec2e57a052623da45e422ce6285d133a95df6ba908ac3184dbb",
+          "test_forge_sol_S06_statistics_20261026.py": "3822f75539e310af766a02e8747ebd605c58ee3c32926d1832882f3b3ffc5b48"
+        },
+        "before": {
+          "forge_sol_S06_gatelog_miner_20261026.py": "3e15db5c8bb3dc7807d5690979e16bd3067c61bef8d26777ee9b0ed075230b6b",
+          "forge_sol_S06_logs_20261026.py": "397207f5c2da4a7e529dd67d74655d389df1bd7dd254c45d54dbe598e8cb214c",
+          "forge_sol_S06_pgn_20261026.py": "7b7edba59a5b8859966a3d4080eb19f1abf60a41e7a70ca44314bbdeaab79534",
+          "forge_sol_S06_statistics_20261026.py": "4598c5839519af2ed4680b074669d097b9616dfe7c03c1afb7622b276efecb8a",
+          "test_forge_sol_S06_cli_20261026.py": "50031dbec537045b4e8ed138fb679e7b645ef0ce3188365021243cba5d33da3b",
+          "test_forge_sol_S06_logs_20261026.py": "292021ed64a4fe320a2c9a7d5e0ac76d4cbfbc8749e381f89301d5550d9c206a",
+          "test_forge_sol_S06_pgn_20261026.py": "ec2ec6bae3e48ec2e57a052623da45e422ce6285d133a95df6ba908ac3184dbb",
+          "test_forge_sol_S06_statistics_20261026.py": "3822f75539e310af766a02e8747ebd605c58ee3c32926d1832882f3b3ffc5b48"
+        }
+      },
+      "pass": true
+    }
+  ],
+  "checks_passed": 30,
+  "checks_total": 30,
+  "commands": "All execution used python -B; probes were inline stdlib Python; final unittest command retained in checks. No Git, network, engines, native matches, builds, or product/test edits. Only this exclusive NEW JSON report was written by reviewer; test fixtures use automatically cleaned temporary directories.",
+  "created_utc": "2026-10-26T09:36:36.660687+00:00",
+  "historical_csv_source": {
+    "path": "/workspace/forge-pack24-20261025/new_handoff_1435/selected/forge_handoff_full_20261025_1435/files/08_status/gate_results_20261025_1335/GATE_RESULTS.csv",
+    "sha256": "c220b9e5ac88ee5fd3d419e93c0bfe45d659818e765b78fd4138a5eb9614c230"
+  },
+  "limitations": [
+    "This is a bounded synthetic parser/arithmetic review, not engine validation or a strength result.",
+    "Gaussian paired-score nElo LLR is approximate and separate from native Fastchess observations. Wald crossings are diagnostic, with no acceptance authority.",
+    "95% intervals are fixed normal/delta approximations with low-count, boundary, zero-variance, and sequential-coverage limits.",
+    "Five pentanomial bins cannot identify individual W/D/L or resolve WL versus DD.",
+    "G104 actual W/D/L is available in the CSV; its actual paired counts and raw current gate PGNs were not supplied. Acceptance and exact paired likelihood remain UNVERIFIED.",
+    "Supported identity tags are bounded and reported. Unknown arbitrary protocol tags and original build/protocol authenticity remain unverified. Date alone is not a match identity.",
+    "Opening FEN validation is syntactic only; move legality is unverified. Phase splits use explicit categorical tags; absent phase is unknown.",
+    "Fault counts are text observations, with log events and final totals separate; zero observed faults does not prove a clean match.",
+    "Malformed/unclosed PGN syntax can make record boundaries ambiguous; all original bytes are retained by CLI and affected parsed records remain ineligible.",
+    "Old historical PGN/console replay is a separate evidence layer and cannot stand in for current gate raw evidence."
+  ],
+  "prior_evidence": {
+    "baseline_suite": "Ran 60 tests in 5.211s; OK; predates log/PGN/CLI corrections",
+    "root_validation_attempt1": "Reported earlier 73-test source snapshot; superseded, not the final frozen source reviewed here"
+  },
+  "requirements_source": {
+    "lines": [
+      314,
+      320
+    ],
+    "path": "/workspace/attachments/62ff8f4f-0cf2-4b19-a9e9-b14bd6bc3739/HANDOFF_PROMPT_FULL_20261025_1435.md"
+  },
+  "resolved_review_findings": [
+    "Cumulative log regression/restart could select favorable final snapshot, including across empty snapshots.",
+    "Malformed Finished game and fault-total records could disappear.",
+    "Duplicate Games/Ptnml within one Results block could overwrite original observations.",
+    "Malformed Player header could retain prior fault attribution.",
+    "Malformed four-field FEN could be treated as a known valid opening.",
+    "Explicit Match identities could pool without warning.",
+    "Supplied unsupported log could leave top-level OUTCOME_CHECKS_PASS; now UNVERIFIED."
+  ],
+  "schema": "forge_sol_S06_independent_review_v1",
+  "source_and_test_sha256": {
+    "forge_sol_S06_gatelog_miner_20261026.py": "3e15db5c8bb3dc7807d5690979e16bd3067c61bef8d26777ee9b0ed075230b6b",
+    "forge_sol_S06_logs_20261026.py": "397207f5c2da4a7e529dd67d74655d389df1bd7dd254c45d54dbe598e8cb214c",
+    "forge_sol_S06_pgn_20261026.py": "7b7edba59a5b8859966a3d4080eb19f1abf60a41e7a70ca44314bbdeaab79534",
+    "forge_sol_S06_statistics_20261026.py": "4598c5839519af2ed4680b074669d097b9616dfe7c03c1afb7622b276efecb8a",
+    "test_forge_sol_S06_cli_20261026.py": "50031dbec537045b4e8ed138fb679e7b645ef0ce3188365021243cba5d33da3b",
+    "test_forge_sol_S06_logs_20261026.py": "292021ed64a4fe320a2c9a7d5e0ac76d4cbfbc8749e381f89301d5550d9c206a",
+    "test_forge_sol_S06_pgn_20261026.py": "ec2ec6bae3e48ec2e57a052623da45e422ce6285d133a95df6ba908ac3184dbb",
+    "test_forge_sol_S06_statistics_20261026.py": "3822f75539e310af766a02e8747ebd605c58ee3c32926d1832882f3b3ffc5b48"
+  },
+  "verdict": "PASS_BOUNDED_OFFLINE_SCOPE"
+}
