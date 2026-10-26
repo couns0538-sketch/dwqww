@@ -1,5 +1,9 @@
 # Experiment ledger
 
+## S06 offline tool completion — 2026-10-26
+
+Artifact `0a0262c337fb1919e43676e5d9a6c08abda7243e`:19 immutable files verified against HTTP/SHA/Git bytes. Final76 tests in source and isolated flat layouts,30 independent probes,200 Decimal statistics vectors. Supplied G95/G100r/G119 count-only cases within.01;35 BOM CSV rows. Historical178/89pair W66 D44 L68 agrees with original console; original timeout produces expected BLOCKED/exit1. All failures/prior versions retained in122-record gzip archive SHA32a25255617453b8e822335b9b317af1a1efd1aedebd4895ce0cb1c5eab554c1. G104 actual paired likelihood/current raw gates UNVERIFIED. No engine patch or new speed/Elo result. Next S33 (+S48), no accepted-lock change.
+
 ## S28 v2 publication / S04 v2 continuation — 2026-10-25
 
 S28 v2 artifact commit `4381d35e257f23e1f0e0a01cf700bbbae222c534` is verified: 36 HTTP/SHA/Git-byte artifact readbacks plus 4 supporting files, six current native profiles and explicit remaining unverified scopes. No AUTOLOCK, speed or Elo acceptance. S04 v2 patch `b425157e6e9521a544e3612f3c32c3955bb1fd3195735692975d5a6d6d89590b` repairs Git headers/context; C++/CMake/test bytes match the original candidate on all three bases, with the same IDEA paragraph safely relocated. At 2026-10-25T17:55:17.809340+00:00, current L-prime Release OFF/ON and ASan OFF pass full 14/14, 15/15 and 14/14 CTest with KNOWN=4; 3/8 profiles complete. L-prime ASan ON is active under acd_c_d_recon. Main/core/support reuse and historical 1000-cold inheritance are explicit; current merged tests are compiled fresh. The closed first metadata-producer and controller failures are retained. No active partial output was copied.

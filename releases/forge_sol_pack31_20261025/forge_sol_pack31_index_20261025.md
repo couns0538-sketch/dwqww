@@ -1,5 +1,32 @@
 # Forge Sol pack31 — 20261025
 
+## S06 — offline miner completed, 2026-10-26
+
+Artifact `0a0262c337fb1919e43676e5d9a6c08abda7243e`; all19files actually downloaded and SHA/Git-byte verified. Final76 tests and30 independent checks pass; three supplied paired-count cases reproduce within.01. All35 supplied metadata rows parse. Old178-game evidence reparses to89 pairs/W66 D44 L68; original timeout correctly rejected. Zero new games, no engine change or speed/Elo claim. G104 actual pair profile/raw gate evidence remains UNVERIFIED.
+
+|File|SHA256|Verified raw|
+|---|---|---|
+|forge_sol_S06_README_20261026.md|`354c34162d76cfadb86d6b473385d2128255b4f49ff3587285a5e22ce1e39e4b`|[raw](https://raw.githubusercontent.com/couns0538-sketch/dwqww/0a0262c337fb1919e43676e5d9a6c08abda7243e/releases/forge_sol_pack31_20261025/S06/forge_sol_S06_README_20261026.md)|
+|forge_sol_S06_SHA256SUMS_20261026.txt|`c890b266913fd52a586b679cd507af684c49efae0f8dd517cd2faba62f5ace91`|[raw](https://raw.githubusercontent.com/couns0538-sketch/dwqww/0a0262c337fb1919e43676e5d9a6c08abda7243e/releases/forge_sol_pack31_20261025/S06/forge_sol_S06_SHA256SUMS_20261026.txt)|
+|forge_sol_S06_continuation_20261026.json|`e61ea7d55db9ad51d380c51c0d0f6c16f6597cd0e8e029a01122ca539e3872be`|[raw](https://raw.githubusercontent.com/couns0538-sketch/dwqww/0a0262c337fb1919e43676e5d9a6c08abda7243e/releases/forge_sol_pack31_20261025/S06/forge_sol_S06_continuation_20261026.json)|
+|forge_sol_S06_flat_delivery_20261026.json|`ae09fd8d8c0023d61260ee75803782dce58a86fd0852a6a57644c98aff58c722`|[raw](https://raw.githubusercontent.com/couns0538-sketch/dwqww/0a0262c337fb1919e43676e5d9a6c08abda7243e/releases/forge_sol_pack31_20261025/S06/forge_sol_S06_flat_delivery_20261026.json)|
+|forge_sol_S06_gatelog_miner_20261026.py|`3e15db5c8bb3dc7807d5690979e16bd3067c61bef8d26777ee9b0ed075230b6b`|[raw](https://raw.githubusercontent.com/couns0538-sketch/dwqww/0a0262c337fb1919e43676e5d9a6c08abda7243e/releases/forge_sol_pack31_20261025/S06/forge_sol_S06_gatelog_miner_20261026.py)|
+|forge_sol_S06_independent_review_20261026.json|`0d677844cec82e99c69d79de6f3a23cf82670c6fb49940f3129b574748c9f3ee`|[raw](https://raw.githubusercontent.com/couns0538-sketch/dwqww/0a0262c337fb1919e43676e5d9a6c08abda7243e/releases/forge_sol_pack31_20261025/S06/forge_sol_S06_independent_review_20261026.json)|
+|forge_sol_S06_logs_20261026.py|`397207f5c2da4a7e529dd67d74655d389df1bd7dd254c45d54dbe598e8cb214c`|[raw](https://raw.githubusercontent.com/couns0538-sketch/dwqww/0a0262c337fb1919e43676e5d9a6c08abda7243e/releases/forge_sol_pack31_20261025/S06/forge_sol_S06_logs_20261026.py)|
+|forge_sol_S06_pgn_20261026.py|`7b7edba59a5b8859966a3d4080eb19f1abf60a41e7a70ca44314bbdeaab79534`|[raw](https://raw.githubusercontent.com/couns0538-sketch/dwqww/0a0262c337fb1919e43676e5d9a6c08abda7243e/releases/forge_sol_pack31_20261025/S06/forge_sol_S06_pgn_20261026.py)|
+|forge_sol_S06_raw_evidence_20261026.jsonl.gz|`32a25255617453b8e822335b9b317af1a1efd1aedebd4895ce0cb1c5eab554c1`|[raw](https://raw.githubusercontent.com/couns0538-sketch/dwqww/0a0262c337fb1919e43676e5d9a6c08abda7243e/releases/forge_sol_pack31_20261025/S06/forge_sol_S06_raw_evidence_20261026.jsonl.gz)|
+|forge_sol_S06_raw_index_20261026.json|`09c845ae4a559e63d70aef5f786899b74ccaf34755d82639292f2bf9fc7d6c2b`|[raw](https://raw.githubusercontent.com/couns0538-sketch/dwqww/0a0262c337fb1919e43676e5d9a6c08abda7243e/releases/forge_sol_pack31_20261025/S06/forge_sol_S06_raw_index_20261026.json)|
+|forge_sol_S06_recovery_20261026.json|`55fdaec02e3110f0a8766034eb631e9fbc83a37bcd19fbd604cc826b6cd4bbdf`|[raw](https://raw.githubusercontent.com/couns0538-sketch/dwqww/0a0262c337fb1919e43676e5d9a6c08abda7243e/releases/forge_sol_pack31_20261025/S06/forge_sol_S06_recovery_20261026.json)|
+|forge_sol_S06_report_20261026.md|`2e60872645ce7c6c19d6adab99fc6cda3b5651e7a6181b1bed2e7a523b95092f`|[raw](https://raw.githubusercontent.com/couns0538-sketch/dwqww/0a0262c337fb1919e43676e5d9a6c08abda7243e/releases/forge_sol_pack31_20261025/S06/forge_sol_S06_report_20261026.md)|
+|forge_sol_S06_statistics_20261026.py|`4598c5839519af2ed4680b074669d097b9616dfe7c03c1afb7622b276efecb8a`|[raw](https://raw.githubusercontent.com/couns0538-sketch/dwqww/0a0262c337fb1919e43676e5d9a6c08abda7243e/releases/forge_sol_pack31_20261025/S06/forge_sol_S06_statistics_20261026.py)|
+|forge_sol_S06_validation_20261026.py|`505f89624bc8d84267cd28b0fcda6a15b11e2dac73b958d9e5daf977445ea34f`|[raw](https://raw.githubusercontent.com/couns0538-sketch/dwqww/0a0262c337fb1919e43676e5d9a6c08abda7243e/releases/forge_sol_pack31_20261025/S06/forge_sol_S06_validation_20261026.py)|
+|forge_sol_S06_validation_receipt_20261026.json|`3ad97b86ff311babc935880209818f16950f3351a3d62bdcafae48e78e2a57d2`|[raw](https://raw.githubusercontent.com/couns0538-sketch/dwqww/0a0262c337fb1919e43676e5d9a6c08abda7243e/releases/forge_sol_pack31_20261025/S06/forge_sol_S06_validation_receipt_20261026.json)|
+|test_forge_sol_S06_cli_20261026.py|`50031dbec537045b4e8ed138fb679e7b645ef0ce3188365021243cba5d33da3b`|[raw](https://raw.githubusercontent.com/couns0538-sketch/dwqww/0a0262c337fb1919e43676e5d9a6c08abda7243e/releases/forge_sol_pack31_20261025/S06/test_forge_sol_S06_cli_20261026.py)|
+|test_forge_sol_S06_logs_20261026.py|`292021ed64a4fe320a2c9a7d5e0ac76d4cbfbc8749e381f89301d5550d9c206a`|[raw](https://raw.githubusercontent.com/couns0538-sketch/dwqww/0a0262c337fb1919e43676e5d9a6c08abda7243e/releases/forge_sol_pack31_20261025/S06/test_forge_sol_S06_logs_20261026.py)|
+|test_forge_sol_S06_pgn_20261026.py|`ec2ec6bae3e48ec2e57a052623da45e422ce6285d133a95df6ba908ac3184dbb`|[raw](https://raw.githubusercontent.com/couns0538-sketch/dwqww/0a0262c337fb1919e43676e5d9a6c08abda7243e/releases/forge_sol_pack31_20261025/S06/test_forge_sol_S06_pgn_20261026.py)|
+|test_forge_sol_S06_statistics_20261026.py|`3822f75539e310af766a02e8747ebd605c58ee3c32926d1832882f3b3ffc5b48`|[raw](https://raw.githubusercontent.com/couns0538-sketch/dwqww/0a0262c337fb1919e43676e5d9a6c08abda7243e/releases/forge_sol_pack31_20261025/S06/test_forge_sol_S06_statistics_20261026.py)|
+
+
 ## S27 — implemented and qualified, 2026-10-26
 
 Artifact `fbe6bb61b2da1913ad6916b6d0192f39c06143c5`; all22files actually downloaded and compared with Git bytes. 58tests pass in standard, flat and isolated layouts. Two fresh defaultRelease engines match all5fixedrefs each and canonicale3df bytes; fresh start/kiwipete perft5 and scoped/wholeFMA0 both. Source/native/finalportable reviews PASS. Static grammar is bounded; no newengine/speed/Elo/Windowsclaim.

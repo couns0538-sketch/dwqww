@@ -1,5 +1,9 @@
 # Next experiments
 
+## Next ordered task after S06 — 2026-10-26
+
+Recover S33 (+S48) from the saved15:10 resume/full handoff, checking exact current source, evidence and unfinished status before any implementation. Keep concurrency5/7/8 separate. S06 is complete/public19 verified; do not repeat its count arithmetic, old178 parser replay or completed S27 builds. S07 follows S33 (+S48). About12MiB disk is free; preserve all source/main/test/raw and avoid large copies/build/training until a safe resource plan exists. No current engine/native/match job is running.
+
 ## Verified continuation — 2026-10-25
 
 Continue S04 v2 current L-prime/B native qualification under acd_c_d_recon’s exclusive CPU lease. As of 2026-10-25T17:55:17.809340+00:00, L-prime Release OFF/ON and ASan OFF are closed PASS (3/8); L-prime ASan ON is running and must not be duplicated. Preserve the closed source checkpoint, current merged tests and explicit reused-product provenance. Do not repeat the completed original 1000-cold-process investigation. After all required current profiles close, review, seal, publish and verify immutable downloads; then do S05 fix-ups, S25 current-tree requalification and S27 in the saved order. S28 v2 is already published/download-verified at `4381d35e257f23e1f0e0a01cf700bbbae222c534`; do not reopen it. Live PC evidence remains UNVERIFIED, accepted h256_e12 unchanged, speed/Elo UNPROVEN.
