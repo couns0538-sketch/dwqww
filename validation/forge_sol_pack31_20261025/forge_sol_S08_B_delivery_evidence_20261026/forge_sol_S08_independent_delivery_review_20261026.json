@@ -1,0 +1,71 @@
+{
+  "created_utc": "2026-10-26T18:01:09.911817+00:00",
+  "review_scope": "Read-only code and evidence review; no engine/native test repetition; no Git changes",
+  "patch": {
+    "path": "/workspace/dwqww/releases/forge_sol_pack31_20261025/S08/forge_sol_S08_profcounters_TLS_v2_20261026.patch",
+    "sha256": "91c28d9f3b70af08885d50239141890813722cf00114bda8a2d12b71eb5e476c"
+  },
+  "verdict": "NO_MUST_FIX_CODE_DEFECT_IDENTIFIED_IN_REVIEWED_PATCH",
+  "code_review": [
+    "FORGE_PROF CMake default OFF; source additions and all hot-path counters excluded by preprocessor when disabled.",
+    "TLS pointer declaration and definition both carry constinit; fixes retained v1 sanitizer failure rather than hiding it.",
+    "Bank updates atomic relaxed; profile request atomic; active snapshot immutable until workers joined; TLS scope restores caller state.",
+    "Profile snapshot/reset follow documented quiescent Searcher contract; Searcher::search joins every helper before returning to UCI snapshot.",
+    "ON control-flow expansions preserve original predicates/returns; no eval, TT replacement, search constant or move-ordering changes observed.",
+    "Counters use fixed storage; no new make/unmake heap allocations; unsigned counter and merge wraps set sticky unusable flag.",
+    "Picker counter mapping contiguous fifteen stage values; denominator opportunity meanings explicit, ratios are event frequency not CPU time.",
+    "CaptureFutilityBase=0 makes zero capture-futility prunes expected; no new search defect inferred."
+  ],
+  "evidence_receipts": [
+    {
+      "name": "Lprime Release full qualification",
+      "path": "/workspace/forge-pack24-20261026/S08/forge_sol_S08_v2_Release_qualification_once_20261026/forge_sol_S08_v2_Release_qualification_result_20261026.json",
+      "sha256": "37e515703074a864a65e2df9d08a39d1d17c7c646272a6a9eff11be1ca76c3ab",
+      "status": "PASS",
+      "note": "Read original receipt, not an independently repeated native run"
+    },
+    {
+      "name": "B Release full qualification",
+      "path": "/workspace/forge-pack24-20261026/S08/forge_sol_S08_B_Release_qualification_once_20261026/forge_sol_S08_B_Release_qualification_result_20261026.json",
+      "sha256": "4e8d07e5f259d78890c9271c9c96aefbe5617997af2c2e5de81eb65abb157e7c",
+      "status": "PASS",
+      "note": "Read original receipt, not an independently repeated native run"
+    },
+    {
+      "name": "Lprime full ASan+UBSan CTest",
+      "path": "/workspace/forge-pack24-20261026/S08/forge_sol_S08_ASAN_FULL_NATIVE_20261026/forge_sol_S08_ASAN_full_qualification_v2_result_20261026.json",
+      "sha256": "a0f5b2a01c40902b8597ff75ae49ae676ab71feed0c5bbdb61ba6de219f26a07",
+      "status": "PASS",
+      "note": "Read original receipt, not an independently repeated native run"
+    },
+    {
+      "name": "Lprime profiling ASan+UBSan extras",
+      "path": "/workspace/forge-pack24-20261026/S08/forge_sol_S08_ASAN_PROFILE_EXTRA_NATIVE_20261026/forge_sol_S08_ASAN_profile_extra_result_20261026.json",
+      "sha256": "dd424968f5239d1b8f1575d91bc9fbe197a30b1e6e40e7bc7f8f4322af7b5de4",
+      "status": "PASS",
+      "note": "Read original receipt, not an independently repeated native run"
+    },
+    {
+      "name": "OFF reuse final audit",
+      "path": "/workspace/forge-pack24-20261026/S08/forge_sol_S08_OFF_TOKEN_NATIVE_v2_20261026/forge_sol_S08_OFF_reuse_final_audit_20261026.json",
+      "sha256": "35ecb65fd2bfb593bb162b1fc72075e69627ad22856710a496e60b1c9cf01a09",
+      "status": "PASS_PREPROCESSED_TOKEN_IDENTITY_AND_OFF_REUSE_SUPPORT",
+      "note": "Read original receipt, not an independently repeated native run"
+    }
+  ],
+  "delivery_must_finish": [
+    "B shared ASan+UBSan full16 CTest/extras actual result is pending separate owned worker; do not label S08 delivered until original success evidence reviewed.",
+    "Final report, README and final manifest not yet present at review time; include exact patch application/build/use commands and source/runtime hashes.",
+    "Final report must override historical table sentence B qualification pending at table creation while preserving original table bytes and history.",
+    "Final report must say authorized substitute 300 WAC +7 extra benchmark +1693 supplied opening positions, not 2000 WAC/STS.",
+    "OFF status is canonical binary evidence reuse supported by sixteen full production TU token parity, not freshly compiled OFF qualification.",
+    "Provide links to actual shared-ASAN receipt and original failure history, and retain raw evidence/checkpoint on isolated branch."
+  ],
+  "not_claimed": [
+    "No speed/NPS adoption claim",
+    "No Elo/strength claim",
+    "No PC/GPU gate execution",
+    "No proof that zero event frequency makes code removable",
+    "No universal API race safety outside documented quiescent contract"
+  ]
+}

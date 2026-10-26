@@ -1,0 +1,221 @@
+"""Explicit fixed-work S08 B Release qualification; no strength or NPS claim.
+
+Root already owns the first bare11. This controller verifies that immutable
+receipt and the fully closed build before any engine execution. ASAN stays root-owned.
+"""
+import argparse
+import importlib.util
+import json
+import os
+from pathlib import Path
+import re
+import signal
+import shutil
+import sys
+import time
+
+HERE=Path(__file__).resolve().parent
+
+def load(name,path):
+    spec=importlib.util.spec_from_file_location(name,path);module=importlib.util.module_from_spec(spec);spec.loader.exec_module(module);return module
+
+collector=load('s08_frozen_collector',HERE/'forge_sol_S08_collect_profiles_20261026.py')
+release=load('s08_frozen_release',HERE/'forge_sol_S08_release_resume_after_timing_20261026.py')
+shared=release.shared
+S25_PATH=Path('/workspace/dwqww/releases/forge_sol_pack31_20261025/S25_v2/forge_sol_S25_outcontract_20261025.py')
+s25=load('s08_original_s25',S25_PATH)
+FMA=Path('/workspace/forge-pack24-20261026/S26/forge_sol_S26_original_evidence_restore_VERIFY_20261026/provided_tools/fma/forge_sol_S05_fmacheck_v3_20261025.py')
+ELF_SHA='UNBUILT_B_ON_ELF_PIN'
+EMPTY_SHA='e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855'
+COLLECTOR_SHA='bf5d18d25bc1fb342c06092a36bfbac2b4717dc8a3f3c8f5cac34add3c3b1143'
+FREEZE_SHA='fcd93778dc3bae5bed2f941c9ee0fff08f6ee07ce6ecf22bf82a007e8a8904d7'
+REFS={11:308972,13:745494,16:2460422,20:11901452,22:31111774}
+# Authoritative literal from tests/tests.cpp.
+KIWI='r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1'
+# Known-case policy is the frozen C++ source: exact WAC pin; promotion score>100.
+KNOWN_SOURCE=HERE/'B_v2/tests/tests.cpp'
+SUFFIX=' (h256_e12 net-evaluation horizon; original 6.4.24 expectation retained)'
+KNOWN=[x+SUFFIX for x in [
+ 'KNOWN_FAILURE: WAC 001 expected g3g6 got f6h5',
+ 'KNOWN_FAILURE: WAC 001 score expected >= 31997 got 661',
+ 'KNOWN_FAILURE: unrestricted search chooses the winning rook underpromotion over stalemating queen promotion expected c7c8r score > 100 at d1 got c6d7 score 642 at d1',
+ 'KNOWN_FAILURE: unrestricted search chooses the winning rook underpromotion over stalemating queen promotion expected c2c1r score > 100 at d1 got c3d2 score 642 at d1']]
+START_LEGAL={f'{f}2{f}{rank}' for f in 'abcdefgh' for rank in '34'}|{'b1a3','b1c3','g1f3','g1h3'}
+
+
+def verify_first(receipt):
+    rows=[x for x in receipt.get('results',[]) if x.get('label')=='Release']
+    if receipt.get('status')!='PASS' or len(rows)!=1:raise ValueError('root first Release receipt missing/failed')
+    x=rows[0]
+    if (not x.get('pass') or x.get('returncode')!=0 or x.get('bench_counts')!=[308972]
+        or x.get('binary_sha256_before')!=ELF_SHA or x.get('binary_sha256_after')!=ELF_SHA
+        or not x.get('first_runtime_bare_bench') or not x.get('no_uci_before_bench') or x.get('stderr_sha256')!=EMPTY_SHA):
+        raise ValueError('root first Release receipt pin/order/ELF mismatch')
+
+
+def verify_ctest(text,returncode):
+    normalized=[re.sub(r'^\d+:\s?','',x) for x in text.splitlines()]
+    known=[x for x in normalized if x.startswith('KNOWN_FAILURE:')]
+    if (returncode!=0 or '100% tests passed, 0 tests failed out of 16' not in text
+        or len(known)!=4 or any(x.startswith(('FAIL:','PIN_MISMATCH:')) for x in normalized)):
+        raise ValueError('full16CTest or four source-known cases failed')
+    if any(known.count(line)!=1 for line in KNOWN[:2]):raise ValueError('exact WAC known pins changed')
+    promotions=[line for line in known if line not in KNOWN[:2]]
+    observed={}
+    for line in promotions:
+        match=re.fullmatch(r'KNOWN_FAILURE: unrestricted search chooses the winning rook underpromotion over stalemating queen promotion expected (c7c8r|c2c1r) score > 100 at d1 got (c6d7|c3d2) score (-?\d+) at d1'+re.escape(SUFFIX),line)
+        if match is None or int(match[3])<=100 or {'c7c8r':'c6d7','c2c1r':'c3d2'}[match[1]]!=match[2] or match[1] in observed:
+            raise ValueError('promotion known case violates frozen source bound/identity/depth')
+        observed[match[1]]=int(match[3])
+    if len(observed)!=2:raise ValueError('both source-known promotion cases required')
+    return {'registered_tests':16,'known_findings':known,'promotion_scores_observed':observed,'new_failures':0}
+
+
+def verify_search(lines,profile):
+    terminals=[x for x in lines if collector.MOVE.fullmatch(x)]
+    if len(terminals)!=1 or terminals[0].split()[1] not in START_LEGAL:raise ValueError('startpos bestmove is not legal')
+    if not profile:
+        if any(x.startswith('info string prof ') for x in lines):raise ValueError('disabled search emitted profile')
+        return {'bestmove':terminals[0].split()[1],'profile':False}
+    packet=collector.parse_packet(lines)
+    if packet['overflow'] or packet['counters']['nodes']['count']==0:raise ValueError('invalid/empty profile totals')
+    return {'bestmove':terminals[0].split()[1],'profile':packet}
+
+
+class Guard:
+    def __init__(self,path,stop,deadline):self.path=path;self.stop=stop;self.deadline=deadline;self.minimum=None
+    def reason(self,unused=None,deadline=None):
+        if shared._STOP_REQUESTED:return 'EXTERNAL_STOP'
+        if time.monotonic()>=min(self.deadline,deadline or self.deadline):return 'OWNED_DEADLINE'
+        if self.stop.exists():return 'ROOT_STOP_FILE'
+        free=shutil.disk_usage(self.path).free;self.minimum=free if self.minimum is None else min(self.minimum,free)
+        if free<8*1048576:return 'DISK_FREE_BELOW_8MIB'
+    def check(self):
+        reason=self.reason()
+        if reason:raise RuntimeError(reason)
+
+
+class Process(collector._Process):
+    def __init__(self,engine,out,label,guard):
+        self.guard=guard;guard.check();super().__init__([str(engine)],out,label,min(600,max(1,guard.deadline-time.monotonic())),8<<20)
+    def _pump(self,wait=.05):self.guard.check();return super()._pump(wait)
+
+
+def engine_once(engine,out,label,commands,predicate,guard):
+    process=Process(engine,out,label,guard)
+    try:
+        for command in commands:process.send(command)
+        lines=process.until(predicate);process.close(True);return lines
+    except BaseException:
+        process.close(False);raise
+
+
+def lifecycle(engine,out,guard,approved):
+    process=Process(engine,out,'uci_lifecycle',guard);cases=[]
+    try:
+        process.send('uci');lines=process.until(lambda x:x=='uciok')
+        inspected=s25.inspect_uci(('\n'.join(lines)+'\n').encode(),b'',0,approved)
+        if inspected['status']!='PASS':raise ValueError('typed baseline options plus sole Profile extension failed')
+        for command in ['setoption name Hash value 16','setoption name OwnBook value false','setoption name Threads value 1','isready']:process.send(command)
+        process.until(lambda x:x=='readyok')
+        def search(label,profile,threads=1):
+            for command in [f'setoption name Threads value {threads}',f'setoption name Profile value {str(profile).lower()}','ucinewgame','setoption name Clear Hash','position startpos','go nodes 10000']:process.send(command)
+            block=process.until(lambda x:bool(collector.MOVE.fullmatch(x)))
+            verified=verify_search(block,profile)
+            if profile and threads==1:collector.verify_profile_work(verified['profile'],node_limit=10000)
+            process.send('isready')
+            if process.until(lambda x:x=='readyok')!=['readyok']:raise ValueError('late search output after bestmove')
+            cases.append({'case':label,**verified})
+        # The advertised runtime default is false; test it before any Profile set.
+        for command in ['ucinewgame','position startpos','go nodes 10000']:process.send(command)
+        block=process.until(lambda x:bool(collector.MOVE.fullmatch(x)));cases.append({'case':'default_false',**verify_search(block,False)})
+        process.send('isready')
+        if process.until(lambda x:x=='readyok')!=['readyok']:raise ValueError('late default search output')
+        search('enabled_T1',True);search('disabled_T1',False)
+        for command in ['setoption name Profile value true','ucinewgame','position startpos','go infinite']:process.send(command)
+        prefix=process.until(lambda x:bool(re.match(r'info depth [1-9]\d* ',x)))
+        process.send('setoption name Profile value false')
+        suffix=process.until(lambda x:bool(collector.MOVE.fullmatch(x)))
+        cases.append({'case':'active_toggle_stop_join_old_snapshot',**verify_search(prefix+suffix,True)})
+        process.send('isready')
+        if process.until(lambda x:x=='readyok')!=['readyok']:raise ValueError('late active-toggle output')
+        # Do not send another Profile option: the option just changed during join.
+        for command in ['ucinewgame','position startpos','go nodes 10000']:process.send(command)
+        block=process.until(lambda x:bool(collector.MOVE.fullmatch(x)));cases.append({'case':'after_toggle_disabled',**verify_search(block,False)})
+        process.send('isready')
+        if process.until(lambda x:x=='readyok')!=['readyok']:raise ValueError('late after-toggle disabled output')
+        search('enabled_T2',True,2);search('disabled_T2',False,2)
+        process.close(True);return {'typed_uci':inspected,'cases':cases,'smp_nodes_are_not_deterministic_pins':True}
+    except BaseException:process.close(False);raise
+
+
+def main(argv=None):
+    p=argparse.ArgumentParser(description=__doc__);p.add_argument('--execute',action='store_true');p.add_argument('--authorization-reference',required=True)
+    p.add_argument('--build-receipt',type=Path,required=True);p.add_argument('--first-runtime-receipt',type=Path,required=True)
+    p.add_argument('--source-freeze',type=Path,required=True);p.add_argument('--output',type=Path,required=True);p.add_argument('--stop-file',type=Path,required=True)
+    p.add_argument('--max-seconds',type=float,default=1800);a=p.parse_args(argv)
+    if not a.execute:p.error('root explicit qualification grant required')
+    if sorted(os.sched_getaffinity(0))!=[3] or os.getpriority(os.PRIO_PROCESS,0)!=19:p.error('use CPU3nice19')
+    if not 10<=a.max_seconds<=3600:p.error('owned deadline must be10..3600seconds')
+    if shutil.disk_usage(a.output.parent).free<=20*1048576:p.error('root disk hold: need more than20MiB before launch')
+    if shared.sha(a.source_freeze)!=FREEZE_SHA or shared.sha(HERE/'forge_sol_S08_collect_profiles_20261026.py')!=COLLECTOR_SHA:p.error('frozen source/parser changed')
+    build_info=json.loads(a.build_receipt.read_text());verify_first(json.loads(a.first_runtime_receipt.read_text()))
+    if build_info.get('status')!='PASS_BUILD_ONLY' or build_info.get('pending_targets') or len(build_info.get('completed_targets',[]))!=13 or not build_info.get('source_unchanged'):p.error('closed full13-target build required')
+    freeze=json.loads(a.source_freeze.read_text());source=Path(freeze['source']);build=Path(build_info['build_dir']);engine=build/'forge'
+    release.original.verify_source(freeze)
+    if shared.sha(engine)!=ELF_SHA:p.error('Release ELF changed')
+    out=collector.exclusive_directory(a.output);start=time.monotonic();guard=Guard(out,a.stop_file,start+a.max_seconds)
+    result={'status':'FAIL','scope':'B_RELEASE_CORRECTNESS_FIXED_WORK_NO_SPEED_STRENGTH_CLAIM','engine_sha256':ELF_SHA,'source_freeze_sha256':FREEZE_SHA,
+        'controller_sha256':shared.sha(__file__),'collector_sha256':COLLECTOR_SHA,'build_receipt_sha256':shared.sha(a.build_receipt),'first_runtime_receipt_sha256':shared.sha(a.first_runtime_receipt),
+        'known_observations_source':{'path':str(KNOWN_SOURCE),'sha256':shared.sha(KNOWN_SOURCE)},'authorization_reference':a.authorization_reference,'cpu':[3],'nice':19,'steps':[],'corpus_collection':'separate_authorized_substitute_corpus_preparation','s25_policy':'unchanged inspect_bench; typed baseline options plus exactly Profile/check/defaultfalse','nps_used':False}
+    old_guard=shared.boundary_reason;shared.boundary_reason=guard.reason;code=1
+    def save_step(name,value):
+        item={'name':name,'result':value};result['steps'].append(item);shared.save_new(out/(f'{len(result["steps"]):02d}_'+name+'.json'),item)
+        print(json.dumps({'stage':name,'status':'PASS'}),flush=True)
+    try:
+        guard.check()
+        for depth,nodes in REFS.items():
+            label='bench_prof_'+str(depth);lines=engine_once(engine,out,label,[f'bench_prof {depth}'],lambda x:bool(collector.BENCH.fullmatch(x)),guard)
+            final=collector.BENCH.fullmatch(lines[-1])
+            if (int(final[1]),int(final[2]))!=(depth,nodes):raise ValueError('bench reference mismatch')
+            packet=collector.parse_packet(lines,terminal='bench');collector.verify_profile_work(packet,expected_nodes=nodes)
+            if packet['overflow']:raise ValueError('bench overflow')
+            save_step(label,packet)
+        for name,position,expected in [('startpos','startpos',4865609),('kiwipete','fen '+KIWI,193690690)]:
+            label='perft5_'+name;lines=engine_once(engine,out,label,['position '+position,'go perft 5'],lambda x:bool(re.fullmatch(r'nodes \d+',x)),guard)
+            if lines[-1]!='nodes '+str(expected):raise ValueError('perft reference mismatch')
+            save_step(label,{'depth':5,'nodes':expected})
+        lines=engine_once(engine,out,'S25_plain_bench',['bench 11'],lambda x:bool(collector.BENCH.fullmatch(x)),guard)
+        inspected=s25.inspect_bench((out/'S25_plain_bench.stdout').read_bytes(),(out/'S25_plain_bench.stderr').read_bytes(),0)
+        if inspected['status']!='PASS':raise ValueError('unchanged S25 plainbench EOF contract failed')
+        save_step('S25_plain_bench',inspected)
+        approved=json.loads(S25_PATH.with_name('forge_sol_S25_options_20261025.json').read_text())['options']+[{'name':'Profile','type':'check','default':False}]
+        save_step('UCI_Profile_T2_lifecycle',lifecycle(engine,out,guard,approved))
+        ctest=shared.CMAKE.with_name('ctest');command=[str(ctest),'--test-dir',str(build),'--output-on-failure','-V','-j1','--output-junit',str(out/'full_ctest.xml')]
+        record=shared.run_owned(command,out,'full16_CTest',out,guard.deadline)
+        if record.get('error') or record.get('stop_reason'):raise RuntimeError('CTest owned child did not finish')
+        verified=verify_ctest((out/'full16_CTest.stdout').read_text(),record['returncode']);save_step('full16_CTest',verified)
+        for label,path in [('FMA_NNUE_object',build/'CMakeFiles/forge_core.dir/src/nnue.cpp.o'),('FMA_NNUE_scope_ELF',engine)]:
+            record=shared.run_owned([sys.executable,'-B',str(FMA),str(path)],out,label,out,guard.deadline)
+            if record.get('returncode')!=0 or record.get('error') or record.get('stop_reason'):raise RuntimeError('FMA checker failed')
+            save_step(label,json.loads((out/(label+'.stdout')).read_text()))
+        record=shared.run_owned(['objdump','-d','--no-show-raw-insn',str(engine)],out,'whole_ELF_assembly',out,guard.deadline)
+        if record.get('returncode')!=0 or record.get('error') or record.get('stop_reason'):raise RuntimeError('whole ELF disassembly failed')
+        fused=[]
+        for line in (out/'whole_ELF_assembly.stdout').read_text().splitlines():
+            if re.match(r'^\s*[0-9a-fA-F]+:\s+vf(?:n)?m(?:add|sub)[a-z0-9]*\b',line):fused.append(line)
+        if fused:raise ValueError('whole ELF contains fused instructions')
+        save_step('FMA_whole_ELF',{'fma_count':0,'assembly_sha256':shared.sha(out/'whole_ELF_assembly.stdout'),'frozen_checker_sha256':shared.sha(FMA)})
+        result['status']='PASS';code=0
+    except BaseException as exc:result['failure']=type(exc).__name__+': '+str(exc)
+    finally:
+        shared.boundary_reason=old_guard;result['binary_unchanged']=shared.sha(engine)==ELF_SHA;result['source_unchanged']=shared.snapshot(source)==freeze['source_sha256']
+        if not result['binary_unchanged'] or not result['source_unchanged']:result['status']='FAIL';code=1
+        result.update(elapsed_seconds=time.monotonic()-start,minimum_observed_free_bytes=guard.minimum)
+        shared.save_new(out/'forge_sol_S08_B_Release_qualification_result_20261026.json',result)
+        print(json.dumps({'status':result['status'],'completed_stages':[x['name'] for x in result['steps']],'failure':result.get('failure')}),flush=True)
+    return code
+
+if __name__=='__main__':
+    signal.signal(signal.SIGTERM,shared._signal_stop);signal.signal(signal.SIGINT,shared._signal_stop)
+    raise SystemExit(main())

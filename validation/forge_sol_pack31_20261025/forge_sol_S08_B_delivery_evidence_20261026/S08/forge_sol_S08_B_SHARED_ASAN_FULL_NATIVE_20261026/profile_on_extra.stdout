@@ -1,0 +1,278 @@
+id name Chess Engine Forge 6.4.24 candidate
+id author OpenAI
+option name Hash type spin default 32 min 1 max 2048
+option name Threads type spin default 1 min 1 max 256
+option name Move Overhead type spin default 10 min 0 max 1000
+option name Ponder type check default false
+option name OwnBook type check default true
+option name Book File type string default <empty>
+option name Book Depth type spin default 30 min 0 max 100
+option name Book Variety type spin default 30 min 0 max 100
+option name UseNNUE type check default true
+option name Profile type check default false
+option name Clear Hash type button
+uciok
+readyok
+info string prof schema 1 scope search_only setup_excluded 1 overflow 0
+info string prof nodes count 308972 denominator nodes opportunities 308972 pct 100
+info string prof main_nodes count 169448 denominator nodes opportunities 308972 pct 54.8425
+info string prof qs_nodes count 139524 denominator nodes opportunities 308972 pct 45.1575
+info string prof eval_requests count 194803 denominator nodes opportunities 308972 pct 63.0488
+info string prof hce_computations count 194803 denominator eval_requests opportunities 194803 pct 100
+info string prof nnue_forward count 194803 denominator eval_requests opportunities 194803 pct 100
+info string prof nnue_refresh count 8 denominator nnue_forward opportunities 194803 pct 0.00410671
+info string prof tt_probes count 308868 denominator nodes opportunities 308972 pct 99.9663
+info string prof tt_hits count 100154 denominator tt_probes opportunities 308868 pct 32.4261
+info string prof tt_misses count 208714 denominator tt_probes opportunities 308868 pct 67.5739
+info string prof picker_visits count 1070702 denominator nodes opportunities 308972 pct 346.537
+info string prof picker_main_tt count 17936 denominator picker_visits opportunities 1070702 pct 1.67516
+info string prof picker_generate_captures count 58985 denominator picker_visits opportunities 1070702 pct 5.509
+info string prof picker_good_captures count 85644 denominator picker_visits opportunities 1070702 pct 7.99886
+info string prof picker_killer1 count 41193 denominator picker_visits opportunities 1070702 pct 3.84729
+info string prof picker_killer2 count 34386 denominator picker_visits opportunities 1070702 pct 3.21154
+info string prof picker_counter_move count 33770 denominator picker_visits opportunities 1070702 pct 3.15401
+info string prof picker_generate_quiets count 31152 denominator picker_visits opportunities 1070702 pct 2.90949
+info string prof picker_quiet_moves count 166087 denominator picker_visits opportunities 1070702 pct 15.512
+info string prof picker_bad_captures count 63944 denominator picker_visits opportunities 1070702 pct 5.97216
+info string prof picker_qs_tt count 2079 denominator picker_visits opportunities 1070702 pct 0.194172
+info string prof picker_qs_generate count 64857 denominator picker_visits opportunities 1070702 pct 6.05743
+info string prof picker_qs_captures count 180479 denominator picker_visits opportunities 1070702 pct 16.8561
+info string prof picker_evasion_tt count 2774 denominator picker_visits opportunities 1070702 pct 0.259082
+info string prof picker_evasion_generate count 15419 denominator picker_visits opportunities 1070702 pct 1.44008
+info string prof picker_evasions count 271997 denominator picker_visits opportunities 1070702 pct 25.4036
+info string prof razor_checks count 136951 denominator main_nodes opportunities 169448 pct 80.8218
+info string prof razor_searches count 2139 denominator razor_checks opportunities 136951 pct 1.56187
+info string prof razor_cutoffs count 2033 denominator razor_searches opportunities 2139 pct 95.0444
+info string prof probcut_checks count 67132 denominator main_nodes opportunities 169448 pct 39.6181
+info string prof probcut_searches count 1134 denominator probcut_checks opportunities 67132 pct 1.68921
+info string prof probcut_cutoffs count 902 denominator probcut_searches opportunities 1134 pct 79.5414
+info string prof iir_checks count 78794 denominator main_nodes opportunities 169448 pct 46.5004
+info string prof iir_reductions count 1418 denominator iir_checks opportunities 78794 pct 1.79963
+info string prof lmp_checks count 179491 denominator main_nodes opportunities 169448 pct 105.927
+info string prof lmp_activations count 23801 denominator lmp_checks opportunities 179491 pct 13.2603
+info string prof futility_checks count 121348 denominator main_nodes opportunities 169448 pct 71.6137
+info string prof futility_prunes count 4917 denominator futility_checks opportunities 121348 pct 4.05198
+info string prof capture_futility_checks count 58143 denominator main_nodes opportunities 169448 pct 34.3132
+info string prof capture_futility_prunes count 0 denominator capture_futility_checks opportunities 58143 pct 0
+info string prof history_checks count 116431 denominator main_nodes opportunities 169448 pct 68.7119
+info string prof history_prunes count 85 denominator history_checks opportunities 116431 pct 0.0730046
+info string prof quiet_see_checks count 116346 denominator main_nodes opportunities 169448 pct 68.6618
+info string prof quiet_see_prunes count 18382 denominator quiet_see_checks opportunities 116346 pct 15.7994
+info string prof noisy_see_checks count 58143 denominator main_nodes opportunities 169448 pct 34.3132
+info string prof noisy_see_prunes count 24695 denominator noisy_see_checks opportunities 58143 pct 42.4729
+info string prof qs_futility_checks count 130138 denominator qs_nodes opportunities 139524 pct 93.2728
+info string prof qs_futility_prunes count 38761 denominator qs_futility_checks opportunities 130138 pct 29.7845
+info string prof qs_see_checks count 91377 denominator qs_nodes opportunities 139524 pct 65.492
+info string prof qs_see_prunes count 41587 denominator qs_see_checks opportunities 91377 pct 45.5115
+info string prof singular_checks count 226615 denominator main_nodes opportunities 169448 pct 133.737
+info string prof singular_searches count 1019 denominator singular_checks opportunities 226615 pct 0.449661
+info string prof singular_extensions count 577 denominator singular_searches opportunities 1019 pct 56.6241
+info string prof singular_double_extensions count 252 denominator singular_searches opportunities 1019 pct 24.7301
+info string prof singular_cutoffs count 183 denominator singular_searches opportunities 1019 pct 17.9588
+info string bench depth 11 nodes 308972 time 26590 nps 11619
+readyok
+info depth 1 seldepth 1 score cp 17 nodes 24 nps 1600 hashfull 0 time 15 pv d2d4
+info depth 2 seldepth 2 score cp 49 nodes 53 nps 1709 hashfull 0 time 31 pv d2d4 d7d6
+info depth 3 seldepth 4 score cp 26 nodes 206 nps 2060 hashfull 0 time 100 pv e2e4 h7h6 d2d4
+info depth 4 seldepth 8 score cp 25 nodes 772 nps 3693 hashfull 0 time 209 pv c2c4 c7c6 d2d4 d7d5
+info depth 5 seldepth 9 score cp 10 nodes 1631 nps 5663 hashfull 0 time 288 pv e2e3 c7c5 c2c4 g8f6 d2d4 c5d4
+info depth 6 seldepth 9 score cp 21 nodes 2275 nps 7109 hashfull 0 time 320 pv e2e3 c7c5 d2d4 c5d4 e3d4 d7d5
+info depth 7 seldepth 12 score cp 21 nodes 4981 nps 9747 hashfull 2 time 511 pv d2d4 g8f6 c2c4 c7c5 d4d5 e7e6 e2e3 e6d5
+info depth 8 seldepth 14 score cp 26 nodes 6387 nps 10974 hashfull 3 time 582 pv d2d4 g8f6 c2c4 c7c5 d4d5 e7e6 g1f3 e6d5
+info depth 9 seldepth 15 score cp 26 nodes 8998 nps 12126 hashfull 4 time 742 pv d2d4 g8f6 c2c4 c7c5 d4d5 e7e6 g1f3 e6d5 c4d5
+info string prof schema 1 scope search_only setup_excluded 1 overflow 0
+info string prof nodes count 10000 denominator nodes opportunities 10000 pct 100
+info string prof main_nodes count 5484 denominator nodes opportunities 10000 pct 54.84
+info string prof qs_nodes count 4516 denominator nodes opportunities 10000 pct 45.16
+info string prof eval_requests count 5875 denominator nodes opportunities 10000 pct 58.75
+info string prof hce_computations count 5875 denominator eval_requests opportunities 5875 pct 100
+info string prof nnue_forward count 5875 denominator eval_requests opportunities 5875 pct 100
+info string prof nnue_refresh count 1 denominator nnue_forward opportunities 5875 pct 0.0170213
+info string prof tt_probes count 10000 denominator nodes opportunities 10000 pct 100
+info string prof tt_hits count 3792 denominator tt_probes opportunities 10000 pct 37.92
+info string prof tt_misses count 6208 denominator tt_probes opportunities 10000 pct 62.08
+info string prof picker_visits count 28412 denominator nodes opportunities 10000 pct 284.12
+info string prof picker_main_tt count 878 denominator picker_visits opportunities 28412 pct 3.09024
+info string prof picker_generate_captures count 2517 denominator picker_visits opportunities 28412 pct 8.85893
+info string prof picker_good_captures count 2998 denominator picker_visits opportunities 28412 pct 10.5519
+info string prof picker_killer1 count 2094 denominator picker_visits opportunities 28412 pct 7.37013
+info string prof picker_killer2 count 1608 denominator picker_visits opportunities 28412 pct 5.65958
+info string prof picker_counter_move count 1558 denominator picker_visits opportunities 28412 pct 5.4836
+info string prof picker_generate_quiets count 1407 denominator picker_visits opportunities 28412 pct 4.95213
+info string prof picker_quiet_moves count 5735 denominator picker_visits opportunities 28412 pct 20.1851
+info string prof picker_bad_captures count 1553 denominator picker_visits opportunities 28412 pct 5.466
+info string prof picker_qs_tt count 39 denominator picker_visits opportunities 28412 pct 0.137266
+info string prof picker_qs_generate count 1817 denominator picker_visits opportunities 28412 pct 6.39519
+info string prof picker_qs_captures count 3360 denominator picker_visits opportunities 28412 pct 11.826
+info string prof picker_evasion_tt count 93 denominator picker_visits opportunities 28412 pct 0.327326
+info string prof picker_evasion_generate count 350 denominator picker_visits opportunities 28412 pct 1.23187
+info string prof picker_evasions count 2405 denominator picker_visits opportunities 28412 pct 8.46473
+info string prof razor_checks count 4273 denominator main_nodes opportunities 5484 pct 77.9176
+info string prof razor_searches count 7 denominator razor_checks opportunities 4273 pct 0.163819
+info string prof razor_cutoffs count 6 denominator razor_searches opportunities 7 pct 85.7143
+info string prof probcut_checks count 2761 denominator main_nodes opportunities 5484 pct 50.3465
+info string prof probcut_searches count 0 denominator probcut_checks opportunities 2761 pct 0
+info string prof probcut_cutoffs count 0 denominator probcut_searches opportunities 0 pct unknown
+info string prof iir_checks count 3149 denominator main_nodes opportunities 5484 pct 57.4216
+info string prof iir_reductions count 15 denominator iir_checks opportunities 3149 pct 0.476342
+info string prof lmp_checks count 5488 denominator main_nodes opportunities 5484 pct 100.073
+info string prof lmp_activations count 1266 denominator lmp_checks opportunities 5488 pct 23.0685
+info string prof futility_checks count 4774 denominator main_nodes opportunities 5484 pct 87.0532
+info string prof futility_prunes count 9 denominator futility_checks opportunities 4774 pct 0.188521
+info string prof capture_futility_checks count 714 denominator main_nodes opportunities 5484 pct 13.0197
+info string prof capture_futility_prunes count 0 denominator capture_futility_checks opportunities 714 pct 0
+info string prof history_checks count 4765 denominator main_nodes opportunities 5484 pct 86.8891
+info string prof history_prunes count 0 denominator history_checks opportunities 4765 pct 0
+info string prof quiet_see_checks count 4765 denominator main_nodes opportunities 5484 pct 86.8891
+info string prof quiet_see_prunes count 471 denominator quiet_see_checks opportunities 4765 pct 9.88458
+info string prof noisy_see_checks count 714 denominator main_nodes opportunities 5484 pct 13.0197
+info string prof noisy_see_prunes count 278 denominator noisy_see_checks opportunities 714 pct 38.9356
+info string prof qs_futility_checks count 1896 denominator qs_nodes opportunities 4516 pct 41.9841
+info string prof qs_futility_prunes count 79 denominator qs_futility_checks opportunities 1896 pct 4.16667
+info string prof qs_see_checks count 1817 denominator qs_nodes opportunities 4516 pct 40.2347
+info string prof qs_see_prunes count 624 denominator qs_see_checks opportunities 1817 pct 34.3423
+info string prof singular_checks count 8069 denominator main_nodes opportunities 5484 pct 147.137
+info string prof singular_searches count 14 denominator singular_checks opportunities 8069 pct 0.173504
+info string prof singular_extensions count 1 denominator singular_searches opportunities 14 pct 7.14286
+info string prof singular_double_extensions count 0 denominator singular_searches opportunities 14 pct 0
+info string prof singular_cutoffs count 0 denominator singular_searches opportunities 14 pct 0
+bestmove d2d4
+readyok
+info depth 1 seldepth 1 score cp 17 nodes 48 nps 8000 hashfull 0 time 6 pv d2d4
+info depth 2 seldepth 2 score cp 49 nodes 107 nps 5631 hashfull 0 time 19 pv d2d4 d7d6
+info depth 3 seldepth 4 score cp 28 nodes 337 nps 6358 hashfull 0 time 53 pv e2e4 c7c6 d2d4
+info depth 4 seldepth 8 score cp 31 nodes 537 nps 672 hashfull 0 time 798 pv d2d4 g8f6 a2a3 d7d6
+info depth 5 seldepth 8 score cp 8 nodes 1565 nps 1584 hashfull 0 time 988 pv g1f3 d7d5 d2d4 g8f6 e2e3
+info depth 6 seldepth 12 score cp 19 nodes 2145 nps 1957 hashfull 0 time 1096 pv g1f3 d7d5 d2d4 b8c6 a2a3 g8f6
+info depth 7 seldepth 12 score cp 15 nodes 4182 nps 1916 hashfull 0 time 2182 pv d2d4 d7d5 e2e3 b8d7 g1f3 c7c6 f1e2
+info depth 8 seldepth 13 score cp 19 nodes 9947 nps 3711 hashfull 3 time 2680 pv c2c4 e7e5 e2e3 b8c6 d2d4 e5d4 e3d4
+info string prof schema 1 scope search_only setup_excluded 1 overflow 0
+info string prof nodes count 11024 denominator nodes opportunities 11024 pct 100
+info string prof main_nodes count 6283 denominator nodes opportunities 11024 pct 56.9938
+info string prof qs_nodes count 4741 denominator nodes opportunities 11024 pct 43.0062
+info string prof eval_requests count 6434 denominator nodes opportunities 11024 pct 58.3636
+info string prof hce_computations count 6434 denominator eval_requests opportunities 6434 pct 100
+info string prof nnue_forward count 6434 denominator eval_requests opportunities 6434 pct 100
+info string prof nnue_refresh count 2 denominator nnue_forward opportunities 6434 pct 0.0310849
+info string prof tt_probes count 11024 denominator nodes opportunities 11024 pct 100
+info string prof tt_hits count 4334 denominator tt_probes opportunities 11024 pct 39.3142
+info string prof tt_misses count 6690 denominator tt_probes opportunities 11024 pct 60.6858
+info string prof picker_visits count 31420 denominator nodes opportunities 11024 pct 285.015
+info string prof picker_main_tt count 987 denominator picker_visits opportunities 31420 pct 3.14131
+info string prof picker_generate_captures count 2860 denominator picker_visits opportunities 31420 pct 9.10248
+info string prof picker_good_captures count 3146 denominator picker_visits opportunities 31420 pct 10.0127
+info string prof picker_killer1 count 2515 denominator picker_visits opportunities 31420 pct 8.00446
+info string prof picker_killer2 count 1863 denominator picker_visits opportunities 31420 pct 5.92934
+info string prof picker_counter_move count 1806 denominator picker_visits opportunities 31420 pct 5.74793
+info string prof picker_generate_quiets count 1638 denominator picker_visits opportunities 31420 pct 5.21324
+info string prof picker_quiet_moves count 6845 denominator picker_visits opportunities 31420 pct 21.7855
+info string prof picker_bad_captures count 1686 denominator picker_visits opportunities 31420 pct 5.36601
+info string prof picker_qs_tt count 19 denominator picker_visits opportunities 31420 pct 0.060471
+info string prof picker_qs_generate count 2082 denominator picker_visits opportunities 31420 pct 6.62635
+info string prof picker_qs_captures count 3555 denominator picker_visits opportunities 31420 pct 11.3144
+info string prof picker_evasion_tt count 50 denominator picker_visits opportunities 31420 pct 0.159134
+info string prof picker_evasion_generate count 262 denominator picker_visits opportunities 31420 pct 0.833864
+info string prof picker_evasions count 2106 denominator picker_visits opportunities 31420 pct 6.70274
+info string prof razor_checks count 4734 denominator main_nodes opportunities 6283 pct 75.3462
+info string prof razor_searches count 0 denominator razor_checks opportunities 4734 pct 0
+info string prof razor_cutoffs count 0 denominator razor_searches opportunities 0 pct unknown
+info string prof probcut_checks count 3053 denominator main_nodes opportunities 6283 pct 48.5914
+info string prof probcut_searches count 0 denominator probcut_checks opportunities 3053 pct 0
+info string prof probcut_cutoffs count 0 denominator probcut_searches opportunities 0 pct unknown
+info string prof iir_checks count 3454 denominator main_nodes opportunities 6283 pct 54.9737
+info string prof iir_reductions count 9 denominator iir_checks opportunities 3454 pct 0.260567
+info string prof lmp_checks count 6153 denominator main_nodes opportunities 6283 pct 97.9309
+info string prof lmp_activations count 1421 denominator lmp_checks opportunities 6153 pct 23.0944
+info string prof futility_checks count 5664 denominator main_nodes opportunities 6283 pct 90.148
+info string prof futility_prunes count 12 denominator futility_checks opportunities 5664 pct 0.211864
+info string prof capture_futility_checks count 489 denominator main_nodes opportunities 6283 pct 7.78291
+info string prof capture_futility_prunes count 0 denominator capture_futility_checks opportunities 489 pct 0
+info string prof history_checks count 5652 denominator main_nodes opportunities 6283 pct 89.957
+info string prof history_prunes count 0 denominator history_checks opportunities 5652 pct 0
+info string prof quiet_see_checks count 5652 denominator main_nodes opportunities 6283 pct 89.957
+info string prof quiet_see_prunes count 577 denominator quiet_see_checks opportunities 5652 pct 10.2088
+info string prof noisy_see_checks count 489 denominator main_nodes opportunities 6283 pct 7.78291
+info string prof noisy_see_prunes count 248 denominator noisy_see_checks opportunities 489 pct 50.7157
+info string prof qs_futility_checks count 1876 denominator qs_nodes opportunities 4741 pct 39.5697
+info string prof qs_futility_prunes count 51 denominator qs_futility_checks opportunities 1876 pct 2.71855
+info string prof qs_see_checks count 1825 denominator qs_nodes opportunities 4741 pct 38.494
+info string prof qs_see_prunes count 640 denominator qs_see_checks opportunities 1825 pct 35.0685
+info string prof singular_checks count 9075 denominator main_nodes opportunities 6283 pct 144.437
+info string prof singular_searches count 9 denominator singular_checks opportunities 9075 pct 0.0991736
+info string prof singular_extensions count 4 denominator singular_searches opportunities 9 pct 44.4444
+info string prof singular_double_extensions count 0 denominator singular_searches opportunities 9 pct 0
+info string prof singular_cutoffs count 0 denominator singular_searches opportunities 9 pct 0
+bestmove c2c4
+readyok
+a2a3: 8457
+b2b3: 9345
+c2c3: 9272
+d2d3: 11959
+e2e3: 13134
+f2f3: 8457
+g2g3: 9345
+h2h3: 8457
+a2a4: 9329
+b2b4: 9332
+c2c4: 9744
+d2d4: 12435
+e2e4: 13160
+f2f4: 8929
+g2g4: 9328
+h2h4: 9329
+b1a3: 8885
+b1c3: 9755
+g1f3: 9748
+g1h3: 8881
+nodes 197281
+readyok
+a2a3: 94405
+b2b3: 81066
+g2g3: 77468
+d5d6: 79551
+a2a4: 90978
+g2g4: 75677
+g2h3: 82759
+d5e6: 97464
+c3b1: 84773
+c3d1: 84782
+c3a4: 91447
+c3b5: 81498
+e5d3: 77431
+e5c4: 77752
+e5g4: 79912
+e5c6: 83885
+e5g6: 83866
+e5d7: 93913
+e5f7: 88799
+d2c1: 83037
+d2e3: 90274
+d2f4: 84869
+d2g5: 87951
+d2h6: 82323
+e2d1: 74963
+e2f1: 88728
+e2d3: 85119
+e2c4: 84835
+e2b5: 79739
+e2a6: 69334
+a1b1: 83348
+a1c1: 83263
+a1d1: 79695
+h1f1: 81563
+h1g1: 84876
+f3d3: 83727
+f3e3: 92505
+f3g3: 94461
+f3h3: 98524
+f3f4: 90488
+f3g4: 92037
+f3f5: 104992
+f3h5: 95034
+f3f6: 77838
+e1d1: 79989
+e1f1: 77887
+e1g1: 86975
+e1c1: 79803
+nodes 4085603
+readyok

@@ -1,0 +1,154 @@
+"""PREPARED ONLY: separate B shared-core ASan/UBSan profile without DWARF.
+
+No engine/test execution. -g0 removes debug storage, not sanitizer checks; new
+SO/ELFs require their own first bare11/runtime qualification and are not identical
+to earlier artifacts. Runtime must use child-only LD_LIBRARY_PATH=exact build
+and remove LD_PRELOAD; every executable and its shared core remain hash-bound.
+"""
+import argparse
+import importlib.util
+import json
+import os
+from pathlib import Path
+import re
+import shlex
+import signal
+import time
+HERE=Path(__file__).resolve().parent
+spec=importlib.util.spec_from_file_location('s08_B_original_build',HERE/'forge_sol_S08_B_release_build_20261026.py')
+base=importlib.util.module_from_spec(spec);spec.loader.exec_module(base)
+shared=base.shared;original=base.original
+BASE_SHA='43c6bd0a90fd95783031a24c27fb2b538ca32f51123b3f422f85c7b387a29c44'
+FREEZE_SHA=base.FREEZE_SHA
+PROFILE='B_ASAN_SHARED_NODWARF'
+TARGETS=base.TARGETS;EXPECTED_TUS=base.EXPECTED_TUS
+CORE='libforge_core.so';CORE_TUS=frozenset(x for x in EXPECTED_TUS if x.startswith('src/') and x!='src/uci.cpp')
+RUNTIME_ARTIFACTS=(CORE,)+TARGETS
+RELWITHDEBINFO='-O2 -g0 -DNDEBUG'
+
+class OwnedPause(RuntimeError):pass
+
+def configure_args(source,build):
+    return [str(shared.CMAKE),'-S',str(source),'-B',str(build),'-DCMAKE_BUILD_TYPE=RelWithDebInfo','-DCMAKE_CXX_COMPILER='+str(shared.CXX),'-DCMAKE_CXX_FLAGS='+shared.FLAGS,'-DCMAKE_CXX_FLAGS_RELWITHDEBINFO='+RELWITHDEBINFO,'-DBUILD_SHARED_LIBS=ON','-DFORGE_ENABLE_SANITIZERS=ON','-DFORGE_PROF=ON','-DFORGE_NATIVE=OFF','-DCMAKE_INTERPROCEDURAL_OPTIMIZATION=OFF','-DCMAKE_EXPORT_COMPILE_COMMANDS=ON']
+
+def check_tokens(tokens,relative,compiling):
+    required=set(shared.FLAGS.split())|{'-O2','-g0','-DNDEBUG','-fsanitize=address,undefined'}
+    if Path(tokens[0]).resolve()!=shared.CXX.resolve() or not required.issubset(tokens):raise ValueError('shared ASAN compiler/flags missing')
+    for prefix,value in {'-march=':['-march=x86-64-v3'],'-mtune=':['-mtune=znver5'],'-DFORGE_NNUE_HIDDEN':['-DFORGE_NNUE_HIDDEN=256'],'-UFORGE_':[]}.items():
+        if [x for x in tokens if x.startswith(prefix)]!=value:raise ValueError('shared ASAN ISA/tuning/macro override')
+    for x in tokens:
+        if ((x.startswith('-O') and x!='-O2') or (x.startswith('-g') and x!='-g0') or x.startswith(('-flto','-fprofile','-fauto-profile','-fno-sanitize','-static-libasan','-static-libubsan')) or (x.startswith('-fsanitize') and x!='-fsanitize=address,undefined') or x in ('-ffast-math','-funsafe-math-optimizations','-fassociative-math','-freciprocal-math','-fno-signed-zeros','-fno-trapping-math','-ffinite-math-only','-fomit-frame-pointer','-static') or x.lower().startswith('-fno-pic') or (x.startswith('-ffp-contract=') and x!='-ffp-contract=off') or x.endswith('=native')):raise ValueError('noncanonical shared ASAN flag: '+x)
+    if compiling:
+        if '-fno-omit-frame-pointer' not in tokens or tokens.count('-DFORGE_PROF=1')!=1 or [x for x in tokens if x.startswith('-std=')] not in (['-std=c++20'],['-std=gnu++20']):raise ValueError('shared ASAN C++20/Profile/frame pointer missing')
+        if relative in CORE_TUS and '-fPIC' not in tokens:raise ValueError('shared core TU lacks PIC')
+
+def audit_recipe(source,build,freeze):
+    cache={}
+    for line in (build/'CMakeCache.txt').read_text().splitlines():
+        if line and not line.startswith(('#','//')) and ':' in line and '=' in line:
+            key,value=line.split('=',1);cache[key.split(':',1)[0]]=value
+    expected={'CMAKE_BUILD_TYPE':'RelWithDebInfo','CMAKE_CXX_FLAGS':shared.FLAGS,'CMAKE_CXX_FLAGS_RELWITHDEBINFO':RELWITHDEBINFO,'CMAKE_HOME_DIRECTORY':str(source),'BUILD_SHARED_LIBS':'ON','FORGE_ENABLE_SANITIZERS':'ON','FORGE_PROF':'ON','FORGE_NATIVE':'OFF','CMAKE_INTERPROCEDURAL_OPTIMIZATION':'OFF','CMAKE_EXPORT_COMPILE_COMMANDS':'ON','FORGE_EXPOSE_TUNABLES':'OFF','FORGE_BUILD_VALIDATION_TOOLS':'OFF','FORGE_BUILD_TUNING_TOOLS':'OFF'}
+    if any(cache.get(k)!=v for k,v in expected.items()) or Path(cache.get('CMAKE_CXX_COMPILER','')).resolve()!=shared.CXX.resolve():raise ValueError('shared ASAN cache mismatch')
+    frozen={x for x in freeze['source_sha256'] if x.endswith('.cpp') and (x.startswith(('src/','tests/')) or x=='bench/benchmark.cpp')}
+    if frozen!=EXPECTED_TUS:raise ValueError('shared ASAN frozen21-TU set mismatch')
+    files=[]
+    for row in json.loads((build/'compile_commands.json').read_text()):
+        name=str(Path(row['file']).relative_to(source));files.append(name);check_tokens(row.get('arguments') or shlex.split(row['command']),name,True)
+    if len(files)!=21 or set(files)!=EXPECTED_TUS:raise ValueError('shared ASAN generated21-TU set mismatch')
+    links={}
+    for path in build.glob('CMakeFiles/*.dir/link.txt'):
+        tokens=shlex.split(path.read_text());name=path.parent.name.removesuffix('.dir')
+        check_tokens(tokens,'',False)
+        if name=='forge_core':
+            if not {'-fPIC','-shared','-Wl,-soname,'+CORE}.issubset(tokens):raise ValueError('shared core link lacks PIC/shared/SONAME')
+        elif name in TARGETS:
+            if '-shared' in tokens or not any(Path(x).name==CORE for x in tokens):raise ValueError('executable does not link shared core')
+        else:raise ValueError('foreign shared ASAN link target')
+        links[name]={'path':str(path.relative_to(build)),'sha256':shared.sha(path)}
+    if set(links)!=set(TARGETS)|{'forge_core'}:raise ValueError('shared ASAN14-link target set mismatch')
+    return {'status':'PASS_B_ASAN_SHARED_NODWARF_RECIPE','translation_units':sorted(files),'PIC_core_TUs':sorted(CORE_TUS),'runtime_artifact_names':list(RUNTIME_ARTIFACTS),'links':links,'cache_sha256':shared.sha(build/'CMakeCache.txt'),'compile_commands_sha256':shared.sha(build/'compile_commands.json')}
+
+def parse_dynamic(text,name,build):
+    needed=re.findall(r'\(NEEDED\).*?\[([^\]]+)\]',text);soname=re.findall(r'\(SONAME\).*?\[([^\]]+)\]',text)
+    search={tag:re.findall(r'\('+tag+r'\).*?\[([^\]]*)\]',text) for tag in ('RPATH','RUNPATH')}
+    for entries in search.values():
+        for entry in entries:
+            if any(not value or Path(value).resolve()!=build.resolve() for value in entry.split(':')):raise ValueError('runtime search path is not exact private build')
+    asan=any(re.fullmatch(r'libasan\.so\.\d+',x) for x in needed);ubsan=any(re.fullmatch(r'libubsan\.so\.\d+',x) for x in needed)
+    if name==CORE:
+        if soname!=[CORE] or not asan or not ubsan:raise ValueError('shared core SONAME/sanitizer dependency mismatch')
+    else:
+        if soname or not asan or (name!='forge_nearest_pawn_tests' and CORE not in needed):raise ValueError('executable shared-core/ASAN dependency mismatch')
+    if any(x.startswith('libforge_core') and x!=CORE for x in needed):raise ValueError('foreign core dependency')
+    return {'needed':needed,'soname':soname,'search_paths':search,'nearest_header_only_core_needed_exception':name=='forge_nearest_pawn_tests' and CORE not in needed,'direct_UBSAN_dependency':ubsan,'UBSAN_provider_via_needed_core':CORE in needed and not ubsan}
+
+def resume_state(previous,build,freeze_sha):
+    if previous.get('profile')!=PROFILE or previous.get('build_dir')!=str(build.absolute()) or previous.get('source_freeze_sha256')!=freeze_sha or previous.get('status') not in ('PAUSED_BUILD_ONLY','PASS_BUILD_ONLY') or not previous.get('source_unchanged'):raise ValueError('shared ASAN resume profile/source/cache mismatch')
+    done=previous['completed_targets'];artifacts=previous['target_artifacts'];expected=set(done)|({CORE} if done else set())
+    if done!=list(TARGETS[:len(done)]) or set(artifacts)!=expected:raise ValueError('shared ASAN target/artifact prefix mismatch')
+    if any(not x.get('leader_reaped') or x.get('all_group_members_after_reap') or x.get('error') for x in previous['commands']):raise ValueError('prior shared ASAN child group not reaped')
+    for name,record in artifacts.items():
+        if shared.sha(build/name)!=record['sha256']:raise ValueError('prior shared runtime artifact changed')
+    dynamic=previous.get('dynamic_metadata',{})
+    if not set(dynamic).issubset(artifacts) or any(dynamic[x].get('sha256')!=artifacts[x]['sha256'] for x in dynamic):raise ValueError('prior dynamic metadata/hash mismatch')
+    return {'configured':bool(previous.get('configured')),'completed_targets':list(done),'target_artifacts':dict(artifacts),'dynamic_metadata':dict(dynamic)}
+
+def audit_runtime(name,build,out,deadline,index,commands):
+    label=f'dynamic_{index:02d}';receipt=shared.run_owned(['readelf','-W','-d',str(build/name)],out,label,out,deadline);commands.append(receipt)
+    if receipt.get('error'):raise RuntimeError(receipt['error'])
+    if receipt['stop_reason']:raise OwnedPause(receipt['stop_reason'])
+    if receipt['returncode']!=0 or receipt['captures']['stderr']['bytes']:raise ValueError('readelf dynamic audit failed')
+    metadata=parse_dynamic((out/(label+'.stdout')).read_text(),name,build);metadata.update(path=str(build/name),sha256=shared.sha(build/name),readelf_receipt_sha256=shared.sha(out/(label+'.receipt.json')))
+    return metadata
+
+def main(argv=None):
+    p=argparse.ArgumentParser(description=__doc__);p.add_argument('--execute',action='store_true');p.add_argument('--s26-timing-closed',action='store_true');p.add_argument('--authorization-reference',required=True);p.add_argument('--source-freeze',type=Path,required=True);p.add_argument('--window-dir',type=Path,required=True);p.add_argument('--build-dir',type=Path,required=True);p.add_argument('--stop-file',type=Path,required=True);p.add_argument('--max-seconds',type=float,default=600);p.add_argument('--stage',choices=('first2','all'),default='first2');p.add_argument('--resume-from',type=Path)
+    a=p.parse_args(argv)
+    if not a.execute or not a.s26_timing_closed:p.error('future explicit root shared ASAN build grant required')
+    if not 2<=a.max_seconds<=600:p.error('owned deadline must be2..600seconds')
+    if sorted(os.sched_getaffinity(0))!=[3] or os.getpriority(os.PRIO_PROCESS,0)!=19:p.error('use CPU3nice19')
+    helpers=[(HERE/'forge_sol_S08_B_release_build_20261026.py',BASE_SHA),(HERE/'forge_sol_S08_release_resume_after_timing_20261026.py',base.STRICT_SHA),(HERE/'forge_sol_S08_release_after_timing_20261026.py',base.strict.ORIGINAL_SHA),(HERE/'forge_sol_S08_sanitizer_build_20261026.py',original.ASAN_SHA),(HERE/'forge_sol_S08_build_window_subreaper_20261026.py',original.asan.SHARED_SHA)]
+    if any(shared.sha(path)!=digest for path,digest in helpers) or shared.sha(a.source_freeze)!=FREEZE_SHA:p.error('frozen helper/B-source digest mismatch')
+    start=time.monotonic();deadline=start+a.max_seconds;out=shared.new_directory(a.window_dir);build=a.build_dir.absolute();freeze=json.loads(a.source_freeze.read_text());source=Path(freeze['source']);guard=original.asan.ActiveGuard(out,a.stop_file);prior_guard=shared.boundary_reason;shared.boundary_reason=guard.check;code=1
+    result={'status':'FAIL_BUILD_ONLY','profile':PROFILE,'stage':a.stage,'started_utc':shared.utc(),'source':str(source),'build_dir':str(build),'source_freeze_sha256':FREEZE_SHA,'adapter_sha256':shared.sha(__file__),'base_adapter_sha256':BASE_SHA,'shared_subreaper_sha256':original.asan.SHARED_SHA,'authorization_reference':a.authorization_reference,'cpu':[3],'nice':19,'max_seconds':a.max_seconds,'disk_floor_bytes':original.asan.FLOOR,'configured':False,'completed_targets':[],'target_artifacts':{},'dynamic_metadata':{},'commands':[],'expected_runtime_artifacts':list(RUNTIME_ARTIFACTS),'expected_full_CTest_count':16,'engine_executions':0,'CTest_FMA_perft_bench_executions':0,'storage_estimate':'UNMEASURED_NEW_SHARED_PROFILE_NO_30MB_PROMISE','runtime_protocol':{'child_only_set':{'LD_LIBRARY_PATH':str(build)},'child_only_unset':['LD_PRELOAD'],'first':'Separate bare bench11=308972 before any UCI; bind engine plus shared-core hashes; all runtimes await a separate root grant'}}
+    try:
+        reason=guard.check(None,deadline-1)
+        if reason:raise OwnedPause(reason)
+        original.verify_source(freeze);result['source_before']=freeze['source_sha256'];result['compiler_sha256']=shared.CXX_SHA
+        if a.resume_from:result.update(resume_state(json.loads(a.resume_from.read_text()),build,FREEZE_SHA));result['resume_receipt_sha256']=shared.sha(a.resume_from)
+        elif build.exists():raise ValueError('new isolated shared ASAN cache required')
+        if result['configured']:result['recipe_before']=audit_recipe(source,build,freeze)
+        desired=TARGETS[:2] if a.stage=='first2' else TARGETS
+        jobs=[] if result['configured'] else [('00_configure',configure_args(source,build),None)]
+        jobs += [(f'{i+1:02d}_{target}',[str(shared.CMAKE),'--build',str(build),'--target',target,'--parallel','1','--verbose'],target) for i,target in enumerate(TARGETS) if target in desired and target not in result['completed_targets']]
+        for label,command,target in jobs:
+            receipt=shared.run_owned(command,out,label,out,deadline);result['commands'].append(receipt)
+            if receipt.get('error'):raise RuntimeError(receipt['error'])
+            if receipt['stop_reason']:raise OwnedPause(receipt['stop_reason'])
+            if receipt['returncode']!=0:raise RuntimeError('shared ASAN configure/target failed: '+label)
+            if target is None:result['configured']=True;result['recipe_before']=audit_recipe(source,build,freeze)
+            else:
+                updates={}
+                for name in (CORE,target):
+                    with (build/name).open('rb') as stream:
+                        if stream.read(4)!=b'\x7fELF':raise ValueError('shared runtime artifact is not ELF')
+                    item={'sha256':shared.sha(build/name),'bytes':(build/name).stat().st_size,'executed':False}
+                    if name in result['target_artifacts'] and item['sha256']!=result['target_artifacts'][name]['sha256']:raise ValueError('shared core changed between targets')
+                    updates[name]=item
+                result['target_artifacts'].update(updates);result['completed_targets'].append(target)
+        result['recipe_after']=audit_recipe(source,build,freeze)
+        for index,name in enumerate(RUNTIME_ARTIFACTS):
+            if name in result['target_artifacts'] and name not in result['dynamic_metadata']:result['dynamic_metadata'][name]=audit_runtime(name,build,out,deadline,index,result['commands'])
+        if {'forge',CORE}.issubset(result['dynamic_metadata']):shared.save_new(out/'forge_sol_S08_B_shared_ASAN_first_ELF_build_only_20261026.json',{'engine':result['target_artifacts']['forge'],'core':result['target_artifacts'][CORE],'dynamic_metadata':{name:result['dynamic_metadata'][name] for name in ('forge',CORE)},'source_freeze_sha256':FREEZE_SHA,'runtime_protocol':result['runtime_protocol'],'engine_executions':0,'first_bare11_pending':True})
+        result['status']='PASS_BUILD_ONLY';code=0
+    except OwnedPause as exc:result.update(status='PAUSED_BUILD_ONLY',stop_reason=str(exc));code=0
+    except BaseException as exc:result['failure']=type(exc).__name__+': '+str(exc)
+    finally:
+        shared.boundary_reason=prior_guard;result['source_after']=shared.snapshot(source);result['source_unchanged']=result['source_after']==freeze['source_sha256']
+        result['bound_runtime_artifacts_unchanged']=all(shared.sha(build/name)==record['sha256'] for name,record in result['target_artifacts'].items())
+        if not result['source_unchanged'] or not result['bound_runtime_artifacts_unchanged']:result['status']='FAIL_BUILD_ONLY';code=1
+        result.update(finished_utc=shared.utc(),elapsed_seconds=time.monotonic()-start,minimum_observed_free_bytes=guard.minimum_free,pending_targets=[x for x in TARGETS if x not in result['completed_targets']],runtime_artifact_manifest_complete=set(result['target_artifacts'])==set(RUNTIME_ARTIFACTS) and set(result['dynamic_metadata'])==set(RUNTIME_ARTIFACTS));shared.save_new(out/'forge_sol_S08_B_shared_ASAN_build_result_20261026.json',result)
+        print(json.dumps({'status':result['status'],'completed':result['completed_targets'],'pending':result['pending_targets'],'failure':result.get('failure')}),flush=True)
+    return code
+if __name__=='__main__':
+    signal.signal(signal.SIGTERM,shared._signal_stop);signal.signal(signal.SIGINT,shared._signal_stop);raise SystemExit(main())

@@ -1,0 +1,37 @@
+{
+  "created_utc": "2026-10-26T16:21:22.586807+00:00",
+  "status": "READ_ONLY_PROPOSAL_READY_NO_RETIREMENT_PERFORMED",
+  "proposal": "/workspace/forge-pack24-20261026/forge_sol_S00_fourteenth_space_proposal_20261026/forge_sol_S00_fourteenth_closed_cache_proposal_20261026.json",
+  "proposal_sha256": "4b3df5d52275c129b949619a8001f1cdc2611bc57405d4de583f61a31982ad37",
+  "audit_sha256": "78c072a4d78ada1347461d95417bae12556d52c1b1384a36fe2fd61c90a208af",
+  "parent_reuse_source_sha256": "10557dc70b24d3661bca8da7fd397997db323b56aeb3453986f0431c42ece62a",
+  "actual_measurement": {
+    "selected_groups": 560,
+    "required_100MiB_net_allocated_met": false,
+    "selected_alias_paths": 865,
+    "selected_unique_raw_bytes": 130186874,
+    "measured_gzip6_archive_bytes": 48288921,
+    "measured_net_payload_bytes": 81897953,
+    "conservative_projected_net_allocated_bytes": 82223104,
+    "largest_one_archive_bytes": 340336,
+    "free_bytes_at_report": 4374528,
+    "projected_free_bytes_after_selected_and_6MiB_pending_packets": 80306176,
+    "unselected_source_proven_groups": 0,
+    "unselected_raw_bytes_estimate_only": 0,
+    "unselected_net_estimate_70pct_not_measured": 0,
+    "measurement_qualification": "Gzip payload lengths are measured in memory, not saved/decoded archives. Space reclamation is a projection until root preserves/decodes/fsyncs/maps/unlinks all aliases. Allocated projection assumes 4096-byte blocks and excludes map/journal overhead."
+  },
+  "additional_controls": {
+    "all_aliases_broader_S08_delimiter_check_pass": true,
+    "broader_S08_regex": "(?:^|[/_.-])s0?8(?:[/_.-]|$)",
+    "root_pause_does_not_authorize_this_subagent_to_unlink": true
+  },
+  "qualifications": [
+    "100 MiB target was not met; all remaining source-proven external eligible groups were measured. Root explicitly accepted 60+ MiB as sufficient and will review actual retirement.",
+    "No archives have been written and no source/cache objects removed by this audit. Root must preserve lossless gzip archives, independently decode/hash them and durably map all aliases before unlinking.",
+    "The 6 MiB pending-packet projection inherited from wave13 is only an arithmetic scenario, not a measurement or forecast of active S08 build growth. Current filesystem space changes independently.",
+    "Frozen source S08 regex missed hyphen-prefixed names. Independent broader delimiter check over every selected alias found zero such S08 names; frozen source and proposal are retained unchanged.",
+    "Proc access denials preclude global FD absence. Root must recheck leases, all selected alias metadata/content and visible references immediately before action.",
+    "Proposal process read all external regular-file metadata and compressed selected compiler caches only to an in-memory count sink; no archive disk usage incurred."
+  ]
+}

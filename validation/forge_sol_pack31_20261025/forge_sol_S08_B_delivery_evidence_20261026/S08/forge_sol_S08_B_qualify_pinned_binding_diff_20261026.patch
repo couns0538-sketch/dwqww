@@ -1,0 +1,84 @@
+--- forge_sol_S08_v2_qualify_20261026.py
++++ forge_sol_S08_B_qualify_20261026.py
+@@ -1,4 +1,4 @@
+-"""Explicit fixed-work S08 v2 Release qualification; no strength or NPS claim.
++"""Explicit fixed-work S08 B Release qualification; no strength or NPS claim.
+ 
+ Root already owns the first bare11. This controller verifies that immutable
+ receipt and the fully closed build before any engine execution. ASAN stays root-owned.
+@@ -25,15 +25,15 @@
+ S25_PATH=Path('/workspace/dwqww/releases/forge_sol_pack31_20261025/S25_v2/forge_sol_S25_outcontract_20261025.py')
+ s25=load('s08_original_s25',S25_PATH)
+ FMA=Path('/workspace/forge-pack24-20261026/S26/forge_sol_S26_original_evidence_restore_VERIFY_20261026/provided_tools/fma/forge_sol_S05_fmacheck_v3_20261025.py')
+-ELF_SHA='9208252eba0bc2aee5aa383806f854dff506c1ecd11c151d647c2567c64a3de2'
++ELF_SHA='3e2c8360ba74b4814a16679dfa11ed32eb8b80f6f525fdb07567d7adaec2c9c7'
+ EMPTY_SHA='e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855'
+ COLLECTOR_SHA='bf5d18d25bc1fb342c06092a36bfbac2b4717dc8a3f3c8f5cac34add3c3b1143'
+-FREEZE_SHA='2923e86c186e357aac177e453f5745993d0839af02422d2622ff9f80dffae5ad'
++FREEZE_SHA='fcd93778dc3bae5bed2f941c9ee0fff08f6ee07ce6ecf22bf82a007e8a8904d7'
+ REFS={11:308972,13:745494,16:2460422,20:11901452,22:31111774}
+ # Authoritative literal from tests/tests.cpp.
+ KIWI='r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1'
+ # Known-case policy is the frozen C++ source: exact WAC pin; promotion score>100.
+-KNOWN_SOURCE=HERE/'Lprime_v2/tests/tests.cpp'
++KNOWN_SOURCE=HERE/'B_v2/tests/tests.cpp'
+ SUFFIX=' (h256_e12 net-evaluation horizon; original 6.4.24 expectation retained)'
+ KNOWN=[x+SUFFIX for x in [
+  'KNOWN_FAILURE: WAC 001 expected g3g6 got f6h5',
+@@ -56,9 +56,9 @@
+ def verify_ctest(text,returncode):
+     normalized=[re.sub(r'^\d+:\s?','',x) for x in text.splitlines()]
+     known=[x for x in normalized if x.startswith('KNOWN_FAILURE:')]
+-    if (returncode!=0 or '100% tests passed, 0 tests failed out of 15' not in text
++    if (returncode!=0 or '100% tests passed, 0 tests failed out of 16' not in text
+         or len(known)!=4 or any(x.startswith(('FAIL:','PIN_MISMATCH:')) for x in normalized)):
+-        raise ValueError('full15CTest or four source-known cases failed')
++        raise ValueError('full16CTest or four source-known cases failed')
+     if any(known.count(line)!=1 for line in KNOWN[:2]):raise ValueError('exact WAC known pins changed')
+     promotions=[line for line in known if line not in KNOWN[:2]]
+     observed={}
+@@ -68,7 +68,7 @@
+             raise ValueError('promotion known case violates frozen source bound/identity/depth')
+         observed[match[1]]=int(match[3])
+     if len(observed)!=2:raise ValueError('both source-known promotion cases required')
+-    return {'registered_tests':15,'known_findings':known,'promotion_scores_observed':observed,'new_failures':0}
++    return {'registered_tests':16,'known_findings':known,'promotion_scores_observed':observed,'new_failures':0}
+ 
+ 
+ def verify_search(lines,profile):
+@@ -160,12 +160,12 @@
+     if shutil.disk_usage(a.output.parent).free<=20*1048576:p.error('root disk hold: need more than20MiB before launch')
+     if shared.sha(a.source_freeze)!=FREEZE_SHA or shared.sha(HERE/'forge_sol_S08_collect_profiles_20261026.py')!=COLLECTOR_SHA:p.error('frozen source/parser changed')
+     build_info=json.loads(a.build_receipt.read_text());verify_first(json.loads(a.first_runtime_receipt.read_text()))
+-    if build_info.get('status')!='PASS_BUILD_ONLY' or build_info.get('pending_targets') or len(build_info.get('completed_targets',[]))!=12 or not build_info.get('source_unchanged'):p.error('closed full12-target build required')
++    if build_info.get('status')!='PASS_BUILD_ONLY' or build_info.get('pending_targets') or len(build_info.get('completed_targets',[]))!=13 or not build_info.get('source_unchanged'):p.error('closed full13-target build required')
+     freeze=json.loads(a.source_freeze.read_text());source=Path(freeze['source']);build=Path(build_info['build_dir']);engine=build/'forge'
+     release.original.verify_source(freeze)
+     if shared.sha(engine)!=ELF_SHA:p.error('Release ELF changed')
+     out=collector.exclusive_directory(a.output);start=time.monotonic();guard=Guard(out,a.stop_file,start+a.max_seconds)
+-    result={'status':'FAIL','scope':'RELEASE_CORRECTNESS_FIXED_WORK_NO_SPEED_STRENGTH_CLAIM','engine_sha256':ELF_SHA,'source_freeze_sha256':FREEZE_SHA,
++    result={'status':'FAIL','scope':'B_RELEASE_CORRECTNESS_FIXED_WORK_NO_SPEED_STRENGTH_CLAIM','engine_sha256':ELF_SHA,'source_freeze_sha256':FREEZE_SHA,
+         'controller_sha256':shared.sha(__file__),'collector_sha256':COLLECTOR_SHA,'build_receipt_sha256':shared.sha(a.build_receipt),'first_runtime_receipt_sha256':shared.sha(a.first_runtime_receipt),
+         'known_observations_source':{'path':str(KNOWN_SOURCE),'sha256':shared.sha(KNOWN_SOURCE)},'authorization_reference':a.authorization_reference,'cpu':[3],'nice':19,'steps':[],'corpus_collection':'separate_authorized_substitute_corpus_preparation','s25_policy':'unchanged inspect_bench; typed baseline options plus exactly Profile/check/defaultfalse','nps_used':False}
+     old_guard=shared.boundary_reason;shared.boundary_reason=guard.reason;code=1
+@@ -192,9 +192,9 @@
+         approved=json.loads(S25_PATH.with_name('forge_sol_S25_options_20261025.json').read_text())['options']+[{'name':'Profile','type':'check','default':False}]
+         save_step('UCI_Profile_T2_lifecycle',lifecycle(engine,out,guard,approved))
+         ctest=shared.CMAKE.with_name('ctest');command=[str(ctest),'--test-dir',str(build),'--output-on-failure','-V','-j1','--output-junit',str(out/'full_ctest.xml')]
+-        record=shared.run_owned(command,out,'full15_CTest',out,guard.deadline)
++        record=shared.run_owned(command,out,'full16_CTest',out,guard.deadline)
+         if record.get('error') or record.get('stop_reason'):raise RuntimeError('CTest owned child did not finish')
+-        verified=verify_ctest((out/'full15_CTest.stdout').read_text(),record['returncode']);save_step('full15_CTest',verified)
++        verified=verify_ctest((out/'full16_CTest.stdout').read_text(),record['returncode']);save_step('full16_CTest',verified)
+         for label,path in [('FMA_NNUE_object',build/'CMakeFiles/forge_core.dir/src/nnue.cpp.o'),('FMA_NNUE_scope_ELF',engine)]:
+             record=shared.run_owned([sys.executable,'-B',str(FMA),str(path)],out,label,out,guard.deadline)
+             if record.get('returncode')!=0 or record.get('error') or record.get('stop_reason'):raise RuntimeError('FMA checker failed')
+@@ -212,7 +212,7 @@
+         shared.boundary_reason=old_guard;result['binary_unchanged']=shared.sha(engine)==ELF_SHA;result['source_unchanged']=shared.snapshot(source)==freeze['source_sha256']
+         if not result['binary_unchanged'] or not result['source_unchanged']:result['status']='FAIL';code=1
+         result.update(elapsed_seconds=time.monotonic()-start,minimum_observed_free_bytes=guard.minimum)
+-        shared.save_new(out/'forge_sol_S08_v2_Release_qualification_result_20261026.json',result)
++        shared.save_new(out/'forge_sol_S08_B_Release_qualification_result_20261026.json',result)
+         print(json.dumps({'status':result['status'],'completed_stages':[x['name'] for x in result['steps']],'failure':result.get('failure')}),flush=True)
+     return code
+ 

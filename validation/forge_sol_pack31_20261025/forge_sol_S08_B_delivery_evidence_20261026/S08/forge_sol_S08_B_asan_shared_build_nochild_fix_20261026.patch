@@ -1,0 +1,11 @@
+--- b96d6b_shared_adapter_before_nochild_guard
++++ forge_sol_S08_B_asan_shared_build_20261026.py
+@@ -87,7 +87,7 @@
+     if previous.get('profile')!=PROFILE or previous.get('build_dir')!=str(build.absolute()) or previous.get('source_freeze_sha256')!=freeze_sha or previous.get('status') not in ('PAUSED_BUILD_ONLY','PASS_BUILD_ONLY') or not previous.get('source_unchanged'):raise ValueError('shared ASAN resume profile/source/cache mismatch')
+     done=previous['completed_targets'];artifacts=previous['target_artifacts'];expected=set(done)|({CORE} if done else set())
+     if done!=list(TARGETS[:len(done)]) or set(artifacts)!=expected:raise ValueError('shared ASAN target/artifact prefix mismatch')
+-    if any(not x.get('leader_reaped') or x.get('all_group_members_after_reap') or x.get('error') for x in previous['commands']):raise ValueError('prior shared ASAN child group not reaped')
++    if any('pid' not in x or x.get('all_group_members_after_reap') or x.get('error') or (x['pid'] is not None and not x.get('leader_reaped')) for x in previous['commands']):raise ValueError('prior shared ASAN child group not reaped')
+     for name,record in artifacts.items():
+         if shared.sha(build/name)!=record['sha256']:raise ValueError('prior shared runtime artifact changed')
+     dynamic=previous.get('dynamic_metadata',{})

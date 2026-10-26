@@ -1,0 +1,43 @@
+"""Pure first-runtime/all-artifact binding, environment restoration and guards."""
+import copy
+import importlib.util
+import os
+from pathlib import Path
+import tempfile
+import time
+import unittest
+from unittest.mock import patch
+MODULE=Path(__file__).with_name('forge_sol_S08_B_shared_ASAN_qualify_20261026.py')
+class RuntimeAdapterTests(unittest.TestCase):
+    def setUp(self):
+        self.assertTrue(MODULE.is_file(),'shared-ASAN runtime adapter missing')
+        spec=importlib.util.spec_from_file_location('shared_runtime',MODULE);self.api=importlib.util.module_from_spec(spec);spec.loader.exec_module(self.api)
+    def test_first_receipt_binds_full14_artifacts_source_order_and_environment(self):
+        artifacts={name:{'sha256':'a'*64,'bytes':1,'executed':False} for name in self.api.builder.RUNTIME_ARTIFACTS}
+        artifacts['forge']['sha256']=self.api.ENGINE_SHA;artifacts[self.api.builder.CORE]['sha256']=self.api.CORE_SHA
+        first={'status':'PASS','returncode':0,'timeout':False,'bench_counts':[308972],'first_runtime_bare_bench':True,'no_UCI_before_bench':True,'source_and_14_artifacts_unchanged':True,'build_receipt_sha256':self.api.BUILD_RECEIPT_SHA,'source_freeze_sha256':self.api.FREEZE_SHA,'runtime_artifacts':artifacts,'environment':self.api.expected_environment(),'LD_PRELOAD_removed':True,'remaining_group':[],'streams':{'stderr':{'bytes':0,'sha256':self.api.bqual.EMPTY_SHA}}}
+        self.api.verify_first(first,artifacts)
+        for key,value in [('no_UCI_before_bench',False),('build_receipt_sha256','wrong'),('LD_PRELOAD_removed',False),('source_and_14_artifacts_unchanged',False),('bench_counts',[0])]:
+            bad=copy.deepcopy(first);bad[key]=value
+            with self.subTest(key=key),self.assertRaises(ValueError):self.api.verify_first(bad,artifacts)
+        bad=copy.deepcopy(first);bad['runtime_artifacts'][self.api.builder.CORE]['sha256']='b'*64
+        with self.assertRaises(ValueError):self.api.verify_first(bad,artifacts)
+    def test_child_environment_matches_first_and_restores_parent_even_on_error(self):
+        values={'LD_LIBRARY_PATH':'parentpath','LD_PRELOAD':'parentpreload','ASAN_OPTIONS':'parentasan','UBSAN_OPTIONS':'parentubsan'}
+        with patch.dict(os.environ,values):
+            with self.assertRaisesRegex(RuntimeError,'sentinel'):
+                with self.api.runtime_environment() as env:
+                    self.assertEqual(env,self.api.expected_environment());self.assertNotIn('LD_PRELOAD',os.environ)
+                    raise RuntimeError('sentinel')
+            for key,value in values.items():self.assertEqual(os.environ[key],value)
+    def test_guard_work597_phase120_and_8MiB_STOP(self):
+        with tempfile.TemporaryDirectory() as folder:
+            root=Path(folder);stop=root/'STOP';end=time.monotonic()+600;guard=self.api.Guard(root,stop,end)
+            self.assertEqual(guard.deadline,end-3)
+            with patch.object(self.api.bqual.shutil,'disk_usage',return_value=type('Disk',(),{'free':8*1048576})()):self.assertIsNone(guard.reason())
+            with patch.object(self.api.bqual.shutil,'disk_usage',return_value=type('Disk',(),{'free':8*1048576-1})()):self.assertEqual(guard.reason(),'DISK_FREE_BELOW_8MIB')
+            stop.touch();self.assertEqual(guard.reason(),'ROOT_STOP_FILE');stop.unlink()
+            guard.phase_deadline=time.monotonic()-1;self.assertEqual(guard.reason(),'EXTRA_DEADLINE')
+        def parent_init(instance,*args):instance.timeout=500
+        with patch.object(self.api.bqual.Process,'__init__',parent_init):self.assertEqual(self.api.Process(None,None,None,None).timeout,120)
+if __name__=='__main__':unittest.main(verbosity=2)

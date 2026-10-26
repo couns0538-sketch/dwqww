@@ -1,0 +1,831 @@
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -5,6 +5,7 @@
+ option(FORGE_ENABLE_SANITIZERS "Enable AddressSanitizer and UndefinedBehaviorSanitizer" OFF)
+ option(FORGE_NATIVE "Optimise for the build machine's CPU (-march=native)" OFF)
+ option(FORGE_EXPOSE_TUNABLES "Advertise search tuning constants as UCI options (development builds)" OFF)
++option(FORGE_PROF "Build opt-in search-only profiling counters" OFF)
+ 
+ add_library(forge_core
+     src/bitboard.cpp
+@@ -17,6 +18,10 @@
+ )
+ target_include_directories(forge_core PUBLIC include)
+ target_compile_features(forge_core PUBLIC cxx_std_20)
++if(FORGE_PROF)
++    target_sources(forge_core PRIVATE src/profile.cpp)
++    target_compile_definitions(forge_core PUBLIC FORGE_PROF=1)
++endif()
+ 
+ if(MSVC)
+     target_compile_options(forge_core PRIVATE /W4 /permissive-)
+@@ -71,6 +76,11 @@
+ target_link_libraries(forge_bench PRIVATE forge_core Threads::Threads)
+ 
+ enable_testing()
++if(FORGE_PROF)
++    add_executable(forge_prof_tests tests/prof_tests.cpp)
++    target_link_libraries(forge_prof_tests PRIVATE forge_core Threads::Threads)
++    add_test(NAME forge_prof_tests COMMAND forge_prof_tests)
++endif()
+ add_test(NAME forge_tests COMMAND forge_tests)
+ add_test(NAME forge_correction_history_tests COMMAND forge_correction_history_tests)
+ add_test(NAME forge_runtime_psqt_tests COMMAND forge_runtime_psqt_tests)
+diff --git a/include/forge/profile.hpp b/include/forge/profile.hpp
+new file mode 100644
+--- /dev/null
++++ b/include/forge/profile.hpp
+@@ -0,0 +1,81 @@
++#pragma once
++
++#ifdef FORGE_PROF
++#include <array>
++#include <atomic>
++#include <cstddef>
++#include <cstdint>
++#include <iosfwd>
++
++namespace forge::prof {
++
++enum class Counter : std::size_t {
++    Nodes, MainNodes, QsNodes, EvalRequests, HceComputations, NnueForward,
++    NnueRefresh, TtProbes, TtHits, TtMisses, PickerVisits,
++    PickerMainTT, PickerGenerateCaptures, PickerGoodCaptures, PickerKiller1,
++    PickerKiller2, PickerCounterMove, PickerGenerateQuiets, PickerQuietMoves,
++    PickerBadCaptures, PickerQsTT, PickerQsGenerate, PickerQsCaptures,
++    PickerEvasionTT, PickerEvasionGenerate, PickerEvasions,
++    RazorChecks, RazorSearches, RazorCutoffs,
++    ProbCutChecks, ProbCutSearches, ProbCutCutoffs,
++    IirChecks, IirReductions, LmpChecks, LmpActivations,
++    FutilityChecks, FutilityPrunes, CaptureFutilityChecks, CaptureFutilityPrunes,
++    HistoryChecks, HistoryPrunes, QuietSeeChecks, QuietSeePrunes,
++    NoisySeeChecks, NoisySeePrunes, QsFutilityChecks, QsFutilityPrunes,
++    QsSeeChecks, QsSeePrunes, SingularChecks, SingularSearches,
++    SingularExtensions, SingularDoubleExtensions, SingularCutoffs,
++    Count
++};
++constexpr std::size_t CounterCount=static_cast<std::size_t>(Counter::Count);
++struct Snapshot {
++    std::array<std::uint64_t,CounterCount> values{};
++    bool overflow=false;
++};
++
++// Lifetime/reset/read follow Searcher's quiescent controller contract.
++// Only add() is called by active workers. Unsigned wrap is defined modulo
++// 2^64 and sets a sticky flag: wrapped totals are not valid frequencies.
++class Bank {
++public:
++    void add(Counter event,std::uint64_t amount=1) noexcept {
++        const auto previous=values_[static_cast<std::size_t>(event)].fetch_add(amount,std::memory_order_relaxed);
++        if (previous+amount<previous) overflow_.store(true,std::memory_order_relaxed);
++    }
++    void reset_quiescent() noexcept {
++        for (auto& value:values_) value.store(0,std::memory_order_relaxed);
++        overflow_.store(false,std::memory_order_relaxed);
++    }
++    [[nodiscard]] Snapshot snapshot_quiescent() const noexcept {
++        Snapshot result;
++        for (std::size_t i=0;i<CounterCount;++i) result.values[i]=values_[i].load(std::memory_order_relaxed);
++        result.overflow=overflow_.load(std::memory_order_relaxed);
++        return result;
++    }
++private:
++    std::array<std::atomic<std::uint64_t>,CounterCount> values_{};
++    std::atomic<bool> overflow_{false};
++};
++
++// Constant initialization must be visible to every TU using this TLS slot.
++extern thread_local constinit Bank* current_bank;
++class Scope {
++public:
++    explicit Scope(Bank* bank) noexcept:previous_(current_bank) {current_bank=bank;}
++    ~Scope() {current_bank=previous_;}
++    Scope(const Scope&)=delete;
++    Scope& operator=(const Scope&)=delete;
++private:
++    Bank* previous_;
++};
++inline void count(Counter event,std::uint64_t amount=1) noexcept {
++    if (current_bank!=nullptr) current_bank->add(event,amount);
++}
++inline void picker_stage(std::size_t stage) noexcept {
++    count(Counter::PickerVisits);
++    count(static_cast<Counter>(static_cast<std::size_t>(Counter::PickerMainTT)+stage));
++}
++void merge(Snapshot& total,const Snapshot& delta) noexcept;
++void write_snapshot(std::ostream& output,const Snapshot& snapshot);
++
++} // namespace forge::prof
++#endif
+diff --git a/include/forge/search.hpp b/include/forge/search.hpp
+--- a/include/forge/search.hpp
++++ b/include/forge/search.hpp
+@@ -1,4 +1,7 @@
+ #pragma once
++#ifdef FORGE_PROF
++#include "forge/profile.hpp"
++#endif
+ 
+ #include "forge/board.hpp"
+ #include "forge/eval.hpp"
+@@ -290,6 +293,12 @@
+     std::atomic<bool> stop{false};
+     // 0 means pondering has not been converted into a timed search.
+     std::atomic<std::int64_t> ponder_hit_ns{0};
++#ifdef FORGE_PROF
++    prof::Bank profile;
++    std::atomic<bool> profile_requested{false};
++    bool profile_active=false; // Immutable while workers are active.
++#endif
++
+ };
+ 
+ // One search thread: owns its histories, stack and evaluation cache.
+@@ -394,6 +403,13 @@
+     void clear_hash();
+     void resize_hash(std::size_t hash_mb);
+     void set_threads(int threads);
++#ifdef FORGE_PROF
++    // Enabling may be requested atomically; reset/snapshot require this Searcher
++    // quiescent, exactly like clear/resize. Search snapshots once before launch.
++    void set_profiling(bool enabled) { shared_.profile_requested.store(enabled,std::memory_order_relaxed); }
++    [[nodiscard]] bool profiling_active() const { return shared_.profile_active; }
++    [[nodiscard]] prof::Snapshot profile_snapshot() const { return shared_.profile.snapshot_quiescent(); }
++#endif
+     [[nodiscard]] int threads() const { return static_cast<int>(workers_.size()); }
+     [[nodiscard]] int hashfull_permille() const { return shared_.tt.hashfull(); }
+     [[nodiscard]] static int evaluate(const Board& board) { return Evaluator::evaluate_uncached(board); }
+diff --git a/src/profile.cpp b/src/profile.cpp
+new file mode 100644
+--- /dev/null
++++ b/src/profile.cpp
+@@ -0,0 +1,66 @@
++#include "forge/profile.hpp"
++
++#ifdef FORGE_PROF
++#include <ostream>
++
++namespace forge::prof {
++thread_local constinit Bank* current_bank=nullptr;
++
++namespace {
++struct Description {const char* name;Counter denominator;};
++constexpr std::array<Description,CounterCount> descriptions{{
++    {"nodes",Counter::Nodes},{"main_nodes",Counter::Nodes},{"qs_nodes",Counter::Nodes},
++    {"eval_requests",Counter::Nodes},{"hce_computations",Counter::EvalRequests},
++    {"nnue_forward",Counter::EvalRequests},{"nnue_refresh",Counter::NnueForward},
++    {"tt_probes",Counter::Nodes},{"tt_hits",Counter::TtProbes},{"tt_misses",Counter::TtProbes},
++    {"picker_visits",Counter::Nodes},
++    {"picker_main_tt",Counter::PickerVisits},{"picker_generate_captures",Counter::PickerVisits},
++    {"picker_good_captures",Counter::PickerVisits},{"picker_killer1",Counter::PickerVisits},
++    {"picker_killer2",Counter::PickerVisits},{"picker_counter_move",Counter::PickerVisits},
++    {"picker_generate_quiets",Counter::PickerVisits},{"picker_quiet_moves",Counter::PickerVisits},
++    {"picker_bad_captures",Counter::PickerVisits},{"picker_qs_tt",Counter::PickerVisits},
++    {"picker_qs_generate",Counter::PickerVisits},{"picker_qs_captures",Counter::PickerVisits},
++    {"picker_evasion_tt",Counter::PickerVisits},{"picker_evasion_generate",Counter::PickerVisits},
++    {"picker_evasions",Counter::PickerVisits},
++    {"razor_checks",Counter::MainNodes},{"razor_searches",Counter::RazorChecks},
++    {"razor_cutoffs",Counter::RazorSearches},
++    {"probcut_checks",Counter::MainNodes},{"probcut_searches",Counter::ProbCutChecks},
++    {"probcut_cutoffs",Counter::ProbCutSearches},
++    {"iir_checks",Counter::MainNodes},{"iir_reductions",Counter::IirChecks},
++    {"lmp_checks",Counter::MainNodes},{"lmp_activations",Counter::LmpChecks},
++    {"futility_checks",Counter::MainNodes},{"futility_prunes",Counter::FutilityChecks},
++    {"capture_futility_checks",Counter::MainNodes},{"capture_futility_prunes",Counter::CaptureFutilityChecks},
++    {"history_checks",Counter::MainNodes},{"history_prunes",Counter::HistoryChecks},
++    {"quiet_see_checks",Counter::MainNodes},{"quiet_see_prunes",Counter::QuietSeeChecks},
++    {"noisy_see_checks",Counter::MainNodes},{"noisy_see_prunes",Counter::NoisySeeChecks},
++    {"qs_futility_checks",Counter::QsNodes},{"qs_futility_prunes",Counter::QsFutilityChecks},
++    {"qs_see_checks",Counter::QsNodes},{"qs_see_prunes",Counter::QsSeeChecks},
++    {"singular_checks",Counter::MainNodes},{"singular_searches",Counter::SingularChecks},
++    {"singular_extensions",Counter::SingularSearches},{"singular_double_extensions",Counter::SingularSearches},
++    {"singular_cutoffs",Counter::SingularSearches}
++}};
++}
++
++void merge(Snapshot& total,const Snapshot& delta) noexcept {
++    total.overflow=total.overflow || delta.overflow;
++    for (std::size_t i=0;i<CounterCount;++i) {
++        const auto previous=total.values[i];total.values[i]+=delta.values[i];
++        total.overflow=total.overflow || total.values[i]<previous;
++    }
++}
++
++void write_snapshot(std::ostream& output,const Snapshot& snapshot) {
++    output << "info string prof schema 1 scope search_only setup_excluded 1 overflow " << snapshot.overflow << '\n';
++    for (std::size_t i=0;i<CounterCount;++i) {
++        const auto& description=descriptions[i];
++        const auto d=static_cast<std::size_t>(description.denominator);
++        output << "info string prof " << description.name << " count " << snapshot.values[i]
++               << " denominator " << descriptions[d].name << " opportunities " << snapshot.values[d];
++        if (snapshot.values[d]!=0 && !snapshot.overflow) {
++            output << " pct " << (100.0*static_cast<double>(snapshot.values[i])/static_cast<double>(snapshot.values[d]));
++        } else output << " pct unknown";
++        output << '\n';
++    }
++}
++} // namespace forge::prof
++#endif
+diff --git a/src/search.cpp b/src/search.cpp
+--- a/src/search.cpp
++++ b/src/search.cpp
+@@ -1,4 +1,7 @@
+ #include "forge/search.hpp"
++#ifdef FORGE_PROF
++#include "forge/profile.hpp"
++#endif
+ #include "forge/uci_output.hpp"
+ 
+ #include <algorithm>
+@@ -248,6 +251,11 @@
+     const std::size_t index = static_cast<std::size_t>(&cluster - clusters_.get());
+     const auto lock = lock_stripe(index);
+     auto snapshot = [&](const TTEntry& entry, bool hit) {
++#ifdef FORGE_PROF
++        prof::count(prof::Counter::TtProbes);
++        prof::count(hit ? prof::Counter::TtHits : prof::Counter::TtMisses);
++#endif
++
+         TTProbe result;
+         result.entry = entry;
+         result.hit = hit;
+@@ -346,14 +354,23 @@
+             case MainTT:
+             case QsTT:
+             case EvasionTT:
++#ifdef FORGE_PROF
++                prof::picker_stage(static_cast<std::size_t>(stage_));
++#endif
+                 stage_ = static_cast<Stage>(stage_ + 1);
+                 return tt_move_;
+ 
+             case GenerateCaptures:
++#ifdef FORGE_PROF
++                prof::picker_stage(static_cast<std::size_t>(stage_));
++#endif
+                 generate_captures();
+                 stage_ = GoodCaptures;
+                 [[fallthrough]];
+             case GoodCaptures:
++#ifdef FORGE_PROF
++                prof::picker_stage(static_cast<std::size_t>(stage_));
++#endif
+                 while (index_ < count_) {
+                     const Move move = pick_best();
+                     if (move == tt_move_) continue;
+@@ -366,24 +383,39 @@
+                 stage_ = Killer1;
+                 [[fallthrough]];
+             case Killer1:
++#ifdef FORGE_PROF
++                prof::picker_stage(static_cast<std::size_t>(stage_));
++#endif
+                 stage_ = Killer2;
+                 if (!skip_quiets && is_valid_quiet(killers_[0])) return killers_[0];
+                 [[fallthrough]];
+             case Killer2:
++#ifdef FORGE_PROF
++                prof::picker_stage(static_cast<std::size_t>(stage_));
++#endif
+                 stage_ = CounterMove;
+                 if (!skip_quiets && is_valid_quiet(killers_[1]) && killers_[1] != killers_[0]) return killers_[1];
+                 [[fallthrough]];
+             case CounterMove:
++#ifdef FORGE_PROF
++                prof::picker_stage(static_cast<std::size_t>(stage_));
++#endif
+                 stage_ = GenerateQuiets;
+                 if (!skip_quiets && is_valid_quiet(counter_) && counter_ != killers_[0] && counter_ != killers_[1]) {
+                     return counter_;
+                 }
+                 [[fallthrough]];
+             case GenerateQuiets:
++#ifdef FORGE_PROF
++                prof::picker_stage(static_cast<std::size_t>(stage_));
++#endif
+                 if (!skip_quiets) generate_quiets();
+                 stage_ = QuietMoves;
+                 [[fallthrough]];
+             case QuietMoves:
++#ifdef FORGE_PROF
++                prof::picker_stage(static_cast<std::size_t>(stage_));
++#endif
+                 if (!skip_quiets) {
+                     while (index_ < count_) {
+                         const Move move = pick_best();
+@@ -395,14 +427,23 @@
+                 bad_index_ = 0;
+                 [[fallthrough]];
+             case BadCaptures:
++#ifdef FORGE_PROF
++                prof::picker_stage(static_cast<std::size_t>(stage_));
++#endif
+                 if (bad_index_ < bad_count_) return bad_captures_[bad_index_++];
+                 return Move::none();
+ 
+             case QsGenerate:
++#ifdef FORGE_PROF
++                prof::picker_stage(static_cast<std::size_t>(stage_));
++#endif
+                 generate_captures();
+                 stage_ = QsCaptures;
+                 [[fallthrough]];
+             case QsCaptures:
++#ifdef FORGE_PROF
++                prof::picker_stage(static_cast<std::size_t>(stage_));
++#endif
+                 while (index_ < count_) {
+                     const Move move = pick_best();
+                     if (move == tt_move_) continue;
+@@ -411,10 +452,16 @@
+                 return Move::none();
+ 
+             case EvasionGenerate:
++#ifdef FORGE_PROF
++                prof::picker_stage(static_cast<std::size_t>(stage_));
++#endif
+                 generate_evasions();
+                 stage_ = Evasions;
+                 [[fallthrough]];
+             case Evasions:
++#ifdef FORGE_PROF
++                prof::picker_stage(static_cast<std::size_t>(stage_));
++#endif
+                 while (index_ < count_) {
+                     const Move move = pick_best();
+                     if (move == tt_move_) continue;
+@@ -597,6 +644,10 @@
+ } // namespace
+ 
+ int Worker::static_evaluate(const Board& board, SearchStack* ss) {
++#ifdef FORGE_PROF
++    prof::count(prof::Counter::EvalRequests);
++#endif
++
+     if (!nnue::enabled || !nnue::available()) return evaluator_.evaluate(board);
+     const bool residual = nnue::residual();
+     if (!ss->accumulator.valid) {
+@@ -774,6 +825,11 @@
+     if (((local_nodes_ & 1023U) == 0 || node_limit_specified_) && should_stop()) aborted_ = true;
+     if (aborted_) return 0;
+     ++local_nodes_;
++#ifdef FORGE_PROF
++    prof::count(prof::Counter::Nodes);
++    prof::count(prof::Counter::QsNodes);
++#endif
++
+     seldepth_ = std::max(seldepth_, ply);
+     ss->pv_length = 0;
+ 
+@@ -830,12 +886,28 @@
+         ++move_count;
+         if (!in_check && best_score > -MateInMaxPly) {
+             const bool gives_check = board.gives_check(move);
++#ifdef FORGE_PROF
++            prof::count(prof::Counter::QsFutilityChecks);
++#endif
+             // Futility: even winning the captured piece cannot raise alpha.
+             if (!gives_check && !move.is_promotion() && futility_base + capture_value(board, move) <= alpha) {
++#ifdef FORGE_PROF
++                prof::count(prof::Counter::QsFutilityPrunes);
++#endif
+                 best_score = std::max(best_score, futility_base + capture_value(board, move));
+                 continue;
+             }
++#ifdef FORGE_PROF
++            prof::count(prof::Counter::QsSeeChecks);
++#endif
++#ifdef FORGE_PROF
++            if (!board.see_ge(move, -tune::QsSeeMargin)) {
++                prof::count(prof::Counter::QsSeePrunes);
++                continue;
++            }
++#else
+             if (!board.see_ge(move, -tune::QsSeeMargin)) continue;
++#endif
+         }
+         ss->current_move = move;
+         ss->moved_piece = board.moved_piece(move);
+@@ -885,6 +957,11 @@
+     if (((local_nodes_ & 1023U) == 0 || node_limit_specified_) && should_stop()) aborted_ = true;
+     if (aborted_) return 0;
+     ++local_nodes_;
++#ifdef FORGE_PROF
++    prof::count(prof::Counter::Nodes);
++    prof::count(prof::Counter::MainNodes);
++#endif
++
+     seldepth_ = std::max(seldepth_, ply);
+     ss->pv_length = 0;
+     ss->move_count = 0;
+@@ -950,11 +1027,24 @@
+     }
+ 
+     if (!pv_node && !in_check && excluded.is_none() && !is_mate_score(beta)) {
++#ifdef FORGE_PROF
++        prof::count(prof::Counter::RazorChecks);
++#endif
+         // Razoring: hopeless positions fall back to quiescence.
+         if (depth <= tune::RazorDepth && eval + tune::RazorBase + tune::RazorMultiplier * depth < alpha) {
++#ifdef FORGE_PROF
++            prof::count(prof::Counter::RazorSearches);
++#endif
+             const int razor = qsearch(board, ss, alpha - 1, alpha);
+             if (aborted_) return 0;
++#ifdef FORGE_PROF
++            if (razor < alpha) {
++                prof::count(prof::Counter::RazorCutoffs);
++                return razor;
++            }
++#else
+             if (razor < alpha) return razor;
++#endif
+         }
+         // Reverse futility pruning.
+         if (depth <= tune::RfpDepth && eval - (tune::RfpMargin * depth - tune::RfpImproving * improving) >= beta &&
+@@ -999,6 +1089,9 @@
+         }
+         // ProbCut: a good capture that beats beta by a margin at reduced depth.
+         const int probcut_beta = beta + tune::ProbcutMargin - 50 * improving;
++#ifdef FORGE_PROF
++        prof::count(prof::Counter::ProbCutChecks);
++#endif
+         if (depth >= tune::ProbcutDepth && !is_mate_score(beta) &&
+             !(tt_hit && tt_depth >= depth - 3 && tt_score != ValueNone && tt_score < probcut_beta)) {
+             MovePicker picker(board, *this, ss, tt_move, MovePicker::Mode::Quiescence);
+@@ -1013,6 +1106,9 @@
+                 record_move(ss, board, move);
+                 Undo undo;
+                 (void)board.make_move(move, undo);
++#ifdef FORGE_PROF
++                prof::count(prof::Counter::ProbCutSearches);
++#endif
+                 int value = -qsearch(board, ss + 1, -probcut_beta, -probcut_beta + 1);
+                 if (value >= probcut_beta && !aborted_) {
+                     value = -search(board, ss + 1, depth - 4, -probcut_beta, -probcut_beta + 1, !cut_node);
+@@ -1020,6 +1116,10 @@
+                 board.unmake_move(move, undo);
+                 if (aborted_) return 0;
+                 if (value >= probcut_beta) {
++#ifdef FORGE_PROF
++                    prof::count(prof::Counter::ProbCutCutoffs);
++#endif
++
+                     shared_.tt.store(tt_probe, board.key(), score_to_tt(value, ply), ss->raw_eval, move, depth - 3, BoundLower, ss->tt_pv, board.halfmove_clock());
+                     return value;
+                 }
+@@ -1027,8 +1127,18 @@
+         }
+     }
+ 
++#ifdef FORGE_PROF
++    prof::count(prof::Counter::IirChecks);
++#endif
+     // Internal iterative reduction: no hash move suggests a less important node.
++#ifdef FORGE_PROF
++    if (!in_check && depth >= tune::IirDepth && tt_move.is_none() && (pv_node || cut_node)) {
++        prof::count(prof::Counter::IirReductions);
++        --depth;
++    }
++#else
+     if (!in_check && depth >= tune::IirDepth && tt_move.is_none() && (pv_node || cut_node)) --depth;
++#endif
+ 
+     MovePicker picker(board, *this, ss, tt_move, MovePicker::Mode::Main);
+     std::array<Move, 128> quiets_tried{};
+@@ -1059,35 +1169,95 @@
+ 
+         // Shallow-depth pruning of unpromising moves.
+         if (!root_node && best_score > -MateInMaxPly && has_material) {
++#ifdef FORGE_PROF
++            prof::count(prof::Counter::LmpChecks);
++#endif
++#ifdef FORGE_PROF
++            if (quiet && !skip_quiets && move_count >= lmp_threshold(depth, improving)) {
++                prof::count(prof::Counter::LmpActivations);
++                skip_quiets = true;
++            }
++#else
+             if (quiet && !skip_quiets && move_count >= lmp_threshold(depth, improving)) skip_quiets = true;
++#endif
+             const int lmr_depth = std::max(0, depth - reduction(quiet, depth, move_count));
+             if (quiet && !gives_check) {
++#ifdef FORGE_PROF
++                prof::count(prof::Counter::FutilityChecks);
++#endif
+                 if (!in_check && lmr_depth <= tune::FutilityDepth &&
+                     ss->static_eval + tune::FutilityBase + tune::FutilityMultiplier * lmr_depth <= alpha) {
++#ifdef FORGE_PROF
++                    prof::count(prof::Counter::FutilityPrunes);
++#endif
+                     skip_quiets = true;
+                     continue;
+                 }
++#ifdef FORGE_PROF
++                prof::count(prof::Counter::HistoryChecks);
++#endif
++#ifdef FORGE_PROF
++                if (lmr_depth <= tune::HistoryPruneDepth && history < -tune::HistoryPruneMultiplier * depth) {
++                    prof::count(prof::Counter::HistoryPrunes);
++                    continue;
++                }
++#else
+                 if (lmr_depth <= tune::HistoryPruneDepth && history < -tune::HistoryPruneMultiplier * depth) continue;
++#endif
++#ifdef FORGE_PROF
++                prof::count(prof::Counter::QuietSeeChecks);
++#endif
++#ifdef FORGE_PROF
++                if (!board.see_ge(move, -tune::SeeQuietMultiplier * lmr_depth * lmr_depth)) {
++                    prof::count(prof::Counter::QuietSeePrunes);
++                    continue;
++                }
++#else
+                 if (!board.see_ge(move, -tune::SeeQuietMultiplier * lmr_depth * lmr_depth)) continue;
++#endif
+             } else {
+                 // Futility pruning for captures: even winning the piece cannot
+                 // bring the position back to alpha.
++#ifdef FORGE_PROF
++                prof::count(prof::Counter::CaptureFutilityChecks);
++#endif
+                 if (tune::CaptureFutilityBase > 0 && capture && !in_check && !gives_check &&
+                     lmr_depth <= tune::CaptureFutilityDepth &&
+                     ss->static_eval + tune::CaptureFutilityBase + tune::CaptureFutilityMultiplier * lmr_depth +
+                             capture_value(board, move) + history / 8 <= alpha) {
++#ifdef FORGE_PROF
++                    prof::count(prof::Counter::CaptureFutilityPrunes);
++#endif
+                     continue;
+                 }
++#ifdef FORGE_PROF
++                prof::count(prof::Counter::NoisySeeChecks);
++#endif
+                 const int see_threshold = -tune::SeeNoisyMultiplier * depth;
++#ifdef FORGE_PROF
++                if (!(picker.last_move_see_nonnegative() && see_threshold <= 0) &&
++                    !board.see_ge(move, see_threshold)) {
++                    prof::count(prof::Counter::NoisySeePrunes);
++                    continue;
++                }
++#else
+                 if (!(picker.last_move_see_nonnegative() && see_threshold <= 0) &&
+                     !board.see_ge(move, see_threshold)) continue;
++#endif
+             }
+         }
+ 
+         // Extensions.
+         int extension = 0;
++#ifdef FORGE_PROF
++        prof::count(prof::Counter::SingularChecks);
++#endif
++
+         if (!root_node && depth >= tune::SingularDepth && move == tt_move && excluded.is_none() && tt_bound != BoundUpper &&
+             tt_score != ValueNone && !is_mate_score(tt_score) && tt_depth >= depth - 3) {
++#ifdef FORGE_PROF
++            prof::count(prof::Counter::SingularSearches);
++#endif
+             const int singular_beta = tt_score - tune::SingularMargin * depth;
+             const int singular_depth = (depth - 1) / 2;
+             const bool saved_tt_pv = ss->tt_pv;
+@@ -1098,11 +1268,22 @@
+             ss->excluded_move = Move::none();
+             if (aborted_) return 0;
+             if (singular_score < singular_beta) {
++#ifdef FORGE_PROF
++                prof::count(prof::Counter::SingularExtensions);
++#endif
++
+                 extension = 1;
+                 if (!pv_node && singular_score < singular_beta - 24 && inherited_double_extensions <= 6) {
++#ifdef FORGE_PROF
++                    prof::count(prof::Counter::SingularDoubleExtensions);
++#endif
+                     extension = 2;
+                 }
+             } else if (singular_beta >= beta) {
++#ifdef FORGE_PROF
++                prof::count(prof::Counter::SingularCutoffs);
++#endif
++
+                 return singular_beta;
+             } else if (tt_score >= beta) {
+                 extension = -2;
+@@ -1228,6 +1409,10 @@
+ // Iterative deepening driver
+ 
+ SearchInfo Worker::search(Board board, const SearchLimits& limits, bool emit_info, const std::vector<Worker*>& all) {
++#ifdef FORGE_PROF
++    prof::Scope profile_scope(shared_.profile_active ? &shared_.profile : nullptr);
++#endif
++
+     const auto origin = limits.start_time != std::chrono::steady_clock::time_point{}
+         ? limits.start_time : limits.request_start;
+     start_ = origin == std::chrono::steady_clock::time_point{}
+@@ -1513,6 +1698,10 @@
+     if (table_access == TTAccess::Exclusive && workers_.size() == 1) {
+         exclusive.emplace(shared_.tt);
+     }
++#ifdef FORGE_PROF
++    shared_.profile_active=shared_.profile_requested.load(std::memory_order_relaxed);
++    shared_.profile.reset_quiescent();
++#endif
+     std::vector<std::thread> helpers;
+     for (std::size_t i = 1; i < workers_.size(); ++i) {
+         helpers.emplace_back([this, i, board, &worker_limits, &all]() {
+diff --git a/src/eval.cpp b/src/eval.cpp
+--- a/src/eval.cpp
++++ b/src/eval.cpp
+@@ -1,4 +1,7 @@
+ #include "forge/eval.hpp"
++#ifdef FORGE_PROF
++#include "forge/profile.hpp"
++#endif
+ #include "forge/eval_params.hpp"
+ #include "forge/nnue.hpp"
+ 
+@@ -374,6 +377,10 @@
+ template <bool Trace>
+ int evaluate_position(const Board& board, Evaluator::PawnEntry* cache, EvalTrace* trace,
+                       const Evaluator::RuntimePsqt* runtime = nullptr) {
++#ifdef FORGE_PROF
++    prof::count(prof::Counter::HceComputations);
++#endif
++
+     EvalInfo info{};
+     Accumulator<Trace> acc;
+     acc.trace = trace;
+diff --git a/src/nnue.cpp b/src/nnue.cpp
+--- a/src/nnue.cpp
++++ b/src/nnue.cpp
+@@ -1,4 +1,7 @@
+ #include "forge/nnue.hpp"
++#ifdef FORGE_PROF
++#include "forge/profile.hpp"
++#endif
+ 
+ #include <algorithm>
+ #include <cmath>
+@@ -82,6 +85,10 @@
+ bool residual() { return FORGE_HAS_NNUE != 0 && FORGE_NNUE_RESIDUAL != 0; }
+ 
+ void refresh(const Board& board, Accumulator& accumulator) {
++#ifdef FORGE_PROF
++    prof::count(prof::Counter::NnueRefresh);
++#endif
++
+     const Weights& w = weights();
+     for (const Color perspective : {White, Black}) {
+         auto& acc = accumulator.values[static_cast<std::size_t>(perspective)];
+@@ -157,6 +164,10 @@
+ }
+ 
+ int evaluate(const Board& board, const Accumulator& accumulator) {
++#ifdef FORGE_PROF
++    prof::count(prof::Counter::NnueForward);
++#endif
++
+     const Weights& w = weights();
+     const Color us = board.side_to_move();
+     const auto& ours = accumulator.values[static_cast<std::size_t>(us)];
+diff --git a/src/uci.cpp b/src/uci.cpp
+--- a/src/uci.cpp
++++ b/src/uci.cpp
+@@ -171,6 +171,10 @@
+                          "option name Book Depth type spin default 30 min 0 max 100\n"
+                          "option name Book Variety type spin default 30 min 0 max 100\n";
+             if (forge::nnue::available()) std::cout << "option name UseNNUE type check default true\n";
++#ifdef FORGE_PROF
++            std::cout << "option name Profile type check default false\n";
++#endif
++
+ #ifdef FORGE_EXPOSE_TUNABLES
+             // Development builds advertise the search constants so match
+             // runners can set them; release builds accept them silently.
+@@ -216,7 +220,18 @@
+             }
+             if (handled_tunable) {
+                 // Unlisted development options; nothing else to do.
+-            } else if (name == "Clear Hash") {
++            }
++#ifdef FORGE_PROF
++            else if (name == "Profile") {
++                if (value_text=="true") searcher.set_profiling(true);
++                else if (value_text=="false") searcher.set_profiling(false);
++                else {
++                    const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex());
++                    std::cout << "info string invalid value for option Profile" << std::endl;
++                }
++            }
++#endif
++            else if (name == "Clear Hash") {
+                 searcher.clear_hash();
+             } else if (name == "Ponder") {
+                 if (value_text == "true") ponder_enabled = true;
+@@ -371,10 +386,19 @@
+                         prediction = " ponder " + forge::Board::move_to_uci(result.pv[1]);
+                     }
+                     const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex());
++#ifdef FORGE_PROF
++                    if (searcher.profiling_active()) {
++                        forge::prof::write_snapshot(std::cout,searcher.profile_snapshot());
++                    }
++#endif
+                     std::cout << "bestmove " << best << prediction << std::endl;
+                 });
+             }
+-        } else if (command == "bench") {
++        } else if (command == "bench"
++#ifdef FORGE_PROF
++                   || command == "bench_prof"
++#endif
++        ) {
+             // Fixed-depth search over a small position set; prints a node
+             // signature and speed for quick regression and performance checks.
+             stop_search();
+@@ -393,6 +417,12 @@
+             std::uint64_t total_nodes = 0;
+             const auto start = std::chrono::steady_clock::now();
+             forge::Searcher bench_searcher(16);
++#ifdef FORGE_PROF
++            const bool profile_bench=command=="bench_prof";
++            bench_searcher.set_profiling(profile_bench);
++            forge::prof::Snapshot profile_total;
++#endif
++
+             for (const std::string_view fen : fens) {
+                 forge::Board bench_board;
+                 if (!bench_board.set_fen(fen)) continue;
+@@ -401,10 +431,17 @@
+                 bench_searcher.clear();
+                 total_nodes += bench_searcher.search(
+                     bench_board, limits, false, forge::Searcher::TTAccess::Exclusive).nodes;
++#ifdef FORGE_PROF
++                if (profile_bench) forge::prof::merge(profile_total,bench_searcher.profile_snapshot());
++#endif
++
+             }
+             const auto elapsed_ms = std::chrono::duration_cast<std::chrono::milliseconds>(
+                 std::chrono::steady_clock::now() - start).count();
+             const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex());
++#ifdef FORGE_PROF
++            if (profile_bench) forge::prof::write_snapshot(std::cout,profile_total);
++#endif
+             std::cout << "info string bench depth " << depth << " nodes " << total_nodes << " time " << elapsed_ms
+                       << " nps " << (elapsed_ms > 0 ? total_nodes * 1000U / static_cast<std::uint64_t>(elapsed_ms) : 0)
+                       << std::endl;
+diff --git a/tests/prof_tests.cpp b/tests/prof_tests.cpp
+new file mode 100644
+--- /dev/null
++++ b/tests/prof_tests.cpp
+@@ -0,0 +1,48 @@
++// Behavioral fixtures: deliberately not compiled/run until root authorization.
++#include "forge/profile.hpp"
++#include <array>
++#include <cstdint>
++#include <iostream>
++#include <limits>
++#include <thread>
++
++int main() {
++    using namespace forge::prof;
++    int failures=0;
++    auto check=[&](bool value,const char* message) {
++        if (!value) {std::cerr << "FAIL " << message << '\n';++failures;}
++    };
++    Bank outer,inner;
++    {
++        Scope one(&outer);count(Counter::Nodes);
++        {Scope two(&inner);count(Counter::Nodes,2);}
++        count(Counter::Nodes,3);
++        {Scope disabled(nullptr);count(Counter::Nodes,99);}
++        count(Counter::Nodes,4);
++    }
++    check(outer.snapshot_quiescent().values[0]==8,"nested scope restores previous bank");
++    check(inner.snapshot_quiescent().values[0]==2,"independent nested bank");
++    count(Counter::Nodes,999);
++    check(outer.snapshot_quiescent().values[0]==8,"scope exit disables counting");
++    outer.reset_quiescent();
++    std::array<std::thread,4> threads;
++    for (auto& thread:threads) thread=std::thread([&] {
++        Scope scope(&outer);
++        for (int i=0;i<1000;++i) count(Counter::Nodes);
++    });
++    for (auto& thread:threads) thread.join();
++    check(outer.snapshot_quiescent().values[0]==4000,"shared atomic counter has no lost updates");
++    outer.reset_quiescent();
++    outer.add(Counter::Nodes,std::numeric_limits<std::uint64_t>::max());
++    outer.add(Counter::Nodes,2);
++    auto wrapped=outer.snapshot_quiescent();
++    check(wrapped.values[0]==1 && wrapped.overflow,"unsigned wrap marks unusable totals");
++    outer.reset_quiescent();
++    check(outer.snapshot_quiescent().values[0]==0 && !outer.snapshot_quiescent().overflow,"quiescent reset clears values and overflow");
++    Snapshot total;
++    total.values[0]=std::numeric_limits<std::uint64_t>::max();
++    Snapshot delta;delta.values[0]=2;merge(total,delta);
++    check(total.values[0]==1 && total.overflow,"aggregation reports wrap");
++    if (!failures) std::cout << "PASS profiling counters and nested TLS\n";
++    return failures ? 1 : 0;
++}
