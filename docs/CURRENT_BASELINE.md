@@ -1,5 +1,12 @@
 # Current baseline
 
+## S10 third candidate closed; fourth active — 2026-10-26
+
+SingularSiblingLmr is rejected: WAC263/300 and d20+24.6676% exceed the registered screen/guard. Both bases nevertheless pass all fixed OFF references, perft5, FMA0, full Release/ASan14/15 and ON T2. Original397-file archive88c64edd7498445e8254453a4479492a944b10354a88860f5aa20b0f2c0d5227 has two-decoder and independent root byte verification. CaptureHistoryLmp has started and passed its first bareOFF11 and ON activation gate. Do not adopt any rejected search idea.
+
+Prior checkpoint360b6e8b3d965d77e4abf6bd45ac09e8c29df151 is published and130/130 immutable files verified. S11 exact baseline reuse is under source/receipt review; no S11 native run has started. S12 source review confirms that baseline lazy-nearest-ancestor updates already exist; only a distinct copy-elision refinement is being considered. Queue remains15 delivered/38 pending/1 dropped; no speed/Elo claim.
+
+
 ## Active S10 and prepared follow-ups — 2026-10-26 21:05 UTC
 
 The queue remains15 delivered/38 pending/1 dropped. SingularSiblingLmr Lprime completed its original screen263/300 with zero illegal moves and fails the predeclared d20 node-change guard; its full Release/ASan14/14 and ON T2 checks pass. Its B original OFFd22 completed, and ON qualification continues. CaptureHistoryLmp is still queued. Do not adopt a rejected screen or treat S10 as fully delivered.
