@@ -1,0 +1,346 @@
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -3,6 +3,7 @@
+ find_package(Threads REQUIRED)
+ 
+ option(FORGE_ENABLE_SANITIZERS "Enable AddressSanitizer and UndefinedBehaviorSanitizer" OFF)
++option(FORGE_NNUE_LAZY_ACC "Enable experimental NnueLazyAcc UCI option (default OFF)" OFF)
+ option(FORGE_NATIVE "Optimise for the build machine's CPU (-march=native)" OFF)
+ option(FORGE_EXPOSE_TUNABLES "Advertise search tuning constants as UCI options (development builds)" OFF)
+ 
+@@ -17,6 +18,9 @@
+ )
+ target_include_directories(forge_core PUBLIC include)
+ target_compile_features(forge_core PUBLIC cxx_std_20)
++if(FORGE_NNUE_LAZY_ACC)
++    target_compile_definitions(forge_core PUBLIC FORGE_NNUE_LAZY_ACC=1)
++endif()
+ 
+ if(MSVC)
+     target_compile_options(forge_core PRIVATE /W4 /permissive-)
+--- a/include/forge/search.hpp
++++ b/include/forge/search.hpp
+@@ -14,7 +14,26 @@
+ #include <thread>
+ #include <vector>
+ 
++#ifndef FORGE_NNUE_LAZY_ACC
++#define FORGE_NNUE_LAZY_ACC 0
++#endif
++
+ namespace forge {
++
++#if FORGE_NNUE_LAZY_ACC
++namespace lazy_acc {
++// UCI joins all search workers before changing this pending configuration.
++extern std::atomic<bool> requested;
++}
++struct LazyAccStats {
++    std::uint64_t refreshes = 0;
++    std::uint64_t updates = 0;
++    std::uint64_t zero_dirty_edges = 0;
++    std::uint64_t copies_avoided = 0;
++    std::uint64_t alias_hits = 0;
++    std::uint64_t evaluations = 0;
++};
++#endif
+ 
+ struct SearchLimits {
+     int depth = 64;
+@@ -50,6 +69,9 @@
+     std::vector<Move> pv;
+     // A searchmoves intersection with no legal moves is not checkmate or stalemate.
+     bool restricted_root_empty = false;
++#if FORGE_NNUE_LAZY_ACC
++    LazyAccStats lazy_acc_stats{};
++#endif
+ };
+ 
+ constexpr int MaxPly = 128;
+@@ -281,6 +303,11 @@
+     nnue::Accumulator accumulator{};
+     Evaluator::RuntimePsqt runtime_psqt{};
+     nnue::DirtyPieces dirty{};
++#if FORGE_NNUE_LAZY_ACC
++    // Null edges may borrow a physical valid ancestor. Never a descendant or
++    // another alias: valid remains false here until a real update materializes.
++    SearchStack* accumulator_owner = nullptr;
++#endif
+ };
+ 
+ // State shared by every worker of one Searcher.
+@@ -288,6 +315,10 @@
+     explicit SharedSearchState(std::size_t hash_mb) : tt(hash_mb) {}
+     TranspositionTable tt;
+     std::atomic<bool> stop{false};
++#if FORGE_NNUE_LAZY_ACC
++    // Immutable from before worker creation until every helper has joined.
++    bool lazy_acc_enabled = false;
++#endif
+     // 0 means pondering has not been converted into a timed search.
+     std::atomic<std::int64_t> ponder_hit_ns{0};
+ };
+@@ -307,11 +338,18 @@
+     void clear_caches() { evaluator_.clear(); }
+     [[nodiscard]] std::uint64_t nodes() const { return nodes_.load(std::memory_order_relaxed); }
+     [[nodiscard]] bool is_main() const { return id_ == 0; }
++#if FORGE_NNUE_LAZY_ACC
++    [[nodiscard]] LazyAccStats lazy_acc_stats() const { return lazy_acc_stats_; }
++#endif
+ 
+ private:
+     friend struct SearcherTestProbe;
+     friend class MovePicker;
+ 
++#if FORGE_NNUE_LAZY_ACC
++    LazyAccStats lazy_acc_stats_{};
++    [[nodiscard]] int static_evaluate_lazy(const Board& board, SearchStack* ss);
++#endif
+     SharedSearchState& shared_;
+     int id_ = 0;
+     Evaluator evaluator_;
+--- a/src/search.cpp
++++ b/src/search.cpp
+@@ -9,6 +9,19 @@
+ #include <optional>
+ 
+ namespace forge {
++
++#if FORGE_NNUE_LAZY_ACC
++namespace lazy_acc {
++std::atomic<bool> requested{false};
++}
++namespace {
++std::atomic<bool> lazy_acc_active_announced{false};
++// Only static_evaluate_lazy creates aliases; every target is physical and valid.
++SearchStack* computed_owner(SearchStack* frame) {
++    return frame->accumulator.valid ? frame : frame->accumulator_owner;
++}
++}
++#endif
+ 
+ namespace tune {
+ int LmrQuietBase = 85;
+@@ -596,8 +609,55 @@
+ }
+ } // namespace
+ 
++#if FORGE_NNUE_LAZY_ACC
++int Worker::static_evaluate_lazy(const Board& board, SearchStack* ss) {
++    const bool residual = nnue::residual();
++    SearchStack* owner = computed_owner(ss);
++    if (owner != nullptr) {
++        if (owner != ss) ++lazy_acc_stats_.alias_hits;
++    } else {
++        int back = 0;
++        while (back < ss->ply && computed_owner(ss - back - 1) == nullptr) ++back;
++        if (back >= ss->ply && computed_owner(ss - back - 1) == nullptr) {
++            nnue::refresh(board, ss->accumulator);
++            ++lazy_acc_stats_.refreshes;
++            if (residual) ss->runtime_psqt = Evaluator::refresh_runtime_psqt(board);
++            owner = ss;
++        } else {
++            owner = computed_owner(ss - back - 1);
++            for (int i = back; i >= 0; --i) {
++                SearchStack* child = ss - i;
++                assert(owner != nullptr && owner < child && owner->accumulator.valid);
++                if (child->dirty.count == 0) {
++                    // A null move changes only the output perspective, not the
++                    // piece features or white-oriented PSQT/phase. Borrow both.
++                    child->accumulator_owner = owner;
++                    ++lazy_acc_stats_.zero_dirty_edges;
++                    ++lazy_acc_stats_.copies_avoided;
++                } else {
++                    nnue::update(owner->accumulator, child->accumulator, child->dirty);
++                    ++lazy_acc_stats_.updates;
++                    if (residual) Evaluator::update_runtime_psqt(owner->runtime_psqt, child->runtime_psqt, child->dirty);
++                    child->accumulator_owner = nullptr;
++                    owner = child;
++                }
++            }
++        }
++    }
++    assert(owner != nullptr && owner->accumulator.valid);
++    const int network = nnue::evaluate(board, owner->accumulator);
++    if (!residual) return network;
++    if (!owner->runtime_psqt.valid) owner->runtime_psqt = Evaluator::refresh_runtime_psqt(board);
++    return std::clamp(evaluator_.evaluate_runtime(board, owner->runtime_psqt) + network, -MateInMaxPly + 1, MateInMaxPly - 1);
++}
++#endif
++
+ int Worker::static_evaluate(const Board& board, SearchStack* ss) {
+     if (!nnue::enabled || !nnue::available()) return evaluator_.evaluate(board);
++#if FORGE_NNUE_LAZY_ACC
++    ++lazy_acc_stats_.evaluations;
++    if (shared_.lazy_acc_enabled) return static_evaluate_lazy(board, ss);
++#endif
+     const bool residual = nnue::residual();
+     if (!ss->accumulator.valid) {
+         // Walk back to the nearest valid accumulator, then replay the moves.
+@@ -605,10 +665,17 @@
+         while (back < ss->ply && !(ss - back - 1)->accumulator.valid) ++back;
+         if (back >= ss->ply && !(ss - back - 1)->accumulator.valid) {
+             nnue::refresh(board, ss->accumulator);
++#if FORGE_NNUE_LAZY_ACC
++            ++lazy_acc_stats_.refreshes;
++#endif
+             if (residual) ss->runtime_psqt = Evaluator::refresh_runtime_psqt(board);
+         } else {
+             for (int i = back; i >= 0; --i) {
+                 nnue::update((ss - i - 1)->accumulator, (ss - i)->accumulator, (ss - i)->dirty);
++#if FORGE_NNUE_LAZY_ACC
++                ++lazy_acc_stats_.updates;
++                if ((ss - i)->dirty.count == 0) ++lazy_acc_stats_.zero_dirty_edges;
++#endif
+                 if (residual) Evaluator::update_runtime_psqt((ss - i - 1)->runtime_psqt, (ss - i)->runtime_psqt, (ss - i)->dirty);
+             }
+         }
+@@ -627,12 +694,18 @@
+     (ss + 1)->dirty = nnue::dirty_pieces(board, move);
+     (ss + 1)->accumulator.valid = false;
+     (ss + 1)->runtime_psqt.valid = false;
++#if FORGE_NNUE_LAZY_ACC
++    (ss + 1)->accumulator_owner = nullptr;
++#endif
+ }
+ 
+ void Worker::record_null_move(SearchStack* ss) {
+     (ss + 1)->dirty.count = 0;
+     (ss + 1)->accumulator.valid = false;
+     (ss + 1)->runtime_psqt.valid = false;
++#if FORGE_NNUE_LAZY_ACC
++    (ss + 1)->accumulator_owner = nullptr;
++#endif
+ }
+ 
+ int Worker::corrected_eval(const Board& board, int raw_eval) const {
+@@ -1232,6 +1305,9 @@
+         ? limits.start_time : limits.request_start;
+     start_ = origin == std::chrono::steady_clock::time_point{}
+         ? std::chrono::steady_clock::now() : origin;
++#if FORGE_NNUE_LAZY_ACC
++    lazy_acc_stats_ = {};
++#endif
+     local_nodes_ = 0;
+     nodes_.store(0, std::memory_order_relaxed);
+     all_workers_ = &all;
+@@ -1362,9 +1438,15 @@
+     for (SearchStack& entry : stack_) {
+         entry.accumulator.valid = false;
+         entry.runtime_psqt.valid = false;
++#if FORGE_NNUE_LAZY_ACC
++        entry.accumulator_owner = nullptr;
++#endif
+     }
+     if (nnue::enabled && nnue::available()) {
+         nnue::refresh(board, ss->accumulator);
++#if FORGE_NNUE_LAZY_ACC
++        ++lazy_acc_stats_.refreshes;
++#endif
+         if (nnue::residual()) ss->runtime_psqt = Evaluator::refresh_runtime_psqt(board);
+     }
+ 
+@@ -1507,6 +1589,10 @@
+     std::vector<Worker*> all;
+     all.reserve(workers_.size());
+     for (auto& worker : workers_) all.push_back(worker.get());
++#if FORGE_NNUE_LAZY_ACC
++    shared_.lazy_acc_enabled = lazy_acc::requested.load(std::memory_order_relaxed)
++        && nnue::enabled && nnue::available();
++#endif
+     // Age the table once per search, before any worker can probe it.
+     shared_.tt.new_search();
+     std::optional<TranspositionTable::ExclusiveLease> exclusive;
+@@ -1525,6 +1611,27 @@
+     shared_.stop.store(true, std::memory_order_relaxed);
+     for (auto& helper : helpers) helper.join();
+     shared_.stop.store(external_stop, std::memory_order_relaxed);
++#if FORGE_NNUE_LAZY_ACC
++    for (const auto& worker : workers_) {
++        const auto stats = worker->lazy_acc_stats();
++        result.lazy_acc_stats.refreshes += stats.refreshes;
++        result.lazy_acc_stats.updates += stats.updates;
++        result.lazy_acc_stats.zero_dirty_edges += stats.zero_dirty_edges;
++        result.lazy_acc_stats.copies_avoided += stats.copies_avoided;
++        result.lazy_acc_stats.alias_hits += stats.alias_hits;
++        result.lazy_acc_stats.evaluations += stats.evaluations;
++    }
++    if (shared_.lazy_acc_enabled && result.lazy_acc_stats.evaluations != 0) {
++        const std::lock_guard<std::mutex> output_lock(uci_output_mutex());
++        if (!lazy_acc_active_announced.exchange(true, std::memory_order_relaxed))
++            std::cout << "info string NnueLazyAcc active\n";
++        const auto& stats = result.lazy_acc_stats;
++        std::cout << "info string NnueLazyAcc stats refreshes " << stats.refreshes
++                  << " updates " << stats.updates << " zero_dirty_edges " << stats.zero_dirty_edges
++                  << " copies_avoided " << stats.copies_avoided << " alias_hits " << stats.alias_hits
++                  << " evaluations " << stats.evaluations << std::endl;
++    }
++#endif
+     return result;
+ }
+ 
+--- a/src/uci.cpp
++++ b/src/uci.cpp
+@@ -171,6 +171,9 @@
+                          "option name Book Depth type spin default 30 min 0 max 100\n"
+                          "option name Book Variety type spin default 30 min 0 max 100\n";
+             if (forge::nnue::available()) std::cout << "option name UseNNUE type check default true\n";
++#if FORGE_NNUE_LAZY_ACC
++            if (forge::nnue::available()) std::cout << "option name NnueLazyAcc type check default false\n";
++#endif
+ #ifdef FORGE_EXPOSE_TUNABLES
+             // Development builds advertise the search constants so match
+             // runners can set them; release builds accept them silently.
+@@ -259,6 +262,16 @@
+                 } else {
+                     book_variety = std::clamp(value, 0, 100);
+                 }
++#if FORGE_NNUE_LAZY_ACC
++            } else if (name == "NnueLazyAcc") {
++                if (value_text == "true") forge::lazy_acc::requested.store(true, std::memory_order_relaxed);
++                else if (value_text == "false") forge::lazy_acc::requested.store(false, std::memory_order_relaxed);
++                else {
++                    const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex());
++                    std::cout << "info string invalid value for option NnueLazyAcc" << std::endl;
++                }
++                searcher.clear_hash();
++#endif
+             } else if (name == "UseNNUE") {
+                 if (value_text == "true") forge::nnue::enabled = true;
+                 else if (value_text == "false") forge::nnue::enabled = false;
+--- a/README.md
++++ b/README.md
+@@ -1,4 +1,15 @@
+ # fc_nnue_h256_e12_ep12_ep10base — H256 net (run e, epoch 12) on the locked ep10 source base
++
++## S12 source-only candidate, 2026-10-26
++
++Idea source: Forge's own nearest-ancestor lazy accumulator implementation and
++the task's zero-dirty/null-edge copy-elision hypothesis. Original implementation;
++no code or tuned values from another engine. FORGE_NNUE_LAZY_ACC defaults OFF;
++an enabled build exposes NnueLazyAcc, also OFF. It aliases only physical valid
++ancestors across zero-dirty edges and preserves nonempty update arithmetic.
++Native correctness, speed, Windows, and strength are UNVERIFIED at preparation.
++This addendum does not supersede the historical lock/provenance notes below.
++
+ 
+ Status: **UNPROVEN. No Elo or strength claim.** Built on the box by Engine Coder, 2026-10-23.
+ 
+--- a/IDEA_SOURCE.md
++++ b/IDEA_SOURCE.md
+@@ -1,4 +1,15 @@
+ # IDEA_SOURCE — fc_nnue_h256_e12_ep12_ep10base  (REAL H256 net on the locked ep10 source base; UNPROVEN)
++
++## S12 source-only candidate, 2026-10-26
++
++Idea source: Forge's own nearest-ancestor lazy accumulator implementation and
++the task's zero-dirty/null-edge copy-elision hypothesis. Original implementation;
++no code or tuned values from another engine. FORGE_NNUE_LAZY_ACC defaults OFF;
++an enabled build exposes NnueLazyAcc, also OFF. It aliases only physical valid
++ancestors across zero-dirty edges and preserves nonempty update arithmetic.
++Native correctness, speed, Windows, and strength are UNVERIFIED at preparation.
++This addendum does not supersede the historical lock/provenance notes below.
++
+ 
+ Forge 6.4.24 (1ab50b2d), same source as the locked ep10 tree `/workspace/forge-coder/fc_nnue_ep10_1ab50b2d` (net-a md5 da65098c…). The ONLY source change is `src/nnue_weights.inc`, replaced by Engine NNUE's own trained H256 residual net:
+ - file: /workspace/chess-tools/nnue/forge_resid/resid_h256_e12_e_ep12.inc ("run e", epoch 12)

@@ -1,0 +1,162 @@
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -17,6 +17,11 @@
+ )
+ target_include_directories(forge_core PUBLIC include)
+ target_compile_features(forge_core PUBLIC cxx_std_20)
++
++option(FORGE_S10_CAPTURE_HISTORY_LMP "Build the opt-in CaptureHistoryLmp experiment" OFF)
++if(FORGE_S10_CAPTURE_HISTORY_LMP)
++    target_compile_definitions(forge_core PUBLIC FORGE_S10_CAPTURE_HISTORY_LMP=1)
++endif()
+ 
+ if(MSVC)
+     target_compile_options(forge_core PRIVATE /W4 /permissive-)
+--- a/include/forge/search.hpp
++++ b/include/forge/search.hpp
+@@ -17,6 +17,9 @@
+ namespace forge {
+ 
+ struct SearchLimits {
++#ifdef FORGE_S10_CAPTURE_HISTORY_LMP
++    bool s10_capture_history_lmp = false;
++#endif
+     int depth = 64;
+     std::uint64_t nodes = 0;
+     bool nodes_specified = false;
+@@ -287,6 +290,10 @@
+ struct SharedSearchState {
+     explicit SharedSearchState(std::size_t hash_mb) : tt(hash_mb) {}
+     TranspositionTable tt;
++#ifdef FORGE_S10_CAPTURE_HISTORY_LMP
++    std::atomic<bool> s10_capture_history_lmp{false};
++    std::atomic<bool> s10_capture_history_lmp_announced{false};
++#endif
+     std::atomic<bool> stop{false};
+     // 0 means pondering has not been converted into a timed search.
+     std::atomic<std::int64_t> ponder_hit_ns{0};
+@@ -326,6 +333,9 @@
+     std::array<std::uint64_t, 256> root_move_nodes_{};
+     std::size_t root_effort_count_ = 0;
+ 
++#ifdef FORGE_S10_CAPTURE_HISTORY_LMP
++    bool s10_capture_history_lmp_ = false;
++#endif
+     bool pondering_ = false;
+     std::chrono::steady_clock::time_point start_{};
+     std::atomic<std::uint64_t> nodes_{0};
+@@ -394,6 +404,10 @@
+     void clear_hash();
+     void resize_hash(std::size_t hash_mb);
+     void set_threads(int threads);
++#ifdef FORGE_S10_CAPTURE_HISTORY_LMP
++    void set_s10_capture_history_lmp(bool enabled) { shared_.s10_capture_history_lmp.store(enabled, std::memory_order_relaxed); }
++    [[nodiscard]] bool s10_capture_history_lmp_enabled() const { return shared_.s10_capture_history_lmp.load(std::memory_order_relaxed); }
++#endif
+     [[nodiscard]] int threads() const { return static_cast<int>(workers_.size()); }
+     [[nodiscard]] int hashfull_permille() const { return shared_.tt.hashfull(); }
+     [[nodiscard]] static int evaluate(const Board& board) { return Evaluator::evaluate_uncached(board); }
+--- a/src/search.cpp
++++ b/src/search.cpp
+@@ -1061,6 +1061,13 @@
+         if (!root_node && best_score > -MateInMaxPly && has_material) {
+             if (quiet && !skip_quiets && move_count >= lmp_threshold(depth, improving)) skip_quiets = true;
+             const int lmr_depth = std::max(0, depth - reduction(quiet, depth, move_count));
++#ifdef FORGE_S10_CAPTURE_HISTORY_LMP
++            if (s10_capture_history_lmp_ && !pv_node && !in_check && capture && !move.is_promotion() &&
++                !gives_check && depth <= tune::HistoryPruneDepth &&
++                move_count >= lmp_threshold(depth, improving) && history < 0 && !board.see_ge(move, 0)) {
++                continue;
++            }
++#endif
+             if (quiet && !gives_check) {
+                 if (!in_check && lmr_depth <= tune::FutilityDepth &&
+                     ss->static_eval + tune::FutilityBase + tune::FutilityMultiplier * lmr_depth <= alpha) {
+@@ -1228,6 +1235,9 @@
+ // Iterative deepening driver
+ 
+ SearchInfo Worker::search(Board board, const SearchLimits& limits, bool emit_info, const std::vector<Worker*>& all) {
++#ifdef FORGE_S10_CAPTURE_HISTORY_LMP
++    s10_capture_history_lmp_ = limits.s10_capture_history_lmp;
++#endif
+     const auto origin = limits.start_time != std::chrono::steady_clock::time_point{}
+         ? limits.start_time : limits.request_start;
+     start_ = origin == std::chrono::steady_clock::time_point{}
+@@ -1503,6 +1513,14 @@
+     const auto origin = supplied_start == std::chrono::steady_clock::time_point{} && clocked
+         ? std::chrono::steady_clock::now() : supplied_start;
+     SearchLimits worker_limits = limits;
++#ifdef FORGE_S10_CAPTURE_HISTORY_LMP
++    // Snapshot once before helpers start; recursive search reads only worker-local state.
++    worker_limits.s10_capture_history_lmp = shared_.s10_capture_history_lmp.load(std::memory_order_relaxed);
++    if (worker_limits.s10_capture_history_lmp && !shared_.s10_capture_history_lmp_announced.exchange(true, std::memory_order_relaxed)) {
++        const std::lock_guard<std::mutex> output_lock(uci_output_mutex());
++        std::cout << "info string CaptureHistoryLmp active" << std::endl;
++    }
++#endif
+     worker_limits.start_time = origin;
+     std::vector<Worker*> all;
+     all.reserve(workers_.size());
+--- a/src/uci.cpp
++++ b/src/uci.cpp
+@@ -179,6 +179,9 @@
+                           << " min " << parameter.minimum << " max " << parameter.maximum << "\n";
+             }
+ #endif
++#ifdef FORGE_S10_CAPTURE_HISTORY_LMP
++            std::cout << "option name CaptureHistoryLmp type check default false\n";
++#endif
+             std::cout << "option name Clear Hash type button\n"
+                          "uciok" << std::endl;
+         } else if (command == "isready") {
+@@ -216,6 +219,15 @@
+             }
+             if (handled_tunable) {
+                 // Unlisted development options; nothing else to do.
++#ifdef FORGE_S10_CAPTURE_HISTORY_LMP
++            } else if (name == "CaptureHistoryLmp") {
++                if (value_text == "true" || value_text == "false") {
++                    searcher.set_s10_capture_history_lmp(value_text == "true");
++                } else {
++                    const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex());
++                    std::cout << "info string invalid value for option CaptureHistoryLmp" << std::endl;
++                }
++#endif
+             } else if (name == "Clear Hash") {
+                 searcher.clear_hash();
+             } else if (name == "Ponder") {
+@@ -393,6 +405,9 @@
+             std::uint64_t total_nodes = 0;
+             const auto start = std::chrono::steady_clock::now();
+             forge::Searcher bench_searcher(16);
++#ifdef FORGE_S10_CAPTURE_HISTORY_LMP
++            bench_searcher.set_s10_capture_history_lmp(searcher.s10_capture_history_lmp_enabled());
++#endif
+             for (const std::string_view fen : fens) {
+                 forge::Board bench_board;
+                 if (!bench_board.set_fen(fen)) continue;
+--- a/IDEA_SOURCE.md
++++ b/IDEA_SOURCE.md
+@@ -1,4 +1,9 @@
+ # IDEA_SOURCE — fc_nnue_h256_e12_ep12_ep10base  (REAL H256 net on the locked ep10 source base; UNPROVEN)
++
++## S10 CaptureHistoryLmp idea source — 2026-10-26
++
++Idea sources only: the user-supplied S10 job and the supplied Forge idea-board audit. This independently implemented experiment follows a direct audit of Forge search.cpp and MovePicker. At shallow non-PV nodes, prune late captures only when their capture history is negative, SEE is losing, and the move neither checks nor promotes. Reuse the existing history-prune depth and LMP count thresholds. No external engine code, tables or tuned values were used. Current Forge thresholds are reused where a threshold is needed. This differs from P22 singular-margin changes, P23 killer/counter LMR, P24 history-scaled futility, P27 qsearch evasions and the time-management packs.
++
+ 
+ Forge 6.4.24 (1ab50b2d), same source as the locked ep10 tree `/workspace/forge-coder/fc_nnue_ep10_1ab50b2d` (net-a md5 da65098c…). The ONLY source change is `src/nnue_weights.inc`, replaced by Engine NNUE's own trained H256 residual net:
+ - file: /workspace/chess-tools/nnue/forge_resid/resid_h256_e12_e_ep12.inc ("run e", epoch 12)
+--- a/README.md
++++ b/README.md
+@@ -1,4 +1,10 @@
+ # fc_nnue_h256_e12_ep12_ep10base — H256 net (run e, epoch 12) on the locked ep10 source base
++
++## S10 CaptureHistoryLmp experiment — 2026-10-26
++
++UNPROVEN. At shallow non-PV nodes, prune late captures only when their capture history is negative, SEE is losing, and the move neither checks nor promotes. Reuse the existing history-prune depth and LMP count thresholds.
++Build FORGE_S10_CAPTURE_HISTORY_LMP=ON, then set UCI CaptureHistoryLmp=true before search. Both defaults are OFF. The option is advertised only in an enabled build. One atomic request is snapshotted before worker launch; hot search reads a worker-local copy. The first active search of a searcher reports `info string CaptureHistoryLmp active`; the bench searcher explicitly inherits the option. No strength or speed conclusion is made. Qualification requires the full fixed OFF references, full correctness suite, all five ON depths, ON d11 differing from308972, and the specified WAC screen.
++
+ 
+ Status: **UNPROVEN. No Elo or strength claim.** Built on the box by Engine Coder, 2026-10-23.
+ 

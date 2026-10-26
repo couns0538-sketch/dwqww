@@ -1,0 +1,64 @@
+--- sealed/forge_sol_S11_scalar_parity_run_20261026.py
++++ forge_sol_S11_scalar_parity_reuse_run_20261026.py
+@@ -5,6 +5,7 @@
+ """
+ from pathlib import Path
+ import argparse
++import hashlib
+ import importlib.util
+ import json
+ import os
+@@ -18,10 +19,17 @@
+ sys.dont_write_bytecode=True
+ os.environ['PYTHONDONTWRITEBYTECODE']='1'
+ 
+-HERE=Path(__file__).resolve().parent
++HERE=Path('/tmp/forge_sol_S11_native_prep_20261026')
+ 
+ def load(name,path):
+     s=importlib.util.spec_from_file_location(name,path);m=importlib.util.module_from_spec(s);s.loader.exec_module(m);return m
++
++REUSE_PATH=Path('/tmp/forge_sol_S11_baseline_reuse_prep_20261026/forge_sol_S11_release_reuse_20261026.py')
++REUSE_SHA='67cf46c3daebba26d078ceea47a5002b6da7979d7986ee9bd0a27b923b140b3c'
++if hashlib.sha256(REUSE_PATH.read_bytes()).hexdigest()!=REUSE_SHA:raise ValueError('reuse verifier source changed')
++reuse=load('s11_explicit_release_baseline_reuse',REUSE_PATH)
++for name,digest in reuse.SEALED_SHAS.items():
++    reuse.require(reuse.sha(HERE/name)==digest,'sealed original S11 source changed')
+ 
+ proof=load('s11_scalar_proof',HERE/'forge_sol_S11_scalar_parity_20261026.py')
+ qual=load('s11_std_bindings',HERE/'forge_sol_S11_qualify_native_20261026.py')
+@@ -30,6 +38,8 @@
+ 
+ 
+ def bind_arm(build_receipt,first_receipt,role,published_commit):
++    if json.loads(build_receipt.read_text()).get('schema')==reuse.SCHEMA:
++        return reuse.bind_reuse_arm(build_receipt,first_receipt,role,published_commit)
+     data,source,build=qual.verify_build(build_receipt)
+     if data['profile']!='Release' or data['role']!=role or data.get('S10_published_commit')!=published_commit:raise ValueError('wrong arm role/profile/publication')
+     builder.verify_dependencies('Release')
+@@ -49,6 +59,8 @@
+ def binding_identity(arm):
+     data=arm['data']
+     value={'source':str(arm['source']),'build':str(arm['build']),'build_receipt_path':arm['build_receipt_path'],'FIRST_receipt_path':arm['FIRST_receipt_path'],'build_receipt_sha256':arm['build_receipt_sha256'],'FIRST_receipt_sha256':arm['FIRST_receipt_sha256'],'base':data['base'],'role':data['role'],'profile':data['profile'],'source_inventory':data['source_before'],'artifacts':data['target_artifacts'],'actual_oracle_compilation':data['material_oracle_compilation'],'link_map_audit':arm['link_map_audit']}
++    if data.get('schema')==reuse.SCHEMA:
++        value['original_baseline_evidence']={'class':'REUSE_NOT_NEW_RUN','original_receipt_sha256':data['evidence']['original_receipt_sha256'],'raw_FIRST':data['evidence']['raw_FIRST'],'raw_Std':data['evidence']['raw_Std'],'new_main_ELFs':0,'new_full_Std_runs':0}
+     return json.loads(json.dumps(value))
+ 
+ 
+@@ -111,7 +123,7 @@
+     if __import__('shutil').disk_usage(a.out.parent).free<3*(36+1000000*2068)+128*1048576:p.error('capacity for three full raw-equivalent streams plus margin required')
+     soft,hard=resource.getrlimit(resource.RLIMIT_AS);cap=4*1024**3 if hard==resource.RLIM_INFINITY else min(4*1024**3,hard);resource.setrlimit(resource.RLIMIT_AS,(cap,cap))
+     a.out.mkdir();start=time.monotonic();deadline=start+a.max_seconds;fd=None
+-    result={'schema':'forge.S11.three_arm_parity.v1','status':'FAIL','authorization_reference':a.authorization_reference,'S10_published_commit':a.s10_published_commit,'cpu':[a.cpu],'nice':19,'maximum_seconds':a.max_seconds,'per_arm_seconds':a.arm_seconds,'RLIMIT_AS_bytes':cap,'maximum_observed_owned_RSS_bytes':0,'positions':1000000,'child_limit':4096,'retention':{'records_per_chunk':10000,'gzip_level':1,'one_original_stream_per_arm':True},'source_only_before_explicit_grant':False,'initial_bindings':{'baseline':initial_baseline,'candidate':initial_candidate},'commands':[],'arms':{},'nps_used':False,'new_main_engine_ELFs':0,'corpus_regenerations':0,'support_sources':{name:proof.sha(HERE/name) for name in ('forge_sol_S11_scalar_parity_20261026.py','forge_sol_S11_build_native_20261026.py','forge_sol_S11_qualify_native_20261026.py','forge_sol_S11_scalar_parity_run_20261026.py')}}
++    result={'schema':'forge.S11.three_arm_parity.v1','status':'FAIL','authorization_reference':a.authorization_reference,'S10_published_commit':a.s10_published_commit,'cpu':[a.cpu],'nice':19,'maximum_seconds':a.max_seconds,'per_arm_seconds':a.arm_seconds,'RLIMIT_AS_bytes':cap,'maximum_observed_owned_RSS_bytes':0,'positions':1000000,'child_limit':4096,'retention':{'records_per_chunk':10000,'gzip_level':1,'one_original_stream_per_arm':True},'source_only_before_explicit_grant':False,'initial_bindings':{'baseline':initial_baseline,'candidate':initial_candidate},'commands':[],'arms':{},'nps_used':False,'reuse_dispatch_source_sha256':hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),'reuse_module_sha256':REUSE_SHA,'baseline_evidence_class':baseline['data'].get('evidence_class','FRESH_S11_RUN'),'new_main_engine_ELFs':0,'corpus_regenerations':0,'support_sources':{name:proof.sha(HERE/name) for name in ('forge_sol_S11_scalar_parity_20261026.py','forge_sol_S11_build_native_20261026.py','forge_sol_S11_qualify_native_20261026.py','forge_sol_S11_scalar_parity_run_20261026.py')}}
+     previous=owned.boundary_reason
+     def guard(_job=None,end=None):
+         if time.monotonic()>=min(deadline-2,end or deadline-2):return 'OWNED_DEADLINE'
+@@ -169,6 +181,7 @@
+         if fd is not None:os.close(fd)
+         try:
+             require_arm_identity(initial_baseline,bind_arm(a.baseline_build,a.baseline_first,'baseline',a.s10_published_commit));require_arm_identity(initial_candidate,bind_arm(a.candidate_build,a.candidate_first,'candidate',a.s10_published_commit))
++            if hashlib.sha256(Path(__file__).read_bytes()).hexdigest()!=result['reuse_dispatch_source_sha256'] or reuse.sha(REUSE_PATH)!=REUSE_SHA:raise ValueError('reuse dispatch source changed during parity')
+             result['original_sources_and_all_artifacts_unchanged']=True
+             if any(proof.sha(HERE/name)!=digest for name,digest in result['support_sources'].items()):raise ValueError('native support source changed during run')
+         except Exception as e:result['original_sources_and_all_artifacts_unchanged']=False;result['postflight_error']=type(e).__name__+': '+str(e);result['status']='FAIL'

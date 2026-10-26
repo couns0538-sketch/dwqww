@@ -1,0 +1,56 @@
+{
+  "status": "REVIEW_COMPLETE_TWO_SMALL_MUST_FIX_GUARDS_PENDING_PARENT",
+  "scope": "Read-only source/API review. No engine/compiler/Git executed; no duplicate full source fixture suite.",
+  "created_utc": "2026-10-26T21:38:22.484431+00:00",
+  "reviewed_files": [
+    {
+      "path": "/tmp/forge_sol_S11_baseline_reuse_prep_20261026/forge_sol_S11_release_reuse_20261026.py",
+      "sha256": "5bfe8d01f0180e59ff905479ae3232f2702113564cdcb313f14c069969d1f12b"
+    },
+    {
+      "path": "/tmp/forge_sol_S11_baseline_reuse_prep_20261026/forge_sol_S11_reuse_oracle_build_20261026.py",
+      "sha256": "915191142311ec2bad67ce00953f4aad8faa6cfebbab0dd713b90090c2e7d1b9"
+    },
+    {
+      "path": "/tmp/forge_sol_S11_baseline_reuse_prep_20261026/forge_sol_S11_reuse_light_checks_20261026.py",
+      "sha256": "a05531604760857eaa0ce437c9d344b41f0dafb28f6da0eb29c00bd462696b63"
+    },
+    {
+      "path": "/tmp/forge_sol_S11_baseline_reuse_prep_20261026/forge_sol_S11_scalar_parity_reuse_run_20261026.py",
+      "sha256": "e5bd2228809c6d51049c1cc35535904f69ded2541131d49f79dbca1201f5f19a"
+    }
+  ],
+  "findings": [
+    {
+      "id": "R1",
+      "severity": "medium",
+      "file": "forge_sol_S11_reuse_oracle_build_20261026.py",
+      "finding": "Producer postflight does not re-check frozen S11 ORACLE/patch/selected-source and profile dependency files. Drift during compile can leave PASS_ORACLE_ONLY, even though a later bind rejects the receipt.",
+      "repair": "Postflight builder.selected_source(a.base, baseline) plus builder.verify_dependencies(Release), and compare returned source inventory with original.",
+      "state": "Sent to parent; not changed by reviewer."
+    },
+    {
+      "id": "R2",
+      "severity": "medium",
+      "file": "forge_sol_S11_release_reuse_20261026.py",
+      "finding": "bind_reuse_arm enforces new_main_ELFs=0 and new_full_Std_runs=0 but does not reject true/nonzero new_FIRST_runs or new_JUnit fields.",
+      "repair": "Require new_FIRST_runs exactly0 and new_JUnit exactlyFalse along with existing no-fresh-run claims.",
+      "state": "Sent to parent; not changed by reviewer."
+    }
+  ],
+  "parent_in_progress_guard": "Parent already identified and is adding explicit old runtime/FMA/S25/shared/collector dependency verification before light-check native execution, since direct imported lifecycle bypasses old main() preflight.",
+  "verified_by_inspection": [
+    "Reuse branch rejects candidate and ASAN, original canonical source/net/compiler/evidence are pinned.",
+    "Main/core/current test ELF bytes are checked against immutable original evidence; no current S04 patched source is accepted.",
+    "Candidate bind_arm tail in new parity successor remains unchanged, delegated to strict original verifier.",
+    "Oracle link argv is compared with exact baseline plan and audited map forbids archive search object/foreign cores.",
+    "New oracle directory contains only restored core/new tool; canonical main path is explicit, no synthetic new main/FIRST/full Std/JUnit.",
+    "Owned compiler/lifecycle/FMA command APIs match the sealed old interfaces inspected."
+  ],
+  "unverified": [
+    "Actual oracle compilation/link and parity native execution; source-only per task.",
+    "Actual new light native lifecycle/FMA run and ownership close.",
+    "Owner S10 immutable publication gate is caller-enforced before an execution grant."
+  ],
+  "no_speed_or_Elo_claim": true
+}

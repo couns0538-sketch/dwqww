@@ -1,0 +1,154 @@
+{
+  "schema": "forge.S13.native_preregister.v1",
+  "status": "UNRUN_NO_NATIVE_GRANT",
+  "scope": "independent complete Lprime/B source views; never run on canonical source",
+  "source_commit": "1ab50b2dd64d9b2f752f7f1285f6968cad2fd792",
+  "network_sha256": "74c4009d86b7d3a5ae9e6119d0890e5b923508f4063161bb4bc1539aab275b1b",
+  "option": "TtChildPrefetch",
+  "build_switch": "FORGE_S13_TT_CHILD_PREFETCH",
+  "build_default": false,
+  "runtime_default": false,
+  "refs": {
+    "11": 308972,
+    "13": 745494,
+    "16": 2460422,
+    "20": 11901452,
+    "22": 31111774
+  },
+  "perft5": {
+    "start": 4865609,
+    "kiwi": 193690690
+  },
+  "kiwi_fen": "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1",
+  "NNUE_FMA": 0,
+  "compiler": "/usr/bin/x86_64-linux-gnu-g++-14",
+  "cmake": "/workspace/.cloud-setup/venv/lib/python3.12/site-packages/cmake/data/bin/cmake",
+  "strict_flags": "-march=x86-64-v3 -mtune=znver5 -fno-fast-math -ffp-contract=off -DFORGE_NNUE_HIDDEN=256",
+  "Release_flags": "-O3 -DNDEBUG",
+  "ASAN_flags": "-O2 -g; FORGE_ENABLE_SANITIZERS=ON; detect_leaks=1; no suppression",
+  "resources": {
+    "cpu": 2,
+    "nice": 19,
+    "max_owned_RSS_bytes": 4294967296,
+    "build_jobs": 1,
+    "build_seconds": 900,
+    "individual_engine_exchange_seconds": 180,
+    "ASAN_runtime_RLIMIT_AS": "unlimited; never impose4GiB address limit on ASAN",
+    "timing": "exclusive native window only; no concurrent benchmarks/training"
+  },
+  "build_template_argv": [
+    "{cmake}",
+    "-S",
+    "{NEW_APPLIED_VIEW}",
+    "-B",
+    "{NEW_BUILD}",
+    "-DCMAKE_BUILD_TYPE=Release",
+    "-DFORGE_NATIVE=OFF",
+    "-DCMAKE_INTERPROCEDURAL_OPTIMIZATION=OFF",
+    "-DCMAKE_EXPORT_COMPILE_COMMANDS=ON",
+    "-DCMAKE_CXX_COMPILER={compiler}",
+    "-DCMAKE_CXX_FLAGS={strict_flags}",
+    "-DCMAKE_CXX_FLAGS_RELEASE=-O3 -DNDEBUG",
+    "-DFORGE_S13_TT_CHILD_PREFETCH={OFF|ON}"
+  ],
+  "build_all_argv": [
+    "{cmake}",
+    "--build",
+    "{NEW_BUILD}",
+    "--parallel",
+    "1"
+  ],
+  "FIRST_bare_stdin": "bench 11\nquit\n",
+  "FIRST_rule": "Every genuinely new forge main ELF must receive FIRST bare bench11 before UCI or test execution. Require308972, normalexit,completeEOF and summarylast. Reuse only explicitly hash-bound original evidence; no fabricated new FIRST.",
+  "gates": [
+    {
+      "gate": "BUILD_OFF",
+      "checks": "canonical UCI identical; all5fixedbench/perft/FMA/fullStd on eachbase, or exact reviewed source/CPP/artifact-bound original evidence reuse"
+    },
+    {
+      "gate": "BUILD_ON_RUNTIME_OFF",
+      "checks": "all5benchrefs/perft5/FMA0, original fullCTest inventories, canonicalUCI+one typed option only, no active line"
+    },
+    {
+      "gate": "BUILD_ON_RUNTIME_ON",
+      "checks": "same5benchrefs/perft5/FMA0; one active line perSearcher beforesearch; no extra bench tail; exactsame UCI exceptnewoption"
+    },
+    {
+      "gate": "ASAN",
+      "checks": "fulloriginalconfiguredCTest runtimeOFF thenexplicitON legalT1/T2 three10000-node searches,normalEOF,no sanitizer reports,unchangedartifacts andunlimitedAS; noElo/timeclaims"
+    },
+    {
+      "gate": "DIAGNOSTIC",
+      "checks": "actualincludedsearchsource, one worker,fixed4FENdepth10, exactOFF/ONresult/PV/nodes; totalnull andderivedProbCutrequestcoveragepositive. No hardware/SMP/speed conclusion."
+    },
+    {
+      "gate": "NEGATIVE_DIAGNOSTIC",
+      "checks": "new private diagnostic-only source with exactlythetwoaddedprefetchstatementsremoved butoptionkept mustfailpositivecoverage assertion; do notmutatethetestedproductionview. Unfixedbasefailsnewsourcecontractalready."
+    }
+  ],
+  "ctest": {
+    "Lprime": 14,
+    "B": 15,
+    "known_diagnostics": 4,
+    "new_FAIL_or_PIN_MISMATCH": 0,
+    "command_argv": [
+      "{ctest}",
+      "--test-dir",
+      "{NEW_BUILD}",
+      "--output-on-failure",
+      "--output-junit",
+      "{NEW_JUNIT}"
+    ],
+    "all_expected_case_names_must_match_source_CMake": true
+  },
+  "UCI_bench_option_stdin_template": "uci\nsetoption name OwnBook value false\nsetoption name Hash value 16\nsetoption name Threads value 1\nsetoption name TtChildPrefetch value {false|true}\nisready\nbench {11|13|16|20|22}\nquit\n",
+  "probe_compile_argv": [
+    "{compiler}",
+    "-std=c++20",
+    "-O3",
+    "-DNDEBUG",
+    "-march=x86-64-v3",
+    "-mtune=znver5",
+    "-ffp-contract=off",
+    "-fno-fast-math",
+    "-DFORGE_NNUE_HIDDEN=256",
+    "-DFORGE_S13_TT_CHILD_PREFETCH=1",
+    "-DFORGE_S13_NATIVE_SEARCH_CPP=\"{NEW_APPLIED_VIEW}/src/search.cpp\"",
+    "-I{NEW_APPLIED_VIEW}/include",
+    "/tmp/forge_sol_S13_prepared_20261026/forge_sol_S13_worker_prefetch_probe_20261026.cpp",
+    "{NEW_BUILD_ON}/libforge_core.a",
+    "-pthread",
+    "-Wl,-Map,{NEW_PROBE_MAP}",
+    "-o",
+    "{NEW_PROBE}"
+  ],
+  "probe_link_constraint": "Exactsame ON headers/net/FPflags ascore. Compileincludedsearch.cpp via driver only, never separately. Require map excludescore archive search.cpp.o (driver ownsit); only search.cpp and uci.cpp include search.hpp inoriginalsrc, anduci.o isnotlinked. Probe intercepts builtinprefetchonlyinactualsearch-header definition; no mixed duplicateTTinlinebody.",
+  "probe_limits": {
+    "seconds": 600,
+    "threads": 1,
+    "depth": 10,
+    "registered_FENs": 4
+  },
+  "advisory_timing": "Only after correctness: unchanged supplied forge_abba_time.py atd16/d20,AA6,ABBA>=10,exclusivecore2/nice19. Save ABORTED/noise too. No speedclaim; PCeligibility CI lowerbound>=+2%bothdepths remainsUNVERIFIED.",
+  "strength": "NO_MATCH_NO_ELO_CLAIM",
+  "ON_lifecycle_suite": {
+    "path": "/workspace/dwqww/releases/forge_sol_pack31_20261025/S07/forge_sol_S07_wac300_20261026.epd",
+    "sha256": "9bfb7b42cf5bbc7f3d60ff767ca3be460e0ae4d9110ef9a71ddf0bd7071d4d46",
+    "indices_zero_based": [
+      0,
+      1,
+      2
+    ],
+    "threads": [
+      1,
+      2
+    ],
+    "hash_MB": 16,
+    "OwnBook": false,
+    "nodes_per_position": 10000,
+    "nodes_are_soft_budget_in_SMP": true,
+    "max_seconds": 120,
+    "bestmove_ponder_legality": "actualpythonchesssamefrozenmodule; fullEOF; ownactivationbeforefirstbestmove",
+    "operator": "Reuse reviewedS10v2 owned-transport/legality gate withnode-exact S13receiptadapter; do notuseS10activation-must-change-nodes rule."
+  }
+}

@@ -1,0 +1,5 @@
+# S11 source-only baseline reuse checkpoint — 2026-10-26
+
+No engine feature patch or native result is added here. The original38-file source-only preparation is unchanged locally and every byte is mapped by the encoding JSON. For publication, its auxiliary tooling diff uses.txt rather than being confused with an engine-file.patch, and its original-layout manifest is retained under an explicit history name. The new standard manifest covers this actual publication layout. Code/dependency/preregistration bytes are unchanged.
+
+Original canonical Release full Std/FIRST/numeric evidence may be reused only through the explicit REUSE_NOT_NEW_RUN schema. New oracle compilation, new lightweight gates, all candidate and O2/g ASAN qualification, million-position parity and advisory timing remain UNVERIFIED. S10 complete publication/root execution grant is still required before any new native execution. Initial independent review and fixed22-test results are preserved; a follow-up agent review was unavailable at the thread limit. No plugin or native review success is claimed from that limit.

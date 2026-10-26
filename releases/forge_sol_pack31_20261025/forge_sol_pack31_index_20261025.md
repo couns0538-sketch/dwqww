@@ -1,5 +1,12 @@
 # Forge Sol pack31 — 20261025
 
+## S10 native closed; next S11 native — 2026-10-26
+
+All four frozen S10 candidates are rejected (WAC269/270/263/258); seven full cases produced202 passing configured Release/ASan CTests and seven ON/T2 supplements. Improving-razor B remains incomplete after its original OFF22 observer deadline. All original failures and1451 evidence files are preserved. No search candidate, speed or Elo gain is adopted. The corrected v2 metadata has accurate six-file diffstats; see the explicit publication scope.
+
+Whole S10 publication is ready for immutable verification. The prior verified queue is15 delivered/38 pending/1 dropped; after this final S10 checkpoint verifies, it becomes16/37/1. S11's node-exact material-key table is next for actual native qualification, with exact Release baseline evidence reuse and fresh candidate/ASan/oracle/parity gates. S12/S13 source and S18 diagnostic preparation are preserved; their native checks remain UNVERIFIED.
+
+
 ## S10 third candidate closed; fourth active — 2026-10-26
 
 SingularSiblingLmr is rejected: WAC263/300 and d20+24.6676% exceed the registered screen/guard. Both bases nevertheless pass all fixed OFF references, perft5, FMA0, full Release/ASan14/15 and ON T2. Original397-file archive88c64edd7498445e8254453a4479492a944b10354a88860f5aa20b0f2c0d5227 has two-decoder and independent root byte verification. CaptureHistoryLmp has started and passed its first bareOFF11 and ON activation gate. Do not adopt any rejected search idea.

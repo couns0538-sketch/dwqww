@@ -1,0 +1,55 @@
+{
+  "schema": "forge.s13.source-review.v1",
+  "status": "NO_PRODUCTION_BLOCKER_FOUND_SOURCE_ONLY",
+  "reviewed_patch": "/tmp/forge_sol_S13_prepared_20261026/forge_sol_S13_ttprefetch_20261026.patch",
+  "reviewed_skeleton": "/tmp/forge_sol_S13_private_views_20261026/L_skeleton",
+  "baseline": "/workspace/forge-pack24-20261025/new_handoff_1435/selected/forge_handoff_full_20261025_1435/files/01_lock_src_h256_e12/forge_h256_e12_1ab50b2d_src",
+  "scope": "Read-only source review; only this new JSON was written. No compiler, engine, native match, Git mutation, large source copy, or hash matrix.",
+  "source_evidence": {
+    "fresh_python_source_suite": {
+      "exit_code": 0,
+      "tests": 8,
+      "result": "PASS_SOURCE_ONLY",
+      "bytecode_writes_disabled": true
+    },
+    "patch": "Six-file diff: CMakeLists.txt, search.hpp, search.cpp, uci.cpp, README.md, IDEA_SOURCE.md.",
+    "off_source_erasure": "The current four code/build files erase to baseline under the supplied checker; manual inspection finds only simple #ifdef guards without #else/#elif.",
+    "prefetch_sites": "Two unchanged qsearch/main sites plus two conditional sites immediately after null-move and ProbCut make; TTEntry=16 and TTCluster=64 assertions retained."
+  },
+  "reasoning": {
+    "race_and_lifetime": "Requested option and once-per-Searcher announcement state are atomic. Relaxed ordering suffices for independent booleans. Searcher snapshots once before helper construction; immutable worker_limits remains alive through helper joins, and each worker copies to its own member before recursion. The existing no-concurrent-clear/resize/destruction TT contract remains necessary.",
+    "uci_and_bench": "UCI setoption already stops and joins active search; only true/false are accepted. UCI bench copies requested state into its temporary Searcher. clear does not reset requested or announced state. Announcement is once per Searcher facade, including a distinct temporary facade per bench command.",
+    "build_and_layout": "CMake switch defaults OFF; PUBLIC definition consistently propagates guarded header layout to linked targets when ON. No changed TT entry/cluster definition, score, ordering constant, NNUE source, or network is present in the patch.",
+    "provenance": "Additions are simple Forge-local plumbing and calls to its existing prefetch method. IDEA_SOURCE records Forge and crew handoff provenance; no external engine code or tuned constants appear in the additions."
+  },
+  "findings": [
+    {
+      "severity": "minor",
+      "kind": "source_contract_gap",
+      "file": "forge_sol_S13_source_contract_20261026.py",
+      "line": 22,
+      "detail": "erase_feature drops an entire feature block including #else/#elif arms, rather than evaluating its OFF arm. A mutated null-child guard with an #else return 0 still returns PASS_SOURCE_ONLY, although that mutation changes build-OFF search behavior.",
+      "reproduction": "In-memory mutation only: insert #else plus return 0 before the new null-child guard endif; validate_source(candidate, baseline) returned PASS_SOURCE_ONLY.",
+      "impact": "No production issue found: actual candidate contains no such alternative feature arm. Checker could miss a future OFF-path regression.",
+      "suggestion": "Reject #else/#elif within these intentionally simple feature guards and add this mutation as a negative control, or implement true OFF-branch projection."
+    }
+  ],
+  "diagnostic_review": {
+    "status": "SOURCE_REVIEWED_NOT_COMPILED_OR_RUN",
+    "useful": "Includes actual candidate search.cpp and intercepts TT builtin prefetch on GCC/Clang; fresh single-worker Searchers compare move, score, depth, seldepth, nodes and PV, count null attempts, derive excess ProbCut requests, require both paths, and check once-per-facade output.",
+    "limitations": [
+      "Global non-atomic request counter and cout streambuf capture are valid only for the hardcoded one-worker diagnostic; do not reuse for SMP without synchronization.",
+      "Replaced hardware prefetch is request-count instrumentation, not production instruction, cache-effect, address-validity, sanitizer, speed, or strength evidence.",
+      "ProbCut coverage is derived from aggregate ON-minus-OFF requests less null attempts; it assumes identical internal traversal and unchanged existing request sites. Matching SearchInfo is helpful but is not a full trace equivalence proof.",
+      "Four fresh fixed-depth positions do not cover warm searches, option toggling, UCI protocol handling, concurrent setter snapshot behavior, stop/ponder lifecycle, or SMP.",
+      "Compile later with matching candidate headers and ON macro, supporting sources excluding a separately compiled search.cpp, and matching NNUE/floating-point settings. Non-GNU/non-Clang builds retain the existing no-op prefetch implementation.",
+      "Standalone forge_bench does not set the runtime option and remains OFF even in an ON-capable build; use setoption plus UCI bench or an explicit ON harness. UCI bench timing includes its first active-line output."
+    ]
+  },
+  "wording_note": "The negative test named racy_recursive_requested_read actually rejects per-node atomic reads that violate snapshot semantics; those atomic reads alone would not constitute a C++ data race.",
+  "native_correctness": "UNVERIFIED",
+  "native_build_and_sanitizers": "UNVERIFIED",
+  "native_node_parity": "UNVERIFIED",
+  "speed": "UNVERIFIED",
+  "strength": "UNVERIFIED"
+}

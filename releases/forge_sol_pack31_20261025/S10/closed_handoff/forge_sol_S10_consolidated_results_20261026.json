@@ -1,0 +1,1243 @@
+{
+  "job": "S10",
+  "date": "2026-10-26",
+  "accepted_baseline_commit": "1ab50b2dd64d9b2f752f7f1285f6968cad2fd792",
+  "accepted_network_md5": "6d22f612c855e17c62d396d32da99ea4",
+  "accepted_default_unchanged": true,
+  "frozen_controller_sha256": "d6b8b9909373903e2ac3d2aca10e731acffeaff8352db8619d0577945f55b08b",
+  "T2_v2_sha256": "87328ef3ffa966da21d4a838b0484ceddf3d6d8e101f0880df61c957928473df",
+  "run_policy": "CPU2 nice19, sequential; max2400seconds/case,180seconds/component, one original1000ms Lprime WAC screen per feature; no retries/tuning",
+  "compiler_sha256": "6b3696e4dcb85e1c949c732a02befa50e3983ecf94ce7e8e58d9d503b954b79d",
+  "flags": "-march=x86-64-v3 -mtune=znver5 -fno-fast-math -ffp-contract=off -DFORGE_NNUE_HIDDEN=256; LTO OFF; leak checking ON; RLIMIT_AS observed unlimited",
+  "reference_nodes": {
+    "11": 308972,
+    "13": 745494,
+    "16": 2460422,
+    "20": 11901452,
+    "22": 31111774
+  },
+  "reference_perft5": [
+    4865609,
+    193690690
+  ],
+  "completed_full_native_source_cases": 7,
+  "configured_ctest_case_executions": 202,
+  "one_shot_WAC_legal_positions": 1200,
+  "features": [
+    {
+      "key": "singular_siblings",
+      "option": "SingularSiblingLmr",
+      "build_option": "FORGE_S10_SINGULAR_SIBLINGS",
+      "hypothesis": "After a TT move proves singular, reduce its later non-checking quiet siblings by one additional ply at non-PV nodes. This does not alter the singularity test itself.",
+      "patch": {
+        "name": "forge_sol_S10_singular_siblings_20261026.patch",
+        "sha256": "83b9e88b25347cf862761e54c1447d4f4edeccb1582c85dc6f5aff68d2712668",
+        "bytes": 8949,
+        "files": 0,
+        "insertions": 66,
+        "deletions": 0
+      },
+      "options": "Build OFF and UCI OFF by default",
+      "decision": "REJECTED_SEARCH_SCREEN_NOT_ADOPTED",
+      "bases": {
+        "Lprime": {
+          "result": {
+            "path": "/tmp/forge_sol_S10_native_20261026/singular_siblings_Lprime_once/forge_sol_S10_native_result_20261026.json",
+            "sha256": "1634ec4b832aadab39f0c4d493adf71b255ac0ee2afc46bc88549563f0f754c1"
+          },
+          "status": "REJECTED_SEARCH_SCREEN",
+          "elapsed_seconds": 1274.5461562580022,
+          "source_unchanged": true,
+          "release": {
+            "activation": {
+              "off_nodes": 308972,
+              "on_nodes": 336273,
+              "option": "SingularSiblingLmr",
+              "status": "PASS_ACTIVATION_ONLY"
+            },
+            "perft5": [
+              {
+                "actual": 4865609,
+                "case": "start",
+                "expected": 4865609
+              },
+              {
+                "actual": 193690690,
+                "case": "kiwi",
+                "expected": 193690690
+              }
+            ],
+            "node_screen": {
+              "guard_depths": [
+                20
+              ],
+              "guard_rule": "abs(ON/OFF - 1) > 0.20 at d20 or d22",
+              "guard_status": "FAIL",
+              "option_live": true,
+              "pc_precheck": {
+                "depth": 11,
+                "off_nodes": 308972,
+                "on_nodes": 336273
+              },
+              "percent_change": {
+                "11": 8.836075760910374,
+                "13": -4.929885418259571,
+                "16": 14.384564924228446,
+                "20": 24.66762038783167,
+                "22": 3.8178247244917634
+              }
+            },
+            "runtime_artifacts_unchanged": true,
+            "off_nodes": {
+              "11": 308972,
+              "13": 745494,
+              "16": 2460422,
+              "20": 11901452,
+              "22": 31111774
+            },
+            "on_nodes": {
+              "11": 336273,
+              "13": 708742,
+              "16": 2814343,
+              "20": 14837257,
+              "22": 32299567
+            }
+          },
+          "release_correctness": {
+            "status": "PASS",
+            "configured_ctest_cases": 14,
+            "configured_ctest_names": [
+              "forge_correction_history_tests",
+              "forge_legal_witness_tests",
+              "forge_nearest_pawn_tests",
+              "forge_pawn_span_tests",
+              "forge_pv_metadata_tests",
+              "forge_rule50_tests",
+              "forge_runtime_psqt_tests",
+              "forge_tests",
+              "forge_tt_tests",
+              "match_tool_tests",
+              "ownbook_regression",
+              "ponder_regression",
+              "uci_regression",
+              "windows_validation_tests"
+            ],
+            "fma_counts": [
+              0,
+              0
+            ],
+            "first_bare_d11": 308972,
+            "runtime_artifacts_unchanged": true
+          },
+          "asan_ubsan_correctness": {
+            "status": "PASS",
+            "configured_ctest_cases": 14,
+            "configured_ctest_names": [
+              "forge_correction_history_tests",
+              "forge_legal_witness_tests",
+              "forge_nearest_pawn_tests",
+              "forge_pawn_span_tests",
+              "forge_pv_metadata_tests",
+              "forge_rule50_tests",
+              "forge_runtime_psqt_tests",
+              "forge_tests",
+              "forge_tt_tests",
+              "match_tool_tests",
+              "ownbook_regression",
+              "ponder_regression",
+              "uci_regression",
+              "windows_validation_tests"
+            ],
+            "fma_counts": [
+              0,
+              0
+            ],
+            "first_bare_d11": 308972,
+            "runtime_artifacts_unchanged": true
+          },
+          "compile_OFF_TU_proofs": 8,
+          "ON_T2_ASAN": {
+            "status": "PASS",
+            "result": {
+              "path": "/tmp/forge_sol_S10_native_20261026/singular_siblings_Lprime_T2_ON_once/forge_sol_S10_ON_T2_asan_v2_result_20261026.json",
+              "sha256": "c8dd302966bd16cd3dd25cd484faacc669e3e928b63ed61ba0b29542cd0d995b"
+            },
+            "legal_positions": 3,
+            "RLIMIT_AS_before": {
+              "hard": -1,
+              "setter_used": false,
+              "soft": -1,
+              "unlimited": true
+            },
+            "RLIMIT_AS_after": {
+              "hard": -1,
+              "setter_used": false,
+              "soft": -1,
+              "unlimited": true
+            },
+            "source_unchanged": true,
+            "runtime_artifacts_unchanged": true
+          }
+        },
+        "B": {
+          "result": {
+            "path": "/tmp/forge_sol_S10_native_20261026/singular_siblings_B_once/forge_sol_S10_native_result_20261026.json",
+            "sha256": "87d846e8f41ab656ee4ae29834fbd7d5de300172c590fcb73da223cb5bdcd5b2"
+          },
+          "status": "REJECTED_SEARCH_SCREEN",
+          "elapsed_seconds": 1025.2639212089998,
+          "source_unchanged": true,
+          "release": {
+            "activation": {
+              "off_nodes": 308972,
+              "on_nodes": 336273,
+              "option": "SingularSiblingLmr",
+              "status": "PASS_ACTIVATION_ONLY"
+            },
+            "perft5": [
+              {
+                "actual": 4865609,
+                "case": "start",
+                "expected": 4865609
+              },
+              {
+                "actual": 193690690,
+                "case": "kiwi",
+                "expected": 193690690
+              }
+            ],
+            "node_screen": {
+              "guard_depths": [
+                20
+              ],
+              "guard_rule": "abs(ON/OFF - 1) > 0.20 at d20 or d22",
+              "guard_status": "FAIL",
+              "option_live": true,
+              "pc_precheck": {
+                "depth": 11,
+                "off_nodes": 308972,
+                "on_nodes": 336273
+              },
+              "percent_change": {
+                "11": 8.836075760910374,
+                "13": -4.929885418259571,
+                "16": 14.384564924228446,
+                "20": 24.66762038783167,
+                "22": 3.8178247244917634
+              }
+            },
+            "runtime_artifacts_unchanged": true,
+            "off_nodes": {
+              "11": 308972,
+              "13": 745494,
+              "16": 2460422,
+              "20": 11901452,
+              "22": 31111774
+            },
+            "on_nodes": {
+              "11": 336273,
+              "13": 708742,
+              "16": 2814343,
+              "20": 14837257,
+              "22": 32299567
+            }
+          },
+          "release_correctness": {
+            "status": "PASS",
+            "configured_ctest_cases": 15,
+            "configured_ctest_names": [
+              "forge_bad_capture_tests",
+              "forge_correction_history_tests",
+              "forge_legal_witness_tests",
+              "forge_nearest_pawn_tests",
+              "forge_pawn_span_tests",
+              "forge_pv_metadata_tests",
+              "forge_rule50_tests",
+              "forge_runtime_psqt_tests",
+              "forge_tests",
+              "forge_tt_tests",
+              "match_tool_tests",
+              "ownbook_regression",
+              "ponder_regression",
+              "uci_regression",
+              "windows_validation_tests"
+            ],
+            "fma_counts": [
+              0,
+              0
+            ],
+            "first_bare_d11": 308972,
+            "runtime_artifacts_unchanged": true
+          },
+          "asan_ubsan_correctness": {
+            "status": "PASS",
+            "configured_ctest_cases": 15,
+            "configured_ctest_names": [
+              "forge_bad_capture_tests",
+              "forge_correction_history_tests",
+              "forge_legal_witness_tests",
+              "forge_nearest_pawn_tests",
+              "forge_pawn_span_tests",
+              "forge_pv_metadata_tests",
+              "forge_rule50_tests",
+              "forge_runtime_psqt_tests",
+              "forge_tests",
+              "forge_tt_tests",
+              "match_tool_tests",
+              "ownbook_regression",
+              "ponder_regression",
+              "uci_regression",
+              "windows_validation_tests"
+            ],
+            "fma_counts": [
+              0,
+              0
+            ],
+            "first_bare_d11": 308972,
+            "runtime_artifacts_unchanged": true
+          },
+          "compile_OFF_TU_proofs": 8,
+          "ON_T2_ASAN": {
+            "status": "PASS",
+            "result": {
+              "path": "/tmp/forge_sol_S10_native_20261026/singular_siblings_B_T2_ON_once/forge_sol_S10_ON_T2_asan_v2_result_20261026.json",
+              "sha256": "f7cf13bdc55b68e37ee690d48533221ad27beb9233c061c9930357323045acb1"
+            },
+            "legal_positions": 3,
+            "RLIMIT_AS_before": {
+              "hard": -1,
+              "setter_used": false,
+              "soft": -1,
+              "unlimited": true
+            },
+            "RLIMIT_AS_after": {
+              "hard": -1,
+              "setter_used": false,
+              "soft": -1,
+              "unlimited": true
+            },
+            "source_unchanged": true,
+            "runtime_artifacts_unchanged": true
+          }
+        }
+      },
+      "one_original_Lprime_WAC": {
+        "result": {
+          "path": "/tmp/forge_sol_S10_native_20261026/singular_siblings_Lprime_once/wac_ON/result.json",
+          "sha256": "00a7b68d43c8bd95c5c6d259530816d844abf8c5994f240a32c141af10168781"
+        },
+        "solved": 263,
+        "evaluated": 300,
+        "illegal_moves": 0,
+        "movetime_ms": 1000,
+        "required_solved": 283,
+        "decision": "FAIL_REQUIRED_SCREEN",
+        "retries": 0
+      },
+      "sealed_evidence": {
+        "receipt": {
+          "path": "/tmp/forge_sol_S10_singular_siblings_evidence_20261026/forge_sol_S10_singular_siblings_archive_receipt_20261026.json",
+          "sha256": "1d59d4de23c228bad81110aa0a706eb5289347a324e62f1efbbef5c7bff335c6"
+        },
+        "archive": {
+          "bytes": 16620161,
+          "path": "/tmp/forge_sol_S10_singular_siblings_evidence_20261026/forge_sol_S10_singular_siblings_evidence_20261026.tar.gz",
+          "sha256": "88c64edd7498445e8254453a4479492a944b10354a88860f5aa20b0f2c0d5227"
+        },
+        "mapping": {
+          "bytes": 127114,
+          "path": "/tmp/forge_sol_S10_singular_siblings_evidence_20261026/forge_sol_S10_singular_siblings_mapping_20261026.json",
+          "sha256": "924298a26f1061e59769f9a987d6cd21a878997670e5a86ee8daf08cea7981cc"
+        },
+        "payload_files": 397,
+        "payload_bytes": 129363321,
+        "archive_members": 398,
+        "python_decoder": "PASS_ALL_MEMBER_BYTES",
+        "GNU_decoder": "PASS_ALL_MEMBER_BYTES"
+      }
+    },
+    {
+      "key": "quiet_check_survival",
+      "option": "QuietCheckLmpSurvival",
+      "build_option": "FORGE_S10_QUIET_CHECK_SURVIVAL",
+      "hypothesis": "When late-quiet pruning has activated, retain legal quiet checks while dropping other quiets. The existing futility check exemption cannot recover moves already skipped by the picker.",
+      "patch": {
+        "name": "forge_sol_S10_quiet_check_survival_20261026.patch",
+        "sha256": "2c195c2d15f044128b68a2efc39500314b3310f551c53980b9965773358089e3",
+        "bytes": 8798,
+        "files": 0,
+        "insertions": 66,
+        "deletions": 1
+      },
+      "options": "Build OFF and UCI OFF by default",
+      "decision": "REJECTED_SEARCH_SCREEN_NOT_ADOPTED",
+      "bases": {
+        "Lprime": {
+          "result": {
+            "path": "/tmp/forge_sol_S10_native_20261026/quiet_check_survival_Lprime_once/forge_sol_S10_native_result_20261026.json",
+            "sha256": "8eb34f02d3e3ebf053c7920a5a86a66b1601f40b624cd935b591d025acab600b"
+          },
+          "status": "REJECTED_SEARCH_SCREEN",
+          "elapsed_seconds": 1245.8426567860006,
+          "source_unchanged": true,
+          "release": {
+            "activation": {
+              "off_nodes": 308972,
+              "on_nodes": 342968,
+              "option": "QuietCheckLmpSurvival",
+              "status": "PASS_ACTIVATION_ONLY"
+            },
+            "perft5": [
+              {
+                "actual": 4865609,
+                "case": "start",
+                "expected": 4865609
+              },
+              {
+                "actual": 193690690,
+                "case": "kiwi",
+                "expected": 193690690
+              }
+            ],
+            "node_screen": {
+              "guard_depths": [],
+              "guard_rule": "abs(ON/OFF - 1) > 0.20 at d20 or d22",
+              "guard_status": "PASS",
+              "option_live": true,
+              "pc_precheck": {
+                "depth": 11,
+                "off_nodes": 308972,
+                "on_nodes": 342968
+              },
+              "percent_change": {
+                "11": 11.002938777623863,
+                "13": 22.544916525149766,
+                "16": -1.493036560394924,
+                "20": -7.9367794786720145,
+                "22": -12.063458676448343
+              }
+            },
+            "runtime_artifacts_unchanged": true,
+            "off_nodes": {
+              "11": 308972,
+              "13": 745494,
+              "16": 2460422,
+              "20": 11901452,
+              "22": 31111774
+            },
+            "on_nodes": {
+              "11": 342968,
+              "13": 913565,
+              "16": 2423687,
+              "20": 10956860,
+              "22": 27358618
+            }
+          },
+          "release_correctness": {
+            "status": "PASS",
+            "configured_ctest_cases": 14,
+            "configured_ctest_names": [
+              "forge_correction_history_tests",
+              "forge_legal_witness_tests",
+              "forge_nearest_pawn_tests",
+              "forge_pawn_span_tests",
+              "forge_pv_metadata_tests",
+              "forge_rule50_tests",
+              "forge_runtime_psqt_tests",
+              "forge_tests",
+              "forge_tt_tests",
+              "match_tool_tests",
+              "ownbook_regression",
+              "ponder_regression",
+              "uci_regression",
+              "windows_validation_tests"
+            ],
+            "fma_counts": [
+              0,
+              0
+            ],
+            "first_bare_d11": 308972,
+            "runtime_artifacts_unchanged": true
+          },
+          "asan_ubsan_correctness": {
+            "status": "PASS",
+            "configured_ctest_cases": 14,
+            "configured_ctest_names": [
+              "forge_correction_history_tests",
+              "forge_legal_witness_tests",
+              "forge_nearest_pawn_tests",
+              "forge_pawn_span_tests",
+              "forge_pv_metadata_tests",
+              "forge_rule50_tests",
+              "forge_runtime_psqt_tests",
+              "forge_tests",
+              "forge_tt_tests",
+              "match_tool_tests",
+              "ownbook_regression",
+              "ponder_regression",
+              "uci_regression",
+              "windows_validation_tests"
+            ],
+            "fma_counts": [
+              0,
+              0
+            ],
+            "first_bare_d11": 308972,
+            "runtime_artifacts_unchanged": true
+          },
+          "compile_OFF_TU_proofs": 8,
+          "ON_T2_ASAN": {
+            "status": "PASS",
+            "result": {
+              "path": "/tmp/forge_sol_S10_native_20261026/quiet_check_survival_Lprime_T2_ON_once/forge_sol_S10_ON_T2_asan_v2_result_20261026.json",
+              "sha256": "14973ea3bc6687a2c61559f803dbd1b96a6f2a8cb27f5fa2f082c4999da51c0e"
+            },
+            "legal_positions": 3,
+            "RLIMIT_AS_before": {
+              "hard": -1,
+              "setter_used": false,
+              "soft": -1,
+              "unlimited": true
+            },
+            "RLIMIT_AS_after": {
+              "hard": -1,
+              "setter_used": false,
+              "soft": -1,
+              "unlimited": true
+            },
+            "source_unchanged": true,
+            "runtime_artifacts_unchanged": true
+          }
+        },
+        "B": {
+          "result": {
+            "path": "/tmp/forge_sol_S10_native_20261026/quiet_check_survival_B_once/forge_sol_S10_native_result_20261026.json",
+            "sha256": "e2159bb1702c4a5281b1e86f75ced3cf8678732ceb8ea5aa61a4892abc92384a"
+          },
+          "status": "PASS_LOCAL_QUALIFICATION",
+          "elapsed_seconds": 962.2813700410188,
+          "source_unchanged": true,
+          "release": {
+            "activation": {
+              "off_nodes": 308972,
+              "on_nodes": 342968,
+              "option": "QuietCheckLmpSurvival",
+              "status": "PASS_ACTIVATION_ONLY"
+            },
+            "perft5": [
+              {
+                "actual": 4865609,
+                "case": "start",
+                "expected": 4865609
+              },
+              {
+                "actual": 193690690,
+                "case": "kiwi",
+                "expected": 193690690
+              }
+            ],
+            "node_screen": {
+              "guard_depths": [],
+              "guard_rule": "abs(ON/OFF - 1) > 0.20 at d20 or d22",
+              "guard_status": "PASS",
+              "option_live": true,
+              "pc_precheck": {
+                "depth": 11,
+                "off_nodes": 308972,
+                "on_nodes": 342968
+              },
+              "percent_change": {
+                "11": 11.002938777623863,
+                "13": 22.544916525149766,
+                "16": -1.493036560394924,
+                "20": -7.9367794786720145,
+                "22": -12.063458676448343
+              }
+            },
+            "runtime_artifacts_unchanged": true,
+            "off_nodes": {
+              "11": 308972,
+              "13": 745494,
+              "16": 2460422,
+              "20": 11901452,
+              "22": 31111774
+            },
+            "on_nodes": {
+              "11": 342968,
+              "13": 913565,
+              "16": 2423687,
+              "20": 10956860,
+              "22": 27358618
+            }
+          },
+          "release_correctness": {
+            "status": "PASS",
+            "configured_ctest_cases": 15,
+            "configured_ctest_names": [
+              "forge_bad_capture_tests",
+              "forge_correction_history_tests",
+              "forge_legal_witness_tests",
+              "forge_nearest_pawn_tests",
+              "forge_pawn_span_tests",
+              "forge_pv_metadata_tests",
+              "forge_rule50_tests",
+              "forge_runtime_psqt_tests",
+              "forge_tests",
+              "forge_tt_tests",
+              "match_tool_tests",
+              "ownbook_regression",
+              "ponder_regression",
+              "uci_regression",
+              "windows_validation_tests"
+            ],
+            "fma_counts": [
+              0,
+              0
+            ],
+            "first_bare_d11": 308972,
+            "runtime_artifacts_unchanged": true
+          },
+          "asan_ubsan_correctness": {
+            "status": "PASS",
+            "configured_ctest_cases": 15,
+            "configured_ctest_names": [
+              "forge_bad_capture_tests",
+              "forge_correction_history_tests",
+              "forge_legal_witness_tests",
+              "forge_nearest_pawn_tests",
+              "forge_pawn_span_tests",
+              "forge_pv_metadata_tests",
+              "forge_rule50_tests",
+              "forge_runtime_psqt_tests",
+              "forge_tests",
+              "forge_tt_tests",
+              "match_tool_tests",
+              "ownbook_regression",
+              "ponder_regression",
+              "uci_regression",
+              "windows_validation_tests"
+            ],
+            "fma_counts": [
+              0,
+              0
+            ],
+            "first_bare_d11": 308972,
+            "runtime_artifacts_unchanged": true
+          },
+          "compile_OFF_TU_proofs": 8,
+          "ON_T2_ASAN": {
+            "status": "PASS",
+            "result": {
+              "path": "/tmp/forge_sol_S10_native_20261026/quiet_check_survival_B_T2_ON_once/forge_sol_S10_ON_T2_asan_v2_result_20261026.json",
+              "sha256": "2717b0bcfa64584d16298851c38b4f449b85fe6d51cae348293967e32de9da44"
+            },
+            "legal_positions": 3,
+            "RLIMIT_AS_before": {
+              "hard": -1,
+              "setter_used": false,
+              "soft": -1,
+              "unlimited": true
+            },
+            "RLIMIT_AS_after": {
+              "hard": -1,
+              "setter_used": false,
+              "soft": -1,
+              "unlimited": true
+            },
+            "source_unchanged": true,
+            "runtime_artifacts_unchanged": true
+          }
+        }
+      },
+      "one_original_Lprime_WAC": {
+        "result": {
+          "path": "/tmp/forge_sol_S10_native_20261026/quiet_check_survival_Lprime_once/wac_ON/result.json",
+          "sha256": "61e0ce393d125b0320a967875b7e5c11072af7cc9429c0ca436dbd686e4991a0"
+        },
+        "solved": 269,
+        "evaluated": 300,
+        "illegal_moves": 0,
+        "movetime_ms": 1000,
+        "required_solved": 283,
+        "decision": "FAIL_REQUIRED_SCREEN",
+        "retries": 0
+      },
+      "sealed_evidence": {
+        "receipt": {
+          "path": "/tmp/forge_sol_S10_quiet_check_survival_evidence_20261026/forge_sol_S10_quiet_check_survival_archive_receipt_20261026.json",
+          "sha256": "25c31b01bcb86c9fafc32e725960f4d2dfe9fd0568ed30c8c8d245e68f90ffec"
+        },
+        "archive": {
+          "bytes": 16617977,
+          "path": "/tmp/forge_sol_S10_quiet_check_survival_evidence_20261026/forge_sol_S10_quiet_check_survival_evidence_20261026.tar.gz",
+          "sha256": "aa45a3b35995837eff8791295657a239434cd54f4e9e72e9fb237e882570fa40"
+        },
+        "mapping": {
+          "bytes": 128322,
+          "path": "/tmp/forge_sol_S10_quiet_check_survival_evidence_20261026/forge_sol_S10_quiet_check_survival_mapping_20261026.json",
+          "sha256": "5e6e523f49e7d7895ea83f401e54faa77a49af3cc5400e3a1f83b89cd415a374"
+        },
+        "payload_files": 397,
+        "payload_bytes": 129342967,
+        "archive_members": 398,
+        "python_decoder": "PASS_ALL_MEMBER_BYTES",
+        "GNU_decoder": "PASS_ALL_MEMBER_BYTES"
+      }
+    },
+    {
+      "key": "improving_razor",
+      "option": "ImprovingRazorGuard",
+      "build_option": "FORGE_S10_IMPROVING_RAZOR",
+      "hypothesis": "Do not razor a non-PV node whose static evaluation is improving. Preserve the existing razor margin and qsearch fallback for other nodes.",
+      "patch": {
+        "name": "forge_sol_S10_improving_razor_20261026.patch",
+        "sha256": "398a1bdac9606dea0b0b1b938dcd8e6ec7e6b8674435aee3584c3af6c8eda286",
+        "bytes": 8166,
+        "files": 0,
+        "insertions": 61,
+        "deletions": 1
+      },
+      "options": "Build OFF and UCI OFF by default",
+      "decision": "REJECTED_SEARCH_SCREEN_NOT_ADOPTED",
+      "bases": {
+        "Lprime": {
+          "result": {
+            "path": "/tmp/forge_sol_S10_native_20261026/improving_razor_Lprime_once/forge_sol_S10_native_result_20261026.json",
+            "sha256": "8ee523a3a8316d5bfddb49ac15f57bd86d87bbdc494f99ab47c889b2822a6bfe"
+          },
+          "status": "REJECTED_SEARCH_SCREEN",
+          "elapsed_seconds": 1116.3978629079938,
+          "source_unchanged": true,
+          "release": {
+            "activation": {
+              "off_nodes": 308972,
+              "on_nodes": 301162,
+              "option": "ImprovingRazorGuard",
+              "status": "PASS_ACTIVATION_ONLY"
+            },
+            "perft5": [
+              {
+                "actual": 4865609,
+                "case": "start",
+                "expected": 4865609
+              },
+              {
+                "actual": 193690690,
+                "case": "kiwi",
+                "expected": 193690690
+              }
+            ],
+            "node_screen": {
+              "guard_depths": [
+                20
+              ],
+              "guard_rule": "abs(ON/OFF - 1) > 0.20 at d20 or d22",
+              "guard_status": "FAIL",
+              "option_live": true,
+              "pc_precheck": {
+                "depth": 11,
+                "off_nodes": 308972,
+                "on_nodes": 301162
+              },
+              "percent_change": {
+                "11": -2.527737141229626,
+                "13": 5.309767751316577,
+                "16": 15.884836015935477,
+                "20": -24.27866784657872,
+                "22": -18.527670585418882
+              }
+            },
+            "runtime_artifacts_unchanged": true,
+            "off_nodes": {
+              "11": 308972,
+              "13": 745494,
+              "16": 2460422,
+              "20": 11901452,
+              "22": 31111774
+            },
+            "on_nodes": {
+              "11": 301162,
+              "13": 785078,
+              "16": 2851256,
+              "20": 9011938,
+              "22": 25347487
+            }
+          },
+          "release_correctness": {
+            "status": "PASS",
+            "configured_ctest_cases": 14,
+            "configured_ctest_names": [
+              "forge_correction_history_tests",
+              "forge_legal_witness_tests",
+              "forge_nearest_pawn_tests",
+              "forge_pawn_span_tests",
+              "forge_pv_metadata_tests",
+              "forge_rule50_tests",
+              "forge_runtime_psqt_tests",
+              "forge_tests",
+              "forge_tt_tests",
+              "match_tool_tests",
+              "ownbook_regression",
+              "ponder_regression",
+              "uci_regression",
+              "windows_validation_tests"
+            ],
+            "fma_counts": [
+              0,
+              0
+            ],
+            "first_bare_d11": 308972,
+            "runtime_artifacts_unchanged": true
+          },
+          "asan_ubsan_correctness": {
+            "status": "PASS",
+            "configured_ctest_cases": 14,
+            "configured_ctest_names": [
+              "forge_correction_history_tests",
+              "forge_legal_witness_tests",
+              "forge_nearest_pawn_tests",
+              "forge_pawn_span_tests",
+              "forge_pv_metadata_tests",
+              "forge_rule50_tests",
+              "forge_runtime_psqt_tests",
+              "forge_tests",
+              "forge_tt_tests",
+              "match_tool_tests",
+              "ownbook_regression",
+              "ponder_regression",
+              "uci_regression",
+              "windows_validation_tests"
+            ],
+            "fma_counts": [
+              0,
+              0
+            ],
+            "first_bare_d11": 308972,
+            "runtime_artifacts_unchanged": true
+          },
+          "compile_OFF_TU_proofs": 8,
+          "ON_T2_ASAN": {
+            "status": "PASS",
+            "result": {
+              "path": "/tmp/forge_sol_S10_native_20261026/improving_razor_Lprime_T2_ON_once/forge_sol_S10_ON_T2_asan_v2_result_20261026.json",
+              "sha256": "afcdd5599d64c135df054fb18d6cc642ec4fb9a0daaec1d3e28ef400bd660762"
+            },
+            "legal_positions": 3,
+            "RLIMIT_AS_before": {
+              "hard": -1,
+              "setter_used": false,
+              "soft": -1,
+              "unlimited": true
+            },
+            "RLIMIT_AS_after": {
+              "hard": -1,
+              "setter_used": false,
+              "soft": -1,
+              "unlimited": true
+            },
+            "source_unchanged": true,
+            "runtime_artifacts_unchanged": true
+          }
+        },
+        "B": {
+          "result": {
+            "path": "/tmp/forge_sol_S10_native_20261026/improving_razor_B_once/forge_sol_S10_native_result_20261026.json",
+            "sha256": "c25a7580918ef7b82ab4c02450787d8269c7ca977b0ad27e2e596258d401fdc9"
+          },
+          "status": "FAIL",
+          "elapsed_seconds": 338.7674970649823,
+          "source_unchanged": true,
+          "failure": "RuntimeError: engine exchange failed: off_d22: TimeoutError: deadline waiting for engine reply",
+          "remaining_checks": "UNVERIFIED: any stage absent from this result was not completed; no retry",
+          "off_completed_nodes": {
+            "11": 308972,
+            "13": 745494,
+            "16": 2460422,
+            "20": 11901452
+          },
+          "on_completed_nodes": {
+            "11": 301162
+          },
+          "timeout": "OFF22 original180s observer; no completed summary; owned process terminated; no crash/root-cause attribution"
+        }
+      },
+      "one_original_Lprime_WAC": {
+        "result": {
+          "path": "/tmp/forge_sol_S10_native_20261026/improving_razor_Lprime_once/wac_ON/result.json",
+          "sha256": "f7912e6709cf3fbff037d958238b888ccc81ae23e28ac133d3983161e92b4e5d"
+        },
+        "solved": 270,
+        "evaluated": 300,
+        "illegal_moves": 0,
+        "movetime_ms": 1000,
+        "required_solved": 283,
+        "decision": "FAIL_REQUIRED_SCREEN",
+        "retries": 0
+      },
+      "sealed_evidence": {
+        "receipt": {
+          "path": "/tmp/forge_sol_S10_improving_razor_evidence_20261026/forge_sol_S10_improving_razor_archive_receipt_20261026.json",
+          "sha256": "9b721655fa5487914e0ac48a43ec24678160c1db7bb964c76e8af8f6c99cac4b"
+        },
+        "archive": {
+          "bytes": 8430332,
+          "path": "/tmp/forge_sol_S10_improving_razor_evidence_20261026/forge_sol_S10_improving_razor_evidence_20261026.tar.gz",
+          "sha256": "4b5322ac6ed3341604e771e6872c2ec0e5838b6bff99462b9b4679d1d8c4284e"
+        },
+        "mapping": {
+          "bytes": 83940,
+          "path": "/tmp/forge_sol_S10_improving_razor_evidence_20261026/forge_sol_S10_improving_razor_mapping_20261026.json",
+          "sha256": "24bbcc0663fb25157f1645fdb71fa3944ef15e89d7a088f18265bf28eb487ffa"
+        },
+        "payload_files": 260,
+        "payload_bytes": 65298668,
+        "archive_members": 261,
+        "python_decoder": "PASS_ALL_MEMBER_BYTES",
+        "GNU_decoder": "PASS_ALL_MEMBER_BYTES"
+      }
+    },
+    {
+      "key": "capture_history_lmp",
+      "option": "CaptureHistoryLmp",
+      "build_option": "FORGE_S10_CAPTURE_HISTORY_LMP",
+      "hypothesis": "At shallow non-PV nodes, prune late captures only when their capture history is negative, SEE is losing, and the move neither checks nor promotes. Reuse the existing history-prune depth and LMP count thresholds.",
+      "patch": {
+        "name": "forge_sol_S10_capture_history_lmp_20261026.patch",
+        "sha256": "f7e9bf21fc8e80244545012f458024f7f42738cca22f498180d762408966ad63",
+        "bytes": 8658,
+        "files": 0,
+        "insertions": 63,
+        "deletions": 0
+      },
+      "options": "Build OFF and UCI OFF by default",
+      "decision": "REJECTED_SEARCH_SCREEN_NOT_ADOPTED",
+      "bases": {
+        "Lprime": {
+          "result": {
+            "path": "/tmp/forge_sol_S10_native_20261026/capture_history_lmp_Lprime_once/forge_sol_S10_native_result_20261026.json",
+            "sha256": "04ce0ce2f1c03ab28abcc200d83fc58c6871e99e0d3987f2b1d2300215c926ee"
+          },
+          "status": "REJECTED_SEARCH_SCREEN",
+          "elapsed_seconds": 1103.084842621989,
+          "source_unchanged": true,
+          "release": {
+            "activation": {
+              "off_nodes": 308972,
+              "on_nodes": 304755,
+              "option": "CaptureHistoryLmp",
+              "status": "PASS_ACTIVATION_ONLY"
+            },
+            "perft5": [
+              {
+                "actual": 4865609,
+                "case": "start",
+                "expected": 4865609
+              },
+              {
+                "actual": 193690690,
+                "case": "kiwi",
+                "expected": 193690690
+              }
+            ],
+            "node_screen": {
+              "guard_depths": [
+                20,
+                22
+              ],
+              "guard_rule": "abs(ON/OFF - 1) > 0.20 at d20 or d22",
+              "guard_status": "FAIL",
+              "option_live": true,
+              "pc_precheck": {
+                "depth": 11,
+                "off_nodes": 308972,
+                "on_nodes": 304755
+              },
+              "percent_change": {
+                "11": -1.364848594694665,
+                "13": 9.121468449108914,
+                "16": 5.3316870032864285,
+                "20": -30.812534470583927,
+                "22": -23.93310648245259
+              }
+            },
+            "runtime_artifacts_unchanged": true,
+            "off_nodes": {
+              "11": 308972,
+              "13": 745494,
+              "16": 2460422,
+              "20": 11901452,
+              "22": 31111774
+            },
+            "on_nodes": {
+              "11": 304755,
+              "13": 813494,
+              "16": 2591604,
+              "20": 8234313,
+              "22": 23665760
+            }
+          },
+          "release_correctness": {
+            "status": "PASS",
+            "configured_ctest_cases": 14,
+            "configured_ctest_names": [
+              "forge_correction_history_tests",
+              "forge_legal_witness_tests",
+              "forge_nearest_pawn_tests",
+              "forge_pawn_span_tests",
+              "forge_pv_metadata_tests",
+              "forge_rule50_tests",
+              "forge_runtime_psqt_tests",
+              "forge_tests",
+              "forge_tt_tests",
+              "match_tool_tests",
+              "ownbook_regression",
+              "ponder_regression",
+              "uci_regression",
+              "windows_validation_tests"
+            ],
+            "fma_counts": [
+              0,
+              0
+            ],
+            "first_bare_d11": 308972,
+            "runtime_artifacts_unchanged": true
+          },
+          "asan_ubsan_correctness": {
+            "status": "PASS",
+            "configured_ctest_cases": 14,
+            "configured_ctest_names": [
+              "forge_correction_history_tests",
+              "forge_legal_witness_tests",
+              "forge_nearest_pawn_tests",
+              "forge_pawn_span_tests",
+              "forge_pv_metadata_tests",
+              "forge_rule50_tests",
+              "forge_runtime_psqt_tests",
+              "forge_tests",
+              "forge_tt_tests",
+              "match_tool_tests",
+              "ownbook_regression",
+              "ponder_regression",
+              "uci_regression",
+              "windows_validation_tests"
+            ],
+            "fma_counts": [
+              0,
+              0
+            ],
+            "first_bare_d11": 308972,
+            "runtime_artifacts_unchanged": true
+          },
+          "compile_OFF_TU_proofs": 8,
+          "ON_T2_ASAN": {
+            "status": "PASS",
+            "result": {
+              "path": "/tmp/forge_sol_S10_native_20261026/capture_history_lmp_Lprime_T2_ON_once/forge_sol_S10_ON_T2_asan_v2_result_20261026.json",
+              "sha256": "2e86d7c79cfbefcc6531ef74dcffe61f18990a4066f8fcadb6819bd224755336"
+            },
+            "legal_positions": 3,
+            "RLIMIT_AS_before": {
+              "hard": -1,
+              "setter_used": false,
+              "soft": -1,
+              "unlimited": true
+            },
+            "RLIMIT_AS_after": {
+              "hard": -1,
+              "setter_used": false,
+              "soft": -1,
+              "unlimited": true
+            },
+            "source_unchanged": true,
+            "runtime_artifacts_unchanged": true
+          }
+        },
+        "B": {
+          "result": {
+            "path": "/tmp/forge_sol_S10_native_20261026/capture_history_lmp_B_once/forge_sol_S10_native_result_20261026.json",
+            "sha256": "59d0837f58d15dc59222e8eff432dd401bb141b6e582f8100143b9e200a5afc6"
+          },
+          "status": "REJECTED_SEARCH_SCREEN",
+          "elapsed_seconds": 811.9009911559988,
+          "source_unchanged": true,
+          "release": {
+            "activation": {
+              "off_nodes": 308972,
+              "on_nodes": 304755,
+              "option": "CaptureHistoryLmp",
+              "status": "PASS_ACTIVATION_ONLY"
+            },
+            "perft5": [
+              {
+                "actual": 4865609,
+                "case": "start",
+                "expected": 4865609
+              },
+              {
+                "actual": 193690690,
+                "case": "kiwi",
+                "expected": 193690690
+              }
+            ],
+            "node_screen": {
+              "guard_depths": [
+                20,
+                22
+              ],
+              "guard_rule": "abs(ON/OFF - 1) > 0.20 at d20 or d22",
+              "guard_status": "FAIL",
+              "option_live": true,
+              "pc_precheck": {
+                "depth": 11,
+                "off_nodes": 308972,
+                "on_nodes": 304755
+              },
+              "percent_change": {
+                "11": -1.364848594694665,
+                "13": 9.121468449108914,
+                "16": 5.3316870032864285,
+                "20": -30.812534470583927,
+                "22": -23.93310648245259
+              }
+            },
+            "runtime_artifacts_unchanged": true,
+            "off_nodes": {
+              "11": 308972,
+              "13": 745494,
+              "16": 2460422,
+              "20": 11901452,
+              "22": 31111774
+            },
+            "on_nodes": {
+              "11": 304755,
+              "13": 813494,
+              "16": 2591604,
+              "20": 8234313,
+              "22": 23665760
+            }
+          },
+          "release_correctness": {
+            "status": "PASS",
+            "configured_ctest_cases": 15,
+            "configured_ctest_names": [
+              "forge_bad_capture_tests",
+              "forge_correction_history_tests",
+              "forge_legal_witness_tests",
+              "forge_nearest_pawn_tests",
+              "forge_pawn_span_tests",
+              "forge_pv_metadata_tests",
+              "forge_rule50_tests",
+              "forge_runtime_psqt_tests",
+              "forge_tests",
+              "forge_tt_tests",
+              "match_tool_tests",
+              "ownbook_regression",
+              "ponder_regression",
+              "uci_regression",
+              "windows_validation_tests"
+            ],
+            "fma_counts": [
+              0,
+              0
+            ],
+            "first_bare_d11": 308972,
+            "runtime_artifacts_unchanged": true
+          },
+          "asan_ubsan_correctness": {
+            "status": "PASS",
+            "configured_ctest_cases": 15,
+            "configured_ctest_names": [
+              "forge_bad_capture_tests",
+              "forge_correction_history_tests",
+              "forge_legal_witness_tests",
+              "forge_nearest_pawn_tests",
+              "forge_pawn_span_tests",
+              "forge_pv_metadata_tests",
+              "forge_rule50_tests",
+              "forge_runtime_psqt_tests",
+              "forge_tests",
+              "forge_tt_tests",
+              "match_tool_tests",
+              "ownbook_regression",
+              "ponder_regression",
+              "uci_regression",
+              "windows_validation_tests"
+            ],
+            "fma_counts": [
+              0,
+              0
+            ],
+            "first_bare_d11": 308972,
+            "runtime_artifacts_unchanged": true
+          },
+          "compile_OFF_TU_proofs": 8,
+          "ON_T2_ASAN": {
+            "status": "PASS",
+            "result": {
+              "path": "/tmp/forge_sol_S10_native_20261026/capture_history_lmp_B_T2_ON_once/forge_sol_S10_ON_T2_asan_v2_result_20261026.json",
+              "sha256": "72690fdbf9817eecabada67577596c098d8c1421dea53da450bb3a0b274f1104"
+            },
+            "legal_positions": 3,
+            "RLIMIT_AS_before": {
+              "hard": -1,
+              "setter_used": false,
+              "soft": -1,
+              "unlimited": true
+            },
+            "RLIMIT_AS_after": {
+              "hard": -1,
+              "setter_used": false,
+              "soft": -1,
+              "unlimited": true
+            },
+            "source_unchanged": true,
+            "runtime_artifacts_unchanged": true
+          }
+        }
+      },
+      "one_original_Lprime_WAC": {
+        "result": {
+          "path": "/tmp/forge_sol_S10_native_20261026/capture_history_lmp_Lprime_once/wac_ON/result.json",
+          "sha256": "5b3b3a4cd823ddc360d832721d45c529ee1a8ce914ad638347d9d85cf699d521"
+        },
+        "solved": 258,
+        "evaluated": 300,
+        "illegal_moves": 0,
+        "movetime_ms": 1000,
+        "required_solved": 283,
+        "decision": "FAIL_REQUIRED_SCREEN",
+        "retries": 0
+      },
+      "sealed_evidence": {
+        "receipt": {
+          "path": "/tmp/forge_sol_S10_capture_history_lmp_evidence_20261026/forge_sol_S10_capture_history_lmp_archive_receipt_20261026.json",
+          "sha256": "17401285d55c2c8a4331d09d824236a02795fecfe9c33517b25eb3d9e6f4f451"
+        },
+        "archive": {
+          "bytes": 16616405,
+          "path": "/tmp/forge_sol_S10_capture_history_lmp_evidence_20261026/forge_sol_S10_capture_history_lmp_evidence_20261026.tar.gz",
+          "sha256": "59f0436d68caa260f2eb11a1d738a799248016f85e3f4c80e7f0b63db1714ee0"
+        },
+        "mapping": {
+          "bytes": 127918,
+          "path": "/tmp/forge_sol_S10_capture_history_lmp_evidence_20261026/forge_sol_S10_capture_history_lmp_mapping_20261026.json",
+          "sha256": "45b6e0c25d5ed686cc6589fdb8f9e212ece64b829858be9b9466996057aa95e7"
+        },
+        "payload_files": 397,
+        "payload_bytes": 129344223,
+        "archive_members": 398,
+        "python_decoder": "PASS_ALL_MEMBER_BYTES",
+        "GNU_decoder": "PASS_ALL_MEMBER_BYTES"
+      }
+    }
+  ],
+  "execution_condition": {
+    "path": "/workspace/forge-pack24-20261026/S10_delivery_20261026/forge_sol_S10_capture_history_execution_condition_20261026.md",
+    "sha256": "bec21acf6c5641507f57c4225d093039ed36944973b1348b503f10958210b0d2"
+  },
+  "strength": "UNVERIFIED; no fastchess matches, Elo estimate or strength claim",
+  "speed": "UNVERIFIED; search-changing candidates, no speed claim",
+  "Windows_owner_PC": "UNVERIFIED; no owner-PC execution",
+  "publication": "ROOT_PENDING; local closed evidence, no child Git mutation",
+  "next": "Root publishes/reads back all S10 source and evidence. All four frozen candidates remain OFF/not adopted. Then separately grant S11 native execution for the frozen material-history-key candidate. Retain partial B timeout for a future separately preregistered runtime-policy investigation."
+}

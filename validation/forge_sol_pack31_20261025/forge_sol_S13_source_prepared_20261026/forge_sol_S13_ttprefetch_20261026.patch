@@ -1,0 +1,167 @@
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -17,6 +17,11 @@
+ )
+ target_include_directories(forge_core PUBLIC include)
+ target_compile_features(forge_core PUBLIC cxx_std_20)
++
++option(FORGE_S13_TT_CHILD_PREFETCH "Build the opt-in TtChildPrefetch experiment" OFF)
++if(FORGE_S13_TT_CHILD_PREFETCH)
++    target_compile_definitions(forge_core PUBLIC FORGE_S13_TT_CHILD_PREFETCH=1)
++endif()
+ 
+ if(MSVC)
+     target_compile_options(forge_core PRIVATE /W4 /permissive-)
+--- a/include/forge/search.hpp
++++ b/include/forge/search.hpp
+@@ -17,6 +17,9 @@
+ namespace forge {
+ 
+ struct SearchLimits {
++#ifdef FORGE_S13_TT_CHILD_PREFETCH
++    bool s13_tt_child_prefetch = false;
++#endif
+     int depth = 64;
+     std::uint64_t nodes = 0;
+     bool nodes_specified = false;
+@@ -287,6 +290,10 @@
+ struct SharedSearchState {
+     explicit SharedSearchState(std::size_t hash_mb) : tt(hash_mb) {}
+     TranspositionTable tt;
++#ifdef FORGE_S13_TT_CHILD_PREFETCH
++    std::atomic<bool> s13_tt_child_prefetch{false};
++    std::atomic<bool> s13_tt_child_prefetch_announced{false};
++#endif
+     std::atomic<bool> stop{false};
+     // 0 means pondering has not been converted into a timed search.
+     std::atomic<std::int64_t> ponder_hit_ns{0};
+@@ -326,6 +333,9 @@
+     std::array<std::uint64_t, 256> root_move_nodes_{};
+     std::size_t root_effort_count_ = 0;
+ 
++#ifdef FORGE_S13_TT_CHILD_PREFETCH
++    bool s13_tt_child_prefetch_ = false;
++#endif
+     bool pondering_ = false;
+     std::chrono::steady_clock::time_point start_{};
+     std::atomic<std::uint64_t> nodes_{0};
+@@ -394,6 +404,10 @@
+     void clear_hash();
+     void resize_hash(std::size_t hash_mb);
+     void set_threads(int threads);
++#ifdef FORGE_S13_TT_CHILD_PREFETCH
++    void set_s13_tt_child_prefetch(bool enabled) { shared_.s13_tt_child_prefetch.store(enabled, std::memory_order_relaxed); }
++    [[nodiscard]] bool s13_tt_child_prefetch_enabled() const { return shared_.s13_tt_child_prefetch.load(std::memory_order_relaxed); }
++#endif
+     [[nodiscard]] int threads() const { return static_cast<int>(workers_.size()); }
+     [[nodiscard]] int hashfull_permille() const { return shared_.tt.hashfull(); }
+     [[nodiscard]] static int evaluate(const Board& board) { return Evaluator::evaluate_uncached(board); }
+--- a/src/search.cpp
++++ b/src/search.cpp
+@@ -976,6 +976,9 @@
+             record_null_move(ss);
+             NullUndo undo;
+             board.make_null_move(undo);
++#ifdef FORGE_S13_TT_CHILD_PREFETCH
++            if (s13_tt_child_prefetch_) shared_.tt.prefetch(board.key());
++#endif
+             int null_score = -search(board, ss + 1, depth - reduction, -beta, -beta + 1, !cut_node);
+             board.unmake_null_move(undo);
+             if (aborted_) return 0;
+@@ -1013,6 +1016,9 @@
+                 record_move(ss, board, move);
+                 Undo undo;
+                 (void)board.make_move(move, undo);
++#ifdef FORGE_S13_TT_CHILD_PREFETCH
++                if (s13_tt_child_prefetch_) shared_.tt.prefetch(board.key());
++#endif
+                 int value = -qsearch(board, ss + 1, -probcut_beta, -probcut_beta + 1);
+                 if (value >= probcut_beta && !aborted_) {
+                     value = -search(board, ss + 1, depth - 4, -probcut_beta, -probcut_beta + 1, !cut_node);
+@@ -1228,6 +1234,9 @@
+ // Iterative deepening driver
+ 
+ SearchInfo Worker::search(Board board, const SearchLimits& limits, bool emit_info, const std::vector<Worker*>& all) {
++#ifdef FORGE_S13_TT_CHILD_PREFETCH
++    s13_tt_child_prefetch_ = limits.s13_tt_child_prefetch;
++#endif
+     const auto origin = limits.start_time != std::chrono::steady_clock::time_point{}
+         ? limits.start_time : limits.request_start;
+     start_ = origin == std::chrono::steady_clock::time_point{}
+@@ -1503,6 +1512,14 @@
+     const auto origin = supplied_start == std::chrono::steady_clock::time_point{} && clocked
+         ? std::chrono::steady_clock::now() : supplied_start;
+     SearchLimits worker_limits = limits;
++#ifdef FORGE_S13_TT_CHILD_PREFETCH
++    // Snapshot once before helper launch; recursive workers use their own copy.
++    worker_limits.s13_tt_child_prefetch = shared_.s13_tt_child_prefetch.load(std::memory_order_relaxed);
++    if (worker_limits.s13_tt_child_prefetch && !shared_.s13_tt_child_prefetch_announced.exchange(true, std::memory_order_relaxed)) {
++        const std::lock_guard<std::mutex> output_lock(uci_output_mutex());
++        std::cout << "info string TtChildPrefetch active" << std::endl;
++    }
++#endif
+     worker_limits.start_time = origin;
+     std::vector<Worker*> all;
+     all.reserve(workers_.size());
+--- a/src/uci.cpp
++++ b/src/uci.cpp
+@@ -179,6 +179,9 @@
+                           << " min " << parameter.minimum << " max " << parameter.maximum << "\n";
+             }
+ #endif
++#ifdef FORGE_S13_TT_CHILD_PREFETCH
++            std::cout << "option name TtChildPrefetch type check default false\n";
++#endif
+             std::cout << "option name Clear Hash type button\n"
+                          "uciok" << std::endl;
+         } else if (command == "isready") {
+@@ -216,6 +219,15 @@
+             }
+             if (handled_tunable) {
+                 // Unlisted development options; nothing else to do.
++#ifdef FORGE_S13_TT_CHILD_PREFETCH
++            } else if (name == "TtChildPrefetch") {
++                if (value_text == "true" || value_text == "false") {
++                    searcher.set_s13_tt_child_prefetch(value_text == "true");
++                } else {
++                    const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex());
++                    std::cout << "info string invalid value for option TtChildPrefetch" << std::endl;
++                }
++#endif
+             } else if (name == "Clear Hash") {
+                 searcher.clear_hash();
+             } else if (name == "Ponder") {
+@@ -393,6 +405,9 @@
+             std::uint64_t total_nodes = 0;
+             const auto start = std::chrono::steady_clock::now();
+             forge::Searcher bench_searcher(16);
++#ifdef FORGE_S13_TT_CHILD_PREFETCH
++            bench_searcher.set_s13_tt_child_prefetch(searcher.s13_tt_child_prefetch_enabled());
++#endif
+             for (const std::string_view fen : fens) {
+                 forge::Board bench_board;
+                 if (!bench_board.set_fen(fen)) continue;
+--- a/README.md
++++ b/README.md
+@@ -1,4 +1,8 @@
+ # fc_nnue_h256_e12_ep12_ep10base — H256 net (run e, epoch 12) on the locked ep10 source base
++
++## S13 opt-in child TT prefetch — 2026-10-26
++
++The isolated `FORGE_S13_TT_CHILD_PREFETCH` build switch and `TtChildPrefetch` UCI option both default OFF. ON adds prefetch after null-move and ProbCut make, while retaining the original qsearch/main prefetches and existing 64-byte TT-cluster assertion. It snapshots the requested atomic option before helper launch and announces `info string TtChildPrefetch active` once. Set the option before searching. No TT layout, move order, evaluation value or network changes. Native node parity, sanitizer checks and speed remain UNVERIFIED until the separate qualification completes; no strength claim.
+ 
+ Status: **UNPROVEN. No Elo or strength claim.** Built on the box by Engine Coder, 2026-10-23.
+ 
+--- a/IDEA_SOURCE.md
++++ b/IDEA_SOURCE.md
+@@ -1,4 +1,10 @@
+ # IDEA_SOURCE — fc_nnue_h256_e12_ep12_ep10base  (REAL H256 net on the locked ep10 source base; UNPROVEN)
++
++## S13 child TT prefetch idea sources — 2026-10-26
++
++- The crew S13 handoff asks to cover child-key changes with TT prefetch and verify a 64-byte bucket.
++- Forge itself already prefetches after qsearch/main make and already asserts `sizeof(TTCluster) == 64`; inspecting its null-move and ProbCut recursion identified the two remaining child entry paths.
++- Own C++ implementation; the atomic requested-option/worker-snapshot pattern follows our own earlier Forge experiment plumbing. No code, tuned constants or parameter values from another engine.
+ 
+ Forge 6.4.24 (1ab50b2d), same source as the locked ep10 tree `/workspace/forge-coder/fc_nnue_ep10_1ab50b2d` (net-a md5 da65098c…). The ONLY source change is `src/nnue_weights.inc`, replaced by Engine NNUE's own trained H256 residual net:
+ - file: /workspace/chess-tools/nnue/forge_resid/resid_h256_e12_e_ep12.inc ("run e", epoch 12)

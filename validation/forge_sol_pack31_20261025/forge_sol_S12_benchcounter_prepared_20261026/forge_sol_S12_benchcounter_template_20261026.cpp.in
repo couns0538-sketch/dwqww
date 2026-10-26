@@ -1,0 +1,141 @@
+// Original diagnostic helper, source-bound to Forge's own canonical UCI bench.
+// PREPARED ONLY: no C++ compile or native run accompanies this source packet.
+#include "forge/board.hpp"
+#include "forge/search.hpp"
+#include <array>
+#include <charconv>
+#include <cstdint>
+#include <iostream>
+#include <limits>
+#include <stdexcept>
+#include <string_view>
+#include <system_error>
+
+#if !FORGE_NNUE_LAZY_ACC
+#error "This helper must match an S12 feature-ON core and header ABI"
+#endif
+static_assert(forge::nnue::HiddenSize == 256, "H256 diagnostic only");
+
+namespace {
+constexpr std::array<std::string_view, 8> BenchFens{{
+@@FEN_LITERALS@@
+}};
+constexpr std::string_view CanonicalUciSha256 = "@@UCI_SHA@@";
+constexpr std::string_view BenchBlockSha256 = "@@BLOCK_SHA@@";
+constexpr std::string_view SuiteSha256 = "@@SUITE_SHA@@";
+constexpr std::string_view CandidateHeaderSha256 = "@@HEADER_SHA@@";
+constexpr std::string_view CandidatePatchSha256 = "@@PATCH_SHA@@";
+
+void add(std::uint64_t& destination, std::uint64_t value) {
+    if (value > std::numeric_limits<std::uint64_t>::max() - destination)
+        throw std::overflow_error("counter aggregation overflow");
+    destination += value;
+}
+
+void accumulate(forge::LazyAccStats& sum, const forge::LazyAccStats& item) {
+    add(sum.refreshes, item.refreshes);
+    add(sum.updates, item.updates);
+    add(sum.zero_dirty_edges, item.zero_dirty_edges);
+    add(sum.copies_avoided, item.copies_avoided);
+    add(sum.alias_hits, item.alias_hits);
+    add(sum.evaluations, item.evaluations);
+}
+
+void stats(const forge::LazyAccStats& value) {
+    std::cout << "{\"refreshes\":" << value.refreshes
+              << ",\"updates\":" << value.updates
+              << ",\"zero_dirty_edges\":" << value.zero_dirty_edges
+              << ",\"copies_avoided\":" << value.copies_avoided
+              << ",\"alias_hits\":" << value.alias_hits
+              << ",\"evaluations\":" << value.evaluations << '}';
+}
+
+std::uint64_t reference(int depth) {
+    switch (depth) {
+        case 11: return 308972;
+        case 13: return 745494;
+        case 16: return 2460422;
+        case 20: return 11901452;
+        case 22: return 31111774;
+        default: return 0;
+    }
+}
+}
+
+int main(int argc, char** argv) {
+    try {
+        if (argc != 3) {
+            std::cerr << "usage: helper DEPTH OFF|ON (depth11/13/16/20/22)\n";
+            return 2;
+        }
+        int depth = 0;
+        const std::string_view depth_text(argv[1]);
+        const auto parsed = std::from_chars(depth_text.data(), depth_text.data() + depth_text.size(), depth);
+        const std::string_view mode(argv[2]);
+        if (parsed.ec != std::errc{} || parsed.ptr != depth_text.data() + depth_text.size()
+            || reference(depth) == 0 || (mode != "OFF" && mode != "ON")) return 2;
+        if (!forge::nnue::available() || !forge::nnue::enabled || !forge::nnue::residual()) {
+            std::cerr << "FAIL actual compiled residual NNUE must be available and enabled\n";
+            return 2;
+        }
+        // The real UCI main and tools/search_benchmark.cpp construct a Board
+        // before searching. Constructors perform Forge's existing initialization;
+        // there is no fabricated alternate initialization function here.
+        [[maybe_unused]] forge::Board initialization_board;
+        forge::lazy_acc::requested.store(mode == "ON", std::memory_order_relaxed);
+        std::cout << "{\"record\":\"binding\",\"mode\":\"" << mode
+                  << "\",\"requested_depth\":" << depth
+                  << ",\"suite_count\":8,\"hash_mib\":16,\"threads\":1"
+                  << ",\"canonical_uci_sha256\":\"" << CanonicalUciSha256
+                  << "\",\"bench_block_sha256\":\"" << BenchBlockSha256
+                  << "\",\"suite_sha256\":\"" << SuiteSha256
+                  << "\",\"candidate_header_sha256\":\"" << CandidateHeaderSha256
+                  << "\",\"candidate_patch_sha256\":\"" << CandidatePatchSha256 << "\"}\n";
+
+        // Same eight FENs, order, one Hash16 Searcher, clear before EVERY FEN,
+        // default SearchLimits except fixed depth, no info PV, exclusive TT.
+        forge::Searcher bench_searcher(16);
+        if (bench_searcher.threads() != 1) throw std::runtime_error("expected exactly one worker");
+        std::uint64_t total_nodes = 0;
+        forge::LazyAccStats totals{};
+        std::size_t index = 0;
+        bool depths_matched = true;
+        for (const std::string_view fen : BenchFens) {
+            forge::Board bench_board;
+            if (!bench_board.set_fen(fen)) throw std::runtime_error("invalid bound bench FEN");
+            forge::SearchLimits limits;
+            limits.depth = depth;
+            bench_searcher.clear();
+            const auto result = bench_searcher.search(
+                bench_board, limits, false, forge::Searcher::TTAccess::Exclusive);
+            add(total_nodes, result.nodes);
+            accumulate(totals, result.lazy_acc_stats);
+            depths_matched = depths_matched && result.depth == depth;
+            // Bound FENs contain no JSON quote, backslash, or control byte;
+            // the source producer validates that before emitting this program.
+            std::cout << "{\"record\":\"per_fen\",\"mode\":\"" << mode
+                      << "\",\"requested_depth\":" << depth << ",\"index\":" << index
+                      << ",\"fen\":\"" << fen << "\",\"nodes\":" << result.nodes
+                      << ",\"completed_depth\":" << result.depth << ",\"stats\":";
+            stats(result.lazy_acc_stats);
+            std::cout << "}\n";
+            ++index;
+        }
+        const bool matched = total_nodes == reference(depth) && index == BenchFens.size() && depths_matched;
+        std::cout << "{\"record\":\"total\",\"mode\":\"" << mode
+                  << "\",\"requested_depth\":" << depth << ",\"positions\":" << index
+                  << ",\"nodes\":" << total_nodes << ",\"reference_nodes\":" << reference(depth)
+                  << ",\"node_reference_match\":" << (matched ? "true" : "false")
+                  << ",\"completed_depths_match\":" << (depths_matched ? "true" : "false")
+                  << ",\"stats\":";
+        stats(totals);
+        std::cout << "}" << std::endl;
+        if (!matched) return 1;
+        if (mode == "OFF" && (totals.copies_avoided != 0 || totals.alias_hits != 0)) return 1;
+        if (mode == "ON" && (totals.evaluations == 0 || totals.copies_avoided == 0)) return 1;
+        return 0;
+    } catch (const std::exception& error) {
+        std::cerr << "FAIL " << error.what() << '\n';
+        return 1;
+    }
+}

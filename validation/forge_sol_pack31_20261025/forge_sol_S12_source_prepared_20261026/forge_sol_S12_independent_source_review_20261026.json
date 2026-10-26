@@ -1,0 +1,50 @@
+{
+  "schema": "forge.S12.independent_source_review.v1",
+  "date_UTC": "2026-10-26T21:30:03.503204+00:00",
+  "verdict": "NO_MUST_FIX_FOUND_SOURCE_ONLY",
+  "must_fix_findings": [],
+  "candidate_patch_sha256": "66efe4c94225d95a42e8754e3b11ff363cfb4903a855e60c0bbdfdf8b5a6ee8d",
+  "native_regression_source_sha256": "6cc93b1b0c052fe7acad64c3f65b3cdf130c8586dd52af3209da54a7bc400b3a",
+  "changed_L_view_hashes_verified": {
+    "CMakeLists.txt": "9fddf314f7261d3e9d936fdb869f2d15643993ead166b651c5233b027b2058d9",
+    "include/forge/search.hpp": "f1e61dcf7ec82339f6bef582fe5af0ff256171b3824e7964de3fd10c2b10b140",
+    "src/search.cpp": "6d9fcf1a5485322f0c2b032e68c8edb7f577748c72b4189632c17d1349fa4806",
+    "src/uci.cpp": "1269601c27890307abf3c8393dca6b7c8ed005576fc45a5351528529ddc5deba",
+    "README.md": "fd0320410477bc3e2fb59c2bdc924114ec8d37e74f59c32c4001d7112c357c02",
+    "IDEA_SOURCE.md": "68138d32184e5af1edf3e78d91cf2be231f8865eb8fd18a38b0cad38e2d15ca4"
+  },
+  "other_reviewed_files": {
+    "/tmp/forge_sol_S12_prepared_20261026/forge_sol_S12_design_20261026.md": "2be32032911ec818107508cef4401e4b0abbe5dd78551b572aa4e2ceb87984d2",
+    "/tmp/forge_sol_S12_prepared_20261026/forge_sol_S12_native_preregister_20261026.md": "2de2d59fe72421224159f74eb67db600641d0f1ee1bd129e36b4374a20850e9f",
+    "/tmp/forge_sol_S12_prepared_20261026/forge_sol_S12_reviewv2_binding_20261026.json": "84c8e8e79e1314282194cde4750b79732fee491caf27dae5ac355744fbaa0f27"
+  },
+  "scope": [
+    "review-v2 alias resolution/lifetimes, every production accumulator/PSQT consumer, normal/null/root/Worker::clear invalidation",
+    "current-board evaluation and white-oriented owner PSQT fallback",
+    "atomic pending option snapshot before helper creation, read-after-join stats, UCI stop/join before option writes",
+    "compile-timeOFF exclusion and opt-in runtimeOFF preservation",
+    "dedicated native regression C++ friend/API/template compatibility and special-move/null fixture semantics",
+    "native preregistration and feature ABI definitions"
+  ],
+  "source_conclusions": [
+    "computed_owner now rejects nonancestor/invalid/nonphysical alias targets even inRelease; fallbackrefresh clearslocalalias",
+    "zero-dirty framesretaininvalidlocalcache andborrowphysicalowner; nonemptyupdatespreserveorderedoriginalnnue::update andcleardestinationalias",
+    "PSQTfallbackusescurrentboardwithsamepiecesasresolvedowner acrosszeroedges; currentboardstillcontrolsSTM/rules/otherHCEterms",
+    "allworkerstackslotsresetowner atroot andWorker::clear; privatefixedstd::array/unique_ptr lifetime preventsnormalWorkerrelocation",
+    "snapshotsharedboolwrittenbeforestd::threadsstart andnotchangeduntilalljoin; pendingflagatomic; UCIsetterjoinsbeforewrite",
+    "feature fields/hotpaths/options compiledout atbuildOFF; noNNUE.cpp/eval/TTsourcechanges"
+  ],
+  "test_source_review": [
+    "C++20requires probesallowbaselinecompilation with actualzero-copy/counter assertions expectedtofail, notonlycompileRED",
+    "manualfeatureONdefinition mustmatchcoreABI; preregistration commandexplicitlysetsFORGE_NNUE_LAZY_ACC=1",
+    "capturepromotiontoKnight avoidscheckingblackkinge8 beforefollowingnull; EP/castles/otherunderpromotionfixturesalsohave no apparentnull-in-check sourcefixture mistake",
+    "ONtestresolvesphysicalowner instead ofreadingstalealiaslocalfloatcache; exercisesinvalidownerPSQT/poisonedlocalPSQT, twoNULLs, NULL-real, real-NULL, siblingreuse, restart andUseNNUEfalse"
+  ],
+  "limitations": [
+    "No compiler, engine, test, sanitizer or benchmark was executed bythisreview; sourceAPI/fixture reviewisnotanativePASS",
+    "GNUfuzz0 application/modeltest/OFFerasure resultsareparent evidence, notindependentlyrerunhere",
+    "actualT2workerisolation, fullconfiguredCTest, baselinebehavioralRED, 5depthnodes/perft/FMA/1Mwordparity/ASAN andspeed remainUNVERIFIED"
+  ],
+  "native_compiler_engine_or_test_runs": 0,
+  "candidate_files_modified": false
+}
