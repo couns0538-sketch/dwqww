@@ -34,21 +34,32 @@
     (CI release/ASan/TSan green; quiet-runner NPS A/B in its REPORT). A code review found no correctness bug but a
     claim-check cost in shuffling positions, a test gap at the draw floor and two tooling bugs; fixes are in
     progress on the same branch.
-- **Sol queue (`SOL_LEFTOVERS_FOR_CLAUDE.md`):** one line per job in `SOL_LEFTOVERS_PROGRESS.md`.
-  - Section 2: S11-S50 done (S22 covered by O1).
-  - Astra A1 (`HistRework`, CI green) and A7 (long-training recipe) are done.
-  - Test-plan jobs done: S-A1 (more-data recipe), S-A3 (v3d trainer with LR-schedule arguments), S-A6 (SPSA re-tune
-    plan) and S-C4 (hidden 768-1024 plan with a measured width cost).
-  - Section 3 fix-ups done: S09, S10, S25, S26, S27, S28, S33, S48.
+- **Sol queue (`SOL_LEFTOVERS_FOR_CLAUDE.md`): every job is DONE.** One line per job is in
+  `SOL_LEFTOVERS_PROGRESS.md`.
+  - Section 2, items 1-33 (Sol's S11-S50): all done; S22 is covered by O1.
+  - Section 2, items 34-37 (Astra): A1 `HistRework` (engine, CI green), A2 king-bucket doc (C4 covers the code), A3
+    full-NNUE pipeline (no engine integration), A7 long-training recipe.
+  - Section 2, items 38-43 (test plan): S-A1 more-data recipe; S-A2 `NnueInt16` port + trainer weight clip (CI green);
+    S-A3 v3d trainer (LR schedules); S-A4 H512 support (CI green); S-A6 SPSA plan; S-C4 hidden 768-1024 plan with a
+    measured width cost.
+  - Section 3: every fix-up is done (S04-S10, S25-S28, S33, S48), with Linux CI green where the fix-up has a workflow.
+- **Engine changes added in this round** (all default OFF, OFF build = lock binary, CI release/ASan/TSan green):
+  - Sol's jobs: S11 MaterialKeyTable, S13 TtChildPrefetch, S29 FORGE_SPEEDSTACK, S32 `forge datagen`
+    (FORGE_DATAGEN), S37 NNUE microbench target, S41 NetScale;
+  - fix-ups: S04fix cold-init probe, S08fix profile counters;
+  - Astra and test plan: A1 HistRework, S-A2 NnueInt16, S-A4 H512 build flags.
+- **No gates were run.** Each gate-ready candidate names its option, value, SPRT and srand in its REPORT.md.
 
 ## In progress / left
-- **Sub-agents still working:**
-  - S41/S45/S49;
-  - fix-ups S04-S08;
-  - A2 + A3 (king-bucket doc, full-NNUE pipeline);
-  - S-A2 + S-A4 (int16 port with trainer weight clipping, hidden 512);
-  - the S-IT code-review fixes.
-- **Main session:** S20, a 1M-position depth-8 rescoring, is finishing (the run is at its last chunks).
+- **S-IT code-review fixes:** a sub-agent is applying them on `opus-sol-SIT`: the claim-check cost in shuffling
+  positions, floor tests with material, uci_regression gating, ci_sit.sh exit status, TT move at claim nodes, the
+  fail-low bonus guard. The S-IT code from before the review is on the branch and works; the review found no
+  correctness bug.
+- **Everything else is for the owner or crew:**
+  - gates;
+  - CR reviews of the proposed patches;
+  - queue lines (A7, S-A1, S-A3, S-C4 and the S-A4 GPU recipe are PROPOSED only);
+  - the cleanup list below.
 
 ## Incident: our smoke runs disturbed the PC training supervisor (found 2026-10-27 10:24 PST; RESOLVED, QA reset the fail count to 0)
 - **What happened.** `F:\forge_nnue_train\supervisor.log` (read only) shows that the supervisor adopted five
