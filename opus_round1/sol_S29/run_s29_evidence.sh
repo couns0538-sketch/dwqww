@@ -7,7 +7,7 @@
 #   4. UCI option list: stack-on exe vs lock exe
 #   5. codegen: codegen_compare.sh lock vs stack-on; prefetch instructions in Worker::search
 #   6. ctest of the CMake builds (s29_cm_off, s29_cm_on) + known-failure check
-# usage: run_s29_evidence.sh <out_dir>
+# usage: run_s29_evidence.sh <out_dir> [ctest]   (ctest: step 6 only)
 set -uo pipefail
 OUT=$1
 mkdir -p "$OUT"
@@ -17,7 +17,10 @@ TOOLS=/d/grok-pc-data/dwqww/.claude/worktrees/b/tools
 LOCK=/d/grok-pc-data/dwqww/.claude/worktrees/b/base/forge_h256_s198.exe
 B=/f/opus_scratch/build/s29_pc
 mkdir -p "$B"
-export PATH=/c/msys64/ucrt64/bin:$PATH
+VSCM="/c/Program Files (x86)/Microsoft Visual Studio/18/BuildTools/Common7/IDE/CommonExtensions/Microsoft/CMake"
+export PATH="/c/msys64/ucrt64/bin:$VSCM/CMake/bin:$VSCM/Ninja:$PATH"
+ONLY=${2:-}
+if [ "$ONLY" != ctest ]; then
 {
   echo "# step 1: PC recipe builds ($(date '+%Y-%m-%d %H:%M:%S') PC clock); machine exclusive: no"
   nice -n 19 bash "$TOOLS/build_pc.sh" "$ROOT" "$B/forge_s29_default.exe"
@@ -48,6 +51,7 @@ done
     echo "$(basename "$exe"): prefetch instructions in Worker::search(Board&, ...) = $n"
   done
 } > "$OUT/step5_codegen.log" 2>&1
+fi
 for t in off on; do
   { echo "# step 6: ctest, CMake build s29_cm_$t"; (cd "/f/opus_scratch/build/s29_cm_$t" && nice -n 19 ctest --output-on-failure --timeout 900 -j1) 2>&1 | tee "$OUT/ctest_$t.raw"
     python "$ROOT/opus_round1/ci/check_known_failures.py" "$OUT/ctest_$t.raw"; } > "$OUT/step6_ctest_$t.log" 2>&1
