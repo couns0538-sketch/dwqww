@@ -35,7 +35,20 @@ sub-agent; this report text is its hand-back.
 - The real candidate is within noise of the lock at both movetimes; WAC300 cannot separate them (gate38 itself ended
   at the 1500-game cap, LLR 1.11). Repeat noise is up to 5 points at 100 ms, <= 3 at 1000 ms.
 
+## Quiet-box cross-check (added by the main session, 2026-10-27)
+A quiet machine exists in this round's evidence: S26fix's CI ran WAC300 at 1000 ms for the h256_e12 lock
+engine on GitHub runners. That engine is S26's "B_lock" arm: bench 308972/745494/2460422/11901452/31111774 = the lock
+exe's pins (S43), so the same search as this job's lock.
+- **Results:** 284 (run 40505681846, v4), 282 (run 40507421791, v4) and 284 (run 40507421791, v5);
+  `opus-sol-S26fix:opus_round1/sol_S26fix/closed_nets/B_lock/SUMMARY_B_lock.md`.
+- **The harness differs:** it is Sol's S26 v4/v5 WAC screen, not the S07 sweep tool, so it is a cross-check, not the
+  same measurement.
+- **Reading:** a quiet, fast box gives 282-284, the same as the loaded PC's 281-284 and far above 271. That supports
+  the explanation above: the 271 run was effort-bound (Sol's box searched about a quarter of the nodes per position),
+  not a harness or engine effect.
+
 ## Left / UNVERIFIED
-- Quiet-box numbers (impossible on this PC); the historical CR harness itself (missing, per Sol).
+- The S07 sweep tool itself on a quiet box (the cross-check above uses S26's harness). The historical CR harness itself
+  is missing, per Sol.
 - Raw screen outputs stay in scratch: `F:/opus_scratch/sol_S07fix/s07_raw_screens.tar.gz` (3,788,395 bytes, sha256
   3b57d77b...; see `logs/raw_archive_sha256.txt`).
