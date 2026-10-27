@@ -1,0 +1,7 @@
+# instruction mix of nnue::evaluate (engine) and the replica split, per build (objdump -d -C)
+mb4_lock_scalar.exe | nnue::evaluate | insns 114 | cond. branches 2 | maxss/minss 6 | packed float ops 0
+mb4_lock_scalar.exe | replica_affine | insns 148 | cond. branches 1 | maxss/minss 2 | packed float ops 0
+mb4_lock_scalar.exe | replica_activation | insns 33 | cond. branches 1 | maxss/minss 2 | packed float ops 0
+mb4_lock_avx2.exe | nnue::evaluate | insns 89 | cond. branches 1 | maxss/minss 2 | packed float ops 16
+mb4_lock_avx2.exe | replica_affine | insns 56 | cond. branches 1 | maxss/minss 2 | packed float ops 8
+mb4_lock_avx2.exe | replica_activation | insns 32 | cond. branches 1 | maxss/minss 0 | packed float ops 4

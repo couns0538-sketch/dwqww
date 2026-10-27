@@ -1,0 +1,67 @@
+# FILES index, opus_round1/sol_S37 (job S37, branch opus-sol-S37). path | bytes | sha256 | content
+# No .tar.gz archives. Exes, the FEN dump and nnue_check outputs stay in F:/opus_scratch/sol_s37 (logs/scratch_outputs.sha256).
+IDEA_SOURCE.md | 1830 | a9c5b2b2b6e0ce2f412e36b47eb7554512bad6c38cb9b9fc3f018f596111aabc | idea/spec sources (Sol S37 spec, lock nnue tools, nnue_check.cpp, S11 scalar recipe, timing method)
+README.md | 3959 | 47c38a02aea2cde5765761aae93ffa83b38b7d2d2d99da181b75101c399e1554 | how to build and run the microbench and the job tools
+build_microbench_pc.sh | 2836 | 8ba45e0c86a1fb60c41a467cd7a3b6cb7e0c4bb6e8103d64363f8dc6d77e0d00 | PC lock-recipe build of the microbench, avx2 or scalar (S11 recipe)
+forge_sol_S37_nnue_microbench_20261027.patch | 63020 | 360d132a0cff2c55c4c3fa8bddd3e294effeea3af15c0680b43cc64d6ceaee8b | the patch vs 842e3bce: tools/nnue_microbench.cpp, WAC300 copy, CMake target + CTest
+logs/build_engine_s37.log | 164 | ea167c6e193b510cf1d9a79b65aef2bc9d33ce421282dc0961a3c3741d2a90de | box recipe on the S37 tree: forge sha256 a486d2fd, FMA 0
+logs/build_mb4_e48f006_avx2.log | 437 | 2be7ff24648ed1a1019ddb525219d5effa8086e4a783502551cefd89d896d1be | microbench build, e48f006 net, avx2
+logs/build_mb4_e48f006_scalar.log | 437 | 43f0825c24ef0a5f1aa583c65003b4d1ea8af3ab1b45c26437eb4e79fff7e7e9 | microbench build, e48f006 net, scalar
+logs/build_mb4_lock_avx2.log | 434 | 64200d996c65a30daf0f6db10439de7ab90d4ad185ab62d56e10fb0692c9a764 | microbench build, lock net, avx2 (packed/scalar op counts)
+logs/build_mb4_lock_scalar.log | 434 | b2a1ecad925a72b51bc1f3ce35a360424fc3bb7b06de01f28393cb38aaabd768 | microbench build, lock net, scalar (0 packed ops in forge::nnue::)
+logs/build_nnue_check_e48f006.log | 0 | e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855 | nnue_check.cpp build (e48f006 net)
+logs/build_nnue_check_lock.log | 0 | e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855 | nnue_check.cpp build (lock net, lock recipe)
+logs/check_quick.log | 571 | 3570238ebe00ac527cfc170c3291dd852c5a10ba82c296bd3d2e49c279c917b4 | first --check-only run (2000 positions): PASS
+logs/cmake_build.log | 51 | 5417624559b8bfcf48652a6ed15f8a6735bb91ad7a87e26e7dd0254cdc9e1fd4 | CMake build (box flags, JOBS=1): OK
+logs/cmp_engine_vs_lock.log | 96 | 5fae4541f494ca5d2cd2dcdc5cc1424a772e88b04a348818b483daa9700adb0d | cmp -l vs lock exe 5d4df7f1: 6 bytes (PE timestamp 137-139, checksum 217-219)
+logs/codegen_eval_replica.txt | 723 | 515b003dd2b943ffb12a4a1bf47d5a3948e4fa6c900dd873b02b2419b28a5ac1 | instruction mix of nnue::evaluate and the replica, scalar and avx2 builds
+logs/cost_table4.log | 2844 | bebcd19a34c75da736b9eed8b37237abb39fa0c0f6e8831ee586ec5268cf9796 | s37_cost_table.py output on runs4: table + checks (equal to nnue_check, no problems)
+logs/cost_table_runs4.txt | 2163 | b5dedbaf423023e82005c326bbca1c7acb6a4eaf3e9a047bcb8804c455c48fc3 | the final cost table (markdown text)
+logs/ctest_cmake.log | 2359 | a765c018f8864643b9799876262814365ea1c617ef93876c5910e91d9c7ffbcd | CTest 14/15 (only forge_tests, 4 known lines); forge_nnue_microbench_check passed
+logs/ctest_known_failures.log | 168 | d5ae182dc780b1cac61f2c5783d0ebfbf7baa1ad7cbcd49d79ec70d2f80ba95a | check_known_failures: PASS
+logs/history.txt | 1225 | 8b7b2a357727b9a2aa530dddb42281b6f6734a7e3ba96a42aec220dffc702748 | superseded runs and why (kept in scratch only)
+logs/mutant_m1.log | 588 | 4cf23a1d9dbd63fedaa5b53b0ae4e698bb009460aeeddecb7ec02f2d2fe26b52 | m1 check run: FAIL (63,703 accumulator mismatches)
+logs/mutant_m2.log | 578 | 4bd5f67fc9ad6a07a82b453ef9bd52315d4c73d1b9d16735d7d34b2947c8d9d1 | m2 check run: FAIL (398 replica mismatches)
+logs/mutants.txt | 657 | 0fd7f59111bd65c5f81525e5db3bd0465047846a7648b564427aa1b98c0be81a | planted bugs m1 (engine quiet update), m2 (replica scale): what changed and what failed
+logs/nnue_check_e48f006.stderr | 35 | 72dfa38c9ee4b1695783b323fa7b14801c67d5f1fb8f6bfac82ed008d573b97c | nnue_check run header
+logs/nnue_check_lock.stderr | 35 | 72dfa38c9ee4b1695783b323fa7b14801c67d5f1fb8f6bfac82ed008d573b97c | nnue_check run header (available=1 residual=1 hidden=256)
+logs/runs4/cost_table.json | 11596 | 51a298b63abac85baf907a6390d2fa93d2be0598937c80b0c3eb81e5d6910983 | the final cost table + checks (JSON)
+logs/runs4/e48f006_avx2_round1.json | 2903 | f87182a229afaf47185e908ab04b065e7dd3bf0e25f9305544a67075f6d3d934 | microbench run (JSON: checks, checksums, per-stage timings)
+logs/runs4/e48f006_avx2_round1.time.json | 577 | fc0ef9d4e8ee89bb329a314a2f2af722efeb4ad4bf69de1a225681fa35571138 | run_pinned timing of e48f006_avx2_round1
+logs/runs4/e48f006_avx2_round2.json | 2906 | d61b91d6a965a1173c69ea8706751aaa8b975451049ceac6e96095a623f26430 | microbench run (JSON: checks, checksums, per-stage timings)
+logs/runs4/e48f006_avx2_round2.time.json | 577 | d3de412af3d0b98fde5b9e0d99bb318f3a189708ee7b803f84197661a2c51f53 | run_pinned timing of e48f006_avx2_round2
+logs/runs4/e48f006_avx2_round3.json | 2904 | af6d6934459a24331130cd248aba179e11cd01d6bb627e804f9d33dc9914af13 | microbench run (JSON: checks, checksums, per-stage timings)
+logs/runs4/e48f006_avx2_round3.time.json | 577 | 0785aa4745d6b93b1b4bf90cd5e184fef51c1df151c5e18febec53865afe6dd1 | run_pinned timing of e48f006_avx2_round3
+logs/runs4/e48f006_scalar_round1.json | 2947 | 9b76c7ca33fce260188588c443ac33a2c6a4e8a9745c57bf1134cab0e290f23a | microbench run (JSON: checks, checksums, per-stage timings)
+logs/runs4/e48f006_scalar_round1.time.json | 587 | 32232178bb2aed061b9463d3e6babfdf1b9979d3733f83b6568cbea8e80199fb | run_pinned timing of e48f006_scalar_round1
+logs/runs4/e48f006_scalar_round2.json | 2949 | e38d67ba7e00f713b51dc4ae917286425f133542dad32494b86f6d2aba655f3a | microbench run (JSON: checks, checksums, per-stage timings)
+logs/runs4/e48f006_scalar_round2.time.json | 587 | e0f7940eebd58f0f58a531ca4fa89d52eb315a42fcad52e5fb5164475bf869e5 | run_pinned timing of e48f006_scalar_round2
+logs/runs4/e48f006_scalar_round3.json | 2948 | 8d676325316006848181838640dde07612b0f3ff207e796ef3be4ab2ad54350a | microbench run (JSON: checks, checksums, per-stage timings)
+logs/runs4/e48f006_scalar_round3.time.json | 587 | 7c7c667e4280d2e5881b40ad03f310edd3c9128f10392f8b53a844b02fa69728 | run_pinned timing of e48f006_scalar_round3
+logs/runs4/lock_avx2_round1.json | 2903 | 1e30a58688d834ff05b2c8de5927dbee7540aecdc7f8cac2cfab34d0e025f826 | microbench run (JSON: checks, checksums, per-stage timings)
+logs/runs4/lock_avx2_round1.time.json | 565 | f1714d370484dea5b14b26707f2681aa03119fc1c17fe0d8fe0aafeae0185ee6 | run_pinned timing of lock_avx2_round1
+logs/runs4/lock_avx2_round2.json | 2900 | f10e7b0c125edb16b27139bf597308eeb519a5cd5892f0de42b74c90603ff867 | microbench run (JSON: checks, checksums, per-stage timings)
+logs/runs4/lock_avx2_round2.time.json | 565 | 7b313a9c5ed5e1bc5d57a223b3c71300e737cd81e6fbb4abf26eb56a232c0722 | run_pinned timing of lock_avx2_round2
+logs/runs4/lock_avx2_round3.json | 2900 | 4b9d26d207dec1272f74694bcb802319e45bf668d84e1ec3f7f402f8b7cb43fc | microbench run (JSON: checks, checksums, per-stage timings)
+logs/runs4/lock_avx2_round3.time.json | 565 | 9b3b9475b70567f472e9cf0b332ef5a0bbc6af099cd0d82d74c4e25fb3b649de | run_pinned timing of lock_avx2_round3
+logs/runs4/lock_scalar_round1.json | 2945 | a055a4731ebd628e6d02b613368e7784d298843c201667a388349bc4cddbb9e1 | microbench run (JSON: checks, checksums, per-stage timings)
+logs/runs4/lock_scalar_round1.time.json | 575 | 8f7587323ae669a1690970efd0e8d6b66dc1a0bbda5723f487c4d13397b9952b | run_pinned timing of lock_scalar_round1
+logs/runs4/lock_scalar_round2.json | 2945 | d26dd8d0a05819960261bb1a30725cda80e05e64c3124fb30f508593c1819792 | microbench run (JSON: checks, checksums, per-stage timings)
+logs/runs4/lock_scalar_round2.time.json | 575 | f78baacc6fb666018336d1e8dc29dfb9da6968915b0ebcd8720e17b566ae7138 | run_pinned timing of lock_scalar_round2
+logs/runs4/lock_scalar_round3.json | 2943 | 90137bda5578380ab10ed9fac23849d3c7eebd21c1cfcacc6e7d7365723d4564 | microbench run (JSON: checks, checksums, per-stage timings)
+logs/runs4/lock_scalar_round3.time.json | 575 | 485c75143637c53810b426faa4d026ad949e46656fa730b8ff41b59825d2fda4 | run_pinned timing of lock_scalar_round3
+logs/runs4/run4_e48f006_avx2_round1.log | 2005 | ab71038c9420eaa4cbfbefe786c67cc1d466612e027b4df2694c9bcb1663301b | microbench run output (checks line + table)
+logs/runs4/run4_e48f006_avx2_round2.log | 2005 | 2d95b7f76ff68da879c70d1a19809da8b8845a7838b8d5e44d27b42a881549bc | microbench run output (checks line + table)
+logs/runs4/run4_e48f006_avx2_round3.log | 2005 | 107467f15615e45d56efad79bac2d1b82b014fbc6817097e3a924827d0927789 | microbench run output (checks line + table)
+logs/runs4/run4_e48f006_scalar_round1.log | 2019 | b49c22887eff89ba92b01da1abc7fc62ddbff279536329108872d812c938388e | microbench run output (checks line + table)
+logs/runs4/run4_e48f006_scalar_round2.log | 2019 | dc2bafc183c2e91fe598347c8c21f7274d01922f6fb7d329c9baac0bc103fd84 | microbench run output (checks line + table)
+logs/runs4/run4_e48f006_scalar_round3.log | 2019 | e60e2b1b9f975d8cd4b95ba555ce63150950ef756b285da2785d9d138ecae5e6 | microbench run output (checks line + table)
+logs/runs4/run4_lock_avx2_round1.log | 1992 | 133cc4d881d3e4a62d6916771e5ffd1422e4fc6b98a377564eb09d57717143ea | microbench run output (checks line + table)
+logs/runs4/run4_lock_avx2_round2.log | 1992 | a089356c80d63f70f3d723af87e8609749c0fe5322610e7c1c6d184316545e08 | microbench run output (checks line + table)
+logs/runs4/run4_lock_avx2_round3.log | 1992 | e54622aaa43b67ac6b4f75dc57c6c3d3f6f37d5cfb6745b12a28e554af293d8a | microbench run output (checks line + table)
+logs/runs4/run4_lock_scalar_round1.log | 2006 | 17fb8c01b6b058edc4dabe1528d58a22ae00c74117f6e273eeebe8f424b07e95 | microbench run output (checks line + table)
+logs/runs4/run4_lock_scalar_round2.log | 2006 | 6dbb8e7e0c6161933de135524550e8d645e0a99fb4126437d6c970e096083e8e | microbench run output (checks line + table)
+logs/runs4/run4_lock_scalar_round3.log | 2006 | 41c0c98ceed94d464eed87bfe8618b0360a5832eec7458a5318d9498fe44849f | microbench run output (checks line + table)
+logs/scratch_outputs.sha256 | 1104 | aa27195d0429ebd883c4905a6e594159d292be6fca47a3defd9054866147f510 | sha256 of exes, FEN dump and nnue_check outputs kept in F:/opus_scratch/sol_s37
+s37_cost_table.py | 5258 | b454daee4a27a896f064758cf0a3394c6b394891fe95b311fb1919d7d7b261f1 | aggregates runs into the cost table; checksum checks vs nnue_check.cpp
+scalar_nnue_prelude.hpp | 817 | 56191b7659cd3d6ee05de4c685238c629a390e651f63f562d06acf30c9e28314 | forced include for the scalar build (copied from opus-sol-S11)
