@@ -7,3 +7,11 @@ S18 | opus-sol-S18 | IN PROGRESS (sub-agent; 4 remaining arms t200/t300/t400/t50
 S12 | opus-sol-S12 | IN PROGRESS (light sub-agent; O2 likely covers it) |
 S14 | opus-sol-S14 | QUEUED (same light agent, after S12) |
 S34 | opus-sol-S34 | QUEUED (same light agent, after S14) |
+S22 | opus-sol-S22 | COVERED by opus-O1 (report pushed, 80edf0d) | Sol's open T2 node observation = O1 bug 1 (SmpExactNodes)
+S30 | opus-sol-S30 | IN PROGRESS (light sub-agent 2) |
+S31 | opus-sol-S31 | QUEUED (light sub-agent 2) |
+S35 | opus-sol-S35 | QUEUED (light sub-agent 2) |
+S38 | opus-sol-S38 | QUEUED (light sub-agent 2) |
+S15, S16, S17 | — | QUEUED for the next heavy slots |
+S29 | — | QUEUED (after S11/S13: stacks their node-exact survivors) |
+S19, S20, S21 | — | QUEUED for heavy slots |
