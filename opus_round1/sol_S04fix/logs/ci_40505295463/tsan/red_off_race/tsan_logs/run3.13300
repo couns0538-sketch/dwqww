@@ -1,0 +1,38 @@
+==================
+WARNING: ThreadSanitizer: data race (pid=13300)
+  Write of size 1 at 0x5588d205f280 by thread T8:
+    #0 forge::attacks::init() /home/runner/work/dwqww/dwqww/src/bitboard.cpp:123 (cold_off_race+0x51af) (BuildId: b12c2a69589c444ac845b0c9f24717b9aa24f900)
+    #1 forge::Board::Board() /home/runner/work/dwqww/dwqww/src/board.cpp:175 (cold_off_race+0xfd81) (BuildId: b12c2a69589c444ac845b0c9f24717b9aa24f900)
+    #2 operator() /home/runner/work/dwqww/dwqww/tests/forge_sol_S04_tsan_test_20261025.cpp:34 (cold_off_race+0x4346) (BuildId: b12c2a69589c444ac845b0c9f24717b9aa24f900)
+    #3 __invoke_impl<void, main()::<lambda()> > /usr/include/c++/14/bits/invoke.h:61 (cold_off_race+0x47a1) (BuildId: b12c2a69589c444ac845b0c9f24717b9aa24f900)
+    #4 __invoke<main()::<lambda()> > /usr/include/c++/14/bits/invoke.h:96 (cold_off_race+0x47a1)
+    #5 _M_invoke<0> /usr/include/c++/14/bits/std_thread.h:301 (cold_off_race+0x47a1)
+    #6 operator() /usr/include/c++/14/bits/std_thread.h:308 (cold_off_race+0x47a1)
+    #7 _M_run /usr/include/c++/14/bits/std_thread.h:253 (cold_off_race+0x47a1)
+    #8 <null> <null> (libstdc++.so.6+0xecdb3) (BuildId: 753c6c8608b61d4e67be8f0c890e03e0aa046b8b)
+
+  Previous write of size 1 at 0x5588d205f280 by thread T1:
+    #0 forge::attacks::init() /home/runner/work/dwqww/dwqww/src/bitboard.cpp:123 (cold_off_race+0x51af) (BuildId: b12c2a69589c444ac845b0c9f24717b9aa24f900)
+    #1 forge::Board::Board() /home/runner/work/dwqww/dwqww/src/board.cpp:175 (cold_off_race+0xfd81) (BuildId: b12c2a69589c444ac845b0c9f24717b9aa24f900)
+    #2 operator() /home/runner/work/dwqww/dwqww/tests/forge_sol_S04_tsan_test_20261025.cpp:34 (cold_off_race+0x4346) (BuildId: b12c2a69589c444ac845b0c9f24717b9aa24f900)
+    #3 __invoke_impl<void, main()::<lambda()> > /usr/include/c++/14/bits/invoke.h:61 (cold_off_race+0x47a1) (BuildId: b12c2a69589c444ac845b0c9f24717b9aa24f900)
+    #4 __invoke<main()::<lambda()> > /usr/include/c++/14/bits/invoke.h:96 (cold_off_race+0x47a1)
+    #5 _M_invoke<0> /usr/include/c++/14/bits/std_thread.h:301 (cold_off_race+0x47a1)
+    #6 operator() /usr/include/c++/14/bits/std_thread.h:308 (cold_off_race+0x47a1)
+    #7 _M_run /usr/include/c++/14/bits/std_thread.h:253 (cold_off_race+0x47a1)
+    #8 <null> <null> (libstdc++.so.6+0xecdb3) (BuildId: 753c6c8608b61d4e67be8f0c890e03e0aa046b8b)
+
+  Location is global 'forge::attacks::init()::initialized' of size 1 at 0x5588d205f280 (cold_off_race+0x28280)
+
+  Thread T8 (tid=13309, running) created by main thread at:
+    #0 pthread_create ../../../../src/libsanitizer/tsan/tsan_interceptors_posix.cpp:1022 (libtsan.so.2+0x5ac1a) (BuildId: 2a13a7710e361d06f7babbea53065ca2be93f738)
+    #1 std::thread::_M_start_thread(std::unique_ptr<std::thread::_State, std::default_delete<std::thread::_State> >, void (*)()) <null> (libstdc++.so.6+0xeceb0) (BuildId: 753c6c8608b61d4e67be8f0c890e03e0aa046b8b)
+    #2 <null> <null> (libc.so.6+0x2a1c9) (BuildId: a4a7992a8e66555c8141ab2a08a8465ff6e0ea65)
+
+  Thread T1 (tid=13302, running) created by main thread at:
+    #0 pthread_create ../../../../src/libsanitizer/tsan/tsan_interceptors_posix.cpp:1022 (libtsan.so.2+0x5ac1a) (BuildId: 2a13a7710e361d06f7babbea53065ca2be93f738)
+    #1 std::thread::_M_start_thread(std::unique_ptr<std::thread::_State, std::default_delete<std::thread::_State> >, void (*)()) <null> (libstdc++.so.6+0xeceb0) (BuildId: 753c6c8608b61d4e67be8f0c890e03e0aa046b8b)
+    #2 <null> <null> (libc.so.6+0x2a1c9) (BuildId: a4a7992a8e66555c8141ab2a08a8465ff6e0ea65)
+
+SUMMARY: ThreadSanitizer: data race /home/runner/work/dwqww/dwqww/src/bitboard.cpp:123 in forge::attacks::init()
+==================
