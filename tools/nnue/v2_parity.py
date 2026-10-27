@@ -14,9 +14,9 @@ Checks, each over every position:
   output   the network output computed in PyTorch float32 in the engine's operation order (16 lanes,
            fixed association) == the engine's float bits, and the centipawns (trunc) are equal
   forward  the training-time model forward (logit * 400 / 2.25, hce_logit = 0) vs the engine's centipawns:
-           max |diff| and the number of positions where trunc(forward) == engine (informational: the
-           GEMM summation order differs from the engine's, so the last float bit can differ)
-PASS requires export, keys, outbkt, acc and output to hold on all positions."""
+           max |diff| must stay below 1.001 cp (the engine truncates; the GEMM summation order differs from
+           the engine's, so the last float bit can differ, which is why trunc-equality is only reported)
+PASS requires export, keys, outbkt, acc and output to hold on all positions and forward max |diff| < 1.001."""
 import argparse
 import json
 import os
@@ -191,7 +191,7 @@ def main():
     res["output_bucket_coverage"] = {int(k): int((cpp["out_bucket"] == k).sum()) for k in sorted(set(cpp["out_bucket"].tolist()))}
     res["max_abs_cp"] = int(np.abs(cpp["cp"]).max())
     ok = (res["export"] and res["keys_exact"] == n and res["outbkt_exact"] == n and res["acc_exact"] == n and
-          res["output_exact"] == n)
+          res["output_exact"] == n and res["forward_max_abs_diff_cp"] < 1.001)
     res["verdict"] = "PASS" if ok else "FAIL"
     print(f"positions {n}  king buckets {net['king_buckets']} mirror {net['mirror']}  output buckets {net['output_buckets']}  "
           f"max |engine cp| {res['max_abs_cp']}")
