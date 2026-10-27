@@ -34,7 +34,7 @@
    fix-ups.
 
 ## ATTENTION: our smoke runs disturbed the PC training supervisor (found 2026-10-27 10:24 PST)
-- **What happened.** `F:orge_nnue_train\supervisor.log` (read only) shows that the supervisor adopted five
+- **What happened.** `F:\forge_nnue_train\supervisor.log` (read only) shows that the supervisor adopted five
   CPU smoke-training processes from earlier C4/C5 sub-agents as if they were its own queue jobs:
   - `runs_kb4_test`, `smoke_kb4`, `smoke_kb8` on 2026-10-26 21:45-21:52;
   - `smoke_kb4ob8`, `runs_c5_kb4` on 2026-10-27 08:54-08:55.
@@ -47,7 +47,7 @@
 - **Since then.** Runs use a renamed copy (`opus_nnue_smoke.py`) and write only under `F:\opus_scratch`, and
   were not adopted. The NNUE sub-agent has also been told to avoid such names and to check the supervisor log
   after starting any run.
-- **Not fixed here.** Nothing was written to `F:orge_nnue_train`, because that is not allowed. **The owner
+- **Not fixed here.** Nothing was written to `F:\forge_nnue_train`, because that is not allowed. **The owner
   may want to reset the supervisor's `fails` counter**, or let a run finish DONE, so that it returns to its
   queue.
 
