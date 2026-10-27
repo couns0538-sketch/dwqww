@@ -1,0 +1,12 @@
+# Compiler warnings of the opus-O5 CMake Release build (g++ 15.2 ucrt64, -Wall -Wextra -Wpedantic -Wconversion -Wshadow)
+# targets forge_core, forge, forge_corr_margins_tests; count, file:line:col
+      2 src/search/alphabeta.inc:185:160: warning: conversion from 'int' to 'uint16_t' {aka 'short unsigned int'} may change value [-Wconversion]
+      2 src/search/alphabeta.inc:388:149: warning: conversion from 'int' to 'uint16_t' {aka 'short unsigned int'} may change value [-Wconversion]
+      2 src/search/alphabeta.inc:60:73: warning: conversion from 'int' to 'uint16_t' {aka 'short unsigned int'} may change value [-Wconversion]
+      1 src/search/qsearch.inc:103:160: warning: conversion from 'int' to 'uint16_t' {aka 'short unsigned int'} may change value [-Wconversion]
+      1 src/search/qsearch.inc:25:73: warning: conversion from 'int' to 'uint16_t' {aka 'short unsigned int'} may change value [-Wconversion]
+      1 src/search/qsearch.inc:52:166: warning: conversion from 'int' to 'uint16_t' {aka 'short unsigned int'} may change value [-Wconversion]
+# The same 6 pre-existing -Wconversion warnings as AL1 s198 / opus-O3 (opus_round1/O3/logs/compiler_warnings.log);
+# the three in alphabeta.inc are reported once per instance (the file is compiled twice), at the lines
+# the #if blocks moved them to. No warning in the new code (corr_margins.hpp, corr_margins.inc,
+# options.inc, tests/corr_margins_tests.cpp).

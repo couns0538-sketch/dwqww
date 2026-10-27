@@ -1,0 +1,100 @@
+# |correction| = |static_eval - raw_eval| (cp) at main-search nodes of the AL1 s198 search (CorrMargins off)
+
+Method: scratch build of opus-O3 0d99f02 + correction_size_probe/instrumentation.diff (counters only; bench node
+counts unchanged: d13 862329, d16 3024920, d20 12389307), PC recipe; bench 13 / 16 / 20 in fresh processes;
+python correction_size_probe/analyze.py run_d13/hist_out.txt run_d16/hist_out.txt run_d20/hist_out.txt.
+Bins of 2 cp; 'blocked fires' = prunes whose slack (eval - margin - beta, resp. alpha - futility value) is
+smaller than the extra margin, i.e. the share of prunes a given weight would stop, estimated from the AL1 tree.
+LMR rows: the whole-ply rule of Forge idea P7 (r -= 1 when |correction| >= T) versus O5's share rule
+(r -= floor(r * |correction| * pct / 6400), pct 25 = the O5 default).
+
+== run_d13/hist_out.txt
+non-check nodes 394354; |corr| quantiles 50/75/90/95/99%: [0, 10, 32, 36, 48] cp; zero-bin (0-1cp) 50.4%  >=16cp 21.5% >=32cp 10.6%
+RFP: evaluated 376886, fired 183804 (48.8%); |corr| quantiles at fires 50/90/99: [0, 30, 46]
+   extra = |corr|*25/100: ~blocked fires 2571 (1.4% of fires)
+   extra = |corr|*50/100: ~blocked fires 6101 (3.3% of fires)
+   extra = |corr|*75/100: ~blocked fires 10156 (5.5% of fires)
+   extra = |corr|*100/100: ~blocked fires 15272 (8.3% of fires)
+   extra = |corr|*150/100: ~blocked fires 21679 (11.8% of fires)
+   extra = |corr|*200/100: ~blocked fires 27246 (14.8% of fires)
+FUT: evaluated 297763, fired 11760 (3.9%); |corr| quantiles at fires 50/90/99: [0, 2, 14]
+   extra = |corr|*25/100: ~blocked fires 9 (0.1% of fires)
+   extra = |corr|*50/100: ~blocked fires 24 (0.2% of fires)
+   extra = |corr|*75/100: ~blocked fires 33 (0.3% of fires)
+   extra = |corr|*100/100: ~blocked fires 68 (0.6% of fires)
+   extra = |corr|*150/100: ~blocked fires 80 (0.7% of fires)
+   extra = |corr|*200/100: ~blocked fires 93 (0.8% of fires)
+NMP: tries 14426; |corr| quantiles 50/90/99: [0, 12, 48]
+   extra = |corr|*25/100: ~blocked tries 247 (1.7%)
+   extra = |corr|*50/100: ~blocked tries 514 (3.6%)
+   extra = |corr|*100/100: ~blocked tries 1018 (7.1%)
+   extra = |corr|*200/100: ~blocked tries 1469 (10.2%)
+LMR: reduced moves 336986; |corr| quantiles 50/90/99: [2, 34, 48]
+   r distribution 0..15: [35308, 77200, 77937, 64195, 42755, 22495, 11241, 4550, 1052, 210, 42, 1, 0, 0, 0, 0]
+   whole-ply relief at |corr|>=20: 24.0% of reduced moves
+   whole-ply relief at |corr|>=30: 16.8% of reduced moves
+   whole-ply relief at |corr|>=40: 5.5% of reduced moves
+   relief = r*|corr|*25/6400 >= 1 ply: 0.2% of reduced moves
+   relief = r*|corr|*50/6400 >= 1 ply: 4.3% of reduced moves
+   relief = r*|corr|*100/6400 >= 1 ply: 13.4% of reduced moves
+SE: singular tests 3367, ext>=1 1679, ext2 765; |corr| quantiles at tests 50/90/99: [6, 44, 58]
+== run_d16/hist_out.txt
+non-check nodes 1445464; |corr| quantiles 50/75/90/95/99%: [4, 28, 42, 56, 64] cp; zero-bin (0-1cp) 35.1%  >=16cp 35.8% >=32cp 21.2%
+RFP: evaluated 1381058, fired 671565 (48.6%); |corr| quantiles at fires 50/90/99: [4, 38, 62]
+   extra = |corr|*25/100: ~blocked fires 13653 (2.0% of fires)
+   extra = |corr|*50/100: ~blocked fires 30918 (4.6% of fires)
+   extra = |corr|*75/100: ~blocked fires 49535 (7.4% of fires)
+   extra = |corr|*100/100: ~blocked fires 71534 (10.7% of fires)
+   extra = |corr|*150/100: ~blocked fires 102777 (15.3% of fires)
+   extra = |corr|*200/100: ~blocked fires 130507 (19.4% of fires)
+FUT: evaluated 1080753, fired 38718 (3.6%); |corr| quantiles at fires 50/90/99: [0, 8, 30]
+   extra = |corr|*25/100: ~blocked fires 162 (0.4% of fires)
+   extra = |corr|*50/100: ~blocked fires 370 (1.0% of fires)
+   extra = |corr|*75/100: ~blocked fires 542 (1.4% of fires)
+   extra = |corr|*100/100: ~blocked fires 815 (2.1% of fires)
+   extra = |corr|*150/100: ~blocked fires 1033 (2.7% of fires)
+   extra = |corr|*200/100: ~blocked fires 1211 (3.1% of fires)
+NMP: tries 67873; |corr| quantiles 50/90/99: [2, 34, 64]
+   extra = |corr|*25/100: ~blocked tries 2120 (3.1%)
+   extra = |corr|*50/100: ~blocked tries 4337 (6.4%)
+   extra = |corr|*100/100: ~blocked tries 8285 (12.2%)
+   extra = |corr|*200/100: ~blocked tries 12403 (18.3%)
+LMR: reduced moves 1268077; |corr| quantiles 50/90/99: [8, 54, 64]
+   r distribution 0..15: [184538, 283872, 262617, 223298, 152014, 88758, 45350, 20192, 5769, 1447, 212, 10, 0, 0, 0, 0]
+   whole-ply relief at |corr|>=20: 38.3% of reduced moves
+   whole-ply relief at |corr|>=30: 30.9% of reduced moves
+   whole-ply relief at |corr|>=40: 18.5% of reduced moves
+   relief = r*|corr|*25/6400 >= 1 ply: 2.0% of reduced moves
+   relief = r*|corr|*50/6400 >= 1 ply: 9.7% of reduced moves
+   relief = r*|corr|*100/6400 >= 1 ply: 22.0% of reduced moves
+SE: singular tests 15645, ext>=1 6559, ext2 3195; |corr| quantiles at tests 50/90/99: [26, 64, 64]
+== run_d20/hist_out.txt
+non-check nodes 6011455; |corr| quantiles 50/75/90/95/99%: [12, 32, 62, 64, 64] cp; zero-bin (0-1cp) 25.3%  >=16cp 47.6% >=32cp 29.9%
+RFP: evaluated 5686763, fired 2794554 (49.1%); |corr| quantiles at fires 50/90/99: [10, 56, 64]
+   extra = |corr|*25/100: ~blocked fires 61337 (2.2% of fires)
+   extra = |corr|*50/100: ~blocked fires 135237 (4.8% of fires)
+   extra = |corr|*75/100: ~blocked fires 212341 (7.6% of fires)
+   extra = |corr|*100/100: ~blocked fires 302634 (10.8% of fires)
+   extra = |corr|*150/100: ~blocked fires 443113 (15.9% of fires)
+   extra = |corr|*200/100: ~blocked fires 575609 (20.6% of fires)
+FUT: evaluated 4516517, fired 161187 (3.6%); |corr| quantiles at fires 50/90/99: [2, 28, 62]
+   extra = |corr|*25/100: ~blocked fires 2494 (1.5% of fires)
+   extra = |corr|*50/100: ~blocked fires 4914 (3.0% of fires)
+   extra = |corr|*75/100: ~blocked fires 6960 (4.3% of fires)
+   extra = |corr|*100/100: ~blocked fires 9217 (5.7% of fires)
+   extra = |corr|*150/100: ~blocked fires 11888 (7.4% of fires)
+   extra = |corr|*200/100: ~blocked fires 13976 (8.7% of fires)
+NMP: tries 332808; |corr| quantiles 50/90/99: [10, 54, 64]
+   extra = |corr|*25/100: ~blocked tries 14172 (4.3%)
+   extra = |corr|*50/100: ~blocked tries 28689 (8.6%)
+   extra = |corr|*100/100: ~blocked tries 55867 (16.8%)
+   extra = |corr|*200/100: ~blocked tries 89817 (27.0%)
+LMR: reduced moves 5465088; |corr| quantiles 50/90/99: [20, 64, 64]
+   r distribution 0..15: [1131315, 1138242, 1007045, 840198, 579408, 383062, 213757, 112030, 42168, 13882, 3536, 408, 37, 0, 0, 0]
+   whole-ply relief at |corr|>=20: 50.2% of reduced moves
+   whole-ply relief at |corr|>=30: 40.8% of reduced moves
+   whole-ply relief at |corr|>=40: 30.3% of reduced moves
+   relief = r*|corr|*25/6400 >= 1 ply: 3.6% of reduced moves
+   relief = r*|corr|*50/6400 >= 1 ply: 13.8% of reduced moves
+   relief = r*|corr|*100/6400 >= 1 ply: 28.2% of reduced moves
+SE: singular tests 92597, ext>=1 31393, ext2 16464; |corr| quantiles at tests 50/90/99: [50, 64, 64]
