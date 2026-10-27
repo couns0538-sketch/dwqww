@@ -1,0 +1,118 @@
+{
+ "asan_forge_tests_pin_lines": {
+  "40505681846": {
+   "documented": "f6h5/661/d12",
+   "observed": "f6h5/620/d12"
+  },
+  "40507421791": {
+   "documented": "f6h5/661/d12",
+   "observed": "f6h5/620/d12"
+  }
+ },
+ "conclusion": [
+  "The documented WAC 001 outcome f6h5/661/d12 is the h256_e12 lock net's own observation (B_lock: f6h5 cp 661).",
+  "tests.cpp accepts the 6.4.24 expectation (g3g6 mate) or exactly the documented horizon outcome; any other failing outcome prints PIN_MISMATCH and keeps the two ordinary FAIL lines.",
+  "f019-f022 find the mate at d12 (g3g6 mate 2), so the pin is never consulted for them.",
+  "f023 is the only candidate that, like the lock, plays the horizon move f6h5 at d12, but with its own evaluation: 620 cp in every run (v3, CI v4 x2, CI v5, ASan build, UCI Hash 8).",
+  "Root cause: a net-specific pin applied to a different net. Not a tool, engine or flakiness defect. Remedy (proposal only, not applied): a REVIEWED per-net pin entry for f023 (allowlist pins with exact_lines) or re-recorded pins if f023 ever became the lock; v4/v5 already wrote the UNREVIEWED 661 -> 620 proposal."
+ ],
+ "consistent": true,
+ "documented_value_origin": "h256_e12 lock net (74c4009d...) WAC 001 at d12 = f6h5 661 (B_lock row below; lock archive 4_tests/FORGE_KNOWN_TEST_FAILURES.md row fc_nnue_h256_e12_ep12_ep10base: \"WAC 001 x2 with score 661\")",
+ "observations": {
+  "B_lock": {
+   "ci_v4_failure": null,
+   "ci_v4_pin_lines": [],
+   "ci_v4_uci_Hash8": "f6h5 cp 661",
+   "ci_v5_failure": null,
+   "ci_v5_pin_lines": [],
+   "ci_v5_uci_Hash8": "f6h5 cp 661",
+   "v3_failure": null,
+   "v3_status": "PASS",
+   "v3_uci_Hash8": "f6h5 cp 661"
+  },
+  "f019": {
+   "ci_v4_failure": null,
+   "ci_v4_pin_lines": [],
+   "ci_v4_uci_Hash8": "g3g6 mate 2",
+   "ci_v5_failure": null,
+   "ci_v5_pin_lines": [],
+   "ci_v5_uci_Hash8": "g3g6 mate 2",
+   "v3_failure": "ValueError: WAC differs from documentary reference by more than3; pin/CTest evidence retained",
+   "v3_status": "FAIL",
+   "v3_uci_Hash8": "g3g6 mate 2"
+  },
+  "f020": {
+   "ci_v4_failure": "ValueError: WAC differs from documentary reference by more than3; pin/CTest evidence retained",
+   "ci_v4_pin_lines": [],
+   "ci_v4_uci_Hash8": "g3g6 mate 2",
+   "ci_v5_failure": "ValueError: WAC differs from documentary reference by more than3; pin/CTest evidence retained",
+   "ci_v5_pin_lines": [],
+   "ci_v5_uci_Hash8": "g3g6 mate 2",
+   "v3_failure": "ValueError: WAC differs from documentary reference by more than3; pin/CTest evidence retained",
+   "v3_status": "FAIL",
+   "v3_uci_Hash8": "g3g6 mate 2"
+  },
+  "f021": {
+   "ci_v4_failure": null,
+   "ci_v4_pin_lines": [],
+   "ci_v4_uci_Hash8": "g3g6 mate 2",
+   "ci_v5_failure": null,
+   "ci_v5_pin_lines": [],
+   "ci_v5_uci_Hash8": "g3g6 mate 2",
+   "v3_failure": "ValueError: WAC differs from documentary reference by more than3; pin/CTest evidence retained",
+   "v3_status": "FAIL",
+   "v3_uci_Hash8": "g3g6 mate 2"
+  },
+  "f022": {
+   "ci_v4_failure": null,
+   "ci_v4_pin_lines": [],
+   "ci_v4_uci_Hash8": "g3g6 mate 2",
+   "ci_v5_failure": null,
+   "ci_v5_pin_lines": [],
+   "ci_v5_uci_Hash8": "g3g6 mate 2",
+   "v3_failure": null,
+   "v3_status": "PASS",
+   "v3_uci_Hash8": "g3g6 mate 2"
+  },
+  "f023": {
+   "ci_v4_failure": "ValueError: CTest case was not run: forge_tests",
+   "ci_v4_pin_lines": [
+    "PIN_MISMATCH: WAC 001 documented f6h5/661/d12/PV=f6h5, observed f6h5/620/d12/PV=f6h5; re-record Job C pins in a reviewed change if the lock changed"
+   ],
+   "ci_v4_uci_Hash8": "f6h5 cp 620",
+   "ci_v5_failure": "ValueError: unallowlisted test diagnostic: PIN_MISMATCH: WAC 001 documented f6h5/661/d12/PV=f6h5, observed f6h5/620/d12/PV=f6h5; re-record Job C pins in a reviewed change if the lock changed",
+   "ci_v5_pin_lines": [
+    "PIN_MISMATCH: WAC 001 documented f6h5/661/d12/PV=f6h5, observed f6h5/620/d12/PV=f6h5; re-record Job C pins in a reviewed change if the lock changed"
+   ],
+   "ci_v5_uci_Hash8": "f6h5 cp 620",
+   "v3_failure": "ValueError: unallowlisted test diagnostic: PIN_MISMATCH: WAC 001 documented f6h5/661/d12/PV=f6h5, observed f6h5/620/d12/PV=f6h5; re-record Job C pins in a reviewed change if the lock changed",
+   "v3_status": "FAIL",
+   "v3_uci_Hash8": "f6h5 cp 620"
+  }
+ },
+ "pin_source": [
+  "    constexpr std::string_view documented_wac_move = \"f6h5\";",
+  "    constexpr int documented_wac_score = 661;",
+  "    constexpr int documented_wac_depth = 12;",
+  "    const bool is_documented_wac_case =",
+  "        item.label == \"WAC 001\" &&",
+  "        item.fen == \"2rr3k/pp3pp1/1nnqbN1p/3pN3/2pP4/2P3Q1/PPB4P/R4RK1 w - - 0 1\" &&",
+  "        item.depth == 12 && item.best_move == \"g3g6\" &&",
+  "        item.minimum_score == forge::MateValue - 3 && item.alternative_move.empty();",
+  "    const bool documented_wac_horizon = is_documented_wac_case &&",
+  "        best == documented_wac_move && result.score == documented_wac_score &&",
+  "        result.depth == documented_wac_depth && !result.pv.empty() &&",
+  "        result.pv.front() == result.best_move;",
+  "    if (is_documented_wac_case && !documented_wac_horizon &&",
+  "        (best != item.best_move || result.score < item.minimum_score)) {",
+  "        std::cerr << \"PIN_MISMATCH: WAC 001 documented \" << documented_wac_move << '/'",
+  "                  << documented_wac_score << \"/d\" << documented_wac_depth",
+  "                  << \"/PV=\" << documented_wac_move << \", observed \" << best << '/'",
+  "                  << result.score << \"/d\" << result.depth << \"/PV=\"",
+  "                  << (result.pv.empty() ? \"<empty>\" : forge::Board::move_to_uci(result.pv.front()))",
+  "                  << \"; re-record Job C pins in a reviewed change if the lock changed\\n\";"
+ ],
+ "pin_source_lines": "176-195",
+ "schema": "opus_sol_S26fix_f023_pin_rootcause_v1",
+ "tests_cpp_sha256": "55334ba94fd508d5f8e8e0e715c86a6996eddc69b20b1c110110a96e46deaa2c"
+}
