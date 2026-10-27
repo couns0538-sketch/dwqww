@@ -1,0 +1,13 @@
+# S-A1 / G-A1 queue lines (UNPROVEN; PROPOSED, not queued). Format of F:\forge_nnue_train\queue.txt: <run-name> <args>.
+# Step 1 (now): DirectML identity and speed of --mmap-data at small size. Compare the two runs' epoch-2 .inc md5 (must be equal) and pos/s.
+resid_v3smoke_sa1_ram_s99 --script train_resid_v3b.py --shape 256 --epochs 2 --lr 7.07e-4 --blend-end 0.6 --seed 99 --batch-size 8192 --warmup-steps 300 --val-positions 1000000 --max-train 32000000
+resid_v3smoke_sa1_mmap_s99 --script train_resid_v3b.py --shape 256 --epochs 2 --lr 7.07e-4 --blend-end 0.6 --seed 99 --batch-size 8192 --warmup-steps 300 --val-positions 1000000 --max-train 32000000 --mmap-data
+# Step 2 (when >= 500M sealed training positions exist): mmap throughput at full size, random access over all 500M rows (3,000 steps only).
+resid_h256_e1_sa1_mmapspeed_s99_mt500m --script train_resid_v3b.py --shape 256 --epochs 1 --steps-per-epoch 3000 --lr 7.07e-4 --blend-end 0.6 --seed 99 --batch-size 8192 --warmup-steps 300 --val-positions 1000000 --max-train 500000000 --mmap-data
+# Step 3 (only if steps 1 and 2 pass, see forge_sol_SA1_more_data_recipe_20261027.md section 4): the G-A1 retrain, e48 recipe on 500M frozen positions.
+resid_h256_e48_ga1_bs8k_lr707e6_b06_s502_mt500m_mmap --script train_resid_v3b.py --shape 256 --epochs 48 --lr 7.07e-4 --min-lr-frac 0.01 --blend-end 0.6 --seed 502 --batch-size 8192 --warmup-steps 300 --val-positions 1000000 --max-train 500000000 --mmap-data
+# Negative controls for the dry parse only (never queue): a v3c-only argument; a misspelt flag.
+NEGATIVE_v3c_arg --script train_resid_v3b.py --shape 256 --epochs 48 --init-weights F:\x.pt
+NEGATIVE_misspelt --script train_resid_v3b.py --shape 256 --epochs 48 --mmapdata
+# Hazard demonstration (never queue): argparse accepts unique prefixes, so "--mmap" silently means --mmap-data and "--epoch" means --epochs.
+ABBREV_demo --script train_resid_v3b.py --shape 256 --epoch 48 --mmap

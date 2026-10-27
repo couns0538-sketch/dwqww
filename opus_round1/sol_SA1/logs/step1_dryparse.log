@@ -1,0 +1,17 @@
+# S-A1 step1: dry parse of the S-A1 queue lines with the unchanged v3b parser (A7's opus_a7_dryparse.py, same sha256; renamed trainer copy F:\opus_scratch\sol_A7\opus_nnue_smoke_a7_v3b.py md5 b6758004); schedule maths use each line's own --max-train (available set to 1e9)
+Tue Oct 27 22:49:52 UTC 2026
+opus_a7_dryparse.py: error: unrecognized arguments: --init-weights F:\x.pt
+opus_a7_dryparse.py: error: unrecognized arguments: --mmapdata
+parser: 33 add_argument calls from opus_nnue_smoke_a7_v3b.py (md5 b6758004d19837c8d34d401ee7af5fd5)
+positive control (resid_h256_e48_f070_bs16k_lr10e4_b06_s89_fb8k): parsed == trainer's own settings dump: True 
+supervisor split: prefix 41 tokens (train files 1 flag), queue args match queue.txt: True
+OK   resid_v3smoke_sa1_ram_s99 script=train_resid_v3b.py  | epochs 2 lr 0.000707 floor 7.07e-06 max_train 32,000,000 -> spe 3,906 total 7,812 positions 63,995,904 = 0.01 GPU-h at 1.22M/s (0.01 h at 1,344,201/s)
+OK   resid_v3smoke_sa1_mmap_s99 script=train_resid_v3b.py  | epochs 2 lr 0.000707 floor 7.07e-06 max_train 32,000,000 -> spe 3,906 total 7,812 positions 63,995,904 = 0.01 GPU-h at 1.22M/s (0.01 h at 1,344,201/s)
+OK   resid_h256_e1_sa1_mmapspeed_s99_mt500m script=train_resid_v3b.py  | epochs 1 lr 0.000707 floor 7.07e-06 max_train 500,000,000 -> spe 3,000 total 3,000 positions 24,576,000 = 0.01 GPU-h at 1.22M/s (0.01 h at 1,344,201/s)
+OK   resid_h256_e48_ga1_bs8k_lr707e6_b06_s502_mt500m_mmap script=train_resid_v3b.py  | epochs 48 lr 0.000707 floor 7.07e-06 max_train 500,000,000 -> spe 61,035 total 2,929,680 positions 23,999,938,560 = 5.46 GPU-h at 1.22M/s (4.96 h at 1,344,201/s)
+FAIL NEGATIVE_v3c_arg script=train_resid_v3b.py argparse exit 2
+FAIL NEGATIVE_misspelt script=train_resid_v3b.py argparse exit 2
+OK   ABBREV_demo script=train_resid_v3b.py  | epochs 48 lr 0.001 floor 1.00e-05 max_train 0 -> spe 244,140 total 11,718,720 positions 47,999,877,120 = 10.93 GPU-h at 1.22M/s (9.92 h at 1,344,201/s)
+RESULT PASS: 5/5 queue lines parse; 2/2 negative controls rejected
+exit 0
+Tue Oct 27 22:49:52 UTC 2026
