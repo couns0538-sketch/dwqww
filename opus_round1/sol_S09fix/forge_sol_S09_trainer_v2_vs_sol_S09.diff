@@ -1,0 +1,58 @@
+diff --git a/sol_S09_trainer_8ea6111c.py b/forge_sol_S09_trainer_buckets_v2.py
+index 216ca731..88c55315 100644
+--- a/sol_S09_trainer_8ea6111c.py
++++ b/forge_sol_S09_trainer_buckets_v2.py
+@@ -14,6 +14,10 @@ Model/export use 768 -> H per perspective, SCReLU, 2H -> buckets, existing int16
+ --residual: logit = net(x) + K*hce/400, output layer starts at zero => first forward == HCE alone,
+ export writes FORGE_NNUE_RESIDUAL 1.  Loss = MSE(sigmoid(logit), blend*sigmoid(K*score/400) + (1-blend)*stm_result).
+ Holdout = whole files (never trained on).  Blend ramps linearly over training progress.
++S09 v2 (QA fix-up S09-2, 2026-10-27): the v3b CLI defaults are restored (--shape 128, no --residual, --epochs 8,
++--batch-size 4096, --lr 1e-3, --seed 1, no --final-full-val); the f006 recipe is passed as explicit arguments
++(forge_sol_S09_f006_recipe_args_v2.txt). With --buckets 1 (the default) the checkpoint config, the per-epoch
++.json and every export are byte-identical to the current v3b trainer (5cebba4d...).
+ """
+ from __future__ import annotations
+ import argparse, ctypes, glob, json, math, os, queue, sys, threading, time, uuid
+@@ -526,14 +530,13 @@ def main():
+     ap.add_argument("--hce-dir", required=True)
+     ap.add_argument("--device", choices=["directml", "cpu"], default="directml")
+     ap.add_argument("--device-index", type=int)
+-    ap.add_argument("--shape", type=int, default=256, help="hidden width H")
+-    ap.add_argument("--residual", action="store_true", default=True)
+-    ap.add_argument("--standalone", dest="residual", action="store_false")
++    ap.add_argument("--shape", type=int, default=128, help="hidden width H")
++    ap.add_argument("--residual", action="store_true")
+     ap.add_argument("--buckets", type=int, choices=[1, 8], default=1)
+     ap.add_argument("--baseline-only", action="store_true", help="report HCE-alone loss on the holdout and exit")
+-    ap.add_argument("--epochs", type=int, default=48)
+-    ap.add_argument("--batch-size", type=int, default=8192)
+-    ap.add_argument("--lr", type=float, default=7.07e-4)
++    ap.add_argument("--epochs", type=int, default=8)
++    ap.add_argument("--batch-size", type=int, default=4096)
++    ap.add_argument("--lr", type=float, default=1e-3)
+     ap.add_argument("--min-lr-frac", type=float, default=0.01)
+     ap.add_argument("--warmup-steps", type=int, default=300)
+     ap.add_argument("--blend-start", type=float, default=1.0)
+@@ -542,9 +545,9 @@ def main():
+     ap.add_argument("--no-qat", action="store_true")
+     ap.add_argument("--max-train", type=int, default=0, help="limit training positions (file prefixes); 0 = all")
+     ap.add_argument("--val-positions", type=int, default=4_000_000, help="fixed random holdout subset per epoch (0 = all)")
+-    ap.add_argument("--final-full-val", action="store_true", default=True)
++    ap.add_argument("--final-full-val", action="store_true")
+     ap.add_argument("--steps-per-epoch", type=int, default=0)
+-    ap.add_argument("--seed", type=int, default=25)
++    ap.add_argument("--seed", type=int, default=1)
+     ap.add_argument("--run-dir", default="forge-resid-run")
+     ap.add_argument("--resume")
+     ap.add_argument("--log-every", type=float, default=30.0)
+@@ -621,8 +624,9 @@ def main():
+         start_epoch, step = ck["next_epoch"], ck["step"]
+         print(f"resumed {a.resume}: next_epoch={start_epoch} step={step}", flush=True)
+     config = {"hidden": a.shape, "residual": bool(a.residual), "qat": not a.no_qat, "sigmoid_k": k,
+-              "output_buckets": a.buckets,
+               "features": "forge768-relative-pieces-rank-flip", "epochs": a.epochs, "steps_per_epoch": spe}
++    if a.buckets != 1:  # S09 v2: only 8-head runs record it, so --buckets 1 keeps the v3b checkpoint/json bytes
++        config["output_buckets"] = a.buckets
+ 
+     def lr_at(s):
+         if s < a.warmup_steps:
