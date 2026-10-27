@@ -1,0 +1,18 @@
+cmd: python -I -B xval_reconcile.py F:/opus_scratch/sol_s16/xval
+Sol v3 game policy: {'groups': 2866, 'mode': 'CONSERVATIVE_ORDERED_TEXT_GROUPS', 'segments': 2867} | holdout unique 99994 | input_position_overlap 500
+  Sol  fx_a_train input 50000 kept 49996 dropped {'duplicate_position': 4}
+  Sol  fx_d_train input 50500 kept 49998 dropped {'duplicate_position': 2, 'holdout_position': 500}
+  Sol  fx_c_train input 50000 kept 49970 dropped {'duplicate_position': 2, 'holdout_game_group': 28}
+scanner holdout: {'rows': 100000, 'unique_positions': 99994, 'duplicate_rows_within_holdout': 6}
+  scan fx_a_train rows 50000 overlap_rows 0 distinct 0 label_conflicts 0
+  scan fx_c_train rows 50000 overlap_rows 0 distinct 0 label_conflicts 0
+  scan fx_d_train rows 50500 overlap_rows 500 distinct 500 label_conflicts 0
+  junction fx_a_train -> fx_b_holdout new_game True straddling_training_rows 0
+  junction fx_b_holdout -> fx_c_train new_game False straddling_training_rows 28
+PASS holdout unique positions equal
+PASS holdout_position row set equal (Sol checks game group first)
+PASS holdout_game_group row set equal
+PASS input_position_overlap == scanner overlap rows
+Sol counts duplicate_position (training-internal duplicates): 8 (not in the scanner's scope)
+RECONCILED
+rc=0

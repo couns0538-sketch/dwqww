@@ -1,0 +1,38 @@
+fixture: F:/opus_scratch/sol_s16/xval/data (built by xval_build_fixture.py from real PC records, read-only)
+285d53da57810c54b0629ce828f856f8e82bf6adf1091ba5f618f1a46d429035 *data/fixture_plan.json
+ecc6f3ca9d3428ab2ef81aefaea043a465316aa7084263b4a8b0863a83145658 *data/fx_a_train.hce
+cba4919665c8d78a1c9afb28ecb98bb9a058a589415aa675a292a07611264c26 *data/fx_a_train.pos
+2ea7c8ba630d8fade72bd9334a3348ab2b48c8adb6f731b31b8e18c12d6f501d *data/fx_a_train.txt
+2982c380739d4755bd55c103f190ad6adcf4a986f5deee992d143ab3f9ed2cb3 *data/fx_b_holdout.hce
+0c30a5a0e48b6660af8ad398bed9bf809a2f7603638c89d3ba88400a8afbbc2c *data/fx_b_holdout.pos
+19a486f4db919b8d61979dd58973fc0af4e61f93b18e1eb9c1111341754ffad9 *data/fx_b_holdout.txt
+a8fcd2fe0fc046bff302a38d27ec470d56001a338b4e4c305b7fdea6c4206bd5 *data/fx_c_train.hce
+852742d42922f7f1a25bc3b29b15319d8bf524b1967ca8cb669f6ec87b7ef6c7 *data/fx_c_train.pos
+3dcdb07a608f270eb4367cef13c6fca794aba21636489aa39e954bd9914b5d8b *data/fx_c_train.txt
+1d7322b3a6af5a29d73d24a2a6b024f90d62daca74753ccbb4593821488ae925 *data/fx_d_train.hce
+b2be64fb08f6e363098fd1044812f37772e49861890a80a099b6a605bb67253e *data/fx_d_train.pos
+4ddcc9c704b383ef1384e1b6f711bbc7f1abae16ecb4a6345ceb3970d6530d3a *data/fx_d_train.txt
+7a67226b6b493a07698c615ef0bc0fd776680376524fd416998150c07fd1d3d0 *data/text_map.json
+== Sol v3 (filter_v3/forge_sol_datafilter_v3_20261027.py sha256 34214216daa55f34521c4bda172f3bdd308a0e02aba14d9593545503d1ffd80d) diagnostic, threshold OFF, ordered text
+rc=0
+== scanner (sha256 4bdd25202559a1ef5f562e18b9b72d5a1a19ebb82d3e7e674e4ca564442b11b7)
+{"holdout_rows": 100000, "out": "F:\\opus_scratch\\sol_s16\\xval_final\\scan_out", "status": "COMPLETED", "stop_reason": null, "train_totals": {"key_collisions_rejected": 0, "label_conflicts": 0, "overlap_fraction": 0.003322, "overlap_rows": 500, "rows": 150500, "shards": 3}}
+rc=0
+== reconcile: python -I -B xval_reconcile.py F:/opus_scratch/sol_s16/xval_final
+Sol v3 game policy: {'groups': 2866, 'mode': 'CONSERVATIVE_ORDERED_TEXT_GROUPS', 'segments': 2867} | holdout unique 99994 | input_position_overlap 500
+  Sol  fx_a_train input 50000 kept 49996 dropped {'duplicate_position': 4}
+  Sol  fx_d_train input 50500 kept 49998 dropped {'duplicate_position': 2, 'holdout_position': 500}
+  Sol  fx_c_train input 50000 kept 49970 dropped {'duplicate_position': 2, 'holdout_game_group': 28}
+scanner holdout: {'rows': 100000, 'unique_positions': 99994, 'duplicate_rows_within_holdout': 6}
+  scan fx_a_train rows 50000 overlap_rows 0 distinct 0 label_conflicts 0
+  scan fx_c_train rows 50000 overlap_rows 0 distinct 0 label_conflicts 0
+  scan fx_d_train rows 50500 overlap_rows 500 distinct 500 label_conflicts 0
+  junction fx_a_train -> fx_b_holdout new_game True straddling_training_rows 0
+  junction fx_b_holdout -> fx_c_train new_game False straddling_training_rows 28
+PASS holdout unique positions equal
+PASS holdout_position row set equal (Sol checks game group first)
+PASS holdout_game_group row set equal
+PASS input_position_overlap == scanner overlap rows
+Sol counts duplicate_position (training-internal duplicates): 8 (not in the scanner's scope)
+RECONCILED
+rc=0
