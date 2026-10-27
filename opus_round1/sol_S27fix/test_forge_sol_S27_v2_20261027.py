@@ -149,6 +149,7 @@ class S27_2_Refs(unittest.TestCase):
     def probe(self, d11, nodes):
         exe = new_dir('probe') / 'fixture_engine'
         exe.write_bytes(b'x')
+        exe.chmod(0o755)  # _probe requires os.access(X_OK): Windows grants it to any file, Linux needs the exec bit
 
         class Cap:
             def run(self, label, argv, stdin=None):
