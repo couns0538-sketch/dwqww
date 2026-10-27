@@ -99,13 +99,23 @@ All matched the evidence below.
     mod 64.
   - `MovePicker::next` shows 32 "differing" lines. The review diffed it and found the instructions
     identical. Only the RIP-relative displacements to moved data differ, plus 32 nops of trailing padding.
-  - **Alpha-beta `Worker::search(Board&, ...)` is not byte-identical.** Its start mod 64 is the same, as is
-    the call multiset, it has 2409 vs 2413 instructions, and it never reads the option. 150 normalised
-    lines differ in basic-block order.
-  - The cause of the block-order difference: the second instance in the same translation unit flips the
-    operand order of one comparison inside GCC (`gimple_search_one_vs_two_instances.diff`). Six layout
-    experiments gave the same 150 lines (`codegen_variants/EXPERIMENTS.txt`). Variants that test the option
-    at every node were worse: 324 to 913 lines.
+  - **Alpha-beta `Worker::search(Board&, ...)`: fixed after delivery, now instruction-identical to the lock**
+    (0 differing lines, same start mod 64; `logs/codegen_lmp_copy_fix.log`).
+  - The delivered version (`4d14f3c`) had 2409 vs 2413 instructions, with 150 normalised lines differing in
+    basic-block order. Its start mod 64 and its call multiset were the same, and it never read the option. The
+    second instance in the same translation unit flipped the operand order of one comparison inside GCC
+    (`gimple_search_one_vs_two_instances.diff`). Six layout experiments gave the same 150 lines
+    (`codegen_variants/EXPERIMENTS.txt`); variants that tested the option at every node were worse (324 to 913
+    lines).
+  - The root cause was found in job O5 (`opus-O5`, `opus_round1/O5/logs/codegen_second_instance_investigation.log`).
+    The static helper `lmp_threshold` has one caller in AL1 s198, and the early inliner inlines it. A second
+    caller (the second instance) leaves it to the IPA inliner, which shifts the SSA numbering of the default
+    search.
+  - The fix (`src/search/cuckoo_lmp.inc`, macro `FORGE_LMP_THRESHOLD` in alphabeta.inc): the CuckooRep instance
+    calls its own copy, `lmp_threshold_cuckoo`.
+  - Re-checked with the fix: bench x5, perft and kiwipete identical, FMA 0; CuckooRep ON pins unchanged (d11
+    324211, d13 790682); `forge_cuckoo_tests` passes, 312,089 checks (`logs/lmp_copy_fix_identity.log`,
+    `logs/lmp_copy_fix_cuckoo_tests.log`).
 - `data_layout_check.log`: hot tables moved by whole pages. `DistanceMasks` keeps mod 64. The cuckoo table
   and the option flag are new.
 - `nps_ab_lock_vs_c6_off.log`: `nps_ab.py`, 10 ABBA runs, on the busy PC, node counts equal in every run:
@@ -137,8 +147,9 @@ All matched the evidence below.
 No Elo claim.
 
 ## Open issues / notes
-- **Default alpha-beta block order** differs from the lock, as described above. NPS shows no measurable
-  effect, on the busy PC or on a quiet runner (O3 → C6 −0.26% / +0.05%).
+- **Default alpha-beta block order:** fixed after delivery (own `lmp_threshold` copy for the CuckooRep
+  instance). The default alpha-beta is now instruction-identical to the lock. Even before the fix, NPS showed
+  no measurable effect, on the busy PC or on a quiet runner (O3 → C6 −0.26% / +0.05%).
 - **Untested guard:** the guard that skips the bound while a move is excluded (singular verification) has no
   dedicated unit test.
 - **History dependence:** the draw bound depends on the game history, while TT entries do not. This is the

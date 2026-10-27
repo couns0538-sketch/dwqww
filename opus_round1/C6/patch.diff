@@ -1,5 +1,5 @@
 diff --git a/CMakeLists.txt b/CMakeLists.txt
-index 915039a..2fffd6e 100644
+index 915039a4..2fffd6ef 100644
 --- a/CMakeLists.txt
 +++ b/CMakeLists.txt
 @@ -67,6 +67,22 @@ target_link_libraries(forge_nearest_pawn_tests PRIVATE forge_core Threads::Threa
@@ -37,7 +37,7 @@ index 915039a..2fffd6e 100644
  add_test(NAME forge_rule50_tests COMMAND forge_rule50_tests)
  add_test(NAME forge_legal_witness_tests COMMAND forge_legal_witness_tests
 diff --git a/include/forge/board.hpp b/include/forge/board.hpp
-index 776614d..478b5ca 100644
+index 776614d4..478b5ca2 100644
 --- a/include/forge/board.hpp
 +++ b/include/forge/board.hpp
 @@ -134,6 +134,12 @@ public:
@@ -88,7 +88,7 @@ index 776614d..478b5ca 100644
  } // namespace forge
 diff --git a/include/forge/history.hpp b/include/forge/history.hpp
 new file mode 100644
-index 0000000..092b318
+index 00000000..092b3185
 --- /dev/null
 +++ b/include/forge/history.hpp
 @@ -0,0 +1,62 @@
@@ -155,7 +155,7 @@ index 0000000..092b318
 +
 +} // namespace forge
 diff --git a/include/forge/search.hpp b/include/forge/search.hpp
-index e976c71..562bd49 100644
+index e976c710..562bd490 100644
 --- a/include/forge/search.hpp
 +++ b/include/forge/search.hpp
 @@ -2,7 +2,13 @@
@@ -510,7 +510,7 @@ index e976c71..562bd49 100644
      [[nodiscard]] std::uint64_t total_nodes() const;
 diff --git a/include/forge/search_options.hpp b/include/forge/search_options.hpp
 new file mode 100644
-index 0000000..aa00883
+index 00000000..aa00883d
 --- /dev/null
 +++ b/include/forge/search_options.hpp
 @@ -0,0 +1,17 @@
@@ -533,7 +533,7 @@ index 0000000..aa00883
 +} // namespace forge::options
 diff --git a/include/forge/search_tune.hpp b/include/forge/search_tune.hpp
 new file mode 100644
-index 0000000..6747882
+index 00000000..67478821
 --- /dev/null
 +++ b/include/forge/search_tune.hpp
 @@ -0,0 +1,73 @@
@@ -612,7 +612,7 @@ index 0000000..6747882
 +} // namespace forge
 diff --git a/include/forge/search_types.hpp b/include/forge/search_types.hpp
 new file mode 100644
-index 0000000..4dd534d
+index 00000000..4dd534db
 --- /dev/null
 +++ b/include/forge/search_types.hpp
 @@ -0,0 +1,59 @@
@@ -677,7 +677,7 @@ index 0000000..4dd534d
 +} // namespace forge
 diff --git a/include/forge/thread_data.hpp b/include/forge/thread_data.hpp
 new file mode 100644
-index 0000000..7d541fa
+index 00000000..7d541fad
 --- /dev/null
 +++ b/include/forge/thread_data.hpp
 @@ -0,0 +1,103 @@
@@ -786,7 +786,7 @@ index 0000000..7d541fa
 +} // namespace forge
 diff --git a/include/forge/tt.hpp b/include/forge/tt.hpp
 new file mode 100644
-index 0000000..0925de5
+index 00000000..0925de59
 --- /dev/null
 +++ b/include/forge/tt.hpp
 @@ -0,0 +1,132 @@
@@ -923,7 +923,7 @@ index 0000000..0925de5
 +
 +} // namespace forge
 diff --git a/src/board.cpp b/src/board.cpp
-index 19d4ff2..80fa546 100644
+index 19d4ff28..80fa5467 100644
 --- a/src/board.cpp
 +++ b/src/board.cpp
 @@ -5,6 +5,7 @@
@@ -1115,7 +1115,7 @@ index 19d4ff2..80fa546 100644
 +
  } // namespace forge
 diff --git a/src/search.cpp b/src/search.cpp
-index 74de5d3..d12873c 100644
+index 74de5d37..051e726c 100644
 --- a/src/search.cpp
 +++ b/src/search.cpp
 @@ -1,3 +1,19 @@
@@ -1138,7 +1138,7 @@ index 74de5d3..d12873c 100644
  #include "forge/search.hpp"
  #include "forge/uci_output.hpp"
  
-@@ -8,1524 +24,41 @@
+@@ -8,1524 +24,46 @@
  #include <limits>
  #include <optional>
  
@@ -2678,8 +2678,10 @@ index 74de5d3..d12873c 100644
 +#define FORGE_SEARCH_CALL search
 +#define FORGE_QSEARCH_FN qsearch
 +#define FORGE_QSEARCH_CALL qsearch
++#define FORGE_LMP_THRESHOLD lmp_threshold
 +#include "search/qsearch.inc"     // quiescence search (Worker::qsearch)
 +#include "search/alphabeta.inc"   // main alpha-beta search (Worker::search)
++#undef FORGE_LMP_THRESHOLD
 +#undef FORGE_QSEARCH_CALL
 +#undef FORGE_QSEARCH_FN
 +#undef FORGE_SEARCH_CALL
@@ -2690,12 +2692,15 @@ index 74de5d3..d12873c 100644
 +// calls go through the upcoming-repetition bound of cuckoo.inc (see the head
 +// of alphabeta.inc). Last in the file, so that the default search functions
 +// keep the AL1 s198 code and placement.
++#include "search/cuckoo_lmp.inc"  // the CuckooRep instance's copy of lmp_threshold
 +#define FORGE_SEARCH_FN search_cuckoo_body
 +#define FORGE_SEARCH_CALL search_cuckoo
 +#define FORGE_QSEARCH_FN qsearch_cuckoo_body
 +#define FORGE_QSEARCH_CALL qsearch_cuckoo
++#define FORGE_LMP_THRESHOLD lmp_threshold_cuckoo
 +#include "search/qsearch.inc"
 +#include "search/alphabeta.inc"
++#undef FORGE_LMP_THRESHOLD
 +#undef FORGE_QSEARCH_CALL
 +#undef FORGE_QSEARCH_FN
 +#undef FORGE_SEARCH_CALL
@@ -2703,10 +2708,10 @@ index 74de5d3..d12873c 100644
 +#include "search/cuckoo.inc"      // CuckooRep: upcoming-repetition draw bound
 diff --git a/src/search/alphabeta.inc b/src/search/alphabeta.inc
 new file mode 100644
-index 0000000..ec0b5a8
+index 00000000..53d98c02
 --- /dev/null
 +++ b/src/search/alphabeta.inc
-@@ -0,0 +1,371 @@
+@@ -0,0 +1,373 @@
 +// Search module: main alpha-beta search (pruning, extensions, LMR).
 +// Compiled as part of src/search.cpp, which includes this file and qsearch.inc
 +// twice each:
@@ -2718,9 +2723,11 @@ index 0000000..ec0b5a8
 +// The root (iterative.inc) picks one of the two trees once per iteration, so
 +// with CuckooRep off no node tests the option. FORGE_SEARCH_FN names the
 +// function defined here; FORGE_SEARCH_CALL and FORGE_QSEARCH_CALL name the
-+// functions it calls for child nodes and for quiescence.
-+#if !defined(FORGE_SEARCH_FN) || !defined(FORGE_SEARCH_CALL) || !defined(FORGE_QSEARCH_CALL)
-+#error "define FORGE_SEARCH_FN, FORGE_SEARCH_CALL and FORGE_QSEARCH_CALL before including search/alphabeta.inc"
++// functions it calls for child nodes and for quiescence; FORGE_LMP_THRESHOLD
++// names the late-move pruning threshold it uses (the CuckooRep instance calls
++// its own copy, src/search/cuckoo_lmp.inc).
++#if !defined(FORGE_SEARCH_FN) || !defined(FORGE_SEARCH_CALL) || !defined(FORGE_QSEARCH_CALL) ||     !defined(FORGE_LMP_THRESHOLD)
++#error "define FORGE_SEARCH_FN, FORGE_SEARCH_CALL, FORGE_QSEARCH_CALL and FORGE_LMP_THRESHOLD before including search/alphabeta.inc"
 +#endif
 +
 +namespace forge {
@@ -2912,7 +2919,7 @@ index 0000000..ec0b5a8
 +
 +        // Shallow-depth pruning of unpromising moves.
 +        if (!root_node && best_score > -MateInMaxPly && has_material) {
-+            if (quiet && !skip_quiets && move_count >= lmp_threshold(depth, improving)) skip_quiets = true;
++            if (quiet && !skip_quiets && move_count >= FORGE_LMP_THRESHOLD(depth, improving)) skip_quiets = true;
 +            const int lmr_depth = std::max(0, depth - reduction(quiet, depth, move_count));
 +            if (quiet && !gives_check) {
 +                if (!in_check && lmr_depth <= tune::FutilityDepth &&
@@ -3080,7 +3087,7 @@ index 0000000..ec0b5a8
 +} // namespace forge
 diff --git a/src/search/checks.inc b/src/search/checks.inc
 new file mode 100644
-index 0000000..8cd1e6b
+index 00000000..8cd1e6b1
 --- /dev/null
 +++ b/src/search/checks.inc
 @@ -0,0 +1,54 @@
@@ -3140,7 +3147,7 @@ index 0000000..8cd1e6b
 +} // namespace forge
 diff --git a/src/search/cuckoo.inc b/src/search/cuckoo.inc
 new file mode 100644
-index 0000000..c423514
+index 00000000..c423514b
 --- /dev/null
 +++ b/src/search/cuckoo.inc
 @@ -0,0 +1,46 @@
@@ -3190,9 +3197,35 @@ index 0000000..c423514
 +}
 +
 +} // namespace forge
+diff --git a/src/search/cuckoo_lmp.inc b/src/search/cuckoo_lmp.inc
+new file mode 100644
+index 00000000..7dc25f21
+--- /dev/null
++++ b/src/search/cuckoo_lmp.inc
+@@ -0,0 +1,20 @@
++// Search module: the late-move pruning threshold of tune.inc, as a copy for the
++// CuckooRep instance of the main search (UCI CuckooRep). Compiled as part of
++// src/search.cpp (included exactly once), right before the second inclusion of
++// alphabeta.inc. The AL1 s198 lmp_threshold() keeps its single call site in the
++// default Worker::search: with a second caller GCC inlines it in a later pass,
++// which shifts the SSA numbering of the default search, swaps the operands of
++// one comparison and changes its block layout (found in job O5,
++// opus_round1/O5/logs/codegen_second_instance_investigation.log on opus-O5).
++
++namespace forge {
++
++namespace {
++
++[[nodiscard]] int lmp_threshold_cuckoo(int depth, bool improving) {
++    return improving ? tune::LmpBase + depth * depth : (tune::LmpBase + depth * depth) / 2;
++}
++
++} // namespace
++
++} // namespace forge
 diff --git a/src/search/evaluation.inc b/src/search/evaluation.inc
 new file mode 100644
-index 0000000..1592b4e
+index 00000000..1592b4ed
 --- /dev/null
 +++ b/src/search/evaluation.inc
 @@ -0,0 +1,79 @@
@@ -3277,7 +3310,7 @@ index 0000000..1592b4e
 +} // namespace forge
 diff --git a/src/search/history.inc b/src/search/history.inc
 new file mode 100644
-index 0000000..50f1984
+index 00000000..50f19845
 --- /dev/null
 +++ b/src/search/history.inc
 @@ -0,0 +1,71 @@
@@ -3354,7 +3387,7 @@ index 0000000..50f1984
 +} // namespace forge
 diff --git a/src/search/iterative.inc b/src/search/iterative.inc
 new file mode 100644
-index 0000000..cc7191a
+index 00000000..cc7191a4
 --- /dev/null
 +++ b/src/search/iterative.inc
 @@ -0,0 +1,215 @@
@@ -3575,7 +3608,7 @@ index 0000000..cc7191a
 +} // namespace forge
 diff --git a/src/search/movepicker.hpp b/src/search/movepicker.hpp
 new file mode 100644
-index 0000000..fa5b12c
+index 00000000..fa5b12ca
 --- /dev/null
 +++ b/src/search/movepicker.hpp
 @@ -0,0 +1,271 @@
@@ -3852,7 +3885,7 @@ index 0000000..fa5b12c
 +} // namespace forge
 diff --git a/src/search/options.inc b/src/search/options.inc
 new file mode 100644
-index 0000000..192c41d
+index 00000000..192c41da
 --- /dev/null
 +++ b/src/search/options.inc
 @@ -0,0 +1,8 @@
@@ -3866,7 +3899,7 @@ index 0000000..192c41d
 +} // namespace forge::options
 diff --git a/src/search/qsearch.inc b/src/search/qsearch.inc
 new file mode 100644
-index 0000000..e2846b7
+index 00000000..e2846b7b
 --- /dev/null
 +++ b/src/search/qsearch.inc
 @@ -0,0 +1,113 @@
@@ -3985,7 +4018,7 @@ index 0000000..e2846b7
 +} // namespace forge
 diff --git a/src/search/scores.inc b/src/search/scores.inc
 new file mode 100644
-index 0000000..d9833b2
+index 00000000..d9833b2b
 --- /dev/null
 +++ b/src/search/scores.inc
 @@ -0,0 +1,24 @@
@@ -4015,7 +4048,7 @@ index 0000000..d9833b2
 +} // namespace forge
 diff --git a/src/search/searcher.inc b/src/search/searcher.inc
 new file mode 100644
-index 0000000..4e918be
+index 00000000..4e918be0
 --- /dev/null
 +++ b/src/search/searcher.inc
 @@ -0,0 +1,65 @@
@@ -4086,7 +4119,7 @@ index 0000000..4e918be
 +} // namespace forge
 diff --git a/src/search/timeman.hpp b/src/search/timeman.hpp
 new file mode 100644
-index 0000000..95ba27f
+index 00000000..95ba27fb
 --- /dev/null
 +++ b/src/search/timeman.hpp
 @@ -0,0 +1,83 @@
@@ -4175,7 +4208,7 @@ index 0000000..95ba27f
 +} // namespace forge::timeman
 diff --git a/src/search/tt.inc b/src/search/tt.inc
 new file mode 100644
-index 0000000..26e71ca
+index 00000000..26e71ca9
 --- /dev/null
 +++ b/src/search/tt.inc
 @@ -0,0 +1,138 @@
@@ -4319,7 +4352,7 @@ index 0000000..26e71ca
 +} // namespace forge
 diff --git a/src/search/tune.inc b/src/search/tune.inc
 new file mode 100644
-index 0000000..9a2024b
+index 00000000..9a2024ba
 --- /dev/null
 +++ b/src/search/tune.inc
 @@ -0,0 +1,133 @@
@@ -4458,7 +4491,7 @@ index 0000000..9a2024b
 +} // namespace forge
 diff --git a/src/search/uci_info.inc b/src/search/uci_info.inc
 new file mode 100644
-index 0000000..e1d5019
+index 00000000..e1d50198
 --- /dev/null
 +++ b/src/search/uci_info.inc
 @@ -0,0 +1,20 @@
@@ -4484,7 +4517,7 @@ index 0000000..e1d5019
 +} // namespace forge
 diff --git a/src/search/worker.inc b/src/search/worker.inc
 new file mode 100644
-index 0000000..7309d12
+index 00000000..7309d120
 --- /dev/null
 +++ b/src/search/worker.inc
 @@ -0,0 +1,23 @@
@@ -4512,7 +4545,7 @@ index 0000000..7309d12
 +
 +} // namespace forge
 diff --git a/src/uci.cpp b/src/uci.cpp
-index 607adf3..89c8195 100644
+index 607adf3a..89c8195a 100644
 --- a/src/uci.cpp
 +++ b/src/uci.cpp
 @@ -171,6 +171,8 @@ int main() {
@@ -4540,7 +4573,7 @@ index 607adf3..89c8195 100644
                  else if (value_text == "false") forge::nnue::enabled = false;
 diff --git a/tests/cuckoo_tests.cpp b/tests/cuckoo_tests.cpp
 new file mode 100644
-index 0000000..fe93e5d
+index 00000000..fe93e5da
 --- /dev/null
 +++ b/tests/cuckoo_tests.cpp
 @@ -0,0 +1,624 @@
@@ -5170,7 +5203,7 @@ index 0000000..fe93e5d
 +}
 diff --git a/tests/history_tests.cpp b/tests/history_tests.cpp
 new file mode 100644
-index 0000000..a881af4
+index 00000000..a881af43
 --- /dev/null
 +++ b/tests/history_tests.cpp
 @@ -0,0 +1,266 @@
@@ -5442,7 +5475,7 @@ index 0000000..a881af4
 +}
 diff --git a/tests/movepicker_tests.cpp b/tests/movepicker_tests.cpp
 new file mode 100644
-index 0000000..8a88b37
+index 00000000..8a88b377
 --- /dev/null
 +++ b/tests/movepicker_tests.cpp
 @@ -0,0 +1,392 @@
@@ -5840,7 +5873,7 @@ index 0000000..8a88b37
 +}
 diff --git a/tests/timeman_tests.cpp b/tests/timeman_tests.cpp
 new file mode 100644
-index 0000000..f223c9e
+index 00000000..f223c9e1
 --- /dev/null
 +++ b/tests/timeman_tests.cpp
 @@ -0,0 +1,163 @@

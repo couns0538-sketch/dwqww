@@ -1,5 +1,5 @@
 diff --git a/CMakeLists.txt b/CMakeLists.txt
-index f3acf19..2fffd6e 100644
+index f3acf19b..2fffd6ef 100644
 --- a/CMakeLists.txt
 +++ b/CMakeLists.txt
 @@ -79,6 +79,10 @@ add_executable(forge_timeman_tests tests/timeman_tests.cpp)
@@ -22,7 +22,7 @@ index f3acf19..2fffd6e 100644
  add_test(NAME forge_rule50_tests COMMAND forge_rule50_tests)
  add_test(NAME forge_legal_witness_tests COMMAND forge_legal_witness_tests
 diff --git a/include/forge/board.hpp b/include/forge/board.hpp
-index 776614d..478b5ca 100644
+index 776614d4..478b5ca2 100644
 --- a/include/forge/board.hpp
 +++ b/include/forge/board.hpp
 @@ -134,6 +134,12 @@ public:
@@ -72,7 +72,7 @@ index 776614d..478b5ca 100644
 +
  } // namespace forge
 diff --git a/include/forge/search.hpp b/include/forge/search.hpp
-index 5c42aab..562bd49 100644
+index 5c42aab3..562bd490 100644
 --- a/include/forge/search.hpp
 +++ b/include/forge/search.hpp
 @@ -4,6 +4,7 @@
@@ -99,7 +99,7 @@ index 5c42aab..562bd49 100644
      [[nodiscard]] std::uint64_t total_nodes() const;
 diff --git a/include/forge/search_options.hpp b/include/forge/search_options.hpp
 new file mode 100644
-index 0000000..aa00883
+index 00000000..aa00883d
 --- /dev/null
 +++ b/include/forge/search_options.hpp
 @@ -0,0 +1,17 @@
@@ -121,7 +121,7 @@ index 0000000..aa00883
 +
 +} // namespace forge::options
 diff --git a/src/board.cpp b/src/board.cpp
-index 19d4ff2..80fa546 100644
+index 19d4ff28..80fa5467 100644
 --- a/src/board.cpp
 +++ b/src/board.cpp
 @@ -5,6 +5,7 @@
@@ -313,7 +313,7 @@ index 19d4ff2..80fa546 100644
 +
  } // namespace forge
 diff --git a/src/search.cpp b/src/search.cpp
-index 17dc692..d12873c 100644
+index 17dc692b..051e726c 100644
 --- a/src/search.cpp
 +++ b/src/search.cpp
 @@ -2,7 +2,8 @@
@@ -344,7 +344,7 @@ index 17dc692..d12873c 100644
  #include "search/scores.inc"      // mate scores and their TT encoding
  #include "search/uci_info.inc"    // UCI info output (score formatting)
  #include "search/tt.inc"          // transposition table
-@@ -32,7 +35,30 @@
+@@ -32,7 +35,35 @@
  #include "search/timeman.hpp"     // time budgets and the soft stop rule (inline)
  #include "search/checks.inc"      // per-node clock / node / stop checks, draws
  #include "search/history.inc"     // move-ordering history scoring and updates
@@ -354,8 +354,10 @@ index 17dc692..d12873c 100644
 +#define FORGE_SEARCH_CALL search
 +#define FORGE_QSEARCH_FN qsearch
 +#define FORGE_QSEARCH_CALL qsearch
++#define FORGE_LMP_THRESHOLD lmp_threshold
 +#include "search/qsearch.inc"     // quiescence search (Worker::qsearch)
 +#include "search/alphabeta.inc"   // main alpha-beta search (Worker::search)
++#undef FORGE_LMP_THRESHOLD
 +#undef FORGE_QSEARCH_CALL
 +#undef FORGE_QSEARCH_FN
 +#undef FORGE_SEARCH_CALL
@@ -366,22 +368,25 @@ index 17dc692..d12873c 100644
 +// calls go through the upcoming-repetition bound of cuckoo.inc (see the head
 +// of alphabeta.inc). Last in the file, so that the default search functions
 +// keep the AL1 s198 code and placement.
++#include "search/cuckoo_lmp.inc"  // the CuckooRep instance's copy of lmp_threshold
 +#define FORGE_SEARCH_FN search_cuckoo_body
 +#define FORGE_SEARCH_CALL search_cuckoo
 +#define FORGE_QSEARCH_FN qsearch_cuckoo_body
 +#define FORGE_QSEARCH_CALL qsearch_cuckoo
++#define FORGE_LMP_THRESHOLD lmp_threshold_cuckoo
 +#include "search/qsearch.inc"
 +#include "search/alphabeta.inc"
++#undef FORGE_LMP_THRESHOLD
 +#undef FORGE_QSEARCH_CALL
 +#undef FORGE_QSEARCH_FN
 +#undef FORGE_SEARCH_CALL
 +#undef FORGE_SEARCH_FN
 +#include "search/cuckoo.inc"      // CuckooRep: upcoming-repetition draw bound
 diff --git a/src/search/alphabeta.inc b/src/search/alphabeta.inc
-index 7360226..ec0b5a8 100644
+index 73602262..53d98c02 100644
 --- a/src/search/alphabeta.inc
 +++ b/src/search/alphabeta.inc
-@@ -1,14 +1,27 @@
+@@ -1,14 +1,29 @@
  // Search module: main alpha-beta search (pruning, extensions, LMR).
 -// Compiled as part of src/search.cpp (included exactly once).
 +// Compiled as part of src/search.cpp, which includes this file and qsearch.inc
@@ -394,9 +399,11 @@ index 7360226..ec0b5a8 100644
 +// The root (iterative.inc) picks one of the two trees once per iteration, so
 +// with CuckooRep off no node tests the option. FORGE_SEARCH_FN names the
 +// function defined here; FORGE_SEARCH_CALL and FORGE_QSEARCH_CALL name the
-+// functions it calls for child nodes and for quiescence.
-+#if !defined(FORGE_SEARCH_FN) || !defined(FORGE_SEARCH_CALL) || !defined(FORGE_QSEARCH_CALL)
-+#error "define FORGE_SEARCH_FN, FORGE_SEARCH_CALL and FORGE_QSEARCH_CALL before including search/alphabeta.inc"
++// functions it calls for child nodes and for quiescence; FORGE_LMP_THRESHOLD
++// names the late-move pruning threshold it uses (the CuckooRep instance calls
++// its own copy, src/search/cuckoo_lmp.inc).
++#if !defined(FORGE_SEARCH_FN) || !defined(FORGE_SEARCH_CALL) || !defined(FORGE_QSEARCH_CALL) ||     !defined(FORGE_LMP_THRESHOLD)
++#error "define FORGE_SEARCH_FN, FORGE_SEARCH_CALL, FORGE_QSEARCH_CALL and FORGE_LMP_THRESHOLD before including search/alphabeta.inc"
 +#endif
  
  namespace forge {
@@ -412,7 +419,7 @@ index 7360226..ec0b5a8 100644
      // The frame is reused across siblings and same-ply verification searches.
      // Keep this call's inherited path budget independent of those mutations.
      const int inherited_double_extensions = (ss - 1)->double_extensions;
-@@ -83,7 +96,7 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
+@@ -83,7 +98,7 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
      if (!pv_node && !in_check && excluded.is_none() && !is_mate_score(beta)) {
          // Razoring: hopeless positions fall back to quiescence.
          if (depth <= tune::RazorDepth && eval + tune::RazorBase + tune::RazorMultiplier * depth < alpha) {
@@ -421,7 +428,7 @@ index 7360226..ec0b5a8 100644
              if (aborted_) return 0;
              if (razor < alpha) return razor;
          }
-@@ -107,7 +120,7 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
+@@ -107,7 +122,7 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
              record_null_move(ss);
              NullUndo undo;
              board.make_null_move(undo);
@@ -430,7 +437,7 @@ index 7360226..ec0b5a8 100644
              board.unmake_null_move(undo);
              if (aborted_) return 0;
              if (null_score >= beta) {
-@@ -118,7 +131,7 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
+@@ -118,7 +133,7 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
                  }
                  // Verification search at high depth guards against zugzwang.
                  ss->null_move_allowed = false;
@@ -439,7 +446,7 @@ index 7360226..ec0b5a8 100644
                  ss->double_extensions = inherited_double_extensions;
                  ss->null_move_allowed = true;
                  if (aborted_) return 0;
-@@ -144,9 +157,9 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
+@@ -144,9 +159,9 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
                  record_move(ss, board, move);
                  Undo undo;
                  (void)board.make_move(move, undo);
@@ -451,7 +458,16 @@ index 7360226..ec0b5a8 100644
                  }
                  board.unmake_move(move, undo);
                  if (aborted_) return 0;
-@@ -223,7 +236,7 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
+@@ -190,7 +205,7 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
+ 
+         // Shallow-depth pruning of unpromising moves.
+         if (!root_node && best_score > -MateInMaxPly && has_material) {
+-            if (quiet && !skip_quiets && move_count >= lmp_threshold(depth, improving)) skip_quiets = true;
++            if (quiet && !skip_quiets && move_count >= FORGE_LMP_THRESHOLD(depth, improving)) skip_quiets = true;
+             const int lmr_depth = std::max(0, depth - reduction(quiet, depth, move_count));
+             if (quiet && !gives_check) {
+                 if (!in_check && lmr_depth <= tune::FutilityDepth &&
+@@ -223,7 +238,7 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
              const int singular_depth = (depth - 1) / 2;
              const bool saved_tt_pv = ss->tt_pv;
              ss->excluded_move = move;
@@ -460,7 +476,7 @@ index 7360226..ec0b5a8 100644
              ss->tt_pv = saved_tt_pv;
              ss->double_extensions = inherited_double_extensions;
              ss->excluded_move = Move::none();
-@@ -276,10 +289,10 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
+@@ -276,10 +291,10 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
              if (tune::LmrCutoffThreshold > 0 && (ss + 1)->cutoff_count > tune::LmrCutoffThreshold) r += 1;
              if (quiet) r -= std::clamp(history / tune::LmrHistoryDivisor, -2, 2);
              const int reduced_depth = std::clamp(new_depth - r, 1, new_depth);
@@ -473,7 +489,7 @@ index 7360226..ec0b5a8 100644
                  full_depth_needed = false;
              }
              if (!aborted_ && quiet && score > alpha) {
-@@ -288,10 +301,10 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
+@@ -288,10 +303,10 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
              }
          }
          if (full_depth_needed && !aborted_) {
@@ -488,7 +504,7 @@ index 7360226..ec0b5a8 100644
          if (aborted_) return 0;
 diff --git a/src/search/cuckoo.inc b/src/search/cuckoo.inc
 new file mode 100644
-index 0000000..c423514
+index 00000000..c423514b
 --- /dev/null
 +++ b/src/search/cuckoo.inc
 @@ -0,0 +1,46 @@
@@ -538,8 +554,34 @@ index 0000000..c423514
 +}
 +
 +} // namespace forge
+diff --git a/src/search/cuckoo_lmp.inc b/src/search/cuckoo_lmp.inc
+new file mode 100644
+index 00000000..7dc25f21
+--- /dev/null
++++ b/src/search/cuckoo_lmp.inc
+@@ -0,0 +1,20 @@
++// Search module: the late-move pruning threshold of tune.inc, as a copy for the
++// CuckooRep instance of the main search (UCI CuckooRep). Compiled as part of
++// src/search.cpp (included exactly once), right before the second inclusion of
++// alphabeta.inc. The AL1 s198 lmp_threshold() keeps its single call site in the
++// default Worker::search: with a second caller GCC inlines it in a later pass,
++// which shifts the SSA numbering of the default search, swaps the operands of
++// one comparison and changes its block layout (found in job O5,
++// opus_round1/O5/logs/codegen_second_instance_investigation.log on opus-O5).
++
++namespace forge {
++
++namespace {
++
++[[nodiscard]] int lmp_threshold_cuckoo(int depth, bool improving) {
++    return improving ? tune::LmpBase + depth * depth : (tune::LmpBase + depth * depth) / 2;
++}
++
++} // namespace
++
++} // namespace forge
 diff --git a/src/search/iterative.inc b/src/search/iterative.inc
-index ec03e8f..cc7191a 100644
+index ec03e8f4..cc7191a4 100644
 --- a/src/search/iterative.inc
 +++ b/src/search/iterative.inc
 @@ -140,7 +140,9 @@ SearchInfo Worker::search(Board board, const SearchLimits& limits, bool emit_inf
@@ -555,7 +597,7 @@ index ec03e8f..cc7191a 100644
                  beta = (alpha + beta) / 2;
 diff --git a/src/search/options.inc b/src/search/options.inc
 new file mode 100644
-index 0000000..192c41d
+index 00000000..192c41da
 --- /dev/null
 +++ b/src/search/options.inc
 @@ -0,0 +1,8 @@
@@ -568,7 +610,7 @@ index 0000000..192c41d
 +
 +} // namespace forge::options
 diff --git a/src/search/qsearch.inc b/src/search/qsearch.inc
-index 46809ce..e2846b7 100644
+index 46809ce6..e2846b7b 100644
 --- a/src/search/qsearch.inc
 +++ b/src/search/qsearch.inc
 @@ -1,9 +1,15 @@
@@ -599,7 +641,7 @@ index 46809ce..e2846b7 100644
          if (aborted_) return 0;
          if (score > best_score) {
 diff --git a/src/uci.cpp b/src/uci.cpp
-index 607adf3..89c8195 100644
+index 607adf3a..89c8195a 100644
 --- a/src/uci.cpp
 +++ b/src/uci.cpp
 @@ -171,6 +171,8 @@ int main() {
@@ -627,7 +669,7 @@ index 607adf3..89c8195 100644
                  else if (value_text == "false") forge::nnue::enabled = false;
 diff --git a/tests/cuckoo_tests.cpp b/tests/cuckoo_tests.cpp
 new file mode 100644
-index 0000000..fe93e5d
+index 00000000..fe93e5da
 --- /dev/null
 +++ b/tests/cuckoo_tests.cpp
 @@ -0,0 +1,624 @@
