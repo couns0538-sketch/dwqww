@@ -22,6 +22,17 @@
 #include <utility>
 #include <vector>
 
+// Test hooks (the hidden DebugSearchDelayMs option) exist only in debug builds
+// (no NDEBUG) and in test-only builds that pass FORGE_DEBUG_HOOKS=1; release
+// builds (CMake Release, the box recipe) contain no trace of them.
+#ifndef FORGE_DEBUG_HOOKS
+#ifdef NDEBUG
+#define FORGE_DEBUG_HOOKS 0
+#else
+#define FORGE_DEBUG_HOOKS 1
+#endif
+#endif
+
 #ifdef _WIN32
 #ifndef NOMINMAX
 #define NOMINMAX
@@ -164,13 +175,21 @@ bool contains(const forge::MoveList& moves, forge::Move move) {
     return std::find(moves.begin(), moves.end(), move) != moves.end();
 }
 
-// The watchdog's answer: the published best/ponder pair if legal here, else the
-// first legal move (the search's own fallback), else "0000".
-std::string forced_bestmove(const forge::Board& board, bool ponder_enabled) {
+// The watchdog's answer, with the search's own fallbacks: the published
+// best/ponder pair if it is a root candidate here (a legal move, inside
+// `searchmoves` when given), else the first candidate, else "0000" (no legal
+// move, or a searchmoves list without a legal move).
+std::string forced_bestmove(const forge::Board& board, bool ponder_enabled, bool restricted,
+                            const std::vector<forge::Move>& search_moves) {
     const auto [best, ponder] = forge::Searcher::published_moves();
-    const forge::MoveList legal = board.legal_moves();
-    if (legal.empty()) return "bestmove 0000";
-    if (best.is_none() || !contains(legal, best)) return "bestmove " + forge::Board::move_to_uci(legal.front());
+    forge::MoveList candidates;
+    for (const forge::Move move : board.legal_moves()) {
+        if (!restricted || std::find(search_moves.begin(), search_moves.end(), move) != search_moves.end()) {
+            candidates.push_back(move);
+        }
+    }
+    if (candidates.empty()) return "bestmove 0000";
+    if (best.is_none() || !contains(candidates, best)) return "bestmove " + forge::Board::move_to_uci(candidates.front());
     std::string line = "bestmove " + forge::Board::move_to_uci(best);
     if (ponder_enabled && !ponder.is_none()) {
         forge::Board after = board;
@@ -196,6 +215,8 @@ public:
         std::chrono::steady_clock::time_point origin{};
         std::chrono::milliseconds allowance{0};
         bool ponder_enabled = false;
+        bool restricted = false;  // go searchmoves ...
+        std::vector<forge::Move> search_moves;
     };
 
     explicit DeadlineWatchdog(forge::Searcher& searcher) : searcher_(searcher) {}
@@ -262,7 +283,7 @@ private:
         lock.unlock();
         if (run.answered.exchange(true)) return;  // the search thread is sending its bestmove
         searcher_.stop();
-        const std::string line = forced_bestmove(job.board, job.ponder_enabled);
+        const std::string line = forced_bestmove(job.board, job.ponder_enabled, job.restricted, job.search_moves);
         const auto late = std::chrono::duration_cast<std::chrono::milliseconds>(
             std::chrono::steady_clock::now() - origin).count();
         {
@@ -310,9 +331,11 @@ int main() {
     std::condition_variable stop_cv;
     bool stop_requested = false;
     bool ponder_hit_received = false;
+#if FORGE_DEBUG_HOOKS
     // Hidden test hook (not advertised): the search thread waits this long before
     // searching, which simulates a starved search thread for the HardDeadline tests.
     int debug_search_delay_ms = 0;
+#endif
     auto stop_search = [&]() {
         {
             const std::lock_guard<std::mutex> lock(stop_mutex);
@@ -450,12 +473,14 @@ int main() {
                 } else {
                     book_variety = std::clamp(value, 0, 100);
                 }
+#if FORGE_DEBUG_HOOKS
             } else if (name == "DebugSearchDelayMs") {
                 int value = 0;
                 const auto parsed = std::from_chars(value_text.data(), value_text.data() + value_text.size(), value);
                 if (parsed.ec == std::errc{} && parsed.ptr == value_text.data() + value_text.size()) {
                     debug_search_delay_ms = std::clamp(value, 0, 10000);
                 }
+#endif
             } else if (name == "HardDeadline") {
                 int value = 0;
                 const auto parsed = std::from_chars(value_text.data(), value_text.data() + value_text.size(), value);
@@ -565,9 +590,14 @@ int main() {
                                             (limits.time_ms >= 0 || limits.movetime_ms >= 0);
                 if (deadline_watch) forge::Searcher::reset_published_moves();
                 worker = std::thread([&searcher, &stop_mutex, &stop_cv, &stop_requested, &ponder_hit_received,
-                                      search_board, limits, ponder_enabled, run,
-                                      delay = debug_search_delay_ms]() mutable {
+                                      search_board, limits, ponder_enabled, run
+#if FORGE_DEBUG_HOOKS
+                                      , delay = debug_search_delay_ms
+#endif
+                                      ]() mutable {
+#if FORGE_DEBUG_HOOKS
                     if (delay > 0) std::this_thread::sleep_for(std::chrono::milliseconds(delay));
+#endif
                     const forge::SearchInfo result = searcher.search(
                         search_board, limits, true, forge::Searcher::TTAccess::Exclusive);
                     if (limits.infinite || limits.ponder) {
@@ -604,7 +634,7 @@ int main() {
                     forge::timeman::allocate(limits, soft_ms, hard_ms, managed);
                     deadline_watchdog.arm({run, search_board, limits.ponder, limits.start_time,
                                            std::chrono::milliseconds(hard_ms + forge::options::hard_deadline_ms),
-                                           ponder_enabled});
+                                           ponder_enabled, limits.search_moves_specified, limits.search_moves});
                 }
             }
         } else if (command == "bench") {

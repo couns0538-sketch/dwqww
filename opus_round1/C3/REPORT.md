@@ -5,9 +5,11 @@ Branch `opus-C3` = `opus-O3` (`0d99f02`) + [C3] commits:
 - `1de9871`: the HardDeadline option
 - `9ae572a`: CI latency matrix, Linux starvation run, short TSan hook
 - `0410aec`: evidence
+- follow-up (2026-10-27, the commit that adds this line): the watchdog's answer obeys `go searchmoves`, and
+  `DebugSearchDelayMs` is compiled only in debug builds (section "Follow-up" below)
 
-`patch.diff` = `git diff 0d99f02 0410aec` (engine, tools, tests). Ideas: `IDEA_SOURCE.md`. UNPROVEN until
-gated; no Elo claim.
+`patch.diff` = `git diff 0d99f02` of the follow-up commit (engine, tools, tests). Ideas: `IDEA_SOURCE.md`.
+UNPROVEN until gated; no Elo claim.
 
 ## Cause of the WAC stall (12 s on a 1000 ms move, WAC.008)
 **Process starvation, not the search.** The WAC300 harness ran the engine at nice 19 / idle priority on a
@@ -29,8 +31,9 @@ causes a stall without starvation.
 **Watchdog.** With N > 0, a persistent watchdog thread, created when the option is set, sleeps until the
 hard time limit + N ms of every clocked `go` (from `ponderhit` when pondering). If no bestmove is out by then,
 it stops the search and sends the move of the main worker's last completed iteration. That move was
-published through one atomic (`options::published_moves`, packed best and ponder move) and is checked for
-legality; otherwise the first legal move is sent.
+published through one atomic (`options::published_moves`, packed best and ponder move) and is checked against
+the root candidates: the legal moves, restricted to `go searchmoves` when given. Otherwise it sends the first
+candidate, and `0000` when there is none, exactly the search's own fallbacks.
 
 **Exactly one bestmove.** An atomic claim ensures one `bestmove` per `go` (watchdog vs normal path). The run
 counts as done only after the bestmove line is written.
@@ -42,7 +45,9 @@ counts as done only after the bestmove line is written.
 - The search threads keep their priority.
 
 **Testing hook.** The hidden option `DebugSearchDelayMs` holds the search thread back for the regression
-test. It is not advertised and is inert at 0.
+test. It is not advertised and is inert at 0. It is compiled only in debug builds (no `NDEBUG`) and in the
+test-only CMake target `forge_debughooks` (`FORGE_DEBUG_HOOKS=1`), which CTest's `hard_deadline_regression`
+uses. Release builds (CMake Release, the box recipe `build_pc.sh`) contain no trace of it.
 
 **Off = AL1.** With HardDeadline 0, no thread is created and no node path changes.
 - **Layout:** publishing the move is a `[[gnu::cold]]` call per completed iteration; the slot is a
@@ -60,6 +65,15 @@ test. It is not advertised and is inert at 0.
 | 3 | with the fix: max overshoot < 50 ms over 3 full passes at both movetimes, 0 missing bestmoves, also at Threads 4 | **PASS** (CI run 40379626553, quiet Linux runner): Threads 1 and 4, with HardDeadline 10 and with 0. Each configuration: 3 passes x 300 positions x {100, 1000} ms, 0 missing, 0 duplicates, 0 over 50 ms. Max overshoot: T1 HD10 −8.6 ms; T4 HD10 −6.4 ms; T1 HD0 −8.4 ms; T4 HD0 −7.6 ms (negative = before the movetime). Locally on the busy PC, 1 pass each: lock −9.0 ms, HD10 −9.0 ms |
 | 4 | ctest only known failures | **PASS**: 17/18, only `forge_tests` with its 4 known lines (Windows and Linux CI). New CTest `hard_deadline_regression` (`tools/hard_deadline_regression.py`) passes, and a planted "ignore the claim" bug fails it with a duplicate bestmove |
 | §3 | ASan+UBSan, TSan | **PASS** (CI run 40379626358): 0 reports. The short TSan hook runs HardDeadline=1 at Threads 2 with 20 and 100 ms movetimes, so the watchdog races the search on almost every move |
+
+### Follow-up (2026-10-27): searchmoves and a debug-only hook
+| check | result | evidence |
+|---|---|---|
+| watchdog answer obeys `searchmoves` | **PASS**. New starved scenarios: `go movetime 20 searchmoves <1-3 legal moves>`, leaving out the engine's first legal move (from its own `go perft 1` order, which is what an unrestricted fallback plays), must be answered from that list. `searchmoves a1a1` (no legal move) must be answered `0000`, like the search. Local runs: 300 searches each at Threads 1 and 2, PASS (58 + 72 searchmoves scenarios, 117 + 140 watchdog answers) | `logs/followup_regression_hooks.log` |
+| the test catches the old behaviour | **PASS**. A planted mutant whose fallback ignores `searchmoves` fails: `SEARCHMOVES ignored: bestmove a2a3 (starved_badsearchmoves) ... allowed []` | `logs/followup_regression_mutant.log` |
+| hook only in debug builds | **PASS**. The box-recipe release exe has no `DebugSearchDelayMs` string (0 matches), the `FORGE_DEBUG_HOOKS=1` exe has it (1). The test refuses an engine without the hook: "engine has no DebugSearchDelayMs hook: use a debug build or the forge_debughooks target" | `logs/followup_hook_strings.log`, `logs/followup_regression_release_refused.log` |
+| OFF = AL1 | **PASS**. Box recipe (`build_pc.sh`), release: bench 312866/862329/3024920/12389307/34048354, perft5 4865609, kiwipete 193690690, ALL OK; FMA 0 | `logs/followup_identity_release.log` |
+| CMake + CTest | **PASS**. Local Release build (`cmake_build.sh`, JOBS=1) builds `forge`, `forge_debughooks` and `forge_tests`; `hard_deadline_regression` (on `forge_debughooks`) and `uci_regression` pass. Linux release/ASan/TSan: the CI run on this push | `logs/followup_ctest_subset.log` |
 
 ### Starvation (the actual failure mode)
 
@@ -90,7 +104,7 @@ No Elo claim.
   iteration), `include/forge/search_options.hpp` / `src/search/options.inc` (published moves),
   `include/forge/search.hpp`, `include/forge/thread_data.hpp`, `src/search.cpp`.
 - **Tests:** `tools/latency_test.py`, `tools/hard_deadline_regression.py`, `tools/wac300.epd`, `CMakeLists.txt`
-  (the CTest entry).
+  (the CTest entry and the test-only `forge_debughooks` target).
 - **CI:** `.github/workflows/opus-c3-latency.yml`.
 - **`opus_round1/C3`:** `REPORT.md`, `IDEA_SOURCE.md`, `patch.diff`, `starvation_demo.py`, `tsan_extra.sh`,
   `logs/` (identity, codegen, ctest, local latency, the Windows starvation demo, and the CI latency and

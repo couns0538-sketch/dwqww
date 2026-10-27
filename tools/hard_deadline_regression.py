@@ -2,7 +2,11 @@
 """HardDeadline regression (C3): many short searches where the watchdog races the search thread
 (tiny grace), including ponder -> ponderhit, ponder -> stop, movetime, clock and stop races, plus
 "starved" searches: the hidden test option DebugSearchDelayMs holds the search thread back so the
-watchdog must answer (forced answer required, no second bestmove may follow).
+watchdog must answer (forced answer required, no second bestmove may follow). The hook exists only in
+debug builds and in the test-only forge_debughooks target; an engine without it is refused up front.
+Starved searches with `searchmoves` check that the forced answer obeys the list: a subset of the legal
+moves that leaves out the engine's first legal move (the unrestricted fallback) must be answered from
+the subset, and a list with no legal move must be answered "0000", as the search itself does.
 Checks every go gets exactly one bestmove, legal in the position (python-chess when installed,
 else a reference engine's `go perft 1`), no hang (timeouts), no crash, clean quit.
 usage: hard_deadline_regression.py <engine> [--iterations 300] [--threads 2] [--grace 1] [--seed 3]
@@ -53,6 +57,23 @@ class Engine:
             seen.append(line)
 
 
+def perft_order_factory(exe):
+    """Legal moves in the engine's own generation order (`go perft 1` lists Board::legal_moves() in order)."""
+    ref = Engine(exe)
+    ref.send("uci")
+    ref.until(lambda l: l == "uciok", 30, "uciok")
+    cache = {}
+
+    def ordered(fen):
+        if fen not in cache:
+            ref.send(f"position fen {fen}")
+            ref.send("go perft 1")
+            _, seen = ref.until(lambda l: l.startswith("nodes "), 30, "perft")
+            cache[fen] = [l.split(":")[0] for l in seen if ":" in l]
+        return cache[fen]
+    return ordered
+
+
 def legal_moves_factory(reference):
     try:
         import chess
@@ -63,19 +84,8 @@ def legal_moves_factory(reference):
     except ImportError:
         if not reference:
             raise SystemExit("install python-chess or pass --reference")
-        ref = Engine(reference)
-        ref.send("uci")
-        ref.until(lambda l: l == "uciok", 30, "uciok")
-        cache = {}
-
-        def legal(fen):
-            if fen not in cache:
-                ref.send(f"position fen {fen}")
-                ref.send("go perft 1")
-                _, seen = ref.until(lambda l: l.startswith("nodes "), 30, "perft")
-                cache[fen] = {l.split(":")[0] for l in seen if ":" in l}
-            return cache[fen]
-        return legal, "reference perft"
+        ordered = perft_order_factory(reference)
+        return (lambda fen: set(ordered(fen))), "reference perft"
 
 
 def main():
@@ -90,6 +100,7 @@ def main():
     a = ap.parse_args()
     rng = random.Random(a.seed)
     legal, source = legal_moves_factory(a.reference)
+    ordered = perft_order_factory(a.reference or a.engine)
     e = Engine(a.engine)
     e.send("uci")
     e.until(lambda l: l == "uciok", 30, "uciok")
@@ -98,12 +109,25 @@ def main():
         e.send("setoption name " + o)
     e.send("isready")
     e.until(lambda l: l == "readyok", 30, "readyok")
+    if a.grace > 0:
+        # The starved scenarios need the DebugSearchDelayMs hook (debug builds / forge_debughooks only).
+        e.send("setoption name DebugSearchDelayMs value 150")
+        e.send(f"position fen {START}")
+        e.send("go movetime 20")
+        _, seen = e.until(lambda l: l.startswith("bestmove"), a.slack, "bestmove (hook probe)")
+        e.send("setoption name DebugSearchDelayMs value 0")
+        e.send("isready")
+        e.until(lambda l: l == "readyok", a.slack, "readyok")
+        if not any(l.startswith("info string HardDeadline") for l in seen):
+            raise SystemExit("engine has no DebugSearchDelayMs hook: use a debug build or the forge_debughooks target")
     counts = {}
     forced = 0
     for i in range(a.iterations):
         fen = rng.choice(FENS)
         e.send(f"position fen {fen}")
-        kind = rng.choice(["movetime", "clock", "ponderhit", "ponderstop", "stoprace", "starved", "starved_ponder"])
+        kind = rng.choice(["movetime", "clock", "ponderhit", "ponderstop", "stoprace", "starved", "starved_ponder",
+                           "starved_searchmoves", "starved_badsearchmoves"])
+        allowed = None  # searchmoves scenarios: the moves the answer must come from (empty: must be 0000)
         counts[kind] = counts.get(kind, 0) + 1
         if kind == "movetime":
             e.send(f"go movetime {rng.randrange(1, 40)}")
@@ -123,6 +147,17 @@ def main():
             e.send(f"position fen {fen}")
             if kind == "starved":
                 e.send("go movetime 20")
+            elif kind == "starved_searchmoves":
+                order = ordered(fen)
+                if len(order) >= 2:
+                    # leave out the engine's first legal move: an unrestricted fallback would play it
+                    allowed = set(rng.sample(order[1:], min(len(order) - 1, rng.choice([1, 2, 3]))))
+                    e.send("go movetime 20 searchmoves " + " ".join(sorted(allowed)))
+                else:
+                    e.send("go movetime 20")
+            elif kind == "starved_badsearchmoves":
+                allowed = set()
+                e.send("go movetime 20 searchmoves a1a1")  # parses as no legal move: the search answers 0000
             else:
                 e.send("go ponder wtime 100 btime 100 winc 5 binc 5")
                 time.sleep(0.005)
@@ -137,7 +172,11 @@ def main():
             e.send("setoption name DebugSearchDelayMs value 0")
         best = line.split()[1]
         moves = legal(fen)
-        if (best == "0000") != (not moves) or (best != "0000" and best not in moves):
+        if allowed is not None:
+            want = allowed & moves
+            if (best == "0000") != (not want) or (best != "0000" and best not in want):
+                raise SystemExit(f"SEARCHMOVES ignored: bestmove {best} ({kind}) in {fen}, allowed {sorted(want)}")
+        elif (best == "0000") != (not moves) or (best != "0000" and best not in moves):
             raise SystemExit(f"ILLEGAL bestmove {best} ({kind}) in {fen}")
         # The next readyok must not be preceded by a second bestmove.
         e.send("isready")

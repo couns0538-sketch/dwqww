@@ -40,6 +40,12 @@ if(FORGE_EXPOSE_TUNABLES)
     target_compile_definitions(forge PRIVATE FORGE_EXPOSE_TUNABLES=1)
 endif()
 
+# Test-only engine with the hidden debug hooks (DebugSearchDelayMs) compiled in;
+# the release engine above has them only in debug builds (no NDEBUG).
+add_executable(forge_debughooks src/uci.cpp)
+target_link_libraries(forge_debughooks PRIVATE forge_core Threads::Threads)
+target_compile_definitions(forge_debughooks PRIVATE FORGE_DEBUG_HOOKS=1)
+
 add_executable(forge_tests tests/tests.cpp)
 target_link_libraries(forge_tests PRIVATE forge_core Threads::Threads)
 
@@ -127,10 +133,11 @@ if(Python3_Interpreter_FOUND)
     add_test(NAME ponder_regression
         COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tools/ponder_regression.py
                 $<TARGET_FILE:forge>)
-    # HardDeadline watchdog: exactly one legal bestmove per go when the watchdog races the search (C3).
+    # HardDeadline watchdog: exactly one legal bestmove per go when the watchdog races the search (C3);
+    # starved searches need the DebugSearchDelayMs hook, so the test engine is forge_debughooks.
     add_test(NAME hard_deadline_regression
         COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tools/hard_deadline_regression.py
-                $<TARGET_FILE:forge> --iterations 60 --threads 1 --grace 1 --reference $<TARGET_FILE:forge>)
+                $<TARGET_FILE:forge_debughooks> --iterations 60 --threads 1 --grace 1 --reference $<TARGET_FILE:forge>)
     add_test(NAME ownbook_regression
         COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tools/ownbook_regression.py
                 $<TARGET_FILE:forge> ${CMAKE_CURRENT_BINARY_DIR}/ownbook-regression.json)
