@@ -206,6 +206,35 @@ def main():
         if fen not in seen:
             seen.add(fen)
             rows.append((fen, note, query(fen, cache, offline)))
+    # Boundary rows from positions whose DTZ is exact in these files (the engine prober's own
+    # rounding flag, `forge_syzygy_tests probe`) and equal to the API's: decided at |dtz| + counter
+    # = 100 and 101 for wins and for losses.
+    base = [fen for fen, note, data in rows if fen.split()[4] == "0"]
+    out = subprocess.run([binary, "probe", TB_DIR], input="\n".join(base) + "\n", capture_output=True, text=True,
+                         check=True).stdout
+    exact = {}
+    for line in out.splitlines():
+        f = line.split("\t")
+        if len(f) == 4 and f[3] == "0":
+            exact[f[0]] = int(f[2])
+    exact_boundary = []
+    taken = {1: 0, -1: 0}
+    for fen, note, data in list(rows):
+        d = exact.get(fen)
+        if d is None or " - - " not in fen or data.get("dtz") != d or not 2 <= abs(d) <= 99:
+            continue
+        sign = 1 if d > 0 else -1
+        if taken[sign] >= 8:
+            continue
+        taken[sign] += 1
+        for hm in (100 - abs(d), 101 - abs(d)):
+            parts = fen.split()
+            parts[4], parts[5] = str(hm), "80"
+            exact_boundary.append((" ".join(parts), "rule50 exact-dtz boundary " + note))
+    for fen, note in exact_boundary:
+        if fen not in seen:
+            seen.add(fen)
+            rows.append((fen, note, query(fen, cache, offline)))
     with open(out_path, "w", encoding="utf-8", newline="\n") as f:
         f.write("# Syzygy known answers for tests/syzygy_tests.cpp, from the public lichess tablebase API\n")
         f.write("# (https://tablebase.lichess.ovh/standard), built by opus_round1/C1/make_fixture.py.\n")

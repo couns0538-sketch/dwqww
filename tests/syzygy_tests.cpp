@@ -566,6 +566,18 @@ void search_glue(const std::string& tb_dir) {
             forge::options::syzygy_probe_depth = 1;
         }
     }
+    // The other sign: the only legal move (Kxg2) leaves a won ending to the
+    // opponent, who is probed at ply 1 as the side to move: -(TbWin - 1).
+    {
+        const std::string fen = largest >= 5 ? "rr2k3/8/8/8/8/8/6q1/1B5K w - - 0 1" : "rr2k3/8/8/8/8/8/6q1/7K w - - 0 1";
+        if (forge::syzygy::has_table(largest >= 5 ? "KRRvKB" : "KRRvK")) {
+            int score = 0;
+            Move best;
+            (void)search_nodes(fen, 3, &score, &best);
+            check(Board::move_to_uci(best) == "h1g2" && score == -(forge::syzygy::TbWin - 1),
+                  "forced capture into a lost ending scores a TB loss, score " + std::to_string(score));
+        }
+    }
     // Syzygy50MoveRule: a cursed win is a draw-ish +2 with the rule, a TB win without it.
     if (forge::syzygy::has_table("KNNvKP")) {
         forge::SearchLimits limits;
@@ -603,6 +615,23 @@ void search_glue(const std::string& tb_dir) {
 } // namespace
 
 int main(int argc, char** argv) {
+    if (argc >= 3 && std::string(argv[1]) == "probe") {
+        // forge_syzygy_tests probe <tablebase_dir> < fens: fen, wdl, dtz, rounded (fixture tooling)
+        (void)forge::syzygy::load(argv[2]);
+        std::string line;
+        while (std::getline(std::cin, line)) {
+            if (!line.empty() && line.back() == '\r') line.pop_back();
+            Board b;
+            if (line.empty() || !b.set_fen(line)) continue;
+            int wdl = 0;
+            int dtz = 0;
+            bool rounded = false;
+            const bool ok = forge::syzygy::probe_wdl(b, wdl) && forge::syzygy::probe_dtz(b, dtz, rounded);
+            std::cout << line << '\t' << (ok ? std::to_string(wdl) + '\t' + std::to_string(dtz) + '\t' + (rounded ? "1" : "0") : "-\t-\t-")
+                      << '\n';
+        }
+        return 0;
+    }
     if (argc >= 5 && std::string(argv[1]) == "gen") {
         std::mt19937_64 rng(std::stoull(argv[4]));
         const bool ep = argc > 5 && std::string(argv[5]) == "ep";

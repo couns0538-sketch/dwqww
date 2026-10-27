@@ -1,6 +1,7 @@
 # Job C1 (Syzygy probing): run forge_syzygy_tests and the UCI smoke test against real tables on
 # Linux in release, ASan+UBSan and TSan builds. Only the 3-4 piece tables (70 files, ~4 MB) are
-# used; they are fetched politely from a public mirror once and kept in the Actions cache.
+# used; one job fetches them politely from a public mirror (only when the Actions cache is
+# empty) and the test jobs restore them from the cache.
 # Read-only; uploads logs as artifacts. The generic opus-ci workflow runs the full ctest suite.
 name: opus-c1-syzygy
 on:
@@ -17,7 +18,20 @@ on:
 permissions:
   contents: read
 jobs:
+  tables:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: Tablebase cache (3-4 piece Syzygy set)
+        uses: actions/cache@v4
+        with:
+          path: syzygy34
+          key: syzygy-3-4-piece-v1
+      - name: Fetch missing tables (only on a cache miss)
+        run: bash opus_round1/C1/ci_fetch_tables.sh syzygy34
   syzygy:
+    needs: tables
     strategy:
       fail-fast: false
       matrix:
@@ -31,12 +45,13 @@ jobs:
           sudo apt-get update -qq
           sudo apt-get install -y -qq g++-14 ninja-build cmake python3
           g++-14 --version | head -1
-      - name: Tablebase cache (3-4 piece Syzygy set)
-        uses: actions/cache@v4
+      - name: Restore tablebases
+        uses: actions/cache/restore@v4
         with:
           path: syzygy34
           key: syzygy-3-4-piece-v1
-      - name: Fetch missing tables (only on a cache miss)
+          fail-on-cache-miss: true
+      - name: Verify tables (md5; downloads nothing when the cache is complete)
         run: bash opus_round1/C1/ci_fetch_tables.sh syzygy34
       - name: Run ${{ matrix.mode }}
         run: bash opus_round1/C1/ci_syzygy.sh ${{ matrix.mode }} syzygy34 ci_out_c1
