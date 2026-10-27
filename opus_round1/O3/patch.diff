@@ -3202,10 +3202,10 @@ index 0000000..ec03e8f
 +} // namespace forge
 diff --git a/src/search/movepicker.hpp b/src/search/movepicker.hpp
 new file mode 100644
-index 0000000..91f8636
+index 0000000..fa5b12c
 --- /dev/null
 +++ b/src/search/movepicker.hpp
-@@ -0,0 +1,268 @@
+@@ -0,0 +1,271 @@
 +#pragma once
 +
 +// Search module: staged move picker.
@@ -3258,7 +3258,10 @@ index 0000000..91f8636
 +        }
 +    }
 +
-+    [[nodiscard]] Move next(bool skip_quiets) {
++    // Emitted out of line as a COMDAT, which the PE linker places after every
++    // object's .text: pin it to a 64-byte boundary (its AL1 s198 placement) so
++    // its alignment does not depend on the size of other translation units.
++    [[nodiscard, gnu::aligned(64)]] Move next(bool skip_quiets) {
 +        while (true) {
 +            switch (stage_) {
 +            case MainTT:
