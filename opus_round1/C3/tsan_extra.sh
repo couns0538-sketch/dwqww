@@ -25,6 +25,12 @@ run_test() { # name timeout_seconds command...
 # Watchdog vs search on short movetimes (overshoot is not judged under TSan, only missing/duplicate bestmoves).
 run_test latency_hd1_t2 240 python3 "$ROOT/tools/latency_test.py" "$FORGE" --suite "$ROOT/tools/wac300.epd" --count 20 \
     --movetimes 20,100 --passes 1 --threads 2 --option HardDeadline=1 --limit-ms 100000 --timeout 60
-# Ponder/ponderhit/stop/clock races with the watchdog at a 1 ms grace.
-run_test hard_deadline_regression_t3 240 python3 "$ROOT/tools/hard_deadline_regression.py" "$FORGE" --iterations 150 --threads 3 --grace 1 --slack 60
+# Ponder/ponderhit/stop/clock races with the watchdog at a 1 ms grace. The starved scenarios need the
+# DebugSearchDelayMs hook, which release-type builds no longer contain: use the test-only target built
+# next to forge (CMake target forge_debughooks), with forge as the perft reference.
+HOOKS="$(dirname "$FORGE")/forge_debughooks"
+if [ ! -x "$HOOKS" ]; then
+  echo "== [C3 tsan] FAIL: $HOOKS missing (test-only target with the DebugSearchDelayMs hook)"; exit 1
+fi
+run_test hard_deadline_regression_t3 240 python3 "$ROOT/tools/hard_deadline_regression.py" "$HOOKS" --iterations 150 --threads 3 --grace 1 --slack 60 --reference "$FORGE"
 exit $status

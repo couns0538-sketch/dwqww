@@ -110,10 +110,12 @@ def main():
     e.send("isready")
     e.until(lambda l: l == "readyok", 30, "readyok")
     if a.grace > 0:
-        # The starved scenarios need the DebugSearchDelayMs hook (debug builds / forge_debughooks only).
+        # The starved scenarios need the DebugSearchDelayMs hook (debug builds / forge_debughooks only). The
+        # probe searches no legal root move: without the hook the search answers 0000 at once, so only a held
+        # search thread lets the watchdog answer (a slow build cannot pass it by winning a race).
         e.send("setoption name DebugSearchDelayMs value 150")
         e.send(f"position fen {START}")
-        e.send("go movetime 20")
+        e.send("go movetime 20 searchmoves a1a1")
         _, seen = e.until(lambda l: l.startswith("bestmove"), a.slack, "bestmove (hook probe)")
         e.send("setoption name DebugSearchDelayMs value 0")
         e.send("isready")
