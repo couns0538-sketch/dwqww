@@ -1,6 +1,18 @@
-# FILES index, opus_round1/sol_S34 (job S34, branch opus-sol-S34). PARTIAL: evidence only, v2 validator not written yet. path | bytes | sha256 | content
-# REPORT.md is added by the main session. No .tar.gz archives in this job.
-logs/step1_live_manifest_copy.log | 2669 | e8eec1db191aa83b9180bcea7b8509590b384dd867e2613dbe23e818066c2599 | step 1: read-only copy of the live forge_gates.json into F:/opus_scratch/sol_s34/real (hashes before/after, BOM, structure profile); driver and autopromote hashes
-logs/step2_sol_v1_on_live.log | 1120 | 53936a3b9e0945eb2a60be5412670562dee57934c83f975de92974b8cb54ba26 | step 2: Sol's v1 validator unmodified on the live copy: strict 369 findings, --driver-defaults 136 (123 false UNSUPPORTED_FIELD for ag_* fields)
-logs/step3_sol_v1_tests_asis.log | 9004 | 84ce385c78eb853049e80d5f934a825ac942cf9606fc3bc183b5643f778870c9 | step 3: Sol's 21 tests as-is: 17 pass, 4 fail on missing inputs (bad_manifests/ never pushed; /workspace snapshot path)
-REPORT.md | 5040 | 0f015b232fc132e6344b09b4487f3e0b9297dee5a980fe7e3744d623f1f6f313 | job report (written by the main session from the job's results)
+# FILES index, opus_round1/sol_S34 (job S34, branch opus-sol-S34). DONE. path | bytes | sha256 | content
+# .tar.gz sizes: logs/step4_real_file_runs.tar.gz = 4640 bytes (the only archive).
+REPORT.md | 6646 | c3b20b8ef26c358648efa37e0fbcabb7a95e77e46b91c77c934cdd6784c4e148 | job report (DONE)
+README.md | 3438 | 0013712de7beb6521142dd9640f57f09c3c8a64f2f9a6f431e9fbd7bace499c1 | usage, profiles, v2 rules
+IDEA_SOURCE.md | 956 | 0b320a74f6b1a419af2c171c83358270ce3cfda1a35722430407a1120d6396f3 | idea/spec sources (Sol v1, deployed driver, autopromote)
+forge_sol_S34_validate_manifest_v2.py | 25256 | fac293614c88462c2067248ae21ae75dbd514fb59e7bcb9560315039f5a2da2e | the v2 validator (stdlib only, read-only)
+make_bad_manifests_v2.py | 12227 | a0444a1fcd887ef4a3bbe4a9e2f120cf69e5703c8d6e89278f01e32329e514a5 | deterministic fixture generator (valid + 51 single-defect manifests + index.json)
+test_validate_manifest_v2.py | 20708 | d4a9d73cf0d277e56e169ffe923e4e97697dcc0829726003c7b745dc5e2f768d | 31 tests: Sol's 21 ported + 10 v2 (real-file tests via S34_SNAPSHOT / S34_LIVE)
+mutation_check_v2.py | 3558 | 5d41d1052e5456dce9c4ee4a61f804d4f12bd41fc853b524e475945c2e775b1a | planted-bug check: 10 validator mutants must fail the tests
+logs/step1_live_manifest_copy.log | 2669 | e8eec1db191aa83b9180bcea7b8509590b384dd867e2613dbe23e818066c2599 | step 1: read-only copy of the live forge_gates.json, hashes, structure profile
+logs/step2_sol_v1_on_live.log | 1120 | 53936a3b9e0945eb2a60be5412670562dee57934c83f975de92974b8cb54ba26 | step 2: Sol's v1 on the live copy (369 strict / 136 driver-defaults findings)
+logs/step3_sol_v1_tests_asis.log | 9004 | 84ce385c78eb853049e80d5f934a825ac942cf9606fc3bc183b5643f778870c9 | step 3: Sol's 21 v1 tests as-is (17 pass; 4 lack inputs)
+logs/step3_fixtures.log | 279 | 6d89ee5426b4a49fb1a5f8c3ba1c0b3de60e137d7ca4eb984bb9b2f766a8cba4 | fixture generator determinism check (regenerated == committed)
+logs/step4_real_file_runs.log | 1061 | 96f896ce9d9aa7300779e2048527cc47cd0c40847a74e885e417051075b7de77 | v2 on the live copy and the snapshot, default and --strict (summary)
+logs/step4_real_file_runs.tar.gz | 4640 | 6a6b613c5a97e6be4d11dd4f30eed6bb426e73ef1dafb453231f8975239c66ba | the four full JSON reports of step 4
+logs/step5_v2_tests.log | 4959 | 0ab9b40447c9d1c30872382a3d022b10830c9ef832649a1edbfec338a0fdb998 | 31/31 tests OK with S34_SNAPSHOT and S34_LIVE set
+logs/step6_mutation_check.log | 1063 | c08c465562d7e1e84be6afb1a4bded4aa655feb8893eef91ad9862077371ab1d | mutation check PASS (10/10 caught)
+bad_manifests_v2/ | 154401 | index.json 2577474f5e29336ef439e9904e95f65916e75d751e039332e7c4fa7556654818 | 54 files: 2 valid + 51 bad manifests + index.json (per-file sha256 in SHA256SUMS)

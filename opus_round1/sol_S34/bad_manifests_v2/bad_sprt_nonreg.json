@@ -1,0 +1,96 @@
+{
+  "comment": "S34 v2 synthetic valid manifest (live-file shape; not a real gate list)",
+  "base": {
+    "name": "lock_s198",
+    "exe": "forge_lock_s198.exe",
+    "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "options": []
+  },
+  "lock": {
+    "locked": "2026-10-26",
+    "decided": "synthetic",
+    "net": "h256_e12",
+    "exe": "forge_lock_s198.exe",
+    "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "inference": "float",
+    "evidence": "synthetic",
+    "previous_baseline": "synthetic"
+  },
+  "gates": [
+    {
+      "gate": "1",
+      "tag": "gate001_alpha",
+      "cand": "alpha",
+      "exe": "forge_alpha.exe",
+      "sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "options": [
+        "option.UseFoo=true",
+        "option.FooScale=120"
+      ],
+      "srand": 11,
+      "openings_start": 1001,
+      "concurrency": 5,
+      "cap_games": 3000,
+      "prebench": {
+        "cand_off": 312866,
+        "cand_on": 312866
+      },
+      "base_override": {
+        "name": "lock_s198",
+        "exe": "forge_lock_s198.exe",
+        "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "options": []
+      },
+      "ag_vs_lock": "lock_s198",
+      "ag_rebuilt_on": "AUTOLOCK_1_synthetic",
+      "ag_base_lock_sha": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+      "ag_prev": {
+        "exe": "forge_alpha_old.exe",
+        "sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "prebench": {
+          "cand_off": 312866
+        },
+        "base_override": {
+          "name": "lock_s198",
+          "exe": "forge_lock_s198.exe",
+          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "options": []
+        },
+        "srand": 11,
+        "ag_vs_lock": "lock_s197"
+      },
+      "early_stop": {
+        "games": 750,
+        "elo_max": -8,
+        "llr_max": -1.5,
+        "rule": "net-only"
+      }
+    },
+    {
+      "gate": "2",
+      "tag": "gate002_alpha_confirm",
+      "cand": "alpha",
+      "exe": "forge_alpha.exe",
+      "sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "options": [
+        "option.UseFoo=true"
+      ],
+      "srand": 12,
+      "openings_start": 4001,
+      "concurrency": 7,
+      "tc": "10+0.1",
+      "sprt": {
+        "elo0": 0,
+        "elo1": 10,
+        "nonreg": "false"
+      },
+      "confirm_of": "gate001_alpha",
+      "pooled": false,
+      "ag_rebase_of": "gate001_alpha",
+      "ag_rebase_exempt24": false,
+      "ag_void_rerun_of": "gate001_alpha",
+      "ag_void_cause": "time loss",
+      "status": "HELD_synthetic"
+    }
+  ]
+}
