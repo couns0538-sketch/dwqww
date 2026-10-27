@@ -1,0 +1,35 @@
+S18 Filter threshold sweep + small ablation -- opus-sol-S18 -- STATE: PARTIAL (wound down on coordinator request, 2026-10-27)
+No training arm was started. t200/t300/t400/t500 are all NOT STARTED, and all of their losses are UNVERIFIED.
+REPORT.md is written by the main session (sub-agents cannot write it).
+
+Committed files (opus_round1/sol_S18/):
+  FILES                      this index
+  IDEA_SOURCE.md             idea/spec/tool sources (Sol 17aa0cae)
+  opus_s18_pin_check.py      read-only pin check: 42 pinned inputs (lock-archive trainer/Adam/data32 sample/nets/phase header,
+                             Sol's v4 controller, arms index, recipe, postscore prereg, filter + histogram tools, prereg/reference
+                             files, Sol's evidence archives and t200 v3 epoch artifacts) vs Sol's pinned sha256/md5. No Torch import.
+  logs/step0_pin_check.tar.gz   6308 bytes; contains step0_pin_check.log (command, raw output; RESULT PASS_ALL_PINS pinned=42
+                             failures=0) and step0_pin_check.json (per-file sha256/md5/bytes + environment: torch 2.4.1+cpu,
+                             numpy 1.26.4, venv python 3.10.22, free RAM/disk at run time)
+  SHA256SUMS                 sha256 of every file above except itself
+
+.tar.gz sizes: logs/step0_pin_check.tar.gz = 6308 bytes (the only archive).
+
+Not committed (scratch, left in place on this PC; all of it is read-only reference material extracted from Sol's branch 17aa0cae):
+  F:\opus_scratch\sol_s18\sol_src\                      301 MB in total
+    forge_sol_S18_train_selected_v4_20261027.py         Sol v4 controller (643e71ea), design source for the Windows port
+    forge_sol_S18_training_arms_index_20261026.json     Sol five-arm index (fb5d2575)
+    pinned\                                             f006 recipe, postscore prereg, S09 result, S09 diagnostic, S08 subreaper
+    instrument\                                         datafilter base + v2, t500 instrument runner, prereg/readiness
+    hist\                                               histogram batch wrapper + pins + Sol's completed five-arm histograms
+    prereg\                                             remaining4 v4 preregistration folder (argv, prereg, preflight, template, t200 reference)
+    v3_originals\                                       qualified none v3 result (f008b5db), failed t200 v3 result (fd0107bc), v3 grants
+    orig_ckpt\orig.tar.gz + x\                          Sol original S18 data checkpoint (1f48fb1f): t200/t400/t500 sealed shards, summaries,
+                                                        filter-case runner, describe tool
+    v3_evidence\v3.tar.gz + x\                          Sol v3 training evidence (e9ccce44): none v3 + failed t200 v3 raw outputs/weights
+  F:\opus_scratch\sol_s18\logs\                         step0_pin_check.log/.json (as archived above)
+
+Not yet written (next steps; see the REPORT.md draft in the sub-agent report):
+  opus_nnue_smoke_s18.py (Windows port of the v4 controller), opus_nnue_smoke_s18_v3b.py (renamed byte-identical trainer copy),
+  LF launcher shim for Sol's filter/describe tools, Windows arms index, grant file, data regeneration + histogram steps,
+  remaining4 run1 + run2, comparisons, loss table.
