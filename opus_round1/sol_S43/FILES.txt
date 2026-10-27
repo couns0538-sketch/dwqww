@@ -1,0 +1,33 @@
+# FILES index, opus_round1/sol_S43 (job S43, branch opus-sol-S43). path | bytes | sha256 | content
+# no .tar.gz in this job.
+IDEA_SOURCE.md | 1495 | 92a400b4be2bb61d6a420558ed4e023607c9cf22a174182dc3791a782b94cbdb | idea sources (Sol S26 v4 design and file formats, PC recipe scripts, AL1 pins and known lines, base B)
+README.md | 4130 | 5f86acaf420890e1d7f81f3ebaf1da094500d468df4d2bbc8fb83bd487b1d1ae | what v5 guarantees, usage, outputs, AL1 data files, tests
+fake_toolchain_s43.py | 4008 | 49590332d8ebc308dc92ab878f58c754676ee5f5bd644de03d7186f6121634d7 | SYNTHETIC g++/objdump/cmake/ctest + engine for the tests (fake ctest exits 2 on relative paths)
+forge_sol_S43_allowlist_AL1_20261027.json | 913 | 319d4cb9e14e15e690c157156d490a64d0ea76b235b63dc3fcdf8af0131e6f59 | NEW-BASE DATA: AL1 known forge_tests lines in Sol's forge-s26-allowlist-v1 schema (WAC 001 score 623)
+forge_sol_S43_bench_refs_AL1_20261027.json | 714 | e3a9b6adc74a97fb2916f48097ed613af58de0e821390362ad8ef98cc4b37a38 | NEW-BASE DATA: AL1 bench pins in Sol's forge-s26-bench-refs-v1 schema (net a7ebcf3a...)
+forge_sol_S43_netbatch_v5_20261027.py | 19522 | 4664886bbec21f95cc9dd5f1610d15859b8313a68c247faedb101655e3441481 | THE TOOL: PC-native net-pack batch v5 (--base, --bench-ref FILE, absolute paths everywhere, box build, FMA, bench, perft, CTest+allowlist)
+logs/step1_stage_base_B.log | 1149 | 8b037abbc3318167d9fc6c569435c0407c3d8fc2700d8dd8bcac9ab48e46b256 | base B (PC buffix h256e12 tree, net 74c4009d) copied read-only to scratch; 32 source files identical
+logs/step2_stage_base_AL1.log | 382 | 6a8783ee0f20ce462c4b122819c1f12da9825664fa4c3ba93b3a96d9d1d22847 | new base AL1 copied from the lock archive; 75/75 files match its sha256 list
+logs/step3_tests_final.log | 662 | 94a00f6ee278b91f4e5d49260c4475ad87e2a77d15d8ad1d204e7710d4076769 | final tests 7/7
+logs/step3a_mutation_check_first_M8_survived.log | 1121 | 8cae1f73993fd6eb57b5c0c85fe6f1209bf8f61843b9eaff98248b1cb2f0e19b | first mutation run: 8/9 (max_count masked by max_total)
+logs/step3b_mutation_check_final.log | 1160 | ff337bbb2c9634ba194b012a22f71f557b9ad991df85508c9e7505063bd898c5 | final mutation run: control PASS, 9/9 caught
+logs/step3b_mutation_results.json | 1608 | b3fdee40d984206bc55c811452b48aa02c3507792888d16a5f62b914ed4a808d | per-mutant failing tests (final)
+logs/step4_runA_baseB_locknet.log | 543 | 8befc91af474cd40092fcc513fb071a34f02766eea6b06b747117e938b915fa5 | native run A: base B + lock net vs Sol's unchanged refs: PASS
+logs/step4b_runA_exe_vs_pc_buffix_build.log | 631 | 1ff58b3a783ac6a3bdd154d061b294486d9d75ae89c08f7c3a263ac1302648d5 | run A exe vs the PC's own buffix exe: 5 differing bytes (PE timestamp/checksum)
+logs/step5_runB_AL1_newbase_othercwd.log | 711 | bf4ea31e8beece1124e1e6a2a0e4466c4616f401b97be4c0388bebce2c737a49 | native run B: new base AL1 from another cwd, relative paths, perft + CTest: PASS
+mutation_check_s43.py | 3508 | 4d1ef70965c4bbede83b3c2af50bcfcfdbc99c18db6d5ba30a3a02bf6199cab3 | unmutated control + 9 planted bugs
+results/runA_baseB_locknet/netbatch_result.json | 4427 | 3e67f12eb7b4e77499fbdc5429fc302c5cfc74d0eb90e59774693c36722a48e7 | run A full result (inputs as given/resolved, steps, bench vs refs, perft, FMA)
+results/runA_baseB_locknet/netbatch_table.md | 278 | 13bc53aed7a3f6cdab037334292a23687274a306070114d87b7118545c0d998c | run A table
+results/runA_baseB_locknet/scratch_outputs_sha256.txt | 465 | ca804b097e1b576d449ca6e262bbc16b33be82edfa4513e3a5ff69d9fa3390e5 | run A exe and objdump sha256 (kept in scratch)
+results/runA_baseB_locknet/uci_transcript.txt | 2268 | b5d0ecbdb1b4070f1413e55aeeb722a6ac470f1c6e4174447b100e741dd7ed41 | run A UCI dialogue (bench x5, perft x2)
+results/runB_AL1_newbase_relative_othercwd/cmake_build_stdout.txt | 5608 | 56b935a528010660397b1e3f6b8e8eadd6e97ece6c1ff5790af9557886eb792e | run B CMake build output (30 steps)
+results/runB_AL1_newbase_relative_othercwd/cmake_configure_stdout.txt | 577 | 743bf3efc7685cdcf58d0e9897adb4cf6156f2259257368386f37494fa741b5c | run B CMake configure output
+results/runB_AL1_newbase_relative_othercwd/ctest_junit.xml | 9287 | 807304846751a127915332ffd67523e4e33233ae566ae34284041c16418b14ba | run B CTest junit (absolute path)
+results/runB_AL1_newbase_relative_othercwd/ctest_stdout.txt | 2109 | db97ad310aa38e4499b4d7d8a84e759fc2dea342e78ff814c8ad2f5696e5a09e | run B CTest output: 13/14, forge_tests = 4 known lines
+results/runB_AL1_newbase_relative_othercwd/netbatch_result.json | 8510 | 5eaf1717cd8d6247ee4b8750ff9d8c830dcad30fbd1d46e315dde6b8cc524716 | run B full result
+results/runB_AL1_newbase_relative_othercwd/netbatch_table.md | 270 | e53ac6859e81dcffecba67e6785e803b7f70a691e05585ac19a8f948fa3c05fe | run B table
+results/runB_AL1_newbase_relative_othercwd/scratch_outputs_sha256.txt | 567 | 801b26b656bed128c1a92b301bf0ce647849aea7011dcebcd51ee10033484ed8 | run B exe and objdump sha256 (kept in scratch)
+results/runB_AL1_newbase_relative_othercwd/uci_transcript.txt | 2268 | 1a8a0bfc3c2170b0bad061a573995c326fe129b8bcd84712bbaa0437c008357c | run B UCI dialogue
+sol_S26/forge_sol_S26_allowlist_20261026.json | 9394 | 14b5559f1158b98bc86fa571a8af9da87afd79ba1e395a9a06a7d5c5299814ef | Sol's S26 allowlist, unchanged copy from 17aa0cae (sha256 14b5559f..., matches his SHA256SUMS)
+sol_S26/forge_sol_S26_bench_refs_20261026.json | 3668 | 2247c3985016fc964cb5387193e7e83c13e213e1ada24e76cd1f16e0b479f61d | Sol's S26 bench refs, unchanged copy from 17aa0cae (sha256 2247c398..., matches his SHA256SUMS)
+test_forge_sol_S43_netbatch_v5_20261027.py | 11440 | 489e2d458bfeb7a4fac9bdc237bd53474c57177f7a3fe292b0ea2ed166598fdd | 7 tests: relative-from-other-cwd == absolute, new base no edits, PIN_MISMATCH, NO_REFERENCE, FMA, refusals, allowlist, CTest path
