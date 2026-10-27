@@ -1,4 +1,4 @@
-# S-IT Intended-threefold claim (FIDE 9.2.1, GitHub issue #7), UCI `IntendedThreefold` (default false) — DONE (NPS cost: see below)
+# S-IT Intended-threefold claim (FIDE 9.2.1, GitHub issue #7), UCI `IntendedThreefold` (default false) — DONE
 
 **Branch.** `opus-sol-SIT` = `d4f4312` (AL1 s198 lock tree) + `0d99f02` cherry-picked + this job. It is a fresh
 implementation from the issue text, not the issue's run38-run49 lineage code. No Elo claim; UNPROVEN until gated.
@@ -28,7 +28,7 @@ implementation from the issue text, not the issue's run38-run49 lineage code. No
 | planted bugs | **PASS 6/6 caught**: qsearch TT cut, search TT cut, claim as a forced draw (mate lost), null-move boundary ignored, TT store at claim nodes, twofold instead of threefold | `logs/step3_mutants.log`, `mutate_sit.py` |
 | option OFF: bench and perft identical | **PASS**. Box recipe: bench 312866/862329/3024920/12389307/34048354, perft5 4865609, kiwipete 193690690, ALL OK; FMA 0 | `logs/step1_build_identity_off.log` |
 | CTest | **PASS**. 15 tests: everything passes except the 4 known `forge_tests` lines (known-failure check PASS); new `forge_intended_threefold_tests` PASS; `uci_regression` PASS | `logs/step5_ctest.log` |
-| NPS cost | **measured, see below** | `logs/step7_*`, `logs/step8_*` |
+| NPS cost | **measured: no cost** on the quiet runner (off vs lock +0.06% / +0.59%; on vs off +0.00% / −0.25%, CIs include 0 or favour the branch) | below, `logs/step7_*`, `logs/step8_*` |
 
 ## NPS cost (advisory; no speed claim)
 The PC runs used `nps_ab_opts.py` (ABBA, 8 runs per side, bench d16/d20, Threads 1, Hash 16, Idle priority) on the
@@ -43,15 +43,31 @@ loaded PC: a conc-8 gate, NNUE training, self-play and 7 sub-agents starting bui
   on, the cost is the per-node scan.
 - The option-off build grew: qsearch 4080 → 4480 bytes, search 12304 → 12576 bytes; search moved from 32 to 48
   bytes mod 64 (`logs/step8_hot_function_sizes_pc.log`). A real layout cost is possible.
-- The PC numbers were taken under unusually heavy, changing load. The quiet-runner A/B (`ci_sit.sh`, 10 runs per
-  side, workflow `opus-sol-sit-ci`) is the measurement to quote. Result: pending CI on this push.
+- The PC numbers were taken under unusually heavy, changing load. The quiet-runner A/B is the measurement to
+  quote.
+
+**Quiet runner (the measurement to quote).** Workflow `opus-sol-sit-ci` run 40504311743 on `edc2519`, AMD EPYC
+7763, `ci_sit.sh`, 10 ABBA runs per side, nodes identical:
+
+| comparison | d16 CPU-time NPS | d20 CPU-time NPS |
+|---|---|---|
+| option-off build vs lock (same g++-14 Release flags) | +0.06% (95% CI −0.70 .. +0.81) | +0.59% (+0.01 .. +1.17) |
+| same binary, option on vs off | +0.00% (−0.77 .. +0.78) | −0.25% (−1.36 .. +0.87) |
+
+- **Option off:** no cost. The PC's −4.4/−5.7% came from the load, not the code.
+- **Option on:** no measurable cost on the bench positions. With no game history the scan almost always stops at
+  the span or duplicate check. Games with long reversible histories run the full scan more often; that cost is not
+  measured.
+- On Linux the code grew too: qsearch 4233 → 4716 bytes, search 12737 → 12912 bytes.
+- opus-ci run 40504311593 on the same push: release identity ALL OK, ctest known-only; ASan and TSan known-only,
+  0 sanitizer reports.
 
 ## Limitations / UNVERIFIED
 - History-dependent values can still reach TT entries of ancestor nodes, as with ordinary repetition draws. The
   issue states the same limit; it is not solved here.
 - The root position's own claim right is not used (no UCI claim action); a root search still finds the draw by
   searching the claim move at depth >= 1.
-- No gate; no Elo claim. The NPS cost on a quiet machine: CI (pending).
+- No gate; no Elo claim.
 
 ## Files
 - Engine: `include/forge/board.hpp`, `src/board.cpp`, `include/forge/search.hpp`, `src/search.cpp`, `src/uci.cpp`.
