@@ -1,0 +1,184 @@
+# Normalised instruction diff of forge::Worker::search(forge::Board&, ...) (alpha-beta, default OFF build)
+# < AL1 s198 lock exe, > opus-C6 4d14f3c (PC recipe); addresses/immediates normalised as in codegen_compare.sh
+# Same call multiset; no reference to options::cuckoo_rep (it is read only by the per-iteration driver).
+1342a1343
+> nopl IMM(%rax)
+1351,1354c1352
+< je ADDR
+< mov IMM(%rsp),%ebx
+< cmp %ebx,IMM(%rip)
+< jle ADDR
+---
+> jne ADDR
+1355a1354
+> mov IMM(%rsp),%ebx
+1362c1361
+< je ADDR
+---
+> jne ADDR
+1364a1364,1369
+> mov IMM(%rsp),%eax
+> cmp $IMM,%eax
+> je ADDR
+> add $IMM,%eax
+> cmp $IMM,%eax
+> ja ADDR
+1366,1369c1371,1375
+< cmp IMM(%rip),%ebx
+< jge ADDR
+< jmp ADDR
+< xchg %ax,%ax
+---
+> lea -IMM(%rbx),%eax
+> cmp IMM(%rsp),%eax
+> jle ADDR
+> cmpb $IMM,IMM(%rsp)
+> jne ADDR
+1371d1376
+< mov IMM(%rsp),%ebx
+1376c1381
+< xchg %ax,%ax
+---
+> cs nopw IMM(%rax,%rax,1)
+1464a1470,1474
+> mov IMM(%rsp),%ebx
+> cmp IMM(%rip),%ebx
+> jge ADDR
+> jmp ADDR
+> data16 cs nopw IMM(%rax,%rax,1)
+1570,1585d1579
+< cmpb $IMM,IMM(%rsp)
+< je ADDR
+< mov IMM(%rsp),%eax
+< cmp $IMM,%eax
+< je ADDR
+< add $IMM,%eax
+< cmp $IMM,%eax
+< ja ADDR
+< mov IMM(%rsp),%ebx
+< lea -IMM(%rbx),%eax
+< cmp IMM(%rsp),%eax
+< jle ADDR
+< cmpb $IMM,IMM(%rsp)
+< jne ADDR
+< jmp ADDR
+< cs nopw IMM(%rax,%rax,1)
+1604a1599,1600
+> nopl (%rax)
+> data16 cs nopw IMM(%rax,%rax,1)
+1968a1965,1966
+> mov %eax,%ebx
+> jmp ADDR
+2036,2037d2033
+< mov %eax,%ebx
+< jmp ADDR
+2104a2101,2119
+> mov IMM(%rsp),%edi
+> lea IMM(%r13,%rdi,1),%r9d
+> mov IMM(%rsp),%edx
+> mov IMM(%rsp),%ebx
+> mov %eax,IMM(%rsp)
+> mov IMM(%rsp),%eax
+> mov IMM(%rsp),%dl
+> mov %esi,IMM(%rsp)
+> mov %r11d,IMM(%rsp)
+> mov %r10d,IMM(%rsp)
+> mov IMM(%rsp),%dh
+> shl $IMM,%ebx
+> and $IMM,%edx
+> mov %eax,IMM(%rsp)
+> or %ebx,%edx
+> mov %edx,IMM(%rsp)
+> vmovq %xmm10,%rdx
+> call ADDR
+> jmp ADDR
+2130,2148d2144
+< mov IMM(%rsp),%edi
+< lea IMM(%r13,%rdi,1),%r9d
+< mov IMM(%rsp),%edx
+< mov IMM(%rsp),%ebx
+< mov %eax,IMM(%rsp)
+< mov IMM(%rsp),%eax
+< mov IMM(%rsp),%dl
+< mov %esi,IMM(%rsp)
+< mov %r11d,IMM(%rsp)
+< mov %r10d,IMM(%rsp)
+< mov IMM(%rsp),%dh
+< shl $IMM,%ebx
+< and $IMM,%edx
+< mov %eax,IMM(%rsp)
+< or %ebx,%edx
+< mov %edx,IMM(%rsp)
+< vmovq %xmm10,%rdx
+< call ADDR
+< jmp ADDR
+2153,2154d2148
+< vmovdqa %xmm12,%xmm0
+< jmp ADDR
+2157a2152,2158
+> vmovdqa %xmm12,%xmm0
+> jmp ADDR
+> mov %rbp,%rcx
+> call ADDR
+> test %al,%al
+> jne ADDR
+> jmp ADDR
+2175,2179d2175
+< mov %rbp,%rcx
+< call ADDR
+< test %al,%al
+< jne ADDR
+< jmp ADDR
+2210d2205
+< nopl (%rax)
+2216,2226d2210
+< mov IMM(%rsp),%ebx
+< cmp %ebx,IMM(%rsp)
+< jl ADDR
+< mov IMM(%rsp),%eax
+< mov %eax,IMM(%rsp)
+< jmp ADDR
+< cmp %eax,IMM(%rsp)
+< jg ADDR
+< jmp ADDR
+< mov %ebx,IMM(%rsp)
+< jmp ADDR
+2269a2254,2260
+> jl ADDR
+> mov IMM(%rsp),%eax
+> mov %eax,IMM(%rsp)
+> jmp ADDR
+> mov %ebx,IMM(%rsp)
+> jmp ADDR
+> cmp %eax,IMM(%rsp)
+2271a2263,2271
+> mov IMM(%rsp),%ebx
+> cmp %ebx,IMM(%rsp)
+> jg ADDR
+> jmp ADDR
+> vzeroupper
+> jmp ADDR
+> xor %ecx,%ecx
+> mov %ecx,IMM(%rsp)
+> jmp ADDR
+2292,2296d2291
+< vzeroupper
+< jmp ADDR
+< xor %ecx,%ecx
+< mov %ecx,IMM(%rsp)
+< jmp ADDR
+2300,2303d2294
+< mov $IMM,%eax
+< cmp %dl,%cl
+< jne ADDR
+< jmp ADDR
+2405a2397,2400
+> mov $IMM,%eax
+> cmp %dl,%cl
+> jne ADDR
+> jmp ADDR
+2411c2406,2407
+< nopl (%rax)
+---
+> nop
+> nop

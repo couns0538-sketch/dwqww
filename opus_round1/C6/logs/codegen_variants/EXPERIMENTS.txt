@@ -1,0 +1,33 @@
+# C6 codegen experiments (default OFF build vs the AL1 s198 lock exe)
+
+All builds: PC lock recipe (`build_pc.sh`, MSYS2 g++ 15.2, -O3 -march=znver5 ...), compared with
+`opus_round1/O3/codegen_compare.sh` (hot functions, normalised instructions, start address mod 64).
+Only `Worker::search(Board&, ...)` (alpha-beta) and the per-iteration driver `Worker::search(Board, ...)`
+ever differed; every other listed hot function stayed instruction-identical at the same address mod 64.
+
+## Variants of the search hook (codegen_v*.log)
+| variant | design | alpha-beta insns (lock 2413) | differing lines | per-node option test |
+|---|---|---|---|---|
+| v1 (rejected) | `if (options::cuckoo_rep) [[unlikely]] { inline detector, alpha raise }` at the top of search | 2462 | 913 | yes |
+| v2 (rejected) | same, body in an opaque `[[gnu::cold, gnu::noinline]]` member returning the new alpha | 2411 | 324 | yes |
+| v3 (rejected) | same, cold member returning a result or a sentinel (re-search with raised alpha) | 2463 | 696 | yes |
+| v4 | alphabeta.inc compiled twice (search / search_cuckoo), root picks the instance | 2409 | 150 | no |
+| v5 | v4 + qsearch.inc compiled twice | 2409 (qsearch 810, identical) | 150 | no |
+| v6 = final design | v5 with the bound in two wrappers (cuckoo.inc), modules only renamed | 2409 (qsearch identical) | 150 | no |
+
+## Why the default alpha-beta still differs in v4-v6 (scratch tree, `exp.sh`)
+| experiment | alpha-beta insns | differing lines |
+|---|---|---|
+| e2: no second instance in search.cpp | 2413 | 0 |
+| e1: second instance present but never called | 2409 | 150 |
+| e3: second instance marked `[[gnu::noipa]]` | 2409 | 150 |
+| e5: second instance right after the first | 2409 | 150 |
+| e6: second instance before the first | 2409 | 150 |
+| one vs two instances, both with `-fno-ipa-ra` | 2414 vs 2410 | 150 |
+
+`-fdump-tree-optimized` of the default alpha-beta with one and with two instances in the unit: the 3222
+GIMPLE statements are identical except one comparison whose operands GCC canonicalises by SSA version
+number (`gimple_search_one_vs_two_instances.diff`):
+`CheckExtensionDepth <= depth` (lock) vs `depth >= CheckExtensionDepth` (two instances). The RTL block
+layout follows from that. Same calls, no added instruction, no option test; the start address mod 64 is
+unchanged (32).
