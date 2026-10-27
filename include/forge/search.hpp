@@ -59,6 +59,8 @@ private:
     [[nodiscard]] int static_evaluate(const Board& board, SearchStack* ss);
     // v2 network path (options::nnue_v2; src/search/evaluation_v2.inc).
     [[nodiscard]] int static_evaluate_v2(const Board& board, SearchStack* ss);
+    // v2 network with threat inputs (O6, options::nnue_threats; src/search/evaluation_threats.inc).
+    [[nodiscard]] int static_evaluate_threats(const Board& board, SearchStack* ss);
     void record_move(SearchStack* ss, const Board& board, const Move& move);
     void record_null_move(SearchStack* ss);
 };

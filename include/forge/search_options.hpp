@@ -25,6 +25,16 @@ namespace forge::options {
 // and the engine is the AL1 s198 engine.
 extern int nnue_king_buckets;
 
+// UCI NNUEThreats (spin 0-1, default 0; O6; "true" / "false" are accepted as
+// well): 1 = evaluate with a v2 net that has threat inputs (header feature_set
+// bit 0; forge/nnue_v2.hpp ThreatFeatures), loaded with NNUEFile; with
+// NNUEKingBuckets 0 that net must have one king bucket, with NNUEKingBuckets
+// N > 0 exactly N. The header and the option must agree both ways: NNUEThreats 1
+// with a net without threat inputs, and NNUEThreats 0 with a threat net, are
+// fail-loud errors (rule above). NNUEThreats 1 is itself a v2 request (an error
+// without a usable net); UseNNUE false still wins.
+extern int nnue_threats;
+
 // Derived switch read by Worker::static_evaluate: true while a v2 network is
 // active. Written only by apply_nnue_v2().
 extern bool nnue_v2;

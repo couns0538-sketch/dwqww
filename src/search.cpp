@@ -30,6 +30,7 @@
 #include "search/tt.inc"          // transposition table
 #include "search/movepicker.hpp"  // staged move picker
 #include "search/worker.inc"      // per-thread state lifecycle
+#include "search/evaluation_threats.inc" // v2 network with threat inputs (O6, NNUEThreats)
 #include "search/evaluation_v2.inc" // v2 network evaluation (NNUEFile + NNUEKingBuckets)
 #include "search/evaluation.inc"  // static evaluation glue, correction history
 #include "search/timeman.hpp"     // time budgets and the soft stop rule (inline)
