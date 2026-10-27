@@ -881,6 +881,14 @@ int Worker::qsearch(Board& board, SearchStack* ss, int alpha, int beta) {
     const Bound bound = best_score >= beta ? BoundLower : (pv_node && !best_move.is_none() ? BoundExact : BoundUpper);
     if (!claim) {
         shared_.tt.store(tt_probe, board.key(), score_to_tt(best_score, ply), in_check ? ValueNone : ss->raw_eval, best_move, 0, bound, tt_pv, board.halfmove_clock());
+    } else if (!tt_hit || tte.score == ValueNone) {
+        // Claim node: keep the move and the static evaluation, never the
+        // history-dependent score. The raw score ValueNone (not score_to_tt) makes
+        // every probe read tt_score == ValueNone; each use of tt_score or of the
+        // bound requires tt_score != ValueNone or tests tt_score < beta, which
+        // ValueNone (> Infinite) never passes. Entries with a score are not replaced.
+        shared_.tt.store(tt_probe, board.key(), ValueNone, in_check ? ValueNone : ss->raw_eval, best_move, 0, BoundUpper, tt_pv,
+                         static_cast<std::uint16_t>(board.halfmove_clock()));
     }
     return best_score;
 }
@@ -889,7 +897,7 @@ int Worker::qsearch(Board& board, SearchStack* ss, int alpha, int beta) {
 // Main alpha-beta search
 
 int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta, bool cut_node) {
-    const bool pv_node = beta - alpha > 1;
+    bool pv_node = beta - alpha > 1;
     const bool root_node = ss->ply == 0;
     const int ply = ss->ply;
 
@@ -906,6 +914,7 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
     ss->move_count = 0;
 
     bool claim = false;
+    bool claim_raised_alpha = false;
     if (!root_node) {
         if (is_draw(board, ply)) return 0;
         if (ply >= MaxPly) return board.in_check() ? 0 : static_evaluate(board, ss);
@@ -914,11 +923,14 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
         beta = std::min(beta, mate_in(ply + 1));
         if (alpha >= beta) return alpha;
         // UCI IntendedThreefold: the draw score is a floor (see qsearch); no TT
-        // score is used or stored at this node.
+        // score is used or stored at this node. A window (a, 1) with a < 0 becomes
+        // the null window (0, 1) and is searched as one.
         claim = options::intended_threefold && board.can_claim_threefold_by_next_move();
         if (claim) {
             if (beta <= 0) return 0;
+            claim_raised_alpha = alpha < 0;
             alpha = std::max(alpha, 0);
+            pv_node = beta - alpha > 1;
         }
     }
 
@@ -1229,9 +1241,11 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
         // Even without a cutoff, a new PV move earned its place.
         apply_history((*main_history_)[static_cast<std::size_t>(board.side_to_move())][best_move.from][best_move.to],
                       history_bonus(depth) / 4);
-    } else if (tune::FailLowContinuationBonus > 0 && best_move.is_none() && !(ss - 1)->current_move.is_none() &&
-               (ss - 1)->moved_piece != Empty && !(ss - 1)->current_move.is_capture() && ply > 0) {
-        // Every move failed low: the parent's quiet move refuted this line.
+    } else if (tune::FailLowContinuationBonus > 0 && best_move.is_none() && !claim_raised_alpha &&
+               !(ss - 1)->current_move.is_none() && (ss - 1)->moved_piece != Empty &&
+               !(ss - 1)->current_move.is_capture() && ply > 0) {
+        // Every move failed low: the parent's quiet move refuted this line. Not when
+        // the claim floor raised alpha: the value 0 then lies inside the original window.
         update_continuation(ss - 1, (ss - 1)->moved_piece, (ss - 1)->current_move.to,
                             history_bonus(depth) * tune::FailLowContinuationBonus / 100);
     }
@@ -1239,6 +1253,10 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
     const Bound bound = best_score >= beta ? BoundLower : (pv_node && !best_move.is_none() ? BoundExact : BoundUpper);
     if (excluded.is_none() && !(root_node && root_restricted_) && !claim) {
         shared_.tt.store(tt_probe, board.key(), score_to_tt(best_score, ply), ss->raw_eval, best_move, depth, bound, ss->tt_pv, board.halfmove_clock());
+    } else if (claim && excluded.is_none() && (!tt_hit || tte.score == ValueNone)) {
+        // Claim node: move and static evaluation only, raw score ValueNone (see qsearch).
+        shared_.tt.store(tt_probe, board.key(), ValueNone, ss->raw_eval, best_move, 0, BoundUpper, ss->tt_pv,
+                         static_cast<std::uint16_t>(board.halfmove_clock()));
     }
     // Teach the static evaluation about this pawn structure when the search
     // result is a usable bound in the direction of the difference (a claim floor

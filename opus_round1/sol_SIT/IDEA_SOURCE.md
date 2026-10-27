@@ -23,3 +23,10 @@
   castling rights, the en passant key only when a legal en passant capture exists). A make_move brute-force
   reference in the test checks it on 11,720 random shuffling positions.
 - **fastchess-style tooling:** `nps_ab_opts.py` is opus-sol-S29's `nps_ab.py` with per-side UCI options added.
+- **Code review of `fc3bd2a`** (2026-10-27; scratch evidence `F:\opus_scratch\review_sit`): seven findings (claim-check
+  cost in shuffling positions, bare-king-only search fixtures, ungated regression checks, unchecked CI exit
+  status, no hash move at claim nodes, fail-low bonus after the floor raised alpha, PV treatment of a collapsed
+  window). The two material fixtures, the shuffling positions (`perf_claim_ab.py` cases `shuffle_hist`,
+  `longwalk_hist`, `walk34_castle`) and the single-guard mutant edits (`review_sit/mut/make_single.py`,
+  `make_qforced.py`, `make_mutant.py`) come from that review. The CPU-time probe in `perf_claim_ab.py` follows
+  the review's `probe_claim_cost2.py` (GetProcessTimes between `readyok` and `bestmove`).

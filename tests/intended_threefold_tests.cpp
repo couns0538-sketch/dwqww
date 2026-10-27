@@ -1,5 +1,6 @@
 // UCI IntendedThreefold (FIDE 9.2.1 intended-move threefold claim, GitHub issue #7): board-level claim
-// detection against a make_move() brute-force reference, and the non-root search/quiescence floor.
+// detection against a make_move() brute-force reference, the non-root search/quiescence floor, and the
+// transposition-table and statistics guards at claim nodes.
 #include "forge/board.hpp"
 #include "forge/nnue.hpp"
 #include "forge/search.hpp"
@@ -12,13 +13,14 @@
 #include <stdexcept>
 #include <string>
 #include <string_view>
+#include <tuple>
 #include <vector>
 
 namespace forge {
 // Non-root search at ply 1 with an explicit window (same probe as tests/rule50_tests.cpp): worker
 // state is reset, the transposition table is kept.
 struct SearcherTestProbe {
-    static int run(Searcher& searcher, Board board, int depth, int alpha, int beta) {
+    static Worker& prepare(Searcher& searcher, const Board& board) {
         auto& worker = searcher.main_worker();
         worker.clear();
         worker.shared_.stop.store(false, std::memory_order_relaxed);
@@ -34,11 +36,49 @@ struct SearcherTestProbe {
         worker.start_ = std::chrono::steady_clock::now();
         worker.seldepth_ = 0;
         worker.root_history_index_ = board.history_size() - 1;
+        return worker;
+    }
+    static int search(Worker& worker, Board& board, int depth, int alpha, int beta) {
         auto* ss = &worker.stack_[5];
         ss->ply = 1;
         nnue::refresh(board, ss->accumulator);
         return depth == 0 ? worker.qsearch(board, ss, alpha, beta)
                           : worker.search(board, ss, depth, alpha, beta, false);
+    }
+    static int run(Searcher& searcher, Board board, int depth, int alpha, int beta) {
+        Worker& worker = prepare(searcher, board);
+        return search(worker, board, depth, alpha, beta);
+    }
+    // As run(), with the two plies before the node set to the given quiet moves (piece = the piece now on
+    // the move's target square): null-move pruning becomes possible and a fail-low continuation bonus of
+    // the node has a parent move and a target entry.
+    static int run_after(Searcher& searcher, Board board, int depth, int alpha, int beta, Move parent,
+                         Move grandparent) {
+        Worker& worker = prepare(searcher, board);
+        auto& history = *worker.continuation_history_;
+        SearchStack& p = worker.stack_[4];
+        p.current_move = parent;
+        p.moved_piece = board.piece_at(parent.to);
+        p.continuation = &history[static_cast<std::size_t>(p.moved_piece)][parent.to];
+        SearchStack& g = worker.stack_[3];
+        g.current_move = grandparent;
+        g.moved_piece = board.piece_at(grandparent.to);
+        g.continuation = &history[static_cast<std::size_t>(g.moved_piece)][grandparent.to];
+        return search(worker, board, depth, alpha, beta);
+    }
+    // The continuation-history entry that a fail-low bonus of the node writes.
+    static int parent_bonus(Searcher& searcher, const Board& board, Move parent, Move grandparent) {
+        const auto& history = *searcher.main_worker().continuation_history_;
+        return history[static_cast<std::size_t>(board.piece_at(grandparent.to))][grandparent.to]
+                      [static_cast<std::size_t>(board.piece_at(parent.to))][parent.to];
+    }
+    // True when no pawn or material correction entry of `side` was taught.
+    static bool correction_untouched(Searcher& searcher, Color side) {
+        const auto& worker = searcher.main_worker();
+        const auto zero = [](std::int32_t value) { return value == 0; };
+        const auto& pawn = (*worker.correction_history_)[static_cast<std::size_t>(side)];
+        const auto& material = (*worker.material_correction_)[static_cast<std::size_t>(side)];
+        return std::all_of(pawn.begin(), pawn.end(), zero) && std::all_of(material.begin(), material.end(), zero);
     }
 };
 } // namespace forge
@@ -68,6 +108,13 @@ forge::Board line(std::string_view fen, std::string_view moves) {
     return board;
 }
 
+forge::Move uci_move(std::string_view fen, std::string_view moves, std::string_view text) {
+    forge::Board board = line(fen, moves);
+    const auto move = board.parse_uci(text);
+    if (!move.has_value()) throw std::runtime_error("illegal move in fixture");
+    return *move;
+}
+
 // Reference: make every legal move and count earlier occurrences of the new key, same side to move,
 // inside the new position's reversible window (fixtures without null moves).
 bool reference_claim(forge::Board board) {
@@ -87,9 +134,32 @@ bool reference_claim(forge::Board board) {
     return false;
 }
 
+// The claim node kept no usable score: no entry, or the placeholder (raw score ValueNone, BoundUpper,
+// depth 0) that keeps only a move and the static evaluation.
+bool no_score_stored(forge::Searcher& searcher, std::uint64_t key) {
+    const auto probe = searcher.transposition_table().probe(key);
+    return !probe.hit || (probe.entry.score == forge::ValueNone && probe.entry.bound() == forge::BoundUpper &&
+                          probe.entry.depth == 0);
+}
+
+std::string window_tag(int depth, int alpha, int beta) {
+    return " (depth " + std::to_string(depth) + ", window " + std::to_string(alpha) + "," + std::to_string(beta) + ")";
+}
+
 constexpr std::string_view IssueFen = "8/7k/8/8/8/8/8/K1R5 w - - 0 1";
 constexpr std::string_view Positive = "a1a2 h7h8 a2a1 h8h7 a1a2 h7h8 a2a1";
 constexpr std::string_view Control = "a1b1 h7h8 b1b2 h8h7 b2a2 h7h8 a2a1";
+// Fixtures in which the claiming side has material, so pruning and captures matter (code review: with a
+// bare king the claiming move is always searched and a forced draw in qsearch is never wrong).
+// QR: black (rook against queen) may claim with b8b7; at depth 1 the claiming quiet move is pruned.
+constexpr std::string_view QrFen = "7k/1r6/8/8/8/8/8/K2Q4 w - - 0 1";
+constexpr std::string_view QrMoves = "a1a2 b7b8 a2a1 b8b7 a1a2 b7b8 a2a1";
+// QC: black may claim with h8h7 but wins the queen with Rc8xc1+, worth far more than the draw.
+constexpr std::string_view QcFen = "2r5/7k/8/8/8/8/8/K1Q5 w - - 0 1";
+constexpr std::string_view QcMoves = "a1a2 h7h8 a2a1 h8h7 a1a2 h7h8 a2a1";
+// WC: white (queen against rook) may claim with a2a1; its stand pat and best quiet move are far above 0.
+constexpr std::string_view WcFen = "7k/1r6/8/8/8/8/8/K2Q4 b - - 0 1";
+constexpr std::string_view WcMoves = "h8g8 a1a2 g8h8 a2a1 h8g8 a1a2 g8h8";
 
 void board_tests() {
     const forge::Board positive = line(IssueFen, Positive);
@@ -132,6 +202,15 @@ void board_tests() {
     const forge::Board three = line(Castle, "e1f1 e8f8 f1e1 f8e8 e1f1 e8f8 f1e1 f8e8 e1f1 e8f8 f1e1 f8e8");
     check(three.can_claim_threefold_by_next_move() && reference_claim(three),
           "same rights twice before: e1f1 would create the third occurrence (claim)");
+
+    // Material fixtures used by the search tests below.
+    for (const auto& [fen, moves, name] : {std::tuple{QrFen, QrMoves, "QR: black (rook) may claim with b8b7"},
+                                           std::tuple{QcFen, QcMoves, "QC: black may claim with h8h7"},
+                                           std::tuple{WcFen, WcMoves, "WC: white (queen) may claim with a2a1"}}) {
+        const forge::Board board = line(fen, moves);
+        check(!board.is_repetition() && !board.in_check() && board.can_claim_threefold_by_next_move() &&
+                  reference_claim(board), std::string("material fixture ") + name);
+    }
 }
 
 // Random shuffling games from several positions: compare the claim with the reference at every ply.
@@ -183,21 +262,23 @@ void random_cross_check() {
           "claim equals the make_move reference on random shuffling games (both outcomes exercised)");
 }
 
+struct Window {
+    int alpha;
+    int beta;
+};
+
 void search_tests() {
     using forge::Infinite;
     using forge::SearcherTestProbe;
     const forge::Board positive = line(IssueFen, Positive);
     const forge::Board control = line(IssueFen, Control);
-    struct Window {
-        int alpha;
-        int beta;
-    };
-    const std::vector<Window> windows = {{-Infinite, Infinite}, {-1, 0}, {0, 1}, {-500, -499}, {100, 101}, {-1000, 1000}};
+    // (-1,1) and (-50,1) collapse to the null window (0,1) at a claim node.
+    const std::vector<Window> windows = {{-Infinite, Infinite}, {-1, 0}, {0, 1}, {-500, -499}, {100, 101},
+                                         {-1000, 1000}, {-1, 1}, {-50, 1}};
 
     for (const int depth : {0, 1, 2}) {
         for (const Window w : windows) {
-            const std::string tag = " (depth " + std::to_string(depth) + ", window " + std::to_string(w.alpha) +
-                                    "," + std::to_string(w.beta) + ")";
+            const std::string tag = window_tag(depth, w.alpha, w.beta);
             forge::options::intended_threefold = false;
             forge::Searcher off_a(4, 1);
             forge::Searcher off_b(4, 1);
@@ -232,12 +313,15 @@ void search_tests() {
     forge::Searcher warm(4, 1);
     (void)SearcherTestProbe::run(warm, control, 0, -Infinite, Infinite);
     const auto stored = warm.transposition_table().probe(control.key());
-    check(stored.hit, "control qsearch stores an entry for the shared key");
+    check(stored.hit && stored.entry.score != forge::ValueNone, "control qsearch stores a scored entry for the shared key");
     check(SearcherTestProbe::run(warm, positive, 0, -Infinite, Infinite) == 0,
           "TT warmed by the control history: the positive claim node ignores the cached score (0)");
     forge::Searcher warm2(4, 1);
     check(SearcherTestProbe::run(warm2, positive, 0, -Infinite, Infinite) == 0, "positive first: 0");
-    check(!warm2.transposition_table().probe(positive.key()).hit, "the claim node stores nothing");
+    const auto placeholder = warm2.transposition_table().probe(positive.key());
+    check(placeholder.hit && placeholder.entry.score == forge::ValueNone && placeholder.entry.bound() == forge::BoundUpper &&
+              placeholder.entry.depth == 0 && placeholder.entry.eval != forge::ValueNone,
+          "the claim node stores only a placeholder: static eval, raw score ValueNone, BoundUpper, depth 0");
     check(SearcherTestProbe::run(warm2, control, 0, -Infinite, Infinite) == control_fresh,
           "TT warmed by the positive history: control equals a fresh search");
     // Non-PV windows take TT cutoffs: after the control history cached its score for the shared key, the
@@ -269,6 +353,219 @@ void search_tests() {
     forge::options::intended_threefold = false;
 }
 
+// The claiming side has material (code review): the search() floor must hold when the claiming quiet
+// move is pruned, and the qsearch floor must not hide a winning capture.
+void material_tests() {
+    using forge::Infinite;
+    using forge::SearcherTestProbe;
+    const forge::Board qr = line(QrFen, QrMoves);
+    const forge::Board qc = line(QcFen, QcMoves);
+    for (const int depth : {1, 2, 3}) {
+        for (const Window w : {Window{-Infinite, Infinite}, Window{-100, 100}, Window{-1, 1}, Window{100, 101}}) {
+            forge::options::intended_threefold = false;
+            forge::Searcher off(4, 1);
+            const int value_off = SearcherTestProbe::run(off, qr, depth, w.alpha, w.beta);
+            forge::options::intended_threefold = true;
+            forge::Searcher on(4, 1);
+            const int value_on = SearcherTestProbe::run(on, qr, depth, w.alpha, w.beta);
+            const bool ok = w.alpha < 0 ? value_on == 0 : (value_on >= 0 && value_on <= w.alpha);
+            check(ok, "QR: the search() floor holds although the claiming move is pruned" +
+                          window_tag(depth, w.alpha, w.beta) + " -> on " + std::to_string(value_on) + ", off " +
+                          std::to_string(value_off));
+        }
+    }
+    for (const int depth : {0, 1, 2}) {
+        forge::options::intended_threefold = false;
+        forge::Searcher off(4, 1);
+        const int value_off = SearcherTestProbe::run(off, qc, depth, -Infinite, Infinite);
+        forge::options::intended_threefold = true;
+        forge::Searcher on(4, 1);
+        const int value_on = SearcherTestProbe::run(on, qc, depth, -Infinite, Infinite);
+        check(value_on == value_off && value_on > 300,
+              "QC: the claim is a floor, not a forced draw: Rxc1 keeps its value" +
+                  window_tag(depth, -Infinite, Infinite) + " -> on " + std::to_string(value_on) + ", off " +
+                  std::to_string(value_off));
+    }
+    forge::options::intended_threefold = false;
+}
+
+// No history-dependent score reaches the TT at a claim node, on every path that stores: the final stores of
+// search() and qsearch() (placeholder only), the qsearch stand pat, ProbCut; and correction history is not
+// taught by a claim node.
+void store_guard_tests() {
+    using forge::Infinite;
+    using forge::SearcherTestProbe;
+    forge::options::intended_threefold = true;
+    const forge::Board positive = line(IssueFen, Positive);
+    for (const int depth : {0, 1, 2, 3}) {
+        for (const Window w : {Window{-Infinite, Infinite}, Window{0, 1}, Window{100, 101}, Window{-100, 100}, Window{-1, 1}}) {
+            forge::Searcher searcher(4, 1);
+            const int value = SearcherTestProbe::run(searcher, positive, depth, w.alpha, w.beta);
+            check(no_score_stored(searcher, positive.key()),
+                  "issue fixture: the claim node stores no score (final store)" + window_tag(depth, w.alpha, w.beta) +
+                      " -> " + std::to_string(value));
+        }
+    }
+    // Stand pat at a claim node: white (queen against rook) fails high on its static evaluation.
+    const forge::Board wc = line(WcFen, WcMoves);
+    for (const Window w : {Window{0, 1}, Window{100, 101}, Window{-100, 100}}) {
+        forge::Searcher searcher(4, 1);
+        const int value = SearcherTestProbe::run(searcher, wc, 0, w.alpha, w.beta);
+        check(value >= w.beta && no_score_stored(searcher, wc.key()),
+              "WC: a stand-pat fail high at a claim node stores no score" + window_tag(0, w.alpha, w.beta) + " -> " +
+                  std::to_string(value));
+    }
+    // ProbCut at a claim node: black's Rc8xc1+ beats probcut_beta at depth >= 5 in a null window.
+    const forge::Board qc = line(QcFen, QcMoves);
+    for (const int depth : {5, 6}) {
+        for (const Window w : {Window{0, 1}, Window{100, 101}}) {
+            forge::Searcher searcher(4, 1);
+            const int value = SearcherTestProbe::run(searcher, qc, depth, w.alpha, w.beta);
+            check(value >= w.beta && no_score_stored(searcher, qc.key()),
+                  "QC: a ProbCut fail high at a claim node stores no score" + window_tag(depth, w.alpha, w.beta) +
+                      " -> " + std::to_string(value));
+        }
+    }
+    // Correction history: at depth 1 the claim node (white to move) is the only white search node (no check
+    // extension below depth 2), and its exact score from a quiet best move would teach the white
+    // pawn/material correction without the guard.
+    for (const int depth : {1}) {
+        for (const bool on : {false, true}) {
+            forge::options::intended_threefold = on;
+            forge::Searcher searcher(4, 1);
+            const int value = SearcherTestProbe::run(searcher, wc, depth, -Infinite, Infinite);
+            const bool untouched = SearcherTestProbe::correction_untouched(searcher, forge::White);
+            if (on) {
+                check(untouched, "WC: a claim node does not teach correction history" +
+                                     window_tag(depth, -Infinite, Infinite) + " -> " + std::to_string(value));
+            } else {
+                check(!untouched, "WC without the option: the same node teaches correction history (sanity)" +
+                                      window_tag(depth, -Infinite, Infinite) + " -> " + std::to_string(value));
+            }
+        }
+    }
+    forge::options::intended_threefold = false;
+}
+
+// A claim node keeps a move and the static evaluation in a placeholder entry (raw score ValueNone). Such an
+// entry must never act as a score: searches of the same key under another history equal a fresh search,
+// whatever bound and depth the entry carries, and a claim node re-searched over its own placeholder keeps
+// the floor.
+void placeholder_tests() {
+    using forge::Infinite;
+    using forge::SearcherTestProbe;
+    const forge::Board positive = line(IssueFen, Positive);
+    const forge::Board control = line(IssueFen, Control);
+    const std::vector<Window> windows = {{-Infinite, Infinite}, {0, 1}, {100, 101}, {-500, -499}, {-50, -49}};
+
+    forge::options::intended_threefold = true;
+    const auto clock = static_cast<std::uint16_t>(control.halfmove_clock());
+    for (const int depth : {0, 1, 2, 3}) {
+        for (const Window w : windows) {
+            forge::Searcher searcher(4, 1);
+            (void)SearcherTestProbe::run(searcher, positive, depth, -Infinite, Infinite);
+            const auto entry = searcher.transposition_table().probe(positive.key());
+            check(entry.hit && entry.entry.score == forge::ValueNone && entry.entry.bound() == forge::BoundUpper &&
+                      entry.entry.depth == 0,
+                  "the claim node leaves a placeholder (depth " + std::to_string(depth) + ")");
+            // Only the placeholder, copied into an empty table: the same key under the control history (no
+            // claim) must equal a fresh search.
+            forge::Searcher isolated(4, 1);
+            auto& tt = isolated.transposition_table();
+            tt.store(tt.probe(control.key()), control.key(), entry.entry.score, entry.entry.eval, entry.entry.move,
+                     entry.entry.depth, entry.entry.bound(), entry.entry.pv(), clock);
+            forge::Searcher fresh(4, 1);
+            const int control_fresh = SearcherTestProbe::run(fresh, control, depth, w.alpha, w.beta);
+            const int control_isolated = SearcherTestProbe::run(isolated, control, depth, w.alpha, w.beta);
+            check(control_isolated == control_fresh,
+                  "placeholder from the positive history: control equals a fresh search" +
+                      window_tag(depth, w.alpha, w.beta) + " -> " + std::to_string(control_isolated));
+            // The claim node re-searched over its own placeholder (and its subtree's entries) keeps the floor.
+            const int again = SearcherTestProbe::run(searcher, positive, depth, w.alpha, w.beta);
+            const bool floor_ok = w.beta <= 0 || w.alpha < 0 ? again == 0 : (again >= 0 && again <= w.alpha);
+            check(floor_ok, "claim node re-searched over its own placeholder keeps the floor" +
+                                window_tag(depth, w.alpha, w.beta) + " -> " + std::to_string(again));
+            if (depth == 2 && w.alpha == 0) {
+                // Known limitation (also without placeholders): a non-claim ancestor of a claim node in the
+                // positive search stores a score that contains the claim, and the control search reuses it.
+                std::cout << "INFO known limitation, ancestor entries: control after the positive search"
+                          << window_tag(depth, w.alpha, w.beta) << " -> "
+                          << SearcherTestProbe::run(searcher, control, depth, w.alpha, w.beta) << ", fresh "
+                          << control_fresh << '\n';
+            }
+        }
+    }
+
+    // Synthetic entries with a raw ValueNone score at depth 60, every bound: no cutoff, no eval refinement, no
+    // null-move veto, no ProbCut veto, no singular extension. WC with the option off (material, no claim),
+    // after two quiet plies so null-move pruning is live; the entry's move is none, its eval ValueNone.
+    forge::options::intended_threefold = false;
+    const forge::Board wc = line(WcFen, WcMoves);
+    const forge::Move parent = uci_move(WcFen, "h8g8 a1a2 g8h8 a2a1 h8g8 a1a2", "g8h8");
+    const forge::Move grandparent = uci_move(WcFen, "h8g8 a1a2 g8h8 a2a1 h8g8", "a1a2");
+    const forge::Move some_move = uci_move(WcFen, WcMoves, "d1d8");
+    for (const int depth : {0, 1, 3, 5, 7, 8}) {
+        for (const Window w : {Window{-Infinite, Infinite}, Window{0, 1}, Window{300, 301}, Window{-300, -299}}) {
+            forge::Searcher fresh(4, 1);
+            const int expected = SearcherTestProbe::run_after(fresh, wc, depth, w.alpha, w.beta, parent, grandparent);
+            std::vector<int> with_move;
+            for (const forge::Bound bound : {forge::BoundUpper, forge::BoundLower, forge::BoundExact}) {
+                forge::Searcher searcher(4, 1);
+                auto& tt = searcher.transposition_table();
+                tt.store(tt.probe(wc.key()), wc.key(), forge::ValueNone, forge::ValueNone, forge::Move::none(), 60, bound,
+                         false, static_cast<std::uint16_t>(wc.halfmove_clock()));
+                const int value = SearcherTestProbe::run_after(searcher, wc, depth, w.alpha, w.beta, parent, grandparent);
+                check(value == expected, "a ValueNone entry (bound " + std::to_string(static_cast<int>(bound)) +
+                                             ", depth 60) is never used as a score" + window_tag(depth, w.alpha, w.beta) +
+                                             " -> " + std::to_string(value) + ", fresh " + std::to_string(expected));
+                // Same entry with a hash move: the bound must not matter either (singular extension and the
+                // null-move veto read the bound only together with a usable score).
+                forge::Searcher moved(4, 1);
+                auto& tt2 = moved.transposition_table();
+                tt2.store(tt2.probe(wc.key()), wc.key(), forge::ValueNone, forge::ValueNone, some_move, 60, bound, false,
+                          static_cast<std::uint16_t>(wc.halfmove_clock()));
+                with_move.push_back(SearcherTestProbe::run_after(moved, wc, depth, w.alpha, w.beta, parent, grandparent));
+            }
+            check(with_move[0] == with_move[1] && with_move[1] == with_move[2],
+                  "a ValueNone entry with a hash move gives the same value for every bound" +
+                      window_tag(depth, w.alpha, w.beta) + " -> " + std::to_string(with_move[0]));
+        }
+    }
+}
+
+// FailLowContinuationBonus (a tunable, default 0): a node that fails low rewards the parent's quiet move.
+// When the claim floor raised alpha the value 0 lies inside the original window, which is no fail low.
+void fail_low_bonus_tests() {
+    using forge::SearcherTestProbe;
+    const int saved = forge::tune::FailLowContinuationBonus;
+    forge::tune::FailLowContinuationBonus = 100;
+    const forge::Board positive = line(IssueFen, Positive);
+    const forge::Move parent = uci_move(IssueFen, "a1a2 h7h8 a2a1 h8h7 a1a2 h7h8", "a2a1");
+    const forge::Move grandparent = uci_move(IssueFen, "a1a2 h7h8 a2a1 h8h7 a1a2", "h7h8");
+    struct Case {
+        bool on;
+        int alpha;
+        int beta;
+        bool bonus;
+        const char* what;
+    };
+    for (const int depth : {1, 2}) {
+        for (const Case c : {Case{false, 50, 100, true, "option off, value below alpha: fail low, bonus (sanity)"},
+                             Case{true, -100, 100, false, "option on, floor raised alpha: value 0 inside the window, no bonus"},
+                             Case{true, 50, 100, true, "option on, alpha already above 0: fail low, bonus"}}) {
+            forge::options::intended_threefold = c.on;
+            forge::Searcher searcher(4, 1);
+            const int value = SearcherTestProbe::run_after(searcher, positive, depth, c.alpha, c.beta, parent, grandparent);
+            const int bonus = SearcherTestProbe::parent_bonus(searcher, positive, parent, grandparent);
+            check((bonus != 0) == c.bonus, std::string("fail-low continuation bonus: ") + c.what +
+                                               window_tag(depth, c.alpha, c.beta) + " -> value " +
+                                               std::to_string(value) + ", parent entry " + std::to_string(bonus));
+        }
+    }
+    forge::tune::FailLowContinuationBonus = saved;
+    forge::options::intended_threefold = false;
+}
+
 } // namespace
 
 int main() {
@@ -276,6 +573,10 @@ int main() {
         board_tests();
         random_cross_check();
         search_tests();
+        material_tests();
+        store_guard_tests();
+        placeholder_tests();
+        fail_low_bonus_tests();
     } catch (const std::exception& error) {
         std::cout << "FAIL exception: " << error.what() << '\n';
         return 2;
