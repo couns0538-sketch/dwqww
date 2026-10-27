@@ -108,6 +108,17 @@ class Plan(unittest.TestCase):
         r, plan = self.plan("0x3FF0", "-Core", "14")
         self.assertEqual((r.returncode, plan["chosen_core"]), (0, 14), r.stdout)
 
+    def test_list_parameters_under_pwsh_file(self):
+        # 'pwsh -File' passes "13,16" as one string; it must mean depths 13 and 16 (not 1316 -> engine depth 64).
+        r, plan = self.plan("0x3FF0", "-Depths", "13,16")
+        self.assertEqual(r.returncode, 0, r.stdout)
+        for bad in ("30", "0", "13,64", "1316"):
+            r, _ = self.plan("0x3FF0", "-Depths", bad)
+            self.assertEqual(r.returncode, 2, bad + ": " + r.stdout)
+            self.assertIn("-Depths must be 1..24", r.stdout)
+        r, plan = self.plan("0x3FF0", "-ReservedCores", "0,1,2,3,15")
+        self.assertEqual((r.returncode, plan["chosen_core"], plan["reserved"]), (0, 14, [0, 1, 2, 3, 15]), r.stdout)
+
     def test_cores_0_3_must_stay_reserved_without_boxonly(self):
         r, _ = self.plan("0x0", "-ReservedCores", "4,5")
         self.assertEqual(r.returncode, 3, r.stdout)

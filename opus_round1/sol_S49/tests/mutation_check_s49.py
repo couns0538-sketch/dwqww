@@ -29,10 +29,12 @@ MUTANTS = [
     ("runinfo_age_filter_dropped", "if ((Get-Item -LiteralPath $ri).LastWriteTime -lt $cut) { continue }", "$null = $cut"),
     ("boxonly_refusal_dropped", "if ($BoxOnly -and ($live.GateProcesses -gt 0 -or $runInfo.Count -gt 0)) {", "if ($false) {"),
     ("protected_outdir_allowed", "if (-not (Test-OutDirAllowed $OutDir)) {", "if ($false) {"),
-    ("cores_0_3_rule_dropped", "foreach ($c in 0, 1, 2, 3) { if ($ReservedCores -notcontains $c)", "foreach ($c in @()) { if ($ReservedCores -notcontains $c)"),
+    ("cores_0_3_rule_dropped", "foreach ($c in 0, 1, 2, 3) { if ($ReservedList -notcontains $c)", "foreach ($c in @()) { if ($ReservedList -notcontains $c)"),
     ("abba_alternation_broken", "$first, $second = if ($i % 2 -eq 0) { 'A', 'B' } else { 'B', 'A' }", "$first, $second = 'A', 'B'"),
     ("bootstrap_lower_bound_wrong", "$lo = $meds[[int][Math]::Floor(0.025 * ($Reps - 1))]", "$lo = $meds[[int][Math]::Floor(0.975 * ($Reps - 1))]"),
     ("refusal_does_not_exit", "if ($sel.Core -lt 0) { exit 3 }", "if ($sel.Core -lt 0) { }"),
+    ("depth_guard_dropped", "Where-Object { $_ -lt 1 -or $_ -gt 24 }).Count -gt 0", "Where-Object { $false }).Count -gt 0"),
+    ("list_split_dropped", "@($Text -split '[,;\s]+' | Where-Object", "@($Text -split '[;]+' | Where-Object"),
 ]
 
 

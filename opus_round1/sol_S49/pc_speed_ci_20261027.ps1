@@ -25,14 +25,14 @@
 param(
     [string]$ExeA = '',
     [string]$ExeB = '',
-    [int[]]$Depths = @(16, 20),
+    [string]$Depths = '16,20',
     [int]$Pairs = 40,
     [int]$ControlEvery = 4,
     [string]$OutDir = '',
     [string]$Manifest = 'C:\Users\Administrator\grok-pc\forge_push\autorestart\forge_gates.json',
     [string]$RunInfoRoot = 'D:\grok-pc-data\forge_push',
     [int]$RunInfoMaxAgeHours = 48,
-    [int[]]$ReservedCores = @(0, 1, 2, 3),
+    [string]$ReservedCores = '0,1,2,3',
     [int]$Core = -1,
     [string]$TempCsv = 'C:\Users\Administrator\grok-pc\nnue\tools\hwinfo\gpu_sensors.csv',
     [double]$MaxTempC = 90,
@@ -59,6 +59,13 @@ $script:Protected = @('forge_push', 'selfplay_out', 'forge_nnue_train', [IO.Path
 $script:ChosenMask = [int64]0
 
 # ------------------------------------------------------------------------------------------------ pure helpers
+
+function ConvertTo-IntList([string]$Text) {
+    # '16,20' / '16 20' / '16, 20' -> @(16, 20). Lists arrive as one string under 'pwsh -File' (an [int[]] parameter
+    # would read '13,16' as 1316 through the invariant thousands separator), so they are split explicitly.
+    if ([string]::IsNullOrWhiteSpace($Text)) { return , @() }
+    return , @($Text -split '[,;\s]+' | Where-Object { $_ -ne '' } | ForEach-Object { [int]::Parse($_, [Globalization.CultureInfo]::InvariantCulture) })
+}
 
 function ConvertTo-CoreList([int64]$Mask) {
     $cores = New-Object System.Collections.Generic.List[int]
@@ -353,6 +360,8 @@ function Invoke-BenchSlot([string]$Exe, [int]$Depth) {
 function Invoke-SelfTest {
     function Check([bool]$ok, [string]$label) { $script:stChecks++; if (-not $ok) { $script:stFails++; Write-Host "FAIL $label" } else { Write-Host "PASS $label" } }
     $script:stChecks = 0; $script:stFails = 0
+    Check ((ConvertTo-IntList '13,16') -join '|' -eq '13|16') "list '13,16' -> 13, 16 (not 1316)"
+    Check ((ConvertTo-IntList '13 16') -join '|' -eq '13|16' -and (ConvertTo-IntList '0') -join '|' -eq '0') "list '13 16' and '0'"
     Check ((ConvertFrom-AffinityText '0xFFF0 (CPUs 4-15)') -join ',' -eq (4..15 -join ',')) 'affinity text 0xFFF0 -> cores 4-15'
     Check ((ConvertFrom-AffinityText '4-6, 9') -join ',' -eq '4,5,6,9') 'affinity text ranges'
     Check ((ConvertTo-CoreList 0xF000) -join ',' -eq '12,13,14,15') 'mask 0xF000 -> 12-15'
@@ -413,12 +422,17 @@ if ($SelfTest) {
     Invoke-SelfTest
     exit ($(if ($script:stFails -eq 0) { 0 } else { 5 }))
 }
+try { $DepthList = ConvertTo-IntList $Depths; $ReservedList = ConvertTo-IntList $ReservedCores } catch { Write-Output "ERROR: bad -Depths / -ReservedCores list: $_"; exit 2 }
+if (@($DepthList).Count -eq 0 -or @($DepthList | Where-Object { $_ -lt 1 -or $_ -gt 24 }).Count -gt 0) {
+    # bench cannot be interrupted once started, so an absurd depth is refused before any engine runs
+    Write-Output "ERROR: -Depths must be 1..24 (got '$Depths')"; exit 2
+}
 if (-not $OutDir) { Write-Output 'ERROR: -OutDir is required'; exit 2 }
 if (-not (Test-OutDirAllowed $OutDir)) { Write-Output "REFUSED: -OutDir $OutDir is under a protected PC data directory"; exit 3 }
 if ((Test-Path -LiteralPath $OutDir) -and @(Get-ChildItem -LiteralPath $OutDir -Force).Count -gt 0) { Write-Output "ERROR: -OutDir $OutDir must be new or empty"; exit 2 }
 if (($FixtureLiveMask -or $FixtureCoreCount -gt 0) -and -not $PlanOnly) { Write-Output 'ERROR: fixtures are allowed with -PlanOnly only'; exit 2 }
 if (-not $BoxOnly) {
-    foreach ($c in 0, 1, 2, 3) { if ($ReservedCores -notcontains $c) { Write-Output 'REFUSED: cores 0-3 must stay reserved (use -BoxOnly only on a machine without gates)'; exit 3 } }
+    foreach ($c in 0, 1, 2, 3) { if ($ReservedList -notcontains $c) { Write-Output 'REFUSED: cores 0-3 must stay reserved (use -BoxOnly only on a machine without gates)'; exit 3 } }
 }
 $live = if ($FixtureLiveMask) { [pscustomobject]@{ Cores = (ConvertFrom-AffinityText $FixtureLiveMask); GateProcesses = 1 } } else { Get-LiveGateCores }
 $runInfo = Get-RunInfoCores $RunInfoRoot $RunInfoMaxAgeHours
@@ -429,11 +443,11 @@ if ($BoxOnly -and ($live.GateProcesses -gt 0 -or $runInfo.Count -gt 0)) {
 }
 $used = @(@($live.Cores) + @($runInfo) + @($manifestCores) | Sort-Object -Unique)
 $coreCount = Get-CoreCount
-$sel = Select-SafeCore $coreCount $used $ReservedCores $Core
+$sel = Select-SafeCore $coreCount $used $ReservedList $Core
 $plan = [ordered]@{
     tool = 'pc_speed_ci_20261027.ps1'; label = $Label; box_only = [bool]$BoxOnly; host = [Environment]::MachineName
     logical_cores = $coreCount; live_gate_processes = $live.GateProcesses; live_gate_cores = @($live.Cores)
-    runinfo_cores = @($runInfo); manifest_cores = @($manifestCores); reserved = @($ReservedCores); used = $used
+    runinfo_cores = @($runInfo); manifest_cores = @($manifestCores); reserved = @($ReservedList); used = $used
     free = @($sel.Free); chosen_core = $sel.Core; reason = $sel.Reason
 }
 $probeTemp = Get-CpuTempC
@@ -442,7 +456,7 @@ $plan.temp_c = $(if ($probeTemp) { $probeTemp.C } else { $null }); $plan.temp_so
 $plan.free_ram_gb = Get-FreeRamGB; $plan.load_total_pct = $probeLoad[0]
 New-Item -ItemType Directory -Path $OutDir -Force | Out-Null
 $plan | ConvertTo-Json -Depth 5 | Set-Content -LiteralPath (Join-Path $OutDir 'plan.json') -Encoding utf8
-Write-Output ("PLAN: cores {0}, gate-used [{1}], reserved [{2}], free [{3}] -> {4}" -f $coreCount, ($used -join ','), ($ReservedCores -join ','), (@($sel.Free) -join ','), $(if ($sel.Core -ge 0) { "core $($sel.Core) ($($sel.Reason))" } else { "REFUSED: $($sel.Reason)" }))
+Write-Output ("PLAN: cores {0}, gate-used [{1}], reserved [{2}], free [{3}] -> {4}" -f $coreCount, ($used -join ','), ($ReservedList -join ','), (@($sel.Free) -join ','), $(if ($sel.Core -ge 0) { "core $($sel.Core) ($($sel.Reason))" } else { "REFUSED: $($sel.Reason)" }))
 Write-Output ("PROBES: CPU temperature {0} C ({1}), free RAM {2} GB, machine load {3}%" -f $plan.temp_c, $plan.temp_source, $plan.free_ram_gb, $plan.load_total_pct)
 if ($sel.Core -lt 0) { exit 3 }
 $script:ChosenMask = [int64]1 -shl $sel.Core
@@ -468,9 +482,9 @@ $rows = New-Object System.Collections.Generic.List[object]
 $csv = Join-Path $OutDir 'slots.csv'
 $slot = 0
 $aborted = ''
-Write-Output ("RUN: {0} pairs + {1} control pairs x depths {2}; core {3}; metric {4}; A {5} B {6}" -f $Pairs, @($order | Where-Object Kind -eq 'control').Count, ($Depths -join ','), $sel.Core, $Metric, $hashes.A.Substring(0, 12), $hashes.B.Substring(0, 12))
+Write-Output ("RUN: {0} pairs + {1} control pairs x depths {2}; core {3}; metric {4}; A {5} B {6}" -f $Pairs, @($order | Where-Object Kind -eq 'control').Count, ($DepthList -join ','), $sel.Core, $Metric, $hashes.A.Substring(0, 12), $hashes.B.Substring(0, 12))
 foreach ($pair in $order) {
-    foreach ($d in $Depths) {
+    foreach ($d in $DepthList) {
         foreach ($tag in @($pair.First, $pair.Second)) {
             $ram = Get-FreeRamGB
             if ($ram -lt $MinFreeRamGB) { $aborted = "free RAM $ram GB < $MinFreeRamGB"; break }
@@ -498,10 +512,10 @@ foreach ($pair in $order) {
 }
 
 # ---- statistics
-$summary = [ordered]@{ plan = $plan; label = $Label; metric = $Metric; pairs = $Pairs; control_every = $ControlEvery; depths = @($Depths)
+$summary = [ordered]@{ plan = $plan; label = $Label; metric = $Metric; pairs = $Pairs; control_every = $ControlEvery; depths = @($DepthList)
     exe_sha256 = $hashes; bootstrap = $Bootstrap; seed = $Seed; slots = $rows.Count; aborted = $aborted; per_depth = [ordered]@{} }
 $allPass = $true
-foreach ($d in $Depths) {
+foreach ($d in $DepthList) {
     $dr = @($rows | Where-Object Depth -eq $d)
     $nodesA = @($dr | Where-Object { $_.Exe -in 'A', 'A2' } | ForEach-Object Nodes | Sort-Object -Unique)
     $nodesB = @($dr | Where-Object Exe -eq 'B' | ForEach-Object Nodes | Sort-Object -Unique)
@@ -535,7 +549,7 @@ $md.Add("# pc_speed_ci $Label ($(if ($BoxOnly) { 'box-only' } else { 'PC' }); me
 $md.Add('')
 $md.Add('| depth | test pairs | median B/A | 95% CI | CI excludes 1 | A/A pairs | A/A median | A/A 95% CI | A/A contains 1 | nodes A = B |')
 $md.Add('|---|---:|---:|---|---|---:|---:|---|---|---|')
-foreach ($d in $Depths) {
+foreach ($d in $DepthList) {
     $r = $summary.per_depth["d$d"]
     $f = { param($v) if ($null -eq $v) { '-' } else { ([double]$v).ToString('F4', [Globalization.CultureInfo]::InvariantCulture) } }
     $ci = if ($r.Contains('ci95')) { "$(& $f $r.ci95[0])-$(& $f $r.ci95[1])" } else { '-' }
