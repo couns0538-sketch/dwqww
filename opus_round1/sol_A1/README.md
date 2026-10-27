@@ -20,7 +20,9 @@ UNPROVEN: no gate was run, no Elo or speed claim.
 | `tools/build_test.sh` | direct g++ build of `forge_hist_rework_tests` |
 | `tools/mutation_check.py` | planted-bug check: baseline passes, 12 mutants must fail the test |
 | `tools/ubsan_local.sh` | MinGW UBSan (trap mode) engine + test build, bench at `HistRework=3` with tunables at max |
-| `logs/` | step logs (build, identity, sweeps, ctest, mutation, UBSan, CI) |
+| `tsan_extra.sh` + `tools/smp_smoke.py` | CI TSan hook: HistRework 0/3 with Threads 1/1/4 (legal bestmoves, Threads-1 determinism) |
+| `logs/` | PC step logs (build, identity, sweeps, ctest, mutation, UBSan, warnings, patch apply) |
+| `logs/ci/run40515121020_opus-ci/` | GitHub CI artifacts of the engine commit: release identity + ctest, ASan+UBSan ctest, TSan ctest + hook |
 
 Engine sources touched:
 - `include/forge/hist_rework.hpp` (new, the pure helpers);

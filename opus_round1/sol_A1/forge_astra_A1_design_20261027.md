@@ -212,7 +212,9 @@ A1 covers the remaining parts:
    every touched table is checked against its bound.
    - On CI the same test runs under ASan + UBSan (`-fno-sanitize-recover=all`).
    - On the PC it runs in a `-fsanitize=undefined -fsanitize-undefined-trap-on-error` build, together with an
-     engine bench at `HistRework=3` with those tunables at their maxima (`logs/ubsan_*`).
+     engine bench at `HistRework=3` with those tunables at their maxima (`logs/ubsan/`). MinGW has no
+     libubsan, so trap mode is the only option. A positive control shows the trap build dies on a signed
+     overflow that the plain build silently wraps (`logs/ubsan_positive_control.log`).
 
 ## 5. Tuning ranges
 

@@ -1,9 +1,9 @@
 # FILES index, opus_round1/sol_A1, Astra A1 correction-history / history rework (UCI HistRework), branch opus-sol-A1. path | bytes | sha256 | content
-# engine commit a8b63aae; base 1aa5d209 = AL1 s198 lock d4f4312 + CI baseline 0d99f02
+# engine commit a8b63aae; base 1aa5d209 = AL1 s198 lock d4f4312 + CI baseline 0d99f02; CI run 40515121020 success (release, asan, tsan)
 IDEA_SOURCE.md | 4232 | c0ddaaa6fdb8175136631eb3e9f259e56f1eb191d1638589666f34b1a81300a8 | sources and in-house history read before starting
-README.md | 3346 | 4dae540efd0ab184200df1a93133c9de4f878a75ba03ac64f8fede9743b628f6 | how to reproduce every step
+README.md | 3646 | eb40e221bd751e904b9616d30449d7a6fbbc842d0585c617704521b68048b6b6 | how to reproduce every step
 forge_astra_A1_corrhist_20261027.patch | 51590 | 5b204ebcba996afa3115cc9dde7cb150031dd04999297df1117be9cadf51358a | deliverable: git diff 1aa5d209 a8b63aae -- src include tests CMakeLists.txt (applies to the lock tree 294dbed, byte-exact)
-forge_astra_A1_design_20261027.md | 17545 | b128e00323d1c687d73cdaf5b22f3e7f82d72c893d6da6e2b3ed3e277ba56d52 | deliverable: idea, IDEA_SOURCE, why not a resubmission, overflow proof, tuning ranges, node table
+forge_astra_A1_design_20261027.md | 17749 | ff17fe6f805669a34321033e0fe3d6b4debe5485fa438a377ad65820dfe34e33 | deliverable: idea, IDEA_SOURCE, why not a resubmission, overflow proof, tuning ranges, node table
 forge_astra_A1_sprt_plan_20261027.md | 5352 | a9558457fa12259ef7b195ae1292f18cb2540857e9951c8cb5d9fbb94bedfd9d | deliverable: gate order (HistRework=2 first) at 10+0.1 [0,10] cap 1500, ON pins, 40+0.4 confirm
 tsan_extra.sh | 437 | 19d94024102a085759f28ac21accd88bd224dcafe51847a730053e6661f710d2 | CI TSan hook: smp_smoke HistRework 0/3, Threads 1/1/4
 logs/bench_sweep_full.log | 2447 | 979911875fc326bdfd7c7b5db259373d4a4ef731bf46ed70d670d1b726b7e348 | evidence log
@@ -29,6 +29,22 @@ logs/uci_check_full_off_v1.log | 292 | e9a65740b16e3ef80327d3e23e761c63f99b292bb
 logs/uci_options.log | 660 | 267839c95e9c3105cc8633ea4f224115b739eca44bc4abffd1b22d5d1845b871 | evidence log
 logs/warnings_a1.txt | 132 | d4bc2f45c0985d38f0aca7a5da893cbccc24a851ec144edef4f6f4a4f8a3de53 | evidence log
 logs/warnings_lock.txt | 132 | d4bc2f45c0985d38f0aca7a5da893cbccc24a851ec144edef4f6f4a4f8a3de53 | evidence log
+logs/ci/run40515121020_opus-ci/RUN_SUMMARY.txt | 576 | 159907fb2ac32c3bdbbbd83d17ad2c2d17eb1fc8596a0d4a405a716e81114bb9 | CI run 40515121020: job ids, conclusions, times
+logs/ci/run40515121020_opus-ci/opus-ci-asan/build_asan.log | 5250 | 02a96111dacdfd80de5231510ce05a5bf4b5b2b520dc6e8a4a2a2a6310088044 | evidence log
+logs/ci/run40515121020_opus-ci/opus-ci-asan/configure_asan.log | 519 | d1ec511e5c98b5a096f1e3983758b52aa62272d74940cf9a53a61a3731c1e2c2 | evidence log
+logs/ci/run40515121020_opus-ci/opus-ci-asan/ctest_asan.log | 2203 | 619036220191307bc30cab74432385ec1f64907a0f3caf3ee7961469926d486e | evidence log
+logs/ci/run40515121020_opus-ci/opus-ci-asan/known_asan.log | 165 | d0665a87c8d4421c0a9aa58ca3b922838d5c3abcb6cc4d9841dbb5e5278a4833 | evidence log
+logs/ci/run40515121020_opus-ci/opus-ci-release/build_release.log | 5250 | 4fd231aad2f07abbb1ca094c6f623d3f8c7fdcf02621302e64e67ce7b116bc38 | evidence log
+logs/ci/run40515121020_opus-ci/opus-ci-release/configure_release.log | 522 | 6f8872bb5b5a9d542b81977f7b47aceadfbd029b5aabbafc08a87b2919494179 | evidence log
+logs/ci/run40515121020_opus-ci/opus-ci-release/ctest_release.log | 2206 | 4c97afc6bb71aa59149faa89b83ab1d0d6ed32bcbd5e803044e2312d9ac1264b | evidence log
+logs/ci/run40515121020_opus-ci/opus-ci-release/identity.log | 461 | 083d04c26a1248c62d473eb5dd98ec8b1a6035dec5bd03281027f1cf4b97c930 | evidence log
+logs/ci/run40515121020_opus-ci/opus-ci-release/known_release.log | 165 | d0665a87c8d4421c0a9aa58ca3b922838d5c3abcb6cc4d9841dbb5e5278a4833 | evidence log
+logs/ci/run40515121020_opus-ci/opus-ci-tsan/build_tsan.log | 5250 | e5f7b061bf44846062cd74404dbb0f67d189d502f4efdb15ed98cd052dc3dd43 | evidence log
+logs/ci/run40515121020_opus-ci/opus-ci-tsan/configure_tsan.log | 519 | 64b9d1f485d9de3fbe9372297eb970e1f8918bfd74bee9d7b8460dbd8c81e448 | evidence log
+logs/ci/run40515121020_opus-ci/opus-ci-tsan/ctest_tsan.log | 2203 | 3c1e02dea54e2b4bf46581c66a47327bf67c94f5de1d822a228e67918f2ba71f | evidence log
+logs/ci/run40515121020_opus-ci/opus-ci-tsan/known_tsan.log | 181 | c3812750d426c3bb5bb5bf948f6f442d8a49e1f980ea929b5dd9521aef9d9dbf | evidence log
+logs/ci/run40515121020_opus-ci/opus-ci-tsan/sol_A1_smp_smoke_tsan.log | 2179 | 67557f4f470639c34e75c6645d97cbf84935bb64866396021d60946a72feb5b4 | evidence log
+logs/ci/run40515121020_opus-ci/opus-ci-tsan/tsan_extra.log | 2337 | 9c352fe75cb91d9def1f3393f3152389031f70751eefae536b228ef3bcc78ddb | evidence log
 logs/ubsan/ubsan_bench_max.log | 545 | 92bce7a842b1d3b79c9ef9e2b53a84a61981a435edda16044ca4fe4dabbe61d5 | evidence log
 logs/ubsan/ubsan_build_engine.log | 215 | 6212e0b72d3663c1a4499667c4162489f5c09d97ea131fd8126fe0be9ef88f32 | evidence log
 logs/ubsan/ubsan_build_test.log | 65 | 4053328a14c259afd49106fbaaf9f90809d9187d8d1597e6758dfb0e04d1ed9c | evidence log
