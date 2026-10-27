@@ -108,8 +108,11 @@ int eval(const std::string& net_path, const std::string& fen_path, const std::st
         v2::refresh(net, board, Black, a.values[Black].data());
         nnue::Accumulator c;
         const v2::Pieces pieces = v2::pieces_of(board);
-        v2::refresh_cached(net, cache, pieces, board.king_square(White), White, c.values[White].data());
-        v2::refresh_cached(net, cache, pieces, board.king_square(Black), Black, c.values[Black].data());
+        v2::ThreatList threats;   // O6: threat nets add their threat columns on top of the cached piece part
+        if (net.threats) v2::threat_keys(pieces, threats);
+        const v2::ThreatList* list = net.threats ? &threats : nullptr;
+        v2::refresh_full_cached(net, cache, pieces, list, board.king_square(White), White, c.values[White].data());
+        v2::refresh_full_cached(net, cache, pieces, list, board.king_square(Black), Black, c.values[Black].data());
         if (std::memcmp(a.values.data(), c.values.data(), sizeof(a.values)) != 0) ++cache_mismatch;
         const float out = v2::output(net, board, a);
         std::uint32_t bits = 0;
@@ -125,7 +128,7 @@ int eval(const std::string& net_path, const std::string& fen_path, const std::st
         ++index;
     }
     std::cout << "evaluated " << index << " positions with " << net_path << " (king buckets " << net.king_buckets
-              << (net.mirror ? ", mirrored" : "") << "); refresh cache vs from-scratch mismatches: " << cache_mismatch << '\n';
+              << (net.mirror ? ", mirrored" : "") << (net.threats ? ", threat inputs" : "") << "); refresh cache vs from-scratch mismatches: " << cache_mismatch << '\n';
     return cache_mismatch == 0 ? 0 : 1;
 }
 

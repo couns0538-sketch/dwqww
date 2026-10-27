@@ -15,7 +15,8 @@ Checks, each over every position:
   forward  the training-time model forward (logit * 400 / 2.25, hce_logit = 0) vs the engine's centipawns:
            max |diff| and the number of positions where trunc(forward) == engine (informational: the
            GEMM summation order differs from the engine's, so the last float bit can differ)
-PASS requires export, keys, acc and output to hold on all positions."""
+PASS requires export, keys, acc and output to hold on all positions. O6: a net with threat inputs also has its
+threat block compared (export) and its threat inputs in the accumulators (acc)."""
 import argparse
 import json
 import os
@@ -49,11 +50,12 @@ def parse_fen(fen):
 
 def build_model(ck):
     cfg = ck["config"]
+    threats = bool(cfg.get("threats", False))  # O6
     if cfg.get("king_buckets"):
         m = T.NNUEKB(cfg["hidden"], cfg["king_map"], mirror=cfg["king_mirror"], factor=cfg["king_factor"],
-                     qat=True, residual=cfg["residual"])
+                     qat=True, residual=cfg["residual"], threats=threats)
     else:
-        m = T.NNUE(cfg["hidden"], qat=True, residual=cfg["residual"])
+        m = T.NNUE(cfg["hidden"], qat=True, residual=cfg["residual"], threats=threats)
     m.load_state_dict(ck["model"])
     m.eval()
     return m
@@ -87,13 +89,17 @@ def main():
             kmap, mirror = [0] * 64, False
         w2 = T.quant_int(model.out.weight).ravel()
         b2 = T.quant_int(model.out.bias).ravel()
+        threats = getattr(model, "threats", False)  # O6: the threat block wt[THREAT_FEATURES][H]
+        wt = T.quant_int(model.ft_t).T.ravel() if threats else None
     export_ok = (np.array_equal(np.frombuffer(net["w1"].tobytes(), "<i2"), w1) and
                  np.array_equal(np.frombuffer(net["b1"].tobytes(), "<i2"), b1) and
                  np.array_equal(np.frombuffer(net["w2"].tobytes(), "<i2"), w2) and
                  np.array_equal(np.frombuffer(net["b2"].tobytes(), "<i2"), b2) and
                  net["king_map"] == kmap and net["mirror"] == mirror and net["hidden"] == H and
-                 net["residual"] == bool(ck["config"]["residual"]))
+                 net["residual"] == bool(ck["config"]["residual"]) and net.get("threats", False) == threats and
+                 (not threats or np.array_equal(np.frombuffer(net["wt"].tobytes(), "<i2"), wt)))
     res["export"] = bool(export_ok)
+    res["threats"] = bool(threats)
 
     fens = [l.strip() for l in open(a.fens) if l.strip()]
     n = len(fens)
@@ -129,16 +135,28 @@ def main():
             keys_ok = (cpp["white_bucket"] == 0) & (cpp["black_bucket"] == 0) & (cpp["white_flip"] == 0) & (cpp["black_flip"] == 0)
         res["keys_exact"] = int(keys_ok.sum())
 
-        # acc: the model's own first layer on its own features
+        # acc: the model's own first layer on its own features (O6: plus its threat inputs), in chunks of 1000
+        # positions (the dense threat input of 10000 positions would need ~370 MB per perspective)
         if kb_model:
             W = model.q(model.ft_sum()).permute(1, 0, 2).reshape(H, model.kb * T.FEATURES)
             bias = model.q(model.ft_b)
-            dense = lambda black: T.king_dense(codes_t, black, model.king_map, model.mirror, model.kb)
         else:
             W, bias = model.q(model.ft.weight), model.q(model.ft.bias)
-            dense = lambda black: T.dense(codes_t, black)
-        acc = torch.stack([torch.nn.functional.linear(dense(torch.full((n,), p, dtype=torch.long)), W, bias)
-                           for p in (0, 1)], dim=1)                       # [n, 2, H] White, Black
+        Wt = model.q(model.ft_t) if threats else None
+
+        def first_layer(c, p):
+            black = torch.full((c.shape[0],), p, dtype=torch.long)
+            if kb_model:
+                y = torch.nn.functional.linear(T.king_dense(c, black, model.king_map, model.mirror, model.kb), W, bias)
+                flip = T.king_flip(c, black, model.mirror) if threats else None
+            else:
+                y = torch.nn.functional.linear(T.dense(c, black), W, bias)
+                flip = torch.zeros_like(black)
+            if threats:
+                y = y + torch.nn.functional.linear(T.threat_dense(T.threat_pairs(c), black, flip), Wt)
+            return y
+        acc = torch.cat([torch.stack([first_layer(codes_t[i:i + 1000], p) for p in (0, 1)], dim=1)
+                         for i in range(0, n, 1000)], 0)                   # [n, 2, H] White, Black
         acc_np = acc.numpy().astype("<f4")
         acc_ok = (acc_np.view("<u4") == cpp_acc.view("<u4")).all(axis=(1, 2))
         res["acc_exact"] = int(acc_ok.sum())
@@ -164,8 +182,9 @@ def main():
         out_ok = (out_bits == cpp_bits) & (cp == cpp["cp"])
         res["output_exact"] = int(out_ok.sum())
 
-        # forward: training-time model
-        logit = model(codes_t, stm_t, torch.zeros(n))
+        # forward: training-time model (in chunks, as above)
+        logit = torch.cat([model(codes_t[i:i + 1000], stm_t[i:i + 1000], torch.zeros(len(codes_t[i:i + 1000])))
+                           for i in range(0, n, 1000)])
         fwd_cp = (logit * 400.0 / 2.25).numpy().astype(np.float64)
         diff = np.abs(fwd_cp - cpp["cp"])
         res["forward_max_abs_diff_cp"] = float(diff.max())
@@ -181,7 +200,7 @@ def main():
     res["max_abs_cp"] = int(np.abs(cpp["cp"]).max())
     ok = res["export"] and res["keys_exact"] == n and res["acc_exact"] == n and res["output_exact"] == n
     res["verdict"] = "PASS" if ok else "FAIL"
-    print(f"positions {n}  king buckets {net['king_buckets']} mirror {net['mirror']}  max |engine cp| {res['max_abs_cp']}")
+    print(f"positions {n}  king buckets {net['king_buckets']} mirror {net['mirror']} threat inputs {res['threats']}  max |engine cp| {res['max_abs_cp']}")
     print(f"export (file ints == quantised checkpoint): {'OK' if res['export'] else 'MISMATCH'}")
     print(f"keys   (bucket, flip both perspectives):    {res['keys_exact']}/{n}")
     print(f"acc    (both perspectives, float32 bits):   {res['acc_exact']}/{n}")

@@ -3,7 +3,8 @@
 
 Format (little-endian; the engine's loader is forge::nnue::v2::load in src/nnue.cpp):
   0   char[8] "FORGENN2"        8   u32 version = 2           12  u32 header_bytes = 160
-  16  u32 feature_set = 0       20  u32 inputs = 768          24  u32 hidden H
+  16  u32 feature_set           20  u32 inputs = 768          24  u32 hidden H
+      (feature_set 0 = piece-square inputs only; bit 0 = threat inputs, O6: a block wt[9216][H] follows w1)
   28  u32 king_buckets KB 1-32  32  u32 output_buckets OB     36  u32 flags: bit0 residual, bit1 king mirror
   40  f32 weight_scale 4096     44  f32 output_scale 4096     48  f32 sigmoid_k 2.25
   52  u8  king_bucket_map[64]   own-king square in the perspective's frame (rank-flipped for Black,
@@ -42,6 +43,8 @@ HEADER_BYTES = 160
 INPUTS = 768
 FLAG_RESIDUAL = 1
 FLAG_MIRROR = 2
+FEATURE_SET_THREATS = 1          # O6: threat inputs (definition in include/forge/nnue_v2.hpp at ThreatFeatures)
+THREAT_FEATURES = 12 * 12 * 64
 WEIGHT_SCALE = 4096.0
 OUTPUT_SCALE = 4096.0
 SIGMOID_K = 2.25
@@ -128,8 +131,9 @@ def _i16_bytes(values, count: int, name: str) -> bytes:
 
 
 def write_v2(path, *, hidden: int, king_buckets: int, residual: bool, mirror: bool, king_map, w1, b1, w2, b2,
-             output_buckets: int = 1, output_map=None) -> int:
-    """Writes a v2 file; returns its FNV-1a 64 checksum. w1 order [bucket][feature][hidden]."""
+             output_buckets: int = 1, output_map=None, feature_set: int = 0, wt=None) -> int:
+    """Writes a v2 file; returns its FNV-1a 64 checksum. w1 order [bucket][feature][hidden]; wt (feature_set bit 0,
+    O6) order [threat feature][hidden]."""
     king_map = list(king_map)
     output_map = [0] * 33 if output_map is None else list(output_map)
     if len(king_map) != 64 or any(not 0 <= b < king_buckets for b in king_map):
@@ -138,14 +142,21 @@ def write_v2(path, *, hidden: int, king_buckets: int, residual: bool, mirror: bo
         raise ValueError("output map needs 33 entries in [0, output_buckets)")
     if not 1 <= king_buckets <= 32:
         raise ValueError("king buckets must be 1-32")
+    if feature_set & ~FEATURE_SET_THREATS:
+        raise ValueError(f"unknown feature set {feature_set}")
+    if bool(feature_set & FEATURE_SET_THREATS) != (wt is not None):
+        raise ValueError("threat weights (wt) go with feature_set bit 0")
     flags = (FLAG_RESIDUAL if residual else 0) | (FLAG_MIRROR if mirror else 0)
-    head = MAGIC + struct.pack("<IIIIIIII", VERSION, HEADER_BYTES, 0, INPUTS, hidden, king_buckets, output_buckets, flags)
+    head = MAGIC + struct.pack("<IIIIIIII", VERSION, HEADER_BYTES, feature_set, INPUTS, hidden, king_buckets, output_buckets, flags)
     head += struct.pack("<fff", WEIGHT_SCALE, OUTPUT_SCALE, SIGMOID_K)
     head += bytes(king_map) + bytes(output_map)
     head += bytes(HEADER_BYTES - len(head))
     assert len(head) == HEADER_BYTES
-    body = (_i16_bytes(w1, king_buckets * INPUTS * hidden, "w1") + _i16_bytes(b1, hidden, "b1") +
-            _i16_bytes(w2, output_buckets * 2 * hidden, "w2") + _i16_bytes(b2, output_buckets, "b2"))
+    body = _i16_bytes(w1, king_buckets * INPUTS * hidden, "w1")
+    if wt is not None:
+        body += _i16_bytes(wt, THREAT_FEATURES * hidden, "wt")
+    body += (_i16_bytes(b1, hidden, "b1") + _i16_bytes(w2, output_buckets * 2 * hidden, "w2") +
+             _i16_bytes(b2, output_buckets, "b2"))
     data = head + body
     checksum = fnv1a64(data)
     with open(path, "wb") as f:
@@ -159,20 +170,23 @@ def read_v2(path) -> dict:
         raise ValueError("not a FORGENN2 file")
     (version, header_bytes, feature_set, inputs, hidden, kb, ob, flags) = struct.unpack_from("<IIIIIIII", data, 8)
     ws, os_, k = struct.unpack_from("<fff", data, 40)
-    if version != VERSION or header_bytes != HEADER_BYTES or feature_set != 0 or inputs != INPUTS:
+    if version != VERSION or header_bytes != HEADER_BYTES or (feature_set & ~FEATURE_SET_THREATS) or inputs != INPUTS:
         raise ValueError("unsupported v2 header")
     stored = struct.unpack_from("<Q", data, len(data) - 8)[0]
     if fnv1a64(data[:-8]) != stored:
         raise ValueError("checksum mismatch")
-    counts = [kb * INPUTS * hidden, hidden, ob * 2 * hidden, ob]
+    threats = bool(feature_set & FEATURE_SET_THREATS)
+    names = ["w1"] + (["wt"] if threats else []) + ["b1", "w2", "b2"]
+    counts = [kb * INPUTS * hidden] + ([THREAT_FEATURES * hidden] if threats else []) + [hidden, ob * 2 * hidden, ob]
     if len(data) != HEADER_BYTES + 2 * sum(counts) + 8:
         raise ValueError("size mismatch")
     out = dict(version=version, hidden=hidden, king_buckets=kb, output_buckets=ob,
                residual=bool(flags & FLAG_RESIDUAL), mirror=bool(flags & FLAG_MIRROR),
                weight_scale=ws, output_scale=os_, sigmoid_k=k, checksum=stored,
-               king_map=list(data[52:116]), output_map=list(data[116:149]))
+               king_map=list(data[52:116]), output_map=list(data[116:149]), feature_set=feature_set,
+               threats=threats, wt=None)
     off = HEADER_BYTES
-    for name, n in zip(("w1", "b1", "w2", "b2"), counts):
+    for name, n in zip(names, counts):
         a = array("h")
         a.frombytes(data[off:off + 2 * n])
         if sys.byteorder != "little":
@@ -211,6 +225,12 @@ def flipped_files(w1_bucket, hidden: int):
     return out
 
 
+def with_zero_threats(net: dict) -> dict:
+    """O6: the same net with a threat block of zeros (feature_set bit 0): it evaluates exactly like `net`, so a search
+    with it runs the threat-input machinery on the tree of `net` (engine cost of threat inputs at equal nodes)."""
+    return dict(net, feature_set=FEATURE_SET_THREATS, wt=array("h", bytes(2 * THREAT_FEATURES * net["hidden"])))
+
+
 def replica(inc: dict, kind: str) -> dict:
     """v2 network that evaluates exactly like the v1 include (see module docstring)."""
     hidden, w1 = inc["hidden"], inc["w1"]
@@ -241,20 +261,23 @@ def main(argv=None) -> int:
     p.add_argument("inc")
     p.add_argument("out")
     p.add_argument("--replica", default="r1", choices=["r1", "r4", "rm2", "rm8", "rm16"])
+    p.add_argument("--threats-zero", action="store_true", help="O6: add a threat block of zeros (feature_set bit 0)")
     a = ap.parse_args(argv)
     if a.cmd == "info":
         n = read_v2(a.net)
         print(f"{a.net}: hidden {n['hidden']} king_buckets {n['king_buckets']} mirror {n['mirror']} "
-              f"output_buckets {n['output_buckets']} residual {n['residual']} fnv1a {n['checksum']:016x}")
+              f"output_buckets {n['output_buckets']} residual {n['residual']} threats {n['threats']} fnv1a {n['checksum']:016x}")
         print("king map (rank 8 first, files a-h, perspective frame):")
         for r in range(7, -1, -1):
             print("  " + " ".join(f"{n['king_map'][r * 8 + f]:2d}" for f in range(8)))
         print("output map (pieces 0..32):", " ".join(map(str, n["output_map"])))
         return 0
     net = replica(read_inc(a.inc), a.replica)
+    if a.threats_zero:
+        net = with_zero_threats(net)
     checksum = write_v2(a.out, **net)
-    print(f"wrote {a.out}: replica {a.replica}, king_buckets {net['king_buckets']}, mirror {net['mirror']}, "
-          f"fnv1a {checksum:016x}")
+    print(f"wrote {a.out}: replica {a.replica}{' + zero threat inputs' if a.threats_zero else ''}, king_buckets "
+          f"{net['king_buckets']}, mirror {net['mirror']}, fnv1a {checksum:016x}")
     return 0
 
 

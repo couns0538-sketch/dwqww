@@ -263,7 +263,7 @@ def dense(codes, black):
 
 
 class NNUE(nn.Module):
-    def __init__(self, hidden, qat=True, residual=True):
+    def __init__(self, hidden, qat=True, residual=True, threats=False):
         super().__init__()
         self.hidden, self.qat, self.residual = hidden, qat, residual
         self.ft = nn.Linear(FEATURES, hidden)
@@ -273,6 +273,10 @@ class NNUE(nn.Module):
         nn.init.zeros_(self.out.bias)
         if residual:
             nn.init.zeros_(self.out.weight)  # first forward == HCE alone
+        self.threats = bool(threats)
+        if self.threats:  # O6 (created last, so the other parameters draw the same random numbers as without it)
+            self.ft_t = nn.Parameter(torch.empty(hidden, THREAT_FEATURES))
+            nn.init.normal_(self.ft_t, std=0.02)
 
     def q(self, p):
         if not self.qat:
@@ -286,8 +290,13 @@ class NNUE(nn.Module):
         xs = dense(codes, stm)
         xo = dense(codes, 1 - stm)
         w, b = self.q(self.ft.weight), self.q(self.ft.bias)
-        hs = torch.clamp(F.linear(xs, w, b), 0.0, 1.0).square()
-        ho = torch.clamp(F.linear(xo, w, b), 0.0, 1.0).square()
+        if self.threats:  # O6: threat inputs on top of the piece-square inputs (no mirroring without king buckets)
+            pairs, wt, zero = threat_pairs(codes), self.q(self.ft_t), torch.zeros_like(stm)
+            hs = torch.clamp(F.linear(xs, w, b) + F.linear(threat_dense(pairs, stm, zero), wt), 0.0, 1.0).square()
+            ho = torch.clamp(F.linear(xo, w, b) + F.linear(threat_dense(pairs, 1 - stm, zero), wt), 0.0, 1.0).square()
+        else:
+            hs = torch.clamp(F.linear(xs, w, b), 0.0, 1.0).square()
+            ho = torch.clamp(F.linear(xo, w, b), 0.0, 1.0).square()
         out = F.linear(torch.cat([hs, ho], 1), self.q(self.out.weight), self.q(self.out.bias)).squeeze(1)
         return out + hce_logit if self.residual else out
 
@@ -347,7 +356,7 @@ def quant_int(p):
 
 
 class NNUEKB(nn.Module):
-    def __init__(self, hidden, king_map, mirror=True, factor=True, qat=True, residual=True):
+    def __init__(self, hidden, king_map, mirror=True, factor=True, qat=True, residual=True, threats=False):
         super().__init__()
         self.hidden, self.qat, self.residual, self.mirror = hidden, qat, residual, bool(mirror)
         self.register_buffer("king_map", torch.tensor(king_map, dtype=torch.long))
@@ -360,6 +369,10 @@ class NNUEKB(nn.Module):
         nn.init.zeros_(self.out.bias)
         if residual:
             nn.init.zeros_(self.out.weight)  # first forward == HCE alone
+        self.threats = bool(threats)
+        if self.threats:  # O6 (created last; one block shared by every king bucket)
+            self.ft_t = nn.Parameter(torch.empty(hidden, THREAT_FEATURES))
+            nn.init.normal_(self.ft_t, std=0.02)
 
     q = NNUE.q
     project_weights = NNUE.project_weights
@@ -371,10 +384,116 @@ class NNUEKB(nn.Module):
     def forward(self, codes, stm, hce_logit):
         w = self.q(self.ft_sum()).permute(1, 0, 2).reshape(self.hidden, self.kb * FEATURES)
         b = self.q(self.ft_b)
-        hs = torch.clamp(F.linear(king_dense(codes, stm, self.king_map, self.mirror, self.kb), w, b), 0.0, 1.0).square()
-        ho = torch.clamp(F.linear(king_dense(codes, 1 - stm, self.king_map, self.mirror, self.kb), w, b), 0.0, 1.0).square()
+        if self.threats:  # O6: threat squares use the perspective's mirror flip, as the piece squares do
+            pairs, wt = threat_pairs(codes), self.q(self.ft_t)
+            ts = F.linear(threat_dense(pairs, stm, king_flip(codes, stm, self.mirror)), wt)
+            to = F.linear(threat_dense(pairs, 1 - stm, king_flip(codes, 1 - stm, self.mirror)), wt)
+            hs = torch.clamp(F.linear(king_dense(codes, stm, self.king_map, self.mirror, self.kb), w, b) + ts, 0.0, 1.0).square()
+            ho = torch.clamp(F.linear(king_dense(codes, 1 - stm, self.king_map, self.mirror, self.kb), w, b) + to, 0.0, 1.0).square()
+        else:
+            hs = torch.clamp(F.linear(king_dense(codes, stm, self.king_map, self.mirror, self.kb), w, b), 0.0, 1.0).square()
+            ho = torch.clamp(F.linear(king_dense(codes, 1 - stm, self.king_map, self.mirror, self.kb), w, b), 0.0, 1.0).square()
         out = F.linear(torch.cat([hs, ho], 1), self.q(self.out.weight), self.q(self.out.bias)).squeeze(1)
         return out + hce_logit if self.residual else out
+
+
+# ----------------------------------------------------------------------------- threat inputs (Opus O6)
+# Optional, --threats (with or without --king-buckets): every pair (attacker A on s, victim V on v) where A attacks
+# the occupied square v (pawn capture squares, knight / king steps, bishop / rook / queen rays up to and including the
+# first piece), except a king attacking a king and any piece attacking its own side's king. Feature of a pair for
+# perspective p (black = 1) with mirror flip f (0, or 7 for a mirrored net when the own king is on files e-h):
+#   rel(code) = code - 1 (White perspective) or (code + 5) % 12 (Black);  index = (rel(A) * 12 + rel(V)) * 64 + (v' ^ f)
+#   with v' = v ^ 56 for Black, v for White   == forge/nnue_v2.hpp threat_feature().
+# The input is the pair count (two attackers of the same kind on one victim count twice); one block of
+# THREAT_FEATURES columns shared by all king buckets, exported as wt[THREAT_FEATURES][H] (v2 feature_set bit 0).
+THREAT_FEATURES = 12 * 12 * 64
+_THREAT_TABLES = {}
+
+
+def threat_tables(device):
+    """(ray [64,8,7] (64 = off the board), leaper source / target / kind [L], rook_dir [8]) on `device`."""
+    key = str(device)
+    if key not in _THREAT_TABLES:
+        dirs = [(0, 1), (0, -1), (1, 0), (-1, 0), (1, 1), (-1, 1), (1, -1), (-1, -1)]  # (file, rank) steps: 0-3 rook, 4-7 bishop
+        ray = np.full((64, 8, 7), 64, np.int64)
+        for s in range(64):
+            for d, (df, dr) in enumerate(dirs):
+                f, r = s & 7, s >> 3
+                for k in range(7):
+                    f, r = f + df, r + dr
+                    if not (0 <= f < 8 and 0 <= r < 8):
+                        break
+                    ray[s, d, k] = r * 8 + f
+        steps = ([(1, 2), (2, 1), (2, -1), (1, -2), (-1, -2), (-2, -1), (-2, 1), (-1, 2)],          # 0 knight
+                 [(1, 0), (1, 1), (0, 1), (-1, 1), (-1, 0), (-1, -1), (0, -1), (1, -1)],            # 1 king
+                 [(-1, 1), (1, 1)],                                                                  # 2 white pawn
+                 [(-1, -1), (1, -1)])                                                                # 3 black pawn
+        src, dst, kind = [], [], []
+        for kd, st in enumerate(steps):
+            for s in range(64):
+                for df, dr in st:
+                    f, r = (s & 7) + df, (s >> 3) + dr
+                    if 0 <= f < 8 and 0 <= r < 8:
+                        src.append(s); dst.append(r * 8 + f); kind.append(kd)
+        as_t = lambda x: torch.tensor(np.asarray(x), dtype=torch.long, device=device)
+        _THREAT_TABLES[key] = (as_t(ray), as_t(src), as_t(dst), as_t(kind),
+                               torch.tensor([True] * 4 + [False] * 4, device=device))
+    return _THREAT_TABLES[key]
+
+
+def threat_pairs(codes):
+    """codes [B,64] long (0 empty, 1..12) -> (a, b, v, ok) [B,S]: attacker code, victim code, victim square, active."""
+    ray, src, dst, kind, rook_dir = threat_tables(codes.device)
+    B = codes.shape[0]
+    padded = torch.cat([codes, codes.new_zeros(B, 1)], 1)                      # square 64: off the board, empty
+    ray_occ = (padded > 0)[:, ray]                                             # [B,64,8,7]
+    first = torch.argmax(ray_occ.to(torch.int32), dim=3, keepdim=True)        # first occupied step (0 when none)
+    hit = ray_occ.any(dim=3)
+    vs = torch.gather(ray.unsqueeze(0).expand(B, -1, -1, -1), 3, first).squeeze(3)
+    vs = torch.where(hit, vs, torch.full_like(vs, 64))                        # [B,64,8] first piece on each ray
+    a_s = codes.unsqueeze(2).expand(-1, -1, 8)
+    t_s = torch.remainder(a_s - 1, 6) + 1
+    ok_s = hit & (a_s > 0) & torch.where(rook_dir.view(1, 1, 8), (t_s == 4) | (t_s == 5), (t_s == 3) | (t_s == 5))
+    b_s = torch.gather(padded, 1, vs.reshape(B, -1)).reshape(B, 64, 8)
+    a_l, b_l = codes[:, src], padded[:, dst]
+    t_l = torch.remainder(a_l - 1, 6) + 1
+    kd = kind.unsqueeze(0)
+    ok_l = (a_l > 0) & (b_l > 0) & (((kd == 0) & (t_l == 2)) | ((kd == 1) & (t_l == 6)) | ((kd == 2) & (a_l == 1)) |
+                                    ((kd == 3) & (a_l == 7)))
+    a = torch.cat([a_s.reshape(B, -1), a_l], 1)
+    b = torch.cat([b_s.reshape(B, -1), b_l], 1)
+    v = torch.cat([vs.reshape(B, -1), dst.unsqueeze(0).expand(B, -1)], 1)
+    ok = torch.cat([ok_s.reshape(B, -1), ok_l], 1)
+    victim_king = (b == 6) | (b == 12)
+    ok = ok & ~(victim_king & ((a == 6) | (a == 12) | ((a <= 6) == (b <= 6))))   # redundant pairs
+    return a, b, v, ok
+
+
+def threat_index(a, b, v, ok, black, flip):
+    """Feature index [B,S] for perspective `black` [B] (0/1) with mirror flip [B] (0/7); THREAT_FEATURES = inactive."""
+    bl = black.unsqueeze(1) == 1
+    ra = torch.where(bl, torch.remainder(a + 5, 12), a - 1)
+    rb = torch.where(bl, torch.remainder(b + 5, 12), b - 1)
+    vr = torch.bitwise_xor(torch.where(bl, torch.bitwise_xor(v, 56), v), flip.unsqueeze(1))
+    idx = (ra * 12 + rb) * 64 + vr
+    return torch.where(ok, idx, torch.full_like(idx, THREAT_FEATURES))
+
+
+def threat_dense(pairs, black, flip):
+    """Pair counts [B, THREAT_FEATURES] for one perspective."""
+    a, b, v, ok = pairs
+    idx = threat_index(a, b, v, ok, black, flip)
+    x = torch.zeros(a.shape[0], THREAT_FEATURES + 1, device=a.device)
+    x.scatter_add_(1, idx, torch.ones(idx.shape, device=a.device))
+    return x[:, :THREAT_FEATURES]
+
+
+def king_flip(codes, black, mirror):
+    """Mirror flip [B] (0 or 7) of a perspective, as king_features(): first own king, square 0 if none."""
+    own_king = torch.where(black == 1, 12, 6).unsqueeze(1)
+    ksq = torch.argmax((codes == own_king).long(), dim=1)
+    kr = torch.where(black == 1, ksq ^ 56, ksq)
+    return torch.where((kr & 7) >= 4, 7, 0) if mirror else torch.zeros_like(kr)
 
 
 def export_forge_v2(model, stem, residual):
@@ -391,11 +510,14 @@ def export_forge_v2(model, stem, residual):
             b1 = quant_int(model.ft.bias)
             kmap, kb, mirror = [0] * 64, 1, False
         w2, b2 = quant_int(model.out.weight).ravel(), quant_int(model.out.bias).ravel()
+        threats = getattr(model, "threats", False)  # O6: wt[THREAT_FEATURES][H] after w1, feature_set bit 0
+        wt = np.ascontiguousarray(quant_int(model.ft_t).T).ravel() if threats else None
     path = stem.with_suffix(".fnn2")
     temp = path.with_name(path.name + ".tmp-" + uuid.uuid4().hex)
     try:
         V2.write_v2(temp, hidden=model.hidden, king_buckets=kb, residual=residual, mirror=mirror, king_map=kmap,
-                    w1=np.ascontiguousarray(w1).ravel(), b1=b1, w2=w2, b2=b2)
+                    w1=np.ascontiguousarray(w1).ravel(), b1=b1, w2=w2, b2=b2,
+                    feature_set=V2.FEATURE_SET_THREATS if threats else 0, wt=wt)
         if path.exists():
             raise FileExistsError(str(path))
         os.rename(temp, path)
@@ -644,6 +766,9 @@ def main():
     ap.add_argument("--king-mirror", type=int, choices=[0, 1], default=1, help="C4: mirror files e-h onto d-a per perspective (default 1)")
     ap.add_argument("--king-factor", type=int, choices=[0, 1], default=1, help="C4: shared factoriser block during training, folded into every bucket on export (default 1)")
     ap.add_argument("--export-v2", action="store_true", help="C4: also write <epoch>.fnn2 (format v2, 1 bucket) for the standard model")
+    ap.add_argument("--threats", action="store_true", help="O6: add the threat inputs (12 x 12 x 64 attacker/victim/square pair "
+                    "counts, one block shared by every king bucket; definition above threat_tables) to the standard or the "
+                    "king-bucketed model; such nets exist only as .fnn2 (engine: NNUEFile + NNUEThreats 1)")
     a = ap.parse_args()
     k = a.sigmoid_k
     if k != K_DEFAULT:
@@ -666,11 +791,13 @@ def main():
     if a.king_buckets:
         kmap = king_map_from_args(a.king_buckets, a.king_map)
         model = NNUEKB(a.shape, kmap, mirror=bool(a.king_mirror), factor=bool(a.king_factor), qat=not a.no_qat,
-                       residual=a.residual or a.baseline_only).to(dev)
+                       residual=a.residual or a.baseline_only, threats=a.threats).to(dev)
         print(f"king buckets: {model.kb} mirror={model.mirror} factor={a.king_factor} map(rank 8 first, files a-h): "
               + " | ".join(" ".join(str(kmap[r * 8 + f]) for f in range(8)) for r in range(7, -1, -1)), flush=True)
     else:
-        model = NNUE(a.shape, qat=not a.no_qat, residual=a.residual or a.baseline_only).to(dev)
+        model = NNUE(a.shape, qat=not a.no_qat, residual=a.residual or a.baseline_only, threats=a.threats).to(dev)
+    if a.threats:
+        print(f"threat inputs: {THREAT_FEATURES} features (O6)", flush=True)
     base_sub, nb = evaluate(model, hold, val_idx, dev, k, a.batch_size, baseline=True)
     print(f"BASELINE HCE-alone holdout subset n={nb:,}: mse_teacher(blend1.0)={base_sub[1.0]:.6f} mse_blend0.6={base_sub[0.6]:.6f}", flush=True)
     if a.baseline_only:
@@ -720,6 +847,8 @@ def main():
     if a.king_buckets:  # C4 (absent for the standard model, so its checkpoints stay byte-identical)
         config.update({"features": "forge768-king-buckets", "king_buckets": model.kb, "king_mirror": model.mirror,
                        "king_factor": bool(a.king_factor), "king_map": model.king_map.cpu().tolist()})
+    if a.threats:  # O6 (absent otherwise)
+        config["threats"] = True
 
     def lr_at(s):
         if s < a.warmup_steps:
@@ -798,14 +927,14 @@ def main():
         payload = {"config": config, "model": cpu_copy(model.state_dict()), "optimizer": cpu_copy(opt.state_dict()),
                    "next_epoch": ep + 1, "step": step, "val": {str(b): v for b, v in vs.items()}}
         atomic_write(stem.with_suffix(".pt"), lambda dst: torch.save(payload, dst))
-        if a.king_buckets:  # C4: bucketed nets only exist as v2 files
+        if a.king_buckets or a.threats:  # C4 / O6: bucketed and threat nets only exist as v2 files
             export_forge_v2(model, stem, bool(a.residual))
         else:
             export_forge(model, stem, k, bool(a.residual))
             if a.export_v2:
                 export_forge_v2(model, stem, bool(a.residual))
         atomic_write(stem.with_suffix(".json"), lambda dst: dst.write((json.dumps({**config, "val": payload["val"], "baseline": {str(b): v for b, v in base_sub.items()}}, indent=1) + "\n").encode()))
-        print(f"Saved {stem.name} (.pt .fnn2 .json)" if a.king_buckets else
+        print(f"Saved {stem.name} (.pt .fnn2 .json)" if a.king_buckets or a.threats else
               f"Saved {stem.name} (.pt .inc .bin .json{' .fnn2' if a.export_v2 else ''})", flush=True)
         mem_report(f"epoch{ep + 1:03d}", a.max_ram_gb)
     finally:  # v3: join background epoch builder / prefetchers cleanly, also on exceptions
