@@ -81,6 +81,12 @@ constexpr int ThreatFeatures = 12 * 12 * 64;
 constexpr int MaxThreatPairs = 512;   // at most 16 attackers per occupied square (8 rays + 8 knight squares) x 32 pieces
 constexpr std::uint32_t FeatureSetThreats = 1U;
 
+// The threat pairs of one placement (O6; threat_keys).
+struct ThreatList {
+    int count = 0;
+    std::array<std::uint16_t, MaxThreatPairs> keys;   // pair keys ((A - 1) * 12 + (V - 1)) * 64 + v (absolute)
+};
+
 struct KingKey {
     int bucket = 0;
     int flip = 0;     // 0, or 7 when the perspective's king stands on files e-h of a mirrored net
@@ -127,6 +133,9 @@ struct RefreshCache {
     std::vector<Entry> entries;   // index ((perspective * king_buckets + bucket) * 2 + (flip != 0))
     // O6: pair-count differences of two threat lists (all zero between uses; threat_delta).
     std::array<std::int8_t, ThreatFeatures> threat_counts{};
+    // O6: the threat list of the placement of each search-stack entry whose accumulator the threat path computed
+    // (index ply + 4); written together with that accumulator, so a valid accumulator always has its list here.
+    std::vector<ThreatList> ply_threats;
 };
 
 struct Net {
@@ -227,11 +236,7 @@ inline void redo(Pieces& pieces, const DirtyPieces& dirty) {
     }
 }
 
-// ---- O6 threat inputs (definition at ThreatFeatures) ----
-struct ThreatList {
-    int count = 0;
-    std::array<std::uint16_t, MaxThreatPairs> keys;   // pair keys ((A - 1) * 12 + (V - 1)) * 64 + v (absolute)
-};
+// ---- O6 threat inputs (definition at ThreatFeatures; ThreatList above) ----
 
 [[nodiscard]] inline Bitboard attacks_from(int code, int square, Bitboard occupied) {
     switch (code) {
@@ -315,10 +320,53 @@ inline void threat_delta(const ThreatList& before, const ThreatList& after, std:
 }
 
 // dst = src - sub[0..subs) + add[0..adds) over the hidden units, in chunks of 64 floats (exact; any order of
-// the terms gives the same bits). src may be dst.
+// the terms gives the same bits). src may be dst. Every pointer is 32-byte aligned (accumulators, weight columns).
+// With AVX2 the 64-float chunk stays in eight registers while all columns are applied (plain sub / add, no FMA).
 inline void apply_lists(const float* src, float* dst, const float* const* sub, int subs, const float* const* add, int adds) {
     constexpr int Chunk = 64;
     static_assert(HiddenSize % Chunk == 0, "HiddenSize must be a multiple of the chunk");
+#if defined(__AVX2__)
+    for (int h0 = 0; h0 < HiddenSize; h0 += Chunk) {
+        __m256 v0 = _mm256_load_ps(src + h0);
+        __m256 v1 = _mm256_load_ps(src + h0 + 8);
+        __m256 v2 = _mm256_load_ps(src + h0 + 16);
+        __m256 v3 = _mm256_load_ps(src + h0 + 24);
+        __m256 v4 = _mm256_load_ps(src + h0 + 32);
+        __m256 v5 = _mm256_load_ps(src + h0 + 40);
+        __m256 v6 = _mm256_load_ps(src + h0 + 48);
+        __m256 v7 = _mm256_load_ps(src + h0 + 56);
+        for (int i = 0; i < subs; ++i) {
+            const float* col = sub[i] + h0;
+            v0 = _mm256_sub_ps(v0, _mm256_load_ps(col));
+            v1 = _mm256_sub_ps(v1, _mm256_load_ps(col + 8));
+            v2 = _mm256_sub_ps(v2, _mm256_load_ps(col + 16));
+            v3 = _mm256_sub_ps(v3, _mm256_load_ps(col + 24));
+            v4 = _mm256_sub_ps(v4, _mm256_load_ps(col + 32));
+            v5 = _mm256_sub_ps(v5, _mm256_load_ps(col + 40));
+            v6 = _mm256_sub_ps(v6, _mm256_load_ps(col + 48));
+            v7 = _mm256_sub_ps(v7, _mm256_load_ps(col + 56));
+        }
+        for (int i = 0; i < adds; ++i) {
+            const float* col = add[i] + h0;
+            v0 = _mm256_add_ps(v0, _mm256_load_ps(col));
+            v1 = _mm256_add_ps(v1, _mm256_load_ps(col + 8));
+            v2 = _mm256_add_ps(v2, _mm256_load_ps(col + 16));
+            v3 = _mm256_add_ps(v3, _mm256_load_ps(col + 24));
+            v4 = _mm256_add_ps(v4, _mm256_load_ps(col + 32));
+            v5 = _mm256_add_ps(v5, _mm256_load_ps(col + 40));
+            v6 = _mm256_add_ps(v6, _mm256_load_ps(col + 48));
+            v7 = _mm256_add_ps(v7, _mm256_load_ps(col + 56));
+        }
+        _mm256_store_ps(dst + h0, v0);
+        _mm256_store_ps(dst + h0 + 8, v1);
+        _mm256_store_ps(dst + h0 + 16, v2);
+        _mm256_store_ps(dst + h0 + 24, v3);
+        _mm256_store_ps(dst + h0 + 32, v4);
+        _mm256_store_ps(dst + h0 + 40, v5);
+        _mm256_store_ps(dst + h0 + 48, v6);
+        _mm256_store_ps(dst + h0 + 56, v7);
+    }
+#else
     for (int h0 = 0; h0 < HiddenSize; h0 += Chunk) {
         float chunk[Chunk];
         for (int k = 0; k < Chunk; ++k) chunk[k] = src[h0 + k];
@@ -332,6 +380,7 @@ inline void apply_lists(const float* src, float* dst, const float* const* sub, i
         }
         for (int k = 0; k < Chunk; ++k) dst[h0 + k] = chunk[k];
     }
+#endif
 }
 
 // values += every threat column of `list` for this perspective and king key.

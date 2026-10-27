@@ -9,8 +9,10 @@
 // changes; every replayed ply becomes valid. Per replayed ply, the child's piece placement is the parent's
 // with that ply's piece changes applied (starting from the board with every replayed ply taken back), its
 // threat list is generated, and the multiset difference to the parent's list is applied together with the
-// piece-square changes in one pass over each perspective's accumulator. On a king-key change the perspective
-// is refreshed: piece-square inputs through the refresh cache, then every threat column of the child's list.
+// piece-square changes in one pass over each perspective's accumulator. Each computed ply's threat list is kept
+// in the worker's cache (RefreshCache::ply_threats, index ply + 4) next to its accumulator, so the valid
+// ancestor's list is read, not regenerated. On a king-key change the perspective is refreshed: piece-square
+// inputs through the refresh cache, then every threat column of the child's list.
 // All weights are int16 / 4096, so every accumulator value is an exact multiple of 2^-12 and incremental,
 // cached and from-scratch accumulators are bit-identical (tests/nnue_threat_tests.cpp checks it).
 
@@ -21,14 +23,18 @@ __attribute__((section(".text.forge_v2"), noinline)) int Worker::static_evaluate
     const bool residual = net.residual;
     if (!ss->accumulator.valid) {
         nnue::v2::RefreshCache& cache = nnue::v2::cache(net, id_);
+        if (cache.ply_threats.empty()) [[unlikely]] cache.ply_threats.resize(static_cast<std::size_t>(MaxPly + 8));
+        auto list_of = [&cache](const SearchStack* entry) -> nnue::v2::ThreatList& {
+            return cache.ply_threats[static_cast<std::size_t>(entry->ply + 4)];
+        };
         int back = 0;
         while (back < ss->ply && !(ss - back - 1)->accumulator.valid) ++back;
         nnue::v2::Pieces pieces = nnue::v2::pieces_of(board);
-        std::array<nnue::v2::ThreatList, 2> lists;
         if (back >= ss->ply && !(ss - back - 1)->accumulator.valid) {
-            nnue::v2::threat_keys(pieces, lists[0]);
+            nnue::v2::ThreatList& list = list_of(ss);
+            nnue::v2::threat_keys(pieces, list);
             for (const Color color : {White, Black}) {
-                nnue::v2::refresh_full_cached(net, cache, pieces, &lists[0], board.king_square(color), color,
+                nnue::v2::refresh_full_cached(net, cache, pieces, &list, board.king_square(color), color,
                                               ss->accumulator.values[static_cast<std::size_t>(color)].data());
             }
             ss->accumulator.valid = true;
@@ -38,8 +44,6 @@ __attribute__((section(".text.forge_v2"), noinline)) int Worker::static_evaluate
             auto king_of = [&pieces](Color color) { return lsb(pieces[static_cast<std::size_t>(make_piece(color, King))]); };
             std::array<nnue::v2::KingKey, 2> key{nnue::v2::king_key(net, White, king_of(White)),
                                                  nnue::v2::king_key(net, Black, king_of(Black))};
-            int current = 0;
-            nnue::v2::threat_keys(pieces, lists[0]);
             nnue::v2::ThreatDelta delta;
             std::array<const float*, nnue::v2::MaxThreatPairs + 4> sub;
             std::array<const float*, nnue::v2::MaxThreatPairs + 4> add;
@@ -48,8 +52,8 @@ __attribute__((section(".text.forge_v2"), noinline)) int Worker::static_evaluate
                 SearchStack* child = ss - i;
                 const nnue::DirtyPieces& dirty = child->dirty;
                 nnue::v2::redo(pieces, dirty);   // the child's placement
-                const nnue::v2::ThreatList& before = lists[static_cast<std::size_t>(current)];
-                nnue::v2::ThreatList& after = lists[static_cast<std::size_t>(current ^ 1)];
+                const nnue::v2::ThreatList& before = list_of(parent);   // valid: computed with the parent's accumulator
+                nnue::v2::ThreatList& after = list_of(child);
                 nnue::v2::threat_keys(pieces, after);
                 nnue::v2::threat_delta(before, after, cache.threat_counts.data(), delta);
                 for (const Color color : {White, Black}) {
@@ -81,7 +85,6 @@ __attribute__((section(".text.forge_v2"), noinline)) int Worker::static_evaluate
                 }
                 child->accumulator.valid = true;
                 if (residual) Evaluator::update_runtime_psqt(parent->runtime_psqt, child->runtime_psqt, dirty);
-                current ^= 1;
             }
         }
     }
