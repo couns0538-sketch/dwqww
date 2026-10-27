@@ -1,0 +1,49 @@
+# S08fix (FORGE_PROF profile counters, per-worker banks) Linux evidence for the ON build (opus-ci.yml covers the
+# default OFF build): release (OFF vs lock, ON identity, bench_prof pins, ctest, NPS overhead on the runner,
+# Threads 4/1 skew of Sol's shared bank vs per-worker banks), ASan+UBSan and TSan with the option on. See
+# opus_round1/sol_S08fix/ci_s08fix.sh. Read-only; uploads logs as artifacts.
+name: opus-sol-s08fix-ci
+on:
+  push:
+    branches: ['opus-sol-S08fix']
+    paths-ignore:
+      - 'opus_round1/**/*.md'
+      - 'opus_round1/**/*.log'
+      - 'opus_round1/**/*.txt'
+      - 'opus_round1/**/*.json'
+      - 'opus_round1/**/*.tsv'
+      - 'opus_round1/**/SHA256SUMS'
+      - 'REPORT.md'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  linux:
+    strategy:
+      fail-fast: false
+      matrix:
+        mode: [release, asan, tsan]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Toolchain
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq g++-14 ninja-build cmake python3
+          g++-14 --version | head -1
+          nproc; lscpu | grep -E 'Model name|Flags' | cut -c1-200
+      - name: Run ${{ matrix.mode }} (FORGE_PROF=ON)
+        run: bash opus_round1/sol_S08fix/ci_s08fix.sh ${{ matrix.mode }} ci_out
+      - name: Upload logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: sol-s08fix-${{ matrix.mode }}
+          path: |
+            ci_out/*.log
+            ci_out/*.txt
+            ci_out/**/sanitizer_logs_*/**
+          if-no-files-found: warn

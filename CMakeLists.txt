@@ -80,6 +80,8 @@ if(FORGE_PROF)
     add_executable(forge_prof_tests tests/prof_tests.cpp)
     target_link_libraries(forge_prof_tests PRIVATE forge_core Threads::Threads)
     add_test(NAME forge_prof_tests COMMAND forge_prof_tests)
+    # S08-2: the test runs Threads 1/2/4 profiled searches; bound it explicitly (TSan builds are slow).
+    set_tests_properties(forge_prof_tests PROPERTIES TIMEOUT 600)
 endif()
 add_test(NAME forge_tests COMMAND forge_tests)
 add_test(NAME forge_correction_history_tests COMMAND forge_correction_history_tests)

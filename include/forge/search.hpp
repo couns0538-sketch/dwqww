@@ -294,7 +294,7 @@ struct SharedSearchState {
     // 0 means pondering has not been converted into a timed search.
     std::atomic<std::int64_t> ponder_hit_ns{0};
 #ifdef FORGE_PROF
-    prof::Bank profile;
+    // The counters themselves live in one bank per Worker (S08-2).
     std::atomic<bool> profile_requested{false};
     bool profile_active=false; // Immutable while workers are active.
 #endif
@@ -316,6 +316,11 @@ public:
     void clear_caches() { evaluator_.clear(); }
     [[nodiscard]] std::uint64_t nodes() const { return nodes_.load(std::memory_order_relaxed); }
     [[nodiscard]] bool is_main() const { return id_ == 0; }
+#ifdef FORGE_PROF
+    // This worker's profile counters (S08-2); written only by its own search thread.
+    [[nodiscard]] const prof::Bank& profile_bank() const { return profile_bank_; }
+    void reset_profile_quiescent() { profile_bank_.reset_quiescent(); }
+#endif
 
 private:
     friend struct SearcherTestProbe;
@@ -353,6 +358,9 @@ private:
     bool root_restricted_ = false;
     std::uint64_t null_tries_ = 0;
     std::uint64_t null_cutoffs_ = 0;
+#ifdef FORGE_PROF
+    prof::Bank profile_bank_;
+#endif
 
     int search(Board& board, SearchStack* ss, int depth, int alpha, int beta, bool cut_node);
     int qsearch(Board& board, SearchStack* ss, int alpha, int beta);
@@ -408,7 +416,10 @@ public:
     // quiescent, exactly like clear/resize. Search snapshots once before launch.
     void set_profiling(bool enabled) { shared_.profile_requested.store(enabled,std::memory_order_relaxed); }
     [[nodiscard]] bool profiling_active() const { return shared_.profile_active; }
-    [[nodiscard]] prof::Snapshot profile_snapshot() const { return shared_.profile.snapshot_quiescent(); }
+    // S08-2: merge() of every worker's bank (quiescent, after the search's helpers are joined).
+    [[nodiscard]] prof::Snapshot profile_snapshot() const;
+    [[nodiscard]] std::vector<prof::Snapshot> profile_worker_snapshots() const;
+    [[nodiscard]] std::vector<std::uint64_t> profile_worker_nodes() const;
 #endif
     [[nodiscard]] int threads() const { return static_cast<int>(workers_.size()); }
     [[nodiscard]] int hashfull_permille() const { return shared_.tt.hashfull(); }

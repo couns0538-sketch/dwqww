@@ -2,7 +2,6 @@
 
 #ifdef FORGE_PROF
 #include <array>
-#include <atomic>
 #include <cstddef>
 #include <cstdint>
 #include <iosfwd>
@@ -32,28 +31,34 @@ struct Snapshot {
     bool overflow=false;
 };
 
-// Lifetime/reset/read follow Searcher's quiescent controller contract.
-// Only add() is called by active workers. Unsigned wrap is defined modulo
-// 2^64 and sets a sticky flag: wrapped totals are not valid frequencies.
-class Bank {
+// One bank per search worker (S08-2). Only the owning worker's thread calls add() while a
+// search runs, so the counters are plain integers: no shared atomics, no cache line written by
+// two threads, so Threads>1 searches are not serialized or slowed by profiling. The bank is
+// cache-line aligned so neighbouring data never shares its lines. reset/snapshot follow
+// Searcher's quiescent controller contract (before helpers start / after they are joined);
+// Searcher::profile_snapshot() merges the worker banks. Unsigned wrap is defined modulo 2^64
+// and sets a sticky flag: wrapped totals are not valid frequencies.
+class alignas(64) Bank {
 public:
     void add(Counter event,std::uint64_t amount=1) noexcept {
-        const auto previous=values_[static_cast<std::size_t>(event)].fetch_add(amount,std::memory_order_relaxed);
-        if (previous+amount<previous) overflow_.store(true,std::memory_order_relaxed);
+        auto& value=values_[static_cast<std::size_t>(event)];
+        const std::uint64_t previous=value;
+        value=previous+amount;
+        overflow_=overflow_ || value<previous;
     }
     void reset_quiescent() noexcept {
-        for (auto& value:values_) value.store(0,std::memory_order_relaxed);
-        overflow_.store(false,std::memory_order_relaxed);
+        values_.fill(0);
+        overflow_=false;
     }
     [[nodiscard]] Snapshot snapshot_quiescent() const noexcept {
         Snapshot result;
-        for (std::size_t i=0;i<CounterCount;++i) result.values[i]=values_[i].load(std::memory_order_relaxed);
-        result.overflow=overflow_.load(std::memory_order_relaxed);
+        result.values=values_;
+        result.overflow=overflow_;
         return result;
     }
 private:
-    std::array<std::atomic<std::uint64_t>,CounterCount> values_{};
-    std::atomic<bool> overflow_{false};
+    std::array<std::uint64_t,CounterCount> values_{};
+    bool overflow_=false;
 };
 
 // Constant initialization must be visible to every TU using this TLS slot.

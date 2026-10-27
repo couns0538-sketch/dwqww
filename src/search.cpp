@@ -1410,7 +1410,7 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
 
 SearchInfo Worker::search(Board board, const SearchLimits& limits, bool emit_info, const std::vector<Worker*>& all) {
 #ifdef FORGE_PROF
-    prof::Scope profile_scope(shared_.profile_active ? &shared_.profile : nullptr);
+    prof::Scope profile_scope(shared_.profile_active ? &profile_bank_ : nullptr);
 #endif
 
     const auto origin = limits.start_time != std::chrono::steady_clock::time_point{}
@@ -1700,7 +1700,7 @@ SearchInfo Searcher::search(Board board, const SearchLimits& limits, bool emit_i
     }
 #ifdef FORGE_PROF
     shared_.profile_active=shared_.profile_requested.load(std::memory_order_relaxed);
-    shared_.profile.reset_quiescent();
+    for (auto& worker : workers_) worker->reset_profile_quiescent();
 #endif
     std::vector<std::thread> helpers;
     for (std::size_t i = 1; i < workers_.size(); ++i) {
@@ -1716,5 +1716,27 @@ SearchInfo Searcher::search(Board board, const SearchLimits& limits, bool emit_i
     shared_.stop.store(external_stop, std::memory_order_relaxed);
     return result;
 }
+
+#ifdef FORGE_PROF
+prof::Snapshot Searcher::profile_snapshot() const {
+    prof::Snapshot total;
+    for (const auto& worker : workers_) prof::merge(total, worker->profile_bank().snapshot_quiescent());
+    return total;
+}
+
+std::vector<prof::Snapshot> Searcher::profile_worker_snapshots() const {
+    std::vector<prof::Snapshot> result;
+    result.reserve(workers_.size());
+    for (const auto& worker : workers_) result.push_back(worker->profile_bank().snapshot_quiescent());
+    return result;
+}
+
+std::vector<std::uint64_t> Searcher::profile_worker_nodes() const {
+    std::vector<std::uint64_t> result;
+    result.reserve(workers_.size());
+    for (const auto& worker : workers_) result.push_back(worker->nodes());
+    return result;
+}
+#endif
 
 } // namespace forge
