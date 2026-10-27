@@ -1,0 +1,58 @@
+# NPS A/B isolating the output-bucket cost: same C5 exe; A = lock replica r1 (1 output head, NNUEKingBuckets 1), B = lock replica r1 with 8 identical output heads (NNUEOutputBuckets 8); same tree, Threads 1, Hash 16, 10 runs per side per depth, ABBA
+# machine: shared Windows PC (gate games, self-play, NNUE training running); nice 19
+A: ./forge_c5.exe [('NNUEFile', 'D:\\grok-pc-data\\dwqww\\.claude\\worktrees\\b\\c5_final\\nets\\lock_r1.fnn2'), ('NNUEKingBuckets', '1')]
+B: ./forge_c5.exe [('NNUEFile', 'D:\\grok-pc-data\\dwqww\\.claude\\worktrees\\b\\c5_final\\nets\\lock_r1_ob8.fnn2'), ('NNUEOutputBuckets', '8')]
+d16 run  0 A nodes 3024920 time_ms 1706 nps 1773106 cpu_nps 1843761
+d16 run  1 B nodes 3024920 time_ms 1589 nps 1903662 cpu_nps 1916781
+d16 run  2 B nodes 3024920 time_ms 1758 nps 1720659 cpu_nps 1698201
+d16 run  3 A nodes 3024920 time_ms 1643 nps 1841095 cpu_nps 1809298
+d16 run  4 A nodes 3024920 time_ms 1727 nps 1751546 cpu_nps 1792545
+d16 run  5 B nodes 3024920 time_ms 1679 nps 1801620 cpu_nps 1792545
+d16 run  6 B nodes 3024920 time_ms 1833 nps 1650256 cpu_nps 1713229
+d16 run  7 A nodes 3024920 time_ms 1701 nps 1778318 cpu_nps 1776100
+d16 run  8 A nodes 3024920 time_ms 1668 nps 1813501 cpu_nps 1792545
+d16 run  9 B nodes 3024920 time_ms 1598 nps 1892941 cpu_nps 1916781
+d16 run 10 B nodes 3024920 time_ms 1629 nps 1856918 cpu_nps 1826367
+d16 run 11 A nodes 3024920 time_ms 1681 nps 1799476 cpu_nps 1809298
+d16 run 12 A nodes 3024920 time_ms 1700 nps 1779364 cpu_nps 1744098
+d16 run 13 B nodes 3024920 time_ms 1880 nps 1609000 cpu_nps 1640635
+d16 run 14 B nodes 3024920 time_ms 1802 nps 1678645 cpu_nps 1698201
+d16 run 15 A nodes 3024920 time_ms 1618 nps 1869542 cpu_nps 1809298
+d16 run 16 A nodes 3024920 time_ms 1621 nps 1866082 cpu_nps 1897989
+d16 run 17 B nodes 3024920 time_ms 1678 nps 1802693 cpu_nps 1809298
+d16 run 18 B nodes 3024920 time_ms 1633 nps 1852369 cpu_nps 1861489
+d16 run 19 A nodes 3024920 time_ms 1601 nps 1889394 cpu_nps 1843761
+d16 nodes A=3024920 B=3024920
+d16 wall_nps A: mean 1816142 stdev 47641 min 1751546 max 1889394 n 10
+d16 wall_nps B: mean 1776876 stdev 105386 min 1609000 max 1903662 n 10
+d16 wall_nps B/A = 0.9784 (-2.16%), 95% CI of the difference: -6.11% .. +1.78%
+d16 cpu_nps A: mean 1811869 stdev 42282 min 1744098 max 1897989 n 10
+d16 cpu_nps B: mean 1787353 stdev 96579 min 1640635 max 1916781 n 10
+d16 cpu_nps B/A = 0.9865 (-1.35%), 95% CI of the difference: -4.96% .. +2.25%
+d20 run  0 A nodes 12389307 time_ms 6748 nps 1835996 cpu_nps 1892400
+d20 run  1 B nodes 12389307 time_ms 6429 nps 1927097 cpu_nps 1962662
+d20 run  2 B nodes 12389307 time_ms 6542 nps 1893810 cpu_nps 1924553
+d20 run  3 A nodes 12389307 time_ms 6887 nps 1798941 cpu_nps 1818614
+d20 run  4 A nodes 12389307 time_ms 6782 nps 1826792 cpu_nps 1865684
+d20 run  5 B nodes 12389307 time_ms 6692 nps 1851360 cpu_nps 1883410
+d20 run  6 B nodes 12389307 time_ms 6865 nps 1804706 cpu_nps 1835453
+d20 run  7 A nodes 12389307 time_ms 6895 nps 1796853 cpu_nps 1856945
+d20 run  8 A nodes 12389307 time_ms 6820 nps 1816613 cpu_nps 1839711
+d20 run  9 B nodes 12389307 time_ms 6835 nps 1812627 cpu_nps 1883410
+d20 run 10 B nodes 12389307 time_ms 6695 nps 1850531 cpu_nps 1874505
+d20 run 11 A nodes 12389307 time_ms 6668 nps 1858024 cpu_nps 1856945
+d20 run 12 A nodes 12389307 time_ms 6733 nps 1840087 cpu_nps 1865684
+d20 run 13 B nodes 12389307 time_ms 6738 nps 1838721 cpu_nps 1861304
+d20 run 14 B nodes 12389307 time_ms 6623 nps 1870648 cpu_nps 1896927
+d20 run 15 A nodes 12389307 time_ms 6613 nps 1873477 cpu_nps 1874505
+d20 run 16 A nodes 12389307 time_ms 6654 nps 1861933 cpu_nps 1878947
+d20 run 17 B nodes 12389307 time_ms 6659 nps 1860535 cpu_nps 1874505
+d20 run 18 B nodes 12389307 time_ms 6764 nps 1831653 cpu_nps 1843990
+d20 run 19 A nodes 12389307 time_ms 7031 nps 1762097 cpu_nps 1822795
+d20 nodes A=12389307 B=12389307
+d20 wall_nps A: mean 1827081 stdev 34337 min 1762097 max 1873477 n 10
+d20 wall_nps B: mean 1854169 stdev 36729 min 1804706 max 1927097 n 10
+d20 wall_nps B/A = 1.0148 (+1.48%), 95% CI of the difference: -0.22% .. +3.19%
+d20 cpu_nps A: mean 1857223 stdev 23884 min 1818614 max 1892400 n 10
+d20 cpu_nps B: mean 1884072 stdev 37495 min 1835453 max 1962662 n 10
+d20 cpu_nps B/A = 1.0145 (+1.45%), 95% CI of the difference: -0.04% .. +2.93%

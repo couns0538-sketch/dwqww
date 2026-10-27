@@ -1,0 +1,30 @@
+# Planted-bug evidence: the same UCI test against the C5 engine before the merge (PC recipe, 3a2f4fa2): unusable requests (including NNUEOutputBuckets ones) were answered with the compiled-in net and exit 0
+$ forge_nnue_v2_uci_tests forge_c5_premerge.exe
+PASS defaults: exit 0, readyok, bestmove, no NNUE v2 line
+FAIL missing_file_isready: exit status 0 at isready, 0 ERROR lines, ANSWERED (readyok / bestmove / bench): (no ERROR line)
+FAIL missing_file_go: exit status 0 at go depth 1, 0 ERROR lines, ANSWERED (readyok / bestmove / bench): (no ERROR line)
+FAIL missing_file_bench: exit status 0 at bench 2, 0 ERROR lines, ANSWERED (readyok / bestmove / bench): (no ERROR line)
+FAIL truncated_file: exit status 0 at isready, 0 ERROR lines, ANSWERED (readyok / bestmove / bench): (no ERROR line)
+FAIL damaged_file: exit status 0 at isready, 0 ERROR lines, ANSWERED (readyok / bestmove / bench): (no ERROR line)
+FAIL wrong_bucket_count: exit status 0 at isready, 0 ERROR lines, ANSWERED (readyok / bestmove / bench): (no ERROR line)
+FAIL buckets_without_file: exit status 0 at go depth 1, 0 ERROR lines, ANSWERED (readyok / bestmove / bench): (no ERROR line)
+FAIL file_with_buckets_0: exit status 0 at isready, 0 ERROR lines, ANSWERED (readyok / bestmove / bench): (no ERROR line)
+FAIL failed_reload_after_good_net: exit status 0 at isready, 0 ERROR lines, ANSWERED (readyok / bestmove / bench): (no ERROR line)
+FAIL usennue_true_again: exit status 0 at isready, 0 ERROR lines, ANSWERED (readyok / bestmove / bench): (no ERROR line)
+FAIL valid net: exit 0, "info string NNUE v2: active: nnue_v2_uci_valid.fnn2 king buckets 2 output buckets 1 hidden 256 ..." printed 3 times (activation + 2 isready), readyok, bestmove
+FAIL valid net: NNUEFile before NNUEKingBuckets reports the half-set request once ((no ERROR line)), resolved by NNUEKingBuckets 2
+FAIL NNUEKingBuckets before NNUEFile: active, readyok, exit 0
+PASS valid net: bench runs, exit 0
+PASS UseNNUE false with a v2 request: not an error (exit 0, readyok, bestmove)
+FAIL NNUEKingBuckets 0 + NNUEFile <empty>: request cleared, compiled-in net, exit 0
+FAIL output_buckets_without_file: exit status 0 at isready, 0 ERROR lines, ANSWERED (readyok / bestmove / bench): (no ERROR line)
+FAIL output_buckets_vs_1_head: exit status 0 at isready, 0 ERROR lines, ANSWERED (readyok / bestmove / bench): (no ERROR line)
+FAIL heads_net_counts_0: exit status 0 at go depth 1, 0 ERROR lines, ANSWERED (readyok / bestmove / bench): (no ERROR line)
+FAIL heads_net_wrong_count: exit status 0 at isready, 0 ERROR lines, ANSWERED (readyok / bestmove / bench): (no ERROR line)
+FAIL king_and_heads_net_king_option_only: exit status 0 at isready, 0 ERROR lines, ANSWERED (readyok / bestmove / bench): (no ERROR line)
+FAIL king_and_heads_net_output_option_only: exit status 0 at bench 2, 0 ERROR lines, ANSWERED (readyok / bestmove / bench): (no ERROR line)
+FAIL 8-head net with NNUEOutputBuckets 8: "info string NNUE v2: active: nnue_v2_uci_heads.fnn2 king buckets 1 output buckets 8 hidden 256 ..." 3 times, readyok, bestmove, exit 0
+FAIL 2 king buckets + 8 heads with both options (any order): active, readyok, bench, exit 0
+PASS UseNNUE false with NNUEOutputBuckets 8: not an error
+4/26 checks passed
+exit status 1

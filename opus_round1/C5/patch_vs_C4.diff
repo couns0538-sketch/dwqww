@@ -1,0 +1,1142 @@
+diff --git a/include/forge/nnue_v2.hpp b/include/forge/nnue_v2.hpp
+index fd3984bc..8345e3d3 100644
+--- a/include/forge/nnue_v2.hpp
++++ b/include/forge/nnue_v2.hpp
+@@ -1,8 +1,9 @@
+ #pragma once
+ 
+-// v2 networks (C4): king-bucketed input layer, loaded from a file at run time.
+-// Used only when UCI NNUEKingBuckets > 0 and a matching file is loaded with UCI
+-// NNUEFile (forge/search_options.hpp); with neither option set the compiled-in
++// v2 networks, loaded from a file at run time: king-bucketed input layer (C4)
++// and output buckets by piece count (C5). Used only when UCI NNUEKingBuckets
++// or NNUEOutputBuckets is > 0 and a matching file is loaded with UCI NNUEFile
++// (forge/search_options.hpp); with none of these options set the compiled-in
+ // network (forge/nnue.hpp) is used and nothing here runs. A request that cannot
+ // be honoured is an error, never a silent fall-back to the compiled-in network
+ // (see options::nnue_v2_problem and src/uci.cpp).
+@@ -15,15 +16,18 @@
+ //   index  = bucket * 768 + ((colour(pc) == p ? 0 : 1) * 6 + type(pc) - 1) * 64 + (r ^ flip)
+ // With one bucket and no mirroring this is nnue::feature_index(). The output
+ // layer has the compiled-in architecture (SCReLU of the side-to-move and the
+-// opponent accumulators, one linear output) with the file's w2/b2, and the
+-// arithmetic of nnue::evaluate().
++// opponent accumulators, one linear output) and the arithmetic of
++// nnue::evaluate(); with output buckets (C5) the row of w2/b2 is
++//   output bucket = output_bucket_map[popcount(occupied squares)]   (33 entries, kings included)
++// The trainer's default map for N buckets puts n = pieces - 2 non-king pieces in
++// bucket min(N - 1, n * N / 32): for N = 8 that is n / 4.
+ //
+ // File format v2 (little-endian), written by tools/nnue/forge_nnue_v2.py:
+ //   0   char[8] "FORGENN2"      8  u32 version = 2        12 u32 header_bytes = 160
+ //   16  u32 feature_set = 0     20 u32 inputs = 768       24 u32 hidden (= HiddenSize)
+-//   28  u32 king_buckets (1-32) 32 u32 output_buckets (1) 36 u32 flags (bit0 residual, bit1 mirror)
++//   28  u32 king_buckets (1-32) 32 u32 output_buckets (1-16)  36 u32 flags (bit0 residual, bit1 mirror)
+ //   40  f32 weight_scale 4096   44 f32 output_scale 4096  48 f32 sigmoid_k 2.25
+-//   52  u8 king_bucket_map[64]  116 u8 output_bucket_map[33] (all 0)   149 u8 reserved[11] = 0
++//   52  u8 king_bucket_map[64]  116 u8 output_bucket_map[33]   149 u8 reserved[11] = 0
+ //   160 i16 w1[king_buckets][768][hidden], i16 b1[hidden], i16 w2[output_buckets][2*hidden],
+ //       i16 b2[output_buckets], then u64 FNV-1a 64 of every preceding byte.
+ //
+@@ -61,7 +65,7 @@
+ namespace forge::nnue::v2 {
+ 
+ constexpr int MaxKingBuckets = 32;
+-constexpr int MaxOutputBuckets = 1;   // reserved field of the format
++constexpr int MaxOutputBuckets = 16;
+ constexpr int MaxWorkers = 256;       // refresh caches are per worker id (Threads max)
+ constexpr int HeaderBytes = 160;
+ 
+@@ -134,6 +138,7 @@ struct Description {
+     bool mirror = false;
+     bool residual = false;
+     std::uint64_t checksum = 0;
++    std::array<std::uint8_t, 33> output_bucket_map{};
+ };
+ 
+ // ---- loading and selection (src/nnue.cpp; must not run during a search) ----
+@@ -152,9 +157,12 @@ void unload();
+ [[nodiscard]] std::uint64_t last_load_bytes_read();
+ // "<path> king buckets N output buckets M hidden H mirrored|unmirrored residual|stand-alone fnv1a X".
+ [[nodiscard]] std::string summary(const Net& net);
+-// Makes the loaded net the active one if it has exactly `king_buckets` king
+-// buckets (0 = never); returns the active net, message gets a one-line state.
+-const Net* select(int king_buckets, std::string* message);
++// Makes the loaded net the active one if its architecture matches the options:
++// king_buckets > 0 needs exactly that many king buckets (0: one unmirrored
++// bucket), output_buckets > 0 exactly that many output buckets (0: one), and at
++// least one of them must be > 0. Returns the active net (nullptr: the
++// compiled-in network); message gets a one-line state.
++const Net* select(int king_buckets, int output_buckets, std::string* message);
+ [[nodiscard]] Description describe(const Net& net);
+ // Allocates the refresh cache of one worker (on first use).
+ [[nodiscard]] RefreshCache& make_cache(const Net& net, int worker_id);
+@@ -289,12 +297,18 @@ inline void update(const Net& net, Color perspective, KingKey key, const float*
+     }
+ }
+ 
++// Output bucket of a position: by the number of pieces on the board (C5).
++[[nodiscard]] inline int output_bucket(const Net& net, const Board& board) {
++    return net.output_map[static_cast<std::size_t>(std::min(popcount(board.occupied()), 32))];
++}
++
+ // Network output before the conversion to centipawns; nnue::evaluate()'s arithmetic.
+ [[nodiscard]] inline float output(const Net& net, const Board& board, const Accumulator& accumulator) {
+     const Color us = board.side_to_move();
+     const auto& ours = accumulator.values[static_cast<std::size_t>(us)];
+     const auto& theirs = accumulator.values[static_cast<std::size_t>(opposite(us))];
+-    const float* w2 = net.w2.data();
++    const std::size_t bucket = static_cast<std::size_t>(output_bucket(net, board));
++    const float* w2 = net.w2.data() + bucket * 2U * HiddenSize;
+     constexpr int Lanes = 16;
+     static_assert(HiddenSize % Lanes == 0, "HiddenSize must be a multiple of the lane count");
+     alignas(64) float lanes[Lanes];
+@@ -339,7 +353,7 @@ inline void update(const Net& net, Color perspective, KingKey key, const float*
+         }
+     }
+ #endif
+-    float out = net.b2[0];
++    float out = net.b2[bucket];
+     for (int j = 0; j < Lanes; ++j) out += lanes[j];
+     return out;
+ }
+diff --git a/include/forge/search_options.hpp b/include/forge/search_options.hpp
+index e070a52d..b92f4f95 100644
+--- a/include/forge/search_options.hpp
++++ b/include/forge/search_options.hpp
+@@ -11,27 +11,36 @@ namespace forge::options {
+ // (string): evaluate with a v2 network (king-bucketed input layer, see
+ // forge/nnue.hpp nnue::v2) loaded from NNUEFile. N > 0 selects the loaded net
+ // when it has exactly N king buckets.
++extern int nnue_king_buckets;
++
++// UCI NNUEOutputBuckets (spin 0-16, default 0) together with NNUEFile (C5):
++// N > 0 selects the loaded v2 net when it has exactly N output buckets (output
++// row chosen by the piece count). The two counts combine: a net with king and
++// output buckets needs both options; 0 means "this net has none" (one output
++// bucket; for king buckets: one unmirrored bucket).
+ //
+ // Fail-loud rule (no silent fall-back to the compiled-in network). The user
+-// requests a v2 net with a non-empty NNUEFile or NNUEKingBuckets > 0. A
+-// request that cannot be honoured (file missing or unreadable, wrong size, bad
+-// header or checksum, NNUEKingBuckets != the net's king buckets, including 0,
+-// NNUEKingBuckets > 0 without a loaded file) is an error: the UCI layer prints
++// requests a v2 net with a non-empty NNUEFile, NNUEKingBuckets > 0 or
++// NNUEOutputBuckets > 0. A request that cannot be honoured (file missing or
++// unreadable, wrong size, bad header or checksum, a king or output bucket
++// count that does not match the loaded net, both counts 0 while a file is
++// loaded, a count > 0 without a loaded file) is an error: the UCI layer prints
+ // `info string ERROR NNUE v2: <reason>` at once, and if the request is still
+ // unsatisfied at the next `isready`, `go` or `bench` it prints the error again
+ // and exits with status 2. Not errors: `UseNNUE false` (every network off on
+ // purpose; the request is ignored while it lasts) and NNUEFile `<empty>` (clears
+ // the file part of the request). With no NNUE option set nothing new is printed
+ // and the engine is the AL1 s198 engine.
+-extern int nnue_king_buckets;
++extern int nnue_output_buckets;
+ 
+ // Derived switch read by Worker::static_evaluate: true while a v2 network is
+ // active. Written only by apply_nnue_v2().
+ extern bool nnue_v2;
+ 
+-// Re-selects the evaluation network after NNUEFile, NNUEKingBuckets or UseNNUE
+-// changed and returns whether a v2 network is now active. The caller clears
+-// the hash afterwards (stored static evals may belong to another network).
++// Re-selects the evaluation network after NNUEFile, NNUEKingBuckets,
++// NNUEOutputBuckets or UseNNUE changed and returns whether a v2 network is now
++// active. The caller clears the hash afterwards (stored static evals may belong
++// to another network).
+ // `message` (optional) receives a one-line description of the state.
+ bool apply_nnue_v2(std::string* message);
+ 
+diff --git a/src/nnue.cpp b/src/nnue.cpp
+index 01195ca5..f8ea53a5 100644
+--- a/src/nnue.cpp
++++ b/src/nnue.cpp
+@@ -422,16 +422,22 @@ constexpr char Magic[8] = {'F', 'O', 'R', 'G', 'E', 'N', 'N', '2'};
+     return out.str();
+ }
+ 
+-[[gnu::cold]] const Net* select(int king_buckets, std::string* message) {
++[[gnu::cold]] const Net* select(int king_buckets, int output_buckets, std::string* message) {
+     active_net = nullptr;
+     std::string text;
+-    if (king_buckets <= 0) {
+-        text = "off (NNUEKingBuckets 0): compiled-in network";
++    const std::string options = "NNUEKingBuckets " + std::to_string(std::max(king_buckets, 0)) +
++                                ", NNUEOutputBuckets " + std::to_string(std::max(output_buckets, 0));
++    if (king_buckets <= 0 && output_buckets <= 0) {
++        text = "off (NNUEKingBuckets 0, NNUEOutputBuckets 0): compiled-in network";
+     } else if (loaded_net == nullptr) {
+-        text = "NNUEKingBuckets " + std::to_string(king_buckets) + " needs a v2 net (NNUEFile)";
+-    } else if (loaded_net->king_buckets != king_buckets) {
+-        text = "NNUEKingBuckets " + std::to_string(king_buckets) + " does not match the loaded net (" +
+-               std::to_string(loaded_net->king_buckets) + " king buckets)";
++        text = options + " needs a v2 net (NNUEFile)";
++    } else if (king_buckets > 0 ? loaded_net->king_buckets != king_buckets
++                                : (loaded_net->king_buckets != 1 || loaded_net->mirror)) {
++        text = options + " does not match the loaded net (" + std::to_string(loaded_net->king_buckets) +
++               (loaded_net->mirror ? " mirrored" : "") + " king buckets)";
++    } else if (output_buckets > 0 ? loaded_net->output_buckets != output_buckets : loaded_net->output_buckets != 1) {
++        text = options + " does not match the loaded net (" + std::to_string(loaded_net->output_buckets) +
++               " output buckets)";
+     } else {
+         active_net = loaded_net;
+         text = "active: " + summary(*loaded_net);
+@@ -448,6 +454,7 @@ constexpr char Magic[8] = {'F', 'O', 'R', 'G', 'E', 'N', 'N', '2'};
+     d.mirror = net.mirror;
+     d.residual = net.residual;
+     d.checksum = net.checksum;
++    d.output_bucket_map = net.output_map;
+     return d;
+ }
+ 
+diff --git a/src/search/evaluation_v2.inc b/src/search/evaluation_v2.inc
+index 1be6e6f7..72a3e82c 100644
+--- a/src/search/evaluation_v2.inc
++++ b/src/search/evaluation_v2.inc
+@@ -1,5 +1,6 @@
+ // Search module: static evaluation with a v2 network (C4: king-bucketed input
+-// layer; UCI NNUEFile + NNUEKingBuckets, OFF by default; forge/nnue_v2.hpp).
++// layer, C5: output buckets; UCI NNUEFile + NNUEKingBuckets / NNUEOutputBuckets,
++// OFF by default; forge/nnue_v2.hpp).
+ // Compiled as part of src/search.cpp (included exactly once, before
+ // evaluation.inc so that GCC keeps emitting static_evaluate at its AL1 s198
+ // position: a caller is emitted after its callees).
+@@ -92,7 +93,8 @@ namespace options {
+ 
+ [[gnu::cold]] bool apply_nnue_v2(std::string* message) {
+     // UseNNUE false disables every network (hand-crafted evaluation only).
+-    const nnue::v2::Net* net = nnue::v2::select(nnue::enabled ? nnue_king_buckets : 0, message);
++    const nnue::v2::Net* net = nnue::v2::select(nnue::enabled ? nnue_king_buckets : 0,
++                                                nnue::enabled ? nnue_output_buckets : 0, message);
+     if (!nnue::enabled && message != nullptr) *message = "UseNNUE is false: hand-crafted evaluation only";
+     nnue_v2 = net != nullptr;
+     return nnue_v2;
+@@ -100,22 +102,33 @@ namespace options {
+ 
+ [[gnu::cold]] std::string nnue_v2_problem(const std::string& file, const std::string& load_error) {
+     if (!nnue::enabled) return {};   // UseNNUE false: every network off on purpose
+-    if (file.empty() && nnue_king_buckets <= 0) return {};   // nothing requested
++    const int kb = nnue_king_buckets;
++    const int ob = nnue_output_buckets;
++    if (file.empty() && kb <= 0 && ob <= 0) return {};   // nothing requested
+     if (!file.empty() && !load_error.empty()) return "cannot load NNUEFile " + file + ": " + load_error;
+     const nnue::v2::Net* net = nnue::v2::loaded();
+     if (net == nullptr) {
+-        return file.empty() ? "NNUEKingBuckets " + std::to_string(nnue_king_buckets) +
+-                                  " is set but no v2 net is loaded (NNUEFile is empty)"
+-                            : "NNUEFile " + file + " is not loaded";
++        if (!file.empty()) return "NNUEFile " + file + " is not loaded";
++        const std::string set = kb > 0 && ob > 0 ? "NNUEKingBuckets " + std::to_string(kb) + " and NNUEOutputBuckets " +
++                                                       std::to_string(ob) + " are"
++                                : kb > 0 ? "NNUEKingBuckets " + std::to_string(kb) + " is"
++                                         : "NNUEOutputBuckets " + std::to_string(ob) + " is";
++        return set + " set but no v2 net is loaded (NNUEFile is empty)";
+     }
+     if (nnue_v2 && nnue::v2::active() == net) return {};
+-    const std::string buckets = std::to_string(net->king_buckets) + (net->mirror ? " mirrored" : "") + " king buckets";
+-    if (nnue_king_buckets <= 0) {
+-        return "NNUEFile " + net->path + " is loaded (" + buckets + ") but NNUEKingBuckets is 0; set NNUEKingBuckets " +
+-               std::to_string(net->king_buckets) + " to use it";
++    // The settings that select this net (select(): 0 stands for one unmirrored king bucket / one output bucket).
++    int want_kb = net->king_buckets == 1 && !net->mirror ? 0 : net->king_buckets;
++    const int want_ob = net->output_buckets == 1 ? 0 : net->output_buckets;
++    if (want_kb == 0 && want_ob == 0) want_kb = 1;
++    const std::string shape = std::to_string(net->king_buckets) + (net->mirror ? " mirrored" : "") + " king buckets, " +
++                              std::to_string(net->output_buckets) + " output buckets";
++    const std::string hint = "; to use it set NNUEKingBuckets " + std::to_string(want_kb) + ", NNUEOutputBuckets " +
++                             std::to_string(want_ob);
++    if (kb <= 0 && ob <= 0) {
++        return "NNUEFile " + net->path + " is loaded (" + shape + ") but NNUEKingBuckets is 0 and NNUEOutputBuckets is 0" + hint;
+     }
+-    return "NNUEKingBuckets " + std::to_string(nnue_king_buckets) + " does not match NNUEFile " + net->path + " (" +
+-           buckets + ")";
++    return "NNUEFile " + net->path + " (" + shape + ") does not match NNUEKingBuckets " + std::to_string(kb) +
++           ", NNUEOutputBuckets " + std::to_string(ob) + hint;
+ }
+ 
+ } // namespace options
+diff --git a/src/search/options.inc b/src/search/options.inc
+index 73d07e4a..2def3215 100644
+--- a/src/search/options.inc
++++ b/src/search/options.inc
+@@ -5,6 +5,7 @@
+ namespace forge::options {
+ 
+ int nnue_king_buckets = 0;
++int nnue_output_buckets = 0;
+ bool nnue_v2 = false;
+ 
+ } // namespace forge::options
+diff --git a/src/uci.cpp b/src/uci.cpp
+index 41cc811a..5f270d7a 100644
+--- a/src/uci.cpp
++++ b/src/uci.cpp
+@@ -154,10 +154,11 @@ int main() {
+         ponder_search_active = false;
+     };
+ 
+-    // v2 networks (UCI NNUEFile / NNUEKingBuckets; fail-loud rule in forge/search_options.hpp): a
+-    // requested v2 net that cannot be used is reported at once and, if still unusable at the next
+-    // isready, go or bench, reported again before the engine exits with status 2. Never a silent
+-    // fall-back to the compiled-in network. With no NNUE option set nothing here prints anything.
++    // v2 networks (UCI NNUEFile / NNUEKingBuckets / NNUEOutputBuckets; fail-loud rule in
++    // forge/search_options.hpp): a requested v2 net that cannot be used is reported at once and, if
++    // still unusable at the next isready, go or bench, reported again before the engine exits with
++    // status 2. Never a silent fall-back to the compiled-in network. With no NNUE option set nothing
++    // here prints anything.
+     constexpr int NnueV2ExitStatus = 2;
+     int exit_status = 0;
+     std::string nnue_file;         // NNUEFile ("" = none)
+@@ -168,7 +169,8 @@ int main() {
+         std::string state;
+         const bool active = forge::options::apply_nnue_v2(&state);
+         const std::string problem = forge::options::nnue_v2_problem(nnue_file, nnue_file_error);
+-        const bool requested = !nnue_file.empty() || forge::options::nnue_king_buckets > 0;
++        const bool requested = !nnue_file.empty() || forge::options::nnue_king_buckets > 0 ||
++                               forge::options::nnue_output_buckets > 0;
+         if (!nnue_file_error.empty()) state += " (NNUEFile " + nnue_file + ": " + nnue_file_error + ")";
+         {
+             const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex());
+@@ -208,9 +210,10 @@ int main() {
+                          "option name Book Depth type spin default 30 min 0 max 100\n"
+                          "option name Book Variety type spin default 30 min 0 max 100\n";
+             if (forge::nnue::available()) std::cout << "option name UseNNUE type check default true\n";
+-            // v2 networks (forge/search_options.hpp): off unless NNUEKingBuckets > 0.
++            // v2 networks (forge/search_options.hpp): off unless NNUEKingBuckets or NNUEOutputBuckets > 0.
+             std::cout << "option name NNUEFile type string default <empty>\n"
+-                         "option name NNUEKingBuckets type spin default 0 min 0 max 32\n";
++                         "option name NNUEKingBuckets type spin default 0 min 0 max 32\n"
++                         "option name NNUEOutputBuckets type spin default 0 min 0 max 16\n";
+ #ifdef FORGE_EXPOSE_TUNABLES
+             // Development builds advertise the search constants so match
+             // runners can set them; release builds accept them silently.
+@@ -331,14 +334,15 @@ int main() {
+                               << std::endl;
+                 }
+                 nnue_v2_changed();
+-            } else if (name == "NNUEKingBuckets") {
++            } else if (name == "NNUEKingBuckets" || name == "NNUEOutputBuckets") {
+                 int value = 0;
+                 const auto parsed = std::from_chars(value_text.data(), value_text.data() + value_text.size(), value);
+                 if (parsed.ec != std::errc{} || parsed.ptr != value_text.data() + value_text.size()) {
+                     const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex());
+-                    std::cout << "info string invalid value for option NNUEKingBuckets" << std::endl;
++                    std::cout << "info string invalid value for option " << name << std::endl;
+                 } else {
+-                    forge::options::nnue_king_buckets = std::clamp(value, 0, 32);
++                    if (name == "NNUEKingBuckets") forge::options::nnue_king_buckets = std::clamp(value, 0, 32);
++                    else forge::options::nnue_output_buckets = std::clamp(value, 0, 16);
+                 }
+                 nnue_v2_changed();
+             } else if (name == "Hash" || name == "Move Overhead" || name == "Threads") {
+diff --git a/tests/nnue_v2_tests.cpp b/tests/nnue_v2_tests.cpp
+index aa9671c0..a2db6dc4 100644
+--- a/tests/nnue_v2_tests.cpp
++++ b/tests/nnue_v2_tests.cpp
+@@ -1,4 +1,4 @@
+-// Tests for the v2 network path (C4, forge/nnue_v2.hpp; UCI NNUEFile + NNUEKingBuckets):
++// Tests for the v2 network path (C4/C5, forge/nnue_v2.hpp; UCI NNUEFile + NNUEKingBuckets / NNUEOutputBuckets):
+ //   1. king bucket map and horizontal mirroring (king_key, feature indices, mirror and colour symmetry);
+ //   2. the v2 file loader (valid file, every rejected corruption, a failed load leaves no net loaded, the
+ //      file size is checked before the weights are read);
+@@ -7,7 +7,10 @@
+ //   4. exact equivalence with the compiled-in network: replicas of it (1, 4, 2/8/16 mirrored king buckets)
+ //      give bit-identical accumulators and evaluations, and identical search node counts;
+ //   5. incremental == full refresh, bit-exact, over 100k random make/unmake plies driven through the
+-//      real Worker::static_evaluate (lazy walk-back, king-key refreshes through the refresh cache).
++//      real Worker::static_evaluate (lazy walk-back, king-key refreshes through the refresh cache);
++//   6. output buckets (C5): the default map and the selected output row at every piece count 2..32,
++//      selection rules, lock replicas with 8 identical heads, a walk with output buckets, and the
++//      fail-loud request rule with NNUEOutputBuckets.
+ // Writes temporary net files next to the working directory (removed at the end).
+ #include "forge/nnue_v2.hpp"
+ #include "forge/search.hpp"
+@@ -73,6 +76,8 @@ struct Spec {
+     bool mirror = false;
+     bool residual = true;
+     std::array<std::uint8_t, 64> king_map{};
++    int output_buckets = 1;
++    std::array<std::uint8_t, 33> output_map{};
+     std::vector<std::int16_t> w1, b1, w2, b2;
+ };
+ 
+@@ -87,10 +92,11 @@ void putf(std::string& s, float f) { std::uint32_t v = 0; std::memcpy(&v, &f, 4)
+ std::string serialise(const Spec& n) {
+     std::string s = "FORGENN2";
+     put32(s, 2); put32(s, 160); put32(s, 0); put32(s, 768); put32(s, nnue::HiddenSize);
+-    put32(s, static_cast<std::uint32_t>(n.king_buckets)); put32(s, 1); put32(s, (n.residual ? 1U : 0U) | (n.mirror ? 2U : 0U));
++    put32(s, static_cast<std::uint32_t>(n.king_buckets)); put32(s, static_cast<std::uint32_t>(n.output_buckets));
++    put32(s, (n.residual ? 1U : 0U) | (n.mirror ? 2U : 0U));
+     putf(s, 4096.0F); putf(s, 4096.0F); putf(s, 2.25F);
+     for (const std::uint8_t b : n.king_map) s.push_back(static_cast<char>(b));
+-    s.append(33, '\0');
++    for (const std::uint8_t b : n.output_map) s.push_back(static_cast<char>(b));
+     s.append(160 - s.size(), '\0');
+     for (const auto* a : {&n.w1, &n.b1, &n.w2, &n.b2}) {
+         for (const std::int16_t v : *a) {
+@@ -128,6 +134,30 @@ std::array<std::uint8_t, 64> symmetric_map(int buckets) {
+     return m;
+ }
+ 
++// Default output bucket map of the trainer (forge_nnue_v2.output_layout): n = pieces - 2 non-king pieces
++// -> min(N - 1, n * N / 32).
++std::array<std::uint8_t, 33> default_output_map(int buckets) {
++    std::array<std::uint8_t, 33> m{};
++    for (int pieces = 0; pieces <= 32; ++pieces) {
++        m[static_cast<std::size_t>(pieces)] = static_cast<std::uint8_t>(std::min(buckets - 1, std::max(pieces - 2, 0) * buckets / 32));
++    }
++    return m;
++}
++
++// Copies of the output layer into `buckets` identical heads (C5 replicas).
++void replicate_heads(Spec& n, int buckets) {
++    const std::vector<std::int16_t> w2 = n.w2;
++    const std::vector<std::int16_t> b2 = n.b2;
++    n.w2.clear();
++    n.b2.clear();
++    for (int b = 0; b < buckets; ++b) {
++        n.w2.insert(n.w2.end(), w2.begin(), w2.end());
++        n.b2.insert(n.b2.end(), b2.begin(), b2.end());
++    }
++    n.output_buckets = buckets;
++    n.output_map = default_output_map(buckets);
++}
++
+ Spec lock_replica(const std::string& kind) {
+     Spec n;
+     const std::size_t hidden = nnue::HiddenSize;
+@@ -397,7 +427,7 @@ void test_loader(const std::string& dir) {
+     rejected(patch32(24, 128), "hidden 128", true);
+     rejected(patch32(28, 0), "0 king buckets", true);
+     rejected(patch32(28, 33), "33 king buckets", true);
+-    rejected(patch32(32, 2), "2 output buckets", true);
++    rejected(patch32(32, 17), "17 output buckets", true);
+     rejected(patch32(36, 4), "unknown flag bit", true);
+     { float f = 4095.0F; std::uint32_t v = 0; std::memcpy(&v, &f, 4); rejected(patch32(40, v), "weight scale 4095", true); }
+     { float f = 2.5F; std::uint32_t v = 0; std::memcpy(&v, &f, 4); rejected(patch32(48, v), "sigmoid K 2.5", true); }
+@@ -640,12 +670,22 @@ void test_incremental_equals_refresh(const std::string& dir, long plies_per_net)
+         {"8 mirrored buckets (standard layout)", 8, true, symmetric_map(8)},
+         {"32 mirrored buckets (one per half-board square)", 32, true, every},
+         {"4 unmirrored buckets", 4, false, symmetric_map(4)},
++        {"8 mirrored buckets + 8 output buckets", 8, true, symmetric_map(8)},
+     };
+     long total = 0;
+     std::uint64_t seed = 71;
+     for (const Case& c : cases) {
+-        check(load_spec(dir + "walk.fnn2", random_net(c.buckets, c.mirror, c.map, seed)), std::string("load ") + c.name);
++        Spec n = random_net(c.buckets, c.mirror, c.map, seed);
++        const bool heads = std::string(c.name).find("output") != std::string::npos;
++        if (heads) {   // 8 heads with different weights (C5)
++            replicate_heads(n, 8);
++            Rng rng{seed + 1000};
++            for (auto& v : n.w2) v = static_cast<std::int16_t>(rng.below(1801) - 900);
++            for (auto& v : n.b2) v = static_cast<std::int16_t>(rng.below(1001) - 500);
++        }
++        check(load_spec(dir + "walk.fnn2", n), std::string("load ") + c.name);
+         options::nnue_king_buckets = c.buckets;
++        options::nnue_output_buckets = heads ? 8 : 0;
+         check(options::apply_nnue_v2(nullptr), std::string("select ") + c.name);
+         WalkStats st;
+         int bad = 0;
+@@ -660,13 +700,210 @@ void test_incremental_equals_refresh(const std::string& dir, long plies_per_net)
+     }
+     std::cout << "WALK total plies " << total << '\n';
+     options::nnue_king_buckets = 0;
++    options::nnue_output_buckets = 0;
++    (void)options::apply_nnue_v2(nullptr);
++}
++
++
++// ---------------------------------------------------------------- 6. output buckets (C5)
++// Position with exactly `pieces` pieces (2..32): the kings and the first pieces - 2 others of the start
++// position (any subset of the start position is legal, White to move, no check).
++Board position_with_pieces(int pieces) {
++    static const int order[30] = {3, 59, 0, 7, 56, 63, 1, 6, 57, 62, 2, 5, 58, 61,      // queens, rooks, knights, bishops
++                                  8, 48, 9, 49, 10, 50, 11, 51, 12, 52, 13, 53, 14, 54, 15, 55};   // pawns
++    const Board start = position(std::string(Board::StandardStartFen));
++    std::array<Piece, 64> squares{};
++    squares[4] = WK;
++    squares[60] = BK;
++    for (int i = 0; i < pieces - 2; ++i) squares[static_cast<std::size_t>(order[i])] = start.piece_at(order[i]);
++    std::ostringstream fen;
++    for (int rank = 7; rank >= 0; --rank) {
++        int empty = 0;
++        for (int file = 0; file < 8; ++file) {
++            const Piece p = squares[static_cast<std::size_t>(rank * 8 + file)];
++            if (p == Empty) { ++empty; continue; }
++            if (empty) { fen << empty; empty = 0; }
++            fen << " PNBRQKpnbrqk"[static_cast<int>(p)];
++        }
++        if (empty) fen << empty;
++        if (rank) fen << '/';
++    }
++    fen << " w - - 0 1";
++    return position(fen.str());
++}
++
++void test_output_buckets(const std::string& dir) {
++    // The default map (C++ mirror of the trainer's formula).
++    const auto m8 = default_output_map(8);
++    bool table8 = true;
++    for (int pieces = 2; pieces <= 32; ++pieces) table8 = table8 && m8[static_cast<std::size_t>(pieces)] == (pieces - 2) / 4;
++    report(table8, "default 8-bucket map: bucket = (pieces - 2) / 4 at every piece count 2..32 (2-5 -> 0, ..., 30-32 -> 7)");
++    bool shapes = true;
++    for (const int n : {1, 2, 4, 5, 8, 16}) {
++        const auto m = default_output_map(n);
++        shapes = shapes && m[2] == 0 && m[32] == n - 1;
++        for (int pieces = 3; pieces <= 32; ++pieces) shapes = shapes && m[static_cast<std::size_t>(pieces)] >= m[static_cast<std::size_t>(pieces - 1)];
++        std::vector<int> used(static_cast<std::size_t>(n), 0);
++        for (int pieces = 2; pieces <= 32; ++pieces) ++used[m[static_cast<std::size_t>(pieces)]];
++        for (const int u : used) shapes = shapes && u > 0;
++    }
++    report(shapes, "default maps for 1, 2, 4, 5, 8, 16 buckets: non-decreasing, 2 pieces -> 0, 32 pieces -> N-1, every bucket used");
++
++    // The engine picks output_map[piece count]: a control net whose heads differ only in the bias.
++    Spec control = random_net(1, false, {}, 81);
++    control.output_buckets = 8;
++    control.output_map = default_output_map(8);
++    control.w2.assign(8 * 2 * nnue::HiddenSize, 0);
++    control.b2.clear();
++    for (int h = 0; h < 8; ++h) control.b2.push_back(static_cast<std::int16_t>(700 * (h + 1)));
++    check(load_spec(dir + "heads.fnn2", control), "load 8-head control net");
++    const v2::Net& net = *v2::loaded();
++    int bad_index = 0;
++    int bad_eval = 0;
++    for (int pieces = 2; pieces <= 32; ++pieces) {
++        const Board b = position_with_pieces(pieces);
++        const int expected = (pieces - 2) / 4;
++        if (popcount(b.occupied()) != pieces || v2::output_bucket(net, b) != expected) ++bad_index;
++        const float out = static_cast<float>(700 * (expected + 1)) / 4096.0F;
++        const int cp = static_cast<int>(std::clamp(out * 400.0F / 2.25F, -30000.0F, 30000.0F));
++        if (v2::evaluate(net, b, reference(net, b)) != cp) ++bad_eval;
++    }
++    report(bad_index == 0, "output_bucket() == (pieces - 2) / 4 on real positions with every piece count 2..32");
++    report(bad_eval == 0, "evaluate() uses that head at every piece count 2..32 (control net: heads differ only in the bias)");
++
++    // Selection rules with output buckets.
++    std::string message;
++    Spec ob8 = random_net(1, false, {}, 82);
++    replicate_heads(ob8, 8);
++    check(load_spec(dir + "select_ob.fnn2", ob8), "load 1-king-bucket 8-output-bucket net");
++    options::nnue_king_buckets = 0;
++    options::nnue_output_buckets = 8;
++    bool active = options::apply_nnue_v2(&message);
++    report(active, "output buckets only: NNUEOutputBuckets 8 selects it (" + message + ")");
++    options::nnue_output_buckets = 4;
++    active = options::apply_nnue_v2(&message);
++    report(!active, "NNUEOutputBuckets 4 vs 8 heads: not selected (" + message + ")");
++    options::nnue_output_buckets = 0;
++    options::nnue_king_buckets = 1;
++    active = options::apply_nnue_v2(&message);
++    report(!active, "NNUEKingBuckets 1 alone does not select an 8-head net (" + message + ")");
++    Spec both = random_net(4, true, symmetric_map(4), 83);
++    replicate_heads(both, 8);
++    check(load_spec(dir + "select_both.fnn2", both), "load 4-king-bucket 8-output-bucket net");
++    options::nnue_king_buckets = 4;
++    options::nnue_output_buckets = 0;
++    active = options::apply_nnue_v2(&message);
++    report(!active, "king + output buckets: NNUEKingBuckets 4 alone is not enough (" + message + ")");
++    options::nnue_king_buckets = 0;
++    options::nnue_output_buckets = 8;
++    active = options::apply_nnue_v2(&message);
++    report(!active, "king + output buckets: NNUEOutputBuckets 8 alone is not enough (" + message + ")");
++    options::nnue_king_buckets = 4;
++    active = options::apply_nnue_v2(&message);
++    report(active, "king + output buckets: both options select it (" + message + ")");
++    Spec ob16 = random_net(1, false, {}, 84);
++    replicate_heads(ob16, 16);
++    options::nnue_king_buckets = 0;
++    options::nnue_output_buckets = 16;
++    check(load_spec(dir + "select_ob.fnn2", ob16), "load 16-output-bucket net (maximum)");
++    active = options::apply_nnue_v2(&message);
++    report(active && v2::describe(*v2::active()).output_buckets == 16, "16 output buckets load and select (" + message + ")");
++    options::nnue_output_buckets = 0;
+     (void)options::apply_nnue_v2(nullptr);
++
++    // Lock replicas with 8 identical heads evaluate and search exactly like the compiled-in net.
++    const std::vector<Board> boards = random_positions(300, 91);
++    std::vector<std::pair<std::uint64_t, std::string>> lock_search;
++    for (int i = 0; i < 3; ++i) {
++        std::string best;
++        const std::uint64_t nodes = search_nodes(position(start_fens[static_cast<std::size_t>(i * 3)]), 8, &best);
++        lock_search.emplace_back(nodes, best);
++    }
++    for (const std::string kind : {"r1", "rm8"}) {
++        Spec n = lock_replica(kind);
++        replicate_heads(n, 8);
++        check(load_spec(dir + "replica.fnn2", n), "load replica " + kind + " with 8 output heads");
++        options::nnue_king_buckets = n.king_buckets == 1 ? 0 : n.king_buckets;
++        options::nnue_output_buckets = 8;
++        check(options::apply_nnue_v2(nullptr), "select replica " + kind + " + 8 heads");
++        int bad = 0;
++        for (const Board& b : boards) {
++            nnue::Accumulator lock;
++            nnue::refresh(b, lock);
++            if (nnue::evaluate(b, lock) != v2::evaluate(*v2::active(), b, reference(*v2::active(), b))) ++bad;
++        }
++        bool same_search = true;
++        for (int i = 0; i < 3; ++i) {
++            std::string best;
++            const std::uint64_t nodes = search_nodes(position(start_fens[static_cast<std::size_t>(i * 3)]), 8, &best);
++            same_search = same_search && nodes == lock_search[static_cast<std::size_t>(i)].first && best == lock_search[static_cast<std::size_t>(i)].second;
++        }
++        report(bad == 0 && same_search, "replica " + kind + " with 8 identical output heads: 300 evals and 3 depth-8 searches equal the compiled-in net");
++        options::nnue_king_buckets = 0;
++        options::nnue_output_buckets = 0;
++        (void)options::apply_nnue_v2(nullptr);
++    }
++}
++
++// The fail-loud rule with output buckets (C5): NNUEOutputBuckets > 0 is a request too, and both counts must
++// select the loaded net (0 stands for one unmirrored king bucket / one output bucket).
++void test_request_rule_output_buckets(const std::string& dir) {
++    auto problem_after = [&](int king_buckets, int output_buckets, const std::string& requested_file) {
++        options::nnue_king_buckets = king_buckets;
++        options::nnue_output_buckets = output_buckets;
++        (void)options::apply_nnue_v2(nullptr);
++        return options::nnue_v2_problem(requested_file, "");
++    };
++    auto has = [](const std::string& text, const std::string& what) { return text.find(what) != std::string::npos; };
++    v2::unload();
++    std::string p = problem_after(0, 8, "");
++    report(has(p, "NNUEOutputBuckets 8 is set but no v2 net is loaded"), "NNUEOutputBuckets 8 without NNUEFile: " + p);
++    p = problem_after(4, 8, "");
++    report(has(p, "NNUEKingBuckets 4 and NNUEOutputBuckets 8 are set but no v2 net is loaded"), "both counts without NNUEFile: " + p);
++    const std::string one_head = dir + "rule_1head.fnn2";
++    check(load_spec(one_head, random_net(1, false, {}, 85)), "load 1-bucket 1-head net for the rule");
++    p = problem_after(0, 8, one_head);
++    report(has(p, "does not match") && has(p, "1 output buckets") && !options::nnue_v2, "NNUEOutputBuckets 8 vs a 1-head net: " + p);
++    p = problem_after(1, 0, one_head);
++    report(p.empty() && options::nnue_v2, "1-head net with NNUEKingBuckets 1: active, no problem");
++    Spec heads = random_net(1, false, {}, 86);
++    replicate_heads(heads, 8);
++    const std::string eight_heads = dir + "rule_8heads.fnn2";
++    check(load_spec(eight_heads, heads), "load 1-bucket 8-head net for the rule");
++    p = problem_after(0, 0, eight_heads);
++    report(has(p, "NNUEKingBuckets is 0 and NNUEOutputBuckets is 0") && has(p, "set NNUEKingBuckets 0, NNUEOutputBuckets 8"),
++           "8-head net with both counts 0: " + p);
++    p = problem_after(0, 4, eight_heads);
++    report(has(p, "does not match NNUEKingBuckets 0, NNUEOutputBuckets 4") && !options::nnue_v2, "NNUEOutputBuckets 4 vs 8 heads: " + p);
++    p = problem_after(1, 0, eight_heads);
++    report(has(p, "does not match") && !options::nnue_v2, "NNUEKingBuckets 1 alone vs 8 heads: " + p);
++    p = problem_after(0, 8, eight_heads);
++    report(p.empty() && options::nnue_v2, "NNUEOutputBuckets 8 with the 8-head net: active, no problem");
++    Spec both = random_net(4, true, symmetric_map(4), 87);
++    replicate_heads(both, 8);
++    const std::string kb4ob8 = dir + "rule_kb4ob8.fnn2";
++    check(load_spec(kb4ob8, both), "load 4-king-bucket 8-head net for the rule");
++    p = problem_after(4, 0, kb4ob8);
++    report(has(p, "does not match") && has(p, "set NNUEKingBuckets 4, NNUEOutputBuckets 8") && !options::nnue_v2,
++           "king + output buckets, NNUEKingBuckets 4 alone: " + p);
++    p = problem_after(0, 8, kb4ob8);
++    report(has(p, "does not match") && !options::nnue_v2, "king + output buckets, NNUEOutputBuckets 8 alone: " + p);
++    p = problem_after(4, 8, kb4ob8);
++    report(p.empty() && options::nnue_v2, "king + output buckets, both options: active, no problem");
++    nnue::enabled = false;
++    v2::unload();
++    p = problem_after(0, 8, "");
++    report(p.empty() && !options::nnue_v2, "UseNNUE false with NNUEOutputBuckets 8 and no file: not a problem");
++    nnue::enabled = true;
++    p = problem_after(0, 8, "");
++    report(!p.empty(), "UseNNUE true again: NNUEOutputBuckets 8 without a file is a problem again");
++    (void)problem_after(0, 0, "");
+ }
+ 
+ } // namespace
+ 
+ int main(int argc, char** argv) {
+-    // argv[1] (optional): plies per net for the walk test (default 34000, i.e. > 100k in total).
++    // argv[1] (optional): plies per net for the walk test (default 34000 x 4 nets).
+     const long plies = argc > 1 ? std::stol(argv[1]) : 34000;
+     const std::string dir = "nnue_v2_test_";
+     test_bucket_map_and_mirroring(dir);
+@@ -675,8 +912,13 @@ int main(int argc, char** argv) {
+     test_request_rule(dir);
+     test_lock_replicas(dir);
+     test_incremental_equals_refresh(dir, plies);
++    test_output_buckets(dir);
++    test_request_rule_output_buckets(dir);
+     v2::unload();
+-    for (const char* f : {"map", "mirror", "plain", "loader", "bad", "select", "rule", "replica", "walk"}) std::remove((dir + f + ".fnn2").c_str());
++    for (const char* f : {"map", "mirror", "plain", "loader", "bad", "select", "rule", "replica", "walk", "heads", "select_ob",
++                          "select_both", "rule_1head", "rule_8heads", "rule_kb4ob8"}) {
++        std::remove((dir + f + ".fnn2").c_str());
++    }
+     std::cout << checks - failures << "/" << checks << " checks passed\n";
+     return failures == 0 ? 0 : 1;
+ }
+diff --git a/tests/nnue_v2_uci_tests.cpp b/tests/nnue_v2_uci_tests.cpp
+index 42248c7f..40078363 100644
+--- a/tests/nnue_v2_uci_tests.cpp
++++ b/tests/nnue_v2_uci_tests.cpp
+@@ -1,4 +1,5 @@
+-// UCI-level tests of the fail-loud NNUE v2 rule (C4 review fix; rule in forge/search_options.hpp).
++// UCI-level tests of the fail-loud NNUE v2 rule (C4 review fix, C5 output buckets; rule in
++// forge/search_options.hpp).
+ // Runs the real engine (argv[1]) with scripted stdin and checks its output and exit status:
+ //   - defaults: nothing NNUE-v2 related is printed, readyok, bestmove, exit 0;
+ //   - a requested v2 net that cannot be used (missing file, truncated file, bad checksum, wrong king
+@@ -7,7 +8,10 @@
+ //     then exit status 2 without readyok / bestmove / bench output;
+ //   - a valid net: `info string NNUE v2: active: <file> king buckets N output buckets M hidden H ...` once
+ //     when it becomes active and at every isready, then readyok and bestmove, exit 0;
+-//   - UseNNUE false is not an error, NNUEFile <empty> clears the request, option order does not matter.
++//   - UseNNUE false is not an error, NNUEFile <empty> clears the request, option order does not matter;
++//   - C5: NNUEOutputBuckets is a request too (without a file, with a net of another head count, a net with
++//     heads loaded but the count left 0, king + output buckets with only one of the two options: exit 2);
++//     nets with 8 output heads (alone and with king buckets) become active with both counts set.
+ // Writes its net files and engine transcripts into the working directory (removed at the end).
+ // usage: forge_nnue_v2_uci_tests <forge executable>
+ #include "forge/nnue.hpp"
+@@ -74,13 +78,19 @@ std::uint64_t fnv(const std::string& data) {
+     }
+     return h;
+ }
+-std::string net_file(int king_buckets, std::uint64_t seed) {
++std::string net_file(int king_buckets, std::uint64_t seed, int output_buckets = 1) {
+     const int hidden = forge::nnue::HiddenSize;
+     std::string s = "FORGENN2";
+     put32(s, 2); put32(s, 160); put32(s, 0); put32(s, 768); put32(s, static_cast<std::uint32_t>(hidden));
+-    put32(s, static_cast<std::uint32_t>(king_buckets)); put32(s, 1); put32(s, 1);   // 1 output bucket, residual
++    put32(s, static_cast<std::uint32_t>(king_buckets)); put32(s, static_cast<std::uint32_t>(output_buckets));
++    put32(s, 1);   // residual
+     putf(s, 4096.0F); putf(s, 4096.0F); putf(s, 2.25F);
+     for (int square = 0; square < 64; ++square) s.push_back(static_cast<char>((square & 7) * king_buckets / 8));
++    // Output bucket map by piece count (the trainer's default: n = pieces - 2 -> min(N - 1, n * N / 32)).
++    for (int pieces = 0; pieces <= 32; ++pieces) {
++        const int n = pieces > 2 ? pieces - 2 : 0;
++        s.push_back(static_cast<char>(n * output_buckets / 32 < output_buckets - 1 ? n * output_buckets / 32 : output_buckets - 1));
++    }
+     s.append(160 - s.size(), '\0');
+     std::uint64_t x = seed;
+     auto value = [&x](int range) {
+@@ -89,8 +99,8 @@ std::string net_file(int king_buckets, std::uint64_t seed) {
+     };
+     for (long i = 0; i < static_cast<long>(king_buckets) * 768 * hidden; ++i) put16(s, value(60));
+     for (int i = 0; i < hidden; ++i) put16(s, value(400));
+-    for (int i = 0; i < 2 * hidden; ++i) put16(s, value(300));
+-    put16(s, value(100));
++    for (int i = 0; i < output_buckets * 2 * hidden; ++i) put16(s, value(300));
++    for (int i = 0; i < output_buckets; ++i) put16(s, value(100));
+     const std::uint64_t h = fnv(s);
+     for (int i = 0; i < 8; ++i) s.push_back(static_cast<char>((h >> (8 * i)) & 0xFFU));
+     return s;
+@@ -249,6 +259,41 @@ int main(int argc, char** argv) {
+                    count(r.out, active_line) == 1,
+                "NNUEKingBuckets 0 + NNUEFile <empty>: request cleared, compiled-in net, exit 0");
+     }
++    // C5: output buckets.
++    const std::string heads = Prefix + "heads.fnn2";         // 1 king bucket, 8 output heads
++    const std::string both = Prefix + "kb2_heads.fnn2";      // 2 king buckets, 8 output heads
++    write_file(heads, net_file(1, 20261028, 8));
++    write_file(both, net_file(2, 20261029, 8));
++    expect_failure(engine, "output_buckets_without_file", set("NNUEOutputBuckets", "8"), "isready", "no v2 net is loaded");
++    expect_failure(engine, "output_buckets_vs_1_head", set("NNUEFile", valid) + set("NNUEKingBuckets", "2") + set("NNUEOutputBuckets", "8"),
++                   "isready", "does not match");
++    expect_failure(engine, "heads_net_counts_0", set("NNUEFile", heads), "go depth 1", "NNUEOutputBuckets is 0");
++    expect_failure(engine, "heads_net_wrong_count", set("NNUEFile", heads) + set("NNUEOutputBuckets", "4"), "isready", "does not match");
++    expect_failure(engine, "king_and_heads_net_king_option_only", set("NNUEFile", both) + set("NNUEKingBuckets", "2"), "isready",
++                   "set NNUEKingBuckets 2, NNUEOutputBuckets 8");
++    expect_failure(engine, "king_and_heads_net_output_option_only", set("NNUEFile", both) + set("NNUEOutputBuckets", "8"), "bench 2",
++                   "does not match");
++    {
++        const std::string line = "info string NNUE v2: active: " + heads + " king buckets 1 output buckets 8 hidden " +
++                                 std::to_string(forge::nnue::HiddenSize);
++        const Run r = run_engine(engine, "heads_net", Head + set("NNUEFile", heads) + set("NNUEOutputBuckets", "8") +
++                                                         "isready\ngo depth 1\nisready\nquit\n");
++        report(r.status == 0 && count(r.out, line) == 3 && count(r.out, "readyok") == 2 && has_line(r.out, "bestmove"),
++               "8-head net with NNUEOutputBuckets 8: \"" + line + " ...\" 3 times, readyok, bestmove, exit 0");
++    }
++    {
++        const std::string line = "info string NNUE v2: active: " + both + " king buckets 2 output buckets 8 hidden " +
++                                 std::to_string(forge::nnue::HiddenSize);
++        const Run r = run_engine(engine, "king_and_heads_net", Head + set("NNUEOutputBuckets", "8") + set("NNUEFile", both) +
++                                                                  set("NNUEKingBuckets", "2") + "isready\nbench 3\nquit\n");
++        report(r.status == 0 && count(r.out, line) == 2 && has_line(r.out, "readyok") && has(r.out, "bench depth 3 nodes"),
++               "2 king buckets + 8 heads with both options (any order): active, readyok, bench, exit 0");
++    }
++    {
++        const Run r = run_engine(engine, "usennue_false_output_buckets", Head + set("UseNNUE", "false") + set("NNUEOutputBuckets", "8") +
++                                                                            "isready\nquit\n");
++        report(r.status == 0 && has_line(r.out, "readyok") && !has(r.out, "ERROR"), "UseNNUE false with NNUEOutputBuckets 8: not an error");
++    }
+     for (const std::string& file : temporary_files) std::remove(file.c_str());
+     std::cout << checks - failures << "/" << checks << " checks passed\n";
+     return failures == 0 ? 0 : 1;
+diff --git a/tools/nnue/forge_nnue_v2.py b/tools/nnue/forge_nnue_v2.py
+index 65007e66..8020d44c 100644
+--- a/tools/nnue/forge_nnue_v2.py
++++ b/tools/nnue/forge_nnue_v2.py
+@@ -8,7 +8,8 @@ Format (little-endian; the engine's loader is forge::nnue::v2::load in src/nnue.
+   40  f32 weight_scale 4096     44  f32 output_scale 4096     48  f32 sigmoid_k 2.25
+   52  u8  king_bucket_map[64]   own-king square in the perspective's frame (rank-flipped for Black,
+                                 a1 = 0), BEFORE mirroring -> bucket
+-  116 u8  output_bucket_map[33] total piece count 0..32 -> output bucket (all 0 when OB = 1)
++  116 u8  output_bucket_map[33] total piece count 0..32 (kings included) -> output bucket (C5; all 0 when OB = 1);
++                                default map output_layout(N): n = pieces - 2 -> min(N - 1, n * N // 32)
+   149 u8  reserved[11] = 0
+   160 i16 w1[KB][768][H]  i16 b1[H]  i16 w2[OB][2H]  i16 b2[OB]   (round(w * 4096))
+   end u64 FNV-1a 64 of every preceding byte
+@@ -22,11 +23,12 @@ Pure Python (struct/array); numpy arrays are accepted as weight inputs.
+ 
+ CLI:
+   forge_nnue_v2.py info <net.fnn2>
+-  forge_nnue_v2.py from-inc <nnue_weights.inc> <out.fnn2> [--replica r1|r4|rm2|rm8|rm16]
++  forge_nnue_v2.py from-inc <nnue_weights.inc> <out.fnn2> [--replica r1|r4|rm2|rm8|rm16] [--output-buckets N]
+       Converts a compiled-in (v1) network. Every replica evaluates exactly like the v1 network, so a
+       search with it must reproduce the v1 bench node counts: r1 = 1 bucket; r4 = 4 identical buckets
+       (king-bucket changes, no mirroring); rm2 / rm8 / rm16 = mirrored nets whose e-h half buckets hold
+       the file-flipped v1 weights (rm8 / rm16 refresh exactly where a mirrored 4- / 8-bucket net does).
++      --output-buckets N (C5) replicates the output layer into N identical heads with output_layout(N).
+ """
+ from __future__ import annotations
+ 
+@@ -96,6 +98,14 @@ def split_halves_map(half: list[int]) -> tuple[list[int], int]:
+     return [half[half_index(s)] + (n if (s & 7) >= 4 else 0) for s in range(64)], 2 * n
+ 
+ 
++def output_layout(buckets: int) -> list[int]:
++    """Default output bucket map (33 entries, pieces 0..32 incl. kings): n = pieces - 2 non-king pieces ->
++    min(N - 1, n * N // 32); for N = 8: n // 4 (2-5 pieces -> 0, 6-9 -> 1, ..., 30-32 -> 7)."""
++    if not 1 <= buckets <= 16:
++        raise ValueError("output buckets must be 1-16")
++    return [min(buckets - 1, max(p - 2, 0) * buckets // 32) for p in range(33)]
++
++
+ def parse_map(text: str) -> list[int]:
+     """'0,0,1,...' with 32 (half-board, mirrored symmetric) or 64 entries -> 64-entry map."""
+     vals = [int(x) for x in re.split(r"[,\s]+", text.strip()) if x]
+@@ -211,7 +221,7 @@ def flipped_files(w1_bucket, hidden: int):
+     return out
+ 
+ 
+-def replica(inc: dict, kind: str) -> dict:
++def replica(inc: dict, kind: str, output_buckets: int = 1) -> dict:
+     """v2 network that evaluates exactly like the v1 include (see module docstring)."""
+     hidden, w1 = inc["hidden"], inc["w1"]
+     if kind == "r1":
+@@ -228,8 +238,13 @@ def replica(inc: dict, kind: str) -> dict:
+     big = array("h")
+     for b in range(kb):
+         big.extend(flipped if flips[b] else w1)
++    w2, b2 = array("h"), array("h")
++    for _ in range(output_buckets):   # C5: identical heads
++        w2.extend(inc["w2"])
++        b2.extend(inc["b2"])
+     return dict(hidden=hidden, king_buckets=kb, residual=inc["residual"], mirror=mirror, king_map=kmap,
+-                w1=big, b1=inc["b1"], w2=inc["w2"], b2=inc["b2"])
++                w1=big, b1=inc["b1"], w2=w2, b2=b2, output_buckets=output_buckets,
++                output_map=output_layout(output_buckets))
+ 
+ 
+ def main(argv=None) -> int:
+@@ -241,6 +256,7 @@ def main(argv=None) -> int:
+     p.add_argument("inc")
+     p.add_argument("out")
+     p.add_argument("--replica", default="r1", choices=["r1", "r4", "rm2", "rm8", "rm16"])
++    p.add_argument("--output-buckets", type=int, default=1, help="identical output heads (C5), default map")
+     a = ap.parse_args(argv)
+     if a.cmd == "info":
+         n = read_v2(a.net)
+@@ -251,10 +267,10 @@ def main(argv=None) -> int:
+             print("  " + " ".join(f"{n['king_map'][r * 8 + f]:2d}" for f in range(8)))
+         print("output map (pieces 0..32):", " ".join(map(str, n["output_map"])))
+         return 0
+-    net = replica(read_inc(a.inc), a.replica)
++    net = replica(read_inc(a.inc), a.replica, a.output_buckets)
+     checksum = write_v2(a.out, **net)
+     print(f"wrote {a.out}: replica {a.replica}, king_buckets {net['king_buckets']}, mirror {net['mirror']}, "
+-          f"fnv1a {checksum:016x}")
++          f"output_buckets {net['output_buckets']}, fnv1a {checksum:016x}")
+     return 0
+ 
+ 
+diff --git a/tools/nnue/nnue_v2_tool.cpp b/tools/nnue/nnue_v2_tool.cpp
+index 013f073f..b59a8da5 100644
+--- a/tools/nnue/nnue_v2_tool.cpp
++++ b/tools/nnue/nnue_v2_tool.cpp
+@@ -91,7 +91,7 @@ int eval(const std::string& net_path, const std::string& fen_path, const std::st
+     std::ifstream in(fen_path);
+     std::ofstream tsv(prefix + ".tsv", std::ios::binary);
+     std::ofstream acc(prefix + ".acc", std::ios::binary);
+-    tsv << "index\tstm\twhite_bucket\twhite_flip\tblack_bucket\tblack_flip\tpieces\tout_bits\tcp\n";
++    tsv << "index\tstm\twhite_bucket\twhite_flip\tblack_bucket\tblack_flip\tpieces\tout_bucket\tout_bits\tcp\n";
+     std::string line;
+     int index = 0;
+     int cache_mismatch = 0;
+@@ -119,13 +119,14 @@ int eval(const std::string& net_path, const std::string& fen_path, const std::st
+         char hex[16];
+         std::snprintf(hex, sizeof(hex), "%08x", static_cast<unsigned>(bits));
+         tsv << index << '\t' << (board.side_to_move() == White ? 0 : 1) << '\t' << wk.bucket << '\t' << wk.flip << '\t'
+-            << bk.bucket << '\t' << bk.flip << '\t' << popcount(board.occupied()) << '\t' << hex << '\t'
+-            << v2::evaluate(net, board, a) << '\n';
++            << bk.bucket << '\t' << bk.flip << '\t' << popcount(board.occupied()) << '\t' << v2::output_bucket(net, board)
++            << '\t' << hex << '\t' << v2::evaluate(net, board, a) << '\n';
+         acc.write(reinterpret_cast<const char*>(a.values.data()), static_cast<std::streamsize>(sizeof(a.values)));
+         ++index;
+     }
+     std::cout << "evaluated " << index << " positions with " << net_path << " (king buckets " << net.king_buckets
+-              << (net.mirror ? ", mirrored" : "") << "); refresh cache vs from-scratch mismatches: " << cache_mismatch << '\n';
++              << (net.mirror ? ", mirrored" : "") << ", output buckets " << net.output_buckets
++              << "); refresh cache vs from-scratch mismatches: " << cache_mismatch << '\n';
+     return cache_mismatch == 0 ? 0 : 1;
+ }
+ 
+diff --git a/tools/nnue/train_resid_v3b.py b/tools/nnue/train_resid_v3b.py
+index 271d3113..b6e33fd8 100644
+--- a/tools/nnue/train_resid_v3b.py
++++ b/tools/nnue/train_resid_v3b.py
+@@ -339,6 +339,19 @@ def king_map_from_args(buckets, map_text):
+     return kmap
+ 
+ 
++# Output buckets (Opus C5), with --output-buckets N: N output heads (rows of the output layer); a position uses
++# the head output_map[number of pieces on the board, kings included] (33 entries; default map from
++# forge_nnue_v2.output_layout: n = pieces - 2 non-king pieces -> min(N - 1, n * N // 32), for N = 8 that is n // 4).
++# Works with or without king buckets (without: one unmirrored bucket = the standard 768 features).
++def output_map_from_args(buckets, map_text):
++    sys.path.insert(0, str(Path(__file__).resolve().parent))
++    import forge_nnue_v2 as V2
++    omap = [int(x) for x in map_text.replace(",", " ").split()] if map_text else V2.output_layout(buckets)
++    if len(omap) != 33 or max(omap) + 1 != buckets or min(omap) < 0:
++        raise ValueError(f"output map needs 33 entries using buckets 0..{buckets - 1}")
++    return omap
++
++
+ def quant_int(p):
+     """The integers q() uses for p (float32, round half away from zero, clamp to int16), as int16 numpy."""
+     s = p.detach().float().cpu() * SCALE
+@@ -347,15 +360,19 @@ def quant_int(p):
+ 
+ 
+ class NNUEKB(nn.Module):
+-    def __init__(self, hidden, king_map, mirror=True, factor=True, qat=True, residual=True):
++    def __init__(self, hidden, king_map, mirror=True, factor=True, qat=True, residual=True, output_map=None):
+         super().__init__()
+         self.hidden, self.qat, self.residual, self.mirror = hidden, qat, residual, bool(mirror)
+         self.register_buffer("king_map", torch.tensor(king_map, dtype=torch.long))
+         self.kb = max(king_map) + 1
++        output_map = [0] * 33 if output_map is None else list(output_map)
++        # C5: not part of the state dict (C4 checkpoints load unchanged); rebuilt from the config.
++        self.register_buffer("output_map", torch.tensor(output_map, dtype=torch.long), persistent=False)
++        self.ob = max(output_map) + 1
+         self.ft_w = nn.Parameter(torch.zeros(self.kb, hidden, FEATURES))
+         self.ft_f = nn.Parameter(torch.zeros(hidden, FEATURES)) if factor else None
+         self.ft_b = nn.Parameter(torch.zeros(hidden))
+-        self.out = nn.Linear(2 * hidden, 1)
++        self.out = nn.Linear(2 * hidden, self.ob)
+         nn.init.normal_(self.ft_f if factor else self.ft_w, std=0.02)
+         nn.init.zeros_(self.out.bias)
+         if residual:
+@@ -373,7 +390,10 @@ class NNUEKB(nn.Module):
+         b = self.q(self.ft_b)
+         hs = torch.clamp(F.linear(king_dense(codes, stm, self.king_map, self.mirror, self.kb), w, b), 0.0, 1.0).square()
+         ho = torch.clamp(F.linear(king_dense(codes, 1 - stm, self.king_map, self.mirror, self.kb), w, b), 0.0, 1.0).square()
+-        out = F.linear(torch.cat([hs, ho], 1), self.q(self.out.weight), self.q(self.out.bias)).squeeze(1)
++        out = F.linear(torch.cat([hs, ho], 1), self.q(self.out.weight), self.q(self.out.bias))
++        if self.ob > 1:  # C5: the output row of each position by its piece count
++            out = out.gather(1, self.output_map[(codes > 0).sum(1)].unsqueeze(1))
++        out = out.squeeze(1)
+         return out + hce_logit if self.residual else out
+ 
+ 
+@@ -386,16 +406,18 @@ def export_forge_v2(model, stem, residual):
+             w1 = quant_int(model.ft_sum()).transpose(0, 2, 1)       # [KB, 768, H]
+             b1 = quant_int(model.ft_b)
+             kmap, kb, mirror = model.king_map.cpu().tolist(), model.kb, model.mirror
++            ob, omap = model.ob, model.output_map.cpu().tolist()
+         else:
+             w1 = quant_int(model.ft.weight).T[None]                 # [1, 768, H]
+             b1 = quant_int(model.ft.bias)
+             kmap, kb, mirror = [0] * 64, 1, False
+-        w2, b2 = quant_int(model.out.weight).ravel(), quant_int(model.out.bias).ravel()
++            ob, omap = 1, [0] * 33
++        w2, b2 = quant_int(model.out.weight).ravel(), quant_int(model.out.bias).ravel()   # [OB][2H], [OB]
+     path = stem.with_suffix(".fnn2")
+     temp = path.with_name(path.name + ".tmp-" + uuid.uuid4().hex)
+     try:
+         V2.write_v2(temp, hidden=model.hidden, king_buckets=kb, residual=residual, mirror=mirror, king_map=kmap,
+-                    w1=np.ascontiguousarray(w1).ravel(), b1=b1, w2=w2, b2=b2)
++                    w1=np.ascontiguousarray(w1).ravel(), b1=b1, w2=w2, b2=b2, output_buckets=ob, output_map=omap)
+         if path.exists():
+             raise FileExistsError(str(path))
+         os.rename(temp, path)
+@@ -644,6 +666,8 @@ def main():
+     ap.add_argument("--king-mirror", type=int, choices=[0, 1], default=1, help="C4: mirror files e-h onto d-a per perspective (default 1)")
+     ap.add_argument("--king-factor", type=int, choices=[0, 1], default=1, help="C4: shared factoriser block during training, folded into every bucket on export (default 1)")
+     ap.add_argument("--export-v2", action="store_true", help="C4: also write <epoch>.fnn2 (format v2, 1 bucket) for the standard model")
++    ap.add_argument("--output-buckets", type=int, default=0, help="C5: N >= 2 output heads selected by the piece count (default map: n = non-king pieces -> min(N-1, n*N//32)); exports .fnn2 (engine: NNUEFile + NNUEOutputBuckets N); 0 = off")
++    ap.add_argument("--output-map", default="", help="C5: explicit output bucket map, 33 entries (pieces 0..32 incl. kings)")
+     a = ap.parse_args()
+     k = a.sigmoid_k
+     if k != K_DEFAULT:
+@@ -663,12 +687,19 @@ def main():
+     else:
+         val_idx = np.arange(hold["n"], dtype=np.int64)
+     full_idx = np.arange(hold["n"], dtype=np.int64)
+-    if a.king_buckets:
+-        kmap = king_map_from_args(a.king_buckets, a.king_map)
+-        model = NNUEKB(a.shape, kmap, mirror=bool(a.king_mirror), factor=bool(a.king_factor), qat=not a.no_qat,
+-                       residual=a.residual or a.baseline_only).to(dev)
+-        print(f"king buckets: {model.kb} mirror={model.mirror} factor={a.king_factor} map(rank 8 first, files a-h): "
++    v2_arch = bool(a.king_buckets or a.output_buckets)   # C4 / C5 architectures (exported as .fnn2 only)
++    if v2_arch:
++        if a.king_buckets:
++            kmap, mirror, factor = king_map_from_args(a.king_buckets, a.king_map), bool(a.king_mirror), bool(a.king_factor)
++        else:  # output buckets only: one unmirrored king bucket = the standard 768 features
++            kmap, mirror, factor = [0] * 64, False, False
++        omap = output_map_from_args(a.output_buckets, a.output_map) if a.output_buckets else None
++        model = NNUEKB(a.shape, kmap, mirror=mirror, factor=factor, qat=not a.no_qat,
++                       residual=a.residual or a.baseline_only, output_map=omap).to(dev)
++        print(f"king buckets: {model.kb} mirror={model.mirror} factor={factor} map(rank 8 first, files a-h): "
+               + " | ".join(" ".join(str(kmap[r * 8 + f]) for f in range(8)) for r in range(7, -1, -1)), flush=True)
++        if omap is not None:
++            print(f"output buckets: {model.ob} map(pieces 0..32): " + " ".join(map(str, omap)), flush=True)
+     else:
+         model = NNUE(a.shape, qat=not a.no_qat, residual=a.residual or a.baseline_only).to(dev)
+     base_sub, nb = evaluate(model, hold, val_idx, dev, k, a.batch_size, baseline=True)
+@@ -717,9 +748,11 @@ def main():
+         print(f"resumed {a.resume}: next_epoch={start_epoch} step={step}", flush=True)
+     config = {"hidden": a.shape, "residual": bool(a.residual), "qat": not a.no_qat, "sigmoid_k": k,
+               "features": "forge768-relative-pieces-rank-flip", "epochs": a.epochs, "steps_per_epoch": spe}
+-    if a.king_buckets:  # C4 (absent for the standard model, so its checkpoints stay byte-identical)
++    if v2_arch:  # C4 / C5 (absent for the standard model, so its checkpoints stay byte-identical)
+         config.update({"features": "forge768-king-buckets", "king_buckets": model.kb, "king_mirror": model.mirror,
+-                       "king_factor": bool(a.king_factor), "king_map": model.king_map.cpu().tolist()})
++                       "king_factor": model.ft_f is not None, "king_map": model.king_map.cpu().tolist()})
++        if model.ob > 1:
++            config.update({"output_buckets": model.ob, "output_map": model.output_map.cpu().tolist()})
+ 
+     def lr_at(s):
+         if s < a.warmup_steps:
+@@ -798,14 +831,14 @@ def main():
+         payload = {"config": config, "model": cpu_copy(model.state_dict()), "optimizer": cpu_copy(opt.state_dict()),
+                    "next_epoch": ep + 1, "step": step, "val": {str(b): v for b, v in vs.items()}}
+         atomic_write(stem.with_suffix(".pt"), lambda dst: torch.save(payload, dst))
+-        if a.king_buckets:  # C4: bucketed nets only exist as v2 files
++        if v2_arch:  # C4 / C5: bucketed nets only exist as v2 files
+             export_forge_v2(model, stem, bool(a.residual))
+         else:
+             export_forge(model, stem, k, bool(a.residual))
+             if a.export_v2:
+                 export_forge_v2(model, stem, bool(a.residual))
+         atomic_write(stem.with_suffix(".json"), lambda dst: dst.write((json.dumps({**config, "val": payload["val"], "baseline": {str(b): v for b, v in base_sub.items()}}, indent=1) + "\n").encode()))
+-        print(f"Saved {stem.name} (.pt .fnn2 .json)" if a.king_buckets else
++        print(f"Saved {stem.name} (.pt .fnn2 .json)" if v2_arch else
+               f"Saved {stem.name} (.pt .inc .bin .json{' .fnn2' if a.export_v2 else ''})", flush=True)
+         mem_report(f"epoch{ep + 1:03d}", a.max_ram_gb)
+     finally:  # v3: join background epoch builder / prefetchers cleanly, also on exceptions
+diff --git a/tools/nnue/v2_parity.py b/tools/nnue/v2_parity.py
+index c016ef10..44bd928c 100644
+--- a/tools/nnue/v2_parity.py
++++ b/tools/nnue/v2_parity.py
+@@ -8,14 +8,15 @@ Checks, each over every position:
+   export   the .fnn2 integers equal the checkpoint's quantised weights (q() of the trained parameters,
+            king buckets folded with the factoriser)
+   keys     king bucket and mirror flip of both perspectives: trainer feature function == engine
++  outbkt   output bucket (C5): trainer (output_map[pieces]) == engine, for every position
+   acc      accumulators of both perspectives, computed by the trainer's model (its own feature
+            function, QAT weights, F.linear) == the engine's, bit for bit (float32)
+   output   the network output computed in PyTorch float32 in the engine's operation order (16 lanes,
+            fixed association) == the engine's float bits, and the centipawns (trunc) are equal
+   forward  the training-time model forward (logit * 400 / 2.25, hce_logit = 0) vs the engine's centipawns:
+-           max |diff| and the number of positions where trunc(forward) == engine (informational: the
+-           GEMM summation order differs from the engine's, so the last float bit can differ)
+-PASS requires export, keys, acc and output to hold on all positions."""
++           max |diff| must stay below 1.001 cp (the engine truncates; the GEMM summation order differs from
++           the engine's, so the last float bit can differ, which is why trunc-equality is only reported)
++PASS requires export, keys, outbkt, acc and output to hold on all positions and forward max |diff| < 1.001."""
+ import argparse
+ import json
+ import os
+@@ -51,7 +52,7 @@ def build_model(ck):
+     cfg = ck["config"]
+     if cfg.get("king_buckets"):
+         m = T.NNUEKB(cfg["hidden"], cfg["king_map"], mirror=cfg["king_mirror"], factor=cfg["king_factor"],
+-                     qat=True, residual=cfg["residual"])
++                     qat=True, residual=cfg["residual"], output_map=cfg.get("output_map"))
+     else:
+         m = T.NNUE(cfg["hidden"], qat=True, residual=cfg["residual"])
+     m.load_state_dict(ck["model"])
+@@ -81,10 +82,12 @@ def main():
+             w1 = T.quant_int(model.ft_sum()).transpose(0, 2, 1).ravel()
+             b1 = T.quant_int(model.ft_b)
+             kmap, mirror = model.king_map.tolist(), model.mirror
++            omap = model.output_map.tolist()
+         else:
+             w1 = T.quant_int(model.ft.weight).T.ravel()
+             b1 = T.quant_int(model.ft.bias)
+             kmap, mirror = [0] * 64, False
++            omap = [0] * 33
+         w2 = T.quant_int(model.out.weight).ravel()
+         b2 = T.quant_int(model.out.bias).ravel()
+     export_ok = (np.array_equal(np.frombuffer(net["w1"].tobytes(), "<i2"), w1) and
+@@ -92,6 +95,7 @@ def main():
+                  np.array_equal(np.frombuffer(net["w2"].tobytes(), "<i2"), w2) and
+                  np.array_equal(np.frombuffer(net["b2"].tobytes(), "<i2"), b2) and
+                  net["king_map"] == kmap and net["mirror"] == mirror and net["hidden"] == H and
++                 net["output_map"] == omap and net["output_buckets"] == max(omap) + 1 and
+                  net["residual"] == bool(ck["config"]["residual"]))
+     res["export"] = bool(export_ok)
+ 
+@@ -129,6 +133,11 @@ def main():
+             keys_ok = (cpp["white_bucket"] == 0) & (cpp["black_bucket"] == 0) & (cpp["white_flip"] == 0) & (cpp["black_flip"] == 0)
+         res["keys_exact"] = int(keys_ok.sum())
+ 
++        # outbkt: the trainer's output row selection (C5)
++        pieces = (codes_t > 0).sum(1)
++        ob = model.output_map[pieces] if kb_model else torch.zeros(n, dtype=torch.long)
++        res["outbkt_exact"] = int((ob.numpy() == cpp["out_bucket"]).sum())
++
+         # acc: the model's own first layer on its own features
+         if kb_model:
+             W = model.q(model.ft_sum()).permute(1, 0, 2).reshape(H, model.kb * T.FEATURES)
+@@ -147,15 +156,15 @@ def main():
+         idx = torch.arange(n)
+         ours = acc[idx, stm_t]
+         theirs = acc[idx, 1 - stm_t]
+-        w2q = model.q(model.out.weight).reshape(-1)
+-        b2q = model.q(model.out.bias).reshape(-1)[0]
++        w2q = model.q(model.out.weight).reshape(-1, 2 * H)[ob]          # [n, 2H]: each position's output row
++        b2q = model.q(model.out.bias).reshape(-1)[ob]                   # [n]
+         a_ = torch.clamp(torch.clamp(ours, min=0.0), max=1.0)
+         b_ = torch.clamp(torch.clamp(theirs, min=0.0), max=1.0)
+-        term = (a_ * a_) * w2q[:H] + (b_ * b_) * w2q[H:]
++        term = (a_ * a_) * w2q[:, :H] + (b_ * b_) * w2q[:, H:]
+         lanes = torch.zeros(n, 16, dtype=torch.float32)
+         for h0 in range(0, H, 16):
+             lanes = lanes + term[:, h0:h0 + 16]
+-        out = torch.full((n,), float(b2q), dtype=torch.float32)
++        out = b2q.clone().to(torch.float32)
+         for j in range(16):
+             out = out + lanes[:, j]
+         cp = torch.clamp((out * torch.tensor(400.0)) / torch.tensor(2.25), -30000.0, 30000.0).trunc().to(torch.int64).numpy()
+@@ -178,18 +187,24 @@ def main():
+                               for p in ("white", "black") for b in range(net["king_buckets"]) for fl in (0, 7)
+                               if ((cpp[p + '_bucket'] == b) & (cpp[p + '_flip'] == fl)).any()}
+     res["piece_counts"] = {int(k): int((cpp["pieces"] == k).sum()) for k in sorted(set(cpp["pieces"].tolist()))}
++    res["output_buckets"] = net["output_buckets"]
++    res["output_bucket_coverage"] = {int(k): int((cpp["out_bucket"] == k).sum()) for k in sorted(set(cpp["out_bucket"].tolist()))}
+     res["max_abs_cp"] = int(np.abs(cpp["cp"]).max())
+-    ok = res["export"] and res["keys_exact"] == n and res["acc_exact"] == n and res["output_exact"] == n
++    ok = (res["export"] and res["keys_exact"] == n and res["outbkt_exact"] == n and res["acc_exact"] == n and
++          res["output_exact"] == n and res["forward_max_abs_diff_cp"] < 1.001)
+     res["verdict"] = "PASS" if ok else "FAIL"
+-    print(f"positions {n}  king buckets {net['king_buckets']} mirror {net['mirror']}  max |engine cp| {res['max_abs_cp']}")
++    print(f"positions {n}  king buckets {net['king_buckets']} mirror {net['mirror']}  output buckets {net['output_buckets']}  "
++          f"max |engine cp| {res['max_abs_cp']}")
+     print(f"export (file ints == quantised checkpoint): {'OK' if res['export'] else 'MISMATCH'}")
+     print(f"keys   (bucket, flip both perspectives):    {res['keys_exact']}/{n}")
++    print(f"outbkt (output bucket by piece count):      {res['outbkt_exact']}/{n}")
+     print(f"acc    (both perspectives, float32 bits):   {res['acc_exact']}/{n}")
+     print(f"output (engine-order float32 bits and cp):  {res['output_exact']}/{n}")
+     print(f"forward (training model, GEMM order): max |cp diff| {res['forward_max_abs_diff_cp']:.6f}, "
+           f"trunc equal {res['forward_trunc_equal']}/{n}")
+     print("bucket coverage:", " ".join(f"{k}={v}" for k, v in res["bucket_coverage"].items()))
+     print("piece counts:", " ".join(f"{k}:{v}" for k, v in res["piece_counts"].items()))
++    print("output bucket coverage:", " ".join(f"{k}:{v}" for k, v in res["output_bucket_coverage"].items()))
+     print(res["verdict"])
+     if a.json:
+         with open(a.json, "w") as f:

@@ -1,0 +1,31 @@
+# C5 trainer default path unchanged (local run on 2026-10-27; reference md5s / sha256s from opus_round1/C4/logs/trainer_default_identity.log (original v3b of the lock archive) and opus_round1/C4/logs/smoke_train_kb4.log (C4 trainer))
+# C5 trainer (scratch copy opus_nnue_smoke.py = tools/nnue/train_resid_v3b.py of opus-C5, md5 4698ab727df40c82caa139baa4a1295b) without --output-buckets
+## 1. default mode, the arguments of opus_round1/C4/logs/trainer_default_identity.log (--epochs 2 --lr 7.07e-4 --blend-end 0.6 --seed 99 --batch-size 1024 --warmup-steps 5 --steps-per-epoch 15 --val-positions 4096)
+trainer exit status 0
+fb6d8874fa34b591c60ea1b45d0a8a78 *epoch001-step000000015.bin
+5d7acd39b46da6403d13b1beec6c7d38 *epoch001-step000000015.inc
+1c93fb160aa56fef0ee6fd34d70d79c0 *epoch001-step000000015.json
+905ac2f270a7432cc59abefb4e2fd5bb *epoch001-step000000015.pt
+49734e4ab8eb9c75346b5cff6d7c125b *epoch002-step000000030.bin
+73757de797752b3ed22f3c0d0eba317c *epoch002-step000000030.inc
+378628d70a34dd15744a21a4bd4a8fd3 *epoch002-step000000030.json
+02b6996e6d30d3daea4719694a523a26 *epoch002-step000000030.pt
+## 2. --king-buckets 4, the arguments of the C4 smoke run (opus_round1/C4/logs/smoke_train_kb4.log: --epochs 3 --lr 2e-3 --seed 20261026 --steps-per-epoch 200 ...)
+trainer exit status 0
+692adca9640d60cc10b46cdc1c1e3d97609fc8f97615c7b7b34cdc322e49d367 *epoch003-step000000585.fnn2
+4b64fea8d2580f90700226ac1cbbc27065243f4f2121580e47c271785c3b03cb *epoch003-step000000585.json
+56c0241a1b05c89e1c998d57caf1e4e5cfc0bddf54c61e7cde8f87d538953585 *epoch003-step000000585.pt
+-- reference, original v3b (default mode):
+fb6d8874fa34b591c60ea1b45d0a8a78 *epoch001-step000000015.bin
+5d7acd39b46da6403d13b1beec6c7d38 *epoch001-step000000015.inc
+1c93fb160aa56fef0ee6fd34d70d79c0 *epoch001-step000000015.json
+905ac2f270a7432cc59abefb4e2fd5bb *epoch001-step000000015.pt
+49734e4ab8eb9c75346b5cff6d7c125b *epoch002-step000000030.bin
+73757de797752b3ed22f3c0d0eba317c *epoch002-step000000030.inc
+378628d70a34dd15744a21a4bd4a8fd3 *epoch002-step000000030.json
+02b6996e6d30d3daea4719694a523a26 *epoch002-step000000030.pt
+-- reference, C4 trainer --king-buckets 4:
+692adca9640d60cc10b46cdc1c1e3d97609fc8f97615c7b7b34cdc322e49d367 *epoch003-step000000585.fnn2
+4b64fea8d2580f90700226ac1cbbc27065243f4f2121580e47c271785c3b03cb *epoch003-step000000585.json
+56c0241a1b05c89e1c998d57caf1e4e5cfc0bddf54c61e7cde8f87d538953585 *epoch003-step000000585.pt
+-- identical: YES (all 8 default-mode files, all 3 king-bucket files)

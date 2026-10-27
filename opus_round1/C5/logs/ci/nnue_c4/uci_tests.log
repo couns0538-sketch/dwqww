@@ -1,0 +1,27 @@
+PASS defaults: exit 0, readyok, bestmove, no NNUE v2 line
+PASS missing_file_isready: exit status 2 at isready, 3 ERROR lines, no answer: info string ERROR NNUE v2: cannot load NNUEFile nnue_v2_uci_missing.fnn2: cannot open nnue_v2_uci_missing.fnn2
+PASS missing_file_go: exit status 2 at go depth 1, 3 ERROR lines, no answer: info string ERROR NNUE v2: cannot load NNUEFile nnue_v2_uci_missing.fnn2: cannot open nnue_v2_uci_missing.fnn2
+PASS missing_file_bench: exit status 2 at bench 2, 3 ERROR lines, no answer: info string ERROR NNUE v2: cannot load NNUEFile nnue_v2_uci_missing.fnn2: cannot open nnue_v2_uci_missing.fnn2
+PASS truncated_file: exit status 2 at isready, 3 ERROR lines, no answer: info string ERROR NNUE v2: cannot load NNUEFile nnue_v2_uci_truncated.fnn2: file size 788136 bytes does not match the 788138 bytes implied by its header (2 king buckets, 1 output buckets, hidden 256); the weights were not read
+PASS damaged_file: exit status 2 at isready, 3 ERROR lines, no answer: info string ERROR NNUE v2: cannot load NNUEFile nnue_v2_uci_damaged.fnn2: checksum mismatch (file damaged)
+PASS wrong_bucket_count: exit status 2 at isready, 3 ERROR lines, no answer: info string ERROR NNUE v2: NNUEFile nnue_v2_uci_valid.fnn2 (2 king buckets, 1 output buckets) does not match NNUEKingBuckets 4, NNUEOutputBuckets 0; to use it set NNUEKingBuckets 2, NNUEOutputBuckets 0
+PASS buckets_without_file: exit status 2 at go depth 1, 2 ERROR lines, no answer: info string ERROR NNUE v2: NNUEKingBuckets 2 is set but no v2 net is loaded (NNUEFile is empty)
+PASS file_with_buckets_0: exit status 2 at isready, 2 ERROR lines, no answer: info string ERROR NNUE v2: NNUEFile nnue_v2_uci_valid.fnn2 is loaded (2 king buckets, 1 output buckets) but NNUEKingBuckets is 0 and NNUEOutputBuckets is 0; to use it set NNUEKingBuckets 2, NNUEOutputBuckets 0
+PASS failed_reload_after_good_net: exit status 2 at isready, 3 ERROR lines, no answer: info string ERROR NNUE v2: cannot load NNUEFile nnue_v2_uci_missing.fnn2: cannot open nnue_v2_uci_missing.fnn2
+PASS usennue_true_again: exit status 2 at isready, 2 ERROR lines, no answer: info string ERROR NNUE v2: cannot load NNUEFile nnue_v2_uci_missing.fnn2: cannot open nnue_v2_uci_missing.fnn2
+PASS valid net: exit 0, "info string NNUE v2: active: nnue_v2_uci_valid.fnn2 king buckets 2 output buckets 1 hidden 256 ..." printed 3 times (activation + 2 isready), readyok, bestmove
+PASS valid net: NNUEFile before NNUEKingBuckets reports the half-set request once (info string ERROR NNUE v2: NNUEFile nnue_v2_uci_valid.fnn2 is loaded (2 king buckets, 1 output buckets) but NNUEKingBuckets is 0 and NNUEOutputBuckets is 0; to use it set NNUEKingBuckets 2, NNUEOutputBuckets 0), resolved by NNUEKingBuckets 2
+PASS NNUEKingBuckets before NNUEFile: active, readyok, exit 0
+PASS valid net: bench runs, exit 0
+PASS UseNNUE false with a v2 request: not an error (exit 0, readyok, bestmove)
+PASS NNUEKingBuckets 0 + NNUEFile <empty>: request cleared, compiled-in net, exit 0
+PASS output_buckets_without_file: exit status 2 at isready, 2 ERROR lines, no answer: info string ERROR NNUE v2: NNUEOutputBuckets 8 is set but no v2 net is loaded (NNUEFile is empty)
+PASS output_buckets_vs_1_head: exit status 2 at isready, 3 ERROR lines, no answer: info string ERROR NNUE v2: NNUEFile nnue_v2_uci_valid.fnn2 (2 king buckets, 1 output buckets) does not match NNUEKingBuckets 2, NNUEOutputBuckets 8; to use it set NNUEKingBuckets 2, NNUEOutputBuckets 0
+PASS heads_net_counts_0: exit status 2 at go depth 1, 2 ERROR lines, no answer: info string ERROR NNUE v2: NNUEFile nnue_v2_uci_heads.fnn2 is loaded (1 king buckets, 8 output buckets) but NNUEKingBuckets is 0 and NNUEOutputBuckets is 0; to use it set NNUEKingBuckets 0, NNUEOutputBuckets 8
+PASS heads_net_wrong_count: exit status 2 at isready, 3 ERROR lines, no answer: info string ERROR NNUE v2: NNUEFile nnue_v2_uci_heads.fnn2 (1 king buckets, 8 output buckets) does not match NNUEKingBuckets 0, NNUEOutputBuckets 4; to use it set NNUEKingBuckets 0, NNUEOutputBuckets 8
+PASS king_and_heads_net_king_option_only: exit status 2 at isready, 3 ERROR lines, no answer: info string ERROR NNUE v2: NNUEFile nnue_v2_uci_kb2_heads.fnn2 (2 king buckets, 8 output buckets) does not match NNUEKingBuckets 2, NNUEOutputBuckets 0; to use it set NNUEKingBuckets 2, NNUEOutputBuckets 8
+PASS king_and_heads_net_output_option_only: exit status 2 at bench 2, 3 ERROR lines, no answer: info string ERROR NNUE v2: NNUEFile nnue_v2_uci_kb2_heads.fnn2 (2 king buckets, 8 output buckets) does not match NNUEKingBuckets 0, NNUEOutputBuckets 8; to use it set NNUEKingBuckets 2, NNUEOutputBuckets 8
+PASS 8-head net with NNUEOutputBuckets 8: "info string NNUE v2: active: nnue_v2_uci_heads.fnn2 king buckets 1 output buckets 8 hidden 256 ..." 3 times, readyok, bestmove, exit 0
+PASS 2 king buckets + 8 heads with both options (any order): active, readyok, bench, exit 0
+PASS UseNNUE false with NNUEOutputBuckets 8: not an error
+26/26 checks passed
