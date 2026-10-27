@@ -1,0 +1,97 @@
+diff -ruN a/src/nnue.cpp b/src/nnue.cpp
+--- a/src/nnue.cpp	2026-10-27 14:53:20.763535500 -0700
++++ b/src/nnue.cpp	2026-10-27 14:53:20.789318500 -0700
+@@ -46,7 +46,12 @@
+ namespace {
+ 
+ std::atomic<bool> exact_int32_option{false};
++#if FORGE_NNUE_EXACT_INT32_AVX2
+ thread_local InferenceStats current_stats;
++#define FORGE_NNUE_COUNT(field) (++current_stats.field)
++#else
++#define FORGE_NNUE_COUNT(field) ((void)0)
++#endif
+ 
+ #if FORGE_NNUE_EXACT_INT32_AVX2 && defined(__AVX2__) && FORGE_HAS_NNUE
+ // Even the stronger all-input subset bound (plus one maximum dirty sequence)
+@@ -173,11 +178,16 @@
+ }
+ 
+ bool exact_int32_enabled() { return exact_int32_option.load(std::memory_order_acquire); }
++#if FORGE_NNUE_EXACT_INT32_AVX2
+ InferenceStats inference_stats() { return current_stats; }
+ void reset_inference_stats() { current_stats = {}; }
++#else
++InferenceStats inference_stats() { return {}; }
++void reset_inference_stats() {}
++#endif
+ 
+ void refresh(const Board& board, Accumulator& accumulator) {
+-    ++current_stats.refreshes;
++    FORGE_NNUE_COUNT(refreshes);
+ #if FORGE_NNUE_EXACT_INT32_AVX2 && defined(__AVX2__) && FORGE_HAS_NNUE
+     if (exact_int32_enabled()) {
+         ++current_stats.int32_refreshes;
+@@ -203,7 +213,7 @@
+ }
+ 
+ void update(const Accumulator& parent, Accumulator& child, const DirtyPieces& dirty) {
+-    ++current_stats.updates;
++    FORGE_NNUE_COUNT(updates);
+ #if FORGE_NNUE_EXACT_INT32_AVX2 && defined(__AVX2__) && FORGE_HAS_NNUE
+     if (parent.exact_int32) {
+         ++current_stats.int32_updates;
+@@ -333,7 +343,7 @@
+ } // namespace
+ 
+ int evaluate(const Board& board, const Accumulator& accumulator) {
+-    ++current_stats.evaluations;
++    FORGE_NNUE_COUNT(evaluations);
+     const Color us = board.side_to_move();
+ #if FORGE_NNUE_EXACT_INT32_AVX2 && defined(__AVX2__) && FORGE_HAS_NNUE
+     if (accumulator.exact_int32) {
+diff -ruN a/src/uci.cpp b/src/uci.cpp
+--- a/src/uci.cpp	2026-10-27 14:53:20.816202100 -0700
++++ b/src/uci.cpp	2026-10-27 14:53:20.845451900 -0700
+@@ -188,7 +188,9 @@
+                          "option name Book Depth type spin default 30 min 0 max 100\n"
+                          "option name Book Variety type spin default 30 min 0 max 100\n";
+             if (forge::nnue::available()) std::cout << "option name UseNNUE type check default true\n";
++#if FORGE_NNUE_EXACT_INT32_AVX2
+             std::cout << "option name NnueExactInt32 type check default false\n";
++#endif
+ #ifdef FORGE_EXPOSE_TUNABLES
+             // Development builds advertise the search constants so match
+             // runners can set them; release builds accept them silently.
+@@ -277,6 +279,7 @@
+                 } else {
+                     book_variety = std::clamp(value, 0, 100);
+                 }
++#if FORGE_NNUE_EXACT_INT32_AVX2
+             } else if (name == "NnueExactInt32") {
+                 const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex());
+                 if (inference_options_frozen) {
+@@ -288,6 +291,7 @@
+                 } else {
+                     forge::nnue::set_exact_int32(value_text == "true");
+                 }
++#endif
+             } else if (name == "UseNNUE") {
+                 if (value_text == "true") forge::nnue::enabled = true;
+                 else if (value_text == "false") forge::nnue::enabled = false;
+@@ -443,6 +447,7 @@
+             std::cout << "info string bench depth " << depth << " nodes " << total_nodes << " time " << elapsed_ms
+                       << " nps " << (elapsed_ms > 0 ? total_nodes * 1000U / static_cast<std::uint64_t>(elapsed_ms) : 0)
+                       << std::endl;
++#if FORGE_NNUE_EXACT_INT32_AVX2
+             const auto stats = forge::nnue::inference_stats();
+             const std::uint64_t constructions = stats.refreshes + stats.updates;
+             std::cout << "info string NnueExactInt32 stats refreshes " << stats.refreshes
+@@ -451,6 +456,7 @@
+                       << " int32_updates " << stats.int32_updates
+                       << " refresh_share_ppm " << (constructions ? stats.refreshes * 1000000U / constructions : 0)
+                       << std::endl;
++#endif
+         } else if (command == "ponderhit") {
+             if (ponder_search_active) {
+                 searcher.ponderhit();

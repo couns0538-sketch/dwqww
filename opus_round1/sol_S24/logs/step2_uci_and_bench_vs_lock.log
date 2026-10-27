@@ -1,0 +1,18 @@
+# S24: uci option list and bench d13 output (time/nps masked), lock exe vs shelf OFF (e661a145 only) vs guarded OFF (e661a145 + follow-up)
+== lock_s198_copy: 12 uci lines; bench output:
+info string bench depth 13 nodes 862329 time T nps N
+== forge_shelf_off: 13 uci lines; bench output:
+info string bench depth 13 nodes 862329 time T nps N
+info string NnueExactInt32 stats refreshes 8 updates 655136 evaluations 533258 int32_refreshes 0 int32_updates 0 refresh_share_ppm 12
+== forge_guarded_off: 12 uci lines; bench output:
+info string bench depth 13 nodes 862329 time T nps N
+--- uci: shelf OFF vs lock
+11a12
+> option name NnueExactInt32 type check default false
+--- uci: guarded OFF vs lock
+IDENTICAL
+--- bench output (masked): shelf OFF vs lock
+1a2
+> info string NnueExactInt32 stats refreshes 8 updates 655136 evaluations 533258 int32_refreshes 0 int32_updates 0 refresh_share_ppm 12
+--- bench output (masked): guarded OFF vs lock
+IDENTICAL
