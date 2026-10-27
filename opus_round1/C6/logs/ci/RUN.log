@@ -1,0 +1,13 @@
+run 40410916145 (https://github.com/couns0538-sketch/dwqww/actions/runs/40410916145)
+head f9b1445d1a5de49c08434c1cf6d426281fbd82b5  conclusion success  created 2026-10-26T22:14:43Z
+  job linux (release): success (2026-10-26T22:14:46Z .. 2026-10-26T22:16:05Z)
+  job linux (asan): success (2026-10-26T22:14:46Z .. 2026-10-26T22:16:10Z)
+  job linux (tsan): success (2026-10-26T22:14:46Z .. 2026-10-26T22:16:02Z)
+workflow .github/workflows/opus-ci.yml -> opus_round1/ci/run_ci.sh <mode> (ubuntu-24.04, g++-14.2, x86-64-v3)
+release: identity.log bench d11/13/16/20/22 = 312866/862329/3024920/12389307/34048354, perft5 4865609, kiwipete5 193690690, FMA 0, ALL OK;
+         ctest 17/18, only forge_tests with the 4 known lines (known_release.log); forge_cuckoo_tests passed (0.70 s)
+asan:    -DFORGE_ENABLE_SANITIZERS=ON (ASan+UBSan), -fno-sanitize-recover=all; ctest 17/18, only the 4 known lines,
+         no sanitizer report (known_asan.log); forge_cuckoo_tests passed (4.80 s)
+tsan:    -fsanitize=thread; ctest 17/18, only the 4 known lines; forge_cuckoo_tests passed (12.77 s);
+         opus_round1/C6/tsan_extra.sh: CuckooRep on/off toggled, Threads 2 and 4, depth 8, 16 searches OK; TSan: 0 reports
+The commit tested (f9b1445) has the same engine code as 4d14f3c (it only adds opus_round1/C6).
