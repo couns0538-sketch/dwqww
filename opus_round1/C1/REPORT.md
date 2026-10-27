@@ -170,8 +170,13 @@ back with the wrong distance. The win/draw/loss result was right; the distance w
   unchanged.
 - **First version, rejected:** it called a cold function for the band, which cost 445 differing lines in
   `qsearch`.
-- **Speed:** measured on a quiet runner by `opus-c1-nps.yml` on this push; numbers in
-  `logs/ci/nps_review_fix/` once the run finishes.
+- **Speed** (quiet runner, `opus-c1-nps.yml` run 40468518064 on `738a945`, `logs/ci/nps_738a945/`):
+  - O3 → C1 with the fix: d16 CPU −0.85% (95% CI −1.58 .. −0.12), d20 CPU −0.60% (−1.52 .. +0.32);
+  - lock → C1: +1.01% / +0.25%.
+
+  These are the same as before the fix (O3 → C1 −1.26% / −0.57%), so the TB encoding adds no measurable
+  cost. C1's OFF cost against its O3 base stays at about 0.6-1% on this machine (the probe hook in
+  alpha-beta).
 
 ## Proposed gate (G-B6 in the test plan)
 - **Match:** SPRT [0,10] at 10+0.1, candidate opus-C1 exe (PC lock recipe) vs the AL1 s198 lock exe.
