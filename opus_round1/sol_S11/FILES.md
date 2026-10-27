@@ -9,7 +9,7 @@ REPORT.md is written by the main session (sub-agents cannot write it).
 
 | file | bytes | what |
 |---|---:|---|
-| IDEA_SOURCE.md | 1883 | idea source (Sol's S11 preparation, profile_notes reserve "material_key table-sum") |
+| IDEA_SOURCE.md | 2005 | idea source (Sol's S11 preparation, profile_notes reserve "material_key table-sum") |
 | patch.diff | 24658 | `git diff 294dbed HEAD` without opus_round1/, .github/ |
 | uci_check_opt.py | 2913 | AL1 identity (opus_round1/ci/uci_check.py) plus `--set Name=value` and `--expect-option` |
 | build_pc_scalar_nnue.sh | 2911 | PC recipe with src/nnue.cpp on its scalar path (also Linux via GPP/ARCH/LINK_STATIC) |

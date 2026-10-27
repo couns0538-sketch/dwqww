@@ -2,7 +2,8 @@
 
 IDEA_SOURCE: Sol's S11 preparation on branch `forge/sol-pack31-20261025` (head 17aa0cae),
 `validation/forge_sol_pack31_20261025/forge_sol_after_S09_continuation_20261026/S11/forge_sol_S11_material_history_key_20261026.patch`
-(prepared 2026-10-26 for his dev bases L/L′/B, never built there in this form on the lock tree). Sol names the
+(prepared 2026-10-26 for his dev bases L/L′/B; Sol's native runs on L′/B, including the 1M-position three-arm
+parity 3a409d62/e53edba0, used his dev-base node refs; this port is the first build on the AL1 lock tree). Sol names the
 idea "material_key table-sum", a reserve item in the S11 input `files/11_ideas_profile/profile_notes.md`
 (read by Sol, sha256 f78b109d…; that file is not in this repository).
 
