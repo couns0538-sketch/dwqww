@@ -5,6 +5,14 @@
 namespace forge {
 
 namespace tune {
+// CorrExt weights (forge/corr_ext.hpp). Defined before the AL1 s198 tunables
+// on purpose: GCC emits a translation unit's globals in reverse definition
+// order, so these land after the existing block and every AL1 s198 tunable
+// keeps its address.
+int CorrExtDoublePct = 12;
+int CorrExtTripleCorr = 48;
+int CorrExtTripleMargin = 100;
+int CorrExtBudget = 7;
 int LmrQuietBase = 85;
 int LmrQuietDivisor = 220;
 int LmrNoisyBase = 10;
@@ -91,6 +99,8 @@ const std::vector<Parameter>& parameters() {
         {"TmFallingEvalPercent", &TmFallingEvalPercent, 0, 400}, {"TmMinFactorPercent", &TmMinFactorPercent, 10, 100},
         {"CaptureFutilityBase", &CaptureFutilityBase, 0, 1000},  {"CaptureFutilityMultiplier", &CaptureFutilityMultiplier, 0, 1000},
         {"CaptureFutilityDepth", &CaptureFutilityDepth, 0, 15},  {"FailLowContinuationBonus", &FailLowContinuationBonus, 0, 300},
+        {"CorrExtDoublePct", &CorrExtDoublePct, 0, 400},         {"CorrExtTripleCorr", &CorrExtTripleCorr, 0, 256},
+        {"CorrExtTripleMargin", &CorrExtTripleMargin, 0, 1000},  {"CorrExtBudget", &CorrExtBudget, 0, 64},
     };
     return table;
 }
