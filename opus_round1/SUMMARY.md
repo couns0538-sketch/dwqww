@@ -7,6 +7,6 @@ Order: O3, O1, C3, O2, C6, C2, C1, C4, C5, then O1-LTT, O5, O8, O4, O6, O7 (prom
 | job | branch | status | bench x5 (OFF) | perft / kiwipete | FMA | tests | sanitizers | gate |
 |---|---|---|---|---|---|---|---|---|
 | 00_baseline | (all) | REPRODUCED | exact | exact | 0 | 13/14 + 4 known lines | — | — |
-| O3 search.cpp refactor | opus-O3 | DONE | exact | exact | 0 | 16/17 + 4 known lines; 3 new tests | UBSan-trap local PASS; Linux ASan+UBSan/TSan: CI | none (no behaviour change) |
+| O3 search.cpp refactor | opus-O3 | DONE | exact | exact | 0 | 16/17 + 4 known lines; 3 new tests | ASan+UBSan 0, TSan 0 (Linux CI); UBSan-trap local 0 | none (no behaviour change) |
 
 Gate specs: none yet (O3 changes no behaviour).

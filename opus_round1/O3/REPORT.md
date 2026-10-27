@@ -52,7 +52,8 @@ of the hot paths is unchanged (see NPS below). CMakeLists.txt only gains 3 test 
 | 4 | unit tests for move-picker stages and history update math, wired into CTest | **PASS** (3 new tests, 8/8 planted bugs caught) |
 | 5 | Windows build still compiles | **PASS** (built on Windows with the unmodified `build_windows.ps1` and the PC recipe) |
 | §3 | default behaviour, perft, kiwipete, FMA 0, known test failures only, determinism | **PASS** |
-| §3 | sanitizers | UBSan (GCC trap mode, local): **PASS**; ASan+UBSan and TSan with diagnostics: Linux CI, see `logs/ci/` |
+| §3 | sanitizers | **PASS**: ASan+UBSan and TSan on Linux (CI run 40362958451): 0 reports, only the 4 known lines; UBSan trap mode locally: no trap |
+| §3 | Linux box recipe (g++-14.2, CMake, x86-64-v3) | **PASS**: bench x5 exact, perft, kiwipete, FMA 0 (CI) |
 
 ### 1. Bench (PC recipe build, `logs/identity_pc_recipe.log`)
 ```
@@ -133,7 +134,12 @@ O3 tree) builds `forge_h256_s198.exe`; the identity check passes (`logs/build_wi
 - UBSan (GCC `-fsanitize=undefined -fsanitize-trap=undefined`, 4959 trap sites in forge.exe): same ctest result,
   no trap (`logs/ctest_ubsan_trap*.log`). MinGW has no ASan/TSan runtime and the VS 2026 STL rejects the installed
   clang 18, so ASan+UBSan with diagnostics and TSan run on Linux in `.github/workflows/opus-ci.yml`
-  (`opus_round1/ci/run_ci.sh`); results in `logs/ci/` once the run finishes.
+  (`opus_round1/ci/run_ci.sh`). GitHub Actions run 40362958451 on commit a0bbc53 (`logs/ci/`):
+  - release (box recipe, ubuntu-24.04 g++-14.2.0): bench 312866/862329/3024920/12389307/34048354, perft 4865609,
+    kiwipete 193690690, FMA 0; ctest 16/17 with only the 4 known lines;
+  - asan (`-DFORGE_ENABLE_SANITIZERS=ON`, `-fno-sanitize-recover=all`): ctest 16/17 with only the 4 known lines,
+    0 ASan/UBSan reports (forge_tests 1.45 s vs 0.15 s release: instrumented);
+  - tsan (`-fsanitize=thread`): ctest 16/17 with only the 4 known lines, 0 TSan reports (forge_tests 9.0 s).
 - Compiler warnings: the same 6 pre-existing `-Wconversion` warnings as the lock, now at their new file locations
   (`logs/compiler_warnings.log`); no new warning.
 - Determinism: Threads=1 output identical across builds and runs (bench, depth-18 list).
