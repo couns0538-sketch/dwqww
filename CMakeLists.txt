@@ -93,6 +93,14 @@ add_dependencies(forge_nnue_v2_uci_tests forge)
 add_executable(forge_nnue_v2_tool tools/nnue/nnue_v2_tool.cpp)
 target_link_libraries(forge_nnue_v2_tool PRIVATE forge_core Threads::Threads)
 
+# O4 (UCI PureNnue): selection / fail-loud rules, the network-only evaluation path, search and UCI checks
+# (drives the forge executable), and the engine-level evaluator of the PyTorch -> engine parity chain.
+add_executable(forge_pure_nnue_tests tests/pure_nnue_tests.cpp)
+target_link_libraries(forge_pure_nnue_tests PRIVATE forge_core Threads::Threads)
+add_dependencies(forge_pure_nnue_tests forge)
+add_executable(forge_nnue_engine_eval tools/nnue/nnue_engine_eval.cpp)
+target_link_libraries(forge_nnue_engine_eval PRIVATE forge_core Threads::Threads)
+
 add_executable(forge_bench bench/benchmark.cpp)
 target_link_libraries(forge_bench PRIVATE forge_core Threads::Threads)
 
@@ -108,6 +116,7 @@ add_test(NAME forge_history_tests COMMAND forge_history_tests)
 add_test(NAME forge_timeman_tests COMMAND forge_timeman_tests)
 add_test(NAME forge_nnue_v2_tests COMMAND forge_nnue_v2_tests)
 add_test(NAME forge_nnue_v2_uci_tests COMMAND forge_nnue_v2_uci_tests $<TARGET_FILE:forge>)
+add_test(NAME forge_pure_nnue_tests COMMAND forge_pure_nnue_tests $<TARGET_FILE:forge>)
 add_test(NAME forge_tt_tests COMMAND forge_tt_tests)
 add_test(NAME forge_rule50_tests COMMAND forge_rule50_tests)
 add_test(NAME forge_legal_witness_tests COMMAND forge_legal_witness_tests
