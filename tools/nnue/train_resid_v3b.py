@@ -12,6 +12,8 @@ supplied train_nnue.py (md5 5A161C70...), but fed from pre-converted binaries:
 Model/export are the same Forge net (768 -> H per perspective, SCReLU, 2H -> 1, int16 QAT, scale 4096).
 --residual: logit = net(x) + K*hce/400, output layer starts at zero => first forward == HCE alone,
 export writes FORGE_NNUE_RESIDUAL 1.  Loss = MSE(sigmoid(logit), blend*sigmoid(K*score/400) + (1-blend)*stm_result).
+--pure (Opus O4): stand-alone net, logit = net(x) (no HCE term; same target), exports .fnn2 with the residual flag 0
+for the engine's PureNnue option; .hce files are then optional (used only for the HCE-alone baseline report).
 Holdout = whole files (never trained on).  Blend ramps linearly over training progress.
 """
 from __future__ import annotations
@@ -53,7 +55,7 @@ def load_set(pos_files, hce_dir, limit=None, need_hce=True):
     boards = np.empty((total, 32), np.uint8)
     score = np.empty(total, np.int16)
     meta = np.empty(total, np.uint8)
-    hce = np.empty(total, np.int16)
+    hce = np.empty(total, np.int16) if need_hce else np.zeros(total, np.int16)  # O4 --pure without --hce-dir: zeros
     o = 0
     for p, n, n_use in picks:
         b = np.memmap(p, np.uint8, "r", 16, (n, 32))
@@ -94,7 +96,13 @@ class CatMap:
         return out
 
 
-def load_set_mmap(pos_files, hce_dir, limit=None):
+class ZeroMap:
+    """O4 --pure without --hce-dir: stands in for the HCE column (every value 0, nothing stored)."""
+    def __getitem__(self, idx):
+        return np.zeros(len(np.asarray(idx)), np.int16)
+
+
+def load_set_mmap(pos_files, hce_dir, limit=None, need_hce=True):
     """v3b: same selection/validation as load_set, but arrays stay memory-mapped (file-backed pages, no private copy)."""
     picks, total = [], 0
     for p in pos_files:
@@ -110,17 +118,19 @@ def load_set_mmap(pos_files, hce_dir, limit=None):
         m = np.memmap(p, np.uint8, "r", 16 + n * 34, (n,))[:n_use]
         if (m == 255).any():
             raise ValueError(f"bad records in {p}")
-        hp = Path(hce_dir) / (Path(p).stem + ".hce")
-        with open(hp, "rb") as f:
-            h = f.read(16)
-        if h[:4] != b"FHCE" or int.from_bytes(h[8:16], "little") != n:
-            raise ValueError(f"hce header/count mismatch {hp} vs {p}")
-        hh = np.memmap(hp, np.int16, "r", 16, (n,))[:n_use]
-        if (hh == -32768).any():
-            raise ValueError(f"bad hce in {hp}")
-        B.append(b); S.append(s); M.append(m); H.append(hh); offs.append(o); o += n_use
+        if need_hce:
+            hp = Path(hce_dir) / (Path(p).stem + ".hce")
+            with open(hp, "rb") as f:
+                h = f.read(16)
+            if h[:4] != b"FHCE" or int.from_bytes(h[8:16], "little") != n:
+                raise ValueError(f"hce header/count mismatch {hp} vs {p}")
+            hh = np.memmap(hp, np.int16, "r", 16, (n,))[:n_use]
+            if (hh == -32768).any():
+                raise ValueError(f"bad hce in {hp}")
+            H.append(hh)
+        B.append(b); S.append(s); M.append(m); offs.append(o); o += n_use
     return dict(boards=CatMap(B, offs, np.uint8, (32,)), score=CatMap(S, offs, np.int16), meta=CatMap(M, offs, np.uint8),
-                hce=CatMap(H, offs, np.int16), n=total, files=[(p, n_use) for p, n, n_use in picks])
+                hce=CatMap(H, offs, np.int16) if need_hce else ZeroMap(), n=total, files=[(p, n_use) for p, n, n_use in picks])
 
 
 # ----------------------------------------------------------------------------- memory (v3b)
@@ -608,7 +618,7 @@ def main():
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--train", nargs="+", help="train .pos files/globs (hce files expected in --hce-dir)")
     ap.add_argument("--holdout", nargs="+", required=True, help="holdout .pos files (whole files)")
-    ap.add_argument("--hce-dir", required=True)
+    ap.add_argument("--hce-dir", help="directory of the .hce files (required, except with --pure)")
     ap.add_argument("--device", choices=["directml", "cpu"], default="directml")
     ap.add_argument("--device-index", type=int)
     ap.add_argument("--shape", type=int, default=128, help="hidden width H")
@@ -644,7 +654,15 @@ def main():
     ap.add_argument("--king-mirror", type=int, choices=[0, 1], default=1, help="C4: mirror files e-h onto d-a per perspective (default 1)")
     ap.add_argument("--king-factor", type=int, choices=[0, 1], default=1, help="C4: shared factoriser block during training, folded into every bucket on export (default 1)")
     ap.add_argument("--export-v2", action="store_true", help="C4: also write <epoch>.fnn2 (format v2, 1 bucket) for the standard model")
+    ap.add_argument("--pure", action="store_true", help="O4: stand-alone (pure) NNUE: the net predicts the whole score, logit = net(x) "
+                    "with no HCE term (same target: blend of teacher score and game result); every epoch also writes .fnn2 with "
+                    "the residual flag 0 (engine: NNUEFile + PureNnue 1); --hce-dir becomes optional (only the HCE-alone "
+                    "baseline report needs it); not with --residual or --init-check")
     a = ap.parse_args()
+    if a.pure and (a.residual or a.init_check):  # O4
+        ap.error("--pure trains a stand-alone net: not with --residual or --init-check")
+    if not a.hce_dir and (not a.pure or a.baseline_only):  # O4: --hce-dir was required=True before --pure existed
+        ap.error("--hce-dir is required (it is optional only with --pure)")
     k = a.sigmoid_k
     if k != K_DEFAULT:
         print("WARNING: export needs sigmoid-k 2.25", flush=True)
@@ -655,7 +673,7 @@ def main():
     (run / f"settings_{int(time.time())}.txt").write_text(" ".join(sys.argv) + "\n" + json.dumps(vars(a), indent=1))
     t0 = time.time()
     hold_files = expand(a.holdout)
-    hold = load_set(hold_files, a.hce_dir)
+    hold = load_set(hold_files, a.hce_dir, need_hce=bool(a.hce_dir))
     print(f"holdout: {hold['n']:,} positions from {len(hold_files)} files ({time.time() - t0:.0f}s)", flush=True)
     rng = np.random.default_rng(12345)
     if a.val_positions and a.val_positions < hold["n"]:
@@ -671,8 +689,12 @@ def main():
               + " | ".join(" ".join(str(kmap[r * 8 + f]) for f in range(8)) for r in range(7, -1, -1)), flush=True)
     else:
         model = NNUE(a.shape, qat=not a.no_qat, residual=a.residual or a.baseline_only).to(dev)
-    base_sub, nb = evaluate(model, hold, val_idx, dev, k, a.batch_size, baseline=True)
-    print(f"BASELINE HCE-alone holdout subset n={nb:,}: mse_teacher(blend1.0)={base_sub[1.0]:.6f} mse_blend0.6={base_sub[0.6]:.6f}", flush=True)
+    if a.hce_dir:
+        base_sub, nb = evaluate(model, hold, val_idx, dev, k, a.batch_size, baseline=True)
+        print(f"BASELINE HCE-alone holdout subset n={nb:,}: mse_teacher(blend1.0)={base_sub[1.0]:.6f} mse_blend0.6={base_sub[0.6]:.6f}", flush=True)
+    else:  # O4 --pure without .hce files
+        base_sub = None
+        print("BASELINE HCE-alone: not computed (--pure without --hce-dir)", flush=True)
     if a.baseline_only:
         full, nf = evaluate(model, hold, full_idx, dev, k, a.batch_size, baseline=True)
         print(f"BASELINE HCE-alone holdout FULL n={nf:,}: mse_teacher={full[1.0]:.6f} mse_blend0.6={full[0.6]:.6f}", flush=True)
@@ -690,7 +712,8 @@ def main():
     train_files = expand(a.train)
     train_files = [f for f in train_files if f not in hold_files]
     t1 = time.time()
-    train = (load_set_mmap if a.mmap_data else load_set)(train_files, a.hce_dir, limit=a.max_train or None)
+    train = (load_set_mmap if a.mmap_data else load_set)(train_files, a.hce_dir, limit=a.max_train or None,
+                                                          need_hce=bool(a.hce_dir))
     N = train["n"]
     print(f"train: {N:,} positions from {len(train['files'])} files ({time.time() - t1:.0f}s load)", flush=True)
     spe = N // a.batch_size
@@ -720,6 +743,8 @@ def main():
     if a.king_buckets:  # C4 (absent for the standard model, so its checkpoints stay byte-identical)
         config.update({"features": "forge768-king-buckets", "king_buckets": model.kb, "king_mirror": model.mirror,
                        "king_factor": bool(a.king_factor), "king_map": model.king_map.cpu().tolist()})
+    if a.pure:  # O4 (absent otherwise, so the other checkpoints stay byte-identical)
+        config["pure"] = True
 
     def lr_at(s):
         if s < a.warmup_steps:
@@ -791,9 +816,13 @@ def main():
             ls += v; ep_loss += v
         pf = None
         vs, nv = evaluate(model, hold, val_idx, dev, k, a.batch_size, blends=(1.0, 0.6, 0.8))
-        print(f"EPOCH {ep + 1}/{a.epochs} done in {time.time() - te:.0f}s train_mse={ep_loss / max(ep_n, 1):.6f} | HOLDOUT n={nv:,} "
-              f"mse_teacher={vs[1.0]:.6f} (HCE {base_sub[1.0]:.6f}, {100 * (1 - vs[1.0] / base_sub[1.0]):+.2f}%) "
-              f"mse_b0.6={vs[0.6]:.6f} (HCE {base_sub[0.6]:.6f}, {100 * (1 - vs[0.6] / base_sub[0.6]):+.2f}%) mse_b0.8={vs[0.8]:.6f}", flush=True)
+        if base_sub is None:  # O4 --pure without .hce files: no HCE comparison
+            print(f"EPOCH {ep + 1}/{a.epochs} done in {time.time() - te:.0f}s train_mse={ep_loss / max(ep_n, 1):.6f} | HOLDOUT n={nv:,} "
+                  f"mse_teacher={vs[1.0]:.6f} mse_b0.6={vs[0.6]:.6f} mse_b0.8={vs[0.8]:.6f}", flush=True)
+        else:
+            print(f"EPOCH {ep + 1}/{a.epochs} done in {time.time() - te:.0f}s train_mse={ep_loss / max(ep_n, 1):.6f} | HOLDOUT n={nv:,} "
+                  f"mse_teacher={vs[1.0]:.6f} (HCE {base_sub[1.0]:.6f}, {100 * (1 - vs[1.0] / base_sub[1.0]):+.2f}%) "
+                  f"mse_b0.6={vs[0.6]:.6f} (HCE {base_sub[0.6]:.6f}, {100 * (1 - vs[0.6] / base_sub[0.6]):+.2f}%) mse_b0.8={vs[0.8]:.6f}", flush=True)
         stem = run / f"epoch{ep + 1:03d}-step{step:09d}"
         payload = {"config": config, "model": cpu_copy(model.state_dict()), "optimizer": cpu_copy(opt.state_dict()),
                    "next_epoch": ep + 1, "step": step, "val": {str(b): v for b, v in vs.items()}}
@@ -802,11 +831,11 @@ def main():
             export_forge_v2(model, stem, bool(a.residual))
         else:
             export_forge(model, stem, k, bool(a.residual))
-            if a.export_v2:
+            if a.export_v2 or a.pure:  # O4: a pure net is used through NNUEFile + PureNnue, i.e. as a v2 file
                 export_forge_v2(model, stem, bool(a.residual))
-        atomic_write(stem.with_suffix(".json"), lambda dst: dst.write((json.dumps({**config, "val": payload["val"], "baseline": {str(b): v for b, v in base_sub.items()}}, indent=1) + "\n").encode()))
+        atomic_write(stem.with_suffix(".json"), lambda dst: dst.write((json.dumps({**config, "val": payload["val"], "baseline": {str(b): v for b, v in (base_sub or {}).items()}}, indent=1) + "\n").encode()))
         print(f"Saved {stem.name} (.pt .fnn2 .json)" if a.king_buckets else
-              f"Saved {stem.name} (.pt .inc .bin .json{' .fnn2' if a.export_v2 else ''})", flush=True)
+              f"Saved {stem.name} (.pt .inc .bin .json{' .fnn2' if a.export_v2 or a.pure else ''})", flush=True)
         mem_report(f"epoch{ep + 1:03d}", a.max_ram_gb)
     finally:  # v3: join background epoch builder / prefetchers cleanly, also on exceptions
         if pf is not None:  # v3b: current producer first (with one order buffer the builder waits for it)
@@ -815,8 +844,11 @@ def main():
             nxt.close()
     if a.final_full_val:
         full, nf = evaluate(model, hold, full_idx, dev, k, a.batch_size, blends=(1.0, 0.6, 0.8))
-        bfull, _ = evaluate(model, hold, full_idx, dev, k, a.batch_size, blends=(1.0, 0.6, 0.8), baseline=True)
-        print(f"FINAL FULL HOLDOUT n={nf:,}: net mse_teacher={full[1.0]:.6f} mse_b0.6={full[0.6]:.6f} mse_b0.8={full[0.8]:.6f} | HCE {bfull[1.0]:.6f}/{bfull[0.6]:.6f}/b0.8 {bfull[0.8]:.6f}", flush=True)
+        if base_sub is None:  # O4 --pure without .hce files
+            print(f"FINAL FULL HOLDOUT n={nf:,}: net mse_teacher={full[1.0]:.6f} mse_b0.6={full[0.6]:.6f} mse_b0.8={full[0.8]:.6f}", flush=True)
+        else:
+            bfull, _ = evaluate(model, hold, full_idx, dev, k, a.batch_size, blends=(1.0, 0.6, 0.8), baseline=True)
+            print(f"FINAL FULL HOLDOUT n={nf:,}: net mse_teacher={full[1.0]:.6f} mse_b0.6={full[0.6]:.6f} mse_b0.8={full[0.8]:.6f} | HCE {bfull[1.0]:.6f}/{bfull[0.6]:.6f}/b0.8 {bfull[0.8]:.6f}", flush=True)
     print(f"Finished: {seen:,} positions in {time.time() - tstart:.0f}s", flush=True)
     return 0
 
