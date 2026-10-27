@@ -1,0 +1,20 @@
+# FILES index, opus_round1/sol_S50 (job S50, branch opus-sol-S50 = opus-sol-S39 + this job). path | bytes | sha256 | content
+# .tar.gz sizes: logs/s50_outputs.tar.gz = 35180 B
+# Not committed (scratch): F:/opus_scratch/sol_S50/ (staged inputs and trainer copies, run dirs with .pt/.inc/.bin; no net adoption)
+CHANGES_v3c.md | 8562 | f9721123ee5abea46b712f5fb92503fdbd5b208896169dbb37500bf5c2af4eaf | change log for the whole v3c (S39 + S50), RAM notes, smoke and trace results
+IDEA_SOURCE.md | 1550 | 600cc3ce4e8e2fed7cdf675005b4059a71e551e3fa90b180fa73f5e66c39e7ba | spec and idea sources
+logs/s50_outputs.tar.gz | 35180 | 4f95bce1f24bb7dcfc602d383208443fd54acb577c68fa2d74f19ec956e9a1e1 | outputs of suite r1 and trace t1 (stdout, case/child JSON, settings, epoch .json, results/acceptance/trace JSON); no .pt/.inc/.bin
+logs/step01_stage.log | 1219 | e1715f1b07444f6a08662e62ff3825533b2b47275ed7a2246121c1ac280659fc | step log
+logs/step02_unit.log | 1772 | 7010f18ba599d43dcf06f7c344021475626673cdadcbcdbb0f6c5e74451193ca | step log
+logs/step03_suite_r1.log | 1587 | 5d0445aff07aded7f73c020184da43a9ec9be303cfa417ceb2d24587ae3db63d | step log
+logs/step04_compare_r1.log | 10937 | 5e5b8cde2cafacb264a800bb064c136e807376dbcec2dbbefc69b8b4a3def8b0 | step log
+logs/step05_rss_t1.log | 1292 | 4b1d07711dc9773049f77659ab0b1854250fdb6e776525e438350b8b278b760b | step log
+logs/step06_mutation_check.log | 2925 | a42fe9d1e0aedca8b57e74b0198c21b8f074d4f9d53730c59b1f198d2c72169e | step log
+logs/step07_s39r2_vs_s50r1.log | 633 | cc4267a66b1de1186f4a1efe782de256ca2525f0150ea60587f45f6efade901c | step log
+mutation_check_s50.py | 5405 | 14aca95f0069dcdc22893096c70e6d68d75b95742a0d6672e223f6cabc45e515 | planted-bug check: 17 mutants (8 S39 + 9 S50), each caught by its named test
+opus_nnue_smoke_s50.py | 37620 | 24ff3d3e2701ad601c85d8a9729f229ea3d989e2f3c136706b05f685edcff916 | CPU smoke runner: S39 cases + 7 warm-start cases, compare (26 checks), 10k-step memory trace (renamed trainer copies only)
+README.md | 3401 | 1afbed99327640b2f5b34fe65a567ffd574a280ca92ad1d31fcd6e326d59d18e | options, warm-start rules, how to run
+test_v3c_s50.py | 23264 | 82bf7e29fc3e34107324befbb4e63cabc689cfb82c27e0b626966bb1a902f837 | 27 tests: the 17 S39 tests on this v3c + 10 warm-start tests (in-process main() runs on the staged copies)
+train_resid_v3c.py | 45260 | ddff28bb6801421793e1767cec8271fe3406a263b0c0dfec03ac0cd97dcadef8 | the v3c trainer (deliverable): v3b + S39 --epoch-positions/--recent-weight + S50 --init-weights, all default off (never run under this name); supersedes ../sol_S39/train_resid_v3c.py
+v3b_to_v3c.diff | 15128 | d7d558652f0b94bb2f85831e1ba60a5c2ecf0209ec618487429e948496167118 | unified diff vs the lock archive's train_resid_v3b.py (md5 b6758004)
+v3c_s39_to_s50.diff | 8392 | c1cfc2a81de5dbfe9dd246c334df69c29e24b5fdea66437d389ec1c09ec38f47 | the S50 increment: diff vs ../sol_S39/train_resid_v3c.py (md5 b130a31e)

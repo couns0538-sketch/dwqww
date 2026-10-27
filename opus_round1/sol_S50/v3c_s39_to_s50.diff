@@ -1,0 +1,128 @@
+--- train_resid_v3c.py (S39, md5 b130a31e)
++++ train_resid_v3c.py (S39 + S50)
+@@ -7,6 +7,9 @@
+ # each epoch trains on N positions drawn with a seeded RNG from all training files, no repeats within an epoch, so steps/epoch and the
+ # lr/blend schedule stop growing with the data. --recent-weight W (default 1.0 = uniform): per-position weight of the last (newest) file of
+ # the sorted training file list, linear from 1.0 for the first. Off, or N >= train size: v3b exactly (same order, same math, same outputs).
++# v3c + S50 (Opus 5.5 2026-10-27): --init-weights PATH (default off): warm start from a finished run's .pt, model weights only; optimizer,
++# step, epoch, lr warmup/decay and blend ramp start fresh; the file's md5 goes to the settings dump and the checkpoint config. With
++# --init-check the loaded net must reproduce the checkpoint's stored holdout val. With --resume the init file is not loaded.
+ """Forge-768 residual NNUE trainer (GPU, DirectML/CPU). Own code, derived in structure from the
+ supplied train_nnue.py (md5 5A161C70...), but fed from pre-converted binaries:
+ 
+@@ -29,7 +32,7 @@
+ FEATURES = 768
+ SCALE = 4096.0
+ K_DEFAULT = 2.25
+-V3C_OFF = {"epoch_positions": 0, "recent_weight": 1.0}  # v3c options at their off values (not written to the settings dump)
++V3C_OFF = {"epoch_positions": 0, "recent_weight": 1.0, "init_weights": None}  # v3c options at their off values (not written to the settings dump)
+ 
+ 
+ # ----------------------------------------------------------------------------- data
+@@ -507,6 +510,38 @@
+     return torch_directml.device(index)
+ 
+ 
++# ----------------------------------------------------------------------------- warm start (v3c, S50)
++def file_md5(path):
++    import hashlib
++    h = hashlib.md5()
++    with open(path, "rb") as f:
++        for block in iter(lambda: f.read(1 << 20), b""):
++            h.update(block)
++    return h.hexdigest()
++
++
++def load_init_weights(model, path, hidden, residual, qat):
++    """v3c --init-weights: copy the model weights (only) of a trainer checkpoint (.pt payload with 'model', or a bare state_dict)
++    into model. Optimizer state, step and epoch are not taken. Refuses another hidden size / residual mode (and any shape mismatch,
++    via strict load_state_dict) and non-finite weights. Returns {'val': the checkpoint's holdout val by blend or None, 'info': text}."""
++    ck = torch.load(path, map_location="cpu", weights_only=True)
++    payload = isinstance(ck, dict) and "model" in ck
++    sd = ck["model"] if payload else ck
++    cfg = ck.get("config", {}) if payload else {}
++    for key, want in (("hidden", hidden), ("residual", residual)):
++        if key in cfg and cfg[key] != want:
++            raise ValueError(f"--init-weights {path}: checkpoint {key}={cfg[key]} but this run has {key}={want}")
++    if "qat" in cfg and cfg["qat"] != qat:
++        print(f"WARNING: --init-weights checkpoint qat={cfg['qat']} but this run has qat={qat}", flush=True)
++    if not all(torch.isfinite(v).all() for v in sd.values()):
++        raise ValueError(f"--init-weights {path}: non-finite weights")
++    model.load_state_dict(sd)
++    val = ck.get("val") if payload else None
++    info = (f"checkpoint hidden={cfg.get('hidden')} residual={cfg.get('residual')} next_epoch={ck.get('next_epoch')} step={ck.get('step')}"
++            if payload else "bare state_dict")
++    return {"val": {float(b): float(v) for b, v in val.items()} if val else None, "info": info}
++
++
+ # ----------------------------------------------------------------------------- main
+ def expand(patterns):
+     out = []
+@@ -593,6 +628,7 @@
+     ap.add_argument("--max-ram-gb", type=float, default=0.0, help="v3b: print a WARNING when trainer private memory exceeds this (0 = off); never stops")
+     ap.add_argument("--epoch-positions", type=int, default=0, help="v3c: each epoch trains on N positions drawn with a seeded RNG from all training files, no repeats within an epoch (0 = off: full epochs as v3b; N >= train size: full epochs)")
+     ap.add_argument("--recent-weight", type=float, default=1.0, help="v3c: with --epoch-positions, per-position weight of the last file of the sorted training file list (linear from 1.0 for the first file); 1.0 = uniform (default)")
++    ap.add_argument("--init-weights", help="v3c: warm start: model weights (only) from a finished run's .pt (trainer checkpoint or bare state_dict); optimizer, lr warmup/decay and blend ramp start fresh; md5 logged in the settings dump (default off; not loaded with --resume)")
+     a = ap.parse_args()
+     if a.epoch_positions < 0 or 0 < a.epoch_positions < a.batch_size:
+         ap.error("--epoch-positions must be 0 (off) or at least one batch")
+@@ -600,6 +636,14 @@
+         ap.error("--recent-weight must be a positive number")
+     if a.recent_weight != 1.0 and not a.epoch_positions:
+         ap.error("--recent-weight needs --epoch-positions")
++    init_md5 = None  # v3c --init-weights: hashed before the run dir exists (a missing file leaves no run dir behind)
++    if a.init_weights:
++        if os.path.isfile(a.init_weights):
++            init_md5 = file_md5(a.init_weights)
++        elif a.resume:
++            init_md5 = "missing"  # a resumed warm start restores model + optimizer from --resume; the init file is not needed
++        else:
++            ap.error(f"--init-weights {a.init_weights}: no such file")
+     k = a.sigmoid_k
+     if k != K_DEFAULT:
+         print("WARNING: export needs sigmoid-k 2.25", flush=True)
+@@ -608,6 +652,8 @@
+     run = Path(a.run_dir)
+     run.mkdir(parents=True, exist_ok=bool(a.resume) or a.baseline_only)
+     settings = {key: v for key, v in vars(a).items() if not (key in V3C_OFF and v == V3C_OFF[key])}  # v3c: off -> v3b's dump
++    if init_md5:
++        settings["init_weights_md5"] = init_md5
+     (run / f"settings_{int(time.time())}.txt").write_text(" ".join(sys.argv) + "\n" + json.dumps(settings, indent=1))
+     t0 = time.time()
+     hold_files = expand(a.holdout)
+@@ -629,7 +675,25 @@
+         ex, _ = evaluate(model, hold, full_idx, dev, k, a.batch_size, blends=(0.0, 0.4, 0.8), baseline=True)
+         print("BASELINE extra blends full: " + " ".join(f"b{b}={v:.6f}" for b, v in ex.items()), flush=True)
+         return 0
+-    if a.init_check:
++    warm = None  # v3c --init-weights
++    if a.init_weights and a.resume:
++        print(f"init-weights {a.init_weights} (md5 {init_md5}): not loaded, --resume restores model and optimizer", flush=True)
++    elif a.init_weights:
++        warm = load_init_weights(model, a.init_weights, a.shape, bool(a.residual), not a.no_qat)
++        print(f"init-weights: model weights from {a.init_weights} (md5 {init_md5}; {warm['info']}); optimizer, lr and blend schedules "
++              "start fresh", flush=True)
++    if a.init_check and warm is not None:  # v3c warm start: the loaded net must reproduce its checkpoint's holdout val
++        init, _ = evaluate(model, hold, val_idx, dev, k, a.batch_size)
++        ref = warm["val"]
++        if ref is None:
++            print(f"INIT warm-start net: mse_teacher={init[1.0]:.6f} mse_b0.6={init[0.6]:.6f} (checkpoint has no val: check skipped)", flush=True)
++        else:
++            print(f"INIT warm-start net: mse_teacher={init[1.0]:.6f} mse_b0.6={init[0.6]:.6f} (checkpoint val {ref[1.0]:.6f}/{ref[0.6]:.6f})", flush=True)
++            if abs(init[1.0] - ref[1.0]) > 1e-6 or abs(init[0.6] - ref[0.6]) > 1e-6:
++                print("INIT CHECK FAILED (warm start != checkpoint val; the source run's --holdout and --val-positions are needed)", flush=True)
++                return 3
++            print("INIT CHECK OK (warm start == checkpoint val)", flush=True)
++    elif a.init_check:
+         init, _ = evaluate(model, hold, val_idx, dev, k, a.batch_size)
+         print(f"INIT residual net: mse_teacher={init[1.0]:.6f} mse_b0.6={init[0.6]:.6f} (baseline {base_sub[1.0]:.6f}/{base_sub[0.6]:.6f})", flush=True)
+         if abs(init[1.0] - base_sub[1.0]) > 1e-6 or abs(init[0.6] - base_sub[0.6]) > 1e-6:
+@@ -683,6 +747,8 @@
+     if E:  # v3c: recorded only when fixed-size epochs are active (off -> v3b's config, .json and .pt)
+         config["epoch_positions"] = E
+         config["recent_weight"] = a.recent_weight
++    if init_md5:  # v3c: warm-start provenance (kept by resumed epochs)
++        config["init_weights_md5"] = init_md5
+ 
+     def lr_at(s):
+         if s < a.warmup_steps:

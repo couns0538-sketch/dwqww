@@ -1,0 +1,65 @@
+| check | result | detail |
+|---|---|---|
+| v3b reproducible (v3b_1 == v3b_2) | **PASS** | 8 artifacts (.pt .inc .bin .json x 2 epochs) sha256-equal: True; normalized stdout equal: True |
+| options OFF == v3b (off_1 vs v3b_1) | **PASS** | 8 artifacts sha256-equal: True; full normalized stdout equal: True; settings dump equal: True |
+| options OFF == v3b (off_2 vs v3b_1) | **PASS** | 8 artifacts sha256-equal: True; full normalized stdout equal: True; settings dump equal: True |
+| N >= data size == v3b (eqN) | **PASS** | 8 artifacts sha256-equal: True; stdout equal apart from the one line 'epoch-positions 200,000 >= train 200,000: full epochs (v3b order)': True |
+| N >= data size == v3b (gtN_w3) | **PASS** | 8 artifacts sha256-equal: True; stdout equal apart from the one line 'epoch-positions 10,000,000 >= train 200,000: full epochs (v3b order; recent-weight has no effect)': True |
+| ON deterministic (on_u_1 == on_u_2) | **PASS** | 8 artifacts sha256-equal: True (ep2 .inc md5 ['2cfbdee79f730f883dff0e2048c49b51']); stdout equal: True |
+| ON deterministic (on_w_1 == on_w_2) | **PASS** | 8 artifacts sha256-equal: True (ep2 .inc md5 ['317f0dcaf6990764230686844c4f344e']); stdout equal: True |
+| ON fixed epoch size (on_u_1) | **PASS** | steps/epoch=97 total=194 batch=1024 lr=0.000707 cosine blend 1.0->0.6 | Finished: 198,656 positions in Xs | .json epoch_positions=100000 recent_weight=1.0 |
+| ON fixed epoch size (on_w_1) | **PASS** | steps/epoch=97 total=194 batch=1024 lr=0.000707 cosine blend 1.0->0.6 | Finished: 198,656 positions in Xs | .json epoch_positions=100000 recent_weight=3.0 |
+| recent-weight 3 per-file draw plan | **PASS** | epoch-positions per file (weight drawn/rows): t00000.pos 1.0000 12,500/50,000, t01000.pos 1.6667 20,833/50,000, t02000.pos 2.3333 29,167/50,000, t03000.pos 3.0000 37,500/50,000 |
+| ON changes the training (sanity: the comparisons can fail) | **PASS** | ep2 .inc of on_u_1 != v3b_1 and on_w_1 != on_u_1 |
+| --order-buffers 2 == 1 with recent-weight (on_w_ob2 == on_w_1) | **PASS** | 8 artifacts sha256-equal: True |
+| resume from epoch 1 reproduces epoch 2 (on_u_res vs on_u_1, v3c) | **PASS** | .inc .bin .json sha256-equal: True; .pt content bitwise-equal: True []; .pt bytes equal: False (pickle memo/serialization_id, see finding); EPOCH 2 line equal: True |
+| resume from epoch 1 reproduces epoch 2 (on_w_res vs on_w_1, v3c) | **PASS** | .inc .bin .json sha256-equal: True; .pt content bitwise-equal: True []; .pt bytes equal: False (pickle memo/serialization_id, see finding); EPOCH 2 line equal: True |
+| resume from epoch 1 reproduces epoch 2 (v3b_res vs v3b_1, v3b's own resume (reference)) | **PASS** | .inc .bin .json sha256-equal: True; .pt content bitwise-equal: True []; .pt bytes equal: False (pickle memo/serialization_id, see finding); EPOCH 2 line equal: True |
+| peak memory of ON runs no higher than v3b (tolerance: v3b's own run-to-run spread, >= 1 MiB) | **PASS** | MiB peak private/peak working set: v3b_1 239.2/241.4, v3b_2 239.5/242.4, off_1 239.7/242.5, off_2 239.7/242.5, eqN 239.7/242.6, gtN_w3 239.7/242.6, on_u_1 240.3/243.1, on_u_2 239.3/242.2, on_w_1 239.4/242.4, on_w_2 238.9/242.1, on_w_ob2 241.2/243.9, on_u_res 238.0/241.0, on_w_res 238.3/241.5, v3b_res 237.1/240.3, warm_lr0 236.8/240.5, warm_lr0_on 237.4/240.8, warm_1 238.8/242.2, warm_2 239.0/243.1, warm_on_1 238.1/242.3, warm_on_2 238.1/242.5, warm_res 238.1/241.1; worst ON excess over max(v3b) +0.83 MiB, tolerance 1.01 MiB |
+| (b) init from a checkpoint, lr 0, 1 epoch reproduces its loss and .inc (warm_lr0 vs v3b_1 epoch 2) | **PASS** | .inc md5 bf6d2812f517012b269ac25755d4ab4d == bf6d2812f517012b269ac25755d4ab4d: True; .bin equal: True; EPOCH 1/1 HOLDOUT == checkpoint's EPOCH 2/2 HOLDOUT ('HOLDOUT n=16,384 mse_teacher=0.021902 (HCE 0.021899, -0.01%) mse_b0.6=0.045335 (HCE 0.045332, -0.01%) mse_b0.8=0.023798'): True; .json val (full precision) equal: True; FINAL line equal: True; 'INIT warm-start net: mse_teacher=0.021902 mse_b0.6=0.045335 (checkpoint val 0.021902/0.045335)' and INIT CHECK OK: True; steps/epoch=195 total=195 batch=1024 lr=0.0 cosine blend 1.0->0.6 |
+| (b) init from a checkpoint, lr 0, 1 epoch reproduces its loss and .inc (warm_lr0_on vs v3b_1 epoch 2, with --epoch-positions 100000 --recent-weight 3) | **PASS** | .inc md5 bf6d2812f517012b269ac25755d4ab4d == bf6d2812f517012b269ac25755d4ab4d: True; .bin equal: True; EPOCH 1/1 HOLDOUT == checkpoint's EPOCH 2/2 HOLDOUT ('HOLDOUT n=16,384 mse_teacher=0.021902 (HCE 0.021899, -0.01%) mse_b0.6=0.045335 (HCE 0.045332, -0.01%) mse_b0.8=0.023798'): True; .json val (full precision) equal: True; FINAL line equal: True; 'INIT warm-start net: mse_teacher=0.021902 mse_b0.6=0.045335 (checkpoint val 0.021902/0.045335)' and INIT CHECK OK: True; steps/epoch=97 total=97 batch=1024 lr=0.0 cosine blend 1.0->0.6 |
+| source .pt md5 logged (settings dump, checkpoint config, stdout) | **PASS** | md5 5bd3de20e55b292b593307c8d987a983: settings dump True, .json/.pt config True, stdout line True |
+| fresh optimizer, step counter and schedule (warm_1) | **PASS** | epoch-1 checkpoint: step 195, optimizer state steps [195.0] (source checkpoint: step 390); steps/epoch=195 total=390 batch=1024 lr=0.000707 cosine blend 1.0->0.6 |
+| warm start deterministic (warm_1 == warm_2) | **PASS** | 8 artifacts sha256-equal: True (ep2 .inc md5 7168e53066deac79d4c376379de6f719); stdout equal: True |
+| warm start deterministic (warm_on_1 == warm_on_2) | **PASS** | 8 artifacts sha256-equal: True (ep2 .inc md5 9059c1382a4b61e2e473eaa3c8d395fb); stdout equal: True |
+| (d) works with S39 --epoch-positions (+ --recent-weight 3) (warm_on_1) | **PASS** | INIT CHECK OK; steps/epoch=97 total=194 batch=1024 lr=0.000707 cosine blend 1.0->0.6; Finished: 198,656 positions in Xs; .json epoch_positions=100000 recent_weight=3.0 init_weights_md5=5bd3de20e55b292b593307c8d987a983 |
+| warm start trains on from the loaded net (sanity: the comparisons can fail) | **PASS** | warm_1 ep1 .inc differs from the source and from a fresh run's ep1: True; warm_1 EPOCH 1 holdout != fresh EPOCH 1 holdout: True |
+| resume of a warm-started run, supervisor style (same args + --resume) | **PASS** | epoch-2 .inc .bin .json sha256-equal: True; .pt content bitwise-equal: True []; 'init-weights ... not loaded, --resume restores model and optimizer' line: True; EPOCH 2 line equal: True |
+| no new supervisor adoption | **PASS** | 'adopted running job' lines before 7, after each run [7] |
+RESULT PASS 26/26
+loss lines v3b_1 / on_u_1 / on_w_1 / warm_lr0 / warm_1 / warm_on_1:
+  v3b_1: BASELINE HCE-alone holdout subset n=16,384: mse_teacher(blend1.0)=0.021899 mse_blend0.6=0.045332
+  v3b_1: INIT residual net: mse_teacher=0.021899 mse_b0.6=0.045332 (baseline 0.021899/0.045332)
+  v3b_1: INIT CHECK OK (residual init == HCE alone)
+  v3b_1: EPOCH 1/2 done in Xs train_mse=0.021402 | HOLDOUT n=16,384 mse_teacher=0.021899 (HCE 0.021899, -0.00%) mse_b0.6=0.045332 (HCE 0.045332, +0.00%) mse_b0.8=0.023795
+  v3b_1: EPOCH 2/2 done in Xs train_mse=0.033365 | HOLDOUT n=16,384 mse_teacher=0.021902 (HCE 0.021899, -0.01%) mse_b0.6=0.045335 (HCE 0.045332, -0.01%) mse_b0.8=0.023798
+  v3b_1: FINAL FULL HOLDOUT n=49,152: net mse_teacher=0.021846 mse_b0.6=0.045543 mse_b0.8=0.023712 | HCE 0.021840/0.045537/b0.8 0.023707
+  on_u_1: BASELINE HCE-alone holdout subset n=16,384: mse_teacher(blend1.0)=0.021899 mse_blend0.6=0.045332
+  on_u_1: INIT residual net: mse_teacher=0.021899 mse_b0.6=0.045332 (baseline 0.021899/0.045332)
+  on_u_1: INIT CHECK OK (residual init == HCE alone)
+  on_u_1: EPOCH 1/2 done in Xs train_mse=0.021477 | HOLDOUT n=16,384 mse_teacher=0.021900 (HCE 0.021899, -0.00%) mse_b0.6=0.045329 (HCE 0.045332, +0.01%) mse_b0.8=0.023794
+  on_u_1: EPOCH 2/2 done in Xs train_mse=0.033528 | HOLDOUT n=16,384 mse_teacher=0.021899 (HCE 0.021899, -0.00%) mse_b0.6=0.045330 (HCE 0.045332, +0.01%) mse_b0.8=0.023794
+  on_u_1: FINAL FULL HOLDOUT n=49,152: net mse_teacher=0.021842 mse_b0.6=0.045539 mse_b0.8=0.023709 | HCE 0.021840/0.045537/b0.8 0.023707
+  on_w_1: BASELINE HCE-alone holdout subset n=16,384: mse_teacher(blend1.0)=0.021899 mse_blend0.6=0.045332
+  on_w_1: INIT residual net: mse_teacher=0.021899 mse_b0.6=0.045332 (baseline 0.021899/0.045332)
+  on_w_1: INIT CHECK OK (residual init == HCE alone)
+  on_w_1: EPOCH 1/2 done in Xs train_mse=0.021342 | HOLDOUT n=16,384 mse_teacher=0.021900 (HCE 0.021899, -0.00%) mse_b0.6=0.045331 (HCE 0.045332, +0.00%) mse_b0.8=0.023795
+  on_w_1: EPOCH 2/2 done in Xs train_mse=0.033422 | HOLDOUT n=16,384 mse_teacher=0.021901 (HCE 0.021899, -0.01%) mse_b0.6=0.045330 (HCE 0.045332, +0.01%) mse_b0.8=0.023795
+  on_w_1: FINAL FULL HOLDOUT n=49,152: net mse_teacher=0.021842 mse_b0.6=0.045538 mse_b0.8=0.023709 | HCE 0.021840/0.045537/b0.8 0.023707
+  warm_lr0: BASELINE HCE-alone holdout subset n=16,384: mse_teacher(blend1.0)=0.021899 mse_blend0.6=0.045332
+  warm_lr0: INIT warm-start net: mse_teacher=0.021902 mse_b0.6=0.045335 (checkpoint val 0.021902/0.045335)
+  warm_lr0: INIT CHECK OK (warm start == checkpoint val)
+  warm_lr0: EPOCH 1/1 done in Xs train_mse=0.027317 | HOLDOUT n=16,384 mse_teacher=0.021902 (HCE 0.021899, -0.01%) mse_b0.6=0.045335 (HCE 0.045332, -0.01%) mse_b0.8=0.023798
+  warm_lr0: FINAL FULL HOLDOUT n=49,152: net mse_teacher=0.021846 mse_b0.6=0.045543 mse_b0.8=0.023712 | HCE 0.021840/0.045537/b0.8 0.023707
+  warm_1: BASELINE HCE-alone holdout subset n=16,384: mse_teacher(blend1.0)=0.021899 mse_blend0.6=0.045332
+  warm_1: INIT warm-start net: mse_teacher=0.021902 mse_b0.6=0.045335 (checkpoint val 0.021902/0.045335)
+  warm_1: INIT CHECK OK (warm start == checkpoint val)
+  warm_1: EPOCH 1/2 done in Xs train_mse=0.021315 | HOLDOUT n=16,384 mse_teacher=0.021952 (HCE 0.021899, -0.24%) mse_b0.6=0.045385 (HCE 0.045332, -0.12%) mse_b0.8=0.023848
+  warm_1: EPOCH 2/2 done in Xs train_mse=0.033146 | HOLDOUT n=16,384 mse_teacher=0.022018 (HCE 0.021899, -0.54%) mse_b0.6=0.045444 (HCE 0.045332, -0.25%) mse_b0.8=0.023910
+  warm_1: FINAL FULL HOLDOUT n=49,152: net mse_teacher=0.021960 mse_b0.6=0.045638 mse_b0.8=0.023817 | HCE 0.021840/0.045537/b0.8 0.023707
+  warm_on_1: BASELINE HCE-alone holdout subset n=16,384: mse_teacher(blend1.0)=0.021899 mse_blend0.6=0.045332
+  warm_on_1: INIT warm-start net: mse_teacher=0.021902 mse_b0.6=0.045335 (checkpoint val 0.021902/0.045335)
+  warm_on_1: INIT CHECK OK (warm start == checkpoint val)
+  warm_on_1: EPOCH 1/2 done in Xs train_mse=0.021265 | HOLDOUT n=16,384 mse_teacher=0.021941 (HCE 0.021899, -0.19%) mse_b0.6=0.045369 (HCE 0.045332, -0.08%) mse_b0.8=0.023835
+  warm_on_1: EPOCH 2/2 done in Xs train_mse=0.033249 | HOLDOUT n=16,384 mse_teacher=0.021965 (HCE 0.021899, -0.30%) mse_b0.6=0.045382 (HCE 0.045332, -0.11%) mse_b0.8=0.023853
+  warm_on_1: FINAL FULL HOLDOUT n=49,152: net mse_teacher=0.021909 mse_b0.6=0.045588 mse_b0.8=0.023767 | HCE 0.021840/0.045537/b0.8 0.023707
