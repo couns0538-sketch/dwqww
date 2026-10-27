@@ -46,8 +46,10 @@ private:
     friend struct SearcherTestProbe;
     friend class MovePicker;
 
-    int search(Board& board, SearchStack* ss, int depth, int alpha, int beta, bool cut_node);
-    int qsearch(Board& board, SearchStack* ss, int alpha, int beta);
+    // Pinned to 64-byte boundaries (like MovePicker::next): their placement no
+    // longer depends on the size of the code emitted before them.
+    [[gnu::aligned(64)]] int search(Board& board, SearchStack* ss, int depth, int alpha, int beta, bool cut_node);
+    [[gnu::aligned(64)]] int qsearch(Board& board, SearchStack* ss, int alpha, int beta);
     [[nodiscard]] bool should_stop();
     [[nodiscard]] std::int64_t elapsed_ms() const;
     [[nodiscard]] std::uint64_t total_nodes() const;

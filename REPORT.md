@@ -7,7 +7,9 @@ Work brief: `OPUS_PROMPT.md` + `OPUS_TEST_PLAN.md` (repo main). Job table: `opus
   perft 4865609, kiwipete 193690690, FMA 0, ctest 13/14 with exactly the 4 known lines; the rebuilt exe is
   byte-identical to the PC lock exe except the PE timestamp/checksum (`opus_round1/00_baseline/`).
 - **O3** (`opus-O3`): search.cpp split into 14 modules + 6 headers, `ThreadData` struct, 3 new unit tests;
-  bench/perft/depth-18x50 identical; hot code machine-code identical to the lock (NPS within 1%).
+  bench/perft/depth-18x50 identical; NPS within 1%. Hot code was instruction-identical to the lock in the PC
+  recipe build (a measured property of that build, see opus_round1/O3/REPORT.md); since the code review,
+  Worker::search, qsearch and TT probe/store are pinned to 64 bytes (speed-neutral on a quiet runner).
 
 ## In progress / left (in order)
 O1, C3, O2, C6, C2 (G-B1/G-B2 split), C1, C4, C5, O1-LTT, O5, O8, O4, O6, O7.

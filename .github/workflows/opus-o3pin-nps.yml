@@ -1,0 +1,46 @@
+# Code-review experiment for O3: Worker::search, Worker::qsearch, TranspositionTable::probe and ::store
+# pinned with [[gnu::aligned(64)]] (this branch = opus-O3 + the pins). Quiet-runner paired NPS of the lock
+# (294dbed) and of O3 (0d99f02) against this branch, box recipe, 10 runs per build at bench 16 and 20
+# (opus_round1/O3/nps_ab.py). Runs when this file changes.
+name: opus-o3pin-nps
+on:
+  push:
+    branches: ['opus-O3-pin']
+    paths:
+      - '.github/workflows/opus-o3pin-nps.yml'
+permissions:
+  contents: read
+jobs:
+  nps:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Toolchain
+        run: |
+          sudo apt-get update -qq && sudo apt-get install -y -qq g++-14 ninja-build cmake python3
+          lscpu | grep -E 'Model name|^CPU\(s\)'
+      - name: Build lock, O3 and branch (box recipe)
+        run: |
+          FL="-march=x86-64-v3 -mtune=znver5 -fno-fast-math -ffp-contract=off -DFORGE_NNUE_HIDDEN=256"
+          mkdir -p lock_src o3_src out
+          # -m: archive mtimes can be ahead of the runner clock
+          git archive 294dbed | tar -x -m -C lock_src
+          git archive 0d99f02 | tar -x -m -C o3_src
+          for t in lock o3 branch; do
+            src=$([ $t = branch ] && echo . || echo ${t}_src)
+            cmake -S $src -B build_$t -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_COMPILER=g++-14 "-DCMAKE_CXX_FLAGS=$FL" > /dev/null
+            cmake --build build_$t -j4 --target forge > /dev/null
+            python3 opus_round1/ci/uci_check.py build_$t/forge | tee out/identity_$t.log
+          done
+      - name: NPS A/B
+        run: |
+          python3 opus_round1/O3/nps_ab.py build_lock/forge build_branch/forge 10 16 20 | tee out/nps_ab_lock_vs_o3pin.log
+          python3 opus_round1/O3/nps_ab.py build_o3/forge build_branch/forge 10 16 20 | tee out/nps_ab_o3_vs_o3pin.log
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: o3pin-nps
+          path: out/*.log
