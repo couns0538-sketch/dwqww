@@ -117,4 +117,4 @@ evidence), logs in `logs/ci/` (`RUN.txt` has the URLs):
 `REPORT.md`, `IDEA_SOURCE.md`, `patch.diff`, `patch_vs_O3.diff`, `SHA256SUMS`; scripts `mutation_check.sh`,
 `nps_ab_options.py`, `layout_diff.py`, `instrument_refresh_stats.py`, `run1t.py` (1-thread torch wrapper for local
 smoke runs), `uci_go.py`, `tsan_extra.sh`, `ci_c4.sh`; data `parity_positions.fen` (10000 positions, sha256
-086a11d3...); `logs/`.
+f6b14e48...); `logs/`.
