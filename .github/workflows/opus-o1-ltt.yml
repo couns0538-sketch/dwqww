@@ -75,7 +75,8 @@ jobs:
         run: sudo apt-get update -qq && sudo apt-get install -y -qq g++-14 ninja-build cmake
       - name: Build a copy with the lockless key check disabled
         run: |
-          mkdir -p ../mut && git archive HEAD | tar -x -C ../mut
+          # -m: archive mtimes are commit times, which can be ahead of the runner clock (ninja then loops)
+          mkdir -p ../mut && git archive HEAD | tar -x -m -C ../mut
           sed -i 's|    return static_cast<std::uint32_t>(h >> 32);|    return static_cast<std::uint32_t>(h >> 32) \& 0U;  // planted bug|' ../mut/src/search/tt_lockless.inc
           grep -n "planted bug" ../mut/src/search/tt_lockless.inc
           cmake -S ../mut -B build_mut -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_COMPILER=g++-14 "-DCMAKE_CXX_FLAGS=$FL" > /dev/null
