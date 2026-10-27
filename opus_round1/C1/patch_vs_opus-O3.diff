@@ -1,5 +1,5 @@
 diff --git a/CMakeLists.txt b/CMakeLists.txt
-index f3acf19..3b30b4c 100644
+index f3acf19b..3b30b4c2 100644
 --- a/CMakeLists.txt
 +++ b/CMakeLists.txt
 @@ -79,6 +79,13 @@ add_executable(forge_timeman_tests tests/timeman_tests.cpp)
@@ -27,7 +27,7 @@ index f3acf19..3b30b4c 100644
      ${CMAKE_CURRENT_SOURCE_DIR}/tests/legal_witness_fixtures.tsv
      ${CMAKE_CURRENT_SOURCE_DIR}/tools/openings/forge-10000.epd)
 diff --git a/include/forge/search.hpp b/include/forge/search.hpp
-index 5c42aab..af97106 100644
+index 5c42aab3..af97106d 100644
 --- a/include/forge/search.hpp
 +++ b/include/forge/search.hpp
 @@ -4,6 +4,7 @@
@@ -51,7 +51,7 @@ index 5c42aab..af97106 100644
  // Public search facade: a shared transposition table plus one or more workers.
 diff --git a/include/forge/search_options.hpp b/include/forge/search_options.hpp
 new file mode 100644
-index 0000000..65fb83e
+index 00000000..65fb83ee
 --- /dev/null
 +++ b/include/forge/search_options.hpp
 @@ -0,0 +1,19 @@
@@ -76,10 +76,10 @@ index 0000000..65fb83e
 +} // namespace forge::options
 diff --git a/include/forge/syzygy.hpp b/include/forge/syzygy.hpp
 new file mode 100644
-index 0000000..89ef568
+index 00000000..0193fad4
 --- /dev/null
 +++ b/include/forge/syzygy.hpp
-@@ -0,0 +1,118 @@
+@@ -0,0 +1,133 @@
 +#pragma once
 +
 +// Syzygy endgame tablebases (WDL .rtbw and DTZ .rtbz files), own reader.
@@ -172,6 +172,21 @@ index 0000000..89ef568
 +// rule is honoured.
 +constexpr int TbWin = MateInMaxPly - 1;
 +constexpr int TbCursed = 2;
++// Lowest TB win (a win found at the last ply); |score| >= TbWinInMaxPly is the
++// tablebase score range, just below the mate scores.
++constexpr int TbWinInMaxPly = TbWin - MaxPly;
++
++// Transposition-table encoding of tablebase scores (score_to_tt / score_from_tt
++// in src/search/scores.inc): while tables are loaded (tb_scores, set by load()
++// while no search runs) a score with |score| >= TbWinInMaxPly is stored as its
++// distance from the storing node, like a mate score, and read back relative to
++// the reading node; without tables that range holds ordinary search scores and
++// is stored unchanged, as in AL1 s198. load() is followed by a hash clear
++// (src/uci.cpp), so the table never holds both encodings.
++extern bool tb_scores;
++// Test hook: score_from_tt(score_to_tt(score, store_ply), read_ply) exactly as
++// the search computes it.
++[[nodiscard]] int tt_score_round_trip(int score, int store_ply, int read_ply);
 +
 +// Search driver hooks (src/search/tablebase.inc), only called while tables are
 +// loaded. prepare_root runs before the workers start: it sets
@@ -199,7 +214,7 @@ index 0000000..89ef568
 +
 +} // namespace forge::syzygy
 diff --git a/src/search.cpp b/src/search.cpp
-index 17dc692..61baf92 100644
+index 17dc692b..61baf92a 100644
 --- a/src/search.cpp
 +++ b/src/search.cpp
 @@ -13,6 +13,7 @@
@@ -226,7 +241,7 @@ index 17dc692..61baf92 100644
 +#include "search/tablebase.inc"   // search glue: in-search probe, root filter
 +#include "search/syzygy.inc"      // table reader, WDL/DTZ probes, root ranking
 diff --git a/src/search/alphabeta.inc b/src/search/alphabeta.inc
-index 7360226..bdeb42e 100644
+index 73602262..bdeb42eb 100644
 --- a/src/search/alphabeta.inc
 +++ b/src/search/alphabeta.inc
 @@ -56,6 +56,12 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
@@ -243,7 +258,7 @@ index 7360226..bdeb42e 100644
      int eval;
      if (in_check) {
 diff --git a/src/search/iterative.inc b/src/search/iterative.inc
-index ec03e8f..cb25bad 100644
+index ec03e8f4..cb25bad2 100644
 --- a/src/search/iterative.inc
 +++ b/src/search/iterative.inc
 @@ -160,7 +160,9 @@ SearchInfo Worker::search(Board board, const SearchLimits& limits, bool emit_inf
@@ -269,7 +284,7 @@ index ec03e8f..cb25bad 100644
          else stable_iterations = 0;
 diff --git a/src/search/options.inc b/src/search/options.inc
 new file mode 100644
-index 0000000..8814ada
+index 00000000..8814adad
 --- /dev/null
 +++ b/src/search/options.inc
 @@ -0,0 +1,9 @@
@@ -282,8 +297,37 @@ index 0000000..8814ada
 +bool syzygy_50_move_rule = true;
 +
 +} // namespace forge::options
+diff --git a/src/search/scores.inc b/src/search/scores.inc
+index d9833b2b..69c30587 100644
+--- a/src/search/scores.inc
++++ b/src/search/scores.inc
+@@ -4,16 +4,20 @@
+ namespace forge {
+ namespace {
+ 
++// Mate scores, and tablebase scores while tables are loaded (the band just
++// below the mate scores, forge/syzygy.hpp), are stored as the distance from
++// the storing node; everything else unchanged. Without tables the TB band
++// holds ordinary scores and is stored unchanged, as in AL1 s198.
+ [[nodiscard]] int score_to_tt(int score, int ply) {
+-    if (score >= MateInMaxPly) return score + ply;
+-    if (score <= -MateInMaxPly) return score - ply;
++    if (score >= syzygy::TbWinInMaxPly) return score >= MateInMaxPly || syzygy::tb_scores ? score + ply : score;
++    if (score <= -syzygy::TbWinInMaxPly) return score <= -MateInMaxPly || syzygy::tb_scores ? score - ply : score;
+     return score;
+ }
+ 
+ [[nodiscard]] int score_from_tt(int score, int ply) {
+     if (score == ValueNone) return ValueNone;
+-    if (score >= MateInMaxPly) return score - ply;
+-    if (score <= -MateInMaxPly) return score + ply;
++    if (score >= syzygy::TbWinInMaxPly) return score >= MateInMaxPly || syzygy::tb_scores ? score - ply : score;
++    if (score <= -syzygy::TbWinInMaxPly) return score <= -MateInMaxPly || syzygy::tb_scores ? score + ply : score;
+     return score;
+ }
+ 
 diff --git a/src/search/searcher.inc b/src/search/searcher.inc
-index 4e918be..402c0f3 100644
+index 4e918be0..402c0f34 100644
 --- a/src/search/searcher.inc
 +++ b/src/search/searcher.inc
 @@ -38,6 +38,8 @@ SearchInfo Searcher::search(Board board, const SearchLimits& limits, bool emit_i
@@ -297,10 +341,10 @@ index 4e918be..402c0f3 100644
      for (auto& worker : workers_) all.push_back(worker.get());
 diff --git a/src/search/syzygy.inc b/src/search/syzygy.inc
 new file mode 100644
-index 0000000..4298872
+index 00000000..303929ba
 --- /dev/null
 +++ b/src/search/syzygy.inc
-@@ -0,0 +1,1471 @@
+@@ -0,0 +1,1474 @@
 +// Search module: Syzygy endgame tablebase reader and probes (forge/syzygy.hpp).
 +//
 +// Own implementation from the public description of the Syzygy formats
@@ -334,6 +378,7 @@ index 0000000..4298872
 +std::atomic<int> root_display{0};
 +std::atomic<int> root_display_score{0};
 +std::atomic<std::uint64_t> probe_hits{0};
++bool tb_scores = false;
 +
 +namespace {
 +
@@ -1522,6 +1567,7 @@ index 0000000..4298872
 +    LoadSummary summary;
 +    search_cardinality.store(0, std::memory_order_relaxed);
 +    root_display.store(0, std::memory_order_relaxed);
++    tb_scores = false;
 +    delete g_registry.exchange(nullptr, std::memory_order_acq_rel);
 +    std::string trimmed = paths;
 +    while (!trimmed.empty() && (trimmed.back() == ' ' || trimmed.back() == '\r' || trimmed.back() == '\n')) trimmed.pop_back();
@@ -1599,6 +1645,7 @@ index 0000000..4298872
 +    }
 +    summary.max_pieces = r->max_pieces;
 +    g_registry.store(r.release(), std::memory_order_release);
++    tb_scores = true;
 +    return summary;
 +}
 +
@@ -1774,10 +1821,10 @@ index 0000000..4298872
 +} // namespace forge::syzygy
 diff --git a/src/search/tablebase.inc b/src/search/tablebase.inc
 new file mode 100644
-index 0000000..d906e4a
+index 00000000..142ab406
 --- /dev/null
 +++ b/src/search/tablebase.inc
-@@ -0,0 +1,102 @@
+@@ -0,0 +1,110 @@
 +// Search module: tablebase glue (job C1, forge/syzygy.hpp) — the WDL probe
 +// inside the search, root move filtering by DTZ (or WDL) rank, and the score
 +// reported for tablebase roots. Only reached while tables are loaded
@@ -1825,6 +1872,14 @@ index 0000000..d906e4a
 +}
 +
 +namespace syzygy {
++
++// TB scores in the TT (forge/syzygy.hpp, score_to_tt / score_from_tt). Scores
++// in this range stay below the mate scores after the adjustment: a stored TB
++// score is at most TbWin (found at the storing node) and a read one at least
++// TbWin - MaxPly.
++[[gnu::cold, gnu::noinline]] int tt_score_round_trip(int score, int store_ply, int read_ply) {
++    return score_from_tt(score_to_tt(score, store_ply), read_ply);
++}
 +
 +namespace {
 +
@@ -1881,7 +1936,7 @@ index 0000000..d906e4a
 +} // namespace syzygy
 +} // namespace forge
 diff --git a/src/uci.cpp b/src/uci.cpp
-index 607adf3..1e303f5 100644
+index 607adf3a..c5f88a94 100644
 --- a/src/uci.cpp
 +++ b/src/uci.cpp
 @@ -2,6 +2,7 @@
@@ -1903,7 +1958,7 @@ index 607adf3..1e303f5 100644
  #ifdef FORGE_EXPOSE_TUNABLES
              // Development builds advertise the search constants so match
              // runners can set them; release builds accept them silently.
-@@ -259,6 +264,38 @@ int main() {
+@@ -259,6 +264,40 @@ int main() {
                  } else {
                      book_variety = std::clamp(value, 0, 100);
                  }
@@ -1914,6 +1969,8 @@ index 607adf3..1e303f5 100644
 +                std::string path = value_text + rest;
 +                while (!path.empty() && (path.back() == ' ' || path.back() == '\r')) path.pop_back();
 +                const forge::syzygy::LoadSummary summary = forge::syzygy::load(path);
++                // Stored tablebase scores are encoded by whether tables are loaded (forge/syzygy.hpp).
++                searcher.clear_hash();
 +                const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex());
 +                if (path.empty() || path == "<empty>") {
 +                    std::cout << "info string Syzygy tablebases off" << std::endl;
@@ -1944,7 +2001,7 @@ index 607adf3..1e303f5 100644
                  else if (value_text == "false") forge::nnue::enabled = false;
 diff --git a/tests/syzygy_fixtures.tsv b/tests/syzygy_fixtures.tsv
 new file mode 100644
-index 0000000..41a9c8c
+index 00000000..41a9c8ce
 --- /dev/null
 +++ b/tests/syzygy_fixtures.tsv
 @@ -0,0 +1,385 @@
@@ -2335,7 +2392,7 @@ index 0000000..41a9c8c
 +8/8/2B5/k7/6K1/8/1B6/5n2 w - - 94 80	cursed-win	7	1	-	rule50 exact-dtz boundary KBBvKN needs: KBBvKN
 diff --git a/tests/syzygy_reference.tsv b/tests/syzygy_reference.tsv
 new file mode 100644
-index 0000000..a833b70
+index 00000000..a833b70e
 --- /dev/null
 +++ b/tests/syzygy_reference.tsv
 @@ -0,0 +1,1471 @@
@@ -3812,10 +3869,10 @@ index 0000000..a833b70
 +3r4/5k2/8/8/8/8/8/KR6 b - - 0 1	0	0	d8h8:0 d8g8:0 d8f8:0 d8e8:0 d8c8:0 d8b8:-2 d8a8:0 d8d7:0 d8d6:0 d8d5:0 d8d4:0 d8d3:0 d8d2:0 d8d1:-2 f7g8:0 f7f8:0 f7e8:0 f7g7:0 f7e7:0 f7g6:0 f7f6:0 f7e6:0	KRvKR
 diff --git a/tests/syzygy_tests.cpp b/tests/syzygy_tests.cpp
 new file mode 100644
-index 0000000..41d5328
+index 00000000..fecc6c0f
 --- /dev/null
 +++ b/tests/syzygy_tests.cpp
-@@ -0,0 +1,703 @@
+@@ -0,0 +1,739 @@
 +// Syzygy tablebase tests (job C1).
 +//
 +//   forge_syzygy_tests <lichess.tsv> <reference.tsv> [tablebase_dir]
@@ -4021,6 +4078,40 @@ index 0000000..41d5328
 +};
 +
 +// ---------------------------------------------------------------------------
++// Transposition-table encoding of scores (score_to_tt / score_from_tt in
++// src/search/scores.inc, through the test hook). Mate scores always carry their
++// distance; tablebase-range scores only while tables are loaded, otherwise
++// they are stored unchanged exactly as in AL1 s198.
++void tt_score_encoding(bool tables_loaded) {
++    using forge::syzygy::TbWin;
++    using forge::syzygy::TbWinInMaxPly;
++    using forge::syzygy::tt_score_round_trip;
++    const std::string mode = tables_loaded ? " (tables loaded)" : " (no tables)";
++    check((forge::syzygy::max_pieces() > 0) == tables_loaded && forge::syzygy::tb_scores == tables_loaded,
++          "TT encoding test runs in the intended mode" + mode);
++    // Mate scores, ordinary scores: as in the lock in both modes.
++    check(tt_score_round_trip(forge::MateValue - 5, 3, 7) == forge::MateValue - 9, "mate score keeps its distance" + mode);
++    check(tt_score_round_trip(-forge::MateValue + 5, 3, 7) == -forge::MateValue + 9, "mated score keeps its distance" + mode);
++    for (const int score : {0, 1, -1, 250, -250, 30000, -30000, TbWinInMaxPly - 1, -(TbWinInMaxPly - 1)}) {
++        check(tt_score_round_trip(score, 3, 7) == score, "ordinary score unchanged: " + std::to_string(score) + mode);
++    }
++    for (const int store_ply : {0, 1, 4, 9}) {
++        for (const int read_ply : {0, 2, 5, 9}) {
++            for (const int found : {store_ply, store_ply + 3, store_ply + 20}) {
++                const int win = TbWin - found;  // a TB win found at ply `found`, seen at ply store_ply
++                const int expected_win = tables_loaded ? win - (read_ply - store_ply) : win;
++                const int expected_loss = tables_loaded ? -win + (read_ply - store_ply) : -win;
++                const std::string at = " found " + std::to_string(found) + " stored at ply " + std::to_string(store_ply) +
++                                       " read at ply " + std::to_string(read_ply) + mode;
++                check(tt_score_round_trip(win, store_ply, read_ply) == expected_win, "TB win distance" + at);
++                check(tt_score_round_trip(-win, store_ply, read_ply) == expected_loss, "TB loss distance" + at);
++                check(std::abs(tt_score_round_trip(win, store_ply, read_ply)) < forge::MateInMaxPly,
++                      "TB win stays below the mate scores" + at);
++            }
++        }
++    }
++}
++
 +void robustness(const fs::path& tb_dir, bool have_tables) {
 +    std::cout << "== robustness\n";
 +    {
@@ -4474,6 +4565,7 @@ index 0000000..41d5328
 +    std::error_code ec;
 +    const fs::path tb_dir = fs::path(std::u8string(reinterpret_cast<const char8_t*>(tb.data()), tb.size()));
 +    const bool have_tables = !tb.empty() && fs::exists(tb_dir / "KQvK.rtbw", ec);
++    tt_score_encoding(false);
 +    robustness(tb_dir, have_tables);
 +    if (!have_tables) {
 +        std::cout << "SKIPPED: known-answer and search checks need a tablebase folder (argument or FORGE_SYZYGY_PATH)\n";
@@ -4482,6 +4574,7 @@ index 0000000..41d5328
 +        std::cout << "loaded " << s.wdl_tables << " WDL, " << s.dtz_tables << " DTZ, rejected " << s.rejected << ", max "
 +                  << s.max_pieces << " pieces\n";
 +        check(s.rejected == 0, "no table rejected");
++        tt_score_encoding(true);
 +        std::uint64_t total = 0;
 +        for (const auto& t : forge::syzygy::loaded_tables()) {
 +            check(t.tail == 16 || t.tail == 48, "file layout of " + t.name + " ends at the checksum, tail " + std::to_string(t.tail));
