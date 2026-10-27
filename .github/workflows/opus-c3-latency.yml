@@ -1,0 +1,69 @@
+# C3 bestmove-latency evidence on Linux (quiet 4-vCPU runners):
+#  - latency: tools/latency_test.py, all 300 WAC positions, movetime 100 and 1000 ms, 3 passes,
+#    Threads 1 and 4, HardDeadline 0 (lock behaviour) and 10
+#  - starvation: engine at nice 19 pinned to one CPU next to a nice-0 CPU hog, HardDeadline 0 vs 10
+name: opus-c3-latency
+on:
+  push:
+    branches: ['opus-C3']
+    paths-ignore:
+      - 'opus_round1/**/*.md'
+      - 'opus_round1/**/*.log'
+      - 'opus_round1/**/*.tsv'
+      - 'opus_round1/**/*.diff'
+      - 'opus_round1/**/*.txt'
+      - 'opus_round1/**/*.json'
+      - 'opus_round1/**/SHA256SUMS'
+      - 'REPORT.md'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  latency:
+    strategy:
+      fail-fast: false
+      matrix:
+        threads: [1, 4]
+        hd: [0, 10]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build (box recipe)
+        run: |
+          sudo apt-get update -qq && sudo apt-get install -y -qq g++-14 ninja-build cmake python3
+          cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_COMPILER=g++-14 \
+            "-DCMAKE_CXX_FLAGS=-march=x86-64-v3 -mtune=znver5 -fno-fast-math -ffp-contract=off -DFORGE_NNUE_HIDDEN=256"
+          cmake --build build -j4 --target forge
+          nproc
+      - name: Latency Threads ${{ matrix.threads }} HardDeadline ${{ matrix.hd }}
+        run: |
+          mkdir -p out
+          python3 tools/latency_test.py build/forge --suite tools/wac300.epd --movetimes 100,1000 --passes 3 \
+            --threads ${{ matrix.threads }} --option HardDeadline=${{ matrix.hd }} \
+            --json out/latency_t${{ matrix.threads }}_hd${{ matrix.hd }}.json | tee out/latency_t${{ matrix.threads }}_hd${{ matrix.hd }}.log
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: c3-latency-t${{ matrix.threads }}-hd${{ matrix.hd }}
+          path: out/
+  starvation:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build (box recipe)
+        run: |
+          sudo apt-get update -qq && sudo apt-get install -y -qq g++-14 ninja-build cmake python3
+          cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_COMPILER=g++-14 \
+            "-DCMAKE_CXX_FLAGS=-march=x86-64-v3 -mtune=znver5 -fno-fast-math -ffp-contract=off -DFORGE_NNUE_HIDDEN=256"
+          cmake --build build -j4 --target forge
+      - name: Starved engine (nice 19, one CPU shared with a CPU hog)
+        run: |
+          mkdir -p out
+          python3 opus_round1/C3/starvation_demo.py build/forge --cpu 1 --count 30 --out out | tee out/starvation.log
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: c3-starvation
+          path: out/
