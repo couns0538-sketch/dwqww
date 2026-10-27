@@ -8,7 +8,8 @@
 // scheme: an invalid ply walks back to the nearest valid ancestor and replays the recorded piece changes; every
 // replayed ply becomes valid. Per replayed ply, the child's piece placement is the parent's with that ply's piece
 // changes applied (starting from the board with every replayed ply taken back). Threat inputs: the child's threat
-// list is generated and the multiset difference to the parent's list is applied. Pawn-pair inputs: each
+// list is generated and the multiset difference to the parent's list is applied (each computed ply's list is kept
+// in the worker's cache, RefreshCache::ply_threats, so the valid ancestor's list is read). Pawn-pair inputs: each
 // perspective keeps the pawn-pair list of the current placement; it is regenerated only on a ply that moves,
 // captures or promotes a pawn (other plies cannot change pawn pairs), and the difference is applied. All changes of
 // a ply go through one chunked pass over each perspective's accumulator. On a king-key change the perspective is
@@ -25,14 +26,17 @@ __attribute__((section(".text.forge_v2"), noinline)) int Worker::static_evaluate
     const bool pawns = net.pawn_pairs;
     if (!ss->accumulator.valid) {
         nnue::v2::RefreshCache& cache = nnue::v2::cache(net, id_);
+        if (threats && cache.ply_threats.empty()) [[unlikely]] cache.ply_threats.resize(static_cast<std::size_t>(MaxPly + 8));
+        auto list_of = [&cache](const SearchStack* entry) -> nnue::v2::ThreatList& {
+            return cache.ply_threats[static_cast<std::size_t>(entry->ply + 4)];
+        };
         int back = 0;
         while (back < ss->ply && !(ss - back - 1)->accumulator.valid) ++back;
         nnue::v2::Pieces pieces = nnue::v2::pieces_of(board);
-        std::array<nnue::v2::ThreatList, 2> lists;   // threat lists of the parent and the child placement
         if (back >= ss->ply && !(ss - back - 1)->accumulator.valid) {
-            if (threats) nnue::v2::threat_keys(pieces, lists[0]);
+            if (threats) nnue::v2::threat_keys(pieces, list_of(ss));
             for (const Color color : {White, Black}) {
-                nnue::v2::refresh_full_cached(net, cache, pieces, threats ? &lists[0] : nullptr, board.king_square(color), color,
+                nnue::v2::refresh_full_cached(net, cache, pieces, threats ? &list_of(ss) : nullptr, board.king_square(color), color,
                                               ss->accumulator.values[static_cast<std::size_t>(color)].data());
             }
             ss->accumulator.valid = true;
@@ -42,8 +46,6 @@ __attribute__((section(".text.forge_v2"), noinline)) int Worker::static_evaluate
             auto king_of = [&pieces](Color color) { return lsb(pieces[static_cast<std::size_t>(make_piece(color, King))]); };
             std::array<nnue::v2::KingKey, 2> key{nnue::v2::king_key(net, White, king_of(White)),
                                                  nnue::v2::king_key(net, Black, king_of(Black))};
-            int current = 0;
-            if (threats) nnue::v2::threat_keys(pieces, lists[0]);
             std::array<nnue::v2::PawnPairList, 2> pawn_lists;   // per perspective, of the current placement
             if (pawns) {
                 for (const Color color : {White, Black}) {
@@ -62,11 +64,11 @@ __attribute__((section(".text.forge_v2"), noinline)) int Worker::static_evaluate
                 SearchStack* child = ss - i;
                 const nnue::DirtyPieces& dirty = child->dirty;
                 nnue::v2::redo(pieces, dirty);   // the child's placement
-                const nnue::v2::ThreatList& before = lists[static_cast<std::size_t>(current)];
-                nnue::v2::ThreatList& after = lists[static_cast<std::size_t>(current ^ 1)];
+                nnue::v2::ThreatList* after = nullptr;
                 if (threats) {
-                    nnue::v2::threat_keys(pieces, after);
-                    nnue::v2::threat_delta(before, after, cache.threat_counts.data(), delta);
+                    after = &list_of(child);   // the parent's list is valid: computed with the parent's accumulator
+                    nnue::v2::threat_keys(pieces, *after);
+                    nnue::v2::threat_delta(list_of(parent), *after, cache.threat_counts.data(), delta);
                 }
                 const bool pawn_move = pawns && nnue::v2::touches_pawns(dirty);
                 for (const Color color : {White, Black}) {
@@ -75,7 +77,7 @@ __attribute__((section(".text.forge_v2"), noinline)) int Worker::static_evaluate
                     const nnue::v2::KingKey moved = nnue::v2::king_key(net, color, king_square);
                     if (!(moved == key[c])) [[unlikely]] {
                         key[c] = moved;
-                        nnue::v2::refresh_full_cached(net, cache, pieces, threats ? &after : nullptr, king_square, color,
+                        nnue::v2::refresh_full_cached(net, cache, pieces, after, king_square, color,
                                                       child->accumulator.values[c].data(), pawns ? &pawn_lists[c] : nullptr);
                         continue;
                     }
@@ -111,7 +113,6 @@ __attribute__((section(".text.forge_v2"), noinline)) int Worker::static_evaluate
                 }
                 child->accumulator.valid = true;
                 if (residual) Evaluator::update_runtime_psqt(parent->runtime_psqt, child->runtime_psqt, dirty);
-                if (threats) current ^= 1;
             }
         }
     }
