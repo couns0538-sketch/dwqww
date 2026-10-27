@@ -976,6 +976,9 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
             record_null_move(ss);
             NullUndo undo;
             board.make_null_move(undo);
+#ifdef FORGE_S13_TT_CHILD_PREFETCH
+            if (s13_tt_child_prefetch_) shared_.tt.prefetch(board.key());
+#endif
             int null_score = -search(board, ss + 1, depth - reduction, -beta, -beta + 1, !cut_node);
             board.unmake_null_move(undo);
             if (aborted_) return 0;
@@ -1013,6 +1016,9 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
                 record_move(ss, board, move);
                 Undo undo;
                 (void)board.make_move(move, undo);
+#ifdef FORGE_S13_TT_CHILD_PREFETCH
+                if (s13_tt_child_prefetch_) shared_.tt.prefetch(board.key());
+#endif
                 int value = -qsearch(board, ss + 1, -probcut_beta, -probcut_beta + 1);
                 if (value >= probcut_beta && !aborted_) {
                     value = -search(board, ss + 1, depth - 4, -probcut_beta, -probcut_beta + 1, !cut_node);
@@ -1228,6 +1234,9 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
 // Iterative deepening driver
 
 SearchInfo Worker::search(Board board, const SearchLimits& limits, bool emit_info, const std::vector<Worker*>& all) {
+#ifdef FORGE_S13_TT_CHILD_PREFETCH
+    s13_tt_child_prefetch_ = limits.s13_tt_child_prefetch;
+#endif
     const auto origin = limits.start_time != std::chrono::steady_clock::time_point{}
         ? limits.start_time : limits.request_start;
     start_ = origin == std::chrono::steady_clock::time_point{}
@@ -1503,6 +1512,14 @@ SearchInfo Searcher::search(Board board, const SearchLimits& limits, bool emit_i
     const auto origin = supplied_start == std::chrono::steady_clock::time_point{} && clocked
         ? std::chrono::steady_clock::now() : supplied_start;
     SearchLimits worker_limits = limits;
+#ifdef FORGE_S13_TT_CHILD_PREFETCH
+    // Snapshot once before helper launch; recursive workers use their own copy.
+    worker_limits.s13_tt_child_prefetch = shared_.s13_tt_child_prefetch.load(std::memory_order_relaxed);
+    if (worker_limits.s13_tt_child_prefetch && !shared_.s13_tt_child_prefetch_announced.exchange(true, std::memory_order_relaxed)) {
+        const std::lock_guard<std::mutex> output_lock(uci_output_mutex());
+        std::cout << "info string TtChildPrefetch active" << std::endl;
+    }
+#endif
     worker_limits.start_time = origin;
     std::vector<Worker*> all;
     all.reserve(workers_.size());

@@ -18,6 +18,11 @@ add_library(forge_core
 target_include_directories(forge_core PUBLIC include)
 target_compile_features(forge_core PUBLIC cxx_std_20)
 
+option(FORGE_S13_TT_CHILD_PREFETCH "Build the opt-in TtChildPrefetch experiment" OFF)
+if(FORGE_S13_TT_CHILD_PREFETCH)
+    target_compile_definitions(forge_core PUBLIC FORGE_S13_TT_CHILD_PREFETCH=1)
+endif()
+
 if(MSVC)
     target_compile_options(forge_core PRIVATE /W4 /permissive-)
 else()
