@@ -1,0 +1,9 @@
+# Astra A7 queue lines (UNPROVEN; PROPOSED, not queued). Format of F:\forge_nnue_train\queue.txt: <run-name> <args>.
+# Order: A7-1 and A7-2 first (the decisive pair: same seed, same frozen 240M training positions, e96 vs e48);
+# A7-3 (e64) only if A7-1's FINAL FULL HOLDOUT b0.6 beats A7-2's by >= 2.0e-5 (see forge_astra_A7_long_recipe_20261027.md).
+resid_h256_e96_a7x_bs8k_lr707e6_b06_s701_mt240m --script train_resid_v3b.py --shape 256 --epochs 96 --lr 7.07e-4 --min-lr-frac 0.01 --blend-end 0.6 --seed 701 --batch-size 8192 --warmup-steps 300 --val-positions 1000000 --max-train 240000000
+resid_h256_e48_a7c_bs8k_lr707e6_b06_s701_mt240m --script train_resid_v3b.py --shape 256 --epochs 48 --lr 7.07e-4 --min-lr-frac 0.01 --blend-end 0.6 --seed 701 --batch-size 8192 --warmup-steps 300 --val-positions 1000000 --max-train 240000000
+resid_h256_e64_a7y_bs8k_lr707e6_b06_s701_mt240m --script train_resid_v3b.py --shape 256 --epochs 64 --lr 7.07e-4 --min-lr-frac 0.01 --blend-end 0.6 --seed 701 --batch-size 8192 --warmup-steps 300 --val-positions 1000000 --max-train 240000000
+# Negative controls for the dry parse only (never queue these): a v3c-only argument and a bad type must be rejected.
+NEGATIVE_v3c_arg --script train_resid_v3b.py --shape 256 --epochs 64 --epoch-positions 100000000
+NEGATIVE_bad_type --script train_resid_v3b.py --shape 256 --epochs 6.4e1

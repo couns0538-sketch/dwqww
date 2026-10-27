@@ -1,0 +1,19 @@
+# A7 step3: dry parse of the A7 queue lines with the unchanged v3b parser (renamed copy opus_nnue_smoke_a7_v3b.py, md5 b6758004...), read-only inputs; rerun with the final tool (schedule maths moved into a tested function; run1 gave the same numbers)
+# settings: /f/forge_nnue_train/runs/resid_h256_e48_f070_bs16k_lr10e4_b06_s89_fb8k/settings_1793108660.txt
+# f070 queue args: --script train_resid_v3b.py --shape 256 --epochs 48 --lr 7.07e-4 --blend-end 0.6 --seed 89 --batch-size 8192 --warmup-steps 300 --val-positions 1000000
+b6758004d19837c8d34d401ee7af5fd5 *opus_nnue_smoke_a7_v3b.py
+b6758004d19837c8d34d401ee7af5fd5 */d/grok-pc-data/dwqww/.claude/worktrees/b/pkg/forge_LOCK_AL1_s198_FULL_20261026_1039/5_nnue/trainers/train_resid_v3b.py
+Tue Oct 27 22:27:12 UTC 2026
+opus_a7_dryparse.py: error: unrecognized arguments: --epoch-positions 100000000
+opus_a7_dryparse.py: error: argument --epochs: invalid int value: '6.4e1'
+parser: 33 add_argument calls from opus_nnue_smoke_a7_v3b.py (md5 b6758004d19837c8d34d401ee7af5fd5)
+positive control (resid_h256_e48_f070_bs16k_lr10e4_b06_s89_fb8k): parsed == trainer's own settings dump: True 
+supervisor split: prefix 41 tokens (train files 1 flag), queue args match queue.txt: True
+OK   resid_h256_e96_a7x_bs8k_lr707e6_b06_s701_mt240m script=train_resid_v3b.py  | epochs 96 lr 0.000707 floor 7.07e-06 max_train 240,000,000 -> spe 29,296 total 2,812,416 positions 23,039,311,872 = 5.25 GPU-h at 1.22M/s (4.76 h at 1,344,201/s)
+OK   resid_h256_e48_a7c_bs8k_lr707e6_b06_s701_mt240m script=train_resid_v3b.py  | epochs 48 lr 0.000707 floor 7.07e-06 max_train 240,000,000 -> spe 29,296 total 1,406,208 positions 11,519,655,936 = 2.62 GPU-h at 1.22M/s (2.38 h at 1,344,201/s)
+OK   resid_h256_e64_a7y_bs8k_lr707e6_b06_s701_mt240m script=train_resid_v3b.py  | epochs 64 lr 0.000707 floor 7.07e-06 max_train 240,000,000 -> spe 29,296 total 1,874,944 positions 15,359,541,248 = 3.50 GPU-h at 1.22M/s (3.17 h at 1,344,201/s)
+FAIL NEGATIVE_v3c_arg script=train_resid_v3b.py argparse exit 2
+FAIL NEGATIVE_bad_type script=train_resid_v3b.py argparse exit 2
+RESULT PASS: 3/3 queue lines parse; 2/2 negative controls rejected
+exit 0
+Tue Oct 27 22:27:12 UTC 2026
