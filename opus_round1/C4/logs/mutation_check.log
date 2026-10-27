@@ -1,0 +1,13 @@
+# planted-bug check: opus_round1/C4/mutation_check.sh (each mutation rebuilds forge_nnue_v2_tests in a scratch copy; walk 4000 plies per net)
+unmutated: 78/78 checks passed
+MUTATION flip_from_file_d -> caught: 8 failing checks (70/78 checks passed); first: FAIL king_key: bucket = map[relative king square] and flip = 7 exactly on files e-h, both perspectives, 64 squares
+MUTATION king_no_rank_flip -> caught: 2 failing checks (76/78 checks passed); first: FAIL king_key: bucket = map[relative king square] and flip = 7 exactly on files e-h, both perspectives, 64 squares
+MUTATION feature_flip_6 -> caught: 9 failing checks (69/78 checks passed); first: FAIL feature: bucket 3, flipped: white knight g1 -> b1 = 2369
+MUTATION cache_pieces_stale -> caught: 8 failing checks (70/78 checks passed); first: FAIL replica r1: depth-8 searches of 4 positions have the compiled-in net's node counts and best moves
+MUTATION undo_swapped -> caught: 7 failing checks (71/78 checks passed); first: FAIL replica r4: depth-8 searches of 4 positions have the compiled-in net's node counts and best moves
+MUTATION no_key_change_refresh -> caught: 3 failing checks (75/78 checks passed); first: FAIL incremental == full refresh, bit-exact, 8 mirrored buckets (standard layout): 4000 plies
+MUTATION ancestor_king_ignored -> caught: 3 failing checks (75/78 checks passed); first: FAIL incremental == full refresh, bit-exact, 8 mirrored buckets (standard layout): 4000 plies
+MUTATION refresh_wrong_ply -> caught: 7 failing checks (71/78 checks passed); first: FAIL replica r4: depth-8 searches of 4 positions have the compiled-in net's node counts and best moves
+MUTATION loader_no_checksum -> caught: 20 failing checks (58/78 checks passed); first: FAIL rejects a flipped weight bit (checksum) (), keeps the loaded net
+MUTATION loader_map_unchecked -> caught: 7 failing checks (71/78 checks passed); first: FAIL rejects king map entry 4 >= 4 buckets (), keeps the loaded net
+mutation_check status=0

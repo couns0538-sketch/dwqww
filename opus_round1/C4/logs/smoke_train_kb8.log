@@ -1,0 +1,29 @@
+# CPU smoke training, 8 mirrored king buckets + factoriser, on 5_nnue/sample_data/data32_sample/data32_sample_50k (train t00000-t03000 = 200k, holdout h000 = 50k), torch 2.4.1+cpu, 1 thread (run1t.py), nice 19
+$ python run1t.py tools/nnue/train_resid_v3b.py --train <sample>/t0*.pos --holdout <sample>/h000.pos --hce-dir <sample> --device cpu --residual --init-check --shape 256 --epochs 3 --lr 2e-3 --blend-end 0.6 --seed 20261026 --batch-size 1024 --warmup-steps 30 --steps-per-epoch 200 --val-positions 16384 --king-buckets 8 --log-every 30 --run-dir smoke_kb8
+holdout: 50,000 positions from 1 files (0s)
+king buckets: 8 mirror=True factor=1 map(rank 8 first, files a-h): 7 7 7 7 7 7 7 7 | 7 7 7 7 7 7 7 7 | 7 7 7 7 7 7 7 7 | 7 7 7 7 7 7 7 7 | 7 7 7 7 7 7 7 7 | 6 6 6 6 6 6 6 6 | 4 4 5 5 5 5 4 4 | 0 1 2 3 3 2 1 0
+BASELINE HCE-alone holdout subset n=16,384: mse_teacher(blend1.0)=0.021899 mse_blend0.6=0.045332
+INIT residual net: mse_teacher=0.021899 mse_b0.6=0.045332 (baseline 0.021899/0.045332)
+INIT CHECK OK (residual init == HCE alone)
+train: 200,000 positions from 4 files (0s load)
+optimizer: AdamDMLDevScalars (--adam-impl dml), loss sync every 128 steps
+MEM after-load trainer_private=0.27GB sys_avail=12.65GB
+steps/epoch=195 total=585 batch=1024 lr=0.002 cosine blend 1.0->0.6
+EPOCH 1/3 done in 25s train_mse=0.020955 | HOLDOUT n=16,384 mse_teacher=0.021916 (HCE 0.021899, -0.08%) mse_b0.6=0.045327 (HCE 0.045332, +0.01%) mse_b0.8=0.023801
+Saved epoch001-step000000195 (.pt .fnn2 .json)
+MEM epoch001 trainer_private=0.33GB sys_avail=12.62GB
+ep2 step 238/585 blend=0.838 lr=1.39e-03 train_mse=0.020909 8,101 pos/s
+MEM ep2 step 238 trainer_private=0.35GB sys_avail=13.04GB
+EPOCH 2/3 done in 25s train_mse=0.023187 | HOLDOUT n=16,384 mse_teacher=0.022806 (HCE 0.021899, -4.14%) mse_b0.6=0.046095 (HCE 0.045332, -1.68%) mse_b0.8=0.024630
+Saved epoch002-step000000390 (.pt .fnn2 .json)
+MEM epoch002 trainer_private=0.35GB sys_avail=12.60GB
+ep3 step 476/585 blend=0.675 lr=2.03e-04 train_mse=0.022373 8,099 pos/s
+MEM ep3 step 476 trainer_private=0.36GB sys_avail=13.00GB
+EPOCH 3/3 done in 24s train_mse=0.027418 | HOLDOUT n=16,384 mse_teacher=0.025444 (HCE 0.021899, -16.19%) mse_b0.6=0.048397 (HCE 0.045332, -6.76%) mse_b0.8=0.027100
+Saved epoch003-step000000585 (.pt .fnn2 .json)
+MEM epoch003 trainer_private=0.36GB sys_avail=12.78GB
+Finished: 599,040 positions in 75s
+-- outputs (sha256)
+b573bcdfe7e5b14f1f45ab0cad5602bfa84b8150e8c3de43610adadd7520a8e2 *epoch003-step000000585.fnn2
+a43a11124d062a51157e360c3760475c1a62387dadcd22bdba3b31581873186a *epoch003-step000000585.json
+553e985251dcefccd4a7683a2c79370ba3ec8bbab9d82b47679a66c5a4f66f49 *epoch003-step000000585.pt

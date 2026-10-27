@@ -1,0 +1,63 @@
+# forge_nnue_v2_tests (CMake Release, MSYS2 g++ 15.2), commit d879caa75ee2eb1de0fa9d1c766d8a7042e8cdd0; default walk length 34000 plies per net (3 nets)
+PASS king_key: bucket = map[relative king square] and flip = 7 exactly on files e-h, both perspectives, 64 squares
+PASS king_key: no flip without the mirror flag
+PASS feature: white pawn a2, white perspective, bucket 0 = 8
+PASS feature: black king e8, white perspective = 764
+PASS feature: black pawn a7 seen by black = own pawn on a2 = 8
+PASS feature: white king e1 seen by black = 764
+PASS feature: bucket 3, flipped: white knight g1 -> b1 = 2369
+PASS feature: bucket 5, flipped, black perspective: black queen d8 -> e1
+PASS feature: bucket 0 without flip equals the compiled-in feature_index for all 1536 inputs
+PASS layout 4: g1,b1 -> 0; e1,d1 -> 1; d4 -> 2; e5 -> 3; h8 -> 3
+PASS layout 8: a1,h1 -> 0; g1 -> 1; f1 -> 2; e1 -> 3; b2 -> 4; e2 -> 5; e3 -> 6; h8 -> 7
+PASS standard layouts are file-symmetric (map[s] == map[s ^ 7])
+PASS mirror symmetry: 400 positions and their file mirrors give bit-identical accumulators and evals (mirrored net)
+PASS control: without mirroring the file mirror changes the evaluation (388/400)
+PASS colour symmetry: 400 colour-flipped positions give the swapped accumulators and the same eval
+PASS valid 4-bucket mirrored file loads
+PASS describe(): buckets, mirror, residual, output buckets, FNV-1a checksum
+PASS rejects a flipped weight bit (checksum) (checksum mismatch (file damaged)), keeps the loaded net
+PASS rejects bad magic (bad magic (not a FORGENN2 file)), keeps the loaded net
+PASS rejects version 3 (unsupported version 3), keeps the loaded net
+PASS rejects header size 128 (unexpected header size), keeps the loaded net
+PASS rejects feature set 1 (unsupported feature set 1), keeps the loaded net
+PASS rejects inputs 640 (inputs per bucket must be 768), keeps the loaded net
+PASS rejects hidden 128 (hidden size 128 != engine hidden size 256 (FORGE_NNUE_HIDDEN)), keeps the loaded net
+PASS rejects 0 king buckets (king buckets out of range 1-32), keeps the loaded net
+PASS rejects 33 king buckets (king buckets out of range 1-32), keeps the loaded net
+PASS rejects 2 output buckets (output buckets 2 not supported (max 1)), keeps the loaded net
+PASS rejects unknown flag bit (unknown flag bits), keeps the loaded net
+PASS rejects weight scale 4095 (quantisation scales / sigmoid K differ from the engine's (4096, 4096, 2.25)), keeps the loaded net
+PASS rejects sigmoid K 2.5 (quantisation scales / sigmoid K differ from the engine's (4096, 4096, 2.25)), keeps the loaded net
+PASS rejects king map entry 4 >= 4 buckets (king bucket map entry out of range), keeps the loaded net
+PASS rejects output map entry 1 (output bucket map entry out of range), keeps the loaded net
+PASS rejects non-zero reserved byte (reserved header bytes are not zero), keeps the loaded net
+PASS rejects truncated file (file size 1574568 != expected 1574570), keeps the loaded net
+PASS rejects two extra bytes (file size 1574572 != expected 1574570), keeps the loaded net
+PASS rejects 8-byte file (file too short for a v2 header), keeps the loaded net
+PASS missing file rejected (cannot open nnue_v2_test_does_not_exist.fnn2)
+PASS NNUEKingBuckets 0: compiled-in net (off (NNUEKingBuckets 0): compiled-in network)
+PASS NNUEKingBuckets 8 vs a 4-bucket file: not selected (NNUEKingBuckets 8 does not match the loaded net (4 king buckets); using the compiled-in network)
+PASS NNUEKingBuckets 4: selected (active: nnue_v2_test_select.fnn2 (king buckets 4, mirrored, output buckets 1, residual))
+PASS UseNNUE false wins (UseNNUE is false: hand-crafted evaluation only)
+PASS UseNNUE true again: selected
+PASS unload: compiled-in net (NNUEKingBuckets 4 needs a v2 net (NNUEFile); using the compiled-in network)
+PASS replica r1: 300 positions, accumulators and evals bit-identical to the compiled-in net
+PASS replica r1: depth-8 searches of 4 positions have the compiled-in net's node counts and best moves
+PASS replica r4: 300 positions, accumulators and evals bit-identical to the compiled-in net
+PASS replica r4: depth-8 searches of 4 positions have the compiled-in net's node counts and best moves
+PASS replica rm2: 300 positions, accumulators and evals bit-identical to the compiled-in net
+PASS replica rm2: depth-8 searches of 4 positions have the compiled-in net's node counts and best moves
+PASS replica rm8: 300 positions, accumulators and evals bit-identical to the compiled-in net
+PASS replica rm8: depth-8 searches of 4 positions have the compiled-in net's node counts and best moves
+PASS replica rm16: 300 positions, accumulators and evals bit-identical to the compiled-in net
+PASS replica rm16: depth-8 searches of 4 positions have the compiled-in net's node counts and best moves
+WALK 8 mirrored buckets (standard layout): plies 34000 (null 1321) evaluations 24332 computed accumulators verified 21510 king-key changes 6917 longest replay 8 restarts 165 mismatches 0
+PASS incremental == full refresh, bit-exact, 8 mirrored buckets (standard layout): 34000 plies
+WALK 32 mirrored buckets (one per half-board square): plies 34000 (null 1306) evaluations 24585 computed accumulators verified 21536 king-key changes 10914 longest replay 10 restarts 156 mismatches 0
+PASS incremental == full refresh, bit-exact, 32 mirrored buckets (one per half-board square): 34000 plies
+WALK 4 unmirrored buckets: plies 34000 (null 1325) evaluations 24576 computed accumulators verified 21579 king-key changes 3604 longest replay 8 restarts 155 mismatches 0
+PASS incremental == full refresh, bit-exact, 4 unmirrored buckets: 34000 plies
+WALK total plies 102000
+78/78 checks passed
+exit 0
