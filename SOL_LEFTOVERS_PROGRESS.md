@@ -3,4 +3,7 @@
 # Engine ports are based on d4f4312 (verbatim AL1 lock tree + baseline evidence + CI recipe; this repo's main is not a source tree) with the CI-only commit 0d99f02 cherry-picked.
 S11 | opus-sol-S11 | IN PROGRESS (sub-agent, 2026-10-27) | then S13 by the same agent
 S13 | opus-sol-S13 | QUEUED (after S11, same agent) |
-S18 | opus-sol-S18 | QUEUED (training smoke; supervisor-safe names required) |
+S18 | opus-sol-S18 | QUEUED for the next heavy agent slot (training smoke; opus_nnue_smoke*.py, F:\opus_scratch) |
+S12 | opus-sol-S12 | IN PROGRESS (light sub-agent; O2 likely covers it) |
+S14 | opus-sol-S14 | QUEUED (same light agent, after S12) |
+S34 | opus-sol-S34 | QUEUED (same light agent, after S14) |
