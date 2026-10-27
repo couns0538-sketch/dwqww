@@ -1,0 +1,26 @@
+$ python -I -B a2_nps_estimate.py logs/kbstats_raw.log
+Calibration (xp per 1000 nodes from kbstats_raw.log; losses from C4 REPORT.md):
+
+| depth | replica = layout | xp per 1000 nodes | measured loss | minus r1 | beta (% per refresh/1000 nodes) | implied time per refresh at 1/NPS = 513 ns per node |
+|---|---|---|---|---|---|---|
+| 16 | rm8 = M4=U8 | 67.11 | -5.33% | -4.02% | 0.0599 | 307 ns |
+| 16 | rm16 = M8=U16 | 100.79 | -8.94% | -7.63% | 0.0757 | 388 ns |
+| 20 | rm8 = M4=U8 | 64.77 | -4.13% | -2.53% | 0.0391 | 200 ns |
+| 20 | rm16 = M8=U16 | 99.95 | -6.65% | -5.05% | 0.0505 | 259 ns |
+
+beta range over the 4 points: 0.0391 .. 0.0757 % per (refresh per 1000 nodes)
+
+ESTIMATE of the NPS change vs the AL1 lock (same tree, C4-style engine, Threads 1), per layout:
+
+| layout | weight blocks (M / U) | d16 xp/1000 nodes | d16 ESTIMATE (range) | d20 xp/1000 nodes | d20 ESTIMATE (range) |
+|---|---|---|---|---|---|
+| M1 | 1 / 2 | 23.49 | -2.9% (-2.2 .. -3.1) | 22.86 | -2.6% (-2.5 .. -3.3) |
+| M2=U4 | 2 / 4 | 36.28 | -3.8% (-2.7 .. -4.1) | 35.80 | -3.2% (-3.0 .. -4.3) |
+| M4=U8 | 4 / 8 | 67.11 | -5.9% (-3.9 .. -6.4) | 64.77 | -4.5% (-4.1 .. -6.5) |
+| M8=U16 | 8 / 16 | 100.79 | -8.1% (-5.2 .. -8.9) | 99.95 | -6.1% (-5.5 .. -9.2) |
+| M16=U32 | 16 / 32 | 130.35 | -10.1% (-6.4 .. -11.2) | 125.70 | -7.2% (-6.5 .. -11.1) |
+| M32=U64 | 32 / 64 | 140.28 | -10.8% (-6.8 .. -11.9) | 135.11 | -7.7% (-6.9 .. -11.8) |
+| R4 | 4 | 58.04 | -5.2% (-3.6 .. -5.7) | 56.55 | -4.1% (-3.8 .. -5.9) |
+| R8 | 8 | 89.83 | -7.4% (-4.8 .. -8.1) | 84.52 | -5.4% (-4.9 .. -8.0) |
+
+(M1 = mirroring alone, one weight block: refreshes only when the king crosses files d/e.)

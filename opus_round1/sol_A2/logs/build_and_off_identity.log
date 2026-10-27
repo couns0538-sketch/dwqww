@@ -1,0 +1,23 @@
+== builds (box recipe /d/grok-pc-data/dwqww/.claude/worktrees/b/tools/build_pc.sh: g++ 15.2 ucrt64 -O3 -DNDEBUG -DFORGE_NNUE_HIDDEN=256 -march=znver5 -static, FMA off)
+built /f/opus_scratch/build/A2/run_final/forge_lock_ref.exe sha256 4352f4b1a5aed724b67f8667f780e832e38f3dd21e7ba9e6e21e583391a817cc
+FMA (vfmadd/vfmsub/vfnmadd) count: 0
+built /f/opus_scratch/build/A2/run_final/forge_a2_off.exe sha256 a44a8f449d02faef049684ceb43c9eacd7ef83e3daf0a64fc8ad15570515deb4
+FMA (vfmadd/vfmsub/vfnmadd) count: 0
+built /f/opus_scratch/build/A2/run_final/forge_a2_on.exe sha256 c1587e50bc976791684429440423d6b7b11e4c8eb7eaf4ddadb2ffc553b41563
+FMA (vfmadd/vfmsub/vfnmadd) count: 0
+== OFF = no code
+cmp -l forge_a2_off.exe forge_lock_ref.exe (pristine lock source, same recipe): 2 differing bytes
+    137 333 305
+    217 167 141
+PC lock exe sha256 5d4df7f1be51b083e0719266e55367577ed580a509a12196d62c0a368826a5b1
+cmp -l forge_a2_off.exe forge_h256_s198_lock.exe (the PC lock exe): 6 differing bytes
+    137 333 257
+    138  45 360
+    139 341 337
+    217 167 111
+    218 160  73
+    219  72  73
+g++ -E -P (OFF flags) src/search.cpp patched vs pristine: IDENTICAL sha256 6008e1e683c9a7d3
+g++ -E -P (OFF flags) src/uci.cpp patched vs pristine: IDENTICAL sha256 c081394058c0d1a1
+g++ -E -P (OFF flags) src/eval.cpp patched vs pristine: IDENTICAL sha256 a8d877805f12d8e4
+g++ -E -P (OFF flags) src/nnue.cpp patched vs pristine: IDENTICAL sha256 a74118353e479b0f

@@ -1,0 +1,34 @@
+$ python -I -B a2_footprint.py 256
+hidden H = 256; one weight column = 1024 B float32 (16 cache lines); accumulator per ply = 2 x 256 x 4 = 2048 B (unchanged by king buckets); L2 1024 KiB per core, L3 98304 KiB
+
+| layout | weight blocks | W1 float32 in memory | W1 int16 in the file | x L2 per core | x L3 | refresh keys | refresh cache per worker (2 x keys x (H floats + 12 bitboards)) | refresh cache, 16 workers |
+|---|---|---|---|---|---|---|---|---|
+| lock (no buckets) | 1 | 768.0 KiB | 384.0 KiB | 0.75 | 0.008 | 1 | - | - |
+| M4 | 4 | 3.00 MiB | 1.50 MiB | 3.00 | 0.031 | 8 | 17.5 KiB | 280.0 KiB |
+| U8 (= C4 rm8) | 8 | 6.00 MiB | 3.00 MiB | 6.00 | 0.062 | 8 | 17.5 KiB | 280.0 KiB |
+| M8 | 8 | 6.00 MiB | 3.00 MiB | 6.00 | 0.062 | 16 | 35.0 KiB | 560.0 KiB |
+| U16 (= C4 rm16) | 16 | 12.00 MiB | 6.00 MiB | 12.00 | 0.125 | 16 | 35.0 KiB | 560.0 KiB |
+| M16 | 16 | 12.00 MiB | 6.00 MiB | 12.00 | 0.125 | 32 | 70.0 KiB | 1.09 MiB |
+| U32 | 32 | 24.00 MiB | 12.00 MiB | 24.00 | 0.250 | 32 | 70.0 KiB | 1.09 MiB |
+| M32 | 32 | 24.00 MiB | 12.00 MiB | 24.00 | 0.250 | 64 | 140.0 KiB | 2.19 MiB |
+| U64 | 64 | 48.00 MiB | 24.00 MiB | 48.00 | 0.500 | 64 | 140.0 KiB | 2.19 MiB |
+| R4 | 4 | 3.00 MiB | 1.50 MiB | 3.00 | 0.031 | 4 | 8.8 KiB | 140.0 KiB |
+| R8 | 8 | 6.00 MiB | 3.00 MiB | 6.00 | 0.062 | 8 | 17.5 KiB | 280.0 KiB |
+
+Per refresh from scratch: about 32 columns x 1024 B = 32 KiB of weights read per perspective (plus the bias); per incremental update: 2-4 columns = 2-4 KiB.
+
+Trainer (v3b-style dense one-hot input, as C4's king_dense; float32; batch 16384 = the production bs):
+
+| layout | weight blocks | one-hot input per perspective per batch | both perspectives | FT weights + factor block, with Adam m and v (x3) |
+|---|---|---|---|---|
+| lock (no buckets) | 1 | 48.00 MiB | 96.00 MiB | 2.25 MiB |
+| M4 | 4 | 192.00 MiB | 384.00 MiB | 11.25 MiB |
+| U8 (= C4 rm8) | 8 | 384.00 MiB | 768.00 MiB | 20.25 MiB |
+| M8 | 8 | 384.00 MiB | 768.00 MiB | 20.25 MiB |
+| U16 (= C4 rm16) | 16 | 768.00 MiB | 1536.00 MiB | 38.25 MiB |
+| M16 | 16 | 768.00 MiB | 1536.00 MiB | 38.25 MiB |
+| U32 | 32 | 1536.00 MiB | 3072.00 MiB | 74.25 MiB |
+| M32 | 32 | 1536.00 MiB | 3072.00 MiB | 74.25 MiB |
+| U64 | 64 | 3072.00 MiB | 6144.00 MiB | 146.25 MiB |
+| R4 | 4 | 192.00 MiB | 384.00 MiB | 11.25 MiB |
+| R8 | 8 | 384.00 MiB | 768.00 MiB | 20.25 MiB |
