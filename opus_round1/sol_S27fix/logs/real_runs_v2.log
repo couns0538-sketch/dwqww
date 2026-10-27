@@ -1,0 +1,23 @@
+### R1 v2 reviewed buffix on AL1 export (expect PASS)
+S27 PASS findings=0 signature=4c998acc8663e2ff390760ccdb27deb8c20fd03969a2141053a150da00d01186
+exit=0
+### R2 v2 unreviewed buffix on AL1 export (expect FAIL: unguarded default code)
+S27 FAIL findings=3 signature=8a7efff47d0a74cd5b9f7916b46a068cf1d2c6d5aa948d84a4cb8cd845c1831f
+exit=1
+### R3 v2 relative --base (cwd F:/opus_scratch/sol_S27fix, ./al1_export/../al1_export) (expect PASS)
+S27 PASS findings=0 signature=4c998acc8663e2ff390760ccdb27deb8c20fd03969a2141053a150da00d01186
+exit=0
+### R4 v1 same relative --base (expect exit 2: not canonical)
+S27 ERROR: Base must be a real canonical directory
+exit=2
+### R5 v2 two bases, first one over the 32 MiB limit (expect FAIL with base_limit on A_big and B_AL1 still CHECKED)
+S27 FAIL findings=1 signature=3de1bd136a5b47187212c9d697cb4195b1faec9dc3b0789dc1f5f616bcac5fa1
+exit=1
+### R6 v1 same two bases (v1 stops at A_big)
+S27 FAIL findings=1 signature=29618f448f4b25f1ee5c4d397733faca09dd880a4b1efcd0a751a7b91afdef20
+exit=1
+r1 PASS [('AL1', 'CHECKED', 'reviewed_bugfix:buffix_h256e12_node_identical')] []
+r2 FAIL [('AL1', 'CHECKED', 'ordinary_candidate')] ['unguarded_default_code:AL1']
+r3 PASS [('AL1', 'CHECKED', 'reviewed_bugfix:buffix_h256e12_node_identical')] []
+r5 FAIL [('A_big', 'ERROR', None), ('B_AL1', 'CHECKED', 'reviewed_bugfix:buffix_h256e12_node_identical')] ['base_limit:A_big']
+r6 FAIL [] ['base_limit:None']

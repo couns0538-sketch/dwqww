@@ -1,0 +1,29 @@
+CR PASS (same-diff) — fc_sol_buffix_h256e12 = h256_e12 lock + buffer_only.patch code hunks   (Code Review, 2026-10-25 06:57 Vienna, CET UTC+1)
+VERDICT: PASS, same-diff of CR_PASS_sol_buffix_b425207a.txt. Route: bug fix (bench-identical). UNPROVEN; no Elo or speed claim.
+Reason: code hunks byte-identical to the reviewed buffer_only.patch minus only its IDEA_SOURCE.md hunk; my rebuild reproduces exe sha256 55fa7e81; bench == lock at all 5 depths; perft refs OK; FMA 0; uci diff 0; ctest = lock's 4 known FAILs + forge_bad_capture_tests passes.
+Merge per crew vote: no gate; QA's PC d13/d16 ABBA nps vs lock decides (no loss -> new base h256_e12+buffix; loss -> wait for next build).
+
+Base: /workspace/forge-coder/fc_nnue_h256_e12_ep12_ep10base (net 6d22f612, exe e3df99cd), read-only. Candidate: /workspace/forge-strength/packs/fc_sol_buffix_h256e12.
+Patch provenance:
+  source /workspace/sol_returns/20261024/gh/buffer_only.patch sha256 32967232826f1fb446ae7651068446926ce37a727ca71b480d5f465efc4bd6ab (4 sections: CMakeLists.txt, src/search.cpp, tests/bad_capture_tests.cpp, IDEA_SOURCE.md).
+  source minus the IDEA_SOURCE.md section == /workspace/forge-coder/buffix/buffer_only_code.patch (sha256 1ff09c4e…, cmp identical).
+  artifacts/fc_sol_buffix_h256e12_vs_lock.patch (sha256 9ce56b3d…, what the PC applies) on a fresh lock copy gives the same tree as the 1ff09c4e patch (diff -r empty).
+Scope (from diff -rq lock vs candidate, my own run, build dirs excluded): code: CMakeLists.txt, src/search.cpp, tests/bad_capture_tests.cpp (new). Docs only: README.md, IDEA_SOURCE.md (both rewritten by hand), HANDOFF.md/.json, WINDOWS_BUILD.md, .pack_candidate (packer stamp). Nothing else in src/include/tests/bench/tools differs.
+  src/search.cpp md5 9553f697fa7bed500f945bc247d70dbf (== CR PASS b425207a); tests/bad_capture_tests.cpp md5 7d502d1041fa4c70f6a49638b77a451f (== CR PASS); CMakeLists.txt md5 64a02105… (== lock + patch hunk).
+Excluded content: no Sol zip, LICENSE, AGENTS/.agents, SOURCE_MANIFEST, Sol README, FORGE_AVX512/FORGE_NNUE_ALIGN64 code in tree or zip (grep + find). INFO: tools/openings/LICENSE (MIT, "Copyright (c) 2026 OpenAI") and uci.cpp "id author OpenAI" are pre-existing lock files, byte-identical to the lock, not added by this patch.
+Exe: CR scratch rebuild (g++-14 Release, -march=x86-64-v3 -mtune=znver5 -fno-fast-math -ffp-contract=off -DFORGE_NNUE_HIDDEN=256, core 3, nice 19, flock, -j2) sha256 55fa7e81768452bf62e5c9fa748d88353e37fbec50492077e70d30f14fc7d406 = Coder's. ff63aae9 in my earlier note is the md5 of the same binary (md5 ff63aae9d2254b7bac827592bd6b228e) — same file, no flag or path difference.
+Numbers (CR rebuild, core 3):
+  perft5 startpos 4865609, kiwipete 193690690 (fixed published refs).
+  bench T1 H16 OwnBook off d11/13/16/20/22: 308972/745494/2460422/11901452/31111774 == lock (all 5).
+  vfmadd 0 in forge and nnue.cpp.o. uci option list == lock (10 lines, diff 0).
+  ctest: 93%, 1 of 15 failed = forge_tests with exactly WAC 001 x2 + rook underpromotion x2 (lock's known 4). forge_bad_capture_tests: accepted=5 failures=0.
+Zip: fc_sol_buffix_h256e12_handoff.zip sha256 e4b508e0616b73580c9b875abb374cd06b8044ecffc544e6ecd2902aec1efdde (= .sha256). Contents: src/include/tests/bench/tools/CMakeLists byte-identical to my fresh lock+patch tree; MANIFEST.sha256 verifies (125 files); top level only CMakeLists, src, include, tests, bench, tools, artifacts, README.md, IDEA_SOURCE.md, WINDOWS_BUILD.md, HANDOFF.md/.json, MANIFEST.sha256.
+Findings:
+  LOW (docs, not blocking; fix at merge): the candidate IDEA_SOURCE.md and README.md REPLACE the lock's files instead of appending. The lock's IDEA_SOURCE.md carries the net provenance (6d22f612) and the open train_nnue.py provenance item plus QA's lock note. When this becomes the new base, keep the lock's IDEA_SOURCE.md and README.md and append Coder's buffix section.
+  LOW (carried over from CR_PASS b425207a): bad_capture_tests also passes on the unfixed lock (QA fixtures max 50 SEE-losing < 64); only the static_assert guards the fix.
+  INFO (PC identity): bench and uci equal the lock, so they cannot tell the candidate exe from the lock exe. QA's PC ABBA must record a candidate exe sha256 that differs from the lock PC exe, and the build must include the forge_bad_capture_tests target / static_assert (compile of src/search.cpp).
+  ADVISORY (not a CR decision): Coder box ABBA x3 (core 5) nps d13 -2.24%, d16 -1.89% vs lock (recomputed from /workspace/forge-coder/buffix/nps_abba.txt), cand lower in all 3 d13 pairs, ranges overlap. Box is shared; QA's PC d13/d16 ABBA decides. CR ran no ABBA.
+  INFO: CMake test entry not stack-tested against other pending patches (Coder's note); other patches touching the add_test block may need a trivial rebase.
+Pre-gate / merge identifier: bench d11 == 308972 (== lock), vfmadd 0, uci diff 0, exe sha256 != lock.
+Hashes: buffer_only.patch sha256 32967232…; filtered patch 1ff09c4e…; vs_lock patch 9ce56b3d…; forge 55fa7e81… (md5 ff63aae9…); zip e4b508e0…; net 6d22f612 unchanged.
+Scratch /workspace/cr_buffix_samediff removed after review.

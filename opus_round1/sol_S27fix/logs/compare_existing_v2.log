@@ -1,0 +1,12 @@
+### C1 lock AL1 exe (5d4df7f1) vs AL1+buffix box build (924cbaf7), default --ref AL1, 5 depths
+S27 compare PASS ref=AL1 errors=
+rc=0
+### C2 same engines, --ref Lprime (Sol's dev pins; expect FAIL at the first d11 gate)
+S27 compare FAIL ref=Lprime errors=base_protocol_or_symbols,candidate_protocol_or_symbols
+exit=1
+### C3 same engines, --expected-nodes 11=312866,13=862329 --depths 11,13
+S27 compare PASS ref=explicit errors=
+exit=0
+base 5d4df7f1 {'11': 312866, '13': 862329, '16': 3024920, '20': 12389307, '22': 34048354} PASS PASS 21409
+candidate 924cbaf7 {'11': 312866, '13': 862329, '16': 3024920, '20': 12389307, '22': 34048354} PASS PASS 21409
+errors []
