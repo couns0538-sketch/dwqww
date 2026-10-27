@@ -7,5 +7,6 @@ namespace forge::options {
 int nnue_king_buckets = 0;
 bool nnue_v2 = false;
 int nnue_threats = 0;   // O6 (after nnue_v2 so that the variables before it keep their addresses)
+int nnue_pawn_pairs = 0;   // O7
 
 } // namespace forge::options

@@ -35,6 +35,15 @@ extern int nnue_king_buckets;
 // without a usable net); UseNNUE false still wins.
 extern int nnue_threats;
 
+// UCI NNUEPawnPairs (spin 0-1, default 0; O7; "true" / "false" accepted as
+// well): 1 = evaluate with a v2 net that has pawn-pair inputs (header
+// feature_set bit 1; forge/nnue_v2.hpp PawnPairFeatures). Same rules as
+// NNUEThreats: with NNUEKingBuckets 0 a one-bucket net, the header bit and the
+// option must agree both ways (fail-loud otherwise), it is a v2 request of its
+// own, UseNNUE false wins. NNUEThreats and NNUEPawnPairs are independent: a net
+// with both blocks needs both options.
+extern int nnue_pawn_pairs;
+
 // Derived switch read by Worker::static_evaluate: true while a v2 network is
 // active. Written only by apply_nnue_v2().
 extern bool nnue_v2;

@@ -27,9 +27,9 @@ FORGE_SEARCH_V2 int Worker::static_evaluate_v2(const Board& board, SearchStack* 
     const nnue::v2::Net* active = nnue::v2::active();
     if (active == nullptr || !nnue::enabled) return evaluator_.evaluate(board);
     const nnue::v2::Net& net = *active;
-    // O6: a net with threat inputs has its own update path (evaluation_threats.inc); apply_nnue_v2 activates
-    // one only with NNUEThreats 1.
-    if (net.threats) [[unlikely]] return static_evaluate_threats(board, ss);
+    // O6 / O7: a net with threat or pawn-pair inputs has its own update path (evaluation_extra.inc);
+    // apply_nnue_v2 activates one only with the matching NNUEThreats / NNUEPawnPairs.
+    if (net.threats || net.pawn_pairs) [[unlikely]] return static_evaluate_extra(board, ss);
     const bool residual = net.residual;
     if (!ss->accumulator.valid) {
         int back = 0;
@@ -95,18 +95,17 @@ namespace options {
 
 [[gnu::cold]] bool apply_nnue_v2(std::string* message) {
     // UseNNUE false disables every network (hand-crafted evaluation only).
-    // O6: NNUEThreats 1 with NNUEKingBuckets 0 asks for a net without king buckets (one bucket).
+    // O6 / O7: NNUEThreats 1 or NNUEPawnPairs 1 with NNUEKingBuckets 0 asks for a net without king buckets.
     const bool threats = nnue_threats != 0;
-    const int wanted = nnue_king_buckets > 0 ? nnue_king_buckets : (threats ? 1 : 0);
+    const bool pawns = nnue_pawn_pairs != 0;
+    const int wanted = nnue_king_buckets > 0 ? nnue_king_buckets : (threats || pawns ? 1 : 0);
     const nnue::v2::Net* net = nnue::v2::select(nnue::enabled ? wanted : 0, message);
-    if (net != nullptr && net->threats != threats) {
-        // O6: the header's threat bit must agree with NNUEThreats (nnue_v2_problem names the mismatch).
+    if (net != nullptr && (net->threats != threats || net->pawn_pairs != pawns)) {
+        // O6 / O7: the header's extra-input bits must agree with NNUEThreats / NNUEPawnPairs (nnue_v2_problem
+        // names the mismatch).
         (void)nnue::v2::select(0, nullptr);
         net = nullptr;
-        if (message != nullptr) {
-            *message = threats ? "NNUEThreats is 1 but the loaded net has no threat inputs (not selected)"
-                               : "the loaded net has threat inputs and NNUEThreats is 0 (not selected)";
-        }
+        if (message != nullptr) *message = "the loaded net's threat / pawn-pair inputs differ from NNUEThreats / NNUEPawnPairs (not selected)";
     }
     if (!nnue::enabled && message != nullptr) *message = "UseNNUE is false: hand-crafted evaluation only";
     nnue_v2 = net != nullptr;
@@ -115,29 +114,36 @@ namespace options {
 
 [[gnu::cold]] std::string nnue_v2_problem(const std::string& file, const std::string& load_error) {
     const bool threats = nnue_threats != 0;
+    const bool pawns = nnue_pawn_pairs != 0;
+    const bool extras = threats || pawns;
     if (!nnue::enabled) return {};   // UseNNUE false: every network off on purpose
-    if (file.empty() && nnue_king_buckets <= 0 && !threats) return {};   // nothing requested
+    if (file.empty() && nnue_king_buckets <= 0 && !extras) return {};   // nothing requested
     if (!file.empty() && !load_error.empty()) return "cannot load NNUEFile " + file + ": " + load_error;
     const nnue::v2::Net* net = nnue::v2::loaded();
     if (net == nullptr) {
         if (!file.empty()) return "NNUEFile " + file + " is not loaded";
-        if (nnue_king_buckets <= 0) {   // O6: NNUEThreats alone
-            return "NNUEThreats is 1 but no v2 net is loaded (NNUEFile is empty); NNUEThreats needs a net with threat inputs "
-                   "(trainer --threats)";
+        if (nnue_king_buckets <= 0) {   // O6 / O7: NNUEThreats or NNUEPawnPairs alone
+            return threats ? "NNUEThreats is 1 but no v2 net is loaded (NNUEFile is empty); NNUEThreats needs a net with threat "
+                             "inputs (trainer --threats)"
+                           : "NNUEPawnPairs is 1 but no v2 net is loaded (NNUEFile is empty); NNUEPawnPairs needs a net with "
+                             "pawn-pair inputs (trainer --pawn-pairs)";
         }
         return "NNUEKingBuckets " + std::to_string(nnue_king_buckets) + " is set but no v2 net is loaded (NNUEFile is empty)";
     }
     if (nnue_v2 && nnue::v2::active() == net) return {};
     const std::string buckets = std::to_string(net->king_buckets) + (net->mirror ? " mirrored" : "") + " king buckets";
-    // O6: the threat bit of the file and NNUEThreats must agree.
+    // O6 / O7: the extra-input bits of the file and NNUEThreats / NNUEPawnPairs must agree.
     const std::string threat_net = "NNUEFile " + net->path + " has threat inputs (trainer --threats); set NNUEThreats 1 to use it";
+    const std::string pawn_net = "NNUEFile " + net->path + " has pawn-pair inputs (trainer --pawn-pairs); set NNUEPawnPairs 1 to use it";
     if (nnue_king_buckets <= 0) {
-        if (threats && net->king_buckets != 1) {
-            return "NNUEThreats is 1 and NNUEKingBuckets is 0, which selects a net without king buckets, but NNUEFile " +
-                   net->path + " has " + buckets + "; set NNUEKingBuckets " + std::to_string(net->king_buckets) + " as well";
+        if (extras && net->king_buckets != 1) {
+            return std::string(threats ? "NNUEThreats" : "NNUEPawnPairs") + " is 1 and NNUEKingBuckets is 0, which selects a net "
+                   "without king buckets, but NNUEFile " + net->path + " has " + buckets + "; set NNUEKingBuckets " +
+                   std::to_string(net->king_buckets) + " as well";
         }
-        if (!threats) {
-            if (net->threats && net->king_buckets == 1) return threat_net;
+        if (!extras) {
+            if (net->king_buckets == 1 && net->threats) return threat_net;
+            if (net->king_buckets == 1 && net->pawn_pairs) return pawn_net;
             return "NNUEFile " + net->path + " is loaded (" + buckets + ") but NNUEKingBuckets is 0; set NNUEKingBuckets " +
                    std::to_string(net->king_buckets) + " to use it";
         }
@@ -149,7 +155,12 @@ namespace options {
         return "NNUEThreats is 1 but NNUEFile " + net->path + " has no threat inputs; NNUEThreats needs a net trained with "
                "--threats";
     }
+    if (pawns && !net->pawn_pairs) {
+        return "NNUEPawnPairs is 1 but NNUEFile " + net->path + " has no pawn-pair inputs; NNUEPawnPairs needs a net trained "
+               "with --pawn-pairs";
+    }
     if (!threats && net->threats) return threat_net;
+    if (!pawns && net->pawn_pairs) return pawn_net;
     return "NNUEFile " + net->path + " was not selected";   // not reached: every unselected case is named above
 }
 

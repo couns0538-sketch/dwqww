@@ -299,8 +299,9 @@ constexpr char Magic[8] = {'F', 'O', 'R', 'G', 'E', 'N', 'N', '2'};
 [[gnu::cold]] std::uint64_t file_bytes(int king_buckets, int output_buckets, std::uint32_t feature_set) {
     const std::uint64_t w1 = static_cast<std::uint64_t>(king_buckets) * InputCount * HiddenSize;
     const std::uint64_t wt = (feature_set & FeatureSetThreats) != 0U ? static_cast<std::uint64_t>(ThreatFeatures) * HiddenSize : 0U;
+    const std::uint64_t wp = (feature_set & FeatureSetPawnPairs) != 0U ? static_cast<std::uint64_t>(PawnPairFeatures) * HiddenSize : 0U;
     const std::uint64_t w2 = static_cast<std::uint64_t>(output_buckets) * 2U * HiddenSize;
-    return static_cast<std::uint64_t>(HeaderBytes) + 2U * (w1 + wt + HiddenSize + w2 + static_cast<std::uint64_t>(output_buckets)) + 8U;
+    return static_cast<std::uint64_t>(HeaderBytes) + 2U * (w1 + wt + wp + HiddenSize + w2 + static_cast<std::uint64_t>(output_buckets)) + 8U;
 }
 
 [[gnu::cold]] std::uint64_t last_load_bytes_read() { return last_bytes_read; }
@@ -318,7 +319,7 @@ constexpr char Magic[8] = {'F', 'O', 'R', 'G', 'E', 'N', 'N', '2'};
     const std::streamoff end = file.tellg();
     if (!file || end < 0) return fail(error, "cannot determine the size of " + path);
     const auto size = static_cast<std::uint64_t>(end);
-    const std::uint64_t largest = file_bytes(MaxKingBuckets, MaxOutputBuckets, FeatureSetThreats);
+    const std::uint64_t largest = file_bytes(MaxKingBuckets, MaxOutputBuckets, FeatureSetThreats | FeatureSetPawnPairs);
     if (size < static_cast<std::uint64_t>(HeaderBytes) + 8U) {
         return fail(error, "file too short for a v2 net (" + std::to_string(size) + " bytes)");
     }
@@ -336,7 +337,7 @@ constexpr char Magic[8] = {'F', 'O', 'R', 'G', 'E', 'N', 'N', '2'};
     if (read_u32(bytes, 8) != 2U) return fail(error, "unsupported version " + std::to_string(read_u32(bytes, 8)));
     if (read_u32(bytes, 12) != static_cast<std::uint32_t>(HeaderBytes)) return fail(error, "unexpected header size");
     const std::uint32_t feature_set = read_u32(bytes, 16);
-    if ((feature_set & ~FeatureSetThreats) != 0U) return fail(error, "unsupported feature set " + std::to_string(feature_set));
+    if ((feature_set & ~(FeatureSetThreats | FeatureSetPawnPairs)) != 0U) return fail(error, "unsupported feature set " + std::to_string(feature_set));
     if (read_u32(bytes, 20) != static_cast<std::uint32_t>(InputCount)) return fail(error, "inputs per bucket must be 768");
     if (read_u32(bytes, 24) != static_cast<std::uint32_t>(HiddenSize)) {
         return fail(error, "hidden size " + std::to_string(read_u32(bytes, 24)) + " != engine hidden size " +
@@ -364,15 +365,17 @@ constexpr char Magic[8] = {'F', 'O', 'R', 'G', 'E', 'N', 'N', '2'};
         if (bytes[i] != 0U) return fail(error, "reserved header bytes are not zero");
     }
     const bool threats = (feature_set & FeatureSetThreats) != 0U;
+    const bool pawn_pairs = (feature_set & FeatureSetPawnPairs) != 0U;   // O7
     const std::size_t w1_count = static_cast<std::size_t>(king_buckets) * InputCount * HiddenSize;
     const std::size_t wt_count = threats ? static_cast<std::size_t>(ThreatFeatures) * HiddenSize : 0U;
+    const std::size_t wp_count = pawn_pairs ? static_cast<std::size_t>(PawnPairFeatures) * HiddenSize : 0U;
     const std::size_t w2_count = static_cast<std::size_t>(output_buckets) * 2U * HiddenSize;
     const std::uint64_t expected = file_bytes(static_cast<int>(king_buckets), static_cast<int>(output_buckets), feature_set);
     if (size != expected) {
         return fail(error, "file size " + std::to_string(size) + " bytes does not match the " + std::to_string(expected) +
                                " bytes implied by its header (" + std::to_string(king_buckets) + " king buckets, " +
                                std::to_string(output_buckets) + " output buckets, hidden " + std::to_string(HiddenSize) +
-                               (threats ? ", threat inputs" : "") + "); the weights were not read");
+                               (threats ? ", threat inputs" : "") + (pawn_pairs ? ", pawn-pair inputs" : "") + "); the weights were not read");
     }
     // Only now are the weight blocks allocated and read.
     std::vector<unsigned char> all(static_cast<std::size_t>(expected));
@@ -393,11 +396,13 @@ constexpr char Magic[8] = {'F', 'O', 'R', 'G', 'E', 'N', 'N', '2'};
     net->mirror = (flags & FlagMirror) != 0U;
     net->residual = (flags & FlagResidual) != 0U;
     net->threats = threats;
+    net->pawn_pairs = pawn_pairs;
     net->checksum = checksum;
     std::copy(bytes + 52, bytes + 116, net->king_map.begin());
     std::copy(bytes + 116, bytes + 149, net->output_map.begin());
     net->w1.allocate(w1_count);
     if (threats) net->wt.allocate(wt_count);
+    if (pawn_pairs) net->wp.allocate(wp_count);
     net->b1.allocate(HiddenSize);
     net->w2.allocate(w2_count);
     net->b2.assign(output_buckets, 0.0F);
@@ -405,6 +410,7 @@ constexpr char Magic[8] = {'F', 'O', 'R', 'G', 'E', 'N', 'N', '2'};
     // Same de-quantisation as the compiled-in network (weights(): int / scale).
     for (std::size_t i = 0; i < w1_count; ++i, offset += 2) net->w1.data()[i] = static_cast<float>(read_i16(bytes, offset)) / WeightScale;
     for (std::size_t i = 0; i < wt_count; ++i, offset += 2) net->wt.data()[i] = static_cast<float>(read_i16(bytes, offset)) / WeightScale;
+    for (std::size_t i = 0; i < wp_count; ++i, offset += 2) net->wp.data()[i] = static_cast<float>(read_i16(bytes, offset)) / WeightScale;
     for (std::size_t i = 0; i < HiddenSize; ++i, offset += 2) net->b1.data()[i] = static_cast<float>(read_i16(bytes, offset)) / WeightScale;
     for (std::size_t i = 0; i < w2_count; ++i, offset += 2) net->w2.data()[i] = static_cast<float>(read_i16(bytes, offset)) / OutputScale;
     for (std::size_t i = 0; i < output_buckets; ++i, offset += 2) net->b2[i] = static_cast<float>(read_i16(bytes, offset)) / OutputScale;
@@ -425,7 +431,7 @@ constexpr char Magic[8] = {'F', 'O', 'R', 'G', 'E', 'N', 'N', '2'};
     std::ostringstream out;
     out << net.path << " king buckets " << net.king_buckets << " output buckets " << net.output_buckets << " hidden "
         << HiddenSize << (net.mirror ? " mirrored" : " unmirrored") << (net.residual ? " residual" : " stand-alone")
-        << (net.threats ? " threat inputs" : "") << " fnv1a " << std::hex << std::setw(16) << std::setfill('0') << net.checksum;
+        << (net.threats ? " threat inputs" : "") << (net.pawn_pairs ? " pawn-pair inputs" : "") << " fnv1a " << std::hex << std::setw(16) << std::setfill('0') << net.checksum;
     return out.str();
 }
 
@@ -455,6 +461,7 @@ constexpr char Magic[8] = {'F', 'O', 'R', 'G', 'E', 'N', 'N', '2'};
     d.mirror = net.mirror;
     d.residual = net.residual;
     d.threats = net.threats;
+    d.pawn_pairs = net.pawn_pairs;
     d.checksum = net.checksum;
     return d;
 }

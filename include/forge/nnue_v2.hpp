@@ -25,10 +25,11 @@
 //   40  f32 weight_scale 4096   44 f32 output_scale 4096  48 f32 sigmoid_k 2.25
 //   52  u8 king_bucket_map[64]  116 u8 output_bucket_map[33] (all 0)   149 u8 reserved[11] = 0
 //   160 i16 w1[king_buckets][768][hidden], [i16 wt[ThreatFeatures][hidden] when feature_set bit 0],
+//       [i16 wp[PawnPairFeatures][hidden] when feature_set bit 1],
 //       i16 b1[hidden], i16 w2[output_buckets][2*hidden], i16 b2[output_buckets],
 //       then u64 FNV-1a 64 of every preceding byte.
-// feature_set: 0 = piece-square inputs only (C4); bit 0 = threat inputs (O6, UCI NNUEThreats; definition
-// below). An engine that does not know a bit rejects the file.
+// feature_set: 0 = piece-square inputs only (C4); bit 0 = threat inputs (O6, UCI NNUEThreats); bit 1 = pawn-pair
+// inputs (O7, UCI NNUEPawnPairs); definitions below. An engine that does not know a bit rejects the file.
 //
 // Exactness: weights are de-quantised like the compiled-in net (int16 / 4096),
 // so every accumulator value is an integer multiple of 2^-12 below 2^12 in
@@ -81,6 +82,20 @@ constexpr int ThreatFeatures = 12 * 12 * 64;
 constexpr int MaxThreatPairs = 512;   // at most 16 attackers per occupied square (8 rays + 8 knight squares) x 32 pieces
 constexpr std::uint32_t FeatureSetThreats = 1U;
 
+// Pawn-pair inputs (O7; header feature_set bit 1). One feature per unordered pair of pawns (any colours) on the
+// same or adjacent files at most two ranks apart, described in the perspective's frame (relative square
+// r = (p == White ? s : s ^ 56) ^ k.flip, colours own / their): the anchor is the pawn on the lower relative rank
+// (on the same rank: the one on the lower file), offset o of the other pawn:
+//   o: 0 (same rank, file +1)  1 (rank +1, file -1)  2 (rank +1, same file)  3 (rank +1, file +1)
+//      4 (rank +2, file -1)    5 (rank +2, same file) 6 (rank +2, file +1)
+//   index = ((colour(anchor) * 2 + colour(other)) * 7 + o) * 64 + r(anchor)      colour: 0 own, 1 their
+// This covers phalanxes, chains (supported pawns), levers, rams, doubled pawns and pawns two squares apart.
+// One block wp[PawnPairFeatures][hidden] shared by all king buckets, after the threat block (if any).
+constexpr int PawnPairOffsets = 7;
+constexpr int PawnPairFeatures = 4 * PawnPairOffsets * 64;
+constexpr int MaxPawnPairs = 16 * PawnPairOffsets;   // a pawn anchors at most 7 pairs
+constexpr std::uint32_t FeatureSetPawnPairs = 2U;
+
 struct KingKey {
     int bucket = 0;
     int flip = 0;     // 0, or 7 when the perspective's king stands on files e-h of a mirrored net
@@ -127,6 +142,8 @@ struct RefreshCache {
     std::vector<Entry> entries;   // index ((perspective * king_buckets + bucket) * 2 + (flip != 0))
     // O6: pair-count differences of two threat lists (all zero between uses; threat_delta).
     std::array<std::int8_t, ThreatFeatures> threat_counts{};
+    // O7: the same for two pawn-pair lists of one perspective.
+    std::array<std::int8_t, PawnPairFeatures> pawn_counts{};
 };
 
 struct Net {
@@ -136,11 +153,13 @@ struct Net {
     bool mirror = false;
     bool residual = false;
     bool threats = false;   // O6: feature_set bit 0
+    bool pawn_pairs = false;   // O7: feature_set bit 1
     std::uint64_t checksum = 0;
     std::array<std::uint8_t, 64> king_map{};
     std::array<std::uint8_t, 33> output_map{};
     AlignedFloats w1;   // [king_buckets][InputCount][HiddenSize]
     AlignedFloats wt;   // [ThreatFeatures][HiddenSize] (threat nets only)
+    AlignedFloats wp;   // [PawnPairFeatures][HiddenSize] (pawn-pair nets only)
     AlignedFloats b1;   // [HiddenSize]
     AlignedFloats w2;   // [output_buckets][2 * HiddenSize]
     std::vector<float> b2;   // [output_buckets]
@@ -155,6 +174,7 @@ struct Description {
     bool mirror = false;
     bool residual = false;
     bool threats = false;
+    bool pawn_pairs = false;
     std::uint64_t checksum = 0;
 };
 
@@ -341,6 +361,90 @@ inline void add_threat_columns(const Net& net, Color perspective, KingKey key, c
     apply_lists(values, values, nullptr, 0, add.data(), list.count);
 }
 
+// ---- O7 pawn-pair inputs (definition at PawnPairFeatures) ----
+struct PawnPairList {
+    int count = 0;
+    std::array<std::uint16_t, MaxPawnPairs> features;   // feature indices of one perspective (with its flip)
+};
+
+[[nodiscard]] inline Bitboard mirror_files(Bitboard bb) {   // square s -> s ^ 7
+    constexpr Bitboard k1 = 0x5555555555555555ULL;
+    constexpr Bitboard k2 = 0x3333333333333333ULL;
+    constexpr Bitboard k4 = 0x0F0F0F0F0F0F0F0FULL;
+    bb = ((bb >> 1U) & k1) | ((bb & k1) << 1U);
+    bb = ((bb >> 2U) & k2) | ((bb & k2) << 2U);
+    return ((bb >> 4U) & k4) | ((bb & k4) << 4U);
+}
+
+// A bitboard in the perspective's frame: square s -> (p == White ? s : s ^ 56) ^ flip.
+[[nodiscard]] inline Bitboard relative_bb(Bitboard bb, Color perspective, int flip) {
+    if (perspective == Black) bb = __builtin_bswap64(bb);
+    return flip != 0 ? mirror_files(bb) : bb;
+}
+
+// Every pawn pair of a placement for one perspective (its king key's flip).
+inline void pawn_pair_features(const Pieces& pieces, Color perspective, int flip, PawnPairList& list) {
+    struct Offset { int shift; Bitboard anchors; };   // other pawn = anchor + shift; anchors whose other square is on the board
+    constexpr std::array<Offset, PawnPairOffsets> offsets{{{1, ~FileHBB}, {7, ~FileABB}, {8, ~0ULL}, {9, ~FileHBB},
+                                                           {15, ~FileABB}, {16, ~0ULL}, {17, ~FileHBB}}};
+    const std::array<Bitboard, 2> side{relative_bb(pieces[static_cast<std::size_t>(perspective == White ? WP : BP)], perspective, flip),
+                                       relative_bb(pieces[static_cast<std::size_t>(perspective == White ? BP : WP)], perspective, flip)};
+    int n = 0;
+    for (int o = 0; o < PawnPairOffsets; ++o) {
+        const Offset& offset = offsets[static_cast<std::size_t>(o)];
+        for (int c1 = 0; c1 < 2; ++c1) {
+            for (int c2 = 0; c2 < 2; ++c2) {
+                Bitboard anchors = side[static_cast<std::size_t>(c1)] & offset.anchors &
+                                   (side[static_cast<std::size_t>(c2)] >> static_cast<unsigned>(offset.shift));
+                while (anchors != 0) {
+                    list.features[static_cast<std::size_t>(n++)] = static_cast<std::uint16_t>(((c1 * 2 + c2) * PawnPairOffsets + o) * 64 + pop_lsb(anchors));
+                }
+            }
+        }
+    }
+    list.count = n;
+}
+
+[[nodiscard]] inline const float* pawn_pair_column(const Net& net, int feature) {
+    return net.wp.data() + static_cast<std::size_t>(feature) * HiddenSize;
+}
+
+// Difference after - before of two feature lists of one perspective (counts: all zero on entry and on return).
+struct PawnPairDelta {
+    int removed = 0;
+    int added = 0;
+    std::array<std::uint16_t, MaxPawnPairs> remove_features;
+    std::array<std::uint16_t, MaxPawnPairs> add_features;
+};
+inline void pawn_pair_delta(const PawnPairList& before, const PawnPairList& after, std::int8_t* counts, PawnPairDelta& delta) {
+    for (int i = 0; i < before.count; ++i) --counts[before.features[static_cast<std::size_t>(i)]];
+    for (int i = 0; i < after.count; ++i) ++counts[after.features[static_cast<std::size_t>(i)]];
+    delta.removed = 0;
+    delta.added = 0;
+    for (int i = 0; i < before.count; ++i) {
+        const std::uint16_t f = before.features[static_cast<std::size_t>(i)];
+        for (; counts[f] < 0; ++counts[f]) delta.remove_features[static_cast<std::size_t>(delta.removed++)] = f;
+    }
+    for (int i = 0; i < after.count; ++i) {
+        const std::uint16_t f = after.features[static_cast<std::size_t>(i)];
+        for (; counts[f] > 0; --counts[f]) delta.add_features[static_cast<std::size_t>(delta.added++)] = f;
+    }
+}
+
+inline void add_pawn_pair_columns(const Net& net, const PawnPairList& list, float* values) {
+    std::array<const float*, MaxPawnPairs> add;
+    for (int i = 0; i < list.count; ++i) add[static_cast<std::size_t>(i)] = pawn_pair_column(net, list.features[static_cast<std::size_t>(i)]);
+    apply_lists(values, values, nullptr, 0, add.data(), list.count);
+}
+
+[[nodiscard]] inline bool touches_pawns(const DirtyPieces& dirty) {
+    for (int i = 0; i < dirty.count; ++i) {
+        const Piece piece = dirty.changes[static_cast<std::size_t>(i)].piece;
+        if (piece == WP || piece == BP) return true;
+    }
+    return false;
+}
+
 [[nodiscard]] inline RefreshCache& cache(const Net& net, int worker_id) {
     const std::unique_ptr<RefreshCache>& slot = net.caches[static_cast<std::size_t>(std::clamp(worker_id, 0, MaxWorkers - 1))];
     if (slot == nullptr) [[unlikely]] return make_cache(net, worker_id);
@@ -374,6 +478,14 @@ inline void refresh(const Net& net, const Board& board, Color perspective, float
         threat_keys(pieces_of(board), list);
         for (int i = 0; i < list.count; ++i) {
             const float* col = threat_column(net, perspective, key, list.keys[static_cast<std::size_t>(i)]);
+            for (int h = 0; h < HiddenSize; ++h) values[h] += col[h];
+        }
+    }
+    if (net.pawn_pairs) {   // O7
+        PawnPairList list;
+        pawn_pair_features(pieces_of(board), perspective, key.flip, list);
+        for (int i = 0; i < list.count; ++i) {
+            const float* col = pawn_pair_column(net, list.features[static_cast<std::size_t>(i)]);
             for (int h = 0; h < HiddenSize; ++h) values[h] += col[h];
         }
     }
@@ -422,11 +534,20 @@ inline void refresh_cached(const Net& net, RefreshCache& cache, const Pieces& pi
 }
 
 // O6: refresh_cached plus, for a threat net, the threat columns of `threats` (the
-// threat list of the same placement). The cache entries hold piece-square inputs only.
+// threat list of the same placement); O7: plus, for a pawn-pair net, the pawn-pair
+// columns of this perspective (the list is also stored in `pawn_list` if given).
+// The cache entries hold piece-square inputs only.
 inline void refresh_full_cached(const Net& net, RefreshCache& cache, const Pieces& pieces, const ThreatList* threats,
-                                int king_square, Color perspective, float* values) {
+                                int king_square, Color perspective, float* values, PawnPairList* pawn_list = nullptr) {
     refresh_cached(net, cache, pieces, king_square, perspective, values);
-    if (threats != nullptr) add_threat_columns(net, perspective, king_key(net, perspective, king_square), *threats, values);
+    const KingKey key = king_key(net, perspective, king_square);
+    if (threats != nullptr) add_threat_columns(net, perspective, key, *threats, values);
+    if (net.pawn_pairs) {
+        PawnPairList local;
+        PawnPairList& list = pawn_list != nullptr ? *pawn_list : local;
+        pawn_pair_features(pieces, perspective, key.flip, list);
+        add_pawn_pair_columns(net, list, values);
+    }
 }
 
 // Incremental update of one perspective whose king key did not change.
