@@ -17,6 +17,12 @@ add_library(forge_core
 )
 target_include_directories(forge_core PUBLIC include)
 target_compile_features(forge_core PUBLIC cxx_std_20)
+# Another network include file instead of src/nnue_weights.inc (e.g. an H512 net); pass the
+# matching -DFORGE_NNUE_HIDDEN in CMAKE_CXX_FLAGS. Unset (default) = the lock's H256 net.
+set(FORGE_NNUE_WEIGHTS_FILE "" CACHE FILEPATH "Network include file (default: src/nnue_weights.inc)")
+if(FORGE_NNUE_WEIGHTS_FILE)
+    target_compile_definitions(forge_core PUBLIC FORGE_NNUE_WEIGHTS="${FORGE_NNUE_WEIGHTS_FILE}")
+endif()
 
 if(MSVC)
     target_compile_options(forge_core PRIVATE /W4 /permissive-)
@@ -82,6 +88,28 @@ if(NOT MSVC)
         target_compile_options(forge_nnue_int16_scalar_tests PRIVATE -fsanitize=address,undefined -fno-omit-frame-pointer)
         target_link_options(forge_nnue_int16_scalar_tests PRIVATE -fsanitize=address,undefined)
     endif()
+    if(FORGE_NNUE_WEIGHTS_FILE)
+        target_compile_definitions(forge_nnue_int16_scalar_tests PRIVATE FORGE_NNUE_WEIGHTS="${FORGE_NNUE_WEIGHTS_FILE}")
+    endif()
+
+    # H512 (S-A4): the same tests on a generated synthetic 512-unit network (not a playing net),
+    # with the NNUE sources compiled for FORGE_NNUE_HIDDEN=512; the default build keeps H256.
+    add_executable(forge_nnue_gen_net tests/nnue_gen_net.cpp)
+    set(FORGE_H512_TEST_NET ${CMAKE_CURRENT_BINARY_DIR}/nnue_test_h512.inc)
+    add_custom_command(OUTPUT ${FORGE_H512_TEST_NET}
+        COMMAND forge_nnue_gen_net 512 20261027 ${FORGE_H512_TEST_NET}
+        DEPENDS forge_nnue_gen_net VERBATIM)
+    add_custom_target(forge_nnue_test_h512_net DEPENDS ${FORGE_H512_TEST_NET})
+    add_executable(forge_nnue_h512_tests tests/nnue_int16_tests.cpp src/bitboard.cpp src/board.cpp src/nnue.cpp)
+    add_dependencies(forge_nnue_h512_tests forge_nnue_test_h512_net)
+    target_include_directories(forge_nnue_h512_tests PRIVATE include)
+    target_compile_features(forge_nnue_h512_tests PRIVATE cxx_std_20)
+    target_compile_definitions(forge_nnue_h512_tests PRIVATE FORGE_NNUE_WEIGHTS="${FORGE_H512_TEST_NET}")
+    target_compile_options(forge_nnue_h512_tests PRIVATE -ffp-contract=off -UFORGE_NNUE_HIDDEN -DFORGE_NNUE_HIDDEN=512)
+    if(FORGE_ENABLE_SANITIZERS)
+        target_compile_options(forge_nnue_h512_tests PRIVATE -fsanitize=address,undefined -fno-omit-frame-pointer)
+        target_link_options(forge_nnue_h512_tests PRIVATE -fsanitize=address,undefined)
+    endif()
 endif()
 
 add_executable(forge_bench bench/benchmark.cpp)
@@ -97,6 +125,7 @@ add_test(NAME forge_pv_metadata_tests COMMAND forge_pv_metadata_tests)
 add_test(NAME forge_nnue_int16_tests COMMAND forge_nnue_int16_tests)
 if(NOT MSVC)
     add_test(NAME forge_nnue_int16_scalar_tests COMMAND forge_nnue_int16_scalar_tests)
+    add_test(NAME forge_nnue_h512_tests COMMAND forge_nnue_h512_tests)
 endif()
 add_test(NAME forge_tt_tests COMMAND forge_tt_tests)
 add_test(NAME forge_rule50_tests COMMAND forge_rule50_tests)

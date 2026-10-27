@@ -1,0 +1,19 @@
+# S-A4 parity: H512 builds of the S-A2 parity driver and the 10k-FEN runs (2026-10-27, PC, nice 19, single thread)
+# FENs: F:\opus_scratch\sol_SA2\inputs\fens_10k.txt (= sol_S31 copy), sha256 82a3845c15712a869b8e65f7f05d8adb55ed49f74b17b4e73c2fdf110bf30f0a
+# nets: h512_smoke_e2.inc sha256 ab2cf2504796c55e53ca25efbdf2d35d6f880924ce5665a09ca29e1f4de34f1a (trainer_v3c_clip.py --shape 512 --weight-clip, epoch 2)
+#       h512_widened_lock_split.inc sha256 c1c063b069d7a1f594e6bfbbd2b34689ef4c95a622a46d6e66b2f13613ac49ce (widen_net_sa4.py --mode split of the lock a7ebcf3a)
+
+$ g++ -std=c++20 -O3 -DNDEBUG -DFORGE_NNUE_HIDDEN=256 -UFORGE_NNUE_HIDDEN -DFORGE_NNUE_HIDDEN=512 '-DFORGE_NNUE_WEIGHTS="<net>.inc"' \
+      -ffp-contract=off -fno-fast-math -march=<znver5|x86-64> -static -Wall -Wextra -Iinclude \
+      opus_round1/sol_SA2/nnue_int16_dump.cpp src/nnue.cpp src/bitboard.cpp src/board.cpp src/eval.cpp src/eval_params.cpp -o dump_h512_<net>_<avx2|scalar>.exe
+  smoke avx2 rc 0, 0 warnings; smoke scalar rc 0, 0 warnings; split avx2 rc 0, 0 warnings
+  stderr of every run: "# hidden 512 available 1 int16_available 1 residual 1"; 10000 lines each
+  dump_h512_smoke_avx2.tsv == dump_h512_smoke_scalar.tsv: sha256 408d7a54d1f023e4328f5f91ff4f8d0c8118e398f7855109ac03b758484146ca
+  dump_h512_split_avx2.tsv sha256 6389c13216857b94242affc96463db582a5244964367fec007959a9e33d8fa8b
+
+$ python -I -B opus_round1/sol_SA2/sa2_parity.py --net h512_smoke_e2.inc --fens fens_10k.txt --dump dump_h512_smoke_avx2.tsv --dump dump_h512_smoke_scalar.tsv --out parity_h512_smoke_10k.json
+$ python -I -B opus_round1/sol_SA2/sa2_parity.py --net h512_widened_lock_split.inc --fens fens_10k.txt --dump dump_h512_split_avx2.tsv --out parity_h512_split_10k.json
+$ python -I -B opus_round1/sol_SA4/cross_width_check.py --h256 ../sol_SA2 lock dump (dump_avx2.tsv, sha256 ba76ee81…) --h512 dump_h512_split_avx2.tsv --out cross_width_split_vs_lock.json
+  (outputs in logs/parity_h512_10k.log and the three JSON files)
+Stated tolerances: int16 path vs the exact integer reference: 0 (exact); float path vs the float32 emulation of the engine's
+lane order: 0 (exact); float path vs the float64 forward: < 1 cp (truncation of the untruncated value; measured max 0.9998).
