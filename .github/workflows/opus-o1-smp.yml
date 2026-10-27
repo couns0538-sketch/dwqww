@@ -1,0 +1,78 @@
+# O1 Lazy SMP evidence on Linux (the developing Windows PC is busy with gates and capped at 3 threads):
+#  - selfplay: 2000 fast games Forge vs Forge at Threads 4 (4 shards x 500), default options
+#  - selfplay-options: 500 games, engine A with SmpExactNodes + SmpBestThread on
+#  - scaling: time-to-depth / NPS for Threads 1/2/4/8 (runner has 4 vCPUs: Threads 8 is oversubscribed)
+# fastchess srand values here are robustness-run seeds, not gate seeds.
+name: opus-o1-smp
+on:
+  push:
+    branches: ['opus-O1', 'opus-O1-LTT']
+    paths-ignore:
+      - 'opus_round1/**/*.md'
+      - 'opus_round1/**/*.log'
+      - 'opus_round1/**/*.tsv'
+      - 'opus_round1/**/*.diff'
+      - 'opus_round1/**/*.txt'
+      - 'opus_round1/**/SHA256SUMS'
+      - 'REPORT.md'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  selfplay:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - {name: default-1, games: 500, seed: 9901, args: ""}
+          - {name: default-2, games: 500, seed: 9902, args: ""}
+          - {name: default-3, games: 500, seed: 9903, args: ""}
+          - {name: default-4, games: 500, seed: 9904, args: ""}
+          - {name: options-on, games: 500, seed: 9905, args: "option.SmpExactNodes=true option.SmpBestThread=true"}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 300
+    steps:
+      - uses: actions/checkout@v4
+      - name: Toolchain
+        run: |
+          sudo apt-get update -qq && sudo apt-get install -y -qq g++-14 ninja-build cmake python3 python3-pip
+          python3 -m pip install --quiet --break-system-packages chess
+          nproc
+      - name: Build (box recipe)
+        run: |
+          cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_COMPILER=g++-14 \
+            "-DCMAKE_CXX_FLAGS=-march=x86-64-v3 -mtune=znver5 -fno-fast-math -ffp-contract=off -DFORGE_NNUE_HIDDEN=256"
+          cmake --build build -j4 --target forge
+          python3 opus_round1/ci/uci_check.py build/forge
+      - name: Self-play ${{ matrix.name }}
+        run: bash opus_round1/O1/selfplay.sh build/forge ${{ matrix.games }} out ${{ matrix.seed }} ${{ matrix.args }}
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: o1-selfplay-${{ matrix.name }}
+          path: |
+            out/games.pgn
+            out/*.log
+            out/*.txt
+  scaling:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 300
+    steps:
+      - uses: actions/checkout@v4
+      - name: Toolchain and build
+        run: |
+          sudo apt-get update -qq && sudo apt-get install -y -qq g++-14 ninja-build cmake python3
+          cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_COMPILER=g++-14 \
+            "-DCMAKE_CXX_FLAGS=-march=x86-64-v3 -mtune=znver5 -fno-fast-math -ffp-contract=off -DFORGE_NNUE_HIDDEN=256"
+          cmake --build build -j4 --target forge
+          nproc; lscpu | grep -E 'Model name|Thread|Core|Socket'
+      - name: Scaling Threads 1/2/4/8
+        run: |
+          mkdir -p out
+          python3 opus_round1/O1/scaling.py build/forge --positions opus_round1/O3/positions50.fen \
+            --threads 1,2,4,8 --runs 5 --depth 20 --tsv out/scaling_default.tsv | tee out/scaling_default.log
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: o1-scaling
+          path: out/
