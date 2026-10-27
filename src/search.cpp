@@ -1,5 +1,8 @@
 #include "forge/search.hpp"
 #include "forge/uci_output.hpp"
+#ifdef FORGE_SPEEDSTACK
+#include "forge/material_key_table.hpp"
+#endif
 
 #include <algorithm>
 #include <cmath>
@@ -586,6 +589,10 @@ void Worker::clear() {
 namespace {
 // Hash of the piece counts of both sides, for material-indexed statistics.
 [[nodiscard]] std::uint64_t material_key(const Board& board) {
+#ifdef FORGE_SPEEDSTACK
+    // Speed stack (S29, piece S11): the same 64-bit key as the polynomial below, from a contribution table.
+    return matkey::table_key(board);
+#else
     std::uint64_t key = 0;
     for (const Color color : {White, Black}) {
         for (int type = Pawn; type <= Queen; ++type) {
@@ -593,6 +600,7 @@ namespace {
         }
     }
     return key * 0x9E3779B97F4A7C15ULL;
+#endif
 }
 } // namespace
 
@@ -976,6 +984,9 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
             record_null_move(ss);
             NullUndo undo;
             board.make_null_move(undo);
+#ifdef FORGE_SPEEDSTACK
+            shared_.tt.prefetch(board.key());  // speed stack (S29, piece S13): the child's TT bucket
+#endif
             int null_score = -search(board, ss + 1, depth - reduction, -beta, -beta + 1, !cut_node);
             board.unmake_null_move(undo);
             if (aborted_) return 0;
@@ -1013,6 +1024,9 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
                 record_move(ss, board, move);
                 Undo undo;
                 (void)board.make_move(move, undo);
+#ifdef FORGE_SPEEDSTACK
+                shared_.tt.prefetch(board.key());  // speed stack (S29, piece S13): the child's TT bucket
+#endif
                 int value = -qsearch(board, ss + 1, -probcut_beta, -probcut_beta + 1);
                 if (value >= probcut_beta && !aborted_) {
                     value = -search(board, ss + 1, depth - 4, -probcut_beta, -probcut_beta + 1, !cut_node);

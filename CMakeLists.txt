@@ -18,6 +18,13 @@ add_library(forge_core
 target_include_directories(forge_core PUBLIC include)
 target_compile_features(forge_core PUBLIC cxx_std_20)
 
+# S29 speed stack: the node-exact speed pieces (S11 material-key table, S13 child TT prefetch) behind one
+# compile switch, default OFF (the OFF build is the AL1 lock code).
+option(FORGE_SPEEDSTACK "Build the node-exact speed stack (S29)" OFF)
+if(FORGE_SPEEDSTACK)
+    target_compile_definitions(forge_core PUBLIC FORGE_SPEEDSTACK=1)
+endif()
+
 if(MSVC)
     target_compile_options(forge_core PRIVATE /W4 /permissive-)
 else()
@@ -67,6 +74,9 @@ target_link_libraries(forge_nearest_pawn_tests PRIVATE forge_core Threads::Threa
 add_executable(forge_pv_metadata_tests tests/pv_metadata_tests.cpp)
 target_link_libraries(forge_pv_metadata_tests PRIVATE forge_core Threads::Threads)
 
+add_executable(forge_speedstack_tests tests/speedstack_tests.cpp)
+target_link_libraries(forge_speedstack_tests PRIVATE forge_core Threads::Threads)
+
 add_executable(forge_bench bench/benchmark.cpp)
 target_link_libraries(forge_bench PRIVATE forge_core Threads::Threads)
 
@@ -79,6 +89,8 @@ add_test(NAME forge_nearest_pawn_tests COMMAND forge_nearest_pawn_tests)
 add_test(NAME forge_pv_metadata_tests COMMAND forge_pv_metadata_tests)
 add_test(NAME forge_tt_tests COMMAND forge_tt_tests)
 add_test(NAME forge_rule50_tests COMMAND forge_rule50_tests)
+add_test(NAME forge_speedstack_tests COMMAND forge_speedstack_tests
+    ${CMAKE_CURRENT_SOURCE_DIR}/tools/openings/forge-10000.epd)
 add_test(NAME forge_legal_witness_tests COMMAND forge_legal_witness_tests
     ${CMAKE_CURRENT_SOURCE_DIR}/tests/legal_witness_fixtures.tsv
     ${CMAKE_CURRENT_SOURCE_DIR}/tools/openings/forge-10000.epd)
