@@ -23,15 +23,21 @@
 - **C2** CorrHistPlus (continuation / minor / non-pawn keys).
 - **C1** own Syzygy prober. Code-review fix: TB scores keep their distance in the TT.
 
-## In progress / left (in order)
-1. **C4 code-review fixes and finishing C5:** a sub-agent is on it. A previous sub-agent's process ended before
-   C5 was done.
-2. **O1-LTT LocklessTT:** code, tests and local evidence are pushed; the CI evidence (TSan stress at T2/4/8,
-   scaling off/on, self-play) is running; the report is left.
-3. **O5 CorrMargins, then O8 CorrExt:** a sub-agent is on them.
-4. **O4 PureNnue, O6 NNUEThreats, O7 NNUEPawnPairs:** not started; they build on C4's v2 loader/export.
-5. **Sol's queue** (`SOL_LEFTOVERS_FOR_CLAUDE.md`): section 2 first (S11, S18, S13, ...), then the section 3
-   fix-ups.
+## Also done since (2026-10-27)
+- **All Opus jobs:** O1-O8 and C1-C6 are DONE, each on its branch with its REPORT.md. That includes C4 + C5,
+  O1-LTT (+ the "info string LocklessTT active" line), O5/O8 and O4/O6/O7.
+- **User follow-ups:**
+  - C3: the watchdog's fallback bestmove obeys `searchmoves`, and DebugSearchDelayMs is compiled only in debug and
+    test builds (CI green incl. the TSan hook).
+  - S29: a PC FORGE_SPEEDSTACK build is node-exact; PC NPS under load is inside noise.
+  - S-IT: the intended-threefold claim (GitHub issue #7) on the AL1 base, UCI `IntendedThreefold` default off
+    (CI release/ASan/TSan green; quiet-runner NPS A/B in its REPORT).
+- **Sol queue:** see `SOL_LEFTOVERS_PROGRESS.md` for one line per job.
+
+## In progress / left
+- Sol queue: S20, S31 and S44 are finishing in the main session. Seven sub-agents are working on S32/S37,
+  S39/S50, S40/S42/S43, S41/S45/S49, and the section-3 fix-ups (S04-S08, S09-S10, S25-S28 + S33 + S48).
+  S36 and S24 come last.
 
 ## Incident: our smoke runs disturbed the PC training supervisor (found 2026-10-27 10:24 PST; RESOLVED, QA reset the fail count to 0)
 - **What happened.** `F:\forge_nnue_train\supervisor.log` (read only) shows that the supervisor adopted five
@@ -53,8 +59,10 @@
 
 ## Environment notes (read before re-using numbers)
 - **Machine load.** The PC ran a fastchess gate, self-play datagen and NNUE training the whole time (machine
-  exclusive: no). With the owner's OK, all work ran at BelowNormal priority with at most 3 threads. PC speed
-  numbers are noisy; the quiet-runner A/Bs (GitHub Actions) are the cleaner speed evidence.
+  exclusive: no). Work first ran at BelowNormal with at most 3 threads. From 2026-10-27 afternoon the owner asked
+  for maximum parallelism: up to 7 sub-agents, every process single-threaded at Idle priority (below the
+  BelowNormal gates), RAM floor 6 GB. PC speed numbers are noisy; the quiet-runner A/Bs (GitHub Actions) are the
+  cleaner speed evidence.
 - **No local Linux sanitizers.** WSL2 needs the Virtual Machine Platform feature and a reboot, which was not
   done. Linux identity, ASan+UBSan and TSan come from `.github/workflows/opus-ci.yml` on each `opus-*` branch.
 - **Paths.** The lock archive and the build scripts moved from the session scratchpad to
