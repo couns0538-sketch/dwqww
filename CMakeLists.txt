@@ -83,6 +83,10 @@ target_link_libraries(forge_timeman_tests PRIVATE forge_core Threads::Threads)
 add_executable(forge_smp_tests tests/smp_tests.cpp)
 target_link_libraries(forge_smp_tests PRIVATE forge_core Threads::Threads)
 
+# Multi-thread TT stress (O1-LTT, UCI LocklessTT).
+add_executable(forge_tt_stress_tests tests/tt_stress_tests.cpp)
+target_link_libraries(forge_tt_stress_tests PRIVATE forge_core Threads::Threads)
+
 add_executable(forge_bench bench/benchmark.cpp)
 target_link_libraries(forge_bench PRIVATE forge_core Threads::Threads)
 
@@ -98,6 +102,8 @@ add_test(NAME forge_history_tests COMMAND forge_history_tests)
 add_test(NAME forge_timeman_tests COMMAND forge_timeman_tests)
 add_test(NAME forge_smp_tests COMMAND forge_smp_tests)
 add_test(NAME forge_tt_tests COMMAND forge_tt_tests)
+add_test(NAME forge_tt_stress_lockless COMMAND forge_tt_stress_tests --threads 2 --ops 2000000 --mode lockless)
+add_test(NAME forge_tt_stress_locked COMMAND forge_tt_stress_tests --threads 2 --ops 2000000 --mode locked)
 add_test(NAME forge_rule50_tests COMMAND forge_rule50_tests)
 add_test(NAME forge_legal_witness_tests COMMAND forge_legal_witness_tests
     ${CMAKE_CURRENT_SOURCE_DIR}/tests/legal_witness_fixtures.tsv

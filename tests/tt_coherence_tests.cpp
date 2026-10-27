@@ -5,10 +5,12 @@
 #include <array>
 #include <atomic>
 #include <cstdint>
+#include <cstring>
 #include <iostream>
 #include <limits>
 #include <new>
 #include <stdexcept>
+#include <random>
 #include <thread>
 
 namespace {
@@ -27,6 +29,16 @@ void operator delete[](void* memory, std::align_val_t alignment) noexcept {
 }
 void operator delete[](void* memory, std::size_t, std::align_val_t alignment) noexcept {
     ::operator delete(memory, alignment);
+}
+
+namespace {
+// UCI LocklessTT: every group runs with the locked table and again with the
+// lockless one (main). Single-threaded results must be identical; under
+// concurrency the lockless table may turn a slot written by two threads at
+// once into a miss (its key check fails), but must never return a torn entry.
+bool g_lockless = false;
+
+void apply_mode(forge::TranspositionTable& tt) { tt.set_lockless(g_lockless); }
 }
 
 namespace {
@@ -74,6 +86,7 @@ int score_of(const TranspositionTable& tt, std::uint64_t key) {
 
 void test_snapshot_and_current_slot_admission() {
     TranspositionTable tt(1);
+    apply_mode(tt);
     const auto key = collision_key(tt, 0);
     put(tt, key, 101, 8, move_for(101));
     auto old = tt.probe(key);
@@ -101,6 +114,7 @@ void test_snapshot_and_current_slot_admission() {
 
 void test_delayed_store_keeps_probe_destination() {
     TranspositionTable tt(1);
+    apply_mode(tt);
     const auto x = collision_key(tt, 0), y = collision_key(tt, 1);
     const auto before_x = tt.probe(x); // Empty slot0 is frozen in this handle.
     require(!before_x.hit, "empty table unexpectedly hit");
@@ -113,6 +127,7 @@ void test_delayed_store_keeps_probe_destination() {
 
 void test_replacement_ties_age_and_late_changes() {
     TranspositionTable tt(1);
+    apply_mode(tt);
     std::array<std::uint64_t, 6> keys{};
     for (unsigned i = 0; i < keys.size(); ++i) keys[i] = collision_key(tt, i);
     for (unsigned i = 0; i < 4; ++i) put(tt, keys[i], 100 + static_cast<int>(i), 8);
@@ -146,6 +161,8 @@ void test_replacement_ties_age_and_late_changes() {
 
 void test_invalid_handles_and_lifecycle() {
     TranspositionTable tt(1), other(1);
+    apply_mode(tt);
+    apply_mode(other);
     const auto key = collision_key(tt, 0), same_cluster = collision_key(tt, 1);
     const auto elsewhere = std::numeric_limits<std::uint64_t>::max();
     put(tt, key, 101);
@@ -184,6 +201,7 @@ void test_resize_allocation_failure_preserves_table() {
     static_assert(alignof(forge::TTCluster) > __STDCPP_DEFAULT_NEW_ALIGNMENT__,
                   "fault injector requires over-aligned TTCluster array allocation");
     TranspositionTable tt(1);
+    apply_mode(tt);
     const auto key = collision_key(tt, 0);
     put(tt, key, 101);
     const auto before = tt.probe(key);
@@ -202,6 +220,7 @@ void test_resize_allocation_failure_preserves_table() {
 
 void test_hashfull_current_generation_and_wrap() {
     TranspositionTable tt(1);
+    apply_mode(tt);
     for (unsigned i = 0; i < 4; ++i) put(tt, collision_key(tt, i), 100 + static_cast<int>(i));
     require(tt.hashfull() == 1, "four entries in sampled cluster must yield one permille");
     tt.new_search();
@@ -216,6 +235,7 @@ void test_hashfull_current_generation_and_wrap() {
 
 void test_score_context_tracks_admitted_payload() {
     TranspositionTable tt(1);
+    apply_mode(tt);
     const auto key = collision_key(tt, 0);
     put(tt, key, 101, 30, move_for(101), BoundExact, 99);
     auto probe = tt.probe(key);
@@ -250,6 +270,7 @@ bool same_payload_except_generation(const forge::TTEntry& a, const forge::TTEntr
 
 void test_generation_refresh_payload_and_handles() {
     TranspositionTable tt(1);
+    apply_mode(tt);
     const auto key = collision_key(tt, 0), other_key = collision_key(tt, 1);
     for (const auto bound : {BoundUpper, forge::BoundLower, BoundExact}) {
         for (const bool pv : {false, true}) {
@@ -289,6 +310,7 @@ void test_generation_refresh_payload_and_handles() {
 
 void test_generation_refresh_misses_and_zero_key() {
     TranspositionTable tt(1);
+    apply_mode(tt);
     tt.new_search();
     const auto empty = tt.probe(0);
     require(!empty.hit && !empty.entry.occupied() && empty.entry.gen_bound == 0 &&
@@ -323,6 +345,7 @@ void test_generation_refresh_misses_and_zero_key() {
 
 void test_generation_refresh_replacement_hashfull_and_wrap() {
     TranspositionTable tt(1);
+    apply_mode(tt);
     std::array<std::uint64_t, 5> keys{};
     for (unsigned i = 0; i < keys.size(); ++i) keys[i] = collision_key(tt, i);
     put(tt, keys[0], 301, 12);
@@ -360,6 +383,7 @@ void test_generation_refresh_replacement_hashfull_and_wrap() {
 
 void test_generation_refresh_concurrent_aged_hits() {
     TranspositionTable tt(1);
+    apply_mode(tt);
     std::array<std::uint64_t, 4> keys{};
     for (unsigned i = 0; i < keys.size(); ++i) keys[i] = collision_key(tt, i);
     auto publish = [&](int value, unsigned bucket) {
@@ -372,7 +396,7 @@ void test_generation_refresh_concurrent_aged_hits() {
     tt.new_search(); // All accessors quiescent; no lifecycle operation in threads.
     require(old_snapshot.entry.generation() == 0 && tt.hashfull() == 0,
             "aged concurrent fixture did not start with old occupied entries");
-    std::atomic<int> ready{0}, aged_readers{0}, errors{0};
+    std::atomic<int> ready{0}, aged_readers{0}, errors{0}, hits{0};
     std::atomic<bool> start{false};
     auto gate = [&] {
         ready.fetch_add(1, std::memory_order_release);
@@ -382,6 +406,9 @@ void test_generation_refresh_concurrent_aged_hits() {
         const auto probe = tt.probe(keys[bucket]);
         const auto& e = probe.entry;
         const int value = e.score;
+        // Lockless: a slot that two threads wrote at once reads as a miss.
+        if (!probe.hit && g_lockless && expected_initial == 0) return;
+        hits.fetch_add(1, std::memory_order_relaxed);
         if (!probe.hit || value < 1 || value > 10004 ||
             (expected_initial != 0 && value != expected_initial) ||
             e.eval != -value || e.depth != 1 + value % 64 || e.move != move_for(value) ||
@@ -420,13 +447,15 @@ void test_generation_refresh_concurrent_aged_hits() {
     start.store(true, std::memory_order_release);
     writer.join(); r1.join(); r2.join(); monitor.join();
     require(aged_readers.load(std::memory_order_relaxed) == 2 &&
-            errors.load(std::memory_order_relaxed) == 0 && tt.hashfull() == 1 &&
+            errors.load(std::memory_order_relaxed) == 0 && hits.load(std::memory_order_relaxed) >= 4 &&
+            (g_lockless ? tt.hashfull() <= 1 : tt.hashfull() == 1) &&
             old_snapshot.entry.generation() == 0,
             "concurrent aged-hit refresh tore payload, lost recency or mutated snapshot");
 }
 
 void test_concurrent_correlated_snapshots_and_hashfull() {
     TranspositionTable tt(1);
+    apply_mode(tt);
     const std::array<std::uint64_t, 2> keys{collision_key(tt, 0), collision_key(tt, 1)};
     auto publish = [&](int value, unsigned bucket) {
         const auto probe = tt.probe(keys[bucket]);
@@ -446,12 +475,15 @@ void test_concurrent_correlated_snapshots_and_hashfull() {
         gate();
         for (int i = 1; i <= Iterations; ++i) publish(offset + i, static_cast<unsigned>(i & 1));
     };
+    std::atomic<int> hits{0};
     auto reader = [&] {
         gate();
         for (int i = 0; i < Iterations; ++i) {
             const auto probe = tt.probe(keys[static_cast<unsigned>(i & 1)]);
             const auto& e = probe.entry;
             const int value = e.score;
+            if (!probe.hit && g_lockless) continue;  // a slot written by both writers at once
+            hits.fetch_add(1, std::memory_order_relaxed);
             if (!probe.hit || value < 1 || value > 2 * Iterations || e.eval != -value ||
                 e.depth != 1 + value % 64 || e.move != move_for(value) ||
                 e.pv() != ((value & 1) != 0) || e.bound() != BoundExact || e.generation() != 0 ||
@@ -470,25 +502,141 @@ void test_concurrent_correlated_snapshots_and_hashfull() {
     while (ready.load(std::memory_order_acquire) != 5) std::this_thread::yield();
     start.store(true, std::memory_order_release);
     w1.join(); w2.join(); r1.join(); r2.join(); monitor.join();
-    require(errors.load(std::memory_order_relaxed) == 0, "concurrent probe observed a torn tuple");
+    require(errors.load(std::memory_order_relaxed) == 0 && hits.load(std::memory_order_relaxed) > 0,
+            "concurrent probe observed a torn tuple");
+}
+
+// ---- UCI LocklessTT only ---------------------------------------------------
+
+forge::TTEntry random_entry(std::mt19937_64& rng) {
+    forge::TTEntry e;
+    const std::uint64_t a = rng(), b = rng();
+    std::memcpy(&e, &a, sizeof a);
+    std::memcpy(reinterpret_cast<unsigned char*>(&e) + 8, &b, sizeof b);
+    return e;
+}
+
+bool same_bytes(const forge::TTEntry& a, const forge::TTEntry& b) { return std::memcmp(&a, &b, sizeof a) == 0; }
+
+void test_lockless_encoding_round_trip() {
+    std::mt19937_64 rng(0x0b1e55ed5eed0001ULL);
+    for (int i = 0; i < 200000; ++i) {
+        const auto e = random_entry(rng);
+        const auto words = TranspositionTable::encode_lockless(e);
+        require(same_bytes(TranspositionTable::decode_lockless(words[0], words[1]), e),
+                "lockless encode/decode is not the identity");
+    }
+}
+
+// Two writes to one slot interleaved leave the first word of one and the second
+// word of the other. Such a torn slot must not decode to the key of either
+// write (a probe for that position then misses). The common case in a search is
+// two threads storing the same position with different data, so most pairs
+// share the key; one in four has an unrelated key.
+void test_lockless_torn_pairs_detected() {
+    std::mt19937_64 rng(0x0b1e55ed5eed0002ULL);
+    long long torn = 0, accepted = 0;
+    for (int i = 0; i < 1000000; ++i) {
+        const auto a = random_entry(rng);
+        auto b = random_entry(rng);
+        if (i % 4 != 3) b.key32 = a.key32;
+        if (i % 8 == 1) b.move = a.move;                                          // only the payload differs
+        if (i % 8 == 2) std::memcpy(reinterpret_cast<unsigned char*>(&b) + 8,     // only the move differs
+                                    reinterpret_cast<const unsigned char*>(&a) + 8, 8);
+        const auto wa = TranspositionTable::encode_lockless(a);
+        const auto wb = TranspositionTable::encode_lockless(b);
+        for (const auto& mixed : {TranspositionTable::decode_lockless(wa[0], wb[1]),
+                                  TranspositionTable::decode_lockless(wb[0], wa[1])}) {
+            if (same_bytes(mixed, a) || same_bytes(mixed, b)) continue;  // not torn: equals one write
+            ++torn;
+            if (mixed.key32 == a.key32 || mixed.key32 == b.key32) ++accepted;
+        }
+    }
+    std::cout << "lockless torn pairs: " << torn << " torn slots, " << accepted << " decoded to a written key\n";
+    require(torn > 1500000 && accepted == 0, "a torn lockless slot decoded to the key of one of its writes");
+}
+
+// Single-threaded, the lockless table makes exactly the locked table's
+// decisions (probe hits, replacement victims, admission, generation refresh,
+// hashfull): the reason a search with Threads=1 is unchanged.
+void test_lockless_matches_locked_sequence() {
+    TranspositionTable locked(1), lockless(1);
+    lockless.set_lockless(true);
+    std::mt19937_64 rng(0x0b1e55ed5eed0003ULL);
+    std::array<std::uint64_t, 48> keys{};
+    for (unsigned i = 0; i < keys.size(); ++i) {
+        // 48 keys over 6 clusters: constant replacement pressure.
+        keys[i] = (static_cast<std::uint64_t>(i % 6) << 50U) + collision_key(locked, i);
+    }
+    for (int step = 0; step < 300000; ++step) {
+        if (step % 20000 == 19999) {
+            locked.new_search();
+            lockless.new_search();
+        }
+        const std::uint64_t key = keys[static_cast<std::size_t>(rng() % keys.size())];
+        const auto p1 = locked.probe(key);
+        const auto p2 = lockless.probe(key);
+        require(p1.hit == p2.hit && same_bytes(p1.entry, p2.entry), "lockless probe differs from the locked probe");
+        if (rng() % 3 != 0) {
+            const int score = static_cast<int>(rng() % 4001) - 2000;
+            const int depth = static_cast<int>(rng() % 40);
+            const Move move = rng() % 5 == 0 ? Move::none() : move_for(static_cast<int>(rng() % 4096) + 1);
+            const auto bound = static_cast<forge::Bound>(1 + rng() % 3);
+            const bool pv = (rng() & 1U) != 0;
+            const auto clock = static_cast<std::uint16_t>(rng() % 120);
+            locked.store(p1, key, score, -score, move, depth, bound, pv, clock);
+            lockless.store(p2, key, score, -score, move, depth, bound, pv, clock);
+        }
+        if (step % 5000 == 0) require(locked.hashfull() == lockless.hashfull(), "lockless hashfull differs");
+    }
+    for (const auto key : keys) {
+        const auto p1 = locked.probe(key);
+        const auto p2 = lockless.probe(key);
+        require(p1.hit == p2.hit && same_bytes(p1.entry, p2.entry), "final lockless table state differs");
+    }
+}
+
+void test_lockless_mode_switch_clears() {
+    TranspositionTable tt(1);
+    const auto key = collision_key(tt, 0);
+    put(tt, key, 77);
+    tt.set_lockless(true);
+    require(tt.lockless() && !tt.probe(key).hit, "switching to lockless did not clear the table");
+    put(tt, key, 78);
+    tt.set_lockless(true);
+    require(score_of(tt, key) == 78, "setting the same mode cleared the table");
+    tt.set_lockless(false);
+    require(!tt.lockless() && !tt.probe(key).hit, "switching back to locked did not clear the table");
 }
 } // namespace
 
 int main() {
     try {
-        test_snapshot_and_current_slot_admission();
-        test_delayed_store_keeps_probe_destination();
-        test_replacement_ties_age_and_late_changes();
-        test_invalid_handles_and_lifecycle();
-        test_resize_allocation_failure_preserves_table();
-        test_hashfull_current_generation_and_wrap();
-        test_score_context_tracks_admitted_payload();
-        test_generation_refresh_payload_and_handles();
-        test_generation_refresh_misses_and_zero_key();
-        test_generation_refresh_replacement_hashfull_and_wrap();
-        test_generation_refresh_concurrent_aged_hits();
-        test_concurrent_correlated_snapshots_and_hashfull();
-        std::cout << "All12 TT coherence/regression groups passed\n";
+        int groups = 0;
+        for (const bool lockless : {false, true}) {
+            g_lockless = lockless;
+            test_snapshot_and_current_slot_admission();
+            test_delayed_store_keeps_probe_destination();
+            test_replacement_ties_age_and_late_changes();
+            test_invalid_handles_and_lifecycle();
+            test_resize_allocation_failure_preserves_table();
+            test_hashfull_current_generation_and_wrap();
+            test_score_context_tracks_admitted_payload();
+            test_generation_refresh_payload_and_handles();
+            test_generation_refresh_misses_and_zero_key();
+            test_generation_refresh_replacement_hashfull_and_wrap();
+            test_generation_refresh_concurrent_aged_hits();
+            test_concurrent_correlated_snapshots_and_hashfull();
+            groups += 12;
+            std::cout << "12 TT coherence/regression groups passed (" << (lockless ? "LocklessTT" : "locked") << " table)\n";
+        }
+        g_lockless = false;
+        test_lockless_encoding_round_trip();
+        test_lockless_torn_pairs_detected();
+        test_lockless_matches_locked_sequence();
+        test_lockless_mode_switch_clears();
+        groups += 4;
+        std::cout << "4 LocklessTT groups passed\nAll " << groups << " TT groups passed\n";
         return 0;
     } catch (const std::exception& error) {
         std::cerr << "FAIL: " << error.what() << '\n';

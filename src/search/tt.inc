@@ -66,6 +66,7 @@ void TranspositionTable::clear() {
 }
 
 TTProbe TranspositionTable::probe(std::uint64_t key) const {
+    if (lockless_) [[unlikely]] return probe_lockless(key);
     TTCluster& cluster = cluster_for(key);
     const std::size_t index = static_cast<std::size_t>(&cluster - clusters_.get());
     const auto lock = lock_stripe(index);
@@ -108,6 +109,10 @@ void TranspositionTable::store(const TTProbe& probe, std::uint64_t key, int scor
     // Lifecycle operations themselves must not run concurrently with search.
     if (probe.owner_ != this || probe.epoch_ != epoch_ || probe.key_ != key ||
         probe.cluster_ >= cluster_count_ || probe.slot_ >= 4) return;
+    if (lockless_) [[unlikely]] {
+        store_lockless(probe, key, score, eval, move, depth, bound, pv, halfmove_clock);
+        return;
+    }
     const auto lock = lock_stripe(probe.cluster_);
     TTEntry* entry = &clusters_[probe.cluster_].entries[probe.slot_];
     const std::uint32_t key32 = verification_key(key);
@@ -124,6 +129,7 @@ void TranspositionTable::store(const TTProbe& probe, std::uint64_t key, int scor
 }
 
 int TranspositionTable::hashfull() const {
+    if (lockless_) return hashfull_lockless();
     int count = 0;
     const std::size_t sample = std::min<std::size_t>(1000, cluster_count_);
     for (std::size_t i = 0; i < sample; ++i) {

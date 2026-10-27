@@ -173,7 +173,8 @@ int main() {
             if (forge::nnue::available()) std::cout << "option name UseNNUE type check default true\n";
             // Search options added after AL1 s198; all default OFF (see forge/search_options.hpp).
             std::cout << "option name SmpExactNodes type check default false\n"
-                         "option name SmpBestThread type check default false\n";
+                         "option name SmpBestThread type check default false\n"
+                         "option name LocklessTT type check default false\n";
 #ifdef FORGE_EXPOSE_TUNABLES
             // Development builds advertise the search constants so match
             // runners can set them; release builds accept them silently.
@@ -262,8 +263,10 @@ int main() {
                 } else {
                     book_variety = std::clamp(value, 0, 100);
                 }
-            } else if (name == "SmpExactNodes" || name == "SmpBestThread") {
-                bool& option = name == "SmpExactNodes" ? forge::options::smp_exact_nodes : forge::options::smp_best_thread;
+            } else if (name == "SmpExactNodes" || name == "SmpBestThread" || name == "LocklessTT") {
+                bool& option = name == "SmpExactNodes"   ? forge::options::smp_exact_nodes
+                               : name == "SmpBestThread" ? forge::options::smp_best_thread
+                                                         : forge::options::lockless_tt;
                 if (value_text == "true") option = true;
                 else if (value_text == "false") option = false;
                 else {

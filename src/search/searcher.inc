@@ -41,6 +41,8 @@ SearchInfo Searcher::search(Board board, const SearchLimits& limits, bool emit_i
     std::vector<Worker*> all;
     all.reserve(workers_.size());
     for (auto& worker : workers_) all.push_back(worker.get());
+    // UCI LocklessTT, applied while no worker runs (a change clears the table).
+    shared_.tt.set_lockless(options::lockless_tt);
     // Age the table once per search, before any worker can probe it.
     shared_.tt.new_search();
     std::optional<TranspositionTable::ExclusiveLease> exclusive;

@@ -5,5 +5,6 @@ namespace forge::options {
 
 bool smp_exact_nodes = false;
 bool smp_best_thread = false;
+bool lockless_tt = false;
 
 } // namespace forge::options

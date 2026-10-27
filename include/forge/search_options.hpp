@@ -17,4 +17,13 @@ extern bool smp_exact_nodes;
 // deepest completed iteration (ties: higher score) instead of always thread 0.
 extern bool smp_best_thread;
 
+// UCI LocklessTT (check, default false). The transposition table is probed and
+// written without its striped locks: each entry is two 64-bit atomic words and
+// the first carries the key tag mixed with a hash of all data bits, so a read
+// that combines two writes fails the key check and counts as a miss
+// (src/search/tt_lockless.inc). Read once per search by Searcher::search;
+// changing it clears the table. Same table contents and rules as the locked
+// table, so a search with Threads=1 is unchanged.
+extern bool lockless_tt;
+
 } // namespace forge::options

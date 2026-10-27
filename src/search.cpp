@@ -37,3 +37,4 @@
 #include "search/alphabeta.inc"   // main alpha-beta search
 #include "search/iterative.inc"   // root setup and iterative deepening
 #include "search/searcher.inc"    // Searcher facade: helper threads, TT lifecycle
+#include "search/tt_lockless.inc" // UCI LocklessTT: lockless TT access (last: keeps the default placement)
