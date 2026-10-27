@@ -1,0 +1,49 @@
+-- The CXX compiler identification is GNU 15.2.0
+-- Detecting CXX compiler ABI info
+-- Detecting CXX compiler ABI info - done
+-- Check for working CXX compiler: C:/msys64/ucrt64/bin/g++.exe - skipped
+-- Detecting CXX compile features
+-- Detecting CXX compile features - done
+-- Performing Test CMAKE_HAVE_LIBC_PTHREAD
+-- Performing Test CMAKE_HAVE_LIBC_PTHREAD - Success
+-- Found Threads: TRUE
+-- Configuring done (1.1s)
+-- Generating done (0.1s)
+-- Build files have been written to: F:/opus_scratch/build/sol_S28fix/al1L_cmake
+[1/12] Building CXX object CMakeFiles/forge_core.dir/src/bitboard.cpp.obj
+[2/12] Building CXX object CMakeFiles/forge_core.dir/src/board.cpp.obj
+[3/12] Building CXX object CMakeFiles/forge_core.dir/src/book.cpp.obj
+[4/12] Building CXX object CMakeFiles/forge_core.dir/src/eval.cpp.obj
+[5/12] Building CXX object CMakeFiles/forge_core.dir/src/eval_params.cpp.obj
+[6/12] Building CXX object CMakeFiles/forge_core.dir/src/nnue.cpp.obj
+[7/12] Building CXX object CMakeFiles/forge_core.dir/src/search.cpp.obj
+F:/opus_scratch/sol_S28fix/al1L/src/search.cpp: In member function 'int forge::Worker::qsearch(forge::Board&, forge::SearchStack*, int, int)':
+F:/opus_scratch/sol_S28fix/al1L/src/search.cpp:790:73: warning: conversion from 'int' to 'uint16_t' {aka 'short unsigned int'} may change value [-Wconversion]
+  790 |     const int tt_score = tt_hit && tte.score_usable(board.halfmove_clock())
+      |                                                     ~~~~~~~~~~~~~~~~~~~~^~
+F:/opus_scratch/sol_S28fix/al1L/src/search.cpp:817:166: warning: conversion from 'int' to 'uint16_t' {aka 'short unsigned int'} may change value [-Wconversion]
+  817 |             if (!tt_hit) shared_.tt.store(tt_probe, board.key(), score_to_tt(best_score, ply), ss->raw_eval, Move::none(), 0, BoundLower, false, board.halfmove_clock());
+      |                                                                                                                                                  ~~~~~~~~~~~~~~~~~~~~^~
+F:/opus_scratch/sol_S28fix/al1L/src/search.cpp:868:160: warning: conversion from 'int' to 'uint16_t' {aka 'short unsigned int'} may change value [-Wconversion]
+  868 |     shared_.tt.store(tt_probe, board.key(), score_to_tt(best_score, ply), in_check ? ValueNone : ss->raw_eval, best_move, 0, bound, tt_pv, board.halfmove_clock());
+      |                                                                                                                                            ~~~~~~~~~~~~~~~~~~~~^~
+F:/opus_scratch/sol_S28fix/al1L/src/search.cpp: In member function 'int forge::Worker::search(forge::Board&, forge::SearchStack*, int, int, int, bool)':
+F:/opus_scratch/sol_S28fix/al1L/src/search.cpp:914:73: warning: conversion from 'int' to 'uint16_t' {aka 'short unsigned int'} may change value [-Wconversion]
+  914 |     const int tt_score = tt_hit && tte.score_usable(board.halfmove_clock())
+      |                                                     ~~~~~~~~~~~~~~~~~~~~^~
+F:/opus_scratch/sol_S28fix/al1L/src/search.cpp:1023:160: warning: conversion from 'int' to 'uint16_t' {aka 'short unsigned int'} may change value [-Wconversion]
+ 1023 |                     shared_.tt.store(tt_probe, board.key(), score_to_tt(value, ply), ss->raw_eval, move, depth - 3, BoundLower, ss->tt_pv, board.halfmove_clock());
+      |                                                                                                                                            ~~~~~~~~~~~~~~~~~~~~^~
+F:/opus_scratch/sol_S28fix/al1L/src/search.cpp:1214:149: warning: conversion from 'int' to 'uint16_t' {aka 'short unsigned int'} may change value [-Wconversion]
+ 1214 |         shared_.tt.store(tt_probe, board.key(), score_to_tt(best_score, ply), ss->raw_eval, best_move, depth, bound, ss->tt_pv, board.halfmove_clock());
+      |                                                                                                                                 ~~~~~~~~~~~~~~~~~~~~^~
+[8/12] Linking CXX static library libforge_core.a
+[9/12] Building CXX object CMakeFiles/forge.dir/src/uci.cpp.obj
+[10/12] Building CXX object CMakeFiles/forge_tests.dir/tests/tests.cpp.obj
+[11/12] Linking CXX executable forge.exe
+[12/12] Linking CXX executable forge_tests.exe
+BUILD_OK
+40f1da6839f137e9db0e9dfa41aa8b1a1ae34efdd98b5b09becdaca677ca0d6f */f/opus_scratch/build/sol_S28fix/al1L_cmake/forge_tests.exe
+72e98e646f9ca6592042dd539b57461aa8c2865a9465011df9f2cb921c74028d */f/opus_scratch/build/sol_S28fix/al1L_cmake/forge.exe
+forge_tests rc=1
+done

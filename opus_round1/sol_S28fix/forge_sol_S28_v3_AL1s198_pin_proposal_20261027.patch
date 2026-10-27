@@ -1,0 +1,89 @@
+diff --git a/IDEA_SOURCE.md b/IDEA_SOURCE.md
+--- a/IDEA_SOURCE.md
++++ b/IDEA_SOURCE.md
+@@ -37,3 +37,8 @@
+ ships as tools/rerecord_pins.sh + tools/rerecord_pins.py; it checks the lock
+ pins by default (non-zero exit on mismatch) and prints RECORDED, never PASS,
+ with --observe-only. Original tooling, no engine change.
++
++S28 v3 AL1 s198 pin proposal (2026-10-27, PROPOSED, not applied): idea source = QA fix-up S28-1 (redo the
++pin proposal on the actual lock AL1 s198 instead of e48f006) and the observed AL1 s198 outcomes
++WAC001 f6h5/623/d12 and promotions c6d6 / c3d3 at d1. Test/helper/doc text only; the h256_e12 and 6.4.24
++values stay on record; no engine, CMake or expectation-logic change; adopting it is a separate reviewed change.
+diff --git a/README.md b/README.md
+--- a/README.md
++++ b/README.md
+@@ -59,10 +59,11 @@
+    for a new net, which prints `PIN_OBSERVATION_RECORDED (n of 3 match documented pins)`.
+    It prints WAC001 at Hash8/depth12 and both promotion mirrors at Hash1/depth1,
+    using Threads1 and OwnBook=false. It records observations and edits no pins.
+-3. Compare WAC move/score/depth/PV with the exact `f6h5/661/d12` pin, and compare
+-   promotion king moves/PV/depth with `c6d7` and `c3d2` at depth1 (score>100).
++3. Compare WAC move/score/depth/PV with the exact `f6h5/623/d12` pin (AL1 s198, PROPOSED 2026-10-27;
++   h256_e12 was `f6h5/661/d12`), and compare promotion king moves/PV/depth with `c6d6` and `c3d3`
++   at depth1 (score>100; h256_e12 was `c6d7`/`c3d2`).
+ 4. A mismatch remains a failure. Review the new outcomes, retain the original
+    mate and rook expectations, and re-record pins in tests/tests.cpp plus the
+    maintained known-failure record FORGE_KNOWN_TEST_FAILURES.md (lock pack
+    files/08_status/) only through a separate reviewed change.
+-   Never replace exact661 with a score floor. Re-run mutation controls.
++   Never replace exact623 with a score floor. Re-run mutation controls.
+diff --git a/tests/tests.cpp b/tests/tests.cpp
+--- a/tests/tests.cpp
++++ b/tests/tests.cpp
+@@ -56,8 +56,10 @@
+ int failures = 0;
+ int known_failures = 0;
+ 
+-// These are explicit observations of the locked h256_e12 horizon, not replacement
+-// expectations. Unexpected moves, scores, depths and PVs remain ordinary failures.
++// These are explicit observations of the locked AL1 s198 horizon (net md5 22b4b9e2, re-recorded 2026-10-27, PROPOSED),
++// not replacement expectations. Unexpected moves, scores, depths and PVs remain ordinary failures.
++// Previous lock h256_e12 (net md5 6d22f612) pins are kept on record next to each pin below. The
++// KNOWN_FAILURE output text below still says h256_e12 on purpose (byte-stable for existing allowlists).
+ void known_failure(std::string_view label, std::string_view expected, std::string_view actual) {
+     std::cerr << "KNOWN_FAILURE: " << label << " expected " << expected << " got " << actual
+               << " (h256_e12 net-evaluation horizon; original 6.4.24 expectation retained)\n";
+@@ -171,10 +173,11 @@
+     const std::string best = forge::Board::move_to_uci(result.best_move);
+     // 6.4.24 passed WAC 001 at d12 with g3g6 and >= MateValue - 3 (31997).
+     // Its exact numeric mate score was not recorded. The locked net instead
+-    // returns f6h5, 661cp at d12, and discovers the mate at a greater depth.
++    // returns f6h5, 623cp at d12, and discovers the mate at a greater depth.
++    // Previous lock h256_e12 (net 6d22f612) pin, kept on record: f6h5/661/d12.
+     // Require this complete observed outcome; a new low score is not tolerated.
+     constexpr std::string_view documented_wac_move = "f6h5";
+-    constexpr int documented_wac_score = 661;
++    constexpr int documented_wac_score = 623;
+     constexpr int documented_wac_depth = 12;
+     const bool is_documented_wac_case =
+         item.label == "WAC 001" &&
+@@ -547,7 +550,8 @@
+         // 6.4.24 chose c7c8r / c2c1r with score > 100 at d1. Preserve that
+         // expectation above. The locked net chooses the alternative winning king
+         // move; restricted queen-stalemate and rook-win checks remain unchanged.
+-        const std::string_view documented_king_text = mirrored ? "c3d2" : "c6d7";
++        // AL1 s198 at d1: c6d6 / c3d3 (569 cp); previous lock h256_e12: c6d7 / c3d2 (642 cp).
++        const std::string_view documented_king_text = mirrored ? "c3d3" : "c6d6";
+         constexpr int documented_promotion_depth = 1;
+         const auto documented_king = board.parse_uci(documented_king_text);
+         const bool documented_promotion_horizon =
+diff --git a/tools/rerecord_pins.py b/tools/rerecord_pins.py
+--- a/tools/rerecord_pins.py
++++ b/tools/rerecord_pins.py
+@@ -4,10 +4,12 @@
+ import argparse,base64,hashlib,json,os,queue,subprocess,threading,time
+ from pathlib import Path
+ 
++# Documented lock pins: AL1 s198 re-record 2026-10-27 (PROPOSED): WAC001 f6h5/623/d12, promotions c6d6 / c3d3 at d1.
++# Kept on record: h256_e12 (net 6d22f612) WAC001 f6h5/661/d12, promotions c6d7 / c3d2; 6.4.24 g3g6 >= 31997.
+ CASES=[
+- ('WAC001','2rr3k/pp3pp1/1nnqbN1p/3pN3/2pP4/2P3Q1/PPB4P/R4RK1 w - - 0 1',12,8,'f6h5',661),
+- ('promotion_white','8/k1P5/2K5/8/8/8/8/8 w - - 0 1',1,1,'c6d7',None),
+- ('promotion_black','8/8/8/8/8/2k5/K1p5/8 b - - 0 1',1,1,'c3d2',None),
++ ('WAC001','2rr3k/pp3pp1/1nnqbN1p/3pN3/2pP4/2P3Q1/PPB4P/R4RK1 w - - 0 1',12,8,'f6h5',623),
++ ('promotion_white','8/k1P5/2K5/8/8/8/8/8 w - - 0 1',1,1,'c6d6',None),
++ ('promotion_black','8/8/8/8/8/2k5/K1p5/8 b - - 0 1',1,1,'c3d3',None),
+ ]
+ 
+ def raw_record(data):

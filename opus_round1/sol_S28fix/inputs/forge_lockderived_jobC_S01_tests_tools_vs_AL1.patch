@@ -1,0 +1,277 @@
+diff -ruN '--exclude=nnue_weights.inc' a/IDEA_SOURCE.md b/IDEA_SOURCE.md
+--- a/IDEA_SOURCE.md	2026-10-26 00:12:11.684119752 -0700
++++ b/IDEA_SOURCE.md	2026-10-26 00:12:11.388120128 -0700
+@@ -23,3 +23,17 @@
+ - Engine NNUE reports that the e12 net was trained with train_resid_v2.py (not verified here by QA).
+ - h256_e12 was LOCKED 2026-10-24 09:46 Vienna by crew vote 8-0 (Couns delegated). See /workspace/forge-hashes/LOCK_CHECK_h256_e12.md.
+ - 2026-10-24 10:05 Vienna (QA): git log --follow for tools/nnue/train_nnue.py and tools/nnue/train_resid_v2.py in the box clone of couns0538-sketch/dwqww (/workspace/forge-sol-teacher/repo) shows no history, and neither file is tracked. So the repo MIT LICENSE does not cover them for now, and their licence is unknown. This matters only if the trainer is ever published; the weights are unaffected. A remote fetch was not re-run this time.
++
++## S01 explicit known-failure pin diagnostics (20261025)
++
++Idea sources: the user's S1 job and the supplied review
++`CR_PASS_sol_jobC_a0b6811f.txt`, item 7. Implementation is original test
++reporting code. Preserve prerequisite patch SHA256
++`4ac98f92d45f67fae8aaa8067fe28c0fca36662b3688013105f738245ee55805`.
++The follow-up prints the exact documented and observed move, score, depth
++and PV when a guarded known outcome drifts; it never relaxes the score pin
++or changes engine behavior. Re-recording is a separate reviewed action.
++Merge follow-up (CR_PASS_sol_jobC_S01_merge.txt LOW 1-4): the re-record tool
++ships as tools/rerecord_pins.sh + tools/rerecord_pins.py; it checks the lock
++pins by default (non-zero exit on mismatch) and prints RECORDED, never PASS,
++with --observe-only. Original tooling, no engine change.
+diff -ruN '--exclude=nnue_weights.inc' a/README.md b/README.md
+--- a/README.md	2026-10-26 00:12:11.684119752 -0700
++++ b/README.md	2026-10-26 00:12:11.388120128 -0700
+@@ -49,3 +49,20 @@
+ 
+ ## Artifacts
+ artifacts/: diff_rq.txt, changed_files.txt/.sha256, build.log, ctest.log, bench.log, check_nnue_simd.log, uci_smoke.log (+ uci_smoke_proper.py), binary_sha256.txt, timing csv/summary/scripts.
++
++## Lock-adoption checklist: re-record Job C pins (20261025)
++
++1. Record the new engine and network SHA256, source revision and build flags.
++2. From the tree root, run `bash tools/rerecord_pins.sh build_release/forge --out NEW_FOLDER`
++   (`tools/rerecord_pins.py` must sit next to the .sh). By default it checks the documented
++   lock pins and exits 1 with `PIN_OBSERVATION_MISMATCH` if any differ; add `--observe-only`
++   for a new net, which prints `PIN_OBSERVATION_RECORDED (n of 3 match documented pins)`.
++   It prints WAC001 at Hash8/depth12 and both promotion mirrors at Hash1/depth1,
++   using Threads1 and OwnBook=false. It records observations and edits no pins.
++3. Compare WAC move/score/depth/PV with the exact `f6h5/661/d12` pin, and compare
++   promotion king moves/PV/depth with `c6d7` and `c3d2` at depth1 (score>100).
++4. A mismatch remains a failure. Review the new outcomes, retain the original
++   mate and rook expectations, and re-record pins in tests/tests.cpp plus the
++   maintained known-failure record FORGE_KNOWN_TEST_FAILURES.md (lock pack
++   files/08_status/) only through a separate reviewed change.
++   Never replace exact661 with a score floor. Re-run mutation controls.
+diff -ruN '--exclude=nnue_weights.inc' a/tests/tests.cpp b/tests/tests.cpp
+--- a/tests/tests.cpp	2026-10-26 00:12:11.692119742 -0700
++++ b/tests/tests.cpp	2026-10-26 00:12:11.392120123 -0700
+@@ -54,6 +54,15 @@
+ namespace {
+ 
+ int failures = 0;
++int known_failures = 0;
++
++// These are explicit observations of the locked h256_e12 horizon, not replacement
++// expectations. Unexpected moves, scores, depths and PVs remain ordinary failures.
++void known_failure(std::string_view label, std::string_view expected, std::string_view actual) {
++    std::cerr << "KNOWN_FAILURE: " << label << " expected " << expected << " got " << actual
++              << " (h256_e12 net-evaluation horizon; original 6.4.24 expectation retained)\n";
++    ++known_failures;
++}
+ 
+ void check(bool condition, std::string_view message) {
+     if (!condition) {
+@@ -160,13 +169,47 @@
+     limits.depth = item.depth;
+     const forge::SearchInfo result = searcher.search(board, limits);
+     const std::string best = forge::Board::move_to_uci(result.best_move);
++    // 6.4.24 passed WAC 001 at d12 with g3g6 and >= MateValue - 3 (31997).
++    // Its exact numeric mate score was not recorded. The locked net instead
++    // returns f6h5, 661cp at d12, and discovers the mate at a greater depth.
++    // Require this complete observed outcome; a new low score is not tolerated.
++    constexpr std::string_view documented_wac_move = "f6h5";
++    constexpr int documented_wac_score = 661;
++    constexpr int documented_wac_depth = 12;
++    const bool is_documented_wac_case =
++        item.label == "WAC 001" &&
++        item.fen == "2rr3k/pp3pp1/1nnqbN1p/3pN3/2pP4/2P3Q1/PPB4P/R4RK1 w - - 0 1" &&
++        item.depth == 12 && item.best_move == "g3g6" &&
++        item.minimum_score == forge::MateValue - 3 && item.alternative_move.empty();
++    const bool documented_wac_horizon = is_documented_wac_case &&
++        best == documented_wac_move && result.score == documented_wac_score &&
++        result.depth == documented_wac_depth && !result.pv.empty() &&
++        result.pv.front() == result.best_move;
++    if (is_documented_wac_case && !documented_wac_horizon &&
++        (best != item.best_move || result.score < item.minimum_score)) {
++        std::cerr << "PIN_MISMATCH: WAC 001 documented " << documented_wac_move << '/'
++                  << documented_wac_score << "/d" << documented_wac_depth
++                  << "/PV=" << documented_wac_move << ", observed " << best << '/'
++                  << result.score << "/d" << result.depth << "/PV="
++                  << (result.pv.empty() ? "<empty>" : forge::Board::move_to_uci(result.pv.front()))
++                  << "; re-record Job C pins in a reviewed change if the lock changed\n";
++    }
+     if (best != item.best_move && (item.alternative_move.empty() || best != item.alternative_move)) {
+-        std::cerr << "FAIL: " << item.label << " expected " << item.best_move << " got " << best << '\n';
+-        ++failures;
++        if (documented_wac_horizon) {
++            known_failure(item.label, item.best_move, best);
++        } else {
++            std::cerr << "FAIL: " << item.label << " expected " << item.best_move << " got " << best << '\n';
++            ++failures;
++        }
+     }
+     if (result.score < item.minimum_score) {
+-        std::cerr << "FAIL: " << item.label << " score " << result.score << " below " << item.minimum_score << '\n';
+-        ++failures;
++        if (documented_wac_horizon) {
++            known_failure("WAC 001 score", ">= " + std::to_string(item.minimum_score),
++                          std::to_string(result.score));
++        } else {
++            std::cerr << "FAIL: " << item.label << " score " << result.score << " below " << item.minimum_score << '\n';
++            ++failures;
++        }
+     }
+ }
+ 
+@@ -498,9 +541,37 @@
+         limits.search_moves.clear();
+         const auto result = searcher.search(board, limits);
+         const auto rook = board.parse_uci(moves[1]);
+-        check(rook.has_value() && result.best_move == *rook && !result.pv.empty() && result.pv.front() == *rook &&
+-                  result.score > 100 && result.depth == 1,
+-              "unrestricted search chooses the winning rook underpromotion over stalemating queen promotion");
++        const bool original_rook_expectation =
++            rook.has_value() && result.best_move == *rook && !result.pv.empty() && result.pv.front() == *rook &&
++                  result.score > 100 && result.depth == 1;
++        // 6.4.24 chose c7c8r / c2c1r with score > 100 at d1. Preserve that
++        // expectation above. The locked net chooses the alternative winning king
++        // move; restricted queen-stalemate and rook-win checks remain unchanged.
++        const std::string_view documented_king_text = mirrored ? "c3d2" : "c6d7";
++        constexpr int documented_promotion_depth = 1;
++        const auto documented_king = board.parse_uci(documented_king_text);
++        const bool documented_promotion_horizon =
++            !original_rook_expectation && documented_king.has_value() &&
++            result.best_move == *documented_king && !result.pv.empty() &&
++            result.pv.front() == *documented_king && result.score > 100 &&
++            result.depth == documented_promotion_depth;
++        if (!original_rook_expectation && !documented_promotion_horizon) {
++            std::cerr << "PIN_MISMATCH: unrestricted promotion documented " << documented_king_text
++                      << "/score>100/d" << documented_promotion_depth << "/PV=" << documented_king_text
++                      << ", observed " << forge::Board::move_to_uci(result.best_move) << '/'
++                      << result.score << "/d" << result.depth << "/PV="
++                      << (result.pv.empty() ? "<empty>" : forge::Board::move_to_uci(result.pv.front()))
++                      << "; re-record Job C pins in a reviewed change if the lock changed\n";
++        }
++        if (documented_promotion_horizon) {
++            known_failure(
++                "unrestricted search chooses the winning rook underpromotion over stalemating queen promotion",
++                std::string(moves[1]) + " score > 100 at d1",
++                forge::Board::move_to_uci(result.best_move) + " score " + std::to_string(result.score) + " at d1");
++        } else {
++            check(original_rook_expectation,
++                  "unrestricted search chooses the winning rook underpromotion over stalemating queen promotion");
++        }
+     }
+ }
+ 
+@@ -846,6 +917,8 @@
+     test_threads();
+     test_nnue();
+     if (failures == 0) {
++        if (known_failures != 0)
++            std::cout << "Known failures explicitly reported: " << known_failures << '\n';
+         std::cout << "All tests passed\n";
+         return 0;
+     }
+diff -ruN '--exclude=nnue_weights.inc' a/tools/rerecord_pins.py b/tools/rerecord_pins.py
+--- a/tools/rerecord_pins.py	1969-12-31 16:00:00.000000000 -0800
++++ b/tools/rerecord_pins.py	2026-10-26 00:12:11.396120118 -0700
+@@ -0,0 +1,98 @@
++#!/usr/bin/env python3
++"""Observe the exact Job C search cases; preserve raw streams encoded without edits."""
++from __future__ import annotations
++import argparse,base64,hashlib,json,os,queue,subprocess,threading,time
++from pathlib import Path
++
++CASES=[
++ ('WAC001','2rr3k/pp3pp1/1nnqbN1p/3pN3/2pP4/2P3Q1/PPB4P/R4RK1 w - - 0 1',12,8,'f6h5',661),
++ ('promotion_white','8/k1P5/2K5/8/8/8/8/8 w - - 0 1',1,1,'c6d7',None),
++ ('promotion_black','8/8/8/8/8/2k5/K1p5/8 b - - 0 1',1,1,'c3d2',None),
++]
++
++def raw_record(data):
++ return {'bytes':len(data),'sha256':hashlib.sha256(data).hexdigest(),'encoding':'base64','data':base64.b64encode(data).decode('ascii')}
++
++def observe(exe,case,out,timeout):
++ label,fen,depth,hashmb,move,score=case
++ p=subprocess.Popen([str(exe)],stdin=subprocess.PIPE,stdout=subprocess.PIPE,stderr=subprocess.PIPE,bufsize=0)
++ chunks={'stdout':[],'stderr':[]};events=queue.Queue();sent=[];deadline=time.monotonic()+timeout;row={'case':label,'fen':fen,'requested_depth':depth,'Hash':hashmb,'Threads':1,'OwnBook':False,'pid':p.pid}
++ def reader(name,pipe):
++  while True:
++   b=pipe.readline()
++   if not b:break
++   chunks[name].append(b)
++   if name=='stdout':events.put(b)
++  if name=='stdout':events.put(None)
++ threads=[threading.Thread(target=reader,args=(n,getattr(p,n)),daemon=True) for n in chunks]
++ for t in threads:t.start()
++ def send(line):
++  sent.append(line);p.stdin.write((line+'\n').encode());p.stdin.flush()
++ def get_line():
++  remain=deadline-time.monotonic()
++  if remain<=0:raise TimeoutError('observation deadline; no process is killed')
++  try:b=events.get(timeout=remain)
++  except queue.Empty:raise TimeoutError('observation deadline; no process is killed')
++  if b is None:raise RuntimeError('engine closed stdout before required reply')
++  return b.decode('utf-8','replace').rstrip('\r\n')
++ def until(wanted):
++  while True:
++   line=get_line()
++   if line==wanted:return
++ last_info=None
++ try:
++  send('uci');until('uciok')
++  for line in ['setoption name Threads value 1',f'setoption name Hash value {hashmb}','setoption name OwnBook value false','ucinewgame','isready']:send(line)
++  until('readyok');send('position fen '+fen);send(f'go depth {depth}')
++  while True:
++   line=get_line();fields=line.split()
++   if fields and fields[0]=='info' and all(k in fields for k in ['depth','score','pv']):
++    try:
++     d=int(fields[fields.index('depth')+1]);i=fields.index('score');kind=fields[i+1];v=int(fields[i+2]);pv=fields[fields.index('pv')+1:]
++     if d==depth:last_info={'depth':d,'score_kind':kind,'score':v,'pv':pv}
++    except (ValueError,IndexError):pass
++   elif fields and fields[0]=='bestmove':
++    if len(fields)<2:raise RuntimeError('malformed bestmove')
++    row['bestmove']=fields[1];break
++  if last_info is None:raise RuntimeError('missing completed requested-depth score/PV')
++  row.update(last_info);send('quit');p.stdin.close();p.wait(timeout=max(0.1,min(10,deadline-time.monotonic())))
++  for t in threads:t.join(timeout=1)
++  if any(t.is_alive() for t in threads):
++   raise RuntimeError('stream capture incomplete: stdout/stderr reader did not close; partial raw evidence retained')
++  if p.returncode!=0:raise RuntimeError('engine exit '+str(p.returncode))
++  if row['pv'][:1]!=[row['bestmove']]:raise RuntimeError('bestmove and completed-depth PV disagree')
++  row['documented_pin_matches']=(row['bestmove']==move and row['score_kind']=='cp' and (row['score']==score if score is not None else row['score']>100) and row['depth']==depth)
++  row['status']='OBSERVED'
++ except Exception as e:
++  row['status']='UNVERIFIED';row['error']=str(e)
++  if p.poll() is None:
++   try:send('stop');send('quit');p.stdin.close();p.wait(timeout=2)
++   except (OSError,ValueError,subprocess.TimeoutExpired):pass
++ finally:
++  row['exit']=p.poll();row['unclosed_pid']=p.pid if p.poll() is None else None
++  for t in threads:t.join(timeout=0.1)
++  row['stream_capture_complete']=not any(t.is_alive() for t in threads)
++  raw={'argv':[str(exe)],'sent':sent,'stdout':raw_record(b''.join(chunks['stdout'])),'stderr':raw_record(b''.join(chunks['stderr'])),'exit':p.poll(),'stream_capture_complete':row['stream_capture_complete']}
++  (out/f'forge_sol_S01_{label}_raw_20261025.json').write_text(json.dumps(raw,indent=2)+'\n')
++ return row
++
++def main():
++ a=argparse.ArgumentParser(description=__doc__);a.add_argument('exe',type=Path);a.add_argument('--out',type=Path,required=True);a.add_argument('--timeout',type=float,default=300);a.add_argument('--expect-lock',dest='expect_lock',action='store_true',default=True,help='default: exit 1 unless all 3 documented lock pins match');a.add_argument('--observe-only',dest='expect_lock',action='store_false',help='record observations of a new net; prints RECORDED, never PASS');args=a.parse_args()
++ if args.timeout<=0:raise SystemExit('--timeout must be positive')
++ exe=args.exe.resolve(strict=True)
++ if not exe.is_file() or not os.access(exe,os.X_OK):raise SystemExit('executable is not readable/executable')
++ args.out.mkdir(parents=False,exist_ok=False)
++ record={'exe':str(exe),'exe_sha256':hashlib.sha256(exe.read_bytes()).hexdigest(),'policy':'Observations only; no pins, engine or input files edited. No affinity, host-limit or process termination changes. Raw streams preserved as base64 with original SHA256.','cases':[]}
++ for case in CASES:
++  row=observe(exe,case,args.out,args.timeout);record['cases'].append(row)
++  if row['status']=='OBSERVED':
++   print(f"{row['case']}: best={row['bestmove']} score={row['score_kind']}:{row['score']} depth={row['depth']} pv0={row['pv'][0]} documented_pin_matches={row['documented_pin_matches']}",flush=True)
++  else:print(f"{row['case']}: UNVERIFIED {row.get('error','')} unclosed_pid={row['unclosed_pid']}",flush=True)
++  if row['unclosed_pid'] is not None:break
++ observed=len(record['cases'])==3 and all(r['status']=='OBSERVED' for r in record['cases']);matched=sum(1 for r in record['cases'] if r.get('documented_pin_matches'))
++ if not observed:record['status']='UNVERIFIED'
++ elif not args.expect_lock:record['status']='RECORDED'
++ else:record['status']='PASS' if matched==3 else 'MISMATCH'
++ record['expect_lock']=args.expect_lock;record['documented_pins_matched']=matched
++ (args.out/'forge_sol_S01_pin_results_20261025.json').write_text(json.dumps(record,indent=2)+'\n');print(f"PIN_OBSERVATION_{record['status']} ({matched} of 3 match documented pins)");return 0 if record['status'] in ('PASS','RECORDED') else 1
++if __name__=='__main__':raise SystemExit(main())
+diff -ruN '--exclude=nnue_weights.inc' a/tools/rerecord_pins.sh b/tools/rerecord_pins.sh
+--- a/tools/rerecord_pins.sh	1969-12-31 16:00:00.000000000 -0800
++++ b/tools/rerecord_pins.sh	2026-10-26 00:12:11.396120118 -0700
+@@ -0,0 +1,5 @@
++#!/usr/bin/env bash
++# Read-only engine pin observations; never changes expected values or host limits.
++set -euo pipefail
++script_dir="$(CDPATH='' cd -- "$(dirname -- "$0")" && pwd)"
++exec python3 -B "$script_dir/rerecord_pins.py" "$@"
