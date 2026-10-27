@@ -94,6 +94,32 @@ case "$MODE" in
     grep -q '^ALL OK' "$OUT/identity_on.log" || status=1
     bench_prof_pins "$OUT/build_on/forge" on 11 13 16 20 22
     ctest_known "$OUT/build_on" release_on
+    # S08-4: dead-feature collection on the substitute corpus (v2: AL1 pins); Sol's v1 must stop at its own pins.
+    CORPUS="$JOB/corpus"
+    SUITES=(--suite forge_sol_S08_WAC_profile_corpus_20261026.epd --suite forge_sol_S08_BENCH_profile_corpus_20261026.epd
+            --suite forge_sol_S08_OPENING_profile_corpus_20261026.epd
+            --corpus-manifest forge_sol_S08_authorized_corpus_manifest_20261026.json --nodes 10000)
+    (cd "$CORPUS" && python3 -B "$JOB/forge_sol_S08_collect_profiles_v2.py" --engine "$OUT/build_on/forge" "${SUITES[@]}" \
+       --output "$OUT/collect_v2_linux") 2>&1 | tee "$OUT/collect_v2_linux.log"
+    grep -q '"status": "PASS"' "$OUT/collect_v2_linux.log" || status=1
+    cp "$OUT/collect_v2_linux/report.json" "$OUT/collect_v2_linux_report.txt" 2>/dev/null
+    cp "$OUT/collect_v2_linux/firing_table.md" "$OUT/collect_v2_linux_firing_table.txt" 2>/dev/null
+    python3 -B "$JOB/forge_sol_S08_deadfeature_table_v2.py" "$OUT/collect_v2_linux/report.json" \
+      "$OUT/deadfeature_table_v2_linux.txt" 2>&1 | tee -a "$OUT/collect_v2_linux.log"
+    if [ -f "$JOB/logs/collect_v2_AL1_report.json" ]; then
+      python3 - "$JOB/logs/collect_v2_AL1_report.json" "$OUT/collect_v2_linux/report.json" <<'PY' 2>&1 | tee -a "$OUT/collect_v2_linux.log"
+import json, sys
+a, b = (json.load(open(p)) for p in sys.argv[1:3])
+rows = lambda r: {(t, x['event']): (x['count'], x['opportunities']) for t in ('bench20_firing_table', 'corpus_firing_table') for x in r[t]}
+ra, rb = rows(a), rows(b)
+diff = sorted(k for k in ra if ra[k] != rb.get(k))
+print('PC (Windows) vs Linux collector counts: %d of %d rows identical; differing: %s' % (len(ra) - len(diff), len(ra), diff[:10]))
+PY
+    fi
+    (cd "$CORPUS" && python3 -B "$JOB/sol_v1_unchanged/forge_sol_S08_collect_profiles_substitute_20261026.py" \
+       --engine "$OUT/build_on/forge" "${SUITES[@]}" --output "$OUT/collect_v1_linux") > "$OUT/collect_v1_linux_RED.log" 2>&1
+    echo "v1 collector exit $? (expected 1); failure: $(python3 -c "import json;print(json.load(open('$OUT/collect_v1_linux/report.json')).get('failure'))")" \
+      | tee -a "$OUT/collect_v1_linux_RED.log"
     export MACHINE_EXCLUSIVE='no (GitHub-hosted runner VM: this job alone on the VM, physical host shared)'
     python3 "$JOB/nps_prof_ab.py" --runs 10 --depth 16 --depth 20 --arm lock="$OUT/build_lock/forge" \
       --arm off="$OUT/build_default/forge" --arm on_inactive="$OUT/build_on/forge" \
