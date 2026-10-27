@@ -3,9 +3,11 @@
 #include "forge/nnue.hpp"
 #include "forge/search.hpp"
 #include "forge/uci_output.hpp"
+#include "search/timeman.hpp"
 
 #include <algorithm>
 #include <array>
+#include <atomic>
 #include <charconv>
 #include <chrono>
 #include <condition_variable>
@@ -14,8 +16,21 @@
 #include <sstream>
 #include <string>
 #include <string_view>
+#include <memory>
+#include <optional>
 #include <thread>
+#include <utility>
 #include <vector>
+
+#ifdef _WIN32
+#ifndef NOMINMAX
+#define NOMINMAX
+#endif
+#ifndef WIN32_LEAN_AND_MEAN
+#define WIN32_LEAN_AND_MEAN
+#endif
+#include <windows.h>
+#endif
 
 namespace {
 
@@ -120,6 +135,157 @@ int game_ply(const forge::Board& board) {
     return 2 * (board.fullmove_number() - 1) + (board.side_to_move() == forge::Black ? 1 : 0);
 }
 
+// HardDeadline (forge/search_options.hpp): state of one `go` shared by the
+// search thread, its watchdog and the UCI loop.
+struct SearchRun {
+    std::mutex mutex;
+    std::condition_variable cv;
+    bool done = false;  // this go is over: its bestmove is out (or the UCI loop ended it)
+    bool ponder_hit = false;
+    std::chrono::steady_clock::time_point ponder_hit_time{};
+    // Claimed by whoever sends this go's single bestmove (search thread or watchdog).
+    std::atomic<bool> answered{false};
+};
+
+// HardDeadline control threads (the UCI input loop and the watchdog) wait almost
+// all the time; at time-critical priority they wake on time even when the
+// engine's search threads are starved of CPU (e.g. a niced engine sharing a core
+// with other work). Heavy commands run at normal priority. Windows only: other
+// systems need privileges to raise a thread's priority.
+void set_control_priority(bool time_critical) {
+#ifdef _WIN32
+    (void)SetThreadPriority(GetCurrentThread(), time_critical ? THREAD_PRIORITY_TIME_CRITICAL : THREAD_PRIORITY_NORMAL);
+#else
+    (void)time_critical;
+#endif
+}
+
+bool contains(const forge::MoveList& moves, forge::Move move) {
+    return std::find(moves.begin(), moves.end(), move) != moves.end();
+}
+
+// The watchdog's answer: the published best/ponder pair if legal here, else the
+// first legal move (the search's own fallback), else "0000".
+std::string forced_bestmove(const forge::Board& board, bool ponder_enabled) {
+    const auto [best, ponder] = forge::Searcher::published_moves();
+    const forge::MoveList legal = board.legal_moves();
+    if (legal.empty()) return "bestmove 0000";
+    if (best.is_none() || !contains(legal, best)) return "bestmove " + forge::Board::move_to_uci(legal.front());
+    std::string line = "bestmove " + forge::Board::move_to_uci(best);
+    if (ponder_enabled && !ponder.is_none()) {
+        forge::Board after = board;
+        forge::Undo undo;
+        (void)after.make_move(best, undo);
+        if (contains(after.legal_moves(), ponder)) line += " ponder " + forge::Board::move_to_uci(ponder);
+    }
+    return line;
+}
+
+// HardDeadline watchdog: one persistent thread, started when the option is set,
+// that raises its own priority once (a thread created at search time would first
+// have to be scheduled at normal priority, which a starved engine cannot count
+// on) and then serves every clocked go: it sleeps until the go's deadline (hard
+// limit + HardDeadline ms; ponder searches from ponderhit) and, if the search has
+// not answered by then, stops it and sends the bestmove itself.
+class DeadlineWatchdog {
+public:
+    struct Job {
+        std::shared_ptr<SearchRun> run;
+        forge::Board board;
+        bool ponder = false;
+        std::chrono::steady_clock::time_point origin{};
+        std::chrono::milliseconds allowance{0};
+        bool ponder_enabled = false;
+    };
+
+    explicit DeadlineWatchdog(forge::Searcher& searcher) : searcher_(searcher) {}
+    ~DeadlineWatchdog() {
+        {
+            const std::lock_guard<std::mutex> lock(mutex_);
+            quit_ = true;
+        }
+        cv_.notify_all();
+        if (thread_.joinable()) thread_.join();
+    }
+    DeadlineWatchdog(const DeadlineWatchdog&) = delete;
+    DeadlineWatchdog& operator=(const DeadlineWatchdog&) = delete;
+
+    void start() {
+        if (!thread_.joinable()) thread_ = std::thread([this] { loop(); });
+    }
+
+    void arm(Job job) {
+        start();
+        {
+            const std::lock_guard<std::mutex> lock(mutex_);
+            job_ = std::move(job);
+        }
+        cv_.notify_all();
+    }
+
+    // Call after the run is marked done: returns once the watchdog no longer
+    // serves it, so a forced bestmove can never come after later output.
+    void finish(const SearchRun* run) {
+        std::unique_lock<std::mutex> lock(mutex_);
+        if (job_ && job_->run.get() == run) job_.reset();
+        cv_.wait(lock, [this, run] { return serving_ != run; });
+    }
+
+private:
+    void loop() {
+        set_control_priority(true);
+        std::unique_lock<std::mutex> lock(mutex_);
+        while (true) {
+            cv_.wait(lock, [this] { return quit_ || job_.has_value(); });
+            if (quit_) return;
+            Job job = std::move(*job_);
+            job_.reset();
+            serving_ = job.run.get();
+            lock.unlock();
+            serve(job);
+            lock.lock();
+            serving_ = nullptr;
+            cv_.notify_all();
+        }
+    }
+
+    void serve(const Job& job) {
+        SearchRun& run = *job.run;
+        std::unique_lock<std::mutex> lock(run.mutex);
+        auto origin = job.origin;
+        if (job.ponder) {
+            run.cv.wait(lock, [&run] { return run.done || run.ponder_hit; });
+            if (!run.ponder_hit) return;
+            origin = run.ponder_hit_time;
+        }
+        if (run.cv.wait_until(lock, origin + job.allowance, [&run] { return run.done; })) return;
+        lock.unlock();
+        if (run.answered.exchange(true)) return;  // the search thread is sending its bestmove
+        searcher_.stop();
+        const std::string line = forced_bestmove(job.board, job.ponder_enabled);
+        const auto late = std::chrono::duration_cast<std::chrono::milliseconds>(
+            std::chrono::steady_clock::now() - origin).count();
+        {
+            const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex());
+            std::cout << "info string HardDeadline: no answer within " << job.allowance.count()
+                      << " ms, bestmove sent at " << late << " ms" << std::endl;
+            std::cout << line << std::endl;
+        }
+        lock.lock();
+        run.done = true;
+        lock.unlock();
+        run.cv.notify_all();
+    }
+
+    forge::Searcher& searcher_;
+    std::mutex mutex_;
+    std::condition_variable cv_;
+    std::optional<Job> job_;
+    const SearchRun* serving_ = nullptr;
+    bool quit_ = false;
+    std::thread thread_;
+};
+
 } // namespace
 
 int main() {
@@ -137,10 +303,16 @@ int main() {
         std::chrono::steady_clock::now().time_since_epoch().count()) | 1ULL;
     bool ponder_search_active = false;
     std::thread worker;
+    // HardDeadline state of the current go (see SearchRun / DeadlineWatchdog).
+    std::shared_ptr<SearchRun> run;
+    DeadlineWatchdog deadline_watchdog(searcher);
     std::mutex stop_mutex;
     std::condition_variable stop_cv;
     bool stop_requested = false;
     bool ponder_hit_received = false;
+    // Hidden test hook (not advertised): the search thread waits this long before
+    // searching, which simulates a starved search thread for the HardDeadline tests.
+    int debug_search_delay_ms = 0;
     auto stop_search = [&]() {
         {
             const std::lock_guard<std::mutex> lock(stop_mutex);
@@ -149,11 +321,26 @@ int main() {
         searcher.stop();
         stop_cv.notify_all();
         if (worker.joinable()) worker.join();
+        if (run) {
+            { const std::lock_guard<std::mutex> lock(run->mutex); run->done = true; }
+            run->cv.notify_all();
+            deadline_watchdog.finish(run.get());
+        }
         ponder_search_active = false;
     };
 
+    // HardDeadline: the input loop waits for commands at time-critical priority.
+    bool control_high = false;
+    auto control_priority = [&control_high](bool high) {
+        if (high == control_high) return;
+        set_control_priority(high);
+        control_high = high;
+    };
+
     std::string line;
-    while (std::getline(std::cin, line)) {
+    while (true) {
+        control_priority(forge::options::hard_deadline_ms > 0);
+        if (!std::getline(std::cin, line)) break;
         const auto command_start = std::chrono::steady_clock::now();
         std::istringstream input(line);
         std::string command;
@@ -171,6 +358,8 @@ int main() {
                          "option name Book Depth type spin default 30 min 0 max 100\n"
                          "option name Book Variety type spin default 30 min 0 max 100\n";
             if (forge::nnue::available()) std::cout << "option name UseNNUE type check default true\n";
+            // Search options added after AL1 s198; all default OFF (see forge/search_options.hpp).
+            std::cout << "option name HardDeadline type spin default 0 min 0 max 1000\n";
 #ifdef FORGE_EXPOSE_TUNABLES
             // Development builds advertise the search constants so match
             // runners can set them; release builds accept them silently.
@@ -184,10 +373,12 @@ int main() {
         } else if (command == "isready") {
             { const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex()); std::cout << "readyok" << std::endl; }
         } else if (command == "ucinewgame") {
+            control_priority(false);
             stop_search();
             searcher.clear();
             (void)board.set_fen(forge::Board::StandardStartFen);
         } else if (command == "setoption") {
+            control_priority(false);  // Hash resize / clears / book loading can be heavy
             stop_search();
             std::string token;
             std::string name;
@@ -259,6 +450,23 @@ int main() {
                 } else {
                     book_variety = std::clamp(value, 0, 100);
                 }
+            } else if (name == "DebugSearchDelayMs") {
+                int value = 0;
+                const auto parsed = std::from_chars(value_text.data(), value_text.data() + value_text.size(), value);
+                if (parsed.ec == std::errc{} && parsed.ptr == value_text.data() + value_text.size()) {
+                    debug_search_delay_ms = std::clamp(value, 0, 10000);
+                }
+            } else if (name == "HardDeadline") {
+                int value = 0;
+                const auto parsed = std::from_chars(value_text.data(), value_text.data() + value_text.size(), value);
+                if (parsed.ec != std::errc{} || parsed.ptr != value_text.data() + value_text.size()) {
+                    const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex());
+                    std::cout << "info string invalid value for option HardDeadline" << std::endl;
+                } else {
+                    forge::options::hard_deadline_ms = std::clamp(value, 0, 1000);
+                    // Start (and prioritise) the watchdog now, not inside a starved search.
+                    if (forge::options::hard_deadline_ms > 0) deadline_watchdog.start();
+                }
             } else if (name == "UseNNUE") {
                 if (value_text == "true") forge::nnue::enabled = true;
                 else if (value_text == "false") forge::nnue::enabled = false;
@@ -290,6 +498,7 @@ int main() {
             const auto position = input.tellg();
             input >> first;
             if (first == "perft") {
+                control_priority(false);
                 std::string depth_text;
                 int depth = -1;
                 if (!(input >> depth_text)) depth_text.clear();
@@ -351,8 +560,14 @@ int main() {
                 }
                 ponder_search_active = limits.ponder;
                 searcher.reset_stop();
-                worker = std::thread([&searcher, &stop_mutex, &stop_cv, &stop_requested,
-                                      &ponder_hit_received, search_board, limits, ponder_enabled]() mutable {
+                run = std::make_shared<SearchRun>();
+                const bool deadline_watch = forge::options::hard_deadline_ms > 0 && !limits.infinite &&
+                                            (limits.time_ms >= 0 || limits.movetime_ms >= 0);
+                if (deadline_watch) forge::Searcher::reset_published_moves();
+                worker = std::thread([&searcher, &stop_mutex, &stop_cv, &stop_requested, &ponder_hit_received,
+                                      search_board, limits, ponder_enabled, run,
+                                      delay = debug_search_delay_ms]() mutable {
+                    if (delay > 0) std::this_thread::sleep_for(std::chrono::milliseconds(delay));
                     const forge::SearchInfo result = searcher.search(
                         search_board, limits, true, forge::Searcher::TTAccess::Exclusive);
                     if (limits.infinite || limits.ponder) {
@@ -370,13 +585,32 @@ int main() {
                         result.pv.front().promotion == result.best_move.promotion) {
                         prediction = " ponder " + forge::Board::move_to_uci(result.pv[1]);
                     }
-                    const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex());
-                    std::cout << "bestmove " << best << prediction << std::endl;
+                    // The HardDeadline watchdog may already have answered this go.
+                    if (run->answered.exchange(true)) return;
+                    {
+                        const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex());
+                        std::cout << "bestmove " << best << prediction << std::endl;
+                    }
+                    {
+                        const std::lock_guard<std::mutex> lock(run->mutex);
+                        run->done = true;
+                    }
+                    run->cv.notify_all();
                 });
+                if (deadline_watch) {
+                    std::int64_t soft_ms = 0;
+                    std::int64_t hard_ms = 0;
+                    bool managed = false;
+                    forge::timeman::allocate(limits, soft_ms, hard_ms, managed);
+                    deadline_watchdog.arm({run, search_board, limits.ponder, limits.start_time,
+                                           std::chrono::milliseconds(hard_ms + forge::options::hard_deadline_ms),
+                                           ponder_enabled});
+                }
             }
         } else if (command == "bench") {
             // Fixed-depth search over a small position set; prints a node
             // signature and speed for quick regression and performance checks.
+            control_priority(false);
             stop_search();
             int depth = 13;
             if (int parsed = 0; input >> parsed) depth = std::clamp(parsed, 1, 64);
@@ -416,6 +650,14 @@ int main() {
                     ponder_hit_received = true;
                 }
                 stop_cv.notify_all();
+                if (run) {
+                    {
+                        const std::lock_guard<std::mutex> lock(run->mutex);
+                        run->ponder_hit = true;
+                        run->ponder_hit_time = std::chrono::steady_clock::now();
+                    }
+                    run->cv.notify_all();
+                }
                 ponder_search_active = false;
             }
         } else if (command == "stop") {

@@ -4,6 +4,7 @@
 #include "forge/eval.hpp"
 #include "forge/history.hpp"
 #include "forge/nnue.hpp"
+#include "forge/search_options.hpp"
 #include "forge/search_tune.hpp"
 #include "forge/search_types.hpp"
 #include "forge/thread_data.hpp"
@@ -17,6 +18,7 @@
 #include <memory>
 #include <mutex>
 #include <thread>
+#include <utility>
 #include <vector>
 
 namespace forge {
@@ -58,6 +60,8 @@ private:
     [[nodiscard]] int static_evaluate(const Board& board, SearchStack* ss);
     void record_move(SearchStack* ss, const Board& board, const Move& move);
     void record_null_move(SearchStack* ss);
+    // HardDeadline: publish the main worker's current best/ponder move pair.
+    void publish_best_move(const SearchInfo& result);
 };
 
 // Public search facade: a shared transposition table plus one or more workers.
@@ -95,6 +99,14 @@ public:
     [[nodiscard]] static int evaluate(const Board& board) { return Evaluator::evaluate_uncached(board); }
     [[nodiscard]] Worker& main_worker() { return *workers_.front(); }
     [[nodiscard]] TranspositionTable& transposition_table() { return shared_.tt; }
+    // HardDeadline: best / ponder move pair of the main worker's last completed
+    // iteration (Move::none() until the first one after reset_published_moves()).
+    // Safe to call from any thread while a search runs.
+    static void reset_published_moves() { options::published_moves.store(0, std::memory_order_relaxed); }
+    [[nodiscard]] static std::pair<Move, Move> published_moves() {
+        const std::uint64_t pair = options::published_moves.load(std::memory_order_relaxed);
+        return {unpack_move(static_cast<std::uint32_t>(pair)), unpack_move(static_cast<std::uint32_t>(pair >> 32U))};
+    }
 
 private:
     SharedSearchState shared_;

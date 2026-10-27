@@ -127,6 +127,10 @@ if(Python3_Interpreter_FOUND)
     add_test(NAME ponder_regression
         COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tools/ponder_regression.py
                 $<TARGET_FILE:forge>)
+    # HardDeadline watchdog: exactly one legal bestmove per go when the watchdog races the search (C3).
+    add_test(NAME hard_deadline_regression
+        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tools/hard_deadline_regression.py
+                $<TARGET_FILE:forge> --iterations 60 --threads 1 --grace 1 --reference $<TARGET_FILE:forge>)
     add_test(NAME ownbook_regression
         COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tools/ownbook_regression.py
                 $<TARGET_FILE:forge> ${CMAKE_CURRENT_BINARY_DIR}/ownbook-regression.json)
