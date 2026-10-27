@@ -8,6 +8,7 @@ Checks, each over every position:
   export   the .fnn2 integers equal the checkpoint's quantised weights (q() of the trained parameters,
            king buckets folded with the factoriser)
   keys     king bucket and mirror flip of both perspectives: trainer feature function == engine
+  outbkt   output bucket (C5): trainer (output_map[pieces]) == engine, for every position
   acc      accumulators of both perspectives, computed by the trainer's model (its own feature
            function, QAT weights, F.linear) == the engine's, bit for bit (float32)
   output   the network output computed in PyTorch float32 in the engine's operation order (16 lanes,
@@ -15,7 +16,7 @@ Checks, each over every position:
   forward  the training-time model forward (logit * 400 / 2.25, hce_logit = 0) vs the engine's centipawns:
            max |diff| and the number of positions where trunc(forward) == engine (informational: the
            GEMM summation order differs from the engine's, so the last float bit can differ)
-PASS requires export, keys, acc and output to hold on all positions."""
+PASS requires export, keys, outbkt, acc and output to hold on all positions."""
 import argparse
 import json
 import os
@@ -51,7 +52,7 @@ def build_model(ck):
     cfg = ck["config"]
     if cfg.get("king_buckets"):
         m = T.NNUEKB(cfg["hidden"], cfg["king_map"], mirror=cfg["king_mirror"], factor=cfg["king_factor"],
-                     qat=True, residual=cfg["residual"])
+                     qat=True, residual=cfg["residual"], output_map=cfg.get("output_map"))
     else:
         m = T.NNUE(cfg["hidden"], qat=True, residual=cfg["residual"])
     m.load_state_dict(ck["model"])
@@ -81,10 +82,12 @@ def main():
             w1 = T.quant_int(model.ft_sum()).transpose(0, 2, 1).ravel()
             b1 = T.quant_int(model.ft_b)
             kmap, mirror = model.king_map.tolist(), model.mirror
+            omap = model.output_map.tolist()
         else:
             w1 = T.quant_int(model.ft.weight).T.ravel()
             b1 = T.quant_int(model.ft.bias)
             kmap, mirror = [0] * 64, False
+            omap = [0] * 33
         w2 = T.quant_int(model.out.weight).ravel()
         b2 = T.quant_int(model.out.bias).ravel()
     export_ok = (np.array_equal(np.frombuffer(net["w1"].tobytes(), "<i2"), w1) and
@@ -92,6 +95,7 @@ def main():
                  np.array_equal(np.frombuffer(net["w2"].tobytes(), "<i2"), w2) and
                  np.array_equal(np.frombuffer(net["b2"].tobytes(), "<i2"), b2) and
                  net["king_map"] == kmap and net["mirror"] == mirror and net["hidden"] == H and
+                 net["output_map"] == omap and net["output_buckets"] == max(omap) + 1 and
                  net["residual"] == bool(ck["config"]["residual"]))
     res["export"] = bool(export_ok)
 
@@ -129,6 +133,11 @@ def main():
             keys_ok = (cpp["white_bucket"] == 0) & (cpp["black_bucket"] == 0) & (cpp["white_flip"] == 0) & (cpp["black_flip"] == 0)
         res["keys_exact"] = int(keys_ok.sum())
 
+        # outbkt: the trainer's output row selection (C5)
+        pieces = (codes_t > 0).sum(1)
+        ob = model.output_map[pieces] if kb_model else torch.zeros(n, dtype=torch.long)
+        res["outbkt_exact"] = int((ob.numpy() == cpp["out_bucket"]).sum())
+
         # acc: the model's own first layer on its own features
         if kb_model:
             W = model.q(model.ft_sum()).permute(1, 0, 2).reshape(H, model.kb * T.FEATURES)
@@ -147,15 +156,15 @@ def main():
         idx = torch.arange(n)
         ours = acc[idx, stm_t]
         theirs = acc[idx, 1 - stm_t]
-        w2q = model.q(model.out.weight).reshape(-1)
-        b2q = model.q(model.out.bias).reshape(-1)[0]
+        w2q = model.q(model.out.weight).reshape(-1, 2 * H)[ob]          # [n, 2H]: each position's output row
+        b2q = model.q(model.out.bias).reshape(-1)[ob]                   # [n]
         a_ = torch.clamp(torch.clamp(ours, min=0.0), max=1.0)
         b_ = torch.clamp(torch.clamp(theirs, min=0.0), max=1.0)
-        term = (a_ * a_) * w2q[:H] + (b_ * b_) * w2q[H:]
+        term = (a_ * a_) * w2q[:, :H] + (b_ * b_) * w2q[:, H:]
         lanes = torch.zeros(n, 16, dtype=torch.float32)
         for h0 in range(0, H, 16):
             lanes = lanes + term[:, h0:h0 + 16]
-        out = torch.full((n,), float(b2q), dtype=torch.float32)
+        out = b2q.clone().to(torch.float32)
         for j in range(16):
             out = out + lanes[:, j]
         cp = torch.clamp((out * torch.tensor(400.0)) / torch.tensor(2.25), -30000.0, 30000.0).trunc().to(torch.int64).numpy()
@@ -178,18 +187,24 @@ def main():
                               for p in ("white", "black") for b in range(net["king_buckets"]) for fl in (0, 7)
                               if ((cpp[p + '_bucket'] == b) & (cpp[p + '_flip'] == fl)).any()}
     res["piece_counts"] = {int(k): int((cpp["pieces"] == k).sum()) for k in sorted(set(cpp["pieces"].tolist()))}
+    res["output_buckets"] = net["output_buckets"]
+    res["output_bucket_coverage"] = {int(k): int((cpp["out_bucket"] == k).sum()) for k in sorted(set(cpp["out_bucket"].tolist()))}
     res["max_abs_cp"] = int(np.abs(cpp["cp"]).max())
-    ok = res["export"] and res["keys_exact"] == n and res["acc_exact"] == n and res["output_exact"] == n
+    ok = (res["export"] and res["keys_exact"] == n and res["outbkt_exact"] == n and res["acc_exact"] == n and
+          res["output_exact"] == n)
     res["verdict"] = "PASS" if ok else "FAIL"
-    print(f"positions {n}  king buckets {net['king_buckets']} mirror {net['mirror']}  max |engine cp| {res['max_abs_cp']}")
+    print(f"positions {n}  king buckets {net['king_buckets']} mirror {net['mirror']}  output buckets {net['output_buckets']}  "
+          f"max |engine cp| {res['max_abs_cp']}")
     print(f"export (file ints == quantised checkpoint): {'OK' if res['export'] else 'MISMATCH'}")
     print(f"keys   (bucket, flip both perspectives):    {res['keys_exact']}/{n}")
+    print(f"outbkt (output bucket by piece count):      {res['outbkt_exact']}/{n}")
     print(f"acc    (both perspectives, float32 bits):   {res['acc_exact']}/{n}")
     print(f"output (engine-order float32 bits and cp):  {res['output_exact']}/{n}")
     print(f"forward (training model, GEMM order): max |cp diff| {res['forward_max_abs_diff_cp']:.6f}, "
           f"trunc equal {res['forward_trunc_equal']}/{n}")
     print("bucket coverage:", " ".join(f"{k}={v}" for k, v in res["bucket_coverage"].items()))
     print("piece counts:", " ".join(f"{k}:{v}" for k, v in res["piece_counts"].items()))
+    print("output bucket coverage:", " ".join(f"{k}:{v}" for k, v in res["output_bucket_coverage"].items()))
     print(res["verdict"])
     if a.json:
         with open(a.json, "w") as f:

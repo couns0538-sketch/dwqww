@@ -91,7 +91,7 @@ int eval(const std::string& net_path, const std::string& fen_path, const std::st
     std::ifstream in(fen_path);
     std::ofstream tsv(prefix + ".tsv", std::ios::binary);
     std::ofstream acc(prefix + ".acc", std::ios::binary);
-    tsv << "index\tstm\twhite_bucket\twhite_flip\tblack_bucket\tblack_flip\tpieces\tout_bits\tcp\n";
+    tsv << "index\tstm\twhite_bucket\twhite_flip\tblack_bucket\tblack_flip\tpieces\tout_bucket\tout_bits\tcp\n";
     std::string line;
     int index = 0;
     int cache_mismatch = 0;
@@ -119,13 +119,14 @@ int eval(const std::string& net_path, const std::string& fen_path, const std::st
         char hex[16];
         std::snprintf(hex, sizeof(hex), "%08x", static_cast<unsigned>(bits));
         tsv << index << '\t' << (board.side_to_move() == White ? 0 : 1) << '\t' << wk.bucket << '\t' << wk.flip << '\t'
-            << bk.bucket << '\t' << bk.flip << '\t' << popcount(board.occupied()) << '\t' << hex << '\t'
-            << v2::evaluate(net, board, a) << '\n';
+            << bk.bucket << '\t' << bk.flip << '\t' << popcount(board.occupied()) << '\t' << v2::output_bucket(net, board)
+            << '\t' << hex << '\t' << v2::evaluate(net, board, a) << '\n';
         acc.write(reinterpret_cast<const char*>(a.values.data()), static_cast<std::streamsize>(sizeof(a.values)));
         ++index;
     }
     std::cout << "evaluated " << index << " positions with " << net_path << " (king buckets " << net.king_buckets
-              << (net.mirror ? ", mirrored" : "") << "); refresh cache vs from-scratch mismatches: " << cache_mismatch << '\n';
+              << (net.mirror ? ", mirrored" : "") << ", output buckets " << net.output_buckets
+              << "); refresh cache vs from-scratch mismatches: " << cache_mismatch << '\n';
     return cache_mismatch == 0 ? 0 : 1;
 }
 

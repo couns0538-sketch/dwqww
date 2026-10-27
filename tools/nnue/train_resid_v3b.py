@@ -339,6 +339,19 @@ def king_map_from_args(buckets, map_text):
     return kmap
 
 
+# Output buckets (Opus C5), with --output-buckets N: N output heads (rows of the output layer); a position uses
+# the head output_map[number of pieces on the board, kings included] (33 entries; default map from
+# forge_nnue_v2.output_layout: n = pieces - 2 non-king pieces -> min(N - 1, n * N // 32), for N = 8 that is n // 4).
+# Works with or without king buckets (without: one unmirrored bucket = the standard 768 features).
+def output_map_from_args(buckets, map_text):
+    sys.path.insert(0, str(Path(__file__).resolve().parent))
+    import forge_nnue_v2 as V2
+    omap = [int(x) for x in map_text.replace(",", " ").split()] if map_text else V2.output_layout(buckets)
+    if len(omap) != 33 or max(omap) + 1 != buckets or min(omap) < 0:
+        raise ValueError(f"output map needs 33 entries using buckets 0..{buckets - 1}")
+    return omap
+
+
 def quant_int(p):
     """The integers q() uses for p (float32, round half away from zero, clamp to int16), as int16 numpy."""
     s = p.detach().float().cpu() * SCALE
@@ -347,15 +360,19 @@ def quant_int(p):
 
 
 class NNUEKB(nn.Module):
-    def __init__(self, hidden, king_map, mirror=True, factor=True, qat=True, residual=True):
+    def __init__(self, hidden, king_map, mirror=True, factor=True, qat=True, residual=True, output_map=None):
         super().__init__()
         self.hidden, self.qat, self.residual, self.mirror = hidden, qat, residual, bool(mirror)
         self.register_buffer("king_map", torch.tensor(king_map, dtype=torch.long))
         self.kb = max(king_map) + 1
+        output_map = [0] * 33 if output_map is None else list(output_map)
+        # C5: not part of the state dict (C4 checkpoints load unchanged); rebuilt from the config.
+        self.register_buffer("output_map", torch.tensor(output_map, dtype=torch.long), persistent=False)
+        self.ob = max(output_map) + 1
         self.ft_w = nn.Parameter(torch.zeros(self.kb, hidden, FEATURES))
         self.ft_f = nn.Parameter(torch.zeros(hidden, FEATURES)) if factor else None
         self.ft_b = nn.Parameter(torch.zeros(hidden))
-        self.out = nn.Linear(2 * hidden, 1)
+        self.out = nn.Linear(2 * hidden, self.ob)
         nn.init.normal_(self.ft_f if factor else self.ft_w, std=0.02)
         nn.init.zeros_(self.out.bias)
         if residual:
@@ -373,7 +390,10 @@ class NNUEKB(nn.Module):
         b = self.q(self.ft_b)
         hs = torch.clamp(F.linear(king_dense(codes, stm, self.king_map, self.mirror, self.kb), w, b), 0.0, 1.0).square()
         ho = torch.clamp(F.linear(king_dense(codes, 1 - stm, self.king_map, self.mirror, self.kb), w, b), 0.0, 1.0).square()
-        out = F.linear(torch.cat([hs, ho], 1), self.q(self.out.weight), self.q(self.out.bias)).squeeze(1)
+        out = F.linear(torch.cat([hs, ho], 1), self.q(self.out.weight), self.q(self.out.bias))
+        if self.ob > 1:  # C5: the output row of each position by its piece count
+            out = out.gather(1, self.output_map[(codes > 0).sum(1)].unsqueeze(1))
+        out = out.squeeze(1)
         return out + hce_logit if self.residual else out
 
 
@@ -386,16 +406,18 @@ def export_forge_v2(model, stem, residual):
             w1 = quant_int(model.ft_sum()).transpose(0, 2, 1)       # [KB, 768, H]
             b1 = quant_int(model.ft_b)
             kmap, kb, mirror = model.king_map.cpu().tolist(), model.kb, model.mirror
+            ob, omap = model.ob, model.output_map.cpu().tolist()
         else:
             w1 = quant_int(model.ft.weight).T[None]                 # [1, 768, H]
             b1 = quant_int(model.ft.bias)
             kmap, kb, mirror = [0] * 64, 1, False
-        w2, b2 = quant_int(model.out.weight).ravel(), quant_int(model.out.bias).ravel()
+            ob, omap = 1, [0] * 33
+        w2, b2 = quant_int(model.out.weight).ravel(), quant_int(model.out.bias).ravel()   # [OB][2H], [OB]
     path = stem.with_suffix(".fnn2")
     temp = path.with_name(path.name + ".tmp-" + uuid.uuid4().hex)
     try:
         V2.write_v2(temp, hidden=model.hidden, king_buckets=kb, residual=residual, mirror=mirror, king_map=kmap,
-                    w1=np.ascontiguousarray(w1).ravel(), b1=b1, w2=w2, b2=b2)
+                    w1=np.ascontiguousarray(w1).ravel(), b1=b1, w2=w2, b2=b2, output_buckets=ob, output_map=omap)
         if path.exists():
             raise FileExistsError(str(path))
         os.rename(temp, path)
@@ -644,6 +666,8 @@ def main():
     ap.add_argument("--king-mirror", type=int, choices=[0, 1], default=1, help="C4: mirror files e-h onto d-a per perspective (default 1)")
     ap.add_argument("--king-factor", type=int, choices=[0, 1], default=1, help="C4: shared factoriser block during training, folded into every bucket on export (default 1)")
     ap.add_argument("--export-v2", action="store_true", help="C4: also write <epoch>.fnn2 (format v2, 1 bucket) for the standard model")
+    ap.add_argument("--output-buckets", type=int, default=0, help="C5: N >= 2 output heads selected by the piece count (default map: n = non-king pieces -> min(N-1, n*N//32)); exports .fnn2 (engine: NNUEFile + NNUEOutputBuckets N); 0 = off")
+    ap.add_argument("--output-map", default="", help="C5: explicit output bucket map, 33 entries (pieces 0..32 incl. kings)")
     a = ap.parse_args()
     k = a.sigmoid_k
     if k != K_DEFAULT:
@@ -663,12 +687,19 @@ def main():
     else:
         val_idx = np.arange(hold["n"], dtype=np.int64)
     full_idx = np.arange(hold["n"], dtype=np.int64)
-    if a.king_buckets:
-        kmap = king_map_from_args(a.king_buckets, a.king_map)
-        model = NNUEKB(a.shape, kmap, mirror=bool(a.king_mirror), factor=bool(a.king_factor), qat=not a.no_qat,
-                       residual=a.residual or a.baseline_only).to(dev)
-        print(f"king buckets: {model.kb} mirror={model.mirror} factor={a.king_factor} map(rank 8 first, files a-h): "
+    v2_arch = bool(a.king_buckets or a.output_buckets)   # C4 / C5 architectures (exported as .fnn2 only)
+    if v2_arch:
+        if a.king_buckets:
+            kmap, mirror, factor = king_map_from_args(a.king_buckets, a.king_map), bool(a.king_mirror), bool(a.king_factor)
+        else:  # output buckets only: one unmirrored king bucket = the standard 768 features
+            kmap, mirror, factor = [0] * 64, False, False
+        omap = output_map_from_args(a.output_buckets, a.output_map) if a.output_buckets else None
+        model = NNUEKB(a.shape, kmap, mirror=mirror, factor=factor, qat=not a.no_qat,
+                       residual=a.residual or a.baseline_only, output_map=omap).to(dev)
+        print(f"king buckets: {model.kb} mirror={model.mirror} factor={factor} map(rank 8 first, files a-h): "
               + " | ".join(" ".join(str(kmap[r * 8 + f]) for f in range(8)) for r in range(7, -1, -1)), flush=True)
+        if omap is not None:
+            print(f"output buckets: {model.ob} map(pieces 0..32): " + " ".join(map(str, omap)), flush=True)
     else:
         model = NNUE(a.shape, qat=not a.no_qat, residual=a.residual or a.baseline_only).to(dev)
     base_sub, nb = evaluate(model, hold, val_idx, dev, k, a.batch_size, baseline=True)
@@ -717,9 +748,11 @@ def main():
         print(f"resumed {a.resume}: next_epoch={start_epoch} step={step}", flush=True)
     config = {"hidden": a.shape, "residual": bool(a.residual), "qat": not a.no_qat, "sigmoid_k": k,
               "features": "forge768-relative-pieces-rank-flip", "epochs": a.epochs, "steps_per_epoch": spe}
-    if a.king_buckets:  # C4 (absent for the standard model, so its checkpoints stay byte-identical)
+    if v2_arch:  # C4 / C5 (absent for the standard model, so its checkpoints stay byte-identical)
         config.update({"features": "forge768-king-buckets", "king_buckets": model.kb, "king_mirror": model.mirror,
-                       "king_factor": bool(a.king_factor), "king_map": model.king_map.cpu().tolist()})
+                       "king_factor": model.ft_f is not None, "king_map": model.king_map.cpu().tolist()})
+        if model.ob > 1:
+            config.update({"output_buckets": model.ob, "output_map": model.output_map.cpu().tolist()})
 
     def lr_at(s):
         if s < a.warmup_steps:
@@ -798,14 +831,14 @@ def main():
         payload = {"config": config, "model": cpu_copy(model.state_dict()), "optimizer": cpu_copy(opt.state_dict()),
                    "next_epoch": ep + 1, "step": step, "val": {str(b): v for b, v in vs.items()}}
         atomic_write(stem.with_suffix(".pt"), lambda dst: torch.save(payload, dst))
-        if a.king_buckets:  # C4: bucketed nets only exist as v2 files
+        if v2_arch:  # C4 / C5: bucketed nets only exist as v2 files
             export_forge_v2(model, stem, bool(a.residual))
         else:
             export_forge(model, stem, k, bool(a.residual))
             if a.export_v2:
                 export_forge_v2(model, stem, bool(a.residual))
         atomic_write(stem.with_suffix(".json"), lambda dst: dst.write((json.dumps({**config, "val": payload["val"], "baseline": {str(b): v for b, v in base_sub.items()}}, indent=1) + "\n").encode()))
-        print(f"Saved {stem.name} (.pt .fnn2 .json)" if a.king_buckets else
+        print(f"Saved {stem.name} (.pt .fnn2 .json)" if v2_arch else
               f"Saved {stem.name} (.pt .inc .bin .json{' .fnn2' if a.export_v2 else ''})", flush=True)
         mem_report(f"epoch{ep + 1:03d}", a.max_ram_gb)
     finally:  # v3: join background epoch builder / prefetchers cleanly, also on exceptions

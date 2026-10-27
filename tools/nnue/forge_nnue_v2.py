@@ -8,7 +8,8 @@ Format (little-endian; the engine's loader is forge::nnue::v2::load in src/nnue.
   40  f32 weight_scale 4096     44  f32 output_scale 4096     48  f32 sigmoid_k 2.25
   52  u8  king_bucket_map[64]   own-king square in the perspective's frame (rank-flipped for Black,
                                 a1 = 0), BEFORE mirroring -> bucket
-  116 u8  output_bucket_map[33] total piece count 0..32 -> output bucket (all 0 when OB = 1)
+  116 u8  output_bucket_map[33] total piece count 0..32 (kings included) -> output bucket (C5; all 0 when OB = 1);
+                                default map output_layout(N): n = pieces - 2 -> min(N - 1, n * N // 32)
   149 u8  reserved[11] = 0
   160 i16 w1[KB][768][H]  i16 b1[H]  i16 w2[OB][2H]  i16 b2[OB]   (round(w * 4096))
   end u64 FNV-1a 64 of every preceding byte
@@ -22,11 +23,12 @@ Pure Python (struct/array); numpy arrays are accepted as weight inputs.
 
 CLI:
   forge_nnue_v2.py info <net.fnn2>
-  forge_nnue_v2.py from-inc <nnue_weights.inc> <out.fnn2> [--replica r1|r4|rm2|rm8|rm16]
+  forge_nnue_v2.py from-inc <nnue_weights.inc> <out.fnn2> [--replica r1|r4|rm2|rm8|rm16] [--output-buckets N]
       Converts a compiled-in (v1) network. Every replica evaluates exactly like the v1 network, so a
       search with it must reproduce the v1 bench node counts: r1 = 1 bucket; r4 = 4 identical buckets
       (king-bucket changes, no mirroring); rm2 / rm8 / rm16 = mirrored nets whose e-h half buckets hold
       the file-flipped v1 weights (rm8 / rm16 refresh exactly where a mirrored 4- / 8-bucket net does).
+      --output-buckets N (C5) replicates the output layer into N identical heads with output_layout(N).
 """
 from __future__ import annotations
 
@@ -94,6 +96,14 @@ def split_halves_map(half: list[int]) -> tuple[list[int], int]:
     """64-entry map where files e-h use their own buckets (offset by the layout's bucket count)."""
     n = max(half) + 1
     return [half[half_index(s)] + (n if (s & 7) >= 4 else 0) for s in range(64)], 2 * n
+
+
+def output_layout(buckets: int) -> list[int]:
+    """Default output bucket map (33 entries, pieces 0..32 incl. kings): n = pieces - 2 non-king pieces ->
+    min(N - 1, n * N // 32); for N = 8: n // 4 (2-5 pieces -> 0, 6-9 -> 1, ..., 30-32 -> 7)."""
+    if not 1 <= buckets <= 16:
+        raise ValueError("output buckets must be 1-16")
+    return [min(buckets - 1, max(p - 2, 0) * buckets // 32) for p in range(33)]
 
 
 def parse_map(text: str) -> list[int]:
@@ -211,7 +221,7 @@ def flipped_files(w1_bucket, hidden: int):
     return out
 
 
-def replica(inc: dict, kind: str) -> dict:
+def replica(inc: dict, kind: str, output_buckets: int = 1) -> dict:
     """v2 network that evaluates exactly like the v1 include (see module docstring)."""
     hidden, w1 = inc["hidden"], inc["w1"]
     if kind == "r1":
@@ -228,8 +238,13 @@ def replica(inc: dict, kind: str) -> dict:
     big = array("h")
     for b in range(kb):
         big.extend(flipped if flips[b] else w1)
+    w2, b2 = array("h"), array("h")
+    for _ in range(output_buckets):   # C5: identical heads
+        w2.extend(inc["w2"])
+        b2.extend(inc["b2"])
     return dict(hidden=hidden, king_buckets=kb, residual=inc["residual"], mirror=mirror, king_map=kmap,
-                w1=big, b1=inc["b1"], w2=inc["w2"], b2=inc["b2"])
+                w1=big, b1=inc["b1"], w2=w2, b2=b2, output_buckets=output_buckets,
+                output_map=output_layout(output_buckets))
 
 
 def main(argv=None) -> int:
@@ -241,6 +256,7 @@ def main(argv=None) -> int:
     p.add_argument("inc")
     p.add_argument("out")
     p.add_argument("--replica", default="r1", choices=["r1", "r4", "rm2", "rm8", "rm16"])
+    p.add_argument("--output-buckets", type=int, default=1, help="identical output heads (C5), default map")
     a = ap.parse_args(argv)
     if a.cmd == "info":
         n = read_v2(a.net)
@@ -251,10 +267,10 @@ def main(argv=None) -> int:
             print("  " + " ".join(f"{n['king_map'][r * 8 + f]:2d}" for f in range(8)))
         print("output map (pieces 0..32):", " ".join(map(str, n["output_map"])))
         return 0
-    net = replica(read_inc(a.inc), a.replica)
+    net = replica(read_inc(a.inc), a.replica, a.output_buckets)
     checksum = write_v2(a.out, **net)
     print(f"wrote {a.out}: replica {a.replica}, king_buckets {net['king_buckets']}, mirror {net['mirror']}, "
-          f"fnv1a {checksum:016x}")
+          f"output_buckets {net['output_buckets']}, fnv1a {checksum:016x}")
     return 0
 
 
