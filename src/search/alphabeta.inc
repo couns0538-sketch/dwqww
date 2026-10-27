@@ -1,9 +1,24 @@
 // Search module: main alpha-beta search (pruning, extensions, LMR).
-// Compiled as part of src/search.cpp (included exactly once).
+// Compiled as part of src/search.cpp, which includes this file twice:
+//   - FORGE_SEARCH_FN = search, FORGE_SEARCH_CORR_MARGINS = 0: Worker::search,
+//     the AL1 s198 search, used while UCI CorrMargins is 0;
+//   - FORGE_SEARCH_FN = search_corr_margins, FORGE_SEARCH_CORR_MARGINS = 1:
+//     the same search with the correction-size margins of UCI CorrMargins
+//     (forge/corr_margins.hpp) at reverse futility pruning, null-move pruning,
+//     quiet futility pruning and late-move reductions (the #if blocks below;
+//     one more #if only selects the instance's own copy of lmp_threshold,
+//     see src/search/corr_margins.inc).
+// FORGE_SEARCH_FN names the function defined here, which is also the function
+// its child nodes are searched with. The root (iterative.inc) picks the
+// instance once per iteration, so with CorrMargins 0 no node tests the option,
+// and the first instance's source is the AL1 s198 function.
+#if !defined(FORGE_SEARCH_FN) || !defined(FORGE_SEARCH_CORR_MARGINS)
+#error "define FORGE_SEARCH_FN and FORGE_SEARCH_CORR_MARGINS before including search/alphabeta.inc"
+#endif
 
 namespace forge {
 
-int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta, bool cut_node) {
+int Worker::FORGE_SEARCH_FN(Board& board, SearchStack* ss, int depth, int alpha, int beta, bool cut_node) {
     const bool pv_node = beta - alpha > 1;
     const bool root_node = ss->ply == 0;
     const int ply = ss->ply;
@@ -72,6 +87,10 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
             eval = tt_score;
         }
     }
+#if FORGE_SEARCH_CORR_MARGINS
+    // CorrMargins: size of the correction-history adjustment at this node (0 in check).
+    const int correction = corr_margins::correction_size(in_check, ss->static_eval, ss->raw_eval);
+#endif
 
     bool improving = false;
     if (!in_check) {
@@ -88,12 +107,24 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
             if (razor < alpha) return razor;
         }
         // Reverse futility pruning.
+#if FORGE_SEARCH_CORR_MARGINS
+        if (depth <= tune::RfpDepth && eval - corr_margins::rfp_margin(depth, improving, correction) >= beta &&
+            eval < MateInMaxPly) {
+            return eval;
+        }
+#else
         if (depth <= tune::RfpDepth && eval - (tune::RfpMargin * depth - tune::RfpImproving * improving) >= beta &&
             eval < MateInMaxPly) {
             return eval;
         }
+#endif
         // Null move pruning.
+#if FORGE_SEARCH_CORR_MARGINS
+        if (depth >= tune::NullMoveMinDepth && eval >= beta &&
+            ss->static_eval >= corr_margins::null_move_threshold(beta, depth, correction) &&
+#else
         if (depth >= tune::NullMoveMinDepth && eval >= beta && ss->static_eval >= beta - 24 * depth + 180 &&
+#endif
             ss->null_move_allowed && !(ss - 1)->current_move.is_none() &&
             board.has_non_pawn_material(board.side_to_move()) &&
             !(tt_hit && tt_bound == BoundUpper && tt_score < beta)) {
@@ -107,7 +138,7 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
             record_null_move(ss);
             NullUndo undo;
             board.make_null_move(undo);
-            int null_score = -search(board, ss + 1, depth - reduction, -beta, -beta + 1, !cut_node);
+            int null_score = -FORGE_SEARCH_FN(board, ss + 1, depth - reduction, -beta, -beta + 1, !cut_node);
             board.unmake_null_move(undo);
             if (aborted_) return 0;
             if (null_score >= beta) {
@@ -118,7 +149,7 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
                 }
                 // Verification search at high depth guards against zugzwang.
                 ss->null_move_allowed = false;
-                const int verification = search(board, ss, depth - reduction, beta - 1, beta, false);
+                const int verification = FORGE_SEARCH_FN(board, ss, depth - reduction, beta - 1, beta, false);
                 ss->double_extensions = inherited_double_extensions;
                 ss->null_move_allowed = true;
                 if (aborted_) return 0;
@@ -146,7 +177,7 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
                 (void)board.make_move(move, undo);
                 int value = -qsearch(board, ss + 1, -probcut_beta, -probcut_beta + 1);
                 if (value >= probcut_beta && !aborted_) {
-                    value = -search(board, ss + 1, depth - 4, -probcut_beta, -probcut_beta + 1, !cut_node);
+                    value = -FORGE_SEARCH_FN(board, ss + 1, depth - 4, -probcut_beta, -probcut_beta + 1, !cut_node);
                 }
                 board.unmake_move(move, undo);
                 if (aborted_) return 0;
@@ -190,11 +221,20 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
 
         // Shallow-depth pruning of unpromising moves.
         if (!root_node && best_score > -MateInMaxPly && has_material) {
+#if FORGE_SEARCH_CORR_MARGINS
+            if (quiet && !skip_quiets && move_count >= lmp_threshold_corr_margins(depth, improving)) skip_quiets = true;
+#else
             if (quiet && !skip_quiets && move_count >= lmp_threshold(depth, improving)) skip_quiets = true;
+#endif
             const int lmr_depth = std::max(0, depth - reduction(quiet, depth, move_count));
             if (quiet && !gives_check) {
+#if FORGE_SEARCH_CORR_MARGINS
+                if (!in_check && lmr_depth <= tune::FutilityDepth &&
+                    ss->static_eval + corr_margins::futility_margin(lmr_depth, correction) <= alpha) {
+#else
                 if (!in_check && lmr_depth <= tune::FutilityDepth &&
                     ss->static_eval + tune::FutilityBase + tune::FutilityMultiplier * lmr_depth <= alpha) {
+#endif
                     skip_quiets = true;
                     continue;
                 }
@@ -223,7 +263,7 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
             const int singular_depth = (depth - 1) / 2;
             const bool saved_tt_pv = ss->tt_pv;
             ss->excluded_move = move;
-            const int singular_score = search(board, ss, singular_depth, singular_beta - 1, singular_beta, cut_node);
+            const int singular_score = FORGE_SEARCH_FN(board, ss, singular_depth, singular_beta - 1, singular_beta, cut_node);
             ss->tt_pv = saved_tt_pv;
             ss->double_extensions = inherited_double_extensions;
             ss->excluded_move = Move::none();
@@ -275,11 +315,14 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
             if (in_check) r -= 1;
             if (tune::LmrCutoffThreshold > 0 && (ss + 1)->cutoff_count > tune::LmrCutoffThreshold) r += 1;
             if (quiet) r -= std::clamp(history / tune::LmrHistoryDivisor, -2, 2);
+#if FORGE_SEARCH_CORR_MARGINS
+            r = corr_margins::lmr_reduction(r, correction);
+#endif
             const int reduced_depth = std::clamp(new_depth - r, 1, new_depth);
-            score = -search(board, ss + 1, reduced_depth, -alpha - 1, -alpha, true);
+            score = -FORGE_SEARCH_FN(board, ss + 1, reduced_depth, -alpha - 1, -alpha, true);
             full_depth_needed = score > alpha && reduced_depth < new_depth;
             if (full_depth_needed) {
-                score = -search(board, ss + 1, new_depth, -alpha - 1, -alpha, !cut_node);
+                score = -FORGE_SEARCH_FN(board, ss + 1, new_depth, -alpha - 1, -alpha, !cut_node);
                 full_depth_needed = false;
             }
             if (!aborted_ && quiet && score > alpha) {
@@ -288,10 +331,10 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
             }
         }
         if (full_depth_needed && !aborted_) {
-            score = -search(board, ss + 1, new_depth, -alpha - 1, -alpha, !cut_node);
+            score = -FORGE_SEARCH_FN(board, ss + 1, new_depth, -alpha - 1, -alpha, !cut_node);
         }
         if (pv_node && !aborted_ && (move_count == 1 || score > alpha)) {
-            score = -search(board, ss + 1, new_depth, -beta, -alpha, false);
+            score = -FORGE_SEARCH_FN(board, ss + 1, new_depth, -beta, -alpha, false);
         }
         board.unmake_move(move, undo);
         if (aborted_) return 0;

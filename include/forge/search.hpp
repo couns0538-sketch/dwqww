@@ -4,6 +4,7 @@
 #include "forge/eval.hpp"
 #include "forge/history.hpp"
 #include "forge/nnue.hpp"
+#include "forge/search_options.hpp"
 #include "forge/search_tune.hpp"
 #include "forge/search_types.hpp"
 #include "forge/thread_data.hpp"
@@ -42,6 +43,9 @@ private:
     friend class MovePicker;
 
     int search(Board& board, SearchStack* ss, int depth, int alpha, int beta, bool cut_node);
+    // UCI CorrMargins: the main search with correction-size pruning margins
+    // (forge/corr_margins.hpp), a second instance of src/search/alphabeta.inc.
+    int search_corr_margins(Board& board, SearchStack* ss, int depth, int alpha, int beta, bool cut_node);
     int qsearch(Board& board, SearchStack* ss, int alpha, int beta);
     [[nodiscard]] bool should_stop();
     [[nodiscard]] std::int64_t elapsed_ms() const;

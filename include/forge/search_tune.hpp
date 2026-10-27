@@ -65,6 +65,12 @@ extern int CaptureFutilityBase;   // futility pruning of captures: base margin (
 extern int CaptureFutilityMultiplier;
 extern int CaptureFutilityDepth;
 extern int FailLowContinuationBonus; // x0.01 of the history bonus given to the parent move on fail low (0 = off)
+// UCI CorrMargins (forge/corr_margins.hpp): weights of |correction| (cp) in the
+// pruning margins; read only by the CorrMargins search instance; 0 = no change.
+extern int CorrRfpPct;            // reverse futility margin += |correction| * pct / 100
+extern int CorrFutilityPct;       // quiet futility margin += |correction| * pct / 100
+extern int CorrNullMovePct;       // null-move static-eval threshold += |correction| * pct / 100
+extern int CorrLmrPct;            // LMR reduction -= reduction * pct% per 64 cp of |correction|
 [[nodiscard]] const std::vector<Parameter>& parameters();
 // Call after changing LMR parameters.
 void refresh();

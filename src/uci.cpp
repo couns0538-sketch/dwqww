@@ -171,6 +171,8 @@ int main() {
                          "option name Book Depth type spin default 30 min 0 max 100\n"
                          "option name Book Variety type spin default 30 min 0 max 100\n";
             if (forge::nnue::available()) std::cout << "option name UseNNUE type check default true\n";
+            // Search options added after AL1 s198; all default OFF (see forge/search_options.hpp).
+            std::cout << "option name CorrMargins type spin default 0 min 0 max 1\n";
 #ifdef FORGE_EXPOSE_TUNABLES
             // Development builds advertise the search constants so match
             // runners can set them; release builds accept them silently.
@@ -258,6 +260,15 @@ int main() {
                     book_depth = std::clamp(value, 0, 100);
                 } else {
                     book_variety = std::clamp(value, 0, 100);
+                }
+            } else if (name == "CorrMargins") {
+                int value = 0;
+                const auto parsed = std::from_chars(value_text.data(), value_text.data() + value_text.size(), value);
+                if (parsed.ec != std::errc{} || parsed.ptr != value_text.data() + value_text.size()) {
+                    const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex());
+                    std::cout << "info string invalid value for option " << name << std::endl;
+                } else {
+                    forge::options::corr_margins = static_cast<std::uint8_t>(std::clamp(value, 0, 1));
                 }
             } else if (name == "UseNNUE") {
                 if (value_text == "true") forge::nnue::enabled = true;
