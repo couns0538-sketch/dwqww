@@ -113,6 +113,45 @@ void test_best_thread() {
     options::smp_best_thread = false;
 }
 
+// SmpBestThread ranking rule (better_thread_result): a mate score is never
+// replaced by a deeper line without a better score; without mate scores the
+// deeper completed iteration wins, then the higher score.
+void test_best_thread_ranking() {
+    auto info = [](int depth, int score) {
+        SearchInfo result;
+        result.depth = depth;
+        result.score = score;
+        return result;
+    };
+    const int mate9 = MateValue - 9;     // we mate in 5 moves
+    const int mate5 = MateValue - 5;     // we mate in 3 moves
+    const int mated9 = -MateValue + 9;   // we are mated in 5 moves
+    const int mated20 = -MateValue + 20; // we are mated in 10 moves
+    struct Case {
+        SearchInfo candidate, best;
+        bool expected;
+        const char* name;
+    };
+    const Case cases[] = {
+        {info(12, 10), info(11, 50), true, "deeper iteration wins without mate scores"},
+        {info(11, 60), info(11, 50), true, "equal depth: higher score wins"},
+        {info(11, 40), info(11, 50), false, "equal depth: lower score loses"},
+        {info(10, 900), info(11, 50), false, "shallower non-mate does not replace"},
+        {info(15, 300), info(11, mate9), false, "a deeper line without a mate never replaces a found mate"},
+        {info(20, 31000), info(11, mate9), false, "a deeper large non-mate score never replaces a found mate"},
+        {info(15, mate9 - 2), info(11, mate9), false, "a deeper but longer mate does not replace a shorter one"},
+        {info(9, mate5), info(11, mate9), true, "a shorter mate replaces a longer one at any depth"},
+        {info(9, mate9), info(14, 250), true, "a found mate replaces a deeper line without one"},
+        {info(13, -200), info(11, mated9), true, "a line that is not mated replaces a mated one"},
+        {info(16, mated9), info(11, -500), false, "a deeper mated line never replaces one that is not mated"},
+        {info(10, mated20), info(12, mated9), true, "of two mated lines the longer resistance wins"},
+        {info(14, mated9), info(12, mated20), false, "a deeper but shorter mated line does not replace a longer one"},
+    };
+    for (const Case& c : cases) {
+        check(better_thread_result(c.candidate, c.best) == c.expected, std::string("SmpBestThread ranking: ") + c.name);
+    }
+}
+
 void test_inert_single_thread() {
     for (const std::string& fen : Fens) {
         SearchInfo results[2];
@@ -135,6 +174,7 @@ void test_inert_single_thread() {
 int main() {
     test_worker_list_lifetime();
     test_exact_nodes();
+    test_best_thread_ranking();
     test_best_thread();
     test_inert_single_thread();
     std::cout << "smp housekeeping: checks=" << checks << " failures=" << failures << '\n';
