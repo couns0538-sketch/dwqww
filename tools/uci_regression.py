@@ -288,6 +288,15 @@ def main():
         e.send("setoption name Move Overhead value -1")
         e.send("setoption name Clear Hash")
         e.ready(); passed.append("malformed options and clear hash")
+        e.send("setoption name LocklessTT value true")
+        e.until(lambda line: line == "info string LocklessTT active")
+        e.position()
+        assert e.search("go depth 6")[0] != "0000"
+        for value in ("false", "maybe"):
+            e.send("setoption name LocklessTT value " + value)
+            e.send("isready")
+            assert not any("LocklessTT active" in line for line in e.until(lambda line: line == "readyok"))
+        passed.append("LocklessTT on reports 'info string LocklessTT active'; off and invalid values do not")
         e.position()
         e.send("position startpos moves e2e4 illegal")
         e.until(lambda line: "illegal move illegal" in line)

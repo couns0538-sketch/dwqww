@@ -273,6 +273,11 @@ int main() {
                     const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex());
                     std::cout << "info string invalid value for option " << name << std::endl;
                 }
+                if (name == "LocklessTT" && value_text == "true") {
+                    // Confirms the switch in engine logs (applied at the next search).
+                    const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex());
+                    std::cout << "info string LocklessTT active" << std::endl;
+                }
             } else if (name == "UseNNUE") {
                 if (value_text == "true") forge::nnue::enabled = true;
                 else if (value_text == "false") forge::nnue::enabled = false;

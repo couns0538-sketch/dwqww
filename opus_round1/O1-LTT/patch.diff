@@ -404,7 +404,7 @@ index 00000000..73aba02a
 +
 +#undef FORGE_LTT_TEXT
 diff --git a/src/uci.cpp b/src/uci.cpp
-index b78fdc8c..d660be19 100644
+index b78fdc8c..f46a1d23 100644
 --- a/src/uci.cpp
 +++ b/src/uci.cpp
 @@ -173,7 +173,8 @@ int main() {
@@ -417,7 +417,7 @@ index b78fdc8c..d660be19 100644
  #ifdef FORGE_EXPOSE_TUNABLES
              // Development builds advertise the search constants so match
              // runners can set them; release builds accept them silently.
-@@ -262,8 +263,10 @@ int main() {
+@@ -262,14 +263,21 @@ int main() {
                  } else {
                      book_variety = std::clamp(value, 0, 100);
                  }
@@ -430,6 +430,17 @@ index b78fdc8c..d660be19 100644
                  if (value_text == "true") option = true;
                  else if (value_text == "false") option = false;
                  else {
+                     const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex());
+                     std::cout << "info string invalid value for option " << name << std::endl;
+                 }
++                if (name == "LocklessTT" && value_text == "true") {
++                    // Confirms the switch in engine logs (applied at the next search).
++                    const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex());
++                    std::cout << "info string LocklessTT active" << std::endl;
++                }
+             } else if (name == "UseNNUE") {
+                 if (value_text == "true") forge::nnue::enabled = true;
+                 else if (value_text == "false") forge::nnue::enabled = false;
 diff --git a/tests/tt_coherence_tests.cpp b/tests/tt_coherence_tests.cpp
 index a880f2b1..8f8f61ca 100644
 --- a/tests/tt_coherence_tests.cpp
@@ -933,3 +944,23 @@ index 00000000..852c80b8
 +        return 2;
 +    }
 +}
+diff --git a/tools/uci_regression.py b/tools/uci_regression.py
+index a1456380..8a790666 100644
+--- a/tools/uci_regression.py
++++ b/tools/uci_regression.py
+@@ -288,6 +288,15 @@ def main():
+         e.send("setoption name Move Overhead value -1")
+         e.send("setoption name Clear Hash")
+         e.ready(); passed.append("malformed options and clear hash")
++        e.send("setoption name LocklessTT value true")
++        e.until(lambda line: line == "info string LocklessTT active")
++        e.position()
++        assert e.search("go depth 6")[0] != "0000"
++        for value in ("false", "maybe"):
++            e.send("setoption name LocklessTT value " + value)
++            e.send("isready")
++            assert not any("LocklessTT active" in line for line in e.until(lambda line: line == "readyok"))
++        passed.append("LocklessTT on reports 'info string LocklessTT active'; off and invalid values do not")
+         e.position()
+         e.send("position startpos moves e2e4 illegal")
+         e.until(lambda line: "illegal move illegal" in line)

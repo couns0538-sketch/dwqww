@@ -7,9 +7,11 @@
 - `60b0375`: CI fix
 - `c06eef2`: cheaper lockless probe (key checks only for occupied slots until a match; one-multiply check hash);
   CI adds a same-binary LocklessTT off/on bench A/B at Threads 1
+- follow-up (2026-10-27, the commit that adds this line): `setoption name LocklessTT value true` answers
+  `info string LocklessTT active` (section "Follow-up" below)
 
-**Patch.** `patch.diff` = `git diff origin/opus-O1 HEAD` over the engine tree and tests; it also contains the O3
-pins it merged. Ideas: `IDEA_SOURCE.md` (Hyatt & Mann 2002 lockless hashing; CPW "Shared Hash Table"; own variant).
+**Patch.** `patch.diff` = `git diff origin/opus-O1 HEAD` over the engine tree, tests and `tools/`; it also
+contains the O3 pins it merged. Ideas: `IDEA_SOURCE.md` (Hyatt & Mann 2002 lockless hashing; CPW "Shared Hash Table"; own variant).
 
 **Status.** UNPROVEN until gated; no Elo claim. The gate is SMP-only (Threads > 1).
 
@@ -57,6 +59,18 @@ is probed and written without its 1024 striped mutexes:
 | 5 | SMP NPS and time-to-depth Threads 1/2/4/8 OFF vs ON | **DONE** (numbers in "Scaling"): no significant time-to-depth difference at any thread count on a 4-vCPU runner; same-binary Threads=1 bench NPS with the option on −2.25% (d16) / −2.06% (d20), both 95% intervals below 0 |
 | §3 | ctest only known failures; ASan+UBSan; TSan | **PASS**: CI opus-ci run 40474683617 (`c06eef2`): release, ASan+UBSan and TSan ctest each "KNOWN-FAILURE CHECK: PASS (only the 4 known forge_tests lines; no sanitizer report)"; TSan hook `tsan_extra.sh` (engine searches with LocklessTT at Threads 2/4, option toggled between searches): TSan 0 reports, uci_stress 60 go / 60 bestmove, 0 illegal, 0 hangs (`logs/ci/opus_ci_40474683617_c06eef2a/`) |
 | — | planted bug: the key check disabled | **caught**: `forge_tt_tests` fails ("FAIL: concurrent aged-hit refresh tore payload, lost recency or mutated snapshot"), and the stress test returns corrupted entries: locally 156-191 per 4M operations at 2 threads (`logs/planted_bug_local.log`); on CI 5,341 (T4) and 6,296 (T8) per 10M on `c06eef2` (run 40474683529), 5,151 and 4,431 on `60b0375` (run 40471171993) (`planted_stress.log` in each run folder) |
+
+### Follow-up (2026-10-27): "info string LocklessTT active"
+Every `setoption name LocklessTT value true` answers `info string LocklessTT active`, so engine logs (fastchess
+`engine_io.log`, gate logs) show that the lockless table is on. The table switches at the next search, as before.
+`false` and invalid values print no such line; invalid values keep their "invalid value" message. Output only:
+no search or table code changed.
+
+| check | result | evidence |
+|---|---|---|
+| line on `true`, none on `false` / invalid | **PASS**. New `tools/uci_regression.py` check: it waits for the line after `true`, searches depth 6 with the option on, then asserts that `false` and `maybe` print nothing before `readyok`. `uci_regression` passes (box-recipe exe sha256 `08094b31…`). A manual probe gives `info string LocklessTT active` once, for the `true` line only | `logs/followup_uci_regression.log`, `logs/followup_probe.log` |
+| OFF = AL1 | **PASS**. Box recipe: bench 312866/862329/3024920/12389307/34048354, perft5 4865609, kiwipete 193690690, ALL OK; FMA 0 | `logs/followup_identity_pc_recipe.log` |
+| Linux release/ASan/TSan ctest | the opus-ci run on this push | — |
 
 ## TT stress (tests/tt_stress_tests.cpp)
 - **Method.** N threads probe and store one shared table with a small, colliding key set: 64 keys over 4
