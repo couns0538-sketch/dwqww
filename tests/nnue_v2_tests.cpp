@@ -588,7 +588,7 @@ void test_incremental_equals_refresh(const std::string& dir, long plies_per_net)
         std::cout << "WALK " << c.name << ": plies " << st.plies << " (null " << st.nulls << ") evaluations " << st.evals
                   << " computed accumulators verified " << st.verified << " king-key changes " << st.key_changes
                   << " longest replay " << st.max_chain << " restarts " << st.restarts << " mismatches " << bad << '\n';
-        report(bad == 0 && st.key_changes > 1000 && st.max_chain >= 3,
+        report(bad == 0 && st.key_changes * 50 > st.plies && st.max_chain >= 3,
                std::string("incremental == full refresh, bit-exact, ") + c.name + ": " + std::to_string(st.plies) + " plies");
         ++seed;
     }
