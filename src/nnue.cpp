@@ -6,7 +6,7 @@
 #include <cstdint>
 #include <cstring>
 #include <fstream>
-#include <iterator>
+#include <iomanip>
 #include <memory>
 #include <sstream>
 #include <vector>
@@ -258,24 +258,25 @@ const Net* active_net = nullptr;
 namespace {
 
 Net* loaded_net = nullptr;   // owned; deleted by load() / unload()
+std::uint64_t last_bytes_read = 0;   // bytes of its file the last load() read
 
 constexpr std::uint32_t FlagResidual = 1U;
 constexpr std::uint32_t FlagMirror = 2U;
 constexpr char Magic[8] = {'F', 'O', 'R', 'G', 'E', 'N', 'N', '2'};
 
-[[gnu::cold]] std::uint32_t read_u32(const std::vector<unsigned char>& bytes, std::size_t offset) {
+[[gnu::cold]] std::uint32_t read_u32(const unsigned char* bytes, std::size_t offset) {
     return static_cast<std::uint32_t>(bytes[offset]) | static_cast<std::uint32_t>(bytes[offset + 1]) << 8U |
            static_cast<std::uint32_t>(bytes[offset + 2]) << 16U | static_cast<std::uint32_t>(bytes[offset + 3]) << 24U;
 }
 
-[[gnu::cold]] float read_f32(const std::vector<unsigned char>& bytes, std::size_t offset) {
+[[gnu::cold]] float read_f32(const unsigned char* bytes, std::size_t offset) {
     const std::uint32_t bits = read_u32(bytes, offset);
     float value = 0.0F;
     std::memcpy(&value, &bits, sizeof(value));
     return value;
 }
 
-[[gnu::cold]] std::int16_t read_i16(const std::vector<unsigned char>& bytes, std::size_t offset) {
+[[gnu::cold]] std::int16_t read_i16(const unsigned char* bytes, std::size_t offset) {
     return static_cast<std::int16_t>(static_cast<std::uint16_t>(bytes[offset] | (bytes[offset + 1] << 8U)));
 }
 
@@ -295,12 +296,42 @@ constexpr char Magic[8] = {'F', 'O', 'R', 'G', 'E', 'N', 'N', '2'};
 
 } // namespace
 
+[[gnu::cold]] std::uint64_t file_bytes(int king_buckets, int output_buckets) {
+    const std::uint64_t w1 = static_cast<std::uint64_t>(king_buckets) * InputCount * HiddenSize;
+    const std::uint64_t w2 = static_cast<std::uint64_t>(output_buckets) * 2U * HiddenSize;
+    return static_cast<std::uint64_t>(HeaderBytes) + 2U * (w1 + HiddenSize + w2 + static_cast<std::uint64_t>(output_buckets)) + 8U;
+}
+
+[[gnu::cold]] std::uint64_t last_load_bytes_read() { return last_bytes_read; }
+
 [[gnu::cold]] bool load(const std::string& path, std::string* error) {
+    // Whatever happens below, the previously loaded net is gone: after a failed load no net is
+    // loaded, so the engine cannot evaluate with a net other than the one last requested.
+    unload();
+    last_bytes_read = 0;
     std::ifstream file(path, std::ios::binary);
     if (!file) return fail(error, "cannot open " + path);
-    const std::vector<unsigned char> bytes((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
-    if (bytes.size() < static_cast<std::size_t>(HeaderBytes) + 8U) return fail(error, "file too short for a v2 header");
-    if (std::memcmp(bytes.data(), Magic, sizeof(Magic)) != 0) return fail(error, "bad magic (not a FORGENN2 file)");
+    // The file size comes first (seek to the end): nothing is allocated or read before the size is
+    // known to be the one the header implies.
+    file.seekg(0, std::ios::end);
+    const std::streamoff end = file.tellg();
+    if (!file || end < 0) return fail(error, "cannot determine the size of " + path);
+    const auto size = static_cast<std::uint64_t>(end);
+    const std::uint64_t largest = file_bytes(MaxKingBuckets, MaxOutputBuckets);
+    if (size < static_cast<std::uint64_t>(HeaderBytes) + 8U) {
+        return fail(error, "file too short for a v2 net (" + std::to_string(size) + " bytes)");
+    }
+    if (size > largest) {
+        return fail(error, "file too large for a v2 net (" + std::to_string(size) + " bytes; the largest valid v2 file has " +
+                               std::to_string(largest) + ")");
+    }
+    std::array<unsigned char, HeaderBytes> header{};
+    file.seekg(0, std::ios::beg);
+    file.read(reinterpret_cast<char*>(header.data()), HeaderBytes);
+    if (!file) return fail(error, "cannot read the header of " + path);
+    last_bytes_read = HeaderBytes;
+    const unsigned char* bytes = header.data();
+    if (std::memcmp(bytes, Magic, sizeof(Magic)) != 0) return fail(error, "bad magic (not a FORGENN2 file)");
     if (read_u32(bytes, 8) != 2U) return fail(error, "unsupported version " + std::to_string(read_u32(bytes, 8)));
     if (read_u32(bytes, 12) != static_cast<std::uint32_t>(HeaderBytes)) return fail(error, "unexpected header size");
     if (read_u32(bytes, 16) != 0U) return fail(error, "unsupported feature set " + std::to_string(read_u32(bytes, 16)));
@@ -332,14 +363,23 @@ constexpr char Magic[8] = {'F', 'O', 'R', 'G', 'E', 'N', 'N', '2'};
     }
     const std::size_t w1_count = static_cast<std::size_t>(king_buckets) * InputCount * HiddenSize;
     const std::size_t w2_count = static_cast<std::size_t>(output_buckets) * 2U * HiddenSize;
-    const std::size_t expected = static_cast<std::size_t>(HeaderBytes) +
-                                 2U * (w1_count + HiddenSize + w2_count + output_buckets) + 8U;
-    if (bytes.size() != expected) {
-        return fail(error, "file size " + std::to_string(bytes.size()) + " != expected " + std::to_string(expected));
+    const std::uint64_t expected = file_bytes(static_cast<int>(king_buckets), static_cast<int>(output_buckets));
+    if (size != expected) {
+        return fail(error, "file size " + std::to_string(size) + " bytes does not match the " + std::to_string(expected) +
+                               " bytes implied by its header (" + std::to_string(king_buckets) + " king buckets, " +
+                               std::to_string(output_buckets) + " output buckets, hidden " + std::to_string(HiddenSize) +
+                               "); the weights were not read");
     }
+    // Only now are the weight blocks allocated and read.
+    std::vector<unsigned char> all(static_cast<std::size_t>(expected));
+    std::copy(header.begin(), header.end(), all.begin());
+    file.read(reinterpret_cast<char*>(all.data() + HeaderBytes), static_cast<std::streamsize>(expected - HeaderBytes));
+    if (!file) return fail(error, "cannot read the weights of " + path);
+    last_bytes_read = expected;
+    bytes = all.data();
     std::uint64_t stored = 0;
-    for (std::size_t i = 8; i-- > 0;) stored = (stored << 8U) | bytes[bytes.size() - 8U + i];
-    const std::uint64_t checksum = fnv1a64(bytes.data(), bytes.size() - 8U);
+    for (std::size_t i = 8; i-- > 0;) stored = (stored << 8U) | bytes[all.size() - 8U + i];
+    const std::uint64_t checksum = fnv1a64(bytes, all.size() - 8U);
     if (stored != checksum) return fail(error, "checksum mismatch (file damaged)");
 
     auto net = std::make_unique<Net>();
@@ -349,8 +389,8 @@ constexpr char Magic[8] = {'F', 'O', 'R', 'G', 'E', 'N', 'N', '2'};
     net->mirror = (flags & FlagMirror) != 0U;
     net->residual = (flags & FlagResidual) != 0U;
     net->checksum = checksum;
-    std::copy(bytes.begin() + 52, bytes.begin() + 116, net->king_map.begin());
-    std::copy(bytes.begin() + 116, bytes.begin() + 149, net->output_map.begin());
+    std::copy(bytes + 52, bytes + 116, net->king_map.begin());
+    std::copy(bytes + 116, bytes + 149, net->output_map.begin());
     net->w1.allocate(w1_count);
     net->b1.allocate(HiddenSize);
     net->w2.allocate(w2_count);
@@ -362,8 +402,6 @@ constexpr char Magic[8] = {'F', 'O', 'R', 'G', 'E', 'N', 'N', '2'};
     for (std::size_t i = 0; i < w2_count; ++i, offset += 2) net->w2.data()[i] = static_cast<float>(read_i16(bytes, offset)) / OutputScale;
     for (std::size_t i = 0; i < output_buckets; ++i, offset += 2) net->b2[i] = static_cast<float>(read_i16(bytes, offset)) / OutputScale;
 
-    if (active_net == loaded_net) active_net = nullptr;
-    delete loaded_net;
     loaded_net = net.release();
     return true;
 }
@@ -376,6 +414,14 @@ constexpr char Magic[8] = {'F', 'O', 'R', 'G', 'E', 'N', 'N', '2'};
 
 [[gnu::cold]] const Net* loaded() { return loaded_net; }
 
+[[gnu::cold]] std::string summary(const Net& net) {
+    std::ostringstream out;
+    out << net.path << " king buckets " << net.king_buckets << " output buckets " << net.output_buckets << " hidden "
+        << HiddenSize << (net.mirror ? " mirrored" : " unmirrored") << (net.residual ? " residual" : " stand-alone")
+        << " fnv1a " << std::hex << std::setw(16) << std::setfill('0') << net.checksum;
+    return out.str();
+}
+
 [[gnu::cold]] const Net* select(int king_buckets, int output_buckets, std::string* message) {
     active_net = nullptr;
     std::string text;
@@ -384,21 +430,17 @@ constexpr char Magic[8] = {'F', 'O', 'R', 'G', 'E', 'N', 'N', '2'};
     if (king_buckets <= 0 && output_buckets <= 0) {
         text = "off (NNUEKingBuckets 0, NNUEOutputBuckets 0): compiled-in network";
     } else if (loaded_net == nullptr) {
-        text = options + " needs a v2 net (NNUEFile); using the compiled-in network";
+        text = options + " needs a v2 net (NNUEFile)";
     } else if (king_buckets > 0 ? loaded_net->king_buckets != king_buckets
                                 : (loaded_net->king_buckets != 1 || loaded_net->mirror)) {
         text = options + " does not match the loaded net (" + std::to_string(loaded_net->king_buckets) +
-               (loaded_net->mirror ? " mirrored" : "") + " king buckets); using the compiled-in network";
+               (loaded_net->mirror ? " mirrored" : "") + " king buckets)";
     } else if (output_buckets > 0 ? loaded_net->output_buckets != output_buckets : loaded_net->output_buckets != 1) {
         text = options + " does not match the loaded net (" + std::to_string(loaded_net->output_buckets) +
-               " output buckets); using the compiled-in network";
+               " output buckets)";
     } else {
         active_net = loaded_net;
-        std::ostringstream out;
-        out << "active: " << loaded_net->path << " (king buckets " << loaded_net->king_buckets
-            << (loaded_net->mirror ? ", mirrored" : "") << ", output buckets " << loaded_net->output_buckets
-            << (loaded_net->residual ? ", residual" : ", stand-alone") << ")";
-        text = out.str();
+        text = "active: " + summary(*loaded_net);
     }
     if (message != nullptr) *message = text;
     return active_net;

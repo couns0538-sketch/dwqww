@@ -1,0 +1,168 @@
+# Fail-loud rule, engine transcripts: C4 review-fix exe (PC recipe, forge_c4fix.exe, commit 8fb138332010bcd1651c2af44f10c53e4fe030d1); valid net = the CPU-smoke-trained 4-king-bucket net smoke_kb4.fnn2 (sha256 692adca9...). Note: `quit` right after `go` stops the search at once, so that bestmove is the first root move searched (as in the lock)
+==================================================================
+# defaults (no NNUE option): nothing new, exit 0
+## stdin
+> uci
+> setoption name Threads value 1
+> setoption name Hash value 16
+> isready
+> go depth 5
+> isready
+> quit
+## stdout (id/option lines of 'uci' elided)
+< uciok
+< readyok
+< readyok
+< bestmove a2a3
+## exit status 0
+==================================================================
+# NNUEFile missing: ERROR at once and at isready, exit 2 (no readyok)
+## stdin
+> uci
+> setoption name Threads value 1
+> setoption name Hash value 16
+> setoption name NNUEFile value missing.fnn2
+> setoption name NNUEKingBuckets value 4
+> isready
+> go depth 5
+> quit
+## stdout (id/option lines of 'uci' elided)
+< uciok
+< info string ERROR NNUE v2: cannot load NNUEFile missing.fnn2: cannot open missing.fnn2
+< info string ERROR NNUE v2: cannot load NNUEFile missing.fnn2: cannot open missing.fnn2
+< info string ERROR NNUE v2: cannot load NNUEFile missing.fnn2: cannot open missing.fnn2
+## exit status 2
+==================================================================
+# NNUEFile truncated by 2 bytes: rejected by the size check, exit 2 at go (no bestmove)
+## stdin
+> uci
+> setoption name Threads value 1
+> setoption name Hash value 16
+> setoption name NNUEFile value truncated.fnn2
+> setoption name NNUEKingBuckets value 4
+> go depth 5
+> quit
+## stdout (id/option lines of 'uci' elided)
+< uciok
+< info string ERROR NNUE v2: cannot load NNUEFile truncated.fnn2: file size 1574568 bytes does not match the 1574570 bytes implied by its header (4 king buckets, 1 output buckets, hidden 256); the weights were not read
+< info string ERROR NNUE v2: cannot load NNUEFile truncated.fnn2: file size 1574568 bytes does not match the 1574570 bytes implied by its header (4 king buckets, 1 output buckets, hidden 256); the weights were not read
+< info string ERROR NNUE v2: cannot load NNUEFile truncated.fnn2: file size 1574568 bytes does not match the 1574570 bytes implied by its header (4 king buckets, 1 output buckets, hidden 256); the weights were not read
+## exit status 2
+==================================================================
+# wrong king bucket count (NNUEKingBuckets 8 for a 4-bucket net): exit 2 at isready
+## stdin
+> uci
+> setoption name Threads value 1
+> setoption name Hash value 16
+> setoption name NNUEFile value D:/grok-pc-data/dwqww/.claude/worktrees/b/c4_final/nets/smoke_kb4.fnn2
+> setoption name NNUEKingBuckets value 8
+> isready
+> quit
+## stdout (id/option lines of 'uci' elided)
+< uciok
+< info string NNUE v2: loaded D:/grok-pc-data/dwqww/.claude/worktrees/b/c4_final/nets/smoke_kb4.fnn2 king buckets 4 output buckets 1 hidden 256 mirrored residual fnv1a 971f7ad982fc3b3f
+< info string ERROR NNUE v2: NNUEFile D:/grok-pc-data/dwqww/.claude/worktrees/b/c4_final/nets/smoke_kb4.fnn2 is loaded (4 mirrored king buckets) but NNUEKingBuckets is 0; set NNUEKingBuckets 4 to use it
+< info string ERROR NNUE v2: NNUEKingBuckets 8 does not match NNUEFile D:/grok-pc-data/dwqww/.claude/worktrees/b/c4_final/nets/smoke_kb4.fnn2 (4 mirrored king buckets)
+< info string ERROR NNUE v2: NNUEKingBuckets 8 does not match NNUEFile D:/grok-pc-data/dwqww/.claude/worktrees/b/c4_final/nets/smoke_kb4.fnn2 (4 mirrored king buckets)
+## exit status 2
+==================================================================
+# NNUEKingBuckets 4 without NNUEFile: exit 2 at bench
+## stdin
+> uci
+> setoption name Threads value 1
+> setoption name Hash value 16
+> setoption name NNUEKingBuckets value 4
+> bench 5
+> quit
+## stdout (id/option lines of 'uci' elided)
+< uciok
+< info string ERROR NNUE v2: NNUEKingBuckets 4 is set but no v2 net is loaded (NNUEFile is empty)
+< info string ERROR NNUE v2: NNUEKingBuckets 4 is set but no v2 net is loaded (NNUEFile is empty)
+## exit status 2
+==================================================================
+# valid net, then a failed reload (old behaviour: kept the old net silently): exit 2
+## stdin
+> uci
+> setoption name Threads value 1
+> setoption name Hash value 16
+> setoption name NNUEFile value D:/grok-pc-data/dwqww/.claude/worktrees/b/c4_final/nets/smoke_kb4.fnn2
+> setoption name NNUEKingBuckets value 4
+> isready
+> setoption name NNUEFile value missing.fnn2
+> isready
+> quit
+## stdout (id/option lines of 'uci' elided)
+< uciok
+< info string NNUE v2: loaded D:/grok-pc-data/dwqww/.claude/worktrees/b/c4_final/nets/smoke_kb4.fnn2 king buckets 4 output buckets 1 hidden 256 mirrored residual fnv1a 971f7ad982fc3b3f
+< info string ERROR NNUE v2: NNUEFile D:/grok-pc-data/dwqww/.claude/worktrees/b/c4_final/nets/smoke_kb4.fnn2 is loaded (4 mirrored king buckets) but NNUEKingBuckets is 0; set NNUEKingBuckets 4 to use it
+< info string NNUE v2: active: D:/grok-pc-data/dwqww/.claude/worktrees/b/c4_final/nets/smoke_kb4.fnn2 king buckets 4 output buckets 1 hidden 256 mirrored residual fnv1a 971f7ad982fc3b3f
+< info string NNUE v2: active: D:/grok-pc-data/dwqww/.claude/worktrees/b/c4_final/nets/smoke_kb4.fnn2 king buckets 4 output buckets 1 hidden 256 mirrored residual fnv1a 971f7ad982fc3b3f
+< readyok
+< info string ERROR NNUE v2: cannot load NNUEFile missing.fnn2: cannot open missing.fnn2
+< info string ERROR NNUE v2: cannot load NNUEFile missing.fnn2: cannot open missing.fnn2
+## exit status 2
+==================================================================
+# valid net: active line at activation and at every isready, exit 0
+## stdin
+> uci
+> setoption name Threads value 1
+> setoption name Hash value 16
+> setoption name NNUEFile value D:/grok-pc-data/dwqww/.claude/worktrees/b/c4_final/nets/smoke_kb4.fnn2
+> setoption name NNUEKingBuckets value 4
+> isready
+> go depth 5
+> isready
+> quit
+## stdout (id/option lines of 'uci' elided)
+< uciok
+< info string NNUE v2: loaded D:/grok-pc-data/dwqww/.claude/worktrees/b/c4_final/nets/smoke_kb4.fnn2 king buckets 4 output buckets 1 hidden 256 mirrored residual fnv1a 971f7ad982fc3b3f
+< info string ERROR NNUE v2: NNUEFile D:/grok-pc-data/dwqww/.claude/worktrees/b/c4_final/nets/smoke_kb4.fnn2 is loaded (4 mirrored king buckets) but NNUEKingBuckets is 0; set NNUEKingBuckets 4 to use it
+< info string NNUE v2: active: D:/grok-pc-data/dwqww/.claude/worktrees/b/c4_final/nets/smoke_kb4.fnn2 king buckets 4 output buckets 1 hidden 256 mirrored residual fnv1a 971f7ad982fc3b3f
+< info string NNUE v2: active: D:/grok-pc-data/dwqww/.claude/worktrees/b/c4_final/nets/smoke_kb4.fnn2 king buckets 4 output buckets 1 hidden 256 mirrored residual fnv1a 971f7ad982fc3b3f
+< readyok
+< info string NNUE v2: active: D:/grok-pc-data/dwqww/.claude/worktrees/b/c4_final/nets/smoke_kb4.fnn2 king buckets 4 output buckets 1 hidden 256 mirrored residual fnv1a 971f7ad982fc3b3f
+< readyok
+< bestmove a2a3
+## exit status 0
+==================================================================
+# UseNNUE false with a v2 request: not an error (hand-crafted eval only), exit 0
+## stdin
+> uci
+> setoption name Threads value 1
+> setoption name Hash value 16
+> setoption name UseNNUE value false
+> setoption name NNUEFile value missing.fnn2
+> setoption name NNUEKingBuckets value 4
+> isready
+> go depth 5
+> quit
+## stdout (id/option lines of 'uci' elided)
+< uciok
+< info string NNUE v2: UseNNUE is false: hand-crafted evaluation only (NNUEFile missing.fnn2: cannot open missing.fnn2)
+< info string NNUE v2: UseNNUE is false: hand-crafted evaluation only (NNUEFile missing.fnn2: cannot open missing.fnn2)
+< readyok
+< bestmove a2a3
+## exit status 0
+==================================================================
+# request cleared (NNUEKingBuckets 0, NNUEFile <empty>): compiled-in net, exit 0
+## stdin
+> uci
+> setoption name Threads value 1
+> setoption name Hash value 16
+> setoption name NNUEFile value D:/grok-pc-data/dwqww/.claude/worktrees/b/c4_final/nets/smoke_kb4.fnn2
+> setoption name NNUEKingBuckets value 4
+> setoption name NNUEKingBuckets value 0
+> setoption name NNUEFile value <empty>
+> isready
+> go depth 5
+> quit
+## stdout (id/option lines of 'uci' elided)
+< uciok
+< info string NNUE v2: loaded D:/grok-pc-data/dwqww/.claude/worktrees/b/c4_final/nets/smoke_kb4.fnn2 king buckets 4 output buckets 1 hidden 256 mirrored residual fnv1a 971f7ad982fc3b3f
+< info string ERROR NNUE v2: NNUEFile D:/grok-pc-data/dwqww/.claude/worktrees/b/c4_final/nets/smoke_kb4.fnn2 is loaded (4 mirrored king buckets) but NNUEKingBuckets is 0; set NNUEKingBuckets 4 to use it
+< info string NNUE v2: active: D:/grok-pc-data/dwqww/.claude/worktrees/b/c4_final/nets/smoke_kb4.fnn2 king buckets 4 output buckets 1 hidden 256 mirrored residual fnv1a 971f7ad982fc3b3f
+< info string ERROR NNUE v2: NNUEFile D:/grok-pc-data/dwqww/.claude/worktrees/b/c4_final/nets/smoke_kb4.fnn2 is loaded (4 mirrored king buckets) but NNUEKingBuckets is 0; set NNUEKingBuckets 4 to use it
+< info string NNUE v2: off (NNUEKingBuckets 0): compiled-in network
+< readyok
+< bestmove a2a3
+## exit status 0

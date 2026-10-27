@@ -95,11 +95,40 @@ namespace options {
     // UseNNUE false disables every network (hand-crafted evaluation only).
     const nnue::v2::Net* net = nnue::v2::select(nnue::enabled ? nnue_king_buckets : 0,
                                                 nnue::enabled ? nnue_output_buckets : 0, message);
-    if (!nnue::enabled && (nnue_king_buckets > 0 || nnue_output_buckets > 0) && message != nullptr) {
-        *message = "UseNNUE is false: hand-crafted evaluation only";
-    }
+    if (!nnue::enabled && message != nullptr) *message = "UseNNUE is false: hand-crafted evaluation only";
     nnue_v2 = net != nullptr;
     return nnue_v2;
+}
+
+[[gnu::cold]] std::string nnue_v2_problem(const std::string& file, const std::string& load_error) {
+    if (!nnue::enabled) return {};   // UseNNUE false: every network off on purpose
+    const int kb = nnue_king_buckets;
+    const int ob = nnue_output_buckets;
+    if (file.empty() && kb <= 0 && ob <= 0) return {};   // nothing requested
+    if (!file.empty() && !load_error.empty()) return "cannot load NNUEFile " + file + ": " + load_error;
+    const nnue::v2::Net* net = nnue::v2::loaded();
+    if (net == nullptr) {
+        if (!file.empty()) return "NNUEFile " + file + " is not loaded";
+        const std::string set = kb > 0 && ob > 0 ? "NNUEKingBuckets " + std::to_string(kb) + " and NNUEOutputBuckets " +
+                                                       std::to_string(ob) + " are"
+                                : kb > 0 ? "NNUEKingBuckets " + std::to_string(kb) + " is"
+                                         : "NNUEOutputBuckets " + std::to_string(ob) + " is";
+        return set + " set but no v2 net is loaded (NNUEFile is empty)";
+    }
+    if (nnue_v2 && nnue::v2::active() == net) return {};
+    // The settings that select this net (select(): 0 stands for one unmirrored king bucket / one output bucket).
+    int want_kb = net->king_buckets == 1 && !net->mirror ? 0 : net->king_buckets;
+    const int want_ob = net->output_buckets == 1 ? 0 : net->output_buckets;
+    if (want_kb == 0 && want_ob == 0) want_kb = 1;
+    const std::string shape = std::to_string(net->king_buckets) + (net->mirror ? " mirrored" : "") + " king buckets, " +
+                              std::to_string(net->output_buckets) + " output buckets";
+    const std::string hint = "; to use it set NNUEKingBuckets " + std::to_string(want_kb) + ", NNUEOutputBuckets " +
+                             std::to_string(want_ob);
+    if (kb <= 0 && ob <= 0) {
+        return "NNUEFile " + net->path + " is loaded (" + shape + ") but NNUEKingBuckets is 0 and NNUEOutputBuckets is 0" + hint;
+    }
+    return "NNUEFile " + net->path + " (" + shape + ") does not match NNUEKingBuckets " + std::to_string(kb) +
+           ", NNUEOutputBuckets " + std::to_string(ob) + hint;
 }
 
 } // namespace options

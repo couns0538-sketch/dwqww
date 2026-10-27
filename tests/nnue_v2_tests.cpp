@@ -1,7 +1,9 @@
 // Tests for the v2 network path (C4/C5, forge/nnue_v2.hpp; UCI NNUEFile + NNUEKingBuckets / NNUEOutputBuckets):
 //   1. king bucket map and horizontal mirroring (king_key, feature indices, mirror and colour symmetry);
-//   2. the v2 file loader (valid file, every rejected corruption, failed load keeps the old net);
-//   3. option selection (bucket count must match, UseNNUE false wins, unload deactivates);
+//   2. the v2 file loader (valid file, every rejected corruption, a failed load leaves no net loaded, the
+//      file size is checked before the weights are read);
+//   3. option selection (bucket count must match, UseNNUE false wins, unload deactivates) and the
+//      fail-loud request rule (options::nnue_v2_problem; the UCI side is tests/nnue_v2_uci_tests.cpp);
 //   4. exact equivalence with the compiled-in network: replicas of it (1, 4, 2/8/16 mirrored king buckets)
 //      give bit-identical accumulators and evaluations, and identical search node counts;
 //   5. incremental == full refresh, bit-exact, over 100k random make/unmake plies driven through the
@@ -392,7 +394,9 @@ void test_loader(const std::string& dir) {
     const v2::Description d = v2::describe(*v2::loaded());
     report(d.king_buckets == 4 && d.mirror && d.residual && d.output_buckets == 1 && d.checksum == fnv(bytes.substr(0, bytes.size() - 8)),
            "describe(): buckets, mirror, residual, output buckets, FNV-1a checksum");
-    const v2::Net* before = v2::loaded();
+    report(v2::last_load_bytes_read() == bytes.size(), "a valid load reads the whole file (" + std::to_string(bytes.size()) + " bytes)");
+    // Every rejection: the good net is loaded first; after the failed load no net is loaded (the
+    // engine must not keep evaluating with a net other than the one requested).
     auto rejected = [&](std::string corrupt, const std::string& label, bool fix_checksum) {
         if (fix_checksum) {
             corrupt.resize(corrupt.size() - 8);
@@ -400,9 +404,13 @@ void test_loader(const std::string& dir) {
             for (int i = 0; i < 8; ++i) corrupt.push_back(static_cast<char>((h >> (8 * i)) & 0xFFU));
         }
         write_file(dir + "bad.fnn2", corrupt);
+        std::string reload_error;
+        const bool good_first = v2::load(path, &reload_error);
         std::string message;
         const bool loaded = v2::load(dir + "bad.fnn2", &message);
-        report(!loaded && !message.empty() && v2::loaded() == before, "rejects " + label + " (" + message + "), keeps the loaded net");
+        report(good_first && !loaded && !message.empty() && v2::loaded() == nullptr,
+               "rejects " + label + " (" + message + "); no net loaded afterwards");
+        return message;
     };
     auto patch32 = [&](std::size_t offset, std::uint32_t value) {
         std::string s = bytes;
@@ -425,12 +433,32 @@ void test_loader(const std::string& dir) {
     { std::string s = bytes; s[52 + 10] = 4; rejected(s, "king map entry 4 >= 4 buckets", true); }
     { std::string s = bytes; s[116 + 5] = 1; rejected(s, "output map entry 1", true); }
     { std::string s = bytes; s[150] = 1; rejected(s, "non-zero reserved byte", true); }
-    { std::string s = bytes; s.erase(500, 2); rejected(s, "truncated file", true); }
-    { std::string s = bytes; s.insert(500, "xy"); rejected(s, "two extra bytes", true); }
-    rejected("FORGENN2", "8-byte file", false);
+    // Size checks: the size comes from the file system (seek) and is compared with the size implied by
+    // the header before the weights are allocated or read (at most the 160 header bytes are read).
+    auto size_rejected = [&](const std::string& corrupt, const std::string& label, const std::string& phrase,
+                             std::uint64_t max_read) {
+        const std::string message = rejected(corrupt, label, false);
+        report(message.find(phrase) != std::string::npos && v2::last_load_bytes_read() <= max_read,
+               label + ": rejected by the size check after reading " + std::to_string(v2::last_load_bytes_read()) +
+                   " bytes (at most " + std::to_string(max_read) + ")");
+    };
+    { std::string s = bytes; s.erase(500, 2); size_rejected(s, "truncated file (2 bytes short)", "does not match", 160); }
+    size_rejected(bytes.substr(0, bytes.size() / 2), "file cut in half", "does not match", 160);
+    { std::string s = bytes; s.insert(500, "xy"); size_rejected(s, "two extra bytes", "does not match", 160); }
+    size_rejected(patch32(28, 32), "header claims 32 king buckets on a 4-bucket file", "does not match", 160);
+    size_rejected("FORGENN2", "8-byte file", "too short", 0);
+    size_rejected(bytes.substr(0, 167), "167-byte file (shorter than a header and checksum)", "too short", 0);
+    {
+        std::string huge = bytes;
+        huge.resize(static_cast<std::size_t>(v2::file_bytes(v2::MaxKingBuckets, v2::MaxOutputBuckets) + 1), '\0');
+        size_rejected(huge, "file one byte larger than the largest valid v2 file", "too large", 0);
+    }
+    report(v2::file_bytes(4, 1) == bytes.size() && v2::file_bytes(1, 1) == 394922U, "file_bytes(): 4 buckets = this file, 1 bucket = 394922 bytes");
     std::string message;
+    const bool reloaded = v2::load(path, &message);
     const bool missing = v2::load(dir + "does_not_exist.fnn2", &message);
-    report(!missing && v2::loaded() == before, "missing file rejected (" + message + ")");
+    report(reloaded && !missing && v2::loaded() == nullptr && v2::last_load_bytes_read() == 0,
+           "missing file rejected (" + message + "); no net loaded afterwards");
 }
 
 // ---------------------------------------------------------------- 3. option selection
@@ -458,6 +486,44 @@ void test_selection(const std::string& dir) {
     report(!active && v2::active() == nullptr && v2::loaded() == nullptr, "unload: compiled-in net (" + message + ")");
     options::nnue_king_buckets = 0;
     (void)options::apply_nnue_v2(nullptr);
+}
+
+// The fail-loud rule (options::nnue_v2_problem): an unsatisfiable request is a problem, never a silent
+// fall-back to the compiled-in net; UseNNUE false and no request are not problems.
+void test_request_rule(const std::string& dir) {
+    const std::string file = dir + "rule.fnn2";
+    auto problem_after = [&](int king_buckets, const std::string& requested_file, const std::string& load_error) {
+        options::nnue_king_buckets = king_buckets;
+        (void)options::apply_nnue_v2(nullptr);
+        return options::nnue_v2_problem(requested_file, load_error);
+    };
+    v2::unload();
+    std::string p = problem_after(0, "", "");
+    report(p.empty() && !options::nnue_v2, "nothing requested (defaults): no problem, compiled-in net");
+    p = problem_after(4, "", "");
+    report(!p.empty() && p.find("no v2 net is loaded") != std::string::npos, "NNUEKingBuckets 4 without NNUEFile: " + p);
+    p = problem_after(4, dir + "missing.fnn2", "cannot open " + dir + "missing.fnn2");
+    report(!p.empty() && p.find("cannot open") != std::string::npos, "NNUEFile failed to load: " + p);
+    check(load_spec(file, random_net(4, true, symmetric_map(4), 57)), "load 4-bucket net for the request rule");
+    p = problem_after(0, file, "");
+    report(!p.empty() && p.find("NNUEKingBuckets is 0") != std::string::npos && !options::nnue_v2,
+           "NNUEFile loaded but NNUEKingBuckets 0: " + p);
+    p = problem_after(8, file, "");
+    report(!p.empty() && p.find("does not match") != std::string::npos && !options::nnue_v2,
+           "NNUEKingBuckets 8 vs a 4-bucket net: " + p);
+    p = problem_after(4, file, "");
+    report(p.empty() && options::nnue_v2 && v2::active() == v2::loaded(), "NNUEKingBuckets 4 with the 4-bucket net: active, no problem");
+    nnue::enabled = false;
+    p = problem_after(8, file, "");
+    const bool off_ok = p.empty() && !options::nnue_v2;
+    v2::unload();
+    p = problem_after(4, dir + "missing.fnn2", "cannot open");
+    report(off_ok && p.empty() && !options::nnue_v2, "UseNNUE false: not a problem (every network off on purpose)");
+    nnue::enabled = true;
+    p = problem_after(4, dir + "missing.fnn2", "cannot open");
+    report(!p.empty(), "UseNNUE true again: the unsatisfied request is a problem again (" + p + ")");
+    p = problem_after(0, "", "");
+    report(p.empty() && !options::nnue_v2, "NNUEFile <empty> and NNUEKingBuckets 0: request cleared, no problem");
 }
 
 // ---------------------------------------------------------------- 4. lock replicas
@@ -787,11 +853,13 @@ int main(int argc, char** argv) {
     test_bucket_map_and_mirroring(dir);
     test_loader(dir);
     test_selection(dir);
+    test_request_rule(dir);
     test_lock_replicas(dir);
     test_incremental_equals_refresh(dir, plies);
     test_output_buckets(dir);
     v2::unload();
-    for (const char* f : {"map", "mirror", "plain", "loader", "bad", "select", "replica", "walk", "heads", "select_ob", "select_both"}) {
+    for (const char* f : {"map", "mirror", "plain", "loader", "bad", "select", "rule", "replica", "walk", "heads", "select_ob",
+                          "select_both"}) {
         std::remove((dir + f + ".fnn2").c_str());
     }
     std::cout << checks - failures << "/" << checks << " checks passed\n";

@@ -15,32 +15,54 @@ PASS control: without mirroring the file mirror changes the evaluation (388/400)
 PASS colour symmetry: 400 colour-flipped positions give the swapped accumulators and the same eval
 PASS valid 4-bucket mirrored file loads
 PASS describe(): buckets, mirror, residual, output buckets, FNV-1a checksum
-PASS rejects a flipped weight bit (checksum) (checksum mismatch (file damaged)), keeps the loaded net
-PASS rejects bad magic (bad magic (not a FORGENN2 file)), keeps the loaded net
-PASS rejects version 3 (unsupported version 3), keeps the loaded net
-PASS rejects header size 128 (unexpected header size), keeps the loaded net
-PASS rejects feature set 1 (unsupported feature set 1), keeps the loaded net
-PASS rejects inputs 640 (inputs per bucket must be 768), keeps the loaded net
-PASS rejects hidden 128 (hidden size 128 != engine hidden size 256 (FORGE_NNUE_HIDDEN)), keeps the loaded net
-PASS rejects 0 king buckets (king buckets out of range 1-32), keeps the loaded net
-PASS rejects 33 king buckets (king buckets out of range 1-32), keeps the loaded net
-PASS rejects 2 output buckets (output buckets 2 not supported (max 1)), keeps the loaded net
-PASS rejects unknown flag bit (unknown flag bits), keeps the loaded net
-PASS rejects weight scale 4095 (quantisation scales / sigmoid K differ from the engine's (4096, 4096, 2.25)), keeps the loaded net
-PASS rejects sigmoid K 2.5 (quantisation scales / sigmoid K differ from the engine's (4096, 4096, 2.25)), keeps the loaded net
-PASS rejects king map entry 4 >= 4 buckets (king bucket map entry out of range), keeps the loaded net
-PASS rejects output map entry 1 (output bucket map entry out of range), keeps the loaded net
-PASS rejects non-zero reserved byte (reserved header bytes are not zero), keeps the loaded net
-PASS rejects truncated file (file size 1574568 != expected 1574570), keeps the loaded net
-PASS rejects two extra bytes (file size 1574572 != expected 1574570), keeps the loaded net
-PASS rejects 8-byte file (file too short for a v2 header), keeps the loaded net
-PASS missing file rejected (cannot open nnue_v2_test_does_not_exist.fnn2)
+PASS a valid load reads the whole file (1574570 bytes)
+PASS rejects a flipped weight bit (checksum) (checksum mismatch (file damaged)); no net loaded afterwards
+PASS rejects bad magic (bad magic (not a FORGENN2 file)); no net loaded afterwards
+PASS rejects version 3 (unsupported version 3); no net loaded afterwards
+PASS rejects header size 128 (unexpected header size); no net loaded afterwards
+PASS rejects feature set 1 (unsupported feature set 1); no net loaded afterwards
+PASS rejects inputs 640 (inputs per bucket must be 768); no net loaded afterwards
+PASS rejects hidden 128 (hidden size 128 != engine hidden size 256 (FORGE_NNUE_HIDDEN)); no net loaded afterwards
+PASS rejects 0 king buckets (king buckets out of range 1-32); no net loaded afterwards
+PASS rejects 33 king buckets (king buckets out of range 1-32); no net loaded afterwards
+PASS rejects 2 output buckets (output buckets 2 not supported (max 1)); no net loaded afterwards
+PASS rejects unknown flag bit (unknown flag bits); no net loaded afterwards
+PASS rejects weight scale 4095 (quantisation scales / sigmoid K differ from the engine's (4096, 4096, 2.25)); no net loaded afterwards
+PASS rejects sigmoid K 2.5 (quantisation scales / sigmoid K differ from the engine's (4096, 4096, 2.25)); no net loaded afterwards
+PASS rejects king map entry 4 >= 4 buckets (king bucket map entry out of range); no net loaded afterwards
+PASS rejects output map entry 1 (output bucket map entry out of range); no net loaded afterwards
+PASS rejects non-zero reserved byte (reserved header bytes are not zero); no net loaded afterwards
+PASS rejects truncated file (2 bytes short) (file size 1574568 bytes does not match the 1574570 bytes implied by its header (4 king buckets, 1 output buckets, hidden 256); the weights were not read); no net loaded afterwards
+PASS truncated file (2 bytes short): rejected by the size check after reading 160 bytes (at most 160)
+PASS rejects file cut in half (file size 787285 bytes does not match the 1574570 bytes implied by its header (4 king buckets, 1 output buckets, hidden 256); the weights were not read); no net loaded afterwards
+PASS file cut in half: rejected by the size check after reading 160 bytes (at most 160)
+PASS rejects two extra bytes (file size 1574572 bytes does not match the 1574570 bytes implied by its header (4 king buckets, 1 output buckets, hidden 256); the weights were not read); no net loaded afterwards
+PASS two extra bytes: rejected by the size check after reading 160 bytes (at most 160)
+PASS rejects header claims 32 king buckets on a 4-bucket file (file size 1574570 bytes does not match the 12584618 bytes implied by its header (32 king buckets, 1 output buckets, hidden 256); the weights were not read); no net loaded afterwards
+PASS header claims 32 king buckets on a 4-bucket file: rejected by the size check after reading 160 bytes (at most 160)
+PASS rejects 8-byte file (file too short for a v2 net (8 bytes)); no net loaded afterwards
+PASS 8-byte file: rejected by the size check after reading 0 bytes (at most 0)
+PASS rejects 167-byte file (shorter than a header and checksum) (file too short for a v2 net (167 bytes)); no net loaded afterwards
+PASS 167-byte file (shorter than a header and checksum): rejected by the size check after reading 0 bytes (at most 0)
+PASS rejects file one byte larger than the largest valid v2 file (file too large for a v2 net (12584619 bytes; the largest valid v2 file has 12584618)); no net loaded afterwards
+PASS file one byte larger than the largest valid v2 file: rejected by the size check after reading 0 bytes (at most 0)
+PASS file_bytes(): 4 buckets = this file, 1 bucket = 394922 bytes
+PASS missing file rejected (cannot open nnue_v2_test_does_not_exist.fnn2); no net loaded afterwards
 PASS NNUEKingBuckets 0: compiled-in net (off (NNUEKingBuckets 0): compiled-in network)
-PASS NNUEKingBuckets 8 vs a 4-bucket file: not selected (NNUEKingBuckets 8 does not match the loaded net (4 king buckets); using the compiled-in network)
-PASS NNUEKingBuckets 4: selected (active: nnue_v2_test_select.fnn2 (king buckets 4, mirrored, output buckets 1, residual))
+PASS NNUEKingBuckets 8 vs a 4-bucket file: not selected (NNUEKingBuckets 8 does not match the loaded net (4 king buckets))
+PASS NNUEKingBuckets 4: selected (active: nnue_v2_test_select.fnn2 king buckets 4 output buckets 1 hidden 256 mirrored residual fnv1a 7a331c26f1f2c0b4)
 PASS UseNNUE false wins (UseNNUE is false: hand-crafted evaluation only)
 PASS UseNNUE true again: selected
-PASS unload: compiled-in net (NNUEKingBuckets 4 needs a v2 net (NNUEFile); using the compiled-in network)
+PASS unload: compiled-in net (NNUEKingBuckets 4 needs a v2 net (NNUEFile))
+PASS nothing requested (defaults): no problem, compiled-in net
+PASS NNUEKingBuckets 4 without NNUEFile: NNUEKingBuckets 4 is set but no v2 net is loaded (NNUEFile is empty)
+PASS NNUEFile failed to load: cannot load NNUEFile nnue_v2_test_missing.fnn2: cannot open nnue_v2_test_missing.fnn2
+PASS NNUEFile loaded but NNUEKingBuckets 0: NNUEFile nnue_v2_test_rule.fnn2 is loaded (4 mirrored king buckets) but NNUEKingBuckets is 0; set NNUEKingBuckets 4 to use it
+PASS NNUEKingBuckets 8 vs a 4-bucket net: NNUEKingBuckets 8 does not match NNUEFile nnue_v2_test_rule.fnn2 (4 mirrored king buckets)
+PASS NNUEKingBuckets 4 with the 4-bucket net: active, no problem
+PASS UseNNUE false: not a problem (every network off on purpose)
+PASS UseNNUE true again: the unsatisfied request is a problem again (cannot load NNUEFile nnue_v2_test_missing.fnn2: cannot open)
+PASS NNUEFile <empty> and NNUEKingBuckets 0: request cleared, no problem
 PASS replica r1: 300 positions, accumulators and evals bit-identical to the compiled-in net
 PASS replica r1: depth-8 searches of 4 positions have the compiled-in net's node counts and best moves
 PASS replica r4: 300 positions, accumulators and evals bit-identical to the compiled-in net
@@ -58,4 +80,4 @@ PASS incremental == full refresh, bit-exact, 32 mirrored buckets (one per half-b
 WALK 4 unmirrored buckets: plies 34000 (null 1325) evaluations 24576 computed accumulators verified 21579 king-key changes 3604 longest replay 8 restarts 155 mismatches 0
 PASS incremental == full refresh, bit-exact, 4 unmirrored buckets: 34000 plies
 WALK total plies 102000
-78/78 checks passed
+101/101 checks passed

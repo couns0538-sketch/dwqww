@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # C4 Linux evidence (used by .github/workflows/opus-c4-nnue.yml; also runnable on a Linux box):
 #   1. build (box recipe flags, CMake Release): forge, forge_nnue_v2_tests, forge_nnue_v2_tool
-#   2. forge_nnue_v2_tests (bucket map, mirroring, loader, lock replicas, 102k-ply incremental == refresh)
+#   2. forge_nnue_v2_tests (bucket map, mirroring, loader, lock replicas, 102k-ply incremental == refresh) and
+#      forge_nnue_v2_uci_tests (fail-loud rule through UCI: unusable v2 requests exit with status 2)
 #   3. options off: bench x5 + perft + kiwipete exact (uci_check --full)
 #   4. lock replicas through UCI NNUEFile + NNUEKingBuckets: bench x5 == the lock pins
 #   5. CPU-torch smoke training of 4- and 8-bucket mirrored nets on synthetic data32-style records
@@ -18,13 +19,17 @@ step() { echo; echo "===== $*"; }
 cmake -S "$ROOT" -B "$BD" -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_COMPILER="$CXX" \
   "-DCMAKE_CXX_FLAGS=-march=x86-64-v3 -mtune=znver5 -fno-fast-math -ffp-contract=off -DFORGE_NNUE_HIDDEN=256" \
   > "$OUT/configure.log" 2>&1 || { cat "$OUT/configure.log"; exit 1; }
-cmake --build "$BD" --target forge forge_nnue_v2_tests forge_nnue_v2_tool -j"$(nproc)" > "$OUT/build.log" 2>&1 || { tail -40 "$OUT/build.log"; exit 1; }
+cmake --build "$BD" --target forge forge_nnue_v2_tests forge_nnue_v2_uci_tests forge_nnue_v2_tool -j"$(nproc)" > "$OUT/build.log" 2>&1 || { tail -40 "$OUT/build.log"; exit 1; }
 echo "compiler: $($CXX --version | head -1)"
 echo "forge sha256: $(sha256sum "$BD/forge" | cut -d' ' -f1)  FMA count: $(objdump -d "$BD/forge" | grep -cE 'vfn?m(add|sub)' || true)"
 
 step "unit tests (forge_nnue_v2_tests)"
 (cd "$OUT" && timeout 900 "$BD/forge_nnue_v2_tests") > "$OUT/unit_tests.log" 2>&1 || status=1
 grep -E "^(FAIL|WALK)|checks passed" "$OUT/unit_tests.log"
+
+step "UCI fail-loud tests (forge_nnue_v2_uci_tests)"
+(cd "$OUT" && timeout 300 "$BD/forge_nnue_v2_uci_tests" "$BD/forge") > "$OUT/uci_tests.log" 2>&1 || status=1
+cat "$OUT/uci_tests.log"
 
 step "options off: identity"
 python3 "$ROOT/opus_round1/ci/uci_check.py" "$BD/forge" --full 2>&1 | tee "$OUT/identity_off.log"
@@ -40,6 +45,11 @@ for r in r1:1 r4:4 rm2:2 rm8:8 rm16:16; do
     --set "NNUEKingBuckets=$kb" --expect "$LOCK" 2>&1 | grep -E "bench|NNUE v2" | tee -a "$OUT/replica_bench.log" || status=1
 done
 grep -q MISMATCH "$OUT/replica_bench.log" && status=1
+# Every replica must give all 5 benches and must have been active (a replica that silently fell back to the
+# compiled-in net would also give the lock pins).
+[ "$(grep -c ' OK$' "$OUT/replica_bench.log")" -eq 25 ] || { echo "replica benches missing"; status=1; }
+[ "$(grep -c 'NNUE v2: active' "$OUT/replica_bench.log")" -ge 5 ] || { echo "v2 net not active"; status=1; }
+grep -q "ENGINE FAILED" "$OUT/replica_bench.log" && status=1
 
 step "smoke training (CPU torch) and export parity"
 python3 -c "import torch, numpy; print('torch', torch.__version__, 'numpy', numpy.__version__)" || { echo "no torch: skipping"; exit $status; }
