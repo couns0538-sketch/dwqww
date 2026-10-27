@@ -42,3 +42,22 @@ After the OPUS jobs: `SOL_LEFTOVERS_FOR_CLAUDE.md` (Sol's queue), on branches `o
 |---|---|---|---|---|---|
 | S29 step 8: one FORGE_SPEEDSTACK build on the PC | opus-sol-S29 (`81a8031`) | DONE | ON node-exact (all 5 depths, perft, kiwipete) | — | PC NPS under load −0.4..+0.3% (inside noise); quiet runner +0.2/+0.5% |
 | S-IT intended threefold (FIDE 9.2.1, issue #7) | opus-sol-SIT (`fc3bd2a`) | DONE | exact (bench, perft) | intended_threefold_tests 67 checks (11,720-position brute-force cross-check), uci_regression; 6/6 planted bugs | ASan/UBSan/TSan 0; quiet runner: off vs lock +0.06/+0.59%, on vs off 0.00/−0.25% |
+
+## Sol queue (`SOL_LEFTOVERS_FOR_CLAUDE.md`), one branch per job `opus-sol-<JOB>`; one line each in `SOL_LEFTOVERS_PROGRESS.md`
+- **Section 2, Sol's numbered jobs:** S11-S50 DONE; S22 COVERED by opus-O1. S41/S45/S49 are finishing with a sub-agent.
+  - Engine changes (all default OFF, OFF = lock binary, CI green): S11, S13, S29, S32 (datagen), S37 (microbench),
+    S04fix (ON cold-init).
+  - The rest are tools, studies and evidence (`[skip ci]`).
+- **Section 2, Astra:**
+  - A1 `HistRework` (engine, OFF = lock, CI 40515121020 green, gate `HistRework=2` first);
+  - A2 king-bucket doc (C4 covers the implementation);
+  - A3 full-NNUE pipeline without engine integration;
+  - A7 long-training recipe.
+- **Section 2, test-plan jobs:**
+  - S-A1 more-data recipe;
+  - S-A3 v3d trainer (LR schedules);
+  - S-A6 SPSA plan;
+  - S-C4 hidden 768-1024 plan with a measured width cost;
+  - S-A2 int16 + S-A4 H512 are finishing with a sub-agent.
+- **Section 3, fix-ups:** S04-S10, S25-S28, S33, S48 DONE (S05/S08 Linux CI being recorded).
+- **Gates:** none were run by us. Every gate-ready candidate names its option, value, SPRT and srand in its REPORT.
