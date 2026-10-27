@@ -1,0 +1,134 @@
+--- train_resid_v3c.py (opus-sol-S50, md5 e7fefe77)
++++ train_resid_v3d.py (S-A3)
+@@ -10,6 +10,10 @@
+ # v3c + S50 (Opus 5.5 2026-10-27): --init-weights PATH (default off): warm start from a finished run's .pt, model weights only; optimizer,
+ # step, epoch, lr warmup/decay and blend ramp start fresh; the file's md5 goes to the settings dump and the checkpoint config. With
+ # --init-check the loaded net must reproduce the checkpoint's stored holdout val. With --resume the init file is not loaded.
++# train_resid_v3d.py (S-A3, Opus 5.5 2026-10-27): v3c + lr schedule options, defaults = v3b's schedule. --lr-schedule {cosine,linear,wsd}
++# (default cosine = v3b: warmup, then half-cosine to min-lr-frac x lr), --lr-schedule-epochs E (schedule horizon in epochs, default 0 =
++# --epochs; a run can stop before the horizon or go past it at the floor), --lr-decay-frac F (wsd only, default 0.2: the last F of the
++# horizon decays linearly to the floor; before that the lr stays at its peak). The floor stays v3b's --min-lr-frac. Training loop unchanged.
+ """Forge-768 residual NNUE trainer (GPU, DirectML/CPU). Own code, derived in structure from the
+ supplied train_nnue.py (md5 5A161C70...), but fed from pre-converted binaries:
+ 
+@@ -33,6 +37,7 @@
+ SCALE = 4096.0
+ K_DEFAULT = 2.25
+ V3C_OFF = {"epoch_positions": 0, "recent_weight": 1.0, "init_weights": None}  # v3c options at their off values (not written to the settings dump)
++V3D_LR = {"lr_schedule": "cosine", "lr_schedule_epochs": 0, "lr_decay_frac": 0.2}  # v3d lr schedule defaults (= v3b's schedule)
+ 
+ 
+ # ----------------------------------------------------------------------------- data
+@@ -510,6 +515,46 @@
+     return torch_directml.device(index)
+ 
+ 
++# ----------------------------------------------------------------------------- lr schedules (v3d, S-A3)
++def lr_decay_start(total, warmup, decay_frac):
++    """v3d wsd: first step of the decay phase: the last round(decay_frac * total) steps of the horizon (at least 1 step),
++    never inside the warmup."""
++    return max(warmup, total - max(1, int(decay_frac * total + 0.5)))
++
++
++def lr_value(kind, s, lr, warmup, total, floor, decay_frac):
++    """v3d: learning rate at step s (0-based) for a schedule with a horizon of `total` steps. All kinds share v3b's linear
++    warmup lr*(s+1)/warmup and reach lr*floor (--min-lr-frac) at the horizon; after it the lr stays at the floor.
++    cosine (default) = v3b's expression exactly; linear = straight line from lr to the floor after the warmup;
++    wsd (warmup-stable-decay) = lr until the last decay_frac of the horizon, then a straight line to the floor."""
++    if s < warmup:
++        return lr * (s + 1) / warmup
++    if kind == "cosine":
++        pr = (s - warmup) / max(1, total - warmup)
++        return lr * (floor + (1 - floor) * 0.5 * (1 + math.cos(math.pi * min(pr, 1.0))))
++    if kind == "linear":
++        pr = (s - warmup) / max(1, total - warmup)
++        return lr * (floor + (1 - floor) * (1 - min(pr, 1.0)))
++    if kind == "wsd":
++        d0 = lr_decay_start(total, warmup, decay_frac)
++        if s < d0:
++            return lr
++        pr = (s - d0) / max(1, total - d0)
++        return lr * (floor + (1 - floor) * (1 - min(pr, 1.0)))
++    raise ValueError(f"unknown lr schedule {kind!r}")
++
++
++def lr_schedule_error(a):
++    """v3d: check of the lr schedule options (None = fine). Runs before the run dir is created."""
++    if a.lr_schedule_epochs < 0:
++        return "--lr-schedule-epochs must be >= 0 (0 = --epochs)"
++    if not (math.isfinite(a.lr_decay_frac) and 0 < a.lr_decay_frac <= 1):
++        return "--lr-decay-frac must be in (0, 1]"
++    if a.lr_decay_frac != V3D_LR["lr_decay_frac"] and a.lr_schedule != "wsd":
++        return "--lr-decay-frac needs --lr-schedule wsd"
++    return None
++
++
+ # ----------------------------------------------------------------------------- warm start (v3c, S50)
+ def file_md5(path):
+     import hashlib
+@@ -629,6 +674,9 @@
+     ap.add_argument("--epoch-positions", type=int, default=0, help="v3c: each epoch trains on N positions drawn with a seeded RNG from all training files, no repeats within an epoch (0 = off: full epochs as v3b; N >= train size: full epochs)")
+     ap.add_argument("--recent-weight", type=float, default=1.0, help="v3c: with --epoch-positions, per-position weight of the last file of the sorted training file list (linear from 1.0 for the first file); 1.0 = uniform (default)")
+     ap.add_argument("--init-weights", help="v3c: warm start: model weights (only) from a finished run's .pt (trainer checkpoint or bare state_dict); optimizer, lr warmup/decay and blend ramp start fresh; md5 logged in the settings dump (default off; not loaded with --resume)")
++    ap.add_argument("--lr-schedule", choices=["cosine", "linear", "wsd"], default="cosine", help="v3d: lr shape after the warmup: cosine (default, v3b), linear, or wsd (stable at --lr, then a linear decay over the last --lr-decay-frac of the horizon); all end at --min-lr-frac x lr")
++    ap.add_argument("--lr-schedule-epochs", type=int, default=0, help="v3d: lr schedule horizon in epochs (0 = --epochs, default); the run may stop before it or go past it at the floor")
++    ap.add_argument("--lr-decay-frac", type=float, default=0.2, help="v3d: wsd only: fraction of the horizon (at the end) that decays to the floor (default 0.2)")
+     a = ap.parse_args()
+     if a.epoch_positions < 0 or 0 < a.epoch_positions < a.batch_size:
+         ap.error("--epoch-positions must be 0 (off) or at least one batch")
+@@ -644,6 +692,9 @@
+             init_md5 = "missing"  # a resumed warm start restores model + optimizer from --resume; the init file is not needed
+         else:
+             ap.error(f"--init-weights {a.init_weights}: no such file")
++    if lr_schedule_error(a):
++        ap.error(lr_schedule_error(a))
++    lr_default = all(getattr(a, key) == v for key, v in V3D_LR.items())  # v3d: True = v3b's schedule
+     k = a.sigmoid_k
+     if k != K_DEFAULT:
+         print("WARNING: export needs sigmoid-k 2.25", flush=True)
+@@ -654,6 +705,9 @@
+     settings = {key: v for key, v in vars(a).items() if not (key in V3C_OFF and v == V3C_OFF[key])}  # v3c: off -> v3b's dump
+     if init_md5:
+         settings["init_weights_md5"] = init_md5
++    if lr_default:  # v3d: the three lr schedule options are written only when one of them is set (then all three)
++        for key in V3D_LR:
++            settings.pop(key)
+     (run / f"settings_{int(time.time())}.txt").write_text(" ".join(sys.argv) + "\n" + json.dumps(settings, indent=1))
+     t0 = time.time()
+     hold_files = expand(a.holdout)
+@@ -749,18 +803,30 @@
+         config["recent_weight"] = a.recent_weight
+     if init_md5:  # v3c: warm-start provenance (kept by resumed epochs)
+         config["init_weights_md5"] = init_md5
++    lr_epochs = a.lr_schedule_epochs or a.epochs
++    lr_total = spe * lr_epochs  # v3d: lr schedule horizon in steps (= total_steps by default)
++    lr_d0 = lr_decay_start(lr_total, a.warmup_steps, a.lr_decay_frac) if a.lr_schedule == "wsd" else None
++    if not lr_default:  # v3d: recorded only for a non-default schedule (default -> v3b's config, .json and .pt)
++        config["lr_schedule"] = a.lr_schedule
++        config["lr_schedule_steps"] = lr_total
++        if lr_d0 is not None:
++            config["lr_decay_frac"] = a.lr_decay_frac
++            config["lr_decay_start_step"] = lr_d0
+ 
+     def lr_at(s):
+-        if s < a.warmup_steps:
+-            return a.lr * (s + 1) / a.warmup_steps
+-        pr = (s - a.warmup_steps) / max(1, total_steps - a.warmup_steps)
+-        return a.lr * (a.min_lr_frac + (1 - a.min_lr_frac) * 0.5 * (1 + math.cos(math.pi * min(pr, 1.0))))
++        return lr_value(a.lr_schedule, s, a.lr, a.warmup_steps, lr_total, a.min_lr_frac, a.lr_decay_frac)
+ 
+     def blend_at(s):
+         pr = min(1.0, s / max(1, total_steps - 1))
+         return a.blend_start + (a.blend_end - a.blend_start) * pr
+ 
+-    print(f"steps/epoch={spe:,} total={total_steps:,} batch={a.batch_size} lr={a.lr} cosine blend {a.blend_start}->{a.blend_end}", flush=True)
++    print(f"steps/epoch={spe:,} total={total_steps:,} batch={a.batch_size} lr={a.lr} {a.lr_schedule} blend {a.blend_start}->{a.blend_end}", flush=True)
++    if not lr_default:
++        where = (f"; the run goes {total_steps - lr_total:,} steps past the horizon at the floor" if total_steps > lr_total else
++                 f"; the run stops at step {total_steps:,} of the horizon" if total_steps < lr_total else "")
++        shape = f", lr {a.lr} until step {lr_d0:,}, then linear decay" if lr_d0 is not None else ""
++        print(f"lr schedule: {a.lr_schedule} over {lr_total:,} steps ({lr_epochs} epochs x {spe:,}){shape}, warmup {a.warmup_steps}, "
++              f"floor {a.min_lr_frac:g} x lr{where}", flush=True)
+     tstart = time.time(); last = tstart; seen = 0; ls = 0.0
+ 
+     # v3b: int32 order in reused buffer(s). Generator.shuffle(arange(N) int32) == Generator.permutation(N) (same draws;

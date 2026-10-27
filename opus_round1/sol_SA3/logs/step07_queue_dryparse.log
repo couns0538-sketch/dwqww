@@ -1,0 +1,21 @@
+data 2026-10-27 15:35: 30 train files (forge_selfplay_NNN.pos minus 013/014), 241,913,894 rows; throughput 1,220,000 positions/s
+
+resid_h256_e48_a3wsd02_lr707e4_b06_s25_bs8k
+  parse: PASS (all v3d argument checks) (script train_resid_v3d.py, guard-tag added: True)
+  schedule: wsd over 1,417,440 steps (48 epochs x 29,530), lr 0.000707 until step 1,133,952 then linear decay over 283,488 steps, warmup 300, floor 0.01 x lr
+  lr at step: 0 2.3567e-06, 299 (warmup end) 7.0700e-04, 708720 (half) 7.0700e-04, 1417439 (last) 7.0725e-06, 1133951 (last stable) 7.0700e-04, 1133952 (decay start) 7.0700e-04
+  GPU time: 48 epochs x floor(241,913,894 / 8192) = 29,530 steps x 8192 = 11,611,668,480 positions; 11,611,668,480 / 1,220,000 /s = 9,518 s = 2.64 h (+0.109 h per extra sealed 10M-row shard)
+
+resid_h256_e48_a3lin_lr707e4_b06_s25_bs8k
+  parse: PASS (all v3d argument checks) (script train_resid_v3d.py, guard-tag added: True)
+  schedule: linear over 1,417,440 steps (48 epochs x 29,530), warmup 300, floor 0.01 x lr
+  lr at step: 0 2.3567e-06, 299 (warmup end) 7.0700e-04, 708720 (half) 3.5711e-04, 1417439 (last) 7.0705e-06
+  GPU time: 48 epochs x floor(241,913,894 / 8192) = 29,530 steps x 8192 = 11,611,668,480 positions; 11,611,668,480 / 1,220,000 /s = 9,518 s = 2.64 h (+0.109 h per extra sealed 10M-row shard)
+
+resid_h256_e64_a3wsd02_lr707e4_b06_s25_bs8k
+  parse: PASS (all v3d argument checks) (script train_resid_v3d.py, guard-tag added: True)
+  schedule: wsd over 1,889,920 steps (64 epochs x 29,530), lr 0.000707 until step 1,511,936 then linear decay over 377,984 steps, warmup 300, floor 0.01 x lr
+  lr at step: 0 2.3567e-06, 299 (warmup end) 7.0700e-04, 944960 (half) 7.0700e-04, 1889919 (last) 7.0719e-06, 1511935 (last stable) 7.0700e-04, 1511936 (decay start) 7.0700e-04
+  GPU time: 64 epochs x floor(241,913,894 / 8192) = 29,530 steps x 8192 = 15,482,224,640 positions; 15,482,224,640 / 1,220,000 /s = 12,690 s = 3.53 h (+0.146 h per extra sealed 10M-row shard)
+
+RESULT PASS: 3 lines parsed through v3d

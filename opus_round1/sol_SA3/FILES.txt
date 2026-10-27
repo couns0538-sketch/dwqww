@@ -1,0 +1,23 @@
+# FILES index, opus_round1/sol_SA3 (job S-A3, branch opus-sol-SA3 = opus-sol-S50 + this job). path | bytes | sha256 | content
+# .tar.gz sizes: logs/sa3_outputs.tar.gz = 35914 B
+# Not committed (scratch): F:/opus_scratch/sol_SA3/ (staged inputs and trainer copies, run dirs with .pt/.inc/.bin, mutants; no net adoption)
+CHANGES_v3d.md | 8471 | d4af59022c7da83dd34952dc9e8ed33495052962ff223386fe928296ee4dbd26 | change log: v3b's schedule, the new options, smoke, lr traces, memory trace, proposed gate lines with GPU hours
+IDEA_SOURCE.md | 2174 | 1b6486d202be22b28d588776cfc60dd530b8f26c8a8f7c7aee07f0eeac90c3f2 | job, gate G-A3 and idea sources
+logs/sa3_outputs.tar.gz | 35914 | 2e4dfe421f700a5634a3395ab5acaad393177a04ca754bfec1818dc6f7fb32c8 | outputs of suite r1, trace t1 and the dry parse (stdout, case/child JSON, settings, epoch .json, results/acceptance/trace JSON); no .pt/.inc/.bin
+logs/step01_stage.log | 1301 | 83881b6122ee86d28cd7036238b712c1836a51f629d2a50f4aec9511e5f95451 | step log
+logs/step02_unit.log | 2550 | fa6cb021b1800dd8f932ff58de46c07b9d26daf3a0f36a0c4051b8a26283a523 | step log
+logs/step03_suite_r1.log | 1507 | 512acbc2658bc974019b2506a2e69df4d136d4b488331771fe79d6a47ae65407 | step log
+logs/step04_compare_r1.log | 8413 | 3cc694c5ff6b4afcf02663e3b9df4dd60cba5e9808cf38d897d130eb8cee67d4 | step log
+logs/step05_rss_t1.log | 1240 | 2750f2ffa26c15787d187367bc79962e76afc15f8f7a76639c5210fcc03b37a3 | step log
+logs/step06a_mutation_run1.log | 5300 | 771509f0088499e1406940f0175cee0549b1cc32c961f3e837d5f9e55feb10aa | step log: mutation run 1, 27/28 (mutant 20 then was an equivalent mutant, replaced)
+logs/step06b_mutation_rerun20.log | 436 | 22444e716a2d7a739df114ae056cd227e3b2ee22e632694b8fec82f9c20f04e0 | step log: the replacement mutant 20, caught
+logs/step07_queue_dryparse.log | 2040 | 5822b2d1ba82d7e84eec0f96bab09eb6c85b8c9db28bbe4be67001c7a1ab88a2 | step log
+mutation_check_sa3.py | 8924 | 87c71adebbf9be6f577b3c45a06f5f920e86bbd9d4c9b5d487585cc7740c6e2c | planted-bug check: 28 mutants (8 S39 + 9 S50 + 11 lr schedule), each caught by its named test (--only N reruns one)
+opus_nnue_smoke_sa3.py | 33219 | d6e5877986682d18ad450d4ff2af3d95ee33162bd1277044c0ed2015a80935e5 | CPU smoke runner: stage (v3b, S50 v3c, v3d copies), suite (20 runs), compare (20 checks), 10k-step memory trace
+opus_sa3_queue_dryparse.py | 8777 | 08cc2a0d0fc20549b731c3900b9e6b61a806b9ce782d9494899972e55f11b997 | dry parse of the queue lines through v3d's real argument checks (supervisor Build-Args emulated) + GPU-hour maths
+README.md | 3215 | 41ab95d2fa793a127cae57869d8ad131a9eee4c865007e75796470ec70e2aabd | options and how to run
+sa3_queue_lines.txt | 2004 | f2ebe5a226287c3a77d0bab6d459cf5596847a160b44cd82ab5417e92611f89d | 3 proposed queue lines (UNPROVEN, not queued; one schedule per gate; f006 base; srand note)
+test_v3d_sa3.py | 32483 | 35cdc4c1bad770e0d8a762c977e43c3fc2de37e41299de67143ef5a42709d881 | 38 tests: the 27 opus-sol-S50 tests on v3d + 11 lr schedule tests (per-step lr of real in-process runs vs a numpy reference)
+train_resid_v3d.py | 49965 | c1a42ecda23a79b899231a2796221e9532db11b07e15ee5e85853734c1ba7e5f | the v3d trainer (deliverable): opus-sol-S50 v3c + --lr-schedule/--lr-schedule-epochs/--lr-decay-frac, defaults = v3b's schedule (never run under this name)
+v3b_to_v3d.diff | 21012 | d6d8489a4a41766a1d42ef6c473c70000f6cdc821e84018b157a107dbec26cd7 | unified diff vs the lock archive's train_resid_v3b.py (md5 b6758004)
+v3c_to_v3d.diff | 9002 | 1a36c96765b1d9f22ee1bde22c752e27ae3a0078014059ceca78f4dbae450c23 | unified diff vs opus-sol-S50's train_resid_v3c.py (md5 e7fefe77)

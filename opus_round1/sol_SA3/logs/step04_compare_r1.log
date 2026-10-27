@@ -1,0 +1,54 @@
+| check | result | detail |
+|---|---|---|
+| v3b reproducible (v3b_1 == v3b_2) | **PASS** | 8 artifacts sha256-equal: True; stdout equal: True |
+| defaults identical: v3c_off (opus-sol-S50 v3c, options off) vs v3b_1 | **PASS** | 8 artifacts (.pt .inc .bin .json x 2 epochs) sha256-equal: True; normalized stdout equal: True; settings dump equal: True (ep2 .inc md5 ['bf6d2812f517012b269ac25755d4ab4d']) |
+| defaults identical: off_1 (v3d defaults) vs v3b_1 | **PASS** | 8 artifacts (.pt .inc .bin .json x 2 epochs) sha256-equal: True; normalized stdout equal: True; settings dump equal: True (ep2 .inc md5 ['bf6d2812f517012b269ac25755d4ab4d']) |
+| defaults identical: off_2 (v3d defaults) vs v3b_1 | **PASS** | 8 artifacts (.pt .inc .bin .json x 2 epochs) sha256-equal: True; normalized stdout equal: True; settings dump equal: True (ep2 .inc md5 ['bf6d2812f517012b269ac25755d4ab4d']) |
+| defaults identical: off_1 (v3d defaults) vs v3c_off | **PASS** | 8 artifacts (.pt .inc .bin .json x 2 epochs) sha256-equal: True; normalized stdout equal: True; settings dump equal: True (ep2 .inc md5 ['bf6d2812f517012b269ac25755d4ab4d']) |
+| defaults identical: cos_explicit (v3d with the three defaults spelled out) vs v3b_1 | **PASS** | 8 artifacts (.pt .inc .bin .json x 2 epochs) sha256-equal: True; normalized stdout equal: True; settings dump equal: True (ep2 .inc md5 ['bf6d2812f517012b269ac25755d4ab4d']) |
+| --lr-schedule-epochs = --epochs gives v3b's weights and loss (cos_h2) | **PASS** | 4 .inc/.bin sha256-equal to v3b: True; BASELINE/INIT/EPOCH/FINAL lines equal: True; .json lr_schedule=cosine lr_schedule_steps=390; 'lr schedule: cosine over 390 steps (2 epochs x 195), warmup 20, floor 0.01 x lr' |
+| deterministic (lin_1 == lin_2) | **PASS** | 8 artifacts sha256-equal: True (ep2 .inc md5 ['0fb0c666f451e2539a03f71296219cce']); stdout equal: True |
+| deterministic (wsd_1 == wsd_2) | **PASS** | 8 artifacts sha256-equal: True (ep2 .inc md5 ['f48dbeb2471920fa494d64e2825de50e']); stdout equal: True |
+| deterministic (cos_h6_1 == cos_h6_2) | **PASS** | 8 artifacts sha256-equal: True (ep2 .inc md5 ['a124b0e7a0cbdca44ad44a5622c5e5e0']); stdout equal: True |
+| deterministic (wsd_on_init_1 == wsd_on_init_2) | **PASS** | 8 artifacts sha256-equal: True (ep2 .inc md5 ['69eea37512f3e2c5613cf635864d57a1']); stdout equal: True |
+| each schedule trains differently (sanity: the comparisons can fail) | **PASS** | ep2 .inc md5: v3b_1 bf6d2812, lin_1 0fb0c666, wsd_1 f48dbeb2, cos_h6_1 a124b0e7 |
+| schedule recorded (lin_1: .json config, settings dump, stdout) | **PASS** | .json lr_schedule=linear lr_schedule_steps=390 lr_decay_frac=None lr_decay_start_step=None: True; settings lr_schedule=linear lr_schedule_epochs=0 lr_decay_frac=0.2: True; stdout lines: True |
+| schedule recorded (wsd_1: .json config, settings dump, stdout) | **PASS** | .json lr_schedule=wsd lr_schedule_steps=390 lr_decay_frac=0.2 lr_decay_start_step=312: True; settings lr_schedule=wsd lr_schedule_epochs=0 lr_decay_frac=0.2: True; stdout lines: True |
+| schedule recorded (cos_h6_1: .json config, settings dump, stdout) | **PASS** | .json lr_schedule=cosine lr_schedule_steps=1170 lr_decay_frac=None lr_decay_start_step=None: True; settings lr_schedule=cosine lr_schedule_epochs=6 lr_decay_frac=0.2: True; stdout lines: True |
+| resume from epoch 1 reproduces epoch 2 (wsd_res vs wsd_1) | **PASS** | epoch-2 .inc .bin .json sha256-equal: True; .pt content bitwise-equal: True []; EPOCH 2 line equal: True |
+| resume from epoch 1 reproduces epoch 2 (cos_h6_res vs cos_h6_1) | **PASS** | epoch-2 .inc .bin .json sha256-equal: True; .pt content bitwise-equal: True []; EPOCH 2 line equal: True |
+| extend: stop at epoch 1 of a 2-epoch horizon, resume with --epochs 2 = the uninterrupted run (constant blend) | **PASS** | ext_part epoch-1 .inc/.bin = ext_full's: True; ext_cont epoch-2 .inc/.bin/.json = ext_full's: True, .pt content: True; ext_part says it stops at step 195 of the horizon: True |
+| works with --epoch-positions/--recent-weight and --init-weights (wsd_on_init_1) | **PASS** | INIT CHECK OK; steps/epoch=97 total=194 batch=1024 lr=0.000707 wsd blend 1.0->0.6; 'lr schedule: wsd over 194 steps (2 epochs x 97), lr 0.000707 until step 155, then linear decay, warmup 20, floor 0.01 x lr'; .json epoch_positions=100000 recent_weight=3.0 init_weights_md5=5bd3de20e55b292b593307c8d987a983 lr_schedule=wsd lr_schedule_steps=194 lr_decay_start_step=155 |
+| no new supervisor adoption | **PASS** | 'adopted running job' lines before 7, after each run [7] |
+RESULT PASS 20/20
+loss lines v3b_1 / lin_1 / wsd_1 / cos_h6_1 / wsd_on_init_1:
+  v3b_1: BASELINE HCE-alone holdout subset n=16,384: mse_teacher(blend1.0)=0.021899 mse_blend0.6=0.045332
+  v3b_1: INIT residual net: mse_teacher=0.021899 mse_b0.6=0.045332 (baseline 0.021899/0.045332)
+  v3b_1: INIT CHECK OK (residual init == HCE alone)
+  v3b_1: EPOCH 1/2 done in Xs train_mse=0.021402 | HOLDOUT n=16,384 mse_teacher=0.021899 (HCE 0.021899, -0.00%) mse_b0.6=0.045332 (HCE 0.045332, +0.00%) mse_b0.8=0.023795
+  v3b_1: EPOCH 2/2 done in Xs train_mse=0.033365 | HOLDOUT n=16,384 mse_teacher=0.021902 (HCE 0.021899, -0.01%) mse_b0.6=0.045335 (HCE 0.045332, -0.01%) mse_b0.8=0.023798
+  v3b_1: FINAL FULL HOLDOUT n=49,152: net mse_teacher=0.021846 mse_b0.6=0.045543 mse_b0.8=0.023712 | HCE 0.021840/0.045537/b0.8 0.023707
+  lin_1: BASELINE HCE-alone holdout subset n=16,384: mse_teacher(blend1.0)=0.021899 mse_blend0.6=0.045332
+  lin_1: INIT residual net: mse_teacher=0.021899 mse_b0.6=0.045332 (baseline 0.021899/0.045332)
+  lin_1: INIT CHECK OK (residual init == HCE alone)
+  lin_1: EPOCH 1/2 done in Xs train_mse=0.021402 | HOLDOUT n=16,384 mse_teacher=0.021899 (HCE 0.021899, -0.00%) mse_b0.6=0.045331 (HCE 0.045332, +0.00%) mse_b0.8=0.023795
+  lin_1: EPOCH 2/2 done in Xs train_mse=0.033366 | HOLDOUT n=16,384 mse_teacher=0.021902 (HCE 0.021899, -0.02%) mse_b0.6=0.045335 (HCE 0.045332, -0.01%) mse_b0.8=0.023798
+  lin_1: FINAL FULL HOLDOUT n=49,152: net mse_teacher=0.021848 mse_b0.6=0.045545 mse_b0.8=0.023715 | HCE 0.021840/0.045537/b0.8 0.023707
+  wsd_1: BASELINE HCE-alone holdout subset n=16,384: mse_teacher(blend1.0)=0.021899 mse_blend0.6=0.045332
+  wsd_1: INIT residual net: mse_teacher=0.021899 mse_b0.6=0.045332 (baseline 0.021899/0.045332)
+  wsd_1: INIT CHECK OK (residual init == HCE alone)
+  wsd_1: EPOCH 1/2 done in Xs train_mse=0.021402 | HOLDOUT n=16,384 mse_teacher=0.021899 (HCE 0.021899, -0.00%) mse_b0.6=0.045332 (HCE 0.045332, +0.00%) mse_b0.8=0.023795
+  wsd_1: EPOCH 2/2 done in Xs train_mse=0.033349 | HOLDOUT n=16,384 mse_teacher=0.021932 (HCE 0.021899, -0.15%) mse_b0.6=0.045364 (HCE 0.045332, -0.07%) mse_b0.8=0.023827
+  wsd_1: FINAL FULL HOLDOUT n=49,152: net mse_teacher=0.021886 mse_b0.6=0.045578 mse_b0.8=0.023751 | HCE 0.021840/0.045537/b0.8 0.023707
+  cos_h6_1: BASELINE HCE-alone holdout subset n=16,384: mse_teacher(blend1.0)=0.021899 mse_blend0.6=0.045332
+  cos_h6_1: INIT residual net: mse_teacher=0.021899 mse_b0.6=0.045332 (baseline 0.021899/0.045332)
+  cos_h6_1: INIT CHECK OK (residual init == HCE alone)
+  cos_h6_1: EPOCH 1/2 done in Xs train_mse=0.021402 | HOLDOUT n=16,384 mse_teacher=0.021899 (HCE 0.021899, -0.00%) mse_b0.6=0.045332 (HCE 0.045332, +0.00%) mse_b0.8=0.023795
+  cos_h6_1: EPOCH 2/2 done in Xs train_mse=0.033349 | HOLDOUT n=16,384 mse_teacher=0.021928 (HCE 0.021899, -0.13%) mse_b0.6=0.045356 (HCE 0.045332, -0.05%) mse_b0.8=0.023822
+  cos_h6_1: FINAL FULL HOLDOUT n=49,152: net mse_teacher=0.021881 mse_b0.6=0.045572 mse_b0.8=0.023745 | HCE 0.021840/0.045537/b0.8 0.023707
+  wsd_on_init_1: BASELINE HCE-alone holdout subset n=16,384: mse_teacher(blend1.0)=0.021899 mse_blend0.6=0.045332
+  wsd_on_init_1: INIT warm-start net: mse_teacher=0.021902 mse_b0.6=0.045335 (checkpoint val 0.021902/0.045335)
+  wsd_on_init_1: INIT CHECK OK (warm start == checkpoint val)
+  wsd_on_init_1: EPOCH 1/2 done in Xs train_mse=0.021266 | HOLDOUT n=16,384 mse_teacher=0.021950 (HCE 0.021899, -0.23%) mse_b0.6=0.045380 (HCE 0.045332, -0.11%) mse_b0.8=0.023844
+  wsd_on_init_1: EPOCH 2/2 done in Xs train_mse=0.033242 | HOLDOUT n=16,384 mse_teacher=0.022015 (HCE 0.021899, -0.53%) mse_b0.6=0.045408 (HCE 0.045332, -0.17%) mse_b0.8=0.023891
+  wsd_on_init_1: FINAL FULL HOLDOUT n=49,152: net mse_teacher=0.021968 mse_b0.6=0.045636 mse_b0.8=0.023820 | HCE 0.021840/0.045537/b0.8 0.023707
