@@ -53,10 +53,31 @@ Sol's spec: after S11-S14, put every node-exact piece into ONE stack behind one 
   chain); `qsearch` 810 → 807; the iterative driver 2119 → 2122.
 - MovePicker, TT probe/store, NNUE, make/unmake, SEE: identical.
 
+## PC build with FORGE_SPEEDSTACK ON: bench and NPS (2026-10-27, step 8)
+- **Build.** One box-recipe build of `18cb8c03` with `-DFORGE_SPEEDSTACK=1`
+  (`F:\opus_scratch\build\S29_on_20261027\forge_s29_on.exe`, sha256 `3d274745…`, FMA 0, 0 warnings).
+  It differs from the step-1 switch-on exe only in the PE timestamp and checksum (6 bytes), so the build
+  reproduces (`logs/step8_build_on.log`).
+- **Bench.** `uci_check.py --full`: d11/13/16/20/22 = 312866/862329/3024920/12389307/34048354, perft5 4865609,
+  kiwipete 193690690, ALL OK: node-exact with the lock (`logs/step8_identity_on.log`).
+- **NPS on the PC.** `nps_ab.py`, A = lock exe (copy, sha256 `5d4df7f1…`), B = the switch-on exe. ABBA order, 8
+  runs per exe, bench depths 16 and 20, Threads 1, Hash 16. Engines ran at Idle priority (nice 19) on the
+  loaded PC, with gates, self-play and NNUE training running. Nodes were identical on all 32 runs
+  (`logs/step8_nps_ab_pc.log`).
+
+| depth | A (lock) wall nps | B (stack) wall nps | B/A wall (95% CI) | B/A CPU-time nps (95% CI) |
+|---|---:|---:|---|---|
+| 16 | 1,757,200 | 1,756,644 | −0.03% (−1.04% .. +0.97%) | −0.21% (−1.53% .. +1.11%) |
+| 20 | 1,812,288 | 1,805,288 | −0.39% (−1.78% .. +1.00%) | +0.27% (−0.79% .. +1.34%) |
+
+**Reading.** On the loaded PC the stack is within noise of the lock at both depths; every interval includes 0.
+The quiet CI runner measured d16 +0.18% and d20 +0.50% (lower bound +0.04%). Both measurements put the gain
+at well under 1%. Advisory only; no speed claim.
+
 ## Gate (QA's call)
 Sol's design: one non-regression SPRT [−3, 1] at 10+0.1, the switch-on exe vs AL1; QA picks the srand. Neither
 piece met the "+2% lower bound" rule on its own (opus-sol-S11, opus-sol-S13); the stack's advisory ABBA is
-+0.2% / +0.5%.
++0.2% / +0.5% on the quiet runner and −0.4% .. +0.3% (inside noise) on the loaded PC.
 
 ## Files
 - Engine: `CMakeLists.txt`, `src/search.cpp`, `include/forge/material_key_table.hpp` (new), `tests/speedstack_tests.cpp` (new).
@@ -64,11 +85,12 @@ piece met the "+2% lower bound" rule on its own (opus-sol-S11, opus-sol-S13); th
   `nps_ab.py` and `codegen_compare.sh` (copies from opus-sol-S13 / opus-O3).
 - `opus_round1/sol_S29/`: `REPORT.md`, `IDEA_SOURCE.md`, `forge_sol_S29_speedstack_20261027.patch`,
   `forge_sol_S29_speedstack_contents_20261027.md`, `run_s29_evidence.sh` (PC driver), `FILES`, `SHA256SUMS`,
-  `logs/` (PC steps 1-7) and `logs/ci_s29_evidence.tar.gz` (CI 40484808127 + 40484808132 logs).
-- Machine exclusive: no (PC runs were identity and codegen only; no timed PC screen).
+  `logs/` (PC steps 1-8) and `logs/ci_s29_evidence.tar.gz` (CI 40484808127 + 40484808132 logs).
+- Machine exclusive: no. Steps 1-7 were identity and codegen only. Step 8 is a PC NPS A/B under gate load,
+  advisory only.
 
 ## UNVERIFIED / left
-- Speed: advisory only; no claim. A PC NPS A/B under gate load was not run (the quiet runner is the cleaner
-  measurement).
+- Speed: advisory only; no claim. The PC A/B (step 8) ran under gate load at Idle priority; the quiet runner is
+  the cleaner measurement.
 - Hardware prefetch effects are not measured (S13's probe counted the requests on its branch).
 - The gate itself (QA).
