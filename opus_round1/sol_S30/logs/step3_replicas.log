@@ -1,0 +1,49 @@
+# S30 part 2 replicas r1 (CPU smoke; renamed trainer copy; 12 configs); machine exclusive: no
+Tue Oct 27 12:33:51 PST 2026
+n4000_e2: PASS rc 0 4.0 s b0.6 0.045572 teacher 0.021844
+n4000_e4: PASS rc 0 4.0 s b0.6 0.045572 teacher 0.021844
+n4000_e8: PASS rc 0 6.1 s b0.6 0.045571 teacher 0.021845
+n8000_e2: PASS rc 0 3.0 s b0.6 0.045572 teacher 0.021845
+n8000_e4: PASS rc 0 4.0 s b0.6 0.045576 teacher 0.02185
+n8000_e8: PASS rc 0 6.1 s b0.6 0.045673 teacher 0.021963
+n16000_e2: PASS rc 0 4.0 s b0.6 0.045572 teacher 0.021844
+n16000_e4: PASS rc 0 5.0 s b0.6 0.045573 teacher 0.021844
+n16000_e8: PASS rc 0 6.0 s b0.6 0.046257 teacher 0.022645
+n32000_e2: PASS rc 0 4.0 s b0.6 0.045573 teacher 0.021845
+n32000_e4: PASS rc 0 5.0 s b0.6 0.04563 teacher 0.021897
+n32000_e8: PASS rc 0 7.1 s b0.6 0.046366 teacher 0.022757
+exit 0
+Tue Oct 27 12:34:50 PST 2026
+
+# S30 part 2 replicas r2 (rerun of r1)
+Tue Oct 27 12:36:12 PST 2026
+n4000_e2: PASS rc 0 3.0 s b0.6 0.045572 teacher 0.021844
+n4000_e4: PASS rc 0 4.0 s b0.6 0.045572 teacher 0.021844
+n4000_e8: PASS rc 0 5.0 s b0.6 0.045571 teacher 0.021845
+n8000_e2: PASS rc 0 4.0 s b0.6 0.045572 teacher 0.021845
+n8000_e4: PASS rc 0 4.0 s b0.6 0.045576 teacher 0.02185
+n8000_e8: PASS rc 0 6.1 s b0.6 0.045673 teacher 0.021963
+n16000_e2: PASS rc 0 4.0 s b0.6 0.045572 teacher 0.021844
+n16000_e4: PASS rc 0 4.0 s b0.6 0.045573 teacher 0.021844
+n16000_e8: PASS rc 0 6.1 s b0.6 0.046257 teacher 0.022645
+n32000_e2: PASS rc 0 4.0 s b0.6 0.045573 teacher 0.021845
+n32000_e4: PASS rc 0 5.0 s b0.6 0.04563 teacher 0.021897
+n32000_e8: PASS rc 0 7.1 s b0.6 0.046366 teacher 0.022757
+exit 0
+Tue Oct 27 12:37:09 PST 2026
+# compare r1 r2
+| N positions | epochs | b0.6 | teacher | HCE b0.6 |
+|---:|---:|---:|---:|---:|
+| 4000 | 2 | 0.045572 | 0.021844 | 0.045572 |
+| 4000 | 4 | 0.045572 | 0.021844 | 0.045572 |
+| 4000 | 8 | 0.045571 | 0.021845 | 0.045572 |
+| 8000 | 2 | 0.045572 | 0.021845 | 0.045572 |
+| 8000 | 4 | 0.045576 | 0.02185 | 0.045572 |
+| 8000 | 8 | 0.045673 | 0.021963 | 0.045572 |
+| 16000 | 2 | 0.045572 | 0.021844 | 0.045572 |
+| 16000 | 4 | 0.045573 | 0.021844 | 0.045572 |
+| 16000 | 8 | 0.046257 | 0.022645 | 0.045572 |
+| 32000 | 2 | 0.045573 | 0.021845 | 0.045572 |
+| 32000 | 4 | 0.04563 | 0.021897 | 0.045572 |
+| 32000 | 8 | 0.046366 | 0.022757 | 0.045572 |
+REPRODUCIBLE r1 vs r2: True
