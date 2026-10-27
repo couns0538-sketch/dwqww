@@ -1,0 +1,115 @@
+== lines only in the lock search.cpp (294dbed), normalised:
+(*counter_moves_)[static_cast<std::size_t>(previous->moved_piece)][previous->current_move.to] = move;
+*capture_history_ = CaptureHistory{};
+*continuation_history_ = ContinuationHistory{};
+*counter_moves_ = CounterMoveTable{};
+*main_history_ = ButterflyHistory{};
+: shared_(shared),
+Worker::Worker(SharedSearchState& shared, int id)
+[[nodiscard]] int capture_value(const Board& board, Move move) {
+[[nodiscard]] int history_bonus(int depth) {
+apply_history((*capture_history_)[static_cast<std::size_t>(piece)][best.to][static_cast<std::size_t>(captured)], bonus);
+apply_history((*capture_history_)[static_cast<std::size_t>(piece)][capture.to][static_cast<std::size_t>(captured)], -bonus);
+apply_history((*main_history_)[static_cast<std::size_t>(board.side_to_move())][best_move.from][best_move.to],
+apply_history((*main_history_)[static_cast<std::size_t>(us)][move.from][move.to], bonus);
+apply_history((*main_history_)[static_cast<std::size_t>(us)][quiet.from][quiet.to], -bonus);
+capture_history_(std::make_unique<CaptureHistory>()),
+const int drop = std::min(iteration_previous_score - score, 150);
+continuation_history_(std::make_unique<ContinuationHistory>()),
+correction_history_(std::make_unique<CorrectionHistory>()),
+counter_ = (*searcher_.counter_moves_)[static_cast<std::size_t>(previous->moved_piece)][previous->current_move.to];
+counter_moves_(std::make_unique<CounterMoveTable>()),
+factor *= 1.0 + drop * tune::TmFallingEvalPercent / 10000.0;
+factor *= std::clamp(tune::TmEffortBase / 100.0 - effort, 0.6, 1.4);
+factor = std::max(factor, tune::TmMinFactorPercent / 100.0);
+hard_limit_ms_ = std::max<std::int64_t>(1, limits.movetime_ms - overhead);
+hard_limit_ms_ = std::max<std::int64_t>(1, std::min(hard, available));
+id_(id),
+if (iteration_previous_score != ValueNone && !is_mate_score(score) && score < iteration_previous_score) {
+int score = (*main_history_)[static_cast<std::size_t>(board.side_to_move())][move.from][move.to];
+main_history_(std::make_unique<ButterflyHistory>()),
+material_correction_(std::make_unique<CorrectionHistory>()) {
+return (*capture_history_)[static_cast<std::size_t>(piece)][move.to][static_cast<std::size_t>(captured)];
+soft_limit_ms_ = hard_limit_ms_ = 0;
+soft_limit_ms_ = hard_limit_ms_ = 0;
+soft_limit_ms_ = hard_limit_ms_;
+soft_limit_ms_ = std::max<std::int64_t>(1, std::min(soft, available));
+ss->continuation = &(*continuation_history_)[Empty][0];
+ss->continuation = &(*continuation_history_)[static_cast<std::size_t>(moved)][move.to];
+ss->continuation = &(*continuation_history_)[static_cast<std::size_t>(ss->moved_piece)][move.to];
+ss->continuation = &(*continuation_history_)[static_cast<std::size_t>(ss->moved_piece)][move.to];
+ss.continuation = &(*continuation_history_)[Empty][0];
+time_managed_ = false;
+time_managed_ = true;
+void apply_history(std::int16_t& entry, int bonus) {
+
+== lines only in the new src/search/ modules, normalised:
+(*histories_.counter_moves)[static_cast<std::size_t>(previous->moved_piece)][previous->current_move.to] = move;
+*capture_history = CaptureHistory{};
+*continuation_history = ContinuationHistory{};
+*counter_moves = CounterMoveTable{};
+*main_history = ButterflyHistory{};
+ThreadData::~ThreadData() = default;
+Worker::Worker(SharedSearchState& shared, int id) : ThreadData(shared, id) {
+[[nodiscard]] inline bool eval_fell(int previous_score, int score) {
+[[nodiscard]] inline double effort_scale(double effort) {
+[[nodiscard]] inline double factor_floor(double factor) {
+[[nodiscard]] inline double falling_eval_scale(int previous_score, int score) {
+[[nodiscard]] inline double stability_factor(int stable_iterations, int depth) {
+[[nodiscard]] inline int capture_value(const Board& board, Move move) {
+[[nodiscard]] inline int history_bonus(int depth) {
+apply_history((*histories_.capture_history)[static_cast<std::size_t>(piece)][best.to][static_cast<std::size_t>(captured)], bonus);
+apply_history((*histories_.capture_history)[static_cast<std::size_t>(piece)][capture.to][static_cast<std::size_t>(captured)], -bonus);
+apply_history((*histories_.main_history)[static_cast<std::size_t>(board.side_to_move())][best_move.from][best_move.to],
+apply_history((*histories_.main_history)[static_cast<std::size_t>(us)][move.from][move.to], bonus);
+apply_history((*histories_.main_history)[static_cast<std::size_t>(us)][quiet.from][quiet.to], -bonus);
+const int drop = std::min(previous_score - score, 150);
+constexpr int CorrectionGrain = 256;
+constexpr int CorrectionLimit = 32 * CorrectionGrain;
+constexpr std::size_t CorrectionSize = 1U << 14U;
+counter_ = (*searcher_.histories_.counter_moves)[static_cast<std::size_t>(previous->moved_piece)][previous->current_move.to];
+double factor = timeman::stability_factor(stable_iterations, depth);
+factor *= timeman::effort_scale(effort);
+factor *= timeman::falling_eval_scale(iteration_previous_score, score);
+factor = timeman::factor_floor(factor);
+hard_ms = std::max<std::int64_t>(1, limits.movetime_ms - overhead);
+hard_ms = std::max<std::int64_t>(1, std::min(hard, available));
+histories_.clear();
+if (timeman::eval_fell(iteration_previous_score, score)) {
+inline void allocate(const SearchLimits& limits, std::int64_t& soft_ms, std::int64_t& hard_ms, bool& managed) {
+inline void apply_history(std::int16_t& entry, int bonus) {
+int score = (*histories_.main_history)[static_cast<std::size_t>(board.side_to_move())][move.from][move.to];
+managed = false;
+managed = true;
+return (*histories_.capture_history)[static_cast<std::size_t>(piece)][move.to][static_cast<std::size_t>(captured)];
+return 1.0 + drop * tune::TmFallingEvalPercent / 10000.0;
+return factor;
+return previous_score != ValueNone && !is_mate_score(score) && score < previous_score;
+return std::clamp(tune::TmEffortBase / 100.0 - effort, 0.6, 1.4);
+return std::max(factor, tune::TmMinFactorPercent / 100.0);
+soft_ms = hard_ms = 0;
+soft_ms = hard_ms = 0;
+soft_ms = hard_ms;
+soft_ms = std::max<std::int64_t>(1, std::min(soft, available));
+ss->continuation = &(*histories_.continuation_history)[Empty][0];
+ss->continuation = &(*histories_.continuation_history)[static_cast<std::size_t>(moved)][move.to];
+ss->continuation = &(*histories_.continuation_history)[static_cast<std::size_t>(ss->moved_piece)][move.to];
+ss->continuation = &(*histories_.continuation_history)[static_cast<std::size_t>(ss->moved_piece)][move.to];
+ss.continuation = &(*histories_.continuation_history)[Empty][0];
+std::unique_ptr<ButterflyHistory> main_history = std::make_unique<ButterflyHistory>();
+std::unique_ptr<CaptureHistory> capture_history = std::make_unique<CaptureHistory>();
+std::unique_ptr<ContinuationHistory> continuation_history = std::make_unique<ContinuationHistory>();
+std::unique_ptr<CounterMoveTable> counter_moves = std::make_unique<CounterMoveTable>();
+struct HistoryTables {
+struct SearchStack;
+timeman::allocate(limits, soft_limit_ms_, hard_limit_ms_, time_managed_);
+using ButterflyHistory = std::array<std::array<std::array<std::int16_t, 64>, 64>, 2>;
+using CaptureHistory = std::array<std::array<std::array<std::int16_t, 7>, 64>, 13>;
+using ContinuationHistory = std::array<std::array<PieceToHistory, 64>, 13>;
+using CorrectionHistory = std::array<std::array<std::int32_t, CorrectionSize>, 2>;
+using CounterMoveTable = std::array<std::array<Move, 64>, 13>;
+using PieceToHistory = std::array<std::array<std::int16_t, 64>, 13>;
+void clear() {
+};
+
+== counts: lock lines 1143, new lines 1167, common 1100
