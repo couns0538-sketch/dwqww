@@ -1,0 +1,103 @@
+#pragma once
+
+#include "forge/board.hpp"
+#include "forge/eval.hpp"
+#include "forge/history.hpp"
+#include "forge/nnue.hpp"
+#include "forge/search_types.hpp"
+#include "forge/tt.hpp"
+
+#include <array>
+#include <atomic>
+#include <chrono>
+#include <cstddef>
+#include <cstdint>
+#include <memory>
+#include <vector>
+
+namespace forge {
+
+struct SearchStack {
+    std::array<Move, MaxPly + 1> pv{};
+    int pv_length = 0;
+    int ply = 0;
+    Move current_move{};
+    Move excluded_move{};
+    std::array<Move, 2> killers{};
+    Piece moved_piece = Empty;
+    int static_eval = ValueNone;
+    int raw_eval = ValueNone;
+    int move_count = 0;
+    int cutoff_count = 0;
+    int double_extensions = 0;
+    bool in_check = false;
+    bool tt_pv = false;
+    bool null_move_allowed = true;
+    PieceToHistory* continuation = nullptr;
+    // NNUE state: the accumulator is refreshed lazily from the nearest valid
+    // ancestor using the piece changes recorded for each ply.
+    nnue::Accumulator accumulator{};
+    Evaluator::RuntimePsqt runtime_psqt{};
+    nnue::DirtyPieces dirty{};
+};
+
+// State shared by every worker of one Searcher.
+struct SharedSearchState {
+    explicit SharedSearchState(std::size_t hash_mb) : tt(hash_mb) {}
+    TranspositionTable tt;
+    std::atomic<bool> stop{false};
+    // 0 means pondering has not been converted into a timed search.
+    std::atomic<std::int64_t> ponder_hit_ns{0};
+};
+
+class Worker;
+
+// Everything one search worker owns (Worker inherits this privately; the
+// members keep the AL1 s198 Worker names and order, so the Worker layout and
+// the test probes that befriend Worker are unchanged).
+// Thread ownership while a search runs:
+//   - shared_ refers to the only state all workers share (TT, stop flag,
+//     ponderhit time): SharedSearchState above;
+//   - nodes_ is this worker's published node count: written by the owner,
+//     read by any worker (total_nodes()), hence atomic;
+//   - all_workers_ points at the caller's worker list (read-only, valid for
+//     the duration of one Searcher::search);
+//   - every other member is read and written only by the owning thread.
+struct ThreadData {
+    ThreadData(SharedSearchState& shared, int id) : shared_(shared), id_(id) {}
+    // Out of line (src/search/worker.inc) so the destruction path, and with it
+    // the placement of the search functions, is generated as in AL1 s198.
+    ~ThreadData();
+
+    SharedSearchState& shared_;
+    int id_ = 0;
+    Evaluator evaluator_;
+    HistoryTables histories_;
+    std::unique_ptr<CorrectionHistory> correction_history_ = std::make_unique<CorrectionHistory>();
+    std::unique_ptr<CorrectionHistory> material_correction_ = std::make_unique<CorrectionHistory>();
+    std::array<SearchStack, MaxPly + 8> stack_{};
+    std::array<Move, 256> root_effort_moves_{};
+    std::array<std::uint64_t, 256> root_move_nodes_{};
+    std::size_t root_effort_count_ = 0;
+
+    bool pondering_ = false;
+    std::chrono::steady_clock::time_point start_{};
+    std::atomic<std::uint64_t> nodes_{0};
+    std::uint64_t local_nodes_ = 0;
+    const std::vector<Worker*>* all_workers_ = nullptr;
+    std::uint64_t node_limit_ = 0;
+    bool node_limit_specified_ = false;
+    std::int64_t soft_limit_ms_ = 0;
+    std::int64_t hard_limit_ms_ = 0;
+    bool time_managed_ = false;
+    bool aborted_ = false;
+    int seldepth_ = 0;
+    int root_depth_ = 0;
+    std::size_t root_history_index_ = 0;
+    std::vector<Move> root_moves_;
+    bool root_restricted_ = false;
+    std::uint64_t null_tries_ = 0;
+    std::uint64_t null_cutoffs_ = 0;
+};
+
+} // namespace forge
