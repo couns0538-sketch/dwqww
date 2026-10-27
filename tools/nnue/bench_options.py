@@ -2,7 +2,8 @@
 """Run the engine's `bench <depth>` (Threads 1, Hash 16, OwnBook false) after extra setoption commands and
 print nodes / time / nps per depth, plus every `info string` line the options produced.
 usage: bench_options.py <exe> <depth>[,<depth>...] [--set "Name=Value"]... [--expect d11=312866,...]
-Exit status 1 if an --expect node count differs."""
+Exit status 1 if an --expect node count differs, the engine exits with a non-zero status (e.g. a requested v2
+net that cannot be used) or fewer bench results than depths come back."""
 import argparse
 import re
 import subprocess
@@ -22,13 +23,19 @@ def main():
         script += f"setoption name {name} value {value}\n"
     depths = [int(d) for d in a.depths.split(",")]
     script += "isready\n" + "".join(f"bench {d}\n" for d in depths) + "quit\n"
-    out = subprocess.run([a.exe], input=script, capture_output=True, text=True, timeout=7200).stdout
+    run = subprocess.run([a.exe], input=script, capture_output=True, text=True, timeout=7200)
+    out = run.stdout
     for line in out.splitlines():
         if line.startswith("info string") and "bench depth" not in line:
             print(line)
     expect = dict(x.split("=") for x in a.expect.split(",") if x)
     status = 0
-    for m in re.finditer(r"bench depth (\d+) nodes (\d+) time (\d+) nps (\d+)", out):
+    results = list(re.finditer(r"bench depth (\d+) nodes (\d+) time (\d+) nps (\d+)", out))
+    if run.returncode != 0 or len(results) != len(depths):
+        # e.g. a requested v2 net that cannot be used: the engine exits with status 2 at isready.
+        print(f"ENGINE FAILED: exit status {run.returncode}, {len(results)} of {len(depths)} bench results")
+        status = 1
+    for m in results:
         d, nodes = m.group(1), int(m.group(2))
         verdict = ""
         if f"d{d}" in expect:
