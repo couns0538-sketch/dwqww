@@ -171,6 +171,10 @@ int main() {
                          "option name Book Depth type spin default 30 min 0 max 100\n"
                          "option name Book Variety type spin default 30 min 0 max 100\n";
             if (forge::nnue::available()) std::cout << "option name UseNNUE type check default true\n";
+#ifdef FORGE_PROF
+            std::cout << "option name Profile type check default false\n";
+#endif
+
 #ifdef FORGE_EXPOSE_TUNABLES
             // Development builds advertise the search constants so match
             // runners can set them; release builds accept them silently.
@@ -216,7 +220,18 @@ int main() {
             }
             if (handled_tunable) {
                 // Unlisted development options; nothing else to do.
-            } else if (name == "Clear Hash") {
+            }
+#ifdef FORGE_PROF
+            else if (name == "Profile") {
+                if (value_text=="true") searcher.set_profiling(true);
+                else if (value_text=="false") searcher.set_profiling(false);
+                else {
+                    const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex());
+                    std::cout << "info string invalid value for option Profile" << std::endl;
+                }
+            }
+#endif
+            else if (name == "Clear Hash") {
                 searcher.clear_hash();
             } else if (name == "Ponder") {
                 if (value_text == "true") ponder_enabled = true;
@@ -371,10 +386,19 @@ int main() {
                         prediction = " ponder " + forge::Board::move_to_uci(result.pv[1]);
                     }
                     const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex());
+#ifdef FORGE_PROF
+                    if (searcher.profiling_active()) {
+                        forge::prof::write_snapshot(std::cout,searcher.profile_snapshot());
+                    }
+#endif
                     std::cout << "bestmove " << best << prediction << std::endl;
                 });
             }
-        } else if (command == "bench") {
+        } else if (command == "bench"
+#ifdef FORGE_PROF
+                   || command == "bench_prof"
+#endif
+        ) {
             // Fixed-depth search over a small position set; prints a node
             // signature and speed for quick regression and performance checks.
             stop_search();
@@ -393,6 +417,12 @@ int main() {
             std::uint64_t total_nodes = 0;
             const auto start = std::chrono::steady_clock::now();
             forge::Searcher bench_searcher(16);
+#ifdef FORGE_PROF
+            const bool profile_bench=command=="bench_prof";
+            bench_searcher.set_profiling(profile_bench);
+            forge::prof::Snapshot profile_total;
+#endif
+
             for (const std::string_view fen : fens) {
                 forge::Board bench_board;
                 if (!bench_board.set_fen(fen)) continue;
@@ -401,10 +431,17 @@ int main() {
                 bench_searcher.clear();
                 total_nodes += bench_searcher.search(
                     bench_board, limits, false, forge::Searcher::TTAccess::Exclusive).nodes;
+#ifdef FORGE_PROF
+                if (profile_bench) forge::prof::merge(profile_total,bench_searcher.profile_snapshot());
+#endif
+
             }
             const auto elapsed_ms = std::chrono::duration_cast<std::chrono::milliseconds>(
                 std::chrono::steady_clock::now() - start).count();
             const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex());
+#ifdef FORGE_PROF
+            if (profile_bench) forge::prof::write_snapshot(std::cout,profile_total);
+#endif
             std::cout << "info string bench depth " << depth << " nodes " << total_nodes << " time " << elapsed_ms
                       << " nps " << (elapsed_ms > 0 ? total_nodes * 1000U / static_cast<std::uint64_t>(elapsed_ms) : 0)
                       << std::endl;

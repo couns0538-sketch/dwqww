@@ -1,4 +1,7 @@
 #include "forge/nnue.hpp"
+#ifdef FORGE_PROF
+#include "forge/profile.hpp"
+#endif
 
 #include <algorithm>
 #include <cmath>
@@ -82,6 +85,10 @@ bool available() { return FORGE_HAS_NNUE != 0; }
 bool residual() { return FORGE_HAS_NNUE != 0 && FORGE_NNUE_RESIDUAL != 0; }
 
 void refresh(const Board& board, Accumulator& accumulator) {
+#ifdef FORGE_PROF
+    prof::count(prof::Counter::NnueRefresh);
+#endif
+
     const Weights& w = weights();
     for (const Color perspective : {White, Black}) {
         auto& acc = accumulator.values[static_cast<std::size_t>(perspective)];
@@ -157,6 +164,10 @@ void update(const Accumulator& parent, Accumulator& child, const DirtyPieces& di
 }
 
 int evaluate(const Board& board, const Accumulator& accumulator) {
+#ifdef FORGE_PROF
+    prof::count(prof::Counter::NnueForward);
+#endif
+
     const Weights& w = weights();
     const Color us = board.side_to_move();
     const auto& ours = accumulator.values[static_cast<std::size_t>(us)];

@@ -1,4 +1,7 @@
 #pragma once
+#ifdef FORGE_PROF
+#include "forge/profile.hpp"
+#endif
 
 #include "forge/board.hpp"
 #include "forge/eval.hpp"
@@ -290,6 +293,12 @@ struct SharedSearchState {
     std::atomic<bool> stop{false};
     // 0 means pondering has not been converted into a timed search.
     std::atomic<std::int64_t> ponder_hit_ns{0};
+#ifdef FORGE_PROF
+    prof::Bank profile;
+    std::atomic<bool> profile_requested{false};
+    bool profile_active=false; // Immutable while workers are active.
+#endif
+
 };
 
 // One search thread: owns its histories, stack and evaluation cache.
@@ -394,6 +403,13 @@ public:
     void clear_hash();
     void resize_hash(std::size_t hash_mb);
     void set_threads(int threads);
+#ifdef FORGE_PROF
+    // Enabling may be requested atomically; reset/snapshot require this Searcher
+    // quiescent, exactly like clear/resize. Search snapshots once before launch.
+    void set_profiling(bool enabled) { shared_.profile_requested.store(enabled,std::memory_order_relaxed); }
+    [[nodiscard]] bool profiling_active() const { return shared_.profile_active; }
+    [[nodiscard]] prof::Snapshot profile_snapshot() const { return shared_.profile.snapshot_quiescent(); }
+#endif
     [[nodiscard]] int threads() const { return static_cast<int>(workers_.size()); }
     [[nodiscard]] int hashfull_permille() const { return shared_.tt.hashfull(); }
     [[nodiscard]] static int evaluate(const Board& board) { return Evaluator::evaluate_uncached(board); }

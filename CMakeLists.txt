@@ -5,6 +5,7 @@ find_package(Threads REQUIRED)
 option(FORGE_ENABLE_SANITIZERS "Enable AddressSanitizer and UndefinedBehaviorSanitizer" OFF)
 option(FORGE_NATIVE "Optimise for the build machine's CPU (-march=native)" OFF)
 option(FORGE_EXPOSE_TUNABLES "Advertise search tuning constants as UCI options (development builds)" OFF)
+option(FORGE_PROF "Build opt-in search-only profiling counters" OFF)
 
 add_library(forge_core
     src/bitboard.cpp
@@ -17,6 +18,10 @@ add_library(forge_core
 )
 target_include_directories(forge_core PUBLIC include)
 target_compile_features(forge_core PUBLIC cxx_std_20)
+if(FORGE_PROF)
+    target_sources(forge_core PRIVATE src/profile.cpp)
+    target_compile_definitions(forge_core PUBLIC FORGE_PROF=1)
+endif()
 
 if(MSVC)
     target_compile_options(forge_core PRIVATE /W4 /permissive-)
@@ -71,6 +76,11 @@ add_executable(forge_bench bench/benchmark.cpp)
 target_link_libraries(forge_bench PRIVATE forge_core Threads::Threads)
 
 enable_testing()
+if(FORGE_PROF)
+    add_executable(forge_prof_tests tests/prof_tests.cpp)
+    target_link_libraries(forge_prof_tests PRIVATE forge_core Threads::Threads)
+    add_test(NAME forge_prof_tests COMMAND forge_prof_tests)
+endif()
 add_test(NAME forge_tests COMMAND forge_tests)
 add_test(NAME forge_correction_history_tests COMMAND forge_correction_history_tests)
 add_test(NAME forge_runtime_psqt_tests COMMAND forge_runtime_psqt_tests)

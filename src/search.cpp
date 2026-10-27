@@ -1,4 +1,7 @@
 #include "forge/search.hpp"
+#ifdef FORGE_PROF
+#include "forge/profile.hpp"
+#endif
 #include "forge/uci_output.hpp"
 
 #include <algorithm>
@@ -248,6 +251,11 @@ TTProbe TranspositionTable::probe(std::uint64_t key) const {
     const std::size_t index = static_cast<std::size_t>(&cluster - clusters_.get());
     const auto lock = lock_stripe(index);
     auto snapshot = [&](const TTEntry& entry, bool hit) {
+#ifdef FORGE_PROF
+        prof::count(prof::Counter::TtProbes);
+        prof::count(hit ? prof::Counter::TtHits : prof::Counter::TtMisses);
+#endif
+
         TTProbe result;
         result.entry = entry;
         result.hit = hit;
@@ -346,14 +354,23 @@ public:
             case MainTT:
             case QsTT:
             case EvasionTT:
+#ifdef FORGE_PROF
+                prof::picker_stage(static_cast<std::size_t>(stage_));
+#endif
                 stage_ = static_cast<Stage>(stage_ + 1);
                 return tt_move_;
 
             case GenerateCaptures:
+#ifdef FORGE_PROF
+                prof::picker_stage(static_cast<std::size_t>(stage_));
+#endif
                 generate_captures();
                 stage_ = GoodCaptures;
                 [[fallthrough]];
             case GoodCaptures:
+#ifdef FORGE_PROF
+                prof::picker_stage(static_cast<std::size_t>(stage_));
+#endif
                 while (index_ < count_) {
                     const Move move = pick_best();
                     if (move == tt_move_) continue;
@@ -366,24 +383,39 @@ public:
                 stage_ = Killer1;
                 [[fallthrough]];
             case Killer1:
+#ifdef FORGE_PROF
+                prof::picker_stage(static_cast<std::size_t>(stage_));
+#endif
                 stage_ = Killer2;
                 if (!skip_quiets && is_valid_quiet(killers_[0])) return killers_[0];
                 [[fallthrough]];
             case Killer2:
+#ifdef FORGE_PROF
+                prof::picker_stage(static_cast<std::size_t>(stage_));
+#endif
                 stage_ = CounterMove;
                 if (!skip_quiets && is_valid_quiet(killers_[1]) && killers_[1] != killers_[0]) return killers_[1];
                 [[fallthrough]];
             case CounterMove:
+#ifdef FORGE_PROF
+                prof::picker_stage(static_cast<std::size_t>(stage_));
+#endif
                 stage_ = GenerateQuiets;
                 if (!skip_quiets && is_valid_quiet(counter_) && counter_ != killers_[0] && counter_ != killers_[1]) {
                     return counter_;
                 }
                 [[fallthrough]];
             case GenerateQuiets:
+#ifdef FORGE_PROF
+                prof::picker_stage(static_cast<std::size_t>(stage_));
+#endif
                 if (!skip_quiets) generate_quiets();
                 stage_ = QuietMoves;
                 [[fallthrough]];
             case QuietMoves:
+#ifdef FORGE_PROF
+                prof::picker_stage(static_cast<std::size_t>(stage_));
+#endif
                 if (!skip_quiets) {
                     while (index_ < count_) {
                         const Move move = pick_best();
@@ -395,14 +427,23 @@ public:
                 bad_index_ = 0;
                 [[fallthrough]];
             case BadCaptures:
+#ifdef FORGE_PROF
+                prof::picker_stage(static_cast<std::size_t>(stage_));
+#endif
                 if (bad_index_ < bad_count_) return bad_captures_[bad_index_++];
                 return Move::none();
 
             case QsGenerate:
+#ifdef FORGE_PROF
+                prof::picker_stage(static_cast<std::size_t>(stage_));
+#endif
                 generate_captures();
                 stage_ = QsCaptures;
                 [[fallthrough]];
             case QsCaptures:
+#ifdef FORGE_PROF
+                prof::picker_stage(static_cast<std::size_t>(stage_));
+#endif
                 while (index_ < count_) {
                     const Move move = pick_best();
                     if (move == tt_move_) continue;
@@ -411,10 +452,16 @@ public:
                 return Move::none();
 
             case EvasionGenerate:
+#ifdef FORGE_PROF
+                prof::picker_stage(static_cast<std::size_t>(stage_));
+#endif
                 generate_evasions();
                 stage_ = Evasions;
                 [[fallthrough]];
             case Evasions:
+#ifdef FORGE_PROF
+                prof::picker_stage(static_cast<std::size_t>(stage_));
+#endif
                 while (index_ < count_) {
                     const Move move = pick_best();
                     if (move == tt_move_) continue;
@@ -597,6 +644,10 @@ namespace {
 } // namespace
 
 int Worker::static_evaluate(const Board& board, SearchStack* ss) {
+#ifdef FORGE_PROF
+    prof::count(prof::Counter::EvalRequests);
+#endif
+
     if (!nnue::enabled || !nnue::available()) return evaluator_.evaluate(board);
     const bool residual = nnue::residual();
     if (!ss->accumulator.valid) {
@@ -774,6 +825,11 @@ int Worker::qsearch(Board& board, SearchStack* ss, int alpha, int beta) {
     if (((local_nodes_ & 1023U) == 0 || node_limit_specified_) && should_stop()) aborted_ = true;
     if (aborted_) return 0;
     ++local_nodes_;
+#ifdef FORGE_PROF
+    prof::count(prof::Counter::Nodes);
+    prof::count(prof::Counter::QsNodes);
+#endif
+
     seldepth_ = std::max(seldepth_, ply);
     ss->pv_length = 0;
 
@@ -830,12 +886,28 @@ int Worker::qsearch(Board& board, SearchStack* ss, int alpha, int beta) {
         ++move_count;
         if (!in_check && best_score > -MateInMaxPly) {
             const bool gives_check = board.gives_check(move);
+#ifdef FORGE_PROF
+            prof::count(prof::Counter::QsFutilityChecks);
+#endif
             // Futility: even winning the captured piece cannot raise alpha.
             if (!gives_check && !move.is_promotion() && futility_base + capture_value(board, move) <= alpha) {
+#ifdef FORGE_PROF
+                prof::count(prof::Counter::QsFutilityPrunes);
+#endif
                 best_score = std::max(best_score, futility_base + capture_value(board, move));
                 continue;
             }
+#ifdef FORGE_PROF
+            prof::count(prof::Counter::QsSeeChecks);
+#endif
+#ifdef FORGE_PROF
+            if (!board.see_ge(move, -tune::QsSeeMargin)) {
+                prof::count(prof::Counter::QsSeePrunes);
+                continue;
+            }
+#else
             if (!board.see_ge(move, -tune::QsSeeMargin)) continue;
+#endif
         }
         ss->current_move = move;
         ss->moved_piece = board.moved_piece(move);
@@ -885,6 +957,11 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
     if (((local_nodes_ & 1023U) == 0 || node_limit_specified_) && should_stop()) aborted_ = true;
     if (aborted_) return 0;
     ++local_nodes_;
+#ifdef FORGE_PROF
+    prof::count(prof::Counter::Nodes);
+    prof::count(prof::Counter::MainNodes);
+#endif
+
     seldepth_ = std::max(seldepth_, ply);
     ss->pv_length = 0;
     ss->move_count = 0;
@@ -950,11 +1027,24 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
     }
 
     if (!pv_node && !in_check && excluded.is_none() && !is_mate_score(beta)) {
+#ifdef FORGE_PROF
+        prof::count(prof::Counter::RazorChecks);
+#endif
         // Razoring: hopeless positions fall back to quiescence.
         if (depth <= tune::RazorDepth && eval + tune::RazorBase + tune::RazorMultiplier * depth < alpha) {
+#ifdef FORGE_PROF
+            prof::count(prof::Counter::RazorSearches);
+#endif
             const int razor = qsearch(board, ss, alpha - 1, alpha);
             if (aborted_) return 0;
+#ifdef FORGE_PROF
+            if (razor < alpha) {
+                prof::count(prof::Counter::RazorCutoffs);
+                return razor;
+            }
+#else
             if (razor < alpha) return razor;
+#endif
         }
         // Reverse futility pruning.
         if (depth <= tune::RfpDepth && eval - (tune::RfpMargin * depth - tune::RfpImproving * improving) >= beta &&
@@ -999,6 +1089,9 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
         }
         // ProbCut: a good capture that beats beta by a margin at reduced depth.
         const int probcut_beta = beta + tune::ProbcutMargin - 50 * improving;
+#ifdef FORGE_PROF
+        prof::count(prof::Counter::ProbCutChecks);
+#endif
         if (depth >= tune::ProbcutDepth && !is_mate_score(beta) &&
             !(tt_hit && tt_depth >= depth - 3 && tt_score != ValueNone && tt_score < probcut_beta)) {
             MovePicker picker(board, *this, ss, tt_move, MovePicker::Mode::Quiescence);
@@ -1013,6 +1106,9 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
                 record_move(ss, board, move);
                 Undo undo;
                 (void)board.make_move(move, undo);
+#ifdef FORGE_PROF
+                prof::count(prof::Counter::ProbCutSearches);
+#endif
                 int value = -qsearch(board, ss + 1, -probcut_beta, -probcut_beta + 1);
                 if (value >= probcut_beta && !aborted_) {
                     value = -search(board, ss + 1, depth - 4, -probcut_beta, -probcut_beta + 1, !cut_node);
@@ -1020,6 +1116,10 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
                 board.unmake_move(move, undo);
                 if (aborted_) return 0;
                 if (value >= probcut_beta) {
+#ifdef FORGE_PROF
+                    prof::count(prof::Counter::ProbCutCutoffs);
+#endif
+
                     shared_.tt.store(tt_probe, board.key(), score_to_tt(value, ply), ss->raw_eval, move, depth - 3, BoundLower, ss->tt_pv, board.halfmove_clock());
                     return value;
                 }
@@ -1027,8 +1127,18 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
         }
     }
 
+#ifdef FORGE_PROF
+    prof::count(prof::Counter::IirChecks);
+#endif
     // Internal iterative reduction: no hash move suggests a less important node.
+#ifdef FORGE_PROF
+    if (!in_check && depth >= tune::IirDepth && tt_move.is_none() && (pv_node || cut_node)) {
+        prof::count(prof::Counter::IirReductions);
+        --depth;
+    }
+#else
     if (!in_check && depth >= tune::IirDepth && tt_move.is_none() && (pv_node || cut_node)) --depth;
+#endif
 
     MovePicker picker(board, *this, ss, tt_move, MovePicker::Mode::Main);
     std::array<Move, 128> quiets_tried{};
@@ -1059,35 +1169,95 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
 
         // Shallow-depth pruning of unpromising moves.
         if (!root_node && best_score > -MateInMaxPly && has_material) {
+#ifdef FORGE_PROF
+            prof::count(prof::Counter::LmpChecks);
+#endif
+#ifdef FORGE_PROF
+            if (quiet && !skip_quiets && move_count >= lmp_threshold(depth, improving)) {
+                prof::count(prof::Counter::LmpActivations);
+                skip_quiets = true;
+            }
+#else
             if (quiet && !skip_quiets && move_count >= lmp_threshold(depth, improving)) skip_quiets = true;
+#endif
             const int lmr_depth = std::max(0, depth - reduction(quiet, depth, move_count));
             if (quiet && !gives_check) {
+#ifdef FORGE_PROF
+                prof::count(prof::Counter::FutilityChecks);
+#endif
                 if (!in_check && lmr_depth <= tune::FutilityDepth &&
                     ss->static_eval + tune::FutilityBase + tune::FutilityMultiplier * lmr_depth <= alpha) {
+#ifdef FORGE_PROF
+                    prof::count(prof::Counter::FutilityPrunes);
+#endif
                     skip_quiets = true;
                     continue;
                 }
+#ifdef FORGE_PROF
+                prof::count(prof::Counter::HistoryChecks);
+#endif
+#ifdef FORGE_PROF
+                if (lmr_depth <= tune::HistoryPruneDepth && history < -tune::HistoryPruneMultiplier * depth) {
+                    prof::count(prof::Counter::HistoryPrunes);
+                    continue;
+                }
+#else
                 if (lmr_depth <= tune::HistoryPruneDepth && history < -tune::HistoryPruneMultiplier * depth) continue;
+#endif
+#ifdef FORGE_PROF
+                prof::count(prof::Counter::QuietSeeChecks);
+#endif
+#ifdef FORGE_PROF
+                if (!board.see_ge(move, -tune::SeeQuietMultiplier * lmr_depth * lmr_depth)) {
+                    prof::count(prof::Counter::QuietSeePrunes);
+                    continue;
+                }
+#else
                 if (!board.see_ge(move, -tune::SeeQuietMultiplier * lmr_depth * lmr_depth)) continue;
+#endif
             } else {
                 // Futility pruning for captures: even winning the piece cannot
                 // bring the position back to alpha.
+#ifdef FORGE_PROF
+                prof::count(prof::Counter::CaptureFutilityChecks);
+#endif
                 if (tune::CaptureFutilityBase > 0 && capture && !in_check && !gives_check &&
                     lmr_depth <= tune::CaptureFutilityDepth &&
                     ss->static_eval + tune::CaptureFutilityBase + tune::CaptureFutilityMultiplier * lmr_depth +
                             capture_value(board, move) + history / 8 <= alpha) {
+#ifdef FORGE_PROF
+                    prof::count(prof::Counter::CaptureFutilityPrunes);
+#endif
                     continue;
                 }
+#ifdef FORGE_PROF
+                prof::count(prof::Counter::NoisySeeChecks);
+#endif
                 const int see_threshold = -tune::SeeNoisyMultiplier * depth;
+#ifdef FORGE_PROF
+                if (!(picker.last_move_see_nonnegative() && see_threshold <= 0) &&
+                    !board.see_ge(move, see_threshold)) {
+                    prof::count(prof::Counter::NoisySeePrunes);
+                    continue;
+                }
+#else
                 if (!(picker.last_move_see_nonnegative() && see_threshold <= 0) &&
                     !board.see_ge(move, see_threshold)) continue;
+#endif
             }
         }
 
         // Extensions.
         int extension = 0;
+#ifdef FORGE_PROF
+        prof::count(prof::Counter::SingularChecks);
+#endif
+
         if (!root_node && depth >= tune::SingularDepth && move == tt_move && excluded.is_none() && tt_bound != BoundUpper &&
             tt_score != ValueNone && !is_mate_score(tt_score) && tt_depth >= depth - 3) {
+#ifdef FORGE_PROF
+            prof::count(prof::Counter::SingularSearches);
+#endif
             const int singular_beta = tt_score - tune::SingularMargin * depth;
             const int singular_depth = (depth - 1) / 2;
             const bool saved_tt_pv = ss->tt_pv;
@@ -1098,11 +1268,22 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
             ss->excluded_move = Move::none();
             if (aborted_) return 0;
             if (singular_score < singular_beta) {
+#ifdef FORGE_PROF
+                prof::count(prof::Counter::SingularExtensions);
+#endif
+
                 extension = 1;
                 if (!pv_node && singular_score < singular_beta - 24 && inherited_double_extensions <= 6) {
+#ifdef FORGE_PROF
+                    prof::count(prof::Counter::SingularDoubleExtensions);
+#endif
                     extension = 2;
                 }
             } else if (singular_beta >= beta) {
+#ifdef FORGE_PROF
+                prof::count(prof::Counter::SingularCutoffs);
+#endif
+
                 return singular_beta;
             } else if (tt_score >= beta) {
                 extension = -2;
@@ -1228,6 +1409,10 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
 // Iterative deepening driver
 
 SearchInfo Worker::search(Board board, const SearchLimits& limits, bool emit_info, const std::vector<Worker*>& all) {
+#ifdef FORGE_PROF
+    prof::Scope profile_scope(shared_.profile_active ? &shared_.profile : nullptr);
+#endif
+
     const auto origin = limits.start_time != std::chrono::steady_clock::time_point{}
         ? limits.start_time : limits.request_start;
     start_ = origin == std::chrono::steady_clock::time_point{}
@@ -1513,6 +1698,10 @@ SearchInfo Searcher::search(Board board, const SearchLimits& limits, bool emit_i
     if (table_access == TTAccess::Exclusive && workers_.size() == 1) {
         exclusive.emplace(shared_.tt);
     }
+#ifdef FORGE_PROF
+    shared_.profile_active=shared_.profile_requested.load(std::memory_order_relaxed);
+    shared_.profile.reset_quiescent();
+#endif
     std::vector<std::thread> helpers;
     for (std::size_t i = 1; i < workers_.size(); ++i) {
         helpers.emplace_back([this, i, board, &worker_limits, &all]() {
