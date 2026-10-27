@@ -50,7 +50,10 @@ public:
         }
     }
 
-    [[nodiscard]] Move next(bool skip_quiets) {
+    // Emitted out of line as a COMDAT, which the PE linker places after every
+    // object's .text: pin it to a 64-byte boundary (its AL1 s198 placement) so
+    // its alignment does not depend on the size of other translation units.
+    [[nodiscard, gnu::aligned(64)]] Move next(bool skip_quiets) {
         while (true) {
             switch (stage_) {
             case MainTT:
