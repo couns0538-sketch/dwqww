@@ -1,0 +1,71 @@
+{
+ "title": "S-A6 SPSA re-tune plan (G-A6, srand 881917307) - PLAN ONLY, UNPROVEN, run only after a G-A1 (more data) or G-A4 (H512) net locks",
+ "catalog": "inputs/forge_sol_S15_parameter_catalog_20261027.json",
+ "catalog_sha256": "856017148a8380f8f915419be74dc45a46120da9f248f8c9ad2f2f1eb699a65a",
+ "throughput": {
+  "measured_sec_per_game_per_slot_10+0.1": 29,
+  "measured_source": "24 gate RESULT.md/RUN_INFO.json copies (opus-sol-S44 inputs): G98-G125 at conc 8 = 955-987 games/h, conc 7 = 840-859, conc 5 = 604-625",
+  "engine_share_of_base": 0.8,
+  "moves_per_side": 65
+ },
+ "spsa_schedule": {
+  "style": "Spall / fishtest: a_k = a / (A + k + 1)^0.602, c_k = c / (k + 1)^0.101, A = 0.1 * iterations; per-parameter c_end (units below) and r_end = a_end / c_end^2 = 0.002",
+  "r_end": 0.002,
+  "alpha": 0.602,
+  "gamma": 0.101,
+  "A_frac": 0.1
+ },
+ "stages": [
+  {
+   "name": "A_eval_scale",
+   "why": "margins in centipawns or eval-derived divisors: their best values move with the net's eval scale and accuracy",
+   "tc": "8+0.08",
+   "concurrency": 8,
+   "pairs_per_iteration": 4,
+   "games": 24000,
+   "params": {
+    "RfpMargin": 6,
+    "RfpImproving": 4,
+    "RazorBase": 15,
+    "RazorMultiplier": 25,
+    "FutilityBase": 10,
+    "FutilityMultiplier": 9,
+    "QsFutilityMargin": 13,
+    "ProbcutMargin": 15,
+    "NullMoveEvalDivisor": 16,
+    "AspirationDelta": 2,
+    "MaterialCorrectionWeight": 10
+   }
+  },
+  {
+   "name": "B_search_shape",
+   "why": "LMR, history pruning and SEE thresholds: tree shape, which moves with the new NPS (H512) and the new eval's ordering quality",
+   "tc": "8+0.08",
+   "concurrency": 8,
+   "pairs_per_iteration": 4,
+   "games": 20000,
+   "params": {
+    "LmrQuietBase": 8,
+    "LmrQuietDivisor": 15,
+    "LmrNoisyBase": 8,
+    "LmrNoisyDivisor": 25,
+    "HistoryPruneMultiplier": 200,
+    "LmrHistoryDivisor": 500,
+    "SeeQuietMultiplier": 3,
+    "SeeNoisyMultiplier": 12,
+    "QsSeeMargin": 5
+   }
+  }
+ ],
+ "excluded": {
+  "depth_gate_integer": ["NullMoveMinDepth", "NullMoveBase", "NullMoveDepthDivisor", "RfpDepth", "RazorDepth", "FutilityDepth", "HistoryPruneDepth", "SingularDepth", "IirDepth", "ProbcutDepth", "CheckExtensionDepth", "CaptureFutilityDepth"],
+  "small_range_integer": ["LmpBase", "SingularMargin", "LmrCutoffThreshold"],
+  "dead_or_off_feature": ["CaptureFutilityBase", "CaptureFutilityMultiplier", "FailLowContinuationBonus"],
+  "history_table_dynamics": ["HistoryBonusQuadratic", "HistoryBonusLinear", "HistoryBonusMax"],
+  "time_management": ["TmSoftDivisor", "TmIncrementPercent", "TmHardPercent", "TmHardSoftMultiple", "TmStableFactor", "TmSemiStableFactor", "TmUnstableFactor", "TmEffortBase", "TmFallingEvalPercent", "TmMinFactorPercent"]
+ },
+ "validation": {
+  "stc_gate": {"sprt": "[0,10]", "tc": "10+0.1", "cap_games": 1500, "concurrency": 8, "srand": 881917307, "base": "the new lock (G-A1 or G-A4 net)"},
+  "ltc_confirm": {"sprt": "[0,10]", "tc": "40+0.4", "cap_games": 1500, "concurrency": 8, "srand": "fresh, logged in RUN_INFO (never reuse 881917307)"}
+ }
+}

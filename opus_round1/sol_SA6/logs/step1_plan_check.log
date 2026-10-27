@@ -1,0 +1,29 @@
+# S-A6 step1: plan check against the S15 catalog (sha256 856017148a83...)
+Tue Oct 27 22:35:51 UTC 2026
+stage A_eval_scale: 11 params, 24,000 games at 8+0.08 conc 8: 3,000 iterations (A 300), 23.2 s/game/slot, 19.3 QA-slot hours
+  RfpMargin                default     72 [10, 300] c_end    6 (2.1% of range) c_1 13.5 a 9.45
+  RfpImproving             default     40 [0, 200] c_end    4 (2.0% of range) c_1 9.0 a 4.2
+  RazorBase                default    150 [0, 1000] c_end   15 (1.5% of range) c_1 33.7 a 59.1
+  RazorMultiplier          default    350 [0, 1000] c_end   25 (2.5% of range) c_1 56.1 a 164
+  FutilityBase             default    100 [0, 500] c_end   10 (2.0% of range) c_1 22.4 a 26.3
+  FutilityMultiplier       default    110 [0, 500] c_end    9 (1.8% of range) c_1 20.2 a 21.3
+  QsFutilityMargin         default    160 [0, 1000] c_end   13 (1.3% of range) c_1 29.2 a 44.4
+  ProbcutMargin            default    180 [0, 1000] c_end   15 (1.5% of range) c_1 33.7 a 59.1
+  NullMoveEvalDivisor      default    200 [50, 1000] c_end   16 (1.7% of range) c_1 35.9 a 67.2
+  AspirationDelta          default     18 [4, 200] c_end    2 (1.0% of range) c_1 4.5 a 1.05
+  MaterialCorrectionWeight default    100 [0, 300] c_end   10 (3.3% of range) c_1 22.4 a 26.3
+stage B_search_shape: 9 params, 20,000 games at 8+0.08 conc 8: 2,500 iterations (A 250), 23.2 s/game/slot, 16.1 QA-slot hours
+  LmrQuietBase             default     85 [0, 300] c_end    8 (2.7% of range) c_1 17.6 a 15.1
+  LmrQuietDivisor          default    220 [100, 500] c_end   15 (3.8% of range) c_1 33.1 a 52.9
+  LmrNoisyBase             default     10 [0, 300] c_end    8 (2.7% of range) c_1 17.6 a 15.1
+  LmrNoisyDivisor          default    340 [100, 800] c_end   25 (3.6% of range) c_1 55.1 a 147
+  HistoryPruneMultiplier   default   2048 [0, 20000] c_end  200 (1.0% of range) c_1 440.8 a 9.41e+03
+  LmrHistoryDivisor        default   6000 [1000, 30000] c_end  500 (1.7% of range) c_1 1102.0 a 5.88e+04
+  SeeQuietMultiplier       default     24 [0, 200] c_end    3 (1.5% of range) c_1 6.6 a 2.12
+  SeeNoisyMultiplier       default    150 [0, 1000] c_end   12 (1.2% of range) c_1 26.4 a 33.9
+  QsSeeMargin              default     40 [0, 500] c_end    5 (1.0% of range) c_1 11.0 a 5.88
+validation (caps): STC gate 1.5 h, LTC confirm 6.0 h; total at most 43.0 QA-slot hours
+assignment: {'A_eval_scale': 11, 'B_search_shape': 9, 'excluded:dead_or_off_feature': 3, 'excluded:depth_gate_integer': 12, 'excluded:history_table_dynamics': 3, 'excluded:small_range_integer': 3, 'excluded:time_management': 10} of 51 catalog parameters
+WARNING LmrNoisyBase: first perturbation +-17.6 around 10 crosses [0, 300] (clamped)
+RESULT PASS
+exit 0
