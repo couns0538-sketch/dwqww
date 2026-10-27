@@ -10,6 +10,7 @@ add_library(forge_core
     src/bitboard.cpp
     src/board.cpp
     src/book.cpp
+    src/datagen.cpp
     src/eval.cpp
     src/eval_params.cpp
     src/nnue.cpp
@@ -39,6 +40,19 @@ target_link_libraries(forge PRIVATE forge_core Threads::Threads)
 if(FORGE_EXPOSE_TUNABLES)
     target_compile_definitions(forge PRIVATE FORGE_EXPOSE_TUNABLES=1)
 endif()
+
+# S32 self-play datagen v2 ("forge datagen ..."). Default OFF: forge is then the unchanged engine
+# (datagen.cpp sits in the static forge_core but is not linked into it). forge_datagen is the same
+# engine with the command enabled, always built so CTest/CI exercise the datagen path.
+option(FORGE_DATAGEN "Enable the 'forge datagen' self-play command line mode in the forge executable" OFF)
+if(FORGE_DATAGEN)
+    target_compile_definitions(forge PRIVATE FORGE_DATAGEN=1)
+endif()
+add_executable(forge_datagen src/uci.cpp)
+target_link_libraries(forge_datagen PRIVATE forge_core Threads::Threads)
+target_compile_definitions(forge_datagen PRIVATE FORGE_DATAGEN=1)
+add_executable(forge_datagen_tests tests/datagen_tests.cpp)
+target_link_libraries(forge_datagen_tests PRIVATE forge_core Threads::Threads)
 
 add_executable(forge_tests tests/tests.cpp)
 target_link_libraries(forge_tests PRIVATE forge_core Threads::Threads)
@@ -79,6 +93,7 @@ add_test(NAME forge_nearest_pawn_tests COMMAND forge_nearest_pawn_tests)
 add_test(NAME forge_pv_metadata_tests COMMAND forge_pv_metadata_tests)
 add_test(NAME forge_tt_tests COMMAND forge_tt_tests)
 add_test(NAME forge_rule50_tests COMMAND forge_rule50_tests)
+add_test(NAME forge_datagen_tests COMMAND forge_datagen_tests ${CMAKE_CURRENT_BINARY_DIR}/datagen_unit)
 add_test(NAME forge_legal_witness_tests COMMAND forge_legal_witness_tests
     ${CMAKE_CURRENT_SOURCE_DIR}/tests/legal_witness_fixtures.tsv
     ${CMAKE_CURRENT_SOURCE_DIR}/tools/openings/forge-10000.epd)
@@ -115,4 +130,7 @@ if(Python3_Interpreter_FOUND)
     add_test(NAME ownbook_regression
         COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tools/ownbook_regression.py
                 $<TARGET_FILE:forge> ${CMAKE_CURRENT_BINARY_DIR}/ownbook-regression.json)
+    add_test(NAME datagen_cli_tests
+        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/datagen_cli_tests.py
+                $<TARGET_FILE:forge_datagen> ${CMAKE_CURRENT_BINARY_DIR}/datagen_cli)
 endif()
