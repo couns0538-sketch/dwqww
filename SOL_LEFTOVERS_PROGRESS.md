@@ -10,7 +10,7 @@ S14 | opus-sol-S14 | DONE (9dca2a54) | nothing left in AL1 (fixed picker + squar
 S34 | opus-sol-S34 | DONE (042cf3e9) | v2 validator (deployed-driver profile, autopromote annotations, option rules, case-dup keys); live file: 13 real legacy duplicate starts, 0 false errors; 51 fixtures, 31 tests, 10/10 mutants caught
 S22 | opus-sol-S22 | COVERED by opus-O1 (report pushed, 80edf0d) | Sol's open T2 node observation = O1 bug 1 (SmpExactNodes)
 S30 | opus-sol-S30 | DONE (46894c18) | study with file:line citations: G104 early H1 not repeated by G104c (+7.18); e24->e48 at fixed data -1.6e-5 b0.6 (noise level, seed sd 7.1e-6); data size -1.68e-4 per doubling (23 runs); loss has not predicted Elo; replicas byte-identical (synthetic data, pipeline only)
-S31 | opus-sol-S31 | IN PROGRESS (main session, finishing) | avg tool (.inc/.bin/.pt; .pt = .bin byte for byte), md5 identities, parity 49,999/50,000 exact + 1 float32/64 boundary case, production holdout table (f006 avg2/3/4 -2.2/-3.4/-4.6e-6 b0.6 vs ep48, inside seed noise), PC runner
+S31 | opus-sol-S31 | DONE (e43a83ca) | avg tool (.inc/.bin/.pt; .pt = .bin byte for byte), md5 identities, parity 49,999/50,000 exact + 1 float32/64 boundary case, production holdout table (f006 avg2/3/4 -2.2/-3.4/-4.6e-6 b0.6 vs ep48, inside seed noise), PC runner
 S35 | opus-sol-S35 | DONE (5ad87037) | pwsh7 harness, 4 scenarios, 9 targets; live conc7_watch 3/4 (F1 rotation dedupe), v3 fix 4/4 not deployed (needs CR); ReadAllText negatives FAIL S1
 S38 | opus-sol-S38 | DONE (627130b8) | gate_time_audit + deterministic fixture; = RESULT.md/GATE_RESULTS.csv on 7 real gates; G125 nps asymmetry 3.68% flagged
 S15 | opus-sol-S15 | DONE (3d22bb52) | SPSA harness v2 = Sol v1 + PC run driver; 51 tunables; 29 tests, 16/16 mutants; fixture 2 params x 4 iterations at Idle; no tune applied; fixed v1 -maxmoves adjudication + e.p. FEN mismatch
@@ -22,13 +22,28 @@ S20 | opus-sol-S20 | IN PROGRESS (main session) | depth-8 rescoring of a 1M lock
 S21 | opus-sol-S21 | DONE (f7731fe8) | research only: every net overflows int16 on 28-86% of 200k positions (CR bounds reproduced); research export parity: guaranteed 0.9-1.4 cp mean / 9-14 cp max, observed-range 0.3-0.45 cp; forward == engine 916/916
 S46 | opus-sol-S46 | DONE (cb6d8956) | config-driven simulator, 27 fixtures, real 2026-10-25 replay 13/13 identical; live script differs only on the step-5 suffix fixture (G55/G56 bug)
 S47 | opus-sol-S47 | DONE (99365efc) | Part A net-only + Part B audit packet (never grants CR); real AUTOLOCK_1 net-only PASS; AL1 audit INCOMPLETE (old UCI list missing)
-S44 | opus-sol-S44 | IN PROGRESS (main session) | 23 net gates; opponent from RUN_INFO (G98/G103/G105-G112/G122/G123 were vs AL1); exact fastchess GSPRT reproduced on all; per-gate stopping-rule simulation (Whitehead adjustment) running
+S44 | opus-sol-S44 | DONE (43370d7a) | 23 net gates (opponent from RUN_INFO), exact fastchess GSPRT, Whitehead-adjusted fits: e64 +0.3 / e96 +0.6 Elo vs 1.5x data +4.9 / 2x data +8.5 (conc 5); advice: more data at e48
 S32, S37 | opus-sol-S32/S37 | IN PROGRESS (sub-agent, 2026-10-27) |
-S39, S50 | opus-sol-S39/S50 | IN PROGRESS (sub-agent) |
+S39 | opus-sol-S39 | DONE (d9be88f8) | train_resid_v3c.py = v3b + --epoch-positions/--recent-weight (default off); OFF and N>=data byte-identical to v3b; ON deterministic; RSS = v3b, 10k-step trace flat; 17 tests, 8/8 mutants (sub-agent)
+S50 | opus-sol-S50 | DONE (ff98828a) | v3c + --init-weights (default off, weights only, fresh Adam/schedule, md5 logged); lr-0 warm start reproduces the checkpoint's loss and .inc; resume wins; 27 tests, 17/17 mutants (sub-agent)
 S40, S42, S43 | opus-sol-S40/S42/S43 | IN PROGRESS (sub-agent) |
 S41, S45, S49 | opus-sol-S41/S45/S49 | IN PROGRESS (sub-agent) |
 S04fix-S08fix | opus-sol-S04fix..S08fix | IN PROGRESS (sub-agent) |
-S09fix, S10fix | opus-sol-S09fix/S10fix | IN PROGRESS (sub-agent) |
+S09fix | opus-sol-S09fix | DONE (97193476) | trainer v2 restores v3b defaults, f006 recipe as args; --buckets 1 export/training byte-identical (L/L'/B, AL1, f006); real-holdout 8-head checks PASS (parity 1.9e-6, head selection 0 mismatches, CPU optimizer 6e-8); DirectML UNVERIFIED; Sol packet -> 35 per-step archives + one index (sub-agent)
+S10fix | opus-sol-S10fix | DONE (e6fa7bed) | screen rule + verdicts (all 4 FAIL, B skipped); WAC flips + why-failed lines; base B OFF d22 = 31,111,774 nodes in 21.8 s (Sol's 180 s fail was a harness timeout); hygiene/diff log/.tar.gz sizes/machine-exclusive (sub-agent)
 S25fix-S28fix, S33fix, S48fix | opus-sol-<JOB>fix | IN PROGRESS (sub-agent) |
-S36, S24 | — | QUEUED (last; inputs found on Sol's branch: Job C + S01 patches and tree sha256 lists; int32 shelf patch) |
+S36 | opus-sol-S36 | DONE (27a71ed3) | same-diff verifier; SAME_CHANGE_SET for Job C 4ac98f92 + S01 bddc9611 + CR LOW1-4 follow-up; planted lines flagged
+S24 | opus-sol-S24 | DONE (37675dd4) | 22-line guard patch on e661a145; OFF uci/bench identical to the lock; verify_s24.sh
 # Other user jobs (2026-10-27): C3 follow-up (opus-C3 581ad5da: watchdog obeys searchmoves, DebugSearchDelayMs debug-only, CI green) | O1-LTT info line (opus-O1-LTT da677d70) | S-IT intended threefold (opus-sol-SIT edc25191, CI release/ASan/TSan green; quiet-runner NPS pending)
+# Section 2 items 34-43 (Astra + test-plan S-A/S-C jobs), 2026-10-27:
+A1 | opus-sol-A1 | IN PROGRESS (sub-agent) | correction/history rework as one OFF option; C2 (continuation/minor/non-pawn keys), O5, O8 already cover parts -> A1 = gravity retune + threat-keyed quiet history + overflow proof
+A2 | opus-sol-A2 | IN PROGRESS (sub-agent) | king-bucket feasibility doc; largely COVERED by opus-C4 (implemented king buckets + refresh cache); adds the bucket-crossing microbench + recommendation
+A3 | opus-sol-A3 | IN PROGRESS (sub-agent, after A2) | full-NNUE spec + trainer + converter + reference evaluator + smoke net; no engine integration
+A7 | opus-sol-A7 | DONE (f01ff98a) | recipe = e48 production recipe with only --epochs changed + --max-train 240M frozen data; e96 vs same-seed e48 control first (7.9 GPU-h at 1.22M/s), e64 only if dB0.6 <= -2e-5; 43 runs: data -1.65e-4 vs epochs -3.3e-5 per doubling; dry parse PASS with the unchanged v3b parser; UNPROVEN
+S-A1 | opus-sol-SA1 | QUEUED (after S40) | dedupe/merge + h256 retrain recipe; overlaps S16/S17/S40 (tools) and A7 (recipe)
+S-A2 | opus-sol-SA2 | IN PROGRESS (sub-agent) | NnueInt16 port (b425207a lineage) on AL1, parity 10000/10000 first, int32 accumulators, trainer weight clipping on v3c
+S-A3 | opus-sol-SA3 | IN PROGRESS (sub-agent) | LR-schedule args (v3d = v3c + schedule args, defaults = v3b), one schedule per gate
+S-A4 | opus-sol-SA4 | IN PROGRESS (sub-agent, after S-A2) | hidden 512 support + CPU smoke net + NPS d16/d20
+S-A6 | opus-sol-SA6 | DONE (9a452d41) | plan only: 51 tunables assigned (stage A 11 eval-scale, stage B 9 search-shape, 31 excluded with reasons); Spall schedule; measured gate throughput 29 s/game/slot -> <= 43 QA-slot hours; harness v3 needs; validation srand 881917307
+S-C4 | opus-sol-SC4 | QUEUED (main session, after S-A4 numbers) | hidden 768-1024 plan
+S-IT follow-up | opus-sol-SIT | IN PROGRESS (sub-agent) | code-review fixes: claim-check cost in shuffling positions, floor tests with material, uci_regression gating, ci_sit exit status, TT move at claim nodes, fail-low bonus guard
