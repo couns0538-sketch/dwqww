@@ -6751,10 +6751,10 @@ index 0000000..f55df81
 +    write(f"{sys.argv[1]}{i:03d}", n)
 diff --git a/tools/nnue/nnue_v2_tool.cpp b/tools/nnue/nnue_v2_tool.cpp
 new file mode 100644
-index 0000000..9663ae2
+index 0000000..013f073
 --- /dev/null
 +++ b/tools/nnue/nnue_v2_tool.cpp
-@@ -0,0 +1,140 @@
+@@ -0,0 +1,141 @@
 +// nnue_v2_tool: helper for the v2 export parity check (tools/nnue/v2_parity.py).
 +//   nnue_v2_tool positions <out.fen> <count> <seed>
 +//       Diverse legal positions from random games (capture-biased so that every piece count from 32
@@ -6831,7 +6831,7 @@ index 0000000..9663ae2
 +            }
 +        }
 +    }
-+    std::ofstream out(out_path);
++    std::ofstream out(out_path, std::ios::binary);   // LF line ends on every platform
 +    for (const std::string& fen : fens) out << fen << '\n';
 +    std::cout << "wrote " << fens.size() << " positions to " << out_path << '\n';
 +    return 0;
@@ -6846,13 +6846,14 @@ index 0000000..9663ae2
 +    const v2::Net& net = *v2::loaded();
 +    v2::RefreshCache& cache = v2::cache(net, 0);
 +    std::ifstream in(fen_path);
-+    std::ofstream tsv(prefix + ".tsv");
++    std::ofstream tsv(prefix + ".tsv", std::ios::binary);
 +    std::ofstream acc(prefix + ".acc", std::ios::binary);
 +    tsv << "index\tstm\twhite_bucket\twhite_flip\tblack_bucket\tblack_flip\tpieces\tout_bits\tcp\n";
 +    std::string line;
 +    int index = 0;
 +    int cache_mismatch = 0;
 +    while (std::getline(in, line)) {
++        while (!line.empty() && (line.back() == '\r' || line.back() == ' ')) line.pop_back();   // CRLF input
 +        if (line.empty()) continue;
 +        Board board;
 +        if (!board.set_fen(line, &error)) {
