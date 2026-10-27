@@ -28,6 +28,15 @@
    checked at 768.
 4. **Decision rule:** no H768/H1024 GPU run unless the int16 NPS cost against H512 is ≤ 10% (CPU-time ABBA, d16/d20).
 
+## Follow-up (2026-10-27, after S-A2/S-A4 reported)
+- S-A4 measured float H512 vs H256 independently with a split-widened lock net: −10.1% / −11.5% CPU NPS at d16/d20.
+  That agrees with this job's −9.5% / −9.8%.
+- The ported int16 path (S-A2: int16 weights, int32 accumulators) is slower per node than float (−10.5% / −13.0%), and
+  its width cost is no smaller (int16 H512 vs H256: −12.1% / −13.7%).
+- So the plan's earlier ESTIMATE that int16 would halve the width cost was wrong for that path. The plan (§2 and
+  §3.1) now says 768+ needs int16 accumulators: a lower feature-transformer scale or a K ≤ 992 weight clip, a separate
+  design job.
+
 ## Files
 - `forge_sol_SC4_hidden_768_1024_plan_20261027.md`, `forge_sol_SC4_queue_lines_20261027.txt`;
 - `opus_sc4_widen_inc.py`, `test_opus_sc4.py`, `mutation_check_sc4.py`;
@@ -41,7 +50,8 @@ Machine exclusive: no (gates, training, self-play and sub-agents ran throughout)
 CPU-time based.
 
 ## Left / UNVERIFIED
-- The int16 width cost (it needs S-A2's path).
+- The int16 width cost at H768/H1024. At H512, S-A4 measured int16 at −12.1% / −13.7% against int16 H256. A
+  discount needs an int16-accumulator path, which does not exist yet.
 - GPU throughput of the wider shapes (queue lines 1-2).
 - Any training, holdout or Elo result.
 - The Elo-per-speed-doubling range is an ESTIMATE from public time-scaling results, not a Forge measurement.

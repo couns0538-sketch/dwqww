@@ -51,16 +51,24 @@
   - H1024: 3.8-7.6e-4;
   better than H256 at equal data. For scale, one doubling of the training data gives about 1.65e-4 (A7, 43 runs).
   **On the float path, H768-1024 is unlikely to pay off.**
-- **With int16 SIMD inference (S-A2).** With 16 lanes instead of 8 and half the memory traffic, the width cost could
-  fall to roughly half (ESTIMATE): about 5% per extra 256 units. That halves the bar above, which is why the crew
-  ranked 768+ after int16.
+- **With int16 inference (S-A2): measured, and it does not help yet.** The hope was that 16 lanes instead of 8 and
+  half the memory traffic would halve the width cost. S-A2/S-A4 (`opus-sol-SA2`, `opus-sol-SA4`, measured after this
+  plan was first written) show otherwise for the ported path:
+  - int16 *weights* with int32 *accumulators* are 10.5% / 13.0% slower per node than float at H256 (d16/d20);
+  - int16 H512 against int16 H256 costs 12.1% / 13.7%, no better than float (S-A4 float: 10.1% / 11.5%, which also
+    confirms this job's float H512 numbers independently).
+  The int32 accumulators fill 8 lanes per AVX2 vector, like float, and add a widening per column. A real width
+  discount needs int16 *accumulators*, which overflow at the current feature-transformer scale 4096 on every net
+  (S21). That requires a lower scale or a weight clip of K ≤ 992: a separate design and training job, and the true
+  precondition for 768+.
 
 ## 3. Plan
 1. **Preconditions.**
    - An H512 net is locked (G-A4 H1 plus its 40+0.4 confirm).
-   - The S-A2 int16 path is merged and verified at H512.
-   - Measure this table again on the int16 path (same zero-padding method; the widening tool is width-generic) at H768
-     and H1024.
+   - An int16 path with int16 accumulators exists. The S-A2 port (int32 accumulators) is not faster, see §2; it needs a
+     lower feature-transformer scale or a K ≤ 992 weight clip.
+   - Measure this table again on that path (same zero-padding method; the widening tool is width-generic) at H768 and
+     H1024.
 2. **Engine.**
    - Float path: no code change; the hidden size is compile-time and the shape `static_assert` in the `.inc` guards it.
    - int16 path: re-derive the int32 worst-case bound of the output sum, which grows with 2H terms (S21's range tool),
