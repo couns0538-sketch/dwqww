@@ -1,0 +1,23 @@
+t200: start rows 132421 steps 32 free RAM 18.46 GiB
+t200: PASS_PIPELINE_ONLY rc 0 stop None 10.62s peak 442 MiB
+t300: start rows 157666 steps 38 free RAM 22.47 GiB
+RESULT FAIL_S18_TRAINING
+Traceback (most recent call last):
+  File "D:\grok-pc-data\dwqww\.claude\worktrees\opus_sol_s18\opus_round1\sol_S18\opus_nnue_smoke_s18.py", line 706, in <module>
+    raise SystemExit(main())
+  File "D:\grok-pc-data\dwqww\.claude\worktrees\opus_sol_s18\opus_round1\sol_S18\opus_nnue_smoke_s18.py", line 701, in main
+    return train(args.train, args.data_tag)
+  File "D:\grok-pc-data\dwqww\.claude\worktrees\opus_sol_s18\opus_round1\sol_S18\opus_nnue_smoke_s18.py", line 461, in train
+    observed = run_guarded(argv, armout / "cwd", env, armout / "stdout", armout / "stderr")
+  File "D:\grok-pc-data\dwqww\.claude\worktrees\opus_sol_s18\opus_round1\sol_S18\opus_nnue_smoke_s18.py", line 365, in run_guarded
+    memory, ram, disk = tree_memory(proc), free_ram(), free_disk()
+  File "D:\grok-pc-data\dwqww\.claude\worktrees\opus_sol_s18\opus_round1\sol_S18\opus_nnue_smoke_s18.py", line 330, in tree_memory
+    for p in [proc, *proc.children(recursive=True)]:
+  File "C:\Users\Administrator\grok-pc\nnue\.venv\lib\site-packages\psutil\__init__.py", line 982, in children
+    proc_ctime = Process(self.pid).create_time()
+  File "C:\Users\Administrator\grok-pc\nnue\.venv\lib\site-packages\psutil\__init__.py", line 314, in __init__
+    self._init(pid)
+  File "C:\Users\Administrator\grok-pc\nnue\.venv\lib\site-packages\psutil\__init__.py", line 360, in _init
+    raise NoSuchProcess(pid, msg=msg) from None
+psutil.NoSuchProcess: process PID not found (pid=1944)
+exit 1
