@@ -3,7 +3,7 @@
 (fresh ucinewgame each), checking that every search returns a legal bestmove without hang or crash.
 Prints per-thread-count totals (time, nodes from the last info line).
 usage: smp_depth.py <engine> --positions <file> [--count 200] [--threads 2,4,8] [--depth 12]
-                    [--reference <lock exe>] [--option Name=Value ...] [--timeout 600]"""
+                    [--reference <lock exe>] [--option Name=Value ...] [--timeout 600] [--progress N]"""
 import argparse
 import re
 import sys
@@ -23,6 +23,7 @@ def main():
     ap.add_argument("--reference")
     ap.add_argument("--option", action="append", default=[])
     ap.add_argument("--timeout", type=float, default=600)
+    ap.add_argument("--progress", type=int, default=0, help="print a timestamped line every N positions")
     a = ap.parse_args()
     positions = read_positions(a.positions)
     if len(positions) > a.count:  # spread the picks over the whole file
@@ -50,6 +51,9 @@ def main():
                 infos = [l for l in seen if l.startswith("info depth ")]
                 m = re.search(r" nodes (\d+)", infos[-1]) if infos else None
                 nodes += int(m.group(1)) if m else 0
+                if a.progress and (i + 1) % a.progress == 0:
+                    print(f"{time.strftime('%H:%M:%S')} threads {t}: {i + 1}/{len(positions)} positions, {nodes} nodes, "
+                          f"{time.monotonic() - t0:.1f}s", flush=True)
             print(f"threads {t}: {len(positions)} positions at depth {a.depth}: all bestmoves legal, "
                   f"{nodes} nodes, {time.monotonic() - t0:.1f}s", flush=True)
         code = eng.quit()
