@@ -1,0 +1,55 @@
+S15 step 3: fastchess / engine behaviour probes on the PC (all output under F:/opus_scratch/sol_s15/probe and e2e_*; nice -n 19)
+fastchess: C:/Users/Administrator/grok-pc/tools/fastchess/fastchess.exe sha256 c6d7e4458a58025983c81bf38c524cb213e6f27559657dcfd72543392a431a71
+version: fastchess alpha 1.8.2 compiled for windows-latest 20260726-f618e34 (CI)
+
+== 3a. exposed exe: uci, setoption LmrQuietBase 130 + QsSeeMargin 999, uci (probe/uci_probe.out)
+option lines: 122 (two replies; lock exe forge_h256_s198.exe advertises 10 per reply, exposed 61 = 10 + 51 tunables)
+12:option name LmrQuietBase type spin default 85 min 0 max 300
+40:option name QsSeeMargin type spin default 40 min 0 max 500
+64:uciok
+76:option name LmrQuietBase type spin default 130 min 0 max 300
+104:option name QsSeeMargin type spin default 500 min 0 max 500
+128:uciok
+-> the exposed build re-advertises the CURRENT value (85->130, 40->999 clamped to 500): usable as an application proof
+
+== 3b. probe A: exposed exe, tc 1+0.01, -strict, -maxmoves 3
+Finished game 1 (Candidate vs Baseline): 1/2-1/2 {Draw by adjudication}
+Finished game 2 (Baseline vs Candidate): 1/2-1/2 {Draw by adjudication}
+Ptnml(0-2): [0, 0, 1, 0, 0], WL/DD Ratio: 0.00
+18:[Termination "adjudication"]
+45:[Termination "adjudication"]
+owned checker: ValueError: non-normal termination: adjudication
+-> a max-moves draw is tagged 'adjudication'; the owned checker rejects it, so Sol's planned -maxmoves 200 voids an iteration whenever a game reaches the cap
+
+== 3c. probe B: exposed exe, tc 1+0.01, -strict, no -maxmoves
+Finished game 1 (Candidate vs Baseline): 1/2-1/2 {Draw by fifty moves rule}
+Finished game 2 (Baseline vs Candidate): 1/2-1/2 {Draw by 3-fold repetition}
+Ptnml(0-2): [0, 0, 1, 0, 0], WL/DD Ratio: 0.00
+Total Time: 00:00:08 (hours:minutes:seconds)
+17:[PlyCount "252"]
+18:[Termination "normal"]
+290:[PlyCount "94"]
+291:[Termination "normal"]
+PGN line endings: 0 CR bytes, 388 LF bytes in probeB.pgn (LF only; the engine's own stdout uses CRLF)
+owned checker: {"pairs":1,"games":2,"candidate_wins_draws_losses":[0,2,0],"pentanomial_0_half_1_1half_2":[0,0,1,0,0],"unique_openings":1,"terminations":{"norm
+-> natural endings are tagged 'normal'; game 1 ran 252 plies (would have hit a 200-move cap)
+
+== 3d. probe C: RELEASE lock exe (tunables accepted silently but not advertised), option.LmrQuietBase=130
+Started game 1 of 2 (Candidate vs Baseline)
+Warning; Candidate doesn't have option LmrQuietBase
+Warning; Baseline doesn't have option LmrQuietBase
+Tournament was interrupted. To resume the tournament, run: C:\Users\Administrator\grok-pc\tools\fastchess\fastchess.exe -config file=probeC_state.json
+Finished match
+Total Time: 00:00:01 (hours:minutes:seconds)
+-> fastchess -strict refuses options the engine does not advertise: the exposed build is required
+
+== 3e. first end-to-end run (v2 before the e.p. fix): e2e_run1_epfail
+status FAILED | ValueError: PGN openings differ from plan
+selected EPD : r2qkb1r/ppp1pp2/n3bnp1/3p3p/1PPP2P1/N6B/P3PP1P/R1BQK1NR w KQkq h6
+PGN FEN tag  : [FEN "r2qkb1r/ppp1pp2/n3bnp1/3p3p/1PPP2P1/N6B/P3PP1P/R1BQK1NR w KQkq - 0 1"]
+-> fastchess writes a non-capturable e.p. square as '-'; v1 observe compared all 4 fields and fails closed. 3209 of 10000 forge-10000.epd openings carry an e.p. square. Fixed in v2 (matched_openings).
+
+== 3f. second end-to-end run after the fix: e2e_run2 (2 iterations x 1 pair, tc 1+0.01)
+status COMPLETED elapsed 15.615
+ it 0 plus {'LmrQuietBase': 55, 'QsSeeMargin': 0} minus {'LmrQuietBase': 115, 'QsSeeMargin': 90} WDL [0, 2, 0] penta [0, 0, 1, 0, 0] fastchess [0, 0, 1, 0, 0]
+ it 1 plus {'LmrQuietBase': 112, 'QsSeeMargin': 85} minus {'LmrQuietBase': 58, 'QsSeeMargin': 0} WDL [1, 0, 1] penta [0, 0, 1, 0, 0] fastchess [0, 0, 1, 0, 0]

@@ -1,0 +1,18 @@
+S15 fixture run, pre-registered 2026-10-27T19:07:18Z before the run started (settings fixed; not changed after seeing results).
+command (bash, from F:/opus_scratch/sol_s15):
+  nice -n 19 python -I -B <worktree>/opus_round1/sol_S15/forge_sol_S15_spsa_v2.py run --source <worktree = AL1 lock tree>
+    --engine F:/opus_scratch/sol_s15/build/forge_s15_exposed.exe   (lock source + -DFORGE_EXPOSE_TUNABLES=1; bench-exact AL1, step2)
+    --fastchess C:/Users/Administrator/grok-pc/tools/fastchess/fastchess.exe   (PC binary, read-only; fastchess alpha 1.8.2 f618e34)
+    --openings <worktree>/tools/openings/forge-10000.epd   (read-only)
+    --select LmrQuietBase,QsSeeMargin   (Sol's pre-registered pair; NetScale unsupported on the lock)
+    --iterations 4 --pairs 2 --tc 2+0.02 --seed 20261027 --gain 0.05 --perturbation 0.1
+    --priority idle --iteration-timeout 120 --max-wall-seconds 540 --min-free-ram-gib 6
+    --out F:/opus_scratch/sol_s15/fixture_run1
+per iteration: 2 pairs = 4 games, Threads=1 per engine, Hash=16, OwnBook=false, concurrency 1, colours reversed per pair.
+total: 16 games; expected wall time about 2-3 min; hard bounds 540 s budget, 120 s per iteration.
+priority: Idle (the PC's gate engines run at BelowNormal and self-play/training at Idle, so Idle never outranks them).
+stop rules (tool): any crash/timeout/non-normal termination/pentanomial mismatch/option not applied -> FAILED, no gradient;
+  free RAM < 6 GiB or wall budget -> stop before the next iteration.
+gain/perturbation are bookkeeping controls for a 4-game-per-iteration smoke; the proposed values are noise and are
+NOT applied (no source edit, no default change, no patch). No Elo or strength claim.
+machine exclusive: no (gate fastchess + 16 engines at BelowNormal, self-play and NNUE training at Idle are running).
