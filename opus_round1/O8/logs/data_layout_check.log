@@ -1,0 +1,39 @@
+$ python data_layout_check.py forge_h256_s198.exe (AL1 s198 lock) forge_o8.exe (opus-O8, PC recipe)
+sections A: .text size 00109500 vma 0000000140001000; .data size 00003de0 vma 000000014010b000; .rdata size 00081508 vma 000000014010f000; .bss size 000fcfb0 vma 00000001401b0000
+sections B: .text size 0010c190 vma 0000000140001000; .data size 00003de0 vma 000000014010e000; .rdata size 000815c8 vma 0000000140112000; .bss size 000fcfb0 vma 00000001401b3000
+data symbols in both: 1163; moved by a non-multiple of 64: 15; of 4096: 769
+forge/NNUE symbols moved by a non-multiple of 64: ['typeinfo for std::thread::_State_impl<std::thread::_Invoker<std::tuple<forge::Searcher::search(forge::Board, forge::SearchLimits const&, bool, forge::Searcher::TTAccess)::{lambda()#1}> > >', 'typeinfo name for std::thread::_State_impl<std::thread::_Invoker<std::tuple<forge::Searcher::search(forge::Board, forge::SearchLimits const&, bool, forge::Searcher::TTAccess)::{lambda()#1}> > >', 'vtable for std::thread::_State_impl<std::thread::_Invoker<std::tuple<forge::Searcher::search(forge::Board, forge::SearchLimits const&, bool, forge::Searcher::TTAccess)::{lambda()#1}> > >', 'forge::SeePieceValue', 'forge::tune::FailLowContinuationBonus', 'forge::tune::CaptureFutilityBase']
+hot forge::(anonymous namespace)::Z: 0x14010f380 -> 0x140112380 (delta 0x3000, mod 4096 kept: True)
+hot forge::(anonymous namespace)::CastlingMasks: 0x14010f340 -> 0x140112340 (delta 0x3000, mod 4096 kept: True)
+hot forge::(anonymous namespace)::SeeValue: 0x140110e50 -> 0x140113e50 (delta 0x3000, mod 4096 kept: True)
+hot NnueW1: 0x14011aa40 -> 0x14011da40 (delta 0x3000, mod 4096 kept: True)
+hot forge::nnue::(anonymous namespace)::weights()::instance: 0x1402a96c0 -> 0x1402ac6c0 (delta 0x3000, mod 4096 kept: True)
+hot forge::(anonymous namespace)::Reductions: 0x1402aa320 -> 0x1402ad320 (delta 0x3000, mod 4096 kept: True)
+hot forge::params::table: 0x1402a8c60 -> 0x1402abc60 (delta 0x3000, mod 4096 kept: True)
+hot forge::tune::LmrQuietBase: 0x14010bb80 -> 0x14010eb80 (delta 0x3000, mod 4096 kept: True)
+hot forge::tune::RfpMargin: 0x14010bb5c -> 0x14010eb5c (delta 0x3000, mod 4096 kept: True)
+hot forge::attacks::BetweenTable: 0x1401ba040 -> 0x1401bd040 (delta 0x3000, mod 4096 kept: True)
+hot forge::attacks::RookMagics: 0x1401b0840 -> 0x1401b3840 (delta 0x3000, mod 4096 kept: True)
+hot forge::attacks::KnightTable: 0x1401c2640 -> 0x1401c5640 (delta 0x3000, mod 4096 kept: True)
+hot forge::detail::DistanceMasks: 0x140183700 -> 0x1401867c0 (delta 0x30c0, mod 4096 kept: False)
+only in B: [('0x14010eb84', 'forge::tune::CorrExtBudget'), ('0x14010eb88', 'forge::tune::CorrExtTripleMargin'), ('0x14010eb8c', 'forge::tune::CorrExtTripleCorr'), ('0x14010eb90', 'forge::tune::CorrExtDoublePct'), ('0x1402ad300', 'forge::options::corr_ext')]
+
+$ python data_layout_check.py forge_o3base.exe (opus-O3 0d99f02, PC recipe) forge_o8.exe
+sections A: .text size 00108e80 vma 0000000140001000; .data size 00003de0 vma 000000014010a000; .rdata size 00081508 vma 000000014010e000; .bss size 000fcfb0 vma 00000001401af000
+sections B: .text size 0010c190 vma 0000000140001000; .data size 00003de0 vma 000000014010e000; .rdata size 000815c8 vma 0000000140112000; .bss size 000fcfb0 vma 00000001401b3000
+data symbols in both: 1163; moved by a non-multiple of 64: 16; of 4096: 769
+forge/NNUE symbols moved by a non-multiple of 64: ['typeinfo for std::thread::_State_impl<std::thread::_Invoker<std::tuple<forge::Searcher::search(forge::Board, forge::SearchLimits const&, bool, forge::Searcher::TTAccess)::{lambda()#1}> > >', 'typeinfo name for std::thread::_State_impl<std::thread::_Invoker<std::tuple<forge::Searcher::search(forge::Board, forge::SearchLimits const&, bool, forge::Searcher::TTAccess)::{lambda()#1}> > >', 'vtable for std::thread::_State_impl<std::thread::_Invoker<std::tuple<forge::Searcher::search(forge::Board, forge::SearchLimits const&, bool, forge::Searcher::TTAccess)::{lambda()#1}> > >', 'forge::SeePieceValue', 'forge::tune::FailLowContinuationBonus', 'forge::tune::CaptureFutilityBase']
+hot forge::(anonymous namespace)::Z: 0x14010e380 -> 0x140112380 (delta 0x4000, mod 4096 kept: True)
+hot forge::(anonymous namespace)::CastlingMasks: 0x14010e340 -> 0x140112340 (delta 0x4000, mod 4096 kept: True)
+hot forge::(anonymous namespace)::SeeValue: 0x14010fe50 -> 0x140113e50 (delta 0x4000, mod 4096 kept: True)
+hot NnueW1: 0x140119a40 -> 0x14011da40 (delta 0x4000, mod 4096 kept: True)
+hot forge::nnue::(anonymous namespace)::weights()::instance: 0x1402a86c0 -> 0x1402ac6c0 (delta 0x4000, mod 4096 kept: True)
+hot forge::(anonymous namespace)::Reductions: 0x1402a9320 -> 0x1402ad320 (delta 0x4000, mod 4096 kept: True)
+hot forge::params::table: 0x1402a7c60 -> 0x1402abc60 (delta 0x4000, mod 4096 kept: True)
+hot forge::tune::LmrQuietBase: 0x14010ab80 -> 0x14010eb80 (delta 0x4000, mod 4096 kept: True)
+hot forge::tune::RfpMargin: 0x14010ab5c -> 0x14010eb5c (delta 0x4000, mod 4096 kept: True)
+hot forge::attacks::BetweenTable: 0x1401b9040 -> 0x1401bd040 (delta 0x4000, mod 4096 kept: True)
+hot forge::attacks::RookMagics: 0x1401af840 -> 0x1401b3840 (delta 0x4000, mod 4096 kept: True)
+hot forge::attacks::KnightTable: 0x1401c1640 -> 0x1401c5640 (delta 0x4000, mod 4096 kept: True)
+hot forge::detail::DistanceMasks: 0x140182700 -> 0x1401867c0 (delta 0x40c0, mod 4096 kept: False)
+only in B: [('0x14010eb84', 'forge::tune::CorrExtBudget'), ('0x14010eb88', 'forge::tune::CorrExtTripleMargin'), ('0x14010eb8c', 'forge::tune::CorrExtTripleCorr'), ('0x14010eb90', 'forge::tune::CorrExtDoublePct'), ('0x1402ad300', 'forge::options::corr_ext')]

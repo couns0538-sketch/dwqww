@@ -1,0 +1,113 @@
+--- a/src/search/alphabeta.inc
++++ b/src/search/alphabeta.inc
+@@ -1,3 +1,28 @@
++// SCRATCH INSTRUMENTATION (o5_hist), not part of any branch
++#include <cstdio>
++namespace forge { namespace hist {
++constexpr int CB=80, SB=41;
++inline std::uint64_t nodes_c[CB], rfp_eval_c[CB], rfp_fire_c[CB], rfp_fire_cs[CB][SB];
++inline std::uint64_t fut_eval_c[CB], fut_fire_c[CB], fut_fire_cs[CB][SB];
++inline std::uint64_t nmp_eval_c[CB], nmp_pass_cs[CB][SB];
++inline std::uint64_t lmr_c[CB], lmr_r[CB][16];
++inline std::uint64_t se_c[CB], se_ext1_c[CB], se_ext2_c[CB], se_ext2_m[CB][SB];
++inline int cbin(int c) { return std::min(c / 2, CB - 1); }
++inline int sbin(int s) { return std::min(std::max(s, 0) / 4, SB - 1); }
++void dump(const char* tag) {
++    std::FILE* f = std::fopen("hist_out.txt", "a");
++    std::fprintf(f, "TAG %s\n", tag);
++    auto row = [&](const char* n, std::uint64_t* a) { std::fprintf(f, "%s", n); for (int i = 0; i < CB; ++i) std::fprintf(f, " %llu", (unsigned long long)a[i]); std::fprintf(f, "\n"); };
++    auto mat = [&](const char* n, std::uint64_t (*a)[SB]) { for (int i = 0; i < CB; ++i) { std::fprintf(f, "%s %d", n, i); for (int j = 0; j < SB; ++j) std::fprintf(f, " %llu", (unsigned long long)a[i][j]); std::fprintf(f, "\n"); } };
++    row("nodes_c", nodes_c); row("rfp_eval_c", rfp_eval_c); row("rfp_fire_c", rfp_fire_c); mat("rfp_fire_cs", rfp_fire_cs);
++    row("fut_eval_c", fut_eval_c); row("fut_fire_c", fut_fire_c); mat("fut_fire_cs", fut_fire_cs);
++    row("nmp_eval_c", nmp_eval_c); mat("nmp_pass_cs", nmp_pass_cs);
++    row("lmr_c", lmr_c);
++    for (int i = 0; i < CB; ++i) { std::fprintf(f, "lmr_r %d", i); for (int j = 0; j < 16; ++j) std::fprintf(f, " %llu", (unsigned long long)lmr_r[i][j]); std::fprintf(f, "\n"); }
++    row("se_c", se_c); row("se_ext1_c", se_ext1_c); row("se_ext2_c", se_ext2_c); mat("se_ext2_m", se_ext2_m);
++    std::fclose(f);
++}
++}}
+ // Search module: main alpha-beta search (pruning, extensions, LMR).
+ // Compiled as part of src/search.cpp (included exactly once).
+ 
+@@ -73,6 +98,8 @@
+         }
+     }
+ 
++    const int hc = in_check ? 0 : std::abs(ss->static_eval - ss->raw_eval);
++    if (!in_check) ++hist::nodes_c[hist::cbin(hc)];
+     bool improving = false;
+     if (!in_check) {
+         if ((ss - 2)->static_eval != ValueNone) improving = ss->static_eval > (ss - 2)->static_eval;
+@@ -88,6 +115,11 @@
+             if (razor < alpha) return razor;
+         }
+         // Reverse futility pruning.
++        if (depth <= tune::RfpDepth && eval < MateInMaxPly) {
++            ++hist::rfp_eval_c[hist::cbin(hc)];
++            const int slack = eval - (tune::RfpMargin * depth - tune::RfpImproving * improving) - beta;
++            if (slack >= 0) { ++hist::rfp_fire_c[hist::cbin(hc)]; ++hist::rfp_fire_cs[hist::cbin(hc)][hist::sbin(slack)]; }
++        }
+         if (depth <= tune::RfpDepth && eval - (tune::RfpMargin * depth - tune::RfpImproving * improving) >= beta &&
+             eval < MateInMaxPly) {
+             return eval;
+@@ -97,6 +129,8 @@
+             ss->null_move_allowed && !(ss - 1)->current_move.is_none() &&
+             board.has_non_pawn_material(board.side_to_move()) &&
+             !(tt_hit && tt_bound == BoundUpper && tt_score < beta)) {
++            ++hist::nmp_eval_c[hist::cbin(hc)];
++            ++hist::nmp_pass_cs[hist::cbin(hc)][hist::sbin(ss->static_eval - (beta - 24 * depth + 180))];
+             ++null_tries_;
+             const int reduction = tune::NullMoveBase + depth / tune::NullMoveDepthDivisor +
+                                   std::min((eval - beta) / tune::NullMoveEvalDivisor, 3);
+@@ -193,6 +227,11 @@
+             if (quiet && !skip_quiets && move_count >= lmp_threshold(depth, improving)) skip_quiets = true;
+             const int lmr_depth = std::max(0, depth - reduction(quiet, depth, move_count));
+             if (quiet && !gives_check) {
++                if (!in_check && lmr_depth <= tune::FutilityDepth) {
++                    ++hist::fut_eval_c[hist::cbin(hc)];
++                    const int slack = alpha - (ss->static_eval + tune::FutilityBase + tune::FutilityMultiplier * lmr_depth);
++                    if (slack >= 0) { ++hist::fut_fire_c[hist::cbin(hc)]; ++hist::fut_fire_cs[hist::cbin(hc)][hist::sbin(slack)]; }
++                }
+                 if (!in_check && lmr_depth <= tune::FutilityDepth &&
+                     ss->static_eval + tune::FutilityBase + tune::FutilityMultiplier * lmr_depth <= alpha) {
+                     skip_quiets = true;
+@@ -228,10 +267,12 @@
+             ss->double_extensions = inherited_double_extensions;
+             ss->excluded_move = Move::none();
+             if (aborted_) return 0;
++            ++hist::se_c[hist::cbin(hc)];
++            if (singular_score < singular_beta) { ++hist::se_ext1_c[hist::cbin(hc)]; ++hist::se_ext2_m[hist::cbin(hc)][hist::sbin(singular_beta - singular_score)]; }
+             if (singular_score < singular_beta) {
+                 extension = 1;
+                 if (!pv_node && singular_score < singular_beta - 24 && inherited_double_extensions <= 6) {
+-                    extension = 2;
++                    extension = 2; ++hist::se_ext2_c[hist::cbin(hc)];
+                 }
+             } else if (singular_beta >= beta) {
+                 return singular_beta;
+@@ -275,6 +316,7 @@
+             if (in_check) r -= 1;
+             if (tune::LmrCutoffThreshold > 0 && (ss + 1)->cutoff_count > tune::LmrCutoffThreshold) r += 1;
+             if (quiet) r -= std::clamp(history / tune::LmrHistoryDivisor, -2, 2);
++            ++hist::lmr_c[hist::cbin(hc)]; ++hist::lmr_r[hist::cbin(hc)][std::clamp(r, 0, 15)];
+             const int reduced_depth = std::clamp(new_depth - r, 1, new_depth);
+             score = -search(board, ss + 1, reduced_depth, -alpha - 1, -alpha, true);
+             full_depth_needed = score > alpha && reduced_depth < new_depth;
+--- a/src/uci.cpp
++++ b/src/uci.cpp
+@@ -3,6 +3,7 @@
+ #include "forge/nnue.hpp"
+ #include "forge/search.hpp"
+ #include "forge/uci_output.hpp"
++namespace forge { namespace hist { void dump(const char*); } }
+ 
+ #include <algorithm>
+ #include <array>
+@@ -404,6 +405,7 @@
+             }
+             const auto elapsed_ms = std::chrono::duration_cast<std::chrono::milliseconds>(
+                 std::chrono::steady_clock::now() - start).count();
++            forge::hist::dump(("bench" + std::to_string(depth)).c_str());
+             const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex());
+             std::cout << "info string bench depth " << depth << " nodes " << total_nodes << " time " << elapsed_ms
+                       << " nps " << (elapsed_ms > 0 ? total_nodes * 1000U / static_cast<std::uint64_t>(elapsed_ms) : 0)
