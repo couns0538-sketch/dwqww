@@ -1,0 +1,59 @@
+# O2 evidence on a quiet Linux runner: callgrind instruction profile of `bench 11` (box recipe + -g)
+# for the lock and for this branch, and a paired NPS comparison (opus_round1/O3/nps_ab.py, 10 runs per
+# build at bench 16 and 20; the runner has no other load, unlike the development PC).
+name: opus-o2-perf
+on:
+  push:
+    branches: ['opus-O2']
+    paths-ignore:
+      - 'opus_round1/**/*.md'
+      - 'opus_round1/**/*.log'
+      - 'opus_round1/**/*.tsv'
+      - 'opus_round1/**/*.diff'
+      - 'opus_round1/**/*.txt'
+      - 'opus_round1/**/SHA256SUMS'
+      - 'REPORT.md'
+permissions:
+  contents: read
+jobs:
+  perf:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Toolchain
+        run: |
+          sudo apt-get update -qq && sudo apt-get install -y -qq g++-14 ninja-build cmake python3 valgrind
+          lscpu | grep -E 'Model name|Flags' | cut -c1-300
+      - name: Build lock (294dbed) and branch, box recipe with -g
+        run: |
+          FL="-march=x86-64-v3 -mtune=znver5 -fno-fast-math -ffp-contract=off -DFORGE_NNUE_HIDDEN=256 -g"
+          mkdir -p lock_src out
+          git archive 294dbed | tar -x -C lock_src
+          for t in lock branch; do
+            src=$([ $t = lock ] && echo lock_src || echo .)
+            cmake -S $src -B build_$t -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_COMPILER=g++-14 "-DCMAKE_CXX_FLAGS=$FL" > /dev/null
+            cmake --build build_$t -j4 --target forge > /dev/null
+            python3 opus_round1/ci/uci_check.py build_$t/forge | tee out/identity_$t.log
+            echo "FMA $t: $(objdump -d build_$t/forge | grep -cE 'vfn?m(add|sub)' || true)" | tee -a out/identity_$t.log
+          done
+      - name: Callgrind bench 11
+        run: |
+          for t in lock branch; do
+            printf 'uci\nsetoption name Hash value 16\nsetoption name OwnBook value false\nisready\nbench 11\nquit\n' > in.txt
+            valgrind --tool=callgrind --callgrind-out-file=out/callgrind_$t.out build_$t/forge < in.txt > out/callgrind_run_$t.log 2>&1
+            callgrind_annotate --inclusive=no out/callgrind_$t.out 2>/dev/null | head -45 > out/profile_self_$t.txt
+            callgrind_annotate --inclusive=yes out/callgrind_$t.out 2>/dev/null | head -45 > out/profile_incl_$t.txt
+            echo "== $t self"; cat out/profile_self_$t.txt
+          done
+      - name: NPS A/B (lock vs branch)
+        run: python3 opus_round1/O3/nps_ab.py build_lock/forge build_branch/forge 10 16 20 | tee out/nps_ab_ci.log
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: o2-perf
+          path: |
+            out/*.log
+            out/*.txt
