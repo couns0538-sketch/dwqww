@@ -1,0 +1,16 @@
+# PC-recipe build of the lock tree (scripts/build_pc.sh == 2_build/build_windows.ps1 command line)
+g++ -std=c++20 -O3 -DNDEBUG -DFORGE_NNUE_HIDDEN=256 -ffp-contract=off -fno-fast-math -march=znver5 -static -pthread -Iinclude src/bitboard.cpp src/board.cpp src/book.cpp src/eval.cpp src/eval_params.cpp src/nnue.cpp src/search.cpp src/uci.cpp -o forge_h256_s198.exe
+built exe sha256 5d4df7f1be51b083e0719266e55367577ed580a509a12196d62c0a368826a5b1
+FMA (objdump -d | grep -cE 'vfn?m(add|sub)'): 0
+
+# comparison with the PC lock exe /c/Users/Administrator/grok-pc/forge_push/locks/AUTOLOCK_1_gate120_e32f003rec_s198/forge_h256_s198.exe
+PC lock exe sha256 833c47f3209dceecf662e8b1d4587435e44702fbd3ab9ddf278a49172d9122b3  (LOCK.json: 833C47F3...22B3)
+cmp -l (offset, byte A octal, byte B octal); 6 differing bytes = PE COFF TimeDateStamp (offsets 137-139) + PE optional-header CheckSum (217-219):
+    137 157 257
+    138  75 360
+    139 336 337
+    217  10 111
+    218 210  73
+    219  72  73
+objdump -p Time/Date: PC lock = Sun Oct 25 10:33:35 2026 ; rebuilt = Mon Oct 26 17:30:39 2026
+=> the rebuilt exe is byte-identical to the PC lock exe apart from the link timestamp and the PE checksum.

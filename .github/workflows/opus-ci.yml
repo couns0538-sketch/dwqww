@@ -1,0 +1,47 @@
+# Linux evidence for the Opus job branches (opus-*): box-recipe release identity check,
+# ASan+UBSan and TSan ctest runs. The Windows PC that developed these branches cannot run
+# Linux or TSan, so this workflow produces those logs. Read-only; uploads logs as artifacts.
+name: opus-ci
+on:
+  push:
+    branches: ['opus-*']
+    # Report/log-only pushes do not need a new run.
+    paths-ignore:
+      - 'opus_round1/**/*.md'
+      - 'opus_round1/**/*.log'
+      - 'opus_round1/**/*.tsv'
+      - 'opus_round1/**/*.diff'
+      - 'opus_round1/**/SHA256SUMS'
+      - 'REPORT.md'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  linux:
+    strategy:
+      fail-fast: false
+      matrix:
+        mode: [release, asan, tsan]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 180
+    steps:
+      - uses: actions/checkout@v4
+      - name: Toolchain
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq g++-14 ninja-build cmake python3
+          g++-14 --version | head -1
+          nproc; lscpu | grep -E 'Model name|Flags' | cut -c1-200
+      - name: Run ${{ matrix.mode }}
+        run: bash opus_round1/ci/run_ci.sh ${{ matrix.mode }} ci_out
+      - name: Upload logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: opus-ci-${{ matrix.mode }}
+          path: |
+            ci_out/*.log
+            ci_out/**/sanitizer_logs_*/**
+            ci_out/*.txt
+            ci_out/*.tsv
+          if-no-files-found: warn
