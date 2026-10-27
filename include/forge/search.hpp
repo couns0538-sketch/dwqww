@@ -4,6 +4,7 @@
 #include "forge/eval.hpp"
 #include "forge/history.hpp"
 #include "forge/nnue.hpp"
+#include "forge/search_options.hpp"
 #include "forge/search_tune.hpp"
 #include "forge/search_types.hpp"
 #include "forge/thread_data.hpp"
@@ -55,7 +56,19 @@ private:
     [[nodiscard]] int capture_history_value(const Board& board, Move move) const;
     [[nodiscard]] int corrected_eval(const Board& board, int raw_eval) const;
     void update_correction(const Board& board, int depth, int best_score, int static_eval);
-    [[nodiscard]] int static_evaluate(const Board& board, SearchStack* ss);
+    // CorrHistPlus (src/search/correction_plus.inc). corrected_eval and
+    // update_correction jump to their cold twins only when
+    // forge::options::corr_hist_plus != 0; the helpers are always inlined so
+    // that corrected_eval_plus stays a leaf (see correction_plus.inc).
+    [[gnu::cold]] [[nodiscard]] int corrected_eval_plus(const Board& board, int raw_eval) const;
+    [[gnu::cold]] void update_correction_plus(const Board& board, int depth, int best_score, int static_eval);
+    [[gnu::always_inline]] [[nodiscard]] inline int correction_plus(const Board& board) const;
+    [[gnu::always_inline]] [[nodiscard]] inline const SearchStack* correction_frame(const Board& board) const;
+    [[gnu::always_inline]] [[nodiscard]] inline std::size_t continuation_correction_index(const Board& board) const;
+    // Pinned to a 64-byte boundary (its AL1 s198 placement): the hot search
+    // functions after it then keep their alignment when the cold worker
+    // lifecycle code before it in .text changes size (CorrHistPlus member).
+    [[nodiscard, gnu::aligned(64)]] int static_evaluate(const Board& board, SearchStack* ss);
     void record_move(SearchStack* ss, const Board& board, const Move& move);
     void record_null_move(SearchStack* ss);
 };

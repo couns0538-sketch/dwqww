@@ -17,6 +17,7 @@ void Worker::clear() {
     histories_.clear();
     *correction_history_ = CorrectionHistory{};
     *material_correction_ = CorrectionHistory{};
+    correction_plus_.reset();  // CorrHistPlus tables, reallocated (zeroed) by the next update
     for (SearchStack& ss : stack_) ss = SearchStack{};
 }
 

@@ -65,6 +65,10 @@ extern int CaptureFutilityBase;   // futility pruning of captures: base margin (
 extern int CaptureFutilityMultiplier;
 extern int CaptureFutilityDepth;
 extern int FailLowContinuationBonus; // x0.01 of the history bonus given to the parent move on fail low (0 = off)
+// CorrHistPlus (UCI option, default 0 = off): read weights of the extra correction keys (x0.01).
+extern int CorrContWeight;        // bit 1: continuation correction (previous two moves)
+extern int CorrMinorWeight;       // bit 2: minor-piece correction
+extern int CorrNonPawnWeight;     // bit 4: each side's non-pawn correction
 [[nodiscard]] const std::vector<Parameter>& parameters();
 // Call after changing LMR parameters.
 void refresh();

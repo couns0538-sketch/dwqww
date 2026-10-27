@@ -1,6 +1,7 @@
 #pragma once
 
 #include "forge/board.hpp"
+#include "forge/correction_plus.hpp"
 #include "forge/eval.hpp"
 #include "forge/history.hpp"
 #include "forge/nnue.hpp"
@@ -98,6 +99,11 @@ struct ThreadData {
     bool root_restricted_ = false;
     std::uint64_t null_tries_ = 0;
     std::uint64_t null_cutoffs_ = 0;
+    // CorrHistPlus tables (forge/correction_plus.hpp), owned by this worker.
+    // Null until the option is on and the first update allocates them; freed
+    // by Worker::clear(). Last member, no initialiser: the members above keep
+    // their AL1 s198 offsets.
+    std::unique_ptr<corrplus::Tables> correction_plus_;
 };
 
 } // namespace forge

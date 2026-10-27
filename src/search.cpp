@@ -20,15 +20,18 @@
 #include <cstring>
 #include <iostream>
 #include <limits>
+#include <new>
 #include <optional>
 
 #include "search/tune.inc"        // tunable constants, LMR / LMP tables
+#include "search/options.inc"     // runtime search options (all OFF by default)
 #include "search/scores.inc"      // mate scores and their TT encoding
 #include "search/uci_info.inc"    // UCI info output (score formatting)
 #include "search/tt.inc"          // transposition table
 #include "search/movepicker.hpp"  // staged move picker
 #include "search/worker.inc"      // per-thread state lifecycle
 #include "search/evaluation.inc"  // static evaluation glue, correction history
+#include "search/correction_plus.inc" // CorrHistPlus extra correction keys (cold)
 #include "search/timeman.hpp"     // time budgets and the soft stop rule (inline)
 #include "search/checks.inc"      // per-node clock / node / stop checks, draws
 #include "search/history.inc"     // move-ordering history scoring and updates

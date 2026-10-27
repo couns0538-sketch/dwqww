@@ -56,6 +56,9 @@ int CaptureFutilityBase = 0;
 int CaptureFutilityMultiplier = 250;
 int CaptureFutilityDepth = 6;
 int FailLowContinuationBonus = 0;
+int CorrContWeight = 100;
+int CorrMinorWeight = 100;
+int CorrNonPawnWeight = 100;
 
 const std::vector<Parameter>& parameters() {
     static const std::vector<Parameter> table{
@@ -91,6 +94,8 @@ const std::vector<Parameter>& parameters() {
         {"TmFallingEvalPercent", &TmFallingEvalPercent, 0, 400}, {"TmMinFactorPercent", &TmMinFactorPercent, 10, 100},
         {"CaptureFutilityBase", &CaptureFutilityBase, 0, 1000},  {"CaptureFutilityMultiplier", &CaptureFutilityMultiplier, 0, 1000},
         {"CaptureFutilityDepth", &CaptureFutilityDepth, 0, 15},  {"FailLowContinuationBonus", &FailLowContinuationBonus, 0, 300},
+        {"CorrContWeight", &CorrContWeight, 0, 300},          {"CorrMinorWeight", &CorrMinorWeight, 0, 300},
+        {"CorrNonPawnWeight", &CorrNonPawnWeight, 0, 300},
     };
     return table;
 }
