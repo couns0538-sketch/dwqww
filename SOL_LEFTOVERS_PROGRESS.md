@@ -23,7 +23,8 @@ S21 | opus-sol-S21 | DONE (f7731fe8) | research only: every net overflows int16 
 S46 | opus-sol-S46 | DONE (cb6d8956) | config-driven simulator, 27 fixtures, real 2026-10-25 replay 13/13 identical; live script differs only on the step-5 suffix fixture (G55/G56 bug)
 S47 | opus-sol-S47 | DONE (99365efc) | Part A net-only + Part B audit packet (never grants CR); real AUTOLOCK_1 net-only PASS; AL1 audit INCOMPLETE (old UCI list missing)
 S44 | opus-sol-S44 | DONE (43370d7a) | 23 net gates (opponent from RUN_INFO), exact fastchess GSPRT, Whitehead-adjusted fits: e64 +0.3 / e96 +0.6 Elo vs 1.5x data +4.9 / 2x data +8.5 (conc 5); advice: more data at e48
-S32, S37 | opus-sol-S32/S37 | IN PROGRESS (sub-agent, 2026-10-27) |
+S32 | opus-sol-S32 | DONE (2974675f) | forge datagen (FORGE_DATAGEN, default off; off build = lock binary): in-engine self-play writing .pos/.hce directly; 25/25 games identical to forge_selfplay.py with the lock exe; 1.11M conversion byte-identical to fen2bin/hce_dump; v3b RAM+mmap loads; same seed same sha256; 1.58x wall / 1.54x CPU positions/s (advisory); CI 40508819820 green (sub-agent)
+S37 | opus-sol-S37 | DONE (4822281e) | forge_nnue_microbench tool (engine unchanged); checksums equal nnue_check for lock + e48f006; cost table: search-case static eval ~403 ns AVX2 (HCE 57%, NNUE update+output 24%), refresh = 13.6 quiet updates, scalar NNUE 3.6-6.5x; CI 40513394598 green (sub-agent)
 S39 | opus-sol-S39 | DONE (d9be88f8) | train_resid_v3c.py = v3b + --epoch-positions/--recent-weight (default off); OFF and N>=data byte-identical to v3b; ON deterministic; RSS = v3b, 10k-step trace flat; 17 tests, 8/8 mutants (sub-agent)
 S50 | opus-sol-S50 | DONE (ff98828a) | v3c + --init-weights (default off, weights only, fresh Adam/schedule, md5 logged); lr-0 warm start reproduces the checkpoint's loss and .inc; resume wins; 27 tests, 17/17 mutants (sub-agent)
 S40, S42, S43 | opus-sol-S40/S42/S43 | IN PROGRESS (sub-agent) |
