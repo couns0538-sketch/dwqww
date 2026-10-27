@@ -66,7 +66,7 @@ memory maps; nothing written there). Fit: `forge_selfplay_003.pos` + `007.pos` (
   - The row bootstrap ignores the correlation of positions within a game, so the CIs are too narrow; game ids
     would allow a game bootstrap (S17's split work).
   - Only 2 of the 12 train shards were used for the fit, every 5th row.
-  - The 1-ply-of-a-search "score" is Forge's fixed-node search score from the self-play run.
+  - The score is the fixed-node Forge search score recorded during self-play (record format doc), not a static eval.
 
 ## Files
 `forge_sol_S19_wdl_scale_fit.py`, `test_forge_sol_S19_wdl_scale_fit.py`, `mutation_check_s19.py`, `README.md`,
