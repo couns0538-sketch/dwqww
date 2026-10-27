@@ -1,5 +1,6 @@
 #include "forge/board.hpp"
 #include "forge/book.hpp"
+#include "forge/net_scale.hpp"
 #include "forge/nnue.hpp"
 #include "forge/search.hpp"
 #include "forge/uci_output.hpp"
@@ -171,6 +172,10 @@ int main() {
                          "option name Book Depth type spin default 30 min 0 max 100\n"
                          "option name Book Variety type spin default 30 min 0 max 100\n";
             if (forge::nnue::available()) std::cout << "option name UseNNUE type check default true\n";
+            if (forge::nnue::available()) {
+                std::cout << "option name NetScale type spin default " << forge::net_scale::Default << " min "
+                          << forge::net_scale::Minimum << " max " << forge::net_scale::Maximum << "\n";
+            }
 #ifdef FORGE_EXPOSE_TUNABLES
             // Development builds advertise the search constants so match
             // runners can set them; release builds accept them silently.
@@ -267,6 +272,21 @@ int main() {
                     std::cout << "info string invalid value for option UseNNUE" << std::endl;
                 }
                 searcher.clear_hash();
+            } else if (name == "NetScale") {
+                // S41: scales the NNUE-mode static evaluation (forge/net_scale.hpp); 100 = OFF.
+                int value = 0;
+                const auto parsed = std::from_chars(value_text.data(), value_text.data() + value_text.size(), value);
+                if (parsed.ec != std::errc{} || parsed.ptr != value_text.data() + value_text.size()) {
+                    const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex());
+                    std::cout << "info string invalid value for option NetScale" << std::endl;
+                } else {
+                    const int clamped = std::clamp(value, forge::net_scale::Minimum, forge::net_scale::Maximum);
+                    if (clamped != forge::net_scale::percent) {
+                        forge::net_scale::percent = clamped;
+                        // The TT stores static evaluations made at the old scale.
+                        searcher.clear_hash();
+                    }
+                }
             } else if (name == "Hash" || name == "Move Overhead" || name == "Threads") {
                 int value = 0;
                 const auto parsed = std::from_chars(
