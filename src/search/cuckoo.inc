@@ -17,9 +17,16 @@
 
 namespace forge {
 
+namespace {
+// Board::upcoming_repetition() is false below a halfmove clock of 3 (no earlier
+// position at distance 3 inside the window); testing that inline first skips the
+// call at the many nodes just after a capture or pawn move.
+[[nodiscard]] inline bool may_repeat(const Board& board) { return board.halfmove_clock() >= 3; }
+} // namespace
+
 int Worker::search_cuckoo(Board& board, SearchStack* ss, int depth, int alpha, int beta, bool cut_node) {
     constexpr int DrawScore = 0;
-    if (depth > 0 && alpha < DrawScore && ss->ply != 0 && ss->excluded_move.is_none() &&
+    if (depth > 0 && alpha < DrawScore && ss->ply != 0 && ss->excluded_move.is_none() && may_repeat(board) &&
         board.upcoming_repetition(root_history_index_)) {
         if (beta <= DrawScore) return DrawScore;
         return std::max(search_cuckoo_body(board, ss, depth, DrawScore, beta, cut_node), DrawScore);
@@ -29,7 +36,7 @@ int Worker::search_cuckoo(Board& board, SearchStack* ss, int depth, int alpha, i
 
 int Worker::qsearch_cuckoo(Board& board, SearchStack* ss, int alpha, int beta) {
     constexpr int DrawScore = 0;
-    if (alpha < DrawScore && board.upcoming_repetition(root_history_index_)) {
+    if (alpha < DrawScore && may_repeat(board) && board.upcoming_repetition(root_history_index_)) {
         if (beta <= DrawScore) return DrawScore;
         return std::max(qsearch_cuckoo_body(board, ss, DrawScore, beta), DrawScore);
     }
