@@ -1,0 +1,42 @@
+--- a/forge_sol_S12_feature_qualify_20261027.py
++++ b/forge_sol_S12_feature_qualify_20261027.py
+@@ -1,4 +1,4 @@
+-"""ON functional qualification after the same main's FIRST and full OFF Std.
++"""Minimal ON-framing successor after the same main's FIRST and full OFF Std.
+ No timing/strength claims; options are sent only while workers are joined.
+ """
+ from pathlib import Path
+@@ -11,6 +11,13 @@
+ import signal
+ import sys
+ import time
++# Minimal successor: original Std/build/binding dependencies stay frozen.
++BASE_PACKET=Path('/tmp/forge_sol_S12_native_prep_20261027')
++BASE_FEATURE_SHA='01408fe3e9f2c1053eb2c20ddd0dea1f64a3c7407f014b6ec926d924b54b5b75'
++if __import__('hashlib').sha256((BASE_PACKET/'forge_sol_S12_feature_qualify_20261027.py').read_bytes()).hexdigest()!=BASE_FEATURE_SHA:
++    raise RuntimeError('original frozen feature qualifier changed')
++sys.path.insert(0,str(BASE_PACKET))
++import forge_sol_S12_ONbench_contract_20261027 as ON_contract
+ import forge_sol_S12_bind_arm_20261027 as binding
+ import forge_sol_S12_helpers_run_20261027 as helper_run
+ import forge_sol_S12_native_common_20261027 as common
+@@ -87,7 +94,7 @@
+         for depth,nodes in ([(11,308972)] if arm['profile']=='ASAN' else list(q.REFS.items())):
+             label='ON_bench_'+str(depth)
+             lines=once(label,['setoption name NnueLazyAcc value true',f'bench {depth}'],lambda x:bool(q.collector.BENCH.fullmatch(x)))
+-            result=q.s25.inspect_bench((a.out/(label+'.stdout')).read_bytes(),(a.out/(label+'.stderr')).read_bytes(),0,depth,nodes)
++            result=ON_contract.inspect_ON_bench_sequence((a.out/(label+'.stdout')).read_bytes(),(a.out/(label+'.stderr')).read_bytes(),json.loads((a.out/(label+'.receipt.json')).read_text()),[(depth,nodes)])
+             common.require(result['status']=='PASS','ON fixed reference/EOF differs')
+             row['checks'].append({'name':label,'bench':result,'diagnostics':diagnostics(lines,1,8)})
+         depth=4 if arm['profile']=='ASAN' else 5
+@@ -104,6 +111,10 @@
+                 common.require(q.collector.BENCH.fullmatch(lines[-1]).group(2)=='308972','repeated bench nodes differ')
+                 row['checks'].append({'name':'repeated_bench_'+str(index),'diagnostics':diagnostics(lines,1 if index==0 else 0,8)})
+             process.close(True)
++            label='ON_repeated_bench_active_once'
++            result=ON_contract.inspect_ON_bench_sequence((a.out/(label+'.stdout')).read_bytes(),(a.out/(label+'.stderr')).read_bytes(),json.loads((a.out/(label+'.receipt.json')).read_text()),[(11,308972),(11,308972)])
++            common.require(result['status']=='PASS','repeated ON raw framing/EOF differs')
++            row['checks'].append({'name':'repeated_ON_raw_framing_EOF','bench':result})
+         except BaseException:process.close(False);raise
+         process=q.Process(engine,a.out,'ON_T1_T2_toggle_join_resize',guard)
+         try:

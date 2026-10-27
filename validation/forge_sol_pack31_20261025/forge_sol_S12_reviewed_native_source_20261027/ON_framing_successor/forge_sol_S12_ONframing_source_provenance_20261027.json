@@ -1,0 +1,35 @@
+{
+  "scope": "SOURCE_ONLY_NOT_NATIVE",
+  "unchanged_original_manifest_sha256": "7e636a57e91b5e538858565141cc614ebbd886b822407543c3ccaed011c1f53a",
+  "python_asts": {
+    "forge_sol_S12_ONbench_contract_20261027.py": "PASS",
+    "forge_sol_S12_feature_qualify_successor_20261027.py": "PASS",
+    "test_forge_sol_S12_ONframing_20261027.py": "PASS"
+  },
+  "patched_search": {
+    "path": "/tmp/forge_sol_S12_native_source_preflight_20261027/Lprime/src/search.cpp",
+    "sha256": "6d9fcf1a5485322f0c2b032e68c8edb7f577748c72b4189632c17d1349fa4806",
+    "start_line": 1631,
+    "end_line": 1644,
+    "source_excerpt": "            std::cout << \"info string NnueLazyAcc active\\n\";\n        const auto& stats = result.lazy_acc_stats;\n        std::cout << \"info string NnueLazyAcc stats refreshes \" << stats.refreshes\n                  << \" updates \" << stats.updates << \" zero_dirty_edges \" << stats.zero_dirty_edges\n                  << \" copies_avoided \" << stats.copies_avoided << \" alias_hits \" << stats.alias_hits\n                  << \" evaluations \" << stats.evaluations << std::endl;\n    }\n#endif\n    return result;\n}\n\n} // namespace forge\n"
+  },
+  "patched_uci": {
+    "path": "/tmp/forge_sol_S12_native_source_preflight_20261027/Lprime/src/uci.cpp",
+    "sha256": "1269601c27890307abf3c8393dca6b7c8ed005576fc45a5351528529ddc5deba",
+    "start_line": 421,
+    "end_line": 423,
+    "source_excerpt": "            std::cout << \"info string bench depth \" << depth << \" nodes \" << total_nodes << \" time \" << elapsed_ms\n                      << \" nps \" << (elapsed_ms > 0 ? total_nodes * 1000U / static_cast<std::uint64_t>(elapsed_ms) : 0)\n                      << std::endl;\n"
+  },
+  "normal_OFF_S25": {
+    "path": "/workspace/dwqww/releases/forge_sol_pack31_20261025/S25_v2/forge_sol_S25_outcontract_20261025.py",
+    "sha256": "96448f9da135e610f7ebeac93a4022f69f46cfc0ecc9a203c4426f34435691a0",
+    "start_line": 9,
+    "end_line": 23,
+    "source_excerpt": "def inspect_bench(stdout,stderr,exitcode,depth=11,nodes=308972):\n errors=[];matches=list(SUMMARY.finditer(stdout));gate=False\n if exitcode!=0:errors.append({'code':'bench_exit','actual':exitcode})\n if stderr:errors.append({'code':'bench_stderr','bytes':len(stderr),'sha256':hashlib.sha256(stderr).hexdigest()})\n if len(matches)!=1:errors.append({'code':'bench_summary_count','expected':1,'actual':len(matches)})\n if len(matches)==1:\n  m=matches[0];actual_depth=int(m[1]);actual_nodes=int(m[2]);gate=exitcode==0 and actual_depth==depth and actual_nodes==nodes\n  if actual_depth!=depth or actual_nodes!=nodes:errors.append({'code':'bench_reference','expected_depth':depth,'actual_depth':actual_depth,'expected_nodes':nodes,'actual_nodes':actual_nodes})\n  if not m[5]:errors.append({'code':'bench_missing_line_ending'})\n  if m.start()!=0:errors.append({'code':'bench_prefix_bytes','bytes':m.start()})\n  tail=stdout[m.end():]\n  if tail:errors.append({'code':'bench_post_summary_bytes','bytes':len(tail),'sha256':hashlib.sha256(tail).hexdigest(),'base64':base64.b64encode(tail).decode()})\n return {'status':'PASS' if not errors else'FAIL','first_d11_reference_gate_passed':gate,'summary_count':len(matches),'errors':errors}\n\ndef parse_option(line):\n"
+  },
+  "successor_runtime_hashes": {
+    "forge_sol_S12_ONbench_contract_20261027.py": "023508d16cf5d5468a45b2a0706975f82f06deb2aca96a162dc4488ba3ecb586",
+    "forge_sol_S12_feature_qualify_successor_20261027.py": "2d5bbf131766201ce02d3e8d6739a2f56d12ae0bf55b7f66f20f7ff5a41e8433",
+    "forge_sol_S12_ONframing_tool_successor_20261027.patch": "869db8452fa37b26ab649e20ba80a32528285c4b06f6d4f6aebb85dc8ece14e1"
+  }
+}
