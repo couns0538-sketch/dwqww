@@ -1,0 +1,47 @@
+# FILES index, opus_round1/sol_S42 (job S42, branch opus-sol-S42). path | bytes | sha256 | content
+# no .tar.gz; .gz: book/forge_sol_S42_candidates_20261027.csv.gz = 163252 bytes.
+IDEA_SOURCE.md | 1460 | 8b7ca50fc9db4eab20358c3ddec6f20d15ae4eb3bceded559db728b2afcb8a63 | idea sources (unbalanced books idea, BayesElo-style model, Sol S33/S06 unchanged, shim provenance, data)
+README.md | 4414 | 2d50aaf90fc1026877ed7d552190a463a0132d2fd0675f620694eb4efbcfe7b0 | tools, run commands, limitations
+book/build_summary.json | 1659 | e61b6d9cf5b1e879d3c50993a9fcbc3519249efecc8dc1b7a18230acc0d2dd0e | build summary (deterministic): parameters, skips, acceptance, duplicates 0, histogram, output sha256
+book/forge_sol_S42_book_v2_20261027.epd | 66751 | b038cce90b288ed051ca8e30014c6a3637373c3215cf32d8cc1ebc07279f6d3a | THE CANDIDATE BOOK: 1,000 positions, abs eval 60-120 cp (AL1 lock, depth 12), fastchess format=epd
+book/forge_sol_S42_book_v2_meta_20261027.csv | 109984 | 6d218d9684a7342e10c86b44990099781bc261867648b9d1b698248ec7c60b34 | per position: fen, eval, favoured side, nodes, depth, pieces, source line, deviation ply/move
+book/forge_sol_S42_candidates_20261027.csv.gz | 163252 | 5712614a87ede43c137ae50bb4cc29d88fa9bbf8806902b37d13c64959c9d8b3 | all 5,193 scored candidates (accepted or not)
+book/run_info.json | 547 | 28bab2f29b55ee2392a8add2ab79f82551cc8c0ca1049af903c8525dc5c3bd63 | build run 1 argv and timing
+check_book_v2_s42.py | 2909 | d3b894b463b498bc61392e6c9501b8dcb997fb68884e567b52b1a5179e76bb8c | independent book check: validity, duplicates vs current exits and vs any position on current lines, repeats, band, sha256
+check_scipy_shim_s42.py | 3891 | 8e0360ceb3fd2a19b3ce00f6220ac3063ee0f05d0bc6ee3f713d0e9df0094a4a | shim validation: Sol's six frozen planner cells must reproduce (MC exact, analytic 1e-6)
+fake_uci_engine_s42.py | 1902 | f823fb84d9ee60a51ef56909ef657787e122cd9026181351bbd5e4a831f78e89 | SYNTHETIC UCI engine for the tests (hash scores)
+forge_sol_S42_book_v2_20261027.py | 17846 | d9cbd8287e6f9654a1838596b919d959c3afecf87413fc84924094a427acdec1 | BUILD SCRIPT + stats: build (candidate book), sample (current-book eval histogram), gate (gate PGN pairs, ptnml check, exit evals)
+forge_sol_S42_power_20261027.py | 12441 | dc7ca885e9217eb9e48a468c3277b7ae1248cdf29a2ecc5547b455e8a07c8626 | power estimate: model fit on gate games, predicted profiles, Sol's S33 planner (unchanged) + sensitivity table
+logs/step0_stage_inputs.log | 1138 | 59bb891fe860c7ec3910a07fe94e5b21f6b4aab92feca584c1252849a4a43846 | read-only copies of 8moves_v3.pgn and the G119 PGN/RESULT/RUN_INFO (sources unchanged)
+logs/step1a_scipy_shim_check_v1_json_crash.log | 1595 | 199a935d760f6ec36509eb10191b6e81af7947db34d97f10e7d626fc885d661d | first shim check: validation ran, report crashed on a numpy bool (fixed)
+logs/step1b_scipy_shim_check.log | 2865 | a5e2c4cc5da164fb6a5792f6642c36858b890db5199caffbc0ca1c3cb16ef1cf | shim check PASS: six cells MC identical, analytic worst 7.5e-15
+logs/step3_gate119_openings_d12.log | 1314 | 235396cd9779531fb83c804cb0afdb99973422b42235e72d07f77e980c3c254b | G119 openings by abs(exit eval)
+logs/step4_current_book_sample_d12.log | 632 | 98930ca596f9e2887ed547b686a5365e33b34b00377f1f9d993a3d30caeaa655 | current book histogram
+logs/step5a_book_v2_build_run1.log | 540 | e6bdda2ba323c07ea2c9a988f533658aba83e8fbbb1788cd58d0782efb3e5f2b | book build run 1
+logs/step5b_book_v2_build_run2.log | 511 | c2577cbe76c66114aa7b45084fc9dc67ae2233397bc8e591ac3888ead6aaadc4 | book build run 2 (same arguments)
+logs/step5c_book_v2_determinism.log | 540 | 12ebfc60077fac62f09e97e56fee161172c1dbd1a1e05bb2a60d855b71b4a782 | run 1 vs run 2: all outputs identical
+logs/step5d_book_v2_independent_check.log | 599 | 5bf527571212752d90b6a7b8d3243dac720124f2305d93d063d9119f1235c305 | independent check PASS
+logs/step6_tests_final.log | 797 | df6ed370ade15664ecdbc809219cf562a9d9b97dfdf85d46d71e6c4ec858bc6a | final tests 6/6
+logs/step7a_mutation_check_first.log | 749 | 9ebc6209dfcbd1c8691aaf45fc06c1f5b5db2e4db4300dca7c12900c8cd4f644 | first mutation run (before the sensitivity addition): 8/8
+logs/step7b_mutation_check_final.log | 749 | 9ebc6209dfcbd1c8691aaf45fc06c1f5b5db2e4db4300dca7c12900c8cd4f644 | final mutation run: control PASS, 8/8 caught
+logs/step7b_mutation_results.json | 1118 | f8f63c5107d97f1482c1bafd801485665444462f154bcdbc972a87e42a18c9b0 | per-mutant failing tests (final)
+logs/step8_power_final.log | 2788 | f68262c8cecf089c78c72fc17318a52af002c0f01785a05b182afd3ff50853fb | power analysis run (20,000 MC runs per cell)
+mutation_check_s42.py | 3225 | b1004fa15f48741fe4a14cfcfd61811abdbdfae09052d95baea0e38655850532 | unmutated control + 8 planted bugs
+results/book_v2_run2/build_summary.json | 1659 | e61b6d9cf5b1e879d3c50993a9fcbc3519249efecc8dc1b7a18230acc0d2dd0e | rerun summary (identical to run 1)
+results/book_v2_run2/run_info.json | 547 | bec1756b15832397b60e4e8d224c1ada2edd25f951386fb765b260a85b4b3a00 | rerun argv and timing
+results/current_sample_d12/forge_sol_S42_current_book_sample_20261027.csv | 169295 | 71ba51c33ebc4e36042dec47ec271b02aa44e6c761eb9bf3e96c5444d36c57ed | current book: 2,000 seeded exits with eval (depth 12)
+results/current_sample_d12/run_info.json | 405 | 978c08f9b0d880c3f9709dd5788633c50dd1f93a1a1cc8ca11710abea359a638 | sample argv and timing
+results/current_sample_d12/sample_summary.json | 524 | 03a4c1aee69ada1aa3a29da4840c57224ec9c7c7ee62c01549e5c63e00b04efc | current book eval histogram
+results/gate119_d12/forge_sol_S42_gate_games_gate119_e32f003rec_s197_vs_h256e12_20261027.csv | 124184 | c5e9dc36fa1d8acfcf6782f663d001ccbba71df3080ce4ec34d7144af5fa8f9e | G119: 1,500 games with exit eval (depth 12), colour, candidate points
+results/gate119_d12/gate_summary.json | 1661 | 6da81e7544f231b7bd2c979235934eeed23a3da23b982747d79d284bc85d412a | G119: ptnml from PGN == RESULT, pair table by abs(exit eval)
+results/gate119_d12/run_info.json | 459 | ef68d05121b8a019de2d18cd5879a37a281c4ba5a82d36c1c7c995e8648160e0 | G119 analysis argv and timing
+results/power/forge_sol_S42_power_20261027.json | 11306 | fb0fe4c316d156a590d6aad2a8de3bb41aeed5fb2c234da4fbdab39c38be1fde | model fit, goodness of fit, per-book profiles, planner MC + analytic, sensitivity
+results/power/forge_sol_S42_power_table_20261027.md | 1736 | c78f56c7cc55368ad9fbe079496bfba84f40d93c368640b9227058ebb4ec568b | power table + sensitivity table (MODEL ESTIMATE / ADVICE)
+scipy_shim/scipy/__init__.py | 918 | 3ce7b549eec0c551654dbf44e0063f0c92865b2468659653be4dee9aa20c90d1 | numpy-only SciPy stand-in (package doc)
+scipy_shim/scipy/integrate.py | 2222 | 74528294fd6820f314cf09b2be09beabe4435c0a7e428a1afa1743782abfe551 | quad (adaptive Gauss-Kronrod 7/15)
+scipy_shim/scipy/optimize.py | 2146 | 6bd20df457ceba4d8e904dcd6a79dd541648caa19ea9fc10f52ecc5b54cde146 | brentq (Brent's method as in SciPy's C brentq)
+scipy_shim/scipy/special.py | 1202 | db92a7d2df11b7a5dbf1bc5456b9534e6a287c8615f37b40ae9482b23590c7fc | logsumexp, log_ndtr
+sol_S33/forge_sol_S06_statistics_20261026.py | 7538 | 4598c5839519af2ed4680b074669d097b9616dfe7c03c1afb7622b276efecb8a | Sol's S06 statistics dependency, unchanged (sha256 4598c583...)
+sol_S33/forge_sol_S33_six_cell_validation_20261026.json | 6750 | a1fee477dd067ba06cde45df52b782e8fbdc75a29929f843f494a23c677931a3 | Sol's frozen six-cell validation receipt, unchanged (sha256 a1fee477...)
+sol_S33/forge_sol_S33_sprt_planner_20261026.py | 27616 | 008819d5387cdd5ac5d512bb2ebafd09f141aafc9b6904cba2f73a8373634d03 | Sol's S33 planner, unchanged copy from 17aa0cae (sha256 008819d5...)
+test_forge_sol_S42_20261027.py | 9596 | 92a7ca57ff8350d808e8519d01a416e9bf5c768b958d989160efb1680fd52370 | 6 tests: build determinism/band/both sides, no duplicates with the book, gate ptnml parser, model recovery, profile maths + identity tilt, sample determinism
