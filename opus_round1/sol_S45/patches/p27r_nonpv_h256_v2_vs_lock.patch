@@ -1,0 +1,163 @@
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -116,3 +116,8 @@
+         COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tools/ownbook_regression.py
+                 $<TARGET_FILE:forge> ${CMAKE_CURRENT_BINARY_DIR}/ownbook-regression.json)
+ endif()
++
++# P27R (QsEvasionSeeNonPv) unit test; appended at the end so it applies independently of other test hunks.
++add_executable(forge_qs_evasion_nonpv_tests tests/qs_evasion_nonpv_tests.cpp)
++target_link_libraries(forge_qs_evasion_nonpv_tests PRIVATE forge_core Threads::Threads)
++add_test(NAME forge_qs_evasion_nonpv_tests COMMAND forge_qs_evasion_nonpv_tests)
+--- a/include/forge/search.hpp
++++ b/include/forge/search.hpp
+@@ -220,6 +220,7 @@
+ extern int ProbcutMargin;
+ extern int QsFutilityMargin;
+ extern int QsSeeMargin;
++extern int QsEvasionSeeNonPv;
+ extern int AspirationDelta;
+ extern int HistoryBonusQuadratic;
+ extern int HistoryBonusLinear;
+--- a/src/search.cpp
++++ b/src/search.cpp
+@@ -40,6 +40,9 @@
+ int ProbcutMargin = 180;
+ int QsFutilityMargin = 160;
+ int QsSeeMargin = 40;
++// P27R (off by default): non-PV-only qsearch quiet-evasion SEE prune. 0 = off; 1 = prune quiet evasions with
++// SEE < 0; N > 1 = prune only when SEE < -(N-1) (a loss margin). PV qsearch nodes always search every evasion.
++int QsEvasionSeeNonPv = 0;
+ int AspirationDelta = 18;
+ int HistoryBonusQuadratic = 20;
+ int HistoryBonusLinear = 48;
+@@ -83,6 +86,7 @@
+         {"IirDepth", &IirDepth, 1, 20},                  {"ProbcutDepth", &ProbcutDepth, 1, 20},
+         {"ProbcutMargin", &ProbcutMargin, 0, 1000},      {"QsFutilityMargin", &QsFutilityMargin, 0, 1000},
+         {"QsSeeMargin", &QsSeeMargin, 0, 500},           {"AspirationDelta", &AspirationDelta, 4, 200},
++        {"QsEvasionSeeNonPv", &QsEvasionSeeNonPv, 0, 300},
+         {"HistoryBonusQuadratic", &HistoryBonusQuadratic, 0, 100},
+         {"HistoryBonusLinear", &HistoryBonusLinear, 0, 500},
+         {"HistoryBonusMax", &HistoryBonusMax, 100, 10000},
+@@ -824,10 +828,18 @@
+     MovePicker picker(board, *this, ss, tt_move, MovePicker::Mode::Quiescence);
+     Move best_move = Move::none();
+     int move_count = 0;
++    int evasions_searched = 0; // P27R: evasions actually searched (not pruned) at this in-check node
+     Move move;
+     while (!(move = picker.next(false)).is_none()) {
+         if (!board.is_legal(move)) continue;
+-        ++move_count;
++        ++move_count; // every LEGAL move, pruned or not: the mate test below needs zero legal evasions
++        // P27R: in a non-PV in-check qsearch node, once one evasion has been searched and the score is not
++        // mated, skip later QUIET evasions that lose material by SEE. Captures and promotions are never skipped.
++        if (tune::QsEvasionSeeNonPv > 0 && in_check && !pv_node && evasions_searched > 0 &&
++            best_score > -MateInMaxPly && !move.is_capture() && !move.is_promotion() &&
++            !board.see_ge(move, 1 - tune::QsEvasionSeeNonPv)) {
++            continue;
++        }
+         if (!in_check && best_score > -MateInMaxPly) {
+             const bool gives_check = board.gives_check(move);
+             // Futility: even winning the captured piece cannot raise alpha.
+@@ -848,6 +860,7 @@
+         const int score = -qsearch(board, ss + 1, -beta, -alpha);
+         board.unmake_move(move, undo);
+         if (aborted_) return 0;
++        ++evasions_searched;
+         if (score > best_score) {
+             best_score = score;
+             if (score > alpha) {
+--- a/tests/qs_evasion_nonpv_tests.cpp
++++ b/tests/qs_evasion_nonpv_tests.cpp
+@@ -0,0 +1,91 @@
++// P27R (QsEvasionSeeNonPv) regression: the in-check qsearch quiet-evasion SEE prune acts only in NON-PV nodes
++// (null window), only after one evasion was searched with a non-mated score, and mate needs ZERO legal evasions.
++#include "forge/board.hpp"
++#include "forge/nnue.hpp"
++#include "forge/search.hpp"
++#include <chrono>
++#include <iostream>
++
++namespace forge {
++struct SearcherTestProbe {
++    static std::uint64_t visited(Searcher& searcher) { return searcher.main_worker().local_nodes_; }
++    static int run(Searcher& searcher, Board board, int alpha, int beta) {
++        auto& worker = searcher.main_worker();
++        worker.clear();
++        worker.shared_.stop.store(false, std::memory_order_relaxed);
++        worker.shared_.ponder_hit_ns.store(0, std::memory_order_relaxed);
++        worker.all_workers_ = nullptr;
++        worker.aborted_ = false;
++        worker.local_nodes_ = 0;
++        worker.nodes_.store(0, std::memory_order_relaxed);
++        worker.node_limit_ = 0;
++        worker.node_limit_specified_ = false;
++        worker.hard_limit_ms_ = worker.soft_limit_ms_ = 0;
++        worker.time_managed_ = worker.pondering_ = false;
++        worker.start_ = std::chrono::steady_clock::now();
++        worker.seldepth_ = 0;
++        worker.root_history_index_ = board.history_size() - 1;
++        auto* ss = &worker.stack_[5];
++        ss->ply = 1;
++        nnue::refresh(board, ss->accumulator);
++        return worker.qsearch(board, ss, alpha, beta);
++    }
++};
++}
++
++int main() {
++    using namespace forge;
++    int failures = 0;
++    auto check = [&](bool ok, const char* msg) { std::cout << (ok ? "PASS " : "FAIL ") << msg << '\n'; if (!ok) ++failures; };
++
++    // Black is in check from Ra8; the three legal evasions (Qc8/Qd8/Qe8) are quiet interpositions that lose
++    // material by SEE, and the king cannot move. Qd8 is defended by Rd2, so the position is not mate.
++    Board b;
++    check(b.set_fen("R6k/3q2pp/8/8/8/8/3r4/K7 b - - 0 1"), "fixture FEN parses");
++    check(b.in_check(), "fixture side to move is in check");
++    const MoveList legal = b.legal_moves();
++    bool all_quiet_losing = legal.size() == 3;
++    for (std::size_t i = 0; i < legal.size(); ++i) {
++        const Move m = legal[i];
++        if (m.is_capture() || m.is_promotion() || b.see_ge(m, 0)) all_quiet_losing = false;
++    }
++    check(all_quiet_losing, "all 3 legal evasions are quiet and lose material by SEE");
++
++    auto run = [&](int opt, int alpha, int beta, std::uint64_t& nodes) {
++        tune::QsEvasionSeeNonPv = opt;
++        Searcher s(4, 1);
++        const int score = SearcherTestProbe::run(s, b, alpha, beta);
++        nodes = SearcherTestProbe::visited(s);
++        tune::QsEvasionSeeNonPv = 0;
++        return score;
++    };
++    std::uint64_t n_pv_off = 0, n_pv_on = 0, n_nw_off = 0, n_nw_on = 0;
++    const int pv_off = run(0, -Infinite, Infinite, n_pv_off);
++    const int pv_on = run(1, -Infinite, Infinite, n_pv_on);
++    std::cout << "  PV window: off score=" << pv_off << " nodes=" << n_pv_off << " | on score=" << pv_on << " nodes=" << n_pv_on << '\n';
++    check(pv_off == pv_on && n_pv_off == n_pv_on, "PV qsearch: option on searches exactly what option off searches");
++    // Null window just below the full-window score, so the node is non-PV and does not fail high at once.
++    const int nw_beta = pv_off;
++    const int nw_off = run(0, nw_beta - 1, nw_beta, n_nw_off);
++    const int nw_on = run(1, nw_beta - 1, nw_beta, n_nw_on);
++    std::cout << "  null window: off score=" << nw_off << " nodes=" << n_nw_off << " | on score=" << nw_on << " nodes=" << n_nw_on << '\n';
++    check(nw_on > -MateInMaxPly, "non-PV qsearch with option on: legal-but-losing evasions are not scored as mate");
++    check(n_nw_on <= n_nw_off, "non-PV qsearch with option on never searches more nodes");
++    // Fail-low null window (beta above the true score): option off must try every evasion, option on
++    // keeps only the first one and prunes the rest, so it must visit strictly fewer nodes.
++    std::uint64_t n_fl_off = 0, n_fl_on = 0;
++    const int fl_off = run(0, pv_off, pv_off + 1, n_fl_off);
++    const int fl_on = run(1, pv_off, pv_off + 1, n_fl_on);
++    std::cout << "  fail-low window: off score=" << fl_off << " nodes=" << n_fl_off << " | on score=" << fl_on << " nodes=" << n_fl_on << '\n';
++    check(fl_on > -MateInMaxPly && fl_on <= pv_off, "fail-low non-PV qsearch with option on: bounded, not mate");
++    check(n_fl_on < n_fl_off, "fail-low non-PV qsearch with option on prunes later losing evasions");
++
++    Board mate;
++    check(mate.set_fen("7k/6Q1/6K1/8/8/8/8/8 b - - 0 80") && mate.legal_moves().empty(), "mate fixture has zero legal moves");
++    tune::QsEvasionSeeNonPv = 300;
++    Searcher ms(4, 1);
++    check(SearcherTestProbe::run(ms, mate, -1, 0) <= -MateInMaxPly, "QsEvasionSeeNonPv=300, null window: zero legal evasions scores mate");
++    tune::QsEvasionSeeNonPv = 0;
++    std::cout << "qs_evasion_nonpv_failures=" << failures << '\n';
++    return failures == 0 ? 0 : 1;
++}

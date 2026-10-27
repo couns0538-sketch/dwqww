@@ -1,0 +1,117 @@
+{
+ "schema": "forge-s45-candidates/1",
+ "comment": "Opus O/C search and speed candidates (all built on AL1 d4f4312). Patches are NOT committed (2.4 MB); regenerate each with the 'source' command; sha256 pinned here.",
+ "candidates": [
+  {
+   "name": "O1_SmpExactNodes_SmpBestThread",
+   "kind": "fixed_depth_inert",
+   "patch": "F:/opus_scratch/sol_S45/opus_patches/opus-O1_c0789e09_vs_AL1.patch",
+   "patch_sha256": "9744281292ec77207aecbe86d43016116cae987506009d699775c8f1ef1a9059",
+   "on_options": {
+    "SmpExactNodes": "true",
+    "SmpBestThread": "true"
+   },
+   "gate": "G-? SmpExactNodes / SmpBestThread (SMP 10+0.1)",
+   "note": "SMP-only options (Threads>1); bench is single-threaded",
+   "source": "branch opus-O1 commit c0789e09: git diff d4f4312 <commit> -- src include tests CMakeLists.txt"
+  },
+  {
+   "name": "O1LTT_LocklessTT",
+   "kind": "node_exact",
+   "patch": "F:/opus_scratch/sol_S45/opus_patches/opus-O1-LTT_da677d70_vs_AL1.patch",
+   "patch_sha256": "30ceba0bd2ade918729fbe41ce38a64c3e9b40c442109cd368e16074ca803a73",
+   "on_options": {
+    "LocklessTT": "true"
+   },
+   "gate": "G-B5 LocklessTT (SMP-only)",
+   "note": "lockless TT; ON at Threads=1 is node-exact by design",
+   "source": "branch opus-O1-LTT commit da677d70: git diff d4f4312 <commit> -- src include tests CMakeLists.txt"
+  },
+  {
+   "name": "O2_nnue_kernels",
+   "kind": "bugfix_node_identical",
+   "patch": "F:/opus_scratch/sol_S45/opus_patches/opus-O2_82282b09_vs_AL1.patch",
+   "patch_sha256": "5963d9d3a59cbfc47ff545e291501afeb973ace5a017bcff4be51e0028c90bc2",
+   "on_options": {},
+   "gate": "none (speed)",
+   "note": "speed: bit-identical NNUE kernels, no option (OFF bench == base is the check)",
+   "source": "branch opus-O2 commit 82282b09: git diff d4f4312 <commit> -- src include tests CMakeLists.txt"
+  },
+  {
+   "name": "O3_search_modules",
+   "kind": "bugfix_node_identical",
+   "patch": "F:/opus_scratch/sol_S45/opus_patches/opus-O3_c7eb247a_vs_AL1.patch",
+   "patch_sha256": "0e46f6c36d66ddae5926236285b59ac3ce991eac34bfab91e6bcfa54cb6aeef6",
+   "on_options": {},
+   "gate": "none",
+   "note": "refactor: search.cpp split into modules, no behaviour change, no option",
+   "source": "branch opus-O3 commit c7eb247a: git diff d4f4312 <commit> -- src include tests CMakeLists.txt"
+  },
+  {
+   "name": "O5_CorrMargins",
+   "kind": "tunable",
+   "patch": "F:/opus_scratch/sol_S45/opus_patches/opus-O5_e9ff3f43_vs_AL1.patch",
+   "patch_sha256": "37ed664eabfdceadaf82953b0ebb8de36f79506cca7cd60405704e1e2ed97558",
+   "on_options": {
+    "CorrMargins": "1"
+   },
+   "gate": "G-B3 CorrMargins=1",
+   "note": "correction-size margins",
+   "source": "branch opus-O5 commit e9ff3f43: git diff d4f4312 <commit> -- src include tests CMakeLists.txt"
+  },
+  {
+   "name": "O8_CorrExt",
+   "kind": "tunable",
+   "patch": "F:/opus_scratch/sol_S45/opus_patches/opus-O8_3ef4ded0_vs_AL1.patch",
+   "patch_sha256": "ca28224ea307adc56635bd6602565a8976ad53a7ec5a54566932d7714a00a6c6",
+   "on_options": {
+    "CorrExt": "1"
+   },
+   "gate": "G-C5 CorrExt=1",
+   "note": "correction extensions",
+   "source": "branch opus-O8 commit 3ef4ded0: git diff d4f4312 <commit> -- src include tests CMakeLists.txt"
+  },
+  {
+   "name": "C2_CorrHistPlus",
+   "kind": "tunable",
+   "patch": "F:/opus_scratch/sol_S45/opus_patches/opus-C2_59c982e8_vs_AL1.patch",
+   "patch_sha256": "e75241fa8e739eff248738a2e9c5f2503695607f1ba6e50ac7c71bf5e0948f8e",
+   "on_options": {
+    "CorrHistPlus": "1"
+   },
+   "gate": "G-B1 CorrHistPlus=1",
+   "note": "continuation/minor/non-pawn correction keys",
+   "source": "branch opus-C2 commit 59c982e8: git diff d4f4312 <commit> -- src include tests CMakeLists.txt"
+  },
+  {
+   "name": "C3_HardDeadline",
+   "kind": "fixed_depth_inert",
+   "patch": "F:/opus_scratch/sol_S45/opus_patches/opus-C3_c1748a91_vs_AL1.patch",
+   "patch_sha256": "5b783f257812d96f2b03054b1ee28b362b5b2d520d3f35b206e79714e2a85b48",
+   "on_options": {
+    "HardDeadline": "10"
+   },
+   "gate": "HardDeadline=10",
+   "note": "time-management watchdog; inert at fixed depth",
+   "source": "branch opus-C3 commit c1748a91: git diff d4f4312 <commit> -- src include tests CMakeLists.txt"
+  },
+  {
+   "name": "C6_CuckooRep",
+   "kind": "tunable",
+   "patch": "F:/opus_scratch/sol_S45/opus_patches/opus-C6_be33b838_vs_AL1.patch",
+   "patch_sha256": "b4403d5ae8dbcde0855d4a7bfb3919c6971b40cde51a0241748fc320518fcc0b",
+   "on_options": {
+    "CuckooRep": "true"
+   },
+   "gate": "CuckooRep=true",
+   "note": "upcoming-repetition detection",
+   "source": "branch opus-C6 commit be33b838: git diff d4f4312 <commit> -- src include tests CMakeLists.txt"
+  },
+  {
+   "name": "C1_Syzygy",
+   "kind": "none",
+   "gate": "G-B6 SyzygyPath",
+   "note": "needs Syzygy tables for any ON check; not part of this dry run"
+  }
+ ]
+}

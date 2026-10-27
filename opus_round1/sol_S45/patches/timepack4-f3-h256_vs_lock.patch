@@ -1,0 +1,216 @@
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -67,6 +67,9 @@
+ add_executable(forge_pv_metadata_tests tests/pv_metadata_tests.cpp)
+ target_link_libraries(forge_pv_metadata_tests PRIVATE forge_core Threads::Threads)
+ 
++add_executable(forge_timepack4_tests tests/timepack4_tests.cpp)
++target_link_libraries(forge_timepack4_tests PRIVATE forge_core Threads::Threads)
++
+ add_executable(forge_bench bench/benchmark.cpp)
+ target_link_libraries(forge_bench PRIVATE forge_core Threads::Threads)
+ 
+@@ -79,6 +82,7 @@
+ add_test(NAME forge_pv_metadata_tests COMMAND forge_pv_metadata_tests)
+ add_test(NAME forge_tt_tests COMMAND forge_tt_tests)
+ add_test(NAME forge_rule50_tests COMMAND forge_rule50_tests)
++add_test(NAME forge_timepack4_tests COMMAND forge_timepack4_tests)
+ add_test(NAME forge_legal_witness_tests COMMAND forge_legal_witness_tests
+     ${CMAKE_CURRENT_SOURCE_DIR}/tests/legal_witness_fixtures.tsv
+     ${CMAKE_CURRENT_SOURCE_DIR}/tools/openings/forge-10000.epd)
+--- a/include/forge/search.hpp
++++ b/include/forge/search.hpp
+@@ -239,6 +239,25 @@
+ extern int TmEffortBase;          // x0.01: factor *= clamp(base - effort, 0.6, 1.4)
+ extern int TmFallingEvalPercent;  // extra percent of soft time per 100 cp of score drop since the previous iteration
+ extern int TmMinFactorPercent;    // lower bound of the combined soft-limit factor (x0.01)
++// timepack4 F3 (0 = off; at 0 every search is identical to the base).
++extern int TmDecisiveWinStable;   // >0: final soft stop x pct/100 when winning by >= kDecisiveWinStableScoreCp AND the iteration is stable
++inline constexpr int kDecisiveWinStableScoreCp = 450;
++inline constexpr int kDecisiveWinStableMinDepth = 8;
++// Scale applied to the final (already floored) soft stop. Pure function so it
++// can be unit-tested without a clock. Returns 1.0 unless all of these hold:
++// pct in 1..99, depth >= kDecisiveWinStableMinDepth, score is a non-mate win
++// of at least kDecisiveWinStableScoreCp for the side to move, a previous
++// completed iteration score exists (prev_score != ValueNone), the score did
++// not fall versus that previous iteration (any drop > 0 cp skips the scale),
++// and the best move did not change in the latest iteration.
++[[nodiscard]] constexpr double decisive_win_stable_scale(int pct, int score, int depth, int prev_score,
++                                                         bool bestmove_changed) {
++    if (pct <= 0 || pct >= 100 || depth < kDecisiveWinStableMinDepth || is_mate_score(score) ||
++        score < kDecisiveWinStableScoreCp)
++        return 1.0;
++    if (bestmove_changed || prev_score == ValueNone || score < prev_score) return 1.0;
++    return pct / 100.0;
++}
+ extern int CaptureFutilityBase;   // futility pruning of captures: base margin (0 = off)
+ extern int CaptureFutilityMultiplier;
+ extern int CaptureFutilityDepth;
+--- a/src/search.cpp
++++ b/src/search.cpp
+@@ -58,6 +58,7 @@
+ int TmEffortBase = 155;
+ int TmFallingEvalPercent = 100;
+ int TmMinFactorPercent = 45;
++int TmDecisiveWinStable = 0;
+ int CaptureFutilityBase = 0;
+ int CaptureFutilityMultiplier = 250;
+ int CaptureFutilityDepth = 6;
+@@ -95,6 +96,7 @@
+         {"TmStableFactor", &TmStableFactor, 20, 150},        {"TmSemiStableFactor", &TmSemiStableFactor, 20, 150},
+         {"TmUnstableFactor", &TmUnstableFactor, 50, 300},    {"TmEffortBase", &TmEffortBase, 100, 250},
+         {"TmFallingEvalPercent", &TmFallingEvalPercent, 0, 400}, {"TmMinFactorPercent", &TmMinFactorPercent, 10, 100},
++        {"TmDecisiveWinStable", &TmDecisiveWinStable, 0, 100},
+         {"CaptureFutilityBase", &CaptureFutilityBase, 0, 1000},  {"CaptureFutilityMultiplier", &CaptureFutilityMultiplier, 0, 1000},
+         {"CaptureFutilityDepth", &CaptureFutilityDepth, 0, 15},  {"FailLowContinuationBonus", &FailLowContinuationBonus, 0, 300},
+     };
+@@ -1453,7 +1455,21 @@
+                 factor *= 1.0 + drop * tune::TmFallingEvalPercent / 10000.0;
+             }
+             factor = std::max(factor, tune::TmMinFactorPercent / 100.0);
+-            if (elapsed_ms() >= static_cast<std::int64_t>(static_cast<double>(soft_limit_ms_) * factor)) break;
++            double soft_stop_ms = static_cast<double>(soft_limit_ms_) * factor;
++            // TmDecisiveWinStable (0 = off): when the side to move is clearly
++            // winning (non-mate, >= kDecisiveWinStableScoreCp, depth >=
++            // kDecisiveWinStableMinDepth) AND the iteration is stable (score
++            // not below the previous completed iteration, best move unchanged
++            // this iteration), scale the final soft stop after the floor.
++            // Clock-managed game searches on the main thread only; the hard
++            // limit is never touched, and ponder, depth, node, mate and
++            // searchmoves searches are never scaled.
++            if (tune::TmDecisiveWinStable > 0 && is_main() && !pondering_ && !root_restricted_ &&
++                !node_limit_specified_ && mate_moves == 0 && max_depth >= 64) {
++                soft_stop_ms *= tune::decisive_win_stable_scale(tune::TmDecisiveWinStable, score, depth,
++                                                                iteration_previous_score, stable_iterations == 0);
++            }
++            if (elapsed_ms() >= static_cast<std::int64_t>(soft_stop_ms)) break;
+         }
+     }
+ 
+--- a/tests/timepack4_tests.cpp
++++ b/tests/timepack4_tests.cpp
+@@ -0,0 +1,124 @@
++// timepack4 tests: TmDecisiveWinStable (winning-side final soft-stop scale that
++// is skipped while the eval is falling or the best move just changed; CR's F3).
++// Own code. No wall-clock assertions: the scale is tested as a pure function,
++// and searches are compared only by deterministic fixed-depth / fixed-node results.
++#include "forge/board.hpp"
++#include "forge/nnue.hpp"
++#include "forge/search.hpp"
++#include <cstring>
++#include <iostream>
++#include <string>
++
++namespace {
++int assertions = 0, failures = 0;
++void check(bool okay, const std::string& label) {
++    ++assertions;
++    if (!okay) { ++failures; std::cerr << "FAIL " << label << '\n'; }
++}
++
++struct RestoreOption {
++    int saved = forge::tune::TmDecisiveWinStable;
++    ~RestoreOption() { forge::tune::TmDecisiveWinStable = saved; }
++};
++
++forge::SearchInfo fresh_search(forge::Searcher& searcher, const forge::Board& board, const forge::SearchLimits& limits) {
++    searcher.reset_stop();
++    searcher.clear();
++    return searcher.search(board, limits);
++}
++
++constexpr const char* WonFen = "r5k1/5ppp/8/8/8/2Q5/5PPP/6K1 w - - 0 30";   // white (to move) is winning
++constexpr const char* LostFen = "6k1/5ppp/2q5/8/8/8/5PPP/R5K1 w - - 0 30";  // colour mirror: white (to move) is losing
++} // namespace
++
++int main() {
++    using namespace forge;
++    RestoreOption restore;
++    check(tune::TmDecisiveWinStable == 0, "TmDecisiveWinStable defaults off");
++
++    bool found = false;
++    int registered = 0;
++    for (const tune::Parameter& p : tune::parameters()) {
++        if (std::strcmp(p.name, "TmDecisiveWinStable") == 0) {
++            found = true;
++            ++registered;
++            check(p.value == &tune::TmDecisiveWinStable && p.minimum == 0 && p.maximum == 100,
++                  "TmDecisiveWinStable range 0..100");
++        }
++        check(std::strcmp(p.name, "TmDecisiveWin") != 0, "timepack3's TmDecisiveWin is not in this tree (one option per gate)");
++    }
++    check(found && registered == 1, "TmDecisiveWinStable is registered exactly once");
++
++    // --- pure factor computation (no clock) ---
++    using tune::decisive_win_stable_scale;
++    static_assert(decisive_win_stable_scale(0, 495, 20, 495, false) == 1.0, "off is a no-op");
++    static_assert(decisive_win_stable_scale(60, 495, 20, 495, false) == 0.6, "primary scales by 0.6 when stable");
++    static_assert(decisive_win_stable_scale(60, 495, 20, 500, false) == 1.0, "falling eval skips");
++    static_assert(decisive_win_stable_scale(60, 495, 20, 495, true) == 1.0, "bestmove change skips");
++    const int win = tune::kDecisiveWinStableScoreCp, deep = tune::kDecisiveWinStableMinDepth;
++    check(win == 450 && deep == 8, "constants 450 cp / depth 8");
++    // off / no-op values
++    check(decisive_win_stable_scale(0, 900, 20, 900, false) == 1.0, "pct 0: off");
++    check(decisive_win_stable_scale(-5, 900, 20, 900, false) == 1.0, "negative pct: off");
++    check(decisive_win_stable_scale(100, 900, 20, 900, false) == 1.0, "pct 100: no-op");
++    // stable winning iterations scale
++    check(decisive_win_stable_scale(60, win, deep, win, false) == 0.6, "exactly +450 at depth 8, equal prev, scales");
++    check(decisive_win_stable_scale(60, 495, 22, 454, false) == 0.6, "rising eval scales");
++    check(decisive_win_stable_scale(60, 900, 12, 900, false) == 0.6, "+900 flat scales");
++    check(decisive_win_stable_scale(1, 495, 22, 495, false) == 0.01, "pct 1 scales by 0.01");
++    check(decisive_win_stable_scale(45, 495, 22, 400, false) == 0.45, "pct 45 scales by 0.45");
++    check(decisive_win_stable_scale(60, 500, 20, -20, false) == 0.6, "big rise from a losing prev scales");
++    // F3 skips: falling eval (any drop > 0 cp) or best move changed
++    check(decisive_win_stable_scale(60, 495, 20, 496, false) == 1.0, "1 cp drop skips");
++    check(decisive_win_stable_scale(60, 495, 20, 700, false) == 1.0, "200 cp drop skips");
++    check(decisive_win_stable_scale(60, 900, 20, MateInMaxPly, false) == 1.0, "drop from a mate-in prev skips");
++    check(decisive_win_stable_scale(60, 495, 20, 495, true) == 1.0, "best move changed skips (flat eval)");
++    check(decisive_win_stable_scale(60, 600, 20, 495, true) == 1.0, "best move changed skips (rising eval)");
++    check(decisive_win_stable_scale(60, 495, 20, 700, true) == 1.0, "both falling and changed skip");
++    check(decisive_win_stable_scale(60, 495, 20, ValueNone, false) == 1.0, "no previous iteration skips");
++    // same base guards as timepack3
++    check(decisive_win_stable_scale(60, win - 1, 20, win - 1, false) == 1.0, "+449 does not scale");
++    check(decisive_win_stable_scale(60, 0, 20, 0, false) == 1.0, "equal score does not scale");
++    check(decisive_win_stable_scale(60, -495, 22, -495, false) == 1.0, "losing -495 does not scale");
++    check(decisive_win_stable_scale(60, -win, 22, -900, false) == 1.0, "losing -450 (rising) does not scale");
++    check(decisive_win_stable_scale(60, -5000, 22, -5000, false) == 1.0, "losing -5000 does not scale");
++    check(decisive_win_stable_scale(60, 495, deep - 1, 495, false) == 1.0, "depth 7 does not scale");
++    check(decisive_win_stable_scale(60, 495, 1, 495, false) == 1.0, "depth 1 does not scale");
++    check(decisive_win_stable_scale(60, MateInMaxPly, 20, MateInMaxPly, false) == 1.0, "mate-in score does not scale");
++    check(decisive_win_stable_scale(60, MateValue - 5, 20, MateValue - 5, false) == 1.0, "mate in 3 does not scale");
++    check(decisive_win_stable_scale(60, -MateValue + 4, 20, -MateValue + 4, false) == 1.0, "mated score does not scale");
++    check(decisive_win_stable_scale(60, MateInMaxPly - 1, 20, MateInMaxPly - 1, false) == 0.6, "largest non-mate score scales");
++
++    // --- deterministic searches: option value never changes fixed-depth or fixed-node results ---
++    Searcher searcher(16, 1);
++    Board start, won, lost;
++    check(start.set_fen(Board::StandardStartFen), "startpos parses");
++    check(won.set_fen(WonFen), "won FEN parses");
++    check(lost.set_fen(LostFen), "lost FEN parses");
++    for (const Board* b : {&start, &won, &lost}) {
++        SearchLimits d; d.depth = 10;
++        SearchLimits dc; dc.depth = 10; dc.time_ms = 600000;          // clock plus depth limit
++        SearchLimits nc; nc.nodes = 50000; nc.nodes_specified = true; nc.time_ms = 600000; // clock plus node limit
++        for (const SearchLimits* l : {&d, &dc, &nc}) {
++            tune::TmDecisiveWinStable = 0;
++            const SearchInfo off = fresh_search(searcher, *b, *l);
++            for (int pct : {1, 60, 100}) {
++                tune::TmDecisiveWinStable = pct;
++                const SearchInfo on = fresh_search(searcher, *b, *l);
++                check(on.nodes == off.nodes && on.best_move == off.best_move && on.score == off.score && on.depth == off.depth,
++                      "deterministic search identical with TmDecisiveWinStable=" + std::to_string(pct));
++            }
++        }
++    }
++    tune::TmDecisiveWinStable = 0;
++    {
++        SearchLimits d; d.depth = 10;
++        const SearchInfo w = fresh_search(searcher, won, d), l = fresh_search(searcher, lost, d);
++        check(w.score >= 300, "won FEN scores clearly winning for the side to move (sign sanity)");
++        check(l.score <= -300, "lost FEN scores clearly losing for the side to move (sign sanity)");
++        check(tune::decisive_win_stable_scale(60, l.score, 20, l.score, false) == 1.0, "the lost FEN's own score never scales");
++    }
++
++    std::cout << "timepack4_tests: " << assertions << " assertions, " << failures << " failures\n";
++    return failures == 0 ? 0 : 1;
++}

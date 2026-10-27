@@ -1,0 +1,376 @@
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index 915039a4..bda81f00 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -18,6 +18,11 @@ add_library(forge_core
+ target_include_directories(forge_core PUBLIC include)
+ target_compile_features(forge_core PUBLIC cxx_std_20)
+ 
++option(FORGE_S13_TT_CHILD_PREFETCH "Build the opt-in TtChildPrefetch experiment" OFF)
++if(FORGE_S13_TT_CHILD_PREFETCH)
++    target_compile_definitions(forge_core PUBLIC FORGE_S13_TT_CHILD_PREFETCH=1)
++endif()
++
+ if(MSVC)
+     target_compile_options(forge_core PRIVATE /W4 /permissive-)
+ else()
+@@ -67,6 +72,14 @@ target_link_libraries(forge_nearest_pawn_tests PRIVATE forge_core Threads::Threa
+ add_executable(forge_pv_metadata_tests tests/pv_metadata_tests.cpp)
+ target_link_libraries(forge_pv_metadata_tests PRIVATE forge_core Threads::Threads)
+ 
++# S13: includes the actual src/search.cpp with its TT prefetch redirected to a
++# counter, so the archive's own search.cpp object is never linked (link map).
++add_executable(forge_tt_prefetch_probe tests/tt_prefetch_probe_tests.cpp)
++target_link_libraries(forge_tt_prefetch_probe PRIVATE forge_core Threads::Threads)
++if(NOT MSVC)
++    target_link_options(forge_tt_prefetch_probe PRIVATE "-Wl,-Map=${CMAKE_CURRENT_BINARY_DIR}/forge_tt_prefetch_probe.map")
++endif()
++
+ add_executable(forge_bench bench/benchmark.cpp)
+ target_link_libraries(forge_bench PRIVATE forge_core Threads::Threads)
+ 
+@@ -79,6 +92,7 @@ add_test(NAME forge_nearest_pawn_tests COMMAND forge_nearest_pawn_tests)
+ add_test(NAME forge_pv_metadata_tests COMMAND forge_pv_metadata_tests)
+ add_test(NAME forge_tt_tests COMMAND forge_tt_tests)
+ add_test(NAME forge_rule50_tests COMMAND forge_rule50_tests)
++add_test(NAME forge_tt_prefetch_probe COMMAND forge_tt_prefetch_probe)
+ add_test(NAME forge_legal_witness_tests COMMAND forge_legal_witness_tests
+     ${CMAKE_CURRENT_SOURCE_DIR}/tests/legal_witness_fixtures.tsv
+     ${CMAKE_CURRENT_SOURCE_DIR}/tools/openings/forge-10000.epd)
+diff --git a/include/forge/search.hpp b/include/forge/search.hpp
+index e976c710..31930941 100644
+--- a/include/forge/search.hpp
++++ b/include/forge/search.hpp
+@@ -17,6 +17,9 @@
+ namespace forge {
+ 
+ struct SearchLimits {
++#ifdef FORGE_S13_TT_CHILD_PREFETCH
++    bool s13_tt_child_prefetch = false;
++#endif
+     int depth = 64;
+     std::uint64_t nodes = 0;
+     bool nodes_specified = false;
+@@ -287,6 +290,10 @@ struct SearchStack {
+ struct SharedSearchState {
+     explicit SharedSearchState(std::size_t hash_mb) : tt(hash_mb) {}
+     TranspositionTable tt;
++#ifdef FORGE_S13_TT_CHILD_PREFETCH
++    std::atomic<bool> s13_tt_child_prefetch{false};
++    std::atomic<bool> s13_tt_child_prefetch_announced{false};
++#endif
+     std::atomic<bool> stop{false};
+     // 0 means pondering has not been converted into a timed search.
+     std::atomic<std::int64_t> ponder_hit_ns{0};
+@@ -326,6 +333,9 @@ private:
+     std::array<std::uint64_t, 256> root_move_nodes_{};
+     std::size_t root_effort_count_ = 0;
+ 
++#ifdef FORGE_S13_TT_CHILD_PREFETCH
++    bool s13_tt_child_prefetch_ = false;
++#endif
+     bool pondering_ = false;
+     std::chrono::steady_clock::time_point start_{};
+     std::atomic<std::uint64_t> nodes_{0};
+@@ -394,6 +404,10 @@ public:
+     void clear_hash();
+     void resize_hash(std::size_t hash_mb);
+     void set_threads(int threads);
++#ifdef FORGE_S13_TT_CHILD_PREFETCH
++    void set_s13_tt_child_prefetch(bool enabled) { shared_.s13_tt_child_prefetch.store(enabled, std::memory_order_relaxed); }
++    [[nodiscard]] bool s13_tt_child_prefetch_enabled() const { return shared_.s13_tt_child_prefetch.load(std::memory_order_relaxed); }
++#endif
+     [[nodiscard]] int threads() const { return static_cast<int>(workers_.size()); }
+     [[nodiscard]] int hashfull_permille() const { return shared_.tt.hashfull(); }
+     [[nodiscard]] static int evaluate(const Board& board) { return Evaluator::evaluate_uncached(board); }
+diff --git a/src/search.cpp b/src/search.cpp
+index 74de5d37..4b08d0cd 100644
+--- a/src/search.cpp
++++ b/src/search.cpp
+@@ -976,6 +976,9 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
+             record_null_move(ss);
+             NullUndo undo;
+             board.make_null_move(undo);
++#ifdef FORGE_S13_TT_CHILD_PREFETCH
++            if (s13_tt_child_prefetch_) shared_.tt.prefetch(board.key());
++#endif
+             int null_score = -search(board, ss + 1, depth - reduction, -beta, -beta + 1, !cut_node);
+             board.unmake_null_move(undo);
+             if (aborted_) return 0;
+@@ -1013,6 +1016,9 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
+                 record_move(ss, board, move);
+                 Undo undo;
+                 (void)board.make_move(move, undo);
++#ifdef FORGE_S13_TT_CHILD_PREFETCH
++                if (s13_tt_child_prefetch_) shared_.tt.prefetch(board.key());
++#endif
+                 int value = -qsearch(board, ss + 1, -probcut_beta, -probcut_beta + 1);
+                 if (value >= probcut_beta && !aborted_) {
+                     value = -search(board, ss + 1, depth - 4, -probcut_beta, -probcut_beta + 1, !cut_node);
+@@ -1228,6 +1234,9 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
+ // Iterative deepening driver
+ 
+ SearchInfo Worker::search(Board board, const SearchLimits& limits, bool emit_info, const std::vector<Worker*>& all) {
++#ifdef FORGE_S13_TT_CHILD_PREFETCH
++    s13_tt_child_prefetch_ = limits.s13_tt_child_prefetch;
++#endif
+     const auto origin = limits.start_time != std::chrono::steady_clock::time_point{}
+         ? limits.start_time : limits.request_start;
+     start_ = origin == std::chrono::steady_clock::time_point{}
+@@ -1503,6 +1512,14 @@ SearchInfo Searcher::search(Board board, const SearchLimits& limits, bool emit_i
+     const auto origin = supplied_start == std::chrono::steady_clock::time_point{} && clocked
+         ? std::chrono::steady_clock::now() : supplied_start;
+     SearchLimits worker_limits = limits;
++#ifdef FORGE_S13_TT_CHILD_PREFETCH
++    // Snapshot once before helper launch; recursive workers use their own copy.
++    worker_limits.s13_tt_child_prefetch = shared_.s13_tt_child_prefetch.load(std::memory_order_relaxed);
++    if (worker_limits.s13_tt_child_prefetch && !shared_.s13_tt_child_prefetch_announced.exchange(true, std::memory_order_relaxed)) {
++        const std::lock_guard<std::mutex> output_lock(uci_output_mutex());
++        std::cout << "info string TtChildPrefetch active" << std::endl;
++    }
++#endif
+     worker_limits.start_time = origin;
+     std::vector<Worker*> all;
+     all.reserve(workers_.size());
+diff --git a/src/uci.cpp b/src/uci.cpp
+index 607adf3a..2f9bc7dd 100644
+--- a/src/uci.cpp
++++ b/src/uci.cpp
+@@ -178,6 +178,9 @@ int main() {
+                 std::cout << "option name " << parameter.name << " type spin default " << *parameter.value
+                           << " min " << parameter.minimum << " max " << parameter.maximum << "\n";
+             }
++#endif
++#ifdef FORGE_S13_TT_CHILD_PREFETCH
++            std::cout << "option name TtChildPrefetch type check default false\n";
+ #endif
+             std::cout << "option name Clear Hash type button\n"
+                          "uciok" << std::endl;
+@@ -216,6 +219,15 @@ int main() {
+             }
+             if (handled_tunable) {
+                 // Unlisted development options; nothing else to do.
++#ifdef FORGE_S13_TT_CHILD_PREFETCH
++            } else if (name == "TtChildPrefetch") {
++                if (value_text == "true" || value_text == "false") {
++                    searcher.set_s13_tt_child_prefetch(value_text == "true");
++                } else {
++                    const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex());
++                    std::cout << "info string invalid value for option TtChildPrefetch" << std::endl;
++                }
++#endif
+             } else if (name == "Clear Hash") {
+                 searcher.clear_hash();
+             } else if (name == "Ponder") {
+@@ -393,6 +405,9 @@ int main() {
+             std::uint64_t total_nodes = 0;
+             const auto start = std::chrono::steady_clock::now();
+             forge::Searcher bench_searcher(16);
++#ifdef FORGE_S13_TT_CHILD_PREFETCH
++            bench_searcher.set_s13_tt_child_prefetch(searcher.s13_tt_child_prefetch_enabled());
++#endif
+             for (const std::string_view fen : fens) {
+                 forge::Board bench_board;
+                 if (!bench_board.set_fen(fen)) continue;
+diff --git a/tests/tt_prefetch_probe_tests.cpp b/tests/tt_prefetch_probe_tests.cpp
+new file mode 100644
+index 00000000..f2636b63
+--- /dev/null
++++ b/tests/tt_prefetch_probe_tests.cpp
+@@ -0,0 +1,196 @@
++// Job S13 (TT prefetch at every key change; 64-byte TT bucket), after Sol's
++// forge_sol_S13_worker_prefetch_probe_20261026.cpp. Counts the TT prefetch
++// requests of the ACTUAL src/search.cpp: this file includes it with
++// __builtin_prefetch redirected to a counter (only TranspositionTable::prefetch
++// in forge/search.hpp uses it; no other forge_core source includes that
++// header), so the production sources are unchanged. The link must not pull
++// the core archive's own search.cpp object: it would clash with these
++// definitions, so a successful link shows that it was not used.
++//
++// Every build:  a TT bucket is one 64-byte line (sizeof 64, alignof 64, and
++//               every prefetched bucket address is a multiple of 64), and the
++//               existing prefetch sites (main search and quiescence make) are hit.
++// Build with FORGE_S13_TT_CHILD_PREFETCH (UCI TtChildPrefetch): OFF and ON
++//               searches of 4 positions to depth 10 return the same move,
++//               ponder move, score, depth, seldepth, nodes and PV and the same
++//               null-move attempts; ON issues at least one extra request per
++//               null move (null child) and, summed over the positions, also
++//               ProbCut child requests; `info string TtChildPrefetch active`
++//               is printed once per Searcher and never when OFF.
++#include <algorithm>
++#include <array>
++#include <atomic>
++#include <chrono>
++#include <cmath>
++#include <cstddef>
++#include <cstdint>
++#include <cstring>
++#include <iostream>
++#include <limits>
++#include <memory>
++#include <mutex>
++#include <optional>
++#include <sstream>
++#include <stdexcept>
++#include <string>
++#include <thread>
++#include <vector>
++
++#include "forge/board.hpp"
++#include "forge/eval.hpp"
++#include "forge/nnue.hpp"
++#include "forge/uci_output.hpp"
++
++namespace s13_probe {
++std::uint64_t requests = 0;
++std::uint64_t misaligned = 0;
++void record(const void* address) {
++    if (address == nullptr) throw std::runtime_error("null TT prefetch address");
++    if (reinterpret_cast<std::uintptr_t>(address) % 64U != 0U) ++misaligned;
++    ++requests;
++}
++} // namespace s13_probe
++
++// Everything search.cpp needs was included above, so the redirection reaches
++// only the TT prefetch of forge/search.hpp (first included by search.cpp).
++#define __builtin_prefetch(address, ...) ::s13_probe::record(address)
++#include "../src/search.cpp"
++#undef __builtin_prefetch
++
++namespace forge {
++struct SearcherTestProbe {
++    static std::uint64_t null_tries(const Worker& worker) { return worker.null_tries_; }
++};
++} // namespace forge
++
++namespace {
++
++int failures = 0;
++int checks = 0;
++
++void check(bool okay, const std::string& name) {
++    ++checks;
++    if (!okay) ++failures;
++    std::cout << (okay ? "PASS " : "FAIL ") << name << '\n';
++}
++
++static_assert(sizeof(forge::TTCluster) == 64, "a TT bucket is 64 bytes");
++static_assert(alignof(forge::TTCluster) == 64, "a TT bucket starts on a 64-byte line");
++
++struct Run {
++    forge::SearchInfo info;
++    std::uint64_t prefetches = 0;
++    std::uint64_t null_tries = 0;
++    std::string output;
++};
++
++// Redirect std::cout for the searches (the ON marker is printed there).
++struct Capture {
++    std::ostringstream text;
++    std::streambuf* previous;
++    Capture() : previous(std::cout.rdbuf(text.rdbuf())) {}
++    ~Capture() { std::cout.rdbuf(previous); }
++    Capture(const Capture&) = delete;
++    Capture& operator=(const Capture&) = delete;
++};
++
++Run run(const std::string& fen, bool enabled) {
++    forge::Board board;
++    if (!board.set_fen(fen)) throw std::runtime_error("invalid test FEN");
++    forge::Searcher searcher(16, 1);
++#ifdef FORGE_S13_TT_CHILD_PREFETCH
++    searcher.set_s13_tt_child_prefetch(enabled);
++#else
++    if (enabled) throw std::logic_error("ON run needs FORGE_S13_TT_CHILD_PREFETCH");
++#endif
++    forge::SearchLimits limits;
++    limits.depth = 10;
++    Run result;
++    {
++        Capture output;
++        s13_probe::requests = 0;
++        result.info = searcher.search(board, limits, false);
++        result.prefetches = s13_probe::requests;
++        result.null_tries = forge::SearcherTestProbe::null_tries(searcher.main_worker());
++        // A second search of the same Searcher must not repeat the active line.
++        limits.depth = 1;
++        (void)searcher.search(board, limits, false);
++        result.output = output.text.str();
++    }
++    return result;
++}
++
++bool same(const forge::SearchInfo& a, const forge::SearchInfo& b) {
++    return a.best_move == b.best_move && a.ponder_move == b.ponder_move && a.score == b.score && a.depth == b.depth &&
++           a.seldepth == b.seldepth && a.nodes == b.nodes && a.pv == b.pv &&
++           a.restricted_root_empty == b.restricted_root_empty;
++}
++
++} // namespace
++
++int main() {
++    try {
++        const std::array<std::string, 4> fens{
++            std::string(forge::Board::StandardStartFen),
++            "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1",
++            "r4rk1/1pp1qppp/p1np1n2/8/2B1P1b1/2N2N2/PPP1QPPP/2KR3R w - - 0 10",
++            "r1bq1rk1/pp2bppp/2n1pn2/3p4/2PP4/2N1PN2/PP3PPP/R2QKB1R w KQ - 0 8",
++        };
++#ifdef FORGE_S13_TT_CHILD_PREFETCH
++        std::cout << "S13 TT prefetch probe (build switch FORGE_S13_TT_CHILD_PREFETCH on)\n";
++#else
++        std::cout << "S13 TT prefetch probe (default build: no TtChildPrefetch option)\n";
++#endif
++        std::uint64_t total_requests = 0;
++        std::uint64_t total_null = 0;
++        std::uint64_t total_probcut = 0;
++        bool parity = true;
++        bool null_children = true;
++        bool quiet_off = true;
++        bool marker_once = true;
++        for (std::size_t i = 0; i < fens.size(); ++i) {
++            const Run off = run(fens[i], false);
++            total_requests += off.prefetches;
++            quiet_off = quiet_off && off.output.empty();
++#ifdef FORGE_S13_TT_CHILD_PREFETCH
++            const Run on = run(fens[i], true);
++            const bool equal = same(off.info, on.info) && off.null_tries == on.null_tries;
++            parity = parity && equal;
++            null_children = null_children && on.prefetches >= off.prefetches + on.null_tries;
++            marker_once = marker_once && on.output == "info string TtChildPrefetch active\n";
++            const std::uint64_t probcut = on.prefetches >= off.prefetches + on.null_tries
++                                              ? on.prefetches - off.prefetches - on.null_tries : 0;
++            total_null += on.null_tries;
++            total_probcut += probcut;
++            std::cout << "case " << i << " nodes " << off.info.nodes << '/' << on.info.nodes << " move "
++                      << forge::Board::move_to_uci(off.info.best_move) << '/' << forge::Board::move_to_uci(on.info.best_move)
++                      << " score " << off.info.score << '/' << on.info.score << " prefetch off " << off.prefetches
++                      << " on " << on.prefetches << " null_child " << on.null_tries << " probcut_child_derived " << probcut
++                      << (equal ? "" : " DIFFERENT") << '\n';
++#else
++            std::cout << "case " << i << " nodes " << off.info.nodes << " move " << forge::Board::move_to_uci(off.info.best_move)
++                      << " score " << off.info.score << " prefetch " << off.prefetches << " null_tries " << off.null_tries << '\n';
++#endif
++        }
++        std::cout << "prefetch requests with the option off: " << total_requests << ", misaligned bucket addresses: "
++                  << s13_probe::misaligned << '\n';
++        check(total_requests > 0, "existing TT prefetch sites are reached");
++        check(s13_probe::misaligned == 0, "every prefetched TT bucket address is 64-byte aligned (one cache line)");
++        check(quiet_off, "no TtChildPrefetch output with the option off");
++#ifdef FORGE_S13_TT_CHILD_PREFETCH
++        std::cout << "null-move children " << total_null << ", ProbCut children (derived) " << total_probcut << '\n';
++        check(parity, "OFF and ON give the same move, ponder, score, depth, seldepth, nodes, PV and null-move attempts");
++        check(null_children, "ON prefetches at least once per null-move child");
++        check(total_null > 0, "positions exercise the null-move child path");
++        check(total_probcut > 0, "positions exercise the ProbCut child path");
++        check(marker_once, "ON prints 'info string TtChildPrefetch active' exactly once per Searcher");
++#else
++        (void)parity; (void)null_children; (void)marker_once; (void)total_null; (void)total_probcut;
++#endif
++    } catch (const std::exception& error) {
++        std::cout << "FAIL exception: " << error.what() << '\n';
++        ++failures;
++    }
++    std::cout << (failures == 0 ? "ALL PASS " : "FAILURES ") << failures << " of " << checks << " checks failed\n";
++    return failures == 0 ? 0 : 1;
++}

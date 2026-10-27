@@ -1,0 +1,66 @@
+--- a/include/forge/search.hpp
++++ b/include/forge/search.hpp
+@@ -243,6 +243,9 @@
+ extern int CaptureFutilityMultiplier;
+ extern int CaptureFutilityDepth;
+ extern int FailLowContinuationBonus; // x0.01 of the history bonus given to the parent move on fail low (0 = off)
++extern int RefutLmr;      // P23: less LMR for killer / counter-move quiets (0 = off)
++extern int RefutLmrPlies;
++extern int RefutLmrMinR;
+ [[nodiscard]] const std::vector<Parameter>& parameters();
+ // Call after changing LMR parameters.
+ void refresh();
+--- a/src/search.cpp
++++ b/src/search.cpp
+@@ -62,6 +62,13 @@
+ int CaptureFutilityMultiplier = 250;
+ int CaptureFutilityDepth = 6;
+ int FailLowContinuationBonus = 0;
++// P23 RefutLmr (off by default): reduce killer / counter-move quiets less in LMR. 0 = off; 1 = killers;
++// 2 = killers + counter move; 3 = as 2 but only at non-cut nodes; 4 = first killer only.
++// RefutLmrPlies = plies taken off r; RefutLmrMinR = only when r is at least this (0 = always; default 5
++// narrows the trigger to deep reductions (p23b deep-node screen); inert while RefutLmr = 0).
++int RefutLmr = 0;
++int RefutLmrPlies = 1;
++int RefutLmrMinR = 5;
+ 
+ const std::vector<Parameter>& parameters() {
+     static const std::vector<Parameter> table{
+@@ -97,6 +104,8 @@
+         {"TmFallingEvalPercent", &TmFallingEvalPercent, 0, 400}, {"TmMinFactorPercent", &TmMinFactorPercent, 10, 100},
+         {"CaptureFutilityBase", &CaptureFutilityBase, 0, 1000},  {"CaptureFutilityMultiplier", &CaptureFutilityMultiplier, 0, 1000},
+         {"CaptureFutilityDepth", &CaptureFutilityDepth, 0, 15},  {"FailLowContinuationBonus", &FailLowContinuationBonus, 0, 300},
++        {"RefutLmr", &RefutLmr, 0, 4},                   {"RefutLmrPlies", &RefutLmrPlies, 1, 2},
++        {"RefutLmrMinR", &RefutLmrMinR, 0, 8},
+     };
+     return table;
+ }
+@@ -429,6 +438,16 @@
+     // Only Main/GoodCaptures returns after a successful SEE >= 0 test.
+     [[nodiscard]] bool last_move_see_nonnegative() const { return stage_ == GoodCaptures; }
+ 
++    // P23: the killer and counter-move snapshot this picker ordered by (taken at construction).
++    // 1 = first killer, 3 = second killer, 2 = the counter move (and not a killer), 0 = neither.
++    [[nodiscard]] int refutation_kind(Move move) const {
++        if (move.is_none()) return 0;
++        if (move == killers_[0]) return 1;
++        if (move == killers_[1]) return 3;
++        if (move == counter_) return 2;
++        return 0;
++    }
++
+ private:
+     enum Stage : int {
+         MainTT, GenerateCaptures, GoodCaptures, Killer1, Killer2, CounterMove, GenerateQuiets, QuietMoves, BadCaptures,
+@@ -1144,6 +1163,11 @@
+             if (in_check) r -= 1;
+             if (tune::LmrCutoffThreshold > 0 && (ss + 1)->cutoff_count > tune::LmrCutoffThreshold) r += 1;
+             if (quiet) r -= std::clamp(history / tune::LmrHistoryDivisor, -2, 2);
++            if (tune::RefutLmr > 0 && quiet && !in_check && r >= tune::RefutLmrMinR && (tune::RefutLmr != 3 || !cut_node)) {
++                const int kind = picker.refutation_kind(move);
++                const bool hit = tune::RefutLmr == 4 ? kind == 1 : (kind == 1 || kind == 3 || (kind == 2 && tune::RefutLmr >= 2));
++                if (hit) r -= tune::RefutLmrPlies;
++            }
+             const int reduced_depth = std::clamp(new_depth - r, 1, new_depth);
+             score = -search(board, ss + 1, reduced_depth, -alpha - 1, -alpha, true);
+             full_depth_needed = score > alpha && reduced_depth < new_depth;

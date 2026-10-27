@@ -1,0 +1,36 @@
+# S45 tool tests (real git apply / GNU patch on a tiny tree, fake build/bench, fixture manifests); Tue Oct 27 15:11:44 PST 2026
+test_fixed_depth_inert (__main__.Decisions) ... ok
+test_node_exact (__main__.Decisions) ... ok
+test_not_applicable_kinds (__main__.Decisions) ... ok
+test_tunable (__main__.Decisions) ... ok
+test_verdict_ready_only_when_everything_passes (__main__.Decisions) ... ok
+test_apply_changes_the_tree (__main__.PatchChecks) ... ok
+test_conflict_fails_both (__main__.PatchChecks) ... ok
+test_fuzz_is_refused_by_both (__main__.PatchChecks) ... ok
+test_good_patch_passes_both (__main__.PatchChecks) ... ok
+test_offset_is_reported_but_passes (__main__.PatchChecks) ... ok
+test_outer_context_fuzz_is_refused (__main__.PatchChecks) ... ok
+test_run (__main__.RunEndToEnd) ... # base T: net md5 7709a8c77bea7d4969ac7d662be74997
+# base bench [1000, 5000] identity True FMA 0
+tun_ok: git True gnu True (offset hunks 0) OFF==base True ON d16 ON 5007 vs OFF 5000: ON != OFF -> READY
+tun_inert: git True gnu True (offset hunks 0) OFF==base True ON d16 ON 5000 vs OFF 5000: INERT (ON == OFF) -> NOT READY (ON check failed: d16 ON 5000 vs OFF 5000: INERT (ON == OFF))
+exact_ok: git True gnu True (offset hunks 0) OFF==base True ON ON == base at all depths -> READY
+exact_bad: git True gnu True (offset hunks 0) OFF==base True ON ON differs at d16 -> NOT READY (ON check failed: ON differs at d16)
+off_drift: git True gnu True (offset hunks 0) OFF==base False ON no option (fix always on): OFF bench == base is the check -> NOT READY (OFF bench != base)
+conflict: git False gnu False (offset hunks 0) OFF==base None ON - -> NOT READY (git apply --check fails; patch -p1 -F0 fails; OFF build failed; OFF bench != base)
+net_changer: git True gnu True (offset hunks 0) OFF==base True ON no option (fix always on): OFF bench == base is the check -> NOT READY (patch changes the net)
+nothing: N/A (already in the lock)
+bad_sha: git True gnu True (offset hunks 0) OFF==base True ON no option (fix always on): OFF bench == base is the check -> NOT READY (patch sha256 differs from the config)
+ok
+test_refuses_protected_outputs (__main__.Safety) ... ok
+test_candidate_base (__main__.Voids) ... ok
+test_cmd_voids_reads_bom_manifest_and_results (__main__.Voids) ... ok
+test_new_lock_voids_gates_against_the_old_lock (__main__.Voids) ... ok
+test_states_and_classes (__main__.Voids) ... ok
+test_superseded_policy_in_old_note_is_ignored (__main__.Voids) ... ok
+
+----------------------------------------------------------------------
+Ran 18 tests in 0.452s
+
+OK
+{"VALID": 1, "VOID_OPPONENT": 1, "DONE": 1}
