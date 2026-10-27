@@ -32,17 +32,23 @@ namespace forge {
 namespace {
 
 static_assert(sizeof(TTEntry) == 16 && offsetof(TTEntry, move) == 4 && offsetof(TTEntry, score) == 8 &&
-                  alignof(TTCluster) == 64,
+                  offsetof(TTEntry, depth) == 12 && offsetof(TTEntry, gen_bound) == 13 && alignof(TTCluster) == 64,
               "the lockless TT encoding assumes the 16-byte entry layout");
+static_assert(std::endian::native == std::endian::little, "the lockless TT reads entry fields from its words");
 
-// Hash of the 96 data bits (move + second word) that guards the key tag.
+// Hash of the 96 data bits (move + second word) that guards the key tag: the
+// high half of one 64-bit product. Two writes with different data give
+// different products (the multiplier is odd), so a mixed slot keeps its tag
+// only if the products' high halves collide (about 2^-32 for TT data).
 [[nodiscard]] inline std::uint32_t lockless_check(std::uint32_t move_bits, std::uint64_t data) {
-    std::uint64_t h = data ^ (static_cast<std::uint64_t>(move_bits) * 0x9E3779B97F4A7C15ULL);
-    h *= 0xBF58476D1CE4E5B9ULL;
-    h ^= h >> 31;
-    h *= 0x94D049BB133111EBULL;
+    const std::uint64_t spread = (static_cast<std::uint64_t>(move_bits) << 32U) | move_bits;
+    const std::uint64_t h = (data ^ spread) * 0x9E3779B97F4A7C15ULL;
     return static_cast<std::uint32_t>(h >> 32);
 }
+
+// Fields of the payload word (entry bytes 8-15) used without decoding.
+[[nodiscard]] inline unsigned payload_depth(std::uint64_t second) { return static_cast<unsigned>(second >> 32U) & 0xFFU; }
+[[nodiscard]] inline unsigned payload_gen_bound(std::uint64_t second) { return static_cast<unsigned>(second >> 40U) & 0xFFU; }
 
 // One 64-bit half of a table entry, accessed atomically. Entries sit at 16-byte
 // offsets in 64-byte aligned clusters, so both halves are 8-byte aligned.
@@ -117,11 +123,18 @@ FORGE_LTT_TEXT void TranspositionTable::set_lockless(bool lockless) {
 FORGE_LTT_TEXT TTProbe TranspositionTable::probe_lockless(std::uint64_t key) const {
     TTCluster& cluster = cluster_for(key);
     const std::size_t index = static_cast<std::size_t>(&cluster - clusters_.get());
-    std::array<TTEntry, 4> entries;
-    for (std::size_t i = 0; i < entries.size(); ++i) entries[i] = load_lockless(cluster.entries[i]);
-    auto snapshot = [&](std::size_t slot, bool hit) {
+    // Raw words of the four slots. Occupancy, depth and generation sit in the
+    // payload word; the key check is computed only for occupied slots, in slot
+    // order, until one matches (the locked probe's order of decisions).
+    std::array<std::uint64_t, 4> first{};
+    std::array<std::uint64_t, 4> second{};
+    for (std::size_t i = 0; i < 4; ++i) {
+        second[i] = load_word(cluster.entries[i], 1);
+        first[i] = load_word(cluster.entries[i], 0);
+    }
+    auto snapshot = [&](std::size_t slot, const TTEntry& entry, bool hit) {
         TTProbe result;
-        result.entry = entries[slot];
+        result.entry = entry;
         result.hit = hit;
         result.owner_ = this;
         result.cluster_ = index;
@@ -131,30 +144,30 @@ FORGE_LTT_TEXT TTProbe TranspositionTable::probe_lockless(std::uint64_t key) con
         return result;
     };
     const std::uint32_t key32 = verification_key(key);
-    for (std::size_t i = 0; i < entries.size(); ++i) {
-        TTEntry& entry = entries[i];
-        if (entry.key32 == key32 && entry.occupied()) {
-            // Reused entries remain recent even when search returns a TT cutoff.
-            if (entry.generation() != generation_) {
-                entry.gen_bound = static_cast<std::uint8_t>(
-                    (static_cast<unsigned>(generation_) << 3U) | (entry.gen_bound & 7U));
-                save_lockless(cluster.entries[i], entry);
-            }
-            return snapshot(i, true);
+    for (std::size_t i = 0; i < 4; ++i) {
+        if ((payload_gen_bound(second[i]) & 3U) == BoundNone) continue;
+        const auto move_bits = static_cast<std::uint32_t>(first[i] >> 32U);
+        if ((static_cast<std::uint32_t>(first[i]) ^ lockless_check(move_bits, second[i])) != key32) continue;
+        TTEntry entry = decode_entry(first[i], second[i]);
+        // Reused entries remain recent even when search returns a TT cutoff.
+        if (entry.generation() != generation_) {
+            entry.gen_bound = static_cast<std::uint8_t>(
+                (static_cast<unsigned>(generation_) << 3U) | (entry.gen_bound & 7U));
+            save_lockless(cluster.entries[i], entry);
         }
+        return snapshot(i, entry, true);
     }
-    std::size_t replace = 0;
-    auto relative_age = [this](const TTEntry& entry) {
-        return static_cast<int>((32 + generation_ - entry.generation()) & 31U);
+    auto priority = [this](std::uint64_t payload) {
+        const unsigned gen_bound = payload_gen_bound(payload);
+        const int relative_age = static_cast<int>((32 + generation_ - (gen_bound >> 3U)) & 31U);
+        return static_cast<int>(payload_depth(payload)) - 4 * relative_age;
     };
-    for (std::size_t i = 0; i < entries.size(); ++i) {
-        const TTEntry& entry = entries[i];
-        if (!entry.occupied()) return snapshot(i, false);
-        if (entry.depth - 4 * relative_age(entry) < entries[replace].depth - 4 * relative_age(entries[replace])) {
-            replace = i;
-        }
+    std::size_t replace = 0;
+    for (std::size_t i = 0; i < 4; ++i) {
+        if ((payload_gen_bound(second[i]) & 3U) == BoundNone) return snapshot(i, decode_entry(first[i], second[i]), false);
+        if (priority(second[i]) < priority(second[replace])) replace = i;
     }
-    return snapshot(replace, false);
+    return snapshot(replace, decode_entry(first[replace], second[replace]), false);
 }
 
 FORGE_LTT_TEXT void TranspositionTable::store_lockless(const TTProbe& probe, std::uint64_t key, int score, int eval, Move move,

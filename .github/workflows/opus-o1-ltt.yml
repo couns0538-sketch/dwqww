@@ -116,6 +116,8 @@ jobs:
           python3 opus_round1/ci/uci_check.py build_o3/forge | tee out/identity_o3.log
       - name: Default build NPS vs O3 with pins (Threads 1)
         run: python3 opus_round1/O3/nps_ab.py build_o3/forge build/forge 10 16 20 | tee out/nps_ab_o3pins_vs_ltt_off.log
+      - name: Same binary, LocklessTT off vs on (Threads 1, bench)
+        run: python3 opus_round1/O1-LTT/nps_ab_options.py build/forge build/forge 10 16,20 --b-set LocklessTT=true --same-nodes | tee out/nps_ab_ltt_off_vs_on_t1.log
       - name: Scaling Threads 1/2/4/8, LocklessTT off vs on (interleaved per thread count)
         run: |
           for t in 1 2 4 8; do
