@@ -1,4 +1,4 @@
-# S05fix — FMA checker v4: whole .text and whole-binary scan, computed fma_count — DONE (Linux CI recorded below)
+# S05fix — FMA checker v4: whole .text and whole-binary scan, computed fma_count — DONE (PC + Linux CI green)
 
 Branch `opus-sol-S05fix` = AL1 base `d4f4312` + CI baseline `0d99f02` (`e41596a0`) + `ff2d48e6` (v4 checker, tests,
 planted bug, per-branch CI) + the REPORT commit. No engine source change. Machine exclusive: no (Idle priority; objdump
@@ -28,9 +28,13 @@ runs only). Work and results by a sub-agent; this report text is its hand-back.
 - v3 only looked at forge::nnue:: and printed a literal 0: an std::fma in search's LMR table setup (2 FMAs) passed v3.
 - Both PC lock exes are FMA-free across the whole .text (282,302 instructions); grep and v4 agree.
 
-## Linux CI
-Recorded by the main session after the hand-back (the runs were queued when the sub-agent finished): see the section
-appended below when the runs complete.
+## Linux CI (recorded by the main session after the hand-back)
+| run | result | evidence |
+|---|---|---|
+| opus-ci 40517502603 (default build: release, asan, tsan) | success: all three jobs | `gh run view` |
+| opus-sol-s05fix-ci 40517502825 (v4 on Linux ELF) | success. Default ELF: `v4 exit 0 (want 0): FMA_COUNT whole_text=0 whole_binary=0 nnue_scoped=0 instructions=41288 nnue_contract=PASS status=PASS`. Planted std::fma build: `v4 exit 1 (want 1): FMA_COUNT whole_text=2 whole_binary=2 nnue_scoped=0 … status=FAIL` | `logs/ci_40517502825.log` |
+
+So v4 behaves the same on PE (PC) and ELF (Linux): 0 on the lock, and the out-of-NNUE FMA that v3 missed is caught.
 
 ## Left / UNVERIFIED
 - Sol's S05 ctestwire patch (FORGE_BUILD_NNUE_VALIDATION float-parity targets) is not ported to AL1 in this job; wiring
