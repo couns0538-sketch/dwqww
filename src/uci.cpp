@@ -173,9 +173,10 @@ int main() {
                          "option name Book Depth type spin default 30 min 0 max 100\n"
                          "option name Book Variety type spin default 30 min 0 max 100\n";
             if (forge::nnue::available()) std::cout << "option name UseNNUE type check default true\n";
-            // v2 networks (forge/search_options.hpp): off unless NNUEKingBuckets > 0.
+            // v2 networks (forge/search_options.hpp): off unless NNUEKingBuckets or NNUEOutputBuckets > 0.
             std::cout << "option name NNUEFile type string default <empty>\n"
-                         "option name NNUEKingBuckets type spin default 0 min 0 max 32\n";
+                         "option name NNUEKingBuckets type spin default 0 min 0 max 32\n"
+                         "option name NNUEOutputBuckets type spin default 0 min 0 max 16\n";
 #ifdef FORGE_EXPOSE_TUNABLES
             // Development builds advertise the search constants so match
             // runners can set them; release builds accept them silently.
@@ -274,7 +275,7 @@ int main() {
                 // Silent unless a v2 network was requested (the default prints nothing new).
                 std::string v2_state;
                 (void)forge::options::apply_nnue_v2(&v2_state);
-                if (forge::options::nnue_king_buckets > 0) {
+                if (forge::options::nnue_king_buckets > 0 || forge::options::nnue_output_buckets > 0) {
                     const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex());
                     std::cout << "info string NNUE v2: " << v2_state << std::endl;
                 }
@@ -301,19 +302,20 @@ int main() {
                 }
                 std::string v2_state;
                 (void)forge::options::apply_nnue_v2(&v2_state);
-                if (!unload || forge::options::nnue_king_buckets > 0) {
+                if (!unload || forge::options::nnue_king_buckets > 0 || forge::options::nnue_output_buckets > 0) {
                     const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex());
                     std::cout << "info string NNUE v2: " << v2_state << std::endl;
                 }
                 searcher.clear_hash();
-            } else if (name == "NNUEKingBuckets") {
+            } else if (name == "NNUEKingBuckets" || name == "NNUEOutputBuckets") {
                 int value = 0;
                 const auto parsed = std::from_chars(value_text.data(), value_text.data() + value_text.size(), value);
                 if (parsed.ec != std::errc{} || parsed.ptr != value_text.data() + value_text.size()) {
                     const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex());
-                    std::cout << "info string invalid value for option NNUEKingBuckets" << std::endl;
+                    std::cout << "info string invalid value for option " << name << std::endl;
                 } else {
-                    forge::options::nnue_king_buckets = std::clamp(value, 0, 32);
+                    if (name == "NNUEKingBuckets") forge::options::nnue_king_buckets = std::clamp(value, 0, 32);
+                    else forge::options::nnue_output_buckets = std::clamp(value, 0, 16);
                     std::string v2_state;
                     (void)forge::options::apply_nnue_v2(&v2_state);
                     const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex());

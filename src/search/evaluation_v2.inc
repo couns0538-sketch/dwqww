@@ -1,5 +1,6 @@
 // Search module: static evaluation with a v2 network (C4: king-bucketed input
-// layer; UCI NNUEFile + NNUEKingBuckets, OFF by default; forge/nnue_v2.hpp).
+// layer, C5: output buckets; UCI NNUEFile + NNUEKingBuckets / NNUEOutputBuckets,
+// OFF by default; forge/nnue_v2.hpp).
 // Compiled as part of src/search.cpp (included exactly once, before
 // evaluation.inc so that GCC keeps emitting static_evaluate at its AL1 s198
 // position: a caller is emitted after its callees).
@@ -92,8 +93,9 @@ namespace options {
 
 [[gnu::cold]] bool apply_nnue_v2(std::string* message) {
     // UseNNUE false disables every network (hand-crafted evaluation only).
-    const nnue::v2::Net* net = nnue::v2::select(nnue::enabled ? nnue_king_buckets : 0, message);
-    if (!nnue::enabled && nnue_king_buckets > 0 && message != nullptr) {
+    const nnue::v2::Net* net = nnue::v2::select(nnue::enabled ? nnue_king_buckets : 0,
+                                                nnue::enabled ? nnue_output_buckets : 0, message);
+    if (!nnue::enabled && (nnue_king_buckets > 0 || nnue_output_buckets > 0) && message != nullptr) {
         *message = "UseNNUE is false: hand-crafted evaluation only";
     }
     nnue_v2 = net != nullptr;
