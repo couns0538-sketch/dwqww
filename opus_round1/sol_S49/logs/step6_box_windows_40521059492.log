@@ -1,0 +1,58 @@
+# S49 box validation on WINDOWS: opus-sol-s49-box-windows run 40521059492 on 11d5ebf7 (https://github.com/couns0538-sketch/dwqww/actions/runs/40521059492), job box-windows: success (14:26:10Z-14:37:56Z)
+# GitHub-hosted windows-2022 runner = a quiet box without gates; labelled box-only; build MSYS2 UCRT64 g++ static; tool run under pwsh
+== runner: 4 logical CPUs; AMD EPYC 9V74 80-Core Processor                ; Microsoft Windows NT 10.0.20348.0; pwsh 7.6.8
+== toolchain: g++.exe (Rev4, Built by MSYS2 project) 16.2.0
+## exe sha256 (lock build, test-only synthetic 5% slowdown build)
+1ddd3547652db8e1cedf7465cbaff2a250296fb431aee2aa716a6ccdb11b8045 */d/a/dwqww/dwqww/ci_out/build_lock/forge.exe
+a443dbbe5d9652557f8c2a8dda742f8016370a94d30d0e7c543e1e1e4c0db378 */d/a/dwqww/dwqww/ci_out/build_slow/forge.exe
+## identity (both builds: AL1 bench d11/13/16 + perft)
+bench d11 nodes 312866 ref 312866 OK
+bench d13 nodes 862329 ref 862329 OK
+bench d16 nodes 3024920 ref 3024920 OK
+perft5 startpos 4865609 ref 4865609 OK
+perft5 kiwipete 193690690 ref 193690690 OK
+ALL OK
+bench d11 nodes 312866 ref 312866 OK
+bench d13 nodes 862329 ref 862329 OK
+bench d16 nodes 3024920 ref 3024920 OK
+perft5 startpos 4865609 ref 4865609 OK
+perft5 kiwipete 193690690 ref 193690690 OK
+ALL OK
+## self-test
+SELFTEST checks=27 failures=0
+## Python tests
+Ran 15 tests in 13.452s
+OK
+## A/A run
+PLAN: cores 4, gate-used [], reserved [0], free [1,2,3] -> core 3 (highest free core)
+PROBES: CPU temperature  C (none), free RAM 13.05 GB, machine load 1%
+RUN: 40 pairs + 10 control pairs x depths 13,16; core 3; metric cpu; A 1DDD3547652D B 1DDD3547652D
+# pc_speed_ci box-only A/A (GitHub Windows runner) (box-only; metric cpu NPS; core 3; Idle)
+
+| depth | test pairs | median B/A | 95% CI | CI excludes 1 | A/A pairs | A/A median | A/A 95% CI | A/A contains 1 | nodes A = B |
+|---|---:|---:|---|---|---:|---:|---|---|---|
+| d13 | 40 | 1.0000 | 1.0000-1.0000 | False | 10 | 1.0000 | 0.9714-1.0147 | True | True |
+| d16 | 40 | 1.0000 | 0.9868-1.0000 | False | 10 | 1.0135 | 0.9914-1.0270 | True | True |
+
+Speed rule (CI lower bound >= 1.02 at every depth): not met
+## synthetic 5% slowdown run
+PLAN: cores 4, gate-used [], reserved [0], free [1,2,3] -> core 3 (highest free core)
+PROBES: CPU temperature  C (none), free RAM 13.1 GB, machine load 0%
+RUN: 40 pairs + 10 control pairs x depths 13,16; core 3; metric cpu; A 1DDD3547652D B A443DBBE5D96
+# pc_speed_ci box-only synthetic 5% slowdown (GitHub Windows runner) (box-only; metric cpu NPS; core 3; Idle)
+
+| depth | test pairs | median B/A | 95% CI | CI excludes 1 | A/A pairs | A/A median | A/A 95% CI | A/A contains 1 | nodes A = B |
+|---|---:|---:|---|---|---:|---:|---|---|---|
+| d13 | 40 | 0.9722 | 0.9487-0.9733 | True | 10 | 0.9865 | 0.9608-1.0294 | True | True |
+| d16 | 40 | 0.9576 | 0.9498-0.9602 | True | 10 | 0.9957 | 0.9871-1.0090 | True | True |
+
+Speed rule (CI lower bound >= 1.02 at every depth): not met
+## per-slot checks (slots.csv, 200 slots per run)
+run_aa: slots 200, core 3 x200, affinity 0x8 x200, mean machine load 2.0%, max load of the chosen core 35%, temperature source none (VM: no HWiNFO/ACPI sensor; run with -AllowNoTemperature)
+run_slow5: slots 200, core 3 x200, affinity 0x8 x200, mean machine load 1.9%, max load of the chosen core 41%, temperature source none (VM: no HWiNFO/ACPI sensor; run with -AllowNoTemperature)
+## verdict
+A/A d13: median 1.0000 CI 1.0000-1.0000 contains 1: True; control CI [0.971428606632239, 1.0147058637004798] contains 1: True
+A/A d16: median 1.0000 CI 0.9868-1.0000 contains 1: True; control CI [0.9913793169441044, 1.0270270174779694] contains 1: True
+5% slowdown d13: median 0.9722 CI 0.9487-0.9733 excludes 1 (below): True; nodes A=B: True
+5% slowdown d16: median 0.9576 CI 0.9498-0.9602 excludes 1 (below): True; nodes A=B: True
+S49 BOX VERDICT: PASS
