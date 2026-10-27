@@ -33,7 +33,7 @@
 5. **Sol's queue** (`SOL_LEFTOVERS_FOR_CLAUDE.md`): section 2 first (S11, S18, S13, ...), then the section 3
    fix-ups.
 
-## ATTENTION: our smoke runs disturbed the PC training supervisor (found 2026-10-27 10:24 PST)
+## Incident: our smoke runs disturbed the PC training supervisor (found 2026-10-27 10:24 PST; RESOLVED, QA reset the fail count to 0)
 - **What happened.** `F:\forge_nnue_train\supervisor.log` (read only) shows that the supervisor adopted five
   CPU smoke-training processes from earlier C4/C5 sub-agents as if they were its own queue jobs:
   - `runs_kb4_test`, `smoke_kb4`, `smoke_kb8` on 2026-10-26 21:45-21:52;
@@ -47,9 +47,9 @@
 - **Since then.** Runs use a renamed copy (`opus_nnue_smoke.py`) and write only under `F:\opus_scratch`, and
   were not adopted. The NNUE sub-agent has also been told to avoid such names and to check the supervisor log
   after starting any run.
-- **Not fixed here.** Nothing was written to `F:\forge_nnue_train`, because that is not allowed. **The owner
-  may want to reset the supervisor's `fails` counter**, or let a run finish DONE, so that it returns to its
-  queue.
+- **Resolved.** QA reset the supervisor's fail count to 0 (reported by the owner on 2026-10-27). Nothing was
+  written to the supervisor's directory from this session. The binding rules now: smoke scripts are named
+  `opus_nnue_smoke*.py`, never `train_resid*`, and all new build and smoke output goes under `F:\opus_scratch`.
 
 ## Environment notes (read before re-using numbers)
 - **Machine load.** The PC ran a fastchess gate, self-play datagen and NNUE training the whole time (machine
