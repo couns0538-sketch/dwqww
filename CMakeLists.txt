@@ -100,6 +100,13 @@ target_include_directories(forge_nnue_threat_tests PRIVATE src)
 target_link_libraries(forge_nnue_threat_tests PRIVATE forge_core Threads::Threads)
 add_dependencies(forge_nnue_threat_tests forge)
 
+# O7 (UCI NNUEPawnPairs): pawn pairs vs brute force, symmetry, loader, rules, zero-pawn-pair lock replicas,
+# incremental == refresh on 102k plies (also with threats), UCI checks (drives the forge executable).
+add_executable(forge_nnue_pawn_pair_tests tests/nnue_pawn_pair_tests.cpp)
+target_include_directories(forge_nnue_pawn_pair_tests PRIVATE src)
+target_link_libraries(forge_nnue_pawn_pair_tests PRIVATE forge_core Threads::Threads)
+add_dependencies(forge_nnue_pawn_pair_tests forge)
+
 add_executable(forge_bench bench/benchmark.cpp)
 target_link_libraries(forge_bench PRIVATE forge_core Threads::Threads)
 
@@ -116,6 +123,7 @@ add_test(NAME forge_timeman_tests COMMAND forge_timeman_tests)
 add_test(NAME forge_nnue_v2_tests COMMAND forge_nnue_v2_tests)
 add_test(NAME forge_nnue_v2_uci_tests COMMAND forge_nnue_v2_uci_tests $<TARGET_FILE:forge>)
 add_test(NAME forge_nnue_threat_tests COMMAND forge_nnue_threat_tests $<TARGET_FILE:forge>)
+add_test(NAME forge_nnue_pawn_pair_tests COMMAND forge_nnue_pawn_pair_tests $<TARGET_FILE:forge>)
 add_test(NAME forge_tt_tests COMMAND forge_tt_tests)
 add_test(NAME forge_rule50_tests COMMAND forge_rule50_tests)
 add_test(NAME forge_legal_witness_tests COMMAND forge_legal_witness_tests

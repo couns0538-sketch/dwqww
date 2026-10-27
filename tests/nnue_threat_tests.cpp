@@ -464,8 +464,8 @@ void test_loader(const std::string& dir) {
         report(!loaded && contains(message, phrase) && v2::loaded() == nullptr, "rejects " + label + " (" + message + ")");
     };
     Spec unknown = good;
-    unknown.feature_set_override = 3;
-    rejected(unknown, "feature_set 3 (unknown bit 1)", "unsupported feature set 3");
+    unknown.feature_set_override = 5;   // O7: bit 1 is the pawn-pair block now; bit 2 is unknown
+    rejected(unknown, "feature_set 5 (unknown bit 2)", "unsupported feature set 5");
     Spec no_block = good;
     no_block.feature_set_override = 1;
     no_block.threats = false;   // header says threats, no block written

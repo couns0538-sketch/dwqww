@@ -421,8 +421,9 @@ void test_loader(const std::string& dir) {
     size_rejected(bytes.substr(0, 167), "167-byte file (shorter than a header and checksum)", "too short", 0);
     {
         std::string huge = bytes;
-        // O6: the largest valid v2 file is a 32-bucket net with the threat block.
-        huge.resize(static_cast<std::size_t>(v2::file_bytes(v2::MaxKingBuckets, v2::MaxOutputBuckets, v2::FeatureSetThreats) + 1), '\0');
+        // O6 / O7: the largest valid v2 file is a 32-bucket net with the threat and pawn-pair blocks.
+        huge.resize(static_cast<std::size_t>(v2::file_bytes(v2::MaxKingBuckets, v2::MaxOutputBuckets,
+                                                            v2::FeatureSetThreats | v2::FeatureSetPawnPairs) + 1), '\0');
         size_rejected(huge, "file one byte larger than the largest valid v2 file", "too large", 0);
     }
     report(v2::file_bytes(4, 1) == bytes.size() && v2::file_bytes(1, 1) == 394922U, "file_bytes(): 4 buckets = this file, 1 bucket = 394922 bytes");
