@@ -13,6 +13,7 @@
 // Public interfaces: forge/search.hpp (Worker, Searcher), forge/search_types.hpp,
 // forge/tt.hpp, forge/history.hpp, forge/thread_data.hpp, forge/search_tune.hpp.
 #include "forge/search.hpp"
+#include "forge/syzygy.hpp"
 #include "forge/uci_output.hpp"
 
 #include <algorithm>
@@ -23,6 +24,7 @@
 #include <optional>
 
 #include "search/tune.inc"        // tunable constants, LMR / LMP tables
+#include "search/options.inc"     // runtime search options (all OFF by default)
 #include "search/scores.inc"      // mate scores and their TT encoding
 #include "search/uci_info.inc"    // UCI info output (score formatting)
 #include "search/tt.inc"          // transposition table
@@ -36,3 +38,6 @@
 #include "search/alphabeta.inc"   // main alpha-beta search
 #include "search/iterative.inc"   // root setup and iterative deepening
 #include "search/searcher.inc"    // Searcher facade: helper threads, TT lifecycle
+// Syzygy tablebases (all [[gnu::cold]], placed after the search code).
+#include "search/tablebase.inc"   // search glue: in-search probe, root filter
+#include "search/syzygy.inc"      // table reader, WDL/DTZ probes, root ranking

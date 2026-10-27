@@ -56,6 +56,12 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
         return tt_score;
     }
 
+    // Tablebase probe (UCI SyzygyPath; cold path, tablebase.inc).
+    if (syzygy::search_cardinality.load(std::memory_order_relaxed) != 0) [[unlikely]] {
+        const int tb_score = probe_tablebase(board, ss, depth, alpha, beta, tt_probe);
+        if (tb_score != ValueNone) return tb_score;
+    }
+
     // Static evaluation.
     int eval;
     if (in_check) {

@@ -38,6 +38,8 @@ SearchInfo Searcher::search(Board board, const SearchLimits& limits, bool emit_i
         ? std::chrono::steady_clock::now() : supplied_start;
     SearchLimits worker_limits = limits;
     worker_limits.start_time = origin;
+    // Tablebases (UCI SyzygyPath): in-search probing limit, root move filter.
+    if (syzygy::max_pieces() > 0) [[unlikely]] syzygy::prepare_root(board, worker_limits);
     std::vector<Worker*> all;
     all.reserve(workers_.size());
     for (auto& worker : workers_) all.push_back(worker.get());

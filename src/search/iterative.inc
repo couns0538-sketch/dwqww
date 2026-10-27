@@ -160,7 +160,9 @@ SearchInfo Worker::search(Board board, const SearchLimits& limits, bool emit_inf
                 result.pv.assign(ss->pv.begin(), ss->pv.begin() + ss->pv_length);
                 result.ponder_move = result.pv.size() > 1 ? result.pv[1] : Move::none();
                 // Publish the revised line so GUIs see a PV consistent with the move.
-                emit(depth, result.score, result.pv);
+                // A tablebase root (UCI SyzygyPath) reports the tablebase result.
+                emit(depth, syzygy::root_display.load(std::memory_order_relaxed) != 0 ? syzygy::display_score(result.score)
+                                                                                     : result.score, result.pv);
             }
             break;
         }
@@ -172,7 +174,8 @@ SearchInfo Worker::search(Board board, const SearchLimits& limits, bool emit_inf
         if (!result.pv.empty()) result.best_move = result.pv.front();
         result.ponder_move = result.pv.size() > 1 ? result.pv[1] : Move::none();
         result.nodes = total_nodes();
-        emit(depth, score, result.pv);
+        emit(depth, syzygy::root_display.load(std::memory_order_relaxed) != 0 ? syzygy::display_score(score) : score,
+             result.pv);
 
         if (result.best_move == previous_best) ++stable_iterations;
         else stable_iterations = 0;
