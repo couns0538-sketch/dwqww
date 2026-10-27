@@ -1,0 +1,47 @@
+# S13 (TtChildPrefetch) Linux evidence for the build switch FORGE_S13_TT_CHILD_PREFETCH (opus-ci.yml covers the
+# default build): release (default binary vs lock, switch-on identity with the option off/on, ctest, NPS off vs on
+# in the same binary and lock vs switch-on), ASan+UBSan and TSan with the switch on. See opus_round1/sol_S13/ci_s13.sh.
+# Read-only; uploads logs as artifacts.
+name: opus-sol-s13-ci
+on:
+  push:
+    branches: ['opus-sol-S13']
+    paths-ignore:
+      - 'opus_round1/**/*.md'
+      - 'opus_round1/**/*.log'
+      - 'opus_round1/**/*.diff'
+      - 'opus_round1/**/*.tar.gz'
+      - 'opus_round1/**/SHA256SUMS'
+      - 'REPORT.md'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  linux:
+    strategy:
+      fail-fast: false
+      matrix:
+        mode: [release, asan, tsan]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Toolchain
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq g++-14 ninja-build cmake python3
+          g++-14 --version | head -1
+          nproc; lscpu | grep -E 'Model name|Flags' | cut -c1-200
+      - name: Run ${{ matrix.mode }} (switch on)
+        run: bash opus_round1/sol_S13/ci_s13.sh ${{ matrix.mode }} ci_out
+      - name: Upload logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: sol-s13-${{ matrix.mode }}
+          path: |
+            ci_out/*.log
+            ci_out/**/sanitizer_logs_*/**
+          if-no-files-found: warn
