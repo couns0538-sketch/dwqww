@@ -102,11 +102,17 @@ public:
     [[nodiscard]] TranspositionTable& transposition_table() { return shared_.tt; }
 
 private:
-    // SmpBestThread: replace thread 0's move/PV/score by the best helper's.
+    // SmpBestThread: replace thread 0's move/PV/score by the best helper's
+    // (ranking: better_thread_result below).
     void select_best_thread(SearchInfo& result, const std::vector<SearchInfo>& helper_results, bool emit_info);
 
     SharedSearchState shared_;
     std::vector<std::unique_ptr<Worker>> workers_;
 };
+
+// UCI SmpBestThread: whether a helper's result `candidate` replaces `best`
+// (src/search/searcher.inc). With a mate score on either side the higher score
+// wins; otherwise the deeper completed iteration, then the higher score.
+[[nodiscard]] bool better_thread_result(const SearchInfo& candidate, const SearchInfo& best);
 
 } // namespace forge

@@ -83,17 +83,25 @@ SearchInfo Searcher::search(Board board, const SearchLimits& limits, bool emit_i
     return result;
 }
 
+// SmpBestThread ranking. A mate score does not become less true at a greater
+// depth, so as soon as either result carries one, the higher score wins: a
+// found mate is never replaced by a deeper line without one, a shorter mate
+// beats a longer one, and any line that is not mated beats a mated one.
+// Without mate scores the deeper completed iteration wins, then the higher
+// score. Cold: called once per helper and search.
+[[gnu::cold]] bool better_thread_result(const SearchInfo& candidate, const SearchInfo& best) {
+    if (is_mate_score(candidate.score) || is_mate_score(best.score)) return candidate.score > best.score;
+    return candidate.depth > best.depth || (candidate.depth == best.depth && candidate.score > best.score);
+}
+
 // Cold: runs once per search; keeps the hot search functions' placement unchanged.
 [[gnu::cold]] void Searcher::select_best_thread(SearchInfo& result, const std::vector<SearchInfo>& helper_results,
                                                bool emit_info) {
-    // Deepest completed iteration wins; equal depth: higher score.
     const SearchInfo* best = &result;
     for (std::size_t i = 1; i < helper_results.size(); ++i) {
         const SearchInfo& candidate = helper_results[i];
         if (candidate.best_move.is_none() || candidate.depth <= 0 || candidate.pv.empty()) continue;
-        if (candidate.depth > best->depth || (candidate.depth == best->depth && candidate.score > best->score)) {
-            best = &candidate;
-        }
+        if (better_thread_result(candidate, *best)) best = &candidate;
     }
     if (best == &result || best->best_move == result.best_move) return;
     result.best_move = best->best_move;
