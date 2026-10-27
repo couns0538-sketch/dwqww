@@ -47,6 +47,11 @@ SearchInfo Searcher::search(Board board, const SearchLimits& limits, bool emit_i
     if (table_access == TTAccess::Exclusive && workers_.size() == 1) {
         exclusive.emplace(shared_.tt);
     }
+    if (options::smp_exact_nodes) {
+        // A helper publishes its count only from inside its own search; until it
+        // has started, total_nodes() would read the previous search's count.
+        for (auto& worker : workers_) worker->reset_published_nodes();
+    }
     std::vector<std::thread> helpers;
     for (std::size_t i = 1; i < workers_.size(); ++i) {
         helpers.emplace_back([this, i, board, &worker_limits, &all]() {
@@ -61,6 +66,11 @@ SearchInfo Searcher::search(Board board, const SearchLimits& limits, bool emit_i
     shared_.stop.store(external_stop, std::memory_order_relaxed);
     // `all` dies with this call: no worker may keep pointing at it.
     for (auto& worker : workers_) worker->end_search();
+    if (workers_.size() > 1 && options::smp_exact_nodes) {
+        // Every worker published its final count before returning.
+        result.nodes = 0;
+        for (auto& worker : workers_) result.nodes += worker->nodes();
+    }
     return result;
 }
 

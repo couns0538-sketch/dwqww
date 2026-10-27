@@ -23,6 +23,7 @@
 #include <optional>
 
 #include "search/tune.inc"        // tunable constants, LMR / LMP tables
+#include "search/options.inc"     // runtime search options (all OFF by default)
 #include "search/scores.inc"      // mate scores and their TT encoding
 #include "search/uci_info.inc"    // UCI info output (score formatting)
 #include "search/tt.inc"          // transposition table

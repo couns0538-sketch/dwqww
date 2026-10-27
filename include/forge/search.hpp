@@ -4,6 +4,7 @@
 #include "forge/eval.hpp"
 #include "forge/history.hpp"
 #include "forge/nnue.hpp"
+#include "forge/search_options.hpp"
 #include "forge/search_tune.hpp"
 #include "forge/search_types.hpp"
 #include "forge/thread_data.hpp"
@@ -36,6 +37,8 @@ public:
     void clear_caches() { evaluator_.clear(); }
     [[nodiscard]] std::uint64_t nodes() const { return nodes_.load(std::memory_order_relaxed); }
     [[nodiscard]] bool is_main() const { return id_ == 0; }
+    // Searcher housekeeping, only while this worker is not searching.
+    void reset_published_nodes() { nodes_.store(0, std::memory_order_relaxed); }
     // The caller's worker list (all_workers_) is valid only during one search.
     void end_search() { all_workers_ = nullptr; }
 

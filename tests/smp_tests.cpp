@@ -1,4 +1,5 @@
-// Lazy SMP housekeeping (O1): worker-list lifetime.
+// Lazy SMP housekeeping (O1): worker-list lifetime, SmpExactNodes node accounting for node-limited
+// multi-thread searches, and the option inert at Threads=1.
 #include "forge/search.hpp"
 
 #include <cstdint>
@@ -60,10 +61,65 @@ void test_worker_list_lifetime() {
     }
 }
 
+// A deep search leaves large published counts in the helpers; a following node-limited search must
+// not stop on them. With SmpExactNodes the counters are reset before the helpers start (deterministic)
+// and the reported total is exact after the helpers stopped.
+void test_exact_nodes() {
+    const std::uint64_t limit = 20000;
+    int premature_off = 0;
+    for (const bool exact : {false, true}) {
+        options::smp_exact_nodes = exact;
+        for (int round = 0; round < 10; ++round) {
+            Searcher searcher(16, Threads);
+            SearchLimits deep;
+            deep.depth = 13;
+            const Board board = position(Fens[static_cast<std::size_t>(round) % Fens.size()]);
+            (void)searcher.search(board, deep);
+            SearchLimits nodes;
+            nodes.nodes = limit;
+            nodes.nodes_specified = true;
+            const SearchInfo result = searcher.search(board, nodes);
+            if (!exact) {
+                premature_off += result.depth == 0 ? 1 : 0;
+                continue;
+            }
+            const std::string r = " (round " + std::to_string(round) + ")";
+            check(result.depth >= 2, "SmpExactNodes: node-limited search completes iterations" + r);
+            check(result.nodes >= limit, "SmpExactNodes: reported total reaches the limit" + r);
+            check(result.nodes < limit + static_cast<std::uint64_t>(Threads) * 2100,
+                  "SmpExactNodes: overshoot bounded by the publish cadence" + r + " nodes=" + std::to_string(result.nodes));
+            check(legal(board, result.best_move), "SmpExactNodes: legal best move" + r);
+        }
+    }
+    options::smp_exact_nodes = false;
+    // Informational: how often the default (OFF) path hits the stale-counter stop. Timing dependent.
+    std::cout << "INFO SmpExactNodes=false: " << premature_off << "/10 node-limited searches stopped before "
+              << "completing depth 1 (stale helper counters)\n";
+}
+
+void test_inert_single_thread() {
+    for (const std::string& fen : Fens) {
+        SearchInfo results[2];
+        for (const bool on : {false, true}) {
+            options::smp_exact_nodes = on;
+            Searcher searcher(16, 1);
+            SearchLimits limits;
+            limits.depth = 10;
+            results[on ? 1 : 0] = searcher.search(position(fen), limits);
+        }
+        check(results[0].nodes == results[1].nodes && results[0].best_move == results[1].best_move &&
+                  results[0].score == results[1].score && results[0].pv == results[1].pv,
+              "options are inert at Threads=1 " + fen);
+    }
+    options::smp_exact_nodes = false;
+}
+
 } // namespace
 
 int main() {
     test_worker_list_lifetime();
+    test_exact_nodes();
+    test_inert_single_thread();
     std::cout << "smp housekeeping: checks=" << checks << " failures=" << failures << '\n';
     std::cout << (failures == 0 ? "PASS" : "FAIL") << " smp_tests\n";
     return failures == 0 ? 0 : 1;
