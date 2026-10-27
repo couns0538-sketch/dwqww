@@ -31,7 +31,8 @@ jobs:
         run: |
           FL="-march=x86-64-v3 -mtune=znver5 -fno-fast-math -ffp-contract=off -DFORGE_NNUE_HIDDEN=256 -g"
           mkdir -p lock_src out
-          git archive 294dbed | tar -x -C lock_src
+          # -m: the archive carries commit times, which can be ahead of the runner clock (ninja then loops)
+          git archive 294dbed | tar -x -m -C lock_src
           for t in lock branch; do
             src=$([ $t = lock ] && echo lock_src || echo .)
             cmake -S $src -B build_$t -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_COMPILER=g++-14 "-DCMAKE_CXX_FLAGS=$FL" > /dev/null
