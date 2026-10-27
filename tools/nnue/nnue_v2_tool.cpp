@@ -74,7 +74,7 @@ int positions(const std::string& out_path, int count, std::uint64_t seed) {
             }
         }
     }
-    std::ofstream out(out_path);
+    std::ofstream out(out_path, std::ios::binary);   // LF line ends on every platform
     for (const std::string& fen : fens) out << fen << '\n';
     std::cout << "wrote " << fens.size() << " positions to " << out_path << '\n';
     return 0;
@@ -89,13 +89,14 @@ int eval(const std::string& net_path, const std::string& fen_path, const std::st
     const v2::Net& net = *v2::loaded();
     v2::RefreshCache& cache = v2::cache(net, 0);
     std::ifstream in(fen_path);
-    std::ofstream tsv(prefix + ".tsv");
+    std::ofstream tsv(prefix + ".tsv", std::ios::binary);
     std::ofstream acc(prefix + ".acc", std::ios::binary);
     tsv << "index\tstm\twhite_bucket\twhite_flip\tblack_bucket\tblack_flip\tpieces\tout_bits\tcp\n";
     std::string line;
     int index = 0;
     int cache_mismatch = 0;
     while (std::getline(in, line)) {
+        while (!line.empty() && (line.back() == '\r' || line.back() == ' ')) line.pop_back();   // CRLF input
         if (line.empty()) continue;
         Board board;
         if (!board.set_fen(line, &error)) {
