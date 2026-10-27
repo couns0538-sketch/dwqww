@@ -26,7 +26,7 @@ case "$MODE" in
     echo "== forge sha256: $(sha256sum "$BD/forge" | cut -d' ' -f1)" | tee -a "$OUT/identity.log"
     echo "== FMA instructions (must be 0): $(objdump -d "$BD/forge" | grep -cE 'vfn?m(add|sub)' || true)" | tee -a "$OUT/identity.log"
     python3 "$CI/uci_check.py" "$BD/forge" --full 2>&1 | tee -a "$OUT/identity.log" || status=1
-    (cd "$BD" && ctest --output-on-failure --timeout 3000) > "$OUT/ctest_$MODE.log" 2>&1
+    (cd "$BD" && ctest --output-on-failure --timeout 600) 2>&1 | tee "$OUT/ctest_$MODE.log"
     python3 "$CI/check_known_failures.py" "$OUT/ctest_$MODE.log" 2>&1 | tee "$OUT/known_$MODE.log" || status=1
     ;;
   asan)
@@ -35,7 +35,7 @@ case "$MODE" in
     cmake --build "$BD" -j"$(nproc)" > "$OUT/build_$MODE.log" 2>&1 || { tail -50 "$OUT/build_$MODE.log"; exit 1; }
     export ASAN_OPTIONS="log_path=$LOGDIR/asan:detect_leaks=1:abort_on_error=1"
     export UBSAN_OPTIONS="log_path=$LOGDIR/ubsan:print_stacktrace=1:halt_on_error=1"
-    (cd "$BD" && ctest --output-on-failure --timeout 6000) > "$OUT/ctest_$MODE.log" 2>&1
+    (cd "$BD" && ctest --output-on-failure --timeout 600) 2>&1 | tee "$OUT/ctest_$MODE.log"
     python3 "$CI/check_known_failures.py" "$OUT/ctest_$MODE.log" "$LOGDIR" 2>&1 | tee "$OUT/known_$MODE.log" || status=1
     ;;
   tsan)
@@ -43,13 +43,22 @@ case "$MODE" in
       "-DCMAKE_CXX_FLAGS=$BASE_FLAGS -fsanitize=thread -fno-omit-frame-pointer" "-DCMAKE_EXE_LINKER_FLAGS=-fsanitize=thread" > "$OUT/configure_$MODE.log" 2>&1 || exit 1
     cmake --build "$BD" -j"$(nproc)" > "$OUT/build_$MODE.log" 2>&1 || { tail -50 "$OUT/build_$MODE.log"; exit 1; }
     export TSAN_OPTIONS="log_path=$LOGDIR/tsan:halt_on_error=1:second_deadlock_stack=1"
-    (cd "$BD" && ctest --output-on-failure --timeout 6000) > "$OUT/ctest_$MODE.log" 2>&1
+    # Per-test timeout (ctest names a test that times out); output streamed to the job log.
+    (cd "$BD" && ctest --output-on-failure --timeout 600) 2>&1 | tee "$OUT/ctest_$MODE.log"
     python3 "$CI/check_known_failures.py" "$OUT/ctest_$MODE.log" "$LOGDIR" 2>&1 | tee "$OUT/known_$MODE.log" || status=1
-    # Job-specific threading stress (e.g. O1): opus_round1/<JOB>/tsan_extra.sh <forge_exe> <out_dir>
+    # Job-specific threading stress (e.g. O1, C3): opus_round1/<JOB>/tsan_extra.sh <forge_exe> <out_dir>.
+    # Each hook has its own time limit; the running hook is printed before it starts and on timeout.
     for extra in "$ROOT"/opus_round1/*/tsan_extra.sh; do
       [ -f "$extra" ] || continue
-      echo "== $extra" | tee -a "$OUT/tsan_extra.log"
-      bash "$extra" "$BD/forge" "$OUT" >> "$OUT/tsan_extra.log" 2>&1 || status=1
+      limit=${TSAN_EXTRA_TIMEOUT:-900}
+      echo "== running $extra (limit ${limit}s)" | tee -a "$OUT/tsan_extra.log"
+      timeout --kill-after=15 "$limit" bash "$extra" "$BD/forge" "$OUT" 2>&1 | tee -a "$OUT/tsan_extra.log"
+      rc=${PIPESTATUS[0]}
+      if [ "$rc" -eq 124 ] || [ "$rc" -eq 137 ]; then
+        echo "== TIMEOUT: $extra did not finish within ${limit}s" | tee -a "$OUT/tsan_extra.log"; status=1
+      elif [ "$rc" -ne 0 ]; then
+        echo "== FAIL: $extra exit $rc" | tee -a "$OUT/tsan_extra.log"; status=1
+      fi
     done
     if [ -n "$(find "$LOGDIR" -type f -size +0 2>/dev/null)" ]; then
       echo "TSan reports found:"; cat "$LOGDIR"/* | head -200; status=1
