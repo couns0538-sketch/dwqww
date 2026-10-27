@@ -79,6 +79,13 @@ add_executable(forge_timeman_tests tests/timeman_tests.cpp)
 target_include_directories(forge_timeman_tests PRIVATE src)
 target_link_libraries(forge_timeman_tests PRIVATE forge_core Threads::Threads)
 
+# Syzygy tablebase tests (job C1). Tablebase files are not in the repository:
+# pass a folder with FORGE_SYZYGY_PATH (cache variable or environment variable),
+# otherwise only the checks that need no table files run.
+set(FORGE_SYZYGY_PATH "" CACHE PATH "Syzygy tablebase folder used by forge_syzygy_tests (optional)")
+add_executable(forge_syzygy_tests tests/syzygy_tests.cpp)
+target_link_libraries(forge_syzygy_tests PRIVATE forge_core Threads::Threads)
+
 add_executable(forge_bench bench/benchmark.cpp)
 target_link_libraries(forge_bench PRIVATE forge_core Threads::Threads)
 
@@ -94,6 +101,9 @@ add_test(NAME forge_history_tests COMMAND forge_history_tests)
 add_test(NAME forge_timeman_tests COMMAND forge_timeman_tests)
 add_test(NAME forge_tt_tests COMMAND forge_tt_tests)
 add_test(NAME forge_rule50_tests COMMAND forge_rule50_tests)
+add_test(NAME forge_syzygy_tests COMMAND forge_syzygy_tests
+    ${CMAKE_CURRENT_SOURCE_DIR}/tests/syzygy_fixtures.tsv ${CMAKE_CURRENT_SOURCE_DIR}/tests/syzygy_reference.tsv
+    ${FORGE_SYZYGY_PATH})
 add_test(NAME forge_legal_witness_tests COMMAND forge_legal_witness_tests
     ${CMAKE_CURRENT_SOURCE_DIR}/tests/legal_witness_fixtures.tsv
     ${CMAKE_CURRENT_SOURCE_DIR}/tools/openings/forge-10000.epd)
