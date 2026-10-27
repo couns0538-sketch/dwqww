@@ -112,7 +112,13 @@ All matched the evidence below.
   - d16 wall −0.08% [−1.92, +1.77], CPU −0.03%;
   - d20 wall +0.60% [−2.79, +3.99], CPU +0.72%.
 
-  No measurable change. QA may want to repeat this on an idle machine because of the alpha-beta block order.
+  No measurable change.
+- `logs/ci/nps_0994d36/` (workflow `opus-c6-nps.yml`, run 40464096680): the same A/B on a quiet GitHub runner
+  (g++-14 box recipe, 10 ABBA runs, node counts equal), added in review because of the alpha-beta block order:
+  - O3 → C6 (C6's own share): d16 CPU −0.26% (95% CI −1.01 .. +0.50), d20 CPU +0.05% (−0.64 .. +0.73);
+  - lock → C6: d16 CPU +0.88% (−0.48 .. +2.24), d20 CPU +1.70% (+0.69 .. +2.72).
+
+  The block-order change in the default alpha-beta costs nothing measurable.
 
 ### With the option on (informational)
 - **Bench nodes:** d11 324211 (re-checked in review), d13 790682, d16 3148570, d20 10326301, d22 31204053
@@ -132,7 +138,7 @@ No Elo claim.
 
 ## Open issues / notes
 - **Default alpha-beta block order** differs from the lock, as described above. NPS shows no measurable
-  effect on the busy PC.
+  effect, on the busy PC or on a quiet runner (O3 → C6 −0.26% / +0.05%).
 - **Untested guard:** the guard that skips the bound while a move is excluded (singular verification) has no
   dedicated unit test.
 - **History dependence:** the draw bound depends on the game history, while TT entries do not. This is the
