@@ -1,11 +1,13 @@
-// Tests for the v2 network path (C4, forge/nnue_v2.hpp; UCI NNUEFile + NNUEKingBuckets):
+// Tests for the v2 network path (C4/C5, forge/nnue_v2.hpp; UCI NNUEFile + NNUEKingBuckets / NNUEOutputBuckets):
 //   1. king bucket map and horizontal mirroring (king_key, feature indices, mirror and colour symmetry);
 //   2. the v2 file loader (valid file, every rejected corruption, failed load keeps the old net);
 //   3. option selection (bucket count must match, UseNNUE false wins, unload deactivates);
 //   4. exact equivalence with the compiled-in network: replicas of it (1, 4, 2/8/16 mirrored king buckets)
 //      give bit-identical accumulators and evaluations, and identical search node counts;
 //   5. incremental == full refresh, bit-exact, over 100k random make/unmake plies driven through the
-//      real Worker::static_evaluate (lazy walk-back, king-key refreshes through the refresh cache).
+//      real Worker::static_evaluate (lazy walk-back, king-key refreshes through the refresh cache);
+//   6. output buckets (C5): the default map and the selected output row at every piece count 2..32,
+//      selection rules, lock replicas with 8 identical heads, a walk with output buckets.
 // Writes temporary net files next to the working directory (removed at the end).
 #include "forge/nnue_v2.hpp"
 #include "forge/search.hpp"
@@ -71,6 +73,8 @@ struct Spec {
     bool mirror = false;
     bool residual = true;
     std::array<std::uint8_t, 64> king_map{};
+    int output_buckets = 1;
+    std::array<std::uint8_t, 33> output_map{};
     std::vector<std::int16_t> w1, b1, w2, b2;
 };
 
@@ -85,10 +89,11 @@ void putf(std::string& s, float f) { std::uint32_t v = 0; std::memcpy(&v, &f, 4)
 std::string serialise(const Spec& n) {
     std::string s = "FORGENN2";
     put32(s, 2); put32(s, 160); put32(s, 0); put32(s, 768); put32(s, nnue::HiddenSize);
-    put32(s, static_cast<std::uint32_t>(n.king_buckets)); put32(s, 1); put32(s, (n.residual ? 1U : 0U) | (n.mirror ? 2U : 0U));
+    put32(s, static_cast<std::uint32_t>(n.king_buckets)); put32(s, static_cast<std::uint32_t>(n.output_buckets));
+    put32(s, (n.residual ? 1U : 0U) | (n.mirror ? 2U : 0U));
     putf(s, 4096.0F); putf(s, 4096.0F); putf(s, 2.25F);
     for (const std::uint8_t b : n.king_map) s.push_back(static_cast<char>(b));
-    s.append(33, '\0');
+    for (const std::uint8_t b : n.output_map) s.push_back(static_cast<char>(b));
     s.append(160 - s.size(), '\0');
     for (const auto* a : {&n.w1, &n.b1, &n.w2, &n.b2}) {
         for (const std::int16_t v : *a) {
@@ -124,6 +129,30 @@ std::array<std::uint8_t, 64> symmetric_map(int buckets) {
     const auto h = half_layout(buckets);
     for (int s = 0; s < 64; ++s) m[static_cast<std::size_t>(s)] = static_cast<std::uint8_t>(h[static_cast<std::size_t>(half_index(s))]);
     return m;
+}
+
+// Default output bucket map of the trainer (forge_nnue_v2.output_layout): n = pieces - 2 non-king pieces
+// -> min(N - 1, n * N / 32).
+std::array<std::uint8_t, 33> default_output_map(int buckets) {
+    std::array<std::uint8_t, 33> m{};
+    for (int pieces = 0; pieces <= 32; ++pieces) {
+        m[static_cast<std::size_t>(pieces)] = static_cast<std::uint8_t>(std::min(buckets - 1, std::max(pieces - 2, 0) * buckets / 32));
+    }
+    return m;
+}
+
+// Copies of the output layer into `buckets` identical heads (C5 replicas).
+void replicate_heads(Spec& n, int buckets) {
+    const std::vector<std::int16_t> w2 = n.w2;
+    const std::vector<std::int16_t> b2 = n.b2;
+    n.w2.clear();
+    n.b2.clear();
+    for (int b = 0; b < buckets; ++b) {
+        n.w2.insert(n.w2.end(), w2.begin(), w2.end());
+        n.b2.insert(n.b2.end(), b2.begin(), b2.end());
+    }
+    n.output_buckets = buckets;
+    n.output_map = default_output_map(buckets);
 }
 
 Spec lock_replica(const std::string& kind) {
@@ -389,7 +418,7 @@ void test_loader(const std::string& dir) {
     rejected(patch32(24, 128), "hidden 128", true);
     rejected(patch32(28, 0), "0 king buckets", true);
     rejected(patch32(28, 33), "33 king buckets", true);
-    rejected(patch32(32, 2), "2 output buckets", true);
+    rejected(patch32(32, 17), "17 output buckets", true);
     rejected(patch32(36, 4), "unknown flag bit", true);
     { float f = 4095.0F; std::uint32_t v = 0; std::memcpy(&v, &f, 4); rejected(patch32(40, v), "weight scale 4095", true); }
     { float f = 2.5F; std::uint32_t v = 0; std::memcpy(&v, &f, 4); rejected(patch32(48, v), "sigmoid K 2.5", true); }
@@ -574,12 +603,22 @@ void test_incremental_equals_refresh(const std::string& dir, long plies_per_net)
         {"8 mirrored buckets (standard layout)", 8, true, symmetric_map(8)},
         {"32 mirrored buckets (one per half-board square)", 32, true, every},
         {"4 unmirrored buckets", 4, false, symmetric_map(4)},
+        {"8 mirrored buckets + 8 output buckets", 8, true, symmetric_map(8)},
     };
     long total = 0;
     std::uint64_t seed = 71;
     for (const Case& c : cases) {
-        check(load_spec(dir + "walk.fnn2", random_net(c.buckets, c.mirror, c.map, seed)), std::string("load ") + c.name);
+        Spec n = random_net(c.buckets, c.mirror, c.map, seed);
+        const bool heads = std::string(c.name).find("output") != std::string::npos;
+        if (heads) {   // 8 heads with different weights (C5)
+            replicate_heads(n, 8);
+            Rng rng{seed + 1000};
+            for (auto& v : n.w2) v = static_cast<std::int16_t>(rng.below(1801) - 900);
+            for (auto& v : n.b2) v = static_cast<std::int16_t>(rng.below(1001) - 500);
+        }
+        check(load_spec(dir + "walk.fnn2", n), std::string("load ") + c.name);
         options::nnue_king_buckets = c.buckets;
+        options::nnue_output_buckets = heads ? 8 : 0;
         check(options::apply_nnue_v2(nullptr), std::string("select ") + c.name);
         WalkStats st;
         int bad = 0;
@@ -594,13 +633,155 @@ void test_incremental_equals_refresh(const std::string& dir, long plies_per_net)
     }
     std::cout << "WALK total plies " << total << '\n';
     options::nnue_king_buckets = 0;
+    options::nnue_output_buckets = 0;
     (void)options::apply_nnue_v2(nullptr);
+}
+
+
+// ---------------------------------------------------------------- 6. output buckets (C5)
+// Position with exactly `pieces` pieces (2..32): the kings and the first pieces - 2 others of the start
+// position (any subset of the start position is legal, White to move, no check).
+Board position_with_pieces(int pieces) {
+    static const int order[30] = {3, 59, 0, 7, 56, 63, 1, 6, 57, 62, 2, 5, 58, 61,      // queens, rooks, knights, bishops
+                                  8, 48, 9, 49, 10, 50, 11, 51, 12, 52, 13, 53, 14, 54, 15, 55};   // pawns
+    const Board start = position(std::string(Board::StandardStartFen));
+    std::array<Piece, 64> squares{};
+    squares[4] = WK;
+    squares[60] = BK;
+    for (int i = 0; i < pieces - 2; ++i) squares[static_cast<std::size_t>(order[i])] = start.piece_at(order[i]);
+    std::ostringstream fen;
+    for (int rank = 7; rank >= 0; --rank) {
+        int empty = 0;
+        for (int file = 0; file < 8; ++file) {
+            const Piece p = squares[static_cast<std::size_t>(rank * 8 + file)];
+            if (p == Empty) { ++empty; continue; }
+            if (empty) { fen << empty; empty = 0; }
+            fen << " PNBRQKpnbrqk"[static_cast<int>(p)];
+        }
+        if (empty) fen << empty;
+        if (rank) fen << '/';
+    }
+    fen << " w - - 0 1";
+    return position(fen.str());
+}
+
+void test_output_buckets(const std::string& dir) {
+    // The default map (C++ mirror of the trainer's formula).
+    const auto m8 = default_output_map(8);
+    bool table8 = true;
+    for (int pieces = 2; pieces <= 32; ++pieces) table8 = table8 && m8[static_cast<std::size_t>(pieces)] == (pieces - 2) / 4;
+    report(table8, "default 8-bucket map: bucket = (pieces - 2) / 4 at every piece count 2..32 (2-5 -> 0, ..., 30-32 -> 7)");
+    bool shapes = true;
+    for (const int n : {1, 2, 4, 5, 8, 16}) {
+        const auto m = default_output_map(n);
+        shapes = shapes && m[2] == 0 && m[32] == n - 1;
+        for (int pieces = 3; pieces <= 32; ++pieces) shapes = shapes && m[static_cast<std::size_t>(pieces)] >= m[static_cast<std::size_t>(pieces - 1)];
+        std::vector<int> used(static_cast<std::size_t>(n), 0);
+        for (int pieces = 2; pieces <= 32; ++pieces) ++used[m[static_cast<std::size_t>(pieces)]];
+        for (const int u : used) shapes = shapes && u > 0;
+    }
+    report(shapes, "default maps for 1, 2, 4, 5, 8, 16 buckets: non-decreasing, 2 pieces -> 0, 32 pieces -> N-1, every bucket used");
+
+    // The engine picks output_map[piece count]: a control net whose heads differ only in the bias.
+    Spec control = random_net(1, false, {}, 81);
+    control.output_buckets = 8;
+    control.output_map = default_output_map(8);
+    control.w2.assign(8 * 2 * nnue::HiddenSize, 0);
+    control.b2.clear();
+    for (int h = 0; h < 8; ++h) control.b2.push_back(static_cast<std::int16_t>(700 * (h + 1)));
+    check(load_spec(dir + "heads.fnn2", control), "load 8-head control net");
+    const v2::Net& net = *v2::loaded();
+    int bad_index = 0;
+    int bad_eval = 0;
+    for (int pieces = 2; pieces <= 32; ++pieces) {
+        const Board b = position_with_pieces(pieces);
+        const int expected = (pieces - 2) / 4;
+        if (popcount(b.occupied()) != pieces || v2::output_bucket(net, b) != expected) ++bad_index;
+        const float out = static_cast<float>(700 * (expected + 1)) / 4096.0F;
+        const int cp = static_cast<int>(std::clamp(out * 400.0F / 2.25F, -30000.0F, 30000.0F));
+        if (v2::evaluate(net, b, reference(net, b)) != cp) ++bad_eval;
+    }
+    report(bad_index == 0, "output_bucket() == (pieces - 2) / 4 on real positions with every piece count 2..32");
+    report(bad_eval == 0, "evaluate() uses that head at every piece count 2..32 (control net: heads differ only in the bias)");
+
+    // Selection rules with output buckets.
+    std::string message;
+    Spec ob8 = random_net(1, false, {}, 82);
+    replicate_heads(ob8, 8);
+    check(load_spec(dir + "select_ob.fnn2", ob8), "load 1-king-bucket 8-output-bucket net");
+    options::nnue_king_buckets = 0;
+    options::nnue_output_buckets = 8;
+    bool active = options::apply_nnue_v2(&message);
+    report(active, "output buckets only: NNUEOutputBuckets 8 selects it (" + message + ")");
+    options::nnue_output_buckets = 4;
+    active = options::apply_nnue_v2(&message);
+    report(!active, "NNUEOutputBuckets 4 vs 8 heads: not selected (" + message + ")");
+    options::nnue_output_buckets = 0;
+    options::nnue_king_buckets = 1;
+    active = options::apply_nnue_v2(&message);
+    report(!active, "NNUEKingBuckets 1 alone does not select an 8-head net (" + message + ")");
+    Spec both = random_net(4, true, symmetric_map(4), 83);
+    replicate_heads(both, 8);
+    check(load_spec(dir + "select_both.fnn2", both), "load 4-king-bucket 8-output-bucket net");
+    options::nnue_king_buckets = 4;
+    options::nnue_output_buckets = 0;
+    active = options::apply_nnue_v2(&message);
+    report(!active, "king + output buckets: NNUEKingBuckets 4 alone is not enough (" + message + ")");
+    options::nnue_king_buckets = 0;
+    options::nnue_output_buckets = 8;
+    active = options::apply_nnue_v2(&message);
+    report(!active, "king + output buckets: NNUEOutputBuckets 8 alone is not enough (" + message + ")");
+    options::nnue_king_buckets = 4;
+    active = options::apply_nnue_v2(&message);
+    report(active, "king + output buckets: both options select it (" + message + ")");
+    Spec ob16 = random_net(1, false, {}, 84);
+    replicate_heads(ob16, 16);
+    options::nnue_king_buckets = 0;
+    options::nnue_output_buckets = 16;
+    check(load_spec(dir + "select_ob.fnn2", ob16), "load 16-output-bucket net (maximum)");
+    active = options::apply_nnue_v2(&message);
+    report(active && v2::describe(*v2::active()).output_buckets == 16, "16 output buckets load and select (" + message + ")");
+    options::nnue_output_buckets = 0;
+    (void)options::apply_nnue_v2(nullptr);
+
+    // Lock replicas with 8 identical heads evaluate and search exactly like the compiled-in net.
+    const std::vector<Board> boards = random_positions(300, 91);
+    std::vector<std::pair<std::uint64_t, std::string>> lock_search;
+    for (int i = 0; i < 3; ++i) {
+        std::string best;
+        const std::uint64_t nodes = search_nodes(position(start_fens[static_cast<std::size_t>(i * 3)]), 8, &best);
+        lock_search.emplace_back(nodes, best);
+    }
+    for (const std::string kind : {"r1", "rm8"}) {
+        Spec n = lock_replica(kind);
+        replicate_heads(n, 8);
+        check(load_spec(dir + "replica.fnn2", n), "load replica " + kind + " with 8 output heads");
+        options::nnue_king_buckets = n.king_buckets == 1 ? 0 : n.king_buckets;
+        options::nnue_output_buckets = 8;
+        check(options::apply_nnue_v2(nullptr), "select replica " + kind + " + 8 heads");
+        int bad = 0;
+        for (const Board& b : boards) {
+            nnue::Accumulator lock;
+            nnue::refresh(b, lock);
+            if (nnue::evaluate(b, lock) != v2::evaluate(*v2::active(), b, reference(*v2::active(), b))) ++bad;
+        }
+        bool same_search = true;
+        for (int i = 0; i < 3; ++i) {
+            std::string best;
+            const std::uint64_t nodes = search_nodes(position(start_fens[static_cast<std::size_t>(i * 3)]), 8, &best);
+            same_search = same_search && nodes == lock_search[static_cast<std::size_t>(i)].first && best == lock_search[static_cast<std::size_t>(i)].second;
+        }
+        report(bad == 0 && same_search, "replica " + kind + " with 8 identical output heads: 300 evals and 3 depth-8 searches equal the compiled-in net");
+        options::nnue_king_buckets = 0;
+        options::nnue_output_buckets = 0;
+        (void)options::apply_nnue_v2(nullptr);
+    }
 }
 
 } // namespace
 
 int main(int argc, char** argv) {
-    // argv[1] (optional): plies per net for the walk test (default 34000, i.e. > 100k in total).
+    // argv[1] (optional): plies per net for the walk test (default 34000 x 4 nets).
     const long plies = argc > 1 ? std::stol(argv[1]) : 34000;
     const std::string dir = "nnue_v2_test_";
     test_bucket_map_and_mirroring(dir);
@@ -608,8 +789,11 @@ int main(int argc, char** argv) {
     test_selection(dir);
     test_lock_replicas(dir);
     test_incremental_equals_refresh(dir, plies);
+    test_output_buckets(dir);
     v2::unload();
-    for (const char* f : {"map", "mirror", "plain", "loader", "bad", "select", "replica", "walk"}) std::remove((dir + f + ".fnn2").c_str());
+    for (const char* f : {"map", "mirror", "plain", "loader", "bad", "select", "replica", "walk", "heads", "select_ob", "select_both"}) {
+        std::remove((dir + f + ".fnn2").c_str());
+    }
     std::cout << checks - failures << "/" << checks << " checks passed\n";
     return failures == 0 ? 0 : 1;
 }
