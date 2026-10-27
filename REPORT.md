@@ -71,9 +71,9 @@
 ## Environment notes (read before re-using numbers)
 - **Machine load.** The PC ran a fastchess gate, self-play datagen and NNUE training the whole time (machine
   exclusive: no). Work first ran at BelowNormal with at most 3 threads. From 2026-10-27 afternoon the owner asked
-  for maximum parallelism: up to 7 sub-agents, every process single-threaded at Idle priority (below the
-  BelowNormal gates), RAM floor 6 GB. PC speed numbers are noisy; the quiet-runner A/Bs (GitHub Actions) are the
-  cleaner speed evidence.
+  for maximum parallelism: up to about 10 sub-agents at once, every process single-threaded at Idle priority
+  (below the BelowNormal gates), RAM floor 6 GB (free RAM stayed at 9-12 GB). PC speed numbers are noisy; the
+  quiet-runner A/Bs (GitHub Actions) are the cleaner speed evidence.
 - **No local Linux sanitizers.** WSL2 needs the Virtual Machine Platform feature and a reboot, which was not
   done. Linux identity, ASan+UBSan and TSan come from `.github/workflows/opus-ci.yml` on each `opus-*` branch.
 - **Paths.** The lock archive and the build scripts moved from the session scratchpad to
@@ -83,4 +83,19 @@
   - `C:\Users\Administrator\.wslconfig` (created by the attempted WSL install; caps WSL2 at 2 CPUs / 6 GB);
   - `C:\Program Files\Git\tmp_c6_search.cpp` and `C:\Program Files\Git\tmp_nnue.o` (stray files from two
     sub-agents' mistyped paths);
-  - scratch build folders under `D:\grok-pc-data\dwqww\.claude\worktrees\b\`.
+  - scratch build folders under `D:\grok-pc-data\dwqww\.claude\worktrees\b\`;
+  - `F:\opus_scratch\tmp_sol_fix_listing.txt` (a stray listing at the top of scratch) and six empty `wt_err_*.txt`
+    files in the user Temp folder (both from the S25-S48 fix-up agent);
+  - `F:\opus_scratch\worktrees\opus_sol_s43` (an early copy of the S43 tool, not a git worktree; the real
+    worktree is `opus_sol_s43_wt`) and `F:\opus_scratch\sol_S40\fixture_v2\second\newdir` (planted-bug output);
+  - the empty untracked folder `opus_round1/sol_S27fix/old_attempt_check` in the S27fix worktree;
+  - all of `F:\opus_scratch` (worktrees, builds, scratch) once the branches are reviewed.
+- **Published outside git branches:** the GitHub prerelease `opus-sol-S48fix-grids-20261027` (tag on the S48fix
+  branch, `main` untouched). S48-4 asked for simulation grids to go to release assets instead of git; delete the
+  release if you don't want it.
+- **Rule slips by sub-agents (no effect):**
+  - Two agents (S09fix, S40) put the trainer's name `train_resid_v3b.py` into read-only `git show`, `grep`, `sed`
+    and `sha256sum` command lines. Nothing ran under that name, and the supervisor's "adopted running job" count
+    stayed at 7.
+  - One `rm -rf` on a not-yet-created scratch folder was denied by the permission system; nothing was deleted.
+  - The briefs and skills now spell out both rules.
