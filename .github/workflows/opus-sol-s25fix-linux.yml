@@ -1,0 +1,33 @@
+# S25fix on Linux: v2 checker vs a Linux build of the AL1 tree, its tests, and the v3 ctest registration.
+name: opus-sol-s25fix-linux
+on:
+  push:
+    branches: ['opus-sol-S25fix']
+    paths-ignore:
+      - 'opus_round1/**/*.md'
+      - 'opus_round1/**/*.log'
+      - 'opus_round1/**/SHA256SUMS'
+      - 'opus_round1/**/FILES*'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  linux:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - name: Toolchain
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq g++-14 ninja-build cmake python3
+          g++-14 --version | head -1
+      - name: v2 checker, tests, v3 registration on Linux
+        run: bash opus_round1/sol_S25fix/ci_s25fix_linux.sh ci_out
+      - name: Upload logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: sol-s25fix-linux
+          path: ci_out/*.log
+          if-no-files-found: warn
