@@ -1,0 +1,4 @@
+12c12
+< nice -n 10 "$GPP" -std=c++20 -O3 -DNDEBUG -DFORGE_NNUE_HIDDEN=256 -ffp-contract=off -fno-fast-math -march=znver5 -static -pthread -Iinclude "$@" $SRCS -o "$OUT"
+---
+> nice -n 10 "$GPP" -std=c++20 -O3 -DNDEBUG -DFORGE_NNUE_HIDDEN=${FORGE_HIDDEN:-256} -ffp-contract=off -fno-fast-math -march=znver5 -static -pthread -Iinclude "$@" $SRCS -o "$OUT"

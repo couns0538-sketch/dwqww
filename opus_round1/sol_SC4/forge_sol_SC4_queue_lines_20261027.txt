@@ -1,0 +1,13 @@
+# S-C4 / G-C4 queue lines (UNPROVEN; PROPOSED, not queued). Queue them only after an H512 net (S-A4 / G-A4) has locked.
+# All use the A7 frozen-data protocol (first 240M positions, seed 701), so holdout b0.6 compares across widths and with
+# A7-2 (H256 e48 control, same data and seed) and the H512 line below.
+# Step 1: GPU throughput of the wider shapes (3,000 steps each; compare pos/s with the H256 runs' 1.34M).
+resid_h768_e1_sc4_speed_s99_mt240m --script train_resid_v3b.py --shape 768 --epochs 1 --steps-per-epoch 3000 --lr 7.07e-4 --blend-end 0.6 --seed 99 --batch-size 8192 --warmup-steps 300 --val-positions 1000000 --max-train 240000000
+resid_h1024_e1_sc4_speed_s99_mt240m --script train_resid_v3b.py --shape 1024 --epochs 1 --steps-per-epoch 3000 --lr 7.07e-4 --blend-end 0.6 --seed 99 --batch-size 8192 --warmup-steps 300 --val-positions 1000000 --max-train 240000000
+# Step 2: width ladder at equal data and seed (H512 only if S-A4 did not already train on this frozen set).
+resid_h512_e48_sc4_bs8k_lr707e6_b06_s701_mt240m --script train_resid_v3b.py --shape 512 --epochs 48 --lr 7.07e-4 --min-lr-frac 0.01 --blend-end 0.6 --seed 701 --batch-size 8192 --warmup-steps 300 --val-positions 1000000 --max-train 240000000
+resid_h768_e48_sc4_bs8k_lr707e6_b06_s701_mt240m --script train_resid_v3b.py --shape 768 --epochs 48 --lr 7.07e-4 --min-lr-frac 0.01 --blend-end 0.6 --seed 701 --batch-size 8192 --warmup-steps 300 --val-positions 1000000 --max-train 240000000
+resid_h1024_e48_sc4_bs8k_lr707e6_b06_s701_mt240m --script train_resid_v3b.py --shape 1024 --epochs 48 --lr 7.07e-4 --min-lr-frac 0.01 --blend-end 0.6 --seed 701 --batch-size 8192 --warmup-steps 300 --val-positions 1000000 --max-train 240000000
+# Negative controls for the dry parse only (never queue): non-integer shape; a v3c-only argument.
+NEGATIVE_shape_float --script train_resid_v3b.py --shape 768.0 --epochs 48
+NEGATIVE_v3c_arg --script train_resid_v3b.py --shape 768 --epochs 48 --epoch-positions 100000000
