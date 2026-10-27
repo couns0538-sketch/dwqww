@@ -27,6 +27,8 @@ FORGE_SEARCH_V2 int Worker::static_evaluate_v2(const Board& board, SearchStack* 
     const nnue::v2::Net* active = nnue::v2::active();
     if (active == nullptr || !nnue::enabled) return evaluator_.evaluate(board);
     const nnue::v2::Net& net = *active;
+    // O4: residual == !options::pure_nnue (apply_nnue_v2 selects only a net whose header flag agrees with
+    // PureNnue), so with PureNnue the hand-crafted evaluation and its PSQT accumulator are never computed.
     const bool residual = net.residual;
     if (!ss->accumulator.valid) {
         int back = 0;
@@ -92,7 +94,19 @@ namespace options {
 
 [[gnu::cold]] bool apply_nnue_v2(std::string* message) {
     // UseNNUE false disables every network (hand-crafted evaluation only).
-    const nnue::v2::Net* net = nnue::v2::select(nnue::enabled ? nnue_king_buckets : 0, message);
+    // O4: PureNnue 1 with NNUEKingBuckets 0 asks for a net without king buckets (one bucket).
+    const int wanted = nnue_king_buckets > 0 ? nnue_king_buckets : (pure_nnue ? 1 : 0);
+    const nnue::v2::Net* net = nnue::v2::select(nnue::enabled ? wanted : 0, message);
+    if (net != nullptr && net->residual == pure_nnue) {
+        // O4: the header's residual flag must agree with PureNnue, so that the hand-crafted
+        // evaluation is skipped exactly when PureNnue is 1 (nnue_v2_problem names the mismatch).
+        (void)nnue::v2::select(0, nullptr);
+        net = nullptr;
+        if (message != nullptr) {
+            *message = pure_nnue ? "PureNnue is 1 but the loaded net is residual (not selected)"
+                                 : "the loaded net is stand-alone and PureNnue is 0 (not selected)";
+        }
+    }
     if (!nnue::enabled && message != nullptr) *message = "UseNNUE is false: hand-crafted evaluation only";
     nnue_v2 = net != nullptr;
     return nnue_v2;
@@ -100,22 +114,42 @@ namespace options {
 
 [[gnu::cold]] std::string nnue_v2_problem(const std::string& file, const std::string& load_error) {
     if (!nnue::enabled) return {};   // UseNNUE false: every network off on purpose
-    if (file.empty() && nnue_king_buckets <= 0) return {};   // nothing requested
+    if (file.empty() && nnue_king_buckets <= 0 && !pure_nnue) return {};   // nothing requested
     if (!file.empty() && !load_error.empty()) return "cannot load NNUEFile " + file + ": " + load_error;
     const nnue::v2::Net* net = nnue::v2::loaded();
     if (net == nullptr) {
-        return file.empty() ? "NNUEKingBuckets " + std::to_string(nnue_king_buckets) +
-                                  " is set but no v2 net is loaded (NNUEFile is empty)"
-                            : "NNUEFile " + file + " is not loaded";
+        if (!file.empty()) return "NNUEFile " + file + " is not loaded";
+        if (nnue_king_buckets <= 0) {   // O4: PureNnue alone
+            return "PureNnue is 1 but no v2 net is loaded (NNUEFile is empty); PureNnue needs a stand-alone net "
+                   "(trainer --pure)";
+        }
+        return "NNUEKingBuckets " + std::to_string(nnue_king_buckets) + " is set but no v2 net is loaded (NNUEFile is empty)";
     }
     if (nnue_v2 && nnue::v2::active() == net) return {};
     const std::string buckets = std::to_string(net->king_buckets) + (net->mirror ? " mirrored" : "") + " king buckets";
+    // O4: the residual flag of the file and PureNnue must agree.
+    const std::string standalone = "NNUEFile " + net->path + " is a stand-alone net (network only, no hand-crafted "
+                                   "evaluation; trainer --pure); set PureNnue 1 to use it";
     if (nnue_king_buckets <= 0) {
-        return "NNUEFile " + net->path + " is loaded (" + buckets + ") but NNUEKingBuckets is 0; set NNUEKingBuckets " +
-               std::to_string(net->king_buckets) + " to use it";
+        if (pure_nnue && net->king_buckets != 1) {
+            return "PureNnue is 1 and NNUEKingBuckets is 0, which selects a net without king buckets, but NNUEFile " +
+                   net->path + " has " + buckets + "; set NNUEKingBuckets " + std::to_string(net->king_buckets) + " as well";
+        }
+        if (!pure_nnue) {
+            if (!net->residual && net->king_buckets == 1) return standalone;
+            return "NNUEFile " + net->path + " is loaded (" + buckets + ") but NNUEKingBuckets is 0; set NNUEKingBuckets " +
+                   std::to_string(net->king_buckets) + " to use it";
+        }
+    } else if (nnue_king_buckets != net->king_buckets) {
+        return "NNUEKingBuckets " + std::to_string(nnue_king_buckets) + " does not match NNUEFile " + net->path + " (" +
+               buckets + ")";
     }
-    return "NNUEKingBuckets " + std::to_string(nnue_king_buckets) + " does not match NNUEFile " + net->path + " (" +
-           buckets + ")";
+    if (pure_nnue && net->residual) {
+        return "PureNnue is 1 but NNUEFile " + net->path + " is a residual net (a correction added to the hand-crafted "
+               "evaluation; trainer --residual); PureNnue needs a stand-alone net (trainer --pure)";
+    }
+    if (!pure_nnue && !net->residual) return standalone;
+    return "NNUEFile " + net->path + " was not selected";   // not reached: every unselected case is named above
 }
 
 } // namespace options

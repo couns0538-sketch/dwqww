@@ -154,7 +154,7 @@ int main() {
         ponder_search_active = false;
     };
 
-    // v2 networks (UCI NNUEFile / NNUEKingBuckets; fail-loud rule in forge/search_options.hpp): a
+    // v2 networks (UCI NNUEFile / NNUEKingBuckets / PureNnue; fail-loud rule in forge/search_options.hpp): a
     // requested v2 net that cannot be used is reported at once and, if still unusable at the next
     // isready, go or bench, reported again before the engine exits with status 2. Never a silent
     // fall-back to the compiled-in network. With no NNUE option set nothing here prints anything.
@@ -168,7 +168,7 @@ int main() {
         std::string state;
         const bool active = forge::options::apply_nnue_v2(&state);
         const std::string problem = forge::options::nnue_v2_problem(nnue_file, nnue_file_error);
-        const bool requested = !nnue_file.empty() || forge::options::nnue_king_buckets > 0;
+        const bool requested = !nnue_file.empty() || forge::options::nnue_king_buckets > 0 || forge::options::pure_nnue;
         if (!nnue_file_error.empty()) state += " (NNUEFile " + nnue_file + ": " + nnue_file_error + ")";
         {
             const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex());
@@ -211,6 +211,8 @@ int main() {
             // v2 networks (forge/search_options.hpp): off unless NNUEKingBuckets > 0.
             std::cout << "option name NNUEFile type string default <empty>\n"
                          "option name NNUEKingBuckets type spin default 0 min 0 max 32\n";
+            // O4: the network alone, without the hand-crafted evaluation (needs a stand-alone v2 net).
+            std::cout << "option name PureNnue type spin default 0 min 0 max 1\n";
 #ifdef FORGE_EXPOSE_TUNABLES
             // Development builds advertise the search constants so match
             // runners can set them; release builds accept them silently.
@@ -339,6 +341,14 @@ int main() {
                     std::cout << "info string invalid value for option NNUEKingBuckets" << std::endl;
                 } else {
                     forge::options::nnue_king_buckets = std::clamp(value, 0, 32);
+                }
+                nnue_v2_changed();
+            } else if (name == "PureNnue") {   // O4: spin 0-1 (true / false accepted as well)
+                if (value_text == "1" || value_text == "true") forge::options::pure_nnue = true;
+                else if (value_text == "0" || value_text == "false") forge::options::pure_nnue = false;
+                else {
+                    const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex());
+                    std::cout << "info string invalid value for option PureNnue" << std::endl;
                 }
                 nnue_v2_changed();
             } else if (name == "Hash" || name == "Move Overhead" || name == "Threads") {

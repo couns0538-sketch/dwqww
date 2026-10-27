@@ -6,5 +6,6 @@ namespace forge::options {
 
 int nnue_king_buckets = 0;
 bool nnue_v2 = false;
+bool pure_nnue = false;   // O4 (after nnue_v2 so that the variables before it keep their addresses)
 
 } // namespace forge::options
