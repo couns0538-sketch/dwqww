@@ -41,7 +41,11 @@ def main():
     nm = sys.argv[3] if len(sys.argv) > 3 else "nm"
     a = symbols(sys.argv[1], nm)
     b = symbols(sys.argv[2], nm)
-    cold_start = min((addr for name, addr in b.items() if "syzygy" in name or "probe_tablebase" in name), default=None)
+    # The cold tail (.text.unlikely, after all .text and the sorted COMDATs) starts at the first
+    # tablebase function proper; template instantiations (COMDATs) stay in the comparison.
+    cold_start = min((addr for name, addr in b.items()
+                      if name.startswith("forge::syzygy::") or name.startswith("forge::Worker::probe_tablebase")),
+                     default=None)
     common = [n for n in a if n in b]
     deltas = collections.Counter()
     moved = []
