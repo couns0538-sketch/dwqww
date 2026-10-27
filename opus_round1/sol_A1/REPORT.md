@@ -97,3 +97,13 @@ Writes only under `F:\opus_scratch`; nothing deleted or killed; no force-push; o
 read-only web search (Parallel Search) for idea sources.
 
 Machine exclusive: no.
+
+## Quiet-runner OFF-path NPS (follow-up, added by the main session)
+Branch `opus-offguard`, workflow run 40520714508 (GitHub ubuntu-24.04, g++-14 box flags; `opus-offguard:opus_round1/offguard/REPORT.md`):
+the OFF build of `a8b63aae` against the lock `294dbed3`, 10 ABBA runs per side, nodes identical, identity ALL OK.
+- CPU NPS B/A: d16 0.9919 (−0.81%, 95% CI −1.35 .. −0.27), d20 0.9902 (−0.98%, CI −1.22 .. −0.73). **The OFF path costs
+  about 1%**; both CIs exclude 0.
+- `Worker::search` grew 12,737 → 13,337 bytes and `Worker::qsearch` 4,233 → 4,812; every thread also carries the table
+  of about 200 KiB when OFF. Which part costs more was not isolated.
+- Relevance: only if A1 is merged with the option off by default. A gate gain for HistRework=2 must cover this 1%; a
+  compile-time switch (as in S13) would make the default build the lock binary.
