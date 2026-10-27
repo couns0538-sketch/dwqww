@@ -1,0 +1,108 @@
+--- /tmp/forge_sol_S18_RSS_SCOPE_V3_PREP_20261027/forge_sol_S18_train_selected_v3_20261027.py
++++ /tmp/forge_sol_S18_RSS_EXIT_V4_PREP_20261027/forge_sol_S18_train_selected_v4_20261027.py
+@@ -175,6 +175,10 @@
+         'TORCH_HOME':str(armout/'cache/torch'),'TORCH_EXTENSIONS_DIR':str(armout/'cache/extensions'),
+         'TORCHINDUCTOR_CACHE_DIR':str(armout/'cache/inductor')}}
+ 
++class RSSExitTransition(ValueError):
++    """Typed missing RSS or own-proc disappearance; no RSS value implied."""
++
++
+ def read_proc_status(path):
+     with Path(path).open('rb') as stream:raw=stream.read(8193)
+     if len(raw)>8192:raise ValueError('owned status read cap exceeded')
+@@ -202,27 +206,41 @@
+         if int(fields.get('Pid','-1'))!=tid or int(fields.get('Tgid','-1'))!=pid:raise ValueError('owned task Pid/Tgid mismatch')
+         state=fields.get('State','').split()
+         if not state:raise ValueError('owned task state unavailable')
++        if len(state[0])!=1 or state[0] not in 'RSDTtZXxKWPI':raise ValueError('malformed owned task state')
+         rss=None
+         if 'VmRSS' in fields:
+             parts=fields['VmRSS'].split()
+             if len(parts)!=2 or parts[1]!='kB' or int(parts[0])<0:raise ValueError('malformed owned VmRSS')
+             rss=int(parts[0])*1024
+         return state[0],rss
+-    raw=read_proc_status(Path('/proc')/str(pid)/'status');info['leader_status_original']=raw
++    leader_path=Path('/proc')/str(pid)/'status'
++    try:raw=read_proc_status(leader_path)
++    except FileNotFoundError as error:
++        info.update(exit_transition_condition='OWN_PROC_FILE_NOT_FOUND',missing_path=str(leader_path),read_error=str(error))
++        raise RSSExitTransition('owned proc status disappeared') from error
++    info['leader_status_original']=raw
+     state,rss=parse(raw,pid);info['leader_state']=state
+     if rss is not None:
+         info.update(scope='OWNED_LEADER',selected_tid=pid,rss_bytes=rss);return rss
+     # Only the demonstrated exited-leader case permits another thread status.
+-    if state not in ('Z','X'):raise ValueError('owned VmRSS unavailable on unproven live leader')
++    if state not in ('Z','X'):
++        info['exit_transition_condition']='OWN_RSS_FIELD_MISSING'
++        raise RSSExitTransition('owned VmRSS unavailable on unproven live leader')
+     samples=[]
+-    for tid in owned_task_ids(pid):
++    try:task_ids=owned_task_ids(pid)
++    except FileNotFoundError as error:
++        info.update(exit_transition_condition='OWN_PROC_FILE_NOT_FOUND',missing_path=str(Path('/proc')/str(pid)/'task'),read_error=str(error))
++        raise RSSExitTransition('owned task subtree disappeared') from error
++    for tid in task_ids:
+         path=Path('/proc')/str(pid)/'task'/str(tid)/'status';row={'tid':tid};info['tasks'].append(row)
+         try:raw=read_proc_status(path)
+         except FileNotFoundError:
+             row['unavailable']='task disappeared during owned scan';continue
+         row['status_original']=raw;thread_state,value=parse(raw,tid);row.update(state=thread_state,rss_bytes=value)
+         if thread_state not in ('Z','X') and value is not None:samples.append((value,tid))
+-    if not samples:raise ValueError('owned live-thread VmRSS unavailable')
++    if not samples:
++        info['exit_transition_condition']='OWN_RSS_FIELD_MISSING'
++        raise RSSExitTransition('owned live-thread VmRSS unavailable')
+     rss,tid=max(samples)
+     info.update(scope='OWNED_LIVE_THREAD_SHARED_MM',selected_tid=tid,rss_bytes=rss,aggregation='maximum live-thread RSS, never sum shared mm')
+     return rss
+@@ -233,6 +251,7 @@
+         self.process=process;self.limit=limit;self.disk_floor=disk_floor;self.minimum_sampled_free_disk_bytes=None;self.stop_reason=None;self.error=None
+         self.max_sampled_rss_bytes=None;self.first_signal_monotonic=None;self.kill_sent=False
+         self.last_rss_observation=None;self.first_fallback_observation=None;self.fallback_samples=0
++        self.exit_confirmation=None
+     def __getattr__(self,name):return getattr(self.process,name)
+     def poll(self):
+         result=self.process.poll()
+@@ -250,6 +269,22 @@
+             except (OSError,ValueError,UnicodeError) as error:
+                 self.last_rss_observation=observation
+                 if self.process.poll() is not None:return self.process.returncode
++                if isinstance(error,RSSExitTransition) and self.exit_confirmation is None:
++                    begin=time.monotonic()
++                    self.exit_confirmation={'attempted':True,'wait_timeout_seconds':0.05,'condition_type':type(error).__name__,
++                        'condition':str(error)[:500],'rss_synthesized':False,'outcome':'PENDING'}
++                    try:
++                        code=self.process.wait(timeout=0.05)
++                    except subprocess.TimeoutExpired:
++                        self.exit_confirmation['outcome']='TIMEOUT'
++                    except Exception as wait_error:
++                        self.exit_confirmation.update(outcome='WAIT_ERROR',wait_error=type(wait_error).__name__+': '+str(wait_error)[:500])
++                    else:
++                        if type(code) is int and self.process.returncode==code:
++                            self.exit_confirmation.update(outcome='CONFIRMED_EXIT',returncode=code)
++                            return code
++                        self.exit_confirmation['outcome']='INVALID_WAIT_RESULT'
++                    finally:self.exit_confirmation['elapsed_seconds']=time.monotonic()-begin
+                 self.stop_reason='RSS_UNAVAILABLE';self.error=type(error).__name__+': '+str(error)[:500]
+         if self.stop_reason is None and self.disk_floor:
+             try:
+@@ -496,7 +531,7 @@
+                     if (armout/'stdout').stat().st_size>8388608:raise ValueError('native stdout exceeds8MiB parse budget; raw file preserved')
+                     native_metric=native_final_metric((armout/'stdout').read_text())
+                     validate_postscore_result(child.get('separate_post_training_all50000'),armout/'trainer-run',plans[name]['rows'],Path(views[name]['data']))
+-                result['arms'][name]={'status':'PASS_PIPELINE_ONLY' if passed and scope=='PIPELINE_ONLY_SYNTHETIC' else 'PASS_OWNER_CERTIFIED_PROCESS' if passed else 'FAIL','observer':observed,'child':child,'remaining_owned':remaining,'reaped':reaped,'rows':plans[name]['rows'],'steps_per_epoch':plans[name]['steps_per_epoch'],'total_steps':plans[name]['total_steps'],'command':command,'cwd':str(paths['cwd']),'owned_cache_tmp_environment':paths['env'],'RSS_guard':{'limit_bytes':grant['rss_limit_bytes'],'max_sampled_rss_bytes':process.max_sampled_rss_bytes,'stop_reason':process.stop_reason,'error':process.error,'minimum_sampled_free_disk_bytes':process.minimum_sampled_free_disk_bytes,'last_rss_observation':process.last_rss_observation,'first_fallback_observation':process.first_fallback_observation,'fallback_samples':process.fallback_samples},'peak_children_RSS_KiB':resource.getrusage(resource.RUSAGE_CHILDREN).ru_maxrss,'native_FINAL_FULL_metric':native_metric}
++                result['arms'][name]={'status':'PASS_PIPELINE_ONLY' if passed and scope=='PIPELINE_ONLY_SYNTHETIC' else 'PASS_OWNER_CERTIFIED_PROCESS' if passed else 'FAIL','observer':observed,'child':child,'remaining_owned':remaining,'reaped':reaped,'rows':plans[name]['rows'],'steps_per_epoch':plans[name]['steps_per_epoch'],'total_steps':plans[name]['total_steps'],'command':command,'cwd':str(paths['cwd']),'owned_cache_tmp_environment':paths['env'],'RSS_guard':{'limit_bytes':grant['rss_limit_bytes'],'max_sampled_rss_bytes':process.max_sampled_rss_bytes,'stop_reason':process.stop_reason,'error':process.error,'minimum_sampled_free_disk_bytes':process.minimum_sampled_free_disk_bytes,'last_rss_observation':process.last_rss_observation,'first_fallback_observation':process.first_fallback_observation,'fallback_samples':process.fallback_samples,'exit_confirmation':process.exit_confirmation},'peak_children_RSS_KiB':resource.getrusage(resource.RUSAGE_CHILDREN).ru_maxrss,'native_FINAL_FULL_metric':native_metric}
+                 if not passed:break
+             finally:
+                 closure={'arm':name,'command':command,'cwd':str(paths['cwd']),'elapsed_seconds':time.monotonic()-start,'pid':None if process is None else process.pid}
+@@ -505,7 +540,7 @@
+                         members=owned._all_members(process.pid)
+                         if process.poll() is None or members:owned._close_group(process)
+                         closure.update(returncode=process.returncode,leader_reaped=process.returncode is not None,all_owned_group_members_after_close=owned._all_members(process.pid),
+-                            resource_guard={'stop_reason':process.stop_reason,'error':process.error,'max_sampled_rss_bytes':process.max_sampled_rss_bytes,'minimum_sampled_free_disk_bytes':process.minimum_sampled_free_disk_bytes,'last_rss_observation':process.last_rss_observation,'first_fallback_observation':process.first_fallback_observation,'fallback_samples':process.fallback_samples})
++                            resource_guard={'stop_reason':process.stop_reason,'error':process.error,'max_sampled_rss_bytes':process.max_sampled_rss_bytes,'minimum_sampled_free_disk_bytes':process.minimum_sampled_free_disk_bytes,'last_rss_observation':process.last_rss_observation,'first_fallback_observation':process.first_fallback_observation,'fallback_samples':process.fallback_samples,'exit_confirmation':process.exit_confirmation})
+                 except BaseException as error:closure['cleanup_error']=type(error).__name__+': '+str(error)[:1000]
+                 with (armout/'forge_sol_S18_owned_resource_receipt_20261026.json').open('x') as stream:json.dump(closure,stream,indent=2,sort_keys=True);stream.write('\n')
+                 if closure.get('all_owned_group_members_after_close') or closure.get('cleanup_error'):raise ValueError('owned arm cleanup failed; resource receipt preserved')

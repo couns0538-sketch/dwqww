@@ -1,0 +1,62 @@
+{
+  "aggregation": "Original float32 sigmoid predictions and original float32 targets promoted to float64 before subtraction; sum float64 squared errors across all rows, divide by 50000. No unweighted averaging of batch means.",
+  "arms": [
+    "none",
+    "t200",
+    "t300",
+    "t400",
+    "t500"
+  ],
+  "authority": "Root binding S18 policy received before any S18 training/runtime permission or loss outcomes",
+  "batch_size": 8192,
+  "batch_sizes": [
+    8192,
+    8192,
+    8192,
+    8192,
+    8192,
+    8192,
+    848
+  ],
+  "blends": [
+    1.0,
+    0.6,
+    0.8
+  ],
+  "checkpoint_selection": "Final EPOCH2 only: epoch002-step{2*(indexed_training_rows//8192):09d}.pt; never select by any metric",
+  "dropped_tail_rows": 0,
+  "holdout": {
+    "h000.hce": {
+      "md5": "f248959bc791424407a37af5ac60752a",
+      "sha256": "212e51e6c108f3ff6b879b0f247277925f9483102e34230b5024e5fb7ef2cc44"
+    },
+    "h000.pos": {
+      "md5": "b263af9969f8ace979e25db061eb37ef",
+      "sha256": "92c40ae25c3b650db9f5db235786133afed3e9a8f6691e7860dff6bdc5aa11b3"
+    }
+  },
+  "integrity": [
+    "torch.no_grad and model.eval only",
+    "No optimizer construction/step, backward, exports, project_weights or weight update in postscore",
+    "Hash checkpoint bytes, holdout bytes/modes and model state before/after; require equality",
+    "Preserve Torch RNG state around reconstruction/scoring; all arms original trainer seed25"
+  ],
+  "k": 2.25,
+  "metrics": [
+    "net_MSE",
+    "HCE_baseline_MSE"
+  ],
+  "model": "Pinned original v3b one-head NNUE H256 residual QAT, strict state_dict from the preselected checkpoint",
+  "native_trainer_FINAL_FULL": {
+    "dropped_tail_rows": 848,
+    "evaluated_rows": 49152,
+    "supplied_rows": 50000,
+    "unchanged": true
+  },
+  "reader_targets_forward": "Call pinned original v3b load_set/make_batch/targets/NNUE.forward; no replacement reader or target calculation",
+  "real_013_014_isolation": "UNVERIFIED_FOR_SYNTHETIC_PIPELINE",
+  "rows": 50000,
+  "scope": "Separate post-training scoring only; original trainer and optimizer/epoch batches/RNG recipe unchanged",
+  "status": "PREREGISTERED_SOURCE_ONLY_NO_TORCH_OR_LOSS_OUTCOMES",
+  "training_approved": false
+}

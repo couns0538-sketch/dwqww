@@ -1,0 +1,13 @@
+# S18 v4 confirmed-exit correction — source-only checkpoint
+
+Consumer SHA256 `643e71ea1854b5a881944f969e5a22f36775e7f912a167b341fa3708c86736b7`.
+
+V3 qualified none remains PASS and was not rerun. The failed remaining4 run trained and postscored only t200; actual child returned0 and group was empty, but the controller correctly retained FAIL after RSS_UNAVAILABLE. Its captured validated R leader had no VmRSS. t300/t400/t500 were not run. Full original raw artifacts and weights remain at their old paths and are hashed in the preserved-v3 manifest.
+
+V4 classifies genuine owned missing RSS/proc disappearance separately. After the existing polls still show unknown, it permits one own Popen.wait(timeout=0.05). A real matching returncode confirms exit; a nonzero code remains a controller failure. Unknown RSS stays unknown. Raw unavailable status and explicit confirmation metadata survive both receipts. Timeout, wait error, denied access, malformed status and identity drift fail closed. A single additional State-token validation closes the malformed-state case found in the independent initial audit. No running-leader thread fallback was added.
+
+The retained original RED log has6 failures. The new malformed-State control failed4 subcases on the preserved attempt1, then all59 source/pure tests passed. Expected negative postscore controls print three ValueError traces; unittest exits0 withOK. AST scope controls confirm other functions, training/postscore math, staging and resource limits are unchanged.
+
+Four tiny owned primary-Python controls passed on CPU4 nice19. Actual own waits returned0 and7 without signals, one0.05s timeout failed closed with own SIGTERM, and a real23,388,160-byte RSS sample exceeded the diagnostic1MiB limit and was terminated without a confirmation wait. MissingRSS in the first3 controls was explicitly INJECTED by removing only VmRSS from an actual own status copy; this is not evidence of a newly observed natural kernel transition. All children were reaped, groups empty, and child/parent stderr empty. Torch/NumPy imports0.
+
+Production limits stay300s work/360s hard,4GiB AS,3GiB RSS and6.5GiB+64MiB disk floor. Original trainer5cebba4d, QAAdam and strict full50000-row postscore are unchanged. No Torch training or Git mutation occurred. Independent exact-source review passed; root publication is still required before a fresh root grant. Future work starts fresh t200 and compares diagnostic prior t200 checkpoint/exports/losses; qualified none is not rerun. Synthetic pipeline qualification does not verify actual013/014 or establish NNUE quality/Elo.
