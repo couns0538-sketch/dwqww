@@ -1,0 +1,111 @@
+supervisor.log 'adopted running job' lines before: 7
+$ python -I -B a3_parity_1k.py --trainer opus_nnue_smoke_a3trainer.py --ckpt a3smoke2_seed7_r1/epoch003-step000000585.pt --net a3smoke2_seed7_r1/epoch003.fnn --pos inputs/data32_sample_50k/h000.pos --fens inputs/fens_10k.txt --n 1000 --tol-cp 0.05
+checkpoint a3smoke2_seed7_r1/epoch003-step000000585.pt
+net a3smoke2_seed7_r1/epoch003.fnn
+E1 export: ft ints mismatching 0/786688 (QAT values on the grid: True); dense blocks bit-equal 6/6 -> OK
+[data32 holdout h000 (synthetic FPOS)] 1000 positions
+  E2 output bucket trainer == reference:                 1000/1000
+  E3 accumulators (both perspectives, float32 bits):     1000/1000
+  E4 |trainer - reference| <= 0.05 cp:                  1000/1000  (max 0.000032 cp)
+  info: integer cp equal after truncation:               1000/1000
+  info: reference engine order vs float64, max:          0.000022 cp
+[real self-play FENs] 1000 positions
+  E2 output bucket trainer == reference:                 1000/1000
+  E3 accumulators (both perspectives, float32 bits):     1000/1000
+  E4 |trainer - reference| <= 0.05 cp:                  1000/1000  (max 0.000032 cp)
+  info: integer cp equal after truncation:               1000/1000
+  info: reference engine order vs float64, max:          0.000028 cp
+PASS
+step parity_1k exit 0
+$ python -I -B a3_incremental_200k.py a3smoke2_seed7_r1/epoch003.fnn inputs/fens_10k.txt --positions 200000 --seed 1
+net a3smoke2_seed7_r1/epoch003.fnn seed 1 refresh cache on
+walk: evaluated 200000 acc_mismatch 0 out_mismatch 0 moves 171316 takebacks 154798 null_moves 6484 king_moves 80909 key_changes 32098 castles 426 en_passant 298 promotions 913 captures 10867 walks 1533 codes_checks 200000 codes_bad 0 seconds 105.3
+lazy accumulator paths (per perspective): valid 173688 replay 195915 replayed_plies 227134 key_rebuild 26219 root_rebuild 4178
+refresh-cache columns applied: 310853
+mismatches: accumulators 0, outputs 0, piece codes 0
+PASS
+step incremental_200k exit 0
+$ python -I -B a3_incremental_200k.py a3smoke2_seed7_r1/epoch003.fnn inputs/fens_10k.txt --positions 50000 --seed 2 --no-cache
+net a3smoke2_seed7_r1/epoch003.fnn seed 2 refresh cache off
+walk: evaluated 50000 acc_mismatch 0 out_mismatch 0 moves 42882 takebacks 38582 null_moves 1587 king_moves 20543 key_changes 8274 castles 98 en_passant 50 promotions 221 captures 2644 walks 390 codes_checks 50000 codes_bad 0 seconds 27.1
+lazy accumulator paths (per perspective): valid 43404 replay 48610 replayed_plies 56524 key_rebuild 6894 root_rebuild 1092
+refresh-cache columns applied: 0
+mismatches: accumulators 0, outputs 0, piece codes 0
+PASS
+step incremental_50k_nocache exit 0
+$ python -I -B a3_mutation_check.py --trainer opus_nnue_smoke_a3trainer.py --ckpt a3smoke2_seed7_r1/epoch003-step000000585.pt --net a3smoke2_seed7_r1/epoch003.fnn --pos inputs/data32_sample_50k/h000.pos --fens inputs/fens_10k.txt --tmp a3smoke2_mutation_tmp_20261027_155914
+OK   baseline: parity: test PASS (expected PASS)
+       E1 export: ft ints mismatching 0/786688 (QAT values on the grid: True); dense blocks bit-equal 6/6 -> OK
+       E2 output bucket trainer == reference:                 200/200
+       E3 accumulators (both perspectives, float32 bits):     200/200
+       E4 |trainer - reference| <= 0.05 cp:                  200/200  (max 0.000021 cp)
+       E2 output bucket trainer == reference:                 200/200
+       E3 accumulators (both perspectives, float32 bits):     200/200
+       E4 |trainer - reference| <= 0.05 cp:                  200/200  (max 0.000021 cp)
+OK   baseline: incremental: test PASS (expected PASS)
+       walk coverage: evaluated 20000 key_changes 2922 castles 50 en_passant 17 promotions 92 null_moves 663
+       mismatches: accumulators 0, outputs 0, piece codes 0
+OK   reference ignores mirroring (flip 0): test FAIL (expected FAIL)
+       E1 export: ft ints mismatching 0/786688 (QAT values on the grid: True); dense blocks bit-equal 6/6 -> OK
+       E2 output bucket trainer == reference:                 200/200
+       E3 accumulators (both perspectives, float32 bits):     90/200
+       E4 |trainer - reference| <= 0.05 cp:                  90/200  (max 154.250677 cp)
+       E2 output bucket trainer == reference:                 200/200
+       E3 accumulators (both perspectives, float32 bits):     16/200
+       E4 |trainer - reference| <= 0.05 cp:                  17/200  (max 126.639403 cp)
+OK   reference output bucket + 1: test FAIL (expected FAIL)
+       E1 export: ft ints mismatching 0/786688 (QAT values on the grid: True); dense blocks bit-equal 6/6 -> OK
+       E2 output bucket trainer == reference:                 0/200
+       E3 accumulators (both perspectives, float32 bits):     200/200
+       E4 |trainer - reference| <= 0.05 cp:                  0/200  (max 212.126244 cp)
+       E2 output bucket trainer == reference:                 43/200
+       E3 accumulators (both perspectives, float32 bits):     200/200
+       E4 |trainer - reference| <= 0.05 cp:                  43/200  (max 168.532933 cp)
+OK   reference dense layer drops lane 15: test FAIL (expected FAIL)
+       E1 export: ft ints mismatching 0/786688 (QAT values on the grid: True); dense blocks bit-equal 6/6 -> OK
+       E2 output bucket trainer == reference:                 200/200
+       E3 accumulators (both perspectives, float32 bits):     200/200
+       E4 |trainer - reference| <= 0.05 cp:                  0/200  (max 44.983466 cp)
+       E2 output bucket trainer == reference:                 200/200
+       E3 accumulators (both perspectives, float32 bits):     200/200
+       E4 |trainer - reference| <= 0.05 cp:                  13/200  (max 50.086451 cp)
+OK   converter exports without the factoriser: test FAIL (expected FAIL)
+       E1 export: ft ints mismatching 784209/786688 (QAT values on the grid: True); dense blocks bit-equal 6/6 -> MISMATCH
+       E2 output bucket trainer == reference:                 200/200
+       E3 accumulators (both perspectives, float32 bits):     0/200
+       E4 |trainer - reference| <= 0.05 cp:                  0/200  (max 113.988226 cp)
+       E2 output bucket trainer == reference:                 200/200
+       E3 accumulators (both perspectives, float32 bits):     0/200
+       E4 |trainer - reference| <= 0.05 cp:                  3/200  (max 90.967982 cp)
+OK   lazy evaluator replays across a king-key change: test FAIL (expected FAIL)
+       walk coverage: evaluated 20000 key_changes 2922 castles 50 en_passant 17 promotions 92 null_moves 663
+       mismatches: accumulators 16176, outputs 16176, piece codes 0; first: 1r1q2k1/1p1npp2/2p3p1/3pQ3/3P4/1P2P1BP/P4PBP/RN3RK1 w - - 7 19 lazy -0.16848556697368622 -29 refresh -0.43587273359298706 -77
+OK   refresh cache forgets its board: test FAIL (expected FAIL)
+       walk coverage: evaluated 20000 key_changes 2922 castles 50 en_passant 17 promotions 92 null_moves 663
+       mismatches: accumulators 19909, outputs 19909, piece codes 0; first: 1r1q2k1/1p1npp2/2p3p1/3pQ3/3P4/1P2P1BP/P4PBP/RN3RK1 w - - 7 19 lazy -0.680597722530365 -120 refresh -0.43587273359298706 -77
+OK   castling dirty pieces without the rook: test FAIL (expected FAIL)
+       walk coverage: evaluated 20000 key_changes 2922 castles 50 en_passant 17 promotions 92 null_moves 663
+       mismatches: accumulators 1365, outputs 1365, piece codes 1618; first: Rr5r/3k4/8/8/8/8/4K3/5R2 b - - 8 5 lazy 0.007969953119754791 1 refresh -0.03188379853963852 -5
+OK   en passant removes the pawn on the target square: test FAIL (expected FAIL)
+       walk coverage: evaluated 20000 key_changes 2922 castles 50 en_passant 17 promotions 92 null_moves 663
+       mismatches: accumulators 277, outputs 277, piece codes 310; first: 3r4/8/2P1p2k/pPprbp1B/2R3q1/P3Pp2/7K/R7 w - - 0 40 lazy 0.059851501137018204 10 refresh 0.08391781151294708 14
+mutation check: every planted bug caught, baseline passes
+step mutation_check exit 0
+$ python -I -B forge_astra_A3_converter_20261027.py info a3smoke2_seed7_r1/epoch003.fnn
+FORGEFN1 v1 header 256 inputs 768 H 256 king blocks 4 mirror True output buckets 8 L1 16 L2 32 act 1/1 scale 4096 K 2.25 bytes 1854760 fnv1a 05d4be09a2c5607a checksum OK
+$ python -I -B forge_astra_A3_refeval_20261027.py eval a3smoke2_seed7_r1/epoch003.fnn inputs/fens_10k.txt 8
+-0.139653891 -24 -0.139653894322 | rnbqkb1r/pppppppp/8/5n2/P6P/5P2/1PPPP1P1/RNBQKBNR w KQkq - 1 5
+-0.109069936 -19 -0.109069937221 | rnbqkb1r/pppppppp/8/5n2/P6P/5P2/1PPPPKP1/RNBQ1BNR b kq - 2 5
+-0.135954261 -24 -0.135954244244 | rnbqkb1r/pppp1ppp/8/4pn2/P6P/5P2/1PPPPKP1/RNBQ1BNR w kq e6 0 6
+-0.107278973 -19 -0.10727898445 | rnbqkb1r/pppp1ppp/8/4pn2/P6P/5PP1/1PPPPK2/RNBQ1BNR b kq - 0 6
+-0.108970731 -19 -0.108970710226 | rnbqkb1r/ppp2ppp/8/3ppn2/P6P/5PP1/1PPPPK2/RNBQ1BNR w kq d6 0 7
+-0.0930823162 -16 -0.0930823036734 | rnbqkb1r/ppp2ppp/8/3ppn2/P6P/4PPP1/1PPP1K2/RNBQ1BNR b kq - 0 7
+-0.116124049 -20 -0.116124031646 | r1bqkb1r/ppp2ppp/2n5/3ppn2/P6P/4PPP1/1PPP1K2/RNBQ1BNR w kq - 1 8
+-0.0970407948 -17 -0.0970407770681 | r1bqkb1r/ppp2ppp/2n5/P2ppn2/7P/4PPP1/1PPP1K2/RNBQ1BNR b kq - 0 8
+step refeval_cli exit 0
+supervisor.log 'adopted running job' lines after: 7
+$ git diff --stat 294dbed HEAD -- src include tests tools bench CMakeLists.txt   (empty = no engine or lock-tree change)
+$ git status --short -- ../../src ../../include ../../tests ../../tools ../../bench ../../CMakeLists.txt   (empty = untouched)
+end of check
+acceptance: ALL STEPS EXIT 0
+rc=0

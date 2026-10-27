@@ -1,0 +1,57 @@
+$ python -I -B a3_mutation_check.py --trainer opus_nnue_smoke_a3trainer.py --ckpt a3smoke2_seed7_r1/epoch003-step000000585.pt --net a3smoke2_seed7_r1/epoch003.fnn --pos inputs/data32_sample_50k/h000.pos --fens inputs/fens_10k.txt --tmp a3smoke2_mutation_tmp_20261027_155914
+OK   baseline: parity: test PASS (expected PASS)
+       E1 export: ft ints mismatching 0/786688 (QAT values on the grid: True); dense blocks bit-equal 6/6 -> OK
+       E2 output bucket trainer == reference:                 200/200
+       E3 accumulators (both perspectives, float32 bits):     200/200
+       E4 |trainer - reference| <= 0.05 cp:                  200/200  (max 0.000021 cp)
+       E2 output bucket trainer == reference:                 200/200
+       E3 accumulators (both perspectives, float32 bits):     200/200
+       E4 |trainer - reference| <= 0.05 cp:                  200/200  (max 0.000021 cp)
+OK   baseline: incremental: test PASS (expected PASS)
+       walk coverage: evaluated 20000 key_changes 2922 castles 50 en_passant 17 promotions 92 null_moves 663
+       mismatches: accumulators 0, outputs 0, piece codes 0
+OK   reference ignores mirroring (flip 0): test FAIL (expected FAIL)
+       E1 export: ft ints mismatching 0/786688 (QAT values on the grid: True); dense blocks bit-equal 6/6 -> OK
+       E2 output bucket trainer == reference:                 200/200
+       E3 accumulators (both perspectives, float32 bits):     90/200
+       E4 |trainer - reference| <= 0.05 cp:                  90/200  (max 154.250677 cp)
+       E2 output bucket trainer == reference:                 200/200
+       E3 accumulators (both perspectives, float32 bits):     16/200
+       E4 |trainer - reference| <= 0.05 cp:                  17/200  (max 126.639403 cp)
+OK   reference output bucket + 1: test FAIL (expected FAIL)
+       E1 export: ft ints mismatching 0/786688 (QAT values on the grid: True); dense blocks bit-equal 6/6 -> OK
+       E2 output bucket trainer == reference:                 0/200
+       E3 accumulators (both perspectives, float32 bits):     200/200
+       E4 |trainer - reference| <= 0.05 cp:                  0/200  (max 212.126244 cp)
+       E2 output bucket trainer == reference:                 43/200
+       E3 accumulators (both perspectives, float32 bits):     200/200
+       E4 |trainer - reference| <= 0.05 cp:                  43/200  (max 168.532933 cp)
+OK   reference dense layer drops lane 15: test FAIL (expected FAIL)
+       E1 export: ft ints mismatching 0/786688 (QAT values on the grid: True); dense blocks bit-equal 6/6 -> OK
+       E2 output bucket trainer == reference:                 200/200
+       E3 accumulators (both perspectives, float32 bits):     200/200
+       E4 |trainer - reference| <= 0.05 cp:                  0/200  (max 44.983466 cp)
+       E2 output bucket trainer == reference:                 200/200
+       E3 accumulators (both perspectives, float32 bits):     200/200
+       E4 |trainer - reference| <= 0.05 cp:                  13/200  (max 50.086451 cp)
+OK   converter exports without the factoriser: test FAIL (expected FAIL)
+       E1 export: ft ints mismatching 784209/786688 (QAT values on the grid: True); dense blocks bit-equal 6/6 -> MISMATCH
+       E2 output bucket trainer == reference:                 200/200
+       E3 accumulators (both perspectives, float32 bits):     0/200
+       E4 |trainer - reference| <= 0.05 cp:                  0/200  (max 113.988226 cp)
+       E2 output bucket trainer == reference:                 200/200
+       E3 accumulators (both perspectives, float32 bits):     0/200
+       E4 |trainer - reference| <= 0.05 cp:                  3/200  (max 90.967982 cp)
+OK   lazy evaluator replays across a king-key change: test FAIL (expected FAIL)
+       walk coverage: evaluated 20000 key_changes 2922 castles 50 en_passant 17 promotions 92 null_moves 663
+       mismatches: accumulators 16176, outputs 16176, piece codes 0; first: 1r1q2k1/1p1npp2/2p3p1/3pQ3/3P4/1P2P1BP/P4PBP/RN3RK1 w - - 7 19 lazy -0.16848556697368622 -29 refresh -0.43587273359298706 -77
+OK   refresh cache forgets its board: test FAIL (expected FAIL)
+       walk coverage: evaluated 20000 key_changes 2922 castles 50 en_passant 17 promotions 92 null_moves 663
+       mismatches: accumulators 19909, outputs 19909, piece codes 0; first: 1r1q2k1/1p1npp2/2p3p1/3pQ3/3P4/1P2P1BP/P4PBP/RN3RK1 w - - 7 19 lazy -0.680597722530365 -120 refresh -0.43587273359298706 -77
+OK   castling dirty pieces without the rook: test FAIL (expected FAIL)
+       walk coverage: evaluated 20000 key_changes 2922 castles 50 en_passant 17 promotions 92 null_moves 663
+       mismatches: accumulators 1365, outputs 1365, piece codes 1618; first: Rr5r/3k4/8/8/8/8/4K3/5R2 b - - 8 5 lazy 0.007969953119754791 1 refresh -0.03188379853963852 -5
+OK   en passant removes the pawn on the target square: test FAIL (expected FAIL)
+       walk coverage: evaluated 20000 key_changes 2922 castles 50 en_passant 17 promotions 92 null_moves 663
+       mismatches: accumulators 277, outputs 277, piece codes 310; first: 3r4/8/2P1p2k/pPprbp1B/2R3q1/P3Pp2/7K/R7 w - - 0 40 lazy 0.059851501137018204 10 refresh 0.08391781151294708 14
+mutation check: every planted bug caught, baseline passes
