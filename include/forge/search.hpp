@@ -36,6 +36,8 @@ public:
     void clear_caches() { evaluator_.clear(); }
     [[nodiscard]] std::uint64_t nodes() const { return nodes_.load(std::memory_order_relaxed); }
     [[nodiscard]] bool is_main() const { return id_ == 0; }
+    // The caller's worker list (all_workers_) is valid only during one search.
+    void end_search() { all_workers_ = nullptr; }
 
 private:
     friend struct SearcherTestProbe;

@@ -59,6 +59,8 @@ SearchInfo Searcher::search(Board board, const SearchLimits& limits, bool emit_i
     shared_.stop.store(true, std::memory_order_relaxed);
     for (auto& helper : helpers) helper.join();
     shared_.stop.store(external_stop, std::memory_order_relaxed);
+    // `all` dies with this call: no worker may keep pointing at it.
+    for (auto& worker : workers_) worker->end_search();
     return result;
 }
 
