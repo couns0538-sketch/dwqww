@@ -44,7 +44,7 @@ using ContributionTable = std::array<std::array<std::uint64_t, CountValues>, Slo
 alignas(64) inline constexpr ContributionTable Contributions = make_contributions();
 
 // The search's material key, from the table.
-[[nodiscard]] inline std::uint64_t table_key(const Board& board) {
+[[nodiscard, gnu::always_inline]] inline std::uint64_t table_key(const Board& board) {
     std::uint64_t key = 0;
     std::size_t slot = 0;
     for (const Color color : {White, Black}) {

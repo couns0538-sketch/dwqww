@@ -588,7 +588,10 @@ void Worker::clear() {
 
 namespace {
 // Hash of the piece counts of both sides, for material-indexed statistics.
-[[nodiscard]] std::uint64_t material_key(const Board& board) {
+// Always inlined (S11): with the option test added GCC would otherwise emit it
+// out of line and inline corrected_eval into search/qsearch instead (the lock
+// inlines this function into corrected_eval and update_correction).
+[[nodiscard, gnu::always_inline]] inline std::uint64_t material_key(const Board& board) {
     // S11 MaterialKeyTable: the same key from a contribution table (forge/material_key_table.hpp).
     if (options::material_key_table) [[unlikely]] return matkey::table_key(board);
     std::uint64_t key = 0;
