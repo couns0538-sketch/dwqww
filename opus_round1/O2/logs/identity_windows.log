@@ -1,0 +1,45 @@
+PC recipe build (build_pc.sh: g++ 15.2 -O3 -march=znver5 -ffp-contract=off -fno-fast-math -static), sha256 ee0025480bdbd3af9c166a5092bb3375be2dcca5b062fd79792689d3d6eabe22
+FMA (vfmadd/vfmsub/vfnmadd) count: 0
+bench d11 nodes 312866 ref 312866 OK
+bench d13 nodes 862329 ref 862329 OK
+bench d16 nodes 3024920 ref 3024920 OK
+perft5 startpos 4865609 ref 4865609 OK
+perft5 kiwipete 193690690 ref 193690690 OK
+ALL OK
+
+CMake build b/cm_o2 (-march=x86-64-v3 -mtune=znver5 -fno-fast-math -ffp-contract=off -DFORGE_NNUE_HIDDEN=256), FMA 0
+bench d11 nodes 312866 ref 312866 OK
+bench d13 nodes 862329 ref 862329 OK
+bench d16 nodes 3024920 ref 3024920 OK
+perft5 startpos 4865609 ref 4865609 OK
+perft5 kiwipete 193690690 ref 193690690 OK
+ALL OK
+
+CMake build b/cm_o2_sse2 (-march=x86-64 -mtune=znver5 -fno-fast-math -ffp-contract=off -DFORGE_NNUE_HIDDEN=256), FMA 0
+bench d11 nodes 312866 ref 312866 OK
+bench d13 nodes 862329 ref 862329 OK
+bench d16 nodes 3024920 ref 3024920 OK
+perft5 startpos 4865609 ref 4865609 OK
+perft5 kiwipete 193690690 ref 193690690 OK
+ALL OK
+
+CMake build b/cm_o2_scalar (-march=x86-64 -mtune=znver5 -fno-tree-vectorize -fno-tree-slp-vectorize -DFORGE_NNUE_FORCE_SCALAR=1 -fno-fast-math -ffp-contract=off -DFORGE_NNUE_HIDDEN=256), FMA 0
+bench d11 nodes 312866 ref 312866 OK
+bench d13 nodes 862329 ref 862329 OK
+bench d16 nodes 3024920 ref 3024920 OK
+perft5 startpos 4865609 ref 4865609 OK
+perft5 kiwipete 193690690 ref 193690690 OK
+ALL OK
+
+CMake build b/cm_o2_znver5 (-march=znver5 -fno-fast-math -ffp-contract=off -DFORGE_NNUE_HIDDEN=256), FMA 0
+bench d11 nodes 312866 ref 312866 OK
+bench d13 nodes 862329 ref 862329 OK
+bench d16 nodes 3024920 ref 3024920 OK
+perft5 startpos 4865609 ref 4865609 OK
+perft5 kiwipete 193690690 ref 193690690 OK
+ALL OK
+b/cm_o2/forge.exe: FAIL: NNUE output has no 256-bit vmaxps
+b/o2/forge_o2b.exe: FAIL: NNUE output has no 256-bit vmaxps
+b/base/forge_h256_s198.exe: FAIL: NNUE output has no 256-bit vmaxps
+b/cm_base/forge.exe (lock, CMake box flags): FAIL: NNUE output has no 256-bit vmaxps
+note: GCC 15.2 lowers _mm256_max_ps(x, 0) to vcmpltps+vandps (x86-64-v3) or vcmpgtps+masked vmovaps (znver5); same instructions in the lock and O2 evaluate()

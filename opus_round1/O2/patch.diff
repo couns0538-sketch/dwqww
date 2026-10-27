@@ -1,0 +1,1971 @@
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index f3acf19..bbed5ba 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -79,6 +79,10 @@ add_executable(forge_timeman_tests tests/timeman_tests.cpp)
+ target_include_directories(forge_timeman_tests PRIVATE src)
+ target_link_libraries(forge_timeman_tests PRIVATE forge_core Threads::Threads)
+ 
++# NNUE parity: current kernels against a verbatim copy of the AL1 s198 code.
++add_executable(forge_nnue_parity_tests tests/nnue_parity_tests.cpp)
++target_link_libraries(forge_nnue_parity_tests PRIVATE forge_core Threads::Threads)
++
+ add_executable(forge_bench bench/benchmark.cpp)
+ target_link_libraries(forge_bench PRIVATE forge_core Threads::Threads)
+ 
+@@ -92,6 +96,8 @@ add_test(NAME forge_pv_metadata_tests COMMAND forge_pv_metadata_tests)
+ add_test(NAME forge_movepicker_tests COMMAND forge_movepicker_tests)
+ add_test(NAME forge_history_tests COMMAND forge_history_tests)
+ add_test(NAME forge_timeman_tests COMMAND forge_timeman_tests)
++add_test(NAME forge_nnue_parity_tests COMMAND forge_nnue_parity_tests
++    --fens ${CMAKE_CURRENT_SOURCE_DIR}/tests/data/nnue_selfplay_sample_916.txt)
+ add_test(NAME forge_tt_tests COMMAND forge_tt_tests)
+ add_test(NAME forge_rule50_tests COMMAND forge_rule50_tests)
+ add_test(NAME forge_legal_witness_tests COMMAND forge_legal_witness_tests
+diff --git a/include/forge/nnue.hpp b/include/forge/nnue.hpp
+index 6b1eba2..b2c9c29 100644
+--- a/include/forge/nnue.hpp
++++ b/include/forge/nnue.hpp
+@@ -29,7 +29,8 @@ constexpr float SigmoidK = 2.25F;        // network output is in sigmoid units o
+ }
+ 
+ struct Accumulator {
+-    alignas(32) std::array<std::array<float, HiddenSize>, 2> values{};
++    // 64-byte aligned: every 512-bit (or 256-bit) access stays inside one cache line.
++    alignas(64) std::array<std::array<float, HiddenSize>, 2> values{};
+     bool valid = false;
+ };
+ 
+diff --git a/src/nnue.cpp b/src/nnue.cpp
+index e88cfc5..1962fbe 100644
+--- a/src/nnue.cpp
++++ b/src/nnue.cpp
+@@ -4,19 +4,43 @@
+ #include <cmath>
+ #include <cstdint>
+ #include <memory>
++#include <new>
+ 
++// Kernel selection is compile-time only, and every path is bit-identical: each
++// accumulator lane and each output partial sum sees the same float operations
++// in the same order as the portable code (no FMA, no -ffast-math, no
++// reassociation). FORGE_NNUE_FORCE_SCALAR selects the portable code on any
++// target (used by the parity tests).
++//
+ // The output layer uses SSE min/max/mul/add directly: compilers may not turn a
+ // float clamp into min/max instructions without -ffast-math, which left the
+ // AVX2 builds with slow scalar code. SSE2 is part of every x86-64 target.
+-#if defined(__SSE__) || defined(_M_X64) || defined(_M_AMD64)
++#if !defined(FORGE_NNUE_FORCE_SCALAR) && (defined(__SSE__) || defined(_M_X64) || defined(_M_AMD64))
+ #include <xmmintrin.h>
+ #define FORGE_NNUE_SSE 1
+ #else
+ #define FORGE_NNUE_SSE 0
+ #endif
+ 
+-#if defined(__AVX2__)
++#if !defined(FORGE_NNUE_FORCE_SCALAR) && defined(__AVX2__)
+ #include <immintrin.h>
++#define FORGE_NNUE_AVX2 1
++#else
++#define FORGE_NNUE_AVX2 0
++#endif
++
++// Accumulator kernels (refresh/update): explicit AVX2 or SSE2 vectors, else the
++// portable loops. AVX-512 targets keep the portable loops, which the compiler
++// widens to 512 bits itself as it does for AL1 s198.
++#if FORGE_NNUE_AVX2 && !defined(__AVX512F__)
++#define FORGE_NNUE_KERNEL_AVX2 1
++#else
++#define FORGE_NNUE_KERNEL_AVX2 0
++#endif
++#if FORGE_NNUE_SSE && !defined(__AVX2__)
++#define FORGE_NNUE_KERNEL_SSE2 1
++#else
++#define FORGE_NNUE_KERNEL_SSE2 0
+ #endif
+ 
+ #if __has_include("nnue_weights.inc")
+@@ -43,17 +67,30 @@ bool enabled = true;
+ 
+ namespace {
+ 
++// 64-byte aligned storage: every feature column (HiddenSize floats) starts on a
++// cache-line boundary, so no vector load of a column straddles two lines.
++struct AlignedDelete {
++    void operator()(float* p) const { ::operator delete[](p, std::align_val_t{64}); }
++};
++using AlignedFloats = std::unique_ptr<float[], AlignedDelete>;
++
++AlignedFloats aligned_zeros(std::size_t count) {
++    AlignedFloats storage(static_cast<float*>(::operator new[](count * sizeof(float), std::align_val_t{64})));
++    std::fill_n(storage.get(), count, 0.0F);
++    return storage;
++}
++
+ struct Weights {
+-    std::unique_ptr<float[]> w1;   // [InputCount][HiddenSize]
+-    alignas(32) std::array<float, HiddenSize> b1{};
+-    alignas(32) std::array<float, 2 * HiddenSize> w2{};
++    AlignedFloats w1;   // [InputCount][HiddenSize]
++    alignas(64) std::array<float, HiddenSize> b1{};
++    alignas(64) std::array<float, 2 * HiddenSize> w2{};
+     float b2 = 0.0F;
+ };
+ 
+ const Weights& weights() {
+     static const Weights instance = [] {
+         Weights w;
+-        w.w1 = std::make_unique<float[]>(static_cast<std::size_t>(InputCount) * HiddenSize);
++        w.w1 = aligned_zeros(static_cast<std::size_t>(InputCount) * HiddenSize);
+ #if FORGE_HAS_NNUE
+         for (std::size_t i = 0; i < static_cast<std::size_t>(InputCount) * HiddenSize; ++i) {
+             w.w1[i] = static_cast<float>(NnueW1[i]) / WeightScale;
+@@ -67,6 +104,10 @@ const Weights& weights() {
+     return instance;
+ }
+ 
++inline const float* column(const Weights& w, Color perspective, Piece piece, int square) {
++    return w.w1.get() + static_cast<std::size_t>(feature_index(perspective, piece, square)) * HiddenSize;
++}
++
+ inline void add_feature(std::array<float, HiddenSize>& acc, const float* column) {
+     for (int h = 0; h < HiddenSize; ++h) acc[static_cast<std::size_t>(h)] += column[h];
+ }
+@@ -75,6 +116,84 @@ inline void sub_feature(std::array<float, HiddenSize>& acc, const float* column)
+     for (int h = 0; h < HiddenSize; ++h) acc[static_cast<std::size_t>(h)] -= column[h];
+ }
+ 
++// One accumulator vector: the kernels below are written once against these
++// helpers. Lanes never interact, so the vector width only changes how many
++// lanes one instruction handles, never the operations a lane sees.
++#if FORGE_NNUE_KERNEL_AVX2
++using Vec = __m256;
++constexpr int VecWidth = 8;
++inline Vec vec_load(const float* p) { return _mm256_load_ps(p); }
++inline void vec_store(float* p, Vec v) { _mm256_store_ps(p, v); }
++inline Vec vec_add(Vec a, Vec b) { return _mm256_add_ps(a, b); }
++inline Vec vec_sub(Vec a, Vec b) { return _mm256_sub_ps(a, b); }
++#elif FORGE_NNUE_KERNEL_SSE2
++using Vec = __m128;
++constexpr int VecWidth = 4;
++inline Vec vec_load(const float* p) { return _mm_load_ps(p); }
++inline void vec_store(float* p, Vec v) { _mm_store_ps(p, v); }
++inline Vec vec_add(Vec a, Vec b) { return _mm_add_ps(a, b); }
++inline Vec vec_sub(Vec a, Vec b) { return _mm_sub_ps(a, b); }
++#else
++using Vec = float;
++constexpr int VecWidth = 1;
++inline Vec vec_load(const float* p) { return *p; }
++inline void vec_store(float* p, Vec v) { *p = v; }
++inline Vec vec_add(Vec a, Vec b) { return a + b; }
++inline Vec vec_sub(Vec a, Vec b) { return a - b; }
++#endif
++static_assert(HiddenSize % VecWidth == 0, "HiddenSize must be a multiple of the vector width");
++
++// Update kernels. Each lane takes the parent value and then applies the piece
++// changes in DirtyPieces order (subtract a removal, add an addition), which is
++// exactly what the generic copy-then-apply loop in update() computes. `out`
++// may equal `in` (in-place update): every vector is read before it is written.
++
++// Quiet moves and noncapturing promotions: (in - r) + a.
++inline void apply_sub_add(float* out, const float* in, const float* r, const float* a) {
++    for (int h = 0; h < HiddenSize; h += VecWidth)
++        vec_store(out + h, vec_add(vec_sub(vec_load(in + h), vec_load(r + h)), vec_load(a + h)));
++}
++
++// Captures, en passant and capturing promotions: ((in - r0) - r1) + a.
++inline void apply_sub_sub_add(float* out, const float* in, const float* r0, const float* r1, const float* a) {
++    for (int h = 0; h < HiddenSize; h += VecWidth)
++        vec_store(out + h, vec_add(vec_sub(vec_sub(vec_load(in + h), vec_load(r0 + h)), vec_load(r1 + h)), vec_load(a + h)));
++}
++
++// Castling (king, then rook): (((in - r0) + a0) - r1) + a1.
++inline void apply_sub_add_sub_add(float* out, const float* in, const float* r0, const float* a0, const float* r1,
++                                  const float* a1) {
++    for (int h = 0; h < HiddenSize; h += VecWidth)
++        vec_store(out + h, vec_add(vec_sub(vec_add(vec_sub(vec_load(in + h), vec_load(r0 + h)), vec_load(a0 + h)),
++                                           vec_load(r1 + h)),
++                                   vec_load(a1 + h)));
++}
++
++// Refresh kernel: out = bias + columns[0] + columns[1] + ..., lane by lane in
++// column order (the order in which AL1 s198 adds the pieces).
++inline void accumulate_columns(float* out, const float* bias, const float* const* columns, std::size_t count) {
++#if FORGE_NNUE_KERNEL_AVX2 || FORGE_NNUE_KERNEL_SSE2
++    // Register-blocked: a block of Regs vectors stays in registers while every
++    // column is added, instead of a load and a store per column and vector.
++    constexpr int Regs = HiddenSize % (8 * VecWidth) == 0 ? 8 : HiddenSize % (4 * VecWidth) == 0 ? 4 : 1;
++    for (int base = 0; base < HiddenSize; base += Regs * VecWidth) {
++        Vec sums[Regs];
++        for (int k = 0; k < Regs; ++k) sums[k] = vec_load(bias + base + k * VecWidth);
++        for (std::size_t c = 0; c < count; ++c) {
++            const float* source = columns[c] + base;
++            for (int k = 0; k < Regs; ++k) sums[k] = vec_add(sums[k], vec_load(source + k * VecWidth));
++        }
++        for (int k = 0; k < Regs; ++k) vec_store(out + base + k * VecWidth, sums[k]);
++    }
++#else
++    std::copy_n(bias, HiddenSize, out);
++    for (std::size_t c = 0; c < count; ++c) {
++        const float* source = columns[c];
++        for (int h = 0; h < HiddenSize; ++h) out[h] += source[h];
++    }
++#endif
++}
++
+ } // namespace
+ 
+ bool available() { return FORGE_HAS_NNUE != 0; }
+@@ -84,73 +203,70 @@ bool residual() { return FORGE_HAS_NNUE != 0 && FORGE_NNUE_RESIDUAL != 0; }
+ void refresh(const Board& board, Accumulator& accumulator) {
+     const Weights& w = weights();
+     for (const Color perspective : {White, Black}) {
+-        auto& acc = accumulator.values[static_cast<std::size_t>(perspective)];
+-        acc = w.b1;
++        std::array<const float*, 64> columns;
++        std::size_t count = 0;
+         Bitboard occupied = board.occupied();
+         while (occupied != 0) {
+             const int square = pop_lsb(occupied);
+-            const int index = feature_index(perspective, board.piece_at(square), square);
+-            add_feature(acc, w.w1.get() + static_cast<std::size_t>(index) * HiddenSize);
++            columns[count++] = column(w, perspective, board.piece_at(square), square);
+         }
++        accumulate_columns(accumulator.values[static_cast<std::size_t>(perspective)].data(), w.b1.data(), columns.data(),
++                           count);
+     }
+     accumulator.valid = true;
+ }
+ 
+ void update(const Accumulator& parent, Accumulator& child, const DirtyPieces& dirty) {
+     const Weights& w = weights();
++    const auto& changes = dirty.changes;
+     // Quiet moves (including noncapturing promotions) remove one feature and
+-    // add one. Keep each lane's subtraction-then-addition order while avoiding
+-    // a full copy and two separate read/write passes over the child.
+-    if (dirty.count == 2 && !dirty.changes[0].add && dirty.changes[1].add) {
++    // add one; captures remove two (mover and captured piece) before adding
++    // the mover or promoted piece; castling moves the king, then the rook.
++    // One pass per lane keeps every intermediate subtraction and addition of
++    // the generic loop below, without a full copy and a pass per change.
++    if (dirty.count == 2 && !changes[0].add && changes[1].add) {
++        for (const Color perspective : {White, Black}) {
++            const std::size_t side = static_cast<std::size_t>(perspective);
++            apply_sub_add(child.values[side].data(), parent.values[side].data(),
++                          column(w, perspective, changes[0].piece, changes[0].square),
++                          column(w, perspective, changes[1].piece, changes[1].square));
++        }
++        child.valid = true;
++        return;
++    }
++    if (dirty.count == 3 && !changes[0].add && !changes[1].add && changes[2].add) {
+         for (const Color perspective : {White, Black}) {
+-            const auto& source = parent.values[static_cast<std::size_t>(perspective)];
+-            auto& destination = child.values[static_cast<std::size_t>(perspective)];
+-            const PieceChange& removed = dirty.changes[0];
+-            const PieceChange& added = dirty.changes[1];
+-            const float* removed_column = w.w1.get() +
+-                static_cast<std::size_t>(feature_index(perspective, removed.piece, removed.square)) * HiddenSize;
+-            const float* added_column = w.w1.get() +
+-                static_cast<std::size_t>(feature_index(perspective, added.piece, added.square)) * HiddenSize;
+-            for (int h = 0; h < HiddenSize; ++h) {
+-                const std::size_t index = static_cast<std::size_t>(h);
+-                destination[index] = (source[index] - removed_column[index]) + added_column[index];
+-            }
++            const std::size_t side = static_cast<std::size_t>(perspective);
++            apply_sub_sub_add(child.values[side].data(), parent.values[side].data(),
++                              column(w, perspective, changes[0].piece, changes[0].square),
++                              column(w, perspective, changes[1].piece, changes[1].square),
++                              column(w, perspective, changes[2].piece, changes[2].square));
+         }
+         child.valid = true;
+         return;
+     }
+-    // Captures remove the mover and captured piece before adding the mover
+-    // (or promoted piece). Preserve both intermediate subtractions per lane.
+-    if (dirty.count == 3 && !dirty.changes[0].add && !dirty.changes[1].add && dirty.changes[2].add) {
++    if (dirty.count == 4 && !changes[0].add && changes[1].add && !changes[2].add && changes[3].add) {
+         for (const Color perspective : {White, Black}) {
+-            const auto& source = parent.values[static_cast<std::size_t>(perspective)];
+-            auto& destination = child.values[static_cast<std::size_t>(perspective)];
+-            const PieceChange& removed0 = dirty.changes[0];
+-            const PieceChange& removed1 = dirty.changes[1];
+-            const PieceChange& added = dirty.changes[2];
+-            const float* removed0_column = w.w1.get() +
+-                static_cast<std::size_t>(feature_index(perspective, removed0.piece, removed0.square)) * HiddenSize;
+-            const float* removed1_column = w.w1.get() +
+-                static_cast<std::size_t>(feature_index(perspective, removed1.piece, removed1.square)) * HiddenSize;
+-            const float* added_column = w.w1.get() +
+-                static_cast<std::size_t>(feature_index(perspective, added.piece, added.square)) * HiddenSize;
+-            for (int h = 0; h < HiddenSize; ++h) {
+-                const std::size_t index = static_cast<std::size_t>(h);
+-                destination[index] = ((source[index] - removed0_column[index]) - removed1_column[index]) + added_column[index];
+-            }
++            const std::size_t side = static_cast<std::size_t>(perspective);
++            apply_sub_add_sub_add(child.values[side].data(), parent.values[side].data(),
++                                  column(w, perspective, changes[0].piece, changes[0].square),
++                                  column(w, perspective, changes[1].piece, changes[1].square),
++                                  column(w, perspective, changes[2].piece, changes[2].square),
++                                  column(w, perspective, changes[3].piece, changes[3].square));
+         }
+         child.valid = true;
+         return;
+     }
++    // Null moves (no change) and any other change list: copy, then apply each
++    // change in order.
+     for (const Color perspective : {White, Black}) {
+         auto& acc = child.values[static_cast<std::size_t>(perspective)];
+         acc = parent.values[static_cast<std::size_t>(perspective)];
+         for (int i = 0; i < dirty.count; ++i) {
+-            const PieceChange& change = dirty.changes[static_cast<std::size_t>(i)];
+-            const int index = feature_index(perspective, change.piece, change.square);
+-            const float* column = w.w1.get() + static_cast<std::size_t>(index) * HiddenSize;
+-            if (change.add) add_feature(acc, column);
+-            else sub_feature(acc, column);
++            const PieceChange& change = changes[static_cast<std::size_t>(i)];
++            const float* feature = column(w, perspective, change.piece, change.square);
++            if (change.add) add_feature(acc, feature);
++            else sub_feature(acc, feature);
+         }
+     }
+     child.valid = true;
+@@ -163,12 +279,12 @@ int evaluate(const Board& board, const Accumulator& accumulator) {
+     const auto& theirs = accumulator.values[static_cast<std::size_t>(opposite(us))];
+     // Sixteen independent partial sums (lane j takes the hidden units with
+     // index % 16 == j, in increasing order) and then one ordered sum: the
+-    // association is fixed by the source, so every target (SSE, AVX2, AVX-512,
+-    // the scalar fallback) produces bit-identical results without -ffast-math.
++    // association is fixed by the source, so every target (SSE, AVX2, the
++    // scalar fallback) produces bit-identical results without -ffast-math.
+     constexpr int Lanes = 16;
+     static_assert(HiddenSize % Lanes == 0, "HiddenSize must be a multiple of the lane count");
+     alignas(64) float lanes[Lanes];
+-#if defined(__AVX2__)
++#if FORGE_NNUE_AVX2
+     const __m256 zero = _mm256_setzero_ps();
+     const __m256 one = _mm256_set1_ps(1.0F);
+     __m256 sums[2] = {zero, zero};
+diff --git a/tests/data/nnue_selfplay_sample_916.txt b/tests/data/nnue_selfplay_sample_916.txt
+new file mode 100644
+index 0000000..0f6924e
+--- /dev/null
++++ b/tests/data/nnue_selfplay_sample_916.txt
+@@ -0,0 +1,916 @@
++r1bqkbnr/pppppp2/n6p/8/4P1P1/1PN5/P1PP2PP/R1BQKBNR b KQkq - 0 5 | -130 | 0.5
++r1bqk1nr/ppppppb1/n6p/8/4P1P1/1PN5/P1PP2PP/R1BQKBNR w KQkq - 1 6 | 152 | 0.5
++r1bqk1nr/ppppppb1/n6p/8/4P1P1/1PN2N2/P1PP2PP/R1BQKB1R b KQkq - 2 6 | -132 | 0.5
++r1bqk1nr/ppp1ppb1/n6p/3P4/6P1/1PN2N2/P1PP2PP/R1BQKB1R b KQkq - 0 7 | -122 | 0.5
++r1bqk1nr/ppp1ppb1/7p/3P4/1n4P1/1PN2N2/P1PP2PP/R1BQKB1R w KQkq - 1 8 | 126 | 0.5
++r1bq1knr/ppp1ppb1/7p/1B1P4/1n4P1/1PN2N2/P1PP2PP/R1BQK2R w KQ - 3 9 | 119 | 0.5
++r1bq1knr/ppp1ppb1/7p/1B1P4/1n4P1/1PN2N1P/P1PP2P1/R1BQK2R b KQ - 0 9 | -123 | 0.5
++r1bq1k1r/ppp1ppb1/5n1p/1B1P4/1n4P1/1PN2N1P/P1PP2P1/R1BQK2R w KQ - 1 10 | 140 | 0.5
++r1bq1k1r/ppp1ppb1/7p/1B1n4/1n4P1/1PN2N1P/PBPP2P1/R2QK2R w KQ - 0 11 | 124 | 0.5
++r1bq1k1r/ppp1ppb1/7p/1B1n4/1n4P1/1PN2N1P/PBPP2P1/R2Q1RK1 b - - 1 11 | -127 | 0.5
++r1bq1k1r/pp2ppb1/2p4p/1B1n4/1n4P1/1PN2N1P/PBPP2P1/R2Q1RK1 w - - 0 12 | 133 | 0.5
++r1b2k1r/pp2ppb1/2p4p/8/1nB3P1/1PP2N1P/PBP3P1/3R1RK1 b - - 0 14 | -188 | 0.5
++r1b1k2r/pp2ppb1/2p4p/8/1nB3P1/1PP2N1P/PBP3P1/3R1RK1 w - - 1 15 | 172 | 0.5
++r1b1k2r/pp2ppb1/2p4p/8/1nB3P1/1PP4P/PBPN2P1/3R1RK1 b - - 2 15 | -146 | 0.5
++r1b1k2r/pp2ppb1/2p4p/3n4/2B3P1/1PP4P/PBPN2P1/3R1RK1 w - - 3 16 | 138 | 0.5
++r1b1k2r/pp2ppb1/2p4p/3n4/2B1N1P1/1PP4P/PBP3P1/3R1RK1 b - - 4 16 | -142 | 0.5
++r3k2r/pp2ppb1/2p1b2p/3n4/2B1N1P1/1PP4P/PBP3P1/3R1RK1 w - - 5 17 | 163 | 0.5
++r3k2r/pp2ppb1/2p1b2p/3n4/2B1N1P1/1PP4P/PBP3P1/3RR1K1 b - - 6 17 | -136 | 0.5
++r3k2r/pp2ppb1/2p1n2p/8/4N1P1/1PP4P/PBP3P1/3RR1K1 w - - 0 19 | 174 | 0.5
++r3k2r/pp2ppb1/2p1n2p/8/6P1/1PP3NP/PBP3P1/3RR1K1 b - - 1 19 | -174 | 0.5
++r3k3/pp2ppbr/2p1n2p/8/6P1/1PP3NP/PBP3P1/3RR1K1 w - - 2 20 | 174 | 0.5
++r3k3/pp2ppbr/2p1n2p/7N/6P1/1PP4P/PBP3P1/3RR1K1 b - - 3 20 | -174 | 0.5
++r3k3/1p2ppbr/2p1n2p/p6N/6P1/1PP4P/PBP3P1/3RR1K1 w - a6 0 21 | 159 | 0.5
++r3k3/1p2ppbr/2p1n2p/p6N/6P1/1PPR3P/PBP3P1/4R1K1 b - - 1 21 | -133 | 0.5
++r3k3/1p2ppbr/2p1n2p/7N/p5P1/1PPR3P/PBP3P1/4R1K1 w - - 0 22 | 141 | 0.5
++r3k3/1p2ppbr/2p1n2p/7N/pP4P1/2PR3P/PBP3P1/4R1K1 b - - 0 22 | -146 | 0.5
++3rk3/1p2ppbr/2p1n2p/7N/pP4P1/2PR3P/PBP3P1/4R1K1 w - - 1 23 | 159 | 0.5
++4k3/1p2ppnr/2p4p/8/pP4P1/2PP3P/P5P1/2B1R1K1 b - - 0 25 | -138 | 0.5
++4k3/1p2ppn1/2p5/7r/pP6/2PP3P/P5P1/2B1R1K1 w - - 0 27 | 129 | 0.5
++4k3/1p2ppn1/2p5/7r/pPP5/3P3P/P5P1/2B1R1K1 b - - 0 27 | -133 | 0.5
++4k3/1p2p1n1/2p2p2/7r/pPP5/3P3P/P5P1/2B1R1K1 w - - 0 28 | 119 | 0.5
++4k3/1p2p1n1/2p2p2/7r/pPP5/3P3P/P2B2P1/4R1K1 b - - 1 28 | -110 | 0.5
++8/1p2pkn1/2p2p2/7r/pPP5/3P3P/P2B2P1/4R1K1 w - - 2 29 | 119 | 0.5
++8/1p2pkn1/2p2p2/7r/pPP1R3/3P3P/P2B2P1/6K1 b - - 3 29 | -106 | 0.5
++7r/1p2pkn1/2p2p2/8/pPP1R3/3P3P/P2B2P1/6K1 w - - 4 30 | 140 | 0.5
++7r/1p2pkn1/2p2p2/8/pPPR4/3P3P/P2B2P1/6K1 b - - 5 30 | -111 | 0.5
++4k2r/1p2p1n1/2p2p2/8/pPPR4/3P3P/P2B2P1/6K1 w - - 6 31 | 110 | 0.5
++4k2r/1p2p1n1/2p2p2/8/pPP3R1/3P3P/P2B2P1/6K1 b - - 7 31 | -106 | 0.5
++4k2r/1p2p3/2p1np2/8/pPP3R1/3P3P/P2B2P1/6K1 w - - 8 32 | 109 | 0.5
++4k2r/1p2p3/2p1np2/8/pPP1R3/3P3P/P2B2P1/6K1 b - - 9 32 | -95 | 0.5
++7r/1p2pk2/2p1np2/8/pPP1R3/3P3P/P2B2P1/6K1 w - - 10 33 | 95 | 0.5
++7r/1p2pk2/2p1np2/8/pPP1R3/3P3P/P2B1KP1/8 b - - 11 33 | -95 | 0.5
++7r/1p2pk2/4np2/2p5/pPP1R3/3P3P/P2B1KP1/8 w - - 0 34 | 96 | 0.5
++7r/1p2pk2/4np2/2p5/pPP5/3P3P/P2B1KP1/4R3 b - - 1 34 | 0 | 0.5
++3r4/1p2pk2/4np2/2p5/pPP5/3P3P/P2B1KP1/4R3 w - - 2 35 | 0 | 0.5
++3r4/1p2pk2/4np2/2p5/pPP5/3PK2P/P2B2P1/4R3 b - - 3 35 | 0 | 0.5
++3r4/1p2pk2/5p2/2p5/pPPn4/3PK2P/P2B2P1/4R3 w - - 4 36 | 0 | 0.5
++3r4/1p2pk2/5p2/2p5/pPPn4/3PK2P/P2B2P1/1R6 b - - 5 36 | 0 | 0.5
++3r4/1p2pk2/5p2/2p2n2/pPP5/3P3P/P2BK1P1/1R6 b - - 7 37 | 0 | 0.5
++3r4/1p2pk2/5p2/2p5/pPP5/3PK1nP/P2B2P1/1R6 b - - 9 38 | 0 | 0.5
++rnb1kbnr/ppqpp1p1/2p2p2/7P/3N4/N7/PPPPPP1P/R1BQKB1R b KQkq - 0 5 | 134 | 0.5
++rnb1kbnr/ppqp2p1/2p2p2/4p2P/3N4/N7/PPPPPP1P/R1BQKB1R w KQkq e6 0 6 | -147 | 0.5
++rnb1kbnr/ppqp2p1/2p2p2/4p2P/8/NN6/PPPPPP1P/R1BQKB1R b KQkq - 1 6 | 76 | 0.5
++rnb1kbnr/1pqp2p1/2p2p2/p3p2P/8/NN6/PPPPPP1P/R1BQKB1R w KQkq a6 0 7 | -66 | 0.5
++rnb1kbnr/1pqp2p1/2p2p2/p3p2P/8/NN1P4/PPP1PP1P/R1BQKB1R b KQkq - 0 7 | 79 | 0.5
++rnb1kbnr/2qp2p1/2p2p2/pp2p2P/8/NN1P4/PPP1PP1P/R1BQKB1R w KQkq b6 0 8 | -76 | 0.5
++rnb1kbnr/2qp2p1/2p2p2/pp2p2P/8/NNPP4/PP2PP1P/R1BQKB1R b KQkq - 0 8 | 68 | 0.5
++rnb1kbnr/2q3p1/2p2p2/pp1pp2P/8/NNPP4/PP2PP1P/R1BQKB1R w KQkq d6 0 9 | -53 | 0.5
++rnb1kbnr/2q3p1/2p2p2/pp1pp2P/4P3/NNPP4/PP3P1P/R1BQKB1R b KQkq e3 0 9 | 49 | 0.5
++rnb1kbnr/2q3p1/2p2p2/1p1pp2P/p3P3/NNPP4/PP3P1P/R1BQKB1R w KQkq - 0 10 | -82 | 0.5
++rnb1kbnr/2q3p1/2p2p2/1p1pp2P/p3P3/N1PP4/PP1N1P1P/R1BQKB1R b KQkq - 1 10 | 42 | 0.5
++rnb1kb1r/2q3p1/2p2p1n/1p1pp2P/p3P3/N1PP4/PP1N1P1P/R1BQKB1R w KQkq - 2 11 | -36 | 0.5
++rnb1kb1r/2q3p1/2p2p1n/1p2p2P/p3P3/N1P5/PP1N1P1P/R1BQKBR1 b Qkq - 0 12 | 48 | 0.5
++rn2kb1r/2q3p1/2p1bp1n/1p2p2P/p3P3/N1P5/PP1N1P1P/R1BQKBR1 w Qkq - 1 13 | -36 | 0.5
++rn2kb1r/2q3p1/2p1bp1n/1p2p2P/p3P3/N1P5/PP1NQP1P/R1B1KBR1 b Qkq - 2 13 | 44 | 0.5
++rn2kb1r/2q2np1/2p1bp2/1p2p2P/p3P3/N1P5/PP1NQP1P/R1B1KBR1 w Qkq - 3 14 | -46 | 0.5
++rn2kb1r/2q2np1/2p1bp2/1p2p2P/p3P3/NPP5/P2NQP1P/R1B1KBR1 b Qkq - 0 14 | 48 | 0.5
++rn2kb1r/2q3p1/2p1bp2/1p2p1nP/p3P3/NPP5/P2NQP1P/R1B1KBR1 w Qkq - 1 15 | -44 | 0.5
++rn2kb1r/2q3p1/2p1bp2/1p2p1nP/p3P2P/NPP5/P2NQP2/R1B1KBR1 b Qkq h3 0 15 | 45 | 0.5
++rn2kb1r/2q3p1/2p2p2/1p2p2P/p3P2P/NPP4b/P2NQP2/R1B1K1R1 w Qkq - 0 17 | -32 | 0.5
++rn2kb1r/2q3p1/2p2p2/1p2p2P/p3P2P/1PP4b/P1NNQP2/R1B1K1R1 b Qkq - 1 17 | 64 | 0.5
++rn2kb1r/2q3p1/2p1bp2/1p2p2P/p3P2P/1PP5/P1NNQP2/R1B1K1R1 w Qkq - 2 18 | -65 | 0.5
++rn2kb1r/2q3p1/2p1bpR1/1p2p2P/p3P2P/1PP5/P1NNQP2/R1B1K3 b Qkq - 3 18 | 107 | 0.5
++rn2kb1r/2q2bp1/2p2pR1/1p2p2P/p3P2P/1PP5/P1NNQP2/R1B1K3 w Qkq - 4 19 | -103 | 0.5
++rn2kb1r/2q2bp1/2p2pR1/1p2p2P/p3P1QP/1PP5/P1NN1P2/R1B1K3 b Qkq - 5 19 | 106 | 0.5
++r3kb1r/2qn1bp1/2p2pR1/1p2p2P/p3P1QP/1PP5/P1NN1P2/R1B1K3 w Qkq - 6 20 | -110 | 0.5
++r3kb2/2qn1b2/2p2p1p/1p2p3/p3P1QP/1PP5/P1NN1P2/R1B1K3 w Qq - 0 22 | -113 | 0.5
++r3kb2/2qn1b2/2p2p1p/1p2p3/p3P2P/1PP2Q2/P1NN1P2/R1B1K3 b Qq - 1 22 | 102 | 0.5
++r3kb2/2qn1b2/2p2p2/1p2p2p/p3P2P/1PP2Q2/P1NN1P2/R1B1K3 w Qq - 0 23 | -98 | 0.5
++r3kb2/2qn1b2/2p2p2/1p2p2p/pP2P2P/2P2Q2/P1NN1P2/R1B1K3 b Qq - 0 23 | 89 | 0.5
++2kr1b2/2qn1b2/2p2p2/1p2p2p/pP2P2P/2P2Q2/P1NN1P2/R1B1K3 w Q - 1 24 | -96 | 0.5
++2kr1b2/2qn1b2/2p2p2/1p2p2p/pP2P2P/2P1NQ2/P2N1P2/R1B1K3 b Q - 2 24 | 97 | 0.5
++2kr1b2/2q2b2/5p2/1pn1p2p/p3P2P/2P1NQ2/P2N1P2/R1B1K3 w Q - 0 26 | -181 | 0.5
++2kr1b2/2q2b2/5p2/1pnNp2p/p3P2P/2P2Q2/P2N1P2/R1B1K3 b Q - 1 26 | 160 | 0.5
++2kr1b2/5b2/2q2p2/1pnNp2p/p3P2P/2P2Q2/P2N1P2/R1B1K3 w Q - 2 27 | -180 | 0.5
++2kr1b2/5b2/2q2p2/1pn1p2p/pN2P2P/2P2Q2/P2N1P2/R1B1K3 b Q - 3 27 | 183 | 0.5
++2kr1b2/5b2/3q1p2/1pn1p2p/pN2P2P/2P2Q2/P2N1P2/R1B1K3 w Q - 4 28 | -174 | 0.5
++2kr1b2/5b2/3q1p2/1pn1p2p/pN2P2P/2P1Q3/P2N1P2/R1B1K3 b Q - 5 28 | 208 | 0.5
++2kr1b2/5b2/5p2/1p2p2p/p3P2P/2PqQ3/P2N1P2/R1B1K3 w Q - 0 30 | -261 | 0.5
++2k2b2/5b2/5p2/1Q2p2p/p3P2P/8/q2BKP2/8 w - - 0 34 | 0 | 0.5
++5b2/2k2b2/Q4p2/4p2p/p3P2P/8/q2BKP2/8 w - - 2 35 | 0 | 0.5
++3k1b2/Q4b2/5p2/4p2p/p3P2P/8/q2BKP2/8 w - - 4 36 | 0 | 0.5
++5b2/3k1b2/1Q3p2/4p2p/p3P2P/8/q2BKP2/8 w - - 6 37 | 0 | 0.5
++5b2/1Q3b2/4kp2/4p2p/p3P2P/8/q2BKP2/8 w - - 8 38 | 0 | 0.5
++2Q2b2/5b2/3k1p2/4p2p/p3P2P/8/q2BKP2/8 w - - 10 39 | 0 | 0.5
++5b2/5b2/Q4p2/2k1p2p/p3P2P/8/q2BKP2/8 w - - 12 40 | 0 | 0.5
++5b2/Q4b2/3k1p2/4p2p/p3P2P/8/q2BKP2/8 w - - 14 41 | 0 | 0.5
++rn1qkbnr/1pp1pppp/p7/3p4/4PP2/P1N4N/1PPP2PP/R1BQKB1R b KQkq - 0 5 | -331 | 1.0
++rn1qkbnr/1pp2ppp/p3p3/3p4/4PP2/P1N4N/1PPP2PP/R1BQKB1R w KQkq - 0 6 | 343 | 1.0
++rn1qkbnr/1pp2ppp/p3p3/3p4/3PPP2/P1N4N/1PP3PP/R1BQKB1R b KQkq d3 0 6 | -345 | 1.0
++rn1qkbnr/1pp2p1p/p3p1p1/3p4/3PPP2/P1N4N/1PP3PP/R1BQKB1R w KQkq - 0 7 | 351 | 1.0
++rn1qkbnr/1pp2p1p/p3p1p1/3p4/3PPP2/P1NB3N/1PP3PP/R1BQK2R b KQkq - 1 7 | -361 | 1.0
++rn1qkb1r/1pp1np1p/p3p1p1/3p4/3PPP2/P1NB3N/1PP3PP/R1BQK2R w KQkq - 2 8 | 372 | 1.0
++rn1qkb1r/1pp1np1p/p3p1p1/3pP3/3P1P2/P1NB3N/1PP3PP/R1BQK2R b KQkq - 0 8 | -369 | 1.0
++rn1qk2r/1pp1npbp/p3p1p1/3pP3/3P1P2/P1NB3N/1PP3PP/R1BQK2R w KQkq - 1 9 | 368 | 1.0
++rn1qk2r/1pp1npbp/p3p1p1/3pP1N1/3P1P2/P1NB4/1PP3PP/R1BQK2R b KQkq - 2 9 | -379 | 1.0
++r2qk2r/1ppnnpbp/p3p1p1/3pP1N1/3P1P2/P1NB4/1PP3PP/R1BQK2R w KQkq - 3 10 | 360 | 1.0
++r2qk2r/1ppnnpbp/p3p1p1/3pP1N1/3P1P2/P1NBB3/1PP3PP/R2QK2R b KQkq - 4 10 | -353 | 1.0
++r1q1k2r/1ppnnpbp/p3p1p1/3pP1N1/3P1P2/P1NBB3/1PP3PP/R2QK2R w KQkq - 5 11 | 367 | 1.0
++r1q1k2r/1ppnnpbp/p3p1p1/3pP1N1/3P1PQ1/P1NBB3/1PP3PP/R3K2R b KQkq - 6 11 | -367 | 1.0
++r1q1k2r/1p1nn1bp/p3Q1p1/2ppP3/3P1P2/P1NBB3/1PP3PP/R3K2R b KQkq - 0 13 | -284 | 1.0
++2r1kn1r/1p2n1bp/p5p1/2PpP3/5P2/P1NBB3/1PP3PP/R3K2R b KQk - 0 15 | -305 | 1.0
++2r1k2r/1p2n1bp/p3n1p1/2PpP3/5P2/P1NBB3/1PP3PP/R3K2R w KQk - 1 16 | 332 | 1.0
++2r1k2r/1p2n1bp/p3n1p1/2PpP3/1P3P2/P1NBB3/2P3PP/R3K2R b KQk b3 0 16 | -328 | 1.0
++2r1kr2/1p2n1bp/p3n1p1/2PpP3/1P3P2/P1NBB3/2P3PP/R3K2R w KQ - 1 17 | 333 | 1.0
++2r1kr2/1p2n1bp/p3n1p1/2PpP3/1P3P2/P1NBB3/2P3PP/R4RK1 b - - 2 17 | -315 | 1.0
++2r1kr2/1p2n1bp/p3n1p1/2P1P3/1P1p1P2/P1NBB3/2P3PP/R4RK1 w - - 0 18 | 283 | 1.0
++2r1kr2/1p2n1bp/p5p1/2P1P3/1PB2B2/P1p5/2P3PP/R4RK1 w - - 0 20 | 267 | 1.0
++2r1kr2/1p2n1bp/p3P1p1/2P5/1PB2B2/P1p5/2P3PP/R4RK1 b - - 0 20 | -268 | 1.0
++3rkr2/1p2n1bp/p3P1p1/2P5/1PB2B2/P1p5/2P3PP/R4RK1 w - - 1 21 | 276 | 1.0
++3rkr2/1p2n1bp/p3P1p1/2P3B1/1PB5/P1p5/2P3PP/R4RK1 b - - 2 21 | -238 | 1.0
++4kr2/1p2n1bp/p3P1p1/2P3B1/1PBr4/P1p5/2P3PP/R4RK1 w - - 3 22 | 289 | 1.0
++8/1p2kPbp/p5p1/2P5/1PBr4/P1p5/2P3PP/R5K1 w - - 0 25 | 359 | 1.0
++8/1p3Pbp/p4kp1/2P5/1PBr4/P1p5/2P3PP/4R1K1 w - - 2 26 | 346 | 1.0
++8/1p3Pbp/p4kp1/2P5/1P1r4/PBp5/2P3PP/4R1K1 b - - 3 26 | -333 | 1.0
++5b2/1p3P1p/p4kp1/2P5/1P1r4/PBp5/2P3PP/4R1K1 w - - 4 27 | 332 | 1.0
++4Rb2/1p3P1p/p4kp1/2P5/1P1r4/PBp5/2P3PP/6K1 b - - 5 27 | -334 | 1.0
++4Rb2/1p3Pkp/p5p1/2P5/1P1r4/PBp5/2P3PP/6K1 w - - 6 28 | 351 | 1.0
++R4b2/1p3Pkp/p5p1/2P5/1P1r4/PBp5/2P3PP/6K1 b - - 7 28 | -348 | 1.0
++R4b2/1p3Pkp/p5p1/2P5/1P6/PBp5/2Pr2PP/6K1 w - - 8 29 | 377 | 1.0
++1R3b2/1p3Pkp/p5p1/2P5/1P6/PBp5/2Pr2PP/6K1 b - - 9 29 | -373 | 1.0
++1R3b2/1p1r1Pkp/p5p1/2P5/1P6/PBp5/2P3PP/6K1 w - - 10 30 | 369 | 1.0
++1R3b2/1p1r1Pkp/p5p1/2P5/1P6/PBp5/2P2KPP/8 b - - 11 30 | -397 | 1.0
++1R3b2/1p1r1Pkp/6p1/p1P5/1P6/PBp5/2P2KPP/8 w - - 0 31 | 434 | 1.0
++1R3b2/1p1r1Pkp/6p1/p1P5/1P6/PBp1K3/2P3PP/8 b - - 1 31 | -413 | 1.0
++5b2/1R3Pkp/6p1/p1P5/1P6/PBp1K3/2P3rP/8 w - - 0 33 | 520 | 1.0
++5b2/1R3Pkp/2P3p1/p7/1P6/PBp1K3/2P3rP/8 b - - 0 33 | -655 | 1.0
++5b2/1R3Pkp/2P3p1/8/pP6/PBp1K3/2P3rP/8 w - - 0 34 | 948 | 1.0
++5b2/1R3P1p/6pk/8/1P6/P1Q1K3/2p3rP/8 w - - 1 37 | 1101 | 1.0
++5b2/1RQ2P1p/6pk/8/1P6/P3K3/2p3rP/8 b - - 2 37 | -1115 | 1.0
++5b2/1R3P1p/6pk/8/1P6/P3K3/2Q4P/6r1 b - - 0 38 | -1157 | 1.0
++5b2/1R3P1p/6pk/8/1P6/P3K3/2Q4P/5r2 w - - 1 39 | 1188 | 1.0
++5b2/1R3P1p/6pk/8/1P2K3/P7/2Q4P/5r2 b - - 2 39 | -1188 | 1.0
++5b2/1R3Pkp/6p1/8/1P2K3/P7/2Q4P/5r2 w - - 3 40 | 1514 | 1.0
++5b2/1R3Pkp/5rp1/8/1P2K3/P1Q5/7P/8 w - - 5 41 | 1557 | 1.0
++5b2/1R3Pkp/5rp1/8/1P1QK3/P7/7P/8 b - - 6 41 | -1526 | 1.0
++5b2/1R3Pk1/5rp1/7p/1P1QK3/P7/7P/8 w - h6 0 42 | 1571 | 1.0
++5b2/5Pk1/1R3rp1/7p/1P1QK3/P7/7P/8 b - - 1 42 | -1631 | 1.0
++5k2/8/8/7Q/1P2K3/P7/7P/8 b - - 0 47 | -1902 | 1.0
++6k1/8/8/7Q/1P2K3/P7/7P/8 w - - 1 48 | 1942 | 1.0
++6k1/8/8/4Q3/1P2K3/P7/7P/8 b - - 2 48 | -1942 | 1.0
++8/5k2/8/4Q3/1P2K3/P7/7P/8 w - - 3 49 | 2406 | 1.0
++8/5k2/8/4Q3/PP2K3/8/7P/8 b - - 0 49 | -2511 | 1.0
++1rbqk1nr/p1pp1ppp/np6/4N3/1b6/7P/P1PPPPP1/RNBQKBR1 w Qk - 0 6 | 0 | 0.5
++1rbqk1nr/p1pp1ppp/np6/4N3/1b6/4P2P/P1PP1PP1/RNBQKBR1 b Qk - 0 6 | 18 | 0.5
++1rbqk2r/p1pp1ppp/np3n2/4N3/1b6/4P2P/P1PP1PP1/RNBQKBR1 w Qk - 1 7 | -19 | 0.5
++1rbqk2r/p1pp1ppp/np3n2/4N3/1b6/4P2P/PBPP1PP1/RN1QKBR1 b Qk - 2 7 | 27 | 0.5
++1rbqk2r/p1pp1ppp/1p3n2/2n1N3/1b6/4P2P/PBPP1PP1/RN1QKBR1 w Qk - 3 8 | -20 | 0.5
++1rbqk2r/p1pp1ppp/1p3n2/2n5/1b4N1/4P2P/PBPP1PP1/RN1QKBR1 b Qk - 4 8 | 27 | 0.5
++1rbqk2r/p1pp1ppp/1p3n2/8/1b2n1N1/4P2P/PBPP1PP1/RN1QKBR1 w Qk - 5 9 | -27 | 0.5
++1rbqk2r/p1pp1ppp/1p3n2/8/1b2n1N1/P3P2P/1BPP1PP1/RN1QKBR1 b Qk - 0 9 | 20 | 0.5
++1rbqk2r/p1pp1ppp/1p3n2/b7/4n1N1/P3P2P/1BPP1PP1/RN1QKBR1 w Qk - 1 10 | -12 | 0.5
++1rbqk2r/p1pp1ppp/1p3n2/b7/4n1N1/P3PQ1P/1BPP1PP1/RN2KBR1 b Qk - 2 10 | 6 | 0.5
++1r2k2r/pbpp1p1p/1p3p2/b7/8/P3P2P/2PP1PP1/RN2KBR1 w Qk - 0 14 | -18 | 0.5
++1r2k2r/pbpp1p1p/1p3p2/8/8/P1P1P2P/2P2PP1/R3KBR1 b Qk - 0 15 | 6 | 0.5
++1r2k1r1/pbpp1p1p/1p3p2/8/8/P1P1P2P/2P2PP1/R3KBR1 w Q - 1 16 | -2 | 0.5
++1r2k1r1/pbpp1p1p/1p3p2/8/8/P1P1P1PP/2P2P2/R3KBR1 b Q - 0 16 | 8 | 0.5
++1r2k3/pbpp1p1p/1p3p2/6r1/8/P1P1P1PP/2P2P2/R3KBR1 w Q - 1 17 | -24 | 0.5
++1r2k3/pbpp1p1p/1p3p2/6r1/8/P1PBP1PP/2P2P2/R3K1R1 b Q - 2 17 | 20 | 0.5
++1r2k3/pbpp1p2/1p3p1p/6r1/8/P1PBP1PP/2P2P2/R3K1R1 w Q - 0 18 | -18 | 0.5
++1r2k3/pbpp1p2/1p3p1p/6r1/8/P1PBP1PP/2PK1P2/R5R1 b - - 1 18 | 22 | 0.5
++1r2k3/p1pp1p2/1pb2p1p/6r1/8/P1PBP1PP/2PK1P2/R5R1 w - - 2 19 | -27 | 0.5
++1r2k3/p1pp1p2/1pb2p1p/6r1/2P5/P2BP1PP/2PK1P2/R5R1 b - - 0 19 | 46 | 0.5
++1r6/p1ppkp2/1pb2p1p/6r1/2P5/P2BP1PP/2PK1P2/R5R1 w - - 1 20 | -43 | 0.5
++1r6/p1ppkp2/1pb2p1p/6r1/2P5/P1KBP1PP/2P2P2/R5R1 b - - 2 20 | 32 | 0.5
++1r6/p1ppkp2/1pb2p1p/2r5/2P5/P1KBP1PP/2P2P2/R5R1 w - - 3 21 | -44 | 0.5
++1r6/p1ppkp2/1pb2p1p/2r5/2P5/P1KBP1PP/2P2P2/R3R3 b - - 4 21 | 38 | 0.5
++1r6/p1ppkp2/1p3p1p/2r5/2P5/P1KBPbPP/2P2P2/R3R3 w - - 5 22 | -37 | 0.5
++1r6/p1ppkp2/1p3p1p/2r5/P1P5/2KBPbPP/2P2P2/R3R3 b - - 0 22 | 45 | 0.5
++1r6/2ppkp2/1p3p1p/p1r5/P1P5/2KBPbPP/2P2P2/R3R3 w - a6 0 23 | -44 | 0.5
++1r6/2ppkp2/1p3p1p/p1r5/P1P5/2KBPbPP/2P2P2/RR6 b - - 1 23 | 41 | 0.5
++1r6/2ppkp2/1pb2p1p/p1r5/P1P5/2KBP1PP/2P2P2/RR6 w - - 2 24 | -45 | 0.5
++1r6/2ppkp2/1pb2p1p/p1r5/P1P4P/2KBP1P1/2P2P2/RR6 b - - 0 24 | 37 | 0.5
++r7/2ppkp2/1pb2p1p/p1r5/P1P4P/2KBP1P1/2P2P2/RR6 w - - 1 25 | -37 | 0.5
++r7/2ppkp2/1pb2p1p/p1r5/P1P4P/2KBP1P1/2P2P2/R3R3 b - - 2 25 | 45 | 0.5
++7r/2ppkp2/1pb2p1p/p1r5/P1P4P/2KBP1P1/2P2P2/R3R3 w - - 3 26 | -46 | 0.5
++7r/2ppkp2/1pb2p1p/p1r5/P1P4P/2KBP1P1/2P2P2/R1R5 b - - 4 26 | 50 | 0.5
++7r/2ppkp2/1p3p1p/p1r5/P1P4P/2KBPbP1/2P2P2/R1R5 w - - 5 27 | -40 | 0.5
++7r/2ppkp2/1p3p1p/p1r5/P1P4P/2KBPbP1/2P2P2/RR6 b - - 6 27 | 39 | 0.5
++7r/2pp1p2/1p1k1p1p/p1r5/P1P4P/2KBPbP1/2P2P2/RR6 w - - 7 28 | -39 | 0.5
++7r/2pp1p2/1p1k1p1p/p1r5/P1P4P/2KBPbP1/2P2P2/R3R3 b - - 8 28 | 37 | 0.5
++7r/2pp1p2/1pbk1p1p/p1r5/P1P4P/2KBP1P1/2P2P2/R3R3 w - - 9 29 | -29 | 0.5
++7r/2pp1p2/1pbk1p1p/p1r5/P1P4P/3BP1P1/1KP2P2/R3R3 b - - 10 29 | 32 | 0.5
++7r/2pp1p2/1pbk1p2/p1r4p/P1P4P/3BP1P1/1KP2P2/R3R3 w - - 0 30 | -28 | 0.5
++7r/2pp1p2/1pbk1p2/p1r4p/P1P4P/2KBP1P1/2P2P2/R3R3 b - - 1 30 | 38 | 0.5
++7r/2pp1p2/1p1k1p2/p1r4p/P1P4P/2KBPbP1/2P2P2/R3R3 w - - 2 31 | -30 | 0.5
++7r/2pp1p2/1p1k1p2/p1r4p/P1P1P2P/2KB1bP1/2P2P2/R3R3 b - - 0 31 | 37 | 0.5
++7r/2pp1p2/1p1k1p2/p1r4p/P1P1P1bP/2KB2P1/2P2P2/R3R3 w - - 1 32 | -33 | 0.5
++7r/2pp1p2/1p1k1p2/p1r4p/P1P1PPbP/2KB2P1/2P5/R3R3 b - f3 0 32 | 39 | 0.5
++4r3/2pp1p2/1p1k1p2/p1r4p/P1P1PPbP/2KB2P1/2P5/R3R3 w - - 1 33 | -22 | 0.5
++4r3/2pp1p2/1p1k1p2/p1r4p/P1P1PPbP/2KBR1P1/2P5/R7 b - - 2 33 | 21 | 0.5
++7r/2pp1p2/1p1k1p2/p1r4p/P1P1PPbP/2KBR1P1/2P5/R7 w - - 3 34 | -24 | 0.5
++7r/2pp1p2/1p1k1p2/p1r4p/P1P1PPbP/3BR1P1/1KP5/R7 b - - 4 34 | 28 | 0.5
++7r/2pp1p2/1p2kp2/p1r4p/P1P1PPbP/3BR1P1/1KP5/R7 w - - 5 35 | -37 | 0.5
++7r/2pp1p2/1p2kp2/p1r4p/P1P1PPbP/2KBR1P1/2P5/R7 b - - 6 35 | 25 | 0.5
++6r1/2pp1p2/1p2kp2/p1r4p/P1P1PPbP/2KBR1P1/2P5/R7 w - - 7 36 | -39 | 0.5
++6r1/2pp1p2/1p2kp2/p1r4p/P1PKPPbP/3BR1P1/2P5/R7 b - - 8 36 | 50 | 0.5
++6r1/2p2p2/1p1pkp2/p1r4p/P1PKPPbP/3BR1P1/2P5/R7 w - - 0 37 | -55 | 0.5
++6r1/2pk1p2/1p1p1p2/p1r2P1p/P1PKP1bP/3BR1P1/2P5/R7 w - - 1 38 | -61 | 0.5
++6r1/2pk1p2/1p1p1p2/p1r2P1p/P1PKP1bP/3BR1P1/2P5/4R3 b - - 2 38 | 56 | 0.5
++6r1/2pk1p2/1p1p1p2/p3rP1p/P1PKP1bP/3BR1P1/2P5/4R3 w - - 3 39 | -44 | 0.5
++6r1/2pk1p2/1p1p1p2/p3rP1p/P1PKP2P/4R1P1/2P1R3/8 b - - 0 40 | 42 | 0.5
++6r1/3k1p2/1ppp1p2/p3rP1p/P1PKP2P/4R1P1/2P1R3/8 w - - 0 41 | -38 | 0.5
++6r1/3k1p2/1ppp1p2/p3rP1p/P1PKP2P/4R1P1/2P2R2/8 b - - 1 41 | 18 | 0.5
++6r1/3k1p2/1ppp1p2/p1r2P1p/P1PKP2P/4R1P1/2P2R2/8 w - - 2 42 | -18 | 0.5
++6r1/3k1p2/1ppp1p2/p1r2P1p/P1PKPR1P/4R1P1/2P5/8 b - - 3 42 | 33 | 0.5
++6r1/2k2p2/1ppp1p2/p1r2P1p/P1PKPR1P/4R1P1/2P5/8 w - - 4 43 | -15 | 0.5
++6r1/2k2p2/1ppp1p2/p1r2P1p/P1PKP2P/4RRP1/2P5/8 b - - 5 43 | 39 | 0.5
++6r1/1k3p2/1ppp1p2/p1r2P1p/P1PKP2P/4RRP1/2P5/8 w - - 6 44 | -37 | 0.5
++6r1/1k3p2/1ppp1p2/p1r2P1p/P1PKPR1P/4R1P1/2P5/8 b - - 7 44 | 34 | 0.5
++6r1/5p2/kppp1p2/p1r2P1p/P1PKPR1P/4R1P1/2P5/8 w - - 8 45 | -2 | 0.5
++6r1/5p2/kppp1p2/p1r2P2/P1PKPRpP/4R3/2P5/8 w - - 0 46 | 29 | 0.5
++6r1/5p2/kppp1p2/p1r2P2/P1PKPRpP/6R1/2P5/8 b - - 1 46 | -4 | 0.5
++8/5p2/3p1p2/pkr2P2/3KP1RP/8/2P5/8 b - - 0 50 | 48 | 0.5
++8/5p2/3p1p2/1kr2P2/p2KP1RP/8/2P5/8 w - - 0 51 | -8 | 0.5
++8/5p2/3p1p2/1k3P1P/p2KP1R1/8/2r5/8 w - - 0 52 | -71 | 0.5
++6R1/5p2/3p1p2/1k3P1P/p2KP3/8/2r5/8 b - - 1 52 | 56 | 0.5
++6R1/5p2/3p1p2/1k3P1P/p2KP3/8/7r/8 w - - 2 53 | -44 | 0.5
++1R6/5p2/3p1p2/k4P1P/p2KP3/8/7r/8 w - - 4 54 | -73 | 0.5
++7R/5p2/3p1p2/k4P1P/p2KP3/8/7r/8 b - - 5 54 | 77 | 0.5
++7R/5p2/3p1p2/k4P1P/3KP3/p7/7r/8 w - - 0 55 | -8 | 0.5
++R7/5p2/3p1p2/5P1P/1k1KP3/p7/7r/8 w - - 2 56 | -5 | 0.5
++1R6/5p2/3p1p2/5P1P/k2KP3/p7/7r/8 w - - 4 57 | 0 | 0.5
++1R6/5p2/3p1p2/5P1P/k1K1P3/p7/7r/8 b - - 5 57 | 0 | 0.5
++1R6/5p2/3p1p2/5P1P/k3P3/p2K4/2r5/8 b - - 7 58 | 0 | 0.5
++1R6/5p2/3p1p2/5P1P/k3P3/p2K4/7r/8 w - - 8 59 | 0 | 0.5
++rnb1k1nr/p1pp1ppp/1p6/2b1p1B1/6P1/2NP4/PPP1PP1P/R2QKBNR b KQkq - 0 5 | -1039 | 1.0
++rn2k1nr/pbpp1ppp/1p6/2b1p1B1/6P1/2NP4/PPP1PP1P/R2QKBNR w KQkq - 1 6 | 1018 | 1.0
++rn2k1nr/pbpp1ppp/1p6/2b1p1B1/4P1P1/2NP4/PPP2P1P/R2QKBNR b KQkq e3 0 6 | -1027 | 1.0
++rn2k1nr/pbpp1pp1/1p5p/2b1p1B1/4P1P1/2NP4/PPP2P1P/R2QKBNR w KQkq - 0 7 | 1026 | 1.0
++rn2k1nr/pbpp1pp1/1p5p/2b1p3/4P1PB/2NP4/PPP2P1P/R2QKBNR b KQkq - 1 7 | -1054 | 1.0
++r3k1nr/pbpp1pp1/1pn4p/2b1p3/4P1PB/2NP4/PPP2P1P/R2QKBNR w KQkq - 2 8 | 1042 | 1.0
++r3k1nr/pbpp1pp1/1pn4p/2bNp3/4P1PB/3P4/PPP2P1P/R2QKBNR b KQkq - 3 8 | -1041 | 1.0
++r3k1nr/pbpp1pp1/1pnb3p/3Np3/4P1PB/3P4/PPP2P1P/R2QKBNR w KQkq - 4 9 | 1048 | 1.0
++r3k1nr/pbpp1pp1/1pnb3p/3Np3/4P1P1/3P2B1/PPP2P1P/R2QKBNR b KQkq - 5 9 | -1016 | 1.0
++r3k2r/pbppnpp1/1pnb3p/3Np3/4P1P1/3P2B1/PPP2P1P/R2QKBNR w KQkq - 6 10 | 1033 | 1.0
++r3k2r/pbppnpp1/1pnb3p/4p3/4P1P1/3PN1B1/PPP2P1P/R2QKBNR b KQkq - 7 10 | -1053 | 1.0
++r3k2r/pbppnpp1/1pn4p/2b1p3/4P1P1/3PN1B1/PPP2P1P/R2QKBNR w KQkq - 8 11 | 1046 | 1.0
++r3k2r/pbppnpp1/1pn4p/2b1p3/4P1PP/3PN1B1/PPP2P2/R2QKBNR b KQkq h3 0 11 | -1055 | 1.0
++2kr3r/pbppnpp1/1pn4p/2b1p3/4P1PP/3PN1B1/PPP2P2/R2QKBNR w KQ - 1 12 | 1059 | 1.0
++2kr3r/pbppnpp1/1pn4p/4p3/4P1PP/2PPP1B1/PP6/R2QKBNR b KQ - 0 13 | -1070 | 1.0
++2kr3r/pbp1npp1/1pn4p/3pp3/4P1PP/2PPP1B1/PP6/R2QKBNR w KQ d6 0 14 | 1088 | 1.0
++2kr3r/pbp1npp1/1pn4p/4p3/4P1PP/2P1PQB1/PP6/R3KBNR b KQ - 0 15 | -1038 | 1.0
++2kr3r/pbp1n1p1/1pn2p1p/4p3/4P1PP/2P1PQB1/PP6/R3KBNR w KQ - 0 16 | 1021 | 1.0
++2kr3r/pbp1n1p1/1pn2p1p/4p3/2B1P1PP/2P1PQB1/PP6/R3K1NR b KQ - 1 16 | -1032 | 1.0
++1k1r3r/pbp1n1p1/1pn2p1p/4p3/2B1P1PP/2P1PQB1/PP6/R3K1NR w KQ - 2 17 | 1031 | 1.0
++1k1r3r/pbp1n1p1/1pn2p1p/4p3/1PB1P1PP/2P1PQB1/P7/R3K1NR b KQ b3 0 17 | -985 | 1.0
++1knr3r/pbp3p1/1pn2p1p/4p3/1PB1P1PP/2P1PQB1/P7/R3K1NR w KQ - 1 18 | 991 | 1.0
++1knr3r/pbp3p1/1pn2p1p/3Bp3/1P2P1PP/2P1PQB1/P7/R3K1NR b KQ - 2 18 | -1002 | 1.0
++1k1r3r/pbp3p1/1pnn1p1p/3Bp3/1P2P1PP/2P1PQB1/P7/R3K1NR w KQ - 3 19 | 1003 | 1.0
++1k1r3r/pbp3p1/1pnn1p1p/3Bp3/1P2P1PP/2P1PQB1/P3N3/R3K2R b KQ - 4 19 | -997 | 1.0
++1k1r3r/1bp3p1/1pnn1p1p/p2Bp3/1P2P1PP/2P1PQB1/P3N3/R3K2R w KQ a6 0 20 | 985 | 1.0
++1k1r3r/1bp3p1/1pnn1p1p/p2Bp3/1P2P1PP/2P1PQB1/P3N3/1R2K2R b K - 1 20 | -976 | 1.0
++1k1r3r/1np1n1p1/1p3p1p/p3p3/1P2P1PP/2P1PQB1/P3N3/1R2K2R w K - 0 22 | 999 | 1.0
++1k1r3r/1np1n1p1/1p3p1p/p3p3/PP2P1PP/2P1PQB1/4N3/1R2K2R b K a3 0 22 | -999 | 1.0
++1k5r/1np1n1p1/1p3p1p/p3p3/PP2P1PP/2PrPQB1/4N3/1R2K2R w K - 1 23 | 1048 | 1.0
++1k6/1np1n1p1/1p3p2/p3p1P1/PP2P3/2P1r1B1/4N3/1R2K2Q w - - 0 26 | 1186 | 1.0
++1k6/1np1n1p1/1p6/p3p1p1/PP2P3/2P3N1/3K4/1R5Q w - - 0 28 | 1330 | 1.0
++1kn5/1np3Q1/1p6/p3p1p1/PP2P3/2P3N1/3K4/1R6 b - - 0 29 | -1361 | 1.0
++1kn5/1np5/1p6/p3Q3/PP2P1p1/2P3N1/3K4/1R6 b - - 0 30 | -1367 | 1.0
++1kn5/2p5/1p1n4/p3Q3/PP2P1p1/2P3N1/3K4/1R6 w - - 1 31 | 1416 | 1.0
++1kn5/2p3Q1/1p1n4/p7/PP2P1p1/2P3N1/3K4/1R6 b - - 2 31 | -1444 | 1.0
++1kn5/2p3Q1/1p6/p7/PPn1P1p1/2PK2N1/8/1R6 b - - 4 32 | -1542 | 1.0
++1k6/2p3Q1/1p1n4/p7/PPn1P1p1/2PK2N1/8/1R6 w - - 5 33 | 1573 | 1.0
++1k6/2p3Q1/1p1n4/8/PR4p1/2PK2N1/8/8 b - - 0 35 | -1752 | 1.0
++2k5/2p3Q1/1p1n4/8/PR4p1/2PK2N1/8/8 w - - 1 36 | 1769 | 1.0
++5Q2/1kp5/1p1n4/8/PR4p1/2PK2N1/8/8 w - - 3 37 | 1845 | 1.0
++6Q1/1kp5/1p1n4/8/PR4p1/2PK2N1/8/8 b - - 4 37 | -1852 | 1.0
++6Q1/2p5/1pkn4/8/P5R1/2PK2N1/8/8 b - - 0 38 | -2001 | 1.0
++6Q1/2p5/2kn4/1p6/P5R1/2PK2N1/8/8 w - - 0 39 | 2118 | 1.0
++Q7/2pk4/3n4/1p6/P5R1/2PK2N1/8/8 w - - 2 40 | 2233 | 1.0
++rnbqkb1r/pppppnp1/8/5Q2/P3P3/1P6/R1PP1PPP/1NB1KBNR b Kkq - 0 6 | -91 | 1.0
++rnbqkb1r/pppp1np1/4p3/5Q2/P3P3/1P6/R1PP1PPP/1NB1KBNR w Kkq - 0 7 | 108 | 1.0
++rnbqkb1r/pppp1np1/4p3/1Q6/P3P3/1P6/R1PP1PPP/1NB1KBNR b Kkq - 1 7 | -138 | 1.0
++r1bqkb1r/pppp1np1/2n1p3/1Q6/P3P3/1P6/R1PP1PPP/1NB1KBNR w Kkq - 2 8 | 136 | 1.0
++r1bqkb1r/pppp1np1/2n1p3/1Q6/P3P3/1P3N2/R1PP1PPP/1NB1KB1R b Kkq - 3 8 | -152 | 1.0
++r1bqkb1r/pppp1np1/4p3/1Q6/Pn2P3/1P3N2/R1PP1PPP/1NB1KB1R w Kkq - 4 9 | 142 | 1.0
++r1bqkb1r/pppp1np1/4p3/1Q6/Pn2P3/1P3N2/1RPP1PPP/1NB1KB1R b Kkq - 5 9 | -141 | 1.0
++r1bqkb1r/pp1p1np1/4p3/1Qp5/Pn2P3/1P3N2/1RPP1PPP/1NB1KB1R w Kkq c6 0 10 | 156 | 1.0
++r1bqkb1r/pp1p1np1/4p3/1Qp5/Pn2P3/1P3NP1/1RPP1P1P/1NB1KB1R b Kkq - 0 10 | -167 | 1.0
++r1bqk2r/pp1pbnp1/4p3/1Qp5/Pn2P3/1P3NP1/1RPP1P1P/1NB1KB1R w Kkq - 1 11 | 175 | 1.0
++r1bqk2r/pp1pbnp1/4p3/2p5/Pn2P3/1P3NP1/1RPPQP1P/1NB1KB1R b Kkq - 2 11 | -187 | 1.0
++r1bqk2r/pp1p2p1/4p3/2p3b1/Pn2P3/1P4P1/1RPPQP1P/1NB1KB1R w Kkq - 0 13 | 198 | 1.0
++r1bqk2r/pp1p2p1/4p3/2p3b1/Pn2P3/1PP3P1/1R1PQP1P/1NB1KB1R b Kkq - 0 13 | -195 | 1.0
++r1bqk2r/pp1p2p1/2n1p3/2p3b1/P3P3/1PP3P1/1R1PQP1P/1NB1KB1R w Kkq - 1 14 | 258 | 1.0
++r1bqk2r/pp1p2p1/2n1p3/2p3b1/P3PP2/1PP3P1/1R1PQ2P/1NB1KB1R b Kkq f3 0 14 | -220 | 1.0
++r1bqk2r/pp1pb1p1/2n1p3/2p5/P3PP2/1PP3P1/1R1PQ2P/1NB1KB1R w Kkq - 1 15 | 219 | 1.0
++r1bqk2r/pp1pb1p1/2n1p3/2p5/P3PP2/1PP3P1/1R1PQ1BP/1NB1K2R b Kkq - 2 15 | -215 | 1.0
++r1bqk2r/pp2b1p1/2npp3/2p5/P3PP2/1PP3P1/1R1PQ1BP/1NB1K2R w Kkq - 0 16 | 209 | 1.0
++r1bqk2r/pp2b1p1/2npp3/2p5/P3PP2/NPP3P1/1R1PQ1BP/2B1K2R b Kkq - 1 16 | -220 | 1.0
++r1b1k2r/pp1qb1p1/2npp3/2p5/P3PP2/NPP3P1/1R1PQ1BP/2B1K2R w Kkq - 2 17 | 233 | 1.0
++r1b1k2r/pp1qb1p1/2npp3/2p5/P3PP2/NPP3P1/1R1PQ1BP/2B2RK1 b kq - 3 17 | -214 | 1.0
++r1b1k2r/p2qb1p1/1pnpp3/2p5/P3PP2/NPP3P1/1R1PQ1BP/2B2RK1 w kq - 0 18 | 214 | 1.0
++r1b1k2r/p2qb1p1/1pnpp3/2p1P3/P4P2/NPP3P1/1R1PQ1BP/2B2RK1 b kq - 0 18 | -240 | 1.0
++r3k2r/pb1q2p1/1pnbp3/2p5/P4P2/NPP3P1/1R1PQ1BP/2B2RK1 w kq - 0 20 | 249 | 1.0
++r3k2r/pb1q2p1/1pnbp3/2p5/P4P2/NPP3P1/1R1PQ1BP/2B1R1K1 b kq - 1 20 | -319 | 1.0
++r2nk2r/pb1q2p1/1p1bp3/2p5/P4P2/NPP3P1/1R1PQ1BP/2B1R1K1 w kq - 2 21 | 288 | 1.0
++r2nk2r/p2q2p1/1p1bp3/2p5/P4P2/NPPP2P1/1R4QP/2B1R1K1 b kq - 0 22 | -332 | 1.0
++1r1nk2r/p2q2p1/1p1bp3/2p5/P4P2/NPPP2P1/1R4QP/2B1R1K1 w k - 1 23 | 326 | 1.0
++1r1nk2r/p2q2p1/1p1bp3/2p5/P3QP2/NPPP2P1/1R5P/2B1R1K1 b k - 2 23 | -298 | 1.0
++1r1n1rk1/p2q2p1/1p1bp3/2p5/P3QP2/NPPP2P1/1R5P/2B1R1K1 w - - 3 24 | 292 | 1.0
++1r1n1rk1/p2q2p1/1p1bp3/2p5/P3QP2/NPPP2P1/4R2P/2B1R1K1 b - - 4 24 | -275 | 1.0
++1r1n1rk1/p2qb1p1/1p2p3/2p5/P3QP2/NPPP2P1/4R2P/2B1R1K1 w - - 5 25 | 282 | 1.0
++1r1n1rk1/p2qb1p1/1p2p3/2p5/P3QP2/NPPP2P1/3BR2P/4R1K1 b - - 6 25 | -283 | 1.0
++1r1n1rk1/p2q2p1/1p2pb2/2p5/P3QP2/NPPP2P1/3BR2P/4R1K1 w - - 7 26 | 276 | 1.0
++1r1n1rk1/p2q2p1/1p2pb2/2p5/P1N1QP2/1PPP2P1/3BR2P/4R1K1 b - - 8 26 | -285 | 1.0
++1r1n1rk1/p5p1/1p3b2/2pp4/P1N2P2/1PPP2P1/3BR2P/4R1K1 w - - 0 28 | 317 | 1.0
++1r1n1rk1/p5p1/1p6/2ppR3/P4P2/1PPP2P1/3B3P/4R1K1 b - - 0 29 | -246 | 1.0
++1r1n1rk1/p5p1/1p6/2p1R3/P2p1P2/1PPP2P1/3B3P/4R1K1 w - - 0 30 | 248 | 1.0
++1r1n1rk1/p5p1/1p6/2p1R3/PP1p1P2/2PP2P1/3B3P/4R1K1 b - - 0 30 | -240 | 1.0
++1r3rk1/p5p1/1pn5/2p1R3/PP1p1P2/2PP2P1/3B3P/4R1K1 w - - 1 31 | 277 | 1.0
++1r3rk1/p5p1/1pn5/2p3R1/PP1p1P2/2PP2P1/3B3P/4R1K1 b - - 2 31 | -297 | 1.0
++1r1r2k1/p5p1/2n5/2R5/P2p1P2/2PP2P1/3B3P/4R1K1 b - - 0 33 | -370 | 1.0
++3r2k1/p5p1/2n5/2R5/P2p1P2/2PP2P1/1r1B3P/4R1K1 w - - 1 34 | 347 | 1.0
++3r2k1/p5p1/2n5/2R5/P2p1P2/2PP2P1/1r5P/2B1R1K1 b - - 2 34 | -330 | 1.0
++3r2k1/p5p1/1r6/2R5/P2n1P2/3P2P1/7P/2B1R1K1 w - - 0 36 | 307 | 1.0
++3r2k1/p3R1p1/1r6/2R5/P2n1P2/3P2P1/7P/2B3K1 b - - 1 36 | -276 | 1.0
++3r2k1/4R1p1/pr6/2R5/P2n1P2/3P2P1/7P/2B3K1 w - - 0 37 | 270 | 1.0
++3r2k1/2R1R1p1/pr6/8/P2n1P2/3P2P1/7P/2B3K1 b - - 1 37 | -286 | 1.0
++3r2k1/2R1R1p1/pr6/5n2/P4P2/3P2P1/7P/2B3K1 w - - 2 38 | 341 | 1.0
++3r2k1/2R2Rp1/pr6/5n2/P4P2/3P2P1/7P/2B3K1 b - - 3 38 | -341 | 1.0
++5rk1/2R2Rp1/pr6/5n2/P4P2/3P2P1/7P/2B3K1 w - - 4 39 | 493 | 1.0
++5rk1/2RR2p1/pr6/5n2/P4P2/3P2P1/7P/2B3K1 b - - 5 39 | -411 | 1.0
++5rk1/2R3p1/p2n4/8/P4P2/3P2P1/7P/2B3K1 w - - 0 41 | 426 | 1.0
++5rk1/2R3p1/p2n4/8/P4P2/3P2P1/1B5P/6K1 b - - 1 41 | -427 | 1.0
++5rk1/2R2np1/p7/8/P4P2/3P2P1/1B5P/6K1 w - - 2 42 | 450 | 1.0
++5rk1/2R2np1/p7/8/P4P2/3P2P1/1B3K1P/8 b - - 3 42 | -406 | 1.0
++1r4k1/2R2np1/p7/8/P4P2/3P2P1/1B3K1P/8 w - - 4 43 | 474 | 1.0
++1r4k1/2R2np1/p7/8/P4P2/2BP2P1/5K1P/8 b - - 5 43 | -441 | 1.0
++6k1/2R2np1/pr6/8/P4P2/2BP2P1/5K1P/8 w - - 6 44 | 454 | 1.0
++6k1/2R2np1/pr6/8/P4P2/2BP1KP1/7P/8 b - - 7 44 | -454 | 1.0
++6k1/2R2np1/p6r/8/P4P2/2BP1KP1/7P/8 w - - 8 45 | 468 | 1.0
++6k1/2R2np1/p6r/8/P4P1P/2BP1KP1/8/8 b - h3 0 45 | -466 | 1.0
++6k1/2R2np1/pr6/8/P4P1P/2BP1KP1/8/8 w - - 1 46 | 462 | 1.0
++6k1/2R2np1/pr6/8/P3KP1P/2BP2P1/8/8 b - - 2 46 | -480 | 1.0
++6k1/2R2np1/p3r3/4B3/P3KP1P/3P2P1/8/8 b - - 4 47 | -461 | 1.0
++6k1/2R2np1/p5r1/4B3/P3KP1P/3P2P1/8/8 w - - 5 48 | 471 | 1.0
++6k1/2R2np1/p5r1/4BP2/P3K2P/3P2P1/8/8 b - - 0 48 | -461 | 1.0
++6k1/2R2np1/pr6/4BP2/P3K2P/3P2P1/8/8 w - - 1 49 | 485 | 1.0
++2R5/5npk/pr6/4BP2/P3K2P/3P2P1/8/8 w - - 3 50 | 486 | 1.0
++2R5/5npk/pr6/4BP2/P2PK2P/6P1/8/8 b - - 0 50 | -501 | 1.0
++2R5/5npk/p7/4BP2/Pr1PK2P/6P1/8/8 w - - 1 51 | 525 | 1.0
++2R5/6pk/p7/P3KP2/1r1P3P/6P1/8/8 b - - 0 52 | -570 | 1.0
++2R5/6pk/p7/P3KP2/r2P3P/6P1/8/8 w - - 1 53 | 571 | 1.0
++8/6pk/p7/P1R1KP2/r2P3P/6P1/8/8 b - - 2 53 | -584 | 1.0
++8/6pk/p7/P1R1KP2/3P3P/r5P1/8/8 w - - 3 54 | 559 | 1.0
++8/6pk/p7/P1RPKP2/7P/r5P1/8/8 b - - 0 54 | -588 | 1.0
++8/6pk/p2K4/P1RP1P2/7P/6r1/8/8 w - - 0 56 | 636 | 1.0
++8/6pk/p1RK4/P2P1P2/7P/6r1/8/8 b - - 1 56 | -639 | 1.0
++8/6pk/R2K4/P2P1r2/7P/8/8/8 w - - 0 58 | 685 | 1.0
++8/6pk/R1K5/P2P1r2/7P/8/8/8 b - - 1 58 | -691 | 1.0
++8/7k/R1K5/P2P2r1/8/8/8/8 w - - 0 60 | 763 | 1.0
++8/7k/R1KP4/P5r1/8/8/8/8 b - - 0 60 | -833 | 1.0
++8/7k/R1KP2r1/P7/8/8/8/8 w - - 1 61 | 837 | 1.0
++8/7k/1RKP2r1/P7/8/8/8/8 b - - 2 61 | -866 | 1.0
++8/8/1RKP2rk/P7/8/8/8/8 w - - 3 62 | 908 | 1.0
++8/2K5/1R1P2rk/P7/8/8/8/8 b - - 4 62 | -921 | 1.0
++6r1/2K5/1R1P3k/P7/8/8/8/8 w - - 5 63 | 1035 | 1.0
++6r1/2KP4/1R6/P6k/8/8/8/8 w - - 1 64 | 1350 | 1.0
++6r1/2KP4/PR6/7k/8/8/8/8 b - - 0 64 | -1420 | 1.0
++6r1/2KP4/PR6/8/6k1/8/8/8 w - - 1 65 | 1480 | 1.0
++1R4r1/2KP4/P7/8/6k1/8/8/8 b - - 2 65 | -1470 | 1.0
++1R6/2KP2r1/P7/8/6k1/8/8/8 w - - 3 66 | 1504 | 1.0
++rnbqkbnr/pp1pp1pp/8/8/2P2pP1/BP6/P1P1PP1P/RN1QKBNR b KQkq - 0 5 | -80 | 1.0
++r1bqkbnr/pp1pp1pp/2n5/8/2P2pP1/BP6/P1P1PP1P/RN1QKBNR w KQkq - 1 6 | 88 | 1.0
++r1bqkbnr/pp1pp1pp/2n5/8/2P2pP1/BP5N/P1P1PP1P/RN1QKB1R b KQkq - 2 6 | -85 | 1.0
++r1bq1knr/pp1p2pp/2n5/4p3/2P2pP1/1P5N/P1P1PP1P/RN1QKB1R w KQ - 0 8 | 77 | 1.0
++r1b2k1r/pp1pn1pp/2n5/4p3/2P2pP1/1P5N/P1P1PP1P/RN2KB1R w KQ - 0 10 | 27 | 1.0
++r1b2k1r/pp1pn1pp/2n5/4p3/2P2pP1/1PN4N/P1P1PP1P/R3KB1R b KQ - 1 10 | -64 | 1.0
++r1b2k1r/pp2n1pp/2np4/4p3/2P2pP1/1PN4N/P1P1PP1P/R3KB1R w KQ - 0 11 | 63 | 1.0
++r1b2k1r/pp2n1pp/2np4/4p1P1/2P2p2/1PN4N/P1P1PP1P/R3KB1R b KQ - 0 11 | -69 | 1.0
++r1b2k1r/pp2n1pp/2np4/4p1P1/2P5/1PN2p1N/P1P1PP1P/R3KB1R w KQ - 0 12 | 88 | 1.0
++r1b2k1r/pp2n1pp/2np4/4p1P1/2P5/1PN1Pp1N/P1P2P1P/R3KB1R b KQ - 0 12 | -139 | 1.0
++r4k1r/pp2n1pp/2np4/4pbP1/2P5/1PN1Pp1N/P1P2P1P/R3KB1R w KQ - 1 13 | 120 | 1.0
++r4k1r/pp2n1pp/2np4/4pbP1/2P5/1PN1Pp1N/P1P2P1P/2KR1B1R b - - 2 13 | -105 | 1.0
++r4k1r/pp2n3/2np3p/4pb2/2P5/1PN1Pp1N/P1P2P1P/2KR1B1R w - - 0 15 | 192 | 1.0
++r4k1r/pp2n3/2np3p/4pb2/2P1P3/1PN2p1N/P1P2P1P/2KR1B1R b - - 0 15 | -192 | 1.0
++r4k1r/pp2n3/2nRb2p/4p3/2P1P3/1PN2p1N/P1P2P1P/2K2B1R b - - 0 16 | -187 | 1.0
++r6r/pp2nk2/2nRb2p/4p3/2P1P3/1PN2p1N/P1P2P1P/2K2B1R w - - 1 17 | 221 | 1.0
++r6r/pp2nk2/2n1b2p/4p3/2P1P3/1PNR1p1N/P1P2P1P/2K2B1R b - - 2 17 | -202 | 1.0
++r6r/pp2nk2/4b2p/4p3/2PnP3/1PNR1p1N/P1P2P1P/2K2B1R w - - 3 18 | 195 | 1.0
++r6r/pp2nk2/4b2p/8/2PRPp2/1PN2p2/P1P2P1P/2K2B1R b - - 0 19 | -226 | 1.0
++r6r/pp3k2/2n1b2p/8/2PRPp2/1PN2p2/P1P2P1P/2K2B1R w - - 1 20 | 209 | 1.0
++r6r/pp3k2/2n1b2p/8/2P1Pp2/1PN2p2/P1PR1P1P/2K2B1R b - - 2 20 | -189 | 1.0
++r6r/pp6/2n1bk1p/8/2P1Pp2/1PN2p2/P1PR1P1P/2K2B1R w - - 3 21 | 225 | 1.0
++r6r/pp6/2n1bk1p/8/2P1Pp2/1PNR1p2/P1P2P1P/2K2B1R b - - 4 21 | -184 | 1.0
++r6r/pp6/4bk1p/4n3/2P1Pp2/1PNR1p2/P1P2P1P/2K2B1R w - - 5 22 | 167 | 1.0
++r6r/pp6/5k1p/3Rn3/2P1Pp2/1P3p2/P1P2P1P/2K2B1R b - - 0 23 | -176 | 1.0
++r6r/pp6/5k1p/3R4/2P1Ppn1/1P3p2/P1P2P1P/2K2B1R w - - 1 24 | 140 | 1.0
++r6r/pp6/5k1p/3R4/2P1Pp2/1P3p2/P1P2n1P/2K2BR1 w - - 0 25 | 155 | 1.0
++r6r/pp6/4k2p/5R2/2P1Pp2/1P3p2/P1P2n1P/2K2BR1 w - - 2 26 | 271 | 1.0
++r6r/pp2k3/6Rp/5R2/2P1Pp2/1P3p2/P1P2n1P/2K2B2 w - - 4 27 | 184 | 1.0
++r6r/pp4R1/4k2p/5R2/2P1Pp2/1P3p2/P1P2n1P/2K2B2 w - - 6 28 | 196 | 1.0
++r6r/pp4R1/4k2p/2P5/4nR2/1P3p2/P1P4P/2K2B2 b - - 0 29 | -208 | 1.0
++r6r/pR6/4k2p/2P3n1/5R2/1P3p2/P1P4P/2K2B2 b - - 0 30 | -195 | 1.0
++r6r/pR6/7p/2Pk2n1/5R2/1P3p2/P1P4P/2K2B2 w - - 1 31 | 195 | 1.0
++r6r/p2R4/2k4p/2P3n1/5R2/1P3p2/P1P4P/2K2B2 w - - 3 32 | 190 | 1.0
++r6r/p2R4/2k4p/2P3n1/3R4/1P3p2/P1P4P/2K2B2 b - - 4 32 | -217 | 1.0
++4r2r/p2R4/2k4p/2P3n1/3R4/1P3p2/P1P4P/2K2B2 w - - 5 33 | 155 | 1.0
++4r2r/p1k5/3R3p/2P3n1/3R4/1P3p2/P1P4P/2K2B2 w - - 7 34 | 146 | 1.0
++4r2r/p1k5/3R3p/2P3n1/3R4/1P1B1p2/P1P4P/2K5 b - - 8 34 | -169 | 1.0
++7r/p1k5/3R3p/2P3n1/3R4/1P1B1p2/P1PK3P/4r3 b - - 10 35 | -209 | 1.0
++4r3/p1k5/3R3p/2P3n1/3R4/1P1B1p2/P1PK3P/4r3 w - - 11 36 | 262 | 1.0
++4r3/p1k5/3R3p/2P3n1/3R3P/1P1B1p2/P1PK4/4r3 b - h3 0 36 | -325 | 1.0
++4r3/p1k5/3R3p/2P5/3R3P/1P1B1p1n/P1PK4/4r3 w - - 1 37 | 386 | 1.0
++4r3/p2R4/2k4p/2P5/3R3P/1P1B1p1n/P1PK4/4r3 w - - 3 38 | 515 | 1.0
++4r3/p2R4/2k4p/2P5/1P1R3P/3B1p1n/P1PK4/4r3 b - - 0 38 | -485 | 1.0
++4r3/R7/2k1r2p/2P5/1P1R3P/3B1p1n/P1PK4/8 b - - 0 39 | -439 | 1.0
++4r3/R7/2k1r2p/2P5/1P1R3P/3B1p2/P1PK1n2/8 w - - 1 40 | 488 | 1.0
++4r3/R7/2k1r2p/2P5/1PBR3P/5p2/P1PK1n2/8 b - - 2 40 | -518 | 1.0
++4r3/R7/2k1r2p/2P5/1PBRn2P/4Kp2/P1P5/8 b - - 4 41 | -481 | 1.0
++4r3/R7/7p/2k1r3/2BR3P/5K2/P1P5/8 w - - 0 44 | 636 | 1.0
++4r3/3R4/7p/2k1r3/2BR3P/5K2/P1P5/8 b - - 1 44 | -635 | 1.0
++8/3R4/7p/2k1r3/2B2K1P/8/P1P5/8 b - - 0 46 | -670 | 1.0
++8/3R4/7p/2k4r/2B2K1P/8/P1P5/8 w - - 1 47 | 699 | 1.0
++8/3R4/7p/2k4r/2B3KP/8/P1P5/8 b - - 2 47 | -696 | 1.0
++8/3R4/7p/2k1r3/2B3KP/8/P1P5/8 w - - 3 48 | 712 | 1.0
++8/3R4/7p/2k1r3/6KP/1B6/P1P5/8 b - - 4 48 | -711 | 1.0
++8/3R4/7p/2k5/6KP/1B6/P1P5/4r3 w - - 5 49 | 725 | 1.0
++8/7R/7p/2k5/6KP/1B6/P1P5/4r3 b - - 6 49 | -725 | 1.0
++8/8/7R/8/1k4KP/1B6/P1P5/4r3 b - - 0 50 | -763 | 1.0
++8/8/7R/5K2/1k5P/1B6/P1P5/6r1 b - - 2 51 | -760 | 1.0
++8/8/7R/4K3/1k5P/1B6/P1P5/5r2 b - - 4 52 | -788 | 1.0
++8/8/3K3R/8/1k5P/1B6/P1P5/4r3 b - - 6 53 | -837 | 1.0
++8/8/3K3R/8/1k5P/1B6/P1P5/7r w - - 7 54 | 831 | 1.0
++8/8/3K3R/7P/1k6/1B6/P1P5/7r b - - 0 54 | -870 | 1.0
++8/8/3K3R/7P/1k6/1B6/P1P4r/8 w - - 1 55 | 902 | 1.0
++7R/8/3K4/7P/1k6/1B6/P1P4r/8 b - - 2 55 | -901 | 1.0
++7R/8/3K4/7P/8/1Bk5/P1P4r/8 w - - 3 56 | 881 | 1.0
++7R/8/3K3P/8/8/1Bk5/P1P4r/8 b - - 0 56 | -903 | 1.0
++7R/8/3K3P/7r/8/1Bk5/P1P5/8 w - - 1 57 | 915 | 1.0
++7R/8/3K3P/7r/P7/1Bk5/2P5/8 b - a3 0 57 | -942 | 1.0
++7R/8/3K3P/7r/Pk6/1B6/2P5/8 w - - 1 58 | 927 | 1.0
++7R/7P/3K4/7r/Pk6/1B6/2P5/8 b - - 0 58 | -1026 | 1.0
++7R/7P/3K4/7r/P7/kB6/2P5/8 w - - 1 59 | 1025 | 1.0
++7R/4K2P/8/7r/P7/kB6/2P5/8 b - - 2 59 | -1040 | 1.0
++7R/4K2P/8/7r/P7/1B6/1kP5/8 w - - 3 60 | 992 | 1.0
++7R/7P/5K2/7r/P7/1B6/1kP5/8 b - - 4 60 | -1037 | 1.0
++7R/7P/5K2/8/P7/1B6/1kP5/7r w - - 5 61 | 1065 | 1.0
++7R/7P/5K2/P7/8/1B6/1kP5/7r b - - 0 61 | -1103 | 1.0
++7R/7P/5K2/P7/8/1B6/2P5/2k4r w - - 1 62 | 1103 | 1.0
++7R/5K1P/8/P7/8/1B6/2P5/2k4r b - - 2 62 | -1170 | 1.0
++7R/5K1P/7r/P7/8/1B6/2P5/2k5 w - - 3 63 | 1204 | 1.0
++7R/6KP/7r/P7/8/1B6/2P5/2k5 b - - 4 63 | -1238 | 1.0
++7R/6KP/8/P7/8/1B6/2P4r/2k5 w - - 5 64 | 1281 | 1.0
++6R1/6KP/8/P7/8/1B6/2P4r/2k5 b - - 6 64 | -1322 | 1.0
++6RK/7P/8/P7/8/1B6/2P3r1/2k5 b - - 8 65 | -1395 | 1.0
++6RK/7P/8/P7/8/1B6/2Pr4/2k5 w - - 9 66 | 1490 | 1.0
++7K/7P/8/P7/8/1B6/1kPr4/6R1 w - - 11 67 | 1563 | 1.0
++7K/7P/P7/8/8/1B6/1kPr4/6R1 b - - 0 67 | -1469 | 1.0
++3r4/6KP/P7/8/8/1B6/1kP5/6R1 b - - 2 68 | -1651 | 1.0
++3r4/6KP/P7/8/8/kB6/2P5/6R1 w - - 3 69 | 1705 | 1.0
++3r4/P5KP/8/8/8/kB6/2P5/6R1 b - - 0 69 | -1815 | 1.0
++8/P2r3P/6K1/8/8/kB6/2P5/6R1 b - - 2 70 | -2035 | 1.0
++8/P6P/3r4/6K1/8/kB6/2P5/6R1 b - - 4 71 | -2820 | 1.0
++rnbqkb1r/1pppppp1/7p/p2n2B1/3PP3/8/PPP1KPPP/RN1Q1BNR w kq - 3 5 | -26 | 0.0
++rnbqkb1r/1pppppp1/7p/p2n4/3PP2B/8/PPP1KPPP/RN1Q1BNR b kq - 4 5 | -5 | 0.0
++rnbqkb1r/1pppppp1/1n5p/p7/3PP2B/8/PPP1KPPP/RN1Q1BNR w kq - 5 6 | 12 | 0.0
++rnbqkb1r/1pppppp1/1n5p/p7/3PP2B/8/PPP2PPP/RN1QKBNR b kq - 6 6 | -23 | 0.0
++rnbqkb1r/1pp1ppp1/7p/p2n4/3P3B/8/PPP2PPP/RN1QKBNR w kq - 0 8 | 33 | 0.0
++rnbqkb1r/1pp1ppp1/7p/p2n4/3P4/6B1/PPP2PPP/RN1QKBNR b kq - 1 8 | -36 | 0.0
++rnbqkb1r/1pp1ppp1/5n1p/p7/3P4/6B1/PPP2PPP/RN1QKBNR w kq - 2 9 | 46 | 0.0
++rnbqkb1r/1pp1ppp1/5n1p/p7/3P4/2P3B1/PP3PPP/RN1QKBNR b kq - 0 9 | -21 | 0.0
++rnbqkb1r/1pp1pp2/5npp/p7/3P4/2P3B1/PP3PPP/RN1QKBNR w kq - 0 10 | 33 | 0.0
++rnbqkb1r/1pp1pp2/5npp/p7/3P4/2PB2B1/PP3PPP/RN1QK1NR b kq - 1 10 | -21 | 0.0
++rnbqkb1r/1pp1pp2/5npp/8/p2P4/2PB2B1/PP3PPP/RN1QK1NR w kq - 0 11 | 22 | 0.0
++rnbqkb1r/1pp1pp2/5npp/8/p2P4/2PB2B1/PP1N1PPP/R2QK1NR b kq - 1 11 | -14 | 0.0
++rnbqk2r/1pp1ppb1/5npp/8/p2P4/2PB2B1/PP1N1PPP/R2QK1NR w kq - 2 12 | 2 | 0.0
++rnbqk2r/1pp1ppb1/5npp/8/p2P4/2PB1NB1/PP1N1PPP/R2QK2R b kq - 3 12 | -2 | 0.0
++1nbqk2r/1pp1ppb1/5npp/8/3P4/r1PB1NB1/P2N1PPP/R2QK2R w k - 0 14 | 8 | 0.0
++1nbqk2r/1pp1ppb1/5npp/8/3P4/r1PB1NB1/P2N1PPP/R1Q1K2R b k - 1 14 | -2 | 0.0
++rnbqk2r/1pp1ppb1/5npp/8/3P4/2PB1NB1/P2N1PPP/R1Q1K2R w k - 2 15 | -5 | 0.0
++rnbqk2r/1pp1ppb1/5npp/8/3P4/2PB1NB1/P2N1PPP/1RQ1K2R b k - 3 15 | 13 | 0.0
++rnbq1rk1/1pp1ppb1/5npp/8/3P4/2PB1NB1/P2N1PPP/1RQ1K2R w - - 4 16 | -15 | 0.0
++rnbq1rk1/1pp1ppb1/5npp/8/3P4/2PB1NB1/P1QN1PPP/1R2K2R b - - 5 16 | 34 | 0.0
++r1bq1rk1/1ppnppb1/5npp/8/3P4/2PB1NB1/P1QN1PPP/1R2K2R w - - 6 17 | -32 | 0.0
++r1bq1rk1/1ppnppb1/5npp/8/3P4/2PB1NBP/P1QN1PP1/1R2K2R b - - 0 17 | 32 | 0.0
++r1bq1rk1/2pnppb1/1p3npp/8/3P4/2PB1NBP/P1QN1PP1/1R2K2R w - - 0 18 | -32 | 0.0
++r1bq1rk1/2pnppb1/1p3npp/8/3P4/2PB1NBP/P1QN1PP1/1R3K1R b - - 1 18 | 27 | 0.0
++r2q1rk1/1bpnppb1/1p3npp/8/3P4/2PB1NBP/P1QN1PP1/1R3K1R w - - 2 19 | -30 | 0.0
++r2q1rk1/1bpnppb1/1p3npp/8/3P4/2PB1NBP/P1QN1PP1/1R4KR b - - 3 19 | 42 | 0.0
++r2q1rk1/1b1nppb1/1p3npp/2p5/3P4/2PB1NBP/P1QN1PP1/1R4KR w - c6 0 20 | -20 | 0.0
++r2q1rk1/1b1nppb1/1p3npp/2p5/P2P4/2PB1NBP/2QN1PP1/1R4KR b - a3 0 20 | 49 | 0.0
++r1q2rk1/1b1nppb1/1p3npp/2p5/P2P4/2PB1NBP/2QN1PP1/1R4KR w - - 1 21 | -61 | 0.0
++r1q2rk1/1b1nppb1/1p3npp/8/P2N4/2PB2BP/2QN1PP1/4R1KR b - - 0 22 | 147 | 0.0
++r1q2rk1/1b1nppb1/1p4pp/3n4/P2N4/2PB2BP/2QN1PP1/4R1KR w - - 1 23 | -88 | 0.0
++r1q2rk1/1b1nppb1/1p4pp/3n4/P1BN4/2P3BP/2QN1PP1/4R1KR b - - 2 23 | 108 | 0.0
++r1q2rk1/1b2ppb1/1p4pp/2nn4/P1BN4/2P3BP/2QN1PP1/4R1KR w - - 3 24 | -40 | 0.0
++r1q2rk1/1b2ppb1/1p4pp/1Bnn4/P2N4/2P3BP/2QN1PP1/4R1KR b - - 4 24 | 128 | 0.0
++r1qr2k1/1b2ppb1/1p4pp/1Bnn4/P2N4/2P3BP/2QN1PP1/4R1KR w - - 5 25 | -44 | 0.0
++r1qr2k1/1b2ppb1/1p4pp/1Bnn4/P2N4/2P2NBP/2Q2PP1/4R1KR b - - 6 25 | 93 | 0.0
++r1qr2k1/1b2ppb1/np4pp/1B1n4/P2N4/2P2NBP/2Q2PP1/4R1KR w - - 7 26 | -40 | 0.0
++r1qr2k1/1b2p1b1/np2p1Qp/1B1n4/P7/2P2NBP/5PP1/4R1KR b - - 0 27 | 44 | 0.0
++r1qr2k1/1b2p1b1/1p2p1Qp/1Bnn4/P7/2P2NBP/5PP1/4R1KR w - - 1 28 | -94 | 0.0
++r1qr2k1/1b2p1b1/1p2p1Qp/1Bnn4/P1P5/5NBP/5PP1/4R1KR b - - 0 28 | 169 | 0.0
++r1qr2k1/1b2p1b1/1p2pnQp/1Bn5/P1P5/5NBP/5PP1/4R1KR w - - 1 29 | -93 | 0.0
++r1qr2k1/1b2p1b1/1p2pnQp/1Bn1N3/P1P5/6BP/5PP1/4R1KR b - - 2 29 | 100 | 0.0
++r1qr2k1/4p1b1/1p2pnQp/1Bn1N3/P1P1b3/6BP/5PP1/4R1KR w - - 3 30 | -132 | 0.0
++r1qr4/4pQbk/1p2pn1p/1Bn1N3/P1P1b3/6BP/5PP1/4R1KR w - - 5 31 | -140 | 0.0
++r1qr4/4pQbk/1p2pn1p/1Bn1N3/P1P1b3/5PBP/6P1/4R1KR b - - 0 31 | 128 | 0.0
++r1q2r2/4Q1bk/1p2pn1p/1Bn1N3/P1P1b3/5PBP/6P1/4R1KR b - - 0 32 | 133 | 0.0
++r4r2/1b4bk/1p2pn1p/1Bn1N3/P1P5/5PBP/6P1/4R1KR w - - 0 34 | -130 | 0.0
++r4r2/1b4bk/1p2pn1p/1Bn1N3/P1P5/5PBP/6PK/4R2R b - - 1 34 | 159 | 0.0
++r2r4/1b4bk/1p2pn1p/1Bn1N3/P1P5/5PBP/6PK/4R2R w - - 2 35 | -61 | 0.0
++r2r4/1b4bk/1pN1pn1p/1Bn5/P1P5/5PBP/6PK/4R2R b - - 3 35 | 149 | 0.0
++r7/1b4bk/1pN1pn1p/1Bn5/P1P5/5PBP/3r2PK/4R2R w - - 4 36 | -123 | 0.0
++r7/1b4bk/1pN1pn1p/1Bn5/P1P5/5PBP/3r2PK/3R3R b - - 5 36 | 171 | 0.0
++r7/1b4bk/1pN1pn1p/1Bn5/P1P5/5PBP/r5PK/3R3R w - - 6 37 | -150 | 0.0
++r7/1b4bk/1pN1pn1p/1Bn5/P1P5/5PBP/r5PK/3RR3 b - - 7 37 | 166 | 0.0
++r7/1b4bk/1pN1p2p/1Bn4n/P1P5/5PBP/r5PK/3RR3 w - - 8 38 | -98 | 0.0
++r7/1b4bk/1p2p2p/1Bn4n/PNP5/5PBP/r5PK/3RR3 b - - 9 38 | 160 | 0.0
++r7/1b4bk/1p2p2p/1Bn4n/PNP5/r4PBP/6PK/3RR3 w - - 10 39 | -142 | 0.0
++r7/1b4bk/1p1Bp2p/1Bn4n/PNP5/r4P1P/6PK/3RR3 b - - 11 39 | 135 | 0.0
++r7/1b5k/1p1Bp2p/1Bn4n/PNP5/r1b2P1P/6PK/3RR3 w - - 12 40 | -134 | 0.0
++r7/1b5k/1p2p2p/1Bb4n/P1P5/r3RP1P/6PK/3R4 w - - 0 42 | -156 | 0.0
++r7/1R6/1p2p1kp/1B5n/P1P5/b4P1P/6PK/8 b - - 0 44 | 150 | 0.0
++r7/1R6/1p1bp1kp/1B5n/P1P5/5P1P/6P1/6K1 b - - 2 45 | 178 | 0.0
++r7/1R6/1p2p1kp/1Bb4n/P1P5/5P1P/6PK/8 b - - 4 46 | 174 | 0.0
++3r4/1R6/1p2p1kp/1Bb4n/P1P5/5P1P/6PK/8 w - - 5 47 | -174 | 0.0
++8/3B4/1p2p1kp/2b4n/P1P5/5P1P/6PK/8 b - - 0 48 | 176 | 0.0
++8/3B1k2/1p2p2p/2b4n/P1P5/5P1P/6PK/8 w - - 1 49 | -174 | 0.0
++8/3B1k2/1p2p2p/2b4n/P1P4P/5P2/6PK/8 b - - 0 49 | 191 | 0.0
++8/3B1k2/1p2p2p/2b5/P1P2n1P/5P2/6PK/8 w - - 1 50 | -188 | 0.0
++8/3B1k2/1p2p2p/2b5/P1P2n1P/5PK1/6P1/8 b - - 2 50 | 210 | 0.0
++8/3B1k2/1p2p2p/8/P1P2n1P/4bPK1/6P1/8 w - - 3 51 | -194 | 0.0
++8/5k2/1p2p2p/1B6/P1P2n1P/4bPK1/6P1/8 b - - 4 51 | 204 | 0.0
++8/4k3/1p2p2p/1B6/P1P2n1P/4bPK1/6P1/8 w - - 5 52 | -177 | 0.0
++8/4k3/1p2p2p/1B6/P1P2n1P/4bP2/6PK/8 b - - 6 52 | 189 | 0.0
++8/8/1p1kp2p/1B6/P1P2n1P/4bP2/6PK/8 w - - 7 53 | -164 | 0.0
++8/8/1p1kp2p/1B6/P1P2n1P/4bPP1/7K/8 b - - 0 53 | 192 | 0.0
++8/8/1p1kp2p/1B6/P1P4P/3nbPP1/7K/8 w - - 1 54 | -192 | 0.0
++8/8/1p1kp2p/1B6/P1P4P/3nbPP1/6K1/8 b - - 2 54 | 204 | 0.0
++8/8/1p1k3p/1B2p3/P1P4P/3nbPP1/6K1/8 w - - 0 55 | -189 | 0.0
++8/8/1p1k3p/1B2p3/P1P4P/3nbPP1/8/5K2 b - - 1 55 | 217 | 0.0
++8/8/1p5p/1Bk1p3/P1P4P/3nbPP1/8/5K2 w - - 2 56 | -208 | 0.0
++8/8/1p5p/1Bk1p3/P1P4P/3nbPP1/6K1/8 b - - 3 56 | 211 | 0.0
++8/8/1p5p/1Bk1p3/P1Pb3P/3n1PP1/6K1/8 w - - 4 57 | -217 | 0.0
++8/8/1p5p/1Bk1p3/P1Pb3P/3n1PP1/8/5K2 b - - 5 57 | 207 | 0.0
++8/8/1p5p/1Bk1p3/P1P4P/3nbPP1/4K3/8 b - - 7 58 | 214 | 0.0
++8/8/1p5p/1B2p3/P1Pk3P/3nbPP1/4K3/8 w - - 8 59 | -212 | 0.0
++8/8/1p5p/1B2p3/P1Pk3P/3nbPP1/8/5K2 b - - 9 59 | 224 | 0.0
++8/8/1p5p/1B2p3/P1Pk3P/3n1PP1/3b4/5K2 w - - 10 60 | -205 | 0.0
++8/8/1p5p/1B2p3/P1Pk2PP/3n1P2/3b4/5K2 b - - 0 60 | 217 | 0.0
++8/8/1p5p/1B2p3/P1Pk1nPP/5P2/3b4/5K2 w - - 1 61 | -226 | 0.0
++8/8/1p5p/1B2p2P/P1Pk1nP1/5P2/3b4/5K2 b - - 0 61 | 238 | 0.0
++8/8/1p5p/1B2p2P/P1Pk2P1/3n1P2/3b4/5K2 w - - 1 62 | -235 | 0.0
++8/8/1p5p/1B2p2P/P1Pk2P1/3n1P2/3bK3/8 b - - 2 62 | 255 | 0.0
++8/8/1p5p/1B2p2P/P1Pk1bP1/3n1P2/4K3/8 w - - 3 63 | -257 | 0.0
++8/8/1p5p/1B2p2P/P1Pk1bP1/3n1P2/8/5K2 b - - 4 63 | 264 | 0.0
++8/8/1p5p/1B2p2P/P1Pk1bP1/5P2/1n6/5K2 w - - 5 64 | -272 | 0.0
++8/8/1p5p/1B2p2P/P1nk1bP1/5P2/4K3/8 w - - 0 65 | -282 | 0.0
++8/8/1p5p/1B2p2P/P1nk1bP1/5P2/5K2/8 b - - 1 65 | 284 | 0.0
++8/8/1p5p/1B2p2P/P2k1bP1/5P2/1n3K2/8 w - - 2 66 | -285 | 0.0
++8/3B4/1p5p/4p2P/P2k1bP1/5P2/1n3K2/8 b - - 3 66 | 325 | 0.0
++8/3B4/1p5p/2k1p2P/P4bP1/5P2/1n3K2/8 w - - 4 67 | -362 | 0.0
++8/3B4/1p5p/2k1p2P/P4bP1/5P2/1n2K3/8 b - - 5 67 | 379 | 0.0
++8/3B4/1p5p/4p2P/Pk3bP1/5P2/1n2K3/8 w - - 6 68 | -395 | 0.0
++8/8/1p5p/1B2p2P/nk3bP1/5P2/4K3/8 w - - 0 69 | -412 | 0.0
++4B3/8/1p5p/4p2P/nk3bP1/5P2/4K3/8 b - - 1 69 | 437 | 0.0
++4B3/8/7p/1p2p2P/nk3bP1/5P2/4K3/8 w - - 0 70 | -432 | 0.0
++8/8/2B4p/1p2p2P/nk3bP1/5P2/4K3/8 b - - 1 70 | 476 | 0.0
++8/8/2B4p/1p2p2P/n1k2bP1/5P2/4K3/8 w - - 2 71 | -485 | 0.0
++8/8/2B4p/1p2p2P/n1k2bP1/5P2/8/3K4 b - - 3 71 | 441 | 0.0
++8/8/2B4p/1p2p2P/2k2bP1/2n2P2/2K5/8 b - - 5 72 | 489 | 0.0
++8/8/2B4p/1p2p2P/2k2bP1/5P2/2K1n3/8 w - - 6 73 | -505 | 0.0
++8/8/7p/1p2p2P/2k1BbP1/5P2/2K1n3/8 b - - 7 73 | 504 | 0.0
++8/8/7p/1p2p2P/2knBbP1/5P2/8/1K6 b - - 9 74 | 513 | 0.0
++8/8/7p/1p2p2P/3nBbP1/2k2P2/8/1K6 w - - 10 75 | -532 | 0.0
++8/8/7p/1p2p2P/3nBbP1/2k2P2/K7/8 b - - 11 75 | 536 | 0.0
++8/8/7p/4p2P/1p1nBbP1/2k2P2/K7/8 w - - 0 76 | -552 | 0.0
++8/8/7p/4p2P/1p1nBbP1/2k2P2/8/1K6 b - - 1 76 | 566 | 0.0
++8/8/7p/4p2P/1p1nBbP1/5P2/3k4/1K6 w - - 2 77 | -550 | 0.0
++8/8/7p/4p2P/1p1nBbP1/5P2/1K1k4/8 b - - 3 77 | 604 | 0.0
++8/8/7p/4p2P/1p1nBbP1/4kP2/1K6/8 w - - 4 78 | -605 | 0.0
++8/1B6/7p/4p2P/1p1n1bP1/4kP2/1K6/8 b - - 5 78 | 606 | 0.0
++8/1B6/7p/4p1bP/1p1n2P1/4kP2/1K6/8 w - - 6 79 | -671 | 0.0
++8/1B6/7p/4p1bP/1p1n2P1/4kP2/K7/8 b - - 7 79 | 674 | 0.0
++8/1B6/7p/4p1bP/1p1n1kP1/5P2/K7/8 w - - 8 80 | -653 | 0.0
++8/1B6/7p/4p1bP/1p3kP1/5n2/1K6/8 w - - 0 81 | -696 | 0.0
++8/1B6/7p/4p1bP/1p3kP1/1K3n2/8/8 b - - 1 81 | 686 | 0.0
++8/1B2b3/7p/4p2P/1p3kP1/1K3n2/8/8 w - - 2 82 | -700 | 0.0
++8/4b3/B6p/4p2P/1p4k1/1K3n2/8/8 w - - 0 83 | -705 | 0.0
++8/4b3/B6p/4p2P/1p4k1/5n2/2K5/8 b - - 1 83 | 718 | 0.0
++8/4b3/B6p/7P/1p2p1k1/5n2/2K5/8 w - - 0 84 | -734 | 0.0
++8/4b3/B6p/7P/1p2p1k1/1K3n2/8/8 b - - 1 84 | 842 | 0.0
++8/4b3/B6p/7P/1p4k1/1K2pn2/8/8 w - - 0 85 | -883 | 0.0
++8/4b3/7p/7P/1p4k1/1K2pn2/4B3/8 b - - 1 85 | 904 | 0.0
++8/4b3/7p/7P/1p6/1K2pnk1/4B3/8 w - - 2 86 | -932 | 0.0
++8/4b3/7p/7P/1p6/4pnk1/2K1B3/8 b - - 3 86 | 970 | 0.0
++8/4b3/7p/7P/1p6/4pn2/2K1Bk2/8 w - - 4 87 | -1068 | 0.0
++8/4b3/7p/7P/1p6/4pn2/2K2k2/3B4 b - - 5 87 | 1690 | 0.0
++8/4b3/7p/7P/1p6/5n2/2K1k3/8 w - - 0 89 | -1752 | 0.0
++8/4b3/7p/7P/1p6/1K3n2/4k3/8 b - - 1 89 | 1736 | 0.0
++8/4b3/7p/7P/1p6/8/2Knk3/8 b - - 3 90 | 1793 | 0.0
++8/4b3/7p/7P/8/1pK5/3nk3/8 b - - 1 91 | 1812 | 0.0
++8/8/5b1p/7P/1K6/1p6/3nk3/8 b - - 3 92 | 1857 | 0.0
++8/8/5b1p/7P/1K6/8/1p1nk3/8 w - - 0 93 | -1859 | 0.0
++8/8/2K2b1p/7P/8/8/3nk3/1q6 b - - 1 94 | 1859 | 0.0
++rnb1kb1r/pp1ppppp/1q3n2/7P/2p4N/8/PPPPPPP1/RNBQKB1R w KQkq - 0 5 | -18 | 0.5
++rnb1kb1r/pp1ppppp/1q3n2/7P/2p4N/4P3/PPPP1PP1/RNBQKB1R b KQkq - 0 5 | 21 | 0.5
++rnb1kb1r/pp2pppp/1q3n2/3p3P/2p4N/4P3/PPPP1PP1/RNBQKB1R w KQkq d6 0 6 | -2 | 0.5
++rnb1kb1r/pp2pppp/1q3n2/3p3P/2p5/4PN2/PPPP1PP1/RNBQKB1R b KQkq - 1 6 | 20 | 0.5
++r1b1kb1r/pp2pppp/1qn2n2/3p3P/2p5/4PN2/PPPP1PP1/RNBQKB1R w KQkq - 2 7 | -23 | 0.5
++r1b1kb1r/pp2pppp/1qn2n2/3p3P/8/1P2PN2/2PP1PP1/RNBQKB1R b KQkq - 0 8 | 7 | 0.5
++r1b1kb1r/pp3ppp/1qn2n2/3pp2P/8/1P2PN2/2PP1PP1/RNBQKB1R w KQkq e6 0 9 | -45 | 0.5
++r1b1kb1r/pp3ppp/1qn2n2/3pp2P/8/1P2PN2/1BPP1PP1/RN1QKB1R b KQkq - 1 9 | -17 | 0.5
++r1b1kb1r/pp3ppp/1qn2n2/7P/3p4/1P3N2/1BPP1PP1/RN1QKB1R w KQkq - 0 11 | 46 | 0.5
++r1b1kb1r/pp3ppp/1qn2n1P/8/3p4/1P3N2/1BPP1PP1/RN1QKB1R b KQkq - 0 11 | -28 | 0.5
++r3kb1r/pp3ppp/1qn1bn1P/8/3p4/1P3N2/1BPP1PP1/RN1QKB1R w KQkq - 1 12 | 20 | 0.5
++r3kb1r/pp3ppp/1qn1bn1P/8/3p4/1P3N2/1BPPQPP1/RN2KB1R b KQkq - 2 12 | 28 | 0.5
++2kr1b1r/pp3ppp/1qn1bn1P/8/3p4/1P3N2/1BPPQPP1/RN2KB1R w KQ - 3 13 | 41 | 0.5
++2kr1b1r/pp3ppp/2n1bn1P/1B6/3p4/1P3N2/1BPP1PP1/RN2K2R b KQ - 0 14 | -21 | 0.5
++2kr1b1r/pp3ppp/2N2n1P/1B6/8/1P6/1BPP1Pb1/RN2K2R b KQ - 0 16 | -174 | 0.5
++2k1nb1r/Rp3ppp/7P/4N3/8/1P6/1BPP1P2/1N2K2b b - - 0 19 | -129 | 0.5
++1k2nb1r/Rp3ppp/7P/4N3/8/1P6/1BPP1P2/1N2K2b w - - 1 20 | 221 | 0.5
++1k2nb1r/1p3ppp/7P/4N3/R7/1P6/1BPP1P2/1N2K2b b - - 2 20 | -199 | 0.5
++1k2nb1r/1p4pp/5p1P/4N3/R7/1P6/1BPP1P2/1N2K2b w - - 0 21 | 297 | 0.5
++2k1nb1r/1p4pp/7P/4B3/8/1P6/2PP1P2/1N2K2R b - - 0 23 | -257 | 0.5
++2k1n1r1/1p4bp/8/4B3/8/1P6/2PP1P2/1N2K2R w - - 0 25 | 336 | 0.5
++2k1n1r1/1p4bp/8/4B3/8/1P6/2PP1P2/1N2K1R1 b - - 1 25 | -317 | 0.5
++4n1r1/1p1k2bp/8/4B3/8/1P6/2PP1P2/1N2K1R1 w - - 2 26 | 329 | 0.5
++4n1r1/1p1k2bp/8/4B3/8/1PN5/2PP1P2/4K1R1 b - - 3 26 | -293 | 0.5
++4n1r1/1p4bp/4k3/4B3/8/1PN5/2PP1P2/4K1R1 w - - 4 27 | 283 | 0.5
++4n1r1/1p4bp/4k3/4B3/5P2/1PN5/2PP4/4K1R1 b - f3 0 27 | -269 | 0.5
++6r1/1p4bp/4kn2/4B3/5P2/1PN5/2PP4/4K1R1 w - - 1 28 | 286 | 0.5
++6r1/1p4bp/4kn2/4B3/5P2/1PN5/2PPK3/6R1 b - - 2 28 | -282 | 0.5
++5bn1/1p5p/4k3/4B3/5P2/1PN5/2PPK3/8 w - - 0 30 | 264 | 0.5
++5bn1/1p5p/4k3/4B3/3P1P2/1PN5/2P1K3/8 b - d3 0 30 | -271 | 0.5
++5b2/1p5p/5k2/8/3P1P2/1PN5/2P1K3/8 w - - 0 32 | 255 | 0.5
++5b2/1p5p/5k2/8/3P1P2/1PN2K2/2P5/8 b - - 1 32 | -249 | 0.5
++5b2/1p6/5k2/7p/3P1P2/1PN2K2/2P5/8 w - h6 0 33 | 249 | 0.5
++5b2/1p6/4k3/3N3p/3P1P2/1P3K2/2P5/8 w - - 2 34 | 260 | 0.5
++5b2/1p6/4k3/7p/3P1P2/1P2NK2/2P5/8 b - - 3 34 | -249 | 0.5
++8/1p6/4k3/7p/3P1P2/bP2NK2/2P5/8 w - - 4 35 | 276 | 0.5
++8/1p6/5k2/3P3p/5P2/bP2NK2/2P5/8 w - - 1 36 | 268 | 0.5
++8/1p6/5k2/3P3p/5P2/bP3K2/2P3N1/8 b - - 2 36 | -275 | 0.5
++5b2/1p6/5k2/3P3p/5P2/1P3K2/2P3N1/8 w - - 3 37 | 280 | 0.5
++5b2/1p6/5k2/3P3p/4KP2/1P6/2P3N1/8 b - - 4 37 | -282 | 0.5
++8/1p6/5k2/3P3p/4KP2/bP6/2P3N1/8 w - - 5 38 | 258 | 0.5
++8/1p6/5k2/3P3p/4KP2/bPP5/6N1/8 b - - 0 38 | -270 | 0.5
++8/1p2b3/5k2/3P3p/4KP2/1PP5/6N1/8 w - - 1 39 | 288 | 0.5
++8/1p2b3/5k2/3P3p/4KP2/1PP1N3/8/8 b - - 2 39 | -296 | 0.5
++8/1p6/5k2/3P3p/4KP2/bPP1N3/8/8 w - - 3 40 | 257 | 0.5
++8/1p2b3/5k2/3P3p/1P2KP2/2P5/6N1/8 b - - 0 41 | -285 | 0.5
++8/1p2b3/6k1/3P3p/1P2KP2/2P5/6N1/8 w - - 1 42 | 288 | 0.5
++8/1p6/6k1/3P3p/1bP1KP2/8/6N1/8 w - - 0 43 | 248 | 0.5
++8/1p6/6k1/3PK2p/1bP2P2/8/6N1/8 b - - 1 43 | -243 | 0.5
++8/1p3k2/8/3PK2p/1bP2P2/8/6N1/8 w - - 2 44 | 236 | 0.5
++8/1p3k2/3P4/4K2p/1bP2P2/8/6N1/8 b - - 0 44 | -248 | 0.5
++8/1p3k2/3P4/3K3p/2P2P2/2b5/6N1/8 b - - 2 45 | -204 | 0.5
++8/1p3k2/3P1b2/3K3p/2P2P2/8/6N1/8 w - - 3 46 | 235 | 0.5
++8/1p3k2/3P1b2/3K1P1p/2P5/8/6N1/8 b - - 0 46 | -207 | 0.5
++8/1p3k2/3P1b2/3K1P2/2P4p/8/6N1/8 w - - 0 47 | 212 | 0.5
++8/1p3k2/3P1b2/3K1P2/2P2N1p/8/8/8 b - - 1 47 | -211 | 0.5
++8/1p3k2/3P4/3K1Pb1/2P2N1p/8/8/8 w - - 2 48 | 235 | 0.5
++8/1p3k2/3P4/5Pb1/2P1KN1p/8/8/8 b - - 3 48 | -220 | 0.5
++8/5k2/1p1P4/5Pb1/2P1KN1p/8/8/8 w - - 0 49 | 219 | 0.5
++8/5k2/1p1P4/5Pb1/2P1K2p/7N/8/8 b - - 1 49 | -222 | 0.5
++8/5k2/1p1P4/5P2/2P1K2p/7N/8/2b5 w - - 2 50 | 253 | 0.5
++8/5k2/1p1P4/3K1P2/2P4p/7N/8/2b5 b - - 3 50 | -231 | 0.5
++8/5k2/1p1P4/3K1P2/2P4p/b6N/8/8 w - - 4 51 | 326 | 0.5
++8/3P1k2/1p6/3K1P2/2P4p/b6N/8/8 b - - 0 51 | -410 | 0.5
++8/3Pbk2/1p6/3K1P2/2P4p/7N/8/8 w - - 1 52 | 364 | 0.5
++8/3Pbk2/1pK5/5P2/2P4p/7N/8/8 b - - 2 52 | -270 | 0.5
++3b4/3P1k2/1pK5/5P2/2P4p/7N/8/8 w - - 3 53 | 324 | 0.5
++3b4/1K1P1k2/1p6/5P2/2P4p/7N/8/8 b - - 4 53 | -274 | 0.5
++3b4/1K1P4/1p3k2/5P2/2P4p/7N/8/8 w - - 5 54 | 263 | 0.5
++2Kb4/3P4/1p3k2/5P2/2P4p/7N/8/8 b - - 6 54 | -279 | 0.5
++2K5/3Pb3/1p3k2/5P2/2P4p/7N/8/8 w - - 7 55 | 266 | 0.5
++8/3Pb3/1K6/5k2/2P4p/7N/8/8 b - - 0 56 | -244 | 0.5
++8/3Pb3/1K2k3/8/2P4p/7N/8/8 w - - 1 57 | 244 | 0.5
++8/2KPb3/4k3/8/2P4p/7N/8/8 b - - 2 57 | -244 | 0.5
++3K4/3P4/3bk3/8/2P4p/7N/8/8 b - - 4 58 | -249 | 0.5
++3K4/3P4/4k3/8/1bP4p/7N/8/8 w - - 5 59 | 249 | 0.5
++3K4/3P4/3k4/6N1/1bP4p/8/8/8 w - - 7 60 | 216 | 0.5
++4K3/3P4/3k4/6N1/1bP4p/8/8/8 b - - 8 60 | -186 | 0.5
++4K3/3P4/3k4/b5N1/2P4p/8/8/8 w - - 9 61 | 168 | 0.5
++4K3/3P4/2k5/b7/2P1N2p/8/8/8 w - - 11 62 | 139 | 0.5
++4K3/3P4/2k5/b5N1/2P4p/8/8/8 b - - 12 62 | -134 | 0.5
++4K3/3P4/8/b1k3N1/2P4p/8/8/8 w - - 13 63 | 126 | 0.5
++4K3/3P4/4N3/b7/2k4p/8/8/8 w - - 0 64 | 94 | 0.5
++4K3/3P4/8/b7/2k2N1p/8/8/8 b - - 1 64 | -55 | 0.5
++4K3/3P4/8/b1k5/5N1p/8/8/8 w - - 2 65 | 45 | 0.5
++8/3PK3/8/b1k5/5N1p/8/8/8 b - - 3 65 | -26 | 0.5
++8/3PK3/2k5/b7/5N1p/8/8/8 w - - 4 66 | 25 | 0.5
++8/3PK3/2k5/b7/7p/7N/8/8 b - - 5 66 | -25 | 0.5
++8/3PK3/8/b1k5/7p/7N/8/8 w - - 6 67 | 21 | 0.5
++8/3P4/4K3/b1k5/7p/7N/8/8 b - - 7 67 | -6 | 0.5
++3b4/3P4/4K3/2k5/7p/7N/8/8 w - - 8 68 | 21 | 0.5
++3b4/3P1K2/8/2k5/7p/7N/8/8 b - - 9 68 | -5 | 0.5
++3b4/3P1K2/8/3k4/7p/7N/8/8 w - - 10 69 | 0 | 0.5
++3b1K2/3P4/8/3k4/7p/7N/8/8 b - - 11 69 | 0 | 0.5
++3b1K2/3P4/4k3/8/7p/7N/8/8 w - - 12 70 | 0 | 0.5
++3bK3/3P4/4k3/8/7p/7N/8/8 b - - 13 70 | 0 | 0.5
++4K3/3P4/4k3/b7/7p/7N/8/8 w - - 14 71 | 0 | 0.5
++4K3/3P4/3k4/b5N1/7p/8/8/8 w - - 16 72 | 0 | 0.5
++4K3/3P4/8/b2k4/4N2p/8/8/8 w - - 18 73 | 0 | 0.5
++4K3/3P4/8/b2k4/7p/8/5N2/8 b - - 19 73 | 0 | 0.5
++4K3/3P4/3k4/b7/7p/8/5N2/8 w - - 20 74 | 0 | 0.5
++4K3/3P4/3k4/b7/7p/7N/8/8 b - - 21 74 | 0 | 0.5
++rn1qkbnr/pbppp1pp/5p2/1p2P3/3P4/8/PPP1BPPP/RNBQK1NR w KQkq - 2 5 | 141 | 1.0
++rn1qkbnr/pbppp1pp/5p2/1p2P3/3P4/5N2/PPP1BPPP/RNBQK2R b KQkq - 3 5 | -144 | 1.0
++rn1qkbnr/pbpp2pp/4pp2/1B2P3/3P4/5N2/PPP2PPP/RNBQK2R b KQkq - 0 6 | -151 | 1.0
++rn1qkb1r/pbppn2p/4pp2/1B6/3P4/5N2/PPP2PPP/RNBQK2R w KQkq - 0 8 | 176 | 1.0
++rn1qkb1r/pbppn2p/4pp2/1B6/3P4/5N2/PPP2PPP/RNBQ1RK1 b kq - 1 8 | -207 | 1.0
++rn1qk2r/pbppn1bp/4pp2/1B6/3P4/5N2/PPP2PPP/RNBQ1RK1 w kq - 2 9 | 178 | 1.0
++rn1qk2r/pbppn1bp/4pp2/1B6/3P4/5N2/PPP2PPP/RNBQR1K1 b kq - 3 9 | -201 | 1.0
++rn1q1rk1/pbppn1bp/4pp2/1B6/3P4/5N2/PPP2PPP/RNBQR1K1 w - - 4 10 | 195 | 1.0
++rn1q1rk1/pbppn1bp/4pp2/8/3P4/3B1N2/PPP2PPP/RNBQR1K1 b - - 5 10 | -173 | 1.0
++r2q1rk1/pbppn1bp/2n1pp2/8/3P4/3B1N2/PPP2PPP/RNBQR1K1 w - - 6 11 | 158 | 1.0
++r2q1rk1/pbppn1bp/2n1pp2/8/3P4/2PB1N2/PP3PPP/RNBQR1K1 b - - 0 11 | -206 | 1.0
++1r1q1rk1/pbppn1bp/2n1pp2/8/3P4/2PB1N2/PP3PPP/RNBQR1K1 w - - 1 12 | 216 | 1.0
++1r1q1rk1/pbppn1bp/2n1pp2/8/1P1P4/2PB1N2/P4PPP/RNBQR1K1 b - b3 0 12 | -205 | 1.0
++1r1q1rk1/1bppn1bp/2n1pp2/p7/1P1P4/2PB1N2/P4PPP/RNBQR1K1 w - a6 0 13 | 255 | 1.0
++1r1q1rk1/1bppn1bp/2n1pp2/pP6/3P4/2PB1N2/P4PPP/RNBQR1K1 b - - 0 13 | -260 | 1.0
++1r1q1rk1/nbppn1bp/4pp2/pP6/3P4/2PB1N2/P4PPP/RNBQR1K1 w - - 1 14 | 232 | 1.0
++1r1q1rk1/nbppn1bp/4pp2/pP6/P2P4/2PB1N2/5PPP/RNBQR1K1 b - a3 0 14 | -243 | 1.0
++1r1q1rk1/nbppn1bp/4p3/pP3p2/P2P4/2PB1N2/5PPP/RNBQR1K1 w - - 0 15 | 234 | 1.0
++1r1q1rk1/nbppn1bp/4p3/pP3p2/P2P4/B1PB1N2/5PPP/RN1QR1K1 b - - 1 15 | -260 | 1.0
++1rnq1rk1/1bppn1bp/4p3/pP3p2/P2P4/B1PB1N2/5PPP/RN1QR1K1 w - - 2 16 | 219 | 1.0
++1rnq1rk1/1bppn1bp/4p3/pP3p2/P2P4/B1PB1N2/3N1PPP/R2QR1K1 b - - 3 16 | -235 | 1.0
++1r1q1rk1/1bppn1bp/3np3/pP3p2/P2P4/B1PB1N2/3N1PPP/R2QR1K1 w - - 4 17 | 222 | 1.0
++1r1q1rk1/2ppn1bp/3np3/pP3p2/P2P4/BNPB1Q2/5PPP/R3R1K1 b - - 0 18 | -276 | 1.0
++1r1q1rk1/2pp2bp/3np3/pP1n1p2/P2P4/BNPB1Q2/5PPP/R3R1K1 w - - 1 19 | 318 | 1.0
++1r1q1rk1/2pp2bp/3np3/pP1n1p2/P1PP4/BN1B1Q2/5PPP/R3R1K1 b - - 0 19 | -339 | 1.0
++1r1q1rk1/2pp2bp/3np3/NP3p2/PnPP4/B2B1Q2/5PPP/R3R1K1 b - - 0 20 | -361 | 1.0
++1r1q1rk1/3p2bp/3np3/NPp2p2/PnPP4/B2B1Q2/5PPP/R3R1K1 w - c6 0 21 | 404 | 1.0
++1r1q1rk1/3p2bp/3np3/1Pp2p2/PnPP4/BN1B1Q2/5PPP/R3R1K1 b - - 1 21 | -373 | 1.0
++1r3rk1/3p2bp/3np3/1P3p2/PpPP3q/1N1B1Q2/5PPP/R3R1K1 w - - 0 23 | 428 | 1.0
++1r3rk1/3p2bp/3np3/1P3p2/PpPP4/1N1B2P1/5PP1/R3R1K1 b - - 0 24 | -385 | 1.0
++1r3rk1/3p2bp/3np3/1P6/PpPP1p2/1N1B2P1/5PP1/R3R1K1 w - - 0 25 | 419 | 1.0
++1r3rk1/3p2bp/3np3/1P6/PpPP1pP1/1N1B4/5PP1/R3R1K1 b - - 0 25 | -418 | 1.0
++1r3rk1/3p2bp/3np3/1P6/PpPP2P1/1N1B1p2/5PP1/R3R1K1 w - - 0 26 | 396 | 1.0
++1r3rk1/3p2bp/3np3/1PP5/Pp1P2P1/1N1B1p2/5PP1/R3R1K1 b - - 0 26 | -427 | 1.0
++1rn2rk1/3p2bp/4p3/1PP5/Pp1P2P1/1N1B1p2/5PP1/R3R1K1 w - - 1 27 | 449 | 1.0
++1rn2rk1/3p2bp/4p3/1PP5/Pp1P2P1/1N1B1pP1/5P2/R3R1K1 b - - 0 27 | -433 | 1.0
++1r3rk1/n2p2bp/4p3/1PP5/Pp1P2P1/1N1B1pP1/5P2/R3R1K1 w - - 1 28 | 435 | 1.0
++1r3rk1/n2p2bp/4p3/1PP3P1/Pp1P4/1N1B1pP1/5P2/R3R1K1 b - - 0 28 | -431 | 1.0
++5r2/3p1kbB/4p3/1rP3P1/1p1P4/1N3pP1/5P2/R3R1K1 w - - 0 31 | 563 | 1.0
++5r2/3p1kbB/4p3/1rP3P1/1p1P4/1N2RpP1/5P2/R5K1 b - - 1 31 | -563 | 1.0
++5b2/1r1pk2B/4p3/2P3P1/1p1P4/1N4P1/5P2/R5K1 w - - 0 34 | 675 | 1.0
++5b2/1r1pk3/4p3/2P3P1/1p1PB3/1N4P1/5P2/R5K1 b - - 1 34 | -673 | 1.0
++5b2/3pk3/4p3/1rP3P1/1p1PB3/1N4P1/5P2/R5K1 w - - 2 35 | 698 | 1.0
++5b2/R2pk3/4p3/1rP3P1/1p1PB3/1N4P1/5P2/6K1 b - - 3 35 | -726 | 1.0
++1r3b2/R2pk3/4p3/2P3P1/1p1PB3/1N4P1/5P2/6K1 w - - 4 36 | 763 | 1.0
++1r3b2/R2pk3/2P1p3/6P1/1p1PB3/1N4P1/5P2/6K1 b - - 0 36 | -748 | 1.0
++3r1b2/R2pk3/2P1p3/6P1/1p1PB3/1N4P1/5P2/6K1 w - - 1 37 | 756 | 1.0
++3r1b2/R2pk3/2P1p3/6P1/1p1PB3/1N4P1/5P2/5K2 b - - 2 37 | -746 | 1.0
++3r4/R2pk1b1/2P1p3/6P1/1p1PB3/1N4P1/5P2/5K2 w - - 3 38 | 786 | 1.0
++3r4/R2pk1b1/2P1p3/6P1/1p1PB3/1N4P1/4KP2/8 b - - 4 38 | -782 | 1.0
++3r4/R2pk1b1/2P5/4p1P1/1p1PB3/1N4P1/4KP2/8 w - - 0 39 | 800 | 1.0
++3r4/R2pk1b1/2P5/3Pp1P1/1p2B3/1N4P1/4KP2/8 b - - 0 39 | -835 | 1.0
++3r4/R2p2b1/2Pk4/3Pp1P1/1p2B3/1N4P1/4KP2/8 w - - 1 40 | 832 | 1.0
++3r4/1R1p2b1/2Pk4/3Pp1P1/1p2B3/1N4P1/4KP2/8 b - - 2 40 | -794 | 1.0
++3r1b2/3p4/2Pk4/3Pp1P1/1R2B3/1N4P1/4KP2/8 b - - 0 41 | -824 | 1.0
++3r4/3pb3/2Pk4/3Pp1P1/1R2B3/1N4P1/4KP2/8 w - - 1 42 | 827 | 1.0
++3r4/3pb3/2Pk4/3P2P1/1R2BP2/1N6/4K3/8 b - - 0 43 | -890 | 1.0
++5r2/3pb3/2Pk4/3P2P1/1R2BP2/1N6/4K3/8 w - - 1 44 | 896 | 1.0
++5r2/3pb3/2Pk4/3P2P1/1R2BP2/1N2K3/8/8 b - - 2 44 | -920 | 1.0
++6r1/3pb3/2Pk4/3P2P1/1R2BP2/1N2K3/8/8 w - - 3 45 | 1074 | 1.0
++6r1/1R2b3/2Pk4/6P1/4BP2/1N2K3/8/8 b - - 0 46 | -1198 | 1.0
++4r3/1R2b3/2Pk4/6P1/4BP2/1N2K3/8/8 w - - 1 47 | 1339 | 1.0
++4r3/3Rb3/2P1k3/6P1/4BP2/1N2K3/8/8 w - - 3 48 | 1596 | 1.0
++4r3/3Rbk2/2P5/5PP1/4B3/1N2K3/8/8 w - - 1 49 | 1627 | 1.0
++4r3/3Rbk2/2P2P2/6P1/4B3/1N2K3/8/8 b - - 0 49 | -1645 | 1.0
++4r3/3RPk2/2P5/6P1/4B3/1N2K3/8/8 w - - 1 51 | 1862 | 1.0
++4r3/2PRPk2/8/6P1/4B3/1N2K3/8/8 b - - 0 51 | -2038 | 1.0
++2r5/2PRPk2/8/6P1/4B3/1N2K3/8/8 w - - 1 52 | 2238 | 1.0
++rnbqk1nr/pppppp1p/6pb/8/3N4/P1P5/1P1PPPPP/RNBQKB1R w KQkq - 1 5 | -11 | 0.5
++rnbqk1nr/pppppp1p/6pb/8/8/PNP5/1P1PPPPP/RNBQKB1R b KQkq - 2 5 | 24 | 0.5
++rnbqk1nr/ppp1pp1p/6pb/3p4/8/PNP5/1P1PPPPP/RNBQKB1R w KQkq d6 0 6 | -15 | 0.5
++rnbqk1nr/ppp1pp1p/6pb/3p4/3P4/PNP5/1P2PPPP/RNBQKB1R b KQkq d3 0 6 | 21 | 0.5
++rnbqk1nr/ppp1ppbp/6p1/3p4/3P4/PNP5/1P2PPPP/RNBQKB1R w KQkq - 1 7 | -3 | 0.5
++rnbqk1nr/ppp1ppbp/6p1/3p4/3P1B2/PNP5/1P2PPPP/RN1QKB1R b KQkq - 2 7 | 3 | 0.5
++r1bqk1nr/ppp1ppbp/2n3p1/3p4/3P1B2/PNP5/1P2PPPP/RN1QKB1R w KQkq - 3 8 | 9 | 0.5
++r1bqk1nr/ppp1ppbp/2n3p1/3p4/3P1B2/PNP5/1P1NPPPP/R2QKB1R b KQkq - 4 8 | -34 | 0.5
++r1bqk1nr/ppp2p1p/6p1/3pb3/8/PNP5/1P1NPPPP/R2QKB1R w KQkq - 0 11 | -6 | 0.5
++r1b1k1nr/ppp2p1p/6p1/4b3/4N3/PNP5/1P3PPP/3RKB1R b Kkq - 0 13 | -6 | 0.5
++r1b1k2r/ppp1np1p/6p1/4b3/4N3/PNP5/1P3PPP/3RKB1R w Kkq - 1 14 | 7 | 0.5
++r1b1k2r/pp2np1p/2p3p1/1B2b3/4N3/PNP5/1P3PPP/3RK2R w Kkq - 0 15 | -3 | 0.5
++r1b1k2r/pp2np1p/2p3p1/4b3/2B1N3/PNP5/1P3PPP/3RK2R b Kkq - 1 15 | 30 | 0.5
++r1b1k2r/p3np1p/2p3p1/1p2b3/2B1N3/PNP5/1P3PPP/3RK2R w Kkq b6 0 16 | -2 | 0.5
++r1b1k2r/p3np1p/2p3p1/1p2b3/4N3/PNP5/1P2BPPP/3RK2R b Kkq - 1 16 | -8 | 0.5
++r3k2r/p3np1p/2p1b1p1/1p2b3/4N3/PNP5/1P2BPPP/3RK2R w Kkq - 2 17 | -13 | 0.5
++r3k2r/p3np1p/2p1b1p1/1pN1b3/8/PNP5/1P2BPPP/3RK2R b Kkq - 3 17 | 4 | 0.5
++r3k2r/p3np1p/2p3p1/1pNbb3/8/PNP5/1P2BPPP/3RK2R w Kkq - 4 18 | -26 | 0.5
++r3k2r/p3np1p/2p3p1/1pN1b3/8/PNP2P2/1P3P1P/3RK2R b Kkq - 0 19 | 27 | 0.5
++r3k2r/p4p1p/2p3p1/1pNnb3/8/PNP2P2/1P3P1P/3RK2R w Kkq - 1 20 | -21 | 0.5
++r3k2r/p4p1p/2p3p1/1pNnb3/8/PNP2P2/1P3P1P/3R1RK1 b kq - 2 20 | 43 | 0.5
++2kr3r/p4p1p/2p3p1/1pNnb3/8/PNP2P2/1P3P1P/3R1RK1 w - - 3 21 | -45 | 0.5
++2kr3r/p4p1p/2p3p1/NpNnb3/8/P1P2P2/1P3P1P/3R1RK1 b - - 4 21 | 23 | 0.5
++3r3r/p1k2p1p/2p3p1/NpNnb3/8/P1P2P2/1P3P1P/3R1RK1 w - - 5 22 | -38 | 0.5
++3r3r/p1k2p1p/2p3p1/NpNnb3/8/P1P2P2/1P3P1P/3RR1K1 b - - 6 22 | 46 | 0.5
++3r3r/p1k2p1p/2p2bp1/NpNn4/8/P1P2P2/1P3P1P/3RR1K1 w - - 7 23 | -55 | 0.5
++3r3r/p1k2p1p/2p2bp1/NpNn4/2P5/P4P2/1P3P1P/3RR1K1 b - - 0 23 | 67 | 0.5
++3r3r/p1k2p1p/2p2bp1/NpN5/2P2n2/P4P2/1P3P1P/3RR1K1 w - - 1 24 | -79 | 0.5
++3r3r/p1k2p1p/2p2bp1/NpN5/1PP2n2/P4P2/5P1P/3RR1K1 b - b3 0 24 | 135 | 0.5
++3rr3/p1k2p1p/2p2bp1/NpN5/1PP2n2/P4P2/5P1P/3RR1K1 w - - 1 25 | -114 | 0.5
++3rr3/p1k2p1p/2p2bp1/NpN5/1PP2n2/P4P2/5P1P/3RRK2 b - - 2 25 | 294 | 0.5
++3rr3/p1k2p1p/2p3p1/NpN5/1PP2n2/P1b2P2/5P1P/3RRK2 w - - 3 26 | -238 | 0.5
++3rr3/pNk2p1p/2p3p1/1pN5/1PP2n2/P1b2P2/5P1P/3RRK2 b - - 4 26 | 180 | 0.5
++4r3/pNk2p1p/2p3p1/1pN5/1PPr1n2/P1b2P2/5P1P/3RRK2 w - - 5 27 | -137 | 0.5
++4r3/pNk2p1p/2p3p1/1p6/1PPrNn2/P1b2P2/5P1P/3RRK2 b - - 6 27 | 126 | 0.5
++4r3/pNk2p1p/2p3p1/1p6/1PPrN3/P1bn1P2/5P1P/3RRK2 w - - 7 28 | -70 | 0.5
++4r3/pNk2p1p/2p3p1/1p6/1PPrN3/P1bn1P2/4RP1P/3R1K2 b - - 8 28 | 75 | 0.5
++4r3/pNk2p1p/2p3p1/1p6/1PPbNn2/P4P2/4RP1P/5K2 w - - 0 30 | 0 | 0.5
++4r3/pNk2p1p/2p3p1/1p6/1PPbNn2/P4P2/3R1P1P/5K2 b - - 1 30 | 45 | 0.5
++4r3/pNk2p1p/2p3p1/1p2b3/1PP1Nn2/P4P2/3R1P1P/5K2 w - - 2 31 | -52 | 0.5
++4r3/pNk2p1p/2p3p1/2N1b3/1Pp2n2/P4P2/3R1P1P/5K2 w - - 0 32 | -52 | 0.5
++2k1r3/pN1R1p1p/2p3p1/2N1b3/1Pp2n2/P4P2/5P1P/5K2 w - - 2 33 | 0 | 0.5
++2k1r3/p2R1p1p/2p3p1/N1N1b3/1Pp2n2/P4P2/5P1P/5K2 b - - 3 33 | 0 | 0.5
++2k1r3/p2R1p1p/2N3p1/2N1b3/1P3n2/P1p2P2/5P1P/5K2 b - - 0 34 | 0 | 0.5
++1k2r3/N2R1p1p/6p1/2N1b3/1P3n2/P4P2/2p2P1P/5K2 w - - 1 36 | 0 | 0.5
++2k1r3/3R1p1p/2N3p1/2N1b3/1P3n2/P4P2/2p2P1P/5K2 w - - 3 37 | 0 | 0.5
++rnbqkb1r/p1ppp1p1/2p4n/5p1p/8/8/PPQPPPPP/RNB1KBNR w KQkq - 0 5 | -5 | 0.5
++rnbqkb1r/p1ppp1p1/2p4n/5p1p/8/5N2/PPQPPPPP/RNB1KB1R b KQkq - 1 5 | 16 | 0.5
++rnbqkb1r/p1p1p1p1/2pp3n/5p1p/8/5N2/PPQPPPPP/RNB1KB1R w KQkq - 0 6 | -27 | 0.5
++rnbqkb1r/p1p1p1p1/2pp3n/5p1p/3P4/5N2/PPQ1PPPP/RNB1KB1R b KQkq d3 0 6 | 2 | 0.5
++rnbqkb1r/p1p1p3/2pp2pn/5p1p/3P4/5N2/PPQ1PPPP/RNB1KB1R w KQkq - 0 7 | -17 | 0.5
++rnbqkb1r/p1p1p3/2pp2pn/5p1p/3P4/5NP1/PPQ1PP1P/RNB1KB1R b KQkq - 0 7 | 0 | 0.5
++rnbqk2r/p1p1p1b1/2pp2pn/5p1p/3P4/5NP1/PPQ1PP1P/RNB1KB1R w KQkq - 1 8 | 4 | 0.5
++rnbqk2r/p1p1p1b1/2pp2pn/5p1p/3P3N/6P1/PPQ1PP1P/RNB1KB1R b KQkq - 2 8 | 4 | 0.5
++rnbq3r/p1p1pkb1/2pp2pn/5p1p/3P3N/6P1/PPQ1PP1P/RNB1KB1R w KQ - 3 9 | 0 | 0.5
++rnbq3r/p1p1pkb1/2pp2pn/5p1p/3P3N/6P1/PPQ1PPBP/RNB1K2R b KQ - 4 9 | 4 | 0.5
++rnbq3r/p1p2kb1/2ppp1pn/5p1p/3P3N/6P1/PPQ1PPBP/RNB1K2R w KQ - 0 10 | -4 | 0.5
++rnbq3r/p1p2kb1/2ppp1pn/5p1p/3P4/5NP1/PPQ1PPBP/RNB1K2R b KQ - 1 10 | 15 | 0.5
++rnbq2kr/p1p3b1/2ppp1pn/5p1p/3P4/5NP1/PPQ1PPBP/RNB1K2R w KQ - 2 11 | -15 | 0.5
++rnbq2kr/p1p3b1/2ppp1pn/5p1p/3P4/5NP1/PPQ1PPBP/RNB2RK1 b - - 3 11 | -1 | 0.5
++rnbq2kr/p1p2nb1/2ppp1p1/5p1p/3P4/5NP1/PPQ1PPBP/RNB2RK1 w - - 4 12 | 15 | 0.5
++rnbq2kr/p1p2nb1/2ppp1p1/5p1p/3PP3/5NP1/PPQ2PBP/RNB2RK1 b - e3 0 12 | 18 | 0.5
++rnbq2kr/p1p2nb1/2pp4/5ppp/3P4/5NP1/PPQ2PBP/RNB2RK1 w - - 0 14 | -21 | 0.5
++rnbq2kr/p1p2nb1/2pp4/5ppp/3P4/5NP1/PPQ2PBP/RNB1R1K1 b - - 1 14 | 28 | 0.5
++rnbq2kr/p1p2nb1/2pp4/5pp1/3P3p/5NP1/PPQ2PBP/RNB1R1K1 w - - 0 15 | -21 | 0.5
++rnbq2kr/p1p2nb1/2pp4/5pp1/3P4/5NPP/PPQ3B1/RNB1R1K1 b - - 0 16 | 7 | 0.5
++r1bq2kr/p1pn1nb1/2Qp4/5pp1/3P4/5NPP/PP4B1/RNB1R1K1 b - - 0 17 | 95 | 0.5
++1rbq2kr/p1pn1nb1/2Qp4/5pp1/3P4/5NPP/PP4B1/RNB1R1K1 w - - 1 18 | 9 | 0.5
++1rbq2kr/p1pn1nb1/3p4/5pp1/2QP4/5NPP/PP4B1/RNB1R1K1 b - - 2 18 | 4 | 0.5
++1rbq2kr/p1p2nb1/1n1p4/5pp1/2QP4/5NPP/PP4B1/RNB1R1K1 w - - 3 19 | -57 | 0.5
++1rbq2kr/p1p2nb1/1n1p4/1Q3pp1/3P4/5NPP/PP4B1/RNB1R1K1 b - - 4 19 | 53 | 0.5
++1r1q2kr/p1pb1nb1/1n1p4/1Q3pp1/3P4/5NPP/PP4B1/RNB1R1K1 w - - 5 20 | -60 | 0.5
++1r1q2kr/p1pb1nb1/1n1p4/5pp1/3P4/1Q3NPP/PP4B1/RNB1R1K1 b - - 6 20 | 38 | 0.5
++1r1q2kr/p1pb1nb1/1n6/3p1pp1/3P4/1Q3NPP/PP4B1/RNB1R1K1 w - - 0 21 | -32 | 0.5
++1r1q2kr/p1pb1nb1/1n6/3p1pp1/3P4/1QN2NPP/PP4B1/R1B1R1K1 b - - 1 21 | 62 | 0.5
++1r1q2kr/p2b1nb1/1np5/3p1pp1/3P4/1QN2NPP/PP4B1/R1B1R1K1 w - - 0 22 | -46 | 0.5
++1r1q2kr/p2b1nb1/1np5/3p1pp1/3P4/2N2NPP/PPQ3B1/R1B1R1K1 b - - 1 22 | 57 | 0.5
++1r1q2kr/p2b1nb1/1np5/3p4/3P2p1/2N2NP1/PPQ3B1/R1B1R1K1 w - - 0 24 | -109 | 0.5
++1r1q2kr/p2b2b1/1np5/3pP3/6p1/2N3P1/PPQ3B1/R1B1R1K1 b - - 0 25 | 59 | 0.5
++1r2q1kr/p2b2b1/1np5/3pP3/6p1/2N3P1/PPQ3B1/R1B1R1K1 w - - 1 26 | -30 | 0.5
++1r2q1kr/p2b2b1/1np5/3pP3/5Bp1/2N3P1/PPQ3B1/R3R1K1 b - - 2 26 | 67 | 0.5
++1r2q1kr/p5b1/1np1b3/3pP3/5Bp1/2N3P1/PPQ3B1/R3R1K1 w - - 3 27 | -21 | 0.5
++1r2q1kr/p5b1/1np1b3/3pP3/5Bp1/6P1/PPQ3B1/R2NR1K1 b - - 4 27 | 30 | 0.5
++2r1q1kr/p5b1/1np1b3/3pP3/5Bp1/6P1/PPQ3B1/R2NR1K1 w - - 5 28 | -46 | 0.5
++2r1q1kr/p5b1/1np1b3/2QpP3/5Bp1/6P1/PP4B1/R2NR1K1 b - - 6 28 | 28 | 0.5
++2r1qbkr/p7/1np1b3/2QpP3/5Bp1/6P1/PP4B1/R2NR1K1 w - - 7 29 | 8 | 0.5
++2r1qbkr/p7/1np1b3/Q2pP3/5Bp1/6P1/PP4B1/R2NR1K1 b - - 8 29 | -3 | 0.5
++2r1qbkr/p7/2p1b3/Q2pP3/2n2Bp1/6P1/PP4B1/R2NR1K1 w - - 9 30 | -22 | 0.5
++2r1qbkr/p7/2p1b3/3pP3/2n2Bp1/2Q3P1/PP4B1/R2NR1K1 b - - 10 30 | 55 | 0.5
++2r1q1kr/p7/2p1b3/2bpP3/2n2Bp1/2Q3P1/PP3NB1/R3R1K1 b - - 12 31 | 50 | 0.5
++2r1q1kr/p7/1bp1b3/3pP3/2n2Bp1/2Q3P1/PP3NB1/R3R1K1 w - - 13 32 | -70 | 0.5
++2r1q1kr/p7/1bp1b3/3pP3/2n2Bp1/1PQ3P1/P4NB1/R3R1K1 b - - 0 32 | 86 | 0.5
++2r1q1kr/p7/1bp1b3/3pP3/5Bp1/nPQ3P1/P4NB1/R3R1K1 w - - 1 33 | -72 | 0.5
++2r1q1kr/p7/1bp1b3/3pP3/5Bp1/nPQ3P1/P4NB1/R3RK2 b - - 2 33 | 64 | 0.5
++2r3kr/p7/1bp1b1q1/3pP3/5Bp1/nPQ3P1/P4NB1/R3RK2 w - - 3 34 | -79 | 0.5
++2r3kr/p7/1bp1b1q1/3pP3/5Bp1/nPQ3P1/P4NB1/2R1RK2 b - - 4 34 | 123 | 0.5
++2r3k1/p7/1bp1b1q1/3pP3/5Bp1/nPQ3P1/P4NBr/2R1RK2 w - - 5 35 | -124 | 0.5
++2r3k1/p7/1bp1b1q1/3pP3/5Bp1/nP4P1/P2Q1NBr/2R1RK2 b - - 6 35 | 51 | 0.5
++2r3k1/p7/1bp1b1q1/1n1pP3/5Bp1/1P4P1/P2Q1NBr/2R1RK2 w - - 7 36 | 22 | 0.5
++2r3k1/p7/1bp1b1q1/1n1pP3/6p1/1P2B1P1/P2Q1NBr/2R1RK2 b - - 8 36 | -45 | 0.5
++2r3k1/7r/1pp1b1q1/1n1pP3/6p1/1P4P1/P2Q1NB1/2R1RK2 w - - 0 38 | 94 | 0.5
++2r3k1/7r/1pp1b1q1/1n1pP3/6p1/1P1N2P1/P2Q2B1/2R1RK2 b - - 1 38 | -137 | 0.5
++2r3k1/7r/1p2b1q1/1nppP3/6p1/1P1N2P1/P2Q2B1/2R1RK2 w - - 0 39 | 129 | 0.5
++2r3k1/7r/1p2b1q1/1nppP3/5Np1/1P4P1/P2Q2B1/2R1RK2 b - - 1 39 | -161 | 0.5
++2r3k1/5q1r/1p2b3/1npBP3/5Np1/1P4P1/P2Q4/2R1RK2 b - - 0 40 | -13 | 0.5
++8/5k1r/1p6/1np1P3/5Np1/1P4P1/P2r4/2R1RK2 w - - 0 43 | -20 | 0.5
++8/5k1r/1p6/1np1P3/5Np1/1P4P1/P2rR3/2R2K2 b - - 1 43 | -3 | 0.5
++8/5k2/1p6/1np1P3/6p1/1P4P1/P5K1/2N5 b - - 0 46 | 7 | 0.5
++8/8/1p2k3/1np1P3/6p1/1P4P1/P5K1/2N5 w - - 1 47 | -21 | 0.5
++8/8/1p2k3/1np1P3/6p1/1P4P1/P4K2/2N5 b - - 2 47 | 26 | 0.5
++8/8/1p2k3/2p1P3/6p1/1Pn3P1/P4K2/2N5 w - - 3 48 | -9 | 0.5
++8/8/1p6/2p1k3/6p1/1Pn1K1P1/P7/2N5 w - - 0 49 | -25 | 0.5
++8/8/1p6/2p1k3/P5p1/1Pn1K1P1/8/2N5 b - a3 0 49 | 45 | 0.5
++8/8/1p6/2p2k2/P5p1/1Pn1K1P1/8/2N5 w - - 1 50 | -15 | 0.5
++8/8/1p6/2p2k2/P5p1/1PnK2P1/8/2N5 b - - 2 50 | 9 | 0.5
++8/8/1p6/2p2k2/P3n1p1/1P1K2P1/8/2N5 w - - 3 51 | 3 | 0.5
++8/8/1p6/2p2k2/P1K3p1/1P4n1/8/2N5 w - - 0 52 | -20 | 0.5
++8/8/1p6/1Kp2k2/P5p1/1P4n1/8/2N5 b - - 1 52 | -3 | 0.5
++8/8/1K6/2p2k2/P3n1p1/1P6/8/2N5 b - - 0 53 | 119 | 0.5
++8/8/1K6/2p2k2/P5p1/1Pn5/8/2N5 w - - 1 54 | -92 | 0.5
++8/8/1K6/2p2k2/P5p1/1PnN4/8/8 b - - 2 54 | 71 | 0.5
++8/8/8/1K3k2/n1P3p1/3N4/8/8 b - - 1 56 | 58 | 0.5
++8/8/8/1K3k2/n1P5/3N2p1/8/8 w - - 0 57 | -99 | 0.5
++8/8/8/1K3k2/n1P5/6p1/8/4N3 b - - 1 57 | 130 | 0.5
++8/8/1K6/5k2/2P5/2n3p1/8/4N3 b - - 3 58 | 64 | 0.5
++8/8/1K6/8/2P1k3/2n3p1/8/4N3 w - - 4 59 | -60 | 0.5
++8/8/1K6/2P5/4k3/2n3p1/8/4N3 b - - 0 59 | 73 | 0.5
++8/8/2K5/2Pn4/4k3/6p1/8/4N3 b - - 2 60 | 36 | 0.5
++8/8/8/1KP5/1n2k3/6p1/8/4N3 b - - 4 61 | 14 | 0.5
++8/8/8/1KP5/4k3/6p1/2n5/4N3 w - - 5 62 | -36 | 0.5
++8/8/2P5/1K6/4k3/6p1/2n5/4N3 b - - 0 62 | 54 | 0.5
++8/8/2K5/8/4k3/6p1/8/4N3 b - - 0 64 | 0 | 0.5
++8/8/2K5/8/5k2/6p1/8/4N3 w - - 1 65 | 0 | 0.5
++8/8/8/2K5/5k2/6p1/8/4N3 b - - 2 65 | 0 | 0.5
++8/8/8/2K5/6k1/6p1/8/4N3 w - - 3 66 | 0 | 0.5
++8/8/8/3K4/6k1/6p1/8/4N3 b - - 4 66 | 0 | 0.5
++8/8/8/3K4/8/6pk/8/4N3 w - - 5 67 | 0 | 0.5
++8/8/8/8/4K3/6pk/8/4N3 b - - 6 67 | 0 | 0.5
+diff --git a/tests/nnue_parity_tests.cpp b/tests/nnue_parity_tests.cpp
+new file mode 100644
+index 0000000..534cce3
+--- /dev/null
++++ b/tests/nnue_parity_tests.cpp
+@@ -0,0 +1,695 @@
++// NNUE parity harness (O2). Compares the current nnue::refresh / update /
++// evaluate with lock_ref, a verbatim copy of the AL1 s198 (294dbed)
++// src/nnue.cpp implementation (opus_round1/O2/verify_lock_ref.py checks the
++// copy), bit for bit: every accumulator float as its bit pattern and every
++// evaluate() result, on
++//   - random make/unmake walks: legal moves and null moves, back-tracking to a
++//     lower ply as a search does; every visited position is compared after an
++//     incremental update, and regularly after a full refresh;
++//   - in-place updates (parent == child), part of the update() contract;
++//   - FEN files (--fens: one FEN per line, extra " | ..." fields ignored, the
++//     5_nnue forge_text_sample format), each refreshed and used as a walk root;
++//   - .pos files (--pos: the 5_nnue v3b record format; the synthetic boards
++//     are made acceptable to Board::set_fen first, see pos_record_fen);
++//   - synthetic accumulators with SCReLU edge values for evaluate().
++// The last lines are the counts and a digest over every compared output.
++// Build this test for each kernel target (portable code with
++// -DFORGE_NNUE_FORCE_SCALAR, SSE2, AVX2, the compiler-widened AVX-512 build):
++// the digest must be the same for all of them.
++// usage: forge_nnue_parity_tests [--walk-positions N] [--synthetic N]
++//        [--fens FILE]... [--pos FILE]... [--pos-limit N]
++#include "forge/board.hpp"
++#include "forge/nnue.hpp"
++
++#include <algorithm>
++#include <array>
++#include <bit>
++#include <charconv>
++#include <cmath>
++#include <cstdint>
++#include <cstdio>
++#include <cstdlib>
++#include <fstream>
++#include <iostream>
++#include <memory>
++#include <stdexcept>
++#include <string>
++#include <string_view>
++#include <vector>
++
++// ---- BEGIN verbatim AL1 s198 src/nnue.cpp lines 8-20 ----
++// The output layer uses SSE min/max/mul/add directly: compilers may not turn a
++// float clamp into min/max instructions without -ffast-math, which left the
++// AVX2 builds with slow scalar code. SSE2 is part of every x86-64 target.
++#if defined(__SSE__) || defined(_M_X64) || defined(_M_AMD64)
++#include <xmmintrin.h>
++#define FORGE_NNUE_SSE 1
++#else
++#define FORGE_NNUE_SSE 0
++#endif
++
++#if defined(__AVX2__)
++#include <immintrin.h>
++#endif
++// ---- END verbatim ----
++
++#if __has_include("../src/nnue_weights.inc")
++#include "../src/nnue_weights.inc"
++#define FORGE_HAS_NNUE 1
++#else
++#define FORGE_HAS_NNUE 0
++#endif
++
++// The AL1 s198 implementation, unchanged, as the oracle.
++namespace forge::nnue::lock_ref {
++
++// ---- BEGIN verbatim AL1 s198 src/nnue.cpp lines 46-76 ----
++struct Weights {
++    std::unique_ptr<float[]> w1;   // [InputCount][HiddenSize]
++    alignas(32) std::array<float, HiddenSize> b1{};
++    alignas(32) std::array<float, 2 * HiddenSize> w2{};
++    float b2 = 0.0F;
++};
++
++const Weights& weights() {
++    static const Weights instance = [] {
++        Weights w;
++        w.w1 = std::make_unique<float[]>(static_cast<std::size_t>(InputCount) * HiddenSize);
++#if FORGE_HAS_NNUE
++        for (std::size_t i = 0; i < static_cast<std::size_t>(InputCount) * HiddenSize; ++i) {
++            w.w1[i] = static_cast<float>(NnueW1[i]) / WeightScale;
++        }
++        for (std::size_t i = 0; i < HiddenSize; ++i) w.b1[i] = static_cast<float>(NnueB1[i]) / WeightScale;
++        for (std::size_t i = 0; i < 2 * HiddenSize; ++i) w.w2[i] = static_cast<float>(NnueW2[i]) / OutputScale;
++        w.b2 = static_cast<float>(NnueB2) / OutputScale;
++#endif
++        return w;
++    }();
++    return instance;
++}
++
++inline void add_feature(std::array<float, HiddenSize>& acc, const float* column) {
++    for (int h = 0; h < HiddenSize; ++h) acc[static_cast<std::size_t>(h)] += column[h];
++}
++
++inline void sub_feature(std::array<float, HiddenSize>& acc, const float* column) {
++    for (int h = 0; h < HiddenSize; ++h) acc[static_cast<std::size_t>(h)] -= column[h];
++}
++// ---- END verbatim ----
++
++// ---- BEGIN verbatim AL1 s198 src/nnue.cpp lines 84-216 ----
++void refresh(const Board& board, Accumulator& accumulator) {
++    const Weights& w = weights();
++    for (const Color perspective : {White, Black}) {
++        auto& acc = accumulator.values[static_cast<std::size_t>(perspective)];
++        acc = w.b1;
++        Bitboard occupied = board.occupied();
++        while (occupied != 0) {
++            const int square = pop_lsb(occupied);
++            const int index = feature_index(perspective, board.piece_at(square), square);
++            add_feature(acc, w.w1.get() + static_cast<std::size_t>(index) * HiddenSize);
++        }
++    }
++    accumulator.valid = true;
++}
++
++void update(const Accumulator& parent, Accumulator& child, const DirtyPieces& dirty) {
++    const Weights& w = weights();
++    // Quiet moves (including noncapturing promotions) remove one feature and
++    // add one. Keep each lane's subtraction-then-addition order while avoiding
++    // a full copy and two separate read/write passes over the child.
++    if (dirty.count == 2 && !dirty.changes[0].add && dirty.changes[1].add) {
++        for (const Color perspective : {White, Black}) {
++            const auto& source = parent.values[static_cast<std::size_t>(perspective)];
++            auto& destination = child.values[static_cast<std::size_t>(perspective)];
++            const PieceChange& removed = dirty.changes[0];
++            const PieceChange& added = dirty.changes[1];
++            const float* removed_column = w.w1.get() +
++                static_cast<std::size_t>(feature_index(perspective, removed.piece, removed.square)) * HiddenSize;
++            const float* added_column = w.w1.get() +
++                static_cast<std::size_t>(feature_index(perspective, added.piece, added.square)) * HiddenSize;
++            for (int h = 0; h < HiddenSize; ++h) {
++                const std::size_t index = static_cast<std::size_t>(h);
++                destination[index] = (source[index] - removed_column[index]) + added_column[index];
++            }
++        }
++        child.valid = true;
++        return;
++    }
++    // Captures remove the mover and captured piece before adding the mover
++    // (or promoted piece). Preserve both intermediate subtractions per lane.
++    if (dirty.count == 3 && !dirty.changes[0].add && !dirty.changes[1].add && dirty.changes[2].add) {
++        for (const Color perspective : {White, Black}) {
++            const auto& source = parent.values[static_cast<std::size_t>(perspective)];
++            auto& destination = child.values[static_cast<std::size_t>(perspective)];
++            const PieceChange& removed0 = dirty.changes[0];
++            const PieceChange& removed1 = dirty.changes[1];
++            const PieceChange& added = dirty.changes[2];
++            const float* removed0_column = w.w1.get() +
++                static_cast<std::size_t>(feature_index(perspective, removed0.piece, removed0.square)) * HiddenSize;
++            const float* removed1_column = w.w1.get() +
++                static_cast<std::size_t>(feature_index(perspective, removed1.piece, removed1.square)) * HiddenSize;
++            const float* added_column = w.w1.get() +
++                static_cast<std::size_t>(feature_index(perspective, added.piece, added.square)) * HiddenSize;
++            for (int h = 0; h < HiddenSize; ++h) {
++                const std::size_t index = static_cast<std::size_t>(h);
++                destination[index] = ((source[index] - removed0_column[index]) - removed1_column[index]) + added_column[index];
++            }
++        }
++        child.valid = true;
++        return;
++    }
++    for (const Color perspective : {White, Black}) {
++        auto& acc = child.values[static_cast<std::size_t>(perspective)];
++        acc = parent.values[static_cast<std::size_t>(perspective)];
++        for (int i = 0; i < dirty.count; ++i) {
++            const PieceChange& change = dirty.changes[static_cast<std::size_t>(i)];
++            const int index = feature_index(perspective, change.piece, change.square);
++            const float* column = w.w1.get() + static_cast<std::size_t>(index) * HiddenSize;
++            if (change.add) add_feature(acc, column);
++            else sub_feature(acc, column);
++        }
++    }
++    child.valid = true;
++}
++
++int evaluate(const Board& board, const Accumulator& accumulator) {
++    const Weights& w = weights();
++    const Color us = board.side_to_move();
++    const auto& ours = accumulator.values[static_cast<std::size_t>(us)];
++    const auto& theirs = accumulator.values[static_cast<std::size_t>(opposite(us))];
++    // Sixteen independent partial sums (lane j takes the hidden units with
++    // index % 16 == j, in increasing order) and then one ordered sum: the
++    // association is fixed by the source, so every target (SSE, AVX2, AVX-512,
++    // the scalar fallback) produces bit-identical results without -ffast-math.
++    constexpr int Lanes = 16;
++    static_assert(HiddenSize % Lanes == 0, "HiddenSize must be a multiple of the lane count");
++    alignas(64) float lanes[Lanes];
++#if defined(__AVX2__)
++    const __m256 zero = _mm256_setzero_ps();
++    const __m256 one = _mm256_set1_ps(1.0F);
++    __m256 sums[2] = {zero, zero};
++    for (int h = 0; h < HiddenSize; h += Lanes) {
++        for (int k = 0; k < 2; ++k) {
++            const std::size_t base = static_cast<std::size_t>(h + 8 * k);
++            const __m256 a = _mm256_min_ps(_mm256_max_ps(_mm256_load_ps(ours.data() + base), zero), one);
++            const __m256 b = _mm256_min_ps(_mm256_max_ps(_mm256_load_ps(theirs.data() + base), zero), one);
++            const __m256 term = _mm256_add_ps(_mm256_mul_ps(_mm256_mul_ps(a, a), _mm256_load_ps(w.w2.data() + base)),
++                                            _mm256_mul_ps(_mm256_mul_ps(b, b), _mm256_load_ps(w.w2.data() + HiddenSize + base)));
++            sums[k] = _mm256_add_ps(sums[k], term);
++        }
++    }
++    for (int k = 0; k < 2; ++k) _mm256_store_ps(lanes + 8 * k, sums[k]);
++#elif FORGE_NNUE_SSE
++    const __m128 zero = _mm_setzero_ps();
++    const __m128 one = _mm_set1_ps(1.0F);
++    __m128 sums[4] = {zero, zero, zero, zero};
++    for (int h = 0; h < HiddenSize; h += Lanes) {
++        for (int k = 0; k < 4; ++k) {
++            const std::size_t base = static_cast<std::size_t>(h + 4 * k);
++            const __m128 a = _mm_min_ps(_mm_max_ps(_mm_load_ps(ours.data() + base), zero), one);
++            const __m128 b = _mm_min_ps(_mm_max_ps(_mm_load_ps(theirs.data() + base), zero), one);
++            const __m128 term = _mm_add_ps(_mm_mul_ps(_mm_mul_ps(a, a), _mm_load_ps(w.w2.data() + base)),
++                                           _mm_mul_ps(_mm_mul_ps(b, b), _mm_load_ps(w.w2.data() + HiddenSize + base)));
++            sums[k] = _mm_add_ps(sums[k], term);
++        }
++    }
++    for (int k = 0; k < 4; ++k) _mm_store_ps(lanes + 4 * k, sums[k]);
++#else
++    for (float& lane : lanes) lane = 0.0F;
++    for (int h = 0; h < HiddenSize; h += Lanes) {
++        for (int j = 0; j < Lanes; ++j) {
++            const std::size_t index = static_cast<std::size_t>(h + j);
++            const float a = std::min(std::max(ours[index], 0.0F), 1.0F);
++            const float b = std::min(std::max(theirs[index], 0.0F), 1.0F);
++            lanes[j] += a * a * w.w2[index] + b * b * w.w2[static_cast<std::size_t>(HiddenSize) + index];
++        }
++    }
++#endif
++    float out = w.b2;
++    for (int j = 0; j < Lanes; ++j) out += lanes[j];
++    const float centipawns = out * 400.0F / SigmoidK;
++    return static_cast<int>(std::clamp(centipawns, -30000.0F, 30000.0F));
++}
++// ---- END verbatim ----
++
++} // namespace forge::nnue::lock_ref
++
++namespace {
++
++using forge::nnue::Accumulator;
++using forge::nnue::DirtyPieces;
++using forge::nnue::HiddenSize;
++
++struct Stats {
++    std::uint64_t positions = 0;    // evaluate() comparisons on real positions
++    std::uint64_t updates = 0;      // incremental updates compared
++    std::uint64_t refreshes = 0;    // full refreshes compared
++    std::uint64_t in_place = 0;     // in-place updates compared
++    std::uint64_t quiet = 0, captures = 0, en_passant = 0, promotions = 0, capture_promotions = 0, castles = 0,
++                  null_moves = 0;
++    std::uint64_t synthetic = 0;
++    std::uint64_t fens = 0, pos_used = 0, pos_skipped = 0;
++    std::uint64_t digest = 14695981039346656037ULL;   // FNV-1a over every compared output
++} stats;
++
++std::uint64_t random_state = 0x0b2c0de5eed0f00dULL;
++std::uint64_t next_random() {   // splitmix64
++    std::uint64_t z = (random_state += 0x9e3779b97f4a7c15ULL);
++    z = (z ^ (z >> 30)) * 0xbf58476d1ce4e5b9ULL;
++    z = (z ^ (z >> 27)) * 0x94d049bb133111ebULL;
++    return z ^ (z >> 31);
++}
++
++void mix(std::uint32_t word) {
++    for (int shift = 0; shift < 32; shift += 8) {
++        stats.digest ^= (word >> shift) & 255U;
++        stats.digest *= 1099511628211ULL;
++    }
++}
++
++[[noreturn]] void fail(const std::string& what) { throw std::runtime_error(what); }
++
++void compare_accumulators(const Accumulator& now, const Accumulator& ref, const char* what, const forge::Board& board) {
++    for (std::size_t side = 0; side < 2; ++side) {
++        for (std::size_t h = 0; h < static_cast<std::size_t>(HiddenSize); ++h) {
++            const auto a = std::bit_cast<std::uint32_t>(now.values[side][h]);
++            const auto b = std::bit_cast<std::uint32_t>(ref.values[side][h]);
++            if (a != b) {
++                char detail[96];
++                std::snprintf(detail, sizeof detail, " side %zu lane %zu: %08x vs lock %08x", side, h,
++                              static_cast<unsigned>(a), static_cast<unsigned>(b));
++                fail(std::string(what) + detail + " in " + board.fen());
++            }
++            // Exactness invariant (REPORT.md): every accumulator value is an
++            // integer multiple of 2^-12 well inside the float significand, so
++            // no addition or subtraction producing it was ever rounded.
++            const float scaled = std::ldexp(now.values[side][h], 12);
++            if (scaled != std::trunc(scaled) || std::fabs(scaled) >= 0x1p23F)
++                fail(std::string(what) + ": accumulator value is not an exact multiple of 2^-12 in " + board.fen());
++            mix(a);
++        }
++    }
++    if (now.valid != ref.valid || !now.valid) fail(std::string(what) + ": valid flag differs in " + board.fen());
++}
++
++void compare_evaluate(const forge::Board& board, const Accumulator& now, const Accumulator& ref) {
++    const int a = forge::nnue::evaluate(board, now);
++    const int b = forge::nnue::lock_ref::evaluate(board, ref);
++    if (a != b) fail("evaluate " + std::to_string(a) + " vs lock " + std::to_string(b) + " in " + board.fen());
++    mix(static_cast<std::uint32_t>(a));
++    ++stats.positions;
++}
++
++void compare_refresh(const forge::Board& board) {
++    Accumulator now;
++    Accumulator ref;
++    for (auto& side : now.values) side.fill(-0x1.fffffep10F);   // catch lanes a kernel does not write
++    forge::nnue::refresh(board, now);
++    forge::nnue::lock_ref::refresh(board, ref);
++    compare_accumulators(now, ref, "refresh", board);
++    compare_evaluate(board, now, ref);
++    ++stats.refreshes;
++}
++
++void classify(const forge::Board& board, const forge::Move& move) {
++    if (move.is_castle()) ++stats.castles;
++    else if ((move.flags & forge::EnPassant) != 0U) ++stats.en_passant;
++    else if (move.is_promotion()) ++(board.captured_piece(move) != forge::Empty ? stats.capture_promotions : stats.promotions);
++    else if (board.captured_piece(move) != forge::Empty) ++stats.captures;
++    else ++stats.quiet;
++}
++
++struct Frame {
++    Accumulator now;
++    Accumulator ref;
++    forge::Move move{};
++    forge::Undo undo{};
++    forge::NullUndo null_undo{};
++    bool null_move = false;
++};
++
++constexpr std::size_t MaxWalkPly = 160;
++
++// Random walk from `fen` comparing `budget` incrementally updated positions.
++void walk(const std::string& fen, std::uint64_t budget) {
++    forge::Board board;
++    if (!board.set_fen(fen)) fail("walk root rejected: " + fen);
++    std::vector<Frame> stack(MaxWalkPly + 1);
++    forge::nnue::refresh(board, stack[0].now);
++    forge::nnue::lock_ref::refresh(board, stack[0].ref);
++    compare_accumulators(stack[0].now, stack[0].ref, "root refresh", board);
++    compare_evaluate(board, stack[0].now, stack[0].ref);
++    std::size_t ply = 0;
++    const auto pop = [&]() {
++        const Frame& frame = stack[ply];
++        if (frame.null_move) board.unmake_null_move(frame.null_undo);
++        else board.unmake_move(frame.move, frame.undo);
++        --ply;
++    };
++    for (std::uint64_t done = 0; done < budget;) {
++        const std::uint64_t r = next_random();
++        // Back-track like a search returning from a subtree.
++        if (ply > 0 && (r % 8 == 0 || ply == MaxWalkPly)) {
++            for (std::size_t back = 1 + (r >> 8) % std::min<std::size_t>(ply, 6); back > 0; --back) pop();
++            continue;
++        }
++        Frame& parent = stack[ply];
++        Frame& child = stack[ply + 1];
++        DirtyPieces dirty;
++        if (ply > 0 && !board.in_check() && !stack[ply].null_move && (r >> 16) % 16 == 0) {
++            board.make_null_move(child.null_undo);
++            child.null_move = true;
++            ++stats.null_moves;
++        } else {
++            const auto moves = board.legal_moves();
++            if (moves.empty()) {
++                if (ply == 0) break;
++                pop();
++                continue;
++            }
++            // Castles, en passant and promotions are rare in random play: on half
++            // of the steps take one of them whenever the position has any.
++            std::size_t pick = static_cast<std::size_t>((r >> 20) % moves.size());
++            if ((r >> 48) % 2 == 0) {
++                std::size_t special = 0;
++                for (const forge::Move candidate : moves)
++                    special += candidate.is_castle() || candidate.is_promotion() || (candidate.flags & forge::EnPassant) != 0U;
++                if (special != 0) {
++                    std::size_t target = static_cast<std::size_t>((r >> 52) % special);
++                    for (pick = 0;; ++pick) {
++                        const forge::Move candidate = moves[pick];
++                        if ((candidate.is_castle() || candidate.is_promotion() || (candidate.flags & forge::EnPassant) != 0U) &&
++                            target-- == 0)
++                            break;
++                    }
++                }
++            }
++            const forge::Move move = moves[pick];
++            dirty = forge::nnue::dirty_pieces(board, move);
++            classify(board, move);
++            child.move = move;
++            child.null_move = false;
++            if (!board.make_move(move, child.undo)) fail("legal move rejected in " + board.fen());
++        }
++        ++ply;
++        for (auto& side : child.now.values) side.fill(-0x1.fffffep10F);
++        child.now.valid = false;
++        child.ref.valid = false;
++        forge::nnue::update(parent.now, child.now, dirty);
++        forge::nnue::lock_ref::update(parent.ref, child.ref, dirty);
++        compare_accumulators(child.now, child.ref, "update", board);
++        compare_evaluate(board, child.now, child.ref);
++        ++stats.updates;
++        ++done;
++        if ((r >> 32) % 4 == 0) {
++            Accumulator in_place = parent.now;
++            forge::nnue::update(in_place, in_place, dirty);
++            compare_accumulators(in_place, child.ref, "in-place update", board);
++            ++stats.in_place;
++        }
++        if ((r >> 40) % 32 == 0) compare_refresh(board);
++    }
++}
++
++// Every legal move sequence of `depth` plies from `board` (a perft walk), so
++// each castle, en passant capture and promotion near a fixture is covered.
++void exhaustive(forge::Board& board, const Accumulator& parent_now, const Accumulator& parent_ref, int depth) {
++    for (const forge::Move move : board.legal_moves()) {
++        const DirtyPieces dirty = forge::nnue::dirty_pieces(board, move);
++        classify(board, move);
++        forge::Undo undo;
++        if (!board.make_move(move, undo)) fail("legal move rejected in " + board.fen());
++        Accumulator now;
++        Accumulator ref;
++        for (auto& side : now.values) side.fill(-0x1.fffffep10F);
++        forge::nnue::update(parent_now, now, dirty);
++        forge::nnue::lock_ref::update(parent_ref, ref, dirty);
++        compare_accumulators(now, ref, "exhaustive update", board);
++        compare_evaluate(board, now, ref);
++        ++stats.updates;
++        if (depth > 1) exhaustive(board, now, ref, depth - 1);
++        board.unmake_move(move, undo);
++    }
++}
++
++std::string trim(std::string_view text) {
++    const auto begin = text.find_first_not_of(" \t\r\n");
++    if (begin == std::string_view::npos) return {};
++    const auto end = text.find_last_not_of(" \t\r\n");
++    return std::string(text.substr(begin, end - begin + 1));
++}
++
++std::vector<std::string> read_fens(const std::string& path) {
++    std::ifstream in(path);
++    if (!in) fail("cannot open " + path);
++    std::vector<std::string> fens;
++    for (std::string line; std::getline(in, line);) {
++        const std::string fen = trim(std::string_view(line).substr(0, line.find('|')));
++        if (!fen.empty() && fen[0] != '#') fens.push_back(fen);
++    }
++    return fens;
++}
++
++// A v3b .pos board (64 nibbles: 0 empty, 1..6 white P N B R Q K, 7..12 black)
++// made acceptable to Board::set_fen, deterministically: pawns on the first or
++// last rank are dropped, each side keeps its lowest-square king (a missing or
++// adjacent king goes to the first empty square not next to the other king),
++// and excess pawns / promoted pieces are dropped from the highest squares.
++// The side to move is the record's, or the other one if that is the only
++// legal choice; boards that fit neither are skipped (and counted).
++std::string pos_record_fen(const std::uint8_t* packed, bool black_to_move, bool flip_side) {
++    std::array<int, 64> code{};
++    for (int square = 0; square < 64; ++square) {
++        const int value = (packed[square >> 1] >> ((square & 1) * 4)) & 15;
++        code[static_cast<std::size_t>(square)] = value <= 12 ? value : 0;
++    }
++    for (int square = 0; square < 64; ++square) {
++        const int value = code[static_cast<std::size_t>(square)];
++        if ((value == 1 || value == 7) && (square < 8 || square >= 56)) code[static_cast<std::size_t>(square)] = 0;
++    }
++    const auto adjacent = [](int a, int b) { return std::max(std::abs(a % 8 - b % 8), std::abs(a / 8 - b / 8)) <= 1; };
++    std::array<int, 2> king{-1, -1};
++    for (int square = 0; square < 64; ++square) {
++        for (int color = 0; color < 2; ++color) {
++            if (code[static_cast<std::size_t>(square)] != 6 + 6 * color) continue;
++            if (king[static_cast<std::size_t>(color)] < 0) king[static_cast<std::size_t>(color)] = square;
++            else code[static_cast<std::size_t>(square)] = 0;
++        }
++    }
++    for (int color = 0; color < 2; ++color) {
++        int& own = king[static_cast<std::size_t>(color)];
++        const int other = king[static_cast<std::size_t>(1 - color)];
++        if (own >= 0 && !(other >= 0 && adjacent(own, other))) continue;
++        if (own >= 0) code[static_cast<std::size_t>(own)] = 0;
++        own = -1;
++        for (int square = 0; square < 64 && own < 0; ++square) {
++            if (code[static_cast<std::size_t>(square)] == 0 && !(other >= 0 && adjacent(square, other))) {
++                own = square;
++                code[static_cast<std::size_t>(square)] = 6 + 6 * color;
++            }
++        }
++        if (own < 0) return {};
++    }
++    for (int color = 0; color < 2; ++color) {
++        const int offset = 6 * color;
++        const auto count = [&](int type) {
++            return static_cast<int>(std::count(code.begin(), code.end(), type + offset));
++        };
++        const auto drop_highest = [&](int type) {
++            for (int square = 63; square >= 0; --square) {
++                if (code[static_cast<std::size_t>(square)] == type + offset) {
++                    code[static_cast<std::size_t>(square)] = 0;
++                    return;
++                }
++            }
++        };
++        while (count(1) > 8) drop_highest(1);
++        for (;;) {
++            const int promoted = std::max(0, count(2) - 2) + std::max(0, count(3) - 2) + std::max(0, count(4) - 2) +
++                                 std::max(0, count(5) - 1);
++            if (promoted <= 8 - count(1)) break;
++            drop_highest(count(5) > 1 ? 5 : count(4) > 2 ? 4 : count(3) > 2 ? 3 : 2);
++        }
++    }
++    static constexpr std::string_view Letters = ".PNBRQKpnbrqk";
++    std::string fen;
++    for (int rank = 7; rank >= 0; --rank) {
++        int empty = 0;
++        for (int file = 0; file < 8; ++file) {
++            const int value = code[static_cast<std::size_t>(rank * 8 + file)];
++            if (value == 0) {
++                ++empty;
++                continue;
++            }
++            if (empty != 0) fen += static_cast<char>('0' + empty);
++            empty = 0;
++            fen += Letters[static_cast<std::size_t>(value)];
++        }
++        if (empty != 0) fen += static_cast<char>('0' + empty);
++        if (rank != 0) fen += '/';
++    }
++    fen += (black_to_move != flip_side) ? " b - - 0 1" : " w - - 0 1";
++    return fen;
++}
++
++void check_pos_file(const std::string& path, std::uint64_t limit) {
++    std::ifstream in(path, std::ios::binary);
++    if (!in) fail("cannot open " + path);
++    std::vector<char> raw((std::istreambuf_iterator<char>(in)), std::istreambuf_iterator<char>());
++    if (raw.size() < 16 || std::string_view(raw.data(), 4) != "FPOS") fail(path + ": not a v3b .pos file");
++    std::uint64_t n = 0;
++    for (int i = 0; i < 8; ++i) n |= static_cast<std::uint64_t>(static_cast<unsigned char>(raw[static_cast<std::size_t>(8 + i)])) << (8 * i);
++    if (raw.size() != 16 + 35 * n) fail(path + ": size does not match the record count");
++    const auto* boards = reinterpret_cast<const std::uint8_t*>(raw.data() + 16);
++    const auto* meta = reinterpret_cast<const std::uint8_t*>(raw.data() + 16 + 34 * n);
++    forge::Board board;
++    for (std::uint64_t i = 0; i < std::min(n, limit); ++i) {
++        const bool black = (meta[i] & 1U) != 0U;
++        std::string fen = pos_record_fen(boards + 32 * i, black, false);
++        if (fen.empty() || !board.set_fen(fen)) {
++            fen = pos_record_fen(boards + 32 * i, black, true);
++            if (fen.empty() || !board.set_fen(fen)) {
++                ++stats.pos_skipped;
++                continue;
++            }
++        }
++        compare_refresh(board);
++        ++stats.pos_used;
++        if (i % 16 == 0) walk(fen, 8);   // a few updates on unusual material too
++    }
++}
++
++// Synthetic accumulators: SCReLU edge values (negative, signed zero, the
++// smallest denormal, values next to the clamp at 1.0) and random finite ones.
++void check_synthetic(std::uint64_t samples) {
++    constexpr std::array<float, 8> Edges{-2.0F, -0.0F, 0.0F, 0x1p-149F, 0x1.fffffep-1F, 1.0F, 0x1.000002p0F, 2.0F};
++    forge::Board white;
++    forge::Board black;
++    if (!white.set_fen("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1") ||
++        !black.set_fen("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR b KQkq - 0 1"))
++        fail("synthetic fixtures rejected");
++    Accumulator acc;
++    acc.valid = true;
++    for (std::uint64_t sample = 0; sample < samples; ++sample) {
++        for (auto& side : acc.values) {
++            for (float& value : side) {
++                const std::uint64_t word = next_random();
++                value = sample < samples / 100 ? Edges[static_cast<std::size_t>((word >> 32U) % Edges.size())]
++                                               : static_cast<float>(static_cast<int>((word >> 32U) % 16385U) - 8192) / 4096.0F;
++            }
++        }
++        const forge::Board& board = sample % 2 == 0 ? white : black;
++        const int a = forge::nnue::evaluate(board, acc);
++        const int b = forge::nnue::lock_ref::evaluate(board, acc);
++        if (a != b) fail("synthetic evaluate " + std::to_string(a) + " vs lock " + std::to_string(b));
++        mix(static_cast<std::uint32_t>(a));
++        ++stats.synthetic;
++    }
++}
++
++std::uint64_t parse_count(std::string_view text) {
++    std::uint64_t value = 0;
++    const auto result = std::from_chars(text.data(), text.data() + text.size(), value);
++    if (result.ec != std::errc{} || result.ptr != text.data() + text.size()) fail("bad number: " + std::string(text));
++    return value;
++}
++
++} // namespace
++
++int main(int argc, char** argv) {
++    try {
++        if (!forge::nnue::available()) {
++            std::cout << "SKIP: no network compiled in\n";
++            return 0;
++        }
++        std::uint64_t walk_positions = 1000000;
++        std::uint64_t synthetic = 100000;
++        std::uint64_t pos_limit = ~0ULL;
++        std::vector<std::string> fen_files;
++        std::vector<std::string> pos_files;
++        for (int i = 1; i < argc; ++i) {
++            const std::string_view option = argv[i];
++            if (i + 1 >= argc) fail("missing value for " + std::string(option));
++            const std::string value = argv[++i];
++            if (option == "--walk-positions") walk_positions = parse_count(value);
++            else if (option == "--synthetic") synthetic = parse_count(value);
++            else if (option == "--pos-limit") pos_limit = parse_count(value);
++            else if (option == "--fens") fen_files.push_back(value);
++            else if (option == "--pos") pos_files.push_back(value);
++            else fail("unknown option " + std::string(option));
++        }
++        // Walk roots: castles, en passant, promotions (quiet and capturing) for
++        // both colours within the first plies (all 3-ply sequences are checked
++        // exhaustively), then the FEN files.
++        std::vector<std::string> roots{
++            "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
++            "r3k2r/8/8/8/8/8/8/R3K2R w KQkq - 0 1",
++            "r3k2r/8/8/8/8/8/8/R3K2R b KQkq - 0 1",
++            "4k3/8/8/3pP3/8/8/8/4K3 w - d6 0 1",
++            "4k3/8/8/8/3Pp3/8/8/4K3 b - d3 0 1",
++            "1r2k3/P7/8/8/8/8/7p/4K3 w - - 0 1",
++            "4k3/7P/8/8/8/8/p7/1R2K3 b - - 0 1",
++            "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1",
++            "8/2p5/3p4/KP5r/1R3p1k/8/4P1P1/8 w - - 0 1",
++            "r1bqk2r/pppp1ppp/2n2n2/2b1p3/2B1P3/2N2N2/PPPP1PPP/R1BQK2R w KQkq - 6 5",
++            "r3k2r/pppq1ppp/2npbn2/2b1p3/2B1P3/2NPBN2/PPPQ1PPP/R3K2R b KQkq - 4 8",
++        };
++        const std::size_t fixtures = roots.size();
++        forge::Board board;
++        for (const std::string& fen : roots) {
++            if (!board.set_fen(fen)) fail("fixture rejected: " + fen);
++            Accumulator now;
++            Accumulator ref;
++            forge::nnue::refresh(board, now);
++            forge::nnue::lock_ref::refresh(board, ref);
++            exhaustive(board, now, ref, 3);
++        }
++        for (const std::string& path : fen_files) {
++            for (const std::string& fen : read_fens(path)) {
++                if (!board.set_fen(fen)) fail("FEN rejected: " + fen);
++                compare_refresh(board);
++                ++stats.fens;
++                roots.push_back(fen);
++            }
++        }
++        // A quarter of the walk budget goes to the fixtures (castles, en passant
++        // and promotions for both colours), the rest to the FEN-file roots.
++        const std::uint64_t fixture_budget = roots.size() == fixtures ? walk_positions : walk_positions / 4;
++        for (std::size_t i = 0; i < roots.size(); ++i) {
++            const bool fixture = i < fixtures;
++            const std::uint64_t total = fixture ? fixture_budget : walk_positions - fixture_budget;
++            const std::size_t count = fixture ? fixtures : roots.size() - fixtures;
++            const std::size_t index = fixture ? i : i - fixtures;
++            walk(roots[i], total / count + (index < total % count ? 1U : 0U));
++        }
++        for (const std::string& path : pos_files) check_pos_file(path, pos_limit);
++        check_synthetic(synthetic);
++        std::cout << "positions " << stats.positions << " (updates " << stats.updates << ", refreshes " << stats.refreshes
++                  << ", in-place " << stats.in_place << ")\n"
++                  << "moves: quiet " << stats.quiet << " captures " << stats.captures << " en-passant " << stats.en_passant
++                  << " promotions " << stats.promotions << " capture-promotions " << stats.capture_promotions
++                  << " castles " << stats.castles << " null " << stats.null_moves << '\n'
++                  << "fens " << stats.fens << " pos used " << stats.pos_used << " skipped " << stats.pos_skipped
++                  << " synthetic evaluations " << stats.synthetic << '\n';
++#if defined(FORGE_NNUE_FORCE_SCALAR)
++        const char* target = "portable (FORGE_NNUE_FORCE_SCALAR)";
++#elif defined(__AVX512F__)
++        const char* target = "AVX-512 target (portable kernels, compiler-widened; AVX2 output layer)";
++#elif defined(__AVX2__)
++        const char* target = "AVX2";
++#elif defined(__SSE2__) || defined(_M_X64) || defined(_M_AMD64)
++        const char* target = "SSE2";
++#else
++        const char* target = "portable";
++#endif
++        char digest[17];
++        std::snprintf(digest, sizeof digest, "%016llx", static_cast<unsigned long long>(stats.digest));
++        std::cout << "kernels " << target << "\ndigest " << digest << "\nPASS: new == AL1 s198 bit for bit\n";
++        if (stats.positions < walk_positions) fail("fewer positions compared than requested");
++        return 0;
++    } catch (const std::exception& error) {
++        std::cout << "FAIL: " << error.what() << '\n';
++        return 1;
++    }
++}
