@@ -1,0 +1,31 @@
+# step 2: static picker audit of the lock exe
+# cmd: C:/Python314/python.exe -I -B picker_audit.py lock_exe.dis --exe forge_h256_s198.exe --json logs/picker_audit.json (Python 3.14.7)
+# date_utc 2026-10-27T18:05:18Z
+functions in disassembly: 3722; roots: 3; reachable closure: 8
+roots:
+  void std::__introsort_loop<forge::MovePicker::Scored*, long long, __gnu_cxx::__ops::_Iter_comp_iter<forge::MovePicker::pick_best()::{lambda(forge::Mov
+  forge::MovePicker::next(bool)
+  forge::Board::is_pseudo_legal(forge::Move const&) const
+closure (function: instructions, direct callees):
+  forge::Board::is_pseudo_legal(forge::Move const&) const: 431 insns; callees: forge::Board::square_attacked_with_occupancy(int, forge::Col
+  forge::Board::square_attacked_with_occupancy(int, forge::Color, unsigned long long, unsigned long long) const: 69 insns; callees: -
+  forge::MovePicker::next(bool): 1821 insns; callees: forge::Board::generate_pseudo_legal(forge::MoveList&, bool) , forge::Board::is_pseudo_legal(forge::Move const&) const, forge::Board::see_ge(forge::Move const&, int) const, memmove, void std::__introsort_loop<forge::MovePicker::Scored*, long 
+  memmove: 3 insns; callees: -
+  void std::__introsort_loop<forge::MovePicker::Scored*, long long, __gnu_cxx::__ops::_Iter_comp_iter<forge::Mov: 299 insns; callees: -
+  forge::Board::see_ge(forge::Move const&, int) const: 903 insns; callees: forge::Board::attackers_to(int, unsigned long long) const
+  forge::Board::attackers_to(int, unsigned long long) const: 51 insns; callees: -
+  forge::Board::generate_pseudo_legal(forge::MoveList&, bool) const: 820 insns; callees: forge::Board::square_attacked_with_occupancy(int, forge::Col
+allocation-family calls reachable from the picker: 0
+indirect calls/jumps in the closure: 3
+  ok  forge::Board::is_pseudo_legal(forge::Move const&) const 140004a0a: jmp    *%rax -> switch table at 0x14010f080, 7 entries, all targets inside the function
+  ok  forge::MovePicker::next(bool) 140048d4d: jmp    *%rdx -> switch table at 0x14017b6c0, 15 entries, all targets inside the function
+  ok  memmove 140040da0: jmp    *0x26cb92(%rip)        # 1402ad938 <__imp_memmove> -> import thunk to memmove
+memset calls in functions that call MovePicker::next (inlined MovePicker constructors):
+  forge::Worker::qsearch(forge::Board&, forge::SearchStack*, int, int) 14001dfab: memset 2048 bytes
+  forge::Worker::qsearch(forge::Board&, forge::SearchStack*, int, int) 14001e017: memset 1024 bytes
+  forge::Worker::search(forge::Board&, forge::SearchStack*, int, int, in 14001f118: memset 2048 bytes
+  forge::Worker::search(forge::Board&, forge::SearchStack*, int, int, in 14001f18b: memset 1024 bytes
+  forge::Worker::search(forge::Board&, forge::SearchStack*, int, int, in 140020ec3: memset 2048 bytes
+  forge::Worker::search(forge::Board&, forge::SearchStack*, int, int, in 140020f3e: memset 1024 bytes
+ALLOCATION AUDIT: PASS (static, direct-call closure; see REPORT.md for the limits)
+# exit 0

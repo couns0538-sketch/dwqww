@@ -1,0 +1,11 @@
+# FILES index, opus_round1/sol_S14 (job S14, branch opus-sol-S14). path | bytes | sha256 | content
+# REPORT.md is added by the main session. No .tar.gz archives in this job (each step wrote one log).
+logs/picker_audit.json | 3070 | 1eb49393152383e65235c433707a35ad8bb5902a044d17d18a2fa42d1b57acbc | step 2 result as JSON
+logs/step1_disassemble.log | 571 | 5b60fb6f8c3920348a3e54a5a6be2b67594b0f3d4589c75783c8d7b417a22b71 | step 1: objdump command, exe sha256, disassembly sha256 (the 16.8 MB .dis stays in F:/opus_scratch/sol_s14)
+logs/step2_picker_audit.log | 2995 | af0592d0356a6cf37810b372a44c1aa35f982b1d7ca8918f415d3707426c9f48 | step 2 stdout: audit of the PC lock exe forge_h256_s198.exe, PASS
+logs/step3_unit_tests.log | 884 | 8ae1f7e07a54b5e3463db6c0dec07d50dba9138efcd4749f5f267464de79e0b1 | step 3: unit tests 8/8 OK
+logs/step4_mutation_check.log | 872 | 7f79c8049af363024f8da1d6fd180bed419f339a24909363b5523e63c498e0cd | step 4 stdout: planted-bug check PASS
+logs/step5_sol_pure_tests.log | 32090 | 360e8990c0d44f0d4100b853ba6caf1d24c141c602155b61d88d7540557b01f3 | step 5 stdout: Sol's 47 pure tests, unmodified; Windows CPython 30/47 (separator bug), MSYS2 ucrt64 Python 47/47
+mutation_check.py | 4361 | d15a3f1a34bafa8e63c0a3fad4ba60b439369210bb28b0edbbe73a72bf70c96d | planted-bug check: 4 tool mutants must fail the tests; real lock disassembly must PASS and a planted operator-new call in MovePicker::next must give CHECK
+picker_audit.py | 10866 | cb0a8f10a5bd2a6232bdfdb1586dcec65c4242abdc51485bba14d17d53cb73ec | static audit of a forge exe's disassembly: allocation-family calls reachable from MovePicker (direct-call closure), indirect transfers (switch tables verified against .rdata, import thunks), memset calls at the inlined MovePicker constructors
+test_picker_audit.py | 5698 | 2e592606bebd78bab89381c023cc608765fa9485b4cebfe08b1ab45e87711f80 | 8 pure unit tests (synthetic disassembly and a synthetic PE32+ image)
