@@ -1,0 +1,17 @@
+# ./forge_nnue_int16_tests.exe (CMake Release, -march=x86-64-v3: AVX2 integer kernels)
+NnueInt16 tests: HiddenSize 256, network available 1
+lane bound 1997906 + 4 * 14227 = 2054814 (< 2^24: 1; int32 headroom x1045)
+OFF: 5811 positions, 5691 transitions (385 null), float evaluate == float emulation
+ON:  5871 positions, 5751 transitions (332 null), int16 evaluate == integer reference, incremental == fresh
+float vs int16 (references): max |diff| 1 cp (analytic bound 1.9015 -> 2 cp), 78 + 94 positions differ
+PASS: 40691 checks
+rc=0
+
+# ./forge_nnue_int16_scalar_tests.exe (-mno-avx2: scalar integer kernels, SSE float path)
+NnueInt16 tests: HiddenSize 256, network available 1
+lane bound 1997906 + 4 * 14227 = 2054814 (< 2^24: 1; int32 headroom x1045)
+OFF: 5811 positions, 5691 transitions (385 null), float evaluate == float emulation
+ON:  5871 positions, 5751 transitions (332 null), int16 evaluate == integer reference, incremental == fresh
+float vs int16 (references): max |diff| 1 cp (analytic bound 1.9015 -> 2 cp), 78 + 94 positions differ
+PASS: 40691 checks
+rc=0

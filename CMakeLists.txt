@@ -67,6 +67,23 @@ target_link_libraries(forge_nearest_pawn_tests PRIVATE forge_core Threads::Threa
 add_executable(forge_pv_metadata_tests tests/pv_metadata_tests.cpp)
 target_link_libraries(forge_pv_metadata_tests PRIVATE forge_core Threads::Threads)
 
+add_executable(forge_nnue_int16_tests tests/nnue_int16_tests.cpp)
+target_link_libraries(forge_nnue_int16_tests PRIVATE forge_core Threads::Threads)
+
+# The same NnueInt16 tests on the scalar integer kernels: the NNUE sources are
+# compiled again without AVX2 (the float path then uses its SSE kernel, which is
+# bit-identical by design), so builds for AVX2 targets also cover the fallback.
+if(NOT MSVC)
+    add_executable(forge_nnue_int16_scalar_tests tests/nnue_int16_tests.cpp src/bitboard.cpp src/board.cpp src/nnue.cpp)
+    target_include_directories(forge_nnue_int16_scalar_tests PRIVATE include)
+    target_compile_features(forge_nnue_int16_scalar_tests PRIVATE cxx_std_20)
+    target_compile_options(forge_nnue_int16_scalar_tests PRIVATE -ffp-contract=off -mno-avx2)
+    if(FORGE_ENABLE_SANITIZERS)
+        target_compile_options(forge_nnue_int16_scalar_tests PRIVATE -fsanitize=address,undefined -fno-omit-frame-pointer)
+        target_link_options(forge_nnue_int16_scalar_tests PRIVATE -fsanitize=address,undefined)
+    endif()
+endif()
+
 add_executable(forge_bench bench/benchmark.cpp)
 target_link_libraries(forge_bench PRIVATE forge_core Threads::Threads)
 
@@ -77,6 +94,10 @@ add_test(NAME forge_runtime_psqt_tests COMMAND forge_runtime_psqt_tests)
 add_test(NAME forge_pawn_span_tests COMMAND forge_pawn_span_tests)
 add_test(NAME forge_nearest_pawn_tests COMMAND forge_nearest_pawn_tests)
 add_test(NAME forge_pv_metadata_tests COMMAND forge_pv_metadata_tests)
+add_test(NAME forge_nnue_int16_tests COMMAND forge_nnue_int16_tests)
+if(NOT MSVC)
+    add_test(NAME forge_nnue_int16_scalar_tests COMMAND forge_nnue_int16_scalar_tests)
+endif()
 add_test(NAME forge_tt_tests COMMAND forge_tt_tests)
 add_test(NAME forge_rule50_tests COMMAND forge_rule50_tests)
 add_test(NAME forge_legal_witness_tests COMMAND forge_legal_witness_tests
@@ -115,4 +136,7 @@ if(Python3_Interpreter_FOUND)
     add_test(NAME ownbook_regression
         COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tools/ownbook_regression.py
                 $<TARGET_FILE:forge> ${CMAKE_CURRENT_BINARY_DIR}/ownbook-regression.json)
+    add_test(NAME nnue_int16_uci_regression
+        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tools/nnue_int16_regression.py
+                $<TARGET_FILE:forge>)
 endif()

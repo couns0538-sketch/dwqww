@@ -30,7 +30,13 @@ constexpr float SigmoidK = 2.25F;        // network output is in sigmoid units o
 
 struct Accumulator {
     alignas(32) std::array<std::array<float, HiddenSize>, 2> values{};
+    // NnueInt16 (OFF by default): int32 accumulators over the include file's
+    // int16 weights. Separate storage keeps the float representation and
+    // arithmetic of the OFF path intact; `integer` records which of the two
+    // this accumulator holds and is inherited by every incremental child.
+    alignas(32) std::array<std::array<std::int32_t, HiddenSize>, 2> integer_values{};
     bool valid = false;
+    bool integer = false;
 };
 
 struct PieceChange {
@@ -53,6 +59,17 @@ struct DirtyPieces {
 [[nodiscard]] bool residual();
 // Runtime switch (UCI option); only effective when available().
 extern bool enabled;
+
+// NnueInt16 (UCI option, OFF by default): integer inference with the int16
+// weights of the include file and int32 accumulators (the weights are int16,
+// the accumulators are not). int16_available() is false when the compiled-in
+// network fails the representability checks; set_int16(true) then leaves float
+// inference active and returns false. The mode only affects refresh(): update()
+// follows the parent's representation and evaluate() the accumulator's, so a
+// mode change takes effect at the next root refresh (the next search).
+[[nodiscard]] bool int16_available();
+[[nodiscard]] bool int16_active();
+[[nodiscard]] bool set_int16(bool requested);
 
 void refresh(const Board& board, Accumulator& accumulator);
 void update(const Accumulator& parent, Accumulator& child, const DirtyPieces& dirty);

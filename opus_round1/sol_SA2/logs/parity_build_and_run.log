@@ -1,0 +1,22 @@
+# S-A2 parity: build and run (2026-10-27, PC, nice 19, single thread)
+# net: src/nnue_weights.inc = lock archive 5_nnue/nets/LOCK_AL1_s198/resid_h256_e32_f003rec_s198_b06_ep32.inc
+#      sha256 a7ebcf3a319675f347e6e8e3f2539901d38d8036cb9b5935f31dd43d084c9638 (md5 22b4b9e2), copied to F:\opus_scratch\sol_SA2\inputs\lock_nnue_weights.inc
+# FENs: F:\opus_scratch\sol_S31\inputs\fens_10k.txt sha256 82a3845c15712a869b8e65f7f05d8adb55ed49f74b17b4e73c2fdf110bf30f0a (copied to sol_SA2\inputs)
+
+$ g++ -std=c++20 -O3 -DNDEBUG -DFORGE_NNUE_HIDDEN=256 -ffp-contract=off -fno-fast-math -march=znver5 -static -Wall -Wextra -Iinclude \
+      opus_round1/sol_SA2/nnue_int16_dump.cpp src/nnue.cpp src/bitboard.cpp src/board.cpp src/eval.cpp src/eval_params.cpp -o nnue_int16_dump_avx2.exe
+  rc 0, 0 warnings; sha256 031242942bc0dc9fb25371c2bc159cb1a70b1d5a6bd3689fd7f57819c9a36265; objdump: vpmaddwd/vpmulhrsw/vpackusdw present (AVX2 int16 kernels)
+$ (same with -march=x86-64) -o nnue_int16_dump_scalar.exe
+  rc 0, 0 warnings; sha256 2a74f1c1d174026b6a2af84df04d24fe28ce230432781ca853c6fd3a2b15bae2; objdump: 0 ymm instructions (scalar integer kernels, SSE float path)
+
+$ nnue_int16_dump_avx2.exe fens_10k.txt > dump_avx2.tsv      # stderr: "# hidden 256 available 1 int16_available 1 residual 1"
+$ nnue_int16_dump_scalar.exe fens_10k.txt > dump_scalar.tsv  # same stderr
+  10000 lines each; both sha256 ba76ee8134a2d80705d7b044cff976bfdd68173eb42a8239c9da071c2ac5a837 (byte-identical) -> logs/parity_dump_lock_10k.tsv.gz
+  columns: idx float_cp int_cp hce sigW sigB inc_int_bad inc_float_bad
+
+$ python -I -B opus_round1/sol_SA2/sa2_parity.py --net lock_nnue_weights.inc --fens fens_10k.txt --dump dump_avx2.tsv --dump dump_scalar.tsv --out parity_lock_10k.json
+dump_avx2.tsv: int16 == integer reference 10000/10000, accumulators 10000/10000, float == float32 emulation 10000/10000, incremental mismatches int 0 float 0; float vs int16: max 1 cp, mean 0.0169 cp, 169 differ, raw sign flips 0, full-static sign flips 0
+dump_scalar.tsv: int16 == integer reference 10000/10000, accumulators 10000/10000, float == float32 emulation 10000/10000, incremental mismatches int 0 float 0; float vs int16: max 1 cp, mean 0.0169 cp, 169 differ, raw sign flips 0, full-static sign flips 0
+PARITY PASS
+  -> logs/parity_lock_10k.json (histogram of float - int16: -1: 90, 0: 9831, +1: 79; p99 1 cp; raw-net zero-vs-nonzero 2,
+     full-static zero-vs-nonzero 0; max |acc| 86,387; lane bound 2,054,814 < 2^24; float vs float64 forward max 0.9998 cp)
