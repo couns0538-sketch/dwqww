@@ -90,6 +90,21 @@ extern std::atomic<std::uint64_t> probe_hits;
 // rule is honoured.
 constexpr int TbWin = MateInMaxPly - 1;
 constexpr int TbCursed = 2;
+// Lowest TB win (a win found at the last ply); |score| >= TbWinInMaxPly is the
+// tablebase score range, just below the mate scores.
+constexpr int TbWinInMaxPly = TbWin - MaxPly;
+
+// Transposition-table encoding of tablebase scores (score_to_tt / score_from_tt
+// in src/search/scores.inc): while tables are loaded (tb_scores, set by load()
+// while no search runs) a score with |score| >= TbWinInMaxPly is stored as its
+// distance from the storing node, like a mate score, and read back relative to
+// the reading node; without tables that range holds ordinary search scores and
+// is stored unchanged, as in AL1 s198. load() is followed by a hash clear
+// (src/uci.cpp), so the table never holds both encodings.
+extern bool tb_scores;
+// Test hook: score_from_tt(score_to_tt(score, store_ply), read_ply) exactly as
+// the search computes it.
+[[nodiscard]] int tt_score_round_trip(int score, int store_ply, int read_ply);
 
 // Search driver hooks (src/search/tablebase.inc), only called while tables are
 // loaded. prepare_root runs before the workers start: it sets

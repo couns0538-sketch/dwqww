@@ -271,6 +271,8 @@ int main() {
                 std::string path = value_text + rest;
                 while (!path.empty() && (path.back() == ' ' || path.back() == '\r')) path.pop_back();
                 const forge::syzygy::LoadSummary summary = forge::syzygy::load(path);
+                // Stored tablebase scores are encoded by whether tables are loaded (forge/syzygy.hpp).
+                searcher.clear_hash();
                 const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex());
                 if (path.empty() || path == "<empty>") {
                     std::cout << "info string Syzygy tablebases off" << std::endl;

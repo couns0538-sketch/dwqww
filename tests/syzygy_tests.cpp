@@ -203,6 +203,40 @@ const std::vector<std::string> kSearchFens = {
 };
 
 // ---------------------------------------------------------------------------
+// Transposition-table encoding of scores (score_to_tt / score_from_tt in
+// src/search/scores.inc, through the test hook). Mate scores always carry their
+// distance; tablebase-range scores only while tables are loaded, otherwise
+// they are stored unchanged exactly as in AL1 s198.
+void tt_score_encoding(bool tables_loaded) {
+    using forge::syzygy::TbWin;
+    using forge::syzygy::TbWinInMaxPly;
+    using forge::syzygy::tt_score_round_trip;
+    const std::string mode = tables_loaded ? " (tables loaded)" : " (no tables)";
+    check((forge::syzygy::max_pieces() > 0) == tables_loaded && forge::syzygy::tb_scores == tables_loaded,
+          "TT encoding test runs in the intended mode" + mode);
+    // Mate scores, ordinary scores: as in the lock in both modes.
+    check(tt_score_round_trip(forge::MateValue - 5, 3, 7) == forge::MateValue - 9, "mate score keeps its distance" + mode);
+    check(tt_score_round_trip(-forge::MateValue + 5, 3, 7) == -forge::MateValue + 9, "mated score keeps its distance" + mode);
+    for (const int score : {0, 1, -1, 250, -250, 30000, -30000, TbWinInMaxPly - 1, -(TbWinInMaxPly - 1)}) {
+        check(tt_score_round_trip(score, 3, 7) == score, "ordinary score unchanged: " + std::to_string(score) + mode);
+    }
+    for (const int store_ply : {0, 1, 4, 9}) {
+        for (const int read_ply : {0, 2, 5, 9}) {
+            for (const int found : {store_ply, store_ply + 3, store_ply + 20}) {
+                const int win = TbWin - found;  // a TB win found at ply `found`, seen at ply store_ply
+                const int expected_win = tables_loaded ? win - (read_ply - store_ply) : win;
+                const int expected_loss = tables_loaded ? -win + (read_ply - store_ply) : -win;
+                const std::string at = " found " + std::to_string(found) + " stored at ply " + std::to_string(store_ply) +
+                                       " read at ply " + std::to_string(read_ply) + mode;
+                check(tt_score_round_trip(win, store_ply, read_ply) == expected_win, "TB win distance" + at);
+                check(tt_score_round_trip(-win, store_ply, read_ply) == expected_loss, "TB loss distance" + at);
+                check(std::abs(tt_score_round_trip(win, store_ply, read_ply)) < forge::MateInMaxPly,
+                      "TB win stays below the mate scores" + at);
+            }
+        }
+    }
+}
+
 void robustness(const fs::path& tb_dir, bool have_tables) {
     std::cout << "== robustness\n";
     {
@@ -656,6 +690,7 @@ int main(int argc, char** argv) {
     std::error_code ec;
     const fs::path tb_dir = fs::path(std::u8string(reinterpret_cast<const char8_t*>(tb.data()), tb.size()));
     const bool have_tables = !tb.empty() && fs::exists(tb_dir / "KQvK.rtbw", ec);
+    tt_score_encoding(false);
     robustness(tb_dir, have_tables);
     if (!have_tables) {
         std::cout << "SKIPPED: known-answer and search checks need a tablebase folder (argument or FORGE_SYZYGY_PATH)\n";
@@ -664,6 +699,7 @@ int main(int argc, char** argv) {
         std::cout << "loaded " << s.wdl_tables << " WDL, " << s.dtz_tables << " DTZ, rejected " << s.rejected << ", max "
                   << s.max_pieces << " pieces\n";
         check(s.rejected == 0, "no table rejected");
+        tt_score_encoding(true);
         std::uint64_t total = 0;
         for (const auto& t : forge::syzygy::loaded_tables()) {
             check(t.tail == 16 || t.tail == 48, "file layout of " + t.name + " ends at the checksum, tail " + std::to_string(t.tail));

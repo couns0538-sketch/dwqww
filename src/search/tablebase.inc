@@ -46,6 +46,14 @@ namespace forge {
 
 namespace syzygy {
 
+// TB scores in the TT (forge/syzygy.hpp, score_to_tt / score_from_tt). Scores
+// in this range stay below the mate scores after the adjustment: a stored TB
+// score is at most TbWin (found at the storing node) and a read one at least
+// TbWin - MaxPly.
+[[gnu::cold, gnu::noinline]] int tt_score_round_trip(int score, int store_ply, int read_ply) {
+    return score_from_tt(score_to_tt(score, store_ply), read_ply);
+}
+
 namespace {
 
 // Reported score of a root rank (see rank_root_moves in syzygy.inc).

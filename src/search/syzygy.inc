@@ -31,6 +31,7 @@ std::atomic<int> search_cardinality{0};
 std::atomic<int> root_display{0};
 std::atomic<int> root_display_score{0};
 std::atomic<std::uint64_t> probe_hits{0};
+bool tb_scores = false;
 
 namespace {
 
@@ -1219,6 +1220,7 @@ struct NamedFile {
     LoadSummary summary;
     search_cardinality.store(0, std::memory_order_relaxed);
     root_display.store(0, std::memory_order_relaxed);
+    tb_scores = false;
     delete g_registry.exchange(nullptr, std::memory_order_acq_rel);
     std::string trimmed = paths;
     while (!trimmed.empty() && (trimmed.back() == ' ' || trimmed.back() == '\r' || trimmed.back() == '\n')) trimmed.pop_back();
@@ -1296,6 +1298,7 @@ struct NamedFile {
     }
     summary.max_pieces = r->max_pieces;
     g_registry.store(r.release(), std::memory_order_release);
+    tb_scores = true;
     return summary;
 }
 
