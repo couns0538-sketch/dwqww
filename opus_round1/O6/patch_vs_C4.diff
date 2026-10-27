@@ -1,0 +1,2060 @@
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index b43175a5..1524305c 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -93,6 +93,13 @@ add_dependencies(forge_nnue_v2_uci_tests forge)
+ add_executable(forge_nnue_v2_tool tools/nnue/nnue_v2_tool.cpp)
+ target_link_libraries(forge_nnue_v2_tool PRIVATE forge_core Threads::Threads)
+ 
++# O6 (UCI NNUEThreats): threat pairs vs brute force, features, loader, rules, zero-threat lock replicas,
++# incremental == refresh on 102k plies, UCI checks (drives the forge executable).
++add_executable(forge_nnue_threat_tests tests/nnue_threat_tests.cpp)
++target_include_directories(forge_nnue_threat_tests PRIVATE src)
++target_link_libraries(forge_nnue_threat_tests PRIVATE forge_core Threads::Threads)
++add_dependencies(forge_nnue_threat_tests forge)
++
+ add_executable(forge_bench bench/benchmark.cpp)
+ target_link_libraries(forge_bench PRIVATE forge_core Threads::Threads)
+ 
+@@ -108,6 +115,7 @@ add_test(NAME forge_history_tests COMMAND forge_history_tests)
+ add_test(NAME forge_timeman_tests COMMAND forge_timeman_tests)
+ add_test(NAME forge_nnue_v2_tests COMMAND forge_nnue_v2_tests)
+ add_test(NAME forge_nnue_v2_uci_tests COMMAND forge_nnue_v2_uci_tests $<TARGET_FILE:forge>)
++add_test(NAME forge_nnue_threat_tests COMMAND forge_nnue_threat_tests $<TARGET_FILE:forge>)
+ add_test(NAME forge_tt_tests COMMAND forge_tt_tests)
+ add_test(NAME forge_rule50_tests COMMAND forge_rule50_tests)
+ add_test(NAME forge_legal_witness_tests COMMAND forge_legal_witness_tests
+diff --git a/include/forge/nnue_v2.hpp b/include/forge/nnue_v2.hpp
+index fd3984bc..e17b1345 100644
+--- a/include/forge/nnue_v2.hpp
++++ b/include/forge/nnue_v2.hpp
+@@ -20,12 +20,15 @@
+ //
+ // File format v2 (little-endian), written by tools/nnue/forge_nnue_v2.py:
+ //   0   char[8] "FORGENN2"      8  u32 version = 2        12 u32 header_bytes = 160
+-//   16  u32 feature_set = 0     20 u32 inputs = 768       24 u32 hidden (= HiddenSize)
++//   16  u32 feature_set         20 u32 inputs = 768       24 u32 hidden (= HiddenSize)
+ //   28  u32 king_buckets (1-32) 32 u32 output_buckets (1) 36 u32 flags (bit0 residual, bit1 mirror)
+ //   40  f32 weight_scale 4096   44 f32 output_scale 4096  48 f32 sigmoid_k 2.25
+ //   52  u8 king_bucket_map[64]  116 u8 output_bucket_map[33] (all 0)   149 u8 reserved[11] = 0
+-//   160 i16 w1[king_buckets][768][hidden], i16 b1[hidden], i16 w2[output_buckets][2*hidden],
+-//       i16 b2[output_buckets], then u64 FNV-1a 64 of every preceding byte.
++//   160 i16 w1[king_buckets][768][hidden], [i16 wt[ThreatFeatures][hidden] when feature_set bit 0],
++//       i16 b1[hidden], i16 w2[output_buckets][2*hidden], i16 b2[output_buckets],
++//       then u64 FNV-1a 64 of every preceding byte.
++// feature_set: 0 = piece-square inputs only (C4); bit 0 = threat inputs (O6, UCI NNUEThreats; definition
++// below). An engine that does not know a bit rejects the file.
+ //
+ // Exactness: weights are de-quantised like the compiled-in net (int16 / 4096),
+ // so every accumulator value is an integer multiple of 2^-12 below 2^12 in
+@@ -65,6 +68,25 @@ constexpr int MaxOutputBuckets = 1;   // reserved field of the format
+ constexpr int MaxWorkers = 256;       // refresh caches are per worker id (Threads max)
+ constexpr int HeaderBytes = 160;
+ 
++// Threat inputs (O6; header feature_set bit 0). One feature per pair (attacker A on s, victim V on v) where A
++// attacks the occupied square v in the position: pawn capture squares, knight and king steps, bishop / rook /
++// queen rays up to and including the first piece. Not features (redundant): a king "attacking" the other king
++// (impossible in a legal position) and any piece attacking its own side's king (a king is never captured, so
++// defending it carries no exchange information). Feature of a pair for perspective p with king key k:
++//   rel(piece) = (colour(piece) == p ? 0 : 6) + type(piece) - 1
++//   index      = (rel(A) * 12 + rel(V)) * 64 + ((p == White ? v : v ^ 56) ^ k.flip)
++// The block wt[ThreatFeatures][hidden] is shared by all king buckets. A victim attacked by two pieces of the
++// same kind adds the column twice (the input is the pair count, not a 0/1 flag).
++constexpr int ThreatFeatures = 12 * 12 * 64;
++constexpr int MaxThreatPairs = 512;   // at most 16 attackers per occupied square (8 rays + 8 knight squares) x 32 pieces
++constexpr std::uint32_t FeatureSetThreats = 1U;
++
++// The threat pairs of one placement (O6; threat_keys).
++struct ThreatList {
++    int count = 0;
++    std::array<std::uint16_t, MaxThreatPairs> keys;   // pair keys ((A - 1) * 12 + (V - 1)) * 64 + v (absolute)
++};
++
+ struct KingKey {
+     int bucket = 0;
+     int flip = 0;     // 0, or 7 when the perspective's king stands on files e-h of a mirrored net
+@@ -101,13 +123,19 @@ private:
+ using Pieces = std::array<Bitboard, 13>;
+ 
+ // Per-worker accumulator cache: for each (perspective, bucket, flip) the
+-// accumulator of the last piece placement refreshed under that key.
++// accumulator of the last piece placement refreshed under that key (piece-square
++// inputs only; threat inputs are added on top, see refresh_full_cached).
+ struct RefreshCache {
+     struct Entry {
+         alignas(64) std::array<float, HiddenSize> values;
+         Pieces pieces;
+     };
+     std::vector<Entry> entries;   // index ((perspective * king_buckets + bucket) * 2 + (flip != 0))
++    // O6: pair-count differences of two threat lists (all zero between uses; threat_delta).
++    std::array<std::int8_t, ThreatFeatures> threat_counts{};
++    // O6: the threat list of the placement of each search-stack entry whose accumulator the threat path computed
++    // (index ply + 4); written together with that accumulator, so a valid accumulator always has its list here.
++    std::vector<ThreatList> ply_threats;
+ };
+ 
+ struct Net {
+@@ -116,10 +144,12 @@ struct Net {
+     int output_buckets = 1;
+     bool mirror = false;
+     bool residual = false;
++    bool threats = false;   // O6: feature_set bit 0
+     std::uint64_t checksum = 0;
+     std::array<std::uint8_t, 64> king_map{};
+     std::array<std::uint8_t, 33> output_map{};
+     AlignedFloats w1;   // [king_buckets][InputCount][HiddenSize]
++    AlignedFloats wt;   // [ThreatFeatures][HiddenSize] (threat nets only)
+     AlignedFloats b1;   // [HiddenSize]
+     AlignedFloats w2;   // [output_buckets][2 * HiddenSize]
+     std::vector<float> b2;   // [output_buckets]
+@@ -133,6 +163,7 @@ struct Description {
+     int output_buckets = 1;
+     bool mirror = false;
+     bool residual = false;
++    bool threats = false;
+     std::uint64_t checksum = 0;
+ };
+ 
+@@ -147,7 +178,7 @@ struct Description {
+ void unload();
+ [[nodiscard]] const Net* loaded();
+ // Size in bytes of a v2 file with these counts (header + weights + checksum).
+-[[nodiscard]] std::uint64_t file_bytes(int king_buckets, int output_buckets);
++[[nodiscard]] std::uint64_t file_bytes(int king_buckets, int output_buckets, std::uint32_t feature_set = 0);
+ // Bytes of its file the last load() read (0, the header only, or the whole file).
+ [[nodiscard]] std::uint64_t last_load_bytes_read();
+ // "<path> king buckets N output buckets M hidden H mirrored|unmirrored residual|stand-alone fnv1a X".
+@@ -195,6 +226,170 @@ inline void undo(Pieces& pieces, const DirtyPieces& dirty) {
+     }
+ }
+ 
++// O6: applies the piece changes of one move (`dirty`) to a piece placement (the inverse of undo).
++inline void redo(Pieces& pieces, const DirtyPieces& dirty) {
++    for (int i = 0; i < dirty.count; ++i) {
++        const PieceChange& change = dirty.changes[static_cast<std::size_t>(i)];
++        Bitboard& bb = pieces[static_cast<std::size_t>(change.piece)];
++        if (change.add) bb |= square_bb(change.square);
++        else bb &= ~square_bb(change.square);
++    }
++}
++
++// ---- O6 threat inputs (definition at ThreatFeatures; ThreatList above) ----
++
++[[nodiscard]] inline Bitboard attacks_from(int code, int square, Bitboard occupied) {
++    switch (code) {
++    case WP: return attacks::pawn(White, square);
++    case BP: return attacks::pawn(Black, square);
++    case WN: case BN: return attacks::knight(square);
++    case WB: case BB: return attacks::bishop(square, occupied);
++    case WR: case BR: return attacks::rook(square, occupied);
++    case WQ: case BQ: return attacks::queen(square, occupied);
++    default: return attacks::king(square);
++    }
++}
++
++// Every threat pair of a piece placement (attackers in piece-code order, then by square).
++inline void threat_keys(const Pieces& pieces, ThreatList& list) {
++    std::array<std::uint8_t, 64> mailbox{};
++    Bitboard occupied = 0;
++    for (int code = WP; code <= BK; ++code) {
++        Bitboard bb = pieces[static_cast<std::size_t>(code)];
++        occupied |= bb;
++        while (bb != 0) mailbox[static_cast<std::size_t>(pop_lsb(bb))] = static_cast<std::uint8_t>(code);
++    }
++    int n = 0;
++    for (int a = WP; a <= BK; ++a) {
++        const bool a_king = a == WK || a == BK;
++        const bool a_white = a <= WK;
++        Bitboard bb = pieces[static_cast<std::size_t>(a)];
++        while (bb != 0) {
++            const int s = pop_lsb(bb);
++            Bitboard targets = attacks_from(a, s, occupied) & occupied;
++            while (targets != 0) {
++                const int v = pop_lsb(targets);
++                const int b = mailbox[static_cast<std::size_t>(v)];
++                if ((b == WK || b == BK) && (a_king || (b <= WK) == a_white)) continue;   // redundant pairs
++                list.keys[static_cast<std::size_t>(n++)] = static_cast<std::uint16_t>(((a - 1) * 12 + (b - 1)) * 64 + v);
++            }
++        }
++    }
++    list.count = n;
++}
++
++// rel(A) * 12 + rel(V) for the Black perspective, from the absolute (A - 1) * 12 + (V - 1).
++inline constexpr auto BlackThreatKinds = [] {
++    std::array<std::uint8_t, 144> kinds{};
++    for (int a = 0; a < 12; ++a) {
++        for (int b = 0; b < 12; ++b) kinds[static_cast<std::size_t>(a * 12 + b)] = static_cast<std::uint8_t>(((a + 6) % 12) * 12 + (b + 6) % 12);
++    }
++    return kinds;
++}();
++
++[[nodiscard]] inline int threat_feature(Color perspective, KingKey key, int pair_key) {
++    const int square = pair_key & 63;
++    if (perspective == White) return (pair_key & ~63) | (square ^ key.flip);
++    return BlackThreatKinds[static_cast<std::size_t>(pair_key >> 6)] * 64 + ((square ^ 56) ^ key.flip);
++}
++
++[[nodiscard]] inline const float* threat_column(const Net& net, Color perspective, KingKey key, int pair_key) {
++    return net.wt.data() + static_cast<std::size_t>(threat_feature(perspective, key, pair_key)) * HiddenSize;
++}
++
++// Multiset difference after - before of two threat lists (counts: all zero on entry and on return).
++struct ThreatDelta {
++    int removed = 0;
++    int added = 0;
++    std::array<std::uint16_t, MaxThreatPairs> remove_keys;
++    std::array<std::uint16_t, MaxThreatPairs> add_keys;
++};
++inline void threat_delta(const ThreatList& before, const ThreatList& after, std::int8_t* counts, ThreatDelta& delta) {
++    for (int i = 0; i < before.count; ++i) --counts[before.keys[static_cast<std::size_t>(i)]];
++    for (int i = 0; i < after.count; ++i) ++counts[after.keys[static_cast<std::size_t>(i)]];
++    delta.removed = 0;
++    delta.added = 0;
++    for (int i = 0; i < before.count; ++i) {
++        const std::uint16_t k = before.keys[static_cast<std::size_t>(i)];
++        for (; counts[k] < 0; ++counts[k]) delta.remove_keys[static_cast<std::size_t>(delta.removed++)] = k;
++    }
++    for (int i = 0; i < after.count; ++i) {
++        const std::uint16_t k = after.keys[static_cast<std::size_t>(i)];
++        for (; counts[k] > 0; --counts[k]) delta.add_keys[static_cast<std::size_t>(delta.added++)] = k;
++    }
++}
++
++// dst = src - sub[0..subs) + add[0..adds) over the hidden units, in chunks of 64 floats (exact; any order of
++// the terms gives the same bits). src may be dst. Every pointer is 32-byte aligned (accumulators, weight columns).
++// With AVX2 the 64-float chunk stays in eight registers while all columns are applied (plain sub / add, no FMA).
++inline void apply_lists(const float* src, float* dst, const float* const* sub, int subs, const float* const* add, int adds) {
++    constexpr int Chunk = 64;
++    static_assert(HiddenSize % Chunk == 0, "HiddenSize must be a multiple of the chunk");
++#if defined(__AVX2__)
++    for (int h0 = 0; h0 < HiddenSize; h0 += Chunk) {
++        __m256 v0 = _mm256_load_ps(src + h0);
++        __m256 v1 = _mm256_load_ps(src + h0 + 8);
++        __m256 v2 = _mm256_load_ps(src + h0 + 16);
++        __m256 v3 = _mm256_load_ps(src + h0 + 24);
++        __m256 v4 = _mm256_load_ps(src + h0 + 32);
++        __m256 v5 = _mm256_load_ps(src + h0 + 40);
++        __m256 v6 = _mm256_load_ps(src + h0 + 48);
++        __m256 v7 = _mm256_load_ps(src + h0 + 56);
++        for (int i = 0; i < subs; ++i) {
++            const float* col = sub[i] + h0;
++            v0 = _mm256_sub_ps(v0, _mm256_load_ps(col));
++            v1 = _mm256_sub_ps(v1, _mm256_load_ps(col + 8));
++            v2 = _mm256_sub_ps(v2, _mm256_load_ps(col + 16));
++            v3 = _mm256_sub_ps(v3, _mm256_load_ps(col + 24));
++            v4 = _mm256_sub_ps(v4, _mm256_load_ps(col + 32));
++            v5 = _mm256_sub_ps(v5, _mm256_load_ps(col + 40));
++            v6 = _mm256_sub_ps(v6, _mm256_load_ps(col + 48));
++            v7 = _mm256_sub_ps(v7, _mm256_load_ps(col + 56));
++        }
++        for (int i = 0; i < adds; ++i) {
++            const float* col = add[i] + h0;
++            v0 = _mm256_add_ps(v0, _mm256_load_ps(col));
++            v1 = _mm256_add_ps(v1, _mm256_load_ps(col + 8));
++            v2 = _mm256_add_ps(v2, _mm256_load_ps(col + 16));
++            v3 = _mm256_add_ps(v3, _mm256_load_ps(col + 24));
++            v4 = _mm256_add_ps(v4, _mm256_load_ps(col + 32));
++            v5 = _mm256_add_ps(v5, _mm256_load_ps(col + 40));
++            v6 = _mm256_add_ps(v6, _mm256_load_ps(col + 48));
++            v7 = _mm256_add_ps(v7, _mm256_load_ps(col + 56));
++        }
++        _mm256_store_ps(dst + h0, v0);
++        _mm256_store_ps(dst + h0 + 8, v1);
++        _mm256_store_ps(dst + h0 + 16, v2);
++        _mm256_store_ps(dst + h0 + 24, v3);
++        _mm256_store_ps(dst + h0 + 32, v4);
++        _mm256_store_ps(dst + h0 + 40, v5);
++        _mm256_store_ps(dst + h0 + 48, v6);
++        _mm256_store_ps(dst + h0 + 56, v7);
++    }
++#else
++    for (int h0 = 0; h0 < HiddenSize; h0 += Chunk) {
++        float chunk[Chunk];
++        for (int k = 0; k < Chunk; ++k) chunk[k] = src[h0 + k];
++        for (int i = 0; i < subs; ++i) {
++            const float* col = sub[i] + h0;
++            for (int k = 0; k < Chunk; ++k) chunk[k] -= col[k];
++        }
++        for (int i = 0; i < adds; ++i) {
++            const float* col = add[i] + h0;
++            for (int k = 0; k < Chunk; ++k) chunk[k] += col[k];
++        }
++        for (int k = 0; k < Chunk; ++k) dst[h0 + k] = chunk[k];
++    }
++#endif
++}
++
++// values += every threat column of `list` for this perspective and king key.
++inline void add_threat_columns(const Net& net, Color perspective, KingKey key, const ThreatList& list, float* values) {
++    std::array<const float*, MaxThreatPairs> add;
++    for (int i = 0; i < list.count; ++i) add[static_cast<std::size_t>(i)] = threat_column(net, perspective, key, list.keys[static_cast<std::size_t>(i)]);
++    apply_lists(values, values, nullptr, 0, add.data(), list.count);
++}
++
+ [[nodiscard]] inline RefreshCache& cache(const Net& net, int worker_id) {
+     const std::unique_ptr<RefreshCache>& slot = net.caches[static_cast<std::size_t>(std::clamp(worker_id, 0, MaxWorkers - 1))];
+     if (slot == nullptr) [[unlikely]] return make_cache(net, worker_id);
+@@ -212,7 +407,8 @@ inline void apply_columns(const float* src, float* dst, const float* const* sub,
+     }
+ }
+ 
+-// Accumulator of one perspective from scratch (reference implementation).
++// Accumulator of one perspective from scratch (reference implementation; with
++// the threat inputs of a threat net).
+ inline void refresh(const Net& net, const Board& board, Color perspective, float* values) {
+     const KingKey key = king_key(net, perspective, board.king_square(perspective));
+     std::copy(net.b1.data(), net.b1.data() + HiddenSize, values);
+@@ -222,6 +418,14 @@ inline void refresh(const Net& net, const Board& board, Color perspective, float
+         const float* col = column(net, perspective, key, board.piece_at(square), square);
+         for (int h = 0; h < HiddenSize; ++h) values[h] += col[h];
+     }
++    if (net.threats) {
++        ThreatList list;
++        threat_keys(pieces_of(board), list);
++        for (int i = 0; i < list.count; ++i) {
++            const float* col = threat_column(net, perspective, key, list.keys[static_cast<std::size_t>(i)]);
++            for (int h = 0; h < HiddenSize; ++h) values[h] += col[h];
++        }
++    }
+ }
+ 
+ // Accumulator of one perspective for the placement `pieces` (own king on
+@@ -266,6 +470,14 @@ inline void refresh_cached(const Net& net, RefreshCache& cache, const Pieces& pi
+     }
+ }
+ 
++// O6: refresh_cached plus, for a threat net, the threat columns of `threats` (the
++// threat list of the same placement). The cache entries hold piece-square inputs only.
++inline void refresh_full_cached(const Net& net, RefreshCache& cache, const Pieces& pieces, const ThreatList* threats,
++                                int king_square, Color perspective, float* values) {
++    refresh_cached(net, cache, pieces, king_square, perspective, values);
++    if (threats != nullptr) add_threat_columns(net, perspective, king_key(net, perspective, king_square), *threats, values);
++}
++
+ // Incremental update of one perspective whose king key did not change.
+ inline void update(const Net& net, Color perspective, KingKey key, const float* parent, float* child,
+                    const DirtyPieces& dirty) {
+diff --git a/include/forge/search.hpp b/include/forge/search.hpp
+index 2fdab1cf..d13cb3bc 100644
+--- a/include/forge/search.hpp
++++ b/include/forge/search.hpp
+@@ -59,6 +59,8 @@ private:
+     [[nodiscard]] int static_evaluate(const Board& board, SearchStack* ss);
+     // v2 network path (options::nnue_v2; src/search/evaluation_v2.inc).
+     [[nodiscard]] int static_evaluate_v2(const Board& board, SearchStack* ss);
++    // v2 network with threat inputs (O6, options::nnue_threats; src/search/evaluation_threats.inc).
++    [[nodiscard]] int static_evaluate_threats(const Board& board, SearchStack* ss);
+     void record_move(SearchStack* ss, const Board& board, const Move& move);
+     void record_null_move(SearchStack* ss);
+ };
+diff --git a/include/forge/search_options.hpp b/include/forge/search_options.hpp
+index e070a52d..8836c478 100644
+--- a/include/forge/search_options.hpp
++++ b/include/forge/search_options.hpp
+@@ -25,6 +25,16 @@ namespace forge::options {
+ // and the engine is the AL1 s198 engine.
+ extern int nnue_king_buckets;
+ 
++// UCI NNUEThreats (spin 0-1, default 0; O6; "true" / "false" are accepted as
++// well): 1 = evaluate with a v2 net that has threat inputs (header feature_set
++// bit 0; forge/nnue_v2.hpp ThreatFeatures), loaded with NNUEFile; with
++// NNUEKingBuckets 0 that net must have one king bucket, with NNUEKingBuckets
++// N > 0 exactly N. The header and the option must agree both ways: NNUEThreats 1
++// with a net without threat inputs, and NNUEThreats 0 with a threat net, are
++// fail-loud errors (rule above). NNUEThreats 1 is itself a v2 request (an error
++// without a usable net); UseNNUE false still wins.
++extern int nnue_threats;
++
+ // Derived switch read by Worker::static_evaluate: true while a v2 network is
+ // active. Written only by apply_nnue_v2().
+ extern bool nnue_v2;
+diff --git a/src/nnue.cpp b/src/nnue.cpp
+index 01195ca5..14e51329 100644
+--- a/src/nnue.cpp
++++ b/src/nnue.cpp
+@@ -296,10 +296,11 @@ constexpr char Magic[8] = {'F', 'O', 'R', 'G', 'E', 'N', 'N', '2'};
+ 
+ } // namespace
+ 
+-[[gnu::cold]] std::uint64_t file_bytes(int king_buckets, int output_buckets) {
++[[gnu::cold]] std::uint64_t file_bytes(int king_buckets, int output_buckets, std::uint32_t feature_set) {
+     const std::uint64_t w1 = static_cast<std::uint64_t>(king_buckets) * InputCount * HiddenSize;
++    const std::uint64_t wt = (feature_set & FeatureSetThreats) != 0U ? static_cast<std::uint64_t>(ThreatFeatures) * HiddenSize : 0U;
+     const std::uint64_t w2 = static_cast<std::uint64_t>(output_buckets) * 2U * HiddenSize;
+-    return static_cast<std::uint64_t>(HeaderBytes) + 2U * (w1 + HiddenSize + w2 + static_cast<std::uint64_t>(output_buckets)) + 8U;
++    return static_cast<std::uint64_t>(HeaderBytes) + 2U * (w1 + wt + HiddenSize + w2 + static_cast<std::uint64_t>(output_buckets)) + 8U;
+ }
+ 
+ [[gnu::cold]] std::uint64_t last_load_bytes_read() { return last_bytes_read; }
+@@ -317,7 +318,7 @@ constexpr char Magic[8] = {'F', 'O', 'R', 'G', 'E', 'N', 'N', '2'};
+     const std::streamoff end = file.tellg();
+     if (!file || end < 0) return fail(error, "cannot determine the size of " + path);
+     const auto size = static_cast<std::uint64_t>(end);
+-    const std::uint64_t largest = file_bytes(MaxKingBuckets, MaxOutputBuckets);
++    const std::uint64_t largest = file_bytes(MaxKingBuckets, MaxOutputBuckets, FeatureSetThreats);
+     if (size < static_cast<std::uint64_t>(HeaderBytes) + 8U) {
+         return fail(error, "file too short for a v2 net (" + std::to_string(size) + " bytes)");
+     }
+@@ -334,7 +335,8 @@ constexpr char Magic[8] = {'F', 'O', 'R', 'G', 'E', 'N', 'N', '2'};
+     if (std::memcmp(bytes, Magic, sizeof(Magic)) != 0) return fail(error, "bad magic (not a FORGENN2 file)");
+     if (read_u32(bytes, 8) != 2U) return fail(error, "unsupported version " + std::to_string(read_u32(bytes, 8)));
+     if (read_u32(bytes, 12) != static_cast<std::uint32_t>(HeaderBytes)) return fail(error, "unexpected header size");
+-    if (read_u32(bytes, 16) != 0U) return fail(error, "unsupported feature set " + std::to_string(read_u32(bytes, 16)));
++    const std::uint32_t feature_set = read_u32(bytes, 16);
++    if ((feature_set & ~FeatureSetThreats) != 0U) return fail(error, "unsupported feature set " + std::to_string(feature_set));
+     if (read_u32(bytes, 20) != static_cast<std::uint32_t>(InputCount)) return fail(error, "inputs per bucket must be 768");
+     if (read_u32(bytes, 24) != static_cast<std::uint32_t>(HiddenSize)) {
+         return fail(error, "hidden size " + std::to_string(read_u32(bytes, 24)) + " != engine hidden size " +
+@@ -361,14 +363,16 @@ constexpr char Magic[8] = {'F', 'O', 'R', 'G', 'E', 'N', 'N', '2'};
+     for (std::size_t i = 149; i < static_cast<std::size_t>(HeaderBytes); ++i) {
+         if (bytes[i] != 0U) return fail(error, "reserved header bytes are not zero");
+     }
++    const bool threats = (feature_set & FeatureSetThreats) != 0U;
+     const std::size_t w1_count = static_cast<std::size_t>(king_buckets) * InputCount * HiddenSize;
++    const std::size_t wt_count = threats ? static_cast<std::size_t>(ThreatFeatures) * HiddenSize : 0U;
+     const std::size_t w2_count = static_cast<std::size_t>(output_buckets) * 2U * HiddenSize;
+-    const std::uint64_t expected = file_bytes(static_cast<int>(king_buckets), static_cast<int>(output_buckets));
++    const std::uint64_t expected = file_bytes(static_cast<int>(king_buckets), static_cast<int>(output_buckets), feature_set);
+     if (size != expected) {
+         return fail(error, "file size " + std::to_string(size) + " bytes does not match the " + std::to_string(expected) +
+                                " bytes implied by its header (" + std::to_string(king_buckets) + " king buckets, " +
+                                std::to_string(output_buckets) + " output buckets, hidden " + std::to_string(HiddenSize) +
+-                               "); the weights were not read");
++                               (threats ? ", threat inputs" : "") + "); the weights were not read");
+     }
+     // Only now are the weight blocks allocated and read.
+     std::vector<unsigned char> all(static_cast<std::size_t>(expected));
+@@ -388,16 +392,19 @@ constexpr char Magic[8] = {'F', 'O', 'R', 'G', 'E', 'N', 'N', '2'};
+     net->output_buckets = static_cast<int>(output_buckets);
+     net->mirror = (flags & FlagMirror) != 0U;
+     net->residual = (flags & FlagResidual) != 0U;
++    net->threats = threats;
+     net->checksum = checksum;
+     std::copy(bytes + 52, bytes + 116, net->king_map.begin());
+     std::copy(bytes + 116, bytes + 149, net->output_map.begin());
+     net->w1.allocate(w1_count);
++    if (threats) net->wt.allocate(wt_count);
+     net->b1.allocate(HiddenSize);
+     net->w2.allocate(w2_count);
+     net->b2.assign(output_buckets, 0.0F);
+     std::size_t offset = static_cast<std::size_t>(HeaderBytes);
+     // Same de-quantisation as the compiled-in network (weights(): int / scale).
+     for (std::size_t i = 0; i < w1_count; ++i, offset += 2) net->w1.data()[i] = static_cast<float>(read_i16(bytes, offset)) / WeightScale;
++    for (std::size_t i = 0; i < wt_count; ++i, offset += 2) net->wt.data()[i] = static_cast<float>(read_i16(bytes, offset)) / WeightScale;
+     for (std::size_t i = 0; i < HiddenSize; ++i, offset += 2) net->b1.data()[i] = static_cast<float>(read_i16(bytes, offset)) / WeightScale;
+     for (std::size_t i = 0; i < w2_count; ++i, offset += 2) net->w2.data()[i] = static_cast<float>(read_i16(bytes, offset)) / OutputScale;
+     for (std::size_t i = 0; i < output_buckets; ++i, offset += 2) net->b2[i] = static_cast<float>(read_i16(bytes, offset)) / OutputScale;
+@@ -418,7 +425,7 @@ constexpr char Magic[8] = {'F', 'O', 'R', 'G', 'E', 'N', 'N', '2'};
+     std::ostringstream out;
+     out << net.path << " king buckets " << net.king_buckets << " output buckets " << net.output_buckets << " hidden "
+         << HiddenSize << (net.mirror ? " mirrored" : " unmirrored") << (net.residual ? " residual" : " stand-alone")
+-        << " fnv1a " << std::hex << std::setw(16) << std::setfill('0') << net.checksum;
++        << (net.threats ? " threat inputs" : "") << " fnv1a " << std::hex << std::setw(16) << std::setfill('0') << net.checksum;
+     return out.str();
+ }
+ 
+@@ -447,6 +454,7 @@ constexpr char Magic[8] = {'F', 'O', 'R', 'G', 'E', 'N', 'N', '2'};
+     d.output_buckets = net.output_buckets;
+     d.mirror = net.mirror;
+     d.residual = net.residual;
++    d.threats = net.threats;
+     d.checksum = net.checksum;
+     return d;
+ }
+diff --git a/src/search.cpp b/src/search.cpp
+index e24e0961..8e15987c 100644
+--- a/src/search.cpp
++++ b/src/search.cpp
+@@ -30,6 +30,7 @@
+ #include "search/tt.inc"          // transposition table
+ #include "search/movepicker.hpp"  // staged move picker
+ #include "search/worker.inc"      // per-thread state lifecycle
++#include "search/evaluation_threats.inc" // v2 network with threat inputs (O6, NNUEThreats)
+ #include "search/evaluation_v2.inc" // v2 network evaluation (NNUEFile + NNUEKingBuckets)
+ #include "search/evaluation.inc"  // static evaluation glue, correction history
+ #include "search/timeman.hpp"     // time budgets and the soft stop rule (inline)
+diff --git a/src/search/evaluation_threats.inc b/src/search/evaluation_threats.inc
+new file mode 100644
+index 00000000..9855e060
+--- /dev/null
++++ b/src/search/evaluation_threats.inc
+@@ -0,0 +1,98 @@
++// Search module: static evaluation with a v2 network that has threat inputs (O6; UCI NNUEThreats, OFF by
++// default; the feature definition is in forge/nnue_v2.hpp at ThreatFeatures). Compiled as part of
++// src/search.cpp (included exactly once, before evaluation_v2.inc, whose static_evaluate_v2 calls it: GCC
++// emits a caller after its callees). The function lives in section .text.forge_v2 like the rest of the v2
++// code, so the default build's .text is unchanged.
++//
++// Reached only through static_evaluate_v2 when the active net has threat inputs. Accumulators follow C4's
++// lazy scheme: an invalid ply walks back to the nearest valid ancestor and replays the recorded piece
++// changes; every replayed ply becomes valid. Per replayed ply, the child's piece placement is the parent's
++// with that ply's piece changes applied (starting from the board with every replayed ply taken back), its
++// threat list is generated, and the multiset difference to the parent's list is applied together with the
++// piece-square changes in one pass over each perspective's accumulator. Each computed ply's threat list is kept
++// in the worker's cache (RefreshCache::ply_threats, index ply + 4) next to its accumulator, so the valid
++// ancestor's list is read, not regenerated. On a king-key change the perspective is refreshed: piece-square
++// inputs through the refresh cache, then every threat column of the child's list.
++// All weights are int16 / 4096, so every accumulator value is an exact multiple of 2^-12 and incremental,
++// cached and from-scratch accumulators are bit-identical (tests/nnue_threat_tests.cpp checks it).
++
++namespace forge {
++
++__attribute__((section(".text.forge_v2"), noinline)) int Worker::static_evaluate_threats(const Board& board, SearchStack* ss) {
++    const nnue::v2::Net& net = *nnue::v2::active();
++    const bool residual = net.residual;
++    if (!ss->accumulator.valid) {
++        nnue::v2::RefreshCache& cache = nnue::v2::cache(net, id_);
++        if (cache.ply_threats.empty()) [[unlikely]] cache.ply_threats.resize(static_cast<std::size_t>(MaxPly + 8));
++        auto list_of = [&cache](const SearchStack* entry) -> nnue::v2::ThreatList& {
++            return cache.ply_threats[static_cast<std::size_t>(entry->ply + 4)];
++        };
++        int back = 0;
++        while (back < ss->ply && !(ss - back - 1)->accumulator.valid) ++back;
++        nnue::v2::Pieces pieces = nnue::v2::pieces_of(board);
++        if (back >= ss->ply && !(ss - back - 1)->accumulator.valid) {
++            nnue::v2::ThreatList& list = list_of(ss);
++            nnue::v2::threat_keys(pieces, list);
++            for (const Color color : {White, Black}) {
++                nnue::v2::refresh_full_cached(net, cache, pieces, &list, board.king_square(color), color,
++                                              ss->accumulator.values[static_cast<std::size_t>(color)].data());
++            }
++            ss->accumulator.valid = true;
++            if (residual) ss->runtime_psqt = Evaluator::refresh_runtime_psqt(board);
++        } else {
++            for (int k = 0; k <= back; ++k) nnue::v2::undo(pieces, (ss - k)->dirty);   // the valid ancestor's placement
++            auto king_of = [&pieces](Color color) { return lsb(pieces[static_cast<std::size_t>(make_piece(color, King))]); };
++            std::array<nnue::v2::KingKey, 2> key{nnue::v2::king_key(net, White, king_of(White)),
++                                                 nnue::v2::king_key(net, Black, king_of(Black))};
++            nnue::v2::ThreatDelta delta;
++            std::array<const float*, nnue::v2::MaxThreatPairs + 4> sub;
++            std::array<const float*, nnue::v2::MaxThreatPairs + 4> add;
++            for (int i = back; i >= 0; --i) {
++                const SearchStack* parent = ss - i - 1;
++                SearchStack* child = ss - i;
++                const nnue::DirtyPieces& dirty = child->dirty;
++                nnue::v2::redo(pieces, dirty);   // the child's placement
++                const nnue::v2::ThreatList& before = list_of(parent);   // valid: computed with the parent's accumulator
++                nnue::v2::ThreatList& after = list_of(child);
++                nnue::v2::threat_keys(pieces, after);
++                nnue::v2::threat_delta(before, after, cache.threat_counts.data(), delta);
++                for (const Color color : {White, Black}) {
++                    const std::size_t c = static_cast<std::size_t>(color);
++                    const int king_square = king_of(color);
++                    const nnue::v2::KingKey moved = nnue::v2::king_key(net, color, king_square);
++                    if (!(moved == key[c])) [[unlikely]] {
++                        key[c] = moved;
++                        nnue::v2::refresh_full_cached(net, cache, pieces, &after, king_square, color,
++                                                      child->accumulator.values[c].data());
++                        continue;
++                    }
++                    int subs = 0;
++                    int adds = 0;
++                    for (int k = 0; k < dirty.count; ++k) {
++                        const nnue::PieceChange& change = dirty.changes[static_cast<std::size_t>(k)];
++                        const float* col = nnue::v2::column(net, color, key[c], change.piece, change.square);
++                        if (change.add) add[static_cast<std::size_t>(adds++)] = col;
++                        else sub[static_cast<std::size_t>(subs++)] = col;
++                    }
++                    for (int k = 0; k < delta.removed; ++k) {
++                        sub[static_cast<std::size_t>(subs++)] = nnue::v2::threat_column(net, color, key[c], delta.remove_keys[static_cast<std::size_t>(k)]);
++                    }
++                    for (int k = 0; k < delta.added; ++k) {
++                        add[static_cast<std::size_t>(adds++)] = nnue::v2::threat_column(net, color, key[c], delta.add_keys[static_cast<std::size_t>(k)]);
++                    }
++                    nnue::v2::apply_lists(parent->accumulator.values[c].data(), child->accumulator.values[c].data(), sub.data(), subs,
++                                          add.data(), adds);
++                }
++                child->accumulator.valid = true;
++                if (residual) Evaluator::update_runtime_psqt(parent->runtime_psqt, child->runtime_psqt, dirty);
++            }
++        }
++    }
++    const int network = nnue::v2::evaluate(net, board, ss->accumulator);
++    if (!residual) return network;
++    if (!ss->runtime_psqt.valid) ss->runtime_psqt = Evaluator::refresh_runtime_psqt(board);
++    // A residual network is a learned correction on top of the hand-crafted evaluation.
++    return std::clamp(evaluator_.evaluate_runtime(board, ss->runtime_psqt) + network, -MateInMaxPly + 1, MateInMaxPly - 1);
++}
++
++} // namespace forge
+diff --git a/src/search/evaluation_v2.inc b/src/search/evaluation_v2.inc
+index 1be6e6f7..c260f8fb 100644
+--- a/src/search/evaluation_v2.inc
++++ b/src/search/evaluation_v2.inc
+@@ -27,6 +27,9 @@ FORGE_SEARCH_V2 int Worker::static_evaluate_v2(const Board& board, SearchStack*
+     const nnue::v2::Net* active = nnue::v2::active();
+     if (active == nullptr || !nnue::enabled) return evaluator_.evaluate(board);
+     const nnue::v2::Net& net = *active;
++    // O6: a net with threat inputs has its own update path (evaluation_threats.inc); apply_nnue_v2 activates
++    // one only with NNUEThreats 1.
++    if (net.threats) [[unlikely]] return static_evaluate_threats(board, ss);
+     const bool residual = net.residual;
+     if (!ss->accumulator.valid) {
+         int back = 0;
+@@ -92,30 +95,62 @@ namespace options {
+ 
+ [[gnu::cold]] bool apply_nnue_v2(std::string* message) {
+     // UseNNUE false disables every network (hand-crafted evaluation only).
+-    const nnue::v2::Net* net = nnue::v2::select(nnue::enabled ? nnue_king_buckets : 0, message);
++    // O6: NNUEThreats 1 with NNUEKingBuckets 0 asks for a net without king buckets (one bucket).
++    const bool threats = nnue_threats != 0;
++    const int wanted = nnue_king_buckets > 0 ? nnue_king_buckets : (threats ? 1 : 0);
++    const nnue::v2::Net* net = nnue::v2::select(nnue::enabled ? wanted : 0, message);
++    if (net != nullptr && net->threats != threats) {
++        // O6: the header's threat bit must agree with NNUEThreats (nnue_v2_problem names the mismatch).
++        (void)nnue::v2::select(0, nullptr);
++        net = nullptr;
++        if (message != nullptr) {
++            *message = threats ? "NNUEThreats is 1 but the loaded net has no threat inputs (not selected)"
++                               : "the loaded net has threat inputs and NNUEThreats is 0 (not selected)";
++        }
++    }
+     if (!nnue::enabled && message != nullptr) *message = "UseNNUE is false: hand-crafted evaluation only";
+     nnue_v2 = net != nullptr;
+     return nnue_v2;
+ }
+ 
+ [[gnu::cold]] std::string nnue_v2_problem(const std::string& file, const std::string& load_error) {
++    const bool threats = nnue_threats != 0;
+     if (!nnue::enabled) return {};   // UseNNUE false: every network off on purpose
+-    if (file.empty() && nnue_king_buckets <= 0) return {};   // nothing requested
++    if (file.empty() && nnue_king_buckets <= 0 && !threats) return {};   // nothing requested
+     if (!file.empty() && !load_error.empty()) return "cannot load NNUEFile " + file + ": " + load_error;
+     const nnue::v2::Net* net = nnue::v2::loaded();
+     if (net == nullptr) {
+-        return file.empty() ? "NNUEKingBuckets " + std::to_string(nnue_king_buckets) +
+-                                  " is set but no v2 net is loaded (NNUEFile is empty)"
+-                            : "NNUEFile " + file + " is not loaded";
++        if (!file.empty()) return "NNUEFile " + file + " is not loaded";
++        if (nnue_king_buckets <= 0) {   // O6: NNUEThreats alone
++            return "NNUEThreats is 1 but no v2 net is loaded (NNUEFile is empty); NNUEThreats needs a net with threat inputs "
++                   "(trainer --threats)";
++        }
++        return "NNUEKingBuckets " + std::to_string(nnue_king_buckets) + " is set but no v2 net is loaded (NNUEFile is empty)";
+     }
+     if (nnue_v2 && nnue::v2::active() == net) return {};
+     const std::string buckets = std::to_string(net->king_buckets) + (net->mirror ? " mirrored" : "") + " king buckets";
++    // O6: the threat bit of the file and NNUEThreats must agree.
++    const std::string threat_net = "NNUEFile " + net->path + " has threat inputs (trainer --threats); set NNUEThreats 1 to use it";
+     if (nnue_king_buckets <= 0) {
+-        return "NNUEFile " + net->path + " is loaded (" + buckets + ") but NNUEKingBuckets is 0; set NNUEKingBuckets " +
+-               std::to_string(net->king_buckets) + " to use it";
++        if (threats && net->king_buckets != 1) {
++            return "NNUEThreats is 1 and NNUEKingBuckets is 0, which selects a net without king buckets, but NNUEFile " +
++                   net->path + " has " + buckets + "; set NNUEKingBuckets " + std::to_string(net->king_buckets) + " as well";
++        }
++        if (!threats) {
++            if (net->threats && net->king_buckets == 1) return threat_net;
++            return "NNUEFile " + net->path + " is loaded (" + buckets + ") but NNUEKingBuckets is 0; set NNUEKingBuckets " +
++                   std::to_string(net->king_buckets) + " to use it";
++        }
++    } else if (nnue_king_buckets != net->king_buckets) {
++        return "NNUEKingBuckets " + std::to_string(nnue_king_buckets) + " does not match NNUEFile " + net->path + " (" +
++               buckets + ")";
++    }
++    if (threats && !net->threats) {
++        return "NNUEThreats is 1 but NNUEFile " + net->path + " has no threat inputs; NNUEThreats needs a net trained with "
++               "--threats";
+     }
+-    return "NNUEKingBuckets " + std::to_string(nnue_king_buckets) + " does not match NNUEFile " + net->path + " (" +
+-           buckets + ")";
++    if (!threats && net->threats) return threat_net;
++    return "NNUEFile " + net->path + " was not selected";   // not reached: every unselected case is named above
+ }
+ 
+ } // namespace options
+diff --git a/src/search/options.inc b/src/search/options.inc
+index 73d07e4a..5dafe300 100644
+--- a/src/search/options.inc
++++ b/src/search/options.inc
+@@ -6,5 +6,6 @@ namespace forge::options {
+ 
+ int nnue_king_buckets = 0;
+ bool nnue_v2 = false;
++int nnue_threats = 0;   // O6 (after nnue_v2 so that the variables before it keep their addresses)
+ 
+ } // namespace forge::options
+diff --git a/src/uci.cpp b/src/uci.cpp
+index 41cc811a..4044c0d0 100644
+--- a/src/uci.cpp
++++ b/src/uci.cpp
+@@ -154,7 +154,7 @@ int main() {
+         ponder_search_active = false;
+     };
+ 
+-    // v2 networks (UCI NNUEFile / NNUEKingBuckets; fail-loud rule in forge/search_options.hpp): a
++    // v2 networks (UCI NNUEFile / NNUEKingBuckets / NNUEThreats; fail-loud rule in forge/search_options.hpp): a
+     // requested v2 net that cannot be used is reported at once and, if still unusable at the next
+     // isready, go or bench, reported again before the engine exits with status 2. Never a silent
+     // fall-back to the compiled-in network. With no NNUE option set nothing here prints anything.
+@@ -168,7 +168,7 @@ int main() {
+         std::string state;
+         const bool active = forge::options::apply_nnue_v2(&state);
+         const std::string problem = forge::options::nnue_v2_problem(nnue_file, nnue_file_error);
+-        const bool requested = !nnue_file.empty() || forge::options::nnue_king_buckets > 0;
++        const bool requested = !nnue_file.empty() || forge::options::nnue_king_buckets > 0 || forge::options::nnue_threats != 0;
+         if (!nnue_file_error.empty()) state += " (NNUEFile " + nnue_file + ": " + nnue_file_error + ")";
+         {
+             const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex());
+@@ -211,6 +211,8 @@ int main() {
+             // v2 networks (forge/search_options.hpp): off unless NNUEKingBuckets > 0.
+             std::cout << "option name NNUEFile type string default <empty>\n"
+                          "option name NNUEKingBuckets type spin default 0 min 0 max 32\n";
++            // O6: a v2 net with threat inputs (needs such a net in NNUEFile).
++            std::cout << "option name NNUEThreats type spin default 0 min 0 max 1\n";
+ #ifdef FORGE_EXPOSE_TUNABLES
+             // Development builds advertise the search constants so match
+             // runners can set them; release builds accept them silently.
+@@ -341,6 +343,14 @@ int main() {
+                     forge::options::nnue_king_buckets = std::clamp(value, 0, 32);
+                 }
+                 nnue_v2_changed();
++            } else if (name == "NNUEThreats") {   // O6: spin 0-1 (true / false accepted as well)
++                if (value_text == "1" || value_text == "true") forge::options::nnue_threats = 1;
++                else if (value_text == "0" || value_text == "false") forge::options::nnue_threats = 0;
++                else {
++                    const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex());
++                    std::cout << "info string invalid value for option NNUEThreats" << std::endl;
++                }
++                nnue_v2_changed();
+             } else if (name == "Hash" || name == "Move Overhead" || name == "Threads") {
+                 int value = 0;
+                 const auto parsed = std::from_chars(
+diff --git a/tests/nnue_threat_tests.cpp b/tests/nnue_threat_tests.cpp
+new file mode 100644
+index 00000000..2c9acf83
+--- /dev/null
++++ b/tests/nnue_threat_tests.cpp
+@@ -0,0 +1,810 @@
++// Tests for the threat inputs of v2 networks (O6; UCI NNUEThreats; definition in forge/nnue_v2.hpp):
++//   1. threat pairs == an independent brute-force reference (ray walking, no attack tables) on random positions,
++//      including the two redundant pair kinds that are left out (king-king, attacks on the own king);
++//   2. feature indices: explicit values, colour symmetry and mirror symmetry of threat-net accumulators;
++//   3. loader: feature_set bit 0 files load (sizes, threat block), unknown feature bits and wrong sizes are rejected;
++//   4. selection and the fail-loud rule for NNUEThreats (header bit and option must agree);
++//   5. zero-threat lock replicas (lock weights + a threat block of zeros): accumulators and evaluations
++//      bit-identical to the compiled-in net, and identical search node counts (the threat machinery changes nothing
++//      when its columns are zero);
++//   6. incremental == full refresh, bit-exact, over 102,000 random make/unmake plies driven through the real
++//      Worker::static_evaluate with threat nets (1 bucket; 8 mirrored buckets; 4 unmirrored buckets);
++//   7. UCI (when the engine executable is given): option advertised, unusable requests exit 2, a threat net is active.
++// usage: forge_nnue_threat_tests [<forge executable>] [plies per walk net (default 34000)]
++#include "forge/nnue_v2.hpp"
++#include "forge/search.hpp"
++#include "forge/search_options.hpp"
++
++#include <algorithm>
++#include <array>
++#include <cstdint>
++#include <cstdio>
++#include <cstdlib>
++#include <cstring>
++#include <fstream>
++#include <iostream>
++#include <memory>
++#include <sstream>
++#include <stdexcept>
++#include <string>
++#include <vector>
++
++#if !defined(_WIN32)
++#include <sys/wait.h>
++#endif
++
++#include "nnue_weights.inc"   // the compiled-in (lock) network, for the zero-threat replicas
++
++namespace forge {
++struct SearcherTestProbe {
++    static SearchStack* root(Worker& w) { return &w.stack_[4]; }
++    static int eval(Worker& w, const Board& b, SearchStack* ss) { return w.static_evaluate(b, ss); }
++    static void move(Worker& w, SearchStack* ss, const Board& b, Move m) { w.record_move(ss, b, m); (ss + 1)->ply = ss->ply + 1; }
++    static void null(Worker& w, SearchStack* ss) { w.record_null_move(ss); (ss + 1)->ply = ss->ply + 1; }
++};
++} // namespace forge
++
++using namespace forge;
++using Probe = SearcherTestProbe;
++namespace v2 = forge::nnue::v2;
++
++namespace {
++
++int checks = 0;
++int failures = 0;
++void report(bool okay, const std::string& label) {
++    ++checks;
++    if (!okay) ++failures;
++    std::cout << (okay ? "PASS " : "FAIL ") << label << '\n';
++}
++void check(bool okay, const std::string& label) {
++    ++checks;
++    if (!okay) {
++        ++failures;
++        std::cout << "FAIL " << label << '\n';
++    }
++}
++
++struct Rng {
++    std::uint64_t s;
++    std::uint64_t next() {
++        s ^= s >> 12U; s ^= s << 25U; s ^= s >> 27U;
++        return s * 2685821657736338717ULL;
++    }
++    int below(int n) { return static_cast<int>(next() % static_cast<std::uint64_t>(n)); }
++    bool chance(int percent) { return below(100) < percent; }
++};
++
++std::vector<std::string> temporary_files;
++void write_file(const std::string& path, const std::string& bytes) {
++    std::ofstream out(path, std::ios::binary);
++    out.write(bytes.data(), static_cast<std::streamsize>(bytes.size()));
++    if (std::find(temporary_files.begin(), temporary_files.end(), path) == temporary_files.end()) temporary_files.push_back(path);
++}
++std::string read_file(const std::string& path) {
++    std::ifstream in(path, std::ios::binary);
++    std::ostringstream text;
++    text << in.rdbuf();
++    return text.str();
++}
++bool contains(const std::string& text, const std::string& what) { return text.find(what) != std::string::npos; }
++
++// ---------------------------------------------------------------- v2 files (independent writer)
++struct Spec {
++    int king_buckets = 1;
++    bool mirror = false;
++    bool residual = true;
++    bool threats = true;
++    std::uint32_t feature_set_override = 0xFFFFFFFFU;   // write this feature_set instead (loader tests)
++    std::array<std::uint8_t, 64> king_map{};
++    std::vector<std::int16_t> w1, wt, b1, w2, b2;
++};
++
++std::uint64_t fnv(const std::string& data) {
++    std::uint64_t h = 0xcbf29ce484222325ULL;
++    for (const unsigned char c : data) { h ^= c; h *= 0x100000001b3ULL; }
++    return h;
++}
++void put32(std::string& s, std::uint32_t v) { for (int i = 0; i < 4; ++i) s.push_back(static_cast<char>((v >> (8 * i)) & 0xFFU)); }
++void putf(std::string& s, float f) { std::uint32_t v = 0; std::memcpy(&v, &f, 4); put32(s, v); }
++void put16s(std::string& s, const std::vector<std::int16_t>& a) {
++    for (const std::int16_t v : a) {
++        const auto u = static_cast<std::uint16_t>(v);
++        s.push_back(static_cast<char>(u & 0xFFU));
++        s.push_back(static_cast<char>(u >> 8U));
++    }
++}
++
++std::string serialise(const Spec& n) {
++    std::string s = "FORGENN2";
++    const std::uint32_t feature_set = n.feature_set_override != 0xFFFFFFFFU ? n.feature_set_override : (n.threats ? 1U : 0U);
++    put32(s, 2); put32(s, 160); put32(s, feature_set); put32(s, 768); put32(s, nnue::HiddenSize);
++    put32(s, static_cast<std::uint32_t>(n.king_buckets)); put32(s, 1); put32(s, (n.residual ? 1U : 0U) | (n.mirror ? 2U : 0U));
++    putf(s, 4096.0F); putf(s, 4096.0F); putf(s, 2.25F);
++    for (const std::uint8_t b : n.king_map) s.push_back(static_cast<char>(b));
++    s.append(33, '\0');
++    s.append(160 - s.size(), '\0');
++    put16s(s, n.w1);
++    if (n.threats) put16s(s, n.wt);
++    put16s(s, n.b1);
++    put16s(s, n.w2);
++    put16s(s, n.b2);
++    const std::uint64_t h = fnv(s);
++    for (int i = 0; i < 8; ++i) s.push_back(static_cast<char>((h >> (8 * i)) & 0xFFU));
++    return s;
++}
++
++int half_index(int square) { const int f = square & 7; return (square >> 3) * 4 + (f < 4 ? f : 7 - f); }
++std::array<std::uint8_t, 64> symmetric_map(int buckets) {
++    const char* rows4[8] = {"0011", "0011", "2222", "2222", "3333", "3333", "3333", "3333"};
++    const char* rows8[8] = {"0123", "4455", "6666", "7777", "7777", "7777", "7777", "7777"};
++    std::array<std::uint8_t, 64> m{};
++    for (int s = 0; s < 64; ++s) {
++        const int h = half_index(s);
++        m[static_cast<std::size_t>(s)] = buckets == 1 ? 0 : static_cast<std::uint8_t>((buckets == 8 ? rows8 : rows4)[h / 4][h % 4] - '0');
++    }
++    return m;
++}
++
++Spec random_net(int buckets, bool mirror, bool threats, std::uint64_t seed) {
++    Spec n;
++    Rng rng{seed};
++    n.king_buckets = buckets;
++    n.mirror = mirror;
++    n.threats = threats;
++    n.king_map = symmetric_map(buckets);
++    const std::size_t hidden = nnue::HiddenSize;
++    auto value = [&rng](int range) { return static_cast<std::int16_t>(rng.below(2 * range + 1) - range); };
++    n.w1.resize(static_cast<std::size_t>(buckets) * 768 * hidden);
++    for (auto& v : n.w1) v = value(220);
++    if (threats) {
++        n.wt.resize(static_cast<std::size_t>(v2::ThreatFeatures) * hidden);
++        for (auto& v : n.wt) v = value(120);
++    }
++    n.b1.resize(hidden);
++    for (auto& v : n.b1) v = value(1200);
++    n.w2.resize(2 * hidden);
++    for (auto& v : n.w2) v = value(900);
++    n.b2 = {value(500)};
++    return n;
++}
++
++// Lock weights in v2 form (C4's replicas r1 / rm8) plus a threat block of zeros.
++Spec zero_threat_replica(const std::string& kind) {
++    Spec n;
++    const std::size_t hidden = nnue::HiddenSize;
++    std::vector<bool> flipped;
++    if (kind == "r1") {
++        n.king_buckets = 1;
++        flipped = {false};
++    } else {   // rm8: files e-h use their own buckets holding file-flipped weights (king-key changes happen)
++        const char* rows4[8] = {"0011", "0011", "2222", "2222", "3333", "3333", "3333", "3333"};
++        n.king_buckets = 8;
++        n.mirror = true;
++        for (int s = 0; s < 64; ++s) {
++            const int h = half_index(s);
++            n.king_map[static_cast<std::size_t>(s)] = static_cast<std::uint8_t>((rows4[h / 4][h % 4] - '0') + ((s & 7) >= 4 ? 4 : 0));
++        }
++        for (int b = 0; b < 8; ++b) flipped.push_back(b >= 4);
++    }
++    for (int b = 0; b < n.king_buckets; ++b) {
++        for (std::size_t f = 0; f < 768; ++f) {
++            const std::size_t src = flipped[static_cast<std::size_t>(b)] ? ((f & ~63U) | ((f & 63U) ^ 7U)) : f;
++            n.w1.insert(n.w1.end(), NnueW1 + src * hidden, NnueW1 + (src + 1) * hidden);
++        }
++    }
++    n.wt.assign(static_cast<std::size_t>(v2::ThreatFeatures) * hidden, 0);
++    n.b1.assign(NnueB1, NnueB1 + hidden);
++    n.w2.assign(NnueW2, NnueW2 + 2 * hidden);
++    n.b2 = {NnueB2};
++    n.residual = true;
++    n.threats = true;
++    return n;
++}
++
++bool load_spec(const std::string& path, const Spec& n) {
++    write_file(path, serialise(n));
++    std::string error;
++    const bool ok = v2::load(path, &error);
++    if (!ok) std::cout << "load error: " << error << '\n';
++    return ok;
++}
++
++// ---------------------------------------------------------------- positions
++Board position(const std::string& fen) {
++    Board b;
++    std::string error;
++    if (!b.set_fen(fen, &error)) throw std::runtime_error(fen + ": " + error);
++    return b;
++}
++
++const std::vector<std::string> start_fens = {
++    std::string(Board::StandardStartFen),
++    "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1",
++    "r4rk1/1pp1qppp/p1np1n2/8/2B1P1b1/2N2N2/PPP1QPPP/2KR3R w - - 0 10",
++    "8/2p5/3p4/KP5r/1R3p1k/8/4P1P1/8 w - - 0 1",
++    "6k1/5ppp/8/8/8/8/5PPP/3R2K1 b - - 0 1",
++    "8/8/4k3/8/2K5/8/3P4/8 w - - 0 1",
++    "r3k2r/8/8/8/8/8/8/R3K2R w KQkq - 0 1",
++    "8/P7/8/8/8/8/p7/K6k w - - 0 1",
++    "4k3/8/8/3pP3/8/8/8/4K3 w - d6 0 1",
++    "2rr3k/pp3pp1/1nnqbN1p/3pN3/2pP4/2P3Q1/PPB4P/R4RK1 w - - 0 1",
++};
++
++std::vector<Board> random_positions(int count, std::uint64_t seed) {
++    std::vector<Board> out;
++    Rng rng{seed};
++    while (static_cast<int>(out.size()) < count) {
++        Board b = position(start_fens[static_cast<std::size_t>(rng.below(static_cast<int>(start_fens.size())))]);
++        const int plies = rng.below(80);
++        for (int p = 0; p < plies; ++p) {
++            const MoveList moves = b.legal_moves();
++            if (moves.empty()) break;
++            Undo undo;
++            (void)b.make_move(moves[static_cast<std::size_t>(rng.below(static_cast<int>(moves.size())))], undo);
++        }
++        if (!b.legal_moves().empty()) out.push_back(b);
++    }
++    return out;
++}
++
++std::string transformed_fen(const Board& b, bool mirror_files, bool swap_colours) {
++    std::ostringstream fen;
++    for (int rank = 7; rank >= 0; --rank) {
++        int empty = 0;
++        for (int file = 0; file < 8; ++file) {
++            const int sq = swap_colours ? (7 - rank) * 8 + file : rank * 8 + (mirror_files ? 7 - file : file);
++            const Piece p = b.piece_at(sq);
++            if (p == Empty) { ++empty; continue; }
++            if (empty) { fen << empty; empty = 0; }
++            fen << (swap_colours ? " pnbrqkPNBRQK" : " PNBRQKpnbrqk")[static_cast<int>(p)];
++        }
++        if (empty) fen << empty;
++        if (rank) fen << '/';
++    }
++    const bool white = b.side_to_move() == White;
++    fen << ((white != swap_colours) ? " w - - 0 1" : " b - - 0 1");
++    return fen.str();
++}
++
++nnue::Accumulator reference(const v2::Net& net, const Board& b) {
++    nnue::Accumulator acc;
++    v2::refresh(net, b, White, acc.values[White].data());
++    v2::refresh(net, b, Black, acc.values[Black].data());
++    acc.valid = true;
++    return acc;
++}
++bool same_values(const nnue::Accumulator& a, const nnue::Accumulator& b) {
++    return std::memcmp(a.values.data(), b.values.data(), sizeof(a.values)) == 0;
++}
++
++// ---------------------------------------------------------------- 1. threat pairs vs brute force
++bool attacks_brute(int code, int s, int v, const std::array<int, 64>& board) {
++    const int df = (v & 7) - (s & 7);
++    const int dr = (v >> 3) - (s >> 3);
++    const int type = (code - 1) % 6 + 1;
++    const bool white = code <= 6;
++    if (type == Pawn) return std::abs(df) == 1 && dr == (white ? 1 : -1);
++    if (type == Knight) return (std::abs(df) == 1 && std::abs(dr) == 2) || (std::abs(df) == 2 && std::abs(dr) == 1);
++    if (type == King) return std::max(std::abs(df), std::abs(dr)) == 1;
++    const bool straight = (df == 0) != (dr == 0);
++    const bool diagonal = df != 0 && std::abs(df) == std::abs(dr);
++    if (!((type == Rook && straight) || (type == Bishop && diagonal) || (type == Queen && (straight || diagonal)))) return false;
++    const int sf = (df > 0) - (df < 0);
++    const int sr = (dr > 0) - (dr < 0);
++    for (int f = (s & 7) + sf, r = (s >> 3) + sr; f != (v & 7) || r != (v >> 3); f += sf, r += sr) {
++        if (board[static_cast<std::size_t>(r * 8 + f)] != 0) return false;
++    }
++    return true;
++}
++
++std::vector<int> brute_keys(const Board& b, int* excluded) {
++    std::array<int, 64> board{};
++    for (int s = 0; s < 64; ++s) board[static_cast<std::size_t>(s)] = static_cast<int>(b.piece_at(s));
++    std::vector<int> keys;
++    for (int s = 0; s < 64; ++s) {
++        const int a = board[static_cast<std::size_t>(s)];
++        if (a == 0) continue;
++        for (int v = 0; v < 64; ++v) {
++            const int c = board[static_cast<std::size_t>(v)];
++            if (v == s || c == 0 || !attacks_brute(a, s, v, board)) continue;
++            const bool victim_king = c == WK || c == BK;
++            if (victim_king && ((a == WK || a == BK) || ((a <= 6) == (c <= 6)))) {
++                ++*excluded;
++                continue;
++            }
++            keys.push_back(((a - 1) * 12 + (c - 1)) * 64 + v);
++        }
++    }
++    std::sort(keys.begin(), keys.end());
++    return keys;
++}
++
++void test_pairs() {
++    const std::vector<Board> boards = random_positions(3000, 101);
++    int mismatches = 0;
++    int excluded = 0;
++    long pairs = 0;
++    int most = 0;
++    for (const Board& b : boards) {
++        v2::ThreatList list;
++        v2::threat_keys(v2::pieces_of(b), list);
++        std::vector<int> mine(list.keys.begin(), list.keys.begin() + list.count);
++        std::sort(mine.begin(), mine.end());
++        if (mine != brute_keys(b, &excluded)) ++mismatches;
++        pairs += list.count;
++        most = std::max(most, list.count);
++    }
++    report(mismatches == 0 && excluded > 0, "threat pairs == brute-force reference on 3000 random positions (" + std::to_string(pairs) +
++                                                " pairs, at most " + std::to_string(most) + " in one position, " +
++                                                std::to_string(excluded) + " redundant king pairs left out)");
++    // Explicit positions.
++    auto keys_of = [](const std::string& fen) {
++        v2::ThreatList list;
++        v2::threat_keys(v2::pieces_of(position(fen)), list);
++        return std::vector<int>(list.keys.begin(), list.keys.begin() + list.count);
++    };
++    auto key = [](int a, int b, int v) { return ((a - 1) * 12 + (b - 1)) * 64 + v; };
++    {
++        // White Ke1, Re2; Black Ke8, pawn e7: Re2 attacks e7 (its ray stops there: no x-ray to e8), Ke1 defends
++        // Re2, Ke8 defends e7; Re2 seeing its own king on e1 is left out.
++        std::vector<int> k = keys_of("4k3/4p3/8/8/8/8/4R3/4K3 w - - 0 1");
++        std::sort(k.begin(), k.end());
++        std::vector<int> expect = {key(WR, BP, 52), key(WK, WR, 12), key(BK, BP, 52)};
++        std::sort(expect.begin(), expect.end());
++        report(k == expect, "explicit: Re2 attacks e7 (ray stops), Ke1 defends Re2, Ke8 defends e7; Re2 -> own king left out");
++    }
++    {
++        std::vector<int> k = keys_of("4k3/8/8/8/8/8/8/R3K2R w - - 0 1");
++        report(k.empty(), "explicit: rooks that only see their own king give no pair");
++    }
++    {
++        std::vector<int> k = keys_of("4k3/8/8/8/8/8/8/4R1K1 b - - 0 1");
++        report(k.size() == 1 && k[0] == key(WR, BK, 60), "explicit: a check (Re1 attacks the black king on e8) is a pair");
++    }
++    {
++        std::vector<int> k = keys_of("8/8/8/2n1n3/3P4/8/8/K6k w - - 0 1");
++        std::sort(k.begin(), k.end());
++        std::vector<int> expect = {key(WP, BN, 34), key(WP, BN, 36)};
++        report(k == expect, "explicit: pawn d4 attacks both knights (c5, e5); the knights do not attack d4");
++    }
++    {
++        std::vector<int> k = keys_of("8/8/8/8/8/2N1N3/8/K2r3k w - - 0 1");
++        report(std::count(k.begin(), k.end(), key(WN, BR, 3)) == 2,
++               "explicit: two knights attacking the rook on d1 give the same feature twice (pair count)");
++    }
++}
++
++// ---------------------------------------------------------------- 2. feature indices and symmetry
++void test_features(const std::string& dir) {
++    const v2::KingKey none{0, 0};
++    const v2::KingKey flipped{0, 7};
++    auto key = [](int a, int b, int v) { return ((a - 1) * 12 + (b - 1)) * 64 + v; };
++    report(v2::threat_feature(White, none, key(WN, BQ, 35)) == ((1 * 12 + 10) * 64 + 35),
++           "feature: white knight attacks black queen on d5, White perspective = (1 * 12 + 10) * 64 + 35");
++    report(v2::threat_feature(Black, none, key(WN, BQ, 35)) == ((7 * 12 + 4) * 64 + (35 ^ 56)),
++           "feature: the same pair seen by Black = their knight (7) attacks own queen (4) on d5 ^ 56");
++    report(v2::threat_feature(White, flipped, key(WP, BP, 36)) == ((0 * 12 + 6) * 64 + (36 ^ 7)),
++           "feature: mirrored perspective flips the victim's file (e5 -> d5)");
++    bool in_range = true;
++    for (int pk = 0; pk < v2::ThreatFeatures; ++pk) {
++        for (const Color p : {White, Black}) {
++            for (const v2::KingKey k : {none, flipped}) {
++                const int f = v2::threat_feature(p, k, pk);
++                in_range = in_range && f >= 0 && f < v2::ThreatFeatures;
++            }
++        }
++    }
++    report(in_range, "feature: every pair key maps into [0, 9216) for both perspectives, with and without flip");
++    const std::vector<Board> boards = random_positions(400, 111);
++    check(load_spec(dir + "sym.fnn2", random_net(8, true, true, 113)), "load mirrored 8-bucket threat net");
++    const v2::Net& net = *v2::loaded();
++    int colour_bad = 0;
++    int mirror_bad = 0;
++    for (const Board& b : boards) {
++        const nnue::Accumulator a = reference(net, b);
++        const nnue::Accumulator c = reference(net, position(transformed_fen(b, false, true)));
++        if (std::memcmp(a.values[White].data(), c.values[Black].data(), sizeof(float) * nnue::HiddenSize) != 0 ||
++            std::memcmp(a.values[Black].data(), c.values[White].data(), sizeof(float) * nnue::HiddenSize) != 0) ++colour_bad;
++        const nnue::Accumulator m = reference(net, position(transformed_fen(b, true, false)));
++        if (!same_values(a, m)) ++mirror_bad;
++    }
++    report(colour_bad == 0, "colour symmetry: 400 colour-flipped positions give the swapped accumulators (threat net)");
++    report(mirror_bad == 0, "mirror symmetry: 400 file-mirrored positions give identical accumulators (mirrored threat net)");
++    check(load_spec(dir + "sym.fnn2", random_net(1, false, true, 113)), "load unmirrored threat net");
++    int differ = 0;
++    for (const Board& b : boards) {
++        if (!same_values(reference(*v2::loaded(), b), reference(*v2::loaded(), position(transformed_fen(b, true, false))))) ++differ;
++    }
++    report(differ > 0, "control: without mirroring the file mirror changes the accumulators (" + std::to_string(differ) + "/400)");
++    // The threat columns really enter the accumulator: zeroing them changes it.
++    Spec with = random_net(1, false, true, 117);
++    Spec without = with;
++    std::fill(without.wt.begin(), without.wt.end(), 0);
++    check(load_spec(dir + "sym.fnn2", with), "load threat net");
++    std::vector<nnue::Accumulator> accs;
++    for (int i = 0; i < 50; ++i) accs.push_back(reference(*v2::loaded(), boards[static_cast<std::size_t>(i)]));
++    check(load_spec(dir + "sym.fnn2", without), "load the same net with zero threat columns");
++    int changed = 0;
++    int with_pairs = 0;
++    int changed_without_pairs = 0;
++    for (int i = 0; i < 50; ++i) {
++        v2::ThreatList list;
++        v2::threat_keys(v2::pieces_of(boards[static_cast<std::size_t>(i)]), list);
++        const bool differs = !same_values(accs[static_cast<std::size_t>(i)], reference(*v2::loaded(), boards[static_cast<std::size_t>(i)]));
++        with_pairs += list.count > 0 ? 1 : 0;
++        changed += differs && list.count > 0 ? 1 : 0;
++        changed_without_pairs += differs && list.count == 0 ? 1 : 0;
++    }
++    report(changed == with_pairs && changed_without_pairs == 0 && with_pairs >= 25,
++           "control: zeroing the threat columns changes exactly the accumulators of the positions with threat pairs (" +
++               std::to_string(changed) + "/" + std::to_string(with_pairs) + " of 50 positions have pairs)");
++}
++
++// ---------------------------------------------------------------- 3. loader
++void test_loader(const std::string& dir) {
++    const Spec good = random_net(1, false, true, 121);
++    const std::string bytes = serialise(good);
++    write_file(dir + "loader.fnn2", bytes);
++    std::string error;
++    report(v2::load(dir + "loader.fnn2", &error) && v2::loaded()->threats && v2::describe(*v2::loaded()).threats,
++           "a feature_set 1 file loads with its threat block");
++    report(bytes.size() == v2::file_bytes(1, 1, v2::FeatureSetThreats) &&
++               v2::file_bytes(1, 1, v2::FeatureSetThreats) - v2::file_bytes(1, 1) == 2U * v2::ThreatFeatures * nnue::HiddenSize,
++           "file_bytes: the threat block adds 2 * 9216 * hidden bytes (" + std::to_string(bytes.size()) + " bytes)");
++    bool block_ok = true;
++    for (std::size_t i = 0; i < good.wt.size(); i += 997) {
++        block_ok = block_ok && v2::loaded()->wt.data()[i] == static_cast<float>(good.wt[i]) / 4096.0F;
++    }
++    report(block_ok, "the threat block is read in file order (sampled values == int16 / 4096)");
++    auto rejected = [&](const Spec& spec, const std::string& label, const std::string& phrase) {
++        write_file(dir + "bad.fnn2", serialise(spec));
++        std::string message;
++        const bool loaded = v2::load(dir + "bad.fnn2", &message);
++        report(!loaded && contains(message, phrase) && v2::loaded() == nullptr, "rejects " + label + " (" + message + ")");
++    };
++    Spec unknown = good;
++    unknown.feature_set_override = 3;
++    rejected(unknown, "feature_set 3 (unknown bit 1)", "unsupported feature set 3");
++    Spec no_block = good;
++    no_block.feature_set_override = 1;
++    no_block.threats = false;   // header says threats, no block written
++    rejected(no_block, "a feature_set 1 header without the threat block", "does not match");
++    Spec extra_block = good;
++    extra_block.feature_set_override = 0;   // block written, header says none
++    rejected(extra_block, "a threat block under a feature_set 0 header", "does not match");
++}
++
++// ---------------------------------------------------------------- 4. selection and request rule
++std::string problem_after(int king_buckets, int threats, const std::string& file) {
++    options::nnue_king_buckets = king_buckets;
++    options::nnue_threats = threats;
++    (void)options::apply_nnue_v2(nullptr);
++    return options::nnue_v2_problem(file, "");
++}
++
++void test_rules(const std::string& dir) {
++    const std::string t1 = dir + "t1.fnn2";
++    const std::string p1 = dir + "p1.fnn2";
++    const std::string t4 = dir + "t4.fnn2";
++    v2::unload();
++    std::string p = problem_after(0, 0, "");
++    report(p.empty() && !options::nnue_v2, "defaults: no request, no problem");
++    p = problem_after(0, 1, "");
++    report(contains(p, "NNUEThreats is 1 but no v2 net is loaded") && !options::nnue_v2, "NNUEThreats without NNUEFile: " + p);
++    check(load_spec(t1, random_net(1, false, true, 131)), "load a one-bucket threat net");
++    p = problem_after(0, 1, t1);
++    report(p.empty() && options::nnue_v2 && v2::active()->threats, "NNUEThreats 1 with a one-bucket threat net (NNUEKingBuckets 0): active");
++    p = problem_after(1, 1, t1);
++    report(p.empty() && options::nnue_v2, "NNUEThreats 1 + NNUEKingBuckets 1: active");
++    p = problem_after(0, 0, t1);
++    report(contains(p, "has threat inputs") && contains(p, "set NNUEThreats 1") && !options::nnue_v2, "threat net without NNUEThreats: " + p);
++    p = problem_after(1, 0, t1);
++    report(contains(p, "has threat inputs") && !options::nnue_v2, "threat net, NNUEKingBuckets 1, NNUEThreats 0: " + p);
++    check(load_spec(p1, random_net(1, false, false, 132)), "load a one-bucket net without threat inputs");
++    p = problem_after(0, 1, p1);
++    report(contains(p, "has no threat inputs") && !options::nnue_v2, "NNUEThreats 1 with a net without threat inputs: " + p);
++    p = problem_after(1, 0, p1);
++    report(p.empty() && options::nnue_v2 && !v2::active()->threats, "C4 rule unchanged: a net without threats, NNUEKingBuckets 1: active");
++    check(load_spec(t4, random_net(4, true, true, 133)), "load a mirrored 4-bucket threat net");
++    p = problem_after(0, 1, t4);
++    report(contains(p, "set NNUEKingBuckets 4 as well") && !options::nnue_v2, "NNUEThreats alone with a 4-bucket threat net: " + p);
++    p = problem_after(4, 1, t4);
++    report(p.empty() && options::nnue_v2, "NNUEThreats 1 + NNUEKingBuckets 4: active");
++    p = problem_after(2, 1, t4);
++    report(contains(p, "does not match") && !options::nnue_v2, "NNUEKingBuckets 2 vs the 4-bucket threat net: " + p);
++    nnue::enabled = false;
++    p = problem_after(4, 1, t4);
++    report(p.empty() && !options::nnue_v2, "UseNNUE false wins over NNUEThreats (not an error)");
++    nnue::enabled = true;
++    v2::unload();
++    p = problem_after(0, 0, "");
++    report(p.empty() && !options::nnue_v2, "request cleared: no problem");
++}
++
++// ---------------------------------------------------------------- 5. zero-threat lock replicas
++std::uint64_t search_nodes(const Board& b, int depth, std::string* best) {
++    Searcher searcher(16, 1);
++    SearchLimits limits;
++    limits.depth = depth;
++    const SearchInfo info = searcher.search(b, limits, false, Searcher::TTAccess::Exclusive);
++    if (best != nullptr) *best = Board::move_to_uci(info.best_move);
++    return info.nodes;
++}
++
++void test_zero_threat_replicas(const std::string& dir) {
++    const std::vector<Board> boards = random_positions(300, 141);
++    std::vector<std::pair<std::uint64_t, std::string>> lock_search;
++    for (int i = 0; i < 4; ++i) {
++        std::string best;
++        const std::uint64_t nodes = search_nodes(position(start_fens[static_cast<std::size_t>(i * 2 + 1)]), 8, &best);
++        lock_search.emplace_back(nodes, best);
++    }
++    for (const std::string kind : {"r1", "rm8"}) {
++        const Spec n = zero_threat_replica(kind);
++        check(load_spec(dir + "replica.fnn2", n), "load zero-threat replica " + kind);
++        options::nnue_king_buckets = n.king_buckets;
++        options::nnue_threats = 1;
++        check(options::apply_nnue_v2(nullptr) && v2::active()->threats, "select zero-threat replica " + kind);
++        const v2::Net& net = *v2::active();
++        int bad = 0;
++        for (const Board& b : boards) {
++            nnue::Accumulator lock;
++            nnue::refresh(b, lock);
++            const nnue::Accumulator mine = reference(net, b);
++            if (!same_values(lock, mine) || nnue::evaluate(b, lock) != v2::evaluate(net, b, mine)) ++bad;
++        }
++        report(bad == 0, "zero-threat replica " + kind + ": 300 positions, accumulators and evals bit-identical to the compiled-in net");
++        bool same = true;
++        for (int i = 0; i < 4; ++i) {
++            std::string best;
++            const std::uint64_t nodes = search_nodes(position(start_fens[static_cast<std::size_t>(i * 2 + 1)]), 8, &best);
++            same = same && nodes == lock_search[static_cast<std::size_t>(i)].first && best == lock_search[static_cast<std::size_t>(i)].second;
++        }
++        report(same, "zero-threat replica " + kind + ": depth-8 searches of 4 positions have the compiled-in net's node counts and best moves");
++        options::nnue_king_buckets = 0;
++        options::nnue_threats = 0;
++        (void)options::apply_nnue_v2(nullptr);
++    }
++}
++
++// ---------------------------------------------------------------- 6. incremental == refresh, 100k plies
++struct WalkStats {
++    long plies = 0, nulls = 0, evals = 0, verified = 0, key_changes = 0, restarts = 0, max_chain = 0, max_pairs = 0;
++};
++
++void walk(Worker& w, const v2::Net& net, std::uint64_t seed, long target_plies, WalkStats& st, int& bad) {
++    Rng rng{seed};
++    constexpr int MaxDepth = 24;
++    while (st.plies < target_plies) {
++        Board board = position(start_fens[static_cast<std::size_t>(rng.below(static_cast<int>(start_fens.size())))]);
++        ++st.restarts;
++        w.clear();
++        SearchLimits limits;
++        limits.depth = 1;
++        const std::vector<Worker*> all{&w};
++        (void)w.search(board, limits, false, all);
++        SearchStack* root = Probe::root(w);
++        std::vector<Board> path{board};
++        struct Step { bool null; Move move; Undo undo; NullUndo null_undo; };
++        std::vector<Step> steps;
++        int depth = 0;
++        const int length = 200 + rng.below(400);
++        for (int t = 0; t < length && st.plies < target_plies; ++t) {
++            SearchStack* ss = root + depth;
++            if (depth < MaxDepth && (depth == 0 || rng.chance(58))) {
++                const MoveList moves = board.legal_moves();
++                if (moves.empty()) continue;
++                Step step{};
++                if (!board.in_check() && rng.chance(4)) {
++                    step.null = true;
++                    Probe::null(w, ss);
++                    board.make_null_move(step.null_undo);
++                    ++st.nulls;
++                } else {
++                    step.move = moves[static_cast<std::size_t>(rng.below(static_cast<int>(moves.size())))];
++                    const Piece moved = board.piece_at(step.move.from);
++                    if (piece_type(moved) == King) {
++                        const Color c = color_of(moved);
++                        if (!(v2::king_key(net, c, step.move.from) == v2::king_key(net, c, step.move.to))) ++st.key_changes;
++                    }
++                    Probe::move(w, ss, board, step.move);
++                    (void)board.make_move(step.move, step.undo);
++                }
++                steps.push_back(step);
++                path.push_back(board);
++                ++depth;
++                ++st.plies;
++                v2::ThreatList list;
++                v2::threat_keys(v2::pieces_of(board), list);
++                st.max_pairs = std::max<long>(st.max_pairs, list.count);
++                if (rng.chance(45)) {
++                    std::vector<bool> was_valid(static_cast<std::size_t>(depth + 1));
++                    for (int j = 0; j <= depth; ++j) was_valid[static_cast<std::size_t>(j)] = (root + j)->accumulator.valid;
++                    const int actual = Probe::eval(w, board, root + depth);
++                    ++st.evals;
++                    long chain = 0;
++                    for (int j = 0; j <= depth; ++j) {
++                        SearchStack* e = root + j;
++                        if (!e->accumulator.valid || was_valid[static_cast<std::size_t>(j)]) continue;
++                        ++chain;
++                        ++st.verified;
++                        if (!same_values(e->accumulator, reference(net, path[static_cast<std::size_t>(j)]))) ++bad;
++                    }
++                    st.max_chain = std::max(st.max_chain, chain);
++                    const int expected = std::clamp(Evaluator::evaluate_uncached(board) + v2::evaluate(net, board, reference(net, board)),
++                                                    -MateInMaxPly + 1, MateInMaxPly - 1);
++                    if (actual != expected || !(root + depth)->accumulator.valid) ++bad;
++                }
++            } else if (depth > 0) {
++                const Step& step = steps.back();
++                if (step.null) board.unmake_null_move(step.null_undo);
++                else board.unmake_move(step.move, step.undo);
++                steps.pop_back();
++                path.pop_back();
++                --depth;
++                if (rng.chance(30)) {
++                    const int actual = Probe::eval(w, board, root + depth);
++                    const nnue::Accumulator ref = reference(net, board);
++                    const int expected = std::clamp(Evaluator::evaluate_uncached(board) + v2::evaluate(net, board, ref),
++                                                    -MateInMaxPly + 1, MateInMaxPly - 1);
++                    ++st.evals;
++                    if (actual != expected || !same_values((root + depth)->accumulator, ref)) ++bad;
++                }
++            }
++        }
++    }
++}
++
++void test_incremental_equals_refresh(const std::string& dir, long plies_per_net) {
++    SharedSearchState shared(1);
++    auto worker = std::make_unique<Worker>(shared, 0);
++    struct Case { const char* name; int buckets; bool mirror; };
++    const std::vector<Case> cases = {
++        {"1 bucket, threat inputs", 1, false},
++        {"8 mirrored buckets, threat inputs", 8, true},
++        {"4 unmirrored buckets, threat inputs", 4, false},
++    };
++    long total = 0;
++    std::uint64_t seed = 151;
++    for (const Case& c : cases) {
++        Spec n = random_net(c.buckets, c.mirror, true, seed);
++        if (!c.mirror) n.king_map = symmetric_map(c.buckets);
++        check(load_spec(dir + "walk.fnn2", n), std::string("load ") + c.name);
++        options::nnue_king_buckets = c.buckets;
++        options::nnue_threats = 1;
++        check(options::apply_nnue_v2(nullptr), std::string("select ") + c.name);
++        WalkStats st;
++        int bad = 0;
++        walk(*worker, *v2::active(), seed * 7919U, plies_per_net, st, bad);
++        total += st.plies;
++        std::cout << "WALK " << c.name << ": plies " << st.plies << " (null " << st.nulls << ") evaluations " << st.evals
++                  << " computed accumulators verified " << st.verified << " king-key changes " << st.key_changes
++                  << " longest replay " << st.max_chain << " most threat pairs " << st.max_pairs << " restarts " << st.restarts
++                  << " mismatches " << bad << '\n';
++        report(bad == 0 && st.max_chain >= 3 && (c.buckets == 1 || st.key_changes * 50 > st.plies),
++               std::string("incremental == full refresh, bit-exact, ") + c.name + ": " + std::to_string(st.plies) + " plies");
++        ++seed;
++    }
++    std::cout << "WALK total plies " << total << '\n';
++    options::nnue_king_buckets = 0;
++    options::nnue_threats = 0;
++    (void)options::apply_nnue_v2(nullptr);
++}
++
++// ---------------------------------------------------------------- 7. UCI
++struct Run {
++    std::string out;
++    int status = -1;
++};
++std::string quote(const std::string& text) { return "\"" + text + "\""; }
++Run run_engine(const std::string& engine, const std::string& name, const std::string& script) {
++    const std::string in = "nnue_threat_uci_" + name + ".in";
++    const std::string out = "nnue_threat_uci_" + name + ".out";
++    write_file(in, script);
++    temporary_files.push_back(out);
++    std::string command = quote(engine) + " < " + quote(in) + " > " + quote(out);
++#if defined(_WIN32)
++    command = "\"" + command + "\"";
++#endif
++    std::fflush(nullptr);
++    const int raw = std::system(command.c_str());
++    Run run;
++#if defined(_WIN32)
++    run.status = raw;
++#else
++    run.status = WIFEXITED(raw) ? WEXITSTATUS(raw) : 128 + (WIFSIGNALED(raw) ? WTERMSIG(raw) : 0);
++#endif
++    run.out = read_file(out);
++    return run;
++}
++int count(const std::string& text, const std::string& what) {
++    int n = 0;
++    for (std::size_t at = text.find(what); at != std::string::npos; at = text.find(what, at + what.size())) ++n;
++    return n;
++}
++bool has_line(const std::string& text, const std::string& prefix) {
++    std::istringstream lines(text);
++    for (std::string line; std::getline(lines, line);) {
++        if (!line.empty() && line.back() == '\r') line.pop_back();
++        if (line.rfind(prefix, 0) == 0) return true;
++    }
++    return false;
++}
++std::string last_error(const std::string& text) {
++    std::istringstream lines(text);
++    std::string last = "(no ERROR line)";
++    for (std::string line; std::getline(lines, line);) {
++        if (!line.empty() && line.back() == '\r') line.pop_back();
++        if (line.rfind("info string ERROR NNUE v2:", 0) == 0) last = line;
++    }
++    return last;
++}
++const std::string Head = "uci\nsetoption name Threads value 1\nsetoption name Hash value 16\n";
++std::string set(const std::string& name, const std::string& value) { return "setoption name " + name + " value " + value + "\n"; }
++void expect_failure(const std::string& engine, const std::string& name, const std::string& options, const std::string& trigger,
++                    const std::string& phrase) {
++    const Run r = run_engine(engine, name, Head + options + trigger + "\nquit\n");
++    const bool no_answer = !has_line(r.out, "readyok") && !has_line(r.out, "bestmove") && !contains(r.out, "bench depth");
++    report(r.status == 2 && count(r.out, "info string ERROR NNUE v2: ") >= 2 && no_answer && contains(last_error(r.out), phrase),
++           "UCI " + name + ": exit status " + std::to_string(r.status) + " at " + trigger + (no_answer ? ", no answer: " : ", ANSWERED: ") +
++               last_error(r.out));
++}
++
++void test_uci(const std::string& engine, const std::string& dir) {
++    const std::string threat = dir + "uci_threat.fnn2";
++    const std::string plain = dir + "uci_plain.fnn2";
++    write_file(threat, serialise(random_net(1, false, true, 161)));
++    write_file(plain, serialise(random_net(1, false, false, 161)));
++    {
++        const Run r = run_engine(engine, "defaults", Head + "isready\ngo depth 1\nquit\n");
++        report(r.status == 0 && contains(r.out, "option name NNUEThreats type spin default 0 min 0 max 1") && has_line(r.out, "readyok") &&
++                   has_line(r.out, "bestmove") && !contains(r.out, "NNUE v2"),
++               "UCI defaults: NNUEThreats advertised (spin 0-1, default 0), nothing NNUE v2 printed, exit 0");
++    }
++    expect_failure(engine, "threats_without_file", set("NNUEThreats", "1"), "isready", "no v2 net is loaded");
++    expect_failure(engine, "threats_with_plain_net", set("NNUEFile", plain) + set("NNUEThreats", "1"), "go depth 1", "has no threat inputs");
++    expect_failure(engine, "threat_net_without_option", set("NNUEFile", threat) + set("NNUEKingBuckets", "1"), "bench 2", "set NNUEThreats 1");
++    {
++        const std::string active = "info string NNUE v2: active: " + threat + " king buckets 1 output buckets 1 hidden " +
++                                   std::to_string(nnue::HiddenSize) + " unmirrored residual threat inputs";
++        const Run r = run_engine(engine, "threats_active", Head + set("NNUEThreats", "1") + set("NNUEFile", threat) +
++                                                              "isready\ngo depth 5\nbench 3\nquit\n");
++        report(r.status == 0 && count(r.out, active) == 2 && has_line(r.out, "readyok") && has_line(r.out, "bestmove") &&
++                   contains(r.out, "bench depth 3 nodes") && count(r.out, "ERROR") == 1,
++               "UCI NNUEThreats 1 + threat net: \"" + active + " ...\" (activation + isready), readyok, bestmove, bench, exit 0 "
++               "(the half-set request before NNUEFile reported once)");
++    }
++    {
++        const Run r = run_engine(engine, "threats_invalid", Head + set("NNUEThreats", "2") + "isready\nquit\n");
++        report(r.status == 0 && contains(r.out, "info string invalid value for option NNUEThreats") && has_line(r.out, "readyok"),
++               "UCI NNUEThreats 2: invalid value reported, the option stays 0");
++    }
++}
++
++} // namespace
++
++int main(int argc, char** argv) {
++    const std::string engine = argc > 1 ? argv[1] : "";
++    const long plies = argc > 2 ? std::stol(argv[2]) : 34000;
++    const std::string dir = "nnue_threat_test_";
++    test_pairs();
++    test_features(dir);
++    test_loader(dir);
++    test_rules(dir);
++    test_zero_threat_replicas(dir);
++    test_incremental_equals_refresh(dir, plies);
++    if (!engine.empty()) {
++        std::string path = engine;
++#if defined(_WIN32)
++        for (char& c : path) if (c == '/') c = '\\';
++#endif
++        test_uci(path, dir);
++    } else {
++        std::cout << "(no engine executable given: UCI tests skipped)\n";
++    }
++    v2::unload();
++    for (const std::string& file : temporary_files) std::remove(file.c_str());
++    std::cout << checks - failures << "/" << checks << " checks passed\n";
++    return failures == 0 ? 0 : 1;
++}
+diff --git a/tests/nnue_v2_tests.cpp b/tests/nnue_v2_tests.cpp
+index aa9671c0..1b553e67 100644
+--- a/tests/nnue_v2_tests.cpp
++++ b/tests/nnue_v2_tests.cpp
+@@ -421,7 +421,8 @@ void test_loader(const std::string& dir) {
+     size_rejected(bytes.substr(0, 167), "167-byte file (shorter than a header and checksum)", "too short", 0);
+     {
+         std::string huge = bytes;
+-        huge.resize(static_cast<std::size_t>(v2::file_bytes(v2::MaxKingBuckets, v2::MaxOutputBuckets) + 1), '\0');
++        // O6: the largest valid v2 file is a 32-bucket net with the threat block.
++        huge.resize(static_cast<std::size_t>(v2::file_bytes(v2::MaxKingBuckets, v2::MaxOutputBuckets, v2::FeatureSetThreats) + 1), '\0');
+         size_rejected(huge, "file one byte larger than the largest valid v2 file", "too large", 0);
+     }
+     report(v2::file_bytes(4, 1) == bytes.size() && v2::file_bytes(1, 1) == 394922U, "file_bytes(): 4 buckets = this file, 1 bucket = 394922 bytes");
+diff --git a/tools/nnue/forge_nnue_v2.py b/tools/nnue/forge_nnue_v2.py
+index 65007e66..bd0c2a56 100644
+--- a/tools/nnue/forge_nnue_v2.py
++++ b/tools/nnue/forge_nnue_v2.py
+@@ -3,7 +3,8 @@
+ 
+ Format (little-endian; the engine's loader is forge::nnue::v2::load in src/nnue.cpp):
+   0   char[8] "FORGENN2"        8   u32 version = 2           12  u32 header_bytes = 160
+-  16  u32 feature_set = 0       20  u32 inputs = 768          24  u32 hidden H
++  16  u32 feature_set           20  u32 inputs = 768          24  u32 hidden H
++      (feature_set 0 = piece-square inputs only; bit 0 = threat inputs, O6: a block wt[9216][H] follows w1)
+   28  u32 king_buckets KB 1-32  32  u32 output_buckets OB     36  u32 flags: bit0 residual, bit1 king mirror
+   40  f32 weight_scale 4096     44  f32 output_scale 4096     48  f32 sigmoid_k 2.25
+   52  u8  king_bucket_map[64]   own-king square in the perspective's frame (rank-flipped for Black,
+@@ -42,6 +43,8 @@ HEADER_BYTES = 160
+ INPUTS = 768
+ FLAG_RESIDUAL = 1
+ FLAG_MIRROR = 2
++FEATURE_SET_THREATS = 1          # O6: threat inputs (definition in include/forge/nnue_v2.hpp at ThreatFeatures)
++THREAT_FEATURES = 12 * 12 * 64
+ WEIGHT_SCALE = 4096.0
+ OUTPUT_SCALE = 4096.0
+ SIGMOID_K = 2.25
+@@ -128,8 +131,9 @@ def _i16_bytes(values, count: int, name: str) -> bytes:
+ 
+ 
+ def write_v2(path, *, hidden: int, king_buckets: int, residual: bool, mirror: bool, king_map, w1, b1, w2, b2,
+-             output_buckets: int = 1, output_map=None) -> int:
+-    """Writes a v2 file; returns its FNV-1a 64 checksum. w1 order [bucket][feature][hidden]."""
++             output_buckets: int = 1, output_map=None, feature_set: int = 0, wt=None) -> int:
++    """Writes a v2 file; returns its FNV-1a 64 checksum. w1 order [bucket][feature][hidden]; wt (feature_set bit 0,
++    O6) order [threat feature][hidden]."""
+     king_map = list(king_map)
+     output_map = [0] * 33 if output_map is None else list(output_map)
+     if len(king_map) != 64 or any(not 0 <= b < king_buckets for b in king_map):
+@@ -138,14 +142,21 @@ def write_v2(path, *, hidden: int, king_buckets: int, residual: bool, mirror: bo
+         raise ValueError("output map needs 33 entries in [0, output_buckets)")
+     if not 1 <= king_buckets <= 32:
+         raise ValueError("king buckets must be 1-32")
++    if feature_set & ~FEATURE_SET_THREATS:
++        raise ValueError(f"unknown feature set {feature_set}")
++    if bool(feature_set & FEATURE_SET_THREATS) != (wt is not None):
++        raise ValueError("threat weights (wt) go with feature_set bit 0")
+     flags = (FLAG_RESIDUAL if residual else 0) | (FLAG_MIRROR if mirror else 0)
+-    head = MAGIC + struct.pack("<IIIIIIII", VERSION, HEADER_BYTES, 0, INPUTS, hidden, king_buckets, output_buckets, flags)
++    head = MAGIC + struct.pack("<IIIIIIII", VERSION, HEADER_BYTES, feature_set, INPUTS, hidden, king_buckets, output_buckets, flags)
+     head += struct.pack("<fff", WEIGHT_SCALE, OUTPUT_SCALE, SIGMOID_K)
+     head += bytes(king_map) + bytes(output_map)
+     head += bytes(HEADER_BYTES - len(head))
+     assert len(head) == HEADER_BYTES
+-    body = (_i16_bytes(w1, king_buckets * INPUTS * hidden, "w1") + _i16_bytes(b1, hidden, "b1") +
+-            _i16_bytes(w2, output_buckets * 2 * hidden, "w2") + _i16_bytes(b2, output_buckets, "b2"))
++    body = _i16_bytes(w1, king_buckets * INPUTS * hidden, "w1")
++    if wt is not None:
++        body += _i16_bytes(wt, THREAT_FEATURES * hidden, "wt")
++    body += (_i16_bytes(b1, hidden, "b1") + _i16_bytes(w2, output_buckets * 2 * hidden, "w2") +
++             _i16_bytes(b2, output_buckets, "b2"))
+     data = head + body
+     checksum = fnv1a64(data)
+     with open(path, "wb") as f:
+@@ -159,20 +170,23 @@ def read_v2(path) -> dict:
+         raise ValueError("not a FORGENN2 file")
+     (version, header_bytes, feature_set, inputs, hidden, kb, ob, flags) = struct.unpack_from("<IIIIIIII", data, 8)
+     ws, os_, k = struct.unpack_from("<fff", data, 40)
+-    if version != VERSION or header_bytes != HEADER_BYTES or feature_set != 0 or inputs != INPUTS:
++    if version != VERSION or header_bytes != HEADER_BYTES or (feature_set & ~FEATURE_SET_THREATS) or inputs != INPUTS:
+         raise ValueError("unsupported v2 header")
+     stored = struct.unpack_from("<Q", data, len(data) - 8)[0]
+     if fnv1a64(data[:-8]) != stored:
+         raise ValueError("checksum mismatch")
+-    counts = [kb * INPUTS * hidden, hidden, ob * 2 * hidden, ob]
++    threats = bool(feature_set & FEATURE_SET_THREATS)
++    names = ["w1"] + (["wt"] if threats else []) + ["b1", "w2", "b2"]
++    counts = [kb * INPUTS * hidden] + ([THREAT_FEATURES * hidden] if threats else []) + [hidden, ob * 2 * hidden, ob]
+     if len(data) != HEADER_BYTES + 2 * sum(counts) + 8:
+         raise ValueError("size mismatch")
+     out = dict(version=version, hidden=hidden, king_buckets=kb, output_buckets=ob,
+                residual=bool(flags & FLAG_RESIDUAL), mirror=bool(flags & FLAG_MIRROR),
+                weight_scale=ws, output_scale=os_, sigmoid_k=k, checksum=stored,
+-               king_map=list(data[52:116]), output_map=list(data[116:149]))
++               king_map=list(data[52:116]), output_map=list(data[116:149]), feature_set=feature_set,
++               threats=threats, wt=None)
+     off = HEADER_BYTES
+-    for name, n in zip(("w1", "b1", "w2", "b2"), counts):
++    for name, n in zip(names, counts):
+         a = array("h")
+         a.frombytes(data[off:off + 2 * n])
+         if sys.byteorder != "little":
+@@ -211,6 +225,12 @@ def flipped_files(w1_bucket, hidden: int):
+     return out
+ 
+ 
++def with_zero_threats(net: dict) -> dict:
++    """O6: the same net with a threat block of zeros (feature_set bit 0): it evaluates exactly like `net`, so a search
++    with it runs the threat-input machinery on the tree of `net` (engine cost of threat inputs at equal nodes)."""
++    return dict(net, feature_set=FEATURE_SET_THREATS, wt=array("h", bytes(2 * THREAT_FEATURES * net["hidden"])))
++
++
+ def replica(inc: dict, kind: str) -> dict:
+     """v2 network that evaluates exactly like the v1 include (see module docstring)."""
+     hidden, w1 = inc["hidden"], inc["w1"]
+@@ -241,20 +261,23 @@ def main(argv=None) -> int:
+     p.add_argument("inc")
+     p.add_argument("out")
+     p.add_argument("--replica", default="r1", choices=["r1", "r4", "rm2", "rm8", "rm16"])
++    p.add_argument("--threats-zero", action="store_true", help="O6: add a threat block of zeros (feature_set bit 0)")
+     a = ap.parse_args(argv)
+     if a.cmd == "info":
+         n = read_v2(a.net)
+         print(f"{a.net}: hidden {n['hidden']} king_buckets {n['king_buckets']} mirror {n['mirror']} "
+-              f"output_buckets {n['output_buckets']} residual {n['residual']} fnv1a {n['checksum']:016x}")
++              f"output_buckets {n['output_buckets']} residual {n['residual']} threats {n['threats']} fnv1a {n['checksum']:016x}")
+         print("king map (rank 8 first, files a-h, perspective frame):")
+         for r in range(7, -1, -1):
+             print("  " + " ".join(f"{n['king_map'][r * 8 + f]:2d}" for f in range(8)))
+         print("output map (pieces 0..32):", " ".join(map(str, n["output_map"])))
+         return 0
+     net = replica(read_inc(a.inc), a.replica)
++    if a.threats_zero:
++        net = with_zero_threats(net)
+     checksum = write_v2(a.out, **net)
+-    print(f"wrote {a.out}: replica {a.replica}, king_buckets {net['king_buckets']}, mirror {net['mirror']}, "
+-          f"fnv1a {checksum:016x}")
++    print(f"wrote {a.out}: replica {a.replica}{' + zero threat inputs' if a.threats_zero else ''}, king_buckets "
++          f"{net['king_buckets']}, mirror {net['mirror']}, fnv1a {checksum:016x}")
+     return 0
+ 
+ 
+diff --git a/tools/nnue/nnue_v2_tool.cpp b/tools/nnue/nnue_v2_tool.cpp
+index 013f073f..2d115060 100644
+--- a/tools/nnue/nnue_v2_tool.cpp
++++ b/tools/nnue/nnue_v2_tool.cpp
+@@ -108,8 +108,11 @@ int eval(const std::string& net_path, const std::string& fen_path, const std::st
+         v2::refresh(net, board, Black, a.values[Black].data());
+         nnue::Accumulator c;
+         const v2::Pieces pieces = v2::pieces_of(board);
+-        v2::refresh_cached(net, cache, pieces, board.king_square(White), White, c.values[White].data());
+-        v2::refresh_cached(net, cache, pieces, board.king_square(Black), Black, c.values[Black].data());
++        v2::ThreatList threats;   // O6: threat nets add their threat columns on top of the cached piece part
++        if (net.threats) v2::threat_keys(pieces, threats);
++        const v2::ThreatList* list = net.threats ? &threats : nullptr;
++        v2::refresh_full_cached(net, cache, pieces, list, board.king_square(White), White, c.values[White].data());
++        v2::refresh_full_cached(net, cache, pieces, list, board.king_square(Black), Black, c.values[Black].data());
+         if (std::memcmp(a.values.data(), c.values.data(), sizeof(a.values)) != 0) ++cache_mismatch;
+         const float out = v2::output(net, board, a);
+         std::uint32_t bits = 0;
+@@ -125,7 +128,7 @@ int eval(const std::string& net_path, const std::string& fen_path, const std::st
+         ++index;
+     }
+     std::cout << "evaluated " << index << " positions with " << net_path << " (king buckets " << net.king_buckets
+-              << (net.mirror ? ", mirrored" : "") << "); refresh cache vs from-scratch mismatches: " << cache_mismatch << '\n';
++              << (net.mirror ? ", mirrored" : "") << (net.threats ? ", threat inputs" : "") << "); refresh cache vs from-scratch mismatches: " << cache_mismatch << '\n';
+     return cache_mismatch == 0 ? 0 : 1;
+ }
+ 
+diff --git a/tools/nnue/train_resid_v3b.py b/tools/nnue/train_resid_v3b.py
+index 271d3113..f8187b8e 100644
+--- a/tools/nnue/train_resid_v3b.py
++++ b/tools/nnue/train_resid_v3b.py
+@@ -263,7 +263,7 @@ def dense(codes, black):
+ 
+ 
+ class NNUE(nn.Module):
+-    def __init__(self, hidden, qat=True, residual=True):
++    def __init__(self, hidden, qat=True, residual=True, threats=False):
+         super().__init__()
+         self.hidden, self.qat, self.residual = hidden, qat, residual
+         self.ft = nn.Linear(FEATURES, hidden)
+@@ -273,6 +273,10 @@ class NNUE(nn.Module):
+         nn.init.zeros_(self.out.bias)
+         if residual:
+             nn.init.zeros_(self.out.weight)  # first forward == HCE alone
++        self.threats = bool(threats)
++        if self.threats:  # O6 (created last, so the other parameters draw the same random numbers as without it)
++            self.ft_t = nn.Parameter(torch.empty(hidden, THREAT_FEATURES))
++            nn.init.normal_(self.ft_t, std=0.02)
+ 
+     def q(self, p):
+         if not self.qat:
+@@ -286,8 +290,13 @@ class NNUE(nn.Module):
+         xs = dense(codes, stm)
+         xo = dense(codes, 1 - stm)
+         w, b = self.q(self.ft.weight), self.q(self.ft.bias)
+-        hs = torch.clamp(F.linear(xs, w, b), 0.0, 1.0).square()
+-        ho = torch.clamp(F.linear(xo, w, b), 0.0, 1.0).square()
++        if self.threats:  # O6: threat inputs on top of the piece-square inputs (no mirroring without king buckets)
++            pairs, wt, zero = threat_pairs(codes), self.q(self.ft_t), torch.zeros_like(stm)
++            hs = torch.clamp(F.linear(xs, w, b) + F.linear(threat_dense(pairs, stm, zero), wt), 0.0, 1.0).square()
++            ho = torch.clamp(F.linear(xo, w, b) + F.linear(threat_dense(pairs, 1 - stm, zero), wt), 0.0, 1.0).square()
++        else:
++            hs = torch.clamp(F.linear(xs, w, b), 0.0, 1.0).square()
++            ho = torch.clamp(F.linear(xo, w, b), 0.0, 1.0).square()
+         out = F.linear(torch.cat([hs, ho], 1), self.q(self.out.weight), self.q(self.out.bias)).squeeze(1)
+         return out + hce_logit if self.residual else out
+ 
+@@ -347,7 +356,7 @@ def quant_int(p):
+ 
+ 
+ class NNUEKB(nn.Module):
+-    def __init__(self, hidden, king_map, mirror=True, factor=True, qat=True, residual=True):
++    def __init__(self, hidden, king_map, mirror=True, factor=True, qat=True, residual=True, threats=False):
+         super().__init__()
+         self.hidden, self.qat, self.residual, self.mirror = hidden, qat, residual, bool(mirror)
+         self.register_buffer("king_map", torch.tensor(king_map, dtype=torch.long))
+@@ -360,6 +369,10 @@ class NNUEKB(nn.Module):
+         nn.init.zeros_(self.out.bias)
+         if residual:
+             nn.init.zeros_(self.out.weight)  # first forward == HCE alone
++        self.threats = bool(threats)
++        if self.threats:  # O6 (created last; one block shared by every king bucket)
++            self.ft_t = nn.Parameter(torch.empty(hidden, THREAT_FEATURES))
++            nn.init.normal_(self.ft_t, std=0.02)
+ 
+     q = NNUE.q
+     project_weights = NNUE.project_weights
+@@ -371,12 +384,118 @@ class NNUEKB(nn.Module):
+     def forward(self, codes, stm, hce_logit):
+         w = self.q(self.ft_sum()).permute(1, 0, 2).reshape(self.hidden, self.kb * FEATURES)
+         b = self.q(self.ft_b)
+-        hs = torch.clamp(F.linear(king_dense(codes, stm, self.king_map, self.mirror, self.kb), w, b), 0.0, 1.0).square()
+-        ho = torch.clamp(F.linear(king_dense(codes, 1 - stm, self.king_map, self.mirror, self.kb), w, b), 0.0, 1.0).square()
++        if self.threats:  # O6: threat squares use the perspective's mirror flip, as the piece squares do
++            pairs, wt = threat_pairs(codes), self.q(self.ft_t)
++            ts = F.linear(threat_dense(pairs, stm, king_flip(codes, stm, self.mirror)), wt)
++            to = F.linear(threat_dense(pairs, 1 - stm, king_flip(codes, 1 - stm, self.mirror)), wt)
++            hs = torch.clamp(F.linear(king_dense(codes, stm, self.king_map, self.mirror, self.kb), w, b) + ts, 0.0, 1.0).square()
++            ho = torch.clamp(F.linear(king_dense(codes, 1 - stm, self.king_map, self.mirror, self.kb), w, b) + to, 0.0, 1.0).square()
++        else:
++            hs = torch.clamp(F.linear(king_dense(codes, stm, self.king_map, self.mirror, self.kb), w, b), 0.0, 1.0).square()
++            ho = torch.clamp(F.linear(king_dense(codes, 1 - stm, self.king_map, self.mirror, self.kb), w, b), 0.0, 1.0).square()
+         out = F.linear(torch.cat([hs, ho], 1), self.q(self.out.weight), self.q(self.out.bias)).squeeze(1)
+         return out + hce_logit if self.residual else out
+ 
+ 
++# ----------------------------------------------------------------------------- threat inputs (Opus O6)
++# Optional, --threats (with or without --king-buckets): every pair (attacker A on s, victim V on v) where A attacks
++# the occupied square v (pawn capture squares, knight / king steps, bishop / rook / queen rays up to and including the
++# first piece), except a king attacking a king and any piece attacking its own side's king. Feature of a pair for
++# perspective p (black = 1) with mirror flip f (0, or 7 for a mirrored net when the own king is on files e-h):
++#   rel(code) = code - 1 (White perspective) or (code + 5) % 12 (Black);  index = (rel(A) * 12 + rel(V)) * 64 + (v' ^ f)
++#   with v' = v ^ 56 for Black, v for White   == forge/nnue_v2.hpp threat_feature().
++# The input is the pair count (two attackers of the same kind on one victim count twice); one block of
++# THREAT_FEATURES columns shared by all king buckets, exported as wt[THREAT_FEATURES][H] (v2 feature_set bit 0).
++THREAT_FEATURES = 12 * 12 * 64
++_THREAT_TABLES = {}
++
++
++def threat_tables(device):
++    """(ray [64,8,7] (64 = off the board), leaper source / target / kind [L], rook_dir [8]) on `device`."""
++    key = str(device)
++    if key not in _THREAT_TABLES:
++        dirs = [(0, 1), (0, -1), (1, 0), (-1, 0), (1, 1), (-1, 1), (1, -1), (-1, -1)]  # (file, rank) steps: 0-3 rook, 4-7 bishop
++        ray = np.full((64, 8, 7), 64, np.int64)
++        for s in range(64):
++            for d, (df, dr) in enumerate(dirs):
++                f, r = s & 7, s >> 3
++                for k in range(7):
++                    f, r = f + df, r + dr
++                    if not (0 <= f < 8 and 0 <= r < 8):
++                        break
++                    ray[s, d, k] = r * 8 + f
++        steps = ([(1, 2), (2, 1), (2, -1), (1, -2), (-1, -2), (-2, -1), (-2, 1), (-1, 2)],          # 0 knight
++                 [(1, 0), (1, 1), (0, 1), (-1, 1), (-1, 0), (-1, -1), (0, -1), (1, -1)],            # 1 king
++                 [(-1, 1), (1, 1)],                                                                  # 2 white pawn
++                 [(-1, -1), (1, -1)])                                                                # 3 black pawn
++        src, dst, kind = [], [], []
++        for kd, st in enumerate(steps):
++            for s in range(64):
++                for df, dr in st:
++                    f, r = (s & 7) + df, (s >> 3) + dr
++                    if 0 <= f < 8 and 0 <= r < 8:
++                        src.append(s); dst.append(r * 8 + f); kind.append(kd)
++        as_t = lambda x: torch.tensor(np.asarray(x), dtype=torch.long, device=device)
++        _THREAT_TABLES[key] = (as_t(ray), as_t(src), as_t(dst), as_t(kind),
++                               torch.tensor([True] * 4 + [False] * 4, device=device))
++    return _THREAT_TABLES[key]
++
++
++def threat_pairs(codes):
++    """codes [B,64] long (0 empty, 1..12) -> (a, b, v, ok) [B,S]: attacker code, victim code, victim square, active."""
++    ray, src, dst, kind, rook_dir = threat_tables(codes.device)
++    B = codes.shape[0]
++    padded = torch.cat([codes, codes.new_zeros(B, 1)], 1)                      # square 64: off the board, empty
++    ray_occ = (padded > 0)[:, ray]                                             # [B,64,8,7]
++    first = torch.argmax(ray_occ.to(torch.int32), dim=3, keepdim=True)        # first occupied step (0 when none)
++    hit = ray_occ.any(dim=3)
++    vs = torch.gather(ray.unsqueeze(0).expand(B, -1, -1, -1), 3, first).squeeze(3)
++    vs = torch.where(hit, vs, torch.full_like(vs, 64))                        # [B,64,8] first piece on each ray
++    a_s = codes.unsqueeze(2).expand(-1, -1, 8)
++    t_s = torch.remainder(a_s - 1, 6) + 1
++    ok_s = hit & (a_s > 0) & torch.where(rook_dir.view(1, 1, 8), (t_s == 4) | (t_s == 5), (t_s == 3) | (t_s == 5))
++    b_s = torch.gather(padded, 1, vs.reshape(B, -1)).reshape(B, 64, 8)
++    a_l, b_l = codes[:, src], padded[:, dst]
++    t_l = torch.remainder(a_l - 1, 6) + 1
++    kd = kind.unsqueeze(0)
++    ok_l = (a_l > 0) & (b_l > 0) & (((kd == 0) & (t_l == 2)) | ((kd == 1) & (t_l == 6)) | ((kd == 2) & (a_l == 1)) |
++                                    ((kd == 3) & (a_l == 7)))
++    a = torch.cat([a_s.reshape(B, -1), a_l], 1)
++    b = torch.cat([b_s.reshape(B, -1), b_l], 1)
++    v = torch.cat([vs.reshape(B, -1), dst.unsqueeze(0).expand(B, -1)], 1)
++    ok = torch.cat([ok_s.reshape(B, -1), ok_l], 1)
++    victim_king = (b == 6) | (b == 12)
++    ok = ok & ~(victim_king & ((a == 6) | (a == 12) | ((a <= 6) == (b <= 6))))   # redundant pairs
++    return a, b, v, ok
++
++
++def threat_index(a, b, v, ok, black, flip):
++    """Feature index [B,S] for perspective `black` [B] (0/1) with mirror flip [B] (0/7); THREAT_FEATURES = inactive."""
++    bl = black.unsqueeze(1) == 1
++    ra = torch.where(bl, torch.remainder(a + 5, 12), a - 1)
++    rb = torch.where(bl, torch.remainder(b + 5, 12), b - 1)
++    vr = torch.bitwise_xor(torch.where(bl, torch.bitwise_xor(v, 56), v), flip.unsqueeze(1))
++    idx = (ra * 12 + rb) * 64 + vr
++    return torch.where(ok, idx, torch.full_like(idx, THREAT_FEATURES))
++
++
++def threat_dense(pairs, black, flip):
++    """Pair counts [B, THREAT_FEATURES] for one perspective."""
++    a, b, v, ok = pairs
++    idx = threat_index(a, b, v, ok, black, flip)
++    x = torch.zeros(a.shape[0], THREAT_FEATURES + 1, device=a.device)
++    x.scatter_add_(1, idx, torch.ones(idx.shape, device=a.device))
++    return x[:, :THREAT_FEATURES]
++
++
++def king_flip(codes, black, mirror):
++    """Mirror flip [B] (0 or 7) of a perspective, as king_features(): first own king, square 0 if none."""
++    own_king = torch.where(black == 1, 12, 6).unsqueeze(1)
++    ksq = torch.argmax((codes == own_king).long(), dim=1)
++    kr = torch.where(black == 1, ksq ^ 56, ksq)
++    return torch.where((kr & 7) >= 4, 7, 0) if mirror else torch.zeros_like(kr)
++
++
+ def export_forge_v2(model, stem, residual):
+     """Writes <stem>.fnn2 (format v2, see forge_nnue_v2.py) from the trained forward's quantised weights."""
+     sys.path.insert(0, str(Path(__file__).resolve().parent))
+@@ -391,11 +510,14 @@ def export_forge_v2(model, stem, residual):
+             b1 = quant_int(model.ft.bias)
+             kmap, kb, mirror = [0] * 64, 1, False
+         w2, b2 = quant_int(model.out.weight).ravel(), quant_int(model.out.bias).ravel()
++        threats = getattr(model, "threats", False)  # O6: wt[THREAT_FEATURES][H] after w1, feature_set bit 0
++        wt = np.ascontiguousarray(quant_int(model.ft_t).T).ravel() if threats else None
+     path = stem.with_suffix(".fnn2")
+     temp = path.with_name(path.name + ".tmp-" + uuid.uuid4().hex)
+     try:
+         V2.write_v2(temp, hidden=model.hidden, king_buckets=kb, residual=residual, mirror=mirror, king_map=kmap,
+-                    w1=np.ascontiguousarray(w1).ravel(), b1=b1, w2=w2, b2=b2)
++                    w1=np.ascontiguousarray(w1).ravel(), b1=b1, w2=w2, b2=b2,
++                    feature_set=V2.FEATURE_SET_THREATS if threats else 0, wt=wt)
+         if path.exists():
+             raise FileExistsError(str(path))
+         os.rename(temp, path)
+@@ -644,6 +766,9 @@ def main():
+     ap.add_argument("--king-mirror", type=int, choices=[0, 1], default=1, help="C4: mirror files e-h onto d-a per perspective (default 1)")
+     ap.add_argument("--king-factor", type=int, choices=[0, 1], default=1, help="C4: shared factoriser block during training, folded into every bucket on export (default 1)")
+     ap.add_argument("--export-v2", action="store_true", help="C4: also write <epoch>.fnn2 (format v2, 1 bucket) for the standard model")
++    ap.add_argument("--threats", action="store_true", help="O6: add the threat inputs (12 x 12 x 64 attacker/victim/square pair "
++                    "counts, one block shared by every king bucket; definition above threat_tables) to the standard or the "
++                    "king-bucketed model; such nets exist only as .fnn2 (engine: NNUEFile + NNUEThreats 1)")
+     a = ap.parse_args()
+     k = a.sigmoid_k
+     if k != K_DEFAULT:
+@@ -666,11 +791,13 @@ def main():
+     if a.king_buckets:
+         kmap = king_map_from_args(a.king_buckets, a.king_map)
+         model = NNUEKB(a.shape, kmap, mirror=bool(a.king_mirror), factor=bool(a.king_factor), qat=not a.no_qat,
+-                       residual=a.residual or a.baseline_only).to(dev)
++                       residual=a.residual or a.baseline_only, threats=a.threats).to(dev)
+         print(f"king buckets: {model.kb} mirror={model.mirror} factor={a.king_factor} map(rank 8 first, files a-h): "
+               + " | ".join(" ".join(str(kmap[r * 8 + f]) for f in range(8)) for r in range(7, -1, -1)), flush=True)
+     else:
+-        model = NNUE(a.shape, qat=not a.no_qat, residual=a.residual or a.baseline_only).to(dev)
++        model = NNUE(a.shape, qat=not a.no_qat, residual=a.residual or a.baseline_only, threats=a.threats).to(dev)
++    if a.threats:
++        print(f"threat inputs: {THREAT_FEATURES} features (O6)", flush=True)
+     base_sub, nb = evaluate(model, hold, val_idx, dev, k, a.batch_size, baseline=True)
+     print(f"BASELINE HCE-alone holdout subset n={nb:,}: mse_teacher(blend1.0)={base_sub[1.0]:.6f} mse_blend0.6={base_sub[0.6]:.6f}", flush=True)
+     if a.baseline_only:
+@@ -720,6 +847,8 @@ def main():
+     if a.king_buckets:  # C4 (absent for the standard model, so its checkpoints stay byte-identical)
+         config.update({"features": "forge768-king-buckets", "king_buckets": model.kb, "king_mirror": model.mirror,
+                        "king_factor": bool(a.king_factor), "king_map": model.king_map.cpu().tolist()})
++    if a.threats:  # O6 (absent otherwise)
++        config["threats"] = True
+ 
+     def lr_at(s):
+         if s < a.warmup_steps:
+@@ -798,14 +927,14 @@ def main():
+         payload = {"config": config, "model": cpu_copy(model.state_dict()), "optimizer": cpu_copy(opt.state_dict()),
+                    "next_epoch": ep + 1, "step": step, "val": {str(b): v for b, v in vs.items()}}
+         atomic_write(stem.with_suffix(".pt"), lambda dst: torch.save(payload, dst))
+-        if a.king_buckets:  # C4: bucketed nets only exist as v2 files
++        if a.king_buckets or a.threats:  # C4 / O6: bucketed and threat nets only exist as v2 files
+             export_forge_v2(model, stem, bool(a.residual))
+         else:
+             export_forge(model, stem, k, bool(a.residual))
+             if a.export_v2:
+                 export_forge_v2(model, stem, bool(a.residual))
+         atomic_write(stem.with_suffix(".json"), lambda dst: dst.write((json.dumps({**config, "val": payload["val"], "baseline": {str(b): v for b, v in base_sub.items()}}, indent=1) + "\n").encode()))
+-        print(f"Saved {stem.name} (.pt .fnn2 .json)" if a.king_buckets else
++        print(f"Saved {stem.name} (.pt .fnn2 .json)" if a.king_buckets or a.threats else
+               f"Saved {stem.name} (.pt .inc .bin .json{' .fnn2' if a.export_v2 else ''})", flush=True)
+         mem_report(f"epoch{ep + 1:03d}", a.max_ram_gb)
+     finally:  # v3: join background epoch builder / prefetchers cleanly, also on exceptions
+diff --git a/tools/nnue/v2_parity.py b/tools/nnue/v2_parity.py
+index c016ef10..1fea8edb 100644
+--- a/tools/nnue/v2_parity.py
++++ b/tools/nnue/v2_parity.py
+@@ -15,7 +15,8 @@ Checks, each over every position:
+   forward  the training-time model forward (logit * 400 / 2.25, hce_logit = 0) vs the engine's centipawns:
+            max |diff| and the number of positions where trunc(forward) == engine (informational: the
+            GEMM summation order differs from the engine's, so the last float bit can differ)
+-PASS requires export, keys, acc and output to hold on all positions."""
++PASS requires export, keys, acc and output to hold on all positions. O6: a net with threat inputs also has its
++threat block compared (export) and its threat inputs in the accumulators (acc)."""
+ import argparse
+ import json
+ import os
+@@ -49,11 +50,12 @@ def parse_fen(fen):
+ 
+ def build_model(ck):
+     cfg = ck["config"]
++    threats = bool(cfg.get("threats", False))  # O6
+     if cfg.get("king_buckets"):
+         m = T.NNUEKB(cfg["hidden"], cfg["king_map"], mirror=cfg["king_mirror"], factor=cfg["king_factor"],
+-                     qat=True, residual=cfg["residual"])
++                     qat=True, residual=cfg["residual"], threats=threats)
+     else:
+-        m = T.NNUE(cfg["hidden"], qat=True, residual=cfg["residual"])
++        m = T.NNUE(cfg["hidden"], qat=True, residual=cfg["residual"], threats=threats)
+     m.load_state_dict(ck["model"])
+     m.eval()
+     return m
+@@ -87,13 +89,17 @@ def main():
+             kmap, mirror = [0] * 64, False
+         w2 = T.quant_int(model.out.weight).ravel()
+         b2 = T.quant_int(model.out.bias).ravel()
++        threats = getattr(model, "threats", False)  # O6: the threat block wt[THREAT_FEATURES][H]
++        wt = T.quant_int(model.ft_t).T.ravel() if threats else None
+     export_ok = (np.array_equal(np.frombuffer(net["w1"].tobytes(), "<i2"), w1) and
+                  np.array_equal(np.frombuffer(net["b1"].tobytes(), "<i2"), b1) and
+                  np.array_equal(np.frombuffer(net["w2"].tobytes(), "<i2"), w2) and
+                  np.array_equal(np.frombuffer(net["b2"].tobytes(), "<i2"), b2) and
+                  net["king_map"] == kmap and net["mirror"] == mirror and net["hidden"] == H and
+-                 net["residual"] == bool(ck["config"]["residual"]))
++                 net["residual"] == bool(ck["config"]["residual"]) and net.get("threats", False) == threats and
++                 (not threats or np.array_equal(np.frombuffer(net["wt"].tobytes(), "<i2"), wt)))
+     res["export"] = bool(export_ok)
++    res["threats"] = bool(threats)
+ 
+     fens = [l.strip() for l in open(a.fens) if l.strip()]
+     n = len(fens)
+@@ -129,16 +135,28 @@ def main():
+             keys_ok = (cpp["white_bucket"] == 0) & (cpp["black_bucket"] == 0) & (cpp["white_flip"] == 0) & (cpp["black_flip"] == 0)
+         res["keys_exact"] = int(keys_ok.sum())
+ 
+-        # acc: the model's own first layer on its own features
++        # acc: the model's own first layer on its own features (O6: plus its threat inputs), in chunks of 1000
++        # positions (the dense threat input of 10000 positions would need ~370 MB per perspective)
+         if kb_model:
+             W = model.q(model.ft_sum()).permute(1, 0, 2).reshape(H, model.kb * T.FEATURES)
+             bias = model.q(model.ft_b)
+-            dense = lambda black: T.king_dense(codes_t, black, model.king_map, model.mirror, model.kb)
+         else:
+             W, bias = model.q(model.ft.weight), model.q(model.ft.bias)
+-            dense = lambda black: T.dense(codes_t, black)
+-        acc = torch.stack([torch.nn.functional.linear(dense(torch.full((n,), p, dtype=torch.long)), W, bias)
+-                           for p in (0, 1)], dim=1)                       # [n, 2, H] White, Black
++        Wt = model.q(model.ft_t) if threats else None
++
++        def first_layer(c, p):
++            black = torch.full((c.shape[0],), p, dtype=torch.long)
++            if kb_model:
++                y = torch.nn.functional.linear(T.king_dense(c, black, model.king_map, model.mirror, model.kb), W, bias)
++                flip = T.king_flip(c, black, model.mirror) if threats else None
++            else:
++                y = torch.nn.functional.linear(T.dense(c, black), W, bias)
++                flip = torch.zeros_like(black)
++            if threats:
++                y = y + torch.nn.functional.linear(T.threat_dense(T.threat_pairs(c), black, flip), Wt)
++            return y
++        acc = torch.cat([torch.stack([first_layer(codes_t[i:i + 1000], p) for p in (0, 1)], dim=1)
++                         for i in range(0, n, 1000)], 0)                   # [n, 2, H] White, Black
+         acc_np = acc.numpy().astype("<f4")
+         acc_ok = (acc_np.view("<u4") == cpp_acc.view("<u4")).all(axis=(1, 2))
+         res["acc_exact"] = int(acc_ok.sum())
+@@ -164,8 +182,9 @@ def main():
+         out_ok = (out_bits == cpp_bits) & (cp == cpp["cp"])
+         res["output_exact"] = int(out_ok.sum())
+ 
+-        # forward: training-time model
+-        logit = model(codes_t, stm_t, torch.zeros(n))
++        # forward: training-time model (in chunks, as above)
++        logit = torch.cat([model(codes_t[i:i + 1000], stm_t[i:i + 1000], torch.zeros(len(codes_t[i:i + 1000])))
++                           for i in range(0, n, 1000)])
+         fwd_cp = (logit * 400.0 / 2.25).numpy().astype(np.float64)
+         diff = np.abs(fwd_cp - cpp["cp"])
+         res["forward_max_abs_diff_cp"] = float(diff.max())
+@@ -181,7 +200,7 @@ def main():
+     res["max_abs_cp"] = int(np.abs(cpp["cp"]).max())
+     ok = res["export"] and res["keys_exact"] == n and res["acc_exact"] == n and res["output_exact"] == n
+     res["verdict"] = "PASS" if ok else "FAIL"
+-    print(f"positions {n}  king buckets {net['king_buckets']} mirror {net['mirror']}  max |engine cp| {res['max_abs_cp']}")
++    print(f"positions {n}  king buckets {net['king_buckets']} mirror {net['mirror']} threat inputs {res['threats']}  max |engine cp| {res['max_abs_cp']}")
+     print(f"export (file ints == quantised checkpoint): {'OK' if res['export'] else 'MISMATCH'}")
+     print(f"keys   (bucket, flip both perspectives):    {res['keys_exact']}/{n}")
+     print(f"acc    (both perspectives, float32 bits):   {res['acc_exact']}/{n}")

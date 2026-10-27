@@ -1,0 +1,10 @@
+O6 profiling variants (scratch copies of the threat path, built with the PC recipe; bench 16 with the zero-threat
+lock replica r1 + NNUEThreats 1, which evaluates exactly like the lock, so every variant searches the identical tree):
+  full  the threat path as committed in d2baff6c (before the speed work)
+  e1    full without applying threat columns (pair lists + multiset difference kept)
+  e3    e1 without the multiset difference (pair lists only)
+  e2    e3 without the pair lists (only the threat path's structure: placement replay, generic column loop)
+  e4    full, but every threat column pointer is column 0 (same work, no cache misses on the 9.4 MB block)
+Result (logs/profile_d16_*.log): lock ~1575 ms, e2 ~2100, e3 ~2410, e1 ~2640, e4 ~4400, full ~4700 ms.
+=> the column loop itself (stack-resident chunk) was ~2/3 of the extra time, cache misses ~7%; fixed in 78f5b871
+(register-resident apply_lists) together with the per-ply threat-list cache: 4700 -> ~2920 ms.
