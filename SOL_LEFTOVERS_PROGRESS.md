@@ -14,5 +14,6 @@ S31 | — | NOT STARTED | inputs located (f006 ep45-48 .pt on the PC)
 S35 | — | NOT STARTED | pwsh 7.6.8 present; watcher copies located
 S38 | — | NOT STARTED | GATE_RESULTS.csv has time_losses/crashes columns
 S15, S16, S17 | opus-sol-S15/S16/S17 | IN PROGRESS (sub-agent, 2026-10-27) |
-S29 | opus-sol-S29 | IN PROGRESS (main session) | FORGE_SPEEDSTACK = S11 table key + S13 child prefetch
-S19, S20, S21, S32, S37, S39-S50, S36, S24 | — | QUEUED |
+S29 | opus-sol-S29 | DONE (18cb8c03) | FORGE_SPEEDSTACK (default OFF) = S11 table key + S13 child prefetch; OFF = lock binary; ON: 5 depths/perft/kiwipete exact, FMA 0, UCI list identical, ASan/UBSan/TSan 0 (CI 40484808127); applies on base L and B (lock+buffix); advisory ABBA d16 +0.18% d20 +0.50%
+S19 | opus-sol-S19 | DONE (1ad4e5e4) | per-phase WDL scale fit tool; reference k=2.25; held-out log-loss of the table <= constant on text916 (=), data32 (synthetic, k~0), production shards read-only (0.42697 vs 0.43457; k 2.24 endgame .. 3.46 middlegame); UNPROVEN for strength
+S20, S21, S32, S37, S39-S50, S36, S24 | — | QUEUED |
