@@ -65,3 +65,10 @@ Read-only inputs (manifest, results, the self-play holdout file) were read throu
 - Not measured: the NPS cost of the added branch; bench NPS on the loaded PC is advisory only.
 - A gate, if wanted: `NetScale=99` vs AL1, one option, a new srand from TEST_PLAN (crew/QA decision).
 - For a future lock net: rerun `dump` + `analyze` with that net (README). S-A6's SPSA plan uses this tool as its step 0.
+
+## Quiet-runner OFF-path NPS (follow-up, added by the main session)
+Branch `opus-offguard`, workflow run 40520714508 (GitHub ubuntu-24.04, g++-14 box flags; `opus-offguard:opus_round1/offguard/REPORT.md`):
+the OFF build of `5a197863` against the lock `294dbed3`, 10 ABBA runs per side, nodes identical, identity ALL OK.
+- CPU NPS B/A: d16 0.9984 (−0.16%, 95% CI −0.46 .. +0.15), d20 0.9988 (−0.12%, CI −0.35 .. +0.10): **no measurable
+  cost**. This closes the "Not measured: the NPS cost of the added branch" line above.
+- Code size: `Worker::static_evaluate` 625 → 779 bytes; all other hot functions unchanged.
