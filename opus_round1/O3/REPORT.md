@@ -144,6 +144,15 @@ O3 tree) builds `forge_h256_s198.exe`; the identity check passes (`logs/build_wi
   (`logs/compiler_warnings.log`); no new warning.
 - Determinism: Threads=1 output identical across builds and runs (bench, depth-18 list).
 
+## Addendum: MovePicker::next pinned to 64 bytes (commit after the CI evidence)
+`MovePicker::next` is hot and, being defined in the class body, is emitted out of line as a COMDAT
+section. The PE linker places all COMDAT sections after every object's `.text`, so its address moves
+whenever *any* translation unit changes size — e.g. a later job adding UCI options to `uci.cpp`
+(observed while building C3: 0 -> 32 mod 64). It now carries `gnu::aligned(64)`: always at a 64-byte
+boundary, which is exactly its AL1 s198 placement (0 mod 64). Its instructions are unchanged
+(`codegen_compare.sh` lists 32 "differing" lines: only the NOP padding after the function, up to the
+next 64-byte boundary); bench x5 / perft / kiwipete unchanged, FMA 0.
+
 ## Files
 `REPORT.md`, `IDEA_SOURCE.md`, `patch.diff`, `positions50.fen`, `make_positions50.py`, `depth_compare.py`,
 `nps_ab.py`, `codegen_compare.sh`, `moved_code_check.sh`, `mutation_check.sh`, `logs/`, `SHA256SUMS`.
