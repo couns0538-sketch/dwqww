@@ -1,5 +1,5 @@
 // Lazy SMP housekeeping (O1): worker-list lifetime, SmpExactNodes node accounting for node-limited
-// multi-thread searches, and the option inert at Threads=1.
+// multi-thread searches, SmpBestThread result consistency, and options inert at Threads=1.
 #include "forge/search.hpp"
 
 #include <cstdint>
@@ -97,11 +97,27 @@ void test_exact_nodes() {
               << "completing depth 1 (stale helper counters)\n";
 }
 
+void test_best_thread() {
+    options::smp_best_thread = true;
+    for (const std::string& fen : Fens) {
+        Searcher searcher(16, Threads);
+        SearchLimits limits;
+        limits.depth = 11;
+        const Board board = position(fen);
+        const SearchInfo result = searcher.search(board, limits);
+        check(legal(board, result.best_move), "SmpBestThread: legal best move " + fen);
+        check(!result.pv.empty() && result.pv.front() == result.best_move, "SmpBestThread: PV starts with the best move");
+        check(result.depth >= 11, "SmpBestThread: reported depth is at least the requested depth");
+        check(result.ponder_move == (result.pv.size() > 1 ? result.pv[1] : Move::none()), "SmpBestThread: ponder move from the PV");
+    }
+    options::smp_best_thread = false;
+}
+
 void test_inert_single_thread() {
     for (const std::string& fen : Fens) {
         SearchInfo results[2];
         for (const bool on : {false, true}) {
-            options::smp_exact_nodes = on;
+            options::smp_exact_nodes = options::smp_best_thread = on;
             Searcher searcher(16, 1);
             SearchLimits limits;
             limits.depth = 10;
@@ -111,7 +127,7 @@ void test_inert_single_thread() {
                   results[0].score == results[1].score && results[0].pv == results[1].pv,
               "options are inert at Threads=1 " + fen);
     }
-    options::smp_exact_nodes = false;
+    options::smp_exact_nodes = options::smp_best_thread = false;
 }
 
 } // namespace
@@ -119,6 +135,7 @@ void test_inert_single_thread() {
 int main() {
     test_worker_list_lifetime();
     test_exact_nodes();
+    test_best_thread();
     test_inert_single_thread();
     std::cout << "smp housekeeping: checks=" << checks << " failures=" << failures << '\n';
     std::cout << (failures == 0 ? "PASS" : "FAIL") << " smp_tests\n";

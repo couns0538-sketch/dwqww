@@ -12,4 +12,9 @@ namespace forge::options {
 // over-report nodes/nps), and reports the exact total after the helpers stop.
 extern bool smp_exact_nodes;
 
+// UCI SmpBestThread (check, default false); acts only with Threads > 1.
+// Reports the best move, ponder move, PV and score of the worker with the
+// deepest completed iteration (ties: higher score) instead of always thread 0.
+extern bool smp_best_thread;
+
 } // namespace forge::options

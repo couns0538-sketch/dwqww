@@ -52,10 +52,14 @@ SearchInfo Searcher::search(Board board, const SearchLimits& limits, bool emit_i
         // has started, total_nodes() would read the previous search's count.
         for (auto& worker : workers_) worker->reset_published_nodes();
     }
+    // Per-helper results for SmpBestThread (each slot written by one helper,
+    // read after join).
+    std::vector<SearchInfo> helper_results(options::smp_best_thread ? workers_.size() : 0);
     std::vector<std::thread> helpers;
     for (std::size_t i = 1; i < workers_.size(); ++i) {
-        helpers.emplace_back([this, i, board, &worker_limits, &all]() {
-            (void)workers_[i]->search(board, worker_limits, false, all);
+        helpers.emplace_back([this, i, board, &worker_limits, &all, &helper_results]() {
+            SearchInfo info = workers_[i]->search(board, worker_limits, false, all);
+            if (!helper_results.empty()) helper_results[i] = std::move(info);
         });
     }
     SearchInfo result = workers_.front()->search(board, worker_limits, emit_info, all);
@@ -66,12 +70,45 @@ SearchInfo Searcher::search(Board board, const SearchLimits& limits, bool emit_i
     shared_.stop.store(external_stop, std::memory_order_relaxed);
     // `all` dies with this call: no worker may keep pointing at it.
     for (auto& worker : workers_) worker->end_search();
-    if (workers_.size() > 1 && options::smp_exact_nodes) {
-        // Every worker published its final count before returning.
-        result.nodes = 0;
-        for (auto& worker : workers_) result.nodes += worker->nodes();
+    if (workers_.size() > 1) {
+        if (options::smp_exact_nodes) {
+            // Every worker published its final count before returning.
+            result.nodes = 0;
+            for (auto& worker : workers_) result.nodes += worker->nodes();
+        }
+        if (options::smp_best_thread) select_best_thread(result, helper_results, emit_info);
     }
     return result;
+}
+
+// Cold: runs once per search; keeps the hot search functions' placement unchanged.
+[[gnu::cold]] void Searcher::select_best_thread(SearchInfo& result, const std::vector<SearchInfo>& helper_results,
+                                               bool emit_info) {
+    // Deepest completed iteration wins; equal depth: higher score.
+    const SearchInfo* best = &result;
+    for (std::size_t i = 1; i < helper_results.size(); ++i) {
+        const SearchInfo& candidate = helper_results[i];
+        if (candidate.best_move.is_none() || candidate.depth <= 0 || candidate.pv.empty()) continue;
+        if (candidate.depth > best->depth || (candidate.depth == best->depth && candidate.score > best->score)) {
+            best = &candidate;
+        }
+    }
+    if (best == &result || best->best_move == result.best_move) return;
+    result.best_move = best->best_move;
+    result.ponder_move = best->ponder_move;
+    result.pv = best->pv;
+    result.score = best->score;
+    result.depth = best->depth;
+    result.seldepth = std::max(result.seldepth, best->seldepth);
+    if (!emit_info) return;
+    // Publish the chosen line so GUIs see a PV consistent with the best move.
+    const std::uint64_t nps = result.elapsed_ms > 0 ? result.nodes * 1000U / result.elapsed_ms : 0;
+    const std::lock_guard<std::mutex> output_lock(uci_output_mutex());
+    std::cout << "info depth " << result.depth << " seldepth " << std::max(result.seldepth, result.depth)
+              << " score " << format_score(result.score) << " nodes " << result.nodes << " nps " << nps
+              << " hashfull " << shared_.tt.hashfull() << " time " << result.elapsed_ms << " pv";
+    for (const Move move : result.pv) std::cout << ' ' << Board::move_to_uci(move);
+    std::cout << std::endl;
 }
 
 } // namespace forge

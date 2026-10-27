@@ -102,6 +102,9 @@ public:
     [[nodiscard]] TranspositionTable& transposition_table() { return shared_.tt; }
 
 private:
+    // SmpBestThread: replace thread 0's move/PV/score by the best helper's.
+    void select_best_thread(SearchInfo& result, const std::vector<SearchInfo>& helper_results, bool emit_info);
+
     SharedSearchState shared_;
     std::vector<std::unique_ptr<Worker>> workers_;
 };
