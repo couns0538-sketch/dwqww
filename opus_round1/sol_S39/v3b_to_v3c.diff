@@ -1,0 +1,154 @@
+--- train_resid_v3b.py (lock archive, md5 b6758004)
++++ train_resid_v3c.py (S39)
+@@ -3,6 +3,10 @@
+ # train_resid_v3b.py: RAM derivative of train_resid_v3a.py. --dev-scalars (per-step lr/blend/Adam factors as preallocated device tensors,
+ # filled by copy_, not new Python floats each step: suspected DirectML per-step host leak ~24 KB/step), int32 shuffle order in reused
+ # buffer(s), optional --mmap-data, private-memory logging + --max-ram-gb warning. Same order, same math (bit-identical on CPU).
++# train_resid_v3c.py (S39, Opus 5.5 2026-10-27): derivative of train_resid_v3b.py (md5 b6758004). --epoch-positions N (default 0 = off):
++# each epoch trains on N positions drawn with a seeded RNG from all training files, no repeats within an epoch, so steps/epoch and the
++# lr/blend schedule stop growing with the data. --recent-weight W (default 1.0 = uniform): per-position weight of the last (newest) file of
++# the sorted training file list, linear from 1.0 for the first. Off, or N >= train size: v3b exactly (same order, same math, same outputs).
+ """Forge-768 residual NNUE trainer (GPU, DirectML/CPU). Own code, derived in structure from the
+ supplied train_nnue.py (md5 5A161C70...), but fed from pre-converted binaries:
+ 
+@@ -25,6 +29,7 @@
+ FEATURES = 768
+ SCALE = 4096.0
+ K_DEFAULT = 2.25
++V3C_OFF = {"epoch_positions": 0, "recent_weight": 1.0}  # v3c options at their off values (not written to the settings dump)
+ 
+ 
+ # ----------------------------------------------------------------------------- data
+@@ -241,6 +246,60 @@
+     return np.arange(n, dtype=np.int64)
+ 
+ 
++# ----------------------------------------------------------------------------- fixed-size epochs (v3c)
++def recent_weights(nfiles, w):
++    """v3c --recent-weight: per-position weight of each training file in the trainer's file order (sorted paths, oldest first):
++    linear from 1.0 (first file) to w (last file). w = 1.0 -> all 1.0."""
++    if nfiles <= 1:
++        return [1.0] * nfiles
++    return [1.0 + (w - 1.0) * f / (nfiles - 1) for f in range(nfiles)]
++
++
++def epoch_quotas(sizes, weights, total):
++    """v3c: rows to draw from each file per epoch, proportional to rows * weight (largest remainder, ties -> lower file index),
++    capped at the file's rows (the excess goes to the other files in proportion). sum == total. Exact rational arithmetic on the
++    float weights (no rounding drift; same result on every platform)."""
++    from fractions import Fraction
++    if total < 0 or total > sum(sizes):
++        raise ValueError(f"epoch positions {total} outside 0..{sum(sizes)}")
++    weights = [Fraction(w) for w in weights]
++    q = [0] * len(sizes)
++    active = [f for f, n in enumerate(sizes) if n > 0]
++    left = total
++    while active and left:
++        tot = sum(sizes[f] * weights[f] for f in active)
++        capped = [f for f in active if left * sizes[f] * weights[f] >= sizes[f] * tot]  # share >= rows
++        if not capped:
++            share = {f: left * sizes[f] * weights[f] / tot for f in active}
++            for f in active:
++                q[f] = math.floor(share[f])
++            for f in sorted(active, key=lambda f: (q[f] - share[f], f))[:left - sum(q[f] for f in active)]:
++                q[f] += 1
++            break
++        for f in capped:
++            q[f] = sizes[f]
++            left -= sizes[f]
++        active = [f for f in active if f not in capped]
++    return q
++
++
++def draw_weighted(buf, rng, offs, sizes, quotas, chunk=1 << 24):
++    """v3c --recent-weight != 1: buf = arange(N) (rows in file order). Per file: shuffle its rows in place and keep the first quota
++    rows (uniform draw without repeats inside the file), compacted to the front of buf; then shuffle buf[:sum(quotas)].
++    In place: no array of size N is allocated (copies in chunks of <= 2**24 rows, like the arange fill). Returns sum(quotas)."""
++    w = 0
++    for o, n, q in zip(offs, sizes, quotas):
++        seg = buf[o:o + n]
++        if 0 < q < n:  # q == n keeps every row (order comes from the final shuffle); q == 0 keeps none
++            rng.shuffle(seg)
++        for i in range(0, q, chunk):  # destination starts at w <= o: never overwrites rows not yet copied
++            j = min(q, i + chunk)
++            buf[w + i:w + j] = seg[i:j]
++        w += q
++    rng.shuffle(buf[:w])
++    return w
++
++
+ # ----------------------------------------------------------------------------- model
+ def features(codes, black):
+     """codes [B,64] int64 (0 empty, 1..6 white PNBRQK, 7..12 black); black [B] int64 perspective colour.
+@@ -532,7 +591,15 @@
+     ap.add_argument("--order-buffers", type=int, choices=[1, 2], default=1, help="v3b: int32 shuffle buffers; 1 = one reused buffer (next order built after the producer finished), 2 = ping-pong (full overlap)")
+     ap.add_argument("--mmap-data", action="store_true", help="v3b: keep the train set memory-mapped instead of loading it (off by default)")
+     ap.add_argument("--max-ram-gb", type=float, default=0.0, help="v3b: print a WARNING when trainer private memory exceeds this (0 = off); never stops")
++    ap.add_argument("--epoch-positions", type=int, default=0, help="v3c: each epoch trains on N positions drawn with a seeded RNG from all training files, no repeats within an epoch (0 = off: full epochs as v3b; N >= train size: full epochs)")
++    ap.add_argument("--recent-weight", type=float, default=1.0, help="v3c: with --epoch-positions, per-position weight of the last file of the sorted training file list (linear from 1.0 for the first file); 1.0 = uniform (default)")
+     a = ap.parse_args()
++    if a.epoch_positions < 0 or 0 < a.epoch_positions < a.batch_size:
++        ap.error("--epoch-positions must be 0 (off) or at least one batch")
++    if not (math.isfinite(a.recent_weight) and a.recent_weight > 0):
++        ap.error("--recent-weight must be a positive number")
++    if a.recent_weight != 1.0 and not a.epoch_positions:
++        ap.error("--recent-weight needs --epoch-positions")
+     k = a.sigmoid_k
+     if k != K_DEFAULT:
+         print("WARNING: export needs sigmoid-k 2.25", flush=True)
+@@ -540,7 +607,8 @@
+     dev = device_for(a.device, a.device_index)
+     run = Path(a.run_dir)
+     run.mkdir(parents=True, exist_ok=bool(a.resume) or a.baseline_only)
+-    (run / f"settings_{int(time.time())}.txt").write_text(" ".join(sys.argv) + "\n" + json.dumps(vars(a), indent=1))
++    settings = {key: v for key, v in vars(a).items() if not (key in V3C_OFF and v == V3C_OFF[key])}  # v3c: off -> v3b's dump
++    (run / f"settings_{int(time.time())}.txt").write_text(" ".join(sys.argv) + "\n" + json.dumps(settings, indent=1))
+     t0 = time.time()
+     hold_files = expand(a.holdout)
+     hold = load_set(hold_files, a.hce_dir)
+@@ -574,7 +642,21 @@
+     train = (load_set_mmap if a.mmap_data else load_set)(train_files, a.hce_dir, limit=a.max_train or None)
+     N = train["n"]
+     print(f"train: {N:,} positions from {len(train['files'])} files ({time.time() - t1:.0f}s load)", flush=True)
+-    spe = N // a.batch_size
++    E = a.epoch_positions if a.epoch_positions < N else 0  # v3c: E > 0 = fixed-size epochs; 0 = full epochs (v3b)
++    sizes = offs = quotas = None  # v3c: per-file draw plan, only with --recent-weight != 1
++    if a.epoch_positions and not E:
++        print(f"epoch-positions {a.epoch_positions:,} >= train {N:,}: full epochs (v3b order"
++              f"{'; recent-weight has no effect' if a.recent_weight != 1.0 else ''})", flush=True)
++    elif E:
++        print(f"epoch-positions: {E:,} of {N:,} train positions per epoch (seeded draw, no repeats within an epoch), recent-weight {a.recent_weight:g}", flush=True)
++        if a.recent_weight != 1.0:
++            sizes = [n for _, n in train["files"]]
++            offs = [int(o) for o in np.cumsum([0] + sizes[:-1])]
++            weights = recent_weights(len(sizes), a.recent_weight)
++            quotas = epoch_quotas(sizes, weights, E)
++            print("epoch-positions per file (weight drawn/rows): " + ", ".join(
++                f"{Path(p).name} {w:.4f} {q:,}/{n:,}" for (p, n), w, q in zip(train["files"], weights, quotas)), flush=True)
++    spe = (E or N) // a.batch_size
+     if a.steps_per_epoch:
+         spe = min(spe, a.steps_per_epoch)
+     total_steps = spe * a.epochs
+@@ -598,6 +680,9 @@
+         print(f"resumed {a.resume}: next_epoch={start_epoch} step={step}", flush=True)
+     config = {"hidden": a.shape, "residual": bool(a.residual), "qat": not a.no_qat, "sigmoid_k": k,
+               "features": "forge768-relative-pieces-rank-flip", "epochs": a.epochs, "steps_per_epoch": spe}
++    if E:  # v3c: recorded only when fixed-size epochs are active (off -> v3b's config, .json and .pt)
++        config["epoch_positions"] = E
++        config["recent_weight"] = a.recent_weight
+ 
+     def lr_at(s):
+         if s < a.warmup_steps:
+@@ -622,7 +707,11 @@
+         buf = order_bufs[e % len(order_bufs)]
+         for i in range(0, N, 1 << 24):  # in-place arange, no int64 temp of size N
+             buf[i:i + (1 << 24)] = np.arange(i, min(N, i + (1 << 24)), dtype=np.int32)
+-        np.random.default_rng(a.seed * 1000 + e).shuffle(buf)
++        rng_e = np.random.default_rng(a.seed * 1000 + e)
++        if quotas is None:  # v3b order; a v3c fixed-size epoch (uniform) trains on its first E entries
++            rng_e.shuffle(buf)
++        else:  # v3c --recent-weight: per-file draws without repeats, compacted and shuffled into buf[:E]
++            draw_weighted(buf, rng_e, offs, sizes, quotas)
+         return Prefetcher(train, buf[: spe * a.batch_size], a.batch_size, k)
+ 
+     sc_dev = torch.zeros(2, device=dev) if a.dev_scalars else None  # [blend, 1-blend]

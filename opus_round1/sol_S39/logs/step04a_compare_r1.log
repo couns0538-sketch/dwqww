@@ -1,0 +1,38 @@
+| check | result | detail |
+|---|---|---|
+| v3b reproducible (v3b_1 == v3b_2) | **PASS** | 8 artifacts (.pt .inc .bin .json x 2 epochs) sha256-equal, normalized stdout equal |
+| options OFF == v3b (off_1 vs v3b_1) | **PASS** | 8 artifacts sha256-equal; full normalized stdout equal: True; settings dump equal: True |
+| options OFF == v3b (off_2 vs v3b_1) | **PASS** | 8 artifacts sha256-equal; full normalized stdout equal: True; settings dump equal: True |
+| N >= data size == v3b (eqN) | **PASS** | 8 artifacts sha256-equal; stdout equal apart from the one line 'epoch-positions 200,000 >= train 200,000: full epochs (v3b order)' |
+| N >= data size == v3b (gtN_w3) | **PASS** | 8 artifacts sha256-equal; stdout equal apart from the one line 'epoch-positions 10,000,000 >= train 200,000: full epochs (v3b order; recent-weight has no effect)' |
+| ON deterministic (on_u_1 == on_u_2) | **PASS** | 8 artifacts equal (ep2 .inc md5 ['2cfbdee79f730f883dff0e2048c49b51']); stdout equal |
+| ON deterministic (on_w_1 == on_w_2) | **PASS** | 8 artifacts equal (ep2 .inc md5 ['317f0dcaf6990764230686844c4f344e']); stdout equal |
+| ON fixed epoch size (on_u_1) | **PASS** | steps/epoch=97 total=194 batch=1024 lr=0.000707 cosine blend 1.0->0.6 | Finished: 198,656 positions in Xs | .json epoch_positions=100000 recent_weight=1.0 |
+| ON fixed epoch size (on_w_1) | **PASS** | steps/epoch=97 total=194 batch=1024 lr=0.000707 cosine blend 1.0->0.6 | Finished: 198,656 positions in Xs | .json epoch_positions=100000 recent_weight=3.0 |
+| recent-weight 3 per-file draw plan | **PASS** | epoch-positions per file (weight drawn/rows): t00000.pos 1.0000 12,500/50,000, t01000.pos 1.6667 20,833/50,000, t02000.pos 2.3333 29,167/50,000, t03000.pos 3.0000 37,500/50,000 |
+| ON changes the training (sanity: the comparisons can fail) | **PASS** | ep2 .inc of on_u_1 != v3b_1 and on_w_1 != on_u_1 |
+| --order-buffers 2 == 1 with recent-weight (on_w_ob2 == on_w_1) | **PASS** | 8 artifacts sha256-equal |
+| resume from epoch 1 reproduces epoch 2 (on_u_res vs on_u_1) | **FAIL** | 4 epoch002 artifacts (.pt .inc .bin .json) sha256-equal; EPOCH 2 line equal: True |
+| resume from epoch 1 reproduces epoch 2 (on_w_res vs on_w_1) | **FAIL** | 4 epoch002 artifacts (.pt .inc .bin .json) sha256-equal; EPOCH 2 line equal: True |
+| peak memory of ON runs no higher than v3b (tolerance: v3b's own run-to-run spread, >= 1 MiB) | **PASS** | MiB peak private/peak working set: v3b_1 238.9/241.6, v3b_2 238.7/241.7, off_1 239.0/241.8, off_2 239.3/242.1, eqN 239.1/241.7, gtN_w3 239.0/241.6, on_u_1 238.4/241.5, on_u_2 238.8/241.7, on_w_1 238.9/241.7, on_w_2 238.1/241.2, on_w_ob2 239.1/242.0, on_u_res 237.0/240.1, on_w_res 236.9/240.2; worst ON excess over max(v3b) +0.04 MiB, tolerance 1.00 MiB |
+| no new supervisor adoption | **PASS** | 'adopted running job' lines before 7, after each run [7] |
+RESULT FAIL 14/16
+loss lines v3b_1 / on_u_1 / on_w_1:
+  v3b_1: BASELINE HCE-alone holdout subset n=16,384: mse_teacher(blend1.0)=0.021899 mse_blend0.6=0.045332
+  v3b_1: INIT residual net: mse_teacher=0.021899 mse_b0.6=0.045332 (baseline 0.021899/0.045332)
+  v3b_1: INIT CHECK OK (residual init == HCE alone)
+  v3b_1: EPOCH 1/2 done in Xs train_mse=0.021402 | HOLDOUT n=16,384 mse_teacher=0.021899 (HCE 0.021899, -0.00%) mse_b0.6=0.045332 (HCE 0.045332, +0.00%) mse_b0.8=0.023795
+  v3b_1: EPOCH 2/2 done in Xs train_mse=0.033365 | HOLDOUT n=16,384 mse_teacher=0.021902 (HCE 0.021899, -0.01%) mse_b0.6=0.045335 (HCE 0.045332, -0.01%) mse_b0.8=0.023798
+  v3b_1: FINAL FULL HOLDOUT n=49,152: net mse_teacher=0.021846 mse_b0.6=0.045543 mse_b0.8=0.023712 | HCE 0.021840/0.045537/b0.8 0.023707
+  on_u_1: BASELINE HCE-alone holdout subset n=16,384: mse_teacher(blend1.0)=0.021899 mse_blend0.6=0.045332
+  on_u_1: INIT residual net: mse_teacher=0.021899 mse_b0.6=0.045332 (baseline 0.021899/0.045332)
+  on_u_1: INIT CHECK OK (residual init == HCE alone)
+  on_u_1: EPOCH 1/2 done in Xs train_mse=0.021477 | HOLDOUT n=16,384 mse_teacher=0.021900 (HCE 0.021899, -0.00%) mse_b0.6=0.045329 (HCE 0.045332, +0.01%) mse_b0.8=0.023794
+  on_u_1: EPOCH 2/2 done in Xs train_mse=0.033528 | HOLDOUT n=16,384 mse_teacher=0.021899 (HCE 0.021899, -0.00%) mse_b0.6=0.045330 (HCE 0.045332, +0.01%) mse_b0.8=0.023794
+  on_u_1: FINAL FULL HOLDOUT n=49,152: net mse_teacher=0.021842 mse_b0.6=0.045539 mse_b0.8=0.023709 | HCE 0.021840/0.045537/b0.8 0.023707
+  on_w_1: BASELINE HCE-alone holdout subset n=16,384: mse_teacher(blend1.0)=0.021899 mse_blend0.6=0.045332
+  on_w_1: INIT residual net: mse_teacher=0.021899 mse_b0.6=0.045332 (baseline 0.021899/0.045332)
+  on_w_1: INIT CHECK OK (residual init == HCE alone)
+  on_w_1: EPOCH 1/2 done in Xs train_mse=0.021342 | HOLDOUT n=16,384 mse_teacher=0.021900 (HCE 0.021899, -0.00%) mse_b0.6=0.045331 (HCE 0.045332, +0.00%) mse_b0.8=0.023795
+  on_w_1: EPOCH 2/2 done in Xs train_mse=0.033422 | HOLDOUT n=16,384 mse_teacher=0.021901 (HCE 0.021899, -0.01%) mse_b0.6=0.045330 (HCE 0.045332, +0.01%) mse_b0.8=0.023795
+  on_w_1: FINAL FULL HOLDOUT n=49,152: net mse_teacher=0.021842 mse_b0.6=0.045538 mse_b0.8=0.023709 | HCE 0.021840/0.045537/b0.8 0.023707
