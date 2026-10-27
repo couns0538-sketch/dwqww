@@ -84,6 +84,10 @@ add_executable(forge_nnue_v2_tests tests/nnue_v2_tests.cpp)
 target_include_directories(forge_nnue_v2_tests PRIVATE src)
 target_link_libraries(forge_nnue_v2_tests PRIVATE forge_core Threads::Threads)
 
+# Export parity helper for v2 nets (tools/nnue/v2_parity.py): position generator and engine-side evaluator.
+add_executable(forge_nnue_v2_tool tools/nnue/nnue_v2_tool.cpp)
+target_link_libraries(forge_nnue_v2_tool PRIVATE forge_core Threads::Threads)
+
 add_executable(forge_bench bench/benchmark.cpp)
 target_link_libraries(forge_bench PRIVATE forge_core Threads::Threads)
 
