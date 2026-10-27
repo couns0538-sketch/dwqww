@@ -39,6 +39,9 @@ jobs:
             python3 opus_round1/ci/uci_check.py build_$t/forge | tee out/identity_$t.log
           done
           bash opus_round1/O3/codegen_compare.sh build_lock/forge build_branch/forge | tee out/codegen_lock_vs_o5_linux.log
+          # Which differences come from the branch base (O3) and which from O5:
+          bash opus_round1/O3/codegen_compare.sh build_lock/forge build_o3/forge | tee out/codegen_lock_vs_o3_linux.log
+          bash opus_round1/O3/codegen_compare.sh build_o3/forge build_branch/forge | tee out/codegen_o3_vs_o5_linux.log
       - name: NPS A/B
         run: |
           python3 opus_round1/O3/nps_ab.py build_lock/forge build_branch/forge 10 16 20 | tee out/nps_ab_lock_vs_o5.log
