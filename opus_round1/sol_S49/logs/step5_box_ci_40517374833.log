@@ -1,0 +1,57 @@
+# S49 box validation: opus-sol-s49-box run 40517374833 on 57701360 (https://github.com/couns0538-sketch/dwqww/actions/runs/40517374833), job box 122234435078: success
+# GitHub-hosted ubuntu-24.04 runner = a quiet box without gates; labelled box-only; pwsh 7.6.9
+== runner: 4 CPUs; Model name: AMD EPYC 9V45 96-Core Processor
+== pwsh: 7.6.6
+== thermal zones: cooling_device0 cooling_device1 cooling_device2 cooling_device3 
+## exe sha256 (lock build, test-only synthetic 5% slowdown build)
+6635d4d12464aa1543ad88d4b3c8519a1691662892e7d4dea52c287dc6bfe9c5  /home/runner/work/dwqww/dwqww/ci_out/build_lock/forge
+bfdf67cbe488f59ffa7bd461dbb3468048459433a23e114970473797c96334bd  /home/runner/work/dwqww/dwqww/ci_out/build_slow/forge
+## identity (both builds: AL1 bench d11/13/16 + perft)
+bench d11 nodes 312866 ref 312866 OK
+bench d13 nodes 862329 ref 862329 OK
+bench d16 nodes 3024920 ref 3024920 OK
+perft5 startpos 4865609 ref 4865609 OK
+perft5 kiwipete 193690690 ref 193690690 OK
+ALL OK
+bench d11 nodes 312866 ref 312866 OK
+bench d13 nodes 862329 ref 862329 OK
+bench d16 nodes 3024920 ref 3024920 OK
+perft5 startpos 4865609 ref 4865609 OK
+perft5 kiwipete 193690690 ref 193690690 OK
+ALL OK
+## self-test
+SELFTEST checks=27 failures=0
+## Python tests
+Ran 15 tests in 13.717s
+
+OK
+## A/A run
+PLAN: cores 4, gate-used [], reserved [0], free [1,2,3] -> core 3 (highest free core)
+PROBES: CPU temperature 49.85 C (sysfs), free RAM 14.54 GB, machine load 28.571428571428573%
+RUN: 40 pairs + 10 control pairs x depths 13,16; core 3; metric cpu; A 6635D4D12464 B 6635D4D12464
+# pc_speed_ci box-only A/A (GitHub runner) (box-only; metric cpu NPS; core 3; Idle)
+
+| depth | test pairs | median B/A | 95% CI | CI excludes 1 | A/A pairs | A/A median | A/A 95% CI | A/A contains 1 | nodes A = B |
+|---|---:|---:|---|---|---:|---:|---|---|---|
+| d13 | 40 | 1.0000 | 0.9767-1.0230 | False | 10 | 1.0119 | 0.9884-1.0360 | True | True |
+| d16 | 40 | 1.0069 | 1.0000-1.0077 | False | 10 | 0.9962 | 0.9716-1.0214 | True | True |
+
+Speed rule (CI lower bound >= 1.02 at every depth): not met
+## synthetic 5% slowdown run
+PLAN: cores 4, gate-used [], reserved [0], free [1,2,3] -> core 3 (highest free core)
+PROBES: CPU temperature 49.85 C (sysfs), free RAM 14.65 GB, machine load 40%
+RUN: 40 pairs + 10 control pairs x depths 13,16; core 3; metric cpu; A 6635D4D12464 B BFDF67CBE488
+# pc_speed_ci box-only synthetic 5% slowdown (GitHub runner) (box-only; metric cpu NPS; core 3; Idle)
+
+| depth | test pairs | median B/A | 95% CI | CI excludes 1 | A/A pairs | A/A median | A/A 95% CI | A/A contains 1 | nodes A = B |
+|---|---:|---:|---|---|---:|---:|---|---|---|
+| d13 | 40 | 0.9551 | 0.9388-0.9579 | True | 10 | 1.0000 | 0.9574-1.0116 | True | True |
+| d16 | 40 | 0.9576 | 0.9501-0.9659 | True | 10 | 1.0000 | 0.9789-1.0268 | True | True |
+
+Speed rule (CI lower bound >= 1.02 at every depth): not met
+## verdict
+A/A d13: median 1.0000 CI 0.9767-1.0230 contains 1: True; control CI [0.9883720947222783, 1.0360047862333066] contains 1: True
+A/A d16: median 1.0069 CI 1.0000-1.0077 contains 1: True; control CI [0.9716311918617764, 1.0213688480493994] contains 1: True
+5% slowdown d13: median 0.9551 CI 0.9388-0.9579 excludes 1 (below): True; nodes A=B: True
+5% slowdown d16: median 0.9576 CI 0.9501-0.9659 excludes 1 (below): True; nodes A=B: True
+S49 BOX VERDICT: PASS
