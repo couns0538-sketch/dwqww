@@ -93,15 +93,15 @@ rule for every net change).
 
 ## CI
 
-GitHub Actions on commit 7f6ab7f (code identical to the final branch head; later commits add only this folder's
-evidence), logs in `logs/ci/` (`RUN.txt` has the URLs):
+GitHub Actions on the final code commit 98f479a (the same results on 7f6ab7f, the first push), logs in `logs/ci/`
+(`RUN.txt` has the URLs):
 
 | run | job | result |
 |---|---|---|
-| opus-ci 40410933308 | release (ubuntu-24.04, g++-14.2, box recipe) | bench x5 / perft / kiwipete ALL OK, FMA 0; ctest 17/18, only `forge_tests` with exactly the 4 known lines; `forge_nnue_v2_tests` passed |
+| opus-ci 40462318709 | release (ubuntu-24.04, g++-14.2, box recipe) | bench x5 / perft / kiwipete ALL OK, FMA 0; ctest 17/18, only `forge_tests` with exactly the 4 known lines; `forge_nnue_v2_tests` passed |
 | | asan (ASan + UBSan, no recover) | ctest: only the 4 known lines, 0 sanitizer reports (`forge_nnue_v2_tests` 7.5 s, passed) |
 | | tsan | ctest: only the 4 known lines, 0 TSan reports; C4 hook `tsan_extra.sh`: v2 replica net active, Threads 4 / 4 / 2 to depth 15 / 10 / 14, bestmove each, 0 reports |
-| opus-c4-nnue 40410933298 | Linux evidence (`ci_c4.sh`) | `forge_nnue_v2_tests` 78/78 (102k plies, 0 mismatches); options off ALL OK; lock replicas via UCI 25/25 benches equal the pins; CPU torch 2.4.1 smoke training (4 and 8 mirrored buckets, synthetic data32 records from the archive's generator) + parity on 10000 positions: PASS 10000/10000 on every exact check for both |
+| opus-c4-nnue 40462318800 | Linux evidence (`ci_c4.sh`) | `forge_nnue_v2_tests` 78/78 (102k plies, 0 mismatches); options off ALL OK; lock replicas via UCI 25/25 benches equal the pins; CPU torch 2.4.1 smoke training (4 and 8 mirrored buckets, synthetic data32 records from the archive's generator) + parity on 10000 positions: PASS 10000/10000 on every exact check for both |
 
 ## Open issues / notes
 - NPS with nets trained on real data is unmeasured (only lock replicas and synthetic-data nets exist here).
