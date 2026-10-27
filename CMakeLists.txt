@@ -79,6 +79,10 @@ add_executable(forge_timeman_tests tests/timeman_tests.cpp)
 target_include_directories(forge_timeman_tests PRIVATE src)
 target_link_libraries(forge_timeman_tests PRIVATE forge_core Threads::Threads)
 
+# NNUE parity: current kernels against a verbatim copy of the AL1 s198 code.
+add_executable(forge_nnue_parity_tests tests/nnue_parity_tests.cpp)
+target_link_libraries(forge_nnue_parity_tests PRIVATE forge_core Threads::Threads)
+
 add_executable(forge_bench bench/benchmark.cpp)
 target_link_libraries(forge_bench PRIVATE forge_core Threads::Threads)
 
@@ -92,6 +96,8 @@ add_test(NAME forge_pv_metadata_tests COMMAND forge_pv_metadata_tests)
 add_test(NAME forge_movepicker_tests COMMAND forge_movepicker_tests)
 add_test(NAME forge_history_tests COMMAND forge_history_tests)
 add_test(NAME forge_timeman_tests COMMAND forge_timeman_tests)
+add_test(NAME forge_nnue_parity_tests COMMAND forge_nnue_parity_tests
+    --fens ${CMAKE_CURRENT_SOURCE_DIR}/tests/data/nnue_selfplay_sample_916.txt)
 add_test(NAME forge_tt_tests COMMAND forge_tt_tests)
 add_test(NAME forge_rule50_tests COMMAND forge_rule50_tests)
 add_test(NAME forge_legal_witness_tests COMMAND forge_legal_witness_tests

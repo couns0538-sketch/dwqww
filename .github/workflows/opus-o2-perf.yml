@@ -1,4 +1,5 @@
-# O2 evidence on a quiet Linux runner: callgrind instruction profile of `bench 11` (box recipe + -g)
+# O2 evidence on a quiet Linux runner: callgrind instruction profile of `bench 13` (box recipe + -g;
+# deeper than bench 11 so start-up work, magic tables and hash clearing, weighs less)
 # for the lock and for this branch, and a paired NPS comparison (opus_round1/O3/nps_ab.py, 10 runs per
 # build at bench 16 and 20; the runner has no other load, unlike the development PC).
 name: opus-o2-perf
@@ -40,10 +41,10 @@ jobs:
             python3 opus_round1/ci/uci_check.py build_$t/forge | tee out/identity_$t.log
             echo "FMA $t: $(objdump -d build_$t/forge | grep -cE 'vfn?m(add|sub)' || true)" | tee -a out/identity_$t.log
           done
-      - name: Callgrind bench 11
+      - name: Callgrind bench 13
         run: |
           for t in lock branch; do
-            printf 'uci\nsetoption name Hash value 16\nsetoption name OwnBook value false\nisready\nbench 11\nquit\n' > in.txt
+            printf 'uci\nsetoption name Hash value 16\nsetoption name OwnBook value false\nisready\nbench 13\nquit\n' > in.txt
             valgrind --tool=callgrind --callgrind-out-file=out/callgrind_$t.out build_$t/forge < in.txt > out/callgrind_run_$t.log 2>&1
             callgrind_annotate --inclusive=no out/callgrind_$t.out 2>/dev/null | head -45 > out/profile_self_$t.txt
             callgrind_annotate --inclusive=yes out/callgrind_$t.out 2>/dev/null | head -45 > out/profile_incl_$t.txt
