@@ -1,0 +1,15 @@
+holdout: 50,000 positions from 1 files (0s)
+king buckets: 4 mirror=True factor=1 map(rank 8 first, files a-h): 3 3 3 3 3 3 3 3 | 3 3 3 3 3 3 3 3 | 3 3 3 3 3 3 3 3 | 3 3 3 3 3 3 3 3 | 2 2 2 2 2 2 2 2 | 2 2 2 2 2 2 2 2 | 0 0 1 1 1 1 0 0 | 0 0 1 1 1 1 0 0
+threat inputs: 9216 features (O6)
+pawn-pair inputs: 1792 features (O7)
+BASELINE HCE-alone holdout subset n=16,384: mse_teacher(blend1.0)=0.022136 mse_blend0.6=0.046101
+train: 200,000 positions from 4 files (0s load)
+optimizer: AdamDMLDevScalars (--adam-impl dml), loss sync every 128 steps
+MEM after-load trainer_private=0.19GB sys_avail=14.18GB
+steps/epoch=150 total=150 batch=1024 lr=0.002 cosine blend 1.0->0.6
+ep1 step 135/150 blend=0.640 lr=9.54e-05 train_mse=0.025620 4,590 pos/s
+MEM ep1 step 135 trainer_private=0.46GB sys_avail=14.06GB
+EPOCH 1/1 done in 36s train_mse=0.027409 | HOLDOUT n=16,384 mse_teacher=0.021978 (HCE 0.022136, +0.71%) mse_b0.6=0.045860 (HCE 0.046101, +0.52%) mse_b0.8=0.023945
+Saved epoch001-step000000150 (.pt .fnn2 .json)
+MEM epoch001 trainer_private=0.38GB sys_avail=14.09GB
+Finished: 153,600 positions in 36s

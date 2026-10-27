@@ -1,0 +1,43 @@
+PASS pawn-pair features == brute-force reference on 3000 random positions x 2 perspectives x 2 flips (68248 pairs, at most 32 in one frame)
+PASS explicit: d4-e4 (own phalanx), d4-d5 / e4-e5 (rams), d4-e5 / e4-d5 (levers), d5-e5 (their phalanx) = 27 603 667 540 604 1379
+PASS explicit: pawns on non-adjacent files or three ranks apart form no pair
+PASS colour symmetry: 400 colour-flipped positions give the swapped accumulators (pawn-pair net)
+PASS mirror symmetry: 400 file-mirrored positions give identical accumulators (mirrored pawn-pair net)
+PASS control: zeroing the pawn-pair columns changes exactly the accumulators of positions with pawn pairs (36/36 of 60)
+PASS a feature_set 2 file loads with its pawn-pair block
+PASS file_bytes: the pawn-pair block adds 2 * 1792 * hidden bytes
+PASS the pawn-pair block is read in file order (sampled values == int16 / 4096)
+PASS a feature_set 3 file (threat and pawn-pair blocks) loads both blocks in order
+PASS rejects feature_set 6 (unknown bit 2) (unsupported feature set 6)
+PASS rejects a feature_set 2 header without the pawn-pair block (file size 394922 bytes does not match the 1312426 bytes implied by its header (1 king buckets, 1 output buckets, hidden 256, pawn-pair inputs); the weights were not read)
+PASS defaults: no request, no problem
+PASS NNUEPawnPairs without NNUEFile: NNUEPawnPairs is 1 but no v2 net is loaded (NNUEFile is empty); NNUEPawnPairs needs a net with pawn-pair inputs (trainer --pawn-pairs)
+PASS NNUEPawnPairs 1 with a one-bucket pawn-pair net: active
+PASS pawn-pair net without the option: NNUEFile nnue_pawn_pair_test_pp.fnn2 has pawn-pair inputs (trainer --pawn-pairs); set NNUEPawnPairs 1 to use it
+PASS NNUEThreats 1 + NNUEPawnPairs 1 with a pawn-pair-only net: NNUEThreats is 1 but NNUEFile nnue_pawn_pair_test_pp.fnn2 has no threat inputs; NNUEThreats needs a net trained with --threats
+PASS NNUEPawnPairs 1 with a net without pawn pairs: NNUEPawnPairs is 1 but NNUEFile nnue_pawn_pair_test_plain.fnn2 has no pawn-pair inputs; NNUEPawnPairs needs a net trained with --pawn-pairs
+PASS both options with the two-block net: active
+PASS two-block net with NNUEThreats only: NNUEFile nnue_pawn_pair_test_both.fnn2 has pawn-pair inputs (trainer --pawn-pairs); set NNUEPawnPairs 1 to use it
+PASS two-block net with NNUEPawnPairs only: NNUEFile nnue_pawn_pair_test_both.fnn2 has threat inputs (trainer --threats); set NNUEThreats 1 to use it
+PASS NNUEPawnPairs alone with a 4-bucket net: NNUEPawnPairs is 1 and NNUEKingBuckets is 0, which selects a net without king buckets, but NNUEFile nnue_pawn_pair_test_pp4.fnn2 has 4 mirrored king buckets; set NNUEKingBuckets 4 as well
+PASS NNUEPawnPairs 1 + NNUEKingBuckets 4: active
+PASS UseNNUE false wins (not an error)
+PASS request cleared: no problem
+PASS zero-pawn-pair replica r1: 300 positions, accumulators and evals bit-identical to the compiled-in net
+PASS zero-pawn-pair replica r1: depth-8 searches of 4 positions have the compiled-in net's node counts and best moves
+PASS zero-pawn-pair replica rm8: 300 positions, accumulators and evals bit-identical to the compiled-in net
+PASS zero-pawn-pair replica rm8: depth-8 searches of 4 positions have the compiled-in net's node counts and best moves
+WALK 1 bucket, pawn-pair inputs: plies 34000 (null 1282, pawn moves / pawn captures 12058) evaluations 24525 computed accumulators verified 21525 king-key changes 0 longest replay 7 restarts 161 mismatches 0
+PASS incremental == full refresh, bit-exact, 1 bucket, pawn-pair inputs: 34000 plies
+WALK 8 mirrored buckets, pawn-pair inputs: plies 34000 (null 1283, pawn moves / pawn captures 12196) evaluations 24407 computed accumulators verified 21517 king-key changes 6756 longest replay 10 restarts 159 mismatches 0
+PASS incremental == full refresh, bit-exact, 8 mirrored buckets, pawn-pair inputs: 34000 plies
+WALK 4 unmirrored buckets, threat + pawn-pair inputs: plies 34000 (null 1317, pawn moves / pawn captures 14073) evaluations 24401 computed accumulators verified 21588 king-key changes 2338 longest replay 8 restarts 164 mismatches 0
+PASS incremental == full refresh, bit-exact, 4 unmirrored buckets, threat + pawn-pair inputs: 34000 plies
+WALK total plies 102000
+PASS UCI defaults: NNUEPawnPairs advertised (spin 0-1, default 0), nothing NNUE v2 printed, exit 0
+PASS UCI pawns_without_file: exit status 2 at isready, no answer: info string ERROR NNUE v2: NNUEPawnPairs is 1 but no v2 net is loaded (NNUEFile is empty); NNUEPawnPairs needs a net with pawn-pair inputs (trainer --pawn-pairs)
+PASS UCI pawns_with_plain_net: exit status 2 at go depth 1, no answer: info string ERROR NNUE v2: NNUEPawnPairs is 1 but NNUEFile nnue_pawn_pair_test_uci_plain.fnn2 has no pawn-pair inputs; NNUEPawnPairs needs a net trained with --pawn-pairs
+PASS UCI pawn_net_without_option: exit status 2 at bench 2, no answer: info string ERROR NNUE v2: NNUEFile nnue_pawn_pair_test_uci_pawn.fnn2 has pawn-pair inputs (trainer --pawn-pairs); set NNUEPawnPairs 1 to use it
+PASS UCI NNUEPawnPairs 1 + pawn-pair net: "info string NNUE v2: active: nnue_pawn_pair_test_uci_pawn.fnn2 king buckets 1 output buckets 1 hidden 256 unmirrored residual pawn-pair inputs ..." (activation + isready), readyok, bestmove, bench, exit 0
+PASS UCI NNUEPawnPairs 2: invalid value reported, the option stays 0
+55/55 checks passed
