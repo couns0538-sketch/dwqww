@@ -30,5 +30,32 @@ child process (the fake engine in the tests). No other process was killed and no
 
 ## Left / UNVERIFIED
 - The v3 patch is not applied to any accepted tree (it is a deliverable for review).
-- Linux run of the v2 checker: UNVERIFIED (the code is portable; tests use a .bat wrapper on Windows and a .sh wrapper elsewhere).
+- Linux run of the v2 checker: **verified** on a GitHub ubuntu-24.04 runner (section below).
+- No Elo or speed claim.
+
+## Linux follow-up (added by the main session)
+Workflow `opus-sol-s25fix-linux`, run 40522370609 on `22a6fe6b`, success. Script `ci_s25fix_linux.sh` (commits `ce332ae7`,
+`22a6fe6b`); logs in `logs/ci_linux_40522370609/`. Runner: ubuntu-24.04, g++-14 14.2.0, CMake + Ninja, Release with
+the CI flags (`-march=x86-64-v3 -fno-fast-math -ffp-contract=off`, H256).
+
+| check | result | log |
+|---|---|---|
+| v2 checker on a Linux build of this tree (the AL1 lock source), `--depths all` | `OUTPUT_CONTRACT_PASS bench=PASS uci=PASS ref=AL1 depths=11,13,16,20,22`, exit 0 | `run_al1_all.log` |
+| same exe, `--ref Lprime` | `OUTPUT_CONTRACT_FAIL bench=PIN_MISMATCH uci=PASS`, exit 1, as designed: the UCI check still runs | `run_lprime.log` |
+| the 17 tests on Linux (`.sh` wrapper path) | 17/17 OK | `tests_linux.log` |
+| v3 registration patch on a clean `git archive` copy, GNU `patch -p1 -F0` (dry run, then apply) | 3 files patched, no fuzz | `v3_apply.log` |
+| configure `-DFORGE_OUTPUT_CONTRACT=ON`, build, `ctest -R forge_sol_S25` | `forge_sol_S25_output_contract_v2` Passed, 1/1 | `configure_v3.log`, `build_v3.log`, `ctest_v3_on.log` |
+
+- The build logs show the same 6 warnings as the PC CMake build (existing AL1 C++ under CMake's `-Wconversion`; the
+  patch adds no C++).
+- **First attempt (run 40521419392) passed for the wrong reason.** The v2 checker and tests passed, but the script
+  applied the v3 patch with `git apply` from `ci_out/src_v3`, a directory inside the runner's checkout. Run from a
+  subdirectory of a work tree, `git apply` resolves `diff --git` paths against the repository root and skips them
+  silently: exit 0, empty log, nothing applied. CTest then printed `No tests were found!!!` and still returned 0.
+  Logs kept in `logs/ci_linux_attempt1_40521419392/`.
+  - Fix (`22a6fe6b`): GNU `patch -p1 -F0` (dry run first), a check that `FORGE_OUTPUT_CONTRACT` reached
+    `CMakeLists.txt`, and a failure when CTest finds no S25 test.
+  - The PC runs were not affected: `git apply --check` ran at the root of its own tree (the AL1 export is its own
+    repository root) and printed `Checking patch …` for all three files (`logs/patch_v3_apply_check.log`), and the
+    PC CTest run found and passed the S25 test (`logs/cmake_ctest_on.log`).
 - No Elo or speed claim.
