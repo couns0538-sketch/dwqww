@@ -67,14 +67,26 @@ Threads > 1 sit behind two new UCI options, both default false. No Elo claims.
 - **Fix, `c994f6e`.** `Searcher::search` calls `Worker::end_search()` for every worker after the join. No
   behaviour change (bench identical), so no option.
 
-### Improvement (not a bug): `SmpBestThread`, `0abed6a`
+### Improvement (not a bug): `SmpBestThread`, `0abed6a` + review fix
 UCI `SmpBestThread`, default false, acts only with Threads > 1.
-- **What it reports.** The best move, ponder move, PV and score of the worker with the deepest completed
-  iteration (ties: higher score), instead of always thread 0's. One extra info line with that PV is printed
-  so that GUIs see a consistent line.
+- **What it reports.** The best move, ponder move, PV and score of the best worker instead of always thread
+  0's. One extra info line with that PV is printed so that GUIs see a consistent line.
+- **Ranking** (`better_thread_result`, src/search/searcher.inc), after the code review:
+  - **As soon as either result carries a mate score, the higher score wins.** A found mate is never
+    replaced by a deeper line without one, a shorter mate beats a longer one, and any line that is not
+    mated beats a mated one.
+  - **Without mate scores,** the deeper completed iteration wins, then the higher score.
+  - **The old rule** (`0abed6a`: deepest iteration first, always) let a deeper helper override a found mate.
+    That was the review finding.
+- **Test.** `tests/smp_tests.cpp` `test_best_thread_ranking` has 13 cases: deeper non-mate vs found mate,
+  deeper longer mate vs shorter mate, shallower found mate vs deeper non-mate, mated vs not mated, two mated
+  lines. With the old rule planted back, 8 of the 13 cases FAIL (`logs/review_fix_mutation.log`); with the
+  fix, all 70 checks of `forge_smp_tests` pass (`logs/review_fix_smp_tests.log`).
 - **How results are collected.** Helper results go into one slot per helper and are read after the join.
-- **Layout.** `select_best_thread` is `[[gnu::cold]]`, and `format_score` is always inlined, so the default
-  build's hot code is unchanged.
+- **Layout.** `select_best_thread` and `better_thread_result` are `[[gnu::cold]]`, and `format_score` is
+  always inlined, so the default build's hot code is unchanged. Re-checked after the fix: the default build
+  is identical at all 5 depths, and the codegen has the same two differences as before
+  (`logs/review_fix_identity.log`, `logs/review_fix_codegen.log`).
 
 ## Default build: hot code and speed
 - **Codegen** (`codegen_compare.sh`, lock exe vs O1 exe, PC recipe; `logs/codegen_lock_vs_o1.log`):

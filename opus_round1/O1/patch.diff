@@ -1,5 +1,5 @@
 diff --git a/CMakeLists.txt b/CMakeLists.txt
-index f3acf19..dfe3909 100644
+index f3acf19b..dfe3909f 100644
 --- a/CMakeLists.txt
 +++ b/CMakeLists.txt
 @@ -79,6 +79,10 @@ add_executable(forge_timeman_tests tests/timeman_tests.cpp)
@@ -22,7 +22,7 @@ index f3acf19..dfe3909 100644
  add_test(NAME forge_rule50_tests COMMAND forge_rule50_tests)
  add_test(NAME forge_legal_witness_tests COMMAND forge_legal_witness_tests
 diff --git a/include/forge/search.hpp b/include/forge/search.hpp
-index 5c42aab..c901a12 100644
+index 5c42aab3..d1c80d89 100644
 --- a/include/forge/search.hpp
 +++ b/include/forge/search.hpp
 @@ -4,6 +4,7 @@
@@ -44,19 +44,27 @@ index 5c42aab..c901a12 100644
  
  private:
      friend struct SearcherTestProbe;
-@@ -97,6 +102,9 @@ public:
+@@ -97,8 +102,17 @@ public:
      [[nodiscard]] TranspositionTable& transposition_table() { return shared_.tt; }
  
  private:
-+    // SmpBestThread: replace thread 0's move/PV/score by the best helper's.
++    // SmpBestThread: replace thread 0's move/PV/score by the best helper's
++    // (ranking: better_thread_result below).
 +    void select_best_thread(SearchInfo& result, const std::vector<SearchInfo>& helper_results, bool emit_info);
 +
      SharedSearchState shared_;
      std::vector<std::unique_ptr<Worker>> workers_;
  };
+ 
++// UCI SmpBestThread: whether a helper's result `candidate` replaces `best`
++// (src/search/searcher.inc). With a mate score on either side the higher score
++// wins; otherwise the deeper completed iteration, then the higher score.
++[[nodiscard]] bool better_thread_result(const SearchInfo& candidate, const SearchInfo& best);
++
+ } // namespace forge
 diff --git a/include/forge/search_options.hpp b/include/forge/search_options.hpp
 new file mode 100644
-index 0000000..47ed2aa
+index 00000000..47ed2aac
 --- /dev/null
 +++ b/include/forge/search_options.hpp
 @@ -0,0 +1,20 @@
@@ -81,7 +89,7 @@ index 0000000..47ed2aa
 +
 +} // namespace forge::options
 diff --git a/src/search.cpp b/src/search.cpp
-index 17dc692..0777f32 100644
+index 17dc692b..0777f324 100644
 --- a/src/search.cpp
 +++ b/src/search.cpp
 @@ -23,6 +23,7 @@
@@ -94,7 +102,7 @@ index 17dc692..0777f32 100644
  #include "search/tt.inc"          // transposition table
 diff --git a/src/search/options.inc b/src/search/options.inc
 new file mode 100644
-index 0000000..8cd41cd
+index 00000000..8cd41cd7
 --- /dev/null
 +++ b/src/search/options.inc
 @@ -0,0 +1,9 @@
@@ -108,7 +116,7 @@ index 0000000..8cd41cd
 +
 +} // namespace forge::options
 diff --git a/src/search/searcher.inc b/src/search/searcher.inc
-index 4e918be..cb09649 100644
+index 4e918be0..91098c63 100644
 --- a/src/search/searcher.inc
 +++ b/src/search/searcher.inc
 @@ -47,10 +47,19 @@ SearchInfo Searcher::search(Board board, const SearchLimits& limits, bool emit_i
@@ -133,7 +141,7 @@ index 4e918be..cb09649 100644
          });
      }
      SearchInfo result = workers_.front()->search(board, worker_limits, emit_info, all);
-@@ -59,7 +68,47 @@ SearchInfo Searcher::search(Board board, const SearchLimits& limits, bool emit_i
+@@ -59,7 +68,55 @@ SearchInfo Searcher::search(Board board, const SearchLimits& limits, bool emit_i
      shared_.stop.store(true, std::memory_order_relaxed);
      for (auto& helper : helpers) helper.join();
      shared_.stop.store(external_stop, std::memory_order_relaxed);
@@ -150,17 +158,25 @@ index 4e918be..cb09649 100644
      return result;
  }
  
++// SmpBestThread ranking. A mate score does not become less true at a greater
++// depth, so as soon as either result carries one, the higher score wins: a
++// found mate is never replaced by a deeper line without one, a shorter mate
++// beats a longer one, and any line that is not mated beats a mated one.
++// Without mate scores the deeper completed iteration wins, then the higher
++// score. Cold: called once per helper and search.
++[[gnu::cold]] bool better_thread_result(const SearchInfo& candidate, const SearchInfo& best) {
++    if (is_mate_score(candidate.score) || is_mate_score(best.score)) return candidate.score > best.score;
++    return candidate.depth > best.depth || (candidate.depth == best.depth && candidate.score > best.score);
++}
++
 +// Cold: runs once per search; keeps the hot search functions' placement unchanged.
 +[[gnu::cold]] void Searcher::select_best_thread(SearchInfo& result, const std::vector<SearchInfo>& helper_results,
 +                                               bool emit_info) {
-+    // Deepest completed iteration wins; equal depth: higher score.
 +    const SearchInfo* best = &result;
 +    for (std::size_t i = 1; i < helper_results.size(); ++i) {
 +        const SearchInfo& candidate = helper_results[i];
 +        if (candidate.best_move.is_none() || candidate.depth <= 0 || candidate.pv.empty()) continue;
-+        if (candidate.depth > best->depth || (candidate.depth == best->depth && candidate.score > best->score)) {
-+            best = &candidate;
-+        }
++        if (better_thread_result(candidate, *best)) best = &candidate;
 +    }
 +    if (best == &result || best->best_move == result.best_move) return;
 +    result.best_move = best->best_move;
@@ -182,7 +198,7 @@ index 4e918be..cb09649 100644
 +
  } // namespace forge
 diff --git a/src/search/uci_info.inc b/src/search/uci_info.inc
-index e1d5019..fc4e3d7 100644
+index e1d50198..fc4e3d72 100644
 --- a/src/search/uci_info.inc
 +++ b/src/search/uci_info.inc
 @@ -7,7 +7,9 @@
@@ -197,7 +213,7 @@ index e1d5019..fc4e3d7 100644
          const int distance = MateValue - std::abs(score);
          const int mate = (distance + 1) / 2;
 diff --git a/src/uci.cpp b/src/uci.cpp
-index 607adf3..b78fdc8 100644
+index 607adf3a..b78fdc8c 100644
 --- a/src/uci.cpp
 +++ b/src/uci.cpp
 @@ -171,6 +171,9 @@ int main() {
@@ -227,10 +243,10 @@ index 607adf3..b78fdc8 100644
                  else if (value_text == "false") forge::nnue::enabled = false;
 diff --git a/tests/smp_tests.cpp b/tests/smp_tests.cpp
 new file mode 100644
-index 0000000..7902066
+index 00000000..a6e1b044
 --- /dev/null
 +++ b/tests/smp_tests.cpp
-@@ -0,0 +1,143 @@
+@@ -0,0 +1,183 @@
 +// Lazy SMP housekeeping (O1): worker-list lifetime, SmpExactNodes node accounting for node-limited
 +// multi-thread searches, SmpBestThread result consistency, and options inert at Threads=1.
 +#include "forge/search.hpp"
@@ -346,6 +362,45 @@ index 0000000..7902066
 +    options::smp_best_thread = false;
 +}
 +
++// SmpBestThread ranking rule (better_thread_result): a mate score is never
++// replaced by a deeper line without a better score; without mate scores the
++// deeper completed iteration wins, then the higher score.
++void test_best_thread_ranking() {
++    auto info = [](int depth, int score) {
++        SearchInfo result;
++        result.depth = depth;
++        result.score = score;
++        return result;
++    };
++    const int mate9 = MateValue - 9;     // we mate in 5 moves
++    const int mate5 = MateValue - 5;     // we mate in 3 moves
++    const int mated9 = -MateValue + 9;   // we are mated in 5 moves
++    const int mated20 = -MateValue + 20; // we are mated in 10 moves
++    struct Case {
++        SearchInfo candidate, best;
++        bool expected;
++        const char* name;
++    };
++    const Case cases[] = {
++        {info(12, 10), info(11, 50), true, "deeper iteration wins without mate scores"},
++        {info(11, 60), info(11, 50), true, "equal depth: higher score wins"},
++        {info(11, 40), info(11, 50), false, "equal depth: lower score loses"},
++        {info(10, 900), info(11, 50), false, "shallower non-mate does not replace"},
++        {info(15, 300), info(11, mate9), false, "a deeper line without a mate never replaces a found mate"},
++        {info(20, 31000), info(11, mate9), false, "a deeper large non-mate score never replaces a found mate"},
++        {info(15, mate9 - 2), info(11, mate9), false, "a deeper but longer mate does not replace a shorter one"},
++        {info(9, mate5), info(11, mate9), true, "a shorter mate replaces a longer one at any depth"},
++        {info(9, mate9), info(14, 250), true, "a found mate replaces a deeper line without one"},
++        {info(13, -200), info(11, mated9), true, "a line that is not mated replaces a mated one"},
++        {info(16, mated9), info(11, -500), false, "a deeper mated line never replaces one that is not mated"},
++        {info(10, mated20), info(12, mated9), true, "of two mated lines the longer resistance wins"},
++        {info(14, mated9), info(12, mated20), false, "a deeper but shorter mated line does not replace a longer one"},
++    };
++    for (const Case& c : cases) {
++        check(better_thread_result(c.candidate, c.best) == c.expected, std::string("SmpBestThread ranking: ") + c.name);
++    }
++}
++
 +void test_inert_single_thread() {
 +    for (const std::string& fen : Fens) {
 +        SearchInfo results[2];
@@ -368,6 +423,7 @@ index 0000000..7902066
 +int main() {
 +    test_worker_list_lifetime();
 +    test_exact_nodes();
++    test_best_thread_ranking();
 +    test_best_thread();
 +    test_inert_single_thread();
 +    std::cout << "smp housekeeping: checks=" << checks << " failures=" << failures << '\n';
