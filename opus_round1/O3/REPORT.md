@@ -48,7 +48,7 @@ of the hot paths is unchanged (see NPS below). CMakeLists.txt only gains 3 test 
 |---|---|---|
 | 1 | bench all 5 depths exact | **PASS** |
 | 2 | `go depth 18` bestmove + node count identical on 50 positions (list + diff) | **PASS** (50/50, also score + depth) |
-| 3 | no measurable slowdown: bench NPS within 1% (10 runs each) | **PASS** (hot code machine-code identical; d20 +0.24% wall / −0.18% CPU) |
+| 3 | no measurable slowdown: bench NPS within 1% (10 runs each) | **PASS**: d20 +0.24% wall / −0.18% CPU. The hot code was instruction-identical in the PC recipe build; see section 3 for the scope of that claim. With the review-fix pins: O3 → O3 + pins +0.08% / −0.78% on a quiet runner |
 | 4 | unit tests for move-picker stages and history update math, wired into CTest | **PASS** (3 new tests, 8/8 planted bugs caught) |
 | 5 | Windows build still compiles | **PASS** (built on Windows with the unmodified `build_windows.ps1` and the PC recipe) |
 | §3 | default behaviour, perft, kiwipete, FMA 0, known test failures only, determinism | **PASS** |
@@ -101,12 +101,23 @@ which changed register allocation of alpha-beta and moved every hot function to 
 The final version keeps the Worker layout identical (ThreadData holds all members in the lock's order), keeps small
 helpers header-`inline`, the history rules as Worker members, the MovePicker holding the Worker, the time module
 inline with the original statement order, an out-of-line `~ThreadData`, and the modules in the original function
-order. Result (`logs/codegen_identity.log`): **every hot function is instruction-identical to the lock and starts at
-the same address mod 64** — alpha-beta (2413 insns), qsearch, MovePicker::next, TT probe/store, static_evaluate,
+order. Result at the time (`logs/codegen_identity.log`, PC recipe build of `a0bbc53`, MinGW g++ 15.2,
+`-march=znver5`): the hot functions listed below were instruction-identical to the lock after
+`codegen_compare.sh`'s normalisation (addresses, immediates and jump targets) and started at the same address
+mod 64. They are alpha-beta (2413 insns), qsearch, MovePicker::next, TT probe/store, static_evaluate,
 should_stop, is_draw, correction history, all history updates, record_move, NNUE update/evaluate/refresh,
-make/unmake, SEE. The only changed function is the once-per-iteration driver `Worker::search(Board, ...)`
-(same 2119-instruction length, register-allocation differences). The 1% criterion therefore holds by construction;
-the measured d20 numbers agree. QA should still repeat `nps_ab.py` on an idle machine.
+make/unmake and SEE. The only changed function was the once-per-iteration driver `Worker::search(Board, ...)`
+(same 2119-instruction length, register-allocation differences). The measured d20 numbers agree; QA should
+still repeat `nps_ab.py` on an idle machine.
+
+**Scope of that claim (reworded after the code review).**
+- It is a measured property of that one build: this compiler, these flags, this tree. It was not checked for
+  other compilers (the Linux CI g++-14 build was verified for bench identity only).
+- It is not guaranteed by the source. Function placement depends on the size of all code emitted before a
+  function, so any later change elsewhere can move the unpinned functions. That happened in later jobs, e.g. in
+  O1-LTT, where larger TT functions moved alpha-beta and qsearch by 16 bytes mod 64.
+- What the source does guarantee is behaviour: bench x5, perft, kiwipete and the depth-18 list are identical.
+- The review fix below pins the hottest functions, so their placement no longer depends on other code.
 
 ### 4. Unit tests (`tests/movepicker_tests.cpp`, `tests/history_tests.cpp`, `tests/timeman_tests.cpp`)
 - `forge_movepicker_tests`: picker output vs an independent reference built from the generator, SEE and the
@@ -152,6 +163,37 @@ whenever *any* translation unit changes size — e.g. a later job adding UCI opt
 boundary, which is exactly its AL1 s198 placement (0 mod 64). Its instructions are unchanged
 (`codegen_compare.sh` lists 32 "differing" lines: only the NOP padding after the function, up to the
 next 64-byte boundary); bench x5 / perft / kiwipete unchanged, FMA 0.
+
+## Review fix: Worker::search, Worker::qsearch, TT probe/store pinned to 64 bytes (`ac05bbb`)
+**The finding.** The code review asked to "add `[[gnu::aligned(64)]]` to Worker::search, qsearch and the TT
+functions or reword the 'machine-code identical' claim". Both were done: the claim above is reworded, and the
+four functions now carry `gnu::aligned(64)` (declarations in `include/forge/search.hpp` and
+`include/forge/tt.hpp`), as `MovePicker::next` already did.
+
+**Measured on the PC recipe build** (`logs/review_fix_pins_*`):
+- **Identity:** bench d11/13/16/20/22 = 312866/862329/3024920/12389307/34048354, perft5 4865609, kiwipete
+  193690690, FMA 0 (`review_fix_pins_identity.log`).
+- **Codegen vs the lock** (`review_fix_pins_codegen.log`):
+  - the four pinned functions are instruction-identical. In `qsearch` the only lines that differ are RIP
+    displacements to moved data and the NOP padding up to the next 64-byte boundary;
+  - their starts move from 32 (search), 48 (qsearch), 48 (probe) and 16 (store) mod 64 to 0 mod 64, by design;
+  - every other listed hot function is unchanged.
+- **NPS** (`nps_ab.py`, 10 ABBA runs per build and depth, node counts equal in every run):
+
+| where | A → B | d16 CPU B/A (95% CI) | d20 CPU B/A (95% CI) |
+|---|---|---|---|
+| quiet GitHub runner, AMD EPYC 7763, g++-14 box recipe (run 40467449811) | O3 → O3 + pins | +0.08% (−0.82 .. +0.98) | −0.78% (−2.04 .. +0.48) |
+| same | lock → O3 + pins | +0.64% (−0.29 .. +1.57) | +0.20% (−0.99 .. +1.39) |
+| this PC (busy with gates, machine exclusive: no), PC recipe | lock → O3 + pins | +1.74% (−1.13 .. +4.61) | −0.42% (−3.34 .. +2.50) |
+
+No measurable difference: the pins are speed-neutral within the noise, and the O3 criterion (bench NPS within
+1%) still holds. Their purpose is robustness. Later changes to code placed before these functions (new options,
+larger TT functions, new modules) no longer move the hottest code, so a job's codegen check shows only its own
+changes.
+
+Branches already built on the unpinned O3 (`0d99f02`) keep their own verified layout. A merge of this commit
+brings the pins in, and each such merge must re-run `codegen_compare.sh`. O1-LTT merges it (it needs the
+pins).
 
 ## Files
 `REPORT.md`, `IDEA_SOURCE.md`, `patch.diff`, `positions50.fen`, `make_positions50.py`, `depth_compare.py`,
