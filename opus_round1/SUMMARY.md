@@ -41,15 +41,18 @@ After the OPUS jobs: `SOL_LEFTOVERS_FOR_CLAUDE.md` (Sol's queue), on branches `o
 | job | branch (head) | status | OFF identity | new tests | sanitizers / speed |
 |---|---|---|---|---|---|
 | S29 step 8: one FORGE_SPEEDSTACK build on the PC | opus-sol-S29 (`81a8031`) | DONE | ON node-exact (all 5 depths, perft, kiwipete) | — | PC NPS under load −0.4..+0.3% (inside noise); quiet runner +0.2/+0.5% |
-| S-IT intended threefold (FIDE 9.2.1, issue #7) | opus-sol-SIT (`fc3bd2a`) | DONE | exact (bench, perft) | intended_threefold_tests 67 checks (11,720-position brute-force cross-check), uci_regression; 6/6 planted bugs | ASan/UBSan/TSan 0; quiet runner: off vs lock +0.06/+0.59%, on vs off 0.00/−0.25% |
+| S-IT intended threefold (FIDE 9.2.1, issue #7) | opus-sol-SIT (`f29b400`) | DONE (+ review follow-up: all 7 findings fixed) | exact (bench, perft) | intended_threefold_tests 288 checks (11,720-position brute-force cross-check), gated uci_regression; 20/20 planted bugs + reviewer's 7/7 | ASan/UBSan/TSan 0; quiet runner: off vs lock no cost; option on in shuffling positions 1.10x/1.15x CPU per node (was 1.4-1.7x) |
+| offguard: OFF-path speed of the new runtime options | opus-offguard (`6659e17`) | DONE (advisory) | A1, S-A2, S41 OFF builds ALL OK | — | quiet runner OFF vs lock CPU NPS d16/d20: A1 −0.81/−0.98%, S-A2 −0.40/−0.46% (CIs exclude 0), S41 −0.16/−0.12% (n.s.) |
 
 ## Sol queue (`SOL_LEFTOVERS_FOR_CLAUDE.md`), one branch per job `opus-sol-<JOB>`; one line each in `SOL_LEFTOVERS_PROGRESS.md`
 - **Section 2, Sol's numbered jobs:** S11-S50 DONE; S22 COVERED by opus-O1.
-  - Engine changes (all default OFF, OFF = lock binary, CI green): S11, S13, S29, S32 (datagen), S37 (microbench), S41 (NetScale), S08fix (profile counters),
-    S04fix (ON cold-init).
+  - Engine changes (all default OFF, OFF = lock nodes, CI green): compile switches (default build = lock binary) S13, S29, S32 (datagen),
+    S37 (microbench), S08fix (profile counters), S04fix (ON cold-init); runtime options S11 (OFF vs lock: no slowdown), S41 (NetScale; no
+    measurable OFF cost, opus-offguard).
+  - S49 speed check verified on a Windows runner (40521059492, PASS); S25fix and S27fix checkers verified on Linux.
   - The rest are tools, studies and evidence (`[skip ci]`).
 - **Section 2, Astra:**
-  - A1 `HistRework` (engine, OFF = lock, CI 40515121020 green, gate `HistRework=2` first);
+  - A1 `HistRework` (engine, OFF = lock nodes, CI 40515121020 green, gate `HistRework=2` first; OFF path −0.8/−1.0% NPS on a quiet runner);
   - A2 king-bucket doc (C4 covers the implementation);
   - A3 full-NNUE pipeline without engine integration;
   - A7 long-training recipe.
@@ -58,6 +61,7 @@ After the OPUS jobs: `SOL_LEFTOVERS_FOR_CLAUDE.md` (Sol's queue), on branches `o
   - S-A3 v3d trainer (LR schedules);
   - S-A6 SPSA plan;
   - S-C4 hidden 768-1024 plan with a measured width cost;
-  - S-A2 `NnueInt16` + trainer weight clip and S-A4 H512 build flags (engine, OFF = lock, CI green).
+  - S-A2 `NnueInt16` + trainer weight clip (engine, OFF = lock nodes, OFF path −0.4/−0.5% NPS on a quiet runner) and S-A4 H512 build
+    flags (default build = lock binary), CI green.
 - **Section 3, fix-ups:** S04-S10, S25-S28, S33, S48 DONE (Linux CI green where the fix-up has a workflow).
 - **Gates:** none were run by us. Every gate-ready candidate names its option, value, SPRT and srand in its REPORT.

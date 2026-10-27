@@ -32,8 +32,9 @@
   - S29: a PC FORGE_SPEEDSTACK build is node-exact; PC NPS under load is inside noise.
   - S-IT: the intended-threefold claim (GitHub issue #7) on the AL1 base, UCI `IntendedThreefold` default off
     (CI release/ASan/TSan green; quiet-runner NPS A/B in its REPORT). A code review found no correctness bug but a
-    claim-check cost in shuffling positions, a test gap at the draw floor and two tooling bugs; fixes are in
-    progress on the same branch.
+    claim-check cost in shuffling positions, a test gap at the draw floor and two tooling bugs. All seven findings
+    are fixed on the same branch (`f29b4005`): option-on cost in shuffling positions 1.34x/1.71x → 1.15x/1.17x CPU
+    per node, tests 67 → 288, CI green.
 - **Sol queue (`SOL_LEFTOVERS_FOR_CLAUDE.md`): every job is DONE.** One line per job is in
   `SOL_LEFTOVERS_PROGRESS.md`.
   - Section 2, items 1-33 (Sol's S11-S50): all done; S22 is covered by O1.
@@ -43,18 +44,25 @@
     S-A3 v3d trainer (LR schedules); S-A4 H512 support (CI green); S-A6 SPSA plan; S-C4 hidden 768-1024 plan with a
     measured width cost.
   - Section 3: every fix-up is done (S04-S10, S25-S28, S33, S48), with Linux CI green where the fix-up has a workflow.
-- **Engine changes added in this round** (all default OFF, OFF build = lock binary, CI release/ASan/TSan green):
-  - Sol's jobs: S11 MaterialKeyTable, S13 TtChildPrefetch, S29 FORGE_SPEEDSTACK, S32 `forge datagen`
-    (FORGE_DATAGEN), S37 NNUE microbench target, S41 NetScale;
-  - fix-ups: S04fix cold-init probe, S08fix profile counters;
-  - Astra and test plan: A1 HistRework, S-A2 NnueInt16, S-A4 H512 build flags.
+- **Engine changes added in this round** (all default OFF; with the option off every build searches the lock's
+  trees, bench/perft pins ALL OK; CI release/ASan/TSan green):
+  - compile-time switches, so the default build is the lock binary: S13 TtChildPrefetch (switch + UCI), S29
+    FORGE_SPEEDSTACK, S32 `forge datagen` (FORGE_DATAGEN), S37 NNUE microbench target, S04fix cold-init probe,
+    S08fix profile counters, S-A4 H512 build flags;
+  - runtime UCI options, so the default binary changes: S11 MaterialKeyTable, S41 NetScale, A1 HistRework, S-A2
+    NnueInt16, S-IT IntendedThreefold.
+  - **OFF-path speed on a quiet runner** (`opus-offguard`, plus the S11 and S-IT reports): S11, S41 and S-IT show no
+    measurable cost. A1 costs −0.8% / −1.0% CPU NPS (d16/d20) and S-A2 −0.4% / −0.5%, both CIs excluding 0. This
+    matters only if they are merged with the option off by default; a compile switch would remove it.
+- **Quiet-box checks of PC-only tools** (GitHub runners): S49's speed check on a Windows runner (verdict PASS: A/A
+  CIs contain 1, a synthetic 5% slowdown is detected); the S25fix and S27fix checkers on Linux (green; the PC-only
+  test failures are Windows line endings and paths). S05fix and S08fix Linux CI were recorded earlier.
 - **No gates were run.** Each gate-ready candidate names its option, value, SPRT and srand in its REPORT.md.
 
 ## In progress / left
-- **S-IT code-review fixes:** a sub-agent is applying them on `opus-sol-SIT`: the claim-check cost in shuffling
-  positions, floor tests with material, uci_regression gating, ci_sit.sh exit status, TT move at claim nodes, the
-  fail-low bonus guard. The S-IT code from before the review is on the branch and works; the review found no
-  correctness bug.
+- **S12 / S14 follow-ups (sub-agent, running):** S14's 3,328-byte MovePicker zero-fill per construction (switch
+  default OFF, quiet-runner NPS) and S12's null-move accumulator alias port (default OFF, node-exact). Both jobs
+  are DONE without them; these close their last UNVERIFIED lines.
 - **Everything else is for the owner or crew:**
   - gates;
   - CR reviews of the proposed patches;
@@ -87,6 +95,9 @@
   quiet-runner A/Bs (GitHub Actions) are the cleaner speed evidence.
 - **No local Linux sanitizers.** WSL2 needs the Virtual Machine Platform feature and a reboot, which was not
   done. Linux identity, ASan+UBSan and TSan come from `.github/workflows/opus-ci.yml` on each `opus-*` branch.
+- **PC clock.** Windows reports a UTC time 9 hours ahead of GitHub's server time (its time zone is Pacific while
+  the clock shows the local time). Timestamps in PC logs are local wall time; compare them with CI times through
+  `gh api -i rate_limit` (Date header), not `date -u`.
 - **Paths.** The lock archive and the build scripts moved from the session scratchpad to
   `D:\grok-pc-data\dwqww\.claude\worktrees\b\pkg` and `...\b\tools` (2026-10-27). NNUE smoke runs write only to
   `F:\opus_scratch`, with renamed trainer copies; `F:\forge_nnue_train` was never written.
@@ -100,6 +111,7 @@
   - `F:\opus_scratch\worktrees\opus_sol_s43` (an early copy of the S43 tool, not a git worktree; the real
     worktree is `opus_sol_s43_wt`) and `F:\opus_scratch\sol_S40\fixture_v2\second\newdir` (planted-bug output);
   - the empty untracked folder `opus_round1/sol_S27fix/old_attempt_check` in the S27fix worktree;
+  - `F:\opus_scratch\sol_S25fix\apply_test_*` (a `git apply` reproduction made while debugging the S25fix CI);
   - all of `F:\opus_scratch` (worktrees, builds, scratch) once the branches are reviewed.
 - **Published outside git branches:** the GitHub prerelease `opus-sol-S48fix-grids-20261027` (tag on the S48fix
   branch, `main` untouched). S48-4 asked for simulation grids to go to release assets instead of git; delete the
@@ -110,3 +122,6 @@
     stayed at 7.
   - One `rm -rf` on a not-yet-created scratch folder was denied by the permission system; nothing was deleted.
   - The briefs and skills now spell out both rules.
+- **Main-session slip (fixed):** three REPORT.md files (S49, S25fix, S27fix) were pushed with CRLF line endings
+  after an edit with Windows Python's text mode; LF was restored in the next commit on each branch (`adf6f27d`,
+  `f3e8cf32`, `62aaa033`). The PC rules skill now says how to avoid it.
