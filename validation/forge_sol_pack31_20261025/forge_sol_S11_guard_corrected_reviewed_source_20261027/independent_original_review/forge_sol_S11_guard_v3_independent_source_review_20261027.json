@@ -1,0 +1,74 @@
+{
+  "scope": "INDEPENDENT_SOURCE_AND_PURE_REVIEW_NO_NATIVE",
+  "helper_sha256": "6eb98832363e901eff8afd966c972fc758ee8ff1838a04bb40c634a2b30578aa",
+  "consumer_sha256": "22de66422f0f4cb6662200885a31351f4a40d77a445932ea63ee4a18505aff26",
+  "original_consumer_sha256": "ebfec0ac47b32503318bc455a05b4901eb0ace704123d39eb1d350e461ba4464",
+  "equal_helper_ASTs": [
+    "load",
+    "bind_arm",
+    "binding_identity",
+    "require_arm_identity",
+    "scalar_link_argv",
+    "verify_scalar_artifacts",
+    "normal_nnue_command",
+    "bind_corpus"
+  ],
+  "only_main_changes_after_guard_replacement": [
+    {
+      "line": 133,
+      "kind": "If",
+      "source": "if proof.sha(RESOURCE_PATH)!=RESOURCE_SHA or proof.sha(TIMEOUT_FAIL_PATH)!=TIMEOUT_FAIL_SHA:p.error('resource observer/original timeout FAIL identity changed')"
+    },
+    {
+      "line": 143,
+      "kind": "Expr",
+      "source": "result.update(schema='forge.S11.three_arm_parity.resource_guard_v3',resource_observer_version=3,resource_observer_path=str(RESOURCE_PATH),resource_observer_sha256=RESOURCE_SHA,original_capture_timeout_receipt=str(TIMEOUT_FAIL_PATH),original_capture_timeout_receipt_sha256=TIMEOUT_FAIL_SHA)"
+    },
+    {
+      "line": 145,
+      "kind": "Assign",
+      "source": "resource_guard=resource_observer.OwnedResourceGuard(a.out,deadline-2,owned,result)"
+    },
+    {
+      "line": 185,
+      "kind": "Assign",
+      "source": "resource_end_reason=resource_guard.finalize()"
+    },
+    {
+      "line": 186,
+      "kind": "Assign",
+      "source": "result['resource_guard']=resource_guard.snapshot()"
+    },
+    {
+      "line": 187,
+      "kind": "If",
+      "source": "if resource_end_reason:result['status']='FAIL';result['resource_guard_end_reason']=resource_end_reason"
+    },
+    {
+      "line": 193,
+      "kind": "If",
+      "source": "if proof.sha(RESOURCE_PATH)!=RESOURCE_SHA or proof.sha(TIMEOUT_FAIL_PATH)!=TIMEOUT_FAIL_SHA:raise ValueError('resource observer or original capture timeout changed during successor parity')"
+    },
+    {
+      "line": 194,
+      "kind": "Assign",
+      "source": "result['original_capture_timeout_receipt_unchanged']=True"
+    }
+  ],
+  "main_AST_otherwise_equal": true,
+  "sample_constants": {
+    "CAP": 4294967296,
+    "RSS_INTERVAL": 0.05,
+    "GROUP_INTERVAL": 1.0,
+    "DISK_FLOOR": 67108864
+  },
+  "original_failed_receipts_unchanged": true,
+  "actual_previous_child_event_rows": 8,
+  "previous_event_grammar_matches": true,
+  "provided14_tests": "fresh PASS",
+  "focused_missing_RSS_controls": "two expected FAILs against current helper",
+  "status": "BLOCKED_MISSING_VMRSS_FALSE_ZERO",
+  "must_fix": "_read_rss reports0 whenever VmRSS missing; actual owned Z-leader/live-worker capture and synthetic non-Z missingRSS pass undercounted. Bounded verified shared-MM task fallback or explicit unknown rejection required; preserve normal exit/drain with verified all-dead handling.",
+  "other_source_findings": "Deadline/stop/owner/active-leader identity stay outside sample intervals before/after scans.1s membership and50ms knownRSS forcing on stage/new event/exit/finalize are present. Original producer, numerical observer63a, cleanup, capture chunks, flags, corpus and timers unchanged. Sampling visibility gap is explicitly disclosed.",
+  "native_retries": 0
+}

@@ -1,0 +1,11 @@
+# S11 guard-v3 independent review continuation — 2026-10-27
+
+Publication view for the private PowerShell runtime is CLOSED separately at /tmp/forge_sol_pwsh754_publication_view_20261027, view manifest1b368841177a78d8e0d309325952a7f8aaaa30e744291260b5bc805952b08521. It contains source/data only, no runtime/archive. Root owns Git; this child has done no Git or native/compiler/match work.
+
+Current S11 guard review status: BLOCKED on missing VmRSS false-zero. Original helper6eb98832363e901eff8afd966c972fc758ee8ff1838a04bb40c634a2b30578aa and consumer22de66422f0f4cb6662200885a31351f4a40d77a445932ea63ee4a18505aff26 remain unchanged in /tmp/forge_sol_S11_resource_guard_v3_prep_20261027. A fresh14-test pure suite passed, but two independent pure controls fail: actual owned Z-leader capture with a12,572KiB live same-Tgid worker is reported as0; synthetic live non-Z missingRSS passes reason() instead of failing closed. No native claim or original-timeout attribution.
+
+Independent AST audit verified all8 helpers unchanged and main unchanged after exactly8 resource/pin statements and guard replacement.4GiB/50ms/1s constants retained, start/end clock/stop checks outside sampling gates, stage/leader-exit/finalize refreshes present. Eight actual prior events are child_start and match the reader grammar. Original two failed receipts retain their exact hashes.
+
+S09 operator agreed to preserve originals and prepare NEW review-v2 paths with a bounded verified live-task shared-MM RSS fallback, maximum rather than sum of same-Tgid task RSS, no-zero unknowns, verified all-dead handling for normal zombie/EOF drain, task/leader identity race controls and updated pure tests. Exact owned reference is S18 checkpoint/prep/forge_sol_S18_train_selected_v3_20261027.py SHAab02ac6a4579bf37b3ea65f2bb07c4d5d08a33bd6b19d6130bc3f8d1369f1e76; raw captures are in that checkpoint/probe_runtime. S18's reader rejects no-live/noRSS; S11 all-dead zero must be separately justified/tested.
+
+Await S09's frozen new packet, then independently inspect actual source/AST, run pure controls only, and report must-fix or approval to root. Do not edit producer code, run engines/compiler/matches or rescue/retry original failures. Review JSON is the authoritative current finding record; no PASS yet.
