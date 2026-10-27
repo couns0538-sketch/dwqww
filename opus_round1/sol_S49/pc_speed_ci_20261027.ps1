@@ -203,10 +203,15 @@ function Get-PairRatio($Rows, [string]$Num, [string]$Den, [string]$MetricName) {
 
 function Get-CoreCount { if ($FixtureCoreCount -gt 0) { return $FixtureCoreCount }; return [Environment]::ProcessorCount }
 
+function ConvertFrom-MemInfo([string[]]$Lines) {
+    # /proc/meminfo text -> MemAvailable in GB (kB / 1MB)
+    $line = @($Lines | Where-Object { $_ -like 'MemAvailable:*' })[0]
+    return [Math]::Round(([double](($line.Trim() -split '\s+')[1])) / 1MB, 2)
+}
+
 function Get-FreeRamGB {
     if ($IsWindows) { return [Math]::Round((Get-CimInstance Win32_OperatingSystem).FreePhysicalMemory / 1MB, 2) }
-    $line = (Get-Content /proc/meminfo | Where-Object { $_ -like 'MemAvailable:*' })
-    return [Math]::Round(([double](($line -split '\s+')[1])) / 1MB, 2)
+    return ConvertFrom-MemInfo @(Get-Content /proc/meminfo)
 }
 
 function Get-CpuTempC {
@@ -253,18 +258,34 @@ function Get-CpuTempC {
     return $null
 }
 
-function Get-CpuTimes {
-    # Linux: per-core and total (busy, all) jiffies from /proc/stat. Windows: $null (CIM formatted counters used).
-    if (-not $IsLinux) { return $null }
+function ConvertFrom-ProcStat([string[]]$Lines) {
+    # /proc/stat text -> @{ 'cpu' = @(busy, all); 'cpuN' = @(busy, all) } in jiffies (idle = idle + iowait).
+    # Note: PowerShell's comma binds tighter than '-', hence the parentheses in @(($all - $idle), $all).
     $t = @{}
-    foreach ($l in (Get-Content /proc/stat | Where-Object { $_ -like 'cpu*' })) {
-        $f = $l -split '\s+'
+    foreach ($l in $Lines) {
+        if ($l -notlike 'cpu*') { continue }
+        $f = $l.Trim() -split '\s+'
         $nums = @($f[1..($f.Count - 1)] | ForEach-Object { [double]$_ })
         $all = ($nums | Measure-Object -Sum).Sum
         $idle = $nums[3] + $nums[4]
-        $t[$f[0]] = @($all - $idle, $all)
+        $t[$f[0]] = @(($all - $idle), $all)
     }
     return $t
+}
+
+function Get-LoadFromTimes($Before, $After, [string]$Key) {
+    if (-not $Before -or -not $After) { return [double]::NaN }
+    $b = $Before[$Key]; $a = $After[$Key]
+    if ($null -eq $a -or $null -eq $b) { return [double]::NaN }
+    $den = $a[1] - $b[1]
+    if ($den -le 0) { return [double]::NaN }
+    return 100.0 * ($a[0] - $b[0]) / $den
+}
+
+function Get-CpuTimes {
+    # Linux: /proc/stat snapshot. Windows: $null (CIM formatted counters are used instead).
+    if (-not $IsLinux) { return $null }
+    return ConvertFrom-ProcStat @(Get-Content /proc/stat)
 }
 
 function Get-LoadPercent($Before, [int]$CoreIndex) {
@@ -278,8 +299,7 @@ function Get-LoadPercent($Before, [int]$CoreIndex) {
     }
     if ($IsLinux -and $Before) {
         $after = Get-CpuTimes
-        $pct = { param($k) $b = $Before[$k]; $a = $after[$k]; if (-not $a -or -not $b -or ($a[1] - $b[1]) -le 0) { [double]::NaN } else { 100.0 * ($a[0] - $b[0]) / ($a[1] - $b[1]) } }
-        return @((& $pct 'cpu'), (& $pct "cpu$CoreIndex"))
+        return @((Get-LoadFromTimes $Before $after 'cpu'), (Get-LoadFromTimes $Before $after "cpu$CoreIndex"))
     }
     return @([double]::NaN, [double]::NaN)
 }
@@ -370,6 +390,14 @@ function Invoke-SelfTest {
     $ci = Get-BootstrapMedianCI $slow 4000 1
     Check ($ci[1] -lt 1.0) "synthetic 5% slowdown CI $([Math]::Round($ci[0],4))-$([Math]::Round($ci[1],4)) excludes 1"
     Check ((Get-Median @(3.0, 1.0, 2.0)) -eq 2.0 -and (Get-Median @(4.0, 1.0, 2.0, 3.0)) -eq 2.5) 'median'
+    # Linux probes, parsed from fixture text (so they are tested on every OS).
+    $t0 = ConvertFrom-ProcStat @('cpu  100 0 100 700 100 0 0 0 0 0', 'cpu3 10 0 10 70 10 0 0 0 0 0', 'intr 1 2 3')
+    $t1 = ConvertFrom-ProcStat @('cpu  400 0 100 1300 200 0 0 0 0 0', 'cpu3 110 0 10 70 10 0 0 0 0 0')
+    Check ($t0['cpu'][0] -eq 200 -and $t0['cpu'][1] -eq 1000 -and $t0['cpu3'][0] -eq 20) '/proc/stat parse: busy and total jiffies'
+    Check ([Math]::Abs((Get-LoadFromTimes $t0 $t1 'cpu') - 300.0 / 1000.0 * 100.0) -lt 1e-9) '/proc/stat load: 300 busy of 1000 jiffies = 30%'
+    Check ((Get-LoadFromTimes $t0 $t1 'cpu3') -eq 100.0) '/proc/stat load of one core: 100%'
+    Check ([double]::IsNaN((Get-LoadFromTimes $t0 $t1 'cpu9'))) '/proc/stat load of a missing core: NaN'
+    Check ((ConvertFrom-MemInfo @('MemTotal:       16777216 kB', 'MemAvailable:    8388608 kB')) -eq 8.0) '/proc/meminfo MemAvailable 8388608 kB = 8 GB'
     # Static check on this file: the only affinity assignment uses $script:ChosenMask, set only from Select-SafeCore.
     $src = Get-Content -LiteralPath $PSCommandPath -Raw
     $assign = [regex]::Matches($src, 'ProcessorAffinity\s*=\s*([^\r\n;]+)')

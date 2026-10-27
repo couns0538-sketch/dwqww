@@ -1,4 +1,4 @@
-# S49 -SelfTest on the PC (pure functions + static check; no engine); Tue Oct 27 15:10:14 PST 2026
+# S49 -SelfTest on the PC (pure functions incl. /proc parsers from fixture text + static check; no engine); Tue Oct 27 15:14:39 PST 2026
 PASS affinity text 0xFFF0 -> cores 4-15
 PASS affinity text ranges
 PASS mask 0xF000 -> 12-15
@@ -17,7 +17,12 @@ PASS temp dir allowed
 PASS synthetic A/A CI 0.9985-1.002 contains 1
 PASS synthetic 5% slowdown CI 0.9481-0.952 excludes 1
 PASS median
+PASS /proc/stat parse: busy and total jiffies
+PASS /proc/stat load: 300 busy of 1000 jiffies = 30%
+PASS /proc/stat load of one core: 100%
+PASS /proc/stat load of a missing core: NaN
+PASS /proc/meminfo MemAvailable 8388608 kB = 8 GB
 PASS one ProcessorAffinity assignment, from $script:ChosenMask
 PASS $script:ChosenMask set once (besides the 0 initialiser), from the Select-SafeCore result
-SELFTEST checks=20 failures=0
+SELFTEST checks=25 failures=0
 exit=0
