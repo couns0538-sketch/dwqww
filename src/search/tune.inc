@@ -5,6 +5,12 @@
 namespace forge {
 
 namespace tune {
+// CorrHistPlus weights. Defined before the AL1 s198 tunables on purpose: GCC
+// emits a translation unit's globals in reverse definition order, so these
+// land after the existing block and every AL1 s198 tunable keeps its address.
+int CorrContWeight = 100;
+int CorrMinorWeight = 100;
+int CorrNonPawnWeight = 100;
 int LmrQuietBase = 85;
 int LmrQuietDivisor = 220;
 int LmrNoisyBase = 10;
@@ -56,9 +62,6 @@ int CaptureFutilityBase = 0;
 int CaptureFutilityMultiplier = 250;
 int CaptureFutilityDepth = 6;
 int FailLowContinuationBonus = 0;
-int CorrContWeight = 100;
-int CorrMinorWeight = 100;
-int CorrNonPawnWeight = 100;
 
 const std::vector<Parameter>& parameters() {
     static const std::vector<Parameter> table{
