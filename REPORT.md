@@ -31,13 +31,24 @@
     test builds (CI green incl. the TSan hook).
   - S29: a PC FORGE_SPEEDSTACK build is node-exact; PC NPS under load is inside noise.
   - S-IT: the intended-threefold claim (GitHub issue #7) on the AL1 base, UCI `IntendedThreefold` default off
-    (CI release/ASan/TSan green; quiet-runner NPS A/B in its REPORT).
-- **Sol queue:** see `SOL_LEFTOVERS_PROGRESS.md` for one line per job.
+    (CI release/ASan/TSan green; quiet-runner NPS A/B in its REPORT). A code review found no correctness bug but a
+    claim-check cost in shuffling positions, a test gap at the draw floor and two tooling bugs; fixes are in
+    progress on the same branch.
+- **Sol queue (`SOL_LEFTOVERS_FOR_CLAUDE.md`):** one line per job in `SOL_LEFTOVERS_PROGRESS.md`.
+  - Section 2: S11-S50 done (S22 covered by O1).
+  - Astra A1 (`HistRework`, CI green) and A7 (long-training recipe) are done.
+  - Test-plan jobs done: S-A1 (more-data recipe), S-A3 (v3d trainer with LR-schedule arguments), S-A6 (SPSA re-tune
+    plan) and S-C4 (hidden 768-1024 plan with a measured width cost).
+  - Section 3 fix-ups done: S09, S10, S25, S26, S27, S28, S33, S48.
 
 ## In progress / left
-- Sol queue: S20, S31 and S44 are finishing in the main session. Seven sub-agents are working on S32/S37,
-  S39/S50, S40/S42/S43, S41/S45/S49, and the section-3 fix-ups (S04-S08, S09-S10, S25-S28 + S33 + S48).
-  S36 and S24 come last.
+- **Sub-agents still working:**
+  - S41/S45/S49;
+  - fix-ups S04-S08;
+  - A2 + A3 (king-bucket doc, full-NNUE pipeline);
+  - S-A2 + S-A4 (int16 port with trainer weight clipping, hidden 512);
+  - the S-IT code-review fixes.
+- **Main session:** S20, a 1M-position depth-8 rescoring, is finishing (the run is at its last chunks).
 
 ## Incident: our smoke runs disturbed the PC training supervisor (found 2026-10-27 10:24 PST; RESOLVED, QA reset the fail count to 0)
 - **What happened.** `F:\forge_nnue_train\supervisor.log` (read only) shows that the supervisor adopted five
