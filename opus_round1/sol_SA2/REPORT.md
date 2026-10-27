@@ -65,3 +65,11 @@ Work and results by a sub-agent; this report text is its hand-back.
 - Parity used one net (the lock) on the 10k FENs from S31.
 
 Machine exclusive: no.
+
+## Quiet-runner OFF-path NPS (follow-up, added by the main session)
+Branch `opus-offguard`, workflow run 40520714508 (GitHub ubuntu-24.04, g++-14 box flags; `opus-offguard:opus_round1/offguard/REPORT.md`):
+the OFF build of `d2301c51` against the lock `294dbed3`, 10 ABBA runs per side, nodes identical, identity ALL OK.
+- CPU NPS B/A: d16 0.9960 (−0.40%, 95% CI −0.61 .. −0.19), d20 0.9954 (−0.46%, CI −0.62 .. −0.30). The OFF path has a
+  **small real cost** (both CIs exclude 0), smaller than the PC figure above (−1.1% / −1.2%, wide CIs).
+- Code size: `nnue::refresh` 589 → 691 bytes, `nnue::update` 2,266 → 2,342, `nnue::evaluate` 431 → 447; search and
+  qsearch unchanged. With the larger accumulator entries (2 → 4 KiB) these are the likely sources.
