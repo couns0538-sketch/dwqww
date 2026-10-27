@@ -1,42 +1,45 @@
-# ctest, CMake Release (MSYS2 g++ 15.2, box flags -march=x86-64-v3 -mtune=znver5 -ffp-contract=off -DFORGE_NNUE_HIDDEN=256), commit d879caa75ee2eb1de0fa9d1c766d8a7042e8cdd0
+# ctest, CMake Release (MSYS2 g++ 15.2, box flags -march=x86-64-v3 -mtune=znver5 -ffp-contract=off -DFORGE_NNUE_HIDDEN=256), commit 8fb138332010bcd1651c2af44f10c53e4fe030d1
 # forge_tests excluded locally: it runs a 4-thread search (the brief forbids Threads > 1 on this PC); the CI release/asan/tsan jobs run the full suite
 $ ctest -E '^forge_tests$' --output-on-failure --timeout 600
-Test project D:/grok-pc-data/dwqww/.claude/worktrees/b/c4_final/cm
+Test project D:/grok-pc-data/dwqww/.claude/worktrees/b/c4fix_cmfull
       Start  1: forge_correction_history_tests
- 1/17 Test  #1: forge_correction_history_tests ...   Passed    0.04 sec
+ 1/18 Test  #1: forge_correction_history_tests ...   Passed    0.04 sec
       Start  2: forge_runtime_psqt_tests
- 2/17 Test  #2: forge_runtime_psqt_tests .........   Passed    0.04 sec
+ 2/18 Test  #2: forge_runtime_psqt_tests .........   Passed    0.04 sec
       Start  3: forge_pawn_span_tests
- 3/17 Test  #3: forge_pawn_span_tests ............   Passed    0.04 sec
+ 3/18 Test  #3: forge_pawn_span_tests ............   Passed    0.04 sec
       Start  4: forge_nearest_pawn_tests
- 4/17 Test  #4: forge_nearest_pawn_tests .........   Passed    0.05 sec
+ 4/18 Test  #4: forge_nearest_pawn_tests .........   Passed    0.05 sec
       Start  5: forge_pv_metadata_tests
- 5/17 Test  #5: forge_pv_metadata_tests ..........   Passed    0.04 sec
+ 5/18 Test  #5: forge_pv_metadata_tests ..........   Passed    0.05 sec
       Start  6: forge_movepicker_tests
- 6/17 Test  #6: forge_movepicker_tests ...........   Passed    0.08 sec
+ 6/18 Test  #6: forge_movepicker_tests ...........   Passed    0.08 sec
       Start  7: forge_history_tests
- 7/17 Test  #7: forge_history_tests ..............   Passed    0.04 sec
+ 7/18 Test  #7: forge_history_tests ..............   Passed    0.04 sec
       Start  8: forge_timeman_tests
- 8/17 Test  #8: forge_timeman_tests ..............   Passed    0.01 sec
+ 8/18 Test  #8: forge_timeman_tests ..............   Passed    0.01 sec
       Start  9: forge_nnue_v2_tests
- 9/17 Test  #9: forge_nnue_v2_tests ..............   Passed    0.96 sec
-      Start 10: forge_tt_tests
-10/17 Test #10: forge_tt_tests ...................   Passed    0.02 sec
-      Start 11: forge_rule50_tests
-11/17 Test #11: forge_rule50_tests ...............   Passed    0.06 sec
-      Start 12: forge_legal_witness_tests
-12/17 Test #12: forge_legal_witness_tests ........   Passed    0.15 sec
-      Start 13: match_tool_tests
-13/17 Test #13: match_tool_tests .................   Passed    0.07 sec
-      Start 14: windows_validation_tests
-14/17 Test #14: windows_validation_tests .........   Passed    1.59 sec
-      Start 15: uci_regression
-15/17 Test #15: uci_regression ...................   Passed    0.17 sec
-      Start 16: ponder_regression
-16/17 Test #16: ponder_regression ................   Passed    0.63 sec
-      Start 17: ownbook_regression
-17/17 Test #17: ownbook_regression ...............   Passed    0.87 sec
+ 9/18 Test  #9: forge_nnue_v2_tests ..............   Passed    0.82 sec
+      Start 10: forge_nnue_v2_uci_tests
+10/18 Test #10: forge_nnue_v2_uci_tests ..........   Passed    0.82 sec
+      Start 11: forge_tt_tests
+11/18 Test #11: forge_tt_tests ...................   Passed    0.02 sec
+      Start 12: forge_rule50_tests
+12/18 Test #12: forge_rule50_tests ...............   Passed    0.06 sec
+      Start 13: forge_legal_witness_tests
+13/18 Test #13: forge_legal_witness_tests ........   Passed    0.16 sec
+      Start 14: match_tool_tests
+14/18 Test #14: match_tool_tests .................   Passed    0.07 sec
+      Start 15: windows_validation_tests
+15/18 Test #15: windows_validation_tests .........   Passed    1.63 sec
+      Start 16: uci_regression
+16/18 Test #16: uci_regression ...................   Passed    0.17 sec
+      Start 17: ponder_regression
+17/18 Test #17: ponder_regression ................   Passed    0.65 sec
+      Start 18: ownbook_regression
+18/18 Test #18: ownbook_regression ...............   Passed    0.88 sec
 
-100% tests passed, 0 tests failed out of 17
+100% tests passed, 0 tests failed out of 18
 
-Total Test time (real) =   4.88 sec
+Total Test time (real) =   5.63 sec
+# compiler warnings in the build: 6 (the 6 pre-existing -Wconversion lines in qsearch.inc / alphabeta.inc)

@@ -1,8 +1,8 @@
 diff --git a/CMakeLists.txt b/CMakeLists.txt
-index f3acf19..a911401 100644
+index f3acf19b..b43175a5 100644
 --- a/CMakeLists.txt
 +++ b/CMakeLists.txt
-@@ -79,6 +79,15 @@ add_executable(forge_timeman_tests tests/timeman_tests.cpp)
+@@ -79,6 +79,20 @@ add_executable(forge_timeman_tests tests/timeman_tests.cpp)
  target_include_directories(forge_timeman_tests PRIVATE src)
  target_link_libraries(forge_timeman_tests PRIVATE forge_core Threads::Threads)
  
@@ -11,6 +11,11 @@ index f3acf19..a911401 100644
 +target_include_directories(forge_nnue_v2_tests PRIVATE src)
 +target_link_libraries(forge_nnue_v2_tests PRIVATE forge_core Threads::Threads)
 +
++# UCI-level fail-loud checks of the v2 options (drives the forge executable through stdin).
++add_executable(forge_nnue_v2_uci_tests tests/nnue_v2_uci_tests.cpp)
++target_link_libraries(forge_nnue_v2_uci_tests PRIVATE forge_core Threads::Threads)
++add_dependencies(forge_nnue_v2_uci_tests forge)
++
 +# Export parity helper for v2 nets (tools/nnue/v2_parity.py): position generator and engine-side evaluator.
 +add_executable(forge_nnue_v2_tool tools/nnue/nnue_v2_tool.cpp)
 +target_link_libraries(forge_nnue_v2_tool PRIVATE forge_core Threads::Threads)
@@ -18,26 +23,29 @@ index f3acf19..a911401 100644
  add_executable(forge_bench bench/benchmark.cpp)
  target_link_libraries(forge_bench PRIVATE forge_core Threads::Threads)
  
-@@ -92,6 +101,7 @@ add_test(NAME forge_pv_metadata_tests COMMAND forge_pv_metadata_tests)
+@@ -92,6 +106,8 @@ add_test(NAME forge_pv_metadata_tests COMMAND forge_pv_metadata_tests)
  add_test(NAME forge_movepicker_tests COMMAND forge_movepicker_tests)
  add_test(NAME forge_history_tests COMMAND forge_history_tests)
  add_test(NAME forge_timeman_tests COMMAND forge_timeman_tests)
 +add_test(NAME forge_nnue_v2_tests COMMAND forge_nnue_v2_tests)
++add_test(NAME forge_nnue_v2_uci_tests COMMAND forge_nnue_v2_uci_tests $<TARGET_FILE:forge>)
  add_test(NAME forge_tt_tests COMMAND forge_tt_tests)
  add_test(NAME forge_rule50_tests COMMAND forge_rule50_tests)
  add_test(NAME forge_legal_witness_tests COMMAND forge_legal_witness_tests
 diff --git a/include/forge/nnue_v2.hpp b/include/forge/nnue_v2.hpp
 new file mode 100644
-index 0000000..4c8a76a
+index 00000000..fd3984bc
 --- /dev/null
 +++ b/include/forge/nnue_v2.hpp
-@@ -0,0 +1,340 @@
+@@ -0,0 +1,353 @@
 +#pragma once
 +
 +// v2 networks (C4): king-bucketed input layer, loaded from a file at run time.
 +// Used only when UCI NNUEKingBuckets > 0 and a matching file is loaded with UCI
-+// NNUEFile (forge/search_options.hpp); otherwise the compiled-in network
-+// (forge/nnue.hpp) is used and nothing here runs.
++// NNUEFile (forge/search_options.hpp); with neither option set the compiled-in
++// network (forge/nnue.hpp) is used and nothing here runs. A request that cannot
++// be honoured is an error, never a silent fall-back to the compiled-in network
++// (see options::nnue_v2_problem and src/uci.cpp).
 +//
 +// Feature of piece `pc` on `square` for perspective p (own king on `ksq`):
 +//   r      = p == White ? square : square ^ 56       (rank flip, as forge/nnue.hpp)
@@ -169,10 +177,21 @@ index 0000000..4c8a76a
 +};
 +
 +// ---- loading and selection (src/nnue.cpp; must not run during a search) ----
-+// Loads a v2 file; on failure the previously loaded net (if any) stays loaded.
++// Loads a v2 file. The previously loaded net is unloaded first, so after a
++// failed load no net is loaded (the engine never evaluates with a net other
++// than the one last requested). The file size is checked (seek to the end)
++// before anything is allocated: a file smaller than a header, larger than the
++// largest valid v2 file or of another size than its header implies is
++// rejected after reading at most the 160 header bytes.
 +[[nodiscard]] bool load(const std::string& path, std::string* error);
 +void unload();
 +[[nodiscard]] const Net* loaded();
++// Size in bytes of a v2 file with these counts (header + weights + checksum).
++[[nodiscard]] std::uint64_t file_bytes(int king_buckets, int output_buckets);
++// Bytes of its file the last load() read (0, the header only, or the whole file).
++[[nodiscard]] std::uint64_t last_load_bytes_read();
++// "<path> king buckets N output buckets M hidden H mirrored|unmirrored residual|stand-alone fnv1a X".
++[[nodiscard]] std::string summary(const Net& net);
 +// Makes the loaded net the active one if it has exactly `king_buckets` king
 +// buckets (0 = never); returns the active net, message gets a one-line state.
 +const Net* select(int king_buckets, std::string* message);
@@ -373,7 +392,7 @@ index 0000000..4c8a76a
 +
 +} // namespace forge::nnue::v2
 diff --git a/include/forge/search.hpp b/include/forge/search.hpp
-index 5c42aab..2fdab1c 100644
+index 5c42aab3..2fdab1cf 100644
 --- a/include/forge/search.hpp
 +++ b/include/forge/search.hpp
 @@ -4,6 +4,7 @@
@@ -395,10 +414,10 @@ index 5c42aab..2fdab1c 100644
  };
 diff --git a/include/forge/search_options.hpp b/include/forge/search_options.hpp
 new file mode 100644
-index 0000000..43270f9
+index 00000000..e070a52d
 --- /dev/null
 +++ b/include/forge/search_options.hpp
-@@ -0,0 +1,27 @@
+@@ -0,0 +1,44 @@
 +#pragma once
 +
 +#include <string>
@@ -411,8 +430,19 @@ index 0000000..43270f9
 +// UCI NNUEKingBuckets (spin 0-32, default 0) together with UCI NNUEFile
 +// (string): evaluate with a v2 network (king-bucketed input layer, see
 +// forge/nnue.hpp nnue::v2) loaded from NNUEFile. N > 0 selects the loaded net
-+// when it has exactly N king buckets; 0, no file or a mismatch keeps the
-+// compiled-in network.
++// when it has exactly N king buckets.
++//
++// Fail-loud rule (no silent fall-back to the compiled-in network). The user
++// requests a v2 net with a non-empty NNUEFile or NNUEKingBuckets > 0. A
++// request that cannot be honoured (file missing or unreadable, wrong size, bad
++// header or checksum, NNUEKingBuckets != the net's king buckets, including 0,
++// NNUEKingBuckets > 0 without a loaded file) is an error: the UCI layer prints
++// `info string ERROR NNUE v2: <reason>` at once, and if the request is still
++// unsatisfied at the next `isready`, `go` or `bench` it prints the error again
++// and exits with status 2. Not errors: `UseNNUE false` (every network off on
++// purpose; the request is ignored while it lasts) and NNUEFile `<empty>` (clears
++// the file part of the request). With no NNUE option set nothing new is printed
++// and the engine is the AL1 s198 engine.
 +extern int nnue_king_buckets;
 +
 +// Derived switch read by Worker::static_evaluate: true while a v2 network is
@@ -425,9 +455,15 @@ index 0000000..43270f9
 +// `message` (optional) receives a one-line description of the state.
 +bool apply_nnue_v2(std::string* message);
 +
++// The fail-loud rule above: why the current v2 request cannot be honoured, or
++// "" when it is honoured, when nothing is requested or when UseNNUE is false.
++// `file` is the NNUEFile value ("" = none) and `load_error` why it did not
++// load ("" = it loaded). Call after apply_nnue_v2().
++std::string nnue_v2_problem(const std::string& file, const std::string& load_error);
++
 +} // namespace forge::options
 diff --git a/src/nnue.cpp b/src/nnue.cpp
-index e88cfc5..51854c5 100644
+index e88cfc57..01195ca5 100644
 --- a/src/nnue.cpp
 +++ b/src/nnue.cpp
 @@ -1,9 +1,15 @@
@@ -439,14 +475,14 @@ index e88cfc5..51854c5 100644
  #include <cstdint>
 +#include <cstring>
 +#include <fstream>
-+#include <iterator>
++#include <iomanip>
  #include <memory>
 +#include <sstream>
 +#include <vector>
  
  // The output layer uses SSE min/max/mul/add directly: compilers may not turn a
  // float clamp into min/max instructions without -ffast-math, which left the
-@@ -237,3 +243,184 @@ DirtyPieces dirty_pieces(const Board& board, const Move& move) {
+@@ -237,3 +243,226 @@ DirtyPieces dirty_pieces(const Board& board, const Move& move) {
  }
  
  } // namespace forge::nnue
@@ -465,24 +501,25 @@ index e88cfc5..51854c5 100644
 +namespace {
 +
 +Net* loaded_net = nullptr;   // owned; deleted by load() / unload()
++std::uint64_t last_bytes_read = 0;   // bytes of its file the last load() read
 +
 +constexpr std::uint32_t FlagResidual = 1U;
 +constexpr std::uint32_t FlagMirror = 2U;
 +constexpr char Magic[8] = {'F', 'O', 'R', 'G', 'E', 'N', 'N', '2'};
 +
-+[[gnu::cold]] std::uint32_t read_u32(const std::vector<unsigned char>& bytes, std::size_t offset) {
++[[gnu::cold]] std::uint32_t read_u32(const unsigned char* bytes, std::size_t offset) {
 +    return static_cast<std::uint32_t>(bytes[offset]) | static_cast<std::uint32_t>(bytes[offset + 1]) << 8U |
 +           static_cast<std::uint32_t>(bytes[offset + 2]) << 16U | static_cast<std::uint32_t>(bytes[offset + 3]) << 24U;
 +}
 +
-+[[gnu::cold]] float read_f32(const std::vector<unsigned char>& bytes, std::size_t offset) {
++[[gnu::cold]] float read_f32(const unsigned char* bytes, std::size_t offset) {
 +    const std::uint32_t bits = read_u32(bytes, offset);
 +    float value = 0.0F;
 +    std::memcpy(&value, &bits, sizeof(value));
 +    return value;
 +}
 +
-+[[gnu::cold]] std::int16_t read_i16(const std::vector<unsigned char>& bytes, std::size_t offset) {
++[[gnu::cold]] std::int16_t read_i16(const unsigned char* bytes, std::size_t offset) {
 +    return static_cast<std::int16_t>(static_cast<std::uint16_t>(bytes[offset] | (bytes[offset + 1] << 8U)));
 +}
 +
@@ -502,12 +539,42 @@ index e88cfc5..51854c5 100644
 +
 +} // namespace
 +
++[[gnu::cold]] std::uint64_t file_bytes(int king_buckets, int output_buckets) {
++    const std::uint64_t w1 = static_cast<std::uint64_t>(king_buckets) * InputCount * HiddenSize;
++    const std::uint64_t w2 = static_cast<std::uint64_t>(output_buckets) * 2U * HiddenSize;
++    return static_cast<std::uint64_t>(HeaderBytes) + 2U * (w1 + HiddenSize + w2 + static_cast<std::uint64_t>(output_buckets)) + 8U;
++}
++
++[[gnu::cold]] std::uint64_t last_load_bytes_read() { return last_bytes_read; }
++
 +[[gnu::cold]] bool load(const std::string& path, std::string* error) {
++    // Whatever happens below, the previously loaded net is gone: after a failed load no net is
++    // loaded, so the engine cannot evaluate with a net other than the one last requested.
++    unload();
++    last_bytes_read = 0;
 +    std::ifstream file(path, std::ios::binary);
 +    if (!file) return fail(error, "cannot open " + path);
-+    const std::vector<unsigned char> bytes((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
-+    if (bytes.size() < static_cast<std::size_t>(HeaderBytes) + 8U) return fail(error, "file too short for a v2 header");
-+    if (std::memcmp(bytes.data(), Magic, sizeof(Magic)) != 0) return fail(error, "bad magic (not a FORGENN2 file)");
++    // The file size comes first (seek to the end): nothing is allocated or read before the size is
++    // known to be the one the header implies.
++    file.seekg(0, std::ios::end);
++    const std::streamoff end = file.tellg();
++    if (!file || end < 0) return fail(error, "cannot determine the size of " + path);
++    const auto size = static_cast<std::uint64_t>(end);
++    const std::uint64_t largest = file_bytes(MaxKingBuckets, MaxOutputBuckets);
++    if (size < static_cast<std::uint64_t>(HeaderBytes) + 8U) {
++        return fail(error, "file too short for a v2 net (" + std::to_string(size) + " bytes)");
++    }
++    if (size > largest) {
++        return fail(error, "file too large for a v2 net (" + std::to_string(size) + " bytes; the largest valid v2 file has " +
++                               std::to_string(largest) + ")");
++    }
++    std::array<unsigned char, HeaderBytes> header{};
++    file.seekg(0, std::ios::beg);
++    file.read(reinterpret_cast<char*>(header.data()), HeaderBytes);
++    if (!file) return fail(error, "cannot read the header of " + path);
++    last_bytes_read = HeaderBytes;
++    const unsigned char* bytes = header.data();
++    if (std::memcmp(bytes, Magic, sizeof(Magic)) != 0) return fail(error, "bad magic (not a FORGENN2 file)");
 +    if (read_u32(bytes, 8) != 2U) return fail(error, "unsupported version " + std::to_string(read_u32(bytes, 8)));
 +    if (read_u32(bytes, 12) != static_cast<std::uint32_t>(HeaderBytes)) return fail(error, "unexpected header size");
 +    if (read_u32(bytes, 16) != 0U) return fail(error, "unsupported feature set " + std::to_string(read_u32(bytes, 16)));
@@ -539,14 +606,23 @@ index e88cfc5..51854c5 100644
 +    }
 +    const std::size_t w1_count = static_cast<std::size_t>(king_buckets) * InputCount * HiddenSize;
 +    const std::size_t w2_count = static_cast<std::size_t>(output_buckets) * 2U * HiddenSize;
-+    const std::size_t expected = static_cast<std::size_t>(HeaderBytes) +
-+                                 2U * (w1_count + HiddenSize + w2_count + output_buckets) + 8U;
-+    if (bytes.size() != expected) {
-+        return fail(error, "file size " + std::to_string(bytes.size()) + " != expected " + std::to_string(expected));
++    const std::uint64_t expected = file_bytes(static_cast<int>(king_buckets), static_cast<int>(output_buckets));
++    if (size != expected) {
++        return fail(error, "file size " + std::to_string(size) + " bytes does not match the " + std::to_string(expected) +
++                               " bytes implied by its header (" + std::to_string(king_buckets) + " king buckets, " +
++                               std::to_string(output_buckets) + " output buckets, hidden " + std::to_string(HiddenSize) +
++                               "); the weights were not read");
 +    }
++    // Only now are the weight blocks allocated and read.
++    std::vector<unsigned char> all(static_cast<std::size_t>(expected));
++    std::copy(header.begin(), header.end(), all.begin());
++    file.read(reinterpret_cast<char*>(all.data() + HeaderBytes), static_cast<std::streamsize>(expected - HeaderBytes));
++    if (!file) return fail(error, "cannot read the weights of " + path);
++    last_bytes_read = expected;
++    bytes = all.data();
 +    std::uint64_t stored = 0;
-+    for (std::size_t i = 8; i-- > 0;) stored = (stored << 8U) | bytes[bytes.size() - 8U + i];
-+    const std::uint64_t checksum = fnv1a64(bytes.data(), bytes.size() - 8U);
++    for (std::size_t i = 8; i-- > 0;) stored = (stored << 8U) | bytes[all.size() - 8U + i];
++    const std::uint64_t checksum = fnv1a64(bytes, all.size() - 8U);
 +    if (stored != checksum) return fail(error, "checksum mismatch (file damaged)");
 +
 +    auto net = std::make_unique<Net>();
@@ -556,8 +632,8 @@ index e88cfc5..51854c5 100644
 +    net->mirror = (flags & FlagMirror) != 0U;
 +    net->residual = (flags & FlagResidual) != 0U;
 +    net->checksum = checksum;
-+    std::copy(bytes.begin() + 52, bytes.begin() + 116, net->king_map.begin());
-+    std::copy(bytes.begin() + 116, bytes.begin() + 149, net->output_map.begin());
++    std::copy(bytes + 52, bytes + 116, net->king_map.begin());
++    std::copy(bytes + 116, bytes + 149, net->output_map.begin());
 +    net->w1.allocate(w1_count);
 +    net->b1.allocate(HiddenSize);
 +    net->w2.allocate(w2_count);
@@ -569,8 +645,6 @@ index e88cfc5..51854c5 100644
 +    for (std::size_t i = 0; i < w2_count; ++i, offset += 2) net->w2.data()[i] = static_cast<float>(read_i16(bytes, offset)) / OutputScale;
 +    for (std::size_t i = 0; i < output_buckets; ++i, offset += 2) net->b2[i] = static_cast<float>(read_i16(bytes, offset)) / OutputScale;
 +
-+    if (active_net == loaded_net) active_net = nullptr;
-+    delete loaded_net;
 +    loaded_net = net.release();
 +    return true;
 +}
@@ -583,23 +657,27 @@ index e88cfc5..51854c5 100644
 +
 +[[gnu::cold]] const Net* loaded() { return loaded_net; }
 +
++[[gnu::cold]] std::string summary(const Net& net) {
++    std::ostringstream out;
++    out << net.path << " king buckets " << net.king_buckets << " output buckets " << net.output_buckets << " hidden "
++        << HiddenSize << (net.mirror ? " mirrored" : " unmirrored") << (net.residual ? " residual" : " stand-alone")
++        << " fnv1a " << std::hex << std::setw(16) << std::setfill('0') << net.checksum;
++    return out.str();
++}
++
 +[[gnu::cold]] const Net* select(int king_buckets, std::string* message) {
 +    active_net = nullptr;
 +    std::string text;
 +    if (king_buckets <= 0) {
 +        text = "off (NNUEKingBuckets 0): compiled-in network";
 +    } else if (loaded_net == nullptr) {
-+        text = "NNUEKingBuckets " + std::to_string(king_buckets) + " needs a v2 net (NNUEFile); using the compiled-in network";
++        text = "NNUEKingBuckets " + std::to_string(king_buckets) + " needs a v2 net (NNUEFile)";
 +    } else if (loaded_net->king_buckets != king_buckets) {
 +        text = "NNUEKingBuckets " + std::to_string(king_buckets) + " does not match the loaded net (" +
-+               std::to_string(loaded_net->king_buckets) + " king buckets); using the compiled-in network";
++               std::to_string(loaded_net->king_buckets) + " king buckets)";
 +    } else {
 +        active_net = loaded_net;
-+        std::ostringstream out;
-+        out << "active: " << loaded_net->path << " (king buckets " << loaded_net->king_buckets
-+            << (loaded_net->mirror ? ", mirrored" : "") << ", output buckets " << loaded_net->output_buckets
-+            << (loaded_net->residual ? ", residual" : ", stand-alone") << ")";
-+        text = out.str();
++        text = "active: " + summary(*loaded_net);
 +    }
 +    if (message != nullptr) *message = text;
 +    return active_net;
@@ -632,7 +710,7 @@ index e88cfc5..51854c5 100644
 +
 +} // namespace forge::nnue::v2
 diff --git a/src/search.cpp b/src/search.cpp
-index 17dc692..e24e096 100644
+index 17dc692b..e24e0961 100644
 --- a/src/search.cpp
 +++ b/src/search.cpp
 @@ -13,6 +13,7 @@
@@ -658,7 +736,7 @@ index 17dc692..e24e096 100644
  #include "search/timeman.hpp"     // time budgets and the soft stop rule (inline)
  #include "search/checks.inc"      // per-node clock / node / stop checks, draws
 diff --git a/src/search/evaluation.inc b/src/search/evaluation.inc
-index 1592b4e..f924b6f 100644
+index 1592b4ed..f924b6f2 100644
 --- a/src/search/evaluation.inc
 +++ b/src/search/evaluation.inc
 @@ -2,6 +2,14 @@
@@ -692,10 +770,10 @@ index 1592b4e..f924b6f 100644
      if (!ss->accumulator.valid) {
 diff --git a/src/search/evaluation_v2.inc b/src/search/evaluation_v2.inc
 new file mode 100644
-index 0000000..e3f9027
+index 00000000..1be6e6f7
 --- /dev/null
 +++ b/src/search/evaluation_v2.inc
-@@ -0,0 +1,105 @@
+@@ -0,0 +1,123 @@
 +// Search module: static evaluation with a v2 network (C4: king-bucketed input
 +// layer; UCI NNUEFile + NNUEKingBuckets, OFF by default; forge/nnue_v2.hpp).
 +// Compiled as part of src/search.cpp (included exactly once, before
@@ -791,18 +869,36 @@ index 0000000..e3f9027
 +[[gnu::cold]] bool apply_nnue_v2(std::string* message) {
 +    // UseNNUE false disables every network (hand-crafted evaluation only).
 +    const nnue::v2::Net* net = nnue::v2::select(nnue::enabled ? nnue_king_buckets : 0, message);
-+    if (!nnue::enabled && nnue_king_buckets > 0 && message != nullptr) {
-+        *message = "UseNNUE is false: hand-crafted evaluation only";
-+    }
++    if (!nnue::enabled && message != nullptr) *message = "UseNNUE is false: hand-crafted evaluation only";
 +    nnue_v2 = net != nullptr;
 +    return nnue_v2;
++}
++
++[[gnu::cold]] std::string nnue_v2_problem(const std::string& file, const std::string& load_error) {
++    if (!nnue::enabled) return {};   // UseNNUE false: every network off on purpose
++    if (file.empty() && nnue_king_buckets <= 0) return {};   // nothing requested
++    if (!file.empty() && !load_error.empty()) return "cannot load NNUEFile " + file + ": " + load_error;
++    const nnue::v2::Net* net = nnue::v2::loaded();
++    if (net == nullptr) {
++        return file.empty() ? "NNUEKingBuckets " + std::to_string(nnue_king_buckets) +
++                                  " is set but no v2 net is loaded (NNUEFile is empty)"
++                            : "NNUEFile " + file + " is not loaded";
++    }
++    if (nnue_v2 && nnue::v2::active() == net) return {};
++    const std::string buckets = std::to_string(net->king_buckets) + (net->mirror ? " mirrored" : "") + " king buckets";
++    if (nnue_king_buckets <= 0) {
++        return "NNUEFile " + net->path + " is loaded (" + buckets + ") but NNUEKingBuckets is 0; set NNUEKingBuckets " +
++               std::to_string(net->king_buckets) + " to use it";
++    }
++    return "NNUEKingBuckets " + std::to_string(nnue_king_buckets) + " does not match NNUEFile " + net->path + " (" +
++           buckets + ")";
 +}
 +
 +} // namespace options
 +
 +} // namespace forge
 diff --git a/src/search/iterative.inc b/src/search/iterative.inc
-index ec03e8f..1b1db5c 100644
+index ec03e8f4..1b1db5c1 100644
 --- a/src/search/iterative.inc
 +++ b/src/search/iterative.inc
 @@ -119,6 +119,8 @@ SearchInfo Worker::search(Board board, const SearchLimits& limits, bool emit_inf
@@ -816,7 +912,7 @@ index ec03e8f..1b1db5c 100644
      int stable_iterations = 0;
 diff --git a/src/search/options.inc b/src/search/options.inc
 new file mode 100644
-index 0000000..73d07e4
+index 00000000..73d07e4a
 --- /dev/null
 +++ b/src/search/options.inc
 @@ -0,0 +1,10 @@
@@ -831,7 +927,7 @@ index 0000000..73d07e4
 +
 +} // namespace forge::options
 diff --git a/src/uci.cpp b/src/uci.cpp
-index 607adf3..cf1043d 100644
+index 607adf3a..41cc811a 100644
 --- a/src/uci.cpp
 +++ b/src/uci.cpp
 @@ -1,7 +1,9 @@
@@ -844,7 +940,49 @@ index 607adf3..cf1043d 100644
  #include "forge/uci_output.hpp"
  
  #include <algorithm>
-@@ -171,6 +173,9 @@ int main() {
+@@ -152,6 +154,41 @@ int main() {
+         ponder_search_active = false;
+     };
+ 
++    // v2 networks (UCI NNUEFile / NNUEKingBuckets; fail-loud rule in forge/search_options.hpp): a
++    // requested v2 net that cannot be used is reported at once and, if still unusable at the next
++    // isready, go or bench, reported again before the engine exits with status 2. Never a silent
++    // fall-back to the compiled-in network. With no NNUE option set nothing here prints anything.
++    constexpr int NnueV2ExitStatus = 2;
++    int exit_status = 0;
++    std::string nnue_file;         // NNUEFile ("" = none)
++    std::string nnue_file_error;   // why nnue_file did not load ("" = it loaded)
++    std::string nnue_v2_active;    // "active: ..." while a v2 net is in use, else ""
++    bool nnue_v2_shown = false;    // the last state printed was a v2 one (request, error or active net)
++    auto nnue_v2_changed = [&]() {
++        std::string state;
++        const bool active = forge::options::apply_nnue_v2(&state);
++        const std::string problem = forge::options::nnue_v2_problem(nnue_file, nnue_file_error);
++        const bool requested = !nnue_file.empty() || forge::options::nnue_king_buckets > 0;
++        if (!nnue_file_error.empty()) state += " (NNUEFile " + nnue_file + ": " + nnue_file_error + ")";
++        {
++            const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex());
++            if (!problem.empty()) std::cout << "info string ERROR NNUE v2: " << problem << std::endl;
++            else if (active && state != nnue_v2_active) std::cout << "info string NNUE v2: " << state << std::endl;
++            else if (!active && (requested || nnue_v2_shown)) std::cout << "info string NNUE v2: " << state << std::endl;
++        }
++        nnue_v2_active = active ? state : std::string();
++        nnue_v2_shown = requested || active || !problem.empty();
++        searcher.clear_hash();
++    };
++    // True (after printing the error) when a v2 request cannot be honoured.
++    auto nnue_v2_unusable = [&]() {
++        const std::string problem = forge::options::nnue_v2_problem(nnue_file, nnue_file_error);
++        if (problem.empty()) return false;
++        const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex());
++        std::cout << "info string ERROR NNUE v2: " << problem << std::endl;
++        return true;
++    };
++
+     std::string line;
+     while (std::getline(std::cin, line)) {
+         const auto command_start = std::chrono::steady_clock::now();
+@@ -171,6 +208,9 @@ int main() {
                           "option name Book Depth type spin default 30 min 0 max 100\n"
                           "option name Book Variety type spin default 30 min 0 max 100\n";
              if (forge::nnue::available()) std::cout << "option name UseNNUE type check default true\n";
@@ -854,45 +992,45 @@ index 607adf3..cf1043d 100644
  #ifdef FORGE_EXPOSE_TUNABLES
              // Development builds advertise the search constants so match
              // runners can set them; release builds accept them silently.
-@@ -266,6 +271,54 @@ int main() {
+@@ -182,7 +222,12 @@ int main() {
+             std::cout << "option name Clear Hash type button\n"
+                          "uciok" << std::endl;
+         } else if (command == "isready") {
+-            { const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex()); std::cout << "readyok" << std::endl; }
++            if (nnue_v2_unusable()) { exit_status = NnueV2ExitStatus; break; }
++            {
++                const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex());
++                if (!nnue_v2_active.empty()) std::cout << "info string NNUE v2: " << nnue_v2_active << '\n';
++                std::cout << "readyok" << std::endl;
++            }
+         } else if (command == "ucinewgame") {
+             stop_search();
+             searcher.clear();
+@@ -266,7 +311,36 @@ int main() {
                      const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex());
                      std::cout << "info string invalid value for option UseNNUE" << std::endl;
                  }
+-                searcher.clear_hash();
 +                // Silent unless a v2 network was requested (the default prints nothing new).
-+                std::string v2_state;
-+                (void)forge::options::apply_nnue_v2(&v2_state);
-+                if (forge::options::nnue_king_buckets > 0) {
-+                    const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex());
-+                    std::cout << "info string NNUE v2: " << v2_state << std::endl;
-+                }
-+                searcher.clear_hash();
++                nnue_v2_changed();
 +            } else if (name == "NNUEFile") {
 +                std::string rest;
 +                std::getline(input, rest);
 +                std::string path = value_text + rest;
 +                while (!path.empty() && (path.back() == ' ' || path.back() == '\r')) path.pop_back();
-+                const bool unload = path.empty() || path == "<empty>";
-+                std::string error;
-+                if (unload) {
++                // "<empty>" (the advertised default) clears the file part of the request.
++                nnue_file = path == "<empty>" ? std::string() : path;
++                nnue_file_error.clear();
++                if (nnue_file.empty()) {
 +                    forge::nnue::v2::unload();
-+                } else if (!forge::nnue::v2::load(path, &error)) {
-+                    const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex());
-+                    std::cout << "info string cannot load NNUE v2 net " << path << ": " << error << std::endl;
++                } else if (!forge::nnue::v2::load(nnue_file, &nnue_file_error)) {
++                    if (nnue_file_error.empty()) nnue_file_error = "load failed";
 +                } else {
-+                    const forge::nnue::v2::Description net = forge::nnue::v2::describe(*forge::nnue::v2::loaded());
 +                    const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex());
-+                    std::cout << "info string loaded NNUE v2 net " << path << " king buckets " << net.king_buckets
-+                              << (net.mirror ? " mirrored" : "") << " output buckets " << net.output_buckets
-+                              << (net.residual ? " residual" : " stand-alone") << " fnv1a " << std::hex
-+                              << net.checksum << std::dec << std::endl;
++                    std::cout << "info string NNUE v2: loaded " << forge::nnue::v2::summary(*forge::nnue::v2::loaded())
++                              << std::endl;
 +                }
-+                std::string v2_state;
-+                (void)forge::options::apply_nnue_v2(&v2_state);
-+                if (!unload || forge::options::nnue_king_buckets > 0) {
-+                    const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex());
-+                    std::cout << "info string NNUE v2: " << v2_state << std::endl;
-+                }
-+                searcher.clear_hash();
++                nnue_v2_changed();
 +            } else if (name == "NNUEKingBuckets") {
 +                int value = 0;
 +                const auto parsed = std::from_chars(value_text.data(), value_text.data() + value_text.size(), value);
@@ -901,24 +1039,46 @@ index 607adf3..cf1043d 100644
 +                    std::cout << "info string invalid value for option NNUEKingBuckets" << std::endl;
 +                } else {
 +                    forge::options::nnue_king_buckets = std::clamp(value, 0, 32);
-+                    std::string v2_state;
-+                    (void)forge::options::apply_nnue_v2(&v2_state);
-+                    const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex());
-+                    std::cout << "info string NNUE v2: " << v2_state << std::endl;
 +                }
-                 searcher.clear_hash();
++                nnue_v2_changed();
              } else if (name == "Hash" || name == "Move Overhead" || name == "Threads") {
                  int value = 0;
+                 const auto parsed = std::from_chars(
+@@ -286,6 +360,7 @@ int main() {
+             apply_position(board, input);
+         } else if (command == "go") {
+             stop_search();
++            if (nnue_v2_unusable()) { exit_status = NnueV2ExitStatus; break; }
+             std::string first;
+             const auto position = input.tellg();
+             input >> first;
+@@ -378,6 +453,7 @@ int main() {
+             // Fixed-depth search over a small position set; prints a node
+             // signature and speed for quick regression and performance checks.
+             stop_search();
++            if (nnue_v2_unusable()) { exit_status = NnueV2ExitStatus; break; }
+             int depth = 13;
+             if (int parsed = 0; input >> parsed) depth = std::clamp(parsed, 1, 64);
+             constexpr std::array<std::string_view, 8> fens{
+@@ -426,5 +502,5 @@ int main() {
+         }
+     }
+     stop_search();
+-    return 0;
++    return exit_status;
+ }
 diff --git a/tests/nnue_v2_tests.cpp b/tests/nnue_v2_tests.cpp
 new file mode 100644
-index 0000000..077e62c
+index 00000000..aa9671c0
 --- /dev/null
 +++ b/tests/nnue_v2_tests.cpp
-@@ -0,0 +1,615 @@
+@@ -0,0 +1,682 @@
 +// Tests for the v2 network path (C4, forge/nnue_v2.hpp; UCI NNUEFile + NNUEKingBuckets):
 +//   1. king bucket map and horizontal mirroring (king_key, feature indices, mirror and colour symmetry);
-+//   2. the v2 file loader (valid file, every rejected corruption, failed load keeps the old net);
-+//   3. option selection (bucket count must match, UseNNUE false wins, unload deactivates);
++//   2. the v2 file loader (valid file, every rejected corruption, a failed load leaves no net loaded, the
++//      file size is checked before the weights are read);
++//   3. option selection (bucket count must match, UseNNUE false wins, unload deactivates) and the
++//      fail-loud request rule (options::nnue_v2_problem; the UCI side is tests/nnue_v2_uci_tests.cpp);
 +//   4. exact equivalence with the compiled-in network: replicas of it (1, 4, 2/8/16 mirrored king buckets)
 +//      give bit-identical accumulators and evaluations, and identical search node counts;
 +//   5. incremental == full refresh, bit-exact, over 100k random make/unmake plies driven through the
@@ -1280,7 +1440,9 @@ index 0000000..077e62c
 +    const v2::Description d = v2::describe(*v2::loaded());
 +    report(d.king_buckets == 4 && d.mirror && d.residual && d.output_buckets == 1 && d.checksum == fnv(bytes.substr(0, bytes.size() - 8)),
 +           "describe(): buckets, mirror, residual, output buckets, FNV-1a checksum");
-+    const v2::Net* before = v2::loaded();
++    report(v2::last_load_bytes_read() == bytes.size(), "a valid load reads the whole file (" + std::to_string(bytes.size()) + " bytes)");
++    // Every rejection: the good net is loaded first; after the failed load no net is loaded (the
++    // engine must not keep evaluating with a net other than the one requested).
 +    auto rejected = [&](std::string corrupt, const std::string& label, bool fix_checksum) {
 +        if (fix_checksum) {
 +            corrupt.resize(corrupt.size() - 8);
@@ -1288,9 +1450,13 @@ index 0000000..077e62c
 +            for (int i = 0; i < 8; ++i) corrupt.push_back(static_cast<char>((h >> (8 * i)) & 0xFFU));
 +        }
 +        write_file(dir + "bad.fnn2", corrupt);
++        std::string reload_error;
++        const bool good_first = v2::load(path, &reload_error);
 +        std::string message;
 +        const bool loaded = v2::load(dir + "bad.fnn2", &message);
-+        report(!loaded && !message.empty() && v2::loaded() == before, "rejects " + label + " (" + message + "), keeps the loaded net");
++        report(good_first && !loaded && !message.empty() && v2::loaded() == nullptr,
++               "rejects " + label + " (" + message + "); no net loaded afterwards");
++        return message;
 +    };
 +    auto patch32 = [&](std::size_t offset, std::uint32_t value) {
 +        std::string s = bytes;
@@ -1313,12 +1479,32 @@ index 0000000..077e62c
 +    { std::string s = bytes; s[52 + 10] = 4; rejected(s, "king map entry 4 >= 4 buckets", true); }
 +    { std::string s = bytes; s[116 + 5] = 1; rejected(s, "output map entry 1", true); }
 +    { std::string s = bytes; s[150] = 1; rejected(s, "non-zero reserved byte", true); }
-+    { std::string s = bytes; s.erase(500, 2); rejected(s, "truncated file", true); }
-+    { std::string s = bytes; s.insert(500, "xy"); rejected(s, "two extra bytes", true); }
-+    rejected("FORGENN2", "8-byte file", false);
++    // Size checks: the size comes from the file system (seek) and is compared with the size implied by
++    // the header before the weights are allocated or read (at most the 160 header bytes are read).
++    auto size_rejected = [&](const std::string& corrupt, const std::string& label, const std::string& phrase,
++                             std::uint64_t max_read) {
++        const std::string message = rejected(corrupt, label, false);
++        report(message.find(phrase) != std::string::npos && v2::last_load_bytes_read() <= max_read,
++               label + ": rejected by the size check after reading " + std::to_string(v2::last_load_bytes_read()) +
++                   " bytes (at most " + std::to_string(max_read) + ")");
++    };
++    { std::string s = bytes; s.erase(500, 2); size_rejected(s, "truncated file (2 bytes short)", "does not match", 160); }
++    size_rejected(bytes.substr(0, bytes.size() / 2), "file cut in half", "does not match", 160);
++    { std::string s = bytes; s.insert(500, "xy"); size_rejected(s, "two extra bytes", "does not match", 160); }
++    size_rejected(patch32(28, 32), "header claims 32 king buckets on a 4-bucket file", "does not match", 160);
++    size_rejected("FORGENN2", "8-byte file", "too short", 0);
++    size_rejected(bytes.substr(0, 167), "167-byte file (shorter than a header and checksum)", "too short", 0);
++    {
++        std::string huge = bytes;
++        huge.resize(static_cast<std::size_t>(v2::file_bytes(v2::MaxKingBuckets, v2::MaxOutputBuckets) + 1), '\0');
++        size_rejected(huge, "file one byte larger than the largest valid v2 file", "too large", 0);
++    }
++    report(v2::file_bytes(4, 1) == bytes.size() && v2::file_bytes(1, 1) == 394922U, "file_bytes(): 4 buckets = this file, 1 bucket = 394922 bytes");
 +    std::string message;
++    const bool reloaded = v2::load(path, &message);
 +    const bool missing = v2::load(dir + "does_not_exist.fnn2", &message);
-+    report(!missing && v2::loaded() == before, "missing file rejected (" + message + ")");
++    report(reloaded && !missing && v2::loaded() == nullptr && v2::last_load_bytes_read() == 0,
++           "missing file rejected (" + message + "); no net loaded afterwards");
 +}
 +
 +// ---------------------------------------------------------------- 3. option selection
@@ -1346,6 +1532,44 @@ index 0000000..077e62c
 +    report(!active && v2::active() == nullptr && v2::loaded() == nullptr, "unload: compiled-in net (" + message + ")");
 +    options::nnue_king_buckets = 0;
 +    (void)options::apply_nnue_v2(nullptr);
++}
++
++// The fail-loud rule (options::nnue_v2_problem): an unsatisfiable request is a problem, never a silent
++// fall-back to the compiled-in net; UseNNUE false and no request are not problems.
++void test_request_rule(const std::string& dir) {
++    const std::string file = dir + "rule.fnn2";
++    auto problem_after = [&](int king_buckets, const std::string& requested_file, const std::string& load_error) {
++        options::nnue_king_buckets = king_buckets;
++        (void)options::apply_nnue_v2(nullptr);
++        return options::nnue_v2_problem(requested_file, load_error);
++    };
++    v2::unload();
++    std::string p = problem_after(0, "", "");
++    report(p.empty() && !options::nnue_v2, "nothing requested (defaults): no problem, compiled-in net");
++    p = problem_after(4, "", "");
++    report(!p.empty() && p.find("no v2 net is loaded") != std::string::npos, "NNUEKingBuckets 4 without NNUEFile: " + p);
++    p = problem_after(4, dir + "missing.fnn2", "cannot open " + dir + "missing.fnn2");
++    report(!p.empty() && p.find("cannot open") != std::string::npos, "NNUEFile failed to load: " + p);
++    check(load_spec(file, random_net(4, true, symmetric_map(4), 57)), "load 4-bucket net for the request rule");
++    p = problem_after(0, file, "");
++    report(!p.empty() && p.find("NNUEKingBuckets is 0") != std::string::npos && !options::nnue_v2,
++           "NNUEFile loaded but NNUEKingBuckets 0: " + p);
++    p = problem_after(8, file, "");
++    report(!p.empty() && p.find("does not match") != std::string::npos && !options::nnue_v2,
++           "NNUEKingBuckets 8 vs a 4-bucket net: " + p);
++    p = problem_after(4, file, "");
++    report(p.empty() && options::nnue_v2 && v2::active() == v2::loaded(), "NNUEKingBuckets 4 with the 4-bucket net: active, no problem");
++    nnue::enabled = false;
++    p = problem_after(8, file, "");
++    const bool off_ok = p.empty() && !options::nnue_v2;
++    v2::unload();
++    p = problem_after(4, dir + "missing.fnn2", "cannot open");
++    report(off_ok && p.empty() && !options::nnue_v2, "UseNNUE false: not a problem (every network off on purpose)");
++    nnue::enabled = true;
++    p = problem_after(4, dir + "missing.fnn2", "cannot open");
++    report(!p.empty(), "UseNNUE true again: the unsatisfied request is a problem again (" + p + ")");
++    p = problem_after(0, "", "");
++    report(p.empty() && !options::nnue_v2, "NNUEFile <empty> and NNUEKingBuckets 0: request cleared, no problem");
 +}
 +
 +// ---------------------------------------------------------------- 4. lock replicas
@@ -1523,24 +1747,287 @@ index 0000000..077e62c
 +    test_bucket_map_and_mirroring(dir);
 +    test_loader(dir);
 +    test_selection(dir);
++    test_request_rule(dir);
 +    test_lock_replicas(dir);
 +    test_incremental_equals_refresh(dir, plies);
 +    v2::unload();
-+    for (const char* f : {"map", "mirror", "plain", "loader", "bad", "select", "replica", "walk"}) std::remove((dir + f + ".fnn2").c_str());
++    for (const char* f : {"map", "mirror", "plain", "loader", "bad", "select", "rule", "replica", "walk"}) std::remove((dir + f + ".fnn2").c_str());
++    std::cout << checks - failures << "/" << checks << " checks passed\n";
++    return failures == 0 ? 0 : 1;
++}
+diff --git a/tests/nnue_v2_uci_tests.cpp b/tests/nnue_v2_uci_tests.cpp
+new file mode 100644
+index 00000000..42248c7f
+--- /dev/null
++++ b/tests/nnue_v2_uci_tests.cpp
+@@ -0,0 +1,255 @@
++// UCI-level tests of the fail-loud NNUE v2 rule (C4 review fix; rule in forge/search_options.hpp).
++// Runs the real engine (argv[1]) with scripted stdin and checks its output and exit status:
++//   - defaults: nothing NNUE-v2 related is printed, readyok, bestmove, exit 0;
++//   - a requested v2 net that cannot be used (missing file, truncated file, bad checksum, wrong king
++//     bucket count, NNUEKingBuckets without NNUEFile, NNUEFile with NNUEKingBuckets 0, a failed reload after
++//     a good net): `info string ERROR NNUE v2: <reason>` at once and again at the next isready / go / bench,
++//     then exit status 2 without readyok / bestmove / bench output;
++//   - a valid net: `info string NNUE v2: active: <file> king buckets N output buckets M hidden H ...` once
++//     when it becomes active and at every isready, then readyok and bestmove, exit 0;
++//   - UseNNUE false is not an error, NNUEFile <empty> clears the request, option order does not matter.
++// Writes its net files and engine transcripts into the working directory (removed at the end).
++// usage: forge_nnue_v2_uci_tests <forge executable>
++#include "forge/nnue.hpp"
++
++#include <cstdint>
++#include <cstdio>
++#include <cstdlib>
++#include <cstring>
++#include <fstream>
++#include <iostream>
++#include <sstream>
++#include <string>
++#include <vector>
++
++#if !defined(_WIN32)
++#include <sys/wait.h>
++#endif
++
++namespace {
++
++int checks = 0;
++int failures = 0;
++void report(bool okay, const std::string& label) {
++    ++checks;
++    if (!okay) ++failures;
++    std::cout << (okay ? "PASS " : "FAIL ") << label << '\n';
++}
++
++const std::string Prefix = "nnue_v2_uci_";
++std::vector<std::string> temporary_files;
++
++void write_file(const std::string& path, const std::string& bytes) {
++    std::ofstream out(path, std::ios::binary);
++    out.write(bytes.data(), static_cast<std::streamsize>(bytes.size()));
++    temporary_files.push_back(path);
++}
++
++std::string read_file(const std::string& path) {
++    std::ifstream in(path, std::ios::binary);
++    std::ostringstream text;
++    text << in.rdbuf();
++    return text.str();
++}
++
++// ---- a v2 net file (format in forge/nnue_v2.hpp), small random weights
++void put32(std::string& s, std::uint32_t v) {
++    for (int i = 0; i < 4; ++i) s.push_back(static_cast<char>((v >> (8 * i)) & 0xFFU));
++}
++void putf(std::string& s, float f) {
++    std::uint32_t v = 0;
++    std::memcpy(&v, &f, 4);
++    put32(s, v);
++}
++void put16(std::string& s, std::int16_t v) {
++    const auto u = static_cast<std::uint16_t>(v);
++    s.push_back(static_cast<char>(u & 0xFFU));
++    s.push_back(static_cast<char>(u >> 8U));
++}
++std::uint64_t fnv(const std::string& data) {
++    std::uint64_t h = 0xcbf29ce484222325ULL;
++    for (const unsigned char c : data) {
++        h ^= c;
++        h *= 0x100000001b3ULL;
++    }
++    return h;
++}
++std::string net_file(int king_buckets, std::uint64_t seed) {
++    const int hidden = forge::nnue::HiddenSize;
++    std::string s = "FORGENN2";
++    put32(s, 2); put32(s, 160); put32(s, 0); put32(s, 768); put32(s, static_cast<std::uint32_t>(hidden));
++    put32(s, static_cast<std::uint32_t>(king_buckets)); put32(s, 1); put32(s, 1);   // 1 output bucket, residual
++    putf(s, 4096.0F); putf(s, 4096.0F); putf(s, 2.25F);
++    for (int square = 0; square < 64; ++square) s.push_back(static_cast<char>((square & 7) * king_buckets / 8));
++    s.append(160 - s.size(), '\0');
++    std::uint64_t x = seed;
++    auto value = [&x](int range) {
++        x ^= x >> 12U; x ^= x << 25U; x ^= x >> 27U;
++        return static_cast<std::int16_t>(static_cast<int>((x * 2685821657736338717ULL) % static_cast<std::uint64_t>(2 * range + 1)) - range);
++    };
++    for (long i = 0; i < static_cast<long>(king_buckets) * 768 * hidden; ++i) put16(s, value(60));
++    for (int i = 0; i < hidden; ++i) put16(s, value(400));
++    for (int i = 0; i < 2 * hidden; ++i) put16(s, value(300));
++    put16(s, value(100));
++    const std::uint64_t h = fnv(s);
++    for (int i = 0; i < 8; ++i) s.push_back(static_cast<char>((h >> (8 * i)) & 0xFFU));
++    return s;
++}
++
++// ---- running the engine
++struct Run {
++    std::string out;
++    int status = -1;
++};
++
++std::string quote(const std::string& text) { return "\"" + text + "\""; }
++
++Run run_engine(const std::string& engine, const std::string& name, const std::string& script) {
++    const std::string in = Prefix + name + ".in";
++    const std::string out = Prefix + name + ".out";
++    const std::string err = Prefix + name + ".err";
++    write_file(in, script);
++    temporary_files.push_back(out);
++    temporary_files.push_back(err);
++    std::string command = quote(engine) + " < " + quote(in) + " > " + quote(out) + " 2> " + quote(err);
++#if defined(_WIN32)
++    command = "\"" + command + "\"";   // cmd.exe /c strips one pair of outer quotes
++#endif
++    std::fflush(nullptr);
++    const int raw = std::system(command.c_str());
++    Run run;
++#if defined(_WIN32)
++    run.status = raw;
++#else
++    run.status = WIFEXITED(raw) ? WEXITSTATUS(raw) : 128 + (WIFSIGNALED(raw) ? WTERMSIG(raw) : 0);
++#endif
++    run.out = read_file(out);
++    const std::string errors = read_file(err);
++    if (!errors.empty()) std::cout << "  [" << name << " stderr] " << errors.substr(0, 400) << '\n';
++    return run;
++}
++
++int count(const std::string& text, const std::string& what) {
++    int n = 0;
++    for (std::size_t at = text.find(what); at != std::string::npos; at = text.find(what, at + what.size())) ++n;
++    return n;
++}
++bool has(const std::string& text, const std::string& what) { return text.find(what) != std::string::npos; }
++bool has_line(const std::string& text, const std::string& prefix) {
++    std::istringstream lines(text);
++    for (std::string line; std::getline(lines, line);) {
++        if (!line.empty() && line.back() == '\r') line.pop_back();
++        if (line.rfind(prefix, 0) == 0) return true;
++    }
++    return false;
++}
++// The last ERROR line of a transcript (the one printed at the trigger command), for the checks and the log.
++std::string errors_of(const std::string& text) {
++    std::istringstream lines(text);
++    std::string last = "(no ERROR line)";
++    for (std::string line; std::getline(lines, line);) {
++        if (!line.empty() && line.back() == '\r') line.pop_back();
++        if (line.rfind("info string ERROR NNUE v2:", 0) == 0) last = line;
++    }
++    return last;
++}
++
++const std::string Head = "uci\nsetoption name Threads value 1\nsetoption name Hash value 16\n";
++std::string set(const std::string& name, const std::string& value) { return "setoption name " + name + " value " + value + "\n"; }
++
++// A request that cannot be honoured: an ERROR at once and again at `trigger`, then exit status 2 without
++// the trigger's normal answer.
++void expect_failure(const std::string& engine, const std::string& name, const std::string& options,
++                    const std::string& trigger, const std::string& reason_phrase) {
++    const Run r = run_engine(engine, name, Head + options + trigger + "\nquit\n");
++    const int errors = count(r.out, "info string ERROR NNUE v2: ");
++    const bool no_answer = !has_line(r.out, "readyok") && !has_line(r.out, "bestmove") && !has(r.out, "bench depth");
++    report(r.status == 2 && errors >= 2 && no_answer && has(errors_of(r.out), reason_phrase),
++           name + ": exit status " + std::to_string(r.status) + " at " + trigger + ", " + std::to_string(errors) +
++               " ERROR lines, " + (no_answer ? "no answer" : "ANSWERED (readyok / bestmove / bench)") + ": " + errors_of(r.out));
++}
++
++} // namespace
++
++int main(int argc, char** argv) {
++    if (argc < 2) {
++        std::cerr << "usage: forge_nnue_v2_uci_tests <forge executable>\n";
++        return 2;
++    }
++    std::string engine = argv[1];
++#if defined(_WIN32)
++    for (char& c : engine) if (c == '/') c = '\\';
++#endif
++    const std::string valid = Prefix + "valid.fnn2";       // 2 king buckets (files a-d / e-h), 1 output bucket
++    const std::string truncated = Prefix + "truncated.fnn2";
++    const std::string damaged = Prefix + "damaged.fnn2";
++    const std::string missing = Prefix + "missing.fnn2";   // never written
++    const std::string bytes = net_file(2, 20261027);
++    write_file(valid, bytes);
++    write_file(truncated, bytes.substr(0, bytes.size() - 2));
++    std::string flipped = bytes;
++    flipped[5000] = static_cast<char>(flipped[5000] ^ 0x10);
++    write_file(damaged, flipped);
++    const std::string active_line = "info string NNUE v2: active: " + valid + " king buckets 2 output buckets 1 hidden " +
++                                    std::to_string(forge::nnue::HiddenSize);
++
++    // Defaults: nothing new.
++    {
++        const Run r = run_engine(engine, "defaults", Head + "isready\ngo depth 1\nisready\nquit\n");
++        report(r.status == 0 && count(r.out, "readyok") == 2 && has_line(r.out, "bestmove") && !has(r.out, "NNUE v2") &&
++                   has(r.out, "option name NNUEFile type string default <empty>"),
++               "defaults: exit 0, readyok, bestmove, no NNUE v2 line");
++    }
++    // Requests that cannot be honoured.
++    expect_failure(engine, "missing_file_isready", set("NNUEFile", missing) + set("NNUEKingBuckets", "2"), "isready", "cannot open");
++    expect_failure(engine, "missing_file_go", set("NNUEFile", missing) + set("NNUEKingBuckets", "2"), "go depth 1", "cannot open");
++    expect_failure(engine, "missing_file_bench", set("NNUEFile", missing) + set("NNUEKingBuckets", "2"), "bench 2", "cannot open");
++    expect_failure(engine, "truncated_file", set("NNUEFile", truncated) + set("NNUEKingBuckets", "2"), "isready",
++                   "the weights were not read");
++    expect_failure(engine, "damaged_file", set("NNUEFile", damaged) + set("NNUEKingBuckets", "2"), "isready", "checksum mismatch");
++    expect_failure(engine, "wrong_bucket_count", set("NNUEFile", valid) + set("NNUEKingBuckets", "4"), "isready", "does not match");
++    expect_failure(engine, "buckets_without_file", set("NNUEKingBuckets", "2"), "go depth 1", "no v2 net is loaded");
++    expect_failure(engine, "file_with_buckets_0", set("NNUEFile", valid), "isready", "NNUEKingBuckets is 0");
++    expect_failure(engine, "failed_reload_after_good_net",
++                   set("NNUEFile", valid) + set("NNUEKingBuckets", "2") + set("NNUEFile", missing), "isready", "cannot open");
++    expect_failure(engine, "usennue_true_again", set("UseNNUE", "false") + set("NNUEFile", missing) + set("NNUEKingBuckets", "2") +
++                   set("UseNNUE", "true"), "isready", "cannot open");
++    // A valid net: active line once when it becomes active and at every isready.
++    {
++        const Run r = run_engine(engine, "valid_net", Head + set("NNUEFile", valid) + set("NNUEKingBuckets", "2") +
++                                                          "isready\ngo depth 1\nisready\nquit\n");
++        report(r.status == 0 && count(r.out, active_line) == 3 && count(r.out, "readyok") == 2 && has_line(r.out, "bestmove") &&
++                   has(r.out, "info string NNUE v2: loaded " + valid),
++               "valid net: exit 0, \"" + active_line + " ...\" printed 3 times (activation + 2 isready), readyok, bestmove");
++        report(count(r.out, "ERROR NNUE v2") == 1, "valid net: NNUEFile before NNUEKingBuckets reports the half-set request once (" +
++                                                        errors_of(r.out) + "), resolved by NNUEKingBuckets 2");
++    }
++    {
++        const Run r = run_engine(engine, "order_buckets_first", Head + set("NNUEKingBuckets", "2") + set("NNUEFile", valid) +
++                                                                   "isready\nquit\n");
++        report(r.status == 0 && count(r.out, active_line) == 2 && has_line(r.out, "readyok"),
++               "NNUEKingBuckets before NNUEFile: active, readyok, exit 0");
++    }
++    {
++        const Run r = run_engine(engine, "bench_active", Head + set("NNUEFile", valid) + set("NNUEKingBuckets", "2") + "bench 3\nquit\n");
++        report(r.status == 0 && has(r.out, "bench depth 3 nodes"), "valid net: bench runs, exit 0");
++    }
++    // Not errors.
++    {
++        const Run r = run_engine(engine, "usennue_false", Head + set("UseNNUE", "false") + set("NNUEKingBuckets", "2") +
++                                                             set("NNUEFile", missing) + "isready\ngo depth 1\nquit\n");
++        report(r.status == 0 && has_line(r.out, "readyok") && has_line(r.out, "bestmove") && !has(r.out, "ERROR") &&
++                   has(r.out, "UseNNUE is false"),
++               "UseNNUE false with a v2 request: not an error (exit 0, readyok, bestmove)");
++    }
++    {
++        const Run r = run_engine(engine, "cleared", Head + set("NNUEFile", valid) + set("NNUEKingBuckets", "2") +
++                                                       set("NNUEKingBuckets", "0") + set("NNUEFile", "<empty>") + "isready\ngo depth 1\nquit\n");
++        report(r.status == 0 && has_line(r.out, "readyok") && has_line(r.out, "bestmove") && has(r.out, "info string NNUE v2: off") &&
++                   count(r.out, active_line) == 1,
++               "NNUEKingBuckets 0 + NNUEFile <empty>: request cleared, compiled-in net, exit 0");
++    }
++    for (const std::string& file : temporary_files) std::remove(file.c_str());
 +    std::cout << checks - failures << "/" << checks << " checks passed\n";
 +    return failures == 0 ? 0 : 1;
 +}
 diff --git a/tools/nnue/bench_options.py b/tools/nnue/bench_options.py
 new file mode 100644
-index 0000000..4537b16
+index 00000000..ccbad65f
 --- /dev/null
 +++ b/tools/nnue/bench_options.py
-@@ -0,0 +1,43 @@
+@@ -0,0 +1,50 @@
 +#!/usr/bin/env python3
 +"""Run the engine's `bench <depth>` (Threads 1, Hash 16, OwnBook false) after extra setoption commands and
 +print nodes / time / nps per depth, plus every `info string` line the options produced.
 +usage: bench_options.py <exe> <depth>[,<depth>...] [--set "Name=Value"]... [--expect d11=312866,...]
-+Exit status 1 if an --expect node count differs."""
++Exit status 1 if an --expect node count differs, the engine exits with a non-zero status (e.g. a requested v2
++net that cannot be used) or fewer bench results than depths come back."""
 +import argparse
 +import re
 +import subprocess
@@ -1560,13 +2047,19 @@ index 0000000..4537b16
 +        script += f"setoption name {name} value {value}\n"
 +    depths = [int(d) for d in a.depths.split(",")]
 +    script += "isready\n" + "".join(f"bench {d}\n" for d in depths) + "quit\n"
-+    out = subprocess.run([a.exe], input=script, capture_output=True, text=True, timeout=7200).stdout
++    run = subprocess.run([a.exe], input=script, capture_output=True, text=True, timeout=7200)
++    out = run.stdout
 +    for line in out.splitlines():
 +        if line.startswith("info string") and "bench depth" not in line:
 +            print(line)
 +    expect = dict(x.split("=") for x in a.expect.split(",") if x)
 +    status = 0
-+    for m in re.finditer(r"bench depth (\d+) nodes (\d+) time (\d+) nps (\d+)", out):
++    results = list(re.finditer(r"bench depth (\d+) nodes (\d+) time (\d+) nps (\d+)", out))
++    if run.returncode != 0 or len(results) != len(depths):
++        # e.g. a requested v2 net that cannot be used: the engine exits with status 2 at isready.
++        print(f"ENGINE FAILED: exit status {run.returncode}, {len(results)} of {len(depths)} bench results")
++        status = 1
++    for m in results:
 +        d, nodes = m.group(1), int(m.group(2))
 +        verdict = ""
 +        if f"d{d}" in expect:
@@ -1581,7 +2074,7 @@ index 0000000..4537b16
 +    sys.exit(main())
 diff --git a/tools/nnue/forge_nnue_v2.py b/tools/nnue/forge_nnue_v2.py
 new file mode 100644
-index 0000000..65007e6
+index 00000000..65007e66
 --- /dev/null
 +++ b/tools/nnue/forge_nnue_v2.py
 @@ -0,0 +1,262 @@
@@ -1849,7 +2342,7 @@ index 0000000..65007e6
 +    raise SystemExit(main())
 diff --git a/tools/nnue/mkdata_data32_synthetic.py b/tools/nnue/mkdata_data32_synthetic.py
 new file mode 100644
-index 0000000..f55df81
+index 00000000..f55df815
 --- /dev/null
 +++ b/tools/nnue/mkdata_data32_synthetic.py
 @@ -0,0 +1,17 @@
@@ -1872,7 +2365,7 @@ index 0000000..f55df81
 +    write(f"{sys.argv[1]}{i:03d}", n)
 diff --git a/tools/nnue/nnue_v2_tool.cpp b/tools/nnue/nnue_v2_tool.cpp
 new file mode 100644
-index 0000000..013f073
+index 00000000..013f073f
 --- /dev/null
 +++ b/tools/nnue/nnue_v2_tool.cpp
 @@ -0,0 +1,141 @@
@@ -2019,7 +2512,7 @@ index 0000000..013f073
 +}
 diff --git a/tools/nnue/qa_adam_dml.py b/tools/nnue/qa_adam_dml.py
 new file mode 100644
-index 0000000..13d3152
+index 00000000..13d31527
 --- /dev/null
 +++ b/tools/nnue/qa_adam_dml.py
 @@ -0,0 +1,39 @@
@@ -2064,7 +2557,7 @@ index 0000000..13d3152
 +
 diff --git a/tools/nnue/train_resid_v3b.py b/tools/nnue/train_resid_v3b.py
 new file mode 100644
-index 0000000..271d311
+index 00000000..271d3113
 --- /dev/null
 +++ b/tools/nnue/train_resid_v3b.py
 @@ -0,0 +1,825 @@
@@ -2895,7 +3388,7 @@ index 0000000..271d311
 +    raise SystemExit(main())
 diff --git a/tools/nnue/v2_parity.py b/tools/nnue/v2_parity.py
 new file mode 100644
-index 0000000..c016ef1
+index 00000000..c016ef10
 --- /dev/null
 +++ b/tools/nnue/v2_parity.py
 @@ -0,0 +1,201 @@

@@ -1,5 +1,5 @@
-# Machine code of the hot functions: AL1 s198 lock exe (A) vs C4 exe (B), options off
-$ bash opus_round1/O3/codegen_compare.sh forge_h256_s198.exe forge_c4.exe
+# Machine code of the hot functions: AL1 s198 lock exe (A) vs C4 review-fix exe (B), options off
+$ bash opus_round1/O3/codegen_compare.sh forge_h256_s198.exe forge_c4fix.exe
 function                                          insns_A  insns_B differing  mod64_A  mod64_B
 forge::Worker::search(forge::Board&                  2413     2413         0       32       32
 forge::Worker::qsearch(                               810      810         0       48       48
@@ -24,3 +24,35 @@ forge::nnue::refresh(                                 179      179         0    
 forge::Board::make_move(                              434      434         0       48       48
 forge::Board::unmake_move(                            155      155         0       16       16
 forge::Board::see_ge(                                 904      904         0       48       48
+
+# previous C4 exe (A, commit d879caa7 = engine sources of 324b04ab) vs C4 review-fix exe (B)
+$ bash opus_round1/O3/codegen_compare.sh forge_c4.exe forge_c4fix.exe
+function                                          insns_A  insns_B differing  mod64_A  mod64_B
+forge::Worker::search(forge::Board&                  2413     2413         0       32       32
+forge::Worker::qsearch(                               810      810         0       48       48
+forge::MovePicker::next(                             1854     1854         0        0        0
+forge::Worker::static_evaluate(                       361      361         0        0        0
+forge::TranspositionTable::probe(                     200      200         0       48       48
+forge::TranspositionTable::store(                     129      129         0       16       16
+forge::Worker::should_stop(                            73       73         0       32       32
+forge::Worker::is_draw(                                31       31         0       48       48
+forge::Worker::corrected_eval(                         99       99         0       32       32
+forge::Worker::update_correction(                      81       81         0       32       32
+forge::Worker::quiet_history(                          36       36         0       48       48
+forge::Worker::capture_history_value(                  37       37         0       48       48
+forge::Worker::update_quiet_stats(                    302      302         0        0        0
+forge::Worker::update_capture_stats(                  160      160         0        0        0
+forge::Worker::update_continuation(                    97       97         0       48       48
+forge::Worker::record_move(                            32       32         0       48       48
+forge::Worker::search(forge::Board,                  2123     2123         0       48       48
+forge::nnue::update(                                  772      772         0        0        0
+forge::nnue::evaluate(                                 90       90         0       32       32
+forge::nnue::refresh(                                 179      179         0       16       16
+forge::Board::make_move(                              434      434         0       48       48
+forge::Board::unmake_move(                            155      155         0       16       16
+forge::Board::see_ge(                                 904      904         0       48       48
+
+# v2 evaluation path (cold for the OFF build) and loader helpers: previous C4 exe vs review-fix exe, same normalisation as codegen_compare.sh
+forge::Worker::static_evaluate_v2(   insns_old 2495 insns_new 2495 differing 0   (address 0x14010d840 -> 0x14010f680, both 0 mod 64)
+forge::nnue::v2::make_cache(         insns_old 101  insns_new 101  differing 0
+forge::nnue::v2::unload(             insns_old 20   insns_new 20   differing 0
