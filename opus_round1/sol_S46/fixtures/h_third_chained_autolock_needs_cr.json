@@ -1,0 +1,129 @@
+{
+ "about": "Current lock AUTOLOCK_2 (parent AUTOLOCK_1), no CR_PASS_AUTOLOCK file: a third chained AUTO-LOCK is held (max 2 without CR). CR_PASS_AUTOLOCK_2 appears -> promoted.",
+ "events": [
+  {
+   "ev": "tick",
+   "t": "2026-10-27T20:30"
+  },
+  {
+   "ev": "file",
+   "name": "CR_PASS_AUTOLOCK_2",
+   "t": "2026-10-27T21:00"
+  },
+  {
+   "ev": "tick",
+   "t": "2026-10-27T21:30"
+  }
+ ],
+ "init": {
+  "gates": [
+   {
+    "base": "X131",
+    "conc": 8,
+    "exe": "forge_h256_spd3.exe",
+    "kind": "search",
+    "openings_start": 1611,
+    "options": [
+     "Spd=3"
+    ],
+    "sha": "X161",
+    "srand": 1611,
+    "tag": "gate161_spd_vs_AL2"
+   },
+   {
+    "base": "X131",
+    "conc": 8,
+    "exe": "forge_h256_e48f060_AL2.exe",
+    "openings_start": 1601,
+    "sha": "X160",
+    "srand": 1601,
+    "tag": "gate160_e48f060_vs_AL2"
+   },
+   {
+    "base": "X131",
+    "conc": 8,
+    "confirm_of": "gate160_e48f060_vs_AL2",
+    "exe": "forge_h256_e48f060_AL2.exe",
+    "openings_start": 1602,
+    "sha": "X160",
+    "srand": 1602,
+    "tag": "gate160_e48f060_vs_AL2_confirm"
+   }
+  ],
+  "lock": {
+   "exe": "AUTOLOCK_2_gate131_e48f031_vs_AL1.exe",
+   "kind": "net",
+   "n": 2,
+   "parent": {
+    "exe": "AUTOLOCK_1_gate120_e32f003rec_s198.exe",
+    "kind": "net",
+    "n": 1,
+    "parent": {
+     "exe": "forge_h256_e12.exe",
+     "kind": "base",
+     "n": 0,
+     "parent": null,
+     "sha": "L0",
+     "tag": "h256_e12"
+    },
+    "sha": "X120",
+    "tag": "AUTOLOCK_1_gate120_e32f003rec_s198"
+   },
+   "sha": "X131",
+   "tag": "AUTOLOCK_2_gate131_e48f031_vs_AL1"
+  },
+  "results": [
+   {
+    "elo": 16.0,
+    "err": 10.0,
+    "games": 1000,
+    "t": "2026-10-27T12:00",
+    "tag": "gate160_e48f060_vs_AL2",
+    "verdict": "H1 accepted"
+   },
+   {
+    "elo": 10.0,
+    "err": 8.0,
+    "games": 1500,
+    "t": "2026-10-27T19:50",
+    "tag": "gate160_e48f060_vs_AL2_confirm",
+    "verdict": "H1 accepted"
+   }
+  ],
+  "running": "gate161_spd_vs_AL2",
+  "state": {
+   "promotes": [
+    {
+     "confirm": "gate120_e32f003rec_s198_vs_h256e12_confirm",
+     "gate": "gate120_e32f003rec_s198_vs_h256e12",
+     "kind": "net",
+     "n": 1,
+     "parent": "h256_e12",
+     "parent_sha": "L0",
+     "sha": "X120",
+     "t": "2026-10-25T17:18",
+     "tag": "AUTOLOCK_1_gate120_e32f003rec_s198"
+    },
+    {
+     "confirm": "gate131_e48f031_vs_AL1_confirm",
+     "gate": "gate131_e48f031_vs_AL1",
+     "kind": "net",
+     "n": 2,
+     "parent": "AUTOLOCK_1_gate120_e32f003rec_s198",
+     "parent_sha": "X120",
+     "sha": "X131",
+     "t": "2026-10-26T18:00",
+     "tag": "AUTOLOCK_2_gate131_e48f031_vs_AL1"
+    }
+   ]
+  },
+  "t": "2026-10-27T20:00"
+ },
+ "must": [
+  "PENDING | gate160_e48f060_vs_AL2+gate160_e48f060_vs_AL2_confirm | 2 chained AUTO-LOCKs without CR_PASS_AUTOLOCK_<n>.txt (max 2)",
+  "2026-10-27T21:30 | PROMOTE | AUTOLOCK_3_gate160_e48f060_vs_AL2 |"
+ ],
+ "must_not": [],
+ "name": "h_third_chained_autolock_needs_cr",
+ "spec_ref": "S46 (h)"
+}

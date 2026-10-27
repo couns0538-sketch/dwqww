@@ -1,0 +1,48 @@
+{
+  "schema": "forge-s46-rules-v1",
+  "name": "pre_fix_F41CF92F",
+  "about": "autopromote.ps1 F41CF92F (race-hold PR + RH-Q1, before the CRfix 9E314632 and the Zfix 896663b0), as described by CR_autopromote_RHQ1.md: a VOID confirm keeps its Verdict line (HIGH-1), a missing CSV row / RUN_INFO is a permanent INELIGIBLE (HIGH-2), STOP/PAUSE/ABORTED/VOID/stalled confirms still count as rivals (MED-1), no RH-Q1 hold when e48 is not promotable (MED-2), e32 scope never expires (MED-3), no in-flight record (MED-4), every race re-gate is exempt from the 24 h rule and there is no Z-1 / Z-2, no VOID-HOLD re-run.",
+  "eligibility_note": "strength-bounds [0,x] parent H1 (never nonreg) + its confirm H1, own srand, same conc, same opponent, same exe, attempt 1, CSV clean (0 TL / 0 crash); fixed in code, not switchable",
+  "void_never_h1": false,
+  "void_chain_not_marked": false,
+  "wait_on_missing_data": false,
+  "wait_data_alert_hours": 2,
+  "combine_list_on_stale_lock": true,
+  "edits_need_running_gate": true,
+  "race_hold": {
+    "enabled": true,
+    "cap_hours": 12,
+    "rival_off": [],
+    "rival_off_status_regex": "HELD|PARK|RETIRED|DROPPED|SKIP"
+  },
+  "rhq1": {
+    "enabled": true,
+    "e48_gate": "gate104_e48f006_vs_h256e12",
+    "e32_pattern": "_e32",
+    "e32_scope_base_lock_only": false,
+    "hold_when_e48_not_promotable": false
+  },
+  "void_hold": {
+    "enabled": false,
+    "reruns": 1
+  },
+  "spacing_hours": 24,
+  "max_chained_without_cr": 2,
+  "cap_late_z": {
+    "exempt24_stems": [],
+    "exempt24_all_regates": true,
+    "z1_net_only": false,
+    "z2_hold_until_e48_h1": false
+  },
+  "inflight_record": false,
+  "rollback": {
+    "on_tl": true,
+    "on_crash": true,
+    "window_games": null
+  },
+  "step5": {
+    "src_resolution": "exe_name",
+    "unresolved": "label_keep_old",
+    "max_rebuild_per_tick": 4
+  }
+}

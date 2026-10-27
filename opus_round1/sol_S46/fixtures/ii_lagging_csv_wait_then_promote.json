@@ -1,0 +1,98 @@
+{
+ "about": "The confirm RESULT.md is H1 but FORGE_RESULTS.csv has no row yet (Ledger-Sync lag): WAIT_DATA, not INELIGIBLE; the row arrives and the chain promotes.",
+ "events": [
+  {
+   "csv": null,
+   "elo": 12.0,
+   "err": 8.0,
+   "ev": "result",
+   "games": 1400,
+   "t": "2026-10-25T16:00",
+   "tag": "gate180_e48f080_vs_h256e12_confirm",
+   "verdict": "H1 accepted"
+  },
+  {
+   "ev": "tick",
+   "t": "2026-10-25T16:05"
+  },
+  {
+   "csv": {
+    "clean": "CLEAN",
+    "crash": 0,
+    "tl": 0
+   },
+   "ev": "csv",
+   "t": "2026-10-25T16:20",
+   "tag": "gate180_e48f080_vs_h256e12_confirm"
+  },
+  {
+   "ev": "tick",
+   "t": "2026-10-25T16:35"
+  }
+ ],
+ "init": {
+  "gates": [
+   {
+    "base": "L0",
+    "conc": 8,
+    "exe": "forge_h256_p23b.exe",
+    "kind": "search",
+    "openings_start": 1121,
+    "options": [
+     "P23bTune=1"
+    ],
+    "sha": "X121",
+    "srand": 401121,
+    "tag": "gate121_p23b_vs_h256e12"
+   },
+   {
+    "base": "L0",
+    "conc": 8,
+    "exe": "forge_h256_e48f080.exe",
+    "openings_start": 1801,
+    "sha": "X180",
+    "srand": 1801,
+    "tag": "gate180_e48f080_vs_h256e12"
+   },
+   {
+    "base": "L0",
+    "conc": 8,
+    "confirm_of": "gate180_e48f080_vs_h256e12",
+    "exe": "forge_h256_e48f080.exe",
+    "openings_start": 1802,
+    "sha": "X180",
+    "srand": 1802,
+    "tag": "gate180_e48f080_vs_h256e12_confirm"
+   }
+  ],
+  "lock": {
+   "exe": "forge_h256_e12.exe",
+   "kind": "base",
+   "n": 0,
+   "parent": null,
+   "sha": "L0",
+   "tag": "h256_e12"
+  },
+  "results": [
+   {
+    "elo": 18.0,
+    "err": 10.0,
+    "games": 900,
+    "t": "2026-10-25T12:00",
+    "tag": "gate180_e48f080_vs_h256e12",
+    "verdict": "H1 accepted"
+   }
+  ],
+  "running": "gate121_p23b_vs_h256e12",
+  "t": "2026-10-25T16:00"
+ },
+ "must": [
+  "WAIT | gate180_e48f080_vs_h256e12+gate180_e48f080_vs_h256e12_confirm | WAIT_DATA: gate180_e48f080_vs_h256e12_confirm has no FORGE_RESULTS.csv row yet",
+  "2026-10-25T16:35 | PROMOTE | AUTOLOCK_1_gate180_e48f080 |"
+ ],
+ "must_not": [
+  "INELIGIBLE"
+ ],
+ "name": "ii_lagging_csv_wait_then_promote",
+ "spec_ref": "S46 rework (ii) / CR HIGH-2"
+}

@@ -1,0 +1,86 @@
+{
+ "about": "Parent H1, confirm H0: INELIGIBLE for good, nothing promoted.",
+ "events": [
+  {
+   "ev": "tick",
+   "t": "2026-10-25T20:10"
+  },
+  {
+   "ev": "tick",
+   "t": "2026-10-25T20:40"
+  }
+ ],
+ "init": {
+  "gates": [
+   {
+    "base": "L0",
+    "conc": 8,
+    "exe": "forge_h256_p23b.exe",
+    "kind": "search",
+    "openings_start": 1121,
+    "options": [
+     "P23bTune=1"
+    ],
+    "sha": "X121",
+    "srand": 401121,
+    "tag": "gate121_p23b_vs_h256e12"
+   },
+   {
+    "base": "L0",
+    "conc": 8,
+    "exe": "forge_h256_e48f050.exe",
+    "openings_start": 1501,
+    "sha": "X150",
+    "srand": 1501,
+    "tag": "gate150_e48f050_vs_h256e12"
+   },
+   {
+    "base": "L0",
+    "conc": 8,
+    "confirm_of": "gate150_e48f050_vs_h256e12",
+    "exe": "forge_h256_e48f050.exe",
+    "openings_start": 1502,
+    "sha": "X150",
+    "srand": 1502,
+    "tag": "gate150_e48f050_vs_h256e12_confirm"
+   }
+  ],
+  "lock": {
+   "exe": "forge_h256_e12.exe",
+   "kind": "base",
+   "n": 0,
+   "parent": null,
+   "sha": "L0",
+   "tag": "h256_e12"
+  },
+  "results": [
+   {
+    "elo": 20.0,
+    "err": 10.0,
+    "games": 900,
+    "t": "2026-10-25T16:00",
+    "tag": "gate150_e48f050_vs_h256e12",
+    "verdict": "H1 accepted"
+   },
+   {
+    "elo": -3.0,
+    "err": 8.0,
+    "games": 1500,
+    "t": "2026-10-25T19:50",
+    "tag": "gate150_e48f050_vs_h256e12_confirm",
+    "verdict": "H0 accepted"
+   }
+  ],
+  "running": "gate121_p23b_vs_h256e12",
+  "t": "2026-10-25T20:00"
+ },
+ "must": [
+  "INELIGIBLE | gate150_e48f050_vs_h256e12+gate150_e48f050_vs_h256e12_confirm | gate150_e48f050_vs_h256e12_confirm verdict 'H0 accepted'",
+  "END | seen | gate150_e48f050_vs_h256e12 = INELIGIBLE"
+ ],
+ "must_not": [
+  "| PROMOTE |"
+ ],
+ "name": "f_h1_then_confirm_h0_no_promote",
+ "spec_ref": "S46 (f)"
+}

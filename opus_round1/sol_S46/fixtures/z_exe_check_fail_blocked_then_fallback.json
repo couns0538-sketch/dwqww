@@ -1,0 +1,138 @@
+{
+ "about": "Both chains H1+H1: RH-Q1 picks e48, but its exe checks fail (bench != gate prebench): BLOCKED + alert, no promote. Next tick G104 is CHECK_FAILED, the e32 chain is held loudly (RH-Q1 HOLD) until the 12 h cap, then promoted as RH-Q1 FALLBACK.",
+ "events": [
+  {
+   "ev": "exe_check_fail",
+   "t": "2026-10-25T14:45",
+   "tag": "gate104_e48f006_vs_h256e12",
+   "why": "bench 328459/945640/3024381/9162399/20421972 != gate prebench"
+  },
+  {
+   "ev": "tick",
+   "t": "2026-10-25T14:48"
+  },
+  {
+   "ev": "tick",
+   "t": "2026-10-25T15:18"
+  },
+  {
+   "ev": "tick",
+   "t": "2026-10-26T02:40"
+  }
+ ],
+ "init": {
+  "gates": [
+   {
+    "base": "L0",
+    "conc": 7,
+    "exe": "forge_h256_s198.exe",
+    "openings_start": 8634,
+    "sha": "X120",
+    "srand": 344808634,
+    "src_dir": "src_h256_e32f003rec_s198_ep32",
+    "tag": "gate120_e32f003rec_s198_vs_h256e12"
+   },
+   {
+    "base": "L0",
+    "conc": 7,
+    "confirm_of": "gate120_e32f003rec_s198_vs_h256e12",
+    "exe": "forge_h256_s198.exe",
+    "openings_start": 41020,
+    "sha": "X120",
+    "srand": 559341020,
+    "tag": "gate120_e32f003rec_s198_vs_h256e12_confirm"
+   },
+   {
+    "base": "L0",
+    "conc": 5,
+    "exe": "forge_h256_e48f006.exe",
+    "openings_start": 42104,
+    "sha": "X104",
+    "srand": 1910442104,
+    "src_dir": "src_h256_e48f006_ep48",
+    "tag": "gate104_e48f006_vs_h256e12"
+   },
+   {
+    "base": "L0",
+    "conc": 5,
+    "confirm_of": "gate104_e48f006_vs_h256e12",
+    "exe": "forge_h256_e48f006.exe",
+    "openings_start": 42204,
+    "sha": "X104",
+    "srand": 1910442204,
+    "tag": "gate104_e48f006_vs_h256e12_confirm"
+   },
+   {
+    "base": "L0",
+    "conc": 8,
+    "exe": "forge_h256_p23b.exe",
+    "kind": "search",
+    "openings_start": 1121,
+    "options": [
+     "P23bTune=1"
+    ],
+    "sha": "X121",
+    "srand": 401121,
+    "tag": "gate121_p23b_vs_h256e12"
+   }
+  ],
+  "lock": {
+   "exe": "forge_h256_e12.exe",
+   "kind": "base",
+   "n": 0,
+   "parent": null,
+   "sha": "L0",
+   "tag": "h256_e12"
+  },
+  "results": [
+   {
+    "elo": 23.62,
+    "err": 11.9,
+    "games": 928,
+    "t": "2026-10-25T12:54",
+    "tag": "gate120_e32f003rec_s198_vs_h256e12",
+    "verdict": "H1 accepted"
+   },
+   {
+    "elo": 14.46,
+    "err": 8.61,
+    "games": 1418,
+    "t": "2026-10-25T14:36",
+    "tag": "gate120_e32f003rec_s198_vs_h256e12_confirm",
+    "verdict": "H1 accepted"
+   },
+   {
+    "elo": 29.44,
+    "err": 13.23,
+    "games": 698,
+    "t": "2026-10-25T11:00",
+    "tag": "gate104_e48f006_vs_h256e12",
+    "verdict": "H1 accepted"
+   },
+   {
+    "elo": 9.0,
+    "err": 8.9,
+    "games": 1500,
+    "t": "2026-10-25T14:30",
+    "tag": "gate104_e48f006_vs_h256e12_confirm",
+    "verdict": "H1 accepted"
+   }
+  ],
+  "running": "gate121_p23b_vs_h256e12",
+  "t": "2026-10-25T14:40"
+ },
+ "must": [
+  "PICK | gate104_e48f006_vs_h256e12 | RH-Q1 5/8",
+  "BLOCKED | gate104_e48f006_vs_h256e12 | exe checks failed",
+  "ALERT | ckfail_gate104_e48f006_vs_h256e12 |",
+  "2026-10-25T15:18 | HOLD | gate120_e32f003rec_s198_vs_h256e12 | RH-Q1 HOLD: G104c is H1 but the e48 chain is not promotable (e48 chain seen 'CHECK_FAILED')",
+  "ALERT | q1hold_gate120_e32f003rec_s198_vs_h256e12 |",
+  "2026-10-26T02:40 | ALERT | q1fallback |",
+  "PROMOTE | AUTOLOCK_1_gate120_e32f003rec_s198 |"
+ ],
+ "must_not": [
+  "PROMOTE | AUTOLOCK_1_gate104"
+ ],
+ "name": "z_exe_check_fail_blocked_then_fallback",
+ "spec_ref": "rule 2 + CR MED-2 (QA CRfix scenario H)"
+}

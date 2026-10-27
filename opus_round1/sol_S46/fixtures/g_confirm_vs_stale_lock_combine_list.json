@@ -1,0 +1,103 @@
+{
+ "about": "The lock moved to AUTOLOCK_1 while this chain ran vs h256_e12: H1+H1 vs the old lock goes to COMBINE_LIST, never promoted.",
+ "events": [
+  {
+   "ev": "tick",
+   "t": "2026-10-25T20:10"
+  }
+ ],
+ "init": {
+  "gates": [
+   {
+    "base": "X120",
+    "conc": 8,
+    "exe": "forge_h256_spd_AL1.exe",
+    "kind": "search",
+    "openings_start": 1321,
+    "options": [
+     "SpeedX=1"
+    ],
+    "sha": "X132",
+    "srand": 1321,
+    "tag": "gate132_spd_vs_AL1"
+   },
+   {
+    "base": "L0",
+    "conc": 8,
+    "exe": "forge_h256_e48f050.exe",
+    "openings_start": 1501,
+    "sha": "X150",
+    "srand": 1501,
+    "tag": "gate150_e48f050_vs_h256e12"
+   },
+   {
+    "base": "L0",
+    "conc": 8,
+    "confirm_of": "gate150_e48f050_vs_h256e12",
+    "exe": "forge_h256_e48f050.exe",
+    "openings_start": 1502,
+    "sha": "X150",
+    "srand": 1502,
+    "tag": "gate150_e48f050_vs_h256e12_confirm"
+   }
+  ],
+  "lock": {
+   "exe": "AUTOLOCK_1_gate120_e32f003rec_s198.exe",
+   "kind": "net",
+   "n": 1,
+   "parent": {
+    "exe": "forge_h256_e12.exe",
+    "kind": "base",
+    "n": 0,
+    "parent": null,
+    "sha": "L0",
+    "tag": "h256_e12"
+   },
+   "sha": "X120",
+   "tag": "AUTOLOCK_1_gate120_e32f003rec_s198"
+  },
+  "results": [
+   {
+    "elo": 20.0,
+    "err": 10.0,
+    "games": 900,
+    "t": "2026-10-25T15:00",
+    "tag": "gate150_e48f050_vs_h256e12",
+    "verdict": "H1 accepted"
+   },
+   {
+    "elo": 11.0,
+    "err": 8.0,
+    "games": 1500,
+    "t": "2026-10-25T19:50",
+    "tag": "gate150_e48f050_vs_h256e12_confirm",
+    "verdict": "H1 accepted"
+   }
+  ],
+  "running": "gate132_spd_vs_AL1",
+  "state": {
+   "promotes": [
+    {
+     "confirm": "gate120_e32f003rec_s198_vs_h256e12_confirm",
+     "gate": "gate120_e32f003rec_s198_vs_h256e12",
+     "kind": "net",
+     "n": 1,
+     "parent": "h256_e12",
+     "parent_sha": "L0",
+     "sha": "X120",
+     "t": "2026-10-25T17:18",
+     "tag": "AUTOLOCK_1_gate120_e32f003rec_s198"
+    }
+   ]
+  },
+  "t": "2026-10-25T20:00"
+ },
+ "must": [
+  "COMBINE_LIST | gate150_e48f050_vs_h256e12+gate150_e48f050_vs_h256e12_confirm | H1+H1 but vs h256_e12 (L0); current lock is AUTOLOCK_1_gate120_e32f003rec_s198"
+ ],
+ "must_not": [
+  "| PROMOTE |"
+ ],
+ "name": "g_confirm_vs_stale_lock_combine_list",
+ "spec_ref": "S46 (g)"
+}

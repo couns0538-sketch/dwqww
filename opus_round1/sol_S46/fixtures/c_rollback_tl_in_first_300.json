@@ -1,0 +1,130 @@
+{
+ "about": "A gate vs AUTOLOCK_1 has a time loss at game 120: pointer back to h256_e12, the gate rebuilt on AL1 restored, the unstarted AL1 gate moved back, the finished gate re-queued as _rb1 with a fresh srand; the running gate is left alone.",
+ "events": [
+  {
+   "csv": {
+    "clean": "NOT CLEAN",
+    "crash": 0,
+    "tl": 1
+   },
+   "elo": 2.0,
+   "err": 9.0,
+   "ev": "result",
+   "games": 1500,
+   "t": "2026-10-26T09:00",
+   "tag": "gate56_auto000_vs_AL1",
+   "verdict": "cap with no decision"
+  },
+  {
+   "ev": "tl",
+   "game": 120,
+   "t": "2026-10-26T09:00",
+   "tag": "gate56_auto000_vs_AL1",
+   "tl": 1
+  },
+  {
+   "ev": "tick",
+   "t": "2026-10-26T09:30"
+  }
+ ],
+ "init": {
+  "gates": [
+   {
+    "base": "X120",
+    "conc": 8,
+    "exe": "forge_h256_auto000_AL1.exe",
+    "openings_start": 5601,
+    "sha": "X56",
+    "srand": 5601,
+    "tag": "gate56_auto000_vs_AL1"
+   },
+   {
+    "base": "X120",
+    "conc": 8,
+    "exe": "forge_h256_e20j_AL1.exe",
+    "openings_start": 5701,
+    "sha": "X57",
+    "srand": 5701,
+    "tag": "gate57_e20j_vs_AL1"
+   },
+   {
+    "ag_prev": {
+     "base": "L0",
+     "exe": "forge_h256_e16q.exe",
+     "sha": "X58",
+     "srand": 5800
+    },
+    "ag_rebuilt_on": "AUTOLOCK_1_gate120_e32f003rec_s198",
+    "base": "X120",
+    "conc": 8,
+    "exe": "forge_h256_e16q_AL1.exe",
+    "openings_start": 5801,
+    "sha": "X58n",
+    "srand": 5801,
+    "tag": "gate58_e16q_vs_h256e12"
+   },
+   {
+    "base": "X120",
+    "conc": 8,
+    "exe": "forge_h256_spd2.exe",
+    "kind": "search",
+    "openings_start": 5901,
+    "options": [
+     "Spd=2"
+    ],
+    "sha": "X59",
+    "srand": 5901,
+    "tag": "gate59_spd_vs_AL1"
+   }
+  ],
+  "lock": {
+   "exe": "AUTOLOCK_1_gate120_e32f003rec_s198.exe",
+   "kind": "net",
+   "n": 1,
+   "parent": {
+    "exe": "forge_h256_e12.exe",
+    "kind": "base",
+    "n": 0,
+    "parent": null,
+    "sha": "L0",
+    "tag": "h256_e12"
+   },
+   "sha": "X120",
+   "tag": "AUTOLOCK_1_gate120_e32f003rec_s198"
+  },
+  "results": [],
+  "running": "gate57_e20j_vs_AL1",
+  "started": [
+   "gate56_auto000_vs_AL1"
+  ],
+  "state": {
+   "promotes": [
+    {
+     "confirm": "gate120_e32f003rec_s198_vs_h256e12_confirm",
+     "gate": "gate120_e32f003rec_s198_vs_h256e12",
+     "kind": "net",
+     "n": 1,
+     "parent": "h256_e12",
+     "parent_sha": "L0",
+     "sha": "X120",
+     "t": "2026-10-25T17:18",
+     "tag": "AUTOLOCK_1_gate120_e32f003rec_s198"
+    }
+   ]
+  },
+  "t": "2026-10-26T08:00"
+ },
+ "must": [
+  "RESTORE | gate58_e16q_vs_h256e12 | rebuilt on AUTOLOCK_1_gate120_e32f003rec_s198: back to forge_h256_e16q.exe vs h256_e12",
+  "RESTORE | gate59_spd_vs_AL1 | opponent AUTOLOCK_1_gate120_e32f003rec_s198 withdrawn -> h256_e12",
+  "REGATE | gate56_auto000_vs_AL1_rb1 | re-queued by rollback",
+  "ROLLBACK | AUTOLOCK_1_gate120_e32f003rec_s198 | pointer AUTOLOCK_1_gate120_e32f003rec_s198 -> h256_e12",
+  "at game 120",
+  "END | lock | h256_e12 (n=0)"
+ ],
+ "must_not": [
+  "REGATE | gate57"
+ ],
+ "name": "c_rollback_tl_in_first_300",
+ "spec_ref": "S46 (c)"
+}

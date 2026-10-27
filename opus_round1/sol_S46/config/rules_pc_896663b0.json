@@ -1,0 +1,56 @@
+{
+  "schema": "forge-s46-rules-v1",
+  "name": "pc_896663b0",
+  "about": "autopromote.ps1 896663b0 as written (live on the PC since the Zfix install): the voted rules EXCEPT step 5, which derives the source folder src_h256_<gk> from the exe name and, when that folder does not exist, labels the net gate 'vs <old lock>' (keeps the old opponent) with no alert: the step-5 suffix bug found 2026-10-25 18:01 CET (G55/G56).",
+  "eligibility_note": "strength-bounds [0,x] parent H1 (never nonreg) + its confirm H1, own srand, same conc, same opponent, same exe, attempt 1, CSV clean (0 TL / 0 crash); fixed in code, not switchable",
+  "void_never_h1": true,
+  "void_chain_not_marked": true,
+  "wait_on_missing_data": true,
+  "wait_data_alert_hours": 2,
+  "combine_list_on_stale_lock": true,
+  "edits_need_running_gate": true,
+  "race_hold": {
+    "enabled": true,
+    "cap_hours": 12,
+    "rival_off": [
+      "STOP",
+      "PAUSE",
+      "ABORTED",
+      "VOID",
+      "STALLED"
+    ],
+    "rival_off_status_regex": "HELD|PARK|RETIRED|DROPPED|SKIP"
+  },
+  "rhq1": {
+    "enabled": true,
+    "e48_gate": "gate104_e48f006_vs_h256e12",
+    "e32_pattern": "_e32",
+    "e32_scope_base_lock_only": true,
+    "hold_when_e48_not_promotable": true
+  },
+  "void_hold": {
+    "enabled": true,
+    "reruns": 1
+  },
+  "spacing_hours": 24,
+  "max_chained_without_cr": 2,
+  "cap_late_z": {
+    "exempt24_stems": [
+      "gate104_e48f006"
+    ],
+    "exempt24_all_regates": false,
+    "z1_net_only": true,
+    "z2_hold_until_e48_h1": true
+  },
+  "inflight_record": true,
+  "rollback": {
+    "on_tl": true,
+    "on_crash": true,
+    "window_games": null
+  },
+  "step5": {
+    "src_resolution": "exe_name",
+    "unresolved": "label_keep_old",
+    "max_rebuild_per_tick": 4
+  }
+}

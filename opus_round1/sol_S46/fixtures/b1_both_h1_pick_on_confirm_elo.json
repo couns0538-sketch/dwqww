@@ -1,0 +1,145 @@
+{
+ "about": "Two net chains vs AL1 are both H1+H1 in one tick: higher confirm Elo (15 +/- 8 vs 6 +/- 8, |d| 9 >= 8) wins and promotes AUTOLOCK_2; the loser is re-gated vs AUTOLOCK_2 with a fresh srand. CAP-LATE Z 8/8: the 24 h waiver is e48-only, so this re-gate is NOT exempt (the spec text \"no 24 h wait\" predates CAP-LATE Z; see README).",
+ "events": [
+  {
+   "ev": "tick",
+   "t": "2026-10-27T10:30"
+  }
+ ],
+ "init": {
+  "files": [
+   "CR_PASS_AUTOLOCK_1"
+  ],
+  "gates": [
+   {
+    "base": "X120",
+    "conc": 8,
+    "exe": "forge_h256_spd_AL1.exe",
+    "kind": "search",
+    "openings_start": 1321,
+    "options": [
+     "SpeedX=1"
+    ],
+    "sha": "X132",
+    "srand": 1321,
+    "tag": "gate132_spd_vs_AL1"
+   },
+   {
+    "base": "X120",
+    "conc": 8,
+    "exe": "forge_h256_e48f030_AL1.exe",
+    "openings_start": 1301,
+    "sha": "X130",
+    "srand": 1301,
+    "src_dir": "src_h256_e48f030_AL1",
+    "tag": "gate130_e48f030_vs_AL1"
+   },
+   {
+    "base": "X120",
+    "conc": 8,
+    "confirm_of": "gate130_e48f030_vs_AL1",
+    "exe": "forge_h256_e48f030_AL1.exe",
+    "openings_start": 1302,
+    "sha": "X130",
+    "srand": 1302,
+    "tag": "gate130_e48f030_vs_AL1_confirm"
+   },
+   {
+    "base": "X120",
+    "conc": 8,
+    "exe": "forge_h256_e48f031_AL1.exe",
+    "openings_start": 1311,
+    "sha": "X131",
+    "srand": 1311,
+    "src_dir": "src_h256_e48f031_AL1",
+    "tag": "gate131_e48f031_vs_AL1"
+   },
+   {
+    "base": "X120",
+    "conc": 8,
+    "confirm_of": "gate131_e48f031_vs_AL1",
+    "exe": "forge_h256_e48f031_AL1.exe",
+    "openings_start": 1312,
+    "sha": "X131",
+    "srand": 1312,
+    "tag": "gate131_e48f031_vs_AL1_confirm"
+   }
+  ],
+  "lock": {
+   "exe": "AUTOLOCK_1_gate120_e32f003rec_s198.exe",
+   "kind": "net",
+   "n": 1,
+   "parent": {
+    "exe": "forge_h256_e12.exe",
+    "kind": "base",
+    "n": 0,
+    "parent": null,
+    "sha": "L0",
+    "tag": "h256_e12"
+   },
+   "sha": "X120",
+   "tag": "AUTOLOCK_1_gate120_e32f003rec_s198"
+  },
+  "results": [
+   {
+    "elo": 12,
+    "err": 9,
+    "games": 1100,
+    "t": "2026-10-26T20:00",
+    "tag": "gate130_e48f030_vs_AL1",
+    "verdict": "H1 accepted"
+   },
+   {
+    "elo": 10,
+    "err": 9,
+    "games": 1200,
+    "t": "2026-10-26T20:30",
+    "tag": "gate131_e48f031_vs_AL1",
+    "verdict": "H1 accepted"
+   },
+   {
+    "elo": 15,
+    "err": 8,
+    "games": 1500,
+    "t": "2026-10-27T10:00",
+    "tag": "gate130_e48f030_vs_AL1_confirm",
+    "verdict": "H1 accepted"
+   },
+   {
+    "elo": 6,
+    "err": 8,
+    "games": 1500,
+    "t": "2026-10-27T10:10",
+    "tag": "gate131_e48f031_vs_AL1_confirm",
+    "verdict": "H1 accepted"
+   }
+  ],
+  "running": "gate132_spd_vs_AL1",
+  "state": {
+   "promotes": [
+    {
+     "confirm": "gate120_e32f003rec_s198_vs_h256e12_confirm",
+     "gate": "gate120_e32f003rec_s198_vs_h256e12",
+     "kind": "net",
+     "n": 1,
+     "parent": "h256_e12",
+     "parent_sha": "L0",
+     "sha": "X120",
+     "t": "2026-10-25T17:18",
+     "tag": "AUTOLOCK_1_gate120_e32f003rec_s198"
+    }
+   ]
+  },
+  "t": "2026-10-27T10:20"
+ },
+ "must": [
+  "PICK | gate130_e48f030_vs_AL1 | picked on CONFIRM Elo 15 vs 6",
+  "PENDING | gate131_e48f031_vs_AL1+gate131_e48f031_vs_AL1_confirm | lost the race-hold pick",
+  "PROMOTE | AUTOLOCK_2_gate130_e48f030_vs_AL1 |",
+  "REGATE | gate131_e48f031_rebase_vs_AL2 | re-gate of gate131_e48f031_vs_AL1 (lost-pick) vs AUTOLOCK_2_gate130_e48f030_vs_AL1: fresh srand",
+  "exempt24 False"
+ ],
+ "must_not": [],
+ "name": "b1_both_h1_pick_on_confirm_elo",
+ "spec_ref": "S46 (b)"
+}

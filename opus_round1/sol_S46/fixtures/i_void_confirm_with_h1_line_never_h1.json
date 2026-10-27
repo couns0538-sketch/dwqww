@@ -1,0 +1,81 @@
+{
+ "about": "VOID.txt + a RESULT.md VOID header that still carries \"Verdict: H1 accepted\": never H1, chain not marked (a re-run may follow), nothing promoted.",
+ "events": [
+  {
+   "cause": "engine option leak (ENGINE_OPTIONS_CHECK FAIL)",
+   "ev": "void",
+   "t": "2026-10-25T20:50",
+   "tag": "gate170_e48f070_vs_h256e12_confirm",
+   "verdict": "H1 accepted"
+  },
+  {
+   "ev": "tick",
+   "t": "2026-10-25T21:10"
+  }
+ ],
+ "init": {
+  "gates": [
+   {
+    "base": "L0",
+    "conc": 8,
+    "exe": "forge_h256_p23b.exe",
+    "kind": "search",
+    "openings_start": 1121,
+    "options": [
+     "P23bTune=1"
+    ],
+    "sha": "X121",
+    "srand": 401121,
+    "tag": "gate121_p23b_vs_h256e12"
+   },
+   {
+    "base": "L0",
+    "conc": 8,
+    "exe": "forge_h256_e48f070.exe",
+    "openings_start": 1701,
+    "sha": "X170",
+    "srand": 1701,
+    "tag": "gate170_e48f070_vs_h256e12"
+   },
+   {
+    "base": "L0",
+    "conc": 8,
+    "confirm_of": "gate170_e48f070_vs_h256e12",
+    "exe": "forge_h256_e48f070.exe",
+    "openings_start": 1702,
+    "sha": "X170",
+    "srand": 1702,
+    "tag": "gate170_e48f070_vs_h256e12_confirm"
+   }
+  ],
+  "lock": {
+   "exe": "forge_h256_e12.exe",
+   "kind": "base",
+   "n": 0,
+   "parent": null,
+   "sha": "L0",
+   "tag": "h256_e12"
+  },
+  "results": [
+   {
+    "elo": 18.0,
+    "err": 10.0,
+    "games": 900,
+    "t": "2026-10-25T17:00",
+    "tag": "gate170_e48f070_vs_h256e12",
+    "verdict": "H1 accepted"
+   }
+  ],
+  "running": "gate121_p23b_vs_h256e12",
+  "t": "2026-10-25T21:00"
+ },
+ "must": [
+  "NOTE | gate170_e48f070_vs_h256e12+gate170_e48f070_vs_h256e12_confirm | VOID (gate170_e48f070_vs_h256e12_confirm); not marked"
+ ],
+ "must_not": [
+  "| PROMOTE |",
+  "INELIGIBLE"
+ ],
+ "name": "i_void_confirm_with_h1_line_never_h1",
+ "spec_ref": "S46 rework (i) / CR HIGH-1"
+}

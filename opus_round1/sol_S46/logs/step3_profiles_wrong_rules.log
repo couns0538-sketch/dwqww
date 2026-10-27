@@ -1,0 +1,59 @@
+# step3+4 profiles and deliberately wrong rules: python -I -B s46_profile_report.py
+| fixture | spec | voted: asserts | pc_896663b0: log vs voted / asserts | pre_fix_F41CF92F: asserts |
+|---|---|---|---|---|
+| a_race_hold_g120c_h1_g104c_pending | S46 (a) | PASS | same / PASS | PASS |
+| b1_both_h1_pick_on_confirm_elo | S46 (b) | PASS | same / PASS | FAIL (missing: exempt24 False) |
+| b2_both_h1_tie_pooled_pick | S46 (b) | PASS | same / PASS | PASS |
+| c2_rollback_tl_after_300_any_game | S46 (c) note | PASS | same / PASS | PASS |
+| c_rollback_tl_in_first_300 | S46 (c) | PASS | same / PASS | PASS |
+| d_second_promote_inside_24h_blocked | S46 (d) | PASS | same / PASS | PASS |
+| e_hold_reaches_cap | S46 (e) + (v) | PASS | same / PASS | FAIL (missing: conc 5, exempt24 True, status HELD_Z_until_G104c_H1) |
+| f_h1_then_confirm_h0_no_promote | S46 (f) | PASS | same / PASS | PASS |
+| g_confirm_vs_stale_lock_combine_list | S46 (g) | PASS | same / PASS | PASS |
+| h_third_chained_autolock_needs_cr | S46 (h) | PASS | same / PASS | PASS |
+| i_void_confirm_with_h1_line_never_h1 | S46 rework (i) / CR HIGH-1 | PASS | same / PASS | FAIL (missing: NOTE | gate170_e48f070_vs_h256e12+gate170_e48f070_vs_h256e12_) |
+| ii2_waitdata_e48_quiet_rhq1_hold | CR HIGH-2 + MED-2 (QA CRfix scenario G) | PASS | same / PASS | FAIL (missing: WAIT | gate104_e48f006_vs_h256e12+gate104_e48f006_vs_h256e12_) |
+| ii_lagging_csv_wait_then_promote | S46 rework (ii) / CR HIGH-2 | PASS | same / PASS | FAIL (missing: WAIT | gate180_e48f080_vs_h256e12+gate180_e48f080_vs_h256e12_) |
+| iii_stopped_rival_is_not_a_rival | S46 rework (iii) / CR MED-1 / RH-Q3 | PASS | same / PASS | FAIL (missing: NOTE | race-hold | not counted as rivals: gate104_e48f006_vs_) |
+| iv_crash_after_pointer_reconciled | S46 rework (iv) / CR MED-4 | PASS | same / PASS | FAIL (missing: 2026-10-25T15:18 | RECONCILE | AUTOLOCK_1_gate120_e32f003rec_) |
+| real_20261025_al1_promote_replay | real-file replay | PASS | same / PASS | PASS |
+| s5_step5_suffix_src_dir_resolution | S46 step-5 suffix regression (N29) | PASS | DIFFERS / FAIL | FAIL (missing: REBUILD | gate55_e20i_vs_h256e12 | src_h256_e20i_ep20 +) |
+| v2_cap_late_z_g104c_h0_drops_regate | S46 rework (v) / Z-2 | PASS | same / PASS | FAIL (missing: status HELD_Z_until_G104c_H1) |
+| v3_cap_late_z1_rebase_not_net_only_blocked | S46 rework (v) / CR Z-1 | PASS | same / PASS | FAIL (missing: Z2_RELEASE | gate104_e48f006_rebase_vs_AL1) |
+| v_cap_late_z_g104c_h1_releases_regate | S46 rework (v) / CAP-LATE Z 8/8 + Z-1/Z-2 | PASS | same / PASS | FAIL (missing: status HELD_Z_until_G104c_H1) |
+| vi_void_hold_one_rerun | S46 rework (vi) / VOID-HOLD 8/8 | PASS | same / PASS | FAIL (missing: VOID_RERUN | gate104_e48f006_vs_h256e12_confirm_vr1 | ONE re-) |
+| vii_rhq2_h0_rival_rework_rhq3_held_not_rival | S46 rework (vii) / RH-Q2, RH-Q3 | PASS | same / PASS | PASS |
+| viii_live_state_net_gates_retarget | S46 rework (viii) | PASS | same / PASS | FAIL (missing: Z2_DROP | gate104_e48f006_rebase_vs_AL1) |
+| w_no_running_gate_promote_waits | CR L8 / rule 3 boundary | PASS | same / PASS | PASS |
+| x_rhq1_both_h1_e48_wins | RH-Q1 5/8 | PASS | same / PASS | PASS |
+| y_med2_e48_not_promotable_hold_then_fallback | CR MED-2 | PASS | same / PASS | FAIL (missing: HOLD | gate120_e32f003rec_s198_vs_h256e12 | RH-Q1 HOLD: G104c) |
+| z_exe_check_fail_blocked_then_fallback | rule 2 + CR MED-2 (QA CRfix scenario H) | PASS | same / PASS | FAIL (missing: 2026-10-25T15:18 | HOLD | gate120_e32f003rec_s198_vs_h256e12 ) |
+
+| wrong rule (one at a time) | fixtures that fail |
+|---|---|
+| spacing_hours = 12 | 1: d_second_promote_inside_24h_blocked |
+| max_chained_without_cr = 3 | 1: h_third_chained_autolock_needs_cr |
+| race_hold.cap_hours = 6 | 13: a_race_hold_g120c_h1_g104c_pending, e_hold_reaches_cap, ii2_waitdata_e48_quiet_rhq1_hold, real_20261025_al1_promote_replay, v2_cap_late_z_g104c_h0_drops_regate, v3_cap_late_z1_rebase_not_net_only_blocked, v_cap_late_z_g104c_h1_releases_regate, vi_void_hold_one_rerun, vii_rhq2_h0_rival_rework_rhq3_held_not_rival, viii_live_state_net_gates_retarget, x_rhq1_both_h1_e48_wins, y_med2_e48_not_promotable_hold_then_fallback, z_exe_check_fail_blocked_then_fallback |
+| race_hold.enabled = false | 16: a_race_hold_g120c_h1_g104c_pending, b1_both_h1_pick_on_confirm_elo, b2_both_h1_tie_pooled_pick, e_hold_reaches_cap, ii2_waitdata_e48_quiet_rhq1_hold, iii_stopped_rival_is_not_a_rival, real_20261025_al1_promote_replay, v2_cap_late_z_g104c_h0_drops_regate, v3_cap_late_z1_rebase_not_net_only_blocked, v_cap_late_z_g104c_h1_releases_regate, vi_void_hold_one_rerun, vii_rhq2_h0_rival_rework_rhq3_held_not_rival, viii_live_state_net_gates_retarget, x_rhq1_both_h1_e48_wins, y_med2_e48_not_promotable_hold_then_fallback, z_exe_check_fail_blocked_then_fallback |
+| void_never_h1 = false | 2: i_void_confirm_with_h1_line_never_h1, vi_void_hold_one_rerun |
+| void_chain_not_marked = false | 2: i_void_confirm_with_h1_line_never_h1, vi_void_hold_one_rerun |
+| wait_on_missing_data = false | 2: ii2_waitdata_e48_quiet_rhq1_hold, ii_lagging_csv_wait_then_promote |
+| race_hold.rival_off = [] | 1: iii_stopped_rival_is_not_a_rival |
+| inflight_record = false | 1: iv_crash_after_pointer_reconciled |
+| cap_late_z.z2_hold_until_e48_h1 = false | 5: e_hold_reaches_cap, v2_cap_late_z_g104c_h0_drops_regate, v3_cap_late_z1_rebase_not_net_only_blocked, v_cap_late_z_g104c_h1_releases_regate, viii_live_state_net_gates_retarget |
+| cap_late_z.exempt24_stems = [] | 5: e_hold_reaches_cap, v2_cap_late_z_g104c_h0_drops_regate, v3_cap_late_z1_rebase_not_net_only_blocked, v_cap_late_z_g104c_h1_releases_regate, viii_live_state_net_gates_retarget |
+| cap_late_z.exempt24_all_regates = true | 2: b1_both_h1_pick_on_confirm_elo, b2_both_h1_tie_pooled_pick |
+| cap_late_z.z1_net_only = false | 1: v3_cap_late_z1_rebase_not_net_only_blocked |
+| void_hold.enabled = false | 1: vi_void_hold_one_rerun |
+| rhq1.enabled = false | 5: ii2_waitdata_e48_quiet_rhq1_hold, vi_void_hold_one_rerun, x_rhq1_both_h1_e48_wins, y_med2_e48_not_promotable_hold_then_fallback, z_exe_check_fail_blocked_then_fallback |
+| rhq1.hold_when_e48_not_promotable = false | 3: ii2_waitdata_e48_quiet_rhq1_hold, y_med2_e48_not_promotable_hold_then_fallback, z_exe_check_fail_blocked_then_fallback |
+| rollback.window_games = 300 | 1: c2_rollback_tl_after_300_any_game |
+| rollback.on_tl = false | 2: c2_rollback_tl_after_300_any_game, c_rollback_tl_in_first_300 |
+| combine_list_on_stale_lock = false | 4: g_confirm_vs_stale_lock_combine_list, v3_cap_late_z1_rebase_not_net_only_blocked, v_cap_late_z_g104c_h1_releases_regate, viii_live_state_net_gates_retarget |
+| step5.src_resolution = "exe_name" | 1: s5_step5_suffix_src_dir_resolution |
+| step5.max_rebuild_per_tick = 3 | 3: real_20261025_al1_promote_replay, s5_step5_suffix_src_dir_resolution, viii_live_state_net_gates_retarget |
+| edits_need_running_gate = false | 1: w_no_running_gate_promote_waits |
+| race_hold.rival_off_status_regex = "" | 1: vii_rhq2_h0_rival_rework_rhq3_held_not_rival |
+
+all 23 wrong rules caught: True
+exit code: 0

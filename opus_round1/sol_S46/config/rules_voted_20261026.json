@@ -1,0 +1,37 @@
+{
+  "schema": "forge-s46-rules-v1",
+  "name": "voted_20261026",
+  "about": "Crew-voted AUTO-LOCK rules as of 2026-10-26: AL vote A 6/8 (rules 1-8, d), race-hold PR 8/8 (12 h cap, confirm-Elo pick, pooled tie-break), RH-Q1 5/8 / Q2 / Q3, CRfix (HIGH-1/2, MED-1..4), CAP-LATE Z 8/8 (+ Z-1/Z-2 from the CR re-review), VOID-HOLD 8/8 (variant b) = what autopromote.ps1 896663b0 implements, plus the 18:05 crew vote N29 (step 5 reads each gate's src_dir from the manifest; an unresolved folder is SKIPPED with a loud rbskip alert). Sources: autopromote.ps1 896663b0 header + code, QUEUE_PENDING (AL / race-hold / RH-Q / CRfix / CAP-LATE Z sections), CR_autopromote_RHQ1.md, NEXT_ROUND_SOL_PROMPT_20261026_1005.md (N29).",
+  "eligibility_note": "strength-bounds [0,x] parent H1 (never nonreg) + its confirm H1, own srand, same conc, same opponent, same exe, attempt 1, CSV clean (0 TL / 0 crash); fixed in code, not switchable",
+  "void_never_h1": true,
+  "void_chain_not_marked": true,
+  "wait_on_missing_data": true,
+  "wait_data_alert_hours": 2,
+  "combine_list_on_stale_lock": true,
+  "edits_need_running_gate": true,
+  "race_hold": {
+    "enabled": true,
+    "cap_hours": 12,
+    "rival_off": ["STOP", "PAUSE", "ABORTED", "VOID", "STALLED"],
+    "rival_off_status_regex": "HELD|PARK|RETIRED|DROPPED|SKIP"
+  },
+  "rhq1": {
+    "enabled": true,
+    "e48_gate": "gate104_e48f006_vs_h256e12",
+    "e32_pattern": "_e32",
+    "e32_scope_base_lock_only": true,
+    "hold_when_e48_not_promotable": true
+  },
+  "void_hold": {"enabled": true, "reruns": 1},
+  "spacing_hours": 24,
+  "max_chained_without_cr": 2,
+  "cap_late_z": {
+    "exempt24_stems": ["gate104_e48f006"],
+    "exempt24_all_regates": false,
+    "z1_net_only": true,
+    "z2_hold_until_e48_h1": true
+  },
+  "inflight_record": true,
+  "rollback": {"on_tl": true, "on_crash": true, "window_games": null},
+  "step5": {"src_resolution": "manifest_src_dir", "unresolved": "skip_alert", "max_rebuild_per_tick": 4}
+}
