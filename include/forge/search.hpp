@@ -2,6 +2,7 @@
 
 #include "forge/board.hpp"
 #include "forge/eval.hpp"
+#include "forge/hist_rework.hpp"
 #include "forge/nnue.hpp"
 
 #include <array>
@@ -258,6 +259,8 @@ constexpr std::size_t CorrectionSize = 1U << 14U;
 constexpr int CorrectionGrain = 256;
 constexpr int CorrectionLimit = 32 * CorrectionGrain;
 using CorrectionHistory = std::array<std::array<std::int32_t, CorrectionSize>, 2>;
+// UCI HistRework: [side][from attacked by a lesser enemy piece][to attacked by a lesser enemy piece][from][to].
+using LesserThreatHistory = std::array<std::array<std::array<std::array<std::array<std::int16_t, 64>, 64>, 2>, 2>, 2>;
 
 struct SearchStack {
     std::array<Move, MaxPly + 1> pv{};
@@ -344,6 +347,11 @@ private:
     bool root_restricted_ = false;
     std::uint64_t null_tries_ = 0;
     std::uint64_t null_cutoffs_ = 0;
+    // UCI HistRework (forge/hist_rework.hpp). Last members, so every lock member keeps its offset; read and
+    // written only while the option is on. threat_maps_[ply] holds the lesser-attacker maps of the node at ply.
+    std::unique_ptr<LesserThreatHistory> threat_history_;
+    std::unique_ptr<CorrectionHistory> joint_correction_;
+    std::array<hist_rework::LesserThreats, MaxPly + 8> threat_maps_{};
 
     int search(Board& board, SearchStack* ss, int depth, int alpha, int beta, bool cut_node);
     int qsearch(Board& board, SearchStack* ss, int alpha, int beta);
@@ -355,6 +363,9 @@ private:
                             const Move* quiets, int quiet_count);
     void update_capture_stats(const Board& board, Move best, int depth, const Move* captures, int capture_count);
     void update_continuation(SearchStack* ss, Piece piece, int to, int bonus);
+    void update_threat_history(const Board& board, const SearchStack* ss, Move best, int bonus, const Move* quiets,
+                               int quiet_count);
+    [[nodiscard]] std::int16_t& threat_history_entry(const Board& board, const SearchStack* ss, Move move) const;
     [[nodiscard]] int quiet_history(const Board& board, const SearchStack* ss, Move move) const;
     [[nodiscard]] int capture_history_value(const Board& board, Move move) const;
     [[nodiscard]] int corrected_eval(const Board& board, int raw_eval) const;

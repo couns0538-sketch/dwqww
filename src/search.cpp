@@ -10,6 +10,12 @@
 
 namespace forge {
 
+// Defined before the tunables: GCC emits a translation unit's globals in reverse order, so the lock's
+// tunables keep their addresses.
+namespace search_options {
+int hist_rework = 0;
+} // namespace search_options
+
 namespace tune {
 int LmrQuietBase = 85;
 int LmrQuietDivisor = 220;
@@ -105,6 +111,8 @@ const std::vector<Parameter>& parameters() {
 namespace {
 
 constexpr int HistoryMax = 16384;
+static_assert(hist_rework::HistoryLimit == HistoryMax, "HistRework bounds assume the lock's history limit");
+static_assert(hist_rework::CorrectionEntryLimit == CorrectionLimit, "HistRework bounds assume the lock's correction limit");
 
 [[nodiscard]] int score_to_tt(int score, int ply) {
     if (score >= MateInMaxPly) return score + ply;
@@ -566,7 +574,9 @@ Worker::Worker(SharedSearchState& shared, int id)
       continuation_history_(std::make_unique<ContinuationHistory>()),
       counter_moves_(std::make_unique<CounterMoveTable>()),
       correction_history_(std::make_unique<CorrectionHistory>()),
-      material_correction_(std::make_unique<CorrectionHistory>()) {
+      material_correction_(std::make_unique<CorrectionHistory>()),
+      threat_history_(std::make_unique<LesserThreatHistory>()),
+      joint_correction_(std::make_unique<CorrectionHistory>()) {
     clear();
 }
 
@@ -580,6 +590,8 @@ void Worker::clear() {
     *counter_moves_ = CounterMoveTable{};
     *correction_history_ = CorrectionHistory{};
     *material_correction_ = CorrectionHistory{};
+    *threat_history_ = LesserThreatHistory{};
+    *joint_correction_ = CorrectionHistory{};
     for (SearchStack& ss : stack_) ss = SearchStack{};
 }
 
@@ -641,6 +653,11 @@ int Worker::corrected_eval(const Board& board, int raw_eval) const {
     if (tune::MaterialCorrectionWeight > 0) {
         correction += (*material_correction_)[side][material_key(board) & (CorrectionSize - 1U)] * tune::MaterialCorrectionWeight / 100;
     }
+    if (const int level = search_options::hist_rework; level != 0) [[unlikely]] {
+        // HistRework: pawn structure x non-pawn material. |entry| <= 8192, weight <= 100: |term| <= 8192.
+        correction += (*joint_correction_)[side][hist_rework::joint_key(board) & (CorrectionSize - 1U)] *
+                      hist_rework::joint_weight(level) / 100;
+    }
     return std::clamp(raw_eval + correction / CorrectionGrain, -MateInMaxPly + 1, MateInMaxPly - 1);
 }
 
@@ -653,6 +670,12 @@ void Worker::update_correction(const Board& board, int depth, int best_score, in
     };
     apply((*correction_history_)[side][board.pawn_key() & (CorrectionSize - 1U)]);
     if (tune::MaterialCorrectionWeight > 0) apply((*material_correction_)[side][material_key(board) & (CorrectionSize - 1U)]);
+    if (search_options::hist_rework != 0) [[unlikely]] {
+        // HistRework: the joint table learns the same residual step (|step| <= 2048 * 16 / 256 = 128) with a
+        // gravity-style damping instead of the lock's add-and-clamp; the lock tables above are unchanged.
+        std::int32_t& entry = (*joint_correction_)[side][hist_rework::joint_key(board) & (CorrectionSize - 1U)];
+        entry = hist_rework::gravity(entry, diff * weight / 256, CorrectionLimit);
+    }
 }
 
 std::int64_t Worker::elapsed_ms() const {
@@ -701,9 +724,30 @@ bool Worker::is_draw(const Board& board, int ply) const {
            (!board.in_check() && !board.has_legal_move());
 }
 
+// HistRework: the threat-keyed butterfly slot of a quiet move at the node of `ss` (its maps are threat_maps_[ply]).
+std::int16_t& Worker::threat_history_entry(const Board& board, const SearchStack* ss, Move move) const {
+    const hist_rework::LesserThreats& threats = threat_maps_[static_cast<std::size_t>(ss->ply)];
+    const Bitboard set = threats.by_type[static_cast<std::size_t>(piece_type(board.moved_piece(move)))];
+    return (*threat_history_)[static_cast<std::size_t>(board.side_to_move())][hist_rework::square_bit(set, move.from)]
+                             [hist_rework::square_bit(set, move.to)][move.from][move.to];
+}
+
+void Worker::update_threat_history(const Board& board, const SearchStack* ss, Move best, int bonus, const Move* quiets,
+                                   int quiet_count) {
+    apply_history(threat_history_entry(board, ss, best), bonus);
+    for (int i = 0; i < quiet_count; ++i) {
+        if (quiets[i] == best) continue;
+        apply_history(threat_history_entry(board, ss, quiets[i]), -bonus);
+    }
+}
+
 int Worker::quiet_history(const Board& board, const SearchStack* ss, Move move) const {
     const Piece piece = board.moved_piece(move);
     int score = (*main_history_)[static_cast<std::size_t>(board.side_to_move())][move.from][move.to];
+    if (const int level = search_options::hist_rework; level != 0 && ss != nullptr) [[unlikely]] {
+        // |score| <= 16384 after the blend, as for the lock table alone (hist_rework::blend).
+        score = hist_rework::blend(score, threat_history_entry(board, ss, move), hist_rework::threat_quarters(level));
+    }
     if (ss != nullptr) {
         if ((ss - 1)->continuation != nullptr) score += (*(ss - 1)->continuation)[static_cast<std::size_t>(piece)][move.to];
         if ((ss - 2)->continuation != nullptr) score += (*(ss - 2)->continuation)[static_cast<std::size_t>(piece)][move.to];
@@ -747,6 +791,8 @@ void Worker::update_quiet_stats(const Board& board, SearchStack* ss, Move move, 
         apply_history((*main_history_)[static_cast<std::size_t>(us)][quiet.from][quiet.to], -bonus);
         update_continuation(ss, board.moved_piece(quiet), quiet.to, -bonus);
     }
+    // HistRework: the threat-keyed twin learns the same bonus and maluses (lock gravity, apply_history).
+    if (search_options::hist_rework != 0) [[unlikely]] update_threat_history(board, ss, move, bonus, quiets, quiet_count);
 }
 
 void Worker::update_capture_stats(const Board& board, Move best, int depth, const Move* captures, int capture_count) {
@@ -821,6 +867,9 @@ int Worker::qsearch(Board& board, SearchStack* ss, int alpha, int beta) {
         futility_base = ss->static_eval + tune::QsFutilityMargin;
     }
 
+    // HistRework: check evasions score quiet moves with quiet_history, which reads this node's maps.
+    if (in_check && search_options::hist_rework != 0) [[unlikely]]
+        threat_maps_[static_cast<std::size_t>(ply)] = hist_rework::lesser_threats(board);
     MovePicker picker(board, *this, ss, tt_move, MovePicker::Mode::Quiescence);
     Move best_move = Move::none();
     int move_count = 0;
@@ -1030,6 +1079,8 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
     // Internal iterative reduction: no hash move suggests a less important node.
     if (!in_check && depth >= tune::IirDepth && tt_move.is_none() && (pv_node || cut_node)) --depth;
 
+    // HistRework: lesser-attacker maps of this node, read by quiet_history and the history updates below.
+    if (search_options::hist_rework != 0) [[unlikely]] threat_maps_[static_cast<std::size_t>(ply)] = hist_rework::lesser_threats(board);
     MovePicker picker(board, *this, ss, tt_move, MovePicker::Mode::Main);
     std::array<Move, 128> quiets_tried{};
     std::array<Move, 64> captures_tried{};
@@ -1202,6 +1253,8 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
         // Even without a cutoff, a new PV move earned its place.
         apply_history((*main_history_)[static_cast<std::size_t>(board.side_to_move())][best_move.from][best_move.to],
                       history_bonus(depth) / 4);
+        if (search_options::hist_rework != 0) [[unlikely]]
+            apply_history(threat_history_entry(board, ss, best_move), history_bonus(depth) / 4);
     } else if (tune::FailLowContinuationBonus > 0 && best_move.is_none() && !(ss - 1)->current_move.is_none() &&
                (ss - 1)->moved_piece != Empty && !(ss - 1)->current_move.is_capture() && ply > 0) {
         // Every move failed low: the parent's quiet move refuted this line.
