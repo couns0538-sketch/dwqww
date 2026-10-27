@@ -297,6 +297,113 @@ class NNUE(nn.Module):
             p.clamp_(-32767 / SCALE, 32767 / SCALE)
 
 
+# ----------------------------------------------------------------------------- king buckets (Opus C4)
+# Optional architecture, used only with --king-buckets N (N >= 1); without it everything above and below is
+# the unchanged v3b trainer. Feature definition (identical in the engine, forge/nnue_v2.hpp):
+#   perspective p (black = 1), own king on square k (first own king if a malformed record has several, square 0
+#   if it has none), kr = k ^ 56 for black else k; flip = 7 if mirroring and kr % 8 >= 4 else 0;
+#   index = king_map[kr] * 768 + (rel * 6 + type) * 64 + (rsq ^ flip)   (rel, type, rsq as in features()).
+# Factoriser (--king-factor 1, default): every bucket's weights are bucket[b] + factor, where `factor` is one
+# 768 x H block shared by all buckets during training; the export folds it in (inference cost unchanged).
+# QAT and export use q(bucket[b] + factor), so the exported ints are exactly the trained forward's weights.
+def king_features(codes, black, king_map, mirror, kb):
+    """codes [B,64], black [B] -> feature indices [B,64] in [0, kb*768) (kb*768 = empty square) == the engine's."""
+    sq = torch.arange(64, device=codes.device).unsqueeze(0)
+    c = codes - 1
+    color = torch.div(c, 6, rounding_mode="floor")
+    typ = c - color * 6
+    bl = black.unsqueeze(1)
+    rel = (color != bl).long()
+    rsq = torch.where(bl == 1, sq ^ 56, sq.expand_as(codes))
+    own_king = torch.where(black == 1, 12, 6).unsqueeze(1)
+    ksq = torch.argmax((codes == own_king).long(), dim=1)          # first own king, 0 if none
+    kr = torch.where(black == 1, ksq ^ 56, ksq)
+    flip = torch.where((kr & 7) >= 4, 7, 0) if mirror else torch.zeros_like(kr)
+    bucket = king_map[kr]
+    f = bucket.unsqueeze(1) * FEATURES + (rel * 6 + typ) * 64 + (rsq ^ flip.unsqueeze(1))
+    return torch.where(codes > 0, f, torch.full_like(f, kb * FEATURES))
+
+
+def king_dense(codes, black, king_map, mirror, kb):
+    f = king_features(codes, black, king_map, mirror, kb)
+    x = torch.zeros(codes.shape[0], kb * FEATURES + 1, device=codes.device).scatter_(1, f, 1.0)
+    return x[:, :kb * FEATURES]
+
+
+def king_map_from_args(buckets, map_text):
+    sys.path.insert(0, str(Path(__file__).resolve().parent))
+    import forge_nnue_v2 as V2
+    kmap = V2.parse_map(map_text) if map_text else V2.symmetric_map(V2.half_layout(buckets))
+    if max(kmap) + 1 != buckets or min(kmap) < 0:
+        raise ValueError(f"king map uses buckets 0..{max(kmap)}, expected 0..{buckets - 1}")
+    return kmap
+
+
+def quant_int(p):
+    """The integers q() uses for p (float32, round half away from zero, clamp to int16), as int16 numpy."""
+    s = p.detach().float().cpu() * SCALE
+    r = torch.clamp(torch.sign(s) * torch.floor(torch.abs(s) + 0.5), -32767, 32767)
+    return r.to(torch.int16).numpy()
+
+
+class NNUEKB(nn.Module):
+    def __init__(self, hidden, king_map, mirror=True, factor=True, qat=True, residual=True):
+        super().__init__()
+        self.hidden, self.qat, self.residual, self.mirror = hidden, qat, residual, bool(mirror)
+        self.register_buffer("king_map", torch.tensor(king_map, dtype=torch.long))
+        self.kb = max(king_map) + 1
+        self.ft_w = nn.Parameter(torch.zeros(self.kb, hidden, FEATURES))
+        self.ft_f = nn.Parameter(torch.zeros(hidden, FEATURES)) if factor else None
+        self.ft_b = nn.Parameter(torch.zeros(hidden))
+        self.out = nn.Linear(2 * hidden, 1)
+        nn.init.normal_(self.ft_f if factor else self.ft_w, std=0.02)
+        nn.init.zeros_(self.out.bias)
+        if residual:
+            nn.init.zeros_(self.out.weight)  # first forward == HCE alone
+
+    q = NNUE.q
+    project_weights = NNUE.project_weights
+
+    def ft_sum(self):
+        """Folded bucket weights [KB, H, 768] (before quantisation)."""
+        return self.ft_w if self.ft_f is None else self.ft_w + self.ft_f.unsqueeze(0)
+
+    def forward(self, codes, stm, hce_logit):
+        w = self.q(self.ft_sum()).permute(1, 0, 2).reshape(self.hidden, self.kb * FEATURES)
+        b = self.q(self.ft_b)
+        hs = torch.clamp(F.linear(king_dense(codes, stm, self.king_map, self.mirror, self.kb), w, b), 0.0, 1.0).square()
+        ho = torch.clamp(F.linear(king_dense(codes, 1 - stm, self.king_map, self.mirror, self.kb), w, b), 0.0, 1.0).square()
+        out = F.linear(torch.cat([hs, ho], 1), self.q(self.out.weight), self.q(self.out.bias)).squeeze(1)
+        return out + hce_logit if self.residual else out
+
+
+def export_forge_v2(model, stem, residual):
+    """Writes <stem>.fnn2 (format v2, see forge_nnue_v2.py) from the trained forward's quantised weights."""
+    sys.path.insert(0, str(Path(__file__).resolve().parent))
+    import forge_nnue_v2 as V2
+    with torch.no_grad():
+        if isinstance(model, NNUEKB):
+            w1 = quant_int(model.ft_sum()).transpose(0, 2, 1)       # [KB, 768, H]
+            b1 = quant_int(model.ft_b)
+            kmap, kb, mirror = model.king_map.cpu().tolist(), model.kb, model.mirror
+        else:
+            w1 = quant_int(model.ft.weight).T[None]                 # [1, 768, H]
+            b1 = quant_int(model.ft.bias)
+            kmap, kb, mirror = [0] * 64, 1, False
+        w2, b2 = quant_int(model.out.weight).ravel(), quant_int(model.out.bias).ravel()
+    path = stem.with_suffix(".fnn2")
+    temp = path.with_name(path.name + ".tmp-" + uuid.uuid4().hex)
+    try:
+        V2.write_v2(temp, hidden=model.hidden, king_buckets=kb, residual=residual, mirror=mirror, king_map=kmap,
+                    w1=np.ascontiguousarray(w1).ravel(), b1=b1, w2=w2, b2=b2)
+        if path.exists():
+            raise FileExistsError(str(path))
+        os.rename(temp, path)
+    finally:
+        if temp.exists():
+            temp.unlink()
+
+
 def targets(score_t, stm_t, wres_t, k, blend):
     """score int16 STM cp, wres = white result*2 (0,1,2). Returns teacher, stm_result, blended target."""
     teacher = torch.sigmoid(torch.clamp(score_t * (k / 400.0), -40, 40))
@@ -532,6 +639,11 @@ def main():
     ap.add_argument("--order-buffers", type=int, choices=[1, 2], default=1, help="v3b: int32 shuffle buffers; 1 = one reused buffer (next order built after the producer finished), 2 = ping-pong (full overlap)")
     ap.add_argument("--mmap-data", action="store_true", help="v3b: keep the train set memory-mapped instead of loading it (off by default)")
     ap.add_argument("--max-ram-gb", type=float, default=0.0, help="v3b: print a WARNING when trainer private memory exceeds this (0 = off); never stops")
+    ap.add_argument("--king-buckets", type=int, default=0, help="C4: N >= 1 trains the king-bucketed input layer (standard layouts 1, 2, 4, 6, 8, 16, 32; see forge_nnue_v2.py) and exports .fnn2 (engine: NNUEFile + NNUEKingBuckets N); 0 = off (default, unchanged trainer)")
+    ap.add_argument("--king-map", default="", help="C4: explicit king bucket map, 32 (half board, files a-d, ranks 1-8, mirrored symmetric) or 64 comma-separated entries")
+    ap.add_argument("--king-mirror", type=int, choices=[0, 1], default=1, help="C4: mirror files e-h onto d-a per perspective (default 1)")
+    ap.add_argument("--king-factor", type=int, choices=[0, 1], default=1, help="C4: shared factoriser block during training, folded into every bucket on export (default 1)")
+    ap.add_argument("--export-v2", action="store_true", help="C4: also write <epoch>.fnn2 (format v2, 1 bucket) for the standard model")
     a = ap.parse_args()
     k = a.sigmoid_k
     if k != K_DEFAULT:
@@ -551,7 +663,14 @@ def main():
     else:
         val_idx = np.arange(hold["n"], dtype=np.int64)
     full_idx = np.arange(hold["n"], dtype=np.int64)
-    model = NNUE(a.shape, qat=not a.no_qat, residual=a.residual or a.baseline_only).to(dev)
+    if a.king_buckets:
+        kmap = king_map_from_args(a.king_buckets, a.king_map)
+        model = NNUEKB(a.shape, kmap, mirror=bool(a.king_mirror), factor=bool(a.king_factor), qat=not a.no_qat,
+                       residual=a.residual or a.baseline_only).to(dev)
+        print(f"king buckets: {model.kb} mirror={model.mirror} factor={a.king_factor} map(rank 8 first, files a-h): "
+              + " | ".join(" ".join(str(kmap[r * 8 + f]) for f in range(8)) for r in range(7, -1, -1)), flush=True)
+    else:
+        model = NNUE(a.shape, qat=not a.no_qat, residual=a.residual or a.baseline_only).to(dev)
     base_sub, nb = evaluate(model, hold, val_idx, dev, k, a.batch_size, baseline=True)
     print(f"BASELINE HCE-alone holdout subset n={nb:,}: mse_teacher(blend1.0)={base_sub[1.0]:.6f} mse_blend0.6={base_sub[0.6]:.6f}", flush=True)
     if a.baseline_only:
@@ -598,6 +717,9 @@ def main():
         print(f"resumed {a.resume}: next_epoch={start_epoch} step={step}", flush=True)
     config = {"hidden": a.shape, "residual": bool(a.residual), "qat": not a.no_qat, "sigmoid_k": k,
               "features": "forge768-relative-pieces-rank-flip", "epochs": a.epochs, "steps_per_epoch": spe}
+    if a.king_buckets:  # C4 (absent for the standard model, so its checkpoints stay byte-identical)
+        config.update({"features": "forge768-king-buckets", "king_buckets": model.kb, "king_mirror": model.mirror,
+                       "king_factor": bool(a.king_factor), "king_map": model.king_map.cpu().tolist()})
 
     def lr_at(s):
         if s < a.warmup_steps:
@@ -676,9 +798,15 @@ def main():
         payload = {"config": config, "model": cpu_copy(model.state_dict()), "optimizer": cpu_copy(opt.state_dict()),
                    "next_epoch": ep + 1, "step": step, "val": {str(b): v for b, v in vs.items()}}
         atomic_write(stem.with_suffix(".pt"), lambda dst: torch.save(payload, dst))
-        export_forge(model, stem, k, bool(a.residual))
+        if a.king_buckets:  # C4: bucketed nets only exist as v2 files
+            export_forge_v2(model, stem, bool(a.residual))
+        else:
+            export_forge(model, stem, k, bool(a.residual))
+            if a.export_v2:
+                export_forge_v2(model, stem, bool(a.residual))
         atomic_write(stem.with_suffix(".json"), lambda dst: dst.write((json.dumps({**config, "val": payload["val"], "baseline": {str(b): v for b, v in base_sub.items()}}, indent=1) + "\n").encode()))
-        print(f"Saved {stem.name} (.pt .inc .bin .json)", flush=True)
+        print(f"Saved {stem.name} (.pt .fnn2 .json)" if a.king_buckets else
+              f"Saved {stem.name} (.pt .inc .bin .json{' .fnn2' if a.export_v2 else ''})", flush=True)
         mem_report(f"epoch{ep + 1:03d}", a.max_ram_gb)
     finally:  # v3: join background epoch builder / prefetchers cleanly, also on exceptions
         if pf is not None:  # v3b: current producer first (with one order buffer the builder waits for it)
