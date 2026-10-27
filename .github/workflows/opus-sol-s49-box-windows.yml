@@ -1,0 +1,54 @@
+# S49 box run on a GitHub-hosted WINDOWS runner (no gates; labelled box-only): the Windows path of
+# pc_speed_ci_20261027.ps1 end to end (the PC run stays refused until a crew vote frees a core).
+# Build: MSYS2 UCRT64 g++ (static); run: pwsh. See opus_round1/sol_S49/ci_s49_box_windows.ps1. Read-only.
+name: opus-sol-s49-box-windows
+on:
+  push:
+    branches: ['opus-sol-S49']
+    paths-ignore:
+      - 'opus_round1/**/*.md'
+      - 'opus_round1/**/*.log'
+      - 'opus_round1/**/*.tar.gz'
+      - 'opus_round1/**/SHA256SUMS'
+      - 'opus_round1/**/FILES.txt'
+      - 'REPORT.md'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  box-windows:
+    runs-on: windows-2022
+    timeout-minutes: 90
+    steps:
+      - name: Keep LF line endings (patch and shell scripts)
+        run: git config --global core.autocrlf false
+      - uses: actions/checkout@v4
+      - uses: msys2/setup-msys2@v2
+        with:
+          msystem: UCRT64
+          update: false
+          install: >-
+            mingw-w64-ucrt-x86_64-gcc
+            mingw-w64-ucrt-x86_64-cmake
+            mingw-w64-ucrt-x86_64-ninja
+            git
+      - name: Build lock + synthetic 5% slowdown (MSYS2 UCRT64 g++, static)
+        shell: msys2 {0}
+        run: bash opus_round1/sol_S49/ci_s49_build_windows.sh ci_out
+      - name: S49 box run on Windows (identity, self-test, tests, A/A, synthetic 5% slowdown)
+        shell: pwsh
+        run: ./opus_round1/sol_S49/ci_s49_box_windows.ps1 -Out ci_out
+      - name: Upload logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: sol-s49-box-windows
+          path: |
+            ci_out/*.log
+            ci_out/run_aa/*.json
+            ci_out/run_aa/*.md
+            ci_out/run_aa/*.csv
+            ci_out/run_slow5/*.json
+            ci_out/run_slow5/*.md
+            ci_out/run_slow5/*.csv
+          if-no-files-found: warn
