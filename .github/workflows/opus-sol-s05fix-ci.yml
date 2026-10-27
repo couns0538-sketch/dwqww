@@ -1,0 +1,41 @@
+# S05fix: the v4 FMA checker on real Linux ELF binaries (default build must pass with computed zero counts; a planted
+# std::fma outside forge::nnue:: must fail v4, while Sol's v3 misses it) plus the fixture tests. Engine sources are
+# unchanged on this branch (opus-ci.yml covers the default build). See opus_round1/sol_S05fix/ci_s05fix.sh.
+name: opus-sol-s05fix-ci
+on:
+  push:
+    branches: ['opus-sol-S05fix']
+    paths-ignore:
+      - 'opus_round1/**/*.md'
+      - 'opus_round1/**/*.log'
+      - 'opus_round1/**/*.txt'
+      - 'opus_round1/**/*.json'
+      - 'opus_round1/**/SHA256SUMS'
+      - 'REPORT.md'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  linux:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - name: Toolchain
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq g++-14 ninja-build cmake python3
+          g++-14 --version | head -1
+          objdump --version | head -1
+      - name: v4 checker on real binaries
+        run: bash opus_round1/sol_S05fix/ci_s05fix.sh ci_out
+      - name: Upload logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: sol-s05fix
+          path: |
+            ci_out/*.log
+            ci_out/*.out
+            ci_out/*.err
+          if-no-files-found: warn

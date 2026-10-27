@@ -1,0 +1,17 @@
+# 2026-10-27 16:02:12 objdump GNU objdump (GNU Binutils) 2.46; python Python 3.10.22
+== lock_AL1 5d4df7f1be51b083e0719266e55367577ed580a509a12196d62c0a368826a5b1  grep count (objdump -d | grep -cE 'vfn?m(add|sub)'): 0
+v4 exit 0: FMA_COUNT whole_text=0 whole_binary=0 nnue_scoped=0 instructions=282302 nnue_contract=PASS status=PASS 
+v3 exit 0: {"checker_version": 3, "fma_count": 0, "qualified_output": [{"clamp": "mask-zero", "symbol": "forge::nnue::evaluate(forge::Board const&, forge::nnue::Accumulator const&)"}], "scanned_symbols": ["forge 
+== lock_h256_e12 456743d9c065d2dec2d9a52ef23992f36908efc1243b6916edab9a8ab3c7fdfa  grep count (objdump -d | grep -cE 'vfn?m(add|sub)'): 0
+v4 exit 0: FMA_COUNT whole_text=0 whole_binary=0 nnue_scoped=0 instructions=282302 nnue_contract=PASS status=PASS 
+v3 exit 0: {"checker_version": 3, "fma_count": 0, "qualified_output": [{"clamp": "mask-zero", "symbol": "forge::nnue::evaluate(forge::Board const&, forge::nnue::Accumulator const&)"}], "scanned_symbols": ["forge 
+mutant written: F:\opus_scratch\build\sol_S05fix\mutant_src\src\search.cpp (std::fma in ReductionTable::refresh)
+built /f/opus_scratch/build/sol_S05fix/forge_mutant_fma_outside_nnue.exe sha256 8a08641c0e4ee8f191b215a8dd8f27525c832e5a32ca04fab98fb7315c11000d
+FMA (vfmadd/vfmsub/vfnmadd) count: 2
+== mutant_fma_outside_nnue 8a08641c0e4ee8f191b215a8dd8f27525c832e5a32ca04fab98fb7315c11000d  grep count (objdump -d | grep -cE 'vfn?m(add|sub)'): 2
+v4 exit 1: FMA_COUNT whole_text=2 whole_binary=2 nnue_scoped=0 instructions=282304 nnue_contract=PASS status=FAIL FAIL: 2 fused multiply-add instruction(s) in the binary (2 in .text, 0 in forge::nnue::)
+v3 exit 0: {"checker_version": 3, "fma_count": 0, "qualified_output": [{"clamp": "mask-zero", "symbol": "forge::nnue::evaluate(forge::Board const&, forge::nnue::Accumulator const&)"}], "scanned_symbols": ["forge 
+== v4 fixture tests
+Ran 33 tests in 1.857s
+
+OK
