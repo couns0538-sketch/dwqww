@@ -1,0 +1,54 @@
+-- The CXX compiler identification is GNU 15.2.0
+-- Detecting CXX compiler ABI info
+-- Detecting CXX compiler ABI info - done
+-- Check for working CXX compiler: C:/msys64/ucrt64/bin/g++.exe - skipped
+-- Detecting CXX compile features
+-- Detecting CXX compile features - done
+-- Performing Test CMAKE_HAVE_LIBC_PTHREAD
+-- Performing Test CMAKE_HAVE_LIBC_PTHREAD - Success
+-- Found Threads: TRUE
+-- Found Python3: C:/Users/Administrator/grok-pc/nnue/.venv/Scripts/python.exe (found suitable version "3.10.22", minimum required is "3.10") found components: Interpreter
+-- Configuring done (2.3s)
+-- Generating done (0.1s)
+-- Build files have been written to: F:/opus_scratch/build/sol_S25fix/cmake_on
+[1/10] Building CXX object CMakeFiles/forge_core.dir/src/bitboard.cpp.obj
+[2/10] Building CXX object CMakeFiles/forge_core.dir/src/board.cpp.obj
+[3/10] Building CXX object CMakeFiles/forge_core.dir/src/book.cpp.obj
+[4/10] Building CXX object CMakeFiles/forge_core.dir/src/eval.cpp.obj
+[5/10] Building CXX object CMakeFiles/forge_core.dir/src/eval_params.cpp.obj
+[6/10] Building CXX object CMakeFiles/forge_core.dir/src/nnue.cpp.obj
+[7/10] Building CXX object CMakeFiles/forge_core.dir/src/search.cpp.obj
+F:/opus_scratch/sol_S25fix/al1_export_v3/src/search.cpp: In member function 'int forge::Worker::qsearch(forge::Board&, forge::SearchStack*, int, int)':
+F:/opus_scratch/sol_S25fix/al1_export_v3/src/search.cpp:790:73: warning: conversion from 'int' to 'uint16_t' {aka 'short unsigned int'} may change value [-Wconversion]
+  790 |     const int tt_score = tt_hit && tte.score_usable(board.halfmove_clock())
+      |                                                     ~~~~~~~~~~~~~~~~~~~~^~
+F:/opus_scratch/sol_S25fix/al1_export_v3/src/search.cpp:817:166: warning: conversion from 'int' to 'uint16_t' {aka 'short unsigned int'} may change value [-Wconversion]
+  817 |             if (!tt_hit) shared_.tt.store(tt_probe, board.key(), score_to_tt(best_score, ply), ss->raw_eval, Move::none(), 0, BoundLower, false, board.halfmove_clock());
+      |                                                                                                                                                  ~~~~~~~~~~~~~~~~~~~~^~
+F:/opus_scratch/sol_S25fix/al1_export_v3/src/search.cpp:868:160: warning: conversion from 'int' to 'uint16_t' {aka 'short unsigned int'} may change value [-Wconversion]
+  868 |     shared_.tt.store(tt_probe, board.key(), score_to_tt(best_score, ply), in_check ? ValueNone : ss->raw_eval, best_move, 0, bound, tt_pv, board.halfmove_clock());
+      |                                                                                                                                            ~~~~~~~~~~~~~~~~~~~~^~
+F:/opus_scratch/sol_S25fix/al1_export_v3/src/search.cpp: In member function 'int forge::Worker::search(forge::Board&, forge::SearchStack*, int, int, int, bool)':
+F:/opus_scratch/sol_S25fix/al1_export_v3/src/search.cpp:914:73: warning: conversion from 'int' to 'uint16_t' {aka 'short unsigned int'} may change value [-Wconversion]
+  914 |     const int tt_score = tt_hit && tte.score_usable(board.halfmove_clock())
+      |                                                     ~~~~~~~~~~~~~~~~~~~~^~
+F:/opus_scratch/sol_S25fix/al1_export_v3/src/search.cpp:1023:160: warning: conversion from 'int' to 'uint16_t' {aka 'short unsigned int'} may change value [-Wconversion]
+ 1023 |                     shared_.tt.store(tt_probe, board.key(), score_to_tt(value, ply), ss->raw_eval, move, depth - 3, BoundLower, ss->tt_pv, board.halfmove_clock());
+      |                                                                                                                                            ~~~~~~~~~~~~~~~~~~~~^~
+F:/opus_scratch/sol_S25fix/al1_export_v3/src/search.cpp:1214:149: warning: conversion from 'int' to 'uint16_t' {aka 'short unsigned int'} may change value [-Wconversion]
+ 1214 |         shared_.tt.store(tt_probe, board.key(), score_to_tt(best_score, ply), ss->raw_eval, best_move, depth, bound, ss->tt_pv, board.halfmove_clock());
+      |                                                                                                                                 ~~~~~~~~~~~~~~~~~~~~^~
+[8/10] Linking CXX static library libforge_core.a
+[9/10] Building CXX object CMakeFiles/forge.dir/src/uci.cpp.obj
+[10/10] Linking CXX executable forge.exe
+Test project F:/opus_scratch/build/sol_S25fix/cmake_on
+    Start 1: forge_sol_S25_output_contract_v2
+1/1 Test #1: forge_sol_S25_output_contract_v2 ...   Passed    0.51 sec
+
+100% tests passed, 0 tests failed out of 1
+
+Label Time Summary:
+output-contract    =   0.51 sec*proc (1 test)
+
+Total Test time (real) =   0.52 sec
+rc=0

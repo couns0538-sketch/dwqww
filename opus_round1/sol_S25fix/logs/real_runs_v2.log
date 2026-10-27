@@ -1,0 +1,29 @@
+### R1 v2 lock AL1 exe (5d4df7f1), default --ref AL1, d11
+OUTPUT_CONTRACT_PASS bench=PASS uci=PASS ref=AL1 depths=11 errors=- out=F:\opus_scratch\sol_S25fix\runs\r1
+exit=0
+### R2 v2 lock exe, --depths all (5 depths)
+OUTPUT_CONTRACT_PASS bench=PASS uci=PASS ref=AL1 depths=11,13,16,20,22 errors=- out=F:\opus_scratch\sol_S25fix\runs\r2
+exit=0
+### R3 v2 lock exe, --ref Lprime (Sol dev pins): expect bench=PIN_MISMATCH, uci still checked
+OUTPUT_CONTRACT_FAIL bench=PIN_MISMATCH uci=PASS ref=Lprime depths=11 errors=bench_pin_mismatch out=F:\opus_scratch\sol_S25fix\runs\r3
+exit=1
+### R4 Sol v1 checker on the same lock exe (expect bench FAIL, uci UNVERIFIED)
+OUTPUT_CONTRACT_FAIL bench=FAIL uci=UNVERIFIED errors=bench_reference
+exit=1
+### R5 v2 expose build (286e87d5) without --allow-expose (expect uci FAIL)
+OUTPUT_CONTRACT_FAIL bench=PASS uci=FAIL ref=AL1 depths=11,13,16,20,22 errors=unexpected_option,unexpected_option,unexpected_option,unexpected_option,unexpected_option,unexpected_option,unexpected_option,unexpected_option,unexpected_option,unexpected_option,unexpected_option,unexpected_option,unexpected_option,unexpected_option,unexpected_option,unexpected_option,unexpected_option,unexpected_option,unexpected_option,unexpected_option,unexpected_option,unexpected_option,unexpected_option,unexpected_option,unexpected_option,unexpected_option,unexpected_option,unexpected_option,unexpected_option,unexpected_option,unexpected_option,unexpected_option,unexpected_option,unexpected_option,unexpected_option,unexpected_option,unexpected_option,unexpected_option,unexpected_option,unexpected_option,unexpected_option,unexpected_option,unexpected_option,unexpected_option,unexpected_option,unexpected_option,unexpected_option,unexpected_option,unexpected_option,unexpected_option,unexpected_option out=F:\opus_scratch\sol_S25fix\runs\r5
+exit=1
+### R6 v2 expose build with --allow-expose (expect PASS)
+OUTPUT_CONTRACT_PASS bench=PASS uci=PASS ref=AL1 depths=11,13,16,20,22 errors=- out=F:\opus_scratch\sol_S25fix\runs\r6
+exit=0
+### R7 v2 lock exe, default temp dir under --work-root, removed after the run
+OUTPUT_CONTRACT_ERROR [WinError 3] The system cannot find the path specified: 'F:\\opus_scratch\\sol_S25fix\\r7_workroot_152913\\forge_s25_contract_9smauwe8'
+exit=2
+### R7b (after the work-root fix) v2 lock exe, default temp dir under a new --work-root, removed after the run
+OUTPUT_CONTRACT_PASS bench=PASS uci=PASS ref=AL1 depths=11 errors=- temp=removed
+exit=0
+work root content after the run: []
+### R8 v2 lock exe, system temp (TMP=F:/opus_scratch/sol_S25fix/tmp) default
+OUTPUT_CONTRACT_PASS bench=PASS uci=PASS ref=AL1 depths=11 errors=- temp=removed
+exit=0
+TMP entries before/after: 25/25
