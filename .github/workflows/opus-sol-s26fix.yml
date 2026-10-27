@@ -59,6 +59,52 @@ jobs:
           name: s26fix-v4-${{ matrix.net }}
           path: ci_out/
           if-no-files-found: warn
+  v5_native:
+    # Same re-run with the Opus v5 successor (v4 + one check_ctest fix: native JUnit status="fail" = ran).
+    strategy:
+      fail-fast: false
+      matrix:
+        net: [B_lock, f019, f020, f021, f022, f023]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 170
+    steps:
+      - uses: actions/checkout@v4
+      - name: Sol packet (read-only sparse checkout of 17aa0cae)
+        uses: actions/checkout@v4
+        with:
+          ref: 17aa0cae1d36bc88bf93e873905c058e0de5faac
+          path: sol
+          fetch-depth: 1
+          filter: blob:none
+          sparse-checkout-cone-mode: false
+          sparse-checkout: |
+            /releases/forge_sol_pack31_20261025/S26/S26/
+            /releases/forge_sol_pack31_20261025/S26/provided_tools/
+            /releases/forge_sol_pack31_20261025/S26/provided_inputs/
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Toolchain
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq g++-14 cmake
+          python3 -m pip install -q chess==1.11.2
+          g++-14 --version | head -1; cmake --version | head -1; nproc
+      - name: v5 re-run ${{ matrix.net }}
+        env:
+          TOOL: v5
+        run: bash opus_round1/sol_S26fix/ci/run_v4_native.sh ${{ matrix.net }} "$GITHUB_WORKSPACE/sol/releases/forge_sol_pack31_20261025/S26" ci_out
+      - name: Summary
+        if: always()
+        run: |
+          { echo "### v5 re-run ${{ matrix.net }}"; echo '```'; cat ci_out/summary.json 2>/dev/null || echo "no summary"; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
+      - name: Upload logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: s26fix-v5-${{ matrix.net }}
+          path: ci_out/
+          if-no-files-found: warn
   asan:
     strategy:
       fail-fast: false
@@ -89,5 +135,6 @@ jobs:
             ci_out/*.txt
             ci_out/*.json
             ci_out/*.xml
+            ci_out/*.stderr
             ci_out/sanitizer_logs/**
           if-no-files-found: warn

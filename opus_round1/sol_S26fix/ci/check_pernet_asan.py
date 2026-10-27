@@ -40,7 +40,8 @@ def check(out, expected):
         for case in root.iter('testcase'):
             name = case.attrib.get('name')
             cases.append(name)
-            if case.attrib.get('status', 'run') != 'run':
+            # CTest JUnit: status="run" (passed), "fail" (ran and failed); anything else did not run.
+            if case.attrib.get('status', 'run') not in ('run', 'fail'):
                 problems.append('test not run: %s' % name)
             if case.find('failure') is not None or case.find('error') is not None:
                 failing.append(name)

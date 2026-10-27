@@ -33,8 +33,17 @@ python3 -B "$PKT/S26/forge_sol_S26_setup_local_dependencies_20261026.py" --packe
   | tee "$OUT/setup.json" || exit 1
 { echo "compiler: $(g++-14 --version | head -1)"; echo "cmake: $(cmake --version | head -1)"; echo "python: $(python3 --version)";
   python3 -c 'import chess; print("python-chess", chess.__version__)'; nproc; lscpu | grep -E 'Model name' ; } > "$OUT/toolchain.txt" 2>&1
+# TOOL=v5 runs the Opus v5 successor (v4 + the CTest JUnit status="fail" fix) with identical arguments.
+TOOL=${TOOL:-v4}
+if [ "$TOOL" = v5 ]; then
+  V5="$HERE/../forge_sol_S26_netbatch_v5_20261027.py"
+  sha256sum "$V5" | tee "$OUT/v5_sha256.txt"
+  RUNNER=(python3 -B "$V5")
+else
+  RUNNER=(sh "$PKT/S26/forge_sol_S26_run_v4_20261026.sh")
+fi
 START=$(date -u +%FT%TZ)
-sh "$PKT/S26/forge_sol_S26_run_v4_20261026.sh" \
+"${RUNNER[@]}" \
   --dependencies "$PKT/S26/owner_dependencies_ci_$NET_ID.json" \
   --base "$WORK/B_src" \
   --net "$WORK/$F.inc" \
@@ -46,7 +55,7 @@ sh "$PKT/S26/forge_sol_S26_run_v4_20261026.sh" \
   --cmake "$(command -v cmake)" --ctest "$(command -v ctest)" --objdump "$(command -v objdump)" \
   --cxx "$(command -v g++-14)" --record-pins > "$OUT/v4_stdout.json" 2> "$OUT/v4_stderr.txt"
 RC=$?
-echo "v4 exit $RC start $START end $(date -u +%FT%TZ)" | tee "$OUT/v4_exit.txt"
+echo "$TOOL exit $RC start $START end $(date -u +%FT%TZ)" | tee "$OUT/v4_exit.txt"
 # Copy v4 outputs (no private source copy, no build tree, no binaries) for the artifact.
 if [ -d "$WORK/v4_out" ]; then
   (cd "$WORK/v4_out" && find . -type f ! -path '*/source/*' ! -path '*/build/*' -size -8M -print0 \
