@@ -1,0 +1,63 @@
+# tests (venv Python 3.10, stdlib only)
+test_deterministic (__main__.Verifier) ... ok
+test_malformed_hunk_is_a_usage_error (__main__.Verifier) ... ERROR: L: unexpected line in hunk at line 4: '?bad'
+ok
+test_path_outside_allow_and_new_files (__main__.Verifier) ... ok
+test_planted_one_line_extra_change_is_flagged (__main__.Verifier) ... ok
+test_protected_source_change_is_flagged_even_if_both_trees_have_it (__main__.Verifier) ... ok
+test_same_change_set_with_different_placement (__main__.Verifier) ... ok
+test_sequential_approved_patches_compose (__main__.Verifier) ... ok
+
+----------------------------------------------------------------------
+Ran 7 tests in 0.027s
+
+OK
+file                                          L lines      B lines  same net  same blocks  approved
+README.md                                           2            2  True      False        yes
+tests/tests.cpp                                     2            2  True      True         yes
+NOTE: README.md: same lines, different change blocks in L and B (placement differs)
+VERDICT: SAME_CHANGE_SET
+file                                          L lines      B lines  same net  same blocks  approved
+README.md                                           2            2  True      False        yes
+tests/tests.cpp                                     2            2  True      True         yes
+NOTE: README.md: same lines, different change blocks in L and B (placement differs)
+VERDICT: SAME_CHANGE_SET
+file                                          L lines      B lines  same net  same blocks  approved
+tools/new_tool.py                                   2            2  True      True         yes
+VERDICT: SAME_CHANGE_SET
+file                                          L lines      B lines  same net  same blocks  approved
+tools/new_tool.py                                   2            2  True      True         yes
+REASON: tools/new_tool.py: outside the allowed paths
+VERDICT: DIFFERENT
+file                                          L lines      B lines  same net  same blocks  approved
+README.md                                           2            2  True      False        yes
+tests/tests.cpp                                     2            3  False     False        NO
+NOTE: README.md: same lines, different change blocks in L and B (placement differs)
+REASON: tests/tests.cpp: B differs from the approved changes
+REASON: tests/tests.cpp: L and B differ
+VERDICT: DIFFERENT
+file                                          L lines      B lines  same net  same blocks  approved
+README.md                                           2            2  True      False        yes
+src/search.cpp                                      1            1  True      True         yes
+tests/tests.cpp                                     2            2  True      True         yes
+NOTE: README.md: same lines, different change blocks in L and B (placement differs)
+REASON: src/search.cpp: protected forge source changed
+REASON: src/search.cpp: outside the allowed paths
+VERDICT: DIFFERENT
+file                                          L lines      B lines  same net  same blocks  approved
+README.md                                           2            2  True      False        yes
+tests/tests.cpp                                     2            2  True      True         yes
+NOTE: README.md: same lines, different change blocks in L and B (placement differs)
+VERDICT: SAME_CHANGE_SET
+file                                          L lines      B lines  same net  same blocks  approved
+README.md                                           2            2  True      True         yes
+tests/tests.cpp                                     2            2  True      True         yes
+VERDICT: SAME_CHANGE_SET
+file                                          L lines      B lines  same net  same blocks  approved
+README.md                                           2            2  True      True         NO
+tests/tests.cpp                                     2            2  True      True         NO
+REASON: README.md: L differs from the approved changes
+REASON: README.md: B differs from the approved changes
+REASON: tests/tests.cpp: L differs from the approved changes
+REASON: tests/tests.cpp: B differs from the approved changes
+VERDICT: DIFFERENT
