@@ -1,0 +1,42 @@
+# FILES index, opus_round1/sol_S17 (job S17, branch opus-sol-S17). path | bytes | sha256 | content
+# .tar.gz sizes: none (no archives; small result files only).
+REPORT.md | (added by the main session) | - | job report
+IDEA_SOURCE.md | 741 | dce366627234096acb568b961f4363d49e617b87c352fe6e011c483832f23336 | idea sources (Sol S17, Job D/S16 rule); no engine code
+README.md | 5584 | b9d362ab0ed3aee7945c6aa5b311de708569d7392c8f5d20e038896f4c1d6e9b | tool, split rule, usage, real run result, limitations
+audit_planted_leak_check.py | 2637 | 41439be323d01b052360d1ec1bc9f611d47a41d2f4c3fa53e9d5d025c2b0d62d | planted-leak check: the audit must FAIL on a planted group leak and a planted position leak
+audit_split_leak.py | 8646 | 3d32780586ec601b78297bade5b2843117b5bc587713897004da668135615375 | independent leak audit: recomputed groups, exact cross-part positions, round trip, SHA256SUMS
+gamesplit_v2/forge_sol_S17_gamesplit_v2_20261027.py | 20524 | 4603e7ece0de196c386009502348a91034c69705eccd51c594788dff14b2ae70 | Sol S17 tool + 5 Windows fixes (v2)
+gamesplit_v2/forge_sol_datafilter_20261025.py | 18312 | 6ccf78c864c44155cea22044fe05d0584bec5241acdc5ebb2b71e23886007ab3 | Sol Job D codec, unchanged (pinned, sha256 6ccf78c8)
+gamesplit_v2/forge_sol_datafilter_v2_20261026.py | 28743 | 5dd0c009566bc5a8c8e06300a8541c5d130d458ca75266a432d1477d1d156332 | Sol S16 filter v2, unchanged (pinned dependency, sha256 5dd0c009)
+gamesplit_v2/test_forge_sol_S17_gamesplit_v2_20261027.py | 9656 | a68cdd1c21039eecd5f21e9a9f02f3be2779ced4c5c8f9c0598e2a84d0dbfff0 | Sol 14 tests; tool filename and one Windows fixture line changed
+logs/step0_sol_files_verified.log | 2339 | bfd3ae1035211121b3e3914a2ae7ab61cdb3be68cec4e4964285908ca2f2bcca | step 0: Sol prepared folder 22/22 sha256 OK; 9 copied to sol_v1/
+logs/step1_sol_s17_tests_asis_py310.log | 12305 | c503ac82aa9b08d08c9848bea689ef421c619e771f7d9e0d19e6199bc3db73a3 | step 1: Sol 14 tests as-is on Windows py3.10: 7 errors (WinError 32 live cursor + fixture)
+logs/step1_sol_s17_tests_asis_py314.log | 3686 | 98627f389867d2a471bd7a17183c46d9b7d764b4512550249a940bac5210e66d | step 1: Sol 14 tests as-is on Windows py3.14: 13/14 (fixture unlinks a read-only file)
+logs/step2_real_junctions.log | 2629 | d57649abeb4b77461613b58fba661af639ec090c7a313222fced24d619c6f3e5 | step 2: real shard junctions: 18 of 30 continue a game
+logs/step3_v2_tests_py310.log | 1987 | bc64f611e363d336ce961bb33dfb4792b375dc4fbc9076bc72c9fcc8d1948240 | step 3: v2 14/14, Windows py3.10
+logs/step3_v2_tests_py314.log | 2779 | ef1eeb7e5403b38223cec728ba05200e63a72f339ceadcf3a803687adb4831a8 | step 3: v2 14/14, Windows py3.14
+logs/step4a_real_inputs.log | 914 | c551d0a00d2e81df1bacc33fde8b4fe00111743d429f8948b4c22df1ce7549ae | step 4a: real 011/012 pos/hce/txt copied read-only; md5 = conversion-time list
+logs/step4b_real_window.log | 1489 | 3c2ef8eb66e27a02c289ae5dbb2bab6be165e5b2508c882ea332a2733a5d7191 | step 4b: last 200,000 rows of real 010 as a window source
+logs/step5_real_split.log | 1166 | a077966ac87c46b8c61402834d174b1c8c2c57994ba7cd793ee65072cc9da02b | step 5: REAL split, 2,930,566 rows, 479 s, PASS_DEFINED_GROUP_SPLIT
+logs/step6_real_leak_audit.log | 1100 | 92a1ae331abfccc51f2361dcf46cf3478a431951e7c0ba60204a074071b35ef5 | step 6: independent leak audit PASS, leak_count 0
+logs/step6b_real_straddling_game.log | 474 | 105c162172c6ba905623fc661960b4d5d0c22a8e2393d8e844a5dee3d17e4f43 | step 6b: the real game crossing 010->011 is one group, all in one part
+logs/step7_real_determinism.log | 408 | 4b80522e364bb38a79ba3005b747153f6b9d3f4687ca15f0b907b0dd06ab425a | step 7: real 011 split twice: 11/11 files byte-identical
+logs/step8_audit_planted_leaks.log | 478 | 631448e6e7c6f53e683cb177e72a93f02c54a2eb1d6ad928a4feec9ae5562ec8 | step 8: planted group and position leaks both caught; clean copy passes
+real_junctions_check.py | 880 | 5cef0da28f8550de4b0956be47ce994dd8def8ff8ea0ae49c7241bc86a8b922c | which real shard junctions continue a game (edge lines only, read-only)
+real_window_build.py | 1414 | 51abc900dc3abac76778d23d330fe07ac1efd6dab2983d2b92655caec502960a | copies the last n rows of a real shard (pos/hce/text) into a new stem, read-only on the source
+results/forge_sol_S17_duplicate_rows_20261026.jsonl.gz | 11110 | ea50043f705697167977391d17f2881505380b8927ea6716561caa4109c8e2d5 | REAL duplicate-row ledger (212 rows), gzip
+results/forge_sol_S17_output_manifest_20261026.md5 | 718 | cbb756a34e52ad9db11f8338af3c4160b01b24cad554ab718b672911757070fa | REAL split output MD5 manifest (Sol tool)
+results/forge_sol_S17_shard_dedupe_20261026.jsonl | 1803 | 0b44fe5b077572b3b639ee85d5d16f639def980023184be79ff2600e88d101a1 | REAL dedupe manifest of the 3 sealed shards (sha256/md5, duplicates, conflicts)
+results/forge_sol_S17_summary_20261026.json | 5583 | 82506730e317f7926f3b2db185a0ff095b7fb3ad7c01a2776692a20c2c90fd37 | REAL split summary (Sol tool)
+results/real_leak_audit.json | 2334 | 9a4fa49df1fee69c0ef96d5739d180ec4ba782a71a7078786dd087575f66b70f | REAL independent leak audit: leak_count 0, verdict PASS
+results/real_split_config.json | 582 | 8f48865d376ad381a3948a72d74080aab850dd5bd90c2bfcf1955444138fbec2 | the real split configuration (window 010 tail + 011 + 012)
+results/real_split_outputs_SHA256SUMS | 1147 | fe6d35bfabe9310bdc68c04f3f83bd7a2f4b30a223baf828a89fc7f71456afbb | sha256 of all 11 real split outputs (912 MB kept in F:/opus_scratch/sol_s17/real_split1)
+sol_v1/forge_sol_S17_IDEA_SOURCE_20261026.md | 918 | 7ab1d6def42d447039fb86d7dbf7b511052b4044407e2cb12cd322a9e927daca | Sol prepared S17 file, unchanged (sha256 in his SHA256SUMS, step 0)
+sol_v1/forge_sol_S17_README_20261026.md | 4056 | 30b0f0e194cf0873825d6fd617016970fa648af55a16f41ab304b770b4a83edc | Sol prepared S17 file, unchanged (sha256 in his SHA256SUMS, step 0)
+sol_v1/forge_sol_S17_SHA256SUMS_20261026.txt | 2489 | 0e252fd91da66bd407a36a241670d627404773d7d5862e0fac5d60a4f81357ab | Sol prepared S17 file, unchanged (sha256 in his SHA256SUMS, step 0)
+sol_v1/forge_sol_S17_gamesplit_20261026.py | 19804 | a0331979574f84e12e03b13870951c215ca0f6933417933df23abc2ae1a25894 | Sol prepared S17 file, unchanged (sha256 in his SHA256SUMS, step 0)
+sol_v1/forge_sol_S17_owner_config_example_20261026.json | 369 | 1b4ebbcdb15cec10509f8756f410f2edae7f510504d28f0d80190c18afa6ba28 | Sol prepared S17 file, unchanged (sha256 in his SHA256SUMS, step 0)
+sol_v1/forge_sol_S17_report_20261026.md | 5639 | a83f0ea270d710a3c4a1aeca4ef6aa8e4e2dbda109a3e757780ee7635155d8f2 | Sol prepared S17 file, unchanged (sha256 in his SHA256SUMS, step 0)
+sol_v1/forge_sol_datafilter_20261025.py | 18312 | 6ccf78c864c44155cea22044fe05d0584bec5241acdc5ebb2b71e23886007ab3 | Sol prepared S17 file, unchanged (sha256 in his SHA256SUMS, step 0)
+sol_v1/forge_sol_datafilter_v2_20261026.py | 28743 | 5dd0c009566bc5a8c8e06300a8541c5d130d458ca75266a432d1477d1d156332 | Sol prepared S17 file, unchanged (sha256 in his SHA256SUMS, step 0)
+sol_v1/test_forge_sol_S17_gamesplit_20261026.py | 9567 | f12cc91f4616c703cd2fa6540894d4b518d342634270fe1efe633c14a4f3914d | Sol prepared S17 file, unchanged (sha256 in his SHA256SUMS, step 0)
