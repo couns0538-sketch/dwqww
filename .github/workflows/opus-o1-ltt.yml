@@ -1,0 +1,156 @@
+# O1-LTT (UCI LocklessTT, test plan G-B5) evidence on Linux; the development PC is capped at 3 threads.
+#  - stress: tests/tt_stress_tests.cpp at Threads 2/4/8 x 10M probes/stores, lockless and locked tables,
+#    release and TSan builds (0 corrupted entries; TSan 0 reports); forge_tt_tests on both builds
+#  - planted-bug: the same stress on a copy whose lockless key check is disabled must SEE corruption
+#  - scaling: time-to-depth / NPS Threads 1/2/4/8, LocklessTT off vs on interleaved per thread count
+#    (5 runs each); and the default build's NPS vs O3 with pins (c7eb247), nps_ab.py, 10 runs, d16/d20
+#  - selfplay: 500 fast games at Threads 4 with LocklessTT on (engine A), PGN legality check
+# fastchess srand here is a robustness-run seed, not a gate seed.
+name: opus-o1-ltt
+on:
+  push:
+    branches: ['opus-O1-LTT']
+    paths-ignore:
+      - 'opus_round1/**/*.md'
+      - 'opus_round1/**/*.log'
+      - 'opus_round1/**/*.tsv'
+      - 'opus_round1/**/*.diff'
+      - 'opus_round1/**/*.txt'
+      - 'opus_round1/**/SHA256SUMS'
+      - 'REPORT.md'
+permissions:
+  contents: read
+env:
+  FL: "-march=x86-64-v3 -mtune=znver5 -fno-fast-math -ffp-contract=off -DFORGE_NNUE_HIDDEN=256"
+jobs:
+  stress:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+      - name: Toolchain
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq g++-14 ninja-build cmake && nproc
+      - name: Build release and TSan
+        run: |
+          cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_COMPILER=g++-14 "-DCMAKE_CXX_FLAGS=$FL" > /dev/null
+          cmake --build build -j4 --target forge_tt_tests forge_tt_stress_tests > /dev/null
+          cmake -S . -B build_tsan -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_COMPILER=g++-14 \
+            "-DCMAKE_CXX_FLAGS=$FL -fsanitize=thread -fno-omit-frame-pointer" "-DCMAKE_EXE_LINKER_FLAGS=-fsanitize=thread" > /dev/null
+          cmake --build build_tsan -j4 --target forge_tt_tests forge_tt_stress_tests > /dev/null
+      - name: Stress (release + TSan)
+        run: |
+          set -o pipefail
+          mkdir -p out/tsan_logs
+          export TSAN_OPTIONS="log_path=$PWD/out/tsan_logs/tsan:halt_on_error=1"
+          status=0
+          for b in build build_tsan; do
+            echo "== $b forge_tt_tests" | tee -a out/stress.log
+            timeout 600 $b/forge_tt_tests 2>&1 | tee -a out/stress.log || status=1
+            for t in 2 4 8; do
+              for mode in lockless locked; do
+                for shape in "4 64" "1 8"; do
+                  set -- $shape
+                  echo "== $b threads $t mode $mode clusters $1 keys $2" | tee -a out/stress.log
+                  timeout 900 $b/forge_tt_stress_tests --threads $t --ops 10000000 --mode $mode --clusters $1 --keys $2 2>&1 | tee -a out/stress.log || status=1
+                done
+              done
+            done
+          done
+          reports=$(cat out/tsan_logs/tsan* 2>/dev/null | grep -c "WARNING: ThreadSanitizer" || true)
+          echo "TSan reports: $reports" | tee -a out/stress.log
+          grep -c "^PASS: 0 corrupted" out/stress.log | sed 's/^/PASS lines: /'
+          [ "$reports" = 0 ] || status=1
+          exit $status
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: ltt-stress
+          path: out/
+  planted-bug:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - name: Toolchain
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq g++-14 ninja-build cmake
+      - name: Build a copy with the lockless key check disabled
+        run: |
+          mkdir -p ../mut && git archive HEAD | tar -x -C ../mut
+          sed -i 's|    return static_cast<std::uint32_t>(h >> 32);|    return static_cast<std::uint32_t>(h >> 32) \& 0U;  // planted bug|' ../mut/src/search/tt_lockless.inc
+          grep -n "planted bug" ../mut/src/search/tt_lockless.inc
+          cmake -S ../mut -B build_mut -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_COMPILER=g++-14 "-DCMAKE_CXX_FLAGS=$FL" > /dev/null
+          cmake --build build_mut -j4 --target forge_tt_tests forge_tt_stress_tests > /dev/null
+      - name: The planted bug must be caught
+        run: |
+          mkdir -p out
+          status=0
+          if build_mut/forge_tt_tests > out/planted_tt_tests.log 2>&1; then echo "FAIL: forge_tt_tests passed with the planted bug"; status=1;
+          else echo "PASS: forge_tt_tests failed with the planted bug: $(tail -n 1 out/planted_tt_tests.log)"; fi
+          for t in 4 8; do
+            timeout 900 build_mut/forge_tt_stress_tests --threads $t --ops 10000000 --mode lockless --clusters 1 --keys 8 --expect-corruption 2>&1 | tee -a out/planted_stress.log || status=1
+          done
+          exit $status
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: ltt-planted-bug
+          path: out/
+  scaling:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 240
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Toolchain and builds (this branch; O3 with pins c7eb247)
+        run: |
+          sudo apt-get update -qq && sudo apt-get install -y -qq g++-14 ninja-build cmake python3
+          nproc; lscpu | grep -E 'Model name|Thread|Core|Socket'
+          cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_COMPILER=g++-14 "-DCMAKE_CXX_FLAGS=$FL" > /dev/null
+          cmake --build build -j4 --target forge > /dev/null
+          mkdir -p o3_src out && git archive c7eb247 | tar -x -m -C o3_src
+          cmake -S o3_src -B build_o3 -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_COMPILER=g++-14 "-DCMAKE_CXX_FLAGS=$FL" > /dev/null
+          cmake --build build_o3 -j4 --target forge > /dev/null
+          python3 opus_round1/ci/uci_check.py build/forge | tee out/identity_ltt.log
+          python3 opus_round1/ci/uci_check.py build_o3/forge | tee out/identity_o3.log
+      - name: Default build NPS vs O3 with pins (Threads 1)
+        run: python3 opus_round1/O3/nps_ab.py build_o3/forge build/forge 10 16 20 | tee out/nps_ab_o3pins_vs_ltt_off.log
+      - name: Scaling Threads 1/2/4/8, LocklessTT off vs on (interleaved per thread count)
+        run: |
+          for t in 1 2 4 8; do
+            for mode in off on; do
+              opt=$([ $mode = on ] && echo "--option LocklessTT=true" || true)
+              python3 opus_round1/O1/scaling.py build/forge --positions opus_round1/O3/positions50.fen \
+                --threads $t --runs 5 --depth 20 $opt --tsv out/scaling_t${t}_${mode}.tsv | tee out/scaling_t${t}_${mode}.log
+            done
+          done
+          python3 opus_round1/O1-LTT/scaling_summary.py out | tee out/scaling_summary.log
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: ltt-scaling
+          path: out/
+  selfplay:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 300
+    steps:
+      - uses: actions/checkout@v4
+      - name: Toolchain
+        run: |
+          sudo apt-get update -qq && sudo apt-get install -y -qq g++-14 ninja-build cmake python3 python3-pip
+          python3 -m pip install --quiet --break-system-packages chess
+      - name: Build (box recipe)
+        run: |
+          cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_COMPILER=g++-14 "-DCMAKE_CXX_FLAGS=$FL"
+          cmake --build build -j4 --target forge
+          python3 opus_round1/ci/uci_check.py build/forge
+      - name: Self-play 500 games, Threads 4, LocklessTT on (engine A)
+        run: bash opus_round1/O1/selfplay.sh build/forge 500 out 9911 option.LocklessTT=true
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: ltt-selfplay
+          path: |
+            out/games.pgn
+            out/*.log
+            out/*.txt

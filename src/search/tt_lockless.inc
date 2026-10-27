@@ -17,12 +17,12 @@
 // Concurrent writes to one slot can leave its two words from different writes;
 // such a slot no longer matches any key and is replaced like any other entry.
 //
-// Placement: every function here is in section .text.forge_ltt, which the
-// linker places after all .text, so the default build's hot functions keep
-// their AL1 s198 addresses; probe(), store() and hashfull() in tt.inc only
-// gained one test of lockless_ that tail-calls into this file.
+// Placement: every function here is noinline and in section .text.forge_ltt,
+// which the linker places after all .text. probe(), store() and hashfull() in
+// tt.inc only gained one test of lockless_ that tail-jumps into this file;
+// inlined, the lockless bodies would grow the default functions' frames.
 #if defined(__GNUC__) || defined(__clang__)
-#define FORGE_LTT_TEXT [[gnu::section(".text.forge_ltt")]]
+#define FORGE_LTT_TEXT [[gnu::section(".text.forge_ltt"), gnu::noinline]]
 #else
 #define FORGE_LTT_TEXT
 #endif
@@ -159,7 +159,9 @@ FORGE_LTT_TEXT TTProbe TranspositionTable::probe_lockless(std::uint64_t key) con
 
 FORGE_LTT_TEXT void TranspositionTable::store_lockless(const TTProbe& probe, std::uint64_t key, int score, int eval, Move move,
                                         int depth, Bound bound, bool pv, std::uint16_t halfmove_clock) {
-    // The handle was validated by store().
+    // Reject default, foreign or lifecycle-stale handles, as store() does.
+    if (probe.owner_ != this || probe.epoch_ != epoch_ || probe.key_ != key ||
+        probe.cluster_ >= cluster_count_ || probe.slot_ >= 4) return;
     TTEntry& slot = clusters_[probe.cluster_].entries[probe.slot_];
     TTEntry entry = load_lockless(slot);
     const TTEntry before = entry;

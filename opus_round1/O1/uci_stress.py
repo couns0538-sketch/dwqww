@@ -11,7 +11,7 @@ scenario around a running search:
   position_stop   go infinite, then a new `position` (implicitly stops the search)
   movetime / depth / nodes / clock   bounded searches
 plus, between searches: setoption Threads 1-8, ucinewgame, Hash resize, Clear Hash, and (with
---toggle-options) SmpExactNodes / SmpBestThread on/off.
+--toggle-options) SmpExactNodes / SmpBestThread / LocklessTT on/off.
 Checks: every `go` produces exactly one bestmove; bestmove and ponder move are legal ("0000" only
 when the root has no legal move); isready is answered during a search; nothing hangs (timeouts);
 no crash; clean exit on quit.
@@ -117,7 +117,7 @@ def main():
             elif r < 0.35:
                 eng.send("setoption name Clear Hash")
             if a.toggle_options and rng.random() < 0.2:
-                eng.send(f"setoption name {rng.choice(['SmpExactNodes', 'SmpBestThread'])} value "
+                eng.send(f"setoption name {rng.choice(['SmpExactNodes', 'SmpBestThread', 'LocklessTT'])} value "
                          f"{rng.choice(['true', 'false'])}")
             eng.send(pos)
             scenario = rng.choice(["infinite_stop", "infinite_stop", "ponder_hit", "ponder_stop", "go_stop_race",
