@@ -171,6 +171,7 @@ int main() {
                          "option name Book Depth type spin default 30 min 0 max 100\n"
                          "option name Book Variety type spin default 30 min 0 max 100\n";
             if (forge::nnue::available()) std::cout << "option name UseNNUE type check default true\n";
+            std::cout << "option name IntendedThreefold type check default false\n";
 #ifdef FORGE_EXPOSE_TUNABLES
             // Development builds advertise the search constants so match
             // runners can set them; release builds accept them silently.
@@ -258,6 +259,13 @@ int main() {
                     book_depth = std::clamp(value, 0, 100);
                 } else {
                     book_variety = std::clamp(value, 0, 100);
+                }
+            } else if (name == "IntendedThreefold") {
+                if (value_text == "true") forge::options::intended_threefold = true;
+                else if (value_text == "false") forge::options::intended_threefold = false;
+                else {
+                    const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex());
+                    std::cout << "info string invalid value for option IntendedThreefold" << std::endl;
                 }
             } else if (name == "UseNNUE") {
                 if (value_text == "true") forge::nnue::enabled = true;

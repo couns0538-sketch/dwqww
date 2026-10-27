@@ -1,0 +1,41 @@
+# S-IT (UCI IntendedThreefold) quiet-runner evidence: option-off identity, hot-function sizes, advisory NPS
+# (lock vs branch with the option off; branch off vs on). opus-ci.yml covers release/ASan/TSan ctest.
+# See opus_round1/sol_SIT/ci_sit.sh. Read-only; uploads logs as artifacts.
+name: opus-sol-sit-ci
+on:
+  push:
+    branches: ['opus-sol-SIT']
+    paths-ignore:
+      - 'opus_round1/**/*.md'
+      - 'opus_round1/**/*.log'
+      - 'opus_round1/**/*.diff'
+      - 'opus_round1/**/SHA256SUMS'
+      - 'opus_round1/**/FILES*'
+      - 'REPORT.md'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  quiet-runner:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Toolchain
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq g++-14 ninja-build cmake python3
+          g++-14 --version | head -1
+          nproc; lscpu | grep -E 'Model name|Flags' | cut -c1-200
+      - name: Identity, hot-function sizes, NPS A/B
+        run: bash opus_round1/sol_SIT/ci_sit.sh ci_out
+      - name: Upload logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: sol-sit-quiet-runner
+          path: |
+            ci_out/*.log
+          if-no-files-found: warn

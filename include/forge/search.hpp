@@ -16,6 +16,14 @@
 
 namespace forge {
 
+namespace options {
+// UCI IntendedThreefold (check, default false). FIDE 9.2.1 lets the side to move
+// claim a draw before a legal move that would create the third occurrence; with
+// the option on, non-root search and quiescence treat that right as a floor at
+// the draw score, without TT score cutoffs or stores at those nodes.
+extern bool intended_threefold;
+} // namespace options
+
 struct SearchLimits {
     int depth = 64;
     std::uint64_t nodes = 0;

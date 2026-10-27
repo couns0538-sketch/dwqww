@@ -915,6 +915,60 @@ bool Board::is_repetition(std::size_t root_index) const {
     return false;
 }
 
+bool Board::can_claim_threefold_by_next_move() const {
+    // The position after a reversible move (opponent to move) would be history
+    // index `size`. Its window starts after the last irreversible move (halfmove
+    // clock + 1 plies back) and strictly after the most recent null move, whose
+    // position is virtual. Two earlier occurrences need at least 8 plies.
+    const std::ptrdiff_t size = static_cast<std::ptrdiff_t>(key_history_.size());
+    const std::ptrdiff_t span = std::min<std::ptrdiff_t>(static_cast<std::ptrdiff_t>(halfmove_) + 1,
+                                                         static_cast<std::ptrdiff_t>(plies_from_null_));
+    if (span < 8) return false;
+    const std::ptrdiff_t lo = std::max<std::ptrdiff_t>(size - span, 0);
+    const auto key_at = [this](std::ptrdiff_t i) { return key_history_[static_cast<std::size_t>(i)]; };
+
+    // A claim needs an exactly duplicated key on that parity. The bucket mask only
+    // skips comparisons; it never grants anything by itself.
+    std::uint64_t buckets = 0;
+    bool duplicated = false;
+    for (std::ptrdiff_t i = size - 2; i >= lo && !duplicated; i -= 2) {
+        const std::uint64_t key = key_at(i);
+        const std::uint64_t bucket = 1ULL << (key & 63U);
+        if ((buckets & bucket) != 0U) {
+            for (std::ptrdiff_t j = i + 2; j <= size - 2; j += 2) {
+                if (key_at(j) == key) {
+                    duplicated = true;
+                    break;
+                }
+            }
+        }
+        buckets |= bucket;
+    }
+    if (!duplicated) return false;
+
+    // Only quiet non-pawn moves can recreate an earlier position: captures, pawn
+    // moves and promotions are irreversible, and castling drops a right that every
+    // position in the window still had. The resulting key mirrors make_move().
+    const std::uint64_t ep_key = ep_square_ >= 0 && has_legal_en_passant_capture()
+                                     ? Z.ep[static_cast<std::size_t>(file_of(ep_square_))] : 0;
+    const std::uint64_t base = key_ ^ ep_key ^ Z.side ^ Z.castling[castling_];
+    MoveList moves;
+    generate_pseudo_legal(moves, false);
+    for (const Move move : moves) {
+        if (move.flags != Quiet) continue;
+        const Piece piece = squares_[move.from];
+        if (piece_type(piece) == Pawn) continue;
+        const auto castling = static_cast<std::uint8_t>(castling_ & CastlingMasks[move.from] & CastlingMasks[move.to]);
+        const std::uint64_t next = base ^ Z.castling[castling] ^ piece_key(move.from, piece) ^ piece_key(move.to, piece);
+        int count = 0;
+        for (std::ptrdiff_t i = size - 2; i >= lo && count < 2; i -= 2) {
+            if (key_at(i) == next) ++count;
+        }
+        if (count >= 2 && is_legal(move)) return true;
+    }
+    return false;
+}
+
 bool Board::is_insufficient_material() const {
     const Bitboard pawns_rooks_queens = pieces(Pawn) | pieces(Rook) | pieces(Queen);
     if (pawns_rooks_queens != 0) return false;

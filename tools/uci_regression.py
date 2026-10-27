@@ -129,6 +129,7 @@ def main():
         e.send("uci")
         identification = e.until(lambda line: line == "uciok")
         assert any(line.startswith("id name Chess Engine Forge") for line in identification)
+        assert "option name IntendedThreefold type check default false" in identification
         e.ready(); passed.append("handshake/readiness")
         e.send("setoption name Hash value 33")
         e.ready()
@@ -288,6 +289,24 @@ def main():
         e.send("setoption name Move Overhead value -1")
         e.send("setoption name Clear Hash")
         e.ready(); passed.append("malformed options and clear hash")
+        # UCI IntendedThreefold (FIDE 9.2.1, issue #7): after a2a1 black may claim before h8h7 recreates the
+        # start position for the third time (positive history), not after the control history.
+        histories = {"positive": "a1a2 h7h8 a2a1 h8h7 a1a2 h7h8", "control": "a1b1 h7h8 b1b2 h8h7 b2a2 h7h8"}
+        scores = {}
+        for option in ("false", "true"):
+            e.send("setoption name IntendedThreefold value " + option)
+            for name, moves in histories.items():
+                e.position("fen 8/7k/8/8/8/8/8/K1R5 w - - 0 1 moves " + moves)
+                move, lines = e.search("go depth 1 searchmoves a2a1")
+                info = [line for line in lines if line.startswith("info depth 1 ")]
+                assert move == "a2a1" and info, lines
+                scores[(option, name)] = int(re.search(r"score cp (-?\d+)", info[-1]).group(1))
+        assert scores[("true", "positive")] == 0 and scores[("false", "positive")] > 100, scores
+        assert scores[("true", "control")] == scores[("false", "control")] > 100, scores
+        e.send("setoption name IntendedThreefold value maybe")
+        e.until(lambda line: "invalid value for option IntendedThreefold" in line)
+        e.send("setoption name IntendedThreefold value false")
+        e.ready(); passed.append("IntendedThreefold: positive history claims 0 cp at depth 1, control unchanged")
         e.position()
         e.send("position startpos moves e2e4 illegal")
         e.until(lambda line: "illegal move illegal" in line)

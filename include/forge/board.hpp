@@ -134,6 +134,11 @@ public:
     // Search-level repetition: any earlier occurrence at or after history
     // index root_index counts, otherwise two earlier occurrences are needed.
     [[nodiscard]] bool is_repetition(std::size_t root_index) const;
+    // FIDE 9.2.1 intended threefold: the side to move has a legal move that would
+    // create the third occurrence of a position. Exact keys on the resulting
+    // position's side-to-move parity, genuine reversible history only (after the
+    // last irreversible move and after the most recent null move).
+    [[nodiscard]] bool can_claim_threefold_by_next_move() const;
     [[nodiscard]] bool is_insufficient_material() const;
     [[nodiscard]] bool has_non_pawn_material(Color color) const;
 
