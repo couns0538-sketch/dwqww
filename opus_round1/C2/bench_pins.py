@@ -2,11 +2,13 @@
 """Bench node pins of a Forge exe for UCI option settings (Threads 1, Hash 16, OwnBook false).
 
 usage: bench_pins.py <forge_exe> [--depths 11,13,16,20,22] [--repeat N] [--set Name=Value ...] [--line NAME:Opt=V,Opt=V ...]
+                     [--expect NAME=n1,n2,... ...]
 
 Every --line is one engine process: the --set options, then the line's options, then `bench <d>` for each
 depth. Without --line a single OFF line is run. --repeat N runs each line N times in fresh processes and
-fails (exit 1) if the node counts differ between repeats (Threads=1 determinism). Prints one row per line
-with the nodes per depth and the change versus the first line in percent.
+fails (exit 1) if the node counts differ between repeats (Threads=1 determinism). --expect NAME=... fails
+(exit 1) unless line NAME gives exactly these node counts (one per depth). Prints one row per line with the
+nodes per depth and the change versus the first line in percent.
 """
 import argparse
 import re
@@ -48,6 +50,7 @@ def main():
     ap.add_argument("--repeat", type=int, default=1)
     ap.add_argument("--set", action="append", default=[])
     ap.add_argument("--line", action="append", default=[])
+    ap.add_argument("--expect", action="append", default=[])
     args = ap.parse_args()
     depths = [int(d) for d in args.depths.split(",")]
     common = [tuple(s.split("=", 1)) for s in args.set]
@@ -74,6 +77,15 @@ def main():
         for n, b in zip(nodes, base):
             cells.append(f"{n}" if nodes is base else f"{n} ({(n / b - 1) * 100:+.1f}%)")
         print(f"| {name} | {' '.join(f'{k}={v}' for k, v in opts) or '-'} | " + " | ".join(cells) + " |")
+    measured = {name: nodes for name, _, nodes, _ in rows}
+    for spec in args.expect:
+        name, _, values = spec.partition("=")
+        want = [int(v) for v in values.split(",")]
+        got = measured.get(name)
+        ok = got == want
+        print(f"EXPECT {name}: {'OK' if ok else 'MISMATCH'} want {want} got {got}")
+        if not ok:
+            status = 1
     sys.exit(status)
 
 

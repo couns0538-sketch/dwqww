@@ -41,6 +41,18 @@ run() { # label limit_s args...
 }
 run "Threads 1, depth $DEPTH1, CorrHistPlus 0/1/2/4/7, determinism" 1200 --threads 1 --depth "$DEPTH1"
 run "Threads 8, depth $DEPTH8, CorrHistPlus 0/1/2/4/7" 1200 --threads 8 --depth "$DEPTH8"
+if [ "$MODE" = release ]; then
+  # The bench pins recorded on the Windows PC build must be reproduced by the Linux build.
+  echo "== release: bench pins d11/13/16/20/22 vs the PC pins (limit 1500s)" | tee -a "$OUT/smp_$MODE.log"
+  timeout --kill-after=15 1500 python3 "$ROOT/opus_round1/C2/bench_pins.py" "$BD/forge" \
+    --line OFF: --line G-B1:CorrHistPlus=1 --line G-B2:CorrHistPlus=2 --line nonpawn:CorrHistPlus=4 --line all:CorrHistPlus=7 \
+    --expect OFF=312866,862329,3024920,12389307,34048354 \
+    --expect G-B1=318363,915778,2347193,9687762,19269711 \
+    --expect G-B2=296553,824640,2914749,13945117,40489211 \
+    --expect nonpawn=340927,734347,2794671,12132495,37005405 \
+    --expect all=317529,866764,2715911,8754177,26756688 2>&1 | tee -a "$OUT/smp_$MODE.log"
+  [ "${PIPESTATUS[0]}" -eq 0 ] || { echo "== FAIL: bench pins" | tee -a "$OUT/smp_$MODE.log"; status=1; }
+fi
 if [ -n "$(find "$LOGDIR" -type f -size +0 2>/dev/null)" ]; then
   echo "sanitizer reports found:"; cat "$LOGDIR"/* | head -200; status=1
 else
