@@ -1,9 +1,15 @@
 #include "forge/nnue.hpp"
+#include "forge/nnue_v2.hpp"
 
 #include <algorithm>
 #include <cmath>
 #include <cstdint>
+#include <cstring>
+#include <fstream>
+#include <iterator>
 #include <memory>
+#include <sstream>
+#include <vector>
 
 // The output layer uses SSE min/max/mul/add directly: compilers may not turn a
 // float clamp into min/max instructions without -ffast-math, which left the
@@ -237,3 +243,184 @@ DirtyPieces dirty_pieces(const Board& board, const Move& move) {
 }
 
 } // namespace forge::nnue
+
+// ---------------------------------------------------------------------------
+// v2 networks (forge/nnue_v2.hpp): loading and selection, all cold.
+// This translation unit is linked before search.cpp; the functions above keep
+// their code and addresses because nothing here is placed in .text (cold
+// functions go to .text.unlikely, which the PE linker puts after every
+// object's .text) and nothing here calls the local helpers above.
+namespace forge::nnue::v2 {
+
+// Constant-initialised: no dynamic initialisation or exit-time code.
+const Net* active_net = nullptr;
+
+namespace {
+
+Net* loaded_net = nullptr;   // owned; deleted by load() / unload()
+
+constexpr std::uint32_t FlagResidual = 1U;
+constexpr std::uint32_t FlagMirror = 2U;
+constexpr char Magic[8] = {'F', 'O', 'R', 'G', 'E', 'N', 'N', '2'};
+
+[[gnu::cold]] std::uint32_t read_u32(const std::vector<unsigned char>& bytes, std::size_t offset) {
+    return static_cast<std::uint32_t>(bytes[offset]) | static_cast<std::uint32_t>(bytes[offset + 1]) << 8U |
+           static_cast<std::uint32_t>(bytes[offset + 2]) << 16U | static_cast<std::uint32_t>(bytes[offset + 3]) << 24U;
+}
+
+[[gnu::cold]] float read_f32(const std::vector<unsigned char>& bytes, std::size_t offset) {
+    const std::uint32_t bits = read_u32(bytes, offset);
+    float value = 0.0F;
+    std::memcpy(&value, &bits, sizeof(value));
+    return value;
+}
+
+[[gnu::cold]] std::int16_t read_i16(const std::vector<unsigned char>& bytes, std::size_t offset) {
+    return static_cast<std::int16_t>(static_cast<std::uint16_t>(bytes[offset] | (bytes[offset + 1] << 8U)));
+}
+
+[[gnu::cold]] std::uint64_t fnv1a64(const unsigned char* data, std::size_t size) {
+    std::uint64_t hash = 0xcbf29ce484222325ULL;
+    for (std::size_t i = 0; i < size; ++i) {
+        hash ^= data[i];
+        hash *= 0x100000001b3ULL;
+    }
+    return hash;
+}
+
+[[gnu::cold]] bool fail(std::string* error, const std::string& text) {
+    if (error != nullptr) *error = text;
+    return false;
+}
+
+} // namespace
+
+[[gnu::cold]] bool load(const std::string& path, std::string* error) {
+    std::ifstream file(path, std::ios::binary);
+    if (!file) return fail(error, "cannot open " + path);
+    const std::vector<unsigned char> bytes((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
+    if (bytes.size() < static_cast<std::size_t>(HeaderBytes) + 8U) return fail(error, "file too short for a v2 header");
+    if (std::memcmp(bytes.data(), Magic, sizeof(Magic)) != 0) return fail(error, "bad magic (not a FORGENN2 file)");
+    if (read_u32(bytes, 8) != 2U) return fail(error, "unsupported version " + std::to_string(read_u32(bytes, 8)));
+    if (read_u32(bytes, 12) != static_cast<std::uint32_t>(HeaderBytes)) return fail(error, "unexpected header size");
+    if (read_u32(bytes, 16) != 0U) return fail(error, "unsupported feature set " + std::to_string(read_u32(bytes, 16)));
+    if (read_u32(bytes, 20) != static_cast<std::uint32_t>(InputCount)) return fail(error, "inputs per bucket must be 768");
+    if (read_u32(bytes, 24) != static_cast<std::uint32_t>(HiddenSize)) {
+        return fail(error, "hidden size " + std::to_string(read_u32(bytes, 24)) + " != engine hidden size " +
+                               std::to_string(HiddenSize) + " (FORGE_NNUE_HIDDEN)");
+    }
+    const std::uint32_t king_buckets = read_u32(bytes, 28);
+    const std::uint32_t output_buckets = read_u32(bytes, 32);
+    const std::uint32_t flags = read_u32(bytes, 36);
+    if (king_buckets < 1U || king_buckets > static_cast<std::uint32_t>(MaxKingBuckets)) return fail(error, "king buckets out of range 1-32");
+    if (output_buckets < 1U || output_buckets > static_cast<std::uint32_t>(MaxOutputBuckets)) {
+        return fail(error, "output buckets " + std::to_string(output_buckets) + " not supported (max " +
+                               std::to_string(MaxOutputBuckets) + ")");
+    }
+    if ((flags & ~(FlagResidual | FlagMirror)) != 0U) return fail(error, "unknown flag bits");
+    if (read_f32(bytes, 40) != WeightScale || read_f32(bytes, 44) != OutputScale || read_f32(bytes, 48) != SigmoidK) {
+        return fail(error, "quantisation scales / sigmoid K differ from the engine's (4096, 4096, 2.25)");
+    }
+    for (std::size_t i = 0; i < 64; ++i) {
+        if (bytes[52 + i] >= king_buckets) return fail(error, "king bucket map entry out of range");
+    }
+    for (std::size_t i = 0; i < 33; ++i) {
+        if (bytes[116 + i] >= output_buckets) return fail(error, "output bucket map entry out of range");
+    }
+    for (std::size_t i = 149; i < static_cast<std::size_t>(HeaderBytes); ++i) {
+        if (bytes[i] != 0U) return fail(error, "reserved header bytes are not zero");
+    }
+    const std::size_t w1_count = static_cast<std::size_t>(king_buckets) * InputCount * HiddenSize;
+    const std::size_t w2_count = static_cast<std::size_t>(output_buckets) * 2U * HiddenSize;
+    const std::size_t expected = static_cast<std::size_t>(HeaderBytes) +
+                                 2U * (w1_count + HiddenSize + w2_count + output_buckets) + 8U;
+    if (bytes.size() != expected) {
+        return fail(error, "file size " + std::to_string(bytes.size()) + " != expected " + std::to_string(expected));
+    }
+    std::uint64_t stored = 0;
+    for (std::size_t i = 8; i-- > 0;) stored = (stored << 8U) | bytes[bytes.size() - 8U + i];
+    const std::uint64_t checksum = fnv1a64(bytes.data(), bytes.size() - 8U);
+    if (stored != checksum) return fail(error, "checksum mismatch (file damaged)");
+
+    auto net = std::make_unique<Net>();
+    net->path = path;
+    net->king_buckets = static_cast<int>(king_buckets);
+    net->output_buckets = static_cast<int>(output_buckets);
+    net->mirror = (flags & FlagMirror) != 0U;
+    net->residual = (flags & FlagResidual) != 0U;
+    net->checksum = checksum;
+    std::copy(bytes.begin() + 52, bytes.begin() + 116, net->king_map.begin());
+    std::copy(bytes.begin() + 116, bytes.begin() + 149, net->output_map.begin());
+    net->w1.allocate(w1_count);
+    net->b1.allocate(HiddenSize);
+    net->w2.allocate(w2_count);
+    net->b2.assign(output_buckets, 0.0F);
+    std::size_t offset = static_cast<std::size_t>(HeaderBytes);
+    // Same de-quantisation as the compiled-in network (weights(): int / scale).
+    for (std::size_t i = 0; i < w1_count; ++i, offset += 2) net->w1.data()[i] = static_cast<float>(read_i16(bytes, offset)) / WeightScale;
+    for (std::size_t i = 0; i < HiddenSize; ++i, offset += 2) net->b1.data()[i] = static_cast<float>(read_i16(bytes, offset)) / WeightScale;
+    for (std::size_t i = 0; i < w2_count; ++i, offset += 2) net->w2.data()[i] = static_cast<float>(read_i16(bytes, offset)) / OutputScale;
+    for (std::size_t i = 0; i < output_buckets; ++i, offset += 2) net->b2[i] = static_cast<float>(read_i16(bytes, offset)) / OutputScale;
+
+    if (active_net == loaded_net) active_net = nullptr;
+    delete loaded_net;
+    loaded_net = net.release();
+    return true;
+}
+
+[[gnu::cold]] void unload() {
+    if (active_net == loaded_net) active_net = nullptr;
+    delete loaded_net;
+    loaded_net = nullptr;
+}
+
+[[gnu::cold]] const Net* loaded() { return loaded_net; }
+
+[[gnu::cold]] const Net* select(int king_buckets, std::string* message) {
+    active_net = nullptr;
+    std::string text;
+    if (king_buckets <= 0) {
+        text = "off (NNUEKingBuckets 0): compiled-in network";
+    } else if (loaded_net == nullptr) {
+        text = "NNUEKingBuckets " + std::to_string(king_buckets) + " needs a v2 net (NNUEFile); using the compiled-in network";
+    } else if (loaded_net->king_buckets != king_buckets) {
+        text = "NNUEKingBuckets " + std::to_string(king_buckets) + " does not match the loaded net (" +
+               std::to_string(loaded_net->king_buckets) + " king buckets); using the compiled-in network";
+    } else {
+        active_net = loaded_net;
+        std::ostringstream out;
+        out << "active: " << loaded_net->path << " (king buckets " << loaded_net->king_buckets
+            << (loaded_net->mirror ? ", mirrored" : "") << ", output buckets " << loaded_net->output_buckets
+            << (loaded_net->residual ? ", residual" : ", stand-alone") << ")";
+        text = out.str();
+    }
+    if (message != nullptr) *message = text;
+    return active_net;
+}
+
+[[gnu::cold]] Description describe(const Net& net) {
+    Description d;
+    d.path = net.path;
+    d.king_buckets = net.king_buckets;
+    d.output_buckets = net.output_buckets;
+    d.mirror = net.mirror;
+    d.residual = net.residual;
+    d.checksum = net.checksum;
+    return d;
+}
+
+[[gnu::cold]] RefreshCache& make_cache(const Net& net, int worker_id) {
+    std::unique_ptr<RefreshCache>& slot = net.caches[static_cast<std::size_t>(std::clamp(worker_id, 0, MaxWorkers - 1))];
+    if (slot == nullptr) {
+        auto cache = std::make_unique<RefreshCache>();
+        cache->entries.resize(static_cast<std::size_t>(2 * net.king_buckets * 2));
+        for (RefreshCache::Entry& entry : cache->entries) {
+            std::copy(net.b1.data(), net.b1.data() + HiddenSize, entry.values.begin());
+            entry.pieces.fill(0);
+        }
+        slot = std::move(cache);
+    }
+    return *slot;
+}
+
+} // namespace forge::nnue::v2

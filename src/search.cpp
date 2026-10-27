@@ -13,6 +13,7 @@
 // Public interfaces: forge/search.hpp (Worker, Searcher), forge/search_types.hpp,
 // forge/tt.hpp, forge/history.hpp, forge/thread_data.hpp, forge/search_tune.hpp.
 #include "forge/search.hpp"
+#include "forge/nnue_v2.hpp"
 #include "forge/uci_output.hpp"
 
 #include <algorithm>
@@ -23,11 +24,13 @@
 #include <optional>
 
 #include "search/tune.inc"        // tunable constants, LMR / LMP tables
+#include "search/options.inc"     // runtime option storage (forge/search_options.hpp)
 #include "search/scores.inc"      // mate scores and their TT encoding
 #include "search/uci_info.inc"    // UCI info output (score formatting)
 #include "search/tt.inc"          // transposition table
 #include "search/movepicker.hpp"  // staged move picker
 #include "search/worker.inc"      // per-thread state lifecycle
+#include "search/evaluation_v2.inc" // v2 network evaluation (NNUEFile + NNUEKingBuckets)
 #include "search/evaluation.inc"  // static evaluation glue, correction history
 #include "search/timeman.hpp"     // time budgets and the soft stop rule (inline)
 #include "search/checks.inc"      // per-node clock / node / stop checks, draws

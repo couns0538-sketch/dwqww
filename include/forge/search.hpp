@@ -4,6 +4,7 @@
 #include "forge/eval.hpp"
 #include "forge/history.hpp"
 #include "forge/nnue.hpp"
+#include "forge/search_options.hpp"
 #include "forge/search_tune.hpp"
 #include "forge/search_types.hpp"
 #include "forge/thread_data.hpp"
@@ -56,6 +57,8 @@ private:
     [[nodiscard]] int corrected_eval(const Board& board, int raw_eval) const;
     void update_correction(const Board& board, int depth, int best_score, int static_eval);
     [[nodiscard]] int static_evaluate(const Board& board, SearchStack* ss);
+    // v2 network path (options::nnue_v2; src/search/evaluation_v2.inc).
+    [[nodiscard]] int static_evaluate_v2(const Board& board, SearchStack* ss);
     void record_move(SearchStack* ss, const Board& board, const Move& move);
     void record_null_move(SearchStack* ss);
 };
