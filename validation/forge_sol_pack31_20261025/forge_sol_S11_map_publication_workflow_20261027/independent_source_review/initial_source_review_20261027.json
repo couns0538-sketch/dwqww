@@ -1,0 +1,22 @@
+{
+  "S12_native_status": "HELD_UNTIL_ROOT_VERIFIES_S11_CLOSURE_PUBLICATION_AND_GRANTS_SERIAL_LEASE",
+  "finding": {
+    "impact": "Preserved receipt says index_updated=false although797 index entries were already inserted. Two separate index operations are not one all-state atomic transaction.",
+    "minimal_fix": "Record index_updated=true immediately after first success; initialize and separately record skip_worktree_updated after second success.",
+    "source_lines": [
+      122,
+      123,
+      124,
+      125
+    ],
+    "trigger": "First update-index --index-info succeeds; second --skip-worktree fails/interruption occurs"
+  },
+  "map_sha256": "b5ddfd06cf9a615a221972e7c7a895b6807c4d14baec84af0d9764ef580f2b0b",
+  "reviewer_task": "/root/s12_publication_prep",
+  "schema": "forge.S11.map_stager_initial_source_review.v1",
+  "scope": "Independent manual source-only review. No Git command, stager/compiler/native/test execution, fixture campaign, new harness or reviewed-source mutation.",
+  "source_path": "/tmp/forge_sol_S11_map_stager_before_index_receipt_fix_20261027.py",
+  "source_sha256": "dfbab5824cb74e331a9c50ddff355b19a20726e272fc96918f40f0bf7792edb2",
+  "status": "ONE_P2_RECEIPT_STATE_MUST_FIX",
+  "timestamp_utc": "2026-10-27T02:13:47.613705+00:00"
+}

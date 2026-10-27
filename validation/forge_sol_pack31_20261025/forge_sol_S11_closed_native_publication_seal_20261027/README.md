@@ -1,0 +1,5 @@
+Both LP and B closed PASS_NATIVE_EXACT_PARITY. Each base retains three original million-position streams in 100 chunks per arm. Both native full decompressed-byte comparisons cover 2,068,000,036 bytes per pair. Independent compressed-byte audits verify all 100 triplets per base, original stream metadata and source/artifact hashes; nine subsequent JSON receipt atime transitions are explicitly journaled, with no remaining owned processes.
+
+publication_path_map.json maps every publishable path to original bytes; no payload files are copied here. Native Git content sharing may retain every destination path without duplicating identical object content. Original physical streams remain distinct and unchanged. ELF/object/engine-source payloads are excluded with identity references. Original ISA FAIL, capture-timeout FAIL, parent liveness-observer FAIL and the interrupted redundant audit remain preserved.
+
+Root owns Git/publication. This seal is local and does not establish durable publication, speed or playing strength.
