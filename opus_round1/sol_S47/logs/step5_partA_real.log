@@ -1,0 +1,16 @@
+# step5 Part A real-file runs (verify_netonly_tree, read-only on the copies)
+## R1 AL1 tree vs AL1 tree with src/nnue_weights.inc = resid_h256_e48_f029_b06_ep48.inc (expected md5 652f7bcf51ca4eda560e0fb2b1747c72): must exit 0
+exit 0
+PASS {'candidate': 20, 'lock': 20} ['src/nnue_weights.inc'] raw []
+## R2 AL1 tree vs the opus-O3 refactor tree (src differs): must be non-zero
+exit 1
+FAIL 2 differ; 19 only in O3; first reason: tree differs outside src/nnue_weights.inc: include/forge/search.hpp, src/search.cpp, only in candidate: include/forge/history.hpp, only in candidate: include/fo
+## R3 R1 candidate with every .cpp/.hpp converted to CRLF: must exit 0 (CRLF-only edits ignored)
+exit 0
+PASS 16 CRLF-only files ignored
+## R4 the real AUTOLOCK_1 dir (tree in source/) vs the h256_e12 tree, expected md5 22b4b9e2c61b37c0450f13a3a92c19b3 (the gated s198 net): must exit 0
+exit 0
+PASS {'candidate': 20, 'lock': 20} ['src/nnue_weights.inc'] True
+## R5 --lock = the real AUTOLOCK_1 dir (any AUTOLOCK as the lock) vs AL1 + f029 net: must exit 0
+exit 0
+PASS {'exe': 'forge_h256_s198.exe', 'kind': 'net', 'n': 1, 'net_md5': '22B4B9E2C61B37C0450F13A3A92C19B3', 'sha256': '833C47F3209DCEECF662E8B1D4587435E44702FBD3AB9DDF278A49172D9122B3', 'tag': 'AUTOLOCK_1_gate120_e32f003rec_s198'} ['src/nnue_weights.inc']

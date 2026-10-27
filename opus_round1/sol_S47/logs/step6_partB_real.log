@@ -1,0 +1,16 @@
+# step6 Part B real-file run: audit of the real AUTOLOCK_1 (copy) against the h256_e12 lock (copy)
+exit 3 (3 = INCOMPLETE: something MISSING, nothing FAILED)
+**Overall: INCOMPLETE**. Evidence for Code Review only: this packet is NOT a CR approval and the tool never writes CR_PASS_AUTOLOCK_<n>.txt. MISSING means the input was not supplied or not found; nothing is guessed.
+| A1 | new lock in a NEW dir AUTOLOCK_<n>_<tag>, consistent LOCK.json, no orphan lower-n dir | PASS | name n=1, old lock h256_e12 n=0; LOCK.json n 1 tag AUTOLOCK_1_gate120_e32f003rec_s198 parent h256_e12 kind net; sibling AUTOLOCK dirs: ['AUTOLOCK_1_gate120_e3
+| A2 | old lock files unchanged (sha256 vs the hash list recorded before the promote) | PASS | 73 listed files re-hashed under F:\opus_scratch\sol_s47\real\old_h256_e12\source; changed none; missing none; old exe forge_h256_e12.exe 456743d9c065d2dec2d9a52ef239
+| A3 | net md5 = the gated pack net | PASS | nnue_weights.inc md5 22b4b9e2c61b37c0450f13a3a92c19b3; gated pack net 22b4b9e2c61b37c0450f13a3a92c19b3 |
+| A4 | exe sha256 = the gated exe (gate and confirm RUN_INFO) | PASS | forge_h256_s198.exe 833c47f3209dceecf662e8b1d4587435e44702fbd3ab9ddf278a49172d9122b3; gate RUN_INFO candidate 833c47f3209dceecf662e8b1d4587435e44702fbd3ab9ddf278a49172d9122b3; confirm RUN_I
+| A5 | bench d11-d22 node-exact, run twice identical | PASS | runs [[312866, 862329, 3024920, 12389307, 34048354], [312866, 862329, 3024920, 12389307, 34048354]]; = gated prebench [312866, 862329, 3024920, 12389307, 34048354]; differs from old lock bench [3089
+| A6 | perft5 4865609 / kiwipete5 193690690 / FMA 0 | PASS | perft5 4865609 kiwipete5 193690690 FMA 0 |
+| A7 | uci option list equal to the old lock | MISSING | new list found (F:\opus_scratch\sol_s47\real\AUTOLOCK_1_gate120_e32f003rec_s198\UCI_OPTIONS.txt); old list MISSING (F:\opus_scratch\sol_s47\real\old_h256_e12\UCI_OPTIONS.txt) |
+| A8 | confirm srand and openings start differ from the gate | PASS | gate srand 344808634 start 321001; confirm srand 1983003762 start 348001 |
+| A9 | gate and confirm verdicts H1 accepted, not VOID | PASS | {'gate': 'H1 accepted (SPRT [0,10] normalized, a=b=0.05: no measurable regression; not an Elo claim; needs a confirm gate before lock)', 'confirm': 'H1 accepted (SPRT [0,10] normalized, a=b=0.05: 
+| A10 | pins unchanged except allow-listed reviewed diffs (attached, not applied) | PASS | no pins/ attachments in the new lock; no tests/ tree in both lock dirs (pins live in the engine repo; nothing applied here) |
+| A11 | Code Review record (INFO only; this tool never writes or grants CR_PASS) | INFO | CR_PASS_AUTOLOCK_1.txt present (sha256 169011e56790fdc8...); CR decides, not this tool |
+## fixture sample packet (good case, scratch copy of fixtures/partB)
+fixture packet exit 0
