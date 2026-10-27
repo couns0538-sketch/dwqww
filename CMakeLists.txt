@@ -72,6 +72,14 @@ target_link_libraries(forge_nearest_pawn_tests PRIVATE forge_core Threads::Threa
 add_executable(forge_pv_metadata_tests tests/pv_metadata_tests.cpp)
 target_link_libraries(forge_pv_metadata_tests PRIVATE forge_core Threads::Threads)
 
+# S13: includes the actual src/search.cpp with its TT prefetch redirected to a
+# counter, so the archive's own search.cpp object is never linked (link map).
+add_executable(forge_tt_prefetch_probe tests/tt_prefetch_probe_tests.cpp)
+target_link_libraries(forge_tt_prefetch_probe PRIVATE forge_core Threads::Threads)
+if(NOT MSVC)
+    target_link_options(forge_tt_prefetch_probe PRIVATE "-Wl,-Map=${CMAKE_CURRENT_BINARY_DIR}/forge_tt_prefetch_probe.map")
+endif()
+
 add_executable(forge_bench bench/benchmark.cpp)
 target_link_libraries(forge_bench PRIVATE forge_core Threads::Threads)
 
@@ -84,6 +92,7 @@ add_test(NAME forge_nearest_pawn_tests COMMAND forge_nearest_pawn_tests)
 add_test(NAME forge_pv_metadata_tests COMMAND forge_pv_metadata_tests)
 add_test(NAME forge_tt_tests COMMAND forge_tt_tests)
 add_test(NAME forge_rule50_tests COMMAND forge_rule50_tests)
+add_test(NAME forge_tt_prefetch_probe COMMAND forge_tt_prefetch_probe)
 add_test(NAME forge_legal_witness_tests COMMAND forge_legal_witness_tests
     ${CMAKE_CURRENT_SOURCE_DIR}/tests/legal_witness_fixtures.tsv
     ${CMAKE_CURRENT_SOURCE_DIR}/tools/openings/forge-10000.epd)
