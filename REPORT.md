@@ -33,6 +33,24 @@
 5. **Sol's queue** (`SOL_LEFTOVERS_FOR_CLAUDE.md`): section 2 first (S11, S18, S13, ...), then the section 3
    fix-ups.
 
+## ATTENTION: our smoke runs disturbed the PC training supervisor (found 2026-10-27 10:24 PST)
+- **What happened.** `F:orge_nnue_train\supervisor.log` (read only) shows that the supervisor adopted five
+  CPU smoke-training processes from earlier C4/C5 sub-agents as if they were its own queue jobs:
+  - `runs_kb4_test`, `smoke_kb4`, `smoke_kb8` on 2026-10-26 21:45-21:52;
+  - `smoke_kb4ob8`, `runs_c5_kb4` on 2026-10-27 08:54-08:55.
+- **Effect.** It counted them as FAILED runs, backed off (no new launches for 10 min at 26 Oct 23:07 and 5 min
+  at 27 Oct 08:57), and since 09:03 it logs "QA never-idle: 2 consecutive fails -> skipping queue/resume,
+  launching auto fallback": it runs auto-fallback jobs instead of its queue.
+- **Current state.** `queue_state.json` still shows `fails = 2`, `last_fail_t = 2026-10-27T08:57:35`.
+- **Cause.** The trainer ran under its own name, with run folders named `runs_*` / `smoke_kb*`. All of this was
+  before the renaming rule reached those sub-agents.
+- **Since then.** Runs use a renamed copy (`opus_nnue_smoke.py`) and write only under `F:\opus_scratch`, and
+  were not adopted. The NNUE sub-agent has also been told to avoid such names and to check the supervisor log
+  after starting any run.
+- **Not fixed here.** Nothing was written to `F:orge_nnue_train`, because that is not allowed. **The owner
+  may want to reset the supervisor's `fails` counter**, or let a run finish DONE, so that it returns to its
+  queue.
+
 ## Environment notes (read before re-using numbers)
 - **Machine load.** The PC ran a fastchess gate, self-play datagen and NNUE training the whole time (machine
   exclusive: no). With the owner's OK, all work ran at BelowNormal priority with at most 3 threads. PC speed
