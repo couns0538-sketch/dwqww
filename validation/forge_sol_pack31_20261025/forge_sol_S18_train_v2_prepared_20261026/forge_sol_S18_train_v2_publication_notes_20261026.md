@@ -1,0 +1,5 @@
+# S18 training smoke source checkpoint — 2026-10-26
+
+No Torch import, staging or training result is claimed. This is a reviewed/prepared endpoint-validation successor for a future explicitly granted none-only CPU smoke. The auxiliary tooling diff uses.txt so it is not confused with an engine-file patch. Original-layout checksum bytes are retained under an explicit history name; the new manifest checks this publication layout. Runtime source and protocol bytes are unchanged.
+
+The earlier missing-return allegation is disproved: both frozen sources already return the result. The verified defect was the controller accepting missing/None/malformed postscore. Strict child/controller endpoint validation and two RNG hash metadata fields address it without changing training or scoring arithmetic. Thirty-three pure controls pass; native compatibility/training/full50000 results remain UNVERIFIED. Original diagnostics/failures and source snapshots are retained. Real013/014 and authentic-game validation remain UNVERIFIED.

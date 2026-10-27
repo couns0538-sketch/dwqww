@@ -1,0 +1,15 @@
+# S18 v2 endpoint validation — 2026-10-26
+
+Runtime is NOT RUN. This is a tooling-contract repair, with no engine, network, trainer, targets, optimizer or training-result change.
+
+The alleged missing return was DISPROVED against exact frozen bytes. b9114fd8 has `return result` atline250;6aab738b has it atline331. Both original hashes remain unchanged. Root confirmed its excerpt stopped one line too early. V2 retains the existing return and claims no return fix.
+
+The verified gap is that the frozen controller accepts `work_complete=True` even when the full-50000 postscore field is missing,None or malformed. Pure tests execute the real frozen acceptance function with every process, diagnostic scope and kernel signal mocked; tiny NON-FPOS/NON-TORCH fixtures are explicitly NOT native/training evidence. Old returns0 for all3 bad cases. V2 refuses all3 and accepts a complete schema fixture. Additional negatives reject bad row/tail coverage, float batch counts, missing/nonfinite losses, wrong epoch/checkpoint/source/protocol, state/RNG drift, changed actual fixture files, nonzero updates/exports and an unweighted method claim.
+
+All33 source/pure tests PASS. The first RED has5 failures. A pre-edit assertion also detected the already-existing return, preventing a duplicate-return edit. A file named GREEN_attempt1 is actually the ensuing still-unfixed5-failure run; its logs are preserved and are not presented as green. The assertion traceback was tool output only, disclosed in the JSON failure history. The actual green run is GREEN_attempt2; its expected rejection tracebacks are pure negative controls, not native failures.
+
+V2 validates postscore at both boundaries: before the child sets work_complete and again before controller PASS. Required evidence includes rows50000, six8192+848 batches, dropped0, both complete three-blend finite loss maps, actual preselected finalepoch2 checkpoint/source/protocol/holdout fingerprints, matching state/RNG hashes and zero updates/exports. Read-only RNG hash metadata is added after the original restoration/check; all original postscore statements and the existing final return remain. Training argv, ranges and final-checkpoint selection remain AST-identical. No postscore arithmetic, targets, optimizer or RNG-state update changed.
+
+Native49152-row metrics stay separate from the preregistered weighted all50000-row evaluation. Original postscore protocol AA8FED66 and the real input index FB5D2575 are unchanged. Resource policy stays300s work/360s hard,4GiB AS citing the successful S09 evaluation-only scope, sampled3GiB owned RSS,6.5GiB free-disk floor plus64MiB initial headroom, with no checkpoint file-size cap. Only a NEW v2 per-arm CWD/cache/tmp/trainer-run may be written.
+
+The grant TEMPLATE remains NOT AUTHORIZED. Actual Torch/import/staging/training/postscore need fresh parent source review/publication and a one-arm grant. Old150-second Torch and120-second t500 failures remain FAIL. Real013/014 and authentic game isolation remain UNVERIFIED; synthetic pipeline results would establish no training or Elo gain.

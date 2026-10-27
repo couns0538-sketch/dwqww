@@ -1,0 +1,78 @@
+{
+  "checkpoint_disk_source_estimate": {
+    "atomic_tmp_and_logs_and_cache_allowance": "64MiB total new-output headroom, conservative expectation rather than file-size limit",
+    "checkpoint_file_size_limit": "NONE; avoid truncating legitimate .pt/.inc/.bin artifacts",
+    "compile_disk_cache": "No torch.compile/JIT/Dynamo call in original trainer; third-party import cache effects not statically guaranteed; all cache/tmp vars point to NEW owned paths",
+    "two_INC_text_worst_case_allowance_bytes": 3947540,
+    "two_epoch_raw_float32_bin_bytes": 1579016,
+    "two_epoch_raw_model_plus_optimizer_state_bytes": 4737048
+  },
+  "dimensions": {
+    "PACK_W": 68,
+    "batch_size": 8192,
+    "features": 768,
+    "hidden": 256,
+    "holdout_rows": 50000,
+    "order_buffers": 1,
+    "prefetch_depth": 6,
+    "training_rows": 200000
+  },
+  "library": {
+    "compressed_archive_bytes_read_only": 129931554,
+    "disk_decompression_or_library_cache_written": false,
+    "owned_sealed_memfd_raw_bytes": 488851697,
+    "shared_page_accounting": "not simply additive to process RSS; no hard aggregate cgroup guarantee"
+  },
+  "loader": "original RAM-fixed load_set; explicit mmap_data remains original defaultFalse",
+  "model_source_sha256": "5cebba4d44133630e247d9ab4c0085fa6301dde8db1dfe1389452ac19d92313f",
+  "not_static_peak_bound": [
+    "Autograd saves and temporary feature/QAT tensors",
+    "BLAS workspace and allocator reuse/fragmentation",
+    "Torch/import/optimizer framework allocations",
+    "Serialization CPU copies",
+    "Linux shared mapped pages and memfd page-cache accounting"
+  ],
+  "runtime_status": "Torch/training/staging/postscore NOT_RUN",
+  "schema": "forge-S18-source-memory-disk-prereg-v1",
+  "selected_smoke_limits": {
+    "AS_bytes": 4294967296,
+    "RSS_sampling": "at each monitor poll, roughly0.1s; TERM then ownedKILL after0.2s if still live",
+    "cleanup_seconds": 60,
+    "disk_sampling": "before staging/before arm and each monitor poll; sampled floor is not a filesystem quota",
+    "extra_initial_disk_headroom_bytes": 67108864,
+    "hard_seconds": 360,
+    "minimum_free_tmp_bytes": 6979321856,
+    "sampled_owned_RSS_bytes": 3221225472,
+    "work_seconds": 300
+  },
+  "source_visible_buffers_bytes": {
+    "arange_int32_initialization_transient_up_to": 800000,
+    "concatenated_hidden_output": 16777216,
+    "independent_copied_POS_HCE_with10_headers": 9250160,
+    "model_float32_parameters": 789508,
+    "model_gradients_plus_Adam_m_v_raw": 2368524,
+    "one_int32_order_buffer": 800000,
+    "one_int64_codes_or_feature_matrix": 4194304,
+    "one_packed_float32_batch": 2228224,
+    "train_and_holdout_arrays_37_bytes_per_row": 9250000,
+    "two_6batch_prefetch_queues": 26738688,
+    "two_H256_hidden_outputs": 16777216,
+    "two_dense_float32_inputs_with_empty_feature_column": 50397184,
+    "two_extra_inflight_packed_batches": 4456448,
+    "val_and_full_int64_indices": 800000
+  },
+  "status": "SOURCE_ESTIMATE_NOT_MEASURED_TRAINING",
+  "successful_loader_scope": {
+    "AS_bytes": 4294967296,
+    "NumPy": "1.26.4",
+    "Torch": "2.4.1+cpu",
+    "actual_normal_exit": true,
+    "limitation": "Prior scope evaluated50000 rows atbatch512; training atbatch8192 is NEW and not yet qualified",
+    "peak_child_RSS_KiB": 242260,
+    "private_interpreter": "/workspace/.cloud-setup/nnue-pipeline-20261023-venv/bin/python",
+    "receipt": "/tmp/forge_sol_S09_native_20261026/full50k_actual_f006_holdout_CPU3_once_20261026/forge_sol_S09_full_holdout_result_20261026.json",
+    "scope": "actual f006 full50k synthetic-h000 holdout MSE; no optimizer/export/training",
+    "sha256": "63487797d80f96de9cbb0cfad7a8de3487f58d0877ecd6bb662b0f1e25fc4fda",
+    "status": "PASS_FULL_HOLDOUT_PROCESS"
+  }
+}

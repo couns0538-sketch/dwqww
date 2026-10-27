@@ -1,0 +1,73 @@
+--- forge_sol_S18_train_selected_20261026.py
++++ forge_sol_S18_train_selected_v2_20261026.py
+@@ -328,6 +328,51 @@
+     finally:torch.random.set_rng_state(rng_before)
+     if not torch.equal(torch.random.get_rng_state(),rng_before):raise ValueError('postscore Torch RNG state changed')
+     result['Torch_RNG_preserved']=True;diagnostic.emit(journal,'S18_POSTSCORE_DONE',rows=50000)
++    result['Torch_RNG_sha256_before']=hashlib.sha256(rng_before.numpy().tobytes()).hexdigest()
++    result['Torch_RNG_sha256_after']=hashlib.sha256(torch.random.get_rng_state().numpy().tobytes()).hexdigest()
++    return result
++
++def validate_postscore_result(result,run,training_rows,view):
++    """Fail closed on incomplete postscore evidence; no Torch/model execution."""
++    if not isinstance(result,dict):raise ValueError('complete postscore dictionary required')
++    expected_ints={'rows':50000,'batch_size':8192,'last_batch_rows':848,'dropped_tail_rows':0,'weight_updates':0,'exports':0}
++    for key,value in expected_ints.items():
++        if type(result.get(key)) is not int or result[key]!=value:raise ValueError('postscore integer/coverage contract failed: '+key)
++    sizes=result.get('batch_sizes')
++    if not isinstance(sizes,list) or sizes!=[8192]*6+[848] or any(type(n) is not int for n in sizes):
++        raise ValueError('postscore must include6x8192 plus848 tail rows')
++    for key in ('state_unchanged','holdout_unchanged','Torch_RNG_preserved'):
++        if result.get(key) is not True:raise ValueError('postscore identity check missing/false: '+key)
++    for name in ('net_MSE','HCE_baseline_MSE'):
++        losses=result.get(name)
++        if not isinstance(losses,dict) or set(losses)!={'1.0','0.6','0.8'}:raise ValueError('all three postscore blend losses required: '+name)
++        for value in losses.values():
++            if type(value) not in (int,float) or not math.isfinite(value) or value<0:raise ValueError('finite nonnegative numeric postscore loss required')
++    def equal_hashes(before,after):
++        a,b=result.get(before),result.get(after)
++        if not isinstance(a,str) or not isinstance(b,str) or not re.fullmatch('[0-9a-f]{64}',a) or a!=b:
++            raise ValueError('postscore hash identity failed: '+before+'/'+after)
++        return a
++    equal_hashes('model_state_sha256_before','model_state_sha256_after')
++    equal_hashes('Torch_RNG_sha256_before','Torch_RNG_sha256_after')
++    checkpoint_hash=equal_hashes('checkpoint_sha256_before','checkpoint_sha256_after')
++    checkpoint=final_checkpoint(Path(run),training_rows)
++    if result.get('checkpoint_selection')!='FINAL_EPOCH2_PRESELECTED' or result.get('checkpoint')!=checkpoint.name:
++        raise ValueError('postscore must use the preselected finalepoch2 checkpoint')
++    if checkpoint.is_symlink() or not checkpoint.is_file() or sha(checkpoint)!=checkpoint_hash:raise ValueError('actual final checkpoint hash mismatch')
++    if result.get('original_trainer_sha256')!=PINS[TRAINER] or sha(TRAINER)!=PINS[TRAINER]:raise ValueError('postscore trainer source identity mismatch')
++    if result.get('preregistration_sha256')!=PINS[POSTSCORE_PROTOCOL] or sha(POSTSCORE_PROTOCOL)!=PINS[POSTSCORE_PROTOCOL]:raise ValueError('postscore protocol identity mismatch')
++    expected_method='float64 squared errors summed by rows /50000; original float32 predictions/targets promoted before subtraction'
++    if result.get('aggregation')!=expected_method:raise ValueError('postscore weighted per-row method mismatch')
++    view=Path(view)
++    if view.resolve()!=view:raise ValueError('postscore view must be the exact nonsymlink owned path')
++    held=result.get('holdout_before');paths=[view/'h000.pos',view/'h000.hce']
++    if not isinstance(held,dict) or set(held)!={str(p) for p in paths}:raise ValueError('postscore exact holdout fingerprint pair required')
++    for path in paths:
++        if path.is_symlink() or not path.is_file():raise ValueError('postscore holdout path invalid')
++        actual=fingerprint(path)
++        if actual['mode']!=0o444 or held[str(path)]!=actual or actual['sha256']!=PINS[HOLDOUT/path.name]:
++            raise ValueError('postscore actual unfiltered holdout identity mismatch')
+     return result
+ 
+ def native_final_metric(text):
+@@ -358,7 +403,9 @@
+         finally:sys.argv=saved
+         if code!=0:raise ValueError('original trainer returned '+str(code))
+         diagnostic.emit(journal,'S18_TRAINER_MAIN_DONE',arm=args.arm)
+-        report['separate_post_training_all50000']=postscore_final_checkpoint(trainer,args.out/'trainer-run',plans[args.arm]['rows'],Path(view['data']),journal,diagnostic)
++        report['separate_post_training_all50000']=validate_postscore_result(
++            postscore_final_checkpoint(trainer,args.out/'trainer-run',plans[args.arm]['rows'],Path(view['data']),journal,diagnostic),
++            args.out/'trainer-run',plans[args.arm]['rows'],Path(view['data']))
+         if any(fingerprint(p)!=m for p,m in view['inventory'].items()):raise ValueError('staged input changed during trainer')
+         report.update(work_complete=True,scope=scope,arm=args.arm,trainer_returncode=code,training_approved=False,
+                       original_trainer_sha256=PINS[TRAINER],native_FINAL_FULL_rows=49152,native_dropped_tail_rows=848,
+@@ -399,6 +446,7 @@
+                 if passed:
+                     if (armout/'stdout').stat().st_size>8388608:raise ValueError('native stdout exceeds8MiB parse budget; raw file preserved')
+                     native_metric=native_final_metric((armout/'stdout').read_text())
++                    validate_postscore_result(child.get('separate_post_training_all50000'),armout/'trainer-run',plans[name]['rows'],Path(views[name]['data']))
+                 result['arms'][name]={'status':'PASS_PIPELINE_ONLY' if passed and scope=='PIPELINE_ONLY_SYNTHETIC' else 'PASS_OWNER_CERTIFIED_PROCESS' if passed else 'FAIL','observer':observed,'child':child,'remaining_owned':remaining,'reaped':reaped,'rows':plans[name]['rows'],'steps_per_epoch':plans[name]['steps_per_epoch'],'total_steps':plans[name]['total_steps'],'command':command,'cwd':str(paths['cwd']),'owned_cache_tmp_environment':paths['env'],'RSS_guard':{'limit_bytes':grant['rss_limit_bytes'],'max_sampled_rss_bytes':process.max_sampled_rss_bytes,'stop_reason':process.stop_reason,'error':process.error,'minimum_sampled_free_disk_bytes':process.minimum_sampled_free_disk_bytes},'peak_children_RSS_KiB':resource.getrusage(resource.RUSAGE_CHILDREN).ru_maxrss,'native_FINAL_FULL_metric':native_metric}
+                 if not passed:break
+             finally:

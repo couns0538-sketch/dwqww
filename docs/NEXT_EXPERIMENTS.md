@@ -1,5 +1,11 @@
 # Next experiments
 
+## S11 standard gates complete; parity successor ready — 2026-10-27
+
+Both Release candidates and all four fresh O2/g ASan/UBSan profiles passed: 87 newly executed configured CTests, exact Release bench references, perft, UCI and zero FMA. Original stage23 failed in its instruction observer before any million-position arm. The independently reviewed observer v2 permits only specified bit-preserving stores/selections; numerical arithmetic checks and all engine bytes/flags/corpus stay unchanged. Preserve the original FAIL. Publish and verify this source, then run new Lprime parity followed by B; timing remains held.
+
+S18's five original read-only histogram runs completed and reconciled: kept counts 200000/132421/157666/175673/187141. The original t500 timeout remains FAIL with unknown cause. Training smoke v2 is source-only; no Torch execution or training-gain claim. S14 is validation-only preparation because the proposed source changes already exist. Queue remains16 delivered,37 pending,1 dropped(S23). Accepted engine/network unchanged; no speed/Elo gain.
+
 ## Both S11 Release candidates qualified — 2026-10-26
 
 Lprime and B candidates pass all five fixed node references, both perft5s, full14/15 CTests, UCI and FMA0. The new Lprime baseline O2/g ASAN profile also passes its complete14-test suite; candidate/remainingB ASAN and million-position parity are pending. Original closed stages1–10 are preserved in a data-only checkpoint, with compiled bytes explicitly excluded/hash-bound. No speed or strength acceptance.

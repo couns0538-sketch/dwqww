@@ -1,0 +1,86 @@
+{
+  "status": "PASS_INDEPENDENT_SOURCE_ONLY_REVIEW",
+  "utc": "2026-10-26T23:24:14.973089+00:00",
+  "observer": {
+    "path": "/tmp/forge_sol_S11_scalar_observer_v2_prep_20261026/forge_sol_S11_scalar_parity_observer_v2_20261026.py",
+    "sha256": "63aac4e48c5aeacf5254e18a3e08774946b1cda97468b1edf5b812c03cd130cd",
+    "original_path": "/tmp/forge_sol_S11_native_prep_20261026/forge_sol_S11_scalar_parity_20261026.py",
+    "original_sha256": "31f475c01580d376e3f5a28debe3f37651fff7c426ca1a12d20c77832b263ae5",
+    "all_non_ISA_top_level_AST_identical": true,
+    "other_functions_classes_unchanged": 16
+  },
+  "consumer": {
+    "path": "/tmp/forge_sol_S11_scalar_observer_v2_prep_20261026/forge_sol_S11_scalar_parity_observer_v2_run_20261026.py",
+    "sha256": "ebfec0ac47b32503318bc455a05b4901eb0ace704123d39eb1d350e461ba4464",
+    "original_path": "/tmp/forge_sol_S11_baseline_reuse_prep_20261026/forge_sol_S11_scalar_parity_reuse_run_20261026.py",
+    "original_sha256": "da2abfb05d257758f3e043f883c42db1819154b180ab23bda141f6eaa7a51163",
+    "unchanged_function_AST": {
+      "load": true,
+      "bind_arm": true,
+      "binding_identity": true,
+      "require_arm_identity": true,
+      "scalar_link_argv": true,
+      "verify_scalar_artifacts": true,
+      "normal_nnue_command": true,
+      "bind_corpus": true
+    },
+    "main_normalized_AST_identical": true,
+    "exactly_four_new_main_statements": [
+      "observer/failure hash guard",
+      "observer metadata result.update",
+      "observer/failure hash guard",
+      "original failed receipt unchanged annotation"
+    ],
+    "binding_corpus_capture_retention_timers_limits_flags_unchanged": true,
+    "source_and_original_FAIL_pins": "Import time, native preflight and native postflight guard exact successor observer and unchanged original failure receipt."
+  },
+  "classification": {
+    "allowed_YMM": "Only VMOVDQA register-to-RSP memory transfers (optional nonnegative hexadecimal displacement). Bit-preserving movement, no numeric operation. YMM loads/register destinations/other bases/opcodes fail closed.",
+    "allowed_XMM": "Only four-register XMM VBLENDVPS selection, without YMM/ZMM/memory/wrong arity. Bit selection, no FP arithmetic.",
+    "actual_capture_controls": "Original full31309B disassembly and actual110-instruction evaluate excerpt accepted with2stores/4selections/9scalar-mul/20scalar-add.",
+    "newly_accepted_packed_numeric_class_identified": false,
+    "preserved_rejection": [
+      "packed SSE/AVX float arithmetic",
+      "dot/horizontal arithmetic",
+      "all NNUE FMA",
+      "all NNUE ZMM operands",
+      "unknown wide operations",
+      "double and x87 arithmetic",
+      "malformed scalar-op/YMM operands"
+    ],
+    "scope_limit": "The observer proves scalar float32 NUMERICAL ARITHMETIC under the pinned source/macros/compiler/link pipeline. It allows non-arithmetic vector movement/selection; it does not claim absence of every vector instruction or prove generic register liveness. Zero-valued stores and scalar-compare blend context are demonstrated in the actual original capture, not asserted for every possible allowed transfer."
+  },
+  "independent_pure_tests": {
+    "command": [
+      "python",
+      "-B",
+      "/tmp/forge_sol_S11_scalar_observer_v2_prep_20261026/forge_sol_S11_scalar_observer_v2_pure_tests_20261026.py"
+    ],
+    "returncode": 0,
+    "tests": 16,
+    "duration_seconds": 0.057,
+    "stdout": "/tmp/forge_sol_S11_scalar_ISA_failure_review_20261026/forge_sol_S11_observer_v2_independent_pure_20261026.stdout",
+    "stdout_sha256": "4d697bf4250c1f1be591f13d631ea838eee269d43a08174c82cfff88a2fc6f05",
+    "stderr": "/tmp/forge_sol_S11_scalar_ISA_failure_review_20261026/forge_sol_S11_observer_v2_independent_pure_20261026.stderr",
+    "stderr_sha256": "61b843998f2550966967e3838dc7f85803d33fcac1543a67a32d635ee8680326",
+    "original_nine_arithmetic_negatives_retained": true,
+    "additional_wide_operand_blend_FMA_guard_negatives": true
+  },
+  "original_failure": {
+    "path": "/tmp/forge_sol_S11_native_20261026/Lprime_three_arm_reused_baseline_once_20261026/forge_sol_S11_scalar_parity_result_20261026.json",
+    "sha256": "7877d436b260d802035d98d497d715a3d8c218c20df4e0180ebb425ba8c67630",
+    "unchanged": true,
+    "not_relabelled_PASS": true,
+    "original_arms": {}
+  },
+  "must_fix_findings": [],
+  "coordination_correction": "Earlier speculation that old proof verify_oracle_compilation checked __file__/link_checker hash was wrong and explicitly withdrawn after reading actual lines338-345; no binding changes were made on that basis.",
+  "not_executed": [
+    "No engine",
+    "No compiler",
+    "No oracle/parity arm",
+    "No Git",
+    "No source mutation"
+  ],
+  "native_successor_parity": "UNVERIFIED until root separately publishes and grants actual run"
+}

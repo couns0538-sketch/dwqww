@@ -810,3 +810,10 @@ strengthrun39537333958 remainsseparate, gameresultsUNKNOWN. Accepted5101unchange
 2026-10-25T18:52:30.467376+00:00 — S25 v2 artifact cd1c67ecedd572f9f3ee0a308e70da033bf8dc9e published; all19immutablefiles verified, native66/66 and finalreviewPASS. S04/S05/S25 thiscycle total18currentprofiles/293CTestchecks, zero unexpected failures; references/perft inheritance explicit perreport. No source/net/strength acceptance or speed/Elo claims. S27read-onlyrecovery saved, no newtool claimed.
 
 2026-10-26T09:10:24.169502+00:00 — S27complete artifact fbe6bb61b2da1913ad6916b6d0192f39c06143c5;22publicfilesverified.58tests/3layouts;2freshdefaultRelease/10fixedrefs,4perft5totals/FMA0, source/native/portablepeerreviewsPASS. Nativeenginee3df byteidenticalaccepted; no engine/speed/Elo gain. NewS06 recoveryonly, no code.
+
+2026-10-27T00:19:28.138932+00:00 — S11 standard gates complete; parity successor ready — 2026-10-27
+
+Both Release candidates and all four fresh O2/g ASan/UBSan profiles passed: 87 newly executed configured CTests, exact Release bench references, perft, UCI and zero FMA. Original stage23 failed in its instruction observer before any million-position arm. The independently reviewed observer v2 permits only specified bit-preserving stores/selections; numerical arithmetic checks and all engine bytes/flags/corpus stay unchanged. Preserve the original FAIL. Publish and verify this source, then run new Lprime parity followed by B; timing remains held.
+
+S18's five original read-only histogram runs completed and reconciled: kept counts 200000/132421/157666/175673/187141. The original t500 timeout remains FAIL with unknown cause. Training smoke v2 is source-only; no Torch execution or training-gain claim. S14 is validation-only preparation because the proposed source changes already exist. Queue remains16 delivered,37 pending,1 dropped(S23). Accepted engine/network unchanged; no speed/Elo gain.
+

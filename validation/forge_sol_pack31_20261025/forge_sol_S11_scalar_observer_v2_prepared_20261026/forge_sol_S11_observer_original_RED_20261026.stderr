@@ -1,0 +1,129 @@
+test_actual_full_and_excerpt_identity_and_original_nine (__main__.FixtureBindingTests.test_actual_full_and_excerpt_identity_and_original_nine) ... ok
+test_actual_captured_excerpt_with_actual_header_is_accepted (__main__.ScalarObserverTests.test_actual_captured_excerpt_with_actual_header_is_accepted) ... FAIL
+test_actual_captured_full_disassembly_is_accepted (__main__.ScalarObserverTests.test_actual_captured_full_disassembly_is_accepted) ... FAIL
+test_fp64_x87_and_packed_sse_after_selection_rejected (__main__.ScalarObserverTests.test_fp64_x87_and_packed_sse_after_selection_rejected) ... ok
+test_nnue_wide_fma_and_zmm_guards_not_bypassed (__main__.ScalarObserverTests.test_nnue_wide_fma_and_zmm_guards_not_bypassed) ... ok
+test_normal_avx2_still_requires_actual_packed_inference (__main__.ScalarObserverTests.test_normal_avx2_still_requires_actual_packed_inference) ... ok
+test_only_four_xmm_register_selection_is_accepted (__main__.ScalarObserverTests.test_only_four_xmm_register_selection_is_accepted) ... FAIL
+test_only_reviewed_ymm_rsp_stores_are_accepted (__main__.ScalarObserverTests.test_only_reviewed_ymm_rsp_stores_are_accepted) ... 
+  test_only_reviewed_ymm_rsp_stores_are_accepted (__main__.ScalarObserverTests.test_only_reviewed_ymm_rsp_stores_are_accepted) (operands='%ymm0,(%rsp)') ... FAIL
+  test_only_reviewed_ymm_rsp_stores_are_accepted (__main__.ScalarObserverTests.test_only_reviewed_ymm_rsp_stores_are_accepted) (operands='%ymm0,0x20(%rsp)') ... FAIL
+test_original_nine_negative_controls_are_retained (__main__.ScalarObserverTests.test_original_nine_negative_controls_are_retained) ... ok
+test_packed_arithmetic_after_permitted_blend_still_rejected (__main__.ScalarObserverTests.test_packed_arithmetic_after_permitted_blend_still_rejected) ... ok
+test_scalar_fp32_mul_and_add_still_demonstrated (__main__.ScalarObserverTests.test_scalar_fp32_mul_and_add_still_demonstrated) ... ok
+test_unknown_or_arithmetic_wide_opcodes_fail_closed (__main__.ScalarObserverTests.test_unknown_or_arithmetic_wide_opcodes_fail_closed) ... ok
+test_unreviewed_ymm_transfers_and_stack_shapes_rejected (__main__.ScalarObserverTests.test_unreviewed_ymm_transfers_and_stack_shapes_rejected) ... ok
+test_unscoped_missing_evaluate_and_unknown_mode_rejected (__main__.ScalarObserverTests.test_unscoped_missing_evaluate_and_unknown_mode_rejected) ... ok
+test_ymm_zmm_memory_and_wrong_arity_blends_rejected (__main__.ScalarObserverTests.test_ymm_zmm_memory_and_wrong_arity_blends_rejected) ... ok
+test_zmm_never_permitted_even_with_transfer_spelling (__main__.ScalarObserverTests.test_zmm_never_permitted_even_with_transfer_spelling) ... ok
+
+======================================================================
+FAIL: test_actual_captured_excerpt_with_actual_header_is_accepted (__main__.ScalarObserverTests.test_actual_captured_excerpt_with_actual_header_is_accepted)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/tmp/forge_sol_S11_scalar_observer_v2_prep_20261026/forge_sol_S11_scalar_observer_v2_pure_tests_20261026.py", line 70, in accepts
+    result = observer.verify_disassembly(text, mode)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/tmp/forge_sol_S11_native_prep_20261026/forge_sol_S11_scalar_parity_20261026.py", line 106, in verify_disassembly
+    if any(re.search(r'%?(?:ymm|zmm)\d+',args) for _,_,args in evaluate):raise ValueError('scalar inference uses unsupported packed width')
+                                                                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: scalar inference uses unsupported packed width
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/tmp/forge_sol_S11_scalar_observer_v2_prep_20261026/forge_sol_S11_scalar_observer_v2_pure_tests_20261026.py", line 98, in test_actual_captured_excerpt_with_actual_header_is_accepted
+    self.assert_actual_counts(self.accepts(text))
+                              ^^^^^^^^^^^^^^^^^^
+  File "/tmp/forge_sol_S11_scalar_observer_v2_prep_20261026/forge_sol_S11_scalar_observer_v2_pure_tests_20261026.py", line 72, in accepts
+    self.fail("observer rejected permitted scalar/AVX input: " + str(error))
+AssertionError: observer rejected permitted scalar/AVX input: scalar inference uses unsupported packed width
+
+======================================================================
+FAIL: test_actual_captured_full_disassembly_is_accepted (__main__.ScalarObserverTests.test_actual_captured_full_disassembly_is_accepted)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/tmp/forge_sol_S11_scalar_observer_v2_prep_20261026/forge_sol_S11_scalar_observer_v2_pure_tests_20261026.py", line 70, in accepts
+    result = observer.verify_disassembly(text, mode)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/tmp/forge_sol_S11_native_prep_20261026/forge_sol_S11_scalar_parity_20261026.py", line 106, in verify_disassembly
+    if any(re.search(r'%?(?:ymm|zmm)\d+',args) for _,_,args in evaluate):raise ValueError('scalar inference uses unsupported packed width')
+                                                                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: scalar inference uses unsupported packed width
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/tmp/forge_sol_S11_scalar_observer_v2_prep_20261026/forge_sol_S11_scalar_observer_v2_pure_tests_20261026.py", line 91, in test_actual_captured_full_disassembly_is_accepted
+    self.assert_actual_counts(self.accepts(path.read_text()))
+                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/tmp/forge_sol_S11_scalar_observer_v2_prep_20261026/forge_sol_S11_scalar_observer_v2_pure_tests_20261026.py", line 72, in accepts
+    self.fail("observer rejected permitted scalar/AVX input: " + str(error))
+AssertionError: observer rejected permitted scalar/AVX input: scalar inference uses unsupported packed width
+
+======================================================================
+FAIL: test_only_four_xmm_register_selection_is_accepted (__main__.ScalarObserverTests.test_only_four_xmm_register_selection_is_accepted)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/tmp/forge_sol_S11_scalar_observer_v2_prep_20261026/forge_sol_S11_scalar_observer_v2_pure_tests_20261026.py", line 70, in accepts
+    result = observer.verify_disassembly(text, mode)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/tmp/forge_sol_S11_native_prep_20261026/forge_sol_S11_scalar_parity_20261026.py", line 113, in verify_disassembly
+    raise ValueError('scalar inference contains packed SSE fallback, non-float32 or x87 arithmetic')
+ValueError: scalar inference contains packed SSE fallback, non-float32 or x87 arithmetic
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/tmp/forge_sol_S11_scalar_observer_v2_prep_20261026/forge_sol_S11_scalar_observer_v2_pure_tests_20261026.py", line 113, in test_only_four_xmm_register_selection_is_accepted
+    self.accepts(assembly(('vcmpnltss', '%xmm3,%xmm0,%xmm2'), BLEND,
+  File "/tmp/forge_sol_S11_scalar_observer_v2_prep_20261026/forge_sol_S11_scalar_observer_v2_pure_tests_20261026.py", line 72, in accepts
+    self.fail("observer rejected permitted scalar/AVX input: " + str(error))
+AssertionError: observer rejected permitted scalar/AVX input: scalar inference contains packed SSE fallback, non-float32 or x87 arithmetic
+
+======================================================================
+FAIL: test_only_reviewed_ymm_rsp_stores_are_accepted (__main__.ScalarObserverTests.test_only_reviewed_ymm_rsp_stores_are_accepted) (operands='%ymm0,(%rsp)')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/tmp/forge_sol_S11_scalar_observer_v2_prep_20261026/forge_sol_S11_scalar_observer_v2_pure_tests_20261026.py", line 70, in accepts
+    result = observer.verify_disassembly(text, mode)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/tmp/forge_sol_S11_native_prep_20261026/forge_sol_S11_scalar_parity_20261026.py", line 106, in verify_disassembly
+    if any(re.search(r'%?(?:ymm|zmm)\d+',args) for _,_,args in evaluate):raise ValueError('scalar inference uses unsupported packed width')
+                                                                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: scalar inference uses unsupported packed width
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/tmp/forge_sol_S11_scalar_observer_v2_prep_20261026/forge_sol_S11_scalar_observer_v2_pure_tests_20261026.py", line 109, in test_only_reviewed_ymm_rsp_stores_are_accepted
+    self.accepts(assembly(('vpxor', '%xmm0,%xmm0,%xmm0'),
+  File "/tmp/forge_sol_S11_scalar_observer_v2_prep_20261026/forge_sol_S11_scalar_observer_v2_pure_tests_20261026.py", line 72, in accepts
+    self.fail("observer rejected permitted scalar/AVX input: " + str(error))
+AssertionError: observer rejected permitted scalar/AVX input: scalar inference uses unsupported packed width
+
+======================================================================
+FAIL: test_only_reviewed_ymm_rsp_stores_are_accepted (__main__.ScalarObserverTests.test_only_reviewed_ymm_rsp_stores_are_accepted) (operands='%ymm0,0x20(%rsp)')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/tmp/forge_sol_S11_scalar_observer_v2_prep_20261026/forge_sol_S11_scalar_observer_v2_pure_tests_20261026.py", line 70, in accepts
+    result = observer.verify_disassembly(text, mode)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/tmp/forge_sol_S11_native_prep_20261026/forge_sol_S11_scalar_parity_20261026.py", line 106, in verify_disassembly
+    if any(re.search(r'%?(?:ymm|zmm)\d+',args) for _,_,args in evaluate):raise ValueError('scalar inference uses unsupported packed width')
+                                                                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: scalar inference uses unsupported packed width
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/tmp/forge_sol_S11_scalar_observer_v2_prep_20261026/forge_sol_S11_scalar_observer_v2_pure_tests_20261026.py", line 109, in test_only_reviewed_ymm_rsp_stores_are_accepted
+    self.accepts(assembly(('vpxor', '%xmm0,%xmm0,%xmm0'),
+  File "/tmp/forge_sol_S11_scalar_observer_v2_prep_20261026/forge_sol_S11_scalar_observer_v2_pure_tests_20261026.py", line 72, in accepts
+    self.fail("observer rejected permitted scalar/AVX input: " + str(error))
+AssertionError: observer rejected permitted scalar/AVX input: scalar inference uses unsupported packed width
+
+----------------------------------------------------------------------
+Ran 16 tests in 0.014s
+
+FAILED (failures=5)
