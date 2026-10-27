@@ -1,0 +1,11 @@
+--- conc7_watch.v2_conc8_20261025.ps1
++++ conc7_watch.v2_NEG_readalltext.ps1
+@@ -20,7 +20,7 @@
+ function Ours(){ $p=Get-CimInstance Win32_Process -Filter "ProcessId=$OurPid" -ea 0; return ($p -and $p.Name -eq 'cmd.exe' -and $p.CommandLine -like "*$MARK*") }
+ $script:stopped=-not (Ours)
+ function Stop-Ours($why){ if($script:stopped){ return }; if(Ours){ & taskkill.exe /T /F /PID $OurPid 2>&1 | Out-Null; L "STOPPED our extra datagen tree (cmd PID $OurPid): $why" } else { L "would stop our worker ($why) but PID $OurPid is not ours/alive" }; $script:stopped=$true }
+-function Read-Shared($p){ $fs=$null;$sr=$null; try{ $fs=[IO.File]::Open($p,[IO.FileMode]::Open,[IO.FileAccess]::Read,[IO.FileShare]'ReadWrite,Delete'); $sr=New-Object IO.StreamReader($fs); return $sr.ReadToEnd() }catch{ return '' }finally{ if($sr){$sr.Close()}; if($fs){$fs.Close()} } }
++function Read-Shared($p){ $fs=$null;$sr=$null; try{ return [IO.File]::ReadAllText($p) }catch{ return '' }finally{ if($sr){$sr.Close()}; if($fs){$fs.Close()} } }
+ function Temps(){ try{ if(((Get-Date)-(Get-Item $CSV).LastWriteTime).TotalSeconds -gt 60){ return $null }
+   $h=(Get-Content $CSV -TotalCount 1) -split ','; $ih=(0..($h.Count-1) | ? { $h[$_] -match 'GPU Hot Spot Temperature' })[0]; $ij=(0..($h.Count-1) | ? { $h[$_] -match 'GPU Memory Junction Temperature' })[0]; $ic=(0..($h.Count-1) | ? { $h[$_] -match 'CPU \(Tctl/Tdie\)' })[0]
+   $fs=[IO.File]::Open($CSV,'Open','Read','ReadWrite'); $fs.Seek(-30000,'End')|Out-Null; $sr=New-Object IO.StreamReader($fs); $t=$sr.ReadToEnd(); $sr.Close()

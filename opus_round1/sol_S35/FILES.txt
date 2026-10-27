@@ -1,0 +1,32 @@
+# FILES index, opus_round1/sol_S35 (job S35, branch opus-sol-S35). path | bytes | sha256 | content
+# .tar.gz sizes: logs/step2_suite_evidence.tar.gz = 10959 bytes (the only archive). REPORT.md is added by the main session.
+.gitattributes | 43 | bdc02feab481d847f722a8451906a2ecf52bdcc855559779f20cb798cd8b9a1e | keeps fixture bytes exact (no EOL conversion)
+fixtures/functions/autopromote_896663b0_tl_functions.ps1 | 710 | 64ddc01a08e9a9f86e66e1265aaeee721f5057b445a4b2b5303f595ab3aee92b | Read-Shared + Log-TLCrash, AST extract of autopromote 896663b0
+fixtures/functions/autopromote_896663b0_tl_functions_NEG_readalltext.diff | 920 | f9a996d409c43dc3bcb3cc354b59c85cc84a686cd0537ebd1d02794da56b1da6 | diff vs the extract
+fixtures/functions/autopromote_896663b0_tl_functions_NEG_readalltext.ps1 | 611 | c35e3079f92e14c43827efb90853355bc44b0640d925cb25328af9801c212f2c | function-level negative fixture
+fixtures/targets.json | 5901 | 85cd383f46705bbbdbbbd243a568ab269830f231d614dbc339c648faf522116e | 9 targets: sha256, provenance, expected S1-S4
+fixtures/watchers/conc7_watch.v0_bak_sharedread_20261025_NEGATIVE.ps1 | 6902 | 9ad2cb426b5c6220683a733eb911bde3d6976e323eb2151149fde1216200c839 | live .bak_sharedread (v0, ReadAllText): historical negative
+fixtures/watchers/conc7_watch.v1_bak_conc8_20261025_132539.ps1 | 7074 | 25579f589c4f755d26fdb0c94c0e77467cb094393e9323925a77f7e779b30785 | live .bak_conc8 (v1), copied read-only
+fixtures/watchers/conc7_watch.v2_conc8_20261025.ps1 | 9491 | 15250b635973385780be0f643f3fb6f0fbf7e141d53d6e1f76dcf7514d572348 | live conc7_watch.ps1 copy (lock archive; sha256 = live)
+fixtures/watchers/conc7_watch.v2_NEG_readalltext.diff | 1558 | 9cd45482f27e1f61ca910d1c221a934c2e5437a5a3f99b6d4893e50d5776dcc6 | diff vs v2
+fixtures/watchers/conc7_watch.v2_NEG_readalltext.ps1 | 9365 | 461aca51ec65d9d05700acef0ec812df6ab7b2a285cd8cc9d83698c2e071e522 | v2, Read-Shared -> ReadAllText (spec negative fixture)
+fixtures/watchers/conc7_watch.v2_PLANTED_bomblind.diff | 1728 | 01970ff2a085a52752f5869d7ff0773128116d291968bf3f282a8e3c9eafb807 | diff vs v2
+fixtures/watchers/conc7_watch.v2_PLANTED_bomblind.ps1 | 9534 | f177ac6b20f8a1da91b1f0a6b9c75690bff0725512120c0cd1a5823f5f52ed67 | v2, BOM kept by the decoder (planted bug for S4)
+fixtures/watchers/conc7_watch.v2_PLANTED_missingfile.diff | 1048 | 15a8091143c1c977bb7d1e142ea13fe5da65fa7702e50c8233a99a5a3efd9fdc | diff vs v2
+fixtures/watchers/conc7_watch.v2_PLANTED_missingfile.ps1 | 9498 | a3e3fb48ef71d4b5420739776401e2677e7d7c5f279e5fbf0e22a9b984556f61 | v2, Test-Path guard dropped (planted bug for S3)
+fixtures/watchers/conc7_watch.v3_PROPOSED_rotation_fix.diff | 2741 | 378ff3eb936c5f42379237c31e7fac3b32a4412f00f59d19047ca509482a2c31 | diff vs v2 (the reviewable fix)
+fixtures/watchers/conc7_watch.v3_PROPOSED_rotation_fix.ps1 | 10257 | 8f44cffbaf7bd2870ff54811e9f05fd2168f9187fc0e85929da7786f049cacae | v2 + rotation-aware dedupe (proposal, NOT deployed)
+forge_sol_S35_test_watcher_locked_log_20261027.ps1 | 26056 | 063e9d9155ebb7722ca98d347f720803b45d7fb3b704e2943f0eea1c01158efa | the harness (suite / single / AST-extract modes)
+logs/step1_provenance.log | 3793 | ecb374f20bd6089e39b8407e6285b659379c7ac69a2c04e6bbe23a3577780168 | step 1: sha256 of LA copies, live files and fixtures; extract + variants regenerated
+logs/step2_determinism.log | 200 | 26f4489f231c6d4c10bebe6b0d21b299b18b51851e50695b685d407d30d189f2 | step 2: run A table == run B table (cmp)
+logs/step2_suite_evidence.tar.gz | 10959 | ea3021b2bf28a8139452814fcf6ce8ce08fc75e956ab541299a6067774d39818 | step 2: full JSON evidence of runs A and B (per-tick watcher log lines, stub calls, lock checks)
+logs/step2_suite_run_A.log | 7307 | 80b9bfa39bc44eb8dc617479bd9e1f6d02b107ccb798edc93f98e4208312014b | step 2: suite run A (9 targets, all match, exit 0)
+logs/step2_suite_run_B.log | 7307 | 9cef54232db19a70290d30a2a5ca12ff051c1f5c5e5aabaa3a2ea7959b921850 | step 2: suite run B
+logs/step3_safety_selftest.log | 926 | 7325b89c83e7d7361b4afd0c10117e59be24d31b172ae91350cb2c7178e721e5 | step 3: safety self-test 5/5 refused
+logs/step4_lock_semantics_probe.log | 683 | 55ce1d8af4df3dd154d06d9ede3820549fbc5e39cbe6a37952e5918365e76682 | step 4: lock-semantics probe output
+make_s35_variants.py | 5276 | 5016326d23fa170bf52a68b0d1a4f23cfbf4877d0adbfab4812e61b7fb0e0e0e | derives NEG / PLANTED / v3 fixtures from the v2 live copy (exact-once edits) + diffs
+README.md | 8519 | 9e62342419a412c6cd41aa880dda42fc84692fff3c010601f021f45adda15cd0 | usage, scenarios, safety design, results, findings, limits
+run_s35_evidence.sh | 3539 | 60da3a5f982a1745400c1ea1cce5ab17503af243ff357996079b286d7aad2c4a | regenerates every log in logs/
+s35_child_runner.ps1 | 3383 | 8575763deb543154f242cfe7e677a0920175195c257c7dd1fc005f93e35d624c | child process: side-effect stubs + tick handshake, dot-sources one patched copy
+s35_probe_lock_semantics.ps1 | 2415 | cdbf8a52e9fa45902df908beec08dc6ee980de83f293276f216ca2a9a88a484c | Windows sharing-semantics probe (scratch file only)
+s35_safety_selftest.ps1 | 2662 | d692dcf909ba78d69bd9cabc76ef63662cdbf63a5557ad6dc7c365896131f61b | refusal self-test (4 unsafe copies + a live-root WorkDir)

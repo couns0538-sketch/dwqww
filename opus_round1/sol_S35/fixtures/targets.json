@@ -1,0 +1,103 @@
+{
+  "schema": "forge-s35-targets-v1",
+  "note": "S35 suite (opus 2026-10-27). Paths are relative to this file; the harness refuses a target whose sha256 differs. 'expect' is the result each target must produce; the suite exits 0 only if every target matches and every role=negative target FAILS S1.",
+  "targets": [
+    {
+      "label": "conc7_watch_v2_conc8_LIVE_COPY",
+      "role": "subject",
+      "kind": "e2e",
+      "conc": 8,
+      "path": "watchers/conc7_watch.v2_conc8_20261025.ps1",
+      "sha256": "15250b635973385780be0f643f3fb6f0fbf7e141d53d6e1f76dcf7514d572348",
+      "source": "lock archive 6_gate/pc_autonomy_scripts_copy/driver_r7/conc7_watch.v2_conc8_20261025.ps1; byte-identical to the live C:/Users/Administrator/grok-pc/forge_push/qa_conc7/conc7_watch.ps1 (sha256 read only, never run)",
+      "expect": { "S1": "PASS", "S2": "FAIL", "S3": "PASS", "S4": "PASS" },
+      "why": "S2 FAIL is finding F1: the per-gate TL/crash counter ($tlSeen) is never reset when the gate log is rotated or truncated, so one new TL after a partial rerun is not alerted"
+    },
+    {
+      "label": "conc7_watch_v3_PROPOSED_rotation_fix",
+      "role": "fix-proposal",
+      "kind": "e2e",
+      "conc": 8,
+      "path": "watchers/conc7_watch.v3_PROPOSED_rotation_fix.ps1",
+      "sha256": "8f44cffbaf7bd2870ff54811e9f05fd2168f9187fc0e85929da7786f049cacae",
+      "source": "v2 + make_s35_variants.py (diff: watchers/conc7_watch.v3_PROPOSED_rotation_fix.diff); NOT deployed, for CR",
+      "expect": { "S1": "PASS", "S2": "PASS", "S3": "PASS", "S4": "PASS" },
+      "why": "shows the four scenarios are passable by a watcher with rotation-aware dedupe"
+    },
+    {
+      "label": "conc7_watch_v1_bak_conc8",
+      "role": "history",
+      "kind": "e2e",
+      "conc": 7,
+      "path": "watchers/conc7_watch.v1_bak_conc8_20261025_132539.ps1",
+      "sha256": "25579f589c4f755d26fdb0c94c0e77467cb094393e9323925a77f7e779b30785",
+      "source": "live qa_conc7/conc7_watch.ps1.bak_conc8_20261025_132539 (copied read-only); v1 checks conc-7 gates only",
+      "expect": { "S1": "PASS", "S2": "FAIL", "S3": "PASS", "S4": "PASS" },
+      "why": "first shared-read version; same dedupe as v2; its HB line prints no game count (games checks n/a)"
+    },
+    {
+      "label": "conc7_watch_v0_bak_sharedread_READALLTEXT",
+      "role": "negative",
+      "kind": "e2e",
+      "conc": 7,
+      "path": "watchers/conc7_watch.v0_bak_sharedread_20261025_NEGATIVE.ps1",
+      "sha256": "9ad2cb426b5c6220683a733eb911bde3d6976e323eb2151149fde1216200c839",
+      "source": "live qa_conc7/conc7_watch.ps1.bak_sharedread_20261025 (copied read-only): the real pre-fix watcher that read the gate log with [IO.File]::ReadAllText",
+      "expect": { "S1": "FAIL", "S2": "FAIL", "S3": "FAIL", "S4": "FAIL" },
+      "why": "historical negative fixture: ReadAllText cannot open a log held by a writer"
+    },
+    {
+      "label": "conc7_watch_v2_NEG_readalltext",
+      "role": "negative",
+      "kind": "e2e",
+      "conc": 8,
+      "path": "watchers/conc7_watch.v2_NEG_readalltext.ps1",
+      "sha256": "461aca51ec65d9d05700acef0ec812df6ab7b2a285cd8cc9d83698c2e071e522",
+      "source": "v2 with only the Read-Shared body replaced by [IO.File]::ReadAllText (make_s35_variants.py; diff watchers/conc7_watch.v2_NEG_readalltext.diff)",
+      "expect": { "S1": "FAIL", "S2": "FAIL", "S3": "FAIL", "S4": "FAIL" },
+      "why": "the spec's negative fixture; a one-line mutation of the live copy"
+    },
+    {
+      "label": "conc7_watch_v2_PLANTED_bomblind",
+      "role": "planted-S4",
+      "kind": "e2e",
+      "conc": 8,
+      "path": "watchers/conc7_watch.v2_PLANTED_bomblind.ps1",
+      "sha256": "f177ac6b20f8a1da91b1f0a6b9c75690bff0725512120c0cd1a5823f5f52ed67",
+      "source": "v2 with the shared reader kept but the bytes decoded by UTF8.GetString, so a BOM stays in the text (make_s35_variants.py)",
+      "expect": { "S1": "PASS", "S2": "FAIL", "S3": "PASS", "S4": "FAIL" },
+      "why": "planted bug for S4: the BOM blocks ^Finished on line 1 (HB games 3, not 4); S2 FAIL is the inherited v2 dedupe finding"
+    },
+    {
+      "label": "conc7_watch_v2_PLANTED_missingfile",
+      "role": "planted-S3",
+      "kind": "e2e",
+      "conc": 8,
+      "path": "watchers/conc7_watch.v2_PLANTED_missingfile.ps1",
+      "sha256": "a3e3fb48ef71d4b5420739776401e2677e7d7c5f279e5fbf0e22a9b984556f61",
+      "source": "v2 with the Test-Path guard dropped and Get-Content -ErrorAction Stop as the reader (make_s35_variants.py)",
+      "expect": { "S1": "PASS", "S2": "FAIL", "S3": "FAIL", "S4": "PASS" },
+      "why": "planted bug for S3: a missing gate log raises a loop error; Get-Content itself reads write-locked files, so S1 still passes"
+    },
+    {
+      "label": "autopromote_896663b0_Log-TLCrash",
+      "role": "subject",
+      "kind": "function",
+      "path": "functions/autopromote_896663b0_tl_functions.ps1",
+      "sha256": "64ddc01a08e9a9f86e66e1265aaeee721f5057b445a4b2b5303f595ab3aee92b",
+      "source": "Read-Shared + Log-TLCrash, verbatim AST extract (harness -ExtractFrom) of autopromote.ps1 sha256 896663b0... (= live autonomy/autopromote.ps1, lock archive race_pr/Zfix/autopromote.ps1.staged_ZH)",
+      "expect": { "S1": "PASS", "S2": "PASS", "S3": "PASS", "S4": "PASS" },
+      "why": "the second consumer of the locked gate log (rollback on TL/crash); function level only"
+    },
+    {
+      "label": "autopromote_896663b0_Log-TLCrash_NEG_readalltext",
+      "role": "negative",
+      "kind": "function",
+      "path": "functions/autopromote_896663b0_tl_functions_NEG_readalltext.ps1",
+      "sha256": "c35e3079f92e14c43827efb90853355bc44b0640d925cb25328af9801c212f2c",
+      "source": "the extract with Read-Shared -> [IO.File]::ReadAllText (make_s35_variants.py)",
+      "expect": { "S1": "FAIL", "S2": "FAIL", "S3": "FAIL", "S4": "FAIL" },
+      "why": "function-level negative fixture"
+    }
+  ]
+}

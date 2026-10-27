@@ -1,0 +1,11 @@
+--- conc7_watch.v2_conc8_20261025.ps1
++++ conc7_watch.v2_PLANTED_missingfile.ps1
+@@ -50,7 +50,7 @@
+   if($tp){ if($tp.hot -ge 80 -or $tp.memj -ge 88 -or $tp.cpu -ge 92){ $hotN++ } else { $hotN=0 }; if($hotN -ge 2 -and -not $script:stopped){ Stop-Ours "thermal hot=$($tp.hot) memj=$($tp.memj) cpuTctl=$($tp.cpu)" } }
+   $st=Get-Content $STATE -Raw -ea 0 | ConvertFrom-Json; $cur=$st.current.tag
+   if($cur){ $out="$D\$cur"; $ri=Get-Content "$out\RUN_INFO.json" -Raw -ea 0 | ConvertFrom-Json
+-   if($ri){ $conc=[int]$ri.concurrency; $gl="$out\$cur.log"; $txt=if(Test-Path $gl){ Read-Shared $gl }else{ '' }
++   if($ri){ $conc=[int]$ri.concurrency; $gl="$out\$cur.log"; $txt=(Get-Content -LiteralPath $gl -Raw -ErrorAction Stop)
+     $tl=([regex]::Matches($txt,'(?m)Finished game .*\{.*loses on time')).Count; $cr=([regex]::Matches($txt,'(?m)Finished game .*\{.*(disconnect|stalls|crash|illegal|abandon)')).Count; $bad=$tl+$cr
+     $fin=([regex]::Matches($txt,'(?m)^Finished game')).Count
+     $prev=if($tlSeen.ContainsKey($cur)){$tlSeen[$cur]}else{0}

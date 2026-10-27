@@ -1,0 +1,11 @@
+# step4 lock-semantics probe: nice -n 19 pwsh -NoProfile -NonInteractive -File s35_probe_lock_semantics.ps1 -OutDir F:\opus_scratch\sol_s35\probe_33654
+ReadAllText under exclusive writer: THROWS IOException: The process cannot access the file 'F:\opus_scratch\sol_s35\probe_33654\probe_out\held.log' because it is being used by another process.
+FileShare.ReadWrite reader: OK len 52
+Get-Content -Raw: OK len 52
+Get-Content -Tail: OK
+Move-Item while held: THROWS IOException
+ReadAllText under Start-Process-style writer: THROWS IOException
+FileShare.ReadWrite reader under Start-Process-style writer: OK
+STUB taskkill.exe called with: /T /F /PID 999999
+Function
+exit code: 0

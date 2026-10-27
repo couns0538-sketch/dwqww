@@ -1,0 +1,25 @@
+--- conc7_watch.v2_conc8_20261025.ps1
++++ conc7_watch.v3_PROPOSED_rotation_fix.ps1
+@@ -1,4 +1,5 @@
+ # conc7_watch.ps1 v2-conc8 (Engine QA executor 2026-10-25 ~13:3x PC clock; crew vote C8 8/8 a/b/c, d N). UNPROVEN.
++# v3 PROPOSED by S35 (opus 2026-10-27), NOT deployed: TL/crash dedupe resets when the gate log is rotated or truncated (shorter, or no longer starts with the head seen last tick); a failed read changes nothing.
+ # v1 (crew 8/8 V1+V2, Couns t520u): conc-7 watch. v2 adds per-gate nps ratio + conc-8 rules. Backup of v1: conc7_watch.ps1.bak_conc8_20261025_132539.
+ # Runs Idle on CPUs 12-15 (0xF000). Single instance (mutex). Never touches any process except OUR extra datagen tree (cmd PID in -OurPid,
+ # verified by command line containing selfplay_out_x1_conc7_20261025). NEVER (re)starts the extra datagen worker (it stays off while conc-8 gates run).
+@@ -41,7 +42,7 @@
+ if(-not (Test-Path $RCSV)){ 'gate,conc,ratio,n' | Set-Content $RCSV -Encoding utf8 }
+ $done=@{}; foreach($r in @(Get-Content $RCSV | Select-Object -Skip 1)){ $done[($r -split ',')[0]]=$true }
+ L "watch start v2-conc8 PID $PID (OurPid $OurPid ours=$(Ours), BaseNps $BaseNps, thresholds conc7 0.90 conc8 0.85; csv rows already: $($done.Count))"
+-$hotN=0; $tlSeen=@{}; $rev5=$false; $rev8=@{}; $lastHb=Get-Date 0; $cur=$null; $tp=$null; $free=$null
++$hotN=0; $tlSeen=@{}; $segSeen=@{}; $rev5=$false; $rev8=@{}; $lastHb=Get-Date 0; $cur=$null; $tp=$null; $free=$null
+ while($true){
+  try{
+   $os=Get-CimInstance Win32_OperatingSystem; $free=[math]::Round($os.FreePhysicalMemory/1MB,2)
+@@ -51,6 +52,7 @@
+   $st=Get-Content $STATE -Raw -ea 0 | ConvertFrom-Json; $cur=$st.current.tag
+   if($cur){ $out="$D\$cur"; $ri=Get-Content "$out\RUN_INFO.json" -Raw -ea 0 | ConvertFrom-Json
+    if($ri){ $conc=[int]$ri.concurrency; $gl="$out\$cur.log"; $txt=if(Test-Path $gl){ Read-Shared $gl }else{ '' }
++    $rdFail=(-not $txt) -and (Test-Path $gl) -and ($(try{(Get-Item -LiteralPath $gl -ea Stop).Length}catch{0}) -gt 0); if(-not $rdFail){ $hd=if($txt.Length -gt 512){$txt.Substring(0,512)}else{$txt}; if($segSeen.ContainsKey($cur) -and ($txt.Length -lt $segSeen[$cur].len -or -not $txt.StartsWith($segSeen[$cur].hd,[StringComparison]::Ordinal))){ L "log segment change on gate $($cur) (rotated or truncated: $($segSeen[$cur].len) -> $($txt.Length) chars); TL/crash counter reset"; $tlSeen[$cur]=0 }; $segSeen[$cur]=@{len=$txt.Length;hd=$hd} }
+     $tl=([regex]::Matches($txt,'(?m)Finished game .*\{.*loses on time')).Count; $cr=([regex]::Matches($txt,'(?m)Finished game .*\{.*(disconnect|stalls|crash|illegal|abandon)')).Count; $bad=$tl+$cr
+     $fin=([regex]::Matches($txt,'(?m)^Finished game')).Count
+     $prev=if($tlSeen.ContainsKey($cur)){$tlSeen[$cur]}else{0}
