@@ -513,7 +513,8 @@ void search_glue(const std::string& tb_dir) {
     std::vector<std::uint64_t> off;
     for (const std::string& fen : kSearchFens) off.push_back(search_nodes(fen, 9));
     (void)forge::syzygy::load(tb_dir);
-    check(forge::syzygy::max_pieces() == 5, "3-4-5 tables loaded");
+    const int largest = forge::syzygy::max_pieces();
+    check(largest >= 4, "tables loaded");
     std::vector<std::uint64_t> on;
     for (const std::string& fen : kSearchFens) on.push_back(search_nodes(fen, 9));
     check(on != off, "tables change the search on endgame positions");
@@ -537,21 +538,36 @@ void search_glue(const std::string& tb_dir) {
         check(forge::syzygy::probe_wdl(b, wdl) && wdl == -2, "KQvK: search keeps the win");
         check(forge::syzygy::display_score(score) == forge::syzygy::TbWin - 1, "KQvK: reported score is a TB win");
     }
-    // In-search probe: a capture into a won 5-piece ending is found and scored as a TB win.
+    // Probes in the search only right after a capture or pawn move: from a root
+    // with castling rights (not ranked, so probing stays on) at depth 2 every
+    // probed node (ply 1) follows a king or rook move: no probe at all.
     {
-        int score = 0;
-        Move best;
-        (void)search_nodes("4k3/8/8/8/3r4/8/3Q4/3RK2n w - - 0 1", 4, &score, &best);
-        check(Board::move_to_uci(best) == "d2d4" && score == forge::syzygy::TbWin - 1,
-              "6-piece root: capture into a TB win, score " + std::to_string(score));
-        // SyzygyProbeDepth 10: positions with the maximum piece count are probed only at depth >= 10.
-        forge::options::syzygy_probe_depth = 10;
-        (void)search_nodes("4k3/8/8/8/3r4/8/3Q4/3RK2n w - - 0 1", 4, &score, &best);
-        check(score < forge::syzygy::TbWin - forge::MaxPly, "SyzygyProbeDepth 10 skips the 5-piece probe at depth 4");
-        forge::options::syzygy_probe_depth = 1;
+        forge::syzygy::probe_hits.store(0);
+        (void)search_nodes("4k3/8/8/8/8/8/8/R3K2R w KQ - 0 1", 2);
+        check(forge::syzygy::probe_hits.load() == 0,
+              "no probe with a non-zero 50-move counter, hits " + std::to_string(forge::syzygy::probe_hits.load()));
+    }
+    // In-search probe: from a root with one piece more than the tables, the
+    // capture into a won tablebase ending is found and scored as a TB win.
+    {
+        const std::string fen = largest >= 5 ? "4k3/8/8/8/3r4/8/3Q4/3RK2n w - - 0 1" : "4k3/8/8/8/3r4/8/3Q4/4K2n w - - 0 1";
+        if (forge::syzygy::has_table(largest >= 5 ? "KQRvKN" : "KQvKN")) {
+            int score = 0;
+            Move best;
+            forge::syzygy::probe_hits.store(0);
+            (void)search_nodes(fen, 4, &score, &best);
+            check(Board::move_to_uci(best) == "d2d4" && score == forge::syzygy::TbWin - 1,
+                  "root above the tables: capture into a TB win, score " + std::to_string(score));
+            check(forge::syzygy::probe_hits.load() > 0, "probes counted in the search");
+            // SyzygyProbeDepth 10: positions with the maximum piece count are probed only at depth >= 10.
+            forge::options::syzygy_probe_depth = 10;
+            (void)search_nodes(fen, 4, &score, &best);
+            check(score < forge::syzygy::TbWin - forge::MaxPly, "SyzygyProbeDepth 10 skips the probe at depth 4");
+            forge::options::syzygy_probe_depth = 1;
+        }
     }
     // Syzygy50MoveRule: a cursed win is a draw-ish +2 with the rule, a TB win without it.
-    {
+    if (forge::syzygy::has_table("KNNvKP")) {
         forge::SearchLimits limits;
         limits.depth = 1;
         forge::syzygy::prepare_root(board_of("K7/N7/k7/8/3p4/8/N7/8 w - - 0 1"), limits);
@@ -562,6 +578,10 @@ void search_glue(const std::string& tb_dir) {
         forge::syzygy::prepare_root(board_of("K7/N7/k7/8/3p4/8/N7/8 w - - 0 1"), limits2);
         check(forge::syzygy::display_score(0) == forge::syzygy::TbWin - 1, "50-move rule off: cursed win shows a win");
         forge::options::syzygy_50_move_rule = true;
+    } else {
+        std::cout << "SKIPPED: Syzygy50MoveRule cursed-win checks (KNNvKP not present)\n";
+    }
+    {
         check(forge::syzygy::display_score(forge::MateValue - 5) == forge::MateValue - 5, "mate scores are kept");
         // searchmoves that exclude every best move are kept as given.
         forge::SearchLimits limits3;
@@ -574,7 +594,7 @@ void search_glue(const std::string& tb_dir) {
         forge::SearchLimits limits4;
         forge::syzygy::prepare_root(board_of("4k3/8/8/8/8/8/8/4K2R w K - 0 1"), limits4);
         check(!limits4.search_moves_specified && forge::syzygy::display_score(7) == 7, "castling root not filtered");
-        check(forge::syzygy::search_cardinality.load() == 5, "castling root: probing in search stays on");
+        check(forge::syzygy::search_cardinality.load() == largest, "castling root: probing in search stays on");
     }
     (void)forge::syzygy::load("");
     check(forge::syzygy::search_cardinality.load() == 0 && forge::syzygy::display_score(7) == 7, "unload resets the search state");
@@ -645,8 +665,8 @@ int main(int argc, char** argv) {
         } else {
             std::cout << "SKIPPED: heap-copy pass (folder larger than 256 MB)\n";
         }
-        if (forge::syzygy::load(tb).max_pieces == 5) search_glue(tb);
-        else std::cout << "SKIPPED: search glue checks (need the full 3-4-5 piece set)\n";
+        if (forge::syzygy::load(tb).max_pieces >= 4) search_glue(tb);
+        else std::cout << "SKIPPED: search glue checks (need the 3-4 piece tables)\n";
     }
     (void)forge::syzygy::load("");
     std::cout << "syzygy tests: " << g_checks << " checks, " << g_failures << " failures\n";
