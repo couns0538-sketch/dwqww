@@ -46,5 +46,7 @@ mutate row_half_offset $H 'net.w2.data() + bucket * 2U * HiddenSize;' 'net.w2.da
 mutate rows_ignored $H 'const std::size_t bucket = static_cast<std::size_t>(output_bucket(net, board));' 'const std::size_t bucket = 0;'
 mutate select_ignores_heads src/nnue.cpp '} else if (output_buckets > 0 ? loaded_net->output_buckets != output_buckets : loaded_net->output_buckets != 1) {' '} else if (false) {'
 mutate max_heads_15 $H 'constexpr int MaxOutputBuckets = 16;' 'constexpr int MaxOutputBuckets = 15;'
+mutate rule_ignores_output_buckets src/search/evaluation_v2.inc 'if (file.empty() && kb <= 0 && ob <= 0) return {};' 'if (file.empty() && kb <= 0) return {};'
+mutate rule_output_count_unchecked src/nnue.cpp '} else if (output_buckets > 0 ? loaded_net->output_buckets != output_buckets : loaded_net->output_buckets != 1) {' '} else if (output_buckets > 0 && loaded_net->output_buckets != output_buckets) {'
 echo "mutation_check status=$status"
 exit $status

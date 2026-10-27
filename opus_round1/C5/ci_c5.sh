@@ -27,13 +27,16 @@ for r in r1:0 rm8:8; do
   python3 "$ROOT/tools/nnue/forge_nnue_v2.py" from-inc "$ROOT/src/nnue_weights.inc" "$OUT/lock_${name}_ob8.fnn2" \
     --replica "$name" --output-buckets 8 > /dev/null
   echo "-- replica $name + 8 output heads (NNUEKingBuckets $kb, NNUEOutputBuckets 8)"
-  python3 "$ROOT/tools/nnue/bench_options.py" "$BD/forge" 11,13,16,20,22 --set "NNUEFile=$OUT/lock_${name}_ob8.fnn2" \
-    --set "NNUEKingBuckets=$kb" --set NNUEOutputBuckets=8 --expect "$LOCK" 2>&1 | grep -E "bench|NNUE v2: active" | tee -a "$OUT/replica_ob_bench.log"
+  out=$(python3 "$ROOT/tools/nnue/bench_options.py" "$BD/forge" 11,13,16,20,22 --set "NNUEFile=$OUT/lock_${name}_ob8.fnn2" \
+    --set "NNUEKingBuckets=$kb" --set NNUEOutputBuckets=8 --expect "$LOCK" 2>&1)
+  printf '%s\n' "$out" | grep -E "bench|NNUE v2: active" | tee -a "$OUT/replica_ob_bench.log"
+  # Replicas evaluate like the compiled-in net, so also require that the v2 path was active (the engine
+  # prints the active line at activation and at isready; with an unusable request it exits at isready).
+  printf '%s\n' "$out" | grep -q "NNUE v2: active" || { echo "v2 net not active for replica $name"; status=1; }
 done
 grep -q MISMATCH "$OUT/replica_ob_bench.log" && status=1
-[ "$(grep -c ' OK' "$OUT/replica_ob_bench.log")" -eq 10 ] || status=1
-# Replicas evaluate like the compiled-in net, so also require that the v2 path was active for both.
-[ "$(grep -c 'NNUE v2: active' "$OUT/replica_ob_bench.log")" -eq 2 ] || { echo "v2 net not active"; status=1; }
+grep -q "ENGINE FAILED" "$OUT/replica_ob_bench.log" && status=1
+[ "$(grep -c ' OK$' "$OUT/replica_ob_bench.log")" -eq 10 ] || { echo "replica benches missing"; status=1; }
 
 echo "===== C5: smoke training (CPU torch) and export parity"
 python3 -c "import torch, numpy; print('torch', torch.__version__, 'numpy', numpy.__version__)" || { echo "no torch: skipping"; exit $status; }

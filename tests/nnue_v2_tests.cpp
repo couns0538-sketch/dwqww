@@ -9,7 +9,8 @@
 //   5. incremental == full refresh, bit-exact, over 100k random make/unmake plies driven through the
 //      real Worker::static_evaluate (lazy walk-back, king-key refreshes through the refresh cache);
 //   6. output buckets (C5): the default map and the selected output row at every piece count 2..32,
-//      selection rules, lock replicas with 8 identical heads, a walk with output buckets.
+//      selection rules, lock replicas with 8 identical heads, a walk with output buckets, and the
+//      fail-loud request rule with NNUEOutputBuckets.
 // Writes temporary net files next to the working directory (removed at the end).
 #include "forge/nnue_v2.hpp"
 #include "forge/search.hpp"
@@ -844,6 +845,61 @@ void test_output_buckets(const std::string& dir) {
     }
 }
 
+// The fail-loud rule with output buckets (C5): NNUEOutputBuckets > 0 is a request too, and both counts must
+// select the loaded net (0 stands for one unmirrored king bucket / one output bucket).
+void test_request_rule_output_buckets(const std::string& dir) {
+    auto problem_after = [&](int king_buckets, int output_buckets, const std::string& requested_file) {
+        options::nnue_king_buckets = king_buckets;
+        options::nnue_output_buckets = output_buckets;
+        (void)options::apply_nnue_v2(nullptr);
+        return options::nnue_v2_problem(requested_file, "");
+    };
+    auto has = [](const std::string& text, const std::string& what) { return text.find(what) != std::string::npos; };
+    v2::unload();
+    std::string p = problem_after(0, 8, "");
+    report(has(p, "NNUEOutputBuckets 8 is set but no v2 net is loaded"), "NNUEOutputBuckets 8 without NNUEFile: " + p);
+    p = problem_after(4, 8, "");
+    report(has(p, "NNUEKingBuckets 4 and NNUEOutputBuckets 8 are set but no v2 net is loaded"), "both counts without NNUEFile: " + p);
+    const std::string one_head = dir + "rule_1head.fnn2";
+    check(load_spec(one_head, random_net(1, false, {}, 85)), "load 1-bucket 1-head net for the rule");
+    p = problem_after(0, 8, one_head);
+    report(has(p, "does not match") && has(p, "1 output buckets") && !options::nnue_v2, "NNUEOutputBuckets 8 vs a 1-head net: " + p);
+    p = problem_after(1, 0, one_head);
+    report(p.empty() && options::nnue_v2, "1-head net with NNUEKingBuckets 1: active, no problem");
+    Spec heads = random_net(1, false, {}, 86);
+    replicate_heads(heads, 8);
+    const std::string eight_heads = dir + "rule_8heads.fnn2";
+    check(load_spec(eight_heads, heads), "load 1-bucket 8-head net for the rule");
+    p = problem_after(0, 0, eight_heads);
+    report(has(p, "NNUEKingBuckets is 0 and NNUEOutputBuckets is 0") && has(p, "set NNUEKingBuckets 0, NNUEOutputBuckets 8"),
+           "8-head net with both counts 0: " + p);
+    p = problem_after(0, 4, eight_heads);
+    report(has(p, "does not match NNUEKingBuckets 0, NNUEOutputBuckets 4") && !options::nnue_v2, "NNUEOutputBuckets 4 vs 8 heads: " + p);
+    p = problem_after(1, 0, eight_heads);
+    report(has(p, "does not match") && !options::nnue_v2, "NNUEKingBuckets 1 alone vs 8 heads: " + p);
+    p = problem_after(0, 8, eight_heads);
+    report(p.empty() && options::nnue_v2, "NNUEOutputBuckets 8 with the 8-head net: active, no problem");
+    Spec both = random_net(4, true, symmetric_map(4), 87);
+    replicate_heads(both, 8);
+    const std::string kb4ob8 = dir + "rule_kb4ob8.fnn2";
+    check(load_spec(kb4ob8, both), "load 4-king-bucket 8-head net for the rule");
+    p = problem_after(4, 0, kb4ob8);
+    report(has(p, "does not match") && has(p, "set NNUEKingBuckets 4, NNUEOutputBuckets 8") && !options::nnue_v2,
+           "king + output buckets, NNUEKingBuckets 4 alone: " + p);
+    p = problem_after(0, 8, kb4ob8);
+    report(has(p, "does not match") && !options::nnue_v2, "king + output buckets, NNUEOutputBuckets 8 alone: " + p);
+    p = problem_after(4, 8, kb4ob8);
+    report(p.empty() && options::nnue_v2, "king + output buckets, both options: active, no problem");
+    nnue::enabled = false;
+    v2::unload();
+    p = problem_after(0, 8, "");
+    report(p.empty() && !options::nnue_v2, "UseNNUE false with NNUEOutputBuckets 8 and no file: not a problem");
+    nnue::enabled = true;
+    p = problem_after(0, 8, "");
+    report(!p.empty(), "UseNNUE true again: NNUEOutputBuckets 8 without a file is a problem again");
+    (void)problem_after(0, 0, "");
+}
+
 } // namespace
 
 int main(int argc, char** argv) {
@@ -857,9 +913,10 @@ int main(int argc, char** argv) {
     test_lock_replicas(dir);
     test_incremental_equals_refresh(dir, plies);
     test_output_buckets(dir);
+    test_request_rule_output_buckets(dir);
     v2::unload();
     for (const char* f : {"map", "mirror", "plain", "loader", "bad", "select", "rule", "replica", "walk", "heads", "select_ob",
-                          "select_both"}) {
+                          "select_both", "rule_1head", "rule_8heads", "rule_kb4ob8"}) {
         std::remove((dir + f + ".fnn2").c_str());
     }
     std::cout << checks - failures << "/" << checks << " checks passed\n";

@@ -1,4 +1,5 @@
-// UCI-level tests of the fail-loud NNUE v2 rule (C4 review fix; rule in forge/search_options.hpp).
+// UCI-level tests of the fail-loud NNUE v2 rule (C4 review fix, C5 output buckets; rule in
+// forge/search_options.hpp).
 // Runs the real engine (argv[1]) with scripted stdin and checks its output and exit status:
 //   - defaults: nothing NNUE-v2 related is printed, readyok, bestmove, exit 0;
 //   - a requested v2 net that cannot be used (missing file, truncated file, bad checksum, wrong king
@@ -7,7 +8,10 @@
 //     then exit status 2 without readyok / bestmove / bench output;
 //   - a valid net: `info string NNUE v2: active: <file> king buckets N output buckets M hidden H ...` once
 //     when it becomes active and at every isready, then readyok and bestmove, exit 0;
-//   - UseNNUE false is not an error, NNUEFile <empty> clears the request, option order does not matter.
+//   - UseNNUE false is not an error, NNUEFile <empty> clears the request, option order does not matter;
+//   - C5: NNUEOutputBuckets is a request too (without a file, with a net of another head count, a net with
+//     heads loaded but the count left 0, king + output buckets with only one of the two options: exit 2);
+//     nets with 8 output heads (alone and with king buckets) become active with both counts set.
 // Writes its net files and engine transcripts into the working directory (removed at the end).
 // usage: forge_nnue_v2_uci_tests <forge executable>
 #include "forge/nnue.hpp"
@@ -74,13 +78,19 @@ std::uint64_t fnv(const std::string& data) {
     }
     return h;
 }
-std::string net_file(int king_buckets, std::uint64_t seed) {
+std::string net_file(int king_buckets, std::uint64_t seed, int output_buckets = 1) {
     const int hidden = forge::nnue::HiddenSize;
     std::string s = "FORGENN2";
     put32(s, 2); put32(s, 160); put32(s, 0); put32(s, 768); put32(s, static_cast<std::uint32_t>(hidden));
-    put32(s, static_cast<std::uint32_t>(king_buckets)); put32(s, 1); put32(s, 1);   // 1 output bucket, residual
+    put32(s, static_cast<std::uint32_t>(king_buckets)); put32(s, static_cast<std::uint32_t>(output_buckets));
+    put32(s, 1);   // residual
     putf(s, 4096.0F); putf(s, 4096.0F); putf(s, 2.25F);
     for (int square = 0; square < 64; ++square) s.push_back(static_cast<char>((square & 7) * king_buckets / 8));
+    // Output bucket map by piece count (the trainer's default: n = pieces - 2 -> min(N - 1, n * N / 32)).
+    for (int pieces = 0; pieces <= 32; ++pieces) {
+        const int n = pieces > 2 ? pieces - 2 : 0;
+        s.push_back(static_cast<char>(n * output_buckets / 32 < output_buckets - 1 ? n * output_buckets / 32 : output_buckets - 1));
+    }
     s.append(160 - s.size(), '\0');
     std::uint64_t x = seed;
     auto value = [&x](int range) {
@@ -89,8 +99,8 @@ std::string net_file(int king_buckets, std::uint64_t seed) {
     };
     for (long i = 0; i < static_cast<long>(king_buckets) * 768 * hidden; ++i) put16(s, value(60));
     for (int i = 0; i < hidden; ++i) put16(s, value(400));
-    for (int i = 0; i < 2 * hidden; ++i) put16(s, value(300));
-    put16(s, value(100));
+    for (int i = 0; i < output_buckets * 2 * hidden; ++i) put16(s, value(300));
+    for (int i = 0; i < output_buckets; ++i) put16(s, value(100));
     const std::uint64_t h = fnv(s);
     for (int i = 0; i < 8; ++i) s.push_back(static_cast<char>((h >> (8 * i)) & 0xFFU));
     return s;
@@ -248,6 +258,41 @@ int main(int argc, char** argv) {
         report(r.status == 0 && has_line(r.out, "readyok") && has_line(r.out, "bestmove") && has(r.out, "info string NNUE v2: off") &&
                    count(r.out, active_line) == 1,
                "NNUEKingBuckets 0 + NNUEFile <empty>: request cleared, compiled-in net, exit 0");
+    }
+    // C5: output buckets.
+    const std::string heads = Prefix + "heads.fnn2";         // 1 king bucket, 8 output heads
+    const std::string both = Prefix + "kb2_heads.fnn2";      // 2 king buckets, 8 output heads
+    write_file(heads, net_file(1, 20261028, 8));
+    write_file(both, net_file(2, 20261029, 8));
+    expect_failure(engine, "output_buckets_without_file", set("NNUEOutputBuckets", "8"), "isready", "no v2 net is loaded");
+    expect_failure(engine, "output_buckets_vs_1_head", set("NNUEFile", valid) + set("NNUEKingBuckets", "2") + set("NNUEOutputBuckets", "8"),
+                   "isready", "does not match");
+    expect_failure(engine, "heads_net_counts_0", set("NNUEFile", heads), "go depth 1", "NNUEOutputBuckets is 0");
+    expect_failure(engine, "heads_net_wrong_count", set("NNUEFile", heads) + set("NNUEOutputBuckets", "4"), "isready", "does not match");
+    expect_failure(engine, "king_and_heads_net_king_option_only", set("NNUEFile", both) + set("NNUEKingBuckets", "2"), "isready",
+                   "set NNUEKingBuckets 2, NNUEOutputBuckets 8");
+    expect_failure(engine, "king_and_heads_net_output_option_only", set("NNUEFile", both) + set("NNUEOutputBuckets", "8"), "bench 2",
+                   "does not match");
+    {
+        const std::string line = "info string NNUE v2: active: " + heads + " king buckets 1 output buckets 8 hidden " +
+                                 std::to_string(forge::nnue::HiddenSize);
+        const Run r = run_engine(engine, "heads_net", Head + set("NNUEFile", heads) + set("NNUEOutputBuckets", "8") +
+                                                         "isready\ngo depth 1\nisready\nquit\n");
+        report(r.status == 0 && count(r.out, line) == 3 && count(r.out, "readyok") == 2 && has_line(r.out, "bestmove"),
+               "8-head net with NNUEOutputBuckets 8: \"" + line + " ...\" 3 times, readyok, bestmove, exit 0");
+    }
+    {
+        const std::string line = "info string NNUE v2: active: " + both + " king buckets 2 output buckets 8 hidden " +
+                                 std::to_string(forge::nnue::HiddenSize);
+        const Run r = run_engine(engine, "king_and_heads_net", Head + set("NNUEOutputBuckets", "8") + set("NNUEFile", both) +
+                                                                  set("NNUEKingBuckets", "2") + "isready\nbench 3\nquit\n");
+        report(r.status == 0 && count(r.out, line) == 2 && has_line(r.out, "readyok") && has(r.out, "bench depth 3 nodes"),
+               "2 king buckets + 8 heads with both options (any order): active, readyok, bench, exit 0");
+    }
+    {
+        const Run r = run_engine(engine, "usennue_false_output_buckets", Head + set("UseNNUE", "false") + set("NNUEOutputBuckets", "8") +
+                                                                            "isready\nquit\n");
+        report(r.status == 0 && has_line(r.out, "readyok") && !has(r.out, "ERROR"), "UseNNUE false with NNUEOutputBuckets 8: not an error");
     }
     for (const std::string& file : temporary_files) std::remove(file.c_str());
     std::cout << checks - failures << "/" << checks << " checks passed\n";
