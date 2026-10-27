@@ -15,7 +15,9 @@ are small shifts. No strength claim either way; only a gate can tell.
   archive `4_tests/suites/wac300.epd`) plus 9,700 self-play positions. These are the first full line after each of
   9,700 evenly spaced byte offsets (stride 67,039 B) in the closed holdout file
   `D:\grok-pc-data\selfplay_out\forge_selfplay_013.txt` (650,287,208 B, md5 sidecar `f0739b12…`). The file was only
-  read, with short seeks; 013 is the holdout file, so no net trained on it. 10,000 positions, 0 invalid, 3 in check.
+  read, with short seeks. 013 is part of the trainer's holdout (013 + 014), so these positions are essentially
+  unseen in training: per `opus-sol-S16`, only 6,069 training rows share a position with the 16.4M-row holdout,
+  about 0.04%. 10,000 positions, 0 invalid, 3 in check.
   Positions in check are excluded because the search never uses a static eval there.
 - **Evaluation** (`tools/evalscale_dump.cpp`, one build per net with the lock's compiler flags): per position `hce`
   (`Evaluator::evaluate_uncached`), `net` (`nnue::evaluate` after a refresh) and
