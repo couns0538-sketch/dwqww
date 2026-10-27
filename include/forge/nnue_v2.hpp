@@ -2,8 +2,10 @@
 
 // v2 networks (C4): king-bucketed input layer, loaded from a file at run time.
 // Used only when UCI NNUEKingBuckets > 0 and a matching file is loaded with UCI
-// NNUEFile (forge/search_options.hpp); otherwise the compiled-in network
-// (forge/nnue.hpp) is used and nothing here runs.
+// NNUEFile (forge/search_options.hpp); with neither option set the compiled-in
+// network (forge/nnue.hpp) is used and nothing here runs. A request that cannot
+// be honoured is an error, never a silent fall-back to the compiled-in network
+// (see options::nnue_v2_problem and src/uci.cpp).
 //
 // Feature of piece `pc` on `square` for perspective p (own king on `ksq`):
 //   r      = p == White ? square : square ^ 56       (rank flip, as forge/nnue.hpp)
@@ -135,10 +137,21 @@ struct Description {
 };
 
 // ---- loading and selection (src/nnue.cpp; must not run during a search) ----
-// Loads a v2 file; on failure the previously loaded net (if any) stays loaded.
+// Loads a v2 file. The previously loaded net is unloaded first, so after a
+// failed load no net is loaded (the engine never evaluates with a net other
+// than the one last requested). The file size is checked (seek to the end)
+// before anything is allocated: a file smaller than a header, larger than the
+// largest valid v2 file or of another size than its header implies is
+// rejected after reading at most the 160 header bytes.
 [[nodiscard]] bool load(const std::string& path, std::string* error);
 void unload();
 [[nodiscard]] const Net* loaded();
+// Size in bytes of a v2 file with these counts (header + weights + checksum).
+[[nodiscard]] std::uint64_t file_bytes(int king_buckets, int output_buckets);
+// Bytes of its file the last load() read (0, the header only, or the whole file).
+[[nodiscard]] std::uint64_t last_load_bytes_read();
+// "<path> king buckets N output buckets M hidden H mirrored|unmirrored residual|stand-alone fnv1a X".
+[[nodiscard]] std::string summary(const Net& net);
 // Makes the loaded net the active one if it has exactly `king_buckets` king
 // buckets (0 = never); returns the active net, message gets a one-line state.
 const Net* select(int king_buckets, std::string* message);

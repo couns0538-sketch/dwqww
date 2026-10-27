@@ -93,11 +93,29 @@ namespace options {
 [[gnu::cold]] bool apply_nnue_v2(std::string* message) {
     // UseNNUE false disables every network (hand-crafted evaluation only).
     const nnue::v2::Net* net = nnue::v2::select(nnue::enabled ? nnue_king_buckets : 0, message);
-    if (!nnue::enabled && nnue_king_buckets > 0 && message != nullptr) {
-        *message = "UseNNUE is false: hand-crafted evaluation only";
-    }
+    if (!nnue::enabled && message != nullptr) *message = "UseNNUE is false: hand-crafted evaluation only";
     nnue_v2 = net != nullptr;
     return nnue_v2;
+}
+
+[[gnu::cold]] std::string nnue_v2_problem(const std::string& file, const std::string& load_error) {
+    if (!nnue::enabled) return {};   // UseNNUE false: every network off on purpose
+    if (file.empty() && nnue_king_buckets <= 0) return {};   // nothing requested
+    if (!file.empty() && !load_error.empty()) return "cannot load NNUEFile " + file + ": " + load_error;
+    const nnue::v2::Net* net = nnue::v2::loaded();
+    if (net == nullptr) {
+        return file.empty() ? "NNUEKingBuckets " + std::to_string(nnue_king_buckets) +
+                                  " is set but no v2 net is loaded (NNUEFile is empty)"
+                            : "NNUEFile " + file + " is not loaded";
+    }
+    if (nnue_v2 && nnue::v2::active() == net) return {};
+    const std::string buckets = std::to_string(net->king_buckets) + (net->mirror ? " mirrored" : "") + " king buckets";
+    if (nnue_king_buckets <= 0) {
+        return "NNUEFile " + net->path + " is loaded (" + buckets + ") but NNUEKingBuckets is 0; set NNUEKingBuckets " +
+               std::to_string(net->king_buckets) + " to use it";
+    }
+    return "NNUEKingBuckets " + std::to_string(nnue_king_buckets) + " does not match NNUEFile " + net->path + " (" +
+           buckets + ")";
 }
 
 } // namespace options
