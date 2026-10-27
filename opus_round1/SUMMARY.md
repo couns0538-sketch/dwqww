@@ -28,8 +28,8 @@ same-machine A/Bs or quiet-runner A/Bs. No Elo claims.
 | C4 king buckets | opus-C4 (`23750a7`) | DONE (+ review fixes: fail loudly with exit 2, file size checked before reading, "NNUE v2: active:" line) | exact | nnue_v2_tests 101, UCI fail-loud 17/17, 13/13 planted bugs | ASan+UBSan 0, TSan 0 | G-C1 (net on A1 data) |
 | C5 output buckets | opus-C5 (`57066d2`) | DONE (C4 review fixes merged) | exact | 141 unit checks (bucket at every piece count 2..32), UCI 26/26, 8/8 planted bugs; parity 10000/10000 | ASan+UBSan 0, TSan 0 | G-C6 NNUEOutputBuckets=8 |
 | O1-LTT lockless TT | opus-O1-LTT (`df4d437`) | IN PROGRESS (code, tests, local evidence done; CI running) | exact; ON Threads=1 also exact | 28 TT groups (both modes) + stress; planted bug caught | CI running | G-B5 LocklessTT (SMP-only) |
-| O5 correction-size margins | opus-O5 | IN PROGRESS (sub-agent) | — | — | — | G-B3 |
-| O8 correction extensions | opus-O8 | IN PROGRESS (sub-agent, after O5) | — | — | — | G-C5 (40+0.4 primary) |
+| O5 correction-size margins | opus-O5 (`e9ff3f4`) | DONE | exact; default alpha-beta instruction-identical | corr_margins_tests 55,390 checks, 20/20 planted bugs; ON pins d11 343365 d13 858019 d16 2522546 d20 12894582 d22 22287047 | ASan+UBSan 0, TSan 0 | G-B3 CorrMargins=1, 10+0.1 (confirm 40+0.4) |
+| O8 correction extensions | opus-O8 (`3ef4ded`) | DONE | exact; default alpha-beta instruction-identical | corr_ext_tests 8.8M rule decisions, 19/19 planted bugs; ON pins d11 312961 d13 838790 d16 2891507 d20 12313394 d22 33298237 | ASan+UBSan 0, TSan 0 | G-C5 CorrExt=1, primary 40+0.4 |
 | O4 pure NNUE | opus-O4 | IN PROGRESS (sub-agent; then O6, O7) | — | — | — | G-A5 |
 | O6 threat inputs | — | NOT STARTED (builds on C4's v2 export) | — | — | — | G-C2 (40+0.4 primary) |
 | O7 pawn-pair inputs | — | NOT STARTED (after O6) | — | — | — | G-C3 |
