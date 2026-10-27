@@ -1,0 +1,76 @@
+# pilot loadcheck: fen2bin + hce_dump + v3b loaders (RAM, mmap) + D filter (threshold 300, holdout = copy of data32 h000)
+{
+  "dfilter": {
+    "argv": [
+      "python",
+      "-B",
+      "F:/opus_scratch/sol_s18/sol_src/instrument/forge_sol_datafilter_v2_20261026.py",
+      "--train",
+      "F:\\opus_scratch\\rescore_d8\\pilot\\loadcheck\\dfilter\\hce_dir\\s20_pilot_d8.pos",
+      "--holdout-pos",
+      "F:\\opus_scratch\\rescore_d8\\pilot\\loadcheck\\dfilter\\hce_dir\\h000.pos",
+      "--hce-dir",
+      "F:\\opus_scratch\\rescore_d8\\pilot\\loadcheck\\dfilter\\hce_dir",
+      "--out",
+      "F:\\opus_scratch\\rescore_d8\\pilot\\loadcheck\\dfilter\\sealed",
+      "--work-dir",
+      "F:\\opus_scratch\\rescore_d8\\pilot\\loadcheck\\dfilter\\scratch",
+      "--seed",
+      "20261025",
+      "--diagnostic-mode",
+      "--disagreement-threshold",
+      "300"
+    ],
+    "dropped_by_reason": {
+      "result_draw_score_large": 937,
+      "result_loss_score_positive": 14,
+      "result_win_score_negative": 17
+    },
+    "supplied_holdout_overlap": 0,
+    "threshold": 300,
+    "totals": {
+      "dropped": 968,
+      "input": 10000,
+      "kept": 9032
+    }
+  },
+  "dfilter_rc": 0,
+  "fen2bin_rc": 0,
+  "hce": {
+    "bytes": 20016,
+    "path": "F:\\opus_scratch\\rescore_d8\\pilot\\loadcheck\\data\\s20_pilot_d8.hce",
+    "sha256": "69132dd66d788c025f58accff59faa19edcd414c5628fc2a63c4e5f4d8b01753"
+  },
+  "hce_bad": 0,
+  "hce_dump_rc": 0,
+  "loaders": {
+    "arrays_equal": {
+      "boards": true,
+      "hce": true,
+      "meta": true,
+      "score": true
+    },
+    "load_set_mmap_rows": 10000,
+    "load_set_rows": 10000
+  },
+  "pass": true,
+  "pos": {
+    "bytes": 350016,
+    "path": "F:\\opus_scratch\\rescore_d8\\pilot\\loadcheck\\data\\s20_pilot_d8.pos",
+    "sha256": "fd95af2f8f29bc18d4858caa08877179084849c5265f2cd0894c7585a8b3bfbc"
+  },
+  "rescored": "F:\\opus_scratch\\rescore_d8\\pilot\\run\\rescored.txt",
+  "rescored_sha256": "cba5f22c8b1f67466326ab25f269884f9f6d78838449c1e07dfb31cff434a5e6",
+  "sign_from_loaded": {
+    "agree": 6082,
+    "agreement": 0.9404669862378228,
+    "decisive": 6467
+  },
+  "text_vs_loaded": {
+    "rows_equal": true,
+    "score_equal": true,
+    "stm_bit_equal": true,
+    "white_result_equal": true
+  }
+}
+exit 0

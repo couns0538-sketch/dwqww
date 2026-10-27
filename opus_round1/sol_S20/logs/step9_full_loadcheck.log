@@ -1,0 +1,80 @@
+# S20 step9: full load check: fen2bin + hce_dump on the 1M output, both v3b loaders (RAM + mmap, AST-extracted from a renamed trainer copy) and Sol's D filter (threshold 300, holdout = copy of data32 h000); supervisor 'adopted running job' count before: 7
+Tue Oct 27 23:04:55 UTC 2026
+{
+  "dfilter": {
+    "argv": [
+      "python",
+      "-B",
+      "F:/opus_scratch/sol_s18/sol_src/instrument/forge_sol_datafilter_v2_20261026.py",
+      "--train",
+      "F:\\opus_scratch\\rescore_d8\\full_loadcheck\\dfilter\\hce_dir\\s20_full_d8.pos",
+      "--holdout-pos",
+      "F:\\opus_scratch\\rescore_d8\\full_loadcheck\\dfilter\\hce_dir\\h000.pos",
+      "--hce-dir",
+      "F:\\opus_scratch\\rescore_d8\\full_loadcheck\\dfilter\\hce_dir",
+      "--out",
+      "F:\\opus_scratch\\rescore_d8\\full_loadcheck\\dfilter\\sealed",
+      "--work-dir",
+      "F:\\opus_scratch\\rescore_d8\\full_loadcheck\\dfilter\\scratch",
+      "--seed",
+      "20261025",
+      "--diagnostic-mode",
+      "--disagreement-threshold",
+      "300"
+    ],
+    "dropped_by_reason": {
+      "duplicate_position": 65,
+      "result_draw_score_large": 51183,
+      "result_loss_score_positive": 333,
+      "result_win_score_negative": 256
+    },
+    "supplied_holdout_overlap": 0,
+    "threshold": 300,
+    "totals": {
+      "dropped": 51837,
+      "input": 1000000,
+      "kept": 948163
+    }
+  },
+  "dfilter_rc": 0,
+  "fen2bin_rc": 0,
+  "hce": {
+    "bytes": 2000016,
+    "path": "F:\\opus_scratch\\rescore_d8\\full_loadcheck\\data\\s20_full_d8.hce",
+    "sha256": "11c7dd82c6297336107fa52179ae10a8e1ff2ec264993683538bd90f409c6c1b"
+  },
+  "hce_bad": 0,
+  "hce_dump_rc": 0,
+  "loaders": {
+    "arrays_equal": {
+      "boards": true,
+      "hce": true,
+      "meta": true,
+      "score": true
+    },
+    "load_set_mmap_rows": 1000000,
+    "load_set_rows": 1000000
+  },
+  "pass": true,
+  "pos": {
+    "bytes": 35000016,
+    "path": "F:\\opus_scratch\\rescore_d8\\full_loadcheck\\data\\s20_full_d8.pos",
+    "sha256": "4e6ef58305372d2ed084d42a7941f7a7a203821dbf4b596c22f13346153fdde2"
+  },
+  "rescored": "F:\\opus_scratch\\rescore_d8\\full\\rescored.txt",
+  "rescored_sha256": "9b93882da92a0c39a13e3804bcbe83daa037b5d75edeec89536f300a0445563f",
+  "sign_from_loaded": {
+    "agree": 554984,
+    "agreement": 0.9183611331744771,
+    "decisive": 604320
+  },
+  "text_vs_loaded": {
+    "rows_equal": true,
+    "score_equal": true,
+    "stm_bit_equal": true,
+    "white_result_equal": true
+  }
+}
+exit 0
+supervisor 'adopted running job' count after: 7
+Tue Oct 27 23:06:00 UTC 2026
