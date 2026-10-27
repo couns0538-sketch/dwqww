@@ -1,0 +1,1101 @@
+diff --git a/include/forge/correction_plus.hpp b/include/forge/correction_plus.hpp
+new file mode 100644
+index 00000000..79591944
+--- /dev/null
++++ b/include/forge/correction_plus.hpp
+@@ -0,0 +1,146 @@
++#pragma once
++
++// Extended correction history (UCI option CorrHistPlus, default 0 = off).
++//
++// AL1 s198 corrects the static evaluation with two learned tables, keyed by the
++// pawn structure and by the material signature (src/search/evaluation.inc).
++// CorrHistPlus adds three more keys, one option bit each, so that every key can
++// be gated on its own:
++//   1  Continuation: the previous two moves (our move two plies ago and the
++//      opponent's reply) as (piece type, destination) pairs        -> gate G-B1
++//   2  MinorPiece:   placement of both sides' knights, bishops and kings -> G-B2
++//   4  NonPawn:      placement of one side's non-pawn pieces incl. its king;
++//                    one table per side, both read at every node
++// This header holds everything that does not depend on search state: the keys
++// (hashes of piece bitboards computed on demand, so forge::Board is unchanged),
++// the table layout and the fixed-point update and blend rules. The search glue
++// is src/search/correction_plus.inc. tests/correction_history_tests.cpp checks
++// these functions against independent reference implementations.
++
++#include "forge/board.hpp"
++#include "forge/history.hpp"
++
++#include <algorithm>
++#include <array>
++#include <cstddef>
++#include <cstdint>
++
++namespace forge::corrplus {
++
++// Bits of forge::options::corr_hist_plus.
++constexpr int Continuation = 1;
++constexpr int MinorPiece = 2;
++constexpr int NonPawn = 4;
++constexpr int AllKeys = Continuation | MinorPiece | NonPawn;
++
++// ---------------------------------------------------------------- keys
++// One odd multiplier per piece role (own random draw), summed, then avalanched
++// so that the low bits used as the table index depend on every input bit.
++inline constexpr std::array<std::uint64_t, 6> KeyMultipliers{
++    0xccc786391d0cc457ULL, 0xac43abac3a456cc1ULL, 0xd2773bee220bddebULL,
++    0x678b09c87c6dca51ULL, 0x16efdac28abd75dbULL, 0xd508421d0238c1a9ULL,
++};
++
++// xor-shift-multiply finaliser (the output step of the public-domain SplitMix64 generator).
++[[nodiscard]] constexpr std::uint64_t avalanche(std::uint64_t x) {
++    x = (x ^ (x >> 30U)) * 0xbf58476d1ce4e5b9ULL;
++    x = (x ^ (x >> 27U)) * 0x94d049bb133111ebULL;
++    return x ^ (x >> 31U);
++}
++
++// Knights, bishops and kings of both sides.
++[[gnu::always_inline]] [[nodiscard]] inline std::uint64_t minor_piece_key(const Board& board) {
++    return avalanche(board.pieces(WN) * KeyMultipliers[0] + board.pieces(WB) * KeyMultipliers[1] +
++                     board.pieces(BN) * KeyMultipliers[2] + board.pieces(BB) * KeyMultipliers[3] +
++                     board.pieces(WK) * KeyMultipliers[4] + board.pieces(BK) * KeyMultipliers[5]);
++}
++
++// Knights, bishops, rooks, queens and the king of one side.
++[[gnu::always_inline]] [[nodiscard]] inline std::uint64_t non_pawn_key(const Board& board, Color color) {
++    return avalanche(board.pieces(color, Knight) * KeyMultipliers[0] + board.pieces(color, Bishop) * KeyMultipliers[1] +
++                     board.pieces(color, Rook) * KeyMultipliers[2] + board.pieces(color, Queen) * KeyMultipliers[3] +
++                     board.pieces(color, King) * KeyMultipliers[4]);
++}
++
++// Slot of a hashed key in a CorrectionSize table (same rule as the pawn table).
++[[nodiscard]] constexpr std::size_t key_index(std::uint64_t key) {
++    return static_cast<std::size_t>(key & (CorrectionSize - 1U));
++}
++
++// ---------------------------------------------------------------- tables
++// Continuation table, directly indexed:
++// [side to move][type of our move two plies ago][its destination]
++//               [type of the opponent's last move][its destination].
++// The colours of both moved pieces follow from the side to move (a null move
++// in between gives no key), so piece types (1..6) suffice.
++constexpr std::size_t PieceTypes = 6;
++constexpr std::size_t ContinuationSize = 2 * PieceTypes * 64 * PieceTypes * 64;
++
++[[nodiscard]] constexpr std::size_t continuation_index(Color side, int our_type, int our_to, int their_type, int their_to) {
++    std::size_t index = static_cast<std::size_t>(side);
++    index = index * PieceTypes + static_cast<std::size_t>(our_type - 1);
++    index = index * 64 + static_cast<std::size_t>(our_to);
++    index = index * PieceTypes + static_cast<std::size_t>(their_type - 1);
++    return index * 64 + static_cast<std::size_t>(their_to);
++}
++
++// Entries are CorrectionGrain fixed point like the pawn table and never leave
++// +/-CorrectionLimit (8192), so 16 bits suffice: 768 KiB per search thread.
++using Entry = std::int16_t;
++struct Tables {
++    std::array<std::array<Entry, CorrectionSize>, 2> minor;                    // [side to move][key]
++    std::array<std::array<std::array<Entry, CorrectionSize>, 2>, 2> non_pawn;  // [key's colour][side to move][key]
++    std::array<Entry, ContinuationSize> continuation;                          // continuation_index()
++};
++
++// ---------------------------------------------------------------- division
++// The search glue (src/search/correction_plus.inc) is [[gnu::cold]], i.e.
++// optimised for size, and there GCC divides by a constant with idiv, even by a
++// power of two. These helpers give exactly the C++ quotient (rounded toward
++// zero) with the multiply / shift sequences GCC uses in hot code; the tests
++// check them against the / operator over the whole reachable range.
++
++// x / 2^Shift, for |x| < 2^31 - 2^Shift.
++template <int Shift>
++[[nodiscard]] constexpr int div_pow2(int x) {
++    return (x + ((x >> 31) & ((1 << Shift) - 1))) >> Shift;
++}
++
++// x / 100, for every 32-bit x.
++[[nodiscard]] constexpr int div100(int x) {
++    const long long scaled = static_cast<long long>(x) * 1374389535LL;  // ceil(2^37 / 100)
++    return static_cast<int>(scaled >> 37) + (x < 0 ? 1 : 0);
++}
++
++static_assert(CorrectionGrain == 1 << 8 && CorrectionLimit == 1 << 13, "div_pow2 shifts below assume these values");
++
++// ---------------------------------------------------------------- update
++// Step: the residual and depth weight of the pawn/material update
++// (Worker::update_correction): (search score - corrected static eval) in
++// CorrectionGrain units, clipped to +/-CorrectionLimit/4, times min(depth+1,16)/256.
++[[nodiscard]] constexpr int step(int best_score, int static_eval, int depth) {
++    const int residual = std::clamp((best_score - static_eval) * CorrectionGrain, -CorrectionLimit / 4, CorrectionLimit / 4);
++    return div_pow2<8>(residual * std::min(depth + 1, 16));
++}
++
++// One entry: add the step and decay the entry toward 0 by entry * |step| /
++// CorrectionLimit (a saturated entry moves less in its own direction and is
++// unlearned faster; at zero residual nothing changes), then clamp. The decay
++// keeps |entry| <= CorrectionLimit for |step| <= CorrectionLimit; the clamp
++// is the guarantee.
++[[nodiscard]] constexpr int apply(int entry, int step) {
++    const int magnitude = step < 0 ? -step : step;
++    return std::clamp(entry + step - div_pow2<13>(entry * magnitude), -CorrectionLimit, CorrectionLimit);
++}
++
++// ---------------------------------------------------------------- blend
++// Contribution of the enabled keys: sum of entry * weight (weights x0.01,
++// tune::Corr*Weight), in CorrectionGrain units, clamped to +/-TotalLimit
++// (64 cp) before it is added to the pawn + material correction.
++constexpr int TotalLimit = 2 * CorrectionLimit;
++
++[[nodiscard]] constexpr int blend(int weighted_sum) {
++    return std::clamp(div100(weighted_sum), -TotalLimit, TotalLimit);
++}
++
++} // namespace forge::corrplus
+diff --git a/include/forge/search.hpp b/include/forge/search.hpp
+index 5c42aab3..94d2a385 100644
+--- a/include/forge/search.hpp
++++ b/include/forge/search.hpp
+@@ -4,6 +4,7 @@
+ #include "forge/eval.hpp"
+ #include "forge/history.hpp"
+ #include "forge/nnue.hpp"
++#include "forge/search_options.hpp"
+ #include "forge/search_tune.hpp"
+ #include "forge/search_types.hpp"
+ #include "forge/thread_data.hpp"
+@@ -55,7 +56,19 @@ private:
+     [[nodiscard]] int capture_history_value(const Board& board, Move move) const;
+     [[nodiscard]] int corrected_eval(const Board& board, int raw_eval) const;
+     void update_correction(const Board& board, int depth, int best_score, int static_eval);
+-    [[nodiscard]] int static_evaluate(const Board& board, SearchStack* ss);
++    // CorrHistPlus (src/search/correction_plus.inc). corrected_eval and
++    // update_correction jump to their cold twins only when
++    // forge::options::corr_hist_plus != 0; the helpers are always inlined so
++    // that corrected_eval_plus stays a leaf (see correction_plus.inc).
++    [[gnu::cold]] [[nodiscard]] int corrected_eval_plus(const Board& board, int raw_eval) const;
++    [[gnu::cold]] void update_correction_plus(const Board& board, int depth, int best_score, int static_eval);
++    [[gnu::always_inline]] [[nodiscard]] inline int correction_plus(const Board& board) const;
++    [[gnu::always_inline]] [[nodiscard]] inline const SearchStack* correction_frame(const Board& board) const;
++    [[gnu::always_inline]] [[nodiscard]] inline std::size_t continuation_correction_index(const Board& board) const;
++    // Pinned to a 64-byte boundary (its AL1 s198 placement): the hot search
++    // functions after it then keep their alignment when the cold worker
++    // lifecycle code before it in .text changes size (CorrHistPlus member).
++    [[nodiscard, gnu::aligned(64)]] int static_evaluate(const Board& board, SearchStack* ss);
+     void record_move(SearchStack* ss, const Board& board, const Move& move);
+     void record_null_move(SearchStack* ss);
+ };
+diff --git a/include/forge/search_options.hpp b/include/forge/search_options.hpp
+new file mode 100644
+index 00000000..94306b17
+--- /dev/null
++++ b/include/forge/search_options.hpp
+@@ -0,0 +1,18 @@
++#pragma once
++
++#include <cstdint>
++
++// Runtime search options set over UCI (src/uci.cpp). Every option defaults to
++// OFF; with all options OFF the search is the AL1 s198 search. Options are
++// written only while no search runs (the UCI loop stops the search first).
++namespace forge::options {
++
++// UCI CorrHistPlus (spin 0-7, default 0): extra correction-history keys, a
++// bitmask of forge::corrplus::{Continuation = 1, MinorPiece = 2, NonPawn = 4}
++// (forge/correction_plus.hpp). 0 keeps the AL1 s198 pawn + material
++// correction only; each bit is meant to be gated on its own. One byte so that
++// the default-path test in the hot corrected_eval is a single compare with
++// memory that needs no register.
++extern std::uint8_t corr_hist_plus;
++
++} // namespace forge::options
+diff --git a/include/forge/search_tune.hpp b/include/forge/search_tune.hpp
+index 67478821..6d69c668 100644
+--- a/include/forge/search_tune.hpp
++++ b/include/forge/search_tune.hpp
+@@ -65,6 +65,10 @@ extern int CaptureFutilityBase;   // futility pruning of captures: base margin (
+ extern int CaptureFutilityMultiplier;
+ extern int CaptureFutilityDepth;
+ extern int FailLowContinuationBonus; // x0.01 of the history bonus given to the parent move on fail low (0 = off)
++// CorrHistPlus (UCI option, default 0 = off): read weights of the extra correction keys (x0.01).
++extern int CorrContWeight;        // bit 1: continuation correction (previous two moves)
++extern int CorrMinorWeight;       // bit 2: minor-piece correction
++extern int CorrNonPawnWeight;     // bit 4: each side's non-pawn correction
+ [[nodiscard]] const std::vector<Parameter>& parameters();
+ // Call after changing LMR parameters.
+ void refresh();
+diff --git a/include/forge/thread_data.hpp b/include/forge/thread_data.hpp
+index 7d541fad..dc9723c5 100644
+--- a/include/forge/thread_data.hpp
++++ b/include/forge/thread_data.hpp
+@@ -1,6 +1,7 @@
+ #pragma once
+ 
+ #include "forge/board.hpp"
++#include "forge/correction_plus.hpp"
+ #include "forge/eval.hpp"
+ #include "forge/history.hpp"
+ #include "forge/nnue.hpp"
+@@ -98,6 +99,11 @@ struct ThreadData {
+     bool root_restricted_ = false;
+     std::uint64_t null_tries_ = 0;
+     std::uint64_t null_cutoffs_ = 0;
++    // CorrHistPlus tables (forge/correction_plus.hpp), owned by this worker.
++    // Null until the option is on and the first update allocates them; freed
++    // by Worker::clear(). Last member, no initialiser: the members above keep
++    // their AL1 s198 offsets.
++    std::unique_ptr<corrplus::Tables> correction_plus_;
+ };
+ 
+ } // namespace forge
+diff --git a/src/search.cpp b/src/search.cpp
+index 17dc692b..0bc3eb71 100644
+--- a/src/search.cpp
++++ b/src/search.cpp
+@@ -20,15 +20,18 @@
+ #include <cstring>
+ #include <iostream>
+ #include <limits>
++#include <new>
+ #include <optional>
+ 
+ #include "search/tune.inc"        // tunable constants, LMR / LMP tables
++#include "search/options.inc"     // runtime search options (all OFF by default)
+ #include "search/scores.inc"      // mate scores and their TT encoding
+ #include "search/uci_info.inc"    // UCI info output (score formatting)
+ #include "search/tt.inc"          // transposition table
+ #include "search/movepicker.hpp"  // staged move picker
+ #include "search/worker.inc"      // per-thread state lifecycle
+ #include "search/evaluation.inc"  // static evaluation glue, correction history
++#include "search/correction_plus.inc" // CorrHistPlus extra correction keys (cold)
+ #include "search/timeman.hpp"     // time budgets and the soft stop rule (inline)
+ #include "search/checks.inc"      // per-node clock / node / stop checks, draws
+ #include "search/history.inc"     // move-ordering history scoring and updates
+diff --git a/src/search/correction_plus.inc b/src/search/correction_plus.inc
+new file mode 100644
+index 00000000..6e8014e3
+--- /dev/null
++++ b/src/search/correction_plus.inc
+@@ -0,0 +1,132 @@
++// Search module: CorrHistPlus, the extra correction-history keys
++// (forge/correction_plus.hpp, UCI option CorrHistPlus, default 0 = off).
++// Compiled as part of src/search.cpp (included exactly once, after
++// evaluation.inc).
++//
++// How the default build stays the AL1 s198 build: Worker::corrected_eval and
++// Worker::update_correction (evaluation.inc) only gained one branch at their
++// top, `if (options::corr_hist_plus != 0) [[unlikely]] return <twin>(...)`,
++// which jumps with the arguments untouched to the cold twins below. Each twin
++// repeats the AL1 s198 statements of its hot counterpart and adds the extra
++// keys. The twins are [[gnu::cold]], so GCC places them in .text.unlikely,
++// away from the hot .text. corrected_eval_plus is also a leaf (all helpers
++// are always_inline): GCC's interprocedural register allocation lets the
++// callers of corrected_eval (search, qsearch) keep values in registers that
++// corrected_eval leaves alone, so a twin that called other functions would
++// clobber them and change the callers' code.
++
++namespace forge {
++
++// Frame of the node whose evaluation is being corrected. corrected_eval and
++// update_correction run on the search board of that node, every make_move /
++// make_null_move between the root and the node pushed one key onto the board
++// history, the root frame is stack_[4] and the child of frame ss is ss + 1
++// (iterative.inc, alphabeta.inc, qsearch.inc), so the board history gives the
++// frame without passing it through the hot callers. The ply recorded in the
++// frame confirms it; anything else (e.g. a probe outside a search) gets none.
++inline const SearchStack* Worker::correction_frame(const Board& board) const {
++    const std::size_t history = board.history_size();
++    if (history <= root_history_index_) return nullptr;
++    const std::size_t ply = history - 1 - root_history_index_;
++    if (ply > static_cast<std::size_t>(MaxPly)) return nullptr;
++    const SearchStack* ss = &stack_[4 + ply];
++    return ss->ply == static_cast<int>(ply) ? ss : nullptr;
++}
++
++// Continuation-table slot of the node (forge::corrplus::continuation_index), or
++// ContinuationSize when the previous two moves are not both known: next to the
++// root (the sentinel frames hold no move) or after a null move.
++inline std::size_t Worker::continuation_correction_index(const Board& board) const {
++    const SearchStack* ss = correction_frame(board);
++    if (ss == nullptr) return corrplus::ContinuationSize;
++    const SearchStack* theirs = ss - 1;  // the move that led to this node
++    const SearchStack* ours = ss - 2;    // our move before it
++    const Color side = board.side_to_move();
++    if (theirs->current_move.is_none() || ours->current_move.is_none() ||
++        theirs->moved_piece == Empty || ours->moved_piece == Empty ||
++        color_of(ours->moved_piece) != side || color_of(theirs->moved_piece) == side) {
++        return corrplus::ContinuationSize;
++    }
++    // The colours are fixed by the side to move (checked above): the piece type
++    // is the piece minus its colour offset (no modulo in this size-optimised code).
++    const int ours_offset = side == White ? 0 : 6;
++    return corrplus::continuation_index(side, static_cast<int>(ours->moved_piece) - ours_offset, ours->current_move.to,
++                                        static_cast<int>(theirs->moved_piece) - (6 - ours_offset), theirs->current_move.to);
++}
++
++// Correction of the enabled extra keys in CorrectionGrain units (weighted,
++// clamped by corrplus::blend); added to the pawn + material correction.
++inline int Worker::correction_plus(const Board& board) const {
++    const corrplus::Tables* tables = correction_plus_.get();
++    if (tables == nullptr) return 0;  // nothing learned yet: the first update allocates the tables
++    const int keys = options::corr_hist_plus;
++    const std::size_t side = static_cast<std::size_t>(board.side_to_move());
++    int sum = 0;
++    if ((keys & corrplus::Continuation) != 0) {
++        const std::size_t index = continuation_correction_index(board);
++        if (index < corrplus::ContinuationSize) sum += tables->continuation[index] * tune::CorrContWeight;
++    }
++    if ((keys & corrplus::MinorPiece) != 0) {
++        sum += tables->minor[side][corrplus::key_index(corrplus::minor_piece_key(board))] * tune::CorrMinorWeight;
++    }
++    if ((keys & corrplus::NonPawn) != 0) {
++        const int white = tables->non_pawn[White][side][corrplus::key_index(corrplus::non_pawn_key(board, White))];
++        const int black = tables->non_pawn[Black][side][corrplus::key_index(corrplus::non_pawn_key(board, Black))];
++        sum += (white + black) * tune::CorrNonPawnWeight;
++    }
++    return corrplus::blend(sum);
++}
++
++// corrected_eval with CorrHistPlus on: the AL1 s198 statements of
++// corrected_eval (pawn + material correction; the divisions written as
++// corrplus::div100 / div_pow2, the same values) plus the extra keys.
++int Worker::corrected_eval_plus(const Board& board, int raw_eval) const {
++    const std::size_t side = static_cast<std::size_t>(board.side_to_move());
++    std::int32_t correction = (*correction_history_)[side][board.pawn_key() & (CorrectionSize - 1U)];
++    if (tune::MaterialCorrectionWeight > 0) {
++        correction += corrplus::div100((*material_correction_)[side][material_key(board) & (CorrectionSize - 1U)] * tune::MaterialCorrectionWeight);
++    }
++    correction += correction_plus(board);
++    return std::clamp(raw_eval + corrplus::div_pow2<8>(correction), -MateInMaxPly + 1, MateInMaxPly - 1);
++}
++
++// update_correction with CorrHistPlus on: the AL1 s198 statements of
++// update_correction (pawn + material tables; / 256 written as div_pow2<8>,
++// the same value) plus the extra keys. The search
++// calls update_correction under one rule for all tables: not in check, no
++// excluded move, no mate score, best move quiet (or none), and the bound on the
++// side of the difference (alphabeta.inc). The extra entries take the same
++// residual and depth weight (corrplus::step) with a decay (corrplus::apply).
++void Worker::update_correction_plus(const Board& board, int depth, int best_score, int static_eval) {
++    const std::size_t side = static_cast<std::size_t>(board.side_to_move());
++    const int diff = std::clamp((best_score - static_eval) * CorrectionGrain, -CorrectionLimit / 4, CorrectionLimit / 4);
++    const int weight = std::min(depth + 1, 16);
++    auto apply = [&](std::int32_t& entry) {
++        entry = std::clamp(entry + corrplus::div_pow2<8>(diff * weight), -CorrectionLimit, CorrectionLimit);
++    };
++    apply((*correction_history_)[side][board.pawn_key() & (CorrectionSize - 1U)]);
++    if (tune::MaterialCorrectionWeight > 0) apply((*material_correction_)[side][material_key(board) & (CorrectionSize - 1U)]);
++
++    if (!correction_plus_) {
++        // Value-initialised (all entries 0). On allocation failure the extra keys stay unused.
++        correction_plus_.reset(new (std::nothrow) corrplus::Tables());
++        if (!correction_plus_) return;
++    }
++    corrplus::Tables& tables = *correction_plus_;
++    const int keys = options::corr_hist_plus;
++    const int step = corrplus::step(best_score, static_eval, depth);
++    auto learn = [step](corrplus::Entry& entry) { entry = static_cast<corrplus::Entry>(corrplus::apply(entry, step)); };
++    if ((keys & corrplus::Continuation) != 0) {
++        const std::size_t index = continuation_correction_index(board);
++        if (index < corrplus::ContinuationSize) learn(tables.continuation[index]);
++    }
++    if ((keys & corrplus::MinorPiece) != 0) {
++        learn(tables.minor[side][corrplus::key_index(corrplus::minor_piece_key(board))]);
++    }
++    if ((keys & corrplus::NonPawn) != 0) {
++        learn(tables.non_pawn[White][side][corrplus::key_index(corrplus::non_pawn_key(board, White))]);
++        learn(tables.non_pawn[Black][side][corrplus::key_index(corrplus::non_pawn_key(board, Black))]);
++    }
++}
++
++} // namespace forge
+diff --git a/src/search/evaluation.inc b/src/search/evaluation.inc
+index 1592b4ed..6402b3b2 100644
+--- a/src/search/evaluation.inc
++++ b/src/search/evaluation.inc
+@@ -6,7 +6,9 @@ namespace forge {
+ 
+ namespace {
+ // Hash of the piece counts of both sides, for material-indexed statistics.
+-[[nodiscard]] std::uint64_t material_key(const Board& board) {
++// Always inlined: it also has a call site in the cold CorrHistPlus path, and an
++// out-of-line copy would be emitted at the start of the hot .text.
++[[gnu::always_inline]] [[nodiscard]] inline std::uint64_t material_key(const Board& board) {
+     std::uint64_t key = 0;
+     for (const Color color : {White, Black}) {
+         for (int type = Pawn; type <= Queen; ++type) {
+@@ -57,6 +59,9 @@ void Worker::record_null_move(SearchStack* ss) {
+ }
+ 
+ int Worker::corrected_eval(const Board& board, int raw_eval) const {
++    // CorrHistPlus (default 0 = off): one predictable branch; the cold path
++    // computes this correction plus the extra keys (correction_plus.inc).
++    if (options::corr_hist_plus != 0) [[unlikely]] return corrected_eval_plus(board, raw_eval);
+     const std::size_t side = static_cast<std::size_t>(board.side_to_move());
+     std::int32_t correction = (*correction_history_)[side][board.pawn_key() & (CorrectionSize - 1U)];
+     if (tune::MaterialCorrectionWeight > 0) {
+@@ -66,6 +71,9 @@ int Worker::corrected_eval(const Board& board, int raw_eval) const {
+ }
+ 
+ void Worker::update_correction(const Board& board, int depth, int best_score, int static_eval) {
++    // CorrHistPlus (default 0 = off): one predictable branch; the cold path
++    // performs this update plus the extra keys (correction_plus.inc).
++    if (options::corr_hist_plus != 0) [[unlikely]] return update_correction_plus(board, depth, best_score, static_eval);
+     const std::size_t side = static_cast<std::size_t>(board.side_to_move());
+     const int diff = std::clamp((best_score - static_eval) * CorrectionGrain, -CorrectionLimit / 4, CorrectionLimit / 4);
+     const int weight = std::min(depth + 1, 16);
+diff --git a/src/search/options.inc b/src/search/options.inc
+new file mode 100644
+index 00000000..b47f13c1
+--- /dev/null
++++ b/src/search/options.inc
+@@ -0,0 +1,8 @@
++// Search module: runtime search options (forge/search_options.hpp), all OFF.
++// Compiled as part of src/search.cpp (included exactly once).
++
++namespace forge::options {
++
++std::uint8_t corr_hist_plus = 0;
++
++} // namespace forge::options
+diff --git a/src/search/tune.inc b/src/search/tune.inc
+index 9a2024ba..1cf39d15 100644
+--- a/src/search/tune.inc
++++ b/src/search/tune.inc
+@@ -5,6 +5,12 @@
+ namespace forge {
+ 
+ namespace tune {
++// CorrHistPlus weights. Defined before the AL1 s198 tunables on purpose: GCC
++// emits a translation unit's globals in reverse definition order, so these
++// land after the existing block and every AL1 s198 tunable keeps its address.
++int CorrContWeight = 100;
++int CorrMinorWeight = 100;
++int CorrNonPawnWeight = 100;
+ int LmrQuietBase = 85;
+ int LmrQuietDivisor = 220;
+ int LmrNoisyBase = 10;
+@@ -91,6 +97,8 @@ const std::vector<Parameter>& parameters() {
+         {"TmFallingEvalPercent", &TmFallingEvalPercent, 0, 400}, {"TmMinFactorPercent", &TmMinFactorPercent, 10, 100},
+         {"CaptureFutilityBase", &CaptureFutilityBase, 0, 1000},  {"CaptureFutilityMultiplier", &CaptureFutilityMultiplier, 0, 1000},
+         {"CaptureFutilityDepth", &CaptureFutilityDepth, 0, 15},  {"FailLowContinuationBonus", &FailLowContinuationBonus, 0, 300},
++        {"CorrContWeight", &CorrContWeight, 0, 300},          {"CorrMinorWeight", &CorrMinorWeight, 0, 300},
++        {"CorrNonPawnWeight", &CorrNonPawnWeight, 0, 300},
+     };
+     return table;
+ }
+diff --git a/src/search/worker.inc b/src/search/worker.inc
+index 7309d120..cce7053a 100644
+--- a/src/search/worker.inc
++++ b/src/search/worker.inc
+@@ -17,6 +17,7 @@ void Worker::clear() {
+     histories_.clear();
+     *correction_history_ = CorrectionHistory{};
+     *material_correction_ = CorrectionHistory{};
++    correction_plus_.reset();  // CorrHistPlus tables, reallocated (zeroed) by the next update
+     for (SearchStack& ss : stack_) ss = SearchStack{};
+ }
+ 
+diff --git a/src/uci.cpp b/src/uci.cpp
+index 607adf3a..02999c73 100644
+--- a/src/uci.cpp
++++ b/src/uci.cpp
+@@ -171,6 +171,8 @@ int main() {
+                          "option name Book Depth type spin default 30 min 0 max 100\n"
+                          "option name Book Variety type spin default 30 min 0 max 100\n";
+             if (forge::nnue::available()) std::cout << "option name UseNNUE type check default true\n";
++            // Search options added after AL1 s198; all default OFF (see forge/search_options.hpp).
++            std::cout << "option name CorrHistPlus type spin default 0 min 0 max 7\n";
+ #ifdef FORGE_EXPOSE_TUNABLES
+             // Development builds advertise the search constants so match
+             // runners can set them; release builds accept them silently.
+@@ -259,6 +261,15 @@ int main() {
+                 } else {
+                     book_variety = std::clamp(value, 0, 100);
+                 }
++            } else if (name == "CorrHistPlus") {
++                int value = 0;
++                const auto parsed = std::from_chars(value_text.data(), value_text.data() + value_text.size(), value);
++                if (parsed.ec != std::errc{} || parsed.ptr != value_text.data() + value_text.size()) {
++                    const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex());
++                    std::cout << "info string invalid value for option " << name << std::endl;
++                } else {
++                    forge::options::corr_hist_plus = static_cast<std::uint8_t>(std::clamp(value, 0, 7));
++                }
+             } else if (name == "UseNNUE") {
+                 if (value_text == "true") forge::nnue::enabled = true;
+                 else if (value_text == "false") forge::nnue::enabled = false;
+diff --git a/tests/correction_history_tests.cpp b/tests/correction_history_tests.cpp
+index 1c74da6c..d164a9b6 100644
+--- a/tests/correction_history_tests.cpp
++++ b/tests/correction_history_tests.cpp
+@@ -1,12 +1,16 @@
+ // Exercise actual correction feedback, table coupling and saturation through the test friendship.
++// Second part (corrplus_tests below): the CorrHistPlus keys, indices, update / decay / clamp / blend
++// rules and their search glue (forge/correction_plus.hpp, src/search/correction_plus.inc).
+ #include "forge/search.hpp"
+ #include <algorithm>
+ #include <array>
++#include <cstdint>
+ #include <cstdlib>
+ #include <iostream>
+ #include <memory>
+ #include <stdexcept>
+ #include <string>
++#include <utility>
+ #include <vector>
+ 
+ namespace forge {
+@@ -17,6 +21,10 @@ struct SearcherTestProbe {
+     }
+     static CorrectionHistory& pawns(Worker& w) { return *w.correction_history_; }
+     static CorrectionHistory& material(Worker& w) { return *w.material_correction_; }
++    // CorrHistPlus state.
++    static corrplus::Tables* plus(Worker& w) { return w.correction_plus_.get(); }
++    static std::size_t& root_history_index(Worker& w) { return w.root_history_index_; }
++    static SearchStack& frame(Worker& w, std::size_t index) { return w.stack_[index]; }
+ };
+ }
+ using namespace forge;
+@@ -55,6 +63,534 @@ void state(const std::string& label, Worker& w, const Board& b, std::size_t mi,
+               << " material=" << material(w,b,mi) << " corrected=" << Probe::eval(w,b,raw) << '\n';
+ }
+ }
++
++// ============================================================================
++// CorrHistPlus. Each section prints one PASS/FAIL line with its check count;
++// individual checks print only when they fail. References are written out
++// independently of forge/correction_plus.hpp (mailbox scans instead of
++// bitboards, explicit truncating division, a plain loop over the index space).
++// ============================================================================
++namespace corrplus_tests {
++
++int printed = 0;
++void expect(bool okay, const std::string& name) {
++    ++checks;
++    if (!okay) {
++        ++failures;
++        if (++printed <= 40) std::cout << "FAIL " << name << '\n';
++    }
++}
++
++struct Section {
++    std::string name;
++    int checks_before = checks;
++    int failures_before = failures;
++    explicit Section(std::string n) : name(std::move(n)) {}
++    ~Section() {
++        std::cout << (failures == failures_before ? "PASS " : "FAIL ") << "corrplus " << name
++                  << " checks=" << checks - checks_before << '\n';
++    }
++};
++
++struct Rng {  // SplitMix64: deterministic, platform independent
++    std::uint64_t state;
++    std::uint64_t next() {
++        std::uint64_t z = (state += 0x9E3779B97F4A7C15ULL);
++        z = (z ^ (z >> 30U)) * 0xBF58476D1CE4E5B9ULL;
++        z = (z ^ (z >> 27U)) * 0x94D049BB133111EBULL;
++        return z ^ (z >> 31U);
++    }
++};
++
++long long trunc_div(long long a, long long b) { return a >= 0 ? a / b : -((-a) / b); }
++long long clamp_ll(long long v, long long lo, long long hi) { return v < lo ? lo : (v > hi ? hi : v); }
++
++// Piece placement signatures from the mailbox (the keys hash bitboards).
++using Signature = std::vector<std::pair<int, int>>;
++Signature minor_signature(const Board& b) {
++    Signature s;
++    for (int sq = 0; sq < 64; ++sq) {
++        const Piece p = b.piece_at(sq);
++        if (p == WN || p == WB || p == BN || p == BB || p == WK || p == BK) s.emplace_back(p, sq);
++    }
++    return s;
++}
++Signature non_pawn_signature(const Board& b, Color c) {
++    Signature s;
++    for (int sq = 0; sq < 64; ++sq) {
++        const Piece p = b.piece_at(sq);
++        if (p != Empty && color_of(p) == c && piece_type(p) != Pawn) s.emplace_back(p, sq);
++    }
++    return s;
++}
++
++struct Keys {
++    std::uint64_t minor, white, black;
++    bool operator==(const Keys&) const = default;
++};
++Keys keys_of(const Board& b) {
++    return {corrplus::minor_piece_key(b), corrplus::non_pawn_key(b, White), corrplus::non_pawn_key(b, Black)};
++}
++
++const std::vector<std::string>& walk_fens() {
++    static const std::vector<std::string> fens{
++        std::string(Board::StandardStartFen),
++        "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1",
++        "r4rk1/1pp1qppp/p1np1n2/8/2B1P1b1/2N2N2/PPP1QPPP/2KR3R w - - 0 10",
++        "8/2p5/3p4/KP5r/1R3p1k/8/4P1P1/8 w - - 0 1",
++        "r1bq1rk1/pp2bppp/2n1pn2/3p4/2PP4/2N1PN2/PP3PPP/R2QKB1R w KQ - 0 8",
++        "2rr3k/pp3pp1/1nnqbN1p/3pN3/2pP4/2P3Q1/PPB4P/R4RK1 w - - 0 1",
++        "rnbqkbnr/ppp1p1pp/8/3pPp2/8/8/PPPP1PPP/RNBQKBNR w KQkq f6 0 3",  // en passant
++        "n1n5/PPPk4/8/8/8/8/4Kppp/5N1N b - - 0 1",                         // promotions, under-promotions
++        "r3k2r/8/8/8/8/8/8/R3K2R w KQkq - 0 1",                            // castling
++    };
++    return fens;
++}
++
++// Keys stable under make/unmake and null moves, equal for equal positions
++// (transpositions, FEN round trip), and changing exactly when the hashed
++// pieces change.
++void keys_walk() {
++    Section section("keys: make/unmake, null move, FEN round trip, change iff hashed pieces change");
++    Rng rng{20261026};
++    std::array<int, 3> changed{}, unchanged{};
++    for (const std::string& fen : walk_fens()) {
++        for (int walk = 0; walk < 4; ++walk) {
++            Board b = position(fen);
++            for (int ply = 0; ply < 120; ++ply) {
++                const MoveList moves = b.legal_moves();
++                if (moves.empty()) break;
++                const Keys before = keys_of(b);
++                const std::string fen_before = b.fen();
++                const Signature minor_before = minor_signature(b);
++                const Signature white_before = non_pawn_signature(b, White);
++                const Signature black_before = non_pawn_signature(b, Black);
++                if (!b.in_check()) {
++                    NullUndo null_undo;
++                    b.make_null_move(null_undo);
++                    expect(keys_of(b) == before, "null move leaves the keys unchanged: " + fen_before);
++                    b.unmake_null_move(null_undo);
++                }
++                const Move move = moves[static_cast<std::size_t>(rng.next() % moves.size())];
++                Undo undo;
++                (void)b.make_move(move, undo);
++                const Keys after = keys_of(b);
++                const bool minor_same = minor_signature(b) == minor_before;
++                const bool white_same = non_pawn_signature(b, White) == white_before;
++                const bool black_same = non_pawn_signature(b, Black) == black_before;
++                const std::string where = fen_before + " " + Board::move_to_uci(move);
++                expect((after.minor == before.minor) == minor_same, "minor key changes iff knights/bishops/kings change: " + where);
++                expect((after.white == before.white) == white_same, "white non-pawn key changes iff white N/B/R/Q/K change: " + where);
++                expect((after.black == before.black) == black_same, "black non-pawn key changes iff black N/B/R/Q/K change: " + where);
++                (minor_same ? unchanged : changed)[0]++;
++                (white_same ? unchanged : changed)[1]++;
++                (black_same ? unchanged : changed)[2]++;
++                expect(keys_of(position(b.fen())) == after, "keys equal after a FEN round trip: " + where);
++                expect(corrplus::key_index(after.minor) < CorrectionSize && corrplus::key_index(after.white) < CorrectionSize &&
++                           corrplus::key_index(after.black) == (after.black & (CorrectionSize - 1U)),
++                       "key_index is the low 14 bits");
++                b.unmake_move(move, undo);
++                expect(keys_of(b) == before && b.fen() == fen_before, "keys restored by unmake_move: " + where);
++                (void)b.make_move(move, undo);
++            }
++        }
++    }
++    for (int k = 0; k < 3; ++k) {
++        expect(changed[static_cast<std::size_t>(k)] > 100 && unchanged[static_cast<std::size_t>(k)] > 100,
++               "walks exercise both outcomes for key " + std::to_string(k));
++    }
++    // Transposition: the same position reached by two move orders.
++    Board x = position(std::string(Board::StandardStartFen));
++    Board y = x;
++    for (const char* m : {"g1f3", "g8f6", "b1c3", "b8c6"}) { Undo u; (void)x.make_move(*x.parse_uci(m), u); }
++    for (const char* m : {"b1c3", "b8c6", "g1f3", "g8f6"}) { Undo u; (void)y.make_move(*y.parse_uci(m), u); }
++    expect(keys_of(x) == keys_of(y), "keys equal for a transposition");
++    // Colour separation: a white knight move changes only the minor and white keys.
++    Board z = position(std::string(Board::StandardStartFen));
++    const Keys start = keys_of(z);
++    { Undo u; (void)z.make_move(*z.parse_uci("g1f3"), u); }
++    const Keys knight = keys_of(z);
++    expect(knight.minor != start.minor && knight.white != start.white && knight.black == start.black,
++           "Ng1-f3 changes the minor and white keys only");
++    { Undo u; (void)z.make_move(*z.parse_uci("e7e5"), u); }
++    expect(keys_of(z) == knight, "a pawn move changes none of the keys");
++}
++
++// The continuation index is a bijection from (side, our type, to, their type,
++// to) onto [0, ContinuationSize) in the documented order.
++void continuation_index_bijection() {
++    Section section("continuation index: exact value, in range, bijective");
++    std::vector<unsigned char> seen(corrplus::ContinuationSize, 0);
++    long long mismatches = 0, out_of_range = 0;
++    for (int side = 0; side < 2; ++side) {
++        for (int ot = 1; ot <= 6; ++ot) {
++            for (int oto = 0; oto < 64; ++oto) {
++                for (int tt = 1; tt <= 6; ++tt) {
++                    for (int tto = 0; tto < 64; ++tto) {
++                        const std::size_t index = corrplus::continuation_index(static_cast<Color>(side), ot, oto, tt, tto);
++                        const long long reference = (((static_cast<long long>(side) * 6 + (ot - 1)) * 64 + oto) * 6 + (tt - 1)) * 64 + tto;
++                        if (static_cast<long long>(index) != reference) ++mismatches;
++                        if (index >= corrplus::ContinuationSize) ++out_of_range;
++                        else ++seen[index];
++                    }
++                }
++            }
++        }
++    }
++    expect(corrplus::ContinuationSize == 2U * 6U * 64U * 6U * 64U, "ContinuationSize = 294912");
++    expect(mismatches == 0, "index equals the reference formula (" + std::to_string(mismatches) + " mismatches)");
++    expect(out_of_range == 0, "every index is in range (" + std::to_string(out_of_range) + " out of range)");
++    expect(std::all_of(seen.begin(), seen.end(), [](unsigned char c) { return c == 1; }), "every slot is hit exactly once");
++    expect(corrplus::continuation_index(White, 1, 0, 1, 0) == 0, "first slot is 0");
++    expect(corrplus::continuation_index(Black, 6, 63, 6, 63) == corrplus::ContinuationSize - 1, "last slot is size - 1");
++}
++
++// The division helpers equal the C++ operator (rounding toward zero) on a
++// range far beyond any value the engine produces (|x| <= 41000 for /256,
++// 2^20 for /8192, about 10^7 for /100).
++void division_helpers() {
++    Section section("division helpers: div_pow2<8>, div_pow2<13>, div100 equal the / operator");
++    long long bad8 = 0, bad13 = 0, bad100 = 0;
++    for (int x = -(1 << 22); x <= (1 << 22); ++x) {
++        if (corrplus::div_pow2<8>(x) != x / 256) ++bad8;
++        if (corrplus::div_pow2<13>(x) != x / 8192) ++bad13;
++    }
++    for (int x = -(1 << 25); x <= (1 << 25); ++x) {
++        if (corrplus::div100(x) != x / 100) ++bad100;
++    }
++    for (const int x : {2147483647, -2147483647 - 1, 2147483600, -2147483600, 2147483599, -2147483599, 1000000000, -1000000001}) {
++        if (corrplus::div100(x) != x / 100) ++bad100;
++    }
++    expect(bad8 == 0, "div_pow2<8>(x) == x / 256 for |x| <= 2^22 (" + std::to_string(bad8) + " mismatches)");
++    expect(bad13 == 0, "div_pow2<13>(x) == x / 8192 for |x| <= 2^22 (" + std::to_string(bad13) + " mismatches)");
++    expect(bad100 == 0, "div100(x) == x / 100 for |x| <= 2^25 and the int extremes (" + std::to_string(bad100) + " mismatches)");
++}
++
++// step / apply (decay and clamp) / blend against independent references.
++void update_rules() {
++    Section section("update rules: step, decay, clamp, blend (exhaustive entry x step domain)");
++    long long step_mismatch = 0;
++    for (int depth = -1; depth <= 40; ++depth) {
++        for (int delta : {-100000, -1000, -9, -8, -7, -6, -1, 0, 1, 2, 5, 6, 7, 8, 9, 1000, 100000}) {
++            const long long residual = clamp_ll(static_cast<long long>(delta) * 256, -2048, 2048);
++            const long long reference = trunc_div(residual * std::min(depth + 1, 16), 256);
++            if (corrplus::step(100 + delta, 100, depth) != reference) ++step_mismatch;
++        }
++    }
++    expect(step_mismatch == 0, "step = clamp(residual x 256, +-2048) x min(depth+1,16) / 256 (" + std::to_string(step_mismatch) + " mismatches)");
++    expect(corrplus::step(106, 100, 15) == 96 && corrplus::step(94, 100, 15) == -96 && corrplus::step(500, 0, 30) == 128 &&
++               corrplus::step(103, 100, 0) == 3,
++           "step anchors 96 / -96 / 128 / 3");
++    long long apply_mismatch = 0, outside = 0;
++    for (int entry = -CorrectionLimit; entry <= CorrectionLimit; ++entry) {
++        for (int step = -128; step <= 128; ++step) {
++            const long long decay = trunc_div(static_cast<long long>(entry) * (step < 0 ? -step : step), 8192);
++            const long long reference = clamp_ll(entry + step - decay, -8192, 8192);
++            const int got = corrplus::apply(entry, step);
++            if (got != reference) ++apply_mismatch;
++            if (got < -8192 || got > 8192) ++outside;
++        }
++    }
++    expect(apply_mismatch == 0, "apply = clamp(entry + step - entry x |step| / 8192, +-8192) over the whole domain (" +
++                                    std::to_string(apply_mismatch) + " mismatches)");
++    expect(outside == 0, "clamp holds: no entry leaves +-8192");
++    expect(corrplus::apply(8192, -128) == 7936 && corrplus::apply(7936, 128) == 7940 && corrplus::apply(-8192, 128) == -7936 &&
++               corrplus::apply(8191, 128) == 8192 && corrplus::apply(8192, 128) == 8192 && corrplus::apply(8192, 0) == 8192 &&
++               corrplus::apply(-8192, -128) == -8192 && corrplus::apply(100, 0) == 100,
++           "decay anchors");
++    // Decay: alternating +-128 pulls a saturated entry toward 0, monotonically.
++    int entry = 8192;
++    bool monotone = true;
++    for (int pair = 0; pair < 200; ++pair) {
++        const int before = entry;
++        entry = corrplus::apply(corrplus::apply(entry, -128), 128);
++        if (std::abs(entry) > std::abs(before)) monotone = false;
++    }
++    expect(monotone && std::abs(entry) < 256, "alternating steps decay a saturated entry (" + std::to_string(entry) + ")");
++    // Constant step: non-decreasing, reaches the limit exactly and stays there.
++    entry = 0;
++    bool non_decreasing = true;
++    for (int n = 0; n < 4000; ++n) {
++        const int next = corrplus::apply(entry, 128);
++        if (next < entry) non_decreasing = false;
++        entry = next;
++    }
++    expect(non_decreasing && entry == CorrectionLimit, "constant step converges to exactly +8192");
++    // Blend: weighted sum / 100, clamped to +-TotalLimit.
++    expect(corrplus::TotalLimit == 16384, "TotalLimit = 2 x CorrectionLimit = 64 cp");
++    long long blend_mismatch = 0;
++    for (long long sum = -1700000; sum <= 1700000; sum += 37) {
++        const long long reference = clamp_ll(trunc_div(sum, 100), -16384, 16384);
++        if (corrplus::blend(static_cast<int>(sum)) != reference) ++blend_mismatch;
++    }
++    for (int sum : {1638400, 1638499, 1638500, -1638400, -1638499, -1638500, 99, -99, 100, -100, 0}) {
++        if (corrplus::blend(sum) != clamp_ll(trunc_div(sum, 100), -16384, 16384)) ++blend_mismatch;
++    }
++    expect(blend_mismatch == 0, "blend = clamp(sum / 100, +-16384) (" + std::to_string(blend_mismatch) + " mismatches)");
++    expect(corrplus::blend(1638400) == 16384 && corrplus::blend(-1638400) == -16384 && corrplus::blend(1638399) == 16383,
++           "blend reaches the clamp exactly at 16384");
++}
++
++long long nonzero(const corrplus::Tables& t) {
++    long long n = 0;
++    for (const auto& side : t.minor) n += std::count_if(side.begin(), side.end(), [](corrplus::Entry e) { return e != 0; });
++    for (const auto& colour : t.non_pawn)
++        for (const auto& side : colour) n += std::count_if(side.begin(), side.end(), [](corrplus::Entry e) { return e != 0; });
++    n += std::count_if(t.continuation.begin(), t.continuation.end(), [](corrplus::Entry e) { return e != 0; });
++    return n;
++}
++long long nonzero_continuation(const corrplus::Tables& t) {
++    return std::count_if(t.continuation.begin(), t.continuation.end(), [](corrplus::Entry e) { return e != 0; });
++}
++
++// Frames as Worker::search sets them up: stack_[i].ply = i - 4, no moves.
++void reset_frames(Worker& w) {
++    for (std::size_t i = 0; i < MaxPly + 8; ++i) {
++        SearchStack& ss = Probe::frame(w, i);
++        ss.ply = static_cast<int>(i) - 4;
++        ss.current_move = Move::none();
++        ss.moved_piece = Empty;
++    }
++}
++
++// The Worker glue: which entries an update touches, what corrected_eval reads.
++void worker_glue() {
++    Section section("worker glue: OFF untouched, one entry per key, read formula, frame and null-move rules, clamps, clear");
++    SharedSearchState shared(1);
++    auto owner = std::make_unique<Worker>(shared, 0);
++    Worker& w = *owner;
++    auto reference_owner = std::make_unique<Worker>(shared, 1);
++    Worker& r = *reference_owner;
++    const Board b = position("r1bqkb1r/pppp1ppp/2n2n2/4p3/2B1P3/5N2/PPPP1PPP/RNBQK2R w KQkq - 4 4");
++    const auto side = static_cast<std::size_t>(b.side_to_move());
++    const std::size_t minor_slot = corrplus::key_index(corrplus::minor_piece_key(b));
++    const std::size_t white_slot = corrplus::key_index(corrplus::non_pawn_key(b, White));
++    const std::size_t black_slot = corrplus::key_index(corrplus::non_pawn_key(b, Black));
++    options::corr_hist_plus = 0;
++    const std::size_t material_slot = find_material(w, b);
++    tune::MaterialCorrectionWeight = 100;
++    tune::CorrContWeight = tune::CorrMinorWeight = tune::CorrNonPawnWeight = 100;
++
++    // OFF: no tables, the lock path.
++    options::corr_hist_plus = 0;
++    w.clear();
++    Probe::update(w, b, 15, 106, 100);
++    expect(Probe::plus(w) == nullptr, "OFF: an update allocates no CorrHistPlus tables");
++
++    // One entry per key, the same step as the pawn table; pawn/material tables as with OFF.
++    for (const int bit : {corrplus::MinorPiece, corrplus::NonPawn}) {
++        const std::string tag = "bit " + std::to_string(bit) + ": ";
++        options::corr_hist_plus = 0;
++        r.clear();
++        Probe::update(r, b, 15, 106, 100);
++        options::corr_hist_plus = static_cast<std::uint8_t>(bit);
++        w.clear();
++        Probe::update(w, b, 15, 106, 100);
++        corrplus::Tables* t = Probe::plus(w);
++        expect(t != nullptr, tag + "the first update allocates the tables");
++        if (t == nullptr) continue;
++        if (bit == corrplus::MinorPiece) {
++            expect(t->minor[side][minor_slot] == 96 && nonzero(*t) == 1, tag + "exactly the minor entry learns the step (96)");
++        } else {
++            expect(t->non_pawn[White][side][white_slot] == 96 && t->non_pawn[Black][side][black_slot] == 96 && nonzero(*t) == 2,
++                   tag + "exactly the two non-pawn entries learn the step (96)");
++        }
++        expect(Probe::pawns(w) == Probe::pawns(r) && Probe::material(w) == Probe::material(r),
++               tag + "pawn and material tables updated exactly as with OFF");
++        // Read formula with seeded entries and non-trivial weights:
++        // corrected = raw + (pawn + material x MW / 100 + blend(sum of entry x weight)) / 256.
++        Probe::pawns(w)[side][pawn_index(b)] = 1000;
++        Probe::material(w)[side][material_slot] = -600;
++        t->minor[side][minor_slot] = 5000;
++        t->non_pawn[White][side][white_slot] = -3000;
++        t->non_pawn[Black][side][black_slot] = 7000;
++        tune::MaterialCorrectionWeight = 33;
++        tune::CorrMinorWeight = 70;
++        tune::CorrNonPawnWeight = 130;
++        const long long weighted = bit == corrplus::MinorPiece ? 5000LL * 70 : (-3000LL + 7000LL) * 130;
++        const long long extra = clamp_ll(trunc_div(weighted, 100), -16384, 16384);
++        const long long expected = 100 + trunc_div(1000 + trunc_div(-600LL * 33, 100) + extra, 256);
++        expect(Probe::eval(w, b, 100) == expected, tag + "corrected_eval = raw + (pawn + material + blend(entries x weights)) / 256");
++        tune::MaterialCorrectionWeight = 100;
++        tune::CorrMinorWeight = tune::CorrNonPawnWeight = 100;
++    }
++
++    // Blend clamp through the Worker: both non-pawn entries saturated, weight 200.
++    options::corr_hist_plus = corrplus::NonPawn;
++    w.clear();
++    Probe::update(w, b, 15, 100, 100);  // zero residual: allocates, learns nothing
++    expect(Probe::plus(w) != nullptr && nonzero(*Probe::plus(w)) == 0, "zero residual allocates and learns nothing");
++    tune::CorrNonPawnWeight = 200;
++    for (const int sign : {1, -1}) {
++        Probe::plus(w)->non_pawn[White][side][white_slot] = static_cast<corrplus::Entry>(sign * CorrectionLimit);
++        Probe::plus(w)->non_pawn[Black][side][black_slot] = static_cast<corrplus::Entry>(sign * CorrectionLimit);
++        expect(Probe::eval(w, b, 100) == 100 + sign * 64, "blend clamp: two saturated tables at weight 200 add exactly 64 cp");
++    }
++    tune::CorrNonPawnWeight = 100;
++    // Entry clamp through the Worker: a constant large residual saturates at exactly +-8192.
++    for (const int sign : {1, -1}) {
++        w.clear();
++        bool inside = true;
++        for (int n = 0; n < 3000; ++n) {
++            Probe::update(w, b, 15, 100 + sign * 500, 100);
++            const int white = Probe::plus(w)->non_pawn[White][side][white_slot];
++            if (white < -CorrectionLimit || white > CorrectionLimit) inside = false;
++        }
++        expect(inside && Probe::plus(w)->non_pawn[White][side][white_slot] == sign * CorrectionLimit &&
++                   Probe::plus(w)->non_pawn[Black][side][black_slot] == sign * CorrectionLimit,
++               "clamp holds under a constant residual and the limit is reached");
++    }
++    // clear() drops the tables; the next read sees nothing learned.
++    w.clear();
++    expect(Probe::plus(w) == nullptr && Probe::eval(w, b, 100) == 100, "clear() frees the tables");
++
++    // Continuation key: the frame is derived from the board history (ply =
++    // moves since the root index, frame = stack_[4 + ply]); observed through
++    // the entry an update writes.
++    options::corr_hist_plus = corrplus::Continuation;
++    w.clear();
++    Board c = position(std::string(Board::StandardStartFen));
++    Probe::root_history_index(w) = c.history_size() - 1;
++    reset_frames(w);
++    const Move e2e4 = *c.parse_uci("e2e4");
++    Probe::frame(w, 4).current_move = e2e4;
++    Probe::frame(w, 4).moved_piece = WP;
++    { Undo u; (void)c.make_move(e2e4, u); }
++    Probe::update(w, c, 15, 106, 100);  // ply 1: the move two plies back is the root sentinel
++    expect(Probe::plus(w) != nullptr && nonzero_continuation(*Probe::plus(w)) == 0, "ply 1: no continuation key");
++    const Move e7e5 = *c.parse_uci("e7e5");
++    Probe::frame(w, 5).current_move = e7e5;
++    Probe::frame(w, 5).moved_piece = BP;
++    { Undo u; (void)c.make_move(e7e5, u); }
++    const std::size_t slot = corrplus::continuation_index(White, Pawn, 28, Pawn, 36);
++    w.clear();  // also resets the frames: set them up again
++    reset_frames(w);
++    Probe::frame(w, 4).current_move = e2e4;
++    Probe::frame(w, 4).moved_piece = WP;
++    Probe::frame(w, 5).current_move = e7e5;
++    Probe::frame(w, 5).moved_piece = BP;
++    Probe::update(w, c, 15, 106, 100);  // ply 2: (White, our pawn to e4, their pawn to e5)
++    expect(Probe::plus(w) != nullptr && Probe::plus(w)->continuation[slot] == 96 && nonzero(*Probe::plus(w)) == 1,
++           "ply 2: exactly the (White, P-e4, P-e5) continuation entry learns the step");
++    Probe::plus(w)->continuation[slot] = 2560;
++    // pawn + material part of c's correction (MaterialCorrectionWeight 100), from the current tables.
++    auto base_c = [&] {
++        long long material_sum = 0;
++        for (std::size_t i = 0; i < CorrectionSize; ++i) material_sum += Probe::material(w)[0][i];
++        return Probe::pawns(w)[0][c.pawn_key() & (CorrectionSize - 1U)] + material_sum;
++    };
++    tune::CorrContWeight = 50;
++    expect(Probe::eval(w, c, 100) == 100 + trunc_div(base_c() + 1280, 256), "continuation entry read with its weight");
++    tune::CorrContWeight = 100;
++    // A frame whose ply does not match is rejected (no read, no write).
++    Probe::frame(w, 6).ply = 99;
++    expect(Probe::eval(w, c, 100) == 100 + trunc_div(base_c(), 256), "frame with a wrong ply: entry not read");
++    Probe::update(w, c, 15, 106, 100);
++    expect(Probe::plus(w)->continuation[slot] == 2560, "frame with a wrong ply: entry not written");
++    Probe::frame(w, 6).ply = 2;
++    expect(Probe::eval(w, c, 100) == 100 + trunc_div(base_c() + 2560, 256), "frame restored: entry read again");
++    // A null move in between gives no key.
++    Probe::frame(w, 5).current_move = Move::none();
++    Probe::frame(w, 5).moved_piece = Empty;
++    Probe::update(w, c, 15, 106, 100);
++    expect(Probe::plus(w)->continuation[slot] == 2560 && nonzero_continuation(*Probe::plus(w)) == 1,
++           "null move: the update touches no continuation entry");
++    // Colours must alternate (guards against a mis-derived frame).
++    Probe::frame(w, 5).current_move = e7e5;
++    Probe::frame(w, 5).moved_piece = WP;
++    Probe::update(w, c, 15, 106, 100);
++    expect(Probe::plus(w)->continuation[slot] == 2560 && nonzero_continuation(*Probe::plus(w)) == 1,
++           "same-colour pair: no key");
++    Probe::frame(w, 5).moved_piece = BP;
++    // Outside a search (board history before the root index): no frame.
++    Probe::root_history_index(w) = c.history_size() + 3;
++    Probe::update(w, c, 15, 106, 100);
++    expect(Probe::plus(w)->continuation[slot] == 2560, "board history before the root: no frame");
++    Probe::root_history_index(w) = c.history_size() - 1 - 2;
++    Probe::update(w, c, 15, 106, 100);
++    expect(Probe::plus(w)->continuation[slot] == corrplus::apply(2560, 96), "frame restored: the entry learns again");
++    Probe::root_history_index(w) = 0;
++
++    // Twins: with every key on and all weights 0, the cold twins reproduce
++    // the lock's pawn/material updates and corrected evaluation exactly.
++    tune::CorrContWeight = tune::CorrMinorWeight = tune::CorrNonPawnWeight = 0;
++    Rng rng{77};
++    std::vector<Board> boards;
++    for (const std::string& fen : walk_fens()) boards.push_back(position(fen));
++    for (const int mw : {100, 33, 0}) {
++        tune::MaterialCorrectionWeight = mw;
++        options::corr_hist_plus = 0;
++        r.clear();
++        options::corr_hist_plus = corrplus::AllKeys;
++        w.clear();
++        bool same_eval = true;
++        for (int n = 0; n < 3000; ++n) {
++            const Board& x = boards[static_cast<std::size_t>(rng.next() % boards.size())];
++            const int depth = static_cast<int>(rng.next() % 24) - 2;
++            const int stat = static_cast<int>(rng.next() % 801) - 400;
++            const int best = stat + static_cast<int>(rng.next() % 61) - 30;
++            options::corr_hist_plus = 0;
++            Probe::update(r, x, depth, best, stat);
++            const int ref_eval = Probe::eval(r, x, stat);
++            options::corr_hist_plus = corrplus::AllKeys;
++            Probe::update(w, x, depth, best, stat);
++            if (Probe::eval(w, x, stat) != ref_eval) same_eval = false;
++        }
++        expect(Probe::pawns(w) == Probe::pawns(r) && Probe::material(w) == Probe::material(r),
++               "twin update = lock update (MaterialCorrectionWeight " + std::to_string(mw) + ")");
++        expect(same_eval, "twin corrected_eval = lock corrected_eval at weight 0 (MaterialCorrectionWeight " + std::to_string(mw) + ")");
++    }
++    tune::MaterialCorrectionWeight = 100;
++    tune::CorrContWeight = tune::CorrMinorWeight = tune::CorrNonPawnWeight = 100;
++    options::corr_hist_plus = 0;
++}
++
++// Real searches: deterministic, different from OFF, the continuation frames
++// are found during search.
++void search_smoke() {
++    Section section("search: Threads 1 determinism, ON differs from OFF, tables filled during search");
++    const std::vector<std::string> fens{std::string(Board::StandardStartFen),
++                                        "r1bq1rk1/pp2bppp/2n1pn2/3p4/2PP4/2N1PN2/PP3PPP/R2QKB1R w KQ - 0 8"};
++    std::array<std::uint64_t, 8> totals{};
++    for (const int bits : {0, 1, 2, 4, 7}) {
++        options::corr_hist_plus = static_cast<std::uint8_t>(bits);
++        std::array<std::uint64_t, 2> runs{};
++        for (std::size_t run = 0; run < 2; ++run) {
++            Searcher searcher(16, 1);
++            for (const std::string& fen : fens) {
++                SearchLimits limits;
++                limits.depth = 9;
++                searcher.clear();
++                const SearchInfo info = searcher.search(position(fen), limits);
++                runs[run] += info.nodes;
++                if (bits == corrplus::Continuation && run == 0 && fen == fens.front()) {
++                    const corrplus::Tables* t = Probe::plus(searcher.main_worker());
++                    expect(t != nullptr && nonzero_continuation(*t) > 200,
++                           "continuation entries learned during a real search (" +
++                               std::to_string(t ? nonzero_continuation(*t) : 0) + ")");
++                }
++            }
++        }
++        expect(runs[0] == runs[1], "bits " + std::to_string(bits) + ": two runs give the same nodes");
++        totals[static_cast<std::size_t>(bits)] = runs[0];
++        std::cout << "INFO corrplus search bits=" << bits << " nodes(depth 9, 2 positions)=" << runs[0] << '\n';
++    }
++    for (const int bits : {1, 2, 4, 7}) {
++        expect(totals[static_cast<std::size_t>(bits)] != totals[0], "bits " + std::to_string(bits) + ": nodes differ from OFF");
++    }
++    options::corr_hist_plus = 0;
++}
++
++void run_all() {
++    keys_walk();
++    continuation_index_bijection();
++    division_helpers();
++    update_rules();
++    worker_glue();
++    search_smoke();
++}
++
++} // namespace corrplus_tests
+ int main() {
+     std::cout << "Correction-history residual increment contract\n";
+     const auto a = position("4k3/8/8/8/8/8/P7/4K3 w - - 0 1");
+@@ -137,6 +673,8 @@ int main() {
+     pawn(w,a)=-CorrectionLimit; material(w,a,mi)=-CorrectionLimit;
+     check(Probe::eval(w,a,-MateInMaxPly+2)==-MateInMaxPly+1, "lower output mate boundary clamps");
+     tune::MaterialCorrectionWeight=100;
++    std::cout << "CorrHistPlus (extra correction keys)\n";
++    corrplus_tests::run_all();
+     std::cout << "SUMMARY checks=" << checks << " failures=" << failures << '\n';
+     return failures==0 ? 0 : 1;
+ }
