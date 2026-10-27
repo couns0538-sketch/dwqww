@@ -171,6 +171,7 @@ int main() {
                          "option name Book Depth type spin default 30 min 0 max 100\n"
                          "option name Book Variety type spin default 30 min 0 max 100\n";
             if (forge::nnue::available()) std::cout << "option name UseNNUE type check default true\n";
+            std::cout << "option name MaterialKeyTable type check default false\n";
 #ifdef FORGE_EXPOSE_TUNABLES
             // Development builds advertise the search constants so match
             // runners can set them; release builds accept them silently.
@@ -267,6 +268,14 @@ int main() {
                     std::cout << "info string invalid value for option UseNNUE" << std::endl;
                 }
                 searcher.clear_hash();
+            } else if (name == "MaterialKeyTable") {
+                // S11 node-exact speed path: same search, different key arithmetic.
+                if (value_text == "true") forge::options::material_key_table = true;
+                else if (value_text == "false") forge::options::material_key_table = false;
+                else {
+                    const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex());
+                    std::cout << "info string invalid value for option MaterialKeyTable" << std::endl;
+                }
             } else if (name == "Hash" || name == "Move Overhead" || name == "Threads") {
                 int value = 0;
                 const auto parsed = std::from_chars(

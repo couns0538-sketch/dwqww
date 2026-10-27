@@ -3,6 +3,7 @@
 #include "forge/board.hpp"
 #include "forge/eval.hpp"
 #include "forge/nnue.hpp"
+#include "forge/search_options.hpp"
 
 #include <array>
 #include <atomic>

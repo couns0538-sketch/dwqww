@@ -1,4 +1,5 @@
 #include "forge/search.hpp"
+#include "forge/material_key_table.hpp"
 #include "forge/uci_output.hpp"
 
 #include <algorithm>
@@ -7,6 +8,8 @@
 #include <iostream>
 #include <limits>
 #include <optional>
+
+#include "search/options.inc"
 
 namespace forge {
 
@@ -586,6 +589,8 @@ void Worker::clear() {
 namespace {
 // Hash of the piece counts of both sides, for material-indexed statistics.
 [[nodiscard]] std::uint64_t material_key(const Board& board) {
+    // S11 MaterialKeyTable: the same key from a contribution table (forge/material_key_table.hpp).
+    if (options::material_key_table) [[unlikely]] return matkey::table_key(board);
     std::uint64_t key = 0;
     for (const Color color : {White, Black}) {
         for (int type = Pawn; type <= Queen; ++type) {
