@@ -1,0 +1,72 @@
+Tue Oct 27 10:40:34 PST 2026
+machine exclusive: no
+wrote F:/opus_scratch/build/o4_nps/lock_r1.fnn2: replica r1, king_buckets 1, mirror False, fnv1a 5a7f7acb2d55004f
+wrote F:/opus_scratch/build/o4_nps/lock_r1_standalone.fnn2: the weights of F:/opus_scratch/build/o4_nps/lock_r1.fnn2 (residual True) flagged stand-alone, fnv1a ccb30bde9963bdd6
+===== 1. evaluation cost, identical walks
+round 1 default: walk plies 3000000 evaluations 3000000 value checksum 8f597e9ac4e5efc5 time_ms 2199 ns_per_eval 733 (walk incl. move generation and make/unmake)
+round 1 residual: walk plies 3000000 evaluations 3000000 value checksum 8f597e9ac4e5efc5 time_ms 2352 ns_per_eval 784 (walk incl. move generation and make/unmake)
+round 1 pure: walk plies 3000000 evaluations 3000000 value checksum cd9914701ee79150 time_ms 1576 ns_per_eval 525 (walk incl. move generation and make/unmake)
+round 2 default: walk plies 3000000 evaluations 3000000 value checksum 8f597e9ac4e5efc5 time_ms 2171 ns_per_eval 723 (walk incl. move generation and make/unmake)
+round 2 residual: walk plies 3000000 evaluations 3000000 value checksum 8f597e9ac4e5efc5 time_ms 2255 ns_per_eval 751 (walk incl. move generation and make/unmake)
+round 2 pure: walk plies 3000000 evaluations 3000000 value checksum cd9914701ee79150 time_ms 1658 ns_per_eval 552 (walk incl. move generation and make/unmake)
+round 3 default: walk plies 3000000 evaluations 3000000 value checksum 8f597e9ac4e5efc5 time_ms 2309 ns_per_eval 769 (walk incl. move generation and make/unmake)
+round 3 residual: walk plies 3000000 evaluations 3000000 value checksum 8f597e9ac4e5efc5 time_ms 2225 ns_per_eval 741 (walk incl. move generation and make/unmake)
+round 3 pure: walk plies 3000000 evaluations 3000000 value checksum cd9914701ee79150 time_ms 1508 ns_per_eval 502 (walk incl. move generation and make/unmake)
+===== 2. bench NPS, O4 off (A) vs O4 PureNnue + epoch004-step000000780.fnn2 (B)
+A: F:/opus_scratch/build/o4_pc/forge_o4_v2.exe []
+B: F:/opus_scratch/build/o4_pc/forge_o4_v2.exe [('NNUEFile', 'F:/opus_scratch/o4/r2/o4_cpu_material/epoch004-step000000780.fnn2'), ('PureNnue', 'true')]
+d16 run  0 A nodes 3024920 time_ms 1631 nps 1854641 cpu_nps 1809298
+d16 run  1 B nodes 5669969 time_ms 2673 nps 2121200 cpu_nps 2122094
+d16 run  2 B nodes 5669969 time_ms 2648 nps 2141226 cpu_nps 2159988
+d16 run  3 A nodes 3024920 time_ms 1787 nps 1692736 cpu_nps 1776100
+d16 run  4 A nodes 3024920 time_ms 1674 nps 1807001 cpu_nps 1826367
+d16 run  5 B nodes 5669969 time_ms 2630 nps 2155881 cpu_nps 2199261
+d16 run  6 B nodes 5669969 time_ms 2723 nps 2082250 cpu_nps 2159988
+d16 run  7 A nodes 3024920 time_ms 1683 nps 1797338 cpu_nps 1792545
+d16 run  8 A nodes 3024920 time_ms 1631 nps 1854641 cpu_nps 1861489
+d16 run  9 B nodes 5669969 time_ms 2666 nps 2126770 cpu_nps 2147207
+d16 run 10 B nodes 5669969 time_ms 2597 nps 2183276 cpu_nps 2199261
+d16 run 11 A nodes 3024920 time_ms 1659 nps 1823339 cpu_nps 1809298
+d16 run 12 A nodes 3024920 time_ms 1641 nps 1843339 cpu_nps 1861489
+d16 run 13 B nodes 5669969 time_ms 3059 nps 1853536 cpu_nps 2147207
+d16 run 14 B nodes 5669969 time_ms 2584 nps 2194260 cpu_nps 2212671
+d16 run 15 A nodes 3024920 time_ms 1693 nps 1786721 cpu_nps 1759953
+d16 run 16 A nodes 3024920 time_ms 1651 nps 1832174 cpu_nps 1826367
+d16 run 17 B nodes 5669969 time_ms 2568 nps 2207931 cpu_nps 2267988
+d16 run 18 B nodes 5669969 time_ms 2665 nps 2127568 cpu_nps 2109756
+d16 run 19 A nodes 3024920 time_ms 1649 nps 1834396 cpu_nps 1809298
+d16 nodes A=3024920 B=5669969
+d16 wall_nps A: mean 1812633 stdev 48022 min 1692736 max 1854641 n 10
+d16 wall_nps B: mean 2119390 stdev 100839 min 1853536 max 2207931 n 10
+d16 wall_nps B/A = 1.1692 (+16.92%), 95% CI of the difference: +13.10% .. +20.74%
+d16 cpu_nps A: mean 1813220 stdev 32820 min 1759953 max 1861489 n 10
+d16 cpu_nps B: mean 2172542 stdev 47415 min 2109756 max 2267988 n 10
+d16 cpu_nps B/A = 1.1982 (+19.82%), 95% CI of the difference: +17.85% .. +21.79%
+d20 run  0 A nodes 12389307 time_ms 6356 nps 1949230 cpu_nps 1972427
+d20 run  1 B nodes 27276967 time_ms 12063 nps 2261209 cpu_nps 2318361
+d20 run  2 B nodes 27276967 time_ms 12293 nps 2218902 cpu_nps 2303068
+d20 run  3 A nodes 12389307 time_ms 6888 nps 1798679 cpu_nps 1901476
+d20 run  4 A nodes 12389307 time_ms 6665 nps 1858860 cpu_nps 1874505
+d20 run  5 B nodes 27276967 time_ms 12544 nps 2174503 cpu_nps 2215388
+d20 run  6 B nodes 27276967 time_ms 12329 nps 2212423 cpu_nps 2255460
+d20 run  7 A nodes 12389307 time_ms 6458 nps 1918443 cpu_nps 1977346
+d20 run  8 A nodes 12389307 time_ms 6506 nps 1904289 cpu_nps 1962662
+d20 run  9 B nodes 27276967 time_ms 12259 nps 2225056 cpu_nps 2293989
+d20 run 10 B nodes 27276967 time_ms 12322 nps 2213680 cpu_nps 2284982
+d20 run 11 A nodes 12389307 time_ms 6369 nps 1945251 cpu_nps 2002312
+d20 run 12 A nodes 12389307 time_ms 6176 nps 2006040 cpu_nps 2075695
+d20 run 13 B nodes 27276967 time_ms 11808 nps 2310041 cpu_nps 2340115
+d20 run 14 B nodes 27276967 time_ms 12257 nps 2225419 cpu_nps 2270125
+d20 run 15 A nodes 12389307 time_ms 6314 nps 1962196 cpu_nps 2012476
+d20 run 16 A nodes 12389307 time_ms 6299 nps 1966868 cpu_nps 2022744
+d20 run 17 B nodes 27276967 time_ms 11917 nps 2288912 cpu_nps 2375137
+d20 run 18 B nodes 27276967 time_ms 12262 nps 2224512 cpu_nps 2284982
+d20 run 19 A nodes 12389307 time_ms 6375 nps 1943420 cpu_nps 1997269
+d20 nodes A=12389307 B=27276967
+d20 wall_nps A: mean 1925328 stdev 59482 min 1798679 max 2006040 n 10
+d20 wall_nps B: mean 2235466 stdev 40009 min 2174503 max 2310041 n 10
+d20 wall_nps B/A = 1.1611 (+16.11%), 95% CI of the difference: +13.80% .. +18.42%
+d20 cpu_nps A: mean 1979891 stdev 58210 min 1874505 max 2075695 n 10
+d20 cpu_nps B: mean 2294161 stdev 44451 min 2215388 max 2375137 n 10
+d20 cpu_nps B/A = 1.1587 (+15.87%), 95% CI of the difference: +13.58% .. +18.17%
+Tue Oct 27 10:44:48 PST 2026
