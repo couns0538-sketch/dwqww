@@ -6,6 +6,8 @@ option(FORGE_ENABLE_SANITIZERS "Enable AddressSanitizer and UndefinedBehaviorSan
 option(FORGE_NATIVE "Optimise for the build machine's CPU (-march=native)" OFF)
 option(FORGE_EXPOSE_TUNABLES "Advertise search tuning constants as UCI options (development builds)" OFF)
 
+option(FORGE_ATTACKS_INIT_ONCE "Synchronize the first attack-table initialization" OFF)
+
 add_library(forge_core
     src/bitboard.cpp
     src/board.cpp
@@ -17,6 +19,29 @@ add_library(forge_core
 )
 target_include_directories(forge_core PUBLIC include)
 target_compile_features(forge_core PUBLIC cxx_std_20)
+
+if(FORGE_ATTACKS_INIT_ONCE)
+    target_compile_definitions(forge_core PRIVATE FORGE_ATTACKS_INIT_ONCE=1)
+    # Instrument the real Board and attack-table code independently of forge_core,
+    # so the cold race test also coexists with an ASan/UBSan engine profile.
+    if(CMAKE_SYSTEM_NAME STREQUAL "Linux" AND CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
+        add_executable(forge_sol_S04_cold_tsan_test_20261025
+            tests/forge_sol_S04_tsan_test_20261025.cpp
+            src/bitboard.cpp src/board.cpp)
+        target_include_directories(forge_sol_S04_cold_tsan_test_20261025 PRIVATE include)
+        target_compile_features(forge_sol_S04_cold_tsan_test_20261025 PRIVATE cxx_std_20)
+        target_compile_definitions(forge_sol_S04_cold_tsan_test_20261025 PRIVATE FORGE_ATTACKS_INIT_ONCE=1)
+        target_compile_options(forge_sol_S04_cold_tsan_test_20261025 PRIVATE
+            -O1 -g1 -fsanitize=thread -fno-omit-frame-pointer)
+        target_link_options(forge_sol_S04_cold_tsan_test_20261025 PRIVATE -fsanitize=thread)
+        target_link_libraries(forge_sol_S04_cold_tsan_test_20261025 PRIVATE Threads::Threads)
+        enable_testing()
+        add_test(NAME forge_sol_S04_cold_tsan_test_20261025
+            COMMAND forge_sol_S04_cold_tsan_test_20261025)
+        set_tests_properties(forge_sol_S04_cold_tsan_test_20261025 PROPERTIES
+            RUN_SERIAL TRUE LABELS "cold-init;tsan")
+    endif()
+endif()
 
 if(MSVC)
     target_compile_options(forge_core PRIVATE /W4 /permissive-)
