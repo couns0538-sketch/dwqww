@@ -84,6 +84,11 @@ add_executable(forge_nnue_v2_tests tests/nnue_v2_tests.cpp)
 target_include_directories(forge_nnue_v2_tests PRIVATE src)
 target_link_libraries(forge_nnue_v2_tests PRIVATE forge_core Threads::Threads)
 
+# UCI-level fail-loud checks of the v2 options (drives the forge executable through stdin).
+add_executable(forge_nnue_v2_uci_tests tests/nnue_v2_uci_tests.cpp)
+target_link_libraries(forge_nnue_v2_uci_tests PRIVATE forge_core Threads::Threads)
+add_dependencies(forge_nnue_v2_uci_tests forge)
+
 # Export parity helper for v2 nets (tools/nnue/v2_parity.py): position generator and engine-side evaluator.
 add_executable(forge_nnue_v2_tool tools/nnue/nnue_v2_tool.cpp)
 target_link_libraries(forge_nnue_v2_tool PRIVATE forge_core Threads::Threads)
@@ -102,6 +107,7 @@ add_test(NAME forge_movepicker_tests COMMAND forge_movepicker_tests)
 add_test(NAME forge_history_tests COMMAND forge_history_tests)
 add_test(NAME forge_timeman_tests COMMAND forge_timeman_tests)
 add_test(NAME forge_nnue_v2_tests COMMAND forge_nnue_v2_tests)
+add_test(NAME forge_nnue_v2_uci_tests COMMAND forge_nnue_v2_uci_tests $<TARGET_FILE:forge>)
 add_test(NAME forge_tt_tests COMMAND forge_tt_tests)
 add_test(NAME forge_rule50_tests COMMAND forge_rule50_tests)
 add_test(NAME forge_legal_witness_tests COMMAND forge_legal_witness_tests
