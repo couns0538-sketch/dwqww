@@ -9,9 +9,11 @@
 // The root (iterative.inc) picks one of the two trees once per iteration, so
 // with CuckooRep off no node tests the option. FORGE_SEARCH_FN names the
 // function defined here; FORGE_SEARCH_CALL and FORGE_QSEARCH_CALL name the
-// functions it calls for child nodes and for quiescence.
-#if !defined(FORGE_SEARCH_FN) || !defined(FORGE_SEARCH_CALL) || !defined(FORGE_QSEARCH_CALL)
-#error "define FORGE_SEARCH_FN, FORGE_SEARCH_CALL and FORGE_QSEARCH_CALL before including search/alphabeta.inc"
+// functions it calls for child nodes and for quiescence; FORGE_LMP_THRESHOLD
+// names the late-move pruning threshold it uses (the CuckooRep instance calls
+// its own copy, src/search/cuckoo_lmp.inc).
+#if !defined(FORGE_SEARCH_FN) || !defined(FORGE_SEARCH_CALL) || !defined(FORGE_QSEARCH_CALL) ||     !defined(FORGE_LMP_THRESHOLD)
+#error "define FORGE_SEARCH_FN, FORGE_SEARCH_CALL, FORGE_QSEARCH_CALL and FORGE_LMP_THRESHOLD before including search/alphabeta.inc"
 #endif
 
 namespace forge {
@@ -203,7 +205,7 @@ int Worker::FORGE_SEARCH_FN(Board& board, SearchStack* ss, int depth, int alpha,
 
         // Shallow-depth pruning of unpromising moves.
         if (!root_node && best_score > -MateInMaxPly && has_material) {
-            if (quiet && !skip_quiets && move_count >= lmp_threshold(depth, improving)) skip_quiets = true;
+            if (quiet && !skip_quiets && move_count >= FORGE_LMP_THRESHOLD(depth, improving)) skip_quiets = true;
             const int lmr_depth = std::max(0, depth - reduction(quiet, depth, move_count));
             if (quiet && !gives_check) {
                 if (!in_check && lmr_depth <= tune::FutilityDepth &&

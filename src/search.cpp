@@ -39,8 +39,10 @@
 #define FORGE_SEARCH_CALL search
 #define FORGE_QSEARCH_FN qsearch
 #define FORGE_QSEARCH_CALL qsearch
+#define FORGE_LMP_THRESHOLD lmp_threshold
 #include "search/qsearch.inc"     // quiescence search (Worker::qsearch)
 #include "search/alphabeta.inc"   // main alpha-beta search (Worker::search)
+#undef FORGE_LMP_THRESHOLD
 #undef FORGE_QSEARCH_CALL
 #undef FORGE_QSEARCH_FN
 #undef FORGE_SEARCH_CALL
@@ -51,12 +53,15 @@
 // calls go through the upcoming-repetition bound of cuckoo.inc (see the head
 // of alphabeta.inc). Last in the file, so that the default search functions
 // keep the AL1 s198 code and placement.
+#include "search/cuckoo_lmp.inc"  // the CuckooRep instance's copy of lmp_threshold
 #define FORGE_SEARCH_FN search_cuckoo_body
 #define FORGE_SEARCH_CALL search_cuckoo
 #define FORGE_QSEARCH_FN qsearch_cuckoo_body
 #define FORGE_QSEARCH_CALL qsearch_cuckoo
+#define FORGE_LMP_THRESHOLD lmp_threshold_cuckoo
 #include "search/qsearch.inc"
 #include "search/alphabeta.inc"
+#undef FORGE_LMP_THRESHOLD
 #undef FORGE_QSEARCH_CALL
 #undef FORGE_QSEARCH_FN
 #undef FORGE_SEARCH_CALL
