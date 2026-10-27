@@ -4,6 +4,7 @@
 #include "forge/eval.hpp"
 #include "forge/history.hpp"
 #include "forge/nnue.hpp"
+#include "forge/search_options.hpp"
 #include "forge/search_tune.hpp"
 #include "forge/search_types.hpp"
 #include "forge/thread_data.hpp"
@@ -43,6 +44,13 @@ private:
 
     int search(Board& board, SearchStack* ss, int depth, int alpha, int beta, bool cut_node);
     int qsearch(Board& board, SearchStack* ss, int alpha, int beta);
+    // UCI CuckooRep: search / qsearch with the upcoming-repetition draw bound
+    // (src/search/cuckoo.inc), wrapping second instances of the two functions
+    // (src/search/{alphabeta,qsearch}.inc) whose child calls come back here.
+    int search_cuckoo(Board& board, SearchStack* ss, int depth, int alpha, int beta, bool cut_node);
+    int qsearch_cuckoo(Board& board, SearchStack* ss, int alpha, int beta);
+    int search_cuckoo_body(Board& board, SearchStack* ss, int depth, int alpha, int beta, bool cut_node);
+    int qsearch_cuckoo_body(Board& board, SearchStack* ss, int alpha, int beta);
     [[nodiscard]] bool should_stop();
     [[nodiscard]] std::int64_t elapsed_ms() const;
     [[nodiscard]] std::uint64_t total_nodes() const;

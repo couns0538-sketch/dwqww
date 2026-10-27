@@ -1,9 +1,15 @@
 // Search module: quiescence search.
-// Compiled as part of src/search.cpp (included exactly once).
+// Compiled as part of src/search.cpp, which includes this file twice (see the
+// head of alphabeta.inc): as Worker::qsearch, the AL1 s198 function, and as
+// Worker::qsearch_cuckoo_body for UCI CuckooRep. FORGE_QSEARCH_FN names the
+// function defined here, FORGE_QSEARCH_CALL the function called for children.
+#if !defined(FORGE_QSEARCH_FN) || !defined(FORGE_QSEARCH_CALL)
+#error "define FORGE_QSEARCH_FN and FORGE_QSEARCH_CALL before including search/qsearch.inc"
+#endif
 
 namespace forge {
 
-int Worker::qsearch(Board& board, SearchStack* ss, int alpha, int beta) {
+int Worker::FORGE_QSEARCH_FN(Board& board, SearchStack* ss, int alpha, int beta) {
     const bool pv_node = beta - alpha > 1;
     const int ply = ss->ply;
     if (((local_nodes_ & 1023U) == 0 || node_limit_specified_) && should_stop()) aborted_ = true;
@@ -80,7 +86,7 @@ int Worker::qsearch(Board& board, SearchStack* ss, int alpha, int beta) {
         Undo undo;
         (void)board.make_move(move, undo);
         shared_.tt.prefetch(board.key());
-        const int score = -qsearch(board, ss + 1, -beta, -alpha);
+        const int score = -FORGE_QSEARCH_CALL(board, ss + 1, -beta, -alpha);
         board.unmake_move(move, undo);
         if (aborted_) return 0;
         if (score > best_score) {
