@@ -25,12 +25,12 @@ same-machine A/Bs or quiet-runner A/Bs. No Elo claims.
 | C6 cuckoo repetition | opus-C6 (`e08d66d`) | DONE | exact | cuckoo_tests 312k checks, 15/15 planted bugs | ASan+UBSan 0, TSan 0 | CuckooRep=true, SPRT [0,10] 10+0.1 |
 | C2 correction history plus | opus-C2 (`59c982e`) | DONE | exact | 29,227 checks, 14/14 planted bugs | ASan+UBSan 0, TSan 0; T1/T8 260/260 | G-B1 CorrHistPlus=1, G-B2 CorrHistPlus=2 (+ optional =4) |
 | C1 Syzygy probing | opus-C1 (`ad61284`) | DONE (+ review fix: TB scores keep their distance in the TT) | exact | syzygy_tests 36,825 checks; 17/17 + 2 planted bugs | ASan+UBSan 0, TSan 0 (with real tables, T4) | G-B6 SyzygyPath=<3-4-5 set> |
-| C4 king buckets | opus-C4 | review fixes in progress (fail loudly, file-size check, "NNUE v2: active:") | exact | nnue_v2_tests 78 checks, 10/10 planted bugs | ASan+UBSan 0, TSan 0 | G-C1 (net on A1 data) |
-| C5 output buckets | opus-C5 | IN PROGRESS (code, tests, CI done; report pending) | exact (to re-check after the C4 merge) | bucket index at every piece count 2..32 | CI green on 3a2f4fa | G-C6 |
+| C4 king buckets | opus-C4 (`23750a7`) | DONE (+ review fixes: fail loudly with exit 2, file size checked before reading, "NNUE v2: active:" line) | exact | nnue_v2_tests 101, UCI fail-loud 17/17, 13/13 planted bugs | ASan+UBSan 0, TSan 0 | G-C1 (net on A1 data) |
+| C5 output buckets | opus-C5 (`57066d2`) | DONE (C4 review fixes merged) | exact | 141 unit checks (bucket at every piece count 2..32), UCI 26/26, 8/8 planted bugs; parity 10000/10000 | ASan+UBSan 0, TSan 0 | G-C6 NNUEOutputBuckets=8 |
 | O1-LTT lockless TT | opus-O1-LTT (`df4d437`) | IN PROGRESS (code, tests, local evidence done; CI running) | exact; ON Threads=1 also exact | 28 TT groups (both modes) + stress; planted bug caught | CI running | G-B5 LocklessTT (SMP-only) |
 | O5 correction-size margins | opus-O5 | IN PROGRESS (sub-agent) | — | — | — | G-B3 |
 | O8 correction extensions | opus-O8 | IN PROGRESS (sub-agent, after O5) | — | — | — | G-C5 (40+0.4 primary) |
-| O4 pure NNUE | — | NOT STARTED (builds on C4's v2 loader) | — | — | — | G-A5 |
+| O4 pure NNUE | opus-O4 | IN PROGRESS (sub-agent; then O6, O7) | — | — | — | G-A5 |
 | O6 threat inputs | — | NOT STARTED (builds on C4's v2 export) | — | — | — | G-C2 (40+0.4 primary) |
 | O7 pawn-pair inputs | — | NOT STARTED (after O6) | — | — | — | G-C3 |
 
