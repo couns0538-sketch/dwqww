@@ -1,4 +1,4 @@
-# S08fix — profile counters on AL1: per-worker banks + merge (S08-2), OFF proof + overhead (S08-3), dead-feature table (S08-4) — DONE on the PC (Linux CI recorded below)
+# S08fix — profile counters on AL1: per-worker banks + merge (S08-2), OFF proof + overhead (S08-3), dead-feature table (S08-4) — DONE (PC + Linux CI green)
 
 Branch `opus-sol-S08fix` = AL1 base `d4f4312` + CI baseline `0d99f02` (`e41596a0`) + `990cbb18` (Sol's
 `forge_sol_S08_profcounters_TLS_v2_20261026.patch`, verbatim, clean apply) + `c64199f2` (S08-2 + Linux CI) +
@@ -31,8 +31,17 @@ Linux CI was still queued).
   (308972/11901452), so it can never accept an AL1 build; v2 takes AL1 pins (configurable) and reads pipes with
   threads on Windows.
 
-## Linux CI
-Recorded by the main session after the hand-back: see the section appended below when the runs complete.
+## Linux CI (recorded by the main session after the hand-back; all runs success)
+| item | result | evidence |
+|---|---|---|
+| opus-ci 40517299539 (default build: release, asan, tsan) | success: all three jobs | `gh run view` |
+| opus-sol-s08fix-ci 40517299746: release, asan, tsan | success: all three jobs. Default (OFF) forge binary **and** disassembly IDENTICAL to the lock; `uci_check` ALL OK; ctest 14/15 with only the 4 known `forge_tests` lines (KNOWN-FAILURE CHECK PASS), `forge_prof_tests` Passed; TSan 0 reports (incl. a Threads 4 profiled UCI search); no ASan/UBSan report | `logs/ci_40517299746.log` |
+| runner NPS (Linux, native TLS; 10 runs per arm, CPU-time median vs lock) | d16: OFF −0.47%, ON Profile off −0.29%, ON counting −1.53%. d20: OFF −0.23%, ON Profile off −1.81%, ON counting −2.96%. Nodes identical in all arms | same |
+| Threads 4 skew: Sol's shared bank (990cbb18) vs per-worker banks | NPS(on)/NPS(off) median at Threads 4: shared 0.9162, per-worker **0.9805**; at Threads 1: 0.9912 vs 0.9744 (n 9 each, movetime 3000) | same |
+| collector v1 RED / v2 Linux == PC | v1 exits 1 on Linux as expected (its hard-coded pin 308972 vs AL1's 312866); v2: PC vs Linux counts 110/110 rows identical | same |
+
+Reading: on Linux the ON build costs 0.3-3% (native TLS), so the PC's −11..−14% is MinGW's emulated TLS, as the finding
+below says. Per-worker banks remove most of the shared bank's multi-thread cost (0.98 vs 0.92 of OFF NPS at Threads 4).
 
 ## Left / UNVERIFIED
 - No Elo or speed claim; the PC NPS figures are advisory.
