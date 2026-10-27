@@ -1,0 +1,40 @@
+# OFF-path guard: lock identity + paired NPS of the default-OFF options A1 HistRework, S-A2 NnueInt16 and S41 NetScale
+# against the AL1 lock, on a quiet GitHub runner. See opus_round1/offguard/ci_offguard.sh. Read-only; uploads logs.
+name: opus-offguard-ci
+on:
+  push:
+    branches: ['opus-offguard']
+    paths-ignore:
+      - 'opus_round1/**/*.md'
+      - 'opus_round1/**/*.log'
+      - 'opus_round1/**/SHA256SUMS'
+      - 'opus_round1/**/FILES*'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  quiet-runner:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Toolchain
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq g++-14 ninja-build cmake python3
+          g++-14 --version | head -1
+          nproc; lscpu | grep -E 'Model name' | cut -c1-200
+      - name: Fetch the option branches (engine commits are pinned in the script)
+        run: git fetch --no-tags origin opus-sol-A1 opus-sol-SA2 opus-sol-S41
+      - name: Identity, hot-function sizes, NPS A/B vs the lock
+        run: bash opus_round1/offguard/ci_offguard.sh ci_out
+      - name: Upload logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: offguard-quiet-runner
+          path: |
+            ci_out/*.log
+          if-no-files-found: warn
