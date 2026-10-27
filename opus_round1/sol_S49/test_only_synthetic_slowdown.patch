@@ -1,0 +1,19 @@
+--- a/src/uci.cpp
++++ b/src/uci.cpp
+@@ -402,6 +402,16 @@
+                 total_nodes += bench_searcher.search(
+                     bench_board, limits, false, forge::Searcher::TTAccess::Exclusive).nodes;
+             }
++#ifdef FORGE_S49_SYNTHETIC_SLOWDOWN_PCT
++            {
++                // S49 TEST-ONLY build: burn FORGE_S49_SYNTHETIC_SLOWDOWN_PCT percent of the search time on this
++                // thread before the time is taken, so wall and CPU time both grow by that share; nodes unchanged.
++                const auto searched = std::chrono::steady_clock::now() - start;
++                const auto until = std::chrono::steady_clock::now() + searched * FORGE_S49_SYNTHETIC_SLOWDOWN_PCT / 100;
++                volatile std::uint64_t sink = 0;
++                while (std::chrono::steady_clock::now() < until) sink = sink + 1;
++            }
++#endif
+             const auto elapsed_ms = std::chrono::duration_cast<std::chrono::milliseconds>(
+                 std::chrono::steady_clock::now() - start).count();
+             const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex());
