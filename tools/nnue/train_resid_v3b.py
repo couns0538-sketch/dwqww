@@ -263,7 +263,7 @@ def dense(codes, black):
 
 
 class NNUE(nn.Module):
-    def __init__(self, hidden, qat=True, residual=True, threats=False):
+    def __init__(self, hidden, qat=True, residual=True, threats=False, pawn_pairs=False):
         super().__init__()
         self.hidden, self.qat, self.residual = hidden, qat, residual
         self.ft = nn.Linear(FEATURES, hidden)
@@ -277,6 +277,10 @@ class NNUE(nn.Module):
         if self.threats:  # O6 (created last, so the other parameters draw the same random numbers as without it)
             self.ft_t = nn.Parameter(torch.empty(hidden, THREAT_FEATURES))
             nn.init.normal_(self.ft_t, std=0.02)
+        self.pawn_pairs = bool(pawn_pairs)
+        if self.pawn_pairs:  # O7 (after the threat block)
+            self.ft_p = nn.Parameter(torch.empty(hidden, PAWN_PAIR_FEATURES))
+            nn.init.normal_(self.ft_p, std=0.02)
 
     def q(self, p):
         if not self.qat:
@@ -290,10 +294,10 @@ class NNUE(nn.Module):
         xs = dense(codes, stm)
         xo = dense(codes, 1 - stm)
         w, b = self.q(self.ft.weight), self.q(self.ft.bias)
-        if self.threats:  # O6: threat inputs on top of the piece-square inputs (no mirroring without king buckets)
-            pairs, wt, zero = threat_pairs(codes), self.q(self.ft_t), torch.zeros_like(stm)
-            hs = torch.clamp(F.linear(xs, w, b) + F.linear(threat_dense(pairs, stm, zero), wt), 0.0, 1.0).square()
-            ho = torch.clamp(F.linear(xo, w, b) + F.linear(threat_dense(pairs, 1 - stm, zero), wt), 0.0, 1.0).square()
+        if self.threats or self.pawn_pairs:  # O6 / O7: extra inputs on top of the piece-square inputs (no mirroring)
+            pairs, zero = threat_pairs(codes) if self.threats else None, torch.zeros_like(stm)
+            hs = torch.clamp(F.linear(xs, w, b) + extra_inputs(self, codes, stm, zero, pairs), 0.0, 1.0).square()
+            ho = torch.clamp(F.linear(xo, w, b) + extra_inputs(self, codes, 1 - stm, zero, pairs), 0.0, 1.0).square()
         else:
             hs = torch.clamp(F.linear(xs, w, b), 0.0, 1.0).square()
             ho = torch.clamp(F.linear(xo, w, b), 0.0, 1.0).square()
@@ -356,7 +360,7 @@ def quant_int(p):
 
 
 class NNUEKB(nn.Module):
-    def __init__(self, hidden, king_map, mirror=True, factor=True, qat=True, residual=True, threats=False):
+    def __init__(self, hidden, king_map, mirror=True, factor=True, qat=True, residual=True, threats=False, pawn_pairs=False):
         super().__init__()
         self.hidden, self.qat, self.residual, self.mirror = hidden, qat, residual, bool(mirror)
         self.register_buffer("king_map", torch.tensor(king_map, dtype=torch.long))
@@ -373,6 +377,10 @@ class NNUEKB(nn.Module):
         if self.threats:  # O6 (created last; one block shared by every king bucket)
             self.ft_t = nn.Parameter(torch.empty(hidden, THREAT_FEATURES))
             nn.init.normal_(self.ft_t, std=0.02)
+        self.pawn_pairs = bool(pawn_pairs)
+        if self.pawn_pairs:  # O7 (after the threat block; shared by every king bucket)
+            self.ft_p = nn.Parameter(torch.empty(hidden, PAWN_PAIR_FEATURES))
+            nn.init.normal_(self.ft_p, std=0.02)
 
     q = NNUE.q
     project_weights = NNUE.project_weights
@@ -384,10 +392,10 @@ class NNUEKB(nn.Module):
     def forward(self, codes, stm, hce_logit):
         w = self.q(self.ft_sum()).permute(1, 0, 2).reshape(self.hidden, self.kb * FEATURES)
         b = self.q(self.ft_b)
-        if self.threats:  # O6: threat squares use the perspective's mirror flip, as the piece squares do
-            pairs, wt = threat_pairs(codes), self.q(self.ft_t)
-            ts = F.linear(threat_dense(pairs, stm, king_flip(codes, stm, self.mirror)), wt)
-            to = F.linear(threat_dense(pairs, 1 - stm, king_flip(codes, 1 - stm, self.mirror)), wt)
+        if self.threats or self.pawn_pairs:  # O6 / O7: extra-input squares use the perspective's mirror flip
+            pairs = threat_pairs(codes) if self.threats else None
+            ts = extra_inputs(self, codes, stm, king_flip(codes, stm, self.mirror), pairs)
+            to = extra_inputs(self, codes, 1 - stm, king_flip(codes, 1 - stm, self.mirror), pairs)
             hs = torch.clamp(F.linear(king_dense(codes, stm, self.king_map, self.mirror, self.kb), w, b) + ts, 0.0, 1.0).square()
             ho = torch.clamp(F.linear(king_dense(codes, 1 - stm, self.king_map, self.mirror, self.kb), w, b) + to, 0.0, 1.0).square()
         else:
@@ -488,6 +496,68 @@ def threat_dense(pairs, black, flip):
     return x[:, :THREAT_FEATURES]
 
 
+# ----------------------------------------------------------------------------- pawn-pair inputs (Opus O7)
+# Optional, --pawn-pairs (with or without --threats / --king-buckets): one feature per unordered pair of pawns (any
+# colours) on the same or adjacent files at most two ranks apart, in the perspective's frame (relative square
+# r = (s ^ 56 if black else s) ^ flip; colours 0 own, 1 their). Anchor = the pawn on the lower relative rank (same
+# rank: lower file); offset o of the other pawn from PAWN_OFFSETS (rank delta, file delta);
+#   index = ((colour(anchor) * 2 + colour(other)) * 7 + o) * 64 + r(anchor)   == forge/nnue_v2.hpp pawn_pair_features().
+PAWN_PAIR_FEATURES = 4 * 7 * 64
+PAWN_OFFSETS = [(0, 1), (1, -1), (1, 0), (1, 1), (2, -1), (2, 0), (2, 1)]
+_PAWN_TABLES = {}
+
+
+def pawn_tables(device):
+    """other[o, r]: relative square of the other pawn for offset o and anchor r (64 = off the board)."""
+    key = str(device)
+    if key not in _PAWN_TABLES:
+        other = np.full((len(PAWN_OFFSETS), 64), 64, np.int64)
+        for o, (dr, df) in enumerate(PAWN_OFFSETS):
+            for r in range(64):
+                f2, r2 = (r & 7) + df, (r >> 3) + dr
+                if 0 <= f2 < 8 and 0 <= r2 < 8:
+                    other[o, r] = r2 * 8 + f2
+        _PAWN_TABLES[key] = torch.tensor(other, dtype=torch.long, device=device)
+    return _PAWN_TABLES[key]
+
+
+def pawn_pair_index(codes, black, flip):
+    """Feature index [B, 7*64] of every pawn pair for perspective `black` [B] with flip [B]; PAWN_PAIR_FEATURES = none."""
+    other = pawn_tables(codes.device)
+    B = codes.shape[0]
+    r = torch.arange(64, device=codes.device).unsqueeze(0)
+    s = torch.bitwise_xor(torch.bitwise_xor(r, flip.unsqueeze(1)), torch.where(black.unsqueeze(1) == 1, 56, 0))
+    rel = torch.gather(codes, 1, s)                                             # codes in the perspective's frame
+    own_pawn = torch.where(black == 1, 7, 1).unsqueeze(1)
+    their_pawn = torch.where(black == 1, 1, 7).unsqueeze(1)
+    side = torch.where(rel == own_pawn, 0, torch.where(rel == their_pawn, 1, -1))  # 0 own, 1 their, -1 no pawn
+    side_pad = torch.cat([side, side.new_full((B, 1), -1)], 1)                  # 64: off the board
+    second = side_pad[:, other.reshape(-1)].reshape(B, len(PAWN_OFFSETS), 64)
+    first = side.unsqueeze(1).expand(-1, len(PAWN_OFFSETS), -1)
+    o = torch.arange(len(PAWN_OFFSETS), device=codes.device).view(1, -1, 1)
+    idx = ((first * 2 + second) * len(PAWN_OFFSETS) + o) * 64 + r.view(1, 1, 64)
+    idx = torch.where((first >= 0) & (second >= 0), idx, torch.full_like(idx, PAWN_PAIR_FEATURES))
+    return idx.reshape(B, -1)
+
+
+def pawn_pair_dense(codes, black, flip):
+    """Pawn-pair inputs [B, PAWN_PAIR_FEATURES] (0/1) for one perspective."""
+    idx = pawn_pair_index(codes, black, flip)
+    x = torch.zeros(codes.shape[0], PAWN_PAIR_FEATURES + 1, device=codes.device)
+    x.scatter_add_(1, idx, torch.ones(idx.shape, device=codes.device))
+    return x[:, :PAWN_PAIR_FEATURES]
+
+
+def extra_inputs(model, codes, black, flip, pairs):
+    """O6 / O7: the threat and pawn-pair contributions to one perspective's accumulator (quantised weights)."""
+    y = 0
+    if model.threats:
+        y = y + F.linear(threat_dense(pairs, black, flip), model.q(model.ft_t))
+    if model.pawn_pairs:
+        y = y + F.linear(pawn_pair_dense(codes, black, flip), model.q(model.ft_p))
+    return y
+
+
 def king_flip(codes, black, mirror):
     """Mirror flip [B] (0 or 7) of a perspective, as king_features(): first own king, square 0 if none."""
     own_king = torch.where(black == 1, 12, 6).unsqueeze(1)
@@ -512,12 +582,15 @@ def export_forge_v2(model, stem, residual):
         w2, b2 = quant_int(model.out.weight).ravel(), quant_int(model.out.bias).ravel()
         threats = getattr(model, "threats", False)  # O6: wt[THREAT_FEATURES][H] after w1, feature_set bit 0
         wt = np.ascontiguousarray(quant_int(model.ft_t).T).ravel() if threats else None
+        pawns = getattr(model, "pawn_pairs", False)  # O7: wp[PAWN_PAIR_FEATURES][H] after wt, feature_set bit 1
+        wp = np.ascontiguousarray(quant_int(model.ft_p).T).ravel() if pawns else None
     path = stem.with_suffix(".fnn2")
     temp = path.with_name(path.name + ".tmp-" + uuid.uuid4().hex)
     try:
         V2.write_v2(temp, hidden=model.hidden, king_buckets=kb, residual=residual, mirror=mirror, king_map=kmap,
                     w1=np.ascontiguousarray(w1).ravel(), b1=b1, w2=w2, b2=b2,
-                    feature_set=V2.FEATURE_SET_THREATS if threats else 0, wt=wt)
+                    feature_set=(V2.FEATURE_SET_THREATS if threats else 0) | (V2.FEATURE_SET_PAWN_PAIRS if pawns else 0),
+                    wt=wt, wp=wp)
         if path.exists():
             raise FileExistsError(str(path))
         os.rename(temp, path)
@@ -769,6 +842,10 @@ def main():
     ap.add_argument("--threats", action="store_true", help="O6: add the threat inputs (12 x 12 x 64 attacker/victim/square pair "
                     "counts, one block shared by every king bucket; definition above threat_tables) to the standard or the "
                     "king-bucketed model; such nets exist only as .fnn2 (engine: NNUEFile + NNUEThreats 1)")
+    ap.add_argument("--pawn-pairs", action="store_true", help="O7: add the pawn-pair inputs (4 x 7 x 64: colour pair, offset, "
+                    "anchor square of every pawn pair on the same or adjacent files at most two ranks apart; definition above "
+                    "pawn_tables) to any model, also together with --threats; such nets exist only as .fnn2 (engine: NNUEFile + "
+                    "NNUEPawnPairs 1)")
     a = ap.parse_args()
     k = a.sigmoid_k
     if k != K_DEFAULT:
@@ -791,13 +868,16 @@ def main():
     if a.king_buckets:
         kmap = king_map_from_args(a.king_buckets, a.king_map)
         model = NNUEKB(a.shape, kmap, mirror=bool(a.king_mirror), factor=bool(a.king_factor), qat=not a.no_qat,
-                       residual=a.residual or a.baseline_only, threats=a.threats).to(dev)
+                       residual=a.residual or a.baseline_only, threats=a.threats, pawn_pairs=a.pawn_pairs).to(dev)
         print(f"king buckets: {model.kb} mirror={model.mirror} factor={a.king_factor} map(rank 8 first, files a-h): "
               + " | ".join(" ".join(str(kmap[r * 8 + f]) for f in range(8)) for r in range(7, -1, -1)), flush=True)
     else:
-        model = NNUE(a.shape, qat=not a.no_qat, residual=a.residual or a.baseline_only, threats=a.threats).to(dev)
+        model = NNUE(a.shape, qat=not a.no_qat, residual=a.residual or a.baseline_only, threats=a.threats,
+                     pawn_pairs=a.pawn_pairs).to(dev)
     if a.threats:
         print(f"threat inputs: {THREAT_FEATURES} features (O6)", flush=True)
+    if a.pawn_pairs:
+        print(f"pawn-pair inputs: {PAWN_PAIR_FEATURES} features (O7)", flush=True)
     base_sub, nb = evaluate(model, hold, val_idx, dev, k, a.batch_size, baseline=True)
     print(f"BASELINE HCE-alone holdout subset n={nb:,}: mse_teacher(blend1.0)={base_sub[1.0]:.6f} mse_blend0.6={base_sub[0.6]:.6f}", flush=True)
     if a.baseline_only:
@@ -849,6 +929,8 @@ def main():
                        "king_factor": bool(a.king_factor), "king_map": model.king_map.cpu().tolist()})
     if a.threats:  # O6 (absent otherwise)
         config["threats"] = True
+    if a.pawn_pairs:  # O7 (absent otherwise)
+        config["pawn_pairs"] = True
 
     def lr_at(s):
         if s < a.warmup_steps:
@@ -927,14 +1009,14 @@ def main():
         payload = {"config": config, "model": cpu_copy(model.state_dict()), "optimizer": cpu_copy(opt.state_dict()),
                    "next_epoch": ep + 1, "step": step, "val": {str(b): v for b, v in vs.items()}}
         atomic_write(stem.with_suffix(".pt"), lambda dst: torch.save(payload, dst))
-        if a.king_buckets or a.threats:  # C4 / O6: bucketed and threat nets only exist as v2 files
+        if a.king_buckets or a.threats or a.pawn_pairs:  # C4 / O6 / O7: bucketed and extra-input nets only exist as v2 files
             export_forge_v2(model, stem, bool(a.residual))
         else:
             export_forge(model, stem, k, bool(a.residual))
             if a.export_v2:
                 export_forge_v2(model, stem, bool(a.residual))
         atomic_write(stem.with_suffix(".json"), lambda dst: dst.write((json.dumps({**config, "val": payload["val"], "baseline": {str(b): v for b, v in base_sub.items()}}, indent=1) + "\n").encode()))
-        print(f"Saved {stem.name} (.pt .fnn2 .json)" if a.king_buckets or a.threats else
+        print(f"Saved {stem.name} (.pt .fnn2 .json)" if a.king_buckets or a.threats or a.pawn_pairs else
               f"Saved {stem.name} (.pt .inc .bin .json{' .fnn2' if a.export_v2 else ''})", flush=True)
         mem_report(f"epoch{ep + 1:03d}", a.max_ram_gb)
     finally:  # v3: join background epoch builder / prefetchers cleanly, also on exceptions

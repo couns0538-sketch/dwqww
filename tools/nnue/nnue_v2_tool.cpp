@@ -128,7 +128,7 @@ int eval(const std::string& net_path, const std::string& fen_path, const std::st
         ++index;
     }
     std::cout << "evaluated " << index << " positions with " << net_path << " (king buckets " << net.king_buckets
-              << (net.mirror ? ", mirrored" : "") << (net.threats ? ", threat inputs" : "") << "); refresh cache vs from-scratch mismatches: " << cache_mismatch << '\n';
+              << (net.mirror ? ", mirrored" : "") << (net.threats ? ", threat inputs" : "") << (net.pawn_pairs ? ", pawn-pair inputs" : "") << "); refresh cache vs from-scratch mismatches: " << cache_mismatch << '\n';
     return cache_mismatch == 0 ? 0 : 1;
 }
 

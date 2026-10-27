@@ -51,11 +51,12 @@ def parse_fen(fen):
 def build_model(ck):
     cfg = ck["config"]
     threats = bool(cfg.get("threats", False))  # O6
+    pawn_pairs = bool(cfg.get("pawn_pairs", False))  # O7
     if cfg.get("king_buckets"):
         m = T.NNUEKB(cfg["hidden"], cfg["king_map"], mirror=cfg["king_mirror"], factor=cfg["king_factor"],
-                     qat=True, residual=cfg["residual"], threats=threats)
+                     qat=True, residual=cfg["residual"], threats=threats, pawn_pairs=pawn_pairs)
     else:
-        m = T.NNUE(cfg["hidden"], qat=True, residual=cfg["residual"], threats=threats)
+        m = T.NNUE(cfg["hidden"], qat=True, residual=cfg["residual"], threats=threats, pawn_pairs=pawn_pairs)
     m.load_state_dict(ck["model"])
     m.eval()
     return m
@@ -91,15 +92,20 @@ def main():
         b2 = T.quant_int(model.out.bias).ravel()
         threats = getattr(model, "threats", False)  # O6: the threat block wt[THREAT_FEATURES][H]
         wt = T.quant_int(model.ft_t).T.ravel() if threats else None
+        pawns = getattr(model, "pawn_pairs", False)  # O7: the pawn-pair block wp[PAWN_PAIR_FEATURES][H]
+        wp = T.quant_int(model.ft_p).T.ravel() if pawns else None
     export_ok = (np.array_equal(np.frombuffer(net["w1"].tobytes(), "<i2"), w1) and
                  np.array_equal(np.frombuffer(net["b1"].tobytes(), "<i2"), b1) and
                  np.array_equal(np.frombuffer(net["w2"].tobytes(), "<i2"), w2) and
                  np.array_equal(np.frombuffer(net["b2"].tobytes(), "<i2"), b2) and
                  net["king_map"] == kmap and net["mirror"] == mirror and net["hidden"] == H and
                  net["residual"] == bool(ck["config"]["residual"]) and net.get("threats", False) == threats and
-                 (not threats or np.array_equal(np.frombuffer(net["wt"].tobytes(), "<i2"), wt)))
+                 (not threats or np.array_equal(np.frombuffer(net["wt"].tobytes(), "<i2"), wt)) and
+                 net.get("pawn_pairs", False) == pawns and
+                 (not pawns or np.array_equal(np.frombuffer(net["wp"].tobytes(), "<i2"), wp)))
     res["export"] = bool(export_ok)
     res["threats"] = bool(threats)
+    res["pawn_pairs"] = bool(pawns)
 
     fens = [l.strip() for l in open(a.fens) if l.strip()]
     n = len(fens)
@@ -142,18 +148,18 @@ def main():
             bias = model.q(model.ft_b)
         else:
             W, bias = model.q(model.ft.weight), model.q(model.ft.bias)
-        Wt = model.q(model.ft_t) if threats else None
+        extras = threats or pawns
 
         def first_layer(c, p):
             black = torch.full((c.shape[0],), p, dtype=torch.long)
             if kb_model:
                 y = torch.nn.functional.linear(T.king_dense(c, black, model.king_map, model.mirror, model.kb), W, bias)
-                flip = T.king_flip(c, black, model.mirror) if threats else None
+                flip = T.king_flip(c, black, model.mirror) if extras else None
             else:
                 y = torch.nn.functional.linear(T.dense(c, black), W, bias)
                 flip = torch.zeros_like(black)
-            if threats:
-                y = y + torch.nn.functional.linear(T.threat_dense(T.threat_pairs(c), black, flip), Wt)
+            if extras:
+                y = y + T.extra_inputs(model, c, black, flip, T.threat_pairs(c) if threats else None)
             return y
         acc = torch.cat([torch.stack([first_layer(codes_t[i:i + 1000], p) for p in (0, 1)], dim=1)
                          for i in range(0, n, 1000)], 0)                   # [n, 2, H] White, Black
@@ -200,7 +206,7 @@ def main():
     res["max_abs_cp"] = int(np.abs(cpp["cp"]).max())
     ok = res["export"] and res["keys_exact"] == n and res["acc_exact"] == n and res["output_exact"] == n
     res["verdict"] = "PASS" if ok else "FAIL"
-    print(f"positions {n}  king buckets {net['king_buckets']} mirror {net['mirror']} threat inputs {res['threats']}  max |engine cp| {res['max_abs_cp']}")
+    print(f"positions {n}  king buckets {net['king_buckets']} mirror {net['mirror']} threat inputs {res['threats']} pawn-pair inputs {res['pawn_pairs']}  max |engine cp| {res['max_abs_cp']}")
     print(f"export (file ints == quantised checkpoint): {'OK' if res['export'] else 'MISMATCH'}")
     print(f"keys   (bucket, flip both perspectives):    {res['keys_exact']}/{n}")
     print(f"acc    (both perspectives, float32 bits):   {res['acc_exact']}/{n}")
