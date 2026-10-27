@@ -64,8 +64,9 @@ public:
     void resize(std::size_t mb);
     void clear();
     void new_search() { generation_ = static_cast<std::uint8_t>((generation_ + 1U) & 31U); ++epoch_; }
-    [[nodiscard]] TTProbe probe(std::uint64_t key) const;
-    void store(const TTProbe& probe, std::uint64_t key, int score, int eval, Move move, int depth, Bound bound, bool pv, std::uint16_t halfmove_clock);
+    // Pinned to 64-byte boundaries, as the search functions (forge/search.hpp).
+    [[nodiscard, gnu::aligned(64)]] TTProbe probe(std::uint64_t key) const;
+    [[gnu::aligned(64)]] void store(const TTProbe& probe, std::uint64_t key, int score, int eval, Move move, int depth, Bound bound, bool pv, std::uint16_t halfmove_clock);
     [[nodiscard]] int hashfull() const;
     [[nodiscard]] std::uint8_t generation() const { return generation_; }
     [[nodiscard]] std::size_t cluster_count() const { return cluster_count_; }
