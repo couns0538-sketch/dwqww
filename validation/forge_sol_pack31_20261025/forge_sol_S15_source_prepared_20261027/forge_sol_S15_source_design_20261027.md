@@ -1,0 +1,11 @@
+# S15 source-only preparation design — 2026-10-27
+
+S15 calls for a tool-only SPSA harness, exact source ranges, a seeded20-iteration synthetic demo, and eventually a short real smoke. L has51 ranged tune:: integers; NetScale is absent and must remain accounted as unsupported. No engine source is changed. This preparation is not delivery/acceptance of S15.
+
+Use Python standard-library integer probe generation and normalized projected SPSA updates. Parse every declaration/table entry fail-closed; require one-to-one names/pointers and valid literal bounds/defaults. The demo uses a deterministic separable synthetic quadratic, with the same probe/update functions as future real work. Gains are mathematical demo controls, not tuned chess values.
+
+Reuse the existing owned tools/match/pgn_stats.py for paired-result validation. Do not duplicate its PGN parser, S07/S08 UCI transport or a match-process manager. A plan command consumes a captured UCI transcript, proves support/ranges for selected parameters, and writes a Fastchess command and plus/minus options; it does not execute it. An observe command reads a completed original PGN and the pinned plan, preserves the original PGN, and makes one SPSA update. A later iteration may consume that state. Hidden tune acceptance is documented from exact L source, but unadvertised options fail the planner's support check; a later preflight can use an exact-source FORGE_EXPOSE_TUNABLES build.
+
+All writes go to explicitly new own output directories. No output overwrite, source mutation, engine/compiler/Git execution, heavy CPU, automatic match execution, live lock/training changes or Elo claims. Source/tool/input hashes and commands accompany every plan. Failed/partial real matches never become gradients. An observed PGN alone does not prove it was produced by the planned binary/options; execution receipts must be independently bound during the later real smoke, and this limitation is explicit.
+
+Alternative rejected: adapting run_match.py into another automatic runner would duplicate process/acceptance infrastructure and expand this source-only scope. Existing h256tools/selfplay.py accepts options but uses unbounded blocking reads and is a development helper; it is not used as a verified match adapter.

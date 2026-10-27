@@ -1,5 +1,11 @@
 # Current baseline
 
+## Native observer failures preserved; bounded repairs under test — 2026-10-27
+
+S11 keeps all standard Release/ASan gates passing, but its new Lprime baseline parity arm reached the frozen deadline before1M. Original45 gzip chunks and failure remain unchanged; no B/scalar comparison or advisory ran. A same-budget stdlib pump control shows large per-read process-tree scan overhead; a cached-membership successor is source-only until reviewed and published. No engine/producer/corpus/flag or deadline change is proposed.
+
+S18 none training and all50000-row postscore completed with unchanged inputs and normal child exit, but the overall controller correctly remains FAIL because RSS_UNAVAILABLE was recorded. The complete original39-file checkpoint is losslessly preserved. A tiny independent owned-child experiment reproduced a leader-without-RSS/live-worker case; it establishes a monitor limitation, not the historical smoke's exact transition. Other arms remain held. S15's51-parameter tool is prepared only, NetScale absent on exact lock. Queue16 delivered/37 pending/1 dropped; no speed/Elo or network adoption.
+
 ## S11 standard gates complete; parity successor ready — 2026-10-27
 
 Both Release candidates and all four fresh O2/g ASan/UBSan profiles passed: 87 newly executed configured CTests, exact Release bench references, perft, UCI and zero FMA. Original stage23 failed in its instruction observer before any million-position arm. The independently reviewed observer v2 permits only specified bit-preserving stores/selections; numerical arithmetic checks and all engine bytes/flags/corpus stay unchanged. Preserve the original FAIL. Publish and verify this source, then run new Lprime parity followed by B; timing remains held.

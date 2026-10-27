@@ -1,0 +1,30 @@
+{
+  "scope": "Remove only three traced, previously absent, still-empty directories created by this owned PowerShell startup; no existing user file touched",
+  "before_removal": [
+    {
+      "path": "/home/agent/.cache/powershell",
+      "uid": 1000,
+      "mode": "0o700",
+      "children": []
+    },
+    {
+      "path": "/home/agent/.local/share/powershell",
+      "uid": 1000,
+      "mode": "0o700",
+      "children": [
+        "Modules"
+      ]
+    },
+    {
+      "path": "/home/agent/.local/share/powershell/Modules",
+      "uid": 1000,
+      "mode": "0o700",
+      "children": []
+    }
+  ],
+  "restored_absent": {
+    "/home/agent/.cache/powershell": true,
+    "/home/agent/.local/share/powershell": true
+  },
+  "no_preexisting_files_removed": true
+}

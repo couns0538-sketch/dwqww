@@ -1,0 +1,144 @@
+{
+  "catalog": {
+    "NetScale_status": "ABSENT_ON_EXACT_SOURCE",
+    "hidden_tunables": "L accepts table names in setoption; advertisement requires FORGE_EXPOSE_TUNABLES",
+    "parameters": [
+      {
+        "default": 85,
+        "maximum": 300,
+        "minimum": 0,
+        "name": "LmrQuietBase"
+      },
+      {
+        "default": 40,
+        "maximum": 500,
+        "minimum": 0,
+        "name": "QsSeeMargin"
+      }
+    ],
+    "source_inputs": {
+      "src/search.cpp": {
+        "bytes": 69466,
+        "path": "/workspace/forge-pack24-20261025/new_handoff_1435/selected/forge_handoff_full_20261025_1435/files/01_lock_src_h256_e12/forge_h256_e12_1ab50b2d_src/src/search.cpp",
+        "sha256": "44680416e008f4ccc0ac7d95a1452ae3db34459f945ea3311dc456536fcb0e55"
+      },
+      "src/uci.cpp": {
+        "bytes": 21901,
+        "path": "/workspace/forge-pack24-20261025/new_handoff_1435/selected/forge_handoff_full_20261025_1435/files/01_lock_src_h256_e12/forge_h256_e12_1ab50b2d_src/src/uci.cpp",
+        "sha256": "13c7c87a377ec30616f9a733bc5d74072c697c6e48db9eb39d751409f3cc0f97"
+      },
+      "tools/match/pgn_stats.py": {
+        "bytes": 3980,
+        "path": "/workspace/forge-pack24-20261025/new_handoff_1435/selected/forge_handoff_full_20261025_1435/files/01_lock_src_h256_e12/forge_h256_e12_1ab50b2d_src/tools/match/pgn_stats.py",
+        "sha256": "a5a6b46e1d5381fc063475fb90f012051653cefbca485c46a01179fafbeec2bf"
+      }
+    },
+    "unsupported_requested": [
+      "NetScale"
+    ]
+  },
+  "command": [
+    "/tmp/forge_sol_S15_independent_review_20261027/test_cases/plan_fixture/fastchess",
+    "-config",
+    "outname=forge_sol_S15_fastchess_state_20261027.json",
+    "-engine",
+    "cmd=/tmp/forge_sol_S15_independent_review_20261027/test_cases/plan_fixture/engine",
+    "name=Candidate",
+    "option.LmrQuietBase=40",
+    "option.QsSeeMargin=0",
+    "-engine",
+    "cmd=/tmp/forge_sol_S15_independent_review_20261027/test_cases/plan_fixture/engine",
+    "name=Baseline",
+    "option.LmrQuietBase=130",
+    "option.QsSeeMargin=115",
+    "-each",
+    "proto=uci",
+    "tc=0.25+0.01",
+    "option.Threads=1",
+    "option.Hash=16",
+    "option.OwnBook=false",
+    "restart=on",
+    "-openings",
+    "file=forge_sol_S15_selected_openings_20261027.epd",
+    "format=epd",
+    "order=sequential",
+    "-srand",
+    "20261027",
+    "-rounds",
+    "1",
+    "-games",
+    "2",
+    "-concurrency",
+    "1",
+    "-pgnout",
+    "file=forge_sol_S15_original_games_20261027.pgn",
+    "append=false",
+    "notation=uci",
+    "nodes=true",
+    "timeleft=true",
+    "-log",
+    "file=forge_sol_S15_fastchess_20261027.log",
+    "level=warn",
+    "append=false",
+    "-strict",
+    "-maxmoves",
+    "200"
+  ],
+  "command_cwd": "/tmp/forge_sol_S15_independent_review_20261027/test_cases/plan_fixture/planned",
+  "engine_runs": 0,
+  "gain": 0.4,
+  "inputs": {
+    "engine": {
+      "bytes": 37,
+      "path": "/tmp/forge_sol_S15_independent_review_20261027/test_cases/plan_fixture/engine",
+      "sha256": "210843d82e04796fd09c89053faee711e080216a3a31321b4c8f11805f36546e"
+    },
+    "fastchess": {
+      "bytes": 37,
+      "path": "/tmp/forge_sol_S15_independent_review_20261027/test_cases/plan_fixture/fastchess",
+      "sha256": "210843d82e04796fd09c89053faee711e080216a3a31321b4c8f11805f36546e"
+    },
+    "openings": {
+      "bytes": 29,
+      "path": "/tmp/forge_sol_S15_independent_review_20261027/test_cases/plan_fixture/openings.epd",
+      "sha256": "f92ee48b1c31bca884c9da5d56abc77d52c5d48e934be77a68266a7e9d8da37a"
+    },
+    "uci_transcript": {
+      "bytes": 276,
+      "path": "/tmp/forge_sol_S15_independent_review_20261027/test_cases/plan_fixture/uci.txt",
+      "sha256": "a9c119fffcdaa3fe47c2ddcf1294dcc64c515e42b71a176a1ce88749a49455c9"
+    }
+  },
+  "iteration": 0,
+  "pairs": 1,
+  "probe": {
+    "direction": [
+      -1,
+      -1
+    ],
+    "effective": [
+      -0.3,
+      -0.23
+    ],
+    "iteration": 0,
+    "minus": {
+      "LmrQuietBase": 130,
+      "QsSeeMargin": 115
+    },
+    "plus": {
+      "LmrQuietBase": 40,
+      "QsSeeMargin": 0
+    },
+    "seed": 20261027,
+    "theta": [
+      0.2833333333333333,
+      0.08
+    ]
+  },
+  "seed": 20261027,
+  "selected_openings_sha256": "6d3e30bda465bef6b35f417066240de73a17e028c3636d58178f8e23d0bc708f",
+  "smoke": "Equal-time paired plus-vs-minus bookkeeping, not strength acceptance",
+  "status": "PLAN_ONLY_NO_PROCESS_STARTED",
+  "strength_claim": null,
+  "support": "Captured exposed UCI ranges match; binding transcript to actual engine execution remains UNVERIFIED"
+}
