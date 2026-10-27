@@ -1,0 +1,310 @@
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index 915039a4..b47d032d 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -67,6 +67,10 @@ target_link_libraries(forge_nearest_pawn_tests PRIVATE forge_core Threads::Threa
+ add_executable(forge_pv_metadata_tests tests/pv_metadata_tests.cpp)
+ target_link_libraries(forge_pv_metadata_tests PRIVATE forge_core Threads::Threads)
+ 
++# S41 NetScale: apply() arithmetic and the actual Worker::static_evaluate path at every scale.
++add_executable(forge_net_scale_tests tests/net_scale_tests.cpp)
++target_link_libraries(forge_net_scale_tests PRIVATE forge_core Threads::Threads)
++
+ add_executable(forge_bench bench/benchmark.cpp)
+ target_link_libraries(forge_bench PRIVATE forge_core Threads::Threads)
+ 
+@@ -79,6 +83,7 @@ add_test(NAME forge_nearest_pawn_tests COMMAND forge_nearest_pawn_tests)
+ add_test(NAME forge_pv_metadata_tests COMMAND forge_pv_metadata_tests)
+ add_test(NAME forge_tt_tests COMMAND forge_tt_tests)
+ add_test(NAME forge_rule50_tests COMMAND forge_rule50_tests)
++add_test(NAME forge_net_scale_tests COMMAND forge_net_scale_tests)
+ add_test(NAME forge_legal_witness_tests COMMAND forge_legal_witness_tests
+     ${CMAKE_CURRENT_SOURCE_DIR}/tests/legal_witness_fixtures.tsv
+     ${CMAKE_CURRENT_SOURCE_DIR}/tools/openings/forge-10000.epd)
+diff --git a/include/forge/net_scale.hpp b/include/forge/net_scale.hpp
+new file mode 100644
+index 00000000..58e23875
+--- /dev/null
++++ b/include/forge/net_scale.hpp
+@@ -0,0 +1,27 @@
++#pragma once
++
++#include <cstdint>
++
++// S41 NetScale (UCI spin, percent; default 100 = OFF). With a network active, the static evaluation the search
++// uses (residual network: hand-crafted evaluation + network correction; stand-alone network: its output) is
++// multiplied by NetScale / 100 before the usual clamp, so a network whose evaluations are spread wider or
++// narrower than h256_e12's -- the scale the search margins were tuned on -- can be mapped back to that scale.
++// 100 returns the evaluation unchanged (the AL1 s198 search). The value is written only while no search runs
++// (the UCI loop stops the search first) and the hash is cleared, because the TT stores static evaluations.
++// The hand-crafted-only path (UseNNUE false) is never scaled.
++namespace forge::net_scale {
++
++inline constexpr int Default = 100;
++inline constexpr int Minimum = 50;
++inline constexpr int Maximum = 150;
++
++extern int percent;
++
++// eval * pct / 100 in 64-bit arithmetic, truncated toward zero (odd: apply(-e) == -apply(e)); pct == 100 is the
++// identity. Callers clamp the result to the non-mate range.
++[[nodiscard]] constexpr int apply(int eval, int pct) {
++    if (pct == Default) return eval;
++    return static_cast<int>(static_cast<std::int64_t>(eval) * pct / 100);
++}
++
++} // namespace forge::net_scale
+diff --git a/src/search.cpp b/src/search.cpp
+index 74de5d37..6845087c 100644
+--- a/src/search.cpp
++++ b/src/search.cpp
+@@ -1,4 +1,5 @@
+ #include "forge/search.hpp"
++#include "forge/net_scale.hpp"
+ #include "forge/uci_output.hpp"
+ 
+ #include <algorithm>
+@@ -10,6 +11,11 @@
+ 
+ namespace forge {
+ 
++namespace net_scale {
++// S41: UCI NetScale, percent; 100 = OFF (constant-initialised, no constructor code).
++int percent = Default;
++} // namespace net_scale
++
+ namespace tune {
+ int LmrQuietBase = 85;
+ int LmrQuietDivisor = 220;
+@@ -614,10 +620,16 @@ int Worker::static_evaluate(const Board& board, SearchStack* ss) {
+         }
+     }
+     const int network = nnue::evaluate(board, ss->accumulator);
+-    if (!residual) return network;
++    // S41 NetScale (default 100 = OFF, forge/net_scale.hpp): net_scale::apply is the identity at 100.
++    const int scale = net_scale::percent;
++    if (!residual) {
++        if (scale == net_scale::Default) [[likely]] return network;
++        return std::clamp(net_scale::apply(network, scale), -MateInMaxPly + 1, MateInMaxPly - 1);
++    }
+     if (!ss->runtime_psqt.valid) ss->runtime_psqt = Evaluator::refresh_runtime_psqt(board);
+     // A residual network is a learned correction on top of the hand-crafted evaluation.
+-    return std::clamp(evaluator_.evaluate_runtime(board, ss->runtime_psqt) + network, -MateInMaxPly + 1, MateInMaxPly - 1);
++    return std::clamp(net_scale::apply(evaluator_.evaluate_runtime(board, ss->runtime_psqt) + network, scale),
++                      -MateInMaxPly + 1, MateInMaxPly - 1);
+ }
+ 
+ void Worker::record_move(SearchStack* ss, const Board& board, const Move& move) {
+diff --git a/src/uci.cpp b/src/uci.cpp
+index 607adf3a..40d6dc9b 100644
+--- a/src/uci.cpp
++++ b/src/uci.cpp
+@@ -1,5 +1,6 @@
+ #include "forge/board.hpp"
+ #include "forge/book.hpp"
++#include "forge/net_scale.hpp"
+ #include "forge/nnue.hpp"
+ #include "forge/search.hpp"
+ #include "forge/uci_output.hpp"
+@@ -171,6 +172,10 @@ int main() {
+                          "option name Book Depth type spin default 30 min 0 max 100\n"
+                          "option name Book Variety type spin default 30 min 0 max 100\n";
+             if (forge::nnue::available()) std::cout << "option name UseNNUE type check default true\n";
++            if (forge::nnue::available()) {
++                std::cout << "option name NetScale type spin default " << forge::net_scale::Default << " min "
++                          << forge::net_scale::Minimum << " max " << forge::net_scale::Maximum << "\n";
++            }
+ #ifdef FORGE_EXPOSE_TUNABLES
+             // Development builds advertise the search constants so match
+             // runners can set them; release builds accept them silently.
+@@ -267,6 +272,21 @@ int main() {
+                     std::cout << "info string invalid value for option UseNNUE" << std::endl;
+                 }
+                 searcher.clear_hash();
++            } else if (name == "NetScale") {
++                // S41: scales the NNUE-mode static evaluation (forge/net_scale.hpp); 100 = OFF.
++                int value = 0;
++                const auto parsed = std::from_chars(value_text.data(), value_text.data() + value_text.size(), value);
++                if (parsed.ec != std::errc{} || parsed.ptr != value_text.data() + value_text.size()) {
++                    const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex());
++                    std::cout << "info string invalid value for option NetScale" << std::endl;
++                } else {
++                    const int clamped = std::clamp(value, forge::net_scale::Minimum, forge::net_scale::Maximum);
++                    if (clamped != forge::net_scale::percent) {
++                        forge::net_scale::percent = clamped;
++                        // The TT stores static evaluations made at the old scale.
++                        searcher.clear_hash();
++                    }
++                }
+             } else if (name == "Hash" || name == "Move Overhead" || name == "Threads") {
+                 int value = 0;
+                 const auto parsed = std::from_chars(
+diff --git a/tests/net_scale_tests.cpp b/tests/net_scale_tests.cpp
+new file mode 100644
+index 00000000..b0bb225d
+--- /dev/null
++++ b/tests/net_scale_tests.cpp
+@@ -0,0 +1,163 @@
++// S41 NetScale tests: the forge::net_scale::apply arithmetic, the actual private Worker::static_evaluate path at
++// every scale (independent oracle built from the public evaluator and nnue::evaluate on the same accumulator), the
++// hand-crafted-only path (never scaled), and a search whose node count changes with the option and repeats at 100.
++#include "forge/net_scale.hpp"
++#include "forge/search.hpp"
++
++#include <algorithm>
++#include <cstdint>
++#include <cstdlib>
++#include <iostream>
++#include <memory>
++#include <stdexcept>
++#include <string>
++#include <vector>
++
++namespace forge {
++struct SearcherTestProbe {
++    static SearchStack* root(Worker& w) { return &w.stack_[4]; }
++    static int eval(Worker& w, const Board& b, SearchStack* ss) { return w.static_evaluate(b, ss); }
++};
++} // namespace forge
++
++using namespace forge;
++using Probe = SearcherTestProbe;
++
++namespace {
++int checks = 0;
++int failures = 0;
++
++void check(bool okay, const std::string& label) {
++    ++checks;
++    if (!okay) {
++        ++failures;
++        std::cout << "FAIL " << label << '\n';
++    }
++}
++
++// Independent statement of the documented arithmetic: |v| * pct / 100 rounded down, sign restored.
++int oracle_scale(int value, int pct) {
++    const std::int64_t magnitude = value < 0 ? -static_cast<std::int64_t>(value) : static_cast<std::int64_t>(value);
++    const std::int64_t scaled = magnitude * pct / 100;
++    return static_cast<int>(value < 0 ? -scaled : scaled);
++}
++
++Board position(const std::string& fen) {
++    Board b;
++    std::string error;
++    if (!b.set_fen(fen, &error)) throw std::runtime_error(fen + ": " + error);
++    return b;
++}
++
++struct RestoreGlobals {
++    ~RestoreGlobals() {
++        net_scale::percent = net_scale::Default;
++        nnue::enabled = true;
++    }
++};
++
++const std::vector<std::string> fixtures{
++    std::string(Board::StandardStartFen),
++    "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1",
++    "r4rk1/1pp1qppp/p1np1n2/8/2B1P1b1/2N2N2/PPP1QPPP/2KR3R w - - 0 10",
++    "8/2p5/3p4/KP5r/1R3p1k/8/4P1P1/8 w - - 0 1",
++    "2rr3k/pp3pp1/1nnqbN1p/3pN3/2pP4/2P3Q1/PPB4P/R4RK1 w - - 0 1",
++    "6k1/5ppp/8/8/8/8/5PPP/3R2K1 b - - 0 1",
++    "4k3/8/8/8/8/8/8/QQQQK3 w - - 0 1",          // huge material edge: large positive evaluation
++    "qqqqk3/8/8/8/8/8/8/4K3 w - - 0 1",          // and its negative mirror for the side to move
++    "8/8/8/4k3/8/8/4P3/4K3 b - - 0 1",
++};
++const std::vector<int> scales{100, 50, 51, 77, 90, 95, 98, 99, 101, 110, 133, 150};
++} // namespace
++
++int main() {
++    RestoreGlobals restore;
++
++    // 1. Constants and the default.
++    check(net_scale::Default == 100, "Default is 100 (OFF)");
++    check(net_scale::Minimum <= net_scale::Default && net_scale::Default <= net_scale::Maximum, "Default inside [Minimum, Maximum]");
++    check(net_scale::percent == net_scale::Default, "process starts with NetScale OFF");
++
++    // 2. apply(): identity at 100 for every value in range; documented arithmetic and odd symmetry elsewhere.
++    int identity_bad = 0;
++    for (int v = -40000; v <= 40000; ++v) identity_bad += net_scale::apply(v, 100) != v ? 1 : 0;
++    check(identity_bad == 0, "apply(v, 100) == v for all v in [-40000, 40000]");
++    int arithmetic_bad = 0;
++    int symmetry_bad = 0;
++    for (int pct = net_scale::Minimum; pct <= net_scale::Maximum; ++pct) {
++        for (int v = -40000; v <= 40000; v += 7) {
++            arithmetic_bad += net_scale::apply(v, pct) != oracle_scale(v, pct) ? 1 : 0;
++            symmetry_bad += net_scale::apply(-v, pct) != -net_scale::apply(v, pct) ? 1 : 0;
++        }
++        for (const int v : {-1, 0, 1, 99, 100, 101, -99, -100, -101, 31871, -31871}) {
++            arithmetic_bad += net_scale::apply(v, pct) != oracle_scale(v, pct) ? 1 : 0;
++        }
++    }
++    check(arithmetic_bad == 0, "apply(v, pct) == trunc(v * pct / 100) for pct 50..150");
++    check(symmetry_bad == 0, "apply(-v, pct) == -apply(v, pct)");
++    check(net_scale::apply(-150, 99) == -148 && net_scale::apply(150, 99) == 148, "truncation toward zero (150 * 0.99)");
++
++    // 3. The actual Worker::static_evaluate at every scale, against the independent oracle on the same accumulator.
++    check(nnue::available() && nnue::residual(), "fixture uses the compiled residual network");
++    SharedSearchState shared(1);
++    auto owned = std::make_unique<Worker>(shared, 0);
++    Worker& w = *owned;
++    int worker_checks = 0;
++    for (const std::string& fen : fixtures) {
++        const Board b = position(fen);
++        w.clear();
++        SearchLimits limits;
++        limits.depth = 1;
++        const std::vector<Worker*> all{&w};
++        net_scale::percent = net_scale::Default;
++        (void)w.search(b, limits, false, all);
++        SearchStack* ss = Probe::root(w);
++        const int hce = Evaluator::evaluate_uncached(b);
++        for (const int pct : scales) {
++            net_scale::percent = pct;
++            const int actual = Probe::eval(w, b, ss);
++            const int network = nnue::evaluate(b, ss->accumulator);
++            const int expected = std::clamp(oracle_scale(hce + network, pct), -MateInMaxPly + 1, MateInMaxPly - 1);
++            check(actual == expected, fen + " NetScale " + std::to_string(pct) + ": Worker eval " + std::to_string(actual) +
++                                          " == oracle " + std::to_string(expected));
++            if (pct == net_scale::Default) {
++                check(actual == std::clamp(hce + network, -MateInMaxPly + 1, MateInMaxPly - 1),
++                      fen + " NetScale 100 equals the AL1 residual evaluation");
++            }
++            ++worker_checks;
++        }
++        // Hand-crafted-only path: never scaled.
++        nnue::enabled = false;
++        for (const int pct : {50, 100, 150}) {
++            net_scale::percent = pct;
++            check(Probe::eval(w, b, ss) == hce, fen + " UseNNUE off: NetScale " + std::to_string(pct) + " leaves the HCE unchanged");
++        }
++        nnue::enabled = true;
++    }
++    net_scale::percent = net_scale::Default;
++
++    // 4. Search level: NetScale changes the search (ON != OFF) and 100 repeats exactly.
++    auto nodes = [](int pct) {
++        net_scale::percent = pct;
++        Searcher searcher(16);
++        searcher.clear();
++        Board b = position("r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1");
++        SearchLimits limits;
++        limits.depth = 7;
++        const std::uint64_t n = searcher.search(b, limits, false, Searcher::TTAccess::Exclusive).nodes;
++        net_scale::percent = net_scale::Default;
++        return n;
++    };
++    const std::uint64_t off_a = nodes(100);
++    const std::uint64_t off_b = nodes(100);
++    const std::uint64_t on_90 = nodes(90);
++    const std::uint64_t on_110 = nodes(110);
++    check(off_a == off_b, "NetScale 100 search repeats exactly (" + std::to_string(off_a) + ")");
++    check(on_90 != off_a, "NetScale 90 changes the search (" + std::to_string(on_90) + " vs " + std::to_string(off_a) + ")");
++    check(on_110 != off_a, "NetScale 110 changes the search (" + std::to_string(on_110) + " vs " + std::to_string(off_a) + ")");
++
++    std::cout << "worker scale checks " << worker_checks << ", search nodes off " << off_a << " / 90 " << on_90
++              << " / 110 " << on_110 << '\n';
++    std::cout << "SUMMARY checks=" << checks << " failures=" << failures << '\n';
++    return failures == 0 ? 0 : 1;
++}
