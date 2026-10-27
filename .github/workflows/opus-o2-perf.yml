@@ -1,7 +1,9 @@
 # O2 evidence on a quiet Linux runner: callgrind instruction profile of `bench 13` (box recipe + -g;
 # deeper than bench 11 so start-up work, magic tables and hash clearing, weighs less)
-# for the lock and for this branch, and a paired NPS comparison (opus_round1/O3/nps_ab.py, 10 runs per
-# build at bench 16 and 20; the runner has no other load, unlike the development PC).
+# for the lock and for this branch; paired NPS comparisons (opus_round1/O3/nps_ab.py, 10 runs per
+# build at bench 16 and 20) of the lock and of O3 (0d99f02, the base of this branch, so that O2's own
+# share is visible) against this branch; and the nnue::update microbenchmark, lock core vs branch core.
+# The runner has no other load, unlike the development PC.
 name: opus-o2-perf
 on:
   push:
@@ -19,7 +21,7 @@ permissions:
 jobs:
   perf:
     runs-on: ubuntu-24.04
-    timeout-minutes: 90
+    timeout-minutes: 120
     steps:
       - uses: actions/checkout@v4
         with:
@@ -28,14 +30,15 @@ jobs:
         run: |
           sudo apt-get update -qq && sudo apt-get install -y -qq g++-14 ninja-build cmake python3 valgrind
           lscpu | grep -E 'Model name|Flags' | cut -c1-300
-      - name: Build lock (294dbed) and branch, box recipe with -g
+      - name: Build lock (294dbed), O3 (0d99f02) and branch, box recipe with -g
         run: |
           FL="-march=x86-64-v3 -mtune=znver5 -fno-fast-math -ffp-contract=off -DFORGE_NNUE_HIDDEN=256 -g"
-          mkdir -p lock_src out
+          mkdir -p lock_src o3_src out
           # -m: the archive carries commit times, which can be ahead of the runner clock (ninja then loops)
           git archive 294dbed | tar -x -m -C lock_src
-          for t in lock branch; do
-            src=$([ $t = lock ] && echo lock_src || echo .)
+          git archive 0d99f02 | tar -x -m -C o3_src
+          for t in lock o3 branch; do
+            src=$([ $t = branch ] && echo . || echo ${t}_src)
             cmake -S $src -B build_$t -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_COMPILER=g++-14 "-DCMAKE_CXX_FLAGS=$FL" > /dev/null
             cmake --build build_$t -j4 --target forge > /dev/null
             python3 opus_round1/ci/uci_check.py build_$t/forge | tee out/identity_$t.log
@@ -50,8 +53,19 @@ jobs:
             callgrind_annotate --inclusive=yes out/callgrind_$t.out 2>/dev/null | head -45 > out/profile_incl_$t.txt
             echo "== $t self"; cat out/profile_self_$t.txt
           done
-      - name: NPS A/B (lock vs branch)
-        run: python3 opus_round1/O3/nps_ab.py build_lock/forge build_branch/forge 10 16 20 | tee out/nps_ab_ci.log
+      - name: NPS A/B (lock vs branch, O3 vs branch)
+        run: |
+          python3 opus_round1/O3/nps_ab.py build_lock/forge build_branch/forge 10 16 20 | tee out/nps_ab_ci.log
+          python3 opus_round1/O3/nps_ab.py build_o3/forge build_branch/forge 10 16 20 | tee out/nps_ab_o3_vs_o2_ci.log
+      - name: nnue::update microbenchmark (tools/nnue_update_benchmark.cpp, lock core vs branch core, no LTO)
+        run: |
+          FL="-std=c++20 -O3 -DNDEBUG -march=x86-64-v3 -mtune=znver5 -fno-fast-math -ffp-contract=off -DFORGE_NNUE_HIDDEN=256"
+          for t in lock branch; do
+            src=$([ $t = lock ] && echo lock_src || echo .)
+            g++-14 $FL '-DFORGE_NNUE_BENCH_FLAGS="x86-64-v3"' -I$src/include $src/tools/nnue_update_benchmark.cpp \
+              $src/src/nnue.cpp $src/src/board.cpp $src/src/bitboard.cpp -o out_ub_$t
+          done
+          python3 opus_round1/O2/update_bench.py ./out_ub_lock ./out_ub_branch 10 | tee out/update_bench_ci.log
       - uses: actions/upload-artifact@v4
         if: always()
         with:
