@@ -101,6 +101,12 @@ struct ThreatList {
     std::array<std::uint16_t, MaxThreatPairs> keys;   // pair keys ((A - 1) * 12 + (V - 1)) * 64 + v (absolute)
 };
 
+// The pawn pairs of one placement for one perspective (O7; pawn_pair_features).
+struct PawnPairList {
+    int count = 0;
+    std::array<std::uint16_t, MaxPawnPairs> features;   // feature indices of one perspective (with its flip)
+};
+
 struct KingKey {
     int bucket = 0;
     int flip = 0;     // 0, or 7 when the perspective's king stands on files e-h of a mirrored net
@@ -149,6 +155,9 @@ struct RefreshCache {
     std::array<std::int8_t, ThreatFeatures> threat_counts{};
     // O7: the same for two pawn-pair lists of one perspective.
     std::array<std::int8_t, PawnPairFeatures> pawn_counts{};
+    // O7: the pawn-pair lists (White, Black perspective) of each search-stack entry whose accumulator the extra-input
+    // path computed (index ply + 4); written together with that accumulator, like ply_threats.
+    std::vector<std::array<PawnPairList, 2>> ply_pawns;
     // O6: the threat list of the placement of each search-stack entry whose accumulator the threat path computed
     // (index ply + 4); written together with that accumulator, so a valid accumulator always has its list here.
     std::vector<ThreatList> ply_threats;
@@ -410,10 +419,6 @@ inline void add_threat_columns(const Net& net, Color perspective, KingKey key, c
 }
 
 // ---- O7 pawn-pair inputs (definition at PawnPairFeatures) ----
-struct PawnPairList {
-    int count = 0;
-    std::array<std::uint16_t, MaxPawnPairs> features;   // feature indices of one perspective (with its flip)
-};
 
 [[nodiscard]] inline Bitboard mirror_files(Bitboard bb) {   // square s -> s ^ 7
     constexpr Bitboard k1 = 0x5555555555555555ULL;

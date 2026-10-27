@@ -10,7 +10,8 @@
 // changes applied (starting from the board with every replayed ply taken back). Threat inputs: the child's threat
 // list is generated and the multiset difference to the parent's list is applied (each computed ply's list is kept
 // in the worker's cache, RefreshCache::ply_threats, so the valid ancestor's list is read). Pawn-pair inputs: each
-// perspective keeps the pawn-pair list of the current placement; it is regenerated only on a ply that moves,
+// perspective's pawn-pair list is kept per ply in the worker's cache (RefreshCache::ply_pawns) next to the accumulator;
+// it is regenerated only on a ply that moves,
 // captures or promotes a pawn (other plies cannot change pawn pairs), and the difference is applied. All changes of
 // a ply go through one chunked pass over each perspective's accumulator. On a king-key change the perspective is
 // refreshed: piece-square inputs through the refresh cache, then every threat / pawn-pair column of the child.
@@ -30,14 +31,19 @@ __attribute__((section(".text.forge_v2"), noinline)) int Worker::static_evaluate
         auto list_of = [&cache](const SearchStack* entry) -> nnue::v2::ThreatList& {
             return cache.ply_threats[static_cast<std::size_t>(entry->ply + 4)];
         };
+        if (pawns && cache.ply_pawns.empty()) [[unlikely]] cache.ply_pawns.resize(static_cast<std::size_t>(MaxPly + 8));
+        auto pawns_of = [&cache](const SearchStack* entry) -> std::array<nnue::v2::PawnPairList, 2>& {
+            return cache.ply_pawns[static_cast<std::size_t>(entry->ply + 4)];
+        };
         int back = 0;
         while (back < ss->ply && !(ss - back - 1)->accumulator.valid) ++back;
         nnue::v2::Pieces pieces = nnue::v2::pieces_of(board);
         if (back >= ss->ply && !(ss - back - 1)->accumulator.valid) {
             if (threats) nnue::v2::threat_keys(pieces, list_of(ss));
             for (const Color color : {White, Black}) {
+                const std::size_t c = static_cast<std::size_t>(color);
                 nnue::v2::refresh_full_cached(net, cache, pieces, threats ? &list_of(ss) : nullptr, board.king_square(color), color,
-                                              ss->accumulator.values[static_cast<std::size_t>(color)].data());
+                                              ss->accumulator.values[c].data(), pawns ? &pawns_of(ss)[c] : nullptr);
             }
             ss->accumulator.valid = true;
             if (residual) ss->runtime_psqt = Evaluator::refresh_runtime_psqt(board);
@@ -46,16 +52,8 @@ __attribute__((section(".text.forge_v2"), noinline)) int Worker::static_evaluate
             auto king_of = [&pieces](Color color) { return lsb(pieces[static_cast<std::size_t>(make_piece(color, King))]); };
             std::array<nnue::v2::KingKey, 2> key{nnue::v2::king_key(net, White, king_of(White)),
                                                  nnue::v2::king_key(net, Black, king_of(Black))};
-            std::array<nnue::v2::PawnPairList, 2> pawn_lists;   // per perspective, of the current placement
-            if (pawns) {
-                for (const Color color : {White, Black}) {
-                    const std::size_t c = static_cast<std::size_t>(color);
-                    nnue::v2::pawn_pair_features(pieces, color, key[c].flip, pawn_lists[c]);
-                }
-            }
             nnue::v2::ThreatDelta delta;
             nnue::v2::PawnPairDelta pawn_delta;
-            nnue::v2::PawnPairList pawn_child;
             constexpr std::size_t MaxColumns = nnue::v2::MaxThreatPairs + nnue::v2::MaxPawnPairs + 4;
             std::array<const float*, MaxColumns> sub;
             std::array<const float*, MaxColumns> add;
@@ -71,6 +69,9 @@ __attribute__((section(".text.forge_v2"), noinline)) int Worker::static_evaluate
                     nnue::v2::threat_delta(list_of(parent), *after, cache.threat_counts.data(), delta);
                 }
                 const bool pawn_move = pawns && nnue::v2::touches_pawns(dirty);
+                // The parent's pawn-pair lists are valid (computed with the parent's accumulator); a ply that touches
+                // no pawn keeps them (copied to the child's slot, a king-key refresh below may still replace one).
+                if (pawns && !pawn_move) pawns_of(child) = pawns_of(parent);
                 for (const Color color : {White, Black}) {
                     const std::size_t c = static_cast<std::size_t>(color);
                     const int king_square = king_of(color);
@@ -78,7 +79,7 @@ __attribute__((section(".text.forge_v2"), noinline)) int Worker::static_evaluate
                     if (!(moved == key[c])) [[unlikely]] {
                         key[c] = moved;
                         nnue::v2::refresh_full_cached(net, cache, pieces, after, king_square, color,
-                                                      child->accumulator.values[c].data(), pawns ? &pawn_lists[c] : nullptr);
+                                                      child->accumulator.values[c].data(), pawns ? &pawns_of(child)[c] : nullptr);
                         continue;
                     }
                     int subs = 0;
@@ -98,15 +99,15 @@ __attribute__((section(".text.forge_v2"), noinline)) int Worker::static_evaluate
                         }
                     }
                     if (pawn_move) {
+                        nnue::v2::PawnPairList& pawn_child = pawns_of(child)[c];
                         nnue::v2::pawn_pair_features(pieces, color, key[c].flip, pawn_child);
-                        nnue::v2::pawn_pair_delta(pawn_lists[c], pawn_child, cache.pawn_counts.data(), pawn_delta);
+                        nnue::v2::pawn_pair_delta(pawns_of(parent)[c], pawn_child, cache.pawn_counts.data(), pawn_delta);
                         for (int k = 0; k < pawn_delta.removed; ++k) {
                             sub[static_cast<std::size_t>(subs++)] = nnue::v2::pawn_pair_column(net, pawn_delta.remove_features[static_cast<std::size_t>(k)]);
                         }
                         for (int k = 0; k < pawn_delta.added; ++k) {
                             add[static_cast<std::size_t>(adds++)] = nnue::v2::pawn_pair_column(net, pawn_delta.add_features[static_cast<std::size_t>(k)]);
                         }
-                        pawn_lists[c] = pawn_child;
                     }
                     nnue::v2::apply_lists(parent->accumulator.values[c].data(), child->accumulator.values[c].data(), sub.data(), subs,
                                           add.data(), adds);

@@ -54,7 +54,7 @@ mutate offset_file_guard_wrong $H '{7, ~FileABB}, {8, ~0ULL}' '{7, ~FileHBB}, {8
 mutate black_not_rank_flipped $H 'if (perspective == Black) bb = __builtin_bswap64(bb);' '(void)perspective;'
 mutate colour_pair_swapped $H '((c1 * 2 + c2) * PawnPairOffsets + o) * 64' '((c2 * 2 + c1) * PawnPairOffsets + o) * 64'
 mutate pawn_moves_not_detected $E 'const bool pawn_move = pawns && nnue::v2::touches_pawns(dirty);' 'const bool pawn_move = false;'
-mutate list_not_tracked_after_refresh $E 'child->accumulator.values[c].data(), pawns ? &pawn_lists[c] : nullptr);' 'child->accumulator.values[c].data(), nullptr);'
+mutate list_not_tracked_after_refresh $E 'child->accumulator.values[c].data(), pawns ? &pawns_of(child)[c] : nullptr);' 'child->accumulator.values[c].data(), nullptr);'
 mutate loader_skips_pawn_block src/nnue.cpp 'for (std::size_t i = 0; i < wp_count; ++i, offset += 2) net->wp.data()[i] = static_cast<float>(read_i16(bytes, offset)) / WeightScale;' 'offset += 2 * wp_count;'
 mutate selection_ignores_pawn_bit $V 'if (net != nullptr && (net->threats != threats || net->pawn_pairs != pawns)) {' 'if (net != nullptr && net->threats != threats) {'
 # leave the copy unmutated and built
