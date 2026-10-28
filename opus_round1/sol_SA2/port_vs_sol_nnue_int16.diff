@@ -1,0 +1,111 @@
+--- a/src/nnue_int16.inc (Sol b425207a)
++++ b/src/nnue_int16.inc (opus-sol-SA2)
+@@ -1,5 +1,13 @@
+-// Original H256 runtime integer inference for Forge's own quantized network.
+-// Included within forge::nnue. Derivation and provenance are in IDEA_SOURCE.md.
++// NnueInt16: integer inference for Forge's own quantized network (OFF by default).
++// Ported from Sol's NnueInt16 (b425207a: 764db5f3, 07410241) onto the AL1 lock;
++// see opus_round1/sol_SA2/IDEA_SOURCE.md. Included within forge::nnue.
++//
++// Number format (the include file's own): w1, b1, w2, b2 are int16 multiples of
++// 1/4096. Accumulators are int32 (not int16): A = b1 + sum w1 over the active
++// features. Activation a = clamp(A, 0, 4096) (= the float clamp to [0, 1]);
++// square q = (a*a + 1024) / 2048 in [0, 8192] (scale 8192); output
++// T = sum q*w2 (scale 2^25, summed in int64), logit = T / 2^25 + b2 / 4096,
++// centipawns = logit * 400 / 2.25, clamped and truncated toward zero.
+ namespace int16_detail {
+ 
+ constexpr std::int32_t ActivationScale = 4096;
+@@ -27,13 +35,16 @@
+             }
+             largest_lane = std::max(largest_lane, lane);
+         }
+-        // Require exact float-grid accumulator equivalence, including every
+-        // intermediate of a supported four-feature dirty update.
++        // Require exact float-grid accumulator equivalence (every value and every
++        // intermediate of a four-change dirty update below 2^24 units), which
++        // also keeps the int32 accumulators at least 128x below overflow. Any
++        // int16 network passes the int32 part: 773 * 32767 < 2^31.
+         const std::int64_t intermediate = largest_lane + 4 * largest_column;
+         if (intermediate >= (std::int64_t{1} << 24) ||
+             intermediate > std::numeric_limits<std::int32_t>::max()) return;
+-        // Each group contributes four products per signed32 lane. Widening
+-        // before the next group bounds even all-int16 output weights safely.
++        // Each 16-unit group contributes four products per int32 lane, at most
++        // 4 * 8192 * 32768 = 2^30 for any int16 w2; the total is summed in int64
++        // and must stay exact when converted to double.
+         const std::int64_t total_bound = static_cast<std::int64_t>(2) * HiddenSize * SquaredScale * 32768;
+         if (total_bound > (std::int64_t{1} << 53)) return;
+         std::copy(std::begin(NnueW1), std::end(NnueW1), w1.begin());
+@@ -57,7 +68,9 @@
+     return instance;
+ }
+ 
+-bool selected = false;
++// Written by set_int16() (the UCI thread, between searches), read by refresh()
++// in every search thread: atomic, so a mid-search setoption is not a data race.
++std::atomic<bool> selected{false};
+ 
+ const std::int16_t* column(const IntegerWeights& w, Color perspective, const PieceChange& change) {
+     return w.w1.data() + static_cast<std::size_t>(feature_index(perspective, change.piece, change.square)) * HiddenSize;
+@@ -111,6 +124,14 @@
+     child.valid = true;
+ }
+ 
++#if !defined(__AVX2__)
++// Rounded square of the clamped activation, scale 8192 (4096^2 / 2048).
++inline std::int64_t squared_activation(std::int32_t value) {
++    const std::int64_t a = std::clamp(value, std::int32_t{0}, ActivationScale);
++    return (a * a + 1024) / 2048;
++}
++#endif
++
+ int evaluate_integer(const Board& board, const Accumulator& accumulator) {
+     const IntegerWeights& w = weights();
+     const auto& ours = accumulator.integer_values[static_cast<std::size_t>(board.side_to_move())];
+@@ -121,6 +142,8 @@
+     __m256i lower = _mm256_setzero_si256();
+     __m256i upper = _mm256_setzero_si256();
+     for (int h = 0; h < HiddenSize; h += 16) {
++        // packus saturates to [0, 65535], min 4096 completes the clamp to
++        // [0, 4096]; mulhrs((4a), (4a)) = (16a^2 + 2^14) >> 15 = (a^2 + 1024) >> 11.
+         const auto activate = [&](const std::int32_t* input) {
+             const __m256i first = _mm256_loadu_si256(reinterpret_cast<const __m256i*>(input));
+             const __m256i second = _mm256_loadu_si256(reinterpret_cast<const __m256i*>(input + 8));
+@@ -130,7 +153,7 @@
+         };
+         const __m256i a = _mm256_madd_epi16(activate(ours.data() + h), _mm256_loadu_si256(reinterpret_cast<const __m256i*>(w.packed_w2.data() + h)));
+         const __m256i b = _mm256_madd_epi16(activate(theirs.data() + h), _mm256_loadu_si256(reinterpret_cast<const __m256i*>(w.packed_w2.data() + HiddenSize + h)));
+-        // At most four products of 8192 and an int16 per lane: <=2^30.
++        // At most four products of 8192 and an int16 per lane: <= 2^30.
+         // Widen this group before any cross-group or horizontal addition.
+         const __m256i group = _mm256_add_epi32(a, b);
+         lower = _mm256_add_epi64(lower, _mm256_cvtepi32_epi64(_mm256_castsi256_si128(group)));
+@@ -141,12 +164,8 @@
+     for (const std::int64_t lane : lanes) total += lane;
+ #else
+     for (int h = 0; h < HiddenSize; ++h) {
+-        const auto square = [](std::int32_t value) -> std::int64_t {
+-            const std::int64_t a = std::clamp(value, std::int32_t{0}, ActivationScale);
+-            return (a * a + 1024) / 2048;
+-        };
+-        total += square(ours[static_cast<std::size_t>(h)]) * w.w2[static_cast<std::size_t>(h)];
+-        total += square(theirs[static_cast<std::size_t>(h)]) * w.w2[static_cast<std::size_t>(HiddenSize + h)];
++        total += squared_activation(ours[static_cast<std::size_t>(h)]) * w.w2[static_cast<std::size_t>(h)];
++        total += squared_activation(theirs[static_cast<std::size_t>(h)]) * w.w2[static_cast<std::size_t>(HiddenSize + h)];
+     }
+ #endif
+     const double output = static_cast<double>(total) / 33554432.0 + w.bias;
+@@ -157,8 +176,9 @@
+ } // namespace int16_detail
+ 
+ bool int16_available() { return int16_detail::weights().representable; }
+-bool int16_active() { return int16_detail::selected; }
++bool int16_active() { return int16_detail::selected.load(std::memory_order_relaxed); }
+ bool set_int16(bool requested) {
+-    int16_detail::selected = requested && int16_available();
+-    return int16_detail::selected;
++    const bool active = requested && int16_available();
++    int16_detail::selected.store(active, std::memory_order_relaxed);
++    return active;
+ }

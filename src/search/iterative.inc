@@ -55,7 +55,9 @@ SearchInfo Worker::search(Board board, const SearchLimits& limits, bool emit_inf
     result.restricted_root_empty = root_restricted_ && !legal.empty() && root_candidates.empty();
     if (result.restricted_root_empty && emit_info) {
         const std::lock_guard<std::mutex> output_lock(uci_output_mutex());
-        std::cout << "info string searchmoves restriction has no legal root moves" << std::endl;
+        if (!shared_.output_closed.load(std::memory_order_relaxed)) {
+            std::cout << "info string searchmoves restriction has no legal root moves" << std::endl;
+        }
     }
 
     const int mate_moves = std::clamp(limits.mate_moves, 0, 32);
@@ -72,6 +74,7 @@ SearchInfo Worker::search(Board board, const SearchLimits& limits, bool emit_inf
         const std::uint64_t nodes = total_nodes();
         const std::uint64_t nps = elapsed > 0 ? nodes * 1000U / static_cast<std::uint64_t>(elapsed) : 0;
         const std::lock_guard<std::mutex> output_lock(uci_output_mutex());
+        if (shared_.output_closed.load(std::memory_order_relaxed)) return;  // HardDeadline answered this go
         std::cout << "info depth " << depth << " seldepth " << std::max(seldepth_, depth) << " score " << format_score(score)
                   << " nodes " << nodes << " nps " << nps << " hashfull " << shared_.tt.hashfull() << " time " << elapsed << " pv";
         for (const Move move : pv) std::cout << ' ' << Board::move_to_uci(move);

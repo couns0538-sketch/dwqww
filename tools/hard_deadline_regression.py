@@ -185,6 +185,11 @@ def main():
         _, seen = e.until(lambda l: l == "readyok", a.slack, "readyok")
         if any(l.startswith("bestmove") for l in seen):
             raise SystemExit(f"DUPLICATE bestmove after {kind} in {fen}: {seen}")
+        # R3: after a watchdog answer the stopped search must not print anything more (late info lines
+        # would be attributed to no search or to the next one by a GUI).
+        late = [l for l in seen if l.startswith("info") and not l.startswith("info string HardDeadline")]
+        if was_forced and late:
+            raise SystemExit(f"LATE search output after the watchdog's bestmove ({kind}) in {fen}: {late}")
     e.send("quit")
     code = e.p.wait(timeout=60)
     if code != 0:

@@ -1,0 +1,70 @@
+head a06b00d0cb41e87f0d70932cddf1dd2df884c7d9
+free RAM 9 GB
+== 2026-10-27 21:17:14 cmake build cmake (JOBS=1) 
+build rc=0
+build OK: /f/opus_scratch/build/r3_port_b/cmake
+compiler warnings: 31 (by file:)
+sed: -e expression #1, char 89: invalid reference \2 on `s' command's RHS
+targets built: 38
+free RAM 8 GB
+== 2026-10-27 21:19:42 ctest cmake (--output-on-failure --timeout 600)
+ctest rc=8
+98% tests passed, 1 tests failed out of 40
+Total Test time (real) =  46.87 sec
+ 1/40 Test  #1: forge_tests ......................***Failed    0.22 sec
+known-failure check rc=0
+ctest: 98% tests passed, 1 tests failed out of 40
+failing tests: ['forge_tests']
+KNOWN-FAILURE CHECK: PASS (only the 4 known forge_tests lines; no sanitizer report)
+free RAM 9 GB
+== 2026-10-27 21:20:32 cmake build cmake_datagen (JOBS=1) -DFORGE_DATAGEN=ON
+build rc=0
+build OK: /f/opus_scratch/build/r3_port_b/cmake_datagen
+compiler warnings: 31 (by file:)
+sed: -e expression #1, char 89: invalid reference \2 on `s' command's RHS
+targets built: 38
+free RAM 8 GB
+== 2026-10-27 21:23:49 ctest cmake_datagen (--output-on-failure --timeout 600)
+ctest rc=8
+98% tests passed, 1 tests failed out of 40
+Total Test time (real) =  59.38 sec
+ 1/40 Test  #1: forge_tests ......................***Failed    0.29 sec
+known-failure check rc=0
+ctest: 98% tests passed, 1 tests failed out of 40
+failing tests: ['forge_tests']
+KNOWN-FAILURE CHECK: PASS (only the 4 known forge_tests lines; no sanitizer report)
+free RAM 8 GB
+== 2026-10-27 21:24:53 cmake build cmake_initonce (JOBS=1) -DFORGE_ATTACKS_INIT_ONCE=ON
+build rc=0
+build OK: /f/opus_scratch/build/r3_port_b/cmake_initonce
+compiler warnings: 31 (by file:)
+sed: -e expression #1, char 89: invalid reference \2 on `s' command's RHS
+targets built: 39
+free RAM 9 GB
+== 2026-10-27 21:29:04 ctest cmake_initonce (--output-on-failure --timeout 600)
+ctest rc=8
+95% tests passed, 2 tests failed out of 42
+Total Test time (real) = 223.58 sec
+ 3/42 Test  #3: forge_tests ......................***Failed    0.44 sec
+12/42 Test #12: forge_smp_tests ..................***Failed    4.26 sec
+known-failure check rc=1
+ctest: 95% tests passed, 2 tests failed out of 42
+failing tests: ['forge_smp_tests', 'forge_tests']
+KNOWN-FAILURE CHECK: FAIL
+ - unexpected failing tests: forge_smp_tests
+== 2026-10-27 21:32:48 cold-init tests verbose (ctest -L cold-init -V) + their properties
+free RAM 9 GB
+cold-init rc=0
+2: COLD_PROBE progress 200/1000 elapsed_s=32
+2: COLD_PROBE progress 300/1000 elapsed_s=51
+2: COLD_PROBE progress 400/1000 elapsed_s=65
+2: COLD_PROBE progress 500/1000 elapsed_s=78
+2: COLD_PROBE progress 600/1000 elapsed_s=88
+2: COLD_PROBE progress 700/1000 elapsed_s=99
+2: COLD_PROBE progress 800/1000 elapsed_s=108
+2: COLD_PROBE progress 900/1000 elapsed_s=118
+2: COLD_PROBE progress 1000/1000 elapsed_s=127
+2: COLD_PROBE_PASS runs=1000 fresh_processes=1000 workers_per_process=8 elapsed_s=127
+2/2 Test #2: forge_sol_S04_cold_probe .........   Passed  126.88 sec
+100% tests passed, 0 tests failed out of 2
+== 2026-10-27 21:34:58 STEP3 DONE
