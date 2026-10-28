@@ -171,6 +171,9 @@ int main() {
                          "option name Book Depth type spin default 30 min 0 max 100\n"
                          "option name Book Variety type spin default 30 min 0 max 100\n";
             if (forge::nnue::available()) std::cout << "option name UseNNUE type check default true\n";
+#if FORGE_NNUE_LAZY_ACC
+            if (forge::nnue::available()) std::cout << "option name NnueLazyAcc type check default false\n";
+#endif
 #ifdef FORGE_EXPOSE_TUNABLES
             // Development builds advertise the search constants so match
             // runners can set them; release builds accept them silently.
@@ -259,6 +262,16 @@ int main() {
                 } else {
                     book_variety = std::clamp(value, 0, 100);
                 }
+#if FORGE_NNUE_LAZY_ACC
+            } else if (name == "NnueLazyAcc") {
+                if (value_text == "true") forge::lazy_acc::requested.store(true, std::memory_order_relaxed);
+                else if (value_text == "false") forge::lazy_acc::requested.store(false, std::memory_order_relaxed);
+                else {
+                    const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex());
+                    std::cout << "info string invalid value for option NnueLazyAcc" << std::endl;
+                }
+                searcher.clear_hash();
+#endif
             } else if (name == "UseNNUE") {
                 if (value_text == "true") forge::nnue::enabled = true;
                 else if (value_text == "false") forge::nnue::enabled = false;

@@ -3,6 +3,7 @@ project(ChessEngineForge VERSION 6.4.24 LANGUAGES CXX)
 find_package(Threads REQUIRED)
 
 option(FORGE_ENABLE_SANITIZERS "Enable AddressSanitizer and UndefinedBehaviorSanitizer" OFF)
+option(FORGE_NNUE_LAZY_ACC "Enable experimental NnueLazyAcc UCI option (default OFF)" OFF)
 option(FORGE_NATIVE "Optimise for the build machine's CPU (-march=native)" OFF)
 option(FORGE_EXPOSE_TUNABLES "Advertise search tuning constants as UCI options (development builds)" OFF)
 
@@ -17,6 +18,9 @@ add_library(forge_core
 )
 target_include_directories(forge_core PUBLIC include)
 target_compile_features(forge_core PUBLIC cxx_std_20)
+if(FORGE_NNUE_LAZY_ACC)
+    target_compile_definitions(forge_core PUBLIC FORGE_NNUE_LAZY_ACC=1)
+endif()
 
 if(MSVC)
     target_compile_options(forge_core PRIVATE /W4 /permissive-)
@@ -82,6 +86,15 @@ add_test(NAME forge_rule50_tests COMMAND forge_rule50_tests)
 add_test(NAME forge_legal_witness_tests COMMAND forge_legal_witness_tests
     ${CMAKE_CURRENT_SOURCE_DIR}/tests/legal_witness_fixtures.tsv
     ${CMAKE_CURRENT_SOURCE_DIR}/tools/openings/forge-10000.epd)
+# Sol's null-edge accumulator alias regression test (S12, v2); only builds with the alias compiled in.
+if(FORGE_NNUE_LAZY_ACC)
+    add_executable(forge_s12_lazyacc_tests tests/forge_sol_S12_lazyacc_native_regression_v2_20261027.cpp)
+    target_link_libraries(forge_s12_lazyacc_tests PRIVATE forge_core Threads::Threads)
+    add_test(NAME forge_s12_lazyacc_tests COMMAND forge_s12_lazyacc_tests)
+    add_executable(forge_s12_lazyacc_extra_tests tests/s12_lazyacc_extra_tests.cpp)
+    target_link_libraries(forge_s12_lazyacc_extra_tests PRIVATE forge_core Threads::Threads)
+    add_test(NAME forge_s12_lazyacc_extra_tests COMMAND forge_s12_lazyacc_extra_tests)
+endif()
 
 # Support tooling does not change engine behavior or add runtime dependencies.
 option(FORGE_BUILD_VALIDATION_TOOLS "Build the original opening corpus generator" OFF)

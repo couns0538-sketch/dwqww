@@ -1,0 +1,731 @@
+diff --git a/.github/workflows/opus-sol-s12-alias.yml b/.github/workflows/opus-sol-s12-alias.yml
+new file mode 100644
+index 00000000..8c57d1d1
+--- /dev/null
++++ b/.github/workflows/opus-sol-s12-alias.yml
+@@ -0,0 +1,47 @@
++# S12 follow-up (null-edge accumulator alias, build switch FORGE_NNUE_LAZY_ACC + UCI NnueLazyAcc, both default off)
++# Linux evidence; opus-ci.yml covers the default build: release (default binary vs lock, switch-on identity with the
++# option off/on, ctest with the alias tests, alias activity, NPS lock vs switch-on and option off vs on), ASan+UBSan
++# and TSan with the switch on. See opus_round1/sol_S12/followup_nullalias/ci_s12_alias.sh. Read-only; uploads logs.
++name: opus-sol-s12-alias
++on:
++  push:
++    branches: ['opus-sol-S12']
++    paths-ignore:
++      - 'opus_round1/**/*.md'
++      - 'opus_round1/**/*.log'
++      - 'opus_round1/**/*.tar.gz'
++      - 'opus_round1/**/SHA256SUMS'
++      - 'opus_round1/**/FILES.txt'
++      - 'REPORT.md'
++  workflow_dispatch:
++permissions:
++  contents: read
++jobs:
++  linux:
++    strategy:
++      fail-fast: false
++      matrix:
++        mode: [release, asan, tsan]
++    runs-on: ubuntu-24.04
++    timeout-minutes: 90
++    steps:
++      - uses: actions/checkout@v4
++        with:
++          fetch-depth: 0
++      - name: Toolchain
++        run: |
++          sudo apt-get update -qq
++          sudo apt-get install -y -qq g++-14 ninja-build cmake python3
++          g++-14 --version | head -1
++          nproc; lscpu | grep -E 'Model name' | cut -c1-200
++      - name: Run ${{ matrix.mode }} (switch on)
++        run: bash opus_round1/sol_S12/followup_nullalias/ci_s12_alias.sh ${{ matrix.mode }} ci_out
++      - name: Upload logs
++        if: always()
++        uses: actions/upload-artifact@v4
++        with:
++          name: sol-s12-alias-${{ matrix.mode }}
++          path: |
++            ci_out/*.log
++            ci_out/**/sanitizer_logs_*/**
++          if-no-files-found: warn
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index 915039a4..0a731227 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -3,6 +3,7 @@ project(ChessEngineForge VERSION 6.4.24 LANGUAGES CXX)
+ find_package(Threads REQUIRED)
+ 
+ option(FORGE_ENABLE_SANITIZERS "Enable AddressSanitizer and UndefinedBehaviorSanitizer" OFF)
++option(FORGE_NNUE_LAZY_ACC "Enable experimental NnueLazyAcc UCI option (default OFF)" OFF)
+ option(FORGE_NATIVE "Optimise for the build machine's CPU (-march=native)" OFF)
+ option(FORGE_EXPOSE_TUNABLES "Advertise search tuning constants as UCI options (development builds)" OFF)
+ 
+@@ -17,6 +18,9 @@ add_library(forge_core
+ )
+ target_include_directories(forge_core PUBLIC include)
+ target_compile_features(forge_core PUBLIC cxx_std_20)
++if(FORGE_NNUE_LAZY_ACC)
++    target_compile_definitions(forge_core PUBLIC FORGE_NNUE_LAZY_ACC=1)
++endif()
+ 
+ if(MSVC)
+     target_compile_options(forge_core PRIVATE /W4 /permissive-)
+@@ -82,6 +86,15 @@ add_test(NAME forge_rule50_tests COMMAND forge_rule50_tests)
+ add_test(NAME forge_legal_witness_tests COMMAND forge_legal_witness_tests
+     ${CMAKE_CURRENT_SOURCE_DIR}/tests/legal_witness_fixtures.tsv
+     ${CMAKE_CURRENT_SOURCE_DIR}/tools/openings/forge-10000.epd)
++# Sol's null-edge accumulator alias regression test (S12, v2); only builds with the alias compiled in.
++if(FORGE_NNUE_LAZY_ACC)
++    add_executable(forge_s12_lazyacc_tests tests/forge_sol_S12_lazyacc_native_regression_v2_20261027.cpp)
++    target_link_libraries(forge_s12_lazyacc_tests PRIVATE forge_core Threads::Threads)
++    add_test(NAME forge_s12_lazyacc_tests COMMAND forge_s12_lazyacc_tests)
++    add_executable(forge_s12_lazyacc_extra_tests tests/s12_lazyacc_extra_tests.cpp)
++    target_link_libraries(forge_s12_lazyacc_extra_tests PRIVATE forge_core Threads::Threads)
++    add_test(NAME forge_s12_lazyacc_extra_tests COMMAND forge_s12_lazyacc_extra_tests)
++endif()
+ 
+ # Support tooling does not change engine behavior or add runtime dependencies.
+ option(FORGE_BUILD_VALIDATION_TOOLS "Build the original opening corpus generator" OFF)
+diff --git a/include/forge/search.hpp b/include/forge/search.hpp
+index e976c710..bba33404 100644
+--- a/include/forge/search.hpp
++++ b/include/forge/search.hpp
+@@ -14,8 +14,27 @@
+ #include <thread>
+ #include <vector>
+ 
++#ifndef FORGE_NNUE_LAZY_ACC
++#define FORGE_NNUE_LAZY_ACC 0
++#endif
++
+ namespace forge {
+ 
++#if FORGE_NNUE_LAZY_ACC
++namespace lazy_acc {
++// UCI joins all search workers before changing this pending configuration.
++extern std::atomic<bool> requested;
++}
++struct LazyAccStats {
++    std::uint64_t refreshes = 0;
++    std::uint64_t updates = 0;
++    std::uint64_t zero_dirty_edges = 0;
++    std::uint64_t copies_avoided = 0;
++    std::uint64_t alias_hits = 0;
++    std::uint64_t evaluations = 0;
++};
++#endif
++
+ struct SearchLimits {
+     int depth = 64;
+     std::uint64_t nodes = 0;
+@@ -50,6 +69,9 @@ struct SearchInfo {
+     std::vector<Move> pv;
+     // A searchmoves intersection with no legal moves is not checkmate or stalemate.
+     bool restricted_root_empty = false;
++#if FORGE_NNUE_LAZY_ACC
++    LazyAccStats lazy_acc_stats{};
++#endif
+ };
+ 
+ constexpr int MaxPly = 128;
+@@ -281,6 +303,11 @@ struct SearchStack {
+     nnue::Accumulator accumulator{};
+     Evaluator::RuntimePsqt runtime_psqt{};
+     nnue::DirtyPieces dirty{};
++#if FORGE_NNUE_LAZY_ACC
++    // Null edges may borrow a physical valid ancestor. Never a descendant or
++    // another alias: valid remains false here until a real update materializes.
++    SearchStack* accumulator_owner = nullptr;
++#endif
+ };
+ 
+ // State shared by every worker of one Searcher.
+@@ -288,6 +315,10 @@ struct SharedSearchState {
+     explicit SharedSearchState(std::size_t hash_mb) : tt(hash_mb) {}
+     TranspositionTable tt;
+     std::atomic<bool> stop{false};
++#if FORGE_NNUE_LAZY_ACC
++    // Immutable from before worker creation until every helper has joined.
++    bool lazy_acc_enabled = false;
++#endif
+     // 0 means pondering has not been converted into a timed search.
+     std::atomic<std::int64_t> ponder_hit_ns{0};
+ };
+@@ -307,11 +338,18 @@ public:
+     void clear_caches() { evaluator_.clear(); }
+     [[nodiscard]] std::uint64_t nodes() const { return nodes_.load(std::memory_order_relaxed); }
+     [[nodiscard]] bool is_main() const { return id_ == 0; }
++#if FORGE_NNUE_LAZY_ACC
++    [[nodiscard]] LazyAccStats lazy_acc_stats() const { return lazy_acc_stats_; }
++#endif
+ 
+ private:
+     friend struct SearcherTestProbe;
+     friend class MovePicker;
+ 
++#if FORGE_NNUE_LAZY_ACC
++    LazyAccStats lazy_acc_stats_{};
++    [[nodiscard]] int static_evaluate_lazy(const Board& board, SearchStack* ss);
++#endif
+     SharedSearchState& shared_;
+     int id_ = 0;
+     Evaluator evaluator_;
+diff --git a/src/search.cpp b/src/search.cpp
+index 74de5d37..aa541511 100644
+--- a/src/search.cpp
++++ b/src/search.cpp
+@@ -10,6 +10,22 @@
+ 
+ namespace forge {
+ 
++#if FORGE_NNUE_LAZY_ACC
++namespace lazy_acc {
++std::atomic<bool> requested{false};
++}
++namespace {
++std::atomic<bool> lazy_acc_active_announced{false};
++// Only static_evaluate_lazy creates aliases; every target is physical and valid.
++SearchStack* computed_owner(SearchStack* frame) {
++    if (frame->accumulator.valid) return frame;
++    SearchStack* owner = frame->accumulator_owner;
++    return owner != nullptr && owner < frame && owner->accumulator.valid
++        && owner->accumulator_owner == nullptr ? owner : nullptr;
++}
++}
++#endif
++
+ namespace tune {
+ int LmrQuietBase = 85;
+ int LmrQuietDivisor = 220;
+@@ -596,8 +612,56 @@ namespace {
+ }
+ } // namespace
+ 
++#if FORGE_NNUE_LAZY_ACC
++int Worker::static_evaluate_lazy(const Board& board, SearchStack* ss) {
++    const bool residual = nnue::residual();
++    SearchStack* owner = computed_owner(ss);
++    if (owner != nullptr) {
++        if (owner != ss) ++lazy_acc_stats_.alias_hits;
++    } else {
++        int back = 0;
++        while (back < ss->ply && computed_owner(ss - back - 1) == nullptr) ++back;
++        if (back >= ss->ply && computed_owner(ss - back - 1) == nullptr) {
++            nnue::refresh(board, ss->accumulator);
++            ss->accumulator_owner = nullptr;
++            ++lazy_acc_stats_.refreshes;
++            if (residual) ss->runtime_psqt = Evaluator::refresh_runtime_psqt(board);
++            owner = ss;
++        } else {
++            owner = computed_owner(ss - back - 1);
++            for (int i = back; i >= 0; --i) {
++                SearchStack* child = ss - i;
++                assert(owner != nullptr && owner < child && owner->accumulator.valid);
++                if (child->dirty.count == 0) {
++                    // A null move changes only the output perspective, not the
++                    // piece features or white-oriented PSQT/phase. Borrow both.
++                    child->accumulator_owner = owner;
++                    ++lazy_acc_stats_.zero_dirty_edges;
++                    ++lazy_acc_stats_.copies_avoided;
++                } else {
++                    nnue::update(owner->accumulator, child->accumulator, child->dirty);
++                    ++lazy_acc_stats_.updates;
++                    if (residual) Evaluator::update_runtime_psqt(owner->runtime_psqt, child->runtime_psqt, child->dirty);
++                    child->accumulator_owner = nullptr;
++                    owner = child;
++                }
++            }
++        }
++    }
++    assert(owner != nullptr && owner->accumulator.valid);
++    const int network = nnue::evaluate(board, owner->accumulator);
++    if (!residual) return network;
++    if (!owner->runtime_psqt.valid) owner->runtime_psqt = Evaluator::refresh_runtime_psqt(board);
++    return std::clamp(evaluator_.evaluate_runtime(board, owner->runtime_psqt) + network, -MateInMaxPly + 1, MateInMaxPly - 1);
++}
++#endif
++
+ int Worker::static_evaluate(const Board& board, SearchStack* ss) {
+     if (!nnue::enabled || !nnue::available()) return evaluator_.evaluate(board);
++#if FORGE_NNUE_LAZY_ACC
++    ++lazy_acc_stats_.evaluations;
++    if (shared_.lazy_acc_enabled) return static_evaluate_lazy(board, ss);
++#endif
+     const bool residual = nnue::residual();
+     if (!ss->accumulator.valid) {
+         // Walk back to the nearest valid accumulator, then replay the moves.
+@@ -605,10 +669,17 @@ int Worker::static_evaluate(const Board& board, SearchStack* ss) {
+         while (back < ss->ply && !(ss - back - 1)->accumulator.valid) ++back;
+         if (back >= ss->ply && !(ss - back - 1)->accumulator.valid) {
+             nnue::refresh(board, ss->accumulator);
++#if FORGE_NNUE_LAZY_ACC
++            ++lazy_acc_stats_.refreshes;
++#endif
+             if (residual) ss->runtime_psqt = Evaluator::refresh_runtime_psqt(board);
+         } else {
+             for (int i = back; i >= 0; --i) {
+                 nnue::update((ss - i - 1)->accumulator, (ss - i)->accumulator, (ss - i)->dirty);
++#if FORGE_NNUE_LAZY_ACC
++                ++lazy_acc_stats_.updates;
++                if ((ss - i)->dirty.count == 0) ++lazy_acc_stats_.zero_dirty_edges;
++#endif
+                 if (residual) Evaluator::update_runtime_psqt((ss - i - 1)->runtime_psqt, (ss - i)->runtime_psqt, (ss - i)->dirty);
+             }
+         }
+@@ -627,12 +698,18 @@ void Worker::record_move(SearchStack* ss, const Board& board, const Move& move)
+     (ss + 1)->dirty = nnue::dirty_pieces(board, move);
+     (ss + 1)->accumulator.valid = false;
+     (ss + 1)->runtime_psqt.valid = false;
++#if FORGE_NNUE_LAZY_ACC
++    (ss + 1)->accumulator_owner = nullptr;
++#endif
+ }
+ 
+ void Worker::record_null_move(SearchStack* ss) {
+     (ss + 1)->dirty.count = 0;
+     (ss + 1)->accumulator.valid = false;
+     (ss + 1)->runtime_psqt.valid = false;
++#if FORGE_NNUE_LAZY_ACC
++    (ss + 1)->accumulator_owner = nullptr;
++#endif
+ }
+ 
+ int Worker::corrected_eval(const Board& board, int raw_eval) const {
+@@ -1232,6 +1309,9 @@ SearchInfo Worker::search(Board board, const SearchLimits& limits, bool emit_inf
+         ? limits.start_time : limits.request_start;
+     start_ = origin == std::chrono::steady_clock::time_point{}
+         ? std::chrono::steady_clock::now() : origin;
++#if FORGE_NNUE_LAZY_ACC
++    lazy_acc_stats_ = {};
++#endif
+     local_nodes_ = 0;
+     nodes_.store(0, std::memory_order_relaxed);
+     all_workers_ = &all;
+@@ -1362,9 +1442,15 @@ SearchInfo Worker::search(Board board, const SearchLimits& limits, bool emit_inf
+     for (SearchStack& entry : stack_) {
+         entry.accumulator.valid = false;
+         entry.runtime_psqt.valid = false;
++#if FORGE_NNUE_LAZY_ACC
++        entry.accumulator_owner = nullptr;
++#endif
+     }
+     if (nnue::enabled && nnue::available()) {
+         nnue::refresh(board, ss->accumulator);
++#if FORGE_NNUE_LAZY_ACC
++        ++lazy_acc_stats_.refreshes;
++#endif
+         if (nnue::residual()) ss->runtime_psqt = Evaluator::refresh_runtime_psqt(board);
+     }
+ 
+@@ -1507,6 +1593,10 @@ SearchInfo Searcher::search(Board board, const SearchLimits& limits, bool emit_i
+     std::vector<Worker*> all;
+     all.reserve(workers_.size());
+     for (auto& worker : workers_) all.push_back(worker.get());
++#if FORGE_NNUE_LAZY_ACC
++    shared_.lazy_acc_enabled = lazy_acc::requested.load(std::memory_order_relaxed)
++        && nnue::enabled && nnue::available();
++#endif
+     // Age the table once per search, before any worker can probe it.
+     shared_.tt.new_search();
+     std::optional<TranspositionTable::ExclusiveLease> exclusive;
+@@ -1525,6 +1615,27 @@ SearchInfo Searcher::search(Board board, const SearchLimits& limits, bool emit_i
+     shared_.stop.store(true, std::memory_order_relaxed);
+     for (auto& helper : helpers) helper.join();
+     shared_.stop.store(external_stop, std::memory_order_relaxed);
++#if FORGE_NNUE_LAZY_ACC
++    for (const auto& worker : workers_) {
++        const auto stats = worker->lazy_acc_stats();
++        result.lazy_acc_stats.refreshes += stats.refreshes;
++        result.lazy_acc_stats.updates += stats.updates;
++        result.lazy_acc_stats.zero_dirty_edges += stats.zero_dirty_edges;
++        result.lazy_acc_stats.copies_avoided += stats.copies_avoided;
++        result.lazy_acc_stats.alias_hits += stats.alias_hits;
++        result.lazy_acc_stats.evaluations += stats.evaluations;
++    }
++    if (shared_.lazy_acc_enabled && result.lazy_acc_stats.evaluations != 0) {
++        const std::lock_guard<std::mutex> output_lock(uci_output_mutex());
++        if (!lazy_acc_active_announced.exchange(true, std::memory_order_relaxed))
++            std::cout << "info string NnueLazyAcc active\n";
++        const auto& stats = result.lazy_acc_stats;
++        std::cout << "info string NnueLazyAcc stats refreshes " << stats.refreshes
++                  << " updates " << stats.updates << " zero_dirty_edges " << stats.zero_dirty_edges
++                  << " copies_avoided " << stats.copies_avoided << " alias_hits " << stats.alias_hits
++                  << " evaluations " << stats.evaluations << std::endl;
++    }
++#endif
+     return result;
+ }
+ 
+diff --git a/src/uci.cpp b/src/uci.cpp
+index 607adf3a..ec7b1b67 100644
+--- a/src/uci.cpp
++++ b/src/uci.cpp
+@@ -171,6 +171,9 @@ int main() {
+                          "option name Book Depth type spin default 30 min 0 max 100\n"
+                          "option name Book Variety type spin default 30 min 0 max 100\n";
+             if (forge::nnue::available()) std::cout << "option name UseNNUE type check default true\n";
++#if FORGE_NNUE_LAZY_ACC
++            if (forge::nnue::available()) std::cout << "option name NnueLazyAcc type check default false\n";
++#endif
+ #ifdef FORGE_EXPOSE_TUNABLES
+             // Development builds advertise the search constants so match
+             // runners can set them; release builds accept them silently.
+@@ -259,6 +262,16 @@ int main() {
+                 } else {
+                     book_variety = std::clamp(value, 0, 100);
+                 }
++#if FORGE_NNUE_LAZY_ACC
++            } else if (name == "NnueLazyAcc") {
++                if (value_text == "true") forge::lazy_acc::requested.store(true, std::memory_order_relaxed);
++                else if (value_text == "false") forge::lazy_acc::requested.store(false, std::memory_order_relaxed);
++                else {
++                    const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex());
++                    std::cout << "info string invalid value for option NnueLazyAcc" << std::endl;
++                }
++                searcher.clear_hash();
++#endif
+             } else if (name == "UseNNUE") {
+                 if (value_text == "true") forge::nnue::enabled = true;
+                 else if (value_text == "false") forge::nnue::enabled = false;
+diff --git a/tests/forge_sol_S12_lazyacc_native_regression_v2_20261027.cpp b/tests/forge_sol_S12_lazyacc_native_regression_v2_20261027.cpp
+new file mode 100644
+index 00000000..c49a7ee5
+--- /dev/null
++++ b/tests/forge_sol_S12_lazyacc_native_regression_v2_20261027.cpp
+@@ -0,0 +1,193 @@
++// v2 of Sol's forge_sol_S12_lazyacc_native_regression_20261026.cpp (17aa0cae, never compiled there).
++// Only change: Evaluator::refresh_runtime_psqt is private in AL1, so the fresh PSQT comes from the same
++// params::table oracle that tests/runtime_psqt_tests.cpp uses (psqt_oracle below). Everything else is his.
++// ORIGINAL Forge-only test. Prepared source: NOT COMPILED OR EXECUTED yet.
++// This also compiles against the supplied baseline: parity can pass there, but
++// the actual zero-copy assertions must fail. No baseline behavior is mocked.
++#include "forge/search.hpp"
++#include "forge/eval_params.hpp"
++#include <algorithm>
++#include <cstring>
++#include <iostream>
++#include <memory>
++#include <stdexcept>
++#include <string>
++
++namespace forge {
++struct SearcherTestProbe {
++    static SearchStack* root(Worker& w) { return &w.stack_[4]; }
++    static void plies(Worker& w) {
++        for (int i = 0; i < MaxPly + 4; ++i) w.stack_[static_cast<std::size_t>(i)].ply = i - 4;
++    }
++    static int eval(Worker& w, const Board& b, SearchStack* ss) { return w.static_evaluate(b, ss); }
++    static void move(Worker& w, SearchStack* ss, const Board& b, Move m) { w.record_move(ss, b, m); }
++    static void null(Worker& w, SearchStack* ss) { w.record_null_move(ss); }
++    template<class State> static bool mode(State& s, bool enabled) {
++        if constexpr (requires { s.lazy_acc_enabled; }) { s.lazy_acc_enabled = enabled; return true; }
++        else return false;
++    }
++    template<class Frame> static Frame* owner(Frame* ss) {
++        if (ss->accumulator.valid) return ss;
++        if constexpr (requires { ss->accumulator_owner; }) return ss->accumulator_owner;
++        else return nullptr;
++    }
++    template<class W> static std::uint64_t avoided(const W& w) {
++        if constexpr (requires { w.lazy_acc_stats_.copies_avoided; }) return w.lazy_acc_stats_.copies_avoided;
++        else return 0;
++    }
++};
++}
++
++using namespace forge;
++namespace {
++// Fresh runtime PSQT for a board, computed the way tests/runtime_psqt_tests.cpp computes its oracle.
++Evaluator::RuntimePsqt psqt_oracle(const Board& b) {
++    Score score = 0; int phase = 0;
++    for (int square = 0; square < 64; ++square) {
++        const Piece p = b.piece_at(square); if (p == Empty) continue;
++        const int type = piece_type(p); phase += PhaseValue[static_cast<std::size_t>(type)];
++        const Score term = params::table[static_cast<std::size_t>(params::Psqt + (type - 1) * 64
++            + (color_of(p) == White ? square : flip_square(square)))];
++        score += color_of(p) == White ? term : -term;
++    }
++    return {score, phase, true};
++}
++int checks = 0, failures = 0;
++void check(bool okay, const std::string& label) {
++    ++checks;
++    if (!okay) ++failures;
++    std::cout << (okay ? "PASS " : "FAIL ") << label << '\n';
++}
++Board board(const std::string& fen) {
++    Board b;
++    if (!b.set_fen(fen)) throw std::runtime_error("invalid FEN: " + fen);
++    return b;
++}
++Move move(Board& b, const std::string& text) {
++    const auto m = b.parse_uci(text);
++    if (!m) throw std::runtime_error("illegal fixture move: " + text + " in " + b.fen());
++    return *m;
++}
++SearchStack* begin(Worker& w, const Board& b) {
++    w.clear();
++    SearcherTestProbe::plies(w);
++    SearchStack* ss = SearcherTestProbe::root(w);
++    nnue::refresh(b, ss->accumulator);
++    ss->runtime_psqt = psqt_oracle(b);
++    return ss;
++}
++void verify(Worker& w, const Board& b, SearchStack* ss, const std::string& label) {
++    const int actual = SearcherTestProbe::eval(w, b, ss);
++    SearchStack* owner = SearcherTestProbe::owner(ss);
++    check(owner != nullptr && owner->accumulator.valid && owner <= ss, label + " physical owner exists within ancestor chain");
++    if (!owner) return;
++    nnue::Accumulator fresh;
++    nnue::refresh(b, fresh);
++    check(std::memcmp(fresh.values.data(), owner->accumulator.values.data(), sizeof(fresh.values)) == 0,
++          label + " all actual float words equal fresh refresh");
++    check(nnue::evaluate(b, fresh) == nnue::evaluate(b, owner->accumulator), label + " actual NNUE integer API parity");
++    const int expected = nnue::residual()
++        ? std::clamp(Evaluator::evaluate_uncached(b) + nnue::evaluate(b, fresh), -MateInMaxPly + 1, MateInMaxPly - 1)
++        : nnue::evaluate(b, fresh);
++    check(actual == expected, label + " complete actual Worker evaluation parity");
++    if (nnue::residual()) {
++        const auto psqt = psqt_oracle(b);
++        check(owner->runtime_psqt.valid == psqt.valid && owner->runtime_psqt.score == psqt.score
++              && owner->runtime_psqt.phase == psqt.phase, label + " PSQT score phase and validity parity");
++    }
++}
++void special(Worker& w, Board b, const std::string& uci, const std::string& label) {
++    auto* ss = begin(w, b);
++    Move m = move(b, uci);
++    SearcherTestProbe::move(w, ss, b, m);
++    Undo undo;
++    if (!b.make_move(m, undo)) throw std::runtime_error("fixture make failed");
++    verify(w, b, ss + 1, label + " real");
++    SearcherTestProbe::null(w, ss + 1);
++    NullUndo null;
++    b.make_null_move(null);
++    verify(w, b, ss + 2, label + " real then null");
++    check(!((ss + 2)->accumulator.valid), label + " null cache remains unmaterialized");
++    check(SearcherTestProbe::owner(ss + 2) == ss + 1, label + " null borrows physical real predecessor");
++    b.unmake_null_move(null);
++    b.unmake_move(m, undo);
++    verify(w, b, ss, label + " restored root");
++}
++}
++
++int main() {
++    try {
++        check(nnue::available(), "actual compiled network available");
++        if (!nnue::available()) return 1;
++        nnue::enabled = true;
++        SharedSearchState shared(1);
++        check(SearcherTestProbe::mode(shared, true), "actual opt-in implementation present (must fail on base)");
++        auto owned = std::make_unique<Worker>(shared, 0);
++        Worker& w = *owned;
++        Board b = board(std::string(Board::StandardStartFen));
++        SearchStack* ss = begin(w, b);
++        nnue::Accumulator root_before = ss->accumulator;
++        SearcherTestProbe::null(w, ss);
++        NullUndo first;
++        b.make_null_move(first);
++        // Poison the local cache: an alias must use its physical owner's cache.
++        (ss + 1)->runtime_psqt = {123, -7, true};
++        ss->runtime_psqt.valid = false;
++        verify(w, b, ss + 1, "null with invalid owner PSQT and poisoned local PSQT");
++        check(!(ss + 1)->accumulator.valid, "actual null accumulator copy avoided (must fail on base)");
++        check(SearcherTestProbe::owner(ss + 1) == ss, "null uses root physical owner");
++        SearcherTestProbe::null(w, ss + 1);
++        NullUndo second;
++        b.make_null_move(second);
++        verify(w, b, ss + 2, "null-null chain");
++        check(SearcherTestProbe::owner(ss + 2) == ss, "alias chain is flattened to physical root");
++        check(SearcherTestProbe::avoided(w) >= 2, "real skip counter changed (must fail on base)");
++        check(std::memcmp(root_before.values.data(), ss->accumulator.values.data(), sizeof(root_before.values)) == 0,
++              "null chain leaves physical root float words unchanged");
++        // A nonempty edge after aliased frames must use the same exact input.
++        const Move knight = move(b, "g1f3");
++        SearcherTestProbe::move(w, ss + 2, b, knight);
++        Undo knight_undo;
++        (void)b.make_move(knight, knight_undo);
++        verify(w, b, ss + 3, "null-null-real");
++        b.unmake_move(knight, knight_undo);
++        b.unmake_null_move(second);
++        b.unmake_null_move(first);
++        // Reuse the old aliased child as a real sibling. A retained alias would
++        // give the root features and fail both float words and integer parity.
++        SearcherTestProbe::move(w, ss, b, knight);
++        check(SearcherTestProbe::owner(ss + 1) == nullptr, "sibling invalidation clears stale alias");
++        (void)b.make_move(knight, knight_undo);
++        verify(w, b, ss + 1, "overwritten alias sibling");
++        verify(w, b, ss + 1, "same-ply repeated evaluation");
++        b.unmake_move(knight, knight_undo);
++        ss = begin(w, b);
++        check(SearcherTestProbe::owner(ss + 1) == nullptr, "Worker clear/root restart removes stale aliases");
++        // Lazy replay over a real edge and a null edge, neither yet evaluated.
++        SearcherTestProbe::move(w, ss, b, knight);
++        (void)b.make_move(knight, knight_undo);
++        SearcherTestProbe::null(w, ss + 1);
++        b.make_null_move(first);
++        verify(w, b, ss + 2, "unevaluated real-null ancestor replay");
++        b.unmake_null_move(first);
++        b.unmake_move(knight, knight_undo);
++        special(w, board("4k3/8/8/3pP3/8/8/8/4K3 w - d6 0 1"), "e5d6", "en passant");
++        special(w, board("r3k2r/8/8/8/8/8/8/R3K2R w KQkq - 0 1"), "e1g1", "white castle");
++        special(w, board("r3k2r/8/8/8/8/8/8/R3K2R b KQkq - 0 1"), "e8c8", "black castle");
++        special(w, board("4k3/P7/8/8/8/8/8/4K3 w - - 0 1"), "a7a8n", "white underpromotion");
++        special(w, board("4k3/8/8/8/8/8/p7/4K3 b - - 0 1"), "a2a1n", "black underpromotion");
++        special(w, board("1r2k3/P7/8/8/8/8/8/4K3 w - - 0 1"), "a7b8n", "capture underpromotion");
++        // With NNUE disabled, the alias option must not be entered at all.
++        nnue::enabled = false;
++        ss = begin(w, b);
++        const auto before = SearcherTestProbe::avoided(w);
++        check(SearcherTestProbe::eval(w, b, ss) == Evaluator::evaluate_uncached(b), "UseNNUE false retains HCE behavior");
++        check(SearcherTestProbe::avoided(w) == before, "UseNNUE false adds no skipped-copy claims");
++        nnue::enabled = true;
++        std::cout << "CHECKS " << checks << " FAILURES " << failures << '\n';
++        return failures == 0 ? 0 : 1;
++    } catch (const std::exception& e) {
++        std::cerr << "FAIL exception " << e.what() << '\n';
++        return 1;
++    }
++}
+diff --git a/tests/s12_lazyacc_extra_tests.cpp b/tests/s12_lazyacc_extra_tests.cpp
+new file mode 100644
+index 00000000..3fe1eec7
+--- /dev/null
++++ b/tests/s12_lazyacc_extra_tests.cpp
+@@ -0,0 +1,134 @@
++// S12 follow-up: two checks on the null-edge accumulator alias (FORGE_NNUE_LAZY_ACC) that Sol's regression test
++// (forge_sol_S12_lazyacc_native_regression_v2_20261027.cpp) does not make, because every case there starts from
++// Worker::clear(). Both guard invariants the search keeps today (it never makes two null moves in a row), so in the
++// engine they are defense in depth: a null child must not keep an alias from an earlier use of its stack entry, and
++// computed_owner must not trust an owner pointer that is not a lower, valid, physical frame.
++#include "forge/search.hpp"
++#include "forge/eval_params.hpp"
++#include <algorithm>
++#include <cstring>
++#include <iostream>
++#include <memory>
++#include <stdexcept>
++#include <string>
++
++namespace forge {
++struct SearcherTestProbe {
++    static SearchStack* root(Worker& w) { return &w.stack_[4]; }
++    static void plies(Worker& w) {
++        for (int i = 0; i < MaxPly + 4; ++i) w.stack_[static_cast<std::size_t>(i)].ply = i - 4;
++    }
++    static int eval(Worker& w, const Board& b, SearchStack* ss) { return w.static_evaluate(b, ss); }
++    static void move(Worker& w, SearchStack* ss, const Board& b, Move m) { w.record_move(ss, b, m); }
++    static void null(Worker& w, SearchStack* ss) { w.record_null_move(ss); }
++};
++}
++
++using namespace forge;
++using Probe = SearcherTestProbe;
++namespace {
++int checks = 0, failures = 0;
++void check(bool okay, const std::string& label) {
++    ++checks;
++    if (!okay) ++failures;
++    std::cout << (okay ? "PASS " : "FAIL ") << label << '\n';
++}
++// Fresh runtime PSQT, computed like the oracle in tests/runtime_psqt_tests.cpp.
++Evaluator::RuntimePsqt psqt_oracle(const Board& b) {
++    Score score = 0; int phase = 0;
++    for (int square = 0; square < 64; ++square) {
++        const Piece p = b.piece_at(square); if (p == Empty) continue;
++        const int type = piece_type(p); phase += PhaseValue[static_cast<std::size_t>(type)];
++        const Score term = params::table[static_cast<std::size_t>(params::Psqt + (type - 1) * 64
++            + (color_of(p) == White ? square : flip_square(square)))];
++        score += color_of(p) == White ? term : -term;
++    }
++    return {score, phase, true};
++}
++// The evaluation a fresh accumulator gives for this board (the parity target of Sol's test).
++int expected_eval(const Board& b) {
++    nnue::Accumulator fresh;
++    nnue::refresh(b, fresh);
++    return nnue::residual()
++        ? std::clamp(Evaluator::evaluate_uncached(b) + nnue::evaluate(b, fresh), -MateInMaxPly + 1, MateInMaxPly - 1)
++        : nnue::evaluate(b, fresh);
++}
++SearchStack* begin(Worker& w, const Board& b) {
++    w.clear();
++    Probe::plies(w);
++    SearchStack* ss = Probe::root(w);
++    nnue::refresh(b, ss->accumulator);
++    ss->runtime_psqt = psqt_oracle(b);
++    return ss;
++}
++Move move(Board& b, const std::string& text) {
++    const auto m = b.parse_uci(text);
++    if (!m) throw std::runtime_error("illegal fixture move: " + text);
++    return *m;
++}
++}
++
++int main() {
++    try {
++        check(nnue::available(), "compiled network available");
++        if (!nnue::available()) return 1;
++        nnue::enabled = true;
++        SharedSearchState shared(1);
++        shared.lazy_acc_enabled = true;
++        auto owned = std::make_unique<Worker>(shared, 0);
++        Worker& w = *owned;
++        Board b;
++        if (!b.set_fen(std::string(Board::StandardStartFen))) throw std::runtime_error("start FEN");
++
++        // 1. Reuse after a null-null chain: the chain leaves (ss + 2) aliased to the root. The same entry then
++        //    becomes a null child of a real move; it must borrow that real frame, not the stale root.
++        SearchStack* ss = begin(w, b);
++        Probe::null(w, ss);
++        NullUndo n1;
++        b.make_null_move(n1);
++        Probe::null(w, ss + 1);
++        NullUndo n2;
++        b.make_null_move(n2);
++        check(Probe::eval(w, b, ss + 2) == expected_eval(b), "null-null chain evaluates like a fresh accumulator");
++        check((ss + 2)->accumulator_owner == ss, "null-null chain aliases the root");
++        b.unmake_null_move(n2);
++        b.unmake_null_move(n1);
++        const Move knight = move(b, "g1f3");
++        Probe::move(w, ss, b, knight);
++        Undo undo;
++        if (!b.make_move(knight, undo)) throw std::runtime_error("fixture make failed");
++        Probe::null(w, ss + 1);
++        check((ss + 2)->accumulator_owner == nullptr, "record_null_move clears the entry's old alias");
++        NullUndo n3;
++        b.make_null_move(n3);
++        check(Probe::eval(w, b, ss + 2) == expected_eval(b), "null child of a real move after a reused chain: parity");
++        check((ss + 2)->accumulator_owner == ss + 1, "null child borrows the new real parent, not the stale root");
++        b.unmake_null_move(n3);
++        b.unmake_move(knight, undo);
++
++        // 2. An owner pointer that is not a lower, valid, physical frame is ignored (the walk materializes instead).
++        ss = begin(w, b);
++        Probe::move(w, ss, b, knight);
++        (void)b.make_move(knight, undo);
++        Probe::null(w, ss + 1);
++        NullUndo n4;
++        b.make_null_move(n4);
++        (ss + 2)->accumulator_owner = ss + 1;  // lower but not valid: the real parent is not evaluated yet
++        check(!(ss + 1)->accumulator.valid, "fixture: the real parent is not materialized");
++        check(Probe::eval(w, b, ss + 2) == expected_eval(b), "owner pointing at an unmaterialized frame is ignored");
++        b.unmake_null_move(n4);
++        Probe::null(w, ss + 1);
++        b.make_null_move(n4);
++        (ss + 2)->accumulator_owner = ss + 3;  // not an ancestor
++        (ss + 3)->accumulator.valid = false;
++        check(Probe::eval(w, b, ss + 2) == expected_eval(b), "owner pointing above the frame is ignored");
++        b.unmake_null_move(n4);
++        b.unmake_move(knight, undo);
++
++        std::cout << "CHECKS " << checks << " FAILURES " << failures << '\n';
++        return failures == 0 ? 0 : 1;
++    } catch (const std::exception& e) {
++        std::cerr << "FAIL exception " << e.what() << '\n';
++        return 1;
++    }
++}

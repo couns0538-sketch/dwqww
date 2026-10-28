@@ -14,7 +14,26 @@
 #include <thread>
 #include <vector>
 
+#ifndef FORGE_NNUE_LAZY_ACC
+#define FORGE_NNUE_LAZY_ACC 0
+#endif
+
 namespace forge {
+
+#if FORGE_NNUE_LAZY_ACC
+namespace lazy_acc {
+// UCI joins all search workers before changing this pending configuration.
+extern std::atomic<bool> requested;
+}
+struct LazyAccStats {
+    std::uint64_t refreshes = 0;
+    std::uint64_t updates = 0;
+    std::uint64_t zero_dirty_edges = 0;
+    std::uint64_t copies_avoided = 0;
+    std::uint64_t alias_hits = 0;
+    std::uint64_t evaluations = 0;
+};
+#endif
 
 struct SearchLimits {
     int depth = 64;
@@ -50,6 +69,9 @@ struct SearchInfo {
     std::vector<Move> pv;
     // A searchmoves intersection with no legal moves is not checkmate or stalemate.
     bool restricted_root_empty = false;
+#if FORGE_NNUE_LAZY_ACC
+    LazyAccStats lazy_acc_stats{};
+#endif
 };
 
 constexpr int MaxPly = 128;
@@ -281,6 +303,11 @@ struct SearchStack {
     nnue::Accumulator accumulator{};
     Evaluator::RuntimePsqt runtime_psqt{};
     nnue::DirtyPieces dirty{};
+#if FORGE_NNUE_LAZY_ACC
+    // Null edges may borrow a physical valid ancestor. Never a descendant or
+    // another alias: valid remains false here until a real update materializes.
+    SearchStack* accumulator_owner = nullptr;
+#endif
 };
 
 // State shared by every worker of one Searcher.
@@ -288,6 +315,10 @@ struct SharedSearchState {
     explicit SharedSearchState(std::size_t hash_mb) : tt(hash_mb) {}
     TranspositionTable tt;
     std::atomic<bool> stop{false};
+#if FORGE_NNUE_LAZY_ACC
+    // Immutable from before worker creation until every helper has joined.
+    bool lazy_acc_enabled = false;
+#endif
     // 0 means pondering has not been converted into a timed search.
     std::atomic<std::int64_t> ponder_hit_ns{0};
 };
@@ -307,11 +338,18 @@ public:
     void clear_caches() { evaluator_.clear(); }
     [[nodiscard]] std::uint64_t nodes() const { return nodes_.load(std::memory_order_relaxed); }
     [[nodiscard]] bool is_main() const { return id_ == 0; }
+#if FORGE_NNUE_LAZY_ACC
+    [[nodiscard]] LazyAccStats lazy_acc_stats() const { return lazy_acc_stats_; }
+#endif
 
 private:
     friend struct SearcherTestProbe;
     friend class MovePicker;
 
+#if FORGE_NNUE_LAZY_ACC
+    LazyAccStats lazy_acc_stats_{};
+    [[nodiscard]] int static_evaluate_lazy(const Board& board, SearchStack* ss);
+#endif
     SharedSearchState& shared_;
     int id_ = 0;
     Evaluator evaluator_;
