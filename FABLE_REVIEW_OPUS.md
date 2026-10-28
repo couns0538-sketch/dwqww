@@ -71,6 +71,8 @@ superseded runs cannot be turned green by re-running (same code).
 |---|---|---|---|
 | 1 | opus-O1, opus-O1-LTT, opus-O2, opus-sol-S12 and every opus-r3-* branch (8 files on opus-r3-stack) | Python bytecode committed: `opus_round1/O1/__pycache__/ucilib.cpython-314.pyc`, `opus_round1/O2/__pycache__/mutation_check.cpython-314.pyc`, `opus_round1/sol_S12/__pycache__/jobA_cause.cpython-314.pyc`, `opus_round1/sol_S12/followup_nullalias/__pycache__/mutation_check_alias.cpython-314.pyc` and the stack's copies (ctest ran the tools with the system Python inside the source tree) | the fix is `git rm --cached` of the eight files plus `__pycache__/` and `*.pyc` in `.gitignore` on a `fable-review-r3-stack` branch; **the command was denied by the PC's permission rules in this session (it counts as a deletion), exactly as it was for Opus**, so this stays an owner action: `git rm --cached $(git ls-files | grep '\.pyc$')` on a branch off opus-r3-stack, then commit |
 
+| 2 | the AL1 lock engine itself; Opus job S14 found it (`opus-sol-S14` REPORT section 4, "not fixed here") and the lock archive carries the CR-passed fix that was never applied | `MovePicker::bad_captures_` is `std::array<Move, 64>` written at `src/search.cpp:361` without a bounds check; a position with more than 64 SEE-losing noisy moves (capture-promotions count four times) overruns it (undefined behaviour) | branch **`fable-review-buffix`** (base d4f4312): the archived node-identical fix applied (`std::array<Move, MoveList::Capacity>` + static_assert + `tests/bad_capture_tests.cpp`), box build, identity check and the regression test; see its `fable_review/REVIEW.md` |
+
 ## Corrections pushed
 
 (none: the only mistake found so far needs a deletion that the permission rules refuse; see above)
