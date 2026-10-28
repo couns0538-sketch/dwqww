@@ -20,7 +20,8 @@ throughout; my work at nice 19). No Elo claims: no gate was run.
 | 40561969912 | `c82ccbd` (all O/C merges) | success (release 3m34s, TSan 19m13s, ASan 4m27s) |
 | 40564150654 | `467a59b` (+ S14, S13, S11, S29, S41, A1, S-IT) | **failure**: two tests (S-IT, A1) still used the pre-O3 member names; caught only by the CMake build, which I had not run locally |
 | 40565363595 | `2432670` (`opus-r3-cifix`: the fix on top of `467a59b`) | success (11m38s) |
-| 40566615160 | `7b431d4` (+ S12, the fix, a CMake endif fix) | running |
+| 40566615160 | `7b431d4` (+ S12, the fix, a CMake endif fix) | success (20m13s) |
+| 40568162589 | `2047348` (+ S08fix, evidence) | success (19m29s) |
 Since the failure every push is preceded by a full local CMake build of all targets and the full CTest list (only
 the 4 known `forge_tests` lines may fail; `check_known_failures.py` PASS), and every run is followed to green.
 

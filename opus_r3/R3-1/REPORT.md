@@ -7,11 +7,11 @@ exclusive: no (gates, self-play and NNUE training ran throughout; my builds and 
 
 | line | result | evidence |
 |---|---|---|
-| all passed O/C/opus-sol features merged | O1, O1-LTT, O2, O3, O4, O5, O6, O7, O8, C1, C2, C3, C4, C5, C6; opus-sol S04fix*, S08fix, S11, S12, S13, S14, S29, S32*, S37*, S41, A1, S-A2*, S-A4*, S-IT (* = being ported on `opus-r3-port-b` / `opus-r3-port-c`) | `git log --first-parent opus-r3-stack` |
+| all passed O/C/opus-sol features merged | O1, O1-LTT, O2, O3, O4, O5, O6, O7, O8, C1, C2, C3, C4, C5, C6; opus-sol S04fix, S08fix, S11, S12, S13, S14, S29, S32, S37, S41, A1, S-A2, S-A4, S-IT (S32/S37/S04fix ported on `opus-r3-port-b`, S-A2/S-A4 on `opus-r3-port-c`, both merged) | `git log --first-parent opus-r3-stack` |
 | each behind its own option, default OFF | runtime options (UCI) and build switches, list below; every default is off | `src/uci.cpp`, `CMakeLists.txt` |
 | conflicts resolved cleanly | every merge commit message states how; unified search instances, NNUE v2 rules, O2 switch (below) | merge commits |
 | all OFF = bench 312866/862329/3024920/12389307/34048354, perft5 4865609 | ALL OK after every merge (d11/13/16 + perft + kiwipete) and full (d20/d22) at the switch checkpoints; every switch-off exe byte-identical to the previous stack exe except the PE timestamp | `logs/identity_after_each_merge.log`, `logs/build_after_each_merge.log` |
-| each option ON reproduces its branch | all recorded ON pins match: CorrMargins, CorrExt, CuckooRep, HistRework 1/2/3, NNUE smoke nets of C5 (ob8, kb4+ob8), O6 threats, O7 pawn pairs, O4 pure; options without recorded pins match their branch exe: CorrHistPlus 1/2/4/7, NetScale 90/110, Syzygy (3-4-5 tables), LocklessTT@T1; node-exact switches stay at the lock pins ON (MaterialKeyTable, FORGE_SPEEDSTACK to d22, TtChildPrefetch, NnueLazyAcc to d20, FORGE_PROF to d22, FORGE_NNUE_O2, FORGE_NOZERO_MOVE_BUFFERS) | `logs/nnue_branch_pins_summary.txt`, `logs/branch_crosscheck_9588a109.log`, merge commit messages |
+| each option ON reproduces its branch | all recorded ON pins match: CorrMargins, CorrExt, CuckooRep, HistRework 1/2/3, NNUE smoke nets of C5 (ob8, kb4+ob8), O6 threats, O7 pawn pairs, O4 pure; options without recorded pins match their branch exe: CorrHistPlus 1/2/4/7, NetScale 90/110, Syzygy (3-4-5 tables), LocklessTT@T1; NnueInt16 (switch FORGE_NNUE_INT16) reproduces S-A2's ON pins d11 330610 d13 858175 d16 2760596 d20 9564588; node-exact switches stay at the lock pins ON (MaterialKeyTable, FORGE_SPEEDSTACK to d22, TtChildPrefetch, NnueLazyAcc to d20, FORGE_PROF to d22, FORGE_NNUE_O2, FORGE_NOZERO_MOVE_BUFFERS) | `logs/nnue_branch_pins_summary.txt`, `logs/branch_crosscheck_9588a109.log`, merge commit messages |
 | CMake + CTest | all targets build; full CTest: only the 4 known `forge_tests` lines fail (known-failure check PASS) in the default and the FORGE_PROF + FORGE_NNUE_LAZY_ACC configurations | `logs/ctest_stack_9588a109*.log*` |
 | GitHub CI (release, ASan+UBSan, TSan) | see OPUS_R3_REPORT.md (run table) | `gh run list --branch opus-r3-stack` |
 | 500 fast self-games per option ON alone and all ON: no crash, no illegal move, no double bestmove | running on `opus-r3-selfplay` (checker + runs) | pending |
@@ -24,7 +24,10 @@ exclusive: no (gates, self-play and NNUE training ran throughout; my builds and 
   TtChildPrefetch (S13, needs its build switch); NnueLazyAcc (S12, needs its build switch); Profile (S08fix, needs
   FORGE_PROF).
 - Build switches: FORGE_NNUE_O2 (O2, new in R3), FORGE_NOZERO_MOVE_BUFFERS (S14), FORGE_S13_TT_CHILD_PREFETCH (S13),
-  FORGE_SPEEDSTACK (S29), FORGE_NNUE_LAZY_ACC (S12), FORGE_PROF (S08fix).
+  FORGE_SPEEDSTACK (S29), FORGE_NNUE_LAZY_ACC (S12), FORGE_PROF (S08fix), FORGE_NNUE_INT16 (S-A2; + UCI NnueInt16; a
+  build switch in the stack because the always-compiled option cost 0.4-0.5% NPS with the option off),
+  FORGE_DATAGEN (S32, `forge datagen`), FORGE_ATTACKS_INIT_ONCE (S04fix), FORGE_NNUE_WEIGHTS + FORGE_NNUE_HIDDEN (S-A4
+  H512); S37 adds the forge_nnue_microbench tool target.
 
 ## How the conflicts were resolved (details in each merge commit)
 - **Search instances.** O5 (CorrMargins), O8 (CorrExt) and C6 (CuckooRep) each compiled their own copy of
@@ -53,5 +56,5 @@ exclusive: no (gates, self-play and NNUE training ran throughout; my builds and 
   by forge_intended_threefold_tests and uci_regression.
 
 ## Left / UNVERIFIED
-- Ports S32/S37/S04fix and S-A2/S-A4 (agents), then final identity, CTest and CI on the final head.
+- Final CTest and CI on the final head.
 - Self-play evidence (500 games per option and all ON) on the final head.

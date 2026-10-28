@@ -295,6 +295,8 @@ private:
             std::chrono::steady_clock::now() - origin).count();
         {
             const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex());
+            // Nothing of this go may follow its bestmove (R3: the stopped search printed late info lines).
+            searcher_.close_search_output();
             std::cout << "info string HardDeadline: no answer within " << job.allowance.count()
                       << " ms, bestmove sent at " << late << " ms" << std::endl;
             std::cout << line << std::endl;
