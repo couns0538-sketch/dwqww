@@ -1,4 +1,4 @@
-# FABLE_REVIEW_OPUS.md — review of every opus-* job branch — session 1 state (pushed; continue from "What is left")
+# FABLE_REVIEW_OPUS.md — review of every opus-* job branch — DONE for this review (two sessions, 2026-10-28)
 
 Reviewer: Fable 5.1, started 2026-10-28 (PC time ~13:45). Branch `fable-review-summary` (base d4f4312, report only;
 no engine code here). Per-job corrections go to `fable-review-<job>` branches based on the opus branch, each with
@@ -104,27 +104,38 @@ permission rules in this session.
 
 ## What was reviewed, what was not (honest scope)
 
-- Reviewed in depth: C6, C3, O1, O1-LTT, C2, O5, O8 (core diffs read), C1 (probe preconditions and en passant
-  handling only), C4/C5 (read during job FB1, whose v3 design reused their format ideas and found no defect).
-- Verified systematically for all 30 engine branches: latest CI identity `ALL OK`, known-failure check, TSan 0.
-- Not read line by line: O2 (NNUE accumulator rewrite, 1790 lines; its exact-parity claim is covered by its own
-  tests and CI), O4/O6/O7 (trainer + engine variants, 2400-4000 lines each), C1's 1474-line table decoder, SIT,
-  SA2, SA4, S11/S12/S13/S29/S32/S37/S41/A1/S04fix/S08fix (small engine diffs, identity-verified by CI), and all
-  tool-only S-jobs (gate statistics S06fix/S44/S46/S48fix, data jobs S16/S17/S40, trainers S39/S50/SA3, audits).
-  Their reports and the lock-archive evidence were not re-executed.
+- Engine jobs read for correctness (core diffs): C6, C3, O1, O1-LTT, C2, O5, O8, O2, S11/S29, S41, S13, S04fix,
+  S12, SIT, A1, SA2/SA4, S32; targeted reads: C1 (probe preconditions, en passant), O4/O6/O7 (selection, eval
+  clamp, per-ply tables, parity/incremental claims), S08fix; C4/C5 were read during job FB1.
+- Verified systematically: latest CI of all 30 engine branches (identity ALL OK, known-failure PASS x3, TSan 0);
+  every tool job's own unit tests re-run from an exported copy (31 passed; 6 environment failures explained; 5
+  trainer-importing tests skipped by the PC rule).
+- Not re-executed: the numbers printed in the tool reports (gate statistics S06fix/S44/S46/S48fix, data jobs
+  S16/S17/S40 on the real shards, S30/S31 curves, S19/S21 fits); the big decoders/trainers line by line (C1's
+  1474-line Syzygy decoder, O4/O6/O7 at 1100-1650 lines each, the trainer variants S39/S50/SA3).
+
+## Mistakes found: 3 (summary)
+
+1. Committed `.pyc` bytecode on O1, O1-LTT, O2, S12 and all r3-* branches -> `fable-review-r3-stack` carries the
+   `.gitignore` and REVIEW.md; the untracking command is the owner's (refused for me twice).
+2. Unguarded 64-entry `bad_captures_` buffer in the lock engine (known since S14, fix never applied) ->
+   `fable-review-buffix`, node-identical, CI green.
+3. Six job tests depend on the checkout (line endings / full tree) -> listed, not changed.
+
+Everything else examined was found consistent with its report. No Elo or speed claim is made or changed anywhere.
 
 ## What is left / exact next steps
 
-1. Owner: untrack the eight `.pyc` files on a branch off opus-r3-stack (command in mistake 1) and merge
-   `fable-review-buffix` (or cherry-pick its one engine commit) into the next lock candidate; it is node-identical.
-2. Continue the review with the unread engine diffs (O2, O4, O6, O7, SIT, SA2, SA4, the small S-jobs), each with
-   the same recipe: read the job-only diff (`git diff origin/opus-O3 origin/opus-<job> -- src include`), check
-   defaults OFF, bounds, thread safety, and that the tests cover the claim.
-3. Tool jobs: re-run S44 `check` on the 23 gates and S40/S17 on their fixtures to confirm the printed numbers;
-   spot-check three REPORT numbers per job against the logs.
-
+1. Owner: run the one-line `.pyc` untracking on `fable-review-r3-stack` (or any branch off opus-r3-stack) and
+   commit; merge `fable-review-buffix` into the next lock candidate (one engine line + one test).
+2. If a deeper audit is wanted: re-run S44 `check` on the 23 gates, S40/S17 on their fixtures and the real shards,
+   and read the C1 decoder against the Syzygy format specification; none of this changes an engine default.
+3. Make the six fragile tests checkout-independent (normalise `\r\n` before comparing or hashing; locate the repo
+   root instead of assuming `../../src`).
 
 ## Time spent / estimate
 
-Session 1 (about 1.5 h): inventory, CI analysis, identity sweep, eight engine jobs read, two mistakes found, one
-corrected on its own branch. Remaining (steps 2-3 above): about 8-12 hours.
+Session 1 (about 1.5 h): inventory, CI analysis, identity sweep, eight engine jobs, two mistakes, one correction.
+Session 2 (about 1.5 h): the remaining engine jobs, the tool-test sweep, the r3-stack branch. Total about 3 h
+of the 12-16 h estimated; the difference is the line-by-line reading of the largest diffs and the re-execution of
+the report numbers, listed above as not done.
