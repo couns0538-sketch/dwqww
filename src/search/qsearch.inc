@@ -21,6 +21,15 @@ int Worker::FORGE_QSEARCH_FN(Board& board, SearchStack* ss, int alpha, int beta)
     if (is_draw(board, ply)) return 0;
     if (ply >= MaxPly) return board.in_check() ? 0 : static_evaluate(board, ss);
 
+    // UCI IntendedThreefold: the side to move may claim a draw before its next
+    // move (FIDE 9.2.1), so the draw score is a floor here. The value then depends
+    // on the game history: no TT score is used or stored at this node.
+    const bool claim = options::intended_threefold && board.can_claim_threefold_by_next_move();
+    if (claim) {
+        if (beta <= 0) return 0;
+        alpha = std::max(alpha, 0);
+    }
+
     const bool in_check = board.in_check();
     ss->in_check = in_check;
 
@@ -28,7 +37,7 @@ int Worker::FORGE_QSEARCH_FN(Board& board, SearchStack* ss, int alpha, int beta)
     const bool tt_hit = tt_probe.hit;
     const TTEntry& tte = tt_probe.entry;
     const Move tt_move = tt_hit ? tte.move : Move::none();
-    const int tt_score = tt_hit && tte.score_usable(board.halfmove_clock())
+    const int tt_score = !claim && tt_hit && tte.score_usable(board.halfmove_clock())
                              ? score_from_tt(tte.score, ply) : ValueNone;
     const Bound tt_bound = tt_hit ? tte.bound() : BoundNone;
     const bool tt_pv = pv_node || (tt_hit && tte.pv());
@@ -55,12 +64,13 @@ int Worker::FORGE_QSEARCH_FN(Board& board, SearchStack* ss, int alpha, int beta)
         }
         best_score = eval;
         if (best_score >= beta) {
-            if (!tt_hit) shared_.tt.store(tt_probe, board.key(), score_to_tt(best_score, ply), ss->raw_eval, Move::none(), 0, BoundLower, false, board.halfmove_clock());
+            if (!tt_hit && !claim) shared_.tt.store(tt_probe, board.key(), score_to_tt(best_score, ply), ss->raw_eval, Move::none(), 0, BoundLower, false, board.halfmove_clock());
             return best_score;
         }
         if (best_score > alpha) alpha = best_score;
         futility_base = ss->static_eval + tune::QsFutilityMargin;
     }
+    if (claim && best_score < 0) best_score = 0;
 
     // HistRework: check evasions score quiet moves with quiet_history, which reads this node's maps.
     if (in_check && search_options::hist_rework != 0) [[unlikely]]
@@ -109,7 +119,17 @@ int Worker::FORGE_QSEARCH_FN(Board& board, SearchStack* ss, int alpha, int beta)
     if (in_check && move_count == 0) return mated_in(ply);
 
     const Bound bound = best_score >= beta ? BoundLower : (pv_node && !best_move.is_none() ? BoundExact : BoundUpper);
-    shared_.tt.store(tt_probe, board.key(), score_to_tt(best_score, ply), in_check ? ValueNone : ss->raw_eval, best_move, 0, bound, tt_pv, board.halfmove_clock());
+    if (!claim) {
+        shared_.tt.store(tt_probe, board.key(), score_to_tt(best_score, ply), in_check ? ValueNone : ss->raw_eval, best_move, 0, bound, tt_pv, board.halfmove_clock());
+    } else if (!tt_hit || tte.score == ValueNone) {
+        // Claim node: keep the move and the static evaluation, never the
+        // history-dependent score. The raw score ValueNone (not score_to_tt) makes
+        // every probe read tt_score == ValueNone; each use of tt_score or of the
+        // bound requires tt_score != ValueNone or tests tt_score < beta, which
+        // ValueNone (> Infinite) never passes. Entries with a score are not replaced.
+        shared_.tt.store(tt_probe, board.key(), ValueNone, in_check ? ValueNone : ss->raw_eval, best_move, 0, BoundUpper, tt_pv,
+                         static_cast<std::uint16_t>(board.halfmove_clock()));
+    }
     return best_score;
 }
 

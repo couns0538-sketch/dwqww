@@ -27,7 +27,7 @@
 namespace forge {
 
 int Worker::FORGE_SEARCH_FN(Board& board, SearchStack* ss, int depth, int alpha, int beta, bool cut_node) {
-    const bool pv_node = beta - alpha > 1;
+    bool pv_node = beta - alpha > 1;
     const bool root_node = ss->ply == 0;
     const int ply = ss->ply;
 
@@ -43,6 +43,8 @@ int Worker::FORGE_SEARCH_FN(Board& board, SearchStack* ss, int depth, int alpha,
     ss->pv_length = 0;
     ss->move_count = 0;
 
+    bool claim = false;
+    bool claim_raised_alpha = false;
     if (!root_node) {
         if (is_draw(board, ply)) return 0;
         if (ply >= MaxPly) return board.in_check() ? 0 : static_evaluate(board, ss);
@@ -50,6 +52,16 @@ int Worker::FORGE_SEARCH_FN(Board& board, SearchStack* ss, int depth, int alpha,
         alpha = std::max(alpha, mated_in(ply));
         beta = std::min(beta, mate_in(ply + 1));
         if (alpha >= beta) return alpha;
+        // UCI IntendedThreefold: the draw score is a floor (see qsearch); no TT
+        // score is used or stored at this node. A window (a, 1) with a < 0 becomes
+        // the null window (0, 1) and is searched as one.
+        claim = options::intended_threefold && board.can_claim_threefold_by_next_move();
+        if (claim) {
+            if (beta <= 0) return 0;
+            claim_raised_alpha = alpha < 0;
+            alpha = std::max(alpha, 0);
+            pv_node = beta - alpha > 1;
+        }
     }
 
     const bool in_check = board.in_check();
@@ -65,7 +77,7 @@ int Worker::FORGE_SEARCH_FN(Board& board, SearchStack* ss, int depth, int alpha,
     const bool tt_hit = tt_probe.hit;
     const TTEntry& tte = tt_probe.entry;
     const Move tt_move = tt_hit ? tte.move : Move::none();
-    const int tt_score = tt_hit && tte.score_usable(board.halfmove_clock())
+    const int tt_score = !claim && tt_hit && tte.score_usable(board.halfmove_clock())
                              ? score_from_tt(tte.score, ply) : ValueNone;
     const int tt_depth = tt_hit ? tte.depth : -1;
     const Bound tt_bound = tt_hit ? tte.bound() : BoundNone;
@@ -213,7 +225,9 @@ int Worker::FORGE_SEARCH_FN(Board& board, SearchStack* ss, int depth, int alpha,
                 board.unmake_move(move, undo);
                 if (aborted_) return 0;
                 if (value >= probcut_beta) {
-                    shared_.tt.store(tt_probe, board.key(), score_to_tt(value, ply), ss->raw_eval, move, depth - 3, BoundLower, ss->tt_pv, board.halfmove_clock());
+                    if (!claim) {
+                        shared_.tt.store(tt_probe, board.key(), score_to_tt(value, ply), ss->raw_eval, move, depth - 3, BoundLower, ss->tt_pv, board.halfmove_clock());
+                    }
                     return value;
                 }
             }
@@ -406,6 +420,7 @@ int Worker::FORGE_SEARCH_FN(Board& board, SearchStack* ss, int depth, int alpha,
         if (root_node && root_restricted_) return 0;
         return in_check ? mated_in(ply) : 0;
     }
+    if (claim && best_score < 0) best_score = 0;
 
     if (best_score >= beta) {
         if (!best_move.is_capture() && !best_move.is_promotion()) {
@@ -418,20 +433,27 @@ int Worker::FORGE_SEARCH_FN(Board& board, SearchStack* ss, int depth, int alpha,
                       history_bonus(depth) / 4);
         if (search_options::hist_rework != 0) [[unlikely]]
             apply_history(threat_history_entry(board, ss, best_move), history_bonus(depth) / 4);
-    } else if (tune::FailLowContinuationBonus > 0 && best_move.is_none() && !(ss - 1)->current_move.is_none() &&
-               (ss - 1)->moved_piece != Empty && !(ss - 1)->current_move.is_capture() && ply > 0) {
-        // Every move failed low: the parent's quiet move refuted this line.
+    } else if (tune::FailLowContinuationBonus > 0 && best_move.is_none() && !claim_raised_alpha &&
+               !(ss - 1)->current_move.is_none() && (ss - 1)->moved_piece != Empty &&
+               !(ss - 1)->current_move.is_capture() && ply > 0) {
+        // Every move failed low: the parent's quiet move refuted this line. Not when
+        // the claim floor raised alpha: the value 0 then lies inside the original window.
         update_continuation(ss - 1, (ss - 1)->moved_piece, (ss - 1)->current_move.to,
                             history_bonus(depth) * tune::FailLowContinuationBonus / 100);
     }
 
     const Bound bound = best_score >= beta ? BoundLower : (pv_node && !best_move.is_none() ? BoundExact : BoundUpper);
-    if (excluded.is_none() && !(root_node && root_restricted_)) {
+    if (excluded.is_none() && !(root_node && root_restricted_) && !claim) {
         shared_.tt.store(tt_probe, board.key(), score_to_tt(best_score, ply), ss->raw_eval, best_move, depth, bound, ss->tt_pv, board.halfmove_clock());
+    } else if (claim && excluded.is_none() && (!tt_hit || tte.score == ValueNone)) {
+        // Claim node: move and static evaluation only, raw score ValueNone (see qsearch).
+        shared_.tt.store(tt_probe, board.key(), ValueNone, ss->raw_eval, best_move, 0, BoundUpper, ss->tt_pv,
+                         static_cast<std::uint16_t>(board.halfmove_clock()));
     }
     // Teach the static evaluation about this pawn structure when the search
-    // result is a usable bound in the direction of the difference.
-    if (!in_check && excluded.is_none() && !is_mate_score(best_score) &&
+    // result is a usable bound in the direction of the difference (a claim floor
+    // says nothing about the structure).
+    if (!in_check && excluded.is_none() && !claim && !is_mate_score(best_score) &&
         (best_move.is_none() || !best_move.is_capture()) &&
         !(bound == BoundLower && best_score <= ss->static_eval) &&
         !(bound == BoundUpper && best_score >= ss->static_eval)) {

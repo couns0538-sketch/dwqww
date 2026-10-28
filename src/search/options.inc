@@ -21,5 +21,6 @@ std::uint8_t corr_margins = 0;
 std::uint8_t corr_ext = 0;
 bool cuckoo_rep = false;
 bool material_key_table = false;
+bool intended_threefold = false;   // S-IT (UCI IntendedThreefold)
 
 } // namespace forge::options

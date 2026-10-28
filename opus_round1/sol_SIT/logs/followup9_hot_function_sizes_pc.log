@@ -1,0 +1,14 @@
+# S-IT code-review follow-up, step 9: hot-function sizes (nm -S, bytes in hex) of the box builds: old = forge_base.exe (fc3bd2a), final = forge_sit_fix3.exe
+## forge_base.exe sha256 9880a6ef7dce77d6eaadd445cc5c56e3153e96866927ca6dc9d5dc532a67b4c0
+base 0000000140007210 00000000000002f0 T forge::Board::can_claim_threefold_by_next_move() const
+base 000000014001cef0 0000000000000d80 t forge::Worker::search(forge::Board, forge::SearchLimits const&, bool, std::vector<forge::Worker*, std::allocator<forge::Worker*> > const&)::{lambda(int, int, std::vector<forge::Move, std::allocator<forge::Move> > const&)#1}::operator()(int, int, std::vector<forge::Move, std::allocator<forge::Move> > const&) const
+base 000000014001df70 0000000000001180 T forge::Worker::qsearch(forge::Board&, forge::SearchStack*, int, int)
+base 0000000140022210 00000000000017a0 T forge::Worker::search(forge::Board, forge::SearchLimits const&, bool, std::vector<forge::Worker*, std::allocator<forge::Worker*> > const&)
+base 000000014001f0f0 0000000000003120 T forge::Worker::search(forge::Board&, forge::SearchStack*, int, int, int, bool)
+## forge_sit_fix3.exe sha256 0a570a83768f3d2028db58208a172078ecae1a0b264cb18f83292fe42f2b6f2b
+sit_fix3 000000014001f0b0 0000000000000d80 t forge::Worker::search(forge::Board, forge::SearchLimits const&, bool, std::vector<forge::Worker*, std::allocator<forge::Worker*> > const&)::{lambda(int, int, std::vector<forge::Move, std::allocator<forge::Move> > const&)#1}::operator()(int, int, std::vector<forge::Move, std::allocator<forge::Move> > const&) const
+sit_fix3 0000000140020130 0000000000001250 T forge::Worker::qsearch(forge::Board&, forge::SearchStack*, int, int)
+sit_fix3 00000001400244f0 0000000000001780 T forge::Worker::search(forge::Board, forge::SearchLimits const&, bool, std::vector<forge::Worker*, std::allocator<forge::Worker*> > const&)
+sit_fix3 0000000140007210 00000000000024b0 T forge::Board::can_claim_threefold_by_next_move() const
+sit_fix3 0000000140021380 0000000000003170 T forge::Worker::search(forge::Board&, forge::SearchStack*, int, int, int, bool)
+# decimal: can_claim_threefold_by_next_move 752 -> 9392; Worker::qsearch 4480 -> 4688; Worker::search(Board&,...) 12576 -> 12656 bytes (old -> final). The option-off paths gained only the placeholder-store branches; the quiet-runner CI A/B (opus-sol-sit-ci) is the NPS measurement to quote.

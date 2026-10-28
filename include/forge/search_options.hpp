@@ -168,4 +168,10 @@ extern bool cuckoo_rep;
 // unchanged; only the speed can differ.
 extern bool material_key_table;
 
+// UCI IntendedThreefold (check, default false), S-IT. FIDE 9.2.1 lets the side to move
+// claim a draw before a legal move that would create the third occurrence; with
+// the option on, non-root search and quiescence treat that right as a floor at
+// the draw score, without TT score cutoffs or stores at those nodes.
+extern bool intended_threefold;
+
 } // namespace forge::options

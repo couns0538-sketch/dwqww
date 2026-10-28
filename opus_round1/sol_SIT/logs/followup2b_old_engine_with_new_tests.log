@@ -1,0 +1,295 @@
+# S-IT code-review follow-up, step 2b: the follow-up tests/intended_threefold_tests.cpp against the OLD engine code (fc3bd2a src/include, objects from git archive HEAD).
+# Expected failures on the old code: placeholder checks (the old code stores nothing at claim nodes) and the fail-low bonus check (finding 6).
+# The material/guard checks pass on the old code too (its guards were right, only untested); the INFO line shows the ancestor-entry limitation predates the follow-up.
+PASS issue fixture: positive and control reach the same key with halfmove clock 7
+PASS neither current position is already threefold
+PASS positive history: h8h7 would create the third occurrence (claim)
+PASS control history: h8h7 creates only the second occurrence (no claim)
+PASS historyless board has the same key as the positive end
+PASS same FEN without history: no claim
+PASS the claim query leaves the board unchanged and is repeatable
+PASS two null moves return to the same key
+PASS history before a null move is not scanned (no claim)
+PASS undoing the null moves restores the claim
+PASS lost castling rights: the earlier position with rights is a different position (no claim)
+PASS same rights twice before: e1f1 would create the third occurrence (claim)
+PASS material fixture QR: black (rook) may claim with b8b7
+PASS material fixture QC: black may claim with h8h7
+PASS material fixture WC: white (queen) may claim with a2a1
+random cross-check: 11720 positions, 801 claims, 0 mismatches
+PASS claim equals the make_move reference on random shuffling games (both outcomes exercised)
+PASS positive: the claim is a draw-score floor (depth 0, window -32001,32001) -> 0
+PASS control: unchanged by the option (depth 0, window -32001,32001)
+qsearch full window: positive off -391 on 0, control off -391 on -391
+PASS issue numbers: positive 0 cp with the option, control unchanged
+PASS positive: the claim is a draw-score floor (depth 0, window -1,0) -> 0
+PASS control: unchanged by the option (depth 0, window -1,0)
+PASS positive: the claim is a draw-score floor (depth 0, window 0,1) -> 0
+PASS control: unchanged by the option (depth 0, window 0,1)
+PASS positive: the claim is a draw-score floor (depth 0, window -500,-499) -> 0
+PASS control: unchanged by the option (depth 0, window -500,-499)
+PASS positive: the claim is a draw-score floor (depth 0, window 100,101) -> 0
+PASS control: unchanged by the option (depth 0, window 100,101)
+PASS positive: the claim is a draw-score floor (depth 0, window -1000,1000) -> 0
+PASS control: unchanged by the option (depth 0, window -1000,1000)
+PASS positive: the claim is a draw-score floor (depth 0, window -1,1) -> 0
+PASS control: unchanged by the option (depth 0, window -1,1)
+PASS positive: the claim is a draw-score floor (depth 0, window -50,1) -> 0
+PASS control: unchanged by the option (depth 0, window -50,1)
+PASS positive: the claim is a draw-score floor (depth 1, window -32001,32001) -> 0
+PASS control: unchanged by the option (depth 1, window -32001,32001)
+PASS positive: the claim is a draw-score floor (depth 1, window -1,0) -> 0
+PASS control: unchanged by the option (depth 1, window -1,0)
+PASS positive: the claim is a draw-score floor (depth 1, window 0,1) -> 0
+PASS control: unchanged by the option (depth 1, window 0,1)
+PASS positive: the claim is a draw-score floor (depth 1, window -500,-499) -> 0
+PASS control: unchanged by the option (depth 1, window -500,-499)
+PASS positive: the claim is a draw-score floor (depth 1, window 100,101) -> 0
+PASS control: unchanged by the option (depth 1, window 100,101)
+PASS positive: the claim is a draw-score floor (depth 1, window -1000,1000) -> 0
+PASS control: unchanged by the option (depth 1, window -1000,1000)
+PASS positive: the claim is a draw-score floor (depth 1, window -1,1) -> 0
+PASS control: unchanged by the option (depth 1, window -1,1)
+PASS positive: the claim is a draw-score floor (depth 1, window -50,1) -> 0
+PASS control: unchanged by the option (depth 1, window -50,1)
+PASS positive: the claim is a draw-score floor (depth 2, window -32001,32001) -> 0
+PASS control: unchanged by the option (depth 2, window -32001,32001)
+PASS positive: the claim is a draw-score floor (depth 2, window -1,0) -> 0
+PASS control: unchanged by the option (depth 2, window -1,0)
+PASS positive: the claim is a draw-score floor (depth 2, window 0,1) -> 0
+PASS control: unchanged by the option (depth 2, window 0,1)
+PASS positive: the claim is a draw-score floor (depth 2, window -500,-499) -> 0
+PASS control: unchanged by the option (depth 2, window -500,-499)
+PASS positive: the claim is a draw-score floor (depth 2, window 100,101) -> 0
+PASS control: unchanged by the option (depth 2, window 100,101)
+PASS positive: the claim is a draw-score floor (depth 2, window -1000,1000) -> 0
+PASS control: unchanged by the option (depth 2, window -1000,1000)
+PASS positive: the claim is a draw-score floor (depth 2, window -1,1) -> 0
+PASS control: unchanged by the option (depth 2, window -1,1)
+PASS positive: the claim is a draw-score floor (depth 2, window -50,1) -> 0
+PASS control: unchanged by the option (depth 2, window -50,1)
+PASS control qsearch stores a scored entry for the shared key
+PASS TT warmed by the control history: the positive claim node ignores the cached score (0)
+PASS positive first: 0
+FAIL the claim node stores only a placeholder: static eval, raw score ValueNone, BoundUpper, depth 0
+PASS TT warmed by the positive history: control equals a fresh search
+PASS TT warmed by the control, null window (0,1) depth 0: no cached cutoff -> 0
+PASS TT warmed by the control, null window (100,101) depth 0: no cached cutoff -> 0
+PASS TT warmed by the control, null window (-50,-49) depth 0: no cached cutoff -> 0
+PASS TT warmed by the control, null window (0,1) depth 1: no cached cutoff -> 0
+PASS TT warmed by the control, null window (100,101) depth 1: no cached cutoff -> 0
+PASS TT warmed by the control, null window (-50,-49) depth 1: no cached cutoff -> 0
+PASS TT warmed by the control, null window (0,1) depth 2: no cached cutoff -> 0
+PASS TT warmed by the control, null window (100,101) depth 2: no cached cutoff -> 0
+PASS TT warmed by the control, null window (-50,-49) depth 2: no cached cutoff -> 0
+PASS mate fixture: white may claim (a3a2 would be the third occurrence)
+PASS mate in one beats the optional draw (option off, score 31998)
+PASS mate in one beats the optional draw (option on, score 31998)
+PASS QR: the search() floor holds although the claiming move is pruned (depth 1, window -32001,32001) -> on 0, off -242
+PASS QR: the search() floor holds although the claiming move is pruned (depth 1, window -100,100) -> on 0, off -242
+PASS QR: the search() floor holds although the claiming move is pruned (depth 1, window -1,1) -> on 0, off -250
+PASS QR: the search() floor holds although the claiming move is pruned (depth 1, window 100,101) -> on 0, off -250
+PASS QR: the search() floor holds although the claiming move is pruned (depth 2, window -32001,32001) -> on 0, off 0
+PASS QR: the search() floor holds although the claiming move is pruned (depth 2, window -100,100) -> on 0, off 0
+PASS QR: the search() floor holds although the claiming move is pruned (depth 2, window -1,1) -> on 0, off -274
+PASS QR: the search() floor holds although the claiming move is pruned (depth 2, window 100,101) -> on 0, off -274
+PASS QR: the search() floor holds although the claiming move is pruned (depth 3, window -32001,32001) -> on 0, off 0
+PASS QR: the search() floor holds although the claiming move is pruned (depth 3, window -100,100) -> on 0, off 0
+PASS QR: the search() floor holds although the claiming move is pruned (depth 3, window -1,1) -> on 0, off 0
+PASS QR: the search() floor holds although the claiming move is pruned (depth 3, window 100,101) -> on 0, off -274
+PASS QC: the claim is a floor, not a forced draw: Rxc1 keeps its value (depth 0, window -32001,32001) -> on 424, off 424
+PASS QC: the claim is a floor, not a forced draw: Rxc1 keeps its value (depth 1, window -32001,32001) -> on 424, off 424
+PASS QC: the claim is a floor, not a forced draw: Rxc1 keeps its value (depth 2, window -32001,32001) -> on 441, off 441
+PASS issue fixture: the claim node stores no score (final store) (depth 0, window -32001,32001) -> 0
+PASS issue fixture: the claim node stores no score (final store) (depth 0, window 0,1) -> 0
+PASS issue fixture: the claim node stores no score (final store) (depth 0, window 100,101) -> 0
+PASS issue fixture: the claim node stores no score (final store) (depth 0, window -100,100) -> 0
+PASS issue fixture: the claim node stores no score (final store) (depth 0, window -1,1) -> 0
+PASS issue fixture: the claim node stores no score (final store) (depth 1, window -32001,32001) -> 0
+PASS issue fixture: the claim node stores no score (final store) (depth 1, window 0,1) -> 0
+PASS issue fixture: the claim node stores no score (final store) (depth 1, window 100,101) -> 0
+PASS issue fixture: the claim node stores no score (final store) (depth 1, window -100,100) -> 0
+PASS issue fixture: the claim node stores no score (final store) (depth 1, window -1,1) -> 0
+PASS issue fixture: the claim node stores no score (final store) (depth 2, window -32001,32001) -> 0
+PASS issue fixture: the claim node stores no score (final store) (depth 2, window 0,1) -> 0
+PASS issue fixture: the claim node stores no score (final store) (depth 2, window 100,101) -> 0
+PASS issue fixture: the claim node stores no score (final store) (depth 2, window -100,100) -> 0
+PASS issue fixture: the claim node stores no score (final store) (depth 2, window -1,1) -> 0
+PASS issue fixture: the claim node stores no score (final store) (depth 3, window -32001,32001) -> 0
+PASS issue fixture: the claim node stores no score (final store) (depth 3, window 0,1) -> 0
+PASS issue fixture: the claim node stores no score (final store) (depth 3, window 100,101) -> 0
+PASS issue fixture: the claim node stores no score (final store) (depth 3, window -100,100) -> 0
+PASS issue fixture: the claim node stores no score (final store) (depth 3, window -1,1) -> 0
+PASS WC: a stand-pat fail high at a claim node stores no score (depth 0, window 0,1) -> 285
+PASS WC: a stand-pat fail high at a claim node stores no score (depth 0, window 100,101) -> 285
+PASS WC: a stand-pat fail high at a claim node stores no score (depth 0, window -100,100) -> 285
+PASS QC: a ProbCut fail high at a claim node stores no score (depth 5, window 0,1) -> 424
+PASS QC: a ProbCut fail high at a claim node stores no score (depth 5, window 100,101) -> 424
+PASS QC: a ProbCut fail high at a claim node stores no score (depth 6, window 0,1) -> 424
+PASS QC: a ProbCut fail high at a claim node stores no score (depth 6, window 100,101) -> 424
+PASS WC without the option: the same node teaches correction history (sanity) (depth 1, window -32001,32001) -> 330
+PASS WC: a claim node does not teach correction history (depth 1, window -32001,32001) -> 330
+FAIL the claim node leaves a placeholder (depth 0)
+PASS placeholder from the positive history: control equals a fresh search (depth 0, window -32001,32001) -> -391
+PASS claim node re-searched over its own placeholder keeps the floor (depth 0, window -32001,32001) -> 0
+FAIL the claim node leaves a placeholder (depth 0)
+PASS placeholder from the positive history: control equals a fresh search (depth 0, window 0,1) -> -391
+PASS claim node re-searched over its own placeholder keeps the floor (depth 0, window 0,1) -> 0
+FAIL the claim node leaves a placeholder (depth 0)
+PASS placeholder from the positive history: control equals a fresh search (depth 0, window 100,101) -> -391
+PASS claim node re-searched over its own placeholder keeps the floor (depth 0, window 100,101) -> 0
+FAIL the claim node leaves a placeholder (depth 0)
+PASS placeholder from the positive history: control equals a fresh search (depth 0, window -500,-499) -> -391
+PASS claim node re-searched over its own placeholder keeps the floor (depth 0, window -500,-499) -> 0
+FAIL the claim node leaves a placeholder (depth 0)
+PASS placeholder from the positive history: control equals a fresh search (depth 0, window -50,-49) -> -391
+PASS claim node re-searched over its own placeholder keeps the floor (depth 0, window -50,-49) -> 0
+FAIL the claim node leaves a placeholder (depth 1)
+PASS placeholder from the positive history: control equals a fresh search (depth 1, window -32001,32001) -> -390
+PASS claim node re-searched over its own placeholder keeps the floor (depth 1, window -32001,32001) -> 0
+FAIL the claim node leaves a placeholder (depth 1)
+PASS placeholder from the positive history: control equals a fresh search (depth 1, window 0,1) -> -390
+PASS claim node re-searched over its own placeholder keeps the floor (depth 1, window 0,1) -> 0
+FAIL the claim node leaves a placeholder (depth 1)
+PASS placeholder from the positive history: control equals a fresh search (depth 1, window 100,101) -> -390
+PASS claim node re-searched over its own placeholder keeps the floor (depth 1, window 100,101) -> 0
+FAIL the claim node leaves a placeholder (depth 1)
+PASS placeholder from the positive history: control equals a fresh search (depth 1, window -500,-499) -> -391
+PASS claim node re-searched over its own placeholder keeps the floor (depth 1, window -500,-499) -> 0
+FAIL the claim node leaves a placeholder (depth 1)
+PASS placeholder from the positive history: control equals a fresh search (depth 1, window -50,-49) -> -390
+PASS claim node re-searched over its own placeholder keeps the floor (depth 1, window -50,-49) -> 0
+FAIL the claim node leaves a placeholder (depth 2)
+PASS placeholder from the positive history: control equals a fresh search (depth 2, window -32001,32001) -> -390
+PASS claim node re-searched over its own placeholder keeps the floor (depth 2, window -32001,32001) -> 0
+FAIL the claim node leaves a placeholder (depth 2)
+PASS placeholder from the positive history: control equals a fresh search (depth 2, window 0,1) -> -390
+PASS claim node re-searched over its own placeholder keeps the floor (depth 2, window 0,1) -> 0
+INFO known limitation, ancestor entries: control after the positive search (depth 2, window 0,1) -> 0, fresh -390
+FAIL the claim node leaves a placeholder (depth 2)
+PASS placeholder from the positive history: control equals a fresh search (depth 2, window 100,101) -> -390
+PASS claim node re-searched over its own placeholder keeps the floor (depth 2, window 100,101) -> 0
+FAIL the claim node leaves a placeholder (depth 2)
+PASS placeholder from the positive history: control equals a fresh search (depth 2, window -500,-499) -> -391
+PASS claim node re-searched over its own placeholder keeps the floor (depth 2, window -500,-499) -> 0
+FAIL the claim node leaves a placeholder (depth 2)
+PASS placeholder from the positive history: control equals a fresh search (depth 2, window -50,-49) -> -390
+PASS claim node re-searched over its own placeholder keeps the floor (depth 2, window -50,-49) -> 0
+FAIL the claim node leaves a placeholder (depth 3)
+PASS placeholder from the positive history: control equals a fresh search (depth 3, window -32001,32001) -> -397
+PASS claim node re-searched over its own placeholder keeps the floor (depth 3, window -32001,32001) -> 0
+FAIL the claim node leaves a placeholder (depth 3)
+PASS placeholder from the positive history: control equals a fresh search (depth 3, window 0,1) -> -390
+PASS claim node re-searched over its own placeholder keeps the floor (depth 3, window 0,1) -> 0
+FAIL the claim node leaves a placeholder (depth 3)
+PASS placeholder from the positive history: control equals a fresh search (depth 3, window 100,101) -> -390
+PASS claim node re-searched over its own placeholder keeps the floor (depth 3, window 100,101) -> 0
+FAIL the claim node leaves a placeholder (depth 3)
+PASS placeholder from the positive history: control equals a fresh search (depth 3, window -500,-499) -> -425
+PASS claim node re-searched over its own placeholder keeps the floor (depth 3, window -500,-499) -> 0
+FAIL the claim node leaves a placeholder (depth 3)
+PASS placeholder from the positive history: control equals a fresh search (depth 3, window -50,-49) -> -390
+PASS claim node re-searched over its own placeholder keeps the floor (depth 3, window -50,-49) -> 0
+PASS a ValueNone entry (bound 1, depth 60) is never used as a score (depth 0, window -32001,32001) -> 285, fresh 285
+PASS a ValueNone entry (bound 2, depth 60) is never used as a score (depth 0, window -32001,32001) -> 285, fresh 285
+PASS a ValueNone entry (bound 3, depth 60) is never used as a score (depth 0, window -32001,32001) -> 285, fresh 285
+PASS a ValueNone entry with a hash move gives the same value for every bound (depth 0, window -32001,32001) -> 285
+PASS a ValueNone entry (bound 1, depth 60) is never used as a score (depth 0, window 0,1) -> 285, fresh 285
+PASS a ValueNone entry (bound 2, depth 60) is never used as a score (depth 0, window 0,1) -> 285, fresh 285
+PASS a ValueNone entry (bound 3, depth 60) is never used as a score (depth 0, window 0,1) -> 285, fresh 285
+PASS a ValueNone entry with a hash move gives the same value for every bound (depth 0, window 0,1) -> 285
+PASS a ValueNone entry (bound 1, depth 60) is never used as a score (depth 0, window 300,301) -> 285, fresh 285
+PASS a ValueNone entry (bound 2, depth 60) is never used as a score (depth 0, window 300,301) -> 285, fresh 285
+PASS a ValueNone entry (bound 3, depth 60) is never used as a score (depth 0, window 300,301) -> 285, fresh 285
+PASS a ValueNone entry with a hash move gives the same value for every bound (depth 0, window 300,301) -> 285
+PASS a ValueNone entry (bound 1, depth 60) is never used as a score (depth 0, window -300,-299) -> 285, fresh 285
+PASS a ValueNone entry (bound 2, depth 60) is never used as a score (depth 0, window -300,-299) -> 285, fresh 285
+PASS a ValueNone entry (bound 3, depth 60) is never used as a score (depth 0, window -300,-299) -> 285, fresh 285
+PASS a ValueNone entry with a hash move gives the same value for every bound (depth 0, window -300,-299) -> 285
+PASS a ValueNone entry (bound 1, depth 60) is never used as a score (depth 1, window -32001,32001) -> 330, fresh 330
+PASS a ValueNone entry (bound 2, depth 60) is never used as a score (depth 1, window -32001,32001) -> 330, fresh 330
+PASS a ValueNone entry (bound 3, depth 60) is never used as a score (depth 1, window -32001,32001) -> 330, fresh 330
+PASS a ValueNone entry with a hash move gives the same value for every bound (depth 1, window -32001,32001) -> 330
+PASS a ValueNone entry (bound 1, depth 60) is never used as a score (depth 1, window 0,1) -> 285, fresh 285
+PASS a ValueNone entry (bound 2, depth 60) is never used as a score (depth 1, window 0,1) -> 285, fresh 285
+PASS a ValueNone entry (bound 3, depth 60) is never used as a score (depth 1, window 0,1) -> 285, fresh 285
+PASS a ValueNone entry with a hash move gives the same value for every bound (depth 1, window 0,1) -> 285
+PASS a ValueNone entry (bound 1, depth 60) is never used as a score (depth 1, window 300,301) -> 317, fresh 317
+PASS a ValueNone entry (bound 2, depth 60) is never used as a score (depth 1, window 300,301) -> 317, fresh 317
+PASS a ValueNone entry (bound 3, depth 60) is never used as a score (depth 1, window 300,301) -> 317, fresh 317
+PASS a ValueNone entry with a hash move gives the same value for every bound (depth 1, window 300,301) -> 327
+PASS a ValueNone entry (bound 1, depth 60) is never used as a score (depth 1, window -300,-299) -> 285, fresh 285
+PASS a ValueNone entry (bound 2, depth 60) is never used as a score (depth 1, window -300,-299) -> 285, fresh 285
+PASS a ValueNone entry (bound 3, depth 60) is never used as a score (depth 1, window -300,-299) -> 285, fresh 285
+PASS a ValueNone entry with a hash move gives the same value for every bound (depth 1, window -300,-299) -> 285
+PASS a ValueNone entry (bound 1, depth 60) is never used as a score (depth 3, window -32001,32001) -> 363, fresh 363
+PASS a ValueNone entry (bound 2, depth 60) is never used as a score (depth 3, window -32001,32001) -> 363, fresh 363
+PASS a ValueNone entry (bound 3, depth 60) is never used as a score (depth 3, window -32001,32001) -> 363, fresh 363
+PASS a ValueNone entry with a hash move gives the same value for every bound (depth 3, window -32001,32001) -> 405
+PASS a ValueNone entry (bound 1, depth 60) is never used as a score (depth 3, window 0,1) -> 285, fresh 285
+PASS a ValueNone entry (bound 2, depth 60) is never used as a score (depth 3, window 0,1) -> 285, fresh 285
+PASS a ValueNone entry (bound 3, depth 60) is never used as a score (depth 3, window 0,1) -> 285, fresh 285
+PASS a ValueNone entry with a hash move gives the same value for every bound (depth 3, window 0,1) -> 285
+PASS a ValueNone entry (bound 1, depth 60) is never used as a score (depth 3, window 300,301) -> 457, fresh 457
+PASS a ValueNone entry (bound 2, depth 60) is never used as a score (depth 3, window 300,301) -> 457, fresh 457
+PASS a ValueNone entry (bound 3, depth 60) is never used as a score (depth 3, window 300,301) -> 457, fresh 457
+PASS a ValueNone entry with a hash move gives the same value for every bound (depth 3, window 300,301) -> 343
+PASS a ValueNone entry (bound 1, depth 60) is never used as a score (depth 3, window -300,-299) -> 285, fresh 285
+PASS a ValueNone entry (bound 2, depth 60) is never used as a score (depth 3, window -300,-299) -> 285, fresh 285
+PASS a ValueNone entry (bound 3, depth 60) is never used as a score (depth 3, window -300,-299) -> 285, fresh 285
+PASS a ValueNone entry with a hash move gives the same value for every bound (depth 3, window -300,-299) -> 285
+PASS a ValueNone entry (bound 1, depth 60) is never used as a score (depth 5, window -32001,32001) -> 378, fresh 378
+PASS a ValueNone entry (bound 2, depth 60) is never used as a score (depth 5, window -32001,32001) -> 378, fresh 378
+PASS a ValueNone entry (bound 3, depth 60) is never used as a score (depth 5, window -32001,32001) -> 378, fresh 378
+PASS a ValueNone entry with a hash move gives the same value for every bound (depth 5, window -32001,32001) -> 384
+PASS a ValueNone entry (bound 1, depth 60) is never used as a score (depth 5, window 0,1) -> 257, fresh 257
+PASS a ValueNone entry (bound 2, depth 60) is never used as a score (depth 5, window 0,1) -> 257, fresh 257
+PASS a ValueNone entry (bound 3, depth 60) is never used as a score (depth 5, window 0,1) -> 257, fresh 257
+PASS a ValueNone entry with a hash move gives the same value for every bound (depth 5, window 0,1) -> 257
+PASS a ValueNone entry (bound 1, depth 60) is never used as a score (depth 5, window 300,301) -> 312, fresh 312
+PASS a ValueNone entry (bound 2, depth 60) is never used as a score (depth 5, window 300,301) -> 312, fresh 312
+PASS a ValueNone entry (bound 3, depth 60) is never used as a score (depth 5, window 300,301) -> 312, fresh 312
+PASS a ValueNone entry with a hash move gives the same value for every bound (depth 5, window 300,301) -> 333
+PASS a ValueNone entry (bound 1, depth 60) is never used as a score (depth 5, window -300,-299) -> 285, fresh 285
+PASS a ValueNone entry (bound 2, depth 60) is never used as a score (depth 5, window -300,-299) -> 285, fresh 285
+PASS a ValueNone entry (bound 3, depth 60) is never used as a score (depth 5, window -300,-299) -> 285, fresh 285
+PASS a ValueNone entry with a hash move gives the same value for every bound (depth 5, window -300,-299) -> 285
+PASS a ValueNone entry (bound 1, depth 60) is never used as a score (depth 7, window -32001,32001) -> 346, fresh 346
+PASS a ValueNone entry (bound 2, depth 60) is never used as a score (depth 7, window -32001,32001) -> 346, fresh 346
+PASS a ValueNone entry (bound 3, depth 60) is never used as a score (depth 7, window -32001,32001) -> 346, fresh 346
+PASS a ValueNone entry with a hash move gives the same value for every bound (depth 7, window -32001,32001) -> 388
+PASS a ValueNone entry (bound 1, depth 60) is never used as a score (depth 7, window 0,1) -> 277, fresh 277
+PASS a ValueNone entry (bound 2, depth 60) is never used as a score (depth 7, window 0,1) -> 277, fresh 277
+PASS a ValueNone entry (bound 3, depth 60) is never used as a score (depth 7, window 0,1) -> 277, fresh 277
+PASS a ValueNone entry with a hash move gives the same value for every bound (depth 7, window 0,1) -> 277
+PASS a ValueNone entry (bound 1, depth 60) is never used as a score (depth 7, window 300,301) -> 312, fresh 312
+PASS a ValueNone entry (bound 2, depth 60) is never used as a score (depth 7, window 300,301) -> 312, fresh 312
+PASS a ValueNone entry (bound 3, depth 60) is never used as a score (depth 7, window 300,301) -> 312, fresh 312
+PASS a ValueNone entry with a hash move gives the same value for every bound (depth 7, window 300,301) -> 311
+PASS a ValueNone entry (bound 1, depth 60) is never used as a score (depth 7, window -300,-299) -> 285, fresh 285
+PASS a ValueNone entry (bound 2, depth 60) is never used as a score (depth 7, window -300,-299) -> 285, fresh 285
+PASS a ValueNone entry (bound 3, depth 60) is never used as a score (depth 7, window -300,-299) -> 285, fresh 285
+PASS a ValueNone entry with a hash move gives the same value for every bound (depth 7, window -300,-299) -> 285
+PASS a ValueNone entry (bound 1, depth 60) is never used as a score (depth 8, window -32001,32001) -> 390, fresh 390
+PASS a ValueNone entry (bound 2, depth 60) is never used as a score (depth 8, window -32001,32001) -> 390, fresh 390
+PASS a ValueNone entry (bound 3, depth 60) is never used as a score (depth 8, window -32001,32001) -> 390, fresh 390
+PASS a ValueNone entry with a hash move gives the same value for every bound (depth 8, window -32001,32001) -> 347
+PASS a ValueNone entry (bound 1, depth 60) is never used as a score (depth 8, window 0,1) -> 277, fresh 277
+PASS a ValueNone entry (bound 2, depth 60) is never used as a score (depth 8, window 0,1) -> 277, fresh 277
+PASS a ValueNone entry (bound 3, depth 60) is never used as a score (depth 8, window 0,1) -> 277, fresh 277
+PASS a ValueNone entry with a hash move gives the same value for every bound (depth 8, window 0,1) -> 277
+PASS a ValueNone entry (bound 1, depth 60) is never used as a score (depth 8, window 300,301) -> 303, fresh 303
+PASS a ValueNone entry (bound 2, depth 60) is never used as a score (depth 8, window 300,301) -> 303, fresh 303
+PASS a ValueNone entry (bound 3, depth 60) is never used as a score (depth 8, window 300,301) -> 303, fresh 303
+PASS a ValueNone entry with a hash move gives the same value for every bound (depth 8, window 300,301) -> 321
+PASS a ValueNone entry (bound 1, depth 60) is never used as a score (depth 8, window -300,-299) -> 285, fresh 285
+PASS a ValueNone entry (bound 2, depth 60) is never used as a score (depth 8, window -300,-299) -> 285, fresh 285
+PASS a ValueNone entry (bound 3, depth 60) is never used as a score (depth 8, window -300,-299) -> 285, fresh 285
+PASS a ValueNone entry with a hash move gives the same value for every bound (depth 8, window -300,-299) -> 285
+PASS fail-low continuation bonus: option off, value below alpha: fail low, bonus (sanity) (depth 1, window 50,100) -> value 0, parent entry 36
+FAIL fail-low continuation bonus: option on, floor raised alpha: value 0 inside the window, no bonus (depth 1, window -100,100) -> value 0, parent entry 36
+PASS fail-low continuation bonus: option on, alpha already above 0: fail low, bonus (depth 1, window 50,100) -> value 0, parent entry 36
+PASS fail-low continuation bonus: option off, value below alpha: fail low, bonus (sanity) (depth 2, window 50,100) -> value 0, parent entry 144
+FAIL fail-low continuation bonus: option on, floor raised alpha: value 0 inside the window, no bonus (depth 2, window -100,100) -> value 0, parent entry 144
+PASS fail-low continuation bonus: option on, alpha already above 0: fail low, bonus (depth 2, window 50,100) -> value 0, parent entry 144
+FAILURES: 23

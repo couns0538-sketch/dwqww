@@ -451,6 +451,7 @@ int main() {
             }
             // Search option added after AL1 s198 (Astra A1); default 0 = the lock's search (forge/hist_rework.hpp).
             std::cout << "option name HistRework type spin default 0 min 0 max " << forge::hist_rework::MaxLevel << "\n";
+            std::cout << "option name IntendedThreefold type check default false\n";
 #ifdef FORGE_EXPOSE_TUNABLES
             // Development builds advertise the search constants so match
             // runners can set them; release builds accept them silently.
@@ -668,6 +669,13 @@ int main() {
                     std::cout << "info string invalid value for option " << name << std::endl;
                 } else {
                     forge::search_options::hist_rework = std::clamp(value, 0, forge::hist_rework::MaxLevel);
+                }
+            } else if (name == "IntendedThreefold") {
+                if (value_text == "true") forge::options::intended_threefold = true;
+                else if (value_text == "false") forge::options::intended_threefold = false;
+                else {
+                    const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex());
+                    std::cout << "info string invalid value for option IntendedThreefold" << std::endl;
                 }
             } else if (name == "UseNNUE") {
                 if (value_text == "true") forge::nnue::enabled = true;

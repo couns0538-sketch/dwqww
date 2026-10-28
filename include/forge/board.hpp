@@ -187,6 +187,11 @@ public:
     // key history and the cuckoo table of reversible-move keys (namespace
     // cuckoo below) without generating moves. Cold: used only with CuckooRep.
     [[nodiscard, gnu::cold]] bool upcoming_repetition(std::size_t root_index) const;
+    // FIDE 9.2.1 intended threefold: the side to move has a legal move that would
+    // create the third occurrence of a position. Exact keys on the resulting
+    // position's side-to-move parity, genuine reversible history only (after the
+    // last irreversible move and after the most recent null move).
+    [[nodiscard]] bool can_claim_threefold_by_next_move() const;
     [[nodiscard]] bool is_insufficient_material() const;
     [[nodiscard]] bool has_non_pawn_material(Color color) const;
 

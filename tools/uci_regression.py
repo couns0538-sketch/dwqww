@@ -7,6 +7,7 @@ from pathlib import Path
 import queue
 import re
 import subprocess
+import sys
 import threading
 import time
 
@@ -124,11 +125,21 @@ def main():
     e = Engine(a.engine)
     passed = []
     known_failures = []
+    skipped = []
     timings = {}
+    values = {}
     try:
         e.send("uci")
         identification = e.until(lambda line: line == "uciok")
         assert any(line.startswith("id name Chess Engine Forge") for line in identification)
+        # Optional features are checked only when the engine advertises them (older engines, e.g. the
+        # lock exe with --known-v56, do not have them).
+        intended_threefold = any(line.startswith("option name IntendedThreefold ") for line in identification)
+        if intended_threefold:
+            assert "option name IntendedThreefold type check default false" in identification, identification
+        else:
+            skipped.append("IntendedThreefold checks (option not advertised)")
+            print("note: the engine does not advertise IntendedThreefold; its checks are skipped", file=sys.stderr)
         e.ready(); passed.append("handshake/readiness")
         e.send("setoption name Hash value 33")
         e.ready()
@@ -297,6 +308,39 @@ def main():
             e.send("isready")
             assert not any("LocklessTT active" in line for line in e.until(lambda line: line == "readyok"))
         passed.append("LocklessTT on reports 'info string LocklessTT active'; off and invalid values do not")
+        if intended_threefold:
+            # UCI IntendedThreefold (FIDE 9.2.1, issue #7): after a2a1 black may claim before h8h7 recreates the
+            # start position for the third time (positive history), not after the control history.
+            # qr/qc: the claiming side has material, so pruning and captures matter. qr: at depth 2 the claiming
+            # Rb8-b7 is pruned in the child, only the search() floor gives 0. qc: black wins the queen with
+            # Rc8xc1+, so the claim must stay a floor (a forced draw would report 0).
+            cases = {
+                "positive": ("8/7k/8/8/8/8/8/K1R5 w - - 0 1", "a1a2 h7h8 a2a1 h8h7 a1a2 h7h8", 1),
+                "control": ("8/7k/8/8/8/8/8/K1R5 w - - 0 1", "a1b1 h7h8 b1b2 h8h7 b2a2 h7h8", 1),
+                "qr": ("7k/1r6/8/8/8/8/8/K2Q4 w - - 0 1", "a1a2 b7b8 a2a1 b8b7 a1a2 b7b8", 2),
+                "qc": ("2r5/7k/8/8/8/8/8/K1Q5 w - - 0 1", "a1a2 h7h8 a2a1 h8h7 a1a2 h7h8", 1),
+            }
+            scores = {}
+            for option in ("false", "true"):
+                e.send("setoption name IntendedThreefold value " + option)
+                for name, (fen, moves, depth) in cases.items():
+                    e.send("ucinewgame")
+                    e.position(f"fen {fen} moves {moves}")
+                    move, lines = e.search(f"go depth {depth} searchmoves a2a1")
+                    info = [line for line in lines if line.startswith(f"info depth {depth} ")]
+                    assert move == "a2a1" and info, lines
+                    scores[(option, name)] = int(re.search(r"score cp (-?\d+)", info[-1]).group(1))
+            assert scores[("true", "positive")] == 0 and scores[("false", "positive")] > 100, scores
+            assert scores[("true", "control")] == scores[("false", "control")] > 100, scores
+            assert scores[("true", "qr")] == 0, scores
+            assert scores[("true", "qc")] == scores[("false", "qc")] < -300, scores
+            values["intended_threefold_cp"] = {f"{name} {option}": value for (option, name), value in scores.items()}
+            e.send("setoption name IntendedThreefold value maybe")
+            e.until(lambda line: "invalid value for option IntendedThreefold" in line)
+            e.send("setoption name IntendedThreefold value false")
+            e.ready()
+            passed.append("IntendedThreefold: positive history claims 0 cp, control unchanged; with material the "
+                          "search() floor holds (qr 0 cp) and the claim stays a floor (qc keeps Rxc1)")
         e.position()
         e.send("position startpos moves e2e4 illegal")
         e.until(lambda line: "illegal move illegal" in line)
@@ -318,7 +362,8 @@ def main():
                 e.send(f"go perft {depth}")
                 assert e.until(lambda line: line.startswith("nodes "), timeout=60)[-1] == f"nodes {expected}"
                 passed.append(f"perft depth {depth}: {expected}")
-        print(json.dumps({"passed": passed, "known_failures": known_failures, "timings": timings}, indent=2))
+        print(json.dumps({"passed": passed, "known_failures": known_failures, "skipped": skipped, "timings": timings,
+                          "values": values}, indent=2))
     finally:
         try:
             e.close()

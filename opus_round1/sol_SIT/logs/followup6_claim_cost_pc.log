@@ -1,0 +1,173 @@
+# S-IT code-review follow-up, step 6: claim-check cost on the PC (perf_claim_ab.py: Idle priority, CPU time from GetProcessTimes, Threads 1, Hash 16, go depth N, 4 rotating rounds). Advisory, loaded PC (conc-8 gate, NNUE training, self-play).
+# base = old code (git archive HEAD fc3bd2a, box build), final = follow-up box build (forge_sit_fix3.exe).
+# case shuffle_hist depth 22: position fen rn2k1nr/8/1p1p1p1p/pPpPpPpP/P1P1P1P1/8/8/RN2K1NR w KQkq - 0 1 moves b1c3 b8c6 c3b1 c6b8 b1c3 b8c6 c3b1 e8f8 e1f1
+shuffle_hist    base   IT=false r0 score cp -126   nodes   1629687 cpu  0.656s cpu_nps   2483333 wall_ms    651 best c6d4
+shuffle_hist    base   IT=true  r0 score cp -126   nodes   1629687 cpu  0.875s cpu_nps   1862499 wall_ms    885 best c6d4
+shuffle_hist    final  IT=false r0 score cp -126   nodes   1629687 cpu  0.656s cpu_nps   2483333 wall_ms    661 best c6d4
+shuffle_hist    final  IT=true  r0 score cp -126   nodes   1629687 cpu  0.750s cpu_nps   2172916 wall_ms    747 best c6d4
+shuffle_hist    final  IT=true  r1 score cp -126   nodes   1629687 cpu  0.750s cpu_nps   2172916 wall_ms    747 best c6d4
+shuffle_hist    final  IT=false r1 score cp -126   nodes   1629687 cpu  0.656s cpu_nps   2483333 wall_ms    659 best c6d4
+shuffle_hist    base   IT=true  r1 score cp -126   nodes   1629687 cpu  0.891s cpu_nps   1829824 wall_ms    892 best c6d4
+shuffle_hist    base   IT=false r1 score cp -126   nodes   1629687 cpu  0.672s cpu_nps   2425581 wall_ms    675 best c6d4
+shuffle_hist    base   IT=true  r2 score cp -126   nodes   1629687 cpu  0.891s cpu_nps   1829824 wall_ms    894 best c6d4
+shuffle_hist    final  IT=false r2 score cp -126   nodes   1629687 cpu  0.656s cpu_nps   2483333 wall_ms    662 best c6d4
+shuffle_hist    final  IT=true  r2 score cp -126   nodes   1629687 cpu  0.766s cpu_nps   2128571 wall_ms    774 best c6d4
+shuffle_hist    base   IT=false r2 score cp -126   nodes   1629687 cpu  0.672s cpu_nps   2425581 wall_ms    666 best c6d4
+shuffle_hist    final  IT=false r3 score cp -126   nodes   1629687 cpu  0.656s cpu_nps   2483333 wall_ms    664 best c6d4
+shuffle_hist    base   IT=true  r3 score cp -126   nodes   1629687 cpu  0.906s cpu_nps   1798275 wall_ms    894 best c6d4
+shuffle_hist    base   IT=false r3 score cp -126   nodes   1629687 cpu  0.656s cpu_nps   2483333 wall_ms    658 best c6d4
+shuffle_hist    final  IT=true  r3 score cp -126   nodes   1629687 cpu  0.750s cpu_nps   2172916 wall_ms    749 best c6d4
+# case shuffle_nohist depth 22: position fen r4knr/8/1pnp1p1p/pPpPpPpP/P1P1P1P1/8/8/RN3KNR b - - 9 5
+shuffle_nohist  base   IT=false r0 score cp -126   nodes   1629687 cpu  0.641s cpu_nps   2543902 wall_ms    655 best c6d4
+shuffle_nohist  base   IT=true  r0 score cp -126   nodes   1629687 cpu  0.672s cpu_nps   2425581 wall_ms    668 best c6d4
+shuffle_nohist  final  IT=false r0 score cp -126   nodes   1629687 cpu  0.672s cpu_nps   2425581 wall_ms    657 best c6d4
+shuffle_nohist  final  IT=true  r0 score cp -126   nodes   1629687 cpu  0.688s cpu_nps   2370454 wall_ms    678 best c6d4
+shuffle_nohist  final  IT=true  r1 score cp -126   nodes   1629687 cpu  0.688s cpu_nps   2370454 wall_ms    677 best c6d4
+shuffle_nohist  final  IT=false r1 score cp -126   nodes   1629687 cpu  0.656s cpu_nps   2483333 wall_ms    657 best c6d4
+shuffle_nohist  base   IT=true  r1 score cp -126   nodes   1629687 cpu  0.672s cpu_nps   2425581 wall_ms    667 best c6d4
+shuffle_nohist  base   IT=false r1 score cp -126   nodes   1629687 cpu  0.656s cpu_nps   2483333 wall_ms    650 best c6d4
+shuffle_nohist  base   IT=true  r2 score cp -126   nodes   1629687 cpu  0.672s cpu_nps   2425581 wall_ms    667 best c6d4
+shuffle_nohist  final  IT=false r2 score cp -126   nodes   1629687 cpu  0.656s cpu_nps   2483333 wall_ms    657 best c6d4
+shuffle_nohist  final  IT=true  r2 score cp -126   nodes   1629687 cpu  0.672s cpu_nps   2425581 wall_ms    675 best c6d4
+shuffle_nohist  base   IT=false r2 score cp -126   nodes   1629687 cpu  0.656s cpu_nps   2483333 wall_ms    651 best c6d4
+shuffle_nohist  final  IT=false r3 score cp -126   nodes   1629687 cpu  0.656s cpu_nps   2483333 wall_ms    659 best c6d4
+shuffle_nohist  base   IT=true  r3 score cp -126   nodes   1629687 cpu  0.656s cpu_nps   2483333 wall_ms    668 best c6d4
+shuffle_nohist  base   IT=false r3 score cp -126   nodes   1629687 cpu  0.656s cpu_nps   2483333 wall_ms    650 best c6d4
+shuffle_nohist  final  IT=true  r3 score cp -126   nodes   1629687 cpu  0.672s cpu_nps   2425581 wall_ms    676 best c6d4
+# case longwalk_hist depth 23: position fen rn2k1nr/8/1p1p1p1p/pPpPpPpP/P1P1P1P1/8/8/RN2K1NR w KQkq - 0 1 moves b1a3 b8d7 a3b1 d7f8 g1f3 f8h7 b1d2 h7f8 d2f1 f8g6 f1h2 g6f8 f3h4 g8e7 h4f3 e7g6 h2f1 f8h7 f1d2 h7f8 f3d4 g6f4 d2f3 f8h7 d4e6 h7f8 f3g1 f4e2 e6d8 e2c3 d8b7 f8g6 g1h3 c3d1 b7d8 d1b2 d8b7 g6f4 h3f2 b2d1 f2h3 d1f2 h3g1 f4h3 g1e2 h3f4 b7d8 f4h3 e2c1 h3g1 d8e6 g1h3 e6f8 h3g1 c1e2 f2d1 e2c3 d1b2 f8d7 g1h3 e1e2 e8d8
+longwalk_hist   base   IT=false r0 score cp 483    nodes   1608185 cpu  0.594s cpu_nps   2708522 wall_ms    591 best h1h3
+longwalk_hist   base   IT=true  r0 score cp 483    nodes   1608185 cpu  0.594s cpu_nps   2708522 wall_ms    599 best h1h3
+longwalk_hist   final  IT=false r0 score cp 483    nodes   1608185 cpu  0.594s cpu_nps   2708522 wall_ms    598 best h1h3
+longwalk_hist   final  IT=true  r0 score cp 483    nodes   1608185 cpu  0.609s cpu_nps   2639073 wall_ms    606 best h1h3
+longwalk_hist   final  IT=true  r1 score cp 483    nodes   1608185 cpu  0.609s cpu_nps   2639073 wall_ms    607 best h1h3
+longwalk_hist   final  IT=false r1 score cp 483    nodes   1608185 cpu  0.609s cpu_nps   2639073 wall_ms    598 best h1h3
+longwalk_hist   base   IT=true  r1 score cp 483    nodes   1608185 cpu  0.609s cpu_nps   2639073 wall_ms    602 best h1h3
+longwalk_hist   base   IT=false r1 score cp 483    nodes   1608185 cpu  0.594s cpu_nps   2708522 wall_ms    590 best h1h3
+longwalk_hist   base   IT=true  r2 score cp 483    nodes   1608185 cpu  0.594s cpu_nps   2708522 wall_ms    599 best h1h3
+longwalk_hist   final  IT=false r2 score cp 483    nodes   1608185 cpu  0.594s cpu_nps   2708522 wall_ms    595 best h1h3
+longwalk_hist   final  IT=true  r2 score cp 483    nodes   1608185 cpu  0.625s cpu_nps   2573096 wall_ms    609 best h1h3
+longwalk_hist   base   IT=false r2 score cp 483    nodes   1608185 cpu  0.578s cpu_nps   2781725 wall_ms    589 best h1h3
+longwalk_hist   final  IT=false r3 score cp 483    nodes   1608185 cpu  0.609s cpu_nps   2639073 wall_ms    600 best h1h3
+longwalk_hist   base   IT=true  r3 score cp 483    nodes   1608185 cpu  0.594s cpu_nps   2708522 wall_ms    600 best h1h3
+longwalk_hist   base   IT=false r3 score cp 483    nodes   1608185 cpu  0.578s cpu_nps   2781725 wall_ms    587 best h1h3
+longwalk_hist   final  IT=true  r3 score cp 483    nodes   1608185 cpu  0.609s cpu_nps   2639073 wall_ms    608 best h1h3
+# case walk34_castle depth 25: position fen r3k2r/8/8/8/8/8/8/1K1Q4 w q - 0 1 moves d1g4 h8f8 g4h4 f8g8 h4d4 g8f8 d4h4 f8g8 h4f4 g8h8 f4g4 h8f8 g4h3 f8g8 h3h2 g8f8 h2c2 f8h8 c2f2 h8g8 f2f4 g8h8 f4f2 h8g8 f2d4 g8f8 d4d3 f8h8 d3b3 h8f8 b3h3 f8g8 h3h6 e8f7
+walk34_castle   base   IT=false r0 score cp 0      nodes   1707300 cpu  0.734s cpu_nps   2324834 wall_ms    735 best h6f4
+walk34_castle   base   IT=true  r0 score cp 0      nodes   1707300 cpu  1.234s cpu_nps   1383129 wall_ms   1240 best h6f4
+walk34_castle   final  IT=false r0 score cp 0      nodes   1707300 cpu  0.750s cpu_nps   2276400 wall_ms    743 best h6f4
+walk34_castle   final  IT=true  r0 score cp 0      nodes   1707300 cpu  0.875s cpu_nps   1951200 wall_ms    894 best h6f4
+walk34_castle   final  IT=true  r1 score cp 0      nodes   1707300 cpu  0.891s cpu_nps   1916968 wall_ms    896 best h6f4
+walk34_castle   final  IT=false r1 score cp 0      nodes   1707300 cpu  0.859s cpu_nps   1986676 wall_ms    910 best h6f4
+walk34_castle   base   IT=true  r1 score cp 0      nodes   1707300 cpu  1.453s cpu_nps   1174916 wall_ms   1496 best h6f4
+walk34_castle   base   IT=false r1 score cp 0      nodes   1707300 cpu  0.844s cpu_nps   2023467 wall_ms    856 best h6f4
+walk34_castle   base   IT=true  r2 score cp 0      nodes   1707300 cpu  1.391s cpu_nps   1227721 wall_ms   1439 best h6f4
+walk34_castle   final  IT=false r2 score cp 0      nodes   1707300 cpu  0.859s cpu_nps   1986676 wall_ms    876 best h6f4
+walk34_castle   final  IT=true  r2 score cp 0      nodes   1707300 cpu  1.047s cpu_nps   1630854 wall_ms   1054 best h6f4
+walk34_castle   base   IT=false r2 score cp 0      nodes   1707300 cpu  0.781s cpu_nps   2185344 wall_ms    877 best h6f4
+walk34_castle   final  IT=false r3 score cp 0      nodes   1707300 cpu  0.828s cpu_nps   2061645 wall_ms    877 best h6f4
+walk34_castle   base   IT=true  r3 score cp 0      nodes   1707300 cpu  1.391s cpu_nps   1227721 wall_ms   1495 best h6f4
+walk34_castle   base   IT=false r3 score cp 0      nodes   1707300 cpu  0.844s cpu_nps   2023467 wall_ms    879 best h6f4
+walk34_castle   final  IT=true  r3 score cp 0      nodes   1707300 cpu  1.047s cpu_nps   1630854 wall_ms   1069 best h6f4
+# case middlegame_dup depth 18: position fen r4rk1/1pp1qppp/p1np1n2/8/2B1P1b1/2N2N2/PPP1QPPP/2KR3R w - - 0 10 moves h1g1 f8e8 g1h1 e8f8 h1g1 f8e8 g1h1
+middlegame_dup  base   IT=false r0 score cp 96     nodes   1359642 cpu  0.812s cpu_nps   1673406 wall_ms    865 best g4h5
+middlegame_dup  base   IT=true  r0 score cp 62     nodes    940607 cpu  0.609s cpu_nps   1543560 wall_ms    616 best g4h5
+middlegame_dup  final  IT=false r0 score cp 96     nodes   1359642 cpu  0.938s cpu_nps   1450285 wall_ms    935 best g4h5
+middlegame_dup  final  IT=true  r0 score cp 82     nodes   2237930 cpu  1.484s cpu_nps   1507658 wall_ms   1487 best g4h5
+middlegame_dup  final  IT=true  r1 score cp 82     nodes   2237930 cpu  1.391s cpu_nps   1609298 wall_ms   1449 best g4h5
+middlegame_dup  final  IT=false r1 score cp 96     nodes   1359642 cpu  0.844s cpu_nps   1611428 wall_ms    867 best g4h5
+middlegame_dup  base   IT=true  r1 score cp 62     nodes    940607 cpu  0.594s cpu_nps   1584180 wall_ms    608 best g4h5
+middlegame_dup  base   IT=false r1 score cp 96     nodes   1359642 cpu  0.844s cpu_nps   1611428 wall_ms    868 best g4h5
+middlegame_dup  base   IT=true  r2 score cp 62     nodes    940607 cpu  0.562s cpu_nps   1672190 wall_ms    600 best g4h5
+middlegame_dup  final  IT=false r2 score cp 96     nodes   1359642 cpu  0.844s cpu_nps   1611428 wall_ms    856 best g4h5
+middlegame_dup  final  IT=true  r2 score cp 82     nodes   2237930 cpu  1.344s cpu_nps   1665436 wall_ms   1455 best g4h5
+middlegame_dup  base   IT=false r2 score cp 96     nodes   1359642 cpu  0.906s cpu_nps   1500295 wall_ms    915 best g4h5
+middlegame_dup  final  IT=false r3 score cp 96     nodes   1359642 cpu  0.797s cpu_nps   1706217 wall_ms    797 best g4h5
+middlegame_dup  base   IT=true  r3 score cp 62     nodes    940607 cpu  0.547s cpu_nps   1719967 wall_ms    541 best g4h5
+middlegame_dup  base   IT=false r3 score cp 96     nodes   1359642 cpu  0.797s cpu_nps   1706217 wall_ms    804 best g4h5
+middlegame_dup  final  IT=true  r3 score cp 82     nodes   2237930 cpu  1.453s cpu_nps   1540081 wall_ms   1446 best g4h5
+# case issue_positive depth 26: position fen 8/7k/8/8/8/8/8/K1R5 w - - 0 1 moves a1a2 h7h8 a2a1 h8h7 a1a2 h7h8
+issue_positive  base   IT=false r0 score mate 10   nodes    811865 cpu  0.188s cpu_nps   4329947 wall_ms    199 best c1c7
+issue_positive  base   IT=true  r0 score cp 461    nodes   2089944 cpu  0.703s cpu_nps   2972365 wall_ms    702 best c1c7
+issue_positive  final  IT=false r0 score mate 10   nodes    811865 cpu  0.203s cpu_nps   3996874 wall_ms    200 best c1c7
+issue_positive  final  IT=true  r0 score cp 472    nodes    696121 cpu  0.203s cpu_nps   3427057 wall_ms    192 best c1c7
+issue_positive  final  IT=true  r1 score cp 472    nodes    696121 cpu  0.156s cpu_nps   4455174 wall_ms    197 best c1c7
+issue_positive  final  IT=false r1 score mate 10   nodes    811865 cpu  0.172s cpu_nps   4723578 wall_ms    194 best c1c7
+issue_positive  base   IT=true  r1 score cp 461    nodes   2089944 cpu  0.688s cpu_nps   3039919 wall_ms    685 best c1c7
+issue_positive  base   IT=false r1 score mate 10   nodes    811865 cpu  0.188s cpu_nps   4329947 wall_ms    195 best c1c7
+issue_positive  base   IT=true  r2 score cp 461    nodes   2089944 cpu  0.672s cpu_nps   3110614 wall_ms    680 best c1c7
+issue_positive  final  IT=false r2 score mate 10   nodes    811865 cpu  0.188s cpu_nps   4329947 wall_ms    192 best c1c7
+issue_positive  final  IT=true  r2 score cp 472    nodes    696121 cpu  0.203s cpu_nps   3427057 wall_ms    191 best c1c7
+issue_positive  base   IT=false r2 score mate 10   nodes    811865 cpu  0.172s cpu_nps   4723578 wall_ms    193 best c1c7
+issue_positive  final  IT=false r3 score mate 10   nodes    811865 cpu  0.203s cpu_nps   3996874 wall_ms    195 best c1c7
+issue_positive  base   IT=true  r3 score cp 461    nodes   2089944 cpu  0.688s cpu_nps   3039919 wall_ms    682 best c1c7
+issue_positive  base   IT=false r3 score mate 10   nodes    811865 cpu  0.188s cpu_nps   4329947 wall_ms    191 best c1c7
+issue_positive  final  IT=true  r3 score cp 472    nodes    696121 cpu  0.203s cpu_nps   3427057 wall_ms    199 best c1c7
+# case review_qr depth 28: position fen 7k/1r6/8/8/8/8/8/K2Q4 w - - 0 1 moves a1a2 b7b8 a2a1 b8b7 a1a2 b7b8
+review_qr       base   IT=false r0 score cp 1135   nodes    446087 cpu  0.109s cpu_nps   4078510 wall_ms    117 best d1d4
+review_qr       base   IT=true  r0 score cp 1117   nodes    322337 cpu  0.094s cpu_nps   3438261 wall_ms     95 best d1d4
+review_qr       final  IT=false r0 score cp 1135   nodes    446087 cpu  0.109s cpu_nps   4078510 wall_ms    114 best d1d4
+review_qr       final  IT=true  r0 score cp 1117   nodes    322337 cpu  0.094s cpu_nps   3438261 wall_ms     90 best d1d4
+review_qr       final  IT=true  r1 score cp 1117   nodes    322337 cpu  0.094s cpu_nps   3438261 wall_ms     93 best d1d4
+review_qr       final  IT=false r1 score cp 1135   nodes    446087 cpu  0.125s cpu_nps   3568696 wall_ms    123 best d1d4
+review_qr       base   IT=true  r1 score cp 1117   nodes    322337 cpu  0.094s cpu_nps   3438261 wall_ms     94 best d1d4
+review_qr       base   IT=false r1 score cp 1135   nodes    446087 cpu  0.109s cpu_nps   4078510 wall_ms    117 best d1d4
+review_qr       base   IT=true  r2 score cp 1117   nodes    322337 cpu  0.094s cpu_nps   3438261 wall_ms     98 best d1d4
+review_qr       final  IT=false r2 score cp 1135   nodes    446087 cpu  0.125s cpu_nps   3568696 wall_ms    116 best d1d4
+review_qr       final  IT=true  r2 score cp 1117   nodes    322337 cpu  0.094s cpu_nps   3438261 wall_ms     89 best d1d4
+review_qr       base   IT=false r2 score cp 1135   nodes    446087 cpu  0.094s cpu_nps   4758261 wall_ms    124 best d1d4
+review_qr       final  IT=false r3 score cp 1135   nodes    446087 cpu  0.141s cpu_nps   3172174 wall_ms    138 best d1d4
+review_qr       base   IT=true  r3 score cp 1117   nodes    322337 cpu  0.109s cpu_nps   2947081 wall_ms    112 best d1d4
+review_qr       base   IT=false r3 score cp 1135   nodes    446087 cpu  0.125s cpu_nps   3568696 wall_ms    132 best d1d4
+review_qr       final  IT=true  r3 score cp 1117   nodes    322337 cpu  0.109s cpu_nps   2947081 wall_ms    108 best d1d4
+# case rook_walk41 depth 44: position fen 1r4k1/5pp1/7p/8/8/7P/5PP1/3R2K1 w - - 0 30 moves d1c1 b8e8 c1a1 e8c8 a1d1 c8b8 d1a1 b8e8 a1b1 e8a8 b1d1 a8c8 d1a1 c8b8 a1c1 b8e8 c1b1 e8a8 b1d1 a8c8 d1a1 c8e8 a1c1 e8b8 c1a1 b8c8 a1d1 c8a8 d1e1 a8d8 e1a1 d8b8 a1e1 b8a8 e1c1 a8b8 c1d1 b8a8 d1e1 a8d8 e1a1
+rook_walk41     base   IT=false r0 score cp 0      nodes    149076 cpu  0.047s cpu_nps   3180288 wall_ms     50 best d8b8
+rook_walk41     base   IT=true  r0 score cp 0      nodes    169579 cpu  0.062s cpu_nps   2713264 wall_ms     66 best d8b8
+rook_walk41     final  IT=false r0 score cp 0      nodes    149076 cpu  0.047s cpu_nps   3180288 wall_ms     47 best d8b8
+rook_walk41     final  IT=true  r0 score cp 0      nodes    166781 cpu  0.062s cpu_nps   2668496 wall_ms     60 best d8b8
+rook_walk41     final  IT=true  r1 score cp 0      nodes    166781 cpu  0.062s cpu_nps   2668496 wall_ms     63 best d8b8
+rook_walk41     final  IT=false r1 score cp 0      nodes    149076 cpu  0.062s cpu_nps   2385216 wall_ms     51 best d8b8
+rook_walk41     base   IT=true  r1 score cp 0      nodes    169579 cpu  0.062s cpu_nps   2713264 wall_ms     65 best d8b8
+rook_walk41     base   IT=false r1 score cp 0      nodes    149076 cpu  0.047s cpu_nps   3180288 wall_ms     51 best d8b8
+rook_walk41     base   IT=true  r2 score cp 0      nodes    169579 cpu  0.062s cpu_nps   2713264 wall_ms     61 best d8b8
+rook_walk41     final  IT=false r2 score cp 0      nodes    149076 cpu  0.062s cpu_nps   2385216 wall_ms     54 best d8b8
+rook_walk41     final  IT=true  r2 score cp 0      nodes    166781 cpu  0.062s cpu_nps   2668496 wall_ms     61 best d8b8
+rook_walk41     base   IT=false r2 score cp 0      nodes    149076 cpu  0.062s cpu_nps   2385216 wall_ms     47 best d8b8
+rook_walk41     final  IT=false r3 score cp 0      nodes    149076 cpu  0.062s cpu_nps   2385216 wall_ms     52 best d8b8
+rook_walk41     base   IT=true  r3 score cp 0      nodes    169579 cpu  0.062s cpu_nps   2713264 wall_ms     62 best d8b8
+rook_walk41     base   IT=false r3 score cp 0      nodes    149076 cpu  0.062s cpu_nps   2385216 wall_ms     52 best d8b8
+rook_walk41     final  IT=true  r3 score cp 0      nodes    166781 cpu  0.031s cpu_nps   5336992 wall_ms     60 best d8b8
+
+# summary: mean CPU-time NPS (k), nodes; ratio = on/off CPU NPS of the same binary
+shuffle_hist    base   IT=false nodes 1629687 cpu_nps 2454k (min 2426k max 2483k) score cp -126 | IT=true nodes 1629687 cpu_nps 1830k (min 1798k max 1862k) score cp -126 | on/off 0.746
+shuffle_hist    final  IT=false nodes 1629687 cpu_nps 2483k (min 2483k max 2483k) score cp -126 | IT=true nodes 1629687 cpu_nps 2162k (min 2129k max 2173k) score cp -126 | on/off 0.871
+shuffle_hist    nodes IT=false identical across binaries: YES
+shuffle_hist    nodes IT=true identical across binaries: YES
+shuffle_nohist  base   IT=false nodes 1629687 cpu_nps 2498k (min 2483k max 2544k) score cp -126 | IT=true nodes 1629687 cpu_nps 2440k (min 2426k max 2483k) score cp -126 | on/off 0.977
+shuffle_nohist  final  IT=false nodes 1629687 cpu_nps 2469k (min 2426k max 2483k) score cp -126 | IT=true nodes 1629687 cpu_nps 2398k (min 2370k max 2426k) score cp -126 | on/off 0.971
+shuffle_nohist  nodes IT=false identical across binaries: YES
+shuffle_nohist  nodes IT=true identical across binaries: YES
+longwalk_hist   base   IT=false nodes 1608185 cpu_nps 2745k (min 2709k max 2782k) score cp 483 | IT=true nodes 1608185 cpu_nps 2691k (min 2639k max 2709k) score cp 483 | on/off 0.980
+longwalk_hist   final  IT=false nodes 1608185 cpu_nps 2674k (min 2639k max 2709k) score cp 483 | IT=true nodes 1608185 cpu_nps 2623k (min 2573k max 2639k) score cp 483 | on/off 0.981
+longwalk_hist   nodes IT=false identical across binaries: YES
+longwalk_hist   nodes IT=true identical across binaries: YES
+walk34_castle   base   IT=false nodes 1707300 cpu_nps 2139k (min 2023k max 2325k) score cp 0 | IT=true nodes 1707300 cpu_nps 1253k (min 1175k max 1383k) score cp 0 | on/off 0.586
+walk34_castle   final  IT=false nodes 1707300 cpu_nps 2078k (min 1987k max 2276k) score cp 0 | IT=true nodes 1707300 cpu_nps 1782k (min 1631k max 1951k) score cp 0 | on/off 0.858
+walk34_castle   nodes IT=false identical across binaries: YES
+walk34_castle   nodes IT=true identical across binaries: YES
+middlegame_dup  base   IT=false nodes 1359642 cpu_nps 1623k (min 1500k max 1706k) score cp 96 | IT=true nodes 940607 cpu_nps 1630k (min 1544k max 1720k) score cp 62 | on/off 1.004
+middlegame_dup  final  IT=false nodes 1359642 cpu_nps 1595k (min 1450k max 1706k) score cp 96 | IT=true nodes 2237930 cpu_nps 1581k (min 1508k max 1665k) score cp 82 | on/off 0.991
+middlegame_dup  nodes IT=false identical across binaries: YES
+middlegame_dup  nodes IT=true identical across binaries: NO {'base': {940607}, 'final': {2237930}}
+issue_positive  base   IT=false nodes 811865 cpu_nps 4428k (min 4330k max 4724k) score mate 10 | IT=true nodes 2089944 cpu_nps 3041k (min 2972k max 3111k) score cp 461 | on/off 0.687
+issue_positive  final  IT=false nodes 811865 cpu_nps 4262k (min 3997k max 4724k) score mate 10 | IT=true nodes 696121 cpu_nps 3684k (min 3427k max 4455k) score cp 472 | on/off 0.864
+issue_positive  nodes IT=false identical across binaries: YES
+issue_positive  nodes IT=true identical across binaries: NO {'base': {2089944}, 'final': {696121}}
+review_qr       base   IT=false nodes 446087 cpu_nps 4121k (min 3569k max 4758k) score cp 1135 | IT=true nodes 322337 cpu_nps 3315k (min 2947k max 3438k) score cp 1117 | on/off 0.805
+review_qr       final  IT=false nodes 446087 cpu_nps 3597k (min 3172k max 4079k) score cp 1135 | IT=true nodes 322337 cpu_nps 3315k (min 2947k max 3438k) score cp 1117 | on/off 0.922
+review_qr       nodes IT=false identical across binaries: YES
+review_qr       nodes IT=true identical across binaries: YES
+rook_walk41     base   IT=false nodes 149076 cpu_nps 2783k (min 2385k max 3180k) score cp 0 | IT=true nodes 169579 cpu_nps 2713k (min 2713k max 2713k) score cp 0 | on/off 0.975
+rook_walk41     final  IT=false nodes 149076 cpu_nps 2584k (min 2385k max 3180k) score cp 0 | IT=true nodes 166781 cpu_nps 3336k (min 2668k max 5337k) score cp 0 | on/off 1.291
+rook_walk41     nodes IT=false identical across binaries: YES
+rook_walk41     nodes IT=true identical across binaries: NO {'base': {169579}, 'final': {166781}}
+rc=0

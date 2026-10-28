@@ -75,6 +75,9 @@ target_link_libraries(forge_tests PRIVATE forge_core Threads::Threads)
 add_executable(forge_tt_tests tests/tt_coherence_tests.cpp)
 target_link_libraries(forge_tt_tests PRIVATE forge_core Threads::Threads)
 
+add_executable(forge_intended_threefold_tests tests/intended_threefold_tests.cpp)
+target_link_libraries(forge_intended_threefold_tests PRIVATE forge_core Threads::Threads)
+
 add_executable(forge_rule50_tests tests/rule50_tests.cpp)
 target_link_libraries(forge_rule50_tests PRIVATE forge_core Threads::Threads)
 
@@ -216,6 +219,7 @@ add_test(NAME forge_hist_rework_tests COMMAND forge_hist_rework_tests)
 add_test(NAME forge_tt_tests COMMAND forge_tt_tests)
 add_test(NAME forge_tt_stress_lockless COMMAND forge_tt_stress_tests --threads 2 --ops 2000000 --mode lockless)
 add_test(NAME forge_tt_stress_locked COMMAND forge_tt_stress_tests --threads 2 --ops 2000000 --mode locked)
+add_test(NAME forge_intended_threefold_tests COMMAND forge_intended_threefold_tests)
 add_test(NAME forge_rule50_tests COMMAND forge_rule50_tests)
 add_test(NAME forge_syzygy_tests COMMAND forge_syzygy_tests
     ${CMAKE_CURRENT_SOURCE_DIR}/tests/syzygy_fixtures.tsv ${CMAKE_CURRENT_SOURCE_DIR}/tests/syzygy_reference.tsv

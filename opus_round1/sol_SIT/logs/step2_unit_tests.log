@@ -1,0 +1,71 @@
+# tests/intended_threefold_tests.cpp, box flags, nice 19
+PASS issue fixture: positive and control reach the same key with halfmove clock 7
+PASS neither current position is already threefold
+PASS positive history: h8h7 would create the third occurrence (claim)
+PASS control history: h8h7 creates only the second occurrence (no claim)
+PASS historyless board has the same key as the positive end
+PASS same FEN without history: no claim
+PASS the claim query leaves the board unchanged and is repeatable
+PASS two null moves return to the same key
+PASS history before a null move is not scanned (no claim)
+PASS undoing the null moves restores the claim
+PASS lost castling rights: the earlier position with rights is a different position (no claim)
+PASS same rights twice before: e1f1 would create the third occurrence (claim)
+random cross-check: 11720 positions, 801 claims, 0 mismatches
+PASS claim equals the make_move reference on random shuffling games (both outcomes exercised)
+PASS positive: the claim is a draw-score floor (depth 0, window -32001,32001) -> 0
+PASS control: unchanged by the option (depth 0, window -32001,32001)
+qsearch full window: positive off -391 on 0, control off -391 on -391
+PASS issue numbers: positive 0 cp with the option, control unchanged
+PASS positive: the claim is a draw-score floor (depth 0, window -1,0) -> 0
+PASS control: unchanged by the option (depth 0, window -1,0)
+PASS positive: the claim is a draw-score floor (depth 0, window 0,1) -> 0
+PASS control: unchanged by the option (depth 0, window 0,1)
+PASS positive: the claim is a draw-score floor (depth 0, window -500,-499) -> 0
+PASS control: unchanged by the option (depth 0, window -500,-499)
+PASS positive: the claim is a draw-score floor (depth 0, window 100,101) -> 0
+PASS control: unchanged by the option (depth 0, window 100,101)
+PASS positive: the claim is a draw-score floor (depth 0, window -1000,1000) -> 0
+PASS control: unchanged by the option (depth 0, window -1000,1000)
+PASS positive: the claim is a draw-score floor (depth 1, window -32001,32001) -> 0
+PASS control: unchanged by the option (depth 1, window -32001,32001)
+PASS positive: the claim is a draw-score floor (depth 1, window -1,0) -> 0
+PASS control: unchanged by the option (depth 1, window -1,0)
+PASS positive: the claim is a draw-score floor (depth 1, window 0,1) -> 0
+PASS control: unchanged by the option (depth 1, window 0,1)
+PASS positive: the claim is a draw-score floor (depth 1, window -500,-499) -> 0
+PASS control: unchanged by the option (depth 1, window -500,-499)
+PASS positive: the claim is a draw-score floor (depth 1, window 100,101) -> 0
+PASS control: unchanged by the option (depth 1, window 100,101)
+PASS positive: the claim is a draw-score floor (depth 1, window -1000,1000) -> 0
+PASS control: unchanged by the option (depth 1, window -1000,1000)
+PASS positive: the claim is a draw-score floor (depth 2, window -32001,32001) -> 0
+PASS control: unchanged by the option (depth 2, window -32001,32001)
+PASS positive: the claim is a draw-score floor (depth 2, window -1,0) -> 0
+PASS control: unchanged by the option (depth 2, window -1,0)
+PASS positive: the claim is a draw-score floor (depth 2, window 0,1) -> 0
+PASS control: unchanged by the option (depth 2, window 0,1)
+PASS positive: the claim is a draw-score floor (depth 2, window -500,-499) -> 0
+PASS control: unchanged by the option (depth 2, window -500,-499)
+PASS positive: the claim is a draw-score floor (depth 2, window 100,101) -> 0
+PASS control: unchanged by the option (depth 2, window 100,101)
+PASS positive: the claim is a draw-score floor (depth 2, window -1000,1000) -> 0
+PASS control: unchanged by the option (depth 2, window -1000,1000)
+PASS control qsearch stores an entry for the shared key
+PASS TT warmed by the control history: the positive claim node ignores the cached score (0)
+PASS positive first: 0
+PASS the claim node stores nothing
+PASS TT warmed by the positive history: control equals a fresh search
+PASS TT warmed by the control, null window (0,1) depth 0: no cached cutoff -> 0
+PASS TT warmed by the control, null window (100,101) depth 0: no cached cutoff -> 0
+PASS TT warmed by the control, null window (-50,-49) depth 0: no cached cutoff -> 0
+PASS TT warmed by the control, null window (0,1) depth 1: no cached cutoff -> 0
+PASS TT warmed by the control, null window (100,101) depth 1: no cached cutoff -> 0
+PASS TT warmed by the control, null window (-50,-49) depth 1: no cached cutoff -> 0
+PASS TT warmed by the control, null window (0,1) depth 2: no cached cutoff -> 0
+PASS TT warmed by the control, null window (100,101) depth 2: no cached cutoff -> 0
+PASS TT warmed by the control, null window (-50,-49) depth 2: no cached cutoff -> 0
+PASS mate fixture: white may claim (a3a2 would be the third occurrence)
+PASS mate in one beats the optional draw (option off, score 31998)
+PASS mate in one beats the optional draw (option on, score 31998)
+ALL PASS

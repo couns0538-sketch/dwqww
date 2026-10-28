@@ -1,0 +1,57 @@
+# S-IT code-review follow-up, step 8: per-call cost of Board::can_claim_threefold_by_next_move() (the reviewer's review_sit/micro/claim_cost.cpp, unchanged, sha256 b6d67200...; 2,000,000 calls per number), linked against the old (fc3bd2a) and the follow-up board.o/bitboard.o, box flags, nice 19, ABBA x2.
+== micro_base run 1
+rook-endgame dup: halfmove 7 claim=1 | can_claim 77.2498 ns/call, generate_pseudo_legal 34.7011 ns/call, is_repetition(root) 2.87675 ns/call
+rook-endgame nodup(h>=7): halfmove 7 claim=0 | can_claim 4.18165 ns/call, generate_pseudo_legal 36.2971 ns/call, is_repetition(root) 2.6217 ns/call
+rook-endgame dup, no claim (full scan): halfmove 8 claim=0 | can_claim 93.7045 ns/call, generate_pseudo_legal 34.7314 ns/call, is_repetition(root) 3.48065 ns/call
+middlegame dup, no claim (full scan): halfmove 8 claim=0 | can_claim 204.843 ns/call, generate_pseudo_legal 67.2677 ns/call, is_repetition(root) 3.0709 ns/call
+middlegame dup: halfmove 7 claim=1 | can_claim 165.297 ns/call, generate_pseudo_legal 63.2133 ns/call, is_repetition(root) 3.0036 ns/call
+middlegame nodup(h>=7): halfmove 7 claim=0 | can_claim 4.08815 ns/call, generate_pseudo_legal 64.1225 ns/call, is_repetition(root) 2.7487 ns/call
+== micro_final3 run 1
+rook-endgame dup: halfmove 7 claim=1 | can_claim 28.0968 ns/call, generate_pseudo_legal 34.91 ns/call, is_repetition(root) 2.732 ns/call
+rook-endgame nodup(h>=7): halfmove 7 claim=0 | can_claim 5.20075 ns/call, generate_pseudo_legal 35.3026 ns/call, is_repetition(root) 2.60025 ns/call
+rook-endgame dup, no claim (full scan): halfmove 8 claim=0 | can_claim 32.0474 ns/call, generate_pseudo_legal 36.4087 ns/call, is_repetition(root) 3.1348 ns/call
+middlegame dup, no claim (full scan): halfmove 8 claim=0 | can_claim 65.2732 ns/call, generate_pseudo_legal 67.4039 ns/call, is_repetition(root) 3.1796 ns/call
+middlegame dup: halfmove 7 claim=1 | can_claim 53.8192 ns/call, generate_pseudo_legal 67.3272 ns/call, is_repetition(root) 2.90725 ns/call
+middlegame nodup(h>=7): halfmove 7 claim=0 | can_claim 5.1858 ns/call, generate_pseudo_legal 63.3513 ns/call, is_repetition(root) 2.56315 ns/call
+== micro_final3 run 1
+rook-endgame dup: halfmove 7 claim=1 | can_claim 28.647 ns/call, generate_pseudo_legal 34.9871 ns/call, is_repetition(root) 2.7263 ns/call
+rook-endgame nodup(h>=7): halfmove 7 claim=0 | can_claim 4.72565 ns/call, generate_pseudo_legal 34.1903 ns/call, is_repetition(root) 2.5592 ns/call
+rook-endgame dup, no claim (full scan): halfmove 8 claim=0 | can_claim 31.2858 ns/call, generate_pseudo_legal 34.8115 ns/call, is_repetition(root) 3.2697 ns/call
+middlegame dup, no claim (full scan): halfmove 8 claim=0 | can_claim 62.6384 ns/call, generate_pseudo_legal 66.345 ns/call, is_repetition(root) 3.2325 ns/call
+middlegame dup: halfmove 7 claim=1 | can_claim 53.6783 ns/call, generate_pseudo_legal 64.9928 ns/call, is_repetition(root) 3.00165 ns/call
+middlegame nodup(h>=7): halfmove 7 claim=0 | can_claim 5.6196 ns/call, generate_pseudo_legal 61.9575 ns/call, is_repetition(root) 2.68955 ns/call
+== micro_base run 1
+rook-endgame dup: halfmove 7 claim=1 | can_claim 77.1792 ns/call, generate_pseudo_legal 35.8413 ns/call, is_repetition(root) 2.891 ns/call
+rook-endgame nodup(h>=7): halfmove 7 claim=0 | can_claim 3.8429 ns/call, generate_pseudo_legal 35.7761 ns/call, is_repetition(root) 2.5686 ns/call
+rook-endgame dup, no claim (full scan): halfmove 8 claim=0 | can_claim 93.1685 ns/call, generate_pseudo_legal 35.5812 ns/call, is_repetition(root) 3.2581 ns/call
+middlegame dup, no claim (full scan): halfmove 8 claim=0 | can_claim 202.029 ns/call, generate_pseudo_legal 65.1312 ns/call, is_repetition(root) 3.3315 ns/call
+middlegame dup: halfmove 7 claim=1 | can_claim 165.904 ns/call, generate_pseudo_legal 65.5817 ns/call, is_repetition(root) 2.9003 ns/call
+middlegame nodup(h>=7): halfmove 7 claim=0 | can_claim 4.7315 ns/call, generate_pseudo_legal 62.2666 ns/call, is_repetition(root) 2.76275 ns/call
+== micro_base run 2
+rook-endgame dup: halfmove 7 claim=1 | can_claim 77.868 ns/call, generate_pseudo_legal 35.8995 ns/call, is_repetition(root) 3.0346 ns/call
+rook-endgame nodup(h>=7): halfmove 7 claim=0 | can_claim 4.50635 ns/call, generate_pseudo_legal 35.4279 ns/call, is_repetition(root) 2.5333 ns/call
+rook-endgame dup, no claim (full scan): halfmove 8 claim=0 | can_claim 98.7155 ns/call, generate_pseudo_legal 35.2057 ns/call, is_repetition(root) 3.17115 ns/call
+middlegame dup, no claim (full scan): halfmove 8 claim=0 | can_claim 198.941 ns/call, generate_pseudo_legal 64.7699 ns/call, is_repetition(root) 3.1329 ns/call
+middlegame dup: halfmove 7 claim=1 | can_claim 163.857 ns/call, generate_pseudo_legal 64.2141 ns/call, is_repetition(root) 2.67825 ns/call
+middlegame nodup(h>=7): halfmove 7 claim=0 | can_claim 3.92515 ns/call, generate_pseudo_legal 63.5166 ns/call, is_repetition(root) 2.4757 ns/call
+== micro_final3 run 2
+rook-endgame dup: halfmove 7 claim=1 | can_claim 28.4716 ns/call, generate_pseudo_legal 34.7384 ns/call, is_repetition(root) 2.8999 ns/call
+rook-endgame nodup(h>=7): halfmove 7 claim=0 | can_claim 5.4787 ns/call, generate_pseudo_legal 36.9629 ns/call, is_repetition(root) 2.49425 ns/call
+rook-endgame dup, no claim (full scan): halfmove 8 claim=0 | can_claim 32.0423 ns/call, generate_pseudo_legal 34.6842 ns/call, is_repetition(root) 3.02865 ns/call
+middlegame dup, no claim (full scan): halfmove 8 claim=0 | can_claim 66.1076 ns/call, generate_pseudo_legal 67.3021 ns/call, is_repetition(root) 3.21465 ns/call
+middlegame dup: halfmove 7 claim=1 | can_claim 55.7372 ns/call, generate_pseudo_legal 66.7596 ns/call, is_repetition(root) 2.6875 ns/call
+middlegame nodup(h>=7): halfmove 7 claim=0 | can_claim 4.8648 ns/call, generate_pseudo_legal 62.8914 ns/call, is_repetition(root) 2.6851 ns/call
+== micro_final3 run 2
+rook-endgame dup: halfmove 7 claim=1 | can_claim 28.3563 ns/call, generate_pseudo_legal 35.2801 ns/call, is_repetition(root) 2.78395 ns/call
+rook-endgame nodup(h>=7): halfmove 7 claim=0 | can_claim 5.14435 ns/call, generate_pseudo_legal 35.5476 ns/call, is_repetition(root) 2.6824 ns/call
+rook-endgame dup, no claim (full scan): halfmove 8 claim=0 | can_claim 31.8112 ns/call, generate_pseudo_legal 35.8061 ns/call, is_repetition(root) 2.9878 ns/call
+middlegame dup, no claim (full scan): halfmove 8 claim=0 | can_claim 64.7977 ns/call, generate_pseudo_legal 67.7575 ns/call, is_repetition(root) 3.39675 ns/call
+middlegame dup: halfmove 7 claim=1 | can_claim 54.3967 ns/call, generate_pseudo_legal 66.0535 ns/call, is_repetition(root) 2.83335 ns/call
+middlegame nodup(h>=7): halfmove 7 claim=0 | can_claim 5.0068 ns/call, generate_pseudo_legal 61.7473 ns/call, is_repetition(root) 2.7212 ns/call
+== micro_base run 2
+rook-endgame dup: halfmove 7 claim=1 | can_claim 77.4079 ns/call, generate_pseudo_legal 34.4194 ns/call, is_repetition(root) 3.03995 ns/call
+rook-endgame nodup(h>=7): halfmove 7 claim=0 | can_claim 4.5915 ns/call, generate_pseudo_legal 35.5173 ns/call, is_repetition(root) 2.7128 ns/call
+rook-endgame dup, no claim (full scan): halfmove 8 claim=0 | can_claim 95.7597 ns/call, generate_pseudo_legal 35.5542 ns/call, is_repetition(root) 3.1105 ns/call
+middlegame dup, no claim (full scan): halfmove 8 claim=0 | can_claim 201.309 ns/call, generate_pseudo_legal 65.2056 ns/call, is_repetition(root) 3.33215 ns/call
+middlegame dup: halfmove 7 claim=1 | can_claim 162.081 ns/call, generate_pseudo_legal 66.426 ns/call, is_repetition(root) 2.71965 ns/call
+middlegame nodup(h>=7): halfmove 7 claim=0 | can_claim 4.17145 ns/call, generate_pseudo_legal 62.8489 ns/call, is_repetition(root) 2.8884 ns/call

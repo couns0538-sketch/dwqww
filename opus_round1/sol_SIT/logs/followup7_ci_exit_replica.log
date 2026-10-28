@@ -1,0 +1,17 @@
+# S-IT code-review follow-up, step 7: ci_sit.sh exit status (finding 4). ci_exit_check.sh runs the script's own lines from the uci_check.py step to the final status echo with python3 replaced by a stub that prints ALL OK and exits 0 or 1.
+== ci_sit.sh old (HEAD fc3bd2a), python3 stub exit 0
+ci_sit status=0
+replica: python3 exit 0 -> status=0
+== ci_sit.sh old (HEAD fc3bd2a), python3 stub exit 1
+ci_sit status=0
+replica: python3 exit 1 -> status=0
+== ci_sit.sh new (follow-up), python3 stub exit 0
+ci_sit status=0
+replica: python3 exit 0 -> status=0
+== ci_sit.sh new (follow-up), python3 stub exit 1
+uci_check.py failed
+nps_ab_opts.py (lock vs option off) failed
+nps_ab_opts.py (option off vs on) failed
+perf_claim_ab.py failed or found a node mismatch
+ci_sit status=1
+replica: python3 exit 1 -> status=1

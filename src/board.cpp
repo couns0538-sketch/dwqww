@@ -916,6 +916,81 @@ bool Board::is_repetition(std::size_t root_index) const {
     return false;
 }
 
+bool Board::can_claim_threefold_by_next_move() const {
+    // The position after a reversible move (opponent to move) would be history
+    // index `size`. Its window starts after the last irreversible move (halfmove
+    // clock + 1 plies back) and strictly after the most recent null move, whose
+    // position is virtual. Two earlier occurrences need at least 8 plies.
+    const std::ptrdiff_t size = static_cast<std::ptrdiff_t>(key_history_.size());
+    const std::ptrdiff_t span = std::min<std::ptrdiff_t>(static_cast<std::ptrdiff_t>(halfmove_) + 1,
+                                                         static_cast<std::ptrdiff_t>(plies_from_null_));
+    if (span < 8) return false;
+    const std::ptrdiff_t lo = std::max<std::ptrdiff_t>(size - span, 0);
+    const auto key_at = [this](std::ptrdiff_t i) { return key_history_[static_cast<std::size_t>(i)]; };
+
+    // The resulting key must occur at least twice on that parity: collect every such
+    // key (exact matches; the bucket masks only skip comparisons). The window holds
+    // at most 512 keys of one parity (plies_from_null_ <= 1024), so at most 256 keys
+    // occur twice.
+    std::array<std::uint64_t, 256> twice;
+    std::size_t twice_count = 0;
+    std::uint64_t buckets = 0;
+    std::uint64_t twice_buckets = 0;
+    for (std::ptrdiff_t i = size - 2; i >= lo; i -= 2) {
+        const std::uint64_t key = key_at(i);
+        const std::uint64_t bucket = 1ULL << (key & 63U);
+        if ((buckets & bucket) != 0U) {
+            for (std::ptrdiff_t j = i + 2; j <= size - 2; j += 2) {
+                if (key_at(j) != key) continue;
+                const auto known = twice.begin() + static_cast<std::ptrdiff_t>(twice_count);
+                if (std::find(twice.begin(), known, key) == known && twice_count < twice.size()) {
+                    twice[twice_count++] = key;
+                    twice_buckets |= bucket;
+                }
+                break;
+            }
+        }
+        buckets |= bucket;
+    }
+    if (twice_count == 0) return false;
+
+    // Only quiet non-pawn moves can recreate an earlier position: captures, pawn
+    // moves and promotions are irreversible, and castling drops a right that every
+    // position in the window still had. These are the Quiet moves of
+    // generate_pseudo_legal() for knights, bishops, rooks, queens and the king. The
+    // resulting key mirrors make_move(); only a key in the set needs the legality test.
+    const std::uint64_t ep_key = ep_square_ >= 0 && has_legal_en_passant_capture()
+                                     ? Z.ep[static_cast<std::size_t>(file_of(ep_square_))] : 0;
+    const std::uint64_t base = key_ ^ ep_key ^ Z.side ^ Z.castling[castling_];
+    const auto twice_end = twice.begin() + static_cast<std::ptrdiff_t>(twice_count);
+    const Bitboard occ = occupied();
+    const auto reaches_twice = [&](PieceType type, auto attacks_from) {
+        const Piece piece = make_piece(side_, type);
+        Bitboard from_set = pieces(side_, type);
+        while (from_set != 0) {
+            const int from = pop_lsb(from_set);
+            const std::uint64_t from_key = base ^ piece_key(from, piece);
+            const auto from_rights = static_cast<std::uint8_t>(castling_ & CastlingMasks[static_cast<std::size_t>(from)]);
+            Bitboard targets = attacks_from(from) & ~occ;
+            while (targets != 0) {
+                const int to = pop_lsb(targets);
+                const auto rights = static_cast<std::uint8_t>(from_rights & CastlingMasks[static_cast<std::size_t>(to)]);
+                const std::uint64_t next = from_key ^ Z.castling[rights] ^ piece_key(to, piece);
+                if ((twice_buckets & (1ULL << (next & 63U))) != 0U && std::find(twice.begin(), twice_end, next) != twice_end &&
+                    is_legal(Move{static_cast<std::uint8_t>(from), static_cast<std::uint8_t>(to), 0, Quiet})) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    };
+    return reaches_twice(Knight, [](int square) { return attacks::knight(square); }) ||
+           reaches_twice(Bishop, [occ](int square) { return attacks::bishop(square, occ); }) ||
+           reaches_twice(Rook, [occ](int square) { return attacks::rook(square, occ); }) ||
+           reaches_twice(Queen, [occ](int square) { return attacks::queen(square, occ); }) ||
+           reaches_twice(King, [](int square) { return attacks::king(square); });
+}
+
 bool Board::is_insufficient_material() const {
     const Bitboard pawns_rooks_queens = pieces(Pawn) | pieces(Rook) | pieces(Queen);
     if (pawns_rooks_queens != 0) return false;
