@@ -1,0 +1,112 @@
+{
+ "comment": "R3-1 self-play for the final stack head 064af732 (main session): the options added after 330237f3 (R3-6 SmpHelpersPastDepth, R3-4 search-constant spins at about +/-10%), same harness_args as configs_final.json. Engines: base = default PC build, allsw = every switch (incl. FORGE_DATAGEN).",
+ "syzygy": "D:/grok-pc-data/dwqww/.claude/worktrees/syzygy345",
+ "harness_args": [
+  "--nodes-min=200",
+  "--nodes-max=2000",
+  "--mix=nodes=58,clock=8,movetime=10,depth=8,infinite=6,ponderhit=5,pondermiss=5"
+ ],
+ "configs": [
+  {
+   "name": "smp_helpers_past_depth",
+   "runner": "A",
+   "exe": "base",
+   "threads": 2,
+   "opts": [
+    "SmpHelpersPastDepth=true"
+   ]
+  },
+  {
+   "name": "all_on_final",
+   "runner": "B",
+   "exe": "allsw",
+   "threads": 2,
+   "opts": [
+    "SyzygyPath={syzygy}",
+    "CorrHistPlus=7",
+    "CorrMargins=1",
+    "CorrExt=1",
+    "CuckooRep=true",
+    "MaterialKeyTable=true",
+    "NetScale=99",
+    "HistRework=2",
+    "IntendedThreefold=true",
+    "HardDeadline=10",
+    "LocklessTT=true",
+    "SmpExactNodes=true",
+    "SmpBestThread=true",
+    "TtChildPrefetch=true",
+    "NnueLazyAcc=true",
+    "Profile=true",
+    "NnueInt16=true",
+    "NNUEKingBuckets=8",
+    "NNUEOutputBuckets=8",
+    "NNUEThreats=1",
+    "NNUEPawnPairs=1",
+    "NNUEFile={nets}/replica_rm8_ob8_thr0_pp0.fnn2",
+    "SmpHelpersPastDepth=true"
+   ],
+   "expect": [
+    "NNUE v2: active",
+    "Syzygy: 145 WDL",
+    "LocklessTT active",
+    "TtChildPrefetch active",
+    "prof schema 1"
+   ]
+  },
+  {
+   "name": "spsa_plus10",
+   "runner": "A",
+   "exe": "base",
+   "opts": [
+    "LmrQuietBase=94",
+    "LmrQuietDivisor=242",
+    "LmrNoisyBase=11",
+    "LmrNoisyDivisor=374",
+    "LmrHistoryDivisor=6600",
+    "LmrCutoffThreshold=4",
+    "NullMoveBase=4",
+    "NullMoveDepthDivisor=4",
+    "NullMoveEvalDivisor=220",
+    "NullMoveMarginDepth=26",
+    "NullMoveMarginBase=198",
+    "RfpMargin=79",
+    "RfpImproving=44",
+    "RfpDepth=9",
+    "FutilityBase=110",
+    "FutilityMultiplier=121",
+    "QsFutilityMargin=176",
+    "SeeQuietMultiplier=26",
+    "SeeNoisyMultiplier=165",
+    "AspirationDelta=20"
+   ]
+  },
+  {
+   "name": "spsa_minus10",
+   "runner": "B",
+   "exe": "base",
+   "opts": [
+    "LmrQuietBase=77",
+    "LmrQuietDivisor=198",
+    "LmrNoisyBase=9",
+    "LmrNoisyDivisor=306",
+    "LmrHistoryDivisor=5400",
+    "LmrCutoffThreshold=2",
+    "NullMoveBase=2",
+    "NullMoveDepthDivisor=2",
+    "NullMoveEvalDivisor=180",
+    "NullMoveMarginDepth=22",
+    "NullMoveMarginBase=162",
+    "RfpMargin=65",
+    "RfpImproving=36",
+    "RfpDepth=7",
+    "FutilityBase=90",
+    "FutilityMultiplier=99",
+    "QsFutilityMargin=144",
+    "SeeQuietMultiplier=22",
+    "SeeNoisyMultiplier=135",
+    "AspirationDelta=16"
+   ]
+  }
+ ]
+}
