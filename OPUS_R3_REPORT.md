@@ -71,6 +71,13 @@ every later run of the branch is green.
 - One entry per feature vs the all-OFF engine (`forge_r3_base.exe`), exes from `330237f` in `F:\opus_scratch\r3\exe\`,
   SPRT [0,5] a=b=0.05 normalized, 1500-game cap, 10+0.1, the PC book and concurrency, a new srand each;
   `GATE_ENTRIES.json` holds the 29 manifest objects ready to append (nothing was written to the queue).
+- The gate exes stay valid for the final head `064af73`: after `330237f` the stack only added default-off
+  options (SmpHelpersPastDepth, acts only on `go depth` with Threads > 1) and the 20 spins with unchanged
+  defaults (lock pins ALL OK); no merged feature's code changed.
+- Caveat for the class-A (node-exact speed) entries from R3-2 / R3-2Q: in the PC lock recipe (znver5, AVX-512)
+  O2's AVX2 kernels are compiled out, so an O2 gate on PC exes tests the build without its kernels; and the
+  NOZERO / LAZY / INT16 switch exes carry PC code-layout shifts of 2-5% NPS that quiet runners do not show.
+  A speed gate on these exes measures the layout of that particular binary as much as the feature.
 - Ranked: A node-exact speed (O2, NOZERO, S13, SPEEDSTACK, LazyAcc, MaterialKeyTable), B search/eval changes,
   C SMP (the r7 runner hard-codes Threads=1: needs a runner change), D trained-net features (no net exists).
 - **Owner decision needed:** by an approximate GSPRT model, [0,5] with a 1500-game cap ends "cap, no decision" for
