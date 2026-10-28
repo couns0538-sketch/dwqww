@@ -31,4 +31,6 @@ including the 68-losing-move position) is added to CMake. No search logic change
 Evidence (`opus_round1/fable_review/logs/`): box-recipe build `build_pc.log` (exe sha256 ecc930b9..., FMA count 0),
 identity against the AL1 pins with every option off `identity.log` (ALL OK), the new test `bad_capture.log`,
 and the full CMake build + ctest of the stack with R3-1's known-failure check `ctest.log` / `run_ctest.out`
-(53 of 54 tests passed, the one failure is forge_tests' 4 known lines, known-failure check PASS); CI (opus-ci: release identity, ASan+UBSan, TSan) on the push.
+(53 of 54 tests passed, the one failure is forge_tests' 4 known lines, known-failure check PASS); CI: opus-ci run
+40698465776 (trigger commit e1c9aa6a, which only widens the workflow trigger to fable-* branches) success in
+release / ASan+UBSan / TSan: identity ALL OK, 54 tests with only the known forge_tests lines in each job, TSan 0 reports.
