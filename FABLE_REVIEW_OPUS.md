@@ -320,7 +320,7 @@ Notes and evidence under `fable_review/deep/` (one file per item).
   resolution. The stack's `bad_captures_` was still 64 entries in both `#if` branches of movepicker.hpp: fixed on
   `fable-review-r3-stack` (b0c3882b: both declarations `MoveList::Capacity` + static_assert, the six-fixture
   regression test added to CMake; box build FMA 0, identity ALL OK with every option off, full CMake build and
-  ctest with R3-1's known-failure check on the PC; opus-ci run 40698465776 on the trigger commit e1c9aa6a was in progress at this commit; its result is recorded below when done).
+  ctest with R3-1's known-failure check on the PC; opus-ci run 40698465776 on the trigger commit e1c9aa6a: success in release / ASan+UBSan / TSan, identity ALL OK, 54 tests with only forge_tests' 4 known lines in each job, known-failure check PASS, TSan 0 reports).
 - **Planted-bug (mutant) checks re-run on the PC** (`deep/mutants/<job>.log`, runner `deep/fable_nnue_mutants.sh`,
   `deep/fable_nnue_mutants_py.sh`): each job's own mutation script run from a fresh LF export of the branch head
   (Idle priority, two build jobs). Shell-style jobs, mutants caught / not caught, re-run vs Opus's committed log:
@@ -366,7 +366,7 @@ Notes and evidence under `fable_review/deep/` (one file per item).
 |---|---|---|---|
 | `fable-review-summary` | this commit | d4f4312 | this report + `fable_review/` evidence |
 | `fable-review-buffix` | 8632e8ab | d4f4312 + CI workflow | mistake 2: engine fix + test (a9cea71f); overflow-demonstrating fixture (ab2aa56b, run 40691861788 success in release / ASan+UBSan / TSan (identity ALL OK, known-failure check PASS, TSan 0 reports, the same 15-test ctest list as run 40670602785, which includes forge_bad_capture_tests)), REVIEW.md |
-| `fable-review-r3-stack` | b0c3882b | opus-r3-stack da158149 | mistake 1: eight `.pyc` untracked; mistake 2 applied to the stack's picker (b0c3882b), REVIEW.md |
+| `fable-review-r3-stack` | e1c9aa6a | opus-r3-stack da158149 | mistake 1: eight `.pyc` untracked; mistake 2 applied to the stack's picker (b0c3882b), REVIEW.md |
 | `fable-review-S33fix` | 3004fc91 | opus-sol-S33fix | mistake 3: comparison normalises line endings |
 | `fable-review-S38` | a9884584 | opus-sol-S38 | mistake 3: comparison normalises line endings |
 | `fable-review-S46` | 56daf94c | opus-sol-S46 | mistake 3: comparisons normalise line endings |
