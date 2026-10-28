@@ -23,6 +23,7 @@
 #include <optional>
 
 #include "search/tune.inc"        // tunable constants, LMR / LMP tables
+#include "search/options.inc"     // runtime search options (all OFF by default)
 #include "search/scores.inc"      // mate scores and their TT encoding
 #include "search/uci_info.inc"    // UCI info output (score formatting)
 #include "search/tt.inc"          // transposition table
@@ -36,3 +37,4 @@
 #include "search/alphabeta.inc"   // main alpha-beta search
 #include "search/iterative.inc"   // root setup and iterative deepening
 #include "search/searcher.inc"    // Searcher facade: helper threads, TT lifecycle
+#include "search/tt_lockless.inc" // UCI LocklessTT: lockless TT access (last: keeps the default placement)

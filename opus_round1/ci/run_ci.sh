@@ -68,5 +68,15 @@ case "$MODE" in
     ;;
   *) echo "unknown mode $MODE"; exit 2 ;;
 esac
+# Positive proof of the build configuration: compile flags and instrumentation symbols in forge.
+{
+  echo "CMAKE_CXX_FLAGS: $(grep -E '^CMAKE_CXX_FLAGS:' "$BD/CMakeCache.txt" | cut -d= -f2-)"
+  echo "CMAKE_BUILD_TYPE: $(grep -E '^CMAKE_BUILD_TYPE:' "$BD/CMakeCache.txt" | cut -d= -f2-)"
+  echo "FORGE_ENABLE_SANITIZERS: $(grep -E '^FORGE_ENABLE_SANITIZERS:' "$BD/CMakeCache.txt" | cut -d= -f2-)"
+  echo "asan symbols in forge: $(nm "$BD/forge" 2>/dev/null | grep -c '__asan_' || true)"
+  echo "ubsan symbols in forge: $(nm "$BD/forge" 2>/dev/null | grep -c '__ubsan_' || true)"
+  echo "tsan symbols in forge: $(nm "$BD/forge" 2>/dev/null | grep -c '__tsan_' || true)"
+} > "$OUT/build_config_$MODE.txt"
+cat "$OUT/build_config_$MODE.txt"
 echo "run_ci $MODE status=$status"
 exit $status

@@ -1,0 +1,57 @@
+# O1 full-size TSan acceptance runs (on demand; the per-push TSan hook is the short
+# opus_round1/O1/tsan_extra.sh). Sharded so no job starves the runner: each shard builds the TSan
+# engine, runs one acceptance piece under `nice -n 5` with a hard timeout, streams timestamped
+# progress, and a monitor prints memory and the engine's CPU/RSS every minute, so a hang (progress
+# stops, engine idle), a slow run (progress continues) and memory growth are told apart.
+name: opus-o1-tsan-full
+on:
+  # Runs when this file or the trigger file changes on the branch (workflow_dispatch would need the
+  # workflow on the default branch, which these job branches never touch).
+  push:
+    branches: ['opus-O1', 'opus-O1-LTT']
+    paths:
+      - '.github/workflows/opus-o1-tsan-full.yml'
+      - 'opus_round1/O1/tsan_full.trigger'
+permissions:
+  contents: read
+jobs:
+  tsan:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - {name: depth12-t2, cmd: "smp_depth.py build/forge --positions tools/openings/forge-10000.epd --count 200 --threads 2 --depth 12 --timeout 1800 --progress 20"}
+          - {name: depth12-t4, cmd: "smp_depth.py build/forge --positions tools/openings/forge-10000.epd --count 200 --threads 4 --depth 12 --timeout 1800 --progress 20"}
+          - {name: depth12-t8, cmd: "smp_depth.py build/forge --positions tools/openings/forge-10000.epd --count 200 --threads 8 --depth 12 --timeout 1800 --progress 20"}
+          - {name: stress500, cmd: "uci_stress.py build/forge --iterations 500 --seed 20261026 --positions opus_round1/O3/positions50.fen --threads 1,2,3,4,8 --slack 120"}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 58
+    steps:
+      - uses: actions/checkout@v4
+      - name: TSan build
+        run: |
+          sudo apt-get update -qq && sudo apt-get install -y -qq g++-14 ninja-build cmake python3 python3-pip
+          python3 -m pip install --quiet --break-system-packages chess
+          cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=RelWithDebInfo -DCMAKE_CXX_COMPILER=g++-14 \
+            "-DCMAKE_CXX_FLAGS=-march=x86-64-v3 -mtune=znver5 -fno-fast-math -ffp-contract=off -DFORGE_NNUE_HIDDEN=256 -fsanitize=thread -fno-omit-frame-pointer" \
+            -DCMAKE_EXE_LINKER_FLAGS=-fsanitize=thread
+          cmake --build build -j4 --target forge
+          echo "tsan symbols: $(nm build/forge | grep -c __tsan_)"; nproc; free -m
+      - name: Run ${{ matrix.name }} (45 min cap, streamed)
+        run: |
+          mkdir -p out/tsan_logs
+          export TSAN_OPTIONS="log_path=$PWD/out/tsan_logs/tsan:halt_on_error=1:second_deadlock_stack=1"
+          ( while true; do echo "[monitor $(date +%T)] $(free -m | awk '/Mem:/{print "mem used " $3 " MB, avail " $7 " MB"}') | $(ps -C forge -o pid=,pcpu=,rss=,etime= | tr '\n' ';')"; sleep 60; done ) &
+          MON=$!
+          set +e
+          timeout --kill-after=30 45m nice -n 5 python3 -u opus_round1/O1/${{ matrix.cmd }} 2>&1 | tee out/${{ matrix.name }}.log
+          rc=${PIPESTATUS[0]}
+          kill $MON
+          echo "exit code $rc (124/137 = 45 min timeout)"
+          if [ -n "$(find out/tsan_logs -type f -size +0)" ]; then echo "TSan reports:"; cat out/tsan_logs/*; rc=1; else echo "TSan: 0 reports"; fi
+          exit $rc
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: o1-tsan-full-${{ matrix.name }}
+          path: out/

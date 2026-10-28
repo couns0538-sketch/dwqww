@@ -1,0 +1,432 @@
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index f3acf19b..dfe3909f 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -79,6 +79,10 @@ add_executable(forge_timeman_tests tests/timeman_tests.cpp)
+ target_include_directories(forge_timeman_tests PRIVATE src)
+ target_link_libraries(forge_timeman_tests PRIVATE forge_core Threads::Threads)
+ 
++# Lazy SMP housekeeping and SMP options (O1).
++add_executable(forge_smp_tests tests/smp_tests.cpp)
++target_link_libraries(forge_smp_tests PRIVATE forge_core Threads::Threads)
++
+ add_executable(forge_bench bench/benchmark.cpp)
+ target_link_libraries(forge_bench PRIVATE forge_core Threads::Threads)
+ 
+@@ -92,6 +96,7 @@ add_test(NAME forge_pv_metadata_tests COMMAND forge_pv_metadata_tests)
+ add_test(NAME forge_movepicker_tests COMMAND forge_movepicker_tests)
+ add_test(NAME forge_history_tests COMMAND forge_history_tests)
+ add_test(NAME forge_timeman_tests COMMAND forge_timeman_tests)
++add_test(NAME forge_smp_tests COMMAND forge_smp_tests)
+ add_test(NAME forge_tt_tests COMMAND forge_tt_tests)
+ add_test(NAME forge_rule50_tests COMMAND forge_rule50_tests)
+ add_test(NAME forge_legal_witness_tests COMMAND forge_legal_witness_tests
+diff --git a/include/forge/search.hpp b/include/forge/search.hpp
+index 5c42aab3..d1c80d89 100644
+--- a/include/forge/search.hpp
++++ b/include/forge/search.hpp
+@@ -4,6 +4,7 @@
+ #include "forge/eval.hpp"
+ #include "forge/history.hpp"
+ #include "forge/nnue.hpp"
++#include "forge/search_options.hpp"
+ #include "forge/search_tune.hpp"
+ #include "forge/search_types.hpp"
+ #include "forge/thread_data.hpp"
+@@ -36,6 +37,10 @@ public:
+     void clear_caches() { evaluator_.clear(); }
+     [[nodiscard]] std::uint64_t nodes() const { return nodes_.load(std::memory_order_relaxed); }
+     [[nodiscard]] bool is_main() const { return id_ == 0; }
++    // Searcher housekeeping, only while this worker is not searching.
++    void reset_published_nodes() { nodes_.store(0, std::memory_order_relaxed); }
++    // The caller's worker list (all_workers_) is valid only during one search.
++    void end_search() { all_workers_ = nullptr; }
+ 
+ private:
+     friend struct SearcherTestProbe;
+@@ -97,8 +102,17 @@ public:
+     [[nodiscard]] TranspositionTable& transposition_table() { return shared_.tt; }
+ 
+ private:
++    // SmpBestThread: replace thread 0's move/PV/score by the best helper's
++    // (ranking: better_thread_result below).
++    void select_best_thread(SearchInfo& result, const std::vector<SearchInfo>& helper_results, bool emit_info);
++
+     SharedSearchState shared_;
+     std::vector<std::unique_ptr<Worker>> workers_;
+ };
+ 
++// UCI SmpBestThread: whether a helper's result `candidate` replaces `best`
++// (src/search/searcher.inc). With a mate score on either side the higher score
++// wins; otherwise the deeper completed iteration, then the higher score.
++[[nodiscard]] bool better_thread_result(const SearchInfo& candidate, const SearchInfo& best);
++
+ } // namespace forge
+diff --git a/include/forge/search_options.hpp b/include/forge/search_options.hpp
+new file mode 100644
+index 00000000..47ed2aac
+--- /dev/null
++++ b/include/forge/search_options.hpp
+@@ -0,0 +1,20 @@
++#pragma once
++
++// Runtime search options set over UCI (src/uci.cpp). Every option defaults to
++// OFF; with all options OFF the search is the AL1 s198 search. Options are
++// written only while no search runs (the UCI loop stops the search first).
++namespace forge::options {
++
++// UCI SmpExactNodes (check, default false); acts only with Threads > 1.
++// Resets every worker's published node count before the helper threads start
++// (otherwise the main thread reads the previous search's counts until each
++// helper has started: `go nodes N` can stop at once and the first info lines
++// over-report nodes/nps), and reports the exact total after the helpers stop.
++extern bool smp_exact_nodes;
++
++// UCI SmpBestThread (check, default false); acts only with Threads > 1.
++// Reports the best move, ponder move, PV and score of the worker with the
++// deepest completed iteration (ties: higher score) instead of always thread 0.
++extern bool smp_best_thread;
++
++} // namespace forge::options
+diff --git a/src/search.cpp b/src/search.cpp
+index 17dc692b..0777f324 100644
+--- a/src/search.cpp
++++ b/src/search.cpp
+@@ -23,6 +23,7 @@
+ #include <optional>
+ 
+ #include "search/tune.inc"        // tunable constants, LMR / LMP tables
++#include "search/options.inc"     // runtime search options (all OFF by default)
+ #include "search/scores.inc"      // mate scores and their TT encoding
+ #include "search/uci_info.inc"    // UCI info output (score formatting)
+ #include "search/tt.inc"          // transposition table
+diff --git a/src/search/options.inc b/src/search/options.inc
+new file mode 100644
+index 00000000..8cd41cd7
+--- /dev/null
++++ b/src/search/options.inc
+@@ -0,0 +1,9 @@
++// Search module: runtime search options (forge/search_options.hpp), all OFF.
++// Compiled as part of src/search.cpp (included exactly once).
++
++namespace forge::options {
++
++bool smp_exact_nodes = false;
++bool smp_best_thread = false;
++
++} // namespace forge::options
+diff --git a/src/search/searcher.inc b/src/search/searcher.inc
+index 4e918be0..91098c63 100644
+--- a/src/search/searcher.inc
++++ b/src/search/searcher.inc
+@@ -47,10 +47,19 @@ SearchInfo Searcher::search(Board board, const SearchLimits& limits, bool emit_i
+     if (table_access == TTAccess::Exclusive && workers_.size() == 1) {
+         exclusive.emplace(shared_.tt);
+     }
++    if (options::smp_exact_nodes) {
++        // A helper publishes its count only from inside its own search; until it
++        // has started, total_nodes() would read the previous search's count.
++        for (auto& worker : workers_) worker->reset_published_nodes();
++    }
++    // Per-helper results for SmpBestThread (each slot written by one helper,
++    // read after join).
++    std::vector<SearchInfo> helper_results(options::smp_best_thread ? workers_.size() : 0);
+     std::vector<std::thread> helpers;
+     for (std::size_t i = 1; i < workers_.size(); ++i) {
+-        helpers.emplace_back([this, i, board, &worker_limits, &all]() {
+-            (void)workers_[i]->search(board, worker_limits, false, all);
++        helpers.emplace_back([this, i, board, &worker_limits, &all, &helper_results]() {
++            SearchInfo info = workers_[i]->search(board, worker_limits, false, all);
++            if (!helper_results.empty()) helper_results[i] = std::move(info);
+         });
+     }
+     SearchInfo result = workers_.front()->search(board, worker_limits, emit_info, all);
+@@ -59,7 +68,55 @@ SearchInfo Searcher::search(Board board, const SearchLimits& limits, bool emit_i
+     shared_.stop.store(true, std::memory_order_relaxed);
+     for (auto& helper : helpers) helper.join();
+     shared_.stop.store(external_stop, std::memory_order_relaxed);
++    // `all` dies with this call: no worker may keep pointing at it.
++    for (auto& worker : workers_) worker->end_search();
++    if (workers_.size() > 1) {
++        if (options::smp_exact_nodes) {
++            // Every worker published its final count before returning.
++            result.nodes = 0;
++            for (auto& worker : workers_) result.nodes += worker->nodes();
++        }
++        if (options::smp_best_thread) select_best_thread(result, helper_results, emit_info);
++    }
+     return result;
+ }
+ 
++// SmpBestThread ranking. A mate score does not become less true at a greater
++// depth, so as soon as either result carries one, the higher score wins: a
++// found mate is never replaced by a deeper line without one, a shorter mate
++// beats a longer one, and any line that is not mated beats a mated one.
++// Without mate scores the deeper completed iteration wins, then the higher
++// score. Cold: called once per helper and search.
++[[gnu::cold]] bool better_thread_result(const SearchInfo& candidate, const SearchInfo& best) {
++    if (is_mate_score(candidate.score) || is_mate_score(best.score)) return candidate.score > best.score;
++    return candidate.depth > best.depth || (candidate.depth == best.depth && candidate.score > best.score);
++}
++
++// Cold: runs once per search; keeps the hot search functions' placement unchanged.
++[[gnu::cold]] void Searcher::select_best_thread(SearchInfo& result, const std::vector<SearchInfo>& helper_results,
++                                               bool emit_info) {
++    const SearchInfo* best = &result;
++    for (std::size_t i = 1; i < helper_results.size(); ++i) {
++        const SearchInfo& candidate = helper_results[i];
++        if (candidate.best_move.is_none() || candidate.depth <= 0 || candidate.pv.empty()) continue;
++        if (better_thread_result(candidate, *best)) best = &candidate;
++    }
++    if (best == &result || best->best_move == result.best_move) return;
++    result.best_move = best->best_move;
++    result.ponder_move = best->ponder_move;
++    result.pv = best->pv;
++    result.score = best->score;
++    result.depth = best->depth;
++    result.seldepth = std::max(result.seldepth, best->seldepth);
++    if (!emit_info) return;
++    // Publish the chosen line so GUIs see a PV consistent with the best move.
++    const std::uint64_t nps = result.elapsed_ms > 0 ? result.nodes * 1000U / result.elapsed_ms : 0;
++    const std::lock_guard<std::mutex> output_lock(uci_output_mutex());
++    std::cout << "info depth " << result.depth << " seldepth " << std::max(result.seldepth, result.depth)
++              << " score " << format_score(result.score) << " nodes " << result.nodes << " nps " << nps
++              << " hashfull " << shared_.tt.hashfull() << " time " << result.elapsed_ms << " pv";
++    for (const Move move : result.pv) std::cout << ' ' << Board::move_to_uci(move);
++    std::cout << std::endl;
++}
++
+ } // namespace forge
+diff --git a/src/search/uci_info.inc b/src/search/uci_info.inc
+index e1d50198..fc4e3d72 100644
+--- a/src/search/uci_info.inc
++++ b/src/search/uci_info.inc
+@@ -7,7 +7,9 @@
+ namespace forge {
+ namespace {
+ 
+-std::string format_score(int score) {
++// Always inlined: a second call site (SmpBestThread) must not turn it into an
++// out-of-line function placed ahead of the hot search code.
++[[gnu::always_inline]] inline std::string format_score(int score) {
+     if (is_mate_score(score)) {
+         const int distance = MateValue - std::abs(score);
+         const int mate = (distance + 1) / 2;
+diff --git a/src/uci.cpp b/src/uci.cpp
+index 607adf3a..b78fdc8c 100644
+--- a/src/uci.cpp
++++ b/src/uci.cpp
+@@ -171,6 +171,9 @@ int main() {
+                          "option name Book Depth type spin default 30 min 0 max 100\n"
+                          "option name Book Variety type spin default 30 min 0 max 100\n";
+             if (forge::nnue::available()) std::cout << "option name UseNNUE type check default true\n";
++            // Search options added after AL1 s198; all default OFF (see forge/search_options.hpp).
++            std::cout << "option name SmpExactNodes type check default false\n"
++                         "option name SmpBestThread type check default false\n";
+ #ifdef FORGE_EXPOSE_TUNABLES
+             // Development builds advertise the search constants so match
+             // runners can set them; release builds accept them silently.
+@@ -259,6 +262,14 @@ int main() {
+                 } else {
+                     book_variety = std::clamp(value, 0, 100);
+                 }
++            } else if (name == "SmpExactNodes" || name == "SmpBestThread") {
++                bool& option = name == "SmpExactNodes" ? forge::options::smp_exact_nodes : forge::options::smp_best_thread;
++                if (value_text == "true") option = true;
++                else if (value_text == "false") option = false;
++                else {
++                    const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex());
++                    std::cout << "info string invalid value for option " << name << std::endl;
++                }
+             } else if (name == "UseNNUE") {
+                 if (value_text == "true") forge::nnue::enabled = true;
+                 else if (value_text == "false") forge::nnue::enabled = false;
+diff --git a/tests/smp_tests.cpp b/tests/smp_tests.cpp
+new file mode 100644
+index 00000000..a6e1b044
+--- /dev/null
++++ b/tests/smp_tests.cpp
+@@ -0,0 +1,183 @@
++// Lazy SMP housekeeping (O1): worker-list lifetime, SmpExactNodes node accounting for node-limited
++// multi-thread searches, SmpBestThread result consistency, and options inert at Threads=1.
++#include "forge/search.hpp"
++
++#include <cstdint>
++#include <iostream>
++#include <stdexcept>
++#include <string>
++#include <vector>
++
++namespace forge {
++struct SearcherTestProbe {
++    static const void* all_workers(Worker& worker) { return worker.all_workers_; }
++};
++} // namespace forge
++
++using namespace forge;
++using Probe = SearcherTestProbe;
++
++namespace {
++
++int failures = 0;
++int checks = 0;
++
++void check(bool okay, const std::string& name) {
++    ++checks;
++    if (!okay) {
++        ++failures;
++        std::cout << "FAIL " << name << '\n';
++    }
++}
++
++Board position(const std::string& fen) {
++    Board board;
++    if (!board.set_fen(fen)) throw std::runtime_error("invalid fixture FEN: " + fen);
++    return board;
++}
++
++bool legal(const Board& board, Move move) {
++    for (const Move m : board.legal_moves()) {
++        if (m == move) return true;
++    }
++    return false;
++}
++
++constexpr int Threads = 3;
++const std::vector<std::string> Fens{
++    "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1",
++    "r4rk1/1pp1qppp/p1np1n2/8/2B1P1b1/2N2N2/PPP1QPPP/2KR3R w - - 0 10",
++    "r1bq1rk1/pp2bppp/2n1pn2/3p4/2PP4/2N1PN2/PP3PPP/R2QKB1R w KQ - 0 8",
++};
++
++void test_worker_list_lifetime() {
++    for (const int threads : {1, Threads}) {
++        Searcher searcher(16, threads);
++        SearchLimits limits;
++        limits.depth = 8;
++        (void)searcher.search(position(Fens[0]), limits);
++        check(Probe::all_workers(searcher.main_worker()) == nullptr,
++              "worker list pointer cleared after the search (threads " + std::to_string(threads) + ")");
++    }
++}
++
++// A deep search leaves large published counts in the helpers; a following node-limited search must
++// not stop on them. With SmpExactNodes the counters are reset before the helpers start (deterministic)
++// and the reported total is exact after the helpers stopped.
++void test_exact_nodes() {
++    const std::uint64_t limit = 20000;
++    int premature_off = 0;
++    for (const bool exact : {false, true}) {
++        options::smp_exact_nodes = exact;
++        for (int round = 0; round < 10; ++round) {
++            Searcher searcher(16, Threads);
++            SearchLimits deep;
++            deep.depth = 13;
++            const Board board = position(Fens[static_cast<std::size_t>(round) % Fens.size()]);
++            (void)searcher.search(board, deep);
++            SearchLimits nodes;
++            nodes.nodes = limit;
++            nodes.nodes_specified = true;
++            const SearchInfo result = searcher.search(board, nodes);
++            if (!exact) {
++                premature_off += result.depth == 0 ? 1 : 0;
++                continue;
++            }
++            const std::string r = " (round " + std::to_string(round) + ")";
++            check(result.depth >= 2, "SmpExactNodes: node-limited search completes iterations" + r);
++            check(result.nodes >= limit, "SmpExactNodes: reported total reaches the limit" + r);
++            check(result.nodes < limit + static_cast<std::uint64_t>(Threads) * 2100,
++                  "SmpExactNodes: overshoot bounded by the publish cadence" + r + " nodes=" + std::to_string(result.nodes));
++            check(legal(board, result.best_move), "SmpExactNodes: legal best move" + r);
++        }
++    }
++    options::smp_exact_nodes = false;
++    // Informational: how often the default (OFF) path hits the stale-counter stop. Timing dependent.
++    std::cout << "INFO SmpExactNodes=false: " << premature_off << "/10 node-limited searches stopped before "
++              << "completing depth 1 (stale helper counters)\n";
++}
++
++void test_best_thread() {
++    options::smp_best_thread = true;
++    for (const std::string& fen : Fens) {
++        Searcher searcher(16, Threads);
++        SearchLimits limits;
++        limits.depth = 11;
++        const Board board = position(fen);
++        const SearchInfo result = searcher.search(board, limits);
++        check(legal(board, result.best_move), "SmpBestThread: legal best move " + fen);
++        check(!result.pv.empty() && result.pv.front() == result.best_move, "SmpBestThread: PV starts with the best move");
++        check(result.depth >= 11, "SmpBestThread: reported depth is at least the requested depth");
++        check(result.ponder_move == (result.pv.size() > 1 ? result.pv[1] : Move::none()), "SmpBestThread: ponder move from the PV");
++    }
++    options::smp_best_thread = false;
++}
++
++// SmpBestThread ranking rule (better_thread_result): a mate score is never
++// replaced by a deeper line without a better score; without mate scores the
++// deeper completed iteration wins, then the higher score.
++void test_best_thread_ranking() {
++    auto info = [](int depth, int score) {
++        SearchInfo result;
++        result.depth = depth;
++        result.score = score;
++        return result;
++    };
++    const int mate9 = MateValue - 9;     // we mate in 5 moves
++    const int mate5 = MateValue - 5;     // we mate in 3 moves
++    const int mated9 = -MateValue + 9;   // we are mated in 5 moves
++    const int mated20 = -MateValue + 20; // we are mated in 10 moves
++    struct Case {
++        SearchInfo candidate, best;
++        bool expected;
++        const char* name;
++    };
++    const Case cases[] = {
++        {info(12, 10), info(11, 50), true, "deeper iteration wins without mate scores"},
++        {info(11, 60), info(11, 50), true, "equal depth: higher score wins"},
++        {info(11, 40), info(11, 50), false, "equal depth: lower score loses"},
++        {info(10, 900), info(11, 50), false, "shallower non-mate does not replace"},
++        {info(15, 300), info(11, mate9), false, "a deeper line without a mate never replaces a found mate"},
++        {info(20, 31000), info(11, mate9), false, "a deeper large non-mate score never replaces a found mate"},
++        {info(15, mate9 - 2), info(11, mate9), false, "a deeper but longer mate does not replace a shorter one"},
++        {info(9, mate5), info(11, mate9), true, "a shorter mate replaces a longer one at any depth"},
++        {info(9, mate9), info(14, 250), true, "a found mate replaces a deeper line without one"},
++        {info(13, -200), info(11, mated9), true, "a line that is not mated replaces a mated one"},
++        {info(16, mated9), info(11, -500), false, "a deeper mated line never replaces one that is not mated"},
++        {info(10, mated20), info(12, mated9), true, "of two mated lines the longer resistance wins"},
++        {info(14, mated9), info(12, mated20), false, "a deeper but shorter mated line does not replace a longer one"},
++    };
++    for (const Case& c : cases) {
++        check(better_thread_result(c.candidate, c.best) == c.expected, std::string("SmpBestThread ranking: ") + c.name);
++    }
++}
++
++void test_inert_single_thread() {
++    for (const std::string& fen : Fens) {
++        SearchInfo results[2];
++        for (const bool on : {false, true}) {
++            options::smp_exact_nodes = options::smp_best_thread = on;
++            Searcher searcher(16, 1);
++            SearchLimits limits;
++            limits.depth = 10;
++            results[on ? 1 : 0] = searcher.search(position(fen), limits);
++        }
++        check(results[0].nodes == results[1].nodes && results[0].best_move == results[1].best_move &&
++                  results[0].score == results[1].score && results[0].pv == results[1].pv,
++              "options are inert at Threads=1 " + fen);
++    }
++    options::smp_exact_nodes = options::smp_best_thread = false;
++}
++
++} // namespace
++
++int main() {
++    test_worker_list_lifetime();
++    test_exact_nodes();
++    test_best_thread_ranking();
++    test_best_thread();
++    test_inert_single_thread();
++    std::cout << "smp housekeeping: checks=" << checks << " failures=" << failures << '\n';
++    std::cout << (failures == 0 ? "PASS" : "FAIL") << " smp_tests\n";
++    return failures == 0 ? 0 : 1;
++}

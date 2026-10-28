@@ -1,6 +1,15 @@
 // Search module: transposition table (interface in forge/tt.hpp).
 // Compiled as part of src/search.cpp (included exactly once).
 
+// UCI LocklessTT dispatch (tt_lockless.inc): a forced tail call where the
+// compiler supports it (GCC 15+), so the default path of store() keeps the
+// lock's frame instead of loading the forwarded arguments first.
+#if defined(__GNUC__) && !defined(__clang__) && __GNUC__ >= 15
+#define FORGE_LTT_TAIL [[gnu::musttail]]
+#else
+#define FORGE_LTT_TAIL
+#endif
+
 namespace forge {
 
 thread_local const TranspositionTable::ExclusiveLease* TranspositionTable::active_lease_ = nullptr;
@@ -66,6 +75,8 @@ void TranspositionTable::clear() {
 }
 
 TTProbe TranspositionTable::probe(std::uint64_t key) const {
+    // (No forced tail call: the result is a structure returned in memory.)
+    if (lockless_) [[unlikely]] return probe_lockless(key);
     TTCluster& cluster = cluster_for(key);
     const std::size_t index = static_cast<std::size_t>(&cluster - clusters_.get());
     const auto lock = lock_stripe(index);
@@ -104,6 +115,9 @@ TTProbe TranspositionTable::probe(std::uint64_t key) const {
 
 void TranspositionTable::store(const TTProbe& probe, std::uint64_t key, int score, int eval, Move move, int depth,
                                Bound bound, bool pv, std::uint16_t halfmove_clock) {
+    // First, before anything else: with the same parameters this compiles to a
+    // conditional tail jump (UCI LocklessTT, tt_lockless.inc).
+    if (lockless_) [[unlikely]] FORGE_LTT_TAIL return store_lockless(probe, key, score, eval, move, depth, bound, pv, halfmove_clock);
     // Reject default, foreign or lifecycle-stale handles without touching storage.
     // Lifecycle operations themselves must not run concurrently with search.
     if (probe.owner_ != this || probe.epoch_ != epoch_ || probe.key_ != key ||
@@ -124,6 +138,7 @@ void TranspositionTable::store(const TTProbe& probe, std::uint64_t key, int scor
 }
 
 int TranspositionTable::hashfull() const {
+    if (lockless_) FORGE_LTT_TAIL return hashfull_lockless();
     int count = 0;
     const std::size_t sample = std::min<std::size_t>(1000, cluster_count_);
     for (std::size_t i = 0; i < sample; ++i) {

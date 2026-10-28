@@ -54,7 +54,8 @@ private:
     std::uint64_t key_ = 0;
 };
 
-// Search reads and writes are coherent under striped locks. clear/resize/
+// Search reads and writes are coherent under striped locks (with LocklessTT:
+// without locks, torn entries detected by their key check). clear/resize/
 // new_search/destruction require all accessors quiescent (including diagnostic
 // readers and prefetch callers) and invalidate old probes. Handles must not
 // outlive the table; lifecycle operations are not safe concurrently with search.
@@ -70,6 +71,14 @@ public:
     [[nodiscard]] int hashfull() const;
     [[nodiscard]] std::uint8_t generation() const { return generation_; }
     [[nodiscard]] std::size_t cluster_count() const { return cluster_count_; }
+    // UCI LocklessTT (src/search/tt_lockless.inc): probe/store/hashfull without
+    // the stripe locks. Lifecycle operation: all accessors quiescent. The two
+    // modes store entries differently, so a change clears the table.
+    void set_lockless(bool lockless);
+    [[nodiscard]] bool lockless() const { return lockless_; }
+    // The lockless form of one entry: {move << 32 | key tag ^ check, bytes 8-15}.
+    [[nodiscard]] static std::array<std::uint64_t, 2> encode_lockless(const TTEntry& entry);
+    [[nodiscard]] static TTEntry decode_lockless(std::uint64_t first, std::uint64_t second);
     void prefetch(std::uint64_t key) const {
 #if defined(__GNUC__) || defined(__clang__)
         __builtin_prefetch(&cluster_for(key));
@@ -108,6 +117,12 @@ private:
     std::unique_ptr<TTCluster[]> clusters_;
     std::size_t cluster_count_ = 0;
     std::uint8_t generation_ = 0;
+    bool lockless_ = false;
+
+    [[nodiscard]] TTProbe probe_lockless(std::uint64_t key) const;
+    void store_lockless(const TTProbe& probe, std::uint64_t key, int score, int eval, Move move, int depth, Bound bound,
+                        bool pv, std::uint16_t halfmove_clock);
+    [[nodiscard]] int hashfull_lockless() const;
 
     [[nodiscard]] static constexpr std::uint32_t verification_key(std::uint64_t key) {
 #if defined(__SIZEOF_INT128__)

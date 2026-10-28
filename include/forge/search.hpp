@@ -4,6 +4,7 @@
 #include "forge/eval.hpp"
 #include "forge/history.hpp"
 #include "forge/nnue.hpp"
+#include "forge/search_options.hpp"
 #include "forge/search_tune.hpp"
 #include "forge/search_types.hpp"
 #include "forge/thread_data.hpp"
@@ -36,6 +37,10 @@ public:
     void clear_caches() { evaluator_.clear(); }
     [[nodiscard]] std::uint64_t nodes() const { return nodes_.load(std::memory_order_relaxed); }
     [[nodiscard]] bool is_main() const { return id_ == 0; }
+    // Searcher housekeeping, only while this worker is not searching.
+    void reset_published_nodes() { nodes_.store(0, std::memory_order_relaxed); }
+    // The caller's worker list (all_workers_) is valid only during one search.
+    void end_search() { all_workers_ = nullptr; }
 
 private:
     friend struct SearcherTestProbe;
@@ -99,8 +104,17 @@ public:
     [[nodiscard]] TranspositionTable& transposition_table() { return shared_.tt; }
 
 private:
+    // SmpBestThread: replace thread 0's move/PV/score by the best helper's
+    // (ranking: better_thread_result below).
+    void select_best_thread(SearchInfo& result, const std::vector<SearchInfo>& helper_results, bool emit_info);
+
     SharedSearchState shared_;
     std::vector<std::unique_ptr<Worker>> workers_;
 };
+
+// UCI SmpBestThread: whether a helper's result `candidate` replaces `best`
+// (src/search/searcher.inc). With a mate score on either side the higher score
+// wins; otherwise the deeper completed iteration, then the higher score.
+[[nodiscard]] bool better_thread_result(const SearchInfo& candidate, const SearchInfo& best);
 
 } // namespace forge

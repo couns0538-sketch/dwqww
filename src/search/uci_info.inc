@@ -7,7 +7,9 @@
 namespace forge {
 namespace {
 
-std::string format_score(int score) {
+// Always inlined: a second call site (SmpBestThread) must not turn it into an
+// out-of-line function placed ahead of the hot search code.
+[[gnu::always_inline]] inline std::string format_score(int score) {
     if (is_mate_score(score)) {
         const int distance = MateValue - std::abs(score);
         const int mate = (distance + 1) / 2;
