@@ -20,6 +20,7 @@ void Worker::clear() {
     correction_plus_.reset();  // CorrHistPlus tables, reallocated (zeroed) by the next update
     *threat_history_ = LesserThreatHistory{};   // HistRework (A1)
     *joint_correction_ = CorrectionHistory{};
+    *continuation_correction_ = fb2::ContinuationCorrection{};   // FB2-J3 CorrHistV2
     for (SearchStack& ss : stack_) ss = SearchStack{};
 }
 

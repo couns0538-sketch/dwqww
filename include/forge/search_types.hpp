@@ -1,6 +1,7 @@
 #pragma once
 
 #include "forge/board.hpp"
+#include "forge/fb2.hpp"
 
 #include <atomic>
 #include <chrono>
@@ -52,6 +53,9 @@ struct SearchLimits {
     // searches retain a worker-local origin. Ponder budgets start at ponderhit.
     std::chrono::steady_clock::time_point request_start{};
     std::chrono::steady_clock::time_point start_time{};
+    // FB2-J3 options (forge/fb2.hpp): Searcher::search overwrites this with the per-search snapshot before any
+    // worker starts; callers need not set it.
+    fb2::Options fb2{};
 };
 
 struct SearchInfo {

@@ -61,7 +61,7 @@ int Worker::FORGE_QSEARCH_FN(Board& board, SearchStack* ss, int alpha, int beta)
         int eval;
         if (tt_hit && tte.eval != ValueNone) ss->raw_eval = tte.eval;
         else ss->raw_eval = static_evaluate(board, ss);
-        eval = ss->static_eval = corrected_eval(board, ss->raw_eval);
+        eval = ss->static_eval = fb2_.corr_hist_v2 ? corrected_eval_v2(board, ss->raw_eval, ss) : corrected_eval(board, ss->raw_eval);
         if (tt_hit && tt_score != ValueNone &&
             ((tt_bound == BoundLower && tt_score > eval) || (tt_bound == BoundUpper && tt_score < eval) ||
              tt_bound == BoundExact)) {

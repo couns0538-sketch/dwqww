@@ -113,6 +113,10 @@ private:
     [[gnu::always_inline]] [[nodiscard]] inline int correction_plus(const Board& board) const;
     [[gnu::always_inline]] [[nodiscard]] inline const SearchStack* correction_frame(const Board& board) const;
     [[gnu::always_inline]] [[nodiscard]] inline std::size_t continuation_correction_index(const Board& board) const;
+    // FB2-J3 CorrHistV2 (src/search/fb2.inc): the corrections above plus the continuation corrections of the
+    // last two moves; only used while fb2_.corr_hist_v2 (never together with CorrHistPlus, see forge/fb2.hpp).
+    [[gnu::cold]] [[nodiscard]] int corrected_eval_v2(const Board& board, int raw_eval, const SearchStack* ss) const;
+    [[gnu::cold]] void update_correction_v2(const Board& board, const SearchStack* ss, int depth, int best_score, int static_eval);
     // Pinned to a 64-byte boundary (its AL1 s198 placement): the hot search
     // functions after it then keep their alignment when the cold worker
     // lifecycle code before it in .text changes size (CorrHistPlus member).

@@ -1,5 +1,6 @@
 #include "forge/board.hpp"
 #include "forge/book.hpp"
+#include "forge/fb2.hpp"
 #include "forge/net_scale.hpp"
 #include "forge/nnue.hpp"
 #include "forge/nnue_v2.hpp"
@@ -483,6 +484,11 @@ int main() {
             // Search option added after AL1 s198 (Astra A1); default 0 = the lock's search (forge/hist_rework.hpp).
             std::cout << "option name HistRework type spin default 0 min 0 max " << forge::hist_rework::MaxLevel << "\n";
             std::cout << "option name IntendedThreefold type check default false\n";
+            // FB2-J3 search options and the crew bundle presets (forge/fb2.hpp, BUNDLES.md); default = the lock.
+            std::cout << "option name CorrHistV2 type check default false\n"
+                         "option name LmrTableV2 type check default false\n"
+                         "option name TtPruneV2 type check default false\n"
+                         "option name BundlePreset type combo default OFF var OFF var B1 var B2 var B3 var B4\n";
 #if FORGE_NNUE_LAZY_ACC
             if (forge::nnue::available()) std::cout << "option name NnueLazyAcc type check default false\n";
 #endif
@@ -661,6 +667,10 @@ int main() {
                 if (parsed.ec != std::errc{} || parsed.ptr != value_text.data() + value_text.size()) {
                     const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex());
                     std::cout << "info string invalid value for option " << name << std::endl;
+                } else if (value != 0 && forge::fb2::requested.corr_hist_v2) {
+                    // CorrHist exclusivity (forge/fb2.hpp): CorrHistPlus and CorrHistV2 never run together.
+                    const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex());
+                    std::cout << "info string CorrHistPlus refused: CorrHistV2 is on (exclusive, see BUNDLES.md)" << std::endl;
                 } else {
                     forge::options::corr_hist_plus = static_cast<std::uint8_t>(std::clamp(value, 0, 7));
                 }
@@ -716,6 +726,36 @@ int main() {
                     std::cout << "info string invalid value for option " << name << std::endl;
                 } else {
                     forge::search_options::hist_rework = std::clamp(value, 0, forge::hist_rework::MaxLevel);
+                }
+            } else if (name == "CorrHistV2" || name == "LmrTableV2" || name == "TtPruneV2") {
+                if (value_text != "true" && value_text != "false") {
+                    const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex());
+                    std::cout << "info string invalid value for option " << name << std::endl;
+                } else if (name == "CorrHistV2" && value_text == "true" && forge::options::corr_hist_plus != 0) {
+                    // CorrHist exclusivity (forge/fb2.hpp): CorrHistPlus and CorrHistV2 never run together.
+                    const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex());
+                    std::cout << "info string CorrHistV2 refused: CorrHistPlus is on (exclusive, see BUNDLES.md)" << std::endl;
+                } else {
+                    const bool value = value_text == "true";
+                    if (name == "CorrHistV2") forge::fb2::requested.corr_hist_v2 = value;
+                    else if (name == "LmrTableV2") forge::fb2::requested.lmr_table_v2 = value;
+                    else forge::fb2::requested.tt_prune_v2 = value;
+                }
+            } else if (name == "BundlePreset") {
+                static constexpr std::array<std::string_view, 5> Names{"OFF", "B1", "B2", "B3", "B4"};
+                const auto it = std::find(Names.begin(), Names.end(), std::string_view(value_text));
+                const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex());
+                if (it == Names.end()) {
+                    std::cout << "info string invalid value for option " << name << std::endl;
+                } else {
+                    const auto bundle = static_cast<forge::fb2::Bundle>(it - Names.begin());
+                    forge::fb2::apply_bundle(bundle);
+                    const forge::fb2::BundleSettings b = forge::fb2::bundle_settings(bundle);
+                    std::cout << "info string BundlePreset " << *it << ": CorrHistPlus=" << b.corr_hist_plus
+                              << " HistRework=" << b.hist_rework << " CuckooRep=" << (b.cuckoo_rep ? "true" : "false")
+                              << " CorrHistV2=" << (b.fb2.corr_hist_v2 ? "true" : "false")
+                              << " LmrTableV2=" << (b.fb2.lmr_table_v2 ? "true" : "false")
+                              << " TtPruneV2=" << (b.fb2.tt_prune_v2 ? "true" : "false") << std::endl;
                 }
             } else if (name == "IntendedThreefold") {
                 if (value_text == "true") forge::options::intended_threefold = true;

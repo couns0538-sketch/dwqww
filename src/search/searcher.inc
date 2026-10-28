@@ -46,6 +46,9 @@ SearchInfo Searcher::search(Board board, const SearchLimits& limits, bool emit_i
     }
 #endif
     worker_limits.start_time = origin;
+    // FB2-J3 options: one snapshot per search, taken before any helper starts (forge/fb2.hpp threading and
+    // CorrHist exclusivity rules); workers copy it and never read fb2::requested.
+    worker_limits.fb2 = fb2::effective(fb2::requested, options::corr_hist_plus);
     // Tablebases (UCI SyzygyPath): in-search probing limit, root move filter.
     if (syzygy::max_pieces() > 0) [[unlikely]] syzygy::prepare_root(board, worker_limits);
     std::vector<Worker*> all;

@@ -3,6 +3,7 @@
 #include "forge/board.hpp"
 #include "forge/correction_plus.hpp"
 #include "forge/eval.hpp"
+#include "forge/fb2.hpp"
 #include "forge/hist_rework.hpp"
 #ifdef FORGE_PROF
 #include "forge/profile.hpp"
@@ -148,6 +149,11 @@ struct ThreadData {
     std::unique_ptr<LesserThreatHistory> threat_history_ = std::make_unique<LesserThreatHistory>();
     std::unique_ptr<CorrectionHistory> joint_correction_ = std::make_unique<CorrectionHistory>();
     std::array<hist_rework::LesserThreats, MaxPly + 8> threat_maps_{};
+    // FB2-J3 (forge/fb2.hpp; forge-bundle-int). Last members, so every member above keeps its offset.
+    // fb2_ is this worker's per-search snapshot of the options (set at the start of Worker::search, read-only
+    // during the search); continuation_correction_ is CorrHistV2's own table (CorrHistPlus never touches it).
+    fb2::Options fb2_{};
+    std::unique_ptr<fb2::ContinuationCorrection> continuation_correction_ = std::make_unique<fb2::ContinuationCorrection>();
 #if FORGE_NNUE_LAZY_ACC
     LazyAccStats lazy_acc_stats_{};   // S12 NnueLazyAcc counters
 #endif

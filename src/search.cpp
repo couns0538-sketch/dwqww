@@ -162,3 +162,4 @@
 #undef FORGE_QSEARCH_CALL
 #undef FORGE_QSEARCH_FN
 #include "search/cuckoo.inc"      // CuckooRep: upcoming-repetition draw bound
+#include "search/fb2.inc"           // FB2-J3 options (CorrHistV2, LmrTableV2, TtPruneV2) and UCI BundlePreset

@@ -111,7 +111,7 @@ int Worker::FORGE_SEARCH_FN(Board& board, SearchStack* ss, int depth, int alpha,
     } else {
         if (tt_hit && tte.eval != ValueNone) ss->raw_eval = tte.eval;
         else ss->raw_eval = static_evaluate(board, ss);
-        eval = ss->static_eval = corrected_eval(board, ss->raw_eval);
+        eval = ss->static_eval = fb2_.corr_hist_v2 ? corrected_eval_v2(board, ss->raw_eval, ss) : corrected_eval(board, ss->raw_eval);
         if (tt_hit && tt_score != ValueNone &&
             ((tt_bound == BoundLower && tt_score > eval) || (tt_bound == BoundUpper && tt_score < eval) ||
              tt_bound == BoundExact)) {
@@ -156,13 +156,19 @@ int Worker::FORGE_SEARCH_FN(Board& board, SearchStack* ss, int depth, int alpha,
 #endif
         }
         // Reverse futility pruning.
+        // FB2 TtPruneV2: the opponent's static eval fell on their move (opponent worsening): a third of a
+        // margin step cheaper fail high. 0 with the option off, so the condition is the AL1 s198 one.
+        const int rfp_worsening = fb2_.tt_prune_v2 && (ss - 1)->static_eval != ValueNone &&
+                                          ss->static_eval + (ss - 1)->static_eval > 2
+                                      ? tune::RfpMargin / 3 : 0;
 #if FORGE_SEARCH_CORR_MARGINS
-        if (depth <= tune::RfpDepth && eval - corr_margins::rfp_margin(depth, improving, correction) >= beta &&
+        if (depth <= tune::RfpDepth && eval - corr_margins::rfp_margin(depth, improving, correction) + rfp_worsening >= beta &&
             eval < MateInMaxPly) {
             return eval;
         }
 #else
-        if (depth <= tune::RfpDepth && eval - (tune::RfpMargin * depth - tune::RfpImproving * improving) >= beta &&
+        if (depth <= tune::RfpDepth &&
+            eval - (tune::RfpMargin * depth - tune::RfpImproving * improving - rfp_worsening) >= beta &&
             eval < MateInMaxPly) {
             return eval;
         }
@@ -275,6 +281,10 @@ int Worker::FORGE_SEARCH_FN(Board& board, SearchStack* ss, int depth, int alpha,
 #else
     if (!in_check && depth >= tune::IirDepth && tt_move.is_none() && (pv_node || cut_node)) --depth;
 #endif
+    // FB2 TtPruneV2: a cut node whose TT move failed low before (upper bound) is unlikely to cut: reduce it too.
+    // (Exclusive with the IIR above: that one needs no TT move, this one a TT move.)
+    else if (fb2_.tt_prune_v2 && !in_check && depth >= tune::IirDepth + 2 && cut_node && !tt_move.is_none() &&
+             tt_bound == BoundUpper && !ss->tt_pv) --depth;
 
     // HistRework: lesser-attacker maps of this node, read by quiet_history and the history updates below.
     if (search_options::hist_rework != 0) [[unlikely]] threat_maps_[static_cast<std::size_t>(ply)] = hist_rework::lesser_threats(board);
@@ -317,16 +327,24 @@ int Worker::FORGE_SEARCH_FN(Board& board, SearchStack* ss, int depth, int alpha,
             if (quiet && !skip_quiets && move_count >= FORGE_LMP_THRESHOLD(depth, improving)) skip_quiets = true;
 #endif
             const int lmr_depth = std::max(0, depth - reduction(quiet, depth, move_count));
-            if (quiet && !gives_check) {
+            // FB2 TtPruneV2: the TT move is never pruned by futility / history / SEE (it carried a bound before);
+            // quiet futility needs a wider margin when improving; history pruning starts at 3/4 of the threshold when
+            // not improving.
+            const bool prunable = !fb2_.tt_prune_v2 || move != tt_move;
+            const int futility_improving = fb2_.tt_prune_v2 && improving ? tune::FutilityBase / 2 : 0;
+            const int history_prune_threshold = fb2_.tt_prune_v2 && !improving
+                                                    ? -tune::HistoryPruneMultiplier * depth * 3 / 4
+                                                    : -tune::HistoryPruneMultiplier * depth;
+            if (quiet && !gives_check && prunable) {
 #ifdef FORGE_PROF
                 prof::count(prof::Counter::FutilityChecks);
 #endif
 #if FORGE_SEARCH_CORR_MARGINS
                 if (!in_check && lmr_depth <= tune::FutilityDepth &&
-                    ss->static_eval + corr_margins::futility_margin(lmr_depth, correction) <= alpha) {
+                    ss->static_eval + corr_margins::futility_margin(lmr_depth, correction) + futility_improving <= alpha) {
 #else
                 if (!in_check && lmr_depth <= tune::FutilityDepth &&
-                    ss->static_eval + tune::FutilityBase + tune::FutilityMultiplier * lmr_depth <= alpha) {
+                    ss->static_eval + tune::FutilityBase + futility_improving + tune::FutilityMultiplier * lmr_depth <= alpha) {
 #endif
 #ifdef FORGE_PROF
                     prof::count(prof::Counter::FutilityPrunes);
@@ -336,7 +354,7 @@ int Worker::FORGE_SEARCH_FN(Board& board, SearchStack* ss, int depth, int alpha,
                 }
 #ifdef FORGE_PROF
                 prof::count(prof::Counter::HistoryChecks);
-                if (lmr_depth <= tune::HistoryPruneDepth && history < -tune::HistoryPruneMultiplier * depth) {
+                if (lmr_depth <= tune::HistoryPruneDepth && history < history_prune_threshold) {
                     prof::count(prof::Counter::HistoryPrunes);
                     continue;
                 }
@@ -346,10 +364,10 @@ int Worker::FORGE_SEARCH_FN(Board& board, SearchStack* ss, int depth, int alpha,
                     continue;
                 }
 #else
-                if (lmr_depth <= tune::HistoryPruneDepth && history < -tune::HistoryPruneMultiplier * depth) continue;
+                if (lmr_depth <= tune::HistoryPruneDepth && history < history_prune_threshold) continue;
                 if (!board.see_ge(move, -tune::SeeQuietMultiplier * lmr_depth * lmr_depth)) continue;
 #endif
-            } else {
+            } else if (prunable) {
                 // Futility pruning for captures: even winning the piece cannot
                 // bring the position back to alpha.
 #ifdef FORGE_PROF
@@ -458,7 +476,9 @@ int Worker::FORGE_SEARCH_FN(Board& board, SearchStack* ss, int depth, int alpha,
         int score = -Infinite;
         bool full_depth_needed = !pv_node || move_count > 1;
         if (depth >= 2 && move_count > 1 + (root_node ? 1 : 0) && (quiet || !ss->tt_pv || move_count > 4)) {
-            int r = reduction(quiet, depth, move_count);
+            // FB2 LmrTableV2: the fitted reduction (its history term replaces the clamped one below).
+            int r = fb2_.lmr_table_v2 ? fb2::lmr_v2_reduction(quiet, depth, move_count, history, improving, cut_node, ss->tt_pv)
+                                      : reduction(quiet, depth, move_count);
             if (ss->tt_pv) r -= 1;
             if (!improving) r += 1;
             if (cut_node) r += 2;
@@ -466,7 +486,7 @@ int Worker::FORGE_SEARCH_FN(Board& board, SearchStack* ss, int depth, int alpha,
             if (gives_check) r -= 1;
             if (in_check) r -= 1;
             if (tune::LmrCutoffThreshold > 0 && (ss + 1)->cutoff_count > tune::LmrCutoffThreshold) r += 1;
-            if (quiet) r -= std::clamp(history / tune::LmrHistoryDivisor, -2, 2);
+            if (quiet && !fb2_.lmr_table_v2) r -= std::clamp(history / tune::LmrHistoryDivisor, -2, 2);
 #if FORGE_SEARCH_CORR_MARGINS
             r = corr_margins::lmr_reduction(r, correction);
 #endif
@@ -555,7 +575,8 @@ int Worker::FORGE_SEARCH_FN(Board& board, SearchStack* ss, int depth, int alpha,
         (best_move.is_none() || !best_move.is_capture()) &&
         !(bound == BoundLower && best_score <= ss->static_eval) &&
         !(bound == BoundUpper && best_score >= ss->static_eval)) {
-        update_correction(board, depth, best_score, ss->static_eval);
+        if (fb2_.corr_hist_v2) [[unlikely]] update_correction_v2(board, ss, depth, best_score, ss->static_eval);
+        else update_correction(board, depth, best_score, ss->static_eval);
     }
     return best_score;
 }

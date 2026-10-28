@@ -27,6 +27,7 @@ SearchInfo Worker::search(Board board, const SearchLimits& limits, bool emit_inf
 #if FORGE_NNUE_LAZY_ACC
     lazy_acc_stats_ = {};
 #endif
+    fb2_ = limits.fb2;   // FB2-J3 options: this search's snapshot (forge/fb2.hpp)
     local_nodes_ = 0;
     nodes_.store(0, std::memory_order_relaxed);
     all_workers_ = &all;
