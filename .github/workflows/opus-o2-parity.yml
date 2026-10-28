@@ -1,0 +1,57 @@
+# O2 parity on Linux (GCC 14): the NNUE parity harness (tests/nnue_parity_tests.cpp) built for every
+# kernel target (portable scalar, SSE2, AVX2, and AVX-512 when the runner has it) must PASS and print
+# the same digest; each engine build must reproduce the lock bench/perft and contain no FMA.
+name: opus-o2-parity
+on:
+  push:
+    branches: ['opus-O2']
+    paths-ignore:
+      - 'opus_round1/**/*.md'
+      - 'opus_round1/**/*.log'
+      - 'opus_round1/**/*.tsv'
+      - 'opus_round1/**/*.diff'
+      - 'opus_round1/**/*.txt'
+      - 'opus_round1/**/SHA256SUMS'
+      - 'REPORT.md'
+permissions:
+  contents: read
+jobs:
+  parity:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - name: Toolchain
+        run: |
+          sudo apt-get update -qq && sudo apt-get install -y -qq g++-14 ninja-build cmake python3
+          lscpu | grep -E 'Model name' ; grep -q avx512f /proc/cpuinfo && echo "runner has AVX-512F" || echo "runner has no AVX-512F"
+      - name: Build and run every kernel target
+        run: |
+          set -eo pipefail
+          mkdir -p out
+          COMMON="-fno-fast-math -ffp-contract=off -DFORGE_NNUE_HIDDEN=256"
+          declare -A FLAGS=(
+            [scalar]="-march=x86-64 -fno-tree-vectorize -fno-tree-slp-vectorize -DFORGE_NNUE_FORCE_SCALAR=1"
+            [sse2]="-march=x86-64"
+            [avx2]="-march=x86-64-v3 -mtune=znver5"
+            [avx512]="-march=x86-64-v4 -mtune=znver5")
+          for t in scalar sse2 avx2 avx512; do
+            if [ $t = avx512 ] && ! grep -q avx512f /proc/cpuinfo; then echo "skip avx512: the runner has no AVX-512"; continue; fi
+            echo "::group::$t (${FLAGS[$t]})"
+            cmake -S . -B build_$t -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_COMPILER=g++-14 \
+              "-DCMAKE_CXX_FLAGS=${FLAGS[$t]} $COMMON" > /dev/null
+            cmake --build build_$t -j4 --target forge forge_nnue_parity_tests > /dev/null
+            timeout 900 build_$t/forge_nnue_parity_tests --fens tests/data/nnue_selfplay_sample_916.txt | tee out/parity_$t.log
+            python3 opus_round1/ci/uci_check.py build_$t/forge | tee out/identity_$t.log
+            echo "FMA $t: $(objdump -d build_$t/forge | grep -cE 'vfn?m(add|sub)' || true)" | tee -a out/identity_$t.log
+            echo "::endgroup::"
+          done
+          grep -H '^digest' out/parity_*.log
+          [ "$(grep -h '^digest' out/parity_*.log | sort -u | wc -l)" = 1 ] || { echo "FAIL: digests differ between kernel targets"; exit 1; }
+          ! grep -h '^FMA' out/identity_*.log | grep -v ': 0$' || { echo "FAIL: FMA instructions"; exit 1; }
+          echo "PASS: every kernel target matches AL1 s198 bit for bit, same digest"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: o2-parity
+          path: out/*.log

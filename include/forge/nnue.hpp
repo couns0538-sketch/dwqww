@@ -29,7 +29,12 @@ constexpr float SigmoidK = 2.25F;        // network output is in sigmoid units o
 }
 
 struct Accumulator {
+#if !FORGE_NNUE_O2
     alignas(32) std::array<std::array<float, HiddenSize>, 2> values{};
+#else  // FORGE_NNUE_O2
+    // 64-byte aligned: every 512-bit (or 256-bit) access stays inside one cache line.
+    alignas(64) std::array<std::array<float, HiddenSize>, 2> values{};
+#endif // FORGE_NNUE_O2
     bool valid = false;
 };
 

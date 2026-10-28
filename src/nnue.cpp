@@ -10,20 +10,55 @@
 #include <memory>
 #include <sstream>
 #include <vector>
+#if FORGE_NNUE_O2
+#include <new>
+#endif // FORGE_NNUE_O2
 
+// R3 stack: the O2 accumulator kernels (opus-O2) are compiled only with
+// FORGE_NNUE_O2 (build switch, default off = the AL1 s198 loops). Both paths
+// give bit-identical accumulators and outputs (opus_round1/O2/REPORT.md).
+#if FORGE_NNUE_O2
+// Kernel selection is compile-time only, and every path is bit-identical: each
+// accumulator lane and each output partial sum sees the same float operations
+// in the same order as the portable code (no FMA, no -ffast-math, no
+// reassociation). FORGE_NNUE_FORCE_SCALAR selects the portable code on any
+// target (used by the parity tests).
+//
+#endif // FORGE_NNUE_O2
 // The output layer uses SSE min/max/mul/add directly: compilers may not turn a
 // float clamp into min/max instructions without -ffast-math, which left the
 // AVX2 builds with slow scalar code. SSE2 is part of every x86-64 target.
-#if defined(__SSE__) || defined(_M_X64) || defined(_M_AMD64)
+// (FORGE_NNUE_FORCE_SCALAR is honoured only with FORGE_NNUE_O2, as on opus-O2.)
+#if (!FORGE_NNUE_O2 || !defined(FORGE_NNUE_FORCE_SCALAR)) && \
+    (defined(__SSE__) || defined(_M_X64) || defined(_M_AMD64))
 #include <xmmintrin.h>
 #define FORGE_NNUE_SSE 1
 #else
 #define FORGE_NNUE_SSE 0
 #endif
 
-#if defined(__AVX2__)
+#if (!FORGE_NNUE_O2 || !defined(FORGE_NNUE_FORCE_SCALAR)) && defined(__AVX2__)
 #include <immintrin.h>
+#define FORGE_NNUE_AVX2 1
+#else
+#define FORGE_NNUE_AVX2 0
 #endif
+
+#if FORGE_NNUE_O2
+// Accumulator kernels (refresh/update): explicit AVX2 or SSE2 vectors, else the
+// portable loops. AVX-512 targets keep the portable loops, which the compiler
+// widens to 512 bits itself as it does for AL1 s198.
+#if FORGE_NNUE_AVX2 && !defined(__AVX512F__)
+#define FORGE_NNUE_KERNEL_AVX2 1
+#else
+#define FORGE_NNUE_KERNEL_AVX2 0
+#endif
+#if FORGE_NNUE_SSE && !defined(__AVX2__)
+#define FORGE_NNUE_KERNEL_SSE2 1
+#else
+#define FORGE_NNUE_KERNEL_SSE2 0
+#endif
+#endif // FORGE_NNUE_O2
 
 #if __has_include("nnue_weights.inc")
 #include "nnue_weights.inc"
@@ -49,17 +84,42 @@ bool enabled = true;
 
 namespace {
 
+#if FORGE_NNUE_O2
+// 64-byte aligned storage: every feature column (HiddenSize floats) starts on a
+// cache-line boundary, so no vector load of a column straddles two lines.
+struct AlignedDelete {
+    void operator()(float* p) const { ::operator delete[](p, std::align_val_t{64}); }
+};
+using AlignedFloats = std::unique_ptr<float[], AlignedDelete>;
+
+AlignedFloats aligned_zeros(std::size_t count) {
+    AlignedFloats storage(static_cast<float*>(::operator new[](count * sizeof(float), std::align_val_t{64})));
+    std::fill_n(storage.get(), count, 0.0F);
+    return storage;
+}
+
+#endif // FORGE_NNUE_O2
 struct Weights {
+#if !FORGE_NNUE_O2
     std::unique_ptr<float[]> w1;   // [InputCount][HiddenSize]
     alignas(32) std::array<float, HiddenSize> b1{};
     alignas(32) std::array<float, 2 * HiddenSize> w2{};
+#else  // FORGE_NNUE_O2
+    AlignedFloats w1;   // [InputCount][HiddenSize]
+    alignas(64) std::array<float, HiddenSize> b1{};
+    alignas(64) std::array<float, 2 * HiddenSize> w2{};
+#endif // FORGE_NNUE_O2
     float b2 = 0.0F;
 };
 
 const Weights& weights() {
     static const Weights instance = [] {
         Weights w;
+#if !FORGE_NNUE_O2
         w.w1 = std::make_unique<float[]>(static_cast<std::size_t>(InputCount) * HiddenSize);
+#else  // FORGE_NNUE_O2
+        w.w1 = aligned_zeros(static_cast<std::size_t>(InputCount) * HiddenSize);
+#endif // FORGE_NNUE_O2
 #if FORGE_HAS_NNUE
         for (std::size_t i = 0; i < static_cast<std::size_t>(InputCount) * HiddenSize; ++i) {
             w.w1[i] = static_cast<float>(NnueW1[i]) / WeightScale;
@@ -73,6 +133,12 @@ const Weights& weights() {
     return instance;
 }
 
+#if FORGE_NNUE_O2
+inline const float* column(const Weights& w, Color perspective, Piece piece, int square) {
+    return w.w1.get() + static_cast<std::size_t>(feature_index(perspective, piece, square)) * HiddenSize;
+}
+
+#endif // FORGE_NNUE_O2
 inline void add_feature(std::array<float, HiddenSize>& acc, const float* column) {
     for (int h = 0; h < HiddenSize; ++h) acc[static_cast<std::size_t>(h)] += column[h];
 }
@@ -81,6 +147,86 @@ inline void sub_feature(std::array<float, HiddenSize>& acc, const float* column)
     for (int h = 0; h < HiddenSize; ++h) acc[static_cast<std::size_t>(h)] -= column[h];
 }
 
+#if FORGE_NNUE_O2
+// One accumulator vector: the kernels below are written once against these
+// helpers. Lanes never interact, so the vector width only changes how many
+// lanes one instruction handles, never the operations a lane sees.
+#if FORGE_NNUE_KERNEL_AVX2
+using Vec = __m256;
+constexpr int VecWidth = 8;
+inline Vec vec_load(const float* p) { return _mm256_load_ps(p); }
+inline void vec_store(float* p, Vec v) { _mm256_store_ps(p, v); }
+inline Vec vec_add(Vec a, Vec b) { return _mm256_add_ps(a, b); }
+inline Vec vec_sub(Vec a, Vec b) { return _mm256_sub_ps(a, b); }
+#elif FORGE_NNUE_KERNEL_SSE2
+using Vec = __m128;
+constexpr int VecWidth = 4;
+inline Vec vec_load(const float* p) { return _mm_load_ps(p); }
+inline void vec_store(float* p, Vec v) { _mm_store_ps(p, v); }
+inline Vec vec_add(Vec a, Vec b) { return _mm_add_ps(a, b); }
+inline Vec vec_sub(Vec a, Vec b) { return _mm_sub_ps(a, b); }
+#else
+using Vec = float;
+constexpr int VecWidth = 1;
+inline Vec vec_load(const float* p) { return *p; }
+inline void vec_store(float* p, Vec v) { *p = v; }
+inline Vec vec_add(Vec a, Vec b) { return a + b; }
+inline Vec vec_sub(Vec a, Vec b) { return a - b; }
+#endif
+static_assert(HiddenSize % VecWidth == 0, "HiddenSize must be a multiple of the vector width");
+
+// Update kernels. Each lane takes the parent value and then applies the piece
+// changes in DirtyPieces order (subtract a removal, add an addition), which is
+// exactly what the generic copy-then-apply loop in update() computes. `out`
+// may equal `in` (in-place update): every vector is read before it is written.
+
+// Quiet moves and noncapturing promotions: (in - r) + a.
+inline void apply_sub_add(float* out, const float* in, const float* r, const float* a) {
+    for (int h = 0; h < HiddenSize; h += VecWidth)
+        vec_store(out + h, vec_add(vec_sub(vec_load(in + h), vec_load(r + h)), vec_load(a + h)));
+}
+
+// Captures, en passant and capturing promotions: ((in - r0) - r1) + a.
+inline void apply_sub_sub_add(float* out, const float* in, const float* r0, const float* r1, const float* a) {
+    for (int h = 0; h < HiddenSize; h += VecWidth)
+        vec_store(out + h, vec_add(vec_sub(vec_sub(vec_load(in + h), vec_load(r0 + h)), vec_load(r1 + h)), vec_load(a + h)));
+}
+
+// Castling (king, then rook): (((in - r0) + a0) - r1) + a1.
+inline void apply_sub_add_sub_add(float* out, const float* in, const float* r0, const float* a0, const float* r1,
+                                  const float* a1) {
+    for (int h = 0; h < HiddenSize; h += VecWidth)
+        vec_store(out + h, vec_add(vec_sub(vec_add(vec_sub(vec_load(in + h), vec_load(r0 + h)), vec_load(a0 + h)),
+                                           vec_load(r1 + h)),
+                                   vec_load(a1 + h)));
+}
+
+// Refresh kernel: out = bias + columns[0] + columns[1] + ..., lane by lane in
+// column order (the order in which AL1 s198 adds the pieces).
+inline void accumulate_columns(float* out, const float* bias, const float* const* columns, std::size_t count) {
+#if FORGE_NNUE_KERNEL_AVX2 || FORGE_NNUE_KERNEL_SSE2
+    // Register-blocked: a block of Regs vectors stays in registers while every
+    // column is added, instead of a load and a store per column and vector.
+    constexpr int Regs = HiddenSize % (8 * VecWidth) == 0 ? 8 : HiddenSize % (4 * VecWidth) == 0 ? 4 : 1;
+    for (int base = 0; base < HiddenSize; base += Regs * VecWidth) {
+        Vec sums[Regs];
+        for (int k = 0; k < Regs; ++k) sums[k] = vec_load(bias + base + k * VecWidth);
+        for (std::size_t c = 0; c < count; ++c) {
+            const float* source = columns[c] + base;
+            for (int k = 0; k < Regs; ++k) sums[k] = vec_add(sums[k], vec_load(source + k * VecWidth));
+        }
+        for (int k = 0; k < Regs; ++k) vec_store(out + base + k * VecWidth, sums[k]);
+    }
+#else
+    std::copy_n(bias, HiddenSize, out);
+    for (std::size_t c = 0; c < count; ++c) {
+        const float* source = columns[c];
+        for (int h = 0; h < HiddenSize; ++h) out[h] += source[h];
+    }
+#endif
+}
+
+#endif // FORGE_NNUE_O2
 } // namespace
 
 bool available() { return FORGE_HAS_NNUE != 0; }
@@ -90,25 +236,60 @@ bool residual() { return FORGE_HAS_NNUE != 0 && FORGE_NNUE_RESIDUAL != 0; }
 void refresh(const Board& board, Accumulator& accumulator) {
     const Weights& w = weights();
     for (const Color perspective : {White, Black}) {
+#if !FORGE_NNUE_O2
         auto& acc = accumulator.values[static_cast<std::size_t>(perspective)];
         acc = w.b1;
+#else  // FORGE_NNUE_O2
+        std::array<const float*, 64> columns;
+        std::size_t count = 0;
+#endif // FORGE_NNUE_O2
         Bitboard occupied = board.occupied();
         while (occupied != 0) {
             const int square = pop_lsb(occupied);
+#if !FORGE_NNUE_O2
             const int index = feature_index(perspective, board.piece_at(square), square);
             add_feature(acc, w.w1.get() + static_cast<std::size_t>(index) * HiddenSize);
+#else  // FORGE_NNUE_O2
+            columns[count++] = column(w, perspective, board.piece_at(square), square);
+#endif // FORGE_NNUE_O2
         }
+#if FORGE_NNUE_O2
+        accumulate_columns(accumulator.values[static_cast<std::size_t>(perspective)].data(), w.b1.data(), columns.data(),
+                           count);
+#endif // FORGE_NNUE_O2
     }
     accumulator.valid = true;
 }
 
 void update(const Accumulator& parent, Accumulator& child, const DirtyPieces& dirty) {
     const Weights& w = weights();
+#if FORGE_NNUE_O2
+    const auto& changes = dirty.changes;
+#endif // FORGE_NNUE_O2
     // Quiet moves (including noncapturing promotions) remove one feature and
+#if !FORGE_NNUE_O2
     // add one. Keep each lane's subtraction-then-addition order while avoiding
     // a full copy and two separate read/write passes over the child.
     if (dirty.count == 2 && !dirty.changes[0].add && dirty.changes[1].add) {
+#else  // FORGE_NNUE_O2
+    // add one; captures remove two (mover and captured piece) before adding
+    // the mover or promoted piece; castling moves the king, then the rook.
+    // One pass per lane keeps every intermediate subtraction and addition of
+    // the generic loop below, without a full copy and a pass per change.
+    if (dirty.count == 2 && !changes[0].add && changes[1].add) {
         for (const Color perspective : {White, Black}) {
+            const std::size_t side = static_cast<std::size_t>(perspective);
+            apply_sub_add(child.values[side].data(), parent.values[side].data(),
+                          column(w, perspective, changes[0].piece, changes[0].square),
+                          column(w, perspective, changes[1].piece, changes[1].square));
+        }
+        child.valid = true;
+        return;
+    }
+    if (dirty.count == 3 && !changes[0].add && !changes[1].add && changes[2].add) {
+#endif // FORGE_NNUE_O2
+        for (const Color perspective : {White, Black}) {
+#if !FORGE_NNUE_O2
             const auto& source = parent.values[static_cast<std::size_t>(perspective)];
             auto& destination = child.values[static_cast<std::size_t>(perspective)];
             const PieceChange& removed = dirty.changes[0];
@@ -121,14 +302,26 @@ void update(const Accumulator& parent, Accumulator& child, const DirtyPieces& di
                 const std::size_t index = static_cast<std::size_t>(h);
                 destination[index] = (source[index] - removed_column[index]) + added_column[index];
             }
+#else  // FORGE_NNUE_O2
+            const std::size_t side = static_cast<std::size_t>(perspective);
+            apply_sub_sub_add(child.values[side].data(), parent.values[side].data(),
+                              column(w, perspective, changes[0].piece, changes[0].square),
+                              column(w, perspective, changes[1].piece, changes[1].square),
+                              column(w, perspective, changes[2].piece, changes[2].square));
+#endif // FORGE_NNUE_O2
         }
         child.valid = true;
         return;
     }
+#if !FORGE_NNUE_O2
     // Captures remove the mover and captured piece before adding the mover
     // (or promoted piece). Preserve both intermediate subtractions per lane.
     if (dirty.count == 3 && !dirty.changes[0].add && !dirty.changes[1].add && dirty.changes[2].add) {
+#else  // FORGE_NNUE_O2
+    if (dirty.count == 4 && !changes[0].add && changes[1].add && !changes[2].add && changes[3].add) {
+#endif // FORGE_NNUE_O2
         for (const Color perspective : {White, Black}) {
+#if !FORGE_NNUE_O2
             const auto& source = parent.values[static_cast<std::size_t>(perspective)];
             auto& destination = child.values[static_cast<std::size_t>(perspective)];
             const PieceChange& removed0 = dirty.changes[0];
@@ -144,19 +337,38 @@ void update(const Accumulator& parent, Accumulator& child, const DirtyPieces& di
                 const std::size_t index = static_cast<std::size_t>(h);
                 destination[index] = ((source[index] - removed0_column[index]) - removed1_column[index]) + added_column[index];
             }
+#else  // FORGE_NNUE_O2
+            const std::size_t side = static_cast<std::size_t>(perspective);
+            apply_sub_add_sub_add(child.values[side].data(), parent.values[side].data(),
+                                  column(w, perspective, changes[0].piece, changes[0].square),
+                                  column(w, perspective, changes[1].piece, changes[1].square),
+                                  column(w, perspective, changes[2].piece, changes[2].square),
+                                  column(w, perspective, changes[3].piece, changes[3].square));
+#endif // FORGE_NNUE_O2
         }
         child.valid = true;
         return;
     }
+#if FORGE_NNUE_O2
+    // Null moves (no change) and any other change list: copy, then apply each
+    // change in order.
+#endif // FORGE_NNUE_O2
     for (const Color perspective : {White, Black}) {
         auto& acc = child.values[static_cast<std::size_t>(perspective)];
         acc = parent.values[static_cast<std::size_t>(perspective)];
         for (int i = 0; i < dirty.count; ++i) {
+#if !FORGE_NNUE_O2
             const PieceChange& change = dirty.changes[static_cast<std::size_t>(i)];
             const int index = feature_index(perspective, change.piece, change.square);
             const float* column = w.w1.get() + static_cast<std::size_t>(index) * HiddenSize;
             if (change.add) add_feature(acc, column);
             else sub_feature(acc, column);
+#else  // FORGE_NNUE_O2
+            const PieceChange& change = changes[static_cast<std::size_t>(i)];
+            const float* feature = column(w, perspective, change.piece, change.square);
+            if (change.add) add_feature(acc, feature);
+            else sub_feature(acc, feature);
+#endif // FORGE_NNUE_O2
         }
     }
     child.valid = true;
@@ -169,12 +381,17 @@ int evaluate(const Board& board, const Accumulator& accumulator) {
     const auto& theirs = accumulator.values[static_cast<std::size_t>(opposite(us))];
     // Sixteen independent partial sums (lane j takes the hidden units with
     // index % 16 == j, in increasing order) and then one ordered sum: the
+#if !FORGE_NNUE_O2
     // association is fixed by the source, so every target (SSE, AVX2, AVX-512,
     // the scalar fallback) produces bit-identical results without -ffast-math.
+#else  // FORGE_NNUE_O2
+    // association is fixed by the source, so every target (SSE, AVX2, the
+    // scalar fallback) produces bit-identical results without -ffast-math.
+#endif // FORGE_NNUE_O2
     constexpr int Lanes = 16;
     static_assert(HiddenSize % Lanes == 0, "HiddenSize must be a multiple of the lane count");
     alignas(64) float lanes[Lanes];
-#if defined(__AVX2__)
+#if FORGE_NNUE_AVX2
     const __m256 zero = _mm256_setzero_ps();
     const __m256 one = _mm256_set1_ps(1.0F);
     __m256 sums[2] = {zero, zero};

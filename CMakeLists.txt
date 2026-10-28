@@ -18,6 +18,13 @@ add_library(forge_core
 target_include_directories(forge_core PUBLIC include)
 target_compile_features(forge_core PUBLIC cxx_std_20)
 
+# R3 stack: the O2 NNUE accumulator kernels (opus-O2; bit-identical output) are a
+# build switch, default off. PUBLIC: nnue.hpp's Accumulator alignment depends on it.
+option(FORGE_NNUE_O2 "Use the O2 NNUE accumulator kernels (R3 stack build switch)" OFF)
+if(FORGE_NNUE_O2)
+    target_compile_definitions(forge_core PUBLIC FORGE_NNUE_O2=1)
+endif()
+
 if(MSVC)
     target_compile_options(forge_core PRIVATE /W4 /permissive-)
 else()
@@ -143,6 +150,9 @@ target_link_libraries(forge_corr_ext_tests PRIVATE forge_core Threads::Threads)
 # C6 CuckooRep: cuckoo table, upcoming-repetition detector vs brute force, search bound.
 add_executable(forge_cuckoo_tests tests/cuckoo_tests.cpp)
 target_link_libraries(forge_cuckoo_tests PRIVATE forge_core Threads::Threads)
+# NNUE parity: current kernels against a verbatim copy of the AL1 s198 code.
+add_executable(forge_nnue_parity_tests tests/nnue_parity_tests.cpp)
+target_link_libraries(forge_nnue_parity_tests PRIVATE forge_core Threads::Threads)
 
 add_executable(forge_bench bench/benchmark.cpp)
 target_link_libraries(forge_bench PRIVATE forge_core Threads::Threads)
@@ -166,6 +176,8 @@ add_test(NAME forge_pure_nnue_tests COMMAND forge_pure_nnue_tests $<TARGET_FILE:
 add_test(NAME forge_corr_margins_tests COMMAND forge_corr_margins_tests)
 add_test(NAME forge_corr_ext_tests COMMAND forge_corr_ext_tests)
 add_test(NAME forge_cuckoo_tests COMMAND forge_cuckoo_tests)
+add_test(NAME forge_nnue_parity_tests COMMAND forge_nnue_parity_tests
+    --fens ${CMAKE_CURRENT_SOURCE_DIR}/tests/data/nnue_selfplay_sample_916.txt)
 add_test(NAME forge_tt_tests COMMAND forge_tt_tests)
 add_test(NAME forge_tt_stress_lockless COMMAND forge_tt_stress_tests --threads 2 --ops 2000000 --mode lockless)
 add_test(NAME forge_tt_stress_locked COMMAND forge_tt_stress_tests --threads 2 --ops 2000000 --mode locked)
