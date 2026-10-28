@@ -1,0 +1,84 @@
+head a06b00d0cb41e87f0d70932cddf1dd2df884c7d9
+== 2026-10-27 21:13:01 build head_datagen.exe (FORGE_EXTRA_SRCS=src/datagen.cpp, -DFORGE_DATAGEN=1)
+free RAM 9 GB
+rc=0 warnings=0
+built /f/opus_scratch/build/r3_port_b/head_datagen.exe sha256 8ab5d197d6d3d1a126930161da95fa31f04e88ec7152b4e08543e74647257b2f
+FMA (vfmadd/vfmsub/vfnmadd) count: 0
+== 2026-10-27 21:13:30 uci_check --full head_datagen.exe
+free RAM 9 GB
+rc=0
+ALL OK
+== 2026-10-27 21:14:02 datagen smoke = S32's determinism run (25 games, 5000 nodes, seed 20261027, --text), twice
+free RAM 9 GB
+9 rc=0
+{"mode":"selfplay","games":25,"attempts":25,"positions":2500,"shards":1,"searched_plies":3365,"results":{"1-0":9,"1/2-1/2":8,"0-1":8},"terminations":{"checkmate":1,"stalemate":0,"insufficient":1,"repetition":3,"fifty":3,"max_ply":1,"adj_win":16,"adj_draw":0},"elapsed_s":9.9217,"positions_per_s":251.973}
+free RAM 9 GB
+9 rc=1
+datagen: refusing to reuse prefix: F:/opus_scratch/r3/port_b/datagen_smoke/9/g.games exists
+sha256sum: det_a/g.games: No such file or directory
+sha256sum: det_a/g_000.hce: No such file or directory
+sha256sum: det_a/g_000.info: No such file or directory
+sha256sum: det_a/g_000.pos: No such file or directory
+sha256sum: det_a/g_000.txt: No such file or directory
+sha256sum: det_b/g.games: No such file or directory
+sha256sum: det_b/g_000.hce: No such file or directory
+sha256sum: det_b/g_000.info: No such file or directory
+sha256sum: det_b/g_000.pos: No such file or directory
+sha256sum: det_b/g_000.txt: No such file or directory
+total 0
+DATAGEN SMOKE: MISMATCH
+0a1,5
+> 6796502f1f33503b21e9432f37f247317df9cd3d5cb8e175e21fe7ab11a0359b  det_a/g.games
+> 7763c7da96397cf0a56115d28af76740a5fc4c53114081499a79797105597ddf  det_a/g_000.hce
+> d855a9e2f7bfa0af92147ed7486a1979b233232208121525ec135b6ccc4e846c  det_a/g_000.info
+> 6ff0de3d122aa4e4d7c701b18200d44ad2c2d34e65b23f2b16270ef6a4dfc458  det_a/g_000.pos
+> 74c06b4aff54785b45b3ac83301a5dd2ab3fb532680c20bbf02421cf1d7aac63  det_a/g_000.txt
+== 2026-10-27 21:14:16 build head_initonce.exe (-DFORGE_ATTACKS_INIT_ONCE=1)
+free RAM 8 GB
+rc=0 warnings=0
+built /f/opus_scratch/build/r3_port_b/head_initonce.exe sha256 0f20c807135fed12075d4772b09e6d9c073a9c70158ea2c583509e29be9f9b6d
+FMA (vfmadd/vfmsub/vfnmadd) count: 0
+== 2026-10-27 21:14:43 uci_check --full head_initonce.exe
+free RAM 8 GB
+rc=0
+ALL OK
+== 2026-10-27 21:15:17 build mb_avx2.exe (opus_round1/sol_S37/build_microbench_pc.sh avx2)
+free RAM 9 GB
+rc=0 warnings=0
+built /f/opus_scratch/build/r3_port_b/mb_avx2.exe (avx2) sha256 ddef52746633e92f131c22a7254b7e4aa0e8898ae4201e21fddd8a3fb0f0588e
+net: src/nnue_weights.inc sha256 a7ebcf3a319675f347e6e8e3f2539901d38d8036cb9b5935f31dd43d084c9638
+FMA (vfmadd/vfmsub/vfnmadd) count: 0
+forge::nnue:: packed float ops (v?(add|sub|mul|min|max)ps): 178
+forge::nnue:: scalar float ops (v?(add|sub|mul|min|max)ss): 38
+forge::nnue:: ymm/zmm register uses: 704
+== 2026-10-27 21:15:46 microbench --check-only --positions 2000 (= the CTest; S37 check_quick.log reference)
+free RAM 9 GB
+rc=0
+checks: PASS positions 2000 pairs 70486 | replica 0 acc 0 update_eval 0 whole(refresh/update/cached) 0/0/0 mismatches
+checksums: net_sum 25647 hce_sum -14991 total_sum 10656 child_net_sum 322547 net_fnv 26cf6df4161cb2d3 total_fnv dde345d47cae5b97 (path avx2, w2/b2 fnv 7354530ba57cc439)
+== 2026-10-27 21:15:48 microbench --check-only --positions 10000 (S37 lock checksums 116176/-65898/50278)
+free RAM 9 GB
+rc=0
+checks: PASS positions 10000 pairs 346182 | replica 0 acc 0 update_eval 0 whole(refresh/update/cached) 0/0/0 mismatches
+checksums: net_sum 116176 hce_sum -65898 total_sum 50278 child_net_sum 1943594 net_fnv bbc2bbdb07f23962 total_fnv b3886383d186c62 (path avx2, w2/b2 fnv 7354530ba57cc439)
+== 2026-10-27 21:15:52 microbench timed run (10000 positions, 5 passes; advisory, machine exclusive: no)
+free RAM 9 GB
+rc=0
+checks: PASS positions 10000 pairs 346182 | replica 0 acc 0 update_eval 0 whole(refresh/update/cached) 0/0/0 mismatches
+checksums: net_sum 116176 hce_sum -65898 total_sum 50278 child_net_sum 1943594 net_fnv bbc2bbdb07f23962 total_fnv b3886383d186c62 (path avx2, w2/b2 fnv 7354530ba57cc439)
+
+stage            calls/pass   cpu ns/call med  p90 |  tsc ns/call med  p90 | per-call ns med  p90  (avx2, 5 passes, TSC 4.700 GHz)
+refresh               10000       571.2   583.1 |      611.9   664.5 |      550.0   730.0
+dirty                346182         7.7     8.1 |        8.4     8.9 |        0.0    10.0
+update_quiet         310219        38.2    39.0 |       39.6    49.7 |       30.0    50.0
+update_capture        35664        85.4    86.6 |       92.7   115.1 |       50.0    70.0
+update_castle           299       260.5   277.6 |      256.5   301.5 |      110.0   120.0
+output                40000        42.4    42.8 |       43.3    70.7 |       50.0    60.0
+activation            40000        39.1    39.9 |       40.7    63.9 |       30.0    40.0
+affine                40000        24.2    24.4 |       23.9    25.7 |       30.0    40.0
+whole_refresh         10000      1046.9  1065.1 |     1145.0  1164.8 |     1040.0  1290.0
+whole_update         346182       369.5   371.5 |      398.2   437.2 |      360.0   540.0
+whole_cached          10000       271.2   275.9 |      281.1   478.6 |      260.0   340.0
+hce_uncached          10000       401.7   418.3 |      431.4   455.3 |      380.0   500.0
+d238dc0675dace8c8dd3dfc752064950d76c71efc6dabf3365247c20db79d20b */f/opus_scratch/r3/port_b/microbench_fens10000.txt
+== 2026-10-27 21:15:56 STEP2 DONE
