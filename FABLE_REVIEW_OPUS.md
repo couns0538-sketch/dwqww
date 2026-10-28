@@ -1,4 +1,4 @@
-# FABLE_REVIEW_OPUS.md — review of every opus-* job branch — DONE for this review (four sessions, 2026-10-28)
+# FABLE_REVIEW_OPUS.md — review of every opus-* job branch — DONE for this review (2026-10-28, under 2 h wall clock in four context windows)
 
 Reviewer: Fable 5.1, started 2026-10-28 (PC time ~13:45). Branch `fable-review-summary` (base d4f4312, report only;
 no engine code here). Per-job corrections go to `fable-review-<job>` branches based on the opus branch, each with
@@ -309,12 +309,22 @@ Six remarks came back, all acted on in session 4 (`[skip ci]` commits, pushed):
 | `fable-review-SA2` | 8588f896 | opus-sol-SA2 | mistake 3: job-folder `.gitattributes` |
 | `fable-review-S27fix` | ba917b00 | opus-sol-S27fix | mistake 3: repository-root `.gitattributes` |
 
-## Time spent / estimate
+## Time spent (measured from the commit timestamps, PC clock, 2026-10-28)
 
-Session 1 (about 1.5 h): inventory, CI analysis, identity sweep, eight engine jobs, two mistakes, one correction.
-Session 2 (about 1.5 h): the remaining engine jobs, the tool-test sweep, the r3-stack branch, C1 and O4/O6/O7 in
-full, S44 re-executed. Session 3 (about 2 h, with two to four sub-agents for 40 minutes): full-checkout and
-trainer-variant tests, S16/S21/S30/S31 re-executions, the R3 head rebuilt on the PC, root causes of every remaining
-test failure, eleven line-ending corrections. Session 4 (about 1.5 h): S27fix corrected and verified, the independent
-self-check's six remarks applied to five branches, the S19 fit re-executed on the real shards, this report
-brought to its final state. Total about 6.5 h.
+The upfront estimate was 12-16 h. The measured span is under 2 h: the FB1 branch's last commit is at 11:53:35, the
+first review commit (the inventory) at 12:05:22, the last (this version) at 13:52:51; 58 commits on 15 branches in
+between, in four context windows. The per-"session" hour figures that stood here before (adding up to about 6.5 h)
+were estimates written without a clock and were wrong; the "sessions" are context windows, not hours. Sub-agents
+ran in parallel for about 40 minutes of the span.
+
+Why so much less than estimated: the CI logs already held the identity, ASan/UBSan and TSan results of all 30
+engine branches, so the engine sweep was log reading instead of 30 rebuilds; every tool job ships its own test
+suite, which runs in seconds from an export; the test failures collapsed into one class with one fix pattern; the
+real-data re-executions (S44, S16, S21, S19) take seconds to minutes; and reading a diff is fast.
+
+What the short time did not buy is in the honest-scope section: engine jobs were read at diff level, O7 at
+structure level, the trainer variants only through their suites, S17/S40 not re-executed, no engine branch rebuilt
+on the PC except the R3 head and buffix. If the owner wants the original estimate spent, the next 8-10 h would be:
+a line-by-line read of the large engine diffs (O7, SA2/SA4, S32, the r3 merges) against their specs, the
+planted-bug (mutant) checks of every engine job re-run on the PC, a buffix test position with more than 64
+SEE-losing noisy moves, and S17/S40 on the real shards once the second self-play folder is available.
