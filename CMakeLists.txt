@@ -7,6 +7,8 @@ option(FORGE_NATIVE "Optimise for the build machine's CPU (-march=native)" OFF)
 option(FORGE_EXPOSE_TUNABLES "Advertise search tuning constants as UCI options (development builds)" OFF)
 option(FORGE_NOZERO_MOVE_BUFFERS "Leave the MoveList/MovePicker move buffers uninitialised (node-exact speed candidate)" OFF)
 
+option(FORGE_ATTACKS_INIT_ONCE "Synchronize the first attack-table initialization" OFF)
+
 add_library(forge_core
     src/bitboard.cpp
     src/board.cpp
@@ -40,6 +42,52 @@ endif()
 option(FORGE_SPEEDSTACK "Build the node-exact speed stack (S29)" OFF)
 if(FORGE_SPEEDSTACK)
     target_compile_definitions(forge_core PUBLIC FORGE_SPEEDSTACK=1)
+endif()
+
+if(FORGE_ATTACKS_INIT_ONCE)
+    target_compile_definitions(forge_core PRIVATE FORGE_ATTACKS_INIT_ONCE=1)
+    # Cold first-Board test: the real Board and attack-table code is compiled into the test itself (not
+    # forge_core), so no Board or attacks::init call runs before its eight threads meet at the barrier, and
+    # the TSan variant coexists with an ASan/UBSan engine profile.
+    # Linux GNU/Clang: ThreadSanitizer variant (Sol's target). Other toolchains (MinGW g++ on the PC, which
+    # has no TSan; MSVC): the same source uninstrumented. It still checks every worker's perft/FEN results in
+    # each fresh process, so a cold-init race that hands out half-built tables fails it.
+    if(CMAKE_SYSTEM_NAME STREQUAL "Linux" AND CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
+        set(FORGE_S04_COLD_TARGET forge_sol_S04_cold_tsan_test_20261025)
+        set(FORGE_S04_COLD_LABELS "cold-init;tsan")
+    else()
+        set(FORGE_S04_COLD_TARGET forge_sol_S04_cold_test_native)
+        set(FORGE_S04_COLD_LABELS "cold-init;native")
+    endif()
+    add_executable(${FORGE_S04_COLD_TARGET}
+        tests/forge_sol_S04_tsan_test_20261025.cpp
+        src/bitboard.cpp src/board.cpp)
+    target_include_directories(${FORGE_S04_COLD_TARGET} PRIVATE include)
+    target_compile_features(${FORGE_S04_COLD_TARGET} PRIVATE cxx_std_20)
+    target_compile_definitions(${FORGE_S04_COLD_TARGET} PRIVATE FORGE_ATTACKS_INIT_ONCE=1)
+    target_link_libraries(${FORGE_S04_COLD_TARGET} PRIVATE Threads::Threads)
+    if(FORGE_S04_COLD_TARGET STREQUAL "forge_sol_S04_cold_tsan_test_20261025")
+        target_compile_options(${FORGE_S04_COLD_TARGET} PRIVATE
+            -O1 -g1 -fsanitize=thread -fno-omit-frame-pointer)
+        target_link_options(${FORGE_S04_COLD_TARGET} PRIVATE -fsanitize=thread)
+    endif()
+    enable_testing()
+    add_test(NAME ${FORGE_S04_COLD_TARGET} COMMAND ${FORGE_S04_COLD_TARGET})
+    # S04-2: an explicit TIMEOUT, so a hung first initialization (e.g. a call_once deadlock) fails this test
+    # after 120 s instead of blocking ctest until the global --timeout or the CI job cap.
+    set_tests_properties(${FORGE_S04_COLD_TARGET} PROPERTIES
+        RUN_SERIAL TRUE TIMEOUT 120 LABELS "${FORGE_S04_COLD_LABELS}")
+    # S04-1: the 1000-iteration cold-start probe as a ctest target: FORGE_S04_COLD_PROBE_RUNS fresh processes
+    # of the cold test (driver tests/forge_sol_S04_cold_probe.cmake, stops at the first failing process).
+    # Its TIMEOUT (3 s per process + 120 s) overrides ctest's --timeout default, which would cut it off.
+    set(FORGE_S04_COLD_PROBE_RUNS 1000 CACHE STRING "Fresh processes in the S04 cold-start probe test")
+    math(EXPR FORGE_S04_COLD_PROBE_TIMEOUT "${FORGE_S04_COLD_PROBE_RUNS} * 3 + 120")
+    add_test(NAME forge_sol_S04_cold_probe
+        COMMAND ${CMAKE_COMMAND} -DEXE=$<TARGET_FILE:${FORGE_S04_COLD_TARGET}>
+                -DRUNS=${FORGE_S04_COLD_PROBE_RUNS}
+                -P ${CMAKE_CURRENT_SOURCE_DIR}/tests/forge_sol_S04_cold_probe.cmake)
+    set_tests_properties(forge_sol_S04_cold_probe PROPERTIES
+        RUN_SERIAL TRUE TIMEOUT ${FORGE_S04_COLD_PROBE_TIMEOUT} LABELS "${FORGE_S04_COLD_LABELS};cold-probe")
 endif()
 
 if(MSVC)

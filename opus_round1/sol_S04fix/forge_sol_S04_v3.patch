@@ -1,0 +1,224 @@
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index 915039a4..3032673b 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -6,6 +6,8 @@ option(FORGE_ENABLE_SANITIZERS "Enable AddressSanitizer and UndefinedBehaviorSan
+ option(FORGE_NATIVE "Optimise for the build machine's CPU (-march=native)" OFF)
+ option(FORGE_EXPOSE_TUNABLES "Advertise search tuning constants as UCI options (development builds)" OFF)
+ 
++option(FORGE_ATTACKS_INIT_ONCE "Synchronize the first attack-table initialization" OFF)
++
+ add_library(forge_core
+     src/bitboard.cpp
+     src/board.cpp
+@@ -18,6 +20,52 @@ add_library(forge_core
+ target_include_directories(forge_core PUBLIC include)
+ target_compile_features(forge_core PUBLIC cxx_std_20)
+ 
++if(FORGE_ATTACKS_INIT_ONCE)
++    target_compile_definitions(forge_core PRIVATE FORGE_ATTACKS_INIT_ONCE=1)
++    # Cold first-Board test: the real Board and attack-table code is compiled into the test itself (not
++    # forge_core), so no Board or attacks::init call runs before its eight threads meet at the barrier, and
++    # the TSan variant coexists with an ASan/UBSan engine profile.
++    # Linux GNU/Clang: ThreadSanitizer variant (Sol's target). Other toolchains (MinGW g++ on the PC, which
++    # has no TSan; MSVC): the same source uninstrumented. It still checks every worker's perft/FEN results in
++    # each fresh process, so a cold-init race that hands out half-built tables fails it.
++    if(CMAKE_SYSTEM_NAME STREQUAL "Linux" AND CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
++        set(FORGE_S04_COLD_TARGET forge_sol_S04_cold_tsan_test_20261025)
++        set(FORGE_S04_COLD_LABELS "cold-init;tsan")
++    else()
++        set(FORGE_S04_COLD_TARGET forge_sol_S04_cold_test_native)
++        set(FORGE_S04_COLD_LABELS "cold-init;native")
++    endif()
++    add_executable(${FORGE_S04_COLD_TARGET}
++        tests/forge_sol_S04_tsan_test_20261025.cpp
++        src/bitboard.cpp src/board.cpp)
++    target_include_directories(${FORGE_S04_COLD_TARGET} PRIVATE include)
++    target_compile_features(${FORGE_S04_COLD_TARGET} PRIVATE cxx_std_20)
++    target_compile_definitions(${FORGE_S04_COLD_TARGET} PRIVATE FORGE_ATTACKS_INIT_ONCE=1)
++    target_link_libraries(${FORGE_S04_COLD_TARGET} PRIVATE Threads::Threads)
++    if(FORGE_S04_COLD_TARGET STREQUAL "forge_sol_S04_cold_tsan_test_20261025")
++        target_compile_options(${FORGE_S04_COLD_TARGET} PRIVATE
++            -O1 -g1 -fsanitize=thread -fno-omit-frame-pointer)
++        target_link_options(${FORGE_S04_COLD_TARGET} PRIVATE -fsanitize=thread)
++    endif()
++    enable_testing()
++    add_test(NAME ${FORGE_S04_COLD_TARGET} COMMAND ${FORGE_S04_COLD_TARGET})
++    # S04-2: an explicit TIMEOUT, so a hung first initialization (e.g. a call_once deadlock) fails this test
++    # after 120 s instead of blocking ctest until the global --timeout or the CI job cap.
++    set_tests_properties(${FORGE_S04_COLD_TARGET} PROPERTIES
++        RUN_SERIAL TRUE TIMEOUT 120 LABELS "${FORGE_S04_COLD_LABELS}")
++    # S04-1: the 1000-iteration cold-start probe as a ctest target: FORGE_S04_COLD_PROBE_RUNS fresh processes
++    # of the cold test (driver tests/forge_sol_S04_cold_probe.cmake, stops at the first failing process).
++    # Its TIMEOUT (3 s per process + 120 s) overrides ctest's --timeout default, which would cut it off.
++    set(FORGE_S04_COLD_PROBE_RUNS 1000 CACHE STRING "Fresh processes in the S04 cold-start probe test")
++    math(EXPR FORGE_S04_COLD_PROBE_TIMEOUT "${FORGE_S04_COLD_PROBE_RUNS} * 3 + 120")
++    add_test(NAME forge_sol_S04_cold_probe
++        COMMAND ${CMAKE_COMMAND} -DEXE=$<TARGET_FILE:${FORGE_S04_COLD_TARGET}>
++                -DRUNS=${FORGE_S04_COLD_PROBE_RUNS}
++                -P ${CMAKE_CURRENT_SOURCE_DIR}/tests/forge_sol_S04_cold_probe.cmake)
++    set_tests_properties(forge_sol_S04_cold_probe PROPERTIES
++        RUN_SERIAL TRUE TIMEOUT ${FORGE_S04_COLD_PROBE_TIMEOUT} LABELS "${FORGE_S04_COLD_LABELS};cold-probe")
++endif()
++
+ if(MSVC)
+     target_compile_options(forge_core PRIVATE /W4 /permissive-)
+ else()
+diff --git a/src/bitboard.cpp b/src/bitboard.cpp
+index 52f6b131..5a5b87df 100644
+--- a/src/bitboard.cpp
++++ b/src/bitboard.cpp
+@@ -3,6 +3,10 @@
+ #include <algorithm>
+ #include <cstddef>
+ 
++#if defined(FORGE_ATTACKS_INIT_ONCE) && FORGE_ATTACKS_INIT_ONCE
++#include <mutex>
++#endif
++
+ namespace forge::attacks {
+ 
+ std::array<Bitboard, 64> KnightTable{};
+@@ -110,9 +114,14 @@ void init_magics(bool rook, Bitboard* table, std::array<Magic, 64>& magics) {
+ } // namespace
+ 
+ void init() {
++#if defined(FORGE_ATTACKS_INIT_ONCE) && FORGE_ATTACKS_INIT_ONCE
++    static std::once_flag initialized_once;
++    std::call_once(initialized_once, [] {
++#else
+     static bool initialized = false;
+     if (initialized) return;
+     initialized = true;
++#endif
+ 
+     for (int square = 0; square < 64; ++square) {
+         const std::size_t s = static_cast<std::size_t>(square);
+@@ -169,6 +178,9 @@ void init() {
+             }
+         }
+     }
++#if defined(FORGE_ATTACKS_INIT_ONCE) && FORGE_ATTACKS_INIT_ONCE
++    });
++#endif
+ }
+ 
+ } // namespace forge::attacks
+diff --git a/tests/forge_sol_S04_cold_probe.cmake b/tests/forge_sol_S04_cold_probe.cmake
+new file mode 100644
+index 00000000..5befab88
+--- /dev/null
++++ b/tests/forge_sol_S04_cold_probe.cmake
+@@ -0,0 +1,44 @@
++# S04-1 cold-start probe as a CTest target (registered by CMakeLists.txt when FORGE_ATTACKS_INIT_ONCE=ON).
++# Runs the S04 cold first-Board test in RUNS fresh processes; every process constructs its first Board on
++# eight threads released together by a barrier, so every iteration exercises a cold attack-table init.
++# Port of Sol's forge_sol_S04_cold_runs_20261025.py (17aa0cae) to CMake script mode, so the probe needs no
++# Python and runs wherever ctest runs (Linux TSan build in CI, MinGW on the PC).
++# A run fails on a nonzero exit (TSan: halt_on_error=1, exit code 66), on stdout other than the one expected
++# line, or on any stderr output. The probe stops at the first failing run and prints its streams.
++# usage: cmake -DEXE=<cold test exe> [-DRUNS=1000] -P forge_sol_S04_cold_probe.cmake
++cmake_minimum_required(VERSION 3.16)
++if(NOT DEFINED EXE OR NOT EXISTS "${EXE}")
++    message(FATAL_ERROR "COLD_PROBE_ERROR: -DEXE=<cold test executable> is required (got '${EXE}')")
++endif()
++if(NOT DEFINED RUNS)
++    set(RUNS 1000)
++endif()
++if(NOT RUNS MATCHES "^[1-9][0-9]*$")
++    message(FATAL_ERROR "COLD_PROBE_ERROR: RUNS must be a positive integer (got '${RUNS}')")
++endif()
++set(expected "COLD_FIRST_BOARD_PASS workers=8 startpos_d3=8902 kiwipete_d2=2039")
++# Keep a caller's TSAN_OPTIONS (CI sends reports to its sanitizer log directory); otherwise halt on the
++# first report with exit code 66 like Sol's probe. No suppressions are used.
++if("$ENV{TSAN_OPTIONS}" STREQUAL "")
++    set(ENV{TSAN_OPTIONS} "halt_on_error=1:exitcode=66")
++endif()
++file(SHA256 "${EXE}" exe_sha256)
++message("COLD_PROBE start: runs=${RUNS} exe=${EXE} sha256=${exe_sha256} TSAN_OPTIONS=$ENV{TSAN_OPTIONS}")
++string(TIMESTAMP t_start "%s" UTC)
++foreach(run RANGE 1 ${RUNS})
++    execute_process(COMMAND "${EXE}" RESULT_VARIABLE rc OUTPUT_VARIABLE out ERROR_VARIABLE err)
++    # MinGW's text-mode stdout ends the line with CRLF; compare the stripped line.
++    string(STRIP "${out}" out_line)
++    if(NOT rc STREQUAL "0" OR NOT out_line STREQUAL expected OR NOT err STREQUAL "")
++        message(FATAL_ERROR "COLD_PROBE_FAIL run ${run}/${RUNS}: exit=${rc}\n--- stdout ---\n${out}\n--- stderr ---\n${err}")
++    endif()
++    math(EXPR every100 "${run} % 100")
++    if(every100 EQUAL 0)
++        string(TIMESTAMP t_now "%s" UTC)
++        math(EXPR elapsed "${t_now} - ${t_start}")
++        message("COLD_PROBE progress ${run}/${RUNS} elapsed_s=${elapsed}")
++    endif()
++endforeach()
++string(TIMESTAMP t_end "%s" UTC)
++math(EXPR elapsed "${t_end} - ${t_start}")
++message("COLD_PROBE_PASS runs=${RUNS} fresh_processes=${RUNS} workers_per_process=8 elapsed_s=${elapsed}")
+diff --git a/tests/forge_sol_S04_tsan_test_20261025.cpp b/tests/forge_sol_S04_tsan_test_20261025.cpp
+new file mode 100644
+index 00000000..96c8b6f4
+--- /dev/null
++++ b/tests/forge_sol_S04_tsan_test_20261025.cpp
+@@ -0,0 +1,62 @@
++// The first Board in this process is constructed behind the eight-thread gate.
++#include "forge/board.hpp"
++
++#include <array>
++#include <barrier>
++#include <cstdint>
++#include <exception>
++#include <iostream>
++#include <string>
++#include <thread>
++
++namespace {
++constexpr int Workers = 8;
++struct Result {
++    bool start_fen = false;
++    bool restored_fen = false;
++    bool kiwi_parsed = false;
++    std::uint64_t start_nodes = 0;
++    std::uint64_t kiwi_nodes = 0;
++    std::string error;
++};
++}
++
++int main() {
++    // No controller Board or attacks::init call is permitted before this gate.
++    std::barrier gate(Workers);
++    std::array<Result, Workers> results{};
++    std::array<std::thread, Workers> threads;
++    for (int i = 0; i < Workers; ++i) {
++        threads[static_cast<std::size_t>(i)] = std::thread([&, i] {
++            gate.arrive_and_wait();
++            auto& row = results[static_cast<std::size_t>(i)];
++            try {
++                forge::Board board;
++                row.start_fen = board.fen() == forge::Board::StandardStartFen;
++                row.start_nodes = board.perft(3);
++                row.restored_fen = board.fen() == forge::Board::StandardStartFen;
++                row.kiwi_parsed = board.set_fen(
++                    "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1");
++                if (row.kiwi_parsed) row.kiwi_nodes = board.perft(2);
++            } catch (const std::exception& error) {
++                row.error = error.what();
++            }
++        });
++    }
++    for (auto& thread : threads) thread.join();
++    bool okay = true;
++    for (int i = 0; i < Workers; ++i) {
++        const auto& row = results[static_cast<std::size_t>(i)];
++        if (!row.start_fen || !row.restored_fen || !row.kiwi_parsed ||
++            row.start_nodes != 8902 || row.kiwi_nodes != 2039 || !row.error.empty()) {
++            std::cerr << "FAIL: cold first Board worker " << i
++                      << " start_nodes=" << row.start_nodes << " kiwi_nodes=" << row.kiwi_nodes
++                      << " start_fen=" << row.start_fen << " restored_fen=" << row.restored_fen
++                      << " kiwi_parsed=" << row.kiwi_parsed << " error=" << row.error << '\n';
++            okay = false;
++        }
++    }
++    if (!okay) return 1;
++    std::cout << "COLD_FIRST_BOARD_PASS workers=8 startpos_d3=8902 kiwipete_d2=2039\n";
++    return 0;
++}
