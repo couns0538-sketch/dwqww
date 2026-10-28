@@ -40,6 +40,9 @@ endif()
 option(FORGE_SPEEDSTACK "Build the node-exact speed stack (S29)" OFF)
 if(FORGE_SPEEDSTACK)
     target_compile_definitions(forge_core PUBLIC FORGE_SPEEDSTACK=1)
+endif()
+
+# S12 null-edge accumulator alias (compile switch + UCI NnueLazyAcc), default OFF.
 if(FORGE_NNUE_LAZY_ACC)
     target_compile_definitions(forge_core PUBLIC FORGE_NNUE_LAZY_ACC=1)
 endif()
