@@ -179,6 +179,7 @@ int main() {
             std::cout << "option name SyzygyPath type string default <empty>\n"
                          "option name SyzygyProbeDepth type spin default 1 min 1 max 10\n"
                          "option name Syzygy50MoveRule type check default true\n";
+            std::cout << "option name CorrHistPlus type spin default 0 min 0 max 7\n";
 #ifdef FORGE_EXPOSE_TUNABLES
             // Development builds advertise the search constants so match
             // runners can set them; release builds accept them silently.
@@ -315,6 +316,15 @@ int main() {
                 else {
                     const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex());
                     std::cout << "info string invalid value for option " << name << std::endl;
+                }
+            } else if (name == "CorrHistPlus") {
+                int value = 0;
+                const auto parsed = std::from_chars(value_text.data(), value_text.data() + value_text.size(), value);
+                if (parsed.ec != std::errc{} || parsed.ptr != value_text.data() + value_text.size()) {
+                    const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex());
+                    std::cout << "info string invalid value for option " << name << std::endl;
+                } else {
+                    forge::options::corr_hist_plus = static_cast<std::uint8_t>(std::clamp(value, 0, 7));
                 }
             } else if (name == "UseNNUE") {
                 if (value_text == "true") forge::nnue::enabled = true;

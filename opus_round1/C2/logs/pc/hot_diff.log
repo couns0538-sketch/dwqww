@@ -1,0 +1,165 @@
+Instruction diff (diff -u) of the two changed hot functions, AL1 s198 lock vs C2 de2f609 (objdump -d; displacements of moved data/targets differ by construction)
+===== forge::Worker::corrected_eval(
+@@ -1,6 +1,8 @@
+ push %rsi
+ push %rbx
++cmpb $0x0,0x28f8d7(%rip)
+ mov %rcx,%r11
++jne 14001abed
+ movslq 0x180(%rdx),%rcx
+ mov 0x198(%rdx),%rax
+ mov 0x48(%r11),%r9
+@@ -8,9 +10,9 @@
+ and $0x3fff,%eax
+ add %rcx,%rax
+ mov (%r9,%rax,4),%r10d
+-mov 0xf11a2(%rip),%r9d
++mov 0xf1095(%rip),%r9d
+ test %r9d,%r9d
+-jle 14001aab5
++jle 14001abc2
+ popcnt 0x108(%rdx),%rax
+ inc %rax
+ popcnt 0x110(%rdx),%rbx
+@@ -96,3 +98,8 @@
+ pop %rbx
+ pop %rsi
+ ret
++pop %rbx
++pop %rsi
++jmp 140103b70
++nop
++data16 cs nopw 0x0(%rax,%rax,1)
+===== forge::Worker::update_correction(
+@@ -1,80 +1,85 @@
+ push %rbx
++cmpb $0x0,0x28f6f8(%rip)
++mov %rcx,%rbx
++jne 14001ad8c
+ sub 0x30(%rsp),%r9d
+-mov 0x198(%rdx),%rax
+-mov $0xfffff800,%ebx
+-movslq 0x180(%rdx),%r11
+ mov 0x48(%rcx),%r10
++mov 0x198(%rdx),%rcx
++mov $0xfffff800,%eax
++movslq 0x180(%rdx),%r11
+ shl $0x8,%r9d
+-and $0x3fff,%eax
+-cmp %ebx,%r9d
+-cmovl %ebx,%r9d
+-mov $0x800,%ebx
+-cmp %ebx,%r9d
+-cmovg %ebx,%r9d
+-mov $0x10,%ebx
++and $0x3fff,%ecx
++cmp %eax,%r9d
++cmovl %eax,%r9d
++mov $0x800,%eax
++cmp %eax,%r9d
++cmovg %eax,%r9d
++mov $0x10,%eax
+ inc %r8d
+-cmp %ebx,%r8d
+-cmovg %ebx,%r8d
+-mov $0xffffe000,%ebx
+-shl $0xe,%r11
++cmp %eax,%r8d
++cmovg %eax,%r8d
+ imul %r8d,%r9d
+-lea (%r11,%rax,1),%r8
+-mov (%r10,%r8,4),%eax
++mov %r11,%r8
++shl $0xe,%r8
++add %r8,%rcx
++mov $0xffffe000,%r11d
++mov (%r10,%rcx,4),%eax
+ sar $0x8,%r9d
+ add %r9d,%eax
+-cmp %ebx,%eax
+-cmovl %ebx,%eax
+-mov $0x2000,%ebx
+-cmp %ebx,%eax
+-cmovg %ebx,%eax
+-mov %eax,(%r10,%r8,4)
+-mov 0xf0f93(%rip),%eax
++cmp %r11d,%eax
++cmovl %r11d,%eax
++mov $0x2000,%r11d
++cmp %r11d,%eax
++cmovg %r11d,%eax
++mov %eax,(%r10,%rcx,4)
++mov 0xf0e5a(%rip),%eax
+ test %eax,%eax
+-jle 14001ac51
++jle 14001ad8a
+ popcnt 0x108(%rdx),%rax
+-mov 0x50(%rcx),%r8
+ lea 0x1(%rax),%rcx
+ movabs $0x100000001b3,%rax
++popcnt 0x110(%rdx),%r11
+ imul %rax,%rcx
+-popcnt 0x110(%rdx),%r10
+-lea 0x1(%r10,%rcx,1),%rcx
+-popcnt 0x118(%rdx),%r10
++mov 0x50(%rbx),%r10
++lea 0x1(%r11,%rcx,1),%rcx
++popcnt 0x118(%rdx),%r11
+ imul %rax,%rcx
+-lea 0x1(%rcx,%r10,1),%rcx
+-popcnt 0x120(%rdx),%r10
++lea 0x1(%rcx,%r11,1),%rcx
++popcnt 0x120(%rdx),%r11
+ imul %rax,%rcx
+-lea 0x1(%rcx,%r10,1),%rcx
+-popcnt 0x128(%rdx),%r10
++lea 0x1(%rcx,%r11,1),%rcx
++popcnt 0x128(%rdx),%r11
+ imul %rax,%rcx
+-lea 0x1(%rcx,%r10,1),%rcx
+-popcnt 0x138(%rdx),%r10
++lea 0x1(%rcx,%r11,1),%rcx
++popcnt 0x138(%rdx),%r11
+ imul %rax,%rcx
+-lea 0x1(%rcx,%r10,1),%rcx
+-popcnt 0x140(%rdx),%r10
++lea 0x1(%rcx,%r11,1),%rcx
++popcnt 0x140(%rdx),%r11
+ imul %rax,%rcx
+-lea 0x1(%rcx,%r10,1),%rcx
+-popcnt 0x148(%rdx),%r10
++lea 0x1(%rcx,%r11,1),%rcx
++popcnt 0x148(%rdx),%r11
+ imul %rax,%rcx
+-lea 0x1(%rcx,%r10,1),%rcx
+-popcnt 0x150(%rdx),%r10
++lea 0x1(%rcx,%r11,1),%rcx
++popcnt 0x150(%rdx),%r11
+ popcnt 0x158(%rdx),%rdx
+ imul %rax,%rcx
+-lea 0x1(%rcx,%r10,1),%rcx
++lea 0x1(%rcx,%r11,1),%rcx
+ imul %rcx,%rax
+ lea 0x1(%rax,%rdx,1),%rax
+ imul $0x3c15,%rax,%rax
+ and $0x3fff,%eax
+-add %rax,%r11
++add %rax,%r8
+ mov $0xffffe000,%eax
+-add (%r8,%r11,4),%r9d
++add (%r10,%r8,4),%r9d
+ cmp %eax,%r9d
+ cmovl %eax,%r9d
+ mov $0x2000,%eax
+ cmp %eax,%r9d
+ cmovg %eax,%r9d
+-mov %r9d,(%r8,%r11,4)
++mov %r9d,(%r10,%r8,4)
+ pop %rbx
+ ret
+-nop
+-nop
++pop %rbx
++jmp 140103fec
++nopl (%rax)
+ data16 cs nopw 0x0(%rax,%rax,1)

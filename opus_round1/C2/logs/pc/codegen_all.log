@@ -1,0 +1,41 @@
+$ python opus_round1/C2/codegen_all.py forge_h256_s198.exe(A: lock) forge_c2.exe(B: C2 de2f609)
+A = D:/grok-pc-data/dwqww/.claude/worktrees/b/base/forge_h256_s198.exe
+B = D:/grok-pc-data/dwqww/.claude/worktrees/b/c2_final2/forge_c2.exe
+filter 'forge::': 126 functions in both, 114 identical code (padding ignored) at the same address mod 64, 12 differ
+ insns_A  insns_B differing mod64_A mod64_B  function
+      50       55         5      16      48  forge::Worker::~Worker()
+      58       64        20      16      16  forge::Worker::clear()
+     316      310       168      16      32  forge::Worker::Worker(forge::SharedSearchState&, int)
+      98      103         5      32      32  forge::Worker::corrected_eval(forge::Board const&, int) const
+      77       83       138      32       0  forge::Worker::update_correction(forge::Board const&, int, int, int)
+     481      143       482      32      32  forge::Searcher::set_threads(int)
+    1314     1312       356      48      48  forge::Worker::search(forge::Board, forge::SearchLimits const&, bool, std::vector<forge::Worker*, std::allocator<forge::Worker*> > const&)
+      97       97         0      48      16  forge::Searcher::search(forge::Board, forge::SearchLimits const&, bool, forge::Searcher::TTAccess)::{lambda()#1}::operator()() const
+       2        2         0      48      16  std::thread::_State_impl<std::thread::_Invoker<std::tuple<forge::Searcher::search(forge::Board, forge::SearchLimits const&, bool, forge::Searcher::TTAccess)::{lambda()#1}> > >::_M_run()
+     821      821         0       0      32  forge::Searcher::search(forge::Board, forge::SearchLimits const&, bool, forge::Searcher::TTAccess)
+     889      889         0       0      16  (anonymous namespace)::parse_limits(std::__cxx11::basic_istringstream<char, std::char_traits<char>, std::allocator<char> >&, forge::Board&)
+      25       25         0      32       0  forge::uci_output_mutex()
+only in A (1):
+  (anonymous namespace)::apply_position(forge::Board&, std::__cxx11::basic_istringstream<char, std::char_traits<char>, std::allocator<char> >&)
+only in B (3):
+  forge::ThreadData::~ThreadData()
+  forge::Worker::corrected_eval_plus(forge::Board const&, int) const
+  forge::Worker::update_correction_plus(forge::Board const&, int, int, int)
+
+$ python opus_round1/C2/codegen_all.py forge_c2base.exe(A: O3 base 0d99f02, same recipe) forge_c2.exe(B: C2 de2f609)
+A = D:/grok-pc-data/dwqww/.claude/worktrees/b/c2_base/forge_c2base.exe
+B = D:/grok-pc-data/dwqww/.claude/worktrees/b/c2_final2/forge_c2.exe
+filter 'forge::': 127 functions in both, 120 identical code (padding ignored) at the same address mod 64, 7 differ
+ insns_A  insns_B differing mod64_A mod64_B  function
+      50       55         5      16      16  forge::ThreadData::~ThreadData()
+      50       55         5      16      48  forge::Worker::~Worker()
+      58       64        20      16      16  forge::Worker::clear()
+     309      310         1      16      32  forge::Worker::Worker(forge::SharedSearchState&, int)
+      98      103         5      32      32  forge::Worker::corrected_eval(forge::Board const&, int) const
+      77       83       138      32       0  forge::Worker::update_correction(forge::Board const&, int, int, int)
+     889      889         0       0      16  (anonymous namespace)::parse_limits(std::__cxx11::basic_istringstream<char, std::char_traits<char>, std::allocator<char> >&, forge::Board&)
+only in A (1):
+  (anonymous namespace)::apply_position(forge::Board&, std::__cxx11::basic_istringstream<char, std::char_traits<char>, std::allocator<char> >&)
+only in B (2):
+  forge::Worker::corrected_eval_plus(forge::Board const&, int) const
+  forge::Worker::update_correction_plus(forge::Board const&, int, int, int)

@@ -1,0 +1,21 @@
+$ PYTHON=python MUTATION_FLAGS=-static bash opus_round1/C2/mutation_check.sh <scratch>   (tree de2f609, MSYS2 g++ 15.2.0)
+BASELINE (unmutated): 0 SUMMARY checks=29227 failures=0 | 
+MUTATION index_stride_63 -> caught (exit 1 SUMMARY checks=29227 failures=3 | FAIL index equals the reference formula (270336 mismatches))
+MUTATION index_type_offset -> caught (exit 1 SUMMARY checks=29227 failures=5 | FAIL index equals the reference formula (294912 mismatches))
+MUTATION clamp_limit_minus1 -> caught (exit 1 SUMMARY checks=29227 failures=4 | FAIL apply = clamp(entry + step - entry x |step| / 8192, +-8192) over the whole domain (257 mismatches))
+MUTATION total_limit_minus1 -> caught (exit 1 SUMMARY checks=29227 failures=5 | FAIL TotalLimit = 2 x CorrectionLimit = 64 cp)
+MUTATION decay_shift_minus1 -> caught (exit 1 SUMMARY checks=29227 failures=5 | FAIL apply = clamp(entry + step - entry x |step| / 8192, +-8192) over the whole domain (4105524 mismatches))
+MUTATION decay_shift_plus1 -> caught (exit 1 SUMMARY checks=29227 failures=3 | FAIL apply = clamp(entry + step - entry x |step| / 8192, +-8192) over the whole domain (4015982 mismatches))
+MUTATION div_pow2_bias_plus1 -> caught (exit 1 SUMMARY checks=29227 failures=13 | FAIL div_pow2<8>(x) == x / 256 for |x| <= 2^22 (16384 mismatches))
+MUTATION div_pow2_floor -> caught (exit 1 SUMMARY checks=29227 failures=7 | FAIL div_pow2<8>(x) == x / 256 for |x| <= 2^22 (4177920 mismatches))
+MUTATION div100_rounding -> caught (exit 1 SUMMARY checks=29227 failures=3 | FAIL div100(x) == x / 100 for |x| <= 2^25 and the int extremes (33554436 mismatches))
+MUTATION step_depth_weight -> caught (exit 1 SUMMARY checks=29227 failures=6 | FAIL step = clamp(residual x 256, +-2048) x min(depth+1,16) / 256 (272 mismatches))
+MUTATION minor_key_no_white_king -> caught (exit 1 SUMMARY checks=29227 failures=498 | FAIL minor key changes iff knights/bishops/kings change: 8/5pkp/5r1n/1P2p1r1/Q1Pp1PP1/7p/2N1R2R/4K3 w - - 4 53 e1d1)
+MUTATION frame_offset -> caught (exit 1 SUMMARY checks=29227 failures=6 | FAIL ply 2: exactly the (White, P-e4, P-e5) continuation entry learns the step)
+MUTATION twin_depth_cap -> caught (exit 1 SUMMARY checks=29227 failures=8 | FAIL bit 2: pawn and material tables updated exactly as with OFF)
+MUTATION clear_keeps_tables -> caught (exit 1 SUMMARY checks=29227 failures=4 | FAIL bit 4: exactly the two non-pawn entries learn the step (96))
+mutation_check status=0
+
+real	2m50.554s
+user	0m0.893s
+sys	0m1.079s

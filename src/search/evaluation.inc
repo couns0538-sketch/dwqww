@@ -6,7 +6,9 @@ namespace forge {
 
 namespace {
 // Hash of the piece counts of both sides, for material-indexed statistics.
-[[nodiscard]] std::uint64_t material_key(const Board& board) {
+// Always inlined: it also has a call site in the cold CorrHistPlus path, and an
+// out-of-line copy would be emitted at the start of the hot .text.
+[[gnu::always_inline]] [[nodiscard]] inline std::uint64_t material_key(const Board& board) {
     std::uint64_t key = 0;
     for (const Color color : {White, Black}) {
         for (int type = Pawn; type <= Queen; ++type) {
@@ -57,6 +59,9 @@ void Worker::record_null_move(SearchStack* ss) {
 }
 
 int Worker::corrected_eval(const Board& board, int raw_eval) const {
+    // CorrHistPlus (default 0 = off): one predictable branch; the cold path
+    // computes this correction plus the extra keys (correction_plus.inc).
+    if (options::corr_hist_plus != 0) [[unlikely]] return corrected_eval_plus(board, raw_eval);
     const std::size_t side = static_cast<std::size_t>(board.side_to_move());
     std::int32_t correction = (*correction_history_)[side][board.pawn_key() & (CorrectionSize - 1U)];
     if (tune::MaterialCorrectionWeight > 0) {
@@ -66,6 +71,9 @@ int Worker::corrected_eval(const Board& board, int raw_eval) const {
 }
 
 void Worker::update_correction(const Board& board, int depth, int best_score, int static_eval) {
+    // CorrHistPlus (default 0 = off): one predictable branch; the cold path
+    // performs this update plus the extra keys (correction_plus.inc).
+    if (options::corr_hist_plus != 0) [[unlikely]] return update_correction_plus(board, depth, best_score, static_eval);
     const std::size_t side = static_cast<std::size_t>(board.side_to_move());
     const int diff = std::clamp((best_score - static_eval) * CorrectionGrain, -CorrectionLimit / 4, CorrectionLimit / 4);
     const int weight = std::min(depth + 1, 16);

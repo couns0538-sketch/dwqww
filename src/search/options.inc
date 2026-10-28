@@ -8,5 +8,6 @@ bool smp_best_thread = false;
 bool lockless_tt = false;
 int syzygy_probe_depth = 1;
 bool syzygy_50_move_rule = true;
+std::uint8_t corr_hist_plus = 0;
 
 } // namespace forge::options

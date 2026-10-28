@@ -1,0 +1,46 @@
+# C2 (CorrHistPlus) evidence that needs threads the development PC must not use: Threads 1 and
+# Threads 8 UCI smoke runs for CorrHistPlus = 0, 1, 2, 4, 7 on release, ASan+UBSan and TSan builds
+# (opus_round1/C2/ci_smp.sh). Read-only; uploads logs as artifacts.
+name: opus-c2-smp
+on:
+  push:
+    branches: ['opus-C2']
+    # Report/log-only pushes do not need a new run.
+    paths-ignore:
+      - 'opus_round1/**/*.md'
+      - 'opus_round1/**/*.log'
+      - 'opus_round1/**/*.tsv'
+      - 'opus_round1/**/*.txt'
+      - 'opus_round1/**/*.diff'
+      - 'opus_round1/**/SHA256SUMS'
+      - 'REPORT.md'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  smp:
+    strategy:
+      fail-fast: false
+      matrix:
+        mode: [release, asan, tsan]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - name: Toolchain
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq g++-14 ninja-build cmake python3
+          g++-14 --version | head -1
+          nproc; lscpu | grep -E 'Model name' | cut -c1-200
+      - name: CorrHistPlus SMP smoke (${{ matrix.mode }})
+        run: bash opus_round1/C2/ci_smp.sh ${{ matrix.mode }} ci_smp_out
+      - name: Upload logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: opus-c2-smp-${{ matrix.mode }}
+          path: |
+            ci_smp_out/*.log
+            ci_smp_out/**/sanitizer_logs_*/**
+          if-no-files-found: warn
