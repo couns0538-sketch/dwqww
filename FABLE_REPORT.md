@@ -248,22 +248,36 @@ holdout 013/014 excluded).)
 
 ## What is left / exact next steps (for the next model)
 
-1. **Training at scale** (the real test of the architecture): run `tools/nnue/fable_nnue_train.py` on the 29 training
-   shards (game-shuffled sampling across shards, not one shard; add a shard-cycling data loader, an LR schedule and
-   epoch-wise exports), residual H512 / 8 mirrored king buckets / 8 output buckets, holdout 013+014. Compare the
-   b0.6 holdout MSE with the AL1 lock net (0.014310). Only then gate (SPRT [0,10] at 10+0.1 vs AL1 s198, options
-   `NNUEArchFile=<net>.fnn3`, `NNUEArch=true`; the engine log must show `info string NNUE v3 active`).
-2. **Speed**: the v3 residual H512 path costs about 1.29x the AL1 time per node at Threads=1 (advisory, loaded PC).
-   Profile where it goes (refresh statistics per node from `RefreshCache::refreshes/columns`, `apply_changes` vs
-   `output_sum`, HCE/runtime-PSQT share) before deciding on H384/H256 or a standalone (non-residual) net, which
-   drops the hand-crafted evaluation from the ON path entirely.
-3. **Engine follow-ups** (not needed for a gate): a `bench`-visible counter of cache refreshes; a `-DFORGE_NNUE_V3_SSE`
-   kernel for non-AVX2 builds (the scalar fallback is correct but slow); `Threads > 1` was not exercised with the
-   option on (each worker owns its state; a TSan run with `NNUEArch true` is the next check — add a
-   `fable/tsan_extra.sh` hook like C4's).
-4. **CI**: opus-ci runs on `fable-*` since M3: runs 40651865876 (M3) and 40652299456 (M4a) are green (release
-   identity ALL OK, FMA 0, `forge_nnue_v3_tests` passed under release / ASan+UBSan / TSan, only the 4 known
-   `forge_tests` lines).
+Success tests of the full brief, status at the last push:
+
+| # | test | status |
+|---|---|---|
+| 1 | option OFF: bench pins, perft5, FMA 0, no movegen change | **PASS** on every engine build (M1, M2, M5 AVX-512; CI release) |
+| 2 | exact parity on 100k positions, 0 mismatches; float vs quantised within 2 cp | **PASS** (100000/100000; max 1.02 cp) |
+| 3 | incremental == full refresh over 1M random make/unmake moves incl. king moves, castling, en passant, promotions; scalar = AVX2 = AVX-512 | **PASS** (1,000,000 plies, 0 mismatches; 1,299,402 kernel comparisons, 0 mismatches) |
+| 4 | NPS ON >= 60% of AL1 at Threads = 1 (goal 90%) | **PASS the 60% bar**: H512 83%, H1024 74% (AVX-512 exe, loaded PC); the 90% goal is not reached |
+| 5 | first net, small short run, validation loss vs the AL1 net | 5-minute single-shard run: worse than HCE (overfits); cross-shard 80-minute run: see the section above (result recorded when it finishes) |
+
+Next steps, in order:
+
+1. **Speed to 90%** (the only unmet goal). The ON residual path costs 1.20x the AL1 time per node at H512. Ideas
+   ranked by expected gain: (a) a standalone (non-residual) net drops the hand-crafted evaluation from the ON path
+   entirely, which the AL1 path still pays (HCE is 57% of the AL1 static-eval time per S37) - requires training the
+   net on the raw score instead of score - hce (`--residual` off, same trainer); (b) count refreshes per evaluation
+   with the cache statistics already kept (`RefreshCache::refreshes/columns`) and try the 4-bucket layout
+   (`--king-buckets 4`) if refreshes dominate; (c) profile `apply_changes` (4 columns x H int16) vs `output_sum`;
+   (d) lazy updates already skip unevaluated plies (replays > 1 are 19% of evaluations in the walk).
+2. **Training at scale**: the streaming loader (`--pos-glob`, 8 x 250k-row buffer, 25-batch refresh) reaches
+   26k positions/s on two CPU threads, i.e. about 95M positions per hour; the AL1 net saw 32 epochs x 230M rows.
+   A fair comparison needs either the GPU (DirectML; untested here) or days of CPU. Keep `--residual`,
+   `--lr-schedule cosine`, validate on the holdout subset, export every N steps, score with
+   `fable_nnue_train.py score` (exact integer emulation) and compare with the AL1 net's 0.014310 (b0.6).
+3. **Gate** only after a net beats the AL1 holdout loss: SPRT [0,10] at 10+0.1 vs AL1 s198 with
+   `NNUEArchFile=<net>.fnn3`, `NNUEArch=true` (the engine log must show `info string NNUE v3 active`), then the
+   usual confirmation at 40+0.4. Until then everything is UNPROVEN and no Elo claim is made.
+4. **Engine follow-ups** (not needed for a gate): an SSE kernel for non-AVX2 builds (the scalar fallback is
+   correct but slow), a `bench`-visible refresh counter, DirectML smoke of the trainer's ops (`embedding_bag`,
+   gather, clamp, round).
 
 ## Files of this job
 
