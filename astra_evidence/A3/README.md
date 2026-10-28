@@ -49,3 +49,6 @@ Final native OFF comparison: **PASS**, all five depths on both real executables.
 | candidate | 20 | 12389307 | 11184 | 1107770 |
 | base | 22 | 34048354 | 31215 | 1090768 |
 | candidate | 22 | 34048354 | 41959 | 811467 |
+
+## Final-review addendum
+The later review reproduced a false PASS for invalid candidate OFF types/ranges (including spin0 with min1, or button=false). The correction on astra-notes uses the companion `tools/check_bundle_opts.py` parser, validates all requested values, and rejects changing the controlled Threads/Hash/OwnBook settings. Distribute both files with their repository-relative layout.14 OFF-checker methods pass after10 failing RED subcases;17 option-checker methods and11 independent post-fix probes pass. Original transcripts above remain unchanged. New raw evidence is in `../final_review/`.

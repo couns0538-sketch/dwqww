@@ -29,3 +29,10 @@ Owner confirmed packe2r lives only on the gate PC and its merge was completed el
 
 ## A5 — complete; hosted execution UNVERIFIED
 Reused existing perft tests in a dedicated Astra CI workflow. Local replay PASS: startpos d5 4865609, Kiwipete d4 4085603; negative fixture rejected. API access to hosted Actions returned Forbidden. Evidence: astra_evidence/A5/. Proceed to A6 and the owner-requested final 20-minute review.
+
+## A6 — final review resumed after environment outage
+The environment disconnected during the first review and recovered on the next user turn. Local review files and completed serial CTest survived: 55/56 PASS, only forge_tests with the exact four baseline diagnostics; SMP passed. Original 52/54 run retained.
+
+Review reproduced an A3 false positive for OFF values incompatible with advertised option types/ranges. Fix now uses the existing strict option parser, validates controlled settings and candidate OFF values, and rejects overrides of Threads/Hash/OwnBook. RED: 10 failing subcases; GREEN: 14 OFF-checker test methods plus 17 option-checker tests. Native all-five comparison and independent re-review running. No new engine source changes.
+
+Fresh 20-minute review clock is in astra_evidence/final_review/resumed_review_clock.json; do not treat IN_PROGRESS as complete. Next: finish native verification, preserve independent reviews, publish final report, verify remote head.

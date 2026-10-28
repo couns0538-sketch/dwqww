@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # IDEA_SOURCE: Owner A3; Forge's native UCI bench interface. No other engine code.
 set -euo pipefail
-exec python3 - "$@" <<'PY'
+exec python3 -B - "${BASH_SOURCE[0]}" "$@" <<'PY'
 import argparse
 import hashlib
 import json
@@ -11,6 +11,11 @@ from pathlib import Path
 import re
 import subprocess
 import sys
+
+# Share the strict UCI advertisement parser with the companion bundle checker.
+script = Path(sys.argv.pop(1)).resolve()
+sys.path.insert(0, str(script.parents[1] / 'tools'))
+from check_bundle_opts import parse_options
 
 ap = argparse.ArgumentParser(description='Compare fresh-process OFF bench nodes with an exact base; keep raw evidence.')
 ap.add_argument('base', type=Path)
@@ -29,11 +34,18 @@ try:
     if not math.isfinite(a.timeout) or a.timeout <= 0:
         raise ValueError('timeout must be finite and positive')
     settings = []
+    names_seen = set()
     for item in a.off:
         name, sep, value = item.rpartition('=')
-        if not sep or not name.strip() or any(c in name for c in '\r\n') or value not in ('false', '0'):
+        if not sep or not name.strip() or any(c in name for c in '\r\n\x00') or value not in ('false', '0'):
             raise ValueError('--off requires NAME=false or NAME=0')
-        settings.append((name.strip(), value))
+        name = name.strip()
+        if name.casefold() in ('threads', 'hash', 'ownbook'):
+            raise ValueError(f'--off cannot override controlled option {name}')
+        if name.casefold() in names_seen:
+            raise ValueError(f'duplicate --off option {name}')
+        names_seen.add(name.casefold())
+        settings.append((name, value))
     exes = {'base': a.base.resolve(strict=True), 'candidate': a.candidate.resolve(strict=True)}
     def sha(path):
         with path.open('rb') as stream:
@@ -71,10 +83,20 @@ try:
             if code != 0: raise ValueError(f'{mode} d{depth}: engine exit {code}')
             if 'uciok' not in stdout.splitlines(): raise ValueError(f'{mode}: no uciok')
             if 'readyok' not in stdout.splitlines(): raise ValueError(f'{mode}: no readyok')
-            if mode == 'candidate':
-                names = set(re.findall(r'^option name (.*?) type \w+', stdout, re.M))
-                for name, _ in settings:
-                    if name not in names: raise ValueError(f'candidate has no option {name}')
+            advertised = parse_options(stdout.splitlines())
+            requested = [('Threads', '1'), ('Hash', '16'), ('OwnBook', 'false')]
+            if mode == 'candidate': requested += settings
+            for name, value in requested:
+                if name not in advertised: raise ValueError(f'{mode} has no option {name}')
+                option = advertised[name]
+                if option['type'] == 'check':
+                    if value not in ('false', 'true'):
+                        raise ValueError(f'{mode}: {name} check requires true or false, got {value}')
+                elif option['type'] == 'spin':
+                    if value not in ('0', '1', '16') or not option['min'] <= int(value) <= option['max']:
+                        raise ValueError(f'{mode}: {name} value {value} is not within advertised spin range')
+                else:
+                    raise ValueError(f'{mode}: {name} type {option["type"]} cannot accept requested value {value}')
             if re.search(r'info string (?:unknown|invalid|unrecognized)', stdout, re.I):
                 raise ValueError(f'{mode}: engine rejected an option or command')
             matches = re.findall(r'^info string bench depth (\d+) nodes (\d+) time (\d+) nps (\d+)\s*$', stdout, re.M)

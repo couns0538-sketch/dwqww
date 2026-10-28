@@ -1,0 +1,66 @@
+{
+  "build-base": {
+    "command": [
+      "/usr/bin/g++-14",
+      "-std=c++20",
+      "-O0",
+      "-DFORGE_NNUE_HIDDEN=256",
+      "-I/tmp/forge-astra-20261029/include",
+      "/tmp/astra-review-smp/comparator_grid.cpp",
+      "/tmp/forge-astra-build-base-20261029/libforge_core.a",
+      "-o",
+      "/tmp/astra-review-smp/grid-base"
+    ],
+    "returncode": 0
+  },
+  "build-candidate": {
+    "command": [
+      "/usr/bin/g++-14",
+      "-std=c++20",
+      "-O0",
+      "-DFORGE_NNUE_HIDDEN=256",
+      "-I/tmp/forge-astra-20261029/include",
+      "-DCANDIDATE",
+      "/tmp/astra-review-smp/comparator_grid.cpp",
+      "/tmp/forge-astra-build-j5fix-20261029/libforge_core.a",
+      "-o",
+      "/tmp/astra-review-smp/grid-candidate"
+    ],
+    "returncode": 0
+  },
+  "base": {
+    "command": [
+      "/tmp/astra-review-smp/grid-base"
+    ],
+    "returncode": 0,
+    "stdout_sha256": "2814961742c79b7ec75cc925ecd508a8fdefe3f985e19f752c2f0325dc6418ae",
+    "summary": "cases=7200 mate_protection_violations=0 tb_protection_violations=0"
+  },
+  "OFF": {
+    "command": [
+      "/tmp/astra-review-smp/grid-candidate"
+    ],
+    "returncode": 0,
+    "stdout_sha256": "2814961742c79b7ec75cc925ecd508a8fdefe3f985e19f752c2f0325dc6418ae",
+    "summary": "cases=7200 mate_protection_violations=0 tb_protection_violations=0"
+  },
+  "ON": {
+    "command": [
+      "/tmp/astra-review-smp/grid-candidate",
+      "on"
+    ],
+    "returncode": 0,
+    "stdout_sha256": "a8fa42891b145b49e288c4b7a777cfea2528e1e4250810dd19db379f29928360",
+    "summary": "cases=7200 mate_protection_violations=0 tb_protection_violations=0"
+  },
+  "verdict": "PASS: 7200 comparator cases/mode; base/OFF byte identical; ON differs; zero main mate or protected TB monotonicity violations.",
+  "/tmp/astra-review-smp/comparator_grid.cpp": {
+    "sha256": "1a64acf3b1f706de61d9032372d90308d8376407a144e62b4b50662082277eaa"
+  },
+  "/tmp/forge-astra-build-base-20261029/libforge_core.a": {
+    "sha256": "5d89e7d1fa81e5428f362e5e17f89c896a8d2e8f9dcd91bce3e89313ce6993e7"
+  },
+  "/tmp/forge-astra-build-j5fix-20261029/libforge_core.a": {
+    "sha256": "6ebd3fe8d846b8859f10dd89ffccc7aa9f1234a37b911cbaa8b3f19c24b5af7b"
+  }
+}
