@@ -466,6 +466,13 @@ int main() {
             // Search option added after AL1 s198 (Astra A1); default 0 = the lock's search (forge/hist_rework.hpp).
             std::cout << "option name HistRework type spin default 0 min 0 max " << forge::hist_rework::MaxLevel << "\n";
             std::cout << "option name IntendedThreefold type check default false\n";
+#if FORGE_NNUE_LAZY_ACC
+            if (forge::nnue::available()) std::cout << "option name NnueLazyAcc type check default false\n";
+#endif
+#ifdef FORGE_PROF
+            std::cout << "option name Profile type check default false\n";
+#endif
+
             // R3-4: the 20 search constants for SPSA tuning (forge/search_tune.hpp, tools/spsa), listed in every
             // build; their defaults are the AL1 s198 values, so a run that leaves them alone searches the same tree.
             for (const std::string_view name : forge::tune::AdvertisedParameters) {
@@ -698,6 +705,25 @@ int main() {
                     const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex());
                     std::cout << "info string invalid value for option IntendedThreefold" << std::endl;
                 }
+#if FORGE_NNUE_LAZY_ACC
+            } else if (name == "NnueLazyAcc") {
+                if (value_text == "true") forge::lazy_acc::requested.store(true, std::memory_order_relaxed);
+                else if (value_text == "false") forge::lazy_acc::requested.store(false, std::memory_order_relaxed);
+                else {
+                    const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex());
+                    std::cout << "info string invalid value for option NnueLazyAcc" << std::endl;
+                }
+                searcher.clear_hash();
+#endif
+#ifdef FORGE_PROF
+            } else if (name == "Profile") {
+                if (value_text=="true") searcher.set_profiling(true);
+                else if (value_text=="false") searcher.set_profiling(false);
+                else {
+                    const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex());
+                    std::cout << "info string invalid value for option Profile" << std::endl;
+                }
+#endif
             } else if (name == "UseNNUE") {
                 if (value_text == "true") forge::nnue::enabled = true;
                 else if (value_text == "false") forge::nnue::enabled = false;
@@ -903,6 +929,11 @@ int main() {
                     if (run->answered.exchange(true)) return;
                     {
                         const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex());
+#ifdef FORGE_PROF
+                        if (searcher.profiling_active()) {
+                            forge::prof::write_snapshot(std::cout,searcher.profile_snapshot());
+                        }
+#endif
                         std::cout << "bestmove " << best << prediction << std::endl;
                     }
                     {
@@ -921,7 +952,11 @@ int main() {
                                            ponder_enabled, limits.search_moves_specified, limits.search_moves});
                 }
             }
-        } else if (command == "bench") {
+        } else if (command == "bench"
+#ifdef FORGE_PROF
+                   || command == "bench_prof"
+#endif
+        ) {
             // Fixed-depth search over a small position set; prints a node
             // signature and speed for quick regression and performance checks.
             control_priority(false);
@@ -945,6 +980,12 @@ int main() {
 #ifdef FORGE_S13_TT_CHILD_PREFETCH
             bench_searcher.set_s13_tt_child_prefetch(searcher.s13_tt_child_prefetch_enabled());
 #endif
+#ifdef FORGE_PROF
+            const bool profile_bench=command=="bench_prof";
+            bench_searcher.set_profiling(profile_bench);
+            forge::prof::Snapshot profile_total;
+#endif
+
             for (const std::string_view fen : fens) {
                 forge::Board bench_board;
                 if (!bench_board.set_fen(fen)) continue;
@@ -953,10 +994,17 @@ int main() {
                 bench_searcher.clear();
                 total_nodes += bench_searcher.search(
                     bench_board, limits, false, forge::Searcher::TTAccess::Exclusive).nodes;
+#ifdef FORGE_PROF
+                if (profile_bench) forge::prof::merge(profile_total,bench_searcher.profile_snapshot());
+#endif
+
             }
             const auto elapsed_ms = std::chrono::duration_cast<std::chrono::milliseconds>(
                 std::chrono::steady_clock::now() - start).count();
             const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex());
+#ifdef FORGE_PROF
+            if (profile_bench) forge::prof::write_snapshot(std::cout,profile_total);
+#endif
             std::cout << "info string bench depth " << depth << " nodes " << total_nodes << " time " << elapsed_ms
                       << " nps " << (elapsed_ms > 0 ? total_nodes * 1000U / static_cast<std::uint64_t>(elapsed_ms) : 0)
                       << std::endl;

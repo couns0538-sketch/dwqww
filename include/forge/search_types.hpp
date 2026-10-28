@@ -2,11 +2,31 @@
 
 #include "forge/board.hpp"
 
+#include <atomic>
 #include <chrono>
 #include <cstdint>
 #include <vector>
 
 namespace forge {
+
+#ifndef FORGE_NNUE_LAZY_ACC
+#define FORGE_NNUE_LAZY_ACC 0
+#endif
+
+#if FORGE_NNUE_LAZY_ACC
+namespace lazy_acc {
+// UCI joins all search workers before changing this pending configuration.
+extern std::atomic<bool> requested;
+}
+struct LazyAccStats {
+    std::uint64_t refreshes = 0;
+    std::uint64_t updates = 0;
+    std::uint64_t zero_dirty_edges = 0;
+    std::uint64_t copies_avoided = 0;
+    std::uint64_t alias_hits = 0;
+    std::uint64_t evaluations = 0;
+};
+#endif
 
 struct SearchLimits {
 #ifdef FORGE_S13_TT_CHILD_PREFETCH
@@ -45,6 +65,9 @@ struct SearchInfo {
     std::vector<Move> pv;
     // A searchmoves intersection with no legal moves is not checkmate or stalemate.
     bool restricted_root_empty = false;
+#if FORGE_NNUE_LAZY_ACC
+    LazyAccStats lazy_acc_stats{};
+#endif
 };
 
 constexpr int MaxPly = 128;

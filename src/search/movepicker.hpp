@@ -59,14 +59,23 @@ public:
             case MainTT:
             case QsTT:
             case EvasionTT:
+#ifdef FORGE_PROF
+                prof::picker_stage(static_cast<std::size_t>(stage_));
+#endif
                 stage_ = static_cast<Stage>(stage_ + 1);
                 return tt_move_;
 
             case GenerateCaptures:
+#ifdef FORGE_PROF
+                prof::picker_stage(static_cast<std::size_t>(stage_));
+#endif
                 generate_captures();
                 stage_ = GoodCaptures;
                 [[fallthrough]];
             case GoodCaptures:
+#ifdef FORGE_PROF
+                prof::picker_stage(static_cast<std::size_t>(stage_));
+#endif
                 while (index_ < count_) {
                     const Move move = pick_best();
                     if (move == tt_move_) continue;
@@ -79,24 +88,39 @@ public:
                 stage_ = Killer1;
                 [[fallthrough]];
             case Killer1:
+#ifdef FORGE_PROF
+                prof::picker_stage(static_cast<std::size_t>(stage_));
+#endif
                 stage_ = Killer2;
                 if (!skip_quiets && is_valid_quiet(killers_[0])) return killers_[0];
                 [[fallthrough]];
             case Killer2:
+#ifdef FORGE_PROF
+                prof::picker_stage(static_cast<std::size_t>(stage_));
+#endif
                 stage_ = CounterMove;
                 if (!skip_quiets && is_valid_quiet(killers_[1]) && killers_[1] != killers_[0]) return killers_[1];
                 [[fallthrough]];
             case CounterMove:
+#ifdef FORGE_PROF
+                prof::picker_stage(static_cast<std::size_t>(stage_));
+#endif
                 stage_ = GenerateQuiets;
                 if (!skip_quiets && is_valid_quiet(counter_) && counter_ != killers_[0] && counter_ != killers_[1]) {
                     return counter_;
                 }
                 [[fallthrough]];
             case GenerateQuiets:
+#ifdef FORGE_PROF
+                prof::picker_stage(static_cast<std::size_t>(stage_));
+#endif
                 if (!skip_quiets) generate_quiets();
                 stage_ = QuietMoves;
                 [[fallthrough]];
             case QuietMoves:
+#ifdef FORGE_PROF
+                prof::picker_stage(static_cast<std::size_t>(stage_));
+#endif
                 if (!skip_quiets) {
                     while (index_ < count_) {
                         const Move move = pick_best();
@@ -108,14 +132,23 @@ public:
                 bad_index_ = 0;
                 [[fallthrough]];
             case BadCaptures:
+#ifdef FORGE_PROF
+                prof::picker_stage(static_cast<std::size_t>(stage_));
+#endif
                 if (bad_index_ < bad_count_) return bad_captures_[bad_index_++];
                 return Move::none();
 
             case QsGenerate:
+#ifdef FORGE_PROF
+                prof::picker_stage(static_cast<std::size_t>(stage_));
+#endif
                 generate_captures();
                 stage_ = QsCaptures;
                 [[fallthrough]];
             case QsCaptures:
+#ifdef FORGE_PROF
+                prof::picker_stage(static_cast<std::size_t>(stage_));
+#endif
                 while (index_ < count_) {
                     const Move move = pick_best();
                     if (move == tt_move_) continue;
@@ -124,10 +157,16 @@ public:
                 return Move::none();
 
             case EvasionGenerate:
+#ifdef FORGE_PROF
+                prof::picker_stage(static_cast<std::size_t>(stage_));
+#endif
                 generate_evasions();
                 stage_ = Evasions;
                 [[fallthrough]];
             case Evasions:
+#ifdef FORGE_PROF
+                prof::picker_stage(static_cast<std::size_t>(stage_));
+#endif
                 while (index_ < count_) {
                     const Move move = pick_best();
                     if (move == tt_move_) continue;

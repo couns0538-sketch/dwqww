@@ -1,0 +1,156 @@
+# step 1: real-file run of jobA_cause.py (read-only; not a timed run; machine exclusive: no)
+# date_utc 2026-10-27T17:53:26Z
+# inputs: sol 17aa0cae=17aa0cae1d36bc88bf93e873905c058e0de5faac lock d4f4312=d4f43124dde1d1e37de90e18930e374f32ea7ffa o2 origin/opus-O2=82282b09f606d7919028d54f7118f29897432786
+# qa-dir: lock archive forge_LOCK_AL1_s198_FULL_20261026_1039/7_history/rejected_and_shelved/int32_exact_h256e12_20261025
+# cmd: nice -n 19 python -I jobA_cause.py --repo <opus worktree> --qa-dir <qa-dir> --json logs/jobA_cause.json
+# python: Python 3.14.7
+
+====================================================================================================
+1. Accumulator work counters, Sol's raw bench logs (Job A feature build, lock and buffix bases)
+====================================================================================================
+20 logs parsed; nodes = {11: 308972, 13: 745494, 16: 2460422, 20: 11901452, 22: 31111774} in every log; ON runs every construction in int32, OFF none.
+depth refreshes    updates evaluations  refresh/(refresh+update) updates/refresh
+   11         8     238992      194803              0.003347280%          29,874
+   13         8     571275      468251              0.001400357%          71,409
+   16         8    1862090     1529986              0.000429623%         232,761
+   20         8    9547266     8129843              0.000083794%       1,193,408
+   22         8   23231031    19748055              0.000034437%       2,903,879
+Same counts for lock and buffix, OFF and ON, at every depth (checked).
+
+====================================================================================================
+2. Sol's advisory ABBA (shared Xeon 8573C, GCC 14.2 -march=znver5 static): recomputed from the 80 raw logs
+====================================================================================================
+d13: raw logs reproduce all 20/20 controller ratios exactly; median B/A = 0.9760 (controller 0.9760)
+     95% block-bootstrap CI of the median [0.9320, 1.0091]; ratio range 0.505..2.856; 12/20 below 1 (sign test p = 0.503)
+     A bench time ms min/median/max [805, 898.0, 4581]; B [830, 928.5, 1736]
+d16: raw logs reproduce all 20/20 controller ratios exactly; median B/A = 0.9298 (controller 0.9298)
+     95% block-bootstrap CI of the median [0.9105, 0.9807]; ratio range 0.643..1.184; 15/20 below 1 (sign test p = 0.041)
+     A bench time ms min/median/max [2431, 2608.0, 3461]; B [2586, 2781.0, 4352]
+
+====================================================================================================
+3. QA's box ABBA arrays (shared Intel Xeon box, g++-14 -march=x86-64-v3, CPU1, nice 19): recomputed
+====================================================================================================
+abba_results.json: sha256 7782c9df0a4a4a48c5ac20ba47e964cb6b4dd35ece400b15bdf2434359a55555
+  C1_swON_ON_vs_lock_d13                   switch-ON build, option ON  vs  plain lock           d13: median 0.9534 CI95 [0.9375, 0.9695] below1 19/20 (p 0.0000)
+  C1_swON_ON_vs_lock_d16                   switch-ON build, option ON  vs  plain lock           d16: median 0.9580 CI95 [0.9483, 0.9820] below1 16/20 (p 0.0118)
+  C2_swON_ON_vs_swON_OFF_d13               same binary: option ON  vs  option OFF               d13: median 0.9570 CI95 [0.9461, 0.9644] below1 19/20 (p 0.0000)
+  C2_swON_ON_vs_swON_OFF_d16               same binary: option ON  vs  option OFF               d16: median 0.9539 CI95 [0.9449, 0.9618] below1 16/20 (p 0.0118)
+  C3_default_build_vs_lock_d13             switch-OFF build  vs  plain lock (first run)         d13: median 0.9849 CI95 [0.9630, 1.0022] below1 12/20 (p 0.5034)
+  C3_default_build_vs_lock_d16             switch-OFF build  vs  plain lock (first run)         d16: median 1.0081 CI95 [0.9946, 1.0257] below1 7/20 (p 0.2632)
+  C4_buffix_swON_ON_vs_buffix_d13          buffix + switch-ON build, option ON  vs  buffix      d13: median 0.9558 CI95 [0.9413, 0.9649] below1 17/20 (p 0.0026)
+  C4_buffix_swON_ON_vs_buffix_d16          buffix + switch-ON build, option ON  vs  buffix      d16: median 0.9612 CI95 [0.9505, 0.9845] below1 16/20 (p 0.0118)
+abba_C3_rerun.json: sha256 80a076887137a7f35917d741b64161870a7bb48dafc9b76acb48d5f9d76a8e14
+  C3_default_build_vs_lock_rerun20_d13     switch-OFF build  vs  plain lock (20-block rerun)    d13: median 0.9943 CI95 [0.9788, 1.0091] below1 24/40 (p 0.2682)
+  C3_default_build_vs_lock_rerun20_d16     switch-OFF build  vs  plain lock (20-block rerun)    d16: median 1.0049 CI95 [0.9915, 1.0133] below1 15/40 (p 0.1539)
+All stored medians reproduced from the raw nps quadruples.
+
+====================================================================================================
+4. Machine code of the timed candidate B (exe aaf0f890) and of the compiled-out build (exe f4365f19)
+====================================================================================================
+B (feature build, ON-capable; the timed binary): forge_sol_a_lock_checks_20261025/... sha256 f768bc90813bb8b2...
+   insns  zmm  ymm  xmm vpmovsxwd vcvtdq2ps fma tls++ call  function
+     167  107    0    0         2         2   0     0    7  weights
+      76    0   29   25         0         0   0     0    1  evaluate_values
+      53    0    0    0         0         0   0     0    2  exact_network_grid_safe
+     276   48    5    3         2         0   0     2    2  refresh
+    1141  240   16   20         4         0   0     2    2  update
+      44    0    7    0         0         2   0     1    1  evaluate
+      98    0    0    3         0         0   0     0    0  dirty_pieces
+compiled-out build (switch OFF): forge_sol_a_compiled_out_checks_20261025/... sha256 bba81094dd8cd55e...
+   insns  zmm  ymm  xmm vpmovsxwd vcvtdq2ps fma tls++ call  function
+     167  107    0    0         2         2   0     0    7  weights
+     189   48    0    3         0         0   0     1    2  refresh
+     787  240    0   23         0         0   0     1    2  update
+      84    0   29   25         0         0   0     1    1  evaluate
+      98    0    0    3         0         0   0     0    0  dirty_pieces
+
+  B, int32 update loop (update_exact inlined into update), 0x41c4a0..0x41c540, non-padding instructions:
+    41c4a0: vpmovsxwd (%r9,%rax,1),%ymm2
+    41c4a6: cmpb   $0x0,0xd(%rcx)
+    41c4aa: vpaddd %ymm1,%ymm2,%ymm0
+    41c4ae: jne    41c4b4
+    41c4b0: vpsubd %ymm2,%ymm1,%ymm0
+    41c4b4: cmp    $0x2,%edx
+    41c4b7: je     41c500
+    41c4b9: vpmovsxwd (%r10,%rax,1),%ymm2
+    41c4bf: cmpb   $0x0,0x15(%rcx)
+    41c4c3: vpaddd %ymm2,%ymm0,%ymm1
+    41c4c7: jne    41c4cd
+    41c4c9: vpsubd %ymm2,%ymm0,%ymm1
+    41c4cd: cmp    $0x3,%edx
+    41c4d0: je     41c53a
+    41c4d2: vpmovsxwd (%rbx,%rax,1),%ymm2
+    41c4d8: cmpb   $0x0,0x1d(%rcx)
+    41c4dc: vpsubd %ymm2,%ymm1,%ymm0
+    41c4e0: je     41c500
+    41c4e2: vpaddd %ymm2,%ymm1,%ymm0
+    41c500: vmovdqa %ymm0,(%rsi,%rax,2)
+    41c505: add    $0x10,%rax
+    41c509: cmp    $0x200,%rax
+    41c50f: je     41c540
+    41c511: mov    0x20(%rcx),%edx
+    41c514: vmovdqa (%rdi,%rax,2),%ymm0
+    41c519: test   %edx,%edx
+    41c51b: jle    41c500
+    41c51d: vpmovsxwd (%r8,%rax,1),%ymm2
+    41c523: cmpb   $0x0,0x5(%rcx)
+    41c527: vpaddd %ymm0,%ymm2,%ymm1
+    41c52b: jne    41c531
+    41c52d: vpsubd %ymm2,%ymm0,%ymm1
+    41c531: cmp    $0x1,%edx
+    41c534: jne    41c4a0
+    41c53a: vmovdqa %ymm1,%ymm0
+    41c53e: jmp    41c500
+  B, int32 -> float conversion loop at the top of every ON evaluate(), 0x41cf00..0x41cf28:
+    41cf00: vcvtdq2ps (%rcx,%rax,1),%ymm0
+    41cf05: vmulps %ymm1,%ymm0,%ymm0
+    41cf09: vmovaps %ymm0,(%rdi,%rax,1)
+    41cf0e: vcvtdq2ps (%rdx,%rax,1),%ymm0
+    41cf13: vmulps %ymm1,%ymm0,%ymm0
+    41cf17: vmovaps %ymm0,(%rsi,%rax,1)
+    41cf1c: add    $0x20,%rax
+    41cf20: cmp    $0x400,%rax
+    41cf26: jne    41cf00
+
+  Dynamic instructions per accumulator update, kernel loop only (both perspectives, 512 lanes):
+    quiet  : float (OFF) 65 straight-line instructions per perspective (64 zmm = 16 lanes each) -> 130;  int32 (ON) 21 per 8 lanes incl. 6 branches (path checked) x 64 -> 1344  (10.3x)
+    capture: float (OFF) 83 straight-line instructions per perspective (80 zmm = 16 lanes each) -> 166;  int32 (ON) 30 per 8 lanes incl. 9 branches (path checked) x 64 -> 1920  (11.6x)
+    evaluate: ON adds the conversion loop, 9 instructions x 32 iterations = 288 per call, plus 2 KiB of stack stores and an out-of-line call to evaluate_values
+  MODEL (static, not a measurement): at d13 (571,275 updates, 468,251 evaluations) the ON path executes about 0.83-1.14 G more instructions than OFF (all-quiet .. all-capture move mix; the mix is not logged). Instructions are not cycles; see REPORT.md.
+
+====================================================================================================
+5. O2's callgrind, bench 13 on AL1 s198 (CI run 40410897098; box recipe, g++-14; unit = instructions Ir)
+====================================================================================================
+profile_self_lock.txt: total 5,009,901,526 Ir; 20 listed lines, smallest listed 49,030,551 Ir (0.98%); nnue::refresh listed: False
+      414,046,564 ( 8.26%)  lock_src/src/nnue.cpp:forge::nnue::update(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::n
+      205,304,330 ( 4.10%)  /usr/lib/gcc/x86_64-linux-gnu/14/include/avxintrin.h:forge::nnue::evaluate(forge::Board const&, forge::nnue::A
+       54,925,574 ( 1.10%)  lock_src/src/nnue.cpp:forge::nnue::evaluate(forge::Board const&, forge::nnue::Accumulator const&)
+       51,681,036 ( 1.03%)  lock_src/src/eval.cpp:forge::Evaluator::update_runtime_psqt(forge::Evaluator::RuntimePsqt const&, forge::Evalu
+profile_self_branch.txt: total 4,990,221,300 Ir; 20 listed lines, smallest listed 51,681,036 Ir (1.04%); nnue::refresh listed: False
+      205,304,330 ( 4.11%)  /usr/lib/gcc/x86_64-linux-gnu/14/include/avxintrin.h:forge::nnue::evaluate(forge::Board const&, forge::nnue::A
+      183,154,624 ( 3.67%)  /usr/lib/gcc/x86_64-linux-gnu/14/include/avxintrin.h:forge::nnue::update(forge::nnue::Accumulator const&, forg
+      179,834,109 ( 3.60%)  src/nnue.cpp:forge::nnue::update(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::Dirt
+       54,925,574 ( 1.10%)  src/nnue.cpp:forge::nnue::evaluate(forge::Board const&, forge::nnue::Accumulator const&)
+       51,681,036 ( 1.04%)  src/eval.cpp:forge::Evaluator::update_runtime_psqt(forge::Evaluator::RuntimePsqt const&, forge::Evaluator::Run
+Not listed means below the smallest listed line. O2's REPORT.md (section 3) puts refresh below 0.1%; 8 refreshes against ~10^6 updates make it ~1e-5 of the NNUE work.
+
+====================================================================================================
+6. AL1 lock source (d4f4312): where accumulators are refreshed and updated
+====================================================================================================
+  src/search.cpp:599: int Worker::static_evaluate(const Board& board, SearchStack* ss) {
+  src/search.cpp:607: nnue::refresh(board, ss->accumulator);
+  src/search.cpp:611: nnue::update((ss - i - 1)->accumulator, (ss - i)->accumulator, (ss - i)->dirty);
+  src/search.cpp:623: void Worker::record_move(SearchStack* ss, const Board& board, const Move& move) {
+  src/search.cpp:627: (ss + 1)->dirty = nnue::dirty_pieces(board, move);
+  src/search.cpp:628: (ss + 1)->accumulator.valid = false;
+  src/search.cpp:632: void Worker::record_null_move(SearchStack* ss) {
+  src/search.cpp:633: (ss + 1)->dirty.count = 0;
+  src/search.cpp:634: (ss + 1)->accumulator.valid = false;
+  src/search.cpp:1363: entry.accumulator.valid = false;
+  src/search.cpp:1367: nnue::refresh(board, ss->accumulator);
+  nnue::refresh call sites: [607, 1367] (static_evaluate fallback when no ancestor is valid, and the once-per-search root refresh)
+
+====================================================================================================
+RESULT: all inputs parsed and cross-checked (see REPORT.md for the interpretation)
+====================================================================================================
+# exit 0

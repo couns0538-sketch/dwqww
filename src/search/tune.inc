@@ -10,6 +10,22 @@ namespace search_options {
 int hist_rework = 0;
 } // namespace search_options
 
+#if FORGE_NNUE_LAZY_ACC
+namespace lazy_acc {
+std::atomic<bool> requested{false};
+}
+namespace {
+std::atomic<bool> lazy_acc_active_announced{false};
+// Only static_evaluate_lazy creates aliases; every target is physical and valid.
+SearchStack* computed_owner(SearchStack* frame) {
+    if (frame->accumulator.valid) return frame;
+    SearchStack* owner = frame->accumulator_owner;
+    return owner != nullptr && owner < frame && owner->accumulator.valid
+        && owner->accumulator_owner == nullptr ? owner : nullptr;
+}
+}
+#endif
+
 namespace net_scale {
 // S41: UCI NetScale, percent; 100 = OFF (constant-initialised, no constructor code).
 int percent = Default;
