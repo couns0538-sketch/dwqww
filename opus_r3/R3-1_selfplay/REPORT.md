@@ -14,6 +14,7 @@ at nice 19 / idle priority, about 2.7 cores during the final run). No Elo or spe
 | base head 2432670b | off: 500 games, 50640 plies, 0 errors. all_on: 500 games, 50980 plies, 0 crashes/illegal/double bestmoves/timeouts, 122 info lines after a HardDeadline watchdog bestmove (defect, reported, fixed in 5792074a). Other base configs stopped on request | logs/base_2432670b/ |
 | HardDeadline repro (repro_late_info.py, every other option OFF) | 2432670b: 2 late lines in 200 rounds (134 watchdog answers); 330237f3: 0 in 1100 rounds (480 watchdog answers) | logs/repro_late_info_2432670b.log, logs/final_330237f3/repro_late_info.log |
 | final head 330237f3: 36 configs x 500 games (every runtime option ON alone, every build switch ON alone incl. FORGE_NNUE_INT16 + NnueInt16 and FORGE_ATTACKS_INIT_ONCE, 3 all-ON variants) | **PASS**: 36/36 configs x 500, 18000 games, 1869703 plies, 0 errors (0 crashes, illegal moves, double bestmoves, timeouts, malformed output); 3040 HardDeadline watchdog answers, 0 late lines | logs/final_330237f3/MATRIX.md, summaries/ |
+| final engine head 064af732 (main session, same harness): the options added after 330237f3, SmpHelpersPastDepth alone (Threads 2) and in all-ON, the 20 R3-4 spins at +10% / -10% | **PASS**: 4/4 configs x 500, 2000 games, 201275 plies, 0 errors; 45 watchdog answers, 0 late lines | logs/final_064af732/MATRIX.md |
 | exe sha256 + git head per config | recorded | logs/final_330237f3/build.log, matrix_summary.json |
 
 Final-run budgets (coordinator, 3 h): go nodes 200-2000; mix nodes 58 / clock 8 / movetime 10 / depth 8 /
@@ -64,6 +65,16 @@ NnueLazyAcc and NnueInt16 are active). S-A4 H512 and FORGE_DATAGEN skipped (coor
 | corrhistplus1 | base `07eb6fdeb058` | 1 | 500/500 | 53262 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 318363 |
 | corrhistplus2 | base `07eb6fdeb058` | 1 | 500/500 | 54755 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 296553 |
 | corrhistplus4 | base `07eb6fdeb058` | 1 | 500/500 | 54768 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 340927 |
+
+## Results on the final engine head 064af732 (4 configs)
+4 of 4 configs ran: 2000 games, 201275 plies, 0 errors, 45 HardDeadline watchdog answers (git head 064af732).
+
+| config | exe (sha256) | thr | games | plies | errors | crashes | illegal | double bm | timeouts | late info | watchdog answers | bench11 |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| smp_helpers_past_depth | base `43938b61608a` | 2 | 500/500 | 41515 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 312866 |
+| all_on_final | allsw `3ab215583d0a` | 2 | 500/500 | 52494 | 0 | 0 | 0 | 0 | 0 | 0 | 45 | 362031 |
+| spsa_plus10 | base `43938b61608a` | 1 | 500/500 | 52473 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 320444 |
+| spsa_minus10 | base `43938b61608a` | 1 | 500/500 | 54793 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 282806 |
 
 ## Findings
 1. HardDeadline (C3) printed search output after the watchdog's bestmove (2432670b all_on: 122 `info depth`
