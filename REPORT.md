@@ -9,6 +9,10 @@
   patch.diff, logs, SHA256SUMS). Nothing was pushed to main or to anyone else's branch, and nothing was
   force-pushed.
 - `opus-O3-pin` is the O3 pin experiment (`ac05bbb0`); that commit is part of `opus-O3`, the branch to use.
+- `opus_round1_20261027.tar.xz` at the root of this branch (22,157,264 bytes; sha256 in the `.sha256` file next to
+  it) is the single archive OPUS_PROMPT.md section 5 asks for. It holds every job folder taken from the branch that
+  owns it (`BRANCHES.txt` lists folder, branch and head), plus `SUMMARY.md`, this report and the progress file, with
+  `SHA256SUMS` over the whole folder. It was test-extracted and verified.
 
 ## Done (details and numbers: opus_round1/SUMMARY.md and each job's REPORT.md)
 - **00_baseline:** the lock was reproduced on the PC before any job (bench x5, perft, kiwipete, FMA 0; exe
