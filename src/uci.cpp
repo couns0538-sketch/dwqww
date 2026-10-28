@@ -1,5 +1,6 @@
 #include "forge/board.hpp"
 #include "forge/book.hpp"
+#include "forge/datagen2.hpp"
 #include "forge/nnue.hpp"
 #include "forge/nnue_v3.hpp"
 #include "forge/search.hpp"
@@ -472,6 +473,26 @@ int main() {
                 }
                 stop_cv.notify_all();
                 ponder_search_active = false;
+            }
+        } else if (command == "datagen") {
+            // FB2-J2 self-play data generation; `datagen convert <in.fgb> <out prefix> [text]` replays a game file.
+            stop_search();
+            std::vector<std::string> args;
+            for (std::string a; input >> a;) args.push_back(a);
+            if (!args.empty() && args[0] == "convert") {
+                std::string error;
+                if (args.size() < 3) error = "usage: datagen convert <in.fgb> <out prefix> [text]";
+                else if (forge::datagen2::run_convert(args[1], args[2], args.size() > 3 && args[3] == "text", &error) != 0 && error.empty()) error = "convert failed";
+                if (!error.empty()) { const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex()); std::cout << "info string ERROR datagen: " << error << std::endl; }
+            } else {
+                forge::datagen2::Config config;
+                std::string error;
+                if (!forge::datagen2::parse_args(args, config, &error)) {
+                    const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex());
+                    std::cout << "info string ERROR datagen: " << error << std::endl;
+                } else {
+                    (void)forge::datagen2::run_generate(config);
+                }
             }
         } else if (command == "stop") {
             stop_search();
