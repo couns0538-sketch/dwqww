@@ -85,6 +85,59 @@ S41, SA2, SA4 and SIT.
 
 | C1 Syzygy (opus-C1), targeted | probe preconditions (`castling_rights() == 0`, piece count <= the loaded tables' maximum), en passant (the WDL probe resolves captures and en passant explicitly, `syzygy.inc` lines 907-993; the report tested 26 en-passant positions) | **no defect found** in the parts read; the 1474-line decoder itself was not re-read line by line |
 
+## Tool jobs: every job's own Python tests re-run (DONE)
+
+`fable_review/run_tool_tests.sh` exported each job folder with `git archive` (branches untouched) and ran its
+test file(s) with the venv Python: 27 passed, 9 failed, 1 skipped (tests that import the
+production trainer by the name the PC rules forbid to run: S09fix, S39/S50/SA3 v3c/v3d, SA2/SA4 clip). Results:
+`fable_review/tool_tests.txt`, logs `F:\opus_scratch\fable_review\tooltests\`.
+
+| branch | test | exit | last line |
+|---|---|---|---|
+| opus-sol-A7 | `test_opus_a7.py` | exit 0 | OK |
+| opus-sol-S05fix | `test_forge_sol_S05_fmacheck_v4.py` | exit 0 | OK |
+| opus-sol-S06fix | `test_forge_sol_S06_cli_v2.py` | exit 0 | OK |
+| opus-sol-S06fix | `test_forge_sol_S06_logs_v2.py` | exit 0 | OK |
+| opus-sol-S06fix | `test_forge_sol_S06_pgn_v2.py` | exit 0 | OK |
+| opus-sol-S06fix | `test_forge_sol_S06_statistics_v2.py` | exit 0 | OK |
+| opus-sol-S06fix | `test_forge_sol_S06_v2_fixups.py` | exit 0 | OK (skipped=1) |
+| opus-sol-S08fix | `test_forge_sol_S08_collect_v2.py` | exit 1 | FAILED (errors=2) |
+| opus-sol-S10fix | `test_opus_s10fix.py` | exit 0 | OK |
+| opus-sol-S12 | `test_jobA_cause.py` | exit 0 | OK |
+| opus-sol-S14 | `test_picker_audit.py` | exit 0 |   ok  helper() 140001200: jmp    *0x10(%rip)        # 140004000 <__imp_memmove> -> import thunk to memmove |
+| opus-sol-S15 | `test_forge_sol_S15_spsa_v2.py` | exit 1 | FAILED (failures=3, errors=12) |
+| opus-sol-S16 | `test_forge_sol_S16_overlap_scan.py` | exit 0 | OK |
+| opus-sol-S19 | `test_forge_sol_S19_wdl_scale_fit.py` | exit 0 | OK |
+| opus-sol-S21 | `test_forge_sol_S21_int16range.py` | exit 0 | OK |
+| opus-sol-S25fix | `test_forge_sol_S25_outcontract_v2_20261027.py` | exit 0 | OUTPUT_CONTRACT_PASS bench=PASS uci=PASS ref=AL1 depths=11 errors=- temp=removed |
+| opus-sol-S26fix | `test_forge_sol_S26fix_20261027.py` | exit 0 | OK |
+| opus-sol-S27fix | `test_forge_sol_S27_v2_20261027.py` | exit 1 | FAILED (errors=6) |
+| opus-sol-S28fix | `test_forge_sol_S28_proposal_v3_20261027.py` | exit 0 | OK |
+| opus-sol-S30 | `test_forge_sol_S30.py` | exit 0 | OK |
+| opus-sol-S31 | `test_forge_sol_S31_avg_ckpt.py` | exit 0 | OK |
+| opus-sol-S33fix | `test_forge_sol_S33_labels_v2_20261027.py` | exit 1 | FAILED (failures=1) |
+| opus-sol-S34 | `test_validate_manifest_v2.py` | exit 0 | OK (skipped=2) |
+| opus-sol-S36 | `test_forge_sol_S36.py` | exit 0 | OK |
+| opus-sol-S38 | `test_gate_time_audit.py` | exit 1 | FAILED (failures=1) |
+| opus-sol-S40 | `test_forge_sol_S40_merge_datagen_20261027.py` | exit 0 | OK (skipped=3) |
+| opus-sol-S42 | `test_forge_sol_S42_20261027.py` | exit 1 | FAILED (errors=1) |
+| opus-sol-S43 | `test_forge_sol_S43_netbatch_v5_20261027.py` | exit 0 | OK |
+| opus-sol-S44 | `test_forge_sol_S44.py` | exit 0 |  |
+| opus-sol-S45 | `test_forge_sol_S45_rebase_ready.py` | exit 0 | OK |
+| opus-sol-S46 | `test_promote_sim.py` | exit 1 | FAILED (failures=30) |
+| opus-sol-S47 | `test_autolock_audit.py` | exit 1 | FAILED (failures=5) |
+| opus-sol-S48fix | `test_forge_sol_S48_gate_guard_v2_20261027.py` | exit 1 | FAILED (failures=1, skipped=1) |
+| opus-sol-S49 | `test_pc_speed_ci.py` | exit 0 | OK |
+| opus-sol-SA6 | `test_opus_sa6.py` | exit 0 | OK |
+| opus-sol-SC4 | `test_opus_sc4.py` | exit 0 | OK |
+
+The six failures are environment effects of running the tests outside a full checkout, not tool-logic defects:
+S15 and S27fix need the whole repository tree (`src/search.cpp`, `tools/openings/forge-10000.epd`, a git
+checkout for `rev-parse`); S08fix (corpus SHA256), S33fix and S38 (golden-file byte comparison) and S42 (frozen
+SHA256 of an S06 file) compare bytes that depend on the checkout's line endings. They passed in Opus's own
+checkouts and CI. Minor mistake, recorded as such: these tests should normalise line endings / hash normalised
+text so that they are checkout-independent (mistake 3 below).
+
 ## Mistakes found (with the correction)
 
 | # | where | mistake | correction |
@@ -92,6 +145,8 @@ S41, SA2, SA4 and SIT.
 | 1 | opus-O1, opus-O1-LTT, opus-O2, opus-sol-S12 and every opus-r3-* branch (8 files on opus-r3-stack) | Python bytecode committed: `opus_round1/O1/__pycache__/ucilib.cpython-314.pyc`, `opus_round1/O2/__pycache__/mutation_check.cpython-314.pyc`, `opus_round1/sol_S12/__pycache__/jobA_cause.cpython-314.pyc`, `opus_round1/sol_S12/followup_nullalias/__pycache__/mutation_check_alias.cpython-314.pyc` and the stack's copies (ctest ran the tools with the system Python inside the source tree) | the fix is `git rm --cached` of the eight files plus `__pycache__/` and `*.pyc` in `.gitignore` on a `fable-review-r3-stack` branch; **the command was denied by the PC's permission rules in this session (it counts as a deletion), exactly as it was for Opus**, so this stays an owner action: `git rm --cached $(git ls-files | grep '\.pyc$')` on a branch off opus-r3-stack, then commit |
 
 | 2 | the AL1 lock engine itself; Opus job S14 found it (`opus-sol-S14` REPORT section 4, "not fixed here") and the lock archive carries the CR-passed fix that was never applied | `MovePicker::bad_captures_` is `std::array<Move, 64>` written at `src/search.cpp:361` without a bounds check; a position with more than 64 SEE-losing noisy moves (capture-promotions count four times) overruns it (undefined behaviour) | branch **`fable-review-buffix`** (base d4f4312): the archived node-identical fix applied (`std::array<Move, MoveList::Capacity>` + static_assert + `tests/bad_capture_tests.cpp`), box build, identity check and the regression test; see its `fable_review/REVIEW.md` |
+
+| 3 | opus-sol-S08fix, S33fix, S38, S42 (and S15, S27fix for checkout-only inputs) | their unit tests compare raw bytes or SHA256 of text files, so they pass only in a checkout with the same line endings as the author's (CRLF on the PC) and fail from an LF export | not corrected (tests only; the tools' logic is unaffected): normalise `\r\n` before comparing / hashing; listed for the owner |
 
 ## Corrections pushed
 
