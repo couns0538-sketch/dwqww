@@ -55,9 +55,14 @@ def check(fx, log):
     return ''
 
 
+def norm(text):
+    # Line endings follow the checkout's autocrlf setting: compare text, not bytes.
+    return text.replace('\r\n', '\n')
+
+
 def golden(name):
     with open(os.path.join(HERE, 'expected', name + '.log'), encoding='utf-8', newline='') as f:
-        return f.read()
+        return norm(f.read())
 
 
 class Voted(unittest.TestCase):
@@ -70,7 +75,7 @@ class Voted(unittest.TestCase):
     def test_golden_logs(self):
         for fx in FIX:
             with self.subTest(fx=fx['name']):
-                self.assertEqual(sim.simulate(VOTED, fx), golden(fx['name']))
+                self.assertEqual(norm(sim.simulate(VOTED, fx)), golden(fx['name']))
 
     def test_must_decisions(self):
         for fx in FIX:
@@ -86,14 +91,14 @@ class Voted(unittest.TestCase):
         subprocess.run([sys.executable, '-I', '-B', os.path.join(HERE, 'make_s46_fixtures.py'), '--out', d], check=True, capture_output=True)
         for fx in FIX:
             with open(os.path.join(d, fx['name'] + '.json'), 'rb') as a, open(os.path.join(HERE, 'fixtures', fx['name'] + '.json'), 'rb') as b:
-                self.assertEqual(a.read(), b.read(), fx['name'])
+                self.assertEqual(a.read().replace(b'\r\n', b'\n'), b.read().replace(b'\r\n', b'\n'), fx['name'])
 
     def test_cli_out_equals_golden(self):
         fx = FIX[0]
         out = os.path.join(tempfile.mkdtemp(prefix='s46cli_', dir=os.environ.get('S46_SCRATCH')), 'o.log')
         sim.main(['--rules', os.path.join(CONF, 'rules_voted_20261026.json'), '--fixture', os.path.join(HERE, 'fixtures', fx['name'] + '.json'), '--out', out])
         with open(out, encoding='utf-8', newline='') as f:
-            self.assertEqual(f.read(), golden(fx['name']))
+            self.assertEqual(norm(f.read()), golden(fx['name']))
 
 
 class Profiles(unittest.TestCase):
