@@ -27,3 +27,5 @@ Status: UNPROVEN. No Elo/strength claim. Only games (1000-game SPRT run by QA, n
 - Astra A2 (2026-10-29): owner-requested main-thread proven-score preservation; derived solely from Forge `better_thread_result` and `syzygy::TbWinInMaxPly` contracts. No external engine code or constants.
 
 - Astra A3 (2026-10-29): owner-requested bundle option and OFF-node checks, using the public UCI protocol and Forge bench output only; independent Python/Bash implementation.
+
+A5 IDEA_SOURCE: Owner-requested Astra perft CI; existing Forge perft suite/fixtures and CMake cap interface. No copied engine code.

@@ -1,0 +1,63 @@
+# IDEA_SOURCE: Owner A5; reuse Forge's existing perft suite and published fixtures.
+name: astra-perft
+on:
+  push:
+    branches: ['astra-*']
+    paths:
+      - '.github/workflows/astra-perft.yml'
+      - 'CMakeLists.txt'
+      - 'include/**'
+      - 'src/**'
+      - 'tests/perft_suite_tests.cpp'
+      - 'tests/data/perft_suite.tsv'
+  pull_request:
+    paths:
+      - '.github/workflows/astra-perft.yml'
+      - 'CMakeLists.txt'
+      - 'include/**'
+      - 'src/**'
+      - 'tests/perft_suite_tests.cpp'
+      - 'tests/data/perft_suite.tsv'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  perft:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v4
+      - name: Configure
+        run: |
+          set -euo pipefail
+          mkdir -p astra_ci_logs
+          g++-14 --version | tee astra_ci_logs/compiler.log
+          cmake -S . -B astra_ci_build -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_CXX_COMPILER=g++-14 \
+            '-DCMAKE_CXX_FLAGS=-fno-fast-math -ffp-contract=off -DFORGE_NNUE_HIDDEN=256' \
+            '-DFORGE_PERFT_SUITE_ARGS=--max-depth;5;--max-nodes;5000000' \
+            2>&1 | tee astra_ci_logs/configure.log
+      - name: Build existing regression suite
+        run: |
+          set -euo pipefail
+          cmake --build astra_ci_build --target forge_perft_suite -j2 \
+            2>&1 | tee astra_ci_logs/build.log
+      - name: Run and require the requested cases
+        run: |
+          set -euo pipefail
+          ctest --test-dir astra_ci_build -R '^forge_perft_cpw$' \
+            --no-tests=error --verbose --timeout 180 \
+            2>&1 | tee astra_ci_logs/perft.log
+          # Prevent a future fixture/cap change silently skipping either required case.
+          grep -F 'PASS startpos depth 5 expected 4865609 got 4865609 (' astra_ci_logs/perft.log
+          grep -F 'PASS kiwipete depth 4 expected 4085603 got 4085603 (' astra_ci_logs/perft.log
+      - name: Upload original logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: astra-perft-${{ github.sha }}
+          path: astra_ci_logs/
+          if-no-files-found: warn

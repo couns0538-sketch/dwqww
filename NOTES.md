@@ -26,3 +26,6 @@ Option checker (17 tests) and OFF identity script (10 tests) implemented, regist
 
 ## A4 — skipped: source not in repo, merge done by crew
 Owner confirmed packe2r lives only on the gate PC and its merge was completed elsewhere; explicitly instructed skipping this job. No merge or engine change performed here. Pack A handoff hash was verified; lookup notes retained in astra_evidence/A4/. Crew merge status is owner-provided, not independently revalidated. Proceed to A5.
+
+## A5 — complete; hosted execution UNVERIFIED
+Reused existing perft tests in a dedicated Astra CI workflow. Local replay PASS: startpos d5 4865609, Kiwipete d4 4085603; negative fixture rejected. API access to hosted Actions returned Forbidden. Evidence: astra_evidence/A5/. Proceed to A6 and the owner-requested final 20-minute review.
