@@ -38,3 +38,25 @@ test's stress positions reach at most 50 SEE-losing noisy moves, below the old l
 itself demonstrate the overflow; a position with more than 64 SEE-losing noisy moves (many queens taking defended
 minor pieces) would. The fix is correct independently of that: every generated noisy move (at most
 `MoveList::Capacity`) can be deferred once, so `Capacity` is exactly the right size.
+
+## Overflow demonstrated (2026-10-28, deep pass)
+
+The remark above is resolved: `tests/bad_capture_tests.cpp` now carries a sixth fixture, `many-losing`
+(`3r4/Pn1Q1p2/1Q1n1QpN/1p1Q1pRB/1Qbp1QpN/2bQ1pRB/3r1QpK/2k2q2 w - - 0 1`, a legal position the engine's own FEN
+parser accepts: 16 white pieces with 8 promoted queens and no pawns, 3 white pawns elsewhere are not needed), whose
+engine census is 69 pseudo-legal noisy moves, 68 of them SEE-losing (`see_ge(move, 0)` false, which is exactly what
+the picker defers), 68 legal, 4 promotions, not in check. The fixture asserts `losing >= 65` with the other counts.
+
+- Fixed engine (this branch, `std::array<Move, MoveList::Capacity>`), built with `-D_GLIBCXX_ASSERTIONS` so every
+  `std::array::operator[]` is bounds-checked: all 6 fixtures pass, depth-3 search completes
+  (`fable_review/logs/overflow_proof_fixed.log`).
+- Unfixed engine (the same tree with `std::array<Move, 64> bad_captures_`, the AL1 lock's declaration, built the
+  same way): the test aborts in the picker with
+  `std::array<forge::Move, 64>::operator[]: Assertion '__n < this->size()' failed`
+  (`fable_review/logs/overflow_proof_mutant.log`), i.e. the 65th deferred capture is written past the buffer.
+
+How the position was found: an annealing search over piece placements (python-chess for legality, the engine's own
+census over a pipe as the objective, `fable_review/tools/fable_nnue_losing_search2.py` + `fable_census.cpp`); the
+inventory rule of `Board::set_fen` (promoted pieces at most 8 minus pawns, 16 pieces, kings apart) is the binding
+constraint, and a python-only SEE overestimated the engine's count by 4-5, so the engine had to be the judge.
+Tools and logs: `fable_review/tools/`, `fable_review/logs/overflow_proof_*.log`, `fable_review/logs/prove.log`.

@@ -27,6 +27,10 @@ struct Fixture {
     std::size_t expected_noisy;
     std::size_t expected_promotions;
     const char* required_losing_move;
+    // Minimum number of SEE-losing noisy moves (0 = not checked). The fable-review fixture
+    // demands more than 64: the AL1 lock's bad_captures_ held 64 entries, so the picker
+    // overran it there (shown with -D_GLIBCXX_ASSERTIONS on the unfixed engine).
+    std::size_t min_losing;
 };
 
 void run(const Fixture& fixture) {
@@ -76,6 +80,9 @@ void run(const Fixture& fixture) {
               std::string(fixture.name) + " expected promotion count");
         check(losing > 0 && legal_losing > 0,
               std::string(fixture.name) + " contains actual legal SEE-losing moves");
+        check(losing >= fixture.min_losing,
+              std::string(fixture.name) + " has at least " + std::to_string(fixture.min_losing) +
+                  " SEE-losing noisy moves (more than the lock's 64-entry buffer)");
         check(!board.in_check(), std::string(fixture.name) + " uses main capture stages");
     }
 
@@ -127,19 +134,22 @@ void run(const Fixture& fixture) {
 } // namespace
 
 int main() {
-    // Exactly the two supplied QA inputs and three existing Forge fixtures.
-    // No generated positions, parser bypasses or direct private-buffer writes.
-    constexpr std::array<Fixture, 5> fixtures{{
+    // The two supplied QA inputs, three existing Forge fixtures and one constructed
+    // position (fable-review, 2026-10-28) whose SEE census exceeds the lock's
+    // 64-entry deferred-capture buffer. No parser bypasses or private-buffer writes.
+    constexpr std::array<Fixture, 6> fixtures{{
+        {"many-losing", "3r4/Pn1Q1p2/1Q1n1QpN/1p1Q1pRB/1Qbp1QpN/2bQ1pRB/3r1QpK/2k2q2 w - - 0 1",
+         false, 69, 4, "", 65},
         {"qa-1", "1Q1bq3/pr1Q1p1R/KQ1n1Q1b/1p1Q1n1Q/BQ1p1Q1r/1p1QpN2/1k1pR2p/5NB1 w - - 0 1",
-         true, 0, 0, ""},
+         true, 0, 0, "", 0},
         {"qa-2", "1krQ2b1/8/Q2pQnR1/p1Q3b1/Q1n2QrQ/p1QQpKp1/q1ppR2p/1NB1BN2 w - - 0 1",
-         true, 0, 0, ""},
+         true, 0, 0, "", 0},
         {"poisoned-pawn", "3qk3/8/8/3p4/8/8/8/3QK3 w - - 0 1",
-         false, 1, 0, "d1d5"},
+         false, 1, 0, "d1d5", 0},
         {"white-promotions", "1r2k3/P7/8/8/8/8/8/4K3 w - - 0 1",
-         false, 8, 8, ""},
+         false, 8, 8, "", 0},
         {"black-promotions", "4k3/8/8/8/8/8/p7/1R2K3 b - - 0 1",
-         false, 8, 8, ""},
+         false, 8, 8, "", 0},
     }};
     for (const Fixture& fixture : fixtures) run(fixture);
     check(accepted >= 3, "all ordinary SEE/search controls execute");
