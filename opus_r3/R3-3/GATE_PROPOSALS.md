@@ -2,7 +2,7 @@
 
 One ready gate entry per feature, ranked, with a new srand each. **Proposals only:** no gate was started, and nothing was written to the gate queue (`autorestart\forge_gates.json`), `forge_push`, `F:\forge_push` or any lock folder. PC files were read through copies. Expectations are labelled as such; **there is no Elo claim.**
 
-- **Stack:** the entries were checked on `opus-r3-stack` @ `2047348a` (probe build of the default recipe, sha256 `893ea34d…`, identity ALL OK, every runtime option's ON pins measured at d11-d22). Final head and exe sha256: section 6 (**pending: filled when the main session reports the final exes**).
+- **Stack:** the entries were checked on `opus-r3-stack` @ `2047348a` (probe build of the default recipe, sha256 `893ea34d…`, identity ALL OK, every runtime option's ON pins measured at d11-d22; the five node-exact switch builds of the same head) and, for FORGE_NNUE_INT16, on the main session's local head `ba03edf9` (contains the S-A2/S-A4 merges and the HardDeadline fix 5792074a). Final head and exe sha256: section 6 (**pending: filled when the main session reports the final exes**).
 - **Shape of every entry:** one change against the all-OFF engine. Candidate = `forge_r3_stack.exe` + one runtime option, or `forge_r3_<switch>.exe` (+ that switch's own option where it has one). Opponent = `forge_r3_base.exe` (the same default build) without options, named `base_r3_off`.
 - **Files:** this document; `GATE_ENTRIES.json` (the same 29 manifest objects, ready to append by the owner); `SRAND_CHECK.md` (how the srands were checked).
 - Machine exclusive: no (pins and scans ran at nice 19 next to a conc-8 gate, NNUE training and self-play).
@@ -2180,4 +2180,5 @@ Before install, per exe: identity (bench d11-d22, perft5, kiwipete) for the defa
   - `forge_queue.ps1` sha256 `636b6cca691d0707449147fce1cafc42c3235c22a4419b05e0b2307e1fc2c168`
   - `forge_queue_state.json` sha256 `0e73a6757d54365e6c63da17746618c9457c275d3c1de00a1e584dbb9662881f`
 - Job REPORTs: `opus_round1/<JOB>/REPORT.md` on opus-r3-stack (O1, O1-LTT, O2, O4-O8, C1-C6, sol_A1, sol_S11, sol_S13, sol_S14, sol_S29, sol_S41, sol_SIT), `opus_round1/sol_S12|sol_SA2|sol_SA4/REPORT.md` on their branches; R3-1 cross-checks `opus_r3/R3-1/logs/` @ 2047348a.
-- Tools: `opus_r3/R3-3/tools/` (`srand_scan.py`, `make_cands.py`, `choose_srands.py`, `measure_pins.py`, `run_pins.sh`, `sprt_cap_model.py`, `entries.py`, `render.py`, `summarize_scan.py`, `dump_manifest.py`, `show_entries.py`).
+- Tools: `opus_r3/R3-3/tools/` (`srand_scan.py`, `make_cands.py`, `choose_srands.py`, `summarize_scan.py`, `measure_pins.py`, `run_pins.sh`, `run_switch_pins.sh`, `aggregate_switch_pins.py`, `sprt_cap_model.py`, `entries.py`, `render.py`, `render_srand_check.py`, `validate_entries.py`, `dump_manifest.py`, `show_entries.py`).
+- `validate_entries.py` on GATE_ENTRIES.json: all checks pass (unique ids/tags/srands/starts, none in the live manifest, r7 fields and prebench arrays present, r7 static-arg-check emulation, SMP entries held); a re-copy of the live manifest at the end (unchanged sha256) and of F:\forge_push gate folders contains none of the chosen srands.

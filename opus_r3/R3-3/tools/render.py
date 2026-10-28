@@ -198,7 +198,9 @@ P('One ready gate entry per feature, ranked, with a new srand each. **Proposals 
   'PC files were read through copies. Expectations are labelled as such; **there is no Elo claim.**')
 P('')
 P('- **Stack:** the entries were checked on `opus-r3-stack` @ `%s` (probe build of the default recipe, sha256 `893ea34d…`, '
-  'identity ALL OK, every runtime option\'s ON pins measured at d11-d22). Final head and exe sha256: section 6%s.'
+  'identity ALL OK, every runtime option\'s ON pins measured at d11-d22; the five node-exact switch builds of the same '
+  'head) and, for FORGE_NNUE_INT16, on the main session\'s local head `ba03edf9` (contains the S-A2/S-A4 merges and the '
+  'HardDeadline fix 5792074a). Final head and exe sha256: section 6%s.'
   % (PROBE_HEAD, '' if sha_ready else ' (**pending: filled when the main session reports the final exes**)'))
 P('- **Shape of every entry:** one change against the all-OFF engine. Candidate = `forge_r3_stack.exe` + one runtime '
   'option, or `forge_r3_<switch>.exe` (+ that switch\'s own option where it has one). Opponent = `forge_r3_base.exe` '
@@ -400,8 +402,12 @@ for fn in sorted(os.listdir(os.path.join(W, 'pc_copies'))):
 P('- Job REPORTs: `opus_round1/<JOB>/REPORT.md` on opus-r3-stack (O1, O1-LTT, O2, O4-O8, C1-C6, sol_A1, sol_S11, sol_S13, '
   'sol_S14, sol_S29, sol_S41, sol_SIT), `opus_round1/sol_S12|sol_SA2|sol_SA4/REPORT.md` on their branches; '
   'R3-1 cross-checks `opus_r3/R3-1/logs/` @ 2047348a.')
-P('- Tools: `opus_r3/R3-3/tools/` (`srand_scan.py`, `make_cands.py`, `choose_srands.py`, `measure_pins.py`, '
-  '`run_pins.sh`, `sprt_cap_model.py`, `entries.py`, `render.py`, `summarize_scan.py`, `dump_manifest.py`, `show_entries.py`).')
+P('- Tools: `opus_r3/R3-3/tools/` (`srand_scan.py`, `make_cands.py`, `choose_srands.py`, `summarize_scan.py`, '
+  '`measure_pins.py`, `run_pins.sh`, `run_switch_pins.sh`, `aggregate_switch_pins.py`, `sprt_cap_model.py`, `entries.py`, '
+  '`render.py`, `render_srand_check.py`, `validate_entries.py`, `dump_manifest.py`, `show_entries.py`).')
+P('- `validate_entries.py` on GATE_ENTRIES.json: all checks pass (unique ids/tags/srands/starts, none in the live '
+  'manifest, r7 fields and prebench arrays present, r7 static-arg-check emulation, SMP entries held); a re-copy of the live '
+  'manifest at the end (unchanged sha256) and of F:\\forge_push gate folders contains none of the chosen srands.')
 md = '\n'.join(L) + '\n'
 
 os.makedirs(OUT, exist_ok=True)
