@@ -58,6 +58,16 @@ every later run of the branch is green.
   `FORGE_NNUE_O2` (off: token-identical preprocessed nnue.cpp and byte-identical exe vs. the pre-O2 stack);
   (4) A1's joint correction also in C2's cold CorrHistPlus path, so the two combine.
 
+## R3-3 gate proposals (agent; `opus_r3/R3-3/REPORT.md`)
+- One entry per feature vs the all-OFF engine (`forge_r3_base.exe`), exes from `330237f` in `F:\opus_scratch3\exe\`,
+  SPRT [0,5] a=b=0.05 normalized, 1500-game cap, 10+0.1, the PC book and concurrency, a new srand each;
+  `GATE_ENTRIES.json` holds the 29 manifest objects ready to append (nothing was written to the queue).
+- Ranked: A node-exact speed (O2, NOZERO, S13, SPEEDSTACK, LazyAcc, MaterialKeyTable), B search/eval changes,
+  C SMP (the r7 runner hard-codes Threads=1: needs a runner change), D trained-net features (no net exists).
+- **Owner decision needed:** by an approximate GSPRT model, [0,5] with a 1500-game cap ends "cap, no decision" for
+  practically every realistic effect size (H1 needs about +50 nElo observed; a true −20 nElo regression ends H0 in
+  0.4% of runs vs 62% at [0,10]). §7 of GATE_PROPOSALS.md lists the alternatives.
+
 ## Notes for the owner
 - Load-sensitive tests on this PC (pass on the CI runners): `forge_smp_tests` (SmpExactNodes overshoot bound; port-b
   agent: 7/20 failures at nice 19) and `forge_prof_tests` (FORGE_PROF builds only: each of 4 workers must count >0
