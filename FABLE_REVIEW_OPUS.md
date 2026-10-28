@@ -83,6 +83,7 @@ S41, SA2, SA4 and SIT.
 | S08fix profile counters (opus-sol-S08fix, compile-time) | per-worker banks merged after the search; the OFF build is the lock (CI identity) | not read line by line; **no defect found** in the parts read |
 | C6 CuckooRep (opus-C6) | `Board::upcoming_repetition` (table build, two-slot cuckoo lookup, opponent-delta XOR, mover/empty/between checks, rule-50 + null-move window `distance < min(halfmove+1, since_null+1, size)` against the lock's `is_repetition` (`span = min(halfmove, plies_from_null, size-1)`, even distances 4..span), root-index rule, second-occurrence scan) and the search bound (`search_cuckoo`/`qsearch_cuckoo`: alpha < 0, not at root, no excluded move, fail-high when beta <= 0, else alpha raised to 0 and `max(result, 0)`) | **no defect found**; the window arithmetic matches the lock's repetition scan exactly and the bound is sound (the drawing move is legal because the opponent-to-move position it recreates was legal) |
 
+| C1 Syzygy decoder (opus-C1), detailed pass, part 1 | `src/search/syzygy.inc` lines 100-905 read against the Syzygy format: binomial table, leading-pawn order (`pawn_rank` = the reference `ptwist`, ties a-side first as the reference's square order), `lead_offset/lead_total` (= `pawnidx/pfactor`), triangle/below/462 king pairs (two-pass, count asserted), canonical-Huffman base computation and left-aligned codes, index-table/block-size walk, 64-bit window decoding, RePair expansion, header fields (constant tables, block/index bits, padding, min/max length, symbol count, odd-symbol padding), piece-order nibbles (one or two order bytes), group formation (111 / KK / pawn groups), factor loop (`k == order` / `order2`, binomials over free squares, 48 - leading pawns for the second colour's pawns), DTZ maps (8/16-bit, alignment), index tables, block sizes, 64-byte aligned data; `locate`: colour/rank flip, leading-pawn selection and file mirroring, the other leading pawns as an ascending combination, piece tables' file/rank/diagonal mirroring with the flip applied from the first off-diagonal leading piece, the 111 index formulas (`diag` = rank on the diagonal, `lower` = below-diagonal order), KK pairs, the remaining groups (sorted, minus the number of earlier pieces below, minus 8 for the second colour's pawns) | **no defect found**; every formula matches the reference encoding |
 | C1 Syzygy (opus-C1), targeted | probe preconditions (`castling_rights() == 0`, piece count <= the loaded tables' maximum), en passant (the WDL probe resolves captures and en passant explicitly, `syzygy.inc` lines 907-993; the report tested 26 en-passant positions) | **no defect found** in the parts read; the 1474-line decoder itself was not re-read line by line |
 
 ## Tool jobs: every job's own Python tests re-run (DONE)
@@ -144,7 +145,7 @@ instead of assuming it, so that they are checkout-independent (mistake 3 below).
 
 | # | where | mistake | correction |
 |---|---|---|---|
-| 1 | opus-O1, opus-O1-LTT, opus-O2, opus-sol-S12 and every opus-r3-* branch (8 files on opus-r3-stack) | Python bytecode committed: `opus_round1/O1/__pycache__/ucilib.cpython-314.pyc`, `opus_round1/O2/__pycache__/mutation_check.cpython-314.pyc`, `opus_round1/sol_S12/__pycache__/jobA_cause.cpython-314.pyc`, `opus_round1/sol_S12/followup_nullalias/__pycache__/mutation_check_alias.cpython-314.pyc` and the stack's copies (ctest ran the tools with the system Python inside the source tree) | the fix is `git rm --cached` of the eight files plus `__pycache__/` and `*.pyc` in `.gitignore` on a `fable-review-r3-stack` branch; **the command was denied by the PC's permission rules in this session (it counts as a deletion), exactly as it was for Opus**, so this stays an owner action: `git rm --cached $(git ls-files | grep '\.pyc$')` on a branch off opus-r3-stack, then commit |
+| 1 | opus-O1, opus-O1-LTT, opus-O2, opus-sol-S12 and every opus-r3-* branch (8 files on opus-r3-stack) | Python bytecode committed: `opus_round1/O1/__pycache__/ucilib.cpython-314.pyc`, `opus_round1/O2/__pycache__/mutation_check.cpython-314.pyc`, `opus_round1/sol_S12/__pycache__/jobA_cause.cpython-314.pyc`, `opus_round1/sol_S12/followup_nullalias/__pycache__/mutation_check_alias.cpython-314.pyc` and the stack's copies (ctest ran the tools with the system Python inside the source tree) | the fix is `git rm --cached` of the eight files plus `__pycache__/` and `*.pyc` in `.gitignore` on a `fable-review-r3-stack` branch; **the command was denied by the PC's permission rules in this session (it counts as a deletion), exactly as it was for Opus**, so this stays an owner action: `git rm --cached $(git ls-files | corrected on `fable-review-r3-stack` (d118633a): untracked by the owner's `git rm --cached`, committed and pushed by the reviewer, bytecode ignored; the opus branches themselves still carry the files |
 
 | 2 | the AL1 lock engine itself; Opus job S14 found it (`opus-sol-S14` REPORT section 4, "not fixed here") and the lock archive carries the CR-passed fix that was never applied | `MovePicker::bad_captures_` is `std::array<Move, 64>` written at `src/search.cpp:361` without a bounds check; a position with more than 64 SEE-losing noisy moves (capture-promotions count four times) overruns it (undefined behaviour) | branch **`fable-review-buffix`** (base d4f4312): the archived node-identical fix applied (`std::array<Move, MoveList::Capacity>` + static_assert + `tests/bad_capture_tests.cpp`), box build, identity check and the regression test; see its `fable_review/REVIEW.md` |
 
@@ -156,7 +157,7 @@ instead of assuming it, so that they are checkout-independent (mistake 3 below).
 |---|---|---|
 | `fable-review-buffix` (base d4f4312 + the fable-* CI trigger) | mistake 2: `MovePicker::bad_captures_` sized to `MoveList::Capacity` (256) with a static_assert, plus `tests/bad_capture_tests.cpp` (ctest `forge_bad_capture_tests`), the lock archive's node-identical fix applied verbatim | box build FMA 0 and 0 warnings (`fable_review/logs/build_pc.log`), identity **ALL OK** (bench d11/13/16/20/22 = the AL1 pins, perft5, kiwipete; `fable_review/logs/identity.log`), regression test 5 fixtures accepted, 0 failures (`fable_review/logs/bad_capture_tests.log`); **CI run 40670602785 green**: release identity ALL OK, known-failure check PASS in release/ASan/TSan, TSan 0 reports, the new `forge_bad_capture_tests` in the ctest list |
 
-| `fable-review-r3-stack` (base opus-r3-stack da158149) | mistake 1: `.gitignore` for `__pycache__/` and `*.pyc` plus `opus_round1/fable_review/REVIEW.md`; the untracking of the eight files itself was refused by the permission rules (twice, with two different git commands) and stays the owner's one-line command | pushed (2cc0a54b) |
+| `fable-review-r3-stack` (base opus-r3-stack da158149) | mistake 1 **corrected**: the owner ran `git rm --cached` on the eight `.pyc` files in the review worktree (the files stay on disk); the commit and push were completed by the reviewer; `.gitignore` for `__pycache__/` and `*.pyc` plus `opus_round1/fable_review/REVIEW.md`; 0 tracked `.pyc` files remain | pushed (d118633a) |
 | `fable-review-S33fix`, `fable-review-S38`, `fable-review-S46` (bases: the opus-sol branches) | mistake 3, the three golden-file tests: comparisons normalise `\r\n` to `\n` on both sides (S46 also for the regenerated fixture files); verified in a CRLF worktree and in an LF export (S46: 30 failures -> OK) | pushed |
 
 Not corrected (listed): S08fix and S42 verify SHA256 provenance of data files (normalising would change what the
@@ -177,8 +178,8 @@ S48fix need a full checkout by design.
 
 ## Mistakes found: 3 (summary)
 
-1. Committed `.pyc` bytecode on O1, O1-LTT, O2, S12 and all r3-* branches -> `fable-review-r3-stack` carries the
-   `.gitignore` and REVIEW.md; the untracking command is the owner's (refused for me twice).
+1. Committed `.pyc` bytecode on O1, O1-LTT, O2, S12 and all r3-* branches -> corrected on `fable-review-r3-stack`
+   (d118633a: untracked, ignored, REVIEW.md).
 2. Unguarded 64-entry `bad_captures_` buffer in the lock engine (known since S14, fix never applied) ->
    `fable-review-buffix`, node-identical, CI green.
 3. Nine job tests depend on the checkout (line endings / full tree / exe fixtures) -> three corrected (S33fix, S38, S46), six listed.
@@ -187,8 +188,8 @@ Everything else examined was found consistent with its report. No Elo or speed c
 
 ## What is left / exact next steps
 
-1. Owner: run the one-line `.pyc` untracking on `fable-review-r3-stack` (or any branch off opus-r3-stack) and
-   commit; merge `fable-review-buffix` into the next lock candidate (one engine line + one test).
+1. Owner: merge `fable-review-buffix` into the next lock candidate (one engine line + one test) and take
+   `fable-review-r3-stack` as the R3 head without the bytecode.
 2. If a deeper audit is wanted: re-run S44 `check` on the 23 gates, S40/S17 on their fixtures and the real shards,
    and read the C1 decoder against the Syzygy format specification; none of this changes an engine default.
 3. Decide on the S08fix/S42 provenance hashes (hash normalised text or pin the line endings) and make S15, S27fix,
