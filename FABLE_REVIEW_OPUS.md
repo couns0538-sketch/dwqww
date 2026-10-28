@@ -1,9 +1,9 @@
-# FABLE_REVIEW_OPUS.md — review of every opus-* job branch — DONE for this review (two sessions, 2026-10-28)
+# FABLE_REVIEW_OPUS.md — review of every opus-* job branch — DONE for this review (four sessions, 2026-10-28)
 
 Reviewer: Fable 5.1, started 2026-10-28 (PC time ~13:45). Branch `fable-review-summary` (base d4f4312, report only;
 no engine code here). Per-job corrections go to `fable-review-<job>` branches based on the opus branch, each with
-`opus_round1/<job>/REVIEW.md`. Nothing on any opus-* branch is modified. All PC rules apply (no sub-agents, pushes
-at least every 30 minutes, finished or not).
+`opus_round1/<job>/REVIEW.md`. Nothing on any opus-* branch is modified. All PC rules apply (sub-agents only in the windows the owner
+allowed in session 3, pushes at least every 30 minutes, finished or not).
 
 ## Scope and method
 
@@ -171,7 +171,10 @@ Evidence: `fable_review/s44_check.log`.
   blob, the worktree is CRLF) -> the same line-ending class, at repository level. S27fix: with LF job files the
   finding changes from `control_authority` to `git_apply_failed: git apply --check rejected exact payload (base
   AL1)`: the hygiene tool checks the LF buffix patch against a CRLF checkout of the AL1 base, so this too is the
-  repository-level line-ending class (it passed on the Linux CI workflow opus-sol-s27fix-linux). S47: root cause
+  repository-level line-ending class (it passed on the Linux CI workflow opus-sol-s27fix-linux) -> corrected on
+  **`fable-review-S27fix`** (ba917b00): a repository-root `.gitattributes` (`* -text`), so every checkout of the
+  branch is byte-identical to the blobs; the job test passes in a fresh worktree of the branch (15 tests OK,
+  `fable_review/s27fix_verify.log`). S47: root cause
   found: the fixture "exe" and lock files are small text files whose SHA256 is frozen as the LF bytes in the fixture
   RUN_INFO (forge_fx_new.exe: LF sha256 `0bb06372…` = the RUN_INFO value; the CRLF checkout gives `702eee55…`), so
   the three audit tests fail on a CRLF checkout -> corrected on **`fable-review-S47`** (`.gitattributes * -text` in
@@ -196,29 +199,25 @@ Evidence: `fable_review/s44_check.log`.
 
 | # | where | mistake | correction |
 |---|---|---|---|
-| 1 | opus-O1, opus-O1-LTT, opus-O2, opus-sol-S12 and every opus-r3-* branch (8 files on opus-r3-stack) | Python bytecode committed: `opus_round1/O1/__pycache__/ucilib.cpython-314.pyc`, `opus_round1/O2/__pycache__/mutation_check.cpython-314.pyc`, `opus_round1/sol_S12/__pycache__/jobA_cause.cpython-314.pyc`, `opus_round1/sol_S12/followup_nullalias/__pycache__/mutation_check_alias.cpython-314.pyc` and the stack's copies (ctest ran the tools with the system Python inside the source tree) | the fix is `git rm --cached` of the eight files plus `__pycache__/` and `*.pyc` in `.gitignore` on a `fable-review-r3-stack` branch; **the command was denied by the PC's permission rules in this session (it counts as a deletion), exactly as it was for Opus**, so this stays an owner action: `git rm --cached $(git ls-files | corrected on `fable-review-r3-stack` (d118633a): untracked by the owner's `git rm --cached`, committed and pushed by the reviewer, bytecode ignored; the opus branches themselves still carry the files |
-
+| 1 | opus-O1, opus-O1-LTT, opus-O2, opus-sol-S12 and every opus-r3-* branch (8 files on opus-r3-stack) | Python bytecode committed: `opus_round1/O1/__pycache__/ucilib.cpython-314.pyc`, `opus_round1/O2/__pycache__/mutation_check.cpython-314.pyc`, `opus_round1/sol_S12/__pycache__/jobA_cause.cpython-314.pyc`, `opus_round1/sol_S12/followup_nullalias/__pycache__/mutation_check_alias.cpython-314.pyc` and the stack's copies (ctest ran the tools with the system Python inside the source tree) | corrected on `fable-review-r3-stack` (d118633a untracks the eight files, d1276633 REVIEW.md, head 0bae2ea6): the reviewer's own `git rm --cached` was denied by the PC's permission rules (it counts as a deletion, exactly as for Opus), so the owner ran it in the review worktree and the reviewer committed and pushed; 0 tracked `.pyc` remain, the base `.gitignore` already ignores bytecode; the opus branches themselves still carry the files |
 | 2 | the AL1 lock engine itself; Opus job S14 found it (`opus-sol-S14` REPORT section 4, "not fixed here") and the lock archive carries the CR-passed fix that was never applied | `MovePicker::bad_captures_` is `std::array<Move, 64>` written at `src/search.cpp:361` without a bounds check; a position with more than 64 SEE-losing noisy moves (capture-promotions count four times) overruns it (undefined behaviour) | branch **`fable-review-buffix`** (base d4f4312): the archived node-identical fix applied (`std::array<Move, MoveList::Capacity>` + static_assert + `tests/bad_capture_tests.cpp`), box build, identity check and the regression test; see its `fable_review/REVIEW.md` |
-
-| 3 | opus-sol-S08fix, S33fix, S38, S42, S46 (line endings) and S15, S27fix, S47, S48fix (full-checkout inputs) | their unit tests compare raw bytes or SHA256 of text files, so they pass only in a checkout with the same line endings as the author's (CRLF on the PC) and fail from an LF export | S33fix, S38, S46 corrected on `fable-review-S33fix/S38/S46` (comparisons normalise line endings); S42, S08fix corrected on `fable-review-S42/S08fix` (`.gitattributes` keeps the hash-checked files byte-identical to their blobs); S15/S27fix/S47/S48fix are full-checkout tests, not fragile |
+| 3 | opus-sol-S08fix, S33fix, S38, S42, S46 (line endings) and S15, S27fix, S47, S48fix (full-checkout inputs) | their unit tests compare raw bytes or SHA256 of text files, so they pass only in a checkout with the same line endings as the author's (CRLF on the PC) and fail from an LF export | S33fix, S38, S46 corrected on `fable-review-S33fix/S38/S46` (comparisons normalise line endings); S42, S08fix, S47, S39, S50, SA3, SA2 corrected on `fable-review-<job>` (`.gitattributes * -text` in the job folder keeps the hash-checked files byte-identical to their blobs); S15 and S27fix corrected with a repository-root `.gitattributes` (`fable-review-S15`, `fable-review-S27fix`); S48fix passes in a real worktree as it is |
 
 ## Corrections pushed
 
 | branch | what | evidence |
 |---|---|---|
 | `fable-review-buffix` (base d4f4312 + the fable-* CI trigger) | mistake 2: `MovePicker::bad_captures_` sized to `MoveList::Capacity` (256) with a static_assert, plus `tests/bad_capture_tests.cpp` (ctest `forge_bad_capture_tests`), the lock archive's node-identical fix applied verbatim | box build FMA 0 and 0 warnings (`fable_review/logs/build_pc.log`), identity **ALL OK** (bench d11/13/16/20/22 = the AL1 pins, perft5, kiwipete; `fable_review/logs/identity.log`), regression test 5 fixtures accepted, 0 failures (`fable_review/logs/bad_capture_tests.log`); **CI run 40670602785 green**: release identity ALL OK, known-failure check PASS in release/ASan/TSan, TSan 0 reports, the new `forge_bad_capture_tests` in the ctest list |
-
-| `fable-review-r3-stack` (base opus-r3-stack da158149) | mistake 1 **corrected**: the owner ran `git rm --cached` on the eight `.pyc` files in the review worktree (the files stay on disk); the commit and push were completed by the reviewer; `.gitignore` for `__pycache__/` and `*.pyc` plus `opus_round1/fable_review/REVIEW.md`; 0 tracked `.pyc` files remain | pushed (d118633a) |
-| `fable-review-S33fix`, `fable-review-S38`, `fable-review-S46` (bases: the opus-sol branches) | mistake 3, the three golden-file tests: comparisons normalise `\r\n` to `\n` on both sides (S46 also for the regenerated fixture files); verified in a CRLF worktree and in an LF export (S46: 30 failures -> OK) | pushed |
-
-| `fable-review-S42`, `fable-review-S08fix` | mistake 3, the two SHA256-provenance jobs: root cause established (the frozen hashes are of the LF blobs, e.g. S42's S06 dependency `4598c583…` = the blob's hash, while `core.autocrlf=true` checks the files out as CRLF on this PC, so the checks fail on the PC itself); fix = `.gitattributes` with `* -text` in the job folder, no tool change; verified: both job tests pass from a fresh `git archive` export of the fixed branches | pushed |
+| `fable-review-r3-stack` (base opus-r3-stack da158149) | mistake 1 **corrected**: the owner ran `git rm --cached` on the eight `.pyc` files in the review worktree (the files stay on disk); the commit and push were completed by the reviewer; `.gitignore` for `__pycache__/` and `*.pyc` plus `opus_round1/fable_review/REVIEW.md`; 0 tracked `.pyc` files remain | pushed (d118633a, d1276633; head 0bae2ea6 after the self-check) |
+| `fable-review-S33fix`, `fable-review-S38`, `fable-review-S46` (bases: the opus-sol branches) | mistake 3, the three golden-file tests: comparisons normalise `\r\n` to `\n` on both sides (S46 also for the regenerated fixture files); verified in a CRLF worktree and in an LF export (S46: 30 failures -> OK) | pushed (243cac18, 36356029, 4018e4e7; heads 3004fc91, a9884584, 56daf94c after the self-check) |
+| `fable-review-S42`, `fable-review-S08fix` | mistake 3, the two SHA256-provenance jobs: root cause established (the frozen hashes are of the LF blobs, e.g. S42's S06 dependency `4598c583…` = the blob's hash, while `core.autocrlf=true` checks the files out as CRLF on this PC, so the checks fail on the PC itself); fix = `.gitattributes` with `* -text` in the job folder, no tool change; verified: both job tests pass from a fresh `git archive` export of the fixed branches | pushed (8e29bb90, a886a68f) |
 
 | `fable-review-S15`, `fable-review-S39`, `fable-review-S50`, `fable-review-SA3`, `fable-review-SA2` | mistake 3, the remaining line-ending cases: `.gitattributes` (`* -text`) at the repository root for S15 (its tool hashes `tools/match/pgn_stats.py`) and in the job folder for the four trainer-variant jobs (their `test_copies` compares the trainer file with the staged LF copy); REVIEW.md each; exactly two files per commit | pushed (2d2affa1, 9b88f433, 495f6098, 8a16aa4a, 8588f896); every job test prints OK in a fresh detached worktree of the branch (S15 29 tests, S39 17, S50 27, SA3 38, SA2 10); supervisor adoption count unchanged |
-| `fable-review-S47` | mistake 3: fixture "exe"/lock text files hashed as LF bytes in the fixture RUN_INFO; `.gitattributes` in the job folder | pushed; verification in a fresh worktree recorded in the detailed-pass section |
+| `fable-review-S47` | mistake 3: fixture "exe"/lock text files hashed as LF bytes in the fixture RUN_INFO; `.gitattributes` in the job folder | pushed (73dcf433); verification in a fresh worktree recorded in the detailed-pass section |
+| `fable-review-S27fix` | mistake 3: the hygiene tool runs `git apply --check` of the LF buffix patch against a checkout of the AL1 base and compares frozen SHA256s, which fails on a CRLF checkout (`git_apply_failed` / `control_authority`); repository-root `.gitattributes` (`* -text`) + REVIEW.md, two files | pushed (ba917b00); the job test passes in a fresh worktree of the branch: 15 tests OK (`fable_review/s27fix_verify.log`) |
 
-Not corrected (listed): S27fix (its hygiene tool runs `git apply --check` of the LF buffix patch against the AL1
-base checkout, which is CRLF on this PC; the Linux CI workflow of the job is green) and S48fix (passes in a real
-worktree as it is) need a full checkout by design; the repository-wide remedy is one root `.gitattributes`.
+Left as it is: S48fix (its test needs a full checkout by design and passes in a real worktree). Every other test
+failure of the sweep is corrected on a `fable-review-<job>` branch.
 
 ## What was reviewed, what was not (honest scope)
 
@@ -237,16 +236,15 @@ worktree as it is) need a full checkout by design; the repository-wide remedy is
 
 ## Mistakes found: 3 classes, all corrected or explained
 
-1. Committed `.pyc` bytecode (O1, O1-LTT, O2, S12, all r3-*) -> `fable-review-r3-stack` (d1276633): untracked
+1. Committed `.pyc` bytecode (O1, O1-LTT, O2, S12, all r3-*) -> `fable-review-r3-stack` (d118633a/d1276633, head
+   0bae2ea6): untracked
    with the owner's `git rm --cached`, bytecode ignored, 0 tracked `.pyc`.
 2. Unguarded 64-entry `bad_captures_` buffer in the lock engine (found by S14, never fixed) -> `fable-review-buffix`
-   (a9cea71f): node-identical fix + regression test, identity ALL OK, CI green.
+   (a9cea71f, head 4d6829c1): node-identical fix + regression test, identity ALL OK, CI green.
 3. Checkout-dependent tests (the repository's LF blobs vs this PC's `core.autocrlf=true`): golden-file byte
    comparisons (S33fix, S38, S46 -> comparisons normalise line endings) and frozen SHA256/byte checks (S42, S08fix,
-   S15, S47, S39, S50, SA3, SA2 -> `.gitattributes * -text`), eleven branches `fable-review-<job>`, every job test
-   verified OK from a fresh export or a fresh worktree. S27fix is the one remaining case: its tool runs
-   `git apply --check` of the LF buffix patch against the CRLF AL1 base checkout; it passes on Linux CI and would
-   pass here with a repository-root `.gitattributes`, which is the owner's policy decision.
+   S15, S47, S39, S50, SA3, SA2, S27fix -> `.gitattributes * -text`, at the repository root for S15 and S27fix),
+   twelve branches `fable-review-<job>`, every job test verified OK from a fresh export or a fresh worktree.
 
 Everything else examined was found consistent with its report. No Elo or speed claim is made or changed anywhere.
 
@@ -254,12 +252,57 @@ Everything else examined was found consistent with its report. No Elo or speed c
 
 1. Owner: merge `fable-review-buffix` into the next lock candidate (one engine line + one test); take
    `fable-review-r3-stack` as the R3 head without the bytecode; consider one repository-root `.gitattributes`
-   (`* -text`) for the next lock tree, which makes every hash-checked test checkout-independent at once (S27fix
-   included) and supersedes the per-job attribute files.
+   (`* -text`) for the next lock tree, which makes every hash-checked test checkout-independent at once (as the
+   S15 and S27fix branches already do) and supersedes the per-job attribute files.
 2. Optional deeper audit: S17/S40 on the real shards (needs the second self-play folder), S19 on real volume,
    O7's pawn-pair encoding line by line against its trainer. None of this changes an engine default.
-3. The 13 correction branches are independent of each other and of `fable-nnue-arch`; each has a REVIEW.md naming
-   the mistake, the fix and the verification.
+3. The 14 correction branches are independent of each other and of `fable-nnue-arch`; each has a REVIEW.md naming
+   the mistake, the fix and the verification. Final heads below.
+
+## Independent self-check of the correction branches (DONE)
+
+The owner asked for a double-check of the reviewer's own corrections. A second agent rebuilt and re-tested the
+seven branches that existed at that time from fresh exports, without seeing the reviewer's conclusions
+(evidence: `fable_review/self_check/`, full folder `F:\opus_scratch\fable_review\agents\self_check\`):
+
+- `fable-review-buffix`: box build FMA 0, identity ALL OK, cmake build, `forge_bad_capture_tests` 5/5
+  (`self_check/chain.log`); the three source hunks are byte-identical to the archived patch.
+- `fable-review-S33fix/S38/S46/S42/S08fix`: every job test passes from a CRLF export and from an LF export of the
+  fixed branch (`self_check/job_tests.log`); control: the unfixed bases fail from the CRLF export (S33fix 1,
+  S38 1, S46 30 failures, S42 1, S08fix 2 errors) and the three golden-file bases pass from the LF export
+  (`self_check/base_tests.log`), which confirms the root cause.
+- `fable-review-r3-stack`: 0 tracked `.pyc`, the diff against `opus-r3-stack` is the untracking plus two files.
+
+Six remarks came back, all acted on in session 4 (`[skip ci]` commits, pushed):
+
+| remark | action |
+|---|---|
+| the S33fix/S38/S46 REVIEW.md described the failure direction inverted (said the unfixed test fails from an LF export) | the three REVIEW.md rewritten: the unfixed base fails from a CRLF checkout/export and passes from LF (3004fc91, a9884584, 56daf94c) |
+| the r3-stack `.gitignore` lines were duplicates (the base already ignores `__pycache__/` and `*.pyc`) | the two lines dropped again; REVIEW.md says so (0bae2ea6); the diff against opus-r3-stack is now only the untracking + REVIEW.md |
+| the buffix REVIEW.md said the picker defers on `see_ge(move, 0)`; the picker uses `see_ge(move, -move_score_threshold(move))` | wording corrected (4d6829c1) |
+| the buffix branch's CI file is the whole `fable-nnue-arch` workflow (also paths-ignore and a 60-minute job cap, not only the `fable-*` trigger) | stated in REVIEW.md; 60 minutes is ample for this branch's 1.5-minute runs, the R3 stack's 25-30-minute runs would need the 180 of the original |
+| the archived regression test's stress positions reach at most 50 SEE-losing noisy moves (below 64), so the test passes on the unfixed engine too and does not by itself demonstrate the overflow | recorded in REVIEW.md as a remark for the next model (a position with more than 64 SEE-losing noisy moves would); the fix stands on its own: `MoveList::Capacity` is exactly the number of moves that can be deferred |
+| cosmetic: literal line breaks inside backticks in three REVIEW.md files | fixed by the rewrite |
+
+## Final state of the correction branches (remote heads, 2026-10-28)
+
+| branch | head | base | content |
+|---|---|---|---|
+| `fable-review-summary` | this commit | d4f4312 | this report + `fable_review/` evidence |
+| `fable-review-buffix` | 4d6829c1 | d4f4312 + CI workflow | mistake 2: engine fix + test (a9cea71f), REVIEW.md |
+| `fable-review-r3-stack` | 0bae2ea6 | opus-r3-stack da158149 | mistake 1: eight `.pyc` untracked, REVIEW.md |
+| `fable-review-S33fix` | 3004fc91 | opus-sol-S33fix | mistake 3: comparison normalises line endings |
+| `fable-review-S38` | a9884584 | opus-sol-S38 | mistake 3: comparison normalises line endings |
+| `fable-review-S46` | 56daf94c | opus-sol-S46 | mistake 3: comparisons normalise line endings |
+| `fable-review-S42` | 8e29bb90 | opus-sol-S42 | mistake 3: job-folder `.gitattributes` |
+| `fable-review-S08fix` | a886a68f | opus-sol-S08fix | mistake 3: job-folder `.gitattributes` |
+| `fable-review-S15` | 2d2affa1 | opus-sol-S15 | mistake 3: repository-root `.gitattributes` |
+| `fable-review-S47` | 73dcf433 | opus-sol-S47 | mistake 3: job-folder `.gitattributes` |
+| `fable-review-S39` | 9b88f433 | opus-sol-S39 | mistake 3: job-folder `.gitattributes` |
+| `fable-review-S50` | 495f6098 | opus-sol-S50 | mistake 3: job-folder `.gitattributes` |
+| `fable-review-SA3` | 8a16aa4a | opus-sol-SA3 | mistake 3: job-folder `.gitattributes` |
+| `fable-review-SA2` | 8588f896 | opus-sol-SA2 | mistake 3: job-folder `.gitattributes` |
+| `fable-review-S27fix` | ba917b00 | opus-sol-S27fix | mistake 3: repository-root `.gitattributes` |
 
 ## Time spent / estimate
 
@@ -267,4 +310,5 @@ Session 1 (about 1.5 h): inventory, CI analysis, identity sweep, eight engine jo
 Session 2 (about 1.5 h): the remaining engine jobs, the tool-test sweep, the r3-stack branch, C1 and O4/O6/O7 in
 full, S44 re-executed. Session 3 (about 2 h, with two to four sub-agents for 40 minutes): full-checkout and
 trainer-variant tests, S16/S21/S30/S31 re-executions, the R3 head rebuilt on the PC, root causes of every remaining
-test failure, eleven line-ending corrections. Total about 5 h.
+test failure, eleven line-ending corrections. Session 4 (about 1 h): S27fix corrected and verified, the independent
+self-check's six remarks applied to five branches, this report brought to its final state. Total about 6 h.
