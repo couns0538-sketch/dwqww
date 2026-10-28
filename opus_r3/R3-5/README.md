@@ -46,13 +46,28 @@ Sedlak positions at depth 6 or 7, at most 3.9M nodes) run at that depth in every
 
 Override with `-DFORGE_PERFT_SUITE_ARGS="--max-depth;7"`.
 
+## Run times (CTest, seconds)
+
+| Test | PC release (loaded, nice 19) | CI release | CI ASan+UBSan | CI TSan |
+|---|---|---|---|---|
+| forge_perft_cpw | 9.0 | 5.9 | 22.9 | 6.3 |
+| forge_perft_edge | 4.9 | 3.1 | 2.4 | 5.7 |
+| forge_draw_rules_tests | 0.6 | 0.5 | 0.9 | 4.3 |
+| forge_tt_mate_tb_tests (no tables) | 0.1 | 0.1 | 0.3 | 1.3 |
+| uci_options_regression | 0.5 | 0.4 | 1.7 | 7.1 |
+| smp_uci_regression | 6.6 | 5.9 | 6.3 | 9.2 |
+
+CI: opus-ci run 40576759596 (all green; TSan: 0 reports; logs `logs/ci_40576759596_*`).
+
 ## Tools in this folder
 
 - `tools/perft_crosscheck.py <tsv>`: recomputes every reference count with python-chess (single-threaded; the full
   run takes about 40 minutes on the PC). Log: `logs/perft_crosscheck.log`.
-- `tools/mutation_check.py <worktree> <scratch>`: the planted bugs (one-line mutants) and the test each must fail;
-  copies `src` and `include` per mutant into a fresh scratch folder, never deletes anything. Log:
-  `logs/mutation_check.log`.
+- `tools/mutation_check.py <worktree> <scratch> [--python <interpreter>]`: the planted bugs (one-line mutants) and
+  the test each must fail; copies `src` and `include` per mutant into a fresh scratch folder, never deletes
+  anything. Logs: `logs/mutation_check.log`, `logs/mutation_results.json`.
+- `tools/smp_mate_probe.cpp`: reproduction of the Threads-2 longer-mate observation (REPORT finding 1); build line
+  in its header. Log: `logs/smp_mate_probe.log`.
 
 ## Overlap with older tests (kept on purpose, narrower there)
 
