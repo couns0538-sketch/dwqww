@@ -36,3 +36,9 @@ Independent review found hashlib.file_digest requires Python3.11, whereas CMake 
 |---|---:|---:|---:|---:|
 | base | 11 | 312866 | 324 | 965635 |
 | candidate | 11 | 312866 | 535 | 584796 |
+
+## Independent final-script replay
+A new run against the final streaming-hash script passed11/11probes. The reusable harness, exact argv/cwd/timestamps, source copies/hashes and original output bytes are preserved under postfix_reproducible_v2/. Its77manifest entries verify. This is new evidence, not a reconstruction of earlier ad-hoc runs.
+
+## Broader sanitizer check
+All targets built successfully with ASan/UBSan. The first serial CTest session was terminated by a tool-server disconnect after test18completed; its17passing cases and known forge_tests failure are preserved, with no final suite exitcode. A separate run resumes at test19on the same configuration; its final status will be recorded separately.

@@ -1,0 +1,7 @@
+#!/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3
+import re, sys
+commands = sys.stdin.read()
+for line in ['option name Hash type spin default 16 min 1 max 2048', 'option name Threads type check default true', 'option name OwnBook type check default true', 'option name Feature type check default false']: print(line)
+print("uciok\nreadyok")
+depth = int(re.search(r"bench (\d+)", commands)[1])
+print(f"info string bench depth {depth} nodes 123 time 1 nps 123000")

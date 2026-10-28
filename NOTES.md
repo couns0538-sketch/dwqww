@@ -38,3 +38,5 @@ Review reproduced an A3 false positive for OFF values incompatible with advertis
 Fresh 20-minute review clock is in astra_evidence/final_review/resumed_review_clock.json; do not treat IN_PROGRESS as complete. Next: finish native verification, preserve independent reviews, publish final report, verify remote head.
 
 Final review second correction: replaced Python3.11-only file_digest with streaming SHA256 to retain the declared Python3.10 minimum. RED/GREEN API-absence regression and multi-chunk integrity test retained;16 OFF methods PASS. Corrected native all5bench comparison and hash-only final d11 PASS. Full ASan/UBSan build in progress. No engine change.
+
+ASan full build PASS. Sanitizer CTest interrupted by tool-server disconnection after18completedtests (forge_tests knownfourdiagnostics;17otherPASS), test19wasstartedbutnofinalresult. No full exitcode available; resume19–56separately. Originalstreamretained. This is infrastructure interruption, not a fabricated complete sanitizer PASS.
