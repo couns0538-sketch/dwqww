@@ -51,6 +51,10 @@ SearchInfo Searcher::search(Board board, const SearchLimits& limits, bool emit_i
     std::vector<Worker*> all;
     all.reserve(workers_.size());
     for (auto& worker : workers_) all.push_back(worker.get());
+#if FORGE_NNUE_LAZY_ACC
+    shared_.lazy_acc_enabled = lazy_acc::requested.load(std::memory_order_relaxed)
+        && nnue::enabled && nnue::available();
+#endif
     // UCI LocklessTT, applied while no worker runs (a change clears the table).
     shared_.tt.set_lockless(options::lockless_tt);
     // Age the table once per search, before any worker can probe it.
@@ -59,6 +63,10 @@ SearchInfo Searcher::search(Board board, const SearchLimits& limits, bool emit_i
     if (table_access == TTAccess::Exclusive && workers_.size() == 1) {
         exclusive.emplace(shared_.tt);
     }
+#ifdef FORGE_PROF
+    shared_.profile_active=shared_.profile_requested.load(std::memory_order_relaxed);
+    for (auto& worker : workers_) worker->reset_profile_quiescent();
+#endif
     if (options::smp_exact_nodes) {
         // A helper publishes its count only from inside its own search; until it
         // has started, total_nodes() would read the previous search's count.
@@ -90,6 +98,27 @@ SearchInfo Searcher::search(Board board, const SearchLimits& limits, bool emit_i
         }
         if (options::smp_best_thread) select_best_thread(result, helper_results, emit_info);
     }
+#if FORGE_NNUE_LAZY_ACC
+    for (const auto& worker : workers_) {
+        const auto stats = worker->lazy_acc_stats();
+        result.lazy_acc_stats.refreshes += stats.refreshes;
+        result.lazy_acc_stats.updates += stats.updates;
+        result.lazy_acc_stats.zero_dirty_edges += stats.zero_dirty_edges;
+        result.lazy_acc_stats.copies_avoided += stats.copies_avoided;
+        result.lazy_acc_stats.alias_hits += stats.alias_hits;
+        result.lazy_acc_stats.evaluations += stats.evaluations;
+    }
+    if (shared_.lazy_acc_enabled && result.lazy_acc_stats.evaluations != 0) {
+        const std::lock_guard<std::mutex> output_lock(uci_output_mutex());
+        if (!lazy_acc_active_announced.exchange(true, std::memory_order_relaxed))
+            std::cout << "info string NnueLazyAcc active\n";
+        const auto& stats = result.lazy_acc_stats;
+        std::cout << "info string NnueLazyAcc stats refreshes " << stats.refreshes
+                  << " updates " << stats.updates << " zero_dirty_edges " << stats.zero_dirty_edges
+                  << " copies_avoided " << stats.copies_avoided << " alias_hits " << stats.alias_hits
+                  << " evaluations " << stats.evaluations << std::endl;
+    }
+#endif
     return result;
 }
 
@@ -130,5 +159,27 @@ SearchInfo Searcher::search(Board board, const SearchLimits& limits, bool emit_i
     for (const Move move : result.pv) std::cout << ' ' << Board::move_to_uci(move);
     std::cout << std::endl;
 }
+
+#ifdef FORGE_PROF
+prof::Snapshot Searcher::profile_snapshot() const {
+    prof::Snapshot total;
+    for (const auto& worker : workers_) prof::merge(total, worker->profile_bank().snapshot_quiescent());
+    return total;
+}
+
+std::vector<prof::Snapshot> Searcher::profile_worker_snapshots() const {
+    std::vector<prof::Snapshot> result;
+    result.reserve(workers_.size());
+    for (const auto& worker : workers_) result.push_back(worker->profile_bank().snapshot_quiescent());
+    return result;
+}
+
+std::vector<std::uint64_t> Searcher::profile_worker_nodes() const {
+    std::vector<std::uint64_t> result;
+    result.reserve(workers_.size());
+    for (const auto& worker : workers_) result.push_back(worker->nodes());
+    return result;
+}
+#endif
 
 } // namespace forge

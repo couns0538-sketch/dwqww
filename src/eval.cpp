@@ -1,4 +1,7 @@
 #include "forge/eval.hpp"
+#ifdef FORGE_PROF
+#include "forge/profile.hpp"
+#endif
 #include "forge/eval_params.hpp"
 #include "forge/nnue.hpp"
 
@@ -374,6 +377,10 @@ int scale_factor(const Board& board, int eg) {
 template <bool Trace>
 int evaluate_position(const Board& board, Evaluator::PawnEntry* cache, EvalTrace* trace,
                       const Evaluator::RuntimePsqt* runtime = nullptr) {
+#ifdef FORGE_PROF
+    prof::count(prof::Counter::HceComputations);
+#endif
+
     EvalInfo info{};
     Accumulator<Trace> acc;
     acc.trace = trace;

@@ -1,0 +1,26 @@
+# source: git archive c64199f2 (src include tests), direct g++ build of tests/prof_tests.cpp + core sources, box flags + -DFORGE_PROF=1
+== mutant merge_main_only 15:52:22
+mutant merge_main_only written to F:\opus_scratch\build\sol_S08fix\mut2_merge_main_only\src\search.cpp
+built
+FAIL merged nodes == sum of worker nodes (Threads 2)
+FAIL merged nodes == sum of worker nodes (Threads 4)
+mutant merge_main_only prof_tests exit 1 (nonzero = caught)
+== mutant shared_bank 15:52:36
+mutant shared_bank written to F:\opus_scratch\build\sol_S08fix\mut2_shared_bank\src\search.cpp
+built
+FAIL worker 0 bank nodes 17110 == worker nodes 9018 (Threads 2)
+FAIL worker 1 bank nodes 0 == worker nodes 8192 (Threads 2)
+FAIL worker 1 counted into its own bank (Threads 2)
+FAIL merged nodes == sum of worker nodes (Threads 2)
+FAIL main + quiescence nodes == nodes (Threads 2)
+FAIL worker 0 bank nodes 13978 == worker nodes 4474 (Threads 4)
+FAIL worker 1 bank nodes 0 == worker nodes 3987 (Threads 4)
+FAIL worker 1 counted into its own bank (Threads 4)
+FAIL worker 2 bank nodes 0 == worker nodes 2026 (Threads 4)
+FAIL worker 2 counted into its own bank (Threads 4)
+FAIL worker 3 bank nodes 0 == worker nodes 3686 (Threads 4)
+FAIL worker 3 counted into its own bank (Threads 4)
+mutant shared_bank prof_tests exit 1 (nonzero = caught)
+== GREEN control: same direct build from the unmutated tree 15:52:51
+PASS profiling counters, nested TLS, per-worker banks and merge
+green exit 0

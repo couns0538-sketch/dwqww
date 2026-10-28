@@ -1,0 +1,11 @@
+Sol's v1 collector (unchanged) on the AL1 ON build, PC (Windows), 15:53:
+== v1 collector (Sol, unchanged) on the AL1 ON build 15:53:18
+{"status": "FAIL", "positions_completed": 0, "coverage": "COMPLETE_AUTHORIZED_SUBSTITUTE", "output": "F:\\opus_scratch\\sol_S08fix\\collect_v1_on_AL1"}
+v1 exit 1
+v1 status FAIL {'message': '[WinError 10093] Either the application has not called WSAStartup, or WSAStartup failed', 'type': 'OSError'}
+== v2 collector on the AL1 ON build 15:53:18
+{"status": "FAIL", "positions_completed": 0, "coverage": "COMPLETE_AUTHORIZED_SUBSTITUTE", "output": "F:\\opus_scratch\\sol_S08fix\\collect_v2_AL1"}
+v2 exit 1
+15:53:18
+
+On Windows v1 stops in its pipe reader before any protocol step (selectors/select() needs sockets on Windows: WinError 10093). On Linux it would stop at its hard-coded first-bench pin: it requires Sol's base pins (bench11 308972, bench20 11901452), which no AL1 build prints (312866 / 12389307); CI release runs v1 on the Linux ON build to show that. The v2 collector (configurable pins, AL1 defaults; reader threads on Windows) passed on the same exe (collect_v2_run.log).

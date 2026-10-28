@@ -3,9 +3,11 @@ project(ChessEngineForge VERSION 6.4.24 LANGUAGES CXX)
 find_package(Threads REQUIRED)
 
 option(FORGE_ENABLE_SANITIZERS "Enable AddressSanitizer and UndefinedBehaviorSanitizer" OFF)
+option(FORGE_NNUE_LAZY_ACC "Enable experimental NnueLazyAcc UCI option (default OFF)" OFF)
 option(FORGE_NATIVE "Optimise for the build machine's CPU (-march=native)" OFF)
 option(FORGE_EXPOSE_TUNABLES "Advertise search tuning constants as UCI options (development builds)" OFF)
 option(FORGE_NOZERO_MOVE_BUFFERS "Leave the MoveList/MovePicker move buffers uninitialised (node-exact speed candidate)" OFF)
+option(FORGE_PROF "Build opt-in search-only profiling counters" OFF)
 
 add_library(forge_core
     src/bitboard.cpp
@@ -39,6 +41,17 @@ endif()
 option(FORGE_SPEEDSTACK "Build the node-exact speed stack (S29)" OFF)
 if(FORGE_SPEEDSTACK)
     target_compile_definitions(forge_core PUBLIC FORGE_SPEEDSTACK=1)
+endif()
+
+# S12 null-edge accumulator alias (compile switch + UCI NnueLazyAcc), default OFF.
+if(FORGE_NNUE_LAZY_ACC)
+    target_compile_definitions(forge_core PUBLIC FORGE_NNUE_LAZY_ACC=1)
+endif()
+
+# S08fix profile counters (compile switch FORGE_PROF), default OFF.
+if(FORGE_PROF)
+    target_sources(forge_core PRIVATE src/profile.cpp)
+    target_compile_definitions(forge_core PUBLIC FORGE_PROF=1)
 endif()
 
 if(MSVC)
@@ -195,6 +208,13 @@ add_executable(forge_bench bench/benchmark.cpp)
 target_link_libraries(forge_bench PRIVATE forge_core Threads::Threads)
 
 enable_testing()
+if(FORGE_PROF)
+    add_executable(forge_prof_tests tests/prof_tests.cpp)
+    target_link_libraries(forge_prof_tests PRIVATE forge_core Threads::Threads)
+    add_test(NAME forge_prof_tests COMMAND forge_prof_tests)
+    # S08-2: the test runs Threads 1/2/4 profiled searches; bound it explicitly (TSan builds are slow).
+    set_tests_properties(forge_prof_tests PROPERTIES TIMEOUT 600)
+endif()
 add_test(NAME forge_tests COMMAND forge_tests)
 add_test(NAME forge_correction_history_tests COMMAND forge_correction_history_tests)
 add_test(NAME forge_runtime_psqt_tests COMMAND forge_runtime_psqt_tests)
@@ -231,6 +251,15 @@ add_test(NAME forge_net_scale_tests COMMAND forge_net_scale_tests)
 add_test(NAME forge_legal_witness_tests COMMAND forge_legal_witness_tests
     ${CMAKE_CURRENT_SOURCE_DIR}/tests/legal_witness_fixtures.tsv
     ${CMAKE_CURRENT_SOURCE_DIR}/tools/openings/forge-10000.epd)
+# Sol's null-edge accumulator alias regression test (S12, v2); only builds with the alias compiled in.
+if(FORGE_NNUE_LAZY_ACC)
+    add_executable(forge_s12_lazyacc_tests tests/forge_sol_S12_lazyacc_native_regression_v2_20261027.cpp)
+    target_link_libraries(forge_s12_lazyacc_tests PRIVATE forge_core Threads::Threads)
+    add_test(NAME forge_s12_lazyacc_tests COMMAND forge_s12_lazyacc_tests)
+    add_executable(forge_s12_lazyacc_extra_tests tests/s12_lazyacc_extra_tests.cpp)
+    target_link_libraries(forge_s12_lazyacc_extra_tests PRIVATE forge_core Threads::Threads)
+    add_test(NAME forge_s12_lazyacc_extra_tests COMMAND forge_s12_lazyacc_extra_tests)
+endif()
 
 # S29 speed stack: checks for the stack's pieces, built and run in both configurations. Kept in its own block
 # so the speed-stack patch also applies on top of Sol's node-identical buffix (base B), which adds a test next

@@ -1,0 +1,14 @@
+# S12 alias port: PC builds (box recipe build_pc.sh: MSYS2 ucrt64 g++, -O3 -DNDEBUG, znver5, static, FMA off); machine exclusive: no
+## sol patch 66efe4c9 code hunks: GNU patch -p1 -F0 --dry-run then apply: all 17 hunks applied without fuzz or offset
+lock.exe sha256 5d4df7f1be51b083e0719266e55367577ed580a509a12196d62c0a368826a5b1
+forge_s12alias_off.exe sha256 649894200d6dc98e8008457d727ffebc8a746f25221645c69cdfef91f3152c21
+forge_s12alias_on.exe sha256 209aeb344528ab81ba4abe78c7b286bb4423a1e01f108b85415df5dbc931ae70
+switch-OFF build vs lock exe (5d4df7f1): cmp -l differing bytes 6: 137 138 139 217 218 219 (PE timestamp 137-139, checksum 217-219)
+== build_off.log
+built /f/opus_scratch/build/S12alias/forge_s12alias_off.exe sha256 649894200d6dc98e8008457d727ffebc8a746f25221645c69cdfef91f3152c21
+FMA (vfmadd/vfmsub/vfnmadd) count: 0
+warnings: 0
+== build_on.log (-DFORGE_NNUE_LAZY_ACC=1)
+built /f/opus_scratch/build/S12alias/forge_s12alias_on.exe sha256 209aeb344528ab81ba4abe78c7b286bb4423a1e01f108b85415df5dbc931ae70
+FMA (vfmadd/vfmsub/vfnmadd) count: 0
+warnings: 0

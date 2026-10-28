@@ -1,0 +1,20 @@
+MinGW g++ 15.2 implements thread_local with emulated TLS: every prof::count() site in the FORGE_PROF build calls __emutls_get_address, even with Profile=false (the null check needs the TLS value).
+forge_s08fix_OFF.exe: call __emutls_get_address sites: 11; references to current_bank: 0
+forge_s08fix_ON.exe: call __emutls_get_address sites: 35; references to current_bank: 24
+Example (ON exe, start of forge::nnue::evaluate): load .refptr.__emutls_v._ZN5forge4prof12current_bankE, call __emutls_get_address, test the bank pointer, add 1 to the counter, setb/or the overflow flag.
+0000000140018c20 <forge::nnue::evaluate(forge::Board const&, forge::nnue::Accumulator const&)>:
+   140018c20:	push   %rdi
+   140018c21:	push   %rsi
+   140018c22:	push   %rbx
+   140018c23:	sub    $0x90,%rsp
+   140018c2a:	mov    %rcx,%rdi
+   140018c2d:	mov    0x16d08c(%rip),%rcx        # 140185cc0 <.refptr.__emutls_v._ZN5forge4prof12current_bankE>
+   140018c34:	mov    %rdx,%rsi
+   140018c37:	lea    0x5f(%rsp),%rbx
+   140018c3c:	and    $0xffffffffffffffc0,%rbx
+   140018c40:	call   140036db0 <__emutls_get_address>
+   140018c45:	mov    (%rax),%rax
+   140018c48:	test   %rax,%rax
+   140018c4b:	je     140018c62 <forge::nnue::evaluate(forge::Board const&, forge::nnue::Accumulator const&)+0x42>
+   140018c4d:	mov    0x28(%rax),%rdx
+   140018c51:	add    $0x1,%rdx

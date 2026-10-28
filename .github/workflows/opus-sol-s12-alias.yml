@@ -1,0 +1,47 @@
+# S12 follow-up (null-edge accumulator alias, build switch FORGE_NNUE_LAZY_ACC + UCI NnueLazyAcc, both default off)
+# Linux evidence; opus-ci.yml covers the default build: release (default binary vs lock, switch-on identity with the
+# option off/on, ctest with the alias tests, alias activity, NPS lock vs switch-on and option off vs on), ASan+UBSan
+# and TSan with the switch on. See opus_round1/sol_S12/followup_nullalias/ci_s12_alias.sh. Read-only; uploads logs.
+name: opus-sol-s12-alias
+on:
+  push:
+    branches: ['opus-sol-S12']
+    paths-ignore:
+      - 'opus_round1/**/*.md'
+      - 'opus_round1/**/*.log'
+      - 'opus_round1/**/*.tar.gz'
+      - 'opus_round1/**/SHA256SUMS'
+      - 'opus_round1/**/FILES.txt'
+      - 'REPORT.md'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  linux:
+    strategy:
+      fail-fast: false
+      matrix:
+        mode: [release, asan, tsan]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Toolchain
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq g++-14 ninja-build cmake python3
+          g++-14 --version | head -1
+          nproc; lscpu | grep -E 'Model name' | cut -c1-200
+      - name: Run ${{ matrix.mode }} (switch on)
+        run: bash opus_round1/sol_S12/followup_nullalias/ci_s12_alias.sh ${{ matrix.mode }} ci_out
+      - name: Upload logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: sol-s12-alias-${{ matrix.mode }}
+          path: |
+            ci_out/*.log
+            ci_out/**/sanitizer_logs_*/**
+          if-no-files-found: warn
