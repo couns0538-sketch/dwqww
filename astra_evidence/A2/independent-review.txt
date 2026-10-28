@@ -1,0 +1,33 @@
+A2 independent review: SmpExactNodes overshoot failure
+Reviewed checkout /tmp/forge-astra-20261029 at HEAD 025fc88ab0327ffa4f0fe1f4658650124a22a3e5.
+Read-only source/log/process inspection; no engine, test, benchmark, or build was run by this reviewer. No Git mutation.
+
+Observed evidence
+- /tmp/forge-astra-logs-20261029/A2-ctest.log records forge_smp_tests failure in round 9: nodes=27398, checks=133, failures=1. Preserve this as a real failed assertion.
+- tests/smp_tests.cpp:94 requires nodes < 20000 + 3*2100 = 26300. Observed total exceeds that threshold by 1098 nodes (7398 over the requested 20000).
+- /tmp/forge-astra-logs-20261029/A2-base-smp-suite.log records the earlier standalone base run: checks=133, failures=0. One earlier pass does not establish non-flakiness or exonerate the candidate.
+- Inspection confirmed CTest running -j2 and a separate ASan/UBSan compilation active concurrently. No scheduler trace exists for the failed round, so contention is a plausible mechanism, not a proven cause.
+
+Unchanged-source identity against exact original base da15814975e224e770f4d25195e0551d02afae48
+- tests/smp_tests.cpp blob: 7e09ae52416c76c63b568a2e39965ff330077274 (same at base and reviewed HEAD).
+- src/search/checks.inc blob: 8cd1e6b1562912d73d9b5deb0532921f7f429168 (same).
+- src/search/iterative.inc blob: aa85a62a3b9d1c8cac20e3591c92ace8bd74597a (same).
+- src/search/alphabeta.inc blob: dc036cdc598ab1cd714bb61aaea6e43764098fd9 (same).
+- src/search/qsearch.inc blob: 90750096cbe795827a618983973e4b8fb30a8c03 (same).
+- Empty diffs also confirmed src/search/worker.inc and include/forge/thread_data.hpp unchanged.
+- test_exact_nodes runs before the tests that enable SmpBestThread. It changes only SmpExactNodes. The A2 ranking path is not invoked for the failing case; the new SmpProtectProvenScore option also remains at its default false.
+
+Mechanism supported by source
+- iterative.inc:42 enables node_limit_specified_ only for the main worker.
+- checks.inc:29-34 publishes the worker count, checks shared stop, then returns false for helpers before the total-budget comparison.
+- alphabeta.inc:39 and qsearch.inc:15 make helpers check/publish each 1024 local nodes; the node-limited main checks every node.
+- Only after main Worker::search returns does Searcher::search set shared_.stop=true (searcher.inc:85-89), then join helpers and sum their final exact node counts (94-97).
+- A descheduled main cannot notice that helpers crossed the total budget. Even after detecting it, unwinding/scheduling before the shared-stop store allows helpers to continue. Helpers may publish many times without stopping because their own total-budget check is disabled. Consequently the test's fixed 6300-node overshoot allowance is not a scheduler-independent bound. Exact final accounting and strict stopping-bound compliance are distinct properties.
+
+Recommended bounded follow-up
+1. Let all owned CTest, compilation, sanitizer and engine jobs finish. Confirm no competing owned CPU workload remains.
+2. Record the exact base/candidate forge_smp_tests executable hashes and run each once, sequentially, with identical environment and CPU-affinity settings. Keep separate complete stdout/stderr and exit codes; do not run another build/test alongside them.
+3. Retain the original failed full-CTest log regardless of retest outcome. If both controlled runs pass, report the original suite failure and the passing controlled retests separately, with scheduling sensitivity as the supported explanation rather than established causality. Do not describe the original full suite as passing.
+4. If the controlled candidate fails, or outcomes differ, preserve the discrepancy and investigate separately. Do not weaken the bound, alter engine stopping behavior, or repeat until green within A2.
+
+Verdict: real pre-existing assertion failed in the candidate run; no source change in the checked accounting/stopping logic, and a concrete scheduler-sensitive mechanism exists. Causality remains unresolved pending the controlled comparison.

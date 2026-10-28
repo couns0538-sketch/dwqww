@@ -55,7 +55,7 @@ int main() {
     check(main.best_move == original.best_move && main.score == original.score &&
           main.depth == original.depth && main.pv == original.pv &&
           main.nodes == original.nodes && main.elapsed_ms == original.elapsed_ms, "actual selector preserves main proven win and metadata across helpers");
-    auto ordinary = info(12, 200, 0);
+    auto ordinary = info(12, 200, 2);
     SearcherTestProbe::select(searcher, ordinary, {SearchInfo{}, original, weaker});
     check(ordinary.best_move == original.best_move && ordinary.score == original.score,
           "TB helper survives later deeper ordinary helper");
