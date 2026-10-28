@@ -127,13 +127,17 @@ case "$MODE" in
     # MemorySanitizer (clang), best effort. libstdc++ is not instrumented, so text that libstdc++ fills (input lines,
     # FEN fields) can be reported where forge parses it; those reports are not about the move buffers. What matters is
     # the number of reports whose first frame is in picker or move-list code, lock (switch off) versus on.
+    # Every MSan process runs under a 10-minute timeout: in run 40527244836 the uninstrumented-libstdc++ reports made
+    # the 200-root oracle run until the job's 120-minute cap, and the job was cancelled. A timeout is recorded here and
+    # does not fail the job (best effort); the memcheck runs above are the uninitialised-read check that counts.
+    MSAN_TIMEOUT="timeout --kill-after=10 600"
     if command -v clang++ > /dev/null; then
       MSAN="-fsanitize=memory -fsanitize-memory-track-origins=2 -fsanitize-recover=memory -fno-omit-frame-pointer"
       export MSAN_OPTIONS=halt_on_error=0
-      head -200 "$ROOT/tools/openings/forge-10000.epd" > "$OUT/roots200.epd"
-      PATTERNS="heap" CXX=clang++ ARCH_FLAGS="-march=x86-64-v3" LIFETIME_FLAG="" EXTRA_FLAGS="$MSAN" \
-        bash "$JOB/run_picker_oracle.sh" "$ROOT" "$OUT/oracle_msan" "$OUT/roots200.epd" 200 > "$OUT/oracle_msan.log" 2>&1
-      echo "MSan oracle (clang, heap storage, 212 roots + children) exit $?:"
+      head -20 "$ROOT/tools/openings/forge-10000.epd" > "$OUT/roots20.epd"
+      PATTERNS="heap" CXX=clang++ ARCH_FLAGS="-march=x86-64-v3" LIFETIME_FLAG="" EXTRA_FLAGS="$MSAN" RUNNER="$MSAN_TIMEOUT" \
+        bash "$JOB/run_picker_oracle.sh" "$ROOT" "$OUT/oracle_msan" "$OUT/roots20.epd" 20 > "$OUT/oracle_msan.log" 2>&1
+      echo "MSan oracle (clang, heap storage, 32 roots + children, 600 s limit per run) exit $?:"
       grep -E '^(built|sw=|MATCH|DIFFER|reference|run_picker)' "$OUT/oracle_msan.log"
       for sw in 0 1; do
         f="$OUT/oracle_msan/oracle_sw${sw}_heap.err"
@@ -150,8 +154,9 @@ case "$MODE" in
           -I"$src/include" "$src"/src/{bitboard,board,book,eval,eval_params,nnue,search,uci}.cpp -pthread \
           -o "$OUT/forge_msan_$t" > "$OUT/build_msan_$t.log" 2>&1 \
           || { echo "MSan engine build $t failed"; tail -20 "$OUT/build_msan_$t.log"; continue; }
-        "$OUT/forge_msan_$t" < "$OUT/bench11.txt" > "$OUT/msan_bench11_$t.log" 2>&1
+        $MSAN_TIMEOUT "$OUT/forge_msan_$t" < "$OUT/bench11.txt" > "$OUT/msan_bench11_$t.log" 2>&1
         rc=$?
+        [ "$rc" -eq 124 ] || [ "$rc" -eq 137 ] && echo "MSan engine bench 11 $t: timed out after 600 s (best effort)"
         msan_frames "$OUT/msan_bench11_$t.log" > "$OUT/msan_bench11_${t}_frames.log"
         echo "MSan engine bench 11 $t: exit $rc reports $(grep -c 'WARNING: MemorySanitizer' "$OUT/msan_bench11_$t.log")," \
           "first frame in picker/move-list code: $(grep -cE 'MovePicker|MoveList|UninitArray' "$OUT/msan_bench11_${t}_frames.log")," \

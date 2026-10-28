@@ -112,6 +112,19 @@ class HelperTests(unittest.TestCase):
         with self.assertRaises(SystemExit):
             cc.bias_from({"x()": 1}, {("/w/forge", "y()"): 5}, "forge")
 
+    def test_nm_skips_undefined_and_non_text_symbols(self):
+        # A dynamic ELF (Linux CI) lists glibc's undefined symbols with a blank address; CI run 40527244836 crashed
+        # on them because '' in "tTwW" is true in Python.
+        text = ("                 U memset@GLIBC_2.2.5\n"
+                "                 w __gmon_start__\n"
+                "0000000000012340 T forge::Worker::search(int)\n"
+                "0000000000012400 t helper()\n"
+                "0000000000012500 W inline_fn()\n"
+                "0000000000040000 B forge::global_counter\n"
+                "0000000000012340 T alias_at_same_address()\n")
+        self.assertEqual(cc.nm_text_symbols(text), {"forge::Worker::search(int)": 0x12340, "helper()": 0x12400,
+                                                    "inline_fn()": 0x12500, "alias_at_same_address()": 0x12340})
+
     def test_parse_addr2line_inline_chain(self):
         out = ["0x0000000000401010",
                "forge::MovePicker::MovePicker(forge::Board const&, forge::Worker const&, forge::SearchStack const*, forge::Move, forge::MovePicker::Mode)",

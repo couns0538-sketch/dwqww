@@ -112,7 +112,7 @@ Main-session spot check (2026-10-27): the cited lock-tree lines (`search.cpp` 36
 `logs/step2_picker_audit.log`, `logs/picker_audit.json`, `logs/step3_unit_tests.log`, `logs/step4_mutation_check.log`,
 `logs/step5_sol_pure_tests.log`, `FILES.txt`, `SHA256SUMS`. No .tar.gz archives.
 
-## Follow-up (2026-10-27): FORGE_NOZERO_MOVE_BUFFERS, no zero-fill of the move buffers — DONE except the CI profile job (pending at this commit)
+## Follow-up (2026-10-27): FORGE_NOZERO_MOVE_BUFFERS, no zero-fill of the move buffers — DONE except two CI profile items being re-run
 
 Branch `opus-sol-S14` = `9dca2a54` + `88021c40` (engine switch, tools, CI workflow `opus-sol-s14fu`, PC logs) + the
 evidence commit. Folder: `followup_zerofill/`. Work by a sub-agent; this section is its hand-back, completed by the
@@ -133,7 +133,7 @@ CMake option `-DFORGE_NOZERO_MOVE_BUFFERS=ON`).
 
 | line | result | evidence |
 |---|---|---|
-| (a) callgrind memset caller attribution, bench 13 | **PENDING** at this commit: the CI profile job of run 40527244836 was still running | `logs/ci_40527244836/profile/`; parser `callgrind_callers.py`, 8/8 unit tests (`logs/step6_unit_tests.log`) |
+| (a) callgrind memset caller attribution, bench 13 | **Re-run pending.** In run 40527244836 both callgrind runs completed (bench 13, nodes 862,329 = pin), but the attribution script crashed on Linux `nm` output: undefined dynamic symbols have no address, and `'' in "tTwW"` is true in Python. Fixed by a strict line regex with a unit test (9/9); the profile job runs again | `logs/ci_40527244836/profile/`; parser `callgrind_callers.py`, 8/8 unit tests (`logs/step6_unit_tests.log`) |
 | (b) switch off = lock | **PASS**: the PC box build differs from the lock exe `5d4df7f1…` only in the 6 PE timestamp/checksum bytes; the CI CMake switch-off build is byte-identical to the lock build (sha256 `6635d4d1…`) | `logs/step1_pc_builds.log`; `logs/ci_40527244836/check/builds.log`; opus-ci release |
 | (b) no new warnings, FMA 0 | **PASS**: PC 0 warning lines. CI shows the lock's existing 6 `-Wconversion` lines in `search.cpp`, shifted 8 lines by the insertion; FMA 0 for lock, off and on | `logs/step1_pc_builds.log`, `logs/ci_40527244836/check/build_*.log` |
 | (c) bench d11/13/16/20/22 + perft5 startpos/kiwipete exact, switch on | **PASS, ALL OK** on the PC box recipe (znver5) and on CI (x86-64-v3), switch off and on | `logs/step2_identity_on_pc.log`; `check/identity_on.log`, `check/identity_off.log` |
@@ -142,7 +142,7 @@ CMake option `-DFORGE_NOZERO_MOVE_BUFFERS=ON`).
 | (c) ctest, switch on | **PASS**: only the 4 known forge_tests lines | `check/known_on.log` |
 | (c) ASan+UBSan, switch on | **PASS**: ctest known-only, 0 report files; uci_check bench d11/13/16 + perft ALL OK; oracle MATCH for switch off and on × zero/random/heap storage (digest `46501e4f2dc86508`) | `logs/ci_40527244836/asan/` |
 | (c) TSan, switch on | **PASS**: ctest known-only, 0 reports; uci_check ALL OK | `logs/ci_40527244836/tsan/` |
-| (c) valgrind memcheck and clang MSan, switch on | **PENDING** at this commit: the CI profile job of run 40527244836 was still running | `logs/ci_40527244836/profile/` |
+| (c) valgrind memcheck and clang MSan, switch on | **memcheck PASS; MSan re-run pending.** Run 40527244836, memcheck with `--track-origins=yes --expensive-definedness-checks=yes`: bench 11 0 errors for the lock and the switch-on build (nodes 312,866 = pin); the pick-order oracle with heap storage (138,096 sequences) 0 errors with the switch off and on, outputs MATCH. The best-effort MSan oracle (200 roots) then ran until the job's 120-minute cap, and the job was cancelled. Each MSan run now has a 10-minute limit and uses 20 EPD roots | `logs/ci_40527244836/profile/` |
 | (c) switch off (default) under sanitizers | **PASS** (release, asan, tsan) | opus-ci 40527244204, `logs/ci_40527244204/` |
 | (d) codegen diff | **DONE** (details below) | `logs/step3_codegen_pc_lock_vs_on.log`; `check/codegen_lock_vs_on.log`, `check/codegen_diffs/` |
 | (e) quiet-runner NPS A/B lock vs on, two runners | **DONE**: +2.0% to +2.7% CPU NPS on both, A/A controls include 0 (numbers below) | `nps-1/`, `nps-2/` (`nps_lock_vs_on.log`, `nps_lock_vs_lock_AA.log`) |
@@ -189,6 +189,9 @@ reads past `bad_count_`.
   `is_draw`) and `perft`.
 - On two quiet runners the gain is +2.0% to +2.7% CPU NPS with both A/A controls including 0. That is the speed
   claim, within those CIs. No Elo claim: a node-exact speed-up still needs a gate to show strength.
+- The project's speed-eligibility rule (95% CI lower bound ≥ +2% at d16 and d20, as applied in S11 and S49) is not
+  met: the lower bounds are +0.85% / +1.27% (nps-1) and +1.50% / +1.90% (nps-2). The rule is meant for the PC;
+  S49's tool can measure it there once a core is free of gates.
 - The switch is meant for QA to gate or adopt. With it off, the build is the lock binary.
 
 **Left / UNVERIFIED**

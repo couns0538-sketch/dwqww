@@ -82,14 +82,22 @@ def base_name(fn):
     return re.sub(r"'\d+$", "", fn)
 
 
-def nm_addresses(exe):
-    out = subprocess.run(["nm", "-C", exe], capture_output=True, text=True, check=True).stdout
+NM_TEXT_LINE = re.compile(r"^([0-9a-fA-F]+) ([tTwW]) (.+)$")
+
+
+def nm_text_symbols(text):
+    """Defined text symbols of `nm -C` output. Undefined symbols (no address, e.g. glibc's in a dynamic ELF) and
+    other symbol types are skipped."""
     table = {}
-    for line in out.splitlines():
-        parts = line.split(" ", 2)
-        if len(parts) == 3 and parts[1] in "tTwW":
-            table.setdefault(parts[2], int(parts[0], 16))
+    for line in text.splitlines():
+        m = NM_TEXT_LINE.match(line)
+        if m:
+            table.setdefault(m.group(3), int(m.group(1), 16))
     return table
+
+
+def nm_addresses(exe):
+    return nm_text_symbols(subprocess.run(["nm", "-C", exe], capture_output=True, text=True, check=True).stdout)
 
 
 def bias_from(table, fn_min, exe_name):
