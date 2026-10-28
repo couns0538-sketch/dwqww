@@ -69,7 +69,7 @@ class ShardStream:
     uniformly from the whole buffer, so each batch mixes K shards / game regions. Memory: about 90 bytes per
     buffered row (2M rows = 180 MB)."""
 
-    def __init__(self, pos_files, hce_files, chunk_rows, chunks, refresh_every, rng, need_hce):
+    def __init__(self, pos_files, hce_files, chunk_rows, chunks, refresh_every, rng, need_hce, shard_weighting="rows"):
         self.pos_files = pos_files
         self.hce_files = hce_files
         self.chunk_rows = chunk_rows
@@ -82,13 +82,18 @@ class ShardStream:
             if bytes(data[:4]) != b"FPOS":
                 raise SystemExit(f"{f}: not an FPOS file")
             self.rows_of.append(int(np.frombuffer(bytes(data[8:16]), "<u8")[0]))
+        # "rows": a shard is chosen with probability proportional to its row count (every row equally likely
+        # over the run, like the production trainer); "uniform": every shard equally likely (the first-net and
+        # standalone runs of 2026-10-28 used this, which over-represents the small early shards).
+        rows = np.asarray(self.rows_of, np.float64)
+        self.shard_p = rows / rows.sum() if shard_weighting == "rows" else np.full(len(rows), 1.0 / len(rows))
         self.buffers = [self._load_chunk() for _ in range(chunks)]
         self.next_replace = 0
         self.batches = 0
         self.chunks_loaded = chunks
 
     def _load_chunk(self):
-        k = int(self.rng.integers(0, len(self.pos_files)))
+        k = int(self.rng.choice(len(self.pos_files), p=self.shard_p))
         total = self.rows_of[k]
         n = min(self.chunk_rows, total)
         start = int(self.rng.integers(0, total - n + 1))
@@ -326,8 +331,8 @@ def cmd_train(args):
         if not pos_files:
             raise SystemExit("no shards match --pos-glob")
         hce_files = [os.path.join(args.hce_dir, os.path.basename(f)[:-4] + ".hce") for f in pos_files] if args.hce_dir else [None] * len(pos_files)
-        stream = ShardStream(pos_files, hce_files, args.chunk_rows, args.chunks, args.refresh_every, rng, bool(args.hce_dir))
-        say(f"stream: {len(pos_files)} shards ({sum(stream.rows_of)} rows), buffer {args.chunks} x {args.chunk_rows} rows, refresh every {args.refresh_every} batches; shards: {', '.join(os.path.basename(f) for f in pos_files)}")
+        stream = ShardStream(pos_files, hce_files, args.chunk_rows, args.chunks, args.refresh_every, rng, bool(args.hce_dir), args.shard_weighting)
+        say(f"stream: {len(pos_files)} shards ({sum(stream.rows_of)} rows), buffer {args.chunks} x {args.chunk_rows} rows, refresh every {args.refresh_every} batches, shard weighting {args.shard_weighting}; shards: {', '.join(os.path.basename(f) for f in pos_files)}")
         if cfg["residual"] and not args.hce_dir:
             raise SystemExit("--residual needs --hce-dir")
         train_n = None
@@ -574,6 +579,8 @@ def main():
     t.add_argument("--chunk-rows", type=int, default=250000)
     t.add_argument("--chunks", type=int, default=8)
     t.add_argument("--refresh-every", type=int, default=25)
+    t.add_argument("--shard-weighting", choices=["rows", "uniform"], default="rows",
+                   help="streaming mode: pick shards proportional to their rows (default) or uniformly")
     t.add_argument("--val-pos", help="validation FPOS file (e.g. the holdout subset)")
     t.add_argument("--val-hce")
     t.add_argument("--val-max-rows", type=int, default=200000)
