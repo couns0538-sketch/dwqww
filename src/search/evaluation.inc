@@ -34,6 +34,50 @@ namespace {
 }
 } // namespace
 
+#if FORGE_NNUE_LAZY_ACC
+int Worker::static_evaluate_lazy(const Board& board, SearchStack* ss) {
+    const bool residual = nnue::residual();
+    SearchStack* owner = computed_owner(ss);
+    if (owner != nullptr) {
+        if (owner != ss) ++lazy_acc_stats_.alias_hits;
+    } else {
+        int back = 0;
+        while (back < ss->ply && computed_owner(ss - back - 1) == nullptr) ++back;
+        if (back >= ss->ply && computed_owner(ss - back - 1) == nullptr) {
+            nnue::refresh(board, ss->accumulator);
+            ss->accumulator_owner = nullptr;
+            ++lazy_acc_stats_.refreshes;
+            if (residual) ss->runtime_psqt = Evaluator::refresh_runtime_psqt(board);
+            owner = ss;
+        } else {
+            owner = computed_owner(ss - back - 1);
+            for (int i = back; i >= 0; --i) {
+                SearchStack* child = ss - i;
+                assert(owner != nullptr && owner < child && owner->accumulator.valid);
+                if (child->dirty.count == 0) {
+                    // A null move changes only the output perspective, not the
+                    // piece features or white-oriented PSQT/phase. Borrow both.
+                    child->accumulator_owner = owner;
+                    ++lazy_acc_stats_.zero_dirty_edges;
+                    ++lazy_acc_stats_.copies_avoided;
+                } else {
+                    nnue::update(owner->accumulator, child->accumulator, child->dirty);
+                    ++lazy_acc_stats_.updates;
+                    if (residual) Evaluator::update_runtime_psqt(owner->runtime_psqt, child->runtime_psqt, child->dirty);
+                    child->accumulator_owner = nullptr;
+                    owner = child;
+                }
+            }
+        }
+    }
+    assert(owner != nullptr && owner->accumulator.valid);
+    const int network = nnue::evaluate(board, owner->accumulator);
+    if (!residual) return network;
+    if (!owner->runtime_psqt.valid) owner->runtime_psqt = Evaluator::refresh_runtime_psqt(board);
+    return std::clamp(evaluator_.evaluate_runtime(board, owner->runtime_psqt) + network, -MateInMaxPly + 1, MateInMaxPly - 1);
+}
+#endif
+
 int Worker::static_evaluate(const Board& board, SearchStack* ss) {
     if (options::nnue_v2) [[unlikely]] {
         // Layout pad: with it the dispatch grows this function by exactly 64
@@ -43,6 +87,10 @@ int Worker::static_evaluate(const Board& board, SearchStack* ss) {
         return static_evaluate_v2(board, ss);
     }
     if (!nnue::enabled || !nnue::available()) return evaluator_.evaluate(board);
+#if FORGE_NNUE_LAZY_ACC
+    ++lazy_acc_stats_.evaluations;
+    if (shared_.lazy_acc_enabled) return static_evaluate_lazy(board, ss);
+#endif
     const bool residual = nnue::residual();
     if (!ss->accumulator.valid) {
         // Walk back to the nearest valid accumulator, then replay the moves.
@@ -50,10 +98,17 @@ int Worker::static_evaluate(const Board& board, SearchStack* ss) {
         while (back < ss->ply && !(ss - back - 1)->accumulator.valid) ++back;
         if (back >= ss->ply && !(ss - back - 1)->accumulator.valid) {
             nnue::refresh(board, ss->accumulator);
+#if FORGE_NNUE_LAZY_ACC
+            ++lazy_acc_stats_.refreshes;
+#endif
             if (residual) ss->runtime_psqt = Evaluator::refresh_runtime_psqt(board);
         } else {
             for (int i = back; i >= 0; --i) {
                 nnue::update((ss - i - 1)->accumulator, (ss - i)->accumulator, (ss - i)->dirty);
+#if FORGE_NNUE_LAZY_ACC
+                ++lazy_acc_stats_.updates;
+                if ((ss - i)->dirty.count == 0) ++lazy_acc_stats_.zero_dirty_edges;
+#endif
                 if (residual) Evaluator::update_runtime_psqt((ss - i - 1)->runtime_psqt, (ss - i)->runtime_psqt, (ss - i)->dirty);
             }
         }
@@ -79,12 +134,18 @@ void Worker::record_move(SearchStack* ss, const Board& board, const Move& move) 
     (ss + 1)->dirty = nnue::dirty_pieces(board, move);
     (ss + 1)->accumulator.valid = false;
     (ss + 1)->runtime_psqt.valid = false;
+#if FORGE_NNUE_LAZY_ACC
+    (ss + 1)->accumulator_owner = nullptr;
+#endif
 }
 
 void Worker::record_null_move(SearchStack* ss) {
     (ss + 1)->dirty.count = 0;
     (ss + 1)->accumulator.valid = false;
     (ss + 1)->runtime_psqt.valid = false;
+#if FORGE_NNUE_LAZY_ACC
+    (ss + 1)->accumulator_owner = nullptr;
+#endif
 }
 
 int Worker::corrected_eval(const Board& board, int raw_eval) const {

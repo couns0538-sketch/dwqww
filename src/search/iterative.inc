@@ -20,6 +20,9 @@ SearchInfo Worker::search(Board board, const SearchLimits& limits, bool emit_inf
         ? limits.start_time : limits.request_start;
     start_ = origin == std::chrono::steady_clock::time_point{}
         ? std::chrono::steady_clock::now() : origin;
+#if FORGE_NNUE_LAZY_ACC
+    lazy_acc_stats_ = {};
+#endif
     local_nodes_ = 0;
     nodes_.store(0, std::memory_order_relaxed);
     all_workers_ = &all;
@@ -125,9 +128,15 @@ SearchInfo Worker::search(Board board, const SearchLimits& limits, bool emit_inf
     for (SearchStack& entry : stack_) {
         entry.accumulator.valid = false;
         entry.runtime_psqt.valid = false;
+#if FORGE_NNUE_LAZY_ACC
+        entry.accumulator_owner = nullptr;
+#endif
     }
     if (nnue::enabled && nnue::available()) {
         nnue::refresh(board, ss->accumulator);
+#if FORGE_NNUE_LAZY_ACC
+        ++lazy_acc_stats_.refreshes;
+#endif
         if (nnue::residual()) ss->runtime_psqt = Evaluator::refresh_runtime_psqt(board);
     }
     // A v2 network computes the root accumulator itself (static_evaluate_v2).

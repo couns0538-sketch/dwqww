@@ -22,6 +22,10 @@
 #include <utility>
 #include <vector>
 
+#ifndef FORGE_NNUE_LAZY_ACC
+#define FORGE_NNUE_LAZY_ACC 0
+#endif
+
 namespace forge {
 
 // One search thread: owns its histories, stack and evaluation cache (ThreadData).
@@ -43,6 +47,9 @@ public:
     void reset_published_nodes() { nodes_.store(0, std::memory_order_relaxed); }
     // The caller's worker list (all_workers_) is valid only during one search.
     void end_search() { all_workers_ = nullptr; }
+#if FORGE_NNUE_LAZY_ACC
+    [[nodiscard]] LazyAccStats lazy_acc_stats() const { return lazy_acc_stats_; }
+#endif
 
 private:
     friend struct SearcherTestProbe;
@@ -102,6 +109,9 @@ private:
     // functions after it then keep their alignment when the cold worker
     // lifecycle code before it in .text changes size (CorrHistPlus member).
     [[nodiscard, gnu::aligned(64)]] int static_evaluate(const Board& board, SearchStack* ss);
+#if FORGE_NNUE_LAZY_ACC
+    [[nodiscard]] int static_evaluate_lazy(const Board& board, SearchStack* ss);
+#endif
     // v2 network path (options::nnue_v2; src/search/evaluation_v2.inc).
     [[nodiscard]] int static_evaluate_v2(const Board& board, SearchStack* ss);
     // v2 network with threat and / or pawn-pair inputs (O6 / O7; src/search/evaluation_extra.inc).

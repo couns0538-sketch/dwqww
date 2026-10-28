@@ -41,6 +41,11 @@ struct SearchStack {
     nnue::Accumulator accumulator{};
     Evaluator::RuntimePsqt runtime_psqt{};
     nnue::DirtyPieces dirty{};
+#if FORGE_NNUE_LAZY_ACC
+    // Null edges may borrow a physical valid ancestor. Never a descendant or
+    // another alias: valid remains false here until a real update materializes.
+    SearchStack* accumulator_owner = nullptr;
+#endif
 };
 
 // Move <-> 32-bit word, for publishing moves through one atomic.
@@ -62,6 +67,10 @@ struct SharedSearchState {
     std::atomic<bool> s13_tt_child_prefetch_announced{false};
 #endif
     std::atomic<bool> stop{false};
+#if FORGE_NNUE_LAZY_ACC
+    // Immutable from before worker creation until every helper has joined.
+    bool lazy_acc_enabled = false;
+#endif
     // 0 means pondering has not been converted into a timed search.
     std::atomic<std::int64_t> ponder_hit_ns{0};
 };
@@ -127,6 +136,9 @@ struct ThreadData {
     std::unique_ptr<LesserThreatHistory> threat_history_ = std::make_unique<LesserThreatHistory>();
     std::unique_ptr<CorrectionHistory> joint_correction_ = std::make_unique<CorrectionHistory>();
     std::array<hist_rework::LesserThreats, MaxPly + 8> threat_maps_{};
+#if FORGE_NNUE_LAZY_ACC
+    LazyAccStats lazy_acc_stats_{};   // S12 NnueLazyAcc counters
+#endif
 };
 
 } // namespace forge
