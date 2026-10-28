@@ -55,7 +55,7 @@ struct SearcherTestProbe {
     static int run_after(Searcher& searcher, Board board, int depth, int alpha, int beta, Move parent,
                          Move grandparent) {
         Worker& worker = prepare(searcher, board);
-        auto& history = *worker.continuation_history_;
+        auto& history = *worker.histories_.continuation_history;
         SearchStack& p = worker.stack_[4];
         p.current_move = parent;
         p.moved_piece = board.piece_at(parent.to);
@@ -68,7 +68,7 @@ struct SearcherTestProbe {
     }
     // The continuation-history entry that a fail-low bonus of the node writes.
     static int parent_bonus(Searcher& searcher, const Board& board, Move parent, Move grandparent) {
-        const auto& history = *searcher.main_worker().continuation_history_;
+        const auto& history = *searcher.main_worker().histories_.continuation_history;
         return history[static_cast<std::size_t>(board.piece_at(grandparent.to))][grandparent.to]
                       [static_cast<std::size_t>(board.piece_at(parent.to))][parent.to];
     }
