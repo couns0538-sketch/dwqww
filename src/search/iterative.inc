@@ -4,6 +4,14 @@
 
 namespace forge {
 
+// Cold: called only with HardDeadline on, once per iteration (keeps the hot
+// search functions' placement unchanged).
+[[gnu::cold]] void Worker::publish_best_move(const SearchInfo& result) {
+    if (!is_main()) return;
+    const std::uint64_t pair = static_cast<std::uint64_t>(pack_move(result.ponder_move)) << 32U | pack_move(result.best_move);
+    options::published_moves.store(pair, std::memory_order_relaxed);
+}
+
 SearchInfo Worker::search(Board board, const SearchLimits& limits, bool emit_info, const std::vector<Worker*>& all) {
     const auto origin = limits.start_time != std::chrono::steady_clock::time_point{}
         ? limits.start_time : limits.request_start;
@@ -159,6 +167,7 @@ SearchInfo Worker::search(Board board, const SearchLimits& limits, bool emit_inf
                 result.best_move = ss->pv[0];
                 result.pv.assign(ss->pv.begin(), ss->pv.begin() + ss->pv_length);
                 result.ponder_move = result.pv.size() > 1 ? result.pv[1] : Move::none();
+                if (options::hard_deadline_ms > 0) publish_best_move(result);
                 // Publish the revised line so GUIs see a PV consistent with the move.
                 // A tablebase root (UCI SyzygyPath) reports the tablebase result.
                 emit(depth, syzygy::root_display.load(std::memory_order_relaxed) != 0 ? syzygy::display_score(result.score)
@@ -174,6 +183,7 @@ SearchInfo Worker::search(Board board, const SearchLimits& limits, bool emit_inf
         if (!result.pv.empty()) result.best_move = result.pv.front();
         result.ponder_move = result.pv.size() > 1 ? result.pv[1] : Move::none();
         result.nodes = total_nodes();
+        if (options::hard_deadline_ms > 0) publish_best_move(result);
         emit(depth, syzygy::root_display.load(std::memory_order_relaxed) != 0 ? syzygy::display_score(score) : score,
              result.pv);
 

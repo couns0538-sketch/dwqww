@@ -18,6 +18,7 @@
 #include <memory>
 #include <mutex>
 #include <thread>
+#include <utility>
 #include <vector>
 
 namespace forge {
@@ -81,6 +82,8 @@ private:
     // called while tables are loaded. Returns ValueNone to search on.
     [[gnu::cold]] int probe_tablebase(Board& board, SearchStack* ss, int depth, int alpha, int beta,
                                       const TTProbe& tt_probe);
+    // HardDeadline: publish the main worker's current best/ponder move pair.
+    void publish_best_move(const SearchInfo& result);
 };
 
 // Public search facade: a shared transposition table plus one or more workers.
@@ -118,6 +121,14 @@ public:
     [[nodiscard]] static int evaluate(const Board& board) { return Evaluator::evaluate_uncached(board); }
     [[nodiscard]] Worker& main_worker() { return *workers_.front(); }
     [[nodiscard]] TranspositionTable& transposition_table() { return shared_.tt; }
+    // HardDeadline: best / ponder move pair of the main worker's last completed
+    // iteration (Move::none() until the first one after reset_published_moves()).
+    // Safe to call from any thread while a search runs.
+    static void reset_published_moves() { options::published_moves.store(0, std::memory_order_relaxed); }
+    [[nodiscard]] static std::pair<Move, Move> published_moves() {
+        const std::uint64_t pair = options::published_moves.load(std::memory_order_relaxed);
+        return {unpack_move(static_cast<std::uint32_t>(pair)), unpack_move(static_cast<std::uint32_t>(pair >> 32U))};
+    }
 
 private:
     // SmpBestThread: replace thread 0's move/PV/score by the best helper's

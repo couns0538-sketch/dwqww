@@ -42,6 +42,16 @@ struct SearchStack {
     nnue::DirtyPieces dirty{};
 };
 
+// Move <-> 32-bit word, for publishing moves through one atomic.
+[[nodiscard]] constexpr std::uint32_t pack_move(Move move) {
+    return static_cast<std::uint32_t>(move.from) | static_cast<std::uint32_t>(move.to) << 8U |
+           static_cast<std::uint32_t>(move.promotion) << 16U | static_cast<std::uint32_t>(move.flags) << 24U;
+}
+[[nodiscard]] constexpr Move unpack_move(std::uint32_t bits) {
+    return Move{static_cast<std::uint8_t>(bits), static_cast<std::uint8_t>(bits >> 8U),
+                static_cast<std::uint8_t>(bits >> 16U), static_cast<std::uint8_t>(bits >> 24U)};
+}
+
 // State shared by every worker of one Searcher.
 struct SharedSearchState {
     explicit SharedSearchState(std::size_t hash_mb) : tt(hash_mb) {}
