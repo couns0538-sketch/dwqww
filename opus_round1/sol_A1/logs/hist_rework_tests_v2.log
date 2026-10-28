@@ -1,0 +1,42 @@
+HistRework (A1) tests
+PASS hist_rework levels: quarters, weights, clamp, default 0 checks=18
+INFO threat-map positions checked: 7546
+PASS lesser-attacker maps: reference over fixtures + random walks, hand-checked fixture checks=7562
+PASS BOUND blend: max |result| over the grid = 16384 = HistoryLimit (int numerator <= 65536)
+PASS blend: exhaustive grid incl. +-16384, quarters 0..4 checks=630132
+PASS BOUND constant step 128 saturates at exactly 8192 after 346 updates
+PASS BOUND constant step -128 saturates at exactly -8192 after 346 updates
+PASS gravity: reachable domain exhaustive, proof domain grid, exact saturation checks=8782362
+PASS joint key: signature, formula, distinct slots, make/unmake/null stability checks=492
+PASS glue, option 0: new tables untouched, lock read/update rules checks=4
+PASS BOUND level 1: threat slots [W][1][0] e4c3 / [W][1][1] e4g5 follow the lock gravity and saturate at exactly +16384 / -16384 after 11 updates (bonus 10000)
+PASS BOUND level 1: worst-case quiet_history read = -3 * 16384 = -49152 exactly
+PASS BOUND level 2: threat slots [W][1][0] e4c3 / [W][1][1] e4g5 follow the lock gravity and saturate at exactly +16384 / -16384 after 11 updates (bonus 10000)
+PASS BOUND level 2: worst-case quiet_history read = -3 * 16384 = -49152 exactly
+PASS BOUND level 3: threat slots [W][1][0] e4c3 / [W][1][1] e4g5 follow the lock gravity and saturate at exactly +16384 / -16384 after 11 updates (bonus 10000)
+PASS BOUND level 3: worst-case quiet_history read = -3 * 16384 = -49152 exactly
+PASS glue, history: predicted threat slots, saturation at +-16384 with bonus 10000, read bounds checks=15
+PASS BOUND worst-case corrected eval, level 1 sign 1: raw + 144
+PASS BOUND joint entry at the bound stays at exactly 8192 under a same-sign maximal step
+PASS BOUND worst-case corrected eval, level 1 sign -1: raw + -144
+PASS BOUND joint entry at the bound stays at exactly -8192 under a same-sign maximal step
+PASS BOUND joint entry reaches exactly +8192 (346 maximal updates)
+PASS BOUND worst-case corrected eval, level 2 sign 1: raw + 152
+PASS BOUND joint entry at the bound stays at exactly 8192 under a same-sign maximal step
+PASS BOUND worst-case corrected eval, level 2 sign -1: raw + -152
+PASS BOUND joint entry at the bound stays at exactly -8192 under a same-sign maximal step
+PASS BOUND joint entry reaches exactly +8192 (346 maximal updates)
+PASS BOUND worst-case corrected eval, level 3 sign 1: raw + 160
+PASS BOUND joint entry at the bound stays at exactly 8192 under a same-sign maximal step
+PASS BOUND worst-case corrected eval, level 3 sign -1: raw + -160
+PASS BOUND joint entry at the bound stays at exactly -8192 under a same-sign maximal step
+PASS BOUND joint entry reaches exactly +8192 (346 maximal updates)
+PASS glue, correction: worst-case read (+-160 cp), joint update at +-8192, exact saturation checks=33
+INFO level 0 depth 8 nodes 24773 threat_nonzero 0 joint_nonzero 0
+INFO level 1 depth 8 nodes 26105 threat_nonzero 138 joint_nonzero 454
+INFO level 2 depth 8 nodes 26791 threat_nonzero 142 joint_nonzero 455
+INFO level 3 depth 8 nodes 28262 threat_nonzero 168 joint_nonzero 504
+INFO stress level 3 depth 9 nodes 46391 threat_nonzero 293
+PASS BOUND level 3 with tunables at their maxima: searches complete, all entries bounded
+PASS searches: determinism, OFF untouched, ON changes nodes, max-value stress with bounded tables checks=16
+SUMMARY checks=9420634 failures=0

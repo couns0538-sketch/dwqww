@@ -24,6 +24,8 @@ constexpr std::size_t CorrectionSize = 1U << 14U;
 constexpr int CorrectionGrain = 256;
 constexpr int CorrectionLimit = 32 * CorrectionGrain;
 using CorrectionHistory = std::array<std::array<std::int32_t, CorrectionSize>, 2>;
+// UCI HistRework: [side][from attacked by a lesser enemy piece][to attacked by a lesser enemy piece][from][to].
+using LesserThreatHistory = std::array<std::array<std::array<std::array<std::array<std::int16_t, 64>, 64>, 2>, 2>, 2>;
 
 // History entries saturate at +/-HistoryMax.
 constexpr int HistoryMax = 16384;

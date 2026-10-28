@@ -86,6 +86,12 @@ int Worker::corrected_eval_plus(const Board& board, int raw_eval) const {
     if (tune::MaterialCorrectionWeight > 0) {
         correction += corrplus::div100((*material_correction_)[side][material_key(board) & (CorrectionSize - 1U)] * tune::MaterialCorrectionWeight);
     }
+    // R3 stack: HistRework's joint term as in corrected_eval, so HistRework and CorrHistPlus combine.
+    if (const int level = search_options::hist_rework; level != 0) [[unlikely]] {
+        // HistRework: pawn structure x non-pawn material. |entry| <= 8192, weight <= 100: |term| <= 8192.
+        correction += (*joint_correction_)[side][hist_rework::joint_key(board) & (CorrectionSize - 1U)] *
+                      hist_rework::joint_weight(level) / 100;
+    }
     correction += correction_plus(board);
     return std::clamp(raw_eval + corrplus::div_pow2<8>(correction), -MateInMaxPly + 1, MateInMaxPly - 1);
 }
@@ -106,6 +112,13 @@ void Worker::update_correction_plus(const Board& board, int depth, int best_scor
     };
     apply((*correction_history_)[side][board.pawn_key() & (CorrectionSize - 1U)]);
     if (tune::MaterialCorrectionWeight > 0) apply((*material_correction_)[side][material_key(board) & (CorrectionSize - 1U)]);
+    // R3 stack: HistRework's joint update as in update_correction, so HistRework and CorrHistPlus combine.
+    if (search_options::hist_rework != 0) [[unlikely]] {
+        // HistRework: the joint table learns the same residual step (|step| <= 2048 * 16 / 256 = 128) with a
+        // gravity-style damping instead of the lock's add-and-clamp; the lock tables above are unchanged.
+        std::int32_t& entry = (*joint_correction_)[side][hist_rework::joint_key(board) & (CorrectionSize - 1U)];
+        entry = hist_rework::gravity(entry, diff * weight / 256, CorrectionLimit);
+    }
 
     if (!correction_plus_) {
         // Value-initialised (all entries 0). On allocation failure the extra keys stay unused.

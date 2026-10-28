@@ -449,6 +449,8 @@ int main() {
                 std::cout << "option name NetScale type spin default " << forge::net_scale::Default << " min "
                           << forge::net_scale::Minimum << " max " << forge::net_scale::Maximum << "\n";
             }
+            // Search option added after AL1 s198 (Astra A1); default 0 = the lock's search (forge/hist_rework.hpp).
+            std::cout << "option name HistRework type spin default 0 min 0 max " << forge::hist_rework::MaxLevel << "\n";
 #ifdef FORGE_EXPOSE_TUNABLES
             // Development builds advertise the search constants so match
             // runners can set them; release builds accept them silently.
@@ -657,6 +659,15 @@ int main() {
                 else {
                     const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex());
                     std::cout << "info string invalid value for option CuckooRep" << std::endl;
+                }
+            } else if (name == "HistRework") {
+                int value = 0;
+                const auto parsed = std::from_chars(value_text.data(), value_text.data() + value_text.size(), value);
+                if (parsed.ec != std::errc{} || parsed.ptr != value_text.data() + value_text.size()) {
+                    const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex());
+                    std::cout << "info string invalid value for option " << name << std::endl;
+                } else {
+                    forge::search_options::hist_rework = std::clamp(value, 0, forge::hist_rework::MaxLevel);
                 }
             } else if (name == "UseNNUE") {
                 if (value_text == "true") forge::nnue::enabled = true;

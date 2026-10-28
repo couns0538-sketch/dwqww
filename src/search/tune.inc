@@ -4,6 +4,12 @@
 
 namespace forge {
 
+// HistRework (A1). Defined before the tunables: GCC emits a translation unit's globals in reverse order,
+// so the lock's tunables keep their addresses.
+namespace search_options {
+int hist_rework = 0;
+} // namespace search_options
+
 namespace net_scale {
 // S41: UCI NetScale, percent; 100 = OFF (constant-initialised, no constructor code).
 int percent = Default;

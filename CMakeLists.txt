@@ -184,6 +184,10 @@ target_link_libraries(forge_material_key_tests PRIVATE forge_core Threads::Threa
 add_executable(forge_net_scale_tests tests/net_scale_tests.cpp)
 target_link_libraries(forge_net_scale_tests PRIVATE forge_core Threads::Threads)
 
+# UCI HistRework (Astra A1): helpers, overflow bounds, glue and max-value searches.
+add_executable(forge_hist_rework_tests tests/hist_rework_tests.cpp)
+target_link_libraries(forge_hist_rework_tests PRIVATE forge_core Threads::Threads)
+
 add_executable(forge_bench bench/benchmark.cpp)
 target_link_libraries(forge_bench PRIVATE forge_core Threads::Threads)
 
@@ -208,6 +212,7 @@ add_test(NAME forge_corr_ext_tests COMMAND forge_corr_ext_tests)
 add_test(NAME forge_cuckoo_tests COMMAND forge_cuckoo_tests)
 add_test(NAME forge_nnue_parity_tests COMMAND forge_nnue_parity_tests
     --fens ${CMAKE_CURRENT_SOURCE_DIR}/tests/data/nnue_selfplay_sample_916.txt)
+add_test(NAME forge_hist_rework_tests COMMAND forge_hist_rework_tests)
 add_test(NAME forge_tt_tests COMMAND forge_tt_tests)
 add_test(NAME forge_tt_stress_lockless COMMAND forge_tt_stress_tests --threads 2 --ops 2000000 --mode lockless)
 add_test(NAME forge_tt_stress_locked COMMAND forge_tt_stress_tests --threads 2 --ops 2000000 --mode locked)

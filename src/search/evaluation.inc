@@ -96,6 +96,11 @@ int Worker::corrected_eval(const Board& board, int raw_eval) const {
     if (tune::MaterialCorrectionWeight > 0) {
         correction += (*material_correction_)[side][material_key(board) & (CorrectionSize - 1U)] * tune::MaterialCorrectionWeight / 100;
     }
+    if (const int level = search_options::hist_rework; level != 0) [[unlikely]] {
+        // HistRework: pawn structure x non-pawn material. |entry| <= 8192, weight <= 100: |term| <= 8192.
+        correction += (*joint_correction_)[side][hist_rework::joint_key(board) & (CorrectionSize - 1U)] *
+                      hist_rework::joint_weight(level) / 100;
+    }
     return std::clamp(raw_eval + correction / CorrectionGrain, -MateInMaxPly + 1, MateInMaxPly - 1);
 }
 
@@ -111,6 +116,12 @@ void Worker::update_correction(const Board& board, int depth, int best_score, in
     };
     apply((*correction_history_)[side][board.pawn_key() & (CorrectionSize - 1U)]);
     if (tune::MaterialCorrectionWeight > 0) apply((*material_correction_)[side][material_key(board) & (CorrectionSize - 1U)]);
+    if (search_options::hist_rework != 0) [[unlikely]] {
+        // HistRework: the joint table learns the same residual step (|step| <= 2048 * 16 / 256 = 128) with a
+        // gravity-style damping instead of the lock's add-and-clamp; the lock tables above are unchanged.
+        std::int32_t& entry = (*joint_correction_)[side][hist_rework::joint_key(board) & (CorrectionSize - 1U)];
+        entry = hist_rework::gravity(entry, diff * weight / 256, CorrectionLimit);
+    }
 }
 
 } // namespace forge

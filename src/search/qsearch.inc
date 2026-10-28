@@ -62,6 +62,9 @@ int Worker::FORGE_QSEARCH_FN(Board& board, SearchStack* ss, int alpha, int beta)
         futility_base = ss->static_eval + tune::QsFutilityMargin;
     }
 
+    // HistRework: check evasions score quiet moves with quiet_history, which reads this node's maps.
+    if (in_check && search_options::hist_rework != 0) [[unlikely]]
+        threat_maps_[static_cast<std::size_t>(ply)] = hist_rework::lesser_threats(board);
     MovePicker picker(board, *this, ss, tt_move, MovePicker::Mode::Quiescence);
     Move best_move = Move::none();
     int move_count = 0;

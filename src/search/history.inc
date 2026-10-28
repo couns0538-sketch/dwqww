@@ -4,9 +4,33 @@
 
 namespace forge {
 
+static_assert(hist_rework::HistoryLimit == HistoryMax, "HistRework bounds assume the lock's history limit");
+static_assert(hist_rework::CorrectionEntryLimit == CorrectionLimit, "HistRework bounds assume the lock's correction limit");
+
+// HistRework: the threat-keyed butterfly slot of a quiet move at the node of `ss` (its maps are threat_maps_[ply]).
+std::int16_t& Worker::threat_history_entry(const Board& board, const SearchStack* ss, Move move) const {
+    const hist_rework::LesserThreats& threats = threat_maps_[static_cast<std::size_t>(ss->ply)];
+    const Bitboard set = threats.by_type[static_cast<std::size_t>(piece_type(board.moved_piece(move)))];
+    return (*threat_history_)[static_cast<std::size_t>(board.side_to_move())][hist_rework::square_bit(set, move.from)]
+                             [hist_rework::square_bit(set, move.to)][move.from][move.to];
+}
+
+void Worker::update_threat_history(const Board& board, const SearchStack* ss, Move best, int bonus, const Move* quiets,
+                                   int quiet_count) {
+    apply_history(threat_history_entry(board, ss, best), bonus);
+    for (int i = 0; i < quiet_count; ++i) {
+        if (quiets[i] == best) continue;
+        apply_history(threat_history_entry(board, ss, quiets[i]), -bonus);
+    }
+}
+
 int Worker::quiet_history(const Board& board, const SearchStack* ss, Move move) const {
     const Piece piece = board.moved_piece(move);
     int score = (*histories_.main_history)[static_cast<std::size_t>(board.side_to_move())][move.from][move.to];
+    if (const int level = search_options::hist_rework; level != 0 && ss != nullptr) [[unlikely]] {
+        // |score| <= 16384 after the blend, as for the lock table alone (hist_rework::blend).
+        score = hist_rework::blend(score, threat_history_entry(board, ss, move), hist_rework::threat_quarters(level));
+    }
     if (ss != nullptr) {
         if ((ss - 1)->continuation != nullptr) score += (*(ss - 1)->continuation)[static_cast<std::size_t>(piece)][move.to];
         if ((ss - 2)->continuation != nullptr) score += (*(ss - 2)->continuation)[static_cast<std::size_t>(piece)][move.to];
@@ -50,6 +74,8 @@ void Worker::update_quiet_stats(const Board& board, SearchStack* ss, Move move, 
         apply_history((*histories_.main_history)[static_cast<std::size_t>(us)][quiet.from][quiet.to], -bonus);
         update_continuation(ss, board.moved_piece(quiet), quiet.to, -bonus);
     }
+    // HistRework: the threat-keyed twin learns the same bonus and maluses (lock gravity, apply_history).
+    if (search_options::hist_rework != 0) [[unlikely]] update_threat_history(board, ss, move, bonus, quiets, quiet_count);
 }
 
 void Worker::update_capture_stats(const Board& board, Move best, int depth, const Move* captures, int capture_count) {

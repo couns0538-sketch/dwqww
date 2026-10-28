@@ -18,6 +18,8 @@ void Worker::clear() {
     *correction_history_ = CorrectionHistory{};
     *material_correction_ = CorrectionHistory{};
     correction_plus_.reset();  // CorrHistPlus tables, reallocated (zeroed) by the next update
+    *threat_history_ = LesserThreatHistory{};   // HistRework (A1)
+    *joint_correction_ = CorrectionHistory{};
     for (SearchStack& ss : stack_) ss = SearchStack{};
 }
 

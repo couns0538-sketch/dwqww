@@ -3,6 +3,7 @@
 #include "forge/board.hpp"
 #include "forge/eval.hpp"
 #include "forge/history.hpp"
+#include "forge/hist_rework.hpp"
 #include "forge/nnue.hpp"
 #include "forge/search_options.hpp"
 #include "forge/search_tune.hpp"
@@ -81,6 +82,9 @@ private:
                             const Move* quiets, int quiet_count);
     void update_capture_stats(const Board& board, Move best, int depth, const Move* captures, int capture_count);
     void update_continuation(SearchStack* ss, Piece piece, int to, int bonus);
+    void update_threat_history(const Board& board, const SearchStack* ss, Move best, int bonus, const Move* quiets,
+                               int quiet_count);
+    [[nodiscard]] std::int16_t& threat_history_entry(const Board& board, const SearchStack* ss, Move move) const;
     [[nodiscard]] int quiet_history(const Board& board, const SearchStack* ss, Move move) const;
     [[nodiscard]] int capture_history_value(const Board& board, Move move) const;
     [[nodiscard]] int corrected_eval(const Board& board, int raw_eval) const;

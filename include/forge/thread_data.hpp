@@ -3,6 +3,7 @@
 #include "forge/board.hpp"
 #include "forge/correction_plus.hpp"
 #include "forge/eval.hpp"
+#include "forge/hist_rework.hpp"
 #include "forge/history.hpp"
 #include "forge/nnue.hpp"
 #include "forge/search_types.hpp"
@@ -121,6 +122,11 @@ struct ThreadData {
     // by Worker::clear(). Last member, no initialiser: the members above keep
     // their AL1 s198 offsets.
     std::unique_ptr<corrplus::Tables> correction_plus_;
+    // UCI HistRework (forge/hist_rework.hpp; A1). Last members, so every member above keeps its offset; read
+    // and written only while the option is on. threat_maps_[ply] holds the lesser-attacker maps of the node at ply.
+    std::unique_ptr<LesserThreatHistory> threat_history_ = std::make_unique<LesserThreatHistory>();
+    std::unique_ptr<CorrectionHistory> joint_correction_ = std::make_unique<CorrectionHistory>();
+    std::array<hist_rework::LesserThreats, MaxPly + 8> threat_maps_{};
 };
 
 } // namespace forge

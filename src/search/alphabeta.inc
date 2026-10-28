@@ -223,6 +223,8 @@ int Worker::FORGE_SEARCH_FN(Board& board, SearchStack* ss, int depth, int alpha,
     // Internal iterative reduction: no hash move suggests a less important node.
     if (!in_check && depth >= tune::IirDepth && tt_move.is_none() && (pv_node || cut_node)) --depth;
 
+    // HistRework: lesser-attacker maps of this node, read by quiet_history and the history updates below.
+    if (search_options::hist_rework != 0) [[unlikely]] threat_maps_[static_cast<std::size_t>(ply)] = hist_rework::lesser_threats(board);
     MovePicker picker(board, *this, ss, tt_move, MovePicker::Mode::Main);
     std::array<Move, 128> quiets_tried{};
     std::array<Move, 64> captures_tried{};
@@ -414,6 +416,8 @@ int Worker::FORGE_SEARCH_FN(Board& board, SearchStack* ss, int depth, int alpha,
         // Even without a cutoff, a new PV move earned its place.
         apply_history((*histories_.main_history)[static_cast<std::size_t>(board.side_to_move())][best_move.from][best_move.to],
                       history_bonus(depth) / 4);
+        if (search_options::hist_rework != 0) [[unlikely]]
+            apply_history(threat_history_entry(board, ss, best_move), history_bonus(depth) / 4);
     } else if (tune::FailLowContinuationBonus > 0 && best_move.is_none() && !(ss - 1)->current_move.is_none() &&
                (ss - 1)->moved_piece != Empty && !(ss - 1)->current_move.is_capture() && ply > 0) {
         // Every move failed low: the parent's quiet move refuted this line.
