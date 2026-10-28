@@ -4,6 +4,11 @@
 
 namespace forge {
 
+namespace net_scale {
+// S41: UCI NetScale, percent; 100 = OFF (constant-initialised, no constructor code).
+int percent = Default;
+} // namespace net_scale
+
 namespace tune {
 // CorrHistPlus weights. Defined before the AL1 s198 tunables on purpose: GCC
 // emits a translation unit's globals in reverse definition order, so these

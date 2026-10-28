@@ -180,6 +180,9 @@ endif()
 
 add_executable(forge_material_key_tests tests/material_key_tests.cpp)
 target_link_libraries(forge_material_key_tests PRIVATE forge_core Threads::Threads)
+# S41 NetScale: apply() arithmetic and the actual Worker::static_evaluate path at every scale.
+add_executable(forge_net_scale_tests tests/net_scale_tests.cpp)
+target_link_libraries(forge_net_scale_tests PRIVATE forge_core Threads::Threads)
 
 add_executable(forge_bench bench/benchmark.cpp)
 target_link_libraries(forge_bench PRIVATE forge_core Threads::Threads)
@@ -215,6 +218,7 @@ add_test(NAME forge_syzygy_tests COMMAND forge_syzygy_tests
 add_test(NAME forge_tt_prefetch_probe COMMAND forge_tt_prefetch_probe)
 add_test(NAME forge_material_key_tests COMMAND forge_material_key_tests
     ${CMAKE_CURRENT_SOURCE_DIR}/tools/openings/forge-10000.epd)
+add_test(NAME forge_net_scale_tests COMMAND forge_net_scale_tests)
 add_test(NAME forge_legal_witness_tests COMMAND forge_legal_witness_tests
     ${CMAKE_CURRENT_SOURCE_DIR}/tests/legal_witness_fixtures.tsv
     ${CMAKE_CURRENT_SOURCE_DIR}/tools/openings/forge-10000.epd)

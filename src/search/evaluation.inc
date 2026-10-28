@@ -59,10 +59,17 @@ int Worker::static_evaluate(const Board& board, SearchStack* ss) {
         }
     }
     const int network = nnue::evaluate(board, ss->accumulator);
-    if (!residual) return network;
+    // S41 NetScale (default 100 = OFF, forge/net_scale.hpp): net_scale::apply is the identity at 100.
+    // (R3 stack: the compiled-in network only, as on opus-sol-S41; v2 nets are not scaled.)
+    const int scale = net_scale::percent;
+    if (!residual) {
+        if (scale == net_scale::Default) [[likely]] return network;
+        return std::clamp(net_scale::apply(network, scale), -MateInMaxPly + 1, MateInMaxPly - 1);
+    }
     if (!ss->runtime_psqt.valid) ss->runtime_psqt = Evaluator::refresh_runtime_psqt(board);
     // A residual network is a learned correction on top of the hand-crafted evaluation.
-    return std::clamp(evaluator_.evaluate_runtime(board, ss->runtime_psqt) + network, -MateInMaxPly + 1, MateInMaxPly - 1);
+    return std::clamp(net_scale::apply(evaluator_.evaluate_runtime(board, ss->runtime_psqt) + network, scale),
+                      -MateInMaxPly + 1, MateInMaxPly - 1);
 }
 
 void Worker::record_move(SearchStack* ss, const Board& board, const Move& move) {

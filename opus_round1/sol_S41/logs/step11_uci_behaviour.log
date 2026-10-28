@@ -1,0 +1,24 @@
+# S41 UCI behaviour checks (nice 19): clamp low/high, invalid value, 90 then 100 restores AL1
+# NetScale=10 exe=forge_s41_al1.exe opts=NetScale=10
+bench d11 nodes 365531 time 341 ms nps 1071938
+bench d13 nodes 755221 time 620 ms nps 1218098
+# NetScale=50 exe=forge_s41_al1.exe opts=NetScale=50
+bench d11 nodes 365531 time 276 ms nps 1324387
+bench d13 nodes 755221 time 546 ms nps 1383188
+# NetScale=300 exe=forge_s41_al1.exe opts=NetScale=300
+bench d11 nodes 356340 time 230 ms nps 1549304
+bench d13 nodes 998533 time 819 ms nps 1219210
+# NetScale=150 exe=forge_s41_al1.exe opts=NetScale=150
+bench d11 nodes 356340 time 288 ms nps 1237291
+bench d13 nodes 998533 time 791 ms nps 1262367
+## invalid value
+# invalid exe=forge_s41_al1.exe opts=NetScale=abc
+OPTION ERROR: info string invalid value for option NetScale
+bench d11 nodes 312866 time 261 ms nps 1198720
+MISMATCH
+## 90 then 100 (expect AL1 refs)
+# 90 then 100 exe=forge_s41_al1.exe opts=NetScale=90 NetScale=100
+bench d11 nodes 312866 time 247 ms nps 1266663 ref 312866 OK (+0.00%)
+bench d13 nodes 862329 time 621 ms nps 1388613 ref 862329 OK (+0.00%)
+bench d16 nodes 3024920 time 2178 ms nps 1388852 ref 3024920 OK (+0.00%)
+ALL OK
