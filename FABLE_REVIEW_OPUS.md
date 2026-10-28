@@ -148,7 +148,7 @@ instead of assuming it, so that they are checkout-independent (mistake 3 below).
 
 | 2 | the AL1 lock engine itself; Opus job S14 found it (`opus-sol-S14` REPORT section 4, "not fixed here") and the lock archive carries the CR-passed fix that was never applied | `MovePicker::bad_captures_` is `std::array<Move, 64>` written at `src/search.cpp:361` without a bounds check; a position with more than 64 SEE-losing noisy moves (capture-promotions count four times) overruns it (undefined behaviour) | branch **`fable-review-buffix`** (base d4f4312): the archived node-identical fix applied (`std::array<Move, MoveList::Capacity>` + static_assert + `tests/bad_capture_tests.cpp`), box build, identity check and the regression test; see its `fable_review/REVIEW.md` |
 
-| 3 | opus-sol-S08fix, S33fix, S38, S42, S46 (line endings) and S15, S27fix, S47, S48fix (full-checkout inputs) | their unit tests compare raw bytes or SHA256 of text files, so they pass only in a checkout with the same line endings as the author's (CRLF on the PC) and fail from an LF export | not corrected (tests only; the tools' logic is unaffected): normalise `\r\n` before comparing / hashing; listed for the owner |
+| 3 | opus-sol-S08fix, S33fix, S38, S42, S46 (line endings) and S15, S27fix, S47, S48fix (full-checkout inputs) | their unit tests compare raw bytes or SHA256 of text files, so they pass only in a checkout with the same line endings as the author's (CRLF on the PC) and fail from an LF export | S33fix, S38, S46 corrected on `fable-review-S33fix/S38/S46` (comparisons normalise line endings); S08fix/S42 hash checks and the four full-checkout tests listed for the owner |
 
 ## Corrections pushed
 
@@ -156,8 +156,12 @@ instead of assuming it, so that they are checkout-independent (mistake 3 below).
 |---|---|---|
 | `fable-review-buffix` (base d4f4312 + the fable-* CI trigger) | mistake 2: `MovePicker::bad_captures_` sized to `MoveList::Capacity` (256) with a static_assert, plus `tests/bad_capture_tests.cpp` (ctest `forge_bad_capture_tests`), the lock archive's node-identical fix applied verbatim | box build FMA 0 and 0 warnings (`fable_review/logs/build_pc.log`), identity **ALL OK** (bench d11/13/16/20/22 = the AL1 pins, perft5, kiwipete; `fable_review/logs/identity.log`), regression test 5 fixtures accepted, 0 failures (`fable_review/logs/bad_capture_tests.log`); **CI run 40670602785 green**: release identity ALL OK, known-failure check PASS in release/ASan/TSan, TSan 0 reports, the new `forge_bad_capture_tests` in the ctest list |
 
-Mistake 1 (committed `.pyc` files) is left as an owner command because untracking files is refused by the PC's
-permission rules in this session.
+| `fable-review-r3-stack` (base opus-r3-stack da158149) | mistake 1: `.gitignore` for `__pycache__/` and `*.pyc` plus `opus_round1/fable_review/REVIEW.md`; the untracking of the eight files itself was refused by the permission rules (twice, with two different git commands) and stays the owner's one-line command | pushed (2cc0a54b) |
+| `fable-review-S33fix`, `fable-review-S38`, `fable-review-S46` (bases: the opus-sol branches) | mistake 3, the three golden-file tests: comparisons normalise `\r\n` to `\n` on both sides (S46 also for the regenerated fixture files); verified in a CRLF worktree and in an LF export (S46: 30 failures -> OK) | pushed |
+
+Not corrected (listed): S08fix and S42 verify SHA256 provenance of data files (normalising would change what the
+check means; the owner should decide whether the frozen hashes should be of normalised text), S15, S27fix, S47 and
+S48fix need a full checkout by design.
 
 ## What was reviewed, what was not (honest scope)
 
@@ -177,7 +181,7 @@ permission rules in this session.
    `.gitignore` and REVIEW.md; the untracking command is the owner's (refused for me twice).
 2. Unguarded 64-entry `bad_captures_` buffer in the lock engine (known since S14, fix never applied) ->
    `fable-review-buffix`, node-identical, CI green.
-3. Nine job tests depend on the checkout (line endings / full tree / exe fixtures) -> listed, not changed.
+3. Nine job tests depend on the checkout (line endings / full tree / exe fixtures) -> three corrected (S33fix, S38, S46), six listed.
 
 Everything else examined was found consistent with its report. No Elo or speed claim is made or changed anywhere.
 
@@ -187,8 +191,8 @@ Everything else examined was found consistent with its report. No Elo or speed c
    commit; merge `fable-review-buffix` into the next lock candidate (one engine line + one test).
 2. If a deeper audit is wanted: re-run S44 `check` on the 23 gates, S40/S17 on their fixtures and the real shards,
    and read the C1 decoder against the Syzygy format specification; none of this changes an engine default.
-3. Make the nine fragile tests checkout-independent (normalise `\r\n` before comparing or hashing; locate the repo
-   root instead of assuming `../../src`).
+3. Decide on the S08fix/S42 provenance hashes (hash normalised text or pin the line endings) and make S15, S27fix,
+   S47, S48fix find the repository root instead of assuming it.
 
 ## Time spent / estimate
 
