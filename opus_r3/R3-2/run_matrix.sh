@@ -15,7 +15,8 @@ echo "nodes done $(date '+%F %T') status $? free RAM $(free_gb) GB"
 nice -n 19 "$PY" -I -B "$HERE/r3_matrix.py" nps --runs "$RUNS" --depth 16 --depth-t2 16 --skip-done --out "$OUT" "$@" \
   > "$LOG/nps.log" 2>&1
 echo "nps done $(date '+%F %T') status $? free RAM $(free_gb) GB"
-for m in cpu cycles; do
-  nice -n 19 "$PY" -I -B "$HERE/r3_matrix.py" report --metric "$m" --out "$OUT" --md "$LOG/report_$m.md" > /dev/null 2>&1
+for m in cycles cpu; do
+  nice -n 19 "$PY" -I -B "$HERE/r3_matrix.py" report --metric "$m" --out "$OUT" --md "$LOG/matrix_tables_$m.md" \
+    > /dev/null 2>&1
 done
 echo "report done $(date '+%F %T')"

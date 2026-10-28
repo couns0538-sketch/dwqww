@@ -45,10 +45,23 @@ BENCH_FENS = (   # src/uci.cpp, command "bench"
     "6k1/5ppp/8/8/8/8/5PPP/3R2K1 b - - 0 1",
     "r2q1rk1/ppp2ppp/2n1bn2/2bpp3/3PP3/2N1BN2/PPP1BPPP/R2Q1RK1 w - - 0 9",
 )
-EXES = ("base", "base_copy", "o2", "nozero", "s13", "speedstack", "ss_s13")
+EXES = ("base", "base_copy", "o2", "nozero", "s13", "speedstack", "ss_s13",
+        "base_h3", "o2_h3", "lazy", "o2_lazy", "prof", "int16", "o2_int16", "int16_lazy")
 EXE_FLAGS = {"base": "", "base_copy": "(byte copy of base.exe)", "o2": "-DFORGE_NNUE_O2=1",
              "nozero": "-DFORGE_NOZERO_MOVE_BUFFERS=1", "s13": "-DFORGE_S13_TT_CHILD_PREFETCH=1",
-             "speedstack": "-DFORGE_SPEEDSTACK=1", "ss_s13": "-DFORGE_SPEEDSTACK=1 -DFORGE_S13_TT_CHILD_PREFETCH=1"}
+             "speedstack": "-DFORGE_SPEEDSTACK=1", "ss_s13": "-DFORGE_SPEEDSTACK=1 -DFORGE_S13_TT_CHILD_PREFETCH=1",
+             "base_h3": "", "o2_h3": "-DFORGE_NNUE_O2=1",
+             "lazy": "-DFORGE_NNUE_LAZY_ACC=1", "o2_lazy": "-DFORGE_NNUE_O2=1 -DFORGE_NNUE_LAZY_ACC=1",
+             "prof": "-DFORGE_PROF=1 (+ src/profile.cpp)", "int16": "-DFORGE_NNUE_INT16=1",
+             "o2_int16": "-DFORGE_NNUE_O2=1 -DFORGE_NNUE_INT16=1",
+             "int16_lazy": "-DFORGE_NNUE_INT16=1 -DFORGE_NNUE_LAZY_ACC=1"}
+# Stack head each exe was built from: 467a59b3 = the exes of build_all.sh (source 2432670b = opus-r3-stack@467a59b3 +
+# the CMake test fix); 330237f3 = the final R3-1 head (merged into this branch, build_h3.sh). The final head's default
+# build is not byte-identical to the first pass (HardDeadline output fix in the default path), so every configuration
+# built from it is timed against base_h3 (same head), and H3DRIFT times base_h3 against the first-pass base.
+EXE_HEAD = {k: "467a59b3" for k in EXES}
+EXE_HEAD.update({k: "330237f3" for k in ("base_h3", "o2_h3", "lazy", "o2_lazy", "prof", "int16", "o2_int16",
+                                          "int16_lazy")})
 # replica nets: file -> forge_nnue_v2.py from-inc arguments (None = O4 standalone_copy.py of r1.fnn2)
 NETS = {
     "r1.fnn2": ["--replica", "r1"],
@@ -73,10 +86,11 @@ def configs(net_dir, syzygy):
     C = []
 
     def add(key, label, group, exe="base", opts=(), threads=1, parts=(), expect="exact", ref=None, v2part=False,
-            nodes=True, nps=True, note=""):
+            nodes=True, nps=True, note="", cmd="bench", a_exe=None):
+        a_exe = a_exe or ("base_h3" if EXE_HEAD[exe] == "330237f3" else "base")   # A side: OFF of the same head
         C.append(dict(key=key, label=label, group=group, exe=exe, opts=[list(o) for o in opts], threads=threads,
                       parts=list(parts), expect=expect, ref=ref, v2=v2part, nodes=nodes and threads == 1,
-                      nps=nps, note=note))
+                      nps=nps, note=note, cmd=cmd, head=EXE_HEAD[exe], a_exe=a_exe))
 
     # controls
     add("OFF", "OFF (base.exe, no options)", "control", nps=False)
@@ -172,6 +186,32 @@ def configs(net_dir, syzygy):
     add("O2_THR_PP_OB8", "O2 + NNUEThreats + NNUEPawnPairs + NNUEOutputBuckets=8", "nnue", exe="o2",
         opts=v2("r1_t_p_ob8.fnn2", ("NNUEThreats", "1"), ("NNUEPawnPairs", "1"), ("NNUEOutputBuckets", "8")),
         parts=["O2", "THR", "PP", "OB8"])
+    # final stack head 330237f3 (coordinator, R3-1): S12 null-edge accumulator alias (NnueLazyAcc), S08fix profile
+    # counters (FORGE_PROF), S-A2 NnueInt16; every one timed against base_h3 (the OFF exe of the same head)
+    add("H3DRIFT", "final-head OFF exe (330237f3) vs first-pass OFF exe (467a59b3)", "head3", exe="base_h3",
+        a_exe="base", note="A = first-pass base.exe, B = base_h3.exe: does the first-pass matrix still describe "
+                           "the final head?")
+    add("O2H3", "FORGE_NNUE_O2 at the final head", "head3", exe="o2_h3")
+    add("LAZYSW", "FORGE_NNUE_LAZY_ACC, option off", "head3", exe="lazy")
+    add("LAZY", "FORGE_NNUE_LAZY_ACC + NnueLazyAcc=true", "head3", exe="lazy", opts=[("NnueLazyAcc", "true")])
+    add("O2_LAZY", "O2 + NnueLazyAcc (both change the compiled-in accumulator path)", "head3", exe="o2_lazy",
+        opts=[("NnueLazyAcc", "true")], parts=["O2H3", "LAZY"])
+    add("LAZY_THR", "NnueLazyAcc + NNUEThreats (alias is compiled-in-net code; v2 path runs)", "head3", exe="lazy",
+        opts=[("NnueLazyAcc", "true")] + v2("r1_t.fnn2", ("NNUEThreats", "1")), parts=["LAZY", "THR"])
+    add("PROFSW", "FORGE_PROF build, bench (counting off)", "head3", exe="prof",
+        note="diagnostic build; the UCI Profile option never reaches bench (bench_searcher.set_profiling(bench_prof))")
+    add("PROF", "FORGE_PROF build, bench_prof (counting on)", "head3", exe="prof", cmd="bench_prof")
+    add("PROF_CM_CE", "FORGE_PROF bench_prof + CorrMargins + CorrExt (counters inside the combined instance)",
+        "head3", exe="prof", cmd="bench_prof", opts=[("CorrMargins", "1"), ("CorrExt", "1")], parts=["PROF", "CM_CE"])
+    add("INT16SW", "FORGE_NNUE_INT16, option off", "head3", exe="int16")
+    add("INT16", "FORGE_NNUE_INT16 + NnueInt16=true", "head3", exe="int16", opts=[("NnueInt16", "true")],
+        expect="tree", ref=(330610, 858175, 2760596))
+    add("O2_INT16", "O2 + NnueInt16 (the int16 hooks run before O2's float kernels)", "head3", exe="o2_int16",
+        opts=[("NnueInt16", "true")], parts=["O2H3", "INT16"])
+    add("INT16_LAZY", "NnueInt16 + NnueLazyAcc (the alias drives the int16 accumulators)", "head3",
+        exe="int16_lazy", opts=[("NnueInt16", "true"), ("NnueLazyAcc", "true")], parts=["INT16", "LAZY"])
+    add("INT16_THR", "NnueInt16 + NNUEThreats (int16 applies to the compiled-in net only)", "head3", exe="int16",
+        opts=[("NnueInt16", "true")] + v2("r1_t.fnn2", ("NNUEThreats", "1")), parts=["INT16", "THR"])
     return C
 
 
@@ -262,10 +302,10 @@ class Engine:
         raise EngineDied(f"exit status {self.p.returncode} before {pat!r}{' (timeout)' if self.timed_out else ''}; "
                          f"last lines {self.lines[-4:]}")
 
-    def bench(self, depth):
+    def bench(self, depth, cmd="bench"):
         c0, y0 = proc_cpu(self.p)
         w0 = time.perf_counter()
-        self.send(f"bench {depth}")
+        self.send(f"{cmd} {depth}")
         m = self.wait(rf"bench depth {depth} nodes (\d+) time (\d+) nps (\d+)")
         w1 = time.perf_counter()
         c1, y1 = proc_cpu(self.p)
@@ -312,14 +352,14 @@ class Engine:
         return dict(rc=self.p.returncode, proc_cpu_s=proc_s, proc_cycles=proc_cycles)
 
 
-def run_once(exe, threads, opts, depths, workload):
+def run_once(exe, threads, opts, depths, workload, cmd="bench"):
     """Fresh process; returns a record (also for a failed run: died / status / errors)."""
     rec = dict(ok=False, died=None, setup_errors=[], late_errors=[], info=[], results={})
     eng = None
     try:
         eng = Engine(exe, threads, opts)
         for d in depths:
-            rec["results"][str(d)] = eng.bench(d) if workload == "bench" else eng.go_positions(d)
+            rec["results"][str(d)] = eng.bench(d, cmd) if workload == "bench" else eng.go_positions(d)
         rec.update(eng.close())
         rec["ok"] = rec["rc"] == 0 and not eng.late_errors
     except EngineDied as e:
@@ -446,9 +486,12 @@ def cmd_nodes(a):
     for c in select(C, a.only):
         if not c["nodes"]:
             continue
+        if not Path(exes[c["exe"]]).exists():
+            print(f"{c['key']}: {exes[c['exe']]} missing, skipped", flush=True)
+            continue
         reps = []
         for r in range(a.reps):
-            rec = run_once(exes[c["exe"]], c["threads"], c["opts"], DEPTHS, "bench")
+            rec = run_once(exes[c["exe"]], c["threads"], c["opts"], DEPTHS, "bench", c.get("cmd", "bench"))
             reps.append(rec)
             got = {d: rec["results"].get(str(d), {}).get("nodes") for d in DEPTHS}
             print(f"{c['key']:15s} rep {r} ok={rec['ok']} rc={rec.get('rc')} nodes " +
@@ -470,17 +513,30 @@ def cmd_nps(a):
         if a.skip_done and dest.exists():
             print(f"{c['key']}: done already, skipped", flush=True)
             continue
+        if not Path(exes[c["exe"]]).exists():
+            print(f"{c['key']}: {exes[c['exe']]} missing, skipped", flush=True)
+            continue
         workload = "bench" if c["threads"] == 1 else "go"
         depth = a.depth if workload == "bench" else a.depth_t2
-        side = {"A": (exes["base"], c["threads"], []), "B": (exes[c["exe"]], c["threads"], c["opts"])}
+        a_key = c.get("a_exe", "base")
+        if not Path(exes[a_key]).exists():
+            print(f"{c['key']}: A side {exes[a_key]} missing, skipped", flush=True)
+            continue
+        side = {"A": (exes[a_key], c["threads"], [], "bench"),
+                "B": (exes[c["exe"]], c["threads"], c["opts"], c.get("cmd", "bench"))}
+        runs, first = [], 0
+        if a.append and dest.exists():   # more ABBA pairs for a configuration measured before
+            with open(dest) as fh:
+                runs = json.load(fh)["runs"]
+            first = max(r["pair"] for r in runs) + 1
+            print(f"{c['key']}: appending pairs {first}..{first + a.runs - 1} to {len(runs)} runs", flush=True)
         order = []
-        for i in range(a.runs):
+        for i in range(first, first + a.runs):
             order += [("A", i), ("B", i)] if i % 2 == 0 else [("B", i), ("A", i)]
-        runs = []
         t_start = time.time()
         for tag, i in order:
-            exe, th, opts = side[tag]
-            rec = run_once(exe, th, opts, [depth], workload)
+            exe, th, opts, bcmd = side[tag]
+            rec = run_once(exe, th, opts, [depth], workload, bcmd)
             res = rec["results"].get(str(depth), {})
             runs.append(dict(side=tag, pair=i, ok=rec["ok"], died=rec["died"], rc=rec.get("rc"),
                              setup_errors=len(rec["setup_errors"]), late_errors=rec["late_errors"],
@@ -493,7 +549,7 @@ def cmd_nps(a):
         summary = summarize(runs)
         summary["elapsed_s"] = round(time.time() - t_start, 1)
         with open(dest, "w", newline="\n") as f:
-            json.dump(dict(config=c, workload=workload, depth=depth, exe_a=exes["base"], exe_b=exes[c["exe"]],
+            json.dump(dict(config=c, workload=workload, depth=depth, exe_a=exes[a_key], exe_b=exes[c["exe"]],
                            runs=runs, summary=summary), f, indent=1)
         s = summary
         if s.get("cpu"):
@@ -562,6 +618,23 @@ def cmd_report(a):
     M = a.metric
     est = {k: (v["summary"][M]["log"], v["summary"][M]["se"], v["summary"][M]["df"])
            for k, v in P.items() if v["summary"].get(M)}
+    drift = est.get("H3DRIFT")   # log(base_h3 / base): the final head's OFF exe against the first-pass OFF exe
+
+    def rel(key, ref):
+        """estimate of configuration `key` relative to the OFF exe `ref` (its own A side, or converted with the
+        measured H3DRIFT; the drift enters once per converted term)."""
+        if key not in est:
+            return None
+        a_key = byk[key].get("a_exe", "base")
+        if a_key == ref:
+            return est[key]
+        if drift is None:
+            return None
+        if a_key == "base" and ref == "base_h3":
+            return combine([(1.0, est[key]), (-1.0, drift)])
+        if a_key == "base_h3" and ref == "base":
+            return combine([(1.0, est[key]), (1.0, drift)])
+        return None
     nodes = {}
     for k, rec in N.items():
         tri, ok, same, reps = node_triple(rec)
@@ -638,12 +711,13 @@ def cmd_report(a):
     shared_v2 = "V2R1"
 
     def predicted(c):
-        terms = [(1.0, est[p]) for p in c["parts"] if p in est]
-        if len(terms) != len(c["parts"]):
+        ref = c.get("a_exe", "base")
+        terms = [(1.0, rel(p, ref)) for p in c["parts"]]
+        if any(t[1] is None for t in terms):
             return None
         nv2 = sum(1 for p in c["parts"] if byk[p]["v2"])
-        if nv2 > 1 and shared_v2 in est:
-            terms.append((-(nv2 - 1), est[shared_v2]))
+        if nv2 > 1 and rel(shared_v2, ref) is not None:
+            terms.append((-(nv2 - 1), rel(shared_v2, ref)))
         return combine(terms)
 
     def rest_key(c, drop):
@@ -663,21 +737,36 @@ def cmd_report(a):
         pred = predicted(c)
         inter = combine([(1.0, est[k]), (-1.0, pred)]) if pred else None
         contrib = []
+        ref = c.get("a_exe", "base")
         for p in c["parts"]:
             r = rest_key(c, p)
-            if r is None or r not in est or p not in est:
+            if r is None or rel(r, ref) is None or rel(p, ref) is None:
                 continue
-            solo_terms = [(1.0, est[p])]
-            if byk[p]["v2"] and any(byk[q]["v2"] for q in c["parts"] if q != p) and shared_v2 in est:
-                solo_terms.append((-1.0, est[shared_v2]))
+            solo_terms = [(1.0, rel(p, ref))]
+            if byk[p]["v2"] and any(byk[q]["v2"] for q in c["parts"] if q != p) and rel(shared_v2, ref) is not None:
+                solo_terms.append((-1.0, rel(shared_v2, ref)))
             solo = combine(solo_terms)
-            con = combine([(1.0, est[k]), (-1.0, est[r])])
+            con = combine([(1.0, est[k]), (-1.0, rel(r, ref))])
             diff = combine([(1.0, con), (-1.0, solo)])
             contrib.append((p, r, solo, con, diff))
-            lo_c, hi_c = ci(con)
-            if is_sig(solo) and lo_c <= 0 <= hi_c and is_sig(diff) and (diff[0] * solo[0] < 0):
-                flag(k, f"CANCELS OUT (NPS): {p} alone {pct(solo[0]):+.1f}% but adds {pct(con[0]):+.1f}% "
-                        f"[{pct(ci(con)[0]):+.1f}, {pct(ci(con)[1]):+.1f}] on top of {r}")
+        # NPS "cancels out" in the job's wording: the combined effect is clearly below either part. Applied when
+        # every part has a clear effect (95% interval excludes 0) of the same sign; flagged when the combination's
+        # effect is clearly smaller in size than each part's (interval of the signed difference below 0 for every
+        # part). Parts with opposite signs offset arithmetically: the interaction column covers them.
+        parts_e = [(p, rel(p, ref)) for p in c["parts"]]
+        if all(e is not None for _, e in parts_e) and all(is_sig(e) for _, e in parts_e):
+            signs = {1.0 if e[0] > 0 else -1.0 for _, e in parts_e}
+            if len(signs) == 1:
+                s = signs.pop()
+                gaps = [(p, combine([(s, est[k]), (-s, e)])) for p, e in parts_e]
+                if all(ci(g)[1] < 0 for _, g in gaps):
+                    text = (f"combined {pct(est[k][0]):+.2f}% is smaller than every part (" +
+                            ", ".join(f"{p} {pct(rel(p, ref)[0]):+.2f}%" for p, _ in parts_e) + ")")
+                    n_tree = sum(1 for q in c["parts"] if byk[q]["expect"] == "tree")
+                    if n_tree >= 2:   # a new tree: NPS differences mix tree shape with code cost
+                        flag(k, "NPS note (new tree, not a code conflict): " + text)
+                    else:
+                        flag(k, "CANCELS OUT (NPS): " + text)
         pair_rows.append((c, pred, inter, contrib))
 
     for c in C:
@@ -714,12 +803,17 @@ def cmd_report(a):
             return "—"
         return " / ".join(str(x) for x in tri)
 
-    w(f"| config | build / options | nodes d11 / d13 / d16 | Δnodes vs OFF | CPU NPS Δ% [95% CI] | flag |")
+    mname = {"cycles": "CPU NPS Δ% [95% CI] (cycle-timed CPU)", "cpu": "CPU NPS Δ% [95% CI] (GetProcessTimes)",
+             "wall": "wall NPS Δ% [95% CI]"}[M]
+    w(f"| config | build / options | nodes d11 / d13 / d16 | Δnodes vs OFF | {mname} | flag |")
     w("|---|---|---|---|---|---|")
     for c in C:
         k = c["key"]
         opts = ", ".join(f"{n}={Path(v).name if n == 'NNUEFile' or n == 'SyzygyPath' else v}" for n, v in c["opts"])
-        build = EXE_FLAGS[c["exe"]] or "base"
+        build = (EXE_FLAGS[c["exe"]] or ("base_h3" if c["exe"] == "base_h3" else "base")) + \
+            ("" if c.get("head", "467a59b3") == "467a59b3" else f" [head {c['head']}]") + \
+            (f" (`{c['cmd']}`)" if c.get("cmd", "bench") != "bench" else "") + \
+            (f" (A side: {c['a_exe']}.exe)" if c.get("a_exe", "base") != "base" else "")
         fl = "; ".join(flags.get(k, [])) or ("ok" if (k in nodes or k in P) else "not run")
         w(f"| {k} ({c['label']}) | {build}{' + ' + opts if opts else ''}{' T2' if c['threads'] == 2 else ''} | "
           f"{nodes_cell(c)} | {dnodes(k) if c['threads'] == 1 else 'n/a'} | {nps_cell(k)} | {fl} |")
@@ -737,6 +831,16 @@ def cmd_report(a):
         loo = "; ".join(f"{p}: {pct(solo[0]):+.1f}% alone, {pct(con[0]):+.1f}% [{pct(ci(con)[0]):+.1f}, "
                         f"{pct(ci(con)[1]):+.1f}] on {r}" for p, r, solo, con, diff in contrib) or "—"
         w(f"| {k} | {node_note.get(k, 'T2: n/a') if c['threads'] == 1 else 'T2: n/a'} | {nps_cell(k)} | {pr} | {it} | {loo} |")
+    w("")
+    w("### Option effect inside its own switch build (same exe, option on vs off: free of build-to-build layout effects)")
+    w("")
+    w("| option | switch build, option off vs OFF exe | option on vs OFF exe | option on vs off (same exe) |")
+    w("|---|---|---|---|")
+    for on, sw in (("TCP", "S13SW"), ("LAZY", "LAZYSW"), ("PROF", "PROFSW"), ("INT16", "INT16SW")):
+        if on in est and sw in est:
+            d = combine([(1.0, est[on]), (-1.0, est[sw])])
+            w(f"| {on} ({byk[on]['label']}) | {nps_cell(sw)} | {nps_cell(on)} | {pct(d[0]):+.2f} "
+              f"[{pct(ci(d)[0]):+.2f}, {pct(ci(d)[1]):+.2f}] |")
     w("")
     w("### Flagged")
     any_flag = False
@@ -779,7 +883,7 @@ def cmd_report(a):
             w(f"- {k}: " + "; ".join(b for b in bits if b))
     text = "\n".join(lines) + "\n"
     if a.md:
-        with open(a.md, "w", newline="\n") as f:
+        with open(a.md, "w", newline="\n", encoding="utf-8") as f:
             f.write(text)
     print(text)
     with open(Path(a.out) / "analysis.json", "w", newline="\n") as f:
@@ -791,7 +895,7 @@ def cmd_report(a):
 
 
 def main():
-    sys.stdout.reconfigure(newline="\n")   # LF logs on Windows too
+    sys.stdout.reconfigure(newline="\n", encoding="utf-8")   # LF, UTF-8 logs on Windows too
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("cmd", choices=["list", "nets", "nodes", "nps", "report"])
     ap.add_argument("--build-dir", default="F:/opus_scratch/build/r3_R3-2")
@@ -805,9 +909,11 @@ def main():
     ap.add_argument("--depth", type=int, default=16)
     ap.add_argument("--depth-t2", type=int, default=16)
     ap.add_argument("--skip-done", action="store_true")
+    ap.add_argument("--append", action="store_true", help="nps: add --runs ABBA pairs to an existing result")
     ap.add_argument("--md", default="")
-    ap.add_argument("--metric", default="cpu", choices=["cpu", "cycles", "wall"],
-                    help="report: NPS metric of the tables (cpu = GetProcessTimes, cycles = QueryProcessCycleTime)")
+    ap.add_argument("--metric", default="cycles", choices=["cpu", "cycles", "wall"],
+                    help="report: NPS metric of the tables (cycles = CPU time from QueryProcessCycleTime, TSC-exact; "
+                         "cpu = CPU time from GetProcessTimes, tick-sampled: about 5x noisier on the loaded PC)")
     a = ap.parse_args()
     {"list": cmd_list, "nets": cmd_nets, "nodes": cmd_nodes, "nps": cmd_nps, "report": cmd_report}[a.cmd](a)
 
