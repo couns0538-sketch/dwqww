@@ -432,6 +432,10 @@ int main() {
                          "option name Book Depth type spin default 30 min 0 max 100\n"
                          "option name Book Variety type spin default 30 min 0 max 100\n";
             if (forge::nnue::available()) std::cout << "option name UseNNUE type check default true\n";
+#if FORGE_NNUE_INT16
+            // S-A2 (build switch FORGE_NNUE_INT16): integer inference with the compiled-in network.
+            if (forge::nnue::available()) std::cout << "option name NnueInt16 type check default false\n";
+#endif
             // Search options added after AL1 s198; all default OFF (see forge/search_options.hpp).
             std::cout << "option name SmpExactNodes type check default false\n"
                          "option name SmpBestThread type check default false\n"
@@ -711,6 +715,21 @@ int main() {
                 else {
                     const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex());
                     std::cout << "info string invalid value for option Profile" << std::endl;
+                }
+#endif
+#if FORGE_NNUE_INT16
+            } else if (name == "NnueInt16") {
+                // Integer inference (int16 weights, int32 accumulators); OFF = the
+                // float path. Takes effect at the next search's root refresh.
+                if (value_text == "true" || value_text == "false") {
+                    const bool active = forge::nnue::set_int16(value_text == "true");
+                    searcher.clear_hash();
+                    const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex());
+                    if (active) std::cout << "info string NnueInt16 active" << std::endl;
+                    else if (value_text == "true") std::cout << "info string NnueInt16 unavailable; using float" << std::endl;
+                } else {
+                    const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex());
+                    std::cout << "info string invalid value for option NnueInt16" << std::endl;
                 }
 #endif
             } else if (name == "UseNNUE") {

@@ -35,7 +35,17 @@ struct Accumulator {
     // 64-byte aligned: every 512-bit (or 256-bit) access stays inside one cache line.
     alignas(64) std::array<std::array<float, HiddenSize>, 2> values{};
 #endif // FORGE_NNUE_O2
+#if FORGE_NNUE_INT16
+    // NnueInt16 (OFF by default): int32 accumulators over the include file's
+    // int16 weights. Separate storage keeps the float representation and
+    // arithmetic of the OFF path intact; `integer` records which of the two
+    // this accumulator holds and is inherited by every incremental child.
+    alignas(32) std::array<std::array<std::int32_t, HiddenSize>, 2> integer_values{};
+#endif // FORGE_NNUE_INT16
     bool valid = false;
+#if FORGE_NNUE_INT16
+    bool integer = false;
+#endif // FORGE_NNUE_INT16
 };
 
 struct PieceChange {
@@ -58,6 +68,22 @@ struct DirtyPieces {
 [[nodiscard]] bool residual();
 // Runtime switch (UCI option); only effective when available().
 extern bool enabled;
+
+#if FORGE_NNUE_INT16
+// NnueInt16 (UCI option, OFF by default): integer inference with the int16
+// weights of the include file and int32 accumulators (the weights are int16,
+// the accumulators are not). int16_available() is false when the compiled-in
+// network fails the representability checks; set_int16(true) then leaves float
+// inference active and returns false. The mode only affects refresh(): update()
+// follows the parent's representation and evaluate() the accumulator's, so a
+// mode change takes effect at the next root refresh (the next search).
+// R3 stack: compiled only with the build switch FORGE_NNUE_INT16 (default off;
+// the switch-off build is the previous stack binary). It applies to the
+// compiled-in network only; a v2 net (forge/nnue_v2.hpp) keeps its float path.
+[[nodiscard]] bool int16_available();
+[[nodiscard]] bool int16_active();
+[[nodiscard]] bool set_int16(bool requested);
+#endif // FORGE_NNUE_INT16
 
 void refresh(const Board& board, Accumulator& accumulator);
 void update(const Accumulator& parent, Accumulator& child, const DirtyPieces& dirty);

@@ -104,6 +104,22 @@ if(FORGE_ATTACKS_INIT_ONCE)
         RUN_SERIAL TRUE TIMEOUT ${FORGE_S04_COLD_PROBE_TIMEOUT} LABELS "${FORGE_S04_COLD_LABELS};cold-probe")
 endif()
 
+# S-A2 NnueInt16 (UCI NnueInt16: integer inference with the compiled-in network's int16 weights, int32
+# accumulators) is a build switch, default OFF: the default build is the previous stack binary (compiled in
+# unconditionally, the option cost 0.4-0.5% NPS with the option off; opus-offguard). PUBLIC: nnue.hpp's
+# Accumulator layout depends on it.
+option(FORGE_NNUE_INT16 "Build the NnueInt16 integer NNUE path and its UCI option (S-A2)" OFF)
+if(FORGE_NNUE_INT16)
+    target_compile_definitions(forge_core PUBLIC FORGE_NNUE_INT16=1)
+endif()
+
+# S-A4: another network include file instead of src/nnue_weights.inc (e.g. an H512 net); pass the
+# matching -DFORGE_NNUE_HIDDEN in CMAKE_CXX_FLAGS. Unset (default) = the lock's H256 net.
+set(FORGE_NNUE_WEIGHTS_FILE "" CACHE FILEPATH "Network include file (default: src/nnue_weights.inc)")
+if(FORGE_NNUE_WEIGHTS_FILE)
+    target_compile_definitions(forge_core PUBLIC FORGE_NNUE_WEIGHTS="${FORGE_NNUE_WEIGHTS_FILE}")
+endif()
+
 if(MSVC)
     target_compile_options(forge_core PRIVATE /W4 /permissive-)
 else()
@@ -267,6 +283,86 @@ target_link_libraries(forge_net_scale_tests PRIVATE forge_core Threads::Threads)
 add_executable(forge_hist_rework_tests tests/hist_rework_tests.cpp)
 target_link_libraries(forge_hist_rework_tests PRIVATE forge_core Threads::Threads)
 
+# S-A2 NnueInt16 (build switch FORGE_NNUE_INT16, UCI NnueInt16). The integer path is compiled only with the
+# switch, so its tests compile the NNUE sources themselves with it (and with the core's FORGE_NNUE_O2 state):
+# every configuration builds and tests the integer path, and the default forge stays the switch-off binary.
+function(forge_nnue_int16_test_sources target)
+    target_sources(${target} PRIVATE src/bitboard.cpp src/board.cpp src/nnue.cpp)
+    target_include_directories(${target} PRIVATE include)
+    target_compile_features(${target} PRIVATE cxx_std_20)
+    target_compile_definitions(${target} PRIVATE FORGE_NNUE_INT16=1)
+    if(FORGE_NNUE_O2)
+        target_compile_definitions(${target} PRIVATE FORGE_NNUE_O2=1)
+    endif()
+    if(NOT MSVC)
+        target_compile_options(${target} PRIVATE -ffp-contract=off)
+        if(FORGE_NATIVE)
+            target_compile_options(${target} PRIVATE -march=native)
+        endif()
+        if(FORGE_ENABLE_SANITIZERS)
+            target_compile_options(${target} PRIVATE -fsanitize=address,undefined -fno-omit-frame-pointer)
+            target_link_options(${target} PRIVATE -fsanitize=address,undefined)
+        endif()
+    endif()
+endfunction()
+
+add_executable(forge_nnue_int16_tests tests/nnue_int16_tests.cpp)
+forge_nnue_int16_test_sources(forge_nnue_int16_tests)
+
+# The same NnueInt16 tests on the scalar integer kernels: the NNUE sources are
+# compiled again without AVX2 (the float path then uses its SSE kernel, which is
+# bit-identical by design), so builds for AVX2 targets also cover the fallback.
+if(NOT MSVC)
+    add_executable(forge_nnue_int16_scalar_tests tests/nnue_int16_tests.cpp)
+    forge_nnue_int16_test_sources(forge_nnue_int16_scalar_tests)
+    target_compile_options(forge_nnue_int16_scalar_tests PRIVATE -mno-avx2)
+endif()
+# S-A4: both use the core's network include file when FORGE_NNUE_WEIGHTS_FILE is set.
+if(FORGE_NNUE_WEIGHTS_FILE)
+    target_compile_definitions(forge_nnue_int16_tests PRIVATE FORGE_NNUE_WEIGHTS="${FORGE_NNUE_WEIGHTS_FILE}")
+    if(NOT MSVC)
+        target_compile_definitions(forge_nnue_int16_scalar_tests PRIVATE FORGE_NNUE_WEIGHTS="${FORGE_NNUE_WEIGHTS_FILE}")
+    endif()
+endif()
+
+if(NOT MSVC)
+    # H512 (S-A4): the same tests on a generated synthetic 512-unit network (not a playing net),
+    # with the NNUE sources compiled for FORGE_NNUE_HIDDEN=512; the default build keeps H256.
+    add_executable(forge_nnue_gen_net tests/nnue_gen_net.cpp)
+    set(FORGE_H512_TEST_NET ${CMAKE_CURRENT_BINARY_DIR}/nnue_test_h512.inc)
+    add_custom_command(OUTPUT ${FORGE_H512_TEST_NET}
+        COMMAND forge_nnue_gen_net 512 20261027 ${FORGE_H512_TEST_NET}
+        DEPENDS forge_nnue_gen_net VERBATIM)
+    add_custom_target(forge_nnue_test_h512_net DEPENDS ${FORGE_H512_TEST_NET})
+    add_executable(forge_nnue_h512_tests tests/nnue_int16_tests.cpp)
+    forge_nnue_int16_test_sources(forge_nnue_h512_tests)
+    add_dependencies(forge_nnue_h512_tests forge_nnue_test_h512_net)
+    target_compile_definitions(forge_nnue_h512_tests PRIVATE FORGE_NNUE_WEIGHTS="${FORGE_H512_TEST_NET}")
+    target_compile_options(forge_nnue_h512_tests PRIVATE -UFORGE_NNUE_HIDDEN -DFORGE_NNUE_HIDDEN=512)
+endif()
+
+# The engine for the NnueInt16 UCI regression: forge itself in a FORGE_NNUE_INT16 build, else forge_int16 =
+# the core's sources and settings plus FORGE_NNUE_INT16=1 (built in every configuration, never released).
+if(FORGE_NNUE_INT16)
+    set(FORGE_NNUE_INT16_ENGINE forge)
+else()
+    get_target_property(FORGE_CORE_SOURCES forge_core SOURCES)
+    add_library(forge_core_int16 STATIC ${FORGE_CORE_SOURCES})
+    target_include_directories(forge_core_int16 PUBLIC include)
+    target_compile_features(forge_core_int16 PUBLIC cxx_std_20)
+    target_compile_definitions(forge_core_int16 PUBLIC FORGE_NNUE_INT16=1
+        $<TARGET_PROPERTY:forge_core,INTERFACE_COMPILE_DEFINITIONS>)
+    target_compile_options(forge_core_int16 PRIVATE $<TARGET_PROPERTY:forge_core,COMPILE_OPTIONS>
+        INTERFACE $<TARGET_PROPERTY:forge_core,INTERFACE_COMPILE_OPTIONS>)
+    target_link_options(forge_core_int16 INTERFACE $<TARGET_PROPERTY:forge_core,INTERFACE_LINK_OPTIONS>)
+    add_executable(forge_int16 src/uci.cpp)
+    target_link_libraries(forge_int16 PRIVATE forge_core_int16 Threads::Threads)
+    if(FORGE_EXPOSE_TUNABLES)
+        target_compile_definitions(forge_int16 PRIVATE FORGE_EXPOSE_TUNABLES=1)
+    endif()
+    set(FORGE_NNUE_INT16_ENGINE forge_int16)
+endif()
+
 add_executable(forge_bench bench/benchmark.cpp)
 target_link_libraries(forge_bench PRIVATE forge_core Threads::Threads)
 
@@ -304,6 +400,11 @@ add_test(NAME forge_cuckoo_tests COMMAND forge_cuckoo_tests)
 add_test(NAME forge_nnue_parity_tests COMMAND forge_nnue_parity_tests
     --fens ${CMAKE_CURRENT_SOURCE_DIR}/tests/data/nnue_selfplay_sample_916.txt)
 add_test(NAME forge_hist_rework_tests COMMAND forge_hist_rework_tests)
+add_test(NAME forge_nnue_int16_tests COMMAND forge_nnue_int16_tests)
+if(NOT MSVC)
+    add_test(NAME forge_nnue_int16_scalar_tests COMMAND forge_nnue_int16_scalar_tests)
+    add_test(NAME forge_nnue_h512_tests COMMAND forge_nnue_h512_tests)
+endif()
 add_test(NAME forge_tt_tests COMMAND forge_tt_tests)
 add_test(NAME forge_tt_stress_lockless COMMAND forge_tt_stress_tests --threads 2 --ops 2000000 --mode lockless)
 add_test(NAME forge_tt_stress_locked COMMAND forge_tt_stress_tests --threads 2 --ops 2000000 --mode locked)
@@ -380,4 +481,13 @@ if(Python3_Interpreter_FOUND)
     add_test(NAME datagen_cli_tests
         COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/datagen_cli_tests.py
                 $<TARGET_FILE:forge_datagen> ${CMAKE_CURRENT_BINARY_DIR}/datagen_cli)
+    # S-A2: the NnueInt16 option on a switch-on engine; the default forge (switch off) must not list it.
+    add_test(NAME nnue_int16_uci_regression
+        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tools/nnue_int16_regression.py
+                $<TARGET_FILE:${FORGE_NNUE_INT16_ENGINE}>)
+    if(NOT FORGE_NNUE_INT16)
+        add_test(NAME nnue_int16_uci_absent
+            COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tools/nnue_int16_regression.py
+                    --absent $<TARGET_FILE:forge>)
+    endif()
 endif()

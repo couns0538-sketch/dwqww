@@ -1,0 +1,17 @@
+control test_bare_flag_is_the_largest_2_24_bound: rc=0 OK | OK
+control test_clip_weights_exact: rc=0 OK | OK
+control test_export_off_and_on_byte_identical_to_v3c: rc=0 OK | OK
+control test_export_refuses_before_writing: rc=0 OK | OK
+control test_int16_check: rc=0 OK | OK
+control test_off_default_and_settings_dump: rc=0 OK | OK
+control test_training_loop_clips: rc=0 OK | OK
+control test_validation: rc=0 OK | OK
+mutant 1 (clip not applied in the training loop) -> test_training_loop_clips: rc=1 CAUGHT | FAILED (errors=1)
+mutant 2 (clip bound scaled wrong) -> test_clip_weights_exact: rc=1 CAUGHT | FAILED (failures=1)
+mutant 3 (export check never raises) -> test_int16_check: rc=1 CAUGHT | FAILED (failures=1)
+mutant 4 (export check never raises (export path)) -> test_export_refuses_before_writing: rc=1 CAUGHT | FAILED (failures=1)
+mutant 5 (off settings dump lists weight_clip) -> test_off_default_and_settings_dump: rc=1 CAUGHT | FAILED (failures=1)
+mutant 6 (the int16 rail accepted as a bound) -> test_validation: rc=1 CAUGHT | FAILED (failures=1)
+mutant 7 (bare --weight-clip one unit too large) -> test_bare_flag_is_the_largest_2_24_bound: rc=1 CAUGHT | FAILED (failures=1)
+mutant 8 (the clip check alters the export) -> test_export_off_and_on_byte_identical_to_v3c: rc=1 CAUGHT | FAILED (failures=1)
+TRAINER MUTATION CHECK PASS
