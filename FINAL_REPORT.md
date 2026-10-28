@@ -1,4 +1,4 @@
-# Astra A1–A6 report — 2026-10-29 (review in progress)
+# Astra A1–A6 report — 2026-10-29 (review complete; full sanitizer qualification running)
 
 Base: `opus-r3-stack`, `da15814975e224e770f4d25195e0551d02afae48`. Existing Sol checkout preserved; all work isolated on cumulative `astra-*` branches. No main changes, branch deletions or force pushes.
 
@@ -9,7 +9,7 @@ Base: `opus-r3-stack`, `da15814975e224e770f4d25195e0551d02afae48`. Existing Sol 
 | A3 | astra-bundle-check, 95d0f915f469c228125c3e82b1b80b6fe0d308cd | Implemented; final-review corrections on astra-notes |
 | A4 | astra-pawnhist-audit, 19dc434d8e5ba371468f35b53c73c06651919127 | Skipped: source not in repo, merge done by crew (owner report) |
 | A5 | astra-tests, a25034de1dfed5f999555779fbb59ad7def7ec4e | Local CI replay passed; hosted run UNVERIFIED |
-| A6 | astra-notes | Final review in progress; this is a recoverable checkpoint |
+| A6 | astra-notes | 20-minute review completed; additional full sanitizer qualification running |
 
 ## Engine change and scope
 
@@ -38,6 +38,6 @@ Every initial bench timing/NPS and repeat is retained in [A2](astra_evidence/A2/
 
 ## Remaining work at this checkpoint
 
-Complete the fresh20-minute review and broader sanitizer run, preserve raw logs/source hashes, finalize this report, and verify publication. Native rerun and independent review already completed; see astra_evidence/final_review/README.md. Environment outage was recovered without resetting any source. No failed experiment was deleted.
+The fresh review completed in1239.08seconds and fixed both validator defects. The owner then requested a complete passing sanitizer qualification. All56tests are running again in one uninterrupted invocation, assessed by the unchanged repository policy allowing exactly the four known FAIL lines. Raw CTest and policy results will be reported separately. See astra_evidence/sanitizer_complete_20261029/. Environment outage was recovered without resetting any source. No failed experiment was deleted.
 
 IDEA_SOURCE: Owner A1–A6, Forge source and test contracts, public UCI protocol; no external engine implementation copied.
