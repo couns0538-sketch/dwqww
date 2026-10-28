@@ -160,6 +160,9 @@ int Worker::FORGE_SEARCH_FN(Board& board, SearchStack* ss, int depth, int alpha,
 #ifdef FORGE_S13_TT_CHILD_PREFETCH
             if (s13_tt_child_prefetch_) shared_.tt.prefetch(board.key());
 #endif
+#ifdef FORGE_SPEEDSTACK
+            shared_.tt.prefetch(board.key());  // speed stack (S29, piece S13): the child's TT bucket
+#endif
             int null_score = -FORGE_SEARCH_CALL(board, ss + 1, depth - reduction, -beta, -beta + 1, !cut_node);
             board.unmake_null_move(undo);
             if (aborted_) return 0;
@@ -199,6 +202,9 @@ int Worker::FORGE_SEARCH_FN(Board& board, SearchStack* ss, int depth, int alpha,
                 (void)board.make_move(move, undo);
 #ifdef FORGE_S13_TT_CHILD_PREFETCH
                 if (s13_tt_child_prefetch_) shared_.tt.prefetch(board.key());
+#endif
+#ifdef FORGE_SPEEDSTACK
+                shared_.tt.prefetch(board.key());  // speed stack (S29, piece S13): the child's TT bucket
 #endif
                 int value = -FORGE_QSEARCH_CALL(board, ss + 1, -probcut_beta, -probcut_beta + 1);
                 if (value >= probcut_beta && !aborted_) {

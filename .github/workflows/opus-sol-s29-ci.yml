@@ -1,0 +1,50 @@
+# S29 speed stack (FORGE_SPEEDSTACK) Linux evidence for the build switch (opus-ci.yml covers the default build):
+# release (default binary vs lock, switch-on identity at all 5 depths, UCI option list vs lock, ctest, advisory NPS
+# lock vs switch-on), ASan+UBSan and TSan with the switch on. See opus_round1/sol_S29/ci_s29.sh.
+# Read-only; uploads logs as artifacts.
+name: opus-sol-s29-ci
+on:
+  push:
+    branches: ['opus-sol-S29']
+    paths-ignore:
+      - 'opus_round1/**/*.md'
+      - 'opus_round1/**/*.log'
+      - 'opus_round1/**/*.diff'
+      - 'opus_round1/**/*.patch'
+      - 'opus_round1/**/*.tar.gz'
+      - 'opus_round1/**/SHA256SUMS'
+      - 'opus_round1/**/FILES*'
+      - 'REPORT.md'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  linux:
+    strategy:
+      fail-fast: false
+      matrix:
+        mode: [release, asan, tsan]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Toolchain
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq g++-14 ninja-build cmake python3
+          g++-14 --version | head -1
+          nproc; lscpu | grep -E 'Model name|Flags' | cut -c1-200
+      - name: Run ${{ matrix.mode }} (switch on)
+        run: bash opus_round1/sol_S29/ci_s29.sh ${{ matrix.mode }} ci_out
+      - name: Upload logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: sol-s29-${{ matrix.mode }}
+          path: |
+            ci_out/*.log
+            ci_out/*.txt
+            ci_out/**/sanitizer_logs_*/**
+          if-no-files-found: warn

@@ -6,7 +6,8 @@
 #include <cstddef>
 #include <cstdint>
 
-// Job S11 (node-exact speed), UCI MaterialKeyTable (default off).
+// Job S11 (node-exact speed), UCI MaterialKeyTable (default off); also piece S11 of the speed stack S29
+// (compile switch FORGE_SPEEDSTACK, default off).
 //
 // The material-correction key of the search (src/search.cpp material_key) is a
 // Horner polynomial in the ten piece counts c0..c9 (white pawn..queen, then

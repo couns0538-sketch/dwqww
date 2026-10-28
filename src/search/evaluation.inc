@@ -17,6 +17,10 @@ namespace {
 // Always inlined: it also has a call site in the cold CorrHistPlus path, and an
 // out-of-line copy would be emitted at the start of the hot .text.
 [[gnu::always_inline]] [[nodiscard]] inline std::uint64_t material_key(const Board& board) {
+#ifdef FORGE_SPEEDSTACK
+    // Speed stack (S29, piece S11): the same 64-bit key as the polynomial below, from a contribution table.
+    return matkey::table_key(board);
+#else
     // S11 MaterialKeyTable: the same key from a contribution table (forge/material_key_table.hpp).
     if (options::material_key_table) [[unlikely]] return matkey::table_key(board);
     std::uint64_t key = 0;
@@ -26,6 +30,7 @@ namespace {
         }
     }
     return key * 0x9E3779B97F4A7C15ULL;
+#endif
 }
 } // namespace
 

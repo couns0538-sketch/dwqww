@@ -34,6 +34,13 @@ if(FORGE_S13_TT_CHILD_PREFETCH)
     target_compile_definitions(forge_core PUBLIC FORGE_S13_TT_CHILD_PREFETCH=1)
 endif()
 
+# S29 speed stack: the node-exact speed pieces (S11 material-key table, S13 child TT prefetch) behind one
+# compile switch, default OFF (the OFF build is the AL1 lock code).
+option(FORGE_SPEEDSTACK "Build the node-exact speed stack (S29)" OFF)
+if(FORGE_SPEEDSTACK)
+    target_compile_definitions(forge_core PUBLIC FORGE_SPEEDSTACK=1)
+endif()
+
 if(MSVC)
     target_compile_options(forge_core PRIVATE /W4 /permissive-)
 else()
@@ -210,6 +217,14 @@ add_test(NAME forge_material_key_tests COMMAND forge_material_key_tests
     ${CMAKE_CURRENT_SOURCE_DIR}/tools/openings/forge-10000.epd)
 add_test(NAME forge_legal_witness_tests COMMAND forge_legal_witness_tests
     ${CMAKE_CURRENT_SOURCE_DIR}/tests/legal_witness_fixtures.tsv
+    ${CMAKE_CURRENT_SOURCE_DIR}/tools/openings/forge-10000.epd)
+
+# S29 speed stack: checks for the stack's pieces, built and run in both configurations. Kept in its own block
+# so the speed-stack patch also applies on top of Sol's node-identical buffix (base B), which adds a test next
+# to forge_pv_metadata_tests.
+add_executable(forge_speedstack_tests tests/speedstack_tests.cpp)
+target_link_libraries(forge_speedstack_tests PRIVATE forge_core Threads::Threads)
+add_test(NAME forge_speedstack_tests COMMAND forge_speedstack_tests
     ${CMAKE_CURRENT_SOURCE_DIR}/tools/openings/forge-10000.epd)
 
 # Support tooling does not change engine behavior or add runtime dependencies.
