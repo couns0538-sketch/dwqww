@@ -47,6 +47,16 @@ the 4 known `forge_tests` lines may fail; `check_known_failures.py` PASS), and e
   `FORGE_NNUE_O2` (off: token-identical preprocessed nnue.cpp and byte-identical exe vs. the pre-O2 stack);
   (4) A1's joint correction also in C2's cold CorrHistPlus path, so the two combine.
 
+## Notes for the owner
+- Load-sensitive tests on this PC (pass on the CI runners): `forge_smp_tests` (SmpExactNodes overshoot bound; port-b
+  agent: 7/20 failures at nice 19) and `forge_prof_tests` (FORGE_PROF builds only: each of 4 workers must count >0
+  nodes in a depth-9 search; 7/10 failures at nice 19 on the saturated PC, 3/3 passes at normal priority). Not
+  regressions of the stack; not changed.
+- Four Python bytecode files entered the stack with the S08fix merge commit `9588a10` (CTest runs the tools with the
+  system Python, which writes `__pycache__` into the tree): `tools/__pycache__/uci_regression.cpython-314.pyc`,
+  `tools/match/__pycache__/{pgn_stats,run_match,windows_validate}.cpython-314.pyc`. Untracking them was not permitted
+  here (no deletions); a `.gitignore` now keeps new ones out. Please `git rm --cached` them when convenient.
+
 ## Left
 - R3-1: merge port-b / port-c, final identity + CMake/CTest + CI, self-play evidence on the final head.
 - R3-2 .. R3-6: agents running; results to be merged and summarised here.
