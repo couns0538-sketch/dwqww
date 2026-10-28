@@ -1,0 +1,81 @@
+{
+ "checks": [
+  {
+   "detail": "8 artifacts (.pt .inc .bin .json x 2 epochs) sha256-equal: True; normalized stdout equal: True; settings dump equal: True",
+   "item": "clip off == v3c byte-identical (off_1 vs v3c_1)",
+   "result": "PASS"
+  },
+  {
+   "detail": "8 artifacts (.pt .inc .bin .json x 2 epochs) sha256-equal: True; normalized stdout equal: True; settings dump equal: True",
+   "item": "clip off == v3c byte-identical (off_2 vs v3c_1)",
+   "result": "PASS"
+  },
+  {
+   "detail": "8 artifacts sha256-equal and normalized stdout equal: True",
+   "item": "clip on deterministic (on_1 == on_2)",
+   "result": "PASS"
+  },
+  {
+   "detail": "8 artifacts sha256-equal and normalized stdout equal: True",
+   "item": "clip on deterministic (tight_1 == tight_2)",
+   "result": "PASS"
+  },
+  {
+   "detail": "2 .inc: max|q| 406 <= 21704; values at the int16 rail: 0; values at the clip bound: {'NnueW1': 0, 'NnueB1': 0, 'NnueW2': 0, 'NnueB2': 0}; INT16 CHECK lines: 2 | INT16 CHECK epoch002-step000000390: max|q| W1 406 B1 174 W2 193 B2 4 <= 21704; at the clip bound W1 0 B1 0 W2 0 B2 0; at the int16 rail 0; lane bound 70,004 (< 2^24: True), int32 headroom x30,676",
+   "item": "no exported weight saturates (on_1, bound 21704)",
+   "result": "PASS"
+  },
+  {
+   "detail": "2 .inc: max|q| 406 <= 21704; values at the int16 rail: 0; values at the clip bound: {'NnueW1': 0, 'NnueB1': 0, 'NnueW2': 0, 'NnueB2': 0}; INT16 CHECK lines: 2 | INT16 CHECK epoch002-step000000390: max|q| W1 406 B1 174 W2 193 B2 4 <= 21704; at the clip bound W1 0 B1 0 W2 0 B2 0; at the int16 rail 0; lane bound 70,004 (< 2^24: True), int32 headroom x30,676",
+   "item": "no exported weight saturates (on_2, bound 21704)",
+   "result": "PASS"
+  },
+  {
+   "detail": "2 .inc: max|q| 204 <= 204; values at the int16 rail: 0; values at the clip bound: {'NnueW1': 1084, 'NnueB1': 0, 'NnueW2': 0, 'NnueB2': 0}; INT16 CHECK lines: 2 | INT16 CHECK epoch002-step000000390: max|q| W1 204 B1 182 W2 191 B2 6 <= 204; at the clip bound W1 697 B1 0 W2 0 B2 0; at the int16 rail 0; lane bound 66,165 (< 2^24: True), int32 headroom x32,456",
+   "item": "no exported weight saturates (tight_1, bound 204)",
+   "result": "PASS"
+  },
+  {
+   "detail": "2 .inc: max|q| 204 <= 204; values at the int16 rail: 0; values at the clip bound: {'NnueW1': 1084, 'NnueB1': 0, 'NnueW2': 0, 'NnueB2': 0}; INT16 CHECK lines: 2 | INT16 CHECK epoch002-step000000390: max|q| W1 204 B1 182 W2 191 B2 6 <= 204; at the clip bound W1 697 B1 0 W2 0 B2 0; at the int16 rail 0; lane bound 66,165 (< 2^24: True), int32 headroom x32,456",
+   "item": "no exported weight saturates (tight_2, bound 204)",
+   "result": "PASS"
+  },
+  {
+   "detail": "1 .inc: max|q| 204 <= 204; values at the int16 rail: 0; values at the clip bound: {'NnueW1': 697, 'NnueB1': 0, 'NnueW2': 0, 'NnueB2': 0}; INT16 CHECK lines: 1 | INT16 CHECK epoch002-step000000390: max|q| W1 204 B1 182 W2 191 B2 6 <= 204; at the clip bound W1 697 B1 0 W2 0 B2 0; at the int16 rail 0; lane bound 66,165 (< 2^24: True), int32 headroom x32,456",
+   "item": "no exported weight saturates (tight_res, bound 204)",
+   "result": "PASS"
+  },
+  {
+   "detail": "1 .inc: max|q| 204 <= 204; values at the int16 rail: 0; values at the clip bound: {'NnueW1': 1102, 'NnueB1': 1, 'NnueW2': 42, 'NnueB2': 0}; INT16 CHECK lines: 1 | INT16 CHECK epoch001-step000000195: max|q| W1 204 B1 204 W2 204 B2 18 <= 204; at the clip bound W1 1102 B1 1 W2 42 B2 0; at the int16 rail 0; lane bound 73,722 (< 2^24: True), int32 headroom x29,129",
+   "item": "no exported weight saturates (tight_warm, bound 204)",
+   "result": "PASS"
+  },
+  {
+   "detail": ".inc/.bin sha256 equal to off_1: True; .pt model tensors equal: True; extra config keys ['weight_clip_units']",
+   "item": "default bound (K 21704) not binding here: .inc/.bin == off, config adds only weight_clip_units",
+   "result": "PASS"
+  },
+  {
+   "detail": "all |param| <= 204/4096: True; params exactly at the bound: {'ft.weight': 212, 'ft.bias': 0, 'out.weight': 0, 'out.bias': 0}; .inc differs from off: True",
+   "item": "tight bound (K 204) binds and holds in the checkpoint",
+   "result": "PASS"
+  },
+  {
+   "detail": ".inc .bin .json sha256-equal: True; .pt model + config equal: True",
+   "item": "resume with the clip reproduces epoch 2 (tight_res vs tight_1)",
+   "result": "PASS"
+  },
+  {
+   "detail": "init-weights: model weights from F:\\opus_scratch\\sol_SA2\\out\\r1\\v3c_1\\run\\epoch002-step000000390.pt (md5 5bd3de20e55b292b593307c8d987a983; checkpoint hidden=64 residual=True next_epoch=2 step=390); optimizer, lr and blend schedules start fresh | INIT warm-start net: mse_teacher=0.021902 mse_b0.6=0.045335 (checkpoint val 0.021902/0.045335) | INIT CHECK OK (warm start == checkpoint val) | INT16 CHECK epoch001-step000000195: max|q| W1 204 B1 204 W2 204 B2 18 <= 204; at the clip bound W1 1102 B1 1 W2 42 B2 0; at the int16 rail 0; lane bound 73,722 (< 2^24: True), int32 headroom x29,129",
+   "item": "warm start (unclipped v3c net) + clip: export within the bound",
+   "result": "PASS"
+  },
+  {
+   "detail": "before 7 after 7",
+   "item": "supervisor: no new 'adopted running job' line",
+   "result": "PASS"
+  }
+ ],
+ "pass": true,
+ "tag": "r1"
+}

@@ -1,0 +1,65 @@
+{
+ "rows": [
+  {
+   "mutant": "control (no mutation)",
+   "file": null,
+   "scalar_build": false,
+   "rc": 0,
+   "fail_lines": 0,
+   "first_fail": null,
+   "tail": "PASS: 40691 checks",
+   "result": "OK"
+  },
+  {
+   "mutant": "AVX2 output weights in natural order (packus lane order ignored)",
+   "file": "src/nnue_int16.inc",
+   "scalar_build": false,
+   "rc": 1,
+   "fail_lines": 20,
+   "first_fail": "FAIL: int16 evaluate 32 != reference 20: rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
+   "tail": "5843 of 40691 checks failed",
+   "result": "OK"
+  },
+  {
+   "mutant": "AVX2 incremental update always adds",
+   "file": "src/nnue_int16.inc",
+   "scalar_build": false,
+   "rc": 1,
+   "fail_lines": 20,
+   "first_fail": "FAIL: incremental != fresh: rnbqkbnr/pppppppp/8/8/8/2N5/PPPPPPPP/R1BQKBNR b KQkq - 1 1",
+   "tail": "17220 of 40691 checks failed",
+   "result": "OK"
+  },
+  {
+   "mutant": "AVX2 activation clamp at 4095",
+   "file": "src/nnue_int16.inc",
+   "scalar_build": false,
+   "rc": 1,
+   "fail_lines": 20,
+   "first_fail": "FAIL: int16 evaluate 83 != reference 84: 1n4nr/rpk2p1p/p3b2b/q1BP4/4P1p1/1P5Q/PR1P1PPP/4KBNR w K - 1 16",
+   "tail": "157 of 40691 checks failed",
+   "result": "OK"
+  },
+  {
+   "mutant": "scalar square without rounding",
+   "file": "src/nnue_int16.inc",
+   "scalar_build": true,
+   "rc": 1,
+   "fail_lines": 20,
+   "first_fail": "FAIL: int16 evaluate 50 != reference 51: r1b1kbn1/1pB1p1r1/p5p1/P1pp1p1p/4q3/N1PPPPP1/1P3Q1P/R3KBNR w KQq - 4 15",
+   "tail": "207 of 40691 checks failed",
+   "result": "OK"
+  },
+  {
+   "mutant": "update follows the mode instead of the parent's tag",
+   "file": "src/nnue.cpp",
+   "scalar_build": false,
+   "rc": 1,
+   "fail_lines": 2,
+   "first_fail": "FAIL: an integer parent gives an integer child while OFF",
+   "tail": "2 of 40691 checks failed",
+   "result": "OK"
+  }
+ ],
+ "pass": true
+}

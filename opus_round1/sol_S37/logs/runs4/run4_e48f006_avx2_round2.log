@@ -1,0 +1,17 @@
+checks: PASS positions 10000 pairs 346182 | replica 0 acc 0 update_eval 0 whole(refresh/update/cached) 0/0/0 mismatches
+checksums: net_sum 117080 hce_sum -65898 total_sum 51182 child_net_sum 2136317 net_fnv cd3fb6ddc7f05885 total_fnv 8c9d9963738e53d2 (path avx2, w2/b2 fnv acfc7338d2055cc8)
+
+stage            calls/pass   cpu ns/call med  p90 |  tsc ns/call med  p90 | per-call ns med  p90  (avx2, 15 passes, TSC 4.700 GHz)
+refresh               10000       663.9   693.9 |      748.6  1202.1 |      640.0   850.0
+dirty                346182         7.8     8.3 |        8.2    16.2 |        0.0    10.0
+update_quiet         310219        50.0    53.5 |       56.8    97.0 |       50.0    60.0
+update_capture        35664       101.3   108.9 |      104.3   157.9 |       70.0    80.0
+update_castle           299       296.7   314.7 |      294.1   313.0 |      130.0   150.0
+output                40000        43.2    46.4 |       45.1    73.2 |       50.0    60.0
+activation            40000        38.1    41.5 |       40.9    65.5 |       30.0    40.0
+affine                40000        24.8    26.8 |       25.5    40.8 |       30.0    40.0
+whole_refresh         10000      1136.3  1220.5 |     1408.4  2131.2 |     1150.0  1400.0
+whole_update         346182       399.7   426.4 |      533.8  1409.7 |      380.0   560.0
+whole_cached          10000       273.8   296.3 |      287.5   405.2 |      260.0   330.0
+hce_uncached          10000       395.2   419.6 |      424.0   767.0 |      390.0   480.0
+{"command": ["F:/opus_scratch/sol_s37/bin/mb4_e48f006_avx2.exe", "--wac", "F:/opus_scratch/worktrees/opus_sol_s37/tools/nnue_microbench_wac300.epd", "--positions", "10000", "--repeats", "15", "--call-repeats", "2", "--label", "e48f006_avx2", "--dump-fens", "F:/opus_scratch/sol_s37/runs4/fens_e48f006_avx2_round2.txt", "--json", "F:/opus_scratch/sol_s37/runs4/e48f006_avx2_round2.json"], "cpus": [4, 5, 6, 7, 8, 9, 10, 11], "exit": 0, "wall_s": 8.161, "cpu_s": 4.672, "processes": 1}
