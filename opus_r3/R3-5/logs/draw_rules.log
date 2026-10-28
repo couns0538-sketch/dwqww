@@ -1,0 +1,101 @@
+== twofold repetition inside the search
+PASS board: second occurrence is a draw with the root at index 0 only; not a game-level threefold
+PASS root at the first occurrence: the repetition scores exactly 0 (depth 0) window -32001,32001 -> 0
+PASS one occurrence before the root is no draw: value equals the history-free search (depth 0) window -32001,32001 -> 370, fresh 370
+PASS root at the first occurrence: the repetition scores exactly 0 (depth 0) window -1,1 -> 0
+PASS one occurrence before the root is no draw: value equals the history-free search (depth 0) window -1,1 -> 370, fresh 370
+PASS root at the first occurrence: the repetition scores exactly 0 (depth 0) window 100,101 -> 0
+PASS one occurrence before the root is no draw: value equals the history-free search (depth 0) window 100,101 -> 370, fresh 370
+PASS root at the first occurrence: the repetition scores exactly 0 (depth 0) window -300,-299 -> 0
+PASS one occurrence before the root is no draw: value equals the history-free search (depth 0) window -300,-299 -> 370, fresh 370
+PASS root at the first occurrence: the repetition scores exactly 0 (depth 1) window -32001,32001 -> 0
+PASS one occurrence before the root is no draw: value equals the history-free search (depth 1) window -32001,32001 -> 356, fresh 356
+PASS root at the first occurrence: the repetition scores exactly 0 (depth 1) window -1,1 -> 0
+PASS one occurrence before the root is no draw: value equals the history-free search (depth 1) window -1,1 -> 339, fresh 339
+PASS root at the first occurrence: the repetition scores exactly 0 (depth 1) window 100,101 -> 0
+PASS one occurrence before the root is no draw: value equals the history-free search (depth 1) window 100,101 -> 370, fresh 370
+PASS root at the first occurrence: the repetition scores exactly 0 (depth 1) window -300,-299 -> 0
+PASS one occurrence before the root is no draw: value equals the history-free search (depth 1) window -300,-299 -> 370, fresh 370
+PASS root at the first occurrence: the repetition scores exactly 0 (depth 2) window -32001,32001 -> 0
+PASS one occurrence before the root is no draw: value equals the history-free search (depth 2) window -32001,32001 -> 348, fresh 348
+PASS root at the first occurrence: the repetition scores exactly 0 (depth 2) window -1,1 -> 0
+PASS one occurrence before the root is no draw: value equals the history-free search (depth 2) window -1,1 -> 339, fresh 339
+PASS root at the first occurrence: the repetition scores exactly 0 (depth 2) window 100,101 -> 0
+PASS one occurrence before the root is no draw: value equals the history-free search (depth 2) window 100,101 -> 370, fresh 370
+PASS root at the first occurrence: the repetition scores exactly 0 (depth 2) window -300,-299 -> 0
+PASS one occurrence before the root is no draw: value equals the history-free search (depth 2) window -300,-299 -> 370, fresh 370
+PASS root at the first occurrence: the repetition scores exactly 0 (depth 3) window -32001,32001 -> 0
+PASS one occurrence before the root is no draw: value equals the history-free search (depth 3) window -32001,32001 -> 375, fresh 375
+PASS root at the first occurrence: the repetition scores exactly 0 (depth 3) window -1,1 -> 0
+PASS one occurrence before the root is no draw: value equals the history-free search (depth 3) window -1,1 -> 319, fresh 319
+PASS root at the first occurrence: the repetition scores exactly 0 (depth 3) window 100,101 -> 0
+PASS one occurrence before the root is no draw: value equals the history-free search (depth 3) window 100,101 -> 370, fresh 370
+PASS root at the first occurrence: the repetition scores exactly 0 (depth 3) window -300,-299 -> 0
+PASS one occurrence before the root is no draw: value equals the history-free search (depth 3) window -300,-299 -> 370, fresh 370
+PASS root at the first occurrence: the repetition scores exactly 0 (depth 4) window -32001,32001 -> 0
+PASS one occurrence before the root is no draw: value equals the history-free search (depth 4) window -32001,32001 -> 375, fresh 375
+PASS root at the first occurrence: the repetition scores exactly 0 (depth 4) window -1,1 -> 0
+PASS one occurrence before the root is no draw: value equals the history-free search (depth 4) window -1,1 -> 319, fresh 319
+PASS root at the first occurrence: the repetition scores exactly 0 (depth 4) window 100,101 -> 0
+PASS one occurrence before the root is no draw: value equals the history-free search (depth 4) window 100,101 -> 370, fresh 370
+PASS root at the first occurrence: the repetition scores exactly 0 (depth 4) window -300,-299 -> 0
+PASS one occurrence before the root is no draw: value equals the history-free search (depth 4) window -300,-299 -> 370, fresh 370
+PASS perpetual check: score exactly 0 with a checking move (depth 8) -> 0 d2g5
+PASS perpetual check: score exactly 0 with a checking move (depth 10) -> 0 d2g5
+PASS perpetual check: score exactly 0 with a checking move (depth 12) -> 0 d2g5
+PASS perpetual control: a quiet king move loses (-31996)
+== threefold repetition through the game history
+PASS board: third occurrence is threefold, second is not
+PASS root at the third occurrence: draw without a search, still a legal move (a2a3)
+PASS root at the second occurrence is searched
+PASS issue fixture roots: same position (key) with and without the history
+PASS history threefold reached in the search scores exactly 0 (depth 2) -> 0
+PASS one earlier occurrence: equals the history-free search (depth 2) -> 390, fresh 390
+PASS history threefold reached in the search scores exactly 0 (depth 3) -> 0
+PASS one earlier occurrence: equals the history-free search (depth 3) -> 390, fresh 390
+PASS history threefold reached in the search scores exactly 0 (depth 4) -> 0
+PASS one earlier occurrence: equals the history-free search (depth 4) -> 390, fresh 390
+== issue #7: intended threefold claim, IntendedThreefold off / on
+issue #7 qsearch at ply 1: off positive -391 control -391, on positive 0 control -391
+PASS option off: positive equals control (no claim), both < -100
+PASS option on: positive history claims exactly 0
+PASS option on: control unchanged
+issue #7 root depth 1 searchmoves a2a1: off positive 391 control 391, on positive 0 control 391
+PASS root, option off: positive equals control (> 100)
+PASS root, option on: positive exactly 0, control unchanged
+PASS root, option on: positive 0, control unchanged (depth 2) -> 0, control 390 / 390
+PASS root, option on: positive 0, control unchanged (depth 3) -> 0, control 390 / 390
+== 50-move rule
+PASS half-move 100 after a quiet move (with or without check) is exactly 0 (depth 1) -> 0, 0
+PASS half-move 100 after a quiet move (with or without check) is exactly 0 (depth 2) -> 0, 0
+PASS half-move 100 after a quiet move (with or without check) is exactly 0 (depth 3) -> 0, 0
+PASS half-move 100 after a quiet move (with or without check) is exactly 0 (depth 4) -> 0, 0
+PASS a pawn move resets the counter: winning score 941
+PASS unrestricted: a resetting pawn move is chosen (b2b4, 1143)
+PASS half-move 100 after a quiet rook move is exactly 0
+PASS a capture resets the counter: winning score 401
+PASS unrestricted: the resetting capture is chosen (a1b2)
+PASS mate on the 100th half-move scores MateValue - 1: 6k1/5ppp/8/8/8/8/8/4R1K1 w - - 99 80 -> 31999, 31999 e1e8
+PASS a non-mating quiet move there is exactly 0: g1f1
+PASS mate on the 100th half-move scores MateValue - 1: 4r1k1/8/8/8/8/8/5PPP/6K1 b - - 99 80 -> 31999, 31999 e8e1
+PASS a non-mating quiet move there is exactly 0: g8f8
+PASS checkmated root at half-move 100 is mate 0
+PASS root at half-move 100 is a draw without a search and still moves (e1a1)
+PASS counter after a1a5 in 4k3/8/8/8/8/8/8/R3K3 w - - 57 40: 58
+PASS counter after e1g1 in 4k3/8/8/8/8/8/8/R3K2R w KQ - 57 40: 58
+PASS counter after e1c1 in 4k3/8/8/8/8/8/8/R3K2R w KQ - 57 40: 58
+PASS counter after a1a2 in 4k3/8/8/8/8/8/r7/R3K3 w - - 57 40: 0
+PASS counter after e2e3 in 4k3/8/8/8/8/8/4P3/4K3 w - - 57 40: 0
+PASS counter after e2e4 in 4k3/8/8/8/8/8/4P3/4K3 w - - 57 40: 0
+PASS counter after e5d6 in 4k3/8/8/3pP3/8/8/8/4K3 w - d6 57 40: 0
+PASS counter after b7b8q in 4k3/1P6/8/8/8/8/8/4K3 w - - 57 40: 0
+PASS counter after b7a8n in r3k3/1P6/8/8/8/8/8/4K3 w - - 57 40: 0
+PASS counter after e8d7 in 4k3/8/8/8/8/8/8/R3K3 b - - 57 40: 58
+PASS counter after a8a2 in r3k3/8/8/8/8/8/R7/4K3 b - - 57 40: 0
+PASS counter after d4e3 in 4k3/8/8/8/3pP3/8/8/4K3 b - e3 57 40: 0
+draw rules: 89 checks, 0 failures
+PASS forge_draw_rules_tests
+
+real	0m0.622s
+user	0m0.015s
+sys	0m0.015s

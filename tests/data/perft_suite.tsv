@@ -1,0 +1,35 @@
+# R3-5 perft regression suite (tests/perft_suite_tests.cpp, CTest forge_perft_cpw / forge_perft_edge).
+# Every node count is a published reference (sources below; full citations in opus_r3/R3-5/IDEA_SOURCE.md)
+# and was recomputed independently with python-chess 1.11.2 (opus_r3/R3-5/tools/perft_crosscheck.py,
+# log opus_r3/R3-5/logs/perft_crosscheck.log).
+# Columns (tab separated): id, group (cpw | edge), FEN, references "depth:nodes ..." (ascending depth),
+# source keys, theme.
+# Source keys:
+#   CPW     Chessprogramming wiki, "Perft Results" (initial position, positions 2-6, position 4 mirrored)
+#   SEDLAK  Martin Sedlak, "A few positions to test movegen", TalkChess topic 47318 (2013-02-24); the same list in
+#           Steve Maughan, "Perfect Perft!", chessprogramming.net (2013-04-22)
+#   ROCE    Roman Hartmann's ROCE perft suite (perftsuite.epd) as quoted in TalkChess topic 78241; castling
+#           position confirmed with JetChess 1.0.0.0 to depth 8 in TalkChess topic 47318 (post 597736)
+#   JVM     John Merlino's positions, TalkChess topic 77949 (post 902361), as listed with all depths in
+#           gflohr/Chess-Plisco t/05perft.t; perft(6) of jvm1 also in TalkChess topic 80952
+#   PLISCO  gflohr/Chess-Plisco t/05perft.t (second listing of the CPW and ROCE numbers)
+startpos	cpw	rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1	5:4865609 6:119060324	CPW PLISCO	initial position
+kiwipete	cpw	r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1	4:4085603 5:193690690	CPW PLISCO	position 2: castling, en passant, promotions, pins
+cpw3	cpw	8/2p5/3p4/KP5r/1R3p1k/8/4P1P1/8 w - - 0 1	5:674624 6:11030083	CPW PLISCO	position 3: rank pin of an en-passant capture, checks
+cpw4	cpw	r3k2r/Pppp1ppp/1b3nbN/nP6/BBP1P3/q4N2/Pp1P2PP/R2Q1RK1 w kq - 0 1	5:15833292	CPW PLISCO	position 4: promotions, castling rights, checks
+cpw4_mirrored	cpw	r2q1rk1/pP1p2pp/Q4n2/bbp1p3/Np6/1B3NBn/pPPP1PPP/R3K2R b KQ - 0 1	5:15833292	CPW PLISCO	position 4 with colours swapped
+cpw5	cpw	rnbq1k1r/pp1Pbppp/2p5/8/2B5/8/PPP1NnPP/RNBQK2R w KQ - 1 8	4:2103487 5:89941194	CPW PLISCO	position 5: promotion with capture, castling
+cpw6	cpw	r4rk1/1pp1qppp/p1np1n2/2b1p1B1/2B1P1b1/P1NP1N2/1PP1QPPP/R4RK1 w - - 0 10	4:3894594 5:164075551	CPW PLISCO	position 6 (Steven Edwards): middlegame pins
+ep_pin_rank	edge	3k4/3p4/8/K1P4r/8/8/8/8 b - - 0 1	6:1134888	SEDLAK	en passant illegal: both pawns leave the king's rank
+ep_pin_diagonal	edge	8/8/4k3/8/2p5/8/B2P2K1/8 w - - 0 1	6:1015133	SEDLAK	en passant illegal: capturing pawn pinned on a diagonal
+ep_gives_check	edge	8/8/1k6/2b5/2pP4/8/5K2/8 b - d3 0 1	6:1440467	SEDLAK	en passant capture gives check
+ep_double_castling	edge	r3k2r/8/8/8/3pPp2/8/8/R3K1RR b KQkq e3 0 1	4:624871 5:15446339	JVM	two en-passant captures available, castling with a rook on g1
+castle_short_check	edge	5k2/8/8/8/8/8/8/4K2R w K - 0 1	6:661072	SEDLAK	short castling gives check
+castle_long_check	edge	3k4/8/8/8/8/8/8/R3K3 w Q - 0 1	6:803711	SEDLAK	long castling gives check
+castling_rights	edge	r3k2r/8/8/8/8/8/8/R3K2R w KQkq - 0 1	5:7594526 6:179862938	ROCE	castling both sides, rights lost by rook captures
+promote_out_of_check	edge	2K2r2/4P3/8/8/8/8/8/3k4 w - - 0 1	6:3821001	SEDLAK	promotion that captures the checking rook
+promote_gives_check	edge	4k3/1P6/8/8/8/8/K7/8 w - - 0 1	6:217342	SEDLAK	promotion gives check
+underpromote_check	edge	8/P1k5/K7/8/8/8/8/8 w - - 0 1	6:92683	SEDLAK	underpromotion gives check
+promotions_both	edge	n1n5/PPPk4/8/8/8/8/4Kppp/5N1N b - - 0 1	5:3605103 6:71179139	ROCE JVM	promotions and capture-promotions for both sides
+discovered_check	edge	8/8/1P2K3/8/2n5/1q6/8/5k2 b - - 0 1	5:1004658	SEDLAK	discovered checks
+stalemate_checkmate	edge	8/k1P5/8/1K6/8/8/8/8 w - - 0 1	7:567584	SEDLAK	stalemate and checkmate leaves

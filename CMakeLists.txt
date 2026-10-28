@@ -491,3 +491,47 @@ if(Python3_Interpreter_FOUND)
                     --absent $<TARGET_FILE:forge>)
     endif()
 endif()
+
+# R3-5 regression suite (opus_r3/R3-5/README.md): perft against published node counts, draw rules (twofold and
+# threefold repetition, the issue #7 intended threefold with IntendedThreefold off/on, the 50-move rule), mate and
+# tablebase scores through the TT, UCI option parsing, and Lazy SMP stop / ponder over UCI.
+add_executable(forge_perft_suite tests/perft_suite_tests.cpp)
+target_link_libraries(forge_perft_suite PRIVATE forge_core Threads::Threads)
+add_executable(forge_draw_rules_tests tests/draw_rules_tests.cpp)
+target_link_libraries(forge_draw_rules_tests PRIVATE forge_core Threads::Threads)
+add_executable(forge_tt_mate_tb_tests tests/tt_mate_tb_tests.cpp)
+target_link_libraries(forge_tt_mate_tb_tests PRIVATE forge_core Threads::Threads)
+# Perft caps per build (README): published depth <= 6 in plain builds, <= 5 under sanitizers; ThreadSanitizer
+# (perft is single-threaded and ~40x slower there) also skips counts above 20M nodes (three positions at depth 4).
+# -DFORGE_PERFT_SUITE_ARGS="--max-depth;7" overrides the caps.
+if(FORGE_PERFT_SUITE_ARGS)
+    set(forge_perft_caps ${FORGE_PERFT_SUITE_ARGS})
+elseif(CMAKE_CXX_FLAGS MATCHES "sanitize=thread")
+    set(forge_perft_caps --max-depth 5 --max-nodes 20000000)
+elseif(FORGE_ENABLE_SANITIZERS OR CMAKE_CXX_FLAGS MATCHES "sanitize=")
+    set(forge_perft_caps --max-depth 5)
+else()
+    set(forge_perft_caps --max-depth 6)
+endif()
+add_test(NAME forge_perft_cpw COMMAND forge_perft_suite ${CMAKE_CURRENT_SOURCE_DIR}/tests/data/perft_suite.tsv
+    --group cpw ${forge_perft_caps})
+add_test(NAME forge_perft_edge COMMAND forge_perft_suite ${CMAKE_CURRENT_SOURCE_DIR}/tests/data/perft_suite.tsv
+    --group edge ${forge_perft_caps})
+add_test(NAME forge_draw_rules_tests COMMAND forge_draw_rules_tests)
+# Tablebase checks run only with tables (FORGE_SYZYGY_PATH, cache or environment variable); otherwise SKIP lines.
+add_test(NAME forge_tt_mate_tb_tests COMMAND forge_tt_mate_tb_tests ${CMAKE_CURRENT_SOURCE_DIR}/tests/syzygy_reference.tsv)
+if(Python3_Interpreter_FOUND)
+    add_test(NAME uci_options_regression
+        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tools/uci_options_regression.py $<TARGET_FILE:forge>
+                --workdir ${CMAKE_CURRENT_BINARY_DIR}/uci-options-regression
+                --log ${CMAKE_CURRENT_BINARY_DIR}/uci-options-regression.log)
+    add_test(NAME smp_uci_regression
+        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tools/smp_uci_regression.py $<TARGET_FILE:forge>
+                --log ${CMAKE_CURRENT_BINARY_DIR}/smp-uci-regression.log)
+endif()
+if(FORGE_SYZYGY_PATH)
+    set_tests_properties(forge_tt_mate_tb_tests PROPERTIES ENVIRONMENT "FORGE_SYZYGY_PATH=${FORGE_SYZYGY_PATH}")
+    if(Python3_Interpreter_FOUND)
+        set_tests_properties(uci_options_regression PROPERTIES ENVIRONMENT "FORGE_SYZYGY_PATH=${FORGE_SYZYGY_PATH}")
+    endif()
+endif()
