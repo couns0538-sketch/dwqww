@@ -11,7 +11,8 @@ inside the source tree): `opus_round1/O1/__pycache__/ucilib.cpython-314.pyc`,
 `opus_round1/sol_S12/followup_nullalias/__pycache__/mutation_check_alias.cpython-314.pyc`,
 `tools/__pycache__/uci_regression.cpython-314.pyc`, `tools/match/__pycache__/{pgn_stats,run_match,windows_validate}.cpython-314.pyc`.
 They are build products of one Python version and do not belong in the repository. Fix: `git rm --cached` of the
-eight files (the files stay on disk) and `__pycache__/`, `*.pyc` appended to `.gitignore`. No engine or tool source
+eight files (the files stay on disk); the base's `.gitignore` already lists `__pycache__/` and `*.pyc`, so no
+ignore rule was needed (two duplicate lines added at first were removed again after the independent check). No engine or tool source
 changed; the engine head stays 064af732.
 
 Status 2026-10-28: done on this branch (commit d118633a): the owner ran `git rm --cached` on the eight files in the review
