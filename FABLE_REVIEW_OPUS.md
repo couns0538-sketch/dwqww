@@ -41,9 +41,22 @@ CI runs `fable_review/ci_runs.txt`). Method, in this order:
 | opus-sol-S27fix | 40521425927 | opus-sol-s27fix-linux | failure | pending |
 | opus-sol-S49 | 40509722120, 40510697858 | opus-sol-s49-box | failure | pending |
 
-## Findings
+## CI failures: all explained, none outstanding
 
-(none yet)
+Every non-success run was followed by a successful run of the same workflow on the same branch (the branch head
+is green); the red entries on GitHub belong to superseded commits. Pairs (failed run -> later success):
+C3 40498064402 (f07630ec, the C3 TSan hook `hard_deadline_regression_t3` exited 1) -> 40503292559 (581ad5da);
+O1 40367007552 (c6956801, tsan job) -> 40381524034 (33b0790b); O1-LTT 40470578003 cancelled -> 40471171993;
+O2 40381997386 (runner clock: `ninja: manifest still dirty`) -> 40383970663; r3-stack 40564150654 (two merged tests
+used pre-O3 member names) -> 40566615160; S14 40527244836 cancelled -> 40547593226; S26fix 40505681846 ->
+40507421791; S27fix 40521425927 -> 40522039382; S49 40509722120 and 40510697858 -> 40517374833. Nothing to fix;
+superseded runs cannot be turned green by re-running (same code).
+
+## Findings (engine jobs, read in order of risk)
+
+| job | what was reviewed | verdict |
+|---|---|---|
+| C6 CuckooRep (opus-C6) | `Board::upcoming_repetition` (table build, two-slot cuckoo lookup, opponent-delta XOR, mover/empty/between checks, rule-50 + null-move window `distance < min(halfmove+1, since_null+1, size)` against the lock's `is_repetition` (`span = min(halfmove, plies_from_null, size-1)`, even distances 4..span), root-index rule, second-occurrence scan) and the search bound (`search_cuckoo`/`qsearch_cuckoo`: alpha < 0, not at root, no excluded move, fail-high when beta <= 0, else alpha raised to 0 and `max(result, 0)`) | **no defect found**; the window arithmetic matches the lock's repetition scan exactly and the bound is sound (the drawing move is legal because the opponent-to-move position it recreates was legal) |
 
 ## Corrections pushed
 
