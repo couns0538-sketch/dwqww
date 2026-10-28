@@ -204,7 +204,8 @@ P('- **Stack:** the entries were checked on `opus-r3-stack` @ `%s` (probe build 
   % (PROBE_HEAD, '' if sha_ready else ' (**pending: filled when the main session reports the final exes**)'))
 P('- **Shape of every entry:** one change against the all-OFF engine. Candidate = `forge_r3_stack.exe` + one runtime '
   'option, or `forge_r3_<switch>.exe` (+ that switch\'s own option where it has one). Opponent = `forge_r3_base.exe` '
-  '(the same default build) without options, named `%s`.' % BASE_NAME)
+  'without options, named `%s`. `forge_r3_stack.exe` is a byte copy of `forge_r3_base.exe` (main session\'s EXES.txt), '
+  'so every runtime-option gate is one binary with versus without one option.' % BASE_NAME)
 P('- **Files:** this document; `GATE_ENTRIES.json` (the same %d manifest objects, ready to append by the owner); '
   '`SRAND_CHECK.md` (how the srands were checked).' % len(rows))
 P('- Machine exclusive: no (pins and scans ran at nice 19 next to a conc-8 gate, NNUE training and self-play).')

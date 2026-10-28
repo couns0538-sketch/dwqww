@@ -10,8 +10,8 @@ SYZ = r'D:\grok-pc-data\dwqww\.claude\worktrees\syzygy345'
 # exe key -> (file name, how it is built from the final opus-r3-stack head)
 EXES = {
     'base': ('forge_r3_base.exe', 'default PC recipe build (build_pc.sh, no -D switch); used without options as the opponent of every gate'),
-    'stack': ('forge_r3_stack.exe', 'the same default build (carries every runtime option, all default OFF); candidate of the runtime-option gates'),
-    'nnueo2': ('forge_r3_nnueo2.exe', 'build_pc.sh ... -DFORGE_NNUE_O2=1'),
+    'stack': ('forge_r3_stack.exe', 'a byte copy of forge_r3_base.exe (the default build carries every runtime option, all default OFF); candidate of the runtime-option gates'),
+    'nnueo2': ('forge_r3_o2.exe', 'build_pc.sh ... -DFORGE_NNUE_O2=1'),
     'nozero': ('forge_r3_nozero.exe', 'build_pc.sh ... -DFORGE_NOZERO_MOVE_BUFFERS=1'),
     'speedstack': ('forge_r3_speedstack.exe', 'build_pc.sh ... -DFORGE_SPEEDSTACK=1'),
     'ttprefetch': ('forge_r3_ttprefetch.exe', 'build_pc.sh ... -DFORGE_S13_TT_CHILD_PREFETCH=1 (adds UCI TtChildPrefetch, default false)'),

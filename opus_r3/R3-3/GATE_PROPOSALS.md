@@ -3,7 +3,7 @@
 One ready gate entry per feature, ranked, with a new srand each. **Proposals only:** no gate was started, and nothing was written to the gate queue (`autorestart\forge_gates.json`), `forge_push`, `F:\forge_push` or any lock folder. PC files were read through copies. Expectations are labelled as such; **there is no Elo claim.**
 
 - **Stack:** the entries were checked on `opus-r3-stack` @ `2047348a` (probe build of the default recipe, sha256 `893ea34d…`, identity ALL OK, every runtime option's ON pins measured at d11-d22; the five node-exact switch builds of the same head) and, for FORGE_NNUE_INT16, on the main session's local head `ba03edf9` (contains the S-A2/S-A4 merges and the HardDeadline fix 5792074a). Final head and exe sha256: section 6 (**pending: filled when the main session reports the final exes**).
-- **Shape of every entry:** one change against the all-OFF engine. Candidate = `forge_r3_stack.exe` + one runtime option, or `forge_r3_<switch>.exe` (+ that switch's own option where it has one). Opponent = `forge_r3_base.exe` (the same default build) without options, named `base_r3_off`.
+- **Shape of every entry:** one change against the all-OFF engine. Candidate = `forge_r3_stack.exe` + one runtime option, or `forge_r3_<switch>.exe` (+ that switch's own option where it has one). Opponent = `forge_r3_base.exe` without options, named `base_r3_off`. `forge_r3_stack.exe` is a byte copy of `forge_r3_base.exe` (main session's EXES.txt), so every runtime-option gate is one binary with versus without one option.
 - **Files:** this document; `GATE_ENTRIES.json` (the same 29 manifest objects, ready to append by the owner); `SRAND_CHECK.md` (how the srands were checked).
 - Machine exclusive: no (pins and scans ran at nice 19 next to a conc-8 gate, NNUE training and self-play).
 
@@ -104,7 +104,7 @@ Ranked by expected gain against risk (expectations, not measurements). Tiers: **
 | field | value |
 |---|---|
 | status | ready for the r7 queue (after exe install + CR ok flag); tier A, node-exact speed / no search change |
-| candidate | `cand_r3_nnueo2` = `F:\opus_scratch\r3\exe\forge_r3_nnueo2.exe` → install as `C:\Users\Administrator\grok-pc\forge_push\bin\forge_r3_nnueo2.exe`; sha256 `FILL (main session)`; build: build_pc.sh ... -DFORGE_NNUE_O2=1 |
+| candidate | `cand_r3_nnueo2` = `F:\opus_scratch\r3\exe\forge_r3_o2.exe` → install as `C:\Users\Administrator\grok-pc\forge_push\bin\forge_r3_o2.exe`; sha256 `FILL (main session)`; build: build_pc.sh ... -DFORGE_NNUE_O2=1 |
 | opponent | `base_r3_off` = `forge_r3_base.exe` (no options); sha256 `FILL (main session)` |
 | UCI option(s), candidate only | none (the build switch is the change) |
 | SPRT / cap | `elo0=0 elo1=5 alpha=0.05 beta=0.05 model=normalized`; 1500 games max (`-rounds 750 -games 2 -repeat`); at the cap: "Cap with no decision", nothing claimed |
@@ -128,8 +128,8 @@ Manifest entry (append-ready; the owner adds it, not this job):
  "gate": "R3-01",
  "tag": "gateR3_01_nnueo2_vs_r3base",
  "cand": "cand_r3_nnueo2",
- "exe": "forge_r3_nnueo2.exe",
- "sha256": "<FILL: sha256 of forge_r3_nnueo2.exe>",
+ "exe": "forge_r3_o2.exe",
+ "sha256": "<FILL: sha256 of forge_r3_o2.exe>",
  "ok": "CR_PASS_r3_nnueo2.ok",
  "options": [],
  "srand": 603959610,
@@ -163,7 +163,7 @@ Manifest entry (append-ready; the owner adds it, not this job):
 fastchess command as the r7 Build-Args would build it (started by the queue at BelowNormal, affinity 0xFFF0, working dir = the gate folder, stdout → `<tag>.log`):
 
 ```
-C:\Users\Administrator\grok-pc\tools\fastchess\fastchess.exe -engine name=cand_r3_nnueo2 cmd=C:\Users\Administrator\grok-pc\forge_push\bin\forge_r3_nnueo2.exe option.Threads=1 option.Hash=16 option.OwnBook=false -engine name=base_r3_off cmd=C:\Users\Administrator\grok-pc\forge_push\bin\forge_r3_base.exe option.Threads=1 option.Hash=16 option.OwnBook=false -each tc=10+0.1 timemargin=1000 proto=uci -openings file=C:\Users\Administrator\grok-pc\coder-fuzz\8moves_v3.pgn format=pgn order=random start=390001 -srand 603959610 -games 2 -repeat -rounds 750 -concurrency 8 -sprt elo0=0 elo1=5 alpha=0.05 beta=0.05 model=normalized -ratinginterval 10 -recover -event forge_gateR3_01_nnueo2_vs_r3base -pgnout file=F:\forge_push\gateR3_01_nnueo2_vs_r3base\gateR3_01_nnueo2_vs_r3base.pgn timeleft=true -log file=F:\forge_push\gateR3_01_nnueo2_vs_r3base\engine_io.log level=warn engine=true append=false
+C:\Users\Administrator\grok-pc\tools\fastchess\fastchess.exe -engine name=cand_r3_nnueo2 cmd=C:\Users\Administrator\grok-pc\forge_push\bin\forge_r3_o2.exe option.Threads=1 option.Hash=16 option.OwnBook=false -engine name=base_r3_off cmd=C:\Users\Administrator\grok-pc\forge_push\bin\forge_r3_base.exe option.Threads=1 option.Hash=16 option.OwnBook=false -each tc=10+0.1 timemargin=1000 proto=uci -openings file=C:\Users\Administrator\grok-pc\coder-fuzz\8moves_v3.pgn format=pgn order=random start=390001 -srand 603959610 -games 2 -repeat -rounds 750 -concurrency 8 -sprt elo0=0 elo1=5 alpha=0.05 beta=0.05 model=normalized -ratinginterval 10 -recover -event forge_gateR3_01_nnueo2_vs_r3base -pgnout file=F:\forge_push\gateR3_01_nnueo2_vs_r3base\gateR3_01_nnueo2_vs_r3base.pgn timeleft=true -log file=F:\forge_push\gateR3_01_nnueo2_vs_r3base\engine_io.log level=warn engine=true append=false
 ```
 
 ### R3-02 · FORGE_NOZERO_MOVE_BUFFERS (S14 follow-up: no zero-fill of the move buffers)
@@ -238,7 +238,7 @@ C:\Users\Administrator\grok-pc\tools\fastchess\fastchess.exe -engine name=cand_r
 | field | value |
 |---|---|
 | status | ready for the r7 queue (after exe install + CR ok flag); tier B, tree-changing search/eval (Threads 1) |
-| candidate | `cand_r3_corrhistplus4` = `F:\opus_scratch\r3\exe\forge_r3_stack.exe` → install as `C:\Users\Administrator\grok-pc\forge_push\bin\forge_r3_stack.exe`; sha256 `FILL (main session)`; build: the same default build (carries every runtime option, all default OFF); candidate of the runtime-option gates |
+| candidate | `cand_r3_corrhistplus4` = `F:\opus_scratch\r3\exe\forge_r3_stack.exe` → install as `C:\Users\Administrator\grok-pc\forge_push\bin\forge_r3_stack.exe`; sha256 `FILL (main session)`; build: a byte copy of forge_r3_base.exe (the default build carries every runtime option, all default OFF); candidate of the runtime-option gates |
 | opponent | `base_r3_off` = `forge_r3_base.exe` (no options); sha256 `FILL (main session)` |
 | UCI option(s), candidate only | `option.CorrHistPlus=4` |
 | SPRT / cap | `elo0=0 elo1=5 alpha=0.05 beta=0.05 model=normalized`; 1500 games max (`-rounds 750 -games 2 -repeat`); at the cap: "Cap with no decision", nothing claimed |
@@ -306,7 +306,7 @@ C:\Users\Administrator\grok-pc\tools\fastchess\fastchess.exe -engine name=cand_r
 | field | value |
 |---|---|
 | status | ready for the r7 queue (after exe install + CR ok flag); tier B, tree-changing search/eval (Threads 1) |
-| candidate | `cand_r3_corrhistplus1` = `F:\opus_scratch\r3\exe\forge_r3_stack.exe` → install as `C:\Users\Administrator\grok-pc\forge_push\bin\forge_r3_stack.exe`; sha256 `FILL (main session)`; build: the same default build (carries every runtime option, all default OFF); candidate of the runtime-option gates |
+| candidate | `cand_r3_corrhistplus1` = `F:\opus_scratch\r3\exe\forge_r3_stack.exe` → install as `C:\Users\Administrator\grok-pc\forge_push\bin\forge_r3_stack.exe`; sha256 `FILL (main session)`; build: a byte copy of forge_r3_base.exe (the default build carries every runtime option, all default OFF); candidate of the runtime-option gates |
 | opponent | `base_r3_off` = `forge_r3_base.exe` (no options); sha256 `FILL (main session)` |
 | UCI option(s), candidate only | `option.CorrHistPlus=1` |
 | SPRT / cap | `elo0=0 elo1=5 alpha=0.05 beta=0.05 model=normalized`; 1500 games max (`-rounds 750 -games 2 -repeat`); at the cap: "Cap with no decision", nothing claimed |
@@ -373,7 +373,7 @@ C:\Users\Administrator\grok-pc\tools\fastchess\fastchess.exe -engine name=cand_r
 | field | value |
 |---|---|
 | status | ready for the r7 queue (after exe install + CR ok flag); tier B, tree-changing search/eval (Threads 1) |
-| candidate | `cand_r3_corrhistplus2` = `F:\opus_scratch\r3\exe\forge_r3_stack.exe` → install as `C:\Users\Administrator\grok-pc\forge_push\bin\forge_r3_stack.exe`; sha256 `FILL (main session)`; build: the same default build (carries every runtime option, all default OFF); candidate of the runtime-option gates |
+| candidate | `cand_r3_corrhistplus2` = `F:\opus_scratch\r3\exe\forge_r3_stack.exe` → install as `C:\Users\Administrator\grok-pc\forge_push\bin\forge_r3_stack.exe`; sha256 `FILL (main session)`; build: a byte copy of forge_r3_base.exe (the default build carries every runtime option, all default OFF); candidate of the runtime-option gates |
 | opponent | `base_r3_off` = `forge_r3_base.exe` (no options); sha256 `FILL (main session)` |
 | UCI option(s), candidate only | `option.CorrHistPlus=2` |
 | SPRT / cap | `elo0=0 elo1=5 alpha=0.05 beta=0.05 model=normalized`; 1500 games max (`-rounds 750 -games 2 -repeat`); at the cap: "Cap with no decision", nothing claimed |
@@ -439,7 +439,7 @@ C:\Users\Administrator\grok-pc\tools\fastchess\fastchess.exe -engine name=cand_r
 | field | value |
 |---|---|
 | status | ready for the r7 queue (after exe install + CR ok flag); tier B, tree-changing search/eval (Threads 1) |
-| candidate | `cand_r3_cuckoorep` = `F:\opus_scratch\r3\exe\forge_r3_stack.exe` → install as `C:\Users\Administrator\grok-pc\forge_push\bin\forge_r3_stack.exe`; sha256 `FILL (main session)`; build: the same default build (carries every runtime option, all default OFF); candidate of the runtime-option gates |
+| candidate | `cand_r3_cuckoorep` = `F:\opus_scratch\r3\exe\forge_r3_stack.exe` → install as `C:\Users\Administrator\grok-pc\forge_push\bin\forge_r3_stack.exe`; sha256 `FILL (main session)`; build: a byte copy of forge_r3_base.exe (the default build carries every runtime option, all default OFF); candidate of the runtime-option gates |
 | opponent | `base_r3_off` = `forge_r3_base.exe` (no options); sha256 `FILL (main session)` |
 | UCI option(s), candidate only | `option.CuckooRep=true` |
 | SPRT / cap | `elo0=0 elo1=5 alpha=0.05 beta=0.05 model=normalized`; 1500 games max (`-rounds 750 -games 2 -repeat`); at the cap: "Cap with no decision", nothing claimed |
@@ -506,7 +506,7 @@ C:\Users\Administrator\grok-pc\tools\fastchess\fastchess.exe -engine name=cand_r
 | field | value |
 |---|---|
 | status | ready for the r7 queue (after exe install + CR ok flag); tier B, tree-changing search/eval (Threads 1) |
-| candidate | `cand_r3_syzygy345` = `F:\opus_scratch\r3\exe\forge_r3_stack.exe` → install as `C:\Users\Administrator\grok-pc\forge_push\bin\forge_r3_stack.exe`; sha256 `FILL (main session)`; build: the same default build (carries every runtime option, all default OFF); candidate of the runtime-option gates |
+| candidate | `cand_r3_syzygy345` = `F:\opus_scratch\r3\exe\forge_r3_stack.exe` → install as `C:\Users\Administrator\grok-pc\forge_push\bin\forge_r3_stack.exe`; sha256 `FILL (main session)`; build: a byte copy of forge_r3_base.exe (the default build carries every runtime option, all default OFF); candidate of the runtime-option gates |
 | opponent | `base_r3_off` = `forge_r3_base.exe` (no options); sha256 `FILL (main session)` |
 | UCI option(s), candidate only | `option.SyzygyPath=D:\grok-pc-data\dwqww\.claude\worktrees\syzygy345` |
 | SPRT / cap | `elo0=0 elo1=5 alpha=0.05 beta=0.05 model=normalized`; 1500 games max (`-rounds 750 -games 2 -repeat`); at the cap: "Cap with no decision", nothing claimed |
@@ -576,7 +576,7 @@ C:\Users\Administrator\grok-pc\tools\fastchess\fastchess.exe -engine name=cand_r
 | field | value |
 |---|---|
 | status | ready for the r7 queue (after exe install + CR ok flag); tier B, tree-changing search/eval (Threads 1) |
-| candidate | `cand_r3_histrework2` = `F:\opus_scratch\r3\exe\forge_r3_stack.exe` → install as `C:\Users\Administrator\grok-pc\forge_push\bin\forge_r3_stack.exe`; sha256 `FILL (main session)`; build: the same default build (carries every runtime option, all default OFF); candidate of the runtime-option gates |
+| candidate | `cand_r3_histrework2` = `F:\opus_scratch\r3\exe\forge_r3_stack.exe` → install as `C:\Users\Administrator\grok-pc\forge_push\bin\forge_r3_stack.exe`; sha256 `FILL (main session)`; build: a byte copy of forge_r3_base.exe (the default build carries every runtime option, all default OFF); candidate of the runtime-option gates |
 | opponent | `base_r3_off` = `forge_r3_base.exe` (no options); sha256 `FILL (main session)` |
 | UCI option(s), candidate only | `option.HistRework=2` |
 | SPRT / cap | `elo0=0 elo1=5 alpha=0.05 beta=0.05 model=normalized`; 1500 games max (`-rounds 750 -games 2 -repeat`); at the cap: "Cap with no decision", nothing claimed |
@@ -643,7 +643,7 @@ C:\Users\Administrator\grok-pc\tools\fastchess\fastchess.exe -engine name=cand_r
 | field | value |
 |---|---|
 | status | ready for the r7 queue (after exe install + CR ok flag); tier B, tree-changing search/eval (Threads 1) |
-| candidate | `cand_r3_corrmargins` = `F:\opus_scratch\r3\exe\forge_r3_stack.exe` → install as `C:\Users\Administrator\grok-pc\forge_push\bin\forge_r3_stack.exe`; sha256 `FILL (main session)`; build: the same default build (carries every runtime option, all default OFF); candidate of the runtime-option gates |
+| candidate | `cand_r3_corrmargins` = `F:\opus_scratch\r3\exe\forge_r3_stack.exe` → install as `C:\Users\Administrator\grok-pc\forge_push\bin\forge_r3_stack.exe`; sha256 `FILL (main session)`; build: a byte copy of forge_r3_base.exe (the default build carries every runtime option, all default OFF); candidate of the runtime-option gates |
 | opponent | `base_r3_off` = `forge_r3_base.exe` (no options); sha256 `FILL (main session)` |
 | UCI option(s), candidate only | `option.CorrMargins=1` |
 | SPRT / cap | `elo0=0 elo1=5 alpha=0.05 beta=0.05 model=normalized`; 1500 games max (`-rounds 750 -games 2 -repeat`); at the cap: "Cap with no decision", nothing claimed |
@@ -777,7 +777,7 @@ C:\Users\Administrator\grok-pc\tools\fastchess\fastchess.exe -engine name=cand_r
 | field | value |
 |---|---|
 | status | ready for the r7 queue (after exe install + CR ok flag); tier B, tree-changing search/eval (Threads 1) |
-| candidate | `cand_r3_netscale99` = `F:\opus_scratch\r3\exe\forge_r3_stack.exe` → install as `C:\Users\Administrator\grok-pc\forge_push\bin\forge_r3_stack.exe`; sha256 `FILL (main session)`; build: the same default build (carries every runtime option, all default OFF); candidate of the runtime-option gates |
+| candidate | `cand_r3_netscale99` = `F:\opus_scratch\r3\exe\forge_r3_stack.exe` → install as `C:\Users\Administrator\grok-pc\forge_push\bin\forge_r3_stack.exe`; sha256 `FILL (main session)`; build: a byte copy of forge_r3_base.exe (the default build carries every runtime option, all default OFF); candidate of the runtime-option gates |
 | opponent | `base_r3_off` = `forge_r3_base.exe` (no options); sha256 `FILL (main session)` |
 | UCI option(s), candidate only | `option.NetScale=99` |
 | SPRT / cap | `elo0=0 elo1=5 alpha=0.05 beta=0.05 model=normalized`; 1500 games max (`-rounds 750 -games 2 -repeat`); at the cap: "Cap with no decision", nothing claimed |
@@ -844,7 +844,7 @@ C:\Users\Administrator\grok-pc\tools\fastchess\fastchess.exe -engine name=cand_r
 | field | value |
 |---|---|
 | status | ready for the r7 queue (after exe install + CR ok flag); tier B, tree-changing search/eval (Threads 1) |
-| candidate | `cand_r3_intendedthreefold` = `F:\opus_scratch\r3\exe\forge_r3_stack.exe` → install as `C:\Users\Administrator\grok-pc\forge_push\bin\forge_r3_stack.exe`; sha256 `FILL (main session)`; build: the same default build (carries every runtime option, all default OFF); candidate of the runtime-option gates |
+| candidate | `cand_r3_intendedthreefold` = `F:\opus_scratch\r3\exe\forge_r3_stack.exe` → install as `C:\Users\Administrator\grok-pc\forge_push\bin\forge_r3_stack.exe`; sha256 `FILL (main session)`; build: a byte copy of forge_r3_base.exe (the default build carries every runtime option, all default OFF); candidate of the runtime-option gates |
 | opponent | `base_r3_off` = `forge_r3_base.exe` (no options); sha256 `FILL (main session)` |
 | UCI option(s), candidate only | `option.IntendedThreefold=true` |
 | SPRT / cap | `elo0=0 elo1=5 alpha=0.05 beta=0.05 model=normalized`; 1500 games max (`-rounds 750 -games 2 -repeat`); at the cap: "Cap with no decision", nothing claimed |
@@ -912,7 +912,7 @@ C:\Users\Administrator\grok-pc\tools\fastchess\fastchess.exe -engine name=cand_r
 | field | value |
 |---|---|
 | status | ready for the r7 queue (after exe install + CR ok flag); tier A, node-exact speed / no search change |
-| candidate | `cand_r3_harddeadline10` = `F:\opus_scratch\r3\exe\forge_r3_stack.exe` → install as `C:\Users\Administrator\grok-pc\forge_push\bin\forge_r3_stack.exe`; sha256 `FILL (main session)`; build: the same default build (carries every runtime option, all default OFF); candidate of the runtime-option gates |
+| candidate | `cand_r3_harddeadline10` = `F:\opus_scratch\r3\exe\forge_r3_stack.exe` → install as `C:\Users\Administrator\grok-pc\forge_push\bin\forge_r3_stack.exe`; sha256 `FILL (main session)`; build: a byte copy of forge_r3_base.exe (the default build carries every runtime option, all default OFF); candidate of the runtime-option gates |
 | opponent | `base_r3_off` = `forge_r3_base.exe` (no options); sha256 `FILL (main session)` |
 | UCI option(s), candidate only | `option.HardDeadline=10` |
 | SPRT / cap | `elo0=0 elo1=5 alpha=0.05 beta=0.05 model=normalized`; 1500 games max (`-rounds 750 -games 2 -repeat`); at the cap: "Cap with no decision", nothing claimed |
@@ -984,7 +984,7 @@ C:\Users\Administrator\grok-pc\tools\fastchess\fastchess.exe -engine name=cand_r
 | field | value |
 |---|---|
 | status | ready for the r7 queue (after exe install + CR ok flag); tier B, tree-changing search/eval (Threads 1) |
-| candidate | `cand_r3_corrext` = `F:\opus_scratch\r3\exe\forge_r3_stack.exe` → install as `C:\Users\Administrator\grok-pc\forge_push\bin\forge_r3_stack.exe`; sha256 `FILL (main session)`; build: the same default build (carries every runtime option, all default OFF); candidate of the runtime-option gates |
+| candidate | `cand_r3_corrext` = `F:\opus_scratch\r3\exe\forge_r3_stack.exe` → install as `C:\Users\Administrator\grok-pc\forge_push\bin\forge_r3_stack.exe`; sha256 `FILL (main session)`; build: a byte copy of forge_r3_base.exe (the default build carries every runtime option, all default OFF); candidate of the runtime-option gates |
 | opponent | `base_r3_off` = `forge_r3_base.exe` (no options); sha256 `FILL (main session)` |
 | UCI option(s), candidate only | `option.CorrExt=1` |
 | SPRT / cap | `elo0=0 elo1=5 alpha=0.05 beta=0.05 model=normalized`; 1500 games max (`-rounds 750 -games 2 -repeat`); at the cap: "Cap with no decision", nothing claimed |
@@ -1051,7 +1051,7 @@ C:\Users\Administrator\grok-pc\tools\fastchess\fastchess.exe -engine name=cand_r
 | field | value |
 |---|---|
 | status | ready, conditional (see notes); tier B, tree-changing search/eval (Threads 1) |
-| candidate | `cand_r3_histrework3` = `F:\opus_scratch\r3\exe\forge_r3_stack.exe` → install as `C:\Users\Administrator\grok-pc\forge_push\bin\forge_r3_stack.exe`; sha256 `FILL (main session)`; build: the same default build (carries every runtime option, all default OFF); candidate of the runtime-option gates |
+| candidate | `cand_r3_histrework3` = `F:\opus_scratch\r3\exe\forge_r3_stack.exe` → install as `C:\Users\Administrator\grok-pc\forge_push\bin\forge_r3_stack.exe`; sha256 `FILL (main session)`; build: a byte copy of forge_r3_base.exe (the default build carries every runtime option, all default OFF); candidate of the runtime-option gates |
 | opponent | `base_r3_off` = `forge_r3_base.exe` (no options); sha256 `FILL (main session)` |
 | UCI option(s), candidate only | `option.HistRework=3` |
 | SPRT / cap | `elo0=0 elo1=5 alpha=0.05 beta=0.05 model=normalized`; 1500 games max (`-rounds 750 -games 2 -repeat`); at the cap: "Cap with no decision", nothing claimed |
@@ -1122,7 +1122,7 @@ C:\Users\Administrator\grok-pc\tools\fastchess\fastchess.exe -engine name=cand_r
 | field | value |
 |---|---|
 | status | ready for the r7 queue (after exe install + CR ok flag); tier A, node-exact speed / no search change |
-| candidate | `cand_r3_materialkeytable` = `F:\opus_scratch\r3\exe\forge_r3_stack.exe` → install as `C:\Users\Administrator\grok-pc\forge_push\bin\forge_r3_stack.exe`; sha256 `FILL (main session)`; build: the same default build (carries every runtime option, all default OFF); candidate of the runtime-option gates |
+| candidate | `cand_r3_materialkeytable` = `F:\opus_scratch\r3\exe\forge_r3_stack.exe` → install as `C:\Users\Administrator\grok-pc\forge_push\bin\forge_r3_stack.exe`; sha256 `FILL (main session)`; build: a byte copy of forge_r3_base.exe (the default build carries every runtime option, all default OFF); candidate of the runtime-option gates |
 | opponent | `base_r3_off` = `forge_r3_base.exe` (no options); sha256 `FILL (main session)` |
 | UCI option(s), candidate only | `option.MaterialKeyTable=true` |
 | SPRT / cap | `elo0=0 elo1=5 alpha=0.05 beta=0.05 model=normalized`; 1500 games max (`-rounds 750 -games 2 -repeat`); at the cap: "Cap with no decision", nothing claimed |
@@ -1327,7 +1327,7 @@ C:\Users\Administrator\grok-pc\tools\fastchess\fastchess.exe -engine name=cand_r
 | field | value |
 |---|---|
 | status | ready, conditional (see notes); tier B, tree-changing search/eval (Threads 1) |
-| candidate | `cand_r3_histrework1` = `F:\opus_scratch\r3\exe\forge_r3_stack.exe` → install as `C:\Users\Administrator\grok-pc\forge_push\bin\forge_r3_stack.exe`; sha256 `FILL (main session)`; build: the same default build (carries every runtime option, all default OFF); candidate of the runtime-option gates |
+| candidate | `cand_r3_histrework1` = `F:\opus_scratch\r3\exe\forge_r3_stack.exe` → install as `C:\Users\Administrator\grok-pc\forge_push\bin\forge_r3_stack.exe`; sha256 `FILL (main session)`; build: a byte copy of forge_r3_base.exe (the default build carries every runtime option, all default OFF); candidate of the runtime-option gates |
 | opponent | `base_r3_off` = `forge_r3_base.exe` (no options); sha256 `FILL (main session)` |
 | UCI option(s), candidate only | `option.HistRework=1` |
 | SPRT / cap | `elo0=0 elo1=5 alpha=0.05 beta=0.05 model=normalized`; 1500 games max (`-rounds 750 -games 2 -repeat`); at the cap: "Cap with no decision", nothing claimed |
@@ -1465,7 +1465,7 @@ C:\Users\Administrator\grok-pc\tools\fastchess\fastchess.exe -engine name=cand_r
 | field | value |
 |---|---|
 | status | HELD: needs Threads=4 on both sides (r7 runner change or a manual run); tier C, SMP only (Threads 4) |
-| candidate | `cand_r3_smpbestthread` = `F:\opus_scratch\r3\exe\forge_r3_stack.exe` → install as `C:\Users\Administrator\grok-pc\forge_push\bin\forge_r3_stack.exe`; sha256 `FILL (main session)`; build: the same default build (carries every runtime option, all default OFF); candidate of the runtime-option gates |
+| candidate | `cand_r3_smpbestthread` = `F:\opus_scratch\r3\exe\forge_r3_stack.exe` → install as `C:\Users\Administrator\grok-pc\forge_push\bin\forge_r3_stack.exe`; sha256 `FILL (main session)`; build: a byte copy of forge_r3_base.exe (the default build carries every runtime option, all default OFF); candidate of the runtime-option gates |
 | opponent | `base_r3_off` = `forge_r3_base.exe` (no options); sha256 `FILL (main session)` |
 | UCI option(s), candidate only | `option.SmpBestThread=true` |
 | SPRT / cap | `elo0=0 elo1=5 alpha=0.05 beta=0.05 model=normalized`; 1500 games max (`-rounds 750 -games 2 -repeat`); at the cap: "Cap with no decision", nothing claimed |
@@ -1536,7 +1536,7 @@ C:\Users\Administrator\grok-pc\tools\fastchess\fastchess.exe -engine name=cand_r
 | field | value |
 |---|---|
 | status | HELD: needs Threads=4 on both sides (r7 runner change or a manual run); tier C, SMP only (Threads 4) |
-| candidate | `cand_r3_locklesstt` = `F:\opus_scratch\r3\exe\forge_r3_stack.exe` → install as `C:\Users\Administrator\grok-pc\forge_push\bin\forge_r3_stack.exe`; sha256 `FILL (main session)`; build: the same default build (carries every runtime option, all default OFF); candidate of the runtime-option gates |
+| candidate | `cand_r3_locklesstt` = `F:\opus_scratch\r3\exe\forge_r3_stack.exe` → install as `C:\Users\Administrator\grok-pc\forge_push\bin\forge_r3_stack.exe`; sha256 `FILL (main session)`; build: a byte copy of forge_r3_base.exe (the default build carries every runtime option, all default OFF); candidate of the runtime-option gates |
 | opponent | `base_r3_off` = `forge_r3_base.exe` (no options); sha256 `FILL (main session)` |
 | UCI option(s), candidate only | `option.LocklessTT=true` |
 | SPRT / cap | `elo0=0 elo1=5 alpha=0.05 beta=0.05 model=normalized`; 1500 games max (`-rounds 750 -games 2 -repeat`); at the cap: "Cap with no decision", nothing claimed |
@@ -1608,7 +1608,7 @@ C:\Users\Administrator\grok-pc\tools\fastchess\fastchess.exe -engine name=cand_r
 | field | value |
 |---|---|
 | status | HELD: needs Threads=4 on both sides (r7 runner change or a manual run); tier C, SMP only (Threads 4) |
-| candidate | `cand_r3_smpexactnodes` = `F:\opus_scratch\r3\exe\forge_r3_stack.exe` → install as `C:\Users\Administrator\grok-pc\forge_push\bin\forge_r3_stack.exe`; sha256 `FILL (main session)`; build: the same default build (carries every runtime option, all default OFF); candidate of the runtime-option gates |
+| candidate | `cand_r3_smpexactnodes` = `F:\opus_scratch\r3\exe\forge_r3_stack.exe` → install as `C:\Users\Administrator\grok-pc\forge_push\bin\forge_r3_stack.exe`; sha256 `FILL (main session)`; build: a byte copy of forge_r3_base.exe (the default build carries every runtime option, all default OFF); candidate of the runtime-option gates |
 | opponent | `base_r3_off` = `forge_r3_base.exe` (no options); sha256 `FILL (main session)` |
 | UCI option(s), candidate only | `option.SmpExactNodes=true` |
 | SPRT / cap | `elo0=0 elo1=5 alpha=0.05 beta=0.05 model=normalized`; 1500 games max (`-rounds 750 -games 2 -repeat`); at the cap: "Cap with no decision", nothing claimed |
@@ -1678,7 +1678,7 @@ C:\Users\Administrator\grok-pc\tools\fastchess\fastchess.exe -engine name=cand_r
 | field | value |
 |---|---|
 | status | BLOCKED: needs a trained net; tier D, trained net needed |
-| candidate | `cand_r3_kingbuckets` = `F:\opus_scratch\r3\exe\forge_r3_stack.exe` → install as `C:\Users\Administrator\grok-pc\forge_push\bin\forge_r3_stack.exe`; sha256 `FILL (main session)`; build: the same default build (carries every runtime option, all default OFF); candidate of the runtime-option gates |
+| candidate | `cand_r3_kingbuckets` = `F:\opus_scratch\r3\exe\forge_r3_stack.exe` → install as `C:\Users\Administrator\grok-pc\forge_push\bin\forge_r3_stack.exe`; sha256 `FILL (main session)`; build: a byte copy of forge_r3_base.exe (the default build carries every runtime option, all default OFF); candidate of the runtime-option gates |
 | opponent | `base_r3_off` = `forge_r3_base.exe` (no options); sha256 `FILL (main session)` |
 | UCI option(s), candidate only | `option.NNUEFile=<KB_NET.fnn2>` `option.NNUEKingBuckets=<N of that net>` |
 | SPRT / cap | `elo0=0 elo1=5 alpha=0.05 beta=0.05 model=normalized`; 1500 games max (`-rounds 750 -games 2 -repeat`); at the cap: "Cap with no decision", nothing claimed |
@@ -1754,7 +1754,7 @@ C:\Users\Administrator\grok-pc\tools\fastchess\fastchess.exe -engine name=cand_r
 | field | value |
 |---|---|
 | status | BLOCKED: needs a trained net; tier D, trained net needed |
-| candidate | `cand_r3_outputbuckets` = `F:\opus_scratch\r3\exe\forge_r3_stack.exe` → install as `C:\Users\Administrator\grok-pc\forge_push\bin\forge_r3_stack.exe`; sha256 `FILL (main session)`; build: the same default build (carries every runtime option, all default OFF); candidate of the runtime-option gates |
+| candidate | `cand_r3_outputbuckets` = `F:\opus_scratch\r3\exe\forge_r3_stack.exe` → install as `C:\Users\Administrator\grok-pc\forge_push\bin\forge_r3_stack.exe`; sha256 `FILL (main session)`; build: a byte copy of forge_r3_base.exe (the default build carries every runtime option, all default OFF); candidate of the runtime-option gates |
 | opponent | `base_r3_off` = `forge_r3_base.exe` (no options); sha256 `FILL (main session)` |
 | UCI option(s), candidate only | `option.NNUEFile=<OB8_NET.fnn2>` `option.NNUEOutputBuckets=8` |
 | SPRT / cap | `elo0=0 elo1=5 alpha=0.05 beta=0.05 model=normalized`; 1500 games max (`-rounds 750 -games 2 -repeat`); at the cap: "Cap with no decision", nothing claimed |
@@ -1830,7 +1830,7 @@ C:\Users\Administrator\grok-pc\tools\fastchess\fastchess.exe -engine name=cand_r
 | field | value |
 |---|---|
 | status | BLOCKED: needs a trained net; tier D, trained net needed |
-| candidate | `cand_r3_pawnpairs` = `F:\opus_scratch\r3\exe\forge_r3_stack.exe` → install as `C:\Users\Administrator\grok-pc\forge_push\bin\forge_r3_stack.exe`; sha256 `FILL (main session)`; build: the same default build (carries every runtime option, all default OFF); candidate of the runtime-option gates |
+| candidate | `cand_r3_pawnpairs` = `F:\opus_scratch\r3\exe\forge_r3_stack.exe` → install as `C:\Users\Administrator\grok-pc\forge_push\bin\forge_r3_stack.exe`; sha256 `FILL (main session)`; build: a byte copy of forge_r3_base.exe (the default build carries every runtime option, all default OFF); candidate of the runtime-option gates |
 | opponent | `base_r3_off` = `forge_r3_base.exe` (no options); sha256 `FILL (main session)` |
 | UCI option(s), candidate only | `option.NNUEFile=<PP_NET.fnn2>` `option.NNUEPawnPairs=1` |
 | SPRT / cap | `elo0=0 elo1=5 alpha=0.05 beta=0.05 model=normalized`; 1500 games max (`-rounds 750 -games 2 -repeat`); at the cap: "Cap with no decision", nothing claimed |
@@ -1906,7 +1906,7 @@ C:\Users\Administrator\grok-pc\tools\fastchess\fastchess.exe -engine name=cand_r
 | field | value |
 |---|---|
 | status | BLOCKED: needs a trained net; tier D, trained net needed |
-| candidate | `cand_r3_threats` = `F:\opus_scratch\r3\exe\forge_r3_stack.exe` → install as `C:\Users\Administrator\grok-pc\forge_push\bin\forge_r3_stack.exe`; sha256 `FILL (main session)`; build: the same default build (carries every runtime option, all default OFF); candidate of the runtime-option gates |
+| candidate | `cand_r3_threats` = `F:\opus_scratch\r3\exe\forge_r3_stack.exe` → install as `C:\Users\Administrator\grok-pc\forge_push\bin\forge_r3_stack.exe`; sha256 `FILL (main session)`; build: a byte copy of forge_r3_base.exe (the default build carries every runtime option, all default OFF); candidate of the runtime-option gates |
 | opponent | `base_r3_off` = `forge_r3_base.exe` (no options); sha256 `FILL (main session)` |
 | UCI option(s), candidate only | `option.NNUEFile=<THREAT_NET.fnn2>` `option.NNUEThreats=1` |
 | SPRT / cap | `elo0=0 elo1=5 alpha=0.05 beta=0.05 model=normalized`; 1500 games max (`-rounds 750 -games 2 -repeat`); at the cap: "Cap with no decision", nothing claimed |
@@ -1983,7 +1983,7 @@ C:\Users\Administrator\grok-pc\tools\fastchess\fastchess.exe -engine name=cand_r
 | field | value |
 |---|---|
 | status | BLOCKED: needs a trained net; tier D, trained net needed |
-| candidate | `cand_r3_purennue` = `F:\opus_scratch\r3\exe\forge_r3_stack.exe` → install as `C:\Users\Administrator\grok-pc\forge_push\bin\forge_r3_stack.exe`; sha256 `FILL (main session)`; build: the same default build (carries every runtime option, all default OFF); candidate of the runtime-option gates |
+| candidate | `cand_r3_purennue` = `F:\opus_scratch\r3\exe\forge_r3_stack.exe` → install as `C:\Users\Administrator\grok-pc\forge_push\bin\forge_r3_stack.exe`; sha256 `FILL (main session)`; build: a byte copy of forge_r3_base.exe (the default build carries every runtime option, all default OFF); candidate of the runtime-option gates |
 | opponent | `base_r3_off` = `forge_r3_base.exe` (no options); sha256 `FILL (main session)` |
 | UCI option(s), candidate only | `option.NNUEFile=<PURE_NET.fnn2>` `option.PureNnue=1` |
 | SPRT / cap | `elo0=0 elo1=5 alpha=0.05 beta=0.05 model=normalized`; 1500 games max (`-rounds 750 -games 2 -repeat`); at the cap: "Cap with no decision", nothing claimed |
@@ -2147,8 +2147,8 @@ Final head: `FILL (main session)`.
 | key | file in F:\opus_scratch\r3\exe | build | sha256 | entries |
 |---|---|---|---|---|
 | base | `forge_r3_base.exe` | default PC recipe build (build_pc.sh, no -D switch); used without options as the opponent of every gate | `FILL` | all (opponent) |
-| stack | `forge_r3_stack.exe` | the same default build (carries every runtime option, all default OFF); candidate of the runtime-option gates | `FILL` | R3-03, R3-04, R3-05, R3-06, R3-07, R3-08, R3-09, R3-11, R3-12, R3-13, R3-14, R3-15, R3-16, R3-19, R3-21, R3-22, R3-23, R3-24, R3-25, R3-26, R3-27, R3-28 |
-| nnueo2 | `forge_r3_nnueo2.exe` | build_pc.sh ... -DFORGE_NNUE_O2=1 | `FILL` | R3-01 |
+| stack | `forge_r3_stack.exe` | a byte copy of forge_r3_base.exe (the default build carries every runtime option, all default OFF); candidate of the runtime-option gates | `FILL` | R3-03, R3-04, R3-05, R3-06, R3-07, R3-08, R3-09, R3-11, R3-12, R3-13, R3-14, R3-15, R3-16, R3-19, R3-21, R3-22, R3-23, R3-24, R3-25, R3-26, R3-27, R3-28 |
+| nnueo2 | `forge_r3_o2.exe` | build_pc.sh ... -DFORGE_NNUE_O2=1 | `FILL` | R3-01 |
 | nozero | `forge_r3_nozero.exe` | build_pc.sh ... -DFORGE_NOZERO_MOVE_BUFFERS=1 | `FILL` | R3-02 |
 | speedstack | `forge_r3_speedstack.exe` | build_pc.sh ... -DFORGE_SPEEDSTACK=1 | `FILL` | R3-10 |
 | ttprefetch | `forge_r3_ttprefetch.exe` | build_pc.sh ... -DFORGE_S13_TT_CHILD_PREFETCH=1 (adds UCI TtChildPrefetch, default false) | `FILL` | R3-17 |
