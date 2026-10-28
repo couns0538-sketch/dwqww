@@ -13,7 +13,7 @@ Everything here is UNPROVEN until a gate; no Elo claim is made anywhere in this 
 | M2 incremental accumulator + king-bucket refresh cache + AVX2 | **DONE** (this commit) | 100k plies incremental == refresh, 0 mismatches; AVX2 == scalar |
 | M3 trainer: QAT int16, v3 exporter with merged factoriser, 10k parity | **DONE** (this commit) | 60-step residual H512/8m/8 net: engine int == trainer int 10000/10000 on two position sets, max float-int 1.02 cp |
 | M4 NPS ON/OFF, smoke training vs AL1 net | **DONE** (68594f5d..b885f6f8) | NPS ratio ON/OFF 0.777 (d16) / 0.767 (d20); 5-minute smoke net does NOT beat HCE on the holdout (overfits one ordered shard), AL1 net far ahead |
-| M5 full-spec items: AVX-512 kernels, scalar = AVX2 = AVX-512, 1M-ply walk, 100k-position parity, H1024 NPS, bucket-layout rationale, cross-shard streaming training | IN PROGRESS | AVX-512 and the 1M-ply walk done and verified (M5 section); the rest is running |
+| M5 full-spec items: AVX-512 kernels, scalar = AVX2 = AVX-512, 1M-ply walk, 100k-position parity, H1024 NPS, bucket-layout rationale, cross-shard streaming training | IN PROGRESS | AVX-512, the 1M-ply walk and the 100k parity done and verified (M5 section); H1024 NPS and the first-net run are running |
 
 ## King-bucket layout (why this one)
 
@@ -198,9 +198,25 @@ moves, 125,659 replays across 2+ unevaluated plies (max 11). Kernel comparisons 
 (AVX2 vs scalar, x86-64-v3 build) and 1,299,402 (AVX2 and AVX-512 vs scalar, znver5 build), **0 mismatches**;
 955,819 / 955,868 checks, 0 failures. Evidence: `fable/logs/walk_1m_avx2.log`, `fable/logs/walk_1m_avx512.log`.
 
-### 100k-position parity, H1024 NPS, cross-shard training
+### 100k-position parity (DONE)
 
-(filled in as the runs finish)
+`positions_100k.fen` (`fable_nnue_v3.py positions`, 100,000 legal positions: half random playouts, half random
+standard-inventory placements so that every piece count 2..32 and every output bucket occurs; sha256 `0232208c…`),
+net = the M3 60-step residual H512/8m/8 net (`e37caef5…`).
+
+| check | result | evidence |
+|---|---|---|
+| engine int eval (AVX-512 tool) == engine int eval (AVX2 tool) | PASS: byte-identical outputs on 100,000 positions, 0 BADFEN, fast-vs-scalar-reference mismatches 0 in both tools | `fable/logs/parity_100k.log` |
+| engine int eval == Python integer reference | **PASS 100000/100000, 0 mismatches** (cp range -88..94, output buckets 0-7 all used) | same |
+| engine int eval == trainer quantised eval | **PASS 100000/100000, 0 mismatches** (integer emulation of the exported file) | same |
+| trainer float forward vs engine int within 2 cp | **PASS**: max 1.0192 cp, mean 0.4988 cp, 0 positions above 2 cp | same |
+
+### H1024 NPS, cross-shard training
+
+(filled in as the runs finish; the first-net run with the cross-shard streaming loader is in progress:
+`tools/nnue/fable_nnue_train.py train --pos-glob ... --exclude _013,_014 --chunks 8 --chunk-rows 250000
+--refresh-every 25 --lr-schedule cosine --threads 2 --max-minutes 80`, validation every 10 minutes on 200k holdout
+rows; the 40-step smoke of the loader gave 20k positions/s on one thread with 32 shards / 262M rows visible)
 
 ## What is left / exact next steps (for the next model)
 

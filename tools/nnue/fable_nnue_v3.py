@@ -335,7 +335,28 @@ def main():
     p.add_argument("out")
     p.add_argument("count", type=int)
     p.add_argument("seed", type=int)
+    w = sub.add_parser("widen", help="zero-pad a net to a wider hidden layer (function-preserving: same evaluations)")
+    w.add_argument("net")
+    w.add_argument("out")
+    w.add_argument("hidden", type=int)
     args = ap.parse_args()
+
+    if args.cmd == "widen":
+        net = read_net(args.net)
+        H, H2 = net.hidden, args.hidden
+        if H2 < H or H2 % 32 or H2 > 1024:
+            raise SystemExit("new hidden must be >= old, a multiple of 32 and <= 1024")
+        w1 = np.zeros((net.king_buckets, INPUTS, H2), np.int64)
+        w1[:, :, :H] = net.w1
+        b1 = np.zeros(H2, np.int64)
+        b1[:H] = net.b1
+        w2 = np.zeros((net.output_buckets, 2 * H2), np.int64)
+        w2[:, :H] = net.w2[:, :H]
+        w2[:, H2:H2 + H] = net.w2[:, H:]
+        net.w1, net.b1, net.w2, net.hidden = w1, b1, w2, H2
+        checksum = write_net(args.out, net)
+        print(f"wrote {args.out} hidden {H2} (from {H}) checksum {checksum:x}")
+        return
 
     if args.cmd == "random":
         net = random_net(args.hidden, args.king_buckets, args.output_buckets, args.mirror, args.residual, args.seed, args.eval_scale)
