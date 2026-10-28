@@ -1,0 +1,34 @@
+# bench nodes (uci_bench.py: Threads 1, Hash 16, OwnBook false; time/nps are single loaded-PC runs, not measurements)
+# lock / SA2 pins: OFF d11 312866 d13 862329 d16 3024920 d20 12389307; NnueInt16 ON d11 330610 d13 858175 d16 2760596 d20 9564588
+
+## bench_h512_split_off (forge_sa4_h512_split.exe)
+bench d11 nodes 312866 time_ms 225 nps 1390515
+bench d13 nodes 862329 time_ms 593 nps 1454180
+bench d16 nodes 3043192 time_ms 2064 nps 1474414
+bench d20 nodes 13215819 time_ms 9029 nps 1463707
+ALL OK
+
+## bench_h512_split_on (forge_sa4_h512_split.exe)
+expect 'info string NnueInt16 active': OK
+info string NnueInt16 active
+bench d11 nodes 330610 time_ms 271 nps 1219963
+bench d13 nodes 858175 time_ms 705 nps 1217269
+bench d16 nodes 2760596 time_ms 2203 nps 1253107
+bench d20 nodes 9564588 time_ms 7447 nps 1284354
+ALL OK
+
+## bench_h512_smoke_off (forge_sa4_h512_smoke.exe)
+bench d11 nodes 343099 time_ms 239 nps 1435560
+bench d13 nodes 834267 time_ms 598 nps 1395095
+bench d16 nodes 2755018 time_ms 2104 nps 1309419
+bench d20 nodes 11577336 time_ms 7678 nps 1507858
+ALL OK
+
+## bench_h512_smoke_on (forge_sa4_h512_smoke.exe)
+expect 'info string NnueInt16 active': OK
+info string NnueInt16 active
+bench d11 nodes 359658 time_ms 289 nps 1244491
+bench d13 nodes 890711 time_ms 724 nps 1230263
+bench d16 nodes 3140646 time_ms 2578 nps 1218249
+bench d20 nodes 10867508 time_ms 8685 nps 1251296
+ALL OK

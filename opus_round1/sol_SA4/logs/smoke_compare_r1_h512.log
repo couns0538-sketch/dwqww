@@ -1,0 +1,8 @@
+| check | result | detail |
+|---|---|---|
+| H512 smoke deterministic (h512_1 == h512_2) | PASS | 8 artifacts sha256-equal and normalized stdout equal: True |
+| epoch001-step000000195.inc: H512 export shape and no saturation | PASS | shape/residual lines ok: True; max|q| 419 <= 21704; values at the int16 rail 0 |
+| epoch002-step000000390.inc: H512 export shape and no saturation | PASS | shape/residual lines ok: True; max|q| 441 <= 21704; values at the int16 rail 0 |
+| trainer log: INIT CHECK OK, two epochs with INT16 CHECK lines | PASS | BASELINE HCE-alone holdout subset n=16,384: mse_teacher(blend1.0)=0.021899 mse_blend0.6=0.045332 | INIT residual net: mse_teacher=0.021899 mse_b0.6=0.045332 (baseline 0.021899/0.045332) | INIT CHECK OK (residual init == HCE alone) | EPOCH 1/2 done in Xs train_mse=0.021403 | HOLDOUT n=16,384 mse_teacher=0.021901 (HCE 0.021899, -0.01%) mse_b0.6=0.045334 (HCE 0.045332, -0.01%) mse_b0.8=0.023797 | INT16 CHECK epoch001-step000000195: max|q| W1 419 B1 114 W2 91 B2 0 <= 21704; at the clip bound W1 0 B1 0 W2 0 B2 0; at the int16 rail 0; lane bound 63,987 (< 2^24: True), int32 headroom x33,561 | EPOCH 2/2 done in Xs train_mse=0.033268 | HOLDOUT n=16,384 mse_teacher=0.021946 (HCE 0.021899, -0.21%) mse_b0.6=0.045381 (HCE 0.045332, -0.11%) mse_b0.8=0.023843 | INT16 CHECK epoch002-step000000390: max|q| W1 441 B1 146 W2 192 B2 0 <= 21704; at the clip bound W1 0 B1 0 W2 0 B2 0; at the int16 rail 0; lane bound 70,195 (< 2^24: True), int32 headroom x30,593 | FINAL FULL HOLDOUT n=49,152: net mse_teacher=0.021889 mse_b0.6=0.045576 mse_b0.8=0.023751 | HCE 0.021840/0.045537/b0.8 0.023707 |
+| supervisor: no new 'adopted running job' line | PASS | before 7 after 7 |
+ACCEPTANCE PASS

@@ -1,0 +1,19 @@
+holdout: 50,000 positions from 1 files (0s)
+BASELINE HCE-alone holdout subset n=16,384: mse_teacher(blend1.0)=0.021899 mse_blend0.6=0.045332
+INIT residual net: mse_teacher=0.021899 mse_b0.6=0.045332 (baseline 0.021899/0.045332)
+INIT CHECK OK (residual init == HCE alone)
+train: 200,000 positions from 4 files (0s load)
+optimizer: AdamDMLDevScalars (--adam-impl dml), loss sync every 128 steps
+MEM after-load trainer_private=0.24GB sys_avail=10.63GB
+weight-clip: W1 B1 W2 B2 clamped to +-21704/4096 = +-5.29882812 after every step (int16 rail 32767; accumulator lane bound <= 773*21704 = 16,777,192 < 2^24)
+steps/epoch=195 total=390 batch=1024 lr=0.000707 cosine blend 1.0->0.6
+EPOCH 1/2 done in 8s train_mse=0.021403 | HOLDOUT n=16,384 mse_teacher=0.021901 (HCE 0.021899, -0.01%) mse_b0.6=0.045334 (HCE 0.045332, -0.01%) mse_b0.8=0.023797
+INT16 CHECK epoch001-step000000195: max|q| W1 419 B1 114 W2 91 B2 0 <= 21704; at the clip bound W1 0 B1 0 W2 0 B2 0; at the int16 rail 0; lane bound 63,987 (< 2^24: True), int32 headroom x33,561
+Saved epoch001-step000000195 (.pt .inc .bin .json)
+MEM epoch001 trainer_private=0.27GB sys_avail=10.63GB
+EPOCH 2/2 done in 8s train_mse=0.033268 | HOLDOUT n=16,384 mse_teacher=0.021946 (HCE 0.021899, -0.21%) mse_b0.6=0.045381 (HCE 0.045332, -0.11%) mse_b0.8=0.023843
+INT16 CHECK epoch002-step000000390: max|q| W1 441 B1 146 W2 192 B2 0 <= 21704; at the clip bound W1 0 B1 0 W2 0 B2 0; at the int16 rail 0; lane bound 70,195 (< 2^24: True), int32 headroom x30,593
+Saved epoch002-step000000390 (.pt .inc .bin .json)
+MEM epoch002 trainer_private=0.27GB sys_avail=10.60GB
+FINAL FULL HOLDOUT n=49,152: net mse_teacher=0.021889 mse_b0.6=0.045576 mse_b0.8=0.023751 | HCE 0.021840/0.045537/b0.8 0.023707
+Finished: 399,360 positions in 17s

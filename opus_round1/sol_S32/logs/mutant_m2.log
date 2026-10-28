@@ -1,0 +1,80 @@
+PASS pack_board(startpos) == fen2bin nibble layout
+PASS pack_board after e2e4: e2 (low nibble of byte 6) empty, e4 white pawn
+FAIL pack_meta: bit0 black to move, bits1-2 White result * 2
+PASS SplitMix64(0) first output matches the reference value
+PASS game_seed is a function of (run seed, attempt index)
+PASS startpos is not terminal
+PASS game_ply from the move counters
+PASS White checkmated -> White result 0
+PASS Black checkmated -> White result 2
+PASS stalemate -> draw
+PASS KB v K -> insufficient material draw
+PASS halfmove clock 100 with a legal move -> fifty-move draw
+PASS game ply 300 -> draw at max-ply 300, not at 301
+PASS second occurrence of a position is not terminal
+PASS third occurrence -> repetition draw
+PASS same seed -> identical game (moves, records, result)
+PASS 4 random plies, then searched plies
+PASS game is independent of the searcher's history (clear per game)
+PASS every record is a position of the game, in game order
+FAIL record meta: side to move + final White result
+PASS record FEN/HCE match the position; best move quiet; not in check
+FAIL White a rook up: >= 90% of scores and HCE have the side-to-move sign (0/0/24)
+PASS the side a rook up does not lose
+FAIL Black a rook up: >= 90% of scores and HCE have the side-to-move sign (0/0/29)
+PASS the side a rook up does not lose
+PASS White mates -> White result 1.0 (x2 = 2)
+PASS Black mates -> White result 0.0
+PASS win adjudication/mate -> White result 1.0 (adj_win)
+PASS draw adjudication: 6 plies within 150 cp -> draw
+PASS draw adjudication is off by default
+PASS 7 records at 3 per file -> shards 3+3+1
+PASS shard 0 .pos: FPOS v1, n = 3, size 16 + 35n
+PASS shard 2 .hce: FHCE v1, n = 1
+PASS shard bytes == pos_bytes(records)
+PASS column layout: score at 16 + 32n, meta at 16 + 34n
+PASS published names only; text shard written
+PASS existing shard is never overwritten
+PASS a leftover .part blocks its name (exclusive create)
+PASS text shard -> parse_text_record -> identical .pos and .hce bytes
+PASS parse_text_record: score, black to move, draw, HCE
+PASS parse_text_record rejects: no fields, score out of int16 range, bad result, invalid FEN
+datagen: --out is required
+usage: forge datagen --out PREFIX (--games N | --positions N) [options]
+       forge datagen --out PREFIX --convert TEXT_FILE [--positions-per-file N]
+  --nodes N (5000) | --depth D        fixed search budget per move
+  --seed S (1)  --hash MB (16)  --random-plies N (8)  --max-ply N (300)  --max-score CP (3000)
+  --win-cp CP (2000) --win-plies N (4, 0 = off)   win adjudication (same side, consecutive plies)
+  --draw-cp CP (0) --draw-plies N (0 = off) --draw-min-ply N (0)   draw adjudication
+  --openings FILE   EPD/FEN start positions (default: the start position)
+  --positions-per-file N (1000000)  --text (also write FEN | score | result lines)
+Writes <PREFIX>_NNN.pos/.hce (FPOS/FHCE v1), <PREFIX>_NNN.info and <PREFIX>.games; never overwrites.
+PASS missing --out -> usage error 2
+datagen: invalid value for --games: 0
+usage: forge datagen --out PREFIX (--games N | --positions N) [options]
+       forge datagen --out PREFIX --convert TEXT_FILE [--positions-per-file N]
+  --nodes N (5000) | --depth D        fixed search budget per move
+  --seed S (1)  --hash MB (16)  --random-plies N (8)  --max-ply N (300)  --max-score CP (3000)
+  --win-cp CP (2000) --win-plies N (4, 0 = off)   win adjudication (same side, consecutive plies)
+  --draw-cp CP (0) --draw-plies N (0 = off) --draw-min-ply N (0)   draw adjudication
+  --openings FILE   EPD/FEN start positions (default: the start position)
+  --positions-per-file N (1000000)  --text (also write FEN | score | result lines)
+Writes <PREFIX>_NNN.pos/.hce (FPOS/FHCE v1), <PREFIX>_NNN.info and <PREFIX>.games; never overwrites.
+PASS --games 0 -> usage error 2
+datagen: unknown option --frobnicate
+usage: forge datagen --out PREFIX (--games N | --positions N) [options]
+       forge datagen --out PREFIX --convert TEXT_FILE [--positions-per-file N]
+  --nodes N (5000) | --depth D        fixed search budget per move
+  --seed S (1)  --hash MB (16)  --random-plies N (8)  --max-ply N (300)  --max-score CP (3000)
+  --win-cp CP (2000) --win-plies N (4, 0 = off)   win adjudication (same side, consecutive plies)
+  --draw-cp CP (0) --draw-plies N (0 = off) --draw-min-ply N (0)   draw adjudication
+  --openings FILE   EPD/FEN start positions (default: the start position)
+  --positions-per-file N (1000000)  --text (also write FEN | score | result lines)
+Writes <PREFIX>_NNN.pos/.hce (FPOS/FHCE v1), <PREFIX>_NNN.info and <PREFIX>.games; never overwrites.
+PASS unknown option -> usage error 2
+{"mode":"selfplay","games":1,"attempts":1,"positions":35,"shards":1,"searched_plies":52,"results":{"1-0":0,"1/2-1/2":1,"0-1":0},"terminations":{"checkmate":0,"stalemate":0,"insufficient":0,"repetition":0,"fifty":0,"max_ply":1,"adj_win":0,"adj_draw":0},"elapsed_s":0.0342628,"positions_per_s":1021.52}
+PASS one game -> exit 0, .games and _000.pos published
+datagen: refusing to reuse prefix: F:/opus_scratch/build/sol_s32/mutant_m2/run\run_2156639312422000\cli.games exists
+PASS reusing the prefix -> exit 1 (refused)
+FAILURES: 4
+{"command": ["F:/opus_scratch/build/sol_s32/mutant_m2/datagen_tests_m2.exe", "F:/opus_scratch/build/sol_s32/mutant_m2/run"], "cpus": [4, 5, 6, 7, 8, 9, 10, 11], "exit": 1, "wall_s": 0.705, "cpu_s": 0.562, "processes": 1}

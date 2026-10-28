@@ -1,0 +1,6 @@
+# S32 planted bugs (copies of src/include/tests in F:/opus_scratch/build/sol_s32/mutant_m1|m2; one line each,
+# Python str.replace asserted to match exactly once; unit tests rebuilt with the same flags)
+m1 src/datagen.cpp      record.score = static_cast<std::int16_t>(score);   ->  ...(-score);    (score sign flipped)
+   result: exit 1, 2 FAIL lines: "White a rook up ... side-to-move sign (0/24/24)", "Black a rook up ... (0/29/29)"  (logs/mutant_m1.log)
+m2 include/forge/datagen.hpp  pack_meta: (side_to_move == Black ? 1 : 0)  ->  (side_to_move == White ? 1 : 0)  (stm bit flipped)
+   result: exit 1, 4 FAIL lines: pack_meta, record meta, both rook-up sign checks  (logs/mutant_m2.log)
