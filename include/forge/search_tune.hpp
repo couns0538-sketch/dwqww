@@ -100,15 +100,16 @@ void refresh();
 // stay unlisted: setoption accepts them, FORGE_EXPOSE_TUNABLES builds list them.
 inline constexpr std::array<std::string_view, 20> AdvertisedParameters{
     // late-move reductions
-    "LmrQuietBase", "LmrQuietDivisor", "LmrNoisyBase", "LmrNoisyDivisor", "LmrHistoryDivisor",
+    "LmrQuietBase", "LmrQuietDivisor", "LmrNoisyBase", "LmrNoisyDivisor", "LmrHistoryDivisor", "LmrCutoffThreshold",
     // null-move pruning
     "NullMoveBase", "NullMoveDepthDivisor", "NullMoveEvalDivisor", "NullMoveMarginDepth", "NullMoveMarginBase",
     // reverse futility pruning
     "RfpMargin", "RfpImproving", "RfpDepth",
     // futility pruning (main search and quiescence)
     "FutilityBase", "FutilityMultiplier", "QsFutilityMargin",
-    // SEE pruning margins
-    "SeeQuietMultiplier", "SeeNoisyMultiplier", "QsSeeMargin",
+    // SEE pruning margins of the main search (QsSeeMargin is not here: SEE balances are multiples of 100, so
+    // every value 0-99 searches the same tree and small SPSA steps would measure nothing)
+    "SeeQuietMultiplier", "SeeNoisyMultiplier",
     // aspiration windows
     "AspirationDelta",
 };

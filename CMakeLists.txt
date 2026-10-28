@@ -306,4 +306,12 @@ if(Python3_Interpreter_FOUND)
     add_test(NAME ownbook_regression
         COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tools/ownbook_regression.py
                 $<TARGET_FILE:forge> ${CMAKE_CURRENT_BINARY_DIR}/ownbook-regression.json)
+    # R3-4 SPSA tuner (tools/spsa): update math on a synthetic objective, sessions and resume, fastchess output
+    # parsing (pure Python, no games); then the 20 search constants forge advertises for it.
+    add_test(NAME opus_spsa_tests
+        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tools/spsa/test_opus_spsa.py
+                --root ${CMAKE_CURRENT_BINARY_DIR}/opus_spsa_tests)
+    add_test(NAME opus_spsa_engine_options
+        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tools/spsa/test_opus_spsa.py
+                --root ${CMAKE_CURRENT_BINARY_DIR}/opus_spsa_tests --engine $<TARGET_FILE:forge> -k EngineOptions)
 endif()
