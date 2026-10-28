@@ -2,8 +2,8 @@
 # FB1 TSan hook (run by opus_round1/ci/run_ci.sh tsan): searches with a v3 net (NNUEArch on: shared read-only
 # weights, per-worker accumulator stacks and refresh caches) at Threads 4 and 2 to short fixed depths, and runs
 # `bench 10` with the net at Threads 1; run_ci.sh fails the job on any TSan report file.
-# The net is a random H64 / 8 mirrored king buckets / 8 output buckets net written by tools/nnue/fable_nnue_v3.py
-# (numpy only), so king-bucket refreshes and every output head are exercised.
+# The net is a random H64 / 8 mirrored king buckets / 8 output buckets net written by forge_nnue_v3_tool (built
+# next to the engine; no Python packages needed), so king-bucket refreshes and every output head are exercised.
 # usage: tsan_extra.sh <forge_exe> <out_dir>
 set -uo pipefail
 EXE=$1
@@ -11,7 +11,9 @@ OUT=$2
 ROOT=$(cd "$(dirname "$0")/../.." && pwd)
 mkdir -p "$OUT"
 NET="$OUT/fb1_tsan_h64.fnn3"
-${PYTHON:-python3} "$ROOT/tools/nnue/fable_nnue_v3.py" random "$NET" --hidden 64 --king-buckets 8 --output-buckets 8 --mirror --seed 11 || exit 1
+TOOL="$(dirname "$EXE")/forge_nnue_v3_tool"
+[ -x "$TOOL" ] || TOOL="$TOOL.exe"
+"$TOOL" random "$NET" 64 8 8 1 11 || exit 1
 # A Windows engine (local dry runs under MSYS) needs a Windows path.
 NET_ARG=$(cygpath -w "$NET" 2>/dev/null || echo "$NET")
 status=0
