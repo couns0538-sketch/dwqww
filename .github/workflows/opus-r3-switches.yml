@@ -1,0 +1,55 @@
+# R3 stack: the opus-ci evidence (release identity + CTest, ASan+UBSan, TSan) with every build switch ON.
+# opus-ci.yml builds only the default configuration, so the switch-only code paths (O2 kernels, NnueInt16,
+# NnueLazyAcc, profile counters, datagen, ...) get their sanitizer runs here. Every switch is node-exact or
+# guarded by a default-off UCI option, so the release job's identity check (bench/perft pins) still applies.
+name: opus-r3-switches
+on:
+  push:
+    branches: ['opus-r3-stack']
+    # Report/log-only pushes do not need a new run.
+    paths-ignore:
+      - 'opus_round1/**/*.md'
+      - 'opus_round1/**/*.log'
+      - 'opus_round1/**/*.tsv'
+      - 'opus_round1/**/*.diff'
+      - 'opus_round1/**/SHA256SUMS'
+      - 'opus_r3/**'
+      - 'OPUS_R3_REPORT.md'
+      - 'REPORT.md'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  linux:
+    strategy:
+      fail-fast: false
+      matrix:
+        mode: [release, asan, tsan]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 75
+    env:
+      EXTRA_CMAKE_ARGS: >-
+        -DFORGE_NNUE_O2=ON -DFORGE_NOZERO_MOVE_BUFFERS=ON -DFORGE_S13_TT_CHILD_PREFETCH=ON -DFORGE_SPEEDSTACK=ON
+        -DFORGE_NNUE_LAZY_ACC=ON -DFORGE_PROF=ON -DFORGE_NNUE_INT16=ON -DFORGE_DATAGEN=ON -DFORGE_ATTACKS_INIT_ONCE=ON
+        -DFORGE_S04_COLD_PROBE_RUNS=50
+    steps:
+      - uses: actions/checkout@v4
+      - name: Toolchain
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq g++-14 ninja-build cmake python3
+          g++-14 --version | head -1
+          nproc; lscpu | grep -E 'Model name|Flags' | cut -c1-200
+      - name: Run ${{ matrix.mode }} with every build switch ON
+        run: bash opus_round1/ci/run_ci.sh ${{ matrix.mode }} ci_out
+      - name: Upload logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: opus-r3-switches-${{ matrix.mode }}
+          path: |
+            ci_out/*.log
+            ci_out/**/sanitizer_logs_*/**
+            ci_out/*.txt
+            ci_out/*.tsv
+          if-no-files-found: warn

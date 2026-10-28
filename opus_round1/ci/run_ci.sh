@@ -5,6 +5,8 @@
 #   asan    : -DFORGE_ENABLE_SANITIZERS=ON (ASan+UBSan), recover off, ctest + known-failure check
 #   tsan    : -fsanitize=thread, ctest + known-failure check, then opus_round1/*/tsan_extra.sh if present
 # usage: opus_round1/ci/run_ci.sh <release|asan|tsan> [out_dir]
+# EXTRA_CMAKE_ARGS (optional, R3): more -D options for every configure step, e.g. the build switches
+# (.github/workflows/opus-r3-switches.yml); unset = the default configuration.
 set -uo pipefail
 MODE=$1
 OUT=${2:-ci_out}
@@ -20,7 +22,7 @@ mkdir -p "$LOGDIR"
 status=0
 case "$MODE" in
   release)
-    cmake -S "$ROOT" -B "$BD" -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_COMPILER="$CXX" "-DCMAKE_CXX_FLAGS=$BASE_FLAGS" > "$OUT/configure_$MODE.log" 2>&1 || exit 1
+    cmake -S "$ROOT" -B "$BD" -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_COMPILER="$CXX" "-DCMAKE_CXX_FLAGS=$BASE_FLAGS" ${EXTRA_CMAKE_ARGS:-} > "$OUT/configure_$MODE.log" 2>&1 || exit 1
     cmake --build "$BD" -j"$(nproc)" > "$OUT/build_$MODE.log" 2>&1 || { tail -50 "$OUT/build_$MODE.log"; exit 1; }
     echo "== compiler: $($CXX --version | head -1)" | tee "$OUT/identity.log"
     echo "== forge sha256: $(sha256sum "$BD/forge" | cut -d' ' -f1)" | tee -a "$OUT/identity.log"
@@ -31,7 +33,7 @@ case "$MODE" in
     ;;
   asan)
     cmake -S "$ROOT" -B "$BD" -G Ninja -DCMAKE_BUILD_TYPE=RelWithDebInfo -DCMAKE_CXX_COMPILER="$CXX" \
-      -DFORGE_ENABLE_SANITIZERS=ON "-DCMAKE_CXX_FLAGS=$BASE_FLAGS -fno-sanitize-recover=all" > "$OUT/configure_$MODE.log" 2>&1 || exit 1
+      -DFORGE_ENABLE_SANITIZERS=ON "-DCMAKE_CXX_FLAGS=$BASE_FLAGS -fno-sanitize-recover=all" ${EXTRA_CMAKE_ARGS:-} > "$OUT/configure_$MODE.log" 2>&1 || exit 1
     cmake --build "$BD" -j"$(nproc)" > "$OUT/build_$MODE.log" 2>&1 || { tail -50 "$OUT/build_$MODE.log"; exit 1; }
     export ASAN_OPTIONS="log_path=$LOGDIR/asan:detect_leaks=1:abort_on_error=1"
     export UBSAN_OPTIONS="log_path=$LOGDIR/ubsan:print_stacktrace=1:halt_on_error=1"
@@ -40,7 +42,7 @@ case "$MODE" in
     ;;
   tsan)
     cmake -S "$ROOT" -B "$BD" -G Ninja -DCMAKE_BUILD_TYPE=RelWithDebInfo -DCMAKE_CXX_COMPILER="$CXX" \
-      "-DCMAKE_CXX_FLAGS=$BASE_FLAGS -fsanitize=thread -fno-omit-frame-pointer" "-DCMAKE_EXE_LINKER_FLAGS=-fsanitize=thread" > "$OUT/configure_$MODE.log" 2>&1 || exit 1
+      "-DCMAKE_CXX_FLAGS=$BASE_FLAGS -fsanitize=thread -fno-omit-frame-pointer" "-DCMAKE_EXE_LINKER_FLAGS=-fsanitize=thread" ${EXTRA_CMAKE_ARGS:-} > "$OUT/configure_$MODE.log" 2>&1 || exit 1
     cmake --build "$BD" -j"$(nproc)" > "$OUT/build_$MODE.log" 2>&1 || { tail -50 "$OUT/build_$MODE.log"; exit 1; }
     export TSAN_OPTIONS="log_path=$LOGDIR/tsan:halt_on_error=1:second_deadlock_stack=1"
     # Per-test timeout (ctest names a test that times out); output streamed to the job log.
@@ -72,6 +74,7 @@ esac
 {
   echo "CMAKE_CXX_FLAGS: $(grep -E '^CMAKE_CXX_FLAGS:' "$BD/CMakeCache.txt" | cut -d= -f2-)"
   echo "CMAKE_BUILD_TYPE: $(grep -E '^CMAKE_BUILD_TYPE:' "$BD/CMakeCache.txt" | cut -d= -f2-)"
+  echo "EXTRA_CMAKE_ARGS: ${EXTRA_CMAKE_ARGS:-<none>}"
   echo "FORGE_ENABLE_SANITIZERS: $(grep -E '^FORGE_ENABLE_SANITIZERS:' "$BD/CMakeCache.txt" | cut -d= -f2-)"
   echo "asan symbols in forge: $(nm "$BD/forge" 2>/dev/null | grep -c '__asan_' || true)"
   echo "ubsan symbols in forge: $(nm "$BD/forge" 2>/dev/null | grep -c '__ubsan_' || true)"
