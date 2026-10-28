@@ -1,0 +1,115 @@
+# R3-1L: Linux double-check of the R3-1 acceptance on quiet GitHub runners: "each option ON alone and all ON
+# together: no crash, no illegal move, no double bestmove over 500 fast self-games with illegal-move checker".
+# Runs the PC's checker (opus_r3/R3-1_selfplay: run_matrix.py + opus_selfplay_check.py, configs_final.json
+# unchanged) on CMake builds (g++-14, Ninja, --target forge, the opus_round1/ci/run_ci.sh flags), one GitHub job
+# per 1-2 configs (plan: opus_r3/R3-1L/jobs.json), plus the all-ON config on ASan+UBSan and every Threads=2
+# config on TSan. Re-run: merge a newer stack head into opus-r3-sp-linux and push (see opus_r3/R3-1L/README.md).
+name: opus-r3-sp-linux
+on:
+  push:
+    branches: ['opus-r3-sp-linux']
+    # Report/log-only pushes do not need a new run (scripts, configs and nets are not ignored).
+    paths-ignore:
+      - '**/*.md'
+      - 'opus_r3/**/logs/**'
+      - 'opus_r3/**/FILES.txt'
+      - 'opus_r3/**/SHA256SUMS'
+  workflow_dispatch:
+permissions:
+  contents: read
+env:
+  TB_KEY_FILE: opus_r3/R3-1L/syzygy345.sha256
+jobs:
+  plan:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    outputs:
+      matrix: ${{ steps.m.outputs.matrix }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: m
+        name: Job matrix from opus_r3/R3-1L/jobs.json
+        run: |
+          echo "matrix=$(python3 -c 'import json; print(json.dumps({"include": json.load(open("opus_r3/R3-1L/jobs.json"))["jobs"]}))')" >> "$GITHUB_OUTPUT"
+          python3 -c 'import json; j=json.load(open("opus_r3/R3-1L/jobs.json"))["jobs"]; print(len(j), "jobs"); [print(x["id"], x["mode"], x["configs"], x["games"]) for x in j]'
+      - name: Syzygy cache lookup
+        id: tbc
+        uses: actions/cache/restore@v4
+        with:
+          path: ~/syzygy345
+          key: syzygy345-${{ hashFiles('opus_r3/R3-1L/syzygy345.sha256') }}
+          lookup-only: true
+      - name: Download Syzygy 3-4-5 (sha256-checked against the PC copy)
+        if: steps.tbc.outputs.cache-hit != 'true'
+        run: bash opus_r3/R3-1L/get_syzygy.sh ~/syzygy345 "$TB_KEY_FILE"
+      - name: Save Syzygy cache
+        if: steps.tbc.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: ~/syzygy345
+          key: syzygy345-${{ hashFiles('opus_r3/R3-1L/syzygy345.sha256') }}
+  selfplay:
+    needs: plan
+    name: ${{ matrix.id }}
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.plan.outputs.matrix) }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+      - name: Toolchain (g++-14, Ninja, CMake, python-chess 1.11.2 = the PC venv's version)
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq g++-14 ninja-build cmake python3 python3-pip binutils
+          sudo python3 -m pip install --quiet --break-system-packages --root-user-action=ignore chess==1.11.2
+          python3 -I -B -c "import chess, sys; print('python-chess', chess.__version__, 'python', sys.version.split()[0])"
+          g++-14 --version | head -1
+          nproc; lscpu | grep -E 'Model name'; free -g | head -2
+          # sanitizer runtimes need the classic mmap entropy on newer kernels
+          sudo sysctl -w vm.mmap_rnd_bits=28 || true
+      - name: Syzygy tables (cache from the plan job)
+        if: matrix.tb
+        uses: actions/cache/restore@v4
+        with:
+          path: ~/syzygy345
+          key: syzygy345-${{ hashFiles('opus_r3/R3-1L/syzygy345.sha256') }}
+          fail-on-cache-miss: true
+      - name: Build, identity check, self-play (${{ matrix.mode }}, ${{ matrix.configs }}, ${{ matrix.games }} games)
+        run: bash opus_r3/R3-1L/run_job.sh "${{ matrix.id }}" "${{ matrix.mode }}" "${{ matrix.configs }}" "${{ matrix.games }}" "${{ matrix.seed }}" sp_out "${{ matrix.max_minutes }}"
+      - name: Upload logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: sp-${{ matrix.id }}
+          path: |
+            sp_out/
+            !sp_out/build/
+            !sp_out/engines/
+            !sp_out/nets/
+          if-no-files-found: warn
+  summary:
+    needs: [plan, selfplay]
+    if: ${{ !cancelled() }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: sp-*
+          path: arts
+      - name: Summary table (config, games, errors by kind, plies, watchdog answers; pass = 500 games, 0 errors)
+        run: |
+          rc=0
+          python3 -I -B opus_r3/R3-1L/summarize.py --jobs opus_r3/R3-1L/jobs.json --arts arts --out sp_summary > sp_summary.txt || rc=$?
+          cat sp_summary.txt
+          cat sp_summary.txt >> "$GITHUB_STEP_SUMMARY"
+          exit $rc
+      - name: Upload summary
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: sp-summary
+          path: sp_summary/
+          if-no-files-found: warn
