@@ -13,6 +13,12 @@
 #if FORGE_NNUE_O2
 #include <new>
 #endif // FORGE_NNUE_O2
+#if FORGE_NNUE_INT16
+#include <atomic>
+#include <cstdlib>
+#include <iterator>
+#include <limits>
+#endif // FORGE_NNUE_INT16
 
 // R3 stack: the O2 accumulator kernels (opus-O2) are compiled only with
 // FORGE_NNUE_O2 (build switch, default off = the AL1 s198 loops). Both paths
@@ -229,11 +235,26 @@ inline void accumulate_columns(float* out, const float* bias, const float* const
 #endif // FORGE_NNUE_O2
 } // namespace
 
+#if FORGE_NNUE_INT16
+// S-A2 NnueInt16 (build switch FORGE_NNUE_INT16, default off; UCI NnueInt16,
+// default false): the integer path and the three hooks below. The hooks run
+// before either accumulator variant (AL1 loops or the FORGE_NNUE_O2 kernels),
+// which stay untouched.
+#include "nnue_int16.inc"
+#endif // FORGE_NNUE_INT16
+
 bool available() { return FORGE_HAS_NNUE != 0; }
 
 bool residual() { return FORGE_HAS_NNUE != 0 && FORGE_NNUE_RESIDUAL != 0; }
 
 void refresh(const Board& board, Accumulator& accumulator) {
+#if FORGE_NNUE_INT16
+    if (int16_active()) {
+        int16_detail::refresh_integer(board, accumulator);
+        return;
+    }
+    accumulator.integer = false;
+#endif // FORGE_NNUE_INT16
     const Weights& w = weights();
     for (const Color perspective : {White, Black}) {
 #if !FORGE_NNUE_O2
@@ -262,6 +283,13 @@ void refresh(const Board& board, Accumulator& accumulator) {
 }
 
 void update(const Accumulator& parent, Accumulator& child, const DirtyPieces& dirty) {
+#if FORGE_NNUE_INT16
+    if (parent.integer) {
+        int16_detail::update_integer(parent, child, dirty);
+        return;
+    }
+    child.integer = false;
+#endif // FORGE_NNUE_INT16
     const Weights& w = weights();
 #if FORGE_NNUE_O2
     const auto& changes = dirty.changes;
@@ -375,6 +403,9 @@ void update(const Accumulator& parent, Accumulator& child, const DirtyPieces& di
 }
 
 int evaluate(const Board& board, const Accumulator& accumulator) {
+#if FORGE_NNUE_INT16
+    if (accumulator.integer) return int16_detail::evaluate_integer(board, accumulator);
+#endif // FORGE_NNUE_INT16
     const Weights& w = weights();
     const Color us = board.side_to_move();
     const auto& ours = accumulator.values[static_cast<std::size_t>(us)];
