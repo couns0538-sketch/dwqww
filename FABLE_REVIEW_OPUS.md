@@ -329,8 +329,10 @@ Notes and evidence under `fable_review/deep/` (one file per item).
   7/7; S41 engine 5/5 = 5/5; C6 15/15 = 15/15; R3-4 16/16 = 16/16; R3-5 14 killed, 0 survived, controls pass =
   same; R3-6 3/3 killed, control pass = same (Opus ran 5 repetitions, this re-run 1); port_c 6 mutants pass with
   FORGE_NNUE_O2 off and on = same; O2 7 must-fail caught, 4 reassociations and the clean tree pass = same; S14
-  (tool) pass = pass; S14 zero-fill follow-up: the three mutants M1-M3 caught (the control digest matched only
-  with the documented 100,000 oracle children, see the next item); S08fix: merge_main_only and shared_bank
+  (tool) pass = pass; S14 zero-fill follow-up: with the job's documented oracle size (100,000 children) the unmutated
+  control reproduces the reference digest 46501e4f2dc86508 on both fill patterns and the three mutants M1-M3 are
+  caught, PASS = Opus's PC log (a first run with the script's default 2,000 children gave another control
+  digest, which is only the smaller sample: `deep/mutants/S14zf.log`, `S14zf_c100k.log`); S08fix: merge_main_only and shared_bank
   caught, green control passes = same; SIT 20/20 = 20/20; C1 Syzygy 17/17 caught, baseline PASS (36,825 checks;
   Opus's log says 36,513 from an earlier fixture file; the per-mutant failure counts are equal) with the 290-file
   3-5 man tablebase folder found at `.claude/worktrees/syzygy345` (939 MiB, as the report says). Every planted bug
