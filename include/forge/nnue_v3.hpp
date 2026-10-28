@@ -159,8 +159,13 @@ extern bool requested;
 // Non-empty when NNUEArch is requested but no v3 net is usable (the fail-loud rule).
 [[nodiscard]] std::string problem();
 void set_problem(const std::string& text);
-// Name of the compiled kernel ("avx2" or "scalar").
+// Kernels: the search uses the best one compiled in (AVX-512 BW, else AVX2, else scalar); the others stay
+// available for the equality tests (scalar == AVX2 == AVX-512).
+enum class Kernel { Scalar, Avx2, Avx512 };
 [[nodiscard]] const char* kernel_name();
+[[nodiscard]] const char* kernel_name(Kernel kernel);
+[[nodiscard]] Kernel best_kernel();
+[[nodiscard]] bool kernel_available(Kernel kernel);
 
 // ---- feature set ----
 [[nodiscard]] KingKey king_key(const Net& net, Color perspective, int king_square);
@@ -180,8 +185,12 @@ void refresh(const Net& net, const Board& board, Accumulator& accumulator);
 [[nodiscard]] int evaluate_reference(const Net& net, const Board& board);
 
 // ---- fast path (M2): kernels, cache, incremental update ----
-// Output sum with the compiled kernel (AVX2 when available); equals output_sum_scalar.
+// Output sum with the best compiled kernel; equals output_sum_scalar.
 [[nodiscard]] std::int64_t output_sum(const Net& net, const std::int16_t* ours, const std::int16_t* theirs, int bucket);
+[[nodiscard]] std::int64_t output_sum_with(Kernel kernel, const Net& net, const std::int16_t* ours, const std::int16_t* theirs, int bucket);
+void add_column_with(Kernel kernel, std::int16_t* acc, const std::int16_t* col, int hidden, bool add);
+void apply_changes_with(Kernel kernel, const Net& net, const std::int16_t* source, std::int16_t* destination, KingKey key,
+                        Color perspective, const DirtyPieces& dirty);
 // Side-to-move network output in centipawns from a valid accumulator (fast kernel).
 [[nodiscard]] int evaluate(const Net& net, const Board& board, const Accumulator& accumulator);
 // Prepares `state` for `net` (stack size, cache entries); cheap when already prepared.

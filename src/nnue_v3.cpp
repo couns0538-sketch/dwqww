@@ -8,11 +8,18 @@
 #include <new>
 #include <sstream>
 
-#if defined(__AVX2__)
+#if defined(__AVX2__) || defined(__AVX512BW__)
 #include <immintrin.h>
+#endif
+#if defined(__AVX2__)
 #define FORGE_NNUE_V3_AVX2 1
 #else
 #define FORGE_NNUE_V3_AVX2 0
+#endif
+#if defined(__AVX512F__) && defined(__AVX512BW__)
+#define FORGE_NNUE_V3_AVX512 1
+#else
+#define FORGE_NNUE_V3_AVX512 0
 #endif
 
 namespace forge::nnue::v3 {
@@ -59,7 +66,7 @@ inline void sub_column_scalar(std::int16_t* acc, const std::int16_t* col, int hi
 }
 
 #if FORGE_NNUE_V3_AVX2
-inline void add_column(std::int16_t* acc, const std::int16_t* col, int hidden) {
+inline void add_column_avx2(std::int16_t* acc, const std::int16_t* col, int hidden) {
     for (int h = 0; h < hidden; h += 16) {
         _mm256_store_si256(reinterpret_cast<__m256i*>(acc + h),
                            _mm256_add_epi16(_mm256_load_si256(reinterpret_cast<const __m256i*>(acc + h)),
@@ -67,16 +74,149 @@ inline void add_column(std::int16_t* acc, const std::int16_t* col, int hidden) {
     }
 }
 
-inline void sub_column(std::int16_t* acc, const std::int16_t* col, int hidden) {
+inline void sub_column_avx2(std::int16_t* acc, const std::int16_t* col, int hidden) {
     for (int h = 0; h < hidden; h += 16) {
         _mm256_store_si256(reinterpret_cast<__m256i*>(acc + h),
                            _mm256_sub_epi16(_mm256_load_si256(reinterpret_cast<const __m256i*>(acc + h)),
                                             _mm256_load_si256(reinterpret_cast<const __m256i*>(col + h))));
     }
 }
+#endif
+
+#if FORGE_NNUE_V3_AVX512
+inline void add_column_avx512(std::int16_t* acc, const std::int16_t* col, int hidden) {
+    for (int h = 0; h < hidden; h += 32) {
+        _mm512_store_si512(reinterpret_cast<__m512i*>(acc + h),
+                           _mm512_add_epi16(_mm512_load_si512(reinterpret_cast<const __m512i*>(acc + h)),
+                                            _mm512_load_si512(reinterpret_cast<const __m512i*>(col + h))));
+    }
+}
+
+inline void sub_column_avx512(std::int16_t* acc, const std::int16_t* col, int hidden) {
+    for (int h = 0; h < hidden; h += 32) {
+        _mm512_store_si512(reinterpret_cast<__m512i*>(acc + h),
+                           _mm512_sub_epi16(_mm512_load_si512(reinterpret_cast<const __m512i*>(acc + h)),
+                                            _mm512_load_si512(reinterpret_cast<const __m512i*>(col + h))));
+    }
+}
+#endif
+
+// The best compiled kernel is the one the search uses.
+#if FORGE_NNUE_V3_AVX512
+inline void add_column(std::int16_t* acc, const std::int16_t* col, int hidden) { add_column_avx512(acc, col, hidden); }
+inline void sub_column(std::int16_t* acc, const std::int16_t* col, int hidden) { sub_column_avx512(acc, col, hidden); }
+#elif FORGE_NNUE_V3_AVX2
+inline void add_column(std::int16_t* acc, const std::int16_t* col, int hidden) { add_column_avx2(acc, col, hidden); }
+inline void sub_column(std::int16_t* acc, const std::int16_t* col, int hidden) { sub_column_avx2(acc, col, hidden); }
 #else
 inline void add_column(std::int16_t* acc, const std::int16_t* col, int hidden) { add_column_scalar(acc, col, hidden); }
 inline void sub_column(std::int16_t* acc, const std::int16_t* col, int hidden) { sub_column_scalar(acc, col, hidden); }
+#endif
+
+// ---- output kernels (sum of SCReLU terms; see the header) ----
+#if FORGE_NNUE_V3_AVX2
+std::int64_t output_sum_avx2(const Net& net, const std::int16_t* ours, const std::int16_t* theirs, int bucket) {
+    const int hidden = net.hidden;
+    const std::int16_t* w2 = net.w2.data() + static_cast<std::size_t>(bucket) * 2 * static_cast<std::size_t>(hidden);
+    const __m256i zero = _mm256_setzero_si256();
+    const __m256i qa = _mm256_set1_epi16(static_cast<short>(QA));
+    // Two int32 accumulators: each lane sums hidden / 8 exact terms of at most 255^2 * 127,
+    // below 2^31 for every hidden size up to 1024 (bounds checked by the loader).
+    __m256i sum0 = zero;
+    __m256i sum1 = zero;
+    for (int h = 0; h < hidden; h += 16) {
+        const __m256i a = _mm256_min_epi16(_mm256_max_epi16(_mm256_load_si256(reinterpret_cast<const __m256i*>(ours + h)), zero), qa);
+        const __m256i b = _mm256_min_epi16(_mm256_max_epi16(_mm256_load_si256(reinterpret_cast<const __m256i*>(theirs + h)), zero), qa);
+        const __m256i wa = _mm256_load_si256(reinterpret_cast<const __m256i*>(w2 + h));
+        const __m256i wb = _mm256_load_si256(reinterpret_cast<const __m256i*>(w2 + hidden + h));
+        sum0 = _mm256_add_epi32(sum0, _mm256_madd_epi16(_mm256_mullo_epi16(a, wa), a));
+        sum1 = _mm256_add_epi32(sum1, _mm256_madd_epi16(_mm256_mullo_epi16(b, wb), b));
+    }
+    alignas(32) std::int32_t lanes[16];
+    _mm256_store_si256(reinterpret_cast<__m256i*>(lanes), sum0);
+    _mm256_store_si256(reinterpret_cast<__m256i*>(lanes + 8), sum1);
+    std::int64_t sum = 0;
+    for (const std::int32_t lane : lanes) sum += lane;
+    return sum;
+}
+#endif
+
+#if FORGE_NNUE_V3_AVX512
+std::int64_t output_sum_avx512(const Net& net, const std::int16_t* ours, const std::int16_t* theirs, int bucket) {
+    const int hidden = net.hidden;
+    const std::int16_t* w2 = net.w2.data() + static_cast<std::size_t>(bucket) * 2 * static_cast<std::size_t>(hidden);
+    const __m512i zero = _mm512_setzero_si512();
+    const __m512i qa = _mm512_set1_epi16(static_cast<short>(QA));
+    // Each of the 16 int32 lanes sums hidden / 16 exact terms: half the AVX2 bound.
+    __m512i sum0 = zero;
+    __m512i sum1 = zero;
+    for (int h = 0; h < hidden; h += 32) {
+        const __m512i a = _mm512_min_epi16(_mm512_max_epi16(_mm512_load_si512(reinterpret_cast<const __m512i*>(ours + h)), zero), qa);
+        const __m512i b = _mm512_min_epi16(_mm512_max_epi16(_mm512_load_si512(reinterpret_cast<const __m512i*>(theirs + h)), zero), qa);
+        const __m512i wa = _mm512_load_si512(reinterpret_cast<const __m512i*>(w2 + h));
+        const __m512i wb = _mm512_load_si512(reinterpret_cast<const __m512i*>(w2 + hidden + h));
+        sum0 = _mm512_add_epi32(sum0, _mm512_madd_epi16(_mm512_mullo_epi16(a, wa), a));
+        sum1 = _mm512_add_epi32(sum1, _mm512_madd_epi16(_mm512_mullo_epi16(b, wb), b));
+    }
+    alignas(64) std::int32_t lanes[32];
+    _mm512_store_si512(reinterpret_cast<__m512i*>(lanes), sum0);
+    _mm512_store_si512(reinterpret_cast<__m512i*>(lanes + 16), sum1);
+    std::int64_t sum = 0;
+    for (const std::int32_t lane : lanes) sum += lane;
+    return sum;
+}
+#endif
+
+// ---- change kernels: destination = source +/- up to four columns in one pass ----
+struct Changes {
+    const std::int16_t* columns[4] = {nullptr, nullptr, nullptr, nullptr};
+    bool adds[4] = {false, false, false, false};
+    int count = 0;
+};
+
+Changes collect_changes(const Net& net, KingKey key, Color perspective, const DirtyPieces& dirty) {
+    Changes c;
+    c.count = dirty.count;
+    for (int i = 0; i < dirty.count; ++i) {
+        const PieceChange& change = dirty.changes[static_cast<std::size_t>(i)];
+        c.columns[i] = column(net, feature_index(key, perspective, change.piece, change.square));
+        c.adds[i] = change.add;
+    }
+    return c;
+}
+
+void apply_changes_scalar(const std::int16_t* source, std::int16_t* destination, const Changes& c, int hidden) {
+    for (int h = 0; h < hidden; ++h) {
+        int v = source[h];
+        for (int i = 0; i < c.count; ++i) v += c.adds[i] ? c.columns[i][h] : -c.columns[i][h];
+        destination[h] = static_cast<std::int16_t>(v);
+    }
+}
+
+#if FORGE_NNUE_V3_AVX2
+void apply_changes_avx2(const std::int16_t* source, std::int16_t* destination, const Changes& c, int hidden) {
+    for (int h = 0; h < hidden; h += 16) {
+        __m256i v = _mm256_load_si256(reinterpret_cast<const __m256i*>(source + h));
+        for (int i = 0; i < c.count; ++i) {
+            const __m256i col = _mm256_load_si256(reinterpret_cast<const __m256i*>(c.columns[i] + h));
+            v = c.adds[i] ? _mm256_add_epi16(v, col) : _mm256_sub_epi16(v, col);
+        }
+        _mm256_store_si256(reinterpret_cast<__m256i*>(destination + h), v);
+    }
+}
+#endif
+
+#if FORGE_NNUE_V3_AVX512
+void apply_changes_avx512(const std::int16_t* source, std::int16_t* destination, const Changes& c, int hidden) {
+    for (int h = 0; h < hidden; h += 32) {
+        __m512i v = _mm512_load_si512(reinterpret_cast<const __m512i*>(source + h));
+        for (int i = 0; i < c.count; ++i) {
+            const __m512i col = _mm512_load_si512(reinterpret_cast<const __m512i*>(c.columns[i] + h));
+            v = c.adds[i] ? _mm512_add_epi16(v, col) : _mm512_sub_epi16(v, col);
+        }
+        _mm512_store_si512(reinterpret_cast<__m512i*>(destination + h), v);
+    }
+}
 #endif
 
 } // namespace
@@ -114,7 +254,27 @@ std::size_t file_size_for(int hidden, int king_buckets, int output_buckets) {
            8;                                                                                               // checksum
 }
 
-const char* kernel_name() { return FORGE_NNUE_V3_AVX2 ? "avx2" : "scalar"; }
+const char* kernel_name() { return FORGE_NNUE_V3_AVX512 ? "avx512" : FORGE_NNUE_V3_AVX2 ? "avx2" : "scalar"; }
+
+Kernel best_kernel() { return FORGE_NNUE_V3_AVX512 ? Kernel::Avx512 : FORGE_NNUE_V3_AVX2 ? Kernel::Avx2 : Kernel::Scalar; }
+
+bool kernel_available(Kernel kernel) {
+    switch (kernel) {
+    case Kernel::Scalar: return true;
+    case Kernel::Avx2: return FORGE_NNUE_V3_AVX2 != 0;
+    case Kernel::Avx512: return FORGE_NNUE_V3_AVX512 != 0;
+    }
+    return false;
+}
+
+const char* kernel_name(Kernel kernel) {
+    switch (kernel) {
+    case Kernel::Scalar: return "scalar";
+    case Kernel::Avx2: return "avx2";
+    case Kernel::Avx512: return "avx512";
+    }
+    return "?";
+}
 
 bool load(const std::string& path, std::string* error) {
     // No silent fallback: whatever happens below, a failed load leaves nothing loaded.
@@ -323,32 +483,38 @@ int evaluate_reference(const Net& net, const Board& board) {
 // ---- fast path ----
 
 std::int64_t output_sum(const Net& net, const std::int16_t* ours, const std::int16_t* theirs, int bucket) {
-#if FORGE_NNUE_V3_AVX2
-    const int hidden = net.hidden;
-    const std::int16_t* w2 = net.w2.data() + static_cast<std::size_t>(bucket) * 2 * static_cast<std::size_t>(hidden);
-    const __m256i zero = _mm256_setzero_si256();
-    const __m256i qa = _mm256_set1_epi16(static_cast<short>(QA));
-    // Two int32 accumulators: each lane sums hidden / 8 exact terms of at most 255^2 * 127,
-    // below 2^31 for every hidden size up to 1024 (bounds checked by the loader).
-    __m256i sum0 = zero;
-    __m256i sum1 = zero;
-    for (int h = 0; h < hidden; h += 16) {
-        const __m256i a = _mm256_min_epi16(_mm256_max_epi16(_mm256_load_si256(reinterpret_cast<const __m256i*>(ours + h)), zero), qa);
-        const __m256i b = _mm256_min_epi16(_mm256_max_epi16(_mm256_load_si256(reinterpret_cast<const __m256i*>(theirs + h)), zero), qa);
-        const __m256i wa = _mm256_load_si256(reinterpret_cast<const __m256i*>(w2 + h));
-        const __m256i wb = _mm256_load_si256(reinterpret_cast<const __m256i*>(w2 + hidden + h));
-        sum0 = _mm256_add_epi32(sum0, _mm256_madd_epi16(_mm256_mullo_epi16(a, wa), a));
-        sum1 = _mm256_add_epi32(sum1, _mm256_madd_epi16(_mm256_mullo_epi16(b, wb), b));
-    }
-    alignas(32) std::int32_t lanes[16];
-    _mm256_store_si256(reinterpret_cast<__m256i*>(lanes), sum0);
-    _mm256_store_si256(reinterpret_cast<__m256i*>(lanes + 8), sum1);
-    std::int64_t sum = 0;
-    for (const std::int32_t lane : lanes) sum += lane;
-    return sum;
+#if FORGE_NNUE_V3_AVX512
+    return output_sum_avx512(net, ours, theirs, bucket);
+#elif FORGE_NNUE_V3_AVX2
+    return output_sum_avx2(net, ours, theirs, bucket);
 #else
     return output_sum_scalar(net, ours, theirs, bucket);
 #endif
+}
+
+std::int64_t output_sum_with(Kernel kernel, const Net& net, const std::int16_t* ours, const std::int16_t* theirs, int bucket) {
+    switch (kernel) {
+    case Kernel::Scalar: return output_sum_scalar(net, ours, theirs, bucket);
+#if FORGE_NNUE_V3_AVX2
+    case Kernel::Avx2: return output_sum_avx2(net, ours, theirs, bucket);
+#endif
+#if FORGE_NNUE_V3_AVX512
+    case Kernel::Avx512: return output_sum_avx512(net, ours, theirs, bucket);
+#endif
+    default: return output_sum_scalar(net, ours, theirs, bucket);
+    }
+}
+
+void add_column_with(Kernel kernel, std::int16_t* acc, const std::int16_t* col, int hidden, bool add) {
+    switch (kernel) {
+#if FORGE_NNUE_V3_AVX2
+    case Kernel::Avx2: if (add) add_column_avx2(acc, col, hidden); else sub_column_avx2(acc, col, hidden); return;
+#endif
+#if FORGE_NNUE_V3_AVX512
+    case Kernel::Avx512: if (add) add_column_avx512(acc, col, hidden); else sub_column_avx512(acc, col, hidden); return;
+#endif
+    default: if (add) add_column_scalar(acc, col, hidden); else sub_column_scalar(acc, col, hidden); return;
+    }
 }
 
 int evaluate(const Net& net, const Board& board, const Accumulator& accumulator) {
@@ -375,30 +541,28 @@ void prepare(const Net& net, WorkerState& state, int stack_size) {
 
 void apply_changes(const Net& net, const std::int16_t* source, std::int16_t* destination, KingKey key, Color perspective,
                    const DirtyPieces& dirty) {
-    const int hidden = net.hidden;
-    const std::int16_t* columns[4] = {nullptr, nullptr, nullptr, nullptr};
-    bool adds[4] = {false, false, false, false};
-    for (int i = 0; i < dirty.count; ++i) {
-        const PieceChange& change = dirty.changes[static_cast<std::size_t>(i)];
-        columns[i] = column(net, feature_index(key, perspective, change.piece, change.square));
-        adds[i] = change.add;
-    }
-#if FORGE_NNUE_V3_AVX2
-    for (int h = 0; h < hidden; h += 16) {
-        __m256i v = _mm256_load_si256(reinterpret_cast<const __m256i*>(source + h));
-        for (int i = 0; i < dirty.count; ++i) {
-            const __m256i c = _mm256_load_si256(reinterpret_cast<const __m256i*>(columns[i] + h));
-            v = adds[i] ? _mm256_add_epi16(v, c) : _mm256_sub_epi16(v, c);
-        }
-        _mm256_store_si256(reinterpret_cast<__m256i*>(destination + h), v);
-    }
+    const Changes c = collect_changes(net, key, perspective, dirty);
+#if FORGE_NNUE_V3_AVX512
+    apply_changes_avx512(source, destination, c, net.hidden);
+#elif FORGE_NNUE_V3_AVX2
+    apply_changes_avx2(source, destination, c, net.hidden);
 #else
-    for (int h = 0; h < hidden; ++h) {
-        int v = source[h];
-        for (int i = 0; i < dirty.count; ++i) v += adds[i] ? columns[i][h] : -columns[i][h];
-        destination[h] = static_cast<std::int16_t>(v);
-    }
+    apply_changes_scalar(source, destination, c, net.hidden);
 #endif
+}
+
+void apply_changes_with(Kernel kernel, const Net& net, const std::int16_t* source, std::int16_t* destination, KingKey key,
+                        Color perspective, const DirtyPieces& dirty) {
+    const Changes c = collect_changes(net, key, perspective, dirty);
+    switch (kernel) {
+#if FORGE_NNUE_V3_AVX2
+    case Kernel::Avx2: apply_changes_avx2(source, destination, c, net.hidden); return;
+#endif
+#if FORGE_NNUE_V3_AVX512
+    case Kernel::Avx512: apply_changes_avx512(source, destination, c, net.hidden); return;
+#endif
+    default: apply_changes_scalar(source, destination, c, net.hidden); return;
+    }
 }
 
 void refresh_from_pieces(const Net& net, RefreshCache& cache, const Pieces& pieces, Color perspective, int king_square,

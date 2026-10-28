@@ -1,4 +1,4 @@
-// NNUE v3 tests (job FB1). usage: forge_nnue_v3_tests <scratch dir>
+// NNUE v3 tests (job FB1). usage: forge_nnue_v3_tests <scratch dir> [walk plies, default 100000]
 // M1: file format round trip, loader rejections (loud failure, nothing loaded),
 //     feature set, output buckets, scalar reference arithmetic on a hand-made net.
 // M2: incremental accumulators == full refresh over 100k random make/unmake plies
@@ -195,6 +195,8 @@ struct WalkStats {
     long null_moves = 0;
     long replays_over_one = 0;
     long max_replay = 0;
+    long kernel_checks = 0;
+    long kernel_mismatches = 0;
 };
 
 void random_walk(const forge::nnue::v3::Net& net, std::mt19937& rng, long target_plies, WalkStats& stats) {
@@ -304,17 +306,32 @@ void random_walk(const forge::nnue::v3::Net& net, std::mt19937& rng, long target
                     if (stats.mismatches <= 5) std::cout << "MISMATCH at " << board.fen() << " (replay " << replay << ")\n";
                 }
                 if (forge::nnue::v3::evaluate(net, board, acc) != forge::nnue::v3::evaluate_reference(net, board)) ++stats.eval_mismatches;
+                {
+                    // scalar == AVX2 == AVX-512 on this position's real accumulators (every kernel compiled in)
+                    const forge::Color us = board.side_to_move();
+                    const int ob = forge::nnue::v3::output_bucket(net, board);
+                    const std::int16_t* ours = acc.values[static_cast<std::size_t>(us)].data();
+                    const std::int16_t* theirs = acc.values[static_cast<std::size_t>(forge::opposite(us))].data();
+                    const std::int64_t scalar = forge::nnue::v3::output_sum_scalar(net, ours, theirs, ob);
+                    for (const forge::nnue::v3::Kernel k : {forge::nnue::v3::Kernel::Avx2, forge::nnue::v3::Kernel::Avx512}) {
+                        if (!forge::nnue::v3::kernel_available(k)) continue;
+                        if (forge::nnue::v3::output_sum_with(k, net, ours, theirs, ob) != scalar) ++stats.kernel_mismatches;
+                        ++stats.kernel_checks;
+                    }
+                }
             }
         }
     }
 }
 
-void run_m2_tests(const std::filesystem::path& dir) {
+void run_m2_tests(const std::filesystem::path& dir, long total_plies) {
     const auto file = [&](const char* name) { return (dir / name).string(); };
     std::mt19937 rng(20261028);
     WalkStats total;
     struct Config { int hidden; int kb; int ob; bool mirror; long plies; std::uint32_t seed; };
-    const Config configs[] = {{128, 8, 8, true, 45000, 31}, {512, 4, 8, true, 25000, 32}, {64, 2, 1, false, 20000, 33}, {32, 32, 2, true, 10000, 34}};
+    // ply budget split 45 / 25 / 20 / 10 percent over four net shapes
+    const Config configs[] = {{128, 8, 8, true, total_plies * 45 / 100, 31}, {512, 4, 8, true, total_plies * 25 / 100, 32},
+                              {64, 2, 1, false, total_plies * 20 / 100, 33}, {32, 32, 2, true, total_plies - total_plies * 45 / 100 - total_plies * 25 / 100 - total_plies * 20 / 100, 34}};
     for (const Config& c : configs) {
         NetSpec spec = make_spec(c.hidden, c.kb, c.ob, c.mirror, c.seed);
         if (c.kb == 32) {
@@ -329,8 +346,10 @@ void run_m2_tests(const std::filesystem::path& dir) {
                   << " evaluations " << stats.evaluations << " mismatches " << stats.mismatches << " eval_mismatches " << stats.eval_mismatches
                   << " castlings " << stats.castlings << " en_passants " << stats.en_passants << " promotions " << stats.promotions
                   << " king_moves " << stats.king_moves << " key_changes " << stats.key_changes << " null_moves " << stats.null_moves
-                  << " replays>1 " << stats.replays_over_one << " max_replay " << stats.max_replay << '\n';
+                  << " replays>1 " << stats.replays_over_one << " max_replay " << stats.max_replay
+                  << " kernel_checks " << stats.kernel_checks << " kernel_mismatches " << stats.kernel_mismatches << '\n';
         check(stats.mismatches == 0, "incremental accumulators == full refresh (0 mismatches)");
+        check(stats.kernel_mismatches == 0, "every compiled kernel == scalar on the walk positions");
         check(stats.eval_mismatches == 0, "fast evaluate == scalar reference evaluate");
         check(stats.castlings > 0 && stats.en_passants > 0 && stats.promotions > 0 && stats.king_moves > 0, "walk covers castling, en passant, promotions and king moves");
         total.plies += stats.plies;
@@ -345,13 +364,18 @@ void run_m2_tests(const std::filesystem::path& dir) {
         total.null_moves += stats.null_moves;
         total.replays_over_one += stats.replays_over_one;
         total.max_replay = std::max(total.max_replay, stats.max_replay);
+        total.kernel_checks += stats.kernel_checks;
+        total.kernel_mismatches += stats.kernel_mismatches;
         forge::nnue::v3::unload();
     }
     std::cout << "walk total: plies " << total.plies << " evaluations " << total.evaluations << " mismatches " << total.mismatches
               << " eval_mismatches " << total.eval_mismatches << " castlings " << total.castlings << " en_passants " << total.en_passants
               << " promotions " << total.promotions << " king_moves " << total.king_moves << " key_changes " << total.key_changes
-              << " null_moves " << total.null_moves << " replays>1 " << total.replays_over_one << " max_replay " << total.max_replay << '\n';
-    check(total.plies >= 100000, "at least 100k plies walked");
+              << " null_moves " << total.null_moves << " replays>1 " << total.replays_over_one << " max_replay " << total.max_replay
+              << " kernel_checks " << total.kernel_checks << " kernel_mismatches " << total.kernel_mismatches
+              << " (kernels compiled: scalar" << (forge::nnue::v3::kernel_available(forge::nnue::v3::Kernel::Avx2) ? ", avx2" : "")
+              << (forge::nnue::v3::kernel_available(forge::nnue::v3::Kernel::Avx512) ? ", avx512" : "") << ")\n";
+    check(total.plies >= total_plies, "the requested number of plies was walked");
 
     // ---- kernel: output_sum (compiled kernel) == output_sum_scalar at the bounds ----
     {
@@ -372,14 +396,36 @@ void run_m2_tests(const std::filesystem::path& dir) {
                 else { ours[static_cast<std::size_t>(h)] = static_cast<std::int16_t>(dv(rng)); theirs[static_cast<std::size_t>(h)] = static_cast<std::int16_t>(dv(rng) / (1 + round % 7)); }
             }
             for (int bucket = 0; bucket < 2; ++bucket) {
-                const std::int64_t fast = forge::nnue::v3::output_sum(net, ours.data(), theirs.data(), bucket);
                 const std::int64_t slow = forge::nnue::v3::output_sum_scalar(net, ours.data(), theirs.data(), bucket);
-                if (fast != slow) check(false, "output_sum kernel == scalar (round " + std::to_string(round) + ")");
-                ++kernel_checks;
+                const std::int64_t fast = forge::nnue::v3::output_sum(net, ours.data(), theirs.data(), bucket);
+                if (fast != slow) check(false, "output_sum best kernel == scalar (round " + std::to_string(round) + ")");
+                for (const forge::nnue::v3::Kernel k : {forge::nnue::v3::Kernel::Scalar, forge::nnue::v3::Kernel::Avx2, forge::nnue::v3::Kernel::Avx512}) {
+                    if (!forge::nnue::v3::kernel_available(k)) continue;
+                    if (forge::nnue::v3::output_sum_with(k, net, ours.data(), theirs.data(), bucket) != slow) {
+                        check(false, std::string("output_sum ") + forge::nnue::v3::kernel_name(k) + " == scalar (round " + std::to_string(round) + ")");
+                    }
+                    ++kernel_checks;
+                }
             }
         }
-        std::cout << "kernel " << forge::nnue::v3::kernel_name() << ": " << kernel_checks << " output sums compared with the scalar reference at H1024\n";
-        check(kernel_checks == 400, "kernel comparisons ran");
+        std::cout << "kernel " << forge::nnue::v3::kernel_name() << " (best): " << kernel_checks << " output sums over every compiled kernel compared with the scalar reference at H1024\n";
+        check(kernel_checks >= 400, "kernel comparisons ran");
+        // add/sub column kernels == scalar
+        {
+            alignas(64) std::array<std::int16_t, forge::nnue::v3::MaxHidden> ref{};
+            for (int h = 0; h < 1024; ++h) ref[static_cast<std::size_t>(h)] = static_cast<std::int16_t>(dv(rng) / 4);
+            for (const forge::nnue::v3::Kernel k : {forge::nnue::v3::Kernel::Avx2, forge::nnue::v3::Kernel::Avx512}) {
+                if (!forge::nnue::v3::kernel_available(k)) continue;
+                alignas(64) std::array<std::int16_t, forge::nnue::v3::MaxHidden> a = ref;
+                alignas(64) std::array<std::int16_t, forge::nnue::v3::MaxHidden> b = ref;
+                for (int f = 0; f < 40; ++f) {
+                    const std::int16_t* col = forge::nnue::v3::column(net, f * 19 % 768);
+                    forge::nnue::v3::add_column_with(forge::nnue::v3::Kernel::Scalar, a.data(), col, 1024, f % 3 != 0);
+                    forge::nnue::v3::add_column_with(k, b.data(), col, 1024, f % 3 != 0);
+                }
+                check(a == b, std::string("add/sub column ") + forge::nnue::v3::kernel_name(k) + " == scalar");
+            }
+        }
         // apply_changes (compiled kernel) == scalar add/sub for every change count 0..4
         forge::Board board;
         (void)board.set_fen("r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1");
@@ -398,7 +444,13 @@ void run_m2_tests(const std::filesystem::path& dir) {
             }
             bool same = true;
             for (int h = 0; h < 1024; ++h) same = same && fast[static_cast<std::size_t>(h)] == static_cast<std::int16_t>(slow[static_cast<std::size_t>(h)]);
-            check(same, "apply_changes kernel == scalar for " + forge::Board::move_to_uci(move));
+            check(same, "apply_changes best kernel == scalar for " + forge::Board::move_to_uci(move));
+            for (const forge::nnue::v3::Kernel k : {forge::nnue::v3::Kernel::Scalar, forge::nnue::v3::Kernel::Avx2, forge::nnue::v3::Kernel::Avx512}) {
+                if (!forge::nnue::v3::kernel_available(k)) continue;
+                alignas(64) std::array<std::int16_t, forge::nnue::v3::MaxHidden> out{};
+                forge::nnue::v3::apply_changes_with(k, net, parent.values[0].data(), out.data(), parent.keys[0], forge::White, dirty);
+                check(out == fast, std::string("apply_changes ") + forge::nnue::v3::kernel_name(k) + " == best kernel for " + forge::Board::move_to_uci(move));
+            }
         }
         forge::nnue::v3::unload();
     }
@@ -570,7 +622,8 @@ int main(int argc, char** argv) {
         forge::nnue::v3::unload();
     }
 
-    run_m2_tests(dir);
+    const long walk_plies = argc > 2 ? std::stol(argv[2]) : 100000L;
+    run_m2_tests(dir, walk_plies);
 
     std::cout << "nnue_v3_tests: " << checks << " checks, " << failures << " failures\n";
     return failures == 0 ? 0 : 1;
