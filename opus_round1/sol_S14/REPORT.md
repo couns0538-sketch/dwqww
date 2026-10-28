@@ -111,3 +111,100 @@ Main-session spot check (2026-10-27): the cited lock-tree lines (`search.cpp` 36
 `REPORT.md`, `picker_audit.py`, `test_picker_audit.py`, `mutation_check.py`, `logs/step1_disassemble.log`,
 `logs/step2_picker_audit.log`, `logs/picker_audit.json`, `logs/step3_unit_tests.log`, `logs/step4_mutation_check.log`,
 `logs/step5_sol_pure_tests.log`, `FILES.txt`, `SHA256SUMS`. No .tar.gz archives.
+
+## Follow-up (2026-10-27): FORGE_NOZERO_MOVE_BUFFERS, no zero-fill of the move buffers — DONE except the CI profile job (pending at this commit)
+
+Branch `opus-sol-S14` = `9dca2a54` + `88021c40` (engine switch, tools, CI workflow `opus-sol-s14fu`, PC logs) + the
+evidence commit. Folder: `followup_zerofill/`. Work by a sub-agent; this section is its hand-back, completed by the
+main session with the CI jobs that finished after it (asan, tsan, nps-1, profile). Machine exclusive: no. Speed
+figures are quoted only from quiet GitHub runners; the PC numbers are advisory.
+
+**The patch.** A compile-time switch `FORGE_NOZERO_MOVE_BUFFERS`, default 0 (`-DFORGE_NOZERO_MOVE_BUFFERS=1`, or the
+CMake option `-DFORGE_NOZERO_MOVE_BUFFERS=ON`).
+- With the switch on, three buffers become `UninitArray<T, N>`: `MoveList::data_`, `MovePicker::moves_` and
+  `MovePicker::bad_captures_`.
+- `UninitArray` is `std::byte` storage. C++20 implicit object creation (P0593R6) creates the `T[N]` array in it, and
+  it is read through `std::launder`; `T` must be trivially copyable and destructible (static_assert). This is
+  well-defined behaviour, not a compiler-specific trick.
+- `Move` is unchanged, so no other use of `Move` changes behaviour.
+- `MoveList::resize` becomes shrink-only (it asserts this). Its only caller, `legal_moves`, only shrinks.
+- Every MoveList and picker read was audited: all reads stay below `size_`, `count_` or `bad_count_`. Every
+  `root_candidates.front()` is guarded by a non-empty check.
+
+| line | result | evidence |
+|---|---|---|
+| (a) callgrind memset caller attribution, bench 13 | **PENDING** at this commit: the CI profile job of run 40527244836 was still running | `logs/ci_40527244836/profile/`; parser `callgrind_callers.py`, 8/8 unit tests (`logs/step6_unit_tests.log`) |
+| (b) switch off = lock | **PASS**: the PC box build differs from the lock exe `5d4df7f1…` only in the 6 PE timestamp/checksum bytes; the CI CMake switch-off build is byte-identical to the lock build (sha256 `6635d4d1…`) | `logs/step1_pc_builds.log`; `logs/ci_40527244836/check/builds.log`; opus-ci release |
+| (b) no new warnings, FMA 0 | **PASS**: PC 0 warning lines. CI shows the lock's existing 6 `-Wconversion` lines in `search.cpp`, shifted 8 lines by the insertion; FMA 0 for lock, off and on | `logs/step1_pc_builds.log`, `logs/ci_40527244836/check/build_*.log` |
+| (c) bench d11/13/16/20/22 + perft5 startpos/kiwipete exact, switch on | **PASS, ALL OK** on the PC box recipe (znver5) and on CI (x86-64-v3), switch off and on | `logs/step2_identity_on_pc.log`; `check/identity_on.log`, `check/identity_off.log` |
+| (c) pick-order identity | **PASS**: identical for switch off and on × 6 storage patterns (`zero a5 01 ff random heap`), on PC g++ 15.2 znver5 and on CI g++-14 x86-64-v3; all 18 CI outputs have one body sha256 (scope below) | `logs/step4_oracle_pc.log`; `check/oracle.log`; `ci_40527244836/oracle_outputs_sha256.log` |
+| (c) planted bugs | **PASS, 3/3 caught** on PC and CI; the unmutated control reproduces the reference | `logs/step5_mutation_check_pc.log`; `check/mutation_check.log` |
+| (c) ctest, switch on | **PASS**: only the 4 known forge_tests lines | `check/known_on.log` |
+| (c) ASan+UBSan, switch on | **PASS**: ctest known-only, 0 report files; uci_check bench d11/13/16 + perft ALL OK; oracle MATCH for switch off and on × zero/random/heap storage (digest `46501e4f2dc86508`) | `logs/ci_40527244836/asan/` |
+| (c) TSan, switch on | **PASS**: ctest known-only, 0 reports; uci_check ALL OK | `logs/ci_40527244836/tsan/` |
+| (c) valgrind memcheck and clang MSan, switch on | **PENDING** at this commit: the CI profile job of run 40527244836 was still running | `logs/ci_40527244836/profile/` |
+| (c) switch off (default) under sanitizers | **PASS** (release, asan, tsan) | opus-ci 40527244204, `logs/ci_40527244204/` |
+| (d) codegen diff | **DONE** (details below) | `logs/step3_codegen_pc_lock_vs_on.log`; `check/codegen_lock_vs_on.log`, `check/codegen_diffs/` |
+| (e) quiet-runner NPS A/B lock vs on, two runners | **DONE**: +2.0% to +2.7% CPU NPS on both, A/A controls include 0 (numbers below) | `nps-1/`, `nps-2/` (`nps_lock_vs_on.log`, `nps_lock_vs_lock_AA.log`) |
+| PC NPS (advisory, loaded PC) | not quoted as a result (numbers below) | `logs/step7_nps_pc_advisory.log` |
+
+**Pick-order oracle scope.** Adapted from Sol's S14 oracle on `17aa0cae`.
+- 10,012 roots: 12 built-in positions (including QA's 9-queen bad-capture positions) plus the 10,000 EPD
+  positions, together with all their legal children: 325,285 positions.
+- In total 2,276,995 complete pick sequences (35,120,970 moves) with their SEE flags.
+- The digest `46501e4f2dc86508` is the same on PC and CI.
+- Built-in checks: every returned move is pseudo-legal, every sequence terminates, every move is returned exactly once.
+
+**Planted bugs.** M1: the picker scans past `count_`. M2: `MoveList::end` runs past `size_`. M3: the bad-captures stage
+reads past `bad_count_`.
+
+**Codegen (d).**
+- PC znver5, memset calls removed:
+  - `Worker::search` 4→0 (zmm stores 20→12);
+  - `qsearch` 2→0 (zmm 4→0);
+  - `has_legal_move`, `perft`, `legal_moves`, `pseudo_legal_moves` 1→0 each;
+  - root driver 2→1.
+- PC znver5, instruction counts: search 2412→2379, qsearch 809→792.
+- Changed but not just shrunk: `MovePicker::next` 1821→1848 (register allocation and loop shape around the
+  buffers); `generate_pseudo_legal` 820→778 (stores merged differently).
+- Byte-identical after normalisation: static_evaluate, TT probe/store, history updates, nnue update/evaluate/refresh,
+  make/unmake, see_ge, is_pseudo_legal.
+- CI AVX2: search memset 5→1 (ymm stores 30→14); qsearch 2→0 (ymm 12→4); `has_legal_move` 3→0. The memset left in
+  search is the `quiets_tried`/`captures_tried` fill, which the switch does not touch.
+
+**NPS (e).** Welch 95% CI of the difference; ABBA, fresh processes, 10 runs per side; nodes matched on every run.
+
+| runner | lock→on CPU NPS d16 | d20 | A/A control (lock vs lock copy) d16 | d20 |
+|---|---|---|---|---|
+| nps-1 | **+2.00%** [+0.85, +3.15] | **+2.16%** [+1.27, +3.05] | +0.16% [−1.87, +2.19] | −0.93% [−2.46, +0.60] |
+| nps-2 | **+2.26%** [+1.50, +3.03] | **+2.67%** [+1.90, +3.45] | +0.14% [−0.79, +1.07] | −0.71% [−1.90, +0.47] |
+
+- Wall-time NPS agrees (nps-1 +2.10% / +2.17%, nps-2 +2.33% / +2.70%).
+- PC advisory only (loaded PC, nice 19, box recipe znver5), CPU-time NPS: d16 +5.64% [+2.32, +8.96], d20 +4.62%
+  [+2.36, +6.87]. All 40 runs had the lock node counts.
+
+**Findings**
+- The switch removes the per-construction zero-fill of every picker (3,328 B) and of every MoveList (1 KiB)
+  without changing any search result. The MoveList part also covers per-node `has_legal_move` (called from
+  `is_draw`) and `perft`.
+- On two quiet runners the gain is +2.0% to +2.7% CPU NPS with both A/A controls including 0. That is the speed
+  claim, within those CIs. No Elo claim: a node-exact speed-up still needs a gate to show strength.
+- The switch is meant for QA to gate or adopt. With it off, the build is the lock binary.
+
+**Left / UNVERIFIED**
+- Not covered by the switch: `quiets_tried{}` / `captures_tried{}` still zero 768 B per main-search node (12 zmm
+  stores on the PC build, ahead of null-move pruning; one memset on CI AVX2). They are also write-before-read, so
+  this is a possible follow-up; not measured.
+- MSVC build of the switch not tested.
+- No gate.
+
+**Process notes (from the hand-back).**
+- One Bash command was denied: a heredoc that edited the unit test's temp-file cleanup (`os.unlink`) and ran the
+  tests in one call. The cleanup had never run; the edit was redone with the Edit tool and the test now leaves its
+  temp files in `F:\opus_scratch\sol_S14fu\tmp`. Nothing was deleted.
+- `run_picker_oracle.sh` was edited while a background run of it was executing, which broke that run's final
+  comparison; it was re-run from a frozen copy, byte-identical to the committed script.
+- Two empty folders from before the scope change (`F:\opus_scratch\build\S12fu`, `F:\opus_scratch\sol_S12fu`) are
+  left in place.
+- CI logs are in `logs/ci_40527244836/<job>/` and `logs/ci_40527244204/<job>/`; the 18 oracle outputs (~390 KB
+  each) stay in `F:\opus_scratch\sol_S14fu\ci_40527244836` with their sha256 in `oracle_outputs_sha256.log`.

@@ -1,0 +1,328 @@
+--- /tmp/tmp.kEsA9nZzUj/a.s	2026-10-27 15:12:11.112602494 +0000
++++ /tmp/tmp.kEsA9nZzUj/b.s	2026-10-27 15:12:11.114602521 +0000
+@@ -5,36 +5,31 @@
+ push %r12
+ push %rbp
+ push %rbx
+-mov %rdi,%rbp
+-mov %edx,%r12d
+-sub $IMM,%rsp
+ mov %rsi,%rbx
+-mov $IMM,%edx
+-xor %esi,%esi
+-call ADDR
+-movzbl %r12b,%edx
+-mov %rbp,%rsi
++mov %rdi,%rbp
++mov %rdi,%rsi
++movq $IMM,IMM(%rdi)
++movzbl %dl,%edx
+ mov %rbx,%rdi
+ call ADDR
+ mov IMM(%rbp),%rax
+-lea IMM(,%rax,4),%r8
+-lea IMM(%rbp,%r8,1),%r12
+-test %r8,%r8
++lea IMM(%rbp,%rax,4),%r12
++cmp %rbp,%r12
+ je ADDR
+-movslq IMM(%rbx),%rax
++movslq IMM(%rbx),%r14
+ mov IMM(%rbx),%r11
+ or IMM(%rbx),%r11
+-test %eax,%eax
++test %r14d,%r14d
+ jne ADDR
+-mov IMM(%rbx),%r10
+ mov %rbp,%rsi
+-xor %r8d,%r8d
++xor %r10d,%r10d
+ lea IMM(%rip),%r13
++lea IMM(%rip),%r9
+ jmp ADDR
+ nopl IMM(%rax)
+ test $IMM,%dil
+ jne ADDR
+-mov $IMM,%r9
++mov $IMM,%r8
+ bts %r14,%rdx
+ test $IMM,%dil
+ je ADDR
+@@ -59,18 +54,17 @@
+ cmp $IMM,%ecx
+ je ADDR
+ movslq IMM(%rbx),%rax
+-mov %r9,%rcx
+-and %r10,%rcx
++mov IMM(%rbx),%rcx
++and %r8,%rcx
+ and IMM(%r13,%rax,8),%rcx
+ jne ADDR
+ mov IMM(%rbx),%rcx
+-lea IMM(%rip),%rdi
+-and %r9,%rcx
+-and (%rdi,%rax,8),%rcx
++and %r8,%rcx
++and (%r9,%rax,8),%rcx
+ jne ADDR
+ mov IMM(%rbx),%rcx
+ lea IMM(%rip),%rdi
+-and %r9,%rcx
++and %r8,%rcx
+ and (%rdi,%rax,8),%rcx
+ jne ADDR
+ shl $IMM,%rax
+@@ -85,7 +79,7 @@
+ mov IMM(%rdi),%r15
+ mov IMM(%rbx),%rdi
+ or %rcx,%rdi
+-and %r9,%rdi
++and %r8,%rdi
+ and (%r15,%r14,8),%rdi
+ jne ADDR
+ lea IMM(%rip),%rdi
+@@ -95,12 +89,12 @@
+ mov IMM(%rax),%edi
+ imul IMM(%rax),%rdx
+ mov IMM(%rax),%rax
+-and %r9,%rcx
++and %r8,%rcx
+ shrx %rdi,%rdx,%rdx
+ and (%rax,%rdx,8),%rcx
+ jne ADDR
+-vmovd %xmm0,IMM(%rbp,%r8,4)
+-inc %r8
++vmovd %xmm0,IMM(%rbp,%r10,4)
++inc %r10
+ add $IMM,%rsi
+ cmp %rsi,%r12
+ je ADDR
+@@ -116,133 +110,131 @@
+ vpextrb $IMM,%xmm0,%edi
+ test $IMM,%dil
+ je ADDR
+-mov $IMM,%r9d
+-shlx %r15,%r9,%r15
+-mov %r15,%r9
++mov $IMM,%r8d
++shlx %r15,%r8,%r15
++mov %r15,%r8
+ andn %rdx,%r15,%rdx
+-not %r9
++not %r8
+ jmp ADDR
+-nopl IMM(%rax,%rax,1)
+-mov %r8,IMM(%rbp)
+-vzeroupper
+-add $IMM,%rsp
+-mov %rbp,%rax
+-pop %rbx
+-pop %rbp
+-pop %r12
+-pop %r13
+-pop %r14
+-pop %r15
+-ret
+ nopl IMM(%rax)
+-mov IMM(%rbx),%r14
+-mov %rbp,%r9
+-xor %r8d,%r8d
++mov %rbp,%r8
++xor %r10d,%r10d
+ lea IMM(%rip),%r13
+-mov %rax,IMM(%rsp)
+ jmp ADDR
+-xchg %ax,%ax
+-lea IMM(%rsi),%r15d
+-mov $IMM,%r10d
+-shlx %r15,%r10,%r15
+-mov %r15,%r10
+-andn %rdi,%r15,%rdi
+-not %r10
+-bts %rsi,%rdi
+-test $IMM,%cl
++data16 cs nopw IMM(%rax,%rax,1)
++nopl (%rax)
++lea IMM(%r9),%r15d
++mov $IMM,%edi
++shlx %r15,%rdi,%r15
++mov %r15,%rdi
++andn %rdx,%r15,%rdx
++not %rdi
++bts %r9,%rdx
++test $IMM,%sil
+ je ADDR
+-and $IMM,%ecx
++and $IMM,%esi
+ movabs $IMM,%r15
+-movabs $IMM,%rcx
+ movabs $IMM,%rsi
+-cmove %rcx,%r15
+-movabs $IMM,%rcx
+-cmove %rcx,%rsi
+-and %rdi,%rsi
+-or %r15,%rsi
+-mov %rsi,%rdi
+-test %edx,%edx
+-je ADDR
+-dec %edx
+-movslq %edx,%rcx
+-mov %edx,%esi
+-imul $IMM,%rcx,%rcx
+-sar $IMM,%esi
+-shr $IMM,%rcx
++movabs $IMM,%r9
++cmove %rsi,%r15
++movabs $IMM,%rsi
++cmove %rsi,%r9
++and %rdx,%r9
++mov %r9,%rdx
++or %r15,%rdx
++test %ecx,%ecx
++je ADDR
++dec %ecx
++movslq %ecx,%rsi
++mov %ecx,%r9d
++imul $IMM,%rsi,%rsi
++sar $IMM,%r9d
++shr $IMM,%rsi
++sub %r9d,%esi
++lea (%rsi,%rsi,2),%esi
++add %esi,%esi
+ sub %esi,%ecx
+-lea (%rcx,%rcx,2),%ecx
+-add %ecx,%ecx
+-sub %ecx,%edx
+-cmp $IMM,%edx
+-je ADDR
+-mov IMM(%rsp),%rax
+-movslq IMM(%rbx,%rax,4),%rax
+-mov %r10,%rdx
+-and %r14,%rdx
+-and IMM(%r13,%rax,8),%rdx
++cmp $IMM,%ecx
++je ADDR
++movslq IMM(%rbx,%r14,4),%rax
++mov IMM(%rbx),%rcx
++and %rdi,%rcx
++and IMM(%r13,%rax,8),%rcx
+ jne ADDR
+-mov IMM(%rbx),%rdx
++mov IMM(%rbx),%rcx
+ lea IMM(%rip),%rsi
+-and %r10,%rdx
+-and (%rsi,%rax,8),%rdx
++and %rdi,%rcx
++and (%rsi,%rax,8),%rcx
+ jne ADDR
+-mov IMM(%rbx),%rdx
++mov IMM(%rbx),%rcx
+ lea IMM(%rip),%rsi
+-and %r10,%rdx
+-and (%rsi,%rax,8),%rdx
++and %rdi,%rcx
++and (%rsi,%rax,8),%rcx
+ jne ADDR
+ shl $IMM,%rax
+ lea IMM(%rip),%rsi
+-mov IMM(%rbx),%rdx
+-lea (%rsi,%rax,1),%rcx
+-mov (%rcx),%rsi
+-mov IMM(%rcx),%r15d
++mov IMM(%rbx),%rcx
++add %rax,%rsi
++mov (%rsi),%r9
++mov IMM(%rsi),%r15d
++and %rdx,%r9
++imul IMM(%rsi),%r9
++shrx %r15,%r9,%r9
++mov IMM(%rsi),%r15
++mov IMM(%rbx),%rsi
++or %rcx,%rsi
+ and %rdi,%rsi
+-imul IMM(%rcx),%rsi
+-shrx %r15,%rsi,%rsi
+-mov IMM(%rcx),%r15
+-mov IMM(%rbx),%rcx
+-or %rdx,%rcx
+-and %r10,%rcx
+-and (%r15,%rsi,8),%rcx
++and (%r15,%r9,8),%rsi
+ jne ADDR
+ lea IMM(%rip),%rsi
+-or IMM(%rbx),%rdx
++or IMM(%rbx),%rcx
+ add %rsi,%rax
+-and (%rax),%rdi
+-mov IMM(%rax),%ecx
+-imul IMM(%rax),%rdi
++and (%rax),%rdx
++mov IMM(%rax),%esi
++imul IMM(%rax),%rdx
+ mov IMM(%rax),%rax
+-and %r10,%rdx
+-shrx %rcx,%rdi,%rdi
+-and (%rax,%rdi,8),%rdx
+-jne ADDR
+-vmovd %xmm0,IMM(%rbp,%r8,4)
+-inc %r8
+-add $IMM,%r9
+-cmp %r9,%r12
++and %rdi,%rcx
++shrx %rsi,%rdx,%rdx
++and (%rax,%rdx,8),%rcx
++jne ADDR
++vmovd %xmm0,IMM(%rbp,%r10,4)
++inc %r10
++add $IMM,%r8
++cmp %r8,%r12
+ je ADDR
+-vmovd (%r9),%xmm0
+-mov %r11,%rdi
++vmovd (%r8),%xmm0
+ vpextrb $IMM,%xmm0,%edx
+ mov %rdx,%rax
++mov (%rbx,%rdx,4),%ecx
++mov %r11,%rdx
++btr %rax,%rdx
++vpextrb $IMM,%xmm0,%r9d
+ vpextrb $IMM,%xmm0,%esi
+-mov (%rbx,%rdx,4),%edx
+-btr %rax,%rdi
+-vpextrb $IMM,%xmm0,%ecx
+-movslq %esi,%rax
+-test $IMM,%cl
++movslq %r9d,%rax
++test $IMM,%sil
+ jne ADDR
+-test $IMM,%cl
++test $IMM,%sil
+ jne ADDR
+-mov $IMM,%r10
++mov $IMM,%rdi
+ jmp ADDR
++nop
+ mov $IMM,%r14d
+ mov $IMM,%rdi
+ jmp ADDR
+-mov %r14d,%r15d
+-jmp ADDR
+-mov %esi,%r15d
+-jmp ADDR
+ data16 cs nopw IMM(%rax,%rax,1)
+ nopl (%rax)
++xor %r10d,%r10d
++mov %r10,IMM(%rbp)
++mov %rbp,%rax
++pop %rbx
++pop %rbp
++pop %r12
++pop %r13
++pop %r14
++pop %r15
++ret
++mov %r9d,%r15d
++jmp ADDR
++mov %r14d,%r15d
++jmp ADDR
++nopl IMM(%rax,%rax,1)
