@@ -13,6 +13,13 @@ on:
       - 'opus_r3/**/SHA256SUMS'
       - 'opus_r3/**/FILES*'
   workflow_dispatch:
+    inputs:
+      configs:
+        description: 'JSON list of configs (default: all nine)'
+        default: '["AA","NOZERO","O2","SPEEDSTACK","S13","LAZY","INT16","PROF","ALL"]'
+      reps:
+        description: 'JSON list of rep numbers'
+        default: '[1,2]'
 permissions:
   contents: read
 jobs:
@@ -20,8 +27,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        config: [AA, NOZERO, O2, SPEEDSTACK, S13, LAZY, INT16, PROF, ALL]
-        rep: [1, 2]
+        config: ${{ fromJSON(github.event.inputs.configs || '["AA","NOZERO","O2","SPEEDSTACK","S13","LAZY","INT16","PROF","ALL"]') }}
+        rep: ${{ fromJSON(github.event.inputs.reps || '[1,2]') }}
     name: ${{ matrix.config }}-${{ matrix.rep }}
     runs-on: ubuntu-24.04
     timeout-minutes: 60

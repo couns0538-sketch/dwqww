@@ -100,6 +100,35 @@ def load(dirs):
     return recs
 
 
+def run_values(r, depth, metric):
+    """per-pair (A, B) values of one comparison at one depth, from the raw runs."""
+    def val(x):
+        if metric == "wall":
+            return x["nps"]
+        s = x["cpu_bench_s"] if metric == "cpu_bench" else x["cpu_total_s"]
+        return x["nodes"] / s if s else 0.0
+    a = {x["pair"]: val(x) for x in r["runs"] if x["depth"] == depth and x["side"] == "A"}
+    b = {x["pair"]: val(x) for x in r["runs"] if x["depth"] == depth and x["side"] == "B"}
+    return [(a[i], b[i]) for i in sorted(a) if i in b and a[i] > 0 and b[i] > 0]
+
+
+def robust_txt(r, metric):
+    """median per-pair B/A (%) and the run-to-run spread (max/min - 1 over all runs of one side, %) per depth."""
+    med, spread = [], []
+    for d in (16, 20):
+        pv = run_values(r, d, metric)
+        if not pv:
+            continue
+        ratios = sorted(math.log(b / x) for x, b in pv)
+        k = len(ratios)
+        m = ratios[k // 2] if k % 2 else (ratios[k // 2 - 1] + ratios[k // 2]) / 2
+        med.append(f"{pct(m):+.2f}")
+        sa = max(x for x, _ in pv) / min(x for x, _ in pv) - 1
+        sb = max(y for _, y in pv) / min(y for _, y in pv) - 1
+        spread.append(f"{max(sa, sb) * 100:.1f}")
+    return " / ".join(med) or "n/a", " / ".join(spread) or "n/a"
+
+
 def nodes_txt(r):
     out = []
     for d in ("16", "20"):
@@ -136,8 +165,12 @@ def main():
     lines = [f"metric: {a.metric} NPS, B/A - 1 in %, paired t on per-pair log ratios, 95% CI; "
              f"rule = 95% CI lower bound >= +2% at d16 AND d20",
              "",
-             "| config | row | rep | runner CPU | nodes equal | NPS delta % [95% CI] d16 | d20 | A/A d16 | A/A d20 | rule | PC (R3-2) |",
-             "|---|---|---|---|---|---|---|---|---|---|---|"]
+             "median = median per-pair B/A (robust to one level-shift pair); spread = max/min - 1 of one side's runs "
+             "(a quiet runner stays near 1-2%; larger means the runner changed speed during the comparison)",
+             "",
+             "| config | row | rep | runner CPU | nodes equal | NPS delta % [95% CI] d16 | d20 | A/A d16 | A/A d20 | rule "
+             "| median d16 / d20 | spread % d16 / d20 | PC (R3-2) |",
+             "|---|---|---|---|---|---|---|---|---|---|---|---|---|"]
     out = []
     cfgs = [c for c in ORDER if any(k[0] == c for k in by)] + sorted({k[0] for k in by} - set(ORDER))
     for cfg in cfgs:
@@ -156,27 +189,29 @@ def main():
                 a20 = est(aa["summary"].get("20", {}).get("metrics", {}).get(a.metric)) if aa else None
                 per_rep[rep] = (e16, e20, a16, a20, r)
                 l16, l20 = lower(e16), lower(e20)
-                rule = "n/a" if lab == "AA" else ("MET" if (l16 is not None and l20 is not None and l16 >= 2 and l20 >= 2)
-                                                  else "not met")
+                rule = "n/a" if lab.startswith("AA") else (
+                    "MET" if (l16 is not None and l20 is not None and l16 >= 2 and l20 >= 2) else "not met")
                 cpu = r.get("host", {}).get("cpu", "?").replace("|", "/")
                 if r.get("host", {}).get("avx512_v4"):
                     cpu += " (AVX-512)"
+                med, spread = robust_txt(r, a.metric)
                 lines.append(f"| {cfg} | {lab} | {rep} | {cpu} | {nodes_txt(r)} | {fmt(e16)} | {fmt(e20)} | "
-                             f"{fmt(a16) if lab != 'AA' else '—'} | {fmt(a20) if lab != 'AA' else '—'} | {rule} | "
-                             f"{PC_ROWS.get((cfg, lab), '') if rep == reps[0] else ''} |")
+                             f"{fmt(a16) if lab != 'AA' else '-'} | {fmt(a20) if lab != 'AA' else '-'} | {rule} | "
+                             f"{med} | {spread} | {PC_ROWS.get((cfg, lab), '') if rep == reps[0] else ''} |")
                 out.append({"config": cfg, "label": lab, "rep": rep, "cpu": cpu, "nodes": nodes_txt(r),
                             "d16": fmt(e16), "d20": fmt(e20), "aa16": fmt(a16), "aa20": fmt(a20), "rule": rule,
-                            "lo16": l16, "lo20": l20, "ok": r.get("ok"), "path": r["_path"]})
+                            "lo16": l16, "lo20": l20, "median": med, "spread": spread, "ok": r.get("ok"),
+                            "path": r["_path"]})
             if len(per_rep) >= 2:
                 c16 = combine([v[0] for v in per_rep.values()])
                 c20 = combine([v[1] for v in per_rep.values()])
                 ca16 = combine([v[2] for v in per_rep.values()])
                 ca20 = combine([v[3] for v in per_rep.values()])
                 l16, l20 = lower(c16), lower(c20)
-                rule = "n/a" if lab == "AA" else ("MET" if (l16 is not None and l20 is not None and l16 >= 2 and l20 >= 2)
-                                                  else "not met")
+                rule = "n/a" if lab.startswith("AA") else (
+                    "MET" if (l16 is not None and l20 is not None and l16 >= 2 and l20 >= 2) else "not met")
                 lines.append(f"| {cfg} | {lab} | both | two runners | | **{fmt(c16)}** | **{fmt(c20)}** | "
-                             f"{fmt(ca16) if lab != 'AA' else '—'} | {fmt(ca20) if lab != 'AA' else '—'} | {rule} | |")
+                             f"{fmt(ca16) if lab != 'AA' else '-'} | {fmt(ca20) if lab != 'AA' else '-'} | {rule} | | | |")
                 out.append({"config": cfg, "label": lab, "rep": "both", "d16": fmt(c16), "d20": fmt(c20),
                             "aa16": fmt(ca16), "aa20": fmt(ca20), "rule": rule, "lo16": l16, "lo20": l20})
     bad = [r["_path"] for r in recs if not r.get("ok")]
