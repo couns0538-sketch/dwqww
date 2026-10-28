@@ -23,3 +23,6 @@ A2 completed as an isolated correctness candidate: full Release suite 52/54 init
 
 ## A3 — complete
 Option checker (17 tests) and OFF identity script (10 tests) implemented, registered in CTest (2/2 PASS), independently reviewed. Final native all-five-depth OFF comparison PASS: 312866 / 862329 / 3024920 / 12389307 / 34048354 for both binaries. Correctly rejected the base when candidate-only option was required. Raw logs/specs/review and all bench timings: astra_evidence/A3/. No speed/Elo claim. Proceed to A4.
+
+## A4 — skipped: source not in repo, merge done by crew
+Owner confirmed packe2r lives only on the gate PC and its merge was completed elsewhere; explicitly instructed skipping this job. No merge or engine change performed here. Pack A handoff hash was verified; lookup notes retained in astra_evidence/A4/. Crew merge status is owner-provided, not independently revalidated. Proceed to A5.
