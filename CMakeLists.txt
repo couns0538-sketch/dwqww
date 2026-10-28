@@ -50,6 +50,13 @@ if(FORGE_NNUE_INT16)
     target_compile_definitions(forge_core PUBLIC FORGE_NNUE_INT16=1)
 endif()
 
+# S-A4: another network include file instead of src/nnue_weights.inc (e.g. an H512 net); pass the
+# matching -DFORGE_NNUE_HIDDEN in CMAKE_CXX_FLAGS. Unset (default) = the lock's H256 net.
+set(FORGE_NNUE_WEIGHTS_FILE "" CACHE FILEPATH "Network include file (default: src/nnue_weights.inc)")
+if(FORGE_NNUE_WEIGHTS_FILE)
+    target_compile_definitions(forge_core PUBLIC FORGE_NNUE_WEIGHTS="${FORGE_NNUE_WEIGHTS_FILE}")
+endif()
+
 if(MSVC)
     target_compile_options(forge_core PRIVATE /W4 /permissive-)
 else()
@@ -234,6 +241,29 @@ if(NOT MSVC)
     forge_nnue_int16_test_sources(forge_nnue_int16_scalar_tests)
     target_compile_options(forge_nnue_int16_scalar_tests PRIVATE -mno-avx2)
 endif()
+# S-A4: both use the core's network include file when FORGE_NNUE_WEIGHTS_FILE is set.
+if(FORGE_NNUE_WEIGHTS_FILE)
+    target_compile_definitions(forge_nnue_int16_tests PRIVATE FORGE_NNUE_WEIGHTS="${FORGE_NNUE_WEIGHTS_FILE}")
+    if(NOT MSVC)
+        target_compile_definitions(forge_nnue_int16_scalar_tests PRIVATE FORGE_NNUE_WEIGHTS="${FORGE_NNUE_WEIGHTS_FILE}")
+    endif()
+endif()
+
+if(NOT MSVC)
+    # H512 (S-A4): the same tests on a generated synthetic 512-unit network (not a playing net),
+    # with the NNUE sources compiled for FORGE_NNUE_HIDDEN=512; the default build keeps H256.
+    add_executable(forge_nnue_gen_net tests/nnue_gen_net.cpp)
+    set(FORGE_H512_TEST_NET ${CMAKE_CURRENT_BINARY_DIR}/nnue_test_h512.inc)
+    add_custom_command(OUTPUT ${FORGE_H512_TEST_NET}
+        COMMAND forge_nnue_gen_net 512 20261027 ${FORGE_H512_TEST_NET}
+        DEPENDS forge_nnue_gen_net VERBATIM)
+    add_custom_target(forge_nnue_test_h512_net DEPENDS ${FORGE_H512_TEST_NET})
+    add_executable(forge_nnue_h512_tests tests/nnue_int16_tests.cpp)
+    forge_nnue_int16_test_sources(forge_nnue_h512_tests)
+    add_dependencies(forge_nnue_h512_tests forge_nnue_test_h512_net)
+    target_compile_definitions(forge_nnue_h512_tests PRIVATE FORGE_NNUE_WEIGHTS="${FORGE_H512_TEST_NET}")
+    target_compile_options(forge_nnue_h512_tests PRIVATE -UFORGE_NNUE_HIDDEN -DFORGE_NNUE_HIDDEN=512)
+endif()
 
 # The engine for the NnueInt16 UCI regression: forge itself in a FORGE_NNUE_INT16 build, else forge_int16 =
 # the core's sources and settings plus FORGE_NNUE_INT16=1 (built in every configuration, never released).
@@ -285,6 +315,7 @@ add_test(NAME forge_hist_rework_tests COMMAND forge_hist_rework_tests)
 add_test(NAME forge_nnue_int16_tests COMMAND forge_nnue_int16_tests)
 if(NOT MSVC)
     add_test(NAME forge_nnue_int16_scalar_tests COMMAND forge_nnue_int16_scalar_tests)
+    add_test(NAME forge_nnue_h512_tests COMMAND forge_nnue_h512_tests)
 endif()
 add_test(NAME forge_tt_tests COMMAND forge_tt_tests)
 add_test(NAME forge_tt_stress_lockless COMMAND forge_tt_stress_tests --threads 2 --ops 2000000 --mode lockless)

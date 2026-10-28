@@ -66,7 +66,14 @@
 #endif
 #endif // FORGE_NNUE_O2
 
-#if __has_include("nnue_weights.inc")
+// FORGE_NNUE_WEIGHTS (compile flag, default unset = src/nnue_weights.inc): another
+// network include file, e.g. an H512 net built with -DFORGE_NNUE_HIDDEN=512
+// -DFORGE_NNUE_WEIGHTS='"path/to/net.inc"'. The include file's static_asserts
+// reject a hidden width that differs from FORGE_NNUE_HIDDEN.
+#if defined(FORGE_NNUE_WEIGHTS)
+#include FORGE_NNUE_WEIGHTS
+#define FORGE_HAS_NNUE 1
+#elif __has_include("nnue_weights.inc")
 #include "nnue_weights.inc"
 #define FORGE_HAS_NNUE 1
 #else
