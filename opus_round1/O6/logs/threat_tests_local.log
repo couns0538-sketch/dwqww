@@ -1,0 +1,52 @@
+PASS threat pairs == brute-force reference on 3000 random positions (43151 pairs, at most 64 in one position, 3200 redundant king pairs left out)
+PASS explicit: Re2 attacks e7 (ray stops), Ke1 defends Re2, Ke8 defends e7; Re2 -> own king left out
+PASS explicit: rooks that only see their own king give no pair
+PASS explicit: a check (Re1 attacks the black king on e8) is a pair
+PASS explicit: pawn d4 attacks both knights (c5, e5); the knights do not attack d4
+PASS explicit: two knights attacking the rook on d1 give the same feature twice (pair count)
+PASS feature: white knight attacks black queen on d5, White perspective = (1 * 12 + 10) * 64 + 35
+PASS feature: the same pair seen by Black = their knight (7) attacks own queen (4) on d5 ^ 56
+PASS feature: mirrored perspective flips the victim's file (e5 -> d5)
+PASS feature: every pair key maps into [0, 9216) for both perspectives, with and without flip
+PASS colour symmetry: 400 colour-flipped positions give the swapped accumulators (threat net)
+PASS mirror symmetry: 400 file-mirrored positions give identical accumulators (mirrored threat net)
+PASS control: without mirroring the file mirror changes the accumulators (400/400)
+PASS control: zeroing the threat columns changes exactly the accumulators of the positions with threat pairs (37/37 of 50 positions have pairs)
+PASS a feature_set 1 file loads with its threat block
+PASS file_bytes: the threat block adds 2 * 9216 * hidden bytes (5113514 bytes)
+PASS the threat block is read in file order (sampled values == int16 / 4096)
+PASS rejects feature_set 3 (unknown bit 1) (unsupported feature set 3)
+PASS rejects a feature_set 1 header without the threat block (file size 394922 bytes does not match the 5113514 bytes implied by its header (1 king buckets, 1 output buckets, hidden 256, threat inputs); the weights were not read)
+PASS rejects a threat block under a feature_set 0 header (file size 5113514 bytes does not match the 394922 bytes implied by its header (1 king buckets, 1 output buckets, hidden 256); the weights were not read)
+PASS defaults: no request, no problem
+PASS NNUEThreats without NNUEFile: NNUEThreats is 1 but no v2 net is loaded (NNUEFile is empty); NNUEThreats needs a net with threat inputs (trainer --threats)
+PASS NNUEThreats 1 with a one-bucket threat net (NNUEKingBuckets 0): active
+PASS NNUEThreats 1 + NNUEKingBuckets 1: active
+PASS threat net without NNUEThreats: NNUEFile nnue_threat_test_t1.fnn2 has threat inputs (trainer --threats); set NNUEThreats 1 to use it
+PASS threat net, NNUEKingBuckets 1, NNUEThreats 0: NNUEFile nnue_threat_test_t1.fnn2 has threat inputs (trainer --threats); set NNUEThreats 1 to use it
+PASS NNUEThreats 1 with a net without threat inputs: NNUEThreats is 1 but NNUEFile nnue_threat_test_p1.fnn2 has no threat inputs; NNUEThreats needs a net trained with --threats
+PASS C4 rule unchanged: a net without threats, NNUEKingBuckets 1: active
+PASS NNUEThreats alone with a 4-bucket threat net: NNUEThreats is 1 and NNUEKingBuckets is 0, which selects a net without king buckets, but NNUEFile nnue_threat_test_t4.fnn2 has 4 mirrored king buckets; set NNUEKingBuckets 4 as well
+PASS NNUEThreats 1 + NNUEKingBuckets 4: active
+PASS NNUEKingBuckets 2 vs the 4-bucket threat net: NNUEKingBuckets 2 does not match NNUEFile nnue_threat_test_t4.fnn2 (4 mirrored king buckets)
+PASS UseNNUE false wins over NNUEThreats (not an error)
+PASS request cleared: no problem
+PASS zero-threat replica r1: 300 positions, accumulators and evals bit-identical to the compiled-in net
+PASS zero-threat replica r1: depth-8 searches of 4 positions have the compiled-in net's node counts and best moves
+PASS zero-threat replica rm8: 300 positions, accumulators and evals bit-identical to the compiled-in net
+PASS zero-threat replica rm8: depth-8 searches of 4 positions have the compiled-in net's node counts and best moves
+WALK 1 bucket, threat inputs: plies 34000 (null 1292) evaluations 24377 computed accumulators verified 21621 king-key changes 0 longest replay 8 most threat pairs 64 restarts 161 mismatches 0
+PASS incremental == full refresh, bit-exact, 1 bucket, threat inputs: 34000 plies
+WALK 8 mirrored buckets, threat inputs: plies 34000 (null 1282) evaluations 24509 computed accumulators verified 21568 king-key changes 7399 longest replay 8 most threat pairs 66 restarts 167 mismatches 0
+PASS incremental == full refresh, bit-exact, 8 mirrored buckets, threat inputs: 34000 plies
+WALK 4 unmirrored buckets, threat inputs: plies 34000 (null 1251) evaluations 24590 computed accumulators verified 21514 king-key changes 3549 longest replay 10 most threat pairs 65 restarts 160 mismatches 0
+PASS incremental == full refresh, bit-exact, 4 unmirrored buckets, threat inputs: 34000 plies
+WALK total plies 102000
+PASS UCI defaults: NNUEThreats advertised (spin 0-1, default 0), nothing NNUE v2 printed, exit 0
+PASS UCI threats_without_file: exit status 2 at isready, no answer: info string ERROR NNUE v2: NNUEThreats is 1 but no v2 net is loaded (NNUEFile is empty); NNUEThreats needs a net with threat inputs (trainer --threats)
+PASS UCI threats_with_plain_net: exit status 2 at go depth 1, no answer: info string ERROR NNUE v2: NNUEThreats is 1 but NNUEFile nnue_threat_test_uci_plain.fnn2 has no threat inputs; NNUEThreats needs a net trained with --threats
+PASS UCI threat_net_without_option: exit status 2 at bench 2, no answer: info string ERROR NNUE v2: NNUEFile nnue_threat_test_uci_threat.fnn2 has threat inputs (trainer --threats); set NNUEThreats 1 to use it
+PASS UCI NNUEThreats 1 + threat net: "info string NNUE v2: active: nnue_threat_test_uci_threat.fnn2 king buckets 1 output buckets 1 hidden 256 unmirrored residual threat inputs ..." (activation + isready), readyok, bestmove, bench, exit 0 (the half-set request before NNUEFile reported once)
+PASS UCI NNUEThreats 2: invalid value reported, the option stays 0
+63/63 checks passed
+exit=0
