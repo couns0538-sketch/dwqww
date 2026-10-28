@@ -11,6 +11,14 @@ namespace tune {
 int CorrContWeight = 100;
 int CorrMinorWeight = 100;
 int CorrNonPawnWeight = 100;
+// CorrMargins weights (forge/corr_margins.hpp). Defined before the AL1 s198
+// tunables on purpose: GCC emits a translation unit's globals in reverse
+// definition order, so these land after the existing block and every AL1 s198
+// tunable keeps its address.
+int CorrRfpPct = 50;
+int CorrFutilityPct = 100;
+int CorrNullMovePct = 50;
+int CorrLmrPct = 25;
 int LmrQuietBase = 85;
 int LmrQuietDivisor = 220;
 int LmrNoisyBase = 10;
@@ -99,6 +107,8 @@ const std::vector<Parameter>& parameters() {
         {"CaptureFutilityDepth", &CaptureFutilityDepth, 0, 15},  {"FailLowContinuationBonus", &FailLowContinuationBonus, 0, 300},
         {"CorrContWeight", &CorrContWeight, 0, 300},          {"CorrMinorWeight", &CorrMinorWeight, 0, 300},
         {"CorrNonPawnWeight", &CorrNonPawnWeight, 0, 300},
+        {"CorrRfpPct", &CorrRfpPct, 0, 400},                     {"CorrFutilityPct", &CorrFutilityPct, 0, 400},
+        {"CorrNullMovePct", &CorrNullMovePct, 0, 400},           {"CorrLmrPct", &CorrLmrPct, 0, 400},
     };
     return table;
 }

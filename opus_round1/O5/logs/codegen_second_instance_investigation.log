@@ -1,0 +1,83 @@
+# Why a second instance of alphabeta.inc changed the default Worker::search, and the fix
+
+Method: src/search.cpp compiled alone with the PC flags (g++ 15.2 ucrt64, -std=c++20 -O3 -DNDEBUG
+-DFORGE_NNUE_HIDDEN=256 -ffp-contract=off -fno-fast-math -march=znver5) plus -fdump-tree-optimized
+-fdump-ipa-inline; the default Worker::search (_ZN5forge6Worker6searchERNS_5BoardEPNS_11SearchStackEiiib)
+extracted with fn_extract.py (--norm: SSA/decl numbers normalised). base = opus-O3 0d99f02 (one instance).
+
+## v1: second instance (search_corr_margins), both instances call tune.inc's lmp_threshold
+$ diff base_body.txt v1_body.txt   (normalised GIMPLE body, 3222 statements each)
+1889c1889
+<   if (CheckExtensionDepth.N_N <= depth_N)
+---
+>   if (depth_N >= CheckExtensionDepth.N_N)
+$ grep CheckExtensionDepth (un-normalised): one of the 8 copies of the check-extension test gets SSA
+  version 397 instead of 247, so GCC's canonical operand order (lower SSA version first) flips it:
+base_raw.txt:3006:  if (depth_293 >= CheckExtensionDepth.289_397)
+base_raw.txt:3027:  if (CheckExtensionDepth.289_247 <= depth_293)
+base_raw.txt:3049:  if (CheckExtensionDepth.289_233 <= depth_293)
+v1_raw.txt:3027:  if (depth_293 >= CheckExtensionDepth.289_397)
+v1_raw.txt:3049:  if (CheckExtensionDepth.289_259 <= depth_293)
+
+IPA inliner decisions for the default Worker::search ('Considering ... to be inlined into' lines):
+lmp_threshold (one caller in AL1 s198) is inlined early in base; with a second caller it is left to
+the IPA inliner in v1, which shifts the SSA numbering of the default search:
+$ diff base_inl.txt v1_inl.txt
+1,13c1,14
+< Considering constexpr bool forge::Move::operator==(const forge::Move&) const/10656 with 11 size
+< Considering constexpr bool forge::Move::operator==(const forge::Move&) const/10656 with 11 size
+< Considering operator().isra/10691 with 16 size
+< Considering operator().isra/10670 with 16 size
+< Considering copy_n.isra/10687 with 16 size
+< Considering void forge::Worker::record_move(forge::SearchStack*, const forge::Board&, const forge::Move&)/4297 with 16 size
+< Considering forge::MovePicker::MovePicker(const forge::Board&, const forge::Worker&, const forge::SearchStack*, forge::Move, Mode)/4268 with 104 size
+< Considering int forge::Worker::quiet_history(const forge::Board&, const forge::SearchStack*, forge::Move) const/4319 with 29 size
+< Considering forge::MovePicker::MovePicker(const forge::Board&, const forge::Worker&, const forge::SearchStack*, forge::Move, Mode)/4268 with 104 size
+< Considering void forge::Worker::record_move(forge::SearchStack*, const forge::Board&, const forge::Move&)/4297 with 16 size
+< Considering capture_value.isra/10692 with 28 size
+< Considering bool forge::Worker::is_draw(const forge::Board&, int) const/4318 with 34 size
+< Considering void forge::Worker::update_continuation(forge::SearchStack*, forge::Piece, int, int)/4321 with 33 size
+---
+> Considering constexpr bool forge::Move::operator==(const forge::Move&) const/10788 with 11 size
+> Considering constexpr bool forge::Move::operator==(const forge::Move&) const/10788 with 11 size
+> Considering operator().isra/10824 with 16 size
+> Considering int forge::{anonymous}::lmp_threshold(int, bool)/9860 with 7 size
+> Considering operator().isra/10802 with 18 size
+> Considering copy_n.isra/10819 with 16 size
+> Considering void forge::Worker::record_move(forge::SearchStack*, const forge::Board&, const forge::Move&)/4307 with 16 size
+> Considering forge::MovePicker::MovePicker(const forge::Board&, const forge::Worker&, const forge::SearchStack*, forge::Move, Mode)/4278 with 104 size
+> Considering int forge::Worker::quiet_history(const forge::Board&, const forge::SearchStack*, forge::Move) const/4329 with 29 size
+> Considering capture_value.isra/10825 with 28 size
+> Considering void forge::Worker::record_move(forge::SearchStack*, const forge::Board&, const forge::Move&)/4307 with 16 size
+> Considering bool forge::Worker::is_draw(const forge::Board&, int) const/4328 with 34 size
+> Considering forge::MovePicker::MovePicker(const forge::Board&, const forge::Worker&, const forge::SearchStack*, forge::Move, Mode)/4278 with 104 size
+> Considering void forge::Worker::update_continuation(forge::SearchStack*, forge::Piece, int, int)/4331 with 33 size
+
+Machine code of v1 vs the AL1 s198 lock (codegen_compare.sh, default alpha-beta only):
+function                                          insns_A  insns_B differing  mod64_A  mod64_B
+forge::Worker::search(forge::Board&                  2413     2409       150       32       32
+(the same 2413 -> 2409 instructions / 150 lines that branch opus-C6 reports for its second instance)
+
+## v2: lmp_threshold marked [[gnu::always_inline]] (rejected)
+$ diff base_body.txt v2_body.txt
+214,215c214,216
+<   _N = (short unsigned int) _N;
+<   if (_N == _N)
+---
+>   capped_N = (const int) _N;
+>   _N = (int) _N;
+>   if (_N == capped_N)
+1473d1473
+<   _N = depth_N * depth_N;
+1475c1475,1476
+<   _N = _N + pretmp_N;
+---
+>   _N = depth_N * depth_N;
+>   _N = pretmp_N + _N;
+(always_inline changes the early inliner's order: TTEntry::score_usable is no longer narrowed to
+ 16 bits and lmp_threshold's depth*depth moves)
+
+## v3 = final: the second instance calls its own copy, lmp_threshold_corr_margins (src/search/corr_margins.inc)
+$ diff base_body.txt v3_body.txt   -> 0 lines
+$ diff of the un-normalised GIMPLE (SSA versions kept, only decl-uid suffixes normalised) -> 0 lines
+Machine code: see codegen_compare.log (default alpha-beta 2413 = 2413 instructions, 0 differing, mod 64 32 = 32).

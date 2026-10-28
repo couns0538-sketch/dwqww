@@ -17,5 +17,6 @@ bool nnue_v2 = false;
 int nnue_threats = 0;   // O6 (after nnue_v2 so that the variables before it keep their addresses)
 int nnue_pawn_pairs = 0;   // O7
 bool pure_nnue = false;   // O4 (after nnue_v2 so that the variables before it keep their addresses)
+std::uint8_t corr_margins = 0;
 
 } // namespace forge::options

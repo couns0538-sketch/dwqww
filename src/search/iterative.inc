@@ -150,7 +150,9 @@ SearchInfo Worker::search(Board board, const SearchLimits& limits, bool emit_inf
         int iteration_score = score;
         while (true) {
             ss->ply = 0;
-            iteration_score = search(board, ss, depth, alpha, beta, false);
+            // UCI CorrMargins picks the search instance with the correction-size margins.
+            iteration_score = options::corr_margins != 0 ? search_corr_margins(board, ss, depth, alpha, beta, false)
+                                                         : search(board, ss, depth, alpha, beta, false);
             if (aborted_) break;
             if (iteration_score <= alpha) {
                 beta = (alpha + beta) / 2;

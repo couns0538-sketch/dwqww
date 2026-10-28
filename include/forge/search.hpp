@@ -50,6 +50,9 @@ private:
     // Pinned to 64-byte boundaries (like MovePicker::next): their placement no
     // longer depends on the size of the code emitted before them.
     [[gnu::aligned(64)]] int search(Board& board, SearchStack* ss, int depth, int alpha, int beta, bool cut_node);
+    // UCI CorrMargins: the main search with correction-size pruning margins
+    // (forge/corr_margins.hpp), a second instance of src/search/alphabeta.inc.
+    int search_corr_margins(Board& board, SearchStack* ss, int depth, int alpha, int beta, bool cut_node);
     [[gnu::aligned(64)]] int qsearch(Board& board, SearchStack* ss, int alpha, int beta);
     [[nodiscard]] bool should_stop();
     [[nodiscard]] std::int64_t elapsed_ms() const;

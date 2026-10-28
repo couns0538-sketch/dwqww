@@ -134,6 +134,9 @@ target_link_libraries(forge_pure_nnue_tests PRIVATE forge_core Threads::Threads)
 add_dependencies(forge_pure_nnue_tests forge)
 add_executable(forge_nnue_engine_eval tools/nnue/nnue_engine_eval.cpp)
 target_link_libraries(forge_nnue_engine_eval PRIVATE forge_core Threads::Threads)
+# UCI CorrMargins: correction-size pruning margins (margin functions, node decisions, whole searches).
+add_executable(forge_corr_margins_tests tests/corr_margins_tests.cpp)
+target_link_libraries(forge_corr_margins_tests PRIVATE forge_core Threads::Threads)
 
 add_executable(forge_bench bench/benchmark.cpp)
 target_link_libraries(forge_bench PRIVATE forge_core Threads::Threads)
@@ -154,6 +157,7 @@ add_test(NAME forge_nnue_v2_uci_tests COMMAND forge_nnue_v2_uci_tests $<TARGET_F
 add_test(NAME forge_nnue_threat_tests COMMAND forge_nnue_threat_tests $<TARGET_FILE:forge>)
 add_test(NAME forge_nnue_pawn_pair_tests COMMAND forge_nnue_pawn_pair_tests $<TARGET_FILE:forge>)
 add_test(NAME forge_pure_nnue_tests COMMAND forge_pure_nnue_tests $<TARGET_FILE:forge>)
+add_test(NAME forge_corr_margins_tests COMMAND forge_corr_margins_tests)
 add_test(NAME forge_tt_tests COMMAND forge_tt_tests)
 add_test(NAME forge_tt_stress_lockless COMMAND forge_tt_stress_tests --threads 2 --ops 2000000 --mode lockless)
 add_test(NAME forge_tt_stress_locked COMMAND forge_tt_stress_tests --threads 2 --ops 2000000 --mode locked)

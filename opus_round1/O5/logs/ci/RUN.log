@@ -1,0 +1,22 @@
+# GitHub Actions runs on branch opus-O5
+
+## commit 1645eea ([O5] Evidence ...; engine code = 3c171dd, tests = 6667bbe)
+- opus-ci run 40470507779: success
+  - linux (release) job 122076243616: g++-14.2.0 box recipe, identity ALL OK (bench 312866/862329/3024920/12389307/34048354, perft 4865609, kiwipete 193690690), FMA 0; ctest 17/18, only the 4 known forge_tests lines
+  - linux (asan) job 122076243323: ASan+UBSan (-fno-sanitize-recover=all), ctest 17/18, only the 4 known lines, no sanitizer report (forge_corr_margins_tests 16.9 s)
+  - linux (tsan) job 122076243632: ctest 17/18, only the 4 known lines; tsan_extra.sh (CorrMargins=1, Threads 2 and 4, 4 positions, depth 8): 8/8 legal bestmoves; TSan: 0 reports
+- opus-o5-nps run 40470507851: success (quiet ubuntu-24.04 runner, box recipe, nps_ab.py 10 ABBA runs)
+  - lock vs O5 (CorrMargins off): d16 wall +0.84% [-3.09, +4.77], d20 wall -0.61% [-3.25, +2.04]
+  - O3 vs O5 (CorrMargins off): d16 wall -0.26% [-3.34, +2.82], d20 wall -0.84% [-2.87, +1.19]
+  - codegen_lock_vs_o5_linux.log: g++-14 Linux build of the lock (294dbed, single-file search.cpp) vs O5
+
+## commit de74ee1 (CI evidence + workflow: Linux codegen lock-vs-O3 and O3-vs-O5; engine code unchanged)
+- opus-ci run 40472484330: success (release identity ALL OK, ctest 17/18 with only the 4 known lines in
+  release / ASan+UBSan / TSan, TSan 0 reports, CorrMargins Threads 2/4 hook 8/8 OK)
+- opus-o5-nps run 40472484111: success (quiet ubuntu-24.04 runner, box recipe g++-14.2, nps_ab.py 10 ABBA runs)
+  - lock vs O5 (CorrMargins off): d16 wall -0.12% [-1.54, +1.31], d20 wall +1.54% [+0.40, +2.69]
+  - O3 vs O5 (CorrMargins off): d16 wall -0.72% [-2.23, +0.79], d20 wall -0.06% [-1.30, +1.18]
+  - Linux machine code (g++-14): lock vs O3: every hot function instruction-identical, but O3 moved
+    several start addresses mod 64 (alpha-beta 16 -> 32, qsearch 0 -> 16, TT probe 0 -> 16, store 16 -> 32);
+    O3 vs O5: alpha-beta 2500 vs 2501 instructions, 3 differing lines, same start (32 mod 64); every other
+    hot function identical at the same address mod 64. (PC recipe g++ 15.2, the gate build: 0 lines.)

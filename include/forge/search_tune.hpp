@@ -69,6 +69,12 @@ extern int FailLowContinuationBonus; // x0.01 of the history bonus given to the 
 extern int CorrContWeight;        // bit 1: continuation correction (previous two moves)
 extern int CorrMinorWeight;       // bit 2: minor-piece correction
 extern int CorrNonPawnWeight;     // bit 4: each side's non-pawn correction
+// UCI CorrMargins (forge/corr_margins.hpp): weights of |correction| (cp) in the
+// pruning margins; read only by the CorrMargins search instance; 0 = no change.
+extern int CorrRfpPct;            // reverse futility margin += |correction| * pct / 100
+extern int CorrFutilityPct;       // quiet futility margin += |correction| * pct / 100
+extern int CorrNullMovePct;       // null-move static-eval threshold += |correction| * pct / 100
+extern int CorrLmrPct;            // LMR reduction -= reduction * pct% per 64 cp of |correction|
 [[nodiscard]] const std::vector<Parameter>& parameters();
 // Call after changing LMR parameters.
 void refresh();

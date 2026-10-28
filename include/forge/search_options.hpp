@@ -137,4 +137,11 @@ bool apply_nnue_v2(std::string* message);
 // load ("" = it loaded). Call after apply_nnue_v2().
 std::string nnue_v2_problem(const std::string& file, const std::string& load_error);
 
+// UCI CorrMargins (spin 0-1, default 0): correction-size pruning margins
+// (forge/corr_margins.hpp, weights tune::Corr*Pct). Read once per iteration at
+// the root, which then searches with the CorrMargins instance of the main
+// search (Worker::search_corr_margins, src/search/alphabeta.inc); with 0 no
+// node tests it and the search is the AL1 s198 search.
+extern std::uint8_t corr_margins;
+
 } // namespace forge::options
