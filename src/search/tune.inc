@@ -38,6 +38,12 @@ int CorrExtDoublePct = 12;
 int CorrExtTripleCorr = 48;
 int CorrExtTripleMargin = 100;
 int CorrExtBudget = 7;
+// R3-4: the null-move static-eval margin (AL1 s198 literals 24 and 180, see
+// alphabeta.inc). Defined before the AL1 s198 tunables on purpose: GCC emits a
+// translation unit's globals in reverse definition order, so these land after
+// the existing block and every AL1 s198 tunable keeps its address.
+int NullMoveMarginDepth = 24;
+int NullMoveMarginBase = 180;
 int LmrQuietBase = 85;
 int LmrQuietDivisor = 220;
 int LmrNoisyBase = 10;
@@ -130,6 +136,7 @@ const std::vector<Parameter>& parameters() {
         {"CorrNullMovePct", &CorrNullMovePct, 0, 400},           {"CorrLmrPct", &CorrLmrPct, 0, 400},
         {"CorrExtDoublePct", &CorrExtDoublePct, 0, 400},         {"CorrExtTripleCorr", &CorrExtTripleCorr, 0, 256},
         {"CorrExtTripleMargin", &CorrExtTripleMargin, 0, 1000},  {"CorrExtBudget", &CorrExtBudget, 0, 64},
+        {"NullMoveMarginDepth", &NullMoveMarginDepth, 0, 100},   {"NullMoveMarginBase", &NullMoveMarginBase, 0, 500},
     };
     return table;
 }

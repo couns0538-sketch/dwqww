@@ -179,6 +179,20 @@ bool contains(const forge::MoveList& moves, forge::Move move) {
     return std::find(moves.begin(), moves.end(), move) != moves.end();
 }
 
+// R3-4: the search constant called `name` (forge::tune::parameters()), or nullptr.
+const forge::tune::Parameter* find_tunable(std::string_view name) {
+    for (const forge::tune::Parameter& parameter : forge::tune::parameters()) {
+        if (name == parameter.name) return &parameter;
+    }
+    return nullptr;
+}
+
+// One `option` line of the `uci` reply for a search constant; the default shown is its current value.
+void print_tunable(const forge::tune::Parameter& parameter) {
+    std::cout << "option name " << parameter.name << " type spin default " << *parameter.value << " min "
+              << parameter.minimum << " max " << parameter.maximum << "\n";
+}
+
 // The watchdog's answer, with the search's own fallbacks: the published
 // best/ponder pair if it is a root candidate here (a legal move, inside
 // `searchmoves` when given), else the first candidate, else "0000" (no legal
@@ -452,12 +466,19 @@ int main() {
             // Search option added after AL1 s198 (Astra A1); default 0 = the lock's search (forge/hist_rework.hpp).
             std::cout << "option name HistRework type spin default 0 min 0 max " << forge::hist_rework::MaxLevel << "\n";
             std::cout << "option name IntendedThreefold type check default false\n";
+            // R3-4: the 20 search constants for SPSA tuning (forge/search_tune.hpp, tools/spsa), listed in every
+            // build; their defaults are the AL1 s198 values, so a run that leaves them alone searches the same tree.
+            for (const std::string_view name : forge::tune::AdvertisedParameters) {
+                if (const forge::tune::Parameter* parameter = find_tunable(name)) print_tunable(*parameter);
+            }
 #ifdef FORGE_EXPOSE_TUNABLES
-            // Development builds advertise the search constants so match
-            // runners can set them; release builds accept them silently.
+            // Development builds advertise the other search constants as well so
+            // match runners can set them; release builds accept them silently.
             for (const forge::tune::Parameter& parameter : forge::tune::parameters()) {
-                std::cout << "option name " << parameter.name << " type spin default " << *parameter.value
-                          << " min " << parameter.minimum << " max " << parameter.maximum << "\n";
+                if (std::find(forge::tune::AdvertisedParameters.begin(), forge::tune::AdvertisedParameters.end(),
+                              std::string_view(parameter.name)) == forge::tune::AdvertisedParameters.end()) {
+                    print_tunable(parameter);
+                }
             }
 #endif
 #ifdef FORGE_S13_TT_CHILD_PREFETCH

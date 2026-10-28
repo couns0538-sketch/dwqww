@@ -154,7 +154,9 @@ int Worker::FORGE_SEARCH_FN(Board& board, SearchStack* ss, int depth, int alpha,
         if (depth >= tune::NullMoveMinDepth && eval >= beta &&
             ss->static_eval >= corr_margins::null_move_threshold(beta, depth, correction) &&
 #else
-        if (depth >= tune::NullMoveMinDepth && eval >= beta && ss->static_eval >= beta - 24 * depth + 180 &&
+        // R3-4: the AL1 s198 margin beta - 24 * depth + 180, as tunables with the same defaults.
+        if (depth >= tune::NullMoveMinDepth && eval >= beta &&
+            ss->static_eval >= beta - tune::NullMoveMarginDepth * depth + tune::NullMoveMarginBase &&
 #endif
             ss->null_move_allowed && !(ss - 1)->current_move.is_none() &&
             board.has_non_pawn_material(board.side_to_move()) &&

@@ -1,11 +1,15 @@
 #pragma once
 
+#include <array>
+#include <string_view>
 #include <vector>
 
 namespace forge {
 
 // Search constants exposed for tuning. The UCI layer accepts them as unlisted
 // options (setoption name <Name> value <int>); defaults are the tested values.
+// The 20 named in AdvertisedParameters (below) are listed as UCI spin options in
+// every build; FORGE_EXPOSE_TUNABLES builds list all of them.
 namespace tune {
 struct Parameter {
     const char* name;
@@ -21,6 +25,10 @@ extern int NullMoveMinDepth;
 extern int NullMoveBase;
 extern int NullMoveDepthDivisor;
 extern int NullMoveEvalDivisor;
+// Null-move pruning is tried only when static_eval >= beta - NullMoveMarginDepth * depth + NullMoveMarginBase
+// (R3-4: the AL1 s198 literals 24 and 180 as tunables, same defaults).
+extern int NullMoveMarginDepth;
+extern int NullMoveMarginBase;
 extern int RfpDepth;
 extern int RfpMargin;
 extern int RfpImproving;
@@ -84,6 +92,26 @@ extern int CorrExtBudget;         // extra plies from double/triple extensions a
 [[nodiscard]] const std::vector<Parameter>& parameters();
 // Call after changing LMR parameters.
 void refresh();
+
+// R3-4: the 20 search constants advertised as UCI spin options in every build
+// (default = the current value, min/max = the range in parameters()), for SPSA
+// tuning with tools/spsa/opus_spsa.py (tools/spsa/README.md has the reasons for
+// the choice). Listed in this order, grouped by mechanism. The other tunables
+// stay unlisted: setoption accepts them, FORGE_EXPOSE_TUNABLES builds list them.
+inline constexpr std::array<std::string_view, 20> AdvertisedParameters{
+    // late-move reductions
+    "LmrQuietBase", "LmrQuietDivisor", "LmrNoisyBase", "LmrNoisyDivisor", "LmrHistoryDivisor",
+    // null-move pruning
+    "NullMoveBase", "NullMoveDepthDivisor", "NullMoveEvalDivisor", "NullMoveMarginDepth", "NullMoveMarginBase",
+    // reverse futility pruning
+    "RfpMargin", "RfpImproving", "RfpDepth",
+    // futility pruning (main search and quiescence)
+    "FutilityBase", "FutilityMultiplier", "QsFutilityMargin",
+    // SEE pruning margins
+    "SeeQuietMultiplier", "SeeNoisyMultiplier", "QsSeeMargin",
+    // aspiration windows
+    "AspirationDelta",
+};
 } // namespace tune
 
 } // namespace forge
