@@ -82,6 +82,11 @@ UCI `SmpBestThread`, default false, acts only with Threads > 1.
   deeper longer mate vs shorter mate, shallower found mate vs deeper non-mate, mated vs not mated, two mated
   lines. With the old rule planted back, 8 of the 13 cases FAIL (`logs/review_fix_mutation.log`); with the
   fix, all 70 checks of `forge_smp_tests` pass (`logs/review_fix_smp_tests.log`).
+- **CI after the fix** (`85c15e3`):
+  - opus-ci 40467016547: release, ASan+UBSan and TSan pass, with only the 4 known lines;
+  - opus-o1-smp 40467016636: all 5 self-play shards pass. The options-on shard (SmpExactNodes +
+    SmpBestThread, i.e. the new ranking) played 500 games: 0 illegal moves, 0 crashes, 0 stalls or missing
+    bestmoves, 0 time forfeits (`logs/ci/selfplay-options-on-85c15e3/pgn_legality.log`).
 - **How results are collected.** Helper results go into one slot per helper and are read after the join.
 - **Layout.** `select_best_thread` and `better_thread_result` are `[[gnu::cold]]`, and `format_score` is
   always inlined, so the default build's hot code is unchanged. Re-checked after the fix: the default build
