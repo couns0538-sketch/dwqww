@@ -9,10 +9,13 @@ option(FORGE_EXPOSE_TUNABLES "Advertise search tuning constants as UCI options (
 option(FORGE_NOZERO_MOVE_BUFFERS "Leave the MoveList/MovePicker move buffers uninitialised (node-exact speed candidate)" OFF)
 option(FORGE_PROF "Build opt-in search-only profiling counters" OFF)
 
+option(FORGE_ATTACKS_INIT_ONCE "Synchronize the first attack-table initialization" OFF)
+
 add_library(forge_core
     src/bitboard.cpp
     src/board.cpp
     src/book.cpp
+    src/datagen.cpp
     src/eval.cpp
     src/eval_params.cpp
     src/nnue.cpp
@@ -54,6 +57,53 @@ if(FORGE_PROF)
     target_compile_definitions(forge_core PUBLIC FORGE_PROF=1)
 endif()
 
+# S04fix cold-init probe (compile switch FORGE_ATTACKS_INIT_ONCE), default OFF.
+if(FORGE_ATTACKS_INIT_ONCE)
+    target_compile_definitions(forge_core PRIVATE FORGE_ATTACKS_INIT_ONCE=1)
+    # Cold first-Board test: the real Board and attack-table code is compiled into the test itself (not
+    # forge_core), so no Board or attacks::init call runs before its eight threads meet at the barrier, and
+    # the TSan variant coexists with an ASan/UBSan engine profile.
+    # Linux GNU/Clang: ThreadSanitizer variant (Sol's target). Other toolchains (MinGW g++ on the PC, which
+    # has no TSan; MSVC): the same source uninstrumented. It still checks every worker's perft/FEN results in
+    # each fresh process, so a cold-init race that hands out half-built tables fails it.
+    if(CMAKE_SYSTEM_NAME STREQUAL "Linux" AND CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
+        set(FORGE_S04_COLD_TARGET forge_sol_S04_cold_tsan_test_20261025)
+        set(FORGE_S04_COLD_LABELS "cold-init;tsan")
+    else()
+        set(FORGE_S04_COLD_TARGET forge_sol_S04_cold_test_native)
+        set(FORGE_S04_COLD_LABELS "cold-init;native")
+    endif()
+    add_executable(${FORGE_S04_COLD_TARGET}
+        tests/forge_sol_S04_tsan_test_20261025.cpp
+        src/bitboard.cpp src/board.cpp)
+    target_include_directories(${FORGE_S04_COLD_TARGET} PRIVATE include)
+    target_compile_features(${FORGE_S04_COLD_TARGET} PRIVATE cxx_std_20)
+    target_compile_definitions(${FORGE_S04_COLD_TARGET} PRIVATE FORGE_ATTACKS_INIT_ONCE=1)
+    target_link_libraries(${FORGE_S04_COLD_TARGET} PRIVATE Threads::Threads)
+    if(FORGE_S04_COLD_TARGET STREQUAL "forge_sol_S04_cold_tsan_test_20261025")
+        target_compile_options(${FORGE_S04_COLD_TARGET} PRIVATE
+            -O1 -g1 -fsanitize=thread -fno-omit-frame-pointer)
+        target_link_options(${FORGE_S04_COLD_TARGET} PRIVATE -fsanitize=thread)
+    endif()
+    enable_testing()
+    add_test(NAME ${FORGE_S04_COLD_TARGET} COMMAND ${FORGE_S04_COLD_TARGET})
+    # S04-2: an explicit TIMEOUT, so a hung first initialization (e.g. a call_once deadlock) fails this test
+    # after 120 s instead of blocking ctest until the global --timeout or the CI job cap.
+    set_tests_properties(${FORGE_S04_COLD_TARGET} PROPERTIES
+        RUN_SERIAL TRUE TIMEOUT 120 LABELS "${FORGE_S04_COLD_LABELS}")
+    # S04-1: the 1000-iteration cold-start probe as a ctest target: FORGE_S04_COLD_PROBE_RUNS fresh processes
+    # of the cold test (driver tests/forge_sol_S04_cold_probe.cmake, stops at the first failing process).
+    # Its TIMEOUT (3 s per process + 120 s) overrides ctest's --timeout default, which would cut it off.
+    set(FORGE_S04_COLD_PROBE_RUNS 1000 CACHE STRING "Fresh processes in the S04 cold-start probe test")
+    math(EXPR FORGE_S04_COLD_PROBE_TIMEOUT "${FORGE_S04_COLD_PROBE_RUNS} * 3 + 120")
+    add_test(NAME forge_sol_S04_cold_probe
+        COMMAND ${CMAKE_COMMAND} -DEXE=$<TARGET_FILE:${FORGE_S04_COLD_TARGET}>
+                -DRUNS=${FORGE_S04_COLD_PROBE_RUNS}
+                -P ${CMAKE_CURRENT_SOURCE_DIR}/tests/forge_sol_S04_cold_probe.cmake)
+    set_tests_properties(forge_sol_S04_cold_probe PROPERTIES
+        RUN_SERIAL TRUE TIMEOUT ${FORGE_S04_COLD_PROBE_TIMEOUT} LABELS "${FORGE_S04_COLD_LABELS};cold-probe")
+endif()
+
 if(MSVC)
     target_compile_options(forge_core PRIVATE /W4 /permissive-)
 else()
@@ -81,6 +131,19 @@ endif()
 add_executable(forge_debughooks src/uci.cpp)
 target_link_libraries(forge_debughooks PRIVATE forge_core Threads::Threads)
 target_compile_definitions(forge_debughooks PRIVATE FORGE_DEBUG_HOOKS=1)
+
+# S32 self-play datagen v2 ("forge datagen ..."). Default OFF: forge is then the unchanged engine
+# (datagen.cpp sits in the static forge_core but is not linked into it). forge_datagen is the same
+# engine with the command enabled, always built so CTest/CI exercise the datagen path.
+option(FORGE_DATAGEN "Enable the 'forge datagen' self-play command line mode in the forge executable" OFF)
+if(FORGE_DATAGEN)
+    target_compile_definitions(forge PRIVATE FORGE_DATAGEN=1)
+endif()
+add_executable(forge_datagen src/uci.cpp)
+target_link_libraries(forge_datagen PRIVATE forge_core Threads::Threads)
+target_compile_definitions(forge_datagen PRIVATE FORGE_DATAGEN=1)
+add_executable(forge_datagen_tests tests/datagen_tests.cpp)
+target_link_libraries(forge_datagen_tests PRIVATE forge_core Threads::Threads)
 
 add_executable(forge_tests tests/tests.cpp)
 target_link_libraries(forge_tests PRIVATE forge_core Threads::Threads)
@@ -207,6 +270,11 @@ target_link_libraries(forge_hist_rework_tests PRIVATE forge_core Threads::Thread
 add_executable(forge_bench bench/benchmark.cpp)
 target_link_libraries(forge_bench PRIVATE forge_core Threads::Threads)
 
+# S37: NNUE inference microbench (its own target; the forge executable is unchanged). CTest runs the
+# consistency checks only (replica == engine output, incremental == refresh, whole eval == HCE + net).
+add_executable(forge_nnue_microbench tools/nnue_microbench.cpp)
+target_link_libraries(forge_nnue_microbench PRIVATE forge_core Threads::Threads)
+
 enable_testing()
 if(FORGE_PROF)
     add_executable(forge_prof_tests tests/prof_tests.cpp)
@@ -248,6 +316,9 @@ add_test(NAME forge_tt_prefetch_probe COMMAND forge_tt_prefetch_probe)
 add_test(NAME forge_material_key_tests COMMAND forge_material_key_tests
     ${CMAKE_CURRENT_SOURCE_DIR}/tools/openings/forge-10000.epd)
 add_test(NAME forge_net_scale_tests COMMAND forge_net_scale_tests)
+add_test(NAME forge_datagen_tests COMMAND forge_datagen_tests ${CMAKE_CURRENT_BINARY_DIR}/datagen_unit)
+add_test(NAME forge_nnue_microbench_check COMMAND forge_nnue_microbench --check-only --positions 2000
+    --wac ${CMAKE_CURRENT_SOURCE_DIR}/tools/nnue_microbench_wac300.epd)
 add_test(NAME forge_legal_witness_tests COMMAND forge_legal_witness_tests
     ${CMAKE_CURRENT_SOURCE_DIR}/tests/legal_witness_fixtures.tsv
     ${CMAKE_CURRENT_SOURCE_DIR}/tools/openings/forge-10000.epd)
@@ -306,4 +377,7 @@ if(Python3_Interpreter_FOUND)
     add_test(NAME ownbook_regression
         COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tools/ownbook_regression.py
                 $<TARGET_FILE:forge> ${CMAKE_CURRENT_BINARY_DIR}/ownbook-regression.json)
+    add_test(NAME datagen_cli_tests
+        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/datagen_cli_tests.py
+                $<TARGET_FILE:forge_datagen> ${CMAKE_CURRENT_BINARY_DIR}/datagen_cli)
 endif()

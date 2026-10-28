@@ -1,0 +1,1287 @@
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index 915039a4..d7fd5ba5 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -10,6 +10,7 @@ add_library(forge_core
+     src/bitboard.cpp
+     src/board.cpp
+     src/book.cpp
++    src/datagen.cpp
+     src/eval.cpp
+     src/eval_params.cpp
+     src/nnue.cpp
+@@ -40,6 +41,19 @@ if(FORGE_EXPOSE_TUNABLES)
+     target_compile_definitions(forge PRIVATE FORGE_EXPOSE_TUNABLES=1)
+ endif()
+ 
++# S32 self-play datagen v2 ("forge datagen ..."). Default OFF: forge is then the unchanged engine
++# (datagen.cpp sits in the static forge_core but is not linked into it). forge_datagen is the same
++# engine with the command enabled, always built so CTest/CI exercise the datagen path.
++option(FORGE_DATAGEN "Enable the 'forge datagen' self-play command line mode in the forge executable" OFF)
++if(FORGE_DATAGEN)
++    target_compile_definitions(forge PRIVATE FORGE_DATAGEN=1)
++endif()
++add_executable(forge_datagen src/uci.cpp)
++target_link_libraries(forge_datagen PRIVATE forge_core Threads::Threads)
++target_compile_definitions(forge_datagen PRIVATE FORGE_DATAGEN=1)
++add_executable(forge_datagen_tests tests/datagen_tests.cpp)
++target_link_libraries(forge_datagen_tests PRIVATE forge_core Threads::Threads)
++
+ add_executable(forge_tests tests/tests.cpp)
+ target_link_libraries(forge_tests PRIVATE forge_core Threads::Threads)
+ 
+@@ -79,6 +93,7 @@ add_test(NAME forge_nearest_pawn_tests COMMAND forge_nearest_pawn_tests)
+ add_test(NAME forge_pv_metadata_tests COMMAND forge_pv_metadata_tests)
+ add_test(NAME forge_tt_tests COMMAND forge_tt_tests)
+ add_test(NAME forge_rule50_tests COMMAND forge_rule50_tests)
++add_test(NAME forge_datagen_tests COMMAND forge_datagen_tests ${CMAKE_CURRENT_BINARY_DIR}/datagen_unit)
+ add_test(NAME forge_legal_witness_tests COMMAND forge_legal_witness_tests
+     ${CMAKE_CURRENT_SOURCE_DIR}/tests/legal_witness_fixtures.tsv
+     ${CMAKE_CURRENT_SOURCE_DIR}/tools/openings/forge-10000.epd)
+@@ -115,4 +130,7 @@ if(Python3_Interpreter_FOUND)
+     add_test(NAME ownbook_regression
+         COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tools/ownbook_regression.py
+                 $<TARGET_FILE:forge> ${CMAKE_CURRENT_BINARY_DIR}/ownbook-regression.json)
++    add_test(NAME datagen_cli_tests
++        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/datagen_cli_tests.py
++                $<TARGET_FILE:forge_datagen> ${CMAKE_CURRENT_BINARY_DIR}/datagen_cli)
+ endif()
+diff --git a/include/forge/datagen.hpp b/include/forge/datagen.hpp
+new file mode 100644
+index 00000000..06c3302b
+--- /dev/null
++++ b/include/forge/datagen.hpp
+@@ -0,0 +1,140 @@
++#pragma once
++
++// S32 self-play datagen v2: fixed-node self-play inside the engine process, written directly in the
++// residual trainer's .pos (FPOS v1) / .hce (FHCE v1) format (record layout: fen2bin.cpp and
++// hce_dump.cpp of the lock archive, read by train_resid_v3b.py load_set/load_set_mmap).
++//
++// The code is part of forge_core. The engine executable exposes it only when it is compiled with
++// FORGE_DATAGEN (command line "forge datagen ..."); the UCI loop is identical with or without it.
++// Game rules, record filters and labels follow nnue/forge-nnue-tools/forge_selfplay.py (play_game,
++// terminal_result, decisive_side, eligible_score), so the same opening gives the same game.
++
++#include "forge/board.hpp"
++
++#include <array>
++#include <cstdint>
++#include <optional>
++#include <string>
++#include <utility>
++#include <vector>
++
++namespace forge {
++class Searcher;
++}
++
++namespace forge::datagen {
++
++// FPOS board: 64 nibbles, square s (a1 = 0 .. h8 = 63) in byte s >> 1, low nibble for even s;
++// 0 empty, 1..6 white P N B R Q K, 7..12 black p n b r q k (the forge::Piece values).
++using PackedBoard = std::array<std::uint8_t, 32>;
++[[nodiscard]] PackedBoard pack_board(const Board& board);
++
++// FPOS meta byte: bit 0 = black to move, bits 1-2 = White's result * 2 (0 loss, 1 draw, 2 win).
++[[nodiscard]] constexpr std::uint8_t pack_meta(Color side_to_move, int white_result_x2) {
++    return static_cast<std::uint8_t>((side_to_move == Black ? 1 : 0) | (white_result_x2 << 1));
++}
++
++struct Record {
++    PackedBoard board{};
++    std::int16_t score = 0; // search score, side to move's view, centipawns
++    std::int16_t hce = 0;   // Evaluator::evaluate_uncached, side to move's view, clamped to +-32767
++    std::uint8_t meta = 0;  // pack_meta(); the result bits are filled in when the game ends
++    std::string fen;        // kept only for the optional text output
++};
++
++enum class Termination { Checkmate, Stalemate, Insufficient, Repetition, FiftyMoves, MaxPly, AdjudicatedWin, AdjudicatedDraw };
++[[nodiscard]] const char* termination_name(Termination termination);
++
++struct Config {
++    std::uint64_t nodes = 5000;     // fixed-node search per move ("go nodes"), used when depth == 0
++    int depth = 0;                  // fixed-depth search per move ("go depth") when > 0
++    int random_plies = 8;           // uniformly random legal opening moves before the first search
++    int max_ply = 300;              // game ply (from the move counters) that ends the game as a draw
++    int win_cp = 2000;              // win adjudication: |White-view score| >= win_cp ...
++    int win_plies = 4;              // ... for this many consecutive searched plies, same side (0 = off)
++    int draw_cp = 0;                // draw adjudication: |score| <= draw_cp ...
++    int draw_plies = 0;             // ... for this many consecutive searched plies (0 = off, the default)
++    int draw_min_ply = 0;           // ... once the game ply is at least this
++    int max_score = 3000;           // positions with |score| > max_score are not recorded
++    std::uint64_t games = 0;        // stop after this many completed games (0 = no game limit)
++    std::uint64_t positions = 0;    // stop after the game that reaches this many records (0 = no limit)
++    std::uint64_t seed = 1;
++    std::size_t hash_mb = 16;
++    std::uint64_t positions_per_file = 1000000; // a shard is closed after the game that reaches this
++    std::string out;                // output prefix: <out>_NNN.pos/.hce[/.txt]/.info, <out>.games
++    bool text = false;              // also write "FEN | score | result" lines (forge_selfplay.py text)
++    std::string openings;           // optional EPD/FEN start positions, one per line (default startpos)
++    std::string convert;            // convert mode: "FEN | score | result" text file -> .pos/.hce
++};
++
++struct Game {
++    std::vector<Move> opening;      // the random plies
++    std::vector<Move> moves;        // the searched plies
++    std::vector<Record> records;    // eligible positions, meta result bits already set
++    int white_result_x2 = 1;
++    Termination termination = Termination::MaxPly;
++};
++
++// SplitMix64 (Steele, Lea, Flood 2014); fully specified, so a seed reproduces on every platform.
++class Rng {
++public:
++    explicit Rng(std::uint64_t seed) : state_(seed) {}
++    std::uint64_t next();
++    // Uniform enough for move choice (n <= 256): next() % n.
++    std::uint64_t below(std::uint64_t n) { return next() % n; }
++private:
++    std::uint64_t state_;
++};
++
++// Seed of game attempt `index`: games are independent of each other and of the process count.
++[[nodiscard]] std::uint64_t game_seed(std::uint64_t run_seed, std::uint64_t index);
++
++// Ply implied by the move counters (forge_selfplay.py uses python-chess Board.ply()).
++[[nodiscard]] int game_ply(const Board& board);
++
++// forge_selfplay.py terminal_result(): White's result * 2 and why, or nullopt while the game goes on.
++[[nodiscard]] std::optional<std::pair<int, Termination>> terminal(const Board& board, int max_ply);
++
++// Plays one game from `start`. nullopt when the random opening already ended the game (such an
++// attempt yields no samples, as in forge_selfplay.py). Throws std::runtime_error on an engine fault.
++[[nodiscard]] std::optional<Game> play_game(Searcher& searcher, const Config& config, const Board& start, Rng& rng);
++
++// Shard output. Each file is written as "<name>.part" (exclusive create, fails if it exists),
++// then renamed to "<name>" without replacing an existing file; the .pos is published last, so a
++// .pos without .part means a complete shard. Several processes may write into one directory as
++// long as their prefixes differ; a reused prefix fails before any data is written.
++class ShardWriter {
++public:
++    ShardWriter(std::string prefix, std::uint64_t positions_per_file, bool text, std::string info);
++    void add(Record record);
++    // Closes the current shard if it reached positions_per_file (call between games).
++    void maybe_close();
++    // Closes the current shard if it holds any record.
++    void close();
++    [[nodiscard]] std::uint64_t written() const { return written_; }
++    [[nodiscard]] std::uint64_t shards() const { return shard_index_; }
++    [[nodiscard]] std::size_t pending() const { return records_.size(); }
++private:
++    std::string prefix_;
++    std::uint64_t positions_per_file_;
++    bool text_;
++    std::string info_;
++    std::vector<Record> records_;
++    std::uint64_t shard_index_ = 0;
++    std::uint64_t written_ = 0;
++};
++
++[[nodiscard]] std::string shard_name(const std::string& prefix, std::uint64_t index);
++// Bytes of the .pos / .hce file for these records (little endian, as fen2bin / hce_dump).
++[[nodiscard]] std::string pos_bytes(const std::vector<Record>& records);
++[[nodiscard]] std::string hce_bytes(const std::vector<Record>& records);
++// Writes `bytes` to `path` via "<path>.part"; throws std::runtime_error if either name exists.
++void write_new_file(const std::string& path, const std::string& bytes);
++
++// One "FEN | score | result" line -> record (fen2bin + hce_dump semantics); nullopt if invalid.
++[[nodiscard]] std::optional<Record> parse_text_record(const std::string& line);
++
++// "forge datagen <options>" (argv excludes the program name and "datagen"); returns the exit code.
++int run(int argc, const char* const* argv);
++
++} // namespace forge::datagen
+diff --git a/src/datagen.cpp b/src/datagen.cpp
+new file mode 100644
+index 00000000..cb1bcb74
+--- /dev/null
++++ b/src/datagen.cpp
+@@ -0,0 +1,571 @@
++#include "forge/datagen.hpp"
++
++#include "forge/eval.hpp"
++#include "forge/search.hpp"
++
++#include <algorithm>
++#include <charconv>
++#include <chrono>
++#include <cstdio>
++#include <cstdlib>
++#include <filesystem>
++#include <fstream>
++#include <iomanip>
++#include <iostream>
++#include <sstream>
++#include <stdexcept>
++#include <string_view>
++#include <system_error>
++
++#if defined(_WIN32)
++#include <io.h>
++#else
++#include <unistd.h>
++#endif
++
++namespace forge::datagen {
++
++PackedBoard pack_board(const Board& board) {
++    PackedBoard packed{};
++    for (int square = 0; square < 64; ++square) {
++        const auto code = static_cast<unsigned>(board.piece_at(square));
++        auto& byte = packed[static_cast<std::size_t>(square >> 1)];
++        byte = static_cast<std::uint8_t>(byte | ((square & 1) != 0 ? code << 4U : code));
++    }
++    return packed;
++}
++
++const char* termination_name(Termination termination) {
++    switch (termination) {
++        case Termination::Checkmate: return "checkmate";
++        case Termination::Stalemate: return "stalemate";
++        case Termination::Insufficient: return "insufficient";
++        case Termination::Repetition: return "repetition";
++        case Termination::FiftyMoves: return "fifty";
++        case Termination::MaxPly: return "max_ply";
++        case Termination::AdjudicatedWin: return "adj_win";
++        case Termination::AdjudicatedDraw: return "adj_draw";
++    }
++    return "unknown";
++}
++
++std::uint64_t Rng::next() {
++    std::uint64_t z = (state_ += 0x9E3779B97F4A7C15ULL);
++    z = (z ^ (z >> 30U)) * 0xBF58476D1CE4E5B9ULL;
++    z = (z ^ (z >> 27U)) * 0x94D049BB133111EBULL;
++    return z ^ (z >> 31U);
++}
++
++std::uint64_t game_seed(std::uint64_t run_seed, std::uint64_t index) {
++    Rng mix(run_seed ^ (index * 0xD1B54A32D192ED03ULL));
++    return mix.next();
++}
++
++int game_ply(const Board& board) {
++    return 2 * (board.fullmove_number() - 1) + (board.side_to_move() == Black ? 1 : 0);
++}
++
++std::optional<std::pair<int, Termination>> terminal(const Board& board, int max_ply) {
++    // Same order and outcome as forge_selfplay.py terminal_result(): checkmate first, then the draws.
++    const bool any_legal = board.has_legal_move();
++    if (!any_legal && board.in_check()) return std::pair{board.side_to_move() == White ? 0 : 2, Termination::Checkmate};
++    if (!any_legal) return std::pair{1, Termination::Stalemate};
++    if (board.is_insufficient_material()) return std::pair{1, Termination::Insufficient};
++    if (board.is_repetition()) return std::pair{1, Termination::Repetition};
++    if (board.halfmove_clock() >= 100) return std::pair{1, Termination::FiftyMoves};
++    if (game_ply(board) >= max_ply) return std::pair{1, Termination::MaxPly};
++    return std::nullopt;
++}
++
++std::optional<Game> play_game(Searcher& searcher, const Config& config, const Board& start, Rng& rng) {
++    Board board = start;
++    Game game;
++    for (int ply = 0; ply < config.random_plies; ++ply) {
++        if (terminal(board, config.max_ply)) return std::nullopt;
++        const MoveList moves = board.legal_moves();
++        const Move move = moves[static_cast<std::size_t>(rng.below(moves.size()))];
++        Undo undo;
++        if (!board.make_move(move, undo)) throw std::runtime_error("random opening move rejected");
++        game.opening.push_back(move);
++    }
++    if (terminal(board, config.max_ply)) return std::nullopt;
++
++    SearchLimits limits;
++    if (config.depth > 0) {
++        limits.depth = config.depth;
++    } else {
++        limits.nodes = config.nodes;
++        limits.nodes_specified = true;
++    }
++    // As "ucinewgame": empty table (generation 0), histories and evaluation caches.
++    searcher.clear();
++
++    auto finish = [&game](int white_result_x2, Termination why) {
++        game.white_result_x2 = white_result_x2;
++        game.termination = why;
++        for (Record& record : game.records) {
++            record.meta = static_cast<std::uint8_t>((record.meta & 1U) | (static_cast<unsigned>(white_result_x2) << 1U));
++        }
++    };
++    std::optional<Color> winner;
++    int win_streak = 0;
++    int draw_streak = 0;
++    while (true) {
++        if (const auto end = terminal(board, config.max_ply)) {
++            finish(end->first, end->second);
++            return game;
++        }
++        const SearchInfo info = searcher.search(board, limits, false, Searcher::TTAccess::Exclusive);
++        const Move move = info.best_move;
++        const MoveList legal = board.legal_moves();
++        if (move.is_none() || std::find(legal.begin(), legal.end(), move) == legal.end()) {
++            throw std::runtime_error("search returned no legal best move in " + board.fen());
++        }
++        const int score = info.score;
++        const Color side = board.side_to_move();
++        const bool mate = is_mate_score(score);
++        // forge_selfplay.py eligible_score(): quiet best move, not in check, no mate score, |cp| <= max.
++        if (!board.in_check() && !move.is_capture() && !move.is_promotion() && !mate &&
++            std::abs(score) <= config.max_score) {
++            Record record;
++            record.board = pack_board(board);
++            record.score = static_cast<std::int16_t>(score);
++            record.hce = static_cast<std::int16_t>(std::clamp(Evaluator::evaluate_uncached(board), -32767, 32767));
++            record.meta = pack_meta(side, 0);
++            if (config.text) record.fen = board.fen();
++            game.records.push_back(std::move(record));
++        }
++        // forge_selfplay.py decisive_side() + streak: the same side ahead by win_cp, White's view.
++        const int white_view = side == White ? score : -score;
++        std::optional<Color> ahead;
++        if (white_view >= config.win_cp) ahead = White;
++        else if (white_view <= -config.win_cp) ahead = Black;
++        win_streak = ahead.has_value() ? (ahead == winner ? win_streak + 1 : 1) : 0;
++        winner = ahead;
++        draw_streak = !mate && std::abs(score) <= config.draw_cp ? draw_streak + 1 : 0;
++
++        Undo undo;
++        if (!board.make_move(move, undo)) throw std::runtime_error("best move rejected by make_move");
++        game.moves.push_back(move);
++        if (const auto end = terminal(board, config.max_ply)) {
++            finish(end->first, end->second);
++            return game;
++        }
++        if (config.win_plies > 0 && win_streak >= config.win_plies) {
++            finish(winner == White ? 2 : 0, Termination::AdjudicatedWin);
++            return game;
++        }
++        if (config.draw_plies > 0 && draw_streak >= config.draw_plies && game_ply(board) >= config.draw_min_ply) {
++            finish(1, Termination::AdjudicatedDraw);
++            return game;
++        }
++    }
++}
++
++// ---------------------------------------------------------------------------------------------
++// Output
++
++namespace {
++
++void append_le(std::string& out, std::uint64_t value, int bytes) {
++    for (int i = 0; i < bytes; ++i) out.push_back(static_cast<char>((value >> (8 * i)) & 0xFFU));
++}
++
++const char* result_text(int white_result_x2) {
++    return white_result_x2 == 2 ? "1.0" : (white_result_x2 == 1 ? "0.5" : "0.0");
++}
++
++const char* result_pgn(int white_result_x2) {
++    return white_result_x2 == 2 ? "1-0" : (white_result_x2 == 1 ? "1/2-1/2" : "0-1");
++}
++
++std::string text_bytes(const std::vector<Record>& records) {
++    std::string out;
++    for (const Record& record : records) {
++        out += record.fen;
++        out += " | ";
++        out += std::to_string(record.score);
++        out += " | ";
++        out += result_text(record.meta >> 1U);
++        out += '\n';
++    }
++    return out;
++}
++
++void sync_and_close(std::FILE* file, const std::string& name) {
++    bool ok = std::fflush(file) == 0;
++#if defined(_WIN32)
++    ok = ok && _commit(_fileno(file)) == 0;
++#else
++    ok = ok && fsync(fileno(file)) == 0;
++#endif
++    ok = std::fclose(file) == 0 && ok;
++    if (!ok) throw std::runtime_error("cannot flush " + name);
++}
++
++// Publishes <part> as <path> without ever replacing an existing <path>.
++void publish(const std::string& part, const std::string& path) {
++#if defined(_WIN32)
++    if (std::rename(part.c_str(), path.c_str()) != 0) {  // Windows rename fails if <path> exists
++        throw std::runtime_error("cannot publish " + path + " (exists?)");
++    }
++#else
++    if (::link(part.c_str(), path.c_str()) != 0) {  // link never replaces <path>
++        throw std::runtime_error("cannot publish " + path + " (exists?)");
++    }
++    (void)::unlink(part.c_str());
++#endif
++}
++
++std::FILE* create_new(const std::string& part) {
++    std::FILE* file = std::fopen(part.c_str(), "wbx");  // exclusive create (C11 "x")
++    if (file == nullptr) throw std::runtime_error("cannot create " + part + " (exists or not writable)");
++    return file;
++}
++
++// The run log (<out>.games or <out>.convert). Its exclusive .part is the prefix claim: a second
++// process with the same prefix fails here, before writing any data.
++class RunLog {
++public:
++    explicit RunLog(std::string path) : path_(std::move(path)) {
++        if (std::filesystem::exists(path_)) throw std::runtime_error("refusing to reuse prefix: " + path_ + " exists");
++        const std::filesystem::path parent = std::filesystem::path(path_).parent_path();
++        if (!parent.empty()) std::filesystem::create_directories(parent);
++        file_ = create_new(path_ + ".part");
++    }
++    ~RunLog() {
++        if (file_ != nullptr) std::fclose(file_);  // unpublished: the .part marks an unfinished run
++    }
++    RunLog(const RunLog&) = delete;
++    RunLog& operator=(const RunLog&) = delete;
++    void write(const std::string& text) {
++        if (std::fwrite(text.data(), 1, text.size(), file_) != text.size()) throw std::runtime_error("cannot write " + path_);
++    }
++    void publish_log() {
++        std::FILE* file = file_;
++        file_ = nullptr;
++        sync_and_close(file, path_);
++        publish(path_ + ".part", path_);
++    }
++private:
++    std::string path_;
++    std::FILE* file_ = nullptr;
++};
++
++} // namespace
++
++void write_new_file(const std::string& path, const std::string& bytes) {
++    if (std::filesystem::exists(path)) throw std::runtime_error("refusing to overwrite " + path);
++    const std::string part = path + ".part";
++    std::FILE* file = create_new(part);
++    if (std::fwrite(bytes.data(), 1, bytes.size(), file) != bytes.size()) {
++        std::fclose(file);
++        throw std::runtime_error("cannot write " + part);
++    }
++    sync_and_close(file, part);
++    publish(part, path);
++}
++
++std::string shard_name(const std::string& prefix, std::uint64_t index) {
++    std::ostringstream name;
++    name << prefix << '_' << std::setw(3) << std::setfill('0') << index;
++    return name.str();
++}
++
++std::string pos_bytes(const std::vector<Record>& records) {
++    const std::uint64_t n = records.size();
++    std::string out;
++    out.reserve(static_cast<std::size_t>(16 + 35 * n));
++    out.append("FPOS", 4);
++    append_le(out, 1, 4);
++    append_le(out, n, 8);
++    for (const Record& record : records) out.append(reinterpret_cast<const char*>(record.board.data()), record.board.size());
++    for (const Record& record : records) append_le(out, static_cast<std::uint16_t>(record.score), 2);
++    for (const Record& record : records) out.push_back(static_cast<char>(record.meta));
++    return out;
++}
++
++std::string hce_bytes(const std::vector<Record>& records) {
++    const std::uint64_t n = records.size();
++    std::string out;
++    out.reserve(static_cast<std::size_t>(16 + 2 * n));
++    out.append("FHCE", 4);
++    append_le(out, 1, 4);
++    append_le(out, n, 8);
++    for (const Record& record : records) append_le(out, static_cast<std::uint16_t>(record.hce), 2);
++    return out;
++}
++
++ShardWriter::ShardWriter(std::string prefix, std::uint64_t positions_per_file, bool text, std::string info)
++    : prefix_(std::move(prefix)), positions_per_file_(std::max<std::uint64_t>(1, positions_per_file)), text_(text),
++      info_(std::move(info)) {}
++
++void ShardWriter::add(Record record) { records_.push_back(std::move(record)); }
++
++void ShardWriter::maybe_close() {
++    if (records_.size() >= positions_per_file_) close();
++}
++
++void ShardWriter::close() {
++    if (records_.empty()) return;
++    const std::string base = shard_name(prefix_, shard_index_);
++    write_new_file(base + ".hce", hce_bytes(records_));
++    if (text_) write_new_file(base + ".txt", text_bytes(records_));
++    write_new_file(base + ".info", info_ + "records=" + std::to_string(records_.size()) + "\n");
++    write_new_file(base + ".pos", pos_bytes(records_));  // last: a .pos means a complete shard
++    written_ += records_.size();
++    ++shard_index_;
++    records_.clear();
++}
++
++std::optional<Record> parse_text_record(const std::string& raw) {
++    // fen2bin.cpp: "FEN | score | result", score int in [-32767, 32767], result 0 / 0.5 / 1 (White).
++    // hce_dump.cpp: FEN = text before the first '|', trailing blanks removed, Board::set_fen.
++    std::string line = raw;
++    if (!line.empty() && line.back() == '\r') line.pop_back();
++    const std::size_t first = line.find('|');
++    if (first == std::string::npos) return std::nullopt;
++    const std::size_t second = line.find('|', first + 1);
++    if (second == std::string::npos) return std::nullopt;
++    std::string fen = line.substr(0, first);
++    while (!fen.empty() && (fen.back() == ' ' || fen.back() == '\t')) fen.pop_back();
++    Board board;
++    if (!board.set_fen(fen)) return std::nullopt;
++    const std::string score_text = line.substr(first + 1, second - first - 1);
++    char* end = nullptr;
++    const long score = std::strtol(score_text.c_str(), &end, 10);
++    if (end == score_text.c_str() || score < -32767 || score > 32767) return std::nullopt;
++    const std::string result_field = line.substr(second + 1);
++    const double result = std::strtod(result_field.c_str(), &end);
++    if (end == result_field.c_str()) return std::nullopt;
++    int white_result_x2 = 0;
++    if (result == 0.0) white_result_x2 = 0;
++    else if (result == 0.5) white_result_x2 = 1;
++    else if (result == 1.0) white_result_x2 = 2;
++    else return std::nullopt;
++    Record record;
++    record.board = pack_board(board);
++    record.score = static_cast<std::int16_t>(score);
++    record.hce = static_cast<std::int16_t>(std::clamp(Evaluator::evaluate_uncached(board), -32767, 32767));
++    record.meta = pack_meta(board.side_to_move(), white_result_x2);
++    record.fen = fen;
++    return record;
++}
++
++// ---------------------------------------------------------------------------------------------
++// Command line
++
++namespace {
++
++struct UsageError : std::runtime_error {
++    using std::runtime_error::runtime_error;
++};
++
++constexpr const char* Usage =
++    "usage: forge datagen --out PREFIX (--games N | --positions N) [options]\n"
++    "       forge datagen --out PREFIX --convert TEXT_FILE [--positions-per-file N]\n"
++    "  --nodes N (5000) | --depth D        fixed search budget per move\n"
++    "  --seed S (1)  --hash MB (16)  --random-plies N (8)  --max-ply N (300)  --max-score CP (3000)\n"
++    "  --win-cp CP (2000) --win-plies N (4, 0 = off)   win adjudication (same side, consecutive plies)\n"
++    "  --draw-cp CP (0) --draw-plies N (0 = off) --draw-min-ply N (0)   draw adjudication\n"
++    "  --openings FILE   EPD/FEN start positions (default: the start position)\n"
++    "  --positions-per-file N (1000000)  --text (also write FEN | score | result lines)\n"
++    "Writes <PREFIX>_NNN.pos/.hce (FPOS/FHCE v1), <PREFIX>_NNN.info and <PREFIX>.games; never overwrites.";
++
++template <typename T>
++T parse_number(std::string_view name, std::string_view text, T minimum) {
++    T parsed{};
++    const auto [ptr, ec] = std::from_chars(text.data(), text.data() + text.size(), parsed);
++    if (ec != std::errc{} || ptr != text.data() + text.size() || parsed < minimum) {
++        throw UsageError("invalid value for " + std::string(name) + ": " + std::string(text));
++    }
++    return parsed;
++}
++
++std::vector<Board> load_starts(const std::string& path) {
++    std::vector<Board> starts;
++    if (path.empty()) {
++        Board board;
++        (void)board.set_fen(Board::StandardStartFen);
++        starts.push_back(board);
++        return starts;
++    }
++    std::ifstream in(path, std::ios::binary);
++    if (!in) throw std::runtime_error("cannot open openings file " + path);
++    std::string line;
++    std::size_t number = 0;
++    while (std::getline(in, line)) {
++        ++number;
++        std::istringstream fields(line);
++        std::vector<std::string> tokens;
++        std::string token;
++        while (tokens.size() < 6 && fields >> token) tokens.push_back(token);
++        if (tokens.empty() || tokens[0].front() == '#') continue;
++        if (tokens.size() < 4) throw std::runtime_error(path + ":" + std::to_string(number) + ": not a FEN/EPD line");
++        std::string fen = tokens[0] + ' ' + tokens[1] + ' ' + tokens[2] + ' ' + tokens[3];
++        const bool counters = tokens.size() == 6 &&
++            std::all_of(tokens[4].begin(), tokens[4].end(), [](char c) { return c >= '0' && c <= '9'; }) &&
++            std::all_of(tokens[5].begin(), tokens[5].end(), [](char c) { return c >= '0' && c <= '9'; });
++        fen += counters ? ' ' + tokens[4] + ' ' + tokens[5] : std::string(" 0 1");
++        Board board;
++        std::string error;
++        if (!board.set_fen(fen, &error)) throw std::runtime_error(path + ":" + std::to_string(number) + ": " + error);
++        starts.push_back(board);
++    }
++    if (starts.empty()) throw std::runtime_error("no positions in openings file " + path);
++    return starts;
++}
++
++std::string config_text(const Config& config) {
++    std::ostringstream text;
++    text << "format=FPOS v1 (.pos) + FHCE v1 (.hce, Evaluator::evaluate_uncached), forge datagen v2 (S32)\n";
++    if (!config.convert.empty()) {
++        text << "mode=convert\n";
++        return text.str();
++    }
++    text << "mode=selfplay\nseed=" << config.seed << "\nbudget=" << (config.depth > 0 ? "depth " : "nodes ")
++         << (config.depth > 0 ? static_cast<std::uint64_t>(config.depth) : config.nodes) << "\nhash_mb=" << config.hash_mb
++         << "\nrandom_plies=" << config.random_plies << "\nmax_ply=" << config.max_ply << "\nwin_cp=" << config.win_cp
++         << "\nwin_plies=" << config.win_plies << "\ndraw_cp=" << config.draw_cp << "\ndraw_plies=" << config.draw_plies
++         << "\ndraw_min_ply=" << config.draw_min_ply << "\nmax_score=" << config.max_score
++         << "\nopenings=" << (config.openings.empty() ? std::string("startpos") : std::filesystem::path(config.openings).filename().string())
++         << '\n';
++    return text.str();
++}
++
++double seconds_since(std::chrono::steady_clock::time_point start) {
++    return std::chrono::duration<double>(std::chrono::steady_clock::now() - start).count();
++}
++
++int generate(const Config& config) {
++    const std::vector<Board> starts = load_starts(config.openings);
++    const auto started = std::chrono::steady_clock::now();
++    RunLog log(config.out + ".games");
++    const std::string info = config_text(config);
++    std::istringstream header(info);
++    for (std::string line; std::getline(header, line);) log.write("# " + line + '\n');
++    log.write("# game\tattempt\tstart\tresult\ttermination\trecords\topening\tmoves\n");
++    ShardWriter writer(config.out, config.positions_per_file, config.text, info);
++    Searcher searcher(config.hash_mb, 1);
++    std::uint64_t attempts = 0;
++    std::uint64_t games = 0;
++    std::uint64_t plies = 0;
++    std::array<std::uint64_t, 3> results{};
++    std::array<std::uint64_t, 8> terminations{};
++    while ((config.games == 0 || games < config.games) &&
++           (config.positions == 0 || writer.written() + writer.pending() < config.positions)) {
++        if (attempts - games > 100000) throw std::runtime_error("no game survives the random opening");
++        const std::uint64_t index = attempts++;
++        Rng rng(game_seed(config.seed, index));
++        const std::size_t start = starts.size() == 1 ? 0 : static_cast<std::size_t>(rng.below(starts.size()));
++        std::optional<Game> game = play_game(searcher, config, starts[start], rng);
++        if (!game.has_value()) continue;
++        ++games;
++        plies += game->moves.size();
++        ++results[static_cast<std::size_t>(game->white_result_x2)];
++        ++terminations[static_cast<std::size_t>(game->termination)];
++        std::string line = std::to_string(games - 1) + '\t' + std::to_string(index) + '\t' + std::to_string(start) + '\t' +
++                           result_pgn(game->white_result_x2) + '\t' + termination_name(game->termination) + '\t' +
++                           std::to_string(game->records.size()) + '\t';
++        for (std::size_t i = 0; i < game->opening.size(); ++i) line += (i ? " " : "") + Board::move_to_uci(game->opening[i]);
++        line += '\t';
++        for (std::size_t i = 0; i < game->moves.size(); ++i) line += (i ? " " : "") + Board::move_to_uci(game->moves[i]);
++        log.write(line + '\n');
++        for (Record& record : game->records) writer.add(std::move(record));
++        writer.maybe_close();
++    }
++    writer.close();
++    log.publish_log();
++    const double elapsed = seconds_since(started);
++    std::cout << "{\"mode\":\"selfplay\",\"games\":" << games << ",\"attempts\":" << attempts << ",\"positions\":"
++              << writer.written() << ",\"shards\":" << writer.shards() << ",\"searched_plies\":" << plies
++              << ",\"results\":{\"1-0\":" << results[2] << ",\"1/2-1/2\":" << results[1] << ",\"0-1\":" << results[0] << "},\"terminations\":{";
++    for (std::size_t i = 0; i < terminations.size(); ++i) {
++        std::cout << (i ? "," : "") << '"' << termination_name(static_cast<Termination>(i)) << "\":" << terminations[i];
++    }
++    std::cout << "},\"elapsed_s\":" << elapsed << ",\"positions_per_s\":"
++              << (elapsed > 0 ? static_cast<double>(writer.written()) / elapsed : 0.0) << "}" << std::endl;
++    return 0;
++}
++
++int convert(const Config& config) {
++    std::ifstream in(config.convert, std::ios::binary);
++    if (!in) throw std::runtime_error("cannot open " + config.convert);
++    const auto started = std::chrono::steady_clock::now();
++    RunLog log(config.out + ".convert");
++    ShardWriter writer(config.out, config.positions_per_file, false, config_text(config));
++    std::string line;
++    std::uint64_t number = 0;
++    while (std::getline(in, line)) {
++        ++number;
++        std::optional<Record> record = parse_text_record(line);
++        if (!record.has_value()) throw std::runtime_error(config.convert + ":" + std::to_string(number) + ": invalid record");
++        record->fen.clear();
++        writer.add(std::move(*record));
++        writer.maybe_close();
++    }
++    writer.close();
++    log.write("source=" + std::filesystem::path(config.convert).filename().string() + "\nlines=" + std::to_string(number) +
++              "\nrecords=" + std::to_string(writer.written()) + "\nshards=" + std::to_string(writer.shards()) + "\n");
++    log.publish_log();
++    std::cout << "{\"mode\":\"convert\",\"lines\":" << number << ",\"positions\":" << writer.written()
++              << ",\"shards\":" << writer.shards() << ",\"elapsed_s\":" << seconds_since(started) << "}" << std::endl;
++    return 0;
++}
++
++} // namespace
++
++int run(int argc, const char* const* argv) {
++    Config config;
++    try {
++        for (int i = 0; i < argc; ++i) {
++            const std::string_view arg = argv[i];
++            auto next = [&]() -> std::string_view {
++                if (i + 1 >= argc) throw UsageError("missing value for " + std::string(arg));
++                return argv[++i];
++            };
++            if (arg == "--out") config.out = std::string(next());
++            else if (arg == "--convert") config.convert = std::string(next());
++            else if (arg == "--openings") config.openings = std::string(next());
++            else if (arg == "--nodes") config.nodes = parse_number<std::uint64_t>(arg, next(), 1);
++            else if (arg == "--depth") config.depth = parse_number<int>(arg, next(), 1);
++            else if (arg == "--games") config.games = parse_number<std::uint64_t>(arg, next(), 1);
++            else if (arg == "--positions") config.positions = parse_number<std::uint64_t>(arg, next(), 1);
++            else if (arg == "--positions-per-file") config.positions_per_file = parse_number<std::uint64_t>(arg, next(), 1);
++            else if (arg == "--seed") config.seed = parse_number<std::uint64_t>(arg, next(), 0);
++            else if (arg == "--hash") config.hash_mb = parse_number<std::size_t>(arg, next(), 1);
++            else if (arg == "--random-plies") config.random_plies = parse_number<int>(arg, next(), 0);
++            else if (arg == "--max-ply") config.max_ply = parse_number<int>(arg, next(), 1);
++            else if (arg == "--max-score") config.max_score = parse_number<int>(arg, next(), 0);
++            else if (arg == "--win-cp") config.win_cp = parse_number<int>(arg, next(), 1);
++            else if (arg == "--win-plies") config.win_plies = parse_number<int>(arg, next(), 0);
++            else if (arg == "--draw-cp") config.draw_cp = parse_number<int>(arg, next(), 0);
++            else if (arg == "--draw-plies") config.draw_plies = parse_number<int>(arg, next(), 0);
++            else if (arg == "--draw-min-ply") config.draw_min_ply = parse_number<int>(arg, next(), 0);
++            else if (arg == "--text") config.text = true;
++            else if (arg == "--help" || arg == "-h") {
++                std::cout << Usage << std::endl;
++                return 0;
++            } else {
++                throw UsageError("unknown option " + std::string(arg));
++            }
++        }
++        if (config.out.empty()) throw UsageError("--out is required");
++        if (config.convert.empty() && config.games == 0 && config.positions == 0) {
++            throw UsageError("--games or --positions is required");
++        }
++        if (config.max_ply <= config.random_plies) throw UsageError("--max-ply must exceed --random-plies");
++        if (config.hash_mb > 2048) throw UsageError("--hash must be at most 2048");
++    } catch (const UsageError& error) {
++        std::cerr << "datagen: " << error.what() << '\n' << Usage << std::endl;
++        return 2;
++    }
++    try {
++        return config.convert.empty() ? generate(config) : convert(config);
++    } catch (const std::exception& error) {
++        std::cerr << "datagen: " << error.what() << std::endl;
++        return 1;
++    }
++}
++
++} // namespace forge::datagen
+diff --git a/src/uci.cpp b/src/uci.cpp
+index 607adf3a..f5402dc7 100644
+--- a/src/uci.cpp
++++ b/src/uci.cpp
+@@ -3,6 +3,9 @@
+ #include "forge/nnue.hpp"
+ #include "forge/search.hpp"
+ #include "forge/uci_output.hpp"
++#if defined(FORGE_DATAGEN)
++#include "forge/datagen.hpp"
++#endif
+ 
+ #include <algorithm>
+ #include <array>
+@@ -122,7 +125,14 @@ int game_ply(const forge::Board& board) {
+ 
+ } // namespace
+ 
++#if defined(FORGE_DATAGEN)
++// S32 build switch (default off): "forge datagen ..." runs the self-play generator instead of the
++// UCI loop; without arguments, or with any other first argument, the engine is unchanged.
++int main(int argc, char** argv) {
++    if (argc > 1 && std::string_view(argv[1]) == "datagen") return forge::datagen::run(argc - 2, argv + 2);
++#else
+ int main() {
++#endif
+     forge::Board board;
+     forge::Searcher searcher;
+     int move_overhead_ms = 10;
+diff --git a/tests/datagen_cli_tests.py b/tests/datagen_cli_tests.py
+new file mode 100644
+index 00000000..93c431e7
+--- /dev/null
++++ b/tests/datagen_cli_tests.py
+@@ -0,0 +1,145 @@
++#!/usr/bin/env python3
++"""S32 datagen v2 command line tests (standard library only, so CI can run them).
++
++  python3 datagen_cli_tests.py <forge_datagen exe> <scratch dir>
++
++Checks: same seed -> byte-identical files; another seed -> different data; a reused prefix is refused and
++leaves the first run's files untouched; two concurrent processes (distinct prefixes) write exactly what
++sequential runs write; every .pos/.hce record decodes and matches its text line (board nibbles, side to
++move, score, White result); --convert of the text gives byte-identical .pos/.hce; the UCI path of the
++datagen build is unchanged (bench 11 = 312866 nodes); bad command lines exit 2. Files are left in place.
++"""
++from __future__ import annotations
++
++import hashlib
++import json
++import os
++import struct
++import subprocess
++import sys
++import time
++from pathlib import Path
++
++CODES = {c: i + 1 for i, c in enumerate("PNBRQKpnbrqk")}
++FAILURES = 0
++
++
++def check(ok: bool, message: str) -> None:
++    global FAILURES
++    print(("PASS " if ok else "FAIL ") + message, flush=True)
++    if not ok:
++        FAILURES += 1
++
++
++def run(exe: str, *args: str, stdin: str | None = None) -> subprocess.CompletedProcess:
++    return subprocess.run([exe, *args], input=stdin, capture_output=True, text=True, timeout=600)
++
++
++def datagen(exe: str, out: Path, seed: int, games: int = 4) -> subprocess.CompletedProcess:
++    return run(exe, "datagen", "--out", str(out), "--games", str(games), "--nodes", "600", "--seed", str(seed),
++               "--max-ply", "120", "--positions-per-file", "150", "--text")
++
++
++def files(prefix: Path) -> dict[str, bytes]:
++    found = {p.name[len(prefix.name):]: p.read_bytes() for p in prefix.parent.iterdir()
++             if p.name.startswith(prefix.name) and (p.name[len(prefix.name)] in "._")}
++    return dict(sorted(found.items()))
++
++
++def pack_fen(fen: str) -> tuple[bytes, int]:
++    board = bytearray(32)
++    rank, file = 7, 0
++    placement, side = fen.split()[:2]
++    for c in placement:
++        if c == "/":
++            rank, file = rank - 1, 0
++        elif c.isdigit():
++            file += int(c)
++        else:
++            s = rank * 8 + file
++            board[s >> 1] |= CODES[c] << 4 if s & 1 else CODES[c]
++            file += 1
++    return bytes(board), 1 if side == "b" else 0
++
++
++def decode(pos: bytes, hce: bytes) -> list[tuple[bytes, int, int, int]]:
++    magic, version, n = struct.unpack_from("<4sIQ", pos, 0)
++    hmagic, hversion, hn = struct.unpack_from("<4sIQ", hce, 0)
++    assert magic == b"FPOS" and version == 1 and len(pos) == 16 + 35 * n, "bad .pos header/size"
++    assert hmagic == b"FHCE" and hversion == 1 and hn == n and len(hce) == 16 + 2 * n, "bad .hce header/size"
++    scores = struct.unpack_from(f"<{n}h", pos, 16 + 32 * n)
++    hces = struct.unpack_from(f"<{n}h", hce, 16)
++    return [(pos[16 + 32 * i:48 + 32 * i], scores[i], pos[16 + 34 * n + i], hces[i]) for i in range(n)]
++
++
++def main() -> int:
++    exe, base = sys.argv[1], Path(sys.argv[2])
++    d = base / f"run_{time.time_ns()}_{os.getpid()}"
++    d.mkdir(parents=True)
++
++    a = datagen(exe, d / "a", 11)
++    summary = json.loads(a.stdout.strip().splitlines()[-1]) if a.returncode == 0 else {}
++    check(a.returncode == 0 and summary.get("games") == 4 and summary.get("positions", 0) > 0,
++          f"4 games -> exit 0, summary {summary.get('games')} games / {summary.get('positions')} positions")
++    fa = files(d / "a")
++    check(all(k in fa for k in ("_000.pos", "_000.hce", "_000.txt", "_000.info", ".games")) and
++          not any(k.endswith(".part") for k in fa), f"published shard files, no .part ({sorted(fa)})")
++    b = datagen(exe, d / "b", 11)
++    check(b.returncode == 0 and files(d / "b") == fa, "same seed -> byte-identical .pos/.hce/.txt/.info/.games")
++    c = datagen(exe, d / "c", 12)
++    fc = files(d / "c")
++    check(c.returncode == 0 and fc.get("_000.pos") != fa["_000.pos"], "another seed -> different data")
++
++    before = {k: hashlib.sha256(v).hexdigest() for k, v in fa.items()}
++    again = datagen(exe, d / "a", 11)
++    after = {k: hashlib.sha256(v).hexdigest() for k, v in files(d / "a").items()}
++    check(again.returncode == 1 and "refusing" in again.stderr and after == before,
++          "reused prefix -> exit 1, first run's files unchanged")
++
++    p1 = subprocess.Popen([exe, "datagen", "--out", str(d / "p1"), "--games", "4", "--nodes", "600", "--seed", "11",
++                           "--max-ply", "120", "--positions-per-file", "150", "--text"], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
++    p2 = subprocess.Popen([exe, "datagen", "--out", str(d / "p2"), "--games", "4", "--nodes", "600", "--seed", "12",
++                           "--max-ply", "120", "--positions-per-file", "150", "--text"], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
++    r1, r2 = p1.wait(timeout=600), p2.wait(timeout=600)
++    p1.communicate()
++    p2.communicate()
++    check(r1 == 0 and r2 == 0 and files(d / "p1") == fa and files(d / "p2") == fc,
++          "two concurrent processes in one directory == the sequential runs")
++
++    records, text = [], []
++    for shard in sorted(k for k in fa if k.endswith(".pos")):
++        stem = shard[:-4]
++        records += decode(fa[shard], fa[stem + ".hce"])
++        text += fa[stem + ".txt"].decode("ascii").splitlines()
++    ok = len(records) == len(text) == summary.get("positions")
++    for (board, score, meta, hce), line in zip(records, text):
++        fen, s, result = [x.strip() for x in line.split("|")]
++        packed, black = pack_fen(fen)
++        ok = ok and packed == board and (meta & 1) == black and int(s) == score and meta >> 1 == {"0.0": 0, "0.5": 1, "1.0": 2}[result]
++        ok = ok and abs(score) <= 3000 and meta in range(6) and -32767 <= hce <= 32767
++    check(ok, f"{len(records)} records decode and match their text lines (board, side to move, score, result)")
++    games = [ln.split("\t") for ln in fa[".games"].decode("ascii").splitlines() if not ln.startswith("#")]
++    check(len(games) == 4 and sum(int(g[5]) for g in games) == len(records) and
++          all(g[3] in ("1-0", "0-1", "1/2-1/2") and len(g[6].split()) == 8 for g in games),
++          "games log: 4 games, record counts add up, 8 random plies each")
++
++    shards = sorted(k for k in fa if k.endswith(".txt"))
++    conv_ok = True
++    for i, shard in enumerate(shards):
++        conv = run(exe, "datagen", "--out", str(d / f"conv{i}"), "--convert", str(d / ("a" + shard)))
++        out = files(d / f"conv{i}")
++        conv_ok = conv_ok and conv.returncode == 0 and out.get("_000.pos") == fa[shard[:-4] + ".pos"] and \
++            out.get("_000.hce") == fa[shard[:-4] + ".hce"]
++    check(conv_ok, f"--convert of {len(shards)} text shard(s) -> byte-identical .pos/.hce")
++
++    uci = run(exe, stdin="uci\nisready\nbench 11\nquit\n")
++    check(uci.returncode == 0 and "uciok" in uci.stdout and "bench depth 11 nodes 312866 " in uci.stdout,
++          "UCI path of the datagen build unchanged: uciok, bench 11 = 312866 nodes")
++    check(run(exe, "datagen").returncode == 2 and run(exe, "datagen", "--out", str(d / "x"), "--games", "1", "--nodes", "0").returncode == 2,
++          "bad command lines -> exit 2")
++    print("ALL PASS" if FAILURES == 0 else f"FAILURES: {FAILURES}", flush=True)
++    return 0 if FAILURES == 0 else 1
++
++
++if __name__ == "__main__":
++    raise SystemExit(main())
+diff --git a/tests/datagen_tests.cpp b/tests/datagen_tests.cpp
+new file mode 100644
+index 00000000..17452441
+--- /dev/null
++++ b/tests/datagen_tests.cpp
+@@ -0,0 +1,330 @@
++// S32 datagen v2 unit tests: record encoding, game rules (forge_selfplay.py semantics), sign
++// conventions, determinism, the no-overwrite shard writer and the text converter.
++// usage: forge_datagen_tests [scratch_dir]   (files are written below scratch_dir and left in place)
++#include "forge/datagen.hpp"
++#include "forge/eval.hpp"
++#include "forge/search.hpp"
++
++#include <chrono>
++#include <filesystem>
++#include <fstream>
++#include <iostream>
++#include <iterator>
++#include <optional>
++#include <sstream>
++#include <stdexcept>
++#include <string>
++#include <vector>
++
++namespace {
++
++using namespace forge;
++using namespace forge::datagen;
++
++int failures = 0;
++
++void check(bool condition, const std::string& message) {
++    std::cout << (condition ? "PASS " : "FAIL ") << message << '\n';
++    if (!condition) ++failures;
++}
++
++Board from_fen(const std::string& fen) {
++    Board board;
++    std::string error;
++    if (!board.set_fen(fen, &error)) throw std::runtime_error("invalid test FEN " + fen + ": " + error);
++    return board;
++}
++
++Board play(Board board, const std::vector<std::string>& moves) {
++    for (const std::string& text : moves) {
++        const auto move = board.parse_uci(text);
++        if (!move.has_value()) throw std::runtime_error("illegal test move " + text);
++        Undo undo;
++        (void)board.make_move(*move, undo);
++    }
++    return board;
++}
++
++std::string read_file(const std::filesystem::path& path) {
++    std::ifstream in(path, std::ios::binary);
++    return std::string(std::istreambuf_iterator<char>(in), std::istreambuf_iterator<char>());
++}
++
++bool same_terminal(const std::optional<std::pair<int, Termination>>& got, int result, Termination why) {
++    return got.has_value() && got->first == result && got->second == why;
++}
++
++void test_encoding() {
++    const Board start = from_fen(std::string(Board::StandardStartFen));
++    const PackedBoard expected{0x24, 0x53, 0x36, 0x42, 0x11, 0x11, 0x11, 0x11, 0, 0, 0, 0, 0, 0, 0, 0,
++                               0, 0, 0, 0, 0, 0, 0, 0, 0x77, 0x77, 0x77, 0x77, 0x8A, 0xB9, 0x9C, 0xA8};
++    check(pack_board(start) == expected, "pack_board(startpos) == fen2bin nibble layout");
++    const Board e4 = play(start, {"e2e4"});
++    const PackedBoard packed = pack_board(e4);
++    check(packed[6] == 0x10 && packed[14] == 0x01, "pack_board after e2e4: e2 (low nibble of byte 6) empty, e4 white pawn");
++    check(pack_meta(White, 2) == 4 && pack_meta(Black, 2) == 5 && pack_meta(Black, 0) == 1 && pack_meta(White, 1) == 2,
++          "pack_meta: bit0 black to move, bits1-2 White result * 2");
++    Rng zero(0);
++    check(zero.next() == 0xE220A8397B1DCDAFULL, "SplitMix64(0) first output matches the reference value");
++    check(game_seed(1, 0) == game_seed(1, 0) && game_seed(1, 0) != game_seed(1, 1) && game_seed(1, 0) != game_seed(2, 0),
++          "game_seed is a function of (run seed, attempt index)");
++}
++
++void test_terminal() {
++    const Board start = from_fen(std::string(Board::StandardStartFen));
++    check(!terminal(start, 300).has_value(), "startpos is not terminal");
++    check(game_ply(start) == 0 && game_ply(play(start, {"e2e4"})) == 1, "game_ply from the move counters");
++    check(same_terminal(terminal(from_fen("rnb1kbnr/pppp1ppp/8/4p3/6Pq/5P2/PPPPP2P/RNBQKBNR w KQkq - 1 3"), 300), 0,
++                        Termination::Checkmate), "White checkmated -> White result 0");
++    check(same_terminal(terminal(from_fen("R5k1/5ppp/8/8/8/8/8/6K1 b - - 0 1"), 300), 2, Termination::Checkmate),
++          "Black checkmated -> White result 2");
++    check(same_terminal(terminal(from_fen("7k/5Q2/6K1/8/8/8/8/8 b - - 0 1"), 300), 1, Termination::Stalemate), "stalemate -> draw");
++    check(same_terminal(terminal(from_fen("8/8/4k3/8/8/3KB3/8/8 w - - 0 1"), 300), 1, Termination::Insufficient),
++          "KB v K -> insufficient material draw");
++    check(same_terminal(terminal(from_fen("7k/8/8/8/8/8/8/K5R1 b - - 100 80"), 300), 1, Termination::FiftyMoves),
++          "halfmove clock 100 with a legal move -> fifty-move draw");
++    check(same_terminal(terminal(from_fen("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 151"), 300), 1,
++                        Termination::MaxPly) &&
++              !terminal(from_fen("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 151"), 301).has_value(),
++          "game ply 300 -> draw at max-ply 300, not at 301");
++    const std::vector<std::string> shuffle{"g1f3", "g8f6", "f3g1", "f6g8"};
++    const Board twice = play(start, shuffle);
++    check(!terminal(twice, 300).has_value(), "second occurrence of a position is not terminal");
++    std::vector<std::string> eight = shuffle;
++    eight.insert(eight.end(), shuffle.begin(), shuffle.end());
++    check(same_terminal(terminal(play(start, eight), 300), 1, Termination::Repetition), "third occurrence -> repetition draw");
++}
++
++Config small_config() {
++    Config config;
++    config.nodes = 1500;
++    config.random_plies = 4;
++    config.max_ply = 120;
++    config.text = true;
++    return config;
++}
++
++bool same_game(const Game& a, const Game& b) {
++    if (a.opening != b.opening || a.moves != b.moves || a.white_result_x2 != b.white_result_x2 ||
++        a.termination != b.termination || a.records.size() != b.records.size()) return false;
++    for (std::size_t i = 0; i < a.records.size(); ++i) {
++        const Record& x = a.records[i];
++        const Record& y = b.records[i];
++        if (x.board != y.board || x.score != y.score || x.hce != y.hce || x.meta != y.meta || x.fen != y.fen) return false;
++    }
++    return true;
++}
++
++void test_games(std::vector<Record>& sample) {
++    const Config config = small_config();
++    const Board start = from_fen(std::string(Board::StandardStartFen));
++    Searcher first(4, 1);
++    Searcher second(4, 1);
++    std::optional<Game> a;
++    std::optional<Game> b;
++    std::uint64_t attempt = 0;
++    while (!a.has_value()) {
++        Rng rng_a(game_seed(7, attempt));
++        Rng rng_b(game_seed(7, attempt));
++        a = play_game(first, config, start, rng_a);
++        b = play_game(second, config, start, rng_b);
++        ++attempt;
++    }
++    check(b.has_value() && same_game(*a, *b), "same seed -> identical game (moves, records, result)");
++    check(a->opening.size() == 4 && !a->moves.empty(), "4 random plies, then searched plies");
++    // A searcher that already played a different game gives the same game after clear().
++    Rng other(game_seed(99, 0));
++    (void)play_game(first, config, start, other);
++    Rng again(game_seed(7, attempt - 1));
++    const std::optional<Game> c = play_game(first, config, start, again);
++    check(c.has_value() && same_game(*a, *c), "game is independent of the searcher's history (clear per game)");
++
++    // Records: replaying the game reaches each recorded position, in order, before a quiet move.
++    Board board = start;
++    for (const Move move : a->opening) {
++        Undo undo;
++        (void)board.make_move(move, undo);
++    }
++    std::size_t next = 0;
++    bool meta_ok = true;
++    bool fen_ok = true;
++    for (const Move move : a->moves) {
++        if (next < a->records.size() && a->records[next].board == pack_board(board)) {
++            const Record& record = a->records[next];
++            meta_ok = meta_ok && (record.meta & 1U) == (board.side_to_move() == Black ? 1U : 0U) &&
++                      (record.meta >> 1U) == static_cast<unsigned>(a->white_result_x2);
++            fen_ok = fen_ok && record.fen == board.fen() && !move.is_capture() && !move.is_promotion() && !board.in_check() &&
++                     record.hce == Evaluator::evaluate_uncached(board);
++            ++next;
++        }
++        Undo undo;
++        (void)board.make_move(move, undo);
++    }
++    check(next == a->records.size(), "every record is a position of the game, in game order");
++    check(meta_ok, "record meta: side to move + final White result");
++    check(fen_ok, "record FEN/HCE match the position; best move quiet; not in check");
++    sample = a->records;
++}
++
++void test_signs() {
++    // White is a rook up: the search score and the HCE are positive with White to move and negative
++    // with Black to move (side-to-move convention); the colour-mirrored start gives the mirrored signs.
++    Config config = small_config();
++    config.random_plies = 0;
++    config.max_ply = 40;
++    for (const bool mirrored : {false, true}) {
++        const Board start = from_fen(mirrored ? "r3k3/pppp4/8/8/8/8/PPPP4/4K3 b q - 0 1" : "4k3/pppp4/8/8/8/8/PPPP4/R3K3 w Q - 0 1");
++        const Color strong = mirrored ? Black : White;
++        Searcher searcher(4, 1);
++        Rng rng(1);
++        const std::optional<Game> game = play_game(searcher, config, start, rng);
++        if (!game.has_value()) throw std::runtime_error("sign test start position is terminal");
++        int agree = 0;
++        int hce_agree = 0;
++        int total = 0;
++        for (const Record& record : game->records) {
++            const Color side = (record.meta & 1U) != 0 ? Black : White;
++            const int sign = side == strong ? 1 : -1;
++            agree += record.score * sign > 0 ? 1 : 0;
++            hce_agree += record.hce * sign > 0 ? 1 : 0;
++            ++total;
++        }
++        check(total >= 10 && agree * 10 >= total * 9 && hce_agree * 10 >= total * 9,
++              std::string(mirrored ? "Black" : "White") + " a rook up: >= 90% of scores and HCE have the side-to-move sign (" +
++                  std::to_string(agree) + "/" + std::to_string(hce_agree) + "/" + std::to_string(total) + ")");
++        check(game->white_result_x2 != (mirrored ? 2 : 0), "the side a rook up does not lose");
++    }
++    // Mate in one for White / for Black: the game result labels.
++    Config mate = small_config();
++    mate.random_plies = 0;
++    Searcher searcher(4, 1);
++    Rng rng(1);
++    const std::optional<Game> white = play_game(searcher, mate, from_fen("6k1/5ppp/8/8/8/8/5PPP/3R2K1 w - - 0 1"), rng);
++    check(white.has_value() && white->white_result_x2 == 2 && white->termination == Termination::Checkmate,
++          "White mates -> White result 1.0 (x2 = 2)");
++    const std::optional<Game> black = play_game(searcher, mate, from_fen("3r2k1/5ppp/8/8/8/8/5PPP/6K1 b - - 0 1"), rng);
++    check(black.has_value() && black->white_result_x2 == 0 && black->termination == Termination::Checkmate,
++          "Black mates -> White result 0.0");
++    // Win adjudication: a queen and rook up, the same side >= 600 cp (test threshold) for 4 plies.
++    Config adjudicate = mate;
++    adjudicate.win_cp = 600;
++    const std::optional<Game> won = play_game(searcher, adjudicate, from_fen("4k3/8/8/8/8/8/8/QR2K3 w - - 0 1"), rng);
++    check(won.has_value() && won->white_result_x2 == 2 &&
++              (won->termination == Termination::AdjudicatedWin || won->termination == Termination::Checkmate),
++          std::string("win adjudication/mate -> White result 1.0 (") + termination_name(won->termination) + ")");
++    // Draw adjudication (off by default): K+R v K+R, |score| <= 150 cp for 6 consecutive plies.
++    Config draw = mate;
++    draw.draw_cp = 150;
++    draw.draw_plies = 6;
++    const std::optional<Game> drawn = play_game(searcher, draw, from_fen("4k3/8/8/r7/8/8/7R/4K3 w - - 0 1"), rng);
++    check(drawn.has_value() && drawn->white_result_x2 == 1 && drawn->termination == Termination::AdjudicatedDraw &&
++              drawn->moves.size() >= 6,
++          "draw adjudication: 6 plies within 150 cp -> draw");
++    Config no_draw = mate;
++    no_draw.max_ply = 30;
++    const std::optional<Game> played = play_game(searcher, no_draw, from_fen("4k3/8/8/r7/8/8/7R/4K3 w - - 0 1"), rng);
++    check(played.has_value() && played->termination != Termination::AdjudicatedDraw, "draw adjudication is off by default");
++}
++
++void test_writer(const std::filesystem::path& dir, const std::vector<Record>& sample) {
++    std::filesystem::create_directories(dir);
++    const std::string prefix = (dir / "w").string();
++    std::vector<Record> records = sample;
++    while (records.size() < 7) records.insert(records.end(), sample.begin(), sample.end());
++    records.resize(7);
++    ShardWriter writer(prefix, 3, true, "test=1\n");
++    for (const Record& record : records) {
++        writer.add(record);
++        writer.maybe_close();
++    }
++    writer.close();
++    check(writer.written() == 7 && writer.shards() == 3, "7 records at 3 per file -> shards 3+3+1");
++    const std::string pos0 = read_file(shard_name(prefix, 0) + ".pos");
++    const std::string hce2 = read_file(shard_name(prefix, 2) + ".hce");
++    check(pos0.size() == 16 + 35 * 3 && pos0.compare(0, 4, "FPOS") == 0 && pos0[4] == 1 && pos0[8] == 3,
++          "shard 0 .pos: FPOS v1, n = 3, size 16 + 35n");
++    check(hce2.size() == 16 + 2 && hce2.compare(0, 4, "FHCE") == 0 && hce2[8] == 1, "shard 2 .hce: FHCE v1, n = 1");
++    const std::vector<Record> first(records.begin(), records.begin() + 3);
++    check(pos0 == pos_bytes(first), "shard bytes == pos_bytes(records)");
++    // Column layout: boards, then int16 scores, then meta bytes (fen2bin.cpp).
++    const auto score0 = static_cast<std::int16_t>(static_cast<std::uint16_t>(static_cast<unsigned char>(pos0[16 + 96])) |
++                                                  static_cast<std::uint16_t>(static_cast<unsigned char>(pos0[16 + 97]) << 8U));
++    check(score0 == records[0].score && static_cast<unsigned char>(pos0[16 + 102]) == records[0].meta,
++          "column layout: score at 16 + 32n, meta at 16 + 34n");
++    check(!std::filesystem::exists(shard_name(prefix, 0) + ".pos.part") && std::filesystem::exists(shard_name(prefix, 0) + ".txt"),
++          "published names only; text shard written");
++    bool refused = false;
++    try {
++        write_new_file(shard_name(prefix, 0) + ".pos", "x");
++    } catch (const std::runtime_error&) {
++        refused = true;
++    }
++    check(refused && read_file(shard_name(prefix, 0) + ".pos") == pos0, "existing shard is never overwritten");
++    { std::ofstream stale((dir / "stale.pos.part").string(), std::ios::binary); stale << "partial"; }
++    bool stale_refused = false;
++    try {
++        write_new_file((dir / "stale.pos").string(), "x");
++    } catch (const std::runtime_error&) {
++        stale_refused = true;
++    }
++    check(stale_refused && !std::filesystem::exists(dir / "stale.pos"), "a leftover .part blocks its name (exclusive create)");
++    // Text round trip: the .txt shard converts back to identical .pos/.hce bytes.
++    std::ifstream text(shard_name(prefix, 0) + ".txt", std::ios::binary);
++    std::vector<Record> parsed;
++    for (std::string line; std::getline(text, line);) {
++        const std::optional<Record> record = parse_text_record(line);
++        if (record.has_value()) parsed.push_back(*record);
++    }
++    check(parsed.size() == 3 && pos_bytes(parsed) == pos0 && hce_bytes(parsed) == read_file(shard_name(prefix, 0) + ".hce"),
++          "text shard -> parse_text_record -> identical .pos and .hce bytes");
++}
++
++void test_parse() {
++    const std::optional<Record> ok = parse_text_record("rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq e3 0 1 | -38 | 0.5\r");
++    check(ok.has_value() && ok->score == -38 && ok->meta == pack_meta(Black, 1) &&
++              ok->hce == Evaluator::evaluate_uncached(from_fen("rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq e3 0 1")),
++          "parse_text_record: score, black to move, draw, HCE");
++    check(!parse_text_record("no bars here").has_value() &&
++              !parse_text_record("8/8/4k3/8/8/3K4/8/8 w - - 0 1 | 40000 | 1.0").has_value() &&
++              !parse_text_record("8/8/4k3/8/8/3K4/8/8 w - - 0 1 | 5 | 0.3").has_value() &&
++              !parse_text_record("8/8/8/8/8/3K4/8/8 w - - 0 1 | 5 | 1.0").has_value(),
++          "parse_text_record rejects: no fields, score out of int16 range, bad result, invalid FEN");
++}
++
++void test_command_line(const std::filesystem::path& dir) {
++    const char* none[] = {"--games", "1"};
++    check(run(2, none) == 2, "missing --out -> usage error 2");
++    const std::string out = (dir / "cli").string();
++    const char* zero[] = {"--out", out.c_str(), "--games", "0"};
++    check(run(4, zero) == 2, "--games 0 -> usage error 2");
++    const char* unknown[] = {"--out", out.c_str(), "--games", "1", "--frobnicate"};
++    check(run(5, unknown) == 2, "unknown option -> usage error 2");
++    const char* game[] = {"--out", out.c_str(), "--games", "1", "--nodes", "800", "--max-ply", "60", "--seed", "3"};
++    check(run(10, game) == 0 && std::filesystem::exists(out + ".games") && std::filesystem::exists(out + "_000.pos"),
++          "one game -> exit 0, .games and _000.pos published");
++    check(run(10, game) == 1, "reusing the prefix -> exit 1 (refused)");
++}
++
++} // namespace
++
++int main(int argc, char** argv) {
++    const std::filesystem::path base = argc > 1 ? std::filesystem::path(argv[1]) : std::filesystem::path("datagen_unit");
++    const auto stamp = std::chrono::steady_clock::now().time_since_epoch().count();
++    const std::filesystem::path dir = base / ("run_" + std::to_string(stamp));
++    std::filesystem::create_directories(dir);
++    try {
++        test_encoding();
++        test_terminal();
++        std::vector<Record> sample;
++        test_games(sample);
++        test_signs();
++        test_writer(dir / "writer", sample);
++        test_parse();
++        test_command_line(dir);
++    } catch (const std::exception& error) {
++        std::cout << "FAIL exception: " << error.what() << '\n';
++        ++failures;
++    }
++    std::cout << (failures == 0 ? "ALL PASS" : "FAILURES: " + std::to_string(failures)) << std::endl;
++    return failures == 0 ? 0 : 1;
++}
