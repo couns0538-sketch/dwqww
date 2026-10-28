@@ -1,0 +1,11 @@
+R3-1L smoke test on the PC (2026-10-27 22:54 PST, nice 19), before the first push:
+- job_configs.py configs_final.json pure_nnue -> job_configs.json (exe key: base)
+- make_nets.py <worktree> <smoke>/nets opus_r3/R3-1L/nets/o4_material_epoch004-step000000780.fnn2
+  -> 7 nets, byte-identical to F:/opus_scratch/r3/selfplay/nets (nets_regenerated.sha256 == nets_pc_run.sha256)
+- run_matrix.py --engines F:/opus_scratch/r3/selfplay/engines/330237f3 (the PC agent's exes, read-only)
+  --configs job_configs.json --games 10 --seed 1 --harness-arg=--max-minutes=4
+  -> pure_nnue: games 10/10, plies 1098, errors 0, wall 10.0 s (MATRIX.md, pure_nnue.summary.json, matrix.log)
+- summarize.py --single and --jobs modes: the 10-game row is reported "FAIL (not 500 games)" (pass rule needs 500),
+  a job without artifact "FAIL (no artifact)", as intended
+- get_syzygy.sh on 4 small tables (KBBBvK, KNvK .rtbw/.rtbz) from the lichess mirror: all sha256 equal the PC copy
+- bash -n run_job.sh get_syzygy.sh: OK
