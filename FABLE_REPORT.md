@@ -233,10 +233,12 @@ self-play, NNUE training running) and are advisory, not a speed claim.
 ### TSan hook (CI)
 
 `opus_round1/fable/tsan_extra.sh` (picked up by `run_ci.sh tsan`): writes a random H64 / 8 mirrored king buckets /
-8 heads net in CI, then searches with `NNUEArch true` at Threads 4 (two positions, depths 13 and 9), Threads 2
-(depth 12) and runs `bench 10` at Threads 1; the job fails on any TSan report. Local dry run with the x86-64-v3
-engine: all four runs reach `bestmove` / the bench line with exit 0. Results of the CI run are recorded below once
-it finishes.
+8 heads net in CI (`forge_nnue_v3_tool random`, no Python packages needed: the runner's python3 has no numpy),
+then searches with `NNUEArch true` at Threads 4 (two positions, depths 13 and 9), Threads 2 (depth 12) and runs
+`bench 10` at Threads 1; the job fails on any TSan report. **CI run 40657870835 (commit 4fb3dd5d): release, asan,
+tsan all success; hook: every search reached `bestmove`, `bench 10` = 236,259 nodes under TSan (the same count as
+the local x86-64-v3 dry run with the same seed net), `TSan: 0 reports`.** Earlier runs: 40656176461 (AVX-512 commit)
+green; 40657468479 failed only because the first hook version imported numpy.
 
 ### Cross-shard first-net run
 
