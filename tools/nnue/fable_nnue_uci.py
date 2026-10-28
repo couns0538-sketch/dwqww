@@ -55,8 +55,6 @@ def main():
     # A `go` must not be followed by `quit` before the search prints bestmove: send the commands up to `go`,
     # wait for bestmove, then quit.
     head = cmds[:-1]
-    if args.go_depth is not None:
-        head = cmds[:-1]
     try:
         proc.stdin.write("\n".join(head) + "\n")
         proc.stdin.flush()
