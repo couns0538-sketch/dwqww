@@ -25,7 +25,7 @@ throughout; my work at nice 19). No Elo claims: no gate was run.
 | 40568260400 | `opus-r3-port-b` `a06b00d` (S32, S37, S04fix on `2432670`) | success |
 | 40570018288 | `opus-r3-port-c` (S-A2 behind FORGE_NNUE_INT16, S-A4 on `2432670`) | success |
 | 40573865157 | `330237f` (port-b + port-c merged, HardDeadline fix) | success |
-| 40578094641 | `287aa15` (+ docs, R3-3, CI hook) | release, ASan success; TSan running |
+| 40578094641 | `287aa15` (+ docs, R3-3, CI hook) | success |
 | 40578094685 | `287aa15`, new workflow `opus-r3-switches` (every build switch ON) | success |
 | 40581146563 | `7e0660a` (+ R3-5 tests, R3-2 matrix) | running |
 | 40581146586 | `7e0660a`, `opus-r3-switches` | running |
@@ -111,6 +111,11 @@ every later run of the branch is green.
   Not regressions of the stack; not changed.
 - Silent cancels (R3-2): setting NetScale or NnueInt16 while a v2 net is loaded has no effect and no warning. A
   one-line `info string` warning would be the natural fix; not done here (it changes UCI output).
+- Sol leftovers: all done in earlier rounds (`SOL_LEFTOVERS_PROGRESS.md` on `opus-summary`) except the S09fix
+  DirectML optimizer check (S09-5), still UNVERIFIED: the read-only venv now has `torch_directml` 0.2.5.dev240914 and
+  the PC has an RX 7900 XT, but the GPU runs production NNUE training, so I did not run anything on it. The check is
+  5 in-memory optimizer steps; its CPU proxy (PASS) is in `forge_sol_S09_holdout_validate_v2.py` on `opus-sol-S09fix`
+  (`opus_round1/sol_S09fix/`). Run it on the GPU when the GPU is free.
 - Four Python bytecode files entered the stack with the S08fix merge commit `9588a10` (CTest runs the tools with the
   system Python, which writes `__pycache__` into the tree): `tools/__pycache__/uci_regression.cpython-314.pyc`,
   `tools/match/__pycache__/{pgn_stats,run_match,windows_validate}.cpython-314.pyc`. Untracking them was not permitted
