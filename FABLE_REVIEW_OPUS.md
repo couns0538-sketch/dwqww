@@ -222,40 +222,49 @@ worktree as it is) need a full checkout by design; the repository-wide remedy is
 
 ## What was reviewed, what was not (honest scope)
 
-- Engine jobs read for correctness (core diffs): C6, C3, O1, O1-LTT, C2, O5, O8, O2, S11/S29, S41, S13, S04fix,
-  S12, SIT, A1, SA2/SA4, S32; targeted reads: C1 (probe preconditions, en passant), O4/O6/O7 (selection, eval
-  clamp, per-ply tables, parity/incremental claims), S08fix; C4/C5 were read during job FB1.
+- Engine jobs read for correctness (every job's own diff): C6, C3, O1, O1-LTT, C2, O5, O8, O2, S11/S29, S41, S13,
+  S04fix, S12, SIT, A1, SA2/SA4, S32, O4, O6, O7 (O7 at structure level), S08fix (structure); C1's 1474-line Syzygy
+  decoder read in full against the table format; C4/C5 were read during job FB1.
 - Verified systematically: latest CI of all 30 engine branches (identity ALL OK, known-failure PASS x3, TSan 0);
-  every tool job's own unit tests re-run from an exported copy (27 passed; 9 environment failures explained;
-  the 5 trainer-importing tests not run, by the PC rule).
-- Re-executed: S44's gate-statistics check on the 71 real gate folders (PASS), S16's overlap scan on the real
-  shards (6,069 rows, as reported), the S30/S31 lock-net holdout numbers (consistent), every job's unit tests.
-  Not re-executed: S17/S40 on the real shards (fixture tests pass), S19/S21 fits; the trainer variants S39/S50/SA3
-  were tested through their own suites (pass except the line-ending hash check). C1's decoder and O4/O6/O7's own
-  diffs have been read in full.
+  the R3 integration head rebuilt with the PC lock recipe (FMA 0, ALL OK); every tool job's own unit tests, in
+  exported copies, in real worktrees (S15, S27fix, S47, S48fix) and against the staged trainer copies (S39, S50,
+  SA3, SA2, S09fix).
+- Re-executed on real data: S44 gate statistics (71 gate folders, PASS), S16 overlap scan (6,069 rows, as reported),
+  S21 int16 range study (13 nets, consistent), the S30/S31 lock-net holdout numbers (consistent).
+- Not re-executed: S17/S40 on the real shards (S40's real merge needs a second self-play folder that is not in the
+  repo; their fixture tests pass), the S19 fit on real volume (its tests pass). Not read line by line: the trainer
+  variants S39/S50/SA3 (tested through their suites) and O7's pawn-pair details beyond structure.
 
-## Mistakes found: 3 (summary)
+## Mistakes found: 3 classes, all corrected or explained
 
-1. Committed `.pyc` bytecode on O1, O1-LTT, O2, S12 and all r3-* branches -> corrected on `fable-review-r3-stack`
-   (d118633a: untracked, ignored, REVIEW.md).
-2. Unguarded 64-entry `bad_captures_` buffer in the lock engine (known since S14, fix never applied) ->
-   `fable-review-buffix`, node-identical, CI green.
-3. Nine job tests failed from an exported folder and five more only in a CRLF checkout: all line-ending cases corrected on `fable-review-*` branches (S33fix, S38, S46 by normalising comparisons; S42, S08fix, S15, S47, S39, S50, SA3, SA2 by `.gitattributes`); S27fix needs the LF base checkout, S48fix passes in a worktree.
+1. Committed `.pyc` bytecode (O1, O1-LTT, O2, S12, all r3-*) -> `fable-review-r3-stack` (d1276633): untracked
+   with the owner's `git rm --cached`, bytecode ignored, 0 tracked `.pyc`.
+2. Unguarded 64-entry `bad_captures_` buffer in the lock engine (found by S14, never fixed) -> `fable-review-buffix`
+   (a9cea71f): node-identical fix + regression test, identity ALL OK, CI green.
+3. Checkout-dependent tests (the repository's LF blobs vs this PC's `core.autocrlf=true`): golden-file byte
+   comparisons (S33fix, S38, S46 -> comparisons normalise line endings) and frozen SHA256/byte checks (S42, S08fix,
+   S15, S47, S39, S50, SA3, SA2 -> `.gitattributes * -text`), eleven branches `fable-review-<job>`, every job test
+   verified OK from a fresh export or a fresh worktree. S27fix is the one remaining case: its tool runs
+   `git apply --check` of the LF buffix patch against the CRLF AL1 base checkout; it passes on Linux CI and would
+   pass here with a repository-root `.gitattributes`, which is the owner's policy decision.
 
 Everything else examined was found consistent with its report. No Elo or speed claim is made or changed anywhere.
 
 ## What is left / exact next steps
 
-1. Owner: merge `fable-review-buffix` into the next lock candidate (one engine line + one test) and take
-   `fable-review-r3-stack` as the R3 head without the bytecode.
-2. If a deeper audit is wanted: re-run S44 `check` on the 23 gates, S40/S17 on their fixtures and the real shards,
-   and read the C1 decoder against the Syzygy format specification; none of this changes an engine default.
-3. Optional: make S15, S27fix, S47, S48fix runnable from an exported folder (locate the repository root); they
-   pass in a checkout.
+1. Owner: merge `fable-review-buffix` into the next lock candidate (one engine line + one test); take
+   `fable-review-r3-stack` as the R3 head without the bytecode; consider one repository-root `.gitattributes`
+   (`* -text`) for the next lock tree, which makes every hash-checked test checkout-independent at once (S27fix
+   included) and supersedes the per-job attribute files.
+2. Optional deeper audit: S17/S40 on the real shards (needs the second self-play folder), S19 on real volume,
+   O7's pawn-pair encoding line by line against its trainer. None of this changes an engine default.
+3. The 13 correction branches are independent of each other and of `fable-nnue-arch`; each has a REVIEW.md naming
+   the mistake, the fix and the verification.
 
 ## Time spent / estimate
 
 Session 1 (about 1.5 h): inventory, CI analysis, identity sweep, eight engine jobs, two mistakes, one correction.
-Session 2 (about 1.5 h): the remaining engine jobs, the tool-test sweep, the r3-stack branch. Total about 3 h
-of the 12-16 h estimated; the difference is the line-by-line reading of the largest diffs and the re-execution of
-the report numbers, listed above as not done.
+Session 2 (about 1.5 h): the remaining engine jobs, the tool-test sweep, the r3-stack branch, C1 and O4/O6/O7 in
+full, S44 re-executed. Session 3 (about 2 h, with two to four sub-agents for 40 minutes): full-checkout and
+trainer-variant tests, S16/S21/S30/S31 re-executions, the R3 head rebuilt on the PC, root causes of every remaining
+test failure, eleven line-ending corrections. Total about 5 h.
