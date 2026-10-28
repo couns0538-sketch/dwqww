@@ -13,6 +13,11 @@ All ASan/UBSan targets built successfully with GCC14.2, RelWithDebInfo, h256, st
 Reproduce with a fresh output directory:
 
 ```sh
+cmake -S . -B /path/to/qualified-asan-build \
+  -DCMAKE_BUILD_TYPE=RelWithDebInfo -DCMAKE_CXX_COMPILER=/usr/bin/g++-14 \
+  -DFORGE_ENABLE_SANITIZERS=ON \
+  '-DCMAKE_CXX_FLAGS=-march=x86-64-v3 -mtune=znver5 -fno-fast-math -ffp-contract=off -DFORGE_NNUE_HIDDEN=256'
+cmake --build /path/to/qualified-asan-build -j2
 python3 -B astra_evidence/sanitizer_complete_20261029/run_complete.py \
   --repo "$PWD" --build /path/to/qualified-asan-build \
   --ctest /path/to/ctest --output /new/qualification/directory
