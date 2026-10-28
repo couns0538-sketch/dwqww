@@ -191,6 +191,10 @@ target_link_libraries(forge_nearest_pawn_tests PRIVATE forge_core Threads::Threa
 add_executable(forge_pv_metadata_tests tests/pv_metadata_tests.cpp)
 target_link_libraries(forge_pv_metadata_tests PRIVATE forge_core Threads::Threads)
 
+# fable-review buffix: SEE partition census and deferred losing captures (bad_captures_ capacity).
+add_executable(forge_bad_capture_tests tests/bad_capture_tests.cpp)
+target_link_libraries(forge_bad_capture_tests PRIVATE forge_core Threads::Threads)
+
 # Search module unit tests (move picker stages, history math, time management).
 add_executable(forge_movepicker_tests tests/movepicker_tests.cpp)
 target_include_directories(forge_movepicker_tests PRIVATE src)
@@ -385,6 +389,7 @@ add_test(NAME forge_runtime_psqt_tests COMMAND forge_runtime_psqt_tests)
 add_test(NAME forge_pawn_span_tests COMMAND forge_pawn_span_tests)
 add_test(NAME forge_nearest_pawn_tests COMMAND forge_nearest_pawn_tests)
 add_test(NAME forge_pv_metadata_tests COMMAND forge_pv_metadata_tests)
+add_test(NAME forge_bad_capture_tests COMMAND forge_bad_capture_tests)
 add_test(NAME forge_movepicker_tests COMMAND forge_movepicker_tests)
 add_test(NAME forge_history_tests COMMAND forge_history_tests)
 add_test(NAME forge_timeman_tests COMMAND forge_timeman_tests)

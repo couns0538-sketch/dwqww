@@ -1,0 +1,159 @@
+// Fixed-input regression for the actual SEE partition and normal search path.
+// The capacity invariant itself is checked beside MovePicker's private storage.
+#include "forge/board.hpp"
+#include "forge/search.hpp"
+
+#include <array>
+#include <cstddef>
+#include <iostream>
+#include <string>
+#include <string_view>
+
+namespace {
+int failures = 0;
+int accepted = 0;
+
+void check(bool okay, const std::string& message) {
+    if (!okay) {
+        ++failures;
+        std::cerr << "FAIL: " << message << '\n';
+    }
+}
+
+struct Fixture {
+    const char* name;
+    const char* fen;
+    bool review_only;
+    std::size_t expected_noisy;
+    std::size_t expected_promotions;
+    const char* required_losing_move;
+    // Minimum number of SEE-losing noisy moves (0 = not checked). The fable-review fixture
+    // demands more than 64: the AL1 lock's bad_captures_ held 64 entries, so the picker
+    // overran it there (shown with -D_GLIBCXX_ASSERTIONS on the unfixed engine).
+    std::size_t min_losing;
+};
+
+void run(const Fixture& fixture) {
+    using namespace forge;
+    Board board;
+    std::string error;
+    const bool parsed = board.set_fen(fixture.fen, &error);
+    std::cout << "BAD_CAPTURE_FEN " << fixture.name << " accepted=" << parsed;
+    if (!parsed) {
+        std::cout << " reason=" << error << '\n';
+        // Supplied diagnostic positions must obey the normal FEN parser. Do
+        // not bypass it or substitute an unvalidated internal board state.
+        check(fixture.review_only, std::string(fixture.name) + " control FEN parses: " + error);
+        return;
+    }
+    ++accepted;
+
+    const auto fen = board.fen();
+    const auto key = board.key();
+    const auto pawn_key = board.pawn_key();
+    const auto history = board.history_size();
+    const auto noisy = board.pseudo_legal_moves(true);
+    std::size_t losing = 0;
+    std::size_t promotions = 0;
+    std::size_t legal_losing = 0;
+    for (const Move move : noisy) {
+        check(move.is_capture() || move.is_promotion(),
+              std::string(fixture.name) + " noisy generator emits captures/promotions only");
+        if (move.is_promotion()) ++promotions;
+        if (!board.see_ge(move, 0)) {
+            ++losing;
+            if (board.is_legal(move)) ++legal_losing;
+        }
+    }
+    std::cout << " in_check=" << board.in_check() << " noisy=" << noisy.size()
+              << " see_losing=" << losing << " legal_see_losing=" << legal_losing
+              << " promotions=" << promotions << '\n';
+    check(noisy.size() <= MoveList::Capacity && losing <= noisy.size(),
+          std::string(fixture.name) + " SEE partition remains within producer capacity");
+    check(board.fen() == fen && board.key() == key && board.pawn_key() == pawn_key &&
+          board.history_size() == history,
+          std::string(fixture.name) + " SEE census preserves board state");
+    if (!fixture.review_only) {
+        check(noisy.size() == fixture.expected_noisy,
+              std::string(fixture.name) + " expected noisy move count");
+        check(promotions == fixture.expected_promotions,
+              std::string(fixture.name) + " expected promotion count");
+        check(losing > 0 && legal_losing > 0,
+              std::string(fixture.name) + " contains actual legal SEE-losing moves");
+        check(losing >= fixture.min_losing,
+              std::string(fixture.name) + " has at least " + std::to_string(fixture.min_losing) +
+                  " SEE-losing noisy moves (more than the lock's 64-entry buffer)");
+        check(!board.in_check(), std::string(fixture.name) + " uses main capture stages");
+    }
+
+    SearchLimits limits;
+    limits.depth = 3;
+    Move forced = Move::none();
+    if (std::string_view(fixture.required_losing_move).size() != 0) {
+        const auto move = board.parse_uci(fixture.required_losing_move);
+        check(move.has_value(), std::string(fixture.name) + " required losing move is legal");
+        if (!move) return;
+        forced = *move;
+        check(!board.see_ge(forced, 0), std::string(fixture.name) + " required move fails SEE >= 0");
+        // This legal root restriction requires a deferred losing capture to
+        // be returned by the normal main-search move picker.
+        limits.search_moves_specified = true;
+        limits.search_moves.push_back(forced);
+    }
+    Searcher searcher(16, 1);
+    const SearchInfo result = searcher.search(board, limits);
+    check(result.nodes > 0 && result.depth > 0,
+          std::string(fixture.name) + " normal depth-limited search completes an iteration");
+    check(!result.best_move.is_none() && board.is_legal(result.best_move),
+          std::string(fixture.name) + " search returns a legal best move");
+    if (!forced.is_none()) {
+        check(result.best_move == forced,
+              std::string(fixture.name) + " deferred losing capture survives root restriction");
+    }
+    check(!result.pv.empty() && result.pv.front() == result.best_move,
+          std::string(fixture.name) + " PV starts with the selected move");
+    Board replay = board;
+    for (const Move move : result.pv) {
+        if (!replay.is_legal(move)) {
+            check(false, std::string(fixture.name) + " PV contains an illegal move");
+            break;
+        }
+        Undo undo;
+        if (!replay.make_move(move, undo)) {
+            check(false, std::string(fixture.name) + " legal PV move was rejected");
+            break;
+        }
+    }
+    check(board.fen() == fen && board.key() == key && board.pawn_key() == pawn_key &&
+          board.history_size() == history,
+          std::string(fixture.name) + " search preserves caller board state");
+    std::cout << "BAD_CAPTURE_SEARCH " << fixture.name << " depth=" << result.depth
+              << " nodes=" << result.nodes << " bestmove=" << Board::move_to_uci(result.best_move)
+              << " pv_moves=" << result.pv.size() << '\n';
+}
+} // namespace
+
+int main() {
+    // The two supplied QA inputs, three existing Forge fixtures and one constructed
+    // position (fable-review, 2026-10-28) whose SEE census exceeds the lock's
+    // 64-entry deferred-capture buffer. No parser bypasses or private-buffer writes.
+    constexpr std::array<Fixture, 6> fixtures{{
+        {"many-losing", "3r4/Pn1Q1p2/1Q1n1QpN/1p1Q1pRB/1Qbp1QpN/2bQ1pRB/3r1QpK/2k2q2 w - - 0 1",
+         false, 69, 4, "", 65},
+        {"qa-1", "1Q1bq3/pr1Q1p1R/KQ1n1Q1b/1p1Q1n1Q/BQ1p1Q1r/1p1QpN2/1k1pR2p/5NB1 w - - 0 1",
+         true, 0, 0, "", 0},
+        {"qa-2", "1krQ2b1/8/Q2pQnR1/p1Q3b1/Q1n2QrQ/p1QQpKp1/q1ppR2p/1NB1BN2 w - - 0 1",
+         true, 0, 0, "", 0},
+        {"poisoned-pawn", "3qk3/8/8/3p4/8/8/8/3QK3 w - - 0 1",
+         false, 1, 0, "d1d5", 0},
+        {"white-promotions", "1r2k3/P7/8/8/8/8/8/4K3 w - - 0 1",
+         false, 8, 8, "", 0},
+        {"black-promotions", "4k3/8/8/8/8/8/p7/1R2K3 b - - 0 1",
+         false, 8, 8, "", 0},
+    }};
+    for (const Fixture& fixture : fixtures) run(fixture);
+    check(accepted >= 3, "all ordinary SEE/search controls execute");
+    std::cout << "Bad capture regression: accepted=" << accepted
+              << " failures=" << failures << '\n';
+    return failures == 0 ? 0 : 1;
+}

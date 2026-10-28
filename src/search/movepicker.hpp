@@ -206,11 +206,16 @@ private:
 #endif
     std::size_t index_ = 0;
     std::size_t count_ = 0;
+    // Every generated noisy move can be deferred once, so the buffer needs the generator's
+    // capacity (fable-review buffix: the lock's 64 entries overflowed on positions with more
+    // than 64 SEE-losing noisy moves; tests/bad_capture_tests.cpp).
 #if FORGE_NOZERO_MOVE_BUFFERS
-    UninitArray<Move, 64> bad_captures_;  // only [0, bad_count_) is ever read
+    UninitArray<Move, MoveList::Capacity> bad_captures_;  // only [0, bad_count_) is ever read
 #else
-    std::array<Move, 64> bad_captures_{};
+    std::array<Move, MoveList::Capacity> bad_captures_{};
 #endif
+    static_assert(sizeof(bad_captures_) >= MoveList::Capacity * sizeof(Move),
+                  "bad_captures_ must hold every move the generator can produce");
     std::size_t bad_count_ = 0;
     std::size_t bad_index_ = 0;
     MoveList buffer_;

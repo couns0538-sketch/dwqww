@@ -17,3 +17,18 @@ changed; the engine head stays 064af732.
 
 Status 2026-10-28: done on this branch (commit d118633a): the owner ran `git rm --cached` on the eight files in the review
 worktree, the reviewer committed and pushed; `git ls-files | grep -c .pyc` = 0. The opus-* branches themselves are untouched.
+
+## Second correction (2026-10-28, deep pass): the picker's deferred-capture buffer
+
+The stack's `src/search/movepicker.hpp` still declared `bad_captures_` with 64 entries in both `#if` branches
+(`UninitArray<Move, 64>` under FORGE_NOZERO_MOVE_BUFFERS, `std::array<Move, 64>` otherwise), the AL1 lock's size that
+`fable-review-buffix` corrects on the lock base: a position with more than 64 SEE-losing noisy moves overruns it
+(undefined behaviour; demonstrated there with `-D_GLIBCXX_ASSERTIONS`). Here both declarations use
+`MoveList::Capacity` (256, the generator's capacity, so every noisy move can be deferred once) with a size
+static_assert, and the regression test `tests/bad_capture_tests.cpp` (ctest `forge_bad_capture_tests`, six fixtures
+including the 68-losing-move position) is added to CMake. No search logic changes: node-identical by construction.
+
+Evidence (`opus_round1/fable_review/logs/`): box-recipe build `build_pc.log` (exe sha256 ecc930b9..., FMA count 0),
+identity against the AL1 pins with every option off `identity.log` (ALL OK), the new test `bad_capture.log`,
+and the full CMake build + ctest of the stack with R3-1's known-failure check `ctest.log` / `run_ctest.out`
+(53 of 54 tests passed, the one failure is forge_tests' 4 known lines, known-failure check PASS); CI (opus-ci: release identity, ASan+UBSan, TSan) on the push.
