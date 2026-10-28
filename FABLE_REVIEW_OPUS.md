@@ -256,7 +256,7 @@ Everything else examined was found consistent with its report. No Elo or speed c
 ## What is left / exact next steps
 
 1. Owner: merge `fable-review-buffix` into the next lock candidate (one engine line + one test); take
-   `fable-review-r3-stack` as the R3 head without the bytecode; consider one repository-root `.gitattributes`
+   `fable-review-r3-stack` as the R3 head (no bytecode, picker buffer fixed); consider one repository-root `.gitattributes`
    (`* -text`) for the next lock tree, which makes every hash-checked test checkout-independent at once (as the
    S15 and S27fix branches already do) and supersedes the per-job attribute files.
 2. Optional deeper audit: S17/S40 on the real shards (needs the second self-play folder), O7's pawn-pair
@@ -317,8 +317,10 @@ Notes and evidence under `fable_review/deep/` (one file per item).
   O7 combo are marker removals, moved option handlers and R3's documented unifications (instance selection, v2 option
   rules), all cross-checked ON against their branches by R3-1 except HardDeadline, whose statement order was
   verified by hand; S08fix is entirely under `#ifdef FORGE_PROF` with `#else` keeping the lock code. No logic change by any
-  resolution. Owner item: the stack's `bad_captures_` is still 64 entries in both `#if` branches of movepicker.hpp;
-  the fable-review-buffix change belongs there too.
+  resolution. The stack's `bad_captures_` was still 64 entries in both `#if` branches of movepicker.hpp: fixed on
+  `fable-review-r3-stack` (b0c3882b: both declarations `MoveList::Capacity` + static_assert, the six-fixture
+  regression test added to CMake; box build FMA 0, identity ALL OK with every option off, full CMake build and
+  ctest with R3-1's known-failure check on the PC; opus-ci run 40698465776 on the trigger commit e1c9aa6a was in progress at this commit; its result is recorded below when done).
 - **Planted-bug (mutant) checks re-run on the PC** (`deep/mutants/<job>.log`, runner `deep/fable_nnue_mutants.sh`,
   `deep/fable_nnue_mutants_py.sh`): each job's own mutation script run from a fresh LF export of the branch head
   (Idle priority, two build jobs). Shell-style jobs, mutants caught / not caught, re-run vs Opus's committed log:
@@ -364,7 +366,7 @@ Notes and evidence under `fable_review/deep/` (one file per item).
 |---|---|---|---|
 | `fable-review-summary` | this commit | d4f4312 | this report + `fable_review/` evidence |
 | `fable-review-buffix` | 8632e8ab | d4f4312 + CI workflow | mistake 2: engine fix + test (a9cea71f); overflow-demonstrating fixture (ab2aa56b, run 40691861788 success in release / ASan+UBSan / TSan (identity ALL OK, known-failure check PASS, TSan 0 reports, the same 15-test ctest list as run 40670602785, which includes forge_bad_capture_tests)), REVIEW.md |
-| `fable-review-r3-stack` | 0bae2ea6 | opus-r3-stack da158149 | mistake 1: eight `.pyc` untracked, REVIEW.md |
+| `fable-review-r3-stack` | b0c3882b | opus-r3-stack da158149 | mistake 1: eight `.pyc` untracked; mistake 2 applied to the stack's picker (b0c3882b), REVIEW.md |
 | `fable-review-S33fix` | 3004fc91 | opus-sol-S33fix | mistake 3: comparison normalises line endings |
 | `fable-review-S38` | a9884584 | opus-sol-S38 | mistake 3: comparison normalises line endings |
 | `fable-review-S46` | 56daf94c | opus-sol-S46 | mistake 3: comparisons normalise line endings |
