@@ -1,13 +1,43 @@
-# OPUS R3 report (job pack R3, Forge AL1 s198) — IN PROGRESS
+# OPUS R3 report (job pack R3, Forge AL1 s198) — DONE
 
 Branch `opus-r3-stack` (base `d4f4312`). Machine exclusive: no (gates, self-play and NNUE training ran
 throughout; my work at nice 19). No Elo claims: no gate was run.
+
+## Summary
+- **Stack:** `opus-r3-stack`, final engine head `064af73` (later commits are reports and evidence only). Every
+  O/C feature, every opus-sol engine feature and the R3 additions are in, each behind a default-off UCI option or
+  build switch (`opus_r3/R3-1/OPTIONS.md`). All off: bench d11/13/16/20/22 = 312866 / 862329 / 3024920 / 12389307 /
+  34048354, perft5 4865609, kiwipete 193690690 (ALL OK, also with every build switch compiled in); CTest PASS;
+  GitHub CI green for opus-ci and the every-switch workflow on the final head.
+- **R3-1 self-play** (500 games per option ON alone and all ON): PC 36/36 configs and Linux 36/36 configs, 0
+  crashes, illegal moves or double bestmoves; ASan/TSan self-play clean; the options added on the final head:
+  Linux and PC clean (4 x 500 games each on `064af73`).
+- **R3-2** no option conflicts; two silent cancels (NetScale / NnueInt16 under a v2 net). Switch-level NPS on the
+  PC is dominated by code layout (+-5%); on quiet runners O2's AVX2 kernels (+3%), SPEEDSTACK (+0.5%) and
+  NOZERO (+1.6%) are real, the PC's NOZERO -4% / LAZY +4% / INT16 +2% are layout (R3-2Q).
+- **R3-3** 29 gate entries ready (nothing queued); [0,5] with a 1500-game cap almost always ends at the cap.
+- **R3-4** 20 search constants as UCI spins (defaults identical) + SPSA tool with dry run; no tuning run.
+- **R3-5** perft (20 positions), draw rules incl. GitHub issue #7, 50-move, mate/TB in TT, SMP stop/ponder and
+  UCI option tests in CTest and CI; 12/12 planted bugs caught.
+- **R3-6** scaling measured (PC + 3 quiet-runner repetitions); helpers idle at a `go depth` limit, switchable via
+  `SmpHelpersPastDepth`, but that gives no time-to-depth gain (slower with the SMP options), so it stays off.
+
+## Owner decisions / to do
+1. Gates: `F:\opus_scratch\r3\GATE_PROPOSALS.md` is ready to queue; decide the SPRT bounds first ([0,5] with
+   a 1500-game cap almost never decides; alternatives in its section 7). For the node-exact speed entries, the
+   PC exes carry layout shifts (R3-2Q), and O2's kernels are not compiled in the znver5 recipe.
+2. `git rm --cached` the 8 tracked `.pyc` files (list under Notes); I may not delete.
+3. S09fix DirectML optimizer check when the GPU is free (Notes).
+4. Optional small fixes, not done: an `info string` warning when NetScale / NnueInt16 is set under a v2 net;
+   case-insensitive UCI option names (R3-5 finding; GUIs send the advertised spelling).
+5. SPSA: a real session needs a pilot (about 4,000 games) and then about 40,000 games at 8+0.08 on 8 slots
+   (`tools/spsa/README.md`); not started (spec: no real tuning).
 
 ## Status
 
 | job | state | where |
 |---|---|---|
-| R3-1 integration stack | DONE: every O/C branch, every opus-sol engine feature and the R3 jobs merged, each behind its own default-off option or switch; final engine head `064af73`: lock pins ALL OK (default and every switch), CTest PASS, CI green; self-play 500 games per option ON alone and all ON: PC 36/36 configs (18000 games) and Linux 36/36 (18000 games + 1100 under ASan/TSan) with 0 errors; the options added after `330237f` checked on `064af73` (Linux 2000 + 200 TSan games, 0 errors; PC run below) | `opus-r3-stack`, `opus_r3/R3-1/`, `opus_r3/R3-1_selfplay/`, `opus_r3/R3-1L/` |
+| R3-1 integration stack | DONE: every O/C branch, every opus-sol engine feature and the R3 jobs merged, each behind its own default-off option or switch; final engine head `064af73`: lock pins ALL OK (default and every switch), CTest PASS, CI green; self-play 500 games per option ON alone and all ON: PC 36/36 configs (18000 games) and Linux 36/36 (18000 games + 1100 under ASan/TSan) with 0 errors; the options added after `330237f` checked on `064af73` (Linux 2000 + 200 TSan games and PC 2000 games, 0 errors) | `opus-r3-stack`, `opus_r3/R3-1/`, `opus_r3/R3-1_selfplay/`, `opus_r3/R3-1L/` |
 | R3-2 interaction matrix | DONE, merged (`7e0660a`): no conflicts; two silent cancels; build layout ±5% on the PC, confirmed by the quiet-runner repeat R3-2Q (DONE, merged) | `opus_r3/R3-2/REPORT.md`, `opus_r3/R3-2Q/REPORT.md` |
 | R3-3 gate proposals | DONE, merged | `opus_r3/R3-3/`, `F:\opus_scratch\r3\GATE_PROPOSALS.md` |
 | R3-4 SPSA tool | DONE, merged (`064af73`): 20 search constants as UCI spins (identical defaults), `tools/spsa/opus_spsa*.py`, dry run with restart; no tuning session | `opus_r3/R3-4/REPORT.md`, `tools/spsa/README.md` |
@@ -73,6 +103,8 @@ every later run of the branch is green.
     config under TSan (6 x 100 games): 0 errors, 0 sanitizer reports.
   - Final engine head `064af73`, the options added after `330237f` (SmpHelpersPastDepth alone and in all-ON, the
     20 R3-4 spins at +10% / -10%): Linux 4 x 500 games + TSan 2 x 100, 0 errors (run 40585589600).
+  - The same 4 configs on the PC with the final head's PC builds: 4 x 500 games, 201275 plies, 0 errors, 45
+    watchdog answers, 0 late lines (`opus_r3/R3-1_selfplay/logs/final_064af732/`).
   - The checker found one real defect on the way (HardDeadline printed search output after the watchdog's
     bestmove: 122 late lines in 500 all-ON games on `2432670`), fixed in `5792074` (see above).
 - Semantic merges: (1) one selection / fail-loud rule for the five NNUE v2 options (C4, C5, O4, O6, O7; each
@@ -214,7 +246,7 @@ every later run of the branch is green.
   deletions); a `.gitignore` keeps new ones out. Please `git rm --cached` them when convenient.
 
 ## Left
-- R3-1: the 500-game self-play evidence on `330237f` (28 of 36 configurations still running, ETA about 00:20);
-  then the options added after `330237f` on the final head `064af73` (SmpHelpersPastDepth alone, all ON + it, the
-  20 SPSA spins at +10% / -10%; prepared, preflight OK) and the Linux re-check on GitHub runners (`opus-r3-sp-linux`).
-- CI of `1f354cc` and of the final engine head `064af73` (both workflows), followed to green.
+- Nothing open from the R3 pack. Not done by design: real SPSA tuning, gates (owner), Threads > 3 (PC rule).
+- Branches (all pushed, merged into `opus-r3-stack`): `opus-r3-tests`, `-spsa`, `-selfplay`, `-matrix`, `-smp`,
+  `-gates`, `-port-b`, `-port-c`, `-cifix`, `-quietnps`, `-sp-linux`, `-smpq`. Local only: `opus-r3-premerge`
+  (scratch pre-merge of SPSA + SMP, never pushed).
