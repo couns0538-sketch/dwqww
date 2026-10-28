@@ -13,12 +13,22 @@ Per run (Threads >= 2):
   lead          mean (helper depth - main thread's completed depth) at the helper's completions
   main_share    main thread nodes / all nodes; tt_hit, tt_cut: hits and cutoffs per probe
   main_cpu_s    main search thread CPU time (critical path); cpu_par = all threads' CPU / main return
+  info_vs_exact nodes of the last info line / exact sum of the workers' nodes after the join
+  *_vs_t1       geometric means over positions, relative to the position's `off` Threads=1 run (a
+                deterministic search): main-thread nodes and CPU time to complete depth D (the helpers'
+                benefit to the critical path; load-robust) and all workers' nodes (node inflation)
 usage: trace_summary.py runs.jsonl [...] [--tsv out.tsv]
 """
 import argparse
 import json
+import math
 import statistics
 from collections import defaultdict
+
+
+def gmean(xs):
+    xs = [x for x in xs if x > 0]
+    return math.exp(sum(math.log(x) for x in xs) / len(xs)) if xs else float("nan")
 
 
 def parse(trace):
@@ -58,6 +68,7 @@ def run_metrics(r):
            "main_cpu_s": main.get("cpu_us", -1) / 1e6, "wall_s": r["wall_s"]}
     total_nodes = sum(w["nodes"] for w in workers.values())
     out["main_share"] = main["nodes"] / total_nodes if total_nodes else float("nan")
+    out["main_nodes"] = main["nodes"]
     out["nodes_total"] = total_nodes
     out["nodes_info"] = r["nodes"]
     # The last info line is printed when the main thread completes the depth, before the helpers stop.
@@ -90,8 +101,9 @@ def run_metrics(r):
         out["finished"] = finished / (n - 1)
         out["ahead"] = ahead / total if total else float("nan")
         out["lead"] = statistics.mean(leads) if leads else float("nan")
-        out["helper_cpu_vs_main"] = statistics.mean(
-            w.get("cpu_us", 0) / main["cpu_us"] for i, w in workers.items() if i and main.get("cpu_us", 0) > 0)
+        ratios = [w.get("cpu_us", 0) / main["cpu_us"] for i, w in workers.items() if i and main.get("cpu_us", 0) > 0]
+        if ratios:
+            out["helper_cpu_vs_main"] = statistics.mean(ratios)
     out["researches_main"] = sum(res for *_, res in main["iters"])
     return out
 
@@ -108,11 +120,22 @@ def main():
             m = run_metrics(r)
             if m:
                 rows.append(m)
+    # Threads=1 reference per position (deterministic search): main-thread nodes and CPU of the
+    # off run; ratios < 1 mean the helpers saved the main thread work on its way to depth D.
+    t1 = {m["pos"]: m for m in rows if m["threads"] == 1 and m["config"] == "off"}
+    for m in rows:
+        ref = t1.get(m["pos"])
+        if ref:
+            m["main_nodes_vs_t1"] = m["main_nodes"] / ref["main_nodes"]
+            if ref["main_cpu_s"] > 0 and m["main_cpu_s"] > 0:
+                m["main_cpu_vs_t1"] = m["main_cpu_s"] / ref["main_cpu_s"]
+            m["total_nodes_vs_t1"] = m["nodes_total"] / ref["main_nodes"]
     groups = defaultdict(list)
     for m in rows:
         groups[(m["config"], m["threads"])].append(m)
     keys = ["main_s", "join_us", "helper_idle", "finished", "ahead", "lead", "main_share", "tt_hit", "tt_cut",
-            "main_cpu_s", "cpu_par", "helper_cpu_vs_main", "info_vs_exact"]
+            "main_cpu_s", "cpu_par", "helper_cpu_vs_main", "info_vs_exact", "main_nodes_vs_t1", "main_cpu_vs_t1",
+            "total_nodes_vs_t1"]
     print("| config | T | runs | " + " | ".join(keys) + " |")
     print("|" + "---|" * (len(keys) + 3))
     for (cfg, t), ms in sorted(groups.items()):
@@ -125,13 +148,16 @@ def main():
                 vals.append(f"med {statistics.median(xs):.0f} max {max(xs):.0f}")
             elif k in ("helper_idle", "finished", "ahead", "main_share", "tt_hit", "tt_cut", "info_vs_exact"):
                 vals.append(f"{statistics.mean(xs) * 100:.1f}%")
+            elif k.endswith("_vs_t1"):
+                vals.append(f"{gmean(xs):.3f}")
             else:
                 vals.append(f"{statistics.mean(xs):.3f}")
         print(f"| {cfg} | {t} | {len(ms)} | " + " | ".join(vals) + " |")
     if a.tsv:
         cols = ["pos", "config", "threads", "depth", "wall_s", "main_s", "main_cpu_s", "join_us", "helper_idle",
-                "finished", "ahead", "lead", "main_share", "nodes_total", "nodes_info", "info_vs_exact", "tt_hit",
-                "tt_cut", "main_tt_hit", "cpu_par", "helper_cpu_vs_main", "researches_main"]
+                "finished", "ahead", "lead", "main_share", "main_nodes", "nodes_total", "nodes_info", "info_vs_exact",
+                "main_nodes_vs_t1", "main_cpu_vs_t1", "total_nodes_vs_t1", "tt_hit", "tt_cut", "main_tt_hit",
+                "cpu_par", "helper_cpu_vs_main", "researches_main"]
         with open(a.tsv, "w", encoding="utf-8", newline="\n") as fh:
             fh.write("\t".join(cols) + "\n")
             for m in rows:

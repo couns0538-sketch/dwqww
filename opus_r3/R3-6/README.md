@@ -27,21 +27,19 @@ used here is `positions30.tsv` in this folder.
 
 ## 3. Time-to-depth runs
 ```
-nice -n 19 $PY -I -B opus_r3/R3-6/smp_ttd.py --positions opus_r3/R3-6/positions30.tsv \
-  --config "off=<exe>" \
-  --config "on=<exe>|SmpExactNodes=true,SmpBestThread=true,LocklessTT=true" \
-  --config "on2=<exe>|SmpExactNodes=true,SmpBestThread=true,LocklessTT=true,CorrHistPlus=7,CorrMargins=1,CorrExt=1,CuckooRep=true,HistRework=2,MaterialKeyTable=true" \
-  --threads 1,2,3 --reps 3 --hash 64 --out <out>/ttd_main.jsonl
+bash opus_r3/R3-6/run_matrix.sh main  <head_exe> <fix_exe> <trace_exe> <out_dir> 3   # 1170 runs
+bash opus_r3/R3-6/run_matrix.sh trace <head_exe> <fix_exe> <trace_exe> <out_dir>     # 330 runs
 ```
-One fresh engine process per run (uci, options, ucinewgame, position, `go depth D`, quit); the
-(config, threads) order is shuffled per repetition and position. Resumable: rerunning skips the runs
-already in `--out`. `--config-threads NAME=2,3` restricts a config to some thread counts.
+`run_matrix.sh` calls `smp_ttd.py` with the five configs (`off`, `on`, `on2` on the head exe; `offP`, `onP`
+with `SmpHelpersPastDepth=true` on the fix exe, Threads 2/3 only). One fresh engine process per run (uci,
+options, ucinewgame, position, `go depth D`, quit); the (config, threads) order is shuffled per repetition
+and position. Resumable: rerunning skips the runs already in the output file (so use a fresh `<out_dir>`
+for other executables). `--config-threads NAME=2,3` restricts a config to some thread counts.
 
 ## 4. Summaries
 ```
-nice -n 19 $PY -I -B opus_r3/R3-6/summarize.py <out>/ttd_main.jsonl --by-class --tsv opus_r3/R3-6/logs/ttd_per_position.tsv
-nice -n 19 $PY -I -B opus_r3/R3-6/trace_summary.py <out>/ttd_trace.jsonl --tsv opus_r3/R3-6/logs/trace_per_run.tsv
-nice -n 19 $PY -I -B opus_r3/R3-6/sysload.py --windows 6 --seconds 5      # PC load snapshot
+bash opus_r3/R3-6/make_summaries.sh <out_dir> opus_r3/R3-6/logs      # tables + per-position / per-run TSVs
+nice -n 19 $PY -I -B opus_r3/R3-6/sysload.py --windows 6 --seconds 5  # PC load snapshot
 ```
 
 ## 5. Planted bugs for the new option
