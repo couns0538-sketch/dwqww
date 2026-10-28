@@ -1,0 +1,106 @@
+# R3-6Q: Lazy SMP time-to-depth on quiet GitHub runners (opus_r3/R3-6Q/README.md).
+#   prep    : box-recipe release build of forge (target only), uci_check quick (ALL OK), the four SMP options,
+#             runner record, speed check -> one uniform depth offset (0-2 plies) for every repetition
+#   ttd     : one repetition per matrix job (rep 1/2/3): off/on at Threads 1,2,3 and offP/onP at 2,3 on all
+#             30 positions, each (config, threads, position) once, shuffled order, the prep job's binary
+#   summary : pools the repetitions (R3-6 summarize.py tables, paired CIs, per repetition, PC numbers)
+name: opus-r3-smpq
+on:
+  push:
+    branches: ['opus-r3-smpq']
+  workflow_dispatch:
+permissions:
+  contents: read
+defaults:
+  run:
+    shell: bash
+jobs:
+  prep:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    outputs:
+      depth_offset: ${{ steps.speed.outputs.depth_offset }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Toolchain
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq g++-14 ninja-build cmake python3
+          g++-14 --version | head -1
+          nproc; lscpu | grep -E 'Model name|Thread|Core|Socket|^CPU\(s\)'
+      - name: Build forge and identity check
+        run: bash opus_r3/R3-6Q/ci_build.sh build_q out_prep
+      - name: Speed check and depth offset
+        id: speed
+        run: bash opus_r3/R3-6Q/ci_speed.sh build_q/forge out_prep
+      - name: Upload forge
+        uses: actions/upload-artifact@v4
+        with:
+          name: smpq-forge
+          path: build_q/forge
+          if-no-files-found: error
+      - name: Upload prep logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: smpq-prep
+          path: out_prep/
+          if-no-files-found: warn
+  ttd:
+    needs: prep
+    strategy:
+      fail-fast: false
+      matrix:
+        rep: [1, 2, 3]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: smpq-forge
+          path: bin
+      - name: Identity check of the prep binary
+        run: |
+          chmod +x bin/forge
+          mkdir -p out
+          sha256sum bin/forge | tee out/uci_check_rep${{ matrix.rep }}.log
+          python3 opus_round1/ci/uci_check.py bin/forge | tee -a out/uci_check_rep${{ matrix.rep }}.log
+          grep -q '^ALL OK' out/uci_check_rep${{ matrix.rep }}.log
+      - name: Time-to-depth matrix (rep ${{ matrix.rep }}, depth offset ${{ needs.prep.outputs.depth_offset }})
+        timeout-minutes: 54
+        run: bash opus_r3/R3-6Q/ci_matrix.sh bin/forge out ${{ matrix.rep }} "${{ needs.prep.outputs.depth_offset }}" 2700
+      - name: Upload runs and logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: smpq-rep${{ matrix.rep }}
+          path: out/
+          if-no-files-found: warn
+  summary:
+    needs: [prep, ttd]
+    if: always()
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: smpq-rep*
+          path: reps
+      - name: Pool the repetitions
+        run: |
+          shopt -s nullglob
+          files=(reps/*/ttd_rep*.jsonl)
+          echo "run files: ${files[*]}"
+          wc -l "${files[@]}" || true
+          mkdir -p summary
+          python3 opus_r3/R3-6Q/report_q.py "${files[@]}" | tee summary/summary.md
+          cat summary/summary.md >> "$GITHUB_STEP_SUMMARY"
+      - name: Upload summary
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: smpq-summary
+          path: summary/
+          if-no-files-found: warn
