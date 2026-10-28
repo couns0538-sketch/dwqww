@@ -223,12 +223,20 @@ the ON tree is the same 3,298,439 / 15,140,173-node tree as for H512 and the rat
 | H512 (M3 net), AVX2 exe (M4 measurement) | 16 / 20 | 1,760,063 / 1,852,640 | 1,367,578 / 1,421,609 | 0.777 (+-0.010) / 0.767 (+-0.013) | 1.29 / 1.30 | `fable/logs/nps_m4_trained.log` |
 | **H512 (M3 net), AVX-512 exe** | 16 / 20 | 1,758,408 / 1,810,543 | 1,458,075 / 1,504,622 | **0.830** (+-0.034) / **0.831** (+-0.010) | 1.21 / 1.20 | `fable/logs/nps_m5_h512_trained.log` |
 | **H1024 (widened M3 net), AVX-512 exe** | 16 / 20 | 1,796,636 / 1,863,537 | 1,340,498 / 1,374,724 | **0.746** (+-0.004) / **0.738** (+-0.002) | 1.34 / 1.36 | `fable/logs/nps_m5_h1024_widened.log` |
+| **H512 standalone net (no hand-crafted eval in the ON path), AVX-512 exe** | 16 / 20 | 1,706,116 / 1,807,065 | 1,997,856 / 2,147,653 | **1.171** (+-0.042) / **1.188** (+-0.016) | 0.85 / 0.84 | `fable/logs/nps_m5_h512_standalone.log` |
 
-Success test 4 (ON >= 60% of AL1 NPS at Threads = 1): **met** for both widths (H512 83%, H1024 74%); the 90% goal
-is **not** met. Decision per the brief ("start at 1024, drop to 512 if NPS is too low"): the first net is trained at
-**H512** (83% vs 74%, and twice the training throughput on this CPU); H1024 stays fully supported (loader, kernels,
-tests at H1024) for a later run when the speed work below lands. All numbers are from the loaded PC (gates,
-self-play, NNUE training running) and are advisory, not a speed claim.
+Success test 4 (ON >= 60% of AL1 NPS at Threads = 1, goal 90%): **met** for every configuration. With a residual
+net the ON path pays the hand-crafted evaluation (as the AL1 path does) plus the wider net: H512 83%, H1024 74%.
+With a **standalone** net (the net is the whole evaluation; `--residual` off in the trainer, flag 0 in the file) the
+ON path skips the hand-crafted evaluation and is **faster than the AL1 path per node: 117% (d16) / 119% (d20)**,
+i.e. the 90% goal is met with margin. The standalone net was trained with the same streaming loader for 45 minutes
+on one thread (57M positions) and reached the same holdout loss as the residual net at that point (0.015741 vs
+0.015691 on 200k rows), so nothing is lost on the loss side at this scale. Decision per the brief ("start at 1024,
+drop to 512 if NPS is too low"): the first nets are H512 (twice the training throughput on this CPU); H1024 stays
+fully supported (loader, kernels, tests, parity at H1024) and would land at roughly 0.74 x (residual) or about
+1.0 x (standalone, extrapolating the 0.09 width cost) of the AL1 speed. All numbers are from the loaded PC (gates,
+self-play, NNUE training running) and are advisory, not a speed claim; the ON and OFF trees differ (different
+evaluations), so these are per-node cost ratios.
 
 ### TSan hook (CI)
 
@@ -257,18 +265,15 @@ Success tests of the full brief, status at the last push:
 | 1 | option OFF: bench pins, perft5, FMA 0, no movegen change | **PASS** on every engine build (M1, M2, M5 AVX-512; CI release) |
 | 2 | exact parity on 100k positions, 0 mismatches; float vs quantised within 2 cp | **PASS** (100000/100000; max 1.02 cp) |
 | 3 | incremental == full refresh over 1M random make/unmake moves incl. king moves, castling, en passant, promotions; scalar = AVX2 = AVX-512 | **PASS** (1,000,000 plies, 0 mismatches; 1,299,402 kernel comparisons, 0 mismatches) |
-| 4 | NPS ON >= 60% of AL1 at Threads = 1 (goal 90%) | **PASS the 60% bar**: H512 83%, H1024 74% (AVX-512 exe, loaded PC); the 90% goal is not reached |
+| 4 | NPS ON >= 60% of AL1 at Threads = 1 (goal 90%) | **PASS**: residual H512 83%, residual H1024 74%, **standalone H512 117-119%** (the ON path without the hand-crafted eval is faster than AL1 per node); AVX-512 exe, loaded PC, advisory |
 | 5 | first net, small short run, validation loss vs the AL1 net | 5-minute single-shard run: worse than HCE (overfits); cross-shard 80-minute run: see the section above (result recorded when it finishes) |
 
 Next steps, in order:
 
-1. **Speed to 90%** (the only unmet goal). The ON residual path costs 1.20x the AL1 time per node at H512. Ideas
-   ranked by expected gain: (a) a standalone (non-residual) net drops the hand-crafted evaluation from the ON path
-   entirely, which the AL1 path still pays (HCE is 57% of the AL1 static-eval time per S37) - requires training the
-   net on the raw score instead of score - hce (`--residual` off, same trainer); (b) count refreshes per evaluation
-   with the cache statistics already kept (`RefreshCache::refreshes/columns`) and try the 4-bucket layout
-   (`--king-buckets 4`) if refreshes dominate; (c) profile `apply_changes` (4 columns x H int16) vs `output_sum`;
-   (d) lazy updates already skip unevaluated plies (replays > 1 are 19% of evaluations in the walk).
+1. **Speed**: solved by the standalone net (117-119% of AL1 per node; the residual path stays at 83%). If a residual
+   net is ever preferred for strength, the remaining ideas are: count refreshes per evaluation with the cache
+   statistics already kept (`RefreshCache::refreshes/columns`) and try the 4-bucket layout (`--king-buckets 4`);
+   profile `apply_changes` (4 columns x H int16) vs `output_sum`.
 2. **Training at scale**: the streaming loader (`--pos-glob`, 8 x 250k-row buffer, 25-batch refresh) reaches
    26k positions/s on two CPU threads, i.e. about 95M positions per hour; the AL1 net saw 32 epochs x 230M rows.
    A fair comparison needs either the GPU (DirectML; untested here) or days of CPU. Keep `--residual`,
