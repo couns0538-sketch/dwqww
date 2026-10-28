@@ -47,14 +47,26 @@ def subst(text, a, syzygy):
     return text.replace("{nets}", a.nets.replace("\\", "/")).replace("{syzygy}", syzygy)
 
 
+def coverage_row(name, s):
+    """What a config exercised (fields of older summaries may be missing: '-')."""
+    g = lambda k: s.get(k, "-")
+    cmds = s.get("commands", {})
+    kinds = "/".join(str(cmds.get(k, 0)) for k in ("nodes", "clock", "movetime", "depth", "infinite", "ponderhit",
+                                                    "pondermiss"))
+    terms = ", ".join(f"{k} {v}" for k, v in sorted(s.get("terminations", {}).items(), key=lambda kv: -kv[1]))
+    return (f"| {name} | {g('bestmoves')} | {g('ponder_moves_checked')} | {g('pv_moves_checked')} | {g('barriers')} | "
+            f"{g('mid_isready')} | {g('stray_stops')} | {kinds} | {g('watchdog_answers')} | {g('prof_blocks')} | "
+            f"{g('clock_overruns')} ({g('clock_overrun_max_ms')} ms) | {terms} |")
+
+
 def report(a, configs):
-    rows, total_bad = [], 0
+    rows, cov, total_bad = [], [], 0
     out = dict(git_head=a.git_head, out_dir=a.out, configs=[])
     for c in configs:
         path = os.path.join(a.out, c["name"] + ".summary.json")
         if not os.path.exists(path):
             out["configs"].append(dict(config=c["name"], status="not run"))
-            rows.append(f"| {c['name']} | not run | | | | | | | | | | | | | | |")
+            rows.append(f"| {c['name']} | not run | | | | | | | | | | | | | |")
             continue
         s = load(path)
         logs = {}
@@ -72,24 +84,28 @@ def report(a, configs):
         total_bad += 0 if ok else 1
         out["configs"].append(dict(s, status="clean" if ok else "FAIL", logs=logs))
         if not s.get("preflight_ok"):
-            rows.append(f"| {c['name']} | preflight FAILED: {s.get('preflight_errors')} | | | | | | | | | | | | | | |")
+            rows.append(f"| {c['name']} | preflight FAILED: {s.get('preflight_errors')} | | | | | | | | | | | | | |")
             continue
         opts = ", ".join(o for o in s["options"][4:]) or "(none)"
+        late = s["errors_by_type"].get("late_search_output", 0)
         rows.append(
             f"| {c['name']} | {os.path.basename(s['exe'])} `{s['exe_sha256'][:12]}` | {s['threads']} | {opts} | "
             f"{s['games']}/{s['games_requested']} | {s['plies']} | **{s['errors']}** | {s['crashes']} | "
-            f"{s['illegal_moves']} | {s['double_bestmoves']} | {s['timeouts']} | {s['malformed_output']} | "
-            f"{s['errors_by_type'].get('late_search_output', 0)}"
-            f"{'' if s.get('late_after_watchdog') is None else ' (' + str(s['late_after_watchdog']) + ' after watchdog)'} | "
-            f"{s['hard_deadline_fired']} | {s['games_with_tbhits']} | {s['bench11_nodes']} | {s['wall_s']} |")
+            f"{s['illegal_moves']} | {s['double_bestmoves']} | {s['timeouts']} | {s['malformed_output']} | {late} | "
+            f"{s['hard_deadline_fired']} | {s['bench11_nodes']} | {s['wall_s']} |")
+        cov.append(coverage_row(c["name"], s))
     head = ("| config | exe (sha256) | thr | options | games | plies | errors | crashes | illegal moves | "
-            "double bestmoves | timeouts | malformed | of which late info after bestmove | HardDeadline fired | "
-            "games w/ tbhits | bench11 | wall s |\n"
-            "|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|")
+            "double bestmoves | timeouts | malformed output | of which info after bestmove | HardDeadline answers | "
+            "bench11 | wall s |\n"
+            "|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|")
+    cov_head = ("| config | bestmoves | ponder moves checked | pv moves checked | isready barriers | mid-search isready | "
+                "stray stops | go nodes/clock/movetime/depth/infinite/ponderhit/pondermiss | watchdog answers | "
+                "profile blocks | clock overruns (max) | terminations |\n"
+                "|---|---|---|---|---|---|---|---|---|---|---|---|")
     md = (f"# R3-1 self-play matrix, git head {a.git_head}\n\n"
           f"Generated {time.strftime('%Y-%m-%d %H:%M:%S')} by run_matrix.py from {a.out}; every engine also runs with "
           f"Hash 16, Ponder true, OwnBook false. Configs with errors or missing games: {total_bad}.\n\n"
-          + head + "\n" + "\n".join(rows) + "\n")
+          + head + "\n" + "\n".join(rows) + "\n\n## Coverage\n\n" + cov_head + "\n" + "\n".join(cov) + "\n")
     with open(os.path.join(a.out, "MATRIX.md"), "w", newline="\n", encoding="utf-8") as f:
         f.write(md)
     with open(os.path.join(a.out, "matrix_summary.json"), "w", newline="\n", encoding="utf-8") as f:

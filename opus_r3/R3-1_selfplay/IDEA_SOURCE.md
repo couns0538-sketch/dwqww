@@ -30,6 +30,12 @@
   (`F:\opus_scratch\o4\r4\o4_cpu_material\epoch004-step000000780.fnn2`, fnv1a 1544ea643b9cd9a7, opus_round1/O4/
   REPORT.md) and, for the all-ON PureNnue variant, the same function written as rm8 + 8 heads + zero threat and
   pawn-pair blocks (bench d11/d13 450072/1280779 = O4's pins for that net).
+- **Activation evidence**: an option that is accepted is not necessarily active (NnueLazyAcc and NnueInt16 are
+  silently bypassed by a v2 net), so each config names the `info string` lines its preflight must print
+  (`"expect"`), and the preflight records `bench 11` as a node signature (equal to the lock pins for node-exact
+  features, different for tree-changing ones).
+- **Steering without killing** (PC rules: no process kills): the runner re-reads its configs file before every
+  config, so a matrix is reordered, rebalanced between two runners or ended between configs by editing that file.
 - **Profile output** (S08fix `Profile=true`): src/profile.cpp `write_snapshot` format, checked line by line
   (schema line, then one counter line per counter, same layout every time; "pct unknown" only with 0
   opportunities or overflow).
