@@ -1,0 +1,1149 @@
+# merge 9588a109: [R3-1] Merge opus-sol-S08fix (FORGE_PROF profile counters) into the stack
+# parent2 3db14d3c ; auto-merge tree 0849284000b63460b44e847d7bd96c75ebca89dd ; conflicts: 5
+## (a) manual resolution vs the automatic merge (src include tests CMakeLists.txt, without search.cpp/search.hpp)
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -6,11 +6,8 @@ option(FORGE_ENABLE_SANITIZERS "Enable AddressSanitizer and UndefinedBehaviorSan
+ option(FORGE_NNUE_LAZY_ACC "Enable experimental NnueLazyAcc UCI option (default OFF)" OFF)
+ option(FORGE_NATIVE "Optimise for the build machine's CPU (-march=native)" OFF)
+ option(FORGE_EXPOSE_TUNABLES "Advertise search tuning constants as UCI options (development builds)" OFF)
+-<<<<<<< 7b431d483b33a15ecfb216c4727c3bba106f60ea
+ option(FORGE_NOZERO_MOVE_BUFFERS "Leave the MoveList/MovePicker move buffers uninitialised (node-exact speed candidate)" OFF)
+-=======
+ option(FORGE_PROF "Build opt-in search-only profiling counters" OFF)
+->>>>>>> 3db14d3cea484e7ae25be4691ef0561db51c7dd9
+ 
+ add_library(forge_core
+     src/bitboard.cpp
+@@ -23,7 +20,6 @@ add_library(forge_core
+ )
+ target_include_directories(forge_core PUBLIC include)
+ target_compile_features(forge_core PUBLIC cxx_std_20)
+-<<<<<<< 7b431d483b33a15ecfb216c4727c3bba106f60ea
+ if(FORGE_NOZERO_MOVE_BUFFERS)
+     target_compile_definitions(forge_core PUBLIC FORGE_NOZERO_MOVE_BUFFERS=1)
+ endif()
+@@ -50,11 +46,12 @@ endif()
+ # S12 null-edge accumulator alias (compile switch + UCI NnueLazyAcc), default OFF.
+ if(FORGE_NNUE_LAZY_ACC)
+     target_compile_definitions(forge_core PUBLIC FORGE_NNUE_LAZY_ACC=1)
+-=======
++endif()
++
++# S08fix profile counters (compile switch FORGE_PROF), default OFF.
+ if(FORGE_PROF)
+     target_sources(forge_core PRIVATE src/profile.cpp)
+     target_compile_definitions(forge_core PUBLIC FORGE_PROF=1)
+->>>>>>> 3db14d3cea484e7ae25be4691ef0561db51c7dd9
+ endif()
+ 
+ if(MSVC)
+diff --git a/include/forge/thread_data.hpp b/include/forge/thread_data.hpp
+--- a/include/forge/thread_data.hpp
++++ b/include/forge/thread_data.hpp
+@@ -4,6 +4,9 @@
+ #include "forge/correction_plus.hpp"
+ #include "forge/eval.hpp"
+ #include "forge/hist_rework.hpp"
++#ifdef FORGE_PROF
++#include "forge/profile.hpp"
++#endif
+ #include "forge/history.hpp"
+ #include "forge/nnue.hpp"
+ #include "forge/search_types.hpp"
+@@ -73,6 +76,11 @@ struct SharedSearchState {
+ #endif
+     // 0 means pondering has not been converted into a timed search.
+     std::atomic<std::int64_t> ponder_hit_ns{0};
++#ifdef FORGE_PROF
++    // The counters themselves live in one bank per Worker (S08-2).
++    std::atomic<bool> profile_requested{false};
++    bool profile_active=false; // Immutable while workers are active.
++#endif
+ };
+ 
+ class Worker;
+@@ -139,6 +147,9 @@ struct ThreadData {
+ #if FORGE_NNUE_LAZY_ACC
+     LazyAccStats lazy_acc_stats_{};   // S12 NnueLazyAcc counters
+ #endif
++#ifdef FORGE_PROF
++    prof::Bank profile_bank_;   // S08fix profile counters
++#endif
+ };
+ 
+ } // namespace forge
+diff --git a/src/nnue.cpp b/src/nnue.cpp
+--- a/src/nnue.cpp
++++ b/src/nnue.cpp
+@@ -1,11 +1,8 @@
+ #include "forge/nnue.hpp"
+-<<<<<<< 7b431d483b33a15ecfb216c4727c3bba106f60ea
+ #include "forge/nnue_v2.hpp"
+-=======
+ #ifdef FORGE_PROF
+ #include "forge/profile.hpp"
+ #endif
+->>>>>>> 3db14d3cea484e7ae25be4691ef0561db51c7dd9
+ 
+ #include <algorithm>
+ #include <cmath>
+diff --git a/src/search/alphabeta.inc b/src/search/alphabeta.inc
+--- a/src/search/alphabeta.inc
++++ b/src/search/alphabeta.inc
+@@ -39,6 +39,11 @@ int Worker::FORGE_SEARCH_FN(Board& board, SearchStack* ss, int depth, int alpha,
+     if (((local_nodes_ & 1023U) == 0 || node_limit_specified_) && should_stop()) aborted_ = true;
+     if (aborted_) return 0;
+     ++local_nodes_;
++#ifdef FORGE_PROF
++    prof::count(prof::Counter::Nodes);
++    prof::count(prof::Counter::MainNodes);
++#endif
++
+     seldepth_ = std::max(seldepth_, ply);
+     ss->pv_length = 0;
+     ss->move_count = 0;
+@@ -131,11 +136,24 @@ int Worker::FORGE_SEARCH_FN(Board& board, SearchStack* ss, int depth, int alpha,
+     }
+ 
+     if (!pv_node && !in_check && excluded.is_none() && !is_mate_score(beta)) {
++#ifdef FORGE_PROF
++        prof::count(prof::Counter::RazorChecks);
++#endif
+         // Razoring: hopeless positions fall back to quiescence.
+         if (depth <= tune::RazorDepth && eval + tune::RazorBase + tune::RazorMultiplier * depth < alpha) {
++#ifdef FORGE_PROF
++            prof::count(prof::Counter::RazorSearches);
++#endif
+             const int razor = FORGE_QSEARCH_CALL(board, ss, alpha - 1, alpha);
+             if (aborted_) return 0;
++#ifdef FORGE_PROF
++            if (razor < alpha) {
++                prof::count(prof::Counter::RazorCutoffs);
++                return razor;
++            }
++#else
+             if (razor < alpha) return razor;
++#endif
+         }
+         // Reverse futility pruning.
+ #if FORGE_SEARCH_CORR_MARGINS
+@@ -198,6 +216,9 @@ int Worker::FORGE_SEARCH_FN(Board& board, SearchStack* ss, int depth, int alpha,
+         }
+         // ProbCut: a good capture that beats beta by a margin at reduced depth.
+         const int probcut_beta = beta + tune::ProbcutMargin - 50 * improving;
++#ifdef FORGE_PROF
++        prof::count(prof::Counter::ProbCutChecks);
++#endif
+         if (depth >= tune::ProbcutDepth && !is_mate_score(beta) &&
+             !(tt_hit && tt_depth >= depth - 3 && tt_score != ValueNone && tt_score < probcut_beta)) {
+             MovePicker picker(board, *this, ss, tt_move, MovePicker::Mode::Quiescence);
+@@ -217,6 +238,9 @@ int Worker::FORGE_SEARCH_FN(Board& board, SearchStack* ss, int depth, int alpha,
+ #endif
+ #ifdef FORGE_SPEEDSTACK
+                 shared_.tt.prefetch(board.key());  // speed stack (S29, piece S13): the child's TT bucket
++#endif
++#ifdef FORGE_PROF
++                prof::count(prof::Counter::ProbCutSearches);
+ #endif
+                 int value = -FORGE_QSEARCH_CALL(board, ss + 1, -probcut_beta, -probcut_beta + 1);
+                 if (value >= probcut_beta && !aborted_) {
+@@ -225,6 +249,9 @@ int Worker::FORGE_SEARCH_FN(Board& board, SearchStack* ss, int depth, int alpha,
+                 board.unmake_move(move, undo);
+                 if (aborted_) return 0;
+                 if (value >= probcut_beta) {
++#ifdef FORGE_PROF
++                    prof::count(prof::Counter::ProbCutCutoffs);
++#endif
+                     if (!claim) {
+                         shared_.tt.store(tt_probe, board.key(), score_to_tt(value, ply), ss->raw_eval, move, depth - 3, BoundLower, ss->tt_pv, board.halfmove_clock());
+                     }
+@@ -234,8 +261,18 @@ int Worker::FORGE_SEARCH_FN(Board& board, SearchStack* ss, int depth, int alpha,
+         }
+     }
+ 
++#ifdef FORGE_PROF
++    prof::count(prof::Counter::IirChecks);
++#endif
+     // Internal iterative reduction: no hash move suggests a less important node.
++#ifdef FORGE_PROF
++    if (!in_check && depth >= tune::IirDepth && tt_move.is_none() && (pv_node || cut_node)) {
++        prof::count(prof::Counter::IirReductions);
++        --depth;
++    }
++#else
+     if (!in_check && depth >= tune::IirDepth && tt_move.is_none() && (pv_node || cut_node)) --depth;
++#endif
+ 
+     // HistRework: lesser-attacker maps of this node, read by quiet_history and the history updates below.
+     if (search_options::hist_rework != 0) [[unlikely]] threat_maps_[static_cast<std::size_t>(ply)] = hist_rework::lesser_threats(board);
+@@ -268,40 +305,90 @@ int Worker::FORGE_SEARCH_FN(Board& board, SearchStack* ss, int depth, int alpha,
+ 
+         // Shallow-depth pruning of unpromising moves.
+         if (!root_node && best_score > -MateInMaxPly && has_material) {
++#ifdef FORGE_PROF
++            prof::count(prof::Counter::LmpChecks);
++            if (quiet && !skip_quiets && move_count >= FORGE_LMP_THRESHOLD(depth, improving)) {
++                prof::count(prof::Counter::LmpActivations);
++                skip_quiets = true;
++            }
++#else
+             if (quiet && !skip_quiets && move_count >= FORGE_LMP_THRESHOLD(depth, improving)) skip_quiets = true;
++#endif
+             const int lmr_depth = std::max(0, depth - reduction(quiet, depth, move_count));
+             if (quiet && !gives_check) {
++#ifdef FORGE_PROF
++                prof::count(prof::Counter::FutilityChecks);
++#endif
+ #if FORGE_SEARCH_CORR_MARGINS
+                 if (!in_check && lmr_depth <= tune::FutilityDepth &&
+                     ss->static_eval + corr_margins::futility_margin(lmr_depth, correction) <= alpha) {
+ #else
+                 if (!in_check && lmr_depth <= tune::FutilityDepth &&
+                     ss->static_eval + tune::FutilityBase + tune::FutilityMultiplier * lmr_depth <= alpha) {
++#endif
++#ifdef FORGE_PROF
++                    prof::count(prof::Counter::FutilityPrunes);
+ #endif
+                     skip_quiets = true;
+                     continue;
+                 }
++#ifdef FORGE_PROF
++                prof::count(prof::Counter::HistoryChecks);
++                if (lmr_depth <= tune::HistoryPruneDepth && history < -tune::HistoryPruneMultiplier * depth) {
++                    prof::count(prof::Counter::HistoryPrunes);
++                    continue;
++                }
++                prof::count(prof::Counter::QuietSeeChecks);
++                if (!board.see_ge(move, -tune::SeeQuietMultiplier * lmr_depth * lmr_depth)) {
++                    prof::count(prof::Counter::QuietSeePrunes);
++                    continue;
++                }
++#else
+                 if (lmr_depth <= tune::HistoryPruneDepth && history < -tune::HistoryPruneMultiplier * depth) continue;
+                 if (!board.see_ge(move, -tune::SeeQuietMultiplier * lmr_depth * lmr_depth)) continue;
++#endif
+             } else {
+                 // Futility pruning for captures: even winning the piece cannot
+                 // bring the position back to alpha.
++#ifdef FORGE_PROF
++                prof::count(prof::Counter::CaptureFutilityChecks);
++#endif
+                 if (tune::CaptureFutilityBase > 0 && capture && !in_check && !gives_check &&
+                     lmr_depth <= tune::CaptureFutilityDepth &&
+                     ss->static_eval + tune::CaptureFutilityBase + tune::CaptureFutilityMultiplier * lmr_depth +
+                             capture_value(board, move) + history / 8 <= alpha) {
++#ifdef FORGE_PROF
++                    prof::count(prof::Counter::CaptureFutilityPrunes);
++#endif
+                     continue;
+                 }
++#ifdef FORGE_PROF
++                prof::count(prof::Counter::NoisySeeChecks);
++#endif
+                 const int see_threshold = -tune::SeeNoisyMultiplier * depth;
++#ifdef FORGE_PROF
++                if (!(picker.last_move_see_nonnegative() && see_threshold <= 0) &&
++                    !board.see_ge(move, see_threshold)) {
++                    prof::count(prof::Counter::NoisySeePrunes);
++                    continue;
++                }
++#else
+                 if (!(picker.last_move_see_nonnegative() && see_threshold <= 0) &&
+                     !board.see_ge(move, see_threshold)) continue;
++#endif
+             }
+         }
+ 
+         // Extensions.
+         int extension = 0;
++#ifdef FORGE_PROF
++        prof::count(prof::Counter::SingularChecks);
++#endif
+         if (!root_node && depth >= tune::SingularDepth && move == tt_move && excluded.is_none() && tt_bound != BoundUpper &&
+             tt_score != ValueNone && !is_mate_score(tt_score) && tt_depth >= depth - 3) {
++#ifdef FORGE_PROF
++            prof::count(prof::Counter::SingularSearches);
++#endif
+             const int singular_beta = tt_score - tune::SingularMargin * depth;
+             const int singular_depth = (depth - 1) / 2;
+             const bool saved_tt_pv = ss->tt_pv;
+@@ -312,6 +399,9 @@ int Worker::FORGE_SEARCH_FN(Board& board, SearchStack* ss, int depth, int alpha,
+             ss->excluded_move = Move::none();
+             if (aborted_) return 0;
+             if (singular_score < singular_beta) {
++#ifdef FORGE_PROF
++                prof::count(prof::Counter::SingularExtensions);
++#endif
+ #if FORGE_SEARCH_CORR_EXT
+                 // CorrExt: double margin shrinking with |correction|, triple extension, per-path budget.
+                 extension = corr_ext::singular_extension(pv_node, singular_score, singular_beta, correction,
+@@ -319,10 +409,16 @@ int Worker::FORGE_SEARCH_FN(Board& board, SearchStack* ss, int depth, int alpha,
+ #else
+                 extension = 1;
+                 if (!pv_node && singular_score < singular_beta - 24 && inherited_double_extensions <= 6) {
++#ifdef FORGE_PROF
++                    prof::count(prof::Counter::SingularDoubleExtensions);
++#endif
+                     extension = 2;
+                 }
+ #endif
+             } else if (singular_beta >= beta) {
++#ifdef FORGE_PROF
++                prof::count(prof::Counter::SingularCutoffs);
++#endif
+                 return singular_beta;
+             } else if (tt_score >= beta) {
+                 extension = -2;
+diff --git a/src/search/evaluation.inc b/src/search/evaluation.inc
+--- a/src/search/evaluation.inc
++++ b/src/search/evaluation.inc
+@@ -79,6 +79,10 @@ int Worker::static_evaluate_lazy(const Board& board, SearchStack* ss) {
+ #endif
+ 
+ int Worker::static_evaluate(const Board& board, SearchStack* ss) {
++#ifdef FORGE_PROF
++    prof::count(prof::Counter::EvalRequests);
++#endif
++
+     if (options::nnue_v2) [[unlikely]] {
+         // Layout pad: with it the dispatch grows this function by exactly 64
+         // bytes in the PC build (MinGW g++ 15.2), so the search functions
+diff --git a/src/search/iterative.inc b/src/search/iterative.inc
+--- a/src/search/iterative.inc
++++ b/src/search/iterative.inc
+@@ -13,6 +13,10 @@ namespace forge {
+ }
+ 
+ SearchInfo Worker::search(Board board, const SearchLimits& limits, bool emit_info, const std::vector<Worker*>& all) {
++#ifdef FORGE_PROF
++    prof::Scope profile_scope(shared_.profile_active ? &profile_bank_ : nullptr);
++#endif
++
+ #ifdef FORGE_S13_TT_CHILD_PREFETCH
+     s13_tt_child_prefetch_ = limits.s13_tt_child_prefetch;
+ #endif
+diff --git a/src/search/movepicker.hpp b/src/search/movepicker.hpp
+--- a/src/search/movepicker.hpp
++++ b/src/search/movepicker.hpp
+@@ -59,14 +59,23 @@ public:
+             case MainTT:
+             case QsTT:
+             case EvasionTT:
++#ifdef FORGE_PROF
++                prof::picker_stage(static_cast<std::size_t>(stage_));
++#endif
+                 stage_ = static_cast<Stage>(stage_ + 1);
+                 return tt_move_;
+ 
+             case GenerateCaptures:
++#ifdef FORGE_PROF
++                prof::picker_stage(static_cast<std::size_t>(stage_));
++#endif
+                 generate_captures();
+                 stage_ = GoodCaptures;
+                 [[fallthrough]];
+             case GoodCaptures:
++#ifdef FORGE_PROF
++                prof::picker_stage(static_cast<std::size_t>(stage_));
++#endif
+                 while (index_ < count_) {
+                     const Move move = pick_best();
+                     if (move == tt_move_) continue;
+@@ -79,24 +88,39 @@ public:
+                 stage_ = Killer1;
+                 [[fallthrough]];
+             case Killer1:
++#ifdef FORGE_PROF
++                prof::picker_stage(static_cast<std::size_t>(stage_));
++#endif
+                 stage_ = Killer2;
+                 if (!skip_quiets && is_valid_quiet(killers_[0])) return killers_[0];
+                 [[fallthrough]];
+             case Killer2:
++#ifdef FORGE_PROF
++                prof::picker_stage(static_cast<std::size_t>(stage_));
++#endif
+                 stage_ = CounterMove;
+                 if (!skip_quiets && is_valid_quiet(killers_[1]) && killers_[1] != killers_[0]) return killers_[1];
+                 [[fallthrough]];
+             case CounterMove:
++#ifdef FORGE_PROF
++                prof::picker_stage(static_cast<std::size_t>(stage_));
++#endif
+                 stage_ = GenerateQuiets;
+                 if (!skip_quiets && is_valid_quiet(counter_) && counter_ != killers_[0] && counter_ != killers_[1]) {
+                     return counter_;
+                 }
+                 [[fallthrough]];
+             case GenerateQuiets:
++#ifdef FORGE_PROF
++                prof::picker_stage(static_cast<std::size_t>(stage_));
++#endif
+                 if (!skip_quiets) generate_quiets();
+                 stage_ = QuietMoves;
+                 [[fallthrough]];
+             case QuietMoves:
++#ifdef FORGE_PROF
++                prof::picker_stage(static_cast<std::size_t>(stage_));
++#endif
+                 if (!skip_quiets) {
+                     while (index_ < count_) {
+                         const Move move = pick_best();
+@@ -108,14 +132,23 @@ public:
+                 bad_index_ = 0;
+                 [[fallthrough]];
+             case BadCaptures:
++#ifdef FORGE_PROF
++                prof::picker_stage(static_cast<std::size_t>(stage_));
++#endif
+                 if (bad_index_ < bad_count_) return bad_captures_[bad_index_++];
+                 return Move::none();
+ 
+             case QsGenerate:
++#ifdef FORGE_PROF
++                prof::picker_stage(static_cast<std::size_t>(stage_));
++#endif
+                 generate_captures();
+                 stage_ = QsCaptures;
+                 [[fallthrough]];
+             case QsCaptures:
++#ifdef FORGE_PROF
++                prof::picker_stage(static_cast<std::size_t>(stage_));
++#endif
+                 while (index_ < count_) {
+                     const Move move = pick_best();
+                     if (move == tt_move_) continue;
+@@ -124,10 +157,16 @@ public:
+                 return Move::none();
+ 
+             case EvasionGenerate:
++#ifdef FORGE_PROF
++                prof::picker_stage(static_cast<std::size_t>(stage_));
++#endif
+                 generate_evasions();
+                 stage_ = Evasions;
+                 [[fallthrough]];
+             case Evasions:
++#ifdef FORGE_PROF
++                prof::picker_stage(static_cast<std::size_t>(stage_));
++#endif
+                 while (index_ < count_) {
+                     const Move move = pick_best();
+                     if (move == tt_move_) continue;
+diff --git a/src/search/qsearch.inc b/src/search/qsearch.inc
+--- a/src/search/qsearch.inc
++++ b/src/search/qsearch.inc
+@@ -15,6 +15,11 @@ int Worker::FORGE_QSEARCH_FN(Board& board, SearchStack* ss, int alpha, int beta)
+     if (((local_nodes_ & 1023U) == 0 || node_limit_specified_) && should_stop()) aborted_ = true;
+     if (aborted_) return 0;
+     ++local_nodes_;
++#ifdef FORGE_PROF
++    prof::count(prof::Counter::Nodes);
++    prof::count(prof::Counter::QsNodes);
++#endif
++
+     seldepth_ = std::max(seldepth_, ply);
+     ss->pv_length = 0;
+ 
+@@ -84,12 +89,28 @@ int Worker::FORGE_QSEARCH_FN(Board& board, SearchStack* ss, int alpha, int beta)
+         ++move_count;
+         if (!in_check && best_score > -MateInMaxPly) {
+             const bool gives_check = board.gives_check(move);
++#ifdef FORGE_PROF
++            prof::count(prof::Counter::QsFutilityChecks);
++#endif
+             // Futility: even winning the captured piece cannot raise alpha.
+             if (!gives_check && !move.is_promotion() && futility_base + capture_value(board, move) <= alpha) {
++#ifdef FORGE_PROF
++                prof::count(prof::Counter::QsFutilityPrunes);
++#endif
+                 best_score = std::max(best_score, futility_base + capture_value(board, move));
+                 continue;
+             }
++#ifdef FORGE_PROF
++            prof::count(prof::Counter::QsSeeChecks);
++#endif
++#ifdef FORGE_PROF
++            if (!board.see_ge(move, -tune::QsSeeMargin)) {
++                prof::count(prof::Counter::QsSeePrunes);
++                continue;
++            }
++#else
+             if (!board.see_ge(move, -tune::QsSeeMargin)) continue;
++#endif
+         }
+         ss->current_move = move;
+         ss->moved_piece = board.moved_piece(move);
+diff --git a/src/search/searcher.inc b/src/search/searcher.inc
+--- a/src/search/searcher.inc
++++ b/src/search/searcher.inc
+@@ -63,6 +63,10 @@ SearchInfo Searcher::search(Board board, const SearchLimits& limits, bool emit_i
+     if (table_access == TTAccess::Exclusive && workers_.size() == 1) {
+         exclusive.emplace(shared_.tt);
+     }
++#ifdef FORGE_PROF
++    shared_.profile_active=shared_.profile_requested.load(std::memory_order_relaxed);
++    for (auto& worker : workers_) worker->reset_profile_quiescent();
++#endif
+     if (options::smp_exact_nodes) {
+         // A helper publishes its count only from inside its own search; until it
+         // has started, total_nodes() would read the previous search's count.
+@@ -156,4 +160,26 @@ SearchInfo Searcher::search(Board board, const SearchLimits& limits, bool emit_i
+     std::cout << std::endl;
+ }
+ 
++#ifdef FORGE_PROF
++prof::Snapshot Searcher::profile_snapshot() const {
++    prof::Snapshot total;
++    for (const auto& worker : workers_) prof::merge(total, worker->profile_bank().snapshot_quiescent());
++    return total;
++}
++
++std::vector<prof::Snapshot> Searcher::profile_worker_snapshots() const {
++    std::vector<prof::Snapshot> result;
++    result.reserve(workers_.size());
++    for (const auto& worker : workers_) result.push_back(worker->profile_bank().snapshot_quiescent());
++    return result;
++}
++
++std::vector<std::uint64_t> Searcher::profile_worker_nodes() const {
++    std::vector<std::uint64_t> result;
++    result.reserve(workers_.size());
++    for (const auto& worker : workers_) result.push_back(worker->nodes());
++    return result;
++}
++#endif
++
+ } // namespace forge
+diff --git a/src/search/tt.inc b/src/search/tt.inc
+--- a/src/search/tt.inc
++++ b/src/search/tt.inc
+@@ -81,6 +81,11 @@ TTProbe TranspositionTable::probe(std::uint64_t key) const {
+     const std::size_t index = static_cast<std::size_t>(&cluster - clusters_.get());
+     const auto lock = lock_stripe(index);
+     auto snapshot = [&](const TTEntry& entry, bool hit) {
++#ifdef FORGE_PROF
++        prof::count(prof::Counter::TtProbes);
++        prof::count(hit ? prof::Counter::TtHits : prof::Counter::TtMisses);
++#endif
++
+         TTProbe result;
+         result.entry = entry;
+         result.hit = hit;
+diff --git a/src/uci.cpp b/src/uci.cpp
+--- a/src/uci.cpp
++++ b/src/uci.cpp
+@@ -422,7 +422,6 @@ int main() {
+                          "option name Book Depth type spin default 30 min 0 max 100\n"
+                          "option name Book Variety type spin default 30 min 0 max 100\n";
+             if (forge::nnue::available()) std::cout << "option name UseNNUE type check default true\n";
+-<<<<<<< 7b431d483b33a15ecfb216c4727c3bba106f60ea
+             // Search options added after AL1 s198; all default OFF (see forge/search_options.hpp).
+             std::cout << "option name SmpExactNodes type check default false\n"
+                          "option name SmpBestThread type check default false\n"
+@@ -456,12 +455,10 @@ int main() {
+ #if FORGE_NNUE_LAZY_ACC
+             if (forge::nnue::available()) std::cout << "option name NnueLazyAcc type check default false\n";
+ #endif
+-=======
+ #ifdef FORGE_PROF
+             std::cout << "option name Profile type check default false\n";
+ #endif
+ 
+->>>>>>> 3db14d3cea484e7ae25be4691ef0561db51c7dd9
+ #ifdef FORGE_EXPOSE_TUNABLES
+             // Development builds advertise the search constants so match
+             // runners can set them; release builds accept them silently.
+@@ -517,7 +514,6 @@ int main() {
+             }
+             if (handled_tunable) {
+                 // Unlisted development options; nothing else to do.
+-<<<<<<< 7b431d483b33a15ecfb216c4727c3bba106f60ea
+ #ifdef FORGE_S13_TT_CHILD_PREFETCH
+             } else if (name == "TtChildPrefetch") {
+                 if (value_text == "true" || value_text == "false") {
+@@ -528,20 +524,6 @@ int main() {
+                 }
+ #endif
+             } else if (name == "Clear Hash") {
+-=======
+-            }
+-#ifdef FORGE_PROF
+-            else if (name == "Profile") {
+-                if (value_text=="true") searcher.set_profiling(true);
+-                else if (value_text=="false") searcher.set_profiling(false);
+-                else {
+-                    const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex());
+-                    std::cout << "info string invalid value for option Profile" << std::endl;
+-                }
+-            }
+-#endif
+-            else if (name == "Clear Hash") {
+->>>>>>> 3db14d3cea484e7ae25be4691ef0561db51c7dd9
+                 searcher.clear_hash();
+             } else if (name == "Ponder") {
+                 if (value_text == "true") ponder_enabled = true;
+@@ -711,6 +693,15 @@ int main() {
+                     std::cout << "info string invalid value for option NnueLazyAcc" << std::endl;
+                 }
+                 searcher.clear_hash();
++#endif
++#ifdef FORGE_PROF
++            } else if (name == "Profile") {
++                if (value_text=="true") searcher.set_profiling(true);
++                else if (value_text=="false") searcher.set_profiling(false);
++                else {
++                    const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex());
++                    std::cout << "info string invalid value for option Profile" << std::endl;
++                }
+ #endif
+             } else if (name == "UseNNUE") {
+                 if (value_text == "true") forge::nnue::enabled = true;
+@@ -913,11 +904,15 @@ int main() {
+                         result.pv.front().promotion == result.best_move.promotion) {
+                         prediction = " ponder " + forge::Board::move_to_uci(result.pv[1]);
+                     }
+-<<<<<<< 7b431d483b33a15ecfb216c4727c3bba106f60ea
+                     // The HardDeadline watchdog may already have answered this go.
+                     if (run->answered.exchange(true)) return;
+                     {
+                         const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex());
++#ifdef FORGE_PROF
++                        if (searcher.profiling_active()) {
++                            forge::prof::write_snapshot(std::cout,searcher.profile_snapshot());
++                        }
++#endif
+                         std::cout << "bestmove " << best << prediction << std::endl;
+                     }
+                     {
+@@ -925,15 +920,6 @@ int main() {
+                         run->done = true;
+                     }
+                     run->cv.notify_all();
+-=======
+-                    const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex());
+-#ifdef FORGE_PROF
+-                    if (searcher.profiling_active()) {
+-                        forge::prof::write_snapshot(std::cout,searcher.profile_snapshot());
+-                    }
+-#endif
+-                    std::cout << "bestmove " << best << prediction << std::endl;
+->>>>>>> 3db14d3cea484e7ae25be4691ef0561db51c7dd9
+                 });
+                 if (deadline_watch) {
+                     std::int64_t soft_ms = 0;
+@@ -970,18 +956,15 @@ int main() {
+             std::uint64_t total_nodes = 0;
+             const auto start = std::chrono::steady_clock::now();
+             forge::Searcher bench_searcher(16);
+-<<<<<<< 7b431d483b33a15ecfb216c4727c3bba106f60ea
+ #ifdef FORGE_S13_TT_CHILD_PREFETCH
+             bench_searcher.set_s13_tt_child_prefetch(searcher.s13_tt_child_prefetch_enabled());
+ #endif
+-=======
+ #ifdef FORGE_PROF
+             const bool profile_bench=command=="bench_prof";
+             bench_searcher.set_profiling(profile_bench);
+             forge::prof::Snapshot profile_total;
+ #endif
+ 
+->>>>>>> 3db14d3cea484e7ae25be4691ef0561db51c7dd9
+             for (const std::string_view fen : fens) {
+                 forge::Board bench_board;
+                 if (!bench_board.set_fen(fen)) continue;
+## (b) the merged branch's own engine diff vs d4f4312 (src include, +/- lines only)
+diff --git a/include/forge/profile.hpp b/include/forge/profile.hpp
+@@ -0,0 +1,86 @@
++#pragma once
++
++#ifdef FORGE_PROF
++#include <array>
++#include <cstddef>
++#include <cstdint>
++#include <iosfwd>
++
++namespace forge::prof {
++
++enum class Counter : std::size_t {
++    Nodes, MainNodes, QsNodes, EvalRequests, HceComputations, NnueForward,
++    NnueRefresh, TtProbes, TtHits, TtMisses, PickerVisits,
++    PickerMainTT, PickerGenerateCaptures, PickerGoodCaptures, PickerKiller1,
++    PickerKiller2, PickerCounterMove, PickerGenerateQuiets, PickerQuietMoves,
++    PickerBadCaptures, PickerQsTT, PickerQsGenerate, PickerQsCaptures,
++    PickerEvasionTT, PickerEvasionGenerate, PickerEvasions,
++    RazorChecks, RazorSearches, RazorCutoffs,
++    ProbCutChecks, ProbCutSearches, ProbCutCutoffs,
++    IirChecks, IirReductions, LmpChecks, LmpActivations,
++    FutilityChecks, FutilityPrunes, CaptureFutilityChecks, CaptureFutilityPrunes,
++    HistoryChecks, HistoryPrunes, QuietSeeChecks, QuietSeePrunes,
++    NoisySeeChecks, NoisySeePrunes, QsFutilityChecks, QsFutilityPrunes,
++    QsSeeChecks, QsSeePrunes, SingularChecks, SingularSearches,
++    SingularExtensions, SingularDoubleExtensions, SingularCutoffs,
++    Count
++};
++constexpr std::size_t CounterCount=static_cast<std::size_t>(Counter::Count);
++struct Snapshot {
++    std::array<std::uint64_t,CounterCount> values{};
++    bool overflow=false;
++};
++
++// One bank per search worker (S08-2). Only the owning worker's thread calls add() while a
++// search runs, so the counters are plain integers: no shared atomics, no cache line written by
++// two threads, so Threads>1 searches are not serialized or slowed by profiling. The bank is
++// cache-line aligned so neighbouring data never shares its lines. reset/snapshot follow
++// Searcher's quiescent controller contract (before helpers start / after they are joined);
++// Searcher::profile_snapshot() merges the worker banks. Unsigned wrap is defined modulo 2^64
++// and sets a sticky flag: wrapped totals are not valid frequencies.
++class alignas(64) Bank {
++public:
++    void add(Counter event,std::uint64_t amount=1) noexcept {
++        auto& value=values_[static_cast<std::size_t>(event)];
++        const std::uint64_t previous=value;
++        value=previous+amount;
++        overflow_=overflow_ || value<previous;
++    }
++    void reset_quiescent() noexcept {
++        values_.fill(0);
++        overflow_=false;
++    }
++    [[nodiscard]] Snapshot snapshot_quiescent() const noexcept {
++        Snapshot result;
++        result.values=values_;
++        result.overflow=overflow_;
++        return result;
++    }
++private:
++    std::array<std::uint64_t,CounterCount> values_{};
++    bool overflow_=false;
++};
++
++// Constant initialization must be visible to every TU using this TLS slot.
++extern thread_local constinit Bank* current_bank;
++class Scope {
++public:
++    explicit Scope(Bank* bank) noexcept:previous_(current_bank) {current_bank=bank;}
++    ~Scope() {current_bank=previous_;}
++    Scope(const Scope&)=delete;
++    Scope& operator=(const Scope&)=delete;
++private:
++    Bank* previous_;
++};
++inline void count(Counter event,std::uint64_t amount=1) noexcept {
++    if (current_bank!=nullptr) current_bank->add(event,amount);
++}
++inline void picker_stage(std::size_t stage) noexcept {
++    count(Counter::PickerVisits);
++    count(static_cast<Counter>(static_cast<std::size_t>(Counter::PickerMainTT)+stage));
++}
++void merge(Snapshot& total,const Snapshot& delta) noexcept;
++void write_snapshot(std::ostream& output,const Snapshot& snapshot);
++
++} // namespace forge::prof
++#endif
+diff --git a/include/forge/search.hpp b/include/forge/search.hpp
+@@ -1,4 +1,7 @@
++#ifdef FORGE_PROF
++#include "forge/profile.hpp"
++#endif
+@@ -290,6 +293,12 @@ struct SharedSearchState {
++#ifdef FORGE_PROF
++    // The counters themselves live in one bank per Worker (S08-2).
++    std::atomic<bool> profile_requested{false};
++    bool profile_active=false; // Immutable while workers are active.
++#endif
++
+@@ -307,6 +316,11 @@ public:
++#ifdef FORGE_PROF
++    // This worker's profile counters (S08-2); written only by its own search thread.
++    [[nodiscard]] const prof::Bank& profile_bank() const { return profile_bank_; }
++    void reset_profile_quiescent() { profile_bank_.reset_quiescent(); }
++#endif
+@@ -344,6 +358,9 @@ private:
++#ifdef FORGE_PROF
++    prof::Bank profile_bank_;
++#endif
+@@ -394,6 +411,16 @@ public:
++#ifdef FORGE_PROF
++    // Enabling may be requested atomically; reset/snapshot require this Searcher
++    // quiescent, exactly like clear/resize. Search snapshots once before launch.
++    void set_profiling(bool enabled) { shared_.profile_requested.store(enabled,std::memory_order_relaxed); }
++    [[nodiscard]] bool profiling_active() const { return shared_.profile_active; }
++    // S08-2: merge() of every worker's bank (quiescent, after the search's helpers are joined).
++    [[nodiscard]] prof::Snapshot profile_snapshot() const;
++    [[nodiscard]] std::vector<prof::Snapshot> profile_worker_snapshots() const;
++    [[nodiscard]] std::vector<std::uint64_t> profile_worker_nodes() const;
++#endif
+diff --git a/src/eval.cpp b/src/eval.cpp
+@@ -1,4 +1,7 @@
++#ifdef FORGE_PROF
++#include "forge/profile.hpp"
++#endif
+@@ -374,6 +377,10 @@ int scale_factor(const Board& board, int eg) {
++#ifdef FORGE_PROF
++    prof::count(prof::Counter::HceComputations);
++#endif
++
+diff --git a/src/nnue.cpp b/src/nnue.cpp
+@@ -1,4 +1,7 @@
++#ifdef FORGE_PROF
++#include "forge/profile.hpp"
++#endif
+@@ -82,6 +85,10 @@ bool available() { return FORGE_HAS_NNUE != 0; }
++#ifdef FORGE_PROF
++    prof::count(prof::Counter::NnueRefresh);
++#endif
++
+@@ -157,6 +164,10 @@ void update(const Accumulator& parent, Accumulator& child, const DirtyPieces& di
++#ifdef FORGE_PROF
++    prof::count(prof::Counter::NnueForward);
++#endif
++
+diff --git a/src/profile.cpp b/src/profile.cpp
+@@ -0,0 +1,66 @@
++#include "forge/profile.hpp"
++
++#ifdef FORGE_PROF
++#include <ostream>
++
++namespace forge::prof {
++thread_local constinit Bank* current_bank=nullptr;
++
++namespace {
++struct Description {const char* name;Counter denominator;};
++constexpr std::array<Description,CounterCount> descriptions{{
++    {"nodes",Counter::Nodes},{"main_nodes",Counter::Nodes},{"qs_nodes",Counter::Nodes},
++    {"eval_requests",Counter::Nodes},{"hce_computations",Counter::EvalRequests},
++    {"nnue_forward",Counter::EvalRequests},{"nnue_refresh",Counter::NnueForward},
++    {"tt_probes",Counter::Nodes},{"tt_hits",Counter::TtProbes},{"tt_misses",Counter::TtProbes},
++    {"picker_visits",Counter::Nodes},
++    {"picker_main_tt",Counter::PickerVisits},{"picker_generate_captures",Counter::PickerVisits},
++    {"picker_good_captures",Counter::PickerVisits},{"picker_killer1",Counter::PickerVisits},
++    {"picker_killer2",Counter::PickerVisits},{"picker_counter_move",Counter::PickerVisits},
++    {"picker_generate_quiets",Counter::PickerVisits},{"picker_quiet_moves",Counter::PickerVisits},
++    {"picker_bad_captures",Counter::PickerVisits},{"picker_qs_tt",Counter::PickerVisits},
++    {"picker_qs_generate",Counter::PickerVisits},{"picker_qs_captures",Counter::PickerVisits},
++    {"picker_evasion_tt",Counter::PickerVisits},{"picker_evasion_generate",Counter::PickerVisits},
++    {"picker_evasions",Counter::PickerVisits},
++    {"razor_checks",Counter::MainNodes},{"razor_searches",Counter::RazorChecks},
++    {"razor_cutoffs",Counter::RazorSearches},
++    {"probcut_checks",Counter::MainNodes},{"probcut_searches",Counter::ProbCutChecks},
++    {"probcut_cutoffs",Counter::ProbCutSearches},
++    {"iir_checks",Counter::MainNodes},{"iir_reductions",Counter::IirChecks},
++    {"lmp_checks",Counter::MainNodes},{"lmp_activations",Counter::LmpChecks},
++    {"futility_checks",Counter::MainNodes},{"futility_prunes",Counter::FutilityChecks},
++    {"capture_futility_checks",Counter::MainNodes},{"capture_futility_prunes",Counter::CaptureFutilityChecks},
++    {"history_checks",Counter::MainNodes},{"history_prunes",Counter::HistoryChecks},
++    {"quiet_see_checks",Counter::MainNodes},{"quiet_see_prunes",Counter::QuietSeeChecks},
++    {"noisy_see_checks",Counter::MainNodes},{"noisy_see_prunes",Counter::NoisySeeChecks},
++    {"qs_futility_checks",Counter::QsNodes},{"qs_futility_prunes",Counter::QsFutilityChecks},
++    {"qs_see_checks",Counter::QsNodes},{"qs_see_prunes",Counter::QsSeeChecks},
++    {"singular_checks",Counter::MainNodes},{"singular_searches",Counter::SingularChecks},
++    {"singular_extensions",Counter::SingularSearches},{"singular_double_extensions",Counter::SingularSearches},
++    {"singular_cutoffs",Counter::SingularSearches}
++}};
++}
++
++void merge(Snapshot& total,const Snapshot& delta) noexcept {
++    total.overflow=total.overflow || delta.overflow;
++    for (std::size_t i=0;i<CounterCount;++i) {
++        const auto previous=total.values[i];total.values[i]+=delta.values[i];
++        total.overflow=total.overflow || total.values[i]<previous;
++    }
++}
++
++void write_snapshot(std::ostream& output,const Snapshot& snapshot) {
++    output << "info string prof schema 1 scope search_only setup_excluded 1 overflow " << snapshot.overflow << '\n';
++    for (std::size_t i=0;i<CounterCount;++i) {
++        const auto& description=descriptions[i];
++        const auto d=static_cast<std::size_t>(description.denominator);
++        output << "info string prof " << description.name << " count " << snapshot.values[i]
++               << " denominator " << descriptions[d].name << " opportunities " << snapshot.values[d];
++        if (snapshot.values[d]!=0 && !snapshot.overflow) {
++            output << " pct " << (100.0*static_cast<double>(snapshot.values[i])/static_cast<double>(snapshot.values[d]));
++        } else output << " pct unknown";
++        output << '\n';
++    }
++}
++} // namespace forge::prof
++#endif
+diff --git a/src/search.cpp b/src/search.cpp
+@@ -1,4 +1,7 @@
++#ifdef FORGE_PROF
++#include "forge/profile.hpp"
++#endif
+@@ -248,6 +251,11 @@ TTProbe TranspositionTable::probe(std::uint64_t key) const {
++#ifdef FORGE_PROF
++        prof::count(prof::Counter::TtProbes);
++        prof::count(hit ? prof::Counter::TtHits : prof::Counter::TtMisses);
++#endif
++
+@@ -346,14 +354,23 @@ public:
++#ifdef FORGE_PROF
++                prof::picker_stage(static_cast<std::size_t>(stage_));
++#endif
++#ifdef FORGE_PROF
++                prof::picker_stage(static_cast<std::size_t>(stage_));
++#endif
++#ifdef FORGE_PROF
++                prof::picker_stage(static_cast<std::size_t>(stage_));
++#endif
+@@ -366,24 +383,39 @@ public:
++#ifdef FORGE_PROF
++                prof::picker_stage(static_cast<std::size_t>(stage_));
++#endif
++#ifdef FORGE_PROF
++                prof::picker_stage(static_cast<std::size_t>(stage_));
++#endif
++#ifdef FORGE_PROF
++                prof::picker_stage(static_cast<std::size_t>(stage_));
++#endif
++#ifdef FORGE_PROF
++                prof::picker_stage(static_cast<std::size_t>(stage_));
++#endif
++#ifdef FORGE_PROF
++                prof::picker_stage(static_cast<std::size_t>(stage_));
++#endif
+@@ -395,14 +427,23 @@ public:
++#ifdef FORGE_PROF
++                prof::picker_stage(static_cast<std::size_t>(stage_));
++#endif
++#ifdef FORGE_PROF
++                prof::picker_stage(static_cast<std::size_t>(stage_));
++#endif
++#ifdef FORGE_PROF
++                prof::picker_stage(static_cast<std::size_t>(stage_));
++#endif
+@@ -411,10 +452,16 @@ public:
++#ifdef FORGE_PROF
++                prof::picker_stage(static_cast<std::size_t>(stage_));
++#endif
++#ifdef FORGE_PROF
++                prof::picker_stage(static_cast<std::size_t>(stage_));
++#endif
+@@ -597,6 +644,10 @@ namespace {
++#ifdef FORGE_PROF
++    prof::count(prof::Counter::EvalRequests);
++#endif
++
+@@ -774,6 +825,11 @@ int Worker::qsearch(Board& board, SearchStack* ss, int alpha, int beta) {
++#ifdef FORGE_PROF
++    prof::count(prof::Counter::Nodes);
++    prof::count(prof::Counter::QsNodes);
++#endif
++
+@@ -830,12 +886,28 @@ int Worker::qsearch(Board& board, SearchStack* ss, int alpha, int beta) {
++#ifdef FORGE_PROF
++            prof::count(prof::Counter::QsFutilityChecks);
++#endif
++#ifdef FORGE_PROF
++                prof::count(prof::Counter::QsFutilityPrunes);
++#endif
++#ifdef FORGE_PROF
++            prof::count(prof::Counter::QsSeeChecks);
++#endif
++#ifdef FORGE_PROF
++            if (!board.see_ge(move, -tune::QsSeeMargin)) {
++                prof::count(prof::Counter::QsSeePrunes);
++                continue;
++            }
++#else
++#endif
+@@ -885,6 +957,11 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
++#ifdef FORGE_PROF
++    prof::count(prof::Counter::Nodes);
++    prof::count(prof::Counter::MainNodes);
++#endif
++
+@@ -950,11 +1027,24 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
++#ifdef FORGE_PROF
++        prof::count(prof::Counter::RazorChecks);
++#endif
++#ifdef FORGE_PROF
++            prof::count(prof::Counter::RazorSearches);
++#endif
++#ifdef FORGE_PROF
++            if (razor < alpha) {
++                prof::count(prof::Counter::RazorCutoffs);
++                return razor;
++            }
++#else
++#endif
+@@ -999,6 +1089,9 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
++#ifdef FORGE_PROF
++        prof::count(prof::Counter::ProbCutChecks);
++#endif
+@@ -1013,6 +1106,9 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
++#ifdef FORGE_PROF
++                prof::count(prof::Counter::ProbCutSearches);
++#endif
+@@ -1020,6 +1116,10 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
++#ifdef FORGE_PROF
++                    prof::count(prof::Counter::ProbCutCutoffs);
++#endif
++
+@@ -1027,8 +1127,18 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
++#ifdef FORGE_PROF
++    prof::count(prof::Counter::IirChecks);
++#endif
++#ifdef FORGE_PROF
++    if (!in_check && depth >= tune::IirDepth && tt_move.is_none() && (pv_node || cut_node)) {
++        prof::count(prof::Counter::IirReductions);
++        --depth;
++    }
++#else
++#endif
+@@ -1059,35 +1169,95 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
++#ifdef FORGE_PROF
++            prof::count(prof::Counter::LmpChecks);
++#endif
++#ifdef FORGE_PROF
++            if (quiet && !skip_quiets && move_count >= lmp_threshold(depth, improving)) {
++                prof::count(prof::Counter::LmpActivations);
++                skip_quiets = true;
++            }
++#else
++#endif
++#ifdef FORGE_PROF
++                prof::count(prof::Counter::FutilityChecks);
++#endif
++#ifdef FORGE_PROF
++                    prof::count(prof::Counter::FutilityPrunes);
++#endif
++#ifdef FORGE_PROF
++                prof::count(prof::Counter::HistoryChecks);
++#endif
++#ifdef FORGE_PROF
++                if (lmr_depth <= tune::HistoryPruneDepth && history < -tune::HistoryPruneMultiplier * depth) {
++                    prof::count(prof::Counter::HistoryPrunes);
++                    continue;
++                }
++#else
++#endif
++#ifdef FORGE_PROF
++                prof::count(prof::Counter::QuietSeeChecks);
++#endif
++#ifdef FORGE_PROF
++                if (!board.see_ge(move, -tune::SeeQuietMultiplier * lmr_depth * lmr_depth)) {
++                    prof::count(prof::Counter::QuietSeePrunes);
++                    continue;
++                }
++#else
++#endif
++#ifdef FORGE_PROF
++                prof::count(prof::Counter::CaptureFutilityChecks);
++#endif
++#ifdef FORGE_PROF
++                    prof::count(prof::Counter::CaptureFutilityPrunes);
++#endif
++#ifdef FORGE_PROF
++                prof::count(prof::Counter::NoisySeeChecks);
++#endif
++#ifdef FORGE_PROF
++                if (!(picker.last_move_see_nonnegative() && see_threshold <= 0) &&
++                    !board.see_ge(move, see_threshold)) {
++                    prof::count(prof::Counter::NoisySeePrunes);
++                    continue;
++                }
++#else
++#endif
++#ifdef FORGE_PROF
++        prof::count(prof::Counter::SingularChecks);
++#endif
++
++#ifdef FORGE_PROF
++            prof::count(prof::Counter::SingularSearches);
++#endif
+@@ -1098,11 +1268,22 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
++#ifdef FORGE_PROF
++                prof::count(prof::Counter::SingularExtensions);
++#endif
++
++#ifdef FORGE_PROF
++                    prof::count(prof::Counter::SingularDoubleExtensions);
++#endif
++#ifdef FORGE_PROF
++                prof::count(prof::Counter::SingularCutoffs);
++#endif
++
+@@ -1228,6 +1409,10 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
++#ifdef FORGE_PROF
++    prof::Scope profile_scope(shared_.profile_active ? &profile_bank_ : nullptr);
++#endif
++
+@@ -1513,6 +1698,10 @@ SearchInfo Searcher::search(Board board, const SearchLimits& limits, bool emit_i
++#ifdef FORGE_PROF
++    shared_.profile_active=shared_.profile_requested.load(std::memory_order_relaxed);
++    for (auto& worker : workers_) worker->reset_profile_quiescent();
++#endif
+@@ -1528,4 +1717,26 @@ SearchInfo Searcher::search(Board board, const SearchLimits& limits, bool emit_i
++#ifdef FORGE_PROF
++prof::Snapshot Searcher::profile_snapshot() const {
++    prof::Snapshot total;
++    for (const auto& worker : workers_) prof::merge(total, worker->profile_bank().snapshot_quiescent());
++    return total;
++}
++
++std::vector<prof::Snapshot> Searcher::profile_worker_snapshots() const {
++    std::vector<prof::Snapshot> result;
++    result.reserve(workers_.size());
++    for (const auto& worker : workers_) result.push_back(worker->profile_bank().snapshot_quiescent());
++    return result;
++}
++
++std::vector<std::uint64_t> Searcher::profile_worker_nodes() const {
++    std::vector<std::uint64_t> result;
++    result.reserve(workers_.size());
++    for (const auto& worker : workers_) result.push_back(worker->nodes());
++    return result;
++}
++#endif
++
+diff --git a/src/uci.cpp b/src/uci.cpp
+@@ -171,6 +171,10 @@ int main() {
++#ifdef FORGE_PROF
++            std::cout << "option name Profile type check default false\n";
++#endif
++
+@@ -216,7 +220,18 @@ int main() {
+-            } else if (name == "Clear Hash") {
++            }
++#ifdef FORGE_PROF
++            else if (name == "Profile") {
++                if (value_text=="true") searcher.set_profiling(true);
++                else if (value_text=="false") searcher.set_profiling(false);
++                else {
++                    const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex());
++                    std::cout << "info string invalid value for option Profile" << std::endl;
++                }
++            }
++#endif
++            else if (name == "Clear Hash") {
+@@ -371,10 +386,19 @@ int main() {
++#ifdef FORGE_PROF
++                    if (searcher.profiling_active()) {
++                        forge::prof::write_snapshot(std::cout,searcher.profile_snapshot());
++                    }
++#endif
+-        } else if (command == "bench") {
++        } else if (command == "bench"
++#ifdef FORGE_PROF
++                   || command == "bench_prof"
++#endif
++        ) {
+@@ -393,6 +417,12 @@ int main() {
++#ifdef FORGE_PROF
++            const bool profile_bench=command=="bench_prof";
++            bench_searcher.set_profiling(profile_bench);
++            forge::prof::Snapshot profile_total;
++#endif
++
+@@ -401,10 +431,17 @@ int main() {
++#ifdef FORGE_PROF
++                if (profile_bench) forge::prof::merge(profile_total,bench_searcher.profile_snapshot());
++#endif
++
++#ifdef FORGE_PROF
++            if (profile_bench) forge::prof::write_snapshot(std::cout,profile_total);
++#endif

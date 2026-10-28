@@ -1,0 +1,12 @@
+# A1: origin/opus-sol-A1 490dd006f44c12878af26cf67c4003c89fa8a852 JOBS=2 Wed Oct 28 14:32:52 PST 2026
+source F:/opus_scratch/fable_review/mutants/A1/root
+scratch F:/opus_scratch/fable_review/mutants/A1/scratch\mutants_20261028_143252
+BASELINE (unmutated): rc=0 SUMMARY checks=9420634 failures=0
+MUTATION blend_divisor_3 (include/forge/hist_rework.hpp) -> caught rc=1 failing_lines=15
+    FAIL blend equals the int64 reference and stays within +-16384
+    FAIL blend: max |result| over the grid = 16384 = HistoryLimit (int numerator <= 65536)
+    FAIL blend of two saturated entries is saturated, quarters 0
+MUTATION gravity_divisor_doubled (include/forge/hist_rework.hpp) -> caught rc=1 failing_lines=10
+    FAIL gravity on the reachable domain equals the unclamped formula (guard never active), |result| <= 8192
+    FAIL |entry|,|step| <= limit keeps the unclamped result within +-limit (proof domain grid)
+    FAIL gravity: reachable domain exhaustive, proof domain grid, exact saturation checks=8782362

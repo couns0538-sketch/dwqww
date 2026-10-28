@@ -1,0 +1,520 @@
+# merge 97484ee5: [R3-1] Merge opus-sol-A1 (HistRework) into the stack
+# parent2 490dd006 ; auto-merge tree f00fb69ee97ec59850053d969f50f62eb87186ce ; conflicts: 4
+## (a) manual resolution vs the automatic merge (src include tests CMakeLists.txt, without search.cpp/search.hpp)
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -96,7 +96,6 @@ target_link_libraries(forge_nearest_pawn_tests PRIVATE forge_core Threads::Threa
+ add_executable(forge_pv_metadata_tests tests/pv_metadata_tests.cpp)
+ target_link_libraries(forge_pv_metadata_tests PRIVATE forge_core Threads::Threads)
+ 
+-<<<<<<< c7e249058daba1db34987398ebe009fa104ef452
+ # Search module unit tests (move picker stages, history math, time management).
+ add_executable(forge_movepicker_tests tests/movepicker_tests.cpp)
+ target_include_directories(forge_movepicker_tests PRIVATE src)
+@@ -184,11 +183,10 @@ target_link_libraries(forge_material_key_tests PRIVATE forge_core Threads::Threa
+ # S41 NetScale: apply() arithmetic and the actual Worker::static_evaluate path at every scale.
+ add_executable(forge_net_scale_tests tests/net_scale_tests.cpp)
+ target_link_libraries(forge_net_scale_tests PRIVATE forge_core Threads::Threads)
+-=======
++
+ # UCI HistRework (Astra A1): helpers, overflow bounds, glue and max-value searches.
+ add_executable(forge_hist_rework_tests tests/hist_rework_tests.cpp)
+ target_link_libraries(forge_hist_rework_tests PRIVATE forge_core Threads::Threads)
+->>>>>>> 490dd006f44c12878af26cf67c4003c89fa8a852
+ 
+ add_executable(forge_bench bench/benchmark.cpp)
+ target_link_libraries(forge_bench PRIVATE forge_core Threads::Threads)
+@@ -200,7 +198,6 @@ add_test(NAME forge_runtime_psqt_tests COMMAND forge_runtime_psqt_tests)
+ add_test(NAME forge_pawn_span_tests COMMAND forge_pawn_span_tests)
+ add_test(NAME forge_nearest_pawn_tests COMMAND forge_nearest_pawn_tests)
+ add_test(NAME forge_pv_metadata_tests COMMAND forge_pv_metadata_tests)
+-<<<<<<< c7e249058daba1db34987398ebe009fa104ef452
+ add_test(NAME forge_movepicker_tests COMMAND forge_movepicker_tests)
+ add_test(NAME forge_history_tests COMMAND forge_history_tests)
+ add_test(NAME forge_timeman_tests COMMAND forge_timeman_tests)
+@@ -215,9 +212,7 @@ add_test(NAME forge_corr_ext_tests COMMAND forge_corr_ext_tests)
+ add_test(NAME forge_cuckoo_tests COMMAND forge_cuckoo_tests)
+ add_test(NAME forge_nnue_parity_tests COMMAND forge_nnue_parity_tests
+     --fens ${CMAKE_CURRENT_SOURCE_DIR}/tests/data/nnue_selfplay_sample_916.txt)
+-=======
+ add_test(NAME forge_hist_rework_tests COMMAND forge_hist_rework_tests)
+->>>>>>> 490dd006f44c12878af26cf67c4003c89fa8a852
+ add_test(NAME forge_tt_tests COMMAND forge_tt_tests)
+ add_test(NAME forge_tt_stress_lockless COMMAND forge_tt_stress_tests --threads 2 --ops 2000000 --mode lockless)
+ add_test(NAME forge_tt_stress_locked COMMAND forge_tt_stress_tests --threads 2 --ops 2000000 --mode locked)
+diff --git a/include/forge/history.hpp b/include/forge/history.hpp
+--- a/include/forge/history.hpp
++++ b/include/forge/history.hpp
+@@ -24,6 +24,8 @@ constexpr std::size_t CorrectionSize = 1U << 14U;
+ constexpr int CorrectionGrain = 256;
+ constexpr int CorrectionLimit = 32 * CorrectionGrain;
+ using CorrectionHistory = std::array<std::array<std::int32_t, CorrectionSize>, 2>;
++// UCI HistRework: [side][from attacked by a lesser enemy piece][to attacked by a lesser enemy piece][from][to].
++using LesserThreatHistory = std::array<std::array<std::array<std::array<std::array<std::int16_t, 64>, 64>, 2>, 2>, 2>;
+ 
+ // History entries saturate at +/-HistoryMax.
+ constexpr int HistoryMax = 16384;
+diff --git a/include/forge/thread_data.hpp b/include/forge/thread_data.hpp
+--- a/include/forge/thread_data.hpp
++++ b/include/forge/thread_data.hpp
+@@ -3,6 +3,7 @@
+ #include "forge/board.hpp"
+ #include "forge/correction_plus.hpp"
+ #include "forge/eval.hpp"
++#include "forge/hist_rework.hpp"
+ #include "forge/history.hpp"
+ #include "forge/nnue.hpp"
+ #include "forge/search_types.hpp"
+@@ -121,6 +122,11 @@ struct ThreadData {
+     // by Worker::clear(). Last member, no initialiser: the members above keep
+     // their AL1 s198 offsets.
+     std::unique_ptr<corrplus::Tables> correction_plus_;
++    // UCI HistRework (forge/hist_rework.hpp; A1). Last members, so every member above keeps its offset; read
++    // and written only while the option is on. threat_maps_[ply] holds the lesser-attacker maps of the node at ply.
++    std::unique_ptr<LesserThreatHistory> threat_history_ = std::make_unique<LesserThreatHistory>();
++    std::unique_ptr<CorrectionHistory> joint_correction_ = std::make_unique<CorrectionHistory>();
++    std::array<hist_rework::LesserThreats, MaxPly + 8> threat_maps_{};
+ };
+ 
+ } // namespace forge
+diff --git a/src/search/alphabeta.inc b/src/search/alphabeta.inc
+--- a/src/search/alphabeta.inc
++++ b/src/search/alphabeta.inc
+@@ -223,6 +223,8 @@ int Worker::FORGE_SEARCH_FN(Board& board, SearchStack* ss, int depth, int alpha,
+     // Internal iterative reduction: no hash move suggests a less important node.
+     if (!in_check && depth >= tune::IirDepth && tt_move.is_none() && (pv_node || cut_node)) --depth;
+ 
++    // HistRework: lesser-attacker maps of this node, read by quiet_history and the history updates below.
++    if (search_options::hist_rework != 0) [[unlikely]] threat_maps_[static_cast<std::size_t>(ply)] = hist_rework::lesser_threats(board);
+     MovePicker picker(board, *this, ss, tt_move, MovePicker::Mode::Main);
+     std::array<Move, 128> quiets_tried{};
+     std::array<Move, 64> captures_tried{};
+@@ -414,6 +416,8 @@ int Worker::FORGE_SEARCH_FN(Board& board, SearchStack* ss, int depth, int alpha,
+         // Even without a cutoff, a new PV move earned its place.
+         apply_history((*histories_.main_history)[static_cast<std::size_t>(board.side_to_move())][best_move.from][best_move.to],
+                       history_bonus(depth) / 4);
++        if (search_options::hist_rework != 0) [[unlikely]]
++            apply_history(threat_history_entry(board, ss, best_move), history_bonus(depth) / 4);
+     } else if (tune::FailLowContinuationBonus > 0 && best_move.is_none() && !(ss - 1)->current_move.is_none() &&
+                (ss - 1)->moved_piece != Empty && !(ss - 1)->current_move.is_capture() && ply > 0) {
+         // Every move failed low: the parent's quiet move refuted this line.
+diff --git a/src/search/correction_plus.inc b/src/search/correction_plus.inc
+--- a/src/search/correction_plus.inc
++++ b/src/search/correction_plus.inc
+@@ -86,6 +86,12 @@ int Worker::corrected_eval_plus(const Board& board, int raw_eval) const {
+     if (tune::MaterialCorrectionWeight > 0) {
+         correction += corrplus::div100((*material_correction_)[side][material_key(board) & (CorrectionSize - 1U)] * tune::MaterialCorrectionWeight);
+     }
++    // R3 stack: HistRework's joint term as in corrected_eval, so HistRework and CorrHistPlus combine.
++    if (const int level = search_options::hist_rework; level != 0) [[unlikely]] {
++        // HistRework: pawn structure x non-pawn material. |entry| <= 8192, weight <= 100: |term| <= 8192.
++        correction += (*joint_correction_)[side][hist_rework::joint_key(board) & (CorrectionSize - 1U)] *
++                      hist_rework::joint_weight(level) / 100;
++    }
+     correction += correction_plus(board);
+     return std::clamp(raw_eval + corrplus::div_pow2<8>(correction), -MateInMaxPly + 1, MateInMaxPly - 1);
+ }
+@@ -106,6 +112,13 @@ void Worker::update_correction_plus(const Board& board, int depth, int best_scor
+     };
+     apply((*correction_history_)[side][board.pawn_key() & (CorrectionSize - 1U)]);
+     if (tune::MaterialCorrectionWeight > 0) apply((*material_correction_)[side][material_key(board) & (CorrectionSize - 1U)]);
++    // R3 stack: HistRework's joint update as in update_correction, so HistRework and CorrHistPlus combine.
++    if (search_options::hist_rework != 0) [[unlikely]] {
++        // HistRework: the joint table learns the same residual step (|step| <= 2048 * 16 / 256 = 128) with a
++        // gravity-style damping instead of the lock's add-and-clamp; the lock tables above are unchanged.
++        std::int32_t& entry = (*joint_correction_)[side][hist_rework::joint_key(board) & (CorrectionSize - 1U)];
++        entry = hist_rework::gravity(entry, diff * weight / 256, CorrectionLimit);
++    }
+ 
+     if (!correction_plus_) {
+         // Value-initialised (all entries 0). On allocation failure the extra keys stay unused.
+diff --git a/src/search/evaluation.inc b/src/search/evaluation.inc
+--- a/src/search/evaluation.inc
++++ b/src/search/evaluation.inc
+@@ -96,6 +96,11 @@ int Worker::corrected_eval(const Board& board, int raw_eval) const {
+     if (tune::MaterialCorrectionWeight > 0) {
+         correction += (*material_correction_)[side][material_key(board) & (CorrectionSize - 1U)] * tune::MaterialCorrectionWeight / 100;
+     }
++    if (const int level = search_options::hist_rework; level != 0) [[unlikely]] {
++        // HistRework: pawn structure x non-pawn material. |entry| <= 8192, weight <= 100: |term| <= 8192.
++        correction += (*joint_correction_)[side][hist_rework::joint_key(board) & (CorrectionSize - 1U)] *
++                      hist_rework::joint_weight(level) / 100;
++    }
+     return std::clamp(raw_eval + correction / CorrectionGrain, -MateInMaxPly + 1, MateInMaxPly - 1);
+ }
+ 
+@@ -111,6 +116,12 @@ void Worker::update_correction(const Board& board, int depth, int best_score, in
+     };
+     apply((*correction_history_)[side][board.pawn_key() & (CorrectionSize - 1U)]);
+     if (tune::MaterialCorrectionWeight > 0) apply((*material_correction_)[side][material_key(board) & (CorrectionSize - 1U)]);
++    if (search_options::hist_rework != 0) [[unlikely]] {
++        // HistRework: the joint table learns the same residual step (|step| <= 2048 * 16 / 256 = 128) with a
++        // gravity-style damping instead of the lock's add-and-clamp; the lock tables above are unchanged.
++        std::int32_t& entry = (*joint_correction_)[side][hist_rework::joint_key(board) & (CorrectionSize - 1U)];
++        entry = hist_rework::gravity(entry, diff * weight / 256, CorrectionLimit);
++    }
+ }
+ 
+ } // namespace forge
+diff --git a/src/search/history.inc b/src/search/history.inc
+--- a/src/search/history.inc
++++ b/src/search/history.inc
+@@ -4,9 +4,33 @@
+ 
+ namespace forge {
+ 
++static_assert(hist_rework::HistoryLimit == HistoryMax, "HistRework bounds assume the lock's history limit");
++static_assert(hist_rework::CorrectionEntryLimit == CorrectionLimit, "HistRework bounds assume the lock's correction limit");
++
++// HistRework: the threat-keyed butterfly slot of a quiet move at the node of `ss` (its maps are threat_maps_[ply]).
++std::int16_t& Worker::threat_history_entry(const Board& board, const SearchStack* ss, Move move) const {
++    const hist_rework::LesserThreats& threats = threat_maps_[static_cast<std::size_t>(ss->ply)];
++    const Bitboard set = threats.by_type[static_cast<std::size_t>(piece_type(board.moved_piece(move)))];
++    return (*threat_history_)[static_cast<std::size_t>(board.side_to_move())][hist_rework::square_bit(set, move.from)]
++                             [hist_rework::square_bit(set, move.to)][move.from][move.to];
++}
++
++void Worker::update_threat_history(const Board& board, const SearchStack* ss, Move best, int bonus, const Move* quiets,
++                                   int quiet_count) {
++    apply_history(threat_history_entry(board, ss, best), bonus);
++    for (int i = 0; i < quiet_count; ++i) {
++        if (quiets[i] == best) continue;
++        apply_history(threat_history_entry(board, ss, quiets[i]), -bonus);
++    }
++}
++
+ int Worker::quiet_history(const Board& board, const SearchStack* ss, Move move) const {
+     const Piece piece = board.moved_piece(move);
+     int score = (*histories_.main_history)[static_cast<std::size_t>(board.side_to_move())][move.from][move.to];
++    if (const int level = search_options::hist_rework; level != 0 && ss != nullptr) [[unlikely]] {
++        // |score| <= 16384 after the blend, as for the lock table alone (hist_rework::blend).
++        score = hist_rework::blend(score, threat_history_entry(board, ss, move), hist_rework::threat_quarters(level));
++    }
+     if (ss != nullptr) {
+         if ((ss - 1)->continuation != nullptr) score += (*(ss - 1)->continuation)[static_cast<std::size_t>(piece)][move.to];
+         if ((ss - 2)->continuation != nullptr) score += (*(ss - 2)->continuation)[static_cast<std::size_t>(piece)][move.to];
+@@ -50,6 +74,8 @@ void Worker::update_quiet_stats(const Board& board, SearchStack* ss, Move move,
+         apply_history((*histories_.main_history)[static_cast<std::size_t>(us)][quiet.from][quiet.to], -bonus);
+         update_continuation(ss, board.moved_piece(quiet), quiet.to, -bonus);
+     }
++    // HistRework: the threat-keyed twin learns the same bonus and maluses (lock gravity, apply_history).
++    if (search_options::hist_rework != 0) [[unlikely]] update_threat_history(board, ss, move, bonus, quiets, quiet_count);
+ }
+ 
+ void Worker::update_capture_stats(const Board& board, Move best, int depth, const Move* captures, int capture_count) {
+diff --git a/src/search/qsearch.inc b/src/search/qsearch.inc
+--- a/src/search/qsearch.inc
++++ b/src/search/qsearch.inc
+@@ -62,6 +62,9 @@ int Worker::FORGE_QSEARCH_FN(Board& board, SearchStack* ss, int alpha, int beta)
+         futility_base = ss->static_eval + tune::QsFutilityMargin;
+     }
+ 
++    // HistRework: check evasions score quiet moves with quiet_history, which reads this node's maps.
++    if (in_check && search_options::hist_rework != 0) [[unlikely]]
++        threat_maps_[static_cast<std::size_t>(ply)] = hist_rework::lesser_threats(board);
+     MovePicker picker(board, *this, ss, tt_move, MovePicker::Mode::Quiescence);
+     Move best_move = Move::none();
+     int move_count = 0;
+diff --git a/src/search/tune.inc b/src/search/tune.inc
+--- a/src/search/tune.inc
++++ b/src/search/tune.inc
+@@ -4,6 +4,12 @@
+ 
+ namespace forge {
+ 
++// HistRework (A1). Defined before the tunables: GCC emits a translation unit's globals in reverse order,
++// so the lock's tunables keep their addresses.
++namespace search_options {
++int hist_rework = 0;
++} // namespace search_options
++
+ namespace net_scale {
+ // S41: UCI NetScale, percent; 100 = OFF (constant-initialised, no constructor code).
+ int percent = Default;
+diff --git a/src/search/worker.inc b/src/search/worker.inc
+--- a/src/search/worker.inc
++++ b/src/search/worker.inc
+@@ -18,6 +18,8 @@ void Worker::clear() {
+     *correction_history_ = CorrectionHistory{};
+     *material_correction_ = CorrectionHistory{};
+     correction_plus_.reset();  // CorrHistPlus tables, reallocated (zeroed) by the next update
++    *threat_history_ = LesserThreatHistory{};   // HistRework (A1)
++    *joint_correction_ = CorrectionHistory{};
+     for (SearchStack& ss : stack_) ss = SearchStack{};
+ }
+ 
+diff --git a/src/uci.cpp b/src/uci.cpp
+--- a/src/uci.cpp
++++ b/src/uci.cpp
+@@ -422,7 +422,6 @@ int main() {
+                          "option name Book Depth type spin default 30 min 0 max 100\n"
+                          "option name Book Variety type spin default 30 min 0 max 100\n";
+             if (forge::nnue::available()) std::cout << "option name UseNNUE type check default true\n";
+-<<<<<<< c7e249058daba1db34987398ebe009fa104ef452
+             // Search options added after AL1 s198; all default OFF (see forge/search_options.hpp).
+             std::cout << "option name SmpExactNodes type check default false\n"
+                          "option name SmpBestThread type check default false\n"
+@@ -450,10 +449,8 @@ int main() {
+                 std::cout << "option name NetScale type spin default " << forge::net_scale::Default << " min "
+                           << forge::net_scale::Minimum << " max " << forge::net_scale::Maximum << "\n";
+             }
+-=======
+             // Search option added after AL1 s198 (Astra A1); default 0 = the lock's search (forge/hist_rework.hpp).
+             std::cout << "option name HistRework type spin default 0 min 0 max " << forge::hist_rework::MaxLevel << "\n";
+->>>>>>> 490dd006f44c12878af26cf67c4003c89fa8a852
+ #ifdef FORGE_EXPOSE_TUNABLES
+             // Development builds advertise the search constants so match
+             // runners can set them; release builds accept them silently.
+@@ -561,7 +558,6 @@ int main() {
+                 } else {
+                     book_variety = std::clamp(value, 0, 100);
+                 }
+-<<<<<<< c7e249058daba1db34987398ebe009fa104ef452
+             } else if (name == "SmpExactNodes" || name == "SmpBestThread" || name == "LocklessTT") {
+                 bool& option = name == "SmpExactNodes"   ? forge::options::smp_exact_nodes
+                                : name == "SmpBestThread" ? forge::options::smp_best_thread
+@@ -596,16 +592,12 @@ int main() {
+                     std::cout << std::endl;
+                 }
+             } else if (name == "SyzygyProbeDepth") {
+-=======
+-            } else if (name == "HistRework") {
+->>>>>>> 490dd006f44c12878af26cf67c4003c89fa8a852
+                 int value = 0;
+                 const auto parsed = std::from_chars(value_text.data(), value_text.data() + value_text.size(), value);
+                 if (parsed.ec != std::errc{} || parsed.ptr != value_text.data() + value_text.size()) {
+                     const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex());
+                     std::cout << "info string invalid value for option " << name << std::endl;
+                 } else {
+-<<<<<<< c7e249058daba1db34987398ebe009fa104ef452
+                     forge::options::syzygy_probe_depth = std::clamp(value, 1, 10);
+                 }
+             } else if (name == "Syzygy50MoveRule") {
+@@ -667,9 +659,15 @@ int main() {
+                 else {
+                     const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex());
+                     std::cout << "info string invalid value for option CuckooRep" << std::endl;
+-=======
++                }
++            } else if (name == "HistRework") {
++                int value = 0;
++                const auto parsed = std::from_chars(value_text.data(), value_text.data() + value_text.size(), value);
++                if (parsed.ec != std::errc{} || parsed.ptr != value_text.data() + value_text.size()) {
++                    const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex());
++                    std::cout << "info string invalid value for option " << name << std::endl;
++                } else {
+                     forge::search_options::hist_rework = std::clamp(value, 0, forge::hist_rework::MaxLevel);
+->>>>>>> 490dd006f44c12878af26cf67c4003c89fa8a852
+                 }
+             } else if (name == "UseNNUE") {
+                 if (value_text == "true") forge::nnue::enabled = true;
+## (b) the merged branch's own engine diff vs d4f4312 (src include, +/- lines only)
+diff --git a/include/forge/hist_rework.hpp b/include/forge/hist_rework.hpp
+@@ -0,0 +1,109 @@
++#pragma once
++// UCI HistRework (Astra A1), default 0 = the AL1 s198 lock search. Levels 1..3 rework how the quiet history
++// and the static-eval correction learn and blend:
++//   - the butterfly history gets a twin keyed by whether the move's from/to square is attacked by a LESSER
++//     enemy piece; quiet_history reads a blend of the lock table and the threat-keyed twin;
++//   - a correction table keyed by pawn structure x non-pawn material (one joint key) is added to the
++//     pawn + material corrections; it learns with a gravity-style (self-damping) update.
++// The lock's own tables keep their exact update and read rules. Design, overflow proof and tuning ranges:
++// opus_round1/sol_A1/forge_astra_A1_design_20261027.md.
++#include "forge/bitboard.hpp"
++#include "forge/board.hpp"
++
++#include <array>
++#include <cstddef>
++#include <cstdint>
++
++namespace forge {
++
++namespace search_options {
++// 0 = off (the lock). 1..3 = the tune steps below. Set only between searches (UCI setoption stops the search).
++extern int hist_rework;
++} // namespace search_options
++
++namespace hist_rework {
++
++constexpr int MaxLevel = 3;
++constexpr int HistoryLimit = 16384;        // the lock's HistoryMax (search.cpp asserts the equality)
++constexpr int CorrectionEntryLimit = 8192; // the lock's CorrectionLimit (search.cpp asserts the equality)
++
++[[nodiscard]] constexpr int clamp_level(int level) { return level < 1 ? 1 : (level > MaxLevel ? MaxLevel : level); }
++// Quarters of the butterfly term read from the threat-keyed twin: level 1, 2, 3 -> 2, 3, 4 (50 %, 75 %, 100 %).
++[[nodiscard]] constexpr int threat_quarters(int level) { return clamp_level(level) + 1; }
++// Read weight (x0.01) of the pawn x non-pawn-material correction: level 1, 2, 3 -> 50, 75, 100.
++[[nodiscard]] constexpr int joint_weight(int level) { return 25 * clamp_level(level) + 25; }
++
++// Squares attacked by a lesser enemy piece, indexed by the type of the piece that stands (or would stand)
++// there. Pawns, knights, bishops: enemy pawn attacks. Rooks: + enemy knights and bishops. Queens: + enemy
++// rooks. King and NoPieceType: empty (a king never moves onto an attacked square; evasions are their own
++// stage). The side to move is "us"; attacks use the current occupancy (no x-rays, pins ignored).
++struct LesserThreats {
++    std::array<Bitboard, 7> by_type{};
++};
++
++[[nodiscard]] inline LesserThreats lesser_threats(const Board& board) {
++    const Color them = opposite(board.side_to_move());
++    const Bitboard occupancy = board.occupied();
++    const Bitboard by_pawn = pawn_attacks_bb(them, board.pieces(them, Pawn));
++    Bitboard by_minor = by_pawn;
++    for (Bitboard bb = board.pieces(them, Knight); bb != 0;) by_minor |= attacks::knight(pop_lsb(bb));
++    for (Bitboard bb = board.pieces(them, Bishop); bb != 0;) by_minor |= attacks::bishop(pop_lsb(bb), occupancy);
++    Bitboard by_rook = by_minor;
++    for (Bitboard bb = board.pieces(them, Rook); bb != 0;) by_rook |= attacks::rook(pop_lsb(bb), occupancy);
++    LesserThreats threats;
++    threats.by_type[static_cast<std::size_t>(Pawn)] = by_pawn;
++    threats.by_type[static_cast<std::size_t>(Knight)] = by_pawn;
++    threats.by_type[static_cast<std::size_t>(Bishop)] = by_pawn;
++    threats.by_type[static_cast<std::size_t>(Rook)] = by_minor;
++    threats.by_type[static_cast<std::size_t>(Queen)] = by_rook;
++    return threats;
++}
++
++// 0 or 1: is `square` (0..63) in `set`.
++[[nodiscard]] constexpr std::size_t square_bit(Bitboard set, int square) {
++    return static_cast<std::size_t>((set >> square) & 1U);
++}
++
++// Butterfly term read by quiet_history: quarters/4 from the threat-keyed twin, the rest from the lock table.
++// |plain|, |threat| <= HistoryLimit and 0 <= quarters <= 4 give |numerator| <= 4 * HistoryLimit = 65536 and
++// |result| <= HistoryLimit (C++ division truncates toward zero).
++[[nodiscard]] constexpr int blend(int plain, int threat, int quarters) {
++    return (plain * (4 - quarters) + threat * quarters) / 4;
++}
++
++// Gravity-style update of a joint-correction entry: entry + step - entry * |step| / limit. For |entry| <= limit
++// and |step| <= limit the result stays within +-limit (design note, section 4); the clamp is a guard that the
++// unit test shows never changes a value on that domain. |entry * step| <= limit^2 = 2^26 fits int32.
++[[nodiscard]] constexpr std::int32_t gravity(std::int32_t entry, std::int32_t step, std::int32_t limit) {
++    const std::int32_t magnitude = step < 0 ? -step : step;
++    const std::int32_t next = entry + step - entry * magnitude / limit;
++    return next < -limit ? -limit : (next > limit ? limit : next);
++}
++
++// Non-pawn material signature: 4 bits per (colour, knight/bishop/rook/queen) count, saturated at 15.
++[[nodiscard]] inline std::uint32_t non_pawn_material(const Board& board) {
++    std::uint32_t signature = 0;
++    for (const Color color : {White, Black}) {
++        for (int type = Knight; type <= Queen; ++type) {
++            const int count = popcount(board.pieces(color, static_cast<PieceType>(type)));
++            signature = (signature << 4U) | static_cast<std::uint32_t>(count < 15 ? count : 15);
++        }
++    }
++    return signature;
++}
++
++// SplitMix64 finaliser (a public-domain mixing function): every signature bit reaches the low index bits.
++[[nodiscard]] constexpr std::uint64_t mix64(std::uint64_t z) {
++    z = (z ^ (z >> 30U)) * 0xBF58476D1CE4E5B9ULL;
++    z = (z ^ (z >> 27U)) * 0x94D049BB133111EBULL;
++    return z ^ (z >> 31U);
++}
++
++// Key of the pawn-structure x non-pawn-material correction: the Zobrist pawn key (pawn placement of both
++// colours) mixed with the non-pawn material signature. Unsigned arithmetic only (wraps by definition).
++[[nodiscard]] inline std::uint64_t joint_key(const Board& board) {
++    return board.pawn_key() ^ mix64(static_cast<std::uint64_t>(non_pawn_material(board)) + 1U);
++}
++
++} // namespace hist_rework
++} // namespace forge
+diff --git a/include/forge/search.hpp b/include/forge/search.hpp
+@@ -2,6 +2,7 @@
++#include "forge/hist_rework.hpp"
+@@ -258,6 +259,8 @@ constexpr std::size_t CorrectionSize = 1U << 14U;
++// UCI HistRework: [side][from attacked by a lesser enemy piece][to attacked by a lesser enemy piece][from][to].
++using LesserThreatHistory = std::array<std::array<std::array<std::array<std::array<std::int16_t, 64>, 64>, 2>, 2>, 2>;
+@@ -344,6 +347,11 @@ private:
++    // UCI HistRework (forge/hist_rework.hpp). Last members, so every lock member keeps its offset; read and
++    // written only while the option is on. threat_maps_[ply] holds the lesser-attacker maps of the node at ply.
++    std::unique_ptr<LesserThreatHistory> threat_history_;
++    std::unique_ptr<CorrectionHistory> joint_correction_;
++    std::array<hist_rework::LesserThreats, MaxPly + 8> threat_maps_{};
+@@ -355,6 +363,9 @@ private:
++    void update_threat_history(const Board& board, const SearchStack* ss, Move best, int bonus, const Move* quiets,
++                               int quiet_count);
++    [[nodiscard]] std::int16_t& threat_history_entry(const Board& board, const SearchStack* ss, Move move) const;
+diff --git a/src/search.cpp b/src/search.cpp
+@@ -10,6 +10,12 @@
++// Defined before the tunables: GCC emits a translation unit's globals in reverse order, so the lock's
++// tunables keep their addresses.
++namespace search_options {
++int hist_rework = 0;
++} // namespace search_options
++
+@@ -105,6 +111,8 @@ const std::vector<Parameter>& parameters() {
++static_assert(hist_rework::HistoryLimit == HistoryMax, "HistRework bounds assume the lock's history limit");
++static_assert(hist_rework::CorrectionEntryLimit == CorrectionLimit, "HistRework bounds assume the lock's correction limit");
+@@ -566,7 +574,9 @@ Worker::Worker(SharedSearchState& shared, int id)
+-      material_correction_(std::make_unique<CorrectionHistory>()) {
++      material_correction_(std::make_unique<CorrectionHistory>()),
++      threat_history_(std::make_unique<LesserThreatHistory>()),
++      joint_correction_(std::make_unique<CorrectionHistory>()) {
+@@ -580,6 +590,8 @@ void Worker::clear() {
++    *threat_history_ = LesserThreatHistory{};
++    *joint_correction_ = CorrectionHistory{};
+@@ -641,6 +653,11 @@ int Worker::corrected_eval(const Board& board, int raw_eval) const {
++    if (const int level = search_options::hist_rework; level != 0) [[unlikely]] {
++        // HistRework: pawn structure x non-pawn material. |entry| <= 8192, weight <= 100: |term| <= 8192.
++        correction += (*joint_correction_)[side][hist_rework::joint_key(board) & (CorrectionSize - 1U)] *
++                      hist_rework::joint_weight(level) / 100;
++    }
+@@ -653,6 +670,12 @@ void Worker::update_correction(const Board& board, int depth, int best_score, in
++    if (search_options::hist_rework != 0) [[unlikely]] {
++        // HistRework: the joint table learns the same residual step (|step| <= 2048 * 16 / 256 = 128) with a
++        // gravity-style damping instead of the lock's add-and-clamp; the lock tables above are unchanged.
++        std::int32_t& entry = (*joint_correction_)[side][hist_rework::joint_key(board) & (CorrectionSize - 1U)];
++        entry = hist_rework::gravity(entry, diff * weight / 256, CorrectionLimit);
++    }
+@@ -701,9 +724,30 @@ bool Worker::is_draw(const Board& board, int ply) const {
++// HistRework: the threat-keyed butterfly slot of a quiet move at the node of `ss` (its maps are threat_maps_[ply]).
++std::int16_t& Worker::threat_history_entry(const Board& board, const SearchStack* ss, Move move) const {
++    const hist_rework::LesserThreats& threats = threat_maps_[static_cast<std::size_t>(ss->ply)];
++    const Bitboard set = threats.by_type[static_cast<std::size_t>(piece_type(board.moved_piece(move)))];
++    return (*threat_history_)[static_cast<std::size_t>(board.side_to_move())][hist_rework::square_bit(set, move.from)]
++                             [hist_rework::square_bit(set, move.to)][move.from][move.to];
++}
++
++void Worker::update_threat_history(const Board& board, const SearchStack* ss, Move best, int bonus, const Move* quiets,
++                                   int quiet_count) {
++    apply_history(threat_history_entry(board, ss, best), bonus);
++    for (int i = 0; i < quiet_count; ++i) {
++        if (quiets[i] == best) continue;
++        apply_history(threat_history_entry(board, ss, quiets[i]), -bonus);
++    }
++}
++
++    if (const int level = search_options::hist_rework; level != 0 && ss != nullptr) [[unlikely]] {
++        // |score| <= 16384 after the blend, as for the lock table alone (hist_rework::blend).
++        score = hist_rework::blend(score, threat_history_entry(board, ss, move), hist_rework::threat_quarters(level));
++    }
+@@ -747,6 +791,8 @@ void Worker::update_quiet_stats(const Board& board, SearchStack* ss, Move move,
++    // HistRework: the threat-keyed twin learns the same bonus and maluses (lock gravity, apply_history).
++    if (search_options::hist_rework != 0) [[unlikely]] update_threat_history(board, ss, move, bonus, quiets, quiet_count);
+@@ -821,6 +867,9 @@ int Worker::qsearch(Board& board, SearchStack* ss, int alpha, int beta) {
++    // HistRework: check evasions score quiet moves with quiet_history, which reads this node's maps.
++    if (in_check && search_options::hist_rework != 0) [[unlikely]]
++        threat_maps_[static_cast<std::size_t>(ply)] = hist_rework::lesser_threats(board);
+@@ -1030,6 +1079,8 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
++    // HistRework: lesser-attacker maps of this node, read by quiet_history and the history updates below.
++    if (search_options::hist_rework != 0) [[unlikely]] threat_maps_[static_cast<std::size_t>(ply)] = hist_rework::lesser_threats(board);
+@@ -1202,6 +1253,8 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
++        if (search_options::hist_rework != 0) [[unlikely]]
++            apply_history(threat_history_entry(board, ss, best_move), history_bonus(depth) / 4);
+diff --git a/src/uci.cpp b/src/uci.cpp
+@@ -171,6 +171,8 @@ int main() {
++            // Search option added after AL1 s198 (Astra A1); default 0 = the lock's search (forge/hist_rework.hpp).
++            std::cout << "option name HistRework type spin default 0 min 0 max " << forge::hist_rework::MaxLevel << "\n";
+@@ -259,6 +261,15 @@ int main() {
++            } else if (name == "HistRework") {
++                int value = 0;
++                const auto parsed = std::from_chars(value_text.data(), value_text.data() + value_text.size(), value);
++                if (parsed.ec != std::errc{} || parsed.ptr != value_text.data() + value_text.size()) {
++                    const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex());
++                    std::cout << "info string invalid value for option " << name << std::endl;
++                } else {
++                    forge::search_options::hist_rework = std::clamp(value, 0, forge::hist_rework::MaxLevel);
++                }

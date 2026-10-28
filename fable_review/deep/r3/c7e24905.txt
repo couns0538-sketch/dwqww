@@ -1,0 +1,227 @@
+# merge c7e24905: [R3-1] Merge opus-sol-S41 (NetScale) into the stack
+# parent2 29e61367 ; auto-merge tree 1bc32ae42b60783d581214d149d910bfc9f40239 ; conflicts: 3
+## (a) manual resolution vs the automatic merge (src include tests CMakeLists.txt, without search.cpp/search.hpp)
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -96,7 +96,6 @@ target_link_libraries(forge_nearest_pawn_tests PRIVATE forge_core Threads::Threa
+ add_executable(forge_pv_metadata_tests tests/pv_metadata_tests.cpp)
+ target_link_libraries(forge_pv_metadata_tests PRIVATE forge_core Threads::Threads)
+ 
+-<<<<<<< 36492b15d8173e065afab7360eb895a263dd66aa
+ # Search module unit tests (move picker stages, history math, time management).
+ add_executable(forge_movepicker_tests tests/movepicker_tests.cpp)
+ target_include_directories(forge_movepicker_tests PRIVATE src)
+@@ -181,11 +180,9 @@ endif()
+ 
+ add_executable(forge_material_key_tests tests/material_key_tests.cpp)
+ target_link_libraries(forge_material_key_tests PRIVATE forge_core Threads::Threads)
+-=======
+ # S41 NetScale: apply() arithmetic and the actual Worker::static_evaluate path at every scale.
+ add_executable(forge_net_scale_tests tests/net_scale_tests.cpp)
+ target_link_libraries(forge_net_scale_tests PRIVATE forge_core Threads::Threads)
+->>>>>>> 29e613674d2d0e0e983c29f869c3d10aa9a699ce
+ 
+ add_executable(forge_bench bench/benchmark.cpp)
+ target_link_libraries(forge_bench PRIVATE forge_core Threads::Threads)
+@@ -215,16 +212,13 @@ add_test(NAME forge_tt_tests COMMAND forge_tt_tests)
+ add_test(NAME forge_tt_stress_lockless COMMAND forge_tt_stress_tests --threads 2 --ops 2000000 --mode lockless)
+ add_test(NAME forge_tt_stress_locked COMMAND forge_tt_stress_tests --threads 2 --ops 2000000 --mode locked)
+ add_test(NAME forge_rule50_tests COMMAND forge_rule50_tests)
+-<<<<<<< 36492b15d8173e065afab7360eb895a263dd66aa
+ add_test(NAME forge_syzygy_tests COMMAND forge_syzygy_tests
+     ${CMAKE_CURRENT_SOURCE_DIR}/tests/syzygy_fixtures.tsv ${CMAKE_CURRENT_SOURCE_DIR}/tests/syzygy_reference.tsv
+     ${FORGE_SYZYGY_PATH})
+ add_test(NAME forge_tt_prefetch_probe COMMAND forge_tt_prefetch_probe)
+ add_test(NAME forge_material_key_tests COMMAND forge_material_key_tests
+     ${CMAKE_CURRENT_SOURCE_DIR}/tools/openings/forge-10000.epd)
+-=======
+ add_test(NAME forge_net_scale_tests COMMAND forge_net_scale_tests)
+->>>>>>> 29e613674d2d0e0e983c29f869c3d10aa9a699ce
+ add_test(NAME forge_legal_witness_tests COMMAND forge_legal_witness_tests
+     ${CMAKE_CURRENT_SOURCE_DIR}/tests/legal_witness_fixtures.tsv
+     ${CMAKE_CURRENT_SOURCE_DIR}/tools/openings/forge-10000.epd)
+diff --git a/src/search/evaluation.inc b/src/search/evaluation.inc
+--- a/src/search/evaluation.inc
++++ b/src/search/evaluation.inc
+@@ -59,10 +59,17 @@ int Worker::static_evaluate(const Board& board, SearchStack* ss) {
+         }
+     }
+     const int network = nnue::evaluate(board, ss->accumulator);
+-    if (!residual) return network;
++    // S41 NetScale (default 100 = OFF, forge/net_scale.hpp): net_scale::apply is the identity at 100.
++    // (R3 stack: the compiled-in network only, as on opus-sol-S41; v2 nets are not scaled.)
++    const int scale = net_scale::percent;
++    if (!residual) {
++        if (scale == net_scale::Default) [[likely]] return network;
++        return std::clamp(net_scale::apply(network, scale), -MateInMaxPly + 1, MateInMaxPly - 1);
++    }
+     if (!ss->runtime_psqt.valid) ss->runtime_psqt = Evaluator::refresh_runtime_psqt(board);
+     // A residual network is a learned correction on top of the hand-crafted evaluation.
+-    return std::clamp(evaluator_.evaluate_runtime(board, ss->runtime_psqt) + network, -MateInMaxPly + 1, MateInMaxPly - 1);
++    return std::clamp(net_scale::apply(evaluator_.evaluate_runtime(board, ss->runtime_psqt) + network, scale),
++                      -MateInMaxPly + 1, MateInMaxPly - 1);
+ }
+ 
+ void Worker::record_move(SearchStack* ss, const Board& board, const Move& move) {
+diff --git a/src/search/tune.inc b/src/search/tune.inc
+--- a/src/search/tune.inc
++++ b/src/search/tune.inc
+@@ -4,6 +4,11 @@
+ 
+ namespace forge {
+ 
++namespace net_scale {
++// S41: UCI NetScale, percent; 100 = OFF (constant-initialised, no constructor code).
++int percent = Default;
++} // namespace net_scale
++
+ namespace tune {
+ // CorrHistPlus weights. Defined before the AL1 s198 tunables on purpose: GCC
+ // emits a translation unit's globals in reverse definition order, so these
+diff --git a/src/uci.cpp b/src/uci.cpp
+--- a/src/uci.cpp
++++ b/src/uci.cpp
+@@ -422,7 +422,6 @@ int main() {
+                          "option name Book Depth type spin default 30 min 0 max 100\n"
+                          "option name Book Variety type spin default 30 min 0 max 100\n";
+             if (forge::nnue::available()) std::cout << "option name UseNNUE type check default true\n";
+-<<<<<<< 36492b15d8173e065afab7360eb895a263dd66aa
+             // Search options added after AL1 s198; all default OFF (see forge/search_options.hpp).
+             std::cout << "option name SmpExactNodes type check default false\n"
+                          "option name SmpBestThread type check default false\n"
+@@ -446,12 +445,10 @@ int main() {
+             std::cout << "option name CorrExt type spin default 0 min 0 max 1\n";
+             std::cout << "option name CuckooRep type check default false\n";
+             std::cout << "option name MaterialKeyTable type check default false\n";
+-=======
+             if (forge::nnue::available()) {
+                 std::cout << "option name NetScale type spin default " << forge::net_scale::Default << " min "
+                           << forge::net_scale::Minimum << " max " << forge::net_scale::Maximum << "\n";
+             }
+->>>>>>> 29e613674d2d0e0e983c29f869c3d10aa9a699ce
+ #ifdef FORGE_EXPOSE_TUNABLES
+             // Development builds advertise the search constants so match
+             // runners can set them; release builds accept them silently.
+@@ -668,7 +665,6 @@ int main() {
+                     const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex());
+                     std::cout << "info string invalid value for option UseNNUE" << std::endl;
+                 }
+-<<<<<<< 36492b15d8173e065afab7360eb895a263dd66aa
+                 // Silent unless a v2 network was requested (the default prints nothing new).
+                 nnue_v2_changed();
+             } else if (name == "NNUEFile") {
+@@ -690,16 +686,10 @@ int main() {
+                 }
+                 nnue_v2_changed();
+             } else if (name == "NNUEKingBuckets" || name == "NNUEOutputBuckets") {
+-=======
+-                searcher.clear_hash();
+-            } else if (name == "NetScale") {
+-                // S41: scales the NNUE-mode static evaluation (forge/net_scale.hpp); 100 = OFF.
+->>>>>>> 29e613674d2d0e0e983c29f869c3d10aa9a699ce
+                 int value = 0;
+                 const auto parsed = std::from_chars(value_text.data(), value_text.data() + value_text.size(), value);
+                 if (parsed.ec != std::errc{} || parsed.ptr != value_text.data() + value_text.size()) {
+                     const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex());
+-<<<<<<< 36492b15d8173e065afab7360eb895a263dd66aa
+                     std::cout << "info string invalid value for option " << name << std::endl;
+                 } else {
+                     if (name == "NNUEKingBuckets") forge::options::nnue_king_buckets = std::clamp(value, 0, 32);
+@@ -737,7 +727,13 @@ int main() {
+                 else {
+                     const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex());
+                     std::cout << "info string invalid value for option MaterialKeyTable" << std::endl;
+-=======
++                }
++            } else if (name == "NetScale") {
++                // S41: scales the NNUE-mode static evaluation (forge/net_scale.hpp); 100 = OFF.
++                int value = 0;
++                const auto parsed = std::from_chars(value_text.data(), value_text.data() + value_text.size(), value);
++                if (parsed.ec != std::errc{} || parsed.ptr != value_text.data() + value_text.size()) {
++                    const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex());
+                     std::cout << "info string invalid value for option NetScale" << std::endl;
+                 } else {
+                     const int clamped = std::clamp(value, forge::net_scale::Minimum, forge::net_scale::Maximum);
+@@ -746,7 +742,6 @@ int main() {
+                         // The TT stores static evaluations made at the old scale.
+                         searcher.clear_hash();
+                     }
+->>>>>>> 29e613674d2d0e0e983c29f869c3d10aa9a699ce
+                 }
+             } else if (name == "Hash" || name == "Move Overhead" || name == "Threads") {
+                 int value = 0;
+## (b) the merged branch's own engine diff vs d4f4312 (src include, +/- lines only)
+diff --git a/include/forge/net_scale.hpp b/include/forge/net_scale.hpp
+@@ -0,0 +1,27 @@
++#pragma once
++
++#include <cstdint>
++
++// S41 NetScale (UCI spin, percent; default 100 = OFF). With a network active, the static evaluation the search
++// uses (residual network: hand-crafted evaluation + network correction; stand-alone network: its output) is
++// multiplied by NetScale / 100 before the usual clamp, so a network whose evaluations are spread wider or
++// narrower than h256_e12's -- the scale the search margins were tuned on -- can be mapped back to that scale.
++// 100 returns the evaluation unchanged (the AL1 s198 search). The value is written only while no search runs
++// (the UCI loop stops the search first) and the hash is cleared, because the TT stores static evaluations.
++// The hand-crafted-only path (UseNNUE false) is never scaled.
++namespace forge::net_scale {
++
++inline constexpr int Default = 100;
++inline constexpr int Minimum = 50;
++inline constexpr int Maximum = 150;
++
++extern int percent;
++
++// eval * pct / 100 in 64-bit arithmetic, truncated toward zero (odd: apply(-e) == -apply(e)); pct == 100 is the
++// identity. Callers clamp the result to the non-mate range.
++[[nodiscard]] constexpr int apply(int eval, int pct) {
++    if (pct == Default) return eval;
++    return static_cast<int>(static_cast<std::int64_t>(eval) * pct / 100);
++}
++
++} // namespace forge::net_scale
+diff --git a/src/search.cpp b/src/search.cpp
+@@ -1,4 +1,5 @@
++#include "forge/net_scale.hpp"
+@@ -10,6 +11,11 @@
++namespace net_scale {
++// S41: UCI NetScale, percent; 100 = OFF (constant-initialised, no constructor code).
++int percent = Default;
++} // namespace net_scale
++
+@@ -614,10 +620,16 @@ int Worker::static_evaluate(const Board& board, SearchStack* ss) {
+-    if (!residual) return network;
++    // S41 NetScale (default 100 = OFF, forge/net_scale.hpp): net_scale::apply is the identity at 100.
++    const int scale = net_scale::percent;
++    if (!residual) {
++        if (scale == net_scale::Default) [[likely]] return network;
++        return std::clamp(net_scale::apply(network, scale), -MateInMaxPly + 1, MateInMaxPly - 1);
++    }
+-    return std::clamp(evaluator_.evaluate_runtime(board, ss->runtime_psqt) + network, -MateInMaxPly + 1, MateInMaxPly - 1);
++    return std::clamp(net_scale::apply(evaluator_.evaluate_runtime(board, ss->runtime_psqt) + network, scale),
++                      -MateInMaxPly + 1, MateInMaxPly - 1);
+diff --git a/src/uci.cpp b/src/uci.cpp
+@@ -1,5 +1,6 @@
++#include "forge/net_scale.hpp"
+@@ -171,6 +172,10 @@ int main() {
++            if (forge::nnue::available()) {
++                std::cout << "option name NetScale type spin default " << forge::net_scale::Default << " min "
++                          << forge::net_scale::Minimum << " max " << forge::net_scale::Maximum << "\n";
++            }
+@@ -267,6 +272,21 @@ int main() {
++            } else if (name == "NetScale") {
++                // S41: scales the NNUE-mode static evaluation (forge/net_scale.hpp); 100 = OFF.
++                int value = 0;
++                const auto parsed = std::from_chars(value_text.data(), value_text.data() + value_text.size(), value);
++                if (parsed.ec != std::errc{} || parsed.ptr != value_text.data() + value_text.size()) {
++                    const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex());
++                    std::cout << "info string invalid value for option NetScale" << std::endl;
++                } else {
++                    const int clamped = std::clamp(value, forge::net_scale::Minimum, forge::net_scale::Maximum);
++                    if (clamped != forge::net_scale::percent) {
++                        forge::net_scale::percent = clamped;
++                        // The TT stores static evaluations made at the old scale.
++                        searcher.clear_hash();
++                    }
++                }

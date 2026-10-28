@@ -1,0 +1,149 @@
+# merge 36492b15: [R3-1] Merge opus-sol-S29 (FORGE_SPEEDSTACK) into the stack
+# parent2 81a80312 ; auto-merge tree d5ad9075cc1c8df3aae7de8dbed03fd19ed319f4 ; conflicts: 2
+## (a) manual resolution vs the automatic merge (src include tests CMakeLists.txt, without search.cpp/search.hpp)
+diff --git a/include/forge/material_key_table.hpp b/include/forge/material_key_table.hpp
+--- a/include/forge/material_key_table.hpp
++++ b/include/forge/material_key_table.hpp
+@@ -6,12 +6,8 @@
+ #include <cstddef>
+ #include <cstdint>
+ 
+-<<<<<<< 71dca7762cba84abbf754beb4ae7c82f20af1625
+-// Job S11 (node-exact speed), UCI MaterialKeyTable (default off).
+-=======
+-// Speed stack S29 (compile switch FORGE_SPEEDSTACK, default off), piece S11: the material-key table
+-// (first built for job S11 as UCI MaterialKeyTable, branch opus-sol-S11).
+->>>>>>> 81a803122db48c96af70683969bcd011fd9eeb79
++// Job S11 (node-exact speed), UCI MaterialKeyTable (default off); also piece S11 of the speed stack S29
++// (compile switch FORGE_SPEEDSTACK, default off).
+ //
+ // The material-correction key of the search (src/search.cpp material_key) is a
+ // Horner polynomial in the ten piece counts c0..c9 (white pawn..queen, then
+diff --git a/src/search/alphabeta.inc b/src/search/alphabeta.inc
+--- a/src/search/alphabeta.inc
++++ b/src/search/alphabeta.inc
+@@ -159,6 +159,9 @@ int Worker::FORGE_SEARCH_FN(Board& board, SearchStack* ss, int depth, int alpha,
+             board.make_null_move(undo);
+ #ifdef FORGE_S13_TT_CHILD_PREFETCH
+             if (s13_tt_child_prefetch_) shared_.tt.prefetch(board.key());
++#endif
++#ifdef FORGE_SPEEDSTACK
++            shared_.tt.prefetch(board.key());  // speed stack (S29, piece S13): the child's TT bucket
+ #endif
+             int null_score = -FORGE_SEARCH_CALL(board, ss + 1, depth - reduction, -beta, -beta + 1, !cut_node);
+             board.unmake_null_move(undo);
+@@ -199,6 +202,9 @@ int Worker::FORGE_SEARCH_FN(Board& board, SearchStack* ss, int depth, int alpha,
+                 (void)board.make_move(move, undo);
+ #ifdef FORGE_S13_TT_CHILD_PREFETCH
+                 if (s13_tt_child_prefetch_) shared_.tt.prefetch(board.key());
++#endif
++#ifdef FORGE_SPEEDSTACK
++                shared_.tt.prefetch(board.key());  // speed stack (S29, piece S13): the child's TT bucket
+ #endif
+                 int value = -FORGE_QSEARCH_CALL(board, ss + 1, -probcut_beta, -probcut_beta + 1);
+                 if (value >= probcut_beta && !aborted_) {
+diff --git a/src/search/evaluation.inc b/src/search/evaluation.inc
+--- a/src/search/evaluation.inc
++++ b/src/search/evaluation.inc
+@@ -17,6 +17,10 @@ namespace {
+ // Always inlined: it also has a call site in the cold CorrHistPlus path, and an
+ // out-of-line copy would be emitted at the start of the hot .text.
+ [[gnu::always_inline]] [[nodiscard]] inline std::uint64_t material_key(const Board& board) {
++#ifdef FORGE_SPEEDSTACK
++    // Speed stack (S29, piece S11): the same 64-bit key as the polynomial below, from a contribution table.
++    return matkey::table_key(board);
++#else
+     // S11 MaterialKeyTable: the same key from a contribution table (forge/material_key_table.hpp).
+     if (options::material_key_table) [[unlikely]] return matkey::table_key(board);
+     std::uint64_t key = 0;
+@@ -26,6 +30,7 @@ namespace {
+         }
+     }
+     return key * 0x9E3779B97F4A7C15ULL;
++#endif
+ }
+ } // namespace
+ 
+## (b) the merged branch's own engine diff vs d4f4312 (src include, +/- lines only)
+diff --git a/include/forge/material_key_table.hpp b/include/forge/material_key_table.hpp
+@@ -0,0 +1,60 @@
++#pragma once
++
++#include "forge/board.hpp"
++
++#include <array>
++#include <cstddef>
++#include <cstdint>
++
++// Speed stack S29 (compile switch FORGE_SPEEDSTACK, default off), piece S11: the material-key table
++// (first built for job S11 as UCI MaterialKeyTable, branch opus-sol-S11).
++//
++// The material-correction key of the search (src/search.cpp material_key) is a
++// Horner polynomial in the ten piece counts c0..c9 (white pawn..queen, then
++// black pawn..queen), evaluated in unsigned 64-bit arithmetic:
++//
++//     key = (((c0+1)*P + (c1+1))*P + ... + (c9+1)) * M  =  sum_s (c_s+1) * M * P^(9-s)   (mod 2^64)
++//
++// Multiplication distributes over addition modulo 2^64, so the key is a sum of
++// ten independent per-slot terms. Contributions[s][c] holds (c+1) * M * P^(9-s)
++// for every popcount c = 0..64, and table_key() adds ten table entries instead
++// of running ten dependent multiply-adds and the final multiply. The two keys
++// are equal for every board (tests/material_key_tests.cpp checks the table
++// against the polynomial on the whole count domain and on real positions).
++namespace forge::matkey {
++
++inline constexpr std::uint64_t HornerMultiplier = 1099511628211ULL;  // P, as in material_key
++inline constexpr std::uint64_t FinalMix = 0x9E3779B97F4A7C15ULL;     // M, as in material_key
++inline constexpr std::size_t Slots = 10;                             // 2 colours x pawn..queen
++inline constexpr std::size_t CountValues = 65;                       // popcount of a bitboard: 0..64
++
++using ContributionTable = std::array<std::array<std::uint64_t, CountValues>, Slots>;
++
++[[nodiscard]] constexpr ContributionTable make_contributions() {
++    ContributionTable values{};
++    std::uint64_t factor = FinalMix;  // slot 9 (black queens) is multiplied by M only
++    for (std::size_t slot = Slots; slot-- > 0;) {
++        for (std::size_t count = 0; count < CountValues; ++count) {
++            values[slot][count] = factor * (static_cast<std::uint64_t>(count) + 1U);
++        }
++        factor *= HornerMultiplier;
++    }
++    return values;
++}
++
++alignas(64) inline constexpr ContributionTable Contributions = make_contributions();
++
++// The search's material key, from the table.
++[[nodiscard, gnu::always_inline]] inline std::uint64_t table_key(const Board& board) {
++    std::uint64_t key = 0;
++    std::size_t slot = 0;
++    for (const Color color : {White, Black}) {
++        for (int type = Pawn; type <= Queen; ++type) {
++            const auto count = static_cast<std::size_t>(popcount(board.pieces(color, static_cast<PieceType>(type))));
++            key += Contributions[slot++][count];
++        }
++    }
++    return key;
++}
++
++} // namespace forge::matkey
+diff --git a/src/search.cpp b/src/search.cpp
+@@ -1,5 +1,8 @@
++#ifdef FORGE_SPEEDSTACK
++#include "forge/material_key_table.hpp"
++#endif
+@@ -586,6 +589,10 @@ void Worker::clear() {
++#ifdef FORGE_SPEEDSTACK
++    // Speed stack (S29, piece S11): the same 64-bit key as the polynomial below, from a contribution table.
++    return matkey::table_key(board);
++#else
+@@ -593,6 +600,7 @@ namespace {
++#endif
+@@ -976,6 +984,9 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
++#ifdef FORGE_SPEEDSTACK
++            shared_.tt.prefetch(board.key());  // speed stack (S29, piece S13): the child's TT bucket
++#endif
+@@ -1013,6 +1024,9 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
++#ifdef FORGE_SPEEDSTACK
++                shared_.tt.prefetch(board.key());  // speed stack (S29, piece S13): the child's TT bucket
++#endif

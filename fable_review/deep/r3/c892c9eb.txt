@@ -1,0 +1,197 @@
+# merge c892c9eb: [R3-1] Merge opus-sol-S13 (TtChildPrefetch) into the stack
+# parent2 5ccfe1ac ; auto-merge tree 3fbf82fb3536b26a29fefedf7cb06f627ce56fdd ; conflicts: 3
+## (a) manual resolution vs the automatic merge (src include tests CMakeLists.txt, without search.cpp/search.hpp)
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -89,7 +89,6 @@ target_link_libraries(forge_nearest_pawn_tests PRIVATE forge_core Threads::Threa
+ add_executable(forge_pv_metadata_tests tests/pv_metadata_tests.cpp)
+ target_link_libraries(forge_pv_metadata_tests PRIVATE forge_core Threads::Threads)
+ 
+-<<<<<<< c157c7e1a7af77dbe237a5559dc6e108892ced3b
+ # Search module unit tests (move picker stages, history math, time management).
+ add_executable(forge_movepicker_tests tests/movepicker_tests.cpp)
+ target_include_directories(forge_movepicker_tests PRIVATE src)
+@@ -163,7 +162,7 @@ target_link_libraries(forge_cuckoo_tests PRIVATE forge_core Threads::Threads)
+ # NNUE parity: current kernels against a verbatim copy of the AL1 s198 code.
+ add_executable(forge_nnue_parity_tests tests/nnue_parity_tests.cpp)
+ target_link_libraries(forge_nnue_parity_tests PRIVATE forge_core Threads::Threads)
+-=======
++
+ # S13: includes the actual src/search.cpp with its TT prefetch redirected to a
+ # counter, so the archive's own search.cpp object is never linked (link map).
+ add_executable(forge_tt_prefetch_probe tests/tt_prefetch_probe_tests.cpp)
+@@ -171,7 +170,6 @@ target_link_libraries(forge_tt_prefetch_probe PRIVATE forge_core Threads::Thread
+ if(NOT MSVC)
+     target_link_options(forge_tt_prefetch_probe PRIVATE "-Wl,-Map=${CMAKE_CURRENT_BINARY_DIR}/forge_tt_prefetch_probe.map")
+ endif()
+->>>>>>> 5ccfe1acf7b6879dc4cf0e68bb5c3ff9636f057b
+ 
+ add_executable(forge_bench bench/benchmark.cpp)
+ target_link_libraries(forge_bench PRIVATE forge_core Threads::Threads)
+@@ -201,13 +199,10 @@ add_test(NAME forge_tt_tests COMMAND forge_tt_tests)
+ add_test(NAME forge_tt_stress_lockless COMMAND forge_tt_stress_tests --threads 2 --ops 2000000 --mode lockless)
+ add_test(NAME forge_tt_stress_locked COMMAND forge_tt_stress_tests --threads 2 --ops 2000000 --mode locked)
+ add_test(NAME forge_rule50_tests COMMAND forge_rule50_tests)
+-<<<<<<< c157c7e1a7af77dbe237a5559dc6e108892ced3b
+ add_test(NAME forge_syzygy_tests COMMAND forge_syzygy_tests
+     ${CMAKE_CURRENT_SOURCE_DIR}/tests/syzygy_fixtures.tsv ${CMAKE_CURRENT_SOURCE_DIR}/tests/syzygy_reference.tsv
+     ${FORGE_SYZYGY_PATH})
+-=======
+ add_test(NAME forge_tt_prefetch_probe COMMAND forge_tt_prefetch_probe)
+->>>>>>> 5ccfe1acf7b6879dc4cf0e68bb5c3ff9636f057b
+ add_test(NAME forge_legal_witness_tests COMMAND forge_legal_witness_tests
+     ${CMAKE_CURRENT_SOURCE_DIR}/tests/legal_witness_fixtures.tsv
+     ${CMAKE_CURRENT_SOURCE_DIR}/tools/openings/forge-10000.epd)
+diff --git a/include/forge/search_types.hpp b/include/forge/search_types.hpp
+--- a/include/forge/search_types.hpp
++++ b/include/forge/search_types.hpp
+@@ -9,6 +9,9 @@
+ namespace forge {
+ 
+ struct SearchLimits {
++#ifdef FORGE_S13_TT_CHILD_PREFETCH
++    bool s13_tt_child_prefetch = false;
++#endif
+     int depth = 64;
+     std::uint64_t nodes = 0;
+     bool nodes_specified = false;
+diff --git a/include/forge/thread_data.hpp b/include/forge/thread_data.hpp
+--- a/include/forge/thread_data.hpp
++++ b/include/forge/thread_data.hpp
+@@ -56,6 +56,10 @@ struct SearchStack {
+ struct SharedSearchState {
+     explicit SharedSearchState(std::size_t hash_mb) : tt(hash_mb) {}
+     TranspositionTable tt;
++#ifdef FORGE_S13_TT_CHILD_PREFETCH
++    std::atomic<bool> s13_tt_child_prefetch{false};
++    std::atomic<bool> s13_tt_child_prefetch_announced{false};
++#endif
+     std::atomic<bool> stop{false};
+     // 0 means pondering has not been converted into a timed search.
+     std::atomic<std::int64_t> ponder_hit_ns{0};
+@@ -91,6 +95,9 @@ struct ThreadData {
+     std::array<std::uint64_t, 256> root_move_nodes_{};
+     std::size_t root_effort_count_ = 0;
+ 
++#ifdef FORGE_S13_TT_CHILD_PREFETCH
++    bool s13_tt_child_prefetch_ = false;
++#endif
+     bool pondering_ = false;
+     std::chrono::steady_clock::time_point start_{};
+     std::atomic<std::uint64_t> nodes_{0};
+diff --git a/src/search/alphabeta.inc b/src/search/alphabeta.inc
+--- a/src/search/alphabeta.inc
++++ b/src/search/alphabeta.inc
+@@ -157,6 +157,9 @@ int Worker::FORGE_SEARCH_FN(Board& board, SearchStack* ss, int depth, int alpha,
+             record_null_move(ss);
+             NullUndo undo;
+             board.make_null_move(undo);
++#ifdef FORGE_S13_TT_CHILD_PREFETCH
++            if (s13_tt_child_prefetch_) shared_.tt.prefetch(board.key());
++#endif
+             int null_score = -FORGE_SEARCH_CALL(board, ss + 1, depth - reduction, -beta, -beta + 1, !cut_node);
+             board.unmake_null_move(undo);
+             if (aborted_) return 0;
+@@ -194,6 +197,9 @@ int Worker::FORGE_SEARCH_FN(Board& board, SearchStack* ss, int depth, int alpha,
+                 record_move(ss, board, move);
+                 Undo undo;
+                 (void)board.make_move(move, undo);
++#ifdef FORGE_S13_TT_CHILD_PREFETCH
++                if (s13_tt_child_prefetch_) shared_.tt.prefetch(board.key());
++#endif
+                 int value = -FORGE_QSEARCH_CALL(board, ss + 1, -probcut_beta, -probcut_beta + 1);
+                 if (value >= probcut_beta && !aborted_) {
+                     value = -FORGE_SEARCH_CALL(board, ss + 1, depth - 4, -probcut_beta, -probcut_beta + 1, !cut_node);
+diff --git a/src/search/iterative.inc b/src/search/iterative.inc
+--- a/src/search/iterative.inc
++++ b/src/search/iterative.inc
+@@ -13,6 +13,9 @@ namespace forge {
+ }
+ 
+ SearchInfo Worker::search(Board board, const SearchLimits& limits, bool emit_info, const std::vector<Worker*>& all) {
++#ifdef FORGE_S13_TT_CHILD_PREFETCH
++    s13_tt_child_prefetch_ = limits.s13_tt_child_prefetch;
++#endif
+     const auto origin = limits.start_time != std::chrono::steady_clock::time_point{}
+         ? limits.start_time : limits.request_start;
+     start_ = origin == std::chrono::steady_clock::time_point{}
+diff --git a/src/search/searcher.inc b/src/search/searcher.inc
+--- a/src/search/searcher.inc
++++ b/src/search/searcher.inc
+@@ -37,6 +37,14 @@ SearchInfo Searcher::search(Board board, const SearchLimits& limits, bool emit_i
+     const auto origin = supplied_start == std::chrono::steady_clock::time_point{} && clocked
+         ? std::chrono::steady_clock::now() : supplied_start;
+     SearchLimits worker_limits = limits;
++#ifdef FORGE_S13_TT_CHILD_PREFETCH
++    // Snapshot once before helper launch; recursive workers use their own copy.
++    worker_limits.s13_tt_child_prefetch = shared_.s13_tt_child_prefetch.load(std::memory_order_relaxed);
++    if (worker_limits.s13_tt_child_prefetch && !shared_.s13_tt_child_prefetch_announced.exchange(true, std::memory_order_relaxed)) {
++        const std::lock_guard<std::mutex> output_lock(uci_output_mutex());
++        std::cout << "info string TtChildPrefetch active" << std::endl;
++    }
++#endif
+     worker_limits.start_time = origin;
+     // Tablebases (UCI SyzygyPath): in-search probing limit, root move filter.
+     if (syzygy::max_pieces() > 0) [[unlikely]] syzygy::prepare_root(board, worker_limits);
+## (b) the merged branch's own engine diff vs d4f4312 (src include, +/- lines only)
+diff --git a/include/forge/search.hpp b/include/forge/search.hpp
+@@ -17,6 +17,9 @@
++#ifdef FORGE_S13_TT_CHILD_PREFETCH
++    bool s13_tt_child_prefetch = false;
++#endif
+@@ -287,6 +290,10 @@ struct SearchStack {
++#ifdef FORGE_S13_TT_CHILD_PREFETCH
++    std::atomic<bool> s13_tt_child_prefetch{false};
++    std::atomic<bool> s13_tt_child_prefetch_announced{false};
++#endif
+@@ -326,6 +333,9 @@ private:
++#ifdef FORGE_S13_TT_CHILD_PREFETCH
++    bool s13_tt_child_prefetch_ = false;
++#endif
+@@ -394,6 +404,10 @@ public:
++#ifdef FORGE_S13_TT_CHILD_PREFETCH
++    void set_s13_tt_child_prefetch(bool enabled) { shared_.s13_tt_child_prefetch.store(enabled, std::memory_order_relaxed); }
++    [[nodiscard]] bool s13_tt_child_prefetch_enabled() const { return shared_.s13_tt_child_prefetch.load(std::memory_order_relaxed); }
++#endif
+diff --git a/src/search.cpp b/src/search.cpp
+@@ -976,6 +976,9 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
++#ifdef FORGE_S13_TT_CHILD_PREFETCH
++            if (s13_tt_child_prefetch_) shared_.tt.prefetch(board.key());
++#endif
+@@ -1013,6 +1016,9 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
++#ifdef FORGE_S13_TT_CHILD_PREFETCH
++                if (s13_tt_child_prefetch_) shared_.tt.prefetch(board.key());
++#endif
+@@ -1228,6 +1234,9 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
++#ifdef FORGE_S13_TT_CHILD_PREFETCH
++    s13_tt_child_prefetch_ = limits.s13_tt_child_prefetch;
++#endif
+@@ -1503,6 +1512,14 @@ SearchInfo Searcher::search(Board board, const SearchLimits& limits, bool emit_i
++#ifdef FORGE_S13_TT_CHILD_PREFETCH
++    // Snapshot once before helper launch; recursive workers use their own copy.
++    worker_limits.s13_tt_child_prefetch = shared_.s13_tt_child_prefetch.load(std::memory_order_relaxed);
++    if (worker_limits.s13_tt_child_prefetch && !shared_.s13_tt_child_prefetch_announced.exchange(true, std::memory_order_relaxed)) {
++        const std::lock_guard<std::mutex> output_lock(uci_output_mutex());
++        std::cout << "info string TtChildPrefetch active" << std::endl;
++    }
++#endif
+diff --git a/src/uci.cpp b/src/uci.cpp
+@@ -178,6 +178,9 @@ int main() {
++#endif
++#ifdef FORGE_S13_TT_CHILD_PREFETCH
++            std::cout << "option name TtChildPrefetch type check default false\n";
+@@ -216,6 +219,15 @@ int main() {
++#ifdef FORGE_S13_TT_CHILD_PREFETCH
++            } else if (name == "TtChildPrefetch") {
++                if (value_text == "true" || value_text == "false") {
++                    searcher.set_s13_tt_child_prefetch(value_text == "true");
++                } else {
++                    const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex());
++                    std::cout << "info string invalid value for option TtChildPrefetch" << std::endl;
++                }
++#endif
+@@ -393,6 +405,9 @@ int main() {
++#ifdef FORGE_S13_TT_CHILD_PREFETCH
++            bench_searcher.set_s13_tt_child_prefetch(searcher.s13_tt_child_prefetch_enabled());
++#endif

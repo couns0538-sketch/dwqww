@@ -1,0 +1,281 @@
+# merge 71dca776: [R3-1] Merge opus-sol-S11 (MaterialKeyTable) into the stack
+# parent2 e0c129b1 ; auto-merge tree 4eab406453a9c09d9895382c220ed52540657951 ; conflicts: 6
+## (a) manual resolution vs the automatic merge (src include tests CMakeLists.txt, without search.cpp/search.hpp)
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -89,7 +89,6 @@ target_link_libraries(forge_nearest_pawn_tests PRIVATE forge_core Threads::Threa
+ add_executable(forge_pv_metadata_tests tests/pv_metadata_tests.cpp)
+ target_link_libraries(forge_pv_metadata_tests PRIVATE forge_core Threads::Threads)
+ 
+-<<<<<<< c892c9eb7bcdcfd0c1f806db5f4e99c5c1aa27e4
+ # Search module unit tests (move picker stages, history math, time management).
+ add_executable(forge_movepicker_tests tests/movepicker_tests.cpp)
+ target_include_directories(forge_movepicker_tests PRIVATE src)
+@@ -171,10 +170,9 @@ target_link_libraries(forge_tt_prefetch_probe PRIVATE forge_core Threads::Thread
+ if(NOT MSVC)
+     target_link_options(forge_tt_prefetch_probe PRIVATE "-Wl,-Map=${CMAKE_CURRENT_BINARY_DIR}/forge_tt_prefetch_probe.map")
+ endif()
+-=======
++
+ add_executable(forge_material_key_tests tests/material_key_tests.cpp)
+ target_link_libraries(forge_material_key_tests PRIVATE forge_core Threads::Threads)
+->>>>>>> e0c129b1656310859eb2097774838c416ee8a65a
+ 
+ add_executable(forge_bench bench/benchmark.cpp)
+ target_link_libraries(forge_bench PRIVATE forge_core Threads::Threads)
+@@ -204,15 +202,12 @@ add_test(NAME forge_tt_tests COMMAND forge_tt_tests)
+ add_test(NAME forge_tt_stress_lockless COMMAND forge_tt_stress_tests --threads 2 --ops 2000000 --mode lockless)
+ add_test(NAME forge_tt_stress_locked COMMAND forge_tt_stress_tests --threads 2 --ops 2000000 --mode locked)
+ add_test(NAME forge_rule50_tests COMMAND forge_rule50_tests)
+-<<<<<<< c892c9eb7bcdcfd0c1f806db5f4e99c5c1aa27e4
+ add_test(NAME forge_syzygy_tests COMMAND forge_syzygy_tests
+     ${CMAKE_CURRENT_SOURCE_DIR}/tests/syzygy_fixtures.tsv ${CMAKE_CURRENT_SOURCE_DIR}/tests/syzygy_reference.tsv
+     ${FORGE_SYZYGY_PATH})
+ add_test(NAME forge_tt_prefetch_probe COMMAND forge_tt_prefetch_probe)
+-=======
+ add_test(NAME forge_material_key_tests COMMAND forge_material_key_tests
+     ${CMAKE_CURRENT_SOURCE_DIR}/tools/openings/forge-10000.epd)
+->>>>>>> e0c129b1656310859eb2097774838c416ee8a65a
+ add_test(NAME forge_legal_witness_tests COMMAND forge_legal_witness_tests
+     ${CMAKE_CURRENT_SOURCE_DIR}/tests/legal_witness_fixtures.tsv
+     ${CMAKE_CURRENT_SOURCE_DIR}/tools/openings/forge-10000.epd)
+diff --git a/include/forge/search_options.hpp b/include/forge/search_options.hpp
+--- a/include/forge/search_options.hpp
++++ b/include/forge/search_options.hpp
+@@ -1,18 +1,14 @@
+ #pragma once
+ 
+-<<<<<<< c892c9eb7bcdcfd0c1f806db5f4e99c5c1aa27e4
+ #include <atomic>
+ #include <cstdint>
+ #include <string>
+ 
+-=======
+->>>>>>> e0c129b1656310859eb2097774838c416ee8a65a
+ // Runtime search options set over UCI (src/uci.cpp). Every option defaults to
+ // OFF; with all options OFF the search is the AL1 s198 search. Options are
+ // written only while no search runs (the UCI loop stops the search first).
+ namespace forge::options {
+ 
+-<<<<<<< c892c9eb7bcdcfd0c1f806db5f4e99c5c1aa27e4
+ // UCI SmpExactNodes (check, default false); acts only with Threads > 1.
+ // Resets every worker's published node count before the helper threads start
+ // (otherwise the main thread reads the previous search's counts until each
+@@ -163,7 +159,7 @@ extern std::uint8_t corr_ext;
+ // once per iteration at the root, which then searches with the CuckooRep
+ // instances of the search functions; with the option off no node tests it.
+ extern bool cuckoo_rep;
+-=======
++
+ // UCI MaterialKeyTable (check, default false), job S11 (node-exact speed).
+ // The material-correction key (src/search.cpp material_key) is computed from
+ // the contribution table of forge/material_key_table.hpp (ten table loads and
+@@ -171,6 +167,5 @@ extern bool cuckoo_rep;
+ // same 64-bit key for every board, so the search (nodes, scores, moves) is
+ // unchanged; only the speed can differ.
+ extern bool material_key_table;
+->>>>>>> e0c129b1656310859eb2097774838c416ee8a65a
+ 
+ } // namespace forge::options
+diff --git a/src/search/evaluation.inc b/src/search/evaluation.inc
+--- a/src/search/evaluation.inc
++++ b/src/search/evaluation.inc
+@@ -17,6 +17,8 @@ namespace {
+ // Always inlined: it also has a call site in the cold CorrHistPlus path, and an
+ // out-of-line copy would be emitted at the start of the hot .text.
+ [[gnu::always_inline]] [[nodiscard]] inline std::uint64_t material_key(const Board& board) {
++    // S11 MaterialKeyTable: the same key from a contribution table (forge/material_key_table.hpp).
++    if (options::material_key_table) [[unlikely]] return matkey::table_key(board);
+     std::uint64_t key = 0;
+     for (const Color color : {White, Black}) {
+         for (int type = Pawn; type <= Queen; ++type) {
+diff --git a/src/search/options.inc b/src/search/options.inc
+--- a/src/search/options.inc
++++ b/src/search/options.inc
+@@ -1,4 +1,3 @@
+-<<<<<<< c892c9eb7bcdcfd0c1f806db5f4e99c5c1aa27e4
+ // Search module: runtime search options (forge/search_options.hpp); every feature is OFF by default.
+ // Compiled as part of src/search.cpp (included exactly once).
+ 
+@@ -21,14 +20,6 @@ bool pure_nnue = false;   // O4 (after nnue_v2 so that the variables before it k
+ std::uint8_t corr_margins = 0;
+ std::uint8_t corr_ext = 0;
+ bool cuckoo_rep = false;
+-=======
+-// Search module: runtime search options (forge/search_options.hpp), all OFF.
+-// Compiled as part of src/search.cpp (included exactly once).
+-// Constant-initialised namespace-scope variables: no constructor code.
+-
+-namespace forge::options {
+-
+ bool material_key_table = false;
+->>>>>>> e0c129b1656310859eb2097774838c416ee8a65a
+ 
+ } // namespace forge::options
+diff --git a/src/uci.cpp b/src/uci.cpp
+--- a/src/uci.cpp
++++ b/src/uci.cpp
+@@ -421,7 +421,6 @@ int main() {
+                          "option name Book Depth type spin default 30 min 0 max 100\n"
+                          "option name Book Variety type spin default 30 min 0 max 100\n";
+             if (forge::nnue::available()) std::cout << "option name UseNNUE type check default true\n";
+-<<<<<<< c892c9eb7bcdcfd0c1f806db5f4e99c5c1aa27e4
+             // Search options added after AL1 s198; all default OFF (see forge/search_options.hpp).
+             std::cout << "option name SmpExactNodes type check default false\n"
+                          "option name SmpBestThread type check default false\n"
+@@ -444,9 +443,7 @@ int main() {
+             std::cout << "option name CorrMargins type spin default 0 min 0 max 1\n";
+             std::cout << "option name CorrExt type spin default 0 min 0 max 1\n";
+             std::cout << "option name CuckooRep type check default false\n";
+-=======
+             std::cout << "option name MaterialKeyTable type check default false\n";
+->>>>>>> e0c129b1656310859eb2097774838c416ee8a65a
+ #ifdef FORGE_EXPOSE_TUNABLES
+             // Development builds advertise the search constants so match
+             // runners can set them; release builds accept them silently.
+@@ -663,7 +660,6 @@ int main() {
+                     const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex());
+                     std::cout << "info string invalid value for option UseNNUE" << std::endl;
+                 }
+-<<<<<<< c892c9eb7bcdcfd0c1f806db5f4e99c5c1aa27e4
+                 // Silent unless a v2 network was requested (the default prints nothing new).
+                 nnue_v2_changed();
+             } else if (name == "NNUEFile") {
+@@ -719,8 +715,6 @@ int main() {
+                     std::cout << "info string invalid value for option PureNnue" << std::endl;
+                 }
+                 nnue_v2_changed();
+-=======
+-                searcher.clear_hash();
+             } else if (name == "MaterialKeyTable") {
+                 // S11 node-exact speed path: same search, different key arithmetic.
+                 if (value_text == "true") forge::options::material_key_table = true;
+@@ -729,7 +723,6 @@ int main() {
+                     const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex());
+                     std::cout << "info string invalid value for option MaterialKeyTable" << std::endl;
+                 }
+->>>>>>> e0c129b1656310859eb2097774838c416ee8a65a
+             } else if (name == "Hash" || name == "Move Overhead" || name == "Threads") {
+                 int value = 0;
+                 const auto parsed = std::from_chars(
+## (b) the merged branch's own engine diff vs d4f4312 (src include, +/- lines only)
+diff --git a/include/forge/material_key_table.hpp b/include/forge/material_key_table.hpp
+@@ -0,0 +1,59 @@
++#pragma once
++
++#include "forge/board.hpp"
++
++#include <array>
++#include <cstddef>
++#include <cstdint>
++
++// Job S11 (node-exact speed), UCI MaterialKeyTable (default off).
++//
++// The material-correction key of the search (src/search.cpp material_key) is a
++// Horner polynomial in the ten piece counts c0..c9 (white pawn..queen, then
++// black pawn..queen), evaluated in unsigned 64-bit arithmetic:
++//
++//     key = (((c0+1)*P + (c1+1))*P + ... + (c9+1)) * M  =  sum_s (c_s+1) * M * P^(9-s)   (mod 2^64)
++//
++// Multiplication distributes over addition modulo 2^64, so the key is a sum of
++// ten independent per-slot terms. Contributions[s][c] holds (c+1) * M * P^(9-s)
++// for every popcount c = 0..64, and table_key() adds ten table entries instead
++// of running ten dependent multiply-adds and the final multiply. The two keys
++// are equal for every board (tests/material_key_tests.cpp checks the table
++// against the polynomial on the whole count domain and on real positions).
++namespace forge::matkey {
++
++inline constexpr std::uint64_t HornerMultiplier = 1099511628211ULL;  // P, as in material_key
++inline constexpr std::uint64_t FinalMix = 0x9E3779B97F4A7C15ULL;     // M, as in material_key
++inline constexpr std::size_t Slots = 10;                             // 2 colours x pawn..queen
++inline constexpr std::size_t CountValues = 65;                       // popcount of a bitboard: 0..64
++
++using ContributionTable = std::array<std::array<std::uint64_t, CountValues>, Slots>;
++
++[[nodiscard]] constexpr ContributionTable make_contributions() {
++    ContributionTable values{};
++    std::uint64_t factor = FinalMix;  // slot 9 (black queens) is multiplied by M only
++    for (std::size_t slot = Slots; slot-- > 0;) {
++        for (std::size_t count = 0; count < CountValues; ++count) {
++            values[slot][count] = factor * (static_cast<std::uint64_t>(count) + 1U);
++        }
++        factor *= HornerMultiplier;
++    }
++    return values;
++}
++
++alignas(64) inline constexpr ContributionTable Contributions = make_contributions();
++
++// The search's material key, from the table.
++[[nodiscard, gnu::always_inline]] inline std::uint64_t table_key(const Board& board) {
++    std::uint64_t key = 0;
++    std::size_t slot = 0;
++    for (const Color color : {White, Black}) {
++        for (int type = Pawn; type <= Queen; ++type) {
++            const auto count = static_cast<std::size_t>(popcount(board.pieces(color, static_cast<PieceType>(type))));
++            key += Contributions[slot++][count];
++        }
++    }
++    return key;
++}
++
++} // namespace forge::matkey
+diff --git a/include/forge/search.hpp b/include/forge/search.hpp
+@@ -3,6 +3,7 @@
++#include "forge/search_options.hpp"
+diff --git a/include/forge/search_options.hpp b/include/forge/search_options.hpp
+@@ -0,0 +1,16 @@
++#pragma once
++
++// Runtime search options set over UCI (src/uci.cpp). Every option defaults to
++// OFF; with all options OFF the search is the AL1 s198 search. Options are
++// written only while no search runs (the UCI loop stops the search first).
++namespace forge::options {
++
++// UCI MaterialKeyTable (check, default false), job S11 (node-exact speed).
++// The material-correction key (src/search.cpp material_key) is computed from
++// the contribution table of forge/material_key_table.hpp (ten table loads and
++// additions) instead of the ten dependent Horner multiplications. Both give the
++// same 64-bit key for every board, so the search (nodes, scores, moves) is
++// unchanged; only the speed can differ.
++extern bool material_key_table;
++
++} // namespace forge::options
+diff --git a/src/search.cpp b/src/search.cpp
+@@ -1,4 +1,5 @@
++#include "forge/material_key_table.hpp"
+@@ -8,6 +9,8 @@
++#include "search/options.inc"
++
+@@ -585,7 +588,12 @@ void Worker::clear() {
+-[[nodiscard]] std::uint64_t material_key(const Board& board) {
++// Always inlined (S11): with the option test added GCC would otherwise emit it
++// out of line and inline corrected_eval into search/qsearch instead (the lock
++// inlines this function into corrected_eval and update_correction).
++[[nodiscard, gnu::always_inline]] inline std::uint64_t material_key(const Board& board) {
++    // S11 MaterialKeyTable: the same key from a contribution table (forge/material_key_table.hpp).
++    if (options::material_key_table) [[unlikely]] return matkey::table_key(board);
+diff --git a/src/search/options.inc b/src/search/options.inc
+@@ -0,0 +1,9 @@
++// Search module: runtime search options (forge/search_options.hpp), all OFF.
++// Compiled as part of src/search.cpp (included exactly once).
++// Constant-initialised namespace-scope variables: no constructor code.
++
++namespace forge::options {
++
++bool material_key_table = false;
++
++} // namespace forge::options
+diff --git a/src/uci.cpp b/src/uci.cpp
+@@ -171,6 +171,7 @@ int main() {
++            std::cout << "option name MaterialKeyTable type check default false\n";
+@@ -267,6 +268,14 @@ int main() {
++            } else if (name == "MaterialKeyTable") {
++                // S11 node-exact speed path: same search, different key arithmetic.
++                if (value_text == "true") forge::options::material_key_table = true;
++                else if (value_text == "false") forge::options::material_key_table = false;
++                else {
++                    const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex());
++                    std::cout << "info string invalid value for option MaterialKeyTable" << std::endl;
++                }

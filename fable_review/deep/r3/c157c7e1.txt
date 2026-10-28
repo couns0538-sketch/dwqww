@@ -1,0 +1,87 @@
+# merge c157c7e1: [R3-1] Merge opus-sol-S14 (FORGE_NOZERO_MOVE_BUFFERS) into the stack
+# parent2 9e9aa47d ; auto-merge tree 7b13bd4ee72ff7a641a7f8029a6426cc4bc28e8b ; conflicts: 1
+## (a) manual resolution vs the automatic merge (src include tests CMakeLists.txt, without search.cpp/search.hpp)
+diff --git a/src/search/movepicker.hpp b/src/search/movepicker.hpp
+--- a/src/search/movepicker.hpp
++++ b/src/search/movepicker.hpp
+@@ -160,10 +160,18 @@ private:
+     std::array<Move, 2> killers_{};
+     Move counter_{};
+     Stage stage_;
++#if FORGE_NOZERO_MOVE_BUFFERS
++    UninitArray<Scored, 256> moves_;  // only [0, count_) is ever read
++#else
+     std::array<Scored, 256> moves_{};
++#endif
+     std::size_t index_ = 0;
+     std::size_t count_ = 0;
++#if FORGE_NOZERO_MOVE_BUFFERS
++    UninitArray<Move, 64> bad_captures_;  // only [0, bad_count_) is ever read
++#else
+     std::array<Move, 64> bad_captures_{};
++#endif
+     std::size_t bad_count_ = 0;
+     std::size_t bad_index_ = 0;
+     MoveList buffer_;
+## (b) the merged branch's own engine diff vs d4f4312 (src include, +/- lines only)
+diff --git a/include/forge/board.hpp b/include/forge/board.hpp
+@@ -11,6 +11,16 @@
++// FORGE_NOZERO_MOVE_BUFFERS (default 0 = the AL1 lock code): leave the MoveList and MovePicker
++// move buffers uninitialised instead of zero-filling them on every construction (S14 follow-up).
++#ifndef FORGE_NOZERO_MOVE_BUFFERS
++#define FORGE_NOZERO_MOVE_BUFFERS 0
++#endif
++#if FORGE_NOZERO_MOVE_BUFFERS
++#include <new>
++#include <type_traits>
++#endif
++
+@@ -46,15 +56,48 @@ struct Move {
++#if FORGE_NOZERO_MOVE_BUFFERS
++// Storage for N objects of type T that is not initialised when its owner is constructed. A
++// default-initialised std::array<Move, N> is zero-filled because Move has default member
++// initializers; the move buffers below never read an element they have not written, so that fill
++// is wasted work on every construction. The std::byte array implicitly creates the T[N] array when
++// its lifetime begins ([intro.object], C++20, P0593R6) and std::launder yields a pointer to its
++// first element, so element access and pointer arithmetic are well defined. Owners must write an
++// element before reading it and must not value-initialise the storage (no `{}` initializer).
++template <typename T, std::size_t N>
++struct UninitArray {
++    static_assert(std::is_trivially_copyable_v<T> && std::is_trivially_destructible_v<T>);
++    alignas(T) std::byte bytes[N * sizeof(T)];
++
++    [[nodiscard]] T* data() { return std::launder(reinterpret_cast<T*>(bytes)); }
++    [[nodiscard]] const T* data() const { return std::launder(reinterpret_cast<const T*>(bytes)); }
++    [[nodiscard]] T* begin() { return data(); }
++    [[nodiscard]] const T* begin() const { return data(); }
++    [[nodiscard]] T& operator[](std::size_t index) { return data()[index]; }
++    [[nodiscard]] const T& operator[](std::size_t index) const { return data()[index]; }
++    [[nodiscard]] static constexpr std::size_t size() { return N; }
++};
++#endif
++
++#if FORGE_NOZERO_MOVE_BUFFERS
++    using iterator = Move*;
++    using const_iterator = const Move*;
++#else
++#endif
++#if FORGE_NOZERO_MOVE_BUFFERS
++    // Shrink only: elements at or past size_ have never been written.
++    void resize(std::size_t size) { assert(size <= size_); size_ = size; }
++#else
++#endif
+@@ -68,7 +111,11 @@ public:
++#if FORGE_NOZERO_MOVE_BUFFERS
++    UninitArray<Move, Capacity> data_;  // only [0, size_) is ever read
++#else
++#endif
+diff --git a/src/search.cpp b/src/search.cpp
+@@ -447,10 +447,18 @@ private:
++#if FORGE_NOZERO_MOVE_BUFFERS
++    UninitArray<Scored, 256> moves_;  // only [0, count_) is ever read
++#else
++#endif
++#if FORGE_NOZERO_MOVE_BUFFERS
++    UninitArray<Move, 64> bad_captures_;  // only [0, bad_count_) is ever read
++#else
++#endif
