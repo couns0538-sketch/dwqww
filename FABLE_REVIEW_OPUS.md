@@ -153,6 +153,26 @@ values: **CHECK PASS**, max |printed - recomputed| = Elo 0.0046, err 0.005, nElo
 rounding). So the statistics behind S44/S33fix/S46/S48fix (shared formulas) reproduce the gate results.
 Evidence: `fable_review/s44_check.log`.
 
+## Remaining items of the detailed pass (DONE where marked)
+
+- **S30/S31 numbers cross-checked**: the S30 learning-curve table lists the lock run `resid_h256_e32_f003rec_s198_b06_fb8k`
+  with holdout b0.6 = 0.014311, b0.8 = 0.006734, teacher = 0.004569; the S31 scorer run during job FB1 on the
+  1,024,286-row holdout subset gave 0.014310 / 0.006735 / 0.004572 (float64 vs float32 rounding, as S31 documents).
+  Consistent. DONE.
+- **Full-checkout tests in real worktrees** (`fable_review/run_fullcheckout_tests.sh`): S48fix passes (1 skipped).
+  S15 passes once the whole tree is LF (its tool hashes a PGN checker under `tools/`: the frozen hash is of the LF
+  blob, the worktree is CRLF) -> the same line-ending class, at repository level. S47 (3 failures: fixture exe/lock
+  hashes vs their RUN_INFO, in CRLF and in LF checkouts alike) and S27fix (3 failures, finding `control_authority`
+  on the reviewed buffix record) fail on this PC in a real worktree; both passed in Opus's run/CI. Unresolved here:
+  not established as tool-logic defects; the author's environment differs from this checkout.
+- **Trainer-variant tests** (S39, S50, SA3, SA2) run against the staged renamed trainer copies that Opus's tests
+  were written for (`importlib`, no forbidden name on any command line; supervisor adoption count unchanged at 7):
+  every test passes except `test_copies`, which compares the job folder's trainer file with the staged copy byte
+  for byte and fails only because the exported folder is CRLF and the staged copy LF (LF-normalised: identical,
+  `fable_review/trainer_tests.txt`). S09fix passes. Same line-ending class.
+- **S16 real-data overlap scan**: re-run on the real shards with the same 29 training shards (read-only, Idle
+  priority); result recorded in `fable_review/s16_scan.log` when finished (Opus's figure: 6,069 overlapping rows).
+
 ## Mistakes found (with the correction)
 
 | # | where | mistake | correction |
