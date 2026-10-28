@@ -43,7 +43,8 @@ minor pieces) would. The fix is correct independently of that: every generated n
 
 The remark above is resolved: `tests/bad_capture_tests.cpp` now carries a sixth fixture, `many-losing`
 (`3r4/Pn1Q1p2/1Q1n1QpN/1p1Q1pRB/1Qbp1QpN/2bQ1pRB/3r1QpK/2k2q2 w - - 0 1`, a legal position the engine's own FEN
-parser accepts: 16 white pieces with 8 promoted queens and no pawns, 3 white pawns elsewhere are not needed), whose
+parser accepts: 16 white pieces, king, eight queens of which seven are promoted, two rooks, two bishops, two knights
+and one pawn on a7, whose four promotions are the four promotion moves of the census; 16 black pieces), whose
 engine census is 69 pseudo-legal noisy moves, 68 of them SEE-losing (`see_ge(move, 0)` false, which is exactly what
 the picker defers), 68 legal, 4 promotions, not in check. The fixture asserts `losing >= 65` with the other counts.
 
