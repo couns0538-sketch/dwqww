@@ -8,6 +8,9 @@
 #include "forge/search_options.hpp"
 #include "forge/uci_output.hpp"
 #include "search/timeman.hpp"
+#if defined(FORGE_DATAGEN)
+#include "forge/datagen.hpp"
+#endif
 
 #include <algorithm>
 #include <array>
@@ -313,7 +316,14 @@ private:
 
 } // namespace
 
+#if defined(FORGE_DATAGEN)
+// S32 build switch (default off): "forge datagen ..." runs the self-play generator instead of the
+// UCI loop; without arguments, or with any other first argument, the engine is unchanged.
+int main(int argc, char** argv) {
+    if (argc > 1 && std::string_view(argv[1]) == "datagen") return forge::datagen::run(argc - 2, argv + 2);
+#else
 int main() {
+#endif
     forge::Board board;
     forge::Searcher searcher;
     int move_overhead_ms = 10;
