@@ -27,8 +27,8 @@ throughout; my work at nice 19). No Elo claims: no gate was run.
 | 40573865157 | `330237f` (port-b + port-c merged, HardDeadline fix) | success |
 | 40578094641 | `287aa15` (+ docs, R3-3, CI hook) | success |
 | 40578094685 | `287aa15`, new workflow `opus-r3-switches` (every build switch ON) | success |
-| 40581146563 | `7e0660a` (+ R3-5 tests, R3-2 matrix) | running |
-| 40581146586 | `7e0660a`, `opus-r3-switches` | running |
+| 40581146563 | `7e0660a` (+ R3-5 tests, R3-2 matrix) | success |
+| 40581146586 | `7e0660a`, `opus-r3-switches` | success |
 | 40583093802 / 40583093751 | `1f354cc` (+ R3-6 SmpHelpersPastDepth), opus-ci / opus-r3-switches | running |
 | 40584552130 / 40584552107 | `064af73` (+ R3-4 tunables and SPSA tool; final engine head), opus-ci / opus-r3-switches | running |
 Since the failure every push is preceded by a full local CMake build of all targets and the full CTest list (only
@@ -168,8 +168,9 @@ every later run of the branch is green.
   here (no deletions); a `.gitignore` now keeps new ones out. Please `git rm --cached` them when convenient.
 
 ## Left
-- R3-1: the 500-game self-play evidence on `330237f` (28 of 36 configurations still running, ETA about 00:20); the
-  Linux re-check of the final head on GitHub runners (`opus-r3-sp-linux`).
-- R3-4 (SPSA) and R3-6 (SMP scaling, fix `SmpHelpersPastDepth`): agents finishing; then merge, full local CMake +
-  CTest, push, CI green.
+- R3-1: the 500-game self-play evidence on `330237f` (28 of 36 configurations still running, ETA about 00:20);
+  then the options added after `330237f` on the final head `064af73` (SmpHelpersPastDepth alone, all ON + it, the
+  20 SPSA spins at +10% / -10%; prepared, preflight OK) and the Linux re-check on GitHub runners (`opus-r3-sp-linux`).
+- CI of `1f354cc` and of the final engine head `064af73` (both workflows), followed to green.
 - R3-2 follow-up: quiet-runner NPS of the switch rows (`opus-r3-quietnps`).
+- R3-6 follow-up: time-to-depth of SmpHelpersPastDepth on quiet 4-vCPU runners, 3 repetitions (`opus-r3-smpq`).
