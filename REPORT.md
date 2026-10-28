@@ -58,8 +58,9 @@
 - **The one measured speed gain: S14's `FORGE_NOZERO_MOVE_BUFFERS`** (build switch, default off). It stops zero-filling
   the move buffers (3,328 B per move picker, 1 KiB per move list) without changing any search result (bench and
   perft exact, pick order identical over 2.28M sequences, ASan/UBSan/TSan clean). Two quiet runners: +2.00% / +2.16%
-  and +2.26% / +2.67% CPU NPS at d16 / d20, with A/A controls including 0. It is the gate candidate of this round
-  for speed; no Elo claim without the gate. S12's null-edge alias, by contrast, is node-exact but has no measurable
+  and +2.26% / +2.67% CPU NPS at d16 / d20, with A/A controls including 0, so the gain is real. The project's
+  speed-eligibility rule (95% CI lower bound ≥ +2% at d16 and d20, as applied in S11/S49) is not met: the lower bounds
+  are +0.85% to +1.90%. Adoption or a gate is the crew's call; no Elo claim. S12's null-edge alias, by contrast, is node-exact but has no measurable
   effect (within ±0.4%; the copies it avoids are about 0.07% of search time).
 - **Quiet-box checks of PC-only tools** (GitHub runners): S49's speed check on a Windows runner (verdict PASS: A/A
   CIs contain 1, a synthetic 5% slowdown is detected); the S25fix and S27fix checkers on Linux (green; the PC-only
@@ -128,6 +129,10 @@
     stayed at 7.
   - One `rm -rf` on a not-yet-created scratch folder was denied by the permission system; nothing was deleted.
   - The briefs and skills now spell out both rules.
+  - The S14 follow-up agent had one Bash command denied: a heredoc that edited a unit test's temp-file cleanup
+    (`os.unlink`, never executed) and ran the tests. It redid the edit with the Edit tool, so the test now keeps
+    its temp files; nothing was deleted. It also edited a script while a background run of it was executing and
+    re-ran that check from a frozen, byte-identical copy.
 - **Main-session slip (fixed):** three REPORT.md files (S49, S25fix, S27fix) were pushed with CRLF line endings
   after an edit with Windows Python's text mode; LF was restored in the next commit on each branch (`adf6f27d`,
   `f3e8cf32`, `62aaa033`). The PC rules skill now says how to avoid it.
