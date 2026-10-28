@@ -19,7 +19,9 @@ on its own runner and calls `ci_quietnps.sh <config> <rep> ci_out`.
     (`bench` turns counting off);
   - `SW_V4` (O2 only, if the runner has AVX-512): OFF vs O2, both built with `-march=x86-64-v4`. O2's AVX2 kernels
     are compiled out there, as in the PC's znver5 build;
-  - `AA_REBUILD` (AA only): OFF vs a second OFF build in another build dir.
+  - `AA_REBUILD` (AA only): OFF vs a second OFF build in another build dir;
+  - config `DRIFT` (dispatch only): OFF built from R3-2's first-pass head `2432670b` (A) vs OFF at this head (B).
+    This head's engine source equals R3-2's final head `330237f3` (base_h3), so the row repeats R3-2's H3DRIFT.
 - **Pairs:** `PAIRS=16:10,20:8` (10 ABBA pairs at bench 16, 8 at bench 20). Every run is a fresh process with
   Threads 1, Hash 16, OwnBook false.
 - **Metrics:** `cpu_bench` (primary) = nodes / (process CPU − CPU used by `readyok`). The process CPU comes from
@@ -46,3 +48,12 @@ $PY -I -B opus_r3/R3-2Q/analyze_quietnps.py F:/opus_scratch/r3/R3-2Q/run_<id> --
 $PY -I -B opus_r3/R3-2Q/analyze_quietnps.py F:/opus_scratch/r3/R3-2Q/run_<id> --metric cpu_total
 ```
 The workflow's `summary` job runs the same analysis over all artifacts and uploads `r3q-summary`.
+
+Extra reps or configs (workflow_dispatch inputs, JSON lists; a push runs the default nine configs × reps 1, 2):
+```
+gh workflow run opus-r3-quietnps.yml --ref opus-r3-quietnps -f configs='["O2"]' -f reps='[3,4,5,6]'
+gh workflow run opus-r3-quietnps.yml --ref opus-r3-quietnps -f configs='["DRIFT"]' -f reps='[1,2]'
+```
+Runner CPUs vary between jobs: AMD EPYC 9V45 (Zen 5, AVX-512), Intel Xeon Platinum 8370C (Ice Lake, AVX-512) and
+AMD EPYC 7763 (Zen 3, AVX2 only). The table names the CPU of each row. The O2 x86-64-v4 row runs only on AVX-512
+runners.

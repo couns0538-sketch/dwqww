@@ -2,8 +2,8 @@
 """R3-2Q table: read the quiet_nps.py JSON files (recursively under the given dirs) and print
 config | rep | runner CPU | nodes equal | NPS d% [95% CI] at d16 | at d20 | A/A d16 | A/A d20 | rule (lo >= +2 at both)
 for every comparison (SW = switch build vs OFF, OPT = same-exe option effect, SW_V4 = x86-64-v4 O2 row,
-AA_REBUILD = second OFF build), plus a two-runner row per config/label: the mean of the two reps' mean log ratios
-with se = sqrt(se1^2 + se2^2) / 2 and a Satterthwaite df.
+AA_REBUILD = second OFF build), plus an all-runner row per config/label (k >= 2 reps): the mean of the reps' mean log ratios
+with se = sqrt(sum se_i^2) / k and a Satterthwaite df (rows = runners; runner CPUs may differ).
 Metric: --metric cpu_bench (default; CPU time after readyok), cpu_total (whole process, as nps_ab.py) or wall.
 usage: analyze_quietnps.py <dir> [<dir> ...] [--metric cpu_bench] [--md out.md] [--json out.json]
 Read-only on its inputs; run it with python -I on downloaded artifacts."""
@@ -211,9 +211,9 @@ def main():
                 l16, l20 = lower(c16), lower(c20)
                 rule = "n/a" if lab.startswith("AA") else (
                     "MET" if (l16 is not None and l20 is not None and l16 >= 2 and l20 >= 2) else "not met")
-                lines.append(f"| {cfg} | {lab} | both | two runners | | **{fmt(c16)}** | **{fmt(c20)}** | "
+                lines.append(f"| {cfg} | {lab} | all ({len(per_rep)}) | {len(per_rep)} runners | | **{fmt(c16)}** | **{fmt(c20)}** | "
                              f"{fmt(ca16) if lab != 'AA' else '-'} | {fmt(ca20) if lab != 'AA' else '-'} | {rule} | | | |")
-                out.append({"config": cfg, "label": lab, "rep": "both", "d16": fmt(c16), "d20": fmt(c20),
+                out.append({"config": cfg, "label": lab, "rep": f"all{len(per_rep)}", "d16": fmt(c16), "d20": fmt(c20),
                             "aa16": fmt(ca16), "aa20": fmt(ca20), "rule": rule, "lo16": l16, "lo20": l20})
     bad = [r["_path"] for r in recs if not r.get("ok")]
     lines.append("")
