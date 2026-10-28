@@ -171,15 +171,22 @@ Evidence: `fable_review/s44_check.log`.
   blob, the worktree is CRLF) -> the same line-ending class, at repository level. S27fix: with LF job files the
   finding changes from `control_authority` to `git_apply_failed: git apply --check rejected exact payload (base
   AL1)`: the hygiene tool checks the LF buffix patch against a CRLF checkout of the AL1 base, so this too is the
-  repository-level line-ending class (it passed on the Linux CI workflow opus-sol-s27fix-linux). S47 (3 failures:
-  fixture exe/lock hashes vs their RUN_INFO, in CRLF and in LF job folders alike) stays unresolved on this PC; it
-  passed in Opus's run. Neither is established as a tool-logic defect. The repository-wide remedy for every case of
-  this class is one root `.gitattributes` (`* -text`), which the owner should consider for the next lock tree.
+  repository-level line-ending class (it passed on the Linux CI workflow opus-sol-s27fix-linux). S47: root cause
+  found: the fixture "exe" and lock files are small text files whose SHA256 is frozen as the LF bytes in the fixture
+  RUN_INFO (forge_fx_new.exe: LF sha256 `0bb06372…` = the RUN_INFO value; the CRLF checkout gives `702eee55…`), so
+  the three audit tests fail on a CRLF checkout -> corrected on **`fable-review-S47`** (`.gitattributes * -text` in
+  the job folder; verification in a fresh worktree: test OK (all audit tests pass)). Neither S27fix nor S47 is a tool-logic defect. The
+  repository-wide remedy for every case of this class is one root `.gitattributes` (`* -text`), which the owner
+  should consider for the next lock tree.
 - **Trainer-variant tests** (S39, S50, SA3, SA2) run against the staged renamed trainer copies that Opus's tests
   were written for (`importlib`, no forbidden name on any command line; supervisor adoption count unchanged at 7):
   every test passes except `test_copies`, which compares the job folder's trainer file with the staged copy byte
   for byte and fails only because the exported folder is CRLF and the staged copy LF (LF-normalised: identical,
   `fable_review/trainer_tests.txt`). S09fix passes. Same line-ending class.
+- **S21 int16 range study re-executed** on the 13 CR-passed archive nets with the data32 sample positions
+  (`fable_review/s21_study_rerun.json`): float accumulators of every net exceed the int16 range (|acc| maxima
+  69,544-90,896 in 1/4096 units, int16 headroom factors 0.36-0.47), which is the report's conclusion ("research-only
+  clipped export, not for the engine"). Consistent. DONE.
 - **S16 real-data overlap scan re-executed** (read-only, Idle priority, about 7 minutes): the same 29 training
   shards (231,913,894 rows) against the 013+014 holdout (16,388,575 rows): **overlap_rows 6,069** (Opus's figure
   exactly), label_conflicts 5,042, key collisions rejected 0, status COMPLETED, writes only the new output folder.
@@ -206,8 +213,12 @@ Evidence: `fable_review/s44_check.log`.
 
 | `fable-review-S42`, `fable-review-S08fix` | mistake 3, the two SHA256-provenance jobs: root cause established (the frozen hashes are of the LF blobs, e.g. S42's S06 dependency `4598c583…` = the blob's hash, while `core.autocrlf=true` checks the files out as CRLF on this PC, so the checks fail on the PC itself); fix = `.gitattributes` with `* -text` in the job folder, no tool change; verified: both job tests pass from a fresh `git archive` export of the fixed branches | pushed |
 
-Not corrected (listed): S15, S27fix, S47 and S48fix need a full checkout by design (repository files, a git work
-tree, exe fixtures); they are not fragile, only not runnable from an exported job folder.
+| `fable-review-S15`, `fable-review-S39`, `fable-review-S50`, `fable-review-SA3`, `fable-review-SA2` | mistake 3, the remaining line-ending cases: `.gitattributes` (`* -text`) at the repository root for S15 (its tool hashes `tools/match/pgn_stats.py`) and in the job folder for the four trainer-variant jobs (their `test_copies` compares the trainer file with the staged LF copy); REVIEW.md each; exactly two files per commit | pushed (2d2affa1, 9b88f433, 495f6098, 8a16aa4a, 8588f896); every job test prints OK in a fresh detached worktree of the branch (S15 29 tests, S39 17, S50 27, SA3 38, SA2 10); supervisor adoption count unchanged |
+| `fable-review-S47` | mistake 3: fixture "exe"/lock text files hashed as LF bytes in the fixture RUN_INFO; `.gitattributes` in the job folder | pushed; verification in a fresh worktree recorded in the detailed-pass section |
+
+Not corrected (listed): S27fix (its hygiene tool runs `git apply --check` of the LF buffix patch against the AL1
+base checkout, which is CRLF on this PC; the Linux CI workflow of the job is green) and S48fix (passes in a real
+worktree as it is) need a full checkout by design; the repository-wide remedy is one root `.gitattributes`.
 
 ## What was reviewed, what was not (honest scope)
 
@@ -229,7 +240,7 @@ tree, exe fixtures); they are not fragile, only not runnable from an exported jo
    (d118633a: untracked, ignored, REVIEW.md).
 2. Unguarded 64-entry `bad_captures_` buffer in the lock engine (known since S14, fix never applied) ->
    `fable-review-buffix`, node-identical, CI green.
-3. Nine job tests failed from an exported folder: five were line-ending fragilities, all corrected (S33fix, S38, S46 by normalising comparisons; S42, S08fix by `.gitattributes`), four need a full checkout by design.
+3. Nine job tests failed from an exported folder and five more only in a CRLF checkout: all line-ending cases corrected on `fable-review-*` branches (S33fix, S38, S46 by normalising comparisons; S42, S08fix, S15, S47, S39, S50, SA3, SA2 by `.gitattributes`); S27fix needs the LF base checkout, S48fix passes in a worktree.
 
 Everything else examined was found consistent with its report. No Elo or speed claim is made or changed anywhere.
 
