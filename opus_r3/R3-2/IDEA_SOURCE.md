@@ -34,12 +34,17 @@ O2/Threats/PawnPairs/OutputBuckets). Flag any pair that conflicts or cancels out
   MaterialKeyTable (the table is unconditional under the switch) and with TtChildPrefetch (two child prefetches
   each), IntendedThreefold with CuckooRep (both put a draw-score floor at repetition nodes), NetScale with a v2 net
   (NetScale scales only the compiled-in net).
-- **Newer stack head** (coordinator message, opus-r3-stack `2047348a`): merged into this branch; the earlier switch
-  set is rebuilt from it and byte-compared, and the two new features are added as single configurations plus the
-  pairs that share their code: NnueLazyAcc (S12 null-edge alias: `static_evaluate_lazy` calls the same
-  `nnue::update` / `nnue::refresh` as O2, and the v2 dispatch comes first) with O2 and with a v2 net; FORGE_PROF
-  (S08fix counters, also inside the CorrMargins/CorrExt instance) with `bench` (counting off: `bench` always turns
-  profiling off) and `bench_prof`, and with CorrMargins + CorrExt.
+- **Newer stack heads** (coordinator messages: opus-r3-stack `2047348a`, then the final `330237f3`): both merged
+  into this branch; the new configurations are built from the final head and timed against that head's own OFF exe
+  (`base_h3`), because the final head's default build is not byte-identical to the first pass (HardDeadline output
+  fix); H3DRIFT times the two OFF exes. The new features join as single configurations plus the pairs that share
+  their code: NnueLazyAcc (S12 null-edge alias: `static_evaluate_lazy` calls the same `nnue::update` /
+  `nnue::refresh` as O2, and the v2 dispatch comes first) with O2 and with a v2 net; NnueInt16 (S-A2: hooks at the
+  top of `nnue::refresh/update/evaluate`, before the AL1 loops and O2's kernels; compiled-in net only) with O2,
+  with NnueLazyAcc and with a v2 net; FORGE_PROF (S08fix counters, also inside the CorrMargins/CorrExt instance)
+  with `bench` (counting off: `bench` always turns profiling off) and `bench_prof`, and with CorrMargins + CorrExt.
+- **Layout controls.** A switch build moves code; the switch-only configurations (option off) and H3DRIFT measure
+  that layout term directly, and "option on vs off in the same exe" removes it.
 
 ## Sources
 - `opus_round1/sol_S29/nps_ab.py` (ABBA, fresh processes, CPU-time NPS, Welch interval) and
@@ -50,8 +55,8 @@ O2/Threats/PawnPairs/OutputBuckets). Flag any pair that conflicts or cancels out
   (CorrMargins), `O8` (CorrExt), `C6` (CuckooRep), `sol_A1` (HistRework), `C1` (Syzygy pins with the 3-4-5
   tables), `C3` (HardDeadline), `O1` / `O1-LTT` (SMP options, LocklessTT), `sol_S13`, `sol_S14`, `sol_S11`,
   `sol_S29`, `sol_S41`, `sol_SIT`, `O2`, `C4` / `C5` / `O6` / `O7` / `O4` (v2 nets, replicas, selection and
-  fail-loud rules; `O4/standalone_copy.py` for the stand-alone r1 copy); from `2047348a`: `sol_S12` (section 6,
-  null-edge alias) and `sol_S08fix` (FORGE_PROF, MinGW emulated-TLS cost finding).
+  fail-loud rules; `O4/standalone_copy.py` for the stand-alone r1 copy); from `2047348a` / `330237f3`: `sol_S12` (section 6,
+  null-edge alias), `sol_S08fix` (FORGE_PROF, MinGW emulated-TLS cost finding), `sol_SA2` (NnueInt16 pins, ON cost).
 - Engine code read for the method: `src/uci.cpp` (bench handler, `control_priority`, v2 fail-loud lambdas),
   `src/search/searcher.inc` (helpers, exclusive TT lease, SmpExactNodes), `src/search/evaluation_v2.inc`
   (`nnue_v2_problem`), `src/nnue.cpp` (`select`, O2 regions), `src/search/alphabeta.inc` (correction size used by

@@ -9,8 +9,10 @@ PY=C:/Users/Administrator/grok-pc/nnue/.venv/Scripts/python.exe
 cd /f/opus_scratch/worktrees/opus_r3_matrix
 # 1. seven exes (PC lock recipe, one g++ at a time) + lock-pin identity of each (base --full)
 nice -n 19 bash opus_r3/R3-2/build_all.sh "$PWD" /f/opus_scratch/build/r3_R3-2 > build_all.log
-#    after merging a newer stack head: rebuild the switch set (byte compare with step 1) + the new switches
-nice -n 19 bash opus_r3/R3-2/build_h2.sh "$PWD" /f/opus_scratch/build/r3_R3-2 > build_h2.log
+#    after merging the final stack head (330237f3): its OFF exe (base_h3), O2, NnueLazyAcc, FORGE_PROF, NnueInt16
+#    builds + byte compare + identity, then nodes / NPS of the head-3 configurations and the NOZERO/O2 confirmation
+#    (run_final_head.sh calls build_final_head.sh; build_h2.sh is a superseded draft for 2047348a and was never run)
+nice -n 19 bash opus_r3/R3-2/run_final_head.sh
 # 2. function-preserving v2 replica nets (+ the r1 weights flagged stand-alone for PureNnue)
 nice -n 19 $PY -I -B opus_r3/R3-2/r3_matrix.py nets
 # 3. the configurations (64; configurations whose exe is missing are skipped)
