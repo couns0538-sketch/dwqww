@@ -52,6 +52,15 @@ used pre-O3 member names) -> 40566615160; S14 40527244836 cancelled -> 405475932
 40507421791; S27fix 40521425927 -> 40522039382; S49 40509722120 and 40510697858 -> 40517374833. Nothing to fix;
 superseded runs cannot be turned green by re-running (same code).
 
+## Identity sweep of every engine-changing branch (DONE)
+
+For each of the 30 branches that change `src`/`include`/`CMakeLists.txt` the latest opus-ci run was checked
+(`fable_review/ci_identity_sweep.txt`): all 30 are `success`, each log contains the identity line `ALL OK`
+(bench d11/13/16/20/22, perft5, kiwipete against the AL1 pins), `KNOWN-FAILURE CHECK: PASS` in all three jobs
+(release, ASan+UBSan, TSan) and `TSan: 0 reports`. So the central claim of every engine job, "option OFF = the
+lock", holds on Linux CI for C1-C6, O1, O1-LTT, O2-O8, the R3 stack, A1, S04fix, S08fix, S11-S14, S29, S32, S37,
+S41, SA2, SA4 and SIT.
+
 ## Findings (engine jobs, read in order of risk)
 
 | job | what was reviewed | verdict |
