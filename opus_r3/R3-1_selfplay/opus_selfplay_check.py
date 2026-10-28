@@ -891,6 +891,12 @@ def preflight(args, opts, openings_dir):
         e.kill()
     log["info_strings"] = [s for t, d, s in e.transcript if d == "<" and s.startswith("info string")
                            and not s.startswith("info string bench")]
+    # --expect: activation evidence (e.g. "NnueInt16 active") that must appear in the preflight's info strings
+    log["expect"] = {text: any(text in s for s in log["info_strings"]) for text in args.expect}
+    for text, seen in log["expect"].items():
+        if not seen:
+            w.errors.append(dict(type="config_error", engine="P", ply=None, kind="preflight",
+                                 detail=f"expected activation line not printed: {text!r}", lines=[], context=[]))
     log["errors"] = w.errors
     log["ok"] = ok and not w.errors
     with open(os.path.join(args.out_dir, f"{args.name}.preflight.json"), "w", newline="\n", encoding="utf-8") as f:
@@ -952,7 +958,7 @@ def summarize(args, records, preflight_log, wall_s):
         errors=len(errors), errors_by_type=dict(by_type),
         **{group: sum(by_type[t] for t in types) for group, types in ERROR_GROUPS.items()},
         preflight_ok=preflight_log.get("ok"), bench11_nodes=preflight_log.get("bench11_nodes"),
-        activation_lines=preflight_log.get("info_strings"),
+        activation_expected=preflight_log.get("expect"), activation_lines=preflight_log.get("info_strings"),
         results=dict(Counter(g["result"] for g in games)), terminations=dict(Counter(g["termination"] for g in games)),
         commands=dict(kinds), barriers=tot("barriers"), mid_isready=tot("mid_isready"), stray_stops=tot("stray_stops"),
         info_lines=tot("info_lines"), pv_moves_checked=tot("pv_moves"), currmoves_checked=tot("currmoves"),
@@ -999,6 +1005,8 @@ def main():
     ap.add_argument("--max-minutes", type=float, default=0)
     ap.add_argument("--git-head", default="")
     ap.add_argument("--preflight-only", action="store_true")
+    ap.add_argument("--expect", action="append", default=[],
+                    help="text that must appear in an info string of the preflight (activation evidence; repeatable)")
     args = ap.parse_args()
     os.makedirs(args.out_dir, exist_ok=True)
     args.tmp_dir = args.tmp_dir or args.out_dir

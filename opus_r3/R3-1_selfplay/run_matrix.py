@@ -185,6 +185,7 @@ def main():
             cmd += ["--opt", subst(o, a, syzygy)]
         cmd += a.harness_arg + [str(x) for x in spec.get("harness_args", [])] + [str(x) for x in
                                                                                 c.get("harness_args", [])]
+        cmd += [f"--expect={x}" for x in c.get("expect", [])]   # activation lines the preflight must show
         if a.preflight_only:
             cmd.append("--preflight-only")
         log(f"{name}: start: {' '.join(cmd[3:])}")

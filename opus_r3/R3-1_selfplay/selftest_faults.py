@@ -34,6 +34,7 @@ EXPECT = {   # fault -> error type the harness must report (None: clean control)
     "option_missing": "option_not_advertised",
     "reject_move": "engine_rejected_move",
     "late_info": "late_search_output",
+    "expect_missing": "config_error",   # proxy fault "none" + --expect of a line the engine never prints
 }
 
 
@@ -51,12 +52,15 @@ def main():
     results, failures = [], 0
     for fault in faults:
         name = f"st_{fault}"
+        proxy_fault = "none" if fault == "expect_missing" else fault
         cmd = [sys.executable, "-I", "-B", a.harness, "--name", name, "--exe", os.path.join(HERE, "fault_proxy.py"),
-               "--exe-arg", a.engine, "--exe-arg", fault, "--exe-arg", "10", "--games", str(a.games),
+               "--exe-arg", a.engine, "--exe-arg", proxy_fault, "--exe-arg", "10", "--games", str(a.games),
                "--parallel", "1", "--restart-every", "50", "--margin-ms", "2000", "--out-dir", a.out,
                "--epd", a.epd, "--seed", "7"]
         if fault == "option_missing":
             cmd += ["--opt", "CuckooRep=true"]
+        if fault == "expect_missing":
+            cmd += ["--expect=NoSuchFeature active"]
         t0 = time.time()
         with open(os.path.join(a.out, name + ".stdout.log"), "w", newline="\n", encoding="utf-8") as f:
             code = subprocess.call(cmd, stdout=f, stderr=subprocess.STDOUT)
