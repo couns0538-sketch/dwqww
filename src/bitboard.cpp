@@ -3,6 +3,10 @@
 #include <algorithm>
 #include <cstddef>
 
+#if defined(FORGE_ATTACKS_INIT_ONCE) && FORGE_ATTACKS_INIT_ONCE
+#include <mutex>
+#endif
+
 namespace forge::attacks {
 
 std::array<Bitboard, 64> KnightTable{};
@@ -110,9 +114,14 @@ void init_magics(bool rook, Bitboard* table, std::array<Magic, 64>& magics) {
 } // namespace
 
 void init() {
+#if defined(FORGE_ATTACKS_INIT_ONCE) && FORGE_ATTACKS_INIT_ONCE
+    static std::once_flag initialized_once;
+    std::call_once(initialized_once, [] {
+#else
     static bool initialized = false;
     if (initialized) return;
     initialized = true;
+#endif
 
     for (int square = 0; square < 64; ++square) {
         const std::size_t s = static_cast<std::size_t>(square);
@@ -169,6 +178,9 @@ void init() {
             }
         }
     }
+#if defined(FORGE_ATTACKS_INIT_ONCE) && FORGE_ATTACKS_INIT_ONCE
+    });
+#endif
 }
 
 } // namespace forge::attacks

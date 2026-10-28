@@ -1,0 +1,48 @@
+# S04fix (FORGE_ATTACKS_INIT_ONCE) Linux evidence for the ON build (opus-ci.yml covers the default OFF build):
+# release (OFF build vs lock, ON identity, ctest incl. the TSan cold test and the 1000-process cold probe),
+# ASan+UBSan and TSan with the option on, plus a TSan RED control on the original code. See
+# opus_round1/sol_S04fix/ci_s04fix.sh. Read-only; uploads logs as artifacts.
+name: opus-sol-s04fix-ci
+on:
+  push:
+    branches: ['opus-sol-S04fix']
+    paths-ignore:
+      - 'opus_round1/**/*.md'
+      - 'opus_round1/**/*.log'
+      - 'opus_round1/**/*.txt'
+      - 'opus_round1/**/SHA256SUMS'
+      - 'REPORT.md'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  linux:
+    strategy:
+      fail-fast: false
+      matrix:
+        mode: [release, asan, tsan]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Toolchain
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq g++-14 ninja-build cmake python3
+          g++-14 --version | head -1
+          nproc; lscpu | grep -E 'Model name|Flags' | cut -c1-200
+      - name: Run ${{ matrix.mode }} (FORGE_ATTACKS_INIT_ONCE=ON)
+        run: bash opus_round1/sol_S04fix/ci_s04fix.sh ${{ matrix.mode }} ci_out
+      - name: Upload logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: sol-s04fix-${{ matrix.mode }}
+          path: |
+            ci_out/*.log
+            ci_out/*.json
+            ci_out/**/sanitizer_logs_*/**
+            ci_out/red_off_race/**
+          if-no-files-found: warn

@@ -7,7 +7,7 @@ throughout; my work at nice 19). No Elo claims: no gate was run.
 
 | job | state | where |
 |---|---|---|
-| R3-1 integration stack | IN PROGRESS: all O/C branches and the opus-sol engine features S14, S13, S11, S29, S41, A1, S-IT, S12, S08fix merged; S32/S37/S04fix and S-A2/S-A4 being ported on `opus-r3-port-b` / `opus-r3-port-c`; 500-game self-play checks running on `opus-r3-selfplay` | `opus-r3-stack`, `opus_r3/R3-1/` |
+| R3-1 integration stack | all O/C branches and every opus-sol engine feature merged (S32/S37/S04fix via `opus-r3-port-b`, S-A2/S-A4 via `opus-r3-port-c`); HardDeadline defect found by the self-play checker fixed; 500-game self-play runs on the final head in progress (`opus-r3-selfplay`) | `opus-r3-stack`, `opus_r3/R3-1/` |
 | R3-2 interaction matrix | IN PROGRESS (agent) | `opus-r3-matrix` |
 | R3-3 gate proposals | IN PROGRESS (agent) | `opus-r3-gates`, `F:\opus_scratch\r3\GATE_PROPOSALS.md` |
 | R3-4 SPSA tool | IN PROGRESS (agent) | `opus-r3-spsa` |
@@ -20,7 +20,10 @@ throughout; my work at nice 19). No Elo claims: no gate was run.
 | 40561969912 | `c82ccbd` (all O/C merges) | success (release 3m34s, TSan 19m13s, ASan 4m27s) |
 | 40564150654 | `467a59b` (+ S14, S13, S11, S29, S41, A1, S-IT) | **failure**: two tests (S-IT, A1) still used the pre-O3 member names; caught only by the CMake build, which I had not run locally |
 | 40565363595 | `2432670` (`opus-r3-cifix`: the fix on top of `467a59b`) | success (11m38s) |
-| 40566615160 | `7b431d4` (+ S12, the fix, a CMake endif fix) | running |
+| 40566615160 | `7b431d4` (+ S12, the fix, a CMake endif fix) | success (20m13s) |
+| 40568162589 | `2047348` (+ S08fix, evidence) | success (19m29s) |
+| 40568260400 | `opus-r3-port-b` `a06b00d` (S32, S37, S04fix on `2432670`) | success |
+| 40570018288 | `opus-r3-port-c` (S-A2 behind FORGE_NNUE_INT16, S-A4 on `2432670`) | release + ASan success, TSan running |
 Since the failure every push is preceded by a full local CMake build of all targets and the full CTest list (only
 the 4 known `forge_tests` lines may fail; `check_known_failures.py` PASS), and every run is followed to green.
 
@@ -43,6 +46,16 @@ the 4 known `forge_tests` lines may fail; `check_known_failures.py` PASS), and e
   alpha-beta + 2 quiescence instances; a single option runs its branch's code); (3) O2 behind the new build switch
   `FORGE_NNUE_O2` (off: token-identical preprocessed nnue.cpp and byte-identical exe vs. the pre-O2 stack);
   (4) A1's joint correction also in C2's cold CorrHistPlus path, so the two combine.
+
+## Notes for the owner
+- Load-sensitive tests on this PC (pass on the CI runners): `forge_smp_tests` (SmpExactNodes overshoot bound; port-b
+  agent: 7/20 failures at nice 19) and `forge_prof_tests` (FORGE_PROF builds only: each of 4 workers must count >0
+  nodes in a depth-9 search; 7/10 failures at nice 19 on the saturated PC, 3/3 passes at normal priority). Not
+  regressions of the stack; not changed.
+- Four Python bytecode files entered the stack with the S08fix merge commit `9588a10` (CTest runs the tools with the
+  system Python, which writes `__pycache__` into the tree): `tools/__pycache__/uci_regression.cpython-314.pyc`,
+  `tools/match/__pycache__/{pgn_stats,run_match,windows_validate}.cpython-314.pyc`. Untracking them was not permitted
+  here (no deletions); a `.gitignore` now keeps new ones out. Please `git rm --cached` them when convenient.
 
 ## Left
 - R3-1: merge port-b / port-c, final identity + CMake/CTest + CI, self-play evidence on the final head.

@@ -150,8 +150,11 @@ public:
     SearchInfo search(Board board, const SearchLimits& limits, bool emit_info = false,
                       TTAccess table_access = TTAccess::Shared);
     void stop() { shared_.stop.store(true, std::memory_order_relaxed); }
+    // HardDeadline: the watchdog answered this go; call with uci_output_mutex held (see output_closed).
+    void close_search_output() { shared_.output_closed.store(true, std::memory_order_relaxed); }
     void reset_stop() {
         shared_.stop.store(false, std::memory_order_relaxed);
+        shared_.output_closed.store(false, std::memory_order_relaxed);
         shared_.ponder_hit_ns.store(0, std::memory_order_relaxed);
     }
     void ponderhit() {

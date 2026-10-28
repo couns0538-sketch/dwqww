@@ -70,6 +70,10 @@ struct SharedSearchState {
     std::atomic<bool> s13_tt_child_prefetch_announced{false};
 #endif
     std::atomic<bool> stop{false};
+    // HardDeadline (C3; R3 fix): set by the watchdog under uci_output_mutex right before it sends
+    // the bestmove of a starved go; every search-side output checks it under the same mutex, so
+    // nothing of that go is printed after its bestmove. Cleared at each go (Searcher::reset_stop).
+    std::atomic<bool> output_closed{false};
 #if FORGE_NNUE_LAZY_ACC
     // Immutable from before worker creation until every helper has joined.
     bool lazy_acc_enabled = false;
