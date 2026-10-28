@@ -133,11 +133,12 @@ neither net trained on; integer emulation of the v3 file, the S31 scorer for the
 | HCE alone (no net) | 0.017059 | 0.008360 | 0.005074 | `fable/logs/al1_holdout_score.json` |
 | **AL1 lock net** (`src/nnue_weights.inc`, H256 residual, 32 epochs on 230M rows) | **0.014310** | 0.006735 | 0.004572 | same |
 | v3 smoke run step 500 (2.0M positions) | 0.017247 | 0.008954 | 0.006072 | `fable/logs/score_m4_step500_holdout.log` |
-| smoke run final (1648 steps, 6.75M positions, 5 min) | (score still running at push time) | | | `fable/logs/score_m4_final_holdout.log` |
+| smoke run final (1648 steps, 6.75M positions, 5 min) | 0.018732 | 0.010651 | 0.007983 | `fable/logs/score_m4_final_holdout.log` |
 | v3 M3 net (60 steps ON the first 1M rows of this very subset; sanity check, not independent) | 0.016621 | 0.008085 | 0.004959 | `fable/logs/score_m3_holdout.log` |
 
 Reading: the v3 pipeline trains and exports exactly (M3 parity), but a 5-minute run on one shard does not produce a
-useful net: on the independent holdout it is slightly worse than the hand-crafted evaluation alone and far from the
+useful net: on the independent holdout it is worse than the hand-crafted evaluation alone (and gets worse from
+step 500 to the end while the training-batch loss keeps falling, the signature of overfitting) and far from the
 AL1 net. This is the expected outcome of 6.75M correlated positions against 230M shuffled ones, not a defect in the
 architecture; it is also not evidence for or against the architecture. A real comparison needs the production data
 path (all 29 training shards, game-shuffled, several epochs, LR schedule), i.e. hours on the GPU or days on one CPU
