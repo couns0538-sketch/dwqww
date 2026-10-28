@@ -45,9 +45,9 @@ namespace forge::corr_margins {
 }
 
 // Null-move pruning is tried only when static_eval >= null_move_threshold(...).
-// AL1 s198: beta - 24 * depth + 180.
+// AL1 s198: beta - 24 * depth + 180 (R3-4: tune::NullMoveMarginDepth = 24, tune::NullMoveMarginBase = 180).
 [[nodiscard]] inline int null_move_threshold(int beta, int depth, int correction) {
-    return beta - 24 * depth + 180 + correction * tune::CorrNullMovePct / 100;
+    return beta - tune::NullMoveMarginDepth * depth + tune::NullMoveMarginBase + correction * tune::CorrNullMovePct / 100;
 }
 
 // Late-move reduction after all AL1 s198 adjustments (r) minus a share of it:

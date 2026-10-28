@@ -29,6 +29,17 @@ extern bool smp_best_thread;
 // changing it clears the table. Same table contents and rules as the locked
 // table, so a search with Threads=1 is unchanged.
 extern bool lockless_tt;
+
+// UCI SmpHelpersPastDepth (check, default false; R3-6); acts only with Threads > 1
+// and a `go depth N` limit. Without it a helper thread returns as soon as it has
+// completed iteration N, and its core sits idle until the main thread completes
+// N too. With it a helper keeps deepening (up to depth 64) until the main thread
+// raises the stop flag; the iterations past N only fill the shared table, and the
+// helper still returns its result of iteration N (src/search/iterative.inc), so
+// SmpBestThread chooses among the same depths as before. Searches without a
+// depth limit (clocked, infinite, node: helpers already run to depth 64 there)
+// and `go mate` searches are unchanged.
+extern bool smp_helpers_past_depth;
 // Syzygy tablebases (job C1). The master switch is UCI SyzygyPath (string,
 // default empty = no tables, forge/syzygy.hpp); the two options below only act
 // while tables are loaded.

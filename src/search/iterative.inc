@@ -63,6 +63,9 @@ SearchInfo Worker::search(Board board, const SearchLimits& limits, bool emit_inf
     const int mate_moves = std::clamp(limits.mate_moves, 0, 32);
     const int mate_depth = mate_moves > 0 ? mate_moves * 2 - 1 : 64;
     const int max_depth = std::clamp(std::min(limits.depth, mate_depth), 1, 64);
+    // UCI SmpHelpersPastDepth (R3-6): a helper deepens past a `go depth` limit until the main thread
+    // stops it, instead of idling once it has completed the limit; `result` keeps the limit iteration.
+    const int last_depth = options::smp_helpers_past_depth && !is_main() && mate_moves == 0 ? 64 : max_depth;
 
     auto emit = [&](int depth, int score, const std::vector<Move>& pv) {
         if (!emit_info) return;
@@ -157,7 +160,7 @@ SearchInfo Worker::search(Board board, const SearchLimits& limits, bool emit_inf
     assert(root_effort_count_ <= root_effort_moves_.size());
     std::copy(root_candidates.begin(), root_candidates.end(), root_effort_moves_.begin());
     root_move_nodes_.fill(0);
-    for (int depth = 1; depth <= max_depth; ++depth) {
+    for (int depth = 1; depth <= last_depth; ++depth) {
         root_depth_ = depth;
         int delta = tune::AspirationDelta;
         int alpha = -Infinite;
@@ -194,8 +197,9 @@ SearchInfo Worker::search(Board board, const SearchLimits& limits, bool emit_inf
         }
         if (aborted_) {
             // A partially searched iteration that already raised alpha at the
-            // root has found a move at least as good as the previous best.
-            if (ss->pv_length > 0 && !(result.pv.size() > 0 && result.pv[0] == ss->pv[0])) {
+            // root has found a move at least as good as the previous best
+            // (within the depth limit: SmpHelpersPastDepth iterations past it do not count).
+            if (depth <= max_depth && ss->pv_length > 0 && !(result.pv.size() > 0 && result.pv[0] == ss->pv[0])) {
                 result.best_move = ss->pv[0];
                 result.pv.assign(ss->pv.begin(), ss->pv.begin() + ss->pv_length);
                 result.ponder_move = result.pv.size() > 1 ? result.pv[1] : Move::none();
@@ -208,6 +212,8 @@ SearchInfo Worker::search(Board board, const SearchLimits& limits, bool emit_inf
             break;
         }
         score = iteration_score;
+        // SmpHelpersPastDepth: past the limit only the aspiration window follows the score.
+        if (depth > max_depth) continue;
         result.score = score;
         result.depth = depth;
         result.seldepth = std::max(seldepth_, depth);

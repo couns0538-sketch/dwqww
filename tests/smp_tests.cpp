@@ -1,16 +1,21 @@
 // Lazy SMP housekeeping (O1): worker-list lifetime, SmpExactNodes node accounting for node-limited
 // multi-thread searches, SmpBestThread result consistency, and options inert at Threads=1.
+// R3-6: SmpHelpersPastDepth (helpers deepen past the `go depth` limit until stopped).
 #include "forge/search.hpp"
 
+#include <atomic>
+#include <chrono>
 #include <cstdint>
 #include <iostream>
 #include <stdexcept>
 #include <string>
+#include <thread>
 #include <vector>
 
 namespace forge {
 struct SearcherTestProbe {
     static const void* all_workers(Worker& worker) { return worker.all_workers_; }
+    static int root_depth(Worker& worker) { return worker.root_depth_; }
 };
 } // namespace forge
 
@@ -156,7 +161,7 @@ void test_inert_single_thread() {
     for (const std::string& fen : Fens) {
         SearchInfo results[2];
         for (const bool on : {false, true}) {
-            options::smp_exact_nodes = options::smp_best_thread = on;
+            options::smp_exact_nodes = options::smp_best_thread = options::smp_helpers_past_depth = on;
             Searcher searcher(16, 1);
             SearchLimits limits;
             limits.depth = 10;
@@ -166,7 +171,106 @@ void test_inert_single_thread() {
                   results[0].score == results[1].score && results[0].pv == results[1].pv,
               "options are inert at Threads=1 " + fen);
     }
-    options::smp_exact_nodes = options::smp_best_thread = false;
+    options::smp_exact_nodes = options::smp_best_thread = options::smp_helpers_past_depth = false;
+}
+
+// UCI SmpHelpersPastDepth (R3-6). Driven on one helper Worker (id 1) of its own, so the outcome does
+// not depend on thread timing: without the option a helper returns by itself once it has completed the
+// `go depth` limit (in a real search its core then sits idle until the main thread completes the same
+// depth); with the option it keeps deepening until the stop flag is raised, and still returns its result
+// of the limit iteration.
+struct HelperRun {
+    bool returned_by_itself = false;
+    int last_started_depth = 0;
+    SearchInfo result;
+};
+
+HelperRun run_helper(const Board& board, int depth_limit, std::uint64_t stop_nodes) {
+    SharedSearchState shared(16);
+    Worker helper(shared, 1);
+    const std::vector<Worker*> all{&helper};
+    SearchLimits limits;
+    limits.depth = depth_limit;
+    std::atomic<bool> done{false};
+    HelperRun run;
+    std::thread thread([&] {
+        run.result = helper.search(board, limits, false, all);
+        done.store(true, std::memory_order_release);
+    });
+    // Wait until the helper returns by itself, or has searched far more nodes than the limit needs
+    // (depth 4 takes about a thousand nodes on these positions); the guard keeps a broken build from hanging.
+    const auto guard = std::chrono::steady_clock::now() + std::chrono::seconds(120);
+    while (!done.load(std::memory_order_acquire) && helper.nodes() < stop_nodes &&
+           std::chrono::steady_clock::now() < guard) {
+        std::this_thread::sleep_for(std::chrono::milliseconds(1));
+    }
+    run.returned_by_itself = done.load(std::memory_order_acquire);
+    shared.stop.store(true, std::memory_order_relaxed);
+    thread.join();
+    helper.end_search();
+    run.last_started_depth = Probe::root_depth(helper);
+    return run;
+}
+
+void test_helpers_past_depth() {
+    struct Case {
+        std::string fen;
+        int limit;
+        std::vector<std::uint64_t> stops;  // helper node counts at which the test raises the stop flag
+    };
+    const std::vector<Case> cases{
+        {Fens[0], 4, {100000}},
+        {Fens[1], 4, {100000}},
+        {Fens[2], 4, {100000}},
+        // Here the best move of the limit iteration differs from the deeper iterations' (bench.2 at
+        // depth 2: c1b1, deeper h2h3 / c3d5; the start position at depth 4: e2e4, deeper d2d4), so an
+        // aborted iteration past the limit that replaced the result would show; stopped at several points.
+        {Fens[1], 2, {20000, 45000, 70000, 95000, 120000}},
+        {"rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1", 4, {20000, 45000, 70000, 95000, 120000}},
+    };
+    for (const Case& c : cases) {
+        const Board board = position(c.fen);
+        const std::string tag = c.fen + " limit " + std::to_string(c.limit);
+        options::smp_helpers_past_depth = false;
+        const HelperRun off = run_helper(board, c.limit, 100000);
+        check(off.returned_by_itself && off.last_started_depth == c.limit && off.result.depth == c.limit,
+              "SmpHelpersPastDepth off: a helper returns once it has completed the depth limit " + tag);
+        options::smp_helpers_past_depth = true;
+        for (const std::uint64_t stop : c.stops) {
+            const HelperRun on = run_helper(board, c.limit, stop);
+            const std::string t = tag + " stop at " + std::to_string(stop) + " nodes";
+            check(!on.returned_by_itself, "SmpHelpersPastDepth: the helper searches on until the stop flag " + t);
+            check(on.last_started_depth > c.limit, "SmpHelpersPastDepth: the helper deepens past the limit " + t +
+                                                       " (last started depth " + std::to_string(on.last_started_depth) + ")");
+            // Iterations 1..limit are the same single-thread search from the same fresh state, so the
+            // reported result must be exactly the one without the option: the deeper iterations, completed
+            // or aborted, only fill the table.
+            check(on.result.depth == c.limit && on.result.best_move == off.result.best_move &&
+                      on.result.ponder_move == off.result.ponder_move && on.result.score == off.result.score &&
+                      on.result.pv == off.result.pv,
+                  "SmpHelpersPastDepth: the helper reports its result of the limit iteration " + t + " (depth " +
+                      std::to_string(on.result.depth) + ", move " + Board::move_to_uci(on.result.best_move) +
+                      " vs " + Board::move_to_uci(off.result.best_move) + ")");
+            check(legal(board, on.result.best_move) && !on.result.pv.empty() &&
+                      on.result.pv.front() == on.result.best_move,
+                  "SmpHelpersPastDepth: legal best move with its PV " + t);
+        }
+        options::smp_helpers_past_depth = false;
+    }
+    // Through the Searcher (Threads 3, SmpBestThread choosing among the results): the reported
+    // iteration is the requested depth, never a helper's deeper one.
+    options::smp_helpers_past_depth = options::smp_best_thread = true;
+    for (const std::string& fen : Fens) {
+        Searcher searcher(16, Threads);
+        SearchLimits limits;
+        limits.depth = 9;
+        const Board board = position(fen);
+        const SearchInfo result = searcher.search(board, limits);
+        check(result.depth == 9, "SmpHelpersPastDepth + SmpBestThread: reported depth is the requested depth " + fen);
+        check(legal(board, result.best_move) && !result.pv.empty() && result.pv.front() == result.best_move,
+              "SmpHelpersPastDepth + SmpBestThread: legal best move with its PV " + fen);
+    }
+    options::smp_helpers_past_depth = options::smp_best_thread = false;
 }
 
 } // namespace
@@ -177,6 +281,7 @@ int main() {
     test_best_thread_ranking();
     test_best_thread();
     test_inert_single_thread();
+    test_helpers_past_depth();
     std::cout << "smp housekeeping: checks=" << checks << " failures=" << failures << '\n';
     std::cout << (failures == 0 ? "PASS" : "FAIL") << " smp_tests\n";
     return failures == 0 ? 0 : 1;

@@ -3,7 +3,9 @@
 
 usage: bench_opts.py <exe> [--opt Name=value ...] [--depths 11,13,16] [--threads 1] [--hash 16] [--json out.json]
 Exit 1 if the engine exits early or prints an ERROR line. Options are sent in the given order after `uci`,
-then `isready`; bench uses the global options (Threads / Hash too).
+then `isready`. `bench` applies the global search options but searches with its own one-thread Searcher
+with a 16 MB table (src/uci.cpp `Searcher bench_searcher(16)`), so --threads and --hash are sent but do not
+reach bench (found by R3-2; use `go depth N` per position for Threads>1).
 """
 import argparse
 import json
