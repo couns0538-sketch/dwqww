@@ -13,3 +13,6 @@ inside the source tree): `opus_round1/O1/__pycache__/ucilib.cpython-314.pyc`,
 They are build products of one Python version and do not belong in the repository. Fix: `git rm --cached` of the
 eight files (the files stay on disk) and `__pycache__/`, `*.pyc` appended to `.gitignore`. No engine or tool source
 changed; the engine head stays 064af732.
+
+Status 2026-10-28: done on this branch (commit d118633a): the owner ran `git rm --cached` on the eight files in the review
+worktree, the reviewer committed and pushed; `git ls-files | grep -c .pyc` = 0. The opus-* branches themselves are untouched.
