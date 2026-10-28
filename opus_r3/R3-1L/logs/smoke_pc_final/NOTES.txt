@@ -1,0 +1,8 @@
+R3-1L smoke of the final-head configs on the PC (2026-10-27 23:16 PST, nice 19), before the push of the merge:
+- base exe of 5bdf14a1 (= stack 34ef8a70, engine 064af732, + R3-1L files) built with build_pc.sh ->
+  /f/opus_scratch/build/r3_R3-1L/base_34ef8a70.exe (sha256 and FMA 0: build_base_34ef8a70.txt)
+- run_matrix.py --games 3 on smp_helpers_past_depth, spsa_plus10, spsa_minus10 of configs_final_head.json:
+  preflight OK (every option advertised and accepted); bench11 312866 / 320444 / 282806 (the SPSA spins act;
+  SmpHelpersPastDepth acts only with Threads>1, bench is one-thread); 3/3 games each, 0 errors
+- select_jobs.py: push -> 6 of 35 jobs (fin-*), all -> 35, 'rel-all_on,tsan-*' -> 7
+- engine files identical to the stack: git diff --stat origin/opus-r3-stack HEAD -- src include tests CMakeLists.txt tools = empty

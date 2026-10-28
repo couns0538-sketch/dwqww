@@ -1,6 +1,13 @@
 {
- "comment": "R3-1L GitHub job plan (.github/workflows/opus-r3-sp-linux.yml reads it): every config of R3-1_selfplay/configs_final.json once in a release job (500 games, the PC's pass rule), the all-ON config on ASan+UBSan (2 x 250 games, seeds 1 and 2), every Threads=2 config on TSan (100 games). Order = start order (sanitizer and Threads=2 jobs first). max_minutes: per-config game-start limit of the checker (0 = none). tb: needs the Syzygy 3-4-5 tables.",
+ "comment": "R3-1L GitHub job plan (.github/workflows/opus-r3-sp-linux.yml reads it via select_jobs.py): every config of R3-1_selfplay/configs_final.json once in a release job (500 games, the PC's pass rule), the all-ON config on ASan+UBSan (2 x 250 games, seeds 1 and 2), every Threads=2 config on TSan (100 games); fin-* = the 4 configs of configs_final_head.json (final stack head 34ef8a70: SmpHelpersPastDepth, SPSA spins) in release + their Threads=2 ones on TSan. push_jobs = what a push runs (\"all\" = every job); workflow_dispatch input jobs overrides it. configs_file: default opus_r3/R3-1_selfplay/configs_final.json. max_minutes: per-config game-start limit of the checker (0 = none). tb: needs the Syzygy 3-4-5 tables.",
+ "push_jobs": ["fin-*"],
  "jobs": [
+  {"id": "fin-all_on_final", "mode": "release", "configs": "all_on_final", "games": 500, "seed": "1", "tb": true, "max_minutes": 0, "configs_file": "opus_r3/R3-1L/configs_final_head.json"},
+  {"id": "fin-smp_helpers_past_depth", "mode": "release", "configs": "smp_helpers_past_depth", "games": 500, "seed": "1", "tb": false, "max_minutes": 0, "configs_file": "opus_r3/R3-1L/configs_final_head.json"},
+  {"id": "fin-spsa_plus10", "mode": "release", "configs": "spsa_plus10", "games": 500, "seed": "1", "tb": false, "max_minutes": 0, "configs_file": "opus_r3/R3-1L/configs_final_head.json"},
+  {"id": "fin-spsa_minus10", "mode": "release", "configs": "spsa_minus10", "games": 500, "seed": "1", "tb": false, "max_minutes": 0, "configs_file": "opus_r3/R3-1L/configs_final_head.json"},
+  {"id": "fin-tsan-all_on_final", "mode": "tsan", "configs": "all_on_final", "games": 100, "seed": "1", "tb": true, "max_minutes": 40, "configs_file": "opus_r3/R3-1L/configs_final_head.json"},
+  {"id": "fin-tsan-smp_helpers_past_depth", "mode": "tsan", "configs": "smp_helpers_past_depth", "games": 100, "seed": "1", "tb": false, "max_minutes": 40, "configs_file": "opus_r3/R3-1L/configs_final_head.json"},
   {"id": "asan-all_on-s1", "mode": "asan", "configs": "all_on", "games": 250, "seed": "1", "tb": true, "max_minutes": 40},
   {"id": "asan-all_on-s2", "mode": "asan", "configs": "all_on", "games": 250, "seed": "2", "tb": true, "max_minutes": 40},
   {"id": "tsan-all_on", "mode": "tsan", "configs": "all_on", "games": 100, "seed": "1", "tb": true, "max_minutes": 40},

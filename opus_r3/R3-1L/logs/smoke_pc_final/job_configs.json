@@ -1,0 +1,74 @@
+{
+ "comment": "R3-1L job subset of opus_r3/R3-1L/configs_final_head.json: smp_helpers_past_depth,spsa_plus10,spsa_minus10 (only the syzygy path differs)",
+ "syzygy": "D:/grok-pc-data/dwqww/.claude/worktrees/syzygy345",
+ "harness_args": [
+  "--nodes-min=200",
+  "--nodes-max=2000",
+  "--mix=nodes=58,clock=8,movetime=10,depth=8,infinite=6,ponderhit=5,pondermiss=5"
+ ],
+ "configs": [
+  {
+   "name": "smp_helpers_past_depth",
+   "runner": "B",
+   "exe": "base",
+   "threads": 2,
+   "opts": [
+    "SmpHelpersPastDepth=true"
+   ]
+  },
+  {
+   "name": "spsa_plus10",
+   "runner": "A",
+   "exe": "base",
+   "opts": [
+    "LmrQuietBase=94",
+    "LmrQuietDivisor=242",
+    "LmrNoisyBase=11",
+    "LmrNoisyDivisor=374",
+    "LmrHistoryDivisor=6600",
+    "LmrCutoffThreshold=4",
+    "NullMoveBase=4",
+    "NullMoveDepthDivisor=4",
+    "NullMoveEvalDivisor=220",
+    "NullMoveMarginDepth=26",
+    "NullMoveMarginBase=198",
+    "RfpMargin=79",
+    "RfpImproving=44",
+    "RfpDepth=9",
+    "FutilityBase=110",
+    "FutilityMultiplier=121",
+    "QsFutilityMargin=176",
+    "SeeQuietMultiplier=26",
+    "SeeNoisyMultiplier=165",
+    "AspirationDelta=20"
+   ]
+  },
+  {
+   "name": "spsa_minus10",
+   "runner": "B",
+   "exe": "base",
+   "opts": [
+    "LmrQuietBase=77",
+    "LmrQuietDivisor=198",
+    "LmrNoisyBase=9",
+    "LmrNoisyDivisor=306",
+    "LmrHistoryDivisor=5400",
+    "LmrCutoffThreshold=2",
+    "NullMoveBase=2",
+    "NullMoveDepthDivisor=2",
+    "NullMoveEvalDivisor=180",
+    "NullMoveMarginDepth=22",
+    "NullMoveMarginBase=162",
+    "RfpMargin=65",
+    "RfpImproving=36",
+    "RfpDepth=7",
+    "FutilityBase=90",
+    "FutilityMultiplier=99",
+    "QsFutilityMargin=144",
+    "SeeQuietMultiplier=22",
+    "SeeNoisyMultiplier=135",
+    "AspirationDelta=16"
+   ]
+  }
+ ]
+}

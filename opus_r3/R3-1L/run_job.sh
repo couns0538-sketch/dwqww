@@ -7,7 +7,8 @@
 #   asan    : RelWithDebInfo, -DFORGE_ENABLE_SANITIZERS=ON (ASan+UBSan), -fno-sanitize-recover=all
 #   tsan    : RelWithDebInfo, -fsanitize=thread -fno-omit-frame-pointer
 # usage: run_job.sh <job id> <release|asan|tsan> <configs a,b> <games> <seed> <out dir> [max minutes per config]
-# Env: TB_DIR (Syzygy 3-4-5 dir, default $HOME/syzygy345), CXX (default g++-14).
+# Env: TB_DIR (Syzygy 3-4-5 dir, default $HOME/syzygy345), CXX (default g++-14), CONFIGS_FILE (relative to the
+# repo root, default opus_r3/R3-1_selfplay/configs_final.json).
 # Exit 0 only if every build passes the identity check (and FMA 0 for release), every config ran all its games
 # with 0 errors, and no sanitizer report was written.
 set -uo pipefail
@@ -92,7 +93,9 @@ build() {   # exe key
 printf 'job\t%s\n' "$JOB" > "$OUT/job.tsv"
 printf 'mode\t%s\nconfigs\t%s\ngames\t%s\nseed\t%s\nhead\t%s\nmax_minutes\t%s\n' "$MODE" "$CONFIGS" "$GAMES" "$SEED" "$HEAD" "$MAXMIN" >> "$OUT/job.tsv"
 : > "$OUT/builds.tsv"
-KEYS=$(python3 -I -B "$HERE/job_configs.py" "$SP/configs_final.json" "$CONFIGS" "$TB_DIR" "$OUT/job_configs.json") || exit 2
+CF=${CONFIGS_FILE:-opus_r3/R3-1_selfplay/configs_final.json}
+printf 'configs_file\t%s\n' "$CF" >> "$OUT/job.tsv"
+KEYS=$(python3 -I -B "$HERE/job_configs.py" "$ROOT/$CF" "$CONFIGS" "$TB_DIR" "$OUT/job_configs.json") || exit 2
 for key in $KEYS; do
   build "$key" || { echo "== build/identity FAILED for $key" | tee -a "$LOGS/job.log"; status=1; }
 done

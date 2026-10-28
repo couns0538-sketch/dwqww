@@ -15,6 +15,11 @@ on:
       - 'opus_r3/**/FILES.txt'
       - 'opus_r3/**/SHA256SUMS'
   workflow_dispatch:
+    inputs:
+      jobs:
+        description: 'push (= jobs.json push_jobs), all (every job), or job ids / id prefixes with * (comma separated)'
+        required: false
+        default: 'push'
 permissions:
   contents: read
 env:
@@ -25,13 +30,18 @@ jobs:
     timeout-minutes: 30
     outputs:
       matrix: ${{ steps.m.outputs.matrix }}
+      selected: ${{ steps.m.outputs.selected }}
     steps:
       - uses: actions/checkout@v4
       - id: m
-        name: Job matrix from opus_r3/R3-1L/jobs.json
+        name: Job matrix from opus_r3/R3-1L/jobs.json (push = its push_jobs; dispatch input jobs)
+        env:
+          SEL: ${{ github.event.inputs.jobs || 'push' }}
         run: |
-          echo "matrix=$(python3 -c 'import json; print(json.dumps({"include": json.load(open("opus_r3/R3-1L/jobs.json"))["jobs"]}))')" >> "$GITHUB_OUTPUT"
-          python3 -c 'import json; j=json.load(open("opus_r3/R3-1L/jobs.json"))["jobs"]; print(len(j), "jobs"); [print(x["id"], x["mode"], x["configs"], x["games"]) for x in j]'
+          python3 -I -B opus_r3/R3-1L/select_jobs.py opus_r3/R3-1L/jobs.json "$SEL" selected_jobs.json > matrix.json
+          echo "matrix=$(cat matrix.json)" >> "$GITHUB_OUTPUT"
+          echo "selected=$(cat selected_jobs.json)" >> "$GITHUB_OUTPUT"
+          python3 -c 'import json; j=json.load(open("selected_jobs.json"))["jobs"]; print(len(j), "jobs"); [print(x["id"], x["mode"], x["configs"], x["games"], x.get("configs_file", "")) for x in j]'
       - name: Syzygy cache lookup
         id: tbc
         uses: actions/cache/restore@v4
@@ -76,6 +86,8 @@ jobs:
           key: syzygy345-${{ hashFiles('opus_r3/R3-1L/syzygy345.sha256') }}
           fail-on-cache-miss: true
       - name: Build, identity check, self-play (${{ matrix.mode }}, ${{ matrix.configs }}, ${{ matrix.games }} games)
+        env:
+          CONFIGS_FILE: ${{ matrix.configs_file }}
         run: bash opus_r3/R3-1L/run_job.sh "${{ matrix.id }}" "${{ matrix.mode }}" "${{ matrix.configs }}" "${{ matrix.games }}" "${{ matrix.seed }}" sp_out "${{ matrix.max_minutes }}"
       - name: Upload logs
         if: always()
@@ -100,9 +112,12 @@ jobs:
           pattern: sp-*
           path: arts
       - name: Summary table (config, games, errors by kind, plies, watchdog answers; pass = 500 games, 0 errors)
+        env:
+          SEL: ${{ needs.plan.outputs.selected }}
         run: |
+          printf '%s\n' "$SEL" > selected_jobs.json
           rc=0
-          python3 -I -B opus_r3/R3-1L/summarize.py --jobs opus_r3/R3-1L/jobs.json --arts arts --out sp_summary > sp_summary.txt || rc=$?
+          python3 -I -B opus_r3/R3-1L/summarize.py --jobs selected_jobs.json --arts arts --out sp_summary > sp_summary.txt || rc=$?
           cat sp_summary.txt
           cat sp_summary.txt >> "$GITHUB_STEP_SUMMARY"
           exit $rc
