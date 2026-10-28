@@ -11,6 +11,16 @@
 #include <string_view>
 #include <vector>
 
+// FORGE_NOZERO_MOVE_BUFFERS (default 0 = the AL1 lock code): leave the MoveList and MovePicker
+// move buffers uninitialised instead of zero-filling them on every construction (S14 follow-up).
+#ifndef FORGE_NOZERO_MOVE_BUFFERS
+#define FORGE_NOZERO_MOVE_BUFFERS 0
+#endif
+#if FORGE_NOZERO_MOVE_BUFFERS
+#include <new>
+#include <type_traits>
+#endif
+
 namespace forge {
 
 enum Piece : int {
@@ -46,15 +56,48 @@ struct Move {
     [[nodiscard]] static constexpr Move none() { return Move{}; }
 };
 
+#if FORGE_NOZERO_MOVE_BUFFERS
+// Storage for N objects of type T that is not initialised when its owner is constructed. A
+// default-initialised std::array<Move, N> is zero-filled because Move has default member
+// initializers; the move buffers below never read an element they have not written, so that fill
+// is wasted work on every construction. The std::byte array implicitly creates the T[N] array when
+// its lifetime begins ([intro.object], C++20, P0593R6) and std::launder yields a pointer to its
+// first element, so element access and pointer arithmetic are well defined. Owners must write an
+// element before reading it and must not value-initialise the storage (no `{}` initializer).
+template <typename T, std::size_t N>
+struct UninitArray {
+    static_assert(std::is_trivially_copyable_v<T> && std::is_trivially_destructible_v<T>);
+    alignas(T) std::byte bytes[N * sizeof(T)];
+
+    [[nodiscard]] T* data() { return std::launder(reinterpret_cast<T*>(bytes)); }
+    [[nodiscard]] const T* data() const { return std::launder(reinterpret_cast<const T*>(bytes)); }
+    [[nodiscard]] T* begin() { return data(); }
+    [[nodiscard]] const T* begin() const { return data(); }
+    [[nodiscard]] T& operator[](std::size_t index) { return data()[index]; }
+    [[nodiscard]] const T& operator[](std::size_t index) const { return data()[index]; }
+    [[nodiscard]] static constexpr std::size_t size() { return N; }
+};
+#endif
+
 class MoveList {
 public:
     static constexpr std::size_t Capacity = 256;
+#if FORGE_NOZERO_MOVE_BUFFERS
+    using iterator = Move*;
+    using const_iterator = const Move*;
+#else
     using iterator = std::array<Move, Capacity>::iterator;
     using const_iterator = std::array<Move, Capacity>::const_iterator;
+#endif
 
     void push_back(Move move) { assert(size_ < Capacity); data_[size_++] = move; }
     void reserve(std::size_t) {}
+#if FORGE_NOZERO_MOVE_BUFFERS
+    // Shrink only: elements at or past size_ have never been written.
+    void resize(std::size_t size) { assert(size <= size_); size_ = size; }
+#else
     void resize(std::size_t size) { assert(size <= Capacity); size_ = size; }
+#endif
     void clear() { size_ = 0; }
     [[nodiscard]] std::size_t size() const { return size_; }
     [[nodiscard]] bool empty() const { return size_ == 0; }
@@ -68,7 +111,11 @@ public:
     [[nodiscard]] const_iterator end() const { return data_.begin() + static_cast<std::ptrdiff_t>(size_); }
 
 private:
+#if FORGE_NOZERO_MOVE_BUFFERS
+    UninitArray<Move, Capacity> data_;  // only [0, size_) is ever read
+#else
     std::array<Move, Capacity> data_;
+#endif
     std::size_t size_ = 0;
 };
 

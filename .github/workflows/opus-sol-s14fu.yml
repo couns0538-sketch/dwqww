@@ -1,0 +1,62 @@
+# S14 follow-up (FORGE_NOZERO_MOVE_BUFFERS, default off): Linux evidence on quiet GitHub runners.
+# check: lock/off/on builds, identity, oracle + planted bugs, codegen; asan, tsan: on build under sanitizers;
+# profile: callgrind memset attribution, valgrind memcheck, clang MSan (best effort); nps: paired ABBA NPS lock vs on
+# plus an A/A control, two independent runners. See opus_round1/sol_S14/followup_zerofill/ci_s14fu.sh.
+# Read-only; uploads logs.
+name: opus-sol-s14fu
+on:
+  push:
+    branches: ['opus-sol-S14']
+    paths-ignore:
+      - 'opus_round1/**/*.md'
+      - 'opus_round1/**/*.log'
+      - 'opus_round1/**/*.json'
+      - 'opus_round1/**/*.diff'
+      - 'opus_round1/**/SHA256SUMS'
+      - 'opus_round1/**/FILES*'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  s14fu:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - mode: check
+          - mode: asan
+          - mode: tsan
+          - mode: profile
+          - mode: nps
+            rep: 1
+          - mode: nps
+            rep: 2
+    name: ${{ matrix.mode }}${{ matrix.rep && format('-{0}', matrix.rep) || '' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Toolchain
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq g++-14 ninja-build cmake python3 valgrind clang
+          g++-14 --version | head -1; clang++ --version | head -1; valgrind --version
+          nproc; lscpu | grep -E 'Model name|Flags' | cut -c1-200
+      - name: Run ${{ matrix.mode }}
+        run: bash opus_round1/sol_S14/followup_zerofill/ci_s14fu.sh ${{ matrix.mode }} ci_out
+      - name: Upload logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: s14fu-${{ matrix.mode }}${{ matrix.rep && format('-{0}', matrix.rep) || '' }}
+          path: |
+            ci_out/*.log
+            ci_out/*.json
+            ci_out/*.txt
+            ci_out/codegen_diffs/*.diff
+            ci_out/oracle*/*.txt
+            ci_out/oracle*/*.log
+            ci_out/sanitizer_logs_*/**
+          if-no-files-found: warn
