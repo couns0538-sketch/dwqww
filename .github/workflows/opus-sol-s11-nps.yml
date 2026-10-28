@@ -1,0 +1,66 @@
+# S11 (MaterialKeyTable, node-exact speed) on a quiet Linux runner, box recipe (g++-14, x86-64-v3):
+#  1. AL1 identity (bench d11..d22, perft5 startpos + kiwipete) of the branch with MaterialKeyTable off and
+#     on, and of a scalar-NNUE build of the branch (src/nnue.cpp with -U__AVX2__ -U__SSE__, no
+#     auto-vectorisation) off and on: scalar vs AVX2 node-exact on every reference.
+#  2. NPS: lock (294dbed) vs branch with the option off (opus-O3 nps_ab.py, 10 runs, d16 d20), and the
+#     branch alone, option off vs on in the same binary (nps_onoff.py, 10 runs per setting, d16 d20).
+# Runs when this file changes. Read-only; uploads logs.
+name: opus-sol-s11-nps
+on:
+  push:
+    branches: ['opus-sol-S11']
+    paths:
+      - '.github/workflows/opus-sol-s11-nps.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  nps:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Toolchain
+        run: |
+          sudo apt-get update -qq && sudo apt-get install -y -qq g++-14 ninja-build cmake python3
+          g++-14 --version | head -1
+          lscpu | grep -E 'Model name|^CPU\(s\)|Flags' | cut -c1-200
+      - name: Build lock, branch and branch scalar-NNUE (box recipe)
+        run: |
+          FL="-march=x86-64-v3 -mtune=znver5 -fno-fast-math -ffp-contract=off -DFORGE_NNUE_HIDDEN=256"
+          mkdir -p lock_src out
+          # -m: archive mtimes can be ahead of the runner clock
+          git archive 294dbed | tar -x -m -C lock_src
+          for t in lock branch; do
+            src=$([ $t = branch ] && echo . || echo lock_src)
+            cmake -S $src -B build_$t -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_COMPILER=g++-14 "-DCMAKE_CXX_FLAGS=$FL" > /dev/null
+            cmake --build build_$t -j4 --target forge > /dev/null
+            echo "$t forge sha256 $(sha256sum build_$t/forge | cut -d' ' -f1) FMA $(objdump -d build_$t/forge | grep -cE 'vfn?m(add|sub)' || true)" | tee -a out/builds.log
+          done
+          GPP=g++-14 ARCH="-march=x86-64-v3 -mtune=znver5" LINK_STATIC= \
+            bash opus_round1/sol_S11/build_pc_scalar_nnue.sh "$PWD" "$PWD/build_scalar/forge_scalar_nnue" 2>&1 | tee out/build_scalar_nnue.log
+      - name: Identity (option off and on; AVX2 and scalar NNUE)
+        run: |
+          python3 opus_round1/ci/uci_check.py build_lock/forge --full | tee out/identity_lock.log
+          for exe in build_branch/forge build_scalar/forge_scalar_nnue; do
+            tag=$(basename $exe)
+            python3 opus_round1/sol_S11/uci_check_opt.py $exe --full \
+              --expect-option "option name MaterialKeyTable type check default false" | tee out/identity_${tag}_off.log
+            python3 opus_round1/sol_S11/uci_check_opt.py $exe --full \
+              --expect-option "option name MaterialKeyTable type check default false" --set MaterialKeyTable=true | tee out/identity_${tag}_on.log
+          done
+          grep -h -E 'ALL OK|MISMATCH' out/identity_*.log
+          ! grep -q MISMATCH out/identity_*.log
+      - name: NPS lock vs branch (option off)
+        run: python3 opus_round1/sol_S11/nps_ab.py build_lock/forge build_branch/forge 10 16 20 | tee out/nps_ab_lock_vs_s11off.log
+      - name: NPS same binary, option off vs on
+        env:
+          MACHINE_EXCLUSIVE: 'no (GitHub-hosted runner VM: this job alone on the VM, physical host shared)'
+        run: python3 opus_round1/sol_S11/nps_onoff.py build_branch/forge 10 MaterialKeyTable 16 20 | tee out/nps_onoff_s11.log
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: sol-s11-nps
+          path: out/*.log

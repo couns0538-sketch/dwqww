@@ -443,6 +443,7 @@ int main() {
             std::cout << "option name CorrMargins type spin default 0 min 0 max 1\n";
             std::cout << "option name CorrExt type spin default 0 min 0 max 1\n";
             std::cout << "option name CuckooRep type check default false\n";
+            std::cout << "option name MaterialKeyTable type check default false\n";
 #ifdef FORGE_EXPOSE_TUNABLES
             // Development builds advertise the search constants so match
             // runners can set them; release builds accept them silently.
@@ -714,6 +715,14 @@ int main() {
                     std::cout << "info string invalid value for option PureNnue" << std::endl;
                 }
                 nnue_v2_changed();
+            } else if (name == "MaterialKeyTable") {
+                // S11 node-exact speed path: same search, different key arithmetic.
+                if (value_text == "true") forge::options::material_key_table = true;
+                else if (value_text == "false") forge::options::material_key_table = false;
+                else {
+                    const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex());
+                    std::cout << "info string invalid value for option MaterialKeyTable" << std::endl;
+                }
             } else if (name == "Hash" || name == "Move Overhead" || name == "Threads") {
                 int value = 0;
                 const auto parsed = std::from_chars(

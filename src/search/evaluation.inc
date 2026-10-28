@@ -17,6 +17,8 @@ namespace {
 // Always inlined: it also has a call site in the cold CorrHistPlus path, and an
 // out-of-line copy would be emitted at the start of the hot .text.
 [[gnu::always_inline]] [[nodiscard]] inline std::uint64_t material_key(const Board& board) {
+    // S11 MaterialKeyTable: the same key from a contribution table (forge/material_key_table.hpp).
+    if (options::material_key_table) [[unlikely]] return matkey::table_key(board);
     std::uint64_t key = 0;
     for (const Color color : {White, Black}) {
         for (int type = Pawn; type <= Queen; ++type) {

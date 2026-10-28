@@ -20,5 +20,6 @@ bool pure_nnue = false;   // O4 (after nnue_v2 so that the variables before it k
 std::uint8_t corr_margins = 0;
 std::uint8_t corr_ext = 0;
 bool cuckoo_rep = false;
+bool material_key_table = false;
 
 } // namespace forge::options

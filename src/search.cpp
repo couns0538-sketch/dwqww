@@ -19,6 +19,7 @@
 #include "forge/nnue_v2.hpp"
 #include "forge/corr_margins.hpp"
 #include "forge/corr_ext.hpp"
+#include "forge/material_key_table.hpp"
 #include "forge/uci_output.hpp"
 
 #include <algorithm>

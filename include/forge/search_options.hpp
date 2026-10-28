@@ -160,4 +160,12 @@ extern std::uint8_t corr_ext;
 // instances of the search functions; with the option off no node tests it.
 extern bool cuckoo_rep;
 
+// UCI MaterialKeyTable (check, default false), job S11 (node-exact speed).
+// The material-correction key (src/search.cpp material_key) is computed from
+// the contribution table of forge/material_key_table.hpp (ten table loads and
+// additions) instead of the ten dependent Horner multiplications. Both give the
+// same 64-bit key for every board, so the search (nodes, scores, moves) is
+// unchanged; only the speed can differ.
+extern bool material_key_table;
+
 } // namespace forge::options
