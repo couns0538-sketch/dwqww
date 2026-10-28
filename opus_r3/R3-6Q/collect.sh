@@ -9,10 +9,11 @@ H=$(cd "$(dirname "$0")" && pwd)
 mkdir -p "$DEST"
 gh run view "$RUN" --json status,conclusion,jobs --jq '.status, .conclusion, (.jobs[] | "\(.name) \(.status) \(.conclusion)")'
 for a in smpq-prep smpq-rep1 smpq-rep2 smpq-rep3 smpq-summary; do
-  [ -d "$DEST/$a" ] || gh run download "$RUN" -n "$a" -D "$DEST/$a" || echo "artifact $a not available"
+  [ -n "$(ls -A "$DEST/$a" 2>/dev/null)" ] || gh run download "$RUN" -n "$a" -D "$DEST/$a" || echo "artifact $a not available"
 done
 files=()
 for r in 1 2 3; do [ -f "$DEST/smpq-rep$r/ttd_rep$r.jsonl" ] && files+=("$DEST/smpq-rep$r/ttd_rep$r.jsonl"); done
+if [ "${#files[@]}" -eq 0 ]; then echo "no ttd_rep*.jsonl downloaded yet"; exit 1; fi
 wc -l "${files[@]}"
 nice -n 19 "$PY" -I -B "$H/report_q.py" "${files[@]}" > "$DEST/summary_local.md"
 echo "wrote $DEST/summary_local.md"
