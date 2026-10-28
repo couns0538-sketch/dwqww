@@ -1,0 +1,51 @@
+# opus-ci run 40568260400 on opus-r3-port-b (head a06b00d0cb41e87f0d70932cddf1dd2df884c7d9), downloaded artifacts opus-ci-release/-asan/-tsan
+run 40568260400 conclusion=success head=a06b00d0cb41e87f0d70932cddf1dd2df884c7d9
+linux (asan): success job=122415235698 2026-10-27T19:20:51Z -> 2026-10-27T19:26:52Z
+linux (tsan): success job=122415236246 2026-10-27T19:20:51Z -> 2026-10-27T19:47:58Z
+linux (release): success job=122415236349 2026-10-27T19:20:50Z -> 2026-10-27T19:27:46Z
+
+## release (Linux g++-14, CMake Release)
+== forge sha256: 3a9e13bfccad3249258216e86966190ed00cc05506a94075cdb7f2d33aaeb372
+== FMA instructions (must be 0): 0
+ALL OK
+base run 40565363595 (2432670b) release: == forge sha256: 3a9e13bfccad3249258216e86966190ed00cc05506a94075cdb7f2d33aaeb372  -> default Linux binary byte-identical to the base
+
+## release
+ctest: 98% tests passed, 1 tests failed out of 40
+failing tests: ['forge_tests']
+KNOWN-FAILURE CHECK: PASS (only the 4 known forge_tests lines; no sanitizer report)
+Total Test time (real) =  29.84 sec
+30/40 Test #30: forge_datagen_tests .............. Passed 0.34 sec
+31/40 Test #31: forge_nnue_microbench_check ...... Passed 0.17 sec
+40/40 Test #40: datagen_cli_tests ................ Passed 1.01 sec
+
+## asan
+ctest: 98% tests passed, 1 tests failed out of 40
+failing tests: ['forge_tests']
+KNOWN-FAILURE CHECK: PASS (only the 4 known forge_tests lines; no sanitizer report)
+Total Test time (real) = 209.06 sec
+30/40 Test #30: forge_datagen_tests .............. Passed 3.53 sec
+31/40 Test #31: forge_nnue_microbench_check ...... Passed 2.65 sec
+40/40 Test #40: datagen_cli_tests ................ Passed 7.82 sec
+
+## tsan
+ctest: 98% tests passed, 1 tests failed out of 40
+failing tests: ['forge_tests']
+KNOWN-FAILURE CHECK: PASS (only the 4 known forge_tests lines; no sanitizer report)
+TSan: 0 reports
+Total Test time (real) = 1042.18 sec
+30/40 Test #30: forge_datagen_tests .............. Passed 17.64 sec
+31/40 Test #31: forge_nnue_microbench_check ...... Passed 14.90 sec
+40/40 Test #40: datagen_cli_tests ................ Passed 37.98 sec
+
+## tsan_extra hooks
+== running /home/runner/work/dwqww/dwqww/opus_round1/C3/tsan_extra.sh (limit 900s)
+== running /home/runner/work/dwqww/dwqww/opus_round1/C4/tsan_extra.sh (limit 900s)
+== running /home/runner/work/dwqww/dwqww/opus_round1/C6/tsan_extra.sh (limit 900s)
+== running /home/runner/work/dwqww/dwqww/opus_round1/O1-LTT/tsan_extra.sh (limit 900s)
+== running /home/runner/work/dwqww/dwqww/opus_round1/O1/tsan_extra.sh (limit 900s)
+== running /home/runner/work/dwqww/dwqww/opus_round1/O5/tsan_extra.sh (limit 900s)
+== running /home/runner/work/dwqww/dwqww/opus_round1/O8/tsan_extra.sh (limit 900s)
+== running /home/runner/work/dwqww/dwqww/opus_round1/sol_A1/tsan_extra.sh (limit 900s)
+
+## TSan duration context: ctest total 1042 s here vs 514 s in base run 40565363595; unchanged tests doubled as well (forge_smp_tests 134 -> 217 s, forge_pure_nnue_tests 96 -> 194 s): slower runner; the three new tests take ~70 s of it
