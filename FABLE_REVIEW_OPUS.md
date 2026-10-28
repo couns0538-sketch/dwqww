@@ -150,7 +150,7 @@ instead of assuming it, so that they are checkout-independent (mistake 3 below).
 
 | 2 | the AL1 lock engine itself; Opus job S14 found it (`opus-sol-S14` REPORT section 4, "not fixed here") and the lock archive carries the CR-passed fix that was never applied | `MovePicker::bad_captures_` is `std::array<Move, 64>` written at `src/search.cpp:361` without a bounds check; a position with more than 64 SEE-losing noisy moves (capture-promotions count four times) overruns it (undefined behaviour) | branch **`fable-review-buffix`** (base d4f4312): the archived node-identical fix applied (`std::array<Move, MoveList::Capacity>` + static_assert + `tests/bad_capture_tests.cpp`), box build, identity check and the regression test; see its `fable_review/REVIEW.md` |
 
-| 3 | opus-sol-S08fix, S33fix, S38, S42, S46 (line endings) and S15, S27fix, S47, S48fix (full-checkout inputs) | their unit tests compare raw bytes or SHA256 of text files, so they pass only in a checkout with the same line endings as the author's (CRLF on the PC) and fail from an LF export | S33fix, S38, S46 corrected on `fable-review-S33fix/S38/S46` (comparisons normalise line endings); S08fix/S42 hash checks and the four full-checkout tests listed for the owner |
+| 3 | opus-sol-S08fix, S33fix, S38, S42, S46 (line endings) and S15, S27fix, S47, S48fix (full-checkout inputs) | their unit tests compare raw bytes or SHA256 of text files, so they pass only in a checkout with the same line endings as the author's (CRLF on the PC) and fail from an LF export | S33fix, S38, S46 corrected on `fable-review-S33fix/S38/S46` (comparisons normalise line endings); S42, S08fix corrected on `fable-review-S42/S08fix` (`.gitattributes` keeps the hash-checked files byte-identical to their blobs); S15/S27fix/S47/S48fix are full-checkout tests, not fragile |
 
 ## Corrections pushed
 
@@ -161,9 +161,10 @@ instead of assuming it, so that they are checkout-independent (mistake 3 below).
 | `fable-review-r3-stack` (base opus-r3-stack da158149) | mistake 1 **corrected**: the owner ran `git rm --cached` on the eight `.pyc` files in the review worktree (the files stay on disk); the commit and push were completed by the reviewer; `.gitignore` for `__pycache__/` and `*.pyc` plus `opus_round1/fable_review/REVIEW.md`; 0 tracked `.pyc` files remain | pushed (d118633a) |
 | `fable-review-S33fix`, `fable-review-S38`, `fable-review-S46` (bases: the opus-sol branches) | mistake 3, the three golden-file tests: comparisons normalise `\r\n` to `\n` on both sides (S46 also for the regenerated fixture files); verified in a CRLF worktree and in an LF export (S46: 30 failures -> OK) | pushed |
 
-Not corrected (listed): S08fix and S42 verify SHA256 provenance of data files (normalising would change what the
-check means; the owner should decide whether the frozen hashes should be of normalised text), S15, S27fix, S47 and
-S48fix need a full checkout by design.
+| `fable-review-S42`, `fable-review-S08fix` | mistake 3, the two SHA256-provenance jobs: root cause established (the frozen hashes are of the LF blobs, e.g. S42's S06 dependency `4598c583…` = the blob's hash, while `core.autocrlf=true` checks the files out as CRLF on this PC, so the checks fail on the PC itself); fix = `.gitattributes` with `* -text` in the job folder, no tool change; verified: both job tests pass from a fresh `git archive` export of the fixed branches | pushed |
+
+Not corrected (listed): S15, S27fix, S47 and S48fix need a full checkout by design (repository files, a git work
+tree, exe fixtures); they are not fragile, only not runnable from an exported job folder.
 
 ## What was reviewed, what was not (honest scope)
 
@@ -183,7 +184,7 @@ S48fix need a full checkout by design.
    (d118633a: untracked, ignored, REVIEW.md).
 2. Unguarded 64-entry `bad_captures_` buffer in the lock engine (known since S14, fix never applied) ->
    `fable-review-buffix`, node-identical, CI green.
-3. Nine job tests depend on the checkout (line endings / full tree / exe fixtures) -> three corrected (S33fix, S38, S46), six listed.
+3. Nine job tests failed from an exported folder: five were line-ending fragilities, all corrected (S33fix, S38, S46 by normalising comparisons; S42, S08fix by `.gitattributes`), four need a full checkout by design.
 
 Everything else examined was found consistent with its report. No Elo or speed claim is made or changed anywhere.
 
@@ -193,8 +194,8 @@ Everything else examined was found consistent with its report. No Elo or speed c
    `fable-review-r3-stack` as the R3 head without the bytecode.
 2. If a deeper audit is wanted: re-run S44 `check` on the 23 gates, S40/S17 on their fixtures and the real shards,
    and read the C1 decoder against the Syzygy format specification; none of this changes an engine default.
-3. Decide on the S08fix/S42 provenance hashes (hash normalised text or pin the line endings) and make S15, S27fix,
-   S47, S48fix find the repository root instead of assuming it.
+3. Optional: make S15, S27fix, S47, S48fix runnable from an exported folder (locate the repository root); they
+   pass in a checkout.
 
 ## Time spent / estimate
 
