@@ -8,7 +8,7 @@ throughout; my work at nice 19). No Elo claims: no gate was run.
 | job | state | where |
 |---|---|---|
 | R3-1 integration stack | all O/C branches and every opus-sol engine feature merged (S32/S37/S04fix via `opus-r3-port-b`, S-A2/S-A4 via `opus-r3-port-c`); HardDeadline defect found by the self-play checker fixed; 500-game self-play on `330237f`: 8 of 36 configs done (all-ON variants, HardDeadline, four switches), 4000 games, 0 errors; the rest running (`opus-r3-selfplay`); a Linux copy of the checker on GitHub runners is being set up (`opus-r3-sp-linux`) to re-check the final head | `opus-r3-stack`, `opus_r3/R3-1/`, `opus_r3/R3-1_selfplay/` |
-| R3-2 interaction matrix | DONE, merged (`7e0660a`): no conflicts; two silent cancels; build layout ±5% on the PC; quiet-runner repeat of the switch rows running (`opus-r3-quietnps`) | `opus_r3/R3-2/REPORT.md` |
+| R3-2 interaction matrix | DONE, merged (`7e0660a`): no conflicts; two silent cancels; build layout ±5% on the PC, confirmed by the quiet-runner repeat R3-2Q (DONE, merged) | `opus_r3/R3-2/REPORT.md`, `opus_r3/R3-2Q/REPORT.md` |
 | R3-3 gate proposals | DONE, merged | `opus_r3/R3-3/`, `F:\opus_scratch\r3\GATE_PROPOSALS.md` |
 | R3-4 SPSA tool | DONE, merged (`064af73`): 20 search constants as UCI spins (identical defaults), `tools/spsa/opus_spsa*.py`, dry run with restart; no tuning session | `opus_r3/R3-4/REPORT.md`, `tools/spsa/README.md` |
 | R3-5 regression test suite | DONE, merged (`7e0660a`): six new CTest entries, 12/12 planted bugs caught | `opus_r3/R3-5/REPORT.md` |
@@ -30,7 +30,7 @@ throughout; my work at nice 19). No Elo claims: no gate was run.
 | 40581146563 | `7e0660a` (+ R3-5 tests, R3-2 matrix) | success |
 | 40581146586 | `7e0660a`, `opus-r3-switches` | success |
 | 40583093802 / 40583093751 | `1f354cc` (+ R3-6 SmpHelpersPastDepth), opus-ci / opus-r3-switches | success / success |
-| 40584552130 / 40584552107 | `064af73` (+ R3-4 tunables and SPSA tool; final engine head), opus-ci / opus-r3-switches | running |
+| 40584552130 / 40584552107 | `064af73` (+ R3-4 tunables and SPSA tool; **final engine head**), opus-ci / opus-r3-switches | success / success |
 Since the failure every push is preceded by a full local CMake build of all targets and the full CTest list (only
 the 4 known `forge_tests` lines may fail; `check_known_failures.py` PASS), and every run is followed to green.
 `opus-r3-switches` (new in R3) runs the same release/ASan/TSan evidence with every build switch ON (O2, NOZERO,
@@ -113,6 +113,20 @@ every later run of the branch is green.
   so the tool runs without it and verifies every tuned option is applied; CaptureFutilityMultiplier is dead (0 node
   change). README estimate for a real session: 40,000 games at 8+0.08, about 32 h on 8 slots (pilot 4,000 games).
 
+## R3-2Q quiet-runner NPS of the build switches (agent; `opus_r3/R3-2Q/REPORT.md`)
+- Paired ABBA CPU-time NPS of every switch vs the OFF build of the same commit on GitHub ubuntu-24.04 runners (CI
+  recipe, g++-14, x86-64-v3), 10 pairs at bench 16 and 8 at bench 20, A/A in every job, 2-6 runners per config;
+  all node-exact (lock pins) except the NnueInt16=true side. Runs 40582060957, 40583387872, 40583577693,
+  40583751865 (all success); opus-ci on the branch green.
+- **Real effects** (same sign and size on quiet runners): SPEEDSTACK about +0.5%, profile counting about -1.1%,
+  the PROF build about -1 to -1.5% on Linux (the PC's -7% adds MinGW's emulated TLS), NnueInt16 -8 / -13% (other
+  tree), O2's AVX2 kernels +3.1% / +3.0% (speed rule met; but the PC lock recipe builds AVX-512 code where the
+  kernels are compiled out; one AVX-512 runner still showed +4.1% / +4.0%, likely the 64-byte accumulator
+  alignment, not isolated). NOZERO is a real +1.6% / +1.7% (rule not met), as S14 found.
+- **PC layout artefacts** (do not reproduce): NOZERO -4.2% on the PC, the LAZY switch +4.4%, the INT16 switch
+  +1.8%, and the -4.6% drift between two heads (quiet: 0 ± 1.5%); `nm` of the PC exes shows the hot functions
+  moved in exactly those builds. So switch-level NPS on the loaded PC needs a quiet machine before any claim.
+
 ## R3-5 regression test suite (agent; `opus_r3/R3-5/REPORT.md`)
 - Six new CTest entries: `forge_perft_cpw`, `forge_perft_edge` (20 positions at depth 5-7 with published counts,
   cross-checked with python-chess: 0 mismatches), `forge_draw_rules_tests` (repetition / threefold incl. GitHub
@@ -176,5 +190,4 @@ every later run of the branch is green.
   then the options added after `330237f` on the final head `064af73` (SmpHelpersPastDepth alone, all ON + it, the
   20 SPSA spins at +10% / -10%; prepared, preflight OK) and the Linux re-check on GitHub runners (`opus-r3-sp-linux`).
 - CI of `1f354cc` and of the final engine head `064af73` (both workflows), followed to green.
-- R3-2 follow-up: quiet-runner NPS of the switch rows (`opus-r3-quietnps`).
 - R3-6 follow-up: time-to-depth of SmpHelpersPastDepth on quiet 4-vCPU runners, 3 repetitions (`opus-r3-smpq`).
