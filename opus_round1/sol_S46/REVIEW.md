@@ -1,8 +1,8 @@
 # fable-review-S46
 
-Base: opus-sol-S46 head. Correction (Fable review, mistake 3): the job tests compared golden logs and regenerated
-fixture files byte for byte, so they passed only in a checkout with the same line endings as the author's (CRLF on
-the PC) and failed from an LF export (30 failures). The comparisons now normalise `
-` to `
-` on both sides.
-Verified: the test passes in a CRLF worktree and in an LF export of the job folder. No simulator logic changed.
+Base: opus-sol-S46 head. Correction (Fable review, mistake 3): the job test compared the golden logs and regenerated fixture files byte for byte.
+The tool writes LF; the golden files are LF blobs that this PC's `core.autocrlf=true` checks out (and `git archive`s)
+as CRLF, so the unfixed test fails from a fresh CRLF checkout/export and passes only where the golden files are
+still LF (the author's freshly written worktree, or an LF export). The comparisons now normalise CRLF to LF on both
+sides. Verified by the reviewer and independently: the fixed test passes from a CRLF export and from an LF export
+(the unfixed base fails from the CRLF export and passes from the LF one). No tool logic changed.
