@@ -1,0 +1,6 @@
+# S37 planted bugs (copies of src/include/tools in F:/opus_scratch/build/sol_s37/mutant_m1|m2; one line each, Python
+# str.replace asserted to match once; built with build_microbench_pc.sh avx2; run --check-only --positions 2000)
+m1 src/nnue.cpp (engine, quiet update path): (source - removed_column) + added_column -> (source + removed_column) + added_column
+   result: exit 1, "checks: FAIL ... acc 63703 update_eval 63524 whole(refresh/update/cached) 0/63524/0"  (logs/mutant_m1.log)
+m2 tools/nnue_microbench.cpp (replica affine): out * 400.0F / SigmoidK -> out * 401.0F / SigmoidK
+   result: exit 1, "checks: FAIL ... replica 398"  (logs/mutant_m2.log)

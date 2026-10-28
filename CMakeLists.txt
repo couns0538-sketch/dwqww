@@ -208,6 +208,11 @@ target_link_libraries(forge_hist_rework_tests PRIVATE forge_core Threads::Thread
 add_executable(forge_bench bench/benchmark.cpp)
 target_link_libraries(forge_bench PRIVATE forge_core Threads::Threads)
 
+# S37: NNUE inference microbench (its own target; the forge executable is unchanged). CTest runs the
+# consistency checks only (replica == engine output, incremental == refresh, whole eval == HCE + net).
+add_executable(forge_nnue_microbench tools/nnue_microbench.cpp)
+target_link_libraries(forge_nnue_microbench PRIVATE forge_core Threads::Threads)
+
 enable_testing()
 add_test(NAME forge_tests COMMAND forge_tests)
 add_test(NAME forge_correction_history_tests COMMAND forge_correction_history_tests)
@@ -243,6 +248,8 @@ add_test(NAME forge_material_key_tests COMMAND forge_material_key_tests
     ${CMAKE_CURRENT_SOURCE_DIR}/tools/openings/forge-10000.epd)
 add_test(NAME forge_net_scale_tests COMMAND forge_net_scale_tests)
 add_test(NAME forge_datagen_tests COMMAND forge_datagen_tests ${CMAKE_CURRENT_BINARY_DIR}/datagen_unit)
+add_test(NAME forge_nnue_microbench_check COMMAND forge_nnue_microbench --check-only --positions 2000
+    --wac ${CMAKE_CURRENT_SOURCE_DIR}/tools/nnue_microbench_wac300.epd)
 add_test(NAME forge_legal_witness_tests COMMAND forge_legal_witness_tests
     ${CMAKE_CURRENT_SOURCE_DIR}/tests/legal_witness_fixtures.tsv
     ${CMAKE_CURRENT_SOURCE_DIR}/tools/openings/forge-10000.epd)
