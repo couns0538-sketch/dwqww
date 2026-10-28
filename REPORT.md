@@ -48,21 +48,27 @@
   trees, bench/perft pins ALL OK; CI release/ASan/TSan green):
   - compile-time switches, so the default build is the lock binary: S13 TtChildPrefetch (switch + UCI), S29
     FORGE_SPEEDSTACK, S32 `forge datagen` (FORGE_DATAGEN), S37 NNUE microbench target, S04fix cold-init probe,
-    S08fix profile counters, S-A4 H512 build flags;
+    S08fix profile counters, S-A4 H512 build flags, S12 null-edge accumulator alias (FORGE_NNUE_LAZY_ACC +
+    `NnueLazyAcc`), S14 FORGE_NOZERO_MOVE_BUFFERS;
   - runtime UCI options, so the default binary changes: S11 MaterialKeyTable, S41 NetScale, A1 HistRework, S-A2
     NnueInt16, S-IT IntendedThreefold.
   - **OFF-path speed on a quiet runner** (`opus-offguard`, plus the S11 and S-IT reports): S11, S41 and S-IT show no
     measurable cost. A1 costs −0.8% / −1.0% CPU NPS (d16/d20) and S-A2 −0.4% / −0.5%, both CIs excluding 0. This
     matters only if they are merged with the option off by default; a compile switch would remove it.
+- **The one measured speed gain: S14's `FORGE_NOZERO_MOVE_BUFFERS`** (build switch, default off). It stops zero-filling
+  the move buffers (3,328 B per move picker, 1 KiB per move list) without changing any search result (bench and
+  perft exact, pick order identical over 2.28M sequences, ASan/UBSan/TSan clean). Two quiet runners: +2.00% / +2.16%
+  and +2.26% / +2.67% CPU NPS at d16 / d20, with A/A controls including 0. It is the gate candidate of this round
+  for speed; no Elo claim without the gate. S12's null-edge alias, by contrast, is node-exact but has no measurable
+  effect (within ±0.4%; the copies it avoids are about 0.07% of search time).
 - **Quiet-box checks of PC-only tools** (GitHub runners): S49's speed check on a Windows runner (verdict PASS: A/A
   CIs contain 1, a synthetic 5% slowdown is detected); the S25fix and S27fix checkers on Linux (green; the PC-only
   test failures are Windows line endings and paths). S05fix and S08fix Linux CI were recorded earlier.
 - **No gates were run.** Each gate-ready candidate names its option, value, SPRT and srand in its REPORT.md.
 
 ## In progress / left
-- **S12 / S14 follow-ups (sub-agent, running):** S14's 3,328-byte MovePicker zero-fill per construction (switch
-  default OFF, quiet-runner NPS) and S12's null-move accumulator alias port (default OFF, node-exact). Both jobs
-  are DONE without them; these close their last UNVERIFIED lines.
+- **S14 follow-up, one CI job left:** the profile job of run 40527244836 (callgrind memset attribution, valgrind
+  memcheck, clang MSan) was still running when the follow-up was committed; everything else in S12 and S14 is done.
 - **Everything else is for the owner or crew:**
   - gates;
   - CR reviews of the proposed patches;

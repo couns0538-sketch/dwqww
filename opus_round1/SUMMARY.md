@@ -50,6 +50,9 @@ After the OPUS jobs: `SOL_LEFTOVERS_FOR_CLAUDE.md` (Sol's queue), on branches `o
     S37 (microbench), S08fix (profile counters), S04fix (ON cold-init); runtime options S11 (OFF vs lock: no slowdown), S41 (NetScale; no
     measurable OFF cost, opus-offguard).
   - S49 speed check verified on a Windows runner (40521059492, PASS); S25fix and S27fix checkers verified on Linux.
+  - Follow-ups: S12 null-edge accumulator alias ported (FORGE_NNUE_LAZY_ACC + `NnueLazyAcc`; default build = lock binary;
+    node-exact; no measurable NPS effect, not proposed for a gate); S14 FORGE_NOZERO_MOVE_BUFFERS (default build = lock
+    binary; node-exact; quiet runners +2.0..+2.7% CPU NPS at d16/d20, A/A controls include 0: the speed gate candidate).
   - The rest are tools, studies and evidence (`[skip ci]`).
 - **Section 2, Astra:**
   - A1 `HistRework` (engine, OFF = lock nodes, CI 40515121020 green, gate `HistRework=2` first; OFF path −0.8/−1.0% NPS on a quiet runner);
