@@ -311,10 +311,12 @@ Notes and evidence under `fable_review/deep/` (one file per item).
   default). SA4's width switch and bounds hold for H512. No defect.
 - **r3 merge resolutions read against the merged branches** (`deep/r3_merges.md`, per-merge diffs `deep/r3/`):
   every merge's automatic 3-way result was recomputed with `git merge-tree` and diffed against the committed merge, so
-  exactly R3-1's manual edits were read; twelve merges were clean, twelve conflicted (the Sol branches patched
-  src/search.cpp, which the stack had split into src/search/*.inc). S14, S29, S11, S13, S41, SIT, S12 are hunk-for-hunk
-  the branch's code; A1, O2, C6 are coherent ports whose ON behaviour R3-1 pinned against the branches (ON bench nodes,
-  parity test); S08fix is entirely under `#ifdef FORGE_PROF` with `#else` keeping the lock code. No logic change by any
+  exactly R3-1's manual edits were read; of 37 merges 16 were clean and 21 conflicted (the merged branches patched
+  src/search.cpp, which the stack had split into src/search/*.inc, or added option blocks at the same place). S14,
+  S29, S11, S13, S41, SIT, S12 are hunk-for-hunk the branch's code; A1, O2, C6, C1, C2, C3, O4, O5, O8, C5 and the
+  O7 combo are marker removals, moved option handlers and R3's documented unifications (instance selection, v2 option
+  rules), all cross-checked ON against their branches by R3-1 except HardDeadline, whose statement order was
+  verified by hand; S08fix is entirely under `#ifdef FORGE_PROF` with `#else` keeping the lock code. No logic change by any
   resolution. Owner item: the stack's `bad_captures_` is still 64 entries in both `#if` branches of movepicker.hpp;
   the fable-review-buffix change belongs there too.
 - **Planted-bug (mutant) checks re-run on the PC** (`deep/mutants/<job>.log`, runner `deep/fable_nnue_mutants.sh`,
