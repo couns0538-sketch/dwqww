@@ -27,19 +27,19 @@ CI runs `fable_review/ci_runs.txt`). Method, in this order:
 | Sol leftovers, tools/analysis only | opus-sol-A2, A3, A7, S05fix..S07fix, S09fix, S10fix, S15..S28fix, S30, S31, S33fix..S36, S38..S40, S42..S50, SA1, SA3, SA6, SC4, offguard | none |
 | summary | opus-summary | O3 tree + progress file |
 
-## CI runs with a non-success conclusion (to be explained one by one)
+## CI runs with a non-success conclusion (all explained; every branch head is green)
 
 | branch | run | workflow | conclusion | status of the review |
 |---|---|---|---|---|
-| opus-C3 | 40498064402 | opus-ci | failure | pending |
-| opus-O1 | 40367007552 | opus-ci | failure | pending |
-| opus-O1-LTT | 40470578003 | opus-o1-ltt | cancelled | pending |
-| opus-O2 | 40381997386 | opus-o2-perf | failure | pending |
+| opus-C3 | 40498064402 | opus-ci | failure | explained: C3 TSan hook exited 1 on f07630ec; later run 40503292559 (581ad5da) green |
+| opus-O1 | 40367007552 | opus-ci | failure | explained: tsan job on c6956801; later run 40381524034 (33b0790b) green |
+| opus-O1-LTT | 40470578003 | opus-o1-ltt | cancelled | explained: cancelled by the next push; 40471171993 green |
+| opus-O2 | 40381997386 | opus-o2-perf | failure | explained: runner clock (`ninja: manifest still dirty`); 40383970663 green |
 | opus-r3-stack | 40564150654 | opus-ci | failure | known: two merged tests used pre-O3 member names, fixed by 2432670b (later runs green) |
-| opus-sol-S14 | 40527244836 | opus-sol-s14fu | cancelled | pending |
-| opus-sol-S26fix | 40505681846 | opus-sol-s26fix | failure | pending |
-| opus-sol-S27fix | 40521425927 | opus-sol-s27fix-linux | failure | pending |
-| opus-sol-S49 | 40509722120, 40510697858 | opus-sol-s49-box | failure | pending |
+| opus-sol-S14 | 40527244836 | opus-sol-s14fu | cancelled | explained: cancelled by the next push; 40547593226 green |
+| opus-sol-S26fix | 40505681846 | opus-sol-s26fix | failure | explained: fixed by the next push; 40507421791 green |
+| opus-sol-S27fix | 40521425927 | opus-sol-s27fix-linux | failure | explained: fixed by the next push; 40522039382 green |
+| opus-sol-S49 | 40509722120, 40510697858 | opus-sol-s49-box | failure | explained: fixed by 57701360; 40517374833 green |
 
 ## CI failures: all explained, none outstanding
 
