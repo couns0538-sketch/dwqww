@@ -145,6 +145,14 @@ bytes that depend on the checkout's line endings. They passed in Opus's own chec
 recorded as such: these tests should normalise line endings / hash normalised text and locate the repository root
 instead of assuming it, so that they are checkout-independent (mistake 3 below).
 
+## Tool numbers re-executed: gate statistics (S44 `check`) on the real gate results (DONE)
+
+`forge_sol_S44_elo_vs_epochs.py check --gates D:\grok-pc-data\forge_push` (read-only, 71 gate folders) recomputes
+every gate's Elo, Elo error, nElo and exact fastchess LLR from its pentanomial line and compares with the printed
+values: **CHECK PASS**, max |printed - recomputed| = Elo 0.0046, err 0.005, nElo 0.0049, LLR 0.005 (the print
+rounding). So the statistics behind S44/S33fix/S46/S48fix (shared formulas) reproduce the gate results.
+Evidence: `fable_review/s44_check.log`.
+
 ## Mistakes found (with the correction)
 
 | # | where | mistake | correction |
@@ -177,9 +185,9 @@ tree, exe fixtures); they are not fragile, only not runnable from an exported jo
 - Verified systematically: latest CI of all 30 engine branches (identity ALL OK, known-failure PASS x3, TSan 0);
   every tool job's own unit tests re-run from an exported copy (27 passed; 9 environment failures explained;
   the 5 trainer-importing tests not run, by the PC rule).
-- Not re-executed: the numbers printed in the tool reports (gate statistics S06fix/S44/S46/S48fix, data jobs
-  S16/S17/S40 on the real shards, S30/S31 curves, S19/S21 fits); not read line by line: the trainer variants
-  S39/S50/SA3 and O7's pawn-pair details. C1's decoder and O4/O6's own diffs have been read in full.
+- Re-executed: S44's gate-statistics check on the 71 real gate folders (PASS). Not re-executed: the data jobs
+  S16/S17/S40 on the real shards, S30/S31 curves, S19/S21 fits; not read line by line: the trainer variants
+  S39/S50/SA3. C1's decoder and O4/O6/O7's own diffs have been read in full.
 
 ## Mistakes found: 3 (summary)
 
