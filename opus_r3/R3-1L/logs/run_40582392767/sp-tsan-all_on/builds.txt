@@ -1,0 +1,13 @@
+exe allsw: sha256 51e46d533c37ee4b290f6c324e46861d95850079c57d08c47a736e3a6ff8a4e2 bytes 8945208 mode tsan
+  CMAKE_CXX_FLAGS: -march=x86-64-v3 -mtune=znver5 -fno-fast-math -ffp-contract=off -DFORGE_NNUE_HIDDEN=256 -fsanitize=thread -fno-omit-frame-pointer
+  CMAKE_BUILD_TYPE: RelWithDebInfo  switches: -DFORGE_NNUE_O2=ON -DFORGE_NOZERO_MOVE_BUFFERS=ON -DFORGE_S13_TT_CHILD_PREFETCH=ON -DFORGE_SPEEDSTACK=ON -DFORGE_NNUE_LAZY_ACC=ON -DFORGE_PROF=ON -DFORGE_NNUE_INT16=ON -DFORGE_DATAGEN=ON -DFORGE_ATTACKS_INIT_ONCE=ON -DFORGE_S04_COLD_PROBE_RUNS=50 
+  asan/ubsan/tsan symbols: 0/0/27
+  FMA instructions (release must be 0): -
+  identity (uci_check quick: bench 11/13/16 + perft5 startpos/kiwipete): ALL OK
+    bench d11 nodes 312866 ref 312866 OK
+    bench d13 nodes 862329 ref 862329 OK
+    bench d16 nodes 3024920 ref 3024920 OK
+    perft5 startpos 4865609 ref 4865609 OK
+    perft5 kiwipete 193690690 ref 193690690 OK
+    ALL OK
+  build+check seconds: 129

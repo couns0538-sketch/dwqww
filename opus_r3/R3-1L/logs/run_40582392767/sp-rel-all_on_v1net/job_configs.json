@@ -1,0 +1,45 @@
+{
+ "comment": "R3-1L job subset of /home/runner/work/dwqww/dwqww/opus_r3/R3-1_selfplay/configs_final.json: all_on_v1net (only the syzygy path differs)",
+ "syzygy": "/home/runner/syzygy345",
+ "harness_args": [
+  "--nodes-min=200",
+  "--nodes-max=2000",
+  "--mix=nodes=58,clock=8,movetime=10,depth=8,infinite=6,ponderhit=5,pondermiss=5"
+ ],
+ "configs": [
+  {
+   "name": "all_on_v1net",
+   "runner": "A",
+   "exe": "allsw",
+   "threads": 2,
+   "comment": "every switch and every option except the v2-net ones (NnueLazyAcc and NnueInt16 act on the compiled-in net only)",
+   "opts": [
+    "SyzygyPath={syzygy}",
+    "CorrHistPlus=7",
+    "CorrMargins=1",
+    "CorrExt=1",
+    "CuckooRep=true",
+    "MaterialKeyTable=true",
+    "NetScale=99",
+    "HistRework=2",
+    "IntendedThreefold=true",
+    "HardDeadline=10",
+    "LocklessTT=true",
+    "SmpExactNodes=true",
+    "SmpBestThread=true",
+    "TtChildPrefetch=true",
+    "NnueLazyAcc=true",
+    "Profile=true",
+    "NnueInt16=true"
+   ],
+   "expect": [
+    "Syzygy: 145 WDL",
+    "LocklessTT active",
+    "TtChildPrefetch active",
+    "prof schema 1",
+    "NnueLazyAcc active",
+    "NnueInt16 active"
+   ]
+  }
+ ]
+}

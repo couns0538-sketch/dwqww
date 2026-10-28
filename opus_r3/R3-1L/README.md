@@ -51,9 +51,12 @@ gh run list --branch opus-r3-sp-linux --workflow opus-r3-sp-linux --limit 3
 gh run view <run id>                                  # job states
 gh run download <run id> -n sp-summary -D F:/opus_scratch/r3/R3-1L/run_<run id>/summary   # SUMMARY.md + summary.json
 gh run download <run id> -p 'sp-*' -D F:/opus_scratch/r3/R3-1L/run_<run id>/arts         # every job's logs
-python3 -I -B opus_r3/R3-1L/summarize.py --jobs opus_r3/R3-1L/jobs.json --arts F:/opus_scratch/r3/R3-1L/run_<run id>/arts
+bash opus_r3/R3-1L/collect.sh <run id> [selection]   # all of the above + table + evidence copy (see below)
 ```
-(the last line rebuilds the table from the job artifacts, also for a run whose summary job has not run yet).
+`collect.sh` downloads the artifacts of the finished jobs (run it again later to add the rest), rebuilds the
+table in `logs/run_<id>/SUMMARY.md` (jobs still running show "no artifact") and copies the small evidence; the
+selection must be the one the run started with: `'asan-*,tsan-*,rel-*'` for run 40582392767 (29 jobs),
+`'fin-*'` for run 40585589600 (push with push_jobs fin-*), `all` for a dispatch with jobs=all.
 
 ## Re-run on a newer stack head (main session)
 ```

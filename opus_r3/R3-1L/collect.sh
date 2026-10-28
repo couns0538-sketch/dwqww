@@ -4,10 +4,14 @@
 # table with summarize.py (jobs still running show "no artifact") and copies the small evidence of each job
 # (job.tsv, builds, matrix log, MATRIX.md, per-config summaries, matrix_summary.json with the sha256 of the big
 # logs) into opus_r3/R3-1L/logs/run_<id>/. The big logs (games.jsonl, pgn, transcripts) stay in F:/opus_scratch.
-# usage (Git Bash, from the opus-r3-sp-linux worktree): bash opus_r3/R3-1L/collect.sh <run id> [python exe]
+# usage (Git Bash, from the opus-r3-sp-linux worktree): bash opus_r3/R3-1L/collect.sh <run id> [selection] [python]
+#   selection = the jobs the run was started with (select_jobs.py syntax): "all" (default: a dispatch with
+#   jobs=all), 'asan-*,tsan-*,rel-*' (the first run 40582392767: the 29 jobs before fin-* existed), 'fin-*' (a push
+#   with push_jobs ["fin-*"], e.g. run 40585589600), or the dispatch input.
 set -uo pipefail
 RUN=$1
-PY=${2:-C:/Users/Administrator/grok-pc/nnue/.venv/Scripts/python.exe}
+SEL=${2:-all}
+PY=${3:-C:/Users/Administrator/grok-pc/nnue/.venv/Scripts/python.exe}
 ROOT=$(cd "$(dirname "$0")/../.." && pwd)
 ARTS=/f/opus_scratch/r3/R3-1L/run_$RUN/arts
 EV=$ROOT/opus_r3/R3-1L/logs/run_$RUN
@@ -18,7 +22,8 @@ for name in $(gh api "repos/{owner}/{repo}/actions/runs/$RUN/artifacts?per_page=
   [ -d "$ARTS/$name" ] && continue
   gh run download "$RUN" -n "$name" -D "$ARTS/$name" || echo "download failed: $name"
 done
-nice -n 19 "$PY" -I -B "$ROOT/opus_r3/R3-1L/summarize.py" --jobs "$ROOT/opus_r3/R3-1L/jobs.json" --arts "$ARTS" --out "$EV" > /dev/null
+nice -n 19 "$PY" -I -B "$ROOT/opus_r3/R3-1L/select_jobs.py" "$ROOT/opus_r3/R3-1L/jobs.json" "$SEL" "$EV/selected_jobs.json" > /dev/null || exit 2
+nice -n 19 "$PY" -I -B "$ROOT/opus_r3/R3-1L/summarize.py" --jobs "$EV/selected_jobs.json" --arts "$ARTS" --out "$EV" > /dev/null
 rc=$?
 for d in "$ARTS"/sp-*/; do
   j=$(basename "$d")

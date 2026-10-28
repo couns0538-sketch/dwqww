@@ -11,3 +11,4 @@
 | ASan+UBSan on the all-ON config; TSan on every Threads=2 config (fewer games: sanitizer slowdown) | job brief; run_ci.sh sanitizer options |
 | python-chess pinned to the PC venv's 1.11.2 | `C:/Users/Administrator/grok-pc/nnue/.venv` (`chess.__version__`) |
 | Job plan as data (jobs.json -> fromJSON matrix) so the summary knows every expected job and flags missing artifacts | GitHub Actions matrix from a job output (docs: "Using a matrix for your jobs") |
+| Final-head configs (all_on_final, smp_helpers_past_depth, spsa_plus10/minus10: the 20 SPSA spins at about +-10%) and a push that runs only those (push_jobs, dispatch input jobs) to keep the shared Actions queue short | coordinator message 2026-10-27 ~23:15 PST (stack 34ef8a70, engine 064af732: R3-6 SmpHelpersPastDepth, R3-4 spins); spin ranges from src/search/tune.inc |
