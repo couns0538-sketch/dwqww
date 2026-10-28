@@ -1,0 +1,16 @@
+holdout: 50,000 positions from 1 files (0s)
+king buckets: 4 mirror=True factor=1 map(rank 8 first, files a-h): 3 3 3 3 3 3 3 3 | 3 3 3 3 3 3 3 3 | 3 3 3 3 3 3 3 3 | 3 3 3 3 3 3 3 3 | 2 2 2 2 2 2 2 2 | 2 2 2 2 2 2 2 2 | 0 0 1 1 1 1 0 0 | 0 0 1 1 1 1 0 0
+BASELINE HCE-alone holdout subset n=16,384: mse_teacher(blend1.0)=0.022136 mse_blend0.6=0.046101
+INIT residual net: mse_teacher=0.022136 mse_b0.6=0.046101 (baseline 0.022136/0.046101)
+INIT CHECK OK (residual init == HCE alone)
+train: 200,000 positions from 4 files (0s load)
+optimizer: AdamDMLDevScalars (--adam-impl dml), loss sync every 128 steps
+MEM after-load trainer_private=0.18GB sys_avail=14.43GB
+steps/epoch=150 total=300 batch=1024 lr=0.002 cosine blend 1.0->0.6
+EPOCH 1/2 done in 7s train_mse=0.021400 | HOLDOUT n=16,384 mse_teacher=0.021974 (HCE 0.022136, +0.73%) mse_b0.6=0.045936 (HCE 0.046101, +0.36%) mse_b0.8=0.023981
+Saved epoch001-step000000150 (.pt .fnn2 .json)
+MEM epoch001 trainer_private=0.24GB sys_avail=14.42GB
+EPOCH 2/2 done in 7s train_mse=0.032542 | HOLDOUT n=16,384 mse_teacher=0.020486 (HCE 0.022136, +7.45%) mse_b0.6=0.043798 (HCE 0.046101, +4.99%) mse_b0.8=0.022168
+Saved epoch002-step000000300 (.pt .fnn2 .json)
+MEM epoch002 trainer_private=0.24GB sys_avail=14.38GB
+Finished: 307,200 positions in 14s

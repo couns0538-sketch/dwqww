@@ -1,0 +1,28 @@
+# Is a v2 net really in use? C4 review-fix exe (PC recipe, sha256 b41c588b9483e7cc...), Threads 1, Hash 16, OwnBook false
+# 1. OFF (no NNUE option): bench d11/13/16/20/22 must equal the AL1 s198 pins; nothing NNUE-v2 related is printed
+$ python tools/nnue/bench_options.py forge_c4fix.exe 11,13,16,20,22 --expect d11=312866,d13=862329,d16=3024920,d20=12389307,d22=34048354
+bench d11 nodes 312866 time_ms 170 nps 1840388 OK
+bench d13 nodes 862329 time_ms 469 nps 1838654 OK
+bench d16 nodes 3024920 time_ms 1558 nps 1941540 OK
+bench d20 nodes 12389307 time_ms 6356 nps 1949230 OK
+bench d22 nodes 34048354 time_ms 16449 nps 2069934 OK
+exit status 0
+
+# 2. ON: CPU-smoke-trained net with 4 mirrored king buckets (5_nnue sample data, 3 epochs; trained in the C4 job, sha256 692adca9640d60cc10b46cdc1c1e3d97609fc8f97615c7b7b34cdc322e49d367)
+#    NNUEFile then NNUEKingBuckets 4. The ERROR line after NNUEFile is the half-set request (file loaded, NNUEKingBuckets still 0), resolved by the next option; the active line is printed when the net becomes active and again at isready
+$ python tools/nnue/bench_options.py forge_c4fix.exe 11,13,16,20,22 --set NNUEFile=smoke_kb4.fnn2 --set NNUEKingBuckets=4
+info string NNUE v2: loaded D:/grok-pc-data/dwqww/.claude/worktrees/b/c4_final/nets/smoke_kb4.fnn2 king buckets 4 output buckets 1 hidden 256 mirrored residual fnv1a 971f7ad982fc3b3f
+info string ERROR NNUE v2: NNUEFile D:/grok-pc-data/dwqww/.claude/worktrees/b/c4_final/nets/smoke_kb4.fnn2 is loaded (4 mirrored king buckets) but NNUEKingBuckets is 0; set NNUEKingBuckets 4 to use it
+info string NNUE v2: active: D:/grok-pc-data/dwqww/.claude/worktrees/b/c4_final/nets/smoke_kb4.fnn2 king buckets 4 output buckets 1 hidden 256 mirrored residual fnv1a 971f7ad982fc3b3f
+info string NNUE v2: active: D:/grok-pc-data/dwqww/.claude/worktrees/b/c4_final/nets/smoke_kb4.fnn2 king buckets 4 output buckets 1 hidden 256 mirrored residual fnv1a 971f7ad982fc3b3f
+bench d11 nodes 449096 time_ms 268 nps 1675731 MISMATCH (expected 312866)
+bench d13 nodes 1244609 time_ms 746 nps 1668376 MISMATCH (expected 862329)
+bench d16 nodes 4057897 time_ms 2448 nps 1657637 MISMATCH (expected 3024920)
+bench d20 nodes 24478226 time_ms 14816 nps 1652148 MISMATCH (expected 12389307)
+bench d22 nodes 35855314 time_ms 22431 nps 1598471 MISMATCH (expected 34048354)
+exit status 1 (1 = node counts differ from the lock pins, as they must with another net)
+
+# 3. ON again, d11/13/16 (determinism)
+bench d11 nodes 449096 time_ms 275 nps 1633076
+bench d13 nodes 1244609 time_ms 780 nps 1595652
+bench d16 nodes 4057897 time_ms 2553 nps 1589462

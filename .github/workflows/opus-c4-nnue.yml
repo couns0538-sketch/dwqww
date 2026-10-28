@@ -1,0 +1,52 @@
+# C4/C5 NNUE evidence on Linux (opus-C4 / opus-C5 branches): v2 unit tests, options-off identity, lock-replica
+# benches through UCI, CPU-torch smoke training and the 10000-position export parity (opus_round1/C4/ci_c4.sh).
+# Read-only; uploads logs as artifacts.
+name: opus-c4-nnue
+on:
+  push:
+    branches: ['opus-C4', 'opus-C5']
+    paths-ignore:
+      - 'opus_round1/**/*.md'
+      - 'opus_round1/**/*.log'
+      - 'opus_round1/**/*.json'
+      - 'opus_round1/**/*.tsv'
+      - 'opus_round1/**/*.diff'
+      - 'opus_round1/**/SHA256SUMS'
+      - 'REPORT.md'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  nnue:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Toolchain and CPU torch
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq g++-14 ninja-build cmake
+          g++-14 --version | head -1
+          python -m pip install -q numpy==1.26.4
+          python -m pip install -q torch==2.4.1 --index-url https://download.pytorch.org/whl/cpu
+          python -c "import torch, numpy; print(torch.__version__, numpy.__version__)"
+          nproc; lscpu | grep -E 'Model name' | cut -c1-120
+      - name: C4 evidence
+        run: |
+          python3 -c "import torch; print('python3 sees torch', torch.__version__)"
+          bash opus_round1/C4/ci_c4.sh ci_c4
+      - name: Upload logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: opus-c4-nnue
+          path: |
+            ci_c4/*.log
+            ci_c4/*.json
+            ci_c4/*.tsv
+            ci_c4/smoke_kb*/*.json
+            ci_c4/smoke_kb*/settings_*.txt
+          if-no-files-found: warn

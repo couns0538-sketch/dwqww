@@ -1,8 +1,10 @@
 #include "forge/board.hpp"
 #include "forge/book.hpp"
 #include "forge/nnue.hpp"
+#include "forge/nnue_v2.hpp"
 #include "forge/search.hpp"
 #include "forge/syzygy.hpp"
+#include "forge/search_options.hpp"
 #include "forge/uci_output.hpp"
 #include "search/timeman.hpp"
 
@@ -361,6 +363,42 @@ int main() {
         control_high = high;
     };
 
+    // v2 networks (UCI NNUEFile / NNUEKingBuckets / NNUEThreats / NNUEPawnPairs; fail-loud rule in forge/search_options.hpp): a
+    // requested v2 net that cannot be used is reported at once and, if still unusable at the next
+    // isready, go or bench, reported again before the engine exits with status 2. Never a silent
+    // fall-back to the compiled-in network. With no NNUE option set nothing here prints anything.
+    constexpr int NnueV2ExitStatus = 2;
+    int exit_status = 0;
+    std::string nnue_file;         // NNUEFile ("" = none)
+    std::string nnue_file_error;   // why nnue_file did not load ("" = it loaded)
+    std::string nnue_v2_active;    // "active: ..." while a v2 net is in use, else ""
+    bool nnue_v2_shown = false;    // the last state printed was a v2 one (request, error or active net)
+    auto nnue_v2_changed = [&]() {
+        std::string state;
+        const bool active = forge::options::apply_nnue_v2(&state);
+        const std::string problem = forge::options::nnue_v2_problem(nnue_file, nnue_file_error);
+        const bool requested = !nnue_file.empty() || forge::options::nnue_king_buckets > 0 || forge::options::nnue_threats != 0 ||
+                               forge::options::nnue_pawn_pairs != 0;
+        if (!nnue_file_error.empty()) state += " (NNUEFile " + nnue_file + ": " + nnue_file_error + ")";
+        {
+            const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex());
+            if (!problem.empty()) std::cout << "info string ERROR NNUE v2: " << problem << std::endl;
+            else if (active && state != nnue_v2_active) std::cout << "info string NNUE v2: " << state << std::endl;
+            else if (!active && (requested || nnue_v2_shown)) std::cout << "info string NNUE v2: " << state << std::endl;
+        }
+        nnue_v2_active = active ? state : std::string();
+        nnue_v2_shown = requested || active || !problem.empty();
+        searcher.clear_hash();
+    };
+    // True (after printing the error) when a v2 request cannot be honoured.
+    auto nnue_v2_unusable = [&]() {
+        const std::string problem = forge::options::nnue_v2_problem(nnue_file, nnue_file_error);
+        if (problem.empty()) return false;
+        const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex());
+        std::cout << "info string ERROR NNUE v2: " << problem << std::endl;
+        return true;
+    };
+
     std::string line;
     while (true) {
         control_priority(forge::options::hard_deadline_ms > 0);
@@ -391,6 +429,13 @@ int main() {
                          "option name Syzygy50MoveRule type check default true\n";
             std::cout << "option name CorrHistPlus type spin default 0 min 0 max 7\n";
             std::cout << "option name HardDeadline type spin default 0 min 0 max 1000\n";
+            // v2 networks (forge/search_options.hpp): off unless NNUEKingBuckets > 0.
+            std::cout << "option name NNUEFile type string default <empty>\n"
+                         "option name NNUEKingBuckets type spin default 0 min 0 max 32\n";
+            // O6: a v2 net with threat inputs (needs such a net in NNUEFile).
+            std::cout << "option name NNUEThreats type spin default 0 min 0 max 1\n";
+            // O7: a v2 net with pawn-pair inputs (needs such a net in NNUEFile).
+            std::cout << "option name NNUEPawnPairs type spin default 0 min 0 max 1\n";
 #ifdef FORGE_EXPOSE_TUNABLES
             // Development builds advertise the search constants so match
             // runners can set them; release builds accept them silently.
@@ -402,7 +447,12 @@ int main() {
             std::cout << "option name Clear Hash type button\n"
                          "uciok" << std::endl;
         } else if (command == "isready") {
-            { const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex()); std::cout << "readyok" << std::endl; }
+            if (nnue_v2_unusable()) { exit_status = NnueV2ExitStatus; break; }
+            {
+                const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex());
+                if (!nnue_v2_active.empty()) std::cout << "info string NNUE v2: " << nnue_v2_active << '\n';
+                std::cout << "readyok" << std::endl;
+            }
         } else if (command == "ucinewgame") {
             control_priority(false);
             stop_search();
@@ -565,7 +615,52 @@ int main() {
                     const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex());
                     std::cout << "info string invalid value for option UseNNUE" << std::endl;
                 }
-                searcher.clear_hash();
+                // Silent unless a v2 network was requested (the default prints nothing new).
+                nnue_v2_changed();
+            } else if (name == "NNUEFile") {
+                std::string rest;
+                std::getline(input, rest);
+                std::string path = value_text + rest;
+                while (!path.empty() && (path.back() == ' ' || path.back() == '\r')) path.pop_back();
+                // "<empty>" (the advertised default) clears the file part of the request.
+                nnue_file = path == "<empty>" ? std::string() : path;
+                nnue_file_error.clear();
+                if (nnue_file.empty()) {
+                    forge::nnue::v2::unload();
+                } else if (!forge::nnue::v2::load(nnue_file, &nnue_file_error)) {
+                    if (nnue_file_error.empty()) nnue_file_error = "load failed";
+                } else {
+                    const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex());
+                    std::cout << "info string NNUE v2: loaded " << forge::nnue::v2::summary(*forge::nnue::v2::loaded())
+                              << std::endl;
+                }
+                nnue_v2_changed();
+            } else if (name == "NNUEKingBuckets") {
+                int value = 0;
+                const auto parsed = std::from_chars(value_text.data(), value_text.data() + value_text.size(), value);
+                if (parsed.ec != std::errc{} || parsed.ptr != value_text.data() + value_text.size()) {
+                    const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex());
+                    std::cout << "info string invalid value for option NNUEKingBuckets" << std::endl;
+                } else {
+                    forge::options::nnue_king_buckets = std::clamp(value, 0, 32);
+                }
+                nnue_v2_changed();
+            } else if (name == "NNUEThreats") {   // O6: spin 0-1 (true / false accepted as well)
+                if (value_text == "1" || value_text == "true") forge::options::nnue_threats = 1;
+                else if (value_text == "0" || value_text == "false") forge::options::nnue_threats = 0;
+                else {
+                    const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex());
+                    std::cout << "info string invalid value for option NNUEThreats" << std::endl;
+                }
+                nnue_v2_changed();
+            } else if (name == "NNUEPawnPairs") {   // O7: spin 0-1 (true / false accepted as well)
+                if (value_text == "1" || value_text == "true") forge::options::nnue_pawn_pairs = 1;
+                else if (value_text == "0" || value_text == "false") forge::options::nnue_pawn_pairs = 0;
+                else {
+                    const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex());
+                    std::cout << "info string invalid value for option NNUEPawnPairs" << std::endl;
+                }
+                nnue_v2_changed();
             } else if (name == "Hash" || name == "Move Overhead" || name == "Threads") {
                 int value = 0;
                 const auto parsed = std::from_chars(
@@ -585,6 +680,7 @@ int main() {
             apply_position(board, input);
         } else if (command == "go") {
             stop_search();
+            if (nnue_v2_unusable()) { exit_status = NnueV2ExitStatus; break; }
             std::string first;
             const auto position = input.tellg();
             input >> first;
@@ -708,6 +804,7 @@ int main() {
             // signature and speed for quick regression and performance checks.
             control_priority(false);
             stop_search();
+            if (nnue_v2_unusable()) { exit_status = NnueV2ExitStatus; break; }
             int depth = 13;
             if (int parsed = 0; input >> parsed) depth = std::clamp(parsed, 1, 64);
             constexpr std::array<std::string_view, 8> fens{
@@ -764,5 +861,5 @@ int main() {
         }
     }
     stop_search();
-    return 0;
+    return exit_status;
 }

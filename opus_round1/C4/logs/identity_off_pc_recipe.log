@@ -1,0 +1,15 @@
+# C4 review-fix OFF identity (all new options at their defaults), commit 8fb138332010bcd1651c2af44f10c53e4fe030d1
+$ build_pc.sh <git archive of HEAD> forge_c4fix.exe   (MSYS2 ucrt64 g++ 15.2, exact 2_build/build_windows.ps1 flags)
+built /d/grok-pc-data/dwqww/.claude/worktrees/b/c4fix_final/forge_c4fix.exe sha256 b41c588b9483e7cca944a8c77d7776d9a7d64e7c3ec9ee19419a11064c6ebf70
+FMA (vfmadd/vfmsub/vfnmadd) count: 0
+$ python 2_build/uci_check.py forge_c4fix.exe --full
+bench d11 nodes 312866 ref 312866 OK
+bench d13 nodes 862329 ref 862329 OK
+bench d16 nodes 3024920 ref 3024920 OK
+bench d20 nodes 12389307 ref 12389307 OK
+bench d22 nodes 34048354 ref 34048354 OK
+perft5 startpos 4865609 ref 4865609 OK
+perft5 kiwipete 193690690 ref 193690690 OK
+ALL OK
+$ md5sum src/nnue_weights.inc (compiled-in lock net, unchanged)
+22b4b9e2c61b37c0450f13a3a92c19b3 *tree/src/nnue_weights.inc

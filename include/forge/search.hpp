@@ -76,6 +76,10 @@ private:
     // functions after it then keep their alignment when the cold worker
     // lifecycle code before it in .text changes size (CorrHistPlus member).
     [[nodiscard, gnu::aligned(64)]] int static_evaluate(const Board& board, SearchStack* ss);
+    // v2 network path (options::nnue_v2; src/search/evaluation_v2.inc).
+    [[nodiscard]] int static_evaluate_v2(const Board& board, SearchStack* ss);
+    // v2 network with threat and / or pawn-pair inputs (O6 / O7; src/search/evaluation_extra.inc).
+    [[nodiscard]] int static_evaluate_extra(const Board& board, SearchStack* ss);
     void record_move(SearchStack* ss, const Board& board, const Move& move);
     void record_null_move(SearchStack* ss);
     // Syzygy WDL probe inside the search (src/search/tablebase.inc); only

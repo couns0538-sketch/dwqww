@@ -14,6 +14,7 @@
 // forge/tt.hpp, forge/history.hpp, forge/thread_data.hpp, forge/search_tune.hpp.
 #include "forge/search.hpp"
 #include "forge/syzygy.hpp"
+#include "forge/nnue_v2.hpp"
 #include "forge/uci_output.hpp"
 
 #include <algorithm>
@@ -31,6 +32,8 @@
 #include "search/tt.inc"          // transposition table
 #include "search/movepicker.hpp"  // staged move picker
 #include "search/worker.inc"      // per-thread state lifecycle
+#include "search/evaluation_extra.inc" // v2 network with threat / pawn-pair inputs (O6 NNUEThreats, O7 NNUEPawnPairs)
+#include "search/evaluation_v2.inc" // v2 network evaluation (NNUEFile + NNUEKingBuckets)
 #include "search/evaluation.inc"  // static evaluation glue, correction history
 #include "search/correction_plus.inc" // CorrHistPlus extra correction keys (cold)
 #include "search/timeman.hpp"     // time budgets and the soft stop rule (inline)

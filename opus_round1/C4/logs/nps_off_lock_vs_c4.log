@@ -1,0 +1,55 @@
+# NPS A/B, options off: A = AL1 s198 lock exe, B = C4 exe (Threads 1, Hash 16, 10 runs per build per depth, ABBA, fresh processes)
+# machine: shared Windows PC running gate games, self-play and NNUE training (load ~11 on 16 logical CPUs); nice 19
+$ python opus_round1/O3/nps_ab.py forge_h256_s198.exe forge_c4.exe 10 16 20
+d16 run  0 A nodes 3024920 time_ms 1650 nps 1833284 cpu_nps 1826367
+d16 run  1 B nodes 3024920 time_ms 1620 nps 1867234 cpu_nps 1826367
+d16 run  2 B nodes 3024920 time_ms 1593 nps 1898882 cpu_nps 1897989
+d16 run  3 A nodes 3024920 time_ms 1630 nps 1855779 cpu_nps 1809298
+d16 run  4 A nodes 3024920 time_ms 1623 nps 1863783 cpu_nps 1843761
+d16 run  5 B nodes 3024920 time_ms 1615 nps 1873015 cpu_nps 1843761
+d16 run  6 B nodes 3024920 time_ms 1577 nps 1918148 cpu_nps 1861489
+d16 run  7 A nodes 3024920 time_ms 1607 nps 1882339 cpu_nps 1843761
+d16 run  8 A nodes 3024920 time_ms 1633 nps 1852369 cpu_nps 1809298
+d16 run  9 B nodes 3024920 time_ms 1609 nps 1880000 cpu_nps 1826367
+d16 run 10 B nodes 3024920 time_ms 1625 nps 1861489 cpu_nps 1809298
+d16 run 11 A nodes 3024920 time_ms 1639 nps 1845588 cpu_nps 1809298
+d16 run 12 A nodes 3024920 time_ms 1656 nps 1826642 cpu_nps 1776100
+d16 run 13 B nodes 3024920 time_ms 1671 nps 1810245 cpu_nps 1809298
+d16 run 14 B nodes 3024920 time_ms 1659 nps 1823339 cpu_nps 1792545
+d16 run 15 A nodes 3024920 time_ms 1657 nps 1825540 cpu_nps 1792545
+d16 run 16 A nodes 3024920 time_ms 1686 nps 1794139 cpu_nps 1792545
+d16 run 17 B nodes 3024920 time_ms 1588 nps 1904861 cpu_nps 1861489
+d16 run 18 B nodes 3024920 time_ms 1619 nps 1868387 cpu_nps 1826367
+d16 run 19 A nodes 3024920 time_ms 1641 nps 1843339 cpu_nps 1792545
+d16 wall_nps A: mean 1842280 stdev 24236 min 1794139 max 1882339 n 10
+d16 wall_nps B: mean 1870560 stdev 33837 min 1810245 max 1918148 n 10
+d16 wall_nps B/A = 1.0154 (+1.54%), 95% CI of the difference: +0.13% .. +2.94%
+d16 cpu_nps A: mean 1809552 stdev 22633 min 1776100 max 1843761 n 10
+d16 cpu_nps B: mean 1835497 stdev 31256 min 1792545 max 1897989 n 10
+d16 cpu_nps B/A = 1.0143 (+1.43%), 95% CI of the difference: +0.11% .. +2.76%
+d20 run  0 A nodes 12389307 time_ms 6485 nps 1910455 cpu_nps 1910640
+d20 run  1 B nodes 12389307 time_ms 6426 nps 1927996 cpu_nps 1938669
+d20 run  2 B nodes 12389307 time_ms 6465 nps 1916366 cpu_nps 1924553
+d20 run  3 A nodes 12389307 time_ms 6572 nps 1885165 cpu_nps 1883410
+d20 run  4 A nodes 12389307 time_ms 6512 nps 1902534 cpu_nps 1915255
+d20 run  5 B nodes 12389307 time_ms 6409 nps 1933110 cpu_nps 1967533
+d20 run  6 B nodes 12389307 time_ms 6477 nps 1912815 cpu_nps 1919893
+d20 run  7 A nodes 12389307 time_ms 6490 nps 1908984 cpu_nps 1919893
+d20 run  8 A nodes 12389307 time_ms 6509 nps 1903411 cpu_nps 1910640
+d20 run  9 B nodes 12389307 time_ms 6372 nps 1944335 cpu_nps 1952994
+d20 run 10 B nodes 12389307 time_ms 6389 nps 1939162 cpu_nps 1962662
+d20 run 11 A nodes 12389307 time_ms 6502 nps 1905460 cpu_nps 1924553
+d20 run 12 A nodes 12389307 time_ms 6586 nps 1881158 cpu_nps 1901476
+d20 run 13 B nodes 12389307 time_ms 6487 nps 1909866 cpu_nps 1938669
+d20 run 14 B nodes 12389307 time_ms 6416 nps 1931001 cpu_nps 1948196
+d20 run 15 A nodes 12389307 time_ms 6167 nps 2008968 cpu_nps 2007381
+d20 run 16 A nodes 12389307 time_ms 5639 nps 2197075 cpu_nps 2190375
+d20 run 17 B nodes 12389307 time_ms 6062 nps 2043765 cpu_nps 2059521
+d20 run 18 B nodes 12389307 time_ms 6277 nps 1973762 cpu_nps 1967533
+d20 run 19 A nodes 12389307 time_ms 6421 nps 1929498 cpu_nps 1952994
+d20 wall_nps A: mean 1943271 stdev 96083 min 1881158 max 2197075 n 10
+d20 wall_nps B: mean 1943218 stdev 39863 min 1909866 max 2043765 n 10
+d20 wall_nps B/A = 1.0000 (-0.00%), 95% CI of the difference: -3.32% .. +3.32%
+d20 cpu_nps A: mean 1951662 stdev 90494 min 1883410 max 2190375 n 10
+d20 cpu_nps B: mean 1958022 stdev 39369 min 1919893 max 2059521 n 10
+d20 cpu_nps B/A = 1.0033 (+0.33%), 95% CI of the difference: -2.81% .. +3.46%

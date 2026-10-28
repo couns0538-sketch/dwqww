@@ -2,6 +2,14 @@
 // HCE + network) and pawn/material correction history.
 // Compiled as part of src/search.cpp (included exactly once).
 
+// Padding bytes in a cold branch (see Worker::static_evaluate). Only for the
+// MinGW g++ build whose layout was measured; elsewhere a no-op.
+#if defined(__MINGW32__) && defined(__GNUC__) && !defined(__clang__) && defined(__x86_64__)
+#define FORGE_LAYOUT_PAD(bytes) asm volatile(".nops " #bytes)
+#else
+#define FORGE_LAYOUT_PAD(bytes) ((void)0)
+#endif
+
 namespace forge {
 
 namespace {
@@ -20,6 +28,13 @@ namespace {
 } // namespace
 
 int Worker::static_evaluate(const Board& board, SearchStack* ss) {
+    if (options::nnue_v2) [[unlikely]] {
+        // Layout pad: with it the dispatch grows this function by exactly 64
+        // bytes in the PC build (MinGW g++ 15.2), so the search functions
+        // emitted after it keep their AL1 s198 addresses mod 64.
+        FORGE_LAYOUT_PAD(32);
+        return static_evaluate_v2(board, ss);
+    }
     if (!nnue::enabled || !nnue::available()) return evaluator_.evaluate(board);
     const bool residual = nnue::residual();
     if (!ss->accumulator.valid) {

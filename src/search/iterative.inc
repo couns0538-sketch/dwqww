@@ -127,6 +127,8 @@ SearchInfo Worker::search(Board board, const SearchLimits& limits, bool emit_inf
         nnue::refresh(board, ss->accumulator);
         if (nnue::residual()) ss->runtime_psqt = Evaluator::refresh_runtime_psqt(board);
     }
+    // A v2 network computes the root accumulator itself (static_evaluate_v2).
+    if (options::nnue_v2) [[unlikely]] ss->accumulator.valid = false;
 
     Move previous_best = Move::none();
     int stable_iterations = 0;

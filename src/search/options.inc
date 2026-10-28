@@ -11,5 +11,9 @@ bool syzygy_50_move_rule = true;
 std::uint8_t corr_hist_plus = 0;
 int hard_deadline_ms = 0;
 std::atomic<std::uint64_t> published_moves{0};
+int nnue_king_buckets = 0;
+bool nnue_v2 = false;
+int nnue_threats = 0;   // O6 (after nnue_v2 so that the variables before it keep their addresses)
+int nnue_pawn_pairs = 0;   // O7
 
 } // namespace forge::options
