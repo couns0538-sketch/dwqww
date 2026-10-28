@@ -1,0 +1,85 @@
+SKIP: real tablebase check (no --syzygy and no FORGE_SYZYGY_PATH)
+{
+  "passed": [
+    "uci lists 51 options exactly once, well formed, identical on a second uci",
+    "spin options: min/max/default accepted, out-of-range clamped silently, non-integers and a missing value rejected by name (AspirationDelta, Book Depth, Book Variety, CorrExt, CorrHistPlus, CorrMargins, FutilityBase, FutilityMultiplier, HardDeadline, Hash, HistRework, LmrCutoffThreshold, LmrHistoryDivisor, LmrNoisyBase, LmrNoisyDivisor, LmrQuietBase, LmrQuietDivisor, Move Overhead, NNUEKingBuckets, NNUEOutputBuckets, NNUEPawnPairs, NNUEThreats, NetScale, NullMoveBase, NullMoveDepthDivisor, NullMoveEvalDivisor, NullMoveMarginBase, NullMoveMarginDepth, PureNnue, QsFutilityMargin, RfpDepth, RfpImproving, RfpMargin, SeeNoisyMultiplier, SeeQuietMultiplier, SyzygyProbeDepth, Threads)",
+    "NNUE v2 spins: nonzero requests fail loud at once and are withdrawn; 0/1 spins reject out-of-range",
+    "observable clamps: bench nodes with the out-of-range value equal those at the bound (CorrHistPlus 99->7, CorrHistPlus -5->0, HistRework 99->3, CorrMargins 5->1, NetScale 999->150, NetScale 1->50)",
+    "check options: true/false accepted, maybe/TRUE/1/missing rejected by name (CuckooRep, IntendedThreefold, LocklessTT, MaterialKeyTable, OwnBook, Ponder, SmpBestThread, SmpExactNodes, Syzygy50MoveRule, UseNNUE)",
+    "Book File: the whole rest of the line is the path (spaces kept), <empty> and no value reset",
+    "NNUEFile: a path with spaces is used whole (named in the fail-loud error), <empty> withdraws it",
+    "SyzygyPath: a folder whose name has spaces is read (its invalid table is rejected), <empty> and no value switch the tables off",
+    "Clear Hash accepted without a value; unknown names, an empty name and a bare setoption are ignored silently",
+    "an unadvertised tunable name is still parsed (invalid value reported by name)",
+    "after the sweep: bench 15736 unchanged, go depth 3 plays the legal e2e4"
+  ],
+  "values": {
+    "options": [
+      "AspirationDelta",
+      "Book Depth",
+      "Book File",
+      "Book Variety",
+      "Clear Hash",
+      "CorrExt",
+      "CorrHistPlus",
+      "CorrMargins",
+      "CuckooRep",
+      "FutilityBase",
+      "FutilityMultiplier",
+      "HardDeadline",
+      "Hash",
+      "HistRework",
+      "IntendedThreefold",
+      "LmrCutoffThreshold",
+      "LmrHistoryDivisor",
+      "LmrNoisyBase",
+      "LmrNoisyDivisor",
+      "LmrQuietBase",
+      "LmrQuietDivisor",
+      "LocklessTT",
+      "MaterialKeyTable",
+      "Move Overhead",
+      "NNUEFile",
+      "NNUEKingBuckets",
+      "NNUEOutputBuckets",
+      "NNUEPawnPairs",
+      "NNUEThreats",
+      "NetScale",
+      "NullMoveBase",
+      "NullMoveDepthDivisor",
+      "NullMoveEvalDivisor",
+      "NullMoveMarginBase",
+      "NullMoveMarginDepth",
+      "OwnBook",
+      "Ponder",
+      "PureNnue",
+      "QsFutilityMargin",
+      "RfpDepth",
+      "RfpImproving",
+      "RfpMargin",
+      "SeeNoisyMultiplier",
+      "SeeQuietMultiplier",
+      "SmpBestThread",
+      "SmpExactNodes",
+      "Syzygy50MoveRule",
+      "SyzygyPath",
+      "SyzygyProbeDepth",
+      "Threads",
+      "UseNNUE"
+    ],
+    "bench_start": 15736,
+    "bench_clamps": {
+      "CorrHistPlus 99->7": 16185,
+      "CorrHistPlus -5->0": 15736,
+      "HistRework 99->3": 15220,
+      "CorrMargins 5->1": 15759,
+      "NetScale 999->150": 12124,
+      "NetScale 1->50": 21090
+    }
+  }
+}
+PASS uci_options_regression
+
+real	0m0.526s
+user	0m0.015s
+sys	0m0.015s
