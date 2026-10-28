@@ -1,0 +1,32 @@
+# S17 re-run Wed Oct 28 14:36:54 PST 2026
+## step 4b: real window (last 200k rows of 010)
+forge_selfplay_010_last200k: rows 9800000..9999999 of forge_selfplay_010 (200000 rows)
+## copy 011 / 012 inputs (read-only sources)
+88fb7f947b51641706739737f94100e6 *forge_selfplay_010_last200k.txt
+f7d32a272c09e7d375820ab87b8a6d41 *forge_selfplay_011.txt
+c55e3732dd340d9818e5845f486d7847 *forge_selfplay_012.txt
+2bc6cee624fa7402dd21b3ff56513019 *forge_selfplay_010_last200k.pos
+f39043724ad02f98c51de8e2be5e769c *forge_selfplay_011.pos
+e75e8cee80fa294b55a7e3617e073059 *forge_selfplay_012.pos
+9a1e551e80eaefe966d84eb88422e872 *forge_selfplay_010_last200k.hce
+abcd0ea300973c5cbb3e7efdae7c9c10 *forge_selfplay_011.hce
+36899f4c828a7b08ee16b97a6b442438 *forge_selfplay_012.hce
+## step 5: split (diagnostic mode, seed 20261026, 1000 bp)
+Wed Oct 28 14:36:58 PST 2026
+{"authentic_game_overlap": "UNVERIFIED_NO_AUTHORITATIVE_GAME_IDS", "groups": 33467, "mode": "DIAGNOSTIC_ONLY", "rows": {"train": 2635839, "validation": 294515}, "status": "PASS_DEFINED_GROUP_SPLIT"}
+split exit 0
+Wed Oct 28 14:45:21 PST 2026
+## step 6: leak audit
+{"accounting": {"balanced": true, "dropped": 212, "dropped_reasons": {"duplicate_train": 185, "duplicate_validation": 27}, "input_rows": 2930566, "kept_train": 2635839, "kept_validation": 294515}, "groups": {"groups_with_kept_rows_in_both_parts": 0, "ledger_groups": 33467, "recomputed_groups": 33467, "same_partition_as_ledger": true}, "leak_count": 0, "positions": {"64bit_candidates_checked": 0, "duplicate_positions_inside_train": 0, "duplicate_positions_inside_validation": 0, "exact_positions_in_both_parts": 0, "train_rows": 2635839, "validation_rows": 294515}, "round_trip": {"train": {"pos_hce_text_equal_to_source_rows": true, "rows": 2635839}, "validation": {"pos_hce_text_equal_to_source_rows": true, "rows": 294515}}, "verdict": "PASS"}
+audit exit 0
+## compare with the committed results
+output files: 11 committed hashes; identical 0; different []; missing ['forge_sol_S17_duplicate_rows_20261026.jsonl', 'forge_sol_S17_output_manifest_20261026.md5', 'forge_sol_S17_row_selection_20261026.jsonl', 'forge_sol_S17_shard_dedupe_20261026.jsonl', 'forge_sol_S17_summary_20261026.json', 'forge_sol_S17_train_20261026.hce', 'forge_sol_S17_train_20261026.pos', 'forge_sol_S17_train_20261026.txt', 'forge_sol_S17_validation_20261026.hce', 'forge_sol_S17_validation_20261026.pos', 'forge_sol_S17_validation_20261026.txt']
+groups: rerun 33467 | opus 33467 | same
+assigned_validation_groups: rerun 3347 | opus 3347 | same
+dropped_rows: rerun 212 | opus 212 | same
+dropped_reasons: rerun {'duplicate_train': 185, 'duplicate_validation': 27} | opus {'duplicate_train': 185, 'duplicate_validation': 27} | same
+cross_split_defined_groups: rerun 0 | opus 0 | same
+cross_split_position_overlap: rerun 0 | opus 0 | same
+rows: rerun None | opus None | same
+status: rerun None | opus None | same
+# done Wed Oct 28 14:45:42 PST 2026

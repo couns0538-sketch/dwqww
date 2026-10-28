@@ -332,7 +332,16 @@ Notes and evidence under `fable_review/deep/` (one file per item).
   S37: their REPORTs describe hand-made planted bugs or none).
 - **Buffix test strength**: a position with more than 64 SEE-losing noisy moves is being constructed (search driven by
   the engine's own census); result and the unfixed-engine overflow proof follow in the next commit.
-- **S17 real-window re-run** (shards 010 last 200k rows + 011 + 012, read-only inputs): running; result follows.
+- **S17 real-window re-run** (`fable_review/s17/`): the job's real split re-executed from the exported job folder on
+  the same window (010 rows 9,800,000-9,999,999 built by the job's own real_window_build.py, plus 011 and 012; inputs
+  copied from the read-only shards and self-play text, md5 identical to the job's list), diagnostic mode, seed
+  20261026, 1000 bp, 503 s at Idle; then the job's independent leak audit. Groups 33,467, validation groups 3,347,
+  rows train 2,635,839 / validation 294,515, dropped 212 (185 duplicate_train, 27 duplicate_validation), cross-split
+  groups 0, cross-split positions 0: every number equals the committed summary; 9 of the 11 output files are
+  byte-identical to the committed SHA256 list (both .pos, both .hce, both .txt, row selection, duplicate rows,
+  summary); the shard-dedupe manifest differs only in a `POS_is_readonly` flag (Opus's input copies carried the
+  read-only attribute, mine do not; all counts and hashes inside it are equal) and the md5 manifest only in that
+  file's hash. Reproduced. DONE.
 
 ## Final state of the correction branches (remote heads, 2026-10-28)
 
