@@ -12,7 +12,7 @@ throughout; my work at nice 19). No Elo claims: no gate was run.
 | R3-3 gate proposals | DONE, merged | `opus_r3/R3-3/`, `F:\opus_scratch\r3\GATE_PROPOSALS.md` |
 | R3-4 SPSA tool | DONE, merged (`064af73`): 20 search constants as UCI spins (identical defaults), `tools/spsa/opus_spsa*.py`, dry run with restart; no tuning session | `opus_r3/R3-4/REPORT.md`, `tools/spsa/README.md` |
 | R3-5 regression test suite | DONE, merged (`7e0660a`): six new CTest entries, 12/12 planted bugs caught | `opus_r3/R3-5/REPORT.md` |
-| R3-6 Lazy SMP scaling | PARTIAL (1 of 3 repetitions), merged (`1f354cc`, evidence `1f2b4fd`): one scaling bug found and fixed behind UCI `SmpHelpersPastDepth` (default off) | `opus_r3/R3-6/REPORT.md` |
+| R3-6 Lazy SMP scaling | DONE with the quiet-runner repeat R3-6Q (3 repetitions, merged): helpers idling at a `go depth` limit found and switchable via UCI `SmpHelpersPastDepth` (default off), but the switch gives no time-to-depth gain (slower with the SMP options on), so it stays off | `opus_r3/R3-6/REPORT.md`, `opus_r3/R3-6Q/REPORT.md` |
 
 ## CI (GitHub `opus-ci`: release, ASan+UBSan, TSan)
 | run | head | result |
@@ -147,7 +147,7 @@ every later run of the branch is green.
 - Merged into the stack (`2afd0365`); local CMake + full CTest on `7e0660a`: default 51 tests, all-switch 55 tests,
   only the known lines fail (plus `forge_prof_tests` at Idle priority, see below).
 
-## R3-6 Lazy SMP scaling (agent; `opus_r3/R3-6/REPORT.md`) — PARTIAL
+## R3-6 Lazy SMP scaling (agents; `opus_r3/R3-6/REPORT.md`, `opus_r3/R3-6Q/REPORT.md`)
 - 30 positions (10 opening, 12 middlegame, 8 endgame) at fixed depth 20-32 (Threads=1 2.2-7.6 s), Threads 1/2/3,
   Hash 64, fresh process per run at Idle, configs off / on (SmpExactNodes + SmpBestThread + LocklessTT) / on2 (on +
   CorrHistPlus 7, CorrMargins, CorrExt, CuckooRep, HistRework 2, MaterialKeyTable) / offP / onP (+ the fix), on the
@@ -164,9 +164,16 @@ every later run of the branch is green.
   deepening until stopped and still report their depth-N result. Idle time drops to 0%, NPS +6.5% / +10.6%; a
   time-to-depth gain is not measurable on this PC (offP/off 0.99 [0.80..1.21] at T2). Option off: lock pins; on:
   bench pins, hot code instruction-identical. CTest checks + planted bugs (M1 5/5, M2 5/5, M3 4/5); CI green.
+- **Quiet-runner repeat (R3-6Q, run 40586326969):** the same 30 positions and depths on GitHub 4-vCPU runners (2
+  cores x 2 SMT), 3 independent repetitions, 900 runs, every thread got its CPU. SmpHelpersPastDepth does **not**
+  shorten time-to-depth: offP/off 1.105 [0.948..1.286] (T2), 1.019 [0.893..1.157] (T3); with the SMP options on
+  it is slower, onP/on **1.157 [1.034..1.308]** (T2) and **1.168 [1.005..1.366]** (T3), with 17-21% more nodes.
+  So the idle helpers are real (R3-6's trace) but filling that time with deeper iterations does not help the
+  main thread; the option stays default off and is not a gate candidate. Stack OFF scales 1.28x (T2) / 1.14x (T3)
+  per position there; the "on" set costs 2.2% at Threads=1 (identical nodes; LocklessTT's per-node cost on Linux).
 - Checked without finding a bug: stop/join latency (median 0.1-1.2 ms), reported nodes (= per-worker sum), T3 vs T2,
   TT pressure, locked vs lockless TT on Windows. Proposed follow-up: depth diversification for helpers (needs an
-  SMP gate). Not done: Threads > 3 (PC rule), larger Hash, the remaining 2 repetitions.
+  SMP gate). Not done: Threads > 3 (PC rule), larger Hash. The 3 repetitions were run on quiet runners (R3-6Q).
 
 ## Notes for the owner
 - Load-sensitive tests on this PC (pass on the CI runners): `forge_smp_tests` (SmpExactNodes overshoot bound; port-b
@@ -197,4 +204,3 @@ every later run of the branch is green.
   then the options added after `330237f` on the final head `064af73` (SmpHelpersPastDepth alone, all ON + it, the
   20 SPSA spins at +10% / -10%; prepared, preflight OK) and the Linux re-check on GitHub runners (`opus-r3-sp-linux`).
 - CI of `1f354cc` and of the final engine head `064af73` (both workflows), followed to green.
-- R3-6 follow-up: time-to-depth of SmpHelpersPastDepth on quiet 4-vCPU runners, 3 repetitions (`opus-r3-smpq`).
