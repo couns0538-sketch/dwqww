@@ -170,8 +170,10 @@ Evidence: `fable_review/s44_check.log`.
   every test passes except `test_copies`, which compares the job folder's trainer file with the staged copy byte
   for byte and fails only because the exported folder is CRLF and the staged copy LF (LF-normalised: identical,
   `fable_review/trainer_tests.txt`). S09fix passes. Same line-ending class.
-- **S16 real-data overlap scan**: re-run on the real shards with the same 29 training shards (read-only, Idle
-  priority); result recorded in `fable_review/s16_scan.log` when finished (Opus's figure: 6,069 overlapping rows).
+- **S16 real-data overlap scan re-executed** (read-only, Idle priority, about 7 minutes): the same 29 training
+  shards (231,913,894 rows) against the 013+014 holdout (16,388,575 rows): **overlap_rows 6,069** (Opus's figure
+  exactly), label_conflicts 5,042, key collisions rejected 0, status COMPLETED, writes only the new output folder.
+  Evidence: `fable_review/s16_overlap_summary.json`. DONE.
 
 ## Mistakes found (with the correction)
 
@@ -205,9 +207,11 @@ tree, exe fixtures); they are not fragile, only not runnable from an exported jo
 - Verified systematically: latest CI of all 30 engine branches (identity ALL OK, known-failure PASS x3, TSan 0);
   every tool job's own unit tests re-run from an exported copy (27 passed; 9 environment failures explained;
   the 5 trainer-importing tests not run, by the PC rule).
-- Re-executed: S44's gate-statistics check on the 71 real gate folders (PASS). Not re-executed: the data jobs
-  S16/S17/S40 on the real shards, S30/S31 curves, S19/S21 fits; not read line by line: the trainer variants
-  S39/S50/SA3. C1's decoder and O4/O6/O7's own diffs have been read in full.
+- Re-executed: S44's gate-statistics check on the 71 real gate folders (PASS), S16's overlap scan on the real
+  shards (6,069 rows, as reported), the S30/S31 lock-net holdout numbers (consistent), every job's unit tests.
+  Not re-executed: S17/S40 on the real shards (fixture tests pass), S19/S21 fits; the trainer variants S39/S50/SA3
+  were tested through their own suites (pass except the line-ending hash check). C1's decoder and O4/O6/O7's own
+  diffs have been read in full.
 
 ## Mistakes found: 3 (summary)
 
