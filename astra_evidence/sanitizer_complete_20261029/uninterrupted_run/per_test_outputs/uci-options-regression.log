@@ -1,0 +1,1848 @@
+> uci
+< id name Chess Engine Forge 6.4.24 candidate
+< id author OpenAI
+< option name Hash type spin default 32 min 1 max 2048
+< option name Threads type spin default 1 min 1 max 256
+< option name Move Overhead type spin default 10 min 0 max 1000
+< option name Ponder type check default false
+< option name OwnBook type check default true
+< option name Book File type string default <empty>
+< option name Book Depth type spin default 30 min 0 max 100
+< option name Book Variety type spin default 30 min 0 max 100
+< option name UseNNUE type check default true
+< option name SmpExactNodes type check default false
+< option name SmpBestThread type check default false
+< option name SmpProtectProvenScore type check default false
+< option name LocklessTT type check default false
+< option name SmpHelpersPastDepth type check default false
+< option name SyzygyPath type string default <empty>
+< option name SyzygyProbeDepth type spin default 1 min 1 max 10
+< option name Syzygy50MoveRule type check default true
+< option name CorrHistPlus type spin default 0 min 0 max 7
+< option name HardDeadline type spin default 0 min 0 max 1000
+< option name NNUEFile type string default <empty>
+< option name NNUEKingBuckets type spin default 0 min 0 max 32
+< option name NNUEOutputBuckets type spin default 0 min 0 max 16
+< option name NNUEThreats type spin default 0 min 0 max 1
+< option name NNUEPawnPairs type spin default 0 min 0 max 1
+< option name PureNnue type spin default 0 min 0 max 1
+< option name CorrMargins type spin default 0 min 0 max 1
+< option name CorrExt type spin default 0 min 0 max 1
+< option name CuckooRep type check default false
+< option name MaterialKeyTable type check default false
+< option name NetScale type spin default 100 min 50 max 150
+< option name HistRework type spin default 0 min 0 max 3
+< option name IntendedThreefold type check default false
+< option name LmrQuietBase type spin default 85 min 0 max 300
+< option name LmrQuietDivisor type spin default 220 min 100 max 500
+< option name LmrNoisyBase type spin default 10 min 0 max 300
+< option name LmrNoisyDivisor type spin default 340 min 100 max 800
+< option name LmrHistoryDivisor type spin default 6000 min 1000 max 30000
+< option name LmrCutoffThreshold type spin default 3 min 0 max 20
+< option name NullMoveBase type spin default 3 min 1 max 6
+< option name NullMoveDepthDivisor type spin default 3 min 1 max 10
+< option name NullMoveEvalDivisor type spin default 200 min 50 max 1000
+< option name NullMoveMarginDepth type spin default 24 min 0 max 100
+< option name NullMoveMarginBase type spin default 180 min 0 max 500
+< option name RfpMargin type spin default 72 min 10 max 300
+< option name RfpImproving type spin default 40 min 0 max 200
+< option name RfpDepth type spin default 8 min 0 max 15
+< option name FutilityBase type spin default 100 min 0 max 500
+< option name FutilityMultiplier type spin default 110 min 0 max 500
+< option name QsFutilityMargin type spin default 160 min 0 max 1000
+< option name SeeQuietMultiplier type spin default 24 min 0 max 200
+< option name SeeNoisyMultiplier type spin default 150 min 0 max 1000
+< option name AspirationDelta type spin default 18 min 4 max 200
+< option name Clear Hash type button
+< uciok
+> uci
+< id name Chess Engine Forge 6.4.24 candidate
+< id author OpenAI
+< option name Hash type spin default 32 min 1 max 2048
+< option name Threads type spin default 1 min 1 max 256
+< option name Move Overhead type spin default 10 min 0 max 1000
+< option name Ponder type check default false
+< option name OwnBook type check default true
+< option name Book File type string default <empty>
+< option name Book Depth type spin default 30 min 0 max 100
+< option name Book Variety type spin default 30 min 0 max 100
+< option name UseNNUE type check default true
+< option name SmpExactNodes type check default false
+< option name SmpBestThread type check default false
+< option name SmpProtectProvenScore type check default false
+< option name LocklessTT type check default false
+< option name SmpHelpersPastDepth type check default false
+< option name SyzygyPath type string default <empty>
+< option name SyzygyProbeDepth type spin default 1 min 1 max 10
+< option name Syzygy50MoveRule type check default true
+< option name CorrHistPlus type spin default 0 min 0 max 7
+< option name HardDeadline type spin default 0 min 0 max 1000
+< option name NNUEFile type string default <empty>
+< option name NNUEKingBuckets type spin default 0 min 0 max 32
+< option name NNUEOutputBuckets type spin default 0 min 0 max 16
+< option name NNUEThreats type spin default 0 min 0 max 1
+< option name NNUEPawnPairs type spin default 0 min 0 max 1
+< option name PureNnue type spin default 0 min 0 max 1
+< option name CorrMargins type spin default 0 min 0 max 1
+< option name CorrExt type spin default 0 min 0 max 1
+< option name CuckooRep type check default false
+< option name MaterialKeyTable type check default false
+< option name NetScale type spin default 100 min 50 max 150
+< option name HistRework type spin default 0 min 0 max 3
+< option name IntendedThreefold type check default false
+< option name LmrQuietBase type spin default 85 min 0 max 300
+< option name LmrQuietDivisor type spin default 220 min 100 max 500
+< option name LmrNoisyBase type spin default 10 min 0 max 300
+< option name LmrNoisyDivisor type spin default 340 min 100 max 800
+< option name LmrHistoryDivisor type spin default 6000 min 1000 max 30000
+< option name LmrCutoffThreshold type spin default 3 min 0 max 20
+< option name NullMoveBase type spin default 3 min 1 max 6
+< option name NullMoveDepthDivisor type spin default 3 min 1 max 10
+< option name NullMoveEvalDivisor type spin default 200 min 50 max 1000
+< option name NullMoveMarginDepth type spin default 24 min 0 max 100
+< option name NullMoveMarginBase type spin default 180 min 0 max 500
+< option name RfpMargin type spin default 72 min 10 max 300
+< option name RfpImproving type spin default 40 min 0 max 200
+< option name RfpDepth type spin default 8 min 0 max 15
+< option name FutilityBase type spin default 100 min 0 max 500
+< option name FutilityMultiplier type spin default 110 min 0 max 500
+< option name QsFutilityMargin type spin default 160 min 0 max 1000
+< option name SeeQuietMultiplier type spin default 24 min 0 max 200
+< option name SeeNoisyMultiplier type spin default 150 min 0 max 1000
+< option name AspirationDelta type spin default 18 min 4 max 200
+< option name Clear Hash type button
+< uciok
+> isready
+< readyok
+> bench 6
+< info string bench depth 6 nodes 15736 time 295 nps 53342
+> setoption name Hash value 1
+> isready
+< readyok
+> setoption name Hash value 32
+> isready
+< readyok
+> setoption name Hash value 0
+> isready
+< readyok
+> setoption name Hash value abc
+> isready
+< info string invalid value for option Hash
+< readyok
+> setoption name Hash value 1.5
+> isready
+< info string invalid value for option Hash
+< readyok
+> setoption name Hash value 7x
+> isready
+< info string invalid value for option Hash
+< readyok
+> setoption name Hash
+> isready
+< info string invalid value for option Hash
+< readyok
+> setoption name Hash value 32
+> isready
+< readyok
+> setoption name Threads value 1
+> isready
+< readyok
+> setoption name Threads value 1
+> isready
+< readyok
+> setoption name Threads value 0
+> isready
+< readyok
+> setoption name Threads value abc
+> isready
+< info string invalid value for option Threads
+< readyok
+> setoption name Threads value 1.5
+> isready
+< info string invalid value for option Threads
+< readyok
+> setoption name Threads value 7x
+> isready
+< info string invalid value for option Threads
+< readyok
+> setoption name Threads
+> isready
+< info string invalid value for option Threads
+< readyok
+> setoption name Threads value 1
+> isready
+< readyok
+> setoption name Move Overhead value 0
+> isready
+< readyok
+> setoption name Move Overhead value 10
+> isready
+< readyok
+> setoption name Move Overhead value 1000
+> isready
+< readyok
+> setoption name Move Overhead value -1
+> isready
+< readyok
+> setoption name Move Overhead value 1001
+> isready
+< readyok
+> setoption name Move Overhead value abc
+> isready
+< info string invalid value for option Move Overhead
+< readyok
+> setoption name Move Overhead value 1.5
+> isready
+< info string invalid value for option Move Overhead
+< readyok
+> setoption name Move Overhead value 7x
+> isready
+< info string invalid value for option Move Overhead
+< readyok
+> setoption name Move Overhead
+> isready
+< info string invalid value for option Move Overhead
+< readyok
+> setoption name Move Overhead value 10
+> isready
+< readyok
+> setoption name Book Depth value 0
+> isready
+< readyok
+> setoption name Book Depth value 30
+> isready
+< readyok
+> setoption name Book Depth value 100
+> isready
+< readyok
+> setoption name Book Depth value -1
+> isready
+< readyok
+> setoption name Book Depth value 101
+> isready
+< readyok
+> setoption name Book Depth value abc
+> isready
+< info string invalid value for option Book Depth
+< readyok
+> setoption name Book Depth value 1.5
+> isready
+< info string invalid value for option Book Depth
+< readyok
+> setoption name Book Depth value 7x
+> isready
+< info string invalid value for option Book Depth
+< readyok
+> setoption name Book Depth
+> isready
+< info string invalid value for option Book Depth
+< readyok
+> setoption name Book Depth value 30
+> isready
+< readyok
+> setoption name Book Variety value 0
+> isready
+< readyok
+> setoption name Book Variety value 30
+> isready
+< readyok
+> setoption name Book Variety value 100
+> isready
+< readyok
+> setoption name Book Variety value -1
+> isready
+< readyok
+> setoption name Book Variety value 101
+> isready
+< readyok
+> setoption name Book Variety value abc
+> isready
+< info string invalid value for option Book Variety
+< readyok
+> setoption name Book Variety value 1.5
+> isready
+< info string invalid value for option Book Variety
+< readyok
+> setoption name Book Variety value 7x
+> isready
+< info string invalid value for option Book Variety
+< readyok
+> setoption name Book Variety
+> isready
+< info string invalid value for option Book Variety
+< readyok
+> setoption name Book Variety value 30
+> isready
+< readyok
+> setoption name SyzygyProbeDepth value 1
+> isready
+< readyok
+> setoption name SyzygyProbeDepth value 1
+> isready
+< readyok
+> setoption name SyzygyProbeDepth value 10
+> isready
+< readyok
+> setoption name SyzygyProbeDepth value 0
+> isready
+< readyok
+> setoption name SyzygyProbeDepth value 11
+> isready
+< readyok
+> setoption name SyzygyProbeDepth value abc
+> isready
+< info string invalid value for option SyzygyProbeDepth
+< readyok
+> setoption name SyzygyProbeDepth value 1.5
+> isready
+< info string invalid value for option SyzygyProbeDepth
+< readyok
+> setoption name SyzygyProbeDepth value 7x
+> isready
+< info string invalid value for option SyzygyProbeDepth
+< readyok
+> setoption name SyzygyProbeDepth
+> isready
+< info string invalid value for option SyzygyProbeDepth
+< readyok
+> setoption name SyzygyProbeDepth value 1
+> isready
+< readyok
+> setoption name CorrHistPlus value 0
+> isready
+< readyok
+> setoption name CorrHistPlus value 0
+> isready
+< readyok
+> setoption name CorrHistPlus value 7
+> isready
+< readyok
+> setoption name CorrHistPlus value -1
+> isready
+< readyok
+> setoption name CorrHistPlus value 8
+> isready
+< readyok
+> setoption name CorrHistPlus value abc
+> isready
+< info string invalid value for option CorrHistPlus
+< readyok
+> setoption name CorrHistPlus value 1.5
+> isready
+< info string invalid value for option CorrHistPlus
+< readyok
+> setoption name CorrHistPlus value 7x
+> isready
+< info string invalid value for option CorrHistPlus
+< readyok
+> setoption name CorrHistPlus
+> isready
+< info string invalid value for option CorrHistPlus
+< readyok
+> setoption name CorrHistPlus value 0
+> isready
+< readyok
+> setoption name HardDeadline value 0
+> isready
+< readyok
+> setoption name HardDeadline value 0
+> isready
+< readyok
+> setoption name HardDeadline value 1000
+> isready
+< readyok
+> setoption name HardDeadline value -1
+> isready
+< readyok
+> setoption name HardDeadline value 1001
+> isready
+< readyok
+> setoption name HardDeadline value abc
+> isready
+< info string invalid value for option HardDeadline
+< readyok
+> setoption name HardDeadline value 1.5
+> isready
+< info string invalid value for option HardDeadline
+< readyok
+> setoption name HardDeadline value 7x
+> isready
+< info string invalid value for option HardDeadline
+< readyok
+> setoption name HardDeadline
+> isready
+< info string invalid value for option HardDeadline
+< readyok
+> setoption name HardDeadline value 0
+> isready
+< readyok
+> setoption name NNUEKingBuckets value 0
+> isready
+< readyok
+> setoption name NNUEKingBuckets value 32
+< info string ERROR NNUE v2: NNUEKingBuckets 32 is set but no v2 net is loaded (NNUEFile is empty)
+> setoption name NNUEKingBuckets value 0
+< info string NNUE v2: off (NNUEKingBuckets 0, NNUEOutputBuckets 0): compiled-in network
+> isready
+< readyok
+> setoption name NNUEKingBuckets value 39
+< info string ERROR NNUE v2: NNUEKingBuckets 32 is set but no v2 net is loaded (NNUEFile is empty)
+> setoption name NNUEKingBuckets value 0
+< info string NNUE v2: off (NNUEKingBuckets 0, NNUEOutputBuckets 0): compiled-in network
+> isready
+< readyok
+> setoption name NNUEKingBuckets value -3
+> isready
+< readyok
+> setoption name NNUEKingBuckets value abc
+> isready
+< info string invalid value for option NNUEKingBuckets
+< readyok
+> setoption name NNUEKingBuckets value 1.5
+> isready
+< info string invalid value for option NNUEKingBuckets
+< readyok
+> setoption name NNUEKingBuckets value 7x
+> isready
+< info string invalid value for option NNUEKingBuckets
+< readyok
+> setoption name NNUEKingBuckets
+> isready
+< info string invalid value for option NNUEKingBuckets
+< readyok
+> setoption name NNUEKingBuckets value 0
+> isready
+< readyok
+> setoption name NNUEOutputBuckets value 0
+> isready
+< readyok
+> setoption name NNUEOutputBuckets value 16
+< info string ERROR NNUE v2: NNUEOutputBuckets 16 is set but no v2 net is loaded (NNUEFile is empty)
+> setoption name NNUEOutputBuckets value 0
+< info string NNUE v2: off (NNUEKingBuckets 0, NNUEOutputBuckets 0): compiled-in network
+> isready
+< readyok
+> setoption name NNUEOutputBuckets value 23
+< info string ERROR NNUE v2: NNUEOutputBuckets 16 is set but no v2 net is loaded (NNUEFile is empty)
+> setoption name NNUEOutputBuckets value 0
+< info string NNUE v2: off (NNUEKingBuckets 0, NNUEOutputBuckets 0): compiled-in network
+> isready
+< readyok
+> setoption name NNUEOutputBuckets value -3
+> isready
+< readyok
+> setoption name NNUEOutputBuckets value abc
+> isready
+< info string invalid value for option NNUEOutputBuckets
+< readyok
+> setoption name NNUEOutputBuckets value 1.5
+> isready
+< info string invalid value for option NNUEOutputBuckets
+< readyok
+> setoption name NNUEOutputBuckets value 7x
+> isready
+< info string invalid value for option NNUEOutputBuckets
+< readyok
+> setoption name NNUEOutputBuckets
+> isready
+< info string invalid value for option NNUEOutputBuckets
+< readyok
+> setoption name NNUEOutputBuckets value 0
+> isready
+< readyok
+> setoption name NNUEThreats value 0
+> isready
+< readyok
+> setoption name NNUEThreats value 1
+< info string ERROR NNUE v2: NNUEThreats is 1 but no v2 net is loaded (NNUEFile is empty); NNUEThreats needs a net with threat inputs (trainer --threats)
+> setoption name NNUEThreats value 0
+< info string NNUE v2: off (NNUEKingBuckets 0, NNUEOutputBuckets 0): compiled-in network
+> isready
+< readyok
+> setoption name NNUEThreats value true
+< info string ERROR NNUE v2: NNUEThreats is 1 but no v2 net is loaded (NNUEFile is empty); NNUEThreats needs a net with threat inputs (trainer --threats)
+> setoption name NNUEThreats value 0
+< info string NNUE v2: off (NNUEKingBuckets 0, NNUEOutputBuckets 0): compiled-in network
+> isready
+< readyok
+> setoption name NNUEThreats value false
+> isready
+< readyok
+> setoption name NNUEThreats value 2
+> isready
+< info string invalid value for option NNUEThreats
+< readyok
+> setoption name NNUEThreats value -1
+> isready
+< info string invalid value for option NNUEThreats
+< readyok
+> setoption name NNUEThreats value yes
+> isready
+< info string invalid value for option NNUEThreats
+< readyok
+> setoption name NNUEThreats
+> isready
+< info string invalid value for option NNUEThreats
+< readyok
+> setoption name NNUEThreats value 0
+> isready
+< readyok
+> setoption name NNUEPawnPairs value 0
+> isready
+< readyok
+> setoption name NNUEPawnPairs value 1
+< info string ERROR NNUE v2: NNUEPawnPairs is 1 but no v2 net is loaded (NNUEFile is empty); NNUEPawnPairs needs a net with pawn-pair inputs (trainer --pawn-pairs)
+> setoption name NNUEPawnPairs value 0
+< info string NNUE v2: off (NNUEKingBuckets 0, NNUEOutputBuckets 0): compiled-in network
+> isready
+< readyok
+> setoption name NNUEPawnPairs value true
+< info string ERROR NNUE v2: NNUEPawnPairs is 1 but no v2 net is loaded (NNUEFile is empty); NNUEPawnPairs needs a net with pawn-pair inputs (trainer --pawn-pairs)
+> setoption name NNUEPawnPairs value 0
+< info string NNUE v2: off (NNUEKingBuckets 0, NNUEOutputBuckets 0): compiled-in network
+> isready
+< readyok
+> setoption name NNUEPawnPairs value false
+> isready
+< readyok
+> setoption name NNUEPawnPairs value 2
+> isready
+< info string invalid value for option NNUEPawnPairs
+< readyok
+> setoption name NNUEPawnPairs value -1
+> isready
+< info string invalid value for option NNUEPawnPairs
+< readyok
+> setoption name NNUEPawnPairs value yes
+> isready
+< info string invalid value for option NNUEPawnPairs
+< readyok
+> setoption name NNUEPawnPairs
+> isready
+< info string invalid value for option NNUEPawnPairs
+< readyok
+> setoption name NNUEPawnPairs value 0
+> isready
+< readyok
+> setoption name PureNnue value 0
+> isready
+< readyok
+> setoption name PureNnue value 1
+< info string ERROR NNUE v2: PureNnue is 1 but no v2 net is loaded (NNUEFile is empty); PureNnue needs a stand-alone net (trainer --pure)
+> setoption name PureNnue value 0
+< info string NNUE v2: off (NNUEKingBuckets 0, NNUEOutputBuckets 0): compiled-in network
+> isready
+< readyok
+> setoption name PureNnue value true
+< info string ERROR NNUE v2: PureNnue is 1 but no v2 net is loaded (NNUEFile is empty); PureNnue needs a stand-alone net (trainer --pure)
+> setoption name PureNnue value 0
+< info string NNUE v2: off (NNUEKingBuckets 0, NNUEOutputBuckets 0): compiled-in network
+> isready
+< readyok
+> setoption name PureNnue value false
+> isready
+< readyok
+> setoption name PureNnue value 2
+> isready
+< info string invalid value for option PureNnue
+< readyok
+> setoption name PureNnue value -1
+> isready
+< info string invalid value for option PureNnue
+< readyok
+> setoption name PureNnue value yes
+> isready
+< info string invalid value for option PureNnue
+< readyok
+> setoption name PureNnue
+> isready
+< info string invalid value for option PureNnue
+< readyok
+> setoption name PureNnue value 0
+> isready
+< readyok
+> setoption name CorrMargins value 0
+> isready
+< readyok
+> setoption name CorrMargins value 0
+> isready
+< readyok
+> setoption name CorrMargins value 1
+> isready
+< readyok
+> setoption name CorrMargins value -1
+> isready
+< readyok
+> setoption name CorrMargins value 2
+> isready
+< readyok
+> setoption name CorrMargins value abc
+> isready
+< info string invalid value for option CorrMargins
+< readyok
+> setoption name CorrMargins value 1.5
+> isready
+< info string invalid value for option CorrMargins
+< readyok
+> setoption name CorrMargins value 7x
+> isready
+< info string invalid value for option CorrMargins
+< readyok
+> setoption name CorrMargins
+> isready
+< info string invalid value for option CorrMargins
+< readyok
+> setoption name CorrMargins value 0
+> isready
+< readyok
+> setoption name CorrExt value 0
+> isready
+< readyok
+> setoption name CorrExt value 0
+> isready
+< readyok
+> setoption name CorrExt value 1
+> isready
+< readyok
+> setoption name CorrExt value -1
+> isready
+< readyok
+> setoption name CorrExt value 2
+> isready
+< readyok
+> setoption name CorrExt value abc
+> isready
+< info string invalid value for option CorrExt
+< readyok
+> setoption name CorrExt value 1.5
+> isready
+< info string invalid value for option CorrExt
+< readyok
+> setoption name CorrExt value 7x
+> isready
+< info string invalid value for option CorrExt
+< readyok
+> setoption name CorrExt
+> isready
+< info string invalid value for option CorrExt
+< readyok
+> setoption name CorrExt value 0
+> isready
+< readyok
+> setoption name NetScale value 50
+> isready
+< readyok
+> setoption name NetScale value 100
+> isready
+< readyok
+> setoption name NetScale value 150
+> isready
+< readyok
+> setoption name NetScale value 49
+> isready
+< readyok
+> setoption name NetScale value 151
+> isready
+< readyok
+> setoption name NetScale value abc
+> isready
+< info string invalid value for option NetScale
+< readyok
+> setoption name NetScale value 1.5
+> isready
+< info string invalid value for option NetScale
+< readyok
+> setoption name NetScale value 7x
+> isready
+< info string invalid value for option NetScale
+< readyok
+> setoption name NetScale
+> isready
+< info string invalid value for option NetScale
+< readyok
+> setoption name NetScale value 100
+> isready
+< readyok
+> setoption name HistRework value 0
+> isready
+< readyok
+> setoption name HistRework value 0
+> isready
+< readyok
+> setoption name HistRework value 3
+> isready
+< readyok
+> setoption name HistRework value -1
+> isready
+< readyok
+> setoption name HistRework value 4
+> isready
+< readyok
+> setoption name HistRework value abc
+> isready
+< info string invalid value for option HistRework
+< readyok
+> setoption name HistRework value 1.5
+> isready
+< info string invalid value for option HistRework
+< readyok
+> setoption name HistRework value 7x
+> isready
+< info string invalid value for option HistRework
+< readyok
+> setoption name HistRework
+> isready
+< info string invalid value for option HistRework
+< readyok
+> setoption name HistRework value 0
+> isready
+< readyok
+> setoption name LmrQuietBase value 0
+> isready
+< readyok
+> setoption name LmrQuietBase value 85
+> isready
+< readyok
+> setoption name LmrQuietBase value 300
+> isready
+< readyok
+> setoption name LmrQuietBase value -1
+> isready
+< readyok
+> setoption name LmrQuietBase value 301
+> isready
+< readyok
+> setoption name LmrQuietBase value abc
+> isready
+< info string invalid value for option LmrQuietBase
+< readyok
+> setoption name LmrQuietBase value 1.5
+> isready
+< info string invalid value for option LmrQuietBase
+< readyok
+> setoption name LmrQuietBase value 7x
+> isready
+< info string invalid value for option LmrQuietBase
+< readyok
+> setoption name LmrQuietBase
+> isready
+< info string invalid value for option LmrQuietBase
+< readyok
+> setoption name LmrQuietBase value 85
+> isready
+< readyok
+> setoption name LmrQuietDivisor value 100
+> isready
+< readyok
+> setoption name LmrQuietDivisor value 220
+> isready
+< readyok
+> setoption name LmrQuietDivisor value 500
+> isready
+< readyok
+> setoption name LmrQuietDivisor value 99
+> isready
+< readyok
+> setoption name LmrQuietDivisor value 501
+> isready
+< readyok
+> setoption name LmrQuietDivisor value abc
+> isready
+< info string invalid value for option LmrQuietDivisor
+< readyok
+> setoption name LmrQuietDivisor value 1.5
+> isready
+< info string invalid value for option LmrQuietDivisor
+< readyok
+> setoption name LmrQuietDivisor value 7x
+> isready
+< info string invalid value for option LmrQuietDivisor
+< readyok
+> setoption name LmrQuietDivisor
+> isready
+< info string invalid value for option LmrQuietDivisor
+< readyok
+> setoption name LmrQuietDivisor value 220
+> isready
+< readyok
+> setoption name LmrNoisyBase value 0
+> isready
+< readyok
+> setoption name LmrNoisyBase value 10
+> isready
+< readyok
+> setoption name LmrNoisyBase value 300
+> isready
+< readyok
+> setoption name LmrNoisyBase value -1
+> isready
+< readyok
+> setoption name LmrNoisyBase value 301
+> isready
+< readyok
+> setoption name LmrNoisyBase value abc
+> isready
+< info string invalid value for option LmrNoisyBase
+< readyok
+> setoption name LmrNoisyBase value 1.5
+> isready
+< info string invalid value for option LmrNoisyBase
+< readyok
+> setoption name LmrNoisyBase value 7x
+> isready
+< info string invalid value for option LmrNoisyBase
+< readyok
+> setoption name LmrNoisyBase
+> isready
+< info string invalid value for option LmrNoisyBase
+< readyok
+> setoption name LmrNoisyBase value 10
+> isready
+< readyok
+> setoption name LmrNoisyDivisor value 100
+> isready
+< readyok
+> setoption name LmrNoisyDivisor value 340
+> isready
+< readyok
+> setoption name LmrNoisyDivisor value 800
+> isready
+< readyok
+> setoption name LmrNoisyDivisor value 99
+> isready
+< readyok
+> setoption name LmrNoisyDivisor value 801
+> isready
+< readyok
+> setoption name LmrNoisyDivisor value abc
+> isready
+< info string invalid value for option LmrNoisyDivisor
+< readyok
+> setoption name LmrNoisyDivisor value 1.5
+> isready
+< info string invalid value for option LmrNoisyDivisor
+< readyok
+> setoption name LmrNoisyDivisor value 7x
+> isready
+< info string invalid value for option LmrNoisyDivisor
+< readyok
+> setoption name LmrNoisyDivisor
+> isready
+< info string invalid value for option LmrNoisyDivisor
+< readyok
+> setoption name LmrNoisyDivisor value 340
+> isready
+< readyok
+> setoption name LmrHistoryDivisor value 1000
+> isready
+< readyok
+> setoption name LmrHistoryDivisor value 6000
+> isready
+< readyok
+> setoption name LmrHistoryDivisor value 30000
+> isready
+< readyok
+> setoption name LmrHistoryDivisor value 999
+> isready
+< readyok
+> setoption name LmrHistoryDivisor value 30001
+> isready
+< readyok
+> setoption name LmrHistoryDivisor value abc
+> isready
+< info string invalid value for option LmrHistoryDivisor
+< readyok
+> setoption name LmrHistoryDivisor value 1.5
+> isready
+< info string invalid value for option LmrHistoryDivisor
+< readyok
+> setoption name LmrHistoryDivisor value 7x
+> isready
+< info string invalid value for option LmrHistoryDivisor
+< readyok
+> setoption name LmrHistoryDivisor
+> isready
+< info string invalid value for option LmrHistoryDivisor
+< readyok
+> setoption name LmrHistoryDivisor value 6000
+> isready
+< readyok
+> setoption name LmrCutoffThreshold value 0
+> isready
+< readyok
+> setoption name LmrCutoffThreshold value 3
+> isready
+< readyok
+> setoption name LmrCutoffThreshold value 20
+> isready
+< readyok
+> setoption name LmrCutoffThreshold value -1
+> isready
+< readyok
+> setoption name LmrCutoffThreshold value 21
+> isready
+< readyok
+> setoption name LmrCutoffThreshold value abc
+> isready
+< info string invalid value for option LmrCutoffThreshold
+< readyok
+> setoption name LmrCutoffThreshold value 1.5
+> isready
+< info string invalid value for option LmrCutoffThreshold
+< readyok
+> setoption name LmrCutoffThreshold value 7x
+> isready
+< info string invalid value for option LmrCutoffThreshold
+< readyok
+> setoption name LmrCutoffThreshold
+> isready
+< info string invalid value for option LmrCutoffThreshold
+< readyok
+> setoption name LmrCutoffThreshold value 3
+> isready
+< readyok
+> setoption name NullMoveBase value 1
+> isready
+< readyok
+> setoption name NullMoveBase value 3
+> isready
+< readyok
+> setoption name NullMoveBase value 6
+> isready
+< readyok
+> setoption name NullMoveBase value 0
+> isready
+< readyok
+> setoption name NullMoveBase value 7
+> isready
+< readyok
+> setoption name NullMoveBase value abc
+> isready
+< info string invalid value for option NullMoveBase
+< readyok
+> setoption name NullMoveBase value 1.5
+> isready
+< info string invalid value for option NullMoveBase
+< readyok
+> setoption name NullMoveBase value 7x
+> isready
+< info string invalid value for option NullMoveBase
+< readyok
+> setoption name NullMoveBase
+> isready
+< info string invalid value for option NullMoveBase
+< readyok
+> setoption name NullMoveBase value 3
+> isready
+< readyok
+> setoption name NullMoveDepthDivisor value 1
+> isready
+< readyok
+> setoption name NullMoveDepthDivisor value 3
+> isready
+< readyok
+> setoption name NullMoveDepthDivisor value 10
+> isready
+< readyok
+> setoption name NullMoveDepthDivisor value 0
+> isready
+< readyok
+> setoption name NullMoveDepthDivisor value 11
+> isready
+< readyok
+> setoption name NullMoveDepthDivisor value abc
+> isready
+< info string invalid value for option NullMoveDepthDivisor
+< readyok
+> setoption name NullMoveDepthDivisor value 1.5
+> isready
+< info string invalid value for option NullMoveDepthDivisor
+< readyok
+> setoption name NullMoveDepthDivisor value 7x
+> isready
+< info string invalid value for option NullMoveDepthDivisor
+< readyok
+> setoption name NullMoveDepthDivisor
+> isready
+< info string invalid value for option NullMoveDepthDivisor
+< readyok
+> setoption name NullMoveDepthDivisor value 3
+> isready
+< readyok
+> setoption name NullMoveEvalDivisor value 50
+> isready
+< readyok
+> setoption name NullMoveEvalDivisor value 200
+> isready
+< readyok
+> setoption name NullMoveEvalDivisor value 1000
+> isready
+< readyok
+> setoption name NullMoveEvalDivisor value 49
+> isready
+< readyok
+> setoption name NullMoveEvalDivisor value 1001
+> isready
+< readyok
+> setoption name NullMoveEvalDivisor value abc
+> isready
+< info string invalid value for option NullMoveEvalDivisor
+< readyok
+> setoption name NullMoveEvalDivisor value 1.5
+> isready
+< info string invalid value for option NullMoveEvalDivisor
+< readyok
+> setoption name NullMoveEvalDivisor value 7x
+> isready
+< info string invalid value for option NullMoveEvalDivisor
+< readyok
+> setoption name NullMoveEvalDivisor
+> isready
+< info string invalid value for option NullMoveEvalDivisor
+< readyok
+> setoption name NullMoveEvalDivisor value 200
+> isready
+< readyok
+> setoption name NullMoveMarginDepth value 0
+> isready
+< readyok
+> setoption name NullMoveMarginDepth value 24
+> isready
+< readyok
+> setoption name NullMoveMarginDepth value 100
+> isready
+< readyok
+> setoption name NullMoveMarginDepth value -1
+> isready
+< readyok
+> setoption name NullMoveMarginDepth value 101
+> isready
+< readyok
+> setoption name NullMoveMarginDepth value abc
+> isready
+< info string invalid value for option NullMoveMarginDepth
+< readyok
+> setoption name NullMoveMarginDepth value 1.5
+> isready
+< info string invalid value for option NullMoveMarginDepth
+< readyok
+> setoption name NullMoveMarginDepth value 7x
+> isready
+< info string invalid value for option NullMoveMarginDepth
+< readyok
+> setoption name NullMoveMarginDepth
+> isready
+< info string invalid value for option NullMoveMarginDepth
+< readyok
+> setoption name NullMoveMarginDepth value 24
+> isready
+< readyok
+> setoption name NullMoveMarginBase value 0
+> isready
+< readyok
+> setoption name NullMoveMarginBase value 180
+> isready
+< readyok
+> setoption name NullMoveMarginBase value 500
+> isready
+< readyok
+> setoption name NullMoveMarginBase value -1
+> isready
+< readyok
+> setoption name NullMoveMarginBase value 501
+> isready
+< readyok
+> setoption name NullMoveMarginBase value abc
+> isready
+< info string invalid value for option NullMoveMarginBase
+< readyok
+> setoption name NullMoveMarginBase value 1.5
+> isready
+< info string invalid value for option NullMoveMarginBase
+< readyok
+> setoption name NullMoveMarginBase value 7x
+> isready
+< info string invalid value for option NullMoveMarginBase
+< readyok
+> setoption name NullMoveMarginBase
+> isready
+< info string invalid value for option NullMoveMarginBase
+< readyok
+> setoption name NullMoveMarginBase value 180
+> isready
+< readyok
+> setoption name RfpMargin value 10
+> isready
+< readyok
+> setoption name RfpMargin value 72
+> isready
+< readyok
+> setoption name RfpMargin value 300
+> isready
+< readyok
+> setoption name RfpMargin value 9
+> isready
+< readyok
+> setoption name RfpMargin value 301
+> isready
+< readyok
+> setoption name RfpMargin value abc
+> isready
+< info string invalid value for option RfpMargin
+< readyok
+> setoption name RfpMargin value 1.5
+> isready
+< info string invalid value for option RfpMargin
+< readyok
+> setoption name RfpMargin value 7x
+> isready
+< info string invalid value for option RfpMargin
+< readyok
+> setoption name RfpMargin
+> isready
+< info string invalid value for option RfpMargin
+< readyok
+> setoption name RfpMargin value 72
+> isready
+< readyok
+> setoption name RfpImproving value 0
+> isready
+< readyok
+> setoption name RfpImproving value 40
+> isready
+< readyok
+> setoption name RfpImproving value 200
+> isready
+< readyok
+> setoption name RfpImproving value -1
+> isready
+< readyok
+> setoption name RfpImproving value 201
+> isready
+< readyok
+> setoption name RfpImproving value abc
+> isready
+< info string invalid value for option RfpImproving
+< readyok
+> setoption name RfpImproving value 1.5
+> isready
+< info string invalid value for option RfpImproving
+< readyok
+> setoption name RfpImproving value 7x
+> isready
+< info string invalid value for option RfpImproving
+< readyok
+> setoption name RfpImproving
+> isready
+< info string invalid value for option RfpImproving
+< readyok
+> setoption name RfpImproving value 40
+> isready
+< readyok
+> setoption name RfpDepth value 0
+> isready
+< readyok
+> setoption name RfpDepth value 8
+> isready
+< readyok
+> setoption name RfpDepth value 15
+> isready
+< readyok
+> setoption name RfpDepth value -1
+> isready
+< readyok
+> setoption name RfpDepth value 16
+> isready
+< readyok
+> setoption name RfpDepth value abc
+> isready
+< info string invalid value for option RfpDepth
+< readyok
+> setoption name RfpDepth value 1.5
+> isready
+< info string invalid value for option RfpDepth
+< readyok
+> setoption name RfpDepth value 7x
+> isready
+< info string invalid value for option RfpDepth
+< readyok
+> setoption name RfpDepth
+> isready
+< info string invalid value for option RfpDepth
+< readyok
+> setoption name RfpDepth value 8
+> isready
+< readyok
+> setoption name FutilityBase value 0
+> isready
+< readyok
+> setoption name FutilityBase value 100
+> isready
+< readyok
+> setoption name FutilityBase value 500
+> isready
+< readyok
+> setoption name FutilityBase value -1
+> isready
+< readyok
+> setoption name FutilityBase value 501
+> isready
+< readyok
+> setoption name FutilityBase value abc
+> isready
+< info string invalid value for option FutilityBase
+< readyok
+> setoption name FutilityBase value 1.5
+> isready
+< info string invalid value for option FutilityBase
+< readyok
+> setoption name FutilityBase value 7x
+> isready
+< info string invalid value for option FutilityBase
+< readyok
+> setoption name FutilityBase
+> isready
+< info string invalid value for option FutilityBase
+< readyok
+> setoption name FutilityBase value 100
+> isready
+< readyok
+> setoption name FutilityMultiplier value 0
+> isready
+< readyok
+> setoption name FutilityMultiplier value 110
+> isready
+< readyok
+> setoption name FutilityMultiplier value 500
+> isready
+< readyok
+> setoption name FutilityMultiplier value -1
+> isready
+< readyok
+> setoption name FutilityMultiplier value 501
+> isready
+< readyok
+> setoption name FutilityMultiplier value abc
+> isready
+< info string invalid value for option FutilityMultiplier
+< readyok
+> setoption name FutilityMultiplier value 1.5
+> isready
+< info string invalid value for option FutilityMultiplier
+< readyok
+> setoption name FutilityMultiplier value 7x
+> isready
+< info string invalid value for option FutilityMultiplier
+< readyok
+> setoption name FutilityMultiplier
+> isready
+< info string invalid value for option FutilityMultiplier
+< readyok
+> setoption name FutilityMultiplier value 110
+> isready
+< readyok
+> setoption name QsFutilityMargin value 0
+> isready
+< readyok
+> setoption name QsFutilityMargin value 160
+> isready
+< readyok
+> setoption name QsFutilityMargin value 1000
+> isready
+< readyok
+> setoption name QsFutilityMargin value -1
+> isready
+< readyok
+> setoption name QsFutilityMargin value 1001
+> isready
+< readyok
+> setoption name QsFutilityMargin value abc
+> isready
+< info string invalid value for option QsFutilityMargin
+< readyok
+> setoption name QsFutilityMargin value 1.5
+> isready
+< info string invalid value for option QsFutilityMargin
+< readyok
+> setoption name QsFutilityMargin value 7x
+> isready
+< info string invalid value for option QsFutilityMargin
+< readyok
+> setoption name QsFutilityMargin
+> isready
+< info string invalid value for option QsFutilityMargin
+< readyok
+> setoption name QsFutilityMargin value 160
+> isready
+< readyok
+> setoption name SeeQuietMultiplier value 0
+> isready
+< readyok
+> setoption name SeeQuietMultiplier value 24
+> isready
+< readyok
+> setoption name SeeQuietMultiplier value 200
+> isready
+< readyok
+> setoption name SeeQuietMultiplier value -1
+> isready
+< readyok
+> setoption name SeeQuietMultiplier value 201
+> isready
+< readyok
+> setoption name SeeQuietMultiplier value abc
+> isready
+< info string invalid value for option SeeQuietMultiplier
+< readyok
+> setoption name SeeQuietMultiplier value 1.5
+> isready
+< info string invalid value for option SeeQuietMultiplier
+< readyok
+> setoption name SeeQuietMultiplier value 7x
+> isready
+< info string invalid value for option SeeQuietMultiplier
+< readyok
+> setoption name SeeQuietMultiplier
+> isready
+< info string invalid value for option SeeQuietMultiplier
+< readyok
+> setoption name SeeQuietMultiplier value 24
+> isready
+< readyok
+> setoption name SeeNoisyMultiplier value 0
+> isready
+< readyok
+> setoption name SeeNoisyMultiplier value 150
+> isready
+< readyok
+> setoption name SeeNoisyMultiplier value 1000
+> isready
+< readyok
+> setoption name SeeNoisyMultiplier value -1
+> isready
+< readyok
+> setoption name SeeNoisyMultiplier value 1001
+> isready
+< readyok
+> setoption name SeeNoisyMultiplier value abc
+> isready
+< info string invalid value for option SeeNoisyMultiplier
+< readyok
+> setoption name SeeNoisyMultiplier value 1.5
+> isready
+< info string invalid value for option SeeNoisyMultiplier
+< readyok
+> setoption name SeeNoisyMultiplier value 7x
+> isready
+< info string invalid value for option SeeNoisyMultiplier
+< readyok
+> setoption name SeeNoisyMultiplier
+> isready
+< info string invalid value for option SeeNoisyMultiplier
+< readyok
+> setoption name SeeNoisyMultiplier value 150
+> isready
+< readyok
+> setoption name AspirationDelta value 4
+> isready
+< readyok
+> setoption name AspirationDelta value 18
+> isready
+< readyok
+> setoption name AspirationDelta value 200
+> isready
+< readyok
+> setoption name AspirationDelta value 3
+> isready
+< readyok
+> setoption name AspirationDelta value 201
+> isready
+< readyok
+> setoption name AspirationDelta value abc
+> isready
+< info string invalid value for option AspirationDelta
+< readyok
+> setoption name AspirationDelta value 1.5
+> isready
+< info string invalid value for option AspirationDelta
+< readyok
+> setoption name AspirationDelta value 7x
+> isready
+< info string invalid value for option AspirationDelta
+< readyok
+> setoption name AspirationDelta
+> isready
+< info string invalid value for option AspirationDelta
+< readyok
+> setoption name AspirationDelta value 18
+> isready
+< readyok
+> setoption name CorrHistPlus value 7
+> isready
+< readyok
+> bench 6
+< info string bench depth 6 nodes 16185 time 425 nps 38082
+> setoption name CorrHistPlus value 99
+> isready
+< readyok
+> bench 6
+< info string bench depth 6 nodes 16185 time 491 nps 32963
+> setoption name CorrHistPlus value 0
+> isready
+< readyok
+> setoption name CorrHistPlus value 0
+> isready
+< readyok
+> bench 6
+< info string bench depth 6 nodes 15736 time 502 nps 31346
+> setoption name CorrHistPlus value -5
+> isready
+< readyok
+> bench 6
+< info string bench depth 6 nodes 15736 time 779 nps 20200
+> setoption name CorrHistPlus value 0
+> isready
+< readyok
+> setoption name HistRework value 3
+> isready
+< readyok
+> bench 6
+< info string bench depth 6 nodes 15220 time 391 nps 38925
+> setoption name HistRework value 99
+> isready
+< readyok
+> bench 6
+< info string bench depth 6 nodes 15220 time 370 nps 41135
+> setoption name HistRework value 0
+> isready
+< readyok
+> setoption name CorrMargins value 1
+> isready
+< readyok
+> bench 6
+< info string bench depth 6 nodes 15759 time 413 nps 38157
+> setoption name CorrMargins value 5
+> isready
+< readyok
+> bench 6
+< info string bench depth 6 nodes 15759 time 336 nps 46901
+> setoption name CorrMargins value 0
+> isready
+< readyok
+> setoption name NetScale value 150
+> isready
+< readyok
+> bench 6
+< info string bench depth 6 nodes 12124 time 240 nps 50516
+> setoption name NetScale value 999
+> isready
+< readyok
+> bench 6
+< info string bench depth 6 nodes 12124 time 288 nps 42097
+> setoption name NetScale value 100
+> isready
+< readyok
+> setoption name NetScale value 50
+> isready
+< readyok
+> bench 6
+< info string bench depth 6 nodes 21090 time 416 nps 50697
+> setoption name NetScale value 1
+> isready
+< readyok
+> bench 6
+< info string bench depth 6 nodes 21090 time 300 nps 70300
+> setoption name NetScale value 100
+> isready
+< readyok
+> bench 6
+< info string bench depth 6 nodes 15736 time 291 nps 54075
+> setoption name Ponder value true
+> isready
+< readyok
+> setoption name Ponder value false
+> isready
+< readyok
+> setoption name Ponder value maybe
+> isready
+< info string invalid value for option Ponder
+< readyok
+> setoption name Ponder value TRUE
+> isready
+< info string invalid value for option Ponder
+< readyok
+> setoption name Ponder value 1
+> isready
+< info string invalid value for option Ponder
+< readyok
+> setoption name Ponder
+> isready
+< info string invalid value for option Ponder
+< readyok
+> setoption name Ponder value false
+> isready
+< readyok
+> setoption name OwnBook value true
+> isready
+< readyok
+> setoption name OwnBook value false
+> isready
+< readyok
+> setoption name OwnBook value maybe
+> isready
+< info string invalid value for option OwnBook
+< readyok
+> setoption name OwnBook value TRUE
+> isready
+< info string invalid value for option OwnBook
+< readyok
+> setoption name OwnBook value 1
+> isready
+< info string invalid value for option OwnBook
+< readyok
+> setoption name OwnBook
+> isready
+< info string invalid value for option OwnBook
+< readyok
+> setoption name OwnBook value true
+> isready
+< readyok
+> setoption name UseNNUE value true
+> isready
+< readyok
+> setoption name UseNNUE value false
+> isready
+< readyok
+> setoption name UseNNUE value maybe
+> isready
+< info string invalid value for option UseNNUE
+< readyok
+> setoption name UseNNUE value TRUE
+> isready
+< info string invalid value for option UseNNUE
+< readyok
+> setoption name UseNNUE value 1
+> isready
+< info string invalid value for option UseNNUE
+< readyok
+> setoption name UseNNUE
+< info string invalid value for option UseNNUE
+> isready
+< readyok
+> setoption name UseNNUE value true
+> isready
+< readyok
+> setoption name SmpExactNodes value true
+> isready
+< readyok
+> setoption name SmpExactNodes value false
+> isready
+< readyok
+> setoption name SmpExactNodes value maybe
+> isready
+< info string invalid value for option SmpExactNodes
+< readyok
+> setoption name SmpExactNodes value TRUE
+> isready
+< info string invalid value for option SmpExactNodes
+< readyok
+> setoption name SmpExactNodes value 1
+< info string invalid value for option SmpExactNodes
+> isready
+< readyok
+> setoption name SmpExactNodes
+< info string invalid value for option SmpExactNodes
+> isready
+< readyok
+> setoption name SmpExactNodes value false
+> isready
+< readyok
+> setoption name SmpBestThread value true
+> isready
+< readyok
+> setoption name SmpBestThread value false
+> isready
+< readyok
+> setoption name SmpBestThread value maybe
+> isready
+< info string invalid value for option SmpBestThread
+< readyok
+> setoption name SmpBestThread value TRUE
+> isready
+< info string invalid value for option SmpBestThread
+< readyok
+> setoption name SmpBestThread value 1
+> isready
+< info string invalid value for option SmpBestThread
+< readyok
+> setoption name SmpBestThread
+> isready
+< info string invalid value for option SmpBestThread
+< readyok
+> setoption name SmpBestThread value false
+> isready
+< readyok
+> setoption name SmpProtectProvenScore value true
+> isready
+< readyok
+> setoption name SmpProtectProvenScore value false
+> isready
+< readyok
+> setoption name SmpProtectProvenScore value maybe
+> isready
+< info string invalid value for option SmpProtectProvenScore
+< readyok
+> setoption name SmpProtectProvenScore value TRUE
+> isready
+< info string invalid value for option SmpProtectProvenScore
+< readyok
+> setoption name SmpProtectProvenScore value 1
+> isready
+< info string invalid value for option SmpProtectProvenScore
+< readyok
+> setoption name SmpProtectProvenScore
+> isready
+< info string invalid value for option SmpProtectProvenScore
+< readyok
+> setoption name SmpProtectProvenScore value false
+> isready
+< readyok
+> setoption name LocklessTT value true
+> isready
+< info string LocklessTT active
+< readyok
+> setoption name LocklessTT value false
+> isready
+< readyok
+> setoption name LocklessTT value maybe
+> isready
+< info string invalid value for option LocklessTT
+< readyok
+> setoption name LocklessTT value TRUE
+> isready
+< info string invalid value for option LocklessTT
+< readyok
+> setoption name LocklessTT value 1
+> isready
+< info string invalid value for option LocklessTT
+< readyok
+> setoption name LocklessTT
+> isready
+< info string invalid value for option LocklessTT
+< readyok
+> setoption name LocklessTT value false
+> isready
+< readyok
+> setoption name SmpHelpersPastDepth value true
+> isready
+< readyok
+> setoption name SmpHelpersPastDepth value false
+> isready
+< readyok
+> setoption name SmpHelpersPastDepth value maybe
+< info string invalid value for option SmpHelpersPastDepth
+> isready
+< readyok
+> setoption name SmpHelpersPastDepth value TRUE
+> isready
+< info string invalid value for option SmpHelpersPastDepth
+< readyok
+> setoption name SmpHelpersPastDepth value 1
+< info string invalid value for option SmpHelpersPastDepth
+> isready
+< readyok
+> setoption name SmpHelpersPastDepth
+< info string invalid value for option SmpHelpersPastDepth
+> isready
+< readyok
+> setoption name SmpHelpersPastDepth value false
+> isready
+< readyok
+> setoption name Syzygy50MoveRule value true
+> isready
+< readyok
+> setoption name Syzygy50MoveRule value false
+> isready
+< readyok
+> setoption name Syzygy50MoveRule value maybe
+> isready
+< info string invalid value for option Syzygy50MoveRule
+< readyok
+> setoption name Syzygy50MoveRule value TRUE
+> isready
+< info string invalid value for option Syzygy50MoveRule
+< readyok
+> setoption name Syzygy50MoveRule value 1
+> isready
+< info string invalid value for option Syzygy50MoveRule
+< readyok
+> setoption name Syzygy50MoveRule
+> isready
+< info string invalid value for option Syzygy50MoveRule
+< readyok
+> setoption name Syzygy50MoveRule value true
+> isready
+< readyok
+> setoption name CuckooRep value true
+> isready
+< readyok
+> setoption name CuckooRep value false
+> isready
+< readyok
+> setoption name CuckooRep value maybe
+> isready
+< info string invalid value for option CuckooRep
+< readyok
+> setoption name CuckooRep value TRUE
+> isready
+< info string invalid value for option CuckooRep
+< readyok
+> setoption name CuckooRep value 1
+> isready
+< info string invalid value for option CuckooRep
+< readyok
+> setoption name CuckooRep
+> isready
+< info string invalid value for option CuckooRep
+< readyok
+> setoption name CuckooRep value false
+> isready
+< readyok
+> setoption name MaterialKeyTable value true
+> isready
+< readyok
+> setoption name MaterialKeyTable value false
+> isready
+< readyok
+> setoption name MaterialKeyTable value maybe
+< info string invalid value for option MaterialKeyTable
+> isready
+< readyok
+> setoption name MaterialKeyTable value TRUE
+> isready
+< info string invalid value for option MaterialKeyTable
+< readyok
+> setoption name MaterialKeyTable value 1
+> isready
+< info string invalid value for option MaterialKeyTable
+< readyok
+> setoption name MaterialKeyTable
+> isready
+< info string invalid value for option MaterialKeyTable
+< readyok
+> setoption name MaterialKeyTable value false
+> isready
+< readyok
+> setoption name IntendedThreefold value true
+> isready
+< readyok
+> setoption name IntendedThreefold value false
+> isready
+< readyok
+> setoption name IntendedThreefold value maybe
+> isready
+< info string invalid value for option IntendedThreefold
+< readyok
+> setoption name IntendedThreefold value TRUE
+> isready
+< info string invalid value for option IntendedThreefold
+< readyok
+> setoption name IntendedThreefold value 1
+> isready
+< info string invalid value for option IntendedThreefold
+< readyok
+> setoption name IntendedThreefold
+> isready
+< info string invalid value for option IntendedThreefold
+< readyok
+> setoption name IntendedThreefold value false
+> isready
+< readyok
+> setoption name Book File value /tmp/forge-astra-asan-20261029/uci-options-regression/forge r3 options/no such  book file.bin
+> isready
+< info string cannot load book /tmp/forge-astra-asan-20261029/uci-options-regression/forge r3 options/no such  book file.bin
+< readyok
+> setoption name Book File value <empty>
+> isready
+< readyok
+> setoption name Book File
+> isready
+< readyok
+> setoption name NNUEFile value /tmp/forge-astra-asan-20261029/uci-options-regression/forge r3 options/no such net v2.fnn2
+< info string ERROR NNUE v2: cannot load NNUEFile /tmp/forge-astra-asan-20261029/uci-options-regression/forge r3 options/no such net v2.fnn2: cannot open /tmp/forge-astra-asan-20261029/uci-options-regression/forge r3 options/no such net v2.fnn2
+> setoption name NNUEFile value <empty>
+< info string NNUE v2: off (NNUEKingBuckets 0, NNUEOutputBuckets 0): compiled-in network
+> isready
+< readyok
+> setoption name SyzygyPath value /tmp/forge-astra-asan-20261029/uci-options-regression/forge r3 options/tb dir with spaces
+> isready
+< info string Syzygy: 0 WDL and 0 DTZ tables, up to 0 pieces, 1 invalid files skipped
+< readyok
+> setoption name SyzygyPath value <empty>
+> isready
+< info string Syzygy tablebases off
+< readyok
+> setoption name SyzygyPath
+> isready
+< info string Syzygy tablebases off
+< readyok
+> setoption name Clear Hash
+> isready
+< readyok
+> setoption name NoSuchOption value 5
+> isready
+< readyok
+> setoption name Hash2 value 64
+> isready
+< readyok
+> setoption name Threads Count value 2
+> isready
+< readyok
+> setoption name
+> isready
+< readyok
+> setoption
+> isready
+< readyok
+> setoption value 5
+> isready
+< readyok
+> setoption foo bar
+> isready
+< readyok
+> setoption name RazorDepth value abc
+> isready
+< info string invalid value for option RazorDepth
+< readyok
+> bench 6
+< info string bench depth 6 nodes 15736 time 224 nps 70250
+> position startpos
+> go perft 1
+< a2a3: 1
+< b2b3: 1
+< c2c3: 1
+< d2d3: 1
+< e2e3: 1
+< f2f3: 1
+< g2g3: 1
+< h2h3: 1
+< a2a4: 1
+< b2b4: 1
+< c2c4: 1
+< d2d4: 1
+< e2e4: 1
+< f2f4: 1
+< g2g4: 1
+< h2h4: 1
+< b1a3: 1
+< b1c3: 1
+< g1f3: 1
+< g1h3: 1
+< nodes 20
+> position startpos
+> go depth 3
+< info depth 1 seldepth 1 score cp 1 nodes 26 nps 13000 hashfull 0 time 2 pv d2d4
+< info depth 2 seldepth 2 score cp 49 nodes 54 nps 27000 hashfull 0 time 2 pv d2d4 d7d6
+< info depth 3 seldepth 3 score cp 18 nodes 215 nps 35833 hashfull 0 time 6 pv e2e4 h7h6 d2d4
+< bestmove e2e4
+> quit

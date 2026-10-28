@@ -1,0 +1,1556 @@
+> uci
+< id name Chess Engine Forge 6.4.24 candidate
+< id author OpenAI
+< option name Hash type spin default 32 min 1 max 2048
+< option name Threads type spin default 1 min 1 max 256
+< option name Move Overhead type spin default 10 min 0 max 1000
+< option name Ponder type check default false
+< option name OwnBook type check default true
+< option name Book File type string default <empty>
+< option name Book Depth type spin default 30 min 0 max 100
+< option name Book Variety type spin default 30 min 0 max 100
+< option name UseNNUE type check default true
+< option name SmpExactNodes type check default false
+< option name SmpBestThread type check default false
+< option name SmpProtectProvenScore type check default false
+< option name LocklessTT type check default false
+< option name SmpHelpersPastDepth type check default false
+< option name SyzygyPath type string default <empty>
+< option name SyzygyProbeDepth type spin default 1 min 1 max 10
+< option name Syzygy50MoveRule type check default true
+< option name CorrHistPlus type spin default 0 min 0 max 7
+< option name HardDeadline type spin default 0 min 0 max 1000
+< option name NNUEFile type string default <empty>
+< option name NNUEKingBuckets type spin default 0 min 0 max 32
+< option name NNUEOutputBuckets type spin default 0 min 0 max 16
+< option name NNUEThreats type spin default 0 min 0 max 1
+< option name NNUEPawnPairs type spin default 0 min 0 max 1
+< option name PureNnue type spin default 0 min 0 max 1
+< option name CorrMargins type spin default 0 min 0 max 1
+< option name CorrExt type spin default 0 min 0 max 1
+< option name CuckooRep type check default false
+< option name MaterialKeyTable type check default false
+< option name NetScale type spin default 100 min 50 max 150
+< option name HistRework type spin default 0 min 0 max 3
+< option name IntendedThreefold type check default false
+< option name LmrQuietBase type spin default 85 min 0 max 300
+< option name LmrQuietDivisor type spin default 220 min 100 max 500
+< option name LmrNoisyBase type spin default 10 min 0 max 300
+< option name LmrNoisyDivisor type spin default 340 min 100 max 800
+< option name LmrHistoryDivisor type spin default 6000 min 1000 max 30000
+< option name LmrCutoffThreshold type spin default 3 min 0 max 20
+< option name NullMoveBase type spin default 3 min 1 max 6
+< option name NullMoveDepthDivisor type spin default 3 min 1 max 10
+< option name NullMoveEvalDivisor type spin default 200 min 50 max 1000
+< option name NullMoveMarginDepth type spin default 24 min 0 max 100
+< option name NullMoveMarginBase type spin default 180 min 0 max 500
+< option name RfpMargin type spin default 72 min 10 max 300
+< option name RfpImproving type spin default 40 min 0 max 200
+< option name RfpDepth type spin default 8 min 0 max 15
+< option name FutilityBase type spin default 100 min 0 max 500
+< option name FutilityMultiplier type spin default 110 min 0 max 500
+< option name QsFutilityMargin type spin default 160 min 0 max 1000
+< option name SeeQuietMultiplier type spin default 24 min 0 max 200
+< option name SeeNoisyMultiplier type spin default 150 min 0 max 1000
+< option name AspirationDelta type spin default 18 min 4 max 200
+< option name Clear Hash type button
+< uciok
+> isready
+< readyok
+> setoption name Hash value 33
+> isready
+< readyok
+> position startpos
+> isready
+< readyok
+> go depth 4
+< info depth 1 seldepth 1 score cp 1 nodes 26 nps 2166 hashfull 0 time 12 pv d2d4
+< info depth 2 seldepth 2 score cp 49 nodes 54 nps 4153 hashfull 0 time 13 pv d2d4 d7d6
+< info depth 3 seldepth 3 score cp 18 nodes 215 nps 11944 hashfull 0 time 18 pv e2e4 h7h6 d2d4
+< info depth 4 seldepth 6 score cp 30 nodes 404 nps 14428 hashfull 0 time 28 pv e2e4 e7e5 c2c3 c7c6
+< bestmove e2e4
+> position startpos
+> isready
+< readyok
+> go depth 3 searchmoves e2e4 d2d4
+< info depth 1 seldepth 1 score cp 30 nodes 3 nps 0 hashfull 0 time 0 pv e2e4
+< info depth 2 seldepth 2 score cp 30 nodes 11 nps 0 hashfull 0 time 0 pv e2e4 e7e5
+< info depth 3 seldepth 3 score cp 30 nodes 23 nps 23000 hashfull 0 time 1 pv e2e4 e7e5 c2c3
+< bestmove e2e4
+> setoption name Clear Hash
+> isready
+< readyok
+> position fen 2rqNN2/4k3/ppp2pB1/3p4/PPPp1Prb/n3P2b/K7/4Q3 b - - 0 34
+> isready
+< readyok
+> go depth 6 searchmoves a3b5
+< info depth 1 seldepth 3 score cp 1067 nodes 9 nps 0 hashfull 0 time 0 pv a3b5
+< info depth 2 seldepth 4 score cp 1635 nodes 35 nps 35000 hashfull 0 time 1 pv a3b5 a4b5 h4e1
+< info depth 3 seldepth 11 score cp 1648 nodes 283 nps 47166 hashfull 0 time 6 pv a3b5 a4b5 g4g2 a2b1
+< info depth 4 seldepth 11 score cp 1648 nodes 325 nps 40625 hashfull 0 time 8 pv a3b5 a4b5 g4g2 a2b1 h4e1
+< info depth 5 seldepth 11 score cp 1770 nodes 602 nps 54727 hashfull 0 time 11 pv a3b5 a4b5 h4e1 b5c6
+< info depth 6 seldepth 12 score cp 1083 nodes 1373 nps 52807 hashfull 0 time 26 pv a3b5 e1h1 g4g2 a2a1 e7f8 h1h3 g2g6 a4b5
+< bestmove a3b5
+> setoption name Clear Hash
+> isready
+< readyok
+> position fen 2rqNN2/4k3/ppp2pB1/3p4/PPPp1Prb/n3P2b/K7/4Q3 b - - 0 34
+> isready
+< readyok
+> go depth 6 searchmoves g4g3
+< info depth 1 seldepth 4 score cp 930 nodes 8 nps 0 hashfull 0 time 0 pv g4g3
+< info depth 2 seldepth 6 score cp 1012 nodes 63 nps 63000 hashfull 0 time 1 pv g4g3 e1d2
+< info depth 3 seldepth 6 score cp 859 nodes 118 nps 59000 hashfull 0 time 2 pv g4g3 e1h1 a3c4
+< info depth 4 seldepth 6 score cp 859 nodes 134 nps 44666 hashfull 0 time 3 pv g4g3 e1h1 a3c4
+< info depth 5 seldepth 9 score cp 1064 nodes 237 nps 59250 hashfull 0 time 4 pv g4g3 e1d2 a3c4 d2d4
+< info depth 6 seldepth 11 score cp 1224 nodes 629 nps 62900 hashfull 0 time 10 pv g4g3 e1d2 a3c4 d2d4 g3g2 a2b1
+< bestmove g4g3
+> setoption name Clear Hash
+> isready
+< readyok
+> position fen 2rqNN2/4k3/ppp2pB1/3p4/PPPp1Prb/n3P2b/K7/4Q3 b - - 0 34
+> isready
+< readyok
+> go depth 6 searchmoves a3b5 g4g3
+< info depth 1 seldepth 4 score cp 1070 nodes 22 nps 0 hashfull 0 time 0 pv a3b5
+< info depth 2 seldepth 6 score cp 1058 nodes 111 nps 27750 hashfull 0 time 4 pv a3b5 e1h1
+< info depth 3 seldepth 10 score cp 1142 nodes 249 nps 27666 hashfull 0 time 9 pv a3b5 e1h1 b5c3 a2a3
+< info depth 4 seldepth 10 score cp 1174 nodes 320 nps 32000 hashfull 0 time 10 pv a3b5 e1h1 g4g2 a2b1
+< info depth 5 seldepth 12 score cp 1083 nodes 458 nps 38166 hashfull 0 time 12 pv a3b5 e1h1 g4g2 a2a1 e7f8 h1h3 g2g6 a4b5
+< info depth 6 seldepth 12 score cp 1083 nodes 612 nps 40800 hashfull 0 time 15 pv a3b5 e1h1 g4g2 a2a1 e7f8 h1h3
+< bestmove a3b5
+> position startpos
+> isready
+< readyok
+> go nodes 0 searchmoves e2e4
+< bestmove e2e4
+> position startpos
+> isready
+< readyok
+> go nodes 1 searchmoves e2e4
+< bestmove e2e4
+> position startpos
+> isready
+< readyok
+> go depth 2 searchmoves a1a8
+< info string searchmoves restriction has no legal root moves
+< info depth 1 seldepth 1 score cp 0 nodes 0 nps 0 hashfull 0 time 0 pv
+< info depth 2 seldepth 2 score cp 0 nodes 0 nps 0 hashfull 0 time 0 pv
+< bestmove 0000
+> position fen 4r2k/8/8/8/8/8/8/4K3 w - - 0 1
+> isready
+< readyok
+> go depth 2 searchmoves a1a8
+< info string searchmoves restriction has no legal root moves
+< info depth 1 seldepth 1 score cp 0 nodes 0 nps 0 hashfull 0 time 0 pv
+< info depth 2 seldepth 2 score cp 0 nodes 0 nps 0 hashfull 0 time 0 pv
+< bestmove 0000
+> position fen 7k/6Q1/6K1/8/8/8/8/8 b - - 0 1
+> isready
+< readyok
+> go depth 2 searchmoves a1a8
+< info depth 1 seldepth 1 score mate 0 nodes 0 nps 0 hashfull 0 time 0 pv
+< info depth 2 seldepth 2 score mate 0 nodes 0 nps 0 hashfull 0 time 0 pv
+< bestmove 0000
+> position fen 7k/5Q2/6K1/8/8/8/8/8 b - - 0 1
+> isready
+< readyok
+> go depth 2 searchmoves a1a8
+< info depth 1 seldepth 1 score cp 0 nodes 0 nps 0 hashfull 0 time 0 pv
+< info depth 2 seldepth 2 score cp 0 nodes 0 nps 0 hashfull 0 time 0 pv
+< bestmove 0000
+> position startpos
+> isready
+< readyok
+> go depth 2 searchmoves e2e4
+< info depth 1 seldepth 1 score cp -9 nodes 2 nps 0 hashfull 0 time 0 pv e2e4
+< info depth 2 seldepth 4 score cp 34 nodes 11 nps 0 hashfull 0 time 0 pv e2e4 d7d5 e4d5 d8d5
+< bestmove e2e4
+> position fen 6k1/5ppp/8/8/8/8/5PPP/4R1K1 w - - 0 1
+> isready
+< readyok
+> go mate 1
+< info depth 1 seldepth 1 score mate 1 nodes 21 nps 0 hashfull 0 time 0 pv e1e8
+< bestmove e1e8
+> position fen 8/k1P5/2K5/8/8/8/8/8 w - - 0 1
+> isready
+< readyok
+> go depth 1 searchmoves c7c8r
+< info depth 1 seldepth 1 score cp 451 nodes 2 nps 0 hashfull 0 time 0 pv c7c8r
+< bestmove c7c8r
+> position fen 4k3/8/8/3pP3/8/8/8/4K3 w - d6 0 1
+> isready
+< readyok
+> go depth 2 searchmoves e5d6
+< info depth 1 seldepth 1 score cp 11 nodes 2 nps 0 hashfull 0 time 0 pv e5d6
+< info depth 2 seldepth 2 score cp 23 nodes 9 nps 0 hashfull 0 time 0 pv e5d6 e8d8
+< bestmove e5d6
+> position fen k3r3/8/8/3pP3/8/8/8/4K3 w - d6 0 1
+> isready
+< readyok
+> go depth 2 searchmoves e5d6
+< info string searchmoves restriction has no legal root moves
+< info depth 1 seldepth 1 score cp 0 nodes 0 nps 0 hashfull 0 time 0 pv
+< info depth 2 seldepth 2 score cp 0 nodes 0 nps 0 hashfull 0 time 0 pv
+< bestmove 0000
+> ucinewgame
+> position startpos moves g1f3 g8f6 f3g1 f6g8 g1f3 g8f6 f3g1 f6g8
+> isready
+< readyok
+> go depth 2
+< info depth 1 seldepth 1 score cp 0 nodes 0 nps 0 hashfull 0 time 0 pv
+< info depth 2 seldepth 2 score cp 0 nodes 0 nps 0 hashfull 0 time 0 pv
+< bestmove a2a3
+> ucinewgame
+> position fen 7k/8/8/8/8/8/8/KR6 w - - 100 1
+> isready
+< readyok
+> go depth 2
+< info depth 1 seldepth 1 score cp 0 nodes 0 nps 0 hashfull 0 time 0 pv
+< info depth 2 seldepth 2 score cp 0 nodes 0 nps 0 hashfull 0 time 0 pv
+< bestmove b1c1
+> position fen 7k/6Q1/6K1/8/8/8/8/8 b - - 100 1
+> isready
+< readyok
+> go depth 2
+< info depth 1 seldepth 1 score mate 0 nodes 0 nps 0 hashfull 0 time 0 pv
+< info depth 2 seldepth 2 score mate 0 nodes 0 nps 0 hashfull 0 time 0 pv
+< bestmove 0000
+> position fen 7k/6Q1/6K1/8/8/8/8/8 b - - 100 1
+> isready
+< readyok
+> go infinite
+< info depth 1 seldepth 1 score mate 0 nodes 0 nps 0 hashfull 0 time 0 pv
+< info depth 2 seldepth 2 score mate 0 nodes 0 nps 0 hashfull 0 time 0 pv
+< info depth 3 seldepth 3 score mate 0 nodes 0 nps 0 hashfull 0 time 0 pv
+< info depth 4 seldepth 4 score mate 0 nodes 0 nps 0 hashfull 0 time 0 pv
+< info depth 5 seldepth 5 score mate 0 nodes 0 nps 0 hashfull 0 time 1 pv
+< info depth 6 seldepth 6 score mate 0 nodes 0 nps 0 hashfull 0 time 1 pv
+< info depth 7 seldepth 7 score mate 0 nodes 0 nps 0 hashfull 0 time 1 pv
+< info depth 8 seldepth 8 score mate 0 nodes 0 nps 0 hashfull 0 time 2 pv
+< info depth 9 seldepth 9 score mate 0 nodes 0 nps 0 hashfull 0 time 2 pv
+< info depth 10 seldepth 10 score mate 0 nodes 0 nps 0 hashfull 0 time 2 pv
+< info depth 11 seldepth 11 score mate 0 nodes 0 nps 0 hashfull 0 time 2 pv
+< info depth 12 seldepth 12 score mate 0 nodes 0 nps 0 hashfull 0 time 2 pv
+< info depth 13 seldepth 13 score mate 0 nodes 0 nps 0 hashfull 0 time 2 pv
+< info depth 14 seldepth 14 score mate 0 nodes 0 nps 0 hashfull 0 time 2 pv
+< info depth 15 seldepth 15 score mate 0 nodes 0 nps 0 hashfull 0 time 2 pv
+< info depth 16 seldepth 16 score mate 0 nodes 0 nps 0 hashfull 0 time 4 pv
+< info depth 17 seldepth 17 score mate 0 nodes 0 nps 0 hashfull 0 time 4 pv
+< info depth 18 seldepth 18 score mate 0 nodes 0 nps 0 hashfull 0 time 4 pv
+< info depth 19 seldepth 19 score mate 0 nodes 0 nps 0 hashfull 0 time 4 pv
+< info depth 20 seldepth 20 score mate 0 nodes 0 nps 0 hashfull 0 time 4 pv
+< info depth 21 seldepth 21 score mate 0 nodes 0 nps 0 hashfull 0 time 4 pv
+< info depth 22 seldepth 22 score mate 0 nodes 0 nps 0 hashfull 0 time 4 pv
+< info depth 23 seldepth 23 score mate 0 nodes 0 nps 0 hashfull 0 time 4 pv
+< info depth 24 seldepth 24 score mate 0 nodes 0 nps 0 hashfull 0 time 4 pv
+< info depth 25 seldepth 25 score mate 0 nodes 0 nps 0 hashfull 0 time 4 pv
+< info depth 26 seldepth 26 score mate 0 nodes 0 nps 0 hashfull 0 time 4 pv
+< info depth 27 seldepth 27 score mate 0 nodes 0 nps 0 hashfull 0 time 5 pv
+< info depth 28 seldepth 28 score mate 0 nodes 0 nps 0 hashfull 0 time 6 pv
+< info depth 29 seldepth 29 score mate 0 nodes 0 nps 0 hashfull 0 time 6 pv
+< info depth 30 seldepth 30 score mate 0 nodes 0 nps 0 hashfull 0 time 6 pv
+< info depth 31 seldepth 31 score mate 0 nodes 0 nps 0 hashfull 0 time 6 pv
+< info depth 32 seldepth 32 score mate 0 nodes 0 nps 0 hashfull 0 time 6 pv
+< info depth 33 seldepth 33 score mate 0 nodes 0 nps 0 hashfull 0 time 6 pv
+< info depth 34 seldepth 34 score mate 0 nodes 0 nps 0 hashfull 0 time 6 pv
+< info depth 35 seldepth 35 score mate 0 nodes 0 nps 0 hashfull 0 time 6 pv
+< info depth 36 seldepth 36 score mate 0 nodes 0 nps 0 hashfull 0 time 6 pv
+< info depth 37 seldepth 37 score mate 0 nodes 0 nps 0 hashfull 0 time 6 pv
+< info depth 38 seldepth 38 score mate 0 nodes 0 nps 0 hashfull 0 time 6 pv
+< info depth 39 seldepth 39 score mate 0 nodes 0 nps 0 hashfull 0 time 7 pv
+< info depth 40 seldepth 40 score mate 0 nodes 0 nps 0 hashfull 0 time 7 pv
+< info depth 41 seldepth 41 score mate 0 nodes 0 nps 0 hashfull 0 time 7 pv
+< info depth 42 seldepth 42 score mate 0 nodes 0 nps 0 hashfull 0 time 8 pv
+< info depth 43 seldepth 43 score mate 0 nodes 0 nps 0 hashfull 0 time 8 pv
+< info depth 44 seldepth 44 score mate 0 nodes 0 nps 0 hashfull 0 time 8 pv
+< info depth 45 seldepth 45 score mate 0 nodes 0 nps 0 hashfull 0 time 8 pv
+< info depth 46 seldepth 46 score mate 0 nodes 0 nps 0 hashfull 0 time 8 pv
+< info depth 47 seldepth 47 score mate 0 nodes 0 nps 0 hashfull 0 time 8 pv
+< info depth 48 seldepth 48 score mate 0 nodes 0 nps 0 hashfull 0 time 8 pv
+< info depth 49 seldepth 49 score mate 0 nodes 0 nps 0 hashfull 0 time 8 pv
+< info depth 50 seldepth 50 score mate 0 nodes 0 nps 0 hashfull 0 time 9 pv
+< info depth 51 seldepth 51 score mate 0 nodes 0 nps 0 hashfull 0 time 9 pv
+< info depth 52 seldepth 52 score mate 0 nodes 0 nps 0 hashfull 0 time 9 pv
+< info depth 53 seldepth 53 score mate 0 nodes 0 nps 0 hashfull 0 time 9 pv
+< info depth 54 seldepth 54 score mate 0 nodes 0 nps 0 hashfull 0 time 9 pv
+< info depth 55 seldepth 55 score mate 0 nodes 0 nps 0 hashfull 0 time 9 pv
+< info depth 56 seldepth 56 score mate 0 nodes 0 nps 0 hashfull 0 time 10 pv
+< info depth 57 seldepth 57 score mate 0 nodes 0 nps 0 hashfull 0 time 10 pv
+< info depth 58 seldepth 58 score mate 0 nodes 0 nps 0 hashfull 0 time 11 pv
+< info depth 59 seldepth 59 score mate 0 nodes 0 nps 0 hashfull 0 time 11 pv
+< info depth 60 seldepth 60 score mate 0 nodes 0 nps 0 hashfull 0 time 11 pv
+< info depth 61 seldepth 61 score mate 0 nodes 0 nps 0 hashfull 0 time 11 pv
+< info depth 62 seldepth 62 score mate 0 nodes 0 nps 0 hashfull 0 time 11 pv
+< info depth 63 seldepth 63 score mate 0 nodes 0 nps 0 hashfull 0 time 11 pv
+< info depth 64 seldepth 64 score mate 0 nodes 0 nps 0 hashfull 0 time 11 pv
+> isready
+< readyok
+> stop
+< bestmove 0000
+> position fen 7k/8/8/8/8/8/8/K7 w - - 0 1
+> isready
+< readyok
+> go infinite
+< info depth 1 seldepth 1 score cp 0 nodes 0 nps 0 hashfull 0 time 0 pv
+< info depth 2 seldepth 2 score cp 0 nodes 0 nps 0 hashfull 0 time 0 pv
+< info depth 3 seldepth 3 score cp 0 nodes 0 nps 0 hashfull 0 time 0 pv
+< info depth 4 seldepth 4 score cp 0 nodes 0 nps 0 hashfull 0 time 1 pv
+< info depth 5 seldepth 5 score cp 0 nodes 0 nps 0 hashfull 0 time 1 pv
+< info depth 6 seldepth 6 score cp 0 nodes 0 nps 0 hashfull 0 time 1 pv
+< info depth 7 seldepth 7 score cp 0 nodes 0 nps 0 hashfull 0 time 2 pv
+< info depth 8 seldepth 8 score cp 0 nodes 0 nps 0 hashfull 0 time 2 pv
+< info depth 9 seldepth 9 score cp 0 nodes 0 nps 0 hashfull 0 time 3 pv
+< info depth 10 seldepth 10 score cp 0 nodes 0 nps 0 hashfull 0 time 3 pv
+< info depth 11 seldepth 11 score cp 0 nodes 0 nps 0 hashfull 0 time 4 pv
+< info depth 12 seldepth 12 score cp 0 nodes 0 nps 0 hashfull 0 time 4 pv
+< info depth 13 seldepth 13 score cp 0 nodes 0 nps 0 hashfull 0 time 4 pv
+< info depth 14 seldepth 14 score cp 0 nodes 0 nps 0 hashfull 0 time 5 pv
+< info depth 15 seldepth 15 score cp 0 nodes 0 nps 0 hashfull 0 time 5 pv
+< info depth 16 seldepth 16 score cp 0 nodes 0 nps 0 hashfull 0 time 5 pv
+< info depth 17 seldepth 17 score cp 0 nodes 0 nps 0 hashfull 0 time 5 pv
+< info depth 18 seldepth 18 score cp 0 nodes 0 nps 0 hashfull 0 time 6 pv
+< info depth 19 seldepth 19 score cp 0 nodes 0 nps 0 hashfull 0 time 6 pv
+< info depth 20 seldepth 20 score cp 0 nodes 0 nps 0 hashfull 0 time 6 pv
+< info depth 21 seldepth 21 score cp 0 nodes 0 nps 0 hashfull 0 time 7 pv
+< info depth 22 seldepth 22 score cp 0 nodes 0 nps 0 hashfull 0 time 7 pv
+< info depth 23 seldepth 23 score cp 0 nodes 0 nps 0 hashfull 0 time 7 pv
+< info depth 24 seldepth 24 score cp 0 nodes 0 nps 0 hashfull 0 time 7 pv
+< info depth 25 seldepth 25 score cp 0 nodes 0 nps 0 hashfull 0 time 7 pv
+< info depth 26 seldepth 26 score cp 0 nodes 0 nps 0 hashfull 0 time 7 pv
+< info depth 27 seldepth 27 score cp 0 nodes 0 nps 0 hashfull 0 time 7 pv
+< info depth 28 seldepth 28 score cp 0 nodes 0 nps 0 hashfull 0 time 7 pv
+< info depth 29 seldepth 29 score cp 0 nodes 0 nps 0 hashfull 0 time 8 pv
+< info depth 30 seldepth 30 score cp 0 nodes 0 nps 0 hashfull 0 time 8 pv
+< info depth 31 seldepth 31 score cp 0 nodes 0 nps 0 hashfull 0 time 8 pv
+< info depth 32 seldepth 32 score cp 0 nodes 0 nps 0 hashfull 0 time 8 pv
+< info depth 33 seldepth 33 score cp 0 nodes 0 nps 0 hashfull 0 time 8 pv
+< info depth 34 seldepth 34 score cp 0 nodes 0 nps 0 hashfull 0 time 8 pv
+< info depth 35 seldepth 35 score cp 0 nodes 0 nps 0 hashfull 0 time 9 pv
+< info depth 36 seldepth 36 score cp 0 nodes 0 nps 0 hashfull 0 time 9 pv
+< info depth 37 seldepth 37 score cp 0 nodes 0 nps 0 hashfull 0 time 9 pv
+< info depth 38 seldepth 38 score cp 0 nodes 0 nps 0 hashfull 0 time 9 pv
+< info depth 39 seldepth 39 score cp 0 nodes 0 nps 0 hashfull 0 time 9 pv
+< info depth 40 seldepth 40 score cp 0 nodes 0 nps 0 hashfull 0 time 9 pv
+< info depth 41 seldepth 41 score cp 0 nodes 0 nps 0 hashfull 0 time 10 pv
+< info depth 42 seldepth 42 score cp 0 nodes 0 nps 0 hashfull 0 time 10 pv
+< info depth 43 seldepth 43 score cp 0 nodes 0 nps 0 hashfull 0 time 10 pv
+< info depth 44 seldepth 44 score cp 0 nodes 0 nps 0 hashfull 0 time 10 pv
+< info depth 45 seldepth 45 score cp 0 nodes 0 nps 0 hashfull 0 time 11 pv
+< info depth 46 seldepth 46 score cp 0 nodes 0 nps 0 hashfull 0 time 11 pv
+< info depth 47 seldepth 47 score cp 0 nodes 0 nps 0 hashfull 0 time 11 pv
+< info depth 48 seldepth 48 score cp 0 nodes 0 nps 0 hashfull 0 time 11 pv
+< info depth 49 seldepth 49 score cp 0 nodes 0 nps 0 hashfull 0 time 11 pv
+< info depth 50 seldepth 50 score cp 0 nodes 0 nps 0 hashfull 0 time 12 pv
+< info depth 51 seldepth 51 score cp 0 nodes 0 nps 0 hashfull 0 time 12 pv
+< info depth 52 seldepth 52 score cp 0 nodes 0 nps 0 hashfull 0 time 12 pv
+< info depth 53 seldepth 53 score cp 0 nodes 0 nps 0 hashfull 0 time 13 pv
+< info depth 54 seldepth 54 score cp 0 nodes 0 nps 0 hashfull 0 time 13 pv
+< info depth 55 seldepth 55 score cp 0 nodes 0 nps 0 hashfull 0 time 13 pv
+< info depth 56 seldepth 56 score cp 0 nodes 0 nps 0 hashfull 0 time 13 pv
+< info depth 57 seldepth 57 score cp 0 nodes 0 nps 0 hashfull 0 time 13 pv
+< info depth 58 seldepth 58 score cp 0 nodes 0 nps 0 hashfull 0 time 13 pv
+< info depth 59 seldepth 59 score cp 0 nodes 0 nps 0 hashfull 0 time 13 pv
+< info depth 60 seldepth 60 score cp 0 nodes 0 nps 0 hashfull 0 time 13 pv
+< info depth 61 seldepth 61 score cp 0 nodes 0 nps 0 hashfull 0 time 13 pv
+< info depth 62 seldepth 62 score cp 0 nodes 0 nps 0 hashfull 0 time 14 pv
+< info depth 63 seldepth 63 score cp 0 nodes 0 nps 0 hashfull 0 time 14 pv
+< info depth 64 seldepth 64 score cp 0 nodes 0 nps 0 hashfull 0 time 14 pv
+> stop
+< bestmove a1b1
+> position startpos
+> isready
+< readyok
+> go infinite
+< info depth 1 seldepth 1 score cp 1 nodes 26 nps 0 hashfull 0 time 0 pv d2d4
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+> isready
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< info depth 2 seldepth 2 score cp 49 nodes 54 nps 27000 hashfull 0 time 2 pv d2d4 d7d6
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+< readyok
+> stop
+< info depth 3 seldepth 3 score cp 18 nodes 215 nps 30714 hashfull 0 time 7 pv e2e4 h7h6 d2d4
+< bestmove e2e4
+> position startpos
+> isready
+< readyok
+> go movetime 50
+< info string book move e2e4
+< bestmove e2e4
+> position startpos
+> isready
+< readyok
+> go movetime 0
+< info string book move c2c4
+< bestmove c2c4
+> position startpos
+> isready
+< readyok
+> go wtime 0 btime 1000 movestogo 30
+< info string book move e2e4
+< bestmove e2e4
+> position startpos moves e2e4
+> isready
+< readyok
+> go wtime 1000 btime 0 movestogo 30
+< info string book move e7e5
+< bestmove e7e5
+> position startpos
+> isready
+< readyok
+> go depth 1 wtime 2147483647 winc 2147483647
+< info string book move e2e4
+< bestmove e2e4
+> setoption name Hash value oops
+< info string invalid value for option Hash
+> setoption name Hash value 9999999999999999999999
+< info string invalid value for option Hash
+> setoption name Hash value 4junk
+< info string invalid value for option Hash
+> setoption name Move Overhead value -1
+> setoption name Clear Hash
+> isready
+< readyok
+> setoption name LocklessTT value true
+< info string LocklessTT active
+> position startpos
+> isready
+< readyok
+> go depth 6
+< info depth 1 seldepth 1 score cp 1 nodes 21 nps 0 hashfull 0 time 0 pv d2d4
+< info depth 2 seldepth 2 score cp 38 nodes 47 nps 23500 hashfull 0 time 2 pv d2d4 h7h6
+< info depth 3 seldepth 3 score cp 19 nodes 146 nps 29200 hashfull 0 time 5 pv e2e4 h7h6 d2d4
+< info depth 4 seldepth 6 score cp 29 nodes 317 nps 24384 hashfull 0 time 13 pv e2e4 e7e5 c2c3 c7c6
+< info depth 5 seldepth 9 score cp 0 nodes 1196 nps 38580 hashfull 0 time 31 pv g1f3 g8f6 d2d4 d7d5 c2c3
+< info depth 6 seldepth 11 score cp 13 nodes 2132 nps 46347 hashfull 0 time 46 pv c2c4 c7c5 g1f3 g8f6 b1c3 h7h6
+< bestmove c2c4
+> setoption name LocklessTT value false
+> isready
+< readyok
+> setoption name LocklessTT value maybe
+> isready
+< info string invalid value for option LocklessTT
+< readyok
+> setoption name IntendedThreefold value false
+> ucinewgame
+> position fen 8/7k/8/8/8/8/8/K1R5 w - - 0 1 moves a1a2 h7h8 a2a1 h8h7 a1a2 h7h8
+> isready
+< readyok
+> go depth 1 searchmoves a2a1
+< info depth 1 seldepth 1 score cp 391 nodes 2 nps 666 hashfull 0 time 3 pv a2a1
+< bestmove a2a1
+> ucinewgame
+> position fen 8/7k/8/8/8/8/8/K1R5 w - - 0 1 moves a1b1 h7h8 b1b2 h8h7 b2a2 h7h8
+> isready
+< readyok
+> go depth 1 searchmoves a2a1
+< info depth 1 seldepth 1 score cp 391 nodes 2 nps 0 hashfull 0 time 0 pv a2a1
+< bestmove a2a1
+> ucinewgame
+> position fen 7k/1r6/8/8/8/8/8/K2Q4 w - - 0 1 moves a1a2 b7b8 a2a1 b8b7 a1a2 b7b8
+> isready
+< readyok
+> go depth 2 searchmoves a2a1
+< info depth 1 seldepth 1 score cp 238 nodes 2 nps 0 hashfull 0 time 0 pv a2a1
+< info depth 2 seldepth 3 score cp 242 nodes 19 nps 19000 hashfull 0 time 1 pv a2a1 b8b4
+< bestmove a2a1
+> ucinewgame
+> position fen 2r5/7k/8/8/8/8/8/K1Q5 w - - 0 1 moves a1a2 h7h8 a2a1 h8h7 a1a2 h7h8
+> isready
+< readyok
+> go depth 1 searchmoves a2a1
+< info depth 1 seldepth 3 score cp -424 nodes 5 nps 0 hashfull 0 time 0 pv a2a1 c8c1 a1b2
+< bestmove a2a1
+> setoption name IntendedThreefold value true
+> ucinewgame
+> position fen 8/7k/8/8/8/8/8/K1R5 w - - 0 1 moves a1a2 h7h8 a2a1 h8h7 a1a2 h7h8
+> isready
+< readyok
+> go depth 1 searchmoves a2a1
+< info depth 1 seldepth 1 score cp 0 nodes 2 nps 0 hashfull 0 time 0 pv a2a1
+< bestmove a2a1
+> ucinewgame
+> position fen 8/7k/8/8/8/8/8/K1R5 w - - 0 1 moves a1b1 h7h8 b1b2 h8h7 b2a2 h7h8
+> isready
+< readyok
+> go depth 1 searchmoves a2a1
+< info depth 1 seldepth 1 score cp 391 nodes 2 nps 1000 hashfull 0 time 2 pv a2a1
+< bestmove a2a1
+> ucinewgame
+> position fen 7k/1r6/8/8/8/8/8/K2Q4 w - - 0 1 moves a1a2 b7b8 a2a1 b8b7 a1a2 b7b8
+> isready
+< readyok
+> go depth 2 searchmoves a2a1
+< info depth 1 seldepth 1 score cp 0 nodes 2 nps 0 hashfull 0 time 0 pv a2a1
+< info depth 2 seldepth 3 score cp 0 nodes 8 nps 8000 hashfull 0 time 1 pv a2a1
+< bestmove a2a1
+> ucinewgame
+> position fen 2r5/7k/8/8/8/8/8/K1Q5 w - - 0 1 moves a1a2 h7h8 a2a1 h8h7 a1a2 h7h8
+> isready
+< readyok
+> go depth 1 searchmoves a2a1
+< info depth 1 seldepth 3 score cp -424 nodes 5 nps 0 hashfull 0 time 0 pv a2a1 c8c1 a1b2
+< bestmove a2a1
+> setoption name IntendedThreefold value maybe
+< info string invalid value for option IntendedThreefold
+> setoption name IntendedThreefold value false
+> isready
+< readyok
+> position startpos
+> isready
+< readyok
+> position startpos moves e2e4 illegal
+< info string illegal move illegal
+> go perft 1
+< a2a3: 1
+< b2b3: 1
+< c2c3: 1
+< d2d3: 1
+< e2e3: 1
+< f2f3: 1
+< g2g3: 1
+< h2h3: 1
+< a2a4: 1
+< b2b4: 1
+< c2c4: 1
+< d2d4: 1
+< e2e4: 1
+< f2f4: 1
+< g2g4: 1
+< h2h4: 1
+< b1a3: 1
+< b1c3: 1
+< g1f3: 1
+< g1h3: 1
+< nodes 20
+> go perft -1
+< info string perft depth must be an integer from 0 to 10
+> go perft x
+< info string perft depth must be an integer from 0 to 10
+> go perft 9999999999999999999
+< info string perft depth must be an integer from 0 to 10
+> go perft 11
+< info string perft depth must be an integer from 0 to 10
+> go perft 0
+< nodes 1
+> quit

@@ -42,3 +42,5 @@ A new run against the final streaming-hash script passed11/11probes. The reusabl
 
 ## Broader sanitizer check
 All targets built successfully with ASan/UBSan. The first serial CTest session was terminated by a tool-server disconnect after test18completed; its17passing cases and known forge_tests failure are preserved, with no final suite exitcode. A separate run resumes at test19on the same configuration; its final status will be recorded separately.
+
+Final update: review duration 1239.08 seconds (20m39s). Both checker fixes passed. The separate resumed sanitizer segment passed 38/38. The subsequent uninterrupted 56-test qualification passed the unchanged repository exception policy: raw CTest 55/56, exactly four known tactical diagnostics, zero sanitizer reports. Final classification verified all 64 actual command inputs unchanged and preserved four generated outputs separately. See ../sanitizer_complete_20261029/.

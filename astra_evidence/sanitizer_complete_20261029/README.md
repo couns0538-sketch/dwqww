@@ -1,6 +1,6 @@
 # Complete sanitizer qualification — 2026-10-29
 
-Status at this checkpoint: RUNNING. See uninterrupted_run/receipt.json for the final machine-readable result; a RUNNING receipt is not a pass.
+**Final: sanitizer qualification PASS under the unchanged repository policy.** All 56 registered tests completed in one uninterrupted run: 55 PASS and forge_tests with exactly the four pre-existing tactical diagnostics. Raw CTest exit 8; policy gate exit 0. Zero ASan/UBSan/leak reports. This is not a claim of 56/56 raw CTest passes.
 
 The owner requested a complete passing sanitizer run after the20-minute review. Earlier hard instructions retained exactly four known forge_tests FAIL lines. This run therefore reports two separate outcomes: raw CTest, and the repository's existing sanitizer acceptance policy. It never labels known tactical failures as raw CTest passes.
 
@@ -8,7 +8,7 @@ The exact policy is Git blob `53b04af3ba00f77ba56e16ebdd9916ded628cc8a` from `op
 
 Full Release serial testing previously yielded55/56PASS. The initial complete ASan attempt was interrupted by a tool-server disconnection after18completedtests; the separate remaining38-test run passed38/38. Those streams remain in ../final_review/. They are not reconstructed into a single run. The present uninterrupted_run executes all56tests anew, serially, with the repository's600-second timeout, leak detection, abort-on-ASan-error and halt-on-UBSan-error.
 
-All ASan/UBSan targets built successfully with GCC14.2, RelWithDebInfo, h256, strict FP and the original source. Instrumentation proof records34ASan and13UBSan runtime references. The build is frozen. Hashes of68registered command files are preserved and will be checked again after completion. This test process uses its own session to preserve evidence across interactive tool connection loss; it is monitored until completion.
+All ASan/UBSan targets built successfully with GCC14.2, RelWithDebInfo, h256, strict FP and the original source. Instrumentation proof records34ASan and13UBSan runtime references. The build is frozen. The original inventory captured 68 command paths. Final review classified four as generated output logs (their changes are expected), and verified all 64 actual binary/script/fixture inputs unchanged. Both the initial inventory and its correction are preserved. This test process uses its own session to preserve evidence across interactive tool connection loss; it is monitored until completion.
 
 Reproduce with a fresh output directory:
 
@@ -26,3 +26,5 @@ python3 -B astra_evidence/sanitizer_complete_20261029/run_complete.py \
 No speed or Elo claim. Known WAC001 tactical miss and shallow underpromotion move-preference failures remain visible; the independent factual audit is in ../final_review/tactical_failure_audit/.
 
 IDEA_SOURCE: Owner complete-sanitizer request and Forge's existing CI policy; original completeness and recovery wrapper.
+
+The final run took 732.91 seconds in CTest. Complete original output, including passing-test streams, is in uninterrupted_run/LastTest.log. The raw result, acceptance decision, and machine-readable receipt are in ctest.log, policy_gate.log, and receipt.json. Four additional generated test logs/reports are preserved in per_test_outputs/.
