@@ -1,4 +1,4 @@
-# FABLE_REVIEW_OPUS.md — review of every opus-* job branch — DONE for this review (2026-10-28, under 2 h wall clock in four context windows)
+# FABLE_REVIEW_OPUS.md — review of every opus-* job branch — DONE for this review (2026-10-28; first pass under 2 h in four context windows, deep pass in a fifth)
 
 Reviewer: Fable 5.1, started 2026-10-28 (PC time ~13:45). Branch `fable-review-summary` (base d4f4312, report only;
 no engine code here). Per-job corrections go to `fable-review-<job>` branches based on the opus branch, each with
@@ -346,7 +346,7 @@ Notes and evidence under `fable_review/deep/` (one file per item).
   tests/bad_capture_tests.cpp and asserts at least 65 losing moves. Built with `-D_GLIBCXX_ASSERTIONS`: the fixed
   engine passes all six fixtures; the same test on the 64-entry engine aborts in the picker with
   `std::array<forge::Move, 64>::operator[]: Assertion '__n < this->size()' failed` (`fable_review/logs/overflow_proof_*.log`
-  on that branch). The self-check remark of session 4 is closed.
+  on that branch). The self-check remark of session 4 is closed. CI of the test commit: run 40691861788 success in release / ASan+UBSan / TSan (identity ALL OK, known-failure check PASS, TSan 0 reports, the same 15-test ctest list as run 40670602785, which includes forge_bad_capture_tests).
 - **S17 real-window re-run** (`fable_review/s17/`): the job's real split re-executed from the exported job folder on
   the same window (010 rows 9,800,000-9,999,999 built by the job's own real_window_build.py, plus 011 and 012; inputs
   copied from the read-only shards and self-play text, md5 identical to the job's list), diagnostic mode, seed
@@ -363,7 +363,7 @@ Notes and evidence under `fable_review/deep/` (one file per item).
 | branch | head | base | content |
 |---|---|---|---|
 | `fable-review-summary` | this commit | d4f4312 | this report + `fable_review/` evidence |
-| `fable-review-buffix` | 4d6829c1 | d4f4312 + CI workflow | mistake 2: engine fix + test (a9cea71f), REVIEW.md |
+| `fable-review-buffix` | 8632e8ab | d4f4312 + CI workflow | mistake 2: engine fix + test (a9cea71f); overflow-demonstrating fixture (ab2aa56b, run 40691861788 success in release / ASan+UBSan / TSan (identity ALL OK, known-failure check PASS, TSan 0 reports, the same 15-test ctest list as run 40670602785, which includes forge_bad_capture_tests)), REVIEW.md |
 | `fable-review-r3-stack` | 0bae2ea6 | opus-r3-stack da158149 | mistake 1: eight `.pyc` untracked, REVIEW.md |
 | `fable-review-S33fix` | 3004fc91 | opus-sol-S33fix | mistake 3: comparison normalises line endings |
 | `fable-review-S38` | a9884584 | opus-sol-S38 | mistake 3: comparison normalises line endings |
@@ -397,3 +397,10 @@ on the PC except the R3 head and buffix. If the owner wants the original estimat
 a line-by-line read of the large engine diffs (O7, SA2/SA4, S32, the r3 merges) against their specs, the
 planted-bug (mutant) checks of every engine job re-run on the PC, a buffix test position with more than 64
 SEE-losing noisy moves, and S17/S40 on the real shards once the second self-play folder is available.
+
+Session 5 (the deep pass above, measured the same way): first commit 14:21:04, last 14:58:16, 10 commits on two branches;
+all of the list except S40 (no second self-play folder) was done. The whole review is therefore about 3 h of
+wall clock against the 12-16 h estimate; the remaining difference is the depth limits still listed in the
+honest-scope section, now narrower: O7, SA2/SA4, S32 and the r3 resolutions are read line by line, every scripted
+planted-bug check is re-executed, S17 and S19 are re-executed on real data; S40 and the trainer variants' code
+(tested through their suites) remain.
