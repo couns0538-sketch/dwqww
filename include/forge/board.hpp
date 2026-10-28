@@ -134,6 +134,12 @@ public:
     // Search-level repetition: any earlier occurrence at or after history
     // index root_index counts, otherwise two earlier occurrences are needed.
     [[nodiscard]] bool is_repetition(std::size_t root_index) const;
+    // Upcoming repetition (UCI CuckooRep): true when the side to move has a
+    // legal reversible move after which is_repetition(root_index) holds, i.e.
+    // it can reach a search-level repetition draw at once. Answered from the
+    // key history and the cuckoo table of reversible-move keys (namespace
+    // cuckoo below) without generating moves. Cold: used only with CuckooRep.
+    [[nodiscard, gnu::cold]] bool upcoming_repetition(std::size_t root_index) const;
     [[nodiscard]] bool is_insufficient_material() const;
     [[nodiscard]] bool has_non_pawn_material(Color color) const;
 
@@ -201,5 +207,33 @@ private:
 [[nodiscard]] constexpr Piece make_piece(Color color, int type) {
     return static_cast<Piece>((color == White ? 0 : 6) + type);
 }
+
+// Cuckoo table behind Board::upcoming_repetition (UCI CuckooRep). It holds one
+// entry per reversible move of a knight, bishop, rook, queen or king of either
+// colour between two squares {a, b} (a < b) that the piece connects on an
+// empty board: 2 x (168 + 280 + 448 + 728 + 210) = 3668 entries. The key of an
+// entry is the Zobrist difference of the two positions the move connects:
+// piece-on-a ^ piece-on-b ^ side-to-move. The table is a constant built at
+// compile time; these accessors exist for tests and diagnostics.
+namespace cuckoo {
+
+inline constexpr std::size_t Slots = 8192;
+
+struct Entry {
+    Piece piece = Empty;
+    int a = 0;  // the lower square
+    int b = 0;  // the higher square
+};
+
+// Number of stored entries (3668).
+[[nodiscard, gnu::cold]] std::size_t entry_count();
+// Zobrist key difference of `piece` moving between squares a and b.
+[[nodiscard, gnu::cold]] std::uint64_t move_key(Piece piece, int a, int b);
+// Exact lookup: the entry whose key is `key`, if any.
+[[nodiscard, gnu::cold]] std::optional<Entry> lookup(std::uint64_t key);
+// Slot contents for table-level tests (key 0 = empty slot).
+[[nodiscard, gnu::cold]] std::uint64_t slot_key(std::size_t slot);
+
+} // namespace cuckoo
 
 } // namespace forge

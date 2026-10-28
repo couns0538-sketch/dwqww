@@ -150,13 +150,18 @@ SearchInfo Worker::search(Board board, const SearchLimits& limits, bool emit_inf
         int iteration_score = score;
         while (true) {
             ss->ply = 0;
-            // UCI CorrMargins / CorrExt pick the search instance (src/search.cpp); with both 0 it is the
-            // AL1 s198 search.
-            iteration_score = options::corr_margins != 0
-                                  ? (options::corr_ext != 0 ? search_cm_ce(board, ss, depth, alpha, beta, false)
-                                                            : search_corr_margins(board, ss, depth, alpha, beta, false))
-                                  : (options::corr_ext != 0 ? search_corr_ext(board, ss, depth, alpha, beta, false)
-                                                            : search(board, ss, depth, alpha, beta, false));
+            // UCI CorrMargins / CorrExt / CuckooRep pick the search instance (src/search.cpp, head of
+            // alphabeta.inc); with all three off it is the AL1 s198 search.
+            switch ((options::corr_margins != 0 ? 1 : 0) | (options::corr_ext != 0 ? 2 : 0) | (options::cuckoo_rep ? 4 : 0)) {
+                case 0: iteration_score = search(board, ss, depth, alpha, beta, false); break;
+                case 1: iteration_score = search_corr_margins(board, ss, depth, alpha, beta, false); break;
+                case 2: iteration_score = search_corr_ext(board, ss, depth, alpha, beta, false); break;
+                case 3: iteration_score = search_cm_ce(board, ss, depth, alpha, beta, false); break;
+                case 4: iteration_score = search_cuckoo(board, ss, depth, alpha, beta, false); break;
+                case 5: iteration_score = search_cm_cu(board, ss, depth, alpha, beta, false); break;
+                case 6: iteration_score = search_ce_cu(board, ss, depth, alpha, beta, false); break;
+                default: iteration_score = search_cm_ce_cu(board, ss, depth, alpha, beta, false); break;
+            }
             if (aborted_) break;
             if (iteration_score <= alpha) {
                 beta = (alpha + beta) / 2;

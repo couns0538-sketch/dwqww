@@ -1,0 +1,22 @@
+# Speed of the CuckooRep tree (same exe, `bench 16`, Threads 1, Hash 16, OwnBook false; on_bench.py:
+# 6 runs per side, alternating OFF/ON in fresh processes; nice -n 19 on the loaded PC => noisy).
+# ON and OFF search different trees, so their bench nps ratio mixes the per-node cost with the shape of
+# the tree. X1/X2 are scratch builds whose ON tree equals the OFF tree, which isolates the per-node cost.
+
+## 3ce0679 (logs/on_bench.log): ON 3,148,570 nodes vs OFF 3,024,920
+speed d16: OFF mean nps 1845596 (stdev 4034), ON mean nps 1753192 (stdev 13800), ON/OFF 0.9499 (-5.01%)
+
+## 4d14f3c code (halfmove pre-test in the wrappers; ON node counts unchanged: d11 324211, d13 790682, d16 3148570)
+speed d16: OFF mean nps 1845389 (stdev 39785), ON mean nps 1730727 (stdev 29889), ON/OFF 0.9379 (-6.21%)
+
+## X1: wrappers never call the detector (may_repeat always false) -> ON tree == OFF tree (3,024,920 nodes)
+pin d16: OFF nodes 3024920 ON nodes 3024920 (+0.0%)
+speed d16: OFF mean nps 1971162 (stdev 151445), ON mean nps 1955083 (stdev 105675), ON/OFF 0.9918 (-0.82%)
+
+## X2: detector called at every eligible node, result discarded (volatile sink) -> ON tree == OFF tree
+pin d16: OFF nodes 3024920 ON nodes 3024920 (+0.0%)
+speed d16: OFF mean nps 1863977 (stdev 20755), ON mean nps 1842659 (stdev 50878), ON/OFF 0.9886 (-1.14%)
+
+# Reading: second instance + wrappers ~ -0.8%, + detector calls ~ -1.1% (both within the noise of these
+# runs); the -5..-6% bench nps gap of the real ON tree is mostly the different tree. Measured on a loaded
+# machine; QA should repeat on an idle one if the ON speed matters for the gate decision.

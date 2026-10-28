@@ -59,6 +59,20 @@ private:
     // R3 stack: CorrMargins and CorrExt together.
     int search_cm_ce(Board& board, SearchStack* ss, int depth, int alpha, int beta, bool cut_node);
     [[gnu::aligned(64)]] int qsearch(Board& board, SearchStack* ss, int alpha, int beta);
+    // UCI CuckooRep: search / qsearch with the upcoming-repetition draw bound
+    // (src/search/cuckoo.inc), wrapping second instances of the two functions
+    // (src/search/{alphabeta,qsearch}.inc) whose child calls come back here.
+    int search_cuckoo(Board& board, SearchStack* ss, int depth, int alpha, int beta, bool cut_node);
+    int qsearch_cuckoo(Board& board, SearchStack* ss, int alpha, int beta);
+    int search_cuckoo_body(Board& board, SearchStack* ss, int depth, int alpha, int beta, bool cut_node);
+    int qsearch_cuckoo_body(Board& board, SearchStack* ss, int alpha, int beta);
+    // R3 stack: CuckooRep together with CorrMargins and / or CorrExt (wrapper, instance).
+    int search_cm_cu(Board& board, SearchStack* ss, int depth, int alpha, int beta, bool cut_node);
+    int search_cm_cu_body(Board& board, SearchStack* ss, int depth, int alpha, int beta, bool cut_node);
+    int search_ce_cu(Board& board, SearchStack* ss, int depth, int alpha, int beta, bool cut_node);
+    int search_ce_cu_body(Board& board, SearchStack* ss, int depth, int alpha, int beta, bool cut_node);
+    int search_cm_ce_cu(Board& board, SearchStack* ss, int depth, int alpha, int beta, bool cut_node);
+    int search_cm_ce_cu_body(Board& board, SearchStack* ss, int depth, int alpha, int beta, bool cut_node);
     [[nodiscard]] bool should_stop();
     [[nodiscard]] std::int64_t elapsed_ms() const;
     [[nodiscard]] std::uint64_t total_nodes() const;

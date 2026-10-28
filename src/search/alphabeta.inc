@@ -1,23 +1,27 @@
 // Search module: main alpha-beta search (pruning, extensions, LMR).
-// Compiled as part of src/search.cpp, which includes this file once per search instance:
-//   - FORGE_SEARCH_FN names the function defined here, which is also the function
-//     its child nodes are searched with; FORGE_LMP_THRESHOLD names the late-move
-//     pruning threshold it calls (each instance calls its own copy, see
-//     src/search/corr_margins.inc and src/search/corr_ext.inc);
+// Compiled as part of src/search.cpp, which includes this file once per search
+// instance (R3 stack: one instance per combination of UCI CorrMargins, CorrExt
+// and CuckooRep, eight in all; qsearch.inc twice):
+//   - FORGE_SEARCH_FN names the function defined here; FORGE_SEARCH_CALL and
+//     FORGE_QSEARCH_CALL name the functions it calls for child nodes and for
+//     quiescence (FORGE_SEARCH_FN itself and Worker::qsearch, except in the
+//     CuckooRep instances, whose calls go through the upcoming-repetition bound
+//     of src/search/cuckoo.inc); FORGE_LMP_THRESHOLD names the late-move pruning
+//     threshold it calls (each single-option instance calls its own copy, see
+//     src/search/corr_margins.inc, corr_ext.inc and cuckoo_lmp.inc);
 //   - FORGE_SEARCH_CORR_MARGINS = 1 adds the correction-size margins of UCI
 //     CorrMargins (forge/corr_margins.hpp) at reverse futility pruning, null-move
 //     pruning, quiet futility pruning and late-move reductions;
 //   - FORGE_SEARCH_CORR_EXT = 1 adds the correction-history extensions of UCI
 //     CorrExt (forge/corr_ext.hpp): the singular-extension decision and the
 //     per-path extension budget.
-// The instances (src/search.cpp): Worker::search (both 0, the AL1 s198 search),
-// search_corr_margins, search_corr_ext and search_cm_ce (both 1, R3 stack). The
-// root (iterative.inc) picks the instance once per iteration, so with both
-// options 0 no node tests an option, and the first instance's source is the
-// AL1 s198 function.
-#if !defined(FORGE_SEARCH_FN) || !defined(FORGE_SEARCH_CORR_MARGINS) || !defined(FORGE_SEARCH_CORR_EXT) || \
-    !defined(FORGE_LMP_THRESHOLD)
-#error "define FORGE_SEARCH_FN, FORGE_SEARCH_CORR_MARGINS, FORGE_SEARCH_CORR_EXT and FORGE_LMP_THRESHOLD before including search/alphabeta.inc"
+// The root (iterative.inc) picks the instance once per iteration, so with the
+// three options off no node tests an option, and Worker::search's source is
+// the AL1 s198 function. A single option on runs the instance of its branch
+// (O5, O8, C6) unchanged.
+#if !defined(FORGE_SEARCH_FN) || !defined(FORGE_SEARCH_CALL) || !defined(FORGE_QSEARCH_CALL) || \
+    !defined(FORGE_LMP_THRESHOLD) || !defined(FORGE_SEARCH_CORR_MARGINS) || !defined(FORGE_SEARCH_CORR_EXT)
+#error "define FORGE_SEARCH_FN, FORGE_SEARCH_CALL, FORGE_QSEARCH_CALL, FORGE_LMP_THRESHOLD, FORGE_SEARCH_CORR_MARGINS and FORGE_SEARCH_CORR_EXT before including search/alphabeta.inc"
 #endif
 
 namespace forge {
@@ -27,7 +31,7 @@ int Worker::FORGE_SEARCH_FN(Board& board, SearchStack* ss, int depth, int alpha,
     const bool root_node = ss->ply == 0;
     const int ply = ss->ply;
 
-    if (depth <= 0) return qsearch(board, ss, alpha, beta);
+    if (depth <= 0) return FORGE_QSEARCH_CALL(board, ss, alpha, beta);
     // The frame is reused across siblings and same-ply verification searches.
     // Keep this call's inherited path budget independent of those mutations.
     const int inherited_double_extensions = (ss - 1)->double_extensions;
@@ -117,7 +121,7 @@ int Worker::FORGE_SEARCH_FN(Board& board, SearchStack* ss, int depth, int alpha,
     if (!pv_node && !in_check && excluded.is_none() && !is_mate_score(beta)) {
         // Razoring: hopeless positions fall back to quiescence.
         if (depth <= tune::RazorDepth && eval + tune::RazorBase + tune::RazorMultiplier * depth < alpha) {
-            const int razor = qsearch(board, ss, alpha - 1, alpha);
+            const int razor = FORGE_QSEARCH_CALL(board, ss, alpha - 1, alpha);
             if (aborted_) return 0;
             if (razor < alpha) return razor;
         }
@@ -153,7 +157,7 @@ int Worker::FORGE_SEARCH_FN(Board& board, SearchStack* ss, int depth, int alpha,
             record_null_move(ss);
             NullUndo undo;
             board.make_null_move(undo);
-            int null_score = -FORGE_SEARCH_FN(board, ss + 1, depth - reduction, -beta, -beta + 1, !cut_node);
+            int null_score = -FORGE_SEARCH_CALL(board, ss + 1, depth - reduction, -beta, -beta + 1, !cut_node);
             board.unmake_null_move(undo);
             if (aborted_) return 0;
             if (null_score >= beta) {
@@ -164,7 +168,7 @@ int Worker::FORGE_SEARCH_FN(Board& board, SearchStack* ss, int depth, int alpha,
                 }
                 // Verification search at high depth guards against zugzwang.
                 ss->null_move_allowed = false;
-                const int verification = FORGE_SEARCH_FN(board, ss, depth - reduction, beta - 1, beta, false);
+                const int verification = FORGE_SEARCH_CALL(board, ss, depth - reduction, beta - 1, beta, false);
                 ss->double_extensions = inherited_double_extensions;
                 ss->null_move_allowed = true;
                 if (aborted_) return 0;
@@ -190,9 +194,9 @@ int Worker::FORGE_SEARCH_FN(Board& board, SearchStack* ss, int depth, int alpha,
                 record_move(ss, board, move);
                 Undo undo;
                 (void)board.make_move(move, undo);
-                int value = -qsearch(board, ss + 1, -probcut_beta, -probcut_beta + 1);
+                int value = -FORGE_QSEARCH_CALL(board, ss + 1, -probcut_beta, -probcut_beta + 1);
                 if (value >= probcut_beta && !aborted_) {
-                    value = -FORGE_SEARCH_FN(board, ss + 1, depth - 4, -probcut_beta, -probcut_beta + 1, !cut_node);
+                    value = -FORGE_SEARCH_CALL(board, ss + 1, depth - 4, -probcut_beta, -probcut_beta + 1, !cut_node);
                 }
                 board.unmake_move(move, undo);
                 if (aborted_) return 0;
@@ -274,7 +278,7 @@ int Worker::FORGE_SEARCH_FN(Board& board, SearchStack* ss, int depth, int alpha,
             const int singular_depth = (depth - 1) / 2;
             const bool saved_tt_pv = ss->tt_pv;
             ss->excluded_move = move;
-            const int singular_score = FORGE_SEARCH_FN(board, ss, singular_depth, singular_beta - 1, singular_beta, cut_node);
+            const int singular_score = FORGE_SEARCH_CALL(board, ss, singular_depth, singular_beta - 1, singular_beta, cut_node);
             ss->tt_pv = saved_tt_pv;
             ss->double_extensions = inherited_double_extensions;
             ss->excluded_move = Move::none();
@@ -341,10 +345,10 @@ int Worker::FORGE_SEARCH_FN(Board& board, SearchStack* ss, int depth, int alpha,
             r = corr_margins::lmr_reduction(r, correction);
 #endif
             const int reduced_depth = std::clamp(new_depth - r, 1, new_depth);
-            score = -FORGE_SEARCH_FN(board, ss + 1, reduced_depth, -alpha - 1, -alpha, true);
+            score = -FORGE_SEARCH_CALL(board, ss + 1, reduced_depth, -alpha - 1, -alpha, true);
             full_depth_needed = score > alpha && reduced_depth < new_depth;
             if (full_depth_needed) {
-                score = -FORGE_SEARCH_FN(board, ss + 1, new_depth, -alpha - 1, -alpha, !cut_node);
+                score = -FORGE_SEARCH_CALL(board, ss + 1, new_depth, -alpha - 1, -alpha, !cut_node);
                 full_depth_needed = false;
             }
             if (!aborted_ && quiet && score > alpha) {
@@ -353,10 +357,10 @@ int Worker::FORGE_SEARCH_FN(Board& board, SearchStack* ss, int depth, int alpha,
             }
         }
         if (full_depth_needed && !aborted_) {
-            score = -FORGE_SEARCH_FN(board, ss + 1, new_depth, -alpha - 1, -alpha, !cut_node);
+            score = -FORGE_SEARCH_CALL(board, ss + 1, new_depth, -alpha - 1, -alpha, !cut_node);
         }
         if (pv_node && !aborted_ && (move_count == 1 || score > alpha)) {
-            score = -FORGE_SEARCH_FN(board, ss + 1, new_depth, -beta, -alpha, false);
+            score = -FORGE_SEARCH_CALL(board, ss + 1, new_depth, -beta, -alpha, false);
         }
         board.unmake_move(move, undo);
         if (aborted_) return 0;

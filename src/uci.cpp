@@ -442,6 +442,7 @@ int main() {
             std::cout << "option name PureNnue type spin default 0 min 0 max 1\n";
             std::cout << "option name CorrMargins type spin default 0 min 0 max 1\n";
             std::cout << "option name CorrExt type spin default 0 min 0 max 1\n";
+            std::cout << "option name CuckooRep type check default false\n";
 #ifdef FORGE_EXPOSE_TUNABLES
             // Development builds advertise the search constants so match
             // runners can set them; release builds accept them silently.
@@ -631,6 +632,13 @@ int main() {
                     std::cout << "info string invalid value for option " << name << std::endl;
                 } else {
                     forge::options::corr_ext = static_cast<std::uint8_t>(std::clamp(value, 0, 1));
+                }
+            } else if (name == "CuckooRep") {
+                if (value_text == "true") forge::options::cuckoo_rep = true;
+                else if (value_text == "false") forge::options::cuckoo_rep = false;
+                else {
+                    const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex());
+                    std::cout << "info string invalid value for option CuckooRep" << std::endl;
                 }
             } else if (name == "UseNNUE") {
                 if (value_text == "true") forge::nnue::enabled = true;

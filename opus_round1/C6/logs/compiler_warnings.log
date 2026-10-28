@@ -1,0 +1,30 @@
+# forge_core is compiled with -Wall -Wextra -Wpedantic -Wconversion -Wshadow (CMakeLists.txt).
+# Full CMake Release build of the C6 tree (board.cpp, uci.cpp, ...), then the incremental rebuild of search.cpp at 4d14f3c.
+# Result: only the 6 pre-existing AL1 s198 -Wconversion warnings (uint16_t halfmove argument), each reported twice because
+# qsearch.inc and alphabeta.inc are now compiled twice (default + CuckooRep instance). No warning from the C6 code.
+## full build (warning lines)
+src/search/qsearch.inc:31:73: warning: conversion from 'int' to 'uint16_t' {aka 'short unsigned int'} may change value [-Wconversion]
+src/search/qsearch.inc:58:166: warning: conversion from 'int' to 'uint16_t' {aka 'short unsigned int'} may change value [-Wconversion]
+src/search/qsearch.inc:109:160: warning: conversion from 'int' to 'uint16_t' {aka 'short unsigned int'} may change value [-Wconversion]
+src/search/alphabeta.inc:58:73: warning: conversion from 'int' to 'uint16_t' {aka 'short unsigned int'} may change value [-Wconversion]
+src/search/alphabeta.inc:167:160: warning: conversion from 'int' to 'uint16_t' {aka 'short unsigned int'} may change value [-Wconversion]
+src/search/alphabeta.inc:358:149: warning: conversion from 'int' to 'uint16_t' {aka 'short unsigned int'} may change value [-Wconversion]
+src/search/qsearch.inc:31:73: warning: conversion from 'int' to 'uint16_t' {aka 'short unsigned int'} may change value [-Wconversion]
+src/search/qsearch.inc:58:166: warning: conversion from 'int' to 'uint16_t' {aka 'short unsigned int'} may change value [-Wconversion]
+src/search/qsearch.inc:109:160: warning: conversion from 'int' to 'uint16_t' {aka 'short unsigned int'} may change value [-Wconversion]
+src/search/alphabeta.inc:58:73: warning: conversion from 'int' to 'uint16_t' {aka 'short unsigned int'} may change value [-Wconversion]
+src/search/alphabeta.inc:167:160: warning: conversion from 'int' to 'uint16_t' {aka 'short unsigned int'} may change value [-Wconversion]
+src/search/alphabeta.inc:358:149: warning: conversion from 'int' to 'uint16_t' {aka 'short unsigned int'} may change value [-Wconversion]
+## search.cpp rebuild at 4d14f3c (warning lines)
+src/search/qsearch.inc:31:73: warning: conversion from 'int' to 'uint16_t' {aka 'short unsigned int'} may change value [-Wconversion]
+src/search/qsearch.inc:58:166: warning: conversion from 'int' to 'uint16_t' {aka 'short unsigned int'} may change value [-Wconversion]
+src/search/qsearch.inc:109:160: warning: conversion from 'int' to 'uint16_t' {aka 'short unsigned int'} may change value [-Wconversion]
+src/search/alphabeta.inc:58:73: warning: conversion from 'int' to 'uint16_t' {aka 'short unsigned int'} may change value [-Wconversion]
+src/search/alphabeta.inc:167:160: warning: conversion from 'int' to 'uint16_t' {aka 'short unsigned int'} may change value [-Wconversion]
+src/search/alphabeta.inc:358:149: warning: conversion from 'int' to 'uint16_t' {aka 'short unsigned int'} may change value [-Wconversion]
+src/search/qsearch.inc:31:73: warning: conversion from 'int' to 'uint16_t' {aka 'short unsigned int'} may change value [-Wconversion]
+src/search/qsearch.inc:58:166: warning: conversion from 'int' to 'uint16_t' {aka 'short unsigned int'} may change value [-Wconversion]
+src/search/qsearch.inc:109:160: warning: conversion from 'int' to 'uint16_t' {aka 'short unsigned int'} may change value [-Wconversion]
+src/search/alphabeta.inc:58:73: warning: conversion from 'int' to 'uint16_t' {aka 'short unsigned int'} may change value [-Wconversion]
+src/search/alphabeta.inc:167:160: warning: conversion from 'int' to 'uint16_t' {aka 'short unsigned int'} may change value [-Wconversion]
+src/search/alphabeta.inc:358:149: warning: conversion from 'int' to 'uint16_t' {aka 'short unsigned int'} may change value [-Wconversion]

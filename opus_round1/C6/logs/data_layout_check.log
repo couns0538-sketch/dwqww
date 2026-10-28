@@ -1,0 +1,39 @@
+$ python data_layout_check.py forge_o3head.exe (opus-O3 0d99f02, PC recipe) forge_c6_head.exe (opus-C6 4d14f3c, PC recipe)
+sections A: .text size 00108e80 vma 0000000140001000; .data size 00003de0 vma 000000014010a000; .rdata size 00081508 vma 000000014010e000; .bss size 000fcfb0 vma 00000001401af000
+sections B: .text size 0010d790 vma 0000000140001000; .data size 00003de0 vma 000000014010f000; .rdata size 000995a8 vma 0000000140113000; .bss size 000fcfb0 vma 00000001401cc000
+data symbols in both: 1163; moved by a non-multiple of 64: 43; of 4096: 765
+forge/NNUE symbols moved by a non-multiple of 64: ['forge::tune::FailLowContinuationBonus', 'forge::tune::CaptureFutilityBase']
+hot forge::(anonymous namespace)::Z: 0x14010e380 -> 0x140113380 (delta 0x5000, mod 4096 kept: True)
+hot forge::(anonymous namespace)::CastlingMasks: 0x14010e340 -> 0x140113340 (delta 0x5000, mod 4096 kept: True)
+hot forge::(anonymous namespace)::SeeValue: 0x14010fe50 -> 0x140114e50 (delta 0x5000, mod 4096 kept: True)
+hot NnueW1: 0x140119a40 -> 0x14011ea40 (delta 0x5000, mod 4096 kept: True)
+hot forge::nnue::(anonymous namespace)::weights()::instance: 0x1402a86c0 -> 0x1402c56c0 (delta 0x1d000, mod 4096 kept: True)
+hot forge::(anonymous namespace)::Reductions: 0x1402a9320 -> 0x1402c6320 (delta 0x1d000, mod 4096 kept: True)
+hot forge::params::table: 0x1402a7c60 -> 0x1402c4c60 (delta 0x1d000, mod 4096 kept: True)
+hot forge::tune::LmrQuietBase: 0x14010ab80 -> 0x14010fb80 (delta 0x5000, mod 4096 kept: True)
+hot forge::tune::RfpMargin: 0x14010ab5c -> 0x14010fb5c (delta 0x5000, mod 4096 kept: True)
+hot forge::attacks::BetweenTable: 0x1401b9040 -> 0x1401d6040 (delta 0x1d000, mod 4096 kept: True)
+hot forge::attacks::RookMagics: 0x1401af840 -> 0x1401cc840 (delta 0x1d000, mod 4096 kept: True)
+hot forge::attacks::KnightTable: 0x1401c1640 -> 0x1401de640 (delta 0x1d000, mod 4096 kept: True)
+hot forge::detail::DistanceMasks: 0x140182700 -> 0x140187780 (delta 0x5080, mod 4096 kept: False)
+only in B: [('0x140192340', 'forge::(anonymous namespace)::CuckooMoves'), ('0x1402c6300', 'forge::options::cuckoo_rep')]
+
+$ python data_layout_check.py forge_h256_s198.exe (AL1 s198 lock) forge_c6_head.exe
+sections A: .text size 00109500 vma 0000000140001000; .data size 00003de0 vma 000000014010b000; .rdata size 00081508 vma 000000014010f000; .bss size 000fcfb0 vma 00000001401b0000
+sections B: .text size 0010d790 vma 0000000140001000; .data size 00003de0 vma 000000014010f000; .rdata size 000995a8 vma 0000000140113000; .bss size 000fcfb0 vma 00000001401cc000
+data symbols in both: 1163; moved by a non-multiple of 64: 46; of 4096: 765
+forge/NNUE symbols moved by a non-multiple of 64: ['forge::tune::FailLowContinuationBonus', 'forge::tune::CaptureFutilityBase']
+hot forge::(anonymous namespace)::Z: 0x14010f380 -> 0x140113380 (delta 0x4000, mod 4096 kept: True)
+hot forge::(anonymous namespace)::CastlingMasks: 0x14010f340 -> 0x140113340 (delta 0x4000, mod 4096 kept: True)
+hot forge::(anonymous namespace)::SeeValue: 0x140110e50 -> 0x140114e50 (delta 0x4000, mod 4096 kept: True)
+hot NnueW1: 0x14011aa40 -> 0x14011ea40 (delta 0x4000, mod 4096 kept: True)
+hot forge::nnue::(anonymous namespace)::weights()::instance: 0x1402a96c0 -> 0x1402c56c0 (delta 0x1c000, mod 4096 kept: True)
+hot forge::(anonymous namespace)::Reductions: 0x1402aa320 -> 0x1402c6320 (delta 0x1c000, mod 4096 kept: True)
+hot forge::params::table: 0x1402a8c60 -> 0x1402c4c60 (delta 0x1c000, mod 4096 kept: True)
+hot forge::tune::LmrQuietBase: 0x14010bb80 -> 0x14010fb80 (delta 0x4000, mod 4096 kept: True)
+hot forge::tune::RfpMargin: 0x14010bb5c -> 0x14010fb5c (delta 0x4000, mod 4096 kept: True)
+hot forge::attacks::BetweenTable: 0x1401ba040 -> 0x1401d6040 (delta 0x1c000, mod 4096 kept: True)
+hot forge::attacks::RookMagics: 0x1401b0840 -> 0x1401cc840 (delta 0x1c000, mod 4096 kept: True)
+hot forge::attacks::KnightTable: 0x1401c2640 -> 0x1401de640 (delta 0x1c000, mod 4096 kept: True)
+hot forge::detail::DistanceMasks: 0x140183700 -> 0x140187780 (delta 0x4080, mod 4096 kept: False)
+only in B: [('0x140192340', 'forge::(anonymous namespace)::CuckooMoves'), ('0x1402c6300', 'forge::options::cuckoo_rep')]

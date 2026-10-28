@@ -140,6 +140,9 @@ target_link_libraries(forge_corr_margins_tests PRIVATE forge_core Threads::Threa
 # UCI CorrExt: correction-history extensions (decision rule, per-path budget, node decisions, whole searches).
 add_executable(forge_corr_ext_tests tests/corr_ext_tests.cpp)
 target_link_libraries(forge_corr_ext_tests PRIVATE forge_core Threads::Threads)
+# C6 CuckooRep: cuckoo table, upcoming-repetition detector vs brute force, search bound.
+add_executable(forge_cuckoo_tests tests/cuckoo_tests.cpp)
+target_link_libraries(forge_cuckoo_tests PRIVATE forge_core Threads::Threads)
 
 add_executable(forge_bench bench/benchmark.cpp)
 target_link_libraries(forge_bench PRIVATE forge_core Threads::Threads)
@@ -162,6 +165,7 @@ add_test(NAME forge_nnue_pawn_pair_tests COMMAND forge_nnue_pawn_pair_tests $<TA
 add_test(NAME forge_pure_nnue_tests COMMAND forge_pure_nnue_tests $<TARGET_FILE:forge>)
 add_test(NAME forge_corr_margins_tests COMMAND forge_corr_margins_tests)
 add_test(NAME forge_corr_ext_tests COMMAND forge_corr_ext_tests)
+add_test(NAME forge_cuckoo_tests COMMAND forge_cuckoo_tests)
 add_test(NAME forge_tt_tests COMMAND forge_tt_tests)
 add_test(NAME forge_tt_stress_lockless COMMAND forge_tt_stress_tests --threads 2 --ops 2000000 --mode lockless)
 add_test(NAME forge_tt_stress_locked COMMAND forge_tt_stress_tests --threads 2 --ops 2000000 --mode locked)
