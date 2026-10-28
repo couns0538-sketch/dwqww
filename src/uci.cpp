@@ -455,6 +455,7 @@ int main() {
             // Search options added after AL1 s198; all default OFF (see forge/search_options.hpp).
             std::cout << "option name SmpExactNodes type check default false\n"
                          "option name SmpBestThread type check default false\n"
+                         "option name SmpProtectProvenScore type check default false\n"
                          "option name LocklessTT type check default false\n"
                          "option name SmpHelpersPastDepth type check default false\n";
             std::cout << "option name SyzygyPath type string default <empty>\n"
@@ -605,9 +606,10 @@ int main() {
                     book_variety = std::clamp(value, 0, 100);
                 }
             } else if (name == "SmpExactNodes" || name == "SmpBestThread" || name == "LocklessTT" ||
-                       name == "SmpHelpersPastDepth") {
+                       name == "SmpHelpersPastDepth" || name == "SmpProtectProvenScore") {
                 bool& option = name == "SmpExactNodes"   ? forge::options::smp_exact_nodes
                                : name == "SmpBestThread" ? forge::options::smp_best_thread
+                               : name == "SmpProtectProvenScore" ? forge::options::smp_protect_proven_score
                                : name == "LocklessTT"    ? forge::options::lockless_tt
                                                          : forge::options::smp_helpers_past_depth;
                 if (value_text == "true") option = true;

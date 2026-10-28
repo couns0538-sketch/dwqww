@@ -21,6 +21,11 @@ extern bool smp_exact_nodes;
 // deepest completed iteration (ties: higher score) instead of always thread 0.
 extern bool smp_best_thread;
 
+// UCI SmpProtectProvenScore (check, default false): while tablebases are
+// loaded, rank winning TB scores by score rather than helper depth. Acts only
+// with SmpBestThread. Set while the UCI loop has stopped and joined search.
+extern bool smp_protect_proven_score;
+
 // UCI LocklessTT (check, default false). The transposition table is probed and
 // written without its striped locks: each entry is two 64-bit atomic words and
 // the first carries the key tag mixed with a hash of all data bits, so a read

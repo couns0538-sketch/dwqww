@@ -25,3 +25,7 @@ bool intended_threefold = false;   // S-IT (UCI IntendedThreefold)
 bool smp_helpers_past_depth = false;   // R3-6 (UCI SmpHelpersPastDepth; last, so the variables above keep their addresses)
 
 } // namespace forge::options
+
+namespace forge::options {
+bool smp_protect_proven_score = false;
+}

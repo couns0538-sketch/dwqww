@@ -543,3 +543,8 @@ if(FORGE_SYZYGY_PATH)
         set_tests_properties(uci_options_regression PROPERTIES ENVIRONMENT "FORGE_SYZYGY_PATH=${FORGE_SYZYGY_PATH}")
     endif()
 endif()
+
+# A2: deterministic actual-selector regression, including the historical TB overwrite.
+add_executable(forge_smp_proven_score_tests tests/smp_proven_score_tests.cpp)
+target_link_libraries(forge_smp_proven_score_tests PRIVATE forge_core Threads::Threads)
+add_test(NAME forge_smp_proven_score_tests COMMAND forge_smp_proven_score_tests)

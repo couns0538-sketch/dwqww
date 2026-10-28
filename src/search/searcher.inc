@@ -131,6 +131,10 @@ SearchInfo Searcher::search(Board board, const SearchLimits& limits, bool emit_i
 // score. Cold: called once per helper and search.
 [[gnu::cold]] bool better_thread_result(const SearchInfo& candidate, const SearchInfo& best) {
     if (is_mate_score(candidate.score) || is_mate_score(best.score)) return candidate.score > best.score;
+    // A2: protect the TB-win score band while tablebase scoring is active.
+    if (options::smp_protect_proven_score && syzygy::tb_scores &&
+        (candidate.score >= syzygy::TbWinInMaxPly || best.score >= syzygy::TbWinInMaxPly))
+        return candidate.score > best.score;
     return candidate.depth > best.depth || (candidate.depth == best.depth && candidate.score > best.score);
 }
 

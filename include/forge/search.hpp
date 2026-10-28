@@ -196,6 +196,7 @@ public:
     }
 
 private:
+    friend struct SearcherTestProbe;
     // SmpBestThread: replace thread 0's move/PV/score by the best helper's
     // (ranking: better_thread_result below).
     void select_best_thread(SearchInfo& result, const std::vector<SearchInfo>& helper_results, bool emit_info);
