@@ -1,0 +1,1155 @@
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index b43175a5..8ce5e189 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -93,6 +93,14 @@ add_dependencies(forge_nnue_v2_uci_tests forge)
+ add_executable(forge_nnue_v2_tool tools/nnue/nnue_v2_tool.cpp)
+ target_link_libraries(forge_nnue_v2_tool PRIVATE forge_core Threads::Threads)
+ 
++# O4 (UCI PureNnue): selection / fail-loud rules, the network-only evaluation path, search and UCI checks
++# (drives the forge executable), and the engine-level evaluator of the PyTorch -> engine parity chain.
++add_executable(forge_pure_nnue_tests tests/pure_nnue_tests.cpp)
++target_link_libraries(forge_pure_nnue_tests PRIVATE forge_core Threads::Threads)
++add_dependencies(forge_pure_nnue_tests forge)
++add_executable(forge_nnue_engine_eval tools/nnue/nnue_engine_eval.cpp)
++target_link_libraries(forge_nnue_engine_eval PRIVATE forge_core Threads::Threads)
++
+ add_executable(forge_bench bench/benchmark.cpp)
+ target_link_libraries(forge_bench PRIVATE forge_core Threads::Threads)
+ 
+@@ -108,6 +116,7 @@ add_test(NAME forge_history_tests COMMAND forge_history_tests)
+ add_test(NAME forge_timeman_tests COMMAND forge_timeman_tests)
+ add_test(NAME forge_nnue_v2_tests COMMAND forge_nnue_v2_tests)
+ add_test(NAME forge_nnue_v2_uci_tests COMMAND forge_nnue_v2_uci_tests $<TARGET_FILE:forge>)
++add_test(NAME forge_pure_nnue_tests COMMAND forge_pure_nnue_tests $<TARGET_FILE:forge>)
+ add_test(NAME forge_tt_tests COMMAND forge_tt_tests)
+ add_test(NAME forge_rule50_tests COMMAND forge_rule50_tests)
+ add_test(NAME forge_legal_witness_tests COMMAND forge_legal_witness_tests
+diff --git a/include/forge/search_options.hpp b/include/forge/search_options.hpp
+index e070a52d..64a92f18 100644
+--- a/include/forge/search_options.hpp
++++ b/include/forge/search_options.hpp
+@@ -25,6 +25,18 @@ namespace forge::options {
+ // and the engine is the AL1 s198 engine.
+ extern int nnue_king_buckets;
+ 
++// UCI PureNnue (spin 0-1, default 0; O4; "true" / "false" are accepted as
++// well): 1 = the evaluation is the network alone, without the hand-crafted
++// evaluation (HCE). It needs a stand-alone v2 net (header flag residual = 0,
++// trainer --pure) loaded with NNUEFile; with NNUEKingBuckets 0 that net must
++// have one king bucket (the compiled-in input layer), with NNUEKingBuckets
++// N > 0 exactly N. The header flag and the option must agree both ways:
++// PureNnue 1 with a residual net, and PureNnue 0 with a stand-alone net, are
++// fail-loud errors (rule above), so the HCE is skipped exactly when PureNnue
++// is 1. PureNnue 1 is itself a v2 request (an error without a usable net);
++// UseNNUE false still wins.
++extern bool pure_nnue;
++
+ // Derived switch read by Worker::static_evaluate: true while a v2 network is
+ // active. Written only by apply_nnue_v2().
+ extern bool nnue_v2;
+diff --git a/src/search/evaluation_v2.inc b/src/search/evaluation_v2.inc
+index 1be6e6f7..cfcf445d 100644
+--- a/src/search/evaluation_v2.inc
++++ b/src/search/evaluation_v2.inc
+@@ -27,6 +27,8 @@ FORGE_SEARCH_V2 int Worker::static_evaluate_v2(const Board& board, SearchStack*
+     const nnue::v2::Net* active = nnue::v2::active();
+     if (active == nullptr || !nnue::enabled) return evaluator_.evaluate(board);
+     const nnue::v2::Net& net = *active;
++    // O4: residual == !options::pure_nnue (apply_nnue_v2 selects only a net whose header flag agrees with
++    // PureNnue), so with PureNnue the hand-crafted evaluation and its PSQT accumulator are never computed.
+     const bool residual = net.residual;
+     if (!ss->accumulator.valid) {
+         int back = 0;
+@@ -92,7 +94,19 @@ namespace options {
+ 
+ [[gnu::cold]] bool apply_nnue_v2(std::string* message) {
+     // UseNNUE false disables every network (hand-crafted evaluation only).
+-    const nnue::v2::Net* net = nnue::v2::select(nnue::enabled ? nnue_king_buckets : 0, message);
++    // O4: PureNnue 1 with NNUEKingBuckets 0 asks for a net without king buckets (one bucket).
++    const int wanted = nnue_king_buckets > 0 ? nnue_king_buckets : (pure_nnue ? 1 : 0);
++    const nnue::v2::Net* net = nnue::v2::select(nnue::enabled ? wanted : 0, message);
++    if (net != nullptr && net->residual == pure_nnue) {
++        // O4: the header's residual flag must agree with PureNnue, so that the hand-crafted
++        // evaluation is skipped exactly when PureNnue is 1 (nnue_v2_problem names the mismatch).
++        (void)nnue::v2::select(0, nullptr);
++        net = nullptr;
++        if (message != nullptr) {
++            *message = pure_nnue ? "PureNnue is 1 but the loaded net is residual (not selected)"
++                                 : "the loaded net is stand-alone and PureNnue is 0 (not selected)";
++        }
++    }
+     if (!nnue::enabled && message != nullptr) *message = "UseNNUE is false: hand-crafted evaluation only";
+     nnue_v2 = net != nullptr;
+     return nnue_v2;
+@@ -100,22 +114,42 @@ namespace options {
+ 
+ [[gnu::cold]] std::string nnue_v2_problem(const std::string& file, const std::string& load_error) {
+     if (!nnue::enabled) return {};   // UseNNUE false: every network off on purpose
+-    if (file.empty() && nnue_king_buckets <= 0) return {};   // nothing requested
++    if (file.empty() && nnue_king_buckets <= 0 && !pure_nnue) return {};   // nothing requested
+     if (!file.empty() && !load_error.empty()) return "cannot load NNUEFile " + file + ": " + load_error;
+     const nnue::v2::Net* net = nnue::v2::loaded();
+     if (net == nullptr) {
+-        return file.empty() ? "NNUEKingBuckets " + std::to_string(nnue_king_buckets) +
+-                                  " is set but no v2 net is loaded (NNUEFile is empty)"
+-                            : "NNUEFile " + file + " is not loaded";
++        if (!file.empty()) return "NNUEFile " + file + " is not loaded";
++        if (nnue_king_buckets <= 0) {   // O4: PureNnue alone
++            return "PureNnue is 1 but no v2 net is loaded (NNUEFile is empty); PureNnue needs a stand-alone net "
++                   "(trainer --pure)";
++        }
++        return "NNUEKingBuckets " + std::to_string(nnue_king_buckets) + " is set but no v2 net is loaded (NNUEFile is empty)";
+     }
+     if (nnue_v2 && nnue::v2::active() == net) return {};
+     const std::string buckets = std::to_string(net->king_buckets) + (net->mirror ? " mirrored" : "") + " king buckets";
++    // O4: the residual flag of the file and PureNnue must agree.
++    const std::string standalone = "NNUEFile " + net->path + " is a stand-alone net (network only, no hand-crafted "
++                                   "evaluation; trainer --pure); set PureNnue 1 to use it";
+     if (nnue_king_buckets <= 0) {
+-        return "NNUEFile " + net->path + " is loaded (" + buckets + ") but NNUEKingBuckets is 0; set NNUEKingBuckets " +
+-               std::to_string(net->king_buckets) + " to use it";
++        if (pure_nnue && net->king_buckets != 1) {
++            return "PureNnue is 1 and NNUEKingBuckets is 0, which selects a net without king buckets, but NNUEFile " +
++                   net->path + " has " + buckets + "; set NNUEKingBuckets " + std::to_string(net->king_buckets) + " as well";
++        }
++        if (!pure_nnue) {
++            if (!net->residual && net->king_buckets == 1) return standalone;
++            return "NNUEFile " + net->path + " is loaded (" + buckets + ") but NNUEKingBuckets is 0; set NNUEKingBuckets " +
++                   std::to_string(net->king_buckets) + " to use it";
++        }
++    } else if (nnue_king_buckets != net->king_buckets) {
++        return "NNUEKingBuckets " + std::to_string(nnue_king_buckets) + " does not match NNUEFile " + net->path + " (" +
++               buckets + ")";
++    }
++    if (pure_nnue && net->residual) {
++        return "PureNnue is 1 but NNUEFile " + net->path + " is a residual net (a correction added to the hand-crafted "
++               "evaluation; trainer --residual); PureNnue needs a stand-alone net (trainer --pure)";
+     }
+-    return "NNUEKingBuckets " + std::to_string(nnue_king_buckets) + " does not match NNUEFile " + net->path + " (" +
+-           buckets + ")";
++    if (!pure_nnue && !net->residual) return standalone;
++    return "NNUEFile " + net->path + " was not selected";   // not reached: every unselected case is named above
+ }
+ 
+ } // namespace options
+diff --git a/src/search/options.inc b/src/search/options.inc
+index 73d07e4a..60cf096b 100644
+--- a/src/search/options.inc
++++ b/src/search/options.inc
+@@ -6,5 +6,6 @@ namespace forge::options {
+ 
+ int nnue_king_buckets = 0;
+ bool nnue_v2 = false;
++bool pure_nnue = false;   // O4 (after nnue_v2 so that the variables before it keep their addresses)
+ 
+ } // namespace forge::options
+diff --git a/src/uci.cpp b/src/uci.cpp
+index 41cc811a..80c0e898 100644
+--- a/src/uci.cpp
++++ b/src/uci.cpp
+@@ -154,7 +154,7 @@ int main() {
+         ponder_search_active = false;
+     };
+ 
+-    // v2 networks (UCI NNUEFile / NNUEKingBuckets; fail-loud rule in forge/search_options.hpp): a
++    // v2 networks (UCI NNUEFile / NNUEKingBuckets / PureNnue; fail-loud rule in forge/search_options.hpp): a
+     // requested v2 net that cannot be used is reported at once and, if still unusable at the next
+     // isready, go or bench, reported again before the engine exits with status 2. Never a silent
+     // fall-back to the compiled-in network. With no NNUE option set nothing here prints anything.
+@@ -168,7 +168,7 @@ int main() {
+         std::string state;
+         const bool active = forge::options::apply_nnue_v2(&state);
+         const std::string problem = forge::options::nnue_v2_problem(nnue_file, nnue_file_error);
+-        const bool requested = !nnue_file.empty() || forge::options::nnue_king_buckets > 0;
++        const bool requested = !nnue_file.empty() || forge::options::nnue_king_buckets > 0 || forge::options::pure_nnue;
+         if (!nnue_file_error.empty()) state += " (NNUEFile " + nnue_file + ": " + nnue_file_error + ")";
+         {
+             const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex());
+@@ -211,6 +211,8 @@ int main() {
+             // v2 networks (forge/search_options.hpp): off unless NNUEKingBuckets > 0.
+             std::cout << "option name NNUEFile type string default <empty>\n"
+                          "option name NNUEKingBuckets type spin default 0 min 0 max 32\n";
++            // O4: the network alone, without the hand-crafted evaluation (needs a stand-alone v2 net).
++            std::cout << "option name PureNnue type spin default 0 min 0 max 1\n";
+ #ifdef FORGE_EXPOSE_TUNABLES
+             // Development builds advertise the search constants so match
+             // runners can set them; release builds accept them silently.
+@@ -341,6 +343,14 @@ int main() {
+                     forge::options::nnue_king_buckets = std::clamp(value, 0, 32);
+                 }
+                 nnue_v2_changed();
++            } else if (name == "PureNnue") {   // O4: spin 0-1 (true / false accepted as well)
++                if (value_text == "1" || value_text == "true") forge::options::pure_nnue = true;
++                else if (value_text == "0" || value_text == "false") forge::options::pure_nnue = false;
++                else {
++                    const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex());
++                    std::cout << "info string invalid value for option PureNnue" << std::endl;
++                }
++                nnue_v2_changed();
+             } else if (name == "Hash" || name == "Move Overhead" || name == "Threads") {
+                 int value = 0;
+                 const auto parsed = std::from_chars(
+diff --git a/tests/pure_nnue_tests.cpp b/tests/pure_nnue_tests.cpp
+new file mode 100644
+index 00000000..baf1accf
+--- /dev/null
++++ b/tests/pure_nnue_tests.cpp
+@@ -0,0 +1,563 @@
++// Tests for UCI PureNnue (O4; rule in forge/search_options.hpp): the evaluation is a stand-alone v2 net alone,
++// without the hand-crafted evaluation (HCE).
++//   1. selection and the fail-loud request rule (options::apply_nnue_v2 / nnue_v2_problem): PureNnue needs a
++//      stand-alone net; a residual net with PureNnue and a stand-alone net without PureNnue are errors; with
++//      NNUEKingBuckets 0 PureNnue selects a one-bucket net, with NNUEKingBuckets N a net of N buckets; UseNNUE
++//      false wins; the C4 rules for residual nets are unchanged;
++//   2. the evaluation path: over random make/unmake walks driven through the real Worker::static_evaluate,
++//      PureNnue gives exactly the network's evaluation (and never builds the HCE's PSQT accumulator), while the
++//      same weights flagged residual give clamp(HCE + network); every accumulator the engine computed equals a
++//      from-scratch refresh;
++//   3. search: a PureNnue search is deterministic and searches another tree than the residual-flagged twin;
++//   4. UCI (when the engine executable is given as argv[1]): the option is advertised, errors exit with status 2,
++//      a stand-alone net becomes active and searches.
++// usage: forge_pure_nnue_tests [<forge executable>] [plies per walk net (default 12000)]
++// Writes temporary files into the working directory (removed at the end).
++#include "forge/nnue_v2.hpp"
++#include "forge/search.hpp"
++#include "forge/search_options.hpp"
++
++#include <algorithm>
++#include <array>
++#include <cstdint>
++#include <cstdio>
++#include <cstdlib>
++#include <cstring>
++#include <fstream>
++#include <iostream>
++#include <memory>
++#include <sstream>
++#include <stdexcept>
++#include <string>
++#include <vector>
++
++#if !defined(_WIN32)
++#include <sys/wait.h>
++#endif
++
++namespace forge {
++struct SearcherTestProbe {
++    static SearchStack* root(Worker& w) { return &w.stack_[4]; }
++    static int eval(Worker& w, const Board& b, SearchStack* ss) { return w.static_evaluate(b, ss); }
++    static void move(Worker& w, SearchStack* ss, const Board& b, Move m) { w.record_move(ss, b, m); (ss + 1)->ply = ss->ply + 1; }
++    static void null(Worker& w, SearchStack* ss) { w.record_null_move(ss); (ss + 1)->ply = ss->ply + 1; }
++};
++} // namespace forge
++
++using namespace forge;
++using Probe = SearcherTestProbe;
++namespace v2 = forge::nnue::v2;
++
++namespace {
++
++int checks = 0;
++int failures = 0;
++void report(bool okay, const std::string& label) {
++    ++checks;
++    if (!okay) ++failures;
++    std::cout << (okay ? "PASS " : "FAIL ") << label << '\n';
++}
++
++struct Rng {
++    std::uint64_t s;
++    std::uint64_t next() {
++        s ^= s >> 12U; s ^= s << 25U; s ^= s >> 27U;
++        return s * 2685821657736338717ULL;
++    }
++    int below(int n) { return static_cast<int>(next() % static_cast<std::uint64_t>(n)); }
++    bool chance(int percent) { return below(100) < percent; }
++};
++
++std::vector<std::string> temporary_files;
++
++// ---------------------------------------------------------------- v2 files (independent writer, format in nnue_v2.hpp)
++struct Spec {
++    int king_buckets = 1;
++    bool mirror = false;
++    bool residual = false;
++    std::array<std::uint8_t, 64> king_map{};
++    std::vector<std::int16_t> w1, b1, w2, b2;
++};
++
++std::uint64_t fnv(const std::string& data) {
++    std::uint64_t h = 0xcbf29ce484222325ULL;
++    for (const unsigned char c : data) { h ^= c; h *= 0x100000001b3ULL; }
++    return h;
++}
++void put32(std::string& s, std::uint32_t v) { for (int i = 0; i < 4; ++i) s.push_back(static_cast<char>((v >> (8 * i)) & 0xFFU)); }
++void putf(std::string& s, float f) { std::uint32_t v = 0; std::memcpy(&v, &f, 4); put32(s, v); }
++
++std::string serialise(const Spec& n) {
++    std::string s = "FORGENN2";
++    put32(s, 2); put32(s, 160); put32(s, 0); put32(s, 768); put32(s, nnue::HiddenSize);
++    put32(s, static_cast<std::uint32_t>(n.king_buckets)); put32(s, 1); put32(s, (n.residual ? 1U : 0U) | (n.mirror ? 2U : 0U));
++    putf(s, 4096.0F); putf(s, 4096.0F); putf(s, 2.25F);
++    for (const std::uint8_t b : n.king_map) s.push_back(static_cast<char>(b));
++    s.append(33, '\0');
++    s.append(160 - s.size(), '\0');
++    for (const auto* a : {&n.w1, &n.b1, &n.w2, &n.b2}) {
++        for (const std::int16_t v : *a) {
++            const auto u = static_cast<std::uint16_t>(v);
++            s.push_back(static_cast<char>(u & 0xFFU));
++            s.push_back(static_cast<char>(u >> 8U));
++        }
++    }
++    const std::uint64_t h = fnv(s);
++    for (int i = 0; i < 8; ++i) s.push_back(static_cast<char>((h >> (8 * i)) & 0xFFU));
++    return s;
++}
++
++void write_file(const std::string& path, const std::string& bytes) {
++    std::ofstream out(path, std::ios::binary);
++    out.write(bytes.data(), static_cast<std::streamsize>(bytes.size()));
++    if (std::find(temporary_files.begin(), temporary_files.end(), path) == temporary_files.end()) temporary_files.push_back(path);
++}
++
++std::string read_file(const std::string& path) {
++    std::ifstream in(path, std::ios::binary);
++    std::ostringstream text;
++    text << in.rdbuf();
++    return text.str();
++}
++
++int half_index(int square) { const int f = square & 7; return (square >> 3) * 4 + (f < 4 ? f : 7 - f); }
++std::array<std::uint8_t, 64> map4() {   // the standard mirrored 4-bucket layout of tools/nnue/forge_nnue_v2.py
++    const char* rows[8] = {"0011", "0011", "2222", "2222", "3333", "3333", "3333", "3333"};
++    std::array<std::uint8_t, 64> m{};
++    for (int s = 0; s < 64; ++s) {
++        const int h = half_index(s);
++        m[static_cast<std::size_t>(s)] = static_cast<std::uint8_t>(rows[h / 4][h % 4] - '0');
++    }
++    return m;
++}
++
++// Random weights with an evaluation scale like a real net's (most evaluations within a few hundred cp).
++Spec random_net(int buckets, bool mirror, bool residual, std::uint64_t seed) {
++    Spec n;
++    Rng rng{seed};
++    n.king_buckets = buckets;
++    n.mirror = mirror;
++    n.residual = residual;
++    if (buckets == 4) n.king_map = map4();
++    const std::size_t hidden = nnue::HiddenSize;
++    auto value = [&rng](int range) { return static_cast<std::int16_t>(rng.below(2 * range + 1) - range); };
++    n.w1.resize(static_cast<std::size_t>(buckets) * 768 * hidden);
++    for (auto& v : n.w1) v = value(220);
++    n.b1.resize(hidden);
++    for (auto& v : n.b1) v = value(1200);
++    n.w2.resize(2 * hidden);
++    for (auto& v : n.w2) v = value(900);
++    n.b2 = {value(500)};
++    return n;
++}
++
++bool load_spec(const std::string& path, const Spec& n) {
++    write_file(path, serialise(n));
++    std::string error;
++    const bool ok = v2::load(path, &error);
++    if (!ok) std::cout << "load error: " << error << '\n';
++    return ok;
++}
++
++// The UCI layer's sequence after an option change, then the request rule.
++std::string problem_after(int king_buckets, bool pure, const std::string& file, const std::string& load_error = "") {
++    options::nnue_king_buckets = king_buckets;
++    options::pure_nnue = pure;
++    (void)options::apply_nnue_v2(nullptr);
++    return options::nnue_v2_problem(file, load_error);
++}
++bool contains(const std::string& text, const std::string& what) { return text.find(what) != std::string::npos; }
++
++// ---------------------------------------------------------------- 1. selection and request rule
++void test_rules(const std::string& dir) {
++    const std::string pure1 = dir + "pure1.fnn2";
++    const std::string resid1 = dir + "resid1.fnn2";
++    const std::string pure4 = dir + "pure4.fnn2";
++    const std::string resid4 = dir + "resid4.fnn2";
++    v2::unload();
++    std::string p = problem_after(0, false, "");
++    report(p.empty() && !options::nnue_v2, "defaults: no request, no problem, compiled-in net");
++    p = problem_after(0, true, "");
++    report(contains(p, "PureNnue is 1 but no v2 net is loaded") && !options::nnue_v2, "PureNnue without NNUEFile: " + p);
++    p = problem_after(0, true, dir + "missing.fnn2", "cannot open " + dir + "missing.fnn2");
++    report(contains(p, "cannot open") && !options::nnue_v2, "PureNnue with a file that did not load: " + p);
++
++    report(load_spec(resid1, random_net(1, false, true, 81)), "load a residual one-bucket net");
++    p = problem_after(0, true, resid1);
++    report(contains(p, "is a residual net") && !options::nnue_v2 && v2::active() == nullptr, "PureNnue with a residual net: " + p);
++    p = problem_after(1, false, resid1);
++    report(p.empty() && options::nnue_v2 && v2::active() == v2::loaded() && v2::active()->residual,
++           "C4 rule unchanged: residual one-bucket net with NNUEKingBuckets 1 and PureNnue 0 is active");
++    p = problem_after(0, false, resid1);
++    report(contains(p, "NNUEKingBuckets is 0") && !options::nnue_v2, "C4 rule unchanged: residual net, NNUEKingBuckets 0: " + p);
++
++    report(load_spec(pure1, random_net(1, false, false, 82)), "load a stand-alone one-bucket net");
++    p = problem_after(0, true, pure1);
++    report(p.empty() && options::nnue_v2 && v2::active() == v2::loaded() && !v2::active()->residual,
++           "PureNnue with a stand-alone one-bucket net and NNUEKingBuckets 0: active, no problem");
++    p = problem_after(1, true, pure1);
++    report(p.empty() && options::nnue_v2, "PureNnue with the stand-alone net and NNUEKingBuckets 1: active");
++    p = problem_after(0, false, pure1);
++    report(contains(p, "is a stand-alone net") && contains(p, "set PureNnue 1") && !options::nnue_v2 && v2::active() == nullptr,
++           "stand-alone net without PureNnue (NNUEKingBuckets 0): " + p);
++    p = problem_after(1, false, pure1);
++    report(contains(p, "is a stand-alone net") && !options::nnue_v2, "stand-alone net without PureNnue (NNUEKingBuckets 1): " + p);
++    p = problem_after(2, true, pure1);
++    report(contains(p, "does not match") && !options::nnue_v2, "PureNnue, NNUEKingBuckets 2 vs a one-bucket net: " + p);
++    nnue::enabled = false;
++    p = problem_after(0, true, pure1);
++    const bool off_ok = p.empty() && !options::nnue_v2;
++    v2::unload();
++    p = problem_after(0, true, "");
++    report(off_ok && p.empty() && !options::nnue_v2, "UseNNUE false wins over PureNnue (not an error, HCE only)");
++    nnue::enabled = true;
++    p = problem_after(0, true, "");
++    report(!p.empty(), "UseNNUE true again: PureNnue without a net is a problem again");
++
++    report(load_spec(pure4, random_net(4, true, false, 83)), "load a stand-alone mirrored 4-bucket net");
++    p = problem_after(0, true, pure4);
++    report(contains(p, "set NNUEKingBuckets 4 as well") && !options::nnue_v2, "PureNnue alone with a 4-bucket net: " + p);
++    p = problem_after(4, true, pure4);
++    report(p.empty() && options::nnue_v2 && v2::active()->king_buckets == 4, "PureNnue + NNUEKingBuckets 4 with the stand-alone 4-bucket net: active");
++    p = problem_after(4, false, pure4);
++    report(contains(p, "is a stand-alone net") && !options::nnue_v2, "stand-alone 4-bucket net, NNUEKingBuckets 4, PureNnue 0: " + p);
++    report(load_spec(resid4, random_net(4, true, true, 84)), "load a residual mirrored 4-bucket net");
++    p = problem_after(4, true, resid4);
++    report(contains(p, "is a residual net") && !options::nnue_v2, "PureNnue + NNUEKingBuckets 4 with a residual 4-bucket net: " + p);
++    p = problem_after(4, false, resid4);
++    report(p.empty() && options::nnue_v2 && v2::active()->residual, "C4 rule unchanged: residual 4-bucket net with NNUEKingBuckets 4 is active");
++    v2::unload();
++    p = problem_after(0, false, "");
++    report(p.empty() && !options::nnue_v2, "PureNnue 0, NNUEFile <empty>, NNUEKingBuckets 0: request cleared");
++}
++
++// ---------------------------------------------------------------- 2. evaluation path
++const std::vector<std::string> start_fens = {
++    std::string(Board::StandardStartFen),
++    "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1",
++    "r4rk1/1pp1qppp/p1np1n2/8/2B1P1b1/2N2N2/PPP1QPPP/2KR3R w - - 0 10",
++    "8/2p5/3p4/KP5r/1R3p1k/8/4P1P1/8 w - - 0 1",
++    "6k1/5ppp/8/8/8/8/5PPP/3R2K1 b - - 0 1",
++    "8/8/4k3/8/2K5/8/3P4/8 w - - 0 1",
++    "r3k2r/8/8/8/8/8/8/R3K2R w KQkq - 0 1",
++    "8/P7/8/8/8/8/p7/K6k w - - 0 1",
++    "4k3/8/8/3pP3/8/8/8/4K3 w - d6 0 1",
++};
++
++Board position(const std::string& fen) {
++    Board b;
++    std::string error;
++    if (!b.set_fen(fen, &error)) throw std::runtime_error(fen + ": " + error);
++    return b;
++}
++
++nnue::Accumulator reference(const v2::Net& net, const Board& b) {
++    nnue::Accumulator acc;
++    v2::refresh(net, b, White, acc.values[White].data());
++    v2::refresh(net, b, Black, acc.values[Black].data());
++    acc.valid = true;
++    return acc;
++}
++bool same_values(const nnue::Accumulator& a, const nnue::Accumulator& b) {
++    return std::memcmp(a.values.data(), b.values.data(), sizeof(a.values)) == 0;
++}
++int expected_eval(const v2::Net& net, const Board& b, bool pure) {
++    const int network = v2::evaluate(net, b, reference(net, b));
++    return pure ? network : std::clamp(Evaluator::evaluate_uncached(b) + network, -MateInMaxPly + 1, MateInMaxPly - 1);
++}
++
++struct WalkStats {
++    long plies = 0, evals = 0, verified = 0, eval_mismatch = 0, acc_mismatch = 0, psqt_built = 0, differs_from_other = 0,
++         hce_nonzero = 0, differs_where_hce_zero = 0;
++};
++
++// Random make/unmake walk (as tests/nnue_v2_tests.cpp): evaluations at random plies through the real
++// Worker::static_evaluate; checks the value against the rule for `pure` and every accumulator computed.
++void walk(Worker& w, const v2::Net& net, bool pure, std::uint64_t seed, long target_plies, WalkStats& st) {
++    Rng rng{seed};
++    constexpr int MaxDepth = 24;
++    while (st.plies < target_plies) {
++        Board board = position(start_fens[static_cast<std::size_t>(rng.below(static_cast<int>(start_fens.size())))]);
++        w.clear();
++        SearchLimits limits;
++        limits.depth = 1;
++        const std::vector<Worker*> all{&w};
++        (void)w.search(board, limits, false, all);
++        SearchStack* root = Probe::root(w);
++        std::vector<Board> path{board};
++        struct Step { bool null; Move move; Undo undo; NullUndo null_undo; };
++        std::vector<Step> steps;
++        int depth = 0;
++        const int length = 200 + rng.below(400);
++        for (int t = 0; t < length && st.plies < target_plies; ++t) {
++            SearchStack* ss = root + depth;
++            if (depth < MaxDepth && (depth == 0 || rng.chance(58))) {
++                const MoveList moves = board.legal_moves();
++                if (moves.empty()) continue;
++                Step step{};
++                if (!board.in_check() && rng.chance(4)) {
++                    step.null = true;
++                    Probe::null(w, ss);
++                    board.make_null_move(step.null_undo);
++                } else {
++                    step.move = moves[static_cast<std::size_t>(rng.below(static_cast<int>(moves.size())))];
++                    Probe::move(w, ss, board, step.move);
++                    (void)board.make_move(step.move, step.undo);
++                }
++                steps.push_back(step);
++                path.push_back(board);
++                ++depth;
++                ++st.plies;
++                if (rng.chance(45)) {
++                    std::vector<bool> was_valid(static_cast<std::size_t>(depth + 1));
++                    for (int j = 0; j <= depth; ++j) was_valid[static_cast<std::size_t>(j)] = (root + j)->accumulator.valid;
++                    const int actual = Probe::eval(w, board, root + depth);
++                    ++st.evals;
++                    for (int j = 0; j <= depth; ++j) {
++                        SearchStack* e = root + j;
++                        if (j > 0 && e->runtime_psqt.valid) ++st.psqt_built;
++                        if (!e->accumulator.valid || was_valid[static_cast<std::size_t>(j)]) continue;
++                        ++st.verified;
++                        if (!same_values(e->accumulator, reference(net, path[static_cast<std::size_t>(j)]))) ++st.acc_mismatch;
++                    }
++                    if (actual != expected_eval(net, board, pure)) ++st.eval_mismatch;
++                    // Control: the two rules differ exactly where the HCE is non-zero (no clamping at these values).
++                    const bool hce_nonzero = Evaluator::evaluate_uncached(board) != 0;
++                    const bool differs = actual != expected_eval(net, board, !pure);
++                    st.hce_nonzero += hce_nonzero ? 1 : 0;
++                    st.differs_from_other += differs ? 1 : 0;
++                    st.differs_where_hce_zero += differs && !hce_nonzero ? 1 : 0;
++                }
++            } else if (depth > 0) {
++                const Step& step = steps.back();
++                if (step.null) board.unmake_null_move(step.null_undo);
++                else board.unmake_move(step.move, step.undo);
++                steps.pop_back();
++                path.pop_back();
++                --depth;
++                if (rng.chance(30)) {
++                    const int actual = Probe::eval(w, board, root + depth);
++                    ++st.evals;
++                    if (actual != expected_eval(net, board, pure)) ++st.eval_mismatch;
++                    if (!same_values((root + depth)->accumulator, reference(net, board))) ++st.acc_mismatch;
++                }
++            }
++        }
++    }
++}
++
++void test_eval_path(const std::string& dir, long plies) {
++    SharedSearchState shared(1);
++    auto worker = std::make_unique<Worker>(shared, 0);
++    struct Case { const char* name; int buckets; bool mirror; int option_buckets; };
++    const std::vector<Case> cases = {{"one-bucket net (NNUEKingBuckets 0)", 1, false, 0}, {"mirrored 4-bucket net (NNUEKingBuckets 4)", 4, true, 4}};
++    std::uint64_t seed = 91;
++    for (const Case& c : cases) {
++        for (const bool pure : {true, false}) {
++            // The same weights; only the header flag differs (stand-alone for PureNnue, residual otherwise).
++            Spec n = random_net(c.buckets, c.mirror, !pure, seed);
++            report(load_spec(dir + "walk.fnn2", n), std::string("load ") + c.name + (pure ? " (stand-alone)" : " (residual twin)"));
++            options::nnue_king_buckets = pure ? c.option_buckets : c.buckets;
++            options::pure_nnue = pure;
++            const bool active = options::apply_nnue_v2(nullptr);
++            report(active && options::nnue_v2 && v2::active()->residual == !pure, std::string("select ") + c.name + (pure ? " with PureNnue" : " residual"));
++            if (!active) continue;
++            WalkStats st;
++            walk(*worker, *v2::active(), pure, seed * 7919U, plies, st);
++            std::cout << "WALK " << c.name << (pure ? " PureNnue" : " residual") << ": plies " << st.plies << " evaluations " << st.evals
++                      << " accumulators verified " << st.verified << " eval mismatches " << st.eval_mismatch << " accumulator mismatches "
++                      << st.acc_mismatch << " HCE PSQT accumulators built " << st.psqt_built << " evaluations unequal to the other rule "
++                      << st.differs_from_other << '\n';
++            if (pure) {
++                report(st.eval_mismatch == 0 && st.acc_mismatch == 0 && st.verified > st.plies / 4,
++                       std::string(c.name) + ", PureNnue: static_evaluate == network alone and every accumulator == refresh (" +
++                           std::to_string(st.evals) + " evaluations, " + std::to_string(st.plies) + " plies)");
++                report(st.psqt_built == 0, std::string(c.name) + ", PureNnue: the HCE's PSQT accumulator is never built");
++            } else {
++                report(st.eval_mismatch == 0 && st.acc_mismatch == 0,
++                       std::string(c.name) + ", residual twin: static_evaluate == clamp(HCE + network) (" + std::to_string(st.evals) + " evaluations)");
++                report(st.psqt_built > 0, std::string(c.name) + ", residual twin: the HCE's PSQT accumulator is built (control)");
++            }
++            report(st.differs_from_other == st.hce_nonzero && st.differs_where_hce_zero == 0 && st.hce_nonzero * 2 > st.evals,
++                   std::string(c.name) + (pure ? ", PureNnue" : ", residual") + ": the other rule's value differs exactly where the HCE is "
++                       "non-zero (" + std::to_string(st.differs_from_other) + " of " + std::to_string(st.hce_nonzero) + " such evaluations, " +
++                       std::to_string(st.evals) + " in all; control)");
++        }
++        ++seed;
++    }
++    options::nnue_king_buckets = 0;
++    options::pure_nnue = false;
++    v2::unload();
++    (void)options::apply_nnue_v2(nullptr);
++}
++
++// ---------------------------------------------------------------- 3. search
++std::uint64_t search_nodes(const Board& b, int depth) {
++    Searcher searcher(16, 1);
++    SearchLimits limits;
++    limits.depth = depth;
++    return searcher.search(b, limits, false, Searcher::TTAccess::Exclusive).nodes;
++}
++
++void test_search(const std::string& dir) {
++    const Board b = position(start_fens[1]);
++    std::array<std::uint64_t, 3> nodes{};
++    for (int i = 0; i < 3; ++i) {
++        const bool pure = i < 2;
++        report(load_spec(dir + "search.fnn2", random_net(1, false, !pure, 95)), "load search net");
++        options::nnue_king_buckets = pure ? 0 : 1;
++        options::pure_nnue = pure;
++        report(options::apply_nnue_v2(nullptr), pure ? "select with PureNnue" : "select the residual twin");
++        nodes[static_cast<std::size_t>(i)] = search_nodes(b, 6);
++    }
++    report(nodes[0] == nodes[1] && nodes[0] > 0, "PureNnue depth-6 search is deterministic (" + std::to_string(nodes[0]) + " nodes twice)");
++    report(nodes[0] != nodes[2], "PureNnue searches another tree than the residual twin (" + std::to_string(nodes[0]) + " vs " +
++                                     std::to_string(nodes[2]) + " nodes)");
++    options::nnue_king_buckets = 0;
++    options::pure_nnue = false;
++    v2::unload();
++    (void)options::apply_nnue_v2(nullptr);
++}
++
++// ---------------------------------------------------------------- 4. UCI
++struct Run {
++    std::string out;
++    int status = -1;
++};
++std::string quote(const std::string& text) { return "\"" + text + "\""; }
++Run run_engine(const std::string& engine, const std::string& name, const std::string& script) {
++    const std::string in = "pure_nnue_uci_" + name + ".in";
++    const std::string out = "pure_nnue_uci_" + name + ".out";
++    write_file(in, script);
++    temporary_files.push_back(out);
++    std::string command = quote(engine) + " < " + quote(in) + " > " + quote(out);
++#if defined(_WIN32)
++    command = "\"" + command + "\"";   // cmd.exe /c strips one pair of outer quotes
++#endif
++    std::fflush(nullptr);
++    const int raw = std::system(command.c_str());
++    Run run;
++#if defined(_WIN32)
++    run.status = raw;
++#else
++    run.status = WIFEXITED(raw) ? WEXITSTATUS(raw) : 128 + (WIFSIGNALED(raw) ? WTERMSIG(raw) : 0);
++#endif
++    run.out = read_file(out);
++    return run;
++}
++int count(const std::string& text, const std::string& what) {
++    int n = 0;
++    for (std::size_t at = text.find(what); at != std::string::npos; at = text.find(what, at + what.size())) ++n;
++    return n;
++}
++bool has_line(const std::string& text, const std::string& prefix) {
++    std::istringstream lines(text);
++    for (std::string line; std::getline(lines, line);) {
++        if (!line.empty() && line.back() == '\r') line.pop_back();
++        if (line.rfind(prefix, 0) == 0) return true;
++    }
++    return false;
++}
++std::string last_error(const std::string& text) {
++    std::istringstream lines(text);
++    std::string last = "(no ERROR line)";
++    for (std::string line; std::getline(lines, line);) {
++        if (!line.empty() && line.back() == '\r') line.pop_back();
++        if (line.rfind("info string ERROR NNUE v2:", 0) == 0) last = line;
++    }
++    return last;
++}
++const std::string Head = "uci\nsetoption name Threads value 1\nsetoption name Hash value 16\n";
++std::string set(const std::string& name, const std::string& value) { return "setoption name " + name + " value " + value + "\n"; }
++
++void expect_failure(const std::string& engine, const std::string& name, const std::string& options, const std::string& trigger,
++                    const std::string& phrase) {
++    const Run r = run_engine(engine, name, Head + options + trigger + "\nquit\n");
++    const bool no_answer = !has_line(r.out, "readyok") && !has_line(r.out, "bestmove") && !contains(r.out, "bench depth");
++    report(r.status == 2 && count(r.out, "info string ERROR NNUE v2: ") >= 2 && no_answer && contains(last_error(r.out), phrase),
++           "UCI " + name + ": exit status " + std::to_string(r.status) + " at " + trigger + (no_answer ? ", no answer: " : ", ANSWERED: ") +
++               last_error(r.out));
++}
++
++void test_uci(const std::string& engine, const std::string& dir) {
++    const std::string pure = dir + "uci_pure.fnn2";
++    const std::string resid = dir + "uci_resid.fnn2";
++    write_file(pure, serialise(random_net(1, false, false, 97)));
++    write_file(resid, serialise(random_net(1, false, true, 97)));
++    {
++        const Run r = run_engine(engine, "defaults", Head + "isready\ngo depth 1\nquit\n");
++        report(r.status == 0 && contains(r.out, "option name PureNnue type spin default 0 min 0 max 1") && has_line(r.out, "readyok") &&
++                   has_line(r.out, "bestmove") && !contains(r.out, "NNUE v2"),
++               "UCI defaults: PureNnue advertised (spin 0-1, default 0), nothing NNUE v2 printed, exit 0");
++    }
++    expect_failure(engine, "pure_without_file", set("PureNnue", "1"), "isready", "no v2 net is loaded");
++    expect_failure(engine, "pure_with_residual_net", set("NNUEFile", resid) + set("PureNnue", "1"), "go depth 1", "is a residual net");
++    expect_failure(engine, "standalone_without_pure", set("NNUEFile", pure) + set("NNUEKingBuckets", "1"), "bench 2", "set PureNnue 1");
++    expect_failure(engine, "pure_switched_off_again", set("NNUEFile", pure) + set("PureNnue", "1") + set("PureNnue", "0"), "isready",
++                   "set PureNnue 1");
++    {
++        const std::string active = "info string NNUE v2: active: " + pure + " king buckets 1 output buckets 1 hidden " +
++                                   std::to_string(nnue::HiddenSize) + " unmirrored stand-alone";
++        // As for C4's options, the half-set request (PureNnue before NNUEFile) is reported once at once and
++        // resolved by NNUEFile; nothing is reported after that.
++        const Run r = run_engine(engine, "pure_active", Head + set("PureNnue", "1") + set("NNUEFile", pure) +
++                                                            "isready\ngo depth 4\nbench 2\nquit\n");
++        report(r.status == 0 && count(r.out, active) == 2 && has_line(r.out, "readyok") && has_line(r.out, "bestmove") &&
++                   contains(r.out, "bench depth 2 nodes") && count(r.out, "ERROR") == 1 &&
++                   r.out.find("ERROR") < r.out.find("info string NNUE v2: loaded"),
++               "UCI PureNnue + stand-alone net: \"" + active + " ...\" (activation + isready), readyok, bestmove, bench, exit 0; "
++               "only the half-set request before NNUEFile was reported (" + last_error(r.out) + ")");
++        const Run s = run_engine(engine, "pure_active_file_first", Head + set("NNUEFile", pure) + set("PureNnue", "1") + "isready\nquit\n");
++        report(s.status == 0 && count(s.out, active) == 2 && has_line(s.out, "readyok") && count(s.out, "ERROR") == 1 &&
++                   contains(s.out, "set PureNnue 1"),
++               "UCI NNUEFile before PureNnue: active, readyok, exit 0 (the half-set request named once: " + last_error(s.out) + ")");
++    }
++    {
++        const Run r = run_engine(engine, "pure_cleared", Head + set("PureNnue", "1") + set("NNUEFile", pure) + set("PureNnue", "0") +
++                                                             set("NNUEFile", "<empty>") + "isready\ngo depth 1\nquit\n");
++        report(r.status == 0 && has_line(r.out, "readyok") && has_line(r.out, "bestmove") && contains(r.out, "info string NNUE v2: off"),
++               "UCI PureNnue 0 + NNUEFile <empty>: request cleared, compiled-in net, exit 0");
++    }
++    {
++        const Run r = run_engine(engine, "pure_invalid_value", Head + set("PureNnue", "maybe") + set("PureNnue", "2") + "isready\nquit\n");
++        report(r.status == 0 && count(r.out, "info string invalid value for option PureNnue") == 2 && has_line(r.out, "readyok") &&
++                   !contains(r.out, "ERROR"),
++               "UCI PureNnue maybe / 2: invalid values reported, the option stays 0 (no request)");
++    }
++    {
++        const std::string active = "info string NNUE v2: active: " + pure + " king buckets 1";
++        const Run r = run_engine(engine, "pure_alias_true", Head + set("NNUEFile", pure) + set("PureNnue", "true") + "isready\n" +
++                                                                set("PureNnue", "false") + "isready\nquit\n");
++        report(r.status == 2 && count(r.out, active) == 2 && count(r.out, "readyok") == 1 && contains(last_error(r.out), "set PureNnue 1"),
++               "UCI PureNnue true / false are accepted as 1 / 0 (true: active, readyok; false: the stand-alone net is an error again)");
++    }
++    {
++        const Run r = run_engine(engine, "pure_usennue_false", Head + set("UseNNUE", "false") + set("PureNnue", "1") + "isready\ngo depth 1\nquit\n");
++        report(r.status == 0 && has_line(r.out, "readyok") && has_line(r.out, "bestmove") && !contains(r.out, "ERROR"),
++               "UCI UseNNUE false + PureNnue 1: not an error (hand-crafted evaluation only)");
++    }
++}
++
++} // namespace
++
++int main(int argc, char** argv) {
++    const std::string engine = argc > 1 ? argv[1] : "";
++    const long plies = argc > 2 ? std::stol(argv[2]) : 12000;
++    const std::string dir = "pure_nnue_test_";
++    test_rules(dir);
++    test_eval_path(dir, plies);
++    test_search(dir);
++    if (!engine.empty()) {
++        std::string path = engine;
++#if defined(_WIN32)
++        for (char& c : path) if (c == '/') c = '\\';
++#endif
++        test_uci(path, dir);
++    } else {
++        std::cout << "(no engine executable given: UCI tests skipped)\n";
++    }
++    v2::unload();
++    for (const std::string& file : temporary_files) std::remove(file.c_str());
++    std::cout << checks - failures << "/" << checks << " checks passed\n";
++    return failures == 0 ? 0 : 1;
++}
+diff --git a/tools/nnue/nnue_engine_eval.cpp b/tools/nnue/nnue_engine_eval.cpp
+new file mode 100644
+index 00000000..80a080c0
+--- /dev/null
++++ b/tools/nnue/nnue_engine_eval.cpp
+@@ -0,0 +1,207 @@
++// nnue_engine_eval (O4): the engine's own static evaluation of positions, with v2-network options applied
++// the way the UCI layer applies them, next to the network alone and the hand-crafted evaluation (HCE).
++//   nnue_engine_eval <in.fen> <out.tsv> [NNUEFile=<net.fnn2>] [NNUEKingBuckets=<n>] [PureNnue=0|1]
++//                    [UseNNUE=true|false]
++// Options are applied in the order given; an unusable v2 request is reported like the engine's fail-loud
++// rule (`ERROR NNUE v2: ...`, exit status 2). Per position (one FEN per line, CRLF accepted):
++//   engine   Worker::static_evaluate at the root of a real search stack (a depth-1 search sets the stack up,
++//            as tests/nnue_v2_tests.cpp does), i.e. the evaluation the search uses (before correction history)
++//   network  the active v2 net alone on a from-scratch accumulator (forge/nnue_v2.hpp evaluate), or "-" when no
++//            v2 net is active
++//   hce      Evaluator::evaluate_uncached (side to move)
++// Prints how many positions have engine == network (a stand-alone net with PureNnue 1) and
++// engine == clamp(hce + network) (a residual net). Exit status 0 when every position matches the rule that
++// belongs to the active net (stand-alone: engine == network; residual: engine == clamp(hce + network)).
++// With tools/nnue/v2_parity.py (PyTorch network == C++ network, bit for bit) this closes the chain
++// PyTorch == engine evaluation for PureNnue.
++//
++//   nnue_engine_eval --walk <plies> <seed> [options as above]
++// Evaluation-cost benchmark: a deterministic random make/unmake walk (the move choices depend only on the seed
++// and the positions, so every option set replays the identical walk) that evaluates every new ply through
++// Worker::static_evaluate (lazy incremental accumulators, as in search). Prints the evaluations, a checksum of
++// the values and the time per evaluation; comparing two option sets on the same walk isolates their cost
++// difference (e.g. the lock net + HCE vs the same weights flagged stand-alone with PureNnue = the HCE's cost).
++#include "forge/nnue_v2.hpp"
++#include "forge/search.hpp"
++#include "forge/search_options.hpp"
++
++#include <algorithm>
++#include <chrono>
++#include <cstdint>
++#include <fstream>
++#include <iostream>
++#include <memory>
++#include <string>
++#include <vector>
++
++namespace forge {
++struct SearcherTestProbe {
++    static SearchStack* root(Worker& w) { return &w.stack_[4]; }
++    static int eval(Worker& w, const Board& b, SearchStack* ss) { return w.static_evaluate(b, ss); }
++    static void move(Worker& w, SearchStack* ss, const Board& b, Move m) { w.record_move(ss, b, m); (ss + 1)->ply = ss->ply + 1; }
++};
++} // namespace forge
++
++using namespace forge;
++namespace v2 = forge::nnue::v2;
++
++namespace {
++
++int walk_benchmark(Worker& worker, long plies, std::uint64_t seed) {
++    const std::vector<std::string> starts = {
++        std::string(Board::StandardStartFen),
++        "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1",
++        "r4rk1/1pp1qppp/p1np1n2/8/2B1P1b1/2N2N2/PPP1QPPP/2KR3R w - - 0 10",
++        "r1bq1rk1/pp2bppp/2n1pn2/3p4/2PP4/2N1PN2/PP3PPP/R2QKB1R w KQ - 0 8",
++        "r2q1rk1/ppp2ppp/2n1bn2/2bpp3/3PP3/2N1BN2/PPP1BPPP/R2Q1RK1 w - - 0 9",
++    };
++    std::uint64_t s = seed | 1U;
++    auto below = [&s](int n) {
++        s ^= s >> 12U; s ^= s << 25U; s ^= s >> 27U;
++        return static_cast<int>((s * 2685821657736338717ULL) % static_cast<std::uint64_t>(n));
++    };
++    const std::vector<Worker*> all{&worker};
++    long done = 0, evals = 0;
++    std::uint64_t checksum = 0;
++    double seconds = 0.0;
++    while (done < plies) {
++        Board board;
++        (void)board.set_fen(starts[static_cast<std::size_t>(below(static_cast<int>(starts.size())))]);
++        SearchLimits limits;
++        limits.depth = 1;
++        (void)worker.search(board, limits, false, all);   // stack set-up, untimed
++        SearchStack* root = SearcherTestProbe::root(worker);
++        std::vector<std::pair<Move, Undo>> stack;
++        const auto start = std::chrono::steady_clock::now();
++        for (int t = 0; t < 400 && done < plies; ++t) {
++            const int depth = static_cast<int>(stack.size());
++            if (depth < 16 && (depth == 0 || below(100) < 60)) {
++                const MoveList moves = board.legal_moves();
++                if (moves.empty()) continue;
++                const Move move = moves[static_cast<std::size_t>(below(static_cast<int>(moves.size())))];
++                SearcherTestProbe::move(worker, root + depth, board, move);
++                Undo undo;
++                (void)board.make_move(move, undo);
++                stack.emplace_back(move, undo);
++                ++done;
++                const int value = SearcherTestProbe::eval(worker, board, root + depth + 1);
++                checksum = checksum * 1099511628211ULL + static_cast<std::uint64_t>(static_cast<std::int64_t>(value));
++                ++evals;
++            } else if (depth > 0) {
++                board.unmake_move(stack.back().first, stack.back().second);
++                stack.pop_back();
++            }
++        }
++        seconds += std::chrono::duration<double>(std::chrono::steady_clock::now() - start).count();
++    }
++    std::cout << "walk plies " << done << " evaluations " << evals << " value checksum " << std::hex << checksum << std::dec
++              << " time_ms " << static_cast<long>(seconds * 1000.0) << " ns_per_eval " << static_cast<long>(seconds * 1e9 / static_cast<double>(evals))
++              << " (walk incl. move generation and make/unmake)\n";
++    return 0;
++}
++
++} // namespace
++
++int main(int argc, char** argv) {
++    if (argc < 3) {
++        std::cerr << "usage: nnue_engine_eval <in.fen> <out.tsv> [NNUEFile=<net>] [NNUEKingBuckets=<n>] "
++                     "[PureNnue=0|1] [UseNNUE=true|false]\n"
++                     "       nnue_engine_eval --walk <plies> <seed> [options]\n";
++        return 2;
++    }
++    const bool walk = std::string(argv[1]) == "--walk";
++    if (walk && argc < 4) {
++        std::cerr << "usage: nnue_engine_eval --walk <plies> <seed> [options]\n";
++        return 2;
++    }
++    std::string file;
++    std::string load_error;
++    for (int i = walk ? 4 : 3; i < argc; ++i) {
++        const std::string arg = argv[i];
++        const std::size_t eq = arg.find('=');
++        const std::string name = arg.substr(0, eq);
++        const std::string value = eq == std::string::npos ? "" : arg.substr(eq + 1);
++        if (name == "NNUEFile") {
++            file = value == "<empty>" ? std::string() : value;
++            load_error.clear();
++            if (file.empty()) v2::unload();
++            else if (!v2::load(file, &load_error) && load_error.empty()) load_error = "load failed";
++        } else if (name == "NNUEKingBuckets") {
++            options::nnue_king_buckets = std::clamp(std::stoi(value), 0, 32);
++        } else if (name == "PureNnue" && (value == "1" || value == "0" || value == "true" || value == "false")) {
++            options::pure_nnue = value == "1" || value == "true";
++        } else if (name == "UseNNUE" && (value == "true" || value == "false")) {
++            nnue::enabled = value == "true";
++        } else {
++            std::cerr << "unknown option " << arg << '\n';
++            return 2;
++        }
++        std::string state;
++        (void)options::apply_nnue_v2(&state);
++    }
++    std::string state;
++    const bool active = options::apply_nnue_v2(&state);
++    const std::string problem = options::nnue_v2_problem(file, load_error);
++    if (!problem.empty()) {
++        std::cout << "ERROR NNUE v2: " << problem << '\n';
++        return 2;
++    }
++    std::cout << "NNUE v2: " << state << '\n';
++    const v2::Net* net = v2::active();
++
++    SharedSearchState shared(1);
++    auto worker = std::make_unique<Worker>(shared, 0);
++    if (walk) return walk_benchmark(*worker, std::stol(argv[2]), std::stoull(argv[3]));
++    const std::vector<Worker*> all{worker.get()};
++    std::ifstream in(argv[1]);
++    std::ofstream out(argv[2], std::ios::binary);   // LF line ends on every platform
++    out << "index\tengine\tnetwork\thce\n";
++    long count = 0, engine_is_network = 0, engine_is_residual = 0;
++    std::string line;
++    while (std::getline(in, line)) {
++        while (!line.empty() && (line.back() == '\r' || line.back() == ' ')) line.pop_back();
++        if (line.empty()) continue;
++        Board board;
++        std::string error;
++        if (!board.set_fen(line, &error)) {
++            std::cerr << "bad FEN line " << count << ": " << error << '\n';
++            return 2;
++        }
++        SearchLimits limits;
++        limits.depth = 1;
++        (void)worker->search(board, limits, false, all);   // sets the search stack up as a real search does
++        // Recompute the root through the engine's own path (refresh cache / compiled-in refresh) rather than
++        // reusing the accumulator the search left there.
++        SearchStack* root = SearcherTestProbe::root(*worker);
++        root->accumulator.valid = false;
++        root->runtime_psqt.valid = false;
++        const int engine = SearcherTestProbe::eval(*worker, board, root);
++        const int hce = Evaluator::evaluate_uncached(board);
++        out << count << '\t' << engine << '\t';
++        if (net != nullptr) {
++            nnue::Accumulator acc;
++            v2::refresh(*net, board, White, acc.values[White].data());
++            v2::refresh(*net, board, Black, acc.values[Black].data());
++            const int network = v2::evaluate(*net, board, acc);
++            engine_is_network += engine == network ? 1 : 0;
++            engine_is_residual += engine == std::clamp(hce + network, -MateInMaxPly + 1, MateInMaxPly - 1) ? 1 : 0;
++            out << network;
++        } else {
++            out << '-';
++        }
++        out << '\t' << hce << '\n';
++        ++count;
++    }
++    std::cout << "positions " << count << "  active v2 net: " << (active ? "yes" : "no");
++    bool ok = count > 0;
++    if (net != nullptr) {
++        std::cout << (net->residual ? " (residual)" : " (stand-alone)") << "\n"
++                  << "engine == network alone:          " << engine_is_network << "/" << count << "\n"
++                  << "engine == clamp(hce + network):   " << engine_is_residual << "/" << count << "\n";
++        ok = ok && (net->residual ? engine_is_residual : engine_is_network) == count;
++    } else {
++        std::cout << "\n";
++    }
++    std::cout << (ok ? "PASS" : "FAIL") << '\n';
++    return ok ? 0 : 1;
++}
+diff --git a/tools/nnue/train_resid_v3b.py b/tools/nnue/train_resid_v3b.py
+index 271d3113..c825c36d 100644
+--- a/tools/nnue/train_resid_v3b.py
++++ b/tools/nnue/train_resid_v3b.py
+@@ -12,6 +12,8 @@ supplied train_nnue.py (md5 5A161C70...), but fed from pre-converted binaries:
+ Model/export are the same Forge net (768 -> H per perspective, SCReLU, 2H -> 1, int16 QAT, scale 4096).
+ --residual: logit = net(x) + K*hce/400, output layer starts at zero => first forward == HCE alone,
+ export writes FORGE_NNUE_RESIDUAL 1.  Loss = MSE(sigmoid(logit), blend*sigmoid(K*score/400) + (1-blend)*stm_result).
++--pure (Opus O4): stand-alone net, logit = net(x) (no HCE term; same target), exports .fnn2 with the residual flag 0
++for the engine's PureNnue option; .hce files are then optional (used only for the HCE-alone baseline report).
+ Holdout = whole files (never trained on).  Blend ramps linearly over training progress.
+ """
+ from __future__ import annotations
+@@ -53,7 +55,7 @@ def load_set(pos_files, hce_dir, limit=None, need_hce=True):
+     boards = np.empty((total, 32), np.uint8)
+     score = np.empty(total, np.int16)
+     meta = np.empty(total, np.uint8)
+-    hce = np.empty(total, np.int16)
++    hce = np.empty(total, np.int16) if need_hce else np.zeros(total, np.int16)  # O4 --pure without --hce-dir: zeros
+     o = 0
+     for p, n, n_use in picks:
+         b = np.memmap(p, np.uint8, "r", 16, (n, 32))
+@@ -94,7 +96,13 @@ class CatMap:
+         return out
+ 
+ 
+-def load_set_mmap(pos_files, hce_dir, limit=None):
++class ZeroMap:
++    """O4 --pure without --hce-dir: stands in for the HCE column (every value 0, nothing stored)."""
++    def __getitem__(self, idx):
++        return np.zeros(len(np.asarray(idx)), np.int16)
++
++
++def load_set_mmap(pos_files, hce_dir, limit=None, need_hce=True):
+     """v3b: same selection/validation as load_set, but arrays stay memory-mapped (file-backed pages, no private copy)."""
+     picks, total = [], 0
+     for p in pos_files:
+@@ -110,17 +118,19 @@ def load_set_mmap(pos_files, hce_dir, limit=None):
+         m = np.memmap(p, np.uint8, "r", 16 + n * 34, (n,))[:n_use]
+         if (m == 255).any():
+             raise ValueError(f"bad records in {p}")
+-        hp = Path(hce_dir) / (Path(p).stem + ".hce")
+-        with open(hp, "rb") as f:
+-            h = f.read(16)
+-        if h[:4] != b"FHCE" or int.from_bytes(h[8:16], "little") != n:
+-            raise ValueError(f"hce header/count mismatch {hp} vs {p}")
+-        hh = np.memmap(hp, np.int16, "r", 16, (n,))[:n_use]
+-        if (hh == -32768).any():
+-            raise ValueError(f"bad hce in {hp}")
+-        B.append(b); S.append(s); M.append(m); H.append(hh); offs.append(o); o += n_use
++        if need_hce:
++            hp = Path(hce_dir) / (Path(p).stem + ".hce")
++            with open(hp, "rb") as f:
++                h = f.read(16)
++            if h[:4] != b"FHCE" or int.from_bytes(h[8:16], "little") != n:
++                raise ValueError(f"hce header/count mismatch {hp} vs {p}")
++            hh = np.memmap(hp, np.int16, "r", 16, (n,))[:n_use]
++            if (hh == -32768).any():
++                raise ValueError(f"bad hce in {hp}")
++            H.append(hh)
++        B.append(b); S.append(s); M.append(m); offs.append(o); o += n_use
+     return dict(boards=CatMap(B, offs, np.uint8, (32,)), score=CatMap(S, offs, np.int16), meta=CatMap(M, offs, np.uint8),
+-                hce=CatMap(H, offs, np.int16), n=total, files=[(p, n_use) for p, n, n_use in picks])
++                hce=CatMap(H, offs, np.int16) if need_hce else ZeroMap(), n=total, files=[(p, n_use) for p, n, n_use in picks])
+ 
+ 
+ # ----------------------------------------------------------------------------- memory (v3b)
+@@ -608,7 +618,7 @@ def main():
+     ap = argparse.ArgumentParser(description=__doc__)
+     ap.add_argument("--train", nargs="+", help="train .pos files/globs (hce files expected in --hce-dir)")
+     ap.add_argument("--holdout", nargs="+", required=True, help="holdout .pos files (whole files)")
+-    ap.add_argument("--hce-dir", required=True)
++    ap.add_argument("--hce-dir", help="directory of the .hce files (required, except with --pure)")
+     ap.add_argument("--device", choices=["directml", "cpu"], default="directml")
+     ap.add_argument("--device-index", type=int)
+     ap.add_argument("--shape", type=int, default=128, help="hidden width H")
+@@ -644,7 +654,15 @@ def main():
+     ap.add_argument("--king-mirror", type=int, choices=[0, 1], default=1, help="C4: mirror files e-h onto d-a per perspective (default 1)")
+     ap.add_argument("--king-factor", type=int, choices=[0, 1], default=1, help="C4: shared factoriser block during training, folded into every bucket on export (default 1)")
+     ap.add_argument("--export-v2", action="store_true", help="C4: also write <epoch>.fnn2 (format v2, 1 bucket) for the standard model")
++    ap.add_argument("--pure", action="store_true", help="O4: stand-alone (pure) NNUE: the net predicts the whole score, logit = net(x) "
++                    "with no HCE term (same target: blend of teacher score and game result); every epoch also writes .fnn2 with "
++                    "the residual flag 0 (engine: NNUEFile + PureNnue 1); --hce-dir becomes optional (only the HCE-alone "
++                    "baseline report needs it); not with --residual or --init-check")
+     a = ap.parse_args()
++    if a.pure and (a.residual or a.init_check):  # O4
++        ap.error("--pure trains a stand-alone net: not with --residual or --init-check")
++    if not a.hce_dir and (not a.pure or a.baseline_only):  # O4: --hce-dir was required=True before --pure existed
++        ap.error("--hce-dir is required (it is optional only with --pure)")
+     k = a.sigmoid_k
+     if k != K_DEFAULT:
+         print("WARNING: export needs sigmoid-k 2.25", flush=True)
+@@ -655,7 +673,7 @@ def main():
+     (run / f"settings_{int(time.time())}.txt").write_text(" ".join(sys.argv) + "\n" + json.dumps(vars(a), indent=1))
+     t0 = time.time()
+     hold_files = expand(a.holdout)
+-    hold = load_set(hold_files, a.hce_dir)
++    hold = load_set(hold_files, a.hce_dir, need_hce=bool(a.hce_dir))
+     print(f"holdout: {hold['n']:,} positions from {len(hold_files)} files ({time.time() - t0:.0f}s)", flush=True)
+     rng = np.random.default_rng(12345)
+     if a.val_positions and a.val_positions < hold["n"]:
+@@ -671,8 +689,12 @@ def main():
+               + " | ".join(" ".join(str(kmap[r * 8 + f]) for f in range(8)) for r in range(7, -1, -1)), flush=True)
+     else:
+         model = NNUE(a.shape, qat=not a.no_qat, residual=a.residual or a.baseline_only).to(dev)
+-    base_sub, nb = evaluate(model, hold, val_idx, dev, k, a.batch_size, baseline=True)
+-    print(f"BASELINE HCE-alone holdout subset n={nb:,}: mse_teacher(blend1.0)={base_sub[1.0]:.6f} mse_blend0.6={base_sub[0.6]:.6f}", flush=True)
++    if a.hce_dir:
++        base_sub, nb = evaluate(model, hold, val_idx, dev, k, a.batch_size, baseline=True)
++        print(f"BASELINE HCE-alone holdout subset n={nb:,}: mse_teacher(blend1.0)={base_sub[1.0]:.6f} mse_blend0.6={base_sub[0.6]:.6f}", flush=True)
++    else:  # O4 --pure without .hce files
++        base_sub = None
++        print("BASELINE HCE-alone: not computed (--pure without --hce-dir)", flush=True)
+     if a.baseline_only:
+         full, nf = evaluate(model, hold, full_idx, dev, k, a.batch_size, baseline=True)
+         print(f"BASELINE HCE-alone holdout FULL n={nf:,}: mse_teacher={full[1.0]:.6f} mse_blend0.6={full[0.6]:.6f}", flush=True)
+@@ -690,7 +712,8 @@ def main():
+     train_files = expand(a.train)
+     train_files = [f for f in train_files if f not in hold_files]
+     t1 = time.time()
+-    train = (load_set_mmap if a.mmap_data else load_set)(train_files, a.hce_dir, limit=a.max_train or None)
++    train = (load_set_mmap if a.mmap_data else load_set)(train_files, a.hce_dir, limit=a.max_train or None,
++                                                          need_hce=bool(a.hce_dir))
+     N = train["n"]
+     print(f"train: {N:,} positions from {len(train['files'])} files ({time.time() - t1:.0f}s load)", flush=True)
+     spe = N // a.batch_size
+@@ -720,6 +743,8 @@ def main():
+     if a.king_buckets:  # C4 (absent for the standard model, so its checkpoints stay byte-identical)
+         config.update({"features": "forge768-king-buckets", "king_buckets": model.kb, "king_mirror": model.mirror,
+                        "king_factor": bool(a.king_factor), "king_map": model.king_map.cpu().tolist()})
++    if a.pure:  # O4 (absent otherwise, so the other checkpoints stay byte-identical)
++        config["pure"] = True
+ 
+     def lr_at(s):
+         if s < a.warmup_steps:
+@@ -791,9 +816,13 @@ def main():
+             ls += v; ep_loss += v
+         pf = None
+         vs, nv = evaluate(model, hold, val_idx, dev, k, a.batch_size, blends=(1.0, 0.6, 0.8))
+-        print(f"EPOCH {ep + 1}/{a.epochs} done in {time.time() - te:.0f}s train_mse={ep_loss / max(ep_n, 1):.6f} | HOLDOUT n={nv:,} "
+-              f"mse_teacher={vs[1.0]:.6f} (HCE {base_sub[1.0]:.6f}, {100 * (1 - vs[1.0] / base_sub[1.0]):+.2f}%) "
+-              f"mse_b0.6={vs[0.6]:.6f} (HCE {base_sub[0.6]:.6f}, {100 * (1 - vs[0.6] / base_sub[0.6]):+.2f}%) mse_b0.8={vs[0.8]:.6f}", flush=True)
++        if base_sub is None:  # O4 --pure without .hce files: no HCE comparison
++            print(f"EPOCH {ep + 1}/{a.epochs} done in {time.time() - te:.0f}s train_mse={ep_loss / max(ep_n, 1):.6f} | HOLDOUT n={nv:,} "
++                  f"mse_teacher={vs[1.0]:.6f} mse_b0.6={vs[0.6]:.6f} mse_b0.8={vs[0.8]:.6f}", flush=True)
++        else:
++            print(f"EPOCH {ep + 1}/{a.epochs} done in {time.time() - te:.0f}s train_mse={ep_loss / max(ep_n, 1):.6f} | HOLDOUT n={nv:,} "
++                  f"mse_teacher={vs[1.0]:.6f} (HCE {base_sub[1.0]:.6f}, {100 * (1 - vs[1.0] / base_sub[1.0]):+.2f}%) "
++                  f"mse_b0.6={vs[0.6]:.6f} (HCE {base_sub[0.6]:.6f}, {100 * (1 - vs[0.6] / base_sub[0.6]):+.2f}%) mse_b0.8={vs[0.8]:.6f}", flush=True)
+         stem = run / f"epoch{ep + 1:03d}-step{step:09d}"
+         payload = {"config": config, "model": cpu_copy(model.state_dict()), "optimizer": cpu_copy(opt.state_dict()),
+                    "next_epoch": ep + 1, "step": step, "val": {str(b): v for b, v in vs.items()}}
+@@ -802,11 +831,11 @@ def main():
+             export_forge_v2(model, stem, bool(a.residual))
+         else:
+             export_forge(model, stem, k, bool(a.residual))
+-            if a.export_v2:
++            if a.export_v2 or a.pure:  # O4: a pure net is used through NNUEFile + PureNnue, i.e. as a v2 file
+                 export_forge_v2(model, stem, bool(a.residual))
+-        atomic_write(stem.with_suffix(".json"), lambda dst: dst.write((json.dumps({**config, "val": payload["val"], "baseline": {str(b): v for b, v in base_sub.items()}}, indent=1) + "\n").encode()))
++        atomic_write(stem.with_suffix(".json"), lambda dst: dst.write((json.dumps({**config, "val": payload["val"], "baseline": {str(b): v for b, v in (base_sub or {}).items()}}, indent=1) + "\n").encode()))
+         print(f"Saved {stem.name} (.pt .fnn2 .json)" if a.king_buckets else
+-              f"Saved {stem.name} (.pt .inc .bin .json{' .fnn2' if a.export_v2 else ''})", flush=True)
++              f"Saved {stem.name} (.pt .inc .bin .json{' .fnn2' if a.export_v2 or a.pure else ''})", flush=True)
+         mem_report(f"epoch{ep + 1:03d}", a.max_ram_gb)
+     finally:  # v3: join background epoch builder / prefetchers cleanly, also on exceptions
+         if pf is not None:  # v3b: current producer first (with one order buffer the builder waits for it)
+@@ -815,8 +844,11 @@ def main():
+             nxt.close()
+     if a.final_full_val:
+         full, nf = evaluate(model, hold, full_idx, dev, k, a.batch_size, blends=(1.0, 0.6, 0.8))
+-        bfull, _ = evaluate(model, hold, full_idx, dev, k, a.batch_size, blends=(1.0, 0.6, 0.8), baseline=True)
+-        print(f"FINAL FULL HOLDOUT n={nf:,}: net mse_teacher={full[1.0]:.6f} mse_b0.6={full[0.6]:.6f} mse_b0.8={full[0.8]:.6f} | HCE {bfull[1.0]:.6f}/{bfull[0.6]:.6f}/b0.8 {bfull[0.8]:.6f}", flush=True)
++        if base_sub is None:  # O4 --pure without .hce files
++            print(f"FINAL FULL HOLDOUT n={nf:,}: net mse_teacher={full[1.0]:.6f} mse_b0.6={full[0.6]:.6f} mse_b0.8={full[0.8]:.6f}", flush=True)
++        else:
++            bfull, _ = evaluate(model, hold, full_idx, dev, k, a.batch_size, blends=(1.0, 0.6, 0.8), baseline=True)
++            print(f"FINAL FULL HOLDOUT n={nf:,}: net mse_teacher={full[1.0]:.6f} mse_b0.6={full[0.6]:.6f} mse_b0.8={full[0.8]:.6f} | HCE {bfull[1.0]:.6f}/{bfull[0.6]:.6f}/b0.8 {bfull[0.8]:.6f}", flush=True)
+     print(f"Finished: {seen:,} positions in {time.time() - tstart:.0f}s", flush=True)
+     return 0
+ 

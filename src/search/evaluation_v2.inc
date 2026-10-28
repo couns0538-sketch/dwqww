@@ -31,6 +31,8 @@ FORGE_SEARCH_V2 int Worker::static_evaluate_v2(const Board& board, SearchStack* 
     // O6 / O7: a net with threat or pawn-pair inputs has its own update path (evaluation_extra.inc);
     // apply_nnue_v2 activates one only with the matching NNUEThreats / NNUEPawnPairs.
     if (net.threats || net.pawn_pairs) [[unlikely]] return static_evaluate_extra(board, ss);
+    // O4: residual == !options::pure_nnue (apply_nnue_v2 selects only a net whose header flag agrees with
+    // PureNnue), so with PureNnue the hand-crafted evaluation and its PSQT accumulator are never computed.
     const bool residual = net.residual;
     if (!ss->accumulator.valid) {
         int back = 0;
@@ -96,12 +98,13 @@ namespace options {
 
 [[gnu::cold]] bool apply_nnue_v2(std::string* message) {
     // UseNNUE false disables every network (hand-crafted evaluation only).
-    // O6 / O7: NNUEThreats 1 or NNUEPawnPairs 1 with NNUEKingBuckets 0 asks for a net without king buckets
-    // (R3 stack: with NNUEOutputBuckets 0 as well that is a request for one king bucket; with NNUEOutputBuckets
-    // N > 0, C5's rule applies: king count 0 = one unmirrored king bucket).
+    // O4 / O6 / O7: PureNnue 1, NNUEThreats 1 or NNUEPawnPairs 1 with NNUEKingBuckets 0 asks for a net without king
+    // buckets (R3 stack: with NNUEOutputBuckets 0 as well that is a request for one king bucket; with
+    // NNUEOutputBuckets N > 0, C5's rule applies: king count 0 = one unmirrored king bucket).
     const bool threats = nnue_threats != 0;
     const bool pawns = nnue_pawn_pairs != 0;
-    const int wanted = nnue_king_buckets > 0 ? nnue_king_buckets : ((threats || pawns) && nnue_output_buckets <= 0 ? 1 : 0);
+    const bool alone = threats || pawns || pure_nnue;
+    const int wanted = nnue_king_buckets > 0 ? nnue_king_buckets : (alone && nnue_output_buckets <= 0 ? 1 : 0);
     const nnue::v2::Net* net = nnue::v2::select(nnue::enabled ? wanted : 0, nnue::enabled ? nnue_output_buckets : 0, message);
     if (net != nullptr && (net->threats != threats || net->pawn_pairs != pawns)) {
         // O6 / O7: the header's extra-input bits must agree with NNUEThreats / NNUEPawnPairs (nnue_v2_problem
@@ -109,6 +112,15 @@ namespace options {
         (void)nnue::v2::select(0, 0, nullptr);
         net = nullptr;
         if (message != nullptr) *message = "the loaded net's threat / pawn-pair inputs differ from NNUEThreats / NNUEPawnPairs (not selected)";
+    } else if (net != nullptr && net->residual == pure_nnue) {
+        // O4: the header's residual flag must agree with PureNnue, so that the hand-crafted
+        // evaluation is skipped exactly when PureNnue is 1 (nnue_v2_problem names the mismatch).
+        (void)nnue::v2::select(0, 0, nullptr);
+        net = nullptr;
+        if (message != nullptr) {
+            *message = pure_nnue ? "PureNnue is 1 but the loaded net is residual (not selected)"
+                                 : "the loaded net is stand-alone and PureNnue is 0 (not selected)";
+        }
     }
     if (!nnue::enabled && message != nullptr) *message = "UseNNUE is false: hand-crafted evaluation only";
     nnue_v2 = net != nullptr;
@@ -119,19 +131,26 @@ namespace options {
     const bool threats = nnue_threats != 0;
     const bool pawns = nnue_pawn_pairs != 0;
     const bool extras = threats || pawns;
+    const bool alone = extras || pure_nnue;   // options that request a v2 net on their own
     if (!nnue::enabled) return {};   // UseNNUE false: every network off on purpose
     const int kb = nnue_king_buckets;
     const int ob = nnue_output_buckets;
-    if (file.empty() && kb <= 0 && ob <= 0 && !extras) return {};   // nothing requested
+    if (file.empty() && kb <= 0 && ob <= 0 && !alone) return {};   // nothing requested
     if (!file.empty() && !load_error.empty()) return "cannot load NNUEFile " + file + ": " + load_error;
     const nnue::v2::Net* net = nnue::v2::loaded();
     if (net == nullptr) {
         if (!file.empty()) return "NNUEFile " + file + " is not loaded";
-        if (kb <= 0 && ob <= 0) {   // O6 / O7: NNUEThreats or NNUEPawnPairs alone
-            return threats ? "NNUEThreats is 1 but no v2 net is loaded (NNUEFile is empty); NNUEThreats needs a net with threat "
-                             "inputs (trainer --threats)"
-                           : "NNUEPawnPairs is 1 but no v2 net is loaded (NNUEFile is empty); NNUEPawnPairs needs a net with "
-                             "pawn-pair inputs (trainer --pawn-pairs)";
+        if (kb <= 0 && ob <= 0) {   // O4 / O6 / O7: PureNnue, NNUEThreats or NNUEPawnPairs alone
+            if (threats) {
+                return "NNUEThreats is 1 but no v2 net is loaded (NNUEFile is empty); NNUEThreats needs a net with threat "
+                       "inputs (trainer --threats)";
+            }
+            if (pawns) {
+                return "NNUEPawnPairs is 1 but no v2 net is loaded (NNUEFile is empty); NNUEPawnPairs needs a net with "
+                       "pawn-pair inputs (trainer --pawn-pairs)";
+            }
+            return "PureNnue is 1 but no v2 net is loaded (NNUEFile is empty); PureNnue needs a stand-alone net "
+                   "(trainer --pure)";
         }
         const std::string set = kb > 0 && ob > 0 ? "NNUEKingBuckets " + std::to_string(kb) + " and NNUEOutputBuckets " +
                                                        std::to_string(ob) + " are"
@@ -144,28 +163,33 @@ namespace options {
     // O6 / O7: the extra-input bits of the file and NNUEThreats / NNUEPawnPairs must agree.
     const std::string threat_net = "NNUEFile " + net->path + " has threat inputs (trainer --threats); set NNUEThreats 1 to use it";
     const std::string pawn_net = "NNUEFile " + net->path + " has pawn-pair inputs (trainer --pawn-pairs); set NNUEPawnPairs 1 to use it";
+    // O4: the residual flag of the file and PureNnue must agree.
+    const std::string standalone = "NNUEFile " + net->path + " is a stand-alone net (network only, no hand-crafted "
+                                   "evaluation; trainer --pure); set PureNnue 1 to use it";
     // C4 / C5: the bucket counts that select this net (select(): 0 stands for one unmirrored king bucket / one
-    // output bucket); the extra-input options the net needs are named as well.
+    // output bucket); the other options the net needs are named as well.
     int want_kb = net->king_buckets == 1 && !net->mirror ? 0 : net->king_buckets;
     const int want_ob = net->output_buckets == 1 ? 0 : net->output_buckets;
     if (want_kb == 0 && want_ob == 0) want_kb = 1;
     const std::string shape = buckets + ", " + std::to_string(net->output_buckets) + " output buckets";
     const std::string hint = "; to use it set NNUEKingBuckets " + std::to_string(want_kb) + ", NNUEOutputBuckets " +
                              std::to_string(want_ob) + (net->threats ? ", NNUEThreats 1" : "") +
-                             (net->pawn_pairs ? ", NNUEPawnPairs 1" : "");
+                             (net->pawn_pairs ? ", NNUEPawnPairs 1" : "") + (!net->residual ? ", PureNnue 1" : "");
     // The request as apply_nnue_v2() passes it to select().
-    const int wanted_kb = kb > 0 ? kb : (extras && ob <= 0 ? 1 : 0);
+    const int wanted_kb = kb > 0 ? kb : (alone && ob <= 0 ? 1 : 0);
     const bool king_ok = wanted_kb > 0 ? net->king_buckets == wanted_kb : (net->king_buckets == 1 && !net->mirror);
     const bool output_ok = ob > 0 ? net->output_buckets == ob : net->output_buckets == 1;
-    if (kb <= 0 && ob <= 0 && !extras) {   // a file without any bucket or extra-input option
-        if (net->king_buckets == 1 && net->output_buckets == 1 && net->threats) return threat_net;
-        if (net->king_buckets == 1 && net->output_buckets == 1 && net->pawn_pairs) return pawn_net;
+    if (kb <= 0 && ob <= 0 && !alone) {   // a file without any bucket or net-kind option
+        const bool single = net->king_buckets == 1 && net->output_buckets == 1;
+        if (single && net->threats) return threat_net;
+        if (single && net->pawn_pairs) return pawn_net;
+        if (single && !net->residual) return standalone;
         return "NNUEFile " + net->path + " is loaded (" + shape + ") but NNUEKingBuckets is 0 and NNUEOutputBuckets is 0" + hint;
     }
-    if (!king_ok && kb <= 0 && ob <= 0 && extras) {
-        return std::string(threats ? "NNUEThreats" : "NNUEPawnPairs") + " is 1 and NNUEKingBuckets is 0, which selects a net "
-               "without king buckets, but NNUEFile " + net->path + " has " + buckets + "; set NNUEKingBuckets " +
-               std::to_string(net->king_buckets) + " as well";
+    if (!king_ok && kb <= 0 && ob <= 0 && alone) {
+        return std::string(threats ? "NNUEThreats" : pawns ? "NNUEPawnPairs" : "PureNnue") +
+               " is 1 and NNUEKingBuckets is 0, which selects a net without king buckets, but NNUEFile " + net->path +
+               " has " + buckets + "; set NNUEKingBuckets " + std::to_string(net->king_buckets) + " as well";
     }
     if (!king_ok || !output_ok) {
         return "NNUEFile " + net->path + " (" + shape + ") does not match NNUEKingBuckets " + std::to_string(kb) +
@@ -181,9 +205,13 @@ namespace options {
     }
     if (!threats && net->threats) return threat_net;
     if (!pawns && net->pawn_pairs) return pawn_net;
+    if (pure_nnue && net->residual) {
+        return "PureNnue is 1 but NNUEFile " + net->path + " is a residual net (a correction added to the hand-crafted "
+               "evaluation; trainer --residual); PureNnue needs a stand-alone net (trainer --pure)";
+    }
+    if (!pure_nnue && !net->residual) return standalone;
     return "NNUEFile " + net->path + " was not selected";   // not reached: every unselected case is named above
 }
-
 
 } // namespace options
 

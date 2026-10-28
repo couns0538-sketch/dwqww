@@ -1,0 +1,68 @@
+PASS defaults: no request, no problem, compiled-in net
+PASS PureNnue without NNUEFile: PureNnue is 1 but no v2 net is loaded (NNUEFile is empty); PureNnue needs a stand-alone net (trainer --pure)
+PASS PureNnue with a file that did not load: cannot load NNUEFile pure_nnue_test_missing.fnn2: cannot open pure_nnue_test_missing.fnn2
+PASS load a residual one-bucket net
+PASS PureNnue with a residual net: PureNnue is 1 but NNUEFile pure_nnue_test_resid1.fnn2 is a residual net (a correction added to the hand-crafted evaluation; trainer --residual); PureNnue needs a stand-alone net (trainer --pure)
+PASS C4 rule unchanged: residual one-bucket net with NNUEKingBuckets 1 and PureNnue 0 is active
+PASS C4 rule unchanged: residual net, NNUEKingBuckets 0: NNUEFile pure_nnue_test_resid1.fnn2 is loaded (1 king buckets) but NNUEKingBuckets is 0; set NNUEKingBuckets 1 to use it
+PASS load a stand-alone one-bucket net
+PASS PureNnue with a stand-alone one-bucket net and NNUEKingBuckets 0: active, no problem
+PASS PureNnue with the stand-alone net and NNUEKingBuckets 1: active
+PASS stand-alone net without PureNnue (NNUEKingBuckets 0): NNUEFile pure_nnue_test_pure1.fnn2 is a stand-alone net (network only, no hand-crafted evaluation; trainer --pure); set PureNnue 1 to use it
+PASS stand-alone net without PureNnue (NNUEKingBuckets 1): NNUEFile pure_nnue_test_pure1.fnn2 is a stand-alone net (network only, no hand-crafted evaluation; trainer --pure); set PureNnue 1 to use it
+PASS PureNnue, NNUEKingBuckets 2 vs a one-bucket net: NNUEKingBuckets 2 does not match NNUEFile pure_nnue_test_pure1.fnn2 (1 king buckets)
+PASS UseNNUE false wins over PureNnue (not an error, HCE only)
+PASS UseNNUE true again: PureNnue without a net is a problem again
+PASS load a stand-alone mirrored 4-bucket net
+PASS PureNnue alone with a 4-bucket net: PureNnue is 1 and NNUEKingBuckets is 0, which selects a net without king buckets, but NNUEFile pure_nnue_test_pure4.fnn2 has 4 mirrored king buckets; set NNUEKingBuckets 4 as well
+PASS PureNnue + NNUEKingBuckets 4 with the stand-alone 4-bucket net: active
+PASS stand-alone 4-bucket net, NNUEKingBuckets 4, PureNnue 0: NNUEFile pure_nnue_test_pure4.fnn2 is a stand-alone net (network only, no hand-crafted evaluation; trainer --pure); set PureNnue 1 to use it
+PASS load a residual mirrored 4-bucket net
+PASS PureNnue + NNUEKingBuckets 4 with a residual 4-bucket net: PureNnue is 1 but NNUEFile pure_nnue_test_resid4.fnn2 is a residual net (a correction added to the hand-crafted evaluation; trainer --residual); PureNnue needs a stand-alone net (trainer --pure)
+PASS C4 rule unchanged: residual 4-bucket net with NNUEKingBuckets 4 is active
+PASS PureNnue 0, NNUEFile <empty>, NNUEKingBuckets 0: request cleared
+PASS load one-bucket net (NNUEKingBuckets 0) (stand-alone)
+PASS select one-bucket net (NNUEKingBuckets 0) with PureNnue
+WALK one-bucket net (NNUEKingBuckets 0) PureNnue: plies 12000 evaluations 8642 accumulators verified 7617 eval mismatches 0 accumulator mismatches 0 HCE PSQT accumulators built 0 evaluations unequal to the other rule 5203
+PASS one-bucket net (NNUEKingBuckets 0), PureNnue: static_evaluate == network alone and every accumulator == refresh (8642 evaluations, 12000 plies)
+PASS one-bucket net (NNUEKingBuckets 0), PureNnue: the HCE's PSQT accumulator is never built
+PASS one-bucket net (NNUEKingBuckets 0), PureNnue: the other rule's value differs exactly where the HCE is non-zero (5203 of 5203 such evaluations, 8642 in all; control)
+PASS load one-bucket net (NNUEKingBuckets 0) (residual twin)
+PASS select one-bucket net (NNUEKingBuckets 0) residual
+WALK one-bucket net (NNUEKingBuckets 0) residual: plies 12000 evaluations 8642 accumulators verified 7599 eval mismatches 0 accumulator mismatches 0 HCE PSQT accumulators built 93787 evaluations unequal to the other rule 5203
+PASS one-bucket net (NNUEKingBuckets 0), residual twin: static_evaluate == clamp(HCE + network) (8642 evaluations)
+PASS one-bucket net (NNUEKingBuckets 0), residual twin: the HCE's PSQT accumulator is built (control)
+PASS one-bucket net (NNUEKingBuckets 0), residual: the other rule's value differs exactly where the HCE is non-zero (5203 of 5203 such evaluations, 8642 in all; control)
+PASS load mirrored 4-bucket net (NNUEKingBuckets 4) (stand-alone)
+PASS select mirrored 4-bucket net (NNUEKingBuckets 4) with PureNnue
+WALK mirrored 4-bucket net (NNUEKingBuckets 4) PureNnue: plies 12000 evaluations 8824 accumulators verified 7783 eval mismatches 0 accumulator mismatches 0 HCE PSQT accumulators built 0 evaluations unequal to the other rule 5340
+PASS mirrored 4-bucket net (NNUEKingBuckets 4), PureNnue: static_evaluate == network alone and every accumulator == refresh (8824 evaluations, 12000 plies)
+PASS mirrored 4-bucket net (NNUEKingBuckets 4), PureNnue: the HCE's PSQT accumulator is never built
+PASS mirrored 4-bucket net (NNUEKingBuckets 4), PureNnue: the other rule's value differs exactly where the HCE is non-zero (5340 of 5340 such evaluations, 8824 in all; control)
+PASS load mirrored 4-bucket net (NNUEKingBuckets 4) (residual twin)
+PASS select mirrored 4-bucket net (NNUEKingBuckets 4) residual
+WALK mirrored 4-bucket net (NNUEKingBuckets 4) residual: plies 12000 evaluations 8824 accumulators verified 7783 eval mismatches 0 accumulator mismatches 0 HCE PSQT accumulators built 96727 evaluations unequal to the other rule 5340
+PASS mirrored 4-bucket net (NNUEKingBuckets 4), residual twin: static_evaluate == clamp(HCE + network) (8824 evaluations)
+PASS mirrored 4-bucket net (NNUEKingBuckets 4), residual twin: the HCE's PSQT accumulator is built (control)
+PASS mirrored 4-bucket net (NNUEKingBuckets 4), residual: the other rule's value differs exactly where the HCE is non-zero (5340 of 5340 such evaluations, 8824 in all; control)
+PASS load search net
+PASS select with PureNnue
+PASS load search net
+PASS select with PureNnue
+PASS load search net
+PASS select the residual twin
+PASS PureNnue depth-6 search is deterministic (2621346 nodes twice)
+PASS PureNnue searches another tree than the residual twin (2621346 vs 3384 nodes)
+PASS UCI defaults: PureNnue advertised (spin 0-1, default 0), nothing NNUE v2 printed, exit 0
+PASS UCI pure_without_file: exit status 2 at isready, no answer: info string ERROR NNUE v2: PureNnue is 1 but no v2 net is loaded (NNUEFile is empty); PureNnue needs a stand-alone net (trainer --pure)
+PASS UCI pure_with_residual_net: exit status 2 at go depth 1, no answer: info string ERROR NNUE v2: PureNnue is 1 but NNUEFile pure_nnue_test_uci_resid.fnn2 is a residual net (a correction added to the hand-crafted evaluation; trainer --residual); PureNnue needs a stand-alone net (trainer --pure)
+PASS UCI standalone_without_pure: exit status 2 at bench 2, no answer: info string ERROR NNUE v2: NNUEFile pure_nnue_test_uci_pure.fnn2 is a stand-alone net (network only, no hand-crafted evaluation; trainer --pure); set PureNnue 1 to use it
+PASS UCI pure_switched_off_again: exit status 2 at isready, no answer: info string ERROR NNUE v2: NNUEFile pure_nnue_test_uci_pure.fnn2 is a stand-alone net (network only, no hand-crafted evaluation; trainer --pure); set PureNnue 1 to use it
+PASS UCI PureNnue + stand-alone net: "info string NNUE v2: active: pure_nnue_test_uci_pure.fnn2 king buckets 1 output buckets 1 hidden 256 unmirrored stand-alone ..." (activation + isready), readyok, bestmove, bench, exit 0; only the half-set request before NNUEFile was reported (info string ERROR NNUE v2: PureNnue is 1 but no v2 net is loaded (NNUEFile is empty); PureNnue needs a stand-alone net (trainer --pure))
+PASS UCI NNUEFile before PureNnue: active, readyok, exit 0 (the half-set request named once: info string ERROR NNUE v2: NNUEFile pure_nnue_test_uci_pure.fnn2 is a stand-alone net (network only, no hand-crafted evaluation; trainer --pure); set PureNnue 1 to use it)
+PASS UCI PureNnue 0 + NNUEFile <empty>: request cleared, compiled-in net, exit 0
+PASS UCI PureNnue maybe / 2: invalid values reported, the option stays 0 (no request)
+PASS UCI PureNnue true / false are accepted as 1 / 0 (true: active, readyok; false: the stand-alone net is an error again)
+PASS UCI UseNNUE false + PureNnue 1: not an error (hand-crafted evaluation only)
+62/62 checks passed
+exit=0

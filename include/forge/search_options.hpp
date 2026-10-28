@@ -108,6 +108,18 @@ extern int nnue_threats;
 // with both blocks needs both options.
 extern int nnue_pawn_pairs;
 
+// UCI PureNnue (spin 0-1, default 0; O4; "true" / "false" are accepted as
+// well): 1 = the evaluation is the network alone, without the hand-crafted
+// evaluation (HCE). It needs a stand-alone v2 net (header flag residual = 0,
+// trainer --pure) loaded with NNUEFile; with NNUEKingBuckets 0 that net must
+// have one king bucket (the compiled-in input layer), with NNUEKingBuckets
+// N > 0 exactly N. The header flag and the option must agree both ways:
+// PureNnue 1 with a residual net, and PureNnue 0 with a stand-alone net, are
+// fail-loud errors (rule above), so the HCE is skipped exactly when PureNnue
+// is 1. PureNnue 1 is itself a v2 request (an error without a usable net);
+// UseNNUE false still wins.
+extern bool pure_nnue;
+
 // Derived switch read by Worker::static_evaluate: true while a v2 network is
 // active. Written only by apply_nnue_v2().
 extern bool nnue_v2;

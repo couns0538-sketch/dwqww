@@ -363,9 +363,9 @@ int main() {
         control_high = high;
     };
 
-    // v2 networks (UCI NNUEFile / NNUEKingBuckets / NNUEOutputBuckets / NNUEThreats / NNUEPawnPairs; fail-loud
-    // rule in forge/search_options.hpp): a requested v2 net that cannot be used is reported at once and, if
-    // still unusable at the next isready, go or bench, reported again before the engine exits with status 2.
+    // v2 networks (UCI NNUEFile / NNUEKingBuckets / NNUEOutputBuckets / NNUEThreats / NNUEPawnPairs / PureNnue;
+    // fail-loud rule in forge/search_options.hpp): a requested v2 net that cannot be used is reported at once and,
+    // if still unusable at the next isready, go or bench, reported again before the engine exits with status 2.
     // Never a silent fall-back to the compiled-in network. With no NNUE option set nothing here prints anything.
     constexpr int NnueV2ExitStatus = 2;
     int exit_status = 0;
@@ -379,7 +379,7 @@ int main() {
         const std::string problem = forge::options::nnue_v2_problem(nnue_file, nnue_file_error);
         const bool requested = !nnue_file.empty() || forge::options::nnue_king_buckets > 0 ||
                                forge::options::nnue_output_buckets > 0 || forge::options::nnue_threats != 0 ||
-                               forge::options::nnue_pawn_pairs != 0;
+                               forge::options::nnue_pawn_pairs != 0 || forge::options::pure_nnue;
         if (!nnue_file_error.empty()) state += " (NNUEFile " + nnue_file + ": " + nnue_file_error + ")";
         {
             const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex());
@@ -438,6 +438,8 @@ int main() {
             std::cout << "option name NNUEThreats type spin default 0 min 0 max 1\n";
             // O7: a v2 net with pawn-pair inputs (needs such a net in NNUEFile).
             std::cout << "option name NNUEPawnPairs type spin default 0 min 0 max 1\n";
+            // O4: the network alone, without the hand-crafted evaluation (needs a stand-alone v2 net).
+            std::cout << "option name PureNnue type spin default 0 min 0 max 1\n";
 #ifdef FORGE_EXPOSE_TUNABLES
             // Development builds advertise the search constants so match
             // runners can set them; release builds accept them silently.
@@ -662,6 +664,14 @@ int main() {
                 else {
                     const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex());
                     std::cout << "info string invalid value for option NNUEPawnPairs" << std::endl;
+                }
+                nnue_v2_changed();
+            } else if (name == "PureNnue") {   // O4: spin 0-1 (true / false accepted as well)
+                if (value_text == "1" || value_text == "true") forge::options::pure_nnue = true;
+                else if (value_text == "0" || value_text == "false") forge::options::pure_nnue = false;
+                else {
+                    const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex());
+                    std::cout << "info string invalid value for option PureNnue" << std::endl;
                 }
                 nnue_v2_changed();
             } else if (name == "Hash" || name == "Move Overhead" || name == "Threads") {
