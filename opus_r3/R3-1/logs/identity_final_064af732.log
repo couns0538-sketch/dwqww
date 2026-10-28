@@ -1,0 +1,31 @@
+# final head 064af732, PC recipe, uci_check --full
+## default exe 43938b61608a8395ffb73aa4f262d5de7cca92ca47d0221ce0812d2b8d589c91
+bench d11 nodes 312866 ref 312866 OK
+bench d13 nodes 862329 ref 862329 OK
+bench d16 nodes 3024920 ref 3024920 OK
+bench d20 nodes 12389307 ref 12389307 OK
+bench d22 nodes 34048354 ref 34048354 OK
+perft5 startpos 4865609 ref 4865609 OK
+perft5 kiwipete 193690690 ref 193690690 OK
+ALL OK
+## every build switch (O2 NOZERO S13 SPEEDSTACK LAZY_ACC PROF INT16 DATAGEN ATTACKS_INIT_ONCE) exe 3ab215583d0a4df96814f4185ebfb89a9ec385176d96e3d27e59f06b1dec6f42
+bench d11 nodes 312866 ref 312866 OK
+bench d13 nodes 862329 ref 862329 OK
+bench d16 nodes 3024920 ref 3024920 OK
+bench d20 nodes 12389307 ref 12389307 OK
+bench d22 nodes 34048354 ref 34048354 OK
+perft5 startpos 4865609 ref 4865609 OK
+perft5 kiwipete 193690690 ref 193690690 OK
+ALL OK
+## pre-merge (spsa 415e6eb0 + smp 5163797d on cc0c1e6b) vs final default exe: 4 differing bytes (PE timestamp/checksum)
+## pre-merge: 20 SPSA spins set to defaults + SmpHelpersPastDepth=true:
+bench d11 nodes 312866 nps 1396723
+bench d13 nodes 862329 nps 1228388
+bench d16 nodes 3024920 nps 1294914
+## non-default values (d11):
+NullMoveMarginBase=150: nodes 339997
+NullMoveMarginDepth=30: nodes 310100
+LmrQuietBase=95: nodes 265946
+AspirationDelta=25: nodes 333715
+CorrMargins=1 --opt NullMoveMarginBase=180: nodes 343365
+CorrMargins=1 --opt NullMoveMarginBase=150: nodes 253725

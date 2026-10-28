@@ -10,9 +10,9 @@ throughout; my work at nice 19). No Elo claims: no gate was run.
 | R3-1 integration stack | all O/C branches and every opus-sol engine feature merged (S32/S37/S04fix via `opus-r3-port-b`, S-A2/S-A4 via `opus-r3-port-c`); HardDeadline defect found by the self-play checker fixed; 500-game self-play on `330237f`: 8 of 36 configs done (all-ON variants, HardDeadline, four switches), 4000 games, 0 errors; the rest running (`opus-r3-selfplay`); a Linux copy of the checker on GitHub runners is being set up (`opus-r3-sp-linux`) to re-check the final head | `opus-r3-stack`, `opus_r3/R3-1/`, `opus_r3/R3-1_selfplay/` |
 | R3-2 interaction matrix | DONE, merged (`7e0660a`): no conflicts; two silent cancels; build layout ±5% on the PC; quiet-runner repeat of the switch rows running (`opus-r3-quietnps`) | `opus_r3/R3-2/REPORT.md` |
 | R3-3 gate proposals | DONE, merged | `opus_r3/R3-3/`, `F:\opus_scratch\r3\GATE_PROPOSALS.md` |
-| R3-4 SPSA tool | IN PROGRESS (agent) | `opus-r3-spsa` |
+| R3-4 SPSA tool | DONE, merged (`064af73`): 20 search constants as UCI spins (identical defaults), `tools/spsa/opus_spsa*.py`, dry run with restart; no tuning session | `opus_r3/R3-4/REPORT.md`, `tools/spsa/README.md` |
 | R3-5 regression test suite | DONE, merged (`7e0660a`): six new CTest entries, 12/12 planted bugs caught | `opus_r3/R3-5/REPORT.md` |
-| R3-6 Lazy SMP scaling | IN PROGRESS (agent) | `opus-r3-smp` |
+| R3-6 Lazy SMP scaling | PARTIAL (1 of 3 repetitions), merged (`1f354cc`, evidence `1f2b4fd`): one scaling bug found and fixed behind UCI `SmpHelpersPastDepth` (default off) | `opus_r3/R3-6/REPORT.md` |
 
 ## CI (GitHub `opus-ci`: release, ASan+UBSan, TSan)
 | run | head | result |
@@ -29,6 +29,8 @@ throughout; my work at nice 19). No Elo claims: no gate was run.
 | 40578094685 | `287aa15`, new workflow `opus-r3-switches` (every build switch ON) | success |
 | 40581146563 | `7e0660a` (+ R3-5 tests, R3-2 matrix) | running |
 | 40581146586 | `7e0660a`, `opus-r3-switches` | running |
+| 40583093802 / 40583093751 | `1f354cc` (+ R3-6 SmpHelpersPastDepth), opus-ci / opus-r3-switches | running |
+| 40584552130 / 40584552107 | `064af73` (+ R3-4 tunables and SPSA tool; final engine head), opus-ci / opus-r3-switches | running |
 Since the failure every push is preceded by a full local CMake build of all targets and the full CTest list (only
 the 4 known `forge_tests` lines may fail; `check_known_failures.py` PASS), and every run is followed to green.
 `opus-r3-switches` (new in R3) runs the same release/ASan/TSan evidence with every build switch ON (O2, NOZERO,
@@ -90,6 +92,27 @@ every later run of the branch is green.
   attributable here. A quiet-runner repeat of the switch rows is running (`opus-r3-quietnps`).
 - Tool finding: `bench` always searches with its own one-thread Searcher, so Threads options never reach bench.
 
+## R3-4 SPSA tool (agent; `opus_r3/R3-4/REPORT.md`)
+- **20 constants advertised as UCI spin options in every build**, default = the AL1 s198 value: LMR 6
+  (LmrQuietBase, LmrQuietDivisor, LmrNoisyBase, LmrNoisyDivisor, LmrHistoryDivisor, LmrCutoffThreshold), null move 5
+  (NullMoveBase, NullMoveDepthDivisor, NullMoveEvalDivisor, and the former literals 24 / 180 of the null-move
+  static-eval margin as NullMoveMarginDepth / NullMoveMarginBase), RFP 3, futility 3, SEE 2, AspirationDelta. The
+  other tunables stay unlisted (setoption accepts them; FORGE_EXPOSE_TUNABLES lists all 64).
+- Defaults keep the lock: uci_check --full ALL OK on the branch and on the stack; on the pre-merged stack all 20 set
+  explicitly to their defaults give the lock pins, and non-default values change the tree (e.g. NullMoveMarginBase
+  150: d11 339997; with CorrMargins the default margin still gives CorrMargins' pin 343365;
+  `F:\opus_scratch\r3\logs\premerge_spsa_*`). Codegen: the default `Worker::search` keeps its address and size; 12
+  normalised lines differ (the two immediates became loads).
+- Tool `tools/spsa/opus_spsa.py` (+ `_core`, `_fastchess`, `_uci`): Spall gains, fishtest-style update, integer
+  rounding, clamping, fastchess mini-matches with W/L/D and pentanomial cross-checks, resumable state + CSV per
+  iteration, Idle priority in a Windows job object. 30 unit tests in CTest (`opus_spsa_tests`,
+  `opus_spsa_engine_options`), 16/16 planted bugs caught. Dry run at 0.5+0.005, concurrency 2, 3 params: stopped
+  after 2 iterations and resumed at iteration 2/3. No real tuning session (by the spec).
+- Findings: QsSeeMargin cannot be tuned in small steps (SEE balances are multiples of 100: margins 0-99 search the
+  same tree), so LmrCutoffThreshold took its slot; fastchess `-strict` ends a whole run at the first time forfeit,
+  so the tool runs without it and verifies every tuned option is applied; CaptureFutilityMultiplier is dead (0 node
+  change). README estimate for a real session: 40,000 games at 8+0.08, about 32 h on 8 slots (pilot 4,000 games).
+
 ## R3-5 regression test suite (agent; `opus_r3/R3-5/REPORT.md`)
 - Six new CTest entries: `forge_perft_cpw`, `forge_perft_edge` (20 positions at depth 5-7 with published counts,
   cross-checked with python-chess: 0 mismatches), `forge_draw_rules_tests` (repetition / threefold incl. GitHub
@@ -102,6 +125,27 @@ every later run of the branch is green.
   names are case-sensitive in the engine (the protocol says they are not; GUIs send the advertised spelling).
 - Merged into the stack (`2afd0365`); local CMake + full CTest on `7e0660a`: default 51 tests, all-switch 55 tests,
   only the known lines fail (plus `forge_prof_tests` at Idle priority, see below).
+
+## R3-6 Lazy SMP scaling (agent; `opus_r3/R3-6/REPORT.md`) — PARTIAL
+- 30 positions (10 opening, 12 middlegame, 8 endgame) at fixed depth 20-32 (Threads=1 2.2-7.6 s), Threads 1/2/3,
+  Hash 64, fresh process per run at Idle, configs off / on (SmpExactNodes + SmpBestThread + LocklessTT) / on2 (on +
+  CorrHistPlus 7, CorrMargins, CorrExt, CuckooRep, HistRework 2, MaterialKeyTable) / offP / onP (+ the fix), on the
+  final engine head `330237f`. 464 runs: one full repetition plus 74 runs of a second, not the 3 asked for
+  (deadline; about 8 s per run on the loaded PC). All wall numbers advisory (the engine got 0.8 / 1.4 / 2.1 CPUs).
+- Stack OFF: suite time-to-depth speedup 0.95x (T2) and 1.14x (T3), node inflation 1.71x / 2.03x, NPS scaling
+  1.86x / 2.43x. Helpers duplicate the main thread (same depth sequence in lockstep); at T2 the main thread still
+  needs 0.80x of its single-thread nodes. Stack ON is not significantly different (wall on/off 0.84 [0.67..1.04]
+  at T2, 0.97 [0.80..1.15] at T3). on2 scales better at fixed depth (1.47x / 1.94x) but its T1 search is 1.68x
+  slower.
+- **Bug found:** in a `go depth N` search every helper returned after completing iteration N and its core idled
+  until the main thread finished N (trace build: 6.6% / 9.2% of helper time idle; 53% / 43% of helpers returned by
+  themselves). **Fix:** UCI `SmpHelpersPastDepth` (default off; only Threads > 1 with `go depth`): helpers keep
+  deepening until stopped and still report their depth-N result. Idle time drops to 0%, NPS +6.5% / +10.6%; a
+  time-to-depth gain is not measurable on this PC (offP/off 0.99 [0.80..1.21] at T2). Option off: lock pins; on:
+  bench pins, hot code instruction-identical. CTest checks + planted bugs (M1 5/5, M2 5/5, M3 4/5); CI green.
+- Checked without finding a bug: stop/join latency (median 0.1-1.2 ms), reported nodes (= per-worker sum), T3 vs T2,
+  TT pressure, locked vs lockless TT on Windows. Proposed follow-up: depth diversification for helpers (needs an
+  SMP gate). Not done: Threads > 3 (PC rule), larger Hash, the remaining 2 repetitions.
 
 ## Notes for the owner
 - Load-sensitive tests on this PC (pass on the CI runners): `forge_smp_tests` (SmpExactNodes overshoot bound; port-b
@@ -116,6 +160,8 @@ every later run of the branch is green.
   the PC has an RX 7900 XT, but the GPU runs production NNUE training, so I did not run anything on it. The check is
   5 in-memory optimizer steps; its CPU proxy (PASS) is in `forge_sol_S09_holdout_validate_v2.py` on `opus-sol-S09fix`
   (`opus_round1/sol_S09fix/`). Run it on the GPU when the GPU is free.
+- Rule slip by the R3-4 agent: one stray 3.6 KB test-output copy on C:
+  (`C:\Users\Administrator\AppData\Local\Temp\r35.out`, from a `cp` to `/tmp`); left in place (no deletions).
 - Four Python bytecode files entered the stack with the S08fix merge commit `9588a10` (CTest runs the tools with the
   system Python, which writes `__pycache__` into the tree): `tools/__pycache__/uci_regression.cpython-314.pyc`,
   `tools/match/__pycache__/{pgn_stats,run_match,windows_validate}.cpython-314.pyc`. Untracking them was not permitted

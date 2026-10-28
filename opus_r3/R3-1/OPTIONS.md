@@ -28,6 +28,16 @@ Node-exact features change speed only (ON pins = lock pins). Gate entries: `opus
 | NetScale | spin 50-150, default 100 | S41 | scales the compiled-in network's evaluation | 90: 314443/981369/2815907; 110: 268059/999732/3035562 (= branch); 99: 308948 at d11 |
 | HistRework | spin 0-3 | A1 | threat-keyed history twin + joint correction | 1: 373261/1043893/3399770; 2: 320427/881902/3041041; 3: 336192/869621/3052885 (= branch) |
 | IntendedThreefold | check, false | S-IT | FIDE 9.2.1 claim as a draw floor (GitHub issue #7) | bench unchanged (no claimable history in bench) |
+| SmpHelpersPastDepth | check, false | R3-6 | with Threads > 1 and `go depth N`: helpers keep deepening past N until the main thread stops them (their result stays at N) | SMP only; bench unchanged |
+
+### Search constants for SPSA (R3-4; UCI spins in every build, default = AL1 s198 value, so unset = lock)
+default / range: LmrQuietBase 85 / 0-300, LmrQuietDivisor 220 / 100-500, LmrNoisyBase 10 / 0-300, LmrNoisyDivisor
+340 / 100-800, LmrHistoryDivisor 6000 / 1000-30000, LmrCutoffThreshold 3 / 0-20, NullMoveBase 3 / 1-6,
+NullMoveDepthDivisor 3 / 1-10, NullMoveEvalDivisor 200 / 50-1000, NullMoveMarginDepth 24 / 0-100,
+NullMoveMarginBase 180 / 0-500, RfpMargin 72 / 10-300, RfpImproving 40 / 0-200, RfpDepth 8 / 0-15, FutilityBase
+100 / 0-500, FutilityMultiplier 110 / 0-500, QsFutilityMargin 160 / 0-1000, SeeQuietMultiplier 24 / 0-200,
+SeeNoisyMultiplier 150 / 0-1000, AspirationDelta 18 / 4-200. All 20 set explicitly to their defaults: lock pins;
+the tuner and the reasons for the choice: `tools/spsa/README.md`, `opus_r3/R3-4/REPORT.md`.
 
 Combinations of CorrMargins / CorrExt / CuckooRep run combined search instances (8 in all); e.g. all three:
 d11 353437, d13 944233. A v2 net bypasses NetScale, NnueLazyAcc and NnueInt16 (they act on the compiled-in net).
