@@ -29,7 +29,7 @@ throughout; my work at nice 19). No Elo claims: no gate was run.
 | 40578094685 | `287aa15`, new workflow `opus-r3-switches` (every build switch ON) | success |
 | 40581146563 | `7e0660a` (+ R3-5 tests, R3-2 matrix) | success |
 | 40581146586 | `7e0660a`, `opus-r3-switches` | success |
-| 40583093802 / 40583093751 | `1f354cc` (+ R3-6 SmpHelpersPastDepth), opus-ci / opus-r3-switches | running |
+| 40583093802 / 40583093751 | `1f354cc` (+ R3-6 SmpHelpersPastDepth), opus-ci / opus-r3-switches | success / success |
 | 40584552130 / 40584552107 | `064af73` (+ R3-4 tunables and SPSA tool; final engine head), opus-ci / opus-r3-switches | running |
 Since the failure every push is preceded by a full local CMake build of all targets and the full CTest list (only
 the 4 known `forge_tests` lines may fail; `check_known_failures.py` PASS), and every run is followed to green.
@@ -162,10 +162,14 @@ every later run of the branch is green.
   (`opus_round1/sol_S09fix/`). Run it on the GPU when the GPU is free.
 - Rule slip by the R3-4 agent: one stray 3.6 KB test-output copy on C:
   (`C:\Users\Administrator\AppData\Local\Temp\r35.out`, from a `cp` to `/tmp`); left in place (no deletions).
-- Four Python bytecode files entered the stack with the S08fix merge commit `9588a10` (CTest runs the tools with the
-  system Python, which writes `__pycache__` into the tree): `tools/__pycache__/uci_regression.cpython-314.pyc`,
-  `tools/match/__pycache__/{pgn_stats,run_match,windows_validate}.cpython-314.pyc`. Untracking them was not permitted
-  here (no deletions); a `.gitignore` now keeps new ones out. Please `git rm --cached` them when convenient.
+- Eight Python bytecode files are tracked in the stack (CTest runs the tools with the system Python, which writes
+  `__pycache__` into the tree): four entered with the S08fix merge commit `9588a10`
+  (`tools/__pycache__/uci_regression.cpython-314.pyc`, `tools/match/__pycache__/{pgn_stats,run_match,
+  windows_validate}.cpython-314.pyc`) and four came with the merged feature branches (`opus_round1/O1/__pycache__/
+  ucilib`, `opus_round1/O2/__pycache__/mutation_check`, `opus_round1/sol_S12/__pycache__/jobA_cause`,
+  `opus_round1/sol_S12/followup_nullalias/__pycache__/mutation_check_alias`, all `.cpython-314.pyc`). Local CTest
+  runs rewrite them, so every commit adds files by explicit path. Untracking them was not permitted here (no
+  deletions); a `.gitignore` keeps new ones out. Please `git rm --cached` them when convenient.
 
 ## Left
 - R3-1: the 500-game self-play evidence on `330237f` (28 of 36 configurations still running, ETA about 00:20);
