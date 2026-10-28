@@ -548,3 +548,13 @@ endif()
 add_executable(forge_smp_proven_score_tests tests/smp_proven_score_tests.cpp)
 target_link_libraries(forge_smp_proven_score_tests PRIVATE forge_core Threads::Threads)
 add_test(NAME forge_smp_proven_score_tests COMMAND forge_smp_proven_score_tests)
+
+# A3 standalone bundle validators; tests use tiny local protocol fixtures.
+if(Python3_Interpreter_FOUND)
+    add_test(NAME forge_bundle_options_tests
+        COMMAND ${Python3_EXECUTABLE} -B ${CMAKE_CURRENT_SOURCE_DIR}/tests/test_bundle_opts.py)
+    if(UNIX)
+        add_test(NAME forge_bundle_off_identity_tests
+            COMMAND ${Python3_EXECUTABLE} -B ${CMAKE_CURRENT_SOURCE_DIR}/tests/test_bundle_off_identity.py)
+    endif()
+endif()

@@ -25,3 +25,5 @@ Status: UNPROVEN. No Elo/strength claim. Only games (1000-game SPRT run by QA, n
 - 2026-10-24 10:05 Vienna (QA): git log --follow for tools/nnue/train_nnue.py and tools/nnue/train_resid_v2.py in the box clone of couns0538-sketch/dwqww (/workspace/forge-sol-teacher/repo) shows no history, and neither file is tracked. So the repo MIT LICENSE does not cover them for now, and their licence is unknown. This matters only if the trainer is ever published; the weights are unaffected. A remote fetch was not re-run this time.
 
 - Astra A2 (2026-10-29): owner-requested main-thread proven-score preservation; derived solely from Forge `better_thread_result` and `syzygy::TbWinInMaxPly` contracts. No external engine code or constants.
+
+- Astra A3 (2026-10-29): owner-requested bundle option and OFF-node checks, using the public UCI protocol and Forge bench output only; independent Python/Bash implementation.

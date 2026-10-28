@@ -1,0 +1,21 @@
+A3 final independent source review
+Reviewed /tmp/forge-astra-20261029/tests/bundle_off_identity.sh and tests/test_bundle_off_identity.py after the three review fixes. Read-only source/log inspection; no tests, engine runs, benchmarks, or Git mutations performed by this reviewer.
+
+Verdict: all three prior findings are resolved in the inspected source. No remaining blocking finding for the specified Forge OFF benchmark comparison.
+
+Reviewed source SHA-256:
+- bundle_off_identity.sh: d7c9b62eeb5ab790f8da5fd8a25738ad0e5959dcdad86ebdd479b04a8b38182e
+- test_bundle_off_identity.py: 8301ceaad4ca292ffe6bfd2bf944c62eb5cc0f64167c29094a36e1befcce315d
+
+1. Raw evidence: subprocess capture now returns bytes; stdin/stdout/stderr are written with write_bytes. SHA-256 values are recorded for stdout/stderr. A separate replacement-decoded copy is used for parsing, so invalid UTF-8 and CRLF no longer destroy or alter saved output. Timeout partial output also follows the bytes path.
+2. Readiness: both uciok and readyok must be present as complete lines before a run can pass.
+3. Duplicate/malformed benchmark results: the parser counts every native bench-result prefix in addition to fully parsed records, and requires exactly one of each at the requested depth. It also rejects nonpositive node counts.
+
+Other requirements remain intact: defaults cover depths 11,13,16,20,22; every base/candidate/depth run starts a fresh process; explicit false/0 settings apply only to the candidate; executable hashes are recorded and rechecked; output must be a newly created directory; timeout, nonzero exit, missing result, duplicate result, option rejection, and node mismatch fail the run while preserving available evidence.
+
+Saved evidence inspected (not rerun):
+- /tmp/astra_A3_off_20261029/review-red.log: 10 tests, exactly three failures for missing readyok, malformed extra result, and invalid-byte output.
+- /tmp/astra_A3_off_20261029/review-green.log: 10 tests, OK.
+- The added test fixtures exercise the actual shell entry point and directly reproduce each reviewed defect.
+
+Scope: this review validates wrapper logic and the saved fixture evidence. Final native all-five-depth comparison and exact executable provenance remain the root agent's separate verification. A node-identity PASS is not a speed or playing-strength claim.
