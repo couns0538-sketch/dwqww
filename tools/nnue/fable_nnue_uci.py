@@ -25,6 +25,8 @@ def main():
     ap.add_argument("--setoption", nargs="*", default=[])
     ap.add_argument("--expect-exit", type=int)
     ap.add_argument("--isready", action="store_true", help="send isready after the options (fail-loud check)")
+    ap.add_argument("--fen", help="position for --go-depth (default: startpos)")
+    ap.add_argument("--go-depth", type=int, help="search the position to this depth and wait for bestmove")
     ap.add_argument("--timeout", type=float, default=3600.0)
     args = ap.parse_args()
 
@@ -44,27 +46,48 @@ def main():
         cmds.append("isready")
     for depth in args.bench:
         cmds.append(f"bench {depth}")
+    if args.go_depth is not None:
+        cmds.append("position fen " + args.fen if args.fen else "position startpos")
+        cmds.append(f"go depth {args.go_depth}")
     cmds.append("quit")
 
     proc = subprocess.Popen([args.engine], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, bufsize=1)
+    # A `go` must not be followed by `quit` before the search prints bestmove: send the commands up to `go`,
+    # wait for bestmove, then quit.
+    head = cmds[:-1]
+    if args.go_depth is not None:
+        head = cmds[:-1]
     try:
-        proc.stdin.write("\n".join(cmds) + "\n")
+        proc.stdin.write("\n".join(head) + "\n")
         proc.stdin.flush()
+        if args.go_depth is None:
+            proc.stdin.write("quit\n")
+            proc.stdin.flush()
     except (BrokenPipeError, OSError):
         pass
     start = time.time()
     lines = []
+    bestmove = None
     while True:
         line = proc.stdout.readline()
         if not line:
             break
         line = line.rstrip("\r\n")
         lines.append(line)
-        print("< " + line, flush=True)
+        if not line.startswith("info depth"):
+            print("< " + line, flush=True)
         if "bench depth" in line:
             parts = line.split()
             d = {parts[i]: parts[i + 1] for i in range(len(parts) - 1) if parts[i] in ("depth", "nodes", "time", "nps")}
             print(f"BENCH depth {d.get('depth')} nodes {d.get('nodes')} time {d.get('time')} nps {d.get('nps')}", flush=True)
+        if line.startswith("bestmove"):
+            bestmove = line.split()[1] if len(line.split()) > 1 else ""
+            print(f"BESTMOVE {bestmove}", flush=True)
+            try:
+                proc.stdin.write("quit\n")
+                proc.stdin.flush()
+            except (BrokenPipeError, OSError):
+                pass
         if time.time() - start > args.timeout:
             print("TIMEOUT", flush=True)
             break
@@ -72,6 +95,9 @@ def main():
     print(f"EXIT {code}", flush=True)
     if args.expect_exit is not None and code != args.expect_exit:
         print(f"FAIL: expected exit {args.expect_exit}, got {code}")
+        sys.exit(1)
+    if args.go_depth is not None and not bestmove:
+        print("FAIL: no bestmove")
         sys.exit(1)
     sys.exit(0)
 

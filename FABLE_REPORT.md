@@ -211,12 +211,40 @@ net = the M3 60-step residual H512/8m/8 net (`e37caef5…`).
 | engine int eval == trainer quantised eval | **PASS 100000/100000, 0 mismatches** (integer emulation of the exported file) | same |
 | trainer float forward vs engine int within 2 cp | **PASS**: max 1.0192 cp, mean 0.4988 cp, 0 positions above 2 cp | same |
 
-### H1024 NPS, cross-shard training
+### NPS ON vs OFF with the AVX-512 kernels, H512 and H1024 (DONE)
 
-(filled in as the runs finish; the first-net run with the cross-shard streaming loader is in progress:
-`tools/nnue/fable_nnue_train.py train --pos-glob ... --exclude _013,_014 --chunks 8 --chunk-rows 250000
---refresh-every 25 --lr-schedule cosine --threads 2 --max-minutes 80`, validation every 10 minutes on 200k holdout
-rows; the 40-step smoke of the loader gave 20k positions/s on one thread with 32 shards / 262M rows visible)
+Same method as M4 (`fable_nnue_nps.py`, ABBA, Threads = 1, Hash = 16, fresh processes, CPU time), engine
+`forge_fable_m5.exe` (box recipe, AVX-512 kernels), 3 rounds. The H1024 net is the M3 H512 net zero-padded to
+1024 hidden units (`fable_nnue_v3.py widen`, function-preserving: identical evaluations on the 10k positions, so
+the ON tree is the same 3,298,439 / 15,140,173-node tree as for H512 and the ratio isolates the width cost).
+
+| net (residual, 8 mirrored king buckets, 8 heads) | depth | OFF CPU NPS | ON CPU NPS | ON/OFF NPS ratio (95% CI) | ON time per node / OFF | evidence |
+|---|---|---|---|---|---|---|
+| H512 (M3 net), AVX2 exe (M4 measurement) | 16 / 20 | 1,760,063 / 1,852,640 | 1,367,578 / 1,421,609 | 0.777 (+-0.010) / 0.767 (+-0.013) | 1.29 / 1.30 | `fable/logs/nps_m4_trained.log` |
+| **H512 (M3 net), AVX-512 exe** | 16 / 20 | 1,758,408 / 1,810,543 | 1,458,075 / 1,504,622 | **0.830** (+-0.034) / **0.831** (+-0.010) | 1.21 / 1.20 | `fable/logs/nps_m5_h512_trained.log` |
+| **H1024 (widened M3 net), AVX-512 exe** | 16 / 20 | 1,796,636 / 1,863,537 | 1,340,498 / 1,374,724 | **0.746** (+-0.004) / **0.738** (+-0.002) | 1.34 / 1.36 | `fable/logs/nps_m5_h1024_widened.log` |
+
+Success test 4 (ON >= 60% of AL1 NPS at Threads = 1): **met** for both widths (H512 83%, H1024 74%); the 90% goal
+is **not** met. Decision per the brief ("start at 1024, drop to 512 if NPS is too low"): the first net is trained at
+**H512** (83% vs 74%, and twice the training throughput on this CPU); H1024 stays fully supported (loader, kernels,
+tests at H1024) for a later run when the speed work below lands. All numbers are from the loaded PC (gates,
+self-play, NNUE training running) and are advisory, not a speed claim.
+
+### TSan hook (CI)
+
+`opus_round1/fable/tsan_extra.sh` (picked up by `run_ci.sh tsan`): writes a random H64 / 8 mirrored king buckets /
+8 heads net in CI, then searches with `NNUEArch true` at Threads 4 (two positions, depths 13 and 9), Threads 2
+(depth 12) and runs `bench 10` at Threads 1; the job fails on any TSan report. Local dry run with the x86-64-v3
+engine: all four runs reach `bestmove` / the bench line with exit 0. Results of the CI run are recorded below once
+it finishes.
+
+### Cross-shard first-net run
+
+(in progress: `tools/nnue/fable_nnue_train.py train --pos-glob ... --exclude _013,_014 --chunks 8 --chunk-rows 250000
+--refresh-every 25 --lr-schedule cosine --lr 1e-3 --lr-final 5e-5 --steps 40000 --max-minutes 80 --threads 2
+--batch 4096`, residual H512/8m/8, validation every 10 minutes on 200k holdout rows, export every 4000 steps;
+about 26k positions/s on two threads. The 40-step smoke of the loader saw all 32 training shards (261.9M rows,
+holdout 013/014 excluded).)
 
 ## What is left / exact next steps (for the next model)
 
