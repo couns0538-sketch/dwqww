@@ -131,7 +131,7 @@ add(slug='harddeadline10', feature='HardDeadline=10 (watchdog bestmove deadline,
            'R3-1 fix 5792074a: after a watchdog bestmove the stopped search could still print a late "info depth" line '
            '(33 such lines in about 140 all-ON self-play games); exactly one bestmove per go always held. The fix closes '
            'search output under uci_output_mutex once the watchdog answers; with HardDeadline 0 nothing changes (uci_check --full ALL OK)'],
-    notes=['**the candidate exe must be built from a head that contains 5792074a** (check `git merge-base --is-ancestor 5792074a <final head>` before install); the 2047348a probe used for the pins predates the fix, which does not touch fixed-depth bench',
+    notes=['**the candidate exe must be built from a head that contains 5792074a**: the final forge_r3_stack.exe is built from 330237f3, which contains it (`git merge-base --is-ancestor 5792074a 330237f3` true); the 2047348a probe used for the 5-depth pins predates the fix, which does not touch fixed-depth bench (the final-exe spot check matches)',
            'fixed-depth bench is unaffected, so cand_on = cand_off (accepted by the runner, see R3-12)',
            'watch_time stays on: a late move would pause this gate, which is exactly what the option should prevent'])
 add(slug='corrext', feature='CorrExt=1 (correction-history extensions, O8)', job='opus_round1/O8/REPORT.md',

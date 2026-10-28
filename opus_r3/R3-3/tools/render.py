@@ -115,6 +115,38 @@ for n, e in enumerate(ent.E, 1):
     rows.append(e)
 
 
+FINAL = {}
+_fd = os.path.join(W, 'final')
+_fmap = {'stack': 'final_stack_pins.json', 'base': 'final_base_pins.json', 'nnueo2': 'final_o2_pins.json',
+         'nozero': 'final_nozero_pins.json', 'speedstack': 'final_speedstack_pins.json',
+         'ttprefetch': 'final_ttprefetch_pins.json', 'lazyacc': 'final_lazyacc_pins.json', 'int16': 'final_int16_pins.json'}
+for _k, _f in _fmap.items():
+    _p = os.path.join(_fd, _f)
+    if os.path.exists(_p):
+        FINAL[_k] = {lab: r['pins'] for lab, r in json.load(open(_p))['runs'].items()}
+spot_bad = []
+spot_n = 0
+for e in rows:
+    e['spot'] = None
+    if e['exe'] not in FINAL or e['status'] == 'blocked-net':
+        continue
+    runs = FINAL[e['exe']]
+    off_ok = runs.get('OFF') == AL1[:2]
+    on_ok = None
+    if e['options'] and e['on']:
+        lab = e['pins_label'] if e['exe'] == 'stack' else 'ON'
+        if lab in runs:
+            on_ok = runs[lab] == e['on'][:2]
+    ok = off_ok and on_ok is not False
+    spot_n += 1
+    if not ok:
+        spot_bad.append(e['id'])
+    e['spot'] = 'cand OFF d11/d13 %s %s%s' % ('/'.join(map(str, runs.get('OFF', []))), 'MATCH' if off_ok else 'DIFF',
+                                             '' if on_ok is None else '; cand ON d11/d13 %s %s' % (
+                                                 '/'.join(map(str, runs.get(e['pins_label'] if e['exe'] == 'stack' else 'ON', []))),
+                                                 'MATCH' if on_ok else 'DIFF'))
+
+
 def manifest_entry(e):
     m = {
         'gate': e['id'], 'tag': e['tag'], 'cand': e['cand'], 'exe': exe_name(e['exe']),
@@ -202,6 +234,11 @@ P('- **Stack:** the entries were checked on `opus-r3-stack` @ `%s` (probe build 
   'head) and, for FORGE_NNUE_INT16, on the main session\'s local head `ba03edf9` (contains the S-A2/S-A4 merges and the '
   'HardDeadline fix 5792074a). Final head and exe sha256: section 6%s.'
   % (PROBE_HEAD, '' if sha_ready else ' (**pending: filled when the main session reports the final exes**)'))
+if FINAL:
+    P('- **Final exes:** `F:\\opus_scratch\\r3\\exe\\` built by the main session from `%s` (sha256 in section 6, recomputed '
+      'from the files). Spot check on these exes, runner Bench1 protocol at d11/d13 (the runner re-benches all five depths '
+      'before each gate): %d of %d entries %s.' % (head, spot_n - len(spot_bad), spot_n,
+                                                   'match' if not spot_bad else 'match; DIFF: ' + ', '.join(spot_bad)))
 P('- **Shape of every entry:** one change against the all-OFF engine. Candidate = `forge_r3_stack.exe` + one runtime '
   'option, or `forge_r3_<switch>.exe` (+ that switch\'s own option where it has one). Opponent = `forge_r3_base.exe` '
   'without options, named `%s`. `forge_r3_stack.exe` is a byte copy of `forge_r3_base.exe` (main session\'s EXES.txt), '
@@ -309,7 +346,8 @@ for e in rows:
     P('| status | %s; tier %s, %s |' % (STATUS_TXT[e['status']], e['tier'], TIER_TXT[e['tier']]))
     shs = exe_sha(e['exe'])
     P('| candidate | `%s` = `%s\\%s` → install as `%s\\%s`; sha256 `%s`; build: %s |' % (
-        e['cand'], EXE_SRC, exe_name(e['exe']), BIN, exe_name(e['exe']), shs or 'FILL (main session)', ent.EXES[e['exe']][1]))
+        e['cand'], EXE_SRC, exe_name(e['exe']), BIN, exe_name(e['exe']),
+        shs or ('none yet: no H512 net exists' if e['exe'] == 'h512' else 'FILL (main session)'), ent.EXES[e['exe']][1]))
     P('| opponent | `%s` = `%s` (no options); sha256 `%s` |' % (BASE_NAME, exe_name('base'), exe_sha('base') or 'FILL (main session)'))
     P('| UCI option(s), candidate only | %s |' % (' '.join('`%s`' % o for o in e['options']) if e['options'] else 'none (the build switch is the change)'))
     P('| SPRT / cap | `elo0=0 elo1=5 alpha=0.05 beta=0.05 model=normalized`; 1500 games max (`-rounds 750 -games 2 -repeat`); at the cap: "Cap with no decision", nothing claimed |')
@@ -320,6 +358,8 @@ for e in rows:
     P('| prebench cand_off | %s (%s) |' % ('FILL' if e['slug'] == 'h512' else pins_str(AL1), e['off_src']))
     if e['options']:
         P('| prebench cand_on | %s (%s) |' % (pins_str(e['on']) if e['on'] else 'FILL', e['on_src']))
+    if e.get('spot'):
+        P('| final exe spot check (%s) | %s |' % (head or '?', e['spot']))
     P('| confirm | %s |' % ('H1 → confirm right after at 60+0.6 (`longer_tc_confirm_if_h1`)' if e['longer_tc'] else 'H1 → confirm right after at 10+0.1'))
     P('| expectation (not a claim) | gain: %s; risk: %s; at [0,5]/1500 the expected outcome is "cap with no decision" unless the effect is large (section 2) |' % (e['gain'], e['risk']))
     P('')
@@ -369,10 +409,14 @@ P('| key | file in %s | build | sha256 | entries |' % EXE_SRC)
 P('|---|---|---|---|---|')
 for k, (nm, how) in ent.EXES.items():
     used = [e['id'] for e in rows if e['exe'] == k] + (['all (opponent)'] if k == 'base' else [])
-    P('| %s | `%s` | %s | `%s` | %s |' % (k, exe_map['exes'][k]['name'], how, exe_sha(k) or 'FILL', ', '.join(used) or '-'))
+    P('| %s | `%s` | %s | %s | %s |' % (k, exe_map['exes'][k]['name'], how,
+                                        ('`%s`' % exe_sha(k)) if exe_sha(k) else ('none (no H512 net)' if k == 'h512' else 'FILL'),
+                                        ', '.join(used) or '-'))
 P('')
-P('Before install, per exe: identity (bench d11-d22, perft5, kiwipete) for the default and node-exact switch builds, '
-  'and the ON pins of each entry; the runner repeats the bench before every gate and aborts on any mismatch.')
+P('The main session checked every exe (PC recipe, FMA 0, `uci_check --full` ALL OK: EXES.txt, copy in '
+  '`opus_r3/R3-1/logs/gate_exes_330237f3.txt` on the stack); this job recomputed the sha256 from the files and '
+  'spot-checked every entry\'s pins on them (d11/d13, all match). The runner repeats the 5-depth bench before every gate '
+  'and aborts on any mismatch. Install = copy the exe to `%s\\` (owner).' % BIN)
 P('')
 P('## 7. Owner decisions (noted, not applied)')
 P('')
@@ -394,6 +438,9 @@ P('5. **Srand bookkeeping:** `common_autonomy.ps1` Used-Srands reads RUN_INFO on
 P('6. **Opponent:** every entry uses `forge_r3_base.exe` (OFF stack build), not the AL1 lock exe. The stack\'s default '
   'build is node-identical to AL1 but carries the OFF-path costs of the merged runtime options (e.g. A1 about 1% on a '
   'quiet runner), which both sides share here; a gate against the AL1 exe would include them.')
+P('7. **Net early stop under [0,5]:** the crew rule (≥ 750 games, Elo < −8 and LLR < −1.5) was set for [0,10]. For the '
+  'same games, the [0,5] LLR of a losing candidate is about half the [0,10] value, so the rule fires less often on '
+  'R3-24..29; the owner may keep it or scale the LLR threshold.')
 P('')
 P('## 8. Provenance')
 P('')
