@@ -20,9 +20,9 @@
 
 namespace forge {
 struct SearcherTestProbe {
-    static ButterflyHistory& main(Worker& w) { return *w.main_history_; }
+    static ButterflyHistory& main(Worker& w) { return *w.histories_.main_history; }
     static LesserThreatHistory& threat(Worker& w) { return *w.threat_history_; }
-    static ContinuationHistory& cont(Worker& w) { return *w.continuation_history_; }
+    static ContinuationHistory& cont(Worker& w) { return *w.histories_.continuation_history; }
     static CorrectionHistory& pawns(Worker& w) { return *w.correction_history_; }
     static CorrectionHistory& material(Worker& w) { return *w.material_correction_; }
     static CorrectionHistory& joint(Worker& w) { return *w.joint_correction_; }
