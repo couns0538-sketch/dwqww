@@ -23,9 +23,12 @@ throughout; my work at nice 19). No Elo claims: no gate was run.
 | 40566615160 | `7b431d4` (+ S12, the fix, a CMake endif fix) | success (20m13s) |
 | 40568162589 | `2047348` (+ S08fix, evidence) | success (19m29s) |
 | 40568260400 | `opus-r3-port-b` `a06b00d` (S32, S37, S04fix on `2432670`) | success |
-| 40570018288 | `opus-r3-port-c` (S-A2 behind FORGE_NNUE_INT16, S-A4 on `2432670`) | release + ASan success, TSan running |
+| 40570018288 | `opus-r3-port-c` (S-A2 behind FORGE_NNUE_INT16, S-A4 on `2432670`) | success |
+| 40573865157 | `330237f` (port-b + port-c merged, HardDeadline fix) | running |
 Since the failure every push is preceded by a full local CMake build of all targets and the full CTest list (only
 the 4 known `forge_tests` lines may fail; `check_known_failures.py` PASS), and every run is followed to green.
+The failed run cannot be re-run usefully (it would rebuild the same broken commit) and runs cannot be deleted here;
+every later run of the branch is green.
 
 ## R3-1 so far (logs: `opus_r3/R3-1/logs/`, scratch `F:\opus_scratch\r3\logs`)
 - Base: `d4f4312` fast-forwarded to `opus-O3` (`c7eb247`: the no-op module split every O/C branch is built on,
@@ -40,7 +43,15 @@ the 4 known `forge_tests` lines may fail; `check_known_failures.py` PASS), and e
   CorrMargins d11 343365 d13 858019 d16 2522546 d20 12894582; CorrExt 312961 / 838790 / 2891507 / 12313394;
   CuckooRep 324211 / 790682 / 3148570; HistRework=1 373261 / 1043893 / 3399770, =2 320427 / 881902 / 3041041;
   node-exact features stay at the lock pins when ON (MaterialKeyTable, FORGE_SPEEDSTACK to d22, TtChildPrefetch,
-  NnueLazyAcc to d20, FORGE_PROF to d22, FORGE_NNUE_O2, FORGE_NOZERO_MOVE_BUFFERS).
+  NnueLazyAcc to d20, FORGE_PROF to d22, FORGE_NNUE_O2, FORGE_NOZERO_MOVE_BUFFERS); NNUE smoke nets of C5, O6, O7, O4
+  reproduce their branches' ON pins (5/5); options without recorded pins equal their own branch exe (CorrHistPlus
+  1/2/4/7, NetScale 90/110, HistRework 3, Syzygy, LocklessTT: 9/9); NnueInt16 (FORGE_NNUE_INT16) reproduces S-A2's
+  pins. Every build switch at once compiles with 0 warnings, FMA 0, ALL OK.
+- **HardDeadline defect found and fixed** (`5792074`): after a watchdog answer the stopped search could print a late
+  `info depth` line (33 in ~140 all-ON self-play games); now the watchdog closes the search output under the output
+  mutex before its bestmove. The extended `hard_deadline_regression` fails on the old engine and passes on the new
+  one; the self-play repro shows 0 late lines in 1100 rounds (480 watchdog answers) on the final head.
+- Gate executables built from `330237f` in `F:\opus_scratch\r3\exe\` (`EXES.txt`: name, flags, sha256, ALL OK).
 - Semantic merges: (1) one selection / fail-loud rule for the five NNUE v2 options (C4, C5, O4, O6, O7; each
   branch's test phrases kept); (2) one search instance per combination of CorrMargins x CorrExt x CuckooRep (8
   alpha-beta + 2 quiescence instances; a single option runs its branch's code); (3) O2 behind the new build switch
@@ -58,5 +69,5 @@ the 4 known `forge_tests` lines may fail; `check_known_failures.py` PASS), and e
   here (no deletions); a `.gitignore` now keeps new ones out. Please `git rm --cached` them when convenient.
 
 ## Left
-- R3-1: merge port-b / port-c, final identity + CMake/CTest + CI, self-play evidence on the final head.
+- R3-1: CI of `330237f`; the 500-game self-play evidence on `330237f` (36 configurations, running).
 - R3-2 .. R3-6: agents running; results to be merged and summarised here.
