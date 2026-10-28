@@ -8,6 +8,13 @@
 #include <new>
 #include <sstream>
 
+#if defined(__AVX2__)
+#include <immintrin.h>
+#define FORGE_NNUE_V3_AVX2 1
+#else
+#define FORGE_NNUE_V3_AVX2 0
+#endif
+
 namespace forge::nnue::v3 {
 
 bool requested = false;
@@ -16,6 +23,7 @@ namespace {
 
 std::unique_ptr<Net> g_net;
 std::string g_problem;
+std::uint64_t g_generation = 0;
 
 std::uint32_t read_u32(const std::uint8_t* p) {
     return static_cast<std::uint32_t>(p[0]) | (static_cast<std::uint32_t>(p[1]) << 8U) |
@@ -36,6 +44,40 @@ bool fail(std::string* error, const std::string& text) {
     if (error != nullptr) *error = text;
     return false;
 }
+
+std::size_t cache_index(const Net& net, Color perspective, KingKey key) {
+    return (static_cast<std::size_t>(perspective) * static_cast<std::size_t>(net.king_buckets) + key.bucket) * 2 +
+           (key.flip != 0 ? 1 : 0);
+}
+
+inline void add_column_scalar(std::int16_t* acc, const std::int16_t* col, int hidden) {
+    for (int h = 0; h < hidden; ++h) acc[h] = static_cast<std::int16_t>(acc[h] + col[h]);
+}
+
+inline void sub_column_scalar(std::int16_t* acc, const std::int16_t* col, int hidden) {
+    for (int h = 0; h < hidden; ++h) acc[h] = static_cast<std::int16_t>(acc[h] - col[h]);
+}
+
+#if FORGE_NNUE_V3_AVX2
+inline void add_column(std::int16_t* acc, const std::int16_t* col, int hidden) {
+    for (int h = 0; h < hidden; h += 16) {
+        _mm256_store_si256(reinterpret_cast<__m256i*>(acc + h),
+                           _mm256_add_epi16(_mm256_load_si256(reinterpret_cast<const __m256i*>(acc + h)),
+                                            _mm256_load_si256(reinterpret_cast<const __m256i*>(col + h))));
+    }
+}
+
+inline void sub_column(std::int16_t* acc, const std::int16_t* col, int hidden) {
+    for (int h = 0; h < hidden; h += 16) {
+        _mm256_store_si256(reinterpret_cast<__m256i*>(acc + h),
+                           _mm256_sub_epi16(_mm256_load_si256(reinterpret_cast<const __m256i*>(acc + h)),
+                                            _mm256_load_si256(reinterpret_cast<const __m256i*>(col + h))));
+    }
+}
+#else
+inline void add_column(std::int16_t* acc, const std::int16_t* col, int hidden) { add_column_scalar(acc, col, hidden); }
+inline void sub_column(std::int16_t* acc, const std::int16_t* col, int hidden) { sub_column_scalar(acc, col, hidden); }
+#endif
 
 } // namespace
 
@@ -71,6 +113,8 @@ std::size_t file_size_for(int hidden, int king_buckets, int output_buckets) {
            4 * static_cast<std::size_t>(output_buckets) +                                                   // b2
            8;                                                                                               // checksum
 }
+
+const char* kernel_name() { return FORGE_NNUE_V3_AVX2 ? "avx2" : "scalar"; }
 
 bool load(const std::string& path, std::string* error) {
     // No silent fallback: whatever happens below, a failed load leaves nothing loaded.
@@ -165,6 +209,7 @@ bool load(const std::string& path, std::string* error) {
     if (max_b1 + MaxPieces * max_w1 > 32767) {
         return fail(error, path + ": accumulator range: max|b1| + 32 * max|w1| = " + std::to_string(max_b1 + MaxPieces * max_w1) + " > 32767");
     }
+    net->generation = ++g_generation;
     g_net = std::move(net);
     return true;
 }
@@ -179,7 +224,8 @@ std::string describe(const Net& net) {
         << (net.mirror ? " mirrored" : "") << " output_buckets " << net.output_buckets
         << (net.residual ? " residual" : " standalone") << " eval_scale " << net.eval_scale
         << " checksum " << std::hex << net.checksum << std::dec
-        << " max|w1| " << net.max_abs_w1 << " max|b1| " << net.max_abs_b1 << " max|w2| " << net.max_abs_w2;
+        << " max|w1| " << net.max_abs_w1 << " max|b1| " << net.max_abs_b1 << " max|w2| " << net.max_abs_w2
+        << " kernel " << kernel_name();
     return out.str();
 }
 
@@ -214,20 +260,27 @@ int output_bucket(const Net& net, const Board& board) {
     return net.output_map[static_cast<std::size_t>(pieces)];
 }
 
+Pieces pieces_of(const Board& board) {
+    Pieces pieces{};
+    for (int piece = WP; piece <= BK; ++piece) pieces[static_cast<std::size_t>(piece)] = board.pieces(static_cast<Piece>(piece));
+    return pieces;
+}
+
+// ---- scalar reference path ----
+
 void refresh_perspective(const Net& net, const Board& board, Color perspective, Accumulator& accumulator) {
     const int hidden = net.hidden;
     auto& acc = accumulator.values[static_cast<std::size_t>(perspective)];
-    const KingKey key = king_key(net, perspective, board.king_square(perspective));
+    const int king_square = board.king_square(perspective);
+    const KingKey key = king_key(net, perspective, king_square);
     accumulator.keys[static_cast<std::size_t>(perspective)] = key;
+    accumulator.king_sq[static_cast<std::size_t>(perspective)] = static_cast<std::uint8_t>(king_square);
     const std::int16_t* b1 = net.b1.data();
     for (int h = 0; h < hidden; ++h) acc[static_cast<std::size_t>(h)] = b1[h];
     Bitboard occupied = board.occupied();
     while (occupied != 0) {
         const int square = pop_lsb(occupied);
-        const std::int16_t* col = column(net, feature_index(key, perspective, board.piece_at(square), square));
-        for (int h = 0; h < hidden; ++h) {
-            acc[static_cast<std::size_t>(h)] = static_cast<std::int16_t>(acc[static_cast<std::size_t>(h)] + col[h]);
-        }
+        add_column_scalar(acc.data(), column(net, feature_index(key, perspective, board.piece_at(square), square)), hidden);
     }
 }
 
@@ -258,18 +311,131 @@ int finish(const Net& net, std::int64_t sum, int bucket) {
     return static_cast<int>(std::clamp<std::int64_t>(centipawns, -30000, 30000));
 }
 
-int evaluate(const Net& net, const Board& board, const Accumulator& accumulator) {
-    const Color us = board.side_to_move();
-    const int bucket = output_bucket(net, board);
-    const std::int64_t sum = output_sum_scalar(net, accumulator.values[static_cast<std::size_t>(us)].data(),
-                                               accumulator.values[static_cast<std::size_t>(opposite(us))].data(), bucket);
-    return finish(net, sum, bucket);
-}
-
 int evaluate_reference(const Net& net, const Board& board) {
     auto accumulator = std::make_unique<Accumulator>();
     refresh(net, board, *accumulator);
-    return evaluate(net, board, *accumulator);
+    const Color us = board.side_to_move();
+    const int bucket = output_bucket(net, board);
+    return finish(net, output_sum_scalar(net, accumulator->values[static_cast<std::size_t>(us)].data(),
+                                         accumulator->values[static_cast<std::size_t>(opposite(us))].data(), bucket), bucket);
+}
+
+// ---- fast path ----
+
+std::int64_t output_sum(const Net& net, const std::int16_t* ours, const std::int16_t* theirs, int bucket) {
+#if FORGE_NNUE_V3_AVX2
+    const int hidden = net.hidden;
+    const std::int16_t* w2 = net.w2.data() + static_cast<std::size_t>(bucket) * 2 * static_cast<std::size_t>(hidden);
+    const __m256i zero = _mm256_setzero_si256();
+    const __m256i qa = _mm256_set1_epi16(static_cast<short>(QA));
+    // Two int32 accumulators: each lane sums hidden / 8 exact terms of at most 255^2 * 127,
+    // below 2^31 for every hidden size up to 1024 (bounds checked by the loader).
+    __m256i sum0 = zero;
+    __m256i sum1 = zero;
+    for (int h = 0; h < hidden; h += 16) {
+        const __m256i a = _mm256_min_epi16(_mm256_max_epi16(_mm256_load_si256(reinterpret_cast<const __m256i*>(ours + h)), zero), qa);
+        const __m256i b = _mm256_min_epi16(_mm256_max_epi16(_mm256_load_si256(reinterpret_cast<const __m256i*>(theirs + h)), zero), qa);
+        const __m256i wa = _mm256_load_si256(reinterpret_cast<const __m256i*>(w2 + h));
+        const __m256i wb = _mm256_load_si256(reinterpret_cast<const __m256i*>(w2 + hidden + h));
+        sum0 = _mm256_add_epi32(sum0, _mm256_madd_epi16(_mm256_mullo_epi16(a, wa), a));
+        sum1 = _mm256_add_epi32(sum1, _mm256_madd_epi16(_mm256_mullo_epi16(b, wb), b));
+    }
+    alignas(32) std::int32_t lanes[16];
+    _mm256_store_si256(reinterpret_cast<__m256i*>(lanes), sum0);
+    _mm256_store_si256(reinterpret_cast<__m256i*>(lanes + 8), sum1);
+    std::int64_t sum = 0;
+    for (const std::int32_t lane : lanes) sum += lane;
+    return sum;
+#else
+    return output_sum_scalar(net, ours, theirs, bucket);
+#endif
+}
+
+int evaluate(const Net& net, const Board& board, const Accumulator& accumulator) {
+    const Color us = board.side_to_move();
+    const int bucket = output_bucket(net, board);
+    return finish(net, output_sum(net, accumulator.values[static_cast<std::size_t>(us)].data(),
+                                  accumulator.values[static_cast<std::size_t>(opposite(us))].data(), bucket), bucket);
+}
+
+void prepare(const Net& net, WorkerState& state, int stack_size) {
+    if (state.generation == net.generation && state.stack.size() == static_cast<std::size_t>(stack_size)) return;
+    state.stack.assign(static_cast<std::size_t>(stack_size), Accumulator{});
+    state.cache.entries.assign(static_cast<std::size_t>(2 * net.king_buckets * 2), RefreshCache::Entry{});
+    for (RefreshCache::Entry& entry : state.cache.entries) {
+        // An entry starts as the empty board: bias only, no pieces.
+        std::copy_n(net.b1.data(), net.hidden, entry.values.data());
+        entry.pieces.fill(0);
+    }
+    state.cache.generation = net.generation;
+    state.cache.refreshes = 0;
+    state.cache.columns = 0;
+    state.generation = net.generation;
+}
+
+void apply_changes(const Net& net, const std::int16_t* source, std::int16_t* destination, KingKey key, Color perspective,
+                   const DirtyPieces& dirty) {
+    const int hidden = net.hidden;
+    const std::int16_t* columns[4] = {nullptr, nullptr, nullptr, nullptr};
+    bool adds[4] = {false, false, false, false};
+    for (int i = 0; i < dirty.count; ++i) {
+        const PieceChange& change = dirty.changes[static_cast<std::size_t>(i)];
+        columns[i] = column(net, feature_index(key, perspective, change.piece, change.square));
+        adds[i] = change.add;
+    }
+#if FORGE_NNUE_V3_AVX2
+    for (int h = 0; h < hidden; h += 16) {
+        __m256i v = _mm256_load_si256(reinterpret_cast<const __m256i*>(source + h));
+        for (int i = 0; i < dirty.count; ++i) {
+            const __m256i c = _mm256_load_si256(reinterpret_cast<const __m256i*>(columns[i] + h));
+            v = adds[i] ? _mm256_add_epi16(v, c) : _mm256_sub_epi16(v, c);
+        }
+        _mm256_store_si256(reinterpret_cast<__m256i*>(destination + h), v);
+    }
+#else
+    for (int h = 0; h < hidden; ++h) {
+        int v = source[h];
+        for (int i = 0; i < dirty.count; ++i) v += adds[i] ? columns[i][h] : -columns[i][h];
+        destination[h] = static_cast<std::int16_t>(v);
+    }
+#endif
+}
+
+void refresh_from_pieces(const Net& net, RefreshCache& cache, const Pieces& pieces, Color perspective, int king_square,
+                         std::int16_t* destination) {
+    const KingKey key = king_key(net, perspective, king_square);
+    RefreshCache::Entry& entry = cache.entries[cache_index(net, perspective, key)];
+    const int hidden = net.hidden;
+    ++cache.refreshes;
+    for (int piece = WP; piece <= BK; ++piece) {
+        const auto pi = static_cast<std::size_t>(piece);
+        Bitboard removed = entry.pieces[pi] & ~pieces[pi];
+        Bitboard added = pieces[pi] & ~entry.pieces[pi];
+        while (removed != 0) {
+            const int square = pop_lsb(removed);
+            sub_column(entry.values.data(), column(net, feature_index(key, perspective, static_cast<Piece>(piece), square)), hidden);
+            ++cache.columns;
+        }
+        while (added != 0) {
+            const int square = pop_lsb(added);
+            add_column(entry.values.data(), column(net, feature_index(key, perspective, static_cast<Piece>(piece), square)), hidden);
+            ++cache.columns;
+        }
+        entry.pieces[pi] = pieces[pi];
+    }
+    std::copy_n(entry.values.data(), hidden, destination);
+}
+
+void refresh_cached(const Net& net, RefreshCache& cache, const Board& board, Accumulator& accumulator) {
+    const Pieces pieces = pieces_of(board);
+    for (const Color p : {White, Black}) {
+        const auto pi = static_cast<std::size_t>(p);
+        const int king_square = board.king_square(p);
+        accumulator.king_sq[pi] = static_cast<std::uint8_t>(king_square);
+        accumulator.keys[pi] = king_key(net, p, king_square);
+        refresh_from_pieces(net, cache, pieces, p, king_square, accumulator.values[pi].data());
+    }
+    accumulator.valid = true;
 }
 
 } // namespace forge::nnue::v3

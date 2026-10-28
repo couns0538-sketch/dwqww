@@ -1,8 +1,11 @@
 // NNUE v3 tests (job FB1). usage: forge_nnue_v3_tests <scratch dir>
 // M1: file format round trip, loader rejections (loud failure, nothing loaded),
 //     feature set, output buckets, scalar reference arithmetic on a hand-made net.
+// M2: incremental accumulators == full refresh over 100k random make/unmake plies
+//     (castling, en passant, promotions, king moves, null moves, replays), kernels == scalar.
 #include "forge/board.hpp"
 #include "forge/nnue_v3.hpp"
+#include "forge/search.hpp"
 
 #include <algorithm>
 #include <cstdint>
@@ -177,6 +180,230 @@ const std::string_view kFens[] = {
     "2rr3k/pp3pp1/1nnqbN1p/3pN3/2pP4/2P3Q1/PPB4P/R4RK1 w - - 0 1",
 };
 
+
+// ---- M2: incremental accumulators vs full refresh over random make/unmake plies ----
+struct WalkStats {
+    long plies = 0;
+    long evaluations = 0;
+    long mismatches = 0;
+    long eval_mismatches = 0;
+    long castlings = 0;
+    long en_passants = 0;
+    long promotions = 0;
+    long king_moves = 0;
+    long key_changes = 0;
+    long null_moves = 0;
+    long replays_over_one = 0;
+    long max_replay = 0;
+};
+
+void random_walk(const forge::nnue::v3::Net& net, std::mt19937& rng, long target_plies, WalkStats& stats) {
+    using forge::nnue::v3::Accumulator;
+    constexpr int StackSize = forge::MaxPly + 8;
+    constexpr int MaxIndex = 4 + 110;
+    forge::nnue::v3::WorkerState state;
+    forge::nnue::v3::prepare(net, state, StackSize);
+    std::vector<forge::nnue::DirtyPieces> dirty(static_cast<std::size_t>(StackSize));
+    const auto dirty_of = [&](int k) -> const forge::nnue::DirtyPieces& { return dirty[static_cast<std::size_t>(k)]; };
+    const std::string_view starts[] = {
+        forge::Board::StandardStartFen,
+        "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1",
+        "r3k2r/8/8/8/8/8/8/R3K2R w KQkq - 0 1",
+        "8/PPP2k2/8/8/8/8/2K2ppp/8 w - - 0 1",
+        "4k3/pppppppp/8/8/8/8/PPPPPPPP/4K3 w - - 0 1",
+        "r1bqkb1r/pppp1ppp/2n2n2/4p3/2B1P3/5N2/PPPP1PPP/RNBQK2R w KQkq - 4 4",
+        "8/2p5/3p4/KP5r/1R3p1k/8/4P1P1/8 w - - 0 1",
+        "r3k2r/Pppp1ppp/1b3nbN/nP6/BBP1P3/q4N2/Pp1P2PP/R2Q1RK1 w kq - 0 1",
+    };
+    auto oracle = std::make_unique<Accumulator>();
+    std::uniform_real_distribution<double> coin(0.0, 1.0);
+    long done = 0;
+    while (done < target_plies) {
+        forge::Board board;
+        const bool ok = board.set_fen(starts[rng() % (sizeof(starts) / sizeof(starts[0]))]);
+        check(ok, "walk start fen");
+        state.invalidate();
+        int index = 4;
+        std::vector<forge::Move> moves;
+        std::vector<forge::Undo> undos;
+        std::vector<forge::NullUndo> null_undos;
+        std::vector<int> kinds;   // 0 move, 1 null
+        int game_plies = 0;
+        while (game_plies < 400 && done < target_plies) {
+            const double r = coin(rng);
+            if (index > 4 && (r < 0.3 || index >= MaxIndex)) {
+                // unmake
+                if (kinds.back() == 0) {
+                    board.unmake_move(moves.back(), undos.back());
+                    moves.pop_back();
+                    undos.pop_back();
+                } else {
+                    board.unmake_null_move(null_undos.back());
+                    null_undos.pop_back();
+                }
+                kinds.pop_back();
+                --index;
+                continue;
+            }
+            const bool play_null = !board.in_check() && coin(rng) < 0.05;
+            if (play_null) {
+                forge::NullUndo undo;
+                board.make_null_move(undo);
+                null_undos.push_back(undo);
+                kinds.push_back(1);
+                dirty[static_cast<std::size_t>(index + 1)].count = 0;
+                ++stats.null_moves;
+            } else {
+                forge::MoveList legal = board.legal_moves();
+                if (legal.empty()) break;
+                forge::Move move = legal.begin()[static_cast<std::ptrdiff_t>(rng() % legal.size())];
+                if (coin(rng) < 0.5) {
+                    // prefer a castling / en passant / promotion move when one is available
+                    std::vector<forge::Move> special;
+                    for (const forge::Move& m : legal) {
+                        if (m.is_castle() || (m.flags & forge::EnPassant) != 0U || m.is_promotion()) special.push_back(m);
+                    }
+                    if (!special.empty()) move = special[rng() % special.size()];
+                }
+                if (move.is_castle()) ++stats.castlings;
+                if ((move.flags & forge::EnPassant) != 0U) ++stats.en_passants;
+                if (move.is_promotion()) ++stats.promotions;
+                if (forge::piece_type(board.piece_at(move.from)) == forge::King) ++stats.king_moves;
+                dirty[static_cast<std::size_t>(index + 1)] = forge::nnue::dirty_pieces(board, move);
+                forge::Undo undo;
+                check(board.make_move(move, undo), "legal move makes");
+                moves.push_back(move);
+                undos.push_back(undo);
+                kinds.push_back(0);
+            }
+            ++index;
+            state.stack[static_cast<std::size_t>(index)].valid = false;
+            ++game_plies;
+            ++done;
+            ++stats.plies;
+            if (coin(rng) < 0.65) {
+                // evaluate here (some plies stay unevaluated so that replays cross them)
+                int ancestor = index - 1;
+                while (ancestor >= 4 && !state.stack[static_cast<std::size_t>(ancestor)].valid) --ancestor;
+                const long replay = ancestor >= 4 ? index - ancestor : 0;
+                if (replay > 1) ++stats.replays_over_one;
+                stats.max_replay = std::max(stats.max_replay, replay);
+                forge::nnue::v3::make_valid(net, state, index, board, dirty_of);
+                forge::nnue::v3::refresh(net, board, *oracle);
+                const Accumulator& acc = state.stack[static_cast<std::size_t>(index)];
+                bool same = acc.valid;
+                for (int p = 0; p < 2; ++p) {
+                    const auto pi = static_cast<std::size_t>(p);
+                    same = same && acc.keys[pi] == oracle->keys[pi] && acc.king_sq[pi] == oracle->king_sq[pi];
+                    same = same && std::equal(acc.values[pi].begin(), acc.values[pi].begin() + net.hidden, oracle->values[pi].begin());
+                    if (ancestor >= 4 && !(state.stack[static_cast<std::size_t>(index - 1)].keys[pi] == acc.keys[pi])) ++stats.key_changes;
+                }
+                ++stats.evaluations;
+                if (!same) {
+                    ++stats.mismatches;
+                    if (stats.mismatches <= 5) std::cout << "MISMATCH at " << board.fen() << " (replay " << replay << ")\n";
+                }
+                if (forge::nnue::v3::evaluate(net, board, acc) != forge::nnue::v3::evaluate_reference(net, board)) ++stats.eval_mismatches;
+            }
+        }
+    }
+}
+
+void run_m2_tests(const std::filesystem::path& dir) {
+    const auto file = [&](const char* name) { return (dir / name).string(); };
+    std::mt19937 rng(20261028);
+    WalkStats total;
+    struct Config { int hidden; int kb; int ob; bool mirror; long plies; std::uint32_t seed; };
+    const Config configs[] = {{128, 8, 8, true, 45000, 31}, {512, 4, 8, true, 25000, 32}, {64, 2, 1, false, 20000, 33}, {32, 32, 2, true, 10000, 34}};
+    for (const Config& c : configs) {
+        NetSpec spec = make_spec(c.hidden, c.kb, c.ob, c.mirror, c.seed);
+        if (c.kb == 32) {
+            for (int sq = 0; sq < 64; ++sq) spec.king_map[static_cast<std::size_t>(sq)] = static_cast<std::uint8_t>(((sq >> 3) * 4 + std::min(sq & 7, 7 - (sq & 7))));
+        }
+        write_file(file("walk.fnn3"), serialize(spec));
+        std::string error;
+        check(forge::nnue::v3::load(file("walk.fnn3"), &error), "walk net loads: " + error);
+        WalkStats stats;
+        random_walk(*forge::nnue::v3::loaded(), rng, c.plies, stats);
+        std::cout << "walk H" << c.hidden << " kb" << c.kb << (c.mirror ? "m" : "") << " ob" << c.ob << ": plies " << stats.plies
+                  << " evaluations " << stats.evaluations << " mismatches " << stats.mismatches << " eval_mismatches " << stats.eval_mismatches
+                  << " castlings " << stats.castlings << " en_passants " << stats.en_passants << " promotions " << stats.promotions
+                  << " king_moves " << stats.king_moves << " key_changes " << stats.key_changes << " null_moves " << stats.null_moves
+                  << " replays>1 " << stats.replays_over_one << " max_replay " << stats.max_replay << '\n';
+        check(stats.mismatches == 0, "incremental accumulators == full refresh (0 mismatches)");
+        check(stats.eval_mismatches == 0, "fast evaluate == scalar reference evaluate");
+        check(stats.castlings > 0 && stats.en_passants > 0 && stats.promotions > 0 && stats.king_moves > 0, "walk covers castling, en passant, promotions and king moves");
+        total.plies += stats.plies;
+        total.evaluations += stats.evaluations;
+        total.mismatches += stats.mismatches;
+        total.eval_mismatches += stats.eval_mismatches;
+        total.castlings += stats.castlings;
+        total.en_passants += stats.en_passants;
+        total.promotions += stats.promotions;
+        total.king_moves += stats.king_moves;
+        total.key_changes += stats.key_changes;
+        total.null_moves += stats.null_moves;
+        total.replays_over_one += stats.replays_over_one;
+        total.max_replay = std::max(total.max_replay, stats.max_replay);
+        forge::nnue::v3::unload();
+    }
+    std::cout << "walk total: plies " << total.plies << " evaluations " << total.evaluations << " mismatches " << total.mismatches
+              << " eval_mismatches " << total.eval_mismatches << " castlings " << total.castlings << " en_passants " << total.en_passants
+              << " promotions " << total.promotions << " king_moves " << total.king_moves << " key_changes " << total.key_changes
+              << " null_moves " << total.null_moves << " replays>1 " << total.replays_over_one << " max_replay " << total.max_replay << '\n';
+    check(total.plies >= 100000, "at least 100k plies walked");
+
+    // ---- kernel: output_sum (compiled kernel) == output_sum_scalar at the bounds ----
+    {
+        NetSpec spec = make_spec(1024, 1, 2, false, 41);
+        for (std::size_t i = 0; i < spec.w2.size(); ++i) spec.w2[i] = static_cast<std::int16_t>(i % 2 == 0 ? 127 : -127);
+        write_file(file("kernel.fnn3"), serialize(spec));
+        std::string error;
+        check(forge::nnue::v3::load(file("kernel.fnn3"), &error), "kernel net loads: " + error);
+        const forge::nnue::v3::Net& net = *forge::nnue::v3::loaded();
+        alignas(64) std::array<std::int16_t, forge::nnue::v3::MaxHidden> ours{};
+        alignas(64) std::array<std::int16_t, forge::nnue::v3::MaxHidden> theirs{};
+        std::uniform_int_distribution<int> dv(-32768, 32767);
+        int kernel_checks = 0;
+        for (int round = 0; round < 200; ++round) {
+            for (int h = 0; h < 1024; ++h) {
+                if (round == 0) { ours[static_cast<std::size_t>(h)] = 32767; theirs[static_cast<std::size_t>(h)] = 32767; }        // all clamp to 255: the per-lane maximum
+                else if (round == 1) { ours[static_cast<std::size_t>(h)] = -32768; theirs[static_cast<std::size_t>(h)] = 255; }
+                else { ours[static_cast<std::size_t>(h)] = static_cast<std::int16_t>(dv(rng)); theirs[static_cast<std::size_t>(h)] = static_cast<std::int16_t>(dv(rng) / (1 + round % 7)); }
+            }
+            for (int bucket = 0; bucket < 2; ++bucket) {
+                const std::int64_t fast = forge::nnue::v3::output_sum(net, ours.data(), theirs.data(), bucket);
+                const std::int64_t slow = forge::nnue::v3::output_sum_scalar(net, ours.data(), theirs.data(), bucket);
+                if (fast != slow) check(false, "output_sum kernel == scalar (round " + std::to_string(round) + ")");
+                ++kernel_checks;
+            }
+        }
+        std::cout << "kernel " << forge::nnue::v3::kernel_name() << ": " << kernel_checks << " output sums compared with the scalar reference at H1024\n";
+        check(kernel_checks == 400, "kernel comparisons ran");
+        // apply_changes (compiled kernel) == scalar add/sub for every change count 0..4
+        forge::Board board;
+        (void)board.set_fen("r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1");
+        forge::nnue::v3::Accumulator parent;
+        forge::nnue::v3::refresh(net, board, parent);
+        for (const forge::Move& move : board.legal_moves()) {
+            const forge::nnue::DirtyPieces dirty = forge::nnue::dirty_pieces(board, move);
+            alignas(64) std::array<std::int16_t, forge::nnue::v3::MaxHidden> fast{};
+            forge::nnue::v3::apply_changes(net, parent.values[0].data(), fast.data(), parent.keys[0], forge::White, dirty);
+            std::array<std::int32_t, 1024> slow{};
+            for (int h = 0; h < 1024; ++h) slow[static_cast<std::size_t>(h)] = parent.values[0][static_cast<std::size_t>(h)];
+            for (int i = 0; i < dirty.count; ++i) {
+                const forge::nnue::PieceChange& change = dirty.changes[static_cast<std::size_t>(i)];
+                const std::int16_t* col = forge::nnue::v3::column(net, forge::nnue::v3::feature_index(parent.keys[0], forge::White, change.piece, change.square));
+                for (int h = 0; h < 1024; ++h) slow[static_cast<std::size_t>(h)] += change.add ? col[h] : -col[h];
+            }
+            bool same = true;
+            for (int h = 0; h < 1024; ++h) same = same && fast[static_cast<std::size_t>(h)] == static_cast<std::int16_t>(slow[static_cast<std::size_t>(h)]);
+            check(same, "apply_changes kernel == scalar for " + forge::Board::move_to_uci(move));
+        }
+        forge::nnue::v3::unload();
+    }
+}
+
 } // namespace
 
 int main(int argc, char** argv) {
@@ -342,6 +569,8 @@ int main(int argc, char** argv) {
         }
         forge::nnue::v3::unload();
     }
+
+    run_m2_tests(dir);
 
     std::cout << "nnue_v3_tests: " << checks << " checks, " << failures << " failures\n";
     return failures == 0 ? 0 : 1;

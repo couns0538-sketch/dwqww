@@ -628,12 +628,14 @@ void Worker::record_move(SearchStack* ss, const Board& board, const Move& move) 
     (ss + 1)->dirty = nnue::dirty_pieces(board, move);
     (ss + 1)->accumulator.valid = false;
     (ss + 1)->runtime_psqt.valid = false;
+    if (v3_state_) [[unlikely]] v3_state_->stack[static_cast<std::size_t>(ss->ply + 5)].valid = false;
 }
 
 void Worker::record_null_move(SearchStack* ss) {
     (ss + 1)->dirty.count = 0;
     (ss + 1)->accumulator.valid = false;
     (ss + 1)->runtime_psqt.valid = false;
+    if (v3_state_) [[unlikely]] v3_state_->stack[static_cast<std::size_t>(ss->ply + 5)].valid = false;
 }
 
 int Worker::corrected_eval(const Board& board, int raw_eval) const {

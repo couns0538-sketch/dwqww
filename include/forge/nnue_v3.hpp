@@ -25,6 +25,15 @@
 // reduction) and the accumulators overflow-free: |w2| <= 127, hidden <= 1024,
 // max|b1| + 32 * max|w1| <= 32767. The loader rejects nets outside them.
 //
+// Incremental evaluation (M2): one accumulator per ply in a per-worker stack.
+// A ply whose accumulator is stale is rebuilt from the nearest valid ancestor
+// by replaying the recorded piece changes; a perspective whose king key
+// (bucket, flip) changed is refreshed through the per-worker cache, which
+// holds for every (perspective, bucket, flip) the accumulator and the piece
+// bitboards it was last refreshed with, so only the difference is applied.
+// For an intermediate ply the piece bitboards are reconstructed from the
+// current board by undoing the later plies' recorded changes.
+//
 // File format v3 (little-endian), written by tools/nnue/fable_nnue_v3.py:
 //   0   char[8] "FORGENN3"      8  u32 version = 3        12 u32 header_bytes = 192
 //   16  u32 inputs = 768        20 u32 hidden (32..1024, multiple of 32)
@@ -94,6 +103,7 @@ struct Net {
     bool mirror = false;
     bool residual = false;
     std::uint64_t checksum = 0;
+    std::uint64_t generation = 0;    // increases with every successful load (cache identity)
     std::array<std::uint8_t, 64> king_map{};
     std::array<std::uint8_t, 33> output_map{};
     AlignedInt16 w1;                 // [king_buckets][InputsPerBucket][hidden]
@@ -108,12 +118,31 @@ struct Net {
 struct Accumulator {
     alignas(64) std::array<std::array<std::int16_t, MaxHidden>, 2> values{};
     std::array<KingKey, 2> keys{};
+    std::array<std::uint8_t, 2> king_sq{};
     bool valid = false;
 };
 
-// Per-worker state (M2 adds the king-bucket refresh cache): one accumulator per ply.
+// Piece bitboards indexed by Piece code (index 0 unused).
+using Pieces = std::array<Bitboard, 13>;
+
+// Per-worker accumulator cache: for each (perspective, bucket, flip) the
+// accumulator of the last piece placement refreshed under that key.
+struct RefreshCache {
+    struct Entry {
+        alignas(64) std::array<std::int16_t, MaxHidden> values{};
+        Pieces pieces{};
+    };
+    std::vector<Entry> entries;   // index ((perspective * king_buckets + bucket) * 2 + (flip != 0))
+    std::uint64_t generation = 0;
+    std::uint64_t refreshes = 0;  // statistics (tests)
+    std::uint64_t columns = 0;
+};
+
+// Per-worker state: one accumulator per stack index (ply + 4) and the cache.
 struct WorkerState {
     std::vector<Accumulator> stack;
+    RefreshCache cache;
+    std::uint64_t generation = 0;
     void invalidate() { for (Accumulator& acc : stack) acc.valid = false; }
 };
 
@@ -130,6 +159,8 @@ extern bool requested;
 // Non-empty when NNUEArch is requested but no v3 net is usable (the fail-loud rule).
 [[nodiscard]] std::string problem();
 void set_problem(const std::string& text);
+// Name of the compiled kernel ("avx2" or "scalar").
+[[nodiscard]] const char* kernel_name();
 
 // ---- feature set ----
 [[nodiscard]] KingKey king_key(const Net& net, Color perspective, int king_square);
@@ -138,17 +169,80 @@ void set_problem(const std::string& text);
 [[nodiscard]] inline const std::int16_t* column(const Net& net, int feature) {
     return net.w1.data() + static_cast<std::size_t>(feature) * static_cast<std::size_t>(net.hidden);
 }
+[[nodiscard]] Pieces pieces_of(const Board& board);
 
-// ---- scalar reference path (M1) ----
+// ---- scalar reference path (M1; the oracle for the tests and tools) ----
 void refresh_perspective(const Net& net, const Board& board, Color perspective, Accumulator& accumulator);
 void refresh(const Net& net, const Board& board, Accumulator& accumulator);
-// Output sum of the SCReLU layer (see the header comment), scalar reference.
 [[nodiscard]] std::int64_t output_sum_scalar(const Net& net, const std::int16_t* ours, const std::int16_t* theirs, int bucket);
 [[nodiscard]] int finish(const Net& net, std::int64_t sum, int bucket);
-// Side-to-move network output in centipawns (the residual flag is the caller's business).
-[[nodiscard]] int evaluate(const Net& net, const Board& board, const Accumulator& accumulator);
-// Fresh accumulators + scalar output: the reference for tools and tests.
+// Fresh accumulators + scalar output.
 [[nodiscard]] int evaluate_reference(const Net& net, const Board& board);
+
+// ---- fast path (M2): kernels, cache, incremental update ----
+// Output sum with the compiled kernel (AVX2 when available); equals output_sum_scalar.
+[[nodiscard]] std::int64_t output_sum(const Net& net, const std::int16_t* ours, const std::int16_t* theirs, int bucket);
+// Side-to-move network output in centipawns from a valid accumulator (fast kernel).
+[[nodiscard]] int evaluate(const Net& net, const Board& board, const Accumulator& accumulator);
+// Prepares `state` for `net` (stack size, cache entries); cheap when already prepared.
+void prepare(const Net& net, WorkerState& state, int stack_size);
+// destination = source with the recorded changes applied under `key` (both arrays hold `hidden` values).
+void apply_changes(const Net& net, const std::int16_t* source, std::int16_t* destination, KingKey key, Color perspective,
+                   const DirtyPieces& dirty);
+// Accumulator of `perspective` for the placement `pieces` (own king on `king_square`), through the cache.
+void refresh_from_pieces(const Net& net, RefreshCache& cache, const Pieces& pieces, Color perspective, int king_square,
+                         std::int16_t* destination);
+// Both perspectives of `board` through the cache; marks the accumulator valid.
+void refresh_cached(const Net& net, RefreshCache& cache, const Board& board, Accumulator& accumulator);
+// Rebuilds state.stack[k] from state.stack[k - 1] (valid) with dirty_of(k); `board` is the position at
+// stack index `top` (>= k) and dirty_of(j) the changes that led to index j, for j in (k, top].
+template <class DirtyOf>
+void replay_ply(const Net& net, WorkerState& state, int k, const Board& board, int top, DirtyOf&& dirty_of) {
+    const Accumulator& parent = state.stack[static_cast<std::size_t>(k - 1)];
+    Accumulator& child = state.stack[static_cast<std::size_t>(k)];
+    const DirtyPieces& dirty = dirty_of(k);
+    for (const Color p : {White, Black}) {
+        const auto pi = static_cast<std::size_t>(p);
+        int king_square = parent.king_sq[pi];
+        for (int i = 0; i < dirty.count; ++i) {
+            const PieceChange& change = dirty.changes[static_cast<std::size_t>(i)];
+            if (change.add && change.piece == make_piece(p, King)) king_square = change.square;
+        }
+        const KingKey key = king_key(net, p, king_square);
+        child.king_sq[pi] = static_cast<std::uint8_t>(king_square);
+        child.keys[pi] = key;
+        if (key == parent.keys[pi]) {
+            apply_changes(net, parent.values[pi].data(), child.values[pi].data(), key, p, dirty);
+        } else {
+            // The king changed bucket or side: rebuild this perspective from the
+            // placement at index k, reconstructed by undoing the later plies.
+            Pieces pieces = pieces_of(board);
+            for (int j = top; j > k; --j) {
+                const DirtyPieces& later = dirty_of(j);
+                for (int i = 0; i < later.count; ++i) {
+                    const PieceChange& change = later.changes[static_cast<std::size_t>(i)];
+                    if (change.add) pieces[static_cast<std::size_t>(change.piece)] &= ~square_bb(change.square);
+                    else pieces[static_cast<std::size_t>(change.piece)] |= square_bb(change.square);
+                }
+            }
+            refresh_from_pieces(net, state.cache, pieces, p, king_square, child.values[pi].data());
+        }
+    }
+    child.valid = true;
+}
+// Makes state.stack[index] valid for `board` (the position at that index): walks back to the nearest
+// valid ancestor (index >= 4 is the search root) and replays, or refreshes through the cache.
+template <class DirtyOf>
+void make_valid(const Net& net, WorkerState& state, int index, const Board& board, DirtyOf&& dirty_of) {
+    if (state.stack[static_cast<std::size_t>(index)].valid) return;
+    int ancestor = index - 1;
+    while (ancestor >= 4 && !state.stack[static_cast<std::size_t>(ancestor)].valid) --ancestor;
+    if (ancestor < 4) {
+        refresh_cached(net, state.cache, board, state.stack[static_cast<std::size_t>(index)]);
+        return;
+    }
+    for (int k = ancestor + 1; k <= index; ++k) replay_ply(net, state, k, board, index, dirty_of);
+}
 
 // ---- file helpers shared with the tools ----
 [[nodiscard]] std::uint64_t fnv1a64(const std::uint8_t* data, std::size_t size, std::uint64_t hash = 14695981039346656037ULL);
