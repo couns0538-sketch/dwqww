@@ -7,11 +7,11 @@ throughout; my work at nice 19). No Elo claims: no gate was run.
 
 | job | state | where |
 |---|---|---|
-| R3-1 integration stack | all O/C branches and every opus-sol engine feature merged (S32/S37/S04fix via `opus-r3-port-b`, S-A2/S-A4 via `opus-r3-port-c`); HardDeadline defect found by the self-play checker fixed; 500-game self-play runs on the final head in progress (`opus-r3-selfplay`) | `opus-r3-stack`, `opus_r3/R3-1/` |
-| R3-2 interaction matrix | IN PROGRESS (agent) | `opus-r3-matrix` |
-| R3-3 gate proposals | IN PROGRESS (agent) | `opus-r3-gates`, `F:\opus_scratch\r3\GATE_PROPOSALS.md` |
+| R3-1 integration stack | all O/C branches and every opus-sol engine feature merged (S32/S37/S04fix via `opus-r3-port-b`, S-A2/S-A4 via `opus-r3-port-c`); HardDeadline defect found by the self-play checker fixed; 500-game self-play on `330237f`: 8 of 36 configs done (all-ON variants, HardDeadline, four switches), 4000 games, 0 errors; the rest running (`opus-r3-selfplay`); a Linux copy of the checker on GitHub runners is being set up (`opus-r3-sp-linux`) to re-check the final head | `opus-r3-stack`, `opus_r3/R3-1/`, `opus_r3/R3-1_selfplay/` |
+| R3-2 interaction matrix | DONE, merged (`7e0660a`): no conflicts; two silent cancels; build layout ±5% on the PC; quiet-runner repeat of the switch rows running (`opus-r3-quietnps`) | `opus_r3/R3-2/REPORT.md` |
+| R3-3 gate proposals | DONE, merged | `opus_r3/R3-3/`, `F:\opus_scratch\r3\GATE_PROPOSALS.md` |
 | R3-4 SPSA tool | IN PROGRESS (agent) | `opus-r3-spsa` |
-| R3-5 regression test suite | IN PROGRESS (agent) | `opus-r3-tests` |
+| R3-5 regression test suite | DONE, merged (`7e0660a`): six new CTest entries, 12/12 planted bugs caught | `opus_r3/R3-5/REPORT.md` |
 | R3-6 Lazy SMP scaling | IN PROGRESS (agent) | `opus-r3-smp` |
 
 ## CI (GitHub `opus-ci`: release, ASan+UBSan, TSan)
@@ -25,8 +25,10 @@ throughout; my work at nice 19). No Elo claims: no gate was run.
 | 40568260400 | `opus-r3-port-b` `a06b00d` (S32, S37, S04fix on `2432670`) | success |
 | 40570018288 | `opus-r3-port-c` (S-A2 behind FORGE_NNUE_INT16, S-A4 on `2432670`) | success |
 | 40573865157 | `330237f` (port-b + port-c merged, HardDeadline fix) | success |
-| 40578094641 | `287aa15` (+ docs, R3-3, CI hook) | running |
-| 40578094685 | `287aa15`, new workflow `opus-r3-switches` (every build switch ON) | running |
+| 40578094641 | `287aa15` (+ docs, R3-3, CI hook) | release, ASan success; TSan running |
+| 40578094685 | `287aa15`, new workflow `opus-r3-switches` (every build switch ON) | success |
+| 40581146563 | `7e0660a` (+ R3-5 tests, R3-2 matrix) | running |
+| 40581146586 | `7e0660a`, `opus-r3-switches` | running |
 Since the failure every push is preceded by a full local CMake build of all targets and the full CTest list (only
 the 4 known `forge_tests` lines may fail; `check_known_failures.py` PASS), and every run is followed to green.
 `opus-r3-switches` (new in R3) runs the same release/ASan/TSan evidence with every build switch ON (O2, NOZERO,
@@ -64,7 +66,7 @@ every later run of the branch is green.
   (4) A1's joint correction also in C2's cold CorrHistPlus path, so the two combine.
 
 ## R3-3 gate proposals (agent; `opus_r3/R3-3/REPORT.md`)
-- One entry per feature vs the all-OFF engine (`forge_r3_base.exe`), exes from `330237f` in `F:\opus_scratch3\exe\`,
+- One entry per feature vs the all-OFF engine (`forge_r3_base.exe`), exes from `330237f` in `F:\opus_scratch\r3\exe\`,
   SPRT [0,5] a=b=0.05 normalized, 1500-game cap, 10+0.1, the PC book and concurrency, a new srand each;
   `GATE_ENTRIES.json` holds the 29 manifest objects ready to append (nothing was written to the queue).
 - Ranked: A node-exact speed (O2, NOZERO, S13, SPEEDSTACK, LazyAcc, MaterialKeyTable), B search/eval changes,
@@ -73,16 +75,50 @@ every later run of the branch is green.
   practically every realistic effect size (H1 needs about +50 nElo observed; a true −20 nElo regression ends H0 in
   0.4% of runs vs 62% at [0,10]). §7 of GATE_PROPOSALS.md lists the alternatives.
 
+## R3-2 interaction matrix (agent; `opus_r3/R3-2/REPORT.md`)
+- 71 configurations (every runtime option and build switch alone, TT / correction / NNUE pairs, the final-head
+  features), 1152 NPS runs and 130 node-count processes, all clean. Bench nodes: identical across processes; every
+  node-exact part and combination stays at the lock pins; every branch ON pin reproduces on the stack.
+- **Conflicts: none. Silent cancels: two** (by design): NetScale and NnueInt16 act only on the compiled-in net, so
+  with any v2 net they do nothing, without a warning (NnueInt16 even prints `NnueInt16 active`). Same for O2 and
+  NnueLazyAcc (not flagged: no own tree effect).
+- NPS (advisory, PC ~98% loaded, cycle-timed CPU NPS, paired ABBA, A/A control +0.06% [-0.66, +0.77]): TT pairs
+  additive; correction combinations strongly sub-additive but on new trees (tree-confounded, not a code conflict);
+  Threats + PawnPairs share machinery (-48.5% together vs -53.2% predicted); output buckets nearly free.
+- **Build layout moves NPS by up to about ±5% on this PC** (the final head's OFF exe runs 4.6% slower than the
+  first-pass OFF exe; FORGE_NOZERO_MOVE_BUFFERS -4.2%, O2 0 / +3%): switch-level NPS effects below that size are not
+  attributable here. A quiet-runner repeat of the switch rows is running (`opus-r3-quietnps`).
+- Tool finding: `bench` always searches with its own one-thread Searcher, so Threads options never reach bench.
+
+## R3-5 regression test suite (agent; `opus_r3/R3-5/REPORT.md`)
+- Six new CTest entries: `forge_perft_cpw`, `forge_perft_edge` (20 positions at depth 5-7 with published counts,
+  cross-checked with python-chess: 0 mismatches), `forge_draw_rules_tests` (repetition / threefold incl. GitHub
+  issue #7 with IntendedThreefold off and on, 50-move rule incl. mate on the 100th half-move),
+  `forge_tt_mate_tb_tests` (mate scores through the TT, TB scores with the PC tables; SKIP without tables, as on CI),
+  `uci_options_regression` (data-driven over `uci`, ready for the SPSA spins), `smp_uci_regression` (Threads 2/3:
+  stop, ponder/ponderhit, node/depth limits, new go/position/setoption/quit during a search).
+- 12 planted one-line bugs: every one caught (14/14 guarded runs fail). opus-ci 40576759596 green on the branch.
+- Findings (no engine change): an SMP search can settle on a longer (real) mate and a warm TT keeps it; UCI option
+  names are case-sensitive in the engine (the protocol says they are not; GUIs send the advertised spelling).
+- Merged into the stack (`2afd0365`); local CMake + full CTest on `7e0660a`: default 51 tests, all-switch 55 tests,
+  only the known lines fail (plus `forge_prof_tests` at Idle priority, see below).
+
 ## Notes for the owner
 - Load-sensitive tests on this PC (pass on the CI runners): `forge_smp_tests` (SmpExactNodes overshoot bound; port-b
   agent: 7/20 failures at nice 19) and `forge_prof_tests` (FORGE_PROF builds only: each of 4 workers must count >0
-  nodes in a depth-9 search; 7/10 failures at nice 19 on the saturated PC, 3/3 passes at normal priority). Not
-  regressions of the stack; not changed.
+  nodes in a depth-9 search; 7/10 failures at nice 19 on the saturated PC, 3/3 passes at normal priority; on
+  `7e0660a` 4/5 failures at Idle and 8/8 passes at BelowNormal, `F:\opus_scratch\r3\logs\prof_tests_priority_7e0660a5.txt`).
+  Not regressions of the stack; not changed.
+- Silent cancels (R3-2): setting NetScale or NnueInt16 while a v2 net is loaded has no effect and no warning. A
+  one-line `info string` warning would be the natural fix; not done here (it changes UCI output).
 - Four Python bytecode files entered the stack with the S08fix merge commit `9588a10` (CTest runs the tools with the
   system Python, which writes `__pycache__` into the tree): `tools/__pycache__/uci_regression.cpython-314.pyc`,
   `tools/match/__pycache__/{pgn_stats,run_match,windows_validate}.cpython-314.pyc`. Untracking them was not permitted
   here (no deletions); a `.gitignore` now keeps new ones out. Please `git rm --cached` them when convenient.
 
 ## Left
-- R3-1: CI of `330237f`; the 500-game self-play evidence on `330237f` (36 configurations, running).
-- R3-2 .. R3-6: agents running; results to be merged and summarised here.
+- R3-1: the 500-game self-play evidence on `330237f` (28 of 36 configurations still running, ETA about 00:20); the
+  Linux re-check of the final head on GitHub runners (`opus-r3-sp-linux`).
+- R3-4 (SPSA) and R3-6 (SMP scaling, fix `SmpHelpersPastDepth`): agents finishing; then merge, full local CMake +
+  CTest, push, CI green.
+- R3-2 follow-up: quiet-runner NPS of the switch rows (`opus-r3-quietnps`).
