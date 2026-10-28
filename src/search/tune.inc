@@ -19,6 +19,14 @@ int CorrRfpPct = 50;
 int CorrFutilityPct = 100;
 int CorrNullMovePct = 50;
 int CorrLmrPct = 25;
+// CorrExt weights (forge/corr_ext.hpp). Defined before the AL1 s198 tunables
+// on purpose: GCC emits a translation unit's globals in reverse definition
+// order, so these land after the existing block and every AL1 s198 tunable
+// keeps its address.
+int CorrExtDoublePct = 12;
+int CorrExtTripleCorr = 48;
+int CorrExtTripleMargin = 100;
+int CorrExtBudget = 7;
 int LmrQuietBase = 85;
 int LmrQuietDivisor = 220;
 int LmrNoisyBase = 10;
@@ -109,6 +117,8 @@ const std::vector<Parameter>& parameters() {
         {"CorrNonPawnWeight", &CorrNonPawnWeight, 0, 300},
         {"CorrRfpPct", &CorrRfpPct, 0, 400},                     {"CorrFutilityPct", &CorrFutilityPct, 0, 400},
         {"CorrNullMovePct", &CorrNullMovePct, 0, 400},           {"CorrLmrPct", &CorrLmrPct, 0, 400},
+        {"CorrExtDoublePct", &CorrExtDoublePct, 0, 400},         {"CorrExtTripleCorr", &CorrExtTripleCorr, 0, 256},
+        {"CorrExtTripleMargin", &CorrExtTripleMargin, 0, 1000},  {"CorrExtBudget", &CorrExtBudget, 0, 64},
     };
     return table;
 }

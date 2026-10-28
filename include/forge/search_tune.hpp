@@ -75,6 +75,12 @@ extern int CorrRfpPct;            // reverse futility margin += |correction| * p
 extern int CorrFutilityPct;       // quiet futility margin += |correction| * pct / 100
 extern int CorrNullMovePct;       // null-move static-eval threshold += |correction| * pct / 100
 extern int CorrLmrPct;            // LMR reduction -= reduction * pct% per 64 cp of |correction|
+// UCI CorrExt (forge/corr_ext.hpp): correction-history extensions; read only by
+// the CorrExt search instance.
+extern int CorrExtDoublePct;      // double-extension margin 24 -= |correction| * pct / 100 (at least 0); 0 = AL1 s198
+extern int CorrExtTripleCorr;     // |correction| (cp) from which a triple extension is possible; 0 = no triple
+extern int CorrExtTripleMargin;   // triple when the singular score is this far below the singular beta
+extern int CorrExtBudget;         // extra plies from double/triple extensions allowed per path (AL1 s198: 7)
 [[nodiscard]] const std::vector<Parameter>& parameters();
 // Call after changing LMR parameters.
 void refresh();

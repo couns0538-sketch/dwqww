@@ -1,19 +1,23 @@
 // Search module: main alpha-beta search (pruning, extensions, LMR).
-// Compiled as part of src/search.cpp, which includes this file twice:
-//   - FORGE_SEARCH_FN = search, FORGE_SEARCH_CORR_MARGINS = 0: Worker::search,
-//     the AL1 s198 search, used while UCI CorrMargins is 0;
-//   - FORGE_SEARCH_FN = search_corr_margins, FORGE_SEARCH_CORR_MARGINS = 1:
-//     the same search with the correction-size margins of UCI CorrMargins
-//     (forge/corr_margins.hpp) at reverse futility pruning, null-move pruning,
-//     quiet futility pruning and late-move reductions (the #if blocks below;
-//     one more #if only selects the instance's own copy of lmp_threshold,
-//     see src/search/corr_margins.inc).
-// FORGE_SEARCH_FN names the function defined here, which is also the function
-// its child nodes are searched with. The root (iterative.inc) picks the
-// instance once per iteration, so with CorrMargins 0 no node tests the option,
-// and the first instance's source is the AL1 s198 function.
-#if !defined(FORGE_SEARCH_FN) || !defined(FORGE_SEARCH_CORR_MARGINS)
-#error "define FORGE_SEARCH_FN and FORGE_SEARCH_CORR_MARGINS before including search/alphabeta.inc"
+// Compiled as part of src/search.cpp, which includes this file once per search instance:
+//   - FORGE_SEARCH_FN names the function defined here, which is also the function
+//     its child nodes are searched with; FORGE_LMP_THRESHOLD names the late-move
+//     pruning threshold it calls (each instance calls its own copy, see
+//     src/search/corr_margins.inc and src/search/corr_ext.inc);
+//   - FORGE_SEARCH_CORR_MARGINS = 1 adds the correction-size margins of UCI
+//     CorrMargins (forge/corr_margins.hpp) at reverse futility pruning, null-move
+//     pruning, quiet futility pruning and late-move reductions;
+//   - FORGE_SEARCH_CORR_EXT = 1 adds the correction-history extensions of UCI
+//     CorrExt (forge/corr_ext.hpp): the singular-extension decision and the
+//     per-path extension budget.
+// The instances (src/search.cpp): Worker::search (both 0, the AL1 s198 search),
+// search_corr_margins, search_corr_ext and search_cm_ce (both 1, R3 stack). The
+// root (iterative.inc) picks the instance once per iteration, so with both
+// options 0 no node tests an option, and the first instance's source is the
+// AL1 s198 function.
+#if !defined(FORGE_SEARCH_FN) || !defined(FORGE_SEARCH_CORR_MARGINS) || !defined(FORGE_SEARCH_CORR_EXT) || \
+    !defined(FORGE_LMP_THRESHOLD)
+#error "define FORGE_SEARCH_FN, FORGE_SEARCH_CORR_MARGINS, FORGE_SEARCH_CORR_EXT and FORGE_LMP_THRESHOLD before including search/alphabeta.inc"
 #endif
 
 namespace forge {
@@ -93,9 +97,14 @@ int Worker::FORGE_SEARCH_FN(Board& board, SearchStack* ss, int depth, int alpha,
             eval = tt_score;
         }
     }
+#if FORGE_SEARCH_CORR_MARGINS || FORGE_SEARCH_CORR_EXT
+    // CorrMargins / CorrExt: size of the correction-history adjustment at this node (0 in check;
+    // corr_margins::correction_size and corr_ext::correction_size are the same function).
 #if FORGE_SEARCH_CORR_MARGINS
-    // CorrMargins: size of the correction-history adjustment at this node (0 in check).
     const int correction = corr_margins::correction_size(in_check, ss->static_eval, ss->raw_eval);
+#else
+    const int correction = corr_ext::correction_size(in_check, ss->static_eval, ss->raw_eval);
+#endif
 #endif
 
     bool improving = false;
@@ -227,11 +236,7 @@ int Worker::FORGE_SEARCH_FN(Board& board, SearchStack* ss, int depth, int alpha,
 
         // Shallow-depth pruning of unpromising moves.
         if (!root_node && best_score > -MateInMaxPly && has_material) {
-#if FORGE_SEARCH_CORR_MARGINS
-            if (quiet && !skip_quiets && move_count >= lmp_threshold_corr_margins(depth, improving)) skip_quiets = true;
-#else
-            if (quiet && !skip_quiets && move_count >= lmp_threshold(depth, improving)) skip_quiets = true;
-#endif
+            if (quiet && !skip_quiets && move_count >= FORGE_LMP_THRESHOLD(depth, improving)) skip_quiets = true;
             const int lmr_depth = std::max(0, depth - reduction(quiet, depth, move_count));
             if (quiet && !gives_check) {
 #if FORGE_SEARCH_CORR_MARGINS
@@ -275,10 +280,16 @@ int Worker::FORGE_SEARCH_FN(Board& board, SearchStack* ss, int depth, int alpha,
             ss->excluded_move = Move::none();
             if (aborted_) return 0;
             if (singular_score < singular_beta) {
+#if FORGE_SEARCH_CORR_EXT
+                // CorrExt: double margin shrinking with |correction|, triple extension, per-path budget.
+                extension = corr_ext::singular_extension(pv_node, singular_score, singular_beta, correction,
+                                                         inherited_double_extensions);
+#else
                 extension = 1;
                 if (!pv_node && singular_score < singular_beta - 24 && inherited_double_extensions <= 6) {
                     extension = 2;
                 }
+#endif
             } else if (singular_beta >= beta) {
                 return singular_beta;
             } else if (tt_score >= beta) {
@@ -290,7 +301,12 @@ int Worker::FORGE_SEARCH_FN(Board& board, SearchStack* ss, int depth, int alpha,
                    (picker.last_move_see_nonnegative() || board.see_ge(move, 0))) {
             extension = 1;
         }
+#if FORGE_SEARCH_CORR_EXT
+        // CorrExt: the path pays extension - 1 plies for a double or triple extension.
+        ss->double_extensions = corr_ext::path_extra_after(inherited_double_extensions, extension);
+#else
         ss->double_extensions = inherited_double_extensions + (extension == 2);
+#endif
         const int new_depth = depth - 1 + extension;
 
         ss->current_move = move;

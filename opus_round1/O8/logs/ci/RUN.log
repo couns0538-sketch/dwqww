@@ -1,0 +1,17 @@
+# GitHub Actions runs on branch opus-O8
+
+## commit 70b663a ([O8] Evidence ...; engine code = 5f6879a, tests = a7df3bd)
+- opus-ci run 40475294927: success
+  - linux (release): g++-14.2.0 box recipe, identity ALL OK (bench 312866/862329/3024920/12389307/34048354,
+    perft 4865609, kiwipete 193690690), FMA 0; ctest 17/18, only the 4 known forge_tests lines
+    (forge_corr_ext_tests 3.3 s)
+  - linux (asan): ASan+UBSan (-fno-sanitize-recover=all), ctest 17/18, only the 4 known lines, no sanitizer
+    report (forge_corr_ext_tests 29.1 s)
+  - linux (tsan): ctest 17/18, only the 4 known lines (forge_corr_ext_tests 70.1 s); tsan_extra.sh (CorrExt=1,
+    Threads 2 and 4, 4 positions, depth 8): 8/8 legal bestmoves; TSan: 0 reports
+- opus-o8-nps run 40475295034: success (quiet ubuntu-24.04 runner, box recipe g++-14.2, nps_ab.py 10 ABBA runs)
+  - lock vs O8 (CorrExt off): d16 wall -0.74% [-1.54, +0.06], d20 wall +0.95% [-0.55, +2.46]
+  - O3 vs O8 (CorrExt off): d16 wall +0.04% [-0.68, +0.76], d20 wall +0.09% [-0.54, +0.71]
+  - Linux machine code (g++-14), O3 vs O8: alpha-beta 2500 vs 2501 instructions, 3 differing lines, same start
+    (32 mod 64); every other hot function identical at the same address mod 64 (only the per-iteration driver
+    differs). PC recipe g++ 15.2 (the gate build): 0 lines. Lock vs O8 adds O3's own Linux placement moves.
