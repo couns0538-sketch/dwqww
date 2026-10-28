@@ -11,8 +11,8 @@ Everything here is UNPROVEN until a gate; no Elo claim is made anywhere in this 
 |---|---|---|
 | M1 engine: UCI `NNUEArch` (default off), v3 loader, scalar reference eval | **DONE** (commit `eef2fe72`) | all acceptance checks pass |
 | M2 incremental accumulator + king-bucket refresh cache + AVX2 | **DONE** (this commit) | 100k plies incremental == refresh, 0 mismatches; AVX2 == scalar |
-| M3 trainer: QAT int16, v3 exporter with merged factoriser, 10k parity | IN PROGRESS | trainer written (`tools/nnue/fable_nnue_train.py`), parity run next |
-| M4 NPS ON/OFF, smoke training vs AL1 net | not started | |
+| M3 trainer: QAT int16, v3 exporter with merged factoriser, 10k parity | **DONE** (this commit) | 60-step residual H512/8m/8 net: engine int == trainer int 10000/10000 on two position sets, max float-int 1.02 cp |
+| M4 NPS ON/OFF, smoke training vs AL1 net | IN PROGRESS | NPS ABBA run started, smoke training next |
 
 ## M1 acceptance (engine side only)
 
@@ -70,7 +70,21 @@ Everything here is UNPROVEN until a gate; no Elo claim is made anywhere in this 
 - Box-recipe builds need `FORGE_EXTRA_SRCS="src/nnue_v3.cpp src/search_v3.cpp"` with `build_pc.sh`; CMake lists
   the new sources.
 
-## M3 (in progress): `tools/nnue/fable_nnue_train.py`
+## M3 acceptance (trainer side)
+
+Run: `fable_nnue_train.py train --pos holdout_013_014_s16.pos --hce ... --hidden 512 --king-buckets 8 --output-buckets 8
+--mirror --residual --steps 60 --batch 4096 --lr 1e-3 --val-rows 20000` (CPU torch, 1 thread, 11 s, 21k positions/s,
+245,760 positions seen; val loss b0.6 0.017025 -> 0.016838 on the last 20k rows; this is a few-step net, not a
+trained one). Export: `net.fnn3` sha256 `e37caef5…` (max|w1| 34, max|b1| 6, max|w2| 7), `model.pt` `d3619764…`.
+
+| check | result | evidence |
+|---|---|---|
+| engine int eval == trainer quantised eval, 10k positions | **PASS 10000/10000, 0 mismatches** on `positions_10k.fen` (random material, piece counts 2..32, all 8 output buckets) and **10000/10000** on the S31 real-game set `fens_10k_s31.fen` (first field of `F:\opus_scratch\sol_S31\inputsens_10k.txt`) | `fable/logs/parity_m3.log` |
+| float vs int within 2 cp | **PASS**: max abs(training float forward - engine int) = 1.0189 cp / 1.0190 cp, mean 0.50 cp, 0 positions above 2 cp (by construction: the forward uses the engine's integer grid, only the two truncating divisions differ) | same log |
+| fast path == scalar reference on the trained net | PASS (tool `eval` reports 0 fast-vs-reference mismatches on both sets) | same log |
+| trainer unaffected by the forbidden-name rule | the trainer is a new script `fable_nnue_train.py`; nothing named `train_resid*` was run; supervisor "adopted running job" count unchanged (7) | `fable/logs/train_m3_log.txt` |
+
+## M3 design: `tools/nnue/fable_nnue_train.py`
 
 CPU torch, one thread. Reads FPOS/FHCE shards (meta bit0 = side to move, bits 1-2 = white result x 2, as the
 S31 tool documents). Model: merged first layer `w1[kb*768][H] + factoriser[768][H]`, SCReLU, `w2[ob][2H]`,
@@ -83,10 +97,7 @@ emulation of the exported file (0 mismatches required) and |training float forwa
 
 ## What is left / exact next steps
 
-1. M3: run `fable_nnue_train.py train` for a few steps on `F:\opus_scratch\sol_S31\inputs\prod\holdout_013_014_s16.pos/.hce`
-   (1,024,286 rows, residual, H512/8m/8), `forge_nnue_v3_tool eval net.fnn3 positions_10k.fen`, then
-   `fable_nnue_train.py parity` -> record int mismatches (must be 0) and max |float - int| (must be <= 2 cp).
-2. M4: NPS ON vs OFF at Threads=1 (bench d16/d20, ABBA, same exe, option via UCI), ratio only (loaded PC);
+1. M4: NPS ON vs OFF at Threads=1 (bench d16/d20, ABBA, same exe, option via UCI), ratio only (loaded PC);
    smoke training for a few minutes; `fable_nnue_train.py score` of the v3 net vs the AL1 net's loss on the same
    holdout rows (the AL1 numbers via the S31 scorer).
-3. CI: `gh run list --branch fable-nnue-arch`; record run ids here.
+2. CI: the workflow trigger now includes `fable-*` (this commit); `gh run list --branch fable-nnue-arch`; record run ids here.
