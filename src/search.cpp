@@ -13,6 +13,7 @@
 // Public interfaces: forge/search.hpp (Worker, Searcher), forge/search_types.hpp,
 // forge/tt.hpp, forge/history.hpp, forge/thread_data.hpp, forge/search_tune.hpp.
 #include "forge/search.hpp"
+#include "forge/syzygy.hpp"
 #include "forge/uci_output.hpp"
 
 #include <algorithm>
@@ -38,3 +39,6 @@
 #include "search/iterative.inc"   // root setup and iterative deepening
 #include "search/searcher.inc"    // Searcher facade: helper threads, TT lifecycle
 #include "search/tt_lockless.inc" // UCI LocklessTT: lockless TT access (last: keeps the default placement)
+// Syzygy tablebases (all [[gnu::cold]], placed after the search code).
+#include "search/tablebase.inc"   // search glue: in-search probe, root filter
+#include "search/syzygy.inc"      // table reader, WDL/DTZ probes, root ranking

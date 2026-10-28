@@ -2,6 +2,7 @@
 #include "forge/book.hpp"
 #include "forge/nnue.hpp"
 #include "forge/search.hpp"
+#include "forge/syzygy.hpp"
 #include "forge/uci_output.hpp"
 
 #include <algorithm>
@@ -175,6 +176,9 @@ int main() {
             std::cout << "option name SmpExactNodes type check default false\n"
                          "option name SmpBestThread type check default false\n"
                          "option name LocklessTT type check default false\n";
+            std::cout << "option name SyzygyPath type string default <empty>\n"
+                         "option name SyzygyProbeDepth type spin default 1 min 1 max 10\n"
+                         "option name Syzygy50MoveRule type check default true\n";
 #ifdef FORGE_EXPOSE_TUNABLES
             // Development builds advertise the search constants so match
             // runners can set them; release builds accept them silently.
@@ -277,6 +281,40 @@ int main() {
                     // Confirms the switch in engine logs (applied at the next search).
                     const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex());
                     std::cout << "info string LocklessTT active" << std::endl;
+                }
+            } else if (name == "SyzygyPath") {
+                // Folders separated by ';' (Windows) or ':' (elsewhere); may contain spaces.
+                std::string rest;
+                std::getline(input, rest);
+                std::string path = value_text + rest;
+                while (!path.empty() && (path.back() == ' ' || path.back() == '\r')) path.pop_back();
+                const forge::syzygy::LoadSummary summary = forge::syzygy::load(path);
+                // Stored tablebase scores are encoded by whether tables are loaded (forge/syzygy.hpp).
+                searcher.clear_hash();
+                const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex());
+                if (path.empty() || path == "<empty>") {
+                    std::cout << "info string Syzygy tablebases off" << std::endl;
+                } else {
+                    std::cout << "info string Syzygy: " << summary.wdl_tables << " WDL and " << summary.dtz_tables
+                              << " DTZ tables, up to " << summary.max_pieces << " pieces";
+                    if (summary.rejected > 0) std::cout << ", " << summary.rejected << " invalid files skipped";
+                    std::cout << std::endl;
+                }
+            } else if (name == "SyzygyProbeDepth") {
+                int value = 0;
+                const auto parsed = std::from_chars(value_text.data(), value_text.data() + value_text.size(), value);
+                if (parsed.ec != std::errc{} || parsed.ptr != value_text.data() + value_text.size()) {
+                    const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex());
+                    std::cout << "info string invalid value for option " << name << std::endl;
+                } else {
+                    forge::options::syzygy_probe_depth = std::clamp(value, 1, 10);
+                }
+            } else if (name == "Syzygy50MoveRule") {
+                if (value_text == "true") forge::options::syzygy_50_move_rule = true;
+                else if (value_text == "false") forge::options::syzygy_50_move_rule = false;
+                else {
+                    const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex());
+                    std::cout << "info string invalid value for option " << name << std::endl;
                 }
             } else if (name == "UseNNUE") {
                 if (value_text == "true") forge::nnue::enabled = true;

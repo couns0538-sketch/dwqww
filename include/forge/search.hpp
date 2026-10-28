@@ -65,6 +65,10 @@ private:
     [[nodiscard]] int static_evaluate(const Board& board, SearchStack* ss);
     void record_move(SearchStack* ss, const Board& board, const Move& move);
     void record_null_move(SearchStack* ss);
+    // Syzygy WDL probe inside the search (src/search/tablebase.inc); only
+    // called while tables are loaded. Returns ValueNone to search on.
+    [[gnu::cold]] int probe_tablebase(Board& board, SearchStack* ss, int depth, int alpha, int beta,
+                                      const TTProbe& tt_probe);
 };
 
 // Public search facade: a shared transposition table plus one or more workers.

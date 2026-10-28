@@ -25,5 +25,15 @@ extern bool smp_best_thread;
 // changing it clears the table. Same table contents and rules as the locked
 // table, so a search with Threads=1 is unchanged.
 extern bool lockless_tt;
+// Syzygy tablebases (job C1). The master switch is UCI SyzygyPath (string,
+// default empty = no tables, forge/syzygy.hpp); the two options below only act
+// while tables are loaded.
+// UCI SyzygyProbeDepth (spin 1-10, default 1): positions with as many pieces
+// as the largest loaded tables are probed inside the search only at this
+// remaining depth or more (fewer pieces: at every depth).
+extern int syzygy_probe_depth;
+// UCI Syzygy50MoveRule (check, default true): cursed wins and blessed losses
+// (decided only beyond the 50-move rule) count as draws.
+extern bool syzygy_50_move_rule;
 
 } // namespace forge::options
