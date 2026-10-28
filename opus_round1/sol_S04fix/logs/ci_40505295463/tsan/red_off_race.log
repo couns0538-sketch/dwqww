@@ -1,0 +1,44 @@
+RED run 1 (option OFF, original init bool): exit 66
+RED run 2 (option OFF, original init bool): exit 66
+RED run 3 (option OFF, original init bool): exit 66
+  | WARNING: ThreadSanitizer: data race (pid=13274)
+  |   Read of size 8 at 0x563efcc7c080 by thread T1:
+  |     #0 forge::attacks::init() /home/runner/work/dwqww/dwqww/src/bitboard.cpp:130 (cold_off_race+0x5287) (BuildId: b12c2a69589c444ac845b0c9f24717b9aa24f900)
+  |     #1 forge::Board::Board() /home/runner/work/dwqww/dwqww/src/board.cpp:175 (cold_off_race+0xfd81) (BuildId: b12c2a69589c444ac845b0c9f24717b9aa24f900)
+  |     #2 operator() /home/runner/work/dwqww/dwqww/tests/forge_sol_S04_tsan_test_20261025.cpp:34 (cold_off_race+0x4346) (BuildId: b12c2a69589c444ac845b0c9f24717b9aa24f900)
+  |     #3 __invoke_impl<void, main()::<lambda()> > /usr/include/c++/14/bits/invoke.h:61 (cold_off_race+0x47a1) (BuildId: b12c2a69589c444ac845b0c9f24717b9aa24f900)
+  |     #4 __invoke<main()::<lambda()> > /usr/include/c++/14/bits/invoke.h:96 (cold_off_race+0x47a1)
+  |     #5 _M_invoke<0> /usr/include/c++/14/bits/std_thread.h:301 (cold_off_race+0x47a1)
+  |     #6 operator() /usr/include/c++/14/bits/std_thread.h:308 (cold_off_race+0x47a1)
+  |     #7 _M_run /usr/include/c++/14/bits/std_thread.h:253 (cold_off_race+0x47a1)
+  |     #8 <null> <null> (libstdc++.so.6+0xecdb3) (BuildId: 753c6c8608b61d4e67be8f0c890e03e0aa046b8b)
+  | 
+  |   Previous write of size 8 at 0x563efcc7c080 by thread T8:
+  | --
+  | WARNING: ThreadSanitizer: data race (pid=13287)
+  |   Read of size 8 at 0x55e81c630080 by thread T2:
+  |     #0 forge::attacks::init() /home/runner/work/dwqww/dwqww/src/bitboard.cpp:130 (cold_off_race+0x5287) (BuildId: b12c2a69589c444ac845b0c9f24717b9aa24f900)
+  |     #1 forge::Board::Board() /home/runner/work/dwqww/dwqww/src/board.cpp:175 (cold_off_race+0xfd81) (BuildId: b12c2a69589c444ac845b0c9f24717b9aa24f900)
+  |     #2 operator() /home/runner/work/dwqww/dwqww/tests/forge_sol_S04_tsan_test_20261025.cpp:34 (cold_off_race+0x4346) (BuildId: b12c2a69589c444ac845b0c9f24717b9aa24f900)
+  |     #3 __invoke_impl<void, main()::<lambda()> > /usr/include/c++/14/bits/invoke.h:61 (cold_off_race+0x47a1) (BuildId: b12c2a69589c444ac845b0c9f24717b9aa24f900)
+  |     #4 __invoke<main()::<lambda()> > /usr/include/c++/14/bits/invoke.h:96 (cold_off_race+0x47a1)
+  |     #5 _M_invoke<0> /usr/include/c++/14/bits/std_thread.h:301 (cold_off_race+0x47a1)
+  |     #6 operator() /usr/include/c++/14/bits/std_thread.h:308 (cold_off_race+0x47a1)
+  |     #7 _M_run /usr/include/c++/14/bits/std_thread.h:253 (cold_off_race+0x47a1)
+  |     #8 <null> <null> (libstdc++.so.6+0xecdb3) (BuildId: 753c6c8608b61d4e67be8f0c890e03e0aa046b8b)
+  | 
+  |   Previous write of size 8 at 0x55e81c630080 by thread T8:
+  | --
+  | WARNING: ThreadSanitizer: data race (pid=13300)
+  |   Write of size 1 at 0x5588d205f280 by thread T8:
+  |     #0 forge::attacks::init() /home/runner/work/dwqww/dwqww/src/bitboard.cpp:123 (cold_off_race+0x51af) (BuildId: b12c2a69589c444ac845b0c9f24717b9aa24f900)
+  |     #1 forge::Board::Board() /home/runner/work/dwqww/dwqww/src/board.cpp:175 (cold_off_race+0xfd81) (BuildId: b12c2a69589c444ac845b0c9f24717b9aa24f900)
+  |     #2 operator() /home/runner/work/dwqww/dwqww/tests/forge_sol_S04_tsan_test_20261025.cpp:34 (cold_off_race+0x4346) (BuildId: b12c2a69589c444ac845b0c9f24717b9aa24f900)
+  |     #3 __invoke_impl<void, main()::<lambda()> > /usr/include/c++/14/bits/invoke.h:61 (cold_off_race+0x47a1) (BuildId: b12c2a69589c444ac845b0c9f24717b9aa24f900)
+  |     #4 __invoke<main()::<lambda()> > /usr/include/c++/14/bits/invoke.h:96 (cold_off_race+0x47a1)
+  |     #5 _M_invoke<0> /usr/include/c++/14/bits/std_thread.h:301 (cold_off_race+0x47a1)
+  |     #6 operator() /usr/include/c++/14/bits/std_thread.h:308 (cold_off_race+0x47a1)
+  |     #7 _M_run /usr/include/c++/14/bits/std_thread.h:253 (cold_off_race+0x47a1)
+  |     #8 <null> <null> (libstdc++.so.6+0xecdb3) (BuildId: 753c6c8608b61d4e67be8f0c890e03e0aa046b8b)
+  | 
+RED control: 3/3 OFF runs failed (expected 3/3)

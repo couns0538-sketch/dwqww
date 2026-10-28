@@ -1,0 +1,38 @@
+# FILES index, opus_round1/sol_SA2, S-A2 (int16 inference weights + weight clipping in training), branch opus-sol-SA2. path | bytes | sha256 | content
+# Engine change in src/ include/ tests/ tools/ CMakeLists.txt (see README.md); REPORT.md is written by the main session from the hand-back
+IDEA_SOURCE.md | 3557 | d2457fad02f52c9ab2d8538f6dbadea32d3ed50451a0a28934f3fde2c70f9710 | sources: Sol's NnueInt16 b425207a (764db5f3, 07410241), CR hold, S21, S50 v3c
+README.md | 5873 | c5988f7d960c1c9ad232b5d4e56bede17375bf3f3eb2b72590e83b55b4f1be5a | how to build, run and verify (engine option, parity, trainer clip)
+mutation_check_sa2.py | 4473 | 7306725a6486def206fc5dff8d6a24d592d12c910838069978276139f6f1811c | engine planted-bug check (5 mutants + control)
+mutation_check_trainer_sa2.py | 4077 | f8d2274cdfac804c5665f5bcebd3e0ac8ec1c80aefc9055ed74e7e339e6df15f | trainer planted-bug check (8 mutants + controls)
+nnue_int16_dump.cpp | 4998 | 874a7719ba5dd0e242d6f66f0c41a1ba900706736ad9cded83f5aa7daf0b0a8c | parity driver: engine float/int16 values, accumulator signatures, incremental checks per FEN
+nps_ab_opts.py | 4612 | 05524517f1fa8cc7061bc161fc35df5a62c6b94da6012cdd16f3931a2a66941c | ABBA NPS (S29 nps_ab.py + per-arm UCI options)
+opus_nnue_smoke_sa2.py | 20152 | 3e747ebd950dd92cb636f238af6487f2876828524522d21657e94b67c79a8fb8 | trainer CPU smoke runner (renamed copies, Idle, RAM floor, supervisor watch)
+port_vs_sol_nnue_int16.diff | 6212 | f328f829de07b7fcf0c1bd6ab606b4f0e92837af6c36294fcd1e80867d4476f8 | src/nnue_int16.inc of this branch vs Sol's b425207a
+sa2_parity.py | 12489 | 16893f25020c1a74a531cad49067e93c204b6df385020afc9c9d091bc60bb222 | parity: exact Python integer reference + float32 emulation vs the dumps; float-vs-int16 stats
+test_trainer_clip_sa2.py | 9334 | fcbd6120bd30879adf86b772d913e1db99093b6c9718d1cc0554dadf55cc8ba5 | trainer unit tests (10)
+trainer_v3c_clip.py | 49845 | c1ec52720241926c40a3328fa30bc1baa5e543c7a210b08ba7b71f0ac9a224f3 | deliverable: v3c (opus-sol-S50 ff98828a) + --weight-clip (default off); never run under a train_resid* name
+uci_bench.py | 2564 | 91f777630cc898216db4a28c5f5beb3bb1b8de032274a35e63e3e1a501420229 | bench nodes with extra UCI options (ON bench pins)
+v3c_to_clip.diff | 9649 | 2091ecc147d00a25d20dbdffb0a2f1566aeadbeb2957a9b5450a650d9205934b | diff of the S50 v3c -> trainer_v3c_clip.py
+logs/bench_on_nnueint16.log | 327 | 5d2623ad9390350ddb114613be187e63a81f99ee163bf27794aa1f53b71a045d | evidence log
+logs/build_pc_box_recipe.log | 158 | b1e5952ca0475d6d4b3abeca845cd5c931e17742a96141d48b06f6ad737a6463 | evidence log
+logs/ci_40515643380.log | 5835 | da96483f691ccbf8173d28af0eb57695f6c653e60e3a2a970a5c2c49add53557 | GitHub CI opus-ci run 40515643380 (release/asan/tsan success) excerpts
+logs/cmake_build_and_known_failures_pc.log | 1338 | 0c6079ccf7bcb3c2aa9bbb5d41486c37724a9d307b7d2bd59790296085bb4aa0 | evidence log
+logs/ctest_release_pc.log | 2418 | 3b4d08463cf51db1e77ad1fcc8d12ac4a39cc9cb30ad79cc4b80c47e6a95c650 | evidence log
+logs/mutation_engine.json | 1939 | 2bd02e3f82c7def73b7e4ac9fc9a24b288889033b4f403516ff5b2bbaa934db8 | evidence log
+logs/mutation_engine.log | 931 | 33b385948920f7427b135b92974088a0e8890e459d62966b47859bb9ada515a6 | evidence log
+logs/nnue_int16_tests_pc.log | 1084 | c732041be67a214f39ac03e54a682eec1c5961bd5928e33292e4ca1c2ca81a01 | evidence log
+logs/nps_off_vs_lock.log | 2494 | 92dd15be0832267cb30585b4bba5b458f2f79ad7e2b1ca4bfa58e7f81aadde19 | evidence log
+logs/nps_on_vs_off.log | 2506 | 22018a7ac32518abbe8c23e030a6283495a08fc89fcf65fa6188636e1905f21b | evidence log
+logs/parity_build_and_run.log | 2520 | b0b673c82d5b9b01d280e1e43ee0e31fe05702ddf2d30d562c44f15fbb86aa37 | evidence log
+logs/parity_dump_lock_10k.tsv.gz | 169653 | 1685c85d0fab9cbfbf3ac2ede7c57777f3393cfd27b6df02633e3bda9a3305de | evidence log
+logs/parity_lock_10k.json | 2479 | d6e26b10f9a58cd3313edfcfd2a1f470b61ca80f581b4ed4df3d9ba9c6addd33 | evidence log
+logs/scratch_outputs_sha256.txt | 9348 | dc8a28df1dca4617a2811ad1d33208d648a0c7471155fc30911523e533fcafa1 | evidence log
+logs/supervisor_check.log | 566 | 3195423156752740096cc87faf9d7fcc4ac621a0de00d180a566116ee27f700b | evidence log
+logs/trainer_mutation_check.log | 1357 | e81e7cf1b41bea39d29dec79b981ef326ad1c16f12733ca155e0e756b3bea7e1 | evidence log
+logs/trainer_smoke_acceptance_r1.json | 5188 | 48c2c2917ba5e71f85f24be465690ca99973bea579818151176fddf3bfaa92e8 | evidence log
+logs/trainer_smoke_compare_r1.log | 4519 | 9a49d1631c8ab87f27f224d52edb2b0d629f3f20cb44449911f8218c7ea3e479 | evidence log
+logs/trainer_smoke_suite_r1.log | 571 | bc26e45c61d02a8ce1d0e72503e223a353f54b96b55b4eb13583d0aa64212876 | evidence log
+logs/trainer_stage.log | 1221 | d7e8c9133e35f99c6a93641a99b8b972edeb87ea66b35c72155bc0ff34d7b3ce | evidence log
+logs/trainer_unit_tests.log | 645 | 2d75b4460c85acd42e9ca8b0736097608f21e37d9f6de50c0a72e844b0840fa3 | evidence log
+logs/uci_check_full_off.log | 292 | e9a65740b16e3ef80327d3e23e761c63f99b292bbfcba320185b1da7838740d8 | evidence log
+REPORT.md | 8472 | 8337bcc101e8346f3684097f78d6ef14656a2f013a739abc393269202bd42f29 | job report (written by the main session from the job's results)

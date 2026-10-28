@@ -1,0 +1,88 @@
+{
+ "rows": [
+  {
+   "mutant": "control (no mutation)",
+   "file": null,
+   "H512": {
+    "rc": 0,
+    "fail_lines": 0,
+    "first_fail": null,
+    "tail": "PASS: 40691 checks"
+   },
+   "H256": {
+    "rc": 0,
+    "fail_lines": 0,
+    "first_fail": null,
+    "tail": "PASS: 40691 checks"
+   },
+   "result": "OK"
+  },
+  {
+   "mutant": "AVX2 incremental update stops at unit 256",
+   "file": "src/nnue_int16.inc",
+   "H512": {
+    "rc": 1,
+    "fail_lines": 20,
+    "first_fail": "FAIL: incremental != fresh: rnbqkbnr/pppppppp/8/8/8/2N5/PPPPPPPP/R1BQKBNR b KQkq - 1 1",
+    "tail": "17252 of 40691 checks failed"
+   },
+   "H256": {
+    "rc": 0,
+    "fail_lines": 0,
+    "first_fail": null,
+    "tail": "PASS: 40691 checks"
+   },
+   "result": "OK"
+  },
+  {
+   "mutant": "AVX2 integer output stops at unit 256",
+   "file": "src/nnue_int16.inc",
+   "H512": {
+    "rc": 1,
+    "fail_lines": 20,
+    "first_fail": "FAIL: int16 evaluate -190 != reference 99: rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
+    "tail": "5870 of 40691 checks failed"
+   },
+   "H256": {
+    "rc": 0,
+    "fail_lines": 0,
+    "first_fail": null,
+    "tail": "PASS: 40691 checks"
+   },
+   "result": "OK"
+  },
+  {
+   "mutant": "opponent output weights at a fixed offset 256",
+   "file": "src/nnue_int16.inc",
+   "H512": {
+    "rc": 1,
+    "fail_lines": 20,
+    "first_fail": "FAIL: int16 evaluate 510 != reference 99: rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
+    "tail": "5871 of 40691 checks failed"
+   },
+   "H256": {
+    "rc": 0,
+    "fail_lines": 0,
+    "first_fail": null,
+    "tail": "PASS: 40691 checks"
+   },
+   "result": "OK"
+  },
+  {
+   "mutant": "FORGE_NNUE_WEIGHTS ignored",
+   "file": "src/nnue.cpp",
+   "H512": {
+    "build": "FAILED",
+    "error": "F:\\opus_scratch\\build\\SA4\\mutants_v1\\m4\\src\\nnue_weights.inc:4:73: error: static assertion failed: NNUE shape mismatch; rebuild with the correct FORGE_NNUE_HIDDEN"
+   },
+   "H256": {
+    "rc": 0,
+    "fail_lines": 0,
+    "first_fail": null,
+    "tail": "PASS: 40691 checks"
+   },
+   "result": "OK"
+  }
+ ],
+ "pass": true
+}

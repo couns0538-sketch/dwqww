@@ -110,6 +110,7 @@ SearchInfo Searcher::search(Board board, const SearchLimits& limits, bool emit_i
     }
     if (shared_.lazy_acc_enabled && result.lazy_acc_stats.evaluations != 0) {
         const std::lock_guard<std::mutex> output_lock(uci_output_mutex());
+        if (shared_.output_closed.load(std::memory_order_relaxed)) return result;  // HardDeadline answered this go
         if (!lazy_acc_active_announced.exchange(true, std::memory_order_relaxed))
             std::cout << "info string NnueLazyAcc active\n";
         const auto& stats = result.lazy_acc_stats;
@@ -153,6 +154,7 @@ SearchInfo Searcher::search(Board board, const SearchLimits& limits, bool emit_i
     // Publish the chosen line so GUIs see a PV consistent with the best move.
     const std::uint64_t nps = result.elapsed_ms > 0 ? result.nodes * 1000U / result.elapsed_ms : 0;
     const std::lock_guard<std::mutex> output_lock(uci_output_mutex());
+    if (shared_.output_closed.load(std::memory_order_relaxed)) return;  // HardDeadline answered this go
     std::cout << "info depth " << result.depth << " seldepth " << std::max(result.seldepth, result.depth)
               << " score " << format_score(result.score) << " nodes " << result.nodes << " nps " << nps
               << " hashfull " << shared_.tt.hashfull() << " time " << result.elapsed_ms << " pv";

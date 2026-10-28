@@ -1,0 +1,11 @@
+# S37 run history (all in F:/opus_scratch/sol_s37; only runs4 is the final evidence, built from the committed source)
+runs/lock_avx2_r1.json   first version: update kinds timed per chunk (castling ~1.5 calls per region: region overhead
+                         ~200 ns dominated, 684 ns/call); fixed by kind-major update groups and 4x hot repeats.
+runs/lock_avx2_v2.json   second version (kind-major groups).
+runs/*_round[1-3].json   4 configs x 3 rounds with the second version: x86intrin.h's target pragmas re-defined __AVX2__,
+                         so the *scalar* build's replica stages (activation/affine only) ran AVX2 code; engine stages
+                         were scalar (0 packed ops in forge::nnue::). Fixed by capturing the path macros before any include.
+runs3/                   third version: scalar replica truly scalar but its clamp compiled to 7 branches (engine's scalar
+                         evaluate uses maxss/minss): activation 630-700 ns. Fixed with locals + __restrict__ (1 loop branch).
+runs4/                   final (mb4_* exes from the committed source): 4 configs x 3 rounds, 15 passes + 2 per-call passes each.
+Checksums were identical in every version (the engine code never changed).
