@@ -168,10 +168,13 @@ Evidence: `fable_review/s44_check.log`.
   Consistent. DONE.
 - **Full-checkout tests in real worktrees** (`fable_review/run_fullcheckout_tests.sh`): S48fix passes (1 skipped).
   S15 passes once the whole tree is LF (its tool hashes a PGN checker under `tools/`: the frozen hash is of the LF
-  blob, the worktree is CRLF) -> the same line-ending class, at repository level. S47 (3 failures: fixture exe/lock
-  hashes vs their RUN_INFO, in CRLF and in LF checkouts alike) and S27fix (3 failures, finding `control_authority`
-  on the reviewed buffix record) fail on this PC in a real worktree; both passed in Opus's run/CI. Unresolved here:
-  not established as tool-logic defects; the author's environment differs from this checkout.
+  blob, the worktree is CRLF) -> the same line-ending class, at repository level. S27fix: with LF job files the
+  finding changes from `control_authority` to `git_apply_failed: git apply --check rejected exact payload (base
+  AL1)`: the hygiene tool checks the LF buffix patch against a CRLF checkout of the AL1 base, so this too is the
+  repository-level line-ending class (it passed on the Linux CI workflow opus-sol-s27fix-linux). S47 (3 failures:
+  fixture exe/lock hashes vs their RUN_INFO, in CRLF and in LF job folders alike) stays unresolved on this PC; it
+  passed in Opus's run. Neither is established as a tool-logic defect. The repository-wide remedy for every case of
+  this class is one root `.gitattributes` (`* -text`), which the owner should consider for the next lock tree.
 - **Trainer-variant tests** (S39, S50, SA3, SA2) run against the staged renamed trainer copies that Opus's tests
   were written for (`importlib`, no forbidden name on any command line; supervisor adoption count unchanged at 7):
   every test passes except `test_copies`, which compares the job folder's trainer file with the staged copy byte
