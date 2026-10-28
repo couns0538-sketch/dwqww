@@ -63,9 +63,17 @@ superseded runs cannot be turned green by re-running (same code).
 | O5 CorrMargins, O8 CorrExt (opus-O5, opus-O8) | the margin helpers (`corr_margins.hpp`: correction size 0 when in check or without evals, RFP/futility/null-move margins and the LMR reduction scaled by percentage tunables, `lmr_reduction` never below 0; `corr_ext.hpp`: double/triple singular extensions bounded by a per-path budget) | **no defect found** in the helpers; integer ranges are safe (r x correction x pct / 6400 stays far below 2^31) |
 | C6 CuckooRep (opus-C6) | `Board::upcoming_repetition` (table build, two-slot cuckoo lookup, opponent-delta XOR, mover/empty/between checks, rule-50 + null-move window `distance < min(halfmove+1, since_null+1, size)` against the lock's `is_repetition` (`span = min(halfmove, plies_from_null, size-1)`, even distances 4..span), root-index rule, second-occurrence scan) and the search bound (`search_cuckoo`/`qsearch_cuckoo`: alpha < 0, not at root, no excluded move, fail-high when beta <= 0, else alpha raised to 0 and `max(result, 0)`) | **no defect found**; the window arithmetic matches the lock's repetition scan exactly and the bound is sound (the drawing move is legal because the opponent-to-move position it recreates was legal) |
 
+| C1 Syzygy (opus-C1), targeted | probe preconditions (`castling_rights() == 0`, piece count <= the loaded tables' maximum), en passant (the WDL probe resolves captures and en passant explicitly, `syzygy.inc` lines 907-993; the report tested 26 en-passant positions) | **no defect found** in the parts read; the 1474-line decoder itself was not re-read line by line |
+
+## Mistakes found (with the correction)
+
+| # | where | mistake | correction |
+|---|---|---|---|
+| 1 | opus-O1, opus-O1-LTT, opus-O2, opus-sol-S12 and every opus-r3-* branch (8 files on opus-r3-stack) | Python bytecode committed: `opus_round1/O1/__pycache__/ucilib.cpython-314.pyc`, `opus_round1/O2/__pycache__/mutation_check.cpython-314.pyc`, `opus_round1/sol_S12/__pycache__/jobA_cause.cpython-314.pyc`, `opus_round1/sol_S12/followup_nullalias/__pycache__/mutation_check_alias.cpython-314.pyc` and the stack's copies (ctest ran the tools with the system Python inside the source tree) | the fix is `git rm --cached` of the eight files plus `__pycache__/` and `*.pyc` in `.gitignore` on a `fable-review-r3-stack` branch; **the command was denied by the PC's permission rules in this session (it counts as a deletion), exactly as it was for Opus**, so this stays an owner action: `git rm --cached $(git ls-files | grep '\.pyc$')` on a branch off opus-r3-stack, then commit |
+
 ## Corrections pushed
 
-(none yet)
+(none: the only mistake found so far needs a deletion that the permission rules refuse; see above)
 
 ## Time estimate
 
