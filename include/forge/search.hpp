@@ -142,6 +142,10 @@ public:
     void clear_hash();
     void resize_hash(std::size_t hash_mb);
     void set_threads(int threads);
+#ifdef FORGE_S13_TT_CHILD_PREFETCH
+    void set_s13_tt_child_prefetch(bool enabled) { shared_.s13_tt_child_prefetch.store(enabled, std::memory_order_relaxed); }
+    [[nodiscard]] bool s13_tt_child_prefetch_enabled() const { return shared_.s13_tt_child_prefetch.load(std::memory_order_relaxed); }
+#endif
     [[nodiscard]] int threads() const { return static_cast<int>(workers_.size()); }
     [[nodiscard]] int hashfull_permille() const { return shared_.tt.hashfull(); }
     [[nodiscard]] static int evaluate(const Board& board) { return Evaluator::evaluate_uncached(board); }

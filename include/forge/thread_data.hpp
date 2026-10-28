@@ -56,6 +56,10 @@ struct SearchStack {
 struct SharedSearchState {
     explicit SharedSearchState(std::size_t hash_mb) : tt(hash_mb) {}
     TranspositionTable tt;
+#ifdef FORGE_S13_TT_CHILD_PREFETCH
+    std::atomic<bool> s13_tt_child_prefetch{false};
+    std::atomic<bool> s13_tt_child_prefetch_announced{false};
+#endif
     std::atomic<bool> stop{false};
     // 0 means pondering has not been converted into a timed search.
     std::atomic<std::int64_t> ponder_hit_ns{0};
@@ -91,6 +95,9 @@ struct ThreadData {
     std::array<std::uint64_t, 256> root_move_nodes_{};
     std::size_t root_effort_count_ = 0;
 
+#ifdef FORGE_S13_TT_CHILD_PREFETCH
+    bool s13_tt_child_prefetch_ = false;
+#endif
     bool pondering_ = false;
     std::chrono::steady_clock::time_point start_{};
     std::atomic<std::uint64_t> nodes_{0};

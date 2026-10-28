@@ -29,6 +29,11 @@ if(FORGE_NNUE_O2)
     target_compile_definitions(forge_core PUBLIC FORGE_NNUE_O2=1)
 endif()
 
+option(FORGE_S13_TT_CHILD_PREFETCH "Build the opt-in TtChildPrefetch experiment" OFF)
+if(FORGE_S13_TT_CHILD_PREFETCH)
+    target_compile_definitions(forge_core PUBLIC FORGE_S13_TT_CHILD_PREFETCH=1)
+endif()
+
 if(MSVC)
     target_compile_options(forge_core PRIVATE /W4 /permissive-)
 else()
@@ -158,6 +163,14 @@ target_link_libraries(forge_cuckoo_tests PRIVATE forge_core Threads::Threads)
 add_executable(forge_nnue_parity_tests tests/nnue_parity_tests.cpp)
 target_link_libraries(forge_nnue_parity_tests PRIVATE forge_core Threads::Threads)
 
+# S13: includes the actual src/search.cpp with its TT prefetch redirected to a
+# counter, so the archive's own search.cpp object is never linked (link map).
+add_executable(forge_tt_prefetch_probe tests/tt_prefetch_probe_tests.cpp)
+target_link_libraries(forge_tt_prefetch_probe PRIVATE forge_core Threads::Threads)
+if(NOT MSVC)
+    target_link_options(forge_tt_prefetch_probe PRIVATE "-Wl,-Map=${CMAKE_CURRENT_BINARY_DIR}/forge_tt_prefetch_probe.map")
+endif()
+
 add_executable(forge_bench bench/benchmark.cpp)
 target_link_libraries(forge_bench PRIVATE forge_core Threads::Threads)
 
@@ -189,6 +202,7 @@ add_test(NAME forge_rule50_tests COMMAND forge_rule50_tests)
 add_test(NAME forge_syzygy_tests COMMAND forge_syzygy_tests
     ${CMAKE_CURRENT_SOURCE_DIR}/tests/syzygy_fixtures.tsv ${CMAKE_CURRENT_SOURCE_DIR}/tests/syzygy_reference.tsv
     ${FORGE_SYZYGY_PATH})
+add_test(NAME forge_tt_prefetch_probe COMMAND forge_tt_prefetch_probe)
 add_test(NAME forge_legal_witness_tests COMMAND forge_legal_witness_tests
     ${CMAKE_CURRENT_SOURCE_DIR}/tests/legal_witness_fixtures.tsv
     ${CMAKE_CURRENT_SOURCE_DIR}/tools/openings/forge-10000.epd)

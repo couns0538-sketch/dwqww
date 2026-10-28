@@ -451,6 +451,9 @@ int main() {
                           << " min " << parameter.minimum << " max " << parameter.maximum << "\n";
             }
 #endif
+#ifdef FORGE_S13_TT_CHILD_PREFETCH
+            std::cout << "option name TtChildPrefetch type check default false\n";
+#endif
             std::cout << "option name Clear Hash type button\n"
                          "uciok" << std::endl;
         } else if (command == "isready") {
@@ -495,6 +498,15 @@ int main() {
             }
             if (handled_tunable) {
                 // Unlisted development options; nothing else to do.
+#ifdef FORGE_S13_TT_CHILD_PREFETCH
+            } else if (name == "TtChildPrefetch") {
+                if (value_text == "true" || value_text == "false") {
+                    searcher.set_s13_tt_child_prefetch(value_text == "true");
+                } else {
+                    const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex());
+                    std::cout << "info string invalid value for option TtChildPrefetch" << std::endl;
+                }
+#endif
             } else if (name == "Clear Hash") {
                 searcher.clear_hash();
             } else if (name == "Ponder") {
@@ -861,6 +873,9 @@ int main() {
             std::uint64_t total_nodes = 0;
             const auto start = std::chrono::steady_clock::now();
             forge::Searcher bench_searcher(16);
+#ifdef FORGE_S13_TT_CHILD_PREFETCH
+            bench_searcher.set_s13_tt_child_prefetch(searcher.s13_tt_child_prefetch_enabled());
+#endif
             for (const std::string_view fen : fens) {
                 forge::Board bench_board;
                 if (!bench_board.set_fen(fen)) continue;

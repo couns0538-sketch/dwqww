@@ -37,6 +37,14 @@ SearchInfo Searcher::search(Board board, const SearchLimits& limits, bool emit_i
     const auto origin = supplied_start == std::chrono::steady_clock::time_point{} && clocked
         ? std::chrono::steady_clock::now() : supplied_start;
     SearchLimits worker_limits = limits;
+#ifdef FORGE_S13_TT_CHILD_PREFETCH
+    // Snapshot once before helper launch; recursive workers use their own copy.
+    worker_limits.s13_tt_child_prefetch = shared_.s13_tt_child_prefetch.load(std::memory_order_relaxed);
+    if (worker_limits.s13_tt_child_prefetch && !shared_.s13_tt_child_prefetch_announced.exchange(true, std::memory_order_relaxed)) {
+        const std::lock_guard<std::mutex> output_lock(uci_output_mutex());
+        std::cout << "info string TtChildPrefetch active" << std::endl;
+    }
+#endif
     worker_limits.start_time = origin;
     // Tablebases (UCI SyzygyPath): in-search probing limit, root move filter.
     if (syzygy::max_pieces() > 0) [[unlikely]] syzygy::prepare_root(board, worker_limits);

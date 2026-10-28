@@ -13,6 +13,9 @@ namespace forge {
 }
 
 SearchInfo Worker::search(Board board, const SearchLimits& limits, bool emit_info, const std::vector<Worker*>& all) {
+#ifdef FORGE_S13_TT_CHILD_PREFETCH
+    s13_tt_child_prefetch_ = limits.s13_tt_child_prefetch;
+#endif
     const auto origin = limits.start_time != std::chrono::steady_clock::time_point{}
         ? limits.start_time : limits.request_start;
     start_ = origin == std::chrono::steady_clock::time_point{}

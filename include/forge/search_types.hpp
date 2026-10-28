@@ -9,6 +9,9 @@
 namespace forge {
 
 struct SearchLimits {
+#ifdef FORGE_S13_TT_CHILD_PREFETCH
+    bool s13_tt_child_prefetch = false;
+#endif
     int depth = 64;
     std::uint64_t nodes = 0;
     bool nodes_specified = false;
