@@ -24,9 +24,14 @@ throughout; my work at nice 19). No Elo claims: no gate was run.
 | 40568162589 | `2047348` (+ S08fix, evidence) | success (19m29s) |
 | 40568260400 | `opus-r3-port-b` `a06b00d` (S32, S37, S04fix on `2432670`) | success |
 | 40570018288 | `opus-r3-port-c` (S-A2 behind FORGE_NNUE_INT16, S-A4 on `2432670`) | success |
-| 40573865157 | `330237f` (port-b + port-c merged, HardDeadline fix) | running |
+| 40573865157 | `330237f` (port-b + port-c merged, HardDeadline fix) | success |
+| 40578094641 | `287aa15` (+ docs, R3-3, CI hook) | running |
+| 40578094685 | `287aa15`, new workflow `opus-r3-switches` (every build switch ON) | running |
 Since the failure every push is preceded by a full local CMake build of all targets and the full CTest list (only
 the 4 known `forge_tests` lines may fail; `check_known_failures.py` PASS), and every run is followed to green.
+`opus-r3-switches` (new in R3) runs the same release/ASan/TSan evidence with every build switch ON (O2, NOZERO,
+TT prefetch, SPEEDSTACK, LAZY_ACC, PROF, INT16, DATAGEN, ATTACKS_INIT_ONCE); before it went live the same
+configuration passed locally (CMake all targets, uci_check --full ALL OK, CTest 49 tests, known-failure check PASS).
 The failed run cannot be re-run usefully (it would rebuild the same broken commit) and runs cannot be deleted here;
 every later run of the branch is green.
 
