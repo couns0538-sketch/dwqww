@@ -137,6 +137,8 @@ only, not a claim.
 ## 6. Follow-up (2026-10-27): Sol's null-edge accumulator alias, ported (default OFF)
 Main session, commit `1d4052d2` (+ this evidence commit). Folder `followup_nullalias/` (README, patch.diff vs the
 lock, tools, logs). Machine exclusive: no; speed is quoted only from quiet GitHub runners. No Elo claim.
+**Paths in this section are relative to `followup_nullalias/`** (so `logs/…` is `followup_nullalias/logs/…`, not
+the Job A logs of sections 1-4).
 
 **What it is.** After a null move the pieces do not change, so the null child's accumulator equals its parent's;
 AL1 still copies it (`nnue::update` with zero dirty pieces copies both 256-float halves, 2 KiB). Sol's patch lets the
@@ -165,7 +167,7 @@ null child borrow the nearest valid physical ancestor's accumulator and runtime 
 avoids 183,232 copies: about 4.5 ms of a bench that takes about 6.2 s on the PC, about 0.07%. Section 5's bound
 said a 1% gain would need about 2.5M null children; the real count is 14 times smaller. The quiet-runner A/B agrees: option on vs off and lock vs alias-on stay within ±0.4% with every CI including 0 (the lock vs switch-on figure with the option off touches 0 at d20, +0.17% [+0.00, +0.33]). The alias works and is node-exact, but it does not pay for itself as a speed change.
 
-**Code size (Linux, `nm -S`, bytes; `release/hot_function_sizes.log`).** Switch-on vs lock: `static_evaluate` 625 → 726, new `static_evaluate_lazy` 1,020, `record_move` 159 → 170, `record_null_move` 29 → 40, `qsearch` 4,233 → 4,265, recursive `search` 12,737 → 12,762; the NNUE kernels are unchanged.
+**Code size (Linux, `nm -S`, bytes; `logs/ci_40528476124/release/hot_function_sizes.log`).** Switch-on vs lock: `static_evaluate` 625 → 726, new `static_evaluate_lazy` 1,020, `record_move` 159 → 170, `record_null_move` 29 → 40, `qsearch` 4,233 → 4,265, recursive `search` 12,737 → 12,762; the NNUE kernels are unchanged.
 
 **Findings**
 - The two planted bugs that only our extra tests catch are equivalent in today's engine. Search never makes two
