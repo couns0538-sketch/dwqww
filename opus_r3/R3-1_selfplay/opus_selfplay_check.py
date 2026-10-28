@@ -5,6 +5,7 @@ protocol check after every command. One config per run; run_matrix.py runs the w
 usage: opus_selfplay_check.py --name NAME --exe ENGINE [--opt Name=value ...] [--threads N] [--games 500]
            [--parallel 3] [--restart-every 25] [--seed 1] [--out-dir DIR] [--epd tools/openings/forge-10000.epd]
            [--max-plies 200] [--margin-ms 10000] [--git-head SHA] [--preflight-only]
+           [--nodes-min 300] [--nodes-max 5000] [--mix nodes=50,clock=15,...] [--exe-arg ARG ...]
 
 Every engine: Hash 16, Threads N, Ponder true (so every bestmove carries a ponder move to check), OwnBook false
 (every go searches), then the --opt options in the given order except that NNUEFile is sent last.
@@ -23,15 +24,20 @@ Checks (each failure is an error in the game's JSONL record; exit status 1 if an
 - well-formed output: info lines use known keys with integer values, score cp|mate [lowerbound|upperbound];
   info strings containing error/invalid/illegal/cannot/unknown/fail/exception/assert/abort are errors (the
   transient `ERROR NNUE v2` lines of a half-set request while the options are being sent are logged and must be
-  resolved by `isready`); any other unexpected line is an error;
+  resolved by `isready`); any other unexpected line is an error; a search info line that arrives after its
+  bestmove (before the next readyok) is an error (late_search_output, recorded with that search's go command and
+  whether its bestmove came from the search thread or the HardDeadline watchdog);
+- S08fix profile blocks (Profile=true): schema line + one line per counter right before the search thread's
+  bestmove, every block with the same counters in the same order, "pct unknown" only with 0 opportunities;
 - options: every configured option is advertised by `uci`; the configuration ends in readyok with the expected
   activation lines (NNUE v2 active, Syzygy tables loaded, LocklessTT active).
-Commands vary per move (per-game RNG, seed:game, so game i uses the same opening and plan in every config):
-go nodes 300-5000 (50%), clocked go wtime/btime/winc/binc from a per-game clock of 0.2-2 s + 0/10/20/30/50 ms
-(15%), go movetime 5-30 (8%), go depth 1-6 (8%), go infinite + stop after 5-50 ms (7%), go ponder + ponderhit
-after 5-50 ms (6%), a ponder miss (go ponder on another opponent move + stop after 5-50 ms, then a clocked go on
-the real position, 6%); 30% of infinite/ponder searches get an `isready` mid-search; 3% of moves send a stray
-`stop` to the idle engine first. `ucinewgame` + isready before every game, engines restarted every K games.
+Commands vary per move (per-game RNG, seed:game, so game i uses the same opening and plan in every config;
+defaults below, --nodes-min/--nodes-max/--mix change them): go nodes 300-5000 (50%), clocked go
+wtime/btime/winc/binc from a per-game clock of 0.2-2 s + 0/10/20/30/50 ms (15%), go movetime 5-30 (8%),
+go depth 1-6 (8%), go infinite + stop after 5-50 ms (7%), go ponder + ponderhit after 5-50 ms (6%), a ponder
+miss (go ponder on another opponent move + stop after 5-50 ms, then a clocked go on the real position, 6%); 30%
+of infinite/ponder searches get an `isready` mid-search; 3% of moves send a stray `stop` to the idle engine first.
+`ucinewgame` + isready before every game, engines restarted every K games.
 A game ends on mate, stalemate, insufficient material, threefold repetition, the 50-move rule, or at --max-plies.
 Outputs in --out-dir: <name>.games.jsonl (one record per game + one per worker end), <name>.summary.json,
 <name>.preflight.json, <name>.pgn, <name>.events.log, errgames/<name>_g<game>.log (full transcripts of games
@@ -44,6 +50,7 @@ import json
 import os
 import queue
 import random
+import re
 import subprocess
 import sys
 import threading
@@ -96,9 +103,9 @@ class Engine:
     """One engine process: reader threads timestamp every stdout/stderr line; every line sent or received goes to
     the transcript."""
 
-    def __init__(self, exe, tag, cwd):
+    def __init__(self, cmd, tag, cwd):
         self.tag = tag
-        self.proc = subprocess.Popen([exe], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+        self.proc = subprocess.Popen(cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
                                      creationflags=IDLE, cwd=cwd)
         self.q = queue.Queue()
         self.transcript = deque(maxlen=40000)
@@ -194,7 +201,9 @@ def is_int(text):
 def new_stats():
     return dict(kinds=Counter(), lat={}, info_lines=0, pv_moves=0, currmoves=0, empty_pv=0, ponder_checked=0,
                 barriers=0, mid_isready=0, stray_stops=0, overruns=0, overrun_max_ms=0.0, clock_resets=0,
-                hd_fired=0, tbhits_max=0, max_depth=0, strings=Counter())
+                hd_fired=0, tbhits_max=0, max_depth=0, strings=Counter(), prof_blocks=0, prof_lines=0,
+                prof_overflow=0, bestmoves=0, bestmoves_without_prof=0, watchdog_answers=0,
+                late_after_watchdog=0, late_after_search=0)
 
 
 class Shared:
@@ -205,6 +214,7 @@ class Shared:
         self.next = 0
         self.records = []
         self.abort = False
+        self.prof_names = None   # counter names of the first complete profile block (S08fix Profile=true)
         self.started = time.perf_counter()
         os.makedirs(args.out_dir, exist_ok=True)
         os.makedirs(os.path.join(args.out_dir, "errgames"), exist_ok=True)
@@ -255,6 +265,8 @@ class Worker:
         self.st = new_stats()
         self.ply = None
         self.kind = None
+        self.prof_block = None
+        self.prof_overflow = False
 
     # ---------------- error recording ----------------
     def err(self, etype, eng, detail, lines=(), fatal=False):
@@ -282,7 +294,65 @@ class Worker:
             self.err("crash", e, str(exc), fatal=True)
 
     # ---------------- output checks ----------------
+    def check_prof(self, e, t, line, text):
+        """S08fix profile block (Profile=true): 'prof schema 1 scope search_only setup_excluded 1 overflow 0|1', then
+        one 'prof <name> count <n> denominator <name> opportunities <n> pct <x>|unknown' line per counter; the block
+        comes right before the search thread's bestmove and has the same counters, in the same order, every time."""
+        st, toks = self.st, text.split()
+        st["prof_lines"] += 1
+        if len(toks) >= 2 and toks[1] == "schema":
+            if len(toks) != 9 or toks[2:8] != ["1", "scope", "search_only", "setup_excluded", "1", "overflow"] or \
+                    toks[8] not in ("0", "1"):
+                self.err("malformed_info", e, "bad profile schema line", [(t, line)])
+            if self.prof_block is not None:
+                self.err("malformed_info", e, f"profile block cut short after {len(self.prof_block)} counters",
+                         [(t, line)])
+            self.prof_block = []
+            self.prof_overflow = toks[-1] == "1"
+            st["prof_blocks"] += 1
+            st["prof_overflow"] += self.prof_overflow
+            return
+        ok = (len(toks) == 10 and toks[2] == "count" and toks[3].isdigit() and toks[4] == "denominator" and
+              toks[6] == "opportunities" and toks[7].isdigit() and toks[8] == "pct")
+        if ok:
+            if toks[9] == "unknown":
+                ok = toks[7] == "0" or self.prof_overflow
+            else:
+                try:
+                    ok = float(toks[9]) >= 0 and toks[7] != "0"
+                except ValueError:
+                    ok = False
+        if not ok or self.prof_block is None:
+            self.err("malformed_info", e, "bad profile counter line" if not ok else "profile counter outside a block",
+                     [(t, line)])
+            return
+        self.prof_block.append(toks[1])
+
+    def close_prof_block(self, e, t, line):
+        """At a bestmove: the profile block before it (if any) must be complete and identical in layout."""
+        block, self.prof_block = self.prof_block, None
+        self.st["bestmoves"] += 1
+        e.last_answer = "watchdog" if getattr(e, "watchdog_pending", False) else "search thread"
+        e.watchdog_pending = False
+        self.st["watchdog_answers"] += e.last_answer == "watchdog"
+        if block is None:
+            self.st["bestmoves_without_prof"] += 1
+            return
+        with self.sh.lock:
+            if self.sh.prof_names is None:
+                self.sh.prof_names = list(block)
+            ref = self.sh.prof_names
+        if block != ref:
+            first = next((i for i, (x, y) in enumerate(zip(block, ref)) if x != y), min(len(block), len(ref)))
+            self.err("malformed_info", e, f"profile block has {len(block)} counters, the first block had {len(ref)} "
+                     f"(first difference at counter {first})", [(t, line)])
+
     def check_string(self, e, t, line, text, config=False):
+        if text.startswith("prof "):
+            self.check_prof(e, t, line, text)
+            self.st["strings"]["prof schema (profile block)" if text.startswith("prof schema") else
+                               "prof <counter lines>"] += 1
+            return "ok"
         low = text.lower()
         if any(w in low for w in BAD_WORDS):
             if config and text.startswith("ERROR NNUE v2:"):
@@ -293,10 +363,12 @@ class Worker:
             self.err("error_info_string", e, "error text in an info string", [(t, line)], fatal=not config)
             return "error"
         if text.startswith("HardDeadline:"):
+            e.watchdog_pending = True
             self.st["hd_fired"] += 1
             key = "HardDeadline: no answer within ... (watchdog bestmove)"
         else:
-            key = text if text.startswith(KNOWN_STRINGS[:5]) else text[:60]
+            # known activation lines verbatim; others (e.g. NnueLazyAcc per-search stats) with numbers as #
+            key = text if text.startswith(KNOWN_STRINGS[:5]) else re.sub(r"[0-9]+(\.[0-9]+)?", "#", text)[:80]
         self.st["strings"][key] += 1
         return "ok"
 
@@ -312,7 +384,10 @@ class Worker:
             return
         st["info_lines"] += 1
         if root is None:
-            self.err("late_search_output", e, "search info line outside a search (after its bestmove)", [(t, line)])
+            answer = getattr(e, "last_answer", None)
+            self.st["late_after_watchdog" if answer == "watchdog" else "late_after_search"] += 1
+            self.err("late_search_output", e, f"search info line after the bestmove of '{getattr(e, 'last_go', None)}' "
+                     f"(that bestmove was sent by the {answer})", [(t, line)])
             return
         i = 1
         while i < len(toks):
@@ -482,7 +557,7 @@ class Worker:
         self.gen += 1
         self.engines = {}
         for tag in ("A", "B"):
-            e = Engine(self.a.exe, f"w{self.wid}{tag}{self.gen}", self.a.tmp_dir)
+            e = Engine(self.a.cmd, f"w{self.wid}{tag}{self.gen}", self.a.tmp_dir)
             self.engines[tag] = e
             self.configure(e)
 
@@ -544,7 +619,7 @@ class Worker:
         finish, limit = None, None
         clocked = f"wtime {clock[chess.WHITE]} btime {clock[chess.BLACK]} winc {inc} binc {inc}"
         if kind == "nodes":
-            cmd = f"go nodes {rng.randint(300, 5000)}"
+            cmd = f"go nodes {rng.randint(a.nodes_min, a.nodes_max)}"
         elif kind == "depth":
             cmd = f"go depth {rng.randint(1, 6)}"
         elif kind == "movetime":
@@ -562,6 +637,7 @@ class Worker:
         else:
             raise ValueError(kind)
         t_go = self.send(e, cmd)
+        e.last_go = cmd
         t_ref = t_go
         if finish:
             time.sleep(rng.randint(5, 50) / 1000)
@@ -611,6 +687,7 @@ class Worker:
         if line.startswith("bestmove"):
             if early:
                 self.err("bestmove_before_stop", e, f"bestmove during {what}", [(t, line)], fatal=True)
+            self.close_prof_block(e, t, line)
             return self.check_bestmove(e, t, line, board)
         self.err("unexpected_line", e, f"unexpected output during {what}", [(t, line)], fatal=True)
         return None
@@ -670,6 +747,7 @@ class Worker:
         board = chess.Board(fen)
         a_white = gi % 2 == 0
         self.errors, self.st = [], new_stats()
+        self.prof_block, self.prof_overflow = None, False
         self.ply, self.kind = None, "start"
         self.clock_base = rng.randint(200, 2000)
         inc = rng.choice((0, 10, 20, 30, 50))
@@ -697,9 +775,9 @@ class Worker:
                     termination = "ply_cap"
                     break
                 tag = "A" if (board.turn == chess.WHITE) == a_white else "B"
-                total = sum(w for _, w in KINDS)
+                total = sum(w for _, w in a.kinds)
                 r = rng.randrange(total)
-                for kind, w in KINDS:
+                for kind, w in a.kinds:
                     if r < w:
                         break
                     r -= w
@@ -725,6 +803,10 @@ class Worker:
                    currmoves=st["currmoves"], empty_pv=st["empty_pv"], ponder_checked=st["ponder_checked"],
                    overruns=st["overruns"], overrun_max_ms=round(st["overrun_max_ms"], 1),
                    hard_deadline_fired=st["hd_fired"], tbhits_max=st["tbhits_max"], max_depth=st["max_depth"],
+                   bestmoves=st["bestmoves"], prof_blocks=st["prof_blocks"], prof_lines=st["prof_lines"],
+                   prof_overflow=st["prof_overflow"], bestmoves_without_prof=st["bestmoves_without_prof"],
+                   watchdog_answers=st["watchdog_answers"], late_after_watchdog=st["late_after_watchdog"],
+                   late_after_search=st["late_after_search"],
                    lat={k: dict(v, sum_ms=round(v["sum_ms"], 1), max_ms=round(v["max_ms"], 1),
                                 max_over_ms=None if v["max_over_ms"] is None else round(v["max_over_ms"], 1))
                         for k, v in st["lat"].items()},
@@ -773,10 +855,11 @@ class Worker:
 def preflight(args, opts, openings_dir):
     """One engine: the options are advertised and accepted (readyok, no ERROR), activation lines logged,
     go depth 5 from the start position and bench 11 (node signature)."""
-    sh = argparse.Namespace(event=lambda text: None)
+    sh = argparse.Namespace(event=lambda text: None, lock=threading.Lock(), prof_names=None)
     w = Worker.__new__(Worker)
     w.wid, w.sh, w.a, w.opts, w.errors, w.st, w.ply, w.kind = "P", sh, args, opts, [], new_stats(), None, "preflight"
-    e = Engine(args.exe, "P", args.tmp_dir)
+    w.prof_block, w.prof_overflow = None, False
+    e = Engine(args.cmd, "P", args.tmp_dir)
     log = dict(config=args.name, exe=args.exe, exe_sha256=sha256(args.exe), git_head=args.git_head,
                setoption=[f"{n}={v}" for n, v in opts])
     ok = True
@@ -876,19 +959,25 @@ def summarize(args, records, preflight_log, wall_s):
         empty_pv_lines=tot("empty_pv"), ponder_moves_checked=tot("ponder_checked"),
         clock_overruns=tot("overruns"), clock_overrun_max_ms=max([g["overrun_max_ms"] for g in games] or [0]),
         hard_deadline_fired=tot("hard_deadline_fired"), tbhits_max=max([g["tbhits_max"] for g in games] or [0]),
+        bestmoves=tot("bestmoves"), prof_blocks=tot("prof_blocks"), prof_lines=tot("prof_lines"),
+        prof_overflow=tot("prof_overflow"), bestmoves_without_prof=tot("bestmoves_without_prof"),
+        watchdog_answers=tot("watchdog_answers"), late_after_watchdog=tot("late_after_watchdog"),
+        late_after_search=tot("late_after_search"),
         games_with_tbhits=sum(1 for g in games if g["tbhits_max"] > 0),
         max_depth=max([g["max_depth"] for g in games] or [0]),
         engine_generations=sum(r.get("engine_generations", 0) for r in records if r.get("record") == "worker_end"),
         latency=lat, info_strings=dict(strings.most_common(20)), wall_s=round(wall_s, 1),
         parallel=args.parallel, restart_every=args.restart_every, seed=args.seed, max_plies=args.max_plies,
-        margin_ms=args.margin_ms)
+        margin_ms=args.margin_ms, nodes_range=[args.nodes_min, args.nodes_max],
+        mix={k: w for k, w in args.kinds})
     return summary
 
 
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--name", required=True)
-    ap.add_argument("--exe", required=True)
+    ap.add_argument("--exe", required=True, help="engine exe, or a .py UCI wrapper (run with this python -I -B)")
+    ap.add_argument("--exe-arg", action="append", default=[], help="argument for the engine command (repeatable)")
     ap.add_argument("--opt", action="append", default=[], help="Name=value (repeatable, order kept)")
     ap.add_argument("--threads", type=int, default=1)
     ap.add_argument("--hash", type=int, default=16)
@@ -901,6 +990,11 @@ def main():
     ap.add_argument("--epd", default=os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "tools",
                                                   "openings", "forge-10000.epd"))
     ap.add_argument("--max-plies", type=int, default=200)
+    ap.add_argument("--nodes-min", type=int, default=300, help="go nodes N: N from this ...")
+    ap.add_argument("--nodes-max", type=int, default=5000, help="... to this")
+    ap.add_argument("--mix", default=",".join(f"{k}={w}" for k, w in KINDS),
+                    help="command weights per move, e.g. nodes=50,clock=15,movetime=8,depth=8,infinite=7,"
+                         "ponderhit=6,pondermiss=6 (the default)")
     ap.add_argument("--margin-ms", type=int, default=10000)
     ap.add_argument("--max-minutes", type=float, default=0)
     ap.add_argument("--git-head", default="")
@@ -908,7 +1002,15 @@ def main():
     args = ap.parse_args()
     os.makedirs(args.out_dir, exist_ok=True)
     args.tmp_dir = args.tmp_dir or args.out_dir
+    args.cmd = ([sys.executable, "-I", "-B", args.exe] if args.exe.endswith(".py") else [args.exe]) + args.exe_arg
     user = []
+    try:
+        args.kinds = tuple((k, int(w)) for k, w in (item.split("=") for item in args.mix.split(",")))
+    except ValueError:
+        ap.error(f"--mix {args.mix!r}: expected kind=weight,...")
+    unknown = [k for k, _ in args.kinds if k not in dict(KINDS)]
+    if unknown or sum(w for _, w in args.kinds) <= 0 or not 1 <= args.nodes_min <= args.nodes_max:
+        ap.error(f"bad --mix / --nodes-min / --nodes-max (unknown kinds {unknown})")
     for o in args.opt:
         name, sep, value = o.partition("=")
         if not sep:

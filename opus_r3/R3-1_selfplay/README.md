@@ -13,6 +13,7 @@ The test requirement (R3-1): no crash, no illegal move, no double bestmove over 
 | `configs_2047348a.json` | configs for heads from 2047348a on: + `sw_nnue_lazy_acc` (S12), `sw_prof` (S08fix), both in the all-ON build |
 | `make_nets.py` | writes the v2 nets the configs load (lock replicas and stand-alone copies, all function-preserving) |
 | `fault_proxy.py`, `selftest_faults.py` | harness self-test: a proxy that breaks the protocol once per fault; the harness must report each |
+| `repro_late_info.py` | minimal repro of the HardDeadline finding (info line after the watchdog's bestmove); must print 0 late lines on a fixed head |
 | `logs/` | small evidence (matrix tables, summaries, self-test, build and bench logs); big logs stay in `F:\opus_scratch\r3\selfplay\` (sha256 in `logs/`) |
 
 ## Run (PC; Git Bash; everything at nice 19, outputs on F:)
@@ -36,6 +37,12 @@ nice -n 19 $PY -I -B opus_r3/R3-1_selfplay/run_matrix.py --engines F:/opus_scrat
 # harness self-test (about 3 minutes)
 nice -n 19 $PY -I -B opus_r3/R3-1_selfplay/selftest_faults.py --engine $E/opus_r3sp_base.exe --out F:/opus_scratch/r3/selfplay/runs/selftest
 ```
+run_matrix.py reads the configs file again before every config (configs can be added, removed or reordered
+while it runs; top-level "parallel" / "parallel_smp" / "harness_args" keys apply from the next config on), so a
+running matrix is steered or ended between configs by editing its configs file, without stopping processes.
+Several runners can share one `--out` with different `--log-name`; `--report-only` then rebuilds MATRIX.md for
+the whole config list. Lower per-move budgets: `--harness-arg=--nodes-min=200` etc. or "harness_args".
+
 Per config the checker writes `<name>.games.jsonl` (one record per game: config, opening, result, termination,
 plies, command counts, latencies, errors with the offending lines and the last 40 transcript lines),
 `<name>.summary.json`, `<name>.preflight.json/.log`, `<name>.pgn`, `<name>.events.log`, and

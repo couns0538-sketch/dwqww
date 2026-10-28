@@ -6,7 +6,14 @@ bestmoves, timeouts, exe sha256, git head, sha256 of every log file).
 usage: run_matrix.py --engines DIR --nets DIR --out DIR --git-head SHA [--configs configs.json] [--games 500]
                      [--parallel 3] [--parallel-smp 2] [--only a,b] [--skip a,b] [--no-optional]
                      [--preflight-only] [--resume] [--report-only] [--seed 1] [--harness PATH] [--epd PATH]
+                     [--harness-arg=ARG ...] [--log-name matrix.log] [--runner NAME]
 Engines are DIR/opus_r3sp_<exe key>.exe. --resume skips configs whose summary shows all games played.
+--runner NAME runs only the configs with "runner": NAME (two runners can share one configs file and --out).
+The configs file is read again before every config (a broken file keeps the previous list): configs can be
+added, removed or reordered while a matrix runs, and optional top-level "parallel" / "parallel_smp" keys
+override the command-line parallelism from the next config on. Extra checker arguments (e.g. lower per-move
+budgets: --nodes-min/--nodes-max/--mix) come from --harness-arg, a top-level "harness_args" list and a
+per-config "harness_args" list, in that order.
 Exit status 0 when every config ran all its games with 0 errors.
 """
 import argparse
@@ -47,7 +54,7 @@ def report(a, configs):
         path = os.path.join(a.out, c["name"] + ".summary.json")
         if not os.path.exists(path):
             out["configs"].append(dict(config=c["name"], status="not run"))
-            rows.append(f"| {c['name']} | not run | | | | | | | | | | | | |")
+            rows.append(f"| {c['name']} | not run | | | | | | | | | | | | | | |")
             continue
         s = load(path)
         logs = {}
@@ -65,17 +72,20 @@ def report(a, configs):
         total_bad += 0 if ok else 1
         out["configs"].append(dict(s, status="clean" if ok else "FAIL", logs=logs))
         if not s.get("preflight_ok"):
-            rows.append(f"| {c['name']} | preflight FAILED: {s.get('preflight_errors')} | | | | | | | | | | | | |")
+            rows.append(f"| {c['name']} | preflight FAILED: {s.get('preflight_errors')} | | | | | | | | | | | | | | |")
             continue
         opts = ", ".join(o for o in s["options"][4:]) or "(none)"
         rows.append(
             f"| {c['name']} | {os.path.basename(s['exe'])} `{s['exe_sha256'][:12]}` | {s['threads']} | {opts} | "
             f"{s['games']}/{s['games_requested']} | {s['plies']} | **{s['errors']}** | {s['crashes']} | "
             f"{s['illegal_moves']} | {s['double_bestmoves']} | {s['timeouts']} | {s['malformed_output']} | "
+            f"{s['errors_by_type'].get('late_search_output', 0)}"
+            f"{'' if s.get('late_after_watchdog') is None else ' (' + str(s['late_after_watchdog']) + ' after watchdog)'} | "
             f"{s['hard_deadline_fired']} | {s['games_with_tbhits']} | {s['bench11_nodes']} | {s['wall_s']} |")
     head = ("| config | exe (sha256) | thr | options | games | plies | errors | crashes | illegal moves | "
-            "double bestmoves | timeouts | malformed | HardDeadline fired | games w/ tbhits | bench11 | wall s |\n"
-            "|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|")
+            "double bestmoves | timeouts | malformed | of which late info after bestmove | HardDeadline fired | "
+            "games w/ tbhits | bench11 | wall s |\n"
+            "|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|")
     md = (f"# R3-1 self-play matrix, git head {a.git_head}\n\n"
           f"Generated {time.strftime('%Y-%m-%d %H:%M:%S')} by run_matrix.py from {a.out}; every engine also runs with "
           f"Hash 16, Ponder true, OwnBook false. Configs with errors or missing games: {total_bad}.\n\n"
@@ -106,19 +116,38 @@ def main():
     ap.add_argument("--seed", default="1")
     ap.add_argument("--epd", default=None)
     ap.add_argument("--harness", default=CHECK, help="checker script (default: the one next to this file)")
+    ap.add_argument("--harness-arg", action="append", default=[], help="extra checker argument (repeatable)")
+    ap.add_argument("--log-name", default="matrix.log",
+                    help="runner log in --out (one per runner when several share --out)")
+    ap.add_argument("--runner", default="",
+                    help="run only the configs whose \"runner\" field is this (several runners, one configs file); "
+                         "configs that already have a complete summary in --out are skipped")
     a = ap.parse_args()
-    spec = load(a.configs)
-    syzygy = spec.get("syzygy", "")
     only = [x for x in a.only.split(",") if x]
     skip = set(x for x in a.skip.split(",") if x)
-    configs = [c for c in spec["configs"] if (not only or c["name"] in only) and c["name"] not in skip
-               and not (a.no_optional and c.get("optional"))]
-    if only:
-        configs.sort(key=lambda c: only.index(c["name"]))
+    state = {}
+
+    def pick():
+        """(spec, configs) from the configs file, read again each time; the last good read if it is broken."""
+        try:
+            spec = load(a.configs)
+            cfgs = [c for c in spec["configs"] if (not only or c["name"] in only) and c["name"] not in skip
+                    and not (a.no_optional and c.get("optional")) and (not a.runner or c.get("runner") == a.runner)]
+        except (OSError, ValueError, KeyError, TypeError) as exc:
+            if not state:
+                raise
+            print(f"configs file unreadable ({exc}); keeping the previous list", flush=True)
+            return state["spec"], state["configs"]
+        if only:
+            cfgs.sort(key=lambda c: only.index(c["name"]))
+        state.update(spec=spec, configs=cfgs)
+        return spec, cfgs
+
+    spec, configs = pick()
     os.makedirs(a.out, exist_ok=True)
     if a.report_only:
         return 1 if report(a, configs) else 0
-    mlog = open(os.path.join(a.out, "matrix.log"), "a", newline="\n", encoding="utf-8")
+    mlog = open(os.path.join(a.out, a.log_name), "a", newline="\n", encoding="utf-8")
 
     def log(text):
         line = f"{time.strftime('%Y-%m-%d %H:%M:%S')} {text}"
@@ -128,10 +157,19 @@ def main():
 
     log(f"matrix start: {len(configs)} configs, git head {a.git_head}, engines {a.engines}, games {a.games}, "
         f"harness {a.harness} sha256 {sha256(a.harness)}, configs {a.configs} sha256 {sha256(a.configs)}")
-    for c in configs:
+    done = set()
+    while True:
+        spec, configs = pick()
+        todo = [c for c in configs if c["name"] not in done]
+        if not todo:
+            break
+        c = todo[0]
+        done.add(c["name"])
+        syzygy = spec.get("syzygy", "")
+        parallel, parallel_smp = int(spec.get("parallel", a.parallel)), int(spec.get("parallel_smp", a.parallel_smp))
         name = c["name"]
         spath = os.path.join(a.out, name + ".summary.json")
-        if a.resume and os.path.exists(spath):
+        if (a.resume or a.runner) and os.path.exists(spath):
             s = load(spath)
             if s.get("games") == a.games:
                 log(f"{name}: done already ({s.get('errors')} errors), skipped")
@@ -139,12 +177,14 @@ def main():
         exe = os.path.join(a.engines, f"opus_r3sp_{c['exe']}.exe").replace("\\", "/")
         threads = c.get("threads", 1)
         cmd = [sys.executable, "-I", "-B", a.harness, "--name", name, "--exe", exe, "--threads", str(threads),
-               "--games", str(a.games), "--parallel", str(a.parallel_smp if threads > 1 else a.parallel),
+               "--games", str(a.games), "--parallel", str(parallel_smp if threads > 1 else parallel),
                "--out-dir", a.out, "--git-head", a.git_head, "--seed", a.seed]
         if a.epd:
             cmd += ["--epd", a.epd]
         for o in c.get("opts", []):
             cmd += ["--opt", subst(o, a, syzygy)]
+        cmd += a.harness_arg + [str(x) for x in spec.get("harness_args", [])] + [str(x) for x in
+                                                                                c.get("harness_args", [])]
         if a.preflight_only:
             cmd.append("--preflight-only")
         log(f"{name}: start: {' '.join(cmd[3:])}")
@@ -159,6 +199,7 @@ def main():
                     log("   " + line)
             code = p.wait()
         log(f"{name}: exit status {code} after {time.time() - t0:.0f} s")
+    spec, configs = pick()
     bad = report(a, configs)
     log(f"matrix end: {len(configs)} configs, {bad} with errors or missing games; MATRIX.md written")
     return 1 if bad else 0
