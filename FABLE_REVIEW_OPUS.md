@@ -324,14 +324,27 @@ Notes and evidence under `fable_review/deep/` (one file per item).
   (Idle priority, two build jobs). Shell-style jobs, mutants caught / not caught, re-run vs Opus's committed log:
   O3 8/0 = 8/0, C2 14/0 = 14/0, C4 10/0 = 10/0, C4 fail-loud 13/0 = 13/0, C5 8/0 = 8/0 (the committed folder also
   holds an older pre-merge log with 6 more), O4 6/0 = 6/0, O5 20/0 = 20/0, O6 8/0 = 8/0, O7 7/0 = 7/0, O8 19/0 =
-  19/0. Every planted bug is still caught. The Python-style checks (A1, SA2, SA4, S12 + alias, S41, C6, R3-4, R3-5,
-  R3-6, port_c with/without -O2, O2, S14 + zero-fill, S08fix, SIT) are running at the time of this commit; their
-  results follow in the next commit. Not re-run: C1 (its 290-file 3-5 man tablebase folder, 939 MiB, was stored
-  outside the repository at a location the report does not record), S11 (the mutation evidence is a tarball of
-  logs, no script), and the jobs that never had a scripted mutation check (C3, O1, O1-LTT, S04fix, S13, S29, S32,
-  S37: their REPORTs describe hand-made planted bugs or none).
-- **Buffix test strength**: a position with more than 64 SEE-losing noisy moves is being constructed (search driven by
-  the engine's own census); result and the unfixed-engine overflow proof follow in the next commit.
+  19/0. Python-style and special checks, re-run vs Opus's committed result: A1 12/12 = 12/12; SA2 engine mutants 5/5
+  + control = pass; SA4 width mutants 4/4 + control = pass; S12 (tool) 4/4 = 4/4; S12 null-alias follow-up 7/7 =
+  7/7; S41 engine 5/5 = 5/5; C6 15/15 = 15/15; R3-4 16/16 = 16/16; R3-5 14 killed, 0 survived, controls pass =
+  same; R3-6 3/3 killed, control pass = same (Opus ran 5 repetitions, this re-run 1); port_c 6 mutants pass with
+  FORGE_NNUE_O2 off and on = same; O2 7 must-fail caught, 4 reassociations and the clean tree pass = same; S14
+  (tool) pass = pass; S14 zero-fill follow-up: the three mutants M1-M3 caught (the control digest matched only
+  with the documented 100,000 oracle children, see the next item); S08fix: merge_main_only and shared_bank
+  caught, green control passes = same; SIT 20/20 = 20/20; C1 Syzygy 17/17 caught, baseline PASS (36,825 checks;
+  Opus's log says 36,513 from an earlier fixture file; the per-mutant failure counts are equal) with the 290-file
+  3-5 man tablebase folder found at `.claude/worktrees/syzygy345` (939 MiB, as the report says). Every planted bug
+  of every scripted check is still caught by the branch head. Not re-run: S11 (the mutation evidence is a tarball
+  of logs, no script) and the jobs that never had a scripted mutation check (C3, O1, O1-LTT, S04fix, S13, S29, S32,
+  S37: their REPORTs describe hand-made planted bugs or none). Table: `deep/mutants/table.md`.
+- **Buffix test now demonstrates the overflow** (`fable-review-buffix`, test commit after 4d6829c1; details in its
+  `fable_review/REVIEW.md`): a legal position with 69 pseudo-legal noisy moves of which 68 are SEE-losing (the
+  engine's own census; found by an annealing search over placements with the engine as judge, because a Python SEE
+  overestimated by 4-5 and `Board::set_fen`'s piece-inventory rule binds) is the sixth fixture of
+  tests/bad_capture_tests.cpp and asserts at least 65 losing moves. Built with `-D_GLIBCXX_ASSERTIONS`: the fixed
+  engine passes all six fixtures; the same test on the 64-entry engine aborts in the picker with
+  `std::array<forge::Move, 64>::operator[]: Assertion '__n < this->size()' failed` (`fable_review/logs/overflow_proof_*.log`
+  on that branch). The self-check remark of session 4 is closed.
 - **S17 real-window re-run** (`fable_review/s17/`): the job's real split re-executed from the exported job folder on
   the same window (010 rows 9,800,000-9,999,999 built by the job's own real_window_build.py, plus 011 and 012; inputs
   copied from the read-only shards and self-play text, md5 identical to the job's list), diagnostic mode, seed

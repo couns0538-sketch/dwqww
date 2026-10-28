@@ -1,0 +1,83 @@
+# SIT: origin/opus-sol-SIT f29b400517e056dcdd0e1e5a316869612993e1d3 JOBS=2 Wed Oct 28 14:51:26 PST 2026
+unmutated: rc 0 ALL PASS
+mutant tt_cut ( src/search.cpp ): rc=1 FAIL lines 3 -> CAUGHT
+FAIL TT warmed by the control, null window (0,1) depth 0: no cached cutoff -> -391
+FAIL TT warmed by the control, null window (100,101) depth 0: no cached cutoff -> -391
+FAILURES: 2
+mutant tt_cut_search ( src/search.cpp ): rc=1 FAIL lines 5 -> CAUGHT
+FAIL TT warmed by the control, null window (0,1) depth 1: no cached cutoff -> -390
+FAIL TT warmed by the control, null window (100,101) depth 1: no cached cutoff -> -390
+FAIL TT warmed by the control, null window (0,1) depth 2: no cached cutoff -> -390
+mutant forced_draw ( src/search.cpp ): rc=1 FAIL lines 25 -> CAUGHT
+FAIL mate in one beats the optional draw (option on, score 0)
+FAIL QC: the claim is a floor, not a forced draw: Rxc1 keeps its value (depth 1, window -32001,32001) -> on 0, off 424
+FAIL QC: the claim is a floor, not a forced draw: Rxc1 keeps its value (depth 2, window -32001,32001) -> on 0, off 441
+mutant null_window ( src/board.cpp ): rc=1 FAIL lines 2 -> CAUGHT
+FAIL history before a null move is not scanned (no claim)
+FAILURES: 1
+mutant store ( src/search.cpp ): rc=1 FAIL lines 14 -> CAUGHT
+FAIL the claim node stores only a placeholder: static eval, raw score ValueNone, BoundUpper, depth 0
+FAIL issue fixture: the claim node stores no score (final store) (depth 0, window -32001,32001) -> 0
+FAIL issue fixture: the claim node stores no score (final store) (depth 0, window 0,1) -> 0
+mutant twofold ( src/board.cpp ): rc=1 FAIL lines 30 -> CAUGHT
+FAIL control history: h8h7 creates only the second occurrence (no claim)
+FAIL lost castling rights: the earlier position with rights is a different position (no claim)
+FAIL claim equals the make_move reference on random shuffling games (both outcomes exercised)
+mutant search_floor ( src/search.cpp ): rc=1 FAIL lines 5 -> CAUGHT
+FAIL QR: the search() floor holds although the claiming move is pruned (depth 1, window -32001,32001) -> on -250, off -242
+FAIL QR: the search() floor holds although the claiming move is pruned (depth 1, window -100,100) -> on -250, off -242
+FAIL QR: the search() floor holds although the claiming move is pruned (depth 1, window -1,1) -> on -250, off -250
+mutant search_store ( src/search.cpp ): rc=1 FAIL lines 37 -> CAUGHT
+FAIL issue fixture: the claim node stores no score (final store) (depth 1, window -32001,32001) -> 0
+FAIL issue fixture: the claim node stores no score (final store) (depth 1, window 0,1) -> 0
+FAIL issue fixture: the claim node stores no score (final store) (depth 1, window 100,101) -> 0
+mutant probcut_store ( src/search.cpp ): rc=1 FAIL lines 5 -> CAUGHT
+FAIL QC: a ProbCut fail high at a claim node stores no score (depth 5, window 0,1) -> 424
+FAIL QC: a ProbCut fail high at a claim node stores no score (depth 5, window 100,101) -> 424
+FAIL QC: a ProbCut fail high at a claim node stores no score (depth 6, window 0,1) -> 424
+mutant correction ( src/search.cpp ): rc=1 FAIL lines 2 -> CAUGHT
+FAIL WC: a claim node does not teach correction history (depth 1, window -32001,32001) -> 330
+FAILURES: 1
+mutant standpat_store ( src/search.cpp ): rc=1 FAIL lines 4 -> CAUGHT
+FAIL WC: a stand-pat fail high at a claim node stores no score (depth 0, window 0,1) -> 285
+FAIL WC: a stand-pat fail high at a claim node stores no score (depth 0, window 100,101) -> 285
+FAIL WC: a stand-pat fail high at a claim node stores no score (depth 0, window -100,100) -> 285
+mutant qsearch_forced_draw ( src/search.cpp ): rc=1 FAIL lines 11 -> CAUGHT
+FAIL the claim node stores only a placeholder: static eval, raw score ValueNone, BoundUpper, depth 0
+FAIL QC: the claim is a floor, not a forced draw: Rxc1 keeps its value (depth 0, window -32001,32001) -> on 0, off 424
+FAIL WC: a stand-pat fail high at a claim node stores no score (depth 0, window 0,1) -> 0
+mutant placeholder_score_qsearch ( src/search.cpp ): rc=1 FAIL lines 14 -> CAUGHT
+FAIL the claim node stores only a placeholder: static eval, raw score ValueNone, BoundUpper, depth 0
+FAIL issue fixture: the claim node stores no score (final store) (depth 0, window -32001,32001) -> 0
+FAIL issue fixture: the claim node stores no score (final store) (depth 0, window 0,1) -> 0
+mutant placeholder_score_search ( src/search.cpp ): rc=1 FAIL lines 31 -> CAUGHT
+FAIL issue fixture: the claim node stores no score (final store) (depth 1, window -32001,32001) -> 0
+FAIL issue fixture: the claim node stores no score (final store) (depth 1, window 0,1) -> 0
+FAIL issue fixture: the claim node stores no score (final store) (depth 1, window 100,101) -> 0
+mutant placeholder_via_score_to_tt ( src/search.cpp ): rc=1 FAIL lines 31 -> CAUGHT
+FAIL issue fixture: the claim node stores no score (final store) (depth 1, window -32001,32001) -> 0
+FAIL issue fixture: the claim node stores no score (final store) (depth 1, window 0,1) -> 0
+FAIL issue fixture: the claim node stores no score (final store) (depth 1, window 100,101) -> 0
+mutant fail_low_bonus ( src/search.cpp ): rc=1 FAIL lines 3 -> CAUGHT
+FAIL fail-low continuation bonus: option on, floor raised alpha: value 0 inside the window, no bonus (depth 1, window -100,100) -> value 0, parent entry 36
+FAIL fail-low continuation bonus: option on, floor raised alpha: value 0 inside the window, no bonus (depth 2, window -100,100) -> value 0, parent entry 144
+FAILURES: 2
+mutant dup_first_only ( src/board.cpp ): rc=1 FAIL lines 102 -> CAUGHT
+FAIL positive history: h8h7 would create the third occurrence (claim)
+FAIL the claim query leaves the board unchanged and is repeatable
+FAIL undoing the null moves restores the claim
+mutant castling_base ( src/board.cpp ): rc=1 FAIL lines 105 -> CAUGHT
+FAIL positive history: h8h7 would create the third occurrence (claim)
+FAIL the claim query leaves the board unchanged and is repeatable
+FAIL undoing the null moves restores the claim
+mutant mask_unset ( src/board.cpp ): rc=1 FAIL lines 105 -> CAUGHT
+FAIL positive history: h8h7 would create the third occurrence (claim)
+FAIL the claim query leaves the board unchanged and is repeatable
+FAIL undoing the null moves restores the claim
+mutant king_skipped ( src/board.cpp ): rc=1 FAIL lines 96 -> CAUGHT
+FAIL positive history: h8h7 would create the third occurrence (claim)
+FAIL the claim query leaves the board unchanged and is repeatable
+FAIL undoing the null moves restores the claim
+caught 20/20
+exit 0
+Wed Oct 28 14:52:59 PST 2026
