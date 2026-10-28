@@ -23,7 +23,7 @@ from pathlib import Path
 GPP = "C:/msys64/ucrt64/bin/g++.exe"
 FLAGS = ["-std=c++20", "-O3", "-DNDEBUG", "-march=x86-64-v3", "-mtune=znver5", "-fno-fast-math", "-ffp-contract=off",
          "-DFORGE_NNUE_HIDDEN=256"]
-CORE = ["bitboard", "board", "book", "eval", "eval_params", "nnue", "search"]
+CORE = ["bitboard", "board", "book", "datagen", "eval", "eval_params", "nnue", "search"]  # forge_core (CMakeLists.txt)
 TESTS = {"perft": "perft_suite_tests", "draw": "draw_rules_tests", "ttmate": "tt_mate_tb_tests"}
 
 # name: (file, old, new, what the bug does, test runs that must fail)

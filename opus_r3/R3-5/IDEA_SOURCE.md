@@ -7,7 +7,7 @@ wired into CTest and CI."
 ## Perft reference node counts (tests/data/perft_suite.tsv)
 
 Every count in the suite is a published number; every one was also recomputed with python-chess 1.11.2
-(`tools/perft_crosscheck.py`, logs `logs/perft_crosscheck.log` and `logs/perft_crosscheck_big.log`).
+(`tools/perft_crosscheck.py`, `logs/perft_crosscheck.log`: 28 references, 0 mismatches, 2119 s).
 
 - **CPW**: Chessprogramming wiki, "Perft Results", https://www.chessprogramming.org/Perft_Results (read
   2026-10-27): initial position d5 4,865,609 / d6 119,060,324; position 2 "Kiwipete" d4 4,085,603 / d5

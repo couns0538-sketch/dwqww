@@ -7,13 +7,14 @@ usage: uci_options_regression.py <engine> [--syzygy DIR] [--log FILE]
 Checks, generic over whatever `uci` advertises (so options added later are covered by type):
   - `uci` lists every option exactly once, well formed (spin: min <= default <= max; check: true/false), twice
     the same; the options of the default build are all there (UseNNUE and NetScale together or not at all);
-  - spin: min, max and default are accepted silently; below min / above max are clamped silently (Hash and
-    Threads are not set to their maximum: 2 GB of table / 256 search threads); "abc", "1.5", "7x" and a missing
-    value are rejected with `info string invalid value for option <name>`; NNUEThreats, NNUEPawnPairs and
-    PureNnue (spin 0-1, documented to accept true/false too) reject out-of-range values instead of clamping;
+  - spin: min, max and default are accepted silently; below min / above max are clamped silently for the options
+    of src/uci.cpp that clamp (KNOWN_CLAMP; spins this test does not know may clamp or reject); Hash and Threads
+    are not set to their maximum (2 GB of table / 256 search threads); "abc", "1.5", "7x" and a missing value are
+    rejected with `info string invalid value for option <name>`; NNUEThreats, NNUEPawnPairs and PureNnue (spin
+    0-1, documented to accept true/false too) reject out-of-range values instead of clamping;
   - check: true / false accepted, anything else (maybe, TRUE, 1, missing) rejected by name;
-  - clamps that are observable are verified: bench node counts for CorrHistPlus, HistRework, CorrMargins, CorrExt
-    and NetScale (value beyond the bound == the bound), the NNUE v2 error text for NNUEKingBuckets /
+  - clamps that are observable are verified: bench node counts for CorrHistPlus, HistRework, CorrMargins and
+    NetScale (value beyond the bound == the bound != the default), the NNUE v2 error text for NNUEKingBuckets /
     NNUEOutputBuckets (the clamped count is named);
   - strings with spaces: Book File, NNUEFile and SyzygyPath take the rest of the line (the engine echoes the
     full path or reads a file in a folder whose name has spaces); `<empty>` resets each;
@@ -46,13 +47,17 @@ CORE = {"Hash", "Threads", "Move Overhead", "Ponder", "OwnBook", "Book File", "B
         "CorrHistPlus", "HardDeadline", "NNUEFile", "NNUEKingBuckets", "NNUEOutputBuckets", "NNUEThreats",
         "NNUEPawnPairs", "PureNnue", "CorrMargins", "CorrExt", "CuckooRep", "MaterialKeyTable", "HistRework",
         "IntendedThreefold", "Clear Hash"}
+# Spins known to clamp out-of-range values silently (src/uci.cpp std::clamp). Spins this test does not know (e.g.
+# tuning constants advertised by later builds) may clamp or reject an out-of-range value; either is accepted.
+KNOWN_CLAMP = {"Hash", "Threads", "Move Overhead", "Book Depth", "Book Variety", "SyzygyProbeDepth", "CorrHistPlus",
+               "HardDeadline", "CorrMargins", "CorrExt", "NetScale", "HistRework"}
 NO_MAX = {"Hash": "2048 MB table", "Threads": "256 search threads"}
 ZERO_ONE = {"NNUEThreats", "NNUEPawnPairs", "PureNnue"}       # 0 / 1 / true / false only
 V2_REQUEST = {"NNUEKingBuckets", "NNUEOutputBuckets"} | ZERO_ONE  # nonzero = a v2 net request (fail-loud)
 STRINGS_WITH_PATHS = {"Book File", "SyzygyPath", "NNUEFile"}
 INVALID_SPIN = ["abc", "1.5", "7x", None]
 INVALID_CHECK = ["maybe", "TRUE", "1", None]
-BENCH_DEPTH = 5
+BENCH_DEPTH = 6  # every bound used in the clamp checks changes the bench node count at this depth
 
 
 class Session:
@@ -206,9 +211,12 @@ def run(s: Session, syzygy: str, workdir: Path) -> dict:
                 continue
             for value in [str(low), default] + ([] if name in NO_MAX else [str(high)]):
                 s.set_quiet(name, value)
-            s.set_quiet(name, str(low - 1))
-            if name not in NO_MAX:
-                s.set_quiet(name, str(high + 1))
+            for beyond in [str(low - 1)] + ([] if name in NO_MAX else [str(high + 1)]):
+                if name in KNOWN_CLAMP:
+                    s.set_quiet(name, beyond)
+                else:
+                    out = s.setoption(name, beyond)
+                    assert out in ([], [f"info string invalid value for option {name}"]), (name, beyond, out)
             for bad in INVALID_SPIN:
                 s.rejected(name, bad)
             s.set_quiet(name, default)
@@ -216,12 +224,14 @@ def run(s: Session, syzygy: str, workdir: Path) -> dict:
              "value rejected by name (" + ", ".join(sorted(n for n, o in options.items() if o["type"] == "spin")) + ")")
         s.ok("NNUE v2 spins: nonzero requests fail loud at once and are withdrawn; 0/1 spins reject out-of-range")
 
-        # Observable clamps: a value beyond the bound searches exactly like the bound.
-        clamp_cases = [("CorrHistPlus", "99", "7"), ("CorrHistPlus", "-5", "0"), ("HistRework", "99", "3"),
-                       ("CorrMargins", "5", "1"), ("CorrExt", "5", "1"), ("NetScale", "999", "150"),
-                       ("NetScale", "1", "50")]
+        # Observable clamps: a value beyond the bound searches exactly like the bound (bench nodes), and the bound
+        # itself searches differently from the default (so the comparison means something). CorrHistPlus -5 must
+        # not wrap to 251 (it equals 0, the default). CorrExt changes no bench search at depths 5-8: not used here.
+        clamp_cases = [("CorrHistPlus", "99", "7", True), ("CorrHistPlus", "-5", "0", False),
+                       ("HistRework", "99", "3", True), ("CorrMargins", "5", "1", True),
+                       ("NetScale", "999", "150", True), ("NetScale", "1", "50", True)]
         observed = {}
-        for name, beyond, bound in clamp_cases:
+        for name, beyond, bound, differs in clamp_cases:
             if name not in options:
                 continue
             s.set_quiet(name, bound)
@@ -230,6 +240,7 @@ def run(s: Session, syzygy: str, workdir: Path) -> dict:
             clamped = s.bench()
             s.set_quiet(name, options[name]["default"])
             assert clamped == at_bound, (name, beyond, bound, clamped, at_bound)
+            assert not differs or at_bound != start_bench, (name, bound, at_bound, start_bench)
             observed[f"{name} {beyond}->{bound}"] = clamped
         assert s.bench() == start_bench, "defaults restored after the clamp checks"
         values["bench_clamps"] = observed
