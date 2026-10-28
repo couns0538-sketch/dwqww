@@ -79,7 +79,7 @@ trained one). Export: `net.fnn3` sha256 `e37caef5…` (max|w1| 34, max|b1| 6, ma
 
 | check | result | evidence |
 |---|---|---|
-| engine int eval == trainer quantised eval, 10k positions | **PASS 10000/10000, 0 mismatches** on `positions_10k.fen` (random material, piece counts 2..32, all 8 output buckets) and **10000/10000** on the S31 real-game set `fens_10k_s31.fen` (first field of `F:\opus_scratch\sol_S31\inputsens_10k.txt`) | `fable/logs/parity_m3.log` |
+| engine int eval == trainer quantised eval, 10k positions | **PASS 10000/10000, 0 mismatches** on `positions_10k.fen` (random material, piece counts 2..32, all 8 output buckets) and **10000/10000** on the S31 real-game set `fens_10k_s31.fen` (first field of `F:\opus_scratch\sol_S31\inputs\fens_10k.txt`) | `fable/logs/parity_m3.log` |
 | float vs int within 2 cp | **PASS**: max abs(training float forward - engine int) = 1.0189 cp / 1.0190 cp, mean 0.50 cp, 0 positions above 2 cp (by construction: the forward uses the engine's integer grid, only the two truncating divisions differ) | same log |
 | fast path == scalar reference on the trained net | PASS (tool `eval` reports 0 fast-vs-reference mismatches on both sets) | same log |
 | trainer unaffected by the forbidden-name rule | the trainer is a new script `fable_nnue_train.py`; nothing named `train_resid*` was run; supervisor "adopted running job" count unchanged (7) | `fable/logs/train_m3_log.txt` |
@@ -94,6 +94,26 @@ S31 tool documents). Model: merged first layer `w1[kb*768][H] + factoriser[768][
 clips the parameters to the exportable ranges (w1 bucket and factoriser +-0.99 each, b1 +-1.98, w2 +-127/64).
 Export merges the factoriser into every bucket and writes the v3 file. `parity`: engine int cp == integer
 emulation of the exported file (0 mismatches required) and |training float forward - engine int| <= 2 cp.
+
+## M4 (part 1): NPS ON vs OFF, Threads = 1, Hash = 16, same exe (`forge_fable_m2.exe`, box recipe)
+
+`tools/nnue/fable_nnue_nps.py`, 4 ABBA rounds (OFF, ON, ON, OFF) per depth, fresh processes, CPU time from
+`GetProcessTimes`; net = the 60-step residual H512 / 8 mirrored king buckets / 8 output buckets net from M3
+(`train_m3/net.fnn3`). The ON tree is a different, larger tree (a barely trained net), so the ratio below is the
+per-node cost ratio, not a time-to-depth statement. Loaded PC (gates, self-play, NNUE training running) -> advisory
+only; no speed claim.
+
+| depth | OFF nodes | ON nodes | OFF CPU NPS | ON CPU NPS | ON/OFF NPS ratio (95% CI) | ON time per node / OFF |
+|---|---|---|---|---|---|---|
+| 16 | 3,024,920 | 3,298,439 | 1,760,063 | 1,367,578 | **0.777** (+-0.010) | 1.287 |
+| 20 | 12,389,307 | 15,140,173 | 1,852,640 | 1,421,609 | **0.767** (+-0.013) | 1.303 |
+
+Wall-clock NPS gives the same ratios (0.776 / 0.762). Evidence: `fable/logs/nps_m4_trained.log`. For reference,
+S-C4 measured the float AL1 path widened to H512 at about -9.5% CPU NPS; the v3 path here evaluates a residual
+H512 net with 8 king buckets (refreshes on bucket changes) plus the hand-crafted evaluation, with an int16 AVX2
+kernel, at about -23%. Where the time goes was not profiled (next step for a speed job: refresh statistics per
+node, `apply_changes` vs `output_sum` share, and whether the runtime-PSQT / HCE part of the residual path or the
+v3 network dominates).
 
 ## What is left / exact next steps
 

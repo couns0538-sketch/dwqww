@@ -374,8 +374,8 @@ def cmd_parity(args):
 def score_net_numpy(net, data, cfg_residual, chunk=4096):
     """Holdout MSE (blends 1.0 / 0.6 / 0.8) of a v3 file with exact integer emulation vectorised per chunk."""
     H = net.hidden
-    w1 = net.w1.reshape(-1, H)
-    w1 = np.concatenate([w1, np.zeros((1, H), np.int64)], axis=0)
+    w1 = np.concatenate([net.w1.reshape(-1, H), np.zeros((1, H), np.int64)], axis=0).astype(np.int16)
+    b1 = net.b1.astype(np.int32)
     cfg = {"king_buckets": net.king_buckets, "mirror": net.mirror, "king_map": net.king_map, "output_map": net.output_map}
     sums = {1.0: 0.0, 0.6: 0.0, 0.8: 0.0}
     n = data["n"]
@@ -384,10 +384,14 @@ def score_net_numpy(net, data, cfg_residual, chunk=4096):
         codes = data["codes"][rows]
         meta = data["meta"][rows]
         us, them, ob = batch_features(codes, meta, cfg)
-        acc_us = net.b1[None, :] + w1[us].sum(axis=1)
-        acc_them = net.b1[None, :] + w1[them].sum(axis=1)
-        a = np.clip(acc_us, 0, QA)
-        b = np.clip(acc_them, 0, QA)
+        # int32 accumulators, one gather per square (small memory footprint); exact like the engine
+        acc_us = np.broadcast_to(b1, (len(rows), H)).astype(np.int32)
+        acc_them = acc_us.copy()
+        for k in range(64):
+            acc_us += w1[us[:, k]]
+            acc_them += w1[them[:, k]]
+        a = np.clip(acc_us, 0, QA).astype(np.int64)
+        b = np.clip(acc_them, 0, QA).astype(np.int64)
         w2 = net.w2[ob]
         total = (a * a * w2[:, :H]).sum(axis=1) + (b * b * w2[:, H:]).sum(axis=1)
         out = np.trunc(total / QA).astype(np.int64) + net.b2[ob]
