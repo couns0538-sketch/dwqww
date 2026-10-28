@@ -7,7 +7,7 @@ throughout; my work at nice 19). No Elo claims: no gate was run.
 
 | job | state | where |
 |---|---|---|
-| R3-1 integration stack | all O/C branches and every opus-sol engine feature merged (S32/S37/S04fix via `opus-r3-port-b`, S-A2/S-A4 via `opus-r3-port-c`); HardDeadline defect found by the self-play checker fixed; 500-game self-play on `330237f`: 8 of 36 configs done (all-ON variants, HardDeadline, four switches), 4000 games, 0 errors; the rest running (`opus-r3-selfplay`); a Linux copy of the checker on GitHub runners is being set up (`opus-r3-sp-linux`) to re-check the final head | `opus-r3-stack`, `opus_r3/R3-1/`, `opus_r3/R3-1_selfplay/` |
+| R3-1 integration stack | DONE: every O/C branch, every opus-sol engine feature and the R3 jobs merged, each behind its own default-off option or switch; final engine head `064af73`: lock pins ALL OK (default and every switch), CTest PASS, CI green; self-play 500 games per option ON alone and all ON: PC 36/36 configs (18000 games) and Linux 36/36 (18000 games + 1100 under ASan/TSan) with 0 errors; the options added after `330237f` checked on `064af73` (Linux 2000 + 200 TSan games, 0 errors; PC run below) | `opus-r3-stack`, `opus_r3/R3-1/`, `opus_r3/R3-1_selfplay/`, `opus_r3/R3-1L/` |
 | R3-2 interaction matrix | DONE, merged (`7e0660a`): no conflicts; two silent cancels; build layout ±5% on the PC, confirmed by the quiet-runner repeat R3-2Q (DONE, merged) | `opus_r3/R3-2/REPORT.md`, `opus_r3/R3-2Q/REPORT.md` |
 | R3-3 gate proposals | DONE, merged | `opus_r3/R3-3/`, `F:\opus_scratch\r3\GATE_PROPOSALS.md` |
 | R3-4 SPSA tool | DONE, merged (`064af73`): 20 search constants as UCI spins (identical defaults), `tools/spsa/opus_spsa*.py`, dry run with restart; no tuning session | `opus_r3/R3-4/REPORT.md`, `tools/spsa/README.md` |
@@ -39,7 +39,7 @@ configuration passed locally (CMake all targets, uci_check --full ALL OK, CTest 
 The failed run cannot be re-run usefully (it would rebuild the same broken commit) and runs cannot be deleted here;
 every later run of the branch is green.
 
-## R3-1 so far (logs: `opus_r3/R3-1/logs/`, scratch `F:\opus_scratch\r3\logs`)
+## R3-1 integration stack (logs: `opus_r3/R3-1/logs/`, scratch `F:\opus_scratch\r3\logs`)
 - Base: `d4f4312` fast-forwarded to `opus-O3` (`c7eb247`: the no-op module split every O/C branch is built on,
   plus the CI baseline `0d99f02`). Then one merge commit per branch: O1-LTT (contains O1), C1, C2, C3, O7 (contains
   C4 and O6), C5, O4, O5, O8, C6, O2, the evidence-only heads of O1 and O6, then the opus-sol features S14, S13,
@@ -61,6 +61,20 @@ every later run of the branch is green.
   mutex before its bestmove. The extended `hard_deadline_regression` fails on the old engine and passes on the new
   one; the self-play repro shows 0 late lines in 1100 rounds (480 watchdog answers) on the final head.
 - Gate executables built from `330237f` in `F:\opus_scratch\r3\exe\` (`EXES.txt`: name, flags, sha256, ALL OK).
+- **Self-play acceptance** (no crash, no illegal move, no double bestmove; 500 fast games per config; checker
+  `opus_r3/R3-1_selfplay/opus_selfplay_check.py`: python-chess legality of every bestmove / ponder / PV move, an
+  isready barrier after every `position`, crash / hang / malformed-output / late-output checks; self-test 20/20
+  planted protocol faults reported):
+  - PC, engine `330237f` (every runtime option ON alone, every build switch ON alone, 3 all-ON variants): 36/36
+    configs, 18000 games, 1869703 plies, 0 errors; 3040 HardDeadline watchdog answers, 0 late lines
+    (`opus_r3/R3-1_selfplay/REPORT.md`).
+  - Linux on GitHub runners (same checker, CMake g++-14 builds; `opus_r3/R3-1L/REPORT.md`): 36/36 configs,
+    18000 games, 0 errors; all-ON under ASan+UBSan (2 x 250 games, 1432 watchdog answers) and every Threads=2
+    config under TSan (6 x 100 games): 0 errors, 0 sanitizer reports.
+  - Final engine head `064af73`, the options added after `330237f` (SmpHelpersPastDepth alone and in all-ON, the
+    20 R3-4 spins at +10% / -10%): Linux 4 x 500 games + TSan 2 x 100, 0 errors (run 40585589600).
+  - The checker found one real defect on the way (HardDeadline printed search output after the watchdog's
+    bestmove: 122 late lines in 500 all-ON games on `2432670`), fixed in `5792074` (see above).
 - Semantic merges: (1) one selection / fail-loud rule for the five NNUE v2 options (C4, C5, O4, O6, O7; each
   branch's test phrases kept); (2) one search instance per combination of CorrMargins x CorrExt x CuckooRep (8
   alpha-beta + 2 quiescence instances; a single option runs its branch's code); (3) O2 behind the new build switch
