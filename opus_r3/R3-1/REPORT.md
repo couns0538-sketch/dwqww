@@ -48,6 +48,16 @@ exclusive: no (gates, self-play and NNUE training ran throughout; my builds and 
   moved with O3's header split (search_types.hpp, thread_data.hpp, history.hpp).
 
 ## Findings
+- **HardDeadline (C3) defect, fixed in the stack.** The R3-1 self-play checker (`opus-r3-selfplay`) found search
+  output after the watchdog's bestmove: when the watchdog answers a starved go, the stopped search could still
+  print an `info depth` line (33 in ~140 all-ON games; in 27 of 33 its PV started with another move than the
+  bestmove sent). Exactly one bestmove per go held throughout. Fix `5792074`: `SharedSearchState::output_closed`,
+  set by the watchdog under the output mutex right before its bestmove, checked by every search-side output,
+  cleared at each go; only the watchdog sets it, so HardDeadline 0 is unchanged. `tools/hard_deadline_regression.py`
+  now fails on any info line between a watchdog bestmove and the next readyok: red on the unfixed engine, green on
+  the fixed one (200 searches at T1/T2); the agent's repro: 2/200 late lines before, 0/200 after
+  (`logs/hard_deadline_late_output_fix.log`).
+- NnueLazyAcc (S12) acts on the compiled-in network only: with a v2 net loaded it is set but unused (as on S12).
 - CI run 40564150654 failed: two opus-sol tests (S-IT, A1) used the pre-O3 member names; my per-merge checks used
   the PC build of the engine only. Fixed in `2432670` (`opus-r3-cifix`, green 40565363595); since then every push
   is preceded by a full local CMake build and the full CTest list.
