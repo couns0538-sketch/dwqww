@@ -189,6 +189,12 @@ Evidence: `fable_review/s44_check.log`.
   (`fable_review/s21_study_rerun.json`): float accumulators of every net exceed the int16 range (|acc| maxima
   69,544-90,896 in 1/4096 units, int16 headroom factors 0.36-0.47), which is the report's conclusion ("research-only
   clipped export, not for the engine"). Consistent. DONE.
+- **S19 score-to-WDL scale fit re-executed on the real shards** (fit `forge_selfplay_003+007.pos`, held-out
+  `013+014.pos`, `--stride 5`, bootstrap 50, read-only memory maps, 93 s at Idle; `fable_review/s19/run.log`,
+  `result.json`): every row count identical (4,000,000 fit, 3,277,715 held-out, the six phase buckets), every
+  fitted k, CI bound and log-loss equal to the printed values (max |difference| 4.3e-5 = the four-decimal print
+  rounding of k): constant 2.25 0.434570, global k 2.9255 0.428393, per-phase table 0.426968. The tool's 12 unit
+  tests pass (`fable_review/s19/tests.log`). Consistent and deterministic. DONE.
 - **S16 real-data overlap scan re-executed** (read-only, Idle priority, about 7 minutes): the same 29 training
   shards (231,913,894 rows) against the 013+014 holdout (16,388,575 rows): **overlap_rows 6,069** (Opus's figure
   exactly), label_conflicts 5,042, key collisions rejected 0, status COMPLETED, writes only the new output folder.
@@ -227,9 +233,10 @@ failure of the sweep is corrected on a `fable-review-<job>` branch.
   exported copies, in real worktrees (S15, S27fix, S47, S48fix) and against the staged trainer copies (S39, S50,
   SA3, SA2, S09fix).
 - Re-executed on real data: S44 gate statistics (71 gate folders, PASS), S16 overlap scan (6,069 rows, as reported),
-  S21 int16 range study (13 nets, consistent), the S30/S31 lock-net holdout numbers (consistent).
+  S21 int16 range study (13 nets, consistent), the S30/S31 lock-net holdout numbers (consistent), the S19
+  score-to-WDL fit on the real shards (identical numbers).
 - Not re-executed: S17/S40 on the real shards (S40's real merge needs a second self-play folder that is not in the
-  repo; their fixture tests pass), the S19 fit on real volume (its tests pass). Not read line by line: the trainer
+  repo; their fixture tests pass). Not read line by line: the trainer
   variants S39/S50/SA3 (tested through their suites) and O7's pawn-pair details beyond structure.
 
 ## Mistakes found: 3 classes, all corrected or explained
@@ -252,8 +259,8 @@ Everything else examined was found consistent with its report. No Elo or speed c
    `fable-review-r3-stack` as the R3 head without the bytecode; consider one repository-root `.gitattributes`
    (`* -text`) for the next lock tree, which makes every hash-checked test checkout-independent at once (as the
    S15 and S27fix branches already do) and supersedes the per-job attribute files.
-2. Optional deeper audit: S17/S40 on the real shards (needs the second self-play folder), S19 on real volume,
-   O7's pawn-pair encoding line by line against its trainer. None of this changes an engine default.
+2. Optional deeper audit: S17/S40 on the real shards (needs the second self-play folder), O7's pawn-pair
+   encoding line by line against its trainer. None of this changes an engine default.
 3. The 14 correction branches are independent of each other and of `fable-nnue-arch`; each has a REVIEW.md naming
    the mistake, the fix and the verification. Final heads below.
 
@@ -308,5 +315,6 @@ Session 1 (about 1.5 h): inventory, CI analysis, identity sweep, eight engine jo
 Session 2 (about 1.5 h): the remaining engine jobs, the tool-test sweep, the r3-stack branch, C1 and O4/O6/O7 in
 full, S44 re-executed. Session 3 (about 2 h, with two to four sub-agents for 40 minutes): full-checkout and
 trainer-variant tests, S16/S21/S30/S31 re-executions, the R3 head rebuilt on the PC, root causes of every remaining
-test failure, eleven line-ending corrections. Session 4 (about 1 h): S27fix corrected and verified, the independent
-self-check's six remarks applied to five branches, this report brought to its final state. Total about 6 h.
+test failure, eleven line-ending corrections. Session 4 (about 1.5 h): S27fix corrected and verified, the independent
+self-check's six remarks applied to five branches, the S19 fit re-executed on the real shards, this report
+brought to its final state. Total about 6.5 h.
