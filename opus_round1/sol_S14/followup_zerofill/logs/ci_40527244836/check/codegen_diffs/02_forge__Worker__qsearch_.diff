@@ -1,0 +1,137 @@
+--- /tmp/tmp.kEsA9nZzUj/a.s	2026-10-27 15:12:07.535554457 +0000
++++ /tmp/tmp.kEsA9nZzUj/b.s	2026-10-27 15:12:07.539554510 +0000
+@@ -96,7 +96,7 @@
+ movzbl -IMM(%rbp),%edi
+ movzbl -IMM(%rbp),%edx
+ mov $IMM,%eax
+-vmovd -IMM(%rbp),%xmm1
++vmovd -IMM(%rbp),%xmm0
+ cmp %ax,%si
+ mov %edi,%r11d
+ cmovbe %esi,%eax
+@@ -141,54 +141,32 @@
+ jge ADDR
+ cmp %r10d,-IMM(%rbp)
+ jle ADDR
+-mov -IMM(%rbp),%ecx
+-cmp %r10d,%ecx
+-cmovl %r10d,%ecx
++mov -IMM(%rbp),%edi
++cmp %r10d,%edi
++cmovl %r10d,%edi
+ add IMM(%rip),%eax
+-mov %ecx,-IMM(%rbp)
++mov %edi,-IMM(%rbp)
+ mov %eax,-IMM(%rbp)
+ vmovq %rbx,%xmm2
+-xor %esi,%esi
+-lea -IMM(%rbp),%rdi
+-mov $IMM,%edx
+-vpinsrq $IMM,%r15,%xmm2,%xmm0
+-vmovd %xmm1,-IMM(%rbp)
+-vmovd %xmm1,-IMM(%rbp)
+-mov %r10d,-IMM(%rbp)
+-vmovdqa %xmm0,-IMM(%rbp)
++mov IMM(%rbx),%r14
++vmovd %xmm0,-IMM(%rbp)
+ mov %r12,-IMM(%rbp)
++vpinsrq $IMM,%r15,%xmm2,%xmm1
+ movq $IMM,-IMM(%rbp)
+ movl $IMM,-IMM(%rbp)
+-call ADDR
+-vpxor %xmm0,%xmm0,%xmm0
+-xor %esi,%esi
+-vmovdqu %ymm0,-IMM(%rbp)
+-vmovdqu %ymm0,-IMM(%rbp)
+-vmovdqu %ymm0,-IMM(%rbp)
+-mov $IMM,%edx
+-lea -IMM(%rbp),%rdi
+-vmovdqu %ymm0,-IMM(%rbp)
+-vmovdqu %ymm0,-IMM(%rbp)
+ movq $IMM,-IMM(%rbp)
++vmovdqa %xmm1,-IMM(%rbp)
+ movq $IMM,-IMM(%rbp)
+-vmovdqu %ymm0,-IMM(%rbp)
+-vmovdqu %ymm0,-IMM(%rbp)
++vpxor %xmm1,%xmm1,%xmm1
+ movq $IMM,-IMM(%rbp)
++vmovdqu %ymm1,-IMM(%rbp)
+ movq $IMM,-IMM(%rbp)
+-vmovdqu %ymm0,-IMM(%rbp)
+-vzeroupper
+-call ADDR
+-vmovd -IMM(%rbp),%xmm1
+-vpxor %xmm0,%xmm0,%xmm0
+-mov IMM(%rbx),%r14
+-vmovdqu %ymm0,-IMM(%rbp)
+-mov -IMM(%rbp),%r10d
++vmovdqu %ymm1,-IMM(%rbp)
+ movq $IMM,-IMM(%rbp)
+-vmovdqu %ymm0,-IMM(%rbp)
+ movq $IMM,-IMM(%rbp)
+ movb $IMM,-IMM(%rbp)
+-vpextrb $IMM,%xmm1,%edx
+-vpextrb $IMM,%xmm1,%eax
++vpextrb $IMM,%xmm0,%edx
++vpextrb $IMM,%xmm0,%eax
+ cmp %al,%dl
+ je ADDR
+ lea -IMM(%rbp),%rsi
+@@ -234,7 +212,7 @@
+ jle ADDR
+ mov %r10d,%r14d
+ mov %r13d,-IMM(%rbp)
+-nopl IMM(%rax,%rax,1)
++nopl (%rax)
+ mov -IMM(%rbp),%rdi
+ xor %esi,%esi
+ call ADDR
+@@ -388,18 +366,18 @@
+ xor %r14d,%r14d
+ xor %r11d,%r11d
+ mov $IMM,%r10d
+-vpxor %xmm1,%xmm1,%xmm1
++vpxor %xmm0,%xmm0,%xmm0
+ movb $IMM,-IMM(%rbp)
+ mov %r12,%rdx
+ mov %rbx,%rsi
+ mov %r15,%rdi
+-vmovd %xmm1,-IMM(%rbp)
++vmovd %xmm0,-IMM(%rbp)
+ mov %r10d,-IMM(%rbp)
+ mov %r11b,-IMM(%rbp)
+ mov %cl,-IMM(%rbp)
+ call ADDR
+ mov %eax,%r8d
+-vmovd -IMM(%rbp),%xmm1
++vmovd -IMM(%rbp),%xmm0
+ mov -IMM(%rbp),%r10d
+ movzbl -IMM(%rbp),%r11d
+ movzbl -IMM(%rbp),%ecx
+@@ -411,7 +389,7 @@
+ xor %r11d,%r11d
+ mov $IMM,%r10d
+ movb $IMM,-IMM(%rbp)
+-vpxor %xmm1,%xmm1,%xmm1
++vpxor %xmm0,%xmm0,%xmm0
+ jmp ADDR
+ nopw IMM(%rax,%rax,1)
+ mov %r13,%rsi
+@@ -739,7 +717,7 @@
+ jmp ADDR
+ data16 cs nopw IMM(%rax,%rax,1)
+ xchg %ax,%ax
+-vpxor %xmm1,%xmm1,%xmm1
++vpxor %xmm0,%xmm0,%xmm0
+ movb $IMM,-IMM(%rbp)
+ jmp ADDR
+ cmpl $IMM,-IMM(%rbp)
+@@ -787,7 +765,7 @@
+ mov %cl,-IMM(%rbp)
+ jmp ADDR
+ movb $IMM,-IMM(%rbp)
+-vpxor %xmm1,%xmm1,%xmm1
++vpxor %xmm0,%xmm0,%xmm0
+ jmp ADDR
+ mov $IMM,%edx
+ jmp ADDR

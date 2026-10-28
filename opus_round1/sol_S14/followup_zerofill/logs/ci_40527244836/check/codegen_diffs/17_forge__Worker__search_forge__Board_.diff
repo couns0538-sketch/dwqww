@@ -1,0 +1,1019 @@
+--- /tmp/tmp.kEsA9nZzUj/a.s	2026-10-27 15:12:09.752584155 +0000
++++ /tmp/tmp.kEsA9nZzUj/b.s	2026-10-27 15:12:09.762584289 +0000
+@@ -2,16 +2,14 @@
+ sub %fs:IMM,%rax
+ jne ADDR > const&) [clone .cold]+IMM>
+ call ADDR
+-mov -IMM(%rbp),%rax
+-sub %fs:IMM,%rax
++mov -IMM(%rbp),%rdx
++sub %fs:IMM,%rdx
+ jne ADDR > const&) [clone .cold]+IMM>
+-lea IMM(%rip),%rdi
++mov %eax,%edi
+ call ADDR
+-mov -IMM(%rbp),%rdi
++endbr64
++mov %rax,%rbx
+ vzeroupper
+-call ADDR , std::allocator >::_M_dispose()>
+-mov -IMM(%rbp),%rdi
+-call ADDR
+ mov -IMM(%rbp),%rax
+ mov IMM(%rax),%rdi
+ mov IMM(%rax),%rsi
+@@ -24,18 +22,23 @@
+ jne ADDR > const&) [clone .cold]+IMM>
+ mov %rbx,%rdi
+ call ADDR
+-mov -IMM(%rbp),%rdx
+-sub %fs:IMM,%rdx
++mov -IMM(%rbp),%rax
++sub %fs:IMM,%rax
+ je ADDR > const&) [clone .cold]+IMM>
+ call ADDR
+-endbr64
+-mov %rax,%rbx
+-vzeroupper
+-jmp ADDR > const&) [clone .cold]+IMM>
+ mov -IMM(%rbp),%rax
+ sub %fs:IMM,%rax
+ jne ADDR > const&) [clone .cold]+IMM>
+ call ADDR
++mov -IMM(%rbp),%rax
++sub %fs:IMM,%rax
++jne ADDR > const&) [clone .cold]+IMM>
++call ADDR
++mov -IMM(%rbp),%rax
++sub %fs:IMM,%rax
++jne ADDR > const&) [clone .cold]+IMM>
++lea IMM(%rip),%rdi
++call ADDR
+ endbr64
+ mov %rax,%rbx
+ vzeroupper
+@@ -48,43 +51,39 @@
+ vzeroupper
+ call ADDR
+ jmp ADDR > const&) [clone .cold]+IMM>
++mov -IMM(%rbp),%rax
++sub %fs:IMM,%rax
++jne ADDR > const&) [clone .cold]+IMM>
++call ADDR
+ mov -IMM(%rbp),%rdi
+ vzeroupper
+ call ADDR , std::allocator >::_M_dispose()>
+-jmp ADDR > const&) [clone .cold]+IMM>
+-mov %eax,%edi
+-call ADDR
+-mov -IMM(%rbp),%rdx
+-sub %fs:IMM,%rdx
+-jne ADDR > const&) [clone .cold]+IMM>
+-mov %eax,%edi
++mov -IMM(%rbp),%rdi
+ call ADDR
++jmp ADDR > const&) [clone .cold]+IMM>
+ endbr64
+ mov %rax,%rbx
+ vzeroupper
+ jmp ADDR > const&) [clone .cold]+IMM>
++mov -IMM(%rbp),%rdi
++vzeroupper
++call ADDR , std::allocator >::_M_dispose()>
++jmp ADDR > const&) [clone .cold]+IMM>
+ mov -IMM(%rbp),%rax
+ sub %fs:IMM,%rax
+ jne ADDR > const&) [clone .cold]+IMM>
+ call ADDR
+-mov -IMM(%rbp),%rax
+-sub %fs:IMM,%rax
+-jne ADDR > const&) [clone .cold]+IMM>
+-call ADDR
+-mov -IMM(%rbp),%rax
+-sub %fs:IMM,%rax
+-jne ADDR > const&) [clone .cold]+IMM>
+-call ADDR
+-mov -IMM(%rbp),%rax
+-sub %fs:IMM,%rax
++mov -IMM(%rbp),%rdx
++sub %fs:IMM,%rdx
+ jne ADDR > const&) [clone .cold]+IMM>
++mov %eax,%edi
+ call ADDR
+ endbr64
+ jmp ADDR > const&) [clone .cold]+IMM>
++call ADDR
+ nop
+ endbr64
+ push %rbp
+-mov %rcx,%r11
+ mov %rsp,%rbp
+ push %r15
+ push %r14
+@@ -92,7 +91,7 @@
+ push %r12
+ push %r10
+ push %rbx
+-mov %r9,%r13
++mov %rcx,%r10
+ sub $IMM,%rsp
+ mov %rdi,-IMM(%rbp)
+ mov %rdx,-IMM(%rbp)
+@@ -103,6 +102,7 @@
+ xor %eax,%eax
+ cmpq $IMM,IMM(%rcx)
+ mov %rsi,%rbx
++mov %r9,%r13
+ je ADDR > const&)+IMM>
+ mov IMM(%rcx),%rax
+ test %rax,%rax
+@@ -113,57 +113,90 @@
+ mov %r13,IMM(%rbx)
+ movl $IMM,IMM(%rbx)
+ movb $IMM,IMM(%rbx)
+-movzbl IMM(%r11),%eax
+-lea IMM(%r11),%rdx
++movzbl IMM(%r10),%eax
++lea IMM(%r10),%rdx
+ movq $IMM,IMM(%rbx)
+ movq $IMM,IMM(%rbx)
+ mov %al,IMM(%rbx)
+ lea IMM(%rbx),%rax
+ cmp %rax,%rdx
+ je ADDR > const&)+IMM>
+-mov IMM(%r11),%r12
+-mov IMM(%r11),%r14
++mov IMM(%r10),%r12
++mov IMM(%r10),%r13
+ mov IMM(%rbx),%rdi
+ mov IMM(%rbx),%rax
+-mov %r12,%r13
++mov %r12,%r14
+ sub %rdi,%rax
+-sub %r14,%r13
+-cmp %r13,%rax
++sub %r13,%r14
++cmp %r14,%rax
+ jb ADDR > const&)+IMM>
+ mov IMM(%rbx),%rcx
+ mov %rcx,%rdx
+ sub %rdi,%rdx
+-cmp %r13,%rdx
++cmp %r14,%rdx
+ jae ADDR > const&)+IMM>
+ cmp $IMM,%rdx
+ jle ADDR > const&)+IMM>
+-mov %r14,%rsi
+-mov %r11,-IMM(%rbp)
++mov %r13,%rsi
++mov %r10,-IMM(%rbp)
+ call ADDR
+-mov -IMM(%rbp),%r11
++mov -IMM(%rbp),%r10
+ mov IMM(%rbx),%rcx
+ mov IMM(%rbx),%rdi
+-mov IMM(%r11),%r12
+-mov IMM(%r11),%r14
++mov IMM(%r10),%r12
++mov IMM(%r10),%r13
+ mov %rcx,%rdx
+ sub %rdi,%rdx
+-add %r14,%rdx
+-add %rdi,%r13
+-cmp %r12,%rdx
++add %rdx,%r13
++cmp %r12,%r13
+ je ADDR > const&)+IMM>
+-mov %r12,%rsi
++mov %r12,%rdx
+ xor %eax,%eax
+-sub %rdx,%rsi
+-nopl (%rax)
+-mov (%rdx,%rax,1),%edi
+-mov %edi,(%rcx,%rax,1)
++sub %r13,%rdx
++data16 cs nopw IMM(%rax,%rax,1)
++data16 cs nopw IMM(%rax,%rax,1)
++mov IMM(%r13,%rax,1),%esi
++mov %esi,(%rcx,%rax,1)
+ add $IMM,%rax
+-cmp %rax,%rsi
++cmp %rax,%rdx
+ jne ADDR > const&)+IMM>
+-mov %r13,IMM(%rbx)
+-movzbl IMM(%r11),%eax
++add %rdi,%r14
++jmp ADDR > const&)+IMM>
++movabs $IMM,%rax
++cmp %r14,%rax
++jb ADDR > const&)+IMM>
++mov %r14,%rdi
++mov %r10,-IMM(%rbp)
++call ADDR
++mov -IMM(%rbp),%r10
++mov %rax,%rcx
++xor %eax,%eax
++cmp %r13,%r12
++je ADDR > const&)+IMM>
++data16 cs nopw IMM(%rax,%rax,1)
++nopw IMM(%rax,%rax,1)
++mov IMM(%r13,%rax,1),%edx
++mov %edx,(%rcx,%rax,1)
++add $IMM,%rax
++cmp %rax,%r14
++jne ADDR > const&)+IMM>
++mov IMM(%rbx),%rdi
++test %rdi,%rdi
++je ADDR > const&)+IMM>
++mov IMM(%rbx),%rsi
++mov %r10,-IMM(%rbp)
++mov %rcx,-IMM(%rbp)
++sub %rdi,%rsi
++call ADDR
++mov -IMM(%rbp),%r10
+ mov -IMM(%rbp),%rcx
+-mov IMM(%r11),%rdx
++add %rcx,%r14
++mov %rcx,IMM(%rbx)
++mov %r14,IMM(%rbx)
++mov %r14,IMM(%rbx)
++movzbl IMM(%r10),%eax
++mov -IMM(%rbp),%rcx
++mov IMM(%r10),%rdx
+ mov IMM(%rbx),%r8d
+ mov %al,IMM(%rbx)
+ mov IMM(%rcx),%rax
+@@ -177,10 +210,10 @@
+ jne ADDR > const&)+IMM>
+ test %rdx,%rdx
+ setne %al
+-or IMM(%r11),%al
+-cmpb $IMM,IMM(%r11)
++or IMM(%r10),%al
++cmpb $IMM,IMM(%r10)
+ mov %al,IMM(%rbx)
+-movslq IMM(%r11),%rax
++movslq IMM(%r10),%rax
+ movq $IMM,IMM(%rbx)
+ movq $IMM,IMM(%rbx)
+ movb $IMM,IMM(%rbx)
+@@ -191,56 +224,48 @@
+ vpxor %xmm0,%xmm0,%xmm0
+ xor %edx,%edx
+ mov %r13,%rdi
+-mov %r11,-IMM(%rbp)
++mov %r10,-IMM(%rbp)
+ vmovdqu %ymm0,(%rax)
+ vmovdqu %ymm0,IMM(%rax)
+ movq $IMM,IMM(%rax)
+ vzeroupper
+ call ADDR
+-lea -IMM(%rbp),%rax
+-mov $IMM,%edx
+-xor %esi,%esi
+-xor %r14d,%r14d
+-mov %rax,%rdi
+-mov %rax,-IMM(%rbp)
+-call ADDR
+ mov -IMM(%rbp),%rdx
+-xor %r10d,%r10d
+-movzbl IMM(%rbx),%r15d
+-mov -IMM(%rbp),%r11
+-mov %r13,%rdi
+-lea IMM(,%rdx,4),%rax
+-lea IMM(%r13,%rax,1),%rcx
+-test %rax,%rax
+-mov %rcx,-IMM(%rbp)
++movzbl IMM(%rbx),%r11d
++mov -IMM(%rbp),%r10
++movq $IMM,-IMM(%rbp)
++test %rdx,%rdx
++lea IMM(%r13,%rdx,4),%r15
++setne %cl
++cmp %r15,%r13
+ je ADDR > const&)+IMM>
++mov %r13,%rdi
++mov %cl,-IMM(%rbp)
+ mov %rdx,-IMM(%rbp)
+-mov %r11,-IMM(%rbp)
+-nopl IMM(%rax,%rax,1)
++mov %r10,-IMM(%rbp)
++nopw IMM(%rax,%rax,1)
+ vmovd (%rdi),%xmm0
+-test %r15b,%r15b
++test %r11b,%r11b
+ je ADDR > const&)+IMM>
+-mov IMM(%rbx),%r11
++mov IMM(%rbx),%r10
+ mov IMM(%rbx),%rax
+ vpextrb $IMM,%xmm0,%r13d
+ vpextrb $IMM,%xmm0,%r12d
+ movzbl IMM(%rdi),%r8d
+ movzbl IMM(%rdi),%r9d
+ mov %r13d,%ecx
+-mov %r12b,-IMM(%rbp)
+-mov %r11,%rsi
++mov %r12d,%edx
++mov %r10,%rsi
+ sub %rax,%rsi
+-mov %rsi,%rdx
++mov %rsi,%r14
+ sar $IMM,%rsi
+-sar $IMM,%rdx
++sar $IMM,%r14
+ test %rsi,%rsi
+ jle ADDR > const&)+IMM>
+ shl $IMM,%rsi
+-mov %r12d,%edx
+ add %rax,%rsi
+ jmp ADDR > const&)+IMM>
+-data16 cs nopw IMM(%rax,%rax,1)
+-nopl IMM(%rax)
++nopw IMM(%rax,%rax,1)
+ cmp %dl,IMM(%rax)
+ jne ADDR > const&)+IMM>
+ cmp %cl,IMM(%rax)
+@@ -279,33 +304,31 @@
+ jne ADDR > const&)+IMM>
+ cmp %r9b,IMM(%rax)
+ jne ADDR > const&)+IMM>
+-cmp %rax,%r11
++cmp %rax,%r10
+ je ADDR > const&)+IMM>
+ mov -IMM(%rbp),%rax
+-mov $IMM,%r14d
+-vmovd %xmm0,(%rax,%r10,4)
+-inc %r10
++lea IMM(%rax),%rdx
++mov %rdx,-IMM(%rbp)
++vmovd %xmm0,-IMM(%rbp,%rax,4)
+ add $IMM,%rdi
+-cmp %rdi,-IMM(%rbp)
++cmp %rdi,%r15
+ jne ADDR > const&)+IMM>
++movzbl -IMM(%rbp),%ecx
+ mov -IMM(%rbp),%rdx
+-mov -IMM(%rbp),%r11
+-test %r14b,%r14b
+-je ADDR > const&)+IMM>
+-mov %r10,-IMM(%rbp)
+-mov -IMM(%rbp),%rax
+-test %rdx,%rdx
++mov -IMM(%rbp),%r10
++test %cl,%cl
+ je ADDR > const&)+IMM>
+-test %r15b,%r15b
++test %r11b,%r11b
+ jne ADDR > const&)+IMM>
++mov -IMM(%rbp),%rax
+ movb $IMM,IMM(%rax)
+-mov IMM(%r11),%eax
++mov IMM(%r10),%eax
+ mov %eax,-IMM(%rbp)
+ test %eax,%eax
+ jg ADDR > const&)+IMM>
+ vmovdqa IMM(%rip),%xmm0
+ vmovd %xmm0,-IMM(%rbp)
+-vmovd (%r11),%xmm1
++vmovd (%r10),%xmm1
+ vpminsd %xmm1,%xmm0,%xmm0
+ vmovdqa IMM(%rip),%xmm1
+ vpmaxsd %xmm1,%xmm0,%xmm0
+@@ -314,7 +337,7 @@
+ mov -IMM(%rbp),%r13
+ test %r13,%r13
+ je ADDR > const&)+IMM>
+-cmpb $IMM,IMM(%r11)
++cmpb $IMM,IMM(%r10)
+ jne ADDR > const&)+IMM>
+ cmpq $IMM,IMM(%rbx)
+ jg ADDR > const&)+IMM>
+@@ -333,7 +356,7 @@
+ mov IMM(%rip),%rdx
+ mov %rax,%rdi
+ mov %rsi,%rax
+-cs nopw IMM(%rax,%rax,1)
++xchg %ax,%ax
+ movl $IMM,IMM(%rax)
+ movq $IMM,IMM(%rax)
+ mov %rdx,IMM(%rax)
+@@ -371,10 +394,10 @@
+ cmpb $IMM,IMM(%rip)
+ jne ADDR > const&)+IMM>
+ lea IMM(,%r13,4),%rdx
++lea -IMM(%rbp),%rsi
+ mov %r13,IMM(%rbx)
+ cmp $IMM,%rdx
+ jle ADDR > const&)+IMM>
+-mov -IMM(%rbp),%rsi
+ mov -IMM(%rbp),%rdi
+ vmovd %xmm0,-IMM(%rbp)
+ call ADDR
+@@ -465,14 +488,14 @@
+ add $IMM,%rax
+ jmp ADDR > const&)+IMM>
+ nopl IMM(%rax)
+-mov %r11,%rdx
+-sub %rax,%rdx
+-sar $IMM,%rdx
+-cmp $IMM,%rdx
++mov %r10,%r14
++sub %rax,%r14
++sar $IMM,%r14
++cmp $IMM,%r14
+ je ADDR > const&)+IMM>
+-cmp $IMM,%rdx
++cmp $IMM,%r14
+ je ADDR > const&)+IMM>
+-cmp $IMM,%rdx
++cmp $IMM,%r14
+ jne ADDR > const&)+IMM>
+ cmp %r12b,(%rax)
+ jne ADDR > const&)+IMM>
+@@ -488,15 +511,15 @@
+ mov IMM(%rcx),%rax
+ test %rax,%rax
+ jne ADDR > const&)+IMM>
+-mov %r11,-IMM(%rbp)
++mov %r10,-IMM(%rbp)
+ call ADDR
+-mov -IMM(%rbp),%r11
++mov -IMM(%rbp),%r10
+ jmp ADDR > const&)+IMM>
+ data16 cs nopw IMM(%rax,%rax,1)
+ xor %edx,%edx
+ test %rax,%rax
+ cmovs %rdx,%rax
+-movslq IMM(%r11),%rdx
++movslq IMM(%r10),%rdx
+ test %edx,%edx
+ js ADDR > const&)+IMM>
+ sub %rax,%rdx
+@@ -516,16 +539,48 @@
+ mov %eax,-IMM(%rbp)
+ jmp ADDR > const&)+IMM>
+ cmpq $IMM,-IMM(%rbp)
++je ADDR > const&)+IMM>
++mov -IMM(%rbp),%rax
++movb $IMM,IMM(%rax)
++mov IMM(%r10),%eax
++mov %eax,-IMM(%rbp)
++test %eax,%eax
++jle ADDR > const&)+IMM>
++mov %eax,%ecx
++jmp ADDR > const&)+IMM>
++cmp %r12b,(%rax)
++jne ADDR > const&)+IMM>
++cmp %r13b,IMM(%rax)
++jne ADDR > const&)+IMM>
++cmp %r8b,IMM(%rax)
+ jne ADDR > const&)+IMM>
++cmp %r9b,IMM(%rax)
++je ADDR > const&)+IMM>
++add $IMM,%rax
++cmp %r12b,(%rax)
++jne ADDR > const&)+IMM>
++cmp %r13b,IMM(%rax)
++jne ADDR > const&)+IMM>
++cmp %r8b,IMM(%rax)
++jne ADDR > const&)+IMM>
++cmp %r9b,IMM(%rax)
++je ADDR > const&)+IMM>
++add $IMM,%rax
++jmp ADDR > const&)+IMM>
++test %cl,%cl
++je ADDR > const&)+IMM>
++test %r11b,%r11b
++je ADDR > const&)+IMM>
++mov -IMM(%rbp),%rax
+ cmpb $IMM,-IMM(%rbp)
+ movb $IMM,IMM(%rax)
+ jne ADDR > const&)+IMM>
+-mov IMM(%r11),%ecx
++mov IMM(%r10),%ecx
+ mov %ecx,-IMM(%rbp)
+ test %ecx,%ecx
+ jle ADDR > const&)+IMM>
+ mov $IMM,%eax
+-vmovd (%r11),%xmm1
++vmovd (%r10),%xmm1
+ cmp %eax,%ecx
+ cmovle %ecx,%eax
+ lea -IMM(%rax,%rax,1),%eax
+@@ -536,7 +591,7 @@
+ vpmaxsd %xmm1,%xmm0,%xmm0
+ mov -IMM(%rbp),%r15
+ vmovd %xmm0,-IMM(%rbp)
+-mov %r11,-IMM(%rbp)
++mov %r10,-IMM(%rbp)
+ mov %r15,%rdi
+ call ADDR
+ test %al,%al
+@@ -550,7 +605,8 @@
+ lea IMM(%rip),%r14
+ vpaddd %xmm1,%xmm0,%xmm0
+ vmovd %xmm0,-IMM(%rbp)
+-nopw IMM(%rax,%rax,1)
++data16 cs nopw IMM(%rax,%rax,1)
++nopl (%rax)
+ vmovd -IMM(%rbp),%xmm5
+ mov -IMM(%rbp),%rax
+ cmpb $IMM,-IMM(%rbp)
+@@ -677,7 +733,7 @@
+ mov -IMM(%rax),%rax
+ mov IMM(%r14,%rax,1),%r13
+ test %r13,%r13
+-je ADDR > const&) [clone .cold]+IMM>
++je ADDR > const&) [clone .cold]>
+ cmpb $IMM,IMM(%r13)
+ je ADDR > const&)+IMM>
+ movsbl IMM(%r13),%esi
+@@ -716,7 +772,7 @@
+ mov IMM(%rdx),%rdx
+ add %rdx,%rcx
+ add $IMM,%rax
+-cmp %rax,%rsi
++cmp %rsi,%rax
+ jne ADDR > const&)+IMM>
+ mov -IMM(%rbp),%r15
+ mov %rcx,IMM(%r15)
+@@ -743,26 +799,8 @@
+ pop %r15
+ pop %rbp
+ ret
+-cmp %r12b,(%rax)
+-jne ADDR > const&)+IMM>
+-cmp %r13b,IMM(%rax)
+-jne ADDR > const&)+IMM>
+-cmp %r8b,IMM(%rax)
+-jne ADDR > const&)+IMM>
+-cmp %r9b,IMM(%rax)
+-je ADDR > const&)+IMM>
+-add $IMM,%rax
+-cmp %r12b,(%rax)
+-jne ADDR > const&)+IMM>
+-cmp %r13b,IMM(%rax)
+-jne ADDR > const&)+IMM>
+-cmp %r8b,IMM(%rax)
+-jne ADDR > const&)+IMM>
+-cmp %r9b,IMM(%rax)
+-je ADDR > const&)+IMM>
+-add $IMM,%rax
+-jmp ADDR > const&)+IMM>
+-cs nopw IMM(%rax,%rax,1)
++data16 cs nopw IMM(%rax,%rax,1)
++xchg %ax,%ax
+ mov %r13,%rdi
+ call ADDR ::_M_widen_init() const@plt>
+ mov IMM(%r13),%rax
+@@ -786,16 +824,16 @@
+ mov %eax,-IMM(%rbp)
+ jmp ADDR > const&)+IMM>
+ vmovdqa IMM(%rip),%xmm1
+-vmovd (%r11),%xmm0
++vmovd (%r10),%xmm0
+ movl $IMM,-IMM(%rbp)
+ vpminsd %xmm1,%xmm0,%xmm0
+ vmovdqa IMM(%rip),%xmm1
+ vpmaxsd %xmm1,%xmm0,%xmm0
+ jmp ADDR > const&)+IMM>
+-mov IMM(%r11),%edx
++mov IMM(%r10),%edx
+ test %edx,%edx
+ js ADDR > const&)+IMM>
+-movslq IMM(%r11),%rdi
++movslq IMM(%r10),%rdi
+ xor %ecx,%ecx
+ test %rdi,%rdi
+ cmovs %rcx,%rdi
+@@ -804,7 +842,7 @@
+ mov $IMM,%eax
+ test %rcx,%rcx
+ cmovle %rax,%rcx
+-movslq IMM(%r11),%rax
++movslq IMM(%r10),%rax
+ test %eax,%eax
+ jle ADDR > const&)+IMM>
+ mov $IMM,%edx
+@@ -838,45 +876,12 @@
+ cmovle %rdx,%rax
+ mov %rax,IMM(%rbx)
+ jmp ADDR > const&)+IMM>
+-movabs $IMM,%rax
+-cmp %r13,%rax
+-jb ADDR > const&)+IMM>
+-mov %r13,%rdi
+-mov %r11,-IMM(%rbp)
+-call ADDR
+-mov -IMM(%rbp),%r11
+-mov %rax,%rcx
+-xor %eax,%eax
+-cmp %r14,%r12
+-je ADDR > const&)+IMM>
+-data16 cs nopw IMM(%rax,%rax,1)
+-nopl IMM(%rax)
+-mov (%r14,%rax,1),%edx
+-mov %edx,(%rcx,%rax,1)
+-add $IMM,%rax
+-cmp %rax,%r13
+-jne ADDR > const&)+IMM>
+-mov IMM(%rbx),%rdi
+-test %rdi,%rdi
+-je ADDR > const&)+IMM>
+-mov IMM(%rbx),%rsi
+-mov %r11,-IMM(%rbp)
+-mov %rcx,-IMM(%rbp)
+-sub %rdi,%rsi
+-call ADDR
+-mov -IMM(%rbp),%r11
+-mov -IMM(%rbp),%rcx
+-add %rcx,%r13
+-mov %rcx,IMM(%rbx)
+-mov %r13,IMM(%rbx)
+-mov %r13,IMM(%rbx)
+-jmp ADDR > const&)+IMM>
+ cmpw $IMM,IMM(%r15)
+-mov -IMM(%rbp),%r11
++mov -IMM(%rbp),%r10
+ ja ADDR > const&)+IMM>
+ mov -IMM(%rbp),%rdi
+ vmovd %xmm0,-IMM(%rbp)
+-mov %r11,-IMM(%rbp)
++mov %r10,-IMM(%rbp)
+ call ADDR
+ mov -IMM(%rbp),%rcx
+ test %al,%al
+@@ -885,22 +890,15 @@
+ jne ADDR > const&)+IMM>
+ test %rcx,%rcx
+ je ADDR > const&)+IMM>
+-mov -IMM(%rbp),%r11
++mov -IMM(%rbp),%r10
+ mov %rcx,%r13
+ jmp ADDR > const&)+IMM>
+-cmpq $IMM,IMM(%r11)
++cmpq $IMM,IMM(%r10)
+ jne ADDR > const&)+IMM>
+-mov -IMM(%rbp),%rbx
+ mov -IMM(%rbp),%eax
+-movl $IMM,IMM(%rbx)
++mov -IMM(%rbp),%rbx
+ mov %eax,(%rbx)
+-jmp ADDR > const&)+IMM>
+-movb $IMM,IMM(%rax)
+-mov IMM(%r11),%eax
+-mov %eax,-IMM(%rbp)
+-test %eax,%eax
+-jle ADDR > const&)+IMM>
+-mov %eax,%ecx
++movl $IMM,IMM(%rbx)
+ jmp ADDR > const&)+IMM>
+ nopl IMM(%rax,%rax,1)
+ mov -IMM(%rbp),%ecx
+@@ -1371,10 +1369,10 @@
+ test %rdi,%rdi
+ je ADDR > const&)+IMM>
+ mov IMM(%rbx),%rax
+-mov -IMM(%rbp),%r10
++mov -IMM(%rbp),%r11
+ shl $IMM,%rax
+ mov %rax,%rdx
+-lea (%r10,%rax,1),%r8
++lea (%r11,%rax,1),%r8
+ sar $IMM,%rax
+ sar $IMM,%rdx
+ test %rax,%rax
+@@ -1383,44 +1381,44 @@
+ add $IMM,%rax
+ shl $IMM,%rax
+ lea (%rbx,%rax,1),%rcx
+-mov %r10,%rax
++mov %r11,%rax
+ movzbl (%r9),%edx
+ jmp ADDR > const&)+IMM>
+ nopl IMM(%rax)
+ cmp IMM(%rax),%dl
+ jne ADDR > const&)+IMM>
+-movzbl IMM(%r9),%r10d
+-cmp %r10b,IMM(%rax)
++movzbl IMM(%r9),%r11d
++cmp %r11b,IMM(%rax)
+ jne ADDR > const&)+IMM>
+-movzbl IMM(%r9),%r10d
+-cmp %r10b,IMM(%rax)
++movzbl IMM(%r9),%r11d
++cmp %r11b,IMM(%rax)
+ jne ADDR > const&)+IMM>
+-movzbl IMM(%r9),%r10d
+-cmp %r10b,IMM(%rax)
++movzbl IMM(%r9),%r11d
++cmp %r11b,IMM(%rax)
+ je ADDR > const&)+IMM>
+ nopw IMM(%rax,%rax,1)
+ cmp IMM(%rax),%dl
+ jne ADDR > const&)+IMM>
+-movzbl IMM(%r9),%r10d
+-cmp %r10b,IMM(%rax)
++movzbl IMM(%r9),%r11d
++cmp %r11b,IMM(%rax)
+ jne ADDR > const&)+IMM>
+-movzbl IMM(%r9),%r10d
+-cmp %r10b,IMM(%rax)
++movzbl IMM(%r9),%r11d
++cmp %r11b,IMM(%rax)
+ jne ADDR > const&)+IMM>
+-movzbl IMM(%r9),%r10d
+-cmp %r10b,IMM(%rax)
++movzbl IMM(%r9),%r11d
++cmp %r11b,IMM(%rax)
+ je ADDR > const&)+IMM>
+ nopw IMM(%rax,%rax,1)
+ cmp IMM(%rax),%dl
+ jne ADDR > const&)+IMM>
+-movzbl IMM(%r9),%r10d
+-cmp %r10b,IMM(%rax)
++movzbl IMM(%r9),%r11d
++cmp %r11b,IMM(%rax)
+ jne ADDR > const&)+IMM>
+-movzbl IMM(%r9),%r10d
+-cmp %r10b,IMM(%rax)
++movzbl IMM(%r9),%r11d
++cmp %r11b,IMM(%rax)
+ jne ADDR > const&)+IMM>
+-movzbl IMM(%r9),%r10d
+-cmp %r10b,IMM(%rax)
++movzbl IMM(%r9),%r11d
++cmp %r11b,IMM(%rax)
+ je ADDR > const&)+IMM>
+ nopw IMM(%rax,%rax,1)
+ add $IMM,%rax
+@@ -1428,14 +1426,14 @@
+ je ADDR > const&)+IMM>
+ cmp %dl,(%rax)
+ jne ADDR > const&)+IMM>
+-movzbl IMM(%r9),%r10d
+-cmp %r10b,IMM(%rax)
++movzbl IMM(%r9),%r11d
++cmp %r11b,IMM(%rax)
+ jne ADDR > const&)+IMM>
+-movzbl IMM(%r9),%r10d
+-cmp %r10b,IMM(%rax)
++movzbl IMM(%r9),%r11d
++cmp %r11b,IMM(%rax)
+ jne ADDR > const&)+IMM>
+-movzbl IMM(%r9),%r10d
+-cmp %r10b,IMM(%rax)
++movzbl IMM(%r9),%r11d
++cmp %r11b,IMM(%rax)
+ jne ADDR > const&)+IMM>
+ cmp %rax,%r8
+ je ADDR > const&)+IMM>
+@@ -1462,7 +1460,7 @@
+ vmulsd %xmm0,%xmm1,%xmm1
+ jmp ADDR > const&)+IMM>
+ lea IMM(%rip),%rax
+-mov %r11,-IMM(%rbp)
++mov %r10,-IMM(%rbp)
+ mov %rax,%rdi
+ mov %rax,-IMM(%rbp)
+ call ADDR
+@@ -1480,17 +1478,17 @@
+ test %r13,%r13
+ je ADDR > const&) [clone .cold]+IMM>
+ cmpb $IMM,IMM(%r13)
+-mov -IMM(%rbp),%r11
++mov -IMM(%rbp),%r10
+ je ADDR > const&)+IMM>
+ movsbl IMM(%r13),%esi
+ mov %r14,%rdi
+-mov %r11,-IMM(%rbp)
++mov %r10,-IMM(%rbp)
+ call ADDR
+ mov %rax,%rdi
+ call ADDR
+ mov -IMM(%rbp),%rdi
+ call ADDR
+-mov -IMM(%rbp),%r11
++mov -IMM(%rbp),%r10
+ jmp ADDR > const&)+IMM>
+ mov IMM(%rip),%rax
+ mov -IMM(%rax),%rax
+@@ -1549,15 +1547,14 @@
+ mov -IMM(%rbp),%rbx
+ mov %eax,(%rbx)
+ jmp ADDR > const&)+IMM>
+-cmp $IMM,%r13
++cmp $IMM,%r14
+ jle ADDR > const&)+IMM>
+-mov %r13,%rdx
+-mov %r14,%rsi
+-mov %r11,-IMM(%rbp)
++mov %r14,%rdx
++mov %r13,%rsi
++mov %r10,-IMM(%rbp)
+ call ADDR
+-add IMM(%rbx),%r13
+-mov -IMM(%rbp),%r11
+-mov %r13,IMM(%rbx)
++add IMM(%rbx),%r14
++mov -IMM(%rbp),%r10
+ jmp ADDR > const&)+IMM>
+ add $IMM,%rax
+ jmp ADDR > const&)+IMM>
+@@ -1568,6 +1565,21 @@
+ vmovsd IMM(%rip),%xmm1
+ vmovsd IMM(%rip),%xmm2
+ jmp ADDR > const&)+IMM>
++mov %r13,%rdi
++mov %r10,-IMM(%rbp)
++call ADDR ::_M_widen_init() const@plt>
++mov IMM(%r13),%rax
++lea -IMM(%rip),%rdx
++mov -IMM(%rbp),%r10
++mov $IMM,%esi
++mov IMM(%rax),%rax
++cmp %rdx,%rax
++je ADDR > const&)+IMM>
++mov %r13,%rdi
++call *%rax
++mov -IMM(%rbp),%r10
++movsbl %al,%esi
++jmp ADDR > const&)+IMM>
+ cmpb $IMM,IMM(%rbx)
+ jne ADDR > const&)+IMM>
+ mov IMM(%rbx),%r12
+@@ -1578,10 +1590,9 @@
+ sub %r12,%rax
+ mov %rax,%rcx
+ imul %rdx
+-mov %rcx,%rax
+-sar $IMM,%rax
++sar $IMM,%rcx
+ sar $IMM,%rdx
+-sub %rax,%rdx
++sub %rcx,%rdx
+ mov %rdx,%r12
+ cmp %r12,IMM(%rbx)
+ jg ADDR > const&)+IMM>
+@@ -1599,21 +1610,6 @@
+ sub %rcx,%rax
+ mov %rax,IMM(%r15)
+ jmp ADDR > const&)+IMM>
+-mov %r13,%rdi
+-mov %r11,-IMM(%rbp)
+-call ADDR ::_M_widen_init() const@plt>
+-mov IMM(%r13),%rax
+-lea -IMM(%rip),%rdx
+-mov -IMM(%rbp),%r11
+-mov $IMM,%esi
+-mov IMM(%rax),%rax
+-cmp %rdx,%rax
+-je ADDR > const&)+IMM>
+-mov %r13,%rdi
+-call *%rax
+-mov -IMM(%rbp),%r11
+-movsbl %al,%esi
+-jmp ADDR > const&)+IMM>
+ mov %rdi,%rax
+ and $IMM,%edi
+ vxorpd %xmm7,%xmm7,%xmm7
+@@ -1660,6 +1656,10 @@
+ jmp ADDR > const&)+IMM>
+ movl $IMM,-IMM(%rbp)
+ jmp ADDR > const&)+IMM>
++jne ADDR > const&)+IMM>
++mov IMM(%rbx),%eax
++mov %eax,IMM(%r13)
++jmp ADDR > const&)+IMM>
+ movslq IMM(%rip),%rax
+ movabs $IMM,%r8
+ imul %rax,%rdi
+@@ -1691,12 +1691,7 @@
+ mov IMM(%rbx),%eax
+ mov %eax,IMM(%r13)
+ jmp ADDR > const&)+IMM>
+-jne ADDR > const&)+IMM>
+-mov IMM(%rbx),%eax
+-mov %eax,IMM(%r13)
+-jmp ADDR > const&)+IMM>
+-data16 cs nopw IMM(%rax,%rax,1)
+-xchg %ax,%ax
++nopl IMM(%rax)
+ movslq IMM(%rbx),%rax
+ test %eax,%eax
+ jle ADDR > const&)+IMM>
+@@ -1803,7 +1798,7 @@
+ call ADDR
+ mov %eax,%edi
+ test %eax,%eax
+-jne ADDR > const&) [clone .cold]>
++jne ADDR > const&) [clone .cold]+IMM>
+ lea IMM(%rip),%r14
+ mov $IMM,%edx
+ lea IMM(%rip),%rsi
+@@ -1951,7 +1946,7 @@
+ jmp ADDR > const&)+IMM>
+ nopw IMM(%rax,%rax,1)
+ jne ADDR > const&)+IMM>
+-mov (%r14),%eax
++mov IMM(%r13),%eax
+ mov %eax,(%rdi)
+ jmp ADDR > const&)+IMM>
+ jne ADDR > const&)+IMM>
+@@ -1959,9 +1954,8 @@
+ mov %eax,IMM(%rbx)
+ jmp ADDR > const&)+IMM>
+ jne ADDR > const&)+IMM>
+-mov (%r14),%eax
++mov IMM(%r13),%eax
+ mov %eax,(%rdi)
+-add %rdi,%r13
+ jmp ADDR > const&)+IMM>
+ mov -IMM(%rbp),%rax
+ sub %fs:IMM,%rax
+@@ -1971,24 +1965,24 @@
+ movzbl (%rcx),%edx
+ cmp %dl,(%rax)
+ jne ADDR > const&)+IMM>
+-movzbl IMM(%rcx),%r10d
+-cmp %r10b,IMM(%rax)
++movzbl IMM(%rcx),%r11d
++cmp %r11b,IMM(%rax)
+ jne ADDR > const&)+IMM>
+-movzbl IMM(%rcx),%r10d
+-cmp %r10b,IMM(%rax)
++movzbl IMM(%rcx),%r11d
++cmp %r11b,IMM(%rax)
+ jne ADDR > const&)+IMM>
+ movzbl IMM(%rcx),%ecx
+ cmp %cl,IMM(%rax)
+ je ADDR > const&)+IMM>
+ add $IMM,%rax
+-cmp %dl,(%rax)
++cmp (%rax),%dl
+ jne ADDR > const&)+IMM>
+ mov -IMM(%rbp),%rcx
+-movzbl IMM(%rcx),%r10d
+-cmp %r10b,IMM(%rax)
++movzbl IMM(%rcx),%r11d
++cmp %r11b,IMM(%rax)
+ jne ADDR > const&)+IMM>
+-movzbl IMM(%rcx),%r10d
+-cmp %r10b,IMM(%rax)
++movzbl IMM(%rcx),%r11d
++cmp %r11b,IMM(%rax)
+ jne ADDR > const&)+IMM>
+ movzbl IMM(%rcx),%ecx
+ cmp %cl,IMM(%rax)
+@@ -2056,7 +2050,7 @@
+ mov %r13,IMM(%rax)
+ mov %rdi,%r14
+ jmp ADDR > const&)+IMM>
+-mov %r10,%rax
++mov %r11,%rax
+ jmp ADDR > const&)+IMM>
+ mov %r12,%rdi
+ call ADDR ::_M_widen_init() const@plt>
+@@ -2070,7 +2064,6 @@
+ call *%rax
+ movsbl %al,%esi
+ jmp ADDR > const&)+IMM>
+-call ADDR
+ mov IMM(%rbx),%eax
+ mov %eax,(%rdi)
+ jmp ADDR > const&)+IMM>
+@@ -2078,16 +2071,17 @@
+ mov IMM(%rbx),%eax
+ mov %eax,(%rdi)
+ jmp ADDR > const&)+IMM>
++call ADDR
+ endbr64
+-mov %rax,%rbx
+ jmp ADDR > const&) [clone .cold]+IMM>
+ endbr64
++mov %rax,%rbx
++jmp ADDR > const&) [clone .cold]+IMM>
+ jmp ADDR > const&) [clone .cold]+IMM>
+ endbr64
+ mov %rax,%rbx
+ jmp ADDR > const&) [clone .cold]+IMM>
+ endbr64
+-mov %rax,%rbx
+ jmp ADDR > const&) [clone .cold]+IMM>
+ endbr64
+ mov %rax,%rbx
+@@ -2099,10 +2093,11 @@
+ endbr64
+ mov %rax,%rbx
+ jmp ADDR > const&) [clone .cold]+IMM>
+-endbr64
+-jmp ADDR > const&) [clone .cold]+IMM>
+ jmp ADDR > const&) [clone .cold]+IMM>
+ endbr64
+ jmp ADDR > const&) [clone .cold]+IMM>
++endbr64
++mov %rax,%rbx
+ jmp ADDR > const&) [clone .cold]+IMM>
+-nopw IMM(%rax,%rax,1)
++nop
++xchg %ax,%ax

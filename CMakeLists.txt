@@ -5,6 +5,7 @@ find_package(Threads REQUIRED)
 option(FORGE_ENABLE_SANITIZERS "Enable AddressSanitizer and UndefinedBehaviorSanitizer" OFF)
 option(FORGE_NATIVE "Optimise for the build machine's CPU (-march=native)" OFF)
 option(FORGE_EXPOSE_TUNABLES "Advertise search tuning constants as UCI options (development builds)" OFF)
+option(FORGE_NOZERO_MOVE_BUFFERS "Leave the MoveList/MovePicker move buffers uninitialised (node-exact speed candidate)" OFF)
 
 add_library(forge_core
     src/bitboard.cpp
@@ -17,6 +18,9 @@ add_library(forge_core
 )
 target_include_directories(forge_core PUBLIC include)
 target_compile_features(forge_core PUBLIC cxx_std_20)
+if(FORGE_NOZERO_MOVE_BUFFERS)
+    target_compile_definitions(forge_core PUBLIC FORGE_NOZERO_MOVE_BUFFERS=1)
+endif()
 
 # R3 stack: the O2 NNUE accumulator kernels (opus-O2; bit-identical output) are a
 # build switch, default off. PUBLIC: nnue.hpp's Accumulator alignment depends on it.

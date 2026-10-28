@@ -1,0 +1,27 @@
+--- /tmp/tmp.kEsA9nZzUj/a.s	2026-10-27 15:12:11.262604540 +0000
++++ /tmp/tmp.kEsA9nZzUj/b.s	2026-10-27 15:12:11.264604567 +0000
+@@ -1,21 +1,12 @@
+ endbr64
+-push %r12
+-mov %rsi,%r12
+-push %rbp
+-xor %esi,%esi
+ push %rbx
+-mov %edx,%ebp
+ mov %rdi,%rbx
+-mov $IMM,%edx
+-call ADDR
+-movzbl %bpl,%edx
++movzbl %dl,%edx
++mov %rsi,%rdi
+ mov %rbx,%rsi
+-mov %r12,%rdi
++movq $IMM,IMM(%rbx)
+ call ADDR
+ mov %rbx,%rax
+-vzeroupper
+ pop %rbx
+-pop %rbp
+-pop %r12
+ ret
+ cs nopw IMM(%rax,%rax,1)

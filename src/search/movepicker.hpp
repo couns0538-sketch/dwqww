@@ -160,10 +160,18 @@ private:
     std::array<Move, 2> killers_{};
     Move counter_{};
     Stage stage_;
+#if FORGE_NOZERO_MOVE_BUFFERS
+    UninitArray<Scored, 256> moves_;  // only [0, count_) is ever read
+#else
     std::array<Scored, 256> moves_{};
+#endif
     std::size_t index_ = 0;
     std::size_t count_ = 0;
+#if FORGE_NOZERO_MOVE_BUFFERS
+    UninitArray<Move, 64> bad_captures_;  // only [0, bad_count_) is ever read
+#else
     std::array<Move, 64> bad_captures_{};
+#endif
     std::size_t bad_count_ = 0;
     std::size_t bad_index_ = 0;
     MoveList buffer_;
