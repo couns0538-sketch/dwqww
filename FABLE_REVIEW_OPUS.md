@@ -289,6 +289,49 @@ Six remarks came back, all acted on in session 4 (`[skip ci]` commits, pushed):
 | the archived regression test's stress positions reach at most 50 SEE-losing noisy moves (below 64), so the test passes on the unfixed engine too and does not by itself demonstrate the overflow | recorded in REVIEW.md as a remark for the next model (a position with more than 64 SEE-losing noisy moves would); the fix stands on its own: `MoveList::Capacity` is exactly the number of moves that can be deferred |
 | cosmetic: literal line breaks inside backticks in three REVIEW.md files | fixed by the rewrite |
 
+## Deep pass (session 5, owner request: "do the rest you said")
+
+Notes and evidence under `fable_review/deep/` (one file per item).
+
+- **S32 in-engine datagen read line by line** (`deep/S32.md`) against the lock archive's fen2bin.cpp / hce_dump.cpp
+  and the Python self-play reference (terminal_result, decisive_side, eligible_score, play_game, output format):
+  board packing, meta byte, FPOS/FHCE layouts and endianness, score/HCE side-to-move views, eligibility, the terminal
+  rule (threefold via `Board::is_repetition()` = two earlier equal keys in the halfmove window; insufficient material
+  checked case by case), adjudication and the text line are identical or equivalent. No defect. Remarks only
+  (convert mode aborts on a bad line where fen2bin writes a meta-255 placeholder; `.info` content differs).
+- **O7 pawn-pair inputs read line by line against the trainer** (`deep/O7.md`): relative frame, own/their colouring,
+  the seven offsets and their file masks, the anchor rule, the index formula, off-board handling, the mirror flip and
+  the block layout are the same in `pawn_pair_features()` and the trainer's `pawn_pair_index()`; the incremental path
+  regenerates a perspective's list on pawn changes and on king-key changes (new flip), pawn_counts returns to zero after
+  each delta, buffers are sized MaxThreatPairs + MaxPawnPairs + 4. No defect.
+- **SA2 int16 inference and SA4 H512 read line by line** (`deep/SA2_SA4.md`): the integer path's number format,
+  the AVX2 pack/permute trick, the rounded square, the overflow bounds and the mode switch are correct; the integer
+  square rounds to the 8192 grid where the float path is exact, so the two are not bit-identical by construction
+  (Opus measured 10000/10000 equal truncated centipawns; a 1 cp boundary difference remains possible; option OFF by
+  default). SA4's width switch and bounds hold for H512. No defect.
+- **r3 merge resolutions read against the merged branches** (`deep/r3_merges.md`, per-merge diffs `deep/r3/`):
+  every merge's automatic 3-way result was recomputed with `git merge-tree` and diffed against the committed merge, so
+  exactly R3-1's manual edits were read; twelve merges were clean, twelve conflicted (the Sol branches patched
+  src/search.cpp, which the stack had split into src/search/*.inc). S14, S29, S11, S13, S41, SIT, S12 are hunk-for-hunk
+  the branch's code; A1, O2, C6 are coherent ports whose ON behaviour R3-1 pinned against the branches (ON bench nodes,
+  parity test); S08fix is entirely under `#ifdef FORGE_PROF` with `#else` keeping the lock code. No logic change by any
+  resolution. Owner item: the stack's `bad_captures_` is still 64 entries in both `#if` branches of movepicker.hpp;
+  the fable-review-buffix change belongs there too.
+- **Planted-bug (mutant) checks re-run on the PC** (`deep/mutants/<job>.log`, runner `deep/fable_nnue_mutants.sh`,
+  `deep/fable_nnue_mutants_py.sh`): each job's own mutation script run from a fresh LF export of the branch head
+  (Idle priority, two build jobs). Shell-style jobs, mutants caught / not caught, re-run vs Opus's committed log:
+  O3 8/0 = 8/0, C2 14/0 = 14/0, C4 10/0 = 10/0, C4 fail-loud 13/0 = 13/0, C5 8/0 = 8/0 (the committed folder also
+  holds an older pre-merge log with 6 more), O4 6/0 = 6/0, O5 20/0 = 20/0, O6 8/0 = 8/0, O7 7/0 = 7/0, O8 19/0 =
+  19/0. Every planted bug is still caught. The Python-style checks (A1, SA2, SA4, S12 + alias, S41, C6, R3-4, R3-5,
+  R3-6, port_c with/without -O2, O2, S14 + zero-fill, S08fix, SIT) are running at the time of this commit; their
+  results follow in the next commit. Not re-run: C1 (its 290-file 3-5 man tablebase folder, 939 MiB, was stored
+  outside the repository at a location the report does not record), S11 (the mutation evidence is a tarball of
+  logs, no script), and the jobs that never had a scripted mutation check (C3, O1, O1-LTT, S04fix, S13, S29, S32,
+  S37: their REPORTs describe hand-made planted bugs or none).
+- **Buffix test strength**: a position with more than 64 SEE-losing noisy moves is being constructed (search driven by
+  the engine's own census); result and the unfixed-engine overflow proof follow in the next commit.
+- **S17 real-window re-run** (shards 010 last 200k rows + 011 + 012, read-only inputs): running; result follows.
+
 ## Final state of the correction branches (remote heads, 2026-10-28)
 
 | branch | head | base | content |
