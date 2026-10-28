@@ -40,7 +40,9 @@ A quiet machine exists in this round's evidence: S26fix's CI ran WAC300 at 1000 
 engine on GitHub runners. That engine is S26's "B_lock" arm: bench 308972/745494/2460422/11901452/31111774 = the lock
 exe's pins (S43), so the same search as this job's lock.
 - **Results:** 284 (run 40505681846, v4), 282 (run 40507421791, v4) and 284 (run 40507421791, v5);
-  `opus-sol-S26fix:opus_round1/sol_S26fix/closed_nets/B_lock/SUMMARY_B_lock.md`.
+  `opus-sol-S26fix:opus_round1/sol_S26fix/closed_nets/B_lock/SUMMARY_B_lock.md`. Run 40505681846 as a whole
+  failed in its `asan (f023)` job (fixed in run 40507421791); its `v4_native (B_lock)` job, the one cited here,
+  passed.
 - **The harness differs:** it is Sol's S26 v4/v5 WAC screen, not the S07 sweep tool, so it is a cross-check, not the
   same measurement.
 - **Reading:** a quiet, fast box gives 282-284, the same as the loaded PC's 281-284 and far above 271. That supports
