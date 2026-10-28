@@ -1,0 +1,14 @@
+# IDEA_SOURCE.md — job FB1 (NNUE v3 architecture, branch fable-nnue-arch)
+
+All code on this branch was written for this job. Ideas were taken from the following sources; no code was copied
+from outside this repository.
+
+| idea | source | how it is used here |
+|---|---|---|
+| King-bucketed HalfKA inputs: feature index `bucket * 768 + (rel * 6 + type) * 64 + (sq ^ flip)`, bucket from the own king square in the perspective frame, horizontal mirroring when the own king stands on files e-h, refresh cache per (perspective, bucket, flip) | this repository, Opus job C4 (`opus-C4`, `include/forge/nnue_v2.hpp`, REPORT.md); the general idea is the HalfKA/HalfKAv2 family of public NNUE designs | v3 feature set (`include/forge/nnue_v3.hpp`), identical conventions so that a one-bucket unmirrored v3 net is the compiled-in feature set |
+| Output buckets by total piece count, default map `min(N - 1, (pieces - 2) * N / 32)` (8 heads: `(pieces - 2) / 4`), 33-entry map in the header | this repository, Opus job C5 (`opus-C5`, REPORT.md) | v3 header field `output_bucket_map[33]`, `fable_nnue_v3.py output_layout` |
+| int16 accumulators with activation scale QA = 255, output weights at QB = 64 clipped to +-127 so that `clamp * w2` fits int16 and the pairwise `madd` SCReLU kernel is exact; `out = sum / QA + b2`, `cp = out * scale / (QA * QB)` | the public "bullet"-style quantisation scheme used by many open NNUE trainers (idea only) | engine arithmetic (`src/nnue_v3.cpp`), reference evaluator (`tools/nnue/fable_nnue_v3.py`), trainer export (M3) |
+| Provable no-overflow bounds: `max|b1| + 32 * max|w1| <= 32767` for the accumulator, per-lane int32 partial sums bounded by `H/4 * 255^2 * 127` (< 2^31 for H <= 1024) | own derivation for this job | loader rejections, `MaxHidden = 1024` |
+| Fail-loud rule: a requested net that cannot evaluate prints `info string ERROR NNUE v3: ...` and exits with status 2 at the next isready / go / bench instead of falling back silently | this repository, Opus job C5 review fix | `src/uci.cpp` |
+| Lazy accumulator stack with walk-back to the nearest valid ply and replay of recorded piece changes | this repository, AL1 lock `Worker::static_evaluate` | M2 incremental path reuses `SearchStack::dirty` |
+| Quantisation-aware training by weight clipping to the exportable int16/int8 ranges, factoriser block shared across king buckets and folded into each bucket at export | public NNUE trainer practice (idea only); this repository's C4 trainer had a `--king-factor` option | M3 trainer `tools/nnue/fable_nnue_train.py` |

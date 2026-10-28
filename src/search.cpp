@@ -598,6 +598,7 @@ namespace {
 
 int Worker::static_evaluate(const Board& board, SearchStack* ss) {
     if (!nnue::enabled || !nnue::available()) return evaluator_.evaluate(board);
+    if (nnue::v3::active()) [[unlikely]] return static_evaluate_v3(board, ss);
     const bool residual = nnue::residual();
     if (!ss->accumulator.valid) {
         // Walk back to the nearest valid accumulator, then replay the moves.
@@ -1363,6 +1364,7 @@ SearchInfo Worker::search(Board board, const SearchLimits& limits, bool emit_inf
         entry.accumulator.valid = false;
         entry.runtime_psqt.valid = false;
     }
+    if (v3_state_) v3_state_->invalidate();
     if (nnue::enabled && nnue::available()) {
         nnue::refresh(board, ss->accumulator);
         if (nnue::residual()) ss->runtime_psqt = Evaluator::refresh_runtime_psqt(board);
