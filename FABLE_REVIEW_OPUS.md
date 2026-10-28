@@ -88,8 +88,9 @@ S41, SA2, SA4 and SIT.
 ## Tool jobs: every job's own Python tests re-run (DONE)
 
 `fable_review/run_tool_tests.sh` exported each job folder with `git archive` (branches untouched) and ran its
-test file(s) with the venv Python: 27 passed, 9 failed, 1 skipped (tests that import the
-production trainer by the name the PC rules forbid to run: S09fix, S39/S50/SA3 v3c/v3d, SA2/SA4 clip). Results:
+test file(s) with the venv Python: **27 passed, 9 failed (all nine are environment effects, explained below), 1 skipped**
+(S09fix: its test imports the production trainer by the name the PC rules forbid to run); the trainer-variant tests
+of S39, S50, SA3 and SA2/SA4 were not run for the same reason. S44 (gate statistics) passes 7/7. Results:
 `fable_review/tool_tests.txt`, logs `F:\opus_scratch\fable_review\tooltests\`.
 
 | branch | test | exit | last line |
@@ -131,12 +132,13 @@ production trainer by the name the PC rules forbid to run: S09fix, S39/S50/SA3 v
 | opus-sol-SA6 | `test_opus_sa6.py` | exit 0 | OK |
 | opus-sol-SC4 | `test_opus_sc4.py` | exit 0 | OK |
 
-The six failures are environment effects of running the tests outside a full checkout, not tool-logic defects:
-S15 and S27fix need the whole repository tree (`src/search.cpp`, `tools/openings/forge-10000.epd`, a git
-checkout for `rev-parse`); S08fix (corpus SHA256), S33fix and S38 (golden-file byte comparison) and S42 (frozen
-SHA256 of an S06 file) compare bytes that depend on the checkout's line endings. They passed in Opus's own
-checkouts and CI. Minor mistake, recorded as such: these tests should normalise line endings / hash normalised
-text so that they are checkout-independent (mistake 3 below).
+The nine failures are environment effects of running the tests outside a full checkout, not tool-logic defects:
+S15, S27fix, S47 and S48fix need the whole repository (`src/search.cpp`, `tools/openings/forge-10000.epd`, a git
+work tree for `rev-parse` / `git_work_tree_of`, the exe fixtures the S47 audit hashes); S08fix (corpus SHA256),
+S33fix, S38 and S46 (golden-file byte comparisons `\n` vs `\r\n`) and S42 (frozen SHA256 of an S06 file) compare
+bytes that depend on the checkout's line endings. They passed in Opus's own checkouts and CI. Minor mistake,
+recorded as such: these tests should normalise line endings / hash normalised text and locate the repository root
+instead of assuming it, so that they are checkout-independent (mistake 3 below).
 
 ## Mistakes found (with the correction)
 
@@ -146,7 +148,7 @@ text so that they are checkout-independent (mistake 3 below).
 
 | 2 | the AL1 lock engine itself; Opus job S14 found it (`opus-sol-S14` REPORT section 4, "not fixed here") and the lock archive carries the CR-passed fix that was never applied | `MovePicker::bad_captures_` is `std::array<Move, 64>` written at `src/search.cpp:361` without a bounds check; a position with more than 64 SEE-losing noisy moves (capture-promotions count four times) overruns it (undefined behaviour) | branch **`fable-review-buffix`** (base d4f4312): the archived node-identical fix applied (`std::array<Move, MoveList::Capacity>` + static_assert + `tests/bad_capture_tests.cpp`), box build, identity check and the regression test; see its `fable_review/REVIEW.md` |
 
-| 3 | opus-sol-S08fix, S33fix, S38, S42 (and S15, S27fix for checkout-only inputs) | their unit tests compare raw bytes or SHA256 of text files, so they pass only in a checkout with the same line endings as the author's (CRLF on the PC) and fail from an LF export | not corrected (tests only; the tools' logic is unaffected): normalise `\r\n` before comparing / hashing; listed for the owner |
+| 3 | opus-sol-S08fix, S33fix, S38, S42, S46 (line endings) and S15, S27fix, S47, S48fix (full-checkout inputs) | their unit tests compare raw bytes or SHA256 of text files, so they pass only in a checkout with the same line endings as the author's (CRLF on the PC) and fail from an LF export | not corrected (tests only; the tools' logic is unaffected): normalise `\r\n` before comparing / hashing; listed for the owner |
 
 ## Corrections pushed
 
@@ -163,8 +165,8 @@ permission rules in this session.
   S12, SIT, A1, SA2/SA4, S32; targeted reads: C1 (probe preconditions, en passant), O4/O6/O7 (selection, eval
   clamp, per-ply tables, parity/incremental claims), S08fix; C4/C5 were read during job FB1.
 - Verified systematically: latest CI of all 30 engine branches (identity ALL OK, known-failure PASS x3, TSan 0);
-  every tool job's own unit tests re-run from an exported copy (31 passed; 6 environment failures explained; 5
-  trainer-importing tests skipped by the PC rule).
+  every tool job's own unit tests re-run from an exported copy (27 passed; 9 environment failures explained;
+  the 5 trainer-importing tests not run, by the PC rule).
 - Not re-executed: the numbers printed in the tool reports (gate statistics S06fix/S44/S46/S48fix, data jobs
   S16/S17/S40 on the real shards, S30/S31 curves, S19/S21 fits); the big decoders/trainers line by line (C1's
   1474-line Syzygy decoder, O4/O6/O7 at 1100-1650 lines each, the trainer variants S39/S50/SA3).
@@ -175,7 +177,7 @@ permission rules in this session.
    `.gitignore` and REVIEW.md; the untracking command is the owner's (refused for me twice).
 2. Unguarded 64-entry `bad_captures_` buffer in the lock engine (known since S14, fix never applied) ->
    `fable-review-buffix`, node-identical, CI green.
-3. Six job tests depend on the checkout (line endings / full tree) -> listed, not changed.
+3. Nine job tests depend on the checkout (line endings / full tree / exe fixtures) -> listed, not changed.
 
 Everything else examined was found consistent with its report. No Elo or speed claim is made or changed anywhere.
 
@@ -185,7 +187,7 @@ Everything else examined was found consistent with its report. No Elo or speed c
    commit; merge `fable-review-buffix` into the next lock candidate (one engine line + one test).
 2. If a deeper audit is wanted: re-run S44 `check` on the 23 gates, S40/S17 on their fixtures and the real shards,
    and read the C1 decoder against the Syzygy format specification; none of this changes an engine default.
-3. Make the six fragile tests checkout-independent (normalise `\r\n` before comparing or hashing; locate the repo
+3. Make the nine fragile tests checkout-independent (normalise `\r\n` before comparing or hashing; locate the repo
    root instead of assuming `../../src`).
 
 ## Time spent / estimate
