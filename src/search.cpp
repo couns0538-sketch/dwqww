@@ -15,6 +15,9 @@
 // forge/tt.hpp, forge/history.hpp, forge/thread_data.hpp, forge/search_tune.hpp,
 // forge/search_options.hpp, forge/corr_margins.hpp, forge/corr_ext.hpp.
 #include "forge/search.hpp"
+#ifdef FORGE_PROF
+#include "forge/profile.hpp"
+#endif
 #include "forge/syzygy.hpp"
 #include "forge/nnue_v2.hpp"
 #include "forge/corr_margins.hpp"

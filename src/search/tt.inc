@@ -81,6 +81,11 @@ TTProbe TranspositionTable::probe(std::uint64_t key) const {
     const std::size_t index = static_cast<std::size_t>(&cluster - clusters_.get());
     const auto lock = lock_stripe(index);
     auto snapshot = [&](const TTEntry& entry, bool hit) {
+#ifdef FORGE_PROF
+        prof::count(prof::Counter::TtProbes);
+        prof::count(hit ? prof::Counter::TtHits : prof::Counter::TtMisses);
+#endif
+
         TTProbe result;
         result.entry = entry;
         result.hit = hit;

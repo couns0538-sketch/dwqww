@@ -39,6 +39,11 @@ int Worker::FORGE_SEARCH_FN(Board& board, SearchStack* ss, int depth, int alpha,
     if (((local_nodes_ & 1023U) == 0 || node_limit_specified_) && should_stop()) aborted_ = true;
     if (aborted_) return 0;
     ++local_nodes_;
+#ifdef FORGE_PROF
+    prof::count(prof::Counter::Nodes);
+    prof::count(prof::Counter::MainNodes);
+#endif
+
     seldepth_ = std::max(seldepth_, ply);
     ss->pv_length = 0;
     ss->move_count = 0;
@@ -131,11 +136,24 @@ int Worker::FORGE_SEARCH_FN(Board& board, SearchStack* ss, int depth, int alpha,
     }
 
     if (!pv_node && !in_check && excluded.is_none() && !is_mate_score(beta)) {
+#ifdef FORGE_PROF
+        prof::count(prof::Counter::RazorChecks);
+#endif
         // Razoring: hopeless positions fall back to quiescence.
         if (depth <= tune::RazorDepth && eval + tune::RazorBase + tune::RazorMultiplier * depth < alpha) {
+#ifdef FORGE_PROF
+            prof::count(prof::Counter::RazorSearches);
+#endif
             const int razor = FORGE_QSEARCH_CALL(board, ss, alpha - 1, alpha);
             if (aborted_) return 0;
+#ifdef FORGE_PROF
+            if (razor < alpha) {
+                prof::count(prof::Counter::RazorCutoffs);
+                return razor;
+            }
+#else
             if (razor < alpha) return razor;
+#endif
         }
         // Reverse futility pruning.
 #if FORGE_SEARCH_CORR_MARGINS
@@ -198,6 +216,9 @@ int Worker::FORGE_SEARCH_FN(Board& board, SearchStack* ss, int depth, int alpha,
         }
         // ProbCut: a good capture that beats beta by a margin at reduced depth.
         const int probcut_beta = beta + tune::ProbcutMargin - 50 * improving;
+#ifdef FORGE_PROF
+        prof::count(prof::Counter::ProbCutChecks);
+#endif
         if (depth >= tune::ProbcutDepth && !is_mate_score(beta) &&
             !(tt_hit && tt_depth >= depth - 3 && tt_score != ValueNone && tt_score < probcut_beta)) {
             MovePicker picker(board, *this, ss, tt_move, MovePicker::Mode::Quiescence);
@@ -218,6 +239,9 @@ int Worker::FORGE_SEARCH_FN(Board& board, SearchStack* ss, int depth, int alpha,
 #ifdef FORGE_SPEEDSTACK
                 shared_.tt.prefetch(board.key());  // speed stack (S29, piece S13): the child's TT bucket
 #endif
+#ifdef FORGE_PROF
+                prof::count(prof::Counter::ProbCutSearches);
+#endif
                 int value = -FORGE_QSEARCH_CALL(board, ss + 1, -probcut_beta, -probcut_beta + 1);
                 if (value >= probcut_beta && !aborted_) {
                     value = -FORGE_SEARCH_CALL(board, ss + 1, depth - 4, -probcut_beta, -probcut_beta + 1, !cut_node);
@@ -225,6 +249,9 @@ int Worker::FORGE_SEARCH_FN(Board& board, SearchStack* ss, int depth, int alpha,
                 board.unmake_move(move, undo);
                 if (aborted_) return 0;
                 if (value >= probcut_beta) {
+#ifdef FORGE_PROF
+                    prof::count(prof::Counter::ProbCutCutoffs);
+#endif
                     if (!claim) {
                         shared_.tt.store(tt_probe, board.key(), score_to_tt(value, ply), ss->raw_eval, move, depth - 3, BoundLower, ss->tt_pv, board.halfmove_clock());
                     }
@@ -234,8 +261,18 @@ int Worker::FORGE_SEARCH_FN(Board& board, SearchStack* ss, int depth, int alpha,
         }
     }
 
+#ifdef FORGE_PROF
+    prof::count(prof::Counter::IirChecks);
+#endif
     // Internal iterative reduction: no hash move suggests a less important node.
+#ifdef FORGE_PROF
+    if (!in_check && depth >= tune::IirDepth && tt_move.is_none() && (pv_node || cut_node)) {
+        prof::count(prof::Counter::IirReductions);
+        --depth;
+    }
+#else
     if (!in_check && depth >= tune::IirDepth && tt_move.is_none() && (pv_node || cut_node)) --depth;
+#endif
 
     // HistRework: lesser-attacker maps of this node, read by quiet_history and the history updates below.
     if (search_options::hist_rework != 0) [[unlikely]] threat_maps_[static_cast<std::size_t>(ply)] = hist_rework::lesser_threats(board);
@@ -268,9 +305,20 @@ int Worker::FORGE_SEARCH_FN(Board& board, SearchStack* ss, int depth, int alpha,
 
         // Shallow-depth pruning of unpromising moves.
         if (!root_node && best_score > -MateInMaxPly && has_material) {
+#ifdef FORGE_PROF
+            prof::count(prof::Counter::LmpChecks);
+            if (quiet && !skip_quiets && move_count >= FORGE_LMP_THRESHOLD(depth, improving)) {
+                prof::count(prof::Counter::LmpActivations);
+                skip_quiets = true;
+            }
+#else
             if (quiet && !skip_quiets && move_count >= FORGE_LMP_THRESHOLD(depth, improving)) skip_quiets = true;
+#endif
             const int lmr_depth = std::max(0, depth - reduction(quiet, depth, move_count));
             if (quiet && !gives_check) {
+#ifdef FORGE_PROF
+                prof::count(prof::Counter::FutilityChecks);
+#endif
 #if FORGE_SEARCH_CORR_MARGINS
                 if (!in_check && lmr_depth <= tune::FutilityDepth &&
                     ss->static_eval + corr_margins::futility_margin(lmr_depth, correction) <= alpha) {
@@ -278,30 +326,69 @@ int Worker::FORGE_SEARCH_FN(Board& board, SearchStack* ss, int depth, int alpha,
                 if (!in_check && lmr_depth <= tune::FutilityDepth &&
                     ss->static_eval + tune::FutilityBase + tune::FutilityMultiplier * lmr_depth <= alpha) {
 #endif
+#ifdef FORGE_PROF
+                    prof::count(prof::Counter::FutilityPrunes);
+#endif
                     skip_quiets = true;
                     continue;
                 }
+#ifdef FORGE_PROF
+                prof::count(prof::Counter::HistoryChecks);
+                if (lmr_depth <= tune::HistoryPruneDepth && history < -tune::HistoryPruneMultiplier * depth) {
+                    prof::count(prof::Counter::HistoryPrunes);
+                    continue;
+                }
+                prof::count(prof::Counter::QuietSeeChecks);
+                if (!board.see_ge(move, -tune::SeeQuietMultiplier * lmr_depth * lmr_depth)) {
+                    prof::count(prof::Counter::QuietSeePrunes);
+                    continue;
+                }
+#else
                 if (lmr_depth <= tune::HistoryPruneDepth && history < -tune::HistoryPruneMultiplier * depth) continue;
                 if (!board.see_ge(move, -tune::SeeQuietMultiplier * lmr_depth * lmr_depth)) continue;
+#endif
             } else {
                 // Futility pruning for captures: even winning the piece cannot
                 // bring the position back to alpha.
+#ifdef FORGE_PROF
+                prof::count(prof::Counter::CaptureFutilityChecks);
+#endif
                 if (tune::CaptureFutilityBase > 0 && capture && !in_check && !gives_check &&
                     lmr_depth <= tune::CaptureFutilityDepth &&
                     ss->static_eval + tune::CaptureFutilityBase + tune::CaptureFutilityMultiplier * lmr_depth +
                             capture_value(board, move) + history / 8 <= alpha) {
+#ifdef FORGE_PROF
+                    prof::count(prof::Counter::CaptureFutilityPrunes);
+#endif
                     continue;
                 }
+#ifdef FORGE_PROF
+                prof::count(prof::Counter::NoisySeeChecks);
+#endif
                 const int see_threshold = -tune::SeeNoisyMultiplier * depth;
+#ifdef FORGE_PROF
+                if (!(picker.last_move_see_nonnegative() && see_threshold <= 0) &&
+                    !board.see_ge(move, see_threshold)) {
+                    prof::count(prof::Counter::NoisySeePrunes);
+                    continue;
+                }
+#else
                 if (!(picker.last_move_see_nonnegative() && see_threshold <= 0) &&
                     !board.see_ge(move, see_threshold)) continue;
+#endif
             }
         }
 
         // Extensions.
         int extension = 0;
+#ifdef FORGE_PROF
+        prof::count(prof::Counter::SingularChecks);
+#endif
         if (!root_node && depth >= tune::SingularDepth && move == tt_move && excluded.is_none() && tt_bound != BoundUpper &&
             tt_score != ValueNone && !is_mate_score(tt_score) && tt_depth >= depth - 3) {
+#ifdef FORGE_PROF
+            prof::count(prof::Counter::SingularSearches);
+#endif
             const int singular_beta = tt_score - tune::SingularMargin * depth;
             const int singular_depth = (depth - 1) / 2;
             const bool saved_tt_pv = ss->tt_pv;
@@ -312,6 +399,9 @@ int Worker::FORGE_SEARCH_FN(Board& board, SearchStack* ss, int depth, int alpha,
             ss->excluded_move = Move::none();
             if (aborted_) return 0;
             if (singular_score < singular_beta) {
+#ifdef FORGE_PROF
+                prof::count(prof::Counter::SingularExtensions);
+#endif
 #if FORGE_SEARCH_CORR_EXT
                 // CorrExt: double margin shrinking with |correction|, triple extension, per-path budget.
                 extension = corr_ext::singular_extension(pv_node, singular_score, singular_beta, correction,
@@ -319,10 +409,16 @@ int Worker::FORGE_SEARCH_FN(Board& board, SearchStack* ss, int depth, int alpha,
 #else
                 extension = 1;
                 if (!pv_node && singular_score < singular_beta - 24 && inherited_double_extensions <= 6) {
+#ifdef FORGE_PROF
+                    prof::count(prof::Counter::SingularDoubleExtensions);
+#endif
                     extension = 2;
                 }
 #endif
             } else if (singular_beta >= beta) {
+#ifdef FORGE_PROF
+                prof::count(prof::Counter::SingularCutoffs);
+#endif
                 return singular_beta;
             } else if (tt_score >= beta) {
                 extension = -2;

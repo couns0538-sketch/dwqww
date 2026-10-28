@@ -1,4 +1,7 @@
 #pragma once
+#ifdef FORGE_PROF
+#include "forge/profile.hpp"
+#endif
 
 #include "forge/board.hpp"
 #include "forge/eval.hpp"
@@ -49,6 +52,11 @@ public:
     void end_search() { all_workers_ = nullptr; }
 #if FORGE_NNUE_LAZY_ACC
     [[nodiscard]] LazyAccStats lazy_acc_stats() const { return lazy_acc_stats_; }
+#endif
+#ifdef FORGE_PROF
+    // This worker's profile counters (S08-2); written only by its own search thread.
+    [[nodiscard]] const prof::Bank& profile_bank() const { return profile_bank_; }
+    void reset_profile_quiescent() { profile_bank_.reset_quiescent(); }
 #endif
 
 private:
@@ -156,6 +164,16 @@ public:
     void clear_hash();
     void resize_hash(std::size_t hash_mb);
     void set_threads(int threads);
+#ifdef FORGE_PROF
+    // Enabling may be requested atomically; reset/snapshot require this Searcher
+    // quiescent, exactly like clear/resize. Search snapshots once before launch.
+    void set_profiling(bool enabled) { shared_.profile_requested.store(enabled,std::memory_order_relaxed); }
+    [[nodiscard]] bool profiling_active() const { return shared_.profile_active; }
+    // S08-2: merge() of every worker's bank (quiescent, after the search's helpers are joined).
+    [[nodiscard]] prof::Snapshot profile_snapshot() const;
+    [[nodiscard]] std::vector<prof::Snapshot> profile_worker_snapshots() const;
+    [[nodiscard]] std::vector<std::uint64_t> profile_worker_nodes() const;
+#endif
 #ifdef FORGE_S13_TT_CHILD_PREFETCH
     void set_s13_tt_child_prefetch(bool enabled) { shared_.s13_tt_child_prefetch.store(enabled, std::memory_order_relaxed); }
     [[nodiscard]] bool s13_tt_child_prefetch_enabled() const { return shared_.s13_tt_child_prefetch.load(std::memory_order_relaxed); }

@@ -4,6 +4,9 @@
 #include "forge/correction_plus.hpp"
 #include "forge/eval.hpp"
 #include "forge/hist_rework.hpp"
+#ifdef FORGE_PROF
+#include "forge/profile.hpp"
+#endif
 #include "forge/history.hpp"
 #include "forge/nnue.hpp"
 #include "forge/search_types.hpp"
@@ -73,6 +76,11 @@ struct SharedSearchState {
 #endif
     // 0 means pondering has not been converted into a timed search.
     std::atomic<std::int64_t> ponder_hit_ns{0};
+#ifdef FORGE_PROF
+    // The counters themselves live in one bank per Worker (S08-2).
+    std::atomic<bool> profile_requested{false};
+    bool profile_active=false; // Immutable while workers are active.
+#endif
 };
 
 class Worker;
@@ -138,6 +146,9 @@ struct ThreadData {
     std::array<hist_rework::LesserThreats, MaxPly + 8> threat_maps_{};
 #if FORGE_NNUE_LAZY_ACC
     LazyAccStats lazy_acc_stats_{};   // S12 NnueLazyAcc counters
+#endif
+#ifdef FORGE_PROF
+    prof::Bank profile_bank_;   // S08fix profile counters
 #endif
 };
 

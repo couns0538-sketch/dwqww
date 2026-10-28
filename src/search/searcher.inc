@@ -63,6 +63,10 @@ SearchInfo Searcher::search(Board board, const SearchLimits& limits, bool emit_i
     if (table_access == TTAccess::Exclusive && workers_.size() == 1) {
         exclusive.emplace(shared_.tt);
     }
+#ifdef FORGE_PROF
+    shared_.profile_active=shared_.profile_requested.load(std::memory_order_relaxed);
+    for (auto& worker : workers_) worker->reset_profile_quiescent();
+#endif
     if (options::smp_exact_nodes) {
         // A helper publishes its count only from inside its own search; until it
         // has started, total_nodes() would read the previous search's count.
@@ -155,5 +159,27 @@ SearchInfo Searcher::search(Board board, const SearchLimits& limits, bool emit_i
     for (const Move move : result.pv) std::cout << ' ' << Board::move_to_uci(move);
     std::cout << std::endl;
 }
+
+#ifdef FORGE_PROF
+prof::Snapshot Searcher::profile_snapshot() const {
+    prof::Snapshot total;
+    for (const auto& worker : workers_) prof::merge(total, worker->profile_bank().snapshot_quiescent());
+    return total;
+}
+
+std::vector<prof::Snapshot> Searcher::profile_worker_snapshots() const {
+    std::vector<prof::Snapshot> result;
+    result.reserve(workers_.size());
+    for (const auto& worker : workers_) result.push_back(worker->profile_bank().snapshot_quiescent());
+    return result;
+}
+
+std::vector<std::uint64_t> Searcher::profile_worker_nodes() const {
+    std::vector<std::uint64_t> result;
+    result.reserve(workers_.size());
+    for (const auto& worker : workers_) result.push_back(worker->nodes());
+    return result;
+}
+#endif
 
 } // namespace forge

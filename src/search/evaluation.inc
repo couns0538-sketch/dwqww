@@ -79,6 +79,10 @@ int Worker::static_evaluate_lazy(const Board& board, SearchStack* ss) {
 #endif
 
 int Worker::static_evaluate(const Board& board, SearchStack* ss) {
+#ifdef FORGE_PROF
+    prof::count(prof::Counter::EvalRequests);
+#endif
+
     if (options::nnue_v2) [[unlikely]] {
         // Layout pad: with it the dispatch grows this function by exactly 64
         // bytes in the PC build (MinGW g++ 15.2), so the search functions

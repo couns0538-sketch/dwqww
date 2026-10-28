@@ -13,6 +13,10 @@ namespace forge {
 }
 
 SearchInfo Worker::search(Board board, const SearchLimits& limits, bool emit_info, const std::vector<Worker*>& all) {
+#ifdef FORGE_PROF
+    prof::Scope profile_scope(shared_.profile_active ? &profile_bank_ : nullptr);
+#endif
+
 #ifdef FORGE_S13_TT_CHILD_PREFETCH
     s13_tt_child_prefetch_ = limits.s13_tt_child_prefetch;
 #endif

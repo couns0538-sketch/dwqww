@@ -15,6 +15,11 @@ int Worker::FORGE_QSEARCH_FN(Board& board, SearchStack* ss, int alpha, int beta)
     if (((local_nodes_ & 1023U) == 0 || node_limit_specified_) && should_stop()) aborted_ = true;
     if (aborted_) return 0;
     ++local_nodes_;
+#ifdef FORGE_PROF
+    prof::count(prof::Counter::Nodes);
+    prof::count(prof::Counter::QsNodes);
+#endif
+
     seldepth_ = std::max(seldepth_, ply);
     ss->pv_length = 0;
 
@@ -84,12 +89,28 @@ int Worker::FORGE_QSEARCH_FN(Board& board, SearchStack* ss, int alpha, int beta)
         ++move_count;
         if (!in_check && best_score > -MateInMaxPly) {
             const bool gives_check = board.gives_check(move);
+#ifdef FORGE_PROF
+            prof::count(prof::Counter::QsFutilityChecks);
+#endif
             // Futility: even winning the captured piece cannot raise alpha.
             if (!gives_check && !move.is_promotion() && futility_base + capture_value(board, move) <= alpha) {
+#ifdef FORGE_PROF
+                prof::count(prof::Counter::QsFutilityPrunes);
+#endif
                 best_score = std::max(best_score, futility_base + capture_value(board, move));
                 continue;
             }
+#ifdef FORGE_PROF
+            prof::count(prof::Counter::QsSeeChecks);
+#endif
+#ifdef FORGE_PROF
+            if (!board.see_ge(move, -tune::QsSeeMargin)) {
+                prof::count(prof::Counter::QsSeePrunes);
+                continue;
+            }
+#else
             if (!board.see_ge(move, -tune::QsSeeMargin)) continue;
+#endif
         }
         ss->current_move = move;
         ss->moved_piece = board.moved_piece(move);
