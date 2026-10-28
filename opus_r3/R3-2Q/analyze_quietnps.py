@@ -17,7 +17,7 @@ import sys
 T975 = {1: 12.706, 2: 4.303, 3: 3.182, 4: 2.776, 5: 2.571, 6: 2.447, 7: 2.365, 8: 2.306, 9: 2.262, 10: 2.228,
         11: 2.201, 12: 2.179, 13: 2.160, 14: 2.145, 15: 2.131, 16: 2.120, 17: 2.110, 18: 2.101, 19: 2.093, 20: 2.086,
         22: 2.074, 24: 2.064, 26: 2.056, 28: 2.048, 30: 2.042, 40: 2.021, 60: 2.000, 120: 1.980, 10 ** 9: 1.960}
-ORDER = ["AA", "NOZERO", "O2", "SPEEDSTACK", "S13", "LAZY", "INT16", "PROF", "ALL"]
+ORDER = ["AA", "NOZERO", "O2", "SPEEDSTACK", "S13", "LAZY", "INT16", "PROF", "ALL", "DRIFT"]
 LABELS = ["SW", "SW_V4", "OPT", "AA_REBUILD"]
 PC_ROWS = {  # R3-2 (origin/opus-r3-matrix opus_r3/R3-2/REPORT.md), PC cycle-timed CPU NPS, d16 unless noted
     ("NOZERO", "SW"): "-4.16 [-4.60, -3.72]; d20 -4.39 [-4.95, -3.82]",
@@ -32,6 +32,7 @@ PC_ROWS = {  # R3-2 (origin/opus-r3-matrix opus_r3/R3-2/REPORT.md), PC cycle-tim
     ("PROF", "SW"): "-7.24",
     ("PROF", "OPT"): "-1.10 [-2.02, -0.17]",
     ("AA", "AA"): "+0.06 [-0.66, +0.77]",
+    ("DRIFT", "SW"): "H3DRIFT -4.61 [-5.20, -4.01] (base_h3 vs base)",
 }
 
 
