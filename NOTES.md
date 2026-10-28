@@ -36,3 +36,5 @@ The environment disconnected during the first review and recovered on the next u
 Review reproduced an A3 false positive for OFF values incompatible with advertised option types/ranges. Fix now uses the existing strict option parser, validates controlled settings and candidate OFF values, and rejects overrides of Threads/Hash/OwnBook. RED: 10 failing subcases; GREEN: 14 OFF-checker test methods plus 17 option-checker tests. Native all-five comparison and independent re-review running. No new engine source changes.
 
 Fresh 20-minute review clock is in astra_evidence/final_review/resumed_review_clock.json; do not treat IN_PROGRESS as complete. Next: finish native verification, preserve independent reviews, publish final report, verify remote head.
+
+Final review second correction: replaced Python3.11-only file_digest with streaming SHA256 to retain the declared Python3.10 minimum. RED/GREEN API-absence regression and multi-chunk integrity test retained;16 OFF methods PASS. Corrected native all5bench comparison and hash-only final d11 PASS. Full ASan/UBSan build in progress. No engine change.

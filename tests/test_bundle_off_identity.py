@@ -1,5 +1,7 @@
 """A3: fail-closed checks of the actual shell entry point with tiny fake executables."""
 import json
+import hashlib
+import os
 import pathlib
 import subprocess
 import sys
@@ -56,6 +58,31 @@ if {mode!r} == 'duplicate': print(f'info string bench depth {{d}} nodes {{100+d}
         self.assertEqual(r.returncode, 0, r.stdout+r.stderr)
         self.assertIn('setoption name Feature value 0',
                       (self.root/'evidence/candidate-d1.stdin').read_text())
+
+    def test_hashing_without_python311_file_digest(self):
+        # Reproduce the Python 3.10 API surface without requiring another interpreter.
+        compatibility = self.root / 'python310-api'
+        compatibility.mkdir()
+        (compatibility / 'sitecustomize.py').write_text(
+            "import hashlib\nif hasattr(hashlib, 'file_digest'): del hashlib.file_digest\n")
+        env = dict(os.environ, PYTHONPATH=str(compatibility), PYTHONNOUSERSITE='1')
+        result = subprocess.run([
+            'bash', str(SCRIPT), str(self.engine('base')), str(self.engine('candidate')),
+            '--depths', '1', '--output', str(self.root/'evidence')],
+            text=True, capture_output=True, timeout=10, env=env)
+        self.assertEqual(result.returncode, 0, result.stdout+result.stderr)
+        self.assertEqual(json.loads((self.root/'evidence/summary.json').read_text())['status'], 'PASS')
+
+    def test_binary_hashes_cover_multiple_chunks(self):
+        base, candidate = self.engine('base'), self.engine('candidate')
+        for exe, padding in ((base, b'b'), (candidate, b'c')):
+            with exe.open('ab') as stream:
+                stream.write(b'\n#' + padding * (2 * 1024 * 1024 + 13) + b'\n')
+        result = self.run_check(base, candidate)
+        self.assertEqual(result.returncode, 0, result.stdout+result.stderr)
+        saved = json.loads((self.root/'evidence/summary.json').read_text())['executables']
+        for mode, exe in (('base', base), ('candidate', candidate)):
+            self.assertEqual(saved[mode]['sha256'], hashlib.sha256(exe.read_bytes()).hexdigest())
 
     def test_invalid_off_type_or_range_rejected(self):
         cases = [

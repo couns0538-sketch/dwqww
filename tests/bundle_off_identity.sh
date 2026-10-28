@@ -48,8 +48,11 @@ try:
         settings.append((name, value))
     exes = {'base': a.base.resolve(strict=True), 'candidate': a.candidate.resolve(strict=True)}
     def sha(path):
+        digest = hashlib.sha256()
         with path.open('rb') as stream:
-            return hashlib.file_digest(stream, 'sha256').hexdigest()
+            for chunk in iter(lambda: stream.read(1024 * 1024), b''):
+                digest.update(chunk)
+        return digest.hexdigest()
     identities = {mode: {'path': str(path), 'sha256': sha(path)} for mode, path in exes.items()}
     for path in exes.values():
         if not os.access(path, os.X_OK): raise ValueError(f'not executable: {path}')
