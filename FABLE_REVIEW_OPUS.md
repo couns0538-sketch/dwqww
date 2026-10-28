@@ -1,4 +1,4 @@
-# FABLE_REVIEW_OPUS.md — review of every opus-* job branch — IN PROGRESS
+# FABLE_REVIEW_OPUS.md — review of every opus-* job branch — session 1 state (pushed; continue from "What is left")
 
 Reviewer: Fable 5.1, started 2026-10-28 (PC time ~13:45). Branch `fable-review-summary` (base d4f4312, report only;
 no engine code here). Per-job corrections go to `fable-review-<job>` branches based on the opus branch, each with
@@ -84,9 +84,36 @@ S41, SA2, SA4 and SIT.
 
 ## Corrections pushed
 
-(none: the only mistake found so far needs a deletion that the permission rules refuse; see above)
+| branch | what | evidence |
+|---|---|---|
+| `fable-review-buffix` (base d4f4312 + the fable-* CI trigger) | mistake 2: `MovePicker::bad_captures_` sized to `MoveList::Capacity` (256) with a static_assert, plus `tests/bad_capture_tests.cpp` (ctest `forge_bad_capture_tests`), the lock archive's node-identical fix applied verbatim | box build FMA 0 and 0 warnings (`fable_review/logs/build_pc.log`), identity **ALL OK** (bench d11/13/16/20/22 = the AL1 pins, perft5, kiwipete; `fable_review/logs/identity.log`), regression test 5 fixtures accepted, 0 failures (`fable_review/logs/bad_capture_tests.log`); opus-ci runs on the branch |
 
-## Time estimate
+Mistake 1 (committed `.pyc` files) is left as an owner command because untracking files is refused by the PC's
+permission rules in this session.
 
-Inventory 1-2 h (done), engine jobs 4-6 h, tool jobs 3-4 h, fixes 2-4 h: about 12-16 hours of work in total,
-split over sessions; pushes every 30 minutes.
+## What was reviewed, what was not (honest scope)
+
+- Reviewed in depth: C6, C3, O1, O1-LTT, C2, O5, O8 (core diffs read), C1 (probe preconditions and en passant
+  handling only), C4/C5 (read during job FB1, whose v3 design reused their format ideas and found no defect).
+- Verified systematically for all 30 engine branches: latest CI identity `ALL OK`, known-failure check, TSan 0.
+- Not read line by line: O2 (NNUE accumulator rewrite, 1790 lines; its exact-parity claim is covered by its own
+  tests and CI), O4/O6/O7 (trainer + engine variants, 2400-4000 lines each), C1's 1474-line table decoder, SIT,
+  SA2, SA4, S11/S12/S13/S29/S32/S37/S41/A1/S04fix/S08fix (small engine diffs, identity-verified by CI), and all
+  tool-only S-jobs (gate statistics S06fix/S44/S46/S48fix, data jobs S16/S17/S40, trainers S39/S50/SA3, audits).
+  Their reports and the lock-archive evidence were not re-executed.
+
+## What is left / exact next steps
+
+1. Owner: untrack the eight `.pyc` files on a branch off opus-r3-stack (command in mistake 1) and merge
+   `fable-review-buffix` (or cherry-pick its one engine commit) into the next lock candidate; it is node-identical.
+2. Continue the review with the unread engine diffs (O2, O4, O6, O7, SIT, SA2, SA4, the small S-jobs), each with
+   the same recipe: read the job-only diff (`git diff origin/opus-O3 origin/opus-<job> -- src include`), check
+   defaults OFF, bounds, thread safety, and that the tests cover the claim.
+3. Tool jobs: re-run S44 `check` on the 23 gates and S40/S17 on their fixtures to confirm the printed numbers;
+   spot-check three REPORT numbers per job against the logs.
+
+
+## Time spent / estimate
+
+Session 1 (about 1.5 h): inventory, CI analysis, identity sweep, eight engine jobs read, two mistakes found, one
+corrected on its own branch. Remaining (steps 2-3 above): about 8-12 hours.
