@@ -1,4 +1,4 @@
-# FABLE_REPORT.md — job FB1: NNUE v3 architecture (branch `fable-nnue-arch`) — M1-M4 DONE, M5 (full-spec items) IN PROGRESS, UNPROVEN
+# FABLE_REPORT.md — job FB1: NNUE v3 architecture (branch `fable-nnue-arch`) — M1-M5 DONE (full spec), UNPROVEN (no gate)
 
 Base: `d4f4312` (AL1 s198 lock) + the CI baseline `0d99f02` cherry-picked (`5ff6208`). Worktree
 `F:\opus_scratch\fable_wt`, scratch `F:\opus_scratch\fable\`, builds `F:\opus_scratch\build\fable\`.
@@ -13,7 +13,7 @@ Everything here is UNPROVEN until a gate; no Elo claim is made anywhere in this 
 | M2 incremental accumulator + king-bucket refresh cache + AVX2 | **DONE** (this commit) | 100k plies incremental == refresh, 0 mismatches; AVX2 == scalar |
 | M3 trainer: QAT int16, v3 exporter with merged factoriser, 10k parity | **DONE** (this commit) | 60-step residual H512/8m/8 net: engine int == trainer int 10000/10000 on two position sets, max float-int 1.02 cp |
 | M4 NPS ON/OFF, smoke training vs AL1 net | **DONE** (68594f5d..b885f6f8) | NPS ratio ON/OFF 0.777 (d16) / 0.767 (d20); 5-minute smoke net does NOT beat HCE on the holdout (overfits one ordered shard), AL1 net far ahead |
-| M5 full-spec items: AVX-512 kernels, scalar = AVX2 = AVX-512, 1M-ply walk, 100k-position parity, H1024 NPS, bucket-layout rationale, cross-shard streaming training | IN PROGRESS | AVX-512, the 1M-ply walk and the 100k parity done and verified (M5 section); H1024 NPS and the first-net run are running |
+| M5 full-spec items: AVX-512 kernels, scalar = AVX2 = AVX-512, 1M-ply walk, 100k-position parity, H1024 NPS, bucket-layout rationale, cross-shard streaming training, standalone-net speed | **DONE** | every success test of the brief reported with numbers (M5 section); the 90% speed goal is met by the standalone net |
 
 ## King-bucket layout (why this one)
 
@@ -248,13 +248,39 @@ tsan all success; hook: every search reached `bestmove`, `bench 10` = 236,259 no
 the local x86-64-v3 dry run with the same seed net), `TSan: 0 reports`.** Earlier runs: 40656176461 (AVX-512 commit)
 green; 40657468479 failed only because the first hook version imported numpy.
 
-### Cross-shard first-net run
+### Cross-shard first-net run (DONE) and the validation loss vs the AL1 net
 
-(in progress: `tools/nnue/fable_nnue_train.py train --pos-glob ... --exclude _013,_014 --chunks 8 --chunk-rows 250000
---refresh-every 25 --lr-schedule cosine --lr 1e-3 --lr-final 5e-5 --steps 40000 --max-minutes 80 --threads 2
---batch 4096`, residual H512/8m/8, validation every 10 minutes on 200k holdout rows, export every 4000 steps;
-about 26k positions/s on two threads. The 40-step smoke of the loader saw all 32 training shards (261.9M rows,
-holdout 013/014 excluded).)
+Two nets were trained with the streaming loader on the 32 training shards (261.9M rows, holdout 013/014 excluded,
+shard-uniform sampling), batch 4096, Adam, cosine LR 1e-3 -> 5e-5 over the planned steps, QAT as in M3,
+residual H512 / 8 mirrored king buckets / 8 output buckets:
+
+| run | threads | time | positions seen | export | val loss on 200k holdout rows (b0.6), every 10 min |
+|---|---|---|---|---|---|
+| first net, residual (`train_first`) | 2 | 80 min | 131,674,112 (32147 steps, 27431 pos/s) | `net.fnn3` checksum `1eebc84b5196a46f`, max abs w1/b1/w2 407/141/84 | 0.017068 (0M) -> 0.016964 (16M) -> 0.016363 (32M) -> 0.016158 (49M) -> 0.015951 (65M) -> 0.015691 (82M) -> 0.015486 (98M) -> 0.015193 (115M) -> 0.015166 (132M) |
+| standalone, no HCE (`train_standalone`) | 1 | 45 min | 57,344,000 (14000 steps, 22001 pos/s) | `net.fnn3` checksum `78c34aee985cdb1d`, max abs w1/b1/w2 371/91/53 | 0.105858 (0M) -> 0.017892 (20M) -> 0.016531 (40M) -> 0.015741 (57M) |
+
+Exact-integer holdout MSE on the full subset (1,024,286 rows of shards 013+014; same loss definition as the S31
+scorer; the residual net adds the hand-crafted eval, the standalone net is the whole eval):
+
+| net | MSE b0.6 (lock blend) | MSE b0.8 | MSE b1.0 (teacher) | evidence |
+|---|---|---|---|---|
+| HCE alone (no net) | 0.017059 | 0.008360 | 0.005074 | `fable/logs/al1_holdout_score.json` |
+| **AL1 lock net e32f003rec** (H256 residual, 32 epochs x 230M rows on the GPU) | **0.014310** | 0.006735 | 0.004572 | same |
+| v3 first net, residual H512/8m/8, 80 min CPU | 0.015194 | 0.007543 | 0.005304 | `fable/logs/score_first_holdout.log` |
+| v3 standalone net, H512/8m/8, 45 min CPU | 0.015743 | 0.008050 | 0.005768 | `fable/logs/score_standalone_holdout.log` |
+| v3 single-shard smoke net (M4, 5 min) | 0.018732 | 0.010651 | 0.007983 | `fable/logs/score_m4_final_holdout.log` |
+
+Reading: with cross-shard streaming both v3 nets learn steadily on the independent holdout (the single-shard net
+did not) and beat the hand-crafted evaluation at the lock blend, but after about 100M positions on a CPU they are
+still well short of the AL1 net, which saw about 7.4 billion position-presentations (32 epochs x 230M). The curve
+has not flattened (every 10-minute point improved), so this is a budget result, not an architecture verdict. The
+standalone net matches the residual net's loss per position seen while being 1.4x faster in the engine (NPS
+section), so it is the recommended form for the scaled-up run. Evidence: `fable/logs/train_first_log.txt`,
+`fable/logs/train_standalone_log.txt`. Success test 5 (train one first net on the existing data with a small,
+short run; report validation loss vs the AL1 net): done, numbers above; no Elo claim, UNPROVEN until a gate.
+
+Data-sampling note: both runs picked shards uniformly (the small early shards are over-represented relative to
+their rows); `--shard-weighting rows` (now the default) makes every row equally likely for the next run.
 
 ## What is left / exact next steps (for the next model)
 
@@ -266,7 +292,7 @@ Success tests of the full brief, status at the last push:
 | 2 | exact parity on 100k positions, 0 mismatches; float vs quantised within 2 cp | **PASS** (100000/100000; max 1.02 cp) |
 | 3 | incremental == full refresh over 1M random make/unmake moves incl. king moves, castling, en passant, promotions; scalar = AVX2 = AVX-512 | **PASS** (1,000,000 plies, 0 mismatches; 1,299,402 kernel comparisons, 0 mismatches) |
 | 4 | NPS ON >= 60% of AL1 at Threads = 1 (goal 90%) | **PASS**: residual H512 83%, residual H1024 74%, **standalone H512 117-119%** (the ON path without the hand-crafted eval is faster than AL1 per node); AVX-512 exe, loaded PC, advisory |
-| 5 | first net, small short run, validation loss vs the AL1 net | 5-minute single-shard run: worse than HCE (overfits); cross-shard 80-minute run: see the section above (result recorded when it finishes) |
+| 5 | first net, small short run, validation loss vs the AL1 net | **DONE**: cross-shard 80-minute residual net b0.6 0.015194 and 45-minute standalone net 0.015743 vs AL1 0.014310 and HCE 0.017059 (full 1M-row holdout); curves still falling; no Elo claim |
 
 Next steps, in order:
 
