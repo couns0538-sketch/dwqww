@@ -107,7 +107,9 @@ class Render(unittest.TestCase):
         self.assertEqual([l for l in mine if l.startswith('|G') or l.startswith('|draw')],
                          [l for l in sol if l.startswith('|G') or l.startswith('|draw')])
         self.assertEqual(check('\n'.join(mine)), [])
-        self.assertEqual((out / 't.md').read_bytes(), (HERE / 'forge_sol_S33_sprt_plan_table_v2_20261027.md').read_bytes())
+        # Compare text, not line endings: the golden file follows the checkout's autocrlf setting.
+        self.assertEqual((out / 't.md').read_bytes().replace(b'\r\n', b'\n'),
+                         (HERE / 'forge_sol_S33_sprt_plan_table_v2_20261027.md').read_bytes().replace(b'\r\n', b'\n'))
         rows = list(csv.DictReader(open(out / 't.csv', encoding='utf-8')))
         orig = list(csv.DictReader(open(SOL / 'forge_sol_S33_sprt_plan_table_20261026.csv', encoding='utf-8')))
         self.assertTrue(all(r['model_label'] == 'approx model' for r in rows))
