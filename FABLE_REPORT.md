@@ -1,4 +1,4 @@
-# FABLE_REPORT.md — job FB1: NNUE v3 architecture (branch `fable-nnue-arch`) — IN PROGRESS
+# FABLE_REPORT.md — job FB1: NNUE v3 architecture (branch `fable-nnue-arch`) — DONE (M1-M4), UNPROVEN
 
 Base: `d4f4312` (AL1 s198 lock) + the CI baseline `0d99f02` cherry-picked (`5ff6208`). Worktree
 `F:\opus_scratch\fable_wt`, scratch `F:\opus_scratch\fable\`, builds `F:\opus_scratch\build\fable\`.
@@ -12,7 +12,7 @@ Everything here is UNPROVEN until a gate; no Elo claim is made anywhere in this 
 | M1 engine: UCI `NNUEArch` (default off), v3 loader, scalar reference eval | **DONE** (commit `eef2fe72`) | all acceptance checks pass |
 | M2 incremental accumulator + king-bucket refresh cache + AVX2 | **DONE** (this commit) | 100k plies incremental == refresh, 0 mismatches; AVX2 == scalar |
 | M3 trainer: QAT int16, v3 exporter with merged factoriser, 10k parity | **DONE** (this commit) | 60-step residual H512/8m/8 net: engine int == trainer int 10000/10000 on two position sets, max float-int 1.02 cp |
-| M4 NPS ON/OFF, smoke training vs AL1 net | IN PROGRESS | NPS ABBA run started, smoke training next |
+| M4 NPS ON/OFF, smoke training vs AL1 net | **DONE** (this commit) | NPS ratio ON/OFF 0.777 (d16) / 0.767 (d20); 5-minute smoke net does NOT beat HCE on the holdout (overfits one ordered shard), AL1 net far ahead |
 
 ## M1 acceptance (engine side only)
 
@@ -115,9 +115,58 @@ kernel, at about -23%. Where the time goes was not profiled (next step for a spe
 node, `apply_changes` vs `output_sum` share, and whether the runtime-PSQT / HCE part of the residual path or the
 v3 network dominates).
 
-## What is left / exact next steps
+## M4 (part 2): smoke training and validation loss vs the AL1 net
 
-1. M4: NPS ON vs OFF at Threads=1 (bench d16/d20, ABBA, same exe, option via UCI), ratio only (loaded PC);
-   smoke training for a few minutes; `fable_nnue_train.py score` of the v3 net vs the AL1 net's loss on the same
-   holdout rows (the AL1 numbers via the S31 scorer).
-2. CI: the workflow trigger now includes `fable-*` (this commit); `gh run list --branch fable-nnue-arch`; record run ids here.
+Smoke run: `fable_nnue_train.py train --pos forge_selfplay_029.pos --hce forge_selfplay_029.hce --max-rows 6000000
+--hidden 512 --king-buckets 8 --output-buckets 8 --mirror --residual --batch 4096 --lr 1e-3 --max-minutes 5 --seed 2`
+(1 CPU thread, 22.5k positions/s, 1648 steps = 6,750,208 positions in 5 min, nothing adopted by the supervisor).
+Training-batch loss (b0.6) fell 0.0176 -> 0.0091, but the loss on the shard's own last 50k rows rose
+0.017429 -> 0.018815: the net fits the games of this one ordered shard (about 100 near-duplicate positions per
+game and a 40% game-result term in the target) instead of generalising. Exported `train_m4/net.fnn3` (max|w1| 125,
+max|b1| 20, max|w2| 30); `fable/logs/train_m4_log.txt`.
+
+Validation loss on the independent holdout subset `holdout_013_014_s16` (1,024,286 rows of shards 013+014, which
+neither net trained on; integer emulation of the v3 file, the S31 scorer for the AL1 `.inc`; same loss definition):
+
+| net | MSE b0.6 (lock blend) | MSE b0.8 | MSE b1.0 (teacher) | evidence |
+|---|---|---|---|---|
+| HCE alone (no net) | 0.017059 | 0.008360 | 0.005074 | `fable/logs/al1_holdout_score.json` |
+| **AL1 lock net** (`src/nnue_weights.inc`, H256 residual, 32 epochs on 230M rows) | **0.014310** | 0.006735 | 0.004572 | same |
+| v3 smoke run step 500 (2.0M positions) | 0.017247 | 0.008954 | 0.006072 | `fable/logs/score_m4_step500_holdout.log` |
+| smoke run final (1648 steps, 6.75M positions, 5 min) | (score still running at push time) | | | `fable/logs/score_m4_final_holdout.log` |
+| v3 M3 net (60 steps ON the first 1M rows of this very subset; sanity check, not independent) | 0.016621 | 0.008085 | 0.004959 | `fable/logs/score_m3_holdout.log` |
+
+Reading: the v3 pipeline trains and exports exactly (M3 parity), but a 5-minute run on one shard does not produce a
+useful net: on the independent holdout it is slightly worse than the hand-crafted evaluation alone and far from the
+AL1 net. This is the expected outcome of 6.75M correlated positions against 230M shuffled ones, not a defect in the
+architecture; it is also not evidence for or against the architecture. A real comparison needs the production data
+path (all 29 training shards, game-shuffled, several epochs, LR schedule), i.e. hours on the GPU or days on one CPU
+thread, which is outside this job's budget.
+
+## What is left / exact next steps (for the next model)
+
+1. **Training at scale** (the real test of the architecture): run `tools/nnue/fable_nnue_train.py` on the 29 training
+   shards (game-shuffled sampling across shards, not one shard; add a shard-cycling data loader, an LR schedule and
+   epoch-wise exports), residual H512 / 8 mirrored king buckets / 8 output buckets, holdout 013+014. Compare the
+   b0.6 holdout MSE with the AL1 lock net (0.014310). Only then gate (SPRT [0,10] at 10+0.1 vs AL1 s198, options
+   `NNUEArchFile=<net>.fnn3`, `NNUEArch=true`; the engine log must show `info string NNUE v3 active`).
+2. **Speed**: the v3 residual H512 path costs about 1.29x the AL1 time per node at Threads=1 (advisory, loaded PC).
+   Profile where it goes (refresh statistics per node from `RefreshCache::refreshes/columns`, `apply_changes` vs
+   `output_sum`, HCE/runtime-PSQT share) before deciding on H384/H256 or a standalone (non-residual) net, which
+   drops the hand-crafted evaluation from the ON path entirely.
+3. **Engine follow-ups** (not needed for a gate): a `bench`-visible counter of cache refreshes; a `-DFORGE_NNUE_V3_SSE`
+   kernel for non-AVX2 builds (the scalar fallback is correct but slow); `Threads > 1` was not exercised with the
+   option on (each worker owns its state; a TSan run with `NNUEArch true` is the next check — add a
+   `fable/tsan_extra.sh` hook like C4's).
+4. **CI**: opus-ci runs on `fable-*` since M3: runs 40651865876 (M3) and 40652299456 (M4a) are green (release
+   identity ALL OK, FMA 0, `forge_nnue_v3_tests` passed under release / ASan+UBSan / TSan, only the 4 known
+   `forge_tests` lines).
+
+## Files of this job
+
+Engine: `include/forge/nnue_v3.hpp`, `src/nnue_v3.cpp`, `src/search_v3.cpp`, hooks in `src/search.cpp`,
+`include/forge/search.hpp`, `src/uci.cpp`, `CMakeLists.txt`. Tools: `tools/nnue_v3_tool.cpp`,
+`tools/nnue/fable_nnue_v3.py`, `tools/nnue/fable_nnue_train.py`, `tools/nnue/fable_nnue_uci.py`,
+`tools/nnue/fable_nnue_nps.py`. Tests: `tests/nnue_v3_tests.cpp`. Evidence: `fable/logs/`, ideas `fable/IDEA_SOURCE.md`.
+Scratch (not committed): nets `F:\opus_scratch\fable\nets\`, `train_m3\`, `train_m4\`, positions
+`F:\opus_scratch\fable\parity\`, builds `F:\opus_scratch\build\fable\` (`forge_fable_m2.exe` = final engine).
