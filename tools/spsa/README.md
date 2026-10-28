@@ -17,7 +17,7 @@ resumable at any iteration boundary. Python 3.10+, standard library only.
 ## The engine side: 20 advertised search constants
 
 fastchess only sends `setoption` for options an engine advertises (with `-strict` it stops on the warning), and
-Forge's ~57 search constants (`forge::tune::parameters()`) were accepted but unlisted. Since R3-4 every build lists
+Forge's search constants (`forge::tune::parameters()`: 62, now 64) were accepted but unlisted. Since R3-4 every build lists
 the 20 below as `option name <Name> type spin default <current value> min <min> max <max>`; the rest stay
 unlisted (FORGE_EXPOSE_TUNABLES builds list them after these). Defaults are unchanged, so bench and perft equal
 the AL1 s198 pins. The null-move margin was a literal (`beta - 24 * depth + 180`); it is now
