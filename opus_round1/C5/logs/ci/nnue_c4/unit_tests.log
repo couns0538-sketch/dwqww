@@ -1,0 +1,111 @@
+PASS king_key: bucket = map[relative king square] and flip = 7 exactly on files e-h, both perspectives, 64 squares
+PASS king_key: no flip without the mirror flag
+PASS feature: white pawn a2, white perspective, bucket 0 = 8
+PASS feature: black king e8, white perspective = 764
+PASS feature: black pawn a7 seen by black = own pawn on a2 = 8
+PASS feature: white king e1 seen by black = 764
+PASS feature: bucket 3, flipped: white knight g1 -> b1 = 2369
+PASS feature: bucket 5, flipped, black perspective: black queen d8 -> e1
+PASS feature: bucket 0 without flip equals the compiled-in feature_index for all 1536 inputs
+PASS layout 4: g1,b1 -> 0; e1,d1 -> 1; d4 -> 2; e5 -> 3; h8 -> 3
+PASS layout 8: a1,h1 -> 0; g1 -> 1; f1 -> 2; e1 -> 3; b2 -> 4; e2 -> 5; e3 -> 6; h8 -> 7
+PASS standard layouts are file-symmetric (map[s] == map[s ^ 7])
+PASS mirror symmetry: 400 positions and their file mirrors give bit-identical accumulators and evals (mirrored net)
+PASS control: without mirroring the file mirror changes the evaluation (388/400)
+PASS colour symmetry: 400 colour-flipped positions give the swapped accumulators and the same eval
+PASS valid 4-bucket mirrored file loads
+PASS describe(): buckets, mirror, residual, output buckets, FNV-1a checksum
+PASS a valid load reads the whole file (1574570 bytes)
+PASS rejects a flipped weight bit (checksum) (checksum mismatch (file damaged)); no net loaded afterwards
+PASS rejects bad magic (bad magic (not a FORGENN2 file)); no net loaded afterwards
+PASS rejects version 3 (unsupported version 3); no net loaded afterwards
+PASS rejects header size 128 (unexpected header size); no net loaded afterwards
+PASS rejects feature set 1 (unsupported feature set 1); no net loaded afterwards
+PASS rejects inputs 640 (inputs per bucket must be 768); no net loaded afterwards
+PASS rejects hidden 128 (hidden size 128 != engine hidden size 256 (FORGE_NNUE_HIDDEN)); no net loaded afterwards
+PASS rejects 0 king buckets (king buckets out of range 1-32); no net loaded afterwards
+PASS rejects 33 king buckets (king buckets out of range 1-32); no net loaded afterwards
+PASS rejects 17 output buckets (output buckets 17 not supported (max 16)); no net loaded afterwards
+PASS rejects unknown flag bit (unknown flag bits); no net loaded afterwards
+PASS rejects weight scale 4095 (quantisation scales / sigmoid K differ from the engine's (4096, 4096, 2.25)); no net loaded afterwards
+PASS rejects sigmoid K 2.5 (quantisation scales / sigmoid K differ from the engine's (4096, 4096, 2.25)); no net loaded afterwards
+PASS rejects king map entry 4 >= 4 buckets (king bucket map entry out of range); no net loaded afterwards
+PASS rejects output map entry 1 (output bucket map entry out of range); no net loaded afterwards
+PASS rejects non-zero reserved byte (reserved header bytes are not zero); no net loaded afterwards
+PASS rejects truncated file (2 bytes short) (file size 1574568 bytes does not match the 1574570 bytes implied by its header (4 king buckets, 1 output buckets, hidden 256); the weights were not read); no net loaded afterwards
+PASS truncated file (2 bytes short): rejected by the size check after reading 160 bytes (at most 160)
+PASS rejects file cut in half (file size 787285 bytes does not match the 1574570 bytes implied by its header (4 king buckets, 1 output buckets, hidden 256); the weights were not read); no net loaded afterwards
+PASS file cut in half: rejected by the size check after reading 160 bytes (at most 160)
+PASS rejects two extra bytes (file size 1574572 bytes does not match the 1574570 bytes implied by its header (4 king buckets, 1 output buckets, hidden 256); the weights were not read); no net loaded afterwards
+PASS two extra bytes: rejected by the size check after reading 160 bytes (at most 160)
+PASS rejects header claims 32 king buckets on a 4-bucket file (file size 1574570 bytes does not match the 12584618 bytes implied by its header (32 king buckets, 1 output buckets, hidden 256); the weights were not read); no net loaded afterwards
+PASS header claims 32 king buckets on a 4-bucket file: rejected by the size check after reading 160 bytes (at most 160)
+PASS rejects 8-byte file (file too short for a v2 net (8 bytes)); no net loaded afterwards
+PASS 8-byte file: rejected by the size check after reading 0 bytes (at most 0)
+PASS rejects 167-byte file (shorter than a header and checksum) (file too short for a v2 net (167 bytes)); no net loaded afterwards
+PASS 167-byte file (shorter than a header and checksum): rejected by the size check after reading 0 bytes (at most 0)
+PASS rejects file one byte larger than the largest valid v2 file (file too large for a v2 net (12600009 bytes; the largest valid v2 file has 12600008)); no net loaded afterwards
+PASS file one byte larger than the largest valid v2 file: rejected by the size check after reading 0 bytes (at most 0)
+PASS file_bytes(): 4 buckets = this file, 1 bucket = 394922 bytes
+PASS missing file rejected (cannot open nnue_v2_test_does_not_exist.fnn2); no net loaded afterwards
+PASS NNUEKingBuckets 0: compiled-in net (off (NNUEKingBuckets 0, NNUEOutputBuckets 0): compiled-in network)
+PASS NNUEKingBuckets 8 vs a 4-bucket file: not selected (NNUEKingBuckets 8, NNUEOutputBuckets 0 does not match the loaded net (4 mirrored king buckets))
+PASS NNUEKingBuckets 4: selected (active: nnue_v2_test_select.fnn2 king buckets 4 output buckets 1 hidden 256 mirrored residual fnv1a 7a331c26f1f2c0b4)
+PASS UseNNUE false wins (UseNNUE is false: hand-crafted evaluation only)
+PASS UseNNUE true again: selected
+PASS unload: compiled-in net (NNUEKingBuckets 4, NNUEOutputBuckets 0 needs a v2 net (NNUEFile))
+PASS nothing requested (defaults): no problem, compiled-in net
+PASS NNUEKingBuckets 4 without NNUEFile: NNUEKingBuckets 4 is set but no v2 net is loaded (NNUEFile is empty)
+PASS NNUEFile failed to load: cannot load NNUEFile nnue_v2_test_missing.fnn2: cannot open nnue_v2_test_missing.fnn2
+PASS NNUEFile loaded but NNUEKingBuckets 0: NNUEFile nnue_v2_test_rule.fnn2 is loaded (4 mirrored king buckets, 1 output buckets) but NNUEKingBuckets is 0 and NNUEOutputBuckets is 0; to use it set NNUEKingBuckets 4, NNUEOutputBuckets 0
+PASS NNUEKingBuckets 8 vs a 4-bucket net: NNUEFile nnue_v2_test_rule.fnn2 (4 mirrored king buckets, 1 output buckets) does not match NNUEKingBuckets 8, NNUEOutputBuckets 0; to use it set NNUEKingBuckets 4, NNUEOutputBuckets 0
+PASS NNUEKingBuckets 4 with the 4-bucket net: active, no problem
+PASS UseNNUE false: not a problem (every network off on purpose)
+PASS UseNNUE true again: the unsatisfied request is a problem again (cannot load NNUEFile nnue_v2_test_missing.fnn2: cannot open)
+PASS NNUEFile <empty> and NNUEKingBuckets 0: request cleared, no problem
+PASS replica r1: 300 positions, accumulators and evals bit-identical to the compiled-in net
+PASS replica r1: depth-8 searches of 4 positions have the compiled-in net's node counts and best moves
+PASS replica r4: 300 positions, accumulators and evals bit-identical to the compiled-in net
+PASS replica r4: depth-8 searches of 4 positions have the compiled-in net's node counts and best moves
+PASS replica rm2: 300 positions, accumulators and evals bit-identical to the compiled-in net
+PASS replica rm2: depth-8 searches of 4 positions have the compiled-in net's node counts and best moves
+PASS replica rm8: 300 positions, accumulators and evals bit-identical to the compiled-in net
+PASS replica rm8: depth-8 searches of 4 positions have the compiled-in net's node counts and best moves
+PASS replica rm16: 300 positions, accumulators and evals bit-identical to the compiled-in net
+PASS replica rm16: depth-8 searches of 4 positions have the compiled-in net's node counts and best moves
+WALK 8 mirrored buckets (standard layout): plies 34000 (null 1321) evaluations 24332 computed accumulators verified 21510 king-key changes 6917 longest replay 8 restarts 165 mismatches 0
+PASS incremental == full refresh, bit-exact, 8 mirrored buckets (standard layout): 34000 plies
+WALK 32 mirrored buckets (one per half-board square): plies 34000 (null 1306) evaluations 24585 computed accumulators verified 21536 king-key changes 10914 longest replay 10 restarts 156 mismatches 0
+PASS incremental == full refresh, bit-exact, 32 mirrored buckets (one per half-board square): 34000 plies
+WALK 4 unmirrored buckets: plies 34000 (null 1325) evaluations 24576 computed accumulators verified 21579 king-key changes 3604 longest replay 8 restarts 155 mismatches 0
+PASS incremental == full refresh, bit-exact, 4 unmirrored buckets: 34000 plies
+WALK 8 mirrored buckets + 8 output buckets: plies 34000 (null 1309) evaluations 24463 computed accumulators verified 21573 king-key changes 9248 longest replay 9 restarts 166 mismatches 0
+PASS incremental == full refresh, bit-exact, 8 mirrored buckets + 8 output buckets: 34000 plies
+WALK total plies 136000
+PASS default 8-bucket map: bucket = (pieces - 2) / 4 at every piece count 2..32 (2-5 -> 0, ..., 30-32 -> 7)
+PASS default maps for 1, 2, 4, 5, 8, 16 buckets: non-decreasing, 2 pieces -> 0, 32 pieces -> N-1, every bucket used
+PASS output_bucket() == (pieces - 2) / 4 on real positions with every piece count 2..32
+PASS evaluate() uses that head at every piece count 2..32 (control net: heads differ only in the bias)
+PASS output buckets only: NNUEOutputBuckets 8 selects it (active: nnue_v2_test_select_ob.fnn2 king buckets 1 output buckets 8 hidden 256 unmirrored residual fnv1a a40221de7fbdf520)
+PASS NNUEOutputBuckets 4 vs 8 heads: not selected (NNUEKingBuckets 0, NNUEOutputBuckets 4 does not match the loaded net (8 output buckets))
+PASS NNUEKingBuckets 1 alone does not select an 8-head net (NNUEKingBuckets 1, NNUEOutputBuckets 0 does not match the loaded net (8 output buckets))
+PASS king + output buckets: NNUEKingBuckets 4 alone is not enough (NNUEKingBuckets 4, NNUEOutputBuckets 0 does not match the loaded net (8 output buckets))
+PASS king + output buckets: NNUEOutputBuckets 8 alone is not enough (NNUEKingBuckets 0, NNUEOutputBuckets 8 does not match the loaded net (4 mirrored king buckets))
+PASS king + output buckets: both options select it (active: nnue_v2_test_select_both.fnn2 king buckets 4 output buckets 8 hidden 256 mirrored residual fnv1a f2879faa09d7fc2e)
+PASS 16 output buckets load and select (active: nnue_v2_test_select_ob.fnn2 king buckets 1 output buckets 16 hidden 256 unmirrored residual fnv1a e9a2a50dd8a55fbd)
+PASS replica r1 with 8 identical output heads: 300 evals and 3 depth-8 searches equal the compiled-in net
+PASS replica rm8 with 8 identical output heads: 300 evals and 3 depth-8 searches equal the compiled-in net
+PASS NNUEOutputBuckets 8 without NNUEFile: NNUEOutputBuckets 8 is set but no v2 net is loaded (NNUEFile is empty)
+PASS both counts without NNUEFile: NNUEKingBuckets 4 and NNUEOutputBuckets 8 are set but no v2 net is loaded (NNUEFile is empty)
+PASS NNUEOutputBuckets 8 vs a 1-head net: NNUEFile nnue_v2_test_rule_1head.fnn2 (1 king buckets, 1 output buckets) does not match NNUEKingBuckets 0, NNUEOutputBuckets 8; to use it set NNUEKingBuckets 1, NNUEOutputBuckets 0
+PASS 1-head net with NNUEKingBuckets 1: active, no problem
+PASS 8-head net with both counts 0: NNUEFile nnue_v2_test_rule_8heads.fnn2 is loaded (1 king buckets, 8 output buckets) but NNUEKingBuckets is 0 and NNUEOutputBuckets is 0; to use it set NNUEKingBuckets 0, NNUEOutputBuckets 8
+PASS NNUEOutputBuckets 4 vs 8 heads: NNUEFile nnue_v2_test_rule_8heads.fnn2 (1 king buckets, 8 output buckets) does not match NNUEKingBuckets 0, NNUEOutputBuckets 4; to use it set NNUEKingBuckets 0, NNUEOutputBuckets 8
+PASS NNUEKingBuckets 1 alone vs 8 heads: NNUEFile nnue_v2_test_rule_8heads.fnn2 (1 king buckets, 8 output buckets) does not match NNUEKingBuckets 1, NNUEOutputBuckets 0; to use it set NNUEKingBuckets 0, NNUEOutputBuckets 8
+PASS NNUEOutputBuckets 8 with the 8-head net: active, no problem
+PASS king + output buckets, NNUEKingBuckets 4 alone: NNUEFile nnue_v2_test_rule_kb4ob8.fnn2 (4 mirrored king buckets, 8 output buckets) does not match NNUEKingBuckets 4, NNUEOutputBuckets 0; to use it set NNUEKingBuckets 4, NNUEOutputBuckets 8
+PASS king + output buckets, NNUEOutputBuckets 8 alone: NNUEFile nnue_v2_test_rule_kb4ob8.fnn2 (4 mirrored king buckets, 8 output buckets) does not match NNUEKingBuckets 0, NNUEOutputBuckets 8; to use it set NNUEKingBuckets 4, NNUEOutputBuckets 8
+PASS king + output buckets, both options: active, no problem
+PASS UseNNUE false with NNUEOutputBuckets 8 and no file: not a problem
+PASS UseNNUE true again: NNUEOutputBuckets 8 without a file is a problem again
+141/141 checks passed

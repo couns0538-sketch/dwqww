@@ -435,16 +435,22 @@ constexpr char Magic[8] = {'F', 'O', 'R', 'G', 'E', 'N', 'N', '2'};
     return out.str();
 }
 
-[[gnu::cold]] const Net* select(int king_buckets, std::string* message) {
+[[gnu::cold]] const Net* select(int king_buckets, int output_buckets, std::string* message) {
     active_net = nullptr;
     std::string text;
-    if (king_buckets <= 0) {
-        text = "off (NNUEKingBuckets 0): compiled-in network";
+    const std::string options = "NNUEKingBuckets " + std::to_string(std::max(king_buckets, 0)) +
+                                ", NNUEOutputBuckets " + std::to_string(std::max(output_buckets, 0));
+    if (king_buckets <= 0 && output_buckets <= 0) {
+        text = "off (NNUEKingBuckets 0, NNUEOutputBuckets 0): compiled-in network";
     } else if (loaded_net == nullptr) {
-        text = "NNUEKingBuckets " + std::to_string(king_buckets) + " needs a v2 net (NNUEFile)";
-    } else if (loaded_net->king_buckets != king_buckets) {
-        text = "NNUEKingBuckets " + std::to_string(king_buckets) + " does not match the loaded net (" +
-               std::to_string(loaded_net->king_buckets) + " king buckets)";
+        text = options + " needs a v2 net (NNUEFile)";
+    } else if (king_buckets > 0 ? loaded_net->king_buckets != king_buckets
+                                : (loaded_net->king_buckets != 1 || loaded_net->mirror)) {
+        text = options + " does not match the loaded net (" + std::to_string(loaded_net->king_buckets) +
+               (loaded_net->mirror ? " mirrored" : "") + " king buckets)";
+    } else if (output_buckets > 0 ? loaded_net->output_buckets != output_buckets : loaded_net->output_buckets != 1) {
+        text = options + " does not match the loaded net (" + std::to_string(loaded_net->output_buckets) +
+               " output buckets)";
     } else {
         active_net = loaded_net;
         text = "active: " + summary(*loaded_net);
@@ -463,6 +469,7 @@ constexpr char Magic[8] = {'F', 'O', 'R', 'G', 'E', 'N', 'N', '2'};
     d.threats = net.threats;
     d.pawn_pairs = net.pawn_pairs;
     d.checksum = net.checksum;
+    d.output_bucket_map = net.output_map;
     return d;
 }
 

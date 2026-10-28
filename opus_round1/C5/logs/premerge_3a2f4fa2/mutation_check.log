@@ -1,0 +1,9 @@
+# planted-bug check: opus_round1/C5/mutation_check.sh (each mutation rebuilds forge_nnue_v2_tests in a scratch copy; walk 4000 plies per net)
+unmutated: 102/102 checks passed
+MUTATION bucket_off_by_one -> caught: 2 failing checks (100/102 checks passed); first: FAIL output_bucket() == (pieces - 2) / 4 on real positions with every piece count 2..32
+MUTATION bias_of_head_0 -> caught: 1 failing checks (101/102 checks passed); first: FAIL evaluate() uses that head at every piece count 2..32 (control net: heads differ only in the bias)
+MUTATION row_half_offset -> caught: 2 failing checks (100/102 checks passed); first: FAIL replica r1 with 8 identical output heads: 300 evals and 3 depth-8 searches equal the compiled-in net
+MUTATION rows_ignored -> caught: 1 failing checks (101/102 checks passed); first: FAIL evaluate() uses that head at every piece count 2..32 (control net: heads differ only in the bias)
+MUTATION select_ignores_heads -> caught: 3 failing checks (99/102 checks passed); first: FAIL NNUEOutputBuckets 4 vs 8 heads: not selected (active: nnue_v2_test_select_ob.fnn2 (king buckets 1, output buckets 8, residual))
+MUTATION max_heads_15 -> caught: 2 failing checks (100/102 checks passed); first: FAIL load 16-output-bucket net (maximum)
+mutation_check status=0

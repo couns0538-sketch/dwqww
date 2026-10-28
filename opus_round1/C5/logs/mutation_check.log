@@ -1,0 +1,12 @@
+# planted-bug check: opus_round1/C5/mutation_check.sh (each mutation rebuilds forge_nnue_v2_tests in a scratch copy; walk 4000 plies per net), merged C5 tree, commit 2452bc55a2180eac83556f70e4b59f3be8c01ecf
+$ CXX=g++ MUTATION_LINK_FLAGS=-static JOBS=1 bash opus_round1/C5/mutation_check.sh <scratch>
+unmutated: 141/141 checks passed
+MUTATION bucket_off_by_one -> caught: 2 failing checks (139/141 checks passed); first: FAIL output_bucket() == (pieces - 2) / 4 on real positions with every piece count 2..32
+MUTATION bias_of_head_0 -> caught: 1 failing checks (140/141 checks passed); first: FAIL evaluate() uses that head at every piece count 2..32 (control net: heads differ only in the bias)
+MUTATION row_half_offset -> caught: 2 failing checks (139/141 checks passed); first: FAIL replica r1 with 8 identical output heads: 300 evals and 3 depth-8 searches equal the compiled-in net
+MUTATION rows_ignored -> caught: 1 failing checks (140/141 checks passed); first: FAIL evaluate() uses that head at every piece count 2..32 (control net: heads differ only in the bias)
+MUTATION select_ignores_heads -> caught: 7 failing checks (134/141 checks passed); first: FAIL NNUEOutputBuckets 4 vs 8 heads: not selected (active: nnue_v2_test_select_ob.fnn2 king buckets 1 output buckets 8 hidden 256 unmirrored residual fnv1a a40221de7fbdf520)
+MUTATION max_heads_15 -> caught: 2 failing checks (139/141 checks passed); first: FAIL load 16-output-bucket net (maximum)
+MUTATION rule_ignores_output_buckets -> caught: 2 failing checks (139/141 checks passed); first: FAIL NNUEOutputBuckets 8 without NNUEFile: 
+MUTATION rule_output_count_unchecked -> caught: 4 failing checks (137/141 checks passed); first: FAIL NNUEKingBuckets 1 alone does not select an 8-head net (active: nnue_v2_test_select_ob.fnn2 king buckets 1 output buckets 8 hidden 256 unmirrored residual fnv1a a40221de7fbdf520)
+mutation_check status=0

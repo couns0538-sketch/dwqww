@@ -67,19 +67,27 @@ extern std::atomic<std::uint64_t> published_moves;
 // (string): evaluate with a v2 network (king-bucketed input layer, see
 // forge/nnue.hpp nnue::v2) loaded from NNUEFile. N > 0 selects the loaded net
 // when it has exactly N king buckets.
+extern int nnue_king_buckets;
+
+// UCI NNUEOutputBuckets (spin 0-16, default 0) together with NNUEFile (C5):
+// N > 0 selects the loaded v2 net when it has exactly N output buckets (output
+// row chosen by the piece count). The two counts combine: a net with king and
+// output buckets needs both options; 0 means "this net has none" (one output
+// bucket; for king buckets: one unmirrored bucket).
 //
 // Fail-loud rule (no silent fall-back to the compiled-in network). The user
-// requests a v2 net with a non-empty NNUEFile or NNUEKingBuckets > 0. A
-// request that cannot be honoured (file missing or unreadable, wrong size, bad
-// header or checksum, NNUEKingBuckets != the net's king buckets, including 0,
-// NNUEKingBuckets > 0 without a loaded file) is an error: the UCI layer prints
+// requests a v2 net with a non-empty NNUEFile, NNUEKingBuckets > 0 or
+// NNUEOutputBuckets > 0. A request that cannot be honoured (file missing or
+// unreadable, wrong size, bad header or checksum, a king or output bucket
+// count that does not match the loaded net, both counts 0 while a file is
+// loaded, a count > 0 without a loaded file) is an error: the UCI layer prints
 // `info string ERROR NNUE v2: <reason>` at once, and if the request is still
 // unsatisfied at the next `isready`, `go` or `bench` it prints the error again
 // and exits with status 2. Not errors: `UseNNUE false` (every network off on
 // purpose; the request is ignored while it lasts) and NNUEFile `<empty>` (clears
 // the file part of the request). With no NNUE option set nothing new is printed
 // and the engine is the AL1 s198 engine.
-extern int nnue_king_buckets;
+extern int nnue_output_buckets;
 
 // UCI NNUEThreats (spin 0-1, default 0; O6; "true" / "false" are accepted as
 // well): 1 = evaluate with a v2 net that has threat inputs (header feature_set
@@ -104,9 +112,10 @@ extern int nnue_pawn_pairs;
 // active. Written only by apply_nnue_v2().
 extern bool nnue_v2;
 
-// Re-selects the evaluation network after NNUEFile, NNUEKingBuckets or UseNNUE
-// changed and returns whether a v2 network is now active. The caller clears
-// the hash afterwards (stored static evals may belong to another network).
+// Re-selects the evaluation network after NNUEFile, NNUEKingBuckets,
+// NNUEOutputBuckets or UseNNUE changed and returns whether a v2 network is now
+// active. The caller clears the hash afterwards (stored static evals may belong
+// to another network).
 // `message` (optional) receives a one-line description of the state.
 bool apply_nnue_v2(std::string* message);
 

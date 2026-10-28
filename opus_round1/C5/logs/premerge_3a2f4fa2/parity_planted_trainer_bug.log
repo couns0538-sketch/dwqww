@@ -1,0 +1,10 @@
+# planted trainer bug (scratch copy of tools/nnue): the training forward picks the head of (pieces - 1); parity vs the engine on the ob8 smoke net
+positions 10000  king buckets 1 mirror False  output buckets 8  max |engine cp| 136
+export (file ints == quantised checkpoint): OK
+keys   (bucket, flip both perspectives):    10000/10000
+outbkt (output bucket by piece count):      10000/10000
+acc    (both perspectives, float32 bits):   10000/10000
+output (engine-order float32 bits and cp):  10000/10000
+forward (training model, GEMM order): max |cp diff| 176.382027, trunc equal 7775/10000
+FAIL
+v2_parity.py exit status 1

@@ -363,10 +363,10 @@ int main() {
         control_high = high;
     };
 
-    // v2 networks (UCI NNUEFile / NNUEKingBuckets / NNUEThreats / NNUEPawnPairs; fail-loud rule in forge/search_options.hpp): a
-    // requested v2 net that cannot be used is reported at once and, if still unusable at the next
-    // isready, go or bench, reported again before the engine exits with status 2. Never a silent
-    // fall-back to the compiled-in network. With no NNUE option set nothing here prints anything.
+    // v2 networks (UCI NNUEFile / NNUEKingBuckets / NNUEOutputBuckets / NNUEThreats / NNUEPawnPairs; fail-loud
+    // rule in forge/search_options.hpp): a requested v2 net that cannot be used is reported at once and, if
+    // still unusable at the next isready, go or bench, reported again before the engine exits with status 2.
+    // Never a silent fall-back to the compiled-in network. With no NNUE option set nothing here prints anything.
     constexpr int NnueV2ExitStatus = 2;
     int exit_status = 0;
     std::string nnue_file;         // NNUEFile ("" = none)
@@ -377,7 +377,8 @@ int main() {
         std::string state;
         const bool active = forge::options::apply_nnue_v2(&state);
         const std::string problem = forge::options::nnue_v2_problem(nnue_file, nnue_file_error);
-        const bool requested = !nnue_file.empty() || forge::options::nnue_king_buckets > 0 || forge::options::nnue_threats != 0 ||
+        const bool requested = !nnue_file.empty() || forge::options::nnue_king_buckets > 0 ||
+                               forge::options::nnue_output_buckets > 0 || forge::options::nnue_threats != 0 ||
                                forge::options::nnue_pawn_pairs != 0;
         if (!nnue_file_error.empty()) state += " (NNUEFile " + nnue_file + ": " + nnue_file_error + ")";
         {
@@ -429,9 +430,10 @@ int main() {
                          "option name Syzygy50MoveRule type check default true\n";
             std::cout << "option name CorrHistPlus type spin default 0 min 0 max 7\n";
             std::cout << "option name HardDeadline type spin default 0 min 0 max 1000\n";
-            // v2 networks (forge/search_options.hpp): off unless NNUEKingBuckets > 0.
+            // v2 networks (forge/search_options.hpp): off unless NNUEKingBuckets or NNUEOutputBuckets > 0.
             std::cout << "option name NNUEFile type string default <empty>\n"
-                         "option name NNUEKingBuckets type spin default 0 min 0 max 32\n";
+                         "option name NNUEKingBuckets type spin default 0 min 0 max 32\n"
+                         "option name NNUEOutputBuckets type spin default 0 min 0 max 16\n";
             // O6: a v2 net with threat inputs (needs such a net in NNUEFile).
             std::cout << "option name NNUEThreats type spin default 0 min 0 max 1\n";
             // O7: a v2 net with pawn-pair inputs (needs such a net in NNUEFile).
@@ -635,14 +637,15 @@ int main() {
                               << std::endl;
                 }
                 nnue_v2_changed();
-            } else if (name == "NNUEKingBuckets") {
+            } else if (name == "NNUEKingBuckets" || name == "NNUEOutputBuckets") {
                 int value = 0;
                 const auto parsed = std::from_chars(value_text.data(), value_text.data() + value_text.size(), value);
                 if (parsed.ec != std::errc{} || parsed.ptr != value_text.data() + value_text.size()) {
                     const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex());
-                    std::cout << "info string invalid value for option NNUEKingBuckets" << std::endl;
+                    std::cout << "info string invalid value for option " << name << std::endl;
                 } else {
-                    forge::options::nnue_king_buckets = std::clamp(value, 0, 32);
+                    if (name == "NNUEKingBuckets") forge::options::nnue_king_buckets = std::clamp(value, 0, 32);
+                    else forge::options::nnue_output_buckets = std::clamp(value, 0, 16);
                 }
                 nnue_v2_changed();
             } else if (name == "NNUEThreats") {   // O6: spin 0-1 (true / false accepted as well)

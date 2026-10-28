@@ -1,8 +1,9 @@
 #pragma once
 
-// v2 networks (C4): king-bucketed input layer, loaded from a file at run time.
-// Used only when UCI NNUEKingBuckets > 0 and a matching file is loaded with UCI
-// NNUEFile (forge/search_options.hpp); with neither option set the compiled-in
+// v2 networks, loaded from a file at run time: king-bucketed input layer (C4)
+// and output buckets by piece count (C5). Used only when UCI NNUEKingBuckets
+// or NNUEOutputBuckets is > 0 and a matching file is loaded with UCI NNUEFile
+// (forge/search_options.hpp); with none of these options set the compiled-in
 // network (forge/nnue.hpp) is used and nothing here runs. A request that cannot
 // be honoured is an error, never a silent fall-back to the compiled-in network
 // (see options::nnue_v2_problem and src/uci.cpp).
@@ -15,21 +16,25 @@
 //   index  = bucket * 768 + ((colour(pc) == p ? 0 : 1) * 6 + type(pc) - 1) * 64 + (r ^ flip)
 // With one bucket and no mirroring this is nnue::feature_index(). The output
 // layer has the compiled-in architecture (SCReLU of the side-to-move and the
-// opponent accumulators, one linear output) with the file's w2/b2, and the
-// arithmetic of nnue::evaluate().
+// opponent accumulators, one linear output) and the arithmetic of
+// nnue::evaluate(); with output buckets (C5) the row of w2/b2 is
+//   output bucket = output_bucket_map[popcount(occupied squares)]   (33 entries, kings included)
+// The trainer's default map for N buckets puts n = pieces - 2 non-king pieces in
+// bucket min(N - 1, n * N / 32): for N = 8 that is n / 4.
 //
 // File format v2 (little-endian), written by tools/nnue/forge_nnue_v2.py:
 //   0   char[8] "FORGENN2"      8  u32 version = 2        12 u32 header_bytes = 160
 //   16  u32 feature_set         20 u32 inputs = 768       24 u32 hidden (= HiddenSize)
-//   28  u32 king_buckets (1-32) 32 u32 output_buckets (1) 36 u32 flags (bit0 residual, bit1 mirror)
+//   28  u32 king_buckets (1-32) 32 u32 output_buckets (1-16)  36 u32 flags (bit0 residual, bit1 mirror)
 //   40  f32 weight_scale 4096   44 f32 output_scale 4096  48 f32 sigmoid_k 2.25
-//   52  u8 king_bucket_map[64]  116 u8 output_bucket_map[33] (all 0)   149 u8 reserved[11] = 0
+//   52  u8 king_bucket_map[64]  116 u8 output_bucket_map[33]   149 u8 reserved[11] = 0
 //   160 i16 w1[king_buckets][768][hidden], [i16 wt[ThreatFeatures][hidden] when feature_set bit 0],
 //       [i16 wp[PawnPairFeatures][hidden] when feature_set bit 1],
 //       i16 b1[hidden], i16 w2[output_buckets][2*hidden], i16 b2[output_buckets],
 //       then u64 FNV-1a 64 of every preceding byte.
 // feature_set: 0 = piece-square inputs only (C4); bit 0 = threat inputs (O6, UCI NNUEThreats); bit 1 = pawn-pair
 // inputs (O7, UCI NNUEPawnPairs); definitions below. An engine that does not know a bit rejects the file.
+// Output buckets (C5) combine with every feature set: the output row is chosen by the piece count.
 //
 // Exactness: weights are de-quantised like the compiled-in net (int16 / 4096),
 // so every accumulator value is an integer multiple of 2^-12 below 2^12 in
@@ -65,7 +70,7 @@
 namespace forge::nnue::v2 {
 
 constexpr int MaxKingBuckets = 32;
-constexpr int MaxOutputBuckets = 1;   // reserved field of the format
+constexpr int MaxOutputBuckets = 16;
 constexpr int MaxWorkers = 256;       // refresh caches are per worker id (Threads max)
 constexpr int HeaderBytes = 160;
 
@@ -193,6 +198,7 @@ struct Description {
     bool threats = false;
     bool pawn_pairs = false;
     std::uint64_t checksum = 0;
+    std::array<std::uint8_t, 33> output_bucket_map{};
 };
 
 // ---- loading and selection (src/nnue.cpp; must not run during a search) ----
@@ -211,9 +217,12 @@ void unload();
 [[nodiscard]] std::uint64_t last_load_bytes_read();
 // "<path> king buckets N output buckets M hidden H mirrored|unmirrored residual|stand-alone fnv1a X".
 [[nodiscard]] std::string summary(const Net& net);
-// Makes the loaded net the active one if it has exactly `king_buckets` king
-// buckets (0 = never); returns the active net, message gets a one-line state.
-const Net* select(int king_buckets, std::string* message);
+// Makes the loaded net the active one if its architecture matches the options:
+// king_buckets > 0 needs exactly that many king buckets (0: one unmirrored
+// bucket), output_buckets > 0 exactly that many output buckets (0: one), and at
+// least one of them must be > 0. Returns the active net (nullptr: the
+// compiled-in network); message gets a one-line state.
+const Net* select(int king_buckets, int output_buckets, std::string* message);
 [[nodiscard]] Description describe(const Net& net);
 // Allocates the refresh cache of one worker (on first use).
 [[nodiscard]] RefreshCache& make_cache(const Net& net, int worker_id);
@@ -626,12 +635,18 @@ inline void update(const Net& net, Color perspective, KingKey key, const float* 
     }
 }
 
+// Output bucket of a position: by the number of pieces on the board (C5).
+[[nodiscard]] inline int output_bucket(const Net& net, const Board& board) {
+    return net.output_map[static_cast<std::size_t>(std::min(popcount(board.occupied()), 32))];
+}
+
 // Network output before the conversion to centipawns; nnue::evaluate()'s arithmetic.
 [[nodiscard]] inline float output(const Net& net, const Board& board, const Accumulator& accumulator) {
     const Color us = board.side_to_move();
     const auto& ours = accumulator.values[static_cast<std::size_t>(us)];
     const auto& theirs = accumulator.values[static_cast<std::size_t>(opposite(us))];
-    const float* w2 = net.w2.data();
+    const std::size_t bucket = static_cast<std::size_t>(output_bucket(net, board));
+    const float* w2 = net.w2.data() + bucket * 2U * HiddenSize;
     constexpr int Lanes = 16;
     static_assert(HiddenSize % Lanes == 0, "HiddenSize must be a multiple of the lane count");
     alignas(64) float lanes[Lanes];
@@ -676,7 +691,7 @@ inline void update(const Net& net, Color perspective, KingKey key, const float* 
         }
     }
 #endif
-    float out = net.b2[0];
+    float out = net.b2[bucket];
     for (int j = 0; j < Lanes; ++j) out += lanes[j];
     return out;
 }

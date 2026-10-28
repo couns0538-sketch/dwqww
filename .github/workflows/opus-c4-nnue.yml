@@ -38,6 +38,9 @@ jobs:
         run: |
           python3 -c "import torch; print('python3 sees torch', torch.__version__)"
           bash opus_round1/C4/ci_c4.sh ci_c4
+      - name: C5 evidence (output buckets; opus-C5 only)
+        if: hashFiles('opus_round1/C5/ci_c5.sh') != ''
+        run: bash opus_round1/C5/ci_c5.sh ci_c5 ci_c4/build
       - name: Upload logs
         if: always()
         uses: actions/upload-artifact@v4
@@ -49,4 +52,8 @@ jobs:
             ci_c4/*.tsv
             ci_c4/smoke_kb*/*.json
             ci_c4/smoke_kb*/settings_*.txt
+            ci_c5/*.log
+            ci_c5/*.json
+            ci_c5/smoke_*/*.json
+            ci_c5/smoke_*/settings_*.txt
           if-no-files-found: warn
