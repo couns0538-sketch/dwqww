@@ -1,4 +1,4 @@
-# FABLE_REPORT.md — job FB1: NNUE v3 architecture (branch `fable-nnue-arch`) — DONE (M1-M4), UNPROVEN
+# FABLE_REPORT.md — job FB1: NNUE v3 architecture (branch `fable-nnue-arch`) — M1-M4 DONE, M5 (full-spec items) IN PROGRESS, UNPROVEN
 
 Base: `d4f4312` (AL1 s198 lock) + the CI baseline `0d99f02` cherry-picked (`5ff6208`). Worktree
 `F:\opus_scratch\fable_wt`, scratch `F:\opus_scratch\fable\`, builds `F:\opus_scratch\build\fable\`.
@@ -12,7 +12,33 @@ Everything here is UNPROVEN until a gate; no Elo claim is made anywhere in this 
 | M1 engine: UCI `NNUEArch` (default off), v3 loader, scalar reference eval | **DONE** (commit `eef2fe72`) | all acceptance checks pass |
 | M2 incremental accumulator + king-bucket refresh cache + AVX2 | **DONE** (this commit) | 100k plies incremental == refresh, 0 mismatches; AVX2 == scalar |
 | M3 trainer: QAT int16, v3 exporter with merged factoriser, 10k parity | **DONE** (this commit) | 60-step residual H512/8m/8 net: engine int == trainer int 10000/10000 on two position sets, max float-int 1.02 cp |
-| M4 NPS ON/OFF, smoke training vs AL1 net | **DONE** (this commit) | NPS ratio ON/OFF 0.777 (d16) / 0.767 (d20); 5-minute smoke net does NOT beat HCE on the holdout (overfits one ordered shard), AL1 net far ahead |
+| M4 NPS ON/OFF, smoke training vs AL1 net | **DONE** (68594f5d..b885f6f8) | NPS ratio ON/OFF 0.777 (d16) / 0.767 (d20); 5-minute smoke net does NOT beat HCE on the holdout (overfits one ordered shard), AL1 net far ahead |
+| M5 full-spec items: AVX-512 kernels, scalar = AVX2 = AVX-512, 1M-ply walk, 100k-position parity, H1024 NPS, bucket-layout rationale, cross-shard streaming training | IN PROGRESS | AVX-512 and the 1M-ply walk done and verified (M5 section); the rest is running |
+
+## King-bucket layout (why this one)
+
+The v3 header carries the full 64-entry map, so any layout can be shipped without an engine change; the trainer
+default (`fable_nnue_v3.py king_layout(8)`) is the mirrored 8-bucket layout below (files a-d after mirroring, rank 1 at
+the bottom; a king on files e-h uses the same bucket with the board mirrored horizontally):
+
+```
+rank 8: 7 7 7 7      rank 4: 6 6 6 6
+rank 7: 7 7 7 7      rank 3: 6 6 6 6
+rank 6: 7 7 7 7      rank 2: 4 4 5 5
+rank 5: 7 7 7 7      rank 1: 0 1 2 3
+```
+
+Reasons: (1) the first rank gets one bucket per file (a1/b1 = castled queen side, c1/d1 = centre-left, and through
+the mirror g1/h1 = castled king side, e1/f1 = uncastled) because those are the king placements that dominate
+middlegame play and they differ most in what the net has to see; (2) rank 2 gets two buckets (the king stepped up
+after castling vs the centre); (3) ranks 3-4 share one bucket and ranks 5-8 share one, because such kings occur in
+endgames where the king's exact square matters less than the material, which the output buckets handle; (4)
+mirroring halves the number of buckets needed for the same coverage, and the factoriser lets rarely visited buckets
+borrow from the shared weights; (5) 8 buckets x 768 x H keeps the file at 6.3 MB for H512 (12.6 MB for H1024) and
+the refresh cache at 2 x 8 x 2 entries per worker. The same shape (8 mirrored buckets with the first rank split per
+file) is what Opus's C4 report measured for refresh cost (about 14-17% of evaluations change the king key at bench
+depth 16); the walk tests here show about 10% key changes on random plies. The 4-bucket layout (C4's other standard)
+is available with `--king-buckets 4` if the refresh cost of 8 turns out too high in the NPS profile.
 
 ## M1 acceptance (engine side only)
 
@@ -143,6 +169,38 @@ AL1 net. This is the expected outcome of 6.75M correlated positions against 230M
 architecture; it is also not evidence for or against the architecture. A real comparison needs the production data
 path (all 29 training shards, game-shuffled, several epochs, LR schedule), i.e. hours on the GPU or days on one CPU
 thread, which is outside this job's budget.
+
+## M5: the full-spec items
+
+### AVX-512 (DONE)
+
+`src/nnue_v3.cpp`: `output_sum_avx512` (32 int16 per vector, `mullo` + `madd`, two int32 accumulators of 16 lanes,
+each lane sums H/16 terms: half the AVX2 bound), `apply_changes_avx512`, `add/sub_column_avx512`, compiled when
+`__AVX512F__ && __AVX512BW__` (the PC box recipe `-march=znver5`; the CI x86-64-v3 builds keep AVX2). The search uses
+the best compiled kernel; `output_sum_with` / `apply_changes_with` / `add_column_with` expose every compiled kernel
+for the equality tests. The walk test compares every compiled kernel's output sum with the scalar sum on every
+evaluated position and takes its ply budget as an argument (ctest default 100k).
+
+| check | result | evidence |
+|---|---|---|
+| AVX-512 box exe builds like the lock recipe | PASS: `forge_fable_m5.exe`, FMA 0, 0 warnings, 1075 zmm instructions (the lock recipe is `-march=znver5`, so the compiler's own 512-bit code is in every build) | `fable/logs/build_pc_m5.log` |
+| OFF identity with the AVX-512 kernels compiled in | **PASS** `ALL OK` (bench x5, perft5, kiwipete) | `fable/logs/identity_off_m5.log` |
+| scalar = AVX2 = AVX-512 (100k-ply ctest run) | **PASS**: znver5 test build: 129,974 walk comparisons (AVX2 and AVX-512 output sums vs scalar on real accumulators) 0 mismatches, 1200 H1024 output sums at the bounds (w2 = +-127, accumulators +-32767) over all three kernels equal, add/sub column and `apply_changes` of every kernel equal for every legal kiwipete move; 95,879 checks, 0 failures. x86-64-v3 test build (scalar + AVX2): 95,830 checks, 0 failures | `fable/logs/unit_tests_m5_avx512.log`, `fable/logs/unit_tests_m5_avx2.log` |
+| AVX-512 search == AVX2 search | **PASS**: ON `bench 11/13` with the random net = 91949 / 550792 and `bench 16` with the M3 net = 3,298,439 nodes on the AVX-512 exe, identical to the AVX2 exe's counts (`info string ... kernel avx512` printed) | `fable/logs/uci_on_bench_m5.log` |
+
+### 1M random make/unmake plies (DONE)
+
+`forge_nnue_v3_tests <dir> 1000000` on both test builds (same seed, same walk): **1,000,000 plies, 649,701
+evaluations, 0 accumulator mismatches** against a from-scratch refresh (both perspectives, keys and king squares bit
+for bit), 0 `evaluate` mismatches against the scalar reference. Coverage: 3,622 castlings, 1,073 en passant
+captures, 13,954 promotions, 302,611 king moves, 104,662 king-key changes (bucket or mirror side), 47,324 null
+moves, 125,659 replays across 2+ unevaluated plies (max 11). Kernel comparisons on the walk positions: 649,701
+(AVX2 vs scalar, x86-64-v3 build) and 1,299,402 (AVX2 and AVX-512 vs scalar, znver5 build), **0 mismatches**;
+955,819 / 955,868 checks, 0 failures. Evidence: `fable/logs/walk_1m_avx2.log`, `fable/logs/walk_1m_avx512.log`.
+
+### 100k-position parity, H1024 NPS, cross-shard training
+
+(filled in as the runs finish)
 
 ## What is left / exact next steps (for the next model)
 
