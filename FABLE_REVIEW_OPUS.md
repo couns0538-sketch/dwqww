@@ -366,7 +366,7 @@ Notes and evidence under `fable_review/deep/` (one file per item).
 |---|---|---|---|
 | `fable-review-summary` | this commit | d4f4312 | this report + `fable_review/` evidence |
 | `fable-review-buffix` | 8632e8ab | d4f4312 + CI workflow | mistake 2: engine fix + test (a9cea71f); overflow-demonstrating fixture (ab2aa56b, run 40691861788 success in release / ASan+UBSan / TSan (identity ALL OK, known-failure check PASS, TSan 0 reports, the same 15-test ctest list as run 40670602785, which includes forge_bad_capture_tests)), REVIEW.md |
-| `fable-review-r3-stack` | e1c9aa6a | opus-r3-stack da158149 | mistake 1: eight `.pyc` untracked; mistake 2 applied to the stack's picker (b0c3882b), REVIEW.md |
+| `fable-review-r3-stack` | 42497cc3 | opus-r3-stack da158149 | mistake 1: eight `.pyc` untracked; mistake 2 applied to the stack's picker (b0c3882b), REVIEW.md |
 | `fable-review-S33fix` | 3004fc91 | opus-sol-S33fix | mistake 3: comparison normalises line endings |
 | `fable-review-S38` | a9884584 | opus-sol-S38 | mistake 3: comparison normalises line endings |
 | `fable-review-S46` | 56daf94c | opus-sol-S46 | mistake 3: comparisons normalise line endings |
