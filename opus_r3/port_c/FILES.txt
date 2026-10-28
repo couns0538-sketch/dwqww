@@ -1,0 +1,94 @@
+# FILES index, opus_r3/port_c, R3-1 port C (S-A2 NnueInt16 + S-A4 H512), branch opus-r3-port-c. path | bytes | sha256 | content
+# Big outputs (exes, parity dumps, v2 replica nets, mutant builds) stay in F:/opus_scratch/build/r3_port_c and F:/opus_scratch/r3/port_c; sha256 in logs/
+IDEA_SOURCE.md | 1417 | a2d42ec2b03790fd44160197f6384d74998e06481dd0f6faa677c826178b394e | sources; why NnueInt16 is a build switch
+README.md | 3210 | 84c26910a69eea2471f62544dcef76c830c2d5f67d6e7d20451f912cfe6b92ed | how to build and check the port
+bench_expect.py | 3537 | 3fa94c12c8a31732af3bfb976be863e467dcc6fd86d913ea8de559f616c77edd | bench pins + required info lines, self-checking
+mutation_check_port_c.py | 5120 | 6d16514e2b28f27975c3a7af8750724116940625d178cec1c3483213561eab37 | planted-bug check: SA2's 5 mutants + 1 port mutant, FORGE_NNUE_INT16, O2 off/on
+logs/bench_h512.log | 2836 | b1f4e800ce2f2c13d96d194fc3e205e6b8e0fe42c2fb509d58157e543bba28e9 | evidence log
+logs/bench_on_final_int16.log | 348 | c341f08c6d263e6e94616c1c0697dddedca4b3812583f83d8484fbba0df40777 | evidence log
+logs/bench_on_final_int16_o2.log | 351 | f036bc28f77c912d54f06f8cb42aae2f18c1846cd3f81cae672cf346128e66a4 | evidence log
+logs/bench_sa2merge_int16_on.log | 179 | 9f6f2805a5ee882fee244b97f8824df8ba2a16bfba247e9ac621ca417cb0f7a4 | evidence log
+logs/bench_v2replica_int16on_final_int16.log | 1396 | c6271290a5e5b548da8424f8e9f62cd8bb46ec56032ce2d8ce042c9320f14526 | evidence log
+logs/bench_v2replica_int16on_final_int16_o2.log | 1399 | d183218de776ed367178911110981f4bea9adf3bc36198a60d61d4ee1873d155 | evidence log
+logs/build_base_2432670b.log | 208 | ec8f2cdc46b430f252cdaf10c09f6da39834d5ed941d4f36056b2ce5781cd6cb | evidence log
+logs/build_base_2432670b_o2.log | 168 | 87f4c07f19e8685cc38081a89f83f53bf33d0ca7400098fd1143f3ef92df8b05 | evidence log
+logs/build_final_default.log | 165 | 83e1580ddec573762227cd9b63f26719a0c6d2b883dcedfd0908a72431c73d5d | evidence log
+logs/build_final_int16.log | 163 | aac3df0443a493fbb5ecd0c183bf2afbb4d598eb3dec2c5fa74f46f793d84803 | evidence log
+logs/build_final_int16_o2.log | 166 | cd6b71806a32301f16bddfe6aa7fa7ec78e0f7c1d9cb3bc1a053015d5525d5ed | evidence log
+logs/build_final_o2.log | 160 | fa135791d0eae7fb85195356f3eb7e93fdea5e9f4f6d0e7033038d248f54ce3f | evidence log
+logs/build_h512.log | 846 | 084db8418508a17bbfbb2a21560c7a1bd7377cc045749c3a6a08603890d06c89 | evidence log
+logs/build_sa2merge_default.log | 168 | aaf90b76dd304976d90fdcc8ed0b6d86d50309ac6bd2162a91785b4a6b1ca0e0 | evidence log
+logs/build_sa2merge_int16.log | 166 | 9898fe27eb6517739d522f0c7f5b476be88a18d141ee4dc27879389ad2ebf9bd | evidence log
+logs/byte_identity_default_and_o2.log | 973 | dff8c5428f9920b576bafb530a2546376d89aacf7456508c2f37ea97a333acba | evidence log
+logs/ci_40570018288_summary.log | 822 | 60566169aed7ee06ce57e1b95bd17dae9d088944f42f7fec9ccc5b982b32ce31 | evidence log
+logs/ci_tsan_test_times_vs_base.log | 2860 | a496ede531bbaa82e296237dc279f58445ea4d3ebf93b4275313413a59f4086b | evidence log
+logs/ci_watch_a4fa82bb.log | 152 | dba8e4c2f6600fe953111adf879c5cee39a8f1b4619b6bb85343952c0043676a | evidence log
+logs/cmake_binaries_vs_base.log | 295 | 6249943bd9188705687bb0c76a8f3725db39dd778314140a9958b45e0fbc1937 | evidence log
+logs/cmake_default.build.log | 43246 | b9d01b7f340bcf06aee4efd0767e96eedbffc672b68609018e22424a30ce64e1 | evidence log
+logs/cmake_default.configure.log | 530 | 08df6b5c0dd6e9c973b4511663f137003369cca590c76b4cacb0d06b569127f0 | evidence log
+logs/cmake_default_build_driver.log | 108 | e5eaf7de56a73e007fb6c55af7eb12ff779c661d2ea1561d8fb0aa971d9e155d | evidence log
+logs/cmake_default_warnings_vs_base.log | 1419 | 60d81c403b27078f6ba79d7b1b01beb5337c8e3411db1f62f2555676ea44b11f | evidence log
+logs/cmake_int16.build.log | 20752 | 9eebbfa5ddd8531ae7032c0a0726dbf0996bfab28a17828ff8d3c3926c1cc84e | evidence log
+logs/cmake_int16.configure.log | 528 | 85fa304a1fd8b38455d8e8aae2f4cf8653c5506c9b384a7b49c74078c665edca | evidence log
+logs/cmake_int16.summary.log | 430 | 983f81506b412a92402b1726cf4af145765c4867e8c9ac030010c155efd0fd65 | evidence log
+logs/cmake_o2.build.log | 39044 | f6a8f1f74b6ca588bf6f430e4cda105a78cb64165e140f67340855a574173820 | evidence log
+logs/cmake_o2.configure.log | 525 | c58976f373a28397ad109f9266759d990522acefd585f3d99418f9d69292c97e | evidence log
+logs/cmake_o2.summary.log | 433 | 69e495ea5283e558071c0cb8f88622b369a6de3c0e635a9c66702b06e0e50563 | evidence log
+logs/cmake_o2_int16.build.log | 20752 | 9eebbfa5ddd8531ae7032c0a0726dbf0996bfab28a17828ff8d3c3926c1cc84e | evidence log
+logs/cmake_o2_int16.configure.log | 531 | 2d708b149a2aeee0e0d69081af43b279cf20fbaab34edc6244e2d0d0a9982e7a | evidence log
+logs/cmake_o2_int16.summary.log | 454 | 34110f8711c5a877db0c7dc34098fc1143468c3000a356b851c3ee685df5282c | evidence log
+logs/cmake_variants_warnings.log | 144 | 18461a9c05fd4b91f8c11f386cbe438742a0ec80d47a9632a58c8c1556def517 | evidence log
+logs/ctest_default.log | 5332 | e9120ba04f4c5eb0b78802353f3e4feb1158131386909b2663ead973393dca02 | evidence log
+logs/ctest_default_run2.log | 5483 | 3ff67df6ce7b0c8266a2aab731023253faabb961ad9decf43ac0e800a27a942c | evidence log
+logs/ctest_default_run3.log | 5566 | 8c746b134bc8354db5c5c99eab8b3686194c1a45e59fd79f270b005cc71512bf | evidence log
+logs/ctest_hard_deadline_rerun_default.log | 339 | 0f7a9c08dc50421cde8861754495869ecff9fc3263ab3b3f9ffc3f4d4646c7ef | evidence log
+logs/ctest_int16.log | 1474 | 6d99e09ddd29c3bcd5f7ebcee1828ae9ee1a2d29c0dc9fe3ef4381d72ee16165 | evidence log
+logs/ctest_o2.log | 1581 | 48998901174bd708a464c982a2335baaee094362bbb865d641a0e1c5a71da6cf | evidence log
+logs/ctest_o2_int16.log | 1477 | e14da3f16ab69560d0622d2f28e4afb0201cc9e51babd48ed92f2515a4d756c9 | evidence log
+logs/ctest_smp_rerun_default.log | 661 | b7f8f22792be4b5b61912fbca4891dbf6de498826c494d13c49f69872e04f310 | evidence log
+logs/inputs_sha256.log | 1423 | b10a5f10e704c6b6412b36eb211b28075752fa5f3c8c8c44220d42248ef59738 | evidence log
+logs/known_failures_default.log | 214 | cee5e2d69ca38d377281565461410db70ea1368b37080e428316eb37f303c321 | evidence log
+logs/known_failures_default_run2.log | 171 | af7b9ac2c944340c013780ec6fbe986f57104f4a1bcc04c97b740d0abc55cfcd | evidence log
+logs/known_failures_default_run3.log | 171 | af7b9ac2c944340c013780ec6fbe986f57104f4a1bcc04c97b740d0abc55cfcd | evidence log
+logs/mutation_port_c_o2off.json | 2409 | 633e672eb006a7a08f5e623a337250a87469730bfaf1ba8b9edfbfa77095f77f | evidence log
+logs/mutation_port_c_o2off.log | 1102 | 5c3012c95b5a2b71db3569b0e3a3e9381e1c808b05445c3c7d221451f2775cde | evidence log
+logs/mutation_port_c_o2on.json | 2431 | 81abdbd9a75b07a90fde5d2e1d30bf35010626cef66e61ab04efcd1787ff4f02 | evidence log
+logs/mutation_port_c_o2on.log | 1100 | 789f5924810c1dc30c3281427bec52d2eee50918c6574d8c27d835afaa9d2f5b | evidence log
+logs/nnue_int16_regression_absent_final_default.log | 281 | 499e92ce62f96c713e2f402d323c900e134f1b27927fafea98c003c5c07723b5 | evidence log
+logs/nnue_int16_regression_absent_final_o2.log | 281 | 499e92ce62f96c713e2f402d323c900e134f1b27927fafea98c003c5c07723b5 | evidence log
+logs/nnue_int16_regression_final_int16.log | 604 | f698d2818d2169153f3fc9458764880740b838bd4cea0327e2c56e937ca184fe | evidence log
+logs/nnue_int16_regression_final_int16_o2.log | 604 | 9fedd4986c7b8cd42aba4aed35ebb870a1ae4a33daa75ad79304db5b970136ee | evidence log
+logs/parity_dumps.log | 3222 | 4f2ad3ffdc7a46d4f49ca4af36f8e16bd4743705d3704518f1b5eab389dd9fe3 | evidence log
+logs/uci_check_full_final_default.log | 284 | 2fffbf714aa8f7ffd045a920c5bc28f98df69c1e5892d03b57e5c28344e1a21e | evidence log
+logs/uci_check_full_final_int16.log | 284 | 2fffbf714aa8f7ffd045a920c5bc28f98df69c1e5892d03b57e5c28344e1a21e | evidence log
+logs/uci_check_full_final_int16_o2.log | 284 | 2fffbf714aa8f7ffd045a920c5bc28f98df69c1e5892d03b57e5c28344e1a21e | evidence log
+logs/uci_check_full_final_o2.log | 284 | 2fffbf714aa8f7ffd045a920c5bc28f98df69c1e5892d03b57e5c28344e1a21e | evidence log
+logs/uci_check_full_sa2merge_default.log | 284 | 2fffbf714aa8f7ffd045a920c5bc28f98df69c1e5892d03b57e5c28344e1a21e | evidence log
+logs/uci_check_full_sa2merge_int16_off.log | 284 | 2fffbf714aa8f7ffd045a920c5bc28f98df69c1e5892d03b57e5c28344e1a21e | evidence log
+logs/v2_h512.log | 7835 | a0fa65fe9dc3b9c673ae8337a2379353e741ad28b76b22e77181a75989a67e5f | evidence log
+logs/v2_replicas.log | 1008 | 4918356c988cc84a5b0d62851bded9f204ce5e29b0a874a864ad602aadd0afc6 | evidence log
+logs/ci_40570018288/build_config_asan.txt | 270 | 5d6d693c4a2fa33b12044e2ecb7b97801678b8860b448524a55fc5493324a9bb | evidence log
+logs/ci_40570018288/build_config_release.txt | 236 | 8add87fbb94a4b926bced21b8691eeba951bccab3b3a6a310e2c662b4d8d08bd | evidence log
+logs/ci_40570018288/build_config_tsan.txt | 286 | e9e60c7fb9a27cfa706e7128c6a69ad65da3a2b4cfc65175438e779b74fbbf35 | evidence log
+logs/ci_40570018288/ctest_asan.log | 5204 | 5e39538526ff459af306acb273df4c3a2714977893c8cfdee941523ac2d2d65d | evidence log
+logs/ci_40570018288/ctest_release.log | 5207 | 418eca300b278c6cf1b60e7ea5aa184a94fc5c474e666c926a26d9ca55a3c7ff | evidence log
+logs/ci_40570018288/ctest_tsan.log | 5205 | 46d0cfe2f2e131e0bc5c1067899baa3eb05b2d9a1a5cd86eddcdbf21b6c25aba | evidence log
+logs/ci_40570018288/identity.log | 461 | 75ae8829d3ac32718c493bab937deae116b66691b2c0ca1ea4391babf08288eb | evidence log
+logs/ci_40570018288/known_asan.log | 165 | ea0bff472b7698e227f167b4e7405c40f2c0594ad631c82b5cca95ca64b3ce7f | evidence log
+logs/ci_40570018288/known_release.log | 165 | ea0bff472b7698e227f167b4e7405c40f2c0594ad631c82b5cca95ca64b3ce7f | evidence log
+logs/ci_40570018288/known_tsan.log | 181 | f1b7be3628ecac08feaa22b120a480cf6dcc5c8b5c9b44943a71d77d93e36671 | evidence log
+logs/ci_40570018288/tsan_extra.log | 12095 | a568108fdc67f6426dc58e820df70f3945f232136681b8dc456e1f8770d46abc | evidence log
+tools/build_pc_set1.sh | 1708 | 08ab0d3ab8153c50cad051aa56ac219cbe3b24eb1450045bf43f1e30afde3d00 | PC builds: final default/O2/int16, base O2 reference, byte identity
+tools/collect_logs.sh | 2356 | e53bae77789ff37c5a213602883865f1b7872eb4b29de901fcf0c36f02354466 | copies the evidence logs from scratch
+tools/resolve_cmake_sa4.py | 4577 | 77d03b233c85be5d1e7dddbb485d84513c6dfabf6b5308f70432f1dcce04df2c | CMakeLists.txt resolver of the SA4 merge
+tools/resolve_uci_sa2.py | 2211 | b81c601b1e4b0fc1ca13748c4d15ab76eaec9ba55dd1af05f85290d91d4027b1 | src/uci.cpp conflict resolver of the SA2 merge
+tools/run_checks_final.sh | 1675 | b321ffdf0edee770e846585a81a1f03d9b0e30958bafe4a0e9e3a49187a6fb71 | identity, ON pins, UCI regression, v2 non-interference
+tools/run_checks_sa2merge.sh | 804 | bb9cdfa811876c0d458954b7e2c1eeffe6555593b390103445e27feefbe97f7d | identity + ON bench of the SA2-merge builds
+tools/run_cmake_default.sh | 1388 | 85114f2f11ae8d9c1008f61abdbd10a9918559751daa159d383b5123177002f4 | full CMake build (JOBS=1) + full ctest
+tools/run_cmake_variants.sh | 2131 | fe327115be456cd87ee44ae221f58a6786c6310915067d5b8ecb4b5dfb645432 | CMake O2 / INT16 / O2+INT16: NNUE targets and tests
+tools/run_h512.sh | 3530 | f41f6b56ca6b006eb87041b8c944bd26fb676c11ebb293f19f792718bb4da0b4 | SA4 H512 recipe builds, pins, v2 at H512
+tools/run_mutation.sh | 789 | 37e1e1c2bedc2d6da174c09d925be98bbea3e28d33b5b03cecceaf1ddb5e2d9d | planted-bug check in both O2 states
+tools/run_parity.sh | 2841 | ce11c08df49a118e869a0525ca469e9f715f2eb32b558d9388c245f7b0012d0b | SA2 parity driver builds and dumps vs references
+tools/tsan_time_compare.py | 966 | 34c3053a272bbe3065d8d70938856bcc51244ed1ba4fac9fa2111b3bf496d95e | per-test ctest time comparison (CI TSan vs base)
+tools/watch_ci.sh | 841 | 95472e42b0c8af08e5708b5d6498fbcdbba2203b8ad8c42d09502c92d2752243 | waits for the opus-ci run of a sha
+tools/to_lf.py | 457 | 922ac8d7fc1cf9fa0f1c2556a75bf15801a6a975679b56125e4e6e3c9a6bd4d3 | CRLF -> LF for the committed logs (Windows Python / g++ output)
