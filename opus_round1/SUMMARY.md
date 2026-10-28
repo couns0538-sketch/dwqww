@@ -52,8 +52,8 @@ After the OPUS jobs: `SOL_LEFTOVERS_FOR_CLAUDE.md` (Sol's queue), on branches `o
   - S49 speed check verified on a Windows runner (40521059492, PASS); S25fix and S27fix checkers verified on Linux.
   - Follow-ups: S12 null-edge accumulator alias ported (FORGE_NNUE_LAZY_ACC + `NnueLazyAcc`; default build = lock binary;
     node-exact; no measurable NPS effect, not proposed for a gate); S14 FORGE_NOZERO_MOVE_BUFFERS (default build = lock
-    binary; node-exact; quiet runners +2.0..+2.7% CPU NPS at d16/d20, A/A controls include 0; the ≥ +2% lower-bound
-    rule is not met: lower bounds +0.85..+1.90%).
+    binary; node-exact; memcheck 0 errors; four quiet-runner samples +1.25..+2.70% CPU NPS at d16/d20, A/A controls
+    include 0, callgrind −1.9% instructions; the ≥ +2% lower-bound rule is not met: lower bounds −0.41..+1.90%).
   - The rest are tools, studies and evidence (`[skip ci]`).
 - **Section 2, Astra:**
   - A1 `HistRework` (engine, OFF = lock nodes, CI 40515121020 green, gate `HistRework=2` first; OFF path −0.8/−1.0% NPS on a quiet runner);

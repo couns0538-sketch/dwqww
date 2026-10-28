@@ -8,6 +8,7 @@
 - Each job is on its own branch `opus-<JOB>`, with its folder `opus_round1/<JOB>/` (REPORT.md, IDEA_SOURCE.md,
   patch.diff, logs, SHA256SUMS). Nothing was pushed to main or to anyone else's branch, and nothing was
   force-pushed.
+- `opus-O3-pin` is the O3 pin experiment (`ac05bbb0`); that commit is part of `opus-O3`, the branch to use.
 
 ## Done (details and numbers: opus_round1/SUMMARY.md and each job's REPORT.md)
 - **00_baseline:** the lock was reproduced on the PC before any job (bench x5, perft, kiwipete, FMA 0; exe
@@ -57,10 +58,11 @@
     matters only if they are merged with the option off by default; a compile switch would remove it.
 - **The one measured speed gain: S14's `FORGE_NOZERO_MOVE_BUFFERS`** (build switch, default off). It stops zero-filling
   the move buffers (3,328 B per move picker, 1 KiB per move list) without changing any search result (bench and
-  perft exact, pick order identical over 2.28M sequences, ASan/UBSan/TSan clean). Two quiet runners: +2.00% / +2.16%
-  and +2.26% / +2.67% CPU NPS at d16 / d20, with A/A controls including 0, so the gain is real. The project's
-  speed-eligibility rule (95% CI lower bound ≥ +2% at d16 and d20, as applied in S11/S49) is not met: the lower bounds
-  are +0.85% to +1.90%. Adoption or a gate is the crew's call; no Elo claim. S12's null-edge alias, by contrast, is node-exact but has no measurable
+  perft exact, pick order identical over 2.28M sequences, ASan/UBSan/TSan clean, memcheck 0 errors). Four quiet-runner
+  samples give +1.25% to +2.70% CPU NPS (5 of 8 CIs exclude 0; A/A controls include 0), and callgrind counts 1.9%
+  fewer instructions, so the gain is real. The project's speed-eligibility rule (95% CI lower bound ≥ +2% at d16 and
+  d20, as applied in S11/S49) is not met: the lower bounds are −0.41% to +1.90%. Adoption or a gate is the crew's call;
+  no Elo claim. S12's null-edge alias, by contrast, is node-exact but has no measurable
   effect (within ±0.4%; the copies it avoids are about 0.07% of search time).
 - **Quiet-box checks of PC-only tools** (GitHub runners): S49's speed check on a Windows runner (verdict PASS: A/A
   CIs contain 1, a synthetic 5% slowdown is detected); the S25fix and S27fix checkers on Linux (green; the PC-only
@@ -68,13 +70,30 @@
 - **No gates were run.** Each gate-ready candidate names its option, value, SPRT and srand in its REPORT.md.
 
 ## In progress / left
-- **S14 follow-up, one CI job left:** the profile job of run 40527244836 (callgrind memset attribution, valgrind
-  memcheck, clang MSan) was still running when the follow-up was committed; everything else in S12 and S14 is done.
+- **Nothing is in progress.** Every job and fix-up is DONE and pushed; the latest CI run of every workflow on every
+  branch is green.
 - **Everything else is for the owner or crew:**
   - gates;
   - CR reviews of the proposed patches;
   - queue lines (A7, S-A1, S-A3, S-C4 and the S-A4 GPU recipe are PROPOSED only);
   - the cleanup list below.
+
+## CI runs that failed (each fixed; checked 2026-10-27)
+All 75 `opus-*` branches were swept: every run, every workflow. The latest run of every workflow on every branch is
+green. Each failed job below passed later, as the same job of the same workflow on a later commit of the same branch.
+The red runs stay in the Actions history: deleting runs is not allowed here, and re-running them would rebuild the
+same broken commit.
+
+| run | branch / workflow | what failed | fixed in (same job green) |
+|---|---|---|---|
+| 40367007552 | opus-O1 / opus-ci | `linux (tsan)` ran out of time (52 min), before the CI baseline's per-test timeouts | 40381524034 (`33b0790b`) |
+| 40381997386 | opus-O2 / opus-o2-perf | `perf` build: `ninja: manifest 'build.ninja' still dirty`; the source export had future file times (PC clock, see below); later scripts extract with `tar -m` | 40383970663 (`55891ae9`) |
+| 40470578003 | opus-O1-LTT / opus-o1-ltt | `planted-bug`: building the planted-bug copy failed; `selfplay` and `scaling` were cancelled with it | 40471171993 (`60b03757`); all jobs green in 40498488242 |
+| 40498064402 | opus-C3 / opus-ci | `linux (tsan)`: the TSan hook; fixed by compiling DebugSearchDelayMs only in debug/test builds | 40503292559 (`581ad5da`) |
+| 40505681846 | opus-sol-S26fix / opus-sol-s26fix | `asan (f023)`, 1 of 18 jobs | 40507421791 (`3f7cc526`) |
+| 40509722120, 40510697858 | opus-sol-S49 / opus-sol-s49-box | `box`: Linux load probe (comma precedence), then `-Depths 13,16` read as 1316 | 40517374833 (`57701360`) |
+| 40521425927 | opus-sol-S27fix / opus-sol-s27fix-linux | `linux`: a test fixture lacked the exec bit | 40522039382 (`ec65392d`) |
+| 40527244836 | opus-sol-S14 / opus-sol-s14fu | `profile`, 1 of 6 jobs: cancelled at its 120-minute cap (the callgrind attribution parser crashed on Linux `nm` output; the best-effort MSan run never finished) | 40547593226 (`b26ac6ed`): parser fixed with a unit test, MSan capped at 10 min; all 6 jobs green |
 
 ## Incident: our smoke runs disturbed the PC training supervisor (found 2026-10-27 10:24 PST; RESOLVED, QA reset the fail count to 0)
 - **What happened.** `F:\forge_nnue_train\supervisor.log` (read only) shows that the supervisor adopted five
@@ -104,7 +123,8 @@
   done. Linux identity, ASan+UBSan and TSan come from `.github/workflows/opus-ci.yml` on each `opus-*` branch.
 - **PC clock.** Windows reports a UTC time 9 hours ahead of GitHub's server time (its time zone is Pacific while
   the clock shows the local time). Timestamps in PC logs are local wall time; compare them with CI times through
-  `gh api -i rate_limit` (Date header), not `date -u`.
+  `gh api -i rate_limit` (Date header), not `date -u`. The commits made on this PC carry the same +9 h in their
+  dates, and `git archive` exports of them have future file times on a runner (extract with `tar -m`).
 - **Paths.** The lock archive and the build scripts moved from the session scratchpad to
   `D:\grok-pc-data\dwqww\.claude\worktrees\b\pkg` and `...\b\tools` (2026-10-27). NNUE smoke runs write only to
   `F:\opus_scratch`, with renamed trainer copies; `F:\forge_nnue_train` was never written.
@@ -119,6 +139,8 @@
     worktree is `opus_sol_s43_wt`) and `F:\opus_scratch\sol_S40\fixture_v2\second\newdir` (planted-bug output);
   - the empty untracked folder `opus_round1/sol_S27fix/old_attempt_check` in the S27fix worktree;
   - `F:\opus_scratch\sol_S25fix\apply_test_*` (a `git apply` reproduction made while debugging the S25fix CI);
+  - three copies of an 8 GB MSan report log under `F:\opus_scratch\sol_S14fu` (`ci_40547593226\profile`,
+    `ci_40547593226\s14fu-profile`, `moved_from_D_worktree`), 23 GB in all;
   - all of `F:\opus_scratch` (worktrees, builds, scratch) once the branches are reviewed.
 - **Published outside git branches:** the GitHub prerelease `opus-sol-S48fix-grids-20261027` (tag on the S48fix
   branch, `main` untouched). S48-4 asked for simulation grids to go to release assets instead of git; delete the
@@ -133,6 +155,9 @@
     (`os.unlink`, never executed) and ran the tests. It redid the edit with the Edit tool, so the test now keeps
     its temp files; nothing was deleted. It also edited a script while a background run of it was executing and
     re-ran that check from a frozen, byte-identical copy.
+- **Main-session slip (fixed):** an 8 GB CI log (S14's MSan report flood) was copied into the S14 worktree on D:
+  while collecting evidence. It was never staged or committed. It was moved, not deleted, to
+  `F:\opus_scratch\sol_S14fu\moved_from_D_worktree`; the job folder keeps a 9 KB excerpt with its size and sha256.
 - **Main-session slip (fixed):** three REPORT.md files (S49, S25fix, S27fix) were pushed with CRLF line endings
   after an edit with Windows Python's text mode; LF was restored in the next commit on each branch (`adf6f27d`,
   `f3e8cf32`, `62aaa033`). The PC rules skill now says how to avoid it.
