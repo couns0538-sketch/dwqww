@@ -15,6 +15,7 @@ The test requirement (R3-1): no crash, no illegal move, no double bestmove over 
 | `make_nets.py` | writes the v2 nets the configs load (lock replicas and stand-alone copies, all function-preserving) |
 | `fault_proxy.py`, `selftest_faults.py` | harness self-test: a proxy that breaks the protocol once per fault; the harness must report each |
 | `repro_late_info.py` | minimal repro of the HardDeadline finding (info line after the watchdog's bestmove); 0 late lines on a fixed head |
+| `finish_final.sh` | after the hand-back: `status` (runners alive? finished configs), `resume` (restart runners A/B for the configs without a complete summary; refuses while any runner/checker of the head lives), `collect` (MATRIX.md, copy evidence, FILES/SHA256SUMS) |
 | `logs/` | small evidence (matrix tables, summaries, preflights, self-test, repro, build and bench logs); big logs stay in `F:\opus_scratch\r3\selfplay\` (sha256 in `logs/*/matrix_summary.json`) |
 
 ## Run (PC; Git Bash; everything at nice 19, outputs on F:)
