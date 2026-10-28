@@ -157,10 +157,11 @@ class Fixture(unittest.TestCase):
     def test_golden_reports(self):
         for name, path in (('s38fx_REF_report.json', self.ref_json), ('s38fx_A_report.json', self.a_json),
                            ('s38fx_REF_report.md', self.ref_json[:-4] + 'md'), ('s38fx_A_report.md', self.a_json[:-4] + 'md')):
+            # Compare text, not line endings: the golden files follow the checkout's autocrlf setting.
             with open(os.path.join(HERE, 'sample_reports', name), 'rb') as f:
-                want = f.read()
+                want = f.read().replace(b'\r\n', b'\n')
             with open(path, 'rb') as f:
-                self.assertEqual(f.read(), want, name)
+                self.assertEqual(f.read().replace(b'\r\n', b'\n'), want, name)
 
     def test_hand_count_awk_matches(self):
         bash = shutil.which('bash')
