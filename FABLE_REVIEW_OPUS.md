@@ -61,6 +61,13 @@ For each of the 30 branches that change `src`/`include`/`CMakeLists.txt` the lat
 lock", holds on Linux CI for C1-C6, O1, O1-LTT, O2-O8, the R3 stack, A1, S04fix, S08fix, S11-S14, S29, S32, S37,
 S41, SA2, SA4 and SIT.
 
+## R3 integration head rebuilt on the PC (DONE)
+
+`opus-r3-stack` head da158149 (engine 064af732) built with the PC lock recipe (`build_pc.sh`, all extra sources of
+the stack): FMA 0, 0 warnings, exe sha256 `4bb06b31…`; `uci_check.py --full`: bench d11/13/16/20/22 = the AL1 pins,
+perft5 4865609, kiwipete 193690690, **ALL OK**. So the final merged head of every O/C job is identical to the lock
+with all options off, on the PC as well as in CI. Evidence: `fable_review/r3_head_build.log`, `fable_review/r3_head_identity.log`.
+
 ## Findings (engine jobs, read in order of risk)
 
 | job | what was reviewed | verdict |
