@@ -1,0 +1,77 @@
+# R3-2Q: quiet-runner repeat of R3-2's switch NPS rows. Per config x rep, one ubuntu-24.04 runner builds OFF and the
+# switch build (g++-14, CMake Release, Ninja, --target forge, x86-64-v3 box flags) and measures paired ABBA CPU-time
+# NPS (fresh processes, nodes must match) of: OFF vs byte copy (A/A), OFF vs switch, and the switch's same-exe option.
+# See opus_r3/R3-2Q/ci_quietnps.sh and README.md. Read-only; uploads the raw per-run JSON and logs.
+name: opus-r3-quietnps
+on:
+  push:
+    branches: ['opus-r3-quietnps']
+    paths-ignore:
+      - 'opus_r3/**/*.md'
+      - 'opus_r3/**/*.log'
+      - 'opus_r3/**/*.json'
+      - 'opus_r3/**/SHA256SUMS'
+      - 'opus_r3/**/FILES*'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  nps:
+    strategy:
+      fail-fast: false
+      matrix:
+        config: [AA, NOZERO, O2, SPEEDSTACK, S13, LAZY, INT16, PROF, ALL]
+        rep: [1, 2]
+    name: ${{ matrix.config }}-${{ matrix.rep }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - name: Toolchain
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq g++-14 ninja-build cmake python3
+          g++-14 --version | head -1
+          nproc; lscpu | grep -E 'Model name|Flags' | cut -c1-300
+      - name: NPS ${{ matrix.config }} rep ${{ matrix.rep }}
+        run: bash opus_r3/R3-2Q/ci_quietnps.sh ${{ matrix.config }} ${{ matrix.rep }} ci_out
+      - name: Table
+        if: always()
+        run: |
+          python3 opus_r3/R3-2Q/analyze_quietnps.py ci_out || true
+          [ -f ci_out/table_${{ matrix.config }}_${{ matrix.rep }}.md ] && cat ci_out/table_${{ matrix.config }}_${{ matrix.rep }}.md >> "$GITHUB_STEP_SUMMARY" || true
+      - name: Upload JSON and logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: r3q-${{ matrix.config }}-${{ matrix.rep }}
+          path: |
+            ci_out/*.json
+            ci_out/*.log
+            ci_out/*.txt
+            ci_out/*.md
+          if-no-files-found: warn
+  summary:
+    needs: nps
+    if: always()
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: opus_r3/R3-2Q
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: r3q-*
+          path: all
+      - name: Summary table (all configs, both reps)
+        run: |
+          python3 opus_r3/R3-2Q/analyze_quietnps.py all --md all/summary_cpu_bench.md --json all/summary_cpu_bench.json || true
+          python3 opus_r3/R3-2Q/analyze_quietnps.py all --metric cpu_total --md all/summary_cpu_total.md || true
+          python3 opus_r3/R3-2Q/analyze_quietnps.py all --metric wall --md all/summary_wall.md || true
+          cat all/summary_cpu_bench.md >> "$GITHUB_STEP_SUMMARY" || true
+      - uses: actions/upload-artifact@v4
+        with:
+          name: r3q-summary
+          path: all/summary_*
+          if-no-files-found: warn
