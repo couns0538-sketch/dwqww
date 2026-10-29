@@ -75,6 +75,14 @@ GATES = [
 ]
 
 
+def cap_hours(tc, concurrency=8, moves_per_side=65):
+    """Upper bound of the wall time to the 3000-game cap: each game lasts at most 2 x (base + moves x inc) seconds
+    (65 moves per side = the ~130-ply average of the R5A smoke games); `concurrency` games at once."""
+    base, _, inc = tc.partition("+")
+    game_s = 2 * (float(base) + moves_per_side * float(inc or 0))
+    return round(3000 * game_s / concurrency / 3600, 1)
+
+
 def smoke_verdict(name):
     path = os.path.join(R5A, "smoke", name, "summary.json")
     if not os.path.exists(path):
@@ -99,6 +107,7 @@ def main():
             "both_sides": ["option.Threads=1", "option.Hash=16", "option.OwnBook=false"],
             "tc_primary": tc, "tc_secondary": "10+0.1" if tc == "40+0.4" else None,
             "sprt": SPRT, "cap_games": 3000,
+            "cap_wall_hours_upper_bound_conc8": cap_hours(tc),
             "srand": "", "openings_start": "",
             "book": {"file": BOOK, "format": "pgn", "order": "random"},
             "prebench_depths": [11, 13, 16],
@@ -165,7 +174,8 @@ def main():
         md.append(f"| candidate options | `{' '.join(e['cand']['options'])}` (plus the common Threads/Hash/OwnBook) |")
         md.append(f"| opponent | `base_r5a_off`: same exe, no options |")
         md.append(f"| TC | primary **{e['tc_primary']}**" + (f"; {e['tc_secondary']} informational only" if e['tc_secondary'] else "") + " |")
-        md.append(f"| SPRT / cap | [0,10] normalized, a=b=0.05; cap_games 3000 |")
+        md.append(f"| SPRT / cap | [0,10] normalized, a=b=0.05; cap_games 3000 (wall time to the cap at concurrency 8: "
+                  f"at most ~{e['cap_wall_hours_upper_bound_conc8']} h, from 2 x (base + 65 x inc) per game) |")
         md.append(f"| srand / openings start | blank / blank |")
         md.append(f"| prebench cand_on (d11/d13/d16) | {' / '.join(str(x) for x in e['prebench']['cand_on'])} |")
         md.append(f"| prebench cand_off | 312866 / 862329 / 3024920 |")

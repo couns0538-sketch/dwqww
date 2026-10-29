@@ -1,6 +1,6 @@
 # Forge Opus round 5A: gate-ready singles (CorrMargins, CorrExt, CorrHistPlus variants, NetScale) — IN PROGRESS
 
-**Status:** M1, M2, M5 done; M3 smoke 2/8 PASS (CorrMargins, CorrExt), CorrHistPlus=2 running; M4 written. Last push 02:53 Vienna.
+**Status:** M1, M2, M5 done; M3 smoke 2/8 PASS (CorrMargins, CorrExt), CorrHistPlus=2 running; M4 written. Last push 02:54 Vienna.
 
 Branch `opus-r5a-singles` = `origin/forge-bundle-int` b7c17722 + the commits listed per milestone. Job started 01:52 Vienna
 (2026-10-29), hard stop 04:52 Vienna. No Elo claims: node counts are not strength; gates decide. Machine exclusive: no
@@ -273,4 +273,24 @@ Every other push of this branch is `[skip ci]` (WIP, docs, smoke evidence); the 
    the crew node screen.
 
 ## What I did not finish
-(filled at the end)
+- Smoke: see the M3 table for the configs that finished; any config missing there (or marked PARTIAL) did not fit
+  the 3-thread budget before the stop time (each config costs ~16 min of all 3 threads).
+- `forge_tests` was not run on the PC: two of its checks search with 4 threads, above the job's cap. GitHub CI ran it
+  with the known-failure check (M2 run green; see the CI section for the M5 run).
+- No full build / CTest of the R5A `#if` blocks with the build switches (only syntax-only compiles, M5 pause checks);
+  CI's `opus-r3-switches` workflow runs on `forge-bundle-*` branches only, i.e. after a merge into forge-bundle-int.
+- ON pins only at d11/d13/d16 (what M1 asks); no d20/d22 ON pins for the gate entries.
+- No NPS measurement of the echo or of the ON options (no speed claims; the echo is UCI-thread code outside the
+  search, one string build per `go`).
+- The smoke ran on the M2 exe; the M5 head exe has the same OFF and ON trees (full M1 table identical) but was not
+  smoke-tested itself.
+- The project skills under `D:\grok-pc-data\dwqww\.claude\skills` were not updated with this job's PC lessons
+  (outside my worktree); they are in this report and in the session memory.
+
+## Owner items
+- Install one exe (`forge_r5a_m2_0a01ec53.exe` fda298e6..., or the head exe `forge_r5a_m5_9ad9158d.exe` ae6f891e...;
+  same pins) as `forge_r5a_singles.exe`, fill `srand` and `openings_start`, queue in the ranked order (GATE_SPECS.md).
+- Confirm the temperature-rule sensor: I read "CPU hot spot" as HWiNFO's CPU IOD Hotspot (max 51.2 C during the
+  job); Tctl/Tdie sat at ~80-83 C with or without my load.
+- Merge decision for forge-bundle-int: the echo and the two advertised spins are OFF-identical (bench/perft pins, M1
+  table) and CI-green on this branch.

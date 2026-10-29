@@ -34,7 +34,7 @@ Common to every entry:
 | candidate options | `option.CorrHistPlus=4` (plus the common Threads/Hash/OwnBook) |
 | opponent | `base_r5a_off`: same exe, no options |
 | TC | primary **10+0.1** |
-| SPRT / cap | [0,10] normalized, a=b=0.05; cap_games 3000 |
+| SPRT / cap | [0,10] normalized, a=b=0.05; cap_games 3000 (wall time to the cap at concurrency 8: at most ~3.4 h, from 2 x (base + 65 x inc) per game) |
 | srand / openings start | blank / blank |
 | prebench cand_on (d11/d13/d16) | 340927 / 734347 / 2794671 |
 | prebench cand_off | 312866 / 862329 / 3024920 |
@@ -51,7 +51,7 @@ Common to every entry:
 | candidate options | `option.CorrExt=1` (plus the common Threads/Hash/OwnBook) |
 | opponent | `base_r5a_off`: same exe, no options |
 | TC | primary **40+0.4**; 10+0.1 informational only |
-| SPRT / cap | [0,10] normalized, a=b=0.05; cap_games 3000 |
+| SPRT / cap | [0,10] normalized, a=b=0.05; cap_games 3000 (wall time to the cap at concurrency 8: at most ~13.8 h, from 2 x (base + 65 x inc) per game) |
 | srand / openings start | blank / blank |
 | prebench cand_on (d11/d13/d16) | 312961 / 838790 / 2891507 |
 | prebench cand_off | 312866 / 862329 / 3024920 |
@@ -68,7 +68,7 @@ Common to every entry:
 | candidate options | `option.CorrMargins=1` (plus the common Threads/Hash/OwnBook) |
 | opponent | `base_r5a_off`: same exe, no options |
 | TC | primary **40+0.4**; 10+0.1 informational only |
-| SPRT / cap | [0,10] normalized, a=b=0.05; cap_games 3000 |
+| SPRT / cap | [0,10] normalized, a=b=0.05; cap_games 3000 (wall time to the cap at concurrency 8: at most ~13.8 h, from 2 x (base + 65 x inc) per game) |
 | srand / openings start | blank / blank |
 | prebench cand_on (d11/d13/d16) | 343365 / 858019 / 2522546 |
 | prebench cand_off | 312866 / 862329 / 3024920 |
@@ -85,7 +85,7 @@ Common to every entry:
 | candidate options | `option.CorrHistPlus=2` (plus the common Threads/Hash/OwnBook) |
 | opponent | `base_r5a_off`: same exe, no options |
 | TC | primary **10+0.1** |
-| SPRT / cap | [0,10] normalized, a=b=0.05; cap_games 3000 |
+| SPRT / cap | [0,10] normalized, a=b=0.05; cap_games 3000 (wall time to the cap at concurrency 8: at most ~3.4 h, from 2 x (base + 65 x inc) per game) |
 | srand / openings start | blank / blank |
 | prebench cand_on (d11/d13/d16) | 296553 / 824640 / 2914749 |
 | prebench cand_off | 312866 / 862329 / 3024920 |
@@ -102,7 +102,7 @@ Common to every entry:
 | candidate options | `option.CorrHistPlus=6` (plus the common Threads/Hash/OwnBook) |
 | opponent | `base_r5a_off`: same exe, no options |
 | TC | primary **10+0.1** |
-| SPRT / cap | [0,10] normalized, a=b=0.05; cap_games 3000 |
+| SPRT / cap | [0,10] normalized, a=b=0.05; cap_games 3000 (wall time to the cap at concurrency 8: at most ~3.4 h, from 2 x (base + 65 x inc) per game) |
 | srand / openings start | blank / blank |
 | prebench cand_on (d11/d13/d16) | 357478 / 747883 / 2544596 |
 | prebench cand_off | 312866 / 862329 / 3024920 |
@@ -119,7 +119,7 @@ Common to every entry:
 | candidate options | `option.NetScale=99` (plus the common Threads/Hash/OwnBook) |
 | opponent | `base_r5a_off`: same exe, no options |
 | TC | primary **10+0.1** |
-| SPRT / cap | [0,10] normalized, a=b=0.05; cap_games 3000 |
+| SPRT / cap | [0,10] normalized, a=b=0.05; cap_games 3000 (wall time to the cap at concurrency 8: at most ~3.4 h, from 2 x (base + 65 x inc) per game) |
 | srand / openings start | blank / blank |
 | prebench cand_on (d11/d13/d16) | 308948 / 917342 / 2601047 |
 | prebench cand_off | 312866 / 862329 / 3024920 |
@@ -136,7 +136,7 @@ Common to every entry:
 | candidate options | `option.HistRework=3` (plus the common Threads/Hash/OwnBook) |
 | opponent | `base_r5a_off`: same exe, no options |
 | TC | primary **10+0.1** |
-| SPRT / cap | [0,10] normalized, a=b=0.05; cap_games 3000 |
+| SPRT / cap | [0,10] normalized, a=b=0.05; cap_games 3000 (wall time to the cap at concurrency 8: at most ~3.4 h, from 2 x (base + 65 x inc) per game) |
 | srand / openings start | blank / blank |
 | prebench cand_on (d11/d13/d16) | 336192 / 869621 / 3052885 |
 | prebench cand_off | 312866 / 862329 / 3024920 |
@@ -153,7 +153,7 @@ Common to every entry:
 | candidate options | `option.HistRework=1` (plus the common Threads/Hash/OwnBook) |
 | opponent | `base_r5a_off`: same exe, no options |
 | TC | primary **10+0.1** |
-| SPRT / cap | [0,10] normalized, a=b=0.05; cap_games 3000 |
+| SPRT / cap | [0,10] normalized, a=b=0.05; cap_games 3000 (wall time to the cap at concurrency 8: at most ~3.4 h, from 2 x (base + 65 x inc) per game) |
 | srand / openings start | blank / blank |
 | prebench cand_on (d11/d13/d16) | 373261 / 1043893 / 3399770 |
 | prebench cand_off | 312866 / 862329 / 3024920 |

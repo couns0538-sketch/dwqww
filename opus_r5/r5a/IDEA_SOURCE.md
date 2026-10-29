@@ -19,3 +19,8 @@ Engineering ideas used here (tooling, no engine code copied):
 - Exposing tunable constants as advertised UCI spin options so fastchess `-strict` and SPSA tuners accept them:
   existing Forge practice (R3-4, `tools/spsa/README.md`); SPSA itself: Spall 1992, "Multivariate stochastic
   approximation using a simultaneous perturbation gradient approximation", IEEE TAC 37(3).
+- `CorrMarginsScale` (M5): one global percent over the four CorrMargins weights, so a first tuning gate is a 1-D
+  search instead of 4-D (fewer games per SPSA step); the usual "tune a group scale before the individual weights"
+  practice of engine tuning (e.g. Chess Programming Wiki, "Automated Tuning",
+  https://www.chessprogramming.org/Automated_Tuning). `CorrExtTripleCorr` is O8's own threshold, only advertised.
+- Wall-time bound per gate (M4): 2 x (base + moves x increment) per game, the standard Fischer-clock upper bound.
