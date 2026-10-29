@@ -789,8 +789,7 @@ int main() {
                     const bool value = value_text == "true";
                     value_changed = forge::lazy_acc::requested.load(std::memory_order_relaxed) != value;
                     forge::lazy_acc::requested.store(value, std::memory_order_relaxed);
-                }
-                else {
+                } else {
                     const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex());
                     std::cout << "info string invalid value for option NnueLazyAcc" << std::endl;
                 }
@@ -801,8 +800,7 @@ int main() {
                 if (value_text == "true" || value_text == "false") {
                     assign_option(profile_requested, value_text == "true");
                     searcher.set_profiling(profile_requested);
-                }
-                else {
+                } else {
                     const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex());
                     std::cout << "info string invalid value for option Profile" << std::endl;
                 }

@@ -95,8 +95,8 @@ void refresh();
 // R3-4: the 20 search constants advertised as UCI spin options in every build
 // (default = the current value, min/max = the range in parameters()), for SPSA
 // tuning with tools/spsa/opus_spsa.py (tools/spsa/README.md has the reasons for
-// the choice). Listed in this order, grouped by mechanism. The other tunables
-// stay unlisted: setoption accepts them, FORGE_EXPOSE_TUNABLES builds list them.
+// the choice). Listed first in this order, grouped by mechanism; the remaining
+// registered tunables are advertised afterwards in every build.
 inline constexpr std::array<std::string_view, 20> AdvertisedParameters{
     // late-move reductions
     "LmrQuietBase", "LmrQuietDivisor", "LmrNoisyBase", "LmrNoisyDivisor", "LmrHistoryDivisor", "LmrCutoffThreshold",
