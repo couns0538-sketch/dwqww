@@ -20,8 +20,16 @@ Four independent check options, all default `false`; with every option false the
 - LMR statistics: `build_pc.sh ... -DFORGE_LMR_STATS=1`, then `FORGE_LMR_STATS_OUT=<csv> forge_fable_j3_lmrstats.exe`
   with `bench 16` ... `quit`; fit with `fable_lmr_fit.py <csv> --out fit.json --snippet lmr_v2_fit.inc` and paste the
   snippet into `src/search.cpp` (`fb2::LmrV2Quiet/Noisy`).
-- Self-play: `tools/opus_selfplay_check.py` (the R3-1 checker, python-chess legality of every best move, mixed go
-  modes, isready barriers): `--opt CorrHistV2=true` etc., 500 games per configuration (`logs/selfplay_*`).
+- Self-play: `F:\opus_scratch\fable\fb2\j3\tools\opus_selfplay_check.py` (the R3-1 checker, python-chess legality of
+  every best move, mixed go modes, isready barriers), 500 games per configuration on the box exe (`logs/selfplay/`):
+
+| configuration | games | plies | crashes / illegal / double bestmove / timeouts / malformed |
+|---|---|---|---|
+| CorrHistV2 | 500/500 | 59,794 | 0 / 0 / 0 / 0 / 0 |
+| SingularV2 | 500/500 | 59,218 | 0 / 0 / 0 / 0 / 0 |
+| LmrTableV2 | 500/500 | 60,105 | 0 / 0 / 0 / 0 / 0 |
+| TtPruneV2 | 500/500 | 58,640 | 0 / 0 / 0 / 0 / 0 |
+| all four on | 500/500 | 60,139 | 0 / 0 / 0 / 0 / 0 |
 
 ## Gate proposal
 See `fable_fb2/j3/GATE_ENTRY.md`: one SPRT entry per option vs the all-OFF engine at 10+0.1 with the bounds of
