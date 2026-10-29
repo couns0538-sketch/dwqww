@@ -42,3 +42,12 @@ case $1 in
     run F2_full_triton_all_compile NNUE_FT_BACKEND=auto NNUE_DATA_LOADER_LIB=$CLANG -- $FULL
     ;;
 esac
+case $1 in
+  loader)
+    SETUPDLL=F:/opus_scratch/r6/loader/setup_build/libtraining_data_loader.dll
+    for r in 1 2; do
+      run G${r}_final_setupdll NNUE_FT_BACKEND=auto NNUE_DATA_LOADER_LIB=$SETUPDLL -- $K32
+      run H${r}_final_clangdll NNUE_FT_BACKEND=auto NNUE_DATA_LOADER_LIB=$CLANG -- $K32
+    done
+    ;;
+esac

@@ -160,7 +160,12 @@ epoch-end timestamps; the table shows the median of the 9 timed epochs (`logs/fi
   - Builds: g++ BMI2 1.06x, g++ PGO 1.08x, AMD clang 23 (ROCm SDK, MSVC ABI, static CRT) **1.88x** per thread.
   - Features from fixed FENs are bit-identical across builds. The clang/MSVC stream shuffles in a different
     order (`std::shuffle` is implementation-defined); the first window holds the same position multiset.
-  - No training gain at smoke size (GPU-bound).
+  - No training gain at smoke size, re-checked with the final config at 15:33 (guarded, 1 worker,
+    alternated): setup DLL 446,637 / 447,308 vs clang DLL 446,737 / 446,914 pos/s
+    (`logs/final_bench/G*_final_setupdll.log`, `H*_final_clangdll.log`). One worker already delivers the K32H3
+    batches faster than the GPU consumes them. The 4 ms/step "loader/H2D/Python" share is transfer and per-step
+    Python overhead, not loader compute. The faster DLL matters for heavier feature sets and for more data per
+    worker.
 
 ## Not done / open
 - Grouped-L1 kernel. Upstream gates it to NVIDIA (`torch.version.hip is None`). It replaces a dense
