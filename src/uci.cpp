@@ -173,7 +173,11 @@ int main() {
                          "option name Book Variety type spin default 30 min 0 max 100\n";
             if (forge::nnue::available()) std::cout << "option name UseNNUE type check default true\n";
             std::cout << "option name NNUEArch type check default false\n"
-                         "option name NNUEArchFile type string default <empty>\n";
+                         "option name NNUEArchFile type string default <empty>\n"
+                         "option name CorrHistV2 type check default false\n"
+                         "option name SingularV2 type check default false\n"
+                         "option name LmrTableV2 type check default false\n"
+                         "option name TtPruneV2 type check default false\n";
 #ifdef FORGE_EXPOSE_TUNABLES
             // Development builds advertise the search constants so match
             // runners can set them; release builds accept them silently.
@@ -267,6 +271,16 @@ int main() {
                     book_depth = std::clamp(value, 0, 100);
                 } else {
                     book_variety = std::clamp(value, 0, 100);
+                }
+            } else if (name == "CorrHistV2" || name == "SingularV2" || name == "LmrTableV2" || name == "TtPruneV2") {
+                // FB2-J3 search options; a search in progress was stopped above.
+                if (value_text != "true" && value_text != "false") {
+                    const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex());
+                    std::cout << "info string invalid value for option " << name << std::endl;
+                } else {
+                    bool& flag = name == "CorrHistV2" ? forge::fb2::CorrHistV2 : name == "SingularV2" ? forge::fb2::SingularV2
+                               : name == "LmrTableV2" ? forge::fb2::LmrTableV2 : forge::fb2::TtPruneV2;
+                    flag = value_text == "true";
                 }
             } else if (name == "NNUEArch") {
                 if (value_text == "true") {
@@ -477,6 +491,8 @@ int main() {
             stop_search();
         } else if (command == "quit") {
             stop_search();
+            // FORGE_LMR_STATS builds: write the LMR decision samples of this session (no-op otherwise).
+            if (const char* stats_path = std::getenv("FORGE_LMR_STATS_OUT")) forge::fb2::dump_lmr_stats(stats_path);
             break;
         }
     }

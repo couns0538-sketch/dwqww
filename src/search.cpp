@@ -566,7 +566,8 @@ Worker::Worker(SharedSearchState& shared, int id)
       continuation_history_(std::make_unique<ContinuationHistory>()),
       counter_moves_(std::make_unique<CounterMoveTable>()),
       correction_history_(std::make_unique<CorrectionHistory>()),
-      material_correction_(std::make_unique<CorrectionHistory>()) {
+      material_correction_(std::make_unique<CorrectionHistory>()),
+      continuation_correction_(std::make_unique<ContinuationCorrection>()) {
     clear();
 }
 
@@ -580,6 +581,7 @@ void Worker::clear() {
     *counter_moves_ = CounterMoveTable{};
     *correction_history_ = CorrectionHistory{};
     *material_correction_ = CorrectionHistory{};
+    *continuation_correction_ = ContinuationCorrection{};
     for (SearchStack& ss : stack_) ss = SearchStack{};
 }
 
@@ -656,6 +658,99 @@ void Worker::update_correction(const Board& board, int depth, int best_score, in
     };
     apply((*correction_history_)[side][board.pawn_key() & (CorrectionSize - 1U)]);
     if (tune::MaterialCorrectionWeight > 0) apply((*material_correction_)[side][material_key(board) & (CorrectionSize - 1U)]);
+}
+
+// ---------------------------------------------------------------------------
+// FB2-J3 search options (default off; every hook below is guarded by its option)
+
+namespace fb2 {
+bool CorrHistV2 = false;
+bool SingularV2 = false;
+bool LmrTableV2 = false;
+bool TtPruneV2 = false;
+
+// Statistically fitted LMR (LmrTableV2). The coefficients are a logistic model of P(the reduced search raises
+// alpha) fitted on FORGE_LMR_STATS bench samples (tools/search/fable_lmr_fit.py; fable_fb2/j3/REPORT.md gives the
+// fit). The reduction is the lock's log-log table plus Scale * (MeanLogOdds - logodds(x)), rounded: moves that the
+// model expects to fail low are reduced more, moves it expects to raise alpha less; with the fitted history slope
+// replacing the lock's clamp(history / divisor, -2, 2) term.
+struct LmrV2Model {
+    double intercept, ln_depth, ln_moves, ln_product, history, improving, cut_node, tt_pv;
+    double mean_logodds;
+    double scale;
+};
+// Fitted 2026-10-28 on 1,268,077 LMR decisions of `bench 16` (quiet 1,098,387 rows, raise rate 4.11%, pseudo-R2
+// 0.193; noisy 169,690 rows, raise rate 2.93%, pseudo-R2 0.342); scale = 0.75 ply per standard deviation of the
+// fitted log-odds (fable_fb2/j3/logs/lmr_fit_bench16.json, generated snippet lmr_v2_fit.inc).
+LmrV2Model LmrV2Quiet{-1.738394, -0.645324, -1.551285, 0.213368, 0.482482, 0.889737, 1.517481, 0.185308, -3.978049, 0.547076};
+LmrV2Model LmrV2Noisy{-0.307650, -1.360382, -3.300709, 0.884022, 0.680828, 1.174135, 1.817594, -0.182583, -5.206993, 0.399677};
+
+int lmr_v2_reduction(bool quiet, int depth, int moves, int history, bool improving, bool cut_node, bool tt_pv) {
+    const LmrV2Model& m = quiet ? LmrV2Quiet : LmrV2Noisy;
+    const double ld = std::log(static_cast<double>(std::max(depth, 1)));
+    const double lm = std::log(static_cast<double>(std::max(moves, 1)));
+    const double h = static_cast<double>(std::clamp(history, -HistoryMax, HistoryMax)) / HistoryMax;
+    const double logodds = m.intercept + m.ln_depth * ld + m.ln_moves * lm + m.ln_product * ld * lm + m.history * h
+                           + m.improving * (improving ? 1.0 : 0.0) + m.cut_node * (cut_node ? 1.0 : 0.0) + m.tt_pv * (tt_pv ? 1.0 : 0.0);
+    const double base = quiet ? tune::LmrQuietBase / 100.0 + ld * lm / (tune::LmrQuietDivisor / 100.0)
+                              : tune::LmrNoisyBase / 100.0 + ld * lm / (tune::LmrNoisyDivisor / 100.0);
+    const double r = base + m.scale * (m.mean_logodds - logodds);
+    return static_cast<int>(std::lround(std::max(0.0, r)));
+}
+
+#ifdef FORGE_LMR_STATS
+struct LmrSample {
+    std::uint8_t depth, moves, improving, cut_node, tt_pv, quiet, reduced_depth, raised;
+    std::int16_t history;
+};
+std::vector<LmrSample> lmr_samples;
+#endif
+
+void dump_lmr_stats([[maybe_unused]] const std::string& path) {
+#ifdef FORGE_LMR_STATS
+    std::FILE* f = std::fopen(path.c_str(), "wb");
+    if (!f) return;
+    std::fputs("depth,moves,history,improving,cut_node,tt_pv,quiet,reduced_depth,raised\n", f);
+    for (const LmrSample& s : lmr_samples) {
+        std::fprintf(f, "%d,%d,%d,%d,%d,%d,%d,%d,%d\n", s.depth, s.moves, s.history, s.improving, s.cut_node, s.tt_pv, s.quiet, s.reduced_depth, s.raised);
+    }
+    std::fclose(f);
+    lmr_samples.clear();
+#endif
+}
+} // namespace fb2
+
+int Worker::corrected_eval_v2(const Board& board, int raw_eval, const SearchStack* ss) const {
+    const std::size_t side = static_cast<std::size_t>(board.side_to_move());
+    std::int32_t correction = (*correction_history_)[side][board.pawn_key() & (CorrectionSize - 1U)];
+    if (tune::MaterialCorrectionWeight > 0) {
+        correction += (*material_correction_)[side][material_key(board) & (CorrectionSize - 1U)] * tune::MaterialCorrectionWeight / 100;
+    }
+    // Continuation corrections: the opponent's last move and our move before it (null moves and the root carry none).
+    if (ss->ply >= 1 && (ss - 1)->moved_piece != Empty && !(ss - 1)->current_move.is_none()) {
+        correction += (*continuation_correction_)[0][static_cast<std::size_t>((ss - 1)->moved_piece)][(ss - 1)->current_move.to];
+    }
+    if (ss->ply >= 2 && (ss - 2)->moved_piece != Empty && !(ss - 2)->current_move.is_none()) {
+        correction += (*continuation_correction_)[1][static_cast<std::size_t>((ss - 2)->moved_piece)][(ss - 2)->current_move.to];
+    }
+    return std::clamp(raw_eval + correction / CorrectionGrain, -MateInMaxPly + 1, MateInMaxPly - 1);
+}
+
+void Worker::update_correction_v2(const Board& board, const SearchStack* ss, int depth, int best_score, int static_eval) {
+    const std::size_t side = static_cast<std::size_t>(board.side_to_move());
+    const int diff = std::clamp((best_score - static_eval) * CorrectionGrain, -CorrectionLimit / 4, CorrectionLimit / 4);
+    const int weight = std::min(depth + 1, 16);
+    auto apply = [&](std::int32_t& entry) {
+        entry = std::clamp(entry + diff * weight / 256, -CorrectionLimit, CorrectionLimit);
+    };
+    apply((*correction_history_)[side][board.pawn_key() & (CorrectionSize - 1U)]);
+    if (tune::MaterialCorrectionWeight > 0) apply((*material_correction_)[side][material_key(board) & (CorrectionSize - 1U)]);
+    if (ss->ply >= 1 && (ss - 1)->moved_piece != Empty && !(ss - 1)->current_move.is_none()) {
+        apply((*continuation_correction_)[0][static_cast<std::size_t>((ss - 1)->moved_piece)][(ss - 1)->current_move.to]);
+    }
+    if (ss->ply >= 2 && (ss - 2)->moved_piece != Empty && !(ss - 2)->current_move.is_none()) {
+        apply((*continuation_correction_)[1][static_cast<std::size_t>((ss - 2)->moved_piece)][(ss - 2)->current_move.to]);
+    }
 }
 
 std::int64_t Worker::elapsed_ms() const {
@@ -809,7 +904,7 @@ int Worker::qsearch(Board& board, SearchStack* ss, int alpha, int beta) {
         int eval;
         if (tt_hit && tte.eval != ValueNone) ss->raw_eval = tte.eval;
         else ss->raw_eval = static_evaluate(board, ss);
-        eval = ss->static_eval = corrected_eval(board, ss->raw_eval);
+        eval = ss->static_eval = fb2::CorrHistV2 ? corrected_eval_v2(board, ss->raw_eval, ss) : corrected_eval(board, ss->raw_eval);
         if (tt_hit && tt_score != ValueNone &&
             ((tt_bound == BoundLower && tt_score > eval) || (tt_bound == BoundUpper && tt_score < eval) ||
              tt_bound == BoundExact)) {
@@ -937,7 +1032,7 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
     } else {
         if (tt_hit && tte.eval != ValueNone) ss->raw_eval = tte.eval;
         else ss->raw_eval = static_evaluate(board, ss);
-        eval = ss->static_eval = corrected_eval(board, ss->raw_eval);
+        eval = ss->static_eval = fb2::CorrHistV2 ? corrected_eval_v2(board, ss->raw_eval, ss) : corrected_eval(board, ss->raw_eval);
         if (tt_hit && tt_score != ValueNone &&
             ((tt_bound == BoundLower && tt_score > eval) || (tt_bound == BoundUpper && tt_score < eval) ||
              tt_bound == BoundExact)) {
@@ -960,7 +1055,11 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
             if (razor < alpha) return razor;
         }
         // Reverse futility pruning.
-        if (depth <= tune::RfpDepth && eval - (tune::RfpMargin * depth - tune::RfpImproving * improving) >= beta &&
+        // TtPruneV2: the opponent's position got worse on their move (their static eval fell), a cheaper fail high.
+        const bool opponent_worsening = fb2::TtPruneV2 && (ss - 1)->static_eval != ValueNone &&
+                                        ss->static_eval + (ss - 1)->static_eval > 2;
+        if (depth <= tune::RfpDepth &&
+            eval - (tune::RfpMargin * depth - tune::RfpImproving * improving - (opponent_worsening ? tune::RfpMargin / 3 : 0)) >= beta &&
             eval < MateInMaxPly) {
             return eval;
         }
@@ -1032,6 +1131,9 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
 
     // Internal iterative reduction: no hash move suggests a less important node.
     if (!in_check && depth >= tune::IirDepth && tt_move.is_none() && (pv_node || cut_node)) --depth;
+    // TtPruneV2: a cut node whose TT move failed low before (upper bound) is unlikely to cut: reduce it too.
+    else if (fb2::TtPruneV2 && !in_check && depth >= tune::IirDepth + 2 && cut_node && !tt_move.is_none() &&
+             tt_bound == BoundUpper && !ss->tt_pv) --depth;
 
     MovePicker picker(board, *this, ss, tt_move, MovePicker::Mode::Main);
     std::array<Move, 128> quiets_tried{};
@@ -1064,15 +1166,21 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
         if (!root_node && best_score > -MateInMaxPly && has_material) {
             if (quiet && !skip_quiets && move_count >= lmp_threshold(depth, improving)) skip_quiets = true;
             const int lmr_depth = std::max(0, depth - reduction(quiet, depth, move_count));
-            if (quiet && !gives_check) {
+            // TtPruneV2: never prune the TT move by futility / history / SEE (it carried a bound before), prune
+            // quiets harder when the position is not improving.
+            const bool prunable = !fb2::TtPruneV2 || move != tt_move;
+            if (quiet && !gives_check && prunable) {
+                const int futility_improving = fb2::TtPruneV2 && improving ? tune::FutilityBase / 2 : 0;
                 if (!in_check && lmr_depth <= tune::FutilityDepth &&
-                    ss->static_eval + tune::FutilityBase + tune::FutilityMultiplier * lmr_depth <= alpha) {
+                    ss->static_eval + tune::FutilityBase + futility_improving + tune::FutilityMultiplier * lmr_depth <= alpha) {
                     skip_quiets = true;
                     continue;
                 }
-                if (lmr_depth <= tune::HistoryPruneDepth && history < -tune::HistoryPruneMultiplier * depth) continue;
+                const int history_threshold = fb2::TtPruneV2 && !improving ? -tune::HistoryPruneMultiplier * depth * 3 / 4
+                                                                           : -tune::HistoryPruneMultiplier * depth;
+                if (lmr_depth <= tune::HistoryPruneDepth && history < history_threshold) continue;
                 if (!board.see_ge(move, -tune::SeeQuietMultiplier * lmr_depth * lmr_depth)) continue;
-            } else {
+            } else if (prunable) {
                 // Futility pruning for captures: even winning the piece cannot
                 // bring the position back to alpha.
                 if (tune::CaptureFutilityBase > 0 && capture && !in_check && !gives_check &&
@@ -1105,18 +1213,27 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
                 if (!pv_node && singular_score < singular_beta - 24 && inherited_double_extensions <= 6) {
                     extension = 2;
                 }
+                if (fb2::SingularV2) {
+                    // Triple extension: the TT move is far ahead of everything else and the path has room left.
+                    if (!pv_node && singular_score < singular_beta - 80 && inherited_double_extensions <= 4 && !tt_capture) extension = 3;
+                    // PV nodes may double-extend too, with a wider margin and a tighter budget.
+                    else if (pv_node && singular_score < singular_beta - 60 && inherited_double_extensions <= 3) extension = 2;
+                }
             } else if (singular_beta >= beta) {
                 return singular_beta;
+            } else if (fb2::SingularV2 && singular_score >= beta && !is_mate_score(singular_score)) {
+                // Multicut: the reduced search without the TT move also failed high, so several moves beat beta.
+                return singular_score;
             } else if (tt_score >= beta) {
-                extension = -2;
+                extension = fb2::SingularV2 && !pv_node ? -3 : -2;
             } else if (cut_node) {
-                extension = -1;
+                extension = fb2::SingularV2 ? -2 : -1;
             }
         } else if (gives_check && depth >= tune::CheckExtensionDepth && !root_node &&
                    (picker.last_move_see_nonnegative() || board.see_ge(move, 0))) {
             extension = 1;
         }
-        ss->double_extensions = inherited_double_extensions + (extension == 2);
+        ss->double_extensions = inherited_double_extensions + (extension >= 2);
         const int new_depth = depth - 1 + extension;
 
         ss->current_move = move;
@@ -1138,7 +1255,8 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
         int score = -Infinite;
         bool full_depth_needed = !pv_node || move_count > 1;
         if (depth >= 2 && move_count > 1 + (root_node ? 1 : 0) && (quiet || !ss->tt_pv || move_count > 4)) {
-            int r = reduction(quiet, depth, move_count);
+            int r = fb2::LmrTableV2 ? fb2::lmr_v2_reduction(quiet, depth, move_count, history, improving, cut_node, ss->tt_pv)
+                                    : reduction(quiet, depth, move_count);
             if (ss->tt_pv) r -= 1;
             if (!improving) r += 1;
             if (cut_node) r += 2;
@@ -1146,10 +1264,19 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
             if (gives_check) r -= 1;
             if (in_check) r -= 1;
             if (tune::LmrCutoffThreshold > 0 && (ss + 1)->cutoff_count > tune::LmrCutoffThreshold) r += 1;
-            if (quiet) r -= std::clamp(history / tune::LmrHistoryDivisor, -2, 2);
+            // LmrTableV2 carries the history term inside the fitted formula (continuous, not clamped to +-2).
+            if (quiet && !fb2::LmrTableV2) r -= std::clamp(history / tune::LmrHistoryDivisor, -2, 2);
             const int reduced_depth = std::clamp(new_depth - r, 1, new_depth);
             score = -search(board, ss + 1, reduced_depth, -alpha - 1, -alpha, true);
             full_depth_needed = score > alpha && reduced_depth < new_depth;
+#ifdef FORGE_LMR_STATS
+            if (!aborted_) {
+                fb2::lmr_samples.push_back({static_cast<std::uint8_t>(std::min(depth, 255)), static_cast<std::uint8_t>(std::min(move_count, 255)),
+                                            static_cast<std::uint8_t>(improving), static_cast<std::uint8_t>(cut_node), static_cast<std::uint8_t>(ss->tt_pv),
+                                            static_cast<std::uint8_t>(quiet), static_cast<std::uint8_t>(reduced_depth), static_cast<std::uint8_t>(score > alpha),
+                                            static_cast<std::int16_t>(std::clamp(history, -32767, 32767))});
+            }
+#endif
             if (full_depth_needed) {
                 score = -search(board, ss + 1, new_depth, -alpha - 1, -alpha, !cut_node);
                 full_depth_needed = false;
@@ -1222,7 +1349,8 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
         (best_move.is_none() || !best_move.is_capture()) &&
         !(bound == BoundLower && best_score <= ss->static_eval) &&
         !(bound == BoundUpper && best_score >= ss->static_eval)) {
-        update_correction(board, depth, best_score, ss->static_eval);
+        if (fb2::CorrHistV2) update_correction_v2(board, ss, depth, best_score, ss->static_eval);
+        else update_correction(board, depth, best_score, ss->static_eval);
     }
     return best_score;
 }

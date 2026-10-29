@@ -249,6 +249,19 @@ extern int FailLowContinuationBonus; // x0.01 of the history bonus given to the 
 void refresh();
 } // namespace tune
 
+// FB2-J3 search options (UCI check options, default false). With every option false the search is the lock
+// (bench/perft pins); each option is independent and documented in fable_fb2/j3/README.md.
+namespace fb2 {
+extern bool CorrHistV2;    // continuation (1- and 2-ply) correction history added to the pawn/material corrections
+extern bool SingularV2;    // triple extensions, PV double extensions, multicut on the singular search, deeper negative extensions
+extern bool LmrTableV2;    // statistically fitted LMR table with a continuous history term (tools/search/fable_lmr_fit.py)
+extern bool TtPruneV2;     // TT-move pruning guards, IIR at cut nodes whose TT move failed low, improving / opponent-worsening margins
+// LMR V2 reduction in 1/256 ply units for (quiet, depth, move count, history): built from the fitted coefficients.
+[[nodiscard]] int lmr_v2_reduction(bool quiet, int depth, int moves, int history, bool improving, bool cut_node, bool tt_pv);
+// LMR statistics (FORGE_LMR_STATS builds only): CSV of every LMR decision of the last searches.
+void dump_lmr_stats(const std::string& path);
+} // namespace fb2
+
 // Move-ordering statistics.
 using ButterflyHistory = std::array<std::array<std::array<std::int16_t, 64>, 64>, 2>;
 using PieceToHistory = std::array<std::array<std::int16_t, 64>, 13>;
@@ -259,6 +272,8 @@ constexpr std::size_t CorrectionSize = 1U << 14U;
 constexpr int CorrectionGrain = 256;
 constexpr int CorrectionLimit = 32 * CorrectionGrain;
 using CorrectionHistory = std::array<std::array<std::int32_t, CorrectionSize>, 2>;
+// FB2-J3 CorrHistV2: continuation correction indexed [ply offset 0 = previous move, 1 = the move before][piece][to].
+using ContinuationCorrection = std::array<std::array<std::array<std::int32_t, 64>, 13>, 2>;
 
 struct SearchStack {
     std::array<Move, MaxPly + 1> pv{};
@@ -322,6 +337,7 @@ private:
     std::unique_ptr<CounterMoveTable> counter_moves_;
     std::unique_ptr<CorrectionHistory> correction_history_;
     std::unique_ptr<CorrectionHistory> material_correction_;
+    std::unique_ptr<ContinuationCorrection> continuation_correction_;   // FB2-J3 CorrHistV2
     std::array<SearchStack, MaxPly + 8> stack_{};
     // NNUE v3 (UCI NNUEArch) per-worker state, allocated on first use; null with the option off.
     std::unique_ptr<nnue::v3::WorkerState> v3_state_;
@@ -362,6 +378,9 @@ private:
     [[nodiscard]] int capture_history_value(const Board& board, Move move) const;
     [[nodiscard]] int corrected_eval(const Board& board, int raw_eval) const;
     void update_correction(const Board& board, int depth, int best_score, int static_eval);
+    // FB2-J3 CorrHistV2: the pawn/material corrections plus the continuation corrections of the last two moves.
+    [[nodiscard]] int corrected_eval_v2(const Board& board, int raw_eval, const SearchStack* ss) const;
+    void update_correction_v2(const Board& board, const SearchStack* ss, int depth, int best_score, int static_eval);
     [[nodiscard]] int static_evaluate(const Board& board, SearchStack* ss);
     [[nodiscard]] int static_evaluate_v3(const Board& board, SearchStack* ss);   // src/search_v3.cpp
     void record_move(SearchStack* ss, const Board& board, const Move& move);
