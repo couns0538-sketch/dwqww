@@ -1,0 +1,45 @@
+fixtures "/tmp/astra2_b3_preflight_fixtures/run_2440908920048_0"
+valid_bytes 394922
+max_valid_bytes 18236104
+PASS empty: positive control loads and reads its complete payload
+PASS empty: positive control is active
+PASS empty: clean rejection: file too short for a v2 net (0 bytes)
+PASS empty: bytes_read=0 expected=0
+PASS empty: no stale loaded or active net after failure
+PASS truncated_header: positive control loads and reads its complete payload
+PASS truncated_header: positive control is active
+PASS truncated_header: clean rejection: file too short for a v2 net (159 bytes)
+PASS truncated_header: bytes_read=0 expected=0
+PASS truncated_header: no stale loaded or active net after failure
+PASS truncated_payload: positive control loads and reads its complete payload
+PASS truncated_payload: positive control is active
+PASS truncated_payload: clean rejection: file size 394921 bytes does not match the 394922 bytes implied by its header (1 king buckets, 1 output buckets, hidden 256); the weights were not read
+PASS truncated_payload: bytes_read=160 expected=160
+PASS truncated_payload: no stale loaded or active net after failure
+PASS extra_payload_byte: positive control loads and reads its complete payload
+PASS extra_payload_byte: positive control is active
+PASS extra_payload_byte: clean rejection: file size 394923 bytes does not match the 394922 bytes implied by its header (1 king buckets, 1 output buckets, hidden 256); the weights were not read
+PASS extra_payload_byte: bytes_read=160 expected=160
+PASS extra_payload_byte: no stale loaded or active net after failure
+PASS wrong_magic: positive control loads and reads its complete payload
+PASS wrong_magic: positive control is active
+PASS wrong_magic: clean rejection: bad magic (not a FORGENN2 file)
+PASS wrong_magic: bytes_read=160 expected=160
+PASS wrong_magic: no stale loaded or active net after failure
+PASS wrong_version: positive control loads and reads its complete payload
+PASS wrong_version: positive control is active
+PASS wrong_version: clean rejection: unsupported version 3
+PASS wrong_version: bytes_read=160 expected=160
+PASS wrong_version: no stale loaded or active net after failure
+PASS wrong_hidden: positive control loads and reads its complete payload
+PASS wrong_hidden: positive control is active
+PASS wrong_hidden: clean rejection: hidden size 257 != engine hidden size 256 (FORGE_NNUE_HIDDEN)
+PASS wrong_hidden: bytes_read=160 expected=160
+PASS wrong_hidden: no stale loaded or active net after failure
+PASS oversized_sparse: positive control loads and reads its complete payload
+PASS oversized_sparse: positive control is active
+PASS oversized_sparse: clean rejection: file too large for a v2 net (18236105 bytes; the largest valid v2 file has 18236104)
+PASS oversized_sparse: bytes_read=0 expected=0
+PASS oversized_sparse: no stale loaded or active net after failure
+PASS empty file also rejects cleanly without an error-output pointer
+nnue loader preflight: checks=41 failures=0

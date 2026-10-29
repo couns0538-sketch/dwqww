@@ -224,6 +224,10 @@ add_executable(forge_syzygy_tests tests/syzygy_tests.cpp)
 target_link_libraries(forge_syzygy_tests PRIVATE forge_core Threads::Threads)
 
 # v2 networks (king buckets): bucket map / mirroring, loader, lock replicas, incremental == refresh.
+# Astra R2 B3: existing v2 loader preflight, isolated from long parity sweeps.
+add_executable(forge_nnue_loader_preflight_tests tests/nnue_loader_preflight_tests.cpp)
+target_link_libraries(forge_nnue_loader_preflight_tests PRIVATE forge_core Threads::Threads)
+
 add_executable(forge_nnue_v2_tests tests/nnue_v2_tests.cpp)
 target_include_directories(forge_nnue_v2_tests PRIVATE src)
 target_link_libraries(forge_nnue_v2_tests PRIVATE forge_core Threads::Threads)
@@ -397,6 +401,9 @@ add_test(NAME forge_movepicker_tests COMMAND forge_movepicker_tests)
 add_test(NAME forge_history_tests COMMAND forge_history_tests)
 add_test(NAME forge_timeman_tests COMMAND forge_timeman_tests)
 add_test(NAME forge_smp_tests COMMAND forge_smp_tests)
+add_test(NAME forge_nnue_loader_preflight_tests COMMAND forge_nnue_loader_preflight_tests
+    ${CMAKE_CURRENT_BINARY_DIR}/nnue-loader-preflight)
+set_tests_properties(forge_nnue_loader_preflight_tests PROPERTIES TIMEOUT 30)
 add_test(NAME forge_nnue_v2_tests COMMAND forge_nnue_v2_tests)
 add_test(NAME forge_nnue_v2_uci_tests COMMAND forge_nnue_v2_uci_tests $<TARGET_FILE:forge>)
 add_test(NAME forge_nnue_threat_tests COMMAND forge_nnue_threat_tests $<TARGET_FILE:forge>)
