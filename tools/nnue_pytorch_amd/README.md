@@ -1,46 +1,53 @@
 # nnue-pytorch AMD port (R6) - GPL-3.0
 
-Everything in this folder is part of / derived from **nnue-pytorch** (official-stockfish/nnue-pytorch,
-pinned b2614500) and is licensed **GPL-3.0** (see `LICENSE`, copied from nnue-pytorch). It is a tool for the
-trainer only. **Nothing here may be copied into the Forge engine sources** (see `IDEA_SOURCE.md`).
+Everything in this folder is part of, or derived from, **nnue-pytorch** (official-stockfish/nnue-pytorch, pinned
+b2614500) and is licensed **GPL-3.0** (see `LICENSE`, copied from nnue-pytorch). It is a tool for the trainer only.
+**Nothing here may be copied into the Forge engine sources** (`IDEA_SOURCE.md`). Report: `docs/OPUS_R6_AMD_NNUE.md`.
 
 ## What it is
-Triton kernels that replace nnue-pytorch's CuPy/CUDA kernels on AMD GPUs (ROCm on Windows has no CuPy):
+Triton kernels that replace nnue-pytorch's CuPy/CUDA kernels on AMD GPUs. ROCm on Windows has no CuPy.
 
 | upstream CuPy kernel | Triton replacement | used by |
 |---|---|---|
-| `fused_ft_kernel.py` fused double-perspective FT forward + scatter backward | `_fused_fwd_kernel`, `_fused_bwd_kernel` | `double_feature_transform` backend `auto` / `triton` |
-| `sparse_linear_kernel.py` sparse linear forward/backward | `_sparse_fwd_kernel`, `_sparse_bwd_kernel` | `SparseLinearFunction` backend `auto` / `triton-sparse` |
+| `fused_ft_kernel.py` (fused double FT fwd + scatter bwd) | `triton_ft_kernels.py` `_fused_fwd_kernel`, `_fused_bwd_kernel` | `double_feature_transform`, backend `auto` / `triton` |
+| `sparse_linear_kernel.py` | `_sparse_fwd_kernel`, `_sparse_bwd_kernel` | `SparseLinearFunction`, backend `auto` / `triton-sparse` |
+| `ranger_lite.py` fused update (5 kernels) | `ranger_lite_triton.py` | `RangerLite.step` when CuPy is missing |
 
-Files (repo-relative paths inside nnue-pytorch, mirrored under `src/`):
-- `model/modules/feature_transformer/triton_ft_kernels.py` (new): the four Triton kernels + launchers.
-- `model/modules/feature_transformer/triton_ft_functions.py` (new): autograd wrappers, one-time probe.
-- `model/modules/feature_transformer/double_ft_functions.py`, `sparse_linear_functions.py` (patched): backend choice.
-- `tests/test_amd_triton_ft.py` (new): J2 correctness test.
-- `patches/*.patch`: the same changes as `git format-patch` against b2614500.
+Plus Windows fixes: the end-of-run crash (`train.py`), loader CMake (BMI2 on Windows, MSVC-style flags), and
+`NNUE_DATA_LOADER_LIB`.
 
-## Flag (plain PyTorch fallback)
-`NNUE_FT_BACKEND` = `auto` (default) | `triton` | `triton-sparse` | `torch` | `fused` | `sparse`.
-- `auto`: CuPy fused kernel if CuPy exists (unchanged upstream behaviour), else Triton if a one-time probe kernel
-  runs and gives the right answer, else the plain PyTorch path.
-- `torch`: always the plain PyTorch (embedding_bag) path.
+## Layout
+- `patches/0001..0004-*.patch`: `git am` onto b2614500.
+- `src/`: the changed files at their repo paths.
+  - New: `model/modules/feature_transformer/triton_ft_kernels.py`, `triton_ft_functions.py`,
+    `model/optimizers/ranger_lite_triton.py`, `tests/test_amd_triton_ft.py`, `tests/test_amd_triton_ranger.py`,
+    `tests/bench_amd_triton_ft.py`.
+  - Patched: `double_ft_functions.py`, `sparse_linear_functions.py`, `ranger_lite.py`, `train.py`,
+    `data_loader/_native.py`, `data_loader/cpp/CMakeLists.txt`.
+- `env.sh`: the environment for every run (venv `Scripts` on PATH, thread caps, TMP and caches on scratch).
+- `guard/guard_exec.py`: RAM watchdog runner. It aborts its own job below `R6_MIN_FREE_GB` (default 7);
+  `R6_EPOCH_TIMER=1` + `R6_EPOCH_SIZE` print pos/s per epoch for train.py.
+- `bench/`: `final_bench.sh` (the final smoke-size A/B set), `bench_train.py` (older runner, no in-run guard),
+  `profile_train.py` (per-phase step times).
+- `debug/`: NaN hunters (`nan_hunt*.py`), `denormal_probe.py`, `planted_sqrt_bug.py`.
+- `loader/`: `build_loader.sh`, `bench_loader.sh`, `dl_equal.py`, `LOADER_NOTES.md`.
+- `logs/`: every number in the report, plus the incident evidence.
 
-Tuning knobs (env, optional): `NNUE_TRITON_BLOCK_C` (columns per program, default min(128, pow2 <= half)),
-`NNUE_TRITON_KC` (index chunk, default 16), `NNUE_TRITON_WARPS` (default 4), `NNUE_TRITON_POS` (positions per
-backward program, default 8).
-
-## Environment that makes Triton work on this PC
-`triton-windows 3.6.0.post26` + `rocm-sdk-devel 7.13.0` in `F:\nnue_pytorch\venv` (both installed by Grok Bot on
-2026-10-29 13:25 / 13:28). Triton's AMD driver finds the HIP headers through `rocm-sdk path --root`, so the venv's
-`Scripts` folder must be on `PATH` (activate the venv, or `source env.sh`). With that, `triton_smoke_r6.py` passes:
-add, fp32 `atomic_add`, 2-D gather (`logs/triton_smoke_r6.log`).
-
-## Apply to a checkout of b2614500
+## Use
 ```
-cd F:\nnue_pytorch\repo        # or a clone
-git am <this folder>\patches\0001-*.patch
+source tools/nnue_pytorch_amd/env.sh          # or activate F:\nnue_pytorch\venv - REQUIRED for Triton
+cd <nnue-pytorch checkout with the patches>
+python ../guard/guard_exec.py tests/test_amd_triton_ft.py --small
+python ../guard/guard_exec.py tests/test_amd_triton_ranger.py
+TORCHINDUCTOR_COMPILE_THREADS=1 python ../guard/guard_exec.py train.py <usual args>
 ```
-or copy `src/` over the checkout.
+Flags:
+- `NNUE_FT_BACKEND=auto|triton|triton-sparse|torch|fused|sparse`. `torch` is the plain PyTorch fallback.
+- `NNUE_RANGER_FUSED=0` gives the Python optimizer path.
+- `NNUE_DATA_LOADER_LIB=<dll>`.
+- `TORCHDYNAMO_DISABLE=1` turns off compile.
 
-## Results
-See `docs/OPUS_R6_AMD_NNUE.md` in this branch (J2 table, J3 positions/s, J4 notes).
+## PC rules (grok-pc, after the 2026-10-29 incident)
+- Run everything through `guard_exec.py` (aborts below 7 GB free RAM).
+- While the live Forge trainer runs, only smoke-size runs: batch <= 4096, L1 <= 256, 1 loader worker.
+- Never touch `F:\forge_nnue_train`.

@@ -40,6 +40,12 @@ Always add `TORCHINDUCTOR_COMPILE_THREADS=1` (inductor otherwise spawns a worker
   grads, with kernel-call counters.
 - `debug/planted_sqrt_bug.py` must report "PLANTED BUG DETECTED".
 
+## Memory budget (read before any run)
+On 2026-10-29 at 14:29 the live Forge trainer (13 GB private) died with a numpy allocation error during
+`c2_triton` (L1 1024, batch 16384, 2 workers, compile). The smoke config (K32H3^, L1 256, batch 4096, 1 worker)
+ran ~25 times without trouble. While the live trainer runs, stay at smoke size. For anything bigger, measure
+the peak first (Process.PrivateMemorySize64 sampled during the run) and require free RAM >= 6 GB + that peak.
+
 ## Benchmark recipe (J3)
 `python bench/bench_train.py NAME [ENV=VAL ...] -- .pgo/small.binpack --features K32H3^ --l1 256 --accelerator cuda
 --batch-size 4096 --epoch-size 204800 --max-epochs 10 --threads 2 --num-workers 1`
