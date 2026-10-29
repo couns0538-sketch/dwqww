@@ -1,4 +1,4 @@
-# FABLE_REPORT_FB2.md — pack FB2 (Fable 5.1, 2026-10-28) — J2-J7 DONE; J1 training still running (UNPROVEN, no gate)
+# FABLE_REPORT_FB2.md — pack FB2 (Fable 5.1, 2026-10-28/29) — J1-J7 DONE (J1's net did not beat AL1 on the holdout; everything UNPROVEN, no gate)
 
 Base of every `fable-fb2-*` branch: `fable-nnue-arch` head `08b589e1` (= AL1 lock `d4f4312` + CI baseline + the FB1
 NNUE v3 engine/trainer). No Elo claims anywhere (no gate was run); no speed claims (loaded PC: gates, self-play and
@@ -9,7 +9,7 @@ J3, J4, J6 were finished/advanced while J1 trains; J5 and J7 come last.
 
 | job | branch | status |
 |---|---|---|
-| J1 real v3 net at scale | `fable-fb2-j1` | data split, trainer, exe (identity ALL OK), NPS, 200 sanity games DONE; training still RUNNING: 0.016094 -> 0.015054 after 338M positions vs AL1 0.014417, not plateaued, not beaten |
+| J1 real v3 net at scale | `fable-fb2-j1` | **DONE** (training ran to its 93k-step horizon, 762M positions, 8.9 h): best checkpoint 15 at holdout b0.6 0.014714 vs AL1 0.014417 (gap closed from +0.00168 to +0.00030, plateaued at the end); exe identity ALL OK, NPS, 200 sanity games (repeated with the final net, see below); UNPROVEN, no gate |
 | J2 datagen upgrade | `fable-fb2-j2` | **DONE** (engine mode, FGB1 format, converter, exact round-trip tests, 10-min smoke) |
 | J3 search improvements | `fable-fb2-j3` | **DONE**: four options, unit tests 121/0, identity ALL OK, CI green, 2,500 self-play games 0 errors, LMR fit, gate entries |
 | J4 time management v2 | `fable-fb2-j4` | **DONE**: simulator (2000 games x 2 TCs x 3 scenarios, 0 flag losses), identity ALL OK, CI green, 220 real-clock games 0 flag losses |
@@ -111,7 +111,23 @@ rows. Checkpoint every 30 min; stop when exact b0.6 <= target or 3 checkpoints w
 | 8 | 46,582 | 381.6M | 270 | **0.015014** | 0.007164 | 0.004742 | .0047 .0062 .0099 .0147 .0187 .0214 .0218 .0233 | +0.000597 | PASS 10000/10000 |
 | 9 | 52,049 | 426.4M | 300 | **0.014950** | 0.007149 | 0.004778 | .0044 .0062 .0098 .0148 .0187 .0214 .0216 .0234 | +0.000533 | PASS 10000/10000 |
 | 10 (train_j1b) | 61,025 | 499.9M | 350 | **0.014851** | 0.007112 | 0.004802 | .0044 .0061 .0097 .0146 .0185 .0213 .0217 .0233 | +0.000434 | PASS 10000/10000 |
-| (next checkpoints: `status.json` in the run dir; `tools/nnue/fable_nnue_ckpt_table.py <run>` prints this table) | | | | | | | | | |
+| 11 | 66,192 | 542.2M | 380 | 0.014823 | 0.007112 | 0.004831 | | +0.000406 | PASS |
+| 12 | 71,441 | 585.2M | 410 | 0.014780 | 0.007108 | 0.004865 | | +0.000363 | PASS |
+| 13 | 76,653 | 627.9M | 440 | 0.014762 | 0.007113 | 0.004894 | | +0.000345 | PASS |
+| 14 | 81,809 | 670.2M | 470 | 0.014737 | 0.007153 | 0.004999 | | +0.000320 | PASS |
+| **15 (best)** | 87,164 | 714.0M | 500 | **0.014714** | 0.007160 | 0.005035 | | **+0.000297** | PASS |
+| 16 | 92,672 | 759.2M | 530 | 0.014726 | 0.007199 | 0.005102 | | +0.000309 | PASS (plateau 1) |
+| 17 (horizon) | 93,000 | 761.9M | 532 | 0.014733 | 0.007208 | 0.005112 | | +0.000316 | PASS (plateau 2) |
+
+**Stop:** horizon (93,000 steps) at 02:25 PST on 2026-10-29 after 8.9 h of training time; best checkpoint 15
+(`train_j1b/best.fnn3`, copy `fable_fb2/j1/best_ck15_step87164.fnn3` in scratch). The target (AL1 0.014417) was
+**not reached**: the gap closed from +0.00168 to +0.00030, and the last two checkpoints were marginally worse than
+the best (0.014726, 0.014733), i.e. the net plateaued at the end of the LR schedule. Per-phase b0.6 at the best
+checkpoint: see `status.json` (all eight bins kept improving until checkpoint 13; the endgame bins are far below
+AL1-era HCE, the opening bins are the gap). The teacher-blend term b1.0 rises from checkpoint 9 on while b0.6
+falls: the WDL-lambda schedule shifts the fit towards game results, as intended for the b0.6 metric.
+Full table with phases: `tools/nnue/fable_nnue_ckpt_table.py F:/opus_scratch/fable/fb2/train_j1b` (status copy
+`fable_fb2/j1/logs/status_train_j1b_final.json`).
 
 Torch quick validation (200k rows, blend 0.6) on the way: 0.105583 (0) -> 0.017014 (14.7M) -> 0.016369 (29.6M).
 
@@ -280,7 +296,14 @@ thread, same data/seed/batch/LR/WDL schedules as J1, float holdout b0.6 on the 2
 | H512 / 8 + second layer 16 (2H -> 16 -> 1) | 0.016835 (13.8M) | 0.016086 (26.9M) | **0.015759** (40.5M) |
 | H512 / 8 + pairwise term | 0.017083 (13.9M) | 0.016358 (27.3M) | 0.016138 (40.5M) |
 
-Reading (early-learning comparison, one seed, 30 minutes each, float b0.6 on the same 200k holdout): the second
+60-minute follow-up (same protocol, 15-minute checkpoints, 23:14-01:14 PST; `logs/run_l2_60_log.txt`, `run_base_60_log.txt`):
+
+| run | 15 min | 30 min | 45 min | 60 min (positions) |
+|---|---|---|---|---|
+| baseline H512 / 8 | 0.016610 (21.3M) | 0.016131 (42.3M) | 0.015881 (62.7M) | 0.015729 (83.3M) |
+| + second layer 16 | 0.016308 (20.6M) | 0.015782 (40.8M) | 0.015528 (61.4M) | **0.015417** (82.2M) |
+
+Reading (early-learning comparison, one seed, float b0.6 on the same 200k holdout): the second
 layer is the clear winner at equal positions (-0.00033 vs the baseline at 40M: it reaches in 30 minutes what the
 baseline reaches at about 60), the pairwise term is a wash (-0.00005 at 27M, +0.00005 at 40M), H1024 learns more
 per position but sees half as many per second on this CPU (equal to the baseline at equal wall time, so it only
