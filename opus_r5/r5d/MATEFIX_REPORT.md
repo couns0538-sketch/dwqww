@@ -36,7 +36,8 @@ fails when the score is not a mate no shorter than 3 (`--capture` prints the mai
 | depth 14, Threads 1 | 300 | 0 |
 
 Failing runs report cp 440-490 with e8e4 at depth 14; the main thread's iterations 1-14 never show a mate (the single
-thread finds mate 3 with d5c5 from depth 10).
+thread finds mate 3 with d5c5 from depth 10). The loop script of the job (KRK and the test, Threads 2 and 4, SmpV2 off
+and on) is `tools/r5d_proof.py`; its base-tree rates (the "before" numbers) are in section 4, next to the fix.
 
 ## 2. Root cause
 
