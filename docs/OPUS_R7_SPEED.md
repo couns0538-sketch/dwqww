@@ -46,3 +46,27 @@ Code: `tools/nnue_pytorch_amd/forge_v2/` (README, IDEA_SOURCE). Evidence: `logs/
 - Recommended command: `train_forge_v2_fast.py --backend triton --fused-adam 1 --pinned 1 --inflight 3`.
 - Limits: pipeline proof, not a strength-tested net (12M positions). Bigger batches, more loader threads and L1 >= 1024
   were not run (PC rules while the live trainer runs).
+
+## J2 Data pipeline speed: DONE (the old converter was already seconds, not hours)
+Code: `tools/nnue_pytorch_amd/fpos2sf_mt/` (README, IDEA_SOURCE, `j2_check.sh`). Evidence: `logs/r7/j2/`.
+- **Measured first**: Grok Bot's `fpos2sf.exe` converts a full 10M-position shard (015) in **7.8-8.2 s** (1 thread),
+  and the live trainer loads its 305M positions from 37 `.pos` files in 7 s (its log). Neither step takes hours on
+  this PC; the full 37-shard training set would take ~4 min with the old tool.
+- **New `fpos2sf_mt`** (same CLI + `--threads`, streams 30,841-record units): full shard **6.0 s / 3.2 s / 2.27 s**
+  with 1 / 2 / 3 threads (1.67M / 3.09M / 4.40M records/s, 3.4x the old tool at 3 threads; the 37 shards in ~1.2
+  min), peak working set **8.5-12.8 MB**. The output is **byte-identical** to `fpos2sf.exe` for every case tried
+  (sha256 `84e8ee6f...` for the full shard at 1, 2 and 3 threads; `.bin`; skip 7 / stride 3 / ply 17 /
+  score-mult 2.5 / max 500k with `--fen-out`; a copy with planted bad records).
+- **Verify** (`--verify`, own decoder square by square + the training loader's sequential reader): full shard
+  10,000,000 records, **0 bad source records, 0 format errors, 0 mismatches, 0 missing**, loader reader 10,000,000
+  records / 0 mismatches (5.2 s). Planted: 6 bad source records are skipped by both tools (bad=6, identical
+  output, verify OK); a 1-byte corruption is reported as exactly 1 mismatch (VERIFY FAILED).
+- **Loader** (nnue-pytorch C++ stream, K32H3, no skipping, CPU only, 2 rounds): setup DLL 3.93-3.98M pos/s,
+  clang23 DLL 5.47-5.52M pos/s, the same with 1 and 2 worker threads: a serial stage inside the DLL (the binpack
+  reader), not Python, sets the rate. It is 2.7-3.8x what the fastest J1 training path consumes (1.44M pos/s), so it
+  is not the training bottleneck; a parallel binpack reader is left as an idea.
+- **Finding (owner)**: binpack's move codec turns the converter's king-square dummy move (from == to) into
+  `Move::null()` (from = to = square 64). With nnue-pytorch's default `filtered=True`, `isCapturingMove()` then reads
+  `pieceAt(64)`, one past the 64-entry array (undefined behaviour). Grok Bot's and my trainers use `filtered=False`,
+  so nothing is affected today; never train these files with `filtered=True` (or give FPOS records a real legal
+  move in a future format).

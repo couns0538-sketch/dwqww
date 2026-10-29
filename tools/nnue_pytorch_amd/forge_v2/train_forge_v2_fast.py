@@ -187,6 +187,7 @@ def main():
     ap.add_argument("--inflight", type=int, default=3,
                     help="with --pinned: at most this many steps queued ahead of the GPU (bounds pinned host memory)")
     ap.add_argument("--seed", type=int, default=1)
+    ap.add_argument("--device", default="auto", help="auto | cuda | cpu (cpu: loader-only scaling runs)")
     ap.add_argument("--out", default="", help="output prefix (.pt and .fnn2); empty = no export")
     ap.add_argument("--json", default="", help="write a result summary here")
     ap.add_argument("--log-every", type=int, default=50)
@@ -197,7 +198,7 @@ def main():
     torch.manual_seed(a.seed)
     from data_loader import DataloaderSkipConfig
     from data_loader import stream as st
-    dev = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    dev = torch.device(a.device if a.device != "auto" else ("cuda" if torch.cuda.is_available() else "cpu"))
     info = {"args": vars(a), "device": str(dev), "torch": torch.__version__, "hip": torch.version.hip,
             "loader_lib": os.environ.get("NNUE_DATA_LOADER_LIB", "(default build/ glob)")}
     if a.backend == "triton" and a.mode != "loader":

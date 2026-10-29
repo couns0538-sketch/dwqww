@@ -38,8 +38,28 @@
 #include <string>
 #include <thread>
 #include <vector>
+#ifdef _WIN32
+// kernel32 exports (declared by hand: <windows.h> pulls MapViewOfFileNuma2 into a static MinGW link)
+struct R7ProcessMemoryCounters {
+    unsigned long cb, PageFaultCount;
+    std::size_t PeakWorkingSetSize, WorkingSetSize, QuotaPeakPagedPoolUsage, QuotaPagedPoolUsage,
+        QuotaPeakNonPagedPoolUsage, QuotaNonPagedPoolUsage, PagefileUsage, PeakPagefileUsage;
+};
+extern "C" __declspec(dllimport) void* __stdcall GetCurrentProcess();
+extern "C" __declspec(dllimport) int __stdcall K32GetProcessMemoryInfo(void*, R7ProcessMemoryCounters*, unsigned long);
+#endif
 
 namespace {
+
+// Peak working set of this process in MB (Windows; -1 elsewhere): shows that the conversion streams.
+double peak_mb() {
+#ifdef _WIN32
+    R7ProcessMemoryCounters pmc{};
+    pmc.cb = sizeof(pmc);
+    if (K32GetProcessMemoryInfo(GetCurrentProcess(), &pmc, sizeof(pmc))) return pmc.PeakWorkingSetSize / 1048576.0;
+#endif
+    return -1.0;
+}
 
 const char* PIECE_CH = ".PNBRQKpnbrqk";
 constexpr std::uint64_t ENTRY_BYTES = sizeof(binpack::PackedTrainingDataEntry) + 2;  // + zero move count
@@ -231,7 +251,8 @@ int run_convert(const std::string& inPath, const std::string& outPath, const Opt
     const double secs = std::chrono::duration<double>(std::chrono::steady_clock::now() - t0).count();
     std::printf("in=%s n=%llu written=%llu bad=%llu clipped=%llu out=%s\n", inPath.c_str(), (unsigned long long)in.n,
                 (unsigned long long)written, (unsigned long long)bad, (unsigned long long)clipped, outPath.c_str());
-    std::printf("threads=%d seconds=%.2f records_per_s=%.0f\n", T, secs, written / std::max(secs, 1e-9));
+    std::printf("threads=%d seconds=%.2f records_per_s=%.0f peak_working_set_mb=%.1f\n", T, secs,
+                written / std::max(secs, 1e-9), peak_mb());
     return out ? 0 : 1;
 }
 
