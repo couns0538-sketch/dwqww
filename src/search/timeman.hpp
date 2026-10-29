@@ -46,8 +46,20 @@ inline void allocate(const SearchLimits& limits, std::int64_t& soft_ms, std::int
         }
         soft_ms = std::max<std::int64_t>(1, std::min(soft, available));
         hard_ms = std::max<std::int64_t>(1, std::min(hard, available));
+        if (limits.fb2.tm_soft_hard_clamp) soft_ms = std::min(soft_ms, hard_ms);
         managed = true;
     }
+}
+
+// The iteration-level soft deadline. TmSoftHardClamp caps in floating point
+// before conversion, and leaves the exact original expression when OFF.
+// Clock inputs are int32 and the supported finite tuning factors keep this
+// product inside int64; hard_ms is zero only for unmanaged searches.
+[[nodiscard]] inline std::int64_t scaled_soft_limit(std::int64_t soft_ms, std::int64_t hard_ms,
+                                                   double factor, bool clamp) {
+    const double scaled = static_cast<double>(soft_ms) * factor;
+    return static_cast<std::int64_t>(clamp && hard_ms > 0
+        ? std::min(scaled, static_cast<double>(hard_ms)) : scaled);
 }
 
 // Stop early when the best move has been stable; spend longer when it keeps changing.

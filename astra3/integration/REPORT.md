@@ -33,3 +33,9 @@ Exe SHA256 `cc1d2ed7fbdeea50516650fd0b9d1cca539d0d6cefc11cbc8a51cfcdb2daab0b`. E
 Commands: CMake configure/build with the rule5 GCC14 strict-FP recipe into `/tmp/forge-astra3-build-integration`; `python3 astra3/integration/tools/identity_bench.py /tmp/forge-astra3-build-integration/forge astra3/integration/M1/pins`; `python3 astra3/integration/tools/run_full_ctest.py /tmp/forge-astra3-build-integration astra3/integration/M1/ctest`; `python3 astra3/integration/tools/check_milestone.py /tmp/forge-astra3-build-integration/forge astra3/integration/M1 --source 292d079`. Original raw logs, exact executable and receipt retained under M1. No speed/Elo claim.
 
 Next: merge B2 with both independent flags preserved. Full integration/SAN/TSan and all ON matrices still UNVERIFIED. QA clarification pending: CorrMargins1/Scale100 is published as ON343365/858019/2522546/12894582/22287047, while one prompt line demandsOFF. Preserve published semantics while resolving the conflict.
+
+## M2: B2 merge resolution
+
+Status WIP. Used real no-ff merge45314a5. Resolution is a union: both CMake native/UCI test registrations, both FB2 flags, both UCI handlers with the required closing brace, and both IDEA_SOURCE/old checkpoint texts retained. apply_bundle now assigns only its three owned FB2 fields (plus its existing external CorrHistPlus/HistRework/CuckooRep values), so SmpV2 AND TmSoftHardClamp, and future independent bits, survive presets without positional preservation code. Automatic iterative/timing merges retained both features; full build/identity/CTest pending.
+
+IDEA_SOURCE: Engine QA CR_ASTRA2 F3 in supplied round3 pack; same-repository B1/B2 sources.

@@ -46,9 +46,10 @@ void apply_bundle(Bundle bundle) {
     options::corr_hist_plus = static_cast<std::uint8_t>(s.corr_hist_plus);
     search_options::hist_rework = s.hist_rework;
     options::cuckoo_rep = s.cuckoo_rep;
-    const bool smp_v2 = requested.smp_v2; // BundlePreset still owns only its original six options.
-    requested = s.fb2;
-    requested.smp_v2 = smp_v2;
+    // Assign only preset-owned fields; independent SMP/time settings survive every preset.
+    requested.corr_hist_v2 = s.fb2.corr_hist_v2;
+    requested.lmr_table_v2 = s.fb2.lmr_table_v2;
+    requested.tt_prune_v2 = s.fb2.tt_prune_v2;
 }
 
 // SmpV2: same helper diversification as Forge FB2-J5, with a corrected selector.

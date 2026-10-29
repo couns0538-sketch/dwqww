@@ -26,3 +26,8 @@ Status: UNPROVEN. No Elo/strength claim. Only games (1000-game SPRT run by QA, n
 
 ## Astra R2 B1 — protected SmpV2 selection
 IDEA_SOURCE: user-requested proven-result preservation; original Forge FB2-J5 (`bf6839e9e65108db76f028532dc15f9587a41fe7`) helper diversification, adapted to the bundle snapshot. No code or tuned constants copied from another engine.
+## Astra R2 B2 — soft/hard deadline invariant (2026-10-29)
+IDEA_SOURCE: the user’s requirement that soft time never exceed hard time, and Forge’s own bundle allocator and iteration scale. Original clamp and tests; no other-engine code or tuned constants. This fixes the shared bundle formula, not an integration of the absent FB2-J4 TimeManV2 node-budget experiment.
+
+## Astra R3 A1: explicit preset ownership
+IDEA_SOURCE: Engine QA CR_ASTRA2 F3, supplied round3 job pack; https://github.com/couns0538-sketch/dwqww/commit/45314a5e105cef5d306ff41abca2706e4ada78bb and reviewed B1. Assign only preset-owned fields so unrelated requested bits survive integration.

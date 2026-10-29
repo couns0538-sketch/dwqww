@@ -34,6 +34,8 @@ struct Options {
     bool lmr_table_v2 = false;
     bool tt_prune_v2 = false;
     bool smp_v2 = false; // B1: helper diversification and protected completed-result selection
+    // B2: cap nominal and scaled soft budgets at the hard deadline; not a J4 port.
+    bool tm_soft_hard_clamp = false;
     [[nodiscard]] bool operator==(const Options&) const = default;
 };
 
