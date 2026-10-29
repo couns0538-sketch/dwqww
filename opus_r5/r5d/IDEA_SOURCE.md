@@ -14,3 +14,6 @@ Every implementation here is my own code; sources are where the ideas come from.
 | Threads 2 smoke runner | own R5C runner (`opus_r5/r5c/smoke_n3.py`, branch opus-r5c-netv4) with a `--threads` option and the FEN-legality fix of its stop stress |
 | the job's suspect order (TT ply adjustment / races, best-thread selection, helper depth+1 / aborted iterations, aspiration bounds, SmpV2 merge, TB / mate-distance pruning) and one experiment or code reading per suspect (NOASP, NOMDP: `diag/make_asp_mdp.py`) | job spec R5D step 2 (the order); the experiments are my own |
 | end-to-end UCI loop on the shipped exes (`tools/uci_krk_loop.py`) | own; same pass/fail rule as the repro harness, read from the `score mate N` of the last info line |
+| proof driver `tools/r5d_proof.py` + `tools/proof_table.py` (fix vs base, every Threads 2/4 x SmpV2 configuration, the CTest binary looped with env knobs) | own; the job's step 4 targets |
+| `tools/run_pinned.py` (3-CPU affinity mask inherited by every child) | my R5B tool (`opus_r5/r5b/tools/run_pinned.py`, branch opus-r5b-speed), copied unchanged |
+| bare-king smoke openings `tools/make_barek_epd.py` | own; exercises the fixed code path in real games |
