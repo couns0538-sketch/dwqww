@@ -1,0 +1,228 @@
+cmake_minimum_required(VERSION 3.13)
+project(training_data_loader CXX)
+
+if(NOT DEFINED CMAKE_BUILD_TYPE)
+  set(CMAKE_BUILD_TYPE RelWithDebInfo)
+endif()
+
+# Normalize case for safe IF checks later
+string(TOUPPER "${CMAKE_BUILD_TYPE}" UPPER_BUILD_TYPE)
+
+set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+
+if(CMAKE_CXX_COMPILER_FRONTEND_VARIANT STREQUAL "MSVC")
+  # cl.exe / clang-cl: MSVC-style flags (AVX2 implies BMI1/BMI2/LZCNT/POPCNT on MSVC)
+  set(CMAKE_CXX_FLAGS "/arch:AVX2 /W3 /EHsc")
+  set(CMAKE_CXX_FLAGS_DEBUG "/Zi /Od")
+  set(CMAKE_CXX_FLAGS_RELEASE "/O2 /DNDEBUG")
+  set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "/Zi /O2 /DNDEBUG")
+else()
+  set(CMAKE_CXX_FLAGS "-march=native -Wall")
+  set(CMAKE_CXX_FLAGS_DEBUG "-g")
+  set(CMAKE_CXX_FLAGS_RELEASE "-O3 -DNDEBUG")
+  set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "-g -O3 -DNDEBUG")
+endif()
+
+# PGO
+set(PGO_PROFILE_DATA_DIR "${CMAKE_BINARY_DIR}/pgo_data"
+    CACHE PATH "Directory for PGO profile data")
+set(PGO_INPUT ""
+    CACHE STRING "Input file passed to training_data_loader_pgo_gen for profile generation")
+
+# STATISTICS REPORT
+add_executable(training_data_loader_report training_data_loader.cpp training_data_loader_abi.cpp training_data_loader_bench.cpp)
+target_compile_definitions(training_data_loader_report PRIVATE NNUE_LOADER_STATISTICS)
+
+target_link_libraries(training_data_loader_report
+  PRIVATE Threads::Threads)
+
+set_target_properties(training_data_loader_report PROPERTIES
+  BUILD_RPATH "$ORIGIN"
+  INSTALL_RPATH "$ORIGIN"
+)
+
+# Fail at configure time if PGO_Generate is requested without a valid input file.
+if(UPPER_BUILD_TYPE STREQUAL "PGO_GENERATE" AND NOT PGO_INPUT)
+  message(FATAL_ERROR
+    "PGO_Generate build requires a non-empty PGO_INPUT.\n"
+    "Re-run CMake with -DPGO_INPUT=<path-to-input-file>.")
+endif()
+
+option(ENABLE_TSAN "Enable ThreadSanitizer" OFF)
+
+if(ENABLE_TSAN)
+  add_compile_options(-fsanitize=thread -fno-omit-frame-pointer)
+  add_link_options(-fsanitize=thread)
+endif()
+
+set(CMAKE_CXX_FLAGS_PGO_GENERATE "${CMAKE_CXX_FLAGS_RELEASE}")
+set(CMAKE_CXX_FLAGS_PGO_USE "${CMAKE_CXX_FLAGS_RELEASE}")
+
+include(CheckCXXCompilerFlag)
+
+# BMI2 detection. NNUE_BMI2=ON/OFF forces it; AUTO reads /proc/cpuinfo (Linux,
+# MSYS) and, where that is missing (native Windows), asks a GNU compiler's CPU
+# model at configure time.
+set(NNUE_BMI2 "AUTO" CACHE STRING "Use BMI2 pdep: AUTO, ON or OFF")
+set_property(CACHE NNUE_BMI2 PROPERTY STRINGS AUTO ON OFF)
+execute_process(
+    COMMAND bash -c "awk '/^vendor_id/{{print \$3; exit}}' /proc/cpuinfo"
+    OUTPUT_VARIABLE VENDOR_ID
+    OUTPUT_STRIP_TRAILING_WHITESPACE
+)
+execute_process(
+    COMMAND bash -c "awk '/^cpu family/{{print \$4; exit}}' /proc/cpuinfo"
+    OUTPUT_VARIABLE CPU_FAMILY
+    OUTPUT_STRIP_TRAILING_WHITESPACE
+)
+execute_process(
+    # Match the complete flag: AVX-512 CPUs also advertise avx512_vbmi2.
+    # A substring match returns two lines and fails the equality check below.
+    COMMAND bash -c "grep -m1 -ow 'bmi2' /proc/cpuinfo"
+    OUTPUT_VARIABLE CPU_BMI2
+    OUTPUT_STRIP_TRAILING_WHITESPACE
+)
+
+if(VENDOR_ID STREQUAL "AuthenticAMD")
+  if(CPU_FAMILY GREATER_EQUAL "23" AND CPU_BMI2 STREQUAL "bmi2")
+    set(CPU_SUPPORTS_BMI2 TRUE)
+  endif()
+elseif(CPU_BMI2 STREQUAL "bmi2")
+  set(CPU_SUPPORTS_BMI2 TRUE)
+else()
+  set(CPU_SUPPORTS_BMI2 FALSE)
+endif()
+
+if(NNUE_BMI2 STREQUAL "ON")
+  set(CPU_SUPPORTS_BMI2 TRUE)
+elseif(NNUE_BMI2 STREQUAL "OFF")
+  set(CPU_SUPPORTS_BMI2 FALSE)
+elseif(NOT CPU_BMI2 AND CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+  # No /proc/cpuinfo (native Windows): pdep is fast on Intel and on AMD Zen 3+.
+  include(CheckCXXSourceRuns)
+  check_cxx_source_runs("
+    int main() {
+      __builtin_cpu_init();
+      if (!__builtin_cpu_supports(\"bmi2\")) return 1;
+      if (__builtin_cpu_is(\"znver1\") || __builtin_cpu_is(\"znver2\")) return 1;
+      return 0;
+    }" NNUE_CPU_FAST_BMI2)
+  if(NNUE_CPU_FAST_BMI2)
+    set(CPU_SUPPORTS_BMI2 TRUE)
+  endif()
+endif()
+
+if(CPU_SUPPORTS_BMI2)
+  message(STATUS "Adding BMI2 support")
+  add_definitions(-DHAS_BMI2)
+  if(NOT CMAKE_CXX_COMPILER_FRONTEND_VARIANT STREQUAL "MSVC")
+    add_compile_options(-mbmi2)
+  endif()
+else()
+  message(STATUS "No BMI2 support")
+endif()
+
+find_package(Threads REQUIRED)
+
+# ---- Targets ----
+
+add_library(training_data_loader SHARED training_data_loader.cpp training_data_loader_abi.cpp)
+target_compile_options(training_data_loader PRIVATE)
+target_link_libraries(training_data_loader PRIVATE Threads::Threads)
+
+set_target_properties(training_data_loader PROPERTIES
+  LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}"
+  RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}"
+  ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}"
+)
+
+# Platform-independent copy of the shared library
+if(LIB_COPY_DIR)
+  add_custom_command(TARGET training_data_loader POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:training_data_loader> "${LIB_COPY_DIR}/"
+  )
+endif()
+
+# pgo generation target
+if(UPPER_BUILD_TYPE STREQUAL "PGO_GENERATE")
+  # Target for pgo generation
+  add_executable(training_data_loader_pgo_gen training_data_loader_bench.cpp)
+  target_compile_options(training_data_loader_pgo_gen PRIVATE)
+  target_link_libraries(training_data_loader_pgo_gen
+    PRIVATE training_data_loader Threads::Threads)
+
+  set_target_properties(training_data_loader_pgo_gen PROPERTIES
+    BUILD_RPATH "$ORIGIN"
+    INSTALL_RPATH "$ORIGIN"
+  )
+
+  add_custom_target(pgo_run
+    COMMAND "$<TARGET_FILE:training_data_loader_pgo_gen>" -i 5 -p 1 -c 0 "${PGO_INPUT}"
+    DEPENDS training_data_loader_pgo_gen
+    WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+    COMMENT "Running training_data_loader_pgo_gen to generate PGO profiles in ${PGO_PROFILE_DATA_DIR}"
+    VERBATIM
+  )
+endif()
+
+# Actual benchmark target - only build when not generating profiles
+if(NOT UPPER_BUILD_TYPE STREQUAL "PGO_GENERATE")
+  add_executable(training_data_loader_bench training_data_loader_bench.cpp)
+  target_compile_definitions(training_data_loader_bench PRIVATE BENCH)
+  target_link_libraries(training_data_loader_bench
+    PRIVATE training_data_loader Threads::Threads)
+
+  set_target_properties(training_data_loader_bench PROPERTIES
+    BUILD_RPATH "$ORIGIN"
+    INSTALL_RPATH "$ORIGIN"
+  )
+endif()
+
+# ---- copy dataloader config ----
+set(CONFIG_SOURCE "${CMAKE_CURRENT_SOURCE_DIR}/data_loader_config.ini")
+
+function(add_config_copy_step TARGET_NAME)
+    add_custom_command(
+        TARGET ${TARGET_NAME} POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+                "${CONFIG_SOURCE}"
+                "$<TARGET_FILE_DIR:${TARGET_NAME}>/data_loader_config.ini"
+        COMMENT "Copying data_loader_config.ini to output directory for ${TARGET_NAME}"
+        VERBATIM
+    )
+endfunction()
+
+# Apply to your targets
+if(TARGET training_data_loader_report)
+    add_config_copy_step(training_data_loader_report)
+endif()
+
+if(TARGET training_data_loader_bench)
+    add_config_copy_step(training_data_loader_bench)
+endif()
+
+# ---- compile and link option for pgo ----
+
+if(UPPER_BUILD_TYPE STREQUAL "PGO_GENERATE")
+  file(MAKE_DIRECTORY ${PGO_PROFILE_DATA_DIR})
+
+  target_compile_options(training_data_loader PRIVATE
+    -fprofile-generate=${PGO_PROFILE_DATA_DIR})
+  target_link_options(training_data_loader PRIVATE
+    -fprofile-generate=${PGO_PROFILE_DATA_DIR})
+
+  target_compile_options(training_data_loader_pgo_gen PRIVATE
+    -fprofile-generate=${PGO_PROFILE_DATA_DIR})
+  target_link_options(training_data_loader_pgo_gen PRIVATE
+    -fprofile-generate=${PGO_PROFILE_DATA_DIR})
+
+elseif(UPPER_BUILD_TYPE MATCHES "^PGO_USE$")
+  set(PGO_USE_FLAGS -fprofile-use=${PGO_PROFILE_DATA_DIR})
+  if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+    list(APPEND PGO_USE_FLAGS -fprofile-correction)
+  endif()
+
+  target_compile_options(training_data_loader PRIVATE ${PGO_USE_FLAGS})
+  target_link_options(training_data_loader PRIVATE ${PGO_USE_FLAGS})
+endif()

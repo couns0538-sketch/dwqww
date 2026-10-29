@@ -1,0 +1,118 @@
+From 9a639c81c1da57219ff86b485734e8dd5c1457b2 Mon Sep 17 00:00:00 2001
+From: couns0538-sketch <couns0538@gmail.com>
+Date: Thu, 29 Oct 2026 14:24:45 -0700
+Subject: [PATCH 3/3] Windows: fix end-of-run crash (dist.is_available guard),
+ loader BMI2 on Windows, MSVC-style flags, NNUE_DATA_LOADER_LIB override
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+---
+ data_loader/_native.py         |  5 ++++
+ data_loader/cpp/CMakeLists.txt | 45 +++++++++++++++++++++++++++++-----
+ train.py                       |  2 +-
+ 3 files changed, 45 insertions(+), 7 deletions(-)
+
+diff --git a/data_loader/_native.py b/data_loader/_native.py
+index 38c6eb1..f120734 100644
+--- a/data_loader/_native.py
++++ b/data_loader/_native.py
+@@ -139,6 +139,11 @@ class CDataLoaderAPI:
+         self._define_prototypes()
+ 
+     def _load_library(self):
++        # Explicit choice (e.g. a clang/MSVC build next to a MinGW one on Windows).
++        override = os.environ.get("NNUE_DATA_LOADER_LIB", "").strip()
++        if override:
++            return ctypes.cdll.LoadLibrary(os.path.abspath(override))
++
+         candidates = []
+         for pattern in (
+             "./build/**/*training_data_loader.*",
+diff --git a/data_loader/cpp/CMakeLists.txt b/data_loader/cpp/CMakeLists.txt
+index de0b435..24c14dd 100644
+--- a/data_loader/cpp/CMakeLists.txt
++++ b/data_loader/cpp/CMakeLists.txt
+@@ -11,10 +11,18 @@ string(TOUPPER "${CMAKE_BUILD_TYPE}" UPPER_BUILD_TYPE)
+ set(CMAKE_CXX_STANDARD 20)
+ set(CMAKE_CXX_STANDARD_REQUIRED ON)
+ 
+-set(CMAKE_CXX_FLAGS "-march=native -Wall")
+-set(CMAKE_CXX_FLAGS_DEBUG "-g")
+-set(CMAKE_CXX_FLAGS_RELEASE "-O3 -DNDEBUG")
+-set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "-g -O3 -DNDEBUG")
++if(CMAKE_CXX_COMPILER_FRONTEND_VARIANT STREQUAL "MSVC")
++  # cl.exe / clang-cl: MSVC-style flags (AVX2 implies BMI1/BMI2/LZCNT/POPCNT on MSVC)
++  set(CMAKE_CXX_FLAGS "/arch:AVX2 /W3 /EHsc")
++  set(CMAKE_CXX_FLAGS_DEBUG "/Zi /Od")
++  set(CMAKE_CXX_FLAGS_RELEASE "/O2 /DNDEBUG")
++  set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "/Zi /O2 /DNDEBUG")
++else()
++  set(CMAKE_CXX_FLAGS "-march=native -Wall")
++  set(CMAKE_CXX_FLAGS_DEBUG "-g")
++  set(CMAKE_CXX_FLAGS_RELEASE "-O3 -DNDEBUG")
++  set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "-g -O3 -DNDEBUG")
++endif()
+ 
+ # PGO
+ set(PGO_PROFILE_DATA_DIR "${CMAKE_BINARY_DIR}/pgo_data"
+@@ -53,7 +61,11 @@ set(CMAKE_CXX_FLAGS_PGO_USE "${CMAKE_CXX_FLAGS_RELEASE}")
+ 
+ include(CheckCXXCompilerFlag)
+ 
+-# BMI2 detection
++# BMI2 detection. NNUE_BMI2=ON/OFF forces it; AUTO reads /proc/cpuinfo (Linux,
++# MSYS) and, where that is missing (native Windows), asks a GNU compiler's CPU
++# model at configure time.
++set(NNUE_BMI2 "AUTO" CACHE STRING "Use BMI2 pdep: AUTO, ON or OFF")
++set_property(CACHE NNUE_BMI2 PROPERTY STRINGS AUTO ON OFF)
+ execute_process(
+     COMMAND bash -c "awk '/^vendor_id/{{print \$3; exit}}' /proc/cpuinfo"
+     OUTPUT_VARIABLE VENDOR_ID
+@@ -82,10 +94,31 @@ else()
+   set(CPU_SUPPORTS_BMI2 FALSE)
+ endif()
+ 
++if(NNUE_BMI2 STREQUAL "ON")
++  set(CPU_SUPPORTS_BMI2 TRUE)
++elseif(NNUE_BMI2 STREQUAL "OFF")
++  set(CPU_SUPPORTS_BMI2 FALSE)
++elseif(NOT CPU_BMI2 AND CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
++  # No /proc/cpuinfo (native Windows): pdep is fast on Intel and on AMD Zen 3+.
++  include(CheckCXXSourceRuns)
++  check_cxx_source_runs("
++    int main() {
++      __builtin_cpu_init();
++      if (!__builtin_cpu_supports(\"bmi2\")) return 1;
++      if (__builtin_cpu_is(\"znver1\") || __builtin_cpu_is(\"znver2\")) return 1;
++      return 0;
++    }" NNUE_CPU_FAST_BMI2)
++  if(NNUE_CPU_FAST_BMI2)
++    set(CPU_SUPPORTS_BMI2 TRUE)
++  endif()
++endif()
++
+ if(CPU_SUPPORTS_BMI2)
+   message(STATUS "Adding BMI2 support")
+   add_definitions(-DHAS_BMI2)
+-  add_compile_options(-mbmi2)
++  if(NOT CMAKE_CXX_COMPILER_FRONTEND_VARIANT STREQUAL "MSVC")
++    add_compile_options(-mbmi2)
++  endif()
+ else()
+   message(STATUS "No BMI2 support")
+ endif()
+diff --git a/train.py b/train.py
+index ff1b998..3980e82 100644
+--- a/train.py
++++ b/train.py
+@@ -449,7 +449,7 @@ def main():
+         with open(os.path.join(logdir, "training_finished"), "w"):
+             pass
+ 
+-    if dist.is_initialized():
++    if dist.is_available() and dist.is_initialized():
+         dist.destroy_process_group()
+ 
+     if aborted_due_to_nan:
+-- 
+2.56.0.windows.3
+
