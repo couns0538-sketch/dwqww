@@ -4,7 +4,7 @@
 // true one. With --capture the main thread's info lines of every failing run are printed (diagnosis).
 // usage: r5d_mate_repro <runs> <threads> <smpv2 0|1> <depth> [--fen FEN] [--plies N] [--capture] [--show N]
 //        [--reuse] [--best-thread]   (--reuse: one Searcher for all runs, warm TT as in round 2; --best-thread:
-//        UCI SmpBestThread=true)
+//        UCI SmpBestThread=true) [--hash MB] [--prefill D]  (--prefill: a depth-D search of the root first)
 #include "forge/board.hpp"
 #include "forge/fb2.hpp"
 #include "forge/search.hpp"
@@ -32,6 +32,8 @@ int main(int argc, char** argv) {
     int plies = 5;
     bool capture = false, reuse = false;
     int show = 5;
+    int hash_mb = 16;
+    int prefill = 0;
     for (int i = 5; i < argc; ++i) {
         const std::string a = argv[i];
         if (a == "--fen" && i + 1 < argc) fen = argv[++i];
@@ -39,6 +41,8 @@ int main(int argc, char** argv) {
         else if (a == "--capture") capture = true;
         else if (a == "--reuse") reuse = true;
         else if (a == "--best-thread") forge::options::smp_best_thread = true;
+        else if (a == "--hash" && i + 1 < argc) hash_mb = std::atoi(argv[++i]);
+        else if (a == "--prefill" && i + 1 < argc) prefill = std::atoi(argv[++i]);
         else if (a == "--show" && i + 1 < argc) show = std::atoi(argv[++i]);
     }
     forge::fb2::requested.smp_v2 = smpv2;
@@ -48,14 +52,19 @@ int main(int argc, char** argv) {
         return 2;
     }
     std::unique_ptr<forge::Searcher> shared;
-    if (reuse) shared = std::make_unique<forge::Searcher>(16, threads);
+    if (reuse) shared = std::make_unique<forge::Searcher>(hash_mb, threads);
     int failures = 0, shown = 0;
     std::uint64_t nodes = 0;
     const auto t0 = std::chrono::steady_clock::now();
     for (int r = 0; r < runs; ++r) {
         std::unique_ptr<forge::Searcher> fresh;
-        if (!reuse) fresh = std::make_unique<forge::Searcher>(16, threads);
+        if (!reuse) fresh = std::make_unique<forge::Searcher>(hash_mb, threads);
         forge::Searcher& searcher = reuse ? *shared : *fresh;
+        if (prefill > 0) {  // a shallower search of the same root first (warm TT, different entry history)
+            forge::SearchLimits warm;
+            warm.depth = prefill;
+            (void)searcher.search(root, warm);
+        }
         forge::SearchLimits limits;
         limits.depth = depth;
         std::ostringstream lines;
@@ -79,6 +88,7 @@ int main(int argc, char** argv) {
     }
     const double s = std::chrono::duration<double>(std::chrono::steady_clock::now() - t0).count();
     std::cout << "runs " << runs << " threads " << threads << " smpv2 " << smpv2 << " depth " << depth
+              << " hash " << hash_mb << (prefill > 0 ? " prefill " + std::to_string(prefill) : std::string())
               << (reuse ? " reuse" : " fresh") << (forge::options::smp_best_thread ? " best-thread" : "") << ": failures " << failures << " (" << 100.0 * failures / runs
               << "%), " << s << " s, mean nodes " << nodes / static_cast<std::uint64_t>(runs ? runs : 1) << '\n';
     return failures == 0 ? 0 : 1;

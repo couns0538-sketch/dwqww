@@ -1,6 +1,6 @@
 # Forge Opus R5D: forced mate reported as a centipawn score with Threads >= 2 — IN PROGRESS
 
-**Status:** reproduced; root-cause analysis done to the mechanism level; fix in progress. Push note: 09:56 -> 10:2x Vienna was more than 10 min (diagnosis runs). Last push: see the head commit time (pushes every 10 min).
+**Status:** reproduced; root-cause analysis done to the mechanism level; fix in progress. Push note: 09:56 -> 10:11 Vienna was 15 min (diagnosis runs). Last push: see the head commit time (pushes every 10 min).
 
 Branch `opus-r5d-matefix` = `astra3-integration` at 5eabdb7 (the commit Code Review passed; the branch head has moved
 on to e224595a since) + R5D commits. Job folder `opus_r5/r5d/`, scratch `F:\opus_scratch\r5\r5d\`. Machine exclusive:
@@ -68,6 +68,28 @@ Code reading notes:
   (`src/search/scores.inc`): no ply error visible.
 - Aborted iterations (`src/search/iterative.inc` 203-219) keep the last completed score but may take the partial
   iteration's move; SmpV2 helpers keep their completed tuple.
+
+## Experiments (scratch exports of 5eabdb7 with one change each; KRK depth 14, Threads 2, 1000 runs, SmpV2 off / on)
+
+| variant | change (helpers = workers 1..n-1; Threads 1 unaffected by construction) | failures off / on |
+|---|---|---|
+| base | none | 37 (3.7 %) / 36 (3.6 %) |
+| dupfix | `TT::store` updates an existing slot of the same key instead of the probe-time slot (no duplicate keys) | 42 / 48 |
+| F2 | helpers do not store fail-low upper bounds without a best move (main search) | 47 / 53 |
+| C2 | helpers store no upper bounds (main search and qsearch) | 76 / 59 |
+| C6 | multi-worker same-position replacement only by equal-or-deeper results | 102 / 99 |
+| F3 | helpers store nothing in the main search (qsearch / ProbCut stores stay) | 102 / 97 |
+| F7 | helpers store nothing in qsearch (main search / ProbCut stores stay) | 58 / - |
+| **F6** | **helpers write nothing to the TT** | **0 / -** |
+| (Threads 1, any hash 1-64 MB, warm TT after depth 3..11) | - | 0 |
+
+At the mate-in-2 node "1.Kc5 Ka6" (scratch `diag5`): in the bad searches Re7 is either cut by late-move pruning
+(`LMP-skip@2..20`) or searched as a late quiet move with an LMR reduction whose result (~466, the quiet Ra7# lies beyond
+qsearch) stays below alpha, so it is never re-searched. The single thread finds the mate at iteration 10 only because
+d5c5 fails high at the root there (Ra8+ gives 499 in its null-window search) and the wider-window re-search of
+"1.Kc5 Ka6" (window 481..506, depth 8) finds Re7 = mate. In the failing two-thread runs the main thread never gets that
+fail-high: the helper's TT writes (any kind: main search, qsearch, ProbCut) change the bounds it meets, and the
+pruning-dependent bounds keep d5c5 reduced and below alpha until depth 14. Only read-only helpers (F6) remove it.
 
 ## 3. Fix (pending)
 
