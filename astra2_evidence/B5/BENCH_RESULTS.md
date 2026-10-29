@@ -35,3 +35,19 @@ All d11 records from the original completed CTest output.
 | B1_CorrExt | 11 | 280216 | 346 | 809872 |
 | B1_CorrExt_after_refusals | 11 | 280216 | 342 | 819345 |
 | final_OFF | 11 | 312866 | 502 | 623239 |
+
+## ASan/UBSan UCI regression records
+
+Instrumented times are not Release performance measurements.
+
+| Case | Depth | Nodes | ms | NPS |
+|---|---:|---:|---:|---:|
+| OFF | 11 | 312866 | 5945 | 52626 |
+| manual_N1 | 11 | 277579 | 4369 | 63533 |
+| OFF_after_manual | 11 | 312866 | 4851 | 64495 |
+| preset_N1 | 11 | 277579 | 4510 | 61547 |
+| N1_after_refused_CorrExt | 11 | 277579 | 4471 | 62084 |
+| N1_after_invalid_values | 11 | 277579 | 4478 | 61987 |
+| B1_CorrExt | 11 | 280216 | 4509 | 62145 |
+| B1_CorrExt_after_refusals | 11 | 280216 | 4817 | 58172 |
+| final_OFF | 11 | 312866 | 4553 | 68716 |

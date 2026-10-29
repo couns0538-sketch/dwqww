@@ -1,9 +1,9 @@
-# B5 continuation checkpoint — 2026-10-29
+# B5 completed checkpoint — 2026-10-29
 
-Base: b7c177222038e9332965a95ec53ea3b94e90dbc9. Implementation: fde944ae38e6bbfef0b38f2c4a207e08285fcc1d.
+Base b7c177222038e9332965a95ec53ea3b94e90dbc9; frozen implementation fde944ae38e6bbfef0b38f2c4a207e08285fcc1d. SingularV2 defaults0, N1 is CorrHistPlus4+SingularV2. Same-repository Fable J3 port, with CorrExt mutual exclusion; PORT_NOTES.md lists every changed engine/build line and interactions.
 
-Default-zero SingularV2 and explicit N1 have compiled in full Release. All five OFF pins pass: 312866 / 862329 / 3024920 / 12389307 / 34048354. SingularV2 ON: 404121 / 1005954 / 4120585 / 11497954 / 34264955. N1: 277579 / 814055 / 2651984 / 18648191 / 40304213. Startpos perft5 is 4865609. NNUE SIMD/FMA check passes with no fused arithmetic.
+OFF nodes312866/862329/3024920/12389307/34048354. ON404121/1005954/4120585/11497954/34264955. N1277579/814055/2651984/18648191/40304213. Startpos perft54865609, NNUEFMA0. Native96/96, UCI27checksPASS. Release and complete leak-enabled ASan/UBSan CTest each56/57, rawexit8: only the four known forge_tests diagnostics, zero sanitizer findings in the completed outside-sandbox run. Preserve interrupted sandbox attempt separately.
 
-Full CTest is running; do not infer success from the existence of partial logs. Next: finish it, report raw failures, seal evidence and qualify the branch. PORT_NOTES.md records every changed engine/build line, actual Forge Fable J3 provenance, CorrHistPlus interactions and CorrExt mutual exclusion. No Elo or speed claim.
+No speed or Elo claim. Candidate is ready for independent review and equal-time N1/SingularV2 gates; not accepted into the integration branch. Windows, TSan, actual Syzygy files and combined B1/B2/B4 integration are unverified. Exact commands, source/binary hashes and every bench record are in astra2_evidence/B5. Do not repeat completed qualification without a changed source or a specific unresolved question.
 
-IDEA_SOURCE: same-repository Forge J3 experiment and user's isolated validation workflow.
+IDEA_SOURCE: this repository's FB2-J3 experiment and user's isolated validation requirements.
