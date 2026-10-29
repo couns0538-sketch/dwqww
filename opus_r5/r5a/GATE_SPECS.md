@@ -17,7 +17,7 @@ Common to every entry:
 | rank | id | candidate option | primary TC | ON d11 / d13 / d16 | smoke | conflict with B1-B4 (short) |
 |---|---|---|---|---|---|---|
 | 1 | R5A-1 | `CorrHistPlus=4` | 10+0.1 | 340927 / 734347 / 2794671 | pending | B1/B3 ok (mask 5); B2/B4 exclusive |
-| 2 | R5A-2 | `CorrExt=1` | 40+0.4 | 312961 / 838790 / 2891507 | pending | none (independent) |
+| 2 | R5A-2 | `CorrExt=1` | 40+0.4 | 312961 / 838790 / 2891507 | PASS (200/200, stress 50/50 problems 0) | none (independent) |
 | 3 | R5A-3 | `CorrMargins=1` | 40+0.4 | 343365 / 858019 / 2522546 | PASS (200/200, stress 50/50 problems 0) | TtPruneV2 in all four: same margins |
 | 4 | R5A-4 | `CorrHistPlus=2` | 10+0.1 | 296553 / 824640 / 2914749 | pending | B1/B3 ok (mask 3); B2/B4 exclusive |
 | 5 | R5A-5 | `CorrHistPlus=6` | 10+0.1 | 357478 / 747883 / 2544596 | pending | B1/B3 ok (mask 7); B2/B4 exclusive |
@@ -56,7 +56,7 @@ Common to every entry:
 | prebench cand_on (d11/d13/d16) | 312961 / 838790 / 2891507 |
 | prebench cand_off | 312866 / 862329 / 3024920 |
 | expected echo | `info string active: CorrExt=1` |
-| smoke | pending |
+| smoke | PASS: 200/200 games, failures {'illegal': 0, 'crash': 0, 'time_loss': 0, 'missing_bestmove': 0, 'error_line': 0, 'echo': 0}, stop stress 50/50 problems 0 (`opus_r5/r5a/smoke/corrext1/summary.json`) |
 | conflicts with B1-B4 | None: no preset touches singular extensions (FB2 SingularV2, which overlaps it, is not on this branch and in no preset); CorrExt runs in its own search instance and combines with CuckooRep (all presets) via search_ce_cu. |
 | why this rank | Independent of every bundle, so its result transfers. Weak at short TC by design (extensions compound with depth; equal to OFF at go depth 10 on all four M1 positions; O8: 'lost at STC'), hence 40+0.4 primary as the job and the test plan say; about 4x the wall time of a 10+0.1 gate. |
 | sources | O8, R3-3 R3-14 |

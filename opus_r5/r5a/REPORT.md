@@ -1,6 +1,6 @@
 # Forge Opus round 5A: gate-ready singles (CorrMargins, CorrExt, CorrHistPlus variants, NetScale) — IN PROGRESS
 
-**Status:** M1, M2, M5 done; M3 smoke 1/8 PASS, corrext1 running (then a 2-min check pause, then CorrHistPlus 2/4/6, NetScale 99, HistRework 3, 1); M4 written. Last push 02:44 Vienna.
+**Status:** M1, M2, M5 done; M3 smoke 2/8 PASS (CorrMargins, CorrExt), CorrHistPlus=2 running; M4 written. Last push 02:53 Vienna.
 
 Branch `opus-r5a-singles` = `origin/forge-bundle-int` b7c17722 + the commits listed per milestone. Job started 01:52 Vienna
 (2026-10-29), hard stop 04:52 Vienna. No Elo claims: node counts are not strength; gates decide. Machine exclusive: no
@@ -175,6 +175,7 @@ Results (PGNs `smoke/<config>/games.pgn`, summaries `smoke/<config>/summary.json
 | config | ON options | games | illegal | crashes | time losses | missing bestmove | ERROR lines | echo mismatches | go/stop stress | avg plies | clock < 20 ms | engine restarts | ON points (not Elo) | terminations | time (Vienna) | verdict |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
 | corrmargins1 | `CorrMargins=1` | 200/200 | 0 | 0 | 0 | 0 | 0 | 0 | 50/50, 0 problems | 132.5 | 0 | 0 | 96.5/200 | threefold_repetition 139, checkmate 37, insufficient_material 16, fifty_moves 7, stalemate 1 | 02:16:09 Vienna-02:31:46 | **PASS** |
+| corrext1 | `CorrExt=1` | 200/200 | 0 | 0 | 0 | 0 | 0 | 0 | 50/50, 0 problems | 127.1 | 0 | 0 | 101.5/200 | threefold_repetition 138, checkmate 51, insufficient_material 8, fifty_moves 3 | 02:37:18 Vienna-02:52:33 | **PASS** |
 <!-- /smoke-table -->
 
 ## M4 gate pack (02:16-02:40 Vienna, written while the smoke ran) — DONE (smoke column refreshes)
@@ -230,6 +231,14 @@ Evidence (exe `forge_r5a_m5_9ad9158d.exe`, sha256 `ae6f891e5766f5da3ea005ceca6d6
 
 - CMake incremental build OK, 0 warnings in the touched files; CTest on the 3-CPU mask after the SPSA test update:
   **55/55 passed** (`logs/ctest_m5_7a93bd55_rerun.log`; forge_tests excluded as in M2, CI runs it).
+- Pause checks 02:52-02:53 Vienna (`tools/pause_checks.sh`, `logs/pause_checks.log`): the whole M1 table re-run
+  on the M5 exe is IDENTICAL to the base exe's (`logs/m1_bench_m5.log`); `forge_r5a_options_tests` 58/58 PASS
+  (`logs/r5a_options_tests_m5.log`); syntax-only compiles of uci.cpp and search.cpp with FORGE_NNUE_INT16,
+  FORGE_NNUE_LAZY_ACC, FORGE_S13_TT_CHILD_PREFETCH, FORGE_EXPOSE_TUNABLES, FORGE_PROF, FORGE_NNUE_O2 and the CMake
+  warning flags: both exit 0; uci.cpp 0 warnings; search.cpp 31 warnings, all pre-existing (-Wconversion in
+  alphabeta.inc / qsearch.inc / tt_lockless.inc; the one hit for "corr_margins" is the function name
+  `search_corr_margins` in that alphabeta.inc warning). CI's opus-r3-switches workflow runs only on
+  forge-bundle-* branches, so this is the only switch-build check of the R5A #if blocks before a merge.
 - Tuning-gate use: `option.CorrMargins=1 option.CorrMarginsScale=<x>` (SPSA range e.g. 25..200) and
   `option.CorrExt=1 option.CorrExtTripleCorr=<y>` (e.g. 16..96); fastchess -strict accepts both because they are
   advertised.
@@ -246,7 +255,7 @@ Every other push of this branch is `[skip ci]` (WIP, docs, smoke evidence); the 
 ## Milestones
 - M1 per-option audit + ON benches: DONE (02:01 Vienna, commit aeb6f093)
 - M2 effective-settings echo + conflict guards: DONE (02:15 Vienna)
-- M3 smoke stability: in progress (1/8 PASS at 02:31; see the table)
+- M3 smoke stability: in progress (2/8 PASS at 02:52; see the table)
 - M4 gate pack: written (02:23 Vienna; smoke column refreshes as configs finish)
 - M5 SPSA hooks (optional): DONE (02:38 Vienna)
 

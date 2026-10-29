@@ -3,3 +3,4 @@
 | config | ON options | games | illegal | crashes | time losses | missing bestmove | ERROR lines | echo mismatches | go/stop stress | avg plies | clock < 20 ms | engine restarts | ON points (not Elo) | terminations | time (Vienna) | verdict |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
 | corrmargins1 | `CorrMargins=1` | 200/200 | 0 | 0 | 0 | 0 | 0 | 0 | 50/50, 0 problems | 132.5 | 0 | 0 | 96.5/200 | threefold_repetition 139, checkmate 37, insufficient_material 16, fifty_moves 7, stalemate 1 | 02:16:09 Vienna-02:31:46 | **PASS** |
+| corrext1 | `CorrExt=1` | 200/200 | 0 | 0 | 0 | 0 | 0 | 0 | 50/50, 0 problems | 127.1 | 0 | 0 | 101.5/200 | threefold_repetition 138, checkmate 51, insufficient_material 8, fifty_moves 3 | 02:37:18 Vienna-02:52:33 | **PASS** |
