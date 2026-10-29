@@ -7,7 +7,7 @@ loader + scalar / AVX2 forward + UCI `NNUEv4` / `NNUEv4File`, OFF identity ALL O
 `export_fnn4.py` from the real J7 checkpoint, parity 100,000 positions 0 mismatches (scalar and AVX2), float gap mean
 0.96 cp (float side checked against the trainer's torch forward), v4 smoke 50/50 PASS. M5: handoff written; exact
 holdout b0.6 0.015422 > AL1 0.014417 (not gate-eligible); v4 NPS 0.59x. Final tree: full CTest 57/57 + forge_tests
-known-failure check PASS on the PC (`logs/m5_ctest_*.log`); CI: see the M5 CI line.
+known-failure check PASS on the PC (`logs/m5_ctest_*.log`); CI run 40860832175 green (release, ASan, TSan).
 
 Branch `opus-r5c-netv4` = `origin/forge-bundle-int` b7c1772 + R5C commits. Job folder `opus_r5/r5c/`, scratch
 `F:\opus_scratch\r5\r5c\` (exes in `exe\`, sha256 in `EXES.txt`). Machine exclusive: no (live gates, NNUE training
@@ -208,8 +208,11 @@ Final checks of the branch head (PC, 11:48-11:50 Vienna): CMake Release build of
 lines, all pre-existing `-Wconversion` / `-Wclass-memaccess` in unchanged TT code), CTest on a 3-CPU mask **57/57
 passed** (incl. `forge_r5c_v4_tests`, `forge_r5c_n3_tests` with the tables, `r5c_n3_uci`), `forge_tests` only the 4
 known FAIL lines (KNOWN-FAILURE CHECK PASS) (`logs/m5_ctest_m3b.log`, `logs/m5_ctest_forge_tests_m3b.log`).
-CI: the push of this report commit runs opus-ci on the head (the engine and test commits since M1 were pushed with
-`[skip ci]`); its run id and result are recorded in the next commit.
+CI: opus-ci run **40860832175** on f901142a (the first CI of the engine and test commits since M1, which were pushed
+with `[skip ci]`; later commits are report/log only): **success** in release, ASan+UBSan and TSan
+(`logs/ci_40860832175_excerpt.txt`): release lock identity ALL OK; `forge_r5c_v4_tests`, `forge_r5c_n3_tests`,
+`r5c_n3_uci` and `forge_tt_mate_tb_tests` passed in all three jobs; KNOWN-FAILURE CHECK PASS in all three; TSan: 0
+reports.
 
 ## What to gate first
 
