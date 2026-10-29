@@ -115,14 +115,57 @@ shallow quiet-move pruning block (move-count / futility / history / SEE) and the
 
 BK changes the one-thread tree (bench pins), which the job forbids for a fix without an option. See section 3.
 
-## 3. Fix (in progress)
+## 3. Fix
 
 Job rule: smallest fix, behind no option, OFF and Threads=1 bit-identical. BK cannot meet "Threads=1 bit-identical"
-(it is a Threads=1 change too). The fix being verified is **BKM** = BK applied only while more than one worker
-searches (`SharedSearchState::multi_worker`, set by `Searcher::search` before any worker starts; bench and every
-Threads 1 search keep the AL1 tree). The one-thread warm-TT case (6 of 40 above) stays as it is on the lock tree and is
-left to the owner (BK with new pins and a gate, section 5 notes).
+(it is a Threads=1 change too). The fix is **BKM** = BK applied only while more than one worker searches
+(`SharedSearchState::multi_worker`, set by `Searcher::search` before any worker starts; bench and every Threads 1
+search keep the AL1 tree). 12 added / 2 changed lines in three files (`git diff 5eabdb7 -- src include`):
+
+```diff
+ include/forge/thread_data.hpp (SharedSearchState)
++    bool multi_worker = false;   // set by Searcher::search before any worker starts, read-only while they run
+ src/search/searcher.inc (Searcher::search, after shared_.tt.new_search())
++    shared_.multi_worker = workers_.size() > 1;
+ src/search/alphabeta.inc (main search, before the move loop)
++    const bool mating_mode = shared_.multi_worker && popcount(board.occupied(opposite(board.side_to_move()))) == 1;
+-        if (!root_node && best_score > -MateInMaxPly && has_material) {
++        if (!root_node && best_score > -MateInMaxPly && has_material && !mating_mode) {     // shallow pruning block
+-        if (depth >= 2 && move_count > 1 + (root_node ? 1 : 0) && (quiet || !ss->tt_pv || move_count > 4)) {
++        if (depth >= 2 && move_count > 1 + (root_node ? 1 : 0) && !mating_mode && (quiet || !ss->tt_pv || move_count > 4)) {  // LMR
+```
+
+- What it changes: only nodes of a multi-worker search where the side to move faces a bare king (KXK endings,
+  including K+pawns v K). There the side to move has no capture, so the two blocks only ever skipped or reduced quiet
+  moves; node-level pruning (null move, reverse futility, ProbCut) and qsearch are unchanged.
+- Thread safety: `multi_worker` is a plain bool written by the searching thread before `std::thread` starts the
+  helpers and after the previous search joined them (both happens-before edges); workers only read it.
+- Not changed (not this job, or not the cause): the SmpV2 selector defect above (SmpV2 mate selection is Astra's item;
+  with BKM, SmpV2 on also reaches 0 misses), the TT duplicate-slot store (dupfix: latent, no effect here).
+- Left to the owner: the one-thread warm-TT miss (6 of 40 prefill positions; bench-identical by the job rule). BK
+  (the same change without the `multi_worker` gate) removes it but changes the bench pins (section 1 BK table): it
+  needs new pins and a gate, so it is not part of this branch.
+
+Fix tree checks (PC, BelowNormal, <= 3 threads):
+
+| check | result | evidence |
+|---|---|---|
+| box build (RECIPE=v3) `forge_r5d_bkm.exe` | sha256 959c9785..., 0 warnings, FMA 0 | `logs/build_bkm.log` |
+| lock identity `uci_check.py --full` | bench 312866 / 862329 / 3024920 / 12389307 / 34048354, perft5 4865609, kiwipete 193690690: **ALL OK** | `logs/identity_bkm.log` |
+| CMake (Release, all targets) | builds; 62 warning lines, all `-Wconversion` / `-Wclass-memaccess` in unchanged lines (TT store calls in `alphabeta.inc` / `qsearch.inc`, `tt_lockless.inc`) | `logs/cmake_bkm_warnings.txt` |
+| full CTest on a 3-CPU mask (forge_tests apart) | **63 / 63 passed** | `logs/ctest_bkm.log` |
+| forge_tests | only the 4 known FAIL lines: KNOWN-FAILURE CHECK PASS | `logs/ctest_forge_tests_bkm.log`, `logs/chain_tools.out` |
 
 ## 4. Proof (pending)
 
-## 5. CI test (pending)
+## 5. CI test
+
+`tests/r5d_matefix_tests.cpp` -> CTest `forge_r5d_matefix_tests` (argument: runs per configuration, CTest 50,
+timeout 600 s). KRK depth 14 with a fresh Searcher per run: Threads 2 and 3, SmpV2 off and on (4 x 50 runs), and
+Threads 2 on a TT left by an unrelated depth-9 search (the 6 prefill openings after which the one-thread search
+misses, 5 repeats = 30 runs). Every score must be a real mate no shorter than mate in 3.
+- Planted bug = the base tree 5eabdb7 (no fix), same test source: **FAIL** (exit 1): Threads 2 47/50, Threads 2 SmpV2
+  47/50, Threads 3 48/50, Threads 3 SmpV2 50/50, warm 27/30 (`logs/matefix_tests_base.log`).
+- BKM tree: **PASS**, 230/230 runs, and every fresh run exactly mate in 3 (200/200) (`logs/matefix_tests_bkm.log`).
+- `tests/tt_mate_tb_tests.cpp`: its Threads block reads `FORGE_TT_MATE_THREADS` (default 2) and `FORGE_TT_MATE_SMPV2`
+  (default off) for the proof loops; default output and checks unchanged.
