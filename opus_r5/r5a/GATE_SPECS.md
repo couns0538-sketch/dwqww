@@ -40,7 +40,7 @@ Common to every entry:
 | prebench cand_off | 312866 / 862329 / 3024920 |
 | expected echo | `info string active: CorrHistPlus=4` |
 | smoke | pending |
-| conflicts with B1-B4 | B1/B3 use CorrHistPlus=1: combinable as the bitmask 5 (1|4). B2/B4 use CorrHistV2: exclusive (the UCI refuses the pair in both orders, M2 tests), so a pass transfers to B1/B3 only. |
+| conflicts with B1-B4 | B1/B3 use CorrHistPlus=1: combinable as the bitmask 5 (1 + 4). B2/B4 use CorrHistV2: exclusive (the UCI refuses the pair in both orders, M2 tests), so a pass transfers to B1/B3 only. |
 | why this rank | Best prior of the set: the related NonPawnCorr+PawnHist pack ended with a positive LLR in all 4 of its PC gates (0.63-2.48 at [0,10], all capped; R3-3 R3-03); non-pawn correction history is public practice in strong engines. Cheap at 10+0.1, smallest conflict surface. |
 | sources | C2 (opus_round1), R3-3 R3-03 |
 

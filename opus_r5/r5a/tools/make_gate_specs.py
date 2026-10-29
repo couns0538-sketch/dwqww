@@ -27,7 +27,7 @@ SPRT = {"elo0": 0, "elo1": 10, "alpha": 0.05, "beta": 0.05, "model": "normalized
 # rank, id, name, options, primary TC, smoke dir, ON pins d11/d13/d16, conflicts with B1-B4, reason, evidence
 GATES = [
     (1, "R5A-1", "CorrHistPlus=4", ["CorrHistPlus=4"], "10+0.1", "corrhistplus4", [340927, 734347, 2794671],
-     "B1/B3 use CorrHistPlus=1: combinable as the bitmask 5 (1|4). B2/B4 use CorrHistV2: exclusive (the UCI refuses "
+     "B1/B3 use CorrHistPlus=1: combinable as the bitmask 5 (1 + 4). B2/B4 use CorrHistV2: exclusive (the UCI refuses "
      "the pair in both orders, M2 tests), so a pass transfers to B1/B3 only.",
      "Best prior of the set: the related NonPawnCorr+PawnHist pack ended with a positive LLR in all 4 of its PC gates "
      "(0.63-2.48 at [0,10], all capped; R3-3 R3-03); non-pawn correction history is public practice in strong engines. "
