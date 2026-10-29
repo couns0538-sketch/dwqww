@@ -114,13 +114,23 @@ class TrialDeadline {
     std::thread thread_;
 public:
     std::atomic<bool> expired{false};
-    TrialDeadline(SharedSearchState& state, Clock::time_point deadline) : state_(state), thread_([this, deadline] {
-        std::unique_lock lock(mutex_);
-        if (!cv_.wait_until(lock, deadline, [this] { return cancelled_; })) {
-            expired.store(true, std::memory_order_release);
-            state_.stop.store(true, std::memory_order_relaxed);
-        }
-    }) {}
+    TrialDeadline(SharedSearchState& state, Clock::time_point deadline) : state_(state) {
+        // Launch only after every member (including expired) is constructed.
+        thread_ = std::thread([this, deadline] {
+            std::unique_lock lock(mutex_);
+            if (!cv_.wait_until(lock, deadline, [this] { return cancelled_; })) {
+                expired.store(true, std::memory_order_release);
+                state_.stop.store(true, std::memory_order_relaxed);
+            }
+        });
+    }
+    bool reset_stop() {
+        // Do not overwrite a watchdog stop when starting the next round.
+        std::lock_guard lock(mutex_);
+        if (expired.load(std::memory_order_acquire)) return false;
+        state_.stop.store(false, std::memory_order_relaxed);
+        return true;
+    }
     ~TrialDeadline() {
         { std::lock_guard lock(mutex_); cancelled_ = true; }
         cv_.notify_one();
@@ -138,14 +148,14 @@ void record(std::ofstream& out, Counts& counts, const std::string& condition, un
             std::uint64_t observed_nodes, std::int64_t delay_us, bool helper_done, bool expired) {
     const bool cp = r.score > -MateInMaxPly && r.score < MateInMaxPly;
     const bool exact = r.score == MateValue - 5 && Board::move_to_uci(r.best_move) == "d5c5";
-    if (role == "main") {
+    if (!expired && role == "main") {
         ++counts.main_results; counts.main_cp += cp; counts.exact_mate += exact; counts.other_mate += !cp && !exact;
-    } else counts.helper_cp += cp;
+    } else if (!expired) counts.helper_cp += cp;
     out << condition << '\t' << trial << '\t' << k << '\t' << round << '\t' << role << '\t' << r.depth << '\t'
         << r.nominal_depth << '\t' << r.score << '\t' << Board::move_to_uci(r.best_move) << '\t' << pv_text(r) << '\t'
         << r.nodes << '\t' << local_nodes << '\t' << r.elapsed_ms << '\t' << target_nodes << '\t' << observed_nodes
         << '\t' << delay_us << '\t' << helper_done << '\t' << expired << '\t'
-        << (cp ? "CP" : exact ? "EXPECTED_EXACT" : "OTHER_MATE_UNVERIFIED") << '\n';
+        << (expired ? "ABORTED_TIMEOUT" : cp ? "CP" : exact ? "EXPECTED_EXACT" : "OTHER_MATE_UNVERIFIED") << '\n';
     out.flush();
 }
 void snapshot(std::ofstream& out, SharedSearchState& shared, const std::map<std::uint64_t, Watched>& watched,
@@ -176,6 +186,7 @@ void run_trial(const Config& config, const std::string& condition, unsigned tria
     const std::vector<Worker*> all = empty ? std::vector<Worker*>{main_worker.get()} : std::vector<Worker*>{main_worker.get(), helper.get()};
     TrialDeadline deadline(shared, std::min(wall_end, Clock::now() + std::chrono::seconds(config.trial_seconds)));
     for (int round = 1; round <= 2; ++round) {
+        if (!deadline.reset_stop()) { ++counts.timeouts; break; }
         shared.tt.new_search();
         main_worker->reset_published_nodes(); helper->reset_published_nodes();
         SearchLimits limits;
@@ -221,7 +232,6 @@ void run_trial(const Config& config, const std::string& condition, unsigned tria
         record(results, counts, condition, trial, k, round, "main", main_result, main_worker->nodes(), target, observed_nodes, delay_us, done_at_main_start, expired);
         if (!empty) record(results, counts, condition, trial, k, round, "helper", helper_result, helper->nodes(), target, observed_nodes, delay_us, done_at_main_start, expired);
         if (expired) { ++counts.timeouts; break; }
-        shared.stop.store(false, std::memory_order_relaxed);
     }
     snapshot(snapshots, shared, watched, condition, trial, k);
     ++counts.trials;
@@ -271,6 +281,7 @@ int main(int argc, char** argv) {
             }
         }
         std::ofstream summary(c.output / "summary.txt");
+        summary.exceptions(std::ios::badbit | std::ios::failbit);
         summary << "completed_condition_trials=" << counts.trials << "\nmain_results=" << counts.main_results
                 << "\nmain_cp=" << counts.main_cp << "\nmain_exact_fixture_mate=" << counts.exact_mate
                 << "\nmain_other_mate_UNVERIFIED=" << counts.other_mate << "\nhelper_cp=" << counts.helper_cp
