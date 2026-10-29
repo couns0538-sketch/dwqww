@@ -209,3 +209,9 @@ The helper timeout regression is now complete:5 test methods pass, including exa
 Complete ASan/UBSan CTest finished64/65 with only the exact four known forge_tests lines; no address, undefined-behavior or leak diagnostic was found. ctest_qualification.json retains the actual exit8 and full failure list. TSan selected tests finished8/9: forge_smp_tests exceeded300s, and the original timeout is preserved. Only that unchanged full-depth native test is replaying with900s; no depths, expected values or engine source changed. The separate256-search TSan stress remains PASS with zero race reports. Instrumented deep OFF benchmark qualification is pending.
 
 A test-only A2 reproduction harness is being prepared in a new isolated astra3-smp-mate-rootcause worktree from this integration source. Native A2 work waits for A1 validation; the preparation changes no engine source and does not imply an accepted baseline or a mate-bug fix. The required20-minute final review remains outstanding.
+
+### Instrumented identity checkpoint — 2026-10-29 02:32:31 PDT
+
+The unchanged TSan native SMP replay passes133 checks in529.42s. Combined selected coverage is now9/9 passing targets across the original run and the single longer-deadline replay, with the initial300s timeout retained; no race diagnostics. ASan/UBSan OFF d11/13/16/20 now match312866/862329/3024920/12389307; d22 is still running. These instrumented timings are not performance comparison evidence. TSan OFF identities follow serially.
+
+Checkpoint cadence note: the09:05–09:21UTC interval exceeded the requested10 minutes; source and original results were preserved and pushed. Subsequent checkpoints resumed. A2 preparation has its own pushed branch; its first test-only driver compile checks the unchanged A1 source/ABI before linking the Release archive. No A2 root cause or fix has been demonstrated.
