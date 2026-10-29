@@ -64,7 +64,7 @@ Config parse(int argc, char** argv) {
             else throw std::runtime_error("unknown or invalid argument: " + key);
         }
     }
-    if (c.output.empty() || (c.mode != "serial" && c.mode != "concurrent") || c.trials < 1 || c.trials > 5000 ||
+    if (c.output.empty() || (c.mode != "serial" && c.mode != "concurrent" && c.mode != "rewrite") || c.trials < 1 || c.trials > 5000 ||
         c.max_seed_depth < 1 || c.max_seed_depth > 14 || c.main_depth < 1 || c.main_depth > 32 ||
         c.max_seconds < 1 || c.max_seconds > 1800 || c.trial_seconds < 1 || c.trial_seconds > 60)
         throw std::runtime_error("invalid bounds: trials 1..5000, seed depth 1..14, main depth 1..32, wall 1..1800, trial 1..60; --out required");
@@ -175,9 +175,79 @@ void snapshot(std::ofstream& out, SharedSearchState& shared, const std::map<std:
     }
     out.flush();
 }
+// Public probes deliberately hide their slot/cluster handles. Reconstruct the
+// cluster index using the frozen TT indexing contract; never access private data.
+std::size_t cluster_index(std::uint64_t key, std::size_t count) {
+#if defined(__SIZEOF_INT128__)
+    __extension__ using Wide = unsigned __int128;
+    return static_cast<std::size_t>((static_cast<Wide>(key) * count) >> 64U);
+#else
+    return static_cast<std::size_t>(key % count);
+#endif
+}
+std::uint32_t key_tag(std::uint64_t key) {
+#if defined(__SIZEOF_INT128__)
+    return static_cast<std::uint32_t>(key);
+#else
+    return static_cast<std::uint32_t>(key >> 32U);
+#endif
+}
+bool same_except_score(const TTEntry& a, const TTEntry& b) {
+    return a.key32 == b.key32 && a.move == b.move && a.eval == b.eval && a.depth == b.depth &&
+           a.gen_bound == b.gen_bound && a.rule50_clock == b.rule50_clock && a.padding == b.padding;
+}
+void rewrite_score(SharedSearchState& shared, const std::string& condition, unsigned trial, unsigned k,
+                   std::ofstream& log) {
+    if (condition == "rewrite_no_touch") return; // No pre-main probe or store in this control.
+    const bool child = condition == "rewrite_child_identical" || condition == "rewrite_child_mask";
+    const bool mask = condition == "rewrite_root_mask" || condition == "rewrite_child_mask";
+    Board board = root_board();
+    if (child) {
+        const auto move = board.parse_uci("d5c5");
+        Undo undo;
+        if (!move || !board.make_move(*move, undo)) throw std::runtime_error("target child is not legal");
+    }
+    const auto key = board.key();
+    const auto count = shared.tt.cluster_count();
+    const auto index = cluster_index(key, count);
+    // Fresh table, first round only: every occupied entry came from this helper
+    // in generation 1, so probe cannot age an older generation here.
+    if (shared.tt.generation() != 1) throw std::runtime_error("rewrite requires fresh first-round generation 1");
+    const auto before = shared.tt.probe(key);
+    const auto write_row = [&](const char* stage, const TTProbe& probe, const char* status) {
+        const auto& e = probe.entry;
+        log << condition << '\t' << trial << '\t' << k << '\t' << stage << '\t' << key << '\t'
+            << cluster_index(key, shared.tt.cluster_count()) << '\t' << shared.tt.cluster_count() << '\t'
+            << probe.hit << '\t' << e.key32 << '\t' << e.score << '\t' << e.eval << '\t'
+            << static_cast<int>(e.depth) << '\t' << static_cast<int>(e.bound()) << '\t' << e.pv() << '\t'
+            << static_cast<int>(e.generation()) << '\t' << static_cast<int>(e.gen_bound) << '\t'
+            << static_cast<int>(e.rule50_clock) << '\t' << Board::move_to_uci(e.move) << '\t'
+            << static_cast<int>(e.padding) << '\t' << status << '\n';
+        log.flush();
+    };
+    if (!before.hit || before.entry.generation() != shared.tt.generation() || before.entry.key32 != key_tag(key)) {
+        write_row("BEFORE", before, "NO_INTERVENTION_missing_or_invalid_entry");
+        throw std::runtime_error("NO_INTERVENTION: target entry missing or invalid; no store attempted");
+    }
+    if (mask && before.entry.score == ValueNone) {
+        write_row("BEFORE", before, "NO_INTERVENTION_already_ValueNone");
+        throw std::runtime_error("NO_INTERVENTION: score was already ValueNone");
+    }
+    write_row("BEFORE", before, "VALID_CURRENT_GENERATION_HIT");
+    const auto& entry = before.entry;
+    const int replacement = mask ? ValueNone : entry.score;
+    shared.tt.store(before, key, replacement, entry.eval, entry.move, entry.depth,
+                    entry.bound(), entry.pv(), entry.rule50_clock);
+    const auto after = shared.tt.probe(key);
+    const bool okay = after.hit && same_except_score(entry, after.entry) && after.entry.score == replacement &&
+                      after.entry.key32 == key_tag(key) && after.entry.generation() == shared.tt.generation() &&
+                      shared.tt.cluster_count() == count && cluster_index(key, shared.tt.cluster_count()) == index;
+    write_row("AFTER", after, okay ? "PASS_exact_requested_change" : "FAIL_unexpected_entry_change");
+    if (!okay) throw std::runtime_error("rewrite changed an unintended TT field or failed to replace score");
+}
 void run_trial(const Config& config, const std::string& condition, unsigned trial, unsigned k, std::mt19937_64& rng,
                Clock::time_point wall_end, const std::map<std::uint64_t, Watched>& watched,
-               std::ofstream& results, std::ofstream& snapshots, Counts& counts) {
+               std::ofstream& results, std::ofstream& snapshots, std::ofstream& rewrites, Counts& counts) {
     SharedSearchState shared(16);
     auto main_worker = std::make_unique<Worker>(shared, 0);
     auto helper = std::make_unique<Worker>(shared, 1);
@@ -213,6 +283,10 @@ void run_trial(const Config& config, const std::string& condition, unsigned tria
                        !deadline.expired.load(std::memory_order_acquire)) std::this_thread::yield();
             } else run_helper();
         }
+        if (config.mode == "rewrite" && round == 1 && !deadline.expired.load(std::memory_order_acquire)) {
+            if (helper_error) std::rethrow_exception(helper_error);
+            rewrite_score(shared, condition, trial, k, rewrites);
+        }
         const auto observed_nodes = helper->nodes();
         const bool done_at_main_start = helper_done.load(std::memory_order_acquire);
         const auto delay_us = std::chrono::duration_cast<std::chrono::microseconds>(Clock::now() - begin).count();
@@ -241,10 +315,11 @@ int main(int argc, char** argv) {
         const auto c = parse(argc, argv);
         const auto cpus = affinity(c.cpu);
         if (!fs::create_directory(c.output)) throw std::runtime_error("output directory must be NEW: " + c.output.string());
-        std::ofstream metadata(c.output / "run_metadata.txt"), results(c.output / "worker_results.tsv"), snapshots(c.output / "final_tt_snapshots.tsv");
+        std::ofstream metadata(c.output / "run_metadata.txt"), results(c.output / "worker_results.tsv"), snapshots(c.output / "final_tt_snapshots.tsv"), rewrites(c.output / "rewrite_entries.tsv");
         metadata.exceptions(std::ios::badbit | std::ios::failbit);
         results.exceptions(std::ios::badbit | std::ios::failbit);
         snapshots.exceptions(std::ios::badbit | std::ios::failbit);
+        rewrites.exceptions(std::ios::badbit | std::ios::failbit);
         metadata << "engine_source=926c55f33227bc4a030d7ce5b1140528aeba75af\nbranch_base=93c51b3\nfixture=" << Fen
                  << "\nmode=" << c.mode << "\nseed=" << c.seed << "\ntrials_per_condition=" << c.trials
                  << "\nmain_depth=" << c.main_depth << "\nmax_seed_depth=" << c.max_seed_depth << "\nmax_seed_nodes=" << c.max_seed_nodes
@@ -253,7 +328,9 @@ int main(int argc, char** argv) {
                  << "\nNNUE_available=" << nnue::available() << "\nNNUE_enabled=" << nnue::enabled
                  << "\nHashMB=16\nLocklessTT=false\nSmpHelpersPastDepth=false\nselector=NOT_RUN_raw_worker_results\n"
                  << "node_counters_reset_before_each_round=true\nschedule=seeded_targets_only_OS_interleaving_NOT_deterministic\n"
-                 << "snapshots=after_both_searches_only_probe_ages_hits_no_per_store_origin_or_history_proof\ncommand=";
+                 << "snapshots=after_both_searches_only_probe_ages_hits_no_per_store_origin_or_history_proof\n"
+                 << "rewrite_mode=K1_to_min_requested_2_first_round_only_no_touch_or_identical_control\n"
+                 << "rewrite_cluster_index=reconstructed_from_public_key_count_private_probe_slot_not_introspectable\ncommand=";
         for (int i = 0; i < argc; ++i) metadata << std::quoted(argv[i]) << ' ';
         metadata << '\n'; metadata.flush();
         if (options::lockless_tt || options::smp_helpers_past_depth || options::hard_deadline_ms != 0)
@@ -265,17 +342,20 @@ int main(int argc, char** argv) {
         metadata << "watched_unique_keys=" << watched.size() << '\n'; metadata.flush();
         results << "condition\ttrial\tseed_depth\tround\tworker\tactual_depth\tnominal_depth\tscore\tmove\tpv\treported_nodes\tworker_nodes\telapsed_ms\ttarget_helper_nodes\tobserved_helper_nodes\tmain_start_delay_us\thelper_done_at_main_start\ttimeout\tclassification\n";
         snapshots << "condition\ttrial\tseed_depth\tminimum_ply\tkey\tfirst_path\tfen\thit\traw_score\tdepth\tbound_1upper_2lower_3exact\tpv\trule50_clock\tmove\tgeneration\n";
+        rewrites << "condition\ttrial\tseed_depth\tstage\trequested_key64\tcomputed_cluster_index\tcluster_count\thit\tkey32\traw_score\traw_eval\tdepth\tbound\tpv\tgeneration\tgen_bound\trule50_clock\tmove\tpadding\tstatus\n";
         std::mt19937_64 rng(c.seed);
         const auto wall_end = Clock::now() + std::chrono::seconds(c.max_seconds);
         Counts counts;
         bool budget_exhausted = false;
         for (unsigned trial = 1; trial <= c.trials && !budget_exhausted; ++trial) {
-            const unsigned max_k = c.mode == "serial" ? c.max_seed_depth : 1;
+            const unsigned max_k = c.mode == "serial" ? c.max_seed_depth : c.mode == "rewrite" ? std::min(c.max_seed_depth, 2U) : 1;
             for (unsigned k = 1; k <= max_k && !budget_exhausted; ++k) {
-                for (const auto& condition : c.mode == "serial" ? std::vector<std::string>{"empty_control", "serial_seeded"}
-                                                                : std::vector<std::string>{"concurrent"}) {
+                const auto conditions = c.mode == "serial" ? std::vector<std::string>{"empty_control", "serial_seeded"}
+                    : c.mode == "rewrite" ? std::vector<std::string>{"rewrite_no_touch", "rewrite_root_identical", "rewrite_root_mask", "rewrite_child_identical", "rewrite_child_mask"}
+                    : std::vector<std::string>{"concurrent"};
+                for (const auto& condition : conditions) {
                     if (Clock::now() >= wall_end) { budget_exhausted = true; break; }
-                    run_trial(c, condition, trial, c.mode == "serial" ? k : 0, rng, wall_end, watched, results, snapshots, counts);
+                    run_trial(c, condition, trial, c.mode == "concurrent" ? 0 : k, rng, wall_end, watched, results, snapshots, rewrites, counts);
                     if (counts.timeouts != 0) { budget_exhausted = true; break; }
                 }
             }
