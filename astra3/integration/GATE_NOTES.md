@@ -17,3 +17,7 @@ IDEA_SOURCE: Engine QA round-three contract, same-repository R5A gate specificat
 ## Native Release qualification update
 
 Source926c55f33227bc4a030d7ce5b1140528aeba75af passes all75 matrix cells. All eight queued R5A singles have their exact five ON counts; the fixed OFF counts, both perfts and FMA0 pass. CTest64/65 has only the four known forge_tests lines. All102 advertised-option contract cases pass; strict positive two-game and named-negative exit1 checks meet the user contract. These are identity/protocol prerequisites only: full ASan/UBSan CTest has only the four known functional failures and zero sanitizer findings; TSan requested tests/stress pass after the documented timeout replay. Windows execution remains pending. No live gate migration is authorized or performed by this report.
+
+## A2 adoption limitation
+
+The isolated A2 diagnostic branch6a9cc2b7a23ed29f6bc77ad9a496b4cfc6e6e391 reproduces main-worker mate loss after serialized helper TT seeding. No production fix is demonstrated. Do not interpret A1 integration qualification as resolving that bug or qualifying SmpV2-on for adoption. R5A single identities here use SmpV2 defaultfalse. This is a review limitation for future adoption; no running or queued gate is changed.

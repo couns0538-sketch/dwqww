@@ -254,3 +254,7 @@ Primary TSan d22 continues; the owned process was observed actively running at10
 ### Finalizer evidence sealed — 2026-10-29T03:27:02.549406-07:00
 
 Finalizer regression evidence is complete:5methods PASS under both normal and optimized Python, original RED retained; root independently verified all345 manifest entries. All subprocesses in these tests are mocked and the fixture executable is a non-executable text file. The production helper has zero assert statements and remains frozen ate25cb3acbaba0689e640e50fe05148c206dc37e291e506b2b5414675aee53b83. Primary TSan d22 still runs; no new native chess result is claimed.
+
+### Adoption limitation checkpoint — 2026-10-29T03:30:52.326822-07:00
+
+GATE_NOTES now explicitly separates A1 identity/protocol qualification from the unresolved A2 mate defect: SmpV2-on is not qualified for adoption by these integration results. Its default remainsfalse and the R5A single tests preserve that setting. No live gate or accepted branch changed. TSan d22 remains the only running bench.
