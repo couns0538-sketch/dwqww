@@ -4,8 +4,12 @@
 # catch out-of-bounds and UB but not reads of uninitialised memory, which is the NOZERO risk; this script adds:
 #   1. valgrind memcheck (--track-origins=yes) on the engine of OFF (control) and N2: bench 11, perft 4, and
 #      go depth 10 on four positions with castling / en passant / promotions; any memcheck error fails;
-#   2. N2 built with -ftrivial-auto-var-init=pattern and with =zero: the lock identity (bench d11-d22 + perft, the
-#      MovePicker / MoveList buffers are stack locals, so a read of an unwritten entry would change the nodes).
+#   2. the lock identity (bench d11-d22 + perft) of N2 built with
+#      - -DFORGE_R5B_POISON_MOVE_BUFFERS=0xFE and =0x5A: the UninitArray storage of the MoveList / MovePicker buffers
+#        is filled with that byte on every construction (test hook, include/forge/board.hpp), so a read of an
+#        element that was never written would see the pattern and change the nodes (or crash);
+#      - -ftrivial-auto-var-init=pattern: kept for the record, but on the PC (g++ 15) it does NOT reach the
+#        UninitArray members of MovePicker in the search (the search bodies are unchanged), so it is no NOZERO test.
 # usage: opus_r5/r5b/ci_n2_memcheck.sh [out_dir]      exit 0 = all checks pass
 set -uo pipefail
 OUT=${1:-ci_out}
@@ -44,13 +48,16 @@ for name in off_dbg n2_dbg; do
   fi
 done
 
-# 2. N2 with pattern / zero initialisation of every automatic variable: the lock pins must still hold
-for init in pattern zero; do
+# 2. N2 with poisoned move buffers / pattern-initialised automatic variables: the lock pins must still hold
+VARIANTS="poison_fe:-DFORGE_R5B_POISON_MOVE_BUFFERS=0xFE poison_5a:-DFORGE_R5B_POISON_MOVE_BUFFERS=0x5A"
+VARIANTS="$VARIANTS init_pattern:-ftrivial-auto-var-init=pattern"
+for variant in $VARIANTS; do
+  name=${variant%%:*}; flag=${variant#*:}
   # shellcheck disable=SC2086
-  build "n2_init_$init" Release "-ftrivial-auto-var-init=$init" $N2
-  python3 "$ROOT/opus_round1/ci/uci_check.py" "$OUT/build_n2_init_$init/forge" --full 2>&1 | tee "$OUT/identity_n2_init_$init.log"
-  if ! grep -q '^ALL OK' "$OUT/identity_n2_init_$init.log"; then status=1; fi
-  echo "N2 -ftrivial-auto-var-init=$init identity: $(tail -1 "$OUT/identity_n2_init_$init.log")" | tee -a "$OUT/memcheck_summary.log"
+  build "n2_$name" Release "$flag" $N2
+  python3 "$ROOT/opus_round1/ci/uci_check.py" "$OUT/build_n2_$name/forge" --full 2>&1 | tee "$OUT/identity_n2_$name.log"
+  if ! grep -q '^ALL OK' "$OUT/identity_n2_$name.log"; then status=1; fi
+  echo "N2 $flag identity: $(tail -1 "$OUT/identity_n2_$name.log")" | tee -a "$OUT/memcheck_summary.log"
 done
 echo "ci_n2_memcheck status=$status" | tee -a "$OUT/memcheck_summary.log"
 exit $status

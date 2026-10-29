@@ -134,7 +134,24 @@ so ON = the pins).
 | SPEEDSTACK | `-DFORGE_SPEEDSTACK=1` | b8172950... | 368ee29e... | ALL OK |
 | N2 | all three | 1823fe61... | faac168d... | ALL OK |
 
-## M4: non-regression evidence for N2 (pending)
+## M4: non-regression evidence for N2 (in progress)
+
+### (c) uninitialised reads (the NOZERO risk)
+
+- `-ftrivial-auto-var-init=pattern` and `=zero` builds of N2 znver5 (box recipe + the flag): 0 warnings, FMA 0,
+  identity ALL OK (`logs/identity_n2_z5_init{pattern,zero}_b2983d07.log`). **But this is no NOZERO test on g++ 15:**
+  the pattern build adds 10 memset-with-0xFE sites, none in the search bodies (`search_cuckoo_body` has 2862
+  instructions in N2 and 2859 in N2+pattern; the 0xfefefefe immediates there are the bitboard file mask, present
+  in both), i.e. GCC does not pattern-fill the `UninitArray` members of `MovePicker` (a class with a constructor).
+  `logs/m4_autovarinit_codegen.log`.
+- So I added a direct test hook (commit after b2983d07, `include/forge/board.hpp`): with
+  `-DFORGE_R5B_POISON_MOVE_BUFFERS=<byte>` every `UninitArray` (the MoveList and MovePicker buffers under NOZERO)
+  fills its storage with that byte when constructed. A read of an element that was never written then sees the
+  pattern and would change the nodes or crash. Without the macro the hook does not exist: N2 rebuilt from the hook
+  tree differs from the b2983d07 N2 exe in 4 bytes (PE timestamp).
+- ASan/UBSan catch out-of-bounds and UB, not uninitialised reads; valgrind memcheck does. Both run in the new CI
+  workflow `.github/workflows/opus-r5b-n2.yml` (asan job; `memcheck` job = `ci_n2_memcheck.sh`: valgrind memcheck of
+  OFF (control) and N2 on bench 11, perft 4 and four depth-10 searches, plus the poison and pattern identities).
 
 ## M5: proposal (pending)
 

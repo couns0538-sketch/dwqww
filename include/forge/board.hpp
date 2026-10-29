@@ -68,6 +68,14 @@ template <typename T, std::size_t N>
 struct UninitArray {
     static_assert(std::is_trivially_copyable_v<T> && std::is_trivially_destructible_v<T>);
     alignas(T) std::byte bytes[N * sizeof(T)];
+#if defined(FORGE_R5B_POISON_MOVE_BUFFERS)
+    // R5B M4(c) test hook, never set in an engine build: fill the storage with the byte value of the macro on
+    // every construction, so a read of an element that was never written sees that pattern instead of whatever
+    // the stack held (-ftrivial-auto-var-init does not reach these class members).
+    UninitArray() noexcept {
+        for (std::byte& b : bytes) b = static_cast<std::byte>(FORGE_R5B_POISON_MOVE_BUFFERS);
+    }
+#endif
 
     [[nodiscard]] T* data() { return std::launder(reinterpret_cast<T*>(bytes)); }
     [[nodiscard]] const T* data() const { return std::launder(reinterpret_cast<const T*>(bytes)); }
