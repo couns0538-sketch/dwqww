@@ -17,6 +17,34 @@ J3, J4, J6 were finished/advanced while J1 trains; J5 and J7 come last.
 | J6 gate design | `F:\opus_scratch\fable\GATE_BOUNDS.md` (copy `fable_fb2/j6/`) | **DONE** (proposal only) |
 | J7 NNUE v4 ideas | `fable-fb2-j7` | trainer prototypes written and smoke-tested (`--l2`, `--pairwise`, `--float-exact`); the 30-minute comparison runs wait for a free CPU thread |
 
+## Summary (what exists at the end of the session)
+
+- **J1** `fable-fb2-j1`: dedup/shuffle/phase-stratified data (271.8M train rows, 200k holdout), resumable QAT trainer
+  with 30-minute checkpoints (exact holdout score, per-phase loss, engine parity, stop rules, cooperative pause
+  flags), `forge_fable_v3.exe` (identity ALL OK), NPS vs AL1 1.11/1.06 per node, 200 sanity games vs AL1 clean.
+  Training still running when this report was last pushed: checkpoint curve 0.016094 -> 0.015156 (7 checkpoints,
+  295M positions) against AL1's 0.014417; it has not plateaued (the LR is still at 70% of its peak) and has not beaten
+  AL1; the owner can let it run to the horizon (93k steps) or stop it with `pause.flag` / `driver_stop.flag`.
+- **J2** `fable-fb2-j2`: datagen v2 (UCI `datagen`), compact FGB1 games, converter, exact round-trip tests (C++ and an
+  independent python-chess decoder), 10-minute smoke (1,758 games, 115,862 records), CI green.
+- **J3** `fable-fb2-j3`: `CorrHistV2`, `SingularV2`, `LmrTableV2` (fitted on 1.27M bench decisions), `TtPruneV2`;
+  121-check unit test, 2,500 self-play games clean, identity ALL OK, CI green, gate entries.
+- **J4** `fable-fb2-j4`: `TimeManV2` with a pure decision module, a 2000-game-per-cell simulator (0 flag losses in
+  three scenarios) and 220 real-clock games (0 flag losses), CI green.
+- **J5** `fable-fb2-j5`: `SmpV2` (helper depth skew, aspiration diversity, deepest-result selection) with the R3-6
+  analysis, 97-check unit test, identity ALL OK, CI incl. a TSan hook with SmpV2 at Threads 2/3/4 green; time-to-depth
+  at Threads 1/2 measured (inert at 1; +3% at 2, not significant); Threads 3 not measured (thread budget, see J5).
+- **J6** `F:\opus_scratch\fable\GATE_BOUNDS.md`: the SPRT math for this PC, 10 designs simulated, a recommendation
+  per candidate class and a ranking by expected Elo per gate hour.
+- **J7** `fable-fb2-j7`: trainer prototypes (second layer, pairwise term, float metric) and 30-minute comparisons:
+  the second layer is the only clear improvement at equal positions (0.015759 vs 0.016088).
+- Final 30-minute bug-test pass (user request): see the last section.
+
+Owner items: (1) queue the J3/J4 options and, once it beats AL1 on the holdout, the J1 net with the GATE_BOUNDS
+designs; (2) `F:\opus_scratch\fable\data\work\` (14 GB) can be deleted; (3) the J5 Threads-3 measurement
+(`run_j5.sh ttd3`) when the training is not running; (4) a v4 engine format if the second-layer prototype is to be
+gated; (5) the stray copy `fable_fb2/j6/CorrHistV2.summary.json` in the j1 worktree is untracked and can be ignored.
+
 ## J1 — real v3 net, trained at scale (`fable-fb2-j1`, folder `fable_fb2/j1/`)
 
 ### Data split (DONE)
@@ -238,7 +266,7 @@ thread, same data/seed/batch/LR/WDL schedules as J1, float holdout b0.6 on the 2
 | H1024 / 8 (half the throughput) | 0.017935 (7.6M) | 0.016738 (14.9M) | 0.016401 (22.1M) |
 | H512 / 16 king buckets | 0.017224 (13.6M) | 0.016429 (27.0M) | 0.016242 (40.1M) |
 | H512 / 8 + second layer 16 (2H -> 16 -> 1) | 0.016835 (13.8M) | 0.016086 (26.9M) | **0.015759** (40.5M) |
-| H512 / 8 + pairwise term | running (20:17-20:47) | | |
+| H512 / 8 + pairwise term | 0.017083 (13.9M) | running | |
 
 Reading so far (early-learning comparison, one seed, 30 minutes each): the second layer is the clear winner at
 equal positions (-0.00033 vs the baseline at 40M, i.e. the baseline's 60-minute value reached in 30), H1024 learns
