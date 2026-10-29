@@ -70,3 +70,23 @@ Code: `tools/nnue_pytorch_amd/fpos2sf_mt/` (README, IDEA_SOURCE, `j2_check.sh`).
   `pieceAt(64)`, one past the 64-entry array (undefined behaviour). Grok Bot's and my trainers use `filtered=False`,
   so nothing is affected today; never train these files with `filtered=True` (or give FPOS records a real legal
   move in a future format).
+
+## J3 Forge NPS (Threads=1): DONE, one real gain (+3.6-4.0%), two neutral options
+Engine branch `opus-r7-nps`: base `opus-r5d-matefix` 5882c383, profile workflow `4c3577d7`, **engine change
+`2d9889cf`**, report `5dd37b7d` (`opus_r7/j3/REPORT.md` there). Patch copy: `logs/r7/j3/`.
+- **Top 3 hotspots** (perf on a quiet GitHub runner, bench 16, self time): HCE `evaluate_position` 14.4% (the eval
+  is residual HCE + network), `MovePicker::next` 10.9%, `TranspositionTable::probe` 10.7%; then `nnue::update` 8.3%.
+  In the PC's MinGW build every TT probe and store calls `__emutls_get_address` (emulated `thread_local`) inside
+  `lock_stripe()` and then defers the lock, because bench and UCI `go` at Threads 1 already hold an exclusive lease.
+- **Options** (`type check default false`, node-exact): `R7TtExclusive` (lock-free probe/store twins for the lease
+  holder), `R7QuietGen` (quiet-only generation in the picker's quiet stage, same moves in the same order),
+  `R7EvalPrefetch` (prefetch the child's HCE pawn-cache entry).
+- **Identity**: OFF = every lock pin (bench 312866/862329/3024920/12389307/34048354, perft5 4865609, kiwipete
+  193690690); each option ON and all three ON: the same numbers. Quiet generator test: 816,100 positions identical
+  in content and order, a planted mutant fails. Nodes equal in all 125 NPS runs.
+- **NPS** (same exe, option via setoption, fresh process per run, 95% CI of paired ratios, A/A control
+  -0.02% / -0.98%): **R7TtExclusive +3.59% [+1.38, +5.84] at d16, +3.97% [+1.23, +6.77] at d20** (15 runs; CPU time
+  +3.07% / +3.80%); real, but the lower bounds miss the PC's +2% eligibility rule. R7QuietGen -0.08% / -1.51% and
+  R7EvalPrefetch -0.60% / -1.33%: no measurable gain (intervals include 0), not suggested for a gate.
+- **Gate**: `F:\opus_scratch\r7\j3\exe\forge_r7_j3a.exe` (sha256 `61f641d8...`, source `2d9889cf`) with
+  `option.R7TtExclusive=true` vs the same exe at defaults (node-exact, so a non-regression SPRT fits).

@@ -1,0 +1,631 @@
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index 75e92f16..05075ff7 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -175,6 +175,9 @@ target_link_libraries(forge_rule50_tests PRIVATE forge_core Threads::Threads)
+ 
+ add_executable(forge_legal_witness_tests tests/legal_witness_tests.cpp)
+ target_link_libraries(forge_legal_witness_tests PRIVATE forge_core Threads::Threads)
++# R7 J3 R7QuietGen: the quiet-only generator equals the filtered full generator (content and order).
++add_executable(forge_r7_quiet_gen_tests tests/r7_quiet_gen_tests.cpp)
++target_link_libraries(forge_r7_quiet_gen_tests PRIVATE forge_core Threads::Threads)
+ 
+ add_executable(forge_correction_history_tests tests/correction_history_tests.cpp)
+ target_link_libraries(forge_correction_history_tests PRIVATE forge_core Threads::Threads)
+@@ -444,6 +447,8 @@ add_test(NAME forge_nnue_microbench_check COMMAND forge_nnue_microbench --check-
+ add_test(NAME forge_legal_witness_tests COMMAND forge_legal_witness_tests
+     ${CMAKE_CURRENT_SOURCE_DIR}/tests/legal_witness_fixtures.tsv
+     ${CMAKE_CURRENT_SOURCE_DIR}/tools/openings/forge-10000.epd)
++add_test(NAME forge_r7_quiet_gen_tests COMMAND forge_r7_quiet_gen_tests
++    ${CMAKE_CURRENT_SOURCE_DIR}/tools/openings/forge-10000.epd)
+ # Sol's null-edge accumulator alias regression test (S12, v2); only builds with the alias compiled in.
+ if(FORGE_NNUE_LAZY_ACC)
+     add_executable(forge_s12_lazyacc_tests tests/forge_sol_S12_lazyacc_native_regression_v2_20261027.cpp)
+diff --git a/include/forge/board.hpp b/include/forge/board.hpp
+index 0a298f0f..1f7cbade 100644
+--- a/include/forge/board.hpp
++++ b/include/forge/board.hpp
+@@ -154,6 +154,9 @@ public:
+     // quiet promotion, so search sees every material-changing move.
+     [[nodiscard]] MoveList pseudo_legal_moves(bool captures_only = false) const;
+     void generate_pseudo_legal(MoveList& moves, bool captures_only) const;
++    // R7 J3 (UCI R7QuietGen, the move picker's quiet stage): exactly the moves of generate_pseudo_legal(moves,
++    // false) that are neither captures nor promotions, in the same order (src/board.cpp).
++    void generate_quiets_r7(MoveList& moves) const;
+     [[nodiscard]] MoveList legal_moves(bool captures_only = false) const;
+     [[nodiscard]] bool has_legal_move() const;
+     [[nodiscard]] bool is_legal(const Move& move) const;
+diff --git a/include/forge/eval.hpp b/include/forge/eval.hpp
+index 4bd1abae..600d89d5 100644
+--- a/include/forge/eval.hpp
++++ b/include/forge/eval.hpp
+@@ -62,6 +62,15 @@ private:
+     static void update_runtime_psqt(const RuntimePsqt& parent, RuntimePsqt& child, const nnue::DirtyPieces& dirty);
+     [[nodiscard]] int evaluate_runtime(const Board& board, const RuntimePsqt& psqt);
+     static constexpr std::size_t PawnCacheSize = 1U << 15U;
++    // R7 J3 (UCI R7EvalPrefetch): start loading the pawn-cache entry that evaluating a board with this pawn key
++    // will read (Worker, after make_move). A hint only: no state changes.
++    void prefetch_pawn_entry(std::uint64_t pawn_key) const {
++#if defined(__GNUC__) || defined(__clang__)
++        __builtin_prefetch(&pawn_cache_[static_cast<std::size_t>(pawn_key) & (PawnCacheSize - 1U)]);
++#else
++        (void)pawn_key;
++#endif
++    }
+     std::vector<PawnEntry> pawn_cache_;
+ };
+ 
+diff --git a/include/forge/search_options.hpp b/include/forge/search_options.hpp
+index 9aa50d5a..eaaf5ef4 100644
+--- a/include/forge/search_options.hpp
++++ b/include/forge/search_options.hpp
+@@ -185,4 +185,17 @@ extern bool material_key_table;
+ // the draw score, without TT score cutoffs or stores at those nodes.
+ extern bool intended_threefold;
+ 
++// R7 J3 node-exact speed options (check, default false): the search (nodes, scores, moves) is unchanged with
++// each of them on; only the speed can differ.
++// UCI R7TtExclusive: a one-worker search that holds the table's ExclusiveLease (bench, UCI go with Threads 1)
++// probes and stores through TranspositionTable::probe_exclusive / store_exclusive, which skip lock_stripe()
++// and with it the thread_local lease lookup (an __emutls_get_address call per access in the MinGW build).
++extern bool r7_tt_exclusive;
++// UCI R7QuietGen: the move picker's quiet stage generates only the quiet non-promotion moves
++// (Board::generate_quiets_r7), in the order the full generator lists them, instead of every pseudo-legal move.
++extern bool r7_quiet_gen;
++// UCI R7EvalPrefetch: after each make_move of the main and quiescence search, prefetch the child's pawn-cache
++// entry of the hand-crafted evaluation (Evaluator::prefetch_pawn_entry).
++extern bool r7_eval_prefetch;
++
+ } // namespace forge::options
+diff --git a/include/forge/thread_data.hpp b/include/forge/thread_data.hpp
+index 20d98a3b..b62dc159 100644
+--- a/include/forge/thread_data.hpp
++++ b/include/forge/thread_data.hpp
+@@ -85,6 +85,9 @@ struct SharedSearchState {
+     // run). Enables the bare-king mating mode of every worker's main search (src/search/alphabeta.inc); a one-worker
+     // search (bench, Threads 1) never reads true, so its tree is unchanged.
+     bool multi_worker = false;
++    // R7 J3 (UCI R7TtExclusive): this one-worker search holds the table's ExclusiveLease and uses the lock-free
++    // probe/store twins (set by Searcher::search after the lease is taken, cleared before it is released).
++    bool r7_tt_exclusive = false;
+ #ifdef FORGE_PROF
+     // The counters themselves live in one bank per Worker (S08-2).
+     std::atomic<bool> profile_requested{false};
+diff --git a/include/forge/tt.hpp b/include/forge/tt.hpp
+index 4b019dcf..728935f0 100644
+--- a/include/forge/tt.hpp
++++ b/include/forge/tt.hpp
+@@ -69,6 +69,13 @@ public:
+     [[nodiscard, gnu::aligned(64)]] TTProbe probe(std::uint64_t key) const;
+     [[gnu::aligned(64)]] void store(const TTProbe& probe, std::uint64_t key, int score, int eval, Move move, int depth, Bound bound, bool pv, std::uint16_t halfmove_clock);
+     [[nodiscard]] int hashfull() const;
++    // R7 J3 (UCI R7TtExclusive, src/search/r7_speed.inc): probe()/store() for the one search thread that holds
++    // this table's ExclusiveLease (Searcher::search with TTAccess::Exclusive and one worker). Same entries,
++    // replacement and handles, without lock_stripe(): has_exclusive_access() would read a thread_local on every
++    // call and then defer the lock. Never call them without holding the lease.
++    [[nodiscard, gnu::aligned(64)]] TTProbe probe_exclusive(std::uint64_t key) const;
++    [[gnu::aligned(64)]] void store_exclusive(const TTProbe& probe, std::uint64_t key, int score, int eval, Move move,
++                                              int depth, Bound bound, bool pv, std::uint16_t halfmove_clock);
+     [[nodiscard]] std::uint8_t generation() const { return generation_; }
+     [[nodiscard]] std::size_t cluster_count() const { return cluster_count_; }
+     // UCI LocklessTT (src/search/tt_lockless.inc): probe/store/hashfull without
+diff --git a/src/board.cpp b/src/board.cpp
+index 0ece4fb0..137b555d 100644
+--- a/src/board.cpp
++++ b/src/board.cpp
+@@ -540,6 +540,92 @@ void Board::generate_pseudo_legal(MoveList& moves, bool captures_only) const {
+     }
+ }
+ 
++// R7 J3 (UCI R7QuietGen; only the move picker's quiet stage calls it): exactly the moves of
++// generate_pseudo_legal(moves, false) that are neither captures nor promotions, in the same order:
++// single pushes, double pushes, then knights, bishops, rooks, queens and the king to empty squares (squares in
++// pop_lsb order, so the full list's captures and promotions are just left out), then castling under the same
++// conditions. In .text.forge_r7 so that the default build's .text keeps its layout.
++__attribute__((section(".text.forge_r7"))) void Board::generate_quiets_r7(MoveList& moves) const {
++    const Color us = side_;
++    const Bitboard own = occupied(us);
++    const Bitboard enemy = occupied(opposite(us));
++    const Bitboard occ = own | enemy;
++    const Bitboard empty = ~occ;
++    const int up = pawn_push_delta(us);
++
++    auto push = [&](int from, int to, std::uint8_t flags) {
++        moves.push_back(Move{static_cast<std::uint8_t>(from), static_cast<std::uint8_t>(to), 0, flags});
++    };
++
++    const Bitboard pawns = pieces(us, Pawn);
++    const Bitboard seventh = us == White ? Rank7BB : Rank2BB;
++    const Bitboard third = us == White ? Rank3BB : Rank6BB;
++    const Bitboard regular = pawns & ~seventh;
++    Bitboard single = pawn_push(us, regular) & empty;
++    Bitboard twice = pawn_push(us, single & third) & empty;
++    while (single != 0) {
++        const int to = pop_lsb(single);
++        push(to - up, to, Quiet);
++    }
++    while (twice != 0) {
++        const int to = pop_lsb(twice);
++        push(to - 2 * up, to, DoublePush);
++    }
++
++    auto emit = [&](int from, Bitboard targets) {
++        while (targets != 0) {
++            const int to = pop_lsb(targets);
++            push(from, to, Quiet);
++        }
++    };
++    Bitboard knights = pieces(us, Knight);
++    while (knights != 0) {
++        const int from = pop_lsb(knights);
++        emit(from, attacks::knight(from) & empty);
++    }
++    Bitboard bishops = pieces(us, Bishop);
++    while (bishops != 0) {
++        const int from = pop_lsb(bishops);
++        emit(from, attacks::bishop(from, occ) & empty);
++    }
++    Bitboard rooks = pieces(us, Rook);
++    while (rooks != 0) {
++        const int from = pop_lsb(rooks);
++        emit(from, attacks::rook(from, occ) & empty);
++    }
++    Bitboard queens = pieces(us, Queen);
++    while (queens != 0) {
++        const int from = pop_lsb(queens);
++        emit(from, attacks::queen(from, occ) & empty);
++    }
++    const int king = king_square(us);
++    emit(king, attacks::king(king) & empty);
++
++    if (checkers_ == 0) {
++        if (us == White && king == 4) {
++            if ((castling_ & WhiteKingSide) != 0U && (occ & (square_bb(5) | square_bb(6))) == 0 &&
++                piece_at(7) == WR && !square_attacked(5, Black) && !square_attacked(6, Black)) {
++                push(4, 6, KingCastle);
++            }
++            if ((castling_ & WhiteQueenSide) != 0U &&
++                (occ & (square_bb(1) | square_bb(2) | square_bb(3))) == 0 &&
++                piece_at(0) == WR && !square_attacked(3, Black) && !square_attacked(2, Black)) {
++                push(4, 2, QueenCastle);
++            }
++        } else if (us == Black && king == 60) {
++            if ((castling_ & BlackKingSide) != 0U && (occ & (square_bb(61) | square_bb(62))) == 0 &&
++                piece_at(63) == BR && !square_attacked(61, White) && !square_attacked(62, White)) {
++                push(60, 62, KingCastle);
++            }
++            if ((castling_ & BlackQueenSide) != 0U &&
++                (occ & (square_bb(57) | square_bb(58) | square_bb(59))) == 0 &&
++                piece_at(56) == BR && !square_attacked(59, White) && !square_attacked(58, White)) {
++                push(60, 58, QueenCastle);
++            }
++        }
++    }
++}
++
+ MoveList Board::pseudo_legal_moves(bool captures_only) const {
+     MoveList moves;
+     generate_pseudo_legal(moves, captures_only);
+diff --git a/src/search.cpp b/src/search.cpp
+index 725772d8..d26de939 100644
+--- a/src/search.cpp
++++ b/src/search.cpp
+@@ -40,6 +40,7 @@
+ #include "search/scores.inc"      // mate scores and their TT encoding
+ #include "search/uci_info.inc"    // UCI info output (score formatting)
+ #include "search/tt.inc"          // transposition table
++#include "search/r7_speed.inc"    // R7 J3 speed options: TT twins (.text.forge_r7), search-side macros
+ #include "search/movepicker.hpp"  // staged move picker
+ #include "search/worker.inc"      // per-thread state lifecycle
+ #include "search/evaluation_extra.inc" // v2 network with threat / pawn-pair inputs (O6 NNUEThreats, O7 NNUEPawnPairs)
+diff --git a/src/search/alphabeta.inc b/src/search/alphabeta.inc
+index b2e0a238..29082011 100644
+--- a/src/search/alphabeta.inc
++++ b/src/search/alphabeta.inc
+@@ -78,7 +78,7 @@ int Worker::FORGE_SEARCH_FN(Board& board, SearchStack* ss, int depth, int alpha,
+     (ss + 2)->killers = {};
+ 
+     // Transposition table probe.
+-    const TTProbe tt_probe = shared_.tt.probe(board.key());
++    const TTProbe tt_probe = FORGE_TT_PROBE(board.key());
+     const bool tt_hit = tt_probe.hit;
+     const TTEntry& tte = tt_probe.entry;
+     const Move tt_move = tt_hit ? tte.move : Move::none();
+@@ -261,7 +261,7 @@ int Worker::FORGE_SEARCH_FN(Board& board, SearchStack* ss, int depth, int alpha,
+                     prof::count(prof::Counter::ProbCutCutoffs);
+ #endif
+                     if (!claim) {
+-                        shared_.tt.store(tt_probe, board.key(), score_to_tt(value, ply), ss->raw_eval, move, depth - 3, BoundLower, ss->tt_pv, board.halfmove_clock());
++                        FORGE_TT_STORE(tt_probe, board.key(), score_to_tt(value, ply), ss->raw_eval, move, depth - 3, BoundLower, ss->tt_pv, board.halfmove_clock());
+                     }
+                     return value;
+                 }
+@@ -485,6 +485,7 @@ int Worker::FORGE_SEARCH_FN(Board& board, SearchStack* ss, int depth, int alpha,
+         Undo undo;
+         (void)board.make_move(move, undo);
+         shared_.tt.prefetch(board.key());
++        if (options::r7_eval_prefetch) evaluator_.prefetch_pawn_entry(board.pawn_key());  // R7 J3 R7EvalPrefetch
+         const std::uint64_t nodes_before = local_nodes_;
+         std::size_t root_effort_index = 0;
+         if (root_node) {
+@@ -582,10 +583,10 @@ int Worker::FORGE_SEARCH_FN(Board& board, SearchStack* ss, int depth, int alpha,
+ 
+     const Bound bound = best_score >= beta ? BoundLower : (pv_node && !best_move.is_none() ? BoundExact : BoundUpper);
+     if (excluded.is_none() && !(root_node && root_restricted_) && !claim) {
+-        shared_.tt.store(tt_probe, board.key(), score_to_tt(best_score, ply), ss->raw_eval, best_move, depth, bound, ss->tt_pv, board.halfmove_clock());
++        FORGE_TT_STORE(tt_probe, board.key(), score_to_tt(best_score, ply), ss->raw_eval, best_move, depth, bound, ss->tt_pv, board.halfmove_clock());
+     } else if (claim && excluded.is_none() && (!tt_hit || tte.score == ValueNone)) {
+         // Claim node: move and static evaluation only, raw score ValueNone (see qsearch).
+-        shared_.tt.store(tt_probe, board.key(), ValueNone, ss->raw_eval, best_move, 0, BoundUpper, ss->tt_pv,
++        FORGE_TT_STORE(tt_probe, board.key(), ValueNone, ss->raw_eval, best_move, 0, BoundUpper, ss->tt_pv,
+                          static_cast<std::uint16_t>(board.halfmove_clock()));
+     }
+     // Teach the static evaluation about this pawn structure when the search
+diff --git a/src/search/movepicker.hpp b/src/search/movepicker.hpp
+index ab4f5a38..e484fcad 100644
+--- a/src/search/movepicker.hpp
++++ b/src/search/movepicker.hpp
+@@ -12,6 +12,7 @@
+ // Included by src/search.cpp and by tests/movepicker_tests.cpp.
+ 
+ #include "forge/search.hpp"
++#include "forge/search_options.hpp"
+ 
+ #include <algorithm>
+ #include <array>
+@@ -288,7 +289,9 @@ private:
+     void generate_quiets() {
+         init_check_squares();
+         buffer_.clear();
+-        board_.generate_pseudo_legal(buffer_, false);
++        // R7 J3 R7QuietGen: the same quiet moves in the same order, without the captures and promotions.
++        if (options::r7_quiet_gen) board_.generate_quiets_r7(buffer_);
++        else board_.generate_pseudo_legal(buffer_, false);
+         index_ = 0;
+         count_ = 0;
+         for (const Move move : buffer_) {
+diff --git a/src/search/options.inc b/src/search/options.inc
+index 05ac8934..e6ab0255 100644
+--- a/src/search/options.inc
++++ b/src/search/options.inc
+@@ -23,5 +23,8 @@ bool cuckoo_rep = false;
+ bool material_key_table = false;
+ bool intended_threefold = false;   // S-IT (UCI IntendedThreefold)
+ bool smp_helpers_past_depth = false;   // R3-6 (UCI SmpHelpersPastDepth; last, so the variables above keep their addresses)
++bool r7_tt_exclusive = false;   // R7 J3 (UCI R7TtExclusive; after the others, which keep their addresses)
++bool r7_quiet_gen = false;      // R7 J3 (UCI R7QuietGen)
++bool r7_eval_prefetch = false;  // R7 J3 (UCI R7EvalPrefetch)
+ 
+ } // namespace forge::options
+diff --git a/src/search/qsearch.inc b/src/search/qsearch.inc
+index e7e3f1dd..83e11ad6 100644
+--- a/src/search/qsearch.inc
++++ b/src/search/qsearch.inc
+@@ -38,7 +38,7 @@ int Worker::FORGE_QSEARCH_FN(Board& board, SearchStack* ss, int alpha, int beta)
+     const bool in_check = board.in_check();
+     ss->in_check = in_check;
+ 
+-    const TTProbe tt_probe = shared_.tt.probe(board.key());
++    const TTProbe tt_probe = FORGE_TT_PROBE(board.key());
+     const bool tt_hit = tt_probe.hit;
+     const TTEntry& tte = tt_probe.entry;
+     const Move tt_move = tt_hit ? tte.move : Move::none();
+@@ -69,7 +69,7 @@ int Worker::FORGE_QSEARCH_FN(Board& board, SearchStack* ss, int alpha, int beta)
+         }
+         best_score = eval;
+         if (best_score >= beta) {
+-            if (!tt_hit && !claim) shared_.tt.store(tt_probe, board.key(), score_to_tt(best_score, ply), ss->raw_eval, Move::none(), 0, BoundLower, false, board.halfmove_clock());
++            if (!tt_hit && !claim) FORGE_TT_STORE(tt_probe, board.key(), score_to_tt(best_score, ply), ss->raw_eval, Move::none(), 0, BoundLower, false, board.halfmove_clock());
+             return best_score;
+         }
+         if (best_score > alpha) alpha = best_score;
+@@ -120,6 +120,7 @@ int Worker::FORGE_QSEARCH_FN(Board& board, SearchStack* ss, int alpha, int beta)
+         Undo undo;
+         (void)board.make_move(move, undo);
+         shared_.tt.prefetch(board.key());
++        if (options::r7_eval_prefetch) evaluator_.prefetch_pawn_entry(board.pawn_key());  // R7 J3 R7EvalPrefetch
+         const int score = -FORGE_QSEARCH_CALL(board, ss + 1, -beta, -alpha);
+         board.unmake_move(move, undo);
+         if (aborted_) return 0;
+@@ -141,14 +142,14 @@ int Worker::FORGE_QSEARCH_FN(Board& board, SearchStack* ss, int alpha, int beta)
+ 
+     const Bound bound = best_score >= beta ? BoundLower : (pv_node && !best_move.is_none() ? BoundExact : BoundUpper);
+     if (!claim) {
+-        shared_.tt.store(tt_probe, board.key(), score_to_tt(best_score, ply), in_check ? ValueNone : ss->raw_eval, best_move, 0, bound, tt_pv, board.halfmove_clock());
++        FORGE_TT_STORE(tt_probe, board.key(), score_to_tt(best_score, ply), in_check ? ValueNone : ss->raw_eval, best_move, 0, bound, tt_pv, board.halfmove_clock());
+     } else if (!tt_hit || tte.score == ValueNone) {
+         // Claim node: keep the move and the static evaluation, never the
+         // history-dependent score. The raw score ValueNone (not score_to_tt) makes
+         // every probe read tt_score == ValueNone; each use of tt_score or of the
+         // bound requires tt_score != ValueNone or tests tt_score < beta, which
+         // ValueNone (> Infinite) never passes. Entries with a score are not replaced.
+-        shared_.tt.store(tt_probe, board.key(), ValueNone, in_check ? ValueNone : ss->raw_eval, best_move, 0, BoundUpper, tt_pv,
++        FORGE_TT_STORE(tt_probe, board.key(), ValueNone, in_check ? ValueNone : ss->raw_eval, best_move, 0, BoundUpper, tt_pv,
+                          static_cast<std::uint16_t>(board.halfmove_clock()));
+     }
+     return best_score;
+diff --git a/src/search/r7_speed.inc b/src/search/r7_speed.inc
+new file mode 100644
+index 00000000..300b73d0
+--- /dev/null
++++ b/src/search/r7_speed.inc
+@@ -0,0 +1,85 @@
++// Search module: R7 J3 node-exact speed options (forge/search_options.hpp), all default OFF.
++// Compiled as part of src/search.cpp (included exactly once, right after tt.inc).
++//
++// R7TtExclusive: TranspositionTable::probe_exclusive / store_exclusive are probe() / store() (tt.inc) without
++// lock_stripe(). A one-worker search with TTAccess::Exclusive holds the table's ExclusiveLease for its whole
++// run, so lock_stripe() only ever returns a deferred lock for it; but it first calls has_exclusive_access(), which
++// reads the thread_local lease chain (an __emutls_get_address call per probe and per store in the MinGW build).
++// Every other accessor still goes through lock_stripe() and waits at the gate while the lease is held. The
++// functions live in .text.forge_r7, so the default .text keeps its layout except at the call sites below.
++
++#define FORGE_R7_TEXT __attribute__((section(".text.forge_r7")))
++
++// Search-side dispatch (main search and quiescence): the twins only while this one-worker search holds the lease.
++#define FORGE_TT_PROBE(key) (shared_.r7_tt_exclusive ? shared_.tt.probe_exclusive(key) : shared_.tt.probe(key))
++#define FORGE_TT_STORE(...)                                                                                         \
++    do {                                                                                                            \
++        if (shared_.r7_tt_exclusive) shared_.tt.store_exclusive(__VA_ARGS__);                                       \
++        else shared_.tt.store(__VA_ARGS__);                                                                         \
++    } while (false)
++
++namespace forge {
++
++FORGE_R7_TEXT TTProbe TranspositionTable::probe_exclusive(std::uint64_t key) const {
++    assert(has_exclusive_access());
++    if (lockless_) [[unlikely]] return probe_lockless(key);
++    TTCluster& cluster = cluster_for(key);
++    const std::size_t index = static_cast<std::size_t>(&cluster - clusters_.get());
++    auto snapshot = [&](const TTEntry& entry, bool hit) {
++#ifdef FORGE_PROF
++        prof::count(prof::Counter::TtProbes);
++        prof::count(hit ? prof::Counter::TtHits : prof::Counter::TtMisses);
++#endif
++        TTProbe result;
++        result.entry = entry;
++        result.hit = hit;
++        result.owner_ = this;
++        result.cluster_ = index;
++        result.slot_ = static_cast<std::uint8_t>(&entry - cluster.entries.data());
++        result.epoch_ = epoch_;
++        result.key_ = key;
++        return result;
++    };
++    const std::uint32_t key32 = verification_key(key);
++    for (TTEntry& entry : cluster.entries) {
++        if (entry.key32 == key32 && entry.occupied()) {
++            if (entry.generation() != generation_) {
++                entry.gen_bound = static_cast<std::uint8_t>(
++                    (static_cast<unsigned>(generation_) << 3U) | (entry.gen_bound & 7U));
++            }
++            return snapshot(entry, true);
++        }
++    }
++    const TTEntry* replace = &cluster.entries[0];
++    auto relative_age = [this](const TTEntry& entry) {
++        return static_cast<int>((32 + generation_ - entry.generation()) & 31U);
++    };
++    for (const TTEntry& entry : cluster.entries) {
++        if (!entry.occupied()) return snapshot(entry, false);
++        if (entry.depth - 4 * relative_age(entry) < replace->depth - 4 * relative_age(*replace)) replace = &entry;
++    }
++    return snapshot(*replace, false);
++}
++
++FORGE_R7_TEXT void TranspositionTable::store_exclusive(const TTProbe& probe, std::uint64_t key, int score, int eval,
++                                                       Move move, int depth, Bound bound, bool pv,
++                                                       std::uint16_t halfmove_clock) {
++    assert(has_exclusive_access());
++    if (lockless_) [[unlikely]] return store_lockless(probe, key, score, eval, move, depth, bound, pv, halfmove_clock);
++    if (probe.owner_ != this || probe.epoch_ != epoch_ || probe.key_ != key ||
++        probe.cluster_ >= cluster_count_ || probe.slot_ >= 4) return;
++    TTEntry* entry = &clusters_[probe.cluster_].entries[probe.slot_];
++    const std::uint32_t key32 = verification_key(key);
++    const bool same_position = entry->key32 == key32 && entry->occupied();
++    if (!move.is_none() || !same_position) entry->move = move;
++    if (bound == BoundExact || !same_position || depth + 4 > entry->depth || entry->generation() != generation_) {
++        entry->key32 = key32;
++        entry->score = static_cast<std::int16_t>(std::clamp(score, -32767, 32767));
++        entry->rule50_clock = static_cast<std::uint8_t>(std::min<int>(halfmove_clock, 100));
++        entry->eval = static_cast<std::int16_t>(std::clamp(eval, -32767, 32767));
++        entry->depth = static_cast<std::uint8_t>(std::clamp(depth, 0, 255));
++        entry->gen_bound = static_cast<std::uint8_t>((static_cast<unsigned>(generation_) << 3U) | (pv ? 4U : 0U) | static_cast<unsigned>(bound));
++    }
++}
++
++} // namespace forge
+diff --git a/src/search/searcher.inc b/src/search/searcher.inc
+index 0ddbc3a0..ecc37357 100644
+--- a/src/search/searcher.inc
++++ b/src/search/searcher.inc
+@@ -67,6 +67,12 @@ SearchInfo Searcher::search(Board board, const SearchLimits& limits, bool emit_i
+     if (table_access == TTAccess::Exclusive && workers_.size() == 1) {
+         exclusive.emplace(shared_.tt);
+     }
++    // R7 J3 R7TtExclusive: declared after the lease, so it is destroyed (and the flag cleared) first.
++    struct R7ExclusiveFlag {
++        bool& flag;
++        ~R7ExclusiveFlag() { flag = false; }
++    } r7_exclusive_flag{shared_.r7_tt_exclusive};
++    shared_.r7_tt_exclusive = options::r7_tt_exclusive && exclusive.has_value();
+ #ifdef FORGE_PROF
+     shared_.profile_active=shared_.profile_requested.load(std::memory_order_relaxed);
+     for (auto& worker : workers_) worker->reset_profile_quiescent();
+diff --git a/src/uci.cpp b/src/uci.cpp
+index e6ed9e9c..ee021f1b 100644
+--- a/src/uci.cpp
++++ b/src/uci.cpp
+@@ -485,6 +485,10 @@ int main() {
+             std::cout << "option name CorrExt type spin default 0 min 0 max 1\n";
+             std::cout << "option name CuckooRep type check default false\n";
+             std::cout << "option name MaterialKeyTable type check default false\n";
++            // R7 J3 node-exact speed options (forge/search_options.hpp).
++            std::cout << "option name R7TtExclusive type check default false\n"
++                         "option name R7QuietGen type check default false\n"
++                         "option name R7EvalPrefetch type check default false\n";
+             if (forge::nnue::available()) {
+                 std::cout << "option name NetScale type spin default " << forge::net_scale::Default << " min "
+                           << forge::net_scale::Minimum << " max " << forge::net_scale::Maximum << "\n";
+@@ -919,6 +923,17 @@ int main() {
+                     std::cout << "info string invalid value for option PureNnue" << std::endl;
+                 }
+                 nnue_v2_changed();
++            } else if (name == "R7TtExclusive" || name == "R7QuietGen" || name == "R7EvalPrefetch") {
++                // R7 J3 node-exact speed paths: same search, only the speed can differ.
++                bool& option = name == "R7TtExclusive" ? forge::options::r7_tt_exclusive
++                               : name == "R7QuietGen"  ? forge::options::r7_quiet_gen
++                                                       : forge::options::r7_eval_prefetch;
++                if (value_text == "true") assign_option(option, true);
++                else if (value_text == "false") assign_option(option, false);
++                else {
++                    const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex());
++                    std::cout << "info string invalid value for option " << name << std::endl;
++                }
+             } else if (name == "MaterialKeyTable") {
+                 // S11 node-exact speed path: same search, different key arithmetic.
+                 if (value_text == "true") assign_option(forge::options::material_key_table, true);
+diff --git a/tests/r7_quiet_gen_tests.cpp b/tests/r7_quiet_gen_tests.cpp
+new file mode 100644
+index 00000000..8f6517be
+--- /dev/null
++++ b/tests/r7_quiet_gen_tests.cpp
+@@ -0,0 +1,138 @@
++// R7 J3 (UCI R7QuietGen): Board::generate_quiets_r7 must list exactly the moves of
++// generate_pseudo_legal(moves, false) that are neither captures nor promotions, in the same order (the move
++// picker's quiet stage scores and sorts that list, so any difference in content or order would change the search).
++// Positions: every position of the opening suite, every position of seeded random games from each of them, and
++// the full perft-3 trees of hand-picked positions with castling rights, en passant, promotions and checks.
++// usage: forge_r7_quiet_gen_tests <tools/openings/forge-10000.epd>
++#include "forge/board.hpp"
++
++#include <cstdint>
++#include <fstream>
++#include <iostream>
++#include <sstream>
++#include <stdexcept>
++#include <string>
++#include <vector>
++
++namespace {
++
++std::uint64_t comparisons = 0;
++std::uint64_t quiet_moves = 0;
++std::uint64_t castles = 0;
++std::uint64_t double_pushes = 0;
++std::uint64_t random_state = 0x9e3779b97f4a7c15ULL;
++
++std::uint64_t random_word() {
++    random_state = random_state * 6364136223846793005ULL + 1442695040888963407ULL;
++    return random_state >> 11U;
++}
++
++void compare(const forge::Board& board) {
++    forge::MoveList full;
++    board.generate_pseudo_legal(full, false);
++    std::vector<forge::Move> expected;
++    for (const forge::Move move : full) {
++        if (move.is_capture() || move.is_promotion()) continue;
++        expected.push_back(move);
++    }
++    forge::MoveList quiets;
++    board.generate_quiets_r7(quiets);
++    std::size_t i = 0;
++    for (const forge::Move move : quiets) {
++        if (i >= expected.size() || !(move == expected[i])) {
++            throw std::runtime_error("quiet list differs at index " + std::to_string(i) + " in " + board.fen());
++        }
++        if (move.is_castle()) ++castles;
++        if (move.flags == forge::DoublePush) ++double_pushes;
++        ++i;
++    }
++    if (i != expected.size()) {
++        throw std::runtime_error("quiet list too short (" + std::to_string(i) + " of " + std::to_string(expected.size()) +
++                                 ") in " + board.fen());
++    }
++    quiet_moves += i;
++    ++comparisons;
++}
++
++void random_game(forge::Board board, int plies) {
++    for (int ply = 0; ply < plies; ++ply) {
++        compare(board);
++        const forge::MoveList legal = board.legal_moves();
++        if (legal.size() == 0) return;
++        const forge::Move move = legal[static_cast<std::size_t>(random_word() % legal.size())];
++        forge::Undo undo;
++        (void)board.make_move(move, undo);
++    }
++}
++
++void tree(forge::Board& board, int depth) {
++    compare(board);
++    if (depth == 0) return;
++    const forge::MoveList legal = board.legal_moves();
++    for (const forge::Move move : legal) {
++        forge::Undo undo;
++        (void)board.make_move(move, undo);
++        tree(board, depth - 1);
++        board.unmake_move(move, undo);
++    }
++}
++
++std::string fen_of_epd(const std::string& line) {
++    std::istringstream in(line);
++    std::string placement, side, castling, ep;
++    in >> placement >> side >> castling >> ep;
++    return placement + " " + side + " " + castling + " " + ep + " 0 1";
++}
++
++}  // namespace
++
++int main(int argc, char** argv) {
++    try {
++        if (argc < 2) throw std::runtime_error("usage: forge_r7_quiet_gen_tests <forge-10000.epd>");
++        const std::vector<std::string> picked = {
++            std::string(forge::Board::StandardStartFen),
++            "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1",   // kiwipete
++            "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R b KQkq - 0 1",
++            "8/2p5/3p4/KP5r/1R3p1k/8/4P1P1/8 w - - 0 1",                              // en passant lines
++            "r3k2r/Pppp1ppp/1b3nbN/nP6/BBP1P3/q4N2/Pp1P2PP/R2Q1RK1 w kq - 0 1",      // promotions, castling
++            "rnbq1k1r/pp1Pbppp/2p5/8/2B5/8/PPP1NnPP/RNBQK2R w KQ - 1 8",              // promotion with capture
++            "r4rk1/1pp1qppp/p1np1n2/2b1p1B1/2B1P1b1/P1NP1N2/1PP1QPPP/R4RK1 w - - 0 10",
++            "4k3/8/8/8/8/8/8/R3K2R w KQ - 0 1",                                       // castling only
++            "r3k2r/8/8/8/8/8/8/4K3 b kq - 0 1",
++            "r3k2r/8/8/8/8/8/8/R3K2R w KQkq - 0 1",
++            "rnbqkbnr/ppp1p1pp/8/3pPp2/8/8/PPPP1PPP/RNBQKBNR w KQkq f6 0 3",          // en passant available
++            "4k3/1P6/8/8/8/8/6p1/4K3 w - - 0 1",                                      // quiet promotions both sides
++            "4k3/8/8/8/8/8/4q3/4K3 w - - 0 1",                                        // in check
++            "r3k2r/8/8/8/4Q3/8/8/R3K2R b KQkq - 0 1",                                 // in check, castling rights kept
++        };
++        for (const std::string& fen : picked) {
++            forge::Board board;
++            if (!board.set_fen(fen)) throw std::runtime_error("bad picked fen " + fen);
++            tree(board, 3);
++            random_game(board, 120);
++        }
++        std::ifstream epd(argv[1]);
++        if (!epd) throw std::runtime_error(std::string("cannot open ") + argv[1]);
++        std::string line;
++        int suite = 0;
++        while (std::getline(epd, line)) {
++            if (line.empty()) continue;
++            forge::Board board;
++            if (!board.set_fen(fen_of_epd(line))) throw std::runtime_error("bad epd line " + line);
++            random_game(board, 40);
++            ++suite;
++        }
++        if (suite < 10000) throw std::runtime_error("opening suite too small: " + std::to_string(suite));
++        if (comparisons < 500000 || castles < 1000 || double_pushes < 10000) {
++            throw std::runtime_error("coverage too small: " + std::to_string(comparisons) + " positions, " +
++                                     std::to_string(castles) + " castles, " + std::to_string(double_pushes) +
++                                     " double pushes");
++        }
++        std::cout << "r7 quiet gen: " << comparisons << " positions, " << quiet_moves << " quiet moves (" << castles
++                  << " castles, " << double_pushes << " double pushes) identical in content and order\nPASS\n";
++        return 0;
++    } catch (const std::exception& error) {
++        std::cerr << "FAIL: " << error.what() << "\n";
++        return 1;
++    }
++}
