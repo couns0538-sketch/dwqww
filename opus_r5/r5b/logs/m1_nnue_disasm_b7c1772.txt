@@ -1,0 +1,4247 @@
+### forge_r5b_off_v3_b7c1772.exe forge::nnue::refresh
+   140019870:	push   %r15
+   140019872:	push   %r14
+   140019874:	push   %r13
+   140019876:	push   %r12
+   140019878:	push   %rbp
+   140019879:	push   %rdi
+   14001987a:	push   %rsi
+   14001987b:	push   %rbx
+   14001987c:	sub    $0x58,%rsp
+   140019880:	mov    %rcx,%rsi
+   140019883:	mov    %rdx,%r12
+   140019886:	call   1400194b0 <forge::nnue::(anonymous namespace)::weights()>
+   14001988b:	lea    0x48(%rsp),%rbp
+   140019890:	mov    %rax,%r9
+   140019893:	mov    0x1bffe6(%rip),%rax        # 1401d9880 <NnueW1+0x604e0>
+   14001989a:	mov    %r12,0xa8(%rsp)
+   1400198a2:	mov    %r9,%r14
+   1400198a5:	mov    %rax,0x48(%rsp)
+   1400198aa:	mov    0x170(%rsi),%rax
+   1400198b1:	or     0x168(%rsi),%rax
+   1400198b8:	mov    %rax,%r13
+   1400198bb:	lea    0x20(%r9),%rax
+   1400198bf:	mov    %rax,0x30(%rsp)
+   1400198c4:	mov    %r13,0x28(%rsp)
+   1400198c9:	movslq 0x0(%rbp),%r15
+   1400198cd:	mov    0xa8(%rsp),%rcx
+   1400198d5:	mov    0x30(%rsp),%rdx
+   1400198da:	mov    $0x400,%r8d
+   1400198e0:	mov    %r15,%rbx
+   1400198e3:	shl    $0xa,%r15
+   1400198e7:	add    %r15,%rcx
+   1400198ea:	call   140063238 <memcpy>
+   1400198ef:	mov    %rax,%rcx
+   1400198f2:	cmpq   $0x0,0x28(%rsp)
+   1400198f8:	je     1400199ec <forge::nnue::refresh(forge::Board const&, forge::nnue::Accumulator&)+0x17c>
+   1400198fe:	mov    0xa8(%rsp),%rax
+   140019906:	mov    (%r14),%rdi
+   140019909:	mov    0x28(%rsp),%r10
+   14001990e:	mov    %rbp,0x38(%rsp)
+   140019913:	xor    %r12d,%r12d
+   140019916:	test   %ebx,%ebx
+   140019918:	setne  %r12b
+   14001991c:	xor    %r13d,%r13d
+   14001991f:	cmp    $0x1,%ebx
+   140019922:	setne  %r13b
+   140019926:	lea    0x400(%rax,%r15,1),%r8
+   14001992e:	xor    %ebp,%ebp
+   140019930:	tzcnt  %r10,%rbp
+   140019935:	blsr   %r10,%r10
+   14001993a:	mov    (%rsi,%rbp,4),%edx
+   14001993d:	cmp    $0x6,%edx
+   140019940:	jg     140019a20 <forge::nnue::refresh(forge::Board const&, forge::nnue::Accumulator&)+0x1b0>
+   140019946:	mov    %r12d,%eax
+   140019949:	mov    $0xffffffff,%r9d
+   14001994f:	test   %edx,%edx
+   140019951:	je     14001997a <forge::nnue::refresh(forge::Board const&, forge::nnue::Accumulator&)+0x10a>
+   140019953:	dec    %edx
+   140019955:	movslq %edx,%r9
+   140019958:	mov    %edx,%r11d
+   14001995b:	sar    $0x1f,%r11d
+   14001995f:	imul   $0x2aaaaaab,%r9,%r9
+   140019966:	shr    $0x20,%r9
+   14001996a:	sub    %r11d,%r9d
+   14001996d:	lea    (%r9,%r9,2),%r11d
+   140019971:	add    %r11d,%r11d
+   140019974:	sub    %r11d,%edx
+   140019977:	mov    %edx,%r9d
+   14001997a:	mov    %ebp,%r11d
+   14001997d:	xor    $0x38,%r11d
+   140019981:	movslq %eax,%rdx
+   140019984:	test   %ebx,%ebx
+   140019986:	cmove  %ebp,%r11d
+   14001998a:	neg    %rdx
+   14001998d:	movslq %r9d,%rbp
+   140019990:	and    $0x6,%edx
+   140019993:	add    %rbp,%rdx
+   140019996:	movslq %r11d,%rbp
+   140019999:	shl    $0x6,%rdx
+   14001999d:	add    %rbp,%rdx
+   1400199a0:	shl    $0xa,%rdx
+   1400199a4:	lea    0x4(%rdi,%rdx,1),%r15
+   1400199a9:	mov    %rcx,%rbp
+   1400199ac:	sub    %r15,%rbp
+   1400199af:	cmp    $0x18,%rbp
+   1400199b3:	jbe    140019a28 <forge::nnue::refresh(forge::Board const&, forge::nnue::Accumulator&)+0x1b8>
+   1400199b5:	add    %rdi,%rdx
+   1400199b8:	xor    %eax,%eax
+   1400199ba:	nopw   0x0(%rax,%rax,1)
+   1400199c0:	vmovups (%rcx,%rax,1),%ymm0
+   1400199c5:	vaddps (%rdx,%rax,1),%ymm0,%ymm0
+   1400199ca:	vmovups %ymm0,(%rcx,%rax,1)
+   1400199cf:	add    $0x20,%rax
+   1400199d3:	cmp    $0x400,%rax
+   1400199d9:	jne    1400199c0 <forge::nnue::refresh(forge::Board const&, forge::nnue::Accumulator&)+0x150>
+   1400199db:	test   %r10,%r10
+   1400199de:	jne    14001992e <forge::nnue::refresh(forge::Board const&, forge::nnue::Accumulator&)+0xbe>
+   1400199e4:	mov    0x38(%rsp),%rbp
+   1400199e9:	vzeroupper
+   1400199ec:	add    $0x4,%rbp
+   1400199f0:	lea    0x50(%rsp),%rax
+   1400199f5:	cmp    %rax,%rbp
+   1400199f8:	jne    1400198c9 <forge::nnue::refresh(forge::Board const&, forge::nnue::Accumulator&)+0x59>
+   1400199fe:	mov    0xa8(%rsp),%r12
+   140019a06:	movb   $0x1,0x800(%r12)
+   140019a0f:	add    $0x58,%rsp
+   140019a13:	pop    %rbx
+   140019a14:	pop    %rsi
+   140019a15:	pop    %rdi
+   140019a16:	pop    %rbp
+   140019a17:	pop    %r12
+   140019a19:	pop    %r13
+   140019a1b:	pop    %r14
+   140019a1d:	pop    %r15
+   140019a1f:	ret
+   140019a20:	mov    %r13d,%eax
+   140019a23:	jmp    140019953 <forge::nnue::refresh(forge::Board const&, forge::nnue::Accumulator&)+0xe3>
+   140019a28:	neg    %eax
+   140019a2a:	mov    %eax,%edx
+   140019a2c:	and    $0x6,%edx
+   140019a2f:	mov    %rcx,%rax
+   140019a32:	add    %r9d,%edx
+   140019a35:	shl    $0x6,%edx
+   140019a38:	add    %r11d,%edx
+   140019a3b:	movslq %edx,%rdx
+   140019a3e:	shl    $0xa,%rdx
+   140019a42:	add    %rdi,%rdx
+   140019a45:	nopl   0x0(%rax,%rax,1)
+   140019a4a:	data16 cs nopw 0x0(%rax,%rax,1)
+   140019a55:	data16 cs nopw 0x0(%rax,%rax,1)
+   140019a60:	vmovss (%rax),%xmm0
+   140019a64:	vaddss (%rdx),%xmm0,%xmm0
+   140019a68:	add    $0x4,%rax
+   140019a6c:	add    $0x4,%rdx
+   140019a70:	vmovss %xmm0,-0x4(%rax)
+   140019a75:	cmp    %r8,%rax
+   140019a78:	jne    140019a60 <forge::nnue::refresh(forge::Board const&, forge::nnue::Accumulator&)+0x1f0>
+   140019a7a:	test   %r10,%r10
+   140019a7d:	jne    14001992e <forge::nnue::refresh(forge::Board const&, forge::nnue::Accumulator&)+0xbe>
+   140019a83:	jmp    1400199e4 <forge::nnue::refresh(forge::Board const&, forge::nnue::Accumulator&)+0x174>
+   140019a88:	nopl   0x0(%rax,%rax,1)
+### forge_r5b_off_v3_b7c1772.exe forge::nnue::update
+   140019a90:	push   %r15
+   140019a92:	push   %r14
+   140019a94:	push   %r13
+   140019a96:	push   %r12
+   140019a98:	push   %rbp
+   140019a99:	push   %rdi
+   140019a9a:	push   %rsi
+   140019a9b:	push   %rbx
+   140019a9c:	sub    $0x88,%rsp
+   140019aa3:	mov    %r8,%r12
+   140019aa6:	mov    %rcx,0xd0(%rsp)
+   140019aae:	mov    %rdx,0xd8(%rsp)
+   140019ab6:	call   1400194b0 <forge::nnue::(anonymous namespace)::weights()>
+   140019abb:	mov    0x20(%r12),%r14d
+   140019ac0:	mov    %rax,%r15
+   140019ac3:	cmp    $0x2,%r14d
+   140019ac7:	je     140019feb <forge::nnue::update(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&)+0x55b>
+   140019acd:	cmp    $0x3,%r14d
+   140019ad1:	je     140019d2e <forge::nnue::update(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&)+0x29e>
+   140019ad7:	mov    0x1bfda2(%rip),%rax        # 1401d9880 <NnueW1+0x604e0>
+   140019ade:	mov    %r14d,0x28(%rsp)
+   140019ae3:	lea    0x78(%rsp),%rdi
+   140019ae8:	mov    %r12,%rsi
+   140019aeb:	mov    %rax,0x78(%rsp)
+   140019af0:	movslq %r14d,%rax
+   140019af3:	lea    (%r12,%rax,8),%rbp
+   140019af7:	movslq (%rdi),%rax
+   140019afa:	mov    0xd8(%rsp),%rcx
+   140019b02:	mov    $0x400,%r8d
+   140019b08:	mov    %rax,%rbx
+   140019b0b:	shl    $0xa,%rax
+   140019b0f:	add    %rax,%rcx
+   140019b12:	add    0xd0(%rsp),%rax
+   140019b1a:	mov    %rax,%rdx
+   140019b1d:	call   140063238 <memcpy>
+   140019b22:	mov    %rax,%rcx
+   140019b25:	mov    0x28(%rsp),%eax
+   140019b29:	test   %eax,%eax
+   140019b2b:	jle    140019c2b <forge::nnue::update(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&)+0x19b>
+   140019b31:	mov    (%r15),%r11
+   140019b34:	xor    %r13d,%r13d
+   140019b37:	test   %ebx,%ebx
+   140019b39:	mov    %rsi,%r10
+   140019b3c:	setne  %r13b
+   140019b40:	xor    %r12d,%r12d
+   140019b43:	cmp    $0x1,%ebx
+   140019b46:	setne  %r12b
+   140019b4a:	nopw   0x0(%rax,%rax,1)
+   140019b50:	mov    (%r10),%r9d
+   140019b53:	movzbl 0x4(%r10),%r8d
+   140019b58:	cmp    $0x6,%r9d
+   140019b5c:	jg     140019cad <forge::nnue::update(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&)+0x21d>
+   140019b62:	movslq %r13d,%rax
+   140019b65:	mov    $0xffffffff,%edx
+   140019b6a:	test   %r9d,%r9d
+   140019b6d:	je     140019b97 <forge::nnue::update(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&)+0x107>
+   140019b6f:	dec    %r9d
+   140019b72:	movslq %r9d,%rdx
+   140019b75:	mov    %r9d,%r14d
+   140019b78:	sar    $0x1f,%r14d
+   140019b7c:	imul   $0x2aaaaaab,%rdx,%rdx
+   140019b83:	shr    $0x20,%rdx
+   140019b87:	sub    %r14d,%edx
+   140019b8a:	lea    (%rdx,%rdx,2),%r14d
+   140019b8e:	add    %r14d,%r14d
+   140019b91:	mov    %r9d,%edx
+   140019b94:	sub    %r14d,%edx
+   140019b97:	mov    %r8d,%r9d
+   140019b9a:	xor    $0x38,%r9d
+   140019b9e:	test   %ebx,%ebx
+   140019ba0:	cmovne %r9d,%r8d
+   140019ba4:	mov    %eax,%r9d
+   140019ba7:	neg    %rax
+   140019baa:	neg    %r9d
+   140019bad:	and    $0x6,%eax
+   140019bb0:	movzbl %r8b,%r8d
+   140019bb4:	and    $0x6,%r9d
+   140019bb8:	add    %edx,%r9d
+   140019bbb:	movslq %edx,%rdx
+   140019bbe:	add    %rax,%rdx
+   140019bc1:	shl    $0x6,%r9d
+   140019bc5:	shl    $0x6,%rdx
+   140019bc9:	add    %r8d,%r9d
+   140019bcc:	add    %r8,%rdx
+   140019bcf:	shl    $0xa,%rdx
+   140019bd3:	movslq %r9d,%r9
+   140019bd6:	lea    0x4(%r11,%rdx,1),%r8
+   140019bdb:	shl    $0xa,%r9
+   140019bdf:	mov    %rcx,%rax
+   140019be2:	sub    %r8,%rax
+   140019be5:	add    %r11,%r9
+   140019be8:	cmpb   $0x0,0x5(%r10)
+   140019bed:	je     140019c63 <forge::nnue::update(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&)+0x1d3>
+   140019bef:	cmp    $0x18,%rax
+   140019bf3:	jbe    140019cb5 <forge::nnue::update(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&)+0x225>
+   140019bf9:	add    %r11,%rdx
+   140019bfc:	xor    %eax,%eax
+   140019bfe:	xchg   %ax,%ax
+   140019c00:	vmovups (%rcx,%rax,1),%ymm0
+   140019c05:	vaddps (%rdx,%rax,1),%ymm0,%ymm0
+   140019c0a:	vmovups %ymm0,(%rcx,%rax,1)
+   140019c0f:	add    $0x20,%rax
+   140019c13:	cmp    $0x400,%rax
+   140019c19:	jne    140019c00 <forge::nnue::update(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&)+0x170>
+   140019c1b:	add    $0x8,%r10
+   140019c1f:	cmp    %r10,%rbp
+   140019c22:	jne    140019b50 <forge::nnue::update(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&)+0xc0>
+   140019c28:	vzeroupper
+   140019c2b:	add    $0x4,%rdi
+   140019c2f:	lea    0x80(%rsp),%rax
+   140019c37:	cmp    %rdi,%rax
+   140019c3a:	jne    140019af7 <forge::nnue::update(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&)+0x67>
+   140019c40:	mov    0xd8(%rsp),%rax
+   140019c48:	movb   $0x1,0x800(%rax)
+   140019c4f:	add    $0x88,%rsp
+   140019c56:	pop    %rbx
+   140019c57:	pop    %rsi
+   140019c58:	pop    %rdi
+   140019c59:	pop    %rbp
+   140019c5a:	pop    %r12
+   140019c5c:	pop    %r13
+   140019c5e:	pop    %r14
+   140019c60:	pop    %r15
+   140019c62:	ret
+   140019c63:	cmp    $0x18,%rax
+   140019c67:	jbe    140019cee <forge::nnue::update(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&)+0x25e>
+   140019c6d:	add    %r11,%rdx
+   140019c70:	xor    %eax,%eax
+   140019c72:	nopl   (%rax)
+   140019c75:	data16 cs nopw 0x0(%rax,%rax,1)
+   140019c80:	vmovups (%rcx,%rax,1),%ymm0
+   140019c85:	vsubps (%rdx,%rax,1),%ymm0,%ymm0
+   140019c8a:	vmovups %ymm0,(%rcx,%rax,1)
+   140019c8f:	add    $0x20,%rax
+   140019c93:	cmp    $0x400,%rax
+   140019c99:	jne    140019c80 <forge::nnue::update(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&)+0x1f0>
+   140019c9b:	add    $0x8,%r10
+   140019c9f:	cmp    %r10,%rbp
+   140019ca2:	jne    140019b50 <forge::nnue::update(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&)+0xc0>
+   140019ca8:	jmp    140019c28 <forge::nnue::update(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&)+0x198>
+   140019cad:	movslq %r12d,%rax
+   140019cb0:	jmp    140019b6f <forge::nnue::update(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&)+0xdf>
+   140019cb5:	xor    %eax,%eax
+   140019cb7:	nopw   0x0(%rax,%rax,1)
+   140019cc0:	vmovss (%rcx,%rax,1),%xmm0
+   140019cc5:	vaddss (%r9,%rax,1),%xmm0,%xmm0
+   140019ccb:	vmovss %xmm0,(%rcx,%rax,1)
+   140019cd0:	add    $0x4,%rax
+   140019cd4:	cmp    $0x400,%rax
+   140019cda:	jne    140019cc0 <forge::nnue::update(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&)+0x230>
+   140019cdc:	add    $0x8,%r10
+   140019ce0:	cmp    %r10,%rbp
+   140019ce3:	jne    140019b50 <forge::nnue::update(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&)+0xc0>
+   140019ce9:	jmp    140019c28 <forge::nnue::update(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&)+0x198>
+   140019cee:	xor    %eax,%eax
+   140019cf0:	nopl   0x0(%rax,%rax,1)
+   140019cf5:	data16 cs nopw 0x0(%rax,%rax,1)
+   140019d00:	vmovss (%rcx,%rax,1),%xmm0
+   140019d05:	vsubss (%r9,%rax,1),%xmm0,%xmm0
+   140019d0b:	vmovss %xmm0,(%rcx,%rax,1)
+   140019d10:	add    $0x4,%rax
+   140019d14:	cmp    $0x400,%rax
+   140019d1a:	jne    140019d00 <forge::nnue::update(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&)+0x270>
+   140019d1c:	add    $0x8,%r10
+   140019d20:	cmp    %r10,%rbp
+   140019d23:	jne    140019b50 <forge::nnue::update(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&)+0xc0>
+   140019d29:	jmp    140019c28 <forge::nnue::update(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&)+0x198>
+   140019d2e:	cmpb   $0x0,0x5(%r12)
+   140019d34:	jne    140019ad7 <forge::nnue::update(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&)+0x47>
+   140019d3a:	cmpb   $0x0,0xd(%r12)
+   140019d40:	jne    140019ad7 <forge::nnue::update(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&)+0x47>
+   140019d46:	cmpb   $0x0,0x15(%r12)
+   140019d4c:	je     140019ad7 <forge::nnue::update(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&)+0x47>
+   140019d52:	mov    0x1bfb27(%rip),%rax        # 1401d9880 <NnueW1+0x604e0>
+   140019d59:	mov    0x10(%r12),%r14d
+   140019d5e:	movzbl 0x14(%r12),%ebx
+   140019d64:	mov    (%r15),%rdi
+   140019d67:	mov    %rax,0x78(%rsp)
+   140019d6c:	movzbl 0x4(%r12),%eax
+   140019d72:	mov    %ebx,0x5c(%rsp)
+   140019d76:	mov    %eax,%edx
+   140019d78:	mov    %eax,0x54(%rsp)
+   140019d7c:	mov    (%r12),%eax
+   140019d80:	xor    $0x38,%edx
+   140019d83:	lea    -0x1(%rax),%ecx
+   140019d86:	mov    %eax,0x20(%rsp)
+   140019d8a:	movslq %ecx,%rax
+   140019d8d:	mov    %ecx,%r8d
+   140019d90:	sar    $0x1f,%r8d
+   140019d94:	imul   $0x2aaaaaab,%rax,%rax
+   140019d9b:	shr    $0x20,%rax
+   140019d9f:	mov    %eax,%ebp
+   140019da1:	sub    %r8d,%ebp
+   140019da4:	lea    0x0(%rbp,%rbp,2),%eax
+   140019da8:	add    %eax,%eax
+   140019daa:	sub    %eax,%ecx
+   140019dac:	movzbl %dl,%eax
+   140019daf:	mov    %eax,0x68(%rsp)
+   140019db3:	movzbl 0xc(%r12),%eax
+   140019db9:	mov    %ecx,%ebp
+   140019dbb:	mov    %eax,%edx
+   140019dbd:	mov    %eax,0x58(%rsp)
+   140019dc1:	mov    0x8(%r12),%eax
+   140019dc6:	lea    0x78(%rsp),%r12
+   140019dcb:	xor    $0x38,%edx
+   140019dce:	lea    -0x1(%rax),%ecx
+   140019dd1:	mov    %eax,0x2c(%rsp)
+   140019dd5:	movslq %ecx,%rax
+   140019dd8:	mov    %ecx,%r8d
+   140019ddb:	sar    $0x1f,%r8d
+   140019ddf:	imul   $0x2aaaaaab,%rax,%rax
+   140019de6:	shr    $0x20,%rax
+   140019dea:	mov    %eax,%esi
+   140019dec:	sub    %r8d,%esi
+   140019def:	lea    (%rsi,%rsi,2),%eax
+   140019df2:	add    %eax,%eax
+   140019df4:	mov    %ecx,%esi
+   140019df6:	sub    %eax,%esi
+   140019df8:	movzbl %dl,%eax
+   140019dfb:	lea    -0x1(%r14),%edx
+   140019dff:	movslq %edx,%r8
+   140019e02:	mov    %eax,0x64(%rsp)
+   140019e06:	mov    %ebx,%eax
+   140019e08:	mov    %edx,%ecx
+   140019e0a:	sar    $0x1f,%ecx
+   140019e0d:	imul   $0x2aaaaaab,%r8,%r8
+   140019e14:	xor    $0x38,%eax
+   140019e17:	movzbl %al,%eax
+   140019e1a:	mov    %eax,0x60(%rsp)
+   140019e1e:	shr    $0x20,%r8
+   140019e22:	mov    %r8d,%r13d
+   140019e25:	sub    %ecx,%r13d
+   140019e28:	lea    0x0(%r13,%r13,2),%ecx
+   140019e2d:	add    %ecx,%ecx
+   140019e2f:	sub    %ecx,%edx
+   140019e31:	mov    %edx,%r13d
+   140019e34:	movslq (%r12),%r11
+   140019e38:	mov    %r11,%r8
+   140019e3b:	cmpl   $0x6,0x20(%rsp)
+   140019e40:	jle    14001a22c <forge::nnue::update(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&)+0x79c>
+   140019e46:	xor    %ecx,%ecx
+   140019e48:	cmp    $0x1,%r11d
+   140019e4c:	setne  %cl
+   140019e4f:	mov    %ebp,0x28(%rsp)
+   140019e53:	mov    0x54(%rsp),%eax
+   140019e57:	test   %r8d,%r8d
+   140019e5a:	cmovne 0x68(%rsp),%eax
+   140019e5f:	mov    %eax,0x50(%rsp)
+   140019e63:	cmpl   $0x6,0x2c(%rsp)
+   140019e68:	jle    14001a20b <forge::nnue::update(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&)+0x77b>
+   140019e6e:	xor    %edx,%edx
+   140019e70:	cmp    $0x1,%r8d
+   140019e74:	setne  %dl
+   140019e77:	mov    %esi,%r9d
+   140019e7a:	mov    0x58(%rsp),%eax
+   140019e7e:	test   %r8d,%r8d
+   140019e81:	cmovne 0x64(%rsp),%eax
+   140019e86:	mov    %eax,0x34(%rsp)
+   140019e8a:	cmp    $0x6,%r14d
+   140019e8e:	jle    14001a1ef <forge::nnue::update(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&)+0x75f>
+   140019e94:	xor    %eax,%eax
+   140019e96:	cmp    $0x1,%r8d
+   140019e9a:	setne  %al
+   140019e9d:	mov    %r13d,%r15d
+   140019ea0:	mov    0x5c(%rsp),%ebx
+   140019ea4:	test   %r8d,%r8d
+   140019ea7:	mov    0xd8(%rsp),%r8
+   140019eaf:	cmovne 0x60(%rsp),%ebx
+   140019eb4:	mov    %r11,%r10
+   140019eb7:	shl    $0xa,%r10
+   140019ebb:	movslq %eax,%r11
+   140019ebe:	add    %r10,%r8
+   140019ec1:	neg    %r11
+   140019ec4:	mov    %ebx,0x30(%rsp)
+   140019ec8:	movslq %r15d,%rbx
+   140019ecb:	and    $0x6,%r11d
+   140019ecf:	add    %rbx,%r11
+   140019ed2:	movslq 0x30(%rsp),%rbx
+   140019ed7:	shl    $0x6,%r11
+   140019edb:	add    %rbx,%r11
+   140019ede:	movslq %r9d,%rbx
+   140019ee1:	shl    $0xa,%r11
+   140019ee5:	mov    %r11,0x48(%rsp)
+   140019eea:	movslq %edx,%r11
+   140019eed:	neg    %r11
+   140019ef0:	and    $0x6,%r11d
+   140019ef4:	add    %rbx,%r11
+   140019ef7:	movslq 0x34(%rsp),%rbx
+   140019efc:	shl    $0x6,%r11
+   140019f00:	add    %r11,%rbx
+   140019f03:	movslq %ecx,%r11
+   140019f06:	shl    $0xa,%rbx
+   140019f0a:	mov    %rbx,0x40(%rsp)
+   140019f0f:	movslq 0x28(%rsp),%rbx
+   140019f14:	neg    %r11
+   140019f17:	and    $0x6,%r11d
+   140019f1b:	add    %rbx,%r11
+   140019f1e:	movslq 0x50(%rsp),%rbx
+   140019f23:	shl    $0x6,%r11
+   140019f27:	add    %rbx,%r11
+   140019f2a:	shl    $0xa,%r11
+   140019f2e:	lea    0x4(%rdi,%r11,1),%rbx
+   140019f33:	mov    %r11,0x38(%rsp)
+   140019f38:	mov    %r8,%r11
+   140019f3b:	sub    %rbx,%r11
+   140019f3e:	mov    0x40(%rsp),%rbx
+   140019f43:	cmp    $0x18,%r11
+   140019f47:	seta   0x6f(%rsp)
+   140019f4c:	lea    0x4(%rdi,%rbx,1),%r11
+   140019f51:	mov    %r8,%rbx
+   140019f54:	sub    %r11,%rbx
+   140019f57:	cmp    $0x18,%rbx
+   140019f5b:	seta   %bl
+   140019f5e:	add    0xd0(%rsp),%r10
+   140019f66:	test   %bl,0x6f(%rsp)
+   140019f6a:	je     14001a2a9 <forge::nnue::update(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&)+0x819>
+   140019f70:	mov    0x48(%rsp),%r11
+   140019f75:	lea    0x4(%rdi,%r11,1),%rbx
+   140019f7a:	mov    %r8,%r11
+   140019f7d:	sub    %rbx,%r11
+   140019f80:	cmp    $0x18,%r11
+   140019f84:	jbe    14001a2a9 <forge::nnue::update(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&)+0x819>
+   140019f8a:	mov    0x38(%rsp),%r9
+   140019f8f:	mov    0x40(%rsp),%rbx
+   140019f94:	mov    0x48(%rsp),%r11
+   140019f99:	xor    %eax,%eax
+   140019f9b:	add    %rdi,%r9
+   140019f9e:	lea    (%rbx,%rdi,1),%rcx
+   140019fa2:	lea    (%r11,%rdi,1),%rdx
+   140019fa6:	vmovups (%r10,%rax,1),%ymm0
+   140019fac:	vsubps (%r9,%rax,1),%ymm0,%ymm0
+   140019fb2:	vsubps (%rcx,%rax,1),%ymm0,%ymm0
+   140019fb7:	vaddps (%rdx,%rax,1),%ymm0,%ymm0
+   140019fbc:	vmovups %ymm0,(%r8,%rax,1)
+   140019fc2:	add    $0x20,%rax
+   140019fc6:	cmp    $0x400,%rax
+   140019fcc:	jne    140019fa6 <forge::nnue::update(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&)+0x516>
+   140019fce:	add    $0x4,%r12
+   140019fd2:	lea    0x80(%rsp),%rax
+   140019fda:	cmp    %rax,%r12
+   140019fdd:	jne    140019e34 <forge::nnue::update(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&)+0x3a4>
+   140019fe3:	vzeroupper
+   140019fe6:	jmp    140019c40 <forge::nnue::update(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&)+0x1b0>
+   140019feb:	cmpb   $0x0,0x5(%r12)
+   140019ff1:	jne    140019ad7 <forge::nnue::update(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&)+0x47>
+   140019ff7:	cmpb   $0x0,0xd(%r12)
+   140019ffd:	je     140019ad7 <forge::nnue::update(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&)+0x47>
+   14001a003:	mov    0x1bf876(%rip),%rax        # 1401d9880 <NnueW1+0x604e0>
+   14001a00a:	mov    (%r12),%ebx
+   14001a00e:	mov    (%r15),%r11
+   14001a011:	mov    0x8(%r12),%ebp
+   14001a016:	lea    0x78(%rsp),%r14
+   14001a01b:	mov    %rax,0x78(%rsp)
+   14001a020:	movzbl 0x4(%r12),%eax
+   14001a026:	lea    -0x1(%rbx),%ecx
+   14001a029:	mov    %ecx,%r8d
+   14001a02c:	sar    $0x1f,%r8d
+   14001a030:	mov    %eax,%edx
+   14001a032:	mov    %eax,0x2c(%rsp)
+   14001a036:	movslq %ecx,%rax
+   14001a039:	imul   $0x2aaaaaab,%rax,%rax
+   14001a040:	xor    $0x38,%edx
+   14001a043:	shr    $0x20,%rax
+   14001a047:	mov    %eax,%r15d
+   14001a04a:	sub    %r8d,%r15d
+   14001a04d:	lea    (%r15,%r15,2),%eax
+   14001a051:	add    %eax,%eax
+   14001a053:	sub    %eax,%ecx
+   14001a055:	movzbl %dl,%eax
+   14001a058:	mov    %eax,0x38(%rsp)
+   14001a05c:	movzbl 0xc(%r12),%eax
+   14001a062:	mov    %ecx,%r15d
+   14001a065:	lea    -0x1(%rbp),%ecx
+   14001a068:	mov    %ecx,%r8d
+   14001a06b:	sar    $0x1f,%r8d
+   14001a06f:	mov    %eax,%edx
+   14001a071:	mov    %eax,0x30(%rsp)
+   14001a075:	movslq %ecx,%rax
+   14001a078:	imul   $0x2aaaaaab,%rax,%rax
+   14001a07f:	xor    $0x38,%edx
+   14001a082:	shr    $0x20,%rax
+   14001a086:	mov    %eax,%edi
+   14001a088:	sub    %r8d,%edi
+   14001a08b:	lea    (%rdi,%rdi,2),%eax
+   14001a08e:	add    %eax,%eax
+   14001a090:	mov    %ecx,%edi
+   14001a092:	sub    %eax,%edi
+   14001a094:	movzbl %dl,%eax
+   14001a097:	mov    %eax,0x50(%rsp)
+   14001a09b:	movslq (%r14),%r8
+   14001a09e:	mov    %r8,%rcx
+   14001a0a1:	cmp    $0x6,%ebx
+   14001a0a4:	jle    14001a1d5 <forge::nnue::update(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&)+0x745>
+   14001a0aa:	xor    %edx,%edx
+   14001a0ac:	cmp    $0x1,%r8d
+   14001a0b0:	setne  %dl
+   14001a0b3:	mov    %r15d,%esi
+   14001a0b6:	mov    0x2c(%rsp),%eax
+   14001a0ba:	test   %ecx,%ecx
+   14001a0bc:	cmovne 0x38(%rsp),%eax
+   14001a0c1:	mov    %eax,0x28(%rsp)
+   14001a0c5:	cmp    $0x6,%ebp
+   14001a0c8:	jle    14001a1bb <forge::nnue::update(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&)+0x72b>
+   14001a0ce:	xor    %eax,%eax
+   14001a0d0:	cmp    $0x1,%ecx
+   14001a0d3:	setne  %al
+   14001a0d6:	mov    %edi,%r10d
+   14001a0d9:	mov    0x30(%rsp),%r13d
+   14001a0de:	test   %ecx,%ecx
+   14001a0e0:	movslq %eax,%rcx
+   14001a0e3:	movslq %r10d,%r12
+   14001a0e6:	cmovne 0x50(%rsp),%r13d
+   14001a0ec:	neg    %rcx
+   14001a0ef:	mov    0xd8(%rsp),%r9
+   14001a0f7:	and    $0x6,%ecx
+   14001a0fa:	add    %r12,%rcx
+   14001a0fd:	shl    $0x6,%rcx
+   14001a101:	movslq %r13d,%r12
+   14001a104:	mov    %r13d,0x34(%rsp)
+   14001a109:	add    %r12,%rcx
+   14001a10c:	movslq %esi,%r12
+   14001a10f:	shl    $0xa,%rcx
+   14001a113:	mov    %rcx,0x20(%rsp)
+   14001a118:	movslq %edx,%rcx
+   14001a11b:	neg    %rcx
+   14001a11e:	and    $0x6,%ecx
+   14001a121:	add    %r12,%rcx
+   14001a124:	movslq 0x28(%rsp),%r12
+   14001a129:	shl    $0x6,%rcx
+   14001a12d:	shl    $0xa,%r8
+   14001a131:	add    %r12,%rcx
+   14001a134:	add    %r8,%r9
+   14001a137:	add    0xd0(%rsp),%r8
+   14001a13f:	shl    $0xa,%rcx
+   14001a143:	lea    0x4(%r11,%rcx,1),%r13
+   14001a148:	mov    %r9,%r12
+   14001a14b:	sub    %r13,%r12
+   14001a14e:	cmp    $0x18,%r12
+   14001a152:	jbe    14001a24d <forge::nnue::update(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&)+0x7bd>
+   14001a158:	mov    0x20(%rsp),%r13
+   14001a15d:	lea    0x4(%r11,%r13,1),%r13
+   14001a162:	mov    %r9,%r12
+   14001a165:	sub    %r13,%r12
+   14001a168:	cmp    $0x18,%r12
+   14001a16c:	jbe    14001a24d <forge::nnue::update(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&)+0x7bd>
+   14001a172:	mov    0x20(%rsp),%rdx
+   14001a177:	add    %r11,%rcx
+   14001a17a:	xor    %eax,%eax
+   14001a17c:	add    %r11,%rdx
+   14001a17f:	vmovups (%r8,%rax,1),%ymm0
+   14001a185:	vsubps (%rcx,%rax,1),%ymm0,%ymm0
+   14001a18a:	vaddps (%rdx,%rax,1),%ymm0,%ymm0
+   14001a18f:	vmovups %ymm0,(%r9,%rax,1)
+   14001a195:	add    $0x20,%rax
+   14001a199:	cmp    $0x400,%rax
+   14001a19f:	jne    14001a17f <forge::nnue::update(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&)+0x6ef>
+   14001a1a1:	add    $0x4,%r14
+   14001a1a5:	lea    0x80(%rsp),%rax
+   14001a1ad:	cmp    %r14,%rax
+   14001a1b0:	jne    14001a09b <forge::nnue::update(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&)+0x60b>
+   14001a1b6:	jmp    140019fe3 <forge::nnue::update(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&)+0x553>
+   14001a1bb:	xor    %eax,%eax
+   14001a1bd:	test   %ecx,%ecx
+   14001a1bf:	mov    $0xffffffff,%r10d
+   14001a1c5:	setne  %al
+   14001a1c8:	test   %ebp,%ebp
+   14001a1ca:	je     14001a0d9 <forge::nnue::update(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&)+0x649>
+   14001a1d0:	jmp    14001a0d6 <forge::nnue::update(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&)+0x646>
+   14001a1d5:	xor    %edx,%edx
+   14001a1d7:	test   %r8d,%r8d
+   14001a1da:	mov    $0xffffffff,%esi
+   14001a1df:	setne  %dl
+   14001a1e2:	test   %ebx,%ebx
+   14001a1e4:	je     14001a0b6 <forge::nnue::update(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&)+0x626>
+   14001a1ea:	jmp    14001a0b3 <forge::nnue::update(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&)+0x623>
+   14001a1ef:	xor    %eax,%eax
+   14001a1f1:	test   %r8d,%r8d
+   14001a1f4:	mov    $0xffffffff,%r15d
+   14001a1fa:	setne  %al
+   14001a1fd:	test   %r14d,%r14d
+   14001a200:	je     140019ea0 <forge::nnue::update(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&)+0x410>
+   14001a206:	jmp    140019e9d <forge::nnue::update(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&)+0x40d>
+   14001a20b:	mov    0x2c(%rsp),%r10d
+   14001a210:	xor    %edx,%edx
+   14001a212:	test   %r8d,%r8d
+   14001a215:	mov    $0xffffffff,%r9d
+   14001a21b:	setne  %dl
+   14001a21e:	test   %r10d,%r10d
+   14001a221:	je     140019e7a <forge::nnue::update(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&)+0x3ea>
+   14001a227:	jmp    140019e77 <forge::nnue::update(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&)+0x3e7>
+   14001a22c:	mov    0x20(%rsp),%ebx
+   14001a230:	xor    %ecx,%ecx
+   14001a232:	test   %r11d,%r11d
+   14001a235:	movl   $0xffffffff,0x28(%rsp)
+   14001a23d:	setne  %cl
+   14001a240:	test   %ebx,%ebx
+   14001a242:	je     140019e53 <forge::nnue::update(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&)+0x3c3>
+   14001a248:	jmp    140019e4f <forge::nnue::update(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&)+0x3bf>
+   14001a24d:	neg    %eax
+   14001a24f:	neg    %edx
+   14001a251:	mov    %eax,%ecx
+   14001a253:	and    $0x6,%ecx
+   14001a256:	and    $0x6,%edx
+   14001a259:	xor    %eax,%eax
+   14001a25b:	add    %esi,%edx
+   14001a25d:	add    %r10d,%ecx
+   14001a260:	shl    $0x6,%edx
+   14001a263:	shl    $0x6,%ecx
+   14001a266:	add    0x28(%rsp),%edx
+   14001a26a:	add    0x34(%rsp),%ecx
+   14001a26e:	movslq %edx,%rdx
+   14001a271:	movslq %ecx,%rcx
+   14001a274:	shl    $0xa,%rdx
+   14001a278:	shl    $0xa,%rcx
+   14001a27c:	add    %r11,%rdx
+   14001a27f:	add    %r11,%rcx
+   14001a282:	vmovss (%r8,%rax,1),%xmm0
+   14001a288:	vsubss (%rdx,%rax,1),%xmm0,%xmm0
+   14001a28d:	vaddss (%rcx,%rax,1),%xmm0,%xmm0
+   14001a292:	vmovss %xmm0,(%r9,%rax,1)
+   14001a298:	add    $0x4,%rax
+   14001a29c:	cmp    $0x400,%rax
+   14001a2a2:	jne    14001a282 <forge::nnue::update(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&)+0x7f2>
+   14001a2a4:	jmp    14001a1a1 <forge::nnue::update(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&)+0x711>
+   14001a2a9:	neg    %ecx
+   14001a2ab:	neg    %edx
+   14001a2ad:	neg    %eax
+   14001a2af:	mov    %r10,%r11
+   14001a2b2:	and    $0x6,%ecx
+   14001a2b5:	add    0x28(%rsp),%ecx
+   14001a2b9:	and    $0x6,%edx
+   14001a2bc:	and    $0x6,%eax
+   14001a2bf:	add    %r9d,%edx
+   14001a2c2:	add    %r15d,%eax
+   14001a2c5:	xor    %r9d,%r9d
+   14001a2c8:	shl    $0x6,%edx
+   14001a2cb:	shl    $0x6,%eax
+   14001a2ce:	add    0x34(%rsp),%edx
+   14001a2d2:	add    0x30(%rsp),%eax
+   14001a2d6:	shl    $0x6,%ecx
+   14001a2d9:	add    0x50(%rsp),%ecx
+   14001a2dd:	movslq %edx,%rdx
+   14001a2e0:	cltq
+   14001a2e2:	shl    $0xa,%rdx
+   14001a2e6:	shl    $0xa,%rax
+   14001a2ea:	movslq %ecx,%rcx
+   14001a2ed:	add    %rdi,%rdx
+   14001a2f0:	add    %rdi,%rax
+   14001a2f3:	shl    $0xa,%rcx
+   14001a2f7:	add    %rdi,%rcx
+   14001a2fa:	vmovss (%r11,%r9,1),%xmm0
+   14001a300:	vsubss (%rcx,%r9,1),%xmm0,%xmm0
+   14001a306:	vsubss (%rdx,%r9,1),%xmm0,%xmm0
+   14001a30c:	vaddss (%rax,%r9,1),%xmm0,%xmm0
+   14001a312:	vmovss %xmm0,(%r8,%r9,1)
+   14001a318:	add    $0x4,%r9
+   14001a31c:	cmp    $0x400,%r9
+   14001a323:	jne    14001a2fa <forge::nnue::update(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&)+0x86a>
+   14001a325:	jmp    140019fce <forge::nnue::update(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&)+0x53e>
+   14001a32a:	nopw   0x0(%rax,%rax,1)
+### forge_r5b_off_v3_b7c1772.exe forge::nnue::evaluate
+   14001a330:	push   %rsi
+   14001a331:	push   %rbx
+   14001a332:	sub    $0x38,%rsp
+   14001a336:	vmovups %xmm6,0x20(%rsp)
+   14001a33c:	mov    %rcx,%rsi
+   14001a33f:	mov    %rdx,%rbx
+   14001a342:	call   1400194b0 <forge::nnue::(anonymous namespace)::weights()>
+   14001a347:	vbroadcastss 0x1bf538(%rip),%ymm2        # 1401d9888 <NnueW1+0x604e8>
+   14001a350:	movslq 0x180(%rsi),%r8
+   14001a357:	mov    %rax,%rcx
+   14001a35a:	vxorps %xmm3,%xmm3,%xmm3
+   14001a35e:	vmovaps %ymm3,%ymm4
+   14001a362:	vmovaps %ymm3,%ymm1
+   14001a366:	mov    %r8,%rax
+   14001a369:	shl    $0xa,%r8
+   14001a36d:	add    %rbx,%r8
+   14001a370:	test   %eax,%eax
+   14001a372:	sete   %al
+   14001a375:	movzbl %al,%eax
+   14001a378:	shl    $0xa,%rax
+   14001a37c:	lea    (%rbx,%rax,1),%rdx
+   14001a380:	xor    %eax,%eax
+   14001a382:	nopl   (%rax)
+   14001a385:	data16 cs nopw 0x0(%rax,%rax,1)
+   14001a390:	vmovups (%r8,%rax,1),%ymm5
+   14001a396:	vcmpltps %ymm5,%ymm1,%ymm0
+   14001a39b:	vandps %ymm0,%ymm5,%ymm5
+   14001a39f:	vmovups (%rdx,%rax,1),%ymm0
+   14001a3a4:	vminps %ymm2,%ymm5,%ymm5
+   14001a3a8:	vmulps %ymm5,%ymm5,%ymm5
+   14001a3ac:	vmulps 0x420(%rcx,%rax,1),%ymm5,%ymm5
+   14001a3b5:	vcmpltps %ymm0,%ymm1,%ymm6
+   14001a3ba:	vandps %ymm6,%ymm0,%ymm0
+   14001a3be:	vminps %ymm2,%ymm0,%ymm0
+   14001a3c2:	vmulps %ymm0,%ymm0,%ymm0
+   14001a3c6:	vmulps 0x820(%rcx,%rax,1),%ymm0,%ymm0
+   14001a3cf:	vaddps %ymm5,%ymm0,%ymm0
+   14001a3d3:	vmovups 0x20(%r8,%rax,1),%ymm5
+   14001a3da:	vaddps %ymm0,%ymm4,%ymm4
+   14001a3de:	vcmpltps %ymm5,%ymm1,%ymm0
+   14001a3e3:	vandps %ymm0,%ymm5,%ymm5
+   14001a3e7:	vmovups 0x20(%rdx,%rax,1),%ymm0
+   14001a3ed:	vminps %ymm2,%ymm5,%ymm5
+   14001a3f1:	vmulps %ymm5,%ymm5,%ymm5
+   14001a3f5:	vmulps 0x440(%rcx,%rax,1),%ymm5,%ymm5
+   14001a3fe:	vcmpltps %ymm0,%ymm1,%ymm6
+   14001a403:	vandps %ymm6,%ymm0,%ymm0
+   14001a407:	vminps %ymm2,%ymm0,%ymm0
+   14001a40b:	vmulps %ymm0,%ymm0,%ymm0
+   14001a40f:	vmulps 0x840(%rcx,%rax,1),%ymm0,%ymm0
+   14001a418:	add    $0x40,%rax
+   14001a41c:	vaddps %ymm5,%ymm0,%ymm0
+   14001a420:	vaddps %ymm0,%ymm3,%ymm3
+   14001a424:	cmp    $0x400,%rax
+   14001a42a:	jne    14001a390 <forge::nnue::evaluate(forge::Board const&, forge::nnue::Accumulator const&)+0x60>
+   14001a430:	vmovss 0xc20(%rcx),%xmm1
+   14001a438:	vshufps $0x55,%xmm4,%xmm4,%xmm2
+   14001a43d:	vshufps $0xff,%xmm4,%xmm4,%xmm0
+   14001a442:	vaddss %xmm4,%xmm1,%xmm1
+   14001a446:	vaddss %xmm1,%xmm2,%xmm2
+   14001a44a:	vunpckhps %xmm4,%xmm4,%xmm1
+   14001a44e:	vextractf128 $0x1,%ymm4,%xmm4
+   14001a454:	vaddss %xmm2,%xmm1,%xmm1
+   14001a458:	vshufps $0x55,%xmm3,%xmm3,%xmm2
+   14001a45d:	vaddss %xmm1,%xmm0,%xmm0
+   14001a461:	vaddss %xmm0,%xmm4,%xmm1
+   14001a465:	vshufps $0x55,%xmm4,%xmm4,%xmm0
+   14001a46a:	vaddss %xmm1,%xmm0,%xmm0
+   14001a46e:	vunpckhps %xmm4,%xmm4,%xmm1
+   14001a472:	vshufps $0xff,%xmm4,%xmm4,%xmm4
+   14001a477:	vaddss %xmm0,%xmm1,%xmm1
+   14001a47b:	vshufps $0xff,%xmm3,%xmm3,%xmm0
+   14001a480:	vaddss %xmm4,%xmm1,%xmm1
+   14001a484:	vaddss %xmm3,%xmm1,%xmm1
+   14001a488:	vaddss %xmm1,%xmm2,%xmm2
+   14001a48c:	vunpckhps %xmm3,%xmm3,%xmm1
+   14001a490:	vextractf128 $0x1,%ymm3,%xmm3
+   14001a496:	vaddss %xmm2,%xmm1,%xmm1
+   14001a49a:	vmovss 0x1bf3f2(%rip),%xmm2        # 1401d9894 <NnueW1+0x604f4>
+   14001a4a2:	vaddss %xmm1,%xmm0,%xmm0
+   14001a4a6:	vshufps $0x55,%xmm3,%xmm3,%xmm1
+   14001a4ab:	vaddss %xmm0,%xmm3,%xmm0
+   14001a4af:	vaddss %xmm0,%xmm1,%xmm1
+   14001a4b3:	vunpckhps %xmm3,%xmm3,%xmm0
+   14001a4b7:	vshufps $0xff,%xmm3,%xmm3,%xmm3
+   14001a4bc:	vaddss %xmm1,%xmm0,%xmm0
+   14001a4c0:	vaddss %xmm3,%xmm0,%xmm0
+   14001a4c4:	vmulss 0x1bf3c0(%rip),%xmm0,%xmm0        # 1401d988c <NnueW1+0x604ec>
+   14001a4cc:	vdivss 0x1bf3bc(%rip),%xmm0,%xmm0        # 1401d9890 <NnueW1+0x604f0>
+   14001a4d4:	vmaxss %xmm0,%xmm2,%xmm1
+   14001a4d8:	vmovss 0x1bf3b8(%rip),%xmm0        # 1401d9898 <NnueW1+0x604f8>
+   14001a4e0:	vminss %xmm1,%xmm0,%xmm0
+   14001a4e4:	vcvttss2si %xmm0,%eax
+   14001a4e8:	vzeroupper
+   14001a4eb:	vmovups 0x20(%rsp),%xmm6
+   14001a4f1:	add    $0x38,%rsp
+   14001a4f5:	pop    %rbx
+   14001a4f6:	pop    %rsi
+   14001a4f7:	ret
+   14001a4f8:	nopl   0x0(%rax,%rax,1)
+### forge_r5b_o2_v3_b7c1772.exe forge::nnue::refresh
+   1400198d0:	push   %r15
+   1400198d2:	push   %r14
+   1400198d4:	push   %r13
+   1400198d6:	push   %r12
+   1400198d8:	push   %rbp
+   1400198d9:	push   %rdi
+   1400198da:	push   %rsi
+   1400198db:	push   %rbx
+   1400198dc:	sub    $0x278,%rsp
+   1400198e3:	vmovups %xmm6,0x250(%rsp)
+   1400198ec:	vmovups %xmm7,0x260(%rsp)
+   1400198f5:	mov    %rcx,%rbx
+   1400198f8:	mov    %rdx,%r12
+   1400198fb:	call   1400194b0 <forge::nnue::(anonymous namespace)::weights()>
+   140019900:	lea    0x50(%rsp),%r15
+   140019905:	mov    %rax,%r10
+   140019908:	mov    0x1bff71(%rip),%rax        # 1401d9880 <NnueW1+0x604e0>
+   14001990f:	mov    %r15,0x28(%rsp)
+   140019914:	lea    0x40(%r10),%rdi
+   140019918:	mov    %rdi,0x38(%rsp)
+   14001991d:	mov    %rax,0x48(%rsp)
+   140019922:	lea    0x48(%rsp),%rax
+   140019927:	mov    0x168(%rbx),%r15
+   14001992e:	mov    (%rax),%ebp
+   140019930:	or     0x170(%rbx),%r15
+   140019937:	je     1400199ce <forge::nnue::refresh(forge::Board const&, forge::nnue::Accumulator&)+0xfe>
+   14001993d:	mov    (%r10),%rdi
+   140019940:	test   %ebp,%ebp
+   140019942:	jne    140019b5e <forge::nnue::refresh(forge::Board const&, forge::nnue::Accumulator&)+0x28e>
+   140019948:	mov    0x28(%rsp),%r11
+   14001994d:	mov    %r15,%r9
+   140019950:	jmp    1400199a4 <forge::nnue::refresh(forge::Board const&, forge::nnue::Accumulator&)+0xd4>
+   140019952:	mov    $0x1,%edx
+   140019957:	lea    -0x1(%r8),%esi
+   14001995b:	movslq %esi,%r8
+   14001995e:	mov    %esi,%r13d
+   140019961:	sar    $0x1f,%r13d
+   140019965:	imul   $0x2aaaaaab,%r8,%r8
+   14001996c:	shr    $0x20,%r8
+   140019970:	sub    %r13d,%r8d
+   140019973:	lea    (%r8,%r8,2),%r13d
+   140019977:	add    %r13d,%r13d
+   14001997a:	sub    %r13d,%esi
+   14001997d:	mov    %esi,%r8d
+   140019980:	neg    %edx
+   140019982:	add    $0x8,%r11
+   140019986:	and    $0x6,%edx
+   140019989:	add    %r8d,%edx
+   14001998c:	shl    $0x6,%edx
+   14001998f:	add    %ecx,%edx
+   140019991:	movslq %edx,%rdx
+   140019994:	shl    $0xa,%rdx
+   140019998:	add    %rdi,%rdx
+   14001999b:	mov    %rdx,-0x8(%r11)
+   14001999f:	test   %r9,%r9
+   1400199a2:	je     1400199c9 <forge::nnue::refresh(forge::Board const&, forge::nnue::Accumulator&)+0xf9>
+   1400199a4:	xor    %ecx,%ecx
+   1400199a6:	tzcnt  %r9,%rcx
+   1400199ab:	blsr   %r9,%r9
+   1400199b0:	mov    (%rbx,%rcx,4),%r8d
+   1400199b4:	cmp    $0x6,%r8d
+   1400199b8:	jg     140019952 <forge::nnue::refresh(forge::Board const&, forge::nnue::Accumulator&)+0x82>
+   1400199ba:	xor    %edx,%edx
+   1400199bc:	test   %r8d,%r8d
+   1400199bf:	jne    140019957 <forge::nnue::refresh(forge::Board const&, forge::nnue::Accumulator&)+0x87>
+   1400199c1:	mov    $0xffffffff,%r8d
+   1400199c7:	jmp    140019980 <forge::nnue::refresh(forge::Board const&, forge::nnue::Accumulator&)+0xb0>
+   1400199c9:	popcnt %r15,%r15
+   1400199ce:	mov    0x28(%rsp),%rdi
+   1400199d3:	mov    0x38(%rsp),%r9
+   1400199d8:	mov    %rax,0x30(%rsp)
+   1400199dd:	mov    %rbx,0x2c0(%rsp)
+   1400199e5:	mov    %r12,0x2c8(%rsp)
+   1400199ed:	movslq %ebp,%r8
+   1400199f0:	mov    $0x40,%ecx
+   1400199f5:	shl    $0xa,%r8
+   1400199f9:	lea    (%rdi,%r15,8),%r14
+   1400199fd:	add    %r12,%r8
+   140019a00:	vmovups (%r9),%ymm1
+   140019a05:	vmovups 0x20(%r9),%ymm6
+   140019a0b:	vmovups 0x40(%r9),%ymm3
+   140019a11:	vmovups 0x60(%r9),%ymm5
+   140019a17:	vmovups 0x80(%r9),%ymm2
+   140019a20:	vmovups 0xa0(%r9),%ymm0
+   140019a29:	vmovups 0xc0(%r9),%ymm4
+   140019a32:	vmovups 0xe0(%r9),%ymm7
+   140019a3b:	test   %r15,%r15
+   140019a3e:	je     140019ab7 <forge::nnue::refresh(forge::Board const&, forge::nnue::Accumulator&)+0x1e7>
+   140019a40:	mov    0x28(%rsp),%rdx
+   140019a45:	lea    -0x40(%rcx),%r13
+   140019a49:	lea    -0x20(%rcx),%r12
+   140019a4d:	lea    0x20(%rcx),%rbp
+   140019a51:	lea    0x40(%rcx),%rdi
+   140019a55:	lea    0x60(%rcx),%rsi
+   140019a59:	lea    0x80(%rcx),%rbx
+   140019a60:	lea    0xa0(%rcx),%r11
+   140019a67:	nopl   (%rax)
+   140019a6a:	data16 cs nopw 0x0(%rax,%rax,1)
+   140019a75:	data16 cs nopw 0x0(%rax,%rax,1)
+   140019a80:	mov    (%rdx),%rax
+   140019a83:	add    $0x8,%rdx
+   140019a87:	vaddps (%rax,%r13,1),%ymm1,%ymm1
+   140019a8d:	vaddps (%rax,%r12,1),%ymm6,%ymm6
+   140019a93:	vaddps (%rax,%rcx,1),%ymm3,%ymm3
+   140019a98:	vaddps (%rax,%rbp,1),%ymm5,%ymm5
+   140019a9d:	vaddps (%rax,%rdi,1),%ymm2,%ymm2
+   140019aa2:	vaddps (%rax,%rsi,1),%ymm0,%ymm0
+   140019aa7:	vaddps (%rax,%rbx,1),%ymm4,%ymm4
+   140019aac:	vaddps (%rax,%r11,1),%ymm7,%ymm7
+   140019ab2:	cmp    %r14,%rdx
+   140019ab5:	jne    140019a80 <forge::nnue::refresh(forge::Board const&, forge::nnue::Accumulator&)+0x1b0>
+   140019ab7:	add    $0x100,%rcx
+   140019abe:	vmovups %ymm1,(%r8)
+   140019ac3:	vmovups %ymm6,0x20(%r8)
+   140019ac9:	add    $0x100,%r9
+   140019ad0:	vmovups %ymm3,0x40(%r8)
+   140019ad6:	vmovups %ymm5,0x60(%r8)
+   140019adc:	add    $0x100,%r8
+   140019ae3:	vmovups %ymm2,-0x80(%r8)
+   140019ae9:	vmovups %ymm0,-0x60(%r8)
+   140019aef:	vmovups %ymm4,-0x40(%r8)
+   140019af5:	vmovups %ymm7,-0x20(%r8)
+   140019afb:	cmp    $0x440,%rcx
+   140019b02:	jne    140019a00 <forge::nnue::refresh(forge::Board const&, forge::nnue::Accumulator&)+0x130>
+   140019b08:	mov    0x30(%rsp),%rax
+   140019b0d:	mov    0x2c0(%rsp),%rbx
+   140019b15:	mov    0x2c8(%rsp),%r12
+   140019b1d:	add    $0x4,%rax
+   140019b21:	cmp    %rax,0x28(%rsp)
+   140019b26:	jne    140019927 <forge::nnue::refresh(forge::Board const&, forge::nnue::Accumulator&)+0x57>
+   140019b2c:	movb   $0x1,0x800(%r12)
+   140019b35:	vzeroupper
+   140019b38:	vmovups 0x250(%rsp),%xmm6
+   140019b41:	vmovups 0x260(%rsp),%xmm7
+   140019b4a:	add    $0x278,%rsp
+   140019b51:	pop    %rbx
+   140019b52:	pop    %rsi
+   140019b53:	pop    %rdi
+   140019b54:	pop    %rbp
+   140019b55:	pop    %r12
+   140019b57:	pop    %r13
+   140019b59:	pop    %r14
+   140019b5b:	pop    %r15
+   140019b5d:	ret
+   140019b5e:	xor    %r13d,%r13d
+   140019b61:	cmp    $0x1,%ebp
+   140019b64:	mov    0x28(%rsp),%rsi
+   140019b69:	mov    %r15,%r9
+   140019b6c:	setne  %r13b
+   140019b70:	jmp    140019bb2 <forge::nnue::refresh(forge::Board const&, forge::nnue::Accumulator&)+0x2e2>
+   140019b72:	mov    $0x1,%edx
+   140019b77:	test   %r11d,%r11d
+   140019b7a:	jne    140019bcb <forge::nnue::refresh(forge::Board const&, forge::nnue::Accumulator&)+0x2fb>
+   140019b7c:	mov    $0xffffffff,%r8d
+   140019b82:	mov    $0x1,%edx
+   140019b87:	neg    %edx
+   140019b89:	xor    $0x38,%ecx
+   140019b8c:	add    $0x8,%rsi
+   140019b90:	and    $0x6,%edx
+   140019b93:	add    %r8d,%edx
+   140019b96:	shl    $0x6,%edx
+   140019b99:	add    %ecx,%edx
+   140019b9b:	movslq %edx,%rdx
+   140019b9e:	shl    $0xa,%rdx
+   140019ba2:	add    %rdi,%rdx
+   140019ba5:	mov    %rdx,-0x8(%rsi)
+   140019ba9:	test   %r9,%r9
+   140019bac:	je     1400199c9 <forge::nnue::refresh(forge::Board const&, forge::nnue::Accumulator&)+0xf9>
+   140019bb2:	xor    %ecx,%ecx
+   140019bb4:	tzcnt  %r9,%rcx
+   140019bb9:	blsr   %r9,%r9
+   140019bbe:	mov    (%rbx,%rcx,4),%r11d
+   140019bc2:	cmp    $0x6,%r11d
+   140019bc6:	jle    140019b72 <forge::nnue::refresh(forge::Board const&, forge::nnue::Accumulator&)+0x2a2>
+   140019bc8:	mov    %r13d,%edx
+   140019bcb:	dec    %r11d
+   140019bce:	movslq %r11d,%r8
+   140019bd1:	mov    %r11d,%r14d
+   140019bd4:	sar    $0x1f,%r14d
+   140019bd8:	imul   $0x2aaaaaab,%r8,%r8
+   140019bdf:	shr    $0x20,%r8
+   140019be3:	sub    %r14d,%r8d
+   140019be6:	lea    (%r8,%r8,2),%r14d
+   140019bea:	add    %r14d,%r14d
+   140019bed:	sub    %r14d,%r11d
+   140019bf0:	mov    %r11d,%r8d
+   140019bf3:	jmp    140019b87 <forge::nnue::refresh(forge::Board const&, forge::nnue::Accumulator&)+0x2b7>
+   140019bf5:	data16 cs nopw 0x0(%rax,%rax,1)
+### forge_r5b_o2_v3_b7c1772.exe forge::nnue::update
+   140019c00:	push   %r15
+   140019c02:	push   %r14
+   140019c04:	push   %r13
+   140019c06:	push   %r12
+   140019c08:	push   %rbp
+   140019c09:	push   %rdi
+   140019c0a:	push   %rsi
+   140019c0b:	push   %rbx
+   140019c0c:	sub    $0x48,%rsp
+   140019c10:	mov    %r8,%rbx
+   140019c13:	mov    %rcx,0x90(%rsp)
+   140019c1b:	mov    %rdx,%r15
+   140019c1e:	call   1400194b0 <forge::nnue::(anonymous namespace)::weights()>
+   140019c23:	mov    0x20(%rbx),%r12d
+   140019c27:	mov    %rax,0x20(%rsp)
+   140019c2c:	cmp    $0x2,%r12d
+   140019c30:	je     14001a061 <forge::nnue::update(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&)+0x461>
+   140019c36:	cmp    $0x3,%r12d
+   140019c3a:	je     140019df6 <forge::nnue::update(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&)+0x1f6>
+   140019c40:	cmp    $0x4,%r12d
+   140019c44:	jne    140019c50 <forge::nnue::update(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&)+0x50>
+   140019c46:	cmpb   $0x0,0x5(%rbx)
+   140019c4a:	je     14001a1b9 <forge::nnue::update(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&)+0x5b9>
+   140019c50:	mov    0x1bfc29(%rip),%rax        # 1401d9880 <NnueW1+0x604e0>
+   140019c57:	mov    %r12d,0x2c(%rsp)
+   140019c5c:	lea    0x38(%rsp),%rbp
+   140019c61:	mov    %rbx,%rsi
+   140019c64:	mov    %rax,0x38(%rsp)
+   140019c69:	movslq %r12d,%rax
+   140019c6c:	lea    (%rbx,%rax,8),%rdi
+   140019c70:	movslq 0x0(%rbp),%rax
+   140019c74:	mov    $0x400,%r8d
+   140019c7a:	mov    %rax,%rbx
+   140019c7d:	shl    $0xa,%rax
+   140019c81:	lea    (%r15,%rax,1),%rcx
+   140019c85:	add    0x90(%rsp),%rax
+   140019c8d:	mov    %rax,%rdx
+   140019c90:	call   1400633f8 <memcpy>
+   140019c95:	mov    %rax,%rcx
+   140019c98:	mov    0x2c(%rsp),%eax
+   140019c9c:	test   %eax,%eax
+   140019c9e:	jle    140019dcb <forge::nnue::update(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&)+0x1cb>
+   140019ca4:	mov    0x20(%rsp),%rax
+   140019ca9:	xor    %r14d,%r14d
+   140019cac:	test   %ebx,%ebx
+   140019cae:	mov    %rsi,%r10
+   140019cb1:	setne  %r14b
+   140019cb5:	xor    %r13d,%r13d
+   140019cb8:	cmp    $0x1,%ebx
+   140019cbb:	setne  %r13b
+   140019cbf:	mov    (%rax),%r11
+   140019cc2:	nopl   (%rax)
+   140019cc5:	data16 cs nopw 0x0(%rax,%rax,1)
+   140019cd0:	mov    (%r10),%r9d
+   140019cd3:	movzbl 0x4(%r10),%r8d
+   140019cd8:	cmp    $0x6,%r9d
+   140019cdc:	jg     140019fe0 <forge::nnue::update(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&)+0x3e0>
+   140019ce2:	movslq %r14d,%rax
+   140019ce5:	mov    $0xffffffff,%edx
+   140019cea:	test   %r9d,%r9d
+   140019ced:	je     140019d17 <forge::nnue::update(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&)+0x117>
+   140019cef:	dec    %r9d
+   140019cf2:	movslq %r9d,%rdx
+   140019cf5:	mov    %r9d,%r12d
+   140019cf8:	sar    $0x1f,%r12d
+   140019cfc:	imul   $0x2aaaaaab,%rdx,%rdx
+   140019d03:	shr    $0x20,%rdx
+   140019d07:	sub    %r12d,%edx
+   140019d0a:	lea    (%rdx,%rdx,2),%r12d
+   140019d0e:	add    %r12d,%r12d
+   140019d11:	mov    %r9d,%edx
+   140019d14:	sub    %r12d,%edx
+   140019d17:	mov    %r8d,%r9d
+   140019d1a:	xor    $0x38,%r9d
+   140019d1e:	test   %ebx,%ebx
+   140019d20:	cmovne %r9d,%r8d
+   140019d24:	mov    %eax,%r9d
+   140019d27:	neg    %rax
+   140019d2a:	neg    %r9d
+   140019d2d:	and    $0x6,%eax
+   140019d30:	movzbl %r8b,%r8d
+   140019d34:	and    $0x6,%r9d
+   140019d38:	add    %edx,%r9d
+   140019d3b:	movslq %edx,%rdx
+   140019d3e:	add    %rax,%rdx
+   140019d41:	shl    $0x6,%r9d
+   140019d45:	shl    $0x6,%rdx
+   140019d49:	add    %r8d,%r9d
+   140019d4c:	add    %r8,%rdx
+   140019d4f:	shl    $0xa,%rdx
+   140019d53:	movslq %r9d,%r9
+   140019d56:	lea    0x4(%r11,%rdx,1),%r8
+   140019d5b:	shl    $0xa,%r9
+   140019d5f:	mov    %rcx,%rax
+   140019d62:	sub    %r8,%rax
+   140019d65:	add    %r11,%r9
+   140019d68:	cmpb   $0x0,0x5(%r10)
+   140019d6d:	je     140019fb0 <forge::nnue::update(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&)+0x3b0>
+   140019d73:	cmp    $0x18,%rax
+   140019d77:	jbe    14001a021 <forge::nnue::update(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&)+0x421>
+   140019d7d:	add    %r11,%rdx
+   140019d80:	xor    %eax,%eax
+   140019d82:	nopl   0x0(%rax,%rax,1)
+   140019d8a:	data16 cs nopw 0x0(%rax,%rax,1)
+   140019d95:	data16 cs nopw 0x0(%rax,%rax,1)
+   140019da0:	vmovups (%rcx,%rax,1),%ymm0
+   140019da5:	vaddps (%rdx,%rax,1),%ymm0,%ymm0
+   140019daa:	vmovups %ymm0,(%rcx,%rax,1)
+   140019daf:	add    $0x20,%rax
+   140019db3:	cmp    $0x400,%rax
+   140019db9:	jne    140019da0 <forge::nnue::update(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&)+0x1a0>
+   140019dbb:	add    $0x8,%r10
+   140019dbf:	cmp    %rdi,%r10
+   140019dc2:	jne    140019cd0 <forge::nnue::update(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&)+0xd0>
+   140019dc8:	vzeroupper
+   140019dcb:	add    $0x4,%rbp
+   140019dcf:	lea    0x40(%rsp),%rax
+   140019dd4:	cmp    %rax,%rbp
+   140019dd7:	jne    140019c70 <forge::nnue::update(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&)+0x70>
+   140019ddd:	movb   $0x1,0x800(%r15)
+   140019de5:	add    $0x48,%rsp
+   140019de9:	pop    %rbx
+   140019dea:	pop    %rsi
+   140019deb:	pop    %rdi
+   140019dec:	pop    %rbp
+   140019ded:	pop    %r12
+   140019def:	pop    %r13
+   140019df1:	pop    %r14
+   140019df3:	pop    %r15
+   140019df5:	ret
+   140019df6:	cmpb   $0x0,0x5(%rbx)
+   140019dfa:	jne    140019c50 <forge::nnue::update(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&)+0x50>
+   140019e00:	cmpb   $0x0,0xd(%rbx)
+   140019e04:	jne    140019c50 <forge::nnue::update(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&)+0x50>
+   140019e0a:	cmpb   $0x0,0x15(%rbx)
+   140019e0e:	je     140019c50 <forge::nnue::update(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&)+0x50>
+   140019e14:	mov    0x1bfa65(%rip),%rax        # 1401d9880 <NnueW1+0x604e0>
+   140019e1b:	lea    0x38(%rsp),%r9
+   140019e20:	mov    %rax,0x38(%rsp)
+   140019e25:	movslq (%r9),%r10
+   140019e28:	mov    0x20(%rsp),%rax
+   140019e2d:	mov    0x10(%rbx),%ecx
+   140019e30:	movzbl 0x14(%rbx),%esi
+   140019e34:	mov    (%rax),%r11
+   140019e37:	mov    %r10,%r8
+   140019e3a:	cmp    $0x6,%ecx
+   140019e3d:	jle    14001a44c <forge::nnue::update(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&)+0x84c>
+   140019e43:	xor    %eax,%eax
+   140019e45:	cmp    $0x1,%r10d
+   140019e49:	setne  %al
+   140019e4c:	dec    %ecx
+   140019e4e:	movslq %ecx,%rdx
+   140019e51:	mov    %ecx,%edi
+   140019e53:	sar    $0x1f,%edi
+   140019e56:	imul   $0x2aaaaaab,%rdx,%rdx
+   140019e5d:	shr    $0x20,%rdx
+   140019e61:	sub    %edi,%edx
+   140019e63:	lea    (%rdx,%rdx,2),%edi
+   140019e66:	add    %edi,%edi
+   140019e68:	mov    %ecx,%edx
+   140019e6a:	sub    %edi,%edx
+   140019e6c:	mov    %esi,%ecx
+   140019e6e:	movzbl 0xc(%rbx),%edi
+   140019e72:	xor    $0x38,%ecx
+   140019e75:	test   %r8d,%r8d
+   140019e78:	cmovne %ecx,%esi
+   140019e7b:	neg    %eax
+   140019e7d:	mov    %eax,%ecx
+   140019e7f:	and    $0x6,%ecx
+   140019e82:	movzbl %sil,%eax
+   140019e86:	add    %edx,%ecx
+   140019e88:	mov    0x8(%rbx),%edx
+   140019e8b:	shl    $0x6,%ecx
+   140019e8e:	add    %eax,%ecx
+   140019e90:	movslq %ecx,%rcx
+   140019e93:	shl    $0xa,%rcx
+   140019e97:	cmp    $0x6,%edx
+   140019e9a:	jle    14001a432 <forge::nnue::update(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&)+0x832>
+   140019ea0:	xor    %eax,%eax
+   140019ea2:	cmp    $0x1,%r8d
+   140019ea6:	setne  %al
+   140019ea9:	dec    %edx
+   140019eab:	movslq %edx,%rsi
+   140019eae:	mov    %edx,%ebp
+   140019eb0:	sar    $0x1f,%ebp
+   140019eb3:	imul   $0x2aaaaaab,%rsi,%rsi
+   140019eba:	shr    $0x20,%rsi
+   140019ebe:	sub    %ebp,%esi
+   140019ec0:	lea    (%rsi,%rsi,2),%ebp
+   140019ec3:	add    %ebp,%ebp
+   140019ec5:	mov    %edx,%esi
+   140019ec7:	sub    %ebp,%esi
+   140019ec9:	mov    %edi,%edx
+   140019ecb:	mov    (%rbx),%ebp
+   140019ecd:	xor    $0x38,%edx
+   140019ed0:	test   %r8d,%r8d
+   140019ed3:	cmovne %edx,%edi
+   140019ed6:	neg    %eax
+   140019ed8:	mov    %eax,%edx
+   140019eda:	and    $0x6,%edx
+   140019edd:	movzbl %dil,%eax
+   140019ee1:	add    %esi,%edx
+   140019ee3:	movzbl 0x4(%rbx),%esi
+   140019ee7:	shl    $0x6,%edx
+   140019eea:	add    %eax,%edx
+   140019eec:	movslq %edx,%rdx
+   140019eef:	shl    $0xa,%rdx
+   140019ef3:	cmp    $0x6,%ebp
+   140019ef6:	jle    14001a418 <forge::nnue::update(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&)+0x818>
+   140019efc:	xor    %eax,%eax
+   140019efe:	cmp    $0x1,%r8d
+   140019f02:	setne  %al
+   140019f05:	dec    %ebp
+   140019f07:	movslq %ebp,%rdi
+   140019f0a:	mov    %ebp,%r12d
+   140019f0d:	sar    $0x1f,%r12d
+   140019f11:	imul   $0x2aaaaaab,%rdi,%rdi
+   140019f18:	shr    $0x20,%rdi
+   140019f1c:	sub    %r12d,%edi
+   140019f1f:	lea    (%rdi,%rdi,2),%r12d
+   140019f23:	add    %r12d,%r12d
+   140019f26:	mov    %ebp,%edi
+   140019f28:	sub    %r12d,%edi
+   140019f2b:	mov    %esi,%ebp
+   140019f2d:	xor    $0x38,%ebp
+   140019f30:	test   %r8d,%r8d
+   140019f33:	cmovne %ebp,%esi
+   140019f36:	neg    %eax
+   140019f38:	add    %r11,%rcx
+   140019f3b:	add    %r11,%rdx
+   140019f3e:	and    $0x6,%eax
+   140019f41:	movzbl %sil,%esi
+   140019f45:	add    %edi,%eax
+   140019f47:	shl    $0xa,%r10
+   140019f4b:	shl    $0x6,%eax
+   140019f4e:	lea    (%r15,%r10,1),%r8
+   140019f52:	add    %esi,%eax
+   140019f54:	add    0x90(%rsp),%r10
+   140019f5c:	cltq
+   140019f5e:	shl    $0xa,%rax
+   140019f62:	add    %rax,%r11
+   140019f65:	xor    %eax,%eax
+   140019f67:	vmovups (%r10,%rax,1),%ymm0
+   140019f6d:	vsubps (%r11,%rax,1),%ymm0,%ymm0
+   140019f73:	vsubps (%rdx,%rax,1),%ymm0,%ymm0
+   140019f78:	vaddps (%rcx,%rax,1),%ymm0,%ymm0
+   140019f7d:	vmovups %ymm0,(%r8,%rax,1)
+   140019f83:	add    $0x20,%rax
+   140019f87:	cmp    $0x400,%rax
+   140019f8d:	jne    140019f67 <forge::nnue::update(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&)+0x367>
+   140019f8f:	add    $0x4,%r9
+   140019f93:	lea    0x40(%rsp),%rax
+   140019f98:	cmp    %rax,%r9
+   140019f9b:	jne    140019e25 <forge::nnue::update(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&)+0x225>
+   140019fa1:	vzeroupper
+   140019fa4:	jmp    140019ddd <forge::nnue::update(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&)+0x1dd>
+   140019fa9:	nopl   0x0(%rax)
+   140019fb0:	cmp    $0x18,%rax
+   140019fb4:	jbe    140019fe8 <forge::nnue::update(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&)+0x3e8>
+   140019fb6:	add    %r11,%rdx
+   140019fb9:	xor    %eax,%eax
+   140019fbb:	nopl   0x0(%rax,%rax,1)
+   140019fc0:	vmovups (%rcx,%rax,1),%ymm0
+   140019fc5:	vsubps (%rdx,%rax,1),%ymm0,%ymm0
+   140019fca:	vmovups %ymm0,(%rcx,%rax,1)
+   140019fcf:	add    $0x20,%rax
+   140019fd3:	cmp    $0x400,%rax
+   140019fd9:	jne    140019fc0 <forge::nnue::update(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&)+0x3c0>
+   140019fdb:	jmp    140019dbb <forge::nnue::update(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&)+0x1bb>
+   140019fe0:	movslq %r13d,%rax
+   140019fe3:	jmp    140019cef <forge::nnue::update(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&)+0xef>
+   140019fe8:	xor    %eax,%eax
+   140019fea:	data16 cs nopw 0x0(%rax,%rax,1)
+   140019ff5:	data16 cs nopw 0x0(%rax,%rax,1)
+   14001a000:	vmovss (%rcx,%rax,1),%xmm0
+   14001a005:	vsubss (%r9,%rax,1),%xmm0,%xmm0
+   14001a00b:	vmovss %xmm0,(%rcx,%rax,1)
+   14001a010:	add    $0x4,%rax
+   14001a014:	cmp    $0x400,%rax
+   14001a01a:	jne    14001a000 <forge::nnue::update(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&)+0x400>
+   14001a01c:	jmp    140019dbb <forge::nnue::update(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&)+0x1bb>
+   14001a021:	xor    %eax,%eax
+   14001a023:	nopl   0x0(%rax)
+   14001a02a:	data16 cs nopw 0x0(%rax,%rax,1)
+   14001a035:	data16 cs nopw 0x0(%rax,%rax,1)
+   14001a040:	vmovss (%rcx,%rax,1),%xmm0
+   14001a045:	vaddss (%r9,%rax,1),%xmm0,%xmm0
+   14001a04b:	vmovss %xmm0,(%rcx,%rax,1)
+   14001a050:	add    $0x4,%rax
+   14001a054:	cmp    $0x400,%rax
+   14001a05a:	jne    14001a040 <forge::nnue::update(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&)+0x440>
+   14001a05c:	jmp    140019dbb <forge::nnue::update(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&)+0x1bb>
+   14001a061:	cmpb   $0x0,0x5(%rbx)
+   14001a065:	jne    140019c50 <forge::nnue::update(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&)+0x50>
+   14001a06b:	cmpb   $0x0,0xd(%rbx)
+   14001a06f:	je     140019c50 <forge::nnue::update(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&)+0x50>
+   14001a075:	mov    0x1bf804(%rip),%rax        # 1401d9880 <NnueW1+0x604e0>
+   14001a07c:	lea    0x38(%rsp),%r9
+   14001a081:	mov    %rax,0x38(%rsp)
+   14001a086:	movslq (%r9),%r8
+   14001a089:	mov    0x20(%rsp),%rax
+   14001a08e:	mov    0x8(%rbx),%edx
+   14001a091:	movzbl 0xc(%rbx),%esi
+   14001a095:	mov    (%rax),%r10
+   14001a098:	mov    %r8,%rcx
+   14001a09b:	cmp    $0x6,%edx
+   14001a09e:	jle    14001a3fd <forge::nnue::update(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&)+0x7fd>
+   14001a0a4:	xor    %eax,%eax
+   14001a0a6:	cmp    $0x1,%r8d
+   14001a0aa:	setne  %al
+   14001a0ad:	dec    %edx
+   14001a0af:	movslq %edx,%r11
+   14001a0b2:	mov    %edx,%edi
+   14001a0b4:	sar    $0x1f,%edi
+   14001a0b7:	imul   $0x2aaaaaab,%r11,%r11
+   14001a0be:	shr    $0x20,%r11
+   14001a0c2:	sub    %edi,%r11d
+   14001a0c5:	lea    (%r11,%r11,2),%edi
+   14001a0c9:	add    %edi,%edi
+   14001a0cb:	sub    %edi,%edx
+   14001a0cd:	mov    %edx,%r11d
+   14001a0d0:	mov    %esi,%edx
+   14001a0d2:	mov    (%rbx),%edi
+   14001a0d4:	xor    $0x38,%edx
+   14001a0d7:	test   %ecx,%ecx
+   14001a0d9:	cmovne %edx,%esi
+   14001a0dc:	neg    %eax
+   14001a0de:	mov    %eax,%edx
+   14001a0e0:	and    $0x6,%edx
+   14001a0e3:	movzbl %sil,%eax
+   14001a0e7:	add    %r11d,%edx
+   14001a0ea:	movzbl 0x4(%rbx),%r11d
+   14001a0ef:	shl    $0x6,%edx
+   14001a0f2:	add    %eax,%edx
+   14001a0f4:	movslq %edx,%rdx
+   14001a0f7:	shl    $0xa,%rdx
+   14001a0fb:	cmp    $0x6,%edi
+   14001a0fe:	jle    14001a3e4 <forge::nnue::update(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&)+0x7e4>
+   14001a104:	xor    %eax,%eax
+   14001a106:	cmp    $0x1,%ecx
+   14001a109:	setne  %al
+   14001a10c:	dec    %edi
+   14001a10e:	movslq %edi,%rsi
+   14001a111:	mov    %edi,%ebp
+   14001a113:	sar    $0x1f,%ebp
+   14001a116:	imul   $0x2aaaaaab,%rsi,%rsi
+   14001a11d:	shr    $0x20,%rsi
+   14001a121:	sub    %ebp,%esi
+   14001a123:	lea    (%rsi,%rsi,2),%ebp
+   14001a126:	add    %ebp,%ebp
+   14001a128:	mov    %edi,%esi
+   14001a12a:	sub    %ebp,%esi
+   14001a12c:	mov    %r11d,%edi
+   14001a12f:	xor    $0x38,%edi
+   14001a132:	test   %ecx,%ecx
+   14001a134:	cmovne %edi,%r11d
+   14001a138:	neg    %eax
+   14001a13a:	mov    %r8,%rcx
+   14001a13d:	shl    $0xa,%rcx
+   14001a141:	and    $0x6,%eax
+   14001a144:	mov    0x90(%rsp),%r8
+   14001a14c:	movzbl %r11b,%r11d
+   14001a150:	add    %r10,%rdx
+   14001a153:	add    %esi,%eax
+   14001a155:	shl    $0x6,%eax
+   14001a158:	add    %r11d,%eax
+   14001a15b:	cltq
+   14001a15d:	add    %rcx,%r8
+   14001a160:	add    %r15,%rcx
+   14001a163:	shl    $0xa,%rax
+   14001a167:	add    %rax,%r10
+   14001a16a:	xor    %eax,%eax
+   14001a16c:	nopw   0x0(%rax,%rax,1)
+   14001a175:	data16 cs nopw 0x0(%rax,%rax,1)
+   14001a180:	vmovups (%r8,%rax,1),%ymm0
+   14001a186:	vsubps (%r10,%rax,1),%ymm0,%ymm0
+   14001a18c:	vaddps (%rdx,%rax,1),%ymm0,%ymm0
+   14001a191:	vmovups %ymm0,(%rcx,%rax,1)
+   14001a196:	add    $0x20,%rax
+   14001a19a:	cmp    $0x400,%rax
+   14001a1a0:	jne    14001a180 <forge::nnue::update(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&)+0x580>
+   14001a1a2:	add    $0x4,%r9
+   14001a1a6:	lea    0x40(%rsp),%rax
+   14001a1ab:	cmp    %rax,%r9
+   14001a1ae:	jne    14001a086 <forge::nnue::update(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&)+0x486>
+   14001a1b4:	jmp    140019fa1 <forge::nnue::update(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&)+0x3a1>
+   14001a1b9:	cmpb   $0x0,0xd(%rbx)
+   14001a1bd:	je     140019c50 <forge::nnue::update(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&)+0x50>
+   14001a1c3:	cmpb   $0x0,0x15(%rbx)
+   14001a1c7:	jne    140019c50 <forge::nnue::update(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&)+0x50>
+   14001a1cd:	cmpb   $0x0,0x1d(%rbx)
+   14001a1d1:	je     140019c50 <forge::nnue::update(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&)+0x50>
+   14001a1d7:	mov    0x1bf6a2(%rip),%rax        # 1401d9880 <NnueW1+0x604e0>
+   14001a1de:	lea    0x38(%rsp),%r12
+   14001a1e3:	mov    %rax,0x38(%rsp)
+   14001a1e8:	movslq (%r12),%r10
+   14001a1ec:	mov    0x20(%rsp),%rax
+   14001a1f1:	mov    0x18(%rbx),%ecx
+   14001a1f4:	movzbl 0x1c(%rbx),%r8d
+   14001a1f9:	mov    (%rax),%r11
+   14001a1fc:	mov    %r10,%r9
+   14001a1ff:	cmp    $0x6,%ecx
+   14001a202:	jle    14001a482 <forge::nnue::update(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&)+0x882>
+   14001a208:	xor    %eax,%eax
+   14001a20a:	cmp    $0x1,%r10d
+   14001a20e:	setne  %al
+   14001a211:	dec    %ecx
+   14001a213:	movslq %ecx,%rdx
+   14001a216:	mov    %ecx,%esi
+   14001a218:	sar    $0x1f,%esi
+   14001a21b:	imul   $0x2aaaaaab,%rdx,%rdx
+   14001a222:	shr    $0x20,%rdx
+   14001a226:	sub    %esi,%edx
+   14001a228:	lea    (%rdx,%rdx,2),%esi
+   14001a22b:	add    %esi,%esi
+   14001a22d:	mov    %ecx,%edx
+   14001a22f:	sub    %esi,%edx
+   14001a231:	mov    %r8d,%ecx
+   14001a234:	movzbl 0x14(%rbx),%esi
+   14001a238:	xor    $0x38,%ecx
+   14001a23b:	test   %r9d,%r9d
+   14001a23e:	cmovne %ecx,%r8d
+   14001a242:	neg    %eax
+   14001a244:	mov    %eax,%ecx
+   14001a246:	and    $0x6,%ecx
+   14001a249:	movzbl %r8b,%eax
+   14001a24d:	add    %edx,%ecx
+   14001a24f:	mov    0x10(%rbx),%edx
+   14001a252:	shl    $0x6,%ecx
+   14001a255:	add    %eax,%ecx
+   14001a257:	movslq %ecx,%rcx
+   14001a25a:	shl    $0xa,%rcx
+   14001a25e:	cmp    $0x6,%edx
+   14001a261:	jle    14001a4b7 <forge::nnue::update(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&)+0x8b7>
+   14001a267:	xor    %eax,%eax
+   14001a269:	cmp    $0x1,%r9d
+   14001a26d:	setne  %al
+   14001a270:	dec    %edx
+   14001a272:	movslq %edx,%r8
+   14001a275:	mov    %edx,%edi
+   14001a277:	sar    $0x1f,%edi
+   14001a27a:	imul   $0x2aaaaaab,%r8,%r8
+   14001a281:	shr    $0x20,%r8
+   14001a285:	sub    %edi,%r8d
+   14001a288:	lea    (%r8,%r8,2),%edi
+   14001a28c:	add    %edi,%edi
+   14001a28e:	sub    %edi,%edx
+   14001a290:	mov    %edx,%r8d
+   14001a293:	mov    %esi,%edx
+   14001a295:	mov    0x8(%rbx),%edi
+   14001a298:	xor    $0x38,%edx
+   14001a29b:	test   %r9d,%r9d
+   14001a29e:	cmovne %edx,%esi
+   14001a2a1:	neg    %eax
+   14001a2a3:	mov    %eax,%edx
+   14001a2a5:	and    $0x6,%edx
+   14001a2a8:	movzbl %sil,%eax
+   14001a2ac:	movzbl 0xc(%rbx),%esi
+   14001a2b0:	add    %r8d,%edx
+   14001a2b3:	shl    $0x6,%edx
+   14001a2b6:	add    %eax,%edx
+   14001a2b8:	movslq %edx,%rdx
+   14001a2bb:	shl    $0xa,%rdx
+   14001a2bf:	cmp    $0x6,%edi
+   14001a2c2:	jle    14001a49c <forge::nnue::update(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&)+0x89c>
+   14001a2c8:	xor    %eax,%eax
+   14001a2ca:	cmp    $0x1,%r9d
+   14001a2ce:	setne  %al
+   14001a2d1:	dec    %edi
+   14001a2d3:	movslq %edi,%r8
+   14001a2d6:	mov    %edi,%ebp
+   14001a2d8:	sar    $0x1f,%ebp
+   14001a2db:	imul   $0x2aaaaaab,%r8,%r8
+   14001a2e2:	shr    $0x20,%r8
+   14001a2e6:	sub    %ebp,%r8d
+   14001a2e9:	lea    (%r8,%r8,2),%ebp
+   14001a2ed:	add    %ebp,%ebp
+   14001a2ef:	sub    %ebp,%edi
+   14001a2f1:	mov    %edi,%r8d
+   14001a2f4:	mov    %esi,%edi
+   14001a2f6:	mov    (%rbx),%ebp
+   14001a2f8:	xor    $0x38,%edi
+   14001a2fb:	test   %r9d,%r9d
+   14001a2fe:	cmovne %edi,%esi
+   14001a301:	neg    %eax
+   14001a303:	and    $0x6,%eax
+   14001a306:	movzbl %sil,%esi
+   14001a30a:	add    %r8d,%eax
+   14001a30d:	shl    $0x6,%eax
+   14001a310:	add    %esi,%eax
+   14001a312:	movzbl 0x4(%rbx),%esi
+   14001a316:	cltq
+   14001a318:	shl    $0xa,%rax
+   14001a31c:	cmp    $0x6,%ebp
+   14001a31f:	jle    14001a466 <forge::nnue::update(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&)+0x866>
+   14001a325:	xor    %r8d,%r8d
+   14001a328:	cmp    $0x1,%r9d
+   14001a32c:	setne  %r8b
+   14001a330:	dec    %ebp
+   14001a332:	movslq %ebp,%rdi
+   14001a335:	mov    %ebp,%r13d
+   14001a338:	sar    $0x1f,%r13d
+   14001a33c:	imul   $0x2aaaaaab,%rdi,%rdi
+   14001a343:	shr    $0x20,%rdi
+   14001a347:	sub    %r13d,%edi
+   14001a34a:	lea    (%rdi,%rdi,2),%r13d
+   14001a34e:	add    %r13d,%r13d
+   14001a351:	mov    %ebp,%edi
+   14001a353:	sub    %r13d,%edi
+   14001a356:	mov    %esi,%ebp
+   14001a358:	xor    $0x38,%ebp
+   14001a35b:	test   %r9d,%r9d
+   14001a35e:	cmovne %ebp,%esi
+   14001a361:	neg    %r8d
+   14001a364:	add    %r11,%rcx
+   14001a367:	add    %r11,%rdx
+   14001a36a:	and    $0x6,%r8d
+   14001a36e:	movzbl %sil,%esi
+   14001a372:	add    %r11,%rax
+   14001a375:	add    %edi,%r8d
+   14001a378:	shl    $0xa,%r10
+   14001a37c:	shl    $0x6,%r8d
+   14001a380:	lea    (%r15,%r10,1),%r9
+   14001a384:	add    %esi,%r8d
+   14001a387:	add    0x90(%rsp),%r10
+   14001a38f:	movslq %r8d,%r8
+   14001a392:	shl    $0xa,%r8
+   14001a396:	add    %r8,%r11
+   14001a399:	xor    %r8d,%r8d
+   14001a39c:	vmovups (%r10,%r8,1),%ymm0
+   14001a3a2:	vsubps (%r11,%r8,1),%ymm0,%ymm0
+   14001a3a8:	vaddps (%rax,%r8,1),%ymm0,%ymm0
+   14001a3ae:	vsubps (%rdx,%r8,1),%ymm0,%ymm0
+   14001a3b4:	vaddps (%rcx,%r8,1),%ymm0,%ymm0
+   14001a3ba:	vmovups %ymm0,(%r9,%r8,1)
+   14001a3c0:	add    $0x20,%r8
+   14001a3c4:	cmp    $0x400,%r8
+   14001a3cb:	jne    14001a39c <forge::nnue::update(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&)+0x79c>
+   14001a3cd:	add    $0x4,%r12
+   14001a3d1:	lea    0x40(%rsp),%rax
+   14001a3d6:	cmp    %rax,%r12
+   14001a3d9:	jne    14001a1e8 <forge::nnue::update(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&)+0x5e8>
+   14001a3df:	jmp    140019fa1 <forge::nnue::update(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&)+0x3a1>
+   14001a3e4:	xor    %eax,%eax
+   14001a3e6:	test   %ecx,%ecx
+   14001a3e8:	mov    $0xffffffff,%esi
+   14001a3ed:	setne  %al
+   14001a3f0:	test   %edi,%edi
+   14001a3f2:	je     14001a12c <forge::nnue::update(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&)+0x52c>
+   14001a3f8:	jmp    14001a10c <forge::nnue::update(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&)+0x50c>
+   14001a3fd:	xor    %eax,%eax
+   14001a3ff:	test   %r8d,%r8d
+   14001a402:	mov    $0xffffffff,%r11d
+   14001a408:	setne  %al
+   14001a40b:	test   %edx,%edx
+   14001a40d:	je     14001a0d0 <forge::nnue::update(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&)+0x4d0>
+   14001a413:	jmp    14001a0ad <forge::nnue::update(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&)+0x4ad>
+   14001a418:	xor    %eax,%eax
+   14001a41a:	test   %r8d,%r8d
+   14001a41d:	mov    $0xffffffff,%edi
+   14001a422:	setne  %al
+   14001a425:	test   %ebp,%ebp
+   14001a427:	je     140019f2b <forge::nnue::update(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&)+0x32b>
+   14001a42d:	jmp    140019f05 <forge::nnue::update(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&)+0x305>
+   14001a432:	xor    %eax,%eax
+   14001a434:	test   %r8d,%r8d
+   14001a437:	mov    $0xffffffff,%esi
+   14001a43c:	setne  %al
+   14001a43f:	test   %edx,%edx
+   14001a441:	je     140019ec9 <forge::nnue::update(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&)+0x2c9>
+   14001a447:	jmp    140019ea9 <forge::nnue::update(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&)+0x2a9>
+   14001a44c:	xor    %eax,%eax
+   14001a44e:	test   %r10d,%r10d
+   14001a451:	mov    $0xffffffff,%edx
+   14001a456:	setne  %al
+   14001a459:	test   %ecx,%ecx
+   14001a45b:	je     140019e6c <forge::nnue::update(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&)+0x26c>
+   14001a461:	jmp    140019e4c <forge::nnue::update(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&)+0x24c>
+   14001a466:	xor    %r8d,%r8d
+   14001a469:	test   %r9d,%r9d
+   14001a46c:	mov    $0xffffffff,%edi
+   14001a471:	setne  %r8b
+   14001a475:	test   %ebp,%ebp
+   14001a477:	je     14001a356 <forge::nnue::update(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&)+0x756>
+   14001a47d:	jmp    14001a330 <forge::nnue::update(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&)+0x730>
+   14001a482:	xor    %eax,%eax
+   14001a484:	test   %r10d,%r10d
+   14001a487:	mov    $0xffffffff,%edx
+   14001a48c:	setne  %al
+   14001a48f:	test   %ecx,%ecx
+   14001a491:	je     14001a231 <forge::nnue::update(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&)+0x631>
+   14001a497:	jmp    14001a211 <forge::nnue::update(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&)+0x611>
+   14001a49c:	xor    %eax,%eax
+   14001a49e:	test   %r9d,%r9d
+   14001a4a1:	mov    $0xffffffff,%r8d
+   14001a4a7:	setne  %al
+   14001a4aa:	test   %edi,%edi
+   14001a4ac:	je     14001a2f4 <forge::nnue::update(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&)+0x6f4>
+   14001a4b2:	jmp    14001a2d1 <forge::nnue::update(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&)+0x6d1>
+   14001a4b7:	xor    %eax,%eax
+   14001a4b9:	test   %r9d,%r9d
+   14001a4bc:	mov    $0xffffffff,%r8d
+   14001a4c2:	setne  %al
+   14001a4c5:	test   %edx,%edx
+   14001a4c7:	je     14001a293 <forge::nnue::update(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&)+0x693>
+   14001a4cd:	jmp    14001a270 <forge::nnue::update(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&)+0x670>
+   14001a4d2:	nopl   (%rax)
+   14001a4d5:	data16 cs nopw 0x0(%rax,%rax,1)
+### forge_r5b_o2_v3_b7c1772.exe forge::nnue::evaluate
+   14001a4e0:	push   %rsi
+   14001a4e1:	push   %rbx
+   14001a4e2:	sub    $0x38,%rsp
+   14001a4e6:	vmovups %xmm6,0x20(%rsp)
+   14001a4ec:	mov    %rcx,%rsi
+   14001a4ef:	mov    %rdx,%rbx
+   14001a4f2:	call   1400194b0 <forge::nnue::(anonymous namespace)::weights()>
+   14001a4f7:	vbroadcastss 0x1bf388(%rip),%ymm2        # 1401d9888 <NnueW1+0x604e8>
+   14001a500:	movslq 0x180(%rsi),%r8
+   14001a507:	mov    %rax,%rcx
+   14001a50a:	vxorps %xmm3,%xmm3,%xmm3
+   14001a50e:	vmovaps %ymm3,%ymm4
+   14001a512:	vmovaps %ymm3,%ymm1
+   14001a516:	mov    %r8,%rax
+   14001a519:	shl    $0xa,%r8
+   14001a51d:	add    %rbx,%r8
+   14001a520:	test   %eax,%eax
+   14001a522:	sete   %al
+   14001a525:	movzbl %al,%eax
+   14001a528:	shl    $0xa,%rax
+   14001a52c:	lea    (%rbx,%rax,1),%rdx
+   14001a530:	xor    %eax,%eax
+   14001a532:	nopl   (%rax)
+   14001a535:	data16 cs nopw 0x0(%rax,%rax,1)
+   14001a540:	vmovups (%r8,%rax,1),%ymm5
+   14001a546:	vcmpltps %ymm5,%ymm1,%ymm0
+   14001a54b:	vandps %ymm0,%ymm5,%ymm5
+   14001a54f:	vmovups (%rdx,%rax,1),%ymm0
+   14001a554:	vminps %ymm2,%ymm5,%ymm5
+   14001a558:	vmulps %ymm5,%ymm5,%ymm5
+   14001a55c:	vmulps 0x440(%rcx,%rax,1),%ymm5,%ymm5
+   14001a565:	vcmpltps %ymm0,%ymm1,%ymm6
+   14001a56a:	vandps %ymm6,%ymm0,%ymm0
+   14001a56e:	vminps %ymm2,%ymm0,%ymm0
+   14001a572:	vmulps %ymm0,%ymm0,%ymm0
+   14001a576:	vmulps 0x840(%rcx,%rax,1),%ymm0,%ymm0
+   14001a57f:	vaddps %ymm5,%ymm0,%ymm0
+   14001a583:	vmovups 0x20(%r8,%rax,1),%ymm5
+   14001a58a:	vaddps %ymm0,%ymm4,%ymm4
+   14001a58e:	vcmpltps %ymm5,%ymm1,%ymm0
+   14001a593:	vandps %ymm0,%ymm5,%ymm5
+   14001a597:	vmovups 0x20(%rdx,%rax,1),%ymm0
+   14001a59d:	vminps %ymm2,%ymm5,%ymm5
+   14001a5a1:	vmulps %ymm5,%ymm5,%ymm5
+   14001a5a5:	vmulps 0x460(%rcx,%rax,1),%ymm5,%ymm5
+   14001a5ae:	vcmpltps %ymm0,%ymm1,%ymm6
+   14001a5b3:	vandps %ymm6,%ymm0,%ymm0
+   14001a5b7:	vminps %ymm2,%ymm0,%ymm0
+   14001a5bb:	vmulps %ymm0,%ymm0,%ymm0
+   14001a5bf:	vmulps 0x860(%rcx,%rax,1),%ymm0,%ymm0
+   14001a5c8:	add    $0x40,%rax
+   14001a5cc:	vaddps %ymm5,%ymm0,%ymm0
+   14001a5d0:	vaddps %ymm0,%ymm3,%ymm3
+   14001a5d4:	cmp    $0x400,%rax
+   14001a5da:	jne    14001a540 <forge::nnue::evaluate(forge::Board const&, forge::nnue::Accumulator const&)+0x60>
+   14001a5e0:	vmovss 0xc40(%rcx),%xmm1
+   14001a5e8:	vshufps $0x55,%xmm4,%xmm4,%xmm2
+   14001a5ed:	vshufps $0xff,%xmm4,%xmm4,%xmm0
+   14001a5f2:	vaddss %xmm4,%xmm1,%xmm1
+   14001a5f6:	vaddss %xmm1,%xmm2,%xmm2
+   14001a5fa:	vunpckhps %xmm4,%xmm4,%xmm1
+   14001a5fe:	vextractf128 $0x1,%ymm4,%xmm4
+   14001a604:	vaddss %xmm2,%xmm1,%xmm1
+   14001a608:	vshufps $0x55,%xmm3,%xmm3,%xmm2
+   14001a60d:	vaddss %xmm1,%xmm0,%xmm0
+   14001a611:	vaddss %xmm0,%xmm4,%xmm1
+   14001a615:	vshufps $0x55,%xmm4,%xmm4,%xmm0
+   14001a61a:	vaddss %xmm1,%xmm0,%xmm0
+   14001a61e:	vunpckhps %xmm4,%xmm4,%xmm1
+   14001a622:	vshufps $0xff,%xmm4,%xmm4,%xmm4
+   14001a627:	vaddss %xmm0,%xmm1,%xmm1
+   14001a62b:	vshufps $0xff,%xmm3,%xmm3,%xmm0
+   14001a630:	vaddss %xmm4,%xmm1,%xmm1
+   14001a634:	vaddss %xmm3,%xmm1,%xmm1
+   14001a638:	vaddss %xmm1,%xmm2,%xmm2
+   14001a63c:	vunpckhps %xmm3,%xmm3,%xmm1
+   14001a640:	vextractf128 $0x1,%ymm3,%xmm3
+   14001a646:	vaddss %xmm2,%xmm1,%xmm1
+   14001a64a:	vmovss 0x1bf242(%rip),%xmm2        # 1401d9894 <NnueW1+0x604f4>
+   14001a652:	vaddss %xmm1,%xmm0,%xmm0
+   14001a656:	vshufps $0x55,%xmm3,%xmm3,%xmm1
+   14001a65b:	vaddss %xmm0,%xmm3,%xmm0
+   14001a65f:	vaddss %xmm0,%xmm1,%xmm1
+   14001a663:	vunpckhps %xmm3,%xmm3,%xmm0
+   14001a667:	vshufps $0xff,%xmm3,%xmm3,%xmm3
+   14001a66c:	vaddss %xmm1,%xmm0,%xmm0
+   14001a670:	vaddss %xmm3,%xmm0,%xmm0
+   14001a674:	vmulss 0x1bf210(%rip),%xmm0,%xmm0        # 1401d988c <NnueW1+0x604ec>
+   14001a67c:	vdivss 0x1bf20c(%rip),%xmm0,%xmm0        # 1401d9890 <NnueW1+0x604f0>
+   14001a684:	vmaxss %xmm0,%xmm2,%xmm1
+   14001a688:	vmovss 0x1bf208(%rip),%xmm0        # 1401d9898 <NnueW1+0x604f8>
+   14001a690:	vminss %xmm1,%xmm0,%xmm0
+   14001a694:	vcvttss2si %xmm0,%eax
+   14001a698:	vzeroupper
+   14001a69b:	vmovups 0x20(%rsp),%xmm6
+   14001a6a1:	add    $0x38,%rsp
+   14001a6a5:	pop    %rbx
+   14001a6a6:	pop    %rsi
+   14001a6a7:	ret
+   14001a6a8:	nopl   0x0(%rax,%rax,1)
+### forge_r5b_off_z5_b7c1772.exe forge::nnue::refresh
+   140019e90:	push   %r15
+   140019e92:	push   %r14
+   140019e94:	push   %r13
+   140019e96:	push   %r12
+   140019e98:	push   %rbp
+   140019e99:	push   %rdi
+   140019e9a:	push   %rsi
+   140019e9b:	push   %rbx
+   140019e9c:	sub    $0x68,%rsp
+   140019ea0:	vmovups %xmm6,0x40(%rsp)
+   140019ea6:	vmovups %xmm7,0x50(%rsp)
+   140019eac:	mov    %rcx,%rbx
+   140019eaf:	mov    %rdx,%rsi
+   140019eb2:	call   140019990 <forge::nnue::(anonymous namespace)::weights()>
+   140019eb7:	lea    0x38(%rsp),%rbp
+   140019ebc:	mov    0x170(%rbx),%r12
+   140019ec3:	lea    0x20(%rax),%r15
+   140019ec7:	vmovq  %rax,%xmm7
+   140019ecc:	mov    0x1c1ead(%rip),%rax        # 1401dbd80 <NnueW1+0x60d00>
+   140019ed3:	or     0x168(%rbx),%r12
+   140019eda:	vmovq  %r15,%xmm6
+   140019edf:	mov    %rax,0x38(%rsp)
+   140019ee4:	mov    %r12,0x28(%rsp)
+   140019ee9:	movslq 0x0(%rbp),%r12
+   140019eed:	mov    $0x400,%r8d
+   140019ef3:	vmovq  %xmm6,%rdx
+   140019ef8:	mov    %r12,%rdi
+   140019efb:	shl    $0xa,%r12
+   140019eff:	lea    (%rsi,%r12,1),%rcx
+   140019f03:	call   140064f38 <memcpy>
+   140019f08:	mov    %rax,%rcx
+   140019f0b:	cmpq   $0x0,0x28(%rsp)
+   140019f11:	je     14001a18a <forge::nnue::refresh(forge::Board const&, forge::nnue::Accumulator&)+0x2fa>
+   140019f17:	xor    %r11d,%r11d
+   140019f1a:	test   %edi,%edi
+   140019f1c:	vmovq  %xmm7,%rax
+   140019f21:	mov    0x28(%rsp),%r9
+   140019f26:	setne  %r11b
+   140019f2a:	xor    %r10d,%r10d
+   140019f2d:	cmp    $0x1,%edi
+   140019f30:	mov    (%rax),%r14
+   140019f33:	mov    %rsi,0xb8(%rsp)
+   140019f3b:	setne  %r10b
+   140019f3f:	lea    0x400(%rsi,%r12,1),%r8
+   140019f47:	jmp    14001a11b <forge::nnue::refresh(forge::Board const&, forge::nnue::Accumulator&)+0x28b>
+   140019f4c:	mov    %r11d,%eax
+   140019f4f:	mov    $0xffffffff,%r13d
+   140019f55:	test   %edx,%edx
+   140019f57:	je     140019f81 <forge::nnue::refresh(forge::Board const&, forge::nnue::Accumulator&)+0xf1>
+   140019f59:	dec    %edx
+   140019f5b:	movslq %edx,%r13
+   140019f5e:	mov    %edx,%r15d
+   140019f61:	sar    $0x1f,%r15d
+   140019f65:	imul   $0x2aaaaaab,%r13,%r13
+   140019f6c:	shr    $0x20,%r13
+   140019f70:	sub    %r15d,%r13d
+   140019f73:	lea    0x0(%r13,%r13,2),%r15d
+   140019f78:	add    %r15d,%r15d
+   140019f7b:	sub    %r15d,%edx
+   140019f7e:	mov    %edx,%r13d
+   140019f81:	mov    %r12d,%edx
+   140019f84:	xor    $0x38,%edx
+   140019f87:	test   %edi,%edi
+   140019f89:	cmovne %edx,%r12d
+   140019f8d:	movslq %eax,%rdx
+   140019f90:	neg    %rdx
+   140019f93:	and    $0x6,%edx
+   140019f96:	mov    %rdx,%r15
+   140019f99:	movslq %r13d,%rdx
+   140019f9c:	add    %r15,%rdx
+   140019f9f:	shl    $0x6,%rdx
+   140019fa3:	mov    %rdx,%r15
+   140019fa6:	movslq %r12d,%rdx
+   140019fa9:	add    %r15,%rdx
+   140019fac:	shl    $0xa,%rdx
+   140019fb0:	lea    0x4(%r14,%rdx,1),%rsi
+   140019fb5:	mov    %rcx,%r15
+   140019fb8:	sub    %rsi,%r15
+   140019fbb:	cmp    $0x38,%r15
+   140019fbf:	jbe    14001a13d <forge::nnue::refresh(forge::Board const&, forge::nnue::Accumulator&)+0x2ad>
+   140019fc5:	lea    (%r14,%rdx,1),%rax
+   140019fc9:	vmovups (%rcx),%zmm0
+   140019fcf:	vaddps (%rax),%zmm0,%zmm0
+   140019fd5:	vmovups %zmm0,(%rcx)
+   140019fdb:	vmovups 0x40(%rax),%zmm0
+   140019fe2:	vaddps 0x40(%rcx),%zmm0,%zmm0
+   140019fe9:	vmovups %zmm0,0x40(%rcx)
+   140019ff0:	vmovups 0x80(%rax),%zmm0
+   140019ff7:	vaddps 0x80(%rcx),%zmm0,%zmm0
+   140019ffe:	vmovups %zmm0,0x80(%rcx)
+   14001a005:	vmovups 0xc0(%rax),%zmm0
+   14001a00c:	vaddps 0xc0(%rcx),%zmm0,%zmm0
+   14001a013:	vmovups %zmm0,0xc0(%rcx)
+   14001a01a:	vmovups 0x100(%rax),%zmm0
+   14001a021:	vaddps 0x100(%rcx),%zmm0,%zmm0
+   14001a028:	vmovups %zmm0,0x100(%rcx)
+   14001a02f:	vmovups 0x140(%rax),%zmm0
+   14001a036:	vaddps 0x140(%rcx),%zmm0,%zmm0
+   14001a03d:	vmovups %zmm0,0x140(%rcx)
+   14001a044:	vmovups 0x180(%rax),%zmm0
+   14001a04b:	vaddps 0x180(%rcx),%zmm0,%zmm0
+   14001a052:	vmovups %zmm0,0x180(%rcx)
+   14001a059:	vmovups 0x1c0(%rax),%zmm0
+   14001a060:	vaddps 0x1c0(%rcx),%zmm0,%zmm0
+   14001a067:	vmovups %zmm0,0x1c0(%rcx)
+   14001a06e:	vmovups 0x200(%rax),%zmm0
+   14001a075:	vaddps 0x200(%rcx),%zmm0,%zmm0
+   14001a07c:	vmovups %zmm0,0x200(%rcx)
+   14001a083:	vmovups 0x240(%rax),%zmm0
+   14001a08a:	vaddps 0x240(%rcx),%zmm0,%zmm0
+   14001a091:	vmovups %zmm0,0x240(%rcx)
+   14001a098:	vmovups 0x280(%rax),%zmm0
+   14001a09f:	vaddps 0x280(%rcx),%zmm0,%zmm0
+   14001a0a6:	vmovups %zmm0,0x280(%rcx)
+   14001a0ad:	vmovups 0x2c0(%rax),%zmm0
+   14001a0b4:	vaddps 0x2c0(%rcx),%zmm0,%zmm0
+   14001a0bb:	vmovups %zmm0,0x2c0(%rcx)
+   14001a0c2:	vmovups 0x300(%rax),%zmm0
+   14001a0c9:	vaddps 0x300(%rcx),%zmm0,%zmm0
+   14001a0d0:	vmovups %zmm0,0x300(%rcx)
+   14001a0d7:	vmovups 0x340(%rax),%zmm0
+   14001a0de:	vaddps 0x340(%rcx),%zmm0,%zmm0
+   14001a0e5:	vmovups %zmm0,0x340(%rcx)
+   14001a0ec:	vmovups 0x380(%rax),%zmm0
+   14001a0f3:	vaddps 0x380(%rcx),%zmm0,%zmm0
+   14001a0fa:	vmovups %zmm0,0x380(%rcx)
+   14001a101:	vmovups 0x3c0(%rcx),%zmm0
+   14001a108:	vaddps 0x3c0(%rax),%zmm0,%zmm0
+   14001a10f:	vmovups %zmm0,0x3c0(%rcx)
+   14001a116:	test   %r9,%r9
+   14001a119:	je     14001a17f <forge::nnue::refresh(forge::Board const&, forge::nnue::Accumulator&)+0x2ef>
+   14001a11b:	xor    %r12d,%r12d
+   14001a11e:	tzcnt  %r9,%r12
+   14001a123:	blsr   %r9,%r9
+   14001a128:	mov    (%rbx,%r12,4),%edx
+   14001a12c:	cmp    $0x6,%edx
+   14001a12f:	jle    140019f4c <forge::nnue::refresh(forge::Board const&, forge::nnue::Accumulator&)+0xbc>
+   14001a135:	mov    %r10d,%eax
+   14001a138:	jmp    140019f59 <forge::nnue::refresh(forge::Board const&, forge::nnue::Accumulator&)+0xc9>
+   14001a13d:	neg    %eax
+   14001a13f:	mov    %eax,%edx
+   14001a141:	and    $0x6,%edx
+   14001a144:	mov    %rcx,%rax
+   14001a147:	add    %r13d,%edx
+   14001a14a:	shl    $0x6,%edx
+   14001a14d:	add    %r12d,%edx
+   14001a150:	movslq %edx,%rdx
+   14001a153:	shl    $0xa,%rdx
+   14001a157:	add    %r14,%rdx
+   14001a15a:	nopw   0x0(%rax,%rax,1)
+   14001a160:	vmovss (%rax),%xmm0
+   14001a164:	vaddss (%rdx),%xmm0,%xmm0
+   14001a168:	add    $0x4,%rax
+   14001a16c:	add    $0x4,%rdx
+   14001a170:	vmovss %xmm0,-0x4(%rax)
+   14001a175:	cmp    %rax,%r8
+   14001a178:	jne    14001a160 <forge::nnue::refresh(forge::Board const&, forge::nnue::Accumulator&)+0x2d0>
+   14001a17a:	test   %r9,%r9
+   14001a17d:	jne    14001a11b <forge::nnue::refresh(forge::Board const&, forge::nnue::Accumulator&)+0x28b>
+   14001a17f:	mov    0xb8(%rsp),%rsi
+   14001a187:	vzeroupper
+   14001a18a:	add    $0x4,%rbp
+   14001a18e:	lea    0x40(%rsp),%rax
+   14001a193:	cmp    %rbp,%rax
+   14001a196:	jne    140019ee9 <forge::nnue::refresh(forge::Board const&, forge::nnue::Accumulator&)+0x59>
+   14001a19c:	movb   $0x1,0x800(%rsi)
+   14001a1a3:	vmovups 0x40(%rsp),%xmm6
+   14001a1a9:	vmovups 0x50(%rsp),%xmm7
+   14001a1af:	add    $0x68,%rsp
+   14001a1b3:	pop    %rbx
+   14001a1b4:	pop    %rsi
+   14001a1b5:	pop    %rdi
+   14001a1b6:	pop    %rbp
+   14001a1b7:	pop    %r12
+   14001a1b9:	pop    %r13
+   14001a1bb:	pop    %r14
+   14001a1bd:	pop    %r15
+   14001a1bf:	ret
+### forge_r5b_off_z5_b7c1772.exe forge::nnue::update
+   14001a1c0:	push   %r15
+   14001a1c2:	push   %r14
+   14001a1c4:	push   %r13
+   14001a1c6:	push   %r12
+   14001a1c8:	push   %rbp
+   14001a1c9:	push   %rdi
+   14001a1ca:	push   %rsi
+   14001a1cb:	push   %rbx
+   14001a1cc:	sub    $0xa8,%rsp
+   14001a1d3:	vmovups %xmm6,0x80(%rsp)
+   14001a1dc:	vmovups %xmm7,0x90(%rsp)
+   14001a1e5:	mov    %r8,%rsi
+   14001a1e8:	mov    %rcx,0xf0(%rsp)
+   14001a1f0:	mov    %rdx,0xf8(%rsp)
+   14001a1f8:	call   140019990 <forge::nnue::(anonymous namespace)::weights()>
+   14001a1fd:	mov    0x20(%rsi),%ebp
+   14001a200:	mov    %rax,%r12
+   14001a203:	cmp    $0x2,%ebp
+   14001a206:	je     14001ab85 <forge::nnue::update(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&)+0x9c5>
+   14001a20c:	cmp    $0x3,%ebp
+   14001a20f:	je     14001a6e0 <forge::nnue::update(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&)+0x520>
+   14001a215:	mov    0x1c1b64(%rip),%rax        # 1401dbd80 <NnueW1+0x60d00>
+   14001a21c:	mov    %rsi,0x100(%rsp)
+   14001a224:	lea    0x78(%rsp),%rdi
+   14001a229:	vmovq  %r12,%xmm7
+   14001a22e:	mov    %rax,0x78(%rsp)
+   14001a233:	movslq %ebp,%rax
+   14001a236:	lea    (%rsi,%rax,8),%r15
+   14001a23a:	vmovq  %r15,%xmm6
+   14001a23f:	mov    0xf8(%rsp),%r15
+   14001a247:	movslq (%rdi),%rax
+   14001a24a:	mov    $0x400,%r8d
+   14001a250:	mov    %rax,%r14
+   14001a253:	shl    $0xa,%rax
+   14001a257:	lea    (%r15,%rax,1),%rcx
+   14001a25b:	add    0xf0(%rsp),%rax
+   14001a263:	mov    %rax,%rdx
+   14001a266:	call   140064f38 <memcpy>
+   14001a26b:	mov    %rax,%rcx
+   14001a26e:	test   %ebp,%ebp
+   14001a270:	jle    14001a4a4 <forge::nnue::update(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&)+0x2e4>
+   14001a276:	vmovq  %xmm7,%rax
+   14001a27b:	mov    0x100(%rsp),%r8
+   14001a283:	xor    %r10d,%r10d
+   14001a286:	test   %r14d,%r14d
+   14001a289:	mov    (%rax),%r13
+   14001a28c:	setne  %r10b
+   14001a290:	xor    %r9d,%r9d
+   14001a293:	cmp    $0x1,%r14d
+   14001a297:	setne  %r9b
+   14001a29b:	vmovq  %xmm6,%rsi
+   14001a2a0:	mov    (%r8),%edx
+   14001a2a3:	movzbl 0x4(%r8),%r11d
+   14001a2a8:	cmp    $0x6,%edx
+   14001a2ab:	jg     14001a665 <forge::nnue::update(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&)+0x4a5>
+   14001a2b1:	movslq %r10d,%rax
+   14001a2b4:	mov    $0xffffffff,%ebx
+   14001a2b9:	test   %edx,%edx
+   14001a2bb:	je     14001a2e3 <forge::nnue::update(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&)+0x123>
+   14001a2bd:	dec    %edx
+   14001a2bf:	movslq %edx,%rbx
+   14001a2c2:	mov    %edx,%r12d
+   14001a2c5:	sar    $0x1f,%r12d
+   14001a2c9:	imul   $0x2aaaaaab,%rbx,%rbx
+   14001a2d0:	shr    $0x20,%rbx
+   14001a2d4:	sub    %r12d,%ebx
+   14001a2d7:	lea    (%rbx,%rbx,2),%ebx
+   14001a2da:	lea    (%rbx,%rbx,1),%r12d
+   14001a2de:	mov    %edx,%ebx
+   14001a2e0:	sub    %r12d,%ebx
+   14001a2e3:	mov    %r11d,%edx
+   14001a2e6:	xor    $0x38,%edx
+   14001a2e9:	test   %r14d,%r14d
+   14001a2ec:	cmovne %edx,%r11d
+   14001a2f0:	mov    %eax,%edx
+   14001a2f2:	neg    %rax
+   14001a2f5:	neg    %edx
+   14001a2f7:	movzbl %r11b,%r11d
+   14001a2fb:	and    $0x6,%eax
+   14001a2fe:	and    $0x6,%edx
+   14001a301:	add    %ebx,%edx
+   14001a303:	movslq %ebx,%rbx
+   14001a306:	shl    $0x6,%edx
+   14001a309:	add    %r11d,%edx
+   14001a30c:	add    %rbx,%rax
+   14001a30f:	movslq %edx,%rdx
+   14001a312:	shl    $0xa,%rdx
+   14001a316:	shl    $0x6,%rax
+   14001a31a:	add    %r13,%rdx
+   14001a31d:	cmpb   $0x0,0x5(%r8)
+   14001a322:	je     14001a4ee <forge::nnue::update(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&)+0x32e>
+   14001a328:	add    %r11,%rax
+   14001a32b:	shl    $0xa,%rax
+   14001a32f:	lea    0x4(%r13,%rax,1),%rbx
+   14001a334:	mov    %rcx,%r11
+   14001a337:	sub    %rbx,%r11
+   14001a33a:	cmp    $0x38,%r11
+   14001a33e:	jbe    14001a66d <forge::nnue::update(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&)+0x4ad>
+   14001a344:	add    %r13,%rax
+   14001a347:	vmovups (%rax),%zmm0
+   14001a34d:	vaddps (%rcx),%zmm0,%zmm0
+   14001a353:	vmovups %zmm0,(%rcx)
+   14001a359:	vmovups 0x40(%rax),%zmm0
+   14001a360:	vaddps 0x40(%rcx),%zmm0,%zmm0
+   14001a367:	vmovups %zmm0,0x40(%rcx)
+   14001a36e:	vmovups 0x80(%rax),%zmm0
+   14001a375:	vaddps 0x80(%rcx),%zmm0,%zmm0
+   14001a37c:	vmovups %zmm0,0x80(%rcx)
+   14001a383:	vmovups 0xc0(%rax),%zmm0
+   14001a38a:	vaddps 0xc0(%rcx),%zmm0,%zmm0
+   14001a391:	vmovups %zmm0,0xc0(%rcx)
+   14001a398:	vmovups 0x100(%rax),%zmm0
+   14001a39f:	vaddps 0x100(%rcx),%zmm0,%zmm0
+   14001a3a6:	vmovups %zmm0,0x100(%rcx)
+   14001a3ad:	vmovups 0x140(%rax),%zmm0
+   14001a3b4:	vaddps 0x140(%rcx),%zmm0,%zmm0
+   14001a3bb:	vmovups %zmm0,0x140(%rcx)
+   14001a3c2:	vmovups 0x180(%rax),%zmm0
+   14001a3c9:	vaddps 0x180(%rcx),%zmm0,%zmm0
+   14001a3d0:	vmovups %zmm0,0x180(%rcx)
+   14001a3d7:	vmovups 0x1c0(%rax),%zmm0
+   14001a3de:	vaddps 0x1c0(%rcx),%zmm0,%zmm0
+   14001a3e5:	vmovups %zmm0,0x1c0(%rcx)
+   14001a3ec:	vmovups 0x200(%rax),%zmm0
+   14001a3f3:	vaddps 0x200(%rcx),%zmm0,%zmm0
+   14001a3fa:	vmovups %zmm0,0x200(%rcx)
+   14001a401:	vmovups 0x240(%rax),%zmm0
+   14001a408:	vaddps 0x240(%rcx),%zmm0,%zmm0
+   14001a40f:	vmovups %zmm0,0x240(%rcx)
+   14001a416:	vmovups 0x280(%rax),%zmm0
+   14001a41d:	vaddps 0x280(%rcx),%zmm0,%zmm0
+   14001a424:	vmovups %zmm0,0x280(%rcx)
+   14001a42b:	vmovups 0x2c0(%rax),%zmm0
+   14001a432:	vaddps 0x2c0(%rcx),%zmm0,%zmm0
+   14001a439:	vmovups %zmm0,0x2c0(%rcx)
+   14001a440:	vmovups 0x300(%rax),%zmm0
+   14001a447:	vaddps 0x300(%rcx),%zmm0,%zmm0
+   14001a44e:	vmovups %zmm0,0x300(%rcx)
+   14001a455:	vmovups 0x340(%rax),%zmm0
+   14001a45c:	vaddps 0x340(%rcx),%zmm0,%zmm0
+   14001a463:	vmovups %zmm0,0x340(%rcx)
+   14001a46a:	vmovups 0x380(%rax),%zmm0
+   14001a471:	vaddps 0x380(%rcx),%zmm0,%zmm0
+   14001a478:	vmovups %zmm0,0x380(%rcx)
+   14001a47f:	vmovups 0x3c0(%rcx),%zmm0
+   14001a486:	vaddps 0x3c0(%rax),%zmm0,%zmm0
+   14001a48d:	vmovups %zmm0,0x3c0(%rcx)
+   14001a494:	add    $0x8,%r8
+   14001a498:	cmp    %rsi,%r8
+   14001a49b:	jne    14001a2a0 <forge::nnue::update(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&)+0xe0>
+   14001a4a1:	vzeroupper
+   14001a4a4:	add    $0x4,%rdi
+   14001a4a8:	lea    0x80(%rsp),%rax
+   14001a4b0:	cmp    %rdi,%rax
+   14001a4b3:	jne    14001a247 <forge::nnue::update(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&)+0x87>
+   14001a4b9:	mov    0xf8(%rsp),%rax
+   14001a4c1:	movb   $0x1,0x800(%rax)
+   14001a4c8:	vmovups 0x80(%rsp),%xmm6
+   14001a4d1:	vmovups 0x90(%rsp),%xmm7
+   14001a4da:	add    $0xa8,%rsp
+   14001a4e1:	pop    %rbx
+   14001a4e2:	pop    %rsi
+   14001a4e3:	pop    %rdi
+   14001a4e4:	pop    %rbp
+   14001a4e5:	pop    %r12
+   14001a4e7:	pop    %r13
+   14001a4e9:	pop    %r14
+   14001a4eb:	pop    %r15
+   14001a4ed:	ret
+   14001a4ee:	mov    %rax,%rbx
+   14001a4f1:	movslq %r11d,%rax
+   14001a4f4:	add    %rbx,%rax
+   14001a4f7:	shl    $0xa,%rax
+   14001a4fb:	lea    0x4(%r13,%rax,1),%r11
+   14001a500:	mov    %rcx,%rbx
+   14001a503:	sub    %r11,%rbx
+   14001a506:	cmp    $0x38,%rbx
+   14001a50a:	jbe    14001a6a0 <forge::nnue::update(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&)+0x4e0>
+   14001a510:	add    %r13,%rax
+   14001a513:	vmovups (%rcx),%zmm0
+   14001a519:	vsubps (%rax),%zmm0,%zmm0
+   14001a51f:	vmovups %zmm0,(%rcx)
+   14001a525:	vmovups 0x40(%rcx),%zmm0
+   14001a52c:	vsubps 0x40(%rax),%zmm0,%zmm0
+   14001a533:	vmovups %zmm0,0x40(%rcx)
+   14001a53a:	vmovups 0x80(%rcx),%zmm0
+   14001a541:	vsubps 0x80(%rax),%zmm0,%zmm0
+   14001a548:	vmovups %zmm0,0x80(%rcx)
+   14001a54f:	vmovups 0xc0(%rcx),%zmm0
+   14001a556:	vsubps 0xc0(%rax),%zmm0,%zmm0
+   14001a55d:	vmovups %zmm0,0xc0(%rcx)
+   14001a564:	vmovups 0x100(%rcx),%zmm0
+   14001a56b:	vsubps 0x100(%rax),%zmm0,%zmm0
+   14001a572:	vmovups %zmm0,0x100(%rcx)
+   14001a579:	vmovups 0x140(%rcx),%zmm0
+   14001a580:	vsubps 0x140(%rax),%zmm0,%zmm0
+   14001a587:	vmovups %zmm0,0x140(%rcx)
+   14001a58e:	vmovups 0x180(%rcx),%zmm0
+   14001a595:	vsubps 0x180(%rax),%zmm0,%zmm0
+   14001a59c:	vmovups %zmm0,0x180(%rcx)
+   14001a5a3:	vmovups 0x1c0(%rcx),%zmm0
+   14001a5aa:	vsubps 0x1c0(%rax),%zmm0,%zmm0
+   14001a5b1:	vmovups %zmm0,0x1c0(%rcx)
+   14001a5b8:	vmovups 0x200(%rcx),%zmm0
+   14001a5bf:	vsubps 0x200(%rax),%zmm0,%zmm0
+   14001a5c6:	vmovups %zmm0,0x200(%rcx)
+   14001a5cd:	vmovups 0x240(%rcx),%zmm0
+   14001a5d4:	vsubps 0x240(%rax),%zmm0,%zmm0
+   14001a5db:	vmovups %zmm0,0x240(%rcx)
+   14001a5e2:	vmovups 0x280(%rcx),%zmm0
+   14001a5e9:	vsubps 0x280(%rax),%zmm0,%zmm0
+   14001a5f0:	vmovups %zmm0,0x280(%rcx)
+   14001a5f7:	vmovups 0x2c0(%rcx),%zmm0
+   14001a5fe:	vsubps 0x2c0(%rax),%zmm0,%zmm0
+   14001a605:	vmovups %zmm0,0x2c0(%rcx)
+   14001a60c:	vmovups 0x300(%rcx),%zmm0
+   14001a613:	vsubps 0x300(%rax),%zmm0,%zmm0
+   14001a61a:	vmovups %zmm0,0x300(%rcx)
+   14001a621:	vmovups 0x340(%rcx),%zmm0
+   14001a628:	vsubps 0x340(%rax),%zmm0,%zmm0
+   14001a62f:	vmovups %zmm0,0x340(%rcx)
+   14001a636:	vmovups 0x380(%rcx),%zmm0
+   14001a63d:	vsubps 0x380(%rax),%zmm0,%zmm0
+   14001a644:	vmovups %zmm0,0x380(%rcx)
+   14001a64b:	vmovups 0x3c0(%rcx),%zmm0
+   14001a652:	vsubps 0x3c0(%rax),%zmm0,%zmm0
+   14001a659:	vmovups %zmm0,0x3c0(%rcx)
+   14001a660:	jmp    14001a494 <forge::nnue::update(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&)+0x2d4>
+   14001a665:	movslq %r9d,%rax
+   14001a668:	jmp    14001a2bd <forge::nnue::update(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&)+0xfd>
+   14001a66d:	xor    %eax,%eax
+   14001a66f:	nopw   0x0(%rax,%rax,1)
+   14001a675:	data16 cs nopw 0x0(%rax,%rax,1)
+   14001a680:	vmovss (%rcx,%rax,1),%xmm0
+   14001a685:	vaddss (%rdx,%rax,1),%xmm0,%xmm0
+   14001a68a:	vmovss %xmm0,(%rcx,%rax,1)
+   14001a68f:	add    $0x4,%rax
+   14001a693:	cmp    $0x400,%rax
+   14001a699:	jne    14001a680 <forge::nnue::update(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&)+0x4c0>
+   14001a69b:	jmp    14001a494 <forge::nnue::update(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&)+0x2d4>
+   14001a6a0:	xor    %eax,%eax
+   14001a6a2:	nopl   0x0(%rax,%rax,1)
+   14001a6aa:	data16 cs nopw 0x0(%rax,%rax,1)
+   14001a6b5:	data16 cs nopw 0x0(%rax,%rax,1)
+   14001a6c0:	vmovss (%rcx,%rax,1),%xmm0
+   14001a6c5:	vsubss (%rdx,%rax,1),%xmm0,%xmm0
+   14001a6ca:	vmovss %xmm0,(%rcx,%rax,1)
+   14001a6cf:	add    $0x4,%rax
+   14001a6d3:	cmp    $0x400,%rax
+   14001a6d9:	jne    14001a6c0 <forge::nnue::update(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&)+0x500>
+   14001a6db:	jmp    14001a494 <forge::nnue::update(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&)+0x2d4>
+   14001a6e0:	cmpb   $0x0,0x5(%rsi)
+   14001a6e4:	jne    14001a215 <forge::nnue::update(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&)+0x55>
+   14001a6ea:	cmpb   $0x0,0xd(%rsi)
+   14001a6ee:	jne    14001a215 <forge::nnue::update(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&)+0x55>
+   14001a6f4:	cmpb   $0x0,0x15(%rsi)
+   14001a6f8:	je     14001a215 <forge::nnue::update(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&)+0x55>
+   14001a6fe:	mov    0x1c167b(%rip),%rax        # 1401dbd80 <NnueW1+0x60d00>
+   14001a705:	movzbl 0x14(%rsi),%ebx
+   14001a709:	mov    (%r12),%r14
+   14001a70d:	lea    0x78(%rsp),%r12
+   14001a712:	mov    %rax,0x78(%rsp)
+   14001a717:	movzbl 0x4(%rsi),%eax
+   14001a71b:	mov    %ebx,0x54(%rsp)
+   14001a71f:	mov    %eax,%edx
+   14001a721:	mov    %eax,0x4c(%rsp)
+   14001a725:	mov    (%rsi),%eax
+   14001a727:	xor    $0x38,%edx
+   14001a72a:	lea    -0x1(%rax),%ecx
+   14001a72d:	mov    %eax,0x24(%rsp)
+   14001a731:	movslq %ecx,%rax
+   14001a734:	mov    %ecx,%r8d
+   14001a737:	sar    $0x1f,%r8d
+   14001a73b:	imul   $0x2aaaaaab,%rax,%rax
+   14001a742:	shr    $0x20,%rax
+   14001a746:	mov    %eax,%ebp
+   14001a748:	sub    %r8d,%ebp
+   14001a74b:	lea    0x0(%rbp,%rbp,2),%eax
+   14001a74f:	add    %eax,%eax
+   14001a751:	sub    %eax,%ecx
+   14001a753:	movzbl %dl,%eax
+   14001a756:	mov    %eax,0x64(%rsp)
+   14001a75a:	movzbl 0xc(%rsi),%eax
+   14001a75e:	mov    %ecx,%ebp
+   14001a760:	mov    %ebp,0x6c(%rsp)
+   14001a764:	mov    %eax,%edx
+   14001a766:	mov    %eax,0x50(%rsp)
+   14001a76a:	mov    0x8(%rsi),%eax
+   14001a76d:	mov    0x10(%rsi),%esi
+   14001a770:	xor    $0x38,%edx
+   14001a773:	lea    -0x1(%rax),%ecx
+   14001a776:	mov    %eax,0x28(%rsp)
+   14001a77a:	mov    %esi,0x30(%rsp)
+   14001a77e:	movslq %ecx,%rax
+   14001a781:	mov    %ecx,%r8d
+   14001a784:	sar    $0x1f,%r8d
+   14001a788:	imul   $0x2aaaaaab,%rax,%rax
+   14001a78f:	shr    $0x20,%rax
+   14001a793:	mov    %eax,%edi
+   14001a795:	sub    %r8d,%edi
+   14001a798:	lea    (%rdi,%rdi,2),%eax
+   14001a79b:	add    %eax,%eax
+   14001a79d:	mov    %ecx,%edi
+   14001a79f:	sub    %eax,%edi
+   14001a7a1:	movzbl %dl,%eax
+   14001a7a4:	lea    -0x1(%rsi),%edx
+   14001a7a7:	movslq %edx,%r8
+   14001a7aa:	mov    %eax,0x60(%rsp)
+   14001a7ae:	mov    %ebx,%eax
+   14001a7b0:	mov    %edx,%ecx
+   14001a7b2:	sar    $0x1f,%ecx
+   14001a7b5:	imul   $0x2aaaaaab,%r8,%r8
+   14001a7bc:	xor    $0x38,%eax
+   14001a7bf:	mov    %edi,%ebp
+   14001a7c1:	movzbl %al,%eax
+   14001a7c4:	mov    %eax,0x58(%rsp)
+   14001a7c8:	shr    $0x20,%r8
+   14001a7cc:	mov    %r8d,%r13d
+   14001a7cf:	sub    %ecx,%r13d
+   14001a7d2:	lea    0x0(%r13,%r13,2),%ecx
+   14001a7d7:	add    %ecx,%ecx
+   14001a7d9:	sub    %ecx,%edx
+   14001a7db:	mov    %edx,%r13d
+   14001a7de:	movslq (%r12),%rdx
+   14001a7e2:	mov    %rdx,%rax
+   14001a7e5:	cmpl   $0x6,0x24(%rsp)
+   14001a7ea:	jle    14001af58 <forge::nnue::update(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&)+0xd98>
+   14001a7f0:	xor    %r10d,%r10d
+   14001a7f3:	cmp    $0x1,%edx
+   14001a7f6:	setne  %r10b
+   14001a7fa:	mov    0x6c(%rsp),%esi
+   14001a7fe:	mov    0x4c(%rsp),%edi
+   14001a802:	test   %eax,%eax
+   14001a804:	cmovne 0x64(%rsp),%edi
+   14001a809:	mov    %edi,0x48(%rsp)
+   14001a80d:	cmpl   $0x6,0x28(%rsp)
+   14001a812:	jle    14001af17 <forge::nnue::update(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&)+0xd57>
+   14001a818:	xor    %r9d,%r9d
+   14001a81b:	cmp    $0x1,%eax
+   14001a81e:	setne  %r9b
+   14001a822:	mov    %ebp,%ebx
+   14001a824:	mov    0x50(%rsp),%edi
+   14001a828:	test   %eax,%eax
+   14001a82a:	cmovne 0x60(%rsp),%edi
+   14001a82f:	mov    %edi,0x34(%rsp)
+   14001a833:	cmpl   $0x6,0x30(%rsp)
+   14001a838:	jle    14001af38 <forge::nnue::update(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&)+0xd78>
+   14001a83e:	xor    %r8d,%r8d
+   14001a841:	cmp    $0x1,%eax
+   14001a844:	setne  %r8b
+   14001a848:	mov    %r13d,%r11d
+   14001a84b:	mov    0x54(%rsp),%r15d
+   14001a850:	test   %eax,%eax
+   14001a852:	movslq %r8d,%rax
+   14001a855:	movslq %r11d,%rdi
+   14001a858:	cmovne 0x58(%rsp),%r15d
+   14001a85e:	neg    %rax
+   14001a861:	mov    0xf8(%rsp),%rcx
+   14001a869:	and    $0x6,%eax
+   14001a86c:	add    %rdi,%rax
+   14001a86f:	shl    $0x6,%rax
+   14001a873:	movslq %r15d,%rdi
+   14001a876:	mov    %r15d,0x5c(%rsp)
+   14001a87b:	add    %rdi,%rax
+   14001a87e:	movslq %ebx,%rdi
+   14001a881:	shl    $0xa,%rax
+   14001a885:	mov    %rax,0x40(%rsp)
+   14001a88a:	movslq %r9d,%rax
+   14001a88d:	neg    %rax
+   14001a890:	and    $0x6,%eax
+   14001a893:	add    %rdi,%rax
+   14001a896:	movslq 0x34(%rsp),%rdi
+   14001a89b:	shl    $0x6,%rax
+   14001a89f:	shl    $0xa,%rdx
+   14001a8a3:	add    %rdi,%rax
+   14001a8a6:	movslq %esi,%rdi
+   14001a8a9:	add    %rdx,%rcx
+   14001a8ac:	shl    $0xa,%rax
+   14001a8b0:	mov    %rax,0x38(%rsp)
+   14001a8b5:	movslq %r10d,%rax
+   14001a8b8:	neg    %rax
+   14001a8bb:	and    $0x6,%eax
+   14001a8be:	add    %rdi,%rax
+   14001a8c1:	movslq 0x48(%rsp),%rdi
+   14001a8c6:	shl    $0x6,%rax
+   14001a8ca:	add    %rdi,%rax
+   14001a8cd:	shl    $0xa,%rax
+   14001a8d1:	lea    0x4(%r14,%rax,1),%r15
+   14001a8d6:	mov    %rcx,%rdi
+   14001a8d9:	sub    %r15,%rdi
+   14001a8dc:	mov    0x38(%rsp),%r15
+   14001a8e1:	cmp    $0x38,%rdi
+   14001a8e5:	seta   0x6b(%rsp)
+   14001a8ea:	lea    0x4(%r14,%r15,1),%rdi
+   14001a8ef:	mov    %rcx,%r15
+   14001a8f2:	sub    %rdi,%r15
+   14001a8f5:	cmp    $0x38,%r15
+   14001a8f9:	seta   %r15b
+   14001a8fd:	add    0xf0(%rsp),%rdx
+   14001a905:	test   %r15b,0x6b(%rsp)
+   14001a90a:	je     14001afd7 <forge::nnue::update(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&)+0xe17>
+   14001a910:	mov    0x40(%rsp),%rdi
+   14001a915:	lea    0x4(%r14,%rdi,1),%r15
+   14001a91a:	mov    %rcx,%rdi
+   14001a91d:	sub    %r15,%rdi
+   14001a920:	cmp    $0x38,%rdi
+   14001a924:	jbe    14001afd7 <forge::nnue::update(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&)+0xe17>
+   14001a92a:	mov    0x38(%rsp),%r9
+   14001a92f:	mov    0x40(%rsp),%r8
+   14001a934:	add    %r14,%rax
+   14001a937:	vmovups (%rdx),%zmm0
+   14001a93d:	vsubps (%rax),%zmm0,%zmm0
+   14001a943:	add    %r14,%r9
+   14001a946:	add    %r14,%r8
+   14001a949:	vsubps (%r9),%zmm0,%zmm0
+   14001a94f:	vaddps (%r8),%zmm0,%zmm0
+   14001a955:	vmovups %zmm0,(%rcx)
+   14001a95b:	vmovups 0x40(%rdx),%zmm0
+   14001a962:	vsubps 0x40(%rax),%zmm0,%zmm0
+   14001a969:	vsubps 0x40(%r9),%zmm0,%zmm0
+   14001a970:	vaddps 0x40(%r8),%zmm0,%zmm0
+   14001a977:	vmovups %zmm0,0x40(%rcx)
+   14001a97e:	vmovups 0x80(%rdx),%zmm0
+   14001a985:	vsubps 0x80(%rax),%zmm0,%zmm0
+   14001a98c:	vsubps 0x80(%r9),%zmm0,%zmm0
+   14001a993:	vaddps 0x80(%r8),%zmm0,%zmm0
+   14001a99a:	vmovups %zmm0,0x80(%rcx)
+   14001a9a1:	vmovups 0xc0(%rdx),%zmm0
+   14001a9a8:	vsubps 0xc0(%rax),%zmm0,%zmm0
+   14001a9af:	vsubps 0xc0(%r9),%zmm0,%zmm0
+   14001a9b6:	vaddps 0xc0(%r8),%zmm0,%zmm0
+   14001a9bd:	vmovups %zmm0,0xc0(%rcx)
+   14001a9c4:	vmovups 0x100(%rdx),%zmm0
+   14001a9cb:	vsubps 0x100(%rax),%zmm0,%zmm0
+   14001a9d2:	vsubps 0x100(%r9),%zmm0,%zmm0
+   14001a9d9:	vaddps 0x100(%r8),%zmm0,%zmm0
+   14001a9e0:	vmovups %zmm0,0x100(%rcx)
+   14001a9e7:	vmovups 0x140(%rdx),%zmm0
+   14001a9ee:	vsubps 0x140(%rax),%zmm0,%zmm0
+   14001a9f5:	vsubps 0x140(%r9),%zmm0,%zmm0
+   14001a9fc:	vaddps 0x140(%r8),%zmm0,%zmm0
+   14001aa03:	vmovups %zmm0,0x140(%rcx)
+   14001aa0a:	vmovups 0x180(%rdx),%zmm0
+   14001aa11:	vsubps 0x180(%rax),%zmm0,%zmm0
+   14001aa18:	vsubps 0x180(%r9),%zmm0,%zmm0
+   14001aa1f:	vaddps 0x180(%r8),%zmm0,%zmm0
+   14001aa26:	vmovups %zmm0,0x180(%rcx)
+   14001aa2d:	vmovups 0x1c0(%rdx),%zmm0
+   14001aa34:	vsubps 0x1c0(%rax),%zmm0,%zmm0
+   14001aa3b:	vsubps 0x1c0(%r9),%zmm0,%zmm0
+   14001aa42:	vaddps 0x1c0(%r8),%zmm0,%zmm0
+   14001aa49:	vmovups %zmm0,0x1c0(%rcx)
+   14001aa50:	vmovups 0x200(%rdx),%zmm0
+   14001aa57:	vsubps 0x200(%rax),%zmm0,%zmm0
+   14001aa5e:	vsubps 0x200(%r9),%zmm0,%zmm0
+   14001aa65:	vaddps 0x200(%r8),%zmm0,%zmm0
+   14001aa6c:	vmovups %zmm0,0x200(%rcx)
+   14001aa73:	vmovups 0x240(%rdx),%zmm0
+   14001aa7a:	vsubps 0x240(%rax),%zmm0,%zmm0
+   14001aa81:	vsubps 0x240(%r9),%zmm0,%zmm0
+   14001aa88:	vaddps 0x240(%r8),%zmm0,%zmm0
+   14001aa8f:	vmovups %zmm0,0x240(%rcx)
+   14001aa96:	vmovups 0x280(%rdx),%zmm0
+   14001aa9d:	vsubps 0x280(%rax),%zmm0,%zmm0
+   14001aaa4:	vsubps 0x280(%r9),%zmm0,%zmm0
+   14001aaab:	vaddps 0x280(%r8),%zmm0,%zmm0
+   14001aab2:	vmovups %zmm0,0x280(%rcx)
+   14001aab9:	vmovups 0x2c0(%rdx),%zmm0
+   14001aac0:	vsubps 0x2c0(%rax),%zmm0,%zmm0
+   14001aac7:	vsubps 0x2c0(%r9),%zmm0,%zmm0
+   14001aace:	vaddps 0x2c0(%r8),%zmm0,%zmm0
+   14001aad5:	vmovups %zmm0,0x2c0(%rcx)
+   14001aadc:	vmovups 0x300(%rdx),%zmm0
+   14001aae3:	vsubps 0x300(%rax),%zmm0,%zmm0
+   14001aaea:	vsubps 0x300(%r9),%zmm0,%zmm0
+   14001aaf1:	vaddps 0x300(%r8),%zmm0,%zmm0
+   14001aaf8:	vmovups %zmm0,0x300(%rcx)
+   14001aaff:	vmovups 0x340(%rdx),%zmm0
+   14001ab06:	vsubps 0x340(%rax),%zmm0,%zmm0
+   14001ab0d:	vsubps 0x340(%r9),%zmm0,%zmm0
+   14001ab14:	vaddps 0x340(%r8),%zmm0,%zmm0
+   14001ab1b:	vmovups %zmm0,0x340(%rcx)
+   14001ab22:	vmovups 0x380(%rdx),%zmm0
+   14001ab29:	vsubps 0x380(%rax),%zmm0,%zmm0
+   14001ab30:	vsubps 0x380(%r9),%zmm0,%zmm0
+   14001ab37:	vaddps 0x380(%r8),%zmm0,%zmm0
+   14001ab3e:	vmovups %zmm0,0x380(%rcx)
+   14001ab45:	vmovups 0x3c0(%rdx),%zmm0
+   14001ab4c:	vsubps 0x3c0(%rax),%zmm0,%zmm0
+   14001ab53:	vsubps 0x3c0(%r9),%zmm0,%zmm0
+   14001ab5a:	vaddps 0x3c0(%r8),%zmm0,%zmm0
+   14001ab61:	vmovups %zmm0,0x3c0(%rcx)
+   14001ab68:	add    $0x4,%r12
+   14001ab6c:	lea    0x80(%rsp),%rax
+   14001ab74:	cmp    %r12,%rax
+   14001ab77:	jne    14001a7de <forge::nnue::update(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&)+0x61e>
+   14001ab7d:	vzeroupper
+   14001ab80:	jmp    14001a4b9 <forge::nnue::update(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&)+0x2f9>
+   14001ab85:	cmpb   $0x0,0x5(%rsi)
+   14001ab89:	jne    14001a215 <forge::nnue::update(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&)+0x55>
+   14001ab8f:	cmpb   $0x0,0xd(%rsi)
+   14001ab93:	je     14001a215 <forge::nnue::update(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&)+0x55>
+   14001ab99:	mov    (%rsi),%ebp
+   14001ab9b:	movzbl 0x4(%rsi),%edi
+   14001ab9f:	mov    0x1c11da(%rip),%rax        # 1401dbd80 <NnueW1+0x60d00>
+   14001aba6:	mov    0x8(%rsi),%r15d
+   14001abaa:	mov    (%r12),%r12
+   14001abae:	lea    0x78(%rsp),%r14
+   14001abb3:	lea    -0x1(%rbp),%ecx
+   14001abb6:	mov    %rax,0x78(%rsp)
+   14001abbb:	mov    %edi,0x30(%rsp)
+   14001abbf:	mov    %edi,%eax
+   14001abc1:	movslq %ecx,%rbx
+   14001abc4:	mov    %ecx,%edx
+   14001abc6:	sar    $0x1f,%edx
+   14001abc9:	imul   $0x2aaaaaab,%rbx,%rbx
+   14001abd0:	movzbl 0xc(%rsi),%edi
+   14001abd4:	xor    $0x38,%eax
+   14001abd7:	movzbl %al,%eax
+   14001abda:	mov    %eax,0x40(%rsp)
+   14001abde:	shr    $0x20,%rbx
+   14001abe2:	sub    %edx,%ebx
+   14001abe4:	mov    %edi,%eax
+   14001abe6:	mov    %edi,0x34(%rsp)
+   14001abea:	lea    (%rbx,%rbx,2),%edx
+   14001abed:	xor    $0x38,%eax
+   14001abf0:	add    %edx,%edx
+   14001abf2:	movzbl %al,%eax
+   14001abf5:	mov    %ecx,%ebx
+   14001abf7:	sub    %edx,%ebx
+   14001abf9:	lea    -0x1(%r15),%edx
+   14001abfd:	mov    %eax,0x38(%rsp)
+   14001ac01:	movslq %edx,%r11
+   14001ac04:	mov    %edx,%ecx
+   14001ac06:	sar    $0x1f,%ecx
+   14001ac09:	imul   $0x2aaaaaab,%r11,%r11
+   14001ac10:	shr    $0x20,%r11
+   14001ac14:	sub    %ecx,%r11d
+   14001ac17:	lea    (%r11,%r11,2),%ecx
+   14001ac1b:	add    %ecx,%ecx
+   14001ac1d:	sub    %ecx,%edx
+   14001ac1f:	mov    %edx,%r11d
+   14001ac22:	movslq (%r14),%rdx
+   14001ac25:	mov    %rdx,%rax
+   14001ac28:	cmp    $0x6,%ebp
+   14001ac2b:	jle    14001aefc <forge::nnue::update(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&)+0xd3c>
+   14001ac31:	xor    %r8d,%r8d
+   14001ac34:	cmp    $0x1,%edx
+   14001ac37:	setne  %r8b
+   14001ac3b:	mov    %ebx,%edi
+   14001ac3d:	mov    0x30(%rsp),%r13d
+   14001ac42:	test   %eax,%eax
+   14001ac44:	cmovne 0x40(%rsp),%r13d
+   14001ac4a:	mov    %r13d,0x24(%rsp)
+   14001ac4f:	cmp    $0x6,%r15d
+   14001ac53:	jle    14001aee2 <forge::nnue::update(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&)+0xd22>
+   14001ac59:	xor    %ecx,%ecx
+   14001ac5b:	cmp    $0x1,%eax
+   14001ac5e:	setne  %cl
+   14001ac61:	mov    %r11d,%esi
+   14001ac64:	test   %eax,%eax
+   14001ac66:	mov    0x34(%rsp),%eax
+   14001ac6a:	movslq %esi,%r10
+   14001ac6d:	mov    0xf8(%rsp),%r9
+   14001ac75:	cmovne 0x38(%rsp),%eax
+   14001ac7a:	shl    $0xa,%rdx
+   14001ac7e:	add    %rdx,%r9
+   14001ac81:	add    0xf0(%rsp),%rdx
+   14001ac89:	mov    %eax,%r13d
+   14001ac8c:	mov    %eax,0x48(%rsp)
+   14001ac90:	movslq %ecx,%rax
+   14001ac93:	neg    %rax
+   14001ac96:	and    $0x6,%eax
+   14001ac99:	add    %r10,%rax
+   14001ac9c:	movslq %r13d,%r10
+   14001ac9f:	movslq %edi,%r13
+   14001aca2:	shl    $0x6,%rax
+   14001aca6:	add    %r10,%rax
+   14001aca9:	movslq %r8d,%r10
+   14001acac:	neg    %r10
+   14001acaf:	and    $0x6,%r10d
+   14001acb3:	add    %r13,%r10
+   14001acb6:	movslq 0x24(%rsp),%r13
+   14001acbb:	shl    $0x6,%r10
+   14001acbf:	shl    $0xa,%rax
+   14001acc3:	add    %r13,%r10
+   14001acc6:	mov    %rax,0x28(%rsp)
+   14001accb:	shl    $0xa,%r10
+   14001accf:	lea    0x4(%r12,%r10,1),%r13
+   14001acd4:	mov    %r13,%rax
+   14001acd7:	mov    %r9,%r13
+   14001acda:	sub    %rax,%r13
+   14001acdd:	cmp    $0x38,%r13
+   14001ace1:	jbe    14001af79 <forge::nnue::update(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&)+0xdb9>
+   14001ace7:	mov    0x28(%rsp),%rax
+   14001acec:	lea    0x4(%r12,%rax,1),%rax
+   14001acf1:	mov    %r9,%r13
+   14001acf4:	sub    %rax,%r13
+   14001acf7:	cmp    $0x38,%r13
+   14001acfb:	jbe    14001af79 <forge::nnue::update(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&)+0xdb9>
+   14001ad01:	mov    0x28(%rsp),%rax
+   14001ad06:	add    %r12,%r10
+   14001ad09:	vmovups (%rdx),%zmm0
+   14001ad0f:	vsubps (%r10),%zmm0,%zmm0
+   14001ad15:	add    %r12,%rax
+   14001ad18:	vaddps (%rax),%zmm0,%zmm0
+   14001ad1e:	vmovups %zmm0,(%r9)
+   14001ad24:	vmovups 0x40(%rdx),%zmm0
+   14001ad2b:	vsubps 0x40(%r10),%zmm0,%zmm0
+   14001ad32:	vaddps 0x40(%rax),%zmm0,%zmm0
+   14001ad39:	vmovups %zmm0,0x40(%r9)
+   14001ad40:	vmovups 0x80(%rdx),%zmm0
+   14001ad47:	vsubps 0x80(%r10),%zmm0,%zmm0
+   14001ad4e:	vaddps 0x80(%rax),%zmm0,%zmm0
+   14001ad55:	vmovups %zmm0,0x80(%r9)
+   14001ad5c:	vmovups 0xc0(%rdx),%zmm0
+   14001ad63:	vsubps 0xc0(%r10),%zmm0,%zmm0
+   14001ad6a:	vaddps 0xc0(%rax),%zmm0,%zmm0
+   14001ad71:	vmovups %zmm0,0xc0(%r9)
+   14001ad78:	vmovups 0x100(%rdx),%zmm0
+   14001ad7f:	vsubps 0x100(%r10),%zmm0,%zmm0
+   14001ad86:	vaddps 0x100(%rax),%zmm0,%zmm0
+   14001ad8d:	vmovups %zmm0,0x100(%r9)
+   14001ad94:	vmovups 0x140(%rdx),%zmm0
+   14001ad9b:	vsubps 0x140(%r10),%zmm0,%zmm0
+   14001ada2:	vaddps 0x140(%rax),%zmm0,%zmm0
+   14001ada9:	vmovups %zmm0,0x140(%r9)
+   14001adb0:	vmovups 0x180(%rdx),%zmm0
+   14001adb7:	vsubps 0x180(%r10),%zmm0,%zmm0
+   14001adbe:	vaddps 0x180(%rax),%zmm0,%zmm0
+   14001adc5:	vmovups %zmm0,0x180(%r9)
+   14001adcc:	vmovups 0x1c0(%rdx),%zmm0
+   14001add3:	vsubps 0x1c0(%r10),%zmm0,%zmm0
+   14001adda:	vaddps 0x1c0(%rax),%zmm0,%zmm0
+   14001ade1:	vmovups %zmm0,0x1c0(%r9)
+   14001ade8:	vmovups 0x200(%rdx),%zmm0
+   14001adef:	vsubps 0x200(%r10),%zmm0,%zmm0
+   14001adf6:	vaddps 0x200(%rax),%zmm0,%zmm0
+   14001adfd:	vmovups %zmm0,0x200(%r9)
+   14001ae04:	vmovups 0x240(%rdx),%zmm0
+   14001ae0b:	vsubps 0x240(%r10),%zmm0,%zmm0
+   14001ae12:	vaddps 0x240(%rax),%zmm0,%zmm0
+   14001ae19:	vmovups %zmm0,0x240(%r9)
+   14001ae20:	vmovups 0x280(%rdx),%zmm0
+   14001ae27:	vsubps 0x280(%r10),%zmm0,%zmm0
+   14001ae2e:	vaddps 0x280(%rax),%zmm0,%zmm0
+   14001ae35:	vmovups %zmm0,0x280(%r9)
+   14001ae3c:	vmovups 0x2c0(%rdx),%zmm0
+   14001ae43:	vsubps 0x2c0(%r10),%zmm0,%zmm0
+   14001ae4a:	vaddps 0x2c0(%rax),%zmm0,%zmm0
+   14001ae51:	vmovups %zmm0,0x2c0(%r9)
+   14001ae58:	vmovups 0x300(%rdx),%zmm0
+   14001ae5f:	vsubps 0x300(%r10),%zmm0,%zmm0
+   14001ae66:	vaddps 0x300(%rax),%zmm0,%zmm0
+   14001ae6d:	vmovups %zmm0,0x300(%r9)
+   14001ae74:	vmovups 0x340(%rdx),%zmm0
+   14001ae7b:	vsubps 0x340(%r10),%zmm0,%zmm0
+   14001ae82:	vaddps 0x340(%rax),%zmm0,%zmm0
+   14001ae89:	vmovups %zmm0,0x340(%r9)
+   14001ae90:	vmovups 0x380(%rdx),%zmm0
+   14001ae97:	vsubps 0x380(%r10),%zmm0,%zmm0
+   14001ae9e:	vaddps 0x380(%rax),%zmm0,%zmm0
+   14001aea5:	vmovups %zmm0,0x380(%r9)
+   14001aeac:	vmovups 0x3c0(%rdx),%zmm0
+   14001aeb3:	vsubps 0x3c0(%r10),%zmm0,%zmm0
+   14001aeba:	vaddps 0x3c0(%rax),%zmm0,%zmm0
+   14001aec1:	vmovups %zmm0,0x3c0(%r9)
+   14001aec8:	add    $0x4,%r14
+   14001aecc:	lea    0x80(%rsp),%rax
+   14001aed4:	cmp    %rax,%r14
+   14001aed7:	jne    14001ac22 <forge::nnue::update(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&)+0xa62>
+   14001aedd:	jmp    14001ab7d <forge::nnue::update(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&)+0x9bd>
+   14001aee2:	xor    %ecx,%ecx
+   14001aee4:	test   %eax,%eax
+   14001aee6:	mov    $0xffffffff,%esi
+   14001aeeb:	setne  %cl
+   14001aeee:	test   %r15d,%r15d
+   14001aef1:	je     14001ac64 <forge::nnue::update(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&)+0xaa4>
+   14001aef7:	jmp    14001ac61 <forge::nnue::update(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&)+0xaa1>
+   14001aefc:	xor    %r8d,%r8d
+   14001aeff:	test   %edx,%edx
+   14001af01:	mov    $0xffffffff,%edi
+   14001af06:	setne  %r8b
+   14001af0a:	test   %ebp,%ebp
+   14001af0c:	je     14001ac3d <forge::nnue::update(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&)+0xa7d>
+   14001af12:	jmp    14001ac3b <forge::nnue::update(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&)+0xa7b>
+   14001af17:	mov    0x28(%rsp),%r8d
+   14001af1c:	xor    %r9d,%r9d
+   14001af1f:	test   %eax,%eax
+   14001af21:	mov    $0xffffffff,%ebx
+   14001af26:	setne  %r9b
+   14001af2a:	test   %r8d,%r8d
+   14001af2d:	je     14001a824 <forge::nnue::update(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&)+0x664>
+   14001af33:	jmp    14001a822 <forge::nnue::update(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&)+0x662>
+   14001af38:	mov    0x30(%rsp),%ecx
+   14001af3c:	xor    %r8d,%r8d
+   14001af3f:	test   %eax,%eax
+   14001af41:	mov    $0xffffffff,%r11d
+   14001af47:	setne  %r8b
+   14001af4b:	test   %ecx,%ecx
+   14001af4d:	je     14001a84b <forge::nnue::update(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&)+0x68b>
+   14001af53:	jmp    14001a848 <forge::nnue::update(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&)+0x688>
+   14001af58:	mov    0x24(%rsp),%r9d
+   14001af5d:	xor    %r10d,%r10d
+   14001af60:	test   %edx,%edx
+   14001af62:	mov    $0xffffffff,%esi
+   14001af67:	setne  %r10b
+   14001af6b:	test   %r9d,%r9d
+   14001af6e:	je     14001a7fe <forge::nnue::update(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&)+0x63e>
+   14001af74:	jmp    14001a7fa <forge::nnue::update(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&)+0x63a>
+   14001af79:	neg    %r8d
+   14001af7c:	neg    %ecx
+   14001af7e:	xor    %eax,%eax
+   14001af80:	and    $0x6,%r8d
+   14001af84:	and    $0x6,%ecx
+   14001af87:	add    %edi,%r8d
+   14001af8a:	add    %esi,%ecx
+   14001af8c:	shl    $0x6,%r8d
+   14001af90:	shl    $0x6,%ecx
+   14001af93:	add    0x24(%rsp),%r8d
+   14001af98:	add    0x48(%rsp),%ecx
+   14001af9c:	movslq %r8d,%r8
+   14001af9f:	movslq %ecx,%rcx
+   14001afa2:	shl    $0xa,%r8
+   14001afa6:	shl    $0xa,%rcx
+   14001afaa:	add    %r12,%r8
+   14001afad:	add    %r12,%rcx
+   14001afb0:	vmovss (%rdx,%rax,1),%xmm0
+   14001afb5:	vsubss (%r8,%rax,1),%xmm0,%xmm0
+   14001afbb:	vaddss (%rcx,%rax,1),%xmm0,%xmm0
+   14001afc0:	vmovss %xmm0,(%r9,%rax,1)
+   14001afc6:	add    $0x4,%rax
+   14001afca:	cmp    $0x400,%rax
+   14001afd0:	jne    14001afb0 <forge::nnue::update(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&)+0xdf0>
+   14001afd2:	jmp    14001aec8 <forge::nnue::update(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&)+0xd08>
+   14001afd7:	mov    %r8d,%eax
+   14001afda:	neg    %r10d
+   14001afdd:	neg    %r9d
+   14001afe0:	xor    %r8d,%r8d
+   14001afe3:	neg    %eax
+   14001afe5:	and    $0x6,%r10d
+   14001afe9:	and    $0x6,%r9d
+   14001afed:	and    $0x6,%eax
+   14001aff0:	add    %esi,%r10d
+   14001aff3:	add    %ebx,%r9d
+   14001aff6:	add    %r11d,%eax
+   14001aff9:	shl    $0x6,%r10d
+   14001affd:	shl    $0x6,%r9d
+   14001b001:	add    0x48(%rsp),%r10d
+   14001b006:	add    0x34(%rsp),%r9d
+   14001b00b:	shl    $0x6,%eax
+   14001b00e:	add    0x5c(%rsp),%eax
+   14001b012:	movslq %r10d,%r10
+   14001b015:	movslq %r9d,%r9
+   14001b018:	shl    $0xa,%r10
+   14001b01c:	shl    $0xa,%r9
+   14001b020:	cltq
+   14001b022:	add    %r14,%r10
+   14001b025:	add    %r14,%r9
+   14001b028:	shl    $0xa,%rax
+   14001b02c:	add    %r14,%rax
+   14001b02f:	vmovss (%rdx,%r8,1),%xmm0
+   14001b035:	vsubss (%r10,%r8,1),%xmm0,%xmm0
+   14001b03b:	vsubss (%r9,%r8,1),%xmm0,%xmm0
+   14001b041:	vaddss (%rax,%r8,1),%xmm0,%xmm0
+   14001b047:	vmovss %xmm0,(%rcx,%r8,1)
+   14001b04d:	add    $0x4,%r8
+   14001b051:	cmp    $0x400,%r8
+   14001b058:	jne    14001b02f <forge::nnue::update(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&)+0xe6f>
+   14001b05a:	jmp    14001ab68 <forge::nnue::update(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&)+0x9a8>
+   14001b05f:	nop
+### forge_r5b_off_z5_b7c1772.exe forge::nnue::evaluate
+   14001b060:	push   %rdi
+   14001b061:	push   %rsi
+   14001b062:	push   %rbx
+   14001b063:	sub    $0x90,%rsp
+   14001b06a:	mov    %rcx,%rdi
+   14001b06d:	mov    %rdx,%rbx
+   14001b070:	call   140019990 <forge::nnue::(anonymous namespace)::weights()>
+   14001b075:	lea    0x5f(%rsp),%rsi
+   14001b07a:	movslq 0x180(%rdi),%r8
+   14001b081:	mov    %rax,%rcx
+   14001b084:	and    $0xffffffffffffffc0,%rsi
+   14001b088:	vbroadcastss 0x1c0cf7(%rip),%ymm3        # 1401dbd88 <NnueW1+0x60d08>
+   14001b091:	vxorps %xmm5,%xmm5,%xmm5
+   14001b095:	vmovaps %ymm5,%ymm16
+   14001b09b:	vmovaps %ymm5,%ymm2
+   14001b09f:	mov    %r8,%rax
+   14001b0a2:	shl    $0xa,%r8
+   14001b0a6:	add    %rbx,%r8
+   14001b0a9:	test   %eax,%eax
+   14001b0ab:	sete   %al
+   14001b0ae:	movzbl %al,%eax
+   14001b0b1:	shl    $0xa,%rax
+   14001b0b5:	lea    (%rbx,%rax,1),%rdx
+   14001b0b9:	xor    %eax,%eax
+   14001b0bb:	nopl   0x0(%rax,%rax,1)
+   14001b0c0:	vmovups (%r8,%rax,1),%ymm0
+   14001b0c6:	vmovups (%rdx,%rax,1),%ymm4
+   14001b0cb:	vcmpgtps %ymm2,%ymm0,%k1
+   14001b0d2:	vmovaps %ymm0,%ymm1{%k1}{z}
+   14001b0d8:	vcmpgtps %ymm2,%ymm4,%k1
+   14001b0df:	vminps %ymm3,%ymm1,%ymm1
+   14001b0e3:	vmovaps %ymm4,%ymm0{%k1}{z}
+   14001b0e9:	vmulps %ymm1,%ymm1,%ymm1
+   14001b0ed:	vmulps 0x420(%rcx,%rax,1),%ymm1,%ymm1
+   14001b0f6:	vmovups 0x20(%rdx,%rax,1),%ymm4
+   14001b0fc:	vminps %ymm3,%ymm0,%ymm0
+   14001b100:	vmulps %ymm0,%ymm0,%ymm0
+   14001b104:	vmulps 0x820(%rcx,%rax,1),%ymm0,%ymm0
+   14001b10d:	vaddps %ymm1,%ymm0,%ymm0
+   14001b111:	vaddps %ymm0,%ymm16,%ymm16
+   14001b117:	vmovups 0x20(%r8,%rax,1),%ymm0
+   14001b11e:	vcmpgtps %ymm2,%ymm0,%k1
+   14001b125:	vmovaps %ymm0,%ymm1{%k1}{z}
+   14001b12b:	vcmpgtps %ymm2,%ymm4,%k1
+   14001b132:	vminps %ymm3,%ymm1,%ymm1
+   14001b136:	vmovaps %ymm4,%ymm0{%k1}{z}
+   14001b13c:	vmulps %ymm1,%ymm1,%ymm1
+   14001b140:	vmulps 0x440(%rcx,%rax,1),%ymm1,%ymm1
+   14001b149:	vminps %ymm3,%ymm0,%ymm0
+   14001b14d:	vmulps %ymm0,%ymm0,%ymm0
+   14001b151:	vmulps 0x840(%rcx,%rax,1),%ymm0,%ymm0
+   14001b15a:	add    $0x40,%rax
+   14001b15e:	vaddps %ymm1,%ymm0,%ymm0
+   14001b162:	vaddps %ymm0,%ymm5,%ymm5
+   14001b166:	cmp    $0x400,%rax
+   14001b16c:	jne    14001b0c0 <forge::nnue::evaluate(forge::Board const&, forge::nnue::Accumulator const&)+0x60>
+   14001b172:	vmovups %ymm16,(%rsi)
+   14001b178:	vmovss (%rsi),%xmm0
+   14001b17c:	vaddss 0xc20(%rcx),%xmm0,%xmm0
+   14001b184:	vmovups %ymm5,0x20(%rsi)
+   14001b189:	vaddss 0x4(%rsi),%xmm0,%xmm0
+   14001b18e:	vmovss 0x1c0bfe(%rip),%xmm2        # 1401dbd94 <NnueW1+0x60d14>
+   14001b196:	vaddss 0x8(%rsi),%xmm0,%xmm0
+   14001b19b:	vaddss 0xc(%rsi),%xmm0,%xmm0
+   14001b1a0:	vaddss 0x10(%rsi),%xmm0,%xmm0
+   14001b1a5:	vaddss 0x14(%rsi),%xmm0,%xmm0
+   14001b1aa:	vaddss 0x18(%rsi),%xmm0,%xmm0
+   14001b1af:	vaddss 0x1c(%rsi),%xmm0,%xmm0
+   14001b1b4:	vaddss 0x20(%rsi),%xmm0,%xmm0
+   14001b1b9:	vaddss 0x24(%rsi),%xmm0,%xmm0
+   14001b1be:	vaddss 0x28(%rsi),%xmm0,%xmm0
+   14001b1c3:	vaddss 0x2c(%rsi),%xmm0,%xmm0
+   14001b1c8:	vaddss 0x30(%rsi),%xmm0,%xmm0
+   14001b1cd:	vaddss 0x34(%rsi),%xmm0,%xmm0
+   14001b1d2:	vaddss 0x38(%rsi),%xmm0,%xmm0
+   14001b1d7:	vaddss 0x3c(%rsi),%xmm0,%xmm0
+   14001b1dc:	vmulss 0x1c0ba8(%rip),%xmm0,%xmm0        # 1401dbd8c <NnueW1+0x60d0c>
+   14001b1e4:	vdivss 0x1c0ba4(%rip),%xmm0,%xmm0        # 1401dbd90 <NnueW1+0x60d10>
+   14001b1ec:	vmaxss %xmm0,%xmm2,%xmm1
+   14001b1f0:	vmovss 0x1c0ba0(%rip),%xmm0        # 1401dbd98 <NnueW1+0x60d18>
+   14001b1f8:	vminss %xmm1,%xmm0,%xmm0
+   14001b1fc:	vcvttss2si %xmm0,%eax
+   14001b200:	vzeroupper
+   14001b203:	add    $0x90,%rsp
+   14001b20a:	pop    %rbx
+   14001b20b:	pop    %rsi
+   14001b20c:	pop    %rdi
+   14001b20d:	ret
+   14001b20e:	xchg   %ax,%ax
+### forge_r5b_o2_z5_b7c1772.exe forge::nnue::refresh
+   140019ed0:	push   %r15
+   140019ed2:	push   %r14
+   140019ed4:	push   %r13
+   140019ed6:	push   %r12
+   140019ed8:	push   %rbp
+   140019ed9:	push   %rdi
+   140019eda:	push   %rsi
+   140019edb:	push   %rbx
+   140019edc:	sub    $0x258,%rsp
+   140019ee3:	vmovups %xmm6,0x240(%rsp)
+   140019eec:	mov    %rcx,%rsi
+   140019eef:	mov    %rdx,%r15
+   140019ef2:	call   140019990 <forge::nnue::(anonymous namespace)::weights()>
+   140019ef7:	movl   $0x1,0x3c(%rsp)
+   140019eff:	mov    %rax,%r14
+   140019f02:	lea    0x38(%rsp),%rbp
+   140019f07:	lea    0x40(%rsp),%rdi
+   140019f0c:	xor    %eax,%eax
+   140019f0e:	lea    0x40(%r14),%r13
+   140019f12:	vmovq  %r13,%xmm6
+   140019f17:	movslq %eax,%rcx
+   140019f1a:	mov    0x168(%rsi),%r9
+   140019f21:	shl    $0xa,%rcx
+   140019f25:	add    %r15,%rcx
+   140019f28:	or     0x170(%rsi),%r9
+   140019f2f:	je     14001a26c <forge::nnue::refresh(forge::Board const&, forge::nnue::Accumulator&)+0x39c>
+   140019f35:	mov    (%r14),%r13
+   140019f38:	test   %eax,%eax
+   140019f3a:	jne    140019fc4 <forge::nnue::refresh(forge::Board const&, forge::nnue::Accumulator&)+0xf4>
+   140019f40:	mov    %rdi,%r8
+   140019f43:	mov    %r9,%rdx
+   140019f46:	jmp    140019f9e <forge::nnue::refresh(forge::Board const&, forge::nnue::Accumulator&)+0xce>
+   140019f48:	mov    $0x1,%eax
+   140019f4d:	lea    -0x1(%r10),%ebx
+   140019f51:	movslq %ebx,%r10
+   140019f54:	mov    %ebx,%r12d
+   140019f57:	sar    $0x1f,%r12d
+   140019f5b:	imul   $0x2aaaaaab,%r10,%r10
+   140019f62:	shr    $0x20,%r10
+   140019f66:	sub    %r12d,%r10d
+   140019f69:	lea    (%r10,%r10,2),%r12d
+   140019f6d:	add    %r12d,%r12d
+   140019f70:	sub    %r12d,%ebx
+   140019f73:	mov    %ebx,%r10d
+   140019f76:	neg    %eax
+   140019f78:	add    $0x8,%r8
+   140019f7c:	and    $0x6,%eax
+   140019f7f:	add    %r10d,%eax
+   140019f82:	shl    $0x6,%eax
+   140019f85:	add    %r11d,%eax
+   140019f88:	cltq
+   140019f8a:	shl    $0xa,%rax
+   140019f8e:	add    %r13,%rax
+   140019f91:	mov    %rax,-0x8(%r8)
+   140019f95:	test   %rdx,%rdx
+   140019f98:	je     14001a066 <forge::nnue::refresh(forge::Board const&, forge::nnue::Accumulator&)+0x196>
+   140019f9e:	xor    %r11d,%r11d
+   140019fa1:	tzcnt  %rdx,%r11
+   140019fa6:	blsr   %rdx,%rdx
+   140019fab:	mov    (%rsi,%r11,4),%r10d
+   140019faf:	cmp    $0x6,%r10d
+   140019fb3:	jg     140019f48 <forge::nnue::refresh(forge::Board const&, forge::nnue::Accumulator&)+0x78>
+   140019fb5:	xor    %eax,%eax
+   140019fb7:	test   %r10d,%r10d
+   140019fba:	jne    140019f4d <forge::nnue::refresh(forge::Board const&, forge::nnue::Accumulator&)+0x7d>
+   140019fbc:	mov    $0xffffffff,%r10d
+   140019fc2:	jmp    140019f76 <forge::nnue::refresh(forge::Board const&, forge::nnue::Accumulator&)+0xa6>
+   140019fc4:	xor    %r10d,%r10d
+   140019fc7:	cmp    $0x1,%eax
+   140019fca:	mov    %rcx,0x28(%rsp)
+   140019fcf:	mov    %rdi,%r8
+   140019fd2:	setne  %r10b
+   140019fd6:	mov    %r9,%rdx
+   140019fd9:	mov    %r13,%rcx
+   140019fdc:	jmp    14001a01f <forge::nnue::refresh(forge::Board const&, forge::nnue::Accumulator&)+0x14f>
+   140019fde:	mov    $0x1,%eax
+   140019fe3:	test   %r12d,%r12d
+   140019fe6:	jne    14001a039 <forge::nnue::refresh(forge::Board const&, forge::nnue::Accumulator&)+0x169>
+   140019fe8:	mov    $0xffffffff,%r12d
+   140019fee:	mov    $0x1,%eax
+   140019ff3:	neg    %eax
+   140019ff5:	xor    $0x38,%r11d
+   140019ff9:	add    $0x8,%r8
+   140019ffd:	and    $0x6,%eax
+   14001a000:	add    %r12d,%eax
+   14001a003:	shl    $0x6,%eax
+   14001a006:	add    %r11d,%eax
+   14001a009:	cltq
+   14001a00b:	shl    $0xa,%rax
+   14001a00f:	add    %rcx,%rax
+   14001a012:	mov    %rax,-0x8(%r8)
+   14001a016:	test   %rdx,%rdx
+   14001a019:	je     14001a238 <forge::nnue::refresh(forge::Board const&, forge::nnue::Accumulator&)+0x368>
+   14001a01f:	xor    %r11d,%r11d
+   14001a022:	tzcnt  %rdx,%r11
+   14001a027:	blsr   %rdx,%rdx
+   14001a02c:	mov    (%rsi,%r11,4),%r12d
+   14001a030:	cmp    $0x6,%r12d
+   14001a034:	jle    140019fde <forge::nnue::refresh(forge::Board const&, forge::nnue::Accumulator&)+0x10e>
+   14001a036:	mov    %r10d,%eax
+   14001a039:	lea    -0x1(%r12),%ebx
+   14001a03e:	movslq %ebx,%r12
+   14001a041:	mov    %ebx,%r13d
+   14001a044:	sar    $0x1f,%r13d
+   14001a048:	imul   $0x2aaaaaab,%r12,%r12
+   14001a04f:	shr    $0x20,%r12
+   14001a053:	sub    %r13d,%r12d
+   14001a056:	lea    (%r12,%r12,2),%r12d
+   14001a05a:	lea    (%r12,%r12,1),%r13d
+   14001a05e:	sub    %r13d,%ebx
+   14001a061:	mov    %ebx,%r12d
+   14001a064:	jmp    140019ff3 <forge::nnue::refresh(forge::Board const&, forge::nnue::Accumulator&)+0x123>
+   14001a066:	popcnt %r9,%r12
+   14001a06b:	mov    $0x400,%r8d
+   14001a071:	vmovq  %xmm6,%rdx
+   14001a076:	call   140065840 <memmove>
+   14001a07b:	mov    %rdi,%r8
+   14001a07e:	lea    (%rdi,%r12,8),%r10
+   14001a082:	mov    %rax,%rcx
+   14001a085:	lea    -0x4(%rax),%r9
+   14001a089:	jmp    14001a1e4 <forge::nnue::refresh(forge::Board const&, forge::nnue::Accumulator&)+0x314>
+   14001a08e:	vmovups (%rdx),%zmm0
+   14001a094:	vaddps (%rcx),%zmm0,%zmm0
+   14001a09a:	add    $0x8,%r8
+   14001a09e:	vmovups %zmm0,(%rcx)
+   14001a0a4:	vmovups 0x40(%rcx),%zmm0
+   14001a0ab:	vaddps 0x40(%rdx),%zmm0,%zmm0
+   14001a0b2:	vmovups %zmm0,0x40(%rcx)
+   14001a0b9:	vmovups 0x80(%rcx),%zmm0
+   14001a0c0:	vaddps 0x80(%rdx),%zmm0,%zmm0
+   14001a0c7:	vmovups %zmm0,0x80(%rcx)
+   14001a0ce:	vmovups 0xc0(%rdx),%zmm0
+   14001a0d5:	vaddps 0xc0(%rcx),%zmm0,%zmm0
+   14001a0dc:	vmovups %zmm0,0xc0(%rcx)
+   14001a0e3:	vmovups 0x100(%rdx),%zmm0
+   14001a0ea:	vaddps 0x100(%rcx),%zmm0,%zmm0
+   14001a0f1:	vmovups %zmm0,0x100(%rcx)
+   14001a0f8:	vmovups 0x140(%rdx),%zmm0
+   14001a0ff:	vaddps 0x140(%rcx),%zmm0,%zmm0
+   14001a106:	vmovups %zmm0,0x140(%rcx)
+   14001a10d:	vmovups 0x180(%rcx),%zmm0
+   14001a114:	vaddps 0x180(%rdx),%zmm0,%zmm0
+   14001a11b:	vmovups %zmm0,0x180(%rcx)
+   14001a122:	vmovups 0x1c0(%rcx),%zmm0
+   14001a129:	vaddps 0x1c0(%rdx),%zmm0,%zmm0
+   14001a130:	vmovups %zmm0,0x1c0(%rcx)
+   14001a137:	vmovups 0x200(%rcx),%zmm0
+   14001a13e:	vaddps 0x200(%rdx),%zmm0,%zmm0
+   14001a145:	vmovups %zmm0,0x200(%rcx)
+   14001a14c:	vmovups 0x240(%rcx),%zmm0
+   14001a153:	vaddps 0x240(%rdx),%zmm0,%zmm0
+   14001a15a:	vmovups %zmm0,0x240(%rcx)
+   14001a161:	vmovups 0x280(%rcx),%zmm0
+   14001a168:	vaddps 0x280(%rdx),%zmm0,%zmm0
+   14001a16f:	vmovups %zmm0,0x280(%rcx)
+   14001a176:	vmovups 0x2c0(%rcx),%zmm0
+   14001a17d:	vaddps 0x2c0(%rdx),%zmm0,%zmm0
+   14001a184:	vmovups %zmm0,0x2c0(%rcx)
+   14001a18b:	vmovups 0x300(%rcx),%zmm0
+   14001a192:	vaddps 0x300(%rdx),%zmm0,%zmm0
+   14001a199:	vmovups %zmm0,0x300(%rcx)
+   14001a1a0:	vmovups 0x340(%rdx),%zmm0
+   14001a1a7:	vaddps 0x340(%rcx),%zmm0,%zmm0
+   14001a1ae:	vmovups %zmm0,0x340(%rcx)
+   14001a1b5:	vmovups 0x380(%rdx),%zmm0
+   14001a1bc:	vaddps 0x380(%rcx),%zmm0,%zmm0
+   14001a1c3:	vmovups %zmm0,0x380(%rcx)
+   14001a1ca:	vmovups 0x3c0(%rdx),%zmm0
+   14001a1d1:	vaddps 0x3c0(%rcx),%zmm0,%zmm0
+   14001a1d8:	vmovups %zmm0,0x3c0(%rcx)
+   14001a1df:	cmp    %r10,%r8
+   14001a1e2:	je     14001a224 <forge::nnue::refresh(forge::Board const&, forge::nnue::Accumulator&)+0x354>
+   14001a1e4:	mov    (%r8),%rdx
+   14001a1e7:	mov    %r9,%rax
+   14001a1ea:	sub    %rdx,%rax
+   14001a1ed:	cmp    $0x38,%rax
+   14001a1f1:	ja     14001a08e <forge::nnue::refresh(forge::Board const&, forge::nnue::Accumulator&)+0x1be>
+   14001a1f7:	xor    %eax,%eax
+   14001a1f9:	nopl   0x0(%rax)
+   14001a200:	vmovss (%rcx,%rax,1),%xmm0
+   14001a205:	vaddss (%rdx,%rax,1),%xmm0,%xmm0
+   14001a20a:	vmovss %xmm0,(%rcx,%rax,1)
+   14001a20f:	add    $0x4,%rax
+   14001a213:	cmp    $0x400,%rax
+   14001a219:	jne    14001a200 <forge::nnue::refresh(forge::Board const&, forge::nnue::Accumulator&)+0x330>
+   14001a21b:	add    $0x8,%r8
+   14001a21f:	cmp    %r10,%r8
+   14001a222:	jne    14001a1e4 <forge::nnue::refresh(forge::Board const&, forge::nnue::Accumulator&)+0x314>
+   14001a224:	vzeroupper
+   14001a227:	add    $0x4,%rbp
+   14001a22b:	cmp    %rdi,%rbp
+   14001a22e:	je     14001a247 <forge::nnue::refresh(forge::Board const&, forge::nnue::Accumulator&)+0x377>
+   14001a230:	mov    0x0(%rbp),%eax
+   14001a233:	jmp    140019f17 <forge::nnue::refresh(forge::Board const&, forge::nnue::Accumulator&)+0x47>
+   14001a238:	mov    0x28(%rsp),%rcx
+   14001a23d:	popcnt %r9,%r12
+   14001a242:	jmp    14001a06b <forge::nnue::refresh(forge::Board const&, forge::nnue::Accumulator&)+0x19b>
+   14001a247:	movb   $0x1,0x800(%r15)
+   14001a24f:	vmovups 0x240(%rsp),%xmm6
+   14001a258:	add    $0x258,%rsp
+   14001a25f:	pop    %rbx
+   14001a260:	pop    %rsi
+   14001a261:	pop    %rdi
+   14001a262:	pop    %rbp
+   14001a263:	pop    %r12
+   14001a265:	pop    %r13
+   14001a267:	pop    %r14
+   14001a269:	pop    %r15
+   14001a26b:	ret
+   14001a26c:	mov    $0x400,%r8d
+   14001a272:	vmovq  %xmm6,%rdx
+   14001a277:	call   140065840 <memmove>
+   14001a27c:	jmp    14001a227 <forge::nnue::refresh(forge::Board const&, forge::nnue::Accumulator&)+0x357>
+   14001a27e:	xchg   %ax,%ax
+### forge_r5b_o2_z5_b7c1772.exe forge::nnue::update
+   14001a280:	push   %r15
+   14001a282:	push   %r14
+   14001a284:	push   %r13
+   14001a286:	push   %r12
+   14001a288:	push   %rbp
+   14001a289:	push   %rdi
+   14001a28a:	push   %rsi
+   14001a28b:	push   %rbx
+   14001a28c:	sub    $0xd8,%rsp
+   14001a293:	vmovups %xmm6,0xb0(%rsp)
+   14001a29c:	vmovups %xmm7,0xc0(%rsp)
+   14001a2a5:	mov    %r8,%rbx
+   14001a2a8:	mov    %rcx,0x120(%rsp)
+   14001a2b0:	mov    %rdx,0x128(%rsp)
+   14001a2b8:	call   140019990 <forge::nnue::(anonymous namespace)::weights()>
+   14001a2bd:	mov    0x20(%rbx),%ebp
+   14001a2c0:	mov    %rax,%r12
+   14001a2c3:	cmp    $0x2,%ebp
+   14001a2c6:	je     14001aca0 <forge::nnue::update(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&)+0xa20>
+   14001a2cc:	cmp    $0x3,%ebp
+   14001a2cf:	je     14001a5ce <forge::nnue::update(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&)+0x34e>
+   14001a2d5:	cmp    $0x4,%ebp
+   14001a2d8:	jne    14001a2e4 <forge::nnue::update(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&)+0x64>
+   14001a2da:	cmpb   $0x0,0x5(%rbx)
+   14001a2de:	je     14001b038 <forge::nnue::update(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&)+0xdb8>
+   14001a2e4:	mov    0x1c2a95(%rip),%rax        # 1401dcd80 <NnueW1+0x60d00>
+   14001a2eb:	mov    %rbx,0x130(%rsp)
+   14001a2f3:	lea    0xa8(%rsp),%rdi
+   14001a2fb:	vmovq  %r12,%xmm7
+   14001a300:	mov    %rax,0xa8(%rsp)
+   14001a308:	movslq %ebp,%rax
+   14001a30b:	lea    (%rbx,%rax,8),%r15
+   14001a30f:	vmovq  %r15,%xmm6
+   14001a314:	mov    0x128(%rsp),%r15
+   14001a31c:	movslq (%rdi),%rax
+   14001a31f:	mov    $0x400,%r8d
+   14001a325:	mov    %rax,%r14
+   14001a328:	shl    $0xa,%rax
+   14001a32c:	lea    (%r15,%rax,1),%rcx
+   14001a330:	add    0x120(%rsp),%rax
+   14001a338:	mov    %rax,%rdx
+   14001a33b:	call   140065838 <memcpy>
+   14001a340:	mov    %rax,%rcx
+   14001a343:	test   %ebp,%ebp
+   14001a345:	jle    14001a584 <forge::nnue::update(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&)+0x304>
+   14001a34b:	vmovq  %xmm7,%rax
+   14001a350:	mov    0x130(%rsp),%r8
+   14001a358:	xor    %r10d,%r10d
+   14001a35b:	test   %r14d,%r14d
+   14001a35e:	mov    (%rax),%r13
+   14001a361:	setne  %r10b
+   14001a365:	xor    %r9d,%r9d
+   14001a368:	cmp    $0x1,%r14d
+   14001a36c:	setne  %r9b
+   14001a370:	vmovq  %xmm6,%rbx
+   14001a375:	data16 cs nopw 0x0(%rax,%rax,1)
+   14001a380:	mov    (%r8),%edx
+   14001a383:	movzbl 0x4(%r8),%r11d
+   14001a388:	cmp    $0x6,%edx
+   14001a38b:	jg     14001ac27 <forge::nnue::update(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&)+0x9a7>
+   14001a391:	movslq %r10d,%rax
+   14001a394:	mov    $0xffffffff,%esi
+   14001a399:	test   %edx,%edx
+   14001a39b:	je     14001a3c3 <forge::nnue::update(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&)+0x143>
+   14001a39d:	dec    %edx
+   14001a39f:	movslq %edx,%rsi
+   14001a3a2:	mov    %edx,%r12d
+   14001a3a5:	sar    $0x1f,%r12d
+   14001a3a9:	imul   $0x2aaaaaab,%rsi,%rsi
+   14001a3b0:	shr    $0x20,%rsi
+   14001a3b4:	sub    %r12d,%esi
+   14001a3b7:	lea    (%rsi,%rsi,2),%esi
+   14001a3ba:	lea    (%rsi,%rsi,1),%r12d
+   14001a3be:	mov    %edx,%esi
+   14001a3c0:	sub    %r12d,%esi
+   14001a3c3:	mov    %r11d,%edx
+   14001a3c6:	xor    $0x38,%edx
+   14001a3c9:	test   %r14d,%r14d
+   14001a3cc:	cmovne %edx,%r11d
+   14001a3d0:	mov    %eax,%edx
+   14001a3d2:	neg    %rax
+   14001a3d5:	neg    %edx
+   14001a3d7:	movzbl %r11b,%r11d
+   14001a3db:	and    $0x6,%eax
+   14001a3de:	and    $0x6,%edx
+   14001a3e1:	add    %esi,%edx
+   14001a3e3:	movslq %esi,%rsi
+   14001a3e6:	shl    $0x6,%edx
+   14001a3e9:	add    %r11d,%edx
+   14001a3ec:	add    %rsi,%rax
+   14001a3ef:	movslq %edx,%rdx
+   14001a3f2:	shl    $0xa,%rdx
+   14001a3f6:	shl    $0x6,%rax
+   14001a3fa:	add    %r13,%rdx
+   14001a3fd:	cmpb   $0x0,0x5(%r8)
+   14001a402:	je     14001aab0 <forge::nnue::update(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&)+0x830>
+   14001a408:	add    %r11,%rax
+   14001a40b:	shl    $0xa,%rax
+   14001a40f:	lea    0x4(%r13,%rax,1),%rsi
+   14001a414:	mov    %rcx,%r11
+   14001a417:	sub    %rsi,%r11
+   14001a41a:	cmp    $0x38,%r11
+   14001a41e:	jbe    14001ac60 <forge::nnue::update(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&)+0x9e0>
+   14001a424:	add    %r13,%rax
+   14001a427:	vmovups (%rax),%zmm0
+   14001a42d:	vaddps (%rcx),%zmm0,%zmm0
+   14001a433:	vmovups %zmm0,(%rcx)
+   14001a439:	vmovups 0x40(%rax),%zmm0
+   14001a440:	vaddps 0x40(%rcx),%zmm0,%zmm0
+   14001a447:	vmovups %zmm0,0x40(%rcx)
+   14001a44e:	vmovups 0x80(%rax),%zmm0
+   14001a455:	vaddps 0x80(%rcx),%zmm0,%zmm0
+   14001a45c:	vmovups %zmm0,0x80(%rcx)
+   14001a463:	vmovups 0xc0(%rax),%zmm0
+   14001a46a:	vaddps 0xc0(%rcx),%zmm0,%zmm0
+   14001a471:	vmovups %zmm0,0xc0(%rcx)
+   14001a478:	vmovups 0x100(%rax),%zmm0
+   14001a47f:	vaddps 0x100(%rcx),%zmm0,%zmm0
+   14001a486:	vmovups %zmm0,0x100(%rcx)
+   14001a48d:	vmovups 0x140(%rax),%zmm0
+   14001a494:	vaddps 0x140(%rcx),%zmm0,%zmm0
+   14001a49b:	vmovups %zmm0,0x140(%rcx)
+   14001a4a2:	vmovups 0x180(%rax),%zmm0
+   14001a4a9:	vaddps 0x180(%rcx),%zmm0,%zmm0
+   14001a4b0:	vmovups %zmm0,0x180(%rcx)
+   14001a4b7:	vmovups 0x1c0(%rax),%zmm0
+   14001a4be:	vaddps 0x1c0(%rcx),%zmm0,%zmm0
+   14001a4c5:	vmovups %zmm0,0x1c0(%rcx)
+   14001a4cc:	vmovups 0x200(%rax),%zmm0
+   14001a4d3:	vaddps 0x200(%rcx),%zmm0,%zmm0
+   14001a4da:	vmovups %zmm0,0x200(%rcx)
+   14001a4e1:	vmovups 0x240(%rax),%zmm0
+   14001a4e8:	vaddps 0x240(%rcx),%zmm0,%zmm0
+   14001a4ef:	vmovups %zmm0,0x240(%rcx)
+   14001a4f6:	vmovups 0x280(%rax),%zmm0
+   14001a4fd:	vaddps 0x280(%rcx),%zmm0,%zmm0
+   14001a504:	vmovups %zmm0,0x280(%rcx)
+   14001a50b:	vmovups 0x2c0(%rax),%zmm0
+   14001a512:	vaddps 0x2c0(%rcx),%zmm0,%zmm0
+   14001a519:	vmovups %zmm0,0x2c0(%rcx)
+   14001a520:	vmovups 0x300(%rax),%zmm0
+   14001a527:	vaddps 0x300(%rcx),%zmm0,%zmm0
+   14001a52e:	vmovups %zmm0,0x300(%rcx)
+   14001a535:	vmovups 0x340(%rax),%zmm0
+   14001a53c:	vaddps 0x340(%rcx),%zmm0,%zmm0
+   14001a543:	vmovups %zmm0,0x340(%rcx)
+   14001a54a:	vmovups 0x380(%rax),%zmm0
+   14001a551:	vaddps 0x380(%rcx),%zmm0,%zmm0
+   14001a558:	vmovups %zmm0,0x380(%rcx)
+   14001a55f:	vmovups 0x3c0(%rcx),%zmm0
+   14001a566:	vaddps 0x3c0(%rax),%zmm0,%zmm0
+   14001a56d:	vmovups %zmm0,0x3c0(%rcx)
+   14001a574:	add    $0x8,%r8
+   14001a578:	cmp    %rbx,%r8
+   14001a57b:	jne    14001a380 <forge::nnue::update(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&)+0x100>
+   14001a581:	vzeroupper
+   14001a584:	add    $0x4,%rdi
+   14001a588:	lea    0xb0(%rsp),%rax
+   14001a590:	cmp    %rax,%rdi
+   14001a593:	jne    14001a31c <forge::nnue::update(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&)+0x9c>
+   14001a599:	mov    0x128(%rsp),%rax
+   14001a5a1:	movb   $0x1,0x800(%rax)
+   14001a5a8:	vmovups 0xb0(%rsp),%xmm6
+   14001a5b1:	vmovups 0xc0(%rsp),%xmm7
+   14001a5ba:	add    $0xd8,%rsp
+   14001a5c1:	pop    %rbx
+   14001a5c2:	pop    %rsi
+   14001a5c3:	pop    %rdi
+   14001a5c4:	pop    %rbp
+   14001a5c5:	pop    %r12
+   14001a5c7:	pop    %r13
+   14001a5c9:	pop    %r14
+   14001a5cb:	pop    %r15
+   14001a5cd:	ret
+   14001a5ce:	cmpb   $0x0,0x5(%rbx)
+   14001a5d2:	jne    14001a2e4 <forge::nnue::update(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&)+0x64>
+   14001a5d8:	cmpb   $0x0,0xd(%rbx)
+   14001a5dc:	jne    14001a2e4 <forge::nnue::update(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&)+0x64>
+   14001a5e2:	cmpb   $0x0,0x15(%rbx)
+   14001a5e6:	je     14001a2e4 <forge::nnue::update(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&)+0x64>
+   14001a5ec:	mov    0x1c278d(%rip),%rax        # 1401dcd80 <NnueW1+0x60d00>
+   14001a5f3:	mov    (%r12),%rdi
+   14001a5f7:	lea    0xa8(%rsp),%r12
+   14001a5ff:	mov    %rax,0xa8(%rsp)
+   14001a607:	movzbl 0x14(%rbx),%eax
+   14001a60b:	mov    %eax,%edx
+   14001a60d:	mov    %eax,0x4c(%rsp)
+   14001a611:	mov    0x10(%rbx),%eax
+   14001a614:	xor    $0x38,%edx
+   14001a617:	lea    -0x1(%rax),%ecx
+   14001a61a:	mov    %eax,0x20(%rsp)
+   14001a61e:	movslq %ecx,%rax
+   14001a621:	mov    %ecx,%r8d
+   14001a624:	sar    $0x1f,%r8d
+   14001a628:	imul   $0x2aaaaaab,%rax,%rax
+   14001a62f:	shr    $0x20,%rax
+   14001a633:	mov    %eax,%ebp
+   14001a635:	sub    %r8d,%ebp
+   14001a638:	lea    0x0(%rbp,%rbp,2),%eax
+   14001a63c:	add    %eax,%eax
+   14001a63e:	sub    %eax,%ecx
+   14001a640:	movzbl %dl,%eax
+   14001a643:	mov    %eax,0x6c(%rsp)
+   14001a647:	movzbl 0xc(%rbx),%eax
+   14001a64b:	mov    %ecx,%ebp
+   14001a64d:	mov    %ebp,0x78(%rsp)
+   14001a651:	mov    %rdi,%rbp
+   14001a654:	mov    %eax,%edx
+   14001a656:	mov    %eax,0x60(%rsp)
+   14001a65a:	mov    0x8(%rbx),%eax
+   14001a65d:	xor    $0x38,%edx
+   14001a660:	lea    -0x1(%rax),%ecx
+   14001a663:	mov    %eax,0x2c(%rsp)
+   14001a667:	movslq %ecx,%rax
+   14001a66a:	mov    %ecx,%r8d
+   14001a66d:	sar    $0x1f,%r8d
+   14001a671:	imul   $0x2aaaaaab,%rax,%rax
+   14001a678:	shr    $0x20,%rax
+   14001a67c:	mov    %eax,%esi
+   14001a67e:	sub    %r8d,%esi
+   14001a681:	lea    (%rsi,%rsi,2),%eax
+   14001a684:	add    %eax,%eax
+   14001a686:	mov    %ecx,%esi
+   14001a688:	sub    %eax,%esi
+   14001a68a:	movzbl %dl,%eax
+   14001a68d:	movzbl 0x4(%rbx),%edx
+   14001a691:	mov    (%rbx),%ebx
+   14001a693:	mov    %eax,0x68(%rsp)
+   14001a697:	mov    %esi,0x74(%rsp)
+   14001a69b:	mov    %edx,%eax
+   14001a69d:	mov    %edx,0x50(%rsp)
+   14001a6a1:	lea    -0x1(%rbx),%edx
+   14001a6a4:	xor    $0x38,%eax
+   14001a6a7:	mov    %ebx,0x30(%rsp)
+   14001a6ab:	movslq %edx,%r8
+   14001a6ae:	mov    %edx,%ecx
+   14001a6b0:	sar    $0x1f,%ecx
+   14001a6b3:	imul   $0x2aaaaaab,%r8,%r8
+   14001a6ba:	movzbl %al,%eax
+   14001a6bd:	mov    %eax,0x58(%rsp)
+   14001a6c1:	shr    $0x20,%r8
+   14001a6c5:	mov    %r8d,%r13d
+   14001a6c8:	sub    %ecx,%r13d
+   14001a6cb:	lea    0x0(%r13,%r13,2),%ecx
+   14001a6d0:	add    %ecx,%ecx
+   14001a6d2:	sub    %ecx,%edx
+   14001a6d4:	mov    %edx,%r13d
+   14001a6d7:	movslq (%r12),%r10
+   14001a6db:	mov    %r10,%rax
+   14001a6de:	cmpl   $0x6,0x20(%rsp)
+   14001a6e3:	jle    14001b73c <forge::nnue::update(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&)+0x14bc>
+   14001a6e9:	xor    %r9d,%r9d
+   14001a6ec:	cmp    $0x1,%r10d
+   14001a6f0:	setne  %r9b
+   14001a6f4:	mov    0x78(%rsp),%r14d
+   14001a6f9:	mov    0x4c(%rsp),%edi
+   14001a6fd:	test   %eax,%eax
+   14001a6ff:	cmovne 0x6c(%rsp),%edi
+   14001a704:	mov    %edi,0x48(%rsp)
+   14001a708:	cmpl   $0x6,0x2c(%rsp)
+   14001a70d:	jle    14001b71d <forge::nnue::update(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&)+0x149d>
+   14001a713:	xor    %r8d,%r8d
+   14001a716:	cmp    $0x1,%eax
+   14001a719:	setne  %r8b
+   14001a71d:	mov    0x74(%rsp),%ebx
+   14001a721:	mov    0x60(%rsp),%edi
+   14001a725:	test   %eax,%eax
+   14001a727:	cmovne 0x68(%rsp),%edi
+   14001a72c:	mov    %edi,0x34(%rsp)
+   14001a730:	cmpl   $0x6,0x30(%rsp)
+   14001a735:	jle    14001b6ff <forge::nnue::update(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&)+0x147f>
+   14001a73b:	xor    %ecx,%ecx
+   14001a73d:	cmp    $0x1,%eax
+   14001a740:	setne  %cl
+   14001a743:	mov    %r13d,%r11d
+   14001a746:	mov    0x50(%rsp),%r15d
+   14001a74b:	test   %eax,%eax
+   14001a74d:	movslq %ecx,%rax
+   14001a750:	movslq %r11d,%rsi
+   14001a753:	cmovne 0x58(%rsp),%r15d
+   14001a759:	neg    %rax
+   14001a75c:	mov    0x128(%rsp),%rdx
+   14001a764:	mov    0x120(%rsp),%rdi
+   14001a76c:	and    $0x6,%eax
+   14001a76f:	add    %rsi,%rax
+   14001a772:	shl    $0x6,%rax
+   14001a776:	movslq %r15d,%rsi
+   14001a779:	mov    %r15d,0x64(%rsp)
+   14001a77e:	add    %rsi,%rax
+   14001a781:	movslq %ebx,%rsi
+   14001a784:	shl    $0xa,%rax
+   14001a788:	mov    %rax,0x40(%rsp)
+   14001a78d:	movslq %r8d,%rax
+   14001a790:	neg    %rax
+   14001a793:	and    $0x6,%eax
+   14001a796:	add    %rsi,%rax
+   14001a799:	movslq 0x34(%rsp),%rsi
+   14001a79e:	shl    $0x6,%rax
+   14001a7a2:	shl    $0xa,%r10
+   14001a7a6:	lea    (%rax,%rsi,1),%r15
+   14001a7aa:	movslq %r9d,%rax
+   14001a7ad:	movslq %r14d,%rsi
+   14001a7b0:	add    %r10,%rdx
+   14001a7b3:	neg    %rax
+   14001a7b6:	add    %r10,%rdi
+   14001a7b9:	and    $0x6,%eax
+   14001a7bc:	add    %rsi,%rax
+   14001a7bf:	movslq 0x48(%rsp),%rsi
+   14001a7c4:	shl    $0xa,%r15
+   14001a7c8:	shl    $0x6,%rax
+   14001a7cc:	mov    %r15,0x38(%rsp)
+   14001a7d1:	lea    0x4(%rbp,%r15,1),%r15
+   14001a7d6:	add    %rsi,%rax
+   14001a7d9:	mov    %rdx,%rsi
+   14001a7dc:	sub    %r15,%rsi
+   14001a7df:	shl    $0xa,%rax
+   14001a7e3:	cmp    $0x38,%rsi
+   14001a7e7:	mov    0x40(%rsp),%rsi
+   14001a7ec:	seta   0x70(%rsp)
+   14001a7f1:	lea    0x4(%rbp,%rsi,1),%rsi
+   14001a7f6:	mov    %rdx,%r15
+   14001a7f9:	sub    %rsi,%r15
+   14001a7fc:	cmp    $0x38,%r15
+   14001a800:	seta   %r15b
+   14001a804:	test   %r15b,0x70(%rsp)
+   14001a809:	je     14001b810 <forge::nnue::update(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&)+0x1590>
+   14001a80f:	mov    0x120(%rsp),%rsi
+   14001a817:	lea    0x4(%rbp,%rax,1),%r15
+   14001a81c:	lea    0x4(%rsi,%r10,1),%rsi
+   14001a821:	mov    %rdx,%r10
+   14001a824:	sub    %rsi,%r10
+   14001a827:	cmp    $0x38,%r10
+   14001a82b:	seta   %sil
+   14001a82f:	mov    %rdx,%r10
+   14001a832:	sub    %r15,%r10
+   14001a835:	cmp    $0x38,%r10
+   14001a839:	seta   %r10b
+   14001a83d:	test   %r10b,%sil
+   14001a840:	je     14001b810 <forge::nnue::update(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&)+0x1590>
+   14001a846:	mov    0x40(%rsp),%r8
+   14001a84b:	mov    0x38(%rsp),%r15
+   14001a850:	vmovups (%rdi),%zmm0
+   14001a856:	add    %rbp,%rax
+   14001a859:	add    %rbp,%r8
+   14001a85c:	lea    (%r15,%rbp,1),%rcx
+   14001a860:	vsubps (%r8),%zmm0,%zmm0
+   14001a866:	vsubps (%rcx),%zmm0,%zmm0
+   14001a86c:	vaddps (%rax),%zmm0,%zmm0
+   14001a872:	vmovups %zmm0,(%rdx)
+   14001a878:	vmovups 0x40(%rdi),%zmm0
+   14001a87f:	vsubps 0x40(%r8),%zmm0,%zmm0
+   14001a886:	vsubps 0x40(%rcx),%zmm0,%zmm0
+   14001a88d:	vaddps 0x40(%rax),%zmm0,%zmm0
+   14001a894:	vmovups %zmm0,0x40(%rdx)
+   14001a89b:	vmovups 0x80(%rdi),%zmm0
+   14001a8a2:	vsubps 0x80(%r8),%zmm0,%zmm0
+   14001a8a9:	vsubps 0x80(%rcx),%zmm0,%zmm0
+   14001a8b0:	vaddps 0x80(%rax),%zmm0,%zmm0
+   14001a8b7:	vmovups %zmm0,0x80(%rdx)
+   14001a8be:	vmovups 0xc0(%rdi),%zmm0
+   14001a8c5:	vsubps 0xc0(%r8),%zmm0,%zmm0
+   14001a8cc:	vsubps 0xc0(%rcx),%zmm0,%zmm0
+   14001a8d3:	vaddps 0xc0(%rax),%zmm0,%zmm0
+   14001a8da:	vmovups %zmm0,0xc0(%rdx)
+   14001a8e1:	vmovups 0x100(%rdi),%zmm0
+   14001a8e8:	vsubps 0x100(%r8),%zmm0,%zmm0
+   14001a8ef:	vsubps 0x100(%rcx),%zmm0,%zmm0
+   14001a8f6:	vaddps 0x100(%rax),%zmm0,%zmm0
+   14001a8fd:	vmovups %zmm0,0x100(%rdx)
+   14001a904:	vmovups 0x140(%rdi),%zmm0
+   14001a90b:	vsubps 0x140(%r8),%zmm0,%zmm0
+   14001a912:	vsubps 0x140(%rcx),%zmm0,%zmm0
+   14001a919:	vaddps 0x140(%rax),%zmm0,%zmm0
+   14001a920:	vmovups %zmm0,0x140(%rdx)
+   14001a927:	vmovups 0x180(%rdi),%zmm0
+   14001a92e:	vsubps 0x180(%r8),%zmm0,%zmm0
+   14001a935:	vsubps 0x180(%rcx),%zmm0,%zmm0
+   14001a93c:	vaddps 0x180(%rax),%zmm0,%zmm0
+   14001a943:	vmovups %zmm0,0x180(%rdx)
+   14001a94a:	vmovups 0x1c0(%rdi),%zmm0
+   14001a951:	vsubps 0x1c0(%r8),%zmm0,%zmm0
+   14001a958:	vsubps 0x1c0(%rcx),%zmm0,%zmm0
+   14001a95f:	vaddps 0x1c0(%rax),%zmm0,%zmm0
+   14001a966:	vmovups %zmm0,0x1c0(%rdx)
+   14001a96d:	vmovups 0x200(%rdi),%zmm0
+   14001a974:	vsubps 0x200(%r8),%zmm0,%zmm0
+   14001a97b:	vsubps 0x200(%rcx),%zmm0,%zmm0
+   14001a982:	vaddps 0x200(%rax),%zmm0,%zmm0
+   14001a989:	vmovups %zmm0,0x200(%rdx)
+   14001a990:	vmovups 0x240(%rdi),%zmm0
+   14001a997:	vsubps 0x240(%r8),%zmm0,%zmm0
+   14001a99e:	vsubps 0x240(%rcx),%zmm0,%zmm0
+   14001a9a5:	vaddps 0x240(%rax),%zmm0,%zmm0
+   14001a9ac:	vmovups %zmm0,0x240(%rdx)
+   14001a9b3:	vmovups 0x280(%rdi),%zmm0
+   14001a9ba:	vsubps 0x280(%r8),%zmm0,%zmm0
+   14001a9c1:	vsubps 0x280(%rcx),%zmm0,%zmm0
+   14001a9c8:	vaddps 0x280(%rax),%zmm0,%zmm0
+   14001a9cf:	vmovups %zmm0,0x280(%rdx)
+   14001a9d6:	vmovups 0x2c0(%rdi),%zmm0
+   14001a9dd:	vsubps 0x2c0(%r8),%zmm0,%zmm0
+   14001a9e4:	vsubps 0x2c0(%rcx),%zmm0,%zmm0
+   14001a9eb:	vaddps 0x2c0(%rax),%zmm0,%zmm0
+   14001a9f2:	vmovups %zmm0,0x2c0(%rdx)
+   14001a9f9:	vmovups 0x300(%rdi),%zmm0
+   14001aa00:	vsubps 0x300(%r8),%zmm0,%zmm0
+   14001aa07:	vsubps 0x300(%rcx),%zmm0,%zmm0
+   14001aa0e:	vaddps 0x300(%rax),%zmm0,%zmm0
+   14001aa15:	vmovups %zmm0,0x300(%rdx)
+   14001aa1c:	vmovups 0x340(%rdi),%zmm0
+   14001aa23:	vsubps 0x340(%r8),%zmm0,%zmm0
+   14001aa2a:	vsubps 0x340(%rcx),%zmm0,%zmm0
+   14001aa31:	vaddps 0x340(%rax),%zmm0,%zmm0
+   14001aa38:	vmovups %zmm0,0x340(%rdx)
+   14001aa3f:	vmovups 0x380(%rdi),%zmm0
+   14001aa46:	vsubps 0x380(%r8),%zmm0,%zmm0
+   14001aa4d:	vsubps 0x380(%rcx),%zmm0,%zmm0
+   14001aa54:	vaddps 0x380(%rax),%zmm0,%zmm0
+   14001aa5b:	vmovups %zmm0,0x380(%rdx)
+   14001aa62:	vmovups 0x3c0(%rdi),%zmm0
+   14001aa69:	vsubps 0x3c0(%r8),%zmm0,%zmm0
+   14001aa70:	vsubps 0x3c0(%rcx),%zmm0,%zmm0
+   14001aa77:	vaddps 0x3c0(%rax),%zmm0,%zmm0
+   14001aa7e:	vmovups %zmm0,0x3c0(%rdx)
+   14001aa85:	add    $0x4,%r12
+   14001aa89:	lea    0xb0(%rsp),%rax
+   14001aa91:	cmp    %rax,%r12
+   14001aa94:	jne    14001a6d7 <forge::nnue::update(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&)+0x457>
+   14001aa9a:	vzeroupper
+   14001aa9d:	jmp    14001a599 <forge::nnue::update(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&)+0x319>
+   14001aaa2:	nopl   (%rax)
+   14001aaa5:	data16 cs nopw 0x0(%rax,%rax,1)
+   14001aab0:	mov    %rax,%rsi
+   14001aab3:	movslq %r11d,%rax
+   14001aab6:	add    %rsi,%rax
+   14001aab9:	shl    $0xa,%rax
+   14001aabd:	lea    0x4(%r13,%rax,1),%r11
+   14001aac2:	mov    %rcx,%rsi
+   14001aac5:	sub    %r11,%rsi
+   14001aac8:	cmp    $0x38,%rsi
+   14001aacc:	jbe    14001ac2f <forge::nnue::update(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&)+0x9af>
+   14001aad2:	add    %r13,%rax
+   14001aad5:	vmovups (%rcx),%zmm0
+   14001aadb:	vsubps (%rax),%zmm0,%zmm0
+   14001aae1:	vmovups %zmm0,(%rcx)
+   14001aae7:	vmovups 0x40(%rcx),%zmm0
+   14001aaee:	vsubps 0x40(%rax),%zmm0,%zmm0
+   14001aaf5:	vmovups %zmm0,0x40(%rcx)
+   14001aafc:	vmovups 0x80(%rcx),%zmm0
+   14001ab03:	vsubps 0x80(%rax),%zmm0,%zmm0
+   14001ab0a:	vmovups %zmm0,0x80(%rcx)
+   14001ab11:	vmovups 0xc0(%rcx),%zmm0
+   14001ab18:	vsubps 0xc0(%rax),%zmm0,%zmm0
+   14001ab1f:	vmovups %zmm0,0xc0(%rcx)
+   14001ab26:	vmovups 0x100(%rcx),%zmm0
+   14001ab2d:	vsubps 0x100(%rax),%zmm0,%zmm0
+   14001ab34:	vmovups %zmm0,0x100(%rcx)
+   14001ab3b:	vmovups 0x140(%rcx),%zmm0
+   14001ab42:	vsubps 0x140(%rax),%zmm0,%zmm0
+   14001ab49:	vmovups %zmm0,0x140(%rcx)
+   14001ab50:	vmovups 0x180(%rcx),%zmm0
+   14001ab57:	vsubps 0x180(%rax),%zmm0,%zmm0
+   14001ab5e:	vmovups %zmm0,0x180(%rcx)
+   14001ab65:	vmovups 0x1c0(%rcx),%zmm0
+   14001ab6c:	vsubps 0x1c0(%rax),%zmm0,%zmm0
+   14001ab73:	vmovups %zmm0,0x1c0(%rcx)
+   14001ab7a:	vmovups 0x200(%rcx),%zmm0
+   14001ab81:	vsubps 0x200(%rax),%zmm0,%zmm0
+   14001ab88:	vmovups %zmm0,0x200(%rcx)
+   14001ab8f:	vmovups 0x240(%rcx),%zmm0
+   14001ab96:	vsubps 0x240(%rax),%zmm0,%zmm0
+   14001ab9d:	vmovups %zmm0,0x240(%rcx)
+   14001aba4:	vmovups 0x280(%rcx),%zmm0
+   14001abab:	vsubps 0x280(%rax),%zmm0,%zmm0
+   14001abb2:	vmovups %zmm0,0x280(%rcx)
+   14001abb9:	vmovups 0x2c0(%rcx),%zmm0
+   14001abc0:	vsubps 0x2c0(%rax),%zmm0,%zmm0
+   14001abc7:	vmovups %zmm0,0x2c0(%rcx)
+   14001abce:	vmovups 0x300(%rcx),%zmm0
+   14001abd5:	vsubps 0x300(%rax),%zmm0,%zmm0
+   14001abdc:	vmovups %zmm0,0x300(%rcx)
+   14001abe3:	vmovups 0x340(%rcx),%zmm0
+   14001abea:	vsubps 0x340(%rax),%zmm0,%zmm0
+   14001abf1:	vmovups %zmm0,0x340(%rcx)
+   14001abf8:	vmovups 0x380(%rcx),%zmm0
+   14001abff:	vsubps 0x380(%rax),%zmm0,%zmm0
+   14001ac06:	vmovups %zmm0,0x380(%rcx)
+   14001ac0d:	vmovups 0x3c0(%rcx),%zmm0
+   14001ac14:	vsubps 0x3c0(%rax),%zmm0,%zmm0
+   14001ac1b:	vmovups %zmm0,0x3c0(%rcx)
+   14001ac22:	jmp    14001a574 <forge::nnue::update(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&)+0x2f4>
+   14001ac27:	movslq %r9d,%rax
+   14001ac2a:	jmp    14001a39d <forge::nnue::update(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&)+0x11d>
+   14001ac2f:	xor    %eax,%eax
+   14001ac31:	nopl   0x0(%rax)
+   14001ac35:	data16 cs nopw 0x0(%rax,%rax,1)
+   14001ac40:	vmovss (%rcx,%rax,1),%xmm0
+   14001ac45:	vsubss (%rdx,%rax,1),%xmm0,%xmm0
+   14001ac4a:	vmovss %xmm0,(%rcx,%rax,1)
+   14001ac4f:	add    $0x4,%rax
+   14001ac53:	cmp    $0x400,%rax
+   14001ac59:	jne    14001ac40 <forge::nnue::update(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&)+0x9c0>
+   14001ac5b:	jmp    14001a574 <forge::nnue::update(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&)+0x2f4>
+   14001ac60:	xor    %eax,%eax
+   14001ac62:	nopl   0x0(%rax,%rax,1)
+   14001ac6a:	data16 cs nopw 0x0(%rax,%rax,1)
+   14001ac75:	data16 cs nopw 0x0(%rax,%rax,1)
+   14001ac80:	vmovss (%rcx,%rax,1),%xmm0
+   14001ac85:	vaddss (%rdx,%rax,1),%xmm0,%xmm0
+   14001ac8a:	vmovss %xmm0,(%rcx,%rax,1)
+   14001ac8f:	add    $0x4,%rax
+   14001ac93:	cmp    $0x400,%rax
+   14001ac99:	jne    14001ac80 <forge::nnue::update(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&)+0xa00>
+   14001ac9b:	jmp    14001a574 <forge::nnue::update(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&)+0x2f4>
+   14001aca0:	cmpb   $0x0,0x5(%rbx)
+   14001aca4:	jne    14001a2e4 <forge::nnue::update(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&)+0x64>
+   14001acaa:	cmpb   $0x0,0xd(%rbx)
+   14001acae:	je     14001a2e4 <forge::nnue::update(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&)+0x64>
+   14001acb4:	mov    0x8(%rbx),%r15d
+   14001acb8:	movzbl 0xc(%rbx),%edi
+   14001acbc:	mov    0x1c20bd(%rip),%rax        # 1401dcd80 <NnueW1+0x60d00>
+   14001acc3:	mov    (%rbx),%ebp
+   14001acc5:	mov    (%r12),%r12
+   14001acc9:	lea    0xa8(%rsp),%r14
+   14001acd1:	lea    -0x1(%r15),%ecx
+   14001acd5:	mov    %rax,0xa8(%rsp)
+   14001acdd:	mov    %edi,0x34(%rsp)
+   14001ace1:	mov    %edi,%eax
+   14001ace3:	movslq %ecx,%r11
+   14001ace6:	mov    %ecx,%edx
+   14001ace8:	sar    $0x1f,%edx
+   14001aceb:	imul   $0x2aaaaaab,%r11,%r11
+   14001acf2:	movzbl 0x4(%rbx),%edi
+   14001acf6:	xor    $0x38,%eax
+   14001acf9:	mov    %r12,%r13
+   14001acfc:	movzbl %al,%eax
+   14001acff:	mov    %eax,0x40(%rsp)
+   14001ad03:	shr    $0x20,%r11
+   14001ad07:	sub    %edx,%r11d
+   14001ad0a:	mov    %edi,%eax
+   14001ad0c:	mov    %edi,0x48(%rsp)
+   14001ad10:	lea    (%r11,%r11,2),%edx
+   14001ad14:	xor    $0x38,%eax
+   14001ad17:	add    %edx,%edx
+   14001ad19:	movzbl %al,%eax
+   14001ad1c:	sub    %edx,%ecx
+   14001ad1e:	lea    -0x1(%rbp),%edx
+   14001ad21:	mov    %eax,0x38(%rsp)
+   14001ad25:	movslq %edx,%r10
+   14001ad28:	mov    %ecx,%r11d
+   14001ad2b:	mov    %edx,%ecx
+   14001ad2d:	sar    $0x1f,%ecx
+   14001ad30:	imul   $0x2aaaaaab,%r10,%r10
+   14001ad37:	shr    $0x20,%r10
+   14001ad3b:	sub    %ecx,%r10d
+   14001ad3e:	lea    (%r10,%r10,2),%ecx
+   14001ad42:	add    %ecx,%ecx
+   14001ad44:	sub    %ecx,%edx
+   14001ad46:	mov    %edx,%r10d
+   14001ad49:	movslq (%r14),%rbx
+   14001ad4c:	mov    %rbx,%rax
+   14001ad4f:	cmp    $0x6,%r15d
+   14001ad53:	jle    14001b682 <forge::nnue::update(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&)+0x1402>
+   14001ad59:	xor    %ecx,%ecx
+   14001ad5b:	cmp    $0x1,%ebx
+   14001ad5e:	setne  %cl
+   14001ad61:	mov    %r11d,%edi
+   14001ad64:	mov    0x34(%rsp),%esi
+   14001ad68:	test   %eax,%eax
+   14001ad6a:	cmovne 0x40(%rsp),%esi
+   14001ad6f:	mov    %esi,0x30(%rsp)
+   14001ad73:	cmp    $0x6,%ebp
+   14001ad76:	jle    14001b669 <forge::nnue::update(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&)+0x13e9>
+   14001ad7c:	xor    %edx,%edx
+   14001ad7e:	cmp    $0x1,%eax
+   14001ad81:	setne  %dl
+   14001ad84:	mov    %r10d,%esi
+   14001ad87:	test   %eax,%eax
+   14001ad89:	movslq %ecx,%r9
+   14001ad8c:	mov    0x48(%rsp),%eax
+   14001ad90:	movslq %edi,%r8
+   14001ad93:	cmovne 0x38(%rsp),%eax
+   14001ad98:	neg    %r9
+   14001ad9b:	mov    0x120(%rsp),%r12
+   14001ada3:	and    $0x6,%r9d
+   14001ada7:	add    %r8,%r9
+   14001adaa:	movslq 0x30(%rsp),%r8
+   14001adaf:	shl    $0x6,%r9
+   14001adb3:	mov    %eax,0x2c(%rsp)
+   14001adb7:	mov    0x128(%rsp),%rax
+   14001adbf:	add    %r9,%r8
+   14001adc2:	movslq %edx,%r9
+   14001adc5:	shl    $0xa,%r8
+   14001adc9:	neg    %r9
+   14001adcc:	mov    %r8,0x20(%rsp)
+   14001add1:	movslq %esi,%r8
+   14001add4:	and    $0x6,%r9d
+   14001add8:	add    %r8,%r9
+   14001addb:	movslq 0x2c(%rsp),%r8
+   14001ade0:	shl    $0x6,%r9
+   14001ade4:	shl    $0xa,%rbx
+   14001ade8:	add    %r8,%r9
+   14001adeb:	mov    0x120(%rsp),%r8
+   14001adf3:	add    %rbx,%rax
+   14001adf6:	add    %rbx,%r12
+   14001adf9:	shl    $0xa,%r9
+   14001adfd:	lea    0x4(%r8,%rbx,1),%rbx
+   14001ae02:	mov    %rax,%r8
+   14001ae05:	sub    %rbx,%r8
+   14001ae08:	cmp    $0x38,%r8
+   14001ae0c:	mov    0x20(%rsp),%r8
+   14001ae11:	seta   0x4c(%rsp)
+   14001ae16:	lea    0x4(%r13,%r8,1),%rbx
+   14001ae1b:	mov    %rax,%r8
+   14001ae1e:	sub    %rbx,%r8
+   14001ae21:	cmp    $0x38,%r8
+   14001ae25:	seta   %bl
+   14001ae28:	test   %bl,0x4c(%rsp)
+   14001ae2c:	je     14001b69c <forge::nnue::update(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&)+0x141c>
+   14001ae32:	lea    0x4(%r13,%r9,1),%rbx
+   14001ae37:	mov    %rax,%r8
+   14001ae3a:	sub    %rbx,%r8
+   14001ae3d:	cmp    $0x38,%r8
+   14001ae41:	jbe    14001b69c <forge::nnue::update(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&)+0x141c>
+   14001ae47:	mov    0x20(%rsp),%r8
+   14001ae4c:	add    %r13,%r9
+   14001ae4f:	vmovups (%r12),%zmm0
+   14001ae56:	vsubps (%r9),%zmm0,%zmm0
+   14001ae5c:	add    %r13,%r8
+   14001ae5f:	vaddps (%r8),%zmm0,%zmm0
+   14001ae65:	vmovups %zmm0,(%rax)
+   14001ae6b:	vmovups 0x40(%r12),%zmm0
+   14001ae73:	vsubps 0x40(%r9),%zmm0,%zmm0
+   14001ae7a:	vaddps 0x40(%r8),%zmm0,%zmm0
+   14001ae81:	vmovups %zmm0,0x40(%rax)
+   14001ae88:	vmovups 0x80(%r12),%zmm0
+   14001ae90:	vsubps 0x80(%r9),%zmm0,%zmm0
+   14001ae97:	vaddps 0x80(%r8),%zmm0,%zmm0
+   14001ae9e:	vmovups %zmm0,0x80(%rax)
+   14001aea5:	vmovups 0xc0(%r12),%zmm0
+   14001aead:	vsubps 0xc0(%r9),%zmm0,%zmm0
+   14001aeb4:	vaddps 0xc0(%r8),%zmm0,%zmm0
+   14001aebb:	vmovups %zmm0,0xc0(%rax)
+   14001aec2:	vmovups 0x100(%r12),%zmm0
+   14001aeca:	vsubps 0x100(%r9),%zmm0,%zmm0
+   14001aed1:	vaddps 0x100(%r8),%zmm0,%zmm0
+   14001aed8:	vmovups %zmm0,0x100(%rax)
+   14001aedf:	vmovups 0x140(%r12),%zmm0
+   14001aee7:	vsubps 0x140(%r9),%zmm0,%zmm0
+   14001aeee:	vaddps 0x140(%r8),%zmm0,%zmm0
+   14001aef5:	vmovups %zmm0,0x140(%rax)
+   14001aefc:	vmovups 0x180(%r12),%zmm0
+   14001af04:	vsubps 0x180(%r9),%zmm0,%zmm0
+   14001af0b:	vaddps 0x180(%r8),%zmm0,%zmm0
+   14001af12:	vmovups %zmm0,0x180(%rax)
+   14001af19:	vmovups 0x1c0(%r12),%zmm0
+   14001af21:	vsubps 0x1c0(%r9),%zmm0,%zmm0
+   14001af28:	vaddps 0x1c0(%r8),%zmm0,%zmm0
+   14001af2f:	vmovups %zmm0,0x1c0(%rax)
+   14001af36:	vmovups 0x200(%r12),%zmm0
+   14001af3e:	vsubps 0x200(%r9),%zmm0,%zmm0
+   14001af45:	vaddps 0x200(%r8),%zmm0,%zmm0
+   14001af4c:	vmovups %zmm0,0x200(%rax)
+   14001af53:	vmovups 0x240(%r12),%zmm0
+   14001af5b:	vsubps 0x240(%r9),%zmm0,%zmm0
+   14001af62:	vaddps 0x240(%r8),%zmm0,%zmm0
+   14001af69:	vmovups %zmm0,0x240(%rax)
+   14001af70:	vmovups 0x280(%r12),%zmm0
+   14001af78:	vsubps 0x280(%r9),%zmm0,%zmm0
+   14001af7f:	vaddps 0x280(%r8),%zmm0,%zmm0
+   14001af86:	vmovups %zmm0,0x280(%rax)
+   14001af8d:	vmovups 0x2c0(%r12),%zmm0
+   14001af95:	vsubps 0x2c0(%r9),%zmm0,%zmm0
+   14001af9c:	vaddps 0x2c0(%r8),%zmm0,%zmm0
+   14001afa3:	vmovups %zmm0,0x2c0(%rax)
+   14001afaa:	vmovups 0x300(%r12),%zmm0
+   14001afb2:	vsubps 0x300(%r9),%zmm0,%zmm0
+   14001afb9:	vaddps 0x300(%r8),%zmm0,%zmm0
+   14001afc0:	vmovups %zmm0,0x300(%rax)
+   14001afc7:	vmovups 0x340(%r12),%zmm0
+   14001afcf:	vsubps 0x340(%r9),%zmm0,%zmm0
+   14001afd6:	vaddps 0x340(%r8),%zmm0,%zmm0
+   14001afdd:	vmovups %zmm0,0x340(%rax)
+   14001afe4:	vmovups 0x380(%r12),%zmm0
+   14001afec:	vsubps 0x380(%r9),%zmm0,%zmm0
+   14001aff3:	vaddps 0x380(%r8),%zmm0,%zmm0
+   14001affa:	vmovups %zmm0,0x380(%rax)
+   14001b001:	vmovups 0x3c0(%r12),%zmm0
+   14001b009:	vsubps 0x3c0(%r9),%zmm0,%zmm0
+   14001b010:	vaddps 0x3c0(%r8),%zmm0,%zmm0
+   14001b017:	vmovups %zmm0,0x3c0(%rax)
+   14001b01e:	add    $0x4,%r14
+   14001b022:	lea    0xb0(%rsp),%rax
+   14001b02a:	cmp    %rax,%r14
+   14001b02d:	jne    14001ad49 <forge::nnue::update(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&)+0xac9>
+   14001b033:	jmp    14001aa9a <forge::nnue::update(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&)+0x81a>
+   14001b038:	cmpb   $0x0,0xd(%rbx)
+   14001b03c:	je     14001a2e4 <forge::nnue::update(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&)+0x64>
+   14001b042:	cmpb   $0x0,0x15(%rbx)
+   14001b046:	jne    14001a2e4 <forge::nnue::update(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&)+0x64>
+   14001b04c:	cmpb   $0x0,0x1d(%rbx)
+   14001b050:	je     14001a2e4 <forge::nnue::update(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&)+0x64>
+   14001b056:	mov    0x1c1d23(%rip),%rax        # 1401dcd80 <NnueW1+0x60d00>
+   14001b05d:	movzbl 0x4(%rbx),%esi
+   14001b061:	mov    (%r12),%rdi
+   14001b065:	lea    0xa8(%rsp),%r14
+   14001b06d:	mov    %rax,0xa8(%rsp)
+   14001b075:	movzbl 0x1c(%rbx),%eax
+   14001b079:	mov    %esi,0x70(%rsp)
+   14001b07d:	mov    %eax,%edx
+   14001b07f:	mov    %eax,0x64(%rsp)
+   14001b083:	mov    0x18(%rbx),%eax
+   14001b086:	xor    $0x38,%edx
+   14001b089:	lea    -0x1(%rax),%ecx
+   14001b08c:	mov    %eax,0x30(%rsp)
+   14001b090:	movslq %ecx,%rax
+   14001b093:	mov    %ecx,%r8d
+   14001b096:	sar    $0x1f,%r8d
+   14001b09a:	imul   $0x2aaaaaab,%rax,%rax
+   14001b0a1:	shr    $0x20,%rax
+   14001b0a5:	mov    %eax,%r13d
+   14001b0a8:	sub    %r8d,%r13d
+   14001b0ab:	lea    0x0(%r13,%r13,2),%eax
+   14001b0b0:	add    %eax,%eax
+   14001b0b2:	sub    %eax,%ecx
+   14001b0b4:	movzbl %dl,%eax
+   14001b0b7:	mov    %eax,0x8c(%rsp)
+   14001b0be:	movzbl 0x14(%rbx),%eax
+   14001b0c2:	mov    %ecx,%r13d
+   14001b0c5:	mov    %eax,%edx
+   14001b0c7:	mov    %eax,0x68(%rsp)
+   14001b0cb:	mov    0x10(%rbx),%eax
+   14001b0ce:	xor    $0x38,%edx
+   14001b0d1:	lea    -0x1(%rax),%ecx
+   14001b0d4:	mov    %eax,0x34(%rsp)
+   14001b0d8:	movslq %ecx,%rax
+   14001b0db:	mov    %ecx,%r8d
+   14001b0de:	sar    $0x1f,%r8d
+   14001b0e2:	imul   $0x2aaaaaab,%rax,%rax
+   14001b0e9:	shr    $0x20,%rax
+   14001b0ed:	sub    %r8d,%eax
+   14001b0f0:	lea    (%rax,%rax,2),%eax
+   14001b0f3:	add    %eax,%eax
+   14001b0f5:	sub    %eax,%ecx
+   14001b0f7:	movzbl %dl,%eax
+   14001b0fa:	mov    %eax,0x88(%rsp)
+   14001b101:	movzbl 0xc(%rbx),%eax
+   14001b105:	mov    %ecx,0x84(%rsp)
+   14001b10c:	mov    %eax,%r8d
+   14001b10f:	mov    %eax,0x6c(%rsp)
+   14001b113:	mov    0x8(%rbx),%eax
+   14001b116:	mov    (%rbx),%ebx
+   14001b118:	mov    %eax,0x48(%rsp)
+   14001b11c:	dec    %eax
+   14001b11e:	mov    %ebx,0x38(%rsp)
+   14001b122:	movslq %eax,%rcx
+   14001b125:	cltd
+   14001b126:	imul   $0x2aaaaaab,%rcx,%rcx
+   14001b12d:	shr    $0x20,%rcx
+   14001b131:	mov    %ecx,%r12d
+   14001b134:	sub    %edx,%r12d
+   14001b137:	lea    (%r12,%r12,2),%edx
+   14001b13b:	add    %edx,%edx
+   14001b13d:	sub    %edx,%eax
+   14001b13f:	lea    -0x1(%rbx),%edx
+   14001b142:	mov    %eax,%r12d
+   14001b145:	mov    %r8d,%eax
+   14001b148:	movslq %edx,%r8
+   14001b14b:	mov    %edx,%ecx
+   14001b14d:	sar    $0x1f,%ecx
+   14001b150:	imul   $0x2aaaaaab,%r8,%r8
+   14001b157:	xor    $0x38,%eax
+   14001b15a:	mov    %r12d,0x9c(%rsp)
+   14001b162:	mov    %rdi,%r12
+   14001b165:	movzbl %al,%eax
+   14001b168:	mov    %eax,0x80(%rsp)
+   14001b16f:	mov    %esi,%eax
+   14001b171:	xor    $0x38,%eax
+   14001b174:	shr    $0x20,%r8
+   14001b178:	mov    %r8d,%ebx
+   14001b17b:	sub    %ecx,%ebx
+   14001b17d:	movzbl %al,%eax
+   14001b180:	lea    (%rbx,%rbx,2),%ecx
+   14001b183:	mov    %eax,0x78(%rsp)
+   14001b187:	add    %ecx,%ecx
+   14001b189:	sub    %ecx,%edx
+   14001b18b:	mov    %edx,0x74(%rsp)
+   14001b18f:	movslq (%r14),%rdx
+   14001b192:	mov    %rdx,%rax
+   14001b195:	cmpl   $0x6,0x30(%rsp)
+   14001b19a:	jle    14001b8f8 <forge::nnue::update(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&)+0x1678>
+   14001b1a0:	xor    %r10d,%r10d
+   14001b1a3:	cmp    $0x1,%edx
+   14001b1a6:	setne  %r10b
+   14001b1aa:	mov    %r13d,%ebp
+   14001b1ad:	mov    0x64(%rsp),%edi
+   14001b1b1:	test   %eax,%eax
+   14001b1b3:	cmovne 0x8c(%rsp),%edi
+   14001b1bb:	mov    %edi,0x60(%rsp)
+   14001b1bf:	cmpl   $0x6,0x34(%rsp)
+   14001b1c4:	jle    14001b8d7 <forge::nnue::update(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&)+0x1657>
+   14001b1ca:	xor    %r9d,%r9d
+   14001b1cd:	cmp    $0x1,%eax
+   14001b1d0:	setne  %r9b
+   14001b1d4:	mov    0x84(%rsp),%esi
+   14001b1db:	mov    0x68(%rsp),%edi
+   14001b1df:	test   %eax,%eax
+   14001b1e1:	cmovne 0x88(%rsp),%edi
+   14001b1e9:	mov    %edi,0x4c(%rsp)
+   14001b1ed:	cmpl   $0x6,0x48(%rsp)
+   14001b1f2:	jle    14001b8b4 <forge::nnue::update(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&)+0x1634>
+   14001b1f8:	xor    %ebx,%ebx
+   14001b1fa:	cmp    $0x1,%eax
+   14001b1fd:	setne  %bl
+   14001b200:	mov    %ebx,0x2c(%rsp)
+   14001b204:	mov    0x9c(%rsp),%ebx
+   14001b20b:	mov    0x6c(%rsp),%edi
+   14001b20f:	test   %eax,%eax
+   14001b211:	cmovne 0x80(%rsp),%edi
+   14001b219:	mov    %edi,0x40(%rsp)
+   14001b21d:	cmpl   $0x6,0x38(%rsp)
+   14001b222:	jle    14001b891 <forge::nnue::update(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&)+0x1611>
+   14001b228:	xor    %edi,%edi
+   14001b22a:	cmp    $0x1,%eax
+   14001b22d:	setne  %dil
+   14001b231:	mov    %edi,0x20(%rsp)
+   14001b235:	mov    0x74(%rsp),%r11d
+   14001b23a:	test   %eax,%eax
+   14001b23c:	movslq 0x20(%rsp),%rax
+   14001b241:	mov    0x70(%rsp),%r8d
+   14001b246:	movslq %r11d,%rcx
+   14001b249:	cmovne 0x78(%rsp),%r8d
+   14001b24f:	mov    0x120(%rsp),%rdi
+   14001b257:	shl    $0xa,%rdx
+   14001b25b:	neg    %rax
+   14001b25e:	mov    %rdx,%r15
+   14001b261:	and    $0x6,%eax
+   14001b264:	add    %rdx,%rdi
+   14001b267:	add    0x128(%rsp),%rdx
+   14001b26f:	mov    %r8d,0x7c(%rsp)
+   14001b274:	add    %rcx,%rax
+   14001b277:	movslq %r8d,%rcx
+   14001b27a:	shl    $0x6,%rax
+   14001b27e:	add    %rcx,%rax
+   14001b281:	movslq %ebx,%rcx
+   14001b284:	shl    $0xa,%rax
+   14001b288:	mov    %rax,0x58(%rsp)
+   14001b28d:	movslq 0x2c(%rsp),%rax
+   14001b292:	neg    %rax
+   14001b295:	and    $0x6,%eax
+   14001b298:	add    %rcx,%rax
+   14001b29b:	movslq 0x40(%rsp),%rcx
+   14001b2a0:	shl    $0x6,%rax
+   14001b2a4:	add    %rcx,%rax
+   14001b2a7:	movslq %esi,%rcx
+   14001b2aa:	shl    $0xa,%rax
+   14001b2ae:	mov    %rax,0x90(%rsp)
+   14001b2b6:	movslq %r9d,%rax
+   14001b2b9:	neg    %rax
+   14001b2bc:	and    $0x6,%eax
+   14001b2bf:	add    %rcx,%rax
+   14001b2c2:	movslq 0x4c(%rsp),%rcx
+   14001b2c7:	shl    $0x6,%rax
+   14001b2cb:	add    %rcx,%rax
+   14001b2ce:	movslq %ebp,%rcx
+   14001b2d1:	shl    $0xa,%rax
+   14001b2d5:	mov    %rax,0x50(%rsp)
+   14001b2da:	movslq %r10d,%rax
+   14001b2dd:	neg    %rax
+   14001b2e0:	and    $0x6,%eax
+   14001b2e3:	add    %rcx,%rax
+   14001b2e6:	movslq 0x60(%rsp),%rcx
+   14001b2eb:	shl    $0x6,%rax
+   14001b2ef:	add    %rcx,%rax
+   14001b2f2:	mov    0x120(%rsp),%rcx
+   14001b2fa:	shl    $0xa,%rax
+   14001b2fe:	lea    0x4(%rcx,%r15,1),%r15
+   14001b303:	mov    %rdx,%r8
+   14001b306:	sub    %r15,%r8
+   14001b309:	lea    0x4(%r12,%rax,1),%r15
+   14001b30e:	cmp    $0x38,%r8
+   14001b312:	seta   0x9b(%rsp)
+   14001b31a:	mov    %rdx,%r8
+   14001b31d:	sub    %r15,%r8
+   14001b320:	cmp    $0x38,%r8
+   14001b324:	mov    0x58(%rsp),%r8
+   14001b329:	seta   %r15b
+   14001b32d:	and    0x9b(%rsp),%r15b
+   14001b335:	lea    0x4(%r12,%r8,1),%rcx
+   14001b33a:	mov    %rdx,%r8
+   14001b33d:	sub    %rcx,%r8
+   14001b340:	cmp    $0x38,%r8
+   14001b344:	seta   0x9b(%rsp)
+   14001b34c:	test   %r15b,0x9b(%rsp)
+   14001b354:	je     14001b75f <forge::nnue::update(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&)+0x14df>
+   14001b35a:	mov    0x50(%rsp),%r15
+   14001b35f:	lea    0x4(%r12,%r15,1),%r15
+   14001b364:	mov    %rdx,%r8
+   14001b367:	sub    %r15,%r8
+   14001b36a:	cmp    $0x38,%r8
+   14001b36e:	mov    0x90(%rsp),%r8
+   14001b376:	seta   0x9b(%rsp)
+   14001b37e:	lea    0x4(%r12,%r8,1),%r15
+   14001b383:	mov    %rdx,%rcx
+   14001b386:	sub    %r15,%rcx
+   14001b389:	cmp    $0x38,%rcx
+   14001b38d:	seta   %r15b
+   14001b391:	test   %r15b,0x9b(%rsp)
+   14001b399:	je     14001b75f <forge::nnue::update(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&)+0x14df>
+   14001b39f:	mov    0x58(%rsp),%r9
+   14001b3a4:	mov    0x50(%rsp),%rcx
+   14001b3a9:	add    %r12,%r8
+   14001b3ac:	vmovups (%rdi),%zmm2
+   14001b3b2:	add    %r12,%rax
+   14001b3b5:	add    %r12,%r9
+   14001b3b8:	add    %r12,%rcx
+   14001b3bb:	vsubps (%r9),%zmm2,%zmm2
+   14001b3c1:	vaddps (%r8),%zmm2,%zmm2
+   14001b3c7:	vsubps (%rcx),%zmm2,%zmm2
+   14001b3cd:	vaddps (%rax),%zmm2,%zmm2
+   14001b3d3:	vmovups %zmm2,(%rdx)
+   14001b3d9:	vmovups 0x40(%rdi),%zmm2
+   14001b3e0:	vsubps 0x40(%r9),%zmm2,%zmm2
+   14001b3e7:	vaddps 0x40(%r8),%zmm2,%zmm2
+   14001b3ee:	vsubps 0x40(%rcx),%zmm2,%zmm2
+   14001b3f5:	vaddps 0x40(%rax),%zmm2,%zmm2
+   14001b3fc:	vmovups %zmm2,0x40(%rdx)
+   14001b403:	vmovups 0x80(%rdi),%zmm2
+   14001b40a:	vsubps 0x80(%r9),%zmm2,%zmm2
+   14001b411:	vaddps 0x80(%r8),%zmm2,%zmm2
+   14001b418:	vsubps 0x80(%rcx),%zmm2,%zmm2
+   14001b41f:	vaddps 0x80(%rax),%zmm2,%zmm2
+   14001b426:	vmovups %zmm2,0x80(%rdx)
+   14001b42d:	vmovups 0xc0(%rdi),%zmm2
+   14001b434:	vsubps 0xc0(%r9),%zmm2,%zmm2
+   14001b43b:	vaddps 0xc0(%r8),%zmm2,%zmm2
+   14001b442:	vsubps 0xc0(%rcx),%zmm2,%zmm2
+   14001b449:	vaddps 0xc0(%rax),%zmm2,%zmm2
+   14001b450:	vmovups %zmm2,0xc0(%rdx)
+   14001b457:	vmovups 0x100(%rdi),%zmm2
+   14001b45e:	vsubps 0x100(%r9),%zmm2,%zmm2
+   14001b465:	vaddps 0x100(%r8),%zmm2,%zmm2
+   14001b46c:	vsubps 0x100(%rcx),%zmm2,%zmm2
+   14001b473:	vaddps 0x100(%rax),%zmm2,%zmm2
+   14001b47a:	vmovups %zmm2,0x100(%rdx)
+   14001b481:	vmovups 0x140(%rdi),%zmm2
+   14001b488:	vsubps 0x140(%r9),%zmm2,%zmm2
+   14001b48f:	vaddps 0x140(%r8),%zmm2,%zmm2
+   14001b496:	vsubps 0x140(%rcx),%zmm2,%zmm2
+   14001b49d:	vaddps 0x140(%rax),%zmm2,%zmm2
+   14001b4a4:	vmovups %zmm2,0x140(%rdx)
+   14001b4ab:	vmovups 0x180(%rdi),%zmm2
+   14001b4b2:	vsubps 0x180(%r9),%zmm2,%zmm2
+   14001b4b9:	vaddps 0x180(%r8),%zmm2,%zmm2
+   14001b4c0:	vsubps 0x180(%rcx),%zmm2,%zmm2
+   14001b4c7:	vaddps 0x180(%rax),%zmm2,%zmm2
+   14001b4ce:	vmovups %zmm2,0x180(%rdx)
+   14001b4d5:	vmovups 0x1c0(%rdi),%zmm2
+   14001b4dc:	vsubps 0x1c0(%r9),%zmm2,%zmm2
+   14001b4e3:	vaddps 0x1c0(%r8),%zmm2,%zmm2
+   14001b4ea:	vsubps 0x1c0(%rcx),%zmm2,%zmm2
+   14001b4f1:	vaddps 0x1c0(%rax),%zmm2,%zmm2
+   14001b4f8:	vmovups %zmm2,0x1c0(%rdx)
+   14001b4ff:	vmovups 0x200(%rdi),%zmm2
+   14001b506:	vsubps 0x200(%r9),%zmm2,%zmm2
+   14001b50d:	vaddps 0x200(%r8),%zmm2,%zmm2
+   14001b514:	vsubps 0x200(%rcx),%zmm2,%zmm2
+   14001b51b:	vaddps 0x200(%rax),%zmm2,%zmm2
+   14001b522:	vmovups %zmm2,0x200(%rdx)
+   14001b529:	vmovups 0x240(%rdi),%zmm2
+   14001b530:	vsubps 0x240(%r9),%zmm2,%zmm2
+   14001b537:	vaddps 0x240(%r8),%zmm2,%zmm2
+   14001b53e:	vsubps 0x240(%rcx),%zmm2,%zmm2
+   14001b545:	vaddps 0x240(%rax),%zmm2,%zmm2
+   14001b54c:	vmovups %zmm2,0x240(%rdx)
+   14001b553:	vmovups 0x280(%rdi),%zmm2
+   14001b55a:	vsubps 0x280(%r9),%zmm2,%zmm2
+   14001b561:	vaddps 0x280(%r8),%zmm2,%zmm2
+   14001b568:	vsubps 0x280(%rcx),%zmm2,%zmm2
+   14001b56f:	vaddps 0x280(%rax),%zmm2,%zmm2
+   14001b576:	vmovups %zmm2,0x280(%rdx)
+   14001b57d:	vmovups 0x2c0(%rdi),%zmm2
+   14001b584:	vsubps 0x2c0(%r9),%zmm2,%zmm2
+   14001b58b:	vaddps 0x2c0(%r8),%zmm2,%zmm2
+   14001b592:	vsubps 0x2c0(%rcx),%zmm2,%zmm2
+   14001b599:	vaddps 0x2c0(%rax),%zmm2,%zmm2
+   14001b5a0:	vmovups %zmm2,0x2c0(%rdx)
+   14001b5a7:	vmovups 0x300(%rdi),%zmm2
+   14001b5ae:	vsubps 0x300(%r9),%zmm2,%zmm2
+   14001b5b5:	vaddps 0x300(%r8),%zmm2,%zmm2
+   14001b5bc:	vsubps 0x300(%rcx),%zmm2,%zmm2
+   14001b5c3:	vaddps 0x300(%rax),%zmm2,%zmm2
+   14001b5ca:	vmovups %zmm2,0x300(%rdx)
+   14001b5d1:	vmovups 0x340(%rdi),%zmm2
+   14001b5d8:	vsubps 0x340(%r9),%zmm2,%zmm2
+   14001b5df:	vaddps 0x340(%r8),%zmm2,%zmm2
+   14001b5e6:	vsubps 0x340(%rcx),%zmm2,%zmm2
+   14001b5ed:	vaddps 0x340(%rax),%zmm2,%zmm2
+   14001b5f4:	vmovups %zmm2,0x340(%rdx)
+   14001b5fb:	vmovups 0x380(%rdi),%zmm2
+   14001b602:	vsubps 0x380(%r9),%zmm2,%zmm2
+   14001b609:	vaddps 0x380(%r8),%zmm2,%zmm2
+   14001b610:	vsubps 0x380(%rcx),%zmm2,%zmm2
+   14001b617:	vaddps 0x380(%rax),%zmm2,%zmm2
+   14001b61e:	vmovups %zmm2,0x380(%rdx)
+   14001b625:	vmovups 0x3c0(%rdi),%zmm0
+   14001b62c:	vsubps 0x3c0(%r9),%zmm0,%zmm0
+   14001b633:	vaddps 0x3c0(%r8),%zmm0,%zmm0
+   14001b63a:	vsubps 0x3c0(%rcx),%zmm0,%zmm0
+   14001b641:	vaddps 0x3c0(%rax),%zmm0,%zmm0
+   14001b648:	vmovups %zmm0,0x3c0(%rdx)
+   14001b64f:	add    $0x4,%r14
+   14001b653:	lea    0xb0(%rsp),%rax
+   14001b65b:	cmp    %rax,%r14
+   14001b65e:	jne    14001b18f <forge::nnue::update(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&)+0xf0f>
+   14001b664:	jmp    14001aa9a <forge::nnue::update(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&)+0x81a>
+   14001b669:	xor    %edx,%edx
+   14001b66b:	test   %eax,%eax
+   14001b66d:	mov    $0xffffffff,%esi
+   14001b672:	setne  %dl
+   14001b675:	test   %ebp,%ebp
+   14001b677:	je     14001ad87 <forge::nnue::update(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&)+0xb07>
+   14001b67d:	jmp    14001ad84 <forge::nnue::update(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&)+0xb04>
+   14001b682:	xor    %ecx,%ecx
+   14001b684:	test   %ebx,%ebx
+   14001b686:	mov    $0xffffffff,%edi
+   14001b68b:	setne  %cl
+   14001b68e:	test   %r15d,%r15d
+   14001b691:	je     14001ad64 <forge::nnue::update(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&)+0xae4>
+   14001b697:	jmp    14001ad61 <forge::nnue::update(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&)+0xae1>
+   14001b69c:	neg    %ecx
+   14001b69e:	neg    %edx
+   14001b6a0:	mov    %ecx,%r8d
+   14001b6a3:	and    $0x6,%r8d
+   14001b6a7:	mov    %edx,%ecx
+   14001b6a9:	and    $0x6,%ecx
+   14001b6ac:	add    %edi,%r8d
+   14001b6af:	add    %esi,%ecx
+   14001b6b1:	xor    %edx,%edx
+   14001b6b3:	shl    $0x6,%r8d
+   14001b6b7:	shl    $0x6,%ecx
+   14001b6ba:	add    0x30(%rsp),%r8d
+   14001b6bf:	add    0x2c(%rsp),%ecx
+   14001b6c3:	movslq %r8d,%r8
+   14001b6c6:	movslq %ecx,%rcx
+   14001b6c9:	shl    $0xa,%r8
+   14001b6cd:	shl    $0xa,%rcx
+   14001b6d1:	add    %r13,%r8
+   14001b6d4:	add    %r13,%rcx
+   14001b6d7:	vmovss (%r12,%rdx,1),%xmm0
+   14001b6dd:	vsubss (%rcx,%rdx,1),%xmm0,%xmm0
+   14001b6e2:	vaddss (%r8,%rdx,1),%xmm0,%xmm0
+   14001b6e8:	vmovss %xmm0,(%rax,%rdx,1)
+   14001b6ed:	add    $0x4,%rdx
+   14001b6f1:	cmp    $0x400,%rdx
+   14001b6f8:	jne    14001b6d7 <forge::nnue::update(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&)+0x1457>
+   14001b6fa:	jmp    14001b01e <forge::nnue::update(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&)+0xd9e>
+   14001b6ff:	mov    0x30(%rsp),%esi
+   14001b703:	xor    %ecx,%ecx
+   14001b705:	test   %eax,%eax
+   14001b707:	mov    $0xffffffff,%r11d
+   14001b70d:	setne  %cl
+   14001b710:	test   %esi,%esi
+   14001b712:	je     14001a746 <forge::nnue::update(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&)+0x4c6>
+   14001b718:	jmp    14001a743 <forge::nnue::update(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&)+0x4c3>
+   14001b71d:	mov    0x2c(%rsp),%edi
+   14001b721:	xor    %r8d,%r8d
+   14001b724:	test   %eax,%eax
+   14001b726:	mov    $0xffffffff,%ebx
+   14001b72b:	setne  %r8b
+   14001b72f:	test   %edi,%edi
+   14001b731:	je     14001a721 <forge::nnue::update(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&)+0x4a1>
+   14001b737:	jmp    14001a71d <forge::nnue::update(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&)+0x49d>
+   14001b73c:	mov    0x20(%rsp),%r15d
+   14001b741:	xor    %r9d,%r9d
+   14001b744:	test   %r10d,%r10d
+   14001b747:	mov    $0xffffffff,%r14d
+   14001b74d:	setne  %r9b
+   14001b751:	test   %r15d,%r15d
+   14001b754:	je     14001a6f9 <forge::nnue::update(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&)+0x479>
+   14001b75a:	jmp    14001a6f4 <forge::nnue::update(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&)+0x474>
+   14001b75f:	mov    %r10d,%eax
+   14001b762:	mov    0x60(%rsp),%r10d
+   14001b767:	mov    0x2c(%rsp),%r8d
+   14001b76c:	xor    %ecx,%ecx
+   14001b76e:	neg    %eax
+   14001b770:	and    $0x6,%eax
+   14001b773:	add    %ebp,%eax
+   14001b775:	shl    $0x6,%eax
+   14001b778:	add    %eax,%r10d
+   14001b77b:	mov    %r9d,%eax
+   14001b77e:	neg    %r8d
+   14001b781:	neg    %eax
+   14001b783:	and    $0x6,%r8d
+   14001b787:	movslq %r10d,%r10
+   14001b78a:	and    $0x6,%eax
+   14001b78d:	add    %ebx,%r8d
+   14001b790:	lea    (%rax,%rsi,1),%r9d
+   14001b794:	mov    0x20(%rsp),%eax
+   14001b798:	shl    $0x6,%r9d
+   14001b79c:	shl    $0x6,%r8d
+   14001b7a0:	neg    %eax
+   14001b7a2:	add    0x4c(%rsp),%r9d
+   14001b7a7:	add    0x40(%rsp),%r8d
+   14001b7ac:	and    $0x6,%eax
+   14001b7af:	add    %r11d,%eax
+   14001b7b2:	shl    $0x6,%eax
+   14001b7b5:	add    0x7c(%rsp),%eax
+   14001b7b9:	movslq %r9d,%r9
+   14001b7bc:	movslq %r8d,%r8
+   14001b7bf:	shl    $0xa,%r10
+   14001b7c3:	shl    $0xa,%r9
+   14001b7c7:	cltq
+   14001b7c9:	add    %r12,%r10
+   14001b7cc:	add    %r12,%r9
+   14001b7cf:	shl    $0xa,%r8
+   14001b7d3:	shl    $0xa,%rax
+   14001b7d7:	add    %r12,%r8
+   14001b7da:	add    %r12,%rax
+   14001b7dd:	vmovss (%rdi,%rcx,1),%xmm2
+   14001b7e2:	vsubss (%rax,%rcx,1),%xmm2,%xmm0
+   14001b7e7:	vaddss (%r8,%rcx,1),%xmm0,%xmm0
+   14001b7ed:	vsubss (%r9,%rcx,1),%xmm0,%xmm0
+   14001b7f3:	vaddss (%r10,%rcx,1),%xmm0,%xmm0
+   14001b7f9:	vmovss %xmm0,(%rdx,%rcx,1)
+   14001b7fe:	add    $0x4,%rcx
+   14001b802:	cmp    $0x400,%rcx
+   14001b809:	jne    14001b7dd <forge::nnue::update(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&)+0x155d>
+   14001b80b:	jmp    14001b64f <forge::nnue::update(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&)+0x13cf>
+   14001b810:	neg    %r9d
+   14001b813:	neg    %r8d
+   14001b816:	neg    %ecx
+   14001b818:	xor    %eax,%eax
+   14001b81a:	and    $0x6,%r9d
+   14001b81e:	and    $0x6,%r8d
+   14001b822:	and    $0x6,%ecx
+   14001b825:	add    %r14d,%r9d
+   14001b828:	add    %ebx,%r8d
+   14001b82b:	add    %r11d,%ecx
+   14001b82e:	shl    $0x6,%r9d
+   14001b832:	shl    $0x6,%r8d
+   14001b836:	add    0x48(%rsp),%r9d
+   14001b83b:	add    0x34(%rsp),%r8d
+   14001b840:	shl    $0x6,%ecx
+   14001b843:	add    0x64(%rsp),%ecx
+   14001b847:	movslq %r9d,%r9
+   14001b84a:	movslq %r8d,%r8
+   14001b84d:	shl    $0xa,%r9
+   14001b851:	shl    $0xa,%r8
+   14001b855:	movslq %ecx,%rcx
+   14001b858:	add    %rbp,%r9
+   14001b85b:	add    %rbp,%r8
+   14001b85e:	shl    $0xa,%rcx
+   14001b862:	add    %rbp,%rcx
+   14001b865:	vmovss (%rdi,%rax,1),%xmm0
+   14001b86a:	vsubss (%rcx,%rax,1),%xmm0,%xmm0
+   14001b86f:	vsubss (%r8,%rax,1),%xmm0,%xmm0
+   14001b875:	vaddss (%r9,%rax,1),%xmm0,%xmm0
+   14001b87b:	vmovss %xmm0,(%rdx,%rax,1)
+   14001b880:	add    $0x4,%rax
+   14001b884:	cmp    $0x400,%rax
+   14001b88a:	jne    14001b865 <forge::nnue::update(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&)+0x15e5>
+   14001b88c:	jmp    14001aa85 <forge::nnue::update(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&)+0x805>
+   14001b891:	mov    0x38(%rsp),%ecx
+   14001b895:	xor    %edi,%edi
+   14001b897:	test   %eax,%eax
+   14001b899:	mov    $0xffffffff,%r11d
+   14001b89f:	setne  %dil
+   14001b8a3:	mov    %edi,0x20(%rsp)
+   14001b8a7:	test   %ecx,%ecx
+   14001b8a9:	je     14001b23a <forge::nnue::update(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&)+0xfba>
+   14001b8af:	jmp    14001b235 <forge::nnue::update(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&)+0xfb5>
+   14001b8b4:	mov    0x48(%rsp),%r8d
+   14001b8b9:	xor    %ebx,%ebx
+   14001b8bb:	test   %eax,%eax
+   14001b8bd:	setne  %bl
+   14001b8c0:	mov    %ebx,0x2c(%rsp)
+   14001b8c4:	mov    $0xffffffff,%ebx
+   14001b8c9:	test   %r8d,%r8d
+   14001b8cc:	je     14001b20b <forge::nnue::update(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&)+0xf8b>
+   14001b8d2:	jmp    14001b204 <forge::nnue::update(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&)+0xf84>
+   14001b8d7:	mov    0x34(%rsp),%r11d
+   14001b8dc:	xor    %r9d,%r9d
+   14001b8df:	test   %eax,%eax
+   14001b8e1:	mov    $0xffffffff,%esi
+   14001b8e6:	setne  %r9b
+   14001b8ea:	test   %r11d,%r11d
+   14001b8ed:	je     14001b1db <forge::nnue::update(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&)+0xf5b>
+   14001b8f3:	jmp    14001b1d4 <forge::nnue::update(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&)+0xf54>
+   14001b8f8:	mov    0x30(%rsp),%ebx
+   14001b8fc:	xor    %r10d,%r10d
+   14001b8ff:	test   %edx,%edx
+   14001b901:	mov    $0xffffffff,%ebp
+   14001b906:	setne  %r10b
+   14001b90a:	test   %ebx,%ebx
+   14001b90c:	je     14001b1ad <forge::nnue::update(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&)+0xf2d>
+   14001b912:	jmp    14001b1aa <forge::nnue::update(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&)+0xf2a>
+   14001b917:	nopw   0x0(%rax,%rax,1)
+### forge_r5b_o2_z5_b7c1772.exe forge::nnue::evaluate
+   14001b920:	push   %rdi
+   14001b921:	push   %rsi
+   14001b922:	push   %rbx
+   14001b923:	sub    $0x90,%rsp
+   14001b92a:	mov    %rcx,%rdi
+   14001b92d:	mov    %rdx,%rbx
+   14001b930:	call   140019990 <forge::nnue::(anonymous namespace)::weights()>
+   14001b935:	lea    0x5f(%rsp),%rsi
+   14001b93a:	movslq 0x180(%rdi),%r8
+   14001b941:	mov    %rax,%rcx
+   14001b944:	and    $0xffffffffffffffc0,%rsi
+   14001b948:	vbroadcastss 0x1c1437(%rip),%ymm3        # 1401dcd88 <NnueW1+0x60d08>
+   14001b951:	vxorps %xmm5,%xmm5,%xmm5
+   14001b955:	vmovaps %ymm5,%ymm16
+   14001b95b:	vmovaps %ymm5,%ymm2
+   14001b95f:	mov    %r8,%rax
+   14001b962:	shl    $0xa,%r8
+   14001b966:	add    %rbx,%r8
+   14001b969:	test   %eax,%eax
+   14001b96b:	sete   %al
+   14001b96e:	movzbl %al,%eax
+   14001b971:	shl    $0xa,%rax
+   14001b975:	lea    (%rbx,%rax,1),%rdx
+   14001b979:	xor    %eax,%eax
+   14001b97b:	nopl   0x0(%rax,%rax,1)
+   14001b980:	vmovups (%r8,%rax,1),%ymm0
+   14001b986:	vmovups (%rdx,%rax,1),%ymm4
+   14001b98b:	vcmpgtps %ymm2,%ymm0,%k1
+   14001b992:	vmovaps %ymm0,%ymm1{%k1}{z}
+   14001b998:	vcmpgtps %ymm2,%ymm4,%k1
+   14001b99f:	vminps %ymm3,%ymm1,%ymm1
+   14001b9a3:	vmovaps %ymm4,%ymm0{%k1}{z}
+   14001b9a9:	vmulps %ymm1,%ymm1,%ymm1
+   14001b9ad:	vmulps 0x440(%rcx,%rax,1),%ymm1,%ymm1
+   14001b9b6:	vmovups 0x20(%rdx,%rax,1),%ymm4
+   14001b9bc:	vminps %ymm3,%ymm0,%ymm0
+   14001b9c0:	vmulps %ymm0,%ymm0,%ymm0
+   14001b9c4:	vmulps 0x840(%rcx,%rax,1),%ymm0,%ymm0
+   14001b9cd:	vaddps %ymm1,%ymm0,%ymm0
+   14001b9d1:	vaddps %ymm0,%ymm16,%ymm16
+   14001b9d7:	vmovups 0x20(%r8,%rax,1),%ymm0
+   14001b9de:	vcmpgtps %ymm2,%ymm0,%k1
+   14001b9e5:	vmovaps %ymm0,%ymm1{%k1}{z}
+   14001b9eb:	vcmpgtps %ymm2,%ymm4,%k1
+   14001b9f2:	vminps %ymm3,%ymm1,%ymm1
+   14001b9f6:	vmovaps %ymm4,%ymm0{%k1}{z}
+   14001b9fc:	vmulps %ymm1,%ymm1,%ymm1
+   14001ba00:	vmulps 0x460(%rcx,%rax,1),%ymm1,%ymm1
+   14001ba09:	vminps %ymm3,%ymm0,%ymm0
+   14001ba0d:	vmulps %ymm0,%ymm0,%ymm0
+   14001ba11:	vmulps 0x860(%rcx,%rax,1),%ymm0,%ymm0
+   14001ba1a:	add    $0x40,%rax
+   14001ba1e:	vaddps %ymm1,%ymm0,%ymm0
+   14001ba22:	vaddps %ymm0,%ymm5,%ymm5
+   14001ba26:	cmp    $0x400,%rax
+   14001ba2c:	jne    14001b980 <forge::nnue::evaluate(forge::Board const&, forge::nnue::Accumulator const&)+0x60>
+   14001ba32:	vmovups %ymm16,(%rsi)
+   14001ba38:	vmovss (%rsi),%xmm0
+   14001ba3c:	vaddss 0xc40(%rcx),%xmm0,%xmm0
+   14001ba44:	vmovups %ymm5,0x20(%rsi)
+   14001ba49:	vaddss 0x4(%rsi),%xmm0,%xmm0
+   14001ba4e:	vmovss 0x1c133e(%rip),%xmm2        # 1401dcd94 <NnueW1+0x60d14>
+   14001ba56:	vaddss 0x8(%rsi),%xmm0,%xmm0
+   14001ba5b:	vaddss 0xc(%rsi),%xmm0,%xmm0
+   14001ba60:	vaddss 0x10(%rsi),%xmm0,%xmm0
+   14001ba65:	vaddss 0x14(%rsi),%xmm0,%xmm0
+   14001ba6a:	vaddss 0x18(%rsi),%xmm0,%xmm0
+   14001ba6f:	vaddss 0x1c(%rsi),%xmm0,%xmm0
+   14001ba74:	vaddss 0x20(%rsi),%xmm0,%xmm0
+   14001ba79:	vaddss 0x24(%rsi),%xmm0,%xmm0
+   14001ba7e:	vaddss 0x28(%rsi),%xmm0,%xmm0
+   14001ba83:	vaddss 0x2c(%rsi),%xmm0,%xmm0
+   14001ba88:	vaddss 0x30(%rsi),%xmm0,%xmm0
+   14001ba8d:	vaddss 0x34(%rsi),%xmm0,%xmm0
+   14001ba92:	vaddss 0x38(%rsi),%xmm0,%xmm0
+   14001ba97:	vaddss 0x3c(%rsi),%xmm0,%xmm0
+   14001ba9c:	vmulss 0x1c12e8(%rip),%xmm0,%xmm0        # 1401dcd8c <NnueW1+0x60d0c>
+   14001baa4:	vdivss 0x1c12e4(%rip),%xmm0,%xmm0        # 1401dcd90 <NnueW1+0x60d10>
+   14001baac:	vmaxss %xmm0,%xmm2,%xmm1
+   14001bab0:	vmovss 0x1c12e0(%rip),%xmm0        # 1401dcd98 <NnueW1+0x60d18>
+   14001bab8:	vminss %xmm1,%xmm0,%xmm0
+   14001babc:	vcvttss2si %xmm0,%eax
+   14001bac0:	vzeroupper
+   14001bac3:	add    $0x90,%rsp
+   14001baca:	pop    %rbx
+   14001bacb:	pop    %rsi
+   14001bacc:	pop    %rdi
+   14001bacd:	ret
+   14001bace:	xchg   %ax,%ax
