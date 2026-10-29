@@ -1,0 +1,109 @@
+import torch
+
+from .fused_ft_functions import _HAS_CUPY_KERNELS, FusedDoubleFtFunction
+from .sparse_linear_functions import SparseLinearFunction
+from .triton_ft_functions import (
+    TritonFusedDoubleFtFunction,
+    requested_backend,
+    triton_usable,
+)
+
+
+def double_feature_transform(
+    us: torch.Tensor,
+    them: torch.Tensor,
+    white_indices: torch.Tensor,
+    black_indices: torch.Tensor,
+    weight: torch.Tensor,
+    bias: torch.Tensor,
+    max_ft_activation: float,
+    l1_size: int,
+    backend: str = "auto",
+) -> torch.Tensor:
+    # Resolve backend
+    cupy_available = _HAS_CUPY_KERNELS
+    all_cuda = (
+        us.is_cuda
+        and them.is_cuda
+        and white_indices.is_cuda
+        and black_indices.is_cuda
+        and weight.is_cuda
+        and bias.is_cuda
+    )
+    cuda_capable = cupy_available and all_cuda
+
+    if backend == "auto":
+        # NNUE_FT_BACKEND overrides "auto" (torch = plain PyTorch fallback).
+        backend = requested_backend()
+    if backend == "auto":
+        if cuda_capable:
+            impl = "fused"
+        elif all_cuda and triton_usable(weight.device):
+            impl = "triton"
+        else:
+            impl = "torch"
+    else:
+        impl = backend
+
+    if impl == "triton":
+        if not (all_cuda and triton_usable(weight.device)):
+            raise RuntimeError(
+                "Triton FT backend requested, but Triton kernels are not usable on this device."
+            )
+        return TritonFusedDoubleFtFunction.apply(
+            us,
+            them,
+            white_indices,
+            black_indices,
+            weight,
+            bias,
+            max_ft_activation,
+            l1_size,
+        )
+
+    if impl == "fused":
+        if not cupy_available:
+            raise RuntimeError(
+                "Fused double FT backend requested, but CuPy kernels are not available."
+            )
+        if not all_cuda:
+            raise RuntimeError(
+                "Fused double FT backend requested, but not all tensors/parameters are on CUDA."
+            )
+        return FusedDoubleFtFunction.apply(
+            us,
+            them,
+            white_indices,
+            black_indices,
+            weight,
+            bias,
+            max_ft_activation,
+            l1_size,
+        )
+    elif impl in ("sparse", "triton-sparse", "torch"):
+        if impl == "sparse":
+            if not cupy_available:
+                raise RuntimeError(
+                    "Sparse backend requested, but CuPy kernels are not available."
+                )
+            if not all_cuda:
+                raise RuntimeError(
+                    "Sparse backend requested, but not all tensors/parameters are on CUDA."
+                )
+
+        assert l1_size % 2 == 0
+
+        w = SparseLinearFunction.apply(white_indices, weight, bias, backend=impl)
+        b = SparseLinearFunction.apply(black_indices, weight, bias, backend=impl)
+
+        l0_ = (us * torch.cat([w, b], dim=1)) + (them * torch.cat([b, w], dim=1))
+        # do not fake quantize sum of (quantized) weights
+        l0_ = torch.clamp(l0_, 0.0, max_ft_activation)
+
+        l0_s = torch.split(l0_, l1_size // 2, dim=1)
+        l0_s1 = [l0_s[0] * l0_s[1], l0_s[2] * l0_s[3]]
+        l0_ = torch.cat(l0_s1, dim=1)
+
+        return l0_
+    else:
+        raise ValueError(f"Invalid double FT implementation mode: {backend}")

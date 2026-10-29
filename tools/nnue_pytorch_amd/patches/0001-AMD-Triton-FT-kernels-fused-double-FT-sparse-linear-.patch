@@ -1,0 +1,829 @@
+From ceaaa155da62ec35543622e67a4caeafd285e4e9 Mon Sep 17 00:00:00 2001
+From: couns0538-sketch <couns0538@gmail.com>
+Date: Thu, 29 Oct 2026 13:37:03 -0700
+Subject: [PATCH] AMD: Triton FT kernels (fused double FT + sparse linear
+ fwd/bwd), NNUE_FT_BACKEND flag, J2 test
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+---
+ .../double_ft_functions.py                    |  33 +-
+ .../sparse_linear_functions.py                |  16 +-
+ .../triton_ft_functions.py                    | 128 ++++++
+ .../feature_transformer/triton_ft_kernels.py  | 397 ++++++++++++++++++
+ tests/test_amd_triton_ft.py                   | 161 +++++++
+ 5 files changed, 732 insertions(+), 3 deletions(-)
+ create mode 100644 model/modules/feature_transformer/triton_ft_functions.py
+ create mode 100644 model/modules/feature_transformer/triton_ft_kernels.py
+ create mode 100644 tests/test_amd_triton_ft.py
+
+diff --git a/model/modules/feature_transformer/double_ft_functions.py b/model/modules/feature_transformer/double_ft_functions.py
+index 3c098d5..7a4584e 100644
+--- a/model/modules/feature_transformer/double_ft_functions.py
++++ b/model/modules/feature_transformer/double_ft_functions.py
+@@ -2,6 +2,11 @@ import torch
+ 
+ from .fused_ft_functions import _HAS_CUPY_KERNELS, FusedDoubleFtFunction
+ from .sparse_linear_functions import SparseLinearFunction
++from .triton_ft_functions import (
++    TritonFusedDoubleFtFunction,
++    requested_backend,
++    triton_usable,
++)
+ 
+ 
+ def double_feature_transform(
+@@ -28,10 +33,34 @@ def double_feature_transform(
+     cuda_capable = cupy_available and all_cuda
+ 
+     if backend == "auto":
+-        impl = "fused" if cuda_capable else "torch"
++        # NNUE_FT_BACKEND overrides "auto" (torch = plain PyTorch fallback).
++        backend = requested_backend()
++    if backend == "auto":
++        if cuda_capable:
++            impl = "fused"
++        elif all_cuda and triton_usable(weight.device):
++            impl = "triton"
++        else:
++            impl = "torch"
+     else:
+         impl = backend
+ 
++    if impl == "triton":
++        if not (all_cuda and triton_usable(weight.device)):
++            raise RuntimeError(
++                "Triton FT backend requested, but Triton kernels are not usable on this device."
++            )
++        return TritonFusedDoubleFtFunction.apply(
++            us,
++            them,
++            white_indices,
++            black_indices,
++            weight,
++            bias,
++            max_ft_activation,
++            l1_size,
++        )
++
+     if impl == "fused":
+         if not cupy_available:
+             raise RuntimeError(
+@@ -51,7 +80,7 @@ def double_feature_transform(
+             max_ft_activation,
+             l1_size,
+         )
+-    elif impl in ("sparse", "torch"):
++    elif impl in ("sparse", "triton-sparse", "torch"):
+         if impl == "sparse":
+             if not cupy_available:
+                 raise RuntimeError(
+diff --git a/model/modules/feature_transformer/sparse_linear_functions.py b/model/modules/feature_transformer/sparse_linear_functions.py
+index 101a56a..827d4e3 100644
+--- a/model/modules/feature_transformer/sparse_linear_functions.py
++++ b/model/modules/feature_transformer/sparse_linear_functions.py
+@@ -13,6 +13,8 @@ try:
+ except (ImportError, OSError, RuntimeError):
+     pass
+ 
++from .triton_ft_functions import TritonSparseLinearFunction, triton_usable
++
+ 
+ def _torch_sparse_linear(feature_indices, weight, bias):
+     """Device-agnostic fallback for SparseLinearFunction.
+@@ -139,7 +141,7 @@ class _CudaSparseLinearFunction(autograd.Function):
+         return None, weight_grad, bias_grad
+ 
+ 
+-# Allowed modes: "auto", "fused", "sparse", "torch"
++# Allowed modes: "auto", "fused", "sparse", "triton", "triton-sparse", "torch"
+ 
+ 
+ class SparseLinearFunction:
+@@ -158,8 +160,20 @@ class SparseLinearFunction:
+                 and bias.is_cuda
+             ):
+                 return _CudaSparseLinearFunction.apply(feature_indices, weight, bias)
++            if (
++                feature_indices.is_cuda
++                and weight.is_cuda
++                and bias.is_cuda
++                and triton_usable(weight.device)
++            ):
++                return TritonSparseLinearFunction.apply(feature_indices, weight, bias)
+             return _torch_sparse_linear(feature_indices, weight, bias)
+ 
++        elif backend == "triton-sparse":
++            if not (weight.is_cuda and triton_usable(weight.device)):
++                raise RuntimeError("Triton sparse linear kernel is not usable here.")
++            return TritonSparseLinearFunction.apply(feature_indices, weight, bias)
++
+         elif backend == "sparse":
+             if not _HAS_CUPY_KERNELS:
+                 raise RuntimeError("CuPy sparse linear kernel is not available.")
+diff --git a/model/modules/feature_transformer/triton_ft_functions.py b/model/modules/feature_transformer/triton_ft_functions.py
+new file mode 100644
+index 0000000..8ff4834
+--- /dev/null
++++ b/model/modules/feature_transformer/triton_ft_functions.py
+@@ -0,0 +1,128 @@
++"""Autograd wrappers for the Triton feature-transformer kernels (GPL-3.0, nnue-pytorch).
++
++Selected by double_ft_functions / sparse_linear_functions when CuPy is missing
++(ROCm on Windows) or when NNUE_FT_BACKEND=triton / triton-sparse is set.
++NNUE_FT_BACKEND=torch keeps the plain PyTorch path.
++"""
++
++import os
++import sys
++
++import torch
++from torch import autograd
++
++_HAS_TRITON_KERNELS = False
++_TRITON_IMPORT_ERROR = None
++try:
++    from . import triton_ft_kernels as _tk
++
++    _HAS_TRITON_KERNELS = True
++except Exception as e:  # ImportError, or a broken Triton install
++    _TRITON_IMPORT_ERROR = f"{type(e).__name__}: {e}"
++
++_probe_cache: dict[str, bool] = {}
++
++
++def requested_backend() -> str:
++    return (os.environ.get("NNUE_FT_BACKEND", "auto").strip().lower()) or "auto"
++
++
++@torch.compiler.disable
++def triton_usable(device: torch.device) -> bool:
++    """Compile and run a tiny kernel once per device; False (with a warning) on failure."""
++    if not _HAS_TRITON_KERNELS:
++        return False
++    if device.type != "cuda":
++        return False
++    key = str(device)
++    if key not in _probe_cache:
++        try:
++            idx = torch.tensor([[0, 2, -1, -1]], dtype=torch.int32, device=device)
++            w = torch.arange(12, dtype=torch.float32, device=device).reshape(3, 4)
++            b = torch.ones(4, dtype=torch.float32, device=device)
++            out = _tk.sparse_linear_forward(idx, w, b)
++            ref = w[0] + w[2] + b
++            _probe_cache[key] = bool(torch.equal(out[0], ref))
++            if not _probe_cache[key]:
++                print("[nnue-amd] Triton probe gave a wrong result; using torch FT path", file=sys.stderr)
++        except Exception as e:
++            print(f"[nnue-amd] Triton probe failed ({type(e).__name__}: {e}); using torch FT path", file=sys.stderr)
++            _probe_cache[key] = False
++    return _probe_cache[key]
++
++
++def triton_import_error() -> str | None:
++    return _TRITON_IMPORT_ERROR
++
++
++def _as_i32(t: torch.Tensor) -> torch.Tensor:
++    if t.dtype != torch.int32:
++        t = t.to(torch.int32)
++    return t.contiguous()
++
++
++class TritonSparseLinearFunction(autograd.Function):
++    @staticmethod
++    def forward(ctx, feature_indices, weight, bias):
++        assert feature_indices.ndim == 2 and weight.ndim == 2 and bias.ndim == 1
++        assert weight.dtype == torch.float32 and bias.dtype == torch.float32
++        idx = _as_i32(feature_indices)
++        ctx.save_for_backward(idx)
++        ctx.num_inputs = weight.shape[0]
++        return _tk.sparse_linear_forward(idx, weight.contiguous(), bias.contiguous())
++
++    @staticmethod
++    def backward(ctx, grad_output):
++        (idx,) = ctx.saved_tensors
++        grad_weight, grad_bias = _tk.sparse_linear_backward(
++            idx, grad_output.contiguous(), ctx.num_inputs
++        )
++        return None, grad_weight, grad_bias
++
++
++class TritonFusedDoubleFtFunction(autograd.Function):
++    @staticmethod
++    def forward(
++        ctx,
++        us,
++        them,
++        white_indices,
++        black_indices,
++        weight,
++        bias,
++        max_ft_activation,
++        l1_size,
++    ):
++        assert l1_size % 2 == 0
++        assert weight.ndim == 2 and bias.ndim == 1 and weight.shape[1] == bias.shape[0] == l1_size
++        assert weight.dtype == torch.float32 and bias.dtype == torch.float32
++        assert white_indices.shape == black_indices.shape
++        us = us.contiguous().to(torch.float32)
++        them = them.contiguous().to(torch.float32)
++        assert us.numel() == them.numel() == white_indices.shape[0]
++        wi = _as_i32(white_indices)
++        bi = _as_i32(black_indices)
++        l0, clamped = _tk.fused_double_ft_forward(
++            us, them, wi, bi, weight.contiguous(), bias.contiguous(), max_ft_activation, l1_size
++        )
++        ctx.save_for_backward(us, them, wi, bi, clamped)
++        ctx.max_ft_activation = float(max_ft_activation)
++        ctx.l1_size = int(l1_size)
++        ctx.num_inputs = weight.shape[0]
++        return l0
++
++    @staticmethod
++    def backward(ctx, grad_l0):
++        us, them, wi, bi, clamped = ctx.saved_tensors
++        grad_weight, grad_bias = _tk.fused_double_ft_backward(
++            us,
++            them,
++            wi,
++            bi,
++            grad_l0.contiguous(),
++            clamped,
++            ctx.num_inputs,
++            ctx.max_ft_activation,
++            ctx.l1_size,
++        )
++        return None, None, None, None, grad_weight, grad_bias, None, None
+diff --git a/model/modules/feature_transformer/triton_ft_kernels.py b/model/modules/feature_transformer/triton_ft_kernels.py
+new file mode 100644
+index 0000000..d9fb742
+--- /dev/null
++++ b/model/modules/feature_transformer/triton_ft_kernels.py
+@@ -0,0 +1,397 @@
++"""Triton kernels for the feature transformer (AMD ROCm and any Triton GPU).
++
++Part of nnue-pytorch, GPL-3.0. Triton re-implementation of the CuPy kernels in
++sparse_linear_kernel.py and fused_ft_kernel.py (same math and launch semantics,
++written for Triton so they run under ROCm on Windows where CuPy is missing).
++
++Index rows are int32, -1 marks an empty slot.  Every slot with an index >= 0 is
++accumulated (the torch fallback's semantics); the extractors pad with -1 at the
++end, so this equals the CuPy kernels' early exit on valid batches.
++
++Backward kernels scatter with fp32 atomics like the CUDA kernels; zero
++gradients are skipped.  Each backward program handles POS positions so the bias
++gradient is reduced in registers before one atomic per column.
++"""
++
++import os
++
++import torch
++import triton
++import triton.language as tl
++
++
++def _env_int(name: str, default: int) -> int:
++    v = os.environ.get(name, "")
++    return int(v) if v.strip() else default
++
++
++@triton.jit
++def _sparse_fwd_kernel(
++    idx_ptr,
++    w_ptr,
++    bias_ptr,
++    out_ptr,
++    A: tl.constexpr,
++    N: tl.constexpr,
++    KC: tl.constexpr,
++    BLOCK_N: tl.constexpr,
++):
++    pid_b = tl.program_id(0).to(tl.int64)
++    cols = tl.program_id(1) * BLOCK_N + tl.arange(0, BLOCK_N)
++    cmask = cols < N
++    acc = tl.load(bias_ptr + cols, mask=cmask, other=0.0)
++    for k0 in tl.static_range(0, A, KC):
++        ks = k0 + tl.arange(0, KC)
++        ii = tl.load(idx_ptr + pid_b * A + ks, mask=ks < A, other=-1)
++        valid = ii >= 0
++        rows = tl.where(valid, ii, 0).to(tl.int64) * N
++        t = tl.load(
++            w_ptr + rows[:, None] + cols[None, :],
++            mask=valid[:, None] & cmask[None, :],
++            other=0.0,
++        )
++        acc += tl.sum(t, axis=0)
++    tl.store(out_ptr + pid_b * N + cols, acc, mask=cmask)
++
++
++@triton.jit
++def _sparse_bwd_kernel(
++    idx_ptr,
++    gout_ptr,
++    gw_ptr,
++    gb_ptr,
++    batch_size,
++    A: tl.constexpr,
++    N: tl.constexpr,
++    KC: tl.constexpr,
++    BLOCK_N: tl.constexpr,
++    POS: tl.constexpr,
++):
++    pid_p = tl.program_id(0)
++    cols = tl.program_id(1) * BLOCK_N + tl.arange(0, BLOCK_N)
++    cmask = cols < N
++    gb = tl.zeros([BLOCK_N], dtype=tl.float32)
++    for p in range(POS):
++        b = pid_p * POS + p
++        if b < batch_size:
++            b64 = b.to(tl.int64)
++            g = tl.load(gout_ptr + b64 * N + cols, mask=cmask, other=0.0)
++            gb += g
++            gmask = cmask & (g != 0.0)
++            for k0 in tl.static_range(0, A, KC):
++                ks = k0 + tl.arange(0, KC)
++                ii = tl.load(idx_ptr + b64 * A + ks, mask=ks < A, other=-1)
++                valid = ii >= 0
++                rows = tl.where(valid, ii, 0).to(tl.int64) * N
++                tl.atomic_add(
++                    gw_ptr + rows[:, None] + cols[None, :],
++                    tl.broadcast_to(g[None, :], [KC, BLOCK_N]),
++                    mask=valid[:, None] & gmask[None, :],
++                    sem="relaxed",
++                )
++    tl.atomic_add(gb_ptr + cols, gb, mask=cmask & (gb != 0.0), sem="relaxed")
++
++
++@triton.jit
++def _fused_fwd_kernel(
++    us_ptr,
++    them_ptr,
++    widx_ptr,
++    bidx_ptr,
++    w_ptr,
++    bias_ptr,
++    l0_ptr,
++    cl_ptr,
++    max_act,
++    A: tl.constexpr,
++    L1: tl.constexpr,
++    HALF: tl.constexpr,
++    KC: tl.constexpr,
++    BLOCK_C: tl.constexpr,
++):
++    pid_b = tl.program_id(0).to(tl.int64)
++    cols = tl.program_id(1) * BLOCK_C + tl.arange(0, BLOCK_C)
++    cmask = cols < HALF
++    bias0 = tl.load(bias_ptr + cols, mask=cmask, other=0.0)
++    bias1 = tl.load(bias_ptr + HALF + cols, mask=cmask, other=0.0)
++    w0 = bias0
++    w1 = bias1
++    b0 = bias0
++    b1 = bias1
++    for k0 in tl.static_range(0, A, KC):
++        ks = k0 + tl.arange(0, KC)
++        km = ks < A
++        wi = tl.load(widx_ptr + pid_b * A + ks, mask=km, other=-1)
++        bi = tl.load(bidx_ptr + pid_b * A + ks, mask=km, other=-1)
++        wv = wi >= 0
++        bv = bi >= 0
++        wr = tl.where(wv, wi, 0).to(tl.int64) * L1
++        br = tl.where(bv, bi, 0).to(tl.int64) * L1
++        m_w = wv[:, None] & cmask[None, :]
++        m_b = bv[:, None] & cmask[None, :]
++        pw = w_ptr + wr[:, None] + cols[None, :]
++        pb = w_ptr + br[:, None] + cols[None, :]
++        w0 += tl.sum(tl.load(pw, mask=m_w, other=0.0), axis=0)
++        w1 += tl.sum(tl.load(pw + HALF, mask=m_w, other=0.0), axis=0)
++        b0 += tl.sum(tl.load(pb, mask=m_b, other=0.0), axis=0)
++        b1 += tl.sum(tl.load(pb + HALF, mask=m_b, other=0.0), axis=0)
++
++    u = tl.load(us_ptr + pid_b)
++    t = tl.load(them_ptr + pid_b)
++    l0_w0 = tl.minimum(tl.maximum(u * w0 + t * b0, 0.0), max_act)
++    l0_w1 = tl.minimum(tl.maximum(u * w1 + t * b1, 0.0), max_act)
++    l0_b0 = tl.minimum(tl.maximum(u * b0 + t * w0, 0.0), max_act)
++    l0_b1 = tl.minimum(tl.maximum(u * b1 + t * w1, 0.0), max_act)
++
++    out = l0_ptr + pid_b * L1 + cols
++    tl.store(out, l0_w0 * l0_w1, mask=cmask)
++    tl.store(out + HALF, l0_b0 * l0_b1, mask=cmask)
++    cl = cl_ptr + pid_b * (4 * HALF) + cols
++    tl.store(cl, l0_w0, mask=cmask)
++    tl.store(cl + HALF, l0_w1, mask=cmask)
++    tl.store(cl + 2 * HALF, l0_b0, mask=cmask)
++    tl.store(cl + 3 * HALF, l0_b1, mask=cmask)
++
++
++@triton.jit
++def _fused_bwd_kernel(
++    us_ptr,
++    them_ptr,
++    widx_ptr,
++    bidx_ptr,
++    gl0_ptr,
++    cl_ptr,
++    gw_ptr,
++    gb_ptr,
++    max_act,
++    batch_size,
++    A: tl.constexpr,
++    L1: tl.constexpr,
++    HALF: tl.constexpr,
++    KC: tl.constexpr,
++    BLOCK_C: tl.constexpr,
++    POS: tl.constexpr,
++):
++    pid_p = tl.program_id(0)
++    cols = tl.program_id(1) * BLOCK_C + tl.arange(0, BLOCK_C)
++    cmask = cols < HALF
++    gb0 = tl.zeros([BLOCK_C], dtype=tl.float32)
++    gb1 = tl.zeros([BLOCK_C], dtype=tl.float32)
++    for p in range(POS):
++        b = pid_p * POS + p
++        if b < batch_size:
++            b64 = b.to(tl.int64)
++            cl = cl_ptr + b64 * (4 * HALF) + cols
++            cw0 = tl.load(cl, mask=cmask, other=0.0)
++            cw1 = tl.load(cl + HALF, mask=cmask, other=0.0)
++            cb0 = tl.load(cl + 2 * HALF, mask=cmask, other=0.0)
++            cb1 = tl.load(cl + 3 * HALF, mask=cmask, other=0.0)
++            gp = gl0_ptr + b64 * L1 + cols
++            g_i = tl.load(gp, mask=cmask, other=0.0)
++            g_ih = tl.load(gp + HALF, mask=cmask, other=0.0)
++
++            dw0 = tl.where((cw0 == 0.0) | (cw0 == max_act), 0.0, g_i * cw1)
++            dw1 = tl.where((cw1 == 0.0) | (cw1 == max_act), 0.0, g_i * cw0)
++            db0 = tl.where((cb0 == 0.0) | (cb0 == max_act), 0.0, g_ih * cb1)
++            db1 = tl.where((cb1 == 0.0) | (cb1 == max_act), 0.0, g_ih * cb0)
++
++            u = tl.load(us_ptr + b64)
++            t = tl.load(them_ptr + b64)
++            g_w0 = u * dw0 + t * db0
++            g_w1 = u * dw1 + t * db1
++            g_b0 = t * dw0 + u * db0
++            g_b1 = t * dw1 + u * db1
++            gb0 += g_w0 + g_b0
++            gb1 += g_w1 + g_b1
++
++            nz_w0 = cmask & (g_w0 != 0.0)
++            nz_w1 = cmask & (g_w1 != 0.0)
++            nz_b0 = cmask & (g_b0 != 0.0)
++            nz_b1 = cmask & (g_b1 != 0.0)
++            for k0 in tl.static_range(0, A, KC):
++                ks = k0 + tl.arange(0, KC)
++                km = ks < A
++                wi = tl.load(widx_ptr + b64 * A + ks, mask=km, other=-1)
++                bi = tl.load(bidx_ptr + b64 * A + ks, mask=km, other=-1)
++                wv = wi >= 0
++                bv = bi >= 0
++                pw = gw_ptr + (tl.where(wv, wi, 0).to(tl.int64) * L1)[:, None] + cols[None, :]
++                pb = gw_ptr + (tl.where(bv, bi, 0).to(tl.int64) * L1)[:, None] + cols[None, :]
++                tl.atomic_add(
++                    pw,
++                    tl.broadcast_to(g_w0[None, :], [KC, BLOCK_C]),
++                    mask=wv[:, None] & nz_w0[None, :],
++                    sem="relaxed",
++                )
++                tl.atomic_add(
++                    pw + HALF,
++                    tl.broadcast_to(g_w1[None, :], [KC, BLOCK_C]),
++                    mask=wv[:, None] & nz_w1[None, :],
++                    sem="relaxed",
++                )
++                tl.atomic_add(
++                    pb,
++                    tl.broadcast_to(g_b0[None, :], [KC, BLOCK_C]),
++                    mask=bv[:, None] & nz_b0[None, :],
++                    sem="relaxed",
++                )
++                tl.atomic_add(
++                    pb + HALF,
++                    tl.broadcast_to(g_b1[None, :], [KC, BLOCK_C]),
++                    mask=bv[:, None] & nz_b1[None, :],
++                    sem="relaxed",
++                )
++    tl.atomic_add(gb_ptr + cols, gb0, mask=cmask & (gb0 != 0.0), sem="relaxed")
++    tl.atomic_add(gb_ptr + HALF + cols, gb1, mask=cmask & (gb1 != 0.0), sem="relaxed")
++
++
++def _pow2_at_most(n: int, cap: int) -> int:
++    p = 1
++    while p * 2 <= min(n, cap):
++        p *= 2
++    return p
++
++
++def _block_cols(width: int) -> int:
++    # Columns per program; env override for tuning runs.
++    return _env_int("NNUE_TRITON_BLOCK_C", _pow2_at_most(width, 128))
++
++
++def _k_chunk(active: int) -> int:
++    return _env_int("NNUE_TRITON_KC", min(16, triton.next_power_of_2(active)))
++
++
++def _num_warps() -> int:
++    return _env_int("NNUE_TRITON_WARPS", 4)
++
++
++def _pos_per_program() -> int:
++    return _env_int("NNUE_TRITON_POS", 8)
++
++
++@torch.compiler.disable
++def sparse_linear_forward(indices, weight, bias):
++    batch_size, active = indices.shape
++    n = weight.shape[1]
++    out = torch.empty(batch_size, n, dtype=torch.float32, device=weight.device)
++    if batch_size == 0:
++        return out
++    bn = _block_cols(n)
++    grid = (batch_size, triton.cdiv(n, bn))
++    _sparse_fwd_kernel[grid](
++        indices,
++        weight,
++        bias,
++        out,
++        A=active,
++        N=n,
++        KC=_k_chunk(active),
++        BLOCK_N=bn,
++        num_warps=_num_warps(),
++    )
++    return out
++
++
++@torch.compiler.disable
++def sparse_linear_backward(indices, grad_output, num_inputs):
++    batch_size, active = indices.shape
++    n = grad_output.shape[1]
++    device = grad_output.device
++    grad_weight = torch.zeros(num_inputs, n, dtype=torch.float32, device=device)
++    grad_bias = torch.zeros(n, dtype=torch.float32, device=device)
++    if batch_size == 0:
++        return grad_weight, grad_bias
++    bn = _block_cols(n)
++    pos = _pos_per_program()
++    grid = (triton.cdiv(batch_size, pos), triton.cdiv(n, bn))
++    _sparse_bwd_kernel[grid](
++        indices,
++        grad_output,
++        grad_weight,
++        grad_bias,
++        batch_size,
++        A=active,
++        N=n,
++        KC=_k_chunk(active),
++        BLOCK_N=bn,
++        POS=pos,
++        num_warps=_num_warps(),
++    )
++    return grad_weight, grad_bias
++
++
++@torch.compiler.disable
++def fused_double_ft_forward(
++    us, them, white_indices, black_indices, weight, bias, max_ft_activation, l1_size
++):
++    batch_size, active = white_indices.shape
++    half = l1_size // 2
++    device = weight.device
++    l0 = torch.empty(batch_size, l1_size, dtype=torch.float32, device=device)
++    clamped = torch.empty(batch_size, 4, half, dtype=torch.float32, device=device)
++    if batch_size == 0:
++        return l0, clamped
++    bc = _block_cols(half)
++    grid = (batch_size, triton.cdiv(half, bc))
++    _fused_fwd_kernel[grid](
++        us,
++        them,
++        white_indices,
++        black_indices,
++        weight,
++        bias,
++        l0,
++        clamped,
++        float(max_ft_activation),
++        A=active,
++        L1=l1_size,
++        HALF=half,
++        KC=_k_chunk(active),
++        BLOCK_C=bc,
++        num_warps=_num_warps(),
++    )
++    return l0, clamped
++
++
++@torch.compiler.disable
++def fused_double_ft_backward(
++    us,
++    them,
++    white_indices,
++    black_indices,
++    grad_l0,
++    clamped,
++    num_inputs,
++    max_ft_activation,
++    l1_size,
++):
++    batch_size, active = white_indices.shape
++    half = l1_size // 2
++    device = grad_l0.device
++    grad_weight = torch.zeros(num_inputs, l1_size, dtype=torch.float32, device=device)
++    grad_bias = torch.zeros(l1_size, dtype=torch.float32, device=device)
++    if batch_size == 0:
++        return grad_weight, grad_bias
++    bc = _block_cols(half)
++    pos = _pos_per_program()
++    grid = (triton.cdiv(batch_size, pos), triton.cdiv(half, bc))
++    _fused_bwd_kernel[grid](
++        us,
++        them,
++        white_indices,
++        black_indices,
++        grad_l0,
++        clamped,
++        grad_weight,
++        grad_bias,
++        float(max_ft_activation),
++        batch_size,
++        A=active,
++        L1=l1_size,
++        HALF=half,
++        KC=_k_chunk(active),
++        BLOCK_C=bc,
++        POS=pos,
++        num_warps=_num_warps(),
++    )
++    return grad_weight, grad_bias
+diff --git a/tests/test_amd_triton_ft.py b/tests/test_amd_triton_ft.py
+new file mode 100644
+index 0000000..797cb9a
+--- /dev/null
++++ b/tests/test_amd_triton_ft.py
+@@ -0,0 +1,161 @@
++"""J2 (R6): Triton FT kernels vs the plain PyTorch path on random sparse batches.
++
++Checks forward output, weight gradient and bias gradient of
++  - the fused double-perspective FT (backend "triton")
++  - the per-perspective sparse linear (backend "triton-sparse")
++against backend "torch" (embedding_bag fallback).  Pass: max abs diff < 1e-4.
++
++Gradients use grad_out = randn / batch (the scale a mean-reduced loss gives).
++A unit-scale stress case (grad_out = randn) is also reported with relative
++error, because fp32 sums of thousands of atomics in a different order differ
++by more than 1e-4 in absolute terms there; that case is judged against a
++float64 reference instead.
++
++Run:  python tests/test_amd_triton_ft.py   (or pytest)
++"""
++
++import os
++import sys
++import time
++
++import torch
++
++sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
++
++from model.modules.feature_transformer.double_ft_functions import (  # noqa: E402
++    double_feature_transform,
++)
++from model.modules.feature_transformer.sparse_linear_functions import (  # noqa: E402
++    SparseLinearFunction,
++)
++from model.modules.feature_transformer.triton_ft_functions import (  # noqa: E402
++    triton_import_error,
++    triton_usable,
++)
++
++TOL = 1e-4
++DEV = torch.device("cuda")
++
++
++def make_batch(batch, active, num_inputs, l1, seed, holes=False, wscale=0.3):
++    g = torch.Generator(device="cpu").manual_seed(seed)
++    n_act = torch.randint(0, active + 1, (batch,), generator=g)
++    n_act[: min(batch, 2)] = torch.tensor([active, 0])[: min(batch, 2)]  # full and empty rows
++
++    def rows():
++        out = torch.full((batch, active), -1, dtype=torch.int32)
++        for b in range(batch):
++            k = int(n_act[b])
++            if k:
++                out[b, :k] = torch.randperm(num_inputs, generator=g)[:k].to(torch.int32)
++        if holes:  # -1 in the middle of a row (not produced by the loaders)
++            out[:, 1::3] = -1
++        return out
++
++    wi = rows()
++    bi = rows()
++    us = (torch.rand(batch, 1, generator=g) < 0.5).float()
++    them = 1.0 - us
++    weight = torch.randn(num_inputs, l1, generator=g) * wscale
++    bias = torch.randn(l1, generator=g) * 0.1
++    return [t.to(DEV) for t in (us, them, wi, bi, weight, bias)]
++
++
++def run_double(backend, us, them, wi, bi, weight, bias, max_act, l1, gout, dtype=torch.float32):
++    w = weight.detach().to(dtype).clone().requires_grad_(True)
++    b = bias.detach().to(dtype).clone().requires_grad_(True)
++    out = double_feature_transform(
++        us.to(dtype), them.to(dtype), wi, bi, w, b, max_act, l1, backend=backend
++    )
++    out.backward(gout.to(dtype))
++    torch.cuda.synchronize()
++    return out.detach().double(), w.grad.double(), b.grad.double()
++
++
++def run_sparse(backend, wi, weight, bias, gout, dtype=torch.float32):
++    w = weight.detach().to(dtype).clone().requires_grad_(True)
++    b = bias.detach().to(dtype).clone().requires_grad_(True)
++    out = SparseLinearFunction.apply(wi, w, b, backend=backend)
++    out.backward(gout.to(dtype))
++    torch.cuda.synchronize()
++    return out.detach().double(), w.grad.double(), b.grad.double()
++
++
++CASES = [
++    # name, batch, active, num_inputs, l1, holes
++    ("tiny-odd", 7, 5, 50, 96, False),
++    ("holes", 33, 12, 300, 128, True),
++    ("k32h3-l256", 4096, 32, 73728, 256, False),
++    ("k32h3-l1024", 1024, 32, 73728, 1024, False),
++    ("collide", 2048, 32, 64, 256, False),  # many atomics on the same rows
++    ("full288-l1024", 256, 288, 138096, 1024, False),
++]
++
++
++def check_case(name, batch, active, num_inputs, l1, holes, seed=1234):
++    us, them, wi, bi, weight, bias = make_batch(batch, active, num_inputs, l1, seed, holes)
++    max_act = 1.0
++    gen = torch.Generator(device="cpu").manual_seed(seed + 1)
++    gout = (torch.randn(batch, l1, generator=gen) / batch).to(DEV)
++    results = []
++
++    ref = run_double("torch", us, them, wi, bi, weight, bias, max_act, l1, gout)
++    tri = run_double("triton", us, them, wi, bi, weight, bias, max_act, l1, gout)
++    diffs = [(a - r).abs().max().item() for a, r in zip(tri, ref)]
++    results.append((f"{name}/double", diffs))
++
++    gout_s = (torch.randn(batch, l1, generator=gen) / batch).to(DEV)
++    ref_s = run_sparse("torch", wi, weight, bias, gout_s)
++    tri_s = run_sparse("triton-sparse", wi, weight, bias, gout_s)
++    diffs = [(a - r).abs().max().item() for a, r in zip(tri_s, ref_s)]
++    results.append((f"{name}/sparse", diffs))
++    return results
++
++
++def stress_case(seed=99):
++    """Unit-scale gradients: compare both fp32 paths against a float64 reference."""
++    batch, active, num_inputs, l1 = 4096, 32, 1000, 256
++    us, them, wi, bi, weight, bias = make_batch(batch, active, num_inputs, l1, seed)
++    gout = torch.randn(batch, l1, device=DEV)
++    ref64 = run_double("torch", us, them, wi, bi, weight, bias, 1.0, l1, gout, dtype=torch.float64)
++    t32 = run_double("torch", us, them, wi, bi, weight, bias, 1.0, l1, gout)
++    tr32 = run_double("triton", us, them, wi, bi, weight, bias, 1.0, l1, gout)
++
++    def rel(a, r):
++        return ((a - r).abs().max() / r.abs().max().clamp(min=1e-30)).item()
++
++    return [rel(t, r) for t, r in zip(t32, ref64)], [rel(t, r) for t, r in zip(tr32, ref64)]
++
++
++def main() -> int:
++    print(f"torch {torch.__version__} hip {torch.version.hip} dev {torch.cuda.get_device_name(0)}")
++    if not triton_usable(DEV):
++        print("FAIL: Triton kernels not usable:", triton_import_error())
++        return 2
++    ok = True
++    t0 = time.time()
++    print(f"{'case':24s} {'fwd':>10s} {'grad_w':>10s} {'grad_b':>10s}  verdict (tol {TOL:g})")
++    for case in CASES:
++        for label, (d_out, d_w, d_b) in check_case(*case):
++            good = max(d_out, d_w, d_b) < TOL
++            ok &= good
++            print(f"{label:24s} {d_out:10.3e} {d_w:10.3e} {d_b:10.3e}  {'PASS' if good else 'FAIL'}")
++    torch_rel, triton_rel = stress_case()
++    worse = max(tr / max(t, 1e-12) for tr, t in zip(triton_rel, torch_rel))
++    print("stress (grad_out=randn, rel. err vs float64): torch fp32 "
++          + " ".join(f"{x:.2e}" for x in torch_rel)
++          + " | triton fp32 " + " ".join(f"{x:.2e}" for x in triton_rel))
++    stress_ok = max(triton_rel) < 1e-5
++    ok &= stress_ok
++    print(f"stress verdict (triton rel. err < 1e-5): {'PASS' if stress_ok else 'FAIL'} "
++          f"(triton/torch error ratio max {worse:.2f})")
++    print(f"total {time.time() - t0:.1f}s  RESULT {'PASS' if ok else 'FAIL'}")
++    return 0 if ok else 1
++
++
++def test_triton_ft_matches_torch():
++    assert main() == 0
++
++
++if __name__ == "__main__":
++    sys.exit(main())
+-- 
+2.56.0.windows.3
+
