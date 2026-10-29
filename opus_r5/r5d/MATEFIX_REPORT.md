@@ -1,8 +1,14 @@
-# Forge Opus R5D: forced mate reported as a centipawn score with Threads >= 2 — IN PROGRESS
+# Forge Opus R5D: forced mate reported as a centipawn score with Threads >= 2 — DONE
 
-**Status:** fix done, proof done, CI green; Threads 2 smoke 180/200 clean at 11:41 (running). Reproduced; root cause found (pruning of the quiet mating move against a bare king; also reachable with
-one thread on a warm TT); fix BKM being verified. Push notes: 09:56 -> 10:11 Vienna was 15 min (diagnosis runs),
-10:23 -> 10:4x was over 10 min (Threads 1 finding + BK runs). Last push: see the head commit time.
+**Status:** DONE (11:48 Vienna; commits 09:56-11:48). Cause: forward pruning (late-move / history / SEE pruning,
+LMR) drops the only mating quiet move against a bare king, and the pruning-dependent bounds reach the root through
+the TT; a second thread is only the commonest source of a different TT/history state (one thread on a warm TT misses
+too, 6 of 40). Fix BKM (commit 9933e43c, no option): no quiet-move pruning and no LMR at bare-king nodes while more
+than one worker searches; OFF / Threads 1 bit-identical (lock pins ALL OK, FMA 0). Proof: 0 misses in 40,000 KRK runs
+and 0 failed runs in 800 test runs at Threads 2 / 4 x SmpV2 off / on (base: 180 / 8,000 and 8 / 800), UCI end to end
+0 / 4,000 (base 80 / 4,000), 200-game Threads=2 smoke PASS, CI run 40854184435 green. Owner items: section 3 (BK for
+the one-thread case needs new pins + a gate; SmpV2 helper-mate selection is Astra's item). Push notes: 09:56 -> 10:11
+and 10:23 -> 10:35 Vienna were over 10 minutes (diagnosis and BK runs).
 
 Branch `opus-r5d-matefix` = `astra3-integration` at 5eabdb7 (the commit Code Review passed; the branch head has moved
 on to e224595a since) + R5D commits. Job folder `opus_r5/r5d/`, scratch `F:\opus_scratch\r5\r5d\`. Machine exclusive:
@@ -280,6 +286,11 @@ threads busy), 100 openings of the 8-move book (seed 1) played with both colours
 under 20 ms left, 0 engine restarts; go/stop stress at Threads 2 50/50 with 0 problems (`logs/smoke_t2_book_summary.json`,
 PGN sha256 in `logs/smoke_pgn.sha256`). Endings: 48 mates, 128 threefold, 20 insufficient material, 4 fifty-move.
 Not a strength test (ON 99 / 200 points; no Elo claim).
+
+Plus 40 games from 20 bare-king openings (`barek20.epd`, K+R or K+Q v K, `tools/make_barek_epd.py`; the attacker
+alternates colours, every opening played by both engines as the attacker), same settings, 11:45-11:47 Vienna, where
+the fixed path is active: **PASS** - 40/40, 0 failures, stop stress 20/20 with 0 problems; all 40 games ended in
+mate, 20 delivered by each engine (`logs/smoke_t2_barek_summary.json`).
 
 ## 5. CI test
 
