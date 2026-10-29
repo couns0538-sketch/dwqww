@@ -19,4 +19,15 @@ P4 pair  : $COMMON --hidden 512 --pairwise --out .../j7_pair
 Compare `status.json` of each run: float b0.6 at the 10/20/30-minute checkpoints and positions seen (the wider nets
 see fewer positions per minute, so the table reports both "at equal time" and "at equal positions" where available).
 
-Results: see the report section J7 (filled in when the runs have finished).
+Results (float holdout b0.6 on the 200k FB2 holdout; positions seen in brackets; one seed; `logs/run_*_log.txt`):
+
+| run | 10 min | 20 min | 30 min |
+|---|---|---|---|
+| baseline H512 / 8 king buckets | 0.017107 (14.0M) | 0.016408 (27.5M) | 0.016088 (41.3M) |
+| H1024 / 8 | 0.017935 (7.6M) | 0.016738 (14.9M) | 0.016401 (22.1M) |
+| H512 / 16 king buckets | 0.017224 (13.6M) | 0.016429 (27.0M) | 0.016242 (40.1M) |
+| H512 / 8 + second layer 16 | 0.016835 (13.8M) | 0.016086 (26.9M) | **0.015759** (40.5M) |
+| H512 / 8 + pairwise term | 0.017083 (13.9M) | 0.016358 (27.3M) | 0.016138 (40.5M) |
+
+The second layer is the only prototype clearly ahead of the baseline at equal positions and equal time; it needs
+a v4 engine format (int8/int16 second layer with per-bucket output weights) before it can be gated.
