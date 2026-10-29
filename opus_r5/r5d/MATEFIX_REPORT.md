@@ -284,6 +284,11 @@ misses, 5 repeats = 30 runs). Every score must be a real mate no shorter than ma
 - BKM tree: **PASS**, 230/230 runs, and every fresh run exactly mate in 3 (200/200) (`logs/matefix_tests_bkm.log`).
 - `tests/tt_mate_tb_tests.cpp`: its Threads block reads `FORGE_TT_MATE_THREADS` (default 2) and `FORGE_TT_MATE_SMPV2`
   (default off) for the proof loops; default output and checks unchanged.
+- GitHub CI, opus-ci run **40854184435** on 9933e43c (the engine + test commit; later commits are report/log only):
+  **success** in all three jobs (`logs/ci_40854184435_excerpt.txt`): release lock identity ALL OK;
+  `forge_r5d_matefix_tests` passed in release (1.1 s), ASan+UBSan (12.4 s) and TSan (81 s); `forge_tt_mate_tb_tests`
+  passed in all three; KNOWN-FAILURE CHECK PASS (only the 4 known forge_tests lines) in all three; TSan: 0 reports.
+  This was the first CI run of the astra3-integration tree (astra3-* branches have no CI trigger).
 
 ## 6. How to re-run (Git Bash, from the worktree; MSYS2 ucrt64 on PATH; the PC venv Python)
 
