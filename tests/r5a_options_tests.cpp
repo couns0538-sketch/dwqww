@@ -8,6 +8,7 @@
 //   BundlePreset (all four set TtPruneV2) prints the warning but is not refused.
 // Writes its engine transcripts (r5a_opt_*.in / .out / .err) into the working directory and leaves them there.
 // usage: forge_r5a_options_tests <forge executable>
+#include "forge/corr_margins.hpp"
 #include "forge/fb2.hpp"
 #include "forge/hist_rework.hpp"
 #include "forge/net_scale.hpp"
@@ -149,6 +150,56 @@ void part_a() {
     report(r5a::active_search_options().empty(), "A end: every option back at its default");
 }
 
+// M5: the advertised CorrMarginsScale / CorrExtTripleCorr spins and the scaled CorrMargins formulas.
+void part_a_m5() {
+    using namespace forge;
+    bool listed = true;
+    for (const std::string_view name : tune::R5aAdvertisedParameters) listed &= tunable(std::string(name).c_str()) != nullptr;
+    report(listed && tune::R5aAdvertisedParameters.size() == 2, "A5 R5aAdvertisedParameters name 2 existing tunables");
+    report(tune::CorrMarginsScale == 100 && tune::CorrExtTripleCorr == 48,
+           "A5 defaults: CorrMarginsScale 100, CorrExtTripleCorr 48 (the O8 constant)");
+    // Scale 100 == the O5 formulas bit for bit (old expressions written out here).
+    bool same = true;
+    for (int c = 0; c <= 400 && same; ++c) {
+        for (const int depth : {1, 3, 6, 8}) {
+            for (const bool improving : {false, true}) {
+                same &= corr_margins::rfp_margin(depth, improving, c) ==
+                        tune::RfpMargin * depth - tune::RfpImproving * improving + c * tune::CorrRfpPct / 100;
+            }
+            same &= corr_margins::futility_margin(depth, c) ==
+                    tune::FutilityBase + tune::FutilityMultiplier * depth + c * tune::CorrFutilityPct / 100;
+            same &= corr_margins::null_move_threshold(37, depth, c) ==
+                    37 - tune::NullMoveMarginDepth * depth + tune::NullMoveMarginBase + c * tune::CorrNullMovePct / 100;
+        }
+        for (int r = -2; r <= 30; ++r) {
+            const int old = r <= 0 ? r : r - std::min(r, r * c * tune::CorrLmrPct / 6400);
+            same &= corr_margins::lmr_reduction(r, c) == old;
+        }
+    }
+    report(same, "A5 scale 100: rfp / futility / null-move / LMR equal the O5 formulas for |correction| 0..400");
+    // Scale 0 removes every correction term; scale 200 doubles it (exact floor).
+    tune::CorrMarginsScale = 0;
+    bool zero = true;
+    for (int c = 0; c <= 400; c += 7) {
+        zero &= corr_margins::rfp_margin(5, true, c) == tune::RfpMargin * 5 - tune::RfpImproving &&
+                corr_margins::futility_margin(4, c) == tune::FutilityBase + tune::FutilityMultiplier * 4 &&
+                corr_margins::lmr_reduction(9, c) == 9;
+    }
+    report(zero, "A5 scale 0: margins and LMR are the AL1 s198 values at every |correction|");
+    tune::CorrMarginsScale = 200;
+    bool twice = true;
+    for (int c = 0; c <= 400; c += 7) twice &= corr_margins::scaled_term(c, tune::CorrFutilityPct) == c * tune::CorrFutilityPct / 50;
+    report(twice, "A5 scale 200: the futility correction term is c * pct / 50");
+    tune::CorrMarginsScale = 400;
+    tune::CorrLmrPct = 400;
+    const int big = corr_margins::lmr_reduction(30, 1000);
+    report(big == 0, "A5 limits (r 30, |correction| 1000, pct 400, scale 400): no overflow, relief capped at r (got " +
+                         std::to_string(big) + ")");
+    tune::CorrLmrPct = 25;
+    tune::CorrMarginsScale = 100;
+    report(r5a::active_search_options().empty(), "A5 end: every tunable back at its default");
+}
+
 // ---- Part B: the real engine with scripted stdin
 std::string read_file(const std::string& path) {
     std::ifstream in(path, std::ios::binary);
@@ -267,12 +318,30 @@ void part_b(const std::string& engine) {
         report(active.size() == 1 && active[0] == Active + "NetScale=99 RfpMargin=80",
                "B NetScale 99 + RfpMargin 80, then both reset: one echo (" + joined(active) + ")");
     }
+    {
+        // M5: both spins advertised once, after the R3-4 block, with the current defaults; a set value is echoed.
+        const std::string out = run_engine(engine, "m5_spins",
+                                           Head + "isready\n" + set("CorrMarginsScale", "150") + set("CorrExtTripleCorr", "32") +
+                                               Go + set("CorrMarginsScale", "100") + set("CorrExtTripleCorr", "48") + Go + "quit\n");
+        const auto scale = lines_with(out, "option name CorrMarginsScale ");
+        const auto triple = lines_with(out, "option name CorrExtTripleCorr ");
+        const auto active = lines_with(out, Active);
+        const bool order = out.find("option name AspirationDelta ") < out.find("option name CorrMarginsScale ") &&
+                           out.find("option name CorrMarginsScale ") < out.find("option name CorrExtTripleCorr ");
+        report(scale.size() == 1 && scale[0] == "option name CorrMarginsScale type spin default 100 min 0 max 400" &&
+                   triple.size() == 1 && triple[0] == "option name CorrExtTripleCorr type spin default 48 min 0 max 256" && order,
+               "B M5: CorrMarginsScale (100, 0-400) and CorrExtTripleCorr (48, 0-256) advertised once after AspirationDelta (" +
+                   joined(scale) + " / " + joined(triple) + ")");
+        report(active.size() == 1 && active[0] == Active + "CorrExtTripleCorr=32 CorrMarginsScale=150",
+               "B M5: set values echoed in tunable order, nothing after the reset (" + joined(active) + ")");
+    }
 }
 
 } // namespace
 
 int main(int argc, char** argv) {
     part_a();
+    part_a_m5();
     if (argc >= 2) {
         std::string engine = argv[1];
 #if defined(_WIN32)

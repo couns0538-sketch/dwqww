@@ -535,12 +535,19 @@ int main() {
             for (const std::string_view name : forge::tune::AdvertisedParameters) {
                 if (const forge::tune::Parameter* parameter = find_tunable(name)) print_tunable(*parameter);
             }
+            // R5A: the CorrMargins scale and the CorrExt triple threshold (forge/search_tune.hpp), same format.
+            for (const std::string_view name : forge::tune::R5aAdvertisedParameters) {
+                if (const forge::tune::Parameter* parameter = find_tunable(name)) print_tunable(*parameter);
+            }
 #ifdef FORGE_EXPOSE_TUNABLES
             // Development builds advertise the other search constants as well so
             // match runners can set them; release builds accept them silently.
             for (const forge::tune::Parameter& parameter : forge::tune::parameters()) {
+                const std::string_view tunable_name(parameter.name);
                 if (std::find(forge::tune::AdvertisedParameters.begin(), forge::tune::AdvertisedParameters.end(),
-                              std::string_view(parameter.name)) == forge::tune::AdvertisedParameters.end()) {
+                              tunable_name) == forge::tune::AdvertisedParameters.end() &&
+                    std::find(forge::tune::R5aAdvertisedParameters.begin(), forge::tune::R5aAdvertisedParameters.end(),
+                              tunable_name) == forge::tune::R5aAdvertisedParameters.end()) {
                     print_tunable(parameter);
                 }
             }
