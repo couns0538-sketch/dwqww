@@ -211,6 +211,25 @@ below. Owner/Astra item: `tests/tt_mate_tb_tests.cpp` Threads 2 check is flaky o
 
 ## M4: non-regression evidence for N2 (in progress)
 
+### (a) node-exact proof with real searches
+
+`m4_nodeexact.py`: one process per exe, the same command sequence (`ucinewgame`, `position fen`, `go depth 18`) on 50
+positions taken evenly from `tests/data/nnue_selfplay_sample_916.txt`; N2 znver5 (`forge_r5b_n2_z5_b2983d07.exe`) vs
+OFF znver5 (`forge_r5b_off_z5_m1fix.exe`): **50/50 positions identical** in bestmove, node count, score and pv at
+depth 18 (64,772,376 nodes in total). Lists: `logs/m4a/nodeexact_n2_z5_{A,B}.tsv`, log `logs/m4a_nodeexact_n2_z5.log`.
+
+### (b) 200-game crash / legality smoke
+
+`smoke_ab.py` (R5A smoke.py + `--exe-off`), N2 znver5 vs OFF znver5, 5+0.05, Threads 1, Hash 16, OwnBook false,
+openings from 8moves_v3.pgn (seed 1, each played with both colours), 2 games at once pinned to CPUs 0-11 (the NPS
+run had core 14), 08:31-08:54 Vienna: **PASS: 200/200 games, 0 illegal, 0 crashes, 0 time losses, 0 missing
+bestmoves, 0 error lines, 0 engine restarts, 0 near-flags (< 20 ms), go/stop stress 50/50 with 0 problems.** Average
+131.2 plies; terminations: threefold 132, mate 58, insufficient material 9, fifty moves 1 (two node-exact engines
+repeat a lot). N2 scored 98/200 (not a strength measurement). `logs/m4b_smoke_n2_z5.log`,
+`logs/m4b_smoke_n2_z5_summary.json`, games.pgn sha256 in `logs/m4b_smoke_n2_z5_games.sha256` (pgn in
+`F:\opus_scratch55b\smoke
+2_z5\`).
+
 ### (c) uninitialised reads (the NOZERO risk)
 
 - `-ftrivial-auto-var-init=pattern` and `=zero` builds of N2 znver5 (box recipe + the flag): 0 warnings, FMA 0,
