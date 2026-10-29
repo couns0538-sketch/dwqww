@@ -298,6 +298,11 @@ int Worker::FORGE_SEARCH_FN(Board& board, SearchStack* ss, int depth, int alpha,
     int move_count = 0;
     bool skip_quiets = false;
     const bool has_material = board.has_non_pawn_material(board.side_to_move());
+    // R5D mating mode (multi-worker searches only): against a bare king every quiet move may be the mating one (the
+    // quiet zugzwang Re7 of KRK), so no move-count / futility / history / SEE pruning of quiet moves and no late-move
+    // reduction there. With the shared TT, bounds that depend on that pruning were adopted by the other workers and
+    // a forced mate stayed hidden (opus_r5/r5d/MATEFIX_REPORT.md). One-worker searches keep the AL1 tree.
+    const bool mating_mode = shared_.multi_worker && popcount(board.occupied(opposite(board.side_to_move()))) == 1;
 
     Move move;
     while (!(move = picker.next(skip_quiets)).is_none()) {
@@ -316,7 +321,7 @@ int Worker::FORGE_SEARCH_FN(Board& board, SearchStack* ss, int depth, int alpha,
         const int history = quiet ? quiet_history(board, ss, move) : capture_history_value(board, move);
 
         // Shallow-depth pruning of unpromising moves.
-        if (!root_node && best_score > -MateInMaxPly && has_material) {
+        if (!root_node && best_score > -MateInMaxPly && has_material && !mating_mode) {
 #ifdef FORGE_PROF
             prof::count(prof::Counter::LmpChecks);
             if (quiet && !skip_quiets && move_count >= FORGE_LMP_THRESHOLD(depth, improving)) {
@@ -490,7 +495,7 @@ int Worker::FORGE_SEARCH_FN(Board& board, SearchStack* ss, int depth, int alpha,
 
         int score = -Infinite;
         bool full_depth_needed = !pv_node || move_count > 1;
-        if (depth >= 2 && move_count > 1 + (root_node ? 1 : 0) && (quiet || !ss->tt_pv || move_count > 4)) {
+        if (depth >= 2 && move_count > 1 + (root_node ? 1 : 0) && !mating_mode && (quiet || !ss->tt_pv || move_count > 4)) {
             // FB2 LmrTableV2: the fitted reduction (its history term replaces the clamped one below).
             int r = fb2_.lmr_table_v2 ? fb2::lmr_v2_reduction(quiet, depth, move_count, history, improving, cut_node, ss->tt_pv)
                                       : reduction(quiet, depth, move_count);

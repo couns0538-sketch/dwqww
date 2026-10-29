@@ -81,6 +81,10 @@ struct SharedSearchState {
 #endif
     // 0 means pondering has not been converted into a timed search.
     std::atomic<std::int64_t> ponder_hit_ns{0};
+    // R5D: more than one worker searches (set by Searcher::search before any worker starts, read-only while they
+    // run). Enables the bare-king mating mode of every worker's main search (src/search/alphabeta.inc); a one-worker
+    // search (bench, Threads 1) never reads true, so its tree is unchanged.
+    bool multi_worker = false;
 #ifdef FORGE_PROF
     // The counters themselves live in one bank per Worker (S08-2).
     std::atomic<bool> profile_requested{false};

@@ -62,6 +62,7 @@ SearchInfo Searcher::search(Board board, const SearchLimits& limits, bool emit_i
     shared_.tt.set_lockless(options::lockless_tt);
     // Age the table once per search, before any worker can probe it.
     shared_.tt.new_search();
+    shared_.multi_worker = workers_.size() > 1;
     std::optional<TranspositionTable::ExclusiveLease> exclusive;
     if (table_access == TTAccess::Exclusive && workers_.size() == 1) {
         exclusive.emplace(shared_.tt);

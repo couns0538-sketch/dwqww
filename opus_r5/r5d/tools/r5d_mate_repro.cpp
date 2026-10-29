@@ -5,6 +5,7 @@
 // usage: r5d_mate_repro <runs> <threads> <smpv2 0|1> <depth> [--fen FEN] [--plies N] [--capture] [--show N]
 //        [--reuse] [--best-thread]   (--reuse: one Searcher for all runs, warm TT as in round 2; --best-thread:
 //        UCI SmpBestThread=true) [--hash MB] [--prefill D]  (--prefill: a depth-D search of the root first)
+//        [--prefill-fen FEN ...] [--prefill-depth D]  (unrelated searches first, same Searcher)
 #include "forge/board.hpp"
 #include "forge/fb2.hpp"
 #include "forge/search.hpp"
@@ -34,6 +35,8 @@ int main(int argc, char** argv) {
     int show = 5;
     int hash_mb = 16;
     int prefill = 0;
+    std::vector<std::string> prefill_fens;
+    int prefill_depth = 8;
     for (int i = 5; i < argc; ++i) {
         const std::string a = argv[i];
         if (a == "--fen" && i + 1 < argc) fen = argv[++i];
@@ -43,6 +46,8 @@ int main(int argc, char** argv) {
         else if (a == "--best-thread") forge::options::smp_best_thread = true;
         else if (a == "--hash" && i + 1 < argc) hash_mb = std::atoi(argv[++i]);
         else if (a == "--prefill" && i + 1 < argc) prefill = std::atoi(argv[++i]);
+        else if (a == "--prefill-fen" && i + 1 < argc) prefill_fens.push_back(argv[++i]);
+        else if (a == "--prefill-depth" && i + 1 < argc) prefill_depth = std::atoi(argv[++i]);
         else if (a == "--show" && i + 1 < argc) show = std::atoi(argv[++i]);
     }
     forge::fb2::requested.smp_v2 = smpv2;
@@ -60,6 +65,13 @@ int main(int argc, char** argv) {
         std::unique_ptr<forge::Searcher> fresh;
         if (!reuse) fresh = std::make_unique<forge::Searcher>(hash_mb, threads);
         forge::Searcher& searcher = reuse ? *shared : *fresh;
+        for (const std::string& other : prefill_fens) {  // unrelated searches first: foreign TT entries and histories
+            forge::Board b;
+            if (!b.set_fen(other)) { std::cout << "bad prefill FEN\n"; return 2; }
+            forge::SearchLimits warm;
+            warm.depth = prefill_depth;
+            (void)searcher.search(b, warm);
+        }
         if (prefill > 0) {  // a shallower search of the same root first (warm TT, different entry history)
             forge::SearchLimits warm;
             warm.depth = prefill;
@@ -89,6 +101,7 @@ int main(int argc, char** argv) {
     const double s = std::chrono::duration<double>(std::chrono::steady_clock::now() - t0).count();
     std::cout << "runs " << runs << " threads " << threads << " smpv2 " << smpv2 << " depth " << depth
               << " hash " << hash_mb << (prefill > 0 ? " prefill " + std::to_string(prefill) : std::string())
+              << (prefill_fens.empty() ? std::string() : " prefill-fens " + std::to_string(prefill_fens.size()) + "@d" + std::to_string(prefill_depth))
               << (reuse ? " reuse" : " fresh") << (forge::options::smp_best_thread ? " best-thread" : "") << ": failures " << failures << " (" << 100.0 * failures / runs
               << "%), " << s << " s, mean nodes " << nodes / static_cast<std::uint64_t>(runs ? runs : 1) << '\n';
     return failures == 0 ? 0 : 1;

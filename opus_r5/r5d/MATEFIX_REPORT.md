@@ -1,6 +1,8 @@
 # Forge Opus R5D: forced mate reported as a centipawn score with Threads >= 2 — IN PROGRESS
 
-**Status:** reproduced; root-cause analysis done to the mechanism level; fix in progress. Push note: 09:56 -> 10:11 Vienna was 15 min (diagnosis runs). Last push: see the head commit time (pushes every 10 min).
+**Status:** reproduced; root cause found (pruning of the quiet mating move against a bare king; also reachable with
+one thread on a warm TT); fix BKM being verified. Push notes: 09:56 -> 10:11 Vienna was 15 min (diagnosis runs),
+10:23 -> 10:4x was over 10 min (Threads 1 finding + BK runs). Last push: see the head commit time.
 
 Branch `opus-r5d-matefix` = `astra3-integration` at 5eabdb7 (the commit Code Review passed; the branch head has moved
 on to e224595a since) + R5D commits. Job folder `opus_r5/r5d/`, scratch `F:\opus_scratch\r5\r5d\`. Machine exclusive:
@@ -91,7 +93,35 @@ d5c5 fails high at the root there (Ra8+ gives 499 in its null-window search) and
 fail-high: the helper's TT writes (any kind: main search, qsearch, ProbCut) change the bounds it meets, and the
 pruning-dependent bounds keep d5c5 reduced and below alpha until depth 14. Only read-only helpers (F6) remove it.
 
-## 3. Fix (pending)
+### The same miss with one thread: the root cause is the pruning, the helpers only expose it
+
+`r5d_mate_repro --prefill-fen <FEN> --prefill-depth 9`: one unrelated depth-9 search in the same Searcher first (its
+TT entries and histories stay), then KRK at depth 14 with **Threads 1**. Over 40 opening positions
+(`F:\opus_scratch\r5\r5d\tmp\prefill40.fen`, positions from `tests/data/nnue_selfplay_sample_916.txt`) the single
+thread misses the mate in **6 of 40** cases (deterministic: the same 6 every time; cp ~470, e8e4). So the wrong bounds
+are not an SMP artefact: any TT/history state that changes the move order at "1.Kc5 Ka6" lets the pruning drop Re7, and
+the one-thread search only escapes when its root fail-high at iteration 10 happens. A second thread is simply the most
+common source of such a state (3.7 % of fresh KRK runs).
+
+Candidate **BK** (scratch `exp_bk`, `tmp/make_bk.py`): at a node whose side not to move has only its king, skip the
+shallow quiet-move pruning block (move-count / futility / history / SEE) and the late-move reduction:
+
+| BK, KRK depth 14 | result |
+|---|---|
+| Threads 2, 1000 fresh runs, SmpV2 off / on | **0 / 0** failures |
+| Threads 1, prefill40 | **0 / 40** |
+| bench d11 / 13 / 16 / 20 / 22 | 312866 (=) / 862954 / 2712632 / 11255559 / 36796258 (pins: 862329 / 3024920 / 12389307 / 34048354) |
+| perft | unchanged |
+
+BK changes the one-thread tree (bench pins), which the job forbids for a fix without an option. See section 3.
+
+## 3. Fix (in progress)
+
+Job rule: smallest fix, behind no option, OFF and Threads=1 bit-identical. BK cannot meet "Threads=1 bit-identical"
+(it is a Threads=1 change too). The fix being verified is **BKM** = BK applied only while more than one worker
+searches (`SharedSearchState::multi_worker`, set by `Searcher::search` before any worker starts; bench and every
+Threads 1 search keep the AL1 tree). The one-thread warm-TT case (6 of 40 above) stays as it is on the lock tree and is
+left to the owner (BK with new pins and a gate, section 5 notes).
 
 ## 4. Proof (pending)
 
