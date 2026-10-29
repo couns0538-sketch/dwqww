@@ -34,6 +34,8 @@ def triton_usable(device: torch.device) -> bool:
         return False
     if device.type != "cuda":
         return False
+    if device.index is None:
+        device = torch.device("cuda", torch.cuda.current_device())
     key = str(device)
     if key not in _probe_cache:
         try:

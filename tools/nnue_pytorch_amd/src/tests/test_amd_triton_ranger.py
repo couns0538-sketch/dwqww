@@ -93,10 +93,10 @@ EXPECTED = {  # path -> launchers that must run (4 params x 12 steps = 48 calls 
 def main() -> int:
     print(f"torch {torch.__version__} hip {torch.version.hip}; cupy={rl._HAS_CUPY} "
           f"triton_fused={rl._HAS_TRITON_FUSED}")
-    if not rl._HAS_TRITON_FUSED:
+    if not rl._HAS_TRITON_FUSED or not rl._triton_fused_usable(DEV):
         print("FAIL: Triton fused RangerLite not available")
         return 2
-    count_kernel_calls()
+    count_kernel_calls()  # after the one-time probe, so it does not count
     ok = True
     for tiny in (False, True):
         for pnm in (True, False):
@@ -115,8 +115,38 @@ def main() -> int:
                 print(f"{'denormal-vm' if tiny else 'normal-grads':12s} pnm={pnm!s:5s} wd={wd:<5g} "
                       f"stable_wd={stable!s:5s} path {path:5s}: max abs diff {d:.3e}, finite={finite}, "
                       f"triton calls {CALLS} (python run: {ref_calls or 'none'})  {'PASS' if good else 'FAIL'}")
+    ok &= check_fallback()
     print("RESULT", "PASS" if ok else "FAIL")
     return 0 if ok else 1
+
+
+def check_fallback() -> bool:
+    """A Triton launch failure (e.g. venv not on PATH) must fall back to the Python path, not crash."""
+    import warnings
+
+    saved_probe = dict(rl._triton_probe)
+    saved_variance = rl._rlt.variance
+
+    def broken(*a, **k):
+        raise RuntimeError("simulated Triton launch failure")
+
+    rl._triton_probe.clear()
+    rl._rlt.variance = broken
+    try:
+        with warnings.catch_warnings(record=True) as w:
+            warnings.simplefilter("always")
+            ref = run(False, True, 1e-2, True, steps=3)
+            got = run(True, True, 1e-2, True, steps=3)
+        warned = any("Triton fused kernels unusable" in str(x.message) for x in w)
+        d = max((a - b).abs().max().item() for a, b in zip(ref, got))
+        good = warned and d == 0.0
+        print(f"fallback on Triton failure: warned={warned}, diff vs Python path {d:.1e}  "
+              f"{'PASS' if good else 'FAIL'}")
+        return good
+    finally:
+        rl._rlt.variance = saved_variance
+        rl._triton_probe.clear()
+        rl._triton_probe.update(saved_probe)
 
 
 def test_triton_ranger_matches_python():

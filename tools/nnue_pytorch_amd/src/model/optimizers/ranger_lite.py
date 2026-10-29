@@ -35,6 +35,31 @@ if not _HAS_CUPY and os.environ.get("NNUE_RANGER_FUSED", "1").strip() != "0":
         _rlt = None
 _HAS_FUSED = _HAS_CUPY or _HAS_TRITON_FUSED
 
+_triton_probe: dict[str, bool] = {}
+
+
+def _triton_fused_usable(device) -> bool:
+    """Run one tiny Triton update per device; on failure (e.g. the venv's rocm-sdk
+    is not on PATH, so Triton cannot build its HIP driver) use the Python path."""
+    device = torch.device(device)
+    if device.type == "cuda" and device.index is None:
+        device = torch.device("cuda", torch.cuda.current_device())
+    key = str(device)
+    if key not in _triton_probe:
+        try:
+            g = torch.ones(4, device=device)
+            vm = torch.zeros(4, device=device)
+            _rlt.variance(g, vm, 0.5, 0.5)
+            _triton_probe[key] = bool(torch.equal(vm, torch.full_like(vm, 0.5)))
+        except Exception as e:  # noqa: BLE001
+            _triton_probe[key] = False
+            warnings.warn(
+                f"RangerLite: Triton fused kernels unusable ({type(e).__name__}: {e}); "
+                "using the Python update path.",
+                stacklevel=2,
+            )
+    return _triton_probe[key]
+
 
 class _RangerLiteFusedKernels:
     """Cached CuPy fused update kernels.
@@ -327,6 +352,8 @@ class RangerLite(torch.optim.Optimizer):
             if grad.is_sparse:
                 return False
             if p.dtype != torch.float32 or p.device.type != "cuda":
+                return False
+            if not _HAS_CUPY and not _triton_fused_usable(p.device):
                 return False
             if not p.is_contiguous() or not grad.is_contiguous():
                 return False

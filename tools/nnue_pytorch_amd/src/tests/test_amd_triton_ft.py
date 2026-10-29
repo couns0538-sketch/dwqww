@@ -134,8 +134,12 @@ def main() -> int:
         return 2
     ok = True
     t0 = time.time()
+    cases = CASES
+    if "--small" in sys.argv:  # PC rule after 2026-10-29: no L1 1024 shapes while the live trainer runs
+        cases = [c for c in CASES if c[4] <= 256]
+        print("small mode: L1 <= 256 cases only")
     print(f"{'case':24s} {'fwd':>10s} {'grad_w':>10s} {'grad_b':>10s}  verdict (tol {TOL:g})")
-    for case in CASES:
+    for case in cases:
         for label, (d_out, d_w, d_b) in check_case(*case):
             good = max(d_out, d_w, d_b) < TOL
             ok &= good
