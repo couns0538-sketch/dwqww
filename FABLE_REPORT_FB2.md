@@ -236,10 +236,19 @@ thread, same data/seed/batch/LR/WDL schedules as J1, float holdout b0.6 on the 2
 | baseline H512 / 8 king buckets | 0.017107 (14.0M) | 0.016408 (27.5M) | **0.016088** (41.3M) |
 | H1024 / 8 (half the throughput) | 0.017935 (7.6M) | 0.016738 (14.9M) | 0.016401 (22.1M) |
 | H512 / 16 king buckets | 0.017224 (13.6M) | 0.016429 (27.0M) | 0.016242 (40.1M) |
-| H512 / 8 + second layer 16 | queued | | |
-| H512 / 8 + pairwise term | queued | | |
+| H512 / 8 + second layer 16 (2H -> 16 -> 1) | 0.016835 (13.8M) | 0.016086 (26.9M) | **0.015759** (40.5M) |
+| H512 / 8 + pairwise term | running (20:17-20:47) | | |
+
+Reading so far (early-learning comparison, one seed, 30 minutes each): the second layer is the clear winner at
+equal positions (-0.00033 vs the baseline at 40M, i.e. the baseline's 60-minute value reached in 30), H1024 learns
+more per position but sees half as many per second on this CPU (equal to the baseline at equal wall time), and 16
+king buckets are slightly behind 8 at this budget (more parameters per sample).
 
 (The J1 run's exact score at 43.5M positions was 0.016094: the float metric and the integer file agree to 1e-5.)
+Operational note: the second-layer run was executed twice at once into the same directory (a background driver I
+had stopped with TaskStop kept running and started it; processes may not be killed on this PC); the two copies are
+deterministic twins (same seed, data and batches), the table quotes the first copy's checkpoints (steps 1683 /
+3280 / ...), and the duplicate pair run was prevented by a read-only log (see `logs/run_l2_log.txt`).
 
 ## Next steps for the next model
 1. J1: watch `F:\opus_scratch\fable\fb2\train_j1\status.json`; the driver resumes after a crash; restart by hand with
