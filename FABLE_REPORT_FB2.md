@@ -74,6 +74,7 @@ rows. Checkpoint every 30 min; stop when exact b0.6 <= target or 3 checkpoints w
 |---|---|---|---|---|---|---|---|---|---|
 | 1 | 5,307 | 43.5M | 30 | **0.016094** | 0.007836 | 0.005008 | .0067 .0074 .0109 .0161 .0200 .0222 .0226 .0241 | +0.001677 (HCE is 0.017141) | PASS 10000/10000, max 1.02 cp |
 | 2 | 10,374 | 85.0M | 60 | **0.015684** | 0.007508 | 0.004761 | .0059 .0069 .0105 .0155 .0195 .0220 .0223 .0239 | +0.001267 | PASS 10000/10000, max 1.02 cp |
+| 3 | 15,476 | 126.8M | 90 | **0.015563** | 0.007420 | 0.004707 | .0057 .0067 .0103 .0153 .0193 .0221 .0223 .0239 | +0.001146 | PASS 10000/10000, max 1.02 cp |
 | (next checkpoints: `status.json` in the run dir; `tools/nnue/fable_nnue_ckpt_table.py <run>` prints this table) | | | | | | | | | |
 
 Torch quick validation (200k rows, blend 0.6) on the way: 0.105583 (0) -> 0.017014 (14.7M) -> 0.016369 (29.6M).
@@ -147,7 +148,8 @@ isready barriers), 500 games per option and all-on, one at a time on one thread 
 |---|---|---|---|
 | CorrHistV2 | 500/500 | 59,794 | **0** (`logs/selfplay/CorrHistV2.summary.json`) |
 | SingularV2 | 500/500 | 59,218 | **0** (`logs/selfplay/SingularV2.summary.json`) |
-| LmrTableV2, TtPruneV2, all four | running in this order | | |
+| LmrTableV2 | 500/500 | 60,105 | **0** (`logs/selfplay/LmrTableV2.summary.json`) |
+| TtPruneV2, all four | running in this order | | |
 
 Gate entries: `fable_fb2/j3/GATE_ENTRY.md` (one per option vs all-off, design 1 of GATE_BOUNDS.md).
 
