@@ -1,6 +1,6 @@
 # Forge Opus R5B: N2 speed build (O2 + NOZERO + SPEEDSTACK) — IN PROGRESS
 
-**Status:** 00_baseline, M1 done; M2 driver done; M3 exes + identity done, NPS runs in progress. Last push: see the commit time (pushes every 10 min).
+**Status:** 00_baseline, M1, M2 done; M3 exes + identity done, NPS pass 3 + quiet-runner NPS running; M4(a), M4(c) done, M4(b) smoke running. Push gap note: 08:33 -> 08:48 Vienna was 15 min (rule 1 says 10; while I chased the CI failure). Last push: see the commit time (pushes every 10 min).
 
 Branch `opus-r5b-speed` = `origin/forge-bundle-int` b7c1772 + R5B commits. Job folder `opus_r5/r5b/`, scratch
 `F:\opus_scratch\r5\r5b\` (exes in `exe\`, sha256 in `EXES.txt` here and next to the exes).
@@ -167,6 +167,47 @@ Reading pass 1:
   its own ASLR image base; branch-predictor aliasing then differs per file, and an image re-mapped under the PC's
   RAM pressure can change speed mid-run. Not proven; the fix is to sample it: `nps_ab.py --copies K` runs K byte
   copies per arm in rotation (pass 2).
+
+### NPS pass 2 (08:31-08:45 Vienna; znver5, core 14, 12 pairs, 3 byte copies per arm in rotation, smoke running)
+
+| run | arm (B vs A) | cpu d16 % | cpu d20 % | engine d16 % | engine d20 % | median cpu ratio d16 / d20 | rule |
+|---|---|---|---|---|---|---|---|
+| m3_nps_z5_r2.json (A = forge_r5b_off_z5_m1fix.exe, core 14, 12 pairs, PC busy 0.92) | o2_portable | -0.32 [-1.05, +0.41] | +0.19 [-0.39, +0.77] | -0.31 [-1.07, +0.46] | +0.17 [-0.56, +0.91] | 0.9946 / 0.9999 | not met |
+|  | o2_avx512 | -0.22 [-0.99, +0.55] | -0.09 [-0.77, +0.59] | -0.02 [-0.78, +0.74] | -0.08 [-0.74, +0.58] | 1.0000 / 0.9990 | not met |
+|  | nozero | +1.01 [-0.24, +2.28] | +0.90 [+0.16, +1.65] | +1.17 [-0.18, +2.53] | +0.84 [-0.07, +1.77] | 1.0159 / 1.0121 | not met |
+|  | speedstack | +1.09 [+0.04, +2.15] | +0.87 [+0.10, +1.64] | +1.19 [-0.01, +2.41] | +0.95 [+0.05, +1.85] | 1.0098 / 1.0094 | not met |
+|  | n2 | +1.74 [+0.29, +3.21] | +2.43 [+1.91, +2.97] | +1.86 [+0.34, +3.39] | +2.49 [+1.85, +3.14] | 1.0203 / 1.0245 | not met |
+|  | AA | -2.76 [-4.72, -0.75] | -0.81 [-1.88, +0.27] | -2.73 [-4.81, -0.59] | -0.75 [-1.82, +0.32] | 0.9776 / 0.9965 | A/A control |
+
+(`cpu vs AA` second-reference rows are in `logs/m3_nps_z5_r2.log`.)
+- **The A/A control failed at d16 again, with the opposite sign: -2.76 [-4.72, -0.75]** (pass 1: +2.55). So the
+  per-file offset is random (about +-2.5 % at d16), not a bias towards A or AA. With 3 copies, the 12 pairs share
+  only 3 file pairings (pseudo-replication), so the interval is too narrow. Pass 3 uses a fresh copy for every slot
+  (`--copies` = `--pairs`), so every pair carries independent file effects and the t interval includes them.
+- With A as reference, O2 (portable or avx512) is about 0 at both depths, NOZERO +1.0 / +0.9, SPEEDSTACK +1.1 / +0.9,
+  N2 +1.74 [+0.29, +3.21] / +2.43 [+1.91, +2.97]: rule not met. Against AA as reference every arm reads 1-3 % higher
+  (the same arms, another reference file): the reference file alone moves every row by the A/A offset.
+
+## CI (GitHub Actions)
+
+| run | workflow | commit | result | note |
+|---|---|---|---|---|
+| 40833411141 | opus-ci (default config) | b2983d07 | attempt 1: release OK, **asan FAILED**, tsan OK; attempt 2 (rerun of the failed job) running | `forge_tt_mate_tb_tests`: "Threads 2, search 1 on the shared TT: a real mate, never shorter than mate in 3 (466 e8e4)" (EPYC 9V74 runner) |
+| 40834623805 | opus-ci | 519d6531 | attempt 1: **release FAILED** (same test, "(442 e8e4)", EPYC 7763 runner); attempt 2 running | same flake |
+| 40834623964 | opus-r5b-n2 | 519d6531 | success (N2 release / asan / tsan, memcheck) | first version of the workflow |
+| 40834819014 | opus-r5b-n2 | f99966f7 | success (N2 release / asan / tsan, singles release, N2 v4 release + asan, memcheck) | |
+| 40835194501 | opus-r5b-n2 | 5c80ffe3 | success (incl. memcheck with the poison identities) | |
+| 40835194560 | opus-ci | 5c80ffe3 | success | |
+| 40834819007 | opus-ci | f99966f7 | running | |
+| 40837780229 | opus-r3-quietnps (dispatch, configs ["N2"], reps 1-6) | 3da5dbc7 | running | quiet-runner N2 NPS (v3, and v4 on AVX-512 runners) |
+
+The red opus-ci jobs are a nondeterministic two-thread test, not this job's code: the opus-ci default
+configuration builds none of the R5B code (every engine change is under `#if FORGE_NNUE_O2` or the test-only poison
+macro; the OFF exes differ from b7c1772 only in the PE timestamp), the same check failed in a release job and in an
+asan job on two different CPU types, and it passed in the other jobs of the same commits. The search behind it (a
+two-thread search on a shared TT not finding the mate in 3) is the SmpV2 mate area that Astra owns (rule 9), so I
+neither edit nor weaken it; the failed jobs were re-run (attempts 2) and the base-tree rate is measured on the PC
+below. Owner/Astra item: `tests/tt_mate_tb_tests.cpp` Threads 2 check is flaky on CI runners.
 
 ## M4: non-regression evidence for N2 (in progress)
 
