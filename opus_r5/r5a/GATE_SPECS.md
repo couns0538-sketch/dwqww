@@ -16,7 +16,7 @@ Common to every entry:
 
 | rank | id | candidate option | primary TC | ON d11 / d13 / d16 | smoke | conflict with B1-B4 (short) |
 |---|---|---|---|---|---|---|
-| 1 | R5A-1 | `CorrHistPlus=4` | 10+0.1 | 340927 / 734347 / 2794671 | pending | B1/B3 ok (mask 5); B2/B4 exclusive |
+| 1 | R5A-1 | `CorrHistPlus=4` | 10+0.1 | 340927 / 734347 / 2794671 | PASS (200/200, stress 50/50 problems 0) | B1/B3 ok (mask 5); B2/B4 exclusive |
 | 2 | R5A-2 | `CorrExt=1` | 40+0.4 | 312961 / 838790 / 2891507 | PASS (200/200, stress 50/50 problems 0) | none (independent) |
 | 3 | R5A-3 | `CorrMargins=1` | 40+0.4 | 343365 / 858019 / 2522546 | PASS (200/200, stress 50/50 problems 0) | TtPruneV2 in all four: same margins |
 | 4 | R5A-4 | `CorrHistPlus=2` | 10+0.1 | 296553 / 824640 / 2914749 | PASS (200/200, stress 50/50 problems 0) | B1/B3 ok (mask 3); B2/B4 exclusive |
@@ -36,10 +36,10 @@ Common to every entry:
 | TC | primary **10+0.1** |
 | SPRT / cap | [0,10] normalized, a=b=0.05; cap_games 3000 (wall time to the cap at concurrency 8: at most ~3.4 h, from 2 x (base + 65 x inc) per game) |
 | srand / openings start | blank / blank |
-| prebench cand_on (d11/d13/d16) | 340927 / 734347 / 2794671 |
-| prebench cand_off (d11/d13/d16) | 312866 / 862329 / 3024920 |
+| prebench cand_on (d11/d13/d16/d20/d22) | 340927 / 734347 / 2794671 / 12132495 / 37005405 |
+| prebench cand_off (d11/d13/d16/d20/d22) | 312866 / 862329 / 3024920 / 12389307 / 34048354 |
 | expected echo | `info string active: CorrHistPlus=4` |
-| smoke | pending |
+| smoke | PASS: 200/200 games, failures {'illegal': 0, 'crash': 0, 'time_loss': 0, 'missing_bestmove': 0, 'error_line': 0, 'echo': 0}, stop stress 50/50 problems 0 (`opus_r5/r5a/smoke/corrhistplus4/summary.json`) |
 | conflicts with B1-B4 | B1/B3 use CorrHistPlus=1: combinable as the bitmask 5 (1 + 4). B2/B4 use CorrHistV2: exclusive (the UCI refuses the pair in both orders, M2 tests), so a pass transfers to B1/B3 only. |
 | why this rank | Best prior of the set: the related NonPawnCorr+PawnHist pack ended with a positive LLR in all 4 of its PC gates (0.63-2.48 at [0,10], all capped; R3-3 R3-03); non-pawn correction history is public practice in strong engines. Cheap at 10+0.1, smallest conflict surface. |
 | sources | C2 (opus_round1), R3-3 R3-03 |
@@ -53,8 +53,8 @@ Common to every entry:
 | TC | primary **40+0.4**; 10+0.1 informational only |
 | SPRT / cap | [0,10] normalized, a=b=0.05; cap_games 3000 (wall time to the cap at concurrency 8: at most ~13.8 h, from 2 x (base + 65 x inc) per game) |
 | srand / openings start | blank / blank |
-| prebench cand_on (d11/d13/d16) | 312961 / 838790 / 2891507 |
-| prebench cand_off (d11/d13/d16) | 312866 / 862329 / 3024920 |
+| prebench cand_on (d11/d13/d16/d20/d22) | 312961 / 838790 / 2891507 / 12313394 / 33298237 |
+| prebench cand_off (d11/d13/d16/d20/d22) | 312866 / 862329 / 3024920 / 12389307 / 34048354 |
 | expected echo | `info string active: CorrExt=1` |
 | smoke | PASS: 200/200 games, failures {'illegal': 0, 'crash': 0, 'time_loss': 0, 'missing_bestmove': 0, 'error_line': 0, 'echo': 0}, stop stress 50/50 problems 0 (`opus_r5/r5a/smoke/corrext1/summary.json`) |
 | conflicts with B1-B4 | None: no preset touches singular extensions (FB2 SingularV2, which overlaps it, is not on this branch and in no preset); CorrExt runs in its own search instance and combines with CuckooRep (all presets) via search_ce_cu. |
@@ -70,8 +70,8 @@ Common to every entry:
 | TC | primary **40+0.4**; 10+0.1 informational only |
 | SPRT / cap | [0,10] normalized, a=b=0.05; cap_games 3000 (wall time to the cap at concurrency 8: at most ~13.8 h, from 2 x (base + 65 x inc) per game) |
 | srand / openings start | blank / blank |
-| prebench cand_on (d11/d13/d16) | 343365 / 858019 / 2522546 |
-| prebench cand_off (d11/d13/d16) | 312866 / 862329 / 3024920 |
+| prebench cand_on (d11/d13/d16/d20/d22) | 343365 / 858019 / 2522546 / 12894582 / 22287047 |
+| prebench cand_off (d11/d13/d16/d20/d22) | 312866 / 862329 / 3024920 / 12389307 / 34048354 |
 | expected echo | `info string active: CorrMargins=1` |
 | smoke | PASS: 200/200 games, failures {'illegal': 0, 'crash': 0, 'time_loss': 0, 'missing_bestmove': 0, 'error_line': 0, 'echo': 0}, stop stress 50/50 problems 0 (`opus_r5/r5a/smoke/corrmargins1/summary.json`) |
 | conflicts with B1-B4 | Entangled with every preset: TtPruneV2 (B1-B4) adds its improving/worsening terms to the same RFP and futility margins inside the CorrMargins instance (M2 prints a warning for the pair). A standalone result does not transfer to a bundle; a pass needs a combined re-gate. |
@@ -87,8 +87,8 @@ Common to every entry:
 | TC | primary **10+0.1** |
 | SPRT / cap | [0,10] normalized, a=b=0.05; cap_games 3000 (wall time to the cap at concurrency 8: at most ~3.4 h, from 2 x (base + 65 x inc) per game) |
 | srand / openings start | blank / blank |
-| prebench cand_on (d11/d13/d16) | 296553 / 824640 / 2914749 |
-| prebench cand_off (d11/d13/d16) | 312866 / 862329 / 3024920 |
+| prebench cand_on (d11/d13/d16/d20/d22) | 296553 / 824640 / 2914749 / 13945117 / 40489211 |
+| prebench cand_off (d11/d13/d16/d20/d22) | 312866 / 862329 / 3024920 / 12389307 / 34048354 |
 | expected echo | `info string active: CorrHistPlus=2` |
 | smoke | PASS: 200/200 games, failures {'illegal': 0, 'crash': 0, 'time_loss': 0, 'missing_bestmove': 0, 'error_line': 0, 'echo': 0}, stop stress 50/50 problems 0 (`opus_r5/r5a/smoke/corrhistplus2/summary.json`) |
 | conflicts with B1-B4 | As CorrHistPlus=4: combinable with B1/B3 (bitmask 3), exclusive with B2/B4 (CorrHistV2). |
@@ -104,8 +104,8 @@ Common to every entry:
 | TC | primary **10+0.1** |
 | SPRT / cap | [0,10] normalized, a=b=0.05; cap_games 3000 (wall time to the cap at concurrency 8: at most ~3.4 h, from 2 x (base + 65 x inc) per game) |
 | srand / openings start | blank / blank |
-| prebench cand_on (d11/d13/d16) | 357478 / 747883 / 2544596 |
-| prebench cand_off (d11/d13/d16) | 312866 / 862329 / 3024920 |
+| prebench cand_on (d11/d13/d16/d20/d22) | 357478 / 747883 / 2544596 / 9007492 / 23436414 |
+| prebench cand_off (d11/d13/d16/d20/d22) | 312866 / 862329 / 3024920 / 12389307 / 34048354 |
 | expected echo | `info string active: CorrHistPlus=6` |
 | smoke | pending |
 | conflicts with B1-B4 | As CorrHistPlus=4 (bitmask 7 with B1/B3; exclusive with B2/B4). |
@@ -121,8 +121,8 @@ Common to every entry:
 | TC | primary **10+0.1** |
 | SPRT / cap | [0,10] normalized, a=b=0.05; cap_games 3000 (wall time to the cap at concurrency 8: at most ~3.4 h, from 2 x (base + 65 x inc) per game) |
 | srand / openings start | blank / blank |
-| prebench cand_on (d11/d13/d16) | 308948 / 917342 / 2601047 |
-| prebench cand_off (d11/d13/d16) | 312866 / 862329 / 3024920 |
+| prebench cand_on (d11/d13/d16/d20/d22) | 308948 / 917342 / 2601047 / 14196959 / 32409747 |
+| prebench cand_off (d11/d13/d16/d20/d22) | 312866 / 862329 / 3024920 / 12389307 / 34048354 |
 | expected echo | `info string active: NetScale=99` |
 | smoke | pending |
 | conflicts with B1-B4 | Moves every eval margin, so it interacts with TtPruneV2 (all presets) and CorrMargins; no table or option conflict. |
@@ -138,8 +138,8 @@ Common to every entry:
 | TC | primary **10+0.1** |
 | SPRT / cap | [0,10] normalized, a=b=0.05; cap_games 3000 (wall time to the cap at concurrency 8: at most ~3.4 h, from 2 x (base + 65 x inc) per game) |
 | srand / openings start | blank / blank |
-| prebench cand_on (d11/d13/d16) | 336192 / 869621 / 3052885 |
-| prebench cand_off (d11/d13/d16) | 312866 / 862329 / 3024920 |
+| prebench cand_on (d11/d13/d16/d20/d22) | 336192 / 869621 / 3052885 / 15664938 / 35705218 |
+| prebench cand_off (d11/d13/d16/d20/d22) | 312866 / 862329 / 3024920 / 12389307 / 34048354 |
 | expected echo | `info string active: HistRework=3` |
 | smoke | pending |
 | conflicts with B1-B4 | B1/B4 use HistRework=2: levels are alternative values of one option, never combined. |
@@ -155,8 +155,8 @@ Common to every entry:
 | TC | primary **10+0.1** |
 | SPRT / cap | [0,10] normalized, a=b=0.05; cap_games 3000 (wall time to the cap at concurrency 8: at most ~3.4 h, from 2 x (base + 65 x inc) per game) |
 | srand / openings start | blank / blank |
-| prebench cand_on (d11/d13/d16) | 373261 / 1043893 / 3399770 |
-| prebench cand_off (d11/d13/d16) | 312866 / 862329 / 3024920 |
+| prebench cand_on (d11/d13/d16/d20/d22) | 373261 / 1043893 / 3399770 / 13180132 / 35699757 |
+| prebench cand_off (d11/d13/d16/d20/d22) | 312866 / 862329 / 3024920 / 12389307 / 34048354 |
 | expected echo | `info string active: HistRework=1` |
 | smoke | pending |
 | conflicts with B1-B4 | As HistRework=3. |

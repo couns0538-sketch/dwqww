@@ -1,6 +1,6 @@
 # Forge Opus round 5A: gate-ready singles (CorrMargins, CorrExt, CorrHistPlus variants, NetScale) — IN PROGRESS
 
-**Status:** M1, M2, M5 done (CI green); M3 smoke 3/8 PASS, CorrHistPlus=4 at 120/200 (0 failures), then a d20/d22 pin pause; M4 written + validated. Last push 03:18 Vienna.
+**Status:** M1, M2, M5 done (CI green); M3 smoke 4/8 PASS (CorrMargins, CorrExt, CorrHistPlus=2, =4), CorrHistPlus=6 running; M4 written + validated (5-depth pins). Last push 03:27 Vienna.
 
 Branch `opus-r5a-singles` = `origin/forge-bundle-int` b7c17722 + the commits listed per milestone. Job started 01:52 Vienna
 (2026-10-29), hard stop 04:52 Vienna. No Elo claims: node counts are not strength; gates decide. Machine exclusive: no
@@ -177,6 +177,7 @@ Results (PGNs `smoke/<config>/games.pgn`, summaries `smoke/<config>/summary.json
 | corrmargins1 | `CorrMargins=1` | 200/200 | 0 | 0 | 0 | 0 | 0 | 0 | 50/50, 0 problems | 132.5 | 0 | 0 | 96.5/200 | threefold_repetition 139, checkmate 37, insufficient_material 16, fifty_moves 7, stalemate 1 | 02:16:09 Vienna-02:31:46 | **PASS** |
 | corrext1 | `CorrExt=1` | 200/200 | 0 | 0 | 0 | 0 | 0 | 0 | 50/50, 0 problems | 127.1 | 0 | 0 | 101.5/200 | threefold_repetition 138, checkmate 51, insufficient_material 8, fifty_moves 3 | 02:37:18 Vienna-02:52:33 | **PASS** |
 | corrhistplus2 | `CorrHistPlus=2` | 200/200 | 0 | 0 | 0 | 0 | 0 | 0 | 50/50, 0 problems | 126.4 | 1 | 0 | 103/200 | threefold_repetition 138, checkmate 50, insufficient_material 8, fifty_moves 4 | 02:53:24 Vienna-03:08:30 | **PASS** |
+| corrhistplus4 | `CorrHistPlus=4` | 200/200 | 0 | 0 | 0 | 0 | 0 | 0 | 50/50, 0 problems | 127.9 | 0 | 0 | 97.5/200 | threefold_repetition 140, checkmate 43, insufficient_material 12, fifty_moves 3, stalemate 2 | 03:08:30 Vienna-03:23:47 | **PASS** |
 <!-- /smoke-table -->
 
 ## M4 gate pack (02:16-02:40 Vienna, written while the smoke ran) — DONE (smoke column refreshes)
@@ -196,6 +197,13 @@ primary TC per option, at most one NetScale value, ranks 1..n) and the evidence 
 `logs/m1_bench_base.json`, exe sha256 = the files): **8/8 OK**; a planted copy (cap as the string "3000", an
 srand filled in, one pin +1) fails with exactly those three problems. Each entry also carries an upper bound of
 the wall time to the cap at concurrency 8 (about 3.4 h at 10+0.1, 13.8 h at 40+0.4).
+Deep pins (03:23-03:25 Vienna, smoke paused; `tools/deep_pins.sh`, 3 bench processes, `logs/deep_pins.txt` +
+`logs/deep_pins/`): d20 / d22 ON for every entry, so `prebench` now lists d11/13/16/20/22 like the R3 queue:
+CorrHistPlus=4 12132495 / 37005405, CorrExt=1 12313394 / 33298237, CorrMargins=1 12894582 / 22287047,
+CorrHistPlus=2 13945117 / 40489211, CorrHistPlus=6 9007492 / 23436414, NetScale=99 14196959 / 32409747,
+HistRework=3 15664938 / 35705218, HistRework=1 13180132 / 35699757. Where earlier records exist they match
+exactly: CorrMargins / CorrExt d20 (`opus_r3/R3-1/OPTIONS.md`), NetScale=99 d20 and d22 (R3-3 R3-11 prebench),
+CorrHistPlus=2 +12.6% / +18.9% vs OFF (R3-3 R3-05). Validator re-run with the 5-depth pins: 8/8 OK.
 
 ## M5 SPSA-ready hooks (02:20-02:38 Vienna) — DONE
 
@@ -262,7 +270,7 @@ Every other push of this branch is `[skip ci]` (WIP, docs, smoke evidence); the 
 ## Milestones
 - M1 per-option audit + ON benches: DONE (02:01 Vienna, commit aeb6f093)
 - M2 effective-settings echo + conflict guards: DONE (02:15 Vienna)
-- M3 smoke stability: in progress (3/8 PASS at 03:08; see the table)
+- M3 smoke stability: in progress (4/8 PASS at 03:23; see the table)
 - M4 gate pack: written (02:23 Vienna; smoke column refreshes as configs finish)
 - M5 SPSA hooks (optional): DONE (02:38 Vienna)
 
