@@ -1,6 +1,12 @@
 # Forge Opus R5C: v4 NNUE (J7 L2=16) engine support + N3 Syzygy / IntendedThreefold / HardDeadline hardening — IN PROGRESS
 
-**Status:** PAUSED at 09:52 Vienna for job R5D (user request: R5D before the next R5C step). Done: 00_baseline, M1. M2: tables sha-verified (290/290), 200-game N3 smoke 200/200 with 0 failures (TB-hit totals in /f/opus_scratch/r5/r5c/smoke/n3/summary.json), prebench pins measured; N3_GATE_SPEC.md not written yet. M3: FNN4_FORMAT.md written; src/nnue_v4.cpp (loader, scalar + AVX2 forward), UCI NNUEv4 / NNUEv4File and the search hook written and compiled (forge_r5c_m3a.exe, 0 warnings, FMA 0), NOT yet tested (no v4 unit test, no parity); M4, M5 not started.
+**Status:** finishing (paused 09:52-11:00 Vienna for job R5D at the user's request). M1 done. M2: tables 290/290 sha
+OK, N3 smoke 200/200 clean (the re-run with `tbhits` counting and the fixed stress board is in progress), prebench
+pins, `N3_GATE_SPEC.md` + `n3_gate_spec.json` (runner change needed: a candidate-only string option). M3: FNN4 format,
+loader + scalar / AVX2 forward + UCI `NNUEv4` / `NNUEv4File`, OFF identity ALL OK, v4 unit test 54 checks PASS. M4:
+`export_fnn4.py` from the real J7 checkpoint, parity 100,000 positions 0 mismatches (scalar and AVX2), float gap mean
+0.96 cp, v4 smoke 50/50 PASS. M5: handoff written; exact holdout b0.6 0.015422 > AL1 0.014417 (not gate-eligible);
+v4 NPS 0.59x. Pending: N3 re-run result, full CTest of the final tree, CI.
 
 Branch `opus-r5c-netv4` = `origin/forge-bundle-int` b7c1772 + R5C commits. Job folder `opus_r5/r5c/`, scratch
 `F:\opus_scratch\r5\r5c\` (exes in `exe\`, sha256 in `EXES.txt`). Machine exclusive: no (live gates, NNUE training

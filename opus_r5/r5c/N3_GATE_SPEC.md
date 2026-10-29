@@ -28,8 +28,9 @@ None of the 63 past gates (`D:\grok-pc-data\forge_push\gate*\RUN_INFO.json`, rea
 option whose value is not a number or true/false; the runner (`forge_queue.ps1 v3-6day r7`) builds the candidate's
 fastchess arguments from the `candidate.options` strings. Needed:
 1. Pass `option.SyzygyPath=D:/grok-pc-data/dwqww/.claude/worktrees/syzygy345` to the candidate's `-engine` block only
-   (never in `-each`), unchanged: no case change, no split at `:` or `/`, no quoting added (the path has no
-   spaces). fastchess splits `option.NAME=VALUE` at the first `=`, so the value arrives whole.
+   (never in `-each`), unchanged: no case change, no split at `:` or `/`, no quoting added. The path has no spaces
+   and no `=`, so `option.SyzygyPath=<path>` stays one argument with one `=`; check the first RUN log for the
+   `info string Syzygy: 145 WDL and 145 DTZ tables` line of the candidate before trusting the gate.
 2. Give the same option to the runner's pre-gate bench of the candidate ("cand ON" pins above): without the tables the
    ON bench would be the OFF bench and the pins would not match.
 3. Keep the tables where they are for the whole gate (or copy them and change the path in both places); the
