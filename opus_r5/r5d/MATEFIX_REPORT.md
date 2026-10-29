@@ -1,6 +1,6 @@
 # Forge Opus R5D: forced mate reported as a centipawn score with Threads >= 2 — DONE
 
-**Status:** DONE (11:48 Vienna; commits 09:56-11:48). Cause: forward pruning (late-move / history / SEE pruning,
+**Status:** DONE (11:47 Vienna; commits 09:56-11:47). Cause: forward pruning (late-move / history / SEE pruning,
 LMR) drops the only mating quiet move against a bare king, and the pruning-dependent bounds reach the root through
 the TT; a second thread is only the commonest source of a different TT/history state (one thread on a warm TT misses
 too, 6 of 40). Fix BKM (commit 9933e43c, no option): no quiet-move pruning and no LMR at bare-king nodes while more
