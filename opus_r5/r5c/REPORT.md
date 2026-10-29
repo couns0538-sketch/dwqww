@@ -83,7 +83,20 @@ Findings (no bug fixed in the search):
 
 M1 exe `forge_r5c_m1.exe` (v3 recipe, M1 tree): 0 warnings, FMA 0, identity ALL OK (`logs/identity_m1.log`).
 
-## M2: N3 gate pack (pending)
+## M2: N3 gate pack (in progress; paused for R5D)
+
+- Tables: 290/290 files sha256 OK against opus_r3/R3-1L/syzygy345.sha256 (`logs/m2_syzygy345_sha256_check.log`;
+  the checked-out sha list has CRLF, so the check uses an LF copy).
+- Book `n3_endgame_book.epd`: 100 of 151 positions with 6-9 pieces, no castling, not in check, from
+  tests/data/nnue_selfplay_sample_916.txt (`tools/make_endgame_book.py`).
+- Prebench of the candidate (SyzygyPath + IntendedThreefold + HardDeadline=10): 313631 / 866959 / 2460490 /
+  11465604 / 31972996, perft5 4865609; only SyzygyPath changes bench (`logs/m2_n3_prebench*.log`).
+- Smoke 09:39-09:51 Vienna (`smoke_n3.py`, 200 games 5+0.05, Threads 1, conc 2): games 200/200 with 0 illegal,
+  0 crashes, 0 time losses, 0 missing bestmoves; verdict FAIL only from the go/stop stress (96 "illegal bestmove"
+  problems): **my runner's bug** - the stress checks legality on a board built from startpos + moves instead of the
+  FEN opening. Open items for the resume: (1) fix that board and re-run the stress; (2) the engine prints no
+  `tbhits` in its info lines (no `tbhits` in src/), so "count TB hits from info output" needs a small engine change
+  (print `tbhits N` only while tables are loaded, OFF output unchanged); the smoke counted 0 for that reason.
 
 ## M3: v4 format + engine inference (pending)
 
