@@ -52,3 +52,7 @@ The bounded rewrite mode is implemented in the existing test driver, with separa
 Next task: keep this frozen reproducer; add a separate test-only provenance trace for TT score/eval/move decisions at root and the d5c5 child before proposing a production fix. First use a fresh K2-only condition (current driver loops K1 first and aborts on its missing child, so max-seed-depth2 alone will not reach K2). Preserve no-touch and identical-rewrite controls, never insert an absent target. Current root-score-mask negative evidence already answers K1; do not repeat it without a new question. Per-store worker/depth/window/history provenance is still required by A2.
 
 Final diagnostic checkpoint at2026-10-29T03:01:46.778165-07:00. Independent source review found no blocking intervention bug. Native build succeeded; source hash3f76a90bb0836f79fdd4e7598f2ff34a5dcd9122c8ca7abb21e85874a4fabbe6. The failed missing-target experiment is saved, not hidden or reclassified as success. Parent final review remains running.
+
+### Final evidence review checkpoint — 2026-10-29T03:10:40.858589-07:00
+
+FINAL_REVIEW_AUDIT.json independently recomputes the original28/28 control exact mates,9/28 seeded CP results, zero timeouts, matching root rewrite nodes/PVs and all native evidence manifests. Engine/header/CMake are unchanged. This is an evidence-consistency PASS only; A2 remains BLOCKED with no production fix and the child rewrite remains incomplete. No further A2 experiment is running.
