@@ -115,7 +115,25 @@ M1 exe `forge_r5c_m1.exe` (v3 recipe, M1 tree): 0 warnings, FMA 0, identity ALL 
   written from FNN4_FORMAT.md == AVX2 on random-game positions for five shapes (H 64..512, KB 1..32, OB 1..16, L2
   1..64, mirror/residual flags) and on a net at the accumulator bound (767 + 32 * 1000 = 32767, 32 pieces).
 
-## M4: exporter + parity (pending)
+## M4: exporter + parity (in progress)
+
+- Real J7 checkpoint (read-only): `F:\opus_scratch\fable\fb2\j7\run_l2_60\best.pt` (step 10,035, float holdout b0.6
+  0.015417 per its status.json; sha256 9b390b26...). `tools/nnue/export_fnn4.py export` (own code; the trainer's
+  model class was read for the tensor names and the forward): factoriser merged into w1, w1/b1/b2 on the trainer's
+  fake-quant grid (float32, round half to even), l2w x 1024, l2b x ONE, l2o x 256. Output `j7_best_l2.fnn4`:
+  6,325,896 bytes = the FNN4 size formula for KB 8 / H 512 / L2 16 / OB 8, checksum 7e6e69fb36b5b6e0, mirrored,
+  standalone (no residual flag), eval_scale 400; nothing clipped; accumulator bound 95 + 32 * 438 = 14,111 <= 32,767;
+  largest layer-2 row bound 102,202,761 << 2^31; layer-2 rounding errors at most half a grid step (l2w 0.00049,
+  l2b 4.7e-7, l2o 0.0019) (`logs/m4_export.json`).
+- Parity, 100,000 positions (`F:\opus_scratch\fable\parity\positions_100k.fen`): engine values from
+  `opus_r5/r5c/tools/r5c_v4_eval.cpp` (scalar and AVX2 kernels) vs the exporter's numpy int64 forward read back from
+  the FILE: **0 mismatches scalar, 0 mismatches AVX2** (`logs/m4_parity_100k.json`); largest |accumulator| 2,329.
+  Float (the trainer's forward with fake-quantised w1/b1/b2 and float layer 2) vs the exact integer value:
+  mean 0.96 cp, p99 2.79 cp, max 4.85 cp: the price of not fake-quantising layer 2 in J7. Hashes of the inputs and
+  the engine output in `logs/m4_inputs_outputs.sha256`.
+- A first engine smoke passed the net as an MSYS path (`/f/...`): the engine refused it loudly
+  (`info string ERROR NNUE v4: cannot open ...; the default net evaluates`) and bench stayed 862329, the designed
+  failure path; the re-run with the Windows path is below.
 
 ## M5: handoff (pending)
 
