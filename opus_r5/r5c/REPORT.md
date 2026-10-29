@@ -1,12 +1,13 @@
-# Forge Opus R5C: v4 NNUE (J7 L2=16) engine support + N3 Syzygy / IntendedThreefold / HardDeadline hardening — IN PROGRESS
+# Forge Opus R5C: v4 NNUE (J7 L2=16) engine support + N3 Syzygy / IntendedThreefold / HardDeadline hardening — DONE
 
-**Status:** finishing (paused 09:52-11:00 Vienna for job R5D at the user's request). M1 done. M2: tables 290/290 sha
+**Status:** DONE (11:51 Vienna; paused 09:52-11:00 for job R5D at the user's request). M1 done. M2: tables 290/290 sha
 OK, N3 smoke re-run with `tbhits` counting and the fixed stress board PASS (200/200, stress 50/50), prebench
 pins, `N3_GATE_SPEC.md` + `n3_gate_spec.json` (runner change needed: a candidate-only string option). M3: FNN4 format,
 loader + scalar / AVX2 forward + UCI `NNUEv4` / `NNUEv4File`, OFF identity ALL OK, v4 unit test 54 checks PASS. M4:
 `export_fnn4.py` from the real J7 checkpoint, parity 100,000 positions 0 mismatches (scalar and AVX2), float gap mean
-0.96 cp, v4 smoke 50/50 PASS. M5: handoff written; exact holdout b0.6 0.015422 > AL1 0.014417 (not gate-eligible);
-v4 NPS 0.59x. Pending: N3 re-run result, full CTest of the final tree, CI.
+0.96 cp (float side checked against the trainer's torch forward), v4 smoke 50/50 PASS. M5: handoff written; exact
+holdout b0.6 0.015422 > AL1 0.014417 (not gate-eligible); v4 NPS 0.59x. Final tree: full CTest 57/57 + forge_tests
+known-failure check PASS on the PC (`logs/m5_ctest_*.log`); CI: see the M5 CI line.
 
 Branch `opus-r5c-netv4` = `origin/forge-bundle-int` b7c1772 + R5C commits. Job folder `opus_r5/r5c/`, scratch
 `F:\opus_scratch\r5\r5c\` (exes in `exe\`, sha256 in `EXES.txt`). Machine exclusive: no (live gates, NNUE training
@@ -127,7 +128,7 @@ M1 exe `forge_r5c_m1.exe` (v3 recipe, M1 tree): 0 warnings, FMA 0, identity ALL 
 ## M3: v4 format + engine inference (done)
 
 - `tests/r5c_v4_tests.cpp` (CTest `forge_r5c_v4_tests`; standalone build PASS, 54 checks, 0 failures,
-  `logs/v4_tests_m3b.log`; CMake build pending): nets built and serialised by the
+  `logs/v4_tests_m3b.log`; CTest PASS in the final checks, M5): nets built and serialised by the
   test's own FNN4 writer; parser refusals (every header field, size +-1, checksum, both overflow bounds, b_out,
   reserved bytes, short file), `load()` size check and keep-on-failure, scalar forward == the test's int64 reference
   written from FNN4_FORMAT.md == AVX2 on random-game positions for five shapes (H 64..512, KB 1..32, OB 1..16, L2
@@ -148,7 +149,9 @@ M1 exe `forge_r5c_m1.exe` (v3 recipe, M1 tree): 0 warnings, FMA 0, identity ALL 
   the FILE: **0 mismatches scalar, 0 mismatches AVX2** (`logs/m4_parity_100k.json`); largest |accumulator| 2,329.
   Float (the trainer's forward with fake-quantised w1/b1/b2 and float layer 2) vs the exact integer value:
   mean 0.96 cp, p99 2.79 cp, max 4.85 cp: the price of not fake-quantising layer 2 in J7. Hashes of the inputs and
-  the engine output in `logs/m4_inputs_outputs.sha256`.
+  the engine output in `logs/m4_inputs_outputs.sha256`. The float side itself was checked against Fable's own torch
+  `Model.forward` (read-only copies, `tools/check_float_forward.py`): 2,000 positions, max 0.00055 cp, mean 0.00007 cp
+  (`logs/m5_check_float_forward.log`), so the gap figures measure the quantisation, not my re-implementation.
 - A first engine smoke passed the net as an MSYS path (`/f/...`): the engine refused it loudly
   (`info string ERROR NNUE v4: cannot open ...; the default net evaluates`) and bench stayed 862329, the designed
   failure path; the re-run with the Windows path is below.
@@ -196,6 +199,13 @@ Open risks: (1) the speed above; (2) the layer-2 quantisation gap until the trai
 standalone net (no HCE residual), the AL1 net is residual; (4) the gate runner has never passed a string option
 (0 of 63 RUN_INFO.json files); (5) v4 was exercised with Threads 1 only (the evaluation keeps no per-worker state and
 reads the loaded net read-only, so more threads add no shared writes).
+
+Final checks of the branch head (PC, 11:48-11:50 Vienna): CMake Release build of all targets (`cmake_m3b`, 62 warning
+lines, all pre-existing `-Wconversion` / `-Wclass-memaccess` in unchanged TT code), CTest on a 3-CPU mask **57/57
+passed** (incl. `forge_r5c_v4_tests`, `forge_r5c_n3_tests` with the tables, `r5c_n3_uci`), `forge_tests` only the 4
+known FAIL lines (KNOWN-FAILURE CHECK PASS) (`logs/m5_ctest_m3b.log`, `logs/m5_ctest_forge_tests_m3b.log`).
+CI: the push of this report commit runs opus-ci on the head (the engine and test commits since M1 were pushed with
+`[skip ci]`); its run id and result are recorded in the next commit.
 
 ## What to gate first
 
