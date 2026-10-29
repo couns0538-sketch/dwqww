@@ -107,3 +107,19 @@ M4 is qualified above. Replaced every production preset, includingOFF, with name
 ### F1 rolling checkpoint — 2026-10-29 01:02:11 PDT
 
 Independent read-only review found no correctness blocker. Identical compile probes show the old reordered header fails its intended assertions and the named version passes both layouts; after-header hash matches the source. Full Release build completed; first four OFF depths match pins, d22/CTest/kiwipete remain running or pending. Evidence in F1 is explicitly partial until qualification.json exists. Added a fixed-reference final option-matrix runner (not yet executed); it checks all supplied R5A singles without deriving expected nodes from the candidate. No speed/Elo claim.
+
+### F1 qualification — 2026-10-29 01:05:09 PDT
+
+Source `a19a4477a1e502d675e505c741d9d7abc0511d8a`; exe SHA256 `7e876391a72dda02ebed8677d6df026e96afbd10a0d8b676fe31f0578f74504e`. Complete Release build succeeded. Full CTest 62/63, raw exit 8; failures: [['forge_tests', 'Failed']]. Original diagnostics: ['FAIL: WAC 001 expected g3g6 got f6h5', 'FAIL: WAC 001 score 623 below 31997', 'FAIL: unrestricted search chooses the winning rook underpromotion over stalemating queen promotion', 'FAIL: unrestricted search chooses the winning rook underpromotion over stalemating queen promotion']. Startpos perft5=4865609; kiwipete5=193690690; whole-binary FMA=0.
+
+| Depth | OFF nodes | ms | NPS |
+|---:|---:|---:|---:|
+| 11 | 312866 | 477 | 655903 |
+| 13 | 862329 | 1123 | 767879 |
+| 16 | 3024920 | 4809 | 629012 |
+| 20 | 12389307 | 16100 | 769522 |
+| 22 | 34048354 | 48422 | 703158 |
+
+Exact commands (same configured rule5 build): `cmake --build /tmp/forge-astra3-build-integration -j4`; `python3 astra3/integration/tools/identity_bench.py /tmp/forge-astra3-build-integration/forge astra3/integration/F1/pins`; `python3 astra3/integration/tools/run_full_ctest.py /tmp/forge-astra3-build-integration astra3/integration/F1/ctest`; `python3 astra3/integration/tools/check_milestone.py /tmp/forge-astra3-build-integration/forge astra3/integration/F1 --source a19a4477a1e502d675e505c741d9d7abc0511d8a`. Flags, raw output, original executable and receipt retained in F1. These timings make no speed or Elo claim. Full integrated ON matrix/SAN/TSan remains pending until the final A1 head.
+
+Native pre-R5A contract run completed:101 cases,97 failed,4 passed. Missing active echoes and non-owned override messages are demonstrated with original streams. Four response-deadline failures during an environment slowdown are NOT counted as intended regression proof; raw failures are preserved for follow-up. No engine process remains from this run. F1 full qualification is complete above. Next: exact R5A merge and integrated contract repair.

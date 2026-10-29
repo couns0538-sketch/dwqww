@@ -39,3 +39,7 @@ the exact source bytes are independently identified by SHA256.
 
 IDEA_SOURCE: the recurring positional-option integration defect and the user's requirement for explicit named
 construction and preset ownership. Original probe and mutation driver; no other-engine code.
+
+## Completed F1 repair
+
+Production repair is commit a19a4477a1e502d675e505c741d9d7abc0511d8a, the first commit after merge 0fe9b37. The unchanged driver was run into `after_designators_F1`: original and reordered copied headers both compile successfully. That directory contains the original command records, diagnostics, results and hashes. This supersedes the preparation-only UNVERIFIED statement above for the compile proof; full native qualification is recorded separately under F1 and REPORT.md.
