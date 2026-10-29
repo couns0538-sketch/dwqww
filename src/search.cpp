@@ -1,4 +1,5 @@
 #include "forge/search.hpp"
+#include "forge/timeman.hpp"
 #include "forge/uci_output.hpp"
 
 #include <algorithm>
@@ -688,8 +689,19 @@ bool Worker::should_stop() {
     if (hard_limit_ms_ > 0) {
         if (pondering_ && shared_.ponder_hit_ns.load(std::memory_order_relaxed) == 0) return false;
         if (elapsed_ms() >= hard_limit_ms_) return true;
+        if (tm_v2_active_) {
+            // TimeManV2: read the clock more often as the hard deadline approaches (the search returns at most one
+            // interval after it), and honour the in-search soft node limit set at the last iteration boundary.
+            const std::int64_t elapsed = std::max<std::int64_t>(elapsed_ms(), 1);
+            check_mask_ = timeman::check_mask(static_cast<double>(local_nodes_) / static_cast<double>(elapsed), hard_limit_ms_ - elapsed);
+            if (soft_node_limit_ > 0 && local_nodes_ >= soft_node_limit_) return true;
+        }
     }
     return false;
+}
+
+namespace fb2 {
+bool TimeManV2 = false;
 }
 
 bool Worker::is_draw(const Board& board, int ply) const {
@@ -774,7 +786,7 @@ void Worker::update_capture_stats(const Board& board, Move best, int depth, cons
 int Worker::qsearch(Board& board, SearchStack* ss, int alpha, int beta) {
     const bool pv_node = beta - alpha > 1;
     const int ply = ss->ply;
-    if (((local_nodes_ & 1023U) == 0 || node_limit_specified_) && should_stop()) aborted_ = true;
+    if (((local_nodes_ & check_mask_) == 0 || node_limit_specified_) && should_stop()) aborted_ = true;
     if (aborted_) return 0;
     ++local_nodes_;
     seldepth_ = std::max(seldepth_, ply);
@@ -885,7 +897,7 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
     // Keep this call's inherited path budget independent of those mutations.
     const int inherited_double_extensions = (ss - 1)->double_extensions;
     ss->double_extensions = inherited_double_extensions;
-    if (((local_nodes_ & 1023U) == 0 || node_limit_specified_) && should_stop()) aborted_ = true;
+    if (((local_nodes_ & check_mask_) == 0 || node_limit_specified_) && should_stop()) aborted_ = true;
     if (aborted_) return 0;
     ++local_nodes_;
     seldepth_ = std::max(seldepth_, ply);
@@ -1376,12 +1388,20 @@ SearchInfo Worker::search(Board board, const SearchLimits& limits, bool emit_inf
     int stable_iterations = 0;
     int score = 0;
     int previous_score = ValueNone;
+    // FB2-J4 TimeManV2: node-based soft budget, adaptive clock reads, in-search soft stop.
+    tm_v2_active_ = fb2::TimeManV2 && time_managed_ && is_main();
+    check_mask_ = 1023;
+    soft_node_limit_ = 0;
+    std::uint64_t iteration_nodes = 0;
+    std::uint64_t previous_iteration_nodes = 0;
+    std::uint64_t iteration_start_nodes = 0;
     root_effort_count_ = root_candidates.size();
     assert(root_effort_count_ <= root_effort_moves_.size());
     std::copy(root_candidates.begin(), root_candidates.end(), root_effort_moves_.begin());
     root_move_nodes_.fill(0);
     for (int depth = 1; depth <= max_depth; ++depth) {
         root_depth_ = depth;
+        iteration_start_nodes = local_nodes_;
         int delta = tune::AspirationDelta;
         int alpha = -Infinite;
         int beta = Infinite;
@@ -1434,7 +1454,37 @@ SearchInfo Worker::search(Board board, const SearchLimits& limits, bool emit_inf
 
         if (mate_moves > 0 && is_mate_score(score) && MateValue - std::abs(score) <= mate_depth) break;
         if (should_stop()) break;
-        if (time_managed_ && !(pondering_ && shared_.ponder_hit_ns.load(std::memory_order_relaxed) == 0)) {
+        previous_iteration_nodes = iteration_nodes;
+        iteration_nodes = local_nodes_ - iteration_start_nodes;
+        if (tm_v2_active_ && !(pondering_ && shared_.ponder_hit_ns.load(std::memory_order_relaxed) == 0)) {
+            // TimeManV2: the soft budget in nodes at the measured speed, scaled by stability, effort and score drop;
+            // stop when it is spent or when the predicted next iteration would overshoot it; the in-search soft
+            // node limit lets the next iteration stop early instead of running to the hard deadline.
+            timeman::Iteration it;
+            it.depth = depth;
+            it.score = score;
+            it.previous_score = iteration_previous_score;
+            it.score_is_mate = is_mate_score(score);
+            it.stable_iterations = stable_iterations;
+            it.nodes_total = local_nodes_;
+            it.nodes_iteration = iteration_nodes;
+            it.nodes_previous_iteration = previous_iteration_nodes;
+            it.elapsed_ms = elapsed_ms();
+            const auto effort_end = root_effort_moves_.begin() + static_cast<std::ptrdiff_t>(root_effort_count_);
+            const auto best_effort = std::find(root_effort_moves_.begin(), effort_end, result.best_move);
+            if (best_effort != effort_end) it.best_move_nodes = root_move_nodes_[static_cast<std::size_t>(best_effort - root_effort_moves_.begin())];
+            timeman::Scaling scaling;
+            scaling.stable_factor = tune::TmStableFactor;
+            scaling.semi_stable_factor = tune::TmSemiStableFactor;
+            scaling.unstable_factor = tune::TmUnstableFactor;
+            scaling.effort_base = tune::TmEffortBase;
+            scaling.falling_eval_percent = tune::TmFallingEvalPercent;
+            scaling.min_factor_percent = tune::TmMinFactorPercent;
+            const timeman::Budget budget{soft_limit_ms_, hard_limit_ms_, true};
+            const timeman::Decision decision = timeman::decide_v2(budget, scaling, it);
+            soft_node_limit_ = decision.soft_node_limit;
+            if (decision.stop) break;
+        } else if (time_managed_ && !(pondering_ && shared_.ponder_hit_ns.load(std::memory_order_relaxed) == 0)) {
             // Stop early when the best move has been stable; spend longer when it keeps changing.
             double factor = 1.0;
             if (stable_iterations >= 6) factor = tune::TmStableFactor / 100.0;

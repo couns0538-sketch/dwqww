@@ -173,7 +173,8 @@ int main() {
                          "option name Book Variety type spin default 30 min 0 max 100\n";
             if (forge::nnue::available()) std::cout << "option name UseNNUE type check default true\n";
             std::cout << "option name NNUEArch type check default false\n"
-                         "option name NNUEArchFile type string default <empty>\n";
+                         "option name NNUEArchFile type string default <empty>\n"
+                         "option name TimeManV2 type check default false\n";
 #ifdef FORGE_EXPOSE_TUNABLES
             // Development builds advertise the search constants so match
             // runners can set them; release builds accept them silently.
@@ -268,6 +269,9 @@ int main() {
                 } else {
                     book_variety = std::clamp(value, 0, 100);
                 }
+            } else if (name == "TimeManV2") {
+                if (value_text == "true" || value_text == "false") forge::fb2::TimeManV2 = value_text == "true";
+                else { const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex()); std::cout << "info string invalid value for option TimeManV2" << std::endl; }
             } else if (name == "NNUEArch") {
                 if (value_text == "true") {
                     forge::nnue::v3::requested = true;

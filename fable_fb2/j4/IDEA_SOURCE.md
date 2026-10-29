@@ -1,0 +1,13 @@
+# IDEA_SOURCE — FB2-J4 (time management v2)
+
+All code is new (`include/forge/timeman.hpp`, hooks in `src/search.cpp`, `tools/timeman_sim.cpp`,
+`tools/timeman/fable_timeman_games.py`); nothing copied. Ideas:
+
+| element | idea | source (idea only) | the lock |
+|---|---|---|---|
+| node-based soft budget | after each iteration the planned time (soft limit x factor) is converted into a node budget at the speed measured so far; the decision to continue is made on nodes, so timer jitter and output latency do not move the decision | common in engines that stop on `nodes >= optimum * nps` (Ethereal's "node TM", Stockfish's node-count based effort), own formulation | stops only when `elapsed >= soft * factor` at an iteration boundary |
+| stability / effort / score-drop scaling | the same three scalings as the lock (stable best move -> shorter, best move absorbing the effort -> shorter, falling score -> longer), shared through `timeman::scale_factor` | Stockfish (`bestMoveStability`, `totBestMoveChanges`, effort fraction `nodesEffort`, falling eval), already in the lock | identical factors (the same `tune::Tm*` constants) |
+| next-iteration prediction | the next iteration is predicted as `last iteration x EBF` (EBF from the last two iterations, clamped 1.3..3); if `nodes + 50% x prediction` exceeds the budget the next iteration is not started (it would most likely not finish) | "don't start an iteration you cannot finish" (Crafty, Fruit, many others) | none |
+| in-search soft stop | a soft node limit = budget x 130% is checked inside the iteration at the clock-read points, so a long last iteration stops near the planned time instead of running to the hard deadline (the partial iteration's best move is used when it raised alpha, as the lock already does) | Stockfish's "maximum time" vs "optimum time" with `stopOnPonderhit`; own node-based variant | runs the last iteration to the hard limit |
+| adaptive clock reads for the hard deadline | the clock is read every 1024 nodes far from the deadline and every 64..512 nodes when fewer than 4 x interval x nps milliseconds remain, so the search returns at most one short interval after the hard deadline; the same check also runs in quiescence (the lock's node check line is shared by both functions) | own (the lock reads every 1024 nodes everywhere) | fixed 1024-node interval |
+| flag-loss harness with the real decision code | the simulator links the engine's own `timeman` functions and models only the search (iteration sizes, speed jitter, stalls) and the GUI clock; a second harness plays real games with wall-clock charging | fishtest's time-loss statistics and cutechess' `timemargin` practice; own harness design | none |

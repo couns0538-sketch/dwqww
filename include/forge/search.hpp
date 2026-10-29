@@ -249,6 +249,11 @@ extern int FailLowContinuationBonus; // x0.01 of the history bonus given to the 
 void refresh();
 } // namespace tune
 
+// FB2-J4: time management v2 (UCI check option, default false; off = the lock's time management).
+namespace fb2 {
+extern bool TimeManV2;
+}
+
 // Move-ordering statistics.
 using ButterflyHistory = std::array<std::array<std::array<std::int16_t, 64>, 64>, 2>;
 using PieceToHistory = std::array<std::array<std::int16_t, 64>, 13>;
@@ -339,6 +344,10 @@ private:
     std::int64_t soft_limit_ms_ = 0;
     std::int64_t hard_limit_ms_ = 0;
     bool time_managed_ = false;
+    // FB2-J4 TimeManV2 state (only used when the option is on and the search is clock-managed).
+    bool tm_v2_active_ = false;
+    std::uint64_t check_mask_ = 1023;        // nodes between clock reads minus one (power of two minus one)
+    std::uint64_t soft_node_limit_ = 0;      // in-search soft stop (0 = none)
     bool aborted_ = false;
     int seldepth_ = 0;
     int root_depth_ = 0;

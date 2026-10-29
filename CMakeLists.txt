@@ -74,6 +74,8 @@ target_link_libraries(forge_nnue_v3_tests PRIVATE forge_core Threads::Threads)
 
 add_executable(forge_nnue_v3_tool tools/nnue_v3_tool.cpp)
 target_link_libraries(forge_nnue_v3_tool PRIVATE forge_core Threads::Threads)
+add_executable(forge_timeman_sim tools/timeman_sim.cpp)
+target_link_libraries(forge_timeman_sim PRIVATE forge_core Threads::Threads)
 
 add_executable(forge_bench bench/benchmark.cpp)
 target_link_libraries(forge_bench PRIVATE forge_core Threads::Threads)
@@ -86,6 +88,7 @@ add_test(NAME forge_pawn_span_tests COMMAND forge_pawn_span_tests)
 add_test(NAME forge_nearest_pawn_tests COMMAND forge_nearest_pawn_tests)
 add_test(NAME forge_pv_metadata_tests COMMAND forge_pv_metadata_tests)
 add_test(NAME forge_nnue_v3_tests COMMAND forge_nnue_v3_tests ${CMAKE_CURRENT_BINARY_DIR}/fable_v3_tests)
+add_test(NAME forge_timeman_sim COMMAND forge_timeman_sim 2000)
 add_test(NAME forge_tt_tests COMMAND forge_tt_tests)
 add_test(NAME forge_rule50_tests COMMAND forge_rule50_tests)
 add_test(NAME forge_legal_witness_tests COMMAND forge_legal_witness_tests
