@@ -273,6 +273,14 @@ per run `ucinewgame`, `position fen` KRK, `go depth 14`; a run fails unless the 
 The first miss of each base configuration (the tool prints only the first) is `score cp 450..475` with
 `bestmove e8e4`, the job's symptom.
 
+200-game Threads=2 smoke (`tools/smoke_matefix.py`, 10:59-11:45 Vienna): `forge_r5d_bkm.exe` (ON) vs
+`forge_r5d_off_5eabdb7.exe` (OFF), both Threads 2, Hash 16, OwnBook false, 5+0.05, concurrency 1 (at most 2 search
+threads busy), 100 openings of the 8-move book (seed 1) played with both colours, BelowNormal:
+**PASS** - 200/200 games, 0 illegal moves, 0 crashes, 0 time losses, 0 missing bestmoves, 0 error lines, 0 moves
+under 20 ms left, 0 engine restarts; go/stop stress at Threads 2 50/50 with 0 problems (`logs/smoke_t2_book_summary.json`,
+PGN sha256 in `logs/smoke_pgn.sha256`). Endings: 48 mates, 128 threefold, 20 insufficient material, 4 fifty-move.
+Not a strength test (ON 99 / 200 points; no Elo claim).
+
 ## 5. CI test
 
 `tests/r5d_matefix_tests.cpp` -> CTest `forge_r5d_matefix_tests` (argument: runs per configuration, CTest 50,
