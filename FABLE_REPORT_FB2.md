@@ -11,11 +11,11 @@ J3, J4, J6 were finished/advanced while J1 trains; J5 and J7 come last.
 |---|---|---|
 | J1 real v3 net at scale | `fable-fb2-j1` | data split DONE, trainer DONE, training RUNNING (ckpt 1: 0.016094 vs AL1 0.014417); exe/NPS/sanity games pending |
 | J2 datagen upgrade | `fable-fb2-j2` | **DONE** (engine mode, FGB1 format, converter, exact round-trip tests, 10-min smoke) |
-| J3 search improvements | `fable-fb2-j3` | code + tests + fit DONE, identity ALL OK; 500-game self-play per option RUNNING; gate entries written |
-| J4 time management v2 | `fable-fb2-j4` | code + simulator DONE (2000 games x 2 TCs x 3 scenarios, 0 flag losses), identity ALL OK, 100 real games at 1+0.01 PASS; more games RUNNING |
-| J5 SMP v2 | `fable-fb2-j5` | not started |
+| J3 search improvements | `fable-fb2-j3` | code + tests + fit DONE, identity ALL OK, CI green; 500-game self-play per option RUNNING (CorrHistV2 500/500, 0 errors); gate entries written |
+| J4 time management v2 | `fable-fb2-j4` | **DONE**: simulator (2000 games x 2 TCs x 3 scenarios, 0 flag losses), identity ALL OK, CI green, 220 real-clock games 0 flag losses |
+| J5 SMP v2 | `fable-fb2-j5` | analysis + code + tests + TSan hook written; build running; unit tests and 1/2/3-thread measurement wait for free CPU threads |
 | J6 gate design | `F:\opus_scratch\fable\GATE_BOUNDS.md` (copy `fable_fb2/j6/`) | **DONE** (proposal only) |
-| J7 NNUE v4 ideas | `fable-fb2-j7` | not started |
+| J7 NNUE v4 ideas | `fable-fb2-j7` | trainer prototypes written and smoke-tested (`--l2`, `--pairwise`, `--float-exact`); the 30-minute comparison runs wait for a free CPU thread |
 
 ## J1 — real v3 net, trained at scale (`fable-fb2-j1`, folder `fable_fb2/j1/`)
 
@@ -121,8 +121,15 @@ warnings, FMA 0). `IDEA_SOURCE.md` lists the ideas (Stockfish-family techniques,
 Tests: `forge_fb2_j3_tests` (CTest; 121 checks, 0 failures: every option changes all 6 depth-10 trees and restores
 the exact node counts when switched off; CorrHistV2 arithmetic through a friend probe incl. saturation and null/root
 keys; LmrTableV2 bounds/monotonicity; mates found and 25 random positions sane with all options on). Full CTest 15/15.
-Self-play: `opus_selfplay_check.py` (R3-1 checker, python-chess legality, mixed go modes) 500 games per option and
-all-on, running (first option 250/500 games, 0 errors so far). Gate entries: `fable_fb2/j3/GATE_ENTRY.md`.
+Self-play: `opus_selfplay_check.py` (R3-1 checker, python-chess legality of every best move, mixed go modes,
+isready barriers), 500 games per option and all-on, one at a time on one thread (about 23 min each):
+
+| configuration | games | plies | errors (crash / illegal / double bestmove / timeout / malformed) |
+|---|---|---|---|
+| CorrHistV2 | 500/500 | 59,794 | **0** (`logs/selfplay/CorrHistV2.summary.json`) |
+| SingularV2, LmrTableV2, TtPruneV2, all four | running in this order | | |
+
+Gate entries: `fable_fb2/j3/GATE_ENTRY.md` (one per option vs all-off, design 1 of GATE_BOUNDS.md).
 
 ## J4 — time management v2 (`fable-fb2-j4`, folder `fable_fb2/j4/`) — code DONE, games RUNNING
 
@@ -136,8 +143,13 @@ in search and quiescence. Pure decision code in `include/forge/timeman.hpp`, sha
 | `forge_timeman_sim 2000` (CTest): 2000 games x {1+0.01, 10+0.1} x {lock v1, v2}, 1 ms latency, Move Overhead 10 | **0 flag losses** for both; moves beyond the hard deadline 18,622 (v1) vs 4,885 (v2) at 1+0.01, 12,816 vs 0 at 10+0.1; max overshoot 2.6 ms (v1) vs 1.3 ms (v2); used/soft 1.47 vs 1.17 (v1 runs its last iteration to the hard limit) |
 | same with 5 ms scheduler stalls on 5% of moves | 0 flag losses; max overshoot 6.8 / 6.0 ms (the stall itself) |
 | same at 300 nodes/ms (sanitizer-like speed) | 0 flag losses; max overshoot 9.4 ms (v1) vs 2.5 ms (v2, adaptive reads) |
-| real games over UCI (`fable_timeman_games.py`), 100 games at 1+0.01, TimeManV2 both sides | **PASS: 0 flag losses** (`logs/games_1s_v2.json`) |
-| 100 games at 1+0.01 lock, 20 games at 10+0.1 v2 | running |
+| real games over UCI (`fable_timeman_games.py`), 100 games at 1+0.01, TimeManV2 both sides | **PASS: 0 flag losses**; 13,079 moves, max 122 ms per move, min clock 33 ms, 2 moves used over half the remaining clock (`logs/games_1s_v2.json`) |
+| 100 games at 1+0.01, lock time management both sides | PASS: 0 flag losses; 13,307 moves, max 230 ms per move, min clock 27 ms, 27 moves over half the clock (`logs/games_1s_v1.json`) |
+| 20 games at 10+0.1, TimeManV2 both sides | PASS: 0 flag losses; 2,543 moves, max 955 ms, min clock 212 ms (`logs/games_10s_v2.json`) |
+
+CI (opus-ci release / ASan / TSan) on the J4 head: success. Reading: v2 never runs a move into the hard deadline
+at fast TC (the lock's last iteration does, 27 moves over half the clock vs 2), i.e. it keeps a larger reserve;
+whether that plays better is a gate question (GATE_BOUNDS design 1).
 
 ## J6 — gate design (`F:\opus_scratch\fable\GATE_BOUNDS.md`, copy in `fable_fb2/j6/`) — DONE (proposal only)
 
@@ -149,6 +161,28 @@ reproduces gate38's printed LLR 1.11). Recommendation: search features [0,10] ca
 [0,20] cap 1500 screen. Ranking by expected Elo per gate hour under stated priors: J1 net (wide prior; only after it
 beats AL1), CorrHistV2, LmrTableV2, TtPruneV2, SingularV2, R3 search changes, TimeManV2, then the speed switches
 (not worth an Elo gate). Simulator `fable_fb2/j6/gate_bounds_sim.py`, tables `gate_bounds_tables.md`.
+
+## J5 — Lazy SMP v2 (`fable-fb2-j5`, folder `fable_fb2/j5/`) — code written, measurements pending
+
+Analysis of the R3-6 data (`fable_fb2/j5/IDEA_SOURCE.md`): the lock's helpers run the same depth sequence in lockstep
+with the main thread (lead 0.5-0.6 ply), so the main thread's critical path shrinks only to 0.80x (T2) / 0.68x (T3)
+of its single-thread nodes while total nodes inflate 1.7-2.0x; R3-6's "helpers past depth" fix removed idle time
+but not the duplication (no time-to-depth gain on quiet runners). Fix implemented behind `SmpV2` (default false,
+inert at Threads 1): odd helpers search one ply ahead, even helpers use 2x/3x aspiration windows, and the deepest
+completed result of any thread is reported (`fb2::smp_depth_skew`, `smp_aspiration_multiplier`,
+`smp_select_result`). Tests `tests/fb2_j5_tests.cpp` (CTest; 3 threads for seconds); the CI TSan hook now also runs
+SmpV2 searches at Threads 2/3/4. Measurement tool `tools/smp/fable_smp_ttd.py` (R3-6's 30 positions, fixed depths,
+fresh process per run, paired on/off ratios). Build in progress; the Threads 2/3 runs need the CPU budget that the
+training and the J3 self-play occupy (scheduled after the self-play, Threads 3 while the training is paused at a
+checkpoint boundary).
+
+## J7 — NNUE v4 ideas (`fable-fb2-j7`, folder `fable_fb2/j7/`) — prototypes written, runs pending
+
+Trainer-only prototypes on top of the J1 trainer: `--l2 N` (second layer 2H -> N -> 1), `--pairwise` (us*them
+interaction term), `--float-exact` (float holdout metric so prototypes without a v3 file compare with the baseline),
+plus the existing `--hidden 1024` and `--king-buckets 16`. Smoke-tested (prototype checkpoints as `.pt`, float
+score + per-phase breakdown, `logs/smoke_*`). Protocol in `fable_fb2/j7/README.md` (30 minutes per run, same
+data/seed/schedules); the runs start when a CPU thread is free (after the J1 finishing chain).
 
 ## Next steps for the next model
 1. J1: watch `F:\opus_scratch\fable\fb2\train_j1\status.json`; the driver resumes after a crash; restart by hand with
