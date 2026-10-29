@@ -1,0 +1,15 @@
+from pathlib import Path
+import json,hashlib
+r=Path('/tmp/forge-astra2-b6/astra2_evidence/B6');j=json.loads((r/'final_atomic_off_matrix/results.json').read_text())
+assert j['status']=='PASS' and len(j['cells'])==5
+assert j['binary_sha256_before']==j['binary_sha256_after']=='c87c99aae9f3c1248d9dd468e584099d5313566e5407d7a5aa456f9852b80397'
+assert j['source_sha256']['/tmp/forge-astra2-b6/tools/bench_matrix.py']=='04b143662adeecaf6e4b0c2fc8f7a0bf84a58be74d59dfecf8eecfe9624761ab'
+q=json.loads((r/'qualification.json').read_text());q['final_atomic_writer_OFF']='5/5 PASS';q['final_tool_sha256']='04b143662adeecaf6e4b0c2fc8f7a0bf84a58be74d59dfecf8eecfe9624761ab';q['final_native_cells']=5
+(r/'qualification.json').write_text(json.dumps(q,indent=2)+'\n')
+p=r/'BENCH_RESULTS.md';p.write_text(p.read_text()+'\n## Final atomic-writer revision: OFF\n\nRunner9db64df, SHA04b14366..., no competing heavy tests.\n\n| Row | Depth | Nodes | ms | NPS |\n|---|---:|---:|---:|---:|\n'+''.join(f"| {c['set']} | {c['depth']} | {c['nodes']} | {c['elapsed_ms']} | {c['nps']} |\n" for c in j['cells']))
+p=r/'README.md';p.write_text(p.read_text()+'''\n## Final native qualification\n\nThe original 15-cell OFF/B1/B2 matrix passed. The final atomic-writer source separately passed all five OFF depths after the sanitizer suite stopped. Raw streams, exact command/configuration, before/after binary hashes and runner hashes are retained in separate directories. BENCH_RESULTS.md reports every measured node count and NPS. All nine fake test methods passed, and CMake's new bench_matrix_tool_tests registration passed (1/1).\n\nNo engine code changed; the exact base executable was reused, so a duplicate full engine build/suite was not run for this tool-only job. The baseline full suite is preserved under B1. Windows remains UNVERIFIED. No speed/Elo claim.\n''')
+Path('/tmp/forge-astra2-b6/NOTES.md').write_text('''# B6 completed checkpoint — 2026-10-29\n\nBase b7c177222038e9332965a95ec53ea3b94e90dbc9. Tools/tests/docs only; no src/include changes. Implementation01d57eb qualified with15native OFF/B1/B2 cells. Atomic-save revision9db64df separately qualified with9fake test methods, CTest registration1/1 and5native OFF cells. Source hashes and raw receipts distinguish these revisions.\n\nOFF nodes312866/862329/3024920/12389307/34048354. Preserve original failures and both matrix directories. Exact recipe/schema is docs/bench_matrix.md; all observed numbers are astra2_evidence/B6/BENCH_RESULTS.md. Next: reuse the tool on separately integrated candidates; source/option lists must identify the actual engine. Windows and comparative speed/strength remain unverified.\n\nIDEA_SOURCE: user B6 contract and same-repository reviewed A3 parser.\n''')
+for p in sorted(r.rglob('*')):
+ if p.is_symlink():raise RuntimeError('Unexpected evidence symlink')
+(r/'SHA256SUMS.txt').write_text(''.join(hashlib.sha256(p.read_bytes()).hexdigest()+'  '+str(p.relative_to(r))+'\n' for p in sorted(r.rglob('*')) if p.is_file() and p.name!='SHA256SUMS.txt'))
+print(json.dumps(q,indent=2))

@@ -1,6 +1,6 @@
 # Forge Astra round 2 — development report, 2026-10-29
 
-**B1–B5 have native Release qualification and published evidence. B6 passed its native preset matrix; B5 sanitizer qualification and B6 final checkpoint validation are pending in this checkpoint.** No Elo gain, speed gain, merge or adoption is claimed. Full CTest was run: the reports below retain its actual failures and exit status rather than calling an exception-qualified run fully passing.
+**B1–B7 are implemented, tested and preserved on their independent branches. B5 also completed the full ASan/UBSan suite with leak detection enabled and zero sanitizer findings.** No Elo gain, speed gain, merge or adoption is claimed. Full CTest was run: the reports below retain its actual failures and exit status rather than calling an exception-qualified run fully passing.
 
 Every job branch starts independently from `origin/forge-bundle-int`, exact base **`b7c177222038e9332965a95ec53ea3b94e90dbc9`**. The branches are **not cumulative**. `astra2-report` contains this handoff, not an integrated engine. Existing workspace changes and prior experiments were preserved; no main update, force-push or branch/file deletion is part of this round.
 
@@ -14,9 +14,9 @@ IDEA_SOURCE: the user's round-two specifications and this repository's original 
 | B2 | `astra2-tm-softhard` | [`97da33b7e74fe280cb3ddbe2108efee1d40f9fb1`](https://github.com/couns0538-sketch/dwqww/commit/97da33b7e74fe280cb3ddbe2108efee1d40f9fb1) | [`45314a5e105cef5d306ff41abca2706e4ada78bb`](https://github.com/couns0538-sketch/dwqww/commit/45314a5e105cef5d306ff41abca2706e4ada78bb) | Budget invariant verified; complete suite retains an additional independently reproduced baseline SMP mate failure |
 | B3 | `astra2-nnue-loader` | [`951a57787edf529cb9fb4f76125fa3b22d5c86b0`](https://github.com/couns0538-sketch/dwqww/commit/951a57787edf529cb9fb4f76125fa3b22d5c86b0) | [`9a09e7658f343acf231e3d20fe32db491eb7d94b`](https://github.com/couns0538-sketch/dwqww/commit/9a09e7658f343acf231e3d20fe32db491eb7d94b) | Test coverage ready; v2 protection already existed, so no engine repair |
 | B4 | `astra2-uci-strict` | [`2beaad887ffdc20315a5be9322b53234ed90cece`](https://github.com/couns0538-sketch/dwqww/commit/2beaad887ffdc20315a5be9322b53234ed90cece) | [`d35d41fbe217bc00cedf642dd22aafcd895b53f2`](https://github.com/couns0538-sketch/dwqww/commit/d35d41fbe217bc00cedf642dd22aafcd895b53f2) | Native protocol tests pass; actual fastchess `-strict` invocation UNVERIFIED |
-| B5 | `astra2-singularv2` | [`fde944ae38e6bbfef0b38f2c4a207e08285fcc1d`](https://github.com/couns0538-sketch/dwqww/commit/fde944ae38e6bbfef0b38f2c4a207e08285fcc1d) | [`bdd8854f42d423861e26ba40134dbb1a10ff00b4`](https://github.com/couns0538-sketch/dwqww/commit/bdd8854f42d423861e26ba40134dbb1a10ff00b4) (qualification checkpoint) | Release qualification complete; full sanitizer qualification pending |
-| B6 | `astra2-bench-tool` | `01d57eb0a6049fda690bd3093e88df64ec2a64bc`; atomic-save revision `9db64dfa0299b97b74453f2d2ddf9ffb5b7e5631` | `9db64dfa0299b97b74453f2d2ddf9ffb5b7e5631` | Nine fake tests and 15 native OFF/B1/B2 cells PASS; final atomic-writer OFF matrix pending |
-| B7 | `astra2-report` | This report's commit | This report's commit | Recoverable cross-branch handoff; root will finalize B5/B6 before publication |
+| B5 | `astra2-singularv2` | [`fde944ae38e6bbfef0b38f2c4a207e08285fcc1d`](https://github.com/couns0538-sketch/dwqww/commit/fde944ae38e6bbfef0b38f2c4a207e08285fcc1d) | [`5c6ee0db6bc44bbf51faef01dca68214d4caf383`](https://github.com/couns0538-sketch/dwqww/commit/5c6ee0db6bc44bbf51faef01dca68214d4caf383) | Release and full ASan/UBSan qualified with retained baseline functional failures; ready for independent strength gate |
+| B6 | `astra2-bench-tool` | `01d57eb0a6049fda690bd3093e88df64ec2a64bc`; atomic-save revision `9db64dfa0299b97b74453f2d2ddf9ffb5b7e5631` | [`344e48e7c946079d41299b5c77324b274dfc9f15`](https://github.com/couns0538-sketch/dwqww/commit/344e48e7c946079d41299b5c77324b274dfc9f15) | Nine fake tests, 15 native OFF/B1/B2 cells and final five-depth OFF matrix PASS |
+| B7 | `astra2-report` | This report's commit | This report's commit | Completed cross-branch handoff, verified manifests and tested native binaries |
 
 ## Native checks and exact OFF identity
 
@@ -39,8 +39,8 @@ B1 ON here means SmpV2 ON at Threads=1; it does not measure SMP strength. B2 fix
 | B2 | Release PASS; 32433/32433 native checks; clock/ponder UCI PASS | **55/57, exit 8**; `forge_tests` and `forge_tt_mate_tb_tests` | 4865609 | 0 |
 | B3 | Release PASS; 41/41 focused loader checks | **55/56, exit 8**; `forge_tests` only | 4865609 | 0 |
 | B4 | Release PASS; protocol 150/150 Release and 155/155 debug-hook checks | **56/57, exit 8**; `forge_tests` only | 4865609 | 0 |
-| B5 | Release PASS; 96/96 native checks; N1/manual UCI regression PASS | **56/57, exit 8**; `forge_tests` only | 4865609 | 0 |
-| B6 | Nine fake methods PASS, including injected checkpoint failure; 15 native cells PASS | New CTest registration 1/1 PASS; no engine change | Baseline reused | Baseline reused |
+| B5 | Release + ASan/UBSan builds PASS; 96/96 native checks and 27-check UCI regression PASS | **Release 56/57; ASan/UBSan 56/57, each exit 8**; `forge_tests` only | 4865609 | 0 |
+| B6 | Nine fake methods PASS, including injected checkpoint failure; 15 native preset cells + 5 final OFF cells PASS | New CTest registration 1/1 PASS; no engine change | Baseline reused | Baseline reused |
 
 All original bench numbers, milliseconds and observed NPS—including superseded runs—are preserved in immutable tables and their adjacent raw process streams:
 
@@ -48,7 +48,8 @@ All original bench numbers, milliseconds and observed NPS—including superseded
 - [B2: all 10 OFF/ON qualification bench records](https://github.com/couns0538-sketch/dwqww/blob/45314a5e105cef5d306ff41abca2706e4ada78bb/astra2_evidence/B2/BENCH_RESULTS.md).
 - [B3: all 5 qualification bench records](https://github.com/couns0538-sketch/dwqww/blob/9a09e7658f343acf231e3d20fe32db491eb7d94b/astra2_evidence/B3/BENCH_RESULTS.md).
 - [B4: all 5 qualification bench records](https://github.com/couns0538-sketch/dwqww/blob/d35d41fbe217bc00cedf642dd22aafcd895b53f2/astra2_evidence/B4/BENCH_RESULTS.md).
-- B5/B6 observed records: PENDING final links. Any native/UCI/tool bench records must be linked in the final update too.
+- [B5: all 15 qualification, nine Release UCI and nine sanitizer UCI bench records](https://github.com/couns0538-sketch/dwqww/blob/5c6ee0db6bc44bbf51faef01dca68214d4caf383/astra2_evidence/B5/BENCH_RESULTS.md).
+- [B6: all 15 original preset matrix and five final OFF records](https://github.com/couns0538-sketch/dwqww/blob/344e48e7c946079d41299b5c77324b274dfc9f15/astra2_evidence/B6/BENCH_RESULTS.md).
 
 These timings are observations, not controlled ABBA speed comparisons. No NPS percentage gain is asserted.
 
@@ -86,9 +87,9 @@ These are unconditional protocol requirements; hiding them behind a default-OFF 
 
 No native fastchess runner was available. An actual fastchess `-strict` run remains **UNVERIFIED**, although the native protocol tests verify discovery and accepted settings directly. [Source, original RED/GREEN transcripts and qualification](https://github.com/couns0538-sketch/dwqww/tree/d35d41fbe217bc00cedf642dd22aafcd895b53f2/astra2_evidence/B4).
 
-## B5 / B6 finalization slots
+## B5 — SingularV2 and explicit N1
 
-B5 source: `SingularV2` spin **default 0**, range 0..1, ported from this repository's Fable FB2-J3 `1efc0b2c9e09d38642eabd1d6282acceeb38c0b8`. The located implementation is Fable's; no unsupported Opus attribution is made. `BundlePreset N1` means **CorrHistPlus=4 + SingularV2=1**, with the other owned bundle options reset. CorrHistPlus is compatible; CorrExt is separately excluded because its extension budget counts extra plies while J3 counts double/triple extension events. [Frozen changed-line inventory and CorrHistPlus interactions](https://github.com/couns0538-sketch/dwqww/blob/bdd8854f42d423861e26ba40134dbb1a10ff00b4/PORT_NOTES.md).
+B5 source: `SingularV2` spin **default 0**, range 0..1, ported from this repository's Fable FB2-J3 `1efc0b2c9e09d38642eabd1d6282acceeb38c0b8`. The located implementation is Fable's; no unsupported Opus attribution is made. `BundlePreset N1` means **CorrHistPlus=4 + SingularV2=1**, with the other owned bundle options reset. CorrHistPlus is compatible; CorrExt is separately excluded because its extension budget counts extra plies while J3 counts double/triple extension events. [Frozen changed-line inventory and CorrHistPlus interactions](https://github.com/couns0538-sketch/dwqww/blob/5c6ee0db6bc44bbf51faef01dca68214d4caf383/PORT_NOTES.md).
 
 Verified B5 Release bench results, binary SHA-256 `7f5653bd308fb528851a9009c122aa40028a2ce6d00e5d19a339e46474746cdb`:
 
@@ -100,11 +101,25 @@ Verified B5 Release bench results, binary SHA-256 `7f5653bd308fb528851a9009c122a
 | 20 | 12389307 | 11497954 | 18648191 |
 | 22 | 34048354 | 34264955 | 40304213 |
 
-B5 perft5 is **4865609**, FMA **0**. Full Release CTest completed: 56/57 passed with only the four known tactical diagnostics; 96/96 new native checks and UCI regression passed. A separate full ASan/UBSan build/run has been started with `-O1 -g1`, `-fno-pie/-no-pie` and `FORGE_ENABLE_SANITIZERS=ON`; its result is **PENDING**, not a sanitizer pass. [Verified qualification checkpoint and raw evidence](https://github.com/couns0538-sketch/dwqww/tree/bdd8854f42d423861e26ba40134dbb1a10ff00b4/astra2_evidence/B5).
+B5 perft5 is **4865609**, NNUE FMA **0**. Full Release CTest completed **56/57**, with only the four known tactical diagnostics. Full ASan/UBSan CTest with leak detection enabled also completed **56/57**, with the same four functional diagnostics and **zero sanitizer findings**. New native checks passed 96/96 and UCI checks passed 27/27 in the completed suites. This is not an assertion that every functional CTest is green.
 
-**PENDING root update:** B5 final evidence SHA; complete native and sanitizer outcomes; all bench-table links; final decision. Do not promote a running qualification into a completed result.
+The first sanitizer attempt was interrupted because LeakSanitizer explicitly could not operate under the environment's ptrace sandbox. Its original partial logs were preserved. The same instrumented binary passed a probe and then completed the full suite outside that sandbox; no leak checks were disabled. Recipe: `-O1 -g1`, `-fno-pie/-no-pie`, `FORGE_ENABLE_SANITIZERS=ON`, `ASAN_OPTIONS=detect_leaks=1:halt_on_error=1`, `UBSAN_OPTIONS=halt_on_error=1:print_stacktrace=1`. [Completed source, raw logs, manifests and qualification](https://github.com/couns0538-sketch/dwqww/tree/5c6ee0db6bc44bbf51faef01dca68214d4caf383/astra2_evidence/B5).
 
-B6's first full native matrix used runner `01d57eb` (SHA256 `16496dd665db4961499ed8eff01025d5d5fa5a05aa0ab6e6c7b2c4ee6cfb3338`). It passed all 15 OFF/B1/B2 cells. The later revision only makes ledger writes atomic; it passed nine fake-engine test methods, including injected replacement failure preserving the prior valid ledger. Its separate final native OFF verification is pending. No engine source changed. Exact commands and schema are in [B6 tool documentation](https://github.com/couns0538-sketch/dwqww/blob/9db64dfa0299b97b74453f2d2ddf9ffb5b7e5631/docs/bench_matrix.md).
+## B6 — strict bench matrix and recoverable checkpoints
+
+B6's first full native matrix used runner `01d57eb` (SHA256 `16496dd665db4961499ed8eff01025d5d5fa5a05aa0ab6e6c7b2c4ee6cfb3338`). It passed all 15 OFF/B1/B2 cells. The later revision only makes ledger writes atomic; it passed nine fake-engine test methods, including injected replacement failure preserving the prior valid ledger. Its separate final native OFF verification passed all five required depths, using final runner SHA256 `04b143662adeecaf6e4b0c2fc8f7a0bf84a58be74d59dfecf8eecfe9624761ab`. The new CTest registration passed 1/1; a duplicate full engine suite was not run for this tool-only branch, whose engine sources and tested baseline executable are unchanged. No engine source changed. Exact commands and schema are in [B6 tool documentation](https://github.com/couns0538-sketch/dwqww/blob/344e48e7c946079d41299b5c77324b274dfc9f15/docs/bench_matrix.md).
+
+## Tested binaries and replay
+
+The exact tested Release Linux executables are preserved with SHA256 and source-tree/network-include provenance in [native_binaries](https://github.com/couns0538-sketch/dwqww/tree/98806a2cbea5d09d817c13f4703cc0ac4e69d66c/astra2_evidence/B7/native_binaries). B3 is byte-identical to the baseline and reuses that file. These are x86-64-v3 Linux binaries, not Windows builds.
+
+B6 replay, from its branch checkout:
+
+```sh
+python3 tools/bench_matrix.py /path/to/forge --sets tools/bench_matrix_sets.example.json --out-dir /new/path/to/matrix
+```
+
+The output directory must be new. The matrix enforces OFF pins and preserves raw command/stdout/stderr bytes; NPS output alone is not speed acceptance. Existing resume, validation and evidence-preservation skills guided this work. The cloud skill's bundled evidence helper was unavailable, so the saved SHA256 manifests were generated and verified directly; no new skill or plugin installation is claimed.
 
 ## Remaining failures, limits and integration work
 
@@ -119,7 +134,7 @@ FAIL: unrestricted search chooses the winning rook underpromotion over stalemati
 
 B2 also preserves the intermittent `forge_tt_mate_tb_tests` failure discussed above. SmpExactNodes is an acknowledged pre-existing risk; a passing occurrence does not establish that its intermittent behavior is fixed. No expectation was silently changed to hide tactical or SMP failures.
 
-Full round-two **ASan/UBSan, LeakSanitizer, TSan, Windows execution, actual tablebase files and equal-time fastchess strength gates are UNVERIFIED** in this draft; the B5 full ASan/UBSan qualification is specifically in progress. B2's focused inline UBSan result is the limited exception described above. Previous round-one sanitizer results do not qualify changed round-two sources. No Elo estimate or Stockfish claim is justified by these tests.
+Full **B5** ASan/UBSan plus leak detection is verified as described above. Full sanitizer runs of the separate B1–B4 sources remain UNVERIFIED, except B2's limited inline UBSan check. TSan, Windows execution, actual tablebase files and equal-time fastchess strength gates remain UNVERIFIED. Previous round-one sanitizer results do not qualify changed round-two sources. No Elo estimate or Stockfish claim is justified by these tests.
 
 The next integration must be a new isolated branch and must reconcile these exact overlaps before gating:
 
