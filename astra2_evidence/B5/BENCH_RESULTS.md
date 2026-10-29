@@ -19,3 +19,19 @@ Fresh processes, Threads=1, Hash=16, OwnBook=false. Observed NPS only; no speed 
 | N1 | 16 | 2651984 | 3091 | 857969 |
 | N1 | 20 | 18648191 | 19145 | 974050 |
 | N1 | 22 | 40304213 | 41515 | 970834 |
+
+## Release UCI regression bench records
+
+All d11 records from the original completed CTest output.
+
+| Case | Depth | Nodes | ms | NPS |
+|---|---:|---:|---:|---:|
+| OFF | 11 | 312866 | 358 | 873927 |
+| manual_N1 | 11 | 277579 | 339 | 818817 |
+| OFF_after_manual | 11 | 312866 | 327 | 956776 |
+| preset_N1 | 11 | 277579 | 316 | 878414 |
+| N1_after_refused_CorrExt | 11 | 277579 | 303 | 916102 |
+| N1_after_invalid_values | 11 | 277579 | 305 | 910095 |
+| B1_CorrExt | 11 | 280216 | 346 | 809872 |
+| B1_CorrExt_after_refusals | 11 | 280216 | 342 | 819345 |
+| final_OFF | 11 | 312866 | 502 | 623239 |
