@@ -1,5 +1,17 @@
 # A2 — bounded SMP mate investigation
 
+## Current outcome — 2026-10-29T03:01:46.778165-07:00
+
+**BLOCKED: root cause and production repair unresolved within the bounded budget.** The fallback deliverable is complete: a native, serialized reproducer yields9 CP main results in28 helper-seeded searches (32.14%), against0/28 CP in fresh empty-TT controls. Actual/nominal main depth14, zero timeouts. No selector is called and no helper searches concurrently with main. This is a controlled diagnostic frequency, not the live SMP failure rate or an Elo estimate.
+
+The original Release engine/library remains source926c55f33227bc4a030d7ce5b1140528aeba75af; this branch changes no engine/header/CMake file. Diagnostic executables are test drivers linked to that verified library, not UCI engines with separate bench tables. A1 owns their linked engine's five-depth identity/perft/FMA qualification.
+
+K1 root-score rewrite: no-touch, identical rewrite and ValueNone mask all returnCP484/e8e4 in round1, then31995/d5c5 in round2, with identical nodes/PVs across controls. All public non-score fields are identical after rewrite. The root's seeded score alone is therefore insufficient to explain this K1 miss. The child-after-d5c5 target is absent at K1: the driver exits2 withNO_INTERVENTION and does not create an entry. Its child-mask condition is NOTRUN; the five-condition experiment is incomplete, not PASS. Original stdout/stderr/TSVs and failing exit are retained in native_rewrite_k1*.
+
+A direct per-store worker/history trace is not implemented; final TT snapshots cannot substitute for one. No before/after fix trials,500+500 SMP validation or200x native regression replay have run. No fix, strength improvement or comprehensive absence of races is claimed.
+
+## Preserved chronological preparation and results
+
 Status: **WIP — native serial reproduction completed; root cause and production fix UNVERIFIED**. The dated sections below supersede preparation status. No A2 engine/header/CMake changes, no fix, no Elo claim.
 
 Base: integration `93c51b3` (engine source `926c55f33227bc4a030d7ce5b1140528aeba75af`). The driver under `source/a2_tt_seed_repro.cpp` uses Forge's public `Worker`/TT APIs and logs raw main/helper results before any selector. It is not compiled or run yet.
@@ -25,3 +37,18 @@ The final TT snapshots are after round2 only. They cannot prove the pre-main K1 
 ## Score-only diagnostic checkpoint — 2026-10-29T02:55:00.355835-07:00
 
 The bounded rewrite mode is implemented in the existing test driver, with separately fresh no-touch, identical-rewrite and score-mask controls for root and child. All public non-score fields must remain identical; the opaque slot is not introspected. Source SHA2563f76a90bb0836f79fdd4e7598f2ff34a5dcd9122c8ca7abb21e85874a4fabbe6. Compilation and independent review are in progress; native rewrite results remain UNVERIFIED. Prior original serial evidence remains unchanged.
+
+## Narrowed hypothesis tree / exact next action
+
+| Hypothesis | Current verdict and evidence |
+|---|---|
+| Mate normalization on store/probe | UNVERIFIED causal role; source formulas look conventional. Need exact before/after per-store trace, not final snapshot inference. |
+| Wrong bound or repetition-derived value | UNVERIFIED. Final K2/K10/K12 child entries include CP LOWER bounds; writer and search-history provenance are absent. Repetition return-before-store does not exclude ancestor contamination. |
+| Helper depth+1 / TT depth trust | CONFIRMED helper actualK+1 in records; causality UNVERIFIED. Serial K1 seeding suffices; masking only the root score has no effect. |
+| Even-helper aspiration widening | Not necessary for this two-worker reproduction: helperid1 has multiplier1. Other window/bound effects remain UNVERIFIED. |
+| Torn concurrent TT access / selector | Not necessary for this symptom: serialized helper completes before main and selector never runs, LocklessTTfalse. This does not prove every concurrent path race-free. |
+| Cold T1 go mate3 result | UNVERIFIED relationship. Ordinary selective depth5 is not a complete mate proof; requires a separate root reduced/full-research trace. |
+
+Next task: keep this frozen reproducer; add a separate test-only provenance trace for TT score/eval/move decisions at root and the d5c5 child before proposing a production fix. First use a fresh K2-only condition (current driver loops K1 first and aborts on its missing child, so max-seed-depth2 alone will not reach K2). Preserve no-touch and identical-rewrite controls, never insert an absent target. Current root-score-mask negative evidence already answers K1; do not repeat it without a new question. Per-store worker/depth/window/history provenance is still required by A2.
+
+Final diagnostic checkpoint at2026-10-29T03:01:46.778165-07:00. Independent source review found no blocking intervention bug. Native build succeeded; source hash3f76a90bb0836f79fdd4e7598f2ff34a5dcd9122c8ca7abb21e85874a4fabbe6. The failed missing-target experiment is saved, not hidden or reclassified as success. Parent final review remains running.
