@@ -1,0 +1,24 @@
+--- a/identity_bench.py@3928739
++++ b/identity_bench.py@working-tree-verified
+@@ -1,13 +1,20 @@
+ import sys, pathlib, subprocess, json, hashlib, re, datetime, os
+ exe=pathlib.Path(sys.argv[1]).resolve(); out=pathlib.Path(sys.argv[2]); out.mkdir(parents=True,exist_ok=False)
+ sets=json.loads(sys.argv[3]) if len(sys.argv)>3 else {'OFF':[]}
++bench_timeout=int(os.environ.get("FORGE_BENCH_TIMEOUT_SECONDS", "300"))
++if bench_timeout <= 0: raise ValueError("FORGE_BENCH_TIMEOUT_SECONDS must be positive")
+ records=[]
+ for mode,options in sets.items():
+  for depth,pin in [(11,312866),(13,862329),(16,3024920),(20,12389307),(22,34048354)]:
+   commands='\n'.join(['uci','setoption name Threads value 1','setoption name Hash value 16','setoption name OwnBook value false']+options+['isready',f'bench {depth}','quit',''])
+   stem=out/f'{mode}_d{depth}'
+   stem.with_suffix('.stdin').write_text(commands)
+-  run=subprocess.run([str(exe)],input=commands.encode(),capture_output=True,timeout=300)
++  try:
++   run=subprocess.run([str(exe)],input=commands.encode(),capture_output=True,timeout=bench_timeout)
++  except subprocess.TimeoutExpired as exc:
++   stem.with_suffix('.stdout').write_bytes(exc.stdout or b''); stem.with_suffix('.stderr').write_bytes(exc.stderr or b'')
++   (out/'timeout.json').write_text(json.dumps({'mode':mode,'depth':depth,'timeout_seconds':bench_timeout,'status':'INCOMPLETE_TIMEOUT','actual_returncode':None},indent=2)+'\n')
++   raise
+   stem.with_suffix('.stdout').write_bytes(run.stdout); stem.with_suffix('.stderr').write_bytes(run.stderr)
+   lines=re.findall(rb'^info string bench depth (\d+) nodes (\d+) time (\d+) nps (\d+)',run.stdout,re.M)
+   row={'mode':mode,'depth':depth,'returncode':run.returncode,'matches':[list(map(int,x)) for x in lines]}

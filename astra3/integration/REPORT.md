@@ -197,3 +197,9 @@ R5A1=CorrHistPlus4;2=CorrExt1;3=CorrMargins1/Scale100;4=CorrHistPlus2;5=CorrHist
 ### Sanitizer rolling checkpoint — 2026-10-29 01:55:37 PDT
 
 Full ASan/UBSan configuration built successfully (binary30633d03cc16f5ef82bed33139f463912d78c6df1b1fd7bca4893eb7b5a36d8a). Complete CTest runs outside the tracing sandbox with detect_leaks=1 and halt_on_error=1; it is still in progress and has no final verdict. A separate TSan build is compiling at nice19 with two jobs; no competing performance benchmark runs. Instrumented OFF pins and TSan native option/SMP stress are still pending. The identity helper now allows an explicit longer instrumented deadline and preserves original partial output on timeout; focused mocked RED/GREEN checks are pending. A2 source-only preparation is preserved, with no root-cause or native-reproduction claim.
+
+### TSan stress checkpoint — 2026-10-29 02:05:22 PDT
+
+TSan executable9a77389b180ef495b8b9b59bc3e090f8f039f4b135c67b1ebcb95dc4e30c8809 passes250 explicit Threads2 go/stop cycles plus6 live option stop/join changes:256 go and256 bestmove replies, zero errors and zero sanitizer diagnostic lines. Original bytes and the readelf instrumentation proof are in tsan/option_stress. The selected native option/SMP CTest targets are still running. ASan/UBSan full CTest is also still running; these isolated correctness workloads overlapped, with TSan at nice19, and no performance benchmark was active.
+
+The helper timeout regression is now complete:5 test methods pass, including exact partial binary output and null unknown returncode; prior-helper RED evidence is retained in timeout_parser_checks. engine-lab is now available and was read; its routing agrees with the existing authoritative record. No duplicate skill or lab ledger was created. The earlier existing-skill improvement remains proposed, not installed.
