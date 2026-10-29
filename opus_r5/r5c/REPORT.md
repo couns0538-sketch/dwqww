@@ -170,6 +170,17 @@ standalone net (no HCE residual), the AL1 net is residual; (4) the gate runner h
 (0 of 63 RUN_INFO.json files); (5) v4 was exercised with Threads 1 only (the evaluation keeps no per-worker state and
 reads the loaded net read-only, so more threads add no shared writes).
 
-## What to gate first (pending)
+## What to gate first
 
-## What I did not finish (pending)
+1. **N3** (`N3_GATE_SPEC.md`, `n3_gate_spec.json`): `forge_r5c_m3b.exe` with SyzygyPath (3-4-5) + IntendedThreefold +
+   HardDeadline=10 on the candidate only, vs the same exe at its defaults, 10+0.1, SPRT [0,10] normalized, cap 3000.
+   Needs the runner change described there (a string option for the candidate, also in its pre-gate bench).
+2. No v4 gate yet: the J7 net is a 1-hour prototype (holdout rule not met, see M5) and the v4 forward costs about
+   40 % NPS. Order of work for v4: trainer fake-quantises layer 2 -> long run -> exact holdout below 0.014417 ->
+   incremental accumulators in the engine -> gate (same string-option runner change).
+
+## What I did not finish
+
+- No v4 incremental accumulator update (every evaluation rebuilds both accumulators); NPS 0.59x of the default.
+- The v4 path is exercised with Threads 1 only (unit test, parity, smokes); no Threads >= 2 v4 games.
+- The trainer-side fake quantisation of layer 2 is a proposal for Fable's trainer, not done (not my file).
