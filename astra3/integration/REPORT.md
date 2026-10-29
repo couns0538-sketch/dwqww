@@ -103,3 +103,7 @@ Exact commands (same configured rule5 build): `cmake --build /tmp/forge-astra3-b
 ## F1 HIGH: first commit after B5 merge
 
 M4 is qualified above. Replaced every production preset, includingOFF, with named C++20 designators and converted all nonempty FB2 Options test initializers. Added compile-time N1/independent-bit assertions and exhaustive runtime preset preservation combinations. The pre-fix copied-header proof passed normally and FAILED the two intended N1 assertions after swapping only SmpV2/SingularV2 declarations; exact original/brokencopies and diagnostics are retained under F1_pending, never used as live engine code. Post-fix permutation verification follows. This first post-merge commit contains the repair; full engine requalification of it remains WIP. Toolingprovenance confirms an official serial-built Fastchess with -strict and private PS7.5.2; no games or supplied scripts were executed.
+
+### F1 rolling checkpoint — 2026-10-29 01:02:11 PDT
+
+Independent read-only review found no correctness blocker. Identical compile probes show the old reordered header fails its intended assertions and the named version passes both layouts; after-header hash matches the source. Full Release build completed; first four OFF depths match pins, d22/CTest/kiwipete remain running or pending. Evidence in F1 is explicitly partial until qualification.json exists. Added a fixed-reference final option-matrix runner (not yet executed); it checks all supplied R5A singles without deriving expected nodes from the candidate. No speed/Elo claim.
