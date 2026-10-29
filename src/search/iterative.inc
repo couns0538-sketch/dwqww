@@ -77,7 +77,12 @@ SearchInfo Worker::search(Board board, const SearchLimits& limits, bool emit_inf
         const std::lock_guard<std::mutex> output_lock(uci_output_mutex());
         if (shared_.output_closed.load(std::memory_order_relaxed)) return;  // HardDeadline answered this go
         std::cout << "info depth " << depth << " seldepth " << std::max(seldepth_, depth) << " score " << format_score(score)
-                  << " nodes " << nodes << " nps " << nps << " hashfull " << shared_.tt.hashfull() << " time " << elapsed << " pv";
+                  << " nodes " << nodes << " nps " << nps << " hashfull " << shared_.tt.hashfull();
+        // R5C: in-search tablebase hits of this search (all workers), only while tables are loaded.
+        if (syzygy::max_pieces() > 0) {
+            std::cout << " tbhits " << syzygy::probe_hits.load(std::memory_order_relaxed) - shared_.tb_hits_base;
+        }
+        std::cout << " time " << elapsed << " pv";
         for (const Move move : pv) std::cout << ' ' << Board::move_to_uci(move);
         std::cout << std::endl;
     };

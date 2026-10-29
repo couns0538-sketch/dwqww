@@ -317,7 +317,9 @@ def stop_stress(exe, options, expect_echo, openings, iterations, seed):
     for i in range(iterations):
         opening = openings[i % len(openings)]
         moves = opening["moves"]
-        board = chess.Board()
+        # R5C fix (first M2 run): the legality board starts from the opening FEN, like the position sent to the
+        # engine; the first version started from the start position and reported 96 legal bestmoves as illegal.
+        board = chess.Board(opening["fen"]) if opening.get("fen") else chess.Board()
         for m in moves:
             board.push_uci(m)
         try:

@@ -81,6 +81,9 @@ struct SharedSearchState {
 #endif
     // 0 means pondering has not been converted into a timed search.
     std::atomic<std::int64_t> ponder_hit_ns{0};
+    // R5C: syzygy::probe_hits at the start of the current search (set by Searcher::search before any worker starts,
+    // read-only while they run); the info lines report the difference as `tbhits` while tables are loaded.
+    std::uint64_t tb_hits_base = 0;
 #ifdef FORGE_PROF
     // The counters themselves live in one bank per Worker (S08-2).
     std::atomic<bool> profile_requested{false};

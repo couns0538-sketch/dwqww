@@ -62,6 +62,7 @@ SearchInfo Searcher::search(Board board, const SearchLimits& limits, bool emit_i
     shared_.tt.set_lockless(options::lockless_tt);
     // Age the table once per search, before any worker can probe it.
     shared_.tt.new_search();
+    shared_.tb_hits_base = syzygy::probe_hits.load(std::memory_order_relaxed);
     std::optional<TranspositionTable::ExclusiveLease> exclusive;
     if (table_access == TTAccess::Exclusive && workers_.size() == 1) {
         exclusive.emplace(shared_.tt);
@@ -160,7 +161,11 @@ SearchInfo Searcher::search(Board board, const SearchLimits& limits, bool emit_i
     if (shared_.output_closed.load(std::memory_order_relaxed)) return;  // HardDeadline answered this go
     std::cout << "info depth " << result.depth << " seldepth " << std::max(result.seldepth, result.depth)
               << " score " << format_score(result.score) << " nodes " << result.nodes << " nps " << nps
-              << " hashfull " << shared_.tt.hashfull() << " time " << result.elapsed_ms << " pv";
+              << " hashfull " << shared_.tt.hashfull();
+    if (syzygy::max_pieces() > 0) {
+        std::cout << " tbhits " << syzygy::probe_hits.load(std::memory_order_relaxed) - shared_.tb_hits_base;
+    }
+    std::cout << " time " << result.elapsed_ms << " pv";
     for (const Move move : result.pv) std::cout << ' ' << Board::move_to_uci(move);
     std::cout << std::endl;
 }

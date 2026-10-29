@@ -97,8 +97,23 @@ M1 exe `forge_r5c_m1.exe` (v3 recipe, M1 tree): 0 warnings, FMA 0, identity ALL 
   FEN opening. Open items for the resume: (1) fix that board and re-run the stress; (2) the engine prints no
   `tbhits` in its info lines (no `tbhits` in src/), so "count TB hits from info output" needs a small engine change
   (print `tbhits N` only while tables are loaded, OFF output unchanged); the smoke counted 0 for that reason.
+- Resume 11:00-11:05 Vienna (next to R5D's smoke, 1 thread): (1) `smoke_n3.py` stop stress now builds its board
+  from the opening FEN (re-run pending); (2) `tbhits N` = `syzygy::probe_hits` since the search started
+  (`SharedSearchState::tb_hits_base`, set by `Searcher::search` before any worker starts), printed in the iteration
+  info lines and the SmpBestThread line only while `syzygy::max_pieces() > 0`. `forge_r5c_m3b.exe` (bf9f6f16...,
+  0 warnings, FMA 0): OFF identity **ALL OK** (`logs/identity_m3b.log`). UCI check (`logs/m2_tbhits6_*.log`, 6-piece
+  root `8/8/4k3/8/2p5/2KR4/P7/3q4 w`, go depth 12): no tables -> 12 info lines, none with `tbhits`; 3-4-5 tables ->
+  every info line has it, `tbhits 23` at depth 12. A 4-piece root (`logs/tbhits_*.log`) reports `tbhits 0`, as it
+  should: a DTZ-ranked root switches in-search probing off.
 
-## M3: v4 format + engine inference (pending)
+## M3: v4 format + engine inference (in progress)
+
+- `tests/r5c_v4_tests.cpp` (CTest `forge_r5c_v4_tests`; standalone build PASS, 54 checks, 0 failures,
+  `logs/v4_tests_m3b.log`; CMake build pending): nets built and serialised by the
+  test's own FNN4 writer; parser refusals (every header field, size +-1, checksum, both overflow bounds, b_out,
+  reserved bytes, short file), `load()` size check and keep-on-failure, scalar forward == the test's int64 reference
+  written from FNN4_FORMAT.md == AVX2 on random-game positions for five shapes (H 64..512, KB 1..32, OB 1..16, L2
+  1..64, mirror/residual flags) and on a net at the accumulator bound (767 + 32 * 1000 = 32767, 32 pieces).
 
 ## M4: exporter + parity (pending)
 
