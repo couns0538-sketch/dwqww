@@ -40,7 +40,20 @@ thread finds mate 3 with d5c5 from depth 10).
 
 ## 2. Root cause
 
-Instrumented scratch copies (never committed; `F:\opus_scratch\r5\r5d\diag_src`) logged every thread's TT stores at
+Suspects in the job's order (each: code reading plus, where a change can isolate it, a one-change experiment on the
+base tree, KRK depth 14, Threads 2, 1000 fresh runs, SmpV2 off / on; base 37 / 36):
+
+| # | suspect | verdict | evidence |
+|---|---|---|---|
+| 1 | mate-score ply adjustment on TT store / probe, races, torn entries | not the cause | `scores.inc` stores the distance from the storing node and reads it relative to the reading node; the default TT is stripe-locked (no torn entries; LocklessTT is off); dupfix (one slot per key) 42 / 48; and the miss happens with **one thread** on a warm TT (6 of 40), where nothing races |
+| 2 | best-thread selection preferring a deeper cp over a shallower mate | not the cause; one real SmpV2 defect | the default mode returns the main thread's own result (no selection); SmpBestThread ranks every mate above every cp (`better_thread_result`) and misses as often as plain Threads 2 (39 / 1000 vs 72 / 2000); SmpV2 (`fb2::smp_select_result`) protects a proven main score, but ignores a helper's mate unless the helper is strictly deeper (Astra's SmpV2 mate item, not changed here) |
+| 3 | helper depth+1 or aborted iterations publishing partial scores | not the cause | depth+1 helpers exist only with SmpV2, and SmpV2 off misses as often; an aborted iteration returns before any TT store (main search, qsearch) and the result keeps the last completed iteration's score |
+| 4 | aspiration fail-high / fail-low leaving a cp bound | not the cause | NOASP (full window at every iteration): 35 / 34 |
+| 5 | SmpV2 merge and vote logic | not the cause | SmpV2 off and on miss at the same rate (proof: 72 / 2000 and 63 / 2000 at Threads 2); with the fix both are 0; the selector defect is under 2 |
+| 6 | TB or mate-distance pruning across threads | not the cause | no tablebases are loaded in any run (`syzygy::max_pieces() == 0`); NOMDP (no mate-distance pruning): 46 / 41 |
+| - | **forward pruning of the only mating quiet move** | **cause** | traced below: at "1.Kc5 Ka6" (mate in 2 by the quiet zugzwang Re7) late-move / history / SEE pruning drops Re7 or LMR reduces it below alpha; the pruning-dependent upper bounds (~+470) reach the root through the TT. Removing that pruning at bare-king nodes (BK) gives 0 misses with one thread on a warm TT and with two threads |
+
+Mechanism (instrumented scratch copies, never committed: `F:\opus_scratch\r5\r5d\diag_src`) logged every thread's TT stores at
 the nodes of the mating tree (1.Kc5 Ka6 2.Re7 Ka5 3.Ra7# and 1.Kc5 Ka4 2.Re3 Ka5 3.Ra3#) that contradict the known mate
 at a sufficient depth:
 - The first wrong store is at "1.Kc5 Ka6, White to move" (mate in 2 with the quiet zugzwang move Re7): searches at
@@ -83,7 +96,13 @@ Code reading notes:
 | F3 | helpers store nothing in the main search (qsearch / ProbCut stores stay) | 102 / 97 |
 | F7 | helpers store nothing in qsearch (main search / ProbCut stores stay) | 58 / - |
 | **F6** | **helpers write nothing to the TT** | **0 / -** |
-| (Threads 1, any hash 1-64 MB, warm TT after depth 3..11) | - | 0 |
+| NOASP | no aspiration window: full window at every iteration (suspect 4) | 35 / 34 |
+| NOMDP | no mate-distance pruning in the main search (suspect 6) | 46 / 41 |
+| threefold-only | repetition draws in the search only at threefold | 78 of 600 (off) |
+| **BK** | **no quiet-move pruning and no LMR at nodes facing a bare king, every search** | **0 / 0** (bench changes) |
+| **BKM = the fix** | **BK in multi-worker searches only** | **0 / 0** (bench unchanged; section 4: 0 in 40,000) |
+| (Threads 1, any hash 1-64 MB, the same root searched first at depth 3..11) | - | 0 |
+| (Threads 1 after an unrelated depth-9 search, 40 openings) | - | 6 of 40 (next subsection) |
 
 At the mate-in-2 node "1.Kc5 Ka6" (scratch `diag5`): in the bad searches Re7 is either cut by late-move pruning
 (`LMP-skip@2..20`) or searched as a late quiet move with an LMR reduction whose result (~466, the quiet Ra7# lies beyond
@@ -235,6 +254,20 @@ Notes:
   harness (fresh Searcher, `go depth 14`, base 5eabdb7) SmpV2 off misses as often as on; the setup behind the
   quoted numbers is not in the repository, so the two are not directly comparable. The UCI loop below measures
   the shipped exes end to end.
+
+End to end over UCI (`tools/uci_krk_loop.py`, 3-CPU mask, 10:58-11:00 Vienna): one engine process per configuration,
+per run `ucinewgame`, `position fen` KRK, `go depth 14`; a run fails unless the last score is `mate N` with N >= 3
+(`logs/uci_krk_loop.log`):
+
+| Threads | SmpV2 | `forge_r5d_off_5eabdb7.exe` (base) | `forge_r5d_bkm.exe` (fix) |
+|---|---|---|---|
+| 2 | off | 40 / 1000 (4.0 %), mate 3 in 877 | **0 / 1000, mate 3 in 1000** |
+| 2 | on | 21 / 1000 (2.1 %), mate 3 in 928 | **0 / 1000, mate 3 in 1000** |
+| 4 | off | 11 / 1000 (1.1 %), mate 3 in 934 | **0 / 1000, mate 3 in 1000** |
+| 4 | on | 8 / 1000 (0.8 %), mate 3 in 953 | **0 / 1000, mate 3 in 1000** |
+
+The first miss of each base configuration (the tool prints only the first) is `score cp 450..475` with
+`bestmove e8e4`, the job's symptom.
 
 ## 5. CI test
 
