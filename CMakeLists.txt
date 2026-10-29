@@ -530,6 +530,9 @@ add_executable(forge_draw_rules_tests tests/draw_rules_tests.cpp)
 target_link_libraries(forge_draw_rules_tests PRIVATE forge_core Threads::Threads)
 add_executable(forge_tt_mate_tb_tests tests/tt_mate_tb_tests.cpp)
 target_link_libraries(forge_tt_mate_tb_tests PRIVATE forge_core Threads::Threads)
+# R5D (opus_r5/r5d/MATEFIX_REPORT.md): forced mates stay mates with Threads 2-3, SmpV2 off/on, fresh and warm TT.
+add_executable(forge_r5d_matefix_tests tests/r5d_matefix_tests.cpp)
+target_link_libraries(forge_r5d_matefix_tests PRIVATE forge_core Threads::Threads)
 # Perft caps per build (README): published depth <= 6 in plain builds, <= 5 under sanitizers; ThreadSanitizer
 # (perft is single-threaded and ~40x slower there) also skips counts above 20M nodes (three positions at depth 4).
 # -DFORGE_PERFT_SUITE_ARGS="--max-depth;7" overrides the caps.
@@ -549,6 +552,8 @@ add_test(NAME forge_perft_edge COMMAND forge_perft_suite ${CMAKE_CURRENT_SOURCE_
 add_test(NAME forge_draw_rules_tests COMMAND forge_draw_rules_tests)
 # Tablebase checks run only with tables (FORGE_SYZYGY_PATH, cache or environment variable); otherwise SKIP lines.
 add_test(NAME forge_tt_mate_tb_tests COMMAND forge_tt_mate_tb_tests ${CMAKE_CURRENT_SOURCE_DIR}/tests/syzygy_reference.tsv)
+add_test(NAME forge_r5d_matefix_tests COMMAND forge_r5d_matefix_tests 50)
+set_tests_properties(forge_r5d_matefix_tests PROPERTIES TIMEOUT 600)
 if(Python3_Interpreter_FOUND)
     add_test(NAME tm_softhard_uci_regression
         COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/tm_softhard_uci_tests.py $<TARGET_FILE:forge>

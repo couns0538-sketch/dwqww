@@ -58,7 +58,7 @@ int main(int argc, char** argv) {
     }
     std::unique_ptr<forge::Searcher> shared;
     if (reuse) shared = std::make_unique<forge::Searcher>(hash_mb, threads);
-    int failures = 0, shown = 0;
+    int failures = 0, shown = 0, exact = 0;  // exact: runs that report exactly the true mate distance
     std::uint64_t nodes = 0;
     const auto t0 = std::chrono::steady_clock::now();
     for (int r = 0; r < runs; ++r) {
@@ -86,6 +86,7 @@ int main(int argc, char** argv) {
         if (capture) std::cout.rdbuf(old);
         nodes += info.nodes;
         const bool ok = info.score >= forge::MateInMaxPly && info.score <= forge::MateValue - plies;
+        if (ok && info.score == forge::MateValue - plies) ++exact;
         if (!ok) {
             ++failures;
             if (shown < show) {
@@ -103,6 +104,6 @@ int main(int argc, char** argv) {
               << " hash " << hash_mb << (prefill > 0 ? " prefill " + std::to_string(prefill) : std::string())
               << (prefill_fens.empty() ? std::string() : " prefill-fens " + std::to_string(prefill_fens.size()) + "@d" + std::to_string(prefill_depth))
               << (reuse ? " reuse" : " fresh") << (forge::options::smp_best_thread ? " best-thread" : "") << ": failures " << failures << " (" << 100.0 * failures / runs
-              << "%), " << s << " s, mean nodes " << nodes / static_cast<std::uint64_t>(runs ? runs : 1) << '\n';
+              << "%), exact " << exact << ", " << s << " s, mean nodes " << nodes / static_cast<std::uint64_t>(runs ? runs : 1) << '\n';
     return failures == 0 ? 0 : 1;
 }

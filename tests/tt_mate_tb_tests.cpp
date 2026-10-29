@@ -15,6 +15,7 @@
 // win, draws report 0 and keep the draw, losses report a tablebase-range (or mate) loss; and an in-search
 // tablebase win (a capture from a 6-piece root into a 5-piece table) keeps its exact score through the TT.
 #include "forge/board.hpp"
+#include "forge/fb2.hpp"
 #include "forge/search.hpp"
 #include "forge/search_options.hpp"
 #include "forge/syzygy.hpp"
@@ -217,17 +218,26 @@ void mate_in_tt() {
     // Multi-threaded, the TT shared by two writers: every reported score is a real mate for the side to move and
     // never shorter than the true mate in 3. (Not the exact distance: rarely, about 1 run in 60 on the PC, the
     // two-thread search settles on a longer mate, e.g. mate in 11, and the warm TT keeps it at depth 12; see
-    // opus_r3/R3-5/REPORT.md.)
-    forge::Searcher smp(16, 2);
+    // opus_r3/R3-5/REPORT.md.) R5D proof loops (opus_r5/r5d/MATEFIX_REPORT.md) set FORGE_TT_MATE_THREADS (default 2)
+    // and FORGE_TT_MATE_SMPV2=1 (UCI SmpV2) for this block only.
+    const char* threads_env = std::getenv("FORGE_TT_MATE_THREADS");
+    const int smp_threads = threads_env != nullptr ? std::clamp(std::atoi(threads_env), 2, 64) : 2;
+    const char* smpv2_env = std::getenv("FORGE_TT_MATE_SMPV2");
+    const bool saved_smp_v2 = forge::fb2::requested.smp_v2;
+    forge::fb2::requested.smp_v2 = smpv2_env != nullptr && std::string_view(smpv2_env) == "1";
+    const std::string label = "Threads " + std::to_string(smp_threads) +
+                              (forge::fb2::requested.smp_v2 ? std::string(" SmpV2") : std::string());
+    forge::Searcher smp(16, smp_threads);
     for (int round = 1; round <= 2; ++round) {
         const forge::SearchInfo info = run(smp, root, 14);
         check(info.score >= MateInMaxPly && info.score <= MateValue - Plies,
-              "Threads 2, search " + std::to_string(round) + " on the shared TT: a real mate, never shorter than mate in "
+              label + ", search " + std::to_string(round) + " on the shared TT: a real mate, never shorter than mate in "
               "3 (" + std::to_string(info.score) + " " + uci(info.best_move) + ")");
         if (info.score != MateValue - Plies) {
-            std::cout << "INFO Threads 2 reported a longer mate: " << info.score << " " << uci(info.best_move) << '\n';
+            std::cout << "INFO " << label << " reported a longer mate: " << info.score << " " << uci(info.best_move) << '\n';
         }
     }
+    forge::fb2::requested.smp_v2 = saved_smp_v2;
 }
 
 // ---------------------------------------------------------------------------------------------------------------
