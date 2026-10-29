@@ -11,7 +11,7 @@ J3, J4, J6 were finished/advanced while J1 trains; J5 and J7 come last.
 |---|---|---|
 | J1 real v3 net at scale | `fable-fb2-j1` | data split DONE, trainer DONE, training RUNNING (ckpt 1: 0.016094 vs AL1 0.014417); exe/NPS/sanity games pending |
 | J2 datagen upgrade | `fable-fb2-j2` | **DONE** (engine mode, FGB1 format, converter, exact round-trip tests, 10-min smoke) |
-| J3 search improvements | `fable-fb2-j3` | code + tests + fit DONE, identity ALL OK, CI green; 500-game self-play per option RUNNING (CorrHistV2 500/500, 0 errors); gate entries written |
+| J3 search improvements | `fable-fb2-j3` | **DONE**: four options, unit tests 121/0, identity ALL OK, CI green, 2,500 self-play games 0 errors, LMR fit, gate entries |
 | J4 time management v2 | `fable-fb2-j4` | **DONE**: simulator (2000 games x 2 TCs x 3 scenarios, 0 flag losses), identity ALL OK, CI green, 220 real-clock games 0 flag losses |
 | J5 SMP v2 | `fable-fb2-j5` | analysis + code + tests + TSan hook written; build running; unit tests and 1/2/3-thread measurement wait for free CPU threads |
 | J6 gate design | `F:\opus_scratch\fable\GATE_BOUNDS.md` (copy `fable_fb2/j6/`) | **DONE** (proposal only) |
@@ -75,6 +75,7 @@ rows. Checkpoint every 30 min; stop when exact b0.6 <= target or 3 checkpoints w
 | 1 | 5,307 | 43.5M | 30 | **0.016094** | 0.007836 | 0.005008 | .0067 .0074 .0109 .0161 .0200 .0222 .0226 .0241 | +0.001677 (HCE is 0.017141) | PASS 10000/10000, max 1.02 cp |
 | 2 | 10,374 | 85.0M | 60 | **0.015684** | 0.007508 | 0.004761 | .0059 .0069 .0105 .0155 .0195 .0220 .0223 .0239 | +0.001267 | PASS 10000/10000, max 1.02 cp |
 | 3 | 15,476 | 126.8M | 90 | **0.015563** | 0.007420 | 0.004707 | .0057 .0067 .0103 .0153 .0193 .0221 .0223 .0239 | +0.001146 | PASS 10000/10000, max 1.02 cp |
+| 4 | 20,602 | 168.8M | 120 | **0.015444** | 0.007341 | 0.004667 | .0053 .0066 .0102 .0152 .0192 .0218 .0222 .0238 | +0.001027 | PASS 10000/10000, max 1.02 cp |
 | (next checkpoints: `status.json` in the run dir; `tools/nnue/fable_nnue_ckpt_table.py <run>` prints this table) | | | | | | | | | |
 
 Torch quick validation (200k rows, blend 0.6) on the way: 0.105583 (0) -> 0.017014 (14.7M) -> 0.016369 (29.6M).
@@ -150,7 +151,10 @@ isready barriers), 500 games per option and all-on, one at a time on one thread 
 | SingularV2 | 500/500 | 59,218 | **0** (`logs/selfplay/SingularV2.summary.json`) |
 | LmrTableV2 | 500/500 | 60,105 | **0** (`logs/selfplay/LmrTableV2.summary.json`) |
 | TtPruneV2 | 500/500 | 58,640 | **0** (`logs/selfplay/TtPruneV2.summary.json`) |
-| all four on | running | | |
+| all four on | 500/500 | 60,139 | **0** (`logs/selfplay/AllOn.summary.json`) |
+
+2,500 games, 297,896 plies, 0 errors of any kind (each configuration also passed the checker's preflight: the
+option changes the bench-11 node count, so the runner's "option did not apply" test would fire if it were inert).
 
 Gate entries: `fable_fb2/j3/GATE_ENTRY.md` (one per option vs all-off, design 1 of GATE_BOUNDS.md).
 
@@ -210,7 +214,7 @@ thread, same data/seed/batch/LR/WDL schedules as J1, float holdout b0.6 on the 2
 | run | 10 min | 20 min | 30 min (positions seen) |
 |---|---|---|---|
 | baseline H512 / 8 king buckets | 0.017107 (14.0M) | 0.016408 (27.5M) | **0.016088** (41.3M) |
-| H1024 / 8 | running | | |
+| H1024 / 8 (half the throughput) | 0.017935 (7.6M) | 0.016738 (14.9M) | running |
 | H512 / 16 king buckets | queued | | |
 | H512 / 8 + second layer 16 | queued | | |
 | H512 / 8 + pairwise term | queued | | |
