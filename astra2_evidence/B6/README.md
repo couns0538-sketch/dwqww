@@ -30,3 +30,9 @@ The final fake suite adds injected persistent `os.replace` failures after one co
 ledger remains byte-identical, and the next cell's raw evidence remains available. A persistent filesystem write
 failure propagates nonzero; it does not fabricate a completed matrix. Native qualification of the final save-only
 revision is reported separately by the parent. Do not attribute the earlier native matrix to the later script hash.
+
+## Final native qualification
+
+The original 15-cell OFF/B1/B2 matrix passed. The final atomic-writer source separately passed all five OFF depths after the sanitizer suite stopped. Raw streams, exact command/configuration, before/after binary hashes and runner hashes are retained in separate directories. BENCH_RESULTS.md reports every measured node count and NPS. All nine fake test methods passed, and CMake's new bench_matrix_tool_tests registration passed (1/1).
+
+No engine code changed; the exact base executable was reused, so a duplicate full engine build/suite was not run for this tool-only job. The baseline full suite is preserved under B1. Windows remains UNVERIFIED. No speed/Elo claim.
