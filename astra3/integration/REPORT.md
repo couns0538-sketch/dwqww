@@ -193,3 +193,7 @@ PASS75/75 cells. Source `926c55f33227bc4a030d7ce5b1140528aeba75af`, binary SHA25
 | R5A-8 | 373261 | 1043893 | 3399770 | 13180132 | 35699757 |
 
 R5A1=CorrHistPlus4;2=CorrExt1;3=CorrMargins1/Scale100;4=CorrHistPlus2;5=CorrHistPlus6;6=NetScale99;7=HistRework3;8=HistRework1. This verifies node identity, not speed or Elo. Full ASan/UBSan build has now started from unchanged M5 engine source; full sanitized CTest and TSan remain pending.
+
+### Sanitizer rolling checkpoint — 2026-10-29 01:55:37 PDT
+
+Full ASan/UBSan configuration built successfully (binary30633d03cc16f5ef82bed33139f463912d78c6df1b1fd7bca4893eb7b5a36d8a). Complete CTest runs outside the tracing sandbox with detect_leaks=1 and halt_on_error=1; it is still in progress and has no final verdict. A separate TSan build is compiling at nice19 with two jobs; no competing performance benchmark runs. Instrumented OFF pins and TSan native option/SMP stress are still pending. The identity helper now allows an explicit longer instrumented deadline and preserves original partial output on timeout; focused mocked RED/GREEN checks are pending. A2 source-only preparation is preserved, with no root-cause or native-reproduction claim.

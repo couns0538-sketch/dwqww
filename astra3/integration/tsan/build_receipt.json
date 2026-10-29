@@ -1,0 +1,51 @@
+{
+  "source_commit": "926c55f33227bc4a030d7ce5b1140528aeba75af",
+  "start_utc": "2026-10-29T08:53:47.768662+00:00",
+  "status": "BUILT",
+  "commands": {
+    "kind": "tsan",
+    "status": "PREPARED_NOT_RUN",
+    "source_commit": "926c55f33227bc4a030d7ce5b1140528aeba75af",
+    "build_dir": "/tmp/forge-astra3-build-tsan",
+    "configure": [
+      "/workspace/.cloud-setup/venv/lib/python3.12/site-packages/cmake/data/bin/cmake",
+      "-S",
+      "/tmp/forge-astra3-integration",
+      "-B",
+      "/tmp/forge-astra3-build-tsan",
+      "-DCMAKE_BUILD_TYPE=RelWithDebInfo",
+      "-DCMAKE_CXX_COMPILER=/usr/bin/g++-14",
+      "-DCMAKE_CXX_FLAGS=-march=x86-64-v3 -mtune=znver5 -fno-fast-math -ffp-contract=off -DFORGE_NNUE_HIDDEN=256 -fno-pie -fsanitize=thread -fno-omit-frame-pointer",
+      "-DCMAKE_CXX_FLAGS_RELWITHDEBINFO=-O1 -g1 -DNDEBUG",
+      "-DCMAKE_EXE_LINKER_FLAGS=-no-pie -fsanitize=thread",
+      "-DFORGE_ENABLE_SANITIZERS=OFF"
+    ],
+    "build": [
+      "nice",
+      "-n",
+      "19",
+      "/workspace/.cloud-setup/venv/lib/python3.12/site-packages/cmake/data/bin/cmake",
+      "--build",
+      "/tmp/forge-astra3-build-tsan",
+      "-j2",
+      "--target",
+      "forge",
+      "forge_debughooks",
+      "forge_smp_v2_tests",
+      "forge_fb2_bundle_tests",
+      "forge_singular_v2_tests",
+      "forge_tm_softhard_tests",
+      "forge_smp_tests",
+      "forge_r5a_options_tests"
+    ],
+    "runtime_environment": {
+      "TSAN_OPTIONS": "halt_on_error=1"
+    },
+    "runtime": "outside tracing sandbox; do not disable leak/race checks"
+  },
+  "scheduling": "low-priority two-job compilation during single-suite ASan correctness work; no competing NPS benchmark",
+  "configure_exit": 0,
+  "build_exit": 0,
+  "binary_sha256": "9a77389b180ef495b8b9b59bc3e090f8f039f4b135c67b1ebcb95dc4e30c8809",
+  "end_utc": "2026-10-29T08:54:42.064548+00:00"
+}
