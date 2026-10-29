@@ -78,6 +78,7 @@ rows. Checkpoint every 30 min; stop when exact b0.6 <= target or 3 checkpoints w
 | 4 | 20,602 | 168.8M | 120 | **0.015444** | 0.007341 | 0.004667 | .0053 .0066 .0102 .0152 .0192 .0218 .0222 .0238 | +0.001027 | PASS 10000/10000, max 1.02 cp |
 | 5 | 25,700 | 210.5M | 150 | **0.015326** | 0.007280 | 0.004663 | .0052 .0065 .0101 .0151 .0191 .0217 .0221 .0237 | +0.000909 | PASS 10000/10000, max 1.02 cp |
 | 6 | 30,851 | 252.7M | 180 | **0.015230** | 0.007227 | 0.004654 | .0051 .0064 .0100 .0149 .0190 .0217 .0219 .0236 | +0.000813 | PASS 10000/10000, max 1.02 cp |
+| 7 | 36,022 | 295.1M | 210 | **0.015156** | 0.007208 | 0.004690 | .0049 .0064 .0100 .0149 .0189 .0217 .0219 .0235 | +0.000739 | automatic check could not start the tool (Windows 0xC0000142 under load); re-run by hand: **10000/10000, 0 mismatches**, fast-vs-reference 0 (`logs/ck07_parity_rerun.log`) |
 | (next checkpoints: `status.json` in the run dir; `tools/nnue/fable_nnue_ckpt_table.py <run>` prints this table) | | | | | | | | | |
 
 Torch quick validation (200k rows, blend 0.6) on the way: 0.105583 (0) -> 0.017014 (14.7M) -> 0.016369 (29.6M).
