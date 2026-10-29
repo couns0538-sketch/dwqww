@@ -427,12 +427,20 @@ int Worker::FORGE_SEARCH_FN(Board& board, SearchStack* ss, int depth, int alpha,
                 extension = corr_ext::singular_extension(pv_node, singular_score, singular_beta, correction,
                                                          inherited_double_extensions);
 #else
-                extension = 1;
-                if (!pv_node && singular_score < singular_beta - 24 && inherited_double_extensions <= 6) {
+                if (fb2_.singular_v2) {
+                    extension = singular_v2::positive_extension(pv_node, tt_capture, singular_score, singular_beta,
+                                                                inherited_double_extensions);
 #ifdef FORGE_PROF
-                    prof::count(prof::Counter::SingularDoubleExtensions);
+                    if (extension >= 2) prof::count(prof::Counter::SingularDoubleExtensions);
 #endif
-                    extension = 2;
+                } else {
+                    extension = 1;
+                    if (!pv_node && singular_score < singular_beta - 24 && inherited_double_extensions <= 6) {
+#ifdef FORGE_PROF
+                        prof::count(prof::Counter::SingularDoubleExtensions);
+#endif
+                        extension = 2;
+                    }
                 }
 #endif
             } else if (singular_beta >= beta) {
@@ -440,10 +448,15 @@ int Worker::FORGE_SEARCH_FN(Board& board, SearchStack* ss, int depth, int alpha,
                 prof::count(prof::Counter::SingularCutoffs);
 #endif
                 return singular_beta;
+            } else if (fb2_.singular_v2 && singular_v2::multicut(singular_score, beta)) {
+#ifdef FORGE_PROF
+                prof::count(prof::Counter::SingularCutoffs);
+#endif
+                return singular_score;
             } else if (tt_score >= beta) {
-                extension = -2;
+                extension = fb2_.singular_v2 ? singular_v2::negative_extension(pv_node, true, cut_node) : -2;
             } else if (cut_node) {
-                extension = -1;
+                extension = fb2_.singular_v2 ? singular_v2::negative_extension(pv_node, false, true) : -1;
             }
         } else if (gives_check && depth >= tune::CheckExtensionDepth && !root_node &&
                    (picker.last_move_see_nonnegative() || board.see_ge(move, 0))) {
@@ -453,7 +466,9 @@ int Worker::FORGE_SEARCH_FN(Board& board, SearchStack* ss, int depth, int alpha,
         // CorrExt: the path pays extension - 1 plies for a double or triple extension.
         ss->double_extensions = corr_ext::path_extra_after(inherited_double_extensions, extension);
 #else
-        ss->double_extensions = inherited_double_extensions + (extension == 2);
+        ss->double_extensions = fb2_.singular_v2
+            ? singular_v2::events_after(inherited_double_extensions, extension)
+            : inherited_double_extensions + (extension == 2);
 #endif
         const int new_depth = depth - 1 + extension;
 
