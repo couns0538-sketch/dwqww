@@ -1,7 +1,7 @@
 # Forge Opus R5C: v4 NNUE (J7 L2=16) engine support + N3 Syzygy / IntendedThreefold / HardDeadline hardening — IN PROGRESS
 
 **Status:** finishing (paused 09:52-11:00 Vienna for job R5D at the user's request). M1 done. M2: tables 290/290 sha
-OK, N3 smoke 200/200 clean (the re-run with `tbhits` counting and the fixed stress board is in progress), prebench
+OK, N3 smoke 200/200 clean (re-run with `tbhits` counting and the fixed stress board: 140/200 clean at 11:41), prebench
 pins, `N3_GATE_SPEC.md` + `n3_gate_spec.json` (runner change needed: a candidate-only string option). M3: FNN4 format,
 loader + scalar / AVX2 forward + UCI `NNUEv4` / `NNUEv4File`, OFF identity ALL OK, v4 unit test 54 checks PASS. M4:
 `export_fnn4.py` from the real J7 checkpoint, parity 100,000 positions 0 mismatches (scalar and AVX2), float gap mean
