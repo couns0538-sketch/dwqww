@@ -21,13 +21,16 @@ RECIPE=znver5 bash opus_r5/r5b/tools/parity_r5b.sh "$PWD" <out_dir> <name> -DFOR
 
 ## NPS A/B (M2)
 ```
-bash opus_r5/r5b/nps_ab.sh --a OFF.exe --b X.exe [Y.exe ...] --names x,y --aa --depths 16,20 --pairs 12 \
-     --core 14 --pins 16=3024920,20=12389307 --json out.json [--stop-file F:/opus_scratch/r5/r5b/r5b_nps_stop.flag]
+bash opus_r5/r5b/nps_ab.sh --a OFF.exe --b X.exe [Y.exe ...] --names x,y --aa --depths 16,20 --pairs 20 \
+     --copies 20 --core 14 --pins 16=3024920,20=12389307 --copy-dir <scratch dir> --json out.json \
+     [--stop-file F:/opus_scratch/r5/r5b/r5b_nps_stop.flag]
 python -I -B opus_r5/r5b/nps_table.py out.json [more.json]     # markdown rows
 ```
 PowerShell: `& C:\Users\Administrator\grok-pc\nnue\.venv\Scripts\python.exe -I -B opus_r5\r5b\nps_ab.py --a ... --b ...`.
 The driver pins itself (and so every engine) to one logical CPU and runs BelowNormal; primary figure = CPU-time NPS
 from QueryProcessCycleTime; `--aa` adds the A/A control (byte copy of A). Exit 2 on any node mismatch.
+On the PC keep `--copies` = `--pairs`: every slot then runs fresh byte copies, so the per-file speed offsets
+(ASLR image base / page placement, up to about +-2.8 % at d16 in R5B passes 1-2) are sampled into the CI.
 
 ## Non-regression evidence (M4)
 ```

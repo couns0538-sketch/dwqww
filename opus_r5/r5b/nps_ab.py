@@ -8,7 +8,10 @@ isready, `bench <depth>`, quit. Order per depth: slot i runs the arms in list or
 With --copies K every arm (A, each B, AA) runs K byte copies of its exe in rotation (slot i uses copy i % K): the exes
 are DYNAMIC_BASE, every file gets its own ASLR image base, and a per-file speed offset is then sampled into the CI
 instead of biasing one arm (seen in R5B M3: A ran ~3 % slower than its byte copy for 8 of 12 d16 slots). With --aa,
-each B is also compared against AA (second reference, `cpu vs AA`).
+each B is also compared against AA (second reference, `cpu vs AA`). On the PC use --copies equal to --pairs (a fresh
+file per slot, R5B pass 3): with fewer copies the pairs share files and the interval comes out too narrow.
+Timeout: a run is abandoned (exit 2) only when a line arrives after its 600 s deadline; an engine that hangs
+without printing anything blocks the driver (use --stop-file plus a look at the process list in that case).
 
 Machine rules: the driver pins itself to ONE logical CPU (--core, default 14) and sets BelowNormal priority before
 it starts any engine; Windows children inherit the affinity mask, and every engine is also created with
@@ -238,6 +241,10 @@ def main():
     names = [x for x in args.names.split(",") if x] or [os.path.splitext(os.path.basename(b))[0] for b in args.b]
     if len(names) != len(args.b):
         ap.error("--names needs one name per --b exe")
+    if len(set(names)) != len(names) or {"A", "AA"} & set(names):
+        ap.error("--names must be unique and must not be A or AA (reserved for the reference and the A/A arm)")
+    if args.copies < 1:
+        ap.error("--copies must be >= 1")
     arms = [("A", args.a)] + list(zip(names, args.b))
     if args.aa:
         arms.append(("AA", args.a))
