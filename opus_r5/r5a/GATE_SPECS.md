@@ -19,7 +19,7 @@ Common to every entry:
 | 1 | R5A-1 | `CorrHistPlus=4` | 10+0.1 | 340927 / 734347 / 2794671 | pending | B1/B3 ok (mask 5); B2/B4 exclusive |
 | 2 | R5A-2 | `CorrExt=1` | 40+0.4 | 312961 / 838790 / 2891507 | PASS (200/200, stress 50/50 problems 0) | none (independent) |
 | 3 | R5A-3 | `CorrMargins=1` | 40+0.4 | 343365 / 858019 / 2522546 | PASS (200/200, stress 50/50 problems 0) | TtPruneV2 in all four: same margins |
-| 4 | R5A-4 | `CorrHistPlus=2` | 10+0.1 | 296553 / 824640 / 2914749 | pending | B1/B3 ok (mask 3); B2/B4 exclusive |
+| 4 | R5A-4 | `CorrHistPlus=2` | 10+0.1 | 296553 / 824640 / 2914749 | PASS (200/200, stress 50/50 problems 0) | B1/B3 ok (mask 3); B2/B4 exclusive |
 | 5 | R5A-5 | `CorrHistPlus=6` | 10+0.1 | 357478 / 747883 / 2544596 | pending | B1/B3 ok (mask 7); B2/B4 exclusive |
 | 6 | R5A-6 | `NetScale=99` | 10+0.1 | 308948 / 917342 / 2601047 | pending | moves all margins (TtPruneV2, CorrMargins) |
 | 7 | R5A-7 | `HistRework=3` | 10+0.1 | 336192 / 869621 / 3052885 | pending | alternative to HistRework=2 (B1/B4) |
@@ -90,7 +90,7 @@ Common to every entry:
 | prebench cand_on (d11/d13/d16) | 296553 / 824640 / 2914749 |
 | prebench cand_off | 312866 / 862329 / 3024920 |
 | expected echo | `info string active: CorrHistPlus=2` |
-| smoke | pending |
+| smoke | PASS: 200/200 games, failures {'illegal': 0, 'crash': 0, 'time_loss': 0, 'missing_bestmove': 0, 'error_line': 0, 'echo': 0}, stop stress 50/50 problems 0 (`opus_r5/r5a/smoke/corrhistplus2/summary.json`) |
 | conflicts with B1-B4 | As CorrHistPlus=4: combinable with B1/B3 (bitmask 3), exclusive with B2/B4 (CorrHistV2). |
 | why this rank | Weaker prior than bit 4 (no related positive gate); its deep trees grow (R3-3: d20 +12.6%, d22 +18.9%), the crew flag for a longer-TC confirm after an H1. |
 | sources | C2, R3-3 R3-05 |

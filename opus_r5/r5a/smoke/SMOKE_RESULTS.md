@@ -4,3 +4,4 @@
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
 | corrmargins1 | `CorrMargins=1` | 200/200 | 0 | 0 | 0 | 0 | 0 | 0 | 50/50, 0 problems | 132.5 | 0 | 0 | 96.5/200 | threefold_repetition 139, checkmate 37, insufficient_material 16, fifty_moves 7, stalemate 1 | 02:16:09 Vienna-02:31:46 | **PASS** |
 | corrext1 | `CorrExt=1` | 200/200 | 0 | 0 | 0 | 0 | 0 | 0 | 50/50, 0 problems | 127.1 | 0 | 0 | 101.5/200 | threefold_repetition 138, checkmate 51, insufficient_material 8, fifty_moves 3 | 02:37:18 Vienna-02:52:33 | **PASS** |
+| corrhistplus2 | `CorrHistPlus=2` | 200/200 | 0 | 0 | 0 | 0 | 0 | 0 | 50/50, 0 problems | 126.4 | 1 | 0 | 103/200 | threefold_repetition 138, checkmate 50, insufficient_material 8, fifty_moves 4 | 02:53:24 Vienna-03:08:30 | **PASS** |

@@ -1,6 +1,6 @@
 # Forge Opus round 5A: gate-ready singles (CorrMargins, CorrExt, CorrHistPlus variants, NetScale) — IN PROGRESS
 
-**Status:** M1, M2, M5 done; M3 smoke 2/8 PASS, CorrHistPlus=2 at 140/200 (0 failures); M4 written + validated. Last push 03:05 Vienna.
+**Status:** M1, M2, M5 done; M3 smoke 3/8 PASS (CorrMargins, CorrExt, CorrHistPlus=2), CorrHistPlus=4 running; M4 written + validated. Last push 03:08 Vienna.
 
 Branch `opus-r5a-singles` = `origin/forge-bundle-int` b7c17722 + the commits listed per milestone. Job started 01:52 Vienna
 (2026-10-29), hard stop 04:52 Vienna. No Elo claims: node counts are not strength; gates decide. Machine exclusive: no
@@ -176,6 +176,7 @@ Results (PGNs `smoke/<config>/games.pgn`, summaries `smoke/<config>/summary.json
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
 | corrmargins1 | `CorrMargins=1` | 200/200 | 0 | 0 | 0 | 0 | 0 | 0 | 50/50, 0 problems | 132.5 | 0 | 0 | 96.5/200 | threefold_repetition 139, checkmate 37, insufficient_material 16, fifty_moves 7, stalemate 1 | 02:16:09 Vienna-02:31:46 | **PASS** |
 | corrext1 | `CorrExt=1` | 200/200 | 0 | 0 | 0 | 0 | 0 | 0 | 50/50, 0 problems | 127.1 | 0 | 0 | 101.5/200 | threefold_repetition 138, checkmate 51, insufficient_material 8, fifty_moves 3 | 02:37:18 Vienna-02:52:33 | **PASS** |
+| corrhistplus2 | `CorrHistPlus=2` | 200/200 | 0 | 0 | 0 | 0 | 0 | 0 | 50/50, 0 problems | 126.4 | 1 | 0 | 103/200 | threefold_repetition 138, checkmate 50, insufficient_material 8, fifty_moves 4 | 02:53:24 Vienna-03:08:30 | **PASS** |
 <!-- /smoke-table -->
 
 ## M4 gate pack (02:16-02:40 Vienna, written while the smoke ran) — DONE (smoke column refreshes)
@@ -261,7 +262,7 @@ Every other push of this branch is `[skip ci]` (WIP, docs, smoke evidence); the 
 ## Milestones
 - M1 per-option audit + ON benches: DONE (02:01 Vienna, commit aeb6f093)
 - M2 effective-settings echo + conflict guards: DONE (02:15 Vienna)
-- M3 smoke stability: in progress (2/8 PASS at 02:52; see the table)
+- M3 smoke stability: in progress (3/8 PASS at 03:08; see the table)
 - M4 gate pack: written (02:23 Vienna; smoke column refreshes as configs finish)
 - M5 SPSA hooks (optional): DONE (02:38 Vienna)
 
