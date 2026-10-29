@@ -11,6 +11,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import os
 import queue
 import re
 import subprocess
@@ -276,7 +277,9 @@ def main(argv=None):
                'sets_source_sha256': sha256(args.sets) if args.sets else None, 'sets': configs,
                'pins': PINS, 'timeout_seconds': args.timeout, 'command': sys.argv, 'cells': []}
         def save():
-            (out / 'results.json').write_text(json.dumps(doc, indent=2) + '\n', encoding='utf-8')
+            pending = out / 'results.pending.json'
+            pending.write_text(json.dumps(doc, indent=2) + '\n', encoding='utf-8')
+            os.replace(pending, out / 'results.json')
         save()
         for config in configs:
             for depth in PINS:

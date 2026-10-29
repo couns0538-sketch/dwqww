@@ -1,17 +1,24 @@
 #!/usr/bin/env python3
 """Process-level bench matrix tests with a controlled fake UCI executable."""
+import importlib.util
 import json
 from pathlib import Path
 import subprocess
 import sys
 import tempfile
+import time
 import unittest
+from unittest import mock
 
 ROOT = Path(__file__).resolve().parents[1]
 TOOL = ROOT / "tools" / "bench_matrix.py"
 FAKE = r'''#!/usr/bin/env python3
 import sys,time
+from pathlib import Path
 SCENARIO = SCENARIO_VALUE
+count_file=Path(__file__).with_suffix(".count")
+process_number=int(count_file.read_text())+1 if count_file.exists() else 1
+count_file.write_text(str(process_number))
 pins={11:312866,13:862329,16:3024920,20:12389307,22:34048354}
 mode='OFF'; tune=0
 for raw in sys.stdin:
@@ -29,6 +36,8 @@ for raw in sys.stdin:
   if SCENARIO=='bad_range': print('option name Broken type spin default 0 min 5 max 1')
   if SCENARIO=='no_uciok': print('info string uciok')
   else: print('uciok')
+  if SCENARIO=='blocked_stdin' and process_number>5:
+   sys.stdout.flush(); time.sleep(10)
  elif cmd.startswith('setoption'):
   if 'name BundlePreset value ' in cmd: mode=cmd.rsplit('value ',1)[1]; tune=0
   if 'name Tune value ' in cmd: tune=int(cmd.rsplit('value ',1)[1])
@@ -119,6 +128,46 @@ class BenchMatrixTests(unittest.TestCase):
         wire=(out/"cell_005.stdin").read_text()
         self.assertIn("setoption name Clear Hash\n",wire)
         self.assertIn("setoption name Book File value a path with spaces\n",wire)
+
+    def test_stdin_backpressure_is_bounded(self):
+        started=time.monotonic()
+        p,out,_,_=self.invoke('blocked_stdin',sets=[{"name":"longpath","options":[["Book File","x"*131072]]}],timeout="0.2")
+        self.assertNotEqual(p.returncode,0,p.stdout)
+        self.assertLess(time.monotonic()-started,5,"stdin backpressure escaped the cell deadline")
+        self.assertEqual(json.loads((out/"results.json").read_text())["status"],"FAIL")
+
+    def test_failed_atomic_replace_preserves_completed_ledger(self):
+        p,out,exe,config=self.invoke()
+        self.assertEqual(p.returncode,0,p.stderr)
+        sys.path.insert(0,str(ROOT/"tools"))
+        try:
+            spec=importlib.util.spec_from_file_location("matrix_atomic_test",TOOL)
+            module=importlib.util.module_from_spec(spec)
+            spec.loader.exec_module(module)
+        finally:
+            sys.path.pop(0)
+        atomic=out.parent/"atomic_failure"
+        real_replace=module.os.replace
+        calls=0
+        retained=None
+        def fail_after_first_cell(source,destination):
+            nonlocal calls,retained
+            calls+=1
+            if calls>=3:
+                if retained is None:
+                    retained=Path(destination).read_bytes()
+                raise OSError("injected replace failure after one completed cell")
+            return real_replace(source,destination)
+        with mock.patch.object(module.os,"replace",side_effect=fail_after_first_cell):
+            with self.assertRaises(OSError):
+                module.main([str(exe),"--sets",str(config),"--out-dir",str(atomic),"--timeout","2"])
+        self.assertEqual((atomic/"results.json").read_bytes(),retained)
+        ledger=json.loads(retained)
+        self.assertEqual(ledger["status"],"RUNNING")
+        self.assertEqual(len(ledger["cells"]),1)
+        self.assertEqual(ledger["cells"][0]["status"],"PASS")
+        self.assertEqual(ledger["cells"][0]["nodes"],312866)
+        self.assertTrue((atomic/"cell_001.stdout").exists(),"the following cell's raw evidence survives too")
 
     def test_existing_directory_is_not_overwritten(self):
         p,out,exe,config=self.invoke()
