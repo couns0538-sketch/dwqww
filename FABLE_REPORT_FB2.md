@@ -219,7 +219,7 @@ thread, same data/seed/batch/LR/WDL schedules as J1, float holdout b0.6 on the 2
 |---|---|---|---|
 | baseline H512 / 8 king buckets | 0.017107 (14.0M) | 0.016408 (27.5M) | **0.016088** (41.3M) |
 | H1024 / 8 (half the throughput) | 0.017935 (7.6M) | 0.016738 (14.9M) | 0.016401 (22.1M) |
-| H512 / 16 king buckets | running | | |
+| H512 / 16 king buckets | 0.017224 (13.6M) | 0.016429 (27.0M) | 0.016242 (40.1M) |
 | H512 / 8 + second layer 16 | queued | | |
 | H512 / 8 + pairwise term | queued | | |
 
