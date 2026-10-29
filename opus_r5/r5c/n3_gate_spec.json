@@ -1,0 +1,108 @@
+{
+ "job": "Forge Opus round 5C (opus-r5c-netv4), M2 N3 gate pack",
+ "commit": "exe built from the engine sources of d3e4d48a (forge-bundle-int b7c1772 + R5C M1 hardening, tbhits, the v4 path behind NNUEv4=false)",
+ "rule": "one option set per gate, candidate vs the same exe all-OFF; SPRT [0,10] normalized; cap 3000; srand and openings start left blank for the queue owner",
+ "gates": [
+  {
+   "rank": 1,
+   "id": "R5C-N3",
+   "name": "N3 = SyzygyPath (3-4-5) + IntendedThreefold + HardDeadline=10",
+   "tag_suggestion": "gateR5C_n3_vs_off",
+   "cand": {
+    "exe_install_name": "forge_r5c_n3.exe",
+    "exe_source": "F:\\opus_scratch\\r5\\r5c\\exe\\forge_r5c_m3b.exe",
+    "sha256": "bf9f6f1619e1f47857c2a64005fe0bd22986c23b830a63b3d0fba929924ebae2",
+    "options": [
+     "option.SyzygyPath=D:/grok-pc-data/dwqww/.claude/worktrees/syzygy345",
+     "option.IntendedThreefold=true",
+     "option.HardDeadline=10"
+    ]
+   },
+   "opponent": {
+    "name": "base_r5c_off",
+    "exe_install_name": "forge_r5c_n3.exe",
+    "sha256": "bf9f6f1619e1f47857c2a64005fe0bd22986c23b830a63b3d0fba929924ebae2",
+    "options": []
+   },
+   "both_sides": [
+    "option.Threads=1",
+    "option.Hash=16",
+    "option.OwnBook=false"
+   ],
+   "tc_primary": "10+0.1",
+   "tc_secondary": null,
+   "sprt": {
+    "elo0": 0,
+    "elo1": 10,
+    "alpha": 0.05,
+    "beta": 0.05,
+    "model": "normalized"
+   },
+   "cap_games": 3000,
+   "srand": "",
+   "openings_start": "",
+   "book": {
+    "file": "C:\\Users\\Administrator\\grok-pc\\coder-fuzz\\8moves_v3.pgn",
+    "format": "pgn",
+    "order": "random"
+   },
+   "tables": {
+    "path": "D:/grok-pc-data/dwqww/.claude/worktrees/syzygy345",
+    "files": "145 WDL + 145 DTZ (3-4-5)",
+    "bytes_total_approx": "939 MB",
+    "sha256_list": "opus_r3/R3-1L/syzygy345.sha256",
+    "check": "290/290 OK (opus_r5/r5c/logs/m2_syzygy345_sha256_check.log)"
+   },
+   "prebench_depths": [
+    11,
+    13,
+    16,
+    20,
+    22
+   ],
+   "prebench": {
+    "cand_off": [
+     312866,
+     862329,
+     3024920,
+     12389307,
+     34048354
+    ],
+    "cand_on": [
+     313631,
+     866959,
+     2460490,
+     11465604,
+     31972996
+    ],
+    "cand_on_perft5": 4865609,
+    "note": "cand_on needs the SyzygyPath option in the runner's pre-gate bench session"
+   },
+   "off_identity": {
+    "bench_d11_d13_d16_d20_d22": [
+     312866,
+     862329,
+     3024920,
+     12389307,
+     34048354
+    ],
+    "perft5_startpos": 4865609,
+    "perft5_kiwipete": 193690690,
+    "fma": 0
+   },
+   "expected_uci_lines_cand": [
+    "info string Syzygy: 145 WDL and 145 DTZ tables, up to 5 pieces",
+    "info lines carry tbhits N"
+   ],
+   "runner_change": [
+    "pass the SyzygyPath string to the candidate's -engine block only, unchanged (no case change, no split at ':' or '/', no added quotes; the path has no spaces)",
+    "use the same option in the candidate's pre-gate bench (cand_on pins)",
+    "keep the tables at that path for the whole gate; a wrong path prints 'info string SyzygyPath: no tablebase found ...'"
+   ],
+   "runner_survey": "0 of 63 past RUN_INFO.json files used a non-numeric, non-boolean option value",
+   "reason": "endgame/draw bundle N3 of the job; every part hardened in M1 (tests/r5c_n3_tests.cpp); tables only act in <= 5-piece positions, so the SPRT may end at the cap",
+   "evidence": "opus_r5/r5c/REPORT.md M1-M2, N3_GATE_SPEC.md",
+   "status": "UNPROVEN, no Elo claim; gate-ready after the runner change (owner installs the exe, adds srand/openings start)"
+  }
+ ]
+}
