@@ -461,6 +461,7 @@ int main() {
             std::cout << "option name SyzygyPath type string default <empty>\n"
                          "option name SyzygyProbeDepth type spin default 1 min 1 max 10\n"
                          "option name Syzygy50MoveRule type check default true\n";
+            std::cout << "option name TmSoftHardClamp type check default false\n";
             std::cout << "option name CorrHistPlus type spin default 0 min 0 max 7\n";
             std::cout << "option name HardDeadline type spin default 0 min 0 max 1000\n";
             // v2 networks (forge/search_options.hpp): off unless NNUEKingBuckets or NNUEOutputBuckets > 0.
@@ -741,6 +742,13 @@ int main() {
                     else if (name == "LmrTableV2") forge::fb2::requested.lmr_table_v2 = value;
                     else forge::fb2::requested.tt_prune_v2 = value;
                 }
+            } else if (name == "TmSoftHardClamp") {
+                if (value_text == "true" || value_text == "false") {
+                    forge::fb2::requested.tm_soft_hard_clamp = value_text == "true";
+                } else {
+                    const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex());
+                    std::cout << "info string invalid value for option TmSoftHardClamp" << std::endl;
+                }
             } else if (name == "BundlePreset") {
                 static constexpr std::array<std::string_view, 5> Names{"OFF", "B1", "B2", "B3", "B4"};
                 const auto it = std::find(Names.begin(), Names.end(), std::string_view(value_text));
@@ -937,6 +945,9 @@ int main() {
                 input.seekg(position);
                 forge::SearchLimits limits = parse_limits(input, board);
                 limits.move_overhead_ms = move_overhead_ms;
+                // The watchdog and workers use the same requested clock-budget mode.
+                // Searcher takes its own complete snapshot before it launches helpers.
+                limits.fb2.tm_soft_hard_clamp = forge::fb2::requested.tm_soft_hard_clamp;
                 // Charge dispatch admission only to finite externally clocked searches.
                 if (!limits.infinite && !limits.ponder &&
                     (limits.time_ms >= 0 || limits.movetime_ms >= 0)) limits.start_time = command_start;

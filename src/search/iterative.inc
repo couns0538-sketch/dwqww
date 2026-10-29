@@ -249,7 +249,8 @@ SearchInfo Worker::search(Board board, const SearchLimits& limits, bool emit_inf
                 factor *= timeman::falling_eval_scale(iteration_previous_score, score);
             }
             factor = timeman::factor_floor(factor);
-            if (elapsed_ms() >= static_cast<std::int64_t>(static_cast<double>(soft_limit_ms_) * factor)) break;
+            if (elapsed_ms() >= timeman::scaled_soft_limit(soft_limit_ms_, hard_limit_ms_, factor,
+                                                         fb2_.tm_soft_hard_clamp)) break;
         }
     }
 

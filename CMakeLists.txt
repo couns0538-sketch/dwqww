@@ -209,6 +209,10 @@ add_executable(forge_timeman_tests tests/timeman_tests.cpp)
 target_include_directories(forge_timeman_tests PRIVATE src)
 target_link_libraries(forge_timeman_tests PRIVATE forge_core Threads::Threads)
 
+add_executable(forge_tm_softhard_tests tests/tm_softhard_tests.cpp)
+target_include_directories(forge_tm_softhard_tests PRIVATE src)
+target_link_libraries(forge_tm_softhard_tests PRIVATE forge_core Threads::Threads)
+
 # Lazy SMP housekeeping and SMP options (O1).
 add_executable(forge_smp_tests tests/smp_tests.cpp)
 target_link_libraries(forge_smp_tests PRIVATE forge_core Threads::Threads)
@@ -396,6 +400,7 @@ add_test(NAME forge_fb2_bundle_tests COMMAND forge_fb2_bundle_tests)
 add_test(NAME forge_movepicker_tests COMMAND forge_movepicker_tests)
 add_test(NAME forge_history_tests COMMAND forge_history_tests)
 add_test(NAME forge_timeman_tests COMMAND forge_timeman_tests)
+add_test(NAME forge_tm_softhard_tests COMMAND forge_tm_softhard_tests)
 add_test(NAME forge_smp_tests COMMAND forge_smp_tests)
 add_test(NAME forge_nnue_v2_tests COMMAND forge_nnue_v2_tests)
 add_test(NAME forge_nnue_v2_uci_tests COMMAND forge_nnue_v2_uci_tests $<TARGET_FILE:forge>)
@@ -537,6 +542,10 @@ add_test(NAME forge_draw_rules_tests COMMAND forge_draw_rules_tests)
 # Tablebase checks run only with tables (FORGE_SYZYGY_PATH, cache or environment variable); otherwise SKIP lines.
 add_test(NAME forge_tt_mate_tb_tests COMMAND forge_tt_mate_tb_tests ${CMAKE_CURRENT_SOURCE_DIR}/tests/syzygy_reference.tsv)
 if(Python3_Interpreter_FOUND)
+    add_test(NAME tm_softhard_uci_regression
+        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/tm_softhard_uci_tests.py $<TARGET_FILE:forge>
+                --log ${CMAKE_CURRENT_BINARY_DIR}/tm-softhard-uci.log)
+    set_tests_properties(tm_softhard_uci_regression PROPERTIES TIMEOUT 120)
     add_test(NAME uci_options_regression
         COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tools/uci_options_regression.py $<TARGET_FILE:forge>
                 --workdir ${CMAKE_CURRENT_BINARY_DIR}/uci-options-regression

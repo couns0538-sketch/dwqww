@@ -46,7 +46,9 @@ void apply_bundle(Bundle bundle) {
     options::corr_hist_plus = static_cast<std::uint8_t>(s.corr_hist_plus);
     search_options::hist_rework = s.hist_rework;
     options::cuckoo_rep = s.cuckoo_rep;
+    const bool clamp = requested.tm_soft_hard_clamp; // independent of the six preset options
     requested = s.fb2;
+    requested.tm_soft_hard_clamp = clamp;
 }
 
 } // namespace fb2
