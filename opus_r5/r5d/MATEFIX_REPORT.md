@@ -1,6 +1,6 @@
 # Forge Opus R5D: forced mate reported as a centipawn score with Threads >= 2 — IN PROGRESS
 
-**Status:** reproduced; root cause found (pruning of the quiet mating move against a bare king; also reachable with
+**Status:** fix done, proof done, CI green; Threads 2 smoke 180/200 clean at 11:41 (running). Reproduced; root cause found (pruning of the quiet mating move against a bare king; also reachable with
 one thread on a warm TT); fix BKM being verified. Push notes: 09:56 -> 10:11 Vienna was 15 min (diagnosis runs),
 10:23 -> 10:4x was over 10 min (Threads 1 finding + BK runs). Last push: see the head commit time.
 
