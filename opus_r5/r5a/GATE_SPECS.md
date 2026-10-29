@@ -23,7 +23,7 @@ Common to every entry:
 | 5 | R5A-5 | `CorrHistPlus=6` | 10+0.1 | 357478 / 747883 / 2544596 | PASS (200/200, stress 50/50 problems 0) | B1/B3 ok (mask 7); B2/B4 exclusive |
 | 6 | R5A-6 | `NetScale=99` | 10+0.1 | 308948 / 917342 / 2601047 | PASS (200/200, stress 50/50 problems 0) | moves all margins (TtPruneV2, CorrMargins) |
 | 7 | R5A-7 | `HistRework=3` | 10+0.1 | 336192 / 869621 / 3052885 | PASS (200/200, stress 50/50 problems 0) | alternative to HistRework=2 (B1/B4) |
-| 8 | R5A-8 | `HistRework=1` | 10+0.1 | 373261 / 1043893 / 3399770 | pending | alternative to HistRework=2 (B1/B4) |
+| 8 | R5A-8 | `HistRework=1` | 10+0.1 | 373261 / 1043893 / 3399770 | PASS (200/200, stress 50/50 problems 0) | alternative to HistRework=2 (B1/B4) |
 
 ## Entries
 
@@ -158,7 +158,7 @@ Common to every entry:
 | prebench cand_on (d11/d13/d16/d20/d22) | 373261 / 1043893 / 3399770 / 13180132 / 35699757 |
 | prebench cand_off (d11/d13/d16/d20/d22) | 312866 / 862329 / 3024920 / 12389307 / 34048354 |
 | expected echo | `info string active: HistRework=1` |
-| smoke | pending |
+| smoke | PASS: 200/200 games, failures {'illegal': 0, 'crash': 0, 'time_loss': 0, 'missing_bestmove': 0, 'error_line': 0, 'echo': 0}, stop stress 50/50 problems 0 (`opus_r5/r5a/smoke/histrework1/summary.json`) |
 | conflicts with B1-B4 | As HistRework=3. |
 | why this rank | Last or skip: fails the crew node screen (d13 +21.1%, d16 +12.4% vs OFF, M1 = R3 pins). |
 | sources | A1, R3-3 R3-19 |

@@ -1,10 +1,26 @@
-# Forge Opus round 5A: gate-ready singles (CorrMargins, CorrExt, CorrHistPlus variants, NetScale) — IN PROGRESS
+# Forge Opus round 5A: gate-ready singles (CorrMargins, CorrExt, CorrHistPlus variants, NetScale) — DONE
 
-**Status:** M1, M2, M5 done (CI green); M3 smoke 7/8 PASS, HistRework=1 at 120/200 (0 failures, last config); M4 written + validated. Last push 04:21 Vienna.
+**Status:** all milestones done (M1-M5; M3 8/8 smoke configs PASS). Last push 04:27 Vienna.
 
 Branch `opus-r5a-singles` = `origin/forge-bundle-int` b7c17722 + the commits listed per milestone. Job started 01:52 Vienna
 (2026-10-29), hard stop 04:52 Vienna. No Elo claims: node counts are not strength; gates decide. Machine exclusive: no
 (gates, NNUE training and self-play kept running; all my work at BelowNormal, at most 3 threads in total).
+
+## Summary
+
+- Branch `opus-r5a-singles`, engine head 4ba7bc99 (CI green: opus-ci 40801582869; M2 run 40799232252 green too).
+  Measured time: 31 commits from 01:57 to 04:27 Vienna (first push to final push), inside the 3-hour cap.
+- OFF identity ALL OK after every engine change (base, M2, M5 exes: bench d11-d22, perft 5, kiwipete, FMA 0).
+- M1: 11 configs audited (all read through the stop-before-setoption rule, none through the fb2 snapshot); ON benches
+  recorded; every config restores the OFF pins and the fresh-process `go` counts in the same process.
+- M2: one `info string active: ...` line per `go` when any search option or tunable is non-default (nothing at the
+  defaults); CorrMargins + TtPruneV2 warning; CorrHistPlus 1/2/4/6 vs CorrHistV2 refused in both orders (tests).
+- M3: 8/8 configs PASS: 200 games each ON vs OFF at 5+0.05 with 0 illegal moves, 0 crashes, 0 time
+  losses, 0 missing bestmoves, 0 ERROR lines, 0 echo mismatches, and 50/50 go/stop stress iterations clean.
+- M4: 8 gate entries (one option each, SPRT [0,10], cap 3000, srand/openings blank), d11-d22 ON pins, validated by
+  `tools/check_gate_specs.py`; ranked list below. NetScale: 99 only.
+- M5: `CorrMarginsScale` (new, 100) and `CorrExtTripleCorr` (48) advertised as spins; defaults search the same trees.
+- No Elo or speed claims anywhere: node counts and smoke scores are not strength; gates decide.
 
 Time base: the PC clock reads PST but runs 9 h ahead of GitHub's server clock (`gh api -i rate_limit` Date header);
 Vienna (CET, UTC+1) = PC "PST" time - 1 h. Every time below is Vienna.
@@ -151,7 +167,7 @@ Evidence:
 - GitHub CI: the M2 push is the first normal (non-[skip ci]) commit of the branch; opus-ci run 40799232252
   (e22d3649): release, asan and tsan all success (CI section below).
 
-## M3 smoke stability per option (from 02:15 Vienna) — IN PROGRESS
+## M3 smoke stability per option (02:15-04:26 Vienna) — DONE
 
 Runner `smoke.py` (my own; python-chess only for move legality), driver `tools/smoke_all.sh`, table
 `tools/smoke_table.py` -> `smoke/SMOKE_RESULTS.md`. Exe: the M2 exe `forge_r5a_m2_0a01ec53.exe` (fda298e6...;
@@ -169,8 +185,8 @@ search identical to the base and to the M5 head, see M2/M5). Per config:
   3 s; `go movetime 300`, random wait, `stop` -> the same; `isready` -> no extra bestmove.
 - Measured cost: about 15 s per game (avg ~138 plies), so 200 games take ~16.5 min per config at 3 games at once.
   The 8 configs need ~2.3 h of the 3-thread budget: they run in the job's order (CorrMargins, CorrExt, CorrHistPlus
-  2/4/6, NetScale 99, then HistRework 3 and 1 by gate rank) and whatever does not fit is listed under "What I did
-  not finish".
+  2/4/6, NetScale 99, then HistRework 3 and 1 by gate rank); all 8 fit, with three short pauses (02:31-02:37 M5
+  build and checks, 02:52-02:53 M5 re-checks, 03:23-03:25 d20/d22 pins) so the 3-thread cap always held.
 
 Results (PGNs `smoke/<config>/games.pgn`, summaries `smoke/<config>/summary.json`):
 
@@ -183,6 +199,7 @@ Results (PGNs `smoke/<config>/games.pgn`, summaries `smoke/<config>/summary.json
 | corrhistplus4 | `CorrHistPlus=4` | 200/200 | 0 | 0 | 0 | 0 | 0 | 0 | 50/50, 0 problems | 127.9 | 0 | 0 | 97.5/200 | threefold_repetition 140, checkmate 43, insufficient_material 12, fifty_moves 3, stalemate 2 | 03:08:30 Vienna-03:23:47 | **PASS** |
 | corrhistplus6 | `CorrHistPlus=6` | 200/200 | 0 | 0 | 0 | 0 | 0 | 0 | 50/50, 0 problems | 127.5 | 0 | 0 | 102/200 | threefold_repetition 141, checkmate 48, insufficient_material 10, fifty_moves 1 | 03:25:17 Vienna-03:40:28 | **PASS** |
 | netscale99 | `NetScale=99` | 200/200 | 0 | 0 | 0 | 0 | 0 | 0 | 50/50, 0 problems | 131.1 | 0 | 0 | 101.5/200 | threefold_repetition 123, checkmate 55, insufficient_material 19, fifty_moves 3 | 03:40:28 Vienna-03:56:05 | **PASS** |
+| histrework1 | `HistRework=1` | 200/200 | 0 | 0 | 0 | 0 | 0 | 0 | 50/50, 0 problems | 125.4 | 0 | 0 | 100.5/200 | threefold_repetition 137, checkmate 51, insufficient_material 9, fifty_moves 2, stalemate 1 | 04:11:45 Vienna-04:26:50 | **PASS** |
 | histrework3 | `HistRework=3` | 200/200 | 0 | 0 | 0 | 0 | 0 | 0 | 50/50, 0 problems | 131.2 | 0 | 0 | 101.5/200 | threefold_repetition 132, checkmate 55, insufficient_material 9, fifty_moves 4 | 03:56:08 Vienna-04:11:45 | **PASS** |
 <!-- /smoke-table -->
 
@@ -276,8 +293,8 @@ Every other push of this branch is `[skip ci]` (WIP, docs, smoke evidence); the 
 ## Milestones
 - M1 per-option audit + ON benches: DONE (02:01 Vienna, commit aeb6f093)
 - M2 effective-settings echo + conflict guards: DONE (02:15 Vienna)
-- M3 smoke stability: in progress (7/8 PASS at 04:11; see the table)
-- M4 gate pack: written (02:23 Vienna; smoke column refreshes as configs finish)
+- M3 smoke stability: DONE (8/8 PASS, last at 04:26 Vienna)
+- M4 gate pack: DONE (smoke column final at 04:26 Vienna; validator 8/8 OK)
 - M5 SPSA hooks (optional): DONE (02:38 Vienna)
 
 ## What to gate first (ranked; no Elo claims, gates decide; details in GATE_SPECS.md)
@@ -294,8 +311,7 @@ Every other push of this branch is `[skip ci]` (WIP, docs, smoke evidence); the 
    the crew node screen.
 
 ## What I did not finish
-- Smoke: see the M3 table for the configs that finished; any config missing there (or marked PARTIAL) did not fit
-  the 3-thread budget before the stop time (each config costs ~16 min of all 3 threads).
+- Smoke: nothing left; all 8 configs ran their full 200 games and the stress part.
 - `forge_tests` was not run on the PC: two of its checks search with 4 threads, above the job's cap. GitHub CI ran it
   with the known-failure check (M2 and M5 runs green, CI section).
 - No full build / CTest of the R5A `#if` blocks with the build switches (only syntax-only compiles, M5 pause checks);
