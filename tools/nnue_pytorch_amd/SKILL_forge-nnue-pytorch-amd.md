@@ -1,0 +1,84 @@
+---
+name: forge-nnue-pytorch-amd
+description: Running and changing Stockfish's nnue-pytorch trainer (GPL-3.0) on the PC's AMD RX 7900 XT under Windows ROCm - venv and PATH needed for Triton, the R6 Triton ports of the CuPy kernels (feature transformer, sparse linear, RangerLite), flags NNUE_FT_BACKEND / NNUE_RANGER_FUSED / NNUE_DATA_LOADER_LIB, correctness tests, the short-training benchmark and NaN-hunt tools, native loader builds (MinGW g++, AMD clang 23 MSVC ABI), pitfalls (tl.sqrt_rn denormal NaN, Grok Bot working in the same folder, live DirectML trainer on the same GPU). Use for any task that touches F:\nnue_pytorch, branch opus-r6-amd-nnue, tools/nnue_pytorch_amd, Triton/ROCm on this PC, or GPU NNUE training speed.
+---
+
+# nnue-pytorch on the AMD GPU (R6, 2026-10-29)
+
+Rules first: [[forge-pc-rules]]. Licence: nnue-pytorch and every patch to it are **GPL-3.0**. They stay in
+`F:\nnue_pytorch`, the scratch clone, or `tools/nnue_pytorch_amd/`, and never go into Forge `src/`, `include/` or
+`tests/`. Write an IDEA_SOURCE note when an idea moves over.
+
+## Where things are
+- Trainer install (setup by Grok Bot): `F:\nnue_pytorch\repo` (pinned b2614500), venv `F:\nnue_pytorch\venv`
+  (py 3.12, torch 2.11.0+rocm7.13.0, triton-windows 3.6.0.post26, rocm-sdk-devel 7.13.0), `SETUP_REPORT.md`.
+- R6 port: clone `F:\opus_scratch\r6\nnue-pytorch-amd`, branch `opus-r6-amd` (3 commits). The same changes are
+  in branch `opus-r6-amd-nnue`, folder `tools/nnue_pytorch_amd/` (`patches/*.patch`, `src/`, `bench/`, `debug/`,
+  `loader/`, `logs/`). Report: `docs/OPUS_R6_AMD_NNUE.md`.
+- Applying to a b2614500 checkout: `git am tools/nnue_pytorch_amd/patches/000*.patch` (or copy `src/`). Copy a
+  loader DLL to `build/` or set `NNUE_DATA_LOADER_LIB`.
+
+## Environment (every run)
+`source tools/nnue_pytorch_amd/env.sh` (or `F:\opus_scratch\r6\tools\env.sh`). It puts the venv `Scripts` folder
+on PATH. **Triton needs this**: its AMD driver gets the HIP include dir from `rocm-sdk path --root`. Without
+it, the build fails with `hip_utils.c: fatal error: 'hip/hip_runtime.h' file not found` (Grok Bot's 13:25
+failure). env.sh also sets the thread caps, TMP, `TRITON_CACHE_DIR` and `TORCHINDUCTOR_CACHE_DIR` under scratch.
+Always add `TORCHINDUCTOR_COMPILE_THREADS=1` (inductor otherwise spawns a worker per CPU) and run under `nice -n 10`.
+
+## Flags
+- `NNUE_FT_BACKEND`: `auto` = CuPy if present, else Triton if a probe kernel passes, else torch. Other values:
+  `triton`, `triton-sparse`, `torch` (plain fallback), `fused`, `sparse`.
+- `NNUE_RANGER_FUSED=0` keeps RangerLite's Python update path. The default uses the Triton fused kernels
+  without CuPy.
+- `NNUE_DATA_LOADER_LIB=<dll>` picks the loader DLL. Otherwise the newest `build/**/*training_data_loader.*` wins.
+- `TORCHDYNAMO_DISABLE=1` turns off torch.compile. It works now that Triton works, and is worth ~1.3-1.45x.
+
+## Tests (each runs seconds on the GPU)
+- `python tests/test_amd_triton_ft.py`: FT fwd/grad vs the torch path, 12 cases + float64 stress.
+  PASS = < 1e-4 (measured worst 1.2e-5).
+- `python tests/test_amd_triton_ranger.py`: fused vs Python RangerLite, paths A / B / A+wd, normal and denormal
+  grads, with kernel-call counters.
+- `debug/planted_sqrt_bug.py` must report "PLANTED BUG DETECTED".
+
+## Benchmark recipe (J3)
+`python bench/bench_train.py NAME [ENV=VAL ...] -- .pgo/small.binpack --features K32H3^ --l1 256 --accelerator cuda
+--batch-size 4096 --epoch-size 204800 --max-epochs 10 --threads 2 --num-workers 1`
+- Output: `F:/opus_scratch/r6/bench/NAME/result.json`, pos/s per epoch from epoch-end timestamps.
+- The runner refuses to start below 6 GB free RAM. Take the median of epochs 2..N, and always A/B in the same
+  session: the GPU is shared with the live trainer, so absolute numbers move ±20%.
+- R6 numbers: torch eager 165k, Triton FT + Triton RangerLite + compile 436k (2.1x the 210k setup reference).
+- `bench/profile_train.py` gives a synced per-phase breakdown. Note that train.py ends with `os._exit(0)` on
+  win32, so the atexit report only prints when main() raises: patch `os._exit` or call main() yourself.
+
+## NaN / divergence hunting (method that worked)
+1. `debug/nan_hunt.py`: first non-finite batch/grad/param per step.
+2. `debug/nan_hunt4.py`: shadow optimizer. Clone params, grads and state, run the real fused step, then the
+   Python step on the clones, and compare. It names the tensor, the element and its gradient.
+3. Do not conclude "race" from a clean serialized or host-wait run: batch order varies between runs, so short
+   clean runs are weak evidence. Repeat with the compiled model (it diverges earlier).
+
+## Pitfalls seen
+- **`tl.sqrt_rn` returns NaN for fp32 denormals on gfx1100** (`tl.sqrt` flushes to 0). Flush first:
+  `tl.sqrt_rn(tl.where(x < 1.1754943508222875e-38, 0.0, x))`. Any new Triton kernel with sqrt/rsqrt of small
+  values needs this. Probe: `debug/denormal_probe.py`.
+- Triton jit code can only read globals that are `tl.constexpr(...)`.
+- Grok Bot (the PC's own agent, parent `Grok Bot.exe`) works in `F:\nnue_pytorch` at the same time and installs
+  packages into the venv. Use your own clone, use the venv read-only, and check
+  `Get-CimInstance Win32_Process | ? CommandLine -match 'nnue_pytorch|uv.exe'` before relying on the venv.
+- Files in the clone are CRLF (core.autocrlf=true). Patch scripts must normalise `\r\n`. Write Python patch
+  scripts with the Write tool (heredocs mangle `\n`).
+- Commit identity: `git -c user.name=couns0538-sketch -c user.email=couns0538@gmail.com commit ...`
+  (no global identity is configured). A new worktree from origin/main tracks main: run
+  `git branch --unset-upstream` and push with an explicit branch name.
+- Loader builds (`loader/build_loader.sh <variant>`):
+  - MinGW g++ needs `C:\msys64\ucrt64\bin` on PATH (silent compiler failure otherwise).
+  - A static DLL needs `-Wl,--exclude-libs,ALL`, otherwise `_Unwind_Resume` / `__gcov_*` are defined twice.
+  - Never put `-static` on the exe link.
+  - LLVM 18 cannot compile against the MSVC 14.51 STL (STL1000). Use the ROCm SDK clang 23:
+    `F:\nnue_pytorch\venv\Lib\site-packages\_rocm_sdk_core\lib\llvm\bin\clang++.exe`, ~1.9x faster per thread.
+    There is no matching llvm-profdata, so no clang PGO.
+  - `std::shuffle` order differs between libstdc++ and the MSVC STL (implementation-defined). Check equality with
+    `loader/dl_equal.py` modes `fens` (bit-identical) and `window` (same multiset in the first window).
+- The live Forge trainer (`train_res*_v3b.py`, torch-directml) uses the same GPU. Keep GPU runs to seconds or
+  minutes and check its `pos/s` lines in `F:\forge_nnue_train\runs\<run>.log`, plus the supervisor
+  "adopted running job" count (7), before and after.

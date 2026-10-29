@@ -1,5 +1,28 @@
 # OPUS R6 - nnue-pytorch on AMD (RX 7900 XT, gfx1100, Windows ROCm)
 
+## INCIDENT (14:29 PC clock): the live Forge trainer crashed, most likely because of my benchmark
+- What happened: the live trainer `train_res*_v3b.py`
+  (run `resid_h256_e48_f106_bs16k_lr10e4_b06_s406_fb8k`, PID 4616, launched by the supervisor at 13:33:53)
+  died at **14:29:05**. Its `.log.err` ends with
+  `numpy.core._exceptions._ArrayMemoryError: Unable to allocate 2.12 MiB for an array with shape (557056,)`
+  in `pack_batch`.
+- Last log line, 14:28:28: `ep14 step 493,744/1,768,992 ... trainer_private=13.05GB sys_avail=6.28GB`.
+  Before my bigger runs it showed sys_avail 8.9 GB. Last checkpoint: `epoch013-step000479102` (saved ~14:2x),
+  so about 14.6k steps since the checkpoint are lost.
+- Cause (most likely): my J3 run `c2_triton` (14:28:2x-14:29:26) was the first big shape I ran:
+  K32H3^, L1 1024, batch 16384, 2 loader workers, inductor compile. It used several GB more host RAM than the
+  smoke runs. My RAM gate checked >= 6 GB free only at **start** (it passed), not during the run, and the
+  commit limit was reached.
+- Not done by me: no process killed, no file under `F:\forge_nnue_train` touched, no restart attempted (that
+  needs the trainer script, which I must not run). The supervisor log shows no relaunch line after 13:33:53.
+- **Owner action needed:** restart or resume the run from `epoch013-step000479102` via the supervisor.
+- My leftovers: 4 python processes of the next run (`c3_torch`, started 14:29:26, PIDs 7192, 13548, 14844, 16044).
+  They are blocked at interpreter start (0.1 s CPU, 1-20 MB, no GPU context). TaskStop did not end them, and
+  by the no-kill rule I left them; they can be ended safely.
+- After the crash I ran no more GPU or torch work. Lesson, added to the skills: the start-time RAM gate is
+  not enough. Big shapes or compile runs need free RAM >= 6 GB **plus** the run's measured peak, plus a watch
+  during the run; with the live trainer up, only smoke-size runs.
+
 Status: **WIP**, updated 14:25 PC clock (job start 13:24). J1 (FT + RangerLite kernels), J2, J3 (smoke config)
 and J4 (crash fix, loader builds) are done. Still open: grouped-L1 kernel, J3 at the full feature set, final
 review. Everything was measured on a PC that was busy the whole time (a live DirectML trainer on the same GPU,
