@@ -67,6 +67,12 @@ SearchInfo Searcher::search(Board board, const SearchLimits& limits, bool emit_i
     if (table_access == TTAccess::Exclusive && workers_.size() == 1) {
         exclusive.emplace(shared_.tt);
     }
+    // R7 J3 R7TtExclusive: declared after the lease, so it is destroyed (and the flag cleared) first.
+    struct R7ExclusiveFlag {
+        bool& flag;
+        ~R7ExclusiveFlag() { flag = false; }
+    } r7_exclusive_flag{shared_.r7_tt_exclusive};
+    shared_.r7_tt_exclusive = options::r7_tt_exclusive && exclusive.has_value();
 #ifdef FORGE_PROF
     shared_.profile_active=shared_.profile_requested.load(std::memory_order_relaxed);
     for (auto& worker : workers_) worker->reset_profile_quiescent();

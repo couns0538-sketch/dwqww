@@ -175,6 +175,9 @@ target_link_libraries(forge_rule50_tests PRIVATE forge_core Threads::Threads)
 
 add_executable(forge_legal_witness_tests tests/legal_witness_tests.cpp)
 target_link_libraries(forge_legal_witness_tests PRIVATE forge_core Threads::Threads)
+# R7 J3 R7QuietGen: the quiet-only generator equals the filtered full generator (content and order).
+add_executable(forge_r7_quiet_gen_tests tests/r7_quiet_gen_tests.cpp)
+target_link_libraries(forge_r7_quiet_gen_tests PRIVATE forge_core Threads::Threads)
 
 add_executable(forge_correction_history_tests tests/correction_history_tests.cpp)
 target_link_libraries(forge_correction_history_tests PRIVATE forge_core Threads::Threads)
@@ -443,6 +446,8 @@ add_test(NAME forge_nnue_microbench_check COMMAND forge_nnue_microbench --check-
     --wac ${CMAKE_CURRENT_SOURCE_DIR}/tools/nnue_microbench_wac300.epd)
 add_test(NAME forge_legal_witness_tests COMMAND forge_legal_witness_tests
     ${CMAKE_CURRENT_SOURCE_DIR}/tests/legal_witness_fixtures.tsv
+    ${CMAKE_CURRENT_SOURCE_DIR}/tools/openings/forge-10000.epd)
+add_test(NAME forge_r7_quiet_gen_tests COMMAND forge_r7_quiet_gen_tests
     ${CMAKE_CURRENT_SOURCE_DIR}/tools/openings/forge-10000.epd)
 # Sol's null-edge accumulator alias regression test (S12, v2); only builds with the alias compiled in.
 if(FORGE_NNUE_LAZY_ACC)

@@ -23,5 +23,8 @@ bool cuckoo_rep = false;
 bool material_key_table = false;
 bool intended_threefold = false;   // S-IT (UCI IntendedThreefold)
 bool smp_helpers_past_depth = false;   // R3-6 (UCI SmpHelpersPastDepth; last, so the variables above keep their addresses)
+bool r7_tt_exclusive = false;   // R7 J3 (UCI R7TtExclusive; after the others, which keep their addresses)
+bool r7_quiet_gen = false;      // R7 J3 (UCI R7QuietGen)
+bool r7_eval_prefetch = false;  // R7 J3 (UCI R7EvalPrefetch)
 
 } // namespace forge::options

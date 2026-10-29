@@ -38,7 +38,7 @@ int Worker::FORGE_QSEARCH_FN(Board& board, SearchStack* ss, int alpha, int beta)
     const bool in_check = board.in_check();
     ss->in_check = in_check;
 
-    const TTProbe tt_probe = shared_.tt.probe(board.key());
+    const TTProbe tt_probe = FORGE_TT_PROBE(board.key());
     const bool tt_hit = tt_probe.hit;
     const TTEntry& tte = tt_probe.entry;
     const Move tt_move = tt_hit ? tte.move : Move::none();
@@ -69,7 +69,7 @@ int Worker::FORGE_QSEARCH_FN(Board& board, SearchStack* ss, int alpha, int beta)
         }
         best_score = eval;
         if (best_score >= beta) {
-            if (!tt_hit && !claim) shared_.tt.store(tt_probe, board.key(), score_to_tt(best_score, ply), ss->raw_eval, Move::none(), 0, BoundLower, false, board.halfmove_clock());
+            if (!tt_hit && !claim) FORGE_TT_STORE(tt_probe, board.key(), score_to_tt(best_score, ply), ss->raw_eval, Move::none(), 0, BoundLower, false, board.halfmove_clock());
             return best_score;
         }
         if (best_score > alpha) alpha = best_score;
@@ -120,6 +120,7 @@ int Worker::FORGE_QSEARCH_FN(Board& board, SearchStack* ss, int alpha, int beta)
         Undo undo;
         (void)board.make_move(move, undo);
         shared_.tt.prefetch(board.key());
+        if (options::r7_eval_prefetch) evaluator_.prefetch_pawn_entry(board.pawn_key());  // R7 J3 R7EvalPrefetch
         const int score = -FORGE_QSEARCH_CALL(board, ss + 1, -beta, -alpha);
         board.unmake_move(move, undo);
         if (aborted_) return 0;
@@ -141,14 +142,14 @@ int Worker::FORGE_QSEARCH_FN(Board& board, SearchStack* ss, int alpha, int beta)
 
     const Bound bound = best_score >= beta ? BoundLower : (pv_node && !best_move.is_none() ? BoundExact : BoundUpper);
     if (!claim) {
-        shared_.tt.store(tt_probe, board.key(), score_to_tt(best_score, ply), in_check ? ValueNone : ss->raw_eval, best_move, 0, bound, tt_pv, board.halfmove_clock());
+        FORGE_TT_STORE(tt_probe, board.key(), score_to_tt(best_score, ply), in_check ? ValueNone : ss->raw_eval, best_move, 0, bound, tt_pv, board.halfmove_clock());
     } else if (!tt_hit || tte.score == ValueNone) {
         // Claim node: keep the move and the static evaluation, never the
         // history-dependent score. The raw score ValueNone (not score_to_tt) makes
         // every probe read tt_score == ValueNone; each use of tt_score or of the
         // bound requires tt_score != ValueNone or tests tt_score < beta, which
         // ValueNone (> Infinite) never passes. Entries with a score are not replaced.
-        shared_.tt.store(tt_probe, board.key(), ValueNone, in_check ? ValueNone : ss->raw_eval, best_move, 0, BoundUpper, tt_pv,
+        FORGE_TT_STORE(tt_probe, board.key(), ValueNone, in_check ? ValueNone : ss->raw_eval, best_move, 0, BoundUpper, tt_pv,
                          static_cast<std::uint16_t>(board.halfmove_clock()));
     }
     return best_score;

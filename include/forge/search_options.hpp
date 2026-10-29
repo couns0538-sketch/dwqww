@@ -185,4 +185,17 @@ extern bool material_key_table;
 // the draw score, without TT score cutoffs or stores at those nodes.
 extern bool intended_threefold;
 
+// R7 J3 node-exact speed options (check, default false): the search (nodes, scores, moves) is unchanged with
+// each of them on; only the speed can differ.
+// UCI R7TtExclusive: a one-worker search that holds the table's ExclusiveLease (bench, UCI go with Threads 1)
+// probes and stores through TranspositionTable::probe_exclusive / store_exclusive, which skip lock_stripe()
+// and with it the thread_local lease lookup (an __emutls_get_address call per access in the MinGW build).
+extern bool r7_tt_exclusive;
+// UCI R7QuietGen: the move picker's quiet stage generates only the quiet non-promotion moves
+// (Board::generate_quiets_r7), in the order the full generator lists them, instead of every pseudo-legal move.
+extern bool r7_quiet_gen;
+// UCI R7EvalPrefetch: after each make_move of the main and quiescence search, prefetch the child's pawn-cache
+// entry of the hand-crafted evaluation (Evaluator::prefetch_pawn_entry).
+extern bool r7_eval_prefetch;
+
 } // namespace forge::options

@@ -85,6 +85,9 @@ struct SharedSearchState {
     // run). Enables the bare-king mating mode of every worker's main search (src/search/alphabeta.inc); a one-worker
     // search (bench, Threads 1) never reads true, so its tree is unchanged.
     bool multi_worker = false;
+    // R7 J3 (UCI R7TtExclusive): this one-worker search holds the table's ExclusiveLease and uses the lock-free
+    // probe/store twins (set by Searcher::search after the lease is taken, cleared before it is released).
+    bool r7_tt_exclusive = false;
 #ifdef FORGE_PROF
     // The counters themselves live in one bank per Worker (S08-2).
     std::atomic<bool> profile_requested{false};

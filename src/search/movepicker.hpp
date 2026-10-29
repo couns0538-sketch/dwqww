@@ -12,6 +12,7 @@
 // Included by src/search.cpp and by tests/movepicker_tests.cpp.
 
 #include "forge/search.hpp"
+#include "forge/search_options.hpp"
 
 #include <algorithm>
 #include <array>
@@ -288,7 +289,9 @@ private:
     void generate_quiets() {
         init_check_squares();
         buffer_.clear();
-        board_.generate_pseudo_legal(buffer_, false);
+        // R7 J3 R7QuietGen: the same quiet moves in the same order, without the captures and promotions.
+        if (options::r7_quiet_gen) board_.generate_quiets_r7(buffer_);
+        else board_.generate_pseudo_legal(buffer_, false);
         index_ = 0;
         count_ = 0;
         for (const Move move : buffer_) {

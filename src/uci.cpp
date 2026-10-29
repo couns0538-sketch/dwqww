@@ -485,6 +485,10 @@ int main() {
             std::cout << "option name CorrExt type spin default 0 min 0 max 1\n";
             std::cout << "option name CuckooRep type check default false\n";
             std::cout << "option name MaterialKeyTable type check default false\n";
+            // R7 J3 node-exact speed options (forge/search_options.hpp).
+            std::cout << "option name R7TtExclusive type check default false\n"
+                         "option name R7QuietGen type check default false\n"
+                         "option name R7EvalPrefetch type check default false\n";
             if (forge::nnue::available()) {
                 std::cout << "option name NetScale type spin default " << forge::net_scale::Default << " min "
                           << forge::net_scale::Minimum << " max " << forge::net_scale::Maximum << "\n";
@@ -919,6 +923,17 @@ int main() {
                     std::cout << "info string invalid value for option PureNnue" << std::endl;
                 }
                 nnue_v2_changed();
+            } else if (name == "R7TtExclusive" || name == "R7QuietGen" || name == "R7EvalPrefetch") {
+                // R7 J3 node-exact speed paths: same search, only the speed can differ.
+                bool& option = name == "R7TtExclusive" ? forge::options::r7_tt_exclusive
+                               : name == "R7QuietGen"  ? forge::options::r7_quiet_gen
+                                                       : forge::options::r7_eval_prefetch;
+                if (value_text == "true") assign_option(option, true);
+                else if (value_text == "false") assign_option(option, false);
+                else {
+                    const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex());
+                    std::cout << "info string invalid value for option " << name << std::endl;
+                }
             } else if (name == "MaterialKeyTable") {
                 // S11 node-exact speed path: same search, different key arithmetic.
                 if (value_text == "true") assign_option(forge::options::material_key_table, true);

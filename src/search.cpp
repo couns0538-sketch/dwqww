@@ -40,6 +40,7 @@
 #include "search/scores.inc"      // mate scores and their TT encoding
 #include "search/uci_info.inc"    // UCI info output (score formatting)
 #include "search/tt.inc"          // transposition table
+#include "search/r7_speed.inc"    // R7 J3 speed options: TT twins (.text.forge_r7), search-side macros
 #include "search/movepicker.hpp"  // staged move picker
 #include "search/worker.inc"      // per-thread state lifecycle
 #include "search/evaluation_extra.inc" // v2 network with threat / pawn-pair inputs (O6 NNUEThreats, O7 NNUEPawnPairs)

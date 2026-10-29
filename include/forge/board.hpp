@@ -154,6 +154,9 @@ public:
     // quiet promotion, so search sees every material-changing move.
     [[nodiscard]] MoveList pseudo_legal_moves(bool captures_only = false) const;
     void generate_pseudo_legal(MoveList& moves, bool captures_only) const;
+    // R7 J3 (UCI R7QuietGen, the move picker's quiet stage): exactly the moves of generate_pseudo_legal(moves,
+    // false) that are neither captures nor promotions, in the same order (src/board.cpp).
+    void generate_quiets_r7(MoveList& moves) const;
     [[nodiscard]] MoveList legal_moves(bool captures_only = false) const;
     [[nodiscard]] bool has_legal_move() const;
     [[nodiscard]] bool is_legal(const Move& move) const;

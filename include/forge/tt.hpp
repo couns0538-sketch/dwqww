@@ -69,6 +69,13 @@ public:
     [[nodiscard, gnu::aligned(64)]] TTProbe probe(std::uint64_t key) const;
     [[gnu::aligned(64)]] void store(const TTProbe& probe, std::uint64_t key, int score, int eval, Move move, int depth, Bound bound, bool pv, std::uint16_t halfmove_clock);
     [[nodiscard]] int hashfull() const;
+    // R7 J3 (UCI R7TtExclusive, src/search/r7_speed.inc): probe()/store() for the one search thread that holds
+    // this table's ExclusiveLease (Searcher::search with TTAccess::Exclusive and one worker). Same entries,
+    // replacement and handles, without lock_stripe(): has_exclusive_access() would read a thread_local on every
+    // call and then defer the lock. Never call them without holding the lease.
+    [[nodiscard, gnu::aligned(64)]] TTProbe probe_exclusive(std::uint64_t key) const;
+    [[gnu::aligned(64)]] void store_exclusive(const TTProbe& probe, std::uint64_t key, int score, int eval, Move move,
+                                              int depth, Bound bound, bool pv, std::uint16_t halfmove_clock);
     [[nodiscard]] std::uint8_t generation() const { return generation_; }
     [[nodiscard]] std::size_t cluster_count() const { return cluster_count_; }
     // UCI LocklessTT (src/search/tt_lockless.inc): probe/store/hashfull without

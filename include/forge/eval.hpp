@@ -62,6 +62,15 @@ private:
     static void update_runtime_psqt(const RuntimePsqt& parent, RuntimePsqt& child, const nnue::DirtyPieces& dirty);
     [[nodiscard]] int evaluate_runtime(const Board& board, const RuntimePsqt& psqt);
     static constexpr std::size_t PawnCacheSize = 1U << 15U;
+    // R7 J3 (UCI R7EvalPrefetch): start loading the pawn-cache entry that evaluating a board with this pawn key
+    // will read (Worker, after make_move). A hint only: no state changes.
+    void prefetch_pawn_entry(std::uint64_t pawn_key) const {
+#if defined(__GNUC__) || defined(__clang__)
+        __builtin_prefetch(&pawn_cache_[static_cast<std::size_t>(pawn_key) & (PawnCacheSize - 1U)]);
+#else
+        (void)pawn_key;
+#endif
+    }
     std::vector<PawnEntry> pawn_cache_;
 };
 

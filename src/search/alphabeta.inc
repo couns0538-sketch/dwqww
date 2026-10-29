@@ -78,7 +78,7 @@ int Worker::FORGE_SEARCH_FN(Board& board, SearchStack* ss, int depth, int alpha,
     (ss + 2)->killers = {};
 
     // Transposition table probe.
-    const TTProbe tt_probe = shared_.tt.probe(board.key());
+    const TTProbe tt_probe = FORGE_TT_PROBE(board.key());
     const bool tt_hit = tt_probe.hit;
     const TTEntry& tte = tt_probe.entry;
     const Move tt_move = tt_hit ? tte.move : Move::none();
@@ -261,7 +261,7 @@ int Worker::FORGE_SEARCH_FN(Board& board, SearchStack* ss, int depth, int alpha,
                     prof::count(prof::Counter::ProbCutCutoffs);
 #endif
                     if (!claim) {
-                        shared_.tt.store(tt_probe, board.key(), score_to_tt(value, ply), ss->raw_eval, move, depth - 3, BoundLower, ss->tt_pv, board.halfmove_clock());
+                        FORGE_TT_STORE(tt_probe, board.key(), score_to_tt(value, ply), ss->raw_eval, move, depth - 3, BoundLower, ss->tt_pv, board.halfmove_clock());
                     }
                     return value;
                 }
@@ -485,6 +485,7 @@ int Worker::FORGE_SEARCH_FN(Board& board, SearchStack* ss, int depth, int alpha,
         Undo undo;
         (void)board.make_move(move, undo);
         shared_.tt.prefetch(board.key());
+        if (options::r7_eval_prefetch) evaluator_.prefetch_pawn_entry(board.pawn_key());  // R7 J3 R7EvalPrefetch
         const std::uint64_t nodes_before = local_nodes_;
         std::size_t root_effort_index = 0;
         if (root_node) {
@@ -582,10 +583,10 @@ int Worker::FORGE_SEARCH_FN(Board& board, SearchStack* ss, int depth, int alpha,
 
     const Bound bound = best_score >= beta ? BoundLower : (pv_node && !best_move.is_none() ? BoundExact : BoundUpper);
     if (excluded.is_none() && !(root_node && root_restricted_) && !claim) {
-        shared_.tt.store(tt_probe, board.key(), score_to_tt(best_score, ply), ss->raw_eval, best_move, depth, bound, ss->tt_pv, board.halfmove_clock());
+        FORGE_TT_STORE(tt_probe, board.key(), score_to_tt(best_score, ply), ss->raw_eval, best_move, depth, bound, ss->tt_pv, board.halfmove_clock());
     } else if (claim && excluded.is_none() && (!tt_hit || tte.score == ValueNone)) {
         // Claim node: move and static evaluation only, raw score ValueNone (see qsearch).
-        shared_.tt.store(tt_probe, board.key(), ValueNone, ss->raw_eval, best_move, 0, BoundUpper, ss->tt_pv,
+        FORGE_TT_STORE(tt_probe, board.key(), ValueNone, ss->raw_eval, best_move, 0, BoundUpper, ss->tt_pv,
                          static_cast<std::uint16_t>(board.halfmove_clock()));
     }
     // Teach the static evaluation about this pawn structure when the search
