@@ -158,8 +158,9 @@ def export(model, path):
                        output_buckets=model.nob, output_map=V2.output_layout(model.nob))
 
 
-def to_device(b, backend, lut, dev):
-    us, them, wi, bi, outcome, score, pc, qb = b.contents.get_tensors(dev)
+def to_device(b, backend, lut, dev, pinned=False):
+    # pinned: copy into pinned host memory, then a non-blocking H2D copy (the host does not wait for the GPU)
+    us, them, wi, bi, outcome, score, pc, qb = b.contents.get_tensors(dev, use_pinned_memory=pinned)
     if backend == "plain":
         wi = lut[wi.long()]
         bi = lut[bi.long()]
@@ -182,6 +183,9 @@ def main():
     ap.add_argument("--threads", type=int, default=2, help="loader worker threads")
     ap.add_argument("--fused-adam", type=int, default=0)
     ap.add_argument("--compile", type=int, default=0, help="torch.compile the loss/output part")
+    ap.add_argument("--pinned", type=int, default=0, help="pinned host memory + non-blocking H2D copies")
+    ap.add_argument("--inflight", type=int, default=3,
+                    help="with --pinned: at most this many steps queued ahead of the GPU (bounds pinned host memory)")
     ap.add_argument("--seed", type=int, default=1)
     ap.add_argument("--out", default="", help="output prefix (.pt and .fnn2); empty = no export")
     ap.add_argument("--json", default="", help="write a result summary here")
@@ -231,6 +235,7 @@ def main():
     run = None
     t_start = None
     losses = []
+    inflight = []
     t_wall0 = time.time()
     for step in range(1, a.steps + 1):
         if step == a.warmup + 1:
@@ -239,7 +244,7 @@ def main():
             t_start = time.perf_counter()
         if fixed is None:
             b = st.fetch_next_sparse_batch(s)
-            us, wi, bi, outcome, score, pc = to_device(b, a.backend, lut, dev)
+            us, wi, bi, outcome, score, pc = to_device(b, a.backend, lut, dev, bool(a.pinned))
             st.destroy_sparse_batch(b)
         else:
             us, wi, bi, outcome, score, pc = fixed
@@ -251,6 +256,12 @@ def main():
             opt.step()
             sched.step()
             model.clip()
+        if a.pinned and dev.type == "cuda":
+            ev = torch.cuda.Event()
+            ev.record()
+            inflight.append(ev)
+            if len(inflight) > a.inflight:
+                inflight.pop(0).synchronize()
         if step > a.warmup:
             n_timed += us.shape[0]
         if a.mode != "loader" and (step % a.log_every == 0 or step == a.steps):
@@ -269,7 +280,7 @@ def main():
     if dev.type == "cuda":
         info["gpu_peak_alloc_mb"] = torch.cuda.max_memory_allocated() / 2 ** 20
     print(f"RESULT backend={a.backend} mode={a.mode} batch={a.batch} threads={a.threads} "
-          f"fused_adam={a.fused_adam} compile={a.compile}: {info['pos_per_s']:.0f} pos/s over "
+          f"fused_adam={a.fused_adam} compile={a.compile} pinned={a.pinned}: {info['pos_per_s']:.0f} pos/s over "
           f"{a.steps - a.warmup} steps ({elapsed:.2f} s)", flush=True)
     if a.out and model is not None:
         torch.save({"state": model.state_dict(), "hidden": a.hidden, "ob": a.ob, "backend": a.backend},
