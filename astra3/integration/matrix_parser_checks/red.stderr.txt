@@ -1,0 +1,75 @@
+test_duplicate_valid_bench (__main__.MatrixParserTests.test_duplicate_valid_bench) ... ok
+test_explicit_error (__main__.MatrixParserTests.test_explicit_error) ... 
+  test_explicit_error (__main__.MatrixParserTests.test_explicit_error) (message=b'info string ERROR diagnostic failure\n') ... FAIL
+  test_explicit_error (__main__.MatrixParserTests.test_explicit_error) (message=b'ERROR: diagnostic failure\n') ... FAIL
+test_handshake_exactly_once (__main__.MatrixParserTests.test_handshake_exactly_once) ... 
+  test_handshake_exactly_once (__main__.MatrixParserTests.test_handshake_exactly_once) (out=b'readyok\ninfo string bench depth 11 nodes 312866 time 7 nps 44695142\n') ... FAIL
+  test_handshake_exactly_once (__main__.MatrixParserTests.test_handshake_exactly_once) (out=b'uciok\nreadyok\ninfo string bench depth 11 nodes 312866 time 7 nps 44695142\nuciok\n') ... FAIL
+  test_handshake_exactly_once (__main__.MatrixParserTests.test_handshake_exactly_once) (out=b'uciok\ninfo string bench depth 11 nodes 312866 time 7 nps 44695142\n') ... FAIL
+  test_handshake_exactly_once (__main__.MatrixParserTests.test_handshake_exactly_once) (out=b'uciok\nreadyok\ninfo string bench depth 11 nodes 312866 time 7 nps 44695142\nreadyok\n') ... FAIL
+test_malformed_extra_bench (__main__.MatrixParserTests.test_malformed_extra_bench) ... FAIL
+test_numeric_record_must_be_complete (__main__.MatrixParserTests.test_numeric_record_must_be_complete) ... ok
+test_rejected_options (__main__.MatrixParserTests.test_rejected_options) ... ok
+test_valid (__main__.MatrixParserTests.test_valid) ... ok
+test_wrong_reference_or_exit (__main__.MatrixParserTests.test_wrong_reference_or_exit) ... ok
+
+======================================================================
+FAIL: test_explicit_error (__main__.MatrixParserTests.test_explicit_error) (message=b'info string ERROR diagnostic failure\n')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/tmp/forge-astra3-integration/astra3/integration/tools/test_qualify_option_matrix.py", line 78, in test_explicit_error
+    self.assertFalse(self.accepts(self.good + message))
+AssertionError: True is not false
+
+======================================================================
+FAIL: test_explicit_error (__main__.MatrixParserTests.test_explicit_error) (message=b'ERROR: diagnostic failure\n')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/tmp/forge-astra3-integration/astra3/integration/tools/test_qualify_option_matrix.py", line 78, in test_explicit_error
+    self.assertFalse(self.accepts(self.good + message))
+AssertionError: True is not false
+
+======================================================================
+FAIL: test_handshake_exactly_once (__main__.MatrixParserTests.test_handshake_exactly_once) (out=b'readyok\ninfo string bench depth 11 nodes 312866 time 7 nps 44695142\n')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/tmp/forge-astra3-integration/astra3/integration/tools/test_qualify_option_matrix.py", line 85, in test_handshake_exactly_once
+    self.assertFalse(self.accepts(out))
+AssertionError: True is not false
+
+======================================================================
+FAIL: test_handshake_exactly_once (__main__.MatrixParserTests.test_handshake_exactly_once) (out=b'uciok\nreadyok\ninfo string bench depth 11 nodes 312866 time 7 nps 44695142\nuciok\n')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/tmp/forge-astra3-integration/astra3/integration/tools/test_qualify_option_matrix.py", line 85, in test_handshake_exactly_once
+    self.assertFalse(self.accepts(out))
+AssertionError: True is not false
+
+======================================================================
+FAIL: test_handshake_exactly_once (__main__.MatrixParserTests.test_handshake_exactly_once) (out=b'uciok\ninfo string bench depth 11 nodes 312866 time 7 nps 44695142\n')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/tmp/forge-astra3-integration/astra3/integration/tools/test_qualify_option_matrix.py", line 85, in test_handshake_exactly_once
+    self.assertFalse(self.accepts(out))
+AssertionError: True is not false
+
+======================================================================
+FAIL: test_handshake_exactly_once (__main__.MatrixParserTests.test_handshake_exactly_once) (out=b'uciok\nreadyok\ninfo string bench depth 11 nodes 312866 time 7 nps 44695142\nreadyok\n')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/tmp/forge-astra3-integration/astra3/integration/tools/test_qualify_option_matrix.py", line 85, in test_handshake_exactly_once
+    self.assertFalse(self.accepts(out))
+AssertionError: True is not false
+
+======================================================================
+FAIL: test_malformed_extra_bench (__main__.MatrixParserTests.test_malformed_extra_bench)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/tmp/forge-astra3-integration/astra3/integration/tools/test_qualify_option_matrix.py", line 70, in test_malformed_extra_bench
+    self.assertFalse(self.accepts(self.good + b'info string bench depth 11 nodes BROKEN time 7 nps 1\n'))
+AssertionError: True is not false
+
+----------------------------------------------------------------------
+Ran 8 tests in 0.003s
+
+FAILED (failures=7)

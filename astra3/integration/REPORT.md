@@ -131,3 +131,23 @@ WIP. `git merge --no-ff --no-commit 8f1ceac1eff16de202931e22958bbe9c1543c888`; C
 The pre-R5A timeout audit shows all four timed-out child inputs contain only `uci` and cleanup `quit`: none had loaded an NNUE fixture or started search. PawnPairs/PureNnue produced no startup output; CorrMargins/CorrExt later produced uciok. These are retained as startup/scheduling failures, not intended regression evidence. Fixture files are0.4–5.1MB, and available memory was31GB; no resource-limit violation is demonstrated.
 
 M5 source resolutions are now complete. F6 adds nominal_depth metadata at the end of SearchInfo and copies it through completed/terminal Worker results and SmpBestThread; ranking still compares capped actual depth. Tests-first syntax check failed solely because the field was absent, then passed after adding it; raw proof is in F6. Native test counts remain pending. SearchInfo layout changes require rebuilding every dependent target. The new UCI listing/diagnostic changes are reviewed as protocol-only; full OFF and ON qualification must establish identity. No engine binary has yet been built from M5.
+
+### M5 qualification — 2026-10-29 01:22:45 PDT
+
+Source `926c55f33227bc4a030d7ce5b1140528aeba75af`; exe SHA256 `8733bcb06e2ba0d7ecb9b2e29de9fcedb870db71cca8ad50bfeea015cbbd9bbc`. Complete Release build succeeded. Full CTest 64/65, raw exit 8; failures: [['forge_tests', 'Failed']]. Original diagnostics: ['FAIL: WAC 001 expected g3g6 got f6h5', 'FAIL: WAC 001 score 623 below 31997', 'FAIL: unrestricted search chooses the winning rook underpromotion over stalemating queen promotion', 'FAIL: unrestricted search chooses the winning rook underpromotion over stalemating queen promotion']. Startpos perft5=4865609; kiwipete5=193690690; whole-binary FMA=0.
+
+| Depth | OFF nodes | ms | NPS |
+|---:|---:|---:|---:|
+| 11 | 312866 | 660 | 474039 |
+| 13 | 862329 | 2177 | 396108 |
+| 16 | 3024920 | 3524 | 858376 |
+| 20 | 12389307 | 14661 | 845051 |
+| 22 | 34048354 | 39383 | 864544 |
+
+Exact commands (same configured rule5 build): `cmake --build /tmp/forge-astra3-build-integration -j4`; `python3 astra3/integration/tools/identity_bench.py /tmp/forge-astra3-build-integration/forge astra3/integration/M5/pins`; `python3 astra3/integration/tools/run_full_ctest.py /tmp/forge-astra3-build-integration astra3/integration/M5/ctest`; `python3 astra3/integration/tools/check_milestone.py /tmp/forge-astra3-build-integration/forge astra3/integration/M5 --source 926c55f33227bc4a030d7ce5b1140528aeba75af`. Flags, raw output, original executable and receipt retained in M5. These timings make no speed or Elo claim. Full integrated ON matrix/SAN/TSan remains pending until the final A1 head.
+
+### M5 supplemental native results
+
+The complete advertised-option contract passes102/102 cases; original separate streams and fixture hashes are copied unchanged under M5/option_contract_native. F6 native selector tests pass108 checks. The Fastchess strict positive smoke exits0 with two completed draw PGNs, no illegal/crash/time-forfeit terminations observed. The negative unknown-option smoke exits1 and names Astra3UnknownOptionProbe, with zero completed PGNs; an extra harness guard rejects its pre-validation "Started game" announcement. Original FAIL receipt is retained while the engine command log is reviewed for actual go/search activity. No strength inference follows from two protocol games.
+
+Independent review found a fail-open condition in the new matrix parser (malformed extra bench line or explicit error could pass alongside one valid line). A focused parser regression/fix is in progress before any matrix run. Exact R5A JSON bytes are materialized from Git with provenance because historical evidence paths are sparse in this worktree. No gate specification is changed. Sanitizer commands are prepared but not yet run.
