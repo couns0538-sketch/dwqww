@@ -1,6 +1,6 @@
 # Forge Opus round 5A: gate-ready singles (CorrMargins, CorrExt, CorrHistPlus variants, NetScale) — IN PROGRESS
 
-**Status:** M1, M2, M5 done; M3 smoke 2/8 PASS (CorrMargins, CorrExt), CorrHistPlus=2 running; M4 written. Last push 02:54 Vienna.
+**Status:** M1, M2, M5 done; M3 smoke 2/8 PASS (CorrMargins, CorrExt), CorrHistPlus=2 running; M4 written. Last push 02:55 Vienna.
 
 Branch `opus-r5a-singles` = `origin/forge-bundle-int` b7c17722 + the commits listed per milestone. Job started 01:52 Vienna
 (2026-10-29), hard stop 04:52 Vienna. No Elo claims: node counts are not strength; gates decide. Machine exclusive: no
@@ -189,6 +189,12 @@ CorrMargins, 10+0.1 otherwise), SPRT `elo0=0 elo1=10 alpha=0.05 beta=0.05 model=
 pins d11/d13/d16, cand_on = the M1 ON benches), expected echo line, smoke verdict, conflicts with B1-B4, rank reason,
 sources. NetScale: one value only (99, S41). A fastchess template with the 3000-game cap (`-rounds 1500 -games 2`)
 is at the end of GATE_SPECS.md. Ranking and reasons: "What to gate first" below.
+Validation: `tools/check_gate_specs.py` checks the JSON against the job rules (one option per gate, same exe both
+sides, opponent without options, both-sides options, SPRT, `cap_games` the int 3000, blank srand/openings start,
+primary TC per option, at most one NetScale value, ranks 1..n) and the evidence (cand_off = lock pins, cand_on =
+`logs/m1_bench_base.json`, exe sha256 = the files): **8/8 OK**; a planted copy (cap as the string "3000", an
+srand filled in, one pin +1) fails with exactly those three problems. Each entry also carries an upper bound of
+the wall time to the cap at concurrency 8 (about 3.4 h at 10+0.1, 13.8 h at 40+0.4).
 
 ## M5 SPSA-ready hooks (02:20-02:38 Vienna) — DONE
 
