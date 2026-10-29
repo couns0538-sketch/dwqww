@@ -1,6 +1,6 @@
 # Forge Opus round 5A: gate-ready singles (CorrMargins, CorrExt, CorrHistPlus variants, NetScale) — IN PROGRESS
 
-**Status:** M1, M2, M5 done (CI green); M3 smoke 4/8 PASS, CorrHistPlus=6 at 160/200 (0 failures); M4 written + validated. Last push 03:37 Vienna.
+**Status:** M1, M2, M5 done (CI green); M3 smoke 5/8 PASS (CorrMargins, CorrExt, CorrHistPlus 2/4/6), NetScale=99 running, then HistRework 3 and 1; M4 written + validated. Last push 03:40 Vienna.
 
 Branch `opus-r5a-singles` = `origin/forge-bundle-int` b7c17722 + the commits listed per milestone. Job started 01:52 Vienna
 (2026-10-29), hard stop 04:52 Vienna. No Elo claims: node counts are not strength; gates decide. Machine exclusive: no
@@ -178,6 +178,7 @@ Results (PGNs `smoke/<config>/games.pgn`, summaries `smoke/<config>/summary.json
 | corrext1 | `CorrExt=1` | 200/200 | 0 | 0 | 0 | 0 | 0 | 0 | 50/50, 0 problems | 127.1 | 0 | 0 | 101.5/200 | threefold_repetition 138, checkmate 51, insufficient_material 8, fifty_moves 3 | 02:37:18 Vienna-02:52:33 | **PASS** |
 | corrhistplus2 | `CorrHistPlus=2` | 200/200 | 0 | 0 | 0 | 0 | 0 | 0 | 50/50, 0 problems | 126.4 | 1 | 0 | 103/200 | threefold_repetition 138, checkmate 50, insufficient_material 8, fifty_moves 4 | 02:53:24 Vienna-03:08:30 | **PASS** |
 | corrhistplus4 | `CorrHistPlus=4` | 200/200 | 0 | 0 | 0 | 0 | 0 | 0 | 50/50, 0 problems | 127.9 | 0 | 0 | 97.5/200 | threefold_repetition 140, checkmate 43, insufficient_material 12, fifty_moves 3, stalemate 2 | 03:08:30 Vienna-03:23:47 | **PASS** |
+| corrhistplus6 | `CorrHistPlus=6` | 200/200 | 0 | 0 | 0 | 0 | 0 | 0 | 50/50, 0 problems | 127.5 | 0 | 0 | 102/200 | threefold_repetition 141, checkmate 48, insufficient_material 10, fifty_moves 1 | 03:25:17 Vienna-03:40:28 | **PASS** |
 <!-- /smoke-table -->
 
 ## M4 gate pack (02:16-02:40 Vienna, written while the smoke ran) — DONE (smoke column refreshes)
@@ -270,7 +271,7 @@ Every other push of this branch is `[skip ci]` (WIP, docs, smoke evidence); the 
 ## Milestones
 - M1 per-option audit + ON benches: DONE (02:01 Vienna, commit aeb6f093)
 - M2 effective-settings echo + conflict guards: DONE (02:15 Vienna)
-- M3 smoke stability: in progress (4/8 PASS at 03:23; see the table)
+- M3 smoke stability: in progress (5/8 PASS at 03:40; see the table)
 - M4 gate pack: written (02:23 Vienna; smoke column refreshes as configs finish)
 - M5 SPSA hooks (optional): DONE (02:38 Vienna)
 
