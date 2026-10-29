@@ -21,7 +21,7 @@ Common to every entry:
 | 3 | R5A-3 | `CorrMargins=1` | 40+0.4 | 343365 / 858019 / 2522546 | PASS (200/200, stress 50/50 problems 0) | TtPruneV2 in all four: same margins |
 | 4 | R5A-4 | `CorrHistPlus=2` | 10+0.1 | 296553 / 824640 / 2914749 | PASS (200/200, stress 50/50 problems 0) | B1/B3 ok (mask 3); B2/B4 exclusive |
 | 5 | R5A-5 | `CorrHistPlus=6` | 10+0.1 | 357478 / 747883 / 2544596 | PASS (200/200, stress 50/50 problems 0) | B1/B3 ok (mask 7); B2/B4 exclusive |
-| 6 | R5A-6 | `NetScale=99` | 10+0.1 | 308948 / 917342 / 2601047 | pending | moves all margins (TtPruneV2, CorrMargins) |
+| 6 | R5A-6 | `NetScale=99` | 10+0.1 | 308948 / 917342 / 2601047 | PASS (200/200, stress 50/50 problems 0) | moves all margins (TtPruneV2, CorrMargins) |
 | 7 | R5A-7 | `HistRework=3` | 10+0.1 | 336192 / 869621 / 3052885 | pending | alternative to HistRework=2 (B1/B4) |
 | 8 | R5A-8 | `HistRework=1` | 10+0.1 | 373261 / 1043893 / 3399770 | pending | alternative to HistRework=2 (B1/B4) |
 
@@ -124,7 +124,7 @@ Common to every entry:
 | prebench cand_on (d11/d13/d16/d20/d22) | 308948 / 917342 / 2601047 / 14196959 / 32409747 |
 | prebench cand_off (d11/d13/d16/d20/d22) | 312866 / 862329 / 3024920 / 12389307 / 34048354 |
 | expected echo | `info string active: NetScale=99` |
-| smoke | pending |
+| smoke | PASS: 200/200 games, failures {'illegal': 0, 'crash': 0, 'time_loss': 0, 'missing_bestmove': 0, 'error_line': 0, 'echo': 0}, stop stress 50/50 problems 0 (`opus_r5/r5a/smoke/netscale99/summary.json`) |
 | conflicts with B1-B4 | Moves every eval margin, so it interacts with TtPruneV2 (all presets) and CorrMargins; no table or option conflict. |
 | why this rank | The only defensible value from M1: S41 measured the lock net s198 +1.2% wider than h256_e12 (the scale the margins were tuned on), 99 maps it back; 97/101/103 have no measurement behind them. Expected effect about zero (R3-3 R3-11), so it goes after the option gates. |
 | sources | S41 EVALSCALE_20261027.md, R3-3 R3-11 |
