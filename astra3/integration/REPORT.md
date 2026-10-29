@@ -242,3 +242,7 @@ Evidence re-audit strictly reparsed35 frozen OFF transcripts plus75 final-matrix
 ### Review coverage and limits — 2026-10-29T03:09:10.561479-07:00
 
 Reviewed preset/locking/metadata/timing/UCI paths and audited original diagnostics. Three test-only debughook binaries are hash-inventoried; separate deep bench/perft/FMA qualification for those auxiliary executables is UNVERIFIED, and they are not release candidates. The full main Release and ASan identities are already verified. TSan d11/13/16 match312866/862329/3024920; deeper checks continue. See final_review/REVIEW_WORKING_LOG.md for actual work and remaining review steps.
+
+### Twenty-minute final review completed — 2026-10-29T03:15:14.298523-07:00
+
+Actual elapsed review1259.182seconds; start/end and reviewed areas are in final_review/completion.json and REVIEW_WORKING_LOG.md. The historical manifest/reporting issues were corrected with original evidence retained. No additional engine defect was established. TSan OFF d20 matches12389307; d22 remains running. The runtime TSAN_OPTIONS=halt_on_error=1 was directly observed on the owned process outside tracing; initial in-sandbox process visibility failure is documented. Final report branch astra3-report is published as an explicit interim handoff.
