@@ -335,6 +335,22 @@ are deterministic twins), and the J1 driver's relaunch after its 4-hour chunk fa
 from the stale shell (a fresh driver resumed the run from `ckpt.pt` at 21:00; it continues with the new
 `pause.flag` / `driver_stop.flag` support).
 
+### Final net (checkpoint 15, `best_ck15_step87164.fnn3`): NPS, 200 sanity games, full-subset score (02:25-02:44 PST, `fable_fb2/j1/logs/finish_final/`)
+
+| check | result |
+|---|---|
+| NPS ON (v3, ckpt-15 net) vs OFF (AL1), CPU time, 3 ABBA rounds, Threads 1, Hash 16 | depth 16 **1.158 (+-0.006)**, depth 20 **1.111 (+-0.002)**; time per node 0.86 / 0.90 of AL1 (different trees: ON 2.94M / 10.06M nodes vs OFF 3.02M / 12.39M; loaded PC, advisory) |
+| 100 games as white vs AL1 at 1+0.01 | 13,010 moves, 0 crashes / illegal moves / flags; v3 W-L-D **39-11-50** |
+| 100 games as black vs AL1 at 1+0.01 | 12,961 moves, 0 crashes / illegal moves / flags; v3 W-L-D **21-37-42** |
+| exact score on the full 1,024,286-row S16 subset | **b0.6 0.014629** / b0.8 0.007096 / b1.0 0.004974 (AL1 0.014310 / 0.006735 / 0.004572; HCE 0.017059) |
+
+The sanity games are a crash / legality check at a 1-second time control with python-chess legality of every
+move, not a strength measurement (60-48-92 overall for the v3 net is not an Elo claim); they show the final net
+plays stably and is in AL1's class at that speed, whereas its holdout loss is still 0.0003 above AL1 on both
+holdouts. Decision per the brief: the net does not beat AL1 on the holdout, so it is not proposed for a gate; the
+next step is more compute (the curve was still falling before the LR decay ended: a second cosine cycle from
+`train_j1b/ckpt.pt` with `--resume`, or the J7 second-layer architecture), see GATE_BOUNDS design 3 for the screen.
+
 ### Run continuation (22:23-22:36 PST)
 To measure J5 at Threads 3 within the thread budget the training was paused with `pause.flag` (the new driver
 stopped cleanly after chunk 1 of the resumed run, step 55,616 = 455.6M positions). The old, broken driver loop was
