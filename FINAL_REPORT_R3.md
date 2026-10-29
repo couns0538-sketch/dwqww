@@ -1,6 +1,6 @@
 # Forge Astra round3 report
 
-Checkpoint: 2026-10-29T03:14:10.717214-07:00. **FINAL: primary Linux integration qualification and the requested final review are complete. A2 remains BLOCKED; later jobs are deferred.** The user reported23% usage remaining; internal usage/context-window telemetry is unavailable. Stop starting new experiments; preserve completed and unfinished work.
+Final checkpoint: 2026-10-29T03:37:33.321874-07:00. **FINAL: primary Linux integration qualification and the requested final review are complete. A2 remains BLOCKED; later jobs are deferred.** The user reported23% usage remaining; internal usage/context-window telemetry is unavailable. Stop starting new experiments; preserve completed and unfinished work.
 
 Accepted input remains`b7c177222038e9332965a95ec53ea3b94e90dbc9`. Integrated candidate engine source is`926c55f33227bc4a030d7ce5b1140528aeba75af`, on isolated`astra3-integration`. No accepted branch, live PC engine, gate, lock, network or trainer was changed. No Elo or speed improvement is claimed.
 

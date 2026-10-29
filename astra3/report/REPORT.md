@@ -9,3 +9,7 @@ All3 primary builds match312866/862329/3024920/12389307/34048354, perft4865609/1
 No native job remains running. Original failures, incomplete A2 intervention and precise next actions are preserved. A1/A2 GitHub remote tips were verified; verify this report branch immediately after push. Earlier checkpoint cadence breaches remain disclosed in A1's history.
 
 IDEA_SOURCE: user/Engine QA round3 durable reporting contract and original Forge evidence.
+
+Publication verification and timestamp correction — 2026-10-29T03:37:33.321874-07:00
+
+The report checkpointb31a1a8a04c5d7d4e8272f856bca5c3ccd589518 was verified on GitHub. Corrected FINAL_REPORT_R3.md heading to the final update time rather than its original draft time. The10:26:01–10:36:18UTC report interval exceeded10minutes by17seconds; all evidence was preserved. No code or test result changed. Final push will again be checked against the remote tip.
