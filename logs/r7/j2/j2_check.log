@@ -1,0 +1,26 @@
+== full shard, binpack
+old fpos2sf (1 thread): 7777 ms rc=0
+new fpos2sf_mt --threads 1: 6113 ms rc=0
+new fpos2sf_mt --threads 3: 2344 ms rc=0
+old vs new t1: identical sha256 84e8ee6fa30541998ac8f6e7bd01b79ec4806413ce4f632207a13245a570b0e2 (340002600 bytes)
+old vs new t3: identical sha256 84e8ee6fa30541998ac8f6e7bd01b79ec4806413ce4f632207a13245a570b0e2 (340002600 bytes)
+verify new t3 (decode + loader reader): verify in=D:\grok-pc-data\forge_push\nnue_data\pos\forge_selfplay_015.pos data=F:\opus_scratch\r7\j2\check2/new_full_t3.binpack records=10000000 expected=10000000 bad_source_records=0 format_errors=0 mismatches=0 mask=0 missing=0 reader_records=10000000 reader_mismatches=0 threads=3 seconds=5.30 VERIFY OK 
+verify old (decode + loader reader): verify in=D:\grok-pc-data\forge_push\nnue_data\pos\forge_selfplay_015.pos data=F:\opus_scratch\r7\j2\check2/old_full.binpack records=10000000 expected=10000000 bad_source_records=0 format_errors=0 mismatches=0 mask=0 missing=0 reader_records=10000000 reader_mismatches=0 threads=3 seconds=5.23 VERIFY OK 
+== .bin output, 1M
+old .bin: 976 ms rc=0
+new .bin t3: 381 ms rc=0
+old vs new .bin: identical sha256 2bf1a6ccb7e5c53b8951c9894aa63da50041cc41af5bb584e193a8e4682f2e52 (40000000 bytes)
+verify new .bin: verify in=D:\grok-pc-data\forge_push\nnue_data\pos\forge_selfplay_015.pos data=F:\opus_scratch\r7\j2\check2/new_1M.bin records=1000000 expected=1000000 bad_source_records=0 format_errors=0 mismatches=0 mask=0 missing=0 reader_records=0 reader_mismatches=0 threads=3 seconds=0.83 VERIFY OK 
+== skip/stride/ply/score-mult/max + fen-out
+old vs new selection binpack: identical sha256 a9386a64671aa7bf87f1624997cbd4c44a083909b72d44952d4cd72bfaf5dffa (17000136 bytes)
+old vs new selection fen-out: identical sha256 53107cdff758c20eac61b2dd5c64cf079d22d05b27dfc317e61fa58957440f49 (31472849 bytes)
+verify selection: verify in=D:\grok-pc-data\forge_push\nnue_data\pos\forge_selfplay_015.pos data=F:\opus_scratch\r7\j2\check2/new_sel.binpack records=500000 expected=500000 bad_source_records=0 format_errors=0 mismatches=0 mask=0 missing=0 reader_records=500000 reader_mismatches=0 threads=3 seconds=0.82 VERIFY OK 
+== planted bad records (200k-record copy)
+wrote F:\opus_scratch\r7\j2\check2/bad200k.pos: 200000 records, planted 6 bad: [(10, 'nibble 13'), (20, 'two white kings'), (30, 'no black king'), (40, 'result bits 3'), (55000, 'nibble 15'), (123456, 'two black kings')]
+old: in=F:\opus_scratch\r7\j2\check2/bad200k.pos n=200000 written=199994 bad=6 clipped=0 out=F:\opus_scratch\r7\j2\check2/old_bad.binpack
+new: in=F:\opus_scratch\r7\j2\check2/bad200k.pos n=200000 written=199994 bad=6 clipped=0 out=F:\opus_scratch\r7\j2\check2/new_bad.binpack
+old vs new with bad records: identical sha256 9316832717e1b8b6ba04bfa62936d651552144f2199857b265213c6c7584abbd (6799852 bytes)
+verify with bad records: verify in=F:\opus_scratch\r7\j2\check2/bad200k.pos data=F:\opus_scratch\r7\j2\check2/new_bad.binpack records=199994 expected=199994 bad_source_records=6 format_errors=0 mismatches=0 mask=0 missing=0 reader_records=199994 reader_mismatches=0 threads=3 seconds=0.11 VERIFY OK 
+== planted output corruption (verify must FAIL)
+corrupt: verify in=F:\opus_scratch\r7\j2\check2/bad200k.pos data=F:\opus_scratch\r7\j2\check2/corrupt.binpack records=199994 expected=199994 bad_source_records=6 format_errors=0 mismatches=1 mask=1 missing=0 reader_records=199994 reader_mismatches=1 threads=3 seconds=0.11 VERIFY FAILED 
+J2 CHECK PASS
