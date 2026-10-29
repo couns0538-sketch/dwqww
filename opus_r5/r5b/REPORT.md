@@ -96,8 +96,7 @@ Which O2 variant is faster on this PC is measured in M3 (arms `o2_portable` = b7
 
 ## M2: reproducible NPS bench (driver done)
 
-`opus_r5/r5b/nps_ab.py` (+ `nps_ab.sh` wrapper; PowerShell: `& <venv python> -I -B opus_r55b
-ps_ab.py ...`),
+`opus_r5/r5b/nps_ab.py` (+ `nps_ab.sh` wrapper; PowerShell: `& <venv python> -I -B opus_r5\r5b\nps_ab.py ...`),
 my own Windows implementation of the R3-2Q CI method (`opus_r3/R3-2Q/ci_quietnps.sh` + `quiet_nps.py`):
 - arms: A (reference, the OFF build) + one or more B exes + with `--aa` the A/A control = a byte copy of A
   (sha256-checked) under another file name; slot i runs the arms in list order for even i and reversed for odd i
@@ -188,17 +187,36 @@ Reading pass 1:
   N2 +1.74 [+0.29, +3.21] / +2.43 [+1.91, +2.97]: rule not met. Against AA as reference every arm reads 1-3 % higher
   (the same arms, another reference file): the reference file alone moves every row by the A/A offset.
 
+### NPS pass 3 (08:46-09:00 Vienna; znver5, core 14, 20 pairs, a fresh byte copy of every arm in every slot)
+
+Arms: N2, `off_relink` (the OFF objects re-linked in reverse unit order: identical code, other addresses and 64-byte
+alignment of the hot functions, e.g. `nnue::update` 0x...1a1c0 -> 0x...31c60; identity ALL OK; `tools/relink_layout.sh`),
+and AA. `--copies 20 --pairs 20`: no two slots share a file, so the per-file offsets are independent per pair.
+
+| run | arm (B vs A) | cpu d16 % | cpu d20 % | engine d16 % | engine d20 % | median cpu ratio d16 / d20 | rule |
+|---|---|---|---|---|---|---|---|
+| m3_nps_z5_r3.json (A = forge_r5b_off_z5_m1fix.exe, core 14, 20 pairs, PC busy 0.91) | n2 | +2.05 [+1.30, +2.80] | +1.91 [+1.47, +2.36] | +2.01 [+1.18, +2.85] | +1.81 [+1.33, +2.29] | 1.0200 / 1.0208 | not met |
+|  | off_relink | -0.80 [-1.96, +0.37] | -0.14 [-0.82, +0.54] | -0.81 [-1.96, +0.36] | -0.19 [-0.93, +0.55] | 0.9978 / 1.0001 | not met |
+|  | AA | -0.67 [-1.98, +0.65] | -0.89 [-1.73, -0.03] | -0.82 [-2.23, +0.60] | -0.93 [-1.79, -0.07] | 0.9918 / 0.9917 | A/A control |
+
+- **A/A is back near zero** (-0.67 [-1.98, +0.65] / -0.89 [-1.73, -0.03]: about 1 % floor, d20 just excludes 0).
+- **Layout control: re-linking OFF moves NPS by -0.80 [-1.96, +0.37] / -0.14 [-0.82, +0.54]**, i.e. inside the floor
+  for this one alternative layout (one sample of the layout distribution, not its spread).
+- **N2 znver5: +2.05 [+1.30, +2.80] at d16, +1.91 [+1.47, +2.36] at d20: a real gain of about 2 %, rule NOT met**
+  (lower bounds +1.30 / +1.47 < +2). This agrees with the v3 pass 1 (N2 +2.32 [+1.66, +2.99] / +2.02 [+1.36, +2.69]);
+  pass 1-2's larger znver5 N2 values (d20 +3.03, +2.43) carried per-file offsets.
+
 ## CI (GitHub Actions)
 
 | run | workflow | commit | result | note |
 |---|---|---|---|---|
-| 40833411141 | opus-ci (default config) | b2983d07 | attempt 1: release OK, **asan FAILED**, tsan OK; attempt 2 (rerun of the failed job) running | `forge_tt_mate_tb_tests`: "Threads 2, search 1 on the shared TT: a real mate, never shorter than mate in 3 (466 e8e4)" (EPYC 9V74 runner) |
-| 40834623805 | opus-ci | 519d6531 | attempt 1: **release FAILED** (same test, "(442 e8e4)", EPYC 7763 runner); attempt 2 running | same flake |
+| 40833411141 | opus-ci (default config) | b2983d07 | attempt 1: release OK, **asan FAILED**, tsan OK; **attempt 2 (re-run of the failed job): success** | `forge_tt_mate_tb_tests`: "Threads 2, search 1 on the shared TT: a real mate, never shorter than mate in 3 (466 e8e4)" (EPYC 9V74 runner) |
+| 40834623805 | opus-ci | 519d6531 | attempt 1: **release FAILED** (same test, "(442 e8e4)", EPYC 7763 runner); **attempt 2: success** | same flake |
 | 40834623964 | opus-r5b-n2 | 519d6531 | success (N2 release / asan / tsan, memcheck) | first version of the workflow |
 | 40834819014 | opus-r5b-n2 | f99966f7 | success (N2 release / asan / tsan, singles release, N2 v4 release + asan, memcheck) | |
 | 40835194501 | opus-r5b-n2 | 5c80ffe3 | success (incl. memcheck with the poison identities) | |
 | 40835194560 | opus-ci | 5c80ffe3 | success | |
-| 40834819007 | opus-ci | f99966f7 | running | |
+| 40834819007 | opus-ci | f99966f7 | success | |
 | 40837780229 | opus-r3-quietnps (dispatch, configs ["N2"], reps 1-6) | 3da5dbc7 | running | quiet-runner N2 NPS (v3, and v4 on AVX-512 runners) |
 
 The red opus-ci jobs are a nondeterministic two-thread test, not this job's code: the opus-ci default
@@ -208,6 +226,12 @@ asan job on two different CPU types, and it passed in the other jobs of the same
 two-thread search on a shared TT not finding the mate in 3) is the SmpV2 mate area that Astra owns (rule 9), so I
 neither edit nor weaken it; the failed jobs were re-run (attempts 2) and the base-tree rate is measured on the PC
 below. Owner/Astra item: `tests/tt_mate_tb_tests.cpp` Threads 2 check is flaky on CI runners.
+
+Base-tree evidence (`tools/flake_tt_mate.sh`, `logs/ci_flake_tt_mate_tb.log`, 08:56-08:57 Vienna): the test built
+the same way from a `git archive` of b7c1772 and from this branch's head (box flags, -O3, static), 40 runs each with
+its CTest argument `tests/syzygy_reference.tsv`: **base 1 of 40 failed, with the same message** ("Threads 2, search 1
+on the shared TT: a real mate, never shorter than mate in 3 (455 e8e4)"); head 0 of 40. So the flake predates R5B;
+on 4-vCPU CI runners it shows more often (2 of the first 6 opus-ci jobs here).
 
 ## M4: non-regression evidence for N2 (in progress)
 
@@ -227,8 +251,7 @@ bestmoves, 0 error lines, 0 engine restarts, 0 near-flags (< 20 ms), go/stop str
 131.2 plies; terminations: threefold 132, mate 58, insufficient material 9, fifty moves 1 (two node-exact engines
 repeat a lot). N2 scored 98/200 (not a strength measurement). `logs/m4b_smoke_n2_z5.log`,
 `logs/m4b_smoke_n2_z5_summary.json`, games.pgn sha256 in `logs/m4b_smoke_n2_z5_games.sha256` (pgn in
-`F:\opus_scratch55b\smoke
-2_z5\`).
+`F:\opus_scratch\r5\r5b\smoke\n2_z5\`).
 
 ### (c) uninitialised reads (the NOZERO risk)
 

@@ -4,6 +4,7 @@
 # -O3 -DNDEBUG, the forge_core sources + the test, static) and run RUNS times each, sequentially (the test uses at
 # most 2 threads), at BelowNormal.
 # usage: bash opus_r5/r5b/tools/flake_tt_mate.sh <worktree> <out_dir> [RUNS=40]
+# (the test takes tests/syzygy_reference.tsv as its argument, as in its add_test line)
 set -uo pipefail
 WT=$1; OUT=$2; RUNS=${3:-40}
 export PATH=/c/msys64/ucrt64/bin:$PATH
@@ -18,7 +19,7 @@ for side in base head; do
     || { echo "build $side failed"; exit 1; }
   fails=0
   for i in $(seq 1 "$RUNS"); do
-    if ! nice -n 10 "$OUT/tt_mate_tb_$side.exe" > "$OUT/run_${side}_$i.log" 2>&1; then
+    if ! nice -n 10 "$OUT/tt_mate_tb_$side.exe" "$src/tests/syzygy_reference.tsv" > "$OUT/run_${side}_$i.log" 2>&1; then
       fails=$((fails + 1)); echo "$side run $i FAILED: $(grep -m1 '^FAIL' "$OUT/run_${side}_$i.log")"
     fi
   done
