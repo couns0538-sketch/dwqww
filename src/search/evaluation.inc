@@ -78,11 +78,21 @@ int Worker::static_evaluate_lazy(const Board& board, SearchStack* ss) {
 }
 #endif
 
+// R5C NNUE v4 (forge/nnue_v4.hpp): exact integer forward with a full accumulator rebuild per evaluation; a
+// residual net adds the hand-crafted evaluation, as the v2 path does.
+int Worker::static_evaluate_v4(const Board& board) {
+    const nnue_v4::Net& net = *nnue_v4::loaded();
+    const int network = nnue_v4::evaluate(net, board);
+    if (!net.residual()) return network;
+    return std::clamp(evaluator_.evaluate(board) + network, -MateInMaxPly + 1, MateInMaxPly - 1);
+}
+
 int Worker::static_evaluate(const Board& board, SearchStack* ss) {
 #ifdef FORGE_PROF
     prof::count(prof::Counter::EvalRequests);
 #endif
 
+    if (nnue_v4::active) [[unlikely]] return static_evaluate_v4(board);
     if (options::nnue_v2) [[unlikely]] {
         // Layout pad: with it the dispatch grows this function by exactly 64
         // bytes in the PC build (MinGW g++ 15.2), so the search functions

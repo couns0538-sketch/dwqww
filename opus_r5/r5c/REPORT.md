@@ -1,6 +1,6 @@
 # Forge Opus R5C: v4 NNUE (J7 L2=16) engine support + N3 Syzygy / IntendedThreefold / HardDeadline hardening — IN PROGRESS
 
-**Status:** 00_baseline and M1 done; M2 in progress. Last push: see the head commit time (pushes every 10 min).
+**Status:** PAUSED at 09:52 Vienna for job R5D (user request: R5D before the next R5C step). Done: 00_baseline, M1. M2: tables sha-verified (290/290), 200-game N3 smoke 200/200 with 0 failures (TB-hit totals in /f/opus_scratch/r5/r5c/smoke/n3/summary.json), prebench pins measured; N3_GATE_SPEC.md not written yet. M3: FNN4_FORMAT.md written; src/nnue_v4.cpp (loader, scalar + AVX2 forward), UCI NNUEv4 / NNUEv4File and the search hook written and compiled (forge_r5c_m3a.exe, 0 warnings, FMA 0), NOT yet tested (no v4 unit test, no parity); M4, M5 not started.
 
 Branch `opus-r5c-netv4` = `origin/forge-bundle-int` b7c1772 + R5C commits. Job folder `opus_r5/r5c/`, scratch
 `F:\opus_scratch\r5\r5c\` (exes in `exe\`, sha256 in `EXES.txt`). Machine exclusive: no (live gates, NNUE training

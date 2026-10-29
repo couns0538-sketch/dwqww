@@ -20,6 +20,7 @@
 #endif
 #include "forge/syzygy.hpp"
 #include "forge/nnue_v2.hpp"
+#include "forge/nnue_v4.hpp"
 #include "forge/corr_margins.hpp"
 #include "forge/corr_ext.hpp"
 #include "forge/material_key_table.hpp"

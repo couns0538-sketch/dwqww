@@ -21,6 +21,8 @@ OBJ="${OUT%.exe}.obj"
 mkdir -p "$OBJ"
 FLAGS="-std=c++20 -O3 -DNDEBUG -DFORGE_NNUE_HIDDEN=256 -ffp-contract=off -fno-fast-math $ARCH -pthread $*"
 UNITS="bitboard board book eval eval_params nnue search uci"
+# R5C: the v4 network unit (src/nnue_v4.cpp) once it exists in the tree.
+[ -f "$SRC/src/nnue_v4.cpp" ] && UNITS="$UNITS nnue_v4"
 cd "$SRC"
 printf '%s\n' $UNITS | nice -n 10 xargs -P "${JOBS:-3}" -I{} sh -c "g++ $FLAGS -Iinclude -c src/{}.cpp -o '$OBJ/{}.o'"
 OBJS=""

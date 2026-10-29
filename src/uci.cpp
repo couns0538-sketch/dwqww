@@ -4,6 +4,7 @@
 #include "forge/net_scale.hpp"
 #include "forge/nnue.hpp"
 #include "forge/nnue_v2.hpp"
+#include "forge/nnue_v4.hpp"
 #include "forge/search.hpp"
 #include "forge/syzygy.hpp"
 #include "forge/search_options.hpp"
@@ -464,6 +465,8 @@ int main() {
             std::cout << "option name CorrHistPlus type spin default 0 min 0 max 7\n";
             std::cout << "option name HardDeadline type spin default 0 min 0 max 1000\n";
             // v2 networks (forge/search_options.hpp): off unless NNUEKingBuckets or NNUEOutputBuckets > 0.
+            std::cout << "option name NNUEv4 type check default false\n"
+                         "option name NNUEv4File type string default <empty>\n";
             std::cout << "option name NNUEFile type string default <empty>\n"
                          "option name NNUEKingBuckets type spin default 0 min 0 max 32\n"
                          "option name NNUEOutputBuckets type spin default 0 min 0 max 16\n";
@@ -811,6 +814,52 @@ int main() {
                 }
                 // Silent unless a v2 network was requested (the default prints nothing new).
                 nnue_v2_changed();
+                if (forge::nnue_v4::requested) {
+                    forge::nnue_v4::refresh_active();
+                    searcher.clear_hash();
+                }
+            } else if (name == "NNUEv4" || name == "NNUEv4File") {
+                // R5C NNUE v4 (forge/nnue_v4.hpp): NNUEv4 requests it, NNUEv4File loads the net. A file that fails
+                // any check is refused loudly and nothing of it stays loaded: the default net evaluates.
+                const bool was_active = forge::nnue_v4::active;
+                const forge::nnue_v4::Net* was_net = forge::nnue_v4::loaded();
+                const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex());
+                if (name == "NNUEv4") {
+                    if (value_text == "true" || value_text == "false") {
+                        forge::nnue_v4::requested = value_text == "true";
+                    } else {
+                        std::cout << "info string invalid value for option NNUEv4" << std::endl;
+                    }
+                } else {
+                    std::string rest;
+                    std::getline(input, rest);
+                    std::string path = value_text + rest;
+                    while (!path.empty() && (path.back() == ' ' || path.back() == '\r')) path.pop_back();
+                    if (path.empty() || path == "<empty>") {
+                        forge::nnue_v4::unload();
+                    } else {
+                        std::string error;
+                        if (forge::nnue_v4::load(path, error)) {
+                            std::cout << "info string NNUE v4: loaded " << path << ": "
+                                      << forge::nnue_v4::describe(*forge::nnue_v4::loaded()) << std::endl;
+                        } else {
+                            forge::nnue_v4::unload();
+                            std::cout << "info string ERROR NNUE v4: " << error << " (" << path
+                                      << "); the default net evaluates" << std::endl;
+                        }
+                    }
+                }
+                forge::nnue_v4::refresh_active();
+                if (forge::nnue_v4::active != was_active || forge::nnue_v4::loaded() != was_net) searcher.clear_hash();
+                if (forge::nnue_v4::active && (!was_active || forge::nnue_v4::loaded() != was_net)) {
+                    std::cout << "info string NNUE v4 active: " << forge::nnue_v4::describe(*forge::nnue_v4::loaded())
+                              << std::endl;
+                } else if (!forge::nnue_v4::active && was_active) {
+                    std::cout << "info string NNUE v4 off: the default net evaluates" << std::endl;
+                } else if (forge::nnue_v4::requested && !forge::nnue_v4::active && name == "NNUEv4") {
+                    std::cout << "info string NNUE v4 requested, no NNUEv4File loaded: the default net evaluates"
+                              << std::endl;
+                }
             } else if (name == "NNUEFile") {
                 std::string rest;
                 std::getline(input, rest);

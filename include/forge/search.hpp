@@ -126,6 +126,8 @@ private:
 #endif
     // v2 network path (options::nnue_v2; src/search/evaluation_v2.inc).
     [[nodiscard]] int static_evaluate_v2(const Board& board, SearchStack* ss);
+    // R5C v4 network path (nnue_v4::active; forge/nnue_v4.hpp, src/search/evaluation.inc).
+    [[nodiscard, gnu::cold, gnu::noinline]] int static_evaluate_v4(const Board& board);
     // v2 network with threat and / or pawn-pair inputs (O6 / O7; src/search/evaluation_extra.inc).
     [[nodiscard]] int static_evaluate_extra(const Board& board, SearchStack* ss);
     void record_move(SearchStack* ss, const Board& board, const Move& move);

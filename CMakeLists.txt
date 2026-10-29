@@ -19,6 +19,7 @@ add_library(forge_core
     src/eval.cpp
     src/eval_params.cpp
     src/nnue.cpp
+    src/nnue_v4.cpp
     src/search.cpp
 )
 target_include_directories(forge_core PUBLIC include)

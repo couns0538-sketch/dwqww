@@ -14,7 +14,7 @@ units (J7 trains `--l2 16`) and a per-output-bucket linear output. Engine path: 
 | 8 | u32 | version | 1 |
 | 12 | u32 | header_bytes | 256 |
 | 16 | u32 | inputs | 768 (12 piece kinds x 64 squares per king bucket) |
-| 20 | u32 | hidden H | 32..1024, multiple of 32 |
+| 20 | u32 | hidden H | 64..1024, multiple of 64 (the AVX2 kernel adds 64 lanes per pass) |
 | 24 | u32 | king_buckets KB | 1..32 |
 | 28 | u32 | output_buckets OB | 1..16 |
 | 32 | u32 | l2 | 1..64 (J7: 16) |
@@ -36,7 +36,7 @@ units (J7 trains `--l2 16`) and a per-output-bucket linear output. Engine path: 
 | | u64 | checksum | FNV-1a 64 (offset basis 0xcbf29ce484222325, prime 0x100000001b3) of every preceding byte |
 
 File size = 256 + 2*KB*768*H + 2*H + 4*L2*H + 4*L2 + 2*OB*L2 + 8*OB + 8 bytes (KB 8, H 512, L2 16, OB 8:
-6,326,632 bytes).
+6,325,896 bytes).
 
 ## Features (identical to v3 / v2)
 Perspective p, own king on `ksq`: `kr = p == White ? ksq : ksq ^ 56`, `flip = (mirror && file(kr) >= 4) ? 7 : 0`,
