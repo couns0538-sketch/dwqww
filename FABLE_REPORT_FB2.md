@@ -252,9 +252,10 @@ loaded PC: the J1 training and a gate ran alongside, so wall numbers are advisor
 | SmpV2 | 3 | 97.3 | 0.98 | 1.26 | 2.21 | 4.830 | 2.78 | 2.88 |
 
 Paired SmpV2 vs off (wall ratio geometric mean over the 30 positions, < 1 = SmpV2 faster): Threads 1 **0.998** /
-0.998 (inert, as designed), Threads 2 **0.970** (16/30 positions faster), Threads 3 **1.015** gmean but median
-0.856 with 19/30 positions faster (a few positions much slower with SmpV2, most of them faster: a mixed,
-position-dependent effect). Reading: with one repetition SmpV2's time-to-depth is not distinguishable from the
+0.998 / 1.000 (inert, as designed), Threads 2 **0.970** (16/30 positions faster) in repetition 1 and **0.909**
+gmean / 1.095 median (14/30 faster) in repetition 2 (23:02, `logs/smp_ttd_t12_rep2.*`: off scaled 0.97 / 1.10,
+SmpV2 1.11 / 1.21 by sum / gmean), Threads 3 **1.015** gmean but median 0.856 with 19/30 positions faster (a few
+positions much slower with SmpV2, most of them faster: a mixed, position-dependent effect). Reading: with one repetition SmpV2's time-to-depth is not distinguishable from the
 lock's at 2 or 3 threads; the lock's own scaling in these runs (1.09 / 1.17 at T2, 1.00 / 1.28 at T3 by sum /
 per-position gmean, node inflation 1.64 / 2.21) is similar to R3-6 (0.95 / 1.07 and 1.14 / 1.24). The helper
 diversification therefore does not shorten the main thread's critical path measurably at fixed depth; whether the
