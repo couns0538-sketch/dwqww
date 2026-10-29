@@ -107,7 +107,8 @@ def replay(fgb, text=False):
                 break
             if (flags & 1) and (board.is_capture(move) or move.promotion):
                 problems.append(f"game {gi} ply {pi}: kept record with a noisy best move")
-            if bool(flags & 2) != board.is_check():
+            # flags are recorded for searched plies only (opening plies carry neither score nor flags)
+            if pi >= g["opening"] and bool(flags & 2) != board.is_check():
                 problems.append(f"game {gi} ply {pi}: in-check flag wrong")
             board.push(move)
         term = TERMINATIONS[g["termination"]]
