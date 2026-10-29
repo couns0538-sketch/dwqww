@@ -159,6 +159,7 @@ SearchInfo Searcher::search(Board board, const SearchLimits& limits, bool emit_i
     result.pv = best->pv;
     result.score = best->score;
     result.depth = best->depth;
+    result.nominal_depth = best->nominal_depth;
     result.seldepth = std::max(result.seldepth, best->seldepth);
     if (!emit_info) return;
     // Publish the chosen line so GUIs see a PV consistent with the best move.

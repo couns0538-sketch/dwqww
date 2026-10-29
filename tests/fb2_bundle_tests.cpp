@@ -1,6 +1,6 @@
 // Unit tests of the FB2-J3 options on the R3 stack (CorrHistV2, LmrTableV2, TtPruneV2), the CorrHist exclusivity
-// rule and the UCI BundlePreset table (forge/fb2.hpp, BUNDLES.md). Adapted from FB2-J3's tests (SingularV2 not
-// ported). Usage: forge_fb2_bundle_tests   (no arguments)
+// rule and the UCI BundlePreset table (forge/fb2.hpp, BUNDLES.md). Adapted from FB2-J3's tests, extended for SingularV2 and independent
+// SMP/time flags. Usage: forge_fb2_bundle_tests   (no arguments)
 #include "forge/board.hpp"
 #include "forge/fb2.hpp"
 #include "forge/hist_rework.hpp"
@@ -244,7 +244,7 @@ int main() {
             fb2::apply_bundle(bundle);
             const auto b = fb2::bundle_settings(bundle);
             check(options::corr_hist_plus == b.corr_hist_plus && search_options::hist_rework == b.hist_rework &&
-                      options::cuckoo_rep == b.cuckoo_rep && fb2::requested == b.fb2, "apply_bundle writes the six options");
+                      options::cuckoo_rep == b.cuckoo_rep && fb2::requested == b.fb2, "apply_bundle writes the seven owned options");
             int changed = 0;
             for (std::size_t i = 0; i < base.size(); ++i) {
                 const SearchInfo info = run(s, kFens[i], 10);

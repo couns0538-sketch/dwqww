@@ -62,7 +62,10 @@ def main(argv=None):
     p.add_argument('--timeout', type=positive, default=120.0, help='deadline per UCI response')
     p.add_argument('--sanitizer', choices=('none', 'tsan'), default='none')
     args = p.parse_args(argv)
-    p.error('iterations must be at least 250') if args.iterations < 250 else None
+    if sys.flags.optimize:
+        p.error('run without Python -O/-OO: reused SMP assertions must remain enabled')
+    if args.iterations < 250:
+        p.error('iterations must be at least 250')
     exe = args.engine.resolve(strict=True)
     out = args.out_dir.resolve()
     out.mkdir(parents=True, exist_ok=False)
@@ -138,12 +141,17 @@ def main(argv=None):
         # In addition to the 250 explicit stops, exercise UCI's required stop/join
         # before all three new mutable option assignments, in both directions.
         for name in ('SmpV2', 'TmSoftHardClamp', 'SingularV2'):
+            e.send(f'setoption name {name} value ' + ('1' if name == 'SingularV2' else 'true'))
+            run.sync('initialize live option transition')
             for value in (('0', '1') if name == 'SingularV2' else ('false', 'true')):
                 run.go('position startpos', 'go infinite')
-                e.until(lambda s: s.startswith('info depth 2 ') or s.startswith('bestmove '), args.timeout)
+                lines = e.until(lambda s: s.startswith('info depth 2 ') or s.startswith('bestmove '), args.timeout)
+                require(not lines[-1].startswith('bestmove '), 'answer before live option assignment')
                 e.send(f'setoption name {name} value {value}')
                 run.answer('position startpos', 'live assignment ' + name + '=' + value)
                 receipt['live_option_joins_completed'] += 1
+                with (out / 'live_options.jsonl').open('a', encoding='utf-8') as f:
+                    f.write(json.dumps({'option': name, 'value': value, 'completed': True}) + '\n')
         require(run.stats['go'] == run.stats['bestmove'] == args.iterations + 6, 'go/bestmove count mismatch')
         require(sum(s.startswith('< bestmove ') for s in e.transcript) == args.iterations + 6,
                 'raw bestmove count differs from completed searches')
@@ -152,6 +160,8 @@ def main(argv=None):
         require(not bad, 'unexpected engine diagnostic: ' + repr(bad[:5]))
     except Exception as error:
         receipt['errors'].append(type(error).__name__ + ': ' + str(error))
+    except KeyboardInterrupt:
+        receipt['errors'].append('KeyboardInterrupt: incomplete workload; original streams retained')
     finally:
         if run is not None:
             try:
@@ -165,7 +175,11 @@ def main(argv=None):
                 (stderr + b'\n' + stdout).splitlines() if SANITIZER.search(line)]
             if receipt['sanitizer_diagnostic_lines']:
                 receipt['errors'].append('sanitizer diagnostic(s) captured; see original streams')
-        receipt['binary_sha256_after'] = sha256(exe)
+        try:
+            receipt['binary_sha256_after'] = sha256(exe)
+        except OSError as error:
+            receipt['binary_sha256_after'] = None
+            receipt['errors'].append('cannot rehash engine: ' + str(error))
         if receipt['binary_sha256_after'] != before:
             receipt['errors'].append('engine binary changed during workload')
         receipt['seconds'] = time.monotonic() - started

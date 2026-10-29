@@ -198,6 +198,9 @@ add_executable(forge_fb2_bundle_tests tests/fb2_bundle_tests.cpp)
 target_link_libraries(forge_fb2_bundle_tests PRIVATE forge_core Threads::Threads)
 add_executable(forge_singular_v2_tests tests/singular_v2_tests.cpp)
 target_link_libraries(forge_singular_v2_tests PRIVATE forge_core Threads::Threads)
+# R5A option echo and conflict guards (opus_r5/r5a); part B drives the forge executable.
+add_executable(forge_r5a_options_tests tests/r5a_options_tests.cpp)
+target_link_libraries(forge_r5a_options_tests PRIVATE forge_core Threads::Threads)
 
 # Search module unit tests (move picker stages, history math, time management).
 add_executable(forge_movepicker_tests tests/movepicker_tests.cpp)
@@ -404,6 +407,7 @@ add_test(NAME forge_pv_metadata_tests COMMAND forge_pv_metadata_tests)
 add_test(NAME forge_bad_capture_tests COMMAND forge_bad_capture_tests)
 add_test(NAME forge_fb2_bundle_tests COMMAND forge_fb2_bundle_tests)
 add_test(NAME forge_singular_v2_tests COMMAND forge_singular_v2_tests)
+add_test(NAME forge_r5a_options_tests COMMAND forge_r5a_options_tests $<TARGET_FILE:forge>)
 add_test(NAME forge_movepicker_tests COMMAND forge_movepicker_tests)
 add_test(NAME forge_history_tests COMMAND forge_history_tests)
 add_test(NAME forge_timeman_tests COMMAND forge_timeman_tests)
@@ -580,6 +584,11 @@ endif()
 
 # Astra R2 B4: metadata completeness and explicit option diagnostics.
 if(Python3_Interpreter_FOUND)
+    # A1 integration contract for the pinned h256 build; dynamically covers advertised options.
+    add_test(NAME astra3_option_contract
+        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/astra3/integration/tests_pending/option_contract_tests.py
+                $<TARGET_FILE:forge> --hidden 256 --output-root ${CMAKE_CURRENT_BINARY_DIR}/astra3-option-contract)
+    set_tests_properties(astra3_option_contract PROPERTIES TIMEOUT 300)
     add_test(NAME uci_strict_regression
         COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/uci_strict_tests.py
                 $<TARGET_FILE:forge> --log ${CMAKE_CURRENT_BINARY_DIR}/uci-strict-regression.log)

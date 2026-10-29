@@ -4,6 +4,7 @@
 #include "forge/net_scale.hpp"
 #include "forge/nnue.hpp"
 #include "forge/nnue_v2.hpp"
+#include "forge/r5a_options.hpp"
 #include "forge/search.hpp"
 #include "forge/syzygy.hpp"
 #include "forge/search_options.hpp"
@@ -434,6 +435,44 @@ int main() {
         return true;
     };
 
+    // R5A (forge/r5a_options.hpp): one `info string active: ...` line per go with every search option that is not
+    // at its default (nothing at the defaults, so default logs stay byte-identical), and a warning when an allowed
+    // but never-gated combination is formed by a setoption.
+    std::string bundle_preset = "OFF";  // the BundlePreset that set TtPruneV2 ("OFF" once TtPruneV2 is set on its own)
+    auto print_active_options = [&]() {
+        std::string active = forge::r5a::active_search_options();
+        const auto append = [&active](std::string_view item) {
+            if (!active.empty()) active += ' ';
+            active += item;
+        };
+        if (!nnue_file.empty()) {
+            const forge::nnue::v2::Net* loaded = forge::nnue::v2::loaded();
+            const bool file_loaded = nnue_file_error.empty() && loaded != nullptr && loaded->path == nnue_file;
+            append("NNUEFile=" + nnue_file + (file_loaded ? "" : "(failed)"));
+        }
+        if (!syzygy_path.empty()) {
+            append("SyzygyPath=" + syzygy_path + (forge::syzygy::max_pieces() > 0 ? "" : "(failed)"));
+        }
+#if FORGE_NNUE_INT16
+        if (forge::nnue::int16_active()) append("NnueInt16=true");
+#endif
+#if FORGE_NNUE_LAZY_ACC
+        if (forge::lazy_acc::requested.load(std::memory_order_relaxed)) append("NnueLazyAcc=true");
+#endif
+#ifdef FORGE_S13_TT_CHILD_PREFETCH
+        if (searcher.s13_tt_child_prefetch_enabled()) append("TtChildPrefetch=true");
+#endif
+        if (active.empty()) return;
+        const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex());
+        std::cout << "info string active: " << active << std::endl;
+    };
+    auto warn_combination = [&bundle_preset]() {
+        const std::string warning = forge::r5a::combination_warning(bundle_preset);
+        if (warning.empty()) return;
+        const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex());
+        std::cout << "info string " << warning << std::endl;
+    };
+
     std::string line;
     while (true) {
         control_priority(forge::options::hard_deadline_ms > 0);
@@ -505,16 +544,21 @@ int main() {
             std::cout << "option name Profile type check default false\n";
 #endif
 
-            // R3-4: the 20 search constants for SPSA tuning (forge/search_tune.hpp, tools/spsa), listed in every
-            // build; their defaults are the AL1 s198 values, so a run that leaves them alone searches the same tree.
-            for (const std::string_view name : forge::tune::AdvertisedParameters) {
-                if (const forge::tune::Parameter* parameter = find_tunable(name)) print_tunable(*parameter);
-            }
-            // Every accepted tunable must be discoverable by strict UCI match runners.
+            // One listing pass: retain the base/R5A order, then expose every remaining accepted tunable.
+            // The exclusion set also handles a name present in both advertised groups or in the registry.
+            std::vector<std::string_view> tunable_names(forge::tune::AdvertisedParameters.begin(),
+                                                      forge::tune::AdvertisedParameters.end());
+            tunable_names.insert(tunable_names.end(), forge::tune::R5aAdvertisedParameters.begin(),
+                                 forge::tune::R5aAdvertisedParameters.end());
             for (const forge::tune::Parameter& parameter : forge::tune::parameters()) {
-                if (std::find(forge::tune::AdvertisedParameters.begin(), forge::tune::AdvertisedParameters.end(),
-                              std::string_view(parameter.name)) == forge::tune::AdvertisedParameters.end()) {
-                    print_tunable(parameter);
+                tunable_names.emplace_back(parameter.name);
+            }
+            std::vector<std::string_view> listed_tunables;
+            for (const std::string_view name : tunable_names) {
+                if (std::find(listed_tunables.begin(), listed_tunables.end(), name) != listed_tunables.end()) continue;
+                if (const forge::tune::Parameter* parameter = find_tunable(name)) {
+                    print_tunable(*parameter);
+                    listed_tunables.push_back(name);
                 }
             }
 #if FORGE_DEBUG_HOOKS
@@ -722,6 +766,7 @@ int main() {
                     std::cout << "info string invalid value for option " << name << std::endl;
                 } else {
                     assign_option(forge::options::corr_margins, static_cast<std::uint8_t>(std::clamp(value, 0, 1)));
+                    warn_combination();   // R5A: allowed combination, unchanged search semantics.
                 }
             } else if (name == "CorrExt") {
                 int value = 0;
@@ -744,7 +789,7 @@ int main() {
                 } else if (value != 0 && forge::options::corr_ext != 0) {
                     std::cout << "info string SingularV2 refused: CorrExt is on (exclusive path budgets)" << std::endl;
                 } else {
-                    forge::fb2::requested.singular_v2 = value != 0;
+                    assign_option(forge::fb2::requested.singular_v2, value != 0);
                 }
             } else if (name == "CuckooRep") {
                 if (value_text == "true") assign_option(forge::options::cuckoo_rep, true);
@@ -774,18 +819,24 @@ int main() {
                     const bool value = value_text == "true";
                     if (name == "CorrHistV2") assign_option(forge::fb2::requested.corr_hist_v2, value);
                     else if (name == "LmrTableV2") assign_option(forge::fb2::requested.lmr_table_v2, value);
-                    else assign_option(forge::fb2::requested.tt_prune_v2, value);
+                    else {
+                        const bool changed = forge::fb2::requested.tt_prune_v2 != value;
+                        assign_option(forge::fb2::requested.tt_prune_v2, value);
+                        // Repeating a preset's current value must retain its provenance.
+                        if (changed) bundle_preset = "OFF";
+                        warn_combination();
+                    }
                 }
             } else if (name == "SmpV2") {
                 if (value_text == "true" || value_text == "false") {
-                    forge::fb2::requested.smp_v2 = value_text == "true";
+                    assign_option(forge::fb2::requested.smp_v2, value_text == "true");
                 } else {
                     const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex());
                     std::cout << "info string invalid value for option SmpV2" << std::endl;
                 }
             } else if (name == "TmSoftHardClamp") {
                 if (value_text == "true" || value_text == "false") {
-                    forge::fb2::requested.tm_soft_hard_clamp = value_text == "true";
+                    assign_option(forge::fb2::requested.tm_soft_hard_clamp, value_text == "true");
                 } else {
                     const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex());
                     std::cout << "info string invalid value for option TmSoftHardClamp" << std::endl;
@@ -793,24 +844,32 @@ int main() {
             } else if (name == "BundlePreset") {
                 static constexpr std::array<std::string_view, 6> Names{"OFF", "B1", "B2", "B3", "B4", "N1"};
                 const auto it = std::find(Names.begin(), Names.end(), std::string_view(value_text));
-                const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex());
-                if (it == Names.end()) {
-                    std::cout << "info string invalid value for option " << name << std::endl;
-                } else if (*it == "N1" && forge::options::corr_ext != 0) {
-                    // Refuse before apply_bundle: no member of the previous preset is changed.
-                    std::cout << "info string BundlePreset N1 refused: CorrExt is on (exclusive path budgets)" << std::endl;
-                } else {
-                    const auto bundle = static_cast<forge::fb2::Bundle>(it - Names.begin());
-                    forge::fb2::apply_bundle(bundle);
-                    preset_active = bundle != forge::fb2::Bundle::Off;
-                    const forge::fb2::BundleSettings b = forge::fb2::bundle_settings(bundle);
-                    std::cout << "info string BundlePreset " << *it << ": CorrHistPlus=" << b.corr_hist_plus
-                              << " HistRework=" << b.hist_rework << " CuckooRep=" << (b.cuckoo_rep ? "true" : "false")
-                              << " CorrHistV2=" << (b.fb2.corr_hist_v2 ? "true" : "false")
-                              << " LmrTableV2=" << (b.fb2.lmr_table_v2 ? "true" : "false")
-                              << " TtPruneV2=" << (b.fb2.tt_prune_v2 ? "true" : "false")
-                              << " SingularV2=" << (b.fb2.singular_v2 ? 1 : 0) << std::endl;
+                bool applied = false;
+                {
+                    const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex());
+                    if (it == Names.end()) {
+                        std::cout << "info string invalid value for option " << name << std::endl;
+                    } else if (*it == "N1" && forge::options::corr_ext != 0) {
+                        // Refuse before apply_bundle: leave all options and both attribution states intact.
+                        std::cout << "info string BundlePreset N1 refused: CorrExt is on (exclusive path budgets)" << std::endl;
+                    } else {
+                        const auto bundle = static_cast<forge::fb2::Bundle>(it - Names.begin());
+                        forge::fb2::apply_bundle(bundle);
+                        preset_active = bundle != forge::fb2::Bundle::Off;
+                        bundle_preset = std::string(*it);
+                        applied = true;
+                        const forge::fb2::BundleSettings b = forge::fb2::bundle_settings(bundle);
+                        std::cout << "info string BundlePreset " << *it << ": CorrHistPlus=" << b.corr_hist_plus
+                                  << " HistRework=" << b.hist_rework << " CuckooRep=" << (b.cuckoo_rep ? "true" : "false")
+                                  << " CorrHistV2=" << (b.fb2.corr_hist_v2 ? "true" : "false")
+                                  << " LmrTableV2=" << (b.fb2.lmr_table_v2 ? "true" : "false")
+                                  << " TtPruneV2=" << (b.fb2.tt_prune_v2 ? "true" : "false")
+                                  << " SingularV2=" << (b.fb2.singular_v2 ? 1 : 0) << std::endl;
+                    }
                 }
+                // The warning takes the same non-recursive mutex. Never call it while the acknowledgement
+                // owns that mutex, or after a refused/invalid preset which changed nothing.
+                if (applied) warn_combination();
             } else if (name == "IntendedThreefold") {
                 if (value_text == "true") assign_option(forge::options::intended_threefold, true);
                 else if (value_text == "false") assign_option(forge::options::intended_threefold, false);
@@ -963,7 +1022,12 @@ int main() {
                 const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex());
                 std::cout << "info string unknown option " << name << std::endl;
             }
-            if (preset_active && value_changed) {
+            // Presets own exactly these seven fields. Resource, protocol, instrumentation and unrelated
+            // search settings can change independently without being attributed to the preset.
+            static constexpr std::array<std::string_view, 7> PresetOwnedOptions{
+                "CorrHistPlus", "HistRework", "CuckooRep", "CorrHistV2", "LmrTableV2", "TtPruneV2", "SingularV2"};
+            if (preset_active && value_changed &&
+                std::find(PresetOwnedOptions.begin(), PresetOwnedOptions.end(), name) != PresetOwnedOptions.end()) {
                 const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex());
                 std::cout << "info string override " << name << " after preset" << std::endl;
             }
@@ -1010,6 +1074,7 @@ int main() {
                 // The watchdog and workers use the same requested clock-budget mode.
                 // Searcher takes its own complete snapshot before it launches helpers.
                 limits.fb2.tm_soft_hard_clamp = forge::fb2::requested.tm_soft_hard_clamp;
+                print_active_options();   // R5A: silent at all search defaults, before workers start.
                 // Charge dispatch admission only to finite externally clocked searches.
                 if (!limits.infinite && !limits.ponder &&
                     (limits.time_ms >= 0 || limits.movetime_ms >= 0)) limits.start_time = command_start;

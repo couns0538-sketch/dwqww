@@ -38,6 +38,10 @@ namespace tune {
 int CorrContWeight = 100;
 int CorrMinorWeight = 100;
 int CorrNonPawnWeight = 100;
+// R5A: percent applied to all four CorrMargins weights (UCI CorrMarginsScale,
+// advertised; 100 = the weights unchanged). Defined before the AL1 s198
+// tunables for the same address reason as the blocks around it.
+int CorrMarginsScale = 100;
 // CorrMargins weights (forge/corr_margins.hpp). Defined before the AL1 s198
 // tunables on purpose: GCC emits a translation unit's globals in reverse
 // definition order, so these land after the existing block and every AL1 s198
@@ -153,6 +157,7 @@ const std::vector<Parameter>& parameters() {
         {"CorrExtDoublePct", &CorrExtDoublePct, 0, 400},         {"CorrExtTripleCorr", &CorrExtTripleCorr, 0, 256},
         {"CorrExtTripleMargin", &CorrExtTripleMargin, 0, 1000},  {"CorrExtBudget", &CorrExtBudget, 0, 64},
         {"NullMoveMarginDepth", &NullMoveMarginDepth, 0, 100},   {"NullMoveMarginBase", &NullMoveMarginBase, 0, 500},
+        {"CorrMarginsScale", &CorrMarginsScale, 0, 400},
     };
     return table;
 }

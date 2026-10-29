@@ -40,3 +40,7 @@ IDEA_SOURCE: The requested default-off port uses Forge FB2-J3 at 1efc0b2c9e09d38
 
 ## Astra R3 A1 F1: named preset construction
 IDEA_SOURCE: Engine QA CR_ASTRA2 F1 HIGH in supplied round3 pack; C++20 designated aggregate initialization. Bind preset fields by name and assert N1/independent flags at compile time; no new search algorithm or constants.
+
+### Astra R3 A1 integration contract
+
+IDEA_SOURCE: Engine QA/Code Review findings in astra3/integration/ROUND3_JOB_PACK.md, with the user's confirmed R5A CorrMargins pins. Named preset construction, seven-owned-option diagnostics, complete truthful active echoes and nominal helper-depth metadata are original repairs to same-repository Forge integration. No external engine code or tuned constants.

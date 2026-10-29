@@ -25,6 +25,7 @@
 #include "forge/singular_v2.hpp"
 #include "forge/material_key_table.hpp"
 #include "forge/net_scale.hpp"
+#include "forge/r5a_options.hpp"
 #include "forge/uci_output.hpp"
 
 #include <algorithm>
@@ -164,3 +165,4 @@
 #undef FORGE_QSEARCH_FN
 #include "search/cuckoo.inc"      // CuckooRep: upcoming-repetition draw bound
 #include "search/fb2.inc"           // FB2-J3 options (CorrHistV2, LmrTableV2, TtPruneV2) and UCI BundlePreset
+#include "search/r5a_options.inc"   // R5A: effective-settings echo and option-combination warning (UCI thread only)

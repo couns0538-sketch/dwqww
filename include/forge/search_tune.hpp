@@ -82,6 +82,7 @@ extern int CorrRfpPct;            // reverse futility margin += |correction| * p
 extern int CorrFutilityPct;       // quiet futility margin += |correction| * pct / 100
 extern int CorrNullMovePct;       // null-move static-eval threshold += |correction| * pct / 100
 extern int CorrLmrPct;            // LMR reduction -= reduction * pct% per 64 cp of |correction|
+extern int CorrMarginsScale;      // R5A: every CorrMargins weight above is applied at this percent; 100 = unchanged
 // UCI CorrExt (forge/corr_ext.hpp): correction-history extensions; read only by
 // the CorrExt search instance.
 extern int CorrExtDoublePct;      // double-extension margin 24 -= |correction| * pct / 100 (at least 0); 0 = AL1 s198
@@ -112,6 +113,12 @@ inline constexpr std::array<std::string_view, 20> AdvertisedParameters{
     // aspiration windows
     "AspirationDelta",
 };
+
+// R5A (opus_r5/r5a, M5): two more constants advertised as UCI spin options in every build, listed after the 20
+// above, so a later SPSA / tuning gate can set them under fastchess -strict: the overall CorrMargins scale and the
+// CorrExt triple-extension threshold (|correction| in cp). Defaults are the current values, so an untouched engine
+// searches the same tree; both act only while their option (CorrMargins / CorrExt) is on.
+inline constexpr std::array<std::string_view, 2> R5aAdvertisedParameters{"CorrMarginsScale", "CorrExtTripleCorr"};
 } // namespace tune
 
 } // namespace forge

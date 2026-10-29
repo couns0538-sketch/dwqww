@@ -72,6 +72,10 @@ struct SearchInfo {
 #if FORGE_NNUE_LAZY_ACC
     LazyAccStats lazy_acc_stats{};
 #endif
+    // Last completed iterative-deepening loop depth, before any SmpV2 helper
+    // skew. Diagnostic metadata only: depth remains the actual searched depth
+    // used by the existing capped-depth selector. Zero means none completed.
+    int nominal_depth = 0;
 };
 
 constexpr int MaxPly = 128;

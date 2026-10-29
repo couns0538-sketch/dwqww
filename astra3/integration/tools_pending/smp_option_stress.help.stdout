@@ -1,0 +1,21 @@
+usage: smp_option_stress.py [-h] --out-dir OUT_DIR [--iterations ITERATIONS]
+                            [--seed SEED] [--timeout TIMEOUT]
+                            [--sanitizer {none,tsan}]
+                            engine
+
+A1: 250 Threads=2 go/stop cycles plus six live option stop/join probes. Reuses
+Forge's UCI deadlines, SMP legal-move/ponder checks and raw-stream driver. No
+match or performance claim. Engine execution is explicit; --help runs none.
+IDEA_SOURCE: user A1 TSan contract and this repository's existing UCI/SMP
+tests.
+
+positional arguments:
+  engine
+
+options:
+  -h, --help            show this help message and exit
+  --out-dir OUT_DIR     new evidence directory
+  --iterations ITERATIONS
+  --seed SEED           workload scheduling seed, not a gate seed
+  --timeout TIMEOUT     deadline per UCI response
+  --sanitizer {none,tsan}

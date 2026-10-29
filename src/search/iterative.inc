@@ -90,6 +90,7 @@ SearchInfo Worker::search(Board board, const SearchLimits& limits, bool emit_inf
         if (legal.empty() && board.in_check()) score = -MateValue;
         for (int depth = 1; depth <= max_depth; ++depth) {
             result.depth = depth;
+            result.nominal_depth = depth;
             result.score = score;
             emit(depth, score, {});
             if (should_stop()) break;
@@ -223,6 +224,7 @@ SearchInfo Worker::search(Board board, const SearchLimits& limits, bool emit_inf
         if (depth > max_depth) continue;
         result.score = score;
         result.depth = search_depth;
+        result.nominal_depth = depth;
         result.seldepth = std::max(seldepth_, depth);
         result.pv.assign(ss->pv.begin(), ss->pv.begin() + ss->pv_length);
         if (!result.pv.empty()) result.best_move = result.pv.front();

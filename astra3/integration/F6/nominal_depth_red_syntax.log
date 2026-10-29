@@ -1,0 +1,35 @@
+COMMAND: g++-14 -std=c++20 -fsyntax-only -DFORGE_NNUE_HIDDEN=256 -DFORGE_SMP_V2_NATIVE_TESTS=1 -Iinclude tests/smp_v2_tests.cpp
+EXIT: 1
+tests/smp_v2_tests.cpp: In function ‘forge::SearchInfo {anonymous}::info(int, int, int)’:
+tests/smp_v2_tests.cpp:23:24: error: ‘struct forge::SearchInfo’ has no member named ‘nominal_depth’
+   23 |     r.depth = depth; r.nominal_depth = depth; r.seldepth = depth + 2; r.score = score;
+      |                        ^~~~~~~~~~~~~
+tests/smp_v2_tests.cpp: In function ‘void {anonymous}::expect(const forge::SearchInfo&, const std::vector<forge::SearchInfo>&, const forge::SearchInfo&, const std::string&, int)’:
+tests/smp_v2_tests.cpp:36:15: error: ‘const struct forge::SearchInfo’ has no member named ‘nominal_depth’
+   36 |           got.nominal_depth == winner.nominal_depth && got.pv == winner.pv, name);
+      |               ^~~~~~~~~~~~~
+tests/smp_v2_tests.cpp:36:39: error: ‘const struct forge::SearchInfo’ has no member named ‘nominal_depth’
+   36 |           got.nominal_depth == winner.nominal_depth && got.pv == winner.pv, name);
+      |                                       ^~~~~~~~~~~~~
+tests/smp_v2_tests.cpp: In function ‘int main()’:
+tests/smp_v2_tests.cpp:82:12: error: ‘struct forge::SearchInfo’ has no member named ‘nominal_depth’
+   82 |     skewed.nominal_depth = 11;
+      |            ^~~~~~~~~~~~~
+tests/smp_v2_tests.cpp:138:51: error: ‘const struct forge::SearchInfo’ has no member named ‘nominal_depth’
+  138 |     check(helper_depth.depth == 4 && helper_depth.nominal_depth == 3,
+      |                                                   ^~~~~~~~~~~~~
+tests/smp_v2_tests.cpp:141:47: error: ‘const struct forge::SearchInfo’ has no member named ‘nominal_depth’
+  141 |     check(main_depth.depth == 3 && main_depth.nominal_depth == 3,
+      |                                               ^~~~~~~~~~~~~
+tests/smp_v2_tests.cpp:146:55: error: ‘const struct forge::SearchInfo’ has no member named ‘nominal_depth’
+  146 |     check(terminal_depth.depth == 3 && terminal_depth.nominal_depth == 3,
+      |                                                       ^~~~~~~~~~~~~
+tests/smp_v2_tests.cpp:152:47: error: ‘const struct forge::SearchInfo’ has no member named ‘nominal_depth’
+  152 |     check(zero_depth.depth == 0 && zero_depth.nominal_depth == 0,
+      |                                               ^~~~~~~~~~~~~
+tests/smp_v2_tests.cpp:165:68: error: ‘const struct forge::SearchInfo’ has no member named ‘nominal_depth’
+  165 |               on.score == off.score && on.depth == off.depth && on.nominal_depth == off.nominal_depth &&
+      |                                                                    ^~~~~~~~~~~~~
+tests/smp_v2_tests.cpp:165:89: error: ‘const struct forge::SearchInfo’ has no member named ‘nominal_depth’
+  165 |               on.score == off.score && on.depth == off.depth && on.nominal_depth == off.nominal_depth &&
+      |                                                                                         ^~~~~~~~~~~~~

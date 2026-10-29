@@ -1,0 +1,59 @@
+PASS A defaults: active_search_options() is empty (got '')
+PASS A tune_defaults() has one compiled-in value per tunable (65)
+PASS A tunables RfpMargin and CorrRfpPct exist
+PASS A CorrMargins: 'CorrMargins=1' then '' after the reset
+PASS A CorrExt: 'CorrExt=1' then '' after the reset
+PASS A CorrHistPlus 2: 'CorrHistPlus=2' then '' after the reset
+PASS A CorrHistPlus 4: 'CorrHistPlus=4' then '' after the reset
+PASS A CorrHistPlus 6: 'CorrHistPlus=6' then '' after the reset
+PASS A NetScale 99: 'NetScale=99' then '' after the reset
+PASS A HistRework 1: 'HistRework=1' then '' after the reset
+PASS A HistRework 3: 'HistRework=3' then '' after the reset
+PASS A CuckooRep: 'CuckooRep=true' then '' after the reset
+PASS A CorrHistV2: 'CorrHistV2=true' then '' after the reset
+PASS A LmrTableV2: 'LmrTableV2=true' then '' after the reset
+PASS A TtPruneV2: 'TtPruneV2=true' then '' after the reset
+PASS A IntendedThreefold: 'IntendedThreefold=true' then '' after the reset
+PASS A MaterialKeyTable: 'MaterialKeyTable=true' then '' after the reset
+PASS A LocklessTT: 'LocklessTT=true' then '' after the reset
+PASS A SmpExactNodes: 'SmpExactNodes=true' then '' after the reset
+PASS A Syzygy50MoveRule: 'Syzygy50MoveRule=false' then '' after the reset
+PASS A SyzygyProbeDepth: 'SyzygyProbeDepth=3' then '' after the reset
+PASS A HardDeadline: 'HardDeadline=10' then '' after the reset
+PASS A UseNNUE: 'UseNNUE=false' then '' after the reset
+PASS A RfpMargin (advertised tunable): 'RfpMargin=80' then '' after the reset
+PASS A CorrRfpPct (unlisted tunable): 'CorrRfpPct=60' then '' after the reset
+PASS A order: 'CorrMargins=1 NetScale=99 TtPruneV2=true'
+PASS A CorrHistV2 with CorrHistPlus (no UCI guard): 'CorrHistPlus=2 CorrHistV2=true(dropped)'
+PASS A BundlePreset B1: 'CorrHistPlus=1 CuckooRep=true HistRework=2 TtPruneV2=true'
+PASS A BundlePreset OFF: empty again
+PASS A warning: none at the defaults
+PASS A warning: none for CorrMargins alone
+PASS A warning: none for TtPruneV2 alone
+PASS A warning with a preset: 'warning: CorrMargins=1 with TtPruneV2=true (BundlePreset B2): both move the reverse-futility and futility margins of the CorrMargins search instance; never gated together (allowed, not refused)'
+PASS A warning without a preset: 'warning: CorrMargins=1 with TtPruneV2=true: both move the reverse-futility and futility margins of the CorrMargins search instance; never gated together (allowed, not refused)'
+PASS A end: every option back at its default
+PASS A5 R5aAdvertisedParameters name 2 existing tunables
+PASS A5 defaults: CorrMarginsScale 100, CorrExtTripleCorr 48 (the O8 constant)
+PASS A5 scale 100: rfp / futility / null-move / LMR equal the O5 formulas for |correction| 0..400
+PASS A5 scale 0: margins and LMR are the AL1 s198 values at every |correction|
+PASS A5 scale 200: the futility correction term is c * pct / 50
+PASS A5 limits (r 30, |correction| 1000, pct 400, scale 400): no overflow, relief capped at r (got 0)
+PASS A5 end: every tunable back at its default
+PASS B defaults: no active / warning line, 2 bestmoves ((none))
+PASS B CorrMargins 1: one active line per go, none after the reset (info string active: CorrMargins=1 | info string active: CorrMargins=1)
+PASS B CorrHistV2 then CorrHistPlus 1: refused, value unchanged (info string CorrHistPlus refused: CorrHistV2 is on (exclusive, see BUNDLES.md) / info string active: CorrHistV2=true)
+PASS B CorrHistV2 then CorrHistPlus 2: refused, value unchanged (info string CorrHistPlus refused: CorrHistV2 is on (exclusive, see BUNDLES.md) / info string active: CorrHistV2=true)
+PASS B CorrHistV2 then CorrHistPlus 4: refused, value unchanged (info string CorrHistPlus refused: CorrHistV2 is on (exclusive, see BUNDLES.md) / info string active: CorrHistV2=true)
+PASS B CorrHistV2 then CorrHistPlus 6: refused, value unchanged (info string CorrHistPlus refused: CorrHistV2 is on (exclusive, see BUNDLES.md) / info string active: CorrHistV2=true)
+PASS B CorrHistPlus 2 then CorrHistV2: refused, value unchanged (info string CorrHistV2 refused: CorrHistPlus is on (exclusive, see BUNDLES.md) / info string active: CorrHistPlus=2)
+PASS B CorrHistPlus 4 then CorrHistV2: refused, value unchanged (info string CorrHistV2 refused: CorrHistPlus is on (exclusive, see BUNDLES.md) / info string active: CorrHistPlus=4)
+PASS B CorrHistPlus 6 then CorrHistV2: refused, value unchanged (info string CorrHistV2 refused: CorrHistPlus is on (exclusive, see BUNDLES.md) / info string active: CorrHistPlus=6)
+PASS B BundlePreset B1 then CorrMargins 1: one warning, not refused (info string warning: CorrMargins=1 with TtPruneV2=true (BundlePreset B1): both move the reverse-futility and futility margins of the CorrMargins search instance; never gated together (allowed, not refused) / info string active: CorrHistPlus=1 CorrMargins=1 CuckooRep=true HistRework=2 TtPruneV2=true)
+PASS B CorrMargins 1 then BundlePreset B2: preset line, then one warning (info string warning: CorrMargins=1 with TtPruneV2=true (BundlePreset B2): both move the reverse-futility and futility margins of the CorrMargins search instance; never gated together (allowed, not refused))
+PASS B BundlePreset OFF clears the combination: one warning (B3) only, echo CorrMargins=1 (info string active: CorrMargins=1)
+PASS B TtPruneV2 on its own then CorrMargins 1: one warning without a preset name (info string warning: CorrMargins=1 with TtPruneV2=true: both move the reverse-futility and futility margins of the CorrMargins search instance; never gated together (allowed, not refused))
+PASS B NetScale 99 + RfpMargin 80, then both reset: one echo (info string active: NetScale=99 RfpMargin=80)
+PASS B M5: CorrMarginsScale (100, 0-400) and CorrExtTripleCorr (48, 0-256) advertised once after AspirationDelta (option name CorrMarginsScale type spin default 100 min 0 max 400 / option name CorrExtTripleCorr type spin default 48 min 0 max 256)
+PASS B M5: set values echoed in tunable order, nothing after the reset (info string active: CorrExtTripleCorr=32 CorrMarginsScale=150)
+ALL OK

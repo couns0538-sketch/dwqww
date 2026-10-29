@@ -20,7 +20,7 @@ void check(bool okay, const std::string& name) {
 }
 SearchInfo info(int depth, int score, int index) {
     SearchInfo r;
-    r.depth = depth; r.seldepth = depth + 2; r.score = score;
+    r.depth = depth; r.nominal_depth = depth; r.seldepth = depth + 2; r.score = score;
     r.best_move = Move{static_cast<std::uint8_t>(8 + index), static_cast<std::uint8_t>(24 + index), 0, DoublePush};
     r.ponder_move = Move{48, 40, 0, Quiet};
     r.pv = {r.best_move, r.ponder_move};
@@ -32,7 +32,8 @@ void expect(const SearchInfo& main, const std::vector<SearchInfo>& helpers,
             const SearchInfo& winner, const std::string& name, int depth_cap = 64) {
     const auto got = fb2::smp_select_result(main, helpers, depth_cap);
     check(got.best_move == winner.best_move && got.ponder_move == winner.ponder_move &&
-          got.score == winner.score && got.depth == winner.depth && got.pv == winner.pv, name);
+          got.score == winner.score && got.depth == winner.depth &&
+          got.nominal_depth == winner.nominal_depth && got.pv == winner.pv, name);
     check(got.nodes == main.nodes && got.elapsed_ms == main.elapsed_ms, name + ": preserve main accounting");
 }
 }
@@ -75,6 +76,12 @@ int main() {
     auto main = info(12, 300, 0);
     expect(main, {ordinary}, ordinary, "ordinary deeper helper wins despite lower or higher score");
     expect(main, {info(12, 900, 1)}, main, "ordinary ties stay main even with higher score");
+    // Nominal depth is diagnostic metadata, not a replacement for the existing
+    // capped actual-depth ranking. Preserve the selected worker's metadata.
+    auto skewed = info(13, 900, 1);
+    skewed.nominal_depth = 11;
+    expect(main, {skewed}, skewed, "actual depth still ranks above higher nominal depth", 14);
+    expect(main, {skewed}, main, "actual-depth cap still ties skewed helper with main", 12);
     // Requested-depth ranking: N+1 is useful helper work, not a deeper completed
     // result for deciding between workers that both completed the user's N.
     expect(main, {info(13, 900, 1)}, main, "requested N: main N ties helper N+1", 12);
@@ -114,6 +121,36 @@ int main() {
     fb2::requested.smp_v2 = false;
     check(snapshot.smp_v2, "per-search snapshot survives next pending option update");
     fb2::apply_bundle(fb2::Bundle::Off);
+    // Exercise the production Worker directly with a bounded completed search:
+    // helper diversification adds one actual ply to helper 1's nominal depth.
+    const auto search_worker = [](int id, const Board& board, const SearchLimits& limits) {
+        SharedSearchState shared(16);
+        auto worker = std::make_unique<Worker>(shared, id);
+        const std::vector<Worker*> workers{worker.get()};
+        const SearchInfo result = worker->search(board, limits, false, workers);
+        worker->end_search();
+        return result;
+    };
+    SearchLimits depth_limits;
+    depth_limits.depth = 3;
+    depth_limits.fb2.smp_v2 = true;
+    const auto helper_depth = search_worker(1, Board{}, depth_limits);
+    check(helper_depth.depth == 4 && helper_depth.nominal_depth == 3,
+          "completed helper records actual and nominal depths separately");
+    const auto main_depth = search_worker(0, Board{}, depth_limits);
+    check(main_depth.depth == 3 && main_depth.nominal_depth == 3,
+          "completed main records equal actual and nominal depths");
+    Board terminal;
+    check(terminal.set_fen("7k/5Q2/6K1/8/8/8/8/8 b - - 0 1"), "nominal-depth terminal fixture parses");
+    const auto terminal_depth = search_worker(1, terminal, depth_limits);
+    check(terminal_depth.depth == 3 && terminal_depth.nominal_depth == 3,
+          "terminal helper reports nominal depth without diversification");
+    SearchLimits zero_limits = depth_limits;
+    zero_limits.nodes_specified = true;
+    zero_limits.nodes = 0;
+    const auto zero_depth = search_worker(0, Board{}, zero_limits);
+    check(zero_depth.depth == 0 && zero_depth.nominal_depth == 0,
+          "zero-budget search has no completed nominal depth");
     // SmpV2 must not change the main worker's partial-iteration adoption policy.
     // Compare fresh ON/OFF searches, without pinning a particular move or score.
     for (const std::uint64_t cap : {100U, 500U, 1000U, 2000U, 5000U}) {
@@ -125,7 +162,8 @@ int main() {
         Searcher on_search(16, 1);
         const SearchInfo on = on_search.search(Board{}, limits);
         check(on.best_move == off.best_move && on.ponder_move == off.ponder_move && on.pv == off.pv &&
-              on.score == off.score && on.depth == off.depth && on.seldepth == off.seldepth && on.nodes == off.nodes,
+              on.score == off.score && on.depth == off.depth && on.nominal_depth == off.nominal_depth &&
+              on.seldepth == off.seldepth && on.nodes == off.nodes,
               "Threads1 ON/OFF main behavior identical at node cap " + std::to_string(cap));
         std::cout << "main identity cap=" << cap << " OFF depth=" << off.depth << " score=" << off.score
                   << " move=" << Board::move_to_uci(off.best_move) << " ON depth=" << on.depth

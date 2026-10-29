@@ -17,6 +17,8 @@ def main() -> int:
     ap.add_argument('--debug-hooks', action='store_true')
     args = ap.parse_args()
     root = Path(__file__).resolve().parents[1]
+    # R3 F4 explicitly narrows the old B4 policy to fields owned by BundlePreset.
+    owned = {'CorrHistPlus', 'HistRework', 'CuckooRep', 'CorrHistV2', 'LmrTableV2', 'TtPruneV2', 'SingularV2'}
     source = (root / 'src/search/tune.inc').read_text()
     defaults = dict(re.findall(r'^int (\w+) = (-?\d+);', source, re.M))
     registry = re.findall(r'\{"(\w+)", &(\w+), (-?\d+), (-?\d+)\}', source)
@@ -75,10 +77,10 @@ def main() -> int:
             ('MaterialKeyTable', 'true', 'true', 'false'), ('NetScale', '101', '101', '100'),
             ('IntendedThreefold', 'true', 'true', 'false'), ('LmrTableV2', 'true', 'true', 'false'),
         ):
-            option(name, new, True); option(name, same, False); option(name, reset, True)
-        option('Hash', '0', True)
+            option(name, new, name in owned); option(name, same, False); option(name, reset, name in owned)
+        option('Hash', '0', False)
         option('Hash', '-5', False)  # Both clamp to one; requested text is not an actual change.
-        option('Hash', '32', True)
+        option('Hash', '32', False)
         option('CuckooRep', 'false', True)
         option('CuckooRep', 'false', False)
         option('Book File', '/definitely/missing/astra2_book.bin', False)
@@ -88,9 +90,9 @@ def main() -> int:
         option('BundlePreset', 'invalid', False)
         option('HistRework', '3', True)  # Invalid preset must not disarm tracking.
         if args.debug_hooks:
-            option('DebugSearchDelayMs', '1', True)
             option('DebugSearchDelayMs', '1', False)
-            option('DebugSearchDelayMs', '0', True)
+            option('DebugSearchDelayMs', '1', False)
+            option('DebugSearchDelayMs', '0', False)
             out = option('DebugSearchDelayMs', 'abc', False)
             check('info string invalid value for option DebugSearchDelayMs' in out, 'invalid debug option rejected')
         option('BundlePreset', 'OFF', False)
