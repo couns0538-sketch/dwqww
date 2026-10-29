@@ -86,7 +86,7 @@ Code reading notes:
 
 ## Experiments (scratch exports of 5eabdb7 with one change each; KRK depth 14, Threads 2, 1000 runs, SmpV2 off / on)
 
-| variant | change (helpers = workers 1..n-1; Threads 1 unaffected by construction) | failures off / on |
+| variant | change (F* / C* touch helpers = workers 1..n-1 only; dupfix, NOASP, NOMDP, threefold-only and BK change every search, dupfix only matters with several writers) | failures off / on |
 |---|---|---|
 | base | none | 37 (3.7 %) / 36 (3.6 %) |
 | dupfix | `TT::store` updates an existing slot of the same key instead of the probe-time slot (no duplicate keys) | 42 / 48 |
@@ -116,13 +116,13 @@ pruning-dependent bounds keep d5c5 reduced and below alpha until depth 14. Only 
 
 `r5d_mate_repro --prefill-fen <FEN> --prefill-depth 9`: one unrelated depth-9 search in the same Searcher first (its
 TT entries and histories stay), then KRK at depth 14 with **Threads 1**. Over 40 opening positions
-(`F:\opus_scratch\r5\r5d\tmp\prefill40.fen`, positions from `tests/data/nnue_selfplay_sample_916.txt`) the single
+(`diag/prefill40.fen`, positions from `tests/data/nnue_selfplay_sample_916.txt`) the single
 thread misses the mate in **6 of 40** cases (deterministic: the same 6 every time; cp ~470, e8e4). So the wrong bounds
 are not an SMP artefact: any TT/history state that changes the move order at "1.Kc5 Ka6" lets the pruning drop Re7, and
 the one-thread search only escapes when its root fail-high at iteration 10 happens. A second thread is simply the most
 common source of such a state (3.7 % of fresh KRK runs).
 
-Candidate **BK** (scratch `exp_bk`, `tmp/make_bk.py`): at a node whose side not to move has only its king, skip the
+Candidate **BK** (scratch `exp_bk`, made by `diag/make_bk.py`): at a node whose side not to move has only its king, skip the
 shallow quiet-move pruning block (move-count / futility / history / SEE) and the late-move reduction:
 
 | BK, KRK depth 14 | result |
@@ -139,7 +139,8 @@ BK changes the one-thread tree (bench pins), which the job forbids for a fix wit
 Job rule: smallest fix, behind no option, OFF and Threads=1 bit-identical. BK cannot meet "Threads=1 bit-identical"
 (it is a Threads=1 change too). The fix is **BKM** = BK applied only while more than one worker searches
 (`SharedSearchState::multi_worker`, set by `Searcher::search` before any worker starts; bench and every Threads 1
-search keep the AL1 tree). 12 added / 2 changed lines in three files (`git diff 5eabdb7 -- src include`):
+search keep the AL1 tree). 10 added and 2 changed lines in three files (git: 12 insertions, 2 deletions;
+`git diff 5eabdb7 -- src include`, comments shortened below):
 
 ```diff
  include/forge/thread_data.hpp (SharedSearchState)
@@ -156,7 +157,8 @@ search keep the AL1 tree). 12 added / 2 changed lines in three files (`git diff 
 
 - What it changes: only nodes of a multi-worker search where the side to move faces a bare king (KXK endings,
   including K+pawns v K). There the side to move has no capture, so the two blocks only ever skipped or reduced quiet
-  moves; node-level pruning (null move, reverse futility, ProbCut) and qsearch are unchanged.
+  moves (and promotions, in K+pawns v K); node-level pruning (null move, reverse futility, ProbCut) and qsearch are
+  unchanged.
 - Thread safety: `multi_worker` is a plain bool written by the searching thread before `std::thread` starts the
   helpers and after the previous search joined them (both happens-before edges); workers only read it.
 - Not changed (not this job, or not the cause): the SmpV2 selector defect above (SmpV2 mate selection is Astra's item;
