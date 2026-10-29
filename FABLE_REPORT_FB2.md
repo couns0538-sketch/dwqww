@@ -204,8 +204,23 @@ searches legal and finite with the option off and on; mate in 1 at 3 threads); f
 `forge_fable_j5.exe` 0 warnings, FMA 0, **OFF identity ALL OK** (`fable_fb2/j5/logs/`). The CI TSan hook now also
 runs SmpV2 searches at Threads 2/3/4: **CI on the J5 head green (release, ASan, TSan incl. the SmpV2 hook: 0
 reports)**. Measurement tool `tools/smp/fable_smp_ttd.py` (R3-6's 30
-positions, fixed depths, fresh process per run, paired on/off ratios): the Threads 1/2 runs start when the J7 slot
-frees, Threads 3 while the training is paused at a checkpoint boundary (results in the table below when done).
+positions, fixed depths 20-32, fresh IDLE process per run, cells shuffled per position, one repetition, Hash 64;
+loaded PC: the J1 training and a gate ran alongside, so wall numbers are advisory):
+
+| config | threads | sum time-to-depth (s) | speedup (sum) | per-position speedup gmean | nodes Tn/T1 gmean | NPS (M/s) | NPS scaling | CPU Tn/T1 |
+|---|---|---|---|---|---|---|---|---|
+| off (lock) | 1 | 102.2 | 1.00 | 1.00 | 1.00 | 1.627 | 1.00 | 1.00 |
+| off (lock) | 2 | 94.1 | 1.09 | 1.17 | 1.64 | 3.125 | 1.92 | 1.75 |
+| SmpV2 | 1 | 101.9 | 1.00 | 1.00 | 1.00 | 1.632 | 1.00 | 1.00 |
+| SmpV2 | 2 | 94.2 | 1.08 | 1.20 | 1.66 | 3.102 | 1.90 | 1.81 |
+| off / SmpV2 | 3 | (run while the training is paused at checkpoint 6; see below) | | | | | | |
+
+Paired SmpV2 vs off (wall ratio geometric mean over the 30 positions, < 1 = SmpV2 faster): Threads 1 **0.998**
+(inert, as designed; 16/30 positions by noise), Threads 2 **0.970** (16/30 positions faster). Reading: at two
+threads SmpV2's per-position time-to-depth gain over the lock is about 3% with one repetition on a loaded PC,
+i.e. not distinguishable from noise here (R3-6Q needed quiet runners and 3 repetitions for 10% effects); the lock's
+own T2 scaling in this run (1.09 / 1.17) is already better than R3-6's 0.95 / 1.07 because the PC was less loaded.
+No speed claim; the SMP gate (Threads > 1 both sides) is the arbiter (`logs/smp_ttd_t12.log/.csv`).
 
 ## J7 — NNUE v4 ideas (`fable-fb2-j7`, folder `fable_fb2/j7/`) — prototypes written, runs pending
 
