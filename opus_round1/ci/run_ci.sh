@@ -15,7 +15,8 @@ CI="$ROOT/opus_round1/ci"
 CXX=${CXX:-$(command -v g++-14 || command -v g++)}
 mkdir -p "$OUT"
 OUT=$(cd "$OUT" && pwd)
-BASE_FLAGS="-march=x86-64-v3 -mtune=znver5 -fno-fast-math -ffp-contract=off -DFORGE_NNUE_HIDDEN=256"
+# CI_BASE_FLAGS (optional, R5B): replaces the box flags, e.g. -march=x86-64-v4 for the AVX-512 kernels
+BASE_FLAGS=${CI_BASE_FLAGS:-"-march=x86-64-v3 -mtune=znver5 -fno-fast-math -ffp-contract=off -DFORGE_NNUE_HIDDEN=256"}
 BD="$OUT/build_$MODE"
 LOGDIR="$OUT/sanitizer_logs_$MODE"
 mkdir -p "$LOGDIR"

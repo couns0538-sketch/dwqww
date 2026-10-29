@@ -1,8 +1,11 @@
-# R5B (branch opus-r5b-speed): the N2 speed build (O2 + NOZERO + SPEEDSTACK, all node-exact) through the opus-ci
-# evidence (release identity + CTest with the known-failure check, ASan+UBSan, TSan) with exactly these three
-# switches ON, plus the uninitialised-read checks of opus_r5/r5b/ci_n2_memcheck.sh (valgrind memcheck of OFF and N2,
-# -ftrivial-auto-var-init=pattern/zero identity). opus-ci.yml builds only the default configuration and
-# opus-r3-switches.yml runs every switch at once on other branches.
+# R5B (branch opus-r5b-speed): the N2 speed build (O2 + NOZERO + SPEEDSTACK, all node-exact) and its three single
+# switches through the opus-ci evidence (opus_round1/ci/run_ci.sh: release identity + CTest with the known-failure
+# check; for N2 also ASan+UBSan and TSan), plus
+#   - memcheck: opus_r5/r5b/ci_n2_memcheck.sh (valgrind memcheck of the OFF and N2 engines, N2 lock identity with
+#     -ftrivial-auto-var-init=pattern and =zero): ASan/UBSan do not see reads of uninitialised memory (NOZERO risk);
+#   - n2_v4: N2 with -march=x86-64-v4 (the O2 512-bit kernels, as in the PC's -march=znver5 build), release + ASan,
+#     only on a runner with AVX-512 (the runner pool is mixed; the job says so and passes when it has none).
+# opus-ci.yml builds only the default configuration; opus-r3-switches.yml runs every switch at once on other branches.
 name: opus-r5b-n2
 on:
   push:
@@ -21,11 +24,17 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        mode: [release, asan, tsan]
+        include:
+          - {cfg: n2, mode: release, args: '-DFORGE_NNUE_O2=ON -DFORGE_NOZERO_MOVE_BUFFERS=ON -DFORGE_SPEEDSTACK=ON'}
+          - {cfg: n2, mode: asan, args: '-DFORGE_NNUE_O2=ON -DFORGE_NOZERO_MOVE_BUFFERS=ON -DFORGE_SPEEDSTACK=ON'}
+          - {cfg: n2, mode: tsan, args: '-DFORGE_NNUE_O2=ON -DFORGE_NOZERO_MOVE_BUFFERS=ON -DFORGE_SPEEDSTACK=ON'}
+          - {cfg: o2, mode: release, args: '-DFORGE_NNUE_O2=ON'}
+          - {cfg: nozero, mode: release, args: '-DFORGE_NOZERO_MOVE_BUFFERS=ON'}
+          - {cfg: speedstack, mode: release, args: '-DFORGE_SPEEDSTACK=ON'}
     runs-on: ubuntu-24.04
     timeout-minutes: 75
     env:
-      EXTRA_CMAKE_ARGS: -DFORGE_NNUE_O2=ON -DFORGE_NOZERO_MOVE_BUFFERS=ON -DFORGE_SPEEDSTACK=ON
+      EXTRA_CMAKE_ARGS: ${{ matrix.args }}
     steps:
       - uses: actions/checkout@v4
       - name: Toolchain
@@ -34,13 +43,49 @@ jobs:
           sudo apt-get install -y -qq g++-14 ninja-build cmake python3
           g++-14 --version | head -1
           nproc; lscpu | grep -E 'Model name|Flags' | cut -c1-200
-      - name: Run ${{ matrix.mode }} with the N2 switches ON
+      - name: Run ${{ matrix.mode }} for ${{ matrix.cfg }}
         run: bash opus_round1/ci/run_ci.sh ${{ matrix.mode }} ci_out
       - name: Upload logs
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: opus-r5b-n2-${{ matrix.mode }}
+          name: opus-r5b-${{ matrix.cfg }}-${{ matrix.mode }}
+          path: |
+            ci_out/*.log
+            ci_out/**/sanitizer_logs_*/**
+            ci_out/*.txt
+          if-no-files-found: warn
+  n2_v4:
+    strategy:
+      fail-fast: false
+      matrix:
+        mode: [release, asan]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 75
+    env:
+      EXTRA_CMAKE_ARGS: -DFORGE_NNUE_O2=ON -DFORGE_NOZERO_MOVE_BUFFERS=ON -DFORGE_SPEEDSTACK=ON
+      CI_BASE_FLAGS: -march=x86-64-v4 -mtune=znver5 -fno-fast-math -ffp-contract=off -DFORGE_NNUE_HIDDEN=256
+    steps:
+      - uses: actions/checkout@v4
+      - name: Toolchain
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq g++-14 ninja-build cmake python3
+          g++-14 --version | head -1
+          nproc; lscpu | grep -E 'Model name' ; grep -o -w -E 'avx512(f|bw|cd|dq|vl)' /proc/cpuinfo | sort -u | tr '\n' ' '; echo
+      - name: Run ${{ matrix.mode }} for N2 x86-64-v4 (AVX-512 kernels) if the runner has AVX-512
+        run: |
+          mkdir -p ci_out
+          if [ "$(grep -o -w -E 'avx512(f|bw|cd|dq|vl)' /proc/cpuinfo | sort -u | wc -l)" -eq 5 ]; then
+            bash opus_round1/ci/run_ci.sh ${{ matrix.mode }} ci_out
+          else
+            echo "runner has no AVX-512 (x86-64-v4): N2 v4 ${{ matrix.mode }} SKIPPED" | tee ci_out/n2_v4_skipped.txt
+          fi
+      - name: Upload logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: opus-r5b-n2_v4-${{ matrix.mode }}
           path: |
             ci_out/*.log
             ci_out/**/sanitizer_logs_*/**
