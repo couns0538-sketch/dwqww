@@ -1,5 +1,18 @@
 # Astra round3 A1 integration
 
+## Current status — 2026-10-29T03:00:18.944941-07:00
+
+A1 implementation and required Linux Release/ASan/UBSan/native TSan test coverage are complete; final review and the extra deep TSan binary identity are still running. Engine source remains `926c55f33227bc4a030d7ce5b1140528aeba75af`; accepted base remains `b7c177222038e9332965a95ec53ea3b94e90dbc9`. All later changes are tools/evidence/docs. No accepted branch, live gate, network or lock was changed.
+
+- Release: 75/75 fixed-reference matrix cells, perft4865609/193690690, whole-binary FMA0, full CTest64/65 (only four known forge_tests lines), option contract102/102, strict smoke2draws and negative unknown-option exit1/no played game.
+- ASan/UBSan/LSan: all five OFF pins, both perfts, FMA0; full CTest64/65, exit8 solely for the same four known functional failures; zero sanitizer diagnostics. This is not a completely green functional suite.
+- TSan: requested9 native option/SMP targets pass across the original8/9 run and one unchanged529.42s replay after the original300s timeout;256go/bestmove stress cycles pass, zero race reports. Deep OFF pins are running separately.
+- Windows, successful real Syzygy loading and playing-strength gains remain UNVERIFIED. No speed/Elo or gate-adoption claim.
+
+The chronological checkpoint text below is retained history; later qualification receipts supersede old PENDING markers. See final_review/runtime_environment_attestation.json for the explicitly attributed sanitizer environment record, and asan_ubsan/qualification.json for the final sanitized receipt. Final review found one stale human-README hash in the F1 frozen manifest; original bytes were recovered from Git, raw evidence hashes all matched, and a separate current manifest/addendum preserves both histories. The initial failed audit is retained.
+
+## Chronological checkpoints (historical status)
+
 Status: WIP. Checkpoint: 2026-10-29 00:13:34 PDT.
 
 Base b7c177222038e9332965a95ec53ea3b94e90dbc9; branch astra3-integration. Round2 remains unchanged. Exact source order: B1 23e940b, B2 45314a5, B4 d35d41f, B5 5c6ee0d, R5A8f1ceac. Each will be a no-ff merge followed by a complete build, OFF identity, perft/kiwipete, whole-binary FMA and full CTest before advancing. The first post-B5 commit will replace positional presets and prove the reordered-field regression.
@@ -221,3 +234,7 @@ Checkpoint cadence note: the09:05–09:21UTC interval exceeded the requested10 m
 ASan/UBSan all five OFF pins now PASS: 312866 / 862329 / 3024920 / 12389307 / 34048354; startpos perft5=4865609. Full sanitized CTest remains64/65 with only the four preserved known functional failures and zero sanitizer diagnostics. Kiwipete/FMA receipt follows. TSan selected coverage is9/9 after the unchanged longer-deadline SMP replay; its deep OFF identity remains pending. A2 serial native evidence is published on its isolated branch, with no engine fix claimed.
 
 The requested final20-minute review starts at this timestamp. Scope: source and evidence consistency, sanitizer coverage, report corrections, bounded A2 score-only intervention. No new jobs will start with the user-reported23% usage remaining. Previous checkpoint interval again exceeded10 minutes; the original results were retained.
+
+### Review checkpoint — 2026-10-29T03:00:18.944941-07:00
+
+Evidence re-audit strictly reparsed35 frozen OFF transcripts plus75 final-matrix transcripts, verified seven saved binary hashes, and checked2151 manifest entries. One historical README change is explicitly documented/recovered; no original engine output changed. Source review revisited preset ownership, mutex scope, nominal depth propagation, timing clamp and TT intervention isolation. No new engine defect requiring a patch was established. The20-minute review remains in progress.

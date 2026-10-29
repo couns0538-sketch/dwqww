@@ -1,10 +1,10 @@
 # A1 integration gate handoff — 2026-10-29
 
-Status: WIP. No gate is run and no queued gate, lock, or live executable is changed.
+Status: Linux identity/protocol qualification complete; Windows and final review pending. No gate is run and no queued gate, lock, or live executable is changed.
 
 The accepted integration input is b7c177222038e9332965a95ec53ea3b94e90dbc9. The isolated astra3-integration branch uses real no-ff merges in the supplied order. See REPORT.md for each tested source and its binary SHA256.
 
-A candidate for replacing the executable of a queued R5A single must reproduce that gate's full five-depth ON vector from `opus_r5/r5a/gate_specs.json`, plus the fixed OFF vector312866/862329/3024920/12389307/34048354, startpos4865609, kiwipete193690690, and whole-executable FMA0. Qualification results are pending for the final head; until they pass, no executable migration is recommended. Windows qualification remains separate.
+A candidate for replacing the executable of a queued R5A single must reproduce that gate's full five-depth ON vector from `opus_r5/r5a/gate_specs.json`, plus the fixed OFF vector312866/862329/3024920/12389307/34048354, startpos4865609, kiwipete193690690, and whole-executable FMA0. The final Release head passes all these exact identities, including all eight R5A singles. Windows qualification and CR approval remain separate; this is no instruction to migrate a live executable.
 
 CorrMargins1/Scale100 uses343365/858019/2522546/12894582/22287047, as confirmed by the user. CorrMargins0/Scale100 keeps OFF pins. No threshold or queued ON meaning is changed.
 
@@ -16,4 +16,4 @@ IDEA_SOURCE: Engine QA round-three contract, same-repository R5A gate specificat
 
 ## Native Release qualification update
 
-Source926c55f33227bc4a030d7ce5b1140528aeba75af passes all75 matrix cells. All eight queued R5A singles have their exact five ON counts; the fixed OFF counts, both perfts and FMA0 pass. CTest64/65 has only the four known forge_tests lines. All102 advertised-option contract cases pass; strict positive two-game and named-negative exit1 checks meet the user contract. These are identity/protocol prerequisites only: full sanitizers and Windows execution remain pending. No live gate migration is authorized or performed by this report.
+Source926c55f33227bc4a030d7ce5b1140528aeba75af passes all75 matrix cells. All eight queued R5A singles have their exact five ON counts; the fixed OFF counts, both perfts and FMA0 pass. CTest64/65 has only the four known forge_tests lines. All102 advertised-option contract cases pass; strict positive two-game and named-negative exit1 checks meet the user contract. These are identity/protocol prerequisites only: full ASan/UBSan CTest has only the four known functional failures and zero sanitizer findings; TSan requested tests/stress pass after the documented timeout replay. Windows execution remains pending. No live gate migration is authorized or performed by this report.
