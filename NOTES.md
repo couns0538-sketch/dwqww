@@ -22,3 +22,12 @@ IDEA_SOURCE: user round-two specification and this repository's existing Forge i
 B3 clarification accepted: stay on bundle v2, add malformed-file regression coverage, only patch a proven gap.
 V3 port explicitly deferred as a separate later job. B1 historical selector RED: 66 checks / 21 failed assertions
 from exact J5 selector bytes, preserved with source SHA. Candidate implementation in progress.
+
+Baseline all-five bench pins PASS: 312866 / 862329 / 3024920 / 12389307 / 34048354.
+Original perft helper sent unsupported `perft 5` and got no output; this was a harness error, not an engine failure.
+Correct invocation `go perft 5` returns 4865609. Both transcripts retained; corrected qualification_driver_v2.py.
+B1 real selector standalone GREEN 66/0 after historical RED 66/21. Complete candidate build and baseline CTest running.
+
+Baseline complete CTest: 54/55, only forge_tests with the four existing tactical FAIL diagnostics; SmpExactNodes
+passed in this run. B1 actual-port abort-tuple RED: 74 checks, one failure before the SmpV2-only completed-result
+retention guard. Selector source and actual worker path now corrected; final native build/tests still pending.

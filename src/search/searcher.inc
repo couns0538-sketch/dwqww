@@ -77,7 +77,7 @@ SearchInfo Searcher::search(Board board, const SearchLimits& limits, bool emit_i
     }
     // Per-helper results for SmpBestThread (each slot written by one helper,
     // read after join).
-    std::vector<SearchInfo> helper_results(options::smp_best_thread ? workers_.size() : 0);
+    std::vector<SearchInfo> helper_results(options::smp_best_thread || worker_limits.fb2.smp_v2 ? workers_.size() : 0);
     std::vector<std::thread> helpers;
     for (std::size_t i = 1; i < workers_.size(); ++i) {
         helpers.emplace_back([this, i, board, &worker_limits, &all, &helper_results]() {
@@ -99,7 +99,9 @@ SearchInfo Searcher::search(Board board, const SearchLimits& limits, bool emit_i
             result.nodes = 0;
             for (auto& worker : workers_) result.nodes += worker->nodes();
         }
-        if (options::smp_best_thread) select_best_thread(result, helper_results, emit_info);
+        // Select from the original main result: the older selector must not run first.
+        if (worker_limits.fb2.smp_v2) select_smp_v2_thread(result, helper_results, emit_info);
+        else if (options::smp_best_thread) select_best_thread(result, helper_results, emit_info);
     }
 #if FORGE_NNUE_LAZY_ACC
     for (const auto& worker : workers_) {
@@ -160,6 +162,26 @@ SearchInfo Searcher::search(Board board, const SearchLimits& limits, bool emit_i
     if (shared_.output_closed.load(std::memory_order_relaxed)) return;  // HardDeadline answered this go
     std::cout << "info depth " << result.depth << " seldepth " << std::max(result.seldepth, result.depth)
               << " score " << format_score(result.score) << " nodes " << result.nodes << " nps " << nps
+              << " hashfull " << shared_.tt.hashfull() << " time " << result.elapsed_ms << " pv";
+    for (const Move move : result.pv) std::cout << ' ' << Board::move_to_uci(move);
+    std::cout << std::endl;
+}
+
+// SmpV2 winner is chosen only after every helper has joined; no worker races these snapshots.
+[[gnu::cold]] void Searcher::select_smp_v2_thread(SearchInfo& result, const std::vector<SearchInfo>& helper_results,
+                                                bool emit_info) {
+    const auto selected = fb2::smp_select_result(result, helper_results);
+    const bool changed = selected.best_move != result.best_move || selected.score != result.score ||
+                         selected.depth != result.depth || selected.pv != result.pv;
+    result = selected;
+    if (!emit_info || !changed) return;
+    const std::uint64_t nps = result.elapsed_ms > 0 ? result.nodes * 1000U / result.elapsed_ms : 0;
+    const std::lock_guard<std::mutex> output_lock(uci_output_mutex());
+    if (shared_.output_closed.load(std::memory_order_relaxed)) return;
+    const int displayed = syzygy::root_display.load(std::memory_order_relaxed) != 0
+        ? syzygy::display_score(result.score) : result.score;
+    std::cout << "info depth " << result.depth << " seldepth " << std::max(result.seldepth, result.depth)
+              << " score " << format_score(displayed) << " nodes " << result.nodes << " nps " << nps
               << " hashfull " << shared_.tt.hashfull() << " time " << result.elapsed_ms << " pv";
     for (const Move move : result.pv) std::cout << ' ' << Board::move_to_uci(move);
     std::cout << std::endl;

@@ -2,6 +2,9 @@
 // IDEA_SOURCE: the user's proven-result invariant and Forge's own J5 implementation;
 // no algorithm, code, or tuned constants from another engine.
 #include "forge/search_types.hpp"
+#ifdef FORGE_SMP_V2_NATIVE_TESTS
+#include "forge/search.hpp"
+#endif
 #include "forge/syzygy.hpp"
 #include <iostream>
 #include <limits>
@@ -81,6 +84,38 @@ int main() {
     expect(main, {ordinary}, main, "empty restricted root ignored");
     auto restricted = main; restricted.restricted_root_empty = true;
     expect(restricted, {info(20, 1500, 1)}, restricted, "main empty root restriction is authoritative");
+#ifdef FORGE_SMP_V2_NATIVE_TESTS
+    fb2::requested.smp_v2 = true;
+    for (const auto bundle : {fb2::Bundle::Off, fb2::Bundle::B1, fb2::Bundle::B2, fb2::Bundle::B3, fb2::Bundle::B4}) {
+        fb2::apply_bundle(bundle);
+        check(fb2::requested.smp_v2, "preset preserves independent SmpV2 option");
+    }
+    const auto snapshot = fb2::effective(fb2::requested, 0);
+    fb2::requested.smp_v2 = false;
+    check(snapshot.smp_v2, "per-search snapshot survives next pending option update");
+    fb2::apply_bundle(fb2::Bundle::Off);
+    // Production Worker abort regression (fresh deterministic single-worker searches).
+    // Before the guard, nodes=1000 returns depth4/score30 with a different, partial
+    // PV from the completed depth4 PV. A selector must not treat that tuple as proof.
+    fb2::requested.smp_v2 = true;
+    SearchLimits capped; capped.nodes = 1000; capped.nodes_specified = true;
+    Searcher interrupted(16, 1);
+    const SearchInfo partial = interrupted.search(Board{}, capped);
+    SearchLimits fixed; fixed.depth = partial.depth;
+    Searcher completed(16, 1);
+    const SearchInfo exact = completed.search(Board{}, fixed);
+    check(partial.depth > 0 && partial.score == exact.score && partial.best_move == exact.best_move && partial.pv == exact.pv,
+          "SmpV2 abort retains the completed score/depth/PV tuple");
+    fb2::requested.smp_v2 = false;
+    Searcher original(16, 1);
+    const SearchInfo off = original.search(Board{}, capped);
+    check(off.depth == 4 && off.score == 30 && Board::move_to_uci(off.best_move) == "c2c4",
+          "OFF retains existing node1000 partial-PV behavior");
+    std::cout << "abort fixture: OFF depth=" << off.depth << " score=" << off.score
+              << " move=" << Board::move_to_uci(off.best_move) << "; ON depth=" << partial.depth
+              << " score=" << partial.score << " move=" << Board::move_to_uci(partial.best_move)
+              << "; completed move=" << Board::move_to_uci(exact.best_move) << '\n';
+#endif
     std::cout << "smp_v2 selector: checks=" << checks << " failures=" << failures << '\n';
     return failures == 0 ? 0 : 1;
 }

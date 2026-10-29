@@ -161,9 +161,13 @@ SearchInfo Worker::search(Board board, const SearchLimits& limits, bool emit_inf
     assert(root_effort_count_ <= root_effort_moves_.size());
     std::copy(root_candidates.begin(), root_candidates.end(), root_effort_moves_.begin());
     root_move_nodes_.fill(0);
+    // SmpV2 is inert for the main worker and uses only this search's frozen options.
+    const int smp_skew = fb2_.smp_v2 && !is_main() && mate_moves == 0 ? fb2::smp_depth_skew(id_) : 0;
+    const int smp_delta_multiplier = fb2_.smp_v2 && !is_main() ? fb2::smp_aspiration_multiplier(id_) : 1;
     for (int depth = 1; depth <= last_depth; ++depth) {
         root_depth_ = depth;
-        int delta = tune::AspirationDelta;
+        const int search_depth = std::min(depth + smp_skew, 64);
+        int delta = tune::AspirationDelta * smp_delta_multiplier;
         int alpha = -Infinite;
         int beta = Infinite;
         if (depth >= 4) {
@@ -176,14 +180,14 @@ SearchInfo Worker::search(Board board, const SearchLimits& limits, bool emit_inf
             // UCI CorrMargins / CorrExt / CuckooRep pick the search instance (src/search.cpp, head of
             // alphabeta.inc); with all three off it is the AL1 s198 search.
             switch ((options::corr_margins != 0 ? 1 : 0) | (options::corr_ext != 0 ? 2 : 0) | (options::cuckoo_rep ? 4 : 0)) {
-                case 0: iteration_score = search(board, ss, depth, alpha, beta, false); break;
-                case 1: iteration_score = search_corr_margins(board, ss, depth, alpha, beta, false); break;
-                case 2: iteration_score = search_corr_ext(board, ss, depth, alpha, beta, false); break;
-                case 3: iteration_score = search_cm_ce(board, ss, depth, alpha, beta, false); break;
-                case 4: iteration_score = search_cuckoo(board, ss, depth, alpha, beta, false); break;
-                case 5: iteration_score = search_cm_cu(board, ss, depth, alpha, beta, false); break;
-                case 6: iteration_score = search_ce_cu(board, ss, depth, alpha, beta, false); break;
-                default: iteration_score = search_cm_ce_cu(board, ss, depth, alpha, beta, false); break;
+                case 0: iteration_score = search(board, ss, search_depth, alpha, beta, false); break;
+                case 1: iteration_score = search_corr_margins(board, ss, search_depth, alpha, beta, false); break;
+                case 2: iteration_score = search_corr_ext(board, ss, search_depth, alpha, beta, false); break;
+                case 3: iteration_score = search_cm_ce(board, ss, search_depth, alpha, beta, false); break;
+                case 4: iteration_score = search_cuckoo(board, ss, search_depth, alpha, beta, false); break;
+                case 5: iteration_score = search_cm_cu(board, ss, search_depth, alpha, beta, false); break;
+                case 6: iteration_score = search_ce_cu(board, ss, search_depth, alpha, beta, false); break;
+                default: iteration_score = search_cm_ce_cu(board, ss, search_depth, alpha, beta, false); break;
             }
             if (aborted_) break;
             if (iteration_score <= alpha) {
@@ -200,7 +204,10 @@ SearchInfo Worker::search(Board board, const SearchLimits& limits, bool emit_inf
             // A partially searched iteration that already raised alpha at the
             // root has found a move at least as good as the previous best
             // (within the depth limit: SmpHelpersPastDepth iterations past it do not count).
-            if (depth <= max_depth && ss->pv_length > 0 && !(result.pv.size() > 0 && result.pv[0] == ss->pv[0])) {
+            // SmpV2 selects proven scores across workers, so a returned result must retain
+            // its completed score/depth/PV tuple. The old path may attach a partial new PV
+            // to the previous score; keep it unchanged only when SmpV2 is off.
+            if (!fb2_.smp_v2 && depth <= max_depth && ss->pv_length > 0 && !(result.pv.size() > 0 && result.pv[0] == ss->pv[0])) {
                 result.best_move = ss->pv[0];
                 result.pv.assign(ss->pv.begin(), ss->pv.begin() + ss->pv_length);
                 result.ponder_move = result.pv.size() > 1 ? result.pv[1] : Move::none();
@@ -216,7 +223,7 @@ SearchInfo Worker::search(Board board, const SearchLimits& limits, bool emit_inf
         // SmpHelpersPastDepth: past the limit only the aspiration window follows the score.
         if (depth > max_depth) continue;
         result.score = score;
-        result.depth = depth;
+        result.depth = search_depth;
         result.seldepth = std::max(seldepth_, depth);
         result.pv.assign(ss->pv.begin(), ss->pv.begin() + ss->pv_length);
         if (!result.pv.empty()) result.best_move = result.pv.front();

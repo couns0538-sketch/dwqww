@@ -204,6 +204,8 @@ private:
     // (ranking: better_thread_result below).
     void select_best_thread(SearchInfo& result, const std::vector<SearchInfo>& helper_results, bool emit_info);
 
+    void select_smp_v2_thread(SearchInfo& result, const std::vector<SearchInfo>& helper_results, bool emit_info);
+
     SharedSearchState shared_;
     std::vector<std::unique_ptr<Worker>> workers_;
 };

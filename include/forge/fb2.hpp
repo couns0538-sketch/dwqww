@@ -22,6 +22,9 @@
 
 #include <array>
 #include <cstdint>
+#include <vector>
+
+namespace forge { struct SearchInfo; }
 
 namespace forge::fb2 {
 
@@ -29,6 +32,7 @@ struct Options {
     bool corr_hist_v2 = false;
     bool lmr_table_v2 = false;
     bool tt_prune_v2 = false;
+    bool smp_v2 = false; // B1: helper diversification and protected completed-result selection
     [[nodiscard]] bool operator==(const Options&) const = default;
 };
 
@@ -40,6 +44,15 @@ extern Options requested;
     if (corr_hist_plus != 0) options.corr_hist_v2 = false;
     return options;
 }
+
+// B1: SmpV2 diversification/selection acts with multiple workers; its completed-tuple
+// abort policy applies to every worker while enabled. A helper replaces a proven main/current
+// result only at a strictly greater depth and with an equal-or-better proven score.
+// Valid mate scores (either sign) and positive TB scores while tables are loaded
+// are protected; SearchInfo has no independent proof tag. Sentinels are rejected.
+[[nodiscard]] int smp_depth_skew(int id);
+[[nodiscard]] int smp_aspiration_multiplier(int id);
+[[nodiscard]] SearchInfo smp_select_result(const SearchInfo& main, const std::vector<SearchInfo>& helpers);
 
 // LmrTableV2: reduction in plies for one LMR decision (before the shared tt_pv / improving / cut-node / check terms).
 [[nodiscard]] int lmr_v2_reduction(bool quiet, int depth, int moves, int history, bool improving, bool cut_node,
