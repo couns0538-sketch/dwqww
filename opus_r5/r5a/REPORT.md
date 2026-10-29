@@ -1,6 +1,6 @@
 # Forge Opus round 5A: gate-ready singles (CorrMargins, CorrExt, CorrHistPlus variants, NetScale) — IN PROGRESS
 
-**Status:** M1, M2 done; M3 smoke 1/8 PASS (corrmargins1), paused for the M5 build check; M4 written; M5 verify running. Last push 02:32 Vienna.
+**Status:** M1, M2, M5 done; M3 smoke 1/8 PASS, corrext1 running; M4 written. Last push 02:38 Vienna.
 
 Branch `opus-r5a-singles` = `origin/forge-bundle-int` b7c17722 + the commits listed per milestone. Job started 01:52 Vienna
 (2026-10-29), hard stop 04:52 Vienna. No Elo claims: node counts are not strength; gates decide. Machine exclusive: no
@@ -112,7 +112,9 @@ What changed (engine, all OFF-identical):
   CorrHistV2 is on, and CorrHistV2 while CorrHistPlus is nonzero; no code change, now covered by tests for 1/2/4/6 in
   both orders (value unchanged, visible in the echo).
 - `tests/r5a_options_tests.cpp` (CMake target `forge_r5a_options_tests`, test `forge_r5a_options_tests <forge>`):
-  30 library checks (part A) + 14 UCI transcript checks (part B). Transcripts are left in the test's working dir.
+  35 library checks (part A) + 14 UCI transcript checks (part B) at M2 (49; M5 adds 7 + 2, see M5). Transcripts are
+  left in the test's working dir. (An earlier push of this report said 30 + 14 = 44; the count was wrong, every
+  check passed either way.)
 
 Evidence:
 - M2 exe `forge_r5a_m2_0a01ec53.exe` sha256 `fda298e6df180a067c323d0bf68434e365cd2eef55617e671c57b4dea700738a`
@@ -120,7 +122,7 @@ Evidence:
   re-run on it is identical row for row (`logs/m1_bench_m2_0a01ec53.log`), so the echo changes no search.
 - CMake (cmake_build.sh flags, Release, JOBS=3): all 126 targets build; 62 compiler warnings, all in files this job
   did not touch (alphabeta.inc 48, qsearch.inc 12, tt_lockless.inc 2, -Wconversion); none in r5a files or uci.cpp.
-- `forge_r5a_options_tests`: **ALL OK** (44/44).
+- `forge_r5a_options_tests`: **ALL OK** (49/49 at M2).
 - CTest (`tools/run_ctest_3cpu.cmd`: BelowNormal, affinity 0x700 = 3 logical CPUs, children inherit both): **55/55 passed**,
   every registered test except `forge_tests` (two of its checks search with 4 threads, above the job's 3-thread cap; CI runs it
   with the known-failure check). The SmpExactNodes flake did not occur on 3 CPUs. Log `logs/ctest_m2_dbab5a41.log`.
@@ -168,12 +170,57 @@ pins d11/d13/d16, cand_on = the M1 ON benches), expected echo line, smoke verdic
 sources. NetScale: one value only (99, S41). A fastchess template with the 3000-game cap (`-rounds 1500 -games 2`)
 is at the end of GATE_SPECS.md. Ranking and reasons: "What to gate first" below.
 
+## M5 SPSA-ready hooks (02:20-02:38 Vienna) — DONE
+
+What changed (all OFF-identical; both act only while their option is on):
+- `CorrMarginsScale` (new tunable, `src/search/tune.inc`, spin 0..400, default 100): every CorrMargins weight
+  (CorrRfpPct, CorrFutilityPct, CorrNullMovePct, CorrLmrPct) is applied at this percent
+  (`include/forge/corr_margins.hpp`: `scaled_term`, 64-bit products; c * w * 100 / 10000 == c * w / 100 for
+  c, w >= 0, so 100 is the O5 formula bit for bit; the LMR product r * c * pct * scale can pass 2^31 at the tunable
+  limits, hence 64 bits).
+- `CorrExtTripleCorr` (existing O8 tunable, default 48 = the constant, range 0..256): the |correction| threshold from
+  which CorrExt may triple-extend; now advertised.
+- `include/forge/search_tune.hpp` `R5aAdvertisedParameters` = the two names; `src/uci.cpp` lists them after the 20
+  R3-4 constants with the same `print_tunable` format (current value as default, re-advertised after a setoption);
+  FORGE_EXPOSE_TUNABLES builds skip them in the "other tunables" loop so nothing is listed twice.
+- `tools/spsa/test_opus_spsa.py` (R3-4 test `opus_spsa_engine_options`): it asserted "exactly the 20" advertised
+  tunables and failed on the first M5 CTest run (`logs/ctest_m5_9ad9158d.log`); it now expects the 20 plus the names
+  parsed from `R5aAdvertisedParameters` (5 lines). The R3-4 tuner config (`opus_spsa_forge20.json`) is unchanged.
+- `tests/r5a_options_tests.cpp`: +7 library checks (scale 100 == O5 formulas for |correction| 0..400 at several
+  depths and r -2..30; scale 0 == AL1 margins; scale 200 doubles the term exactly; no overflow at the limits) and
+  +2 UCI checks (both spins listed once after AspirationDelta with `default 100 min 0 max 400` /
+  `default 48 min 0 max 256`; set values echoed by M2's active line). 58 checks in all.
+
+Evidence (exe `forge_r5a_m5_9ad9158d.exe`, sha256 `ae6f891e5766f5da3ea005ceca6d64e030b0215f58f9404fec5233caf6bada62`,
+0 warnings, FMA 0; built from 9ad9158d, engine sources identical to the branch head):
+- `uci_check --full` **ALL OK** (`logs/identity_m5_9ad9158d.log`).
+- Benches d11/d13/d16 (`logs/m5_bench_9ad9158d.log`, R3 `bench_opts.py`, Threads 1 Hash 16):
+
+| setoption list | d11 | d13 | d16 | expected |
+|---|---|---|---|---|
+| CorrMargins=1 | 343365 | 858019 | 2522546 | = M1 ON pins: yes |
+| CorrMargins=1 CorrMarginsScale=100 | 343365 | 858019 | 2522546 | = M1 ON pins: yes |
+| CorrMargins=1 CorrMarginsScale=50 | 302273 | 741646 | 2518860 | moves: yes |
+| CorrMargins=1 CorrMarginsScale=150 | 284540 | 617635 | 3116206 | moves: yes |
+| CorrMarginsScale=150 (CorrMargins off) | 312866 | 862329 | 3024920 | = OFF pins: yes |
+| CorrMarginsScale=0 (CorrMargins off) | 312866 | 862329 | 3024920 | = OFF pins: yes |
+| CorrExt=1 | 312961 | 838790 | 2891507 | = M1 ON pins: yes |
+| CorrExt=1 CorrExtTripleCorr=48 | 312961 | 838790 | 2891507 | = M1 ON pins: yes |
+| CorrExt=1 CorrExtTripleCorr=32 | 304003 | 871188 | 2785496 | moves: yes |
+| CorrExtTripleCorr=32 (CorrExt off) | 312866 | 862329 | 3024920 | = OFF pins: yes |
+
+- CMake incremental build OK, 0 warnings in the touched files; CTest on the 3-CPU mask after the SPSA test update:
+  **55/55 passed** (`logs/ctest_m5_7a93bd55_rerun.log`; forge_tests excluded as in M2, CI runs it).
+- Tuning-gate use: `option.CorrMargins=1 option.CorrMarginsScale=<x>` (SPSA range e.g. 25..200) and
+  `option.CorrExt=1 option.CorrExtTripleCorr=<y>` (e.g. 16..96); fastchess -strict accepts both because they are
+  advertised.
+
 ## Milestones
 - M1 per-option audit + ON benches: DONE (02:01 Vienna, commit aeb6f093)
 - M2 effective-settings echo + conflict guards: DONE (02:15 Vienna)
 - M3 smoke stability: not started
 - M4 gate pack: written (02:23 Vienna; smoke column refreshes as configs finish)
-- M5 SPSA hooks (optional): not started
+- M5 SPSA hooks (optional): DONE (02:38 Vienna)
 
 ## What to gate first (ranked; no Elo claims, gates decide; details in GATE_SPECS.md)
 1. **R5A-1 CorrHistPlus=4** at 10+0.1: best prior (the related NonPawnCorr+PawnHist pack had a positive LLR in all 4

@@ -644,7 +644,11 @@ class EngineOptionsTest(unittest.TestCase):
         listed = sorted(n for n in options if n in tunables)
         exposed = len(listed) == len(tunables)
         if not exposed:
-            self.assertEqual(listed, sorted(p.name for p in params))
+            # R5A (opus_r5/r5a M5): the constants of search_tune.hpp R5aAdvertisedParameters are advertised after the 20.
+            with open(os.path.join(REPO, "include", "forge", "search_tune.hpp"), "rb") as f:
+                r5a = re.search(r"R5aAdvertisedParameters\{([^}]*)\}", f.read().decode("utf-8"))
+            extra = re.findall(r'"(\w+)"', r5a.group(1)) if r5a else []
+            self.assertEqual(listed, sorted([p.name for p in params] + extra))
         lines = uci.uci_session(engine, ["uci"])
         names = [m.group(1) for m in (re.match(r"^option name (.+?) type ", l) for l in lines) if m]
         self.assertEqual(len(names), len(set(names)), "an option is listed twice")
