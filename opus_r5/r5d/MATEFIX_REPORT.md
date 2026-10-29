@@ -174,6 +174,7 @@ Fix tree checks (PC, BelowNormal, <= 3 threads):
 | CMake (Release, all targets) | builds; 62 warning lines, all `-Wconversion` / `-Wclass-memaccess` in unchanged lines (TT store calls in `alphabeta.inc` / `qsearch.inc`, `tt_lockless.inc`) | `logs/cmake_bkm_warnings.txt` |
 | full CTest on a 3-CPU mask (forge_tests apart) | **63 / 63 passed** | `logs/ctest_bkm.log` |
 | forge_tests | only the 4 known FAIL lines: KNOWN-FAILURE CHECK PASS | `logs/ctest_forge_tests_bkm.log`, `logs/chain_tools.out` |
+| rebuild from the committed tree (LF `git archive HEAD src include`, 11:01 Vienna) `forge_r5d_final.exe` | sha256 747a2f77..., FMA 0, identity **ALL OK**; differs from `forge_r5d_bkm.exe` in 4 bytes (offsets 137, 138, 217, 218: PE timestamp and checksum) | `logs/build_final.log`, `logs/identity_final.log` |
 
 ## 4. Proof
 
