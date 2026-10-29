@@ -1,6 +1,6 @@
 # Forge Opus round 5A: gate-ready singles (CorrMargins, CorrExt, CorrHistPlus variants, NetScale) — IN PROGRESS
 
-**Status:** M1 done; M2 in progress (code written, build + tests next). Last push 02:08 Vienna.
+**Status:** M1 done; M2 code + tests done, CTest running; M3 smoke tooling written. Last push 02:13 Vienna.
 
 Branch `opus-r5a-singles` = `origin/forge-bundle-int` b7c17722 + the commits listed per milestone. Job started 01:52 Vienna
 (2026-10-29), hard stop 04:52 Vienna. No Elo claims: node counts are not strength; gates decide. Machine exclusive: no
@@ -90,6 +90,38 @@ d11+ differs). Node counts are not strength.
 NetScale value for M4: **99**. S41 (`opus_round1/sol_S41/EVALSCALE_20261027.md`) measured the lock net s198 +1.2% wider
 than h256_e12, the scale the search margins were tuned on; 99 maps it back (R3-3 proposal R3-11). 97/101/103 have no
 such measurement behind them (101/103 widen an already wide net).
+
+## M2 effective-settings echo + conflict guards (02:02-02:20 Vienna)
+
+What changed (engine, all OFF-identical):
+- `include/forge/r5a_options.hpp` + `src/search/r5a_options.inc` (included last in `src/search.cpp`, so no new
+  .cpp: the 8-file PC/QA build recipe is unchanged): `forge::r5a::active_search_options()` lists every search option
+  that is not at its default as `Name=value` in UCI spelling and `uci` listing order (forge::options, HistRework,
+  NetScale, CorrHistV2/LmrTableV2/TtPruneV2, UseNNUE), then every tunable that differs from its compiled-in value
+  (`tune_defaults()`, captured during static initialisation, before main). "" at the defaults.
+  `combination_warning(bundle)`: the CorrMargins + TtPruneV2 warning text, "" otherwise.
+- `src/uci.cpp`: every `go` (not `go perft`) prints one `info string active: <list>` line when the list is not
+  empty, before the search starts (the UCI layer appends NNUEFile, SyzygyPath and, in switch builds, NnueInt16 /
+  NnueLazyAcc / TtChildPrefetch). At the defaults nothing is printed, so OFF logs stay byte-identical.
+  The warning `info string warning: CorrMargins=1 with TtPruneV2=true (BundlePreset Bx): both move the
+  reverse-futility and futility margins of the CorrMargins search instance; never gated together (allowed, not
+  refused)` is printed when a setoption of CorrMargins, TtPruneV2 or BundlePreset leaves both on (preset name
+  only while TtPruneV2 comes from the preset). The BundlePreset branch now releases the output lock before the
+  warning (std::mutex is not recursive); its own line is unchanged. Unknown-option handling is untouched.
+- CorrHistPlus vs CorrHistV2: the existing guard already refuses every nonzero CorrHistPlus (so bits 2 and 4) while
+  CorrHistV2 is on, and CorrHistV2 while CorrHistPlus is nonzero; no code change, now covered by tests for 1/2/4/6 in
+  both orders (value unchanged, visible in the echo).
+- `tests/r5a_options_tests.cpp` (CMake target `forge_r5a_options_tests`, test `forge_r5a_options_tests <forge>`):
+  30 library checks (part A) + 14 UCI transcript checks (part B). Transcripts are left in the test's working dir.
+
+Evidence:
+- M2 exe `forge_r5a_m2_0a01ec53.exe` sha256 `fda298e6df180a067c323d0bf68434e365cd2eef55617e671c57b4dea700738a`
+  (`build_r5a.sh`, 0 warnings, FMA 0): `uci_check --full` **ALL OK** (`logs/identity_m2_0a01ec53.log`); the M1 table
+  re-run on it is identical row for row (`logs/m1_bench_m2_0a01ec53.log`), so the echo changes no search.
+- CMake (cmake_build.sh flags, Release, JOBS=3): all 126 targets build; 62 compiler warnings, all in files this job
+  did not touch (alphabeta.inc 48, qsearch.inc 12, tt_lockless.inc 2, -Wconversion); none in r5a files or uci.cpp.
+- `forge_r5a_options_tests`: **ALL OK** (44/44).
+- CTest: see below (run on a 3-CPU affinity mask, BelowNormal).
 
 ## Milestones
 - M1 per-option audit + ON benches: DONE (02:01 Vienna, commit aeb6f093)
