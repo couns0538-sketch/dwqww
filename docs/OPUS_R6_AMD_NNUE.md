@@ -64,5 +64,31 @@ Stress (grad_out = randn, 4096 x 32 x 1000 x 256, relative error vs a float64 ru
 7.9e-07 / 1.1e-07 / 1.3e-07, Triton fp32 5.6e-07 / 2.1e-07 / 6.4e-07 (fwd / grad_w / grad_b) -> PASS (< 1e-5).
 Log: `tools/nnue_pytorch_amd/logs/j2_test_run1.log`. Whole test: 31 s on the shared GPU.
 
+## J3: speed (interim, 13:45 PC clock; GPU shared with the live DirectML trainer)
+### FT layer alone (`tests/bench_amd_triton_ft.py`, synthetic batches, 75% of slots active, median of 10)
+| shape | torch fwd | torch fwd+bwd | Triton fwd | Triton fwd+bwd | speedup fwd / fwd+bwd |
+|---|---|---|---|---|---|
+| B 4096, 32 active, 73728 inputs, L1 256 (baseline config) | 1.65 ms | 7.12 ms | 0.32 ms | 1.54 ms | 5.1x / 4.6x |
+| B 16384, 32 active, 73728 inputs, L1 1024 | 21.35 ms | 58.45 ms | 8.08 ms | 26.46 ms | 2.6x / 2.2x |
+| B 4096, 288 active, 138096 inputs, L1 1024 (full upstream features) | 37.70 ms | 104.22 ms | 23.99 ms | 56.72 ms | 1.6x / 1.8x |
+
+### Short training runs (`bench/bench_train.py`; positions/s per epoch from epoch-end timestamps, median of epochs 2..N)
+Same command as the 210k/s baseline: `train.py .pgo/small.binpack --features K32H3^ --l1 256 --accelerator cuda
+--batch-size 4096 --epoch-size 204800`, here `--max-epochs 8|10 --threads 2 --num-workers 1`, BelowNormal.
+
+| run | FT backend | torch.compile | median pos/s | per-epoch range |
+|---|---|---|---|---|
+| base_torch_l256 | torch | off (`TORCHDYNAMO_DISABLE=1`, as the baseline) | 165,044 | 143k-205k |
+| torch_compile_l256 | torch | on (inductor, 1 compile thread) | 239,377 | 234k-247k |
+| tri_l256 | Triton | off | 263,796 | 182k-269k |
+| tri_compile_l256 | Triton | on | **335,637** | 321k-341k |
+
+vs the 210k/s reference of SETUP_REPORT: 1.6x; vs the same-session torch run: 2.0x. torch.compile works now
+because Triton works (it failed before with `TritonMissing` / the `hip_utils.c` build error).
+
+Step breakdown, Triton FT without compile (`bench/profile_train.py`, synced timers, 240 steps, 21.7 ms/step with
+the sync cost): forward+loss 6.6 ms, backward 5.4 ms, **RangerLite step 5.25 ms** (CuPy-only fused kernel missing ->
+Python path), loader/H2D/Python 4.4 ms. Next: Triton port of the fused RangerLite kernels.
+
 ## Next
-J3 benchmark (short training runs, torch vs Triton, same settings as the 210k/s baseline), then J4.
+RangerLite Triton kernels + test, re-run J3, then J4 (loader, end-of-run crash).
