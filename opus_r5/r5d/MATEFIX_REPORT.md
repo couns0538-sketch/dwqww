@@ -281,3 +281,25 @@ misses, 5 repeats = 30 runs). Every score must be a real mate no shorter than ma
 - BKM tree: **PASS**, 230/230 runs, and every fresh run exactly mate in 3 (200/200) (`logs/matefix_tests_bkm.log`).
 - `tests/tt_mate_tb_tests.cpp`: its Threads block reads `FORGE_TT_MATE_THREADS` (default 2) and `FORGE_TT_MATE_SMPV2`
   (default off) for the proof loops; default output and checks unchanged.
+
+## 6. How to re-run (Git Bash, from the worktree; MSYS2 ucrt64 on PATH; the PC venv Python)
+
+```
+# engine (box flags) + lock identity
+bash opus_r5/r5d/tools/build_r5d.sh "$PWD" F:/opus_scratch/r5/r5d/exe/forge_r5d_bkm.exe
+python -I -B <lock archive>/2_build/uci_check.py F:/opus_scratch/r5/r5d/exe/forge_r5d_bkm.exe --full
+# repro harness against any tree (one g++; see the header of tools/r5d_mate_repro.cpp for the options)
+g++ -std=c++20 -O2 -DNDEBUG -DFORGE_NNUE_HIDDEN=256 -ffp-contract=off -fno-fast-math -march=x86-64-v3 -mtune=znver5 \
+    -pthread -Iinclude opus_r5/r5d/tools/r5d_mate_repro.cpp src/{bitboard,board,book,datagen,eval,eval_params,nnue,search}.cpp \
+    -static -o repro.exe
+./repro.exe 1000 2 0 14            # runs threads smpv2 depth -> "failures N (x%), exact E"
+# proof loops (3-CPU mask) and the report tables
+python -I -B opus_r5/r5d/tools/run_pinned.py --mask 0x700 -- opus_r5/r5d/tools/r5d_proof.py --out <dir> \
+    --repro-fix <fixed repro.exe> --repro-base <base repro.exe> --tt-fix <fixed forge_tt_mate_tb_tests.exe> \
+    --tt-base <base forge_tt_mate_tb_tests.exe> --prefill opus_r5/r5d/diag/prefill40.fen --reference tests/syzygy_reference.tsv
+python -I -B opus_r5/r5d/tools/proof_table.py <dir>/proof.tsv
+# end to end over UCI, and the Threads 2 smoke
+python -I -B opus_r5/r5d/tools/run_pinned.py --mask 0x700 -- opus_r5/r5d/tools/uci_krk_loop.py <exe> --runs 1000
+python -I -B opus_r5/r5d/tools/smoke_matefix.py <fixed exe> --exe-off <base exe> --name x --out <dir> --expect-echo none \
+    --games 200 --tc 5+0.05 --concurrency 1 --threads 2
+```
