@@ -1,6 +1,6 @@
 # Forge Opus round 5A: gate-ready singles (CorrMargins, CorrExt, CorrHistPlus variants, NetScale) — IN PROGRESS
 
-**Status:** M1, M2, M5 done (CI green); M3 smoke 4/8 PASS (CorrMargins, CorrExt, CorrHistPlus=2, =4), CorrHistPlus=6 running; M4 written + validated (5-depth pins). Last push 03:27 Vienna.
+**Status:** M1, M2, M5 done (CI green); M3 smoke 4/8 PASS, CorrHistPlus=6 at 160/200 (0 failures); M4 written + validated. Last push 03:37 Vienna.
 
 Branch `opus-r5a-singles` = `origin/forge-bundle-int` b7c17722 + the commits listed per milestone. Job started 01:52 Vienna
 (2026-10-29), hard stop 04:52 Vienna. No Elo claims: node counts are not strength; gates decide. Machine exclusive: no
@@ -294,7 +294,6 @@ Every other push of this branch is `[skip ci]` (WIP, docs, smoke evidence); the 
   with the known-failure check (M2 and M5 runs green, CI section).
 - No full build / CTest of the R5A `#if` blocks with the build switches (only syntax-only compiles, M5 pause checks);
   CI's `opus-r3-switches` workflow runs on `forge-bundle-*` branches only, i.e. after a merge into forge-bundle-int.
-- ON pins only at d11/d13/d16 (what M1 asks); no d20/d22 ON pins for the gate entries.
 - No NPS measurement of the echo or of the ON options (no speed claims; the echo is UCI-thread code outside the
   search, one string build per `go`).
 - The smoke ran on the M2 exe; the M5 head exe has the same OFF and ON trees (full M1 table identical) but was not
