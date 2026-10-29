@@ -320,6 +320,20 @@ copied `ckpt.pt` (stop reason cleared) to `F:\opus_scratch\fable\fb2\train_j1b\`
 directory's `ckpt.pt`/`status.json`; the old driver then saw "run finished" and exited by itself (no process was
 killed). The training continues in `train_j1b` (checkpoints 10+ there; checkpoints 1-9 and the nets stay in `train_j1`).
 
+### Hand-over at 23:40 PST (the user's usage budget ended the session)
+- The training keeps running on the PC by itself in `F:\opus_scratch\fable\fb2\train_j1b\` (driver `fable_nnue_chunks.py`,
+  chunk 1 of the resumed run started 22:42; the cosine horizon of 93,000 steps is reached at about 02:30 PST, the
+  driver then writes the final checkpoint and `status.json` with `stop_reason: horizon` and exits; a target or
+  plateau stop can come earlier). Best net so far: `train_j1b/best.fnn3` = checkpoint 10 (exact b0.6 0.014851 vs
+  AL1 0.014417). To stop it earlier: create `train_j1b/pause.flag`. Every checkpoint is in `status.json`
+  (`tools/nnue/fable_nnue_ckpt_table.py F:/opus_scratch/fable/fb2/train_j1b` prints the table).
+- When it has stopped: `bash F:/opus_scratch/fable/fb2/j1/finish_chain.sh F:/opus_scratch/fable/fb2/train_j1b/best.fnn3 final`
+  repeats NPS vs AL1, the 200 sanity games and the full-subset score with the final net (about 35 minutes, one
+  thread; the exe already exists). The gate rule stands: no gate before the exact b0.6 is below 0.014417.
+- The J7 60-minute follow-up (second layer vs baseline, `F:\opus_scratch\fable\fb2\j7\run_l2_60\` and `run_base_60\`,
+  15-minute float checkpoints in their `status.json`) also finishes by itself at about 01:15 PST; it is extra
+  evidence for the v4 recommendation and not part of the acceptance.
+
 ### J1 state at the end of the session
 The 240-minute chunk 1 ended at step 41,236 (337.8M positions, 20:46 PST) just before checkpoint 8 was due; the
 paused net `net.fnn3` (copy `fable_fb2/j1/logs/net_step41236` score/parity logs) scores **exact b0.6 0.015054** /
