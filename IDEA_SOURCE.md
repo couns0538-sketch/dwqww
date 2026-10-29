@@ -23,3 +23,6 @@ Status: UNPROVEN. No Elo/strength claim. Only games (1000-game SPRT run by QA, n
 - Engine NNUE reports that the e12 net was trained with train_resid_v2.py (not verified here by QA).
 - h256_e12 was LOCKED 2026-10-24 09:46 Vienna by crew vote 8-0 (Couns delegated). See /workspace/forge-hashes/LOCK_CHECK_h256_e12.md.
 - 2026-10-24 10:05 Vienna (QA): git log --follow for tools/nnue/train_nnue.py and tools/nnue/train_resid_v2.py in the box clone of couns0538-sketch/dwqww (/workspace/forge-sol-teacher/repo) shows no history, and neither file is tracked. So the repo MIT LICENSE does not cover them for now, and their licence is unknown. This matters only if the trainer is ever published; the weights are unaffected. A remote fetch was not re-run this time.
+
+## Astra R2 B1 — protected SmpV2 selection
+IDEA_SOURCE: user-requested proven-result preservation; original Forge FB2-J5 (`bf6839e9e65108db76f028532dc15f9587a41fe7`) helper diversification, adapted to the bundle snapshot. No code or tuned constants copied from another engine.

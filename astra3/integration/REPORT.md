@@ -13,3 +13,7 @@ Twenty-minute final review is required after implementation; record real start/e
 Next: merge B1 and qualify. Each checkpoint updates this report and is pushed within ten minutes. Round3 prompt SHA256 4f97ffdeefc0f38adad4693296b5a1f100a8d79db43c172eb358417e78555c97.
 
 IDEA_SOURCE: user/Engine QA round3 integration and CR findings; same-repository Forge sources.
+
+## M1: merge B1
+
+2026-10-29 00:15:41 PDT: `git merge --no-ff --no-commit 23e940b659848f0b1611582cdd70e11b362c80f8`, clean merge. Preserved reviewed main partial-PV semantics, helper capped selection and both TB signs. WIP: full build, pins and CTest pending. No conflict resolution or new engine behavior.

@@ -454,6 +454,7 @@ int main() {
             if (forge::nnue::available()) std::cout << "option name NnueInt16 type check default false\n";
 #endif
             // Search options added after AL1 s198; all default OFF (see forge/search_options.hpp).
+            std::cout << "option name SmpV2 type check default false\n";
             std::cout << "option name SmpExactNodes type check default false\n"
                          "option name SmpBestThread type check default false\n"
                          "option name LocklessTT type check default false\n"
@@ -740,6 +741,13 @@ int main() {
                     if (name == "CorrHistV2") forge::fb2::requested.corr_hist_v2 = value;
                     else if (name == "LmrTableV2") forge::fb2::requested.lmr_table_v2 = value;
                     else forge::fb2::requested.tt_prune_v2 = value;
+                }
+            } else if (name == "SmpV2") {
+                if (value_text == "true" || value_text == "false") {
+                    forge::fb2::requested.smp_v2 = value_text == "true";
+                } else {
+                    const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex());
+                    std::cout << "info string invalid value for option SmpV2" << std::endl;
                 }
             } else if (name == "BundlePreset") {
                 static constexpr std::array<std::string_view, 5> Names{"OFF", "B1", "B2", "B3", "B4"};

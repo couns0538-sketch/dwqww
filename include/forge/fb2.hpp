@@ -1,11 +1,12 @@
 #pragma once
 
 // FB2-J3 search options ported onto the R3 stack (forge-bundle-int; see BUNDLES.md).
-// Three UCI check options, all default false; with every one false the search is the AL1 s198 search:
+// UCI check options, all default false; with every one false the search is the AL1 s198 search:
 //   CorrHistV2  continuation correction history (opponent's last move and our move before it)
 //   LmrTableV2  statistically fitted LMR reduction with a continuous history term
 //   TtPruneV2   TT-move pruning guards, cut-node IIR on a failed-low TT move, opponent-worsening RFP,
 //               improving-aware futility / history margins
+//   SmpV2        J5 helper diversification with protected completed-result selection (Astra R2 B1)
 // FB2-J3 SingularV2 is not ported (it overlaps O8 CorrExt and is in no bundle); FB2-J4 TimeManV2 is not ported
 // (crew vote: gated separately).
 //
@@ -22,6 +23,9 @@
 
 #include <array>
 #include <cstdint>
+#include <vector>
+
+namespace forge { struct SearchInfo; }
 
 namespace forge::fb2 {
 
@@ -29,6 +33,7 @@ struct Options {
     bool corr_hist_v2 = false;
     bool lmr_table_v2 = false;
     bool tt_prune_v2 = false;
+    bool smp_v2 = false; // B1: helper diversification and protected completed-result selection
     [[nodiscard]] bool operator==(const Options&) const = default;
 };
 
@@ -40,6 +45,18 @@ extern Options requested;
     if (corr_hist_plus != 0) options.corr_hist_v2 = false;
     return options;
 }
+
+// B1: SmpV2 acts with multiple workers. Only helpers retain their completed tuple
+// on abort; the main worker keeps its original partial-PV policy. A helper replaces a proven main/current
+// result only at a strictly greater depth and with an equal-or-better proven score.
+// Valid mate and TB scores (either sign, TB only while tables are loaded)
+// are protected; SearchInfo has no independent proof tag. Sentinels are rejected.
+[[nodiscard]] int smp_depth_skew(int id);
+[[nodiscard]] int smp_aspiration_multiplier(int id);
+// Depth ranking is capped at the requested go depth / mate-depth limit. A skewed
+// helper at N+1 must not displace a completed main result at requested depth N.
+[[nodiscard]] SearchInfo smp_select_result(const SearchInfo& main, const std::vector<SearchInfo>& helpers,
+                                         int depth_cap = 64);
 
 // LmrTableV2: reduction in plies for one LMR decision (before the shared tt_pv / improving / cut-node / check terms).
 [[nodiscard]] int lmr_v2_reduction(bool quiet, int depth, int moves, int history, bool improving, bool cut_node,
