@@ -213,6 +213,12 @@ def build_model(cfg, torch):
             self.b1 = nn.Parameter(torch.zeros(H))
             self.w2 = nn.Parameter(torch.randn(ob, 2 * H, generator=g) * (0.5 / np.sqrt(H)))
             self.b2 = nn.Parameter(torch.zeros(ob))
+            # FB2-J7 v4 prototypes (trainer only, no v3 file): pairwise us*them output term and a second layer
+            self.w3 = nn.Parameter(torch.zeros(ob, H)) if cfg.get("pairwise") else None
+            L2 = int(cfg.get("l2", 0) or 0)
+            self.l2w = nn.Parameter(torch.randn(L2, 2 * H, generator=g) * (1.0 / np.sqrt(2 * H))) if L2 else None
+            self.l2b = nn.Parameter(torch.zeros(L2)) if L2 else None
+            self.l2o = nn.Parameter(torch.randn(ob, L2, generator=g) * (0.5 / np.sqrt(L2))) if L2 else None
 
         def merged_w1(self):
             if self.wf is None:
@@ -242,7 +248,14 @@ def build_model(cfg, torch):
             s_us = torch.clamp(acc_us, 0.0, 1.0) ** 2
             s_them = torch.clamp(acc_them, 0.0, 1.0) ** 2
             w2_sel = w2[ob]
-            out = (torch.cat([s_us, s_them], dim=1) * w2_sel).sum(dim=1) + b2[ob]
+            both = torch.cat([s_us, s_them], dim=1)
+            if self.l2w is not None:
+                hidden = torch.clamp(both @ self.l2w.t() + self.l2b, 0.0, 1.0)
+                out = (hidden * self.l2o[ob]).sum(dim=1) + b2[ob]
+            else:
+                out = (both * w2_sel).sum(dim=1) + b2[ob]
+            if self.w3 is not None:
+                out = out + (s_us * s_them * self.w3[ob]).sum(dim=1)
             return out * cfg["eval_scale"]   # centipawns (float)
 
         def clip(self):
@@ -303,6 +316,7 @@ def make_cfg(args):
         "mirror": bool(args.mirror), "residual": bool(args.residual), "factorizer": not args.no_factorizer,
         "eval_scale": args.eval_scale, "blend": args.blend, "seed": args.seed, "init_scale": args.init_scale,
         "king_map": v3.king_layout(args.king_buckets), "output_map": v3.output_layout(args.output_buckets),
+        "l2": int(getattr(args, "l2", 0) or 0), "pairwise": bool(getattr(args, "pairwise", False)),
     }
 
 
@@ -394,6 +408,44 @@ def score_net_numpy(net, data, cfg_residual, chunk=4096, phases=False):
     if phases:
         result["phase_rows"] = phase_n.tolist()
         result["phase_mse_b0.6"] = [float(phase_sum[i] / phase_n[i]) if phase_n[i] else None for i in range(PHASES)]
+    return result
+
+
+def float_score(model, data, cfg, torch, chunk=8192):
+    """Holdout MSE (blends 1.0 / 0.6 / 0.8, per-phase b0.6) with the float training forward (FB2-J7 prototypes
+    that have no integer file; for v3 nets it differs from the exact score only by the truncating divisions)."""
+    sums = {1.0: 0.0, 0.6: 0.0, 0.8: 0.0}
+    phase_sum = np.zeros(PHASES)
+    phase_n = np.zeros(PHASES, np.int64)
+    n = data["n"]
+    model.eval()
+    with torch.no_grad():
+        for start in range(0, n, chunk):
+            rows = np.arange(start, min(start + chunk, n))
+            codes = data["codes"][rows]
+            meta = data["meta"][rows]
+            t = tensors_from(codes, data["score"][rows], meta, data["hce"][rows] if data["hce"] is not None else np.zeros(len(rows), np.int64), cfg, torch)
+            cp = model(t["us"], t["them"], t["ob"]).numpy().astype(np.float64)
+            logit = cp * (K / 400.0)
+            if cfg["residual"]:
+                logit = logit + data["hce"][rows] * (K / 400.0)
+            pred = 1.0 / (1.0 + np.exp(-logit))
+            teacher = 1.0 / (1.0 + np.exp(-np.clip(data["score"][rows] * (K / 400.0), -40.0, 40.0)))
+            stm = meta & 1
+            white = (meta >> 1) * 0.5
+            stm_res = np.where(stm == 0, white, 1.0 - white)
+            for bl in sums:
+                target = bl * teacher + (1.0 - bl) * stm_res
+                err = (pred - target) ** 2
+                sums[bl] += float(np.sum(err))
+                if bl == 0.6:
+                    ph = phase_of_codes(codes)
+                    phase_sum += np.bincount(ph, weights=err, minlength=PHASES)
+                    phase_n += np.bincount(ph, minlength=PHASES)
+    model.train()
+    result = {f"mse_b{bl}": sums[bl] / n for bl in sums}
+    result["phase_rows"] = phase_n.tolist()
+    result["phase_mse_b0.6"] = [float(phase_sum[i] / phase_n[i]) if phase_n[i] else None for i in range(PHASES)]
     return result
 
 
@@ -574,19 +626,30 @@ def cmd_train(args):
         idx = len(tstate["checkpoints"]) + 1
         step = tstate["step"]
         model.eval()
-        net_path = os.path.join(args.out, f"ck{idx:02d}_step{step:07d}.fnn3")
-        checksum, mw1, mb1, mw2 = export_net(model, cfg, net_path, torch)
+        prototype = bool(cfg.get("l2")) or bool(cfg.get("pairwise")) or bool(getattr(args, "float_exact", False))
+        if prototype:
+            # FB2-J7: no v3 file for prototype architectures; keep the float model and score it with the float forward
+            net_path = os.path.join(args.out, f"ck{idx:02d}_step{step:07d}.pt")
+            torch.save({"cfg": cfg, "state": model.state_dict(), "steps": step}, net_path)
+            checksum, mw1, mb1, mw2 = 0, 0, 0, 0
+        else:
+            net_path = os.path.join(args.out, f"ck{idx:02d}_step{step:07d}.fnn3")
+            checksum, mw1, mb1, mw2 = export_net(model, cfg, net_path, torch)
         entry = {"index": idx, "step": step, "seen": tstate["seen"], "train_seconds": round(tstate["train_seconds"], 1),
                  "net": os.path.basename(net_path), "checksum": f"{checksum:x}", "max_w1": mw1, "max_b1": mb1, "max_w2": mw2,
-                 "lr": lr_at(step, args), "blend": blend_at(step, args), "reason": reason, "wall": time.strftime("%Y-%m-%dT%H:%M:%S")}
+                 "lr": lr_at(step, args), "blend": blend_at(step, args), "reason": reason, "wall": time.strftime("%Y-%m-%dT%H:%M:%S"),
+                 "metric": "float" if prototype else "exact"}
         t1 = time.time()
         if exact_data is not None:
-            net = v3.read_net(net_path)
-            ex = score_net_numpy(net, exact_data, net.residual, phases=True)
+            if prototype:
+                ex = float_score(model, exact_data, cfg, torch)
+            else:
+                net = v3.read_net(net_path)
+                ex = score_net_numpy(net, exact_data, net.residual, phases=True)
             entry.update({"exact_rows": exact_data["n"], "exact_b0.6": ex["mse_b0.6"], "exact_b0.8": ex["mse_b0.8"],
                           "exact_b1.0": ex["mse_b1.0"], "phase_rows": ex["phase_rows"], "phase_mse_b0.6": ex["phase_mse_b0.6"],
                           "exact_seconds": round(time.time() - t1, 1)})
-        if args.parity_tool and args.parity_fens:
+        if args.parity_tool and args.parity_fens and not prototype:
             t2 = time.time()
             rc, lines, summary = run_engine_eval(args.parity_tool, net_path, args.parity_fens)
             par = parity_check(model, cfg, net_path, args.parity_fens, lines, torch)
@@ -602,7 +665,7 @@ def cmd_train(args):
                 tstate["best_exact"] = cur
                 tstate["best_step"] = step
                 tstate["plateau"] = 0
-                shutil.copyfile(net_path, os.path.join(args.out, "best.fnn3"))
+                shutil.copyfile(net_path, os.path.join(args.out, "best.pt" if prototype else "best.fnn3"))
                 entry["best"] = True
             else:
                 tstate["plateau"] += 1
@@ -692,9 +755,13 @@ def cmd_train(args):
     if have_val:
         say(f"step {step} val_loss {validate():.6f}")
     torch.save({"cfg": cfg, "state": model.state_dict(), "steps": step}, os.path.join(args.out, "model.pt"))
-    checksum, mw1, mb1, mw2 = export_net(model, cfg, os.path.join(args.out, "net.fnn3"), torch)
-    say(f"exported {os.path.join(args.out, 'net.fnn3')} checksum {checksum:x} max|w1| {mw1} max|b1| {mb1} max|w2| {mw2} steps {step} seen {seen}"
-        + (f" stop_reason {tstate['stop_reason']}" if tstate["stop_reason"] else " (paused)"))
+    if cfg.get("l2") or cfg.get("pairwise"):
+        say(f"saved {os.path.join(args.out, 'model.pt')} (prototype architecture, no v3 export) steps {step} seen {seen}"
+            + (f" stop_reason {tstate['stop_reason']}" if tstate["stop_reason"] else " (paused)"))
+    else:
+        checksum, mw1, mb1, mw2 = export_net(model, cfg, os.path.join(args.out, "net.fnn3"), torch)
+        say(f"exported {os.path.join(args.out, 'net.fnn3')} checksum {checksum:x} max|w1| {mw1} max|b1| {mb1} max|w2| {mw2} steps {step} seen {seen}"
+            + (f" stop_reason {tstate['stop_reason']}" if tstate["stop_reason"] else " (paused)"))
     log.close()
 
 
@@ -795,6 +862,10 @@ def main():
     t.add_argument("--target-loss", type=float, default=0.0, help="stop when the exact b0.6 holdout MSE is <= this")
     t.add_argument("--plateau", type=int, default=0, help="stop after this many checkpoints without a new best exact loss")
     t.add_argument("--plateau-eps", type=float, default=1e-5)
+    # FB2-J7 v4 prototypes (trainer only; checkpoints keep .pt models and score the holdout with the float forward)
+    t.add_argument("--l2", type=int, default=0, help="second layer width (2H -> L2 -> 1, clipped ReLU); 0 = the v3 single layer")
+    t.add_argument("--pairwise", action="store_true", help="add a pairwise term sum(w3[ob] * screlu(us) * screlu(them))")
+    t.add_argument("--float-exact", action="store_true", help="score the exact holdout with the float forward instead of the integer file (for prototype comparisons)")
     e = sub.add_parser("export")
     e.add_argument("--model", required=True)
     e.add_argument("--net", required=True)
