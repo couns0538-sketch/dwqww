@@ -250,3 +250,7 @@ Actual elapsed review1259.182seconds; start/end and reviewed areas are in final_
 ### Final sealing-tool checkpoint — 2026-10-29T03:24:36.267250-07:00
 
 Primary TSan d22 continues; the owned process was observed actively running at10:23:52UTC with917.62CPU seconds. No verdict is inferred from that progress. The new sealing helper was reviewed before native use: assertions could be disabled under python-O, build receipt binding was missing, and failed objdump streams could be lost. Those gaps are fixed with explicit requirements, build-receipt source/digest checks, and preserved failure bytes. Original helper and synthetic-only RED/GREEN evidence are under final_review/finalizer_checks; optimized-Python tests now pass5methods. No engine is launched by those mocked tooling tests, and their fixture counts are not native evidence. Final helper SHA256e25cb3acbaba0689e640e50fe05148c206dc37e291e506b2b5414675aee53b83. Normal replay/evidence notes are being finished independently.
+
+### Finalizer evidence sealed — 2026-10-29T03:27:02.549406-07:00
+
+Finalizer regression evidence is complete:5methods PASS under both normal and optimized Python, original RED retained; root independently verified all345 manifest entries. All subprocesses in these tests are mocked and the fixture executable is a non-executable text file. The production helper has zero assert statements and remains frozen ate25cb3acbaba0689e640e50fe05148c206dc37e291e506b2b5414675aee53b83. Primary TSan d22 still runs; no new native chess result is claimed.
