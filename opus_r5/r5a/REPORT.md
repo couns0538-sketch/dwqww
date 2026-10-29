@@ -1,6 +1,6 @@
 # Forge Opus round 5A: gate-ready singles (CorrMargins, CorrExt, CorrHistPlus variants, NetScale) — IN PROGRESS
 
-**Status:** M1, M2, M5 done (CI green); M3 smoke 7/8 PASS, HistRework=1 running (last); M4 written + validated. Last push 04:11 Vienna.
+**Status:** M1, M2, M5 done (CI green); M3 smoke 7/8 PASS, HistRework=1 at 120/200 (0 failures, last config); M4 written + validated. Last push 04:21 Vienna.
 
 Branch `opus-r5a-singles` = `origin/forge-bundle-int` b7c17722 + the commits listed per milestone. Job started 01:52 Vienna
 (2026-10-29), hard stop 04:52 Vienna. No Elo claims: node counts are not strength; gates decide. Machine exclusive: no
@@ -37,7 +37,10 @@ PC safety note (temperature rule): `tools/cpu_temp.sh` reads the live HWiNFO64 s
 "CPU hot spot" is taken as HWiNFO's **CPU IOD Hotspot** sensor (~49-50 C). HWiNFO's Tctl/Tdie (control temperature)
 already read 79.8-81.1 C at 121 W package power from the PC's own load (gates + training) in the ten minutes before
 my first command (01:43-01:52 Vienna), i.e. the CPU regulates at about 80 C by itself; my 3-thread build added at
-most +0.5 C. If the owner meant Tctl/Tdie, every step of this job ran with Tctl at about 80 C (logged per milestone).
+most +0.5 C. If the owner meant Tctl/Tdie, every step of this job ran with Tctl at about 80 C.
+Whole job window 01:52-04:12 Vienna (4206 HWiNFO samples, every 2 s): CPU IOD Hotspot max **51.2 C** (avg 49.8),
+so the rule never triggered a pause; Tctl/Tdie max 83.1 C, avg 81.4 C (about +1.4 C over the 80.0 C the PC held
+before my first command).
 
 ## OFF identity after every milestone (rule 7)
 
