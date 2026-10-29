@@ -1,0 +1,69 @@
+# R7 J3 evidence on a quiet Linux runner: where does a Threads=1 bench spend its time?
+# - callgrind instruction profile (self and inclusive, by function) of `bench 13`, built with the box flags + -g;
+# - perf sampling profile (cpu-clock) of `bench 16` when the runner allows perf;
+# - FORGE_PROF event counters (`bench_prof 13`: TT probes, NNUE forwards/refreshes, picker stages);
+# - for every option set in opus_r7/j3/ci/prof_options.txt (one per line: `name|Option=value,...`):
+#   bench 13 nodes (must equal the OFF nodes) and the callgrind total instruction count.
+# Trigger: a push to opus-r7-nps that touches this file or opus_r7/j3/ci/.
+name: opus-r7-prof
+on:
+  push:
+    branches: ['opus-r7-nps']
+    paths:
+      - '.github/workflows/opus-r7-prof.yml'
+      - 'opus_r7/j3/ci/**'
+permissions:
+  contents: read
+jobs:
+  prof:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+      - name: Toolchain
+        run: |
+          sudo apt-get update -qq && sudo apt-get install -y -qq g++-14 python3 valgrind > /dev/null
+          sudo apt-get install -y -qq linux-tools-common "linux-tools-$(uname -r)" > /dev/null 2>&1 || echo "perf packages unavailable"
+          lscpu | grep -E 'Model name|^CPU\(s\)' ; nproc
+      - name: Build (box flags + -g; plain and FORGE_PROF)
+        run: |
+          FL="-std=c++20 -O3 -DNDEBUG -DFORGE_NNUE_HIDDEN=256 -ffp-contract=off -fno-fast-math -march=x86-64-v3 -mtune=znver5 -pthread -g"
+          SRCS="src/bitboard.cpp src/board.cpp src/book.cpp src/eval.cpp src/eval_params.cpp src/nnue.cpp src/search.cpp src/uci.cpp"
+          mkdir -p out
+          g++-14 $FL -Iinclude $SRCS -o forge &
+          g++-14 $FL -DFORGE_PROF -Iinclude $SRCS src/profile.cpp -o forge_prof &
+          wait
+          python3 opus_round1/ci/uci_check.py ./forge | tee out/identity.log
+          echo "FMA: $(objdump -d forge | grep -cE 'vfn?m(add|sub)' || true)" | tee -a out/identity.log
+      - name: FORGE_PROF counters (bench_prof 13)
+        run: |
+          printf 'uci\nsetoption name Hash value 16\nsetoption name OwnBook value false\nisready\nbench_prof 13\nquit\n' > in_prof.txt
+          ./forge_prof < in_prof.txt > out/bench_prof13.log 2>&1 || true
+          tail -80 out/bench_prof13.log
+      - name: Callgrind bench 13 (OFF)
+        run: |
+          printf 'uci\nsetoption name Hash value 16\nsetoption name OwnBook value false\nisready\nbench 13\nquit\n' > in.txt
+          valgrind --tool=callgrind --callgrind-out-file=out/callgrind_off.out ./forge < in.txt > out/callgrind_run_off.log 2>&1
+          callgrind_annotate --inclusive=no out/callgrind_off.out 2>/dev/null | head -70 > out/profile_self_off.txt
+          callgrind_annotate --inclusive=yes out/callgrind_off.out 2>/dev/null | head -70 > out/profile_incl_off.txt
+          cat out/profile_self_off.txt; head -40 out/profile_incl_off.txt
+      - name: perf bench 16 (OFF)
+        run: |
+          sudo sysctl -w kernel.perf_event_paranoid=-1 > /dev/null 2>&1 || true
+          printf 'uci\nsetoption name Hash value 16\nsetoption name OwnBook value false\nisready\nbench 16\nquit\n' > in16.txt
+          if command -v perf > /dev/null && perf record -F 2999 -e cpu-clock -o out/perf_off.data ./forge < in16.txt > out/perf_run_off.log 2>&1; then
+            perf report -i out/perf_off.data --stdio --no-children --sort symbol 2>/dev/null | grep -v '^#' | grep -v '^$' | head -60 > out/perf_self_off.txt
+            cat out/perf_self_off.txt
+          else
+            echo "perf not usable on this runner" | tee out/perf_self_off.txt
+          fi
+      - name: Option sets (bench 13 nodes + callgrind instructions)
+        run: |
+          python3 opus_r7/j3/ci/option_sets.py ./forge opus_r7/j3/ci/prof_options.txt out | tee out/option_sets.log
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: r7-prof
+          path: |
+            out/*.log
+            out/*.txt
