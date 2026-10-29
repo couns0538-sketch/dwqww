@@ -6,10 +6,9 @@
 
 namespace forge {
 
-// Search constants exposed for tuning. The UCI layer accepts them as unlisted
-// options (setoption name <Name> value <int>); defaults are the tested values.
-// The 20 named in AdvertisedParameters (below) are listed as UCI spin options in
-// every build; FORGE_EXPOSE_TUNABLES builds list all of them.
+// Search constants exposed for tuning. Every accepted constant is advertised as
+// a UCI spin option in every build; defaults remain the tested values. The 20
+// named in AdvertisedParameters are listed first for the existing SPSA workflow.
 namespace tune {
 struct Parameter {
     const char* name;
@@ -96,8 +95,8 @@ void refresh();
 // R3-4: the 20 search constants advertised as UCI spin options in every build
 // (default = the current value, min/max = the range in parameters()), for SPSA
 // tuning with tools/spsa/opus_spsa.py (tools/spsa/README.md has the reasons for
-// the choice). Listed in this order, grouped by mechanism. The other tunables
-// stay unlisted: setoption accepts them, FORGE_EXPOSE_TUNABLES builds list them.
+// the choice). Listed first in this order, grouped by mechanism; the remaining
+// registered tunables are advertised afterwards in every build.
 inline constexpr std::array<std::string_view, 20> AdvertisedParameters{
     // late-move reductions
     "LmrQuietBase", "LmrQuietDivisor", "LmrNoisyBase", "LmrNoisyDivisor", "LmrHistoryDivisor", "LmrCutoffThreshold",

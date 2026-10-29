@@ -10,7 +10,7 @@ platform-independent), and OFF again == the lock pins (switching back restores t
 with NnueInt16 ON reaches its bestmove; a setoption that arrives during `go infinite` stops the search first (no
 data race on the mode flag; the TSan CI job runs this). Waits for engine output, no sleeps.
 --absent (R3 stack: the integer path is the build switch FORGE_NNUE_INT16, default off): the option is not listed,
-`setoption name NnueInt16 value true` prints nothing NnueInt16-related and bench stays at the lock pins."""
+`setoption name NnueInt16 value true` reports an unknown option and bench stays at the lock pins."""
 import queue
 import re
 import subprocess
@@ -77,7 +77,8 @@ def absent(exe):
     for d, n in LOCK.items():
         got = e.bench(d)
         check(got == n, f"after setoption NnueInt16 true: bench d{d} nodes {got} == lock {n}")
-    check(not any("NnueInt16" in s for s in e.seen[mark:]), "no NnueInt16 output")
+    check([s for s in e.seen[mark:] if "NnueInt16" in s] == ["info string unknown option NnueInt16"],
+          "absent NnueInt16 is reported as unknown")
     e.send("quit")
     e.p.wait(timeout=60)
     if failures:

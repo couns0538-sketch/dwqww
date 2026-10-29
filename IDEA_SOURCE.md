@@ -31,3 +31,6 @@ IDEA_SOURCE: the user’s requirement that soft time never exceed hard time, and
 
 ## Astra R3 A1: explicit preset ownership
 IDEA_SOURCE: Engine QA CR_ASTRA2 F3, supplied round3 job pack; https://github.com/couns0538-sketch/dwqww/commit/45314a5e105cef5d306ff41abca2706e4ada78bb and reviewed B1. Assign only preset-owned fields so unrelated requested bits survive integration.
+
+## Astra round 2 B4 (2026-10-29)
+IDEA_SOURCE: user strict-UCI contract, Forge existing option registry and parser; original metadata/diagnostic implementation, no external engine code or tuned values.
