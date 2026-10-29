@@ -644,6 +644,10 @@ int main() {
                               << " DTZ tables, up to " << summary.max_pieces << " pieces";
                     if (summary.rejected > 0) std::cout << ", " << summary.rejected << " invalid files skipped";
                     std::cout << std::endl;
+                    // R5C: name a path that yields no table at all (missing folder, typo, empty folder).
+                    if (summary.wdl_tables == 0)
+                        std::cout << "info string SyzygyPath: no tablebase found in \"" << path << "\", tablebases off"
+                                  << std::endl;
                 }
             } else if (name == "SyzygyProbeDepth") {
                 int value = 0;

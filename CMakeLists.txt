@@ -488,6 +488,14 @@ if(Python3_Interpreter_FOUND)
     add_test(NAME hard_deadline_regression
         COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tools/hard_deadline_regression.py
                 $<TARGET_FILE:forge_debughooks> --iterations 60 --threads 1 --grace 1 --reference $<TARGET_FILE:forge>)
+    # R5C M1: the N3 options over UCI (SyzygyPath info strings, empty path = bench pin, HardDeadline=10 timing).
+    # Generous slack: sanitizer builds and CI runners are slow; the PC numbers are in opus_r5/r5c/logs.
+    set(R5C_N3_UCI_ARGS --slack 150 --stop-limit 150)
+    if(FORGE_SYZYGY_PATH)
+        list(APPEND R5C_N3_UCI_ARGS --syzygy ${FORGE_SYZYGY_PATH})
+    endif()
+    add_test(NAME r5c_n3_uci
+        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tools/r5c_n3_uci.py $<TARGET_FILE:forge> ${R5C_N3_UCI_ARGS})
     add_test(NAME ownbook_regression
         COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tools/ownbook_regression.py
                 $<TARGET_FILE:forge> ${CMAKE_CURRENT_BINARY_DIR}/ownbook-regression.json)
