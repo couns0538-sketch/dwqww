@@ -1,0 +1,8 @@
+# R5C idea sources
+
+Every implementation in this folder and in the engine diff is my own code; sources are where the ideas come from.
+
+| idea | source |
+|---|---|
+| N3 bundle (SyzygyPath 3-4-5 + IntendedThreefold + HardDeadline=10 gated together) and its blockers | job spec R5C (Engine QA for Couns, 2026-10-29); the options come from Opus C1 (Syzygy prober), C3 (HardDeadline watchdog) and the IntendedThreefold option on forge-bundle-int b7c1772 |
+| v4 net = v3 layout + int16 second layer (L2 = 16) + per-output-bucket final layer | J7 prototype (branch fable-fb2-j7, `fable_fb2/j7/README.md`, `tools/nnue/fable_nnue_train.py --l2 16`, crew bot Fable); v3 file format FORGENN3 (branch fable-nnue-arch, `src/nnue_v3.cpp`) as the format reference |
