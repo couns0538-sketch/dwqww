@@ -1,0 +1,39 @@
+\\?\C:\Users\Administrator\AppData\Local\Temp\tmpv1cgwos5\hip_utils.c(2,10): fatal error: 'hip/hip_runtime.h' file not found
+    2 | #include <hip/hip_runtime.h>
+      |          ^~~~~~~~~~~~~~~~~~~
+1 error generated.
+Failed to compile. cc_cmd: ['F:\\nnue_pytorch\\venv\\Lib\\site-packages\\_rocm_sdk_core\\lib\\llvm\\bin\\clang-cl.exe', '\\\\?\\C:\\Users\\Administrator\\AppData\\Local\\Temp\\tmpv1cgwos5\\hip_utils.c', '/nologo', '/O2', '/LD', '/wd4819', '/std:c11', '/IF:\\nnue_pytorch\\venv\\Lib\\site-packages\\triton\\backends\\amd\\include', '/I\\\\?\\C:\\Users\\Administrator\\AppData\\Local\\Temp\\tmpv1cgwos5', '/IF:\\nnue_pytorch\\pythons\\cpython-3.12-windows-x86_64-none\\Include', '/IC:\\Program Files (x86)\\Microsoft Visual Studio\\18\\BuildTools\\VC\\Tools\\MSVC\\14.51.36231\\include', '/IC:\\Program Files (x86)\\Windows Kits\\10\\Include\\10.0.26100.0\\shared', '/IC:\\Program Files (x86)\\Windows Kits\\10\\Include\\10.0.26100.0\\ucrt', '/IC:\\Program Files (x86)\\Windows Kits\\10\\Include\\10.0.26100.0\\um', '/Fo\\\\?\\C:\\Users\\Administrator\\AppData\\Local\\Temp\\tmpv1cgwos5\\hip_utils.cp312-win_amd64.obj', '/link', '/LIBPATH:F:\\nnue_pytorch\\pythons\\cpython-3.12-windows-x86_64-none\\libs', '/LIBPATH:C:\\Program Files (x86)\\Microsoft Visual Studio\\18\\BuildTools\\VC\\Tools\\MSVC\\14.51.36231\\lib\\x64', '/LIBPATH:C:\\Program Files (x86)\\Windows Kits\\10\\Lib\\10.0.26100.0\\ucrt\\x64', '/LIBPATH:C:\\Program Files (x86)\\Windows Kits\\10\\Lib\\10.0.26100.0\\um\\x64', 'python312.lib', '/OUT:\\\\?\\C:\\Users\\Administrator\\AppData\\Local\\Temp\\tmpv1cgwos5\\hip_utils.cp312-win_amd64.pyd', '/IMPLIB:\\\\?\\C:\\Users\\Administrator\\AppData\\Local\\Temp\\tmpv1cgwos5\\hip_utils.cp312-win_amd64.lib', '/PDB:\\\\?\\C:\\Users\\Administrator\\AppData\\Local\\Temp\\tmpv1cgwos5\\hip_utils.cp312-win_amd64.pdb']
+Traceback (most recent call last):
+  File "F:\opus_scratch\r6\tools\denormal_probe.py", line 20, in <module>
+    k[(1,)](xs, *outs, xs.numel(), BLOCK=16)
+  File "F:\nnue_pytorch\venv\Lib\site-packages\triton\runtime\jit.py", line 370, in <lambda>
+    return lambda *args, **kwargs: self.run(grid=grid, warmup=False, *args, **kwargs)
+                                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "F:\nnue_pytorch\venv\Lib\site-packages\triton\runtime\jit.py", line 700, in run
+    device = driver.active.get_current_device()
+             ^^^^^^^^^^^^^
+  File "F:\nnue_pytorch\venv\Lib\site-packages\triton\runtime\driver.py", line 28, in active
+    self._active = self.default
+                   ^^^^^^^^^^^^
+  File "F:\nnue_pytorch\venv\Lib\site-packages\triton\runtime\driver.py", line 22, in default
+    self._default = _create_driver()
+                    ^^^^^^^^^^^^^^^^
+  File "F:\nnue_pytorch\venv\Lib\site-packages\triton\runtime\driver.py", line 10, in _create_driver
+    return active_drivers[0]()
+           ^^^^^^^^^^^^^^^^^^^
+  File "F:\nnue_pytorch\venv\Lib\site-packages\triton\backends\amd\driver.py", line 936, in __init__
+    self.utils = HIPUtils()
+                 ^^^^^^^^^^
+  File "F:\nnue_pytorch\venv\Lib\site-packages\triton\backends\amd\driver.py", line 241, in __init__
+    mod = compile_module_from_src(src=src, name="hip_utils", include_dirs=include_dirs)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "F:\nnue_pytorch\venv\Lib\site-packages\triton\runtime\build.py", line 186, in compile_module_from_src
+    so = _build(name, src_path, tmpdir, library_dirs or [], include_dirs or [], libraries or [], ccflags or [])
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "F:\nnue_pytorch\venv\Lib\site-packages\triton\runtime\build.py", line 137, in _build
+    raise e
+  File "F:\nnue_pytorch\venv\Lib\site-packages\triton\runtime\build.py", line 134, in _build
+    subprocess.check_call(cc_cmd)
+  File "F:\nnue_pytorch\pythons\cpython-3.12-windows-x86_64-none\Lib\subprocess.py", line 413, in check_call
+    raise CalledProcessError(retcode, cmd)
+subprocess.CalledProcessError: Command '['F:\\nnue_pytorch\\venv\\Lib\\site-packages\\_rocm_sdk_core\\lib\\llvm\\bin\\clang-cl.exe', '\\\\?\\C:\\Users\\Administrator\\AppData\\Local\\Temp\\tmpv1cgwos5\\hip_utils.c', '/nologo', '/O2', '/LD', '/wd4819', '/std:c11', '/IF:\\nnue_pytorch\\venv\\Lib\\site-packages\\triton\\backends\\amd\\include', '/I\\\\?\\C:\\Users\\Administrator\\AppData\\Local\\Temp\\tmpv1cgwos5', '/IF:\\nnue_pytorch\\pythons\\cpython-3.12-windows-x86_64-none\\Include', '/IC:\\Program Files (x86)\\Microsoft Visual Studio\\18\\BuildTools\\VC\\Tools\\MSVC\\14.51.36231\\include', '/IC:\\Program Files (x86)\\Windows Kits\\10\\Include\\10.0.26100.0\\shared', '/IC:\\Program Files (x86)\\Windows Kits\\10\\Include\\10.0.26100.0\\ucrt', '/IC:\\Program Files (x86)\\Windows Kits\\10\\Include\\10.0.26100.0\\um', '/Fo\\\\?\\C:\\Users\\Administrator\\AppData\\Local\\Temp\\tmpv1cgwos5\\hip_utils.cp312-win_amd64.obj', '/link', '/LIBPATH:F:\\nnue_pytorch\\pythons\\cpython-3.12-windows-x86_64-none\\libs', '/LIBPATH:C:\\Program Files (x86)\\Microsoft Visual Studio\\18\\BuildTools\\VC\\Tools\\MSVC\\14.51.36231\\lib\\x64', '/LIBPATH:C:\\Program Files (x86)\\Windows Kits\\10\\Lib\\10.0.26100.0\\ucrt\\x64', '/LIBPATH:C:\\Program Files (x86)\\Windows Kits\\10\\Lib\\10.0.26100.0\\um\\x64', 'python312.lib', '/OUT:\\\\?\\C:\\Users\\Administrator\\AppData\\Local\\Temp\\tmpv1cgwos5\\hip_utils.cp312-win_amd64.pyd', '/IMPLIB:\\\\?\\C:\\Users\\Administrator\\AppData\\Local\\Temp\\tmpv1cgwos5\\hip_utils.cp312-win_amd64.lib', '/PDB:\\\\?\\C:\\Users\\Administrator\\AppData\\Local\\Temp\\tmpv1cgwos5\\hip_utils.cp312-win_amd64.pdb']' returned non-zero exit status 1.

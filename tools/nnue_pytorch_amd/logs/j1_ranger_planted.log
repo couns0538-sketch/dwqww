@@ -1,0 +1,15 @@
+torch 2.11.0+rocm7.13.0 hip 7.13.99004; cupy=False triton_fused=True
+normal-grads pnm=True  wd=0     stable_wd=True  path A    : max abs diff 5.960e-08, finite=True, triton calls {'pnm_full': 48} (python run: none)  PASS
+normal-grads pnm=True  wd=0.01  stable_wd=True  path B    : max abs diff 2.384e-07, finite=True, triton calls {'variance': 48, 'pnm_phase2': 48} (python run: none)  PASS
+normal-grads pnm=True  wd=0.01  stable_wd=False path A+wd : max abs diff 3.576e-07, finite=True, triton calls {'pnm_full': 48} (python run: none)  PASS
+normal-grads pnm=False wd=0     stable_wd=True  path A    : max abs diff 5.960e-08, finite=True, triton calls {'adam_full': 48} (python run: none)  PASS
+normal-grads pnm=False wd=0.01  stable_wd=True  path B    : max abs diff 1.788e-07, finite=True, triton calls {'variance': 48, 'adam_phase2': 48} (python run: none)  PASS
+normal-grads pnm=False wd=0.01  stable_wd=False path A+wd : max abs diff 2.384e-07, finite=True, triton calls {'adam_full': 48} (python run: none)  PASS
+denormal-vm  pnm=True  wd=0     stable_wd=True  path A    : max abs diff nan, finite=False, triton calls {'pnm_full': 48} (python run: none)  FAIL
+denormal-vm  pnm=True  wd=0.01  stable_wd=True  path B    : max abs diff nan, finite=False, triton calls {'variance': 48, 'pnm_phase2': 48} (python run: none)  FAIL
+denormal-vm  pnm=True  wd=0.01  stable_wd=False path A+wd : max abs diff nan, finite=False, triton calls {'pnm_full': 48} (python run: none)  FAIL
+denormal-vm  pnm=False wd=0     stable_wd=True  path A    : max abs diff nan, finite=False, triton calls {'adam_full': 48} (python run: none)  FAIL
+denormal-vm  pnm=False wd=0.01  stable_wd=True  path B    : max abs diff nan, finite=False, triton calls {'variance': 48, 'adam_phase2': 48} (python run: none)  FAIL
+denormal-vm  pnm=False wd=0.01  stable_wd=False path A+wd : max abs diff nan, finite=False, triton calls {'adam_full': 48} (python run: none)  FAIL
+RESULT FAIL
+PLANTED BUG DETECTED (test failed as it should)
