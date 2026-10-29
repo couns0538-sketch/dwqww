@@ -266,12 +266,16 @@ thread, same data/seed/batch/LR/WDL schedules as J1, float holdout b0.6 on the 2
 | H1024 / 8 (half the throughput) | 0.017935 (7.6M) | 0.016738 (14.9M) | 0.016401 (22.1M) |
 | H512 / 16 king buckets | 0.017224 (13.6M) | 0.016429 (27.0M) | 0.016242 (40.1M) |
 | H512 / 8 + second layer 16 (2H -> 16 -> 1) | 0.016835 (13.8M) | 0.016086 (26.9M) | **0.015759** (40.5M) |
-| H512 / 8 + pairwise term | 0.017083 (13.9M) | running | |
+| H512 / 8 + pairwise term | 0.017083 (13.9M) | 0.016358 (27.3M) | 0.016138 (40.5M) |
 
-Reading so far (early-learning comparison, one seed, 30 minutes each): the second layer is the clear winner at
-equal positions (-0.00033 vs the baseline at 40M, i.e. the baseline's 60-minute value reached in 30), H1024 learns
-more per position but sees half as many per second on this CPU (equal to the baseline at equal wall time), and 16
-king buckets are slightly behind 8 at this budget (more parameters per sample).
+Reading (early-learning comparison, one seed, 30 minutes each, float b0.6 on the same 200k holdout): the second
+layer is the clear winner at equal positions (-0.00033 vs the baseline at 40M: it reaches in 30 minutes what the
+baseline reaches at about 60), the pairwise term is a wash (-0.00005 at 27M, +0.00005 at 40M), H1024 learns more
+per position but sees half as many per second on this CPU (equal to the baseline at equal wall time, so it only
+pays off with more compute), and 16 king buckets are slightly behind 8 at this budget (+0.00015: more parameters
+per sample). Recommendation for a v4: add the second layer first (needs an engine format with an int8/int16
+2H -> 16 -> 1 stage per output bucket, about +16 x 1024 multiply-adds per evaluation); keep H512 and 8 buckets.
+Logs: `fable_fb2/j7/logs/run_*_log.txt`, `run_*_status.json`.
 
 (The J1 run's exact score at 43.5M positions was 0.016094: the float metric and the integer file agree to 1e-5.)
 Operational note: the second-layer run was executed twice at once into the same directory (a background driver I
