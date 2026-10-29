@@ -1,0 +1,19 @@
+--- a/SKILL.md
++++ b/SKILL.md
+@@ -21,6 +21,16 @@
+ 
+ Run the relevant existing suite and report observed failures, including pre-existing ones. Expand tests only for remaining risk or a required gate. Record crashes, illegal moves, and time losses; never remove them from a match result to improve its score.
+ 
++## Validate option integrations
++
++When combining features or presets, record these checks alongside the existing correctness results:
++
++- **Option construction:** compare the exact option-member layouts across the source revisions. Prefer named member assignments or designated initializers. Audit remaining positional initializers whenever the layout changes; successful compilation does not establish that each flag still selects its intended feature.
++- **Preset ownership:** list the fields each preset owns and the independent flags it must preserve. Test independent flags followed by a preset, preset followed by individual overrides, and preset OFF/reset. Verify effective settings, including fields the preset does not own.
++- **OFF and ON identity:** check the required OFF pins and each applicable predeclared ON/preset pin. For a behavior-preserving port, recover ON references from the exact source being ported; a candidate cannot establish its own expected values. If an intended search change invalidates ON identity, document that boundary and use the appropriate correctness/strength gate instead of inventing replacement pins.
++- **UCI consistency:** verify unique advertised names, types, defaults, ranges and variants against accepted setters. Check that preset echoes match effective settings, and exercise supported aliases, rejected values and conflicting options. OFF benchmarks alone do not validate configuration wiring.
++- **Qualification freeze:** identify the execution owner and freeze source, build, network, runner and settings before the run. Coordinate edits with that owner before releasing the freeze. If bytes change, preserve both revisions and attribute each result to the revision actually executed; qualify the changed scope separately. A current file or newer branch name cannot retroactively identify an earlier run.
++
+ ## Test playing strength
+ 
+ 1. Read [matches.md](references/matches.md), inspect the installed fastchess version/help, and recover the project's test policy. Use fastchess SPRT as the user's final strength acceptance gate. Fixed-game and fixed-node matches are useful screens; they do not become a retroactive SPRT.

@@ -5,7 +5,7 @@ IDEA_SOURCE: user round-three exact-source validation contract.
 import argparse,datetime,hashlib,json,pathlib,re,shutil,subprocess,sys
 from zoneinfo import ZoneInfo
 p=argparse.ArgumentParser();p.add_argument('engine',type=pathlib.Path);p.add_argument('evidence',type=pathlib.Path);p.add_argument('--source',required=True);a=p.parse_args()
-r=a.evidence;exe=a.engine.resolve();pin=json.loads((r/'pins/results.json').read_text())
+r=a.evidence;exe=a.engine.resolve();source_sha=subprocess.check_output(['git','rev-parse',a.source+'^{commit}'],text=True).strip();pin=json.loads((r/'pins/results.json').read_text())
 assert all(x['pass'] for x in pin['records'])
 assert pin['sha256']==hashlib.sha256(exe.read_bytes()).hexdigest()
 assert re.search(r'^nodes 4865609$',(r/'pins/perft.stdout').read_text(),re.M)
@@ -36,7 +36,9 @@ def allowed_diagnostic(line):
     return bool(match and abs(int(match[1])) < 30000)
 assert all(allowed_diagnostic(line) for line in fail_lines), fail_lines
 # Preserve every original line; only explicitly allowed baseline diagnostics qualify.
-receipt={'source_commit':a.source,'binary_sha256':pin['sha256'],'off_records':pin['records'],'perft5':4865609,'kiwipete5':193690690,'whole_binary_fma':0,'ctest_total':int(summary[3]),'ctest_failed':int(summary[2]),'ctest_failures':failed,'ctest_exit':int((r/'ctest/exit.txt').read_text()),'fail_lines':fail_lines,'timestamp_pt':datetime.datetime.now(ZoneInfo('America/Los_Angeles')).isoformat(),'speed_elo':'NOT_CLAIMED'}
+receipt={'source_commit':source_sha,'binary_sha256':pin['sha256'],'off_records':pin['records'],'perft5':4865609,'kiwipete5':193690690,'whole_binary_fma':0,'ctest_total':int(summary[3]),'ctest_failed':int(summary[2]),'ctest_failures':failed,'ctest_exit':int((r/'ctest/exit.txt').read_text()),'fail_lines':fail_lines,'timestamp_pt':datetime.datetime.now(ZoneInfo('America/Los_Angeles')).isoformat(),'speed_elo':'NOT_CLAIMED'}
 (r/'qualification.json').write_text(json.dumps(receipt,indent=2)+'\n')
+flags=exe.parent/'CMakeFiles/forge_core.dir/flags.make'
+if flags.exists(): shutil.copyfile(flags,r/'forge_core_compile_flags.make')
 copy=r/'forge_release_linux';assert not copy.exists();shutil.copy2(exe,copy)
 print(json.dumps(receipt,indent=2))

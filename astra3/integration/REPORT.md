@@ -39,3 +39,21 @@ Next: merge B2 with both independent flags preserved. Full integration/SAN/TSan 
 Status WIP. Used real no-ff merge45314a5. Resolution is a union: both CMake native/UCI test registrations, both FB2 flags, both UCI handlers with the required closing brace, and both IDEA_SOURCE/old checkpoint texts retained. apply_bundle now assigns only its three owned FB2 fields (plus its existing external CorrHistPlus/HistRework/CuckooRep values), so SmpV2 AND TmSoftHardClamp, and future independent bits, survive presets without positional preservation code. Automatic iterative/timing merges retained both features; full build/identity/CTest pending.
 
 IDEA_SOURCE: Engine QA CR_ASTRA2 F3 in supplied round3 pack; same-repository B1/B2 sources.
+
+Environment preflight: the race-free atomic two-thread GCC14 TSan probe passed outside the tracing sandbox (exit0, counter20000, empty stderr). Recipe:`g++-14 -std=c++20 -O1 -g1 -fsanitize=thread -fno-omit-frame-pointer -fno-pie -no-pie -pthread ...`. This proves runtime availability only; the full engine TSan run is still required. The probe is not an engine and has no chess identity table. M1 source receipt expanded from its unambiguous7-character prefix to the full commit SHA without rerunning or altering any native output.
+
+### M2 qualification — 2026-10-29 00:33:06 PDT
+
+Source `52a2983e11a08d129a3c77bcae68499f54f323eb`; exe SHA256 `31414519ac2a79eb0e373a83dc8c94b9ab4c21b4919790f3191c8b20043a4786`. Complete Release build succeeded. Full CTest 58/59, raw exit 8; failures: [['forge_tests', 'Failed']]. Original diagnostics: ['FAIL: WAC 001 expected g3g6 got f6h5', 'FAIL: WAC 001 score 623 below 31997', 'FAIL: unrestricted search chooses the winning rook underpromotion over stalemating queen promotion', 'FAIL: unrestricted search chooses the winning rook underpromotion over stalemating queen promotion']. Startpos perft5=4865609; kiwipete5=193690690; whole-binary FMA=0.
+
+| Depth | OFF nodes | ms | NPS |
+|---:|---:|---:|---:|
+| 11 | 312866 | 442 | 707841 |
+| 13 | 862329 | 959 | 899196 |
+| 16 | 3024920 | 4160 | 727144 |
+| 20 | 12389307 | 12466 | 993847 |
+| 22 | 34048354 | 33723 | 1009647 |
+
+Exact commands (same configured rule5 build): `cmake --build /tmp/forge-astra3-build-integration -j4`; `python3 astra3/integration/tools/identity_bench.py /tmp/forge-astra3-build-integration/forge astra3/integration/M2/pins`; `python3 astra3/integration/tools/run_full_ctest.py /tmp/forge-astra3-build-integration astra3/integration/M2/ctest`; `python3 astra3/integration/tools/check_milestone.py /tmp/forge-astra3-build-integration/forge astra3/integration/M2 --source 52a2983e11a08d129a3c77bcae68499f54f323eb`. Flags, raw output, original executable and receipt retained in M2. These timings make no speed or Elo claim. Full integrated ON matrix/SAN/TSan remains pending until the final A1 head.
+
+A small proposed update to the existing validate-chess-engine skill is preserved under skill_update (same package/name; no duplicate skill created). Its patch/static checks and focused synthetic instruction scenarios passed; those are not engine evidence or a measured behavioral gain. No callable skill-creator/provider editor exists here, so it is PROPOSED ONLY, not installed. Next integration step: B4.
