@@ -149,6 +149,9 @@ so ON = the pins).
   fills its storage with that byte when constructed. A read of an element that was never written then sees the
   pattern and would change the nodes or crash. Without the macro the hook does not exist: N2 rebuilt from the hook
   tree differs from the b2983d07 N2 exe in 4 bytes (PE timestamp).
+- **Poisoned N2 (znver5, box recipe): `-DFORGE_R5B_POISON_MOVE_BUFFERS=0xFE` and `=0x5A`: 0 warnings, FMA 0,
+  identity ALL OK** (bench d11-d22 + perft startpos/kiwipete; perft walks MoveList, the bench search MovePicker and
+  MoveList). `logs/identity_n2_z5_poison0x{FE,5A}.log`, `logs/build_n2_z5_poison0x{FE,5A}.log`.
 - ASan/UBSan catch out-of-bounds and UB, not uninitialised reads; valgrind memcheck does. Both run in the new CI
   workflow `.github/workflows/opus-r5b-n2.yml` (asan job; `memcheck` job = `ci_n2_memcheck.sh`: valgrind memcheck of
   OFF (control) and N2 on bench 11, perft 4 and four depth-10 searches, plus the poison and pattern identities).
