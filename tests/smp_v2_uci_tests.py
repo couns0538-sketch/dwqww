@@ -66,11 +66,15 @@ def main() -> int:
 
             e.send("position startpos")
             e.send("go depth 4 searchmoves a1a8")
+            run.stats["go"] += 1
             lines = e.until(lambda line: line.startswith("bestmove "), TIMEOUT)
             assert lines[-1] == "bestmove 0000", lines
+            run.stats["bestmove"] += 1
             assert not any("score mate" in line for line in lines), lines
             run.sync("empty restriction")
             passed.append(f"Threads {threads}: empty searchmoves remains authoritative")
+        assert run.stats["go"] == run.stats["bestmove"], run.stats
+        assert len([line for line in e.transcript if line.startswith("< bestmove ")]) == run.stats["bestmove"], run.stats
         assert not any("invalid value" in line or "unknown option" in line or "ERROR" in line for line in e.transcript), e.transcript
     except Exception as exc:
         error = f"{type(exc).__name__}: {exc}"

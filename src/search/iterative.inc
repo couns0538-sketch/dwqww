@@ -161,7 +161,7 @@ SearchInfo Worker::search(Board board, const SearchLimits& limits, bool emit_inf
     assert(root_effort_count_ <= root_effort_moves_.size());
     std::copy(root_candidates.begin(), root_candidates.end(), root_effort_moves_.begin());
     root_move_nodes_.fill(0);
-    // SmpV2 is inert for the main worker and uses only this search's frozen options.
+    // SmpV2 helper diversification is inert for the main worker and uses frozen options.
     const int smp_skew = fb2_.smp_v2 && !is_main() && mate_moves == 0 ? fb2::smp_depth_skew(id_) : 0;
     const int smp_delta_multiplier = fb2_.smp_v2 && !is_main() ? fb2::smp_aspiration_multiplier(id_) : 1;
     for (int depth = 1; depth <= last_depth; ++depth) {

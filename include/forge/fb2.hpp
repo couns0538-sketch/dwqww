@@ -1,11 +1,12 @@
 #pragma once
 
 // FB2-J3 search options ported onto the R3 stack (forge-bundle-int; see BUNDLES.md).
-// Three UCI check options, all default false; with every one false the search is the AL1 s198 search:
+// UCI check options, all default false; with every one false the search is the AL1 s198 search:
 //   CorrHistV2  continuation correction history (opponent's last move and our move before it)
 //   LmrTableV2  statistically fitted LMR reduction with a continuous history term
 //   TtPruneV2   TT-move pruning guards, cut-node IIR on a failed-low TT move, opponent-worsening RFP,
 //               improving-aware futility / history margins
+//   SmpV2        J5 helper diversification with protected completed-result selection (Astra R2 B1)
 // FB2-J3 SingularV2 is not ported (it overlaps O8 CorrExt and is in no bundle); FB2-J4 TimeManV2 is not ported
 // (crew vote: gated separately).
 //

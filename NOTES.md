@@ -31,3 +31,9 @@ B1 real selector standalone GREEN 66/0 after historical RED 66/21. Complete cand
 Baseline complete CTest: 54/55, only forge_tests with the four existing tactical FAIL diagnostics; SmpExactNodes
 passed in this run. B1 actual-port abort-tuple RED: 74 checks, one failure before the SmpV2-only completed-result
 retention guard. Selector source and actual worker path now corrected; final native build/tests still pending.
+
+User B1 review on 21ecf2c: restore main-thread partial-iteration behavior; cap selector depth comparison at
+requested depth; protect losing TB scores; replace brittle node-cap pin with behavioral assertions. Changes in progress.
+Pre-review candidate full Release build completed; binary SHA256 3855161fa385bbf7d75312ca3e5a47561b74f2fd4baa08ac0b9fad284019728a.
+Its OFF and ON Threads=1 benches both matched all five pins; perft5 4865609. Native selector 74/74 and 16 UCI
+searches passed before this review; these are historical pre-review results, not qualification of the upcoming changes.
