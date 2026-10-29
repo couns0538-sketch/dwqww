@@ -1,6 +1,6 @@
 # Forge Opus round 5A: gate-ready singles (CorrMargins, CorrExt, CorrHistPlus variants, NetScale) — IN PROGRESS
 
-**Status:** M1, M2, M5 done (CI: M2 run release+asan green, tsan running; M5 run queued); M3 smoke 1/8 PASS, corrext1 running; M4 written. Last push 02:40 Vienna.
+**Status:** M1, M2, M5 done; M3 smoke 1/8 PASS, corrext1 running (then a 2-min check pause, then CorrHistPlus 2/4/6, NetScale 99, HistRework 3, 1); M4 written. Last push 02:42 Vienna.
 
 Branch `opus-r5a-singles` = `origin/forge-bundle-int` b7c17722 + the commits listed per milestone. Job started 01:52 Vienna
 (2026-10-29), hard stop 04:52 Vienna. No Elo claims: node counts are not strength; gates decide. Machine exclusive: no
@@ -38,6 +38,25 @@ PC safety note (temperature rule): `tools/cpu_temp.sh` reads the live HWiNFO64 s
 already read 79.8-81.1 C at 121 W package power from the PC's own load (gates + training) in the ten minutes before
 my first command (01:43-01:52 Vienna), i.e. the CPU regulates at about 80 C by itself; my 3-thread build added at
 most +0.5 C. If the owner meant Tctl/Tdie, every step of this job ran with Tctl at about 80 C (logged per milestone).
+
+## OFF identity after every milestone (rule 7)
+
+Build command for every exe: `bash opus_r5/r5a/tools/build_r5a.sh "$PWD" /f/opus_scratch/r5/r5a/exe/<name>.exe`
+(g++ 15.2 ucrt64, `-std=c++20 -O3 -DNDEBUG -DFORGE_NNUE_HIDDEN=256 -ffp-contract=off -fno-fast-math -march=x86-64-v3
+-mtune=znver5 -pthread -static`); check: lock `uci_check.py <exe> --full` (Threads 1, Hash 16, OwnBook false, all new
+options OFF).
+
+| after | exe (F:\opus_scratch\r5\r5a\exe) | sha256 | bench d11 / d13 / d16 / d20 / d22 | perft 5 | kiwipete | FMA | result |
+|---|---|---|---|---|---|---|---|
+| 00 baseline | forge_r5a_base_b7c1772.exe | 82d414ba... | 312866 / 862329 / 3024920 / 12389307 / 34048354 | 4865609 | 193690690 | 0 | ALL OK (`logs/identity_base_b7c1772.log`) |
+| M1 | no engine change (base exe) | — | — | — | — | — | — |
+| M2 | forge_r5a_m2_0a01ec53.exe | fda298e6... | 312866 / 862329 / 3024920 / 12389307 / 34048354 | 4865609 | 193690690 | 0 | ALL OK (`logs/identity_m2_0a01ec53.log`) |
+| M3, M4 | no engine change (smoke on the M2 exe) | — | — | — | — | — | — |
+| M5 | forge_r5a_m5_9ad9158d.exe | ae6f891e... | 312866 / 862329 / 3024920 / 12389307 / 34048354 | 4865609 | 193690690 | 0 | ALL OK (`logs/identity_m5_9ad9158d.log`) |
+
+Threads=1 determinism: the M1 table (11 configs x 3 bench depths + 4 `go depth 10` searches, plus the restore pass)
+is identical row for row on the base, M2 and M5 exes, and every same-process restore returned the fresh-process
+node counts exactly.
 
 ## M1 per-option audit + ON benches (01:58-02:01 Vienna) — DONE
 

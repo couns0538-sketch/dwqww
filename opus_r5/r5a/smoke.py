@@ -23,7 +23,8 @@ the same; then `isready` -> readyok with no extra bestmove.
 
 Output (in --out): games.pgn, summary.json (counts, per-failure details, exe sha256, options, seeds, timings).
 Exit 0 only when every check passed (0 illegal, 0 crashes, 0 time losses, 0 missing bestmoves, 0 errors, echo OK,
-stop stress OK). A STOP file in --out (or --stop-file) ends the run cooperatively between games.
+stop stress OK). A STOP file in --out (or --stop-file) ends the run cooperatively between games (verdict PARTIAL,
+exit 2, when nothing failed before the stop; the stress part is skipped).
 
 usage: smoke.py <exe> --name <label> --opt Name=Value [--opt ...] --out <dir> [--expect-echo "Name=Value ..."]
                 [--games 200] [--tc 5+0.05] [--concurrency 3] [--seed 1] [--max-plies 400] [--book <pgn>]
@@ -381,6 +382,9 @@ def main():
     counts = {k: len(v) for k, v in stats.failures.items()}
     ok = (len(stats.games) == args.games and all(v == 0 for v in counts.values())
           and stress is not None and not stress["problems"])
+    # A run ended by the STOP file with no failure so far is PARTIAL (fewer games, no stress run), not FAIL.
+    clean = all(v == 0 for v in counts.values()) and (stress is None or not stress["problems"])
+    verdict = "PASS" if ok else ("PARTIAL" if stopped_early and clean else "FAIL")
     summary = {
         "name": args.name, "exe": args.exe, "exe_sha256": sha, "on_options": args.opt, "expect_echo": expect_echo,
         "tc": args.tc, "concurrency": args.concurrency, "threads_per_engine": 1, "hash_mb": 16, "own_book": False,
@@ -394,7 +398,7 @@ def main():
         "failure_counts": counts, "failures": stats.failures, "near_flags_under_20ms": stats.near_flags,
         "engine_restarts": getattr(stats, "restarts", 0), "stop_stress": stress,
         "started": started, "finished": vienna_now(), "games_wall_s": round(games_s, 1),
-        "stopped_early": stopped_early, "verdict": "PASS" if ok else "FAIL",
+        "stopped_early": stopped_early, "verdict": verdict,
     }
     with open(os.path.join(args.out, "summary.json"), "w", newline="\n") as f:
         json.dump(summary, f, indent=1)
@@ -402,7 +406,7 @@ def main():
           f"failures {counts} stop-stress "
           f"{'skipped' if stress is None else str(stress['completed']) + '/' + str(stress['iterations']) + ' problems ' + str(len(stress['problems']))} "
           f"avg plies {summary['avg_plies']} wall {games_s:.0f} s", flush=True)
-    sys.exit(0 if ok else 1)
+    sys.exit(0 if ok else (2 if verdict == "PARTIAL" else 1))
 
 
 main()
