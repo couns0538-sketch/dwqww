@@ -107,6 +107,9 @@ rows. Checkpoint every 30 min; stop when exact b0.6 <= target or 3 checkpoints w
 | 5 | 25,700 | 210.5M | 150 | **0.015326** | 0.007280 | 0.004663 | .0052 .0065 .0101 .0151 .0191 .0217 .0221 .0237 | +0.000909 | PASS 10000/10000, max 1.02 cp |
 | 6 | 30,851 | 252.7M | 180 | **0.015230** | 0.007227 | 0.004654 | .0051 .0064 .0100 .0149 .0190 .0217 .0219 .0236 | +0.000813 | PASS 10000/10000, max 1.02 cp |
 | 7 | 36,022 | 295.1M | 210 | **0.015156** | 0.007208 | 0.004690 | .0049 .0064 .0100 .0149 .0189 .0217 .0219 .0235 | +0.000739 | automatic check could not start the tool (Windows 0xC0000142 under load); re-run by hand: **10000/10000, 0 mismatches**, fast-vs-reference 0 (`logs/ck07_parity_rerun.log`) |
+| (pause) | 41,236 | 337.8M | 240 | 0.015054 | 0.007160 | 0.004696 | .0048 ... | +0.000637 | 10000/10000 (`logs/step41236_parity.log`) |
+| 8 | 46,582 | 381.6M | 270 | **0.015014** | 0.007164 | 0.004742 | .0047 .0062 .0099 .0147 .0187 .0214 .0218 .0233 | +0.000597 | PASS 10000/10000 |
+| 9 | 52,049 | 426.4M | 300 | **0.014950** | 0.007149 | 0.004778 | .0044 .0062 .0098 .0148 .0187 .0214 .0216 .0234 | +0.000533 | PASS 10000/10000 |
 | (next checkpoints: `status.json` in the run dir; `tools/nnue/fable_nnue_ckpt_table.py <run>` prints this table) | | | | | | | | | |
 
 Torch quick validation (200k rows, blend 0.6) on the way: 0.105583 (0) -> 0.017014 (14.7M) -> 0.016369 (29.6M).
@@ -299,6 +302,14 @@ Also found during the session and fixed/handled: the checkpoint-7 parity tool st
 are deterministic twins), and the J1 driver's relaunch after its 4-hour chunk failing with the same 0xC0000142
 from the stale shell (a fresh driver resumed the run from `ckpt.pt` at 21:00; it continues with the new
 `pause.flag` / `driver_stop.flag` support).
+
+### Run continuation (22:23-22:36 PST)
+To measure J5 at Threads 3 within the thread budget the training was paused with `pause.flag` (the new driver
+stopped cleanly after chunk 1 of the resumed run, step 55,616 = 455.6M positions). The old, broken driver loop was
+still relaunching the trainer into `train_j1` (each attempt failing at start), so the run was moved: `move_run.py`
+copied `ckpt.pt` (stop reason cleared) to `F:\opus_scratch\fable\fb2\train_j1b\` and wrote a stop reason into the old
+directory's `ckpt.pt`/`status.json`; the old driver then saw "run finished" and exited by itself (no process was
+killed). The training continues in `train_j1b` (checkpoints 10+ there; checkpoints 1-9 and the nets stay in `train_j1`).
 
 ### J1 state at the end of the session
 The 240-minute chunk 1 ended at step 41,236 (337.8M positions, 20:46 PST) just before checkpoint 8 was due; the
