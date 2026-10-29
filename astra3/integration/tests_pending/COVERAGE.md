@@ -27,7 +27,7 @@ The explicit whitelist is narrow and uses exact names:
 
 `NNUEFile`, bucket settings, feature settings and `PureNnue` receive compatible `.fnn2` fixtures. Their dependency options are set before `isready`, matching the engine's documented fail-closed loader. The expected active line includes those explicit dependencies. Returning the whole dependency group to defaults must remove the line.
 
-`SyzygyPath` is not a blanket whitelist entry. Its nondefault path is deliberately absent: the test requires a zero-table diagnostic and either omission from the active line or a `(failed)` marker. **Successful real table loading remains UNVERIFIED**, because no tablebase files are supplied. An absent NNUE file must fail closed with the existing exit code 2 and an explicit error; it must never appear successfully active or silently search fallback. `(failed)` suffixes are accepted with or without a separating space.
+`SyzygyPath` is not a blanket whitelist entry. Its nondefault path is deliberately absent: the test requires a zero-table diagnostic and either omission from the active line or a `(failed)` marker. **Successful real table loading remains UNVERIFIED**, because no tablebase files are supplied. An absent NNUE file must fail closed with the existing exit code 2 and an explicit error; it must never appear successfully active or silently search fallback. A second missing-net case sets `UseNNUE=false`, which legitimately bypasses the fail-closed check and reaches the echo: the unloaded file must still be omitted or marked `(failed)`. This catches the historical unconditional path append. `(failed)` suffixes are accepted with or without a separating space.
 
 ## Preset/diagnostic coverage
 

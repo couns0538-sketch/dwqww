@@ -320,12 +320,14 @@ class Suite:
         return engine
 
     def active(self, lines) -> dict[str, str]:
-        records = [line[len('info string active: '):] for line in lines
-                   if line.startswith('info string active: ')]
-        require(len(records) <= 1, 'more than one active line in one search: ' + repr(records))
-        if not records:
+        active_lines = [line for line in lines if line.startswith('info string active:')]
+        require(len(active_lines) <= 1, 'more than one active line in one search: ' + repr(active_lines))
+        if not active_lines:
             return {}
-        text = records[0]
+        line = active_lines[0]
+        require(line.startswith('info string active: ') and line[len('info string active: '):].strip(),
+                'empty or malformed active line: ' + repr(line))
+        text = line[len('info string active: '):]
         pattern = re.compile(r'(?<!\S)(' + '|'.join(re.escape(x) for x in
                              sorted(self.options, key=len, reverse=True)) + r')=')
         matches = list(pattern.finditer(text))
@@ -463,6 +465,10 @@ class Suite:
             # zero. Turn the exclusion partner off before switching CorrHistV2.
             engine.option('BundlePreset', 'N1' if name == 'SingularV2' else 'B1')
             if name == 'CorrHistV2':
+                refused = engine.option(name, 'true')
+                require(any('CorrHistV2 refused' in x for x in refused), 'exclusive owned change not refused')
+                require(not self.overrides(refused), 'refused owned value reported override')
+                self.expected_active(engine, PRESETS['B1'])
                 engine.option('CorrHistPlus', '0')
             values = {'CorrHistPlus': '4', 'HistRework': '3', 'CuckooRep': 'false',
                       'CorrHistV2': 'true', 'LmrTableV2': 'true', 'TtPruneV2': 'false',
@@ -552,6 +558,23 @@ class Suite:
                 'unloaded NNUEFile appeared active without (failed): ' + repr(active))
         require(not any(x.startswith('bestmove ') for x in out), 'unusable net silently searched fallback')
 
+    def nnue_disabled_failed_path(self):
+        engine = self.engine()
+        engine.option('UseNNUE', 'false')
+        path = self.run_dir / 'definitely absent disabled net.fnn2'
+        require(not path.exists(), 'negative NNUE fixture unexpectedly exists')
+        engine.option('NNUEFile', str(path))
+        active = self.active(engine.short_search())
+        require(active.get('UseNNUE') == 'false', 'disabled network must remain explicit')
+        remaining = {name: value for name, value in active.items() if name != 'UseNNUE'}
+        require(remaining == {} or (set(remaining) == {'NNUEFile'} and
+                remaining['NNUEFile'].startswith(str(path)) and
+                remaining['NNUEFile'][len(str(path)):].strip() == '(failed)'),
+                'disabled missing net appeared successfully loaded: ' + repr(active))
+        engine.option('NNUEFile', '<empty>')
+        engine.option('UseNNUE', 'true')
+        self.expected_active(engine, {})
+
     def finish(self):
         unchanged = sha256(self.args.engine) == self.binary_sha
         if not unchanged:
@@ -603,6 +626,7 @@ def main():
         suite.run_case('preset-warnings-refusals-and-tt-noop-attribution', suite.attribution_and_warnings)
         suite.run_case('syzygy-missing-path-truth', suite.syzygy_failed_path)
         suite.run_case('nnue-missing-path-fails-closed', suite.nnue_failed_path)
+        suite.run_case('nnue-disabled-missing-path-truth', suite.nnue_disabled_failed_path)
     except KeyboardInterrupt:
         suite.cases.append({'case': 'interrupted', 'status': 'FAIL', 'errors': ['KeyboardInterrupt; raw logs retained']})
     return suite.finish()

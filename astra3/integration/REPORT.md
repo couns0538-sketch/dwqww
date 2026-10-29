@@ -61,3 +61,17 @@ A small proposed update to the existing validate-chess-engine skill is preserved
 ## M3: B4 merge — 2026-10-29 00:34:28 PDT
 
 WIP. `git merge --no-ff --no-commit d35d41fbe217bc00cedf642dd22aafcd895b53f2`. Engine/CMake merged automatically; IDEA_SOURCE and historical NOTES resolved as a union. B4's existing complete metadata and override diagnostics retained for this milestone. The R3 owned-only override policy, new-handler observer routing and R5A echo integration are still pending, with new tests under tests_pending not yet run. Full build, identity and CTest started.
+
+### M3 qualification — 2026-10-29 00:41:54 PDT
+
+Source `8c10a4cbd6b21caf66ce8071c6bca8b9e17106b1`; exe SHA256 `db50cb6c9130d018054852bc552c8a8b38ad8ea344292962053e3baccdba9cdf`. Complete Release build succeeded. Full CTest 60/61, raw exit 8; failures: [['forge_tests', 'Failed']]. Original diagnostics: ['FAIL: WAC 001 expected g3g6 got f6h5', 'FAIL: WAC 001 score 623 below 31997', 'FAIL: unrestricted search chooses the winning rook underpromotion over stalemating queen promotion', 'FAIL: unrestricted search chooses the winning rook underpromotion over stalemating queen promotion']. Startpos perft5=4865609; kiwipete5=193690690; whole-binary FMA=0.
+
+| Depth | OFF nodes | ms | NPS |
+|---:|---:|---:|---:|
+| 11 | 312866 | 446 | 701493 |
+| 13 | 862329 | 1470 | 586618 |
+| 16 | 3024920 | 4317 | 700699 |
+| 20 | 12389307 | 17704 | 699802 |
+| 22 | 34048354 | 34382 | 990295 |
+
+Exact commands (same configured rule5 build): `cmake --build /tmp/forge-astra3-build-integration -j4`; `python3 astra3/integration/tools/identity_bench.py /tmp/forge-astra3-build-integration/forge astra3/integration/M3/pins`; `python3 astra3/integration/tools/run_full_ctest.py /tmp/forge-astra3-build-integration astra3/integration/M3/ctest`; `python3 astra3/integration/tools/check_milestone.py /tmp/forge-astra3-build-integration/forge astra3/integration/M3 --source 8c10a4cbd6b21caf66ce8071c6bca8b9e17106b1`. Flags, raw output, original executable and receipt retained in M3. These timings make no speed or Elo claim. Full integrated ON matrix/SAN/TSan remains pending until the final A1 head.
