@@ -156,7 +156,85 @@ Fix tree checks (PC, BelowNormal, <= 3 threads):
 | full CTest on a 3-CPU mask (forge_tests apart) | **63 / 63 passed** | `logs/ctest_bkm.log` |
 | forge_tests | only the 4 known FAIL lines: KNOWN-FAILURE CHECK PASS | `logs/ctest_forge_tests_bkm.log`, `logs/chain_tools.out` |
 
-## 4. Proof (running; partial rows at 10:52 Vienna in `logs/proof_partial_1052.tsv`: fix 0 misses in 40,000 KRK runs, base 180 in 8,000)
+## 4. Proof
+
+`tools/r5d_proof.py` on a 3-CPU affinity mask (`tools/run_pinned.py --mask 0x700`; Threads 4 = 4 search threads on
+3 CPUs), 10:44-10:57 Vienna, BelowNormal. Fix = the BKM tree (`F:\opus_scratch\r5\r5d\test\repro_fix2.exe`,
+`cmake_bkm\forge_tt_mate_tb_tests.exe`), base = 5eabdb7 with the same harness sources (`repro_base2.exe`,
+`tt_mate_tb_tests_base.exe`). Rows: `logs/proof.tsv`; child logs `logs/proof_*.log` (the eight test-loop logs and
+the two warm-TT logs, 4.3 MB, stay in scratch `proof/logs/`: sha256 in `logs/proof_big_logs.sha256`; their FAIL
+lines in `logs/proof_tt_base_fail_lines.txt` and `logs/proof_warm_fail_lines.txt`).
+
+Job targets: **0 failures in 40,000 KRK runs** (10,000 per Threads 2 / 4 x SmpV2 off / on; target >= 6000) and
+**0 failed runs in 800 test runs** (200 per configuration; target >= 200), plus 0 in 4,000 SmpBestThread runs,
+18,000 depth-sweep runs (depth 10-18) and 480 warm-TT runs at Threads 2 / 4. Every one of these multi-thread runs of
+the fix reported exactly mate in 3 (the test loop: no longer-mate INFO line either).
+
+KRK mate in 3, fresh Searcher per run, go depth 14 (misses / runs; exact = runs reporting exactly mate in 3):
+
+| Threads | SmpV2 | base 5eabdb7 | fix BKM |
+|---|---|---|---|
+| 2 | off | 72 / 2000 (3.60 %), exact 1762 | **0 / 10000 (0.00 %), exact 10000** |
+| 2 | on | 63 / 2000 (3.15 %), exact 1757 | **0 / 10000 (0.00 %), exact 10000** |
+| 4 | off | 28 / 2000 (1.40 %), exact 1890 | **0 / 10000 (0.00 %), exact 10000** |
+| 4 | on | 17 / 2000 (0.85 %), exact 1894 | **0 / 10000 (0.00 %), exact 10000** |
+
+fix total: 0 misses in 40000 runs
+
+SmpBestThread (SmpV2 off), depth 14:
+
+| Threads | base | fix |
+|---|---|---|
+| 2 | 39 / 1000 (3.90 %), exact 865 | **0 / 2000 (0.00 %), exact 2000** |
+| 4 | 15 / 1000 (1.50 %), exact 945 | **0 / 2000 (0.00 %), exact 2000** |
+
+Depth sweep, fix only (misses / runs per depth; all four Threads 2/4 x SmpV2 configurations):
+
+| depth | Threads 2 off | Threads 2 on | Threads 4 off | Threads 4 on |
+|---|---|---|---|---|
+| 10 | 0 / 500 (exact 500) | 0 / 500 (exact 500) | 0 / 500 (exact 500) | 0 / 500 (exact 500) |
+| 11 | 0 / 500 (exact 500) | 0 / 500 (exact 500) | 0 / 500 (exact 500) | 0 / 500 (exact 500) |
+| 12 | 0 / 500 (exact 500) | 0 / 500 (exact 500) | 0 / 500 (exact 500) | 0 / 500 (exact 500) |
+| 13 | 0 / 500 (exact 500) | 0 / 500 (exact 500) | 0 / 500 (exact 500) | 0 / 500 (exact 500) |
+| 14 | 0 / 500 (exact 500) | 0 / 500 (exact 500) | 0 / 500 (exact 500) | 0 / 500 (exact 500) |
+| 15 | 0 / 500 (exact 500) | 0 / 500 (exact 500) | 0 / 500 (exact 500) | 0 / 500 (exact 500) |
+| 16 | 0 / 500 (exact 500) | 0 / 500 (exact 500) | 0 / 500 (exact 500) | 0 / 500 (exact 500) |
+| 17 | 0 / 500 (exact 500) | 0 / 500 (exact 500) | 0 / 500 (exact 500) | 0 / 500 (exact 500) |
+| 18 | 0 / 500 (exact 500) | 0 / 500 (exact 500) | 0 / 500 (exact 500) | 0 / 500 (exact 500) |
+
+sweep total: 0 misses in 18000 runs
+
+Warm TT: an unrelated depth-9 search first (prefill40 openings), then KRK depth 14 on the same Searcher:
+
+| tree | Threads | SmpV2 | misses / runs | note |
+|---|---|---|---|---|
+| fix | 1 | off | 6 / 40 (15.00 %), exact 29 | 40 FENs x 1 |
+| base | 1 | off | 6 / 40 (15.00 %), exact 29 | 40 FENs x 1 |
+| fix | 2 | off | 0 / 120 (0.00 %), exact 120 | 40 FENs x 3 |
+| fix | 2 | on | 0 / 120 (0.00 %), exact 120 | 40 FENs x 3 |
+| fix | 4 | off | 0 / 120 (0.00 %), exact 120 | 40 FENs x 3 |
+| fix | 4 | on | 0 / 120 (0.00 %), exact 120 | 40 FENs x 3 |
+| base | 2 | off | 5 / 120 (4.17 %), exact 109 | 40 FENs x 3 |
+
+forge_tt_mate_tb_tests runs (a run fails when the test exits non-zero; its Threads block via FORGE_TT_MATE_*):
+
+| Threads | SmpV2 | base: failed runs | fix: failed runs |
+|---|---|---|---|
+| 2 | off | 2 / 200 (INFO longer-mate lines 9) | **0 / 200 (INFO longer-mate lines 0)** |
+| 2 | on | 5 / 200 (INFO longer-mate lines 20) | **0 / 200 (INFO longer-mate lines 0)** |
+| 4 | off | 0 / 200 (INFO longer-mate lines 16) | **0 / 200 (INFO longer-mate lines 0)** |
+| 4 | on | 1 / 200 (INFO longer-mate lines 14) | **0 / 200 (INFO longer-mate lines 0)** |
+
+Notes:
+- Base failures are the job's symptom exactly: every failed test run printed `cp 438..475` with `e8e4`
+  (`logs/proof_tt_base_fail_lines.txt`); the base also reports longer mates in 9-20 of 200 test runs per
+  configuration (the R3-5 INFO line), the fix in none.
+- Threads 1 rows are identical on both trees (6 of 40, the same positions): by the job rule the one-thread tree is
+  the lock tree; see section 3 for that case.
+- The job text quotes 0 of 6000 KRK misses with SmpV2 off and 13 of 6000 with it on (base b7c1772). With this
+  harness (fresh Searcher, `go depth 14`, base 5eabdb7) SmpV2 off misses as often as on; the setup behind the
+  quoted numbers is not in the repository, so the two are not directly comparable. The UCI loop below measures
+  the shipped exes end to end.
 
 ## 5. CI test
 

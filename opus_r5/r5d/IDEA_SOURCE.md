@@ -12,3 +12,5 @@ Every implementation here is my own code; sources are where the ideas come from.
 | the fix: no quiet-move pruning and no LMR at nodes facing a bare king (mating mode), only in multi-worker searches | own design; the multi-worker gate exists only to keep the one-thread tree (bench pins) identical, as the job requires |
 | CI regression test with a planted-bug control (the base tree must fail it) | Forge job practice (`forge-engine-verify` skill, section 4) |
 | Threads 2 smoke runner | own R5C runner (`opus_r5/r5c/smoke_n3.py`, branch opus-r5c-netv4) with a `--threads` option and the FEN-legality fix of its stop stress |
+| the job's suspect order (TT ply adjustment / races, best-thread selection, helper depth+1 / aborted iterations, aspiration bounds, SmpV2 merge, TB / mate-distance pruning) and one experiment or code reading per suspect (NOASP, NOMDP: `diag/make_asp_mdp.py`) | job spec R5D step 2 (the order); the experiments are my own |
+| end-to-end UCI loop on the shipped exes (`tools/uci_krk_loop.py`) | own; same pass/fail rule as the repro harness, read from the `score mate N` of the last info line |
