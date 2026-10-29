@@ -215,3 +215,9 @@ A test-only A2 reproduction harness is being prepared in a new isolated astra3-s
 The unchanged TSan native SMP replay passes133 checks in529.42s. Combined selected coverage is now9/9 passing targets across the original run and the single longer-deadline replay, with the initial300s timeout retained; no race diagnostics. ASan/UBSan OFF d11/13/16/20 now match312866/862329/3024920/12389307; d22 is still running. These instrumented timings are not performance comparison evidence. TSan OFF identities follow serially.
 
 Checkpoint cadence note: the09:05–09:21UTC interval exceeded the requested10 minutes; source and original results were preserved and pushed. Subsequent checkpoints resumed. A2 preparation has its own pushed branch; its first test-only driver compile checks the unchanged A1 source/ABI before linking the Release archive. No A2 root cause or fix has been demonstrated.
+
+### Budget-aware final review start — 2026-10-29T02:54:15.116394-07:00
+
+ASan/UBSan all five OFF pins now PASS: 312866 / 862329 / 3024920 / 12389307 / 34048354; startpos perft5=4865609. Full sanitized CTest remains64/65 with only the four preserved known functional failures and zero sanitizer diagnostics. Kiwipete/FMA receipt follows. TSan selected coverage is9/9 after the unchanged longer-deadline SMP replay; its deep OFF identity remains pending. A2 serial native evidence is published on its isolated branch, with no engine fix claimed.
+
+The requested final20-minute review starts at this timestamp. Scope: source and evidence consistency, sanitizer coverage, report corrections, bounded A2 score-only intervention. No new jobs will start with the user-reported23% usage remaining. Previous checkpoint interval again exceeded10 minutes; the original results were retained.
