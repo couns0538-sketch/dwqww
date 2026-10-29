@@ -149,7 +149,8 @@ isready barriers), 500 games per option and all-on, one at a time on one thread 
 | CorrHistV2 | 500/500 | 59,794 | **0** (`logs/selfplay/CorrHistV2.summary.json`) |
 | SingularV2 | 500/500 | 59,218 | **0** (`logs/selfplay/SingularV2.summary.json`) |
 | LmrTableV2 | 500/500 | 60,105 | **0** (`logs/selfplay/LmrTableV2.summary.json`) |
-| TtPruneV2, all four | running in this order | | |
+| TtPruneV2 | 500/500 | 58,640 | **0** (`logs/selfplay/TtPruneV2.summary.json`) |
+| all four on | running | | |
 
 Gate entries: `fable_fb2/j3/GATE_ENTRY.md` (one per option vs all-off, design 1 of GATE_BOUNDS.md).
 
@@ -203,8 +204,18 @@ checkpoint boundary).
 Trainer-only prototypes on top of the J1 trainer: `--l2 N` (second layer 2H -> N -> 1), `--pairwise` (us*them
 interaction term), `--float-exact` (float holdout metric so prototypes without a v3 file compare with the baseline),
 plus the existing `--hidden 1024` and `--king-buckets 16`. Smoke-tested (prototype checkpoints as `.pt`, float
-score + per-phase breakdown, `logs/smoke_*`). Protocol in `fable_fb2/j7/README.md` (30 minutes per run, same
-data/seed/schedules); the runs start when a CPU thread is free (after the J1 finishing chain).
+score + per-phase breakdown, `logs/smoke_*`). Protocol in `fable_fb2/j7/README.md` (30 minutes per run on one
+thread, same data/seed/batch/LR/WDL schedules as J1, float holdout b0.6 on the 200k FB2 holdout at 10/20/30 min).
+
+| run | 10 min | 20 min | 30 min (positions seen) |
+|---|---|---|---|
+| baseline H512 / 8 king buckets | 0.017107 (14.0M) | 0.016408 (27.5M) | **0.016088** (41.3M) |
+| H1024 / 8 | running | | |
+| H512 / 16 king buckets | queued | | |
+| H512 / 8 + second layer 16 | queued | | |
+| H512 / 8 + pairwise term | queued | | |
+
+(The J1 run's exact score at 43.5M positions was 0.016094: the float metric and the integer file agree to 1e-5.)
 
 ## Next steps for the next model
 1. J1: watch `F:\opus_scratch\fable\fb2\train_j1\status.json`; the driver resumes after a crash; restart by hand with
