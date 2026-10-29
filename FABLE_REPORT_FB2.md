@@ -4,16 +4,17 @@ Base of every `fable-fb2-*` branch: `fable-nnue-arch` head `08b589e1` (= AL1 loc
 NNUE v3 engine/trainer). No Elo claims anywhere (no gate was run); no speed claims (loaded PC: gates, self-play and
 production NNUE training ran throughout; my work at `nice -n 19`, one training thread). Machine exclusive: no.
 No sub-agents were used (user instruction); nothing under `F:\forge_nnue_train`, `selfplay_out` or `forge_push` was
-written; all outputs are under `F:\opus_scratch\fable\`.
+written; all outputs are under `F:\opus_scratch\fable\`. Order after the user's request "shorter jobs first": J2,
+J3, J4, J6 were finished/advanced while J1 trains; J5 and J7 come last.
 
 | job | branch | status |
 |---|---|---|
-| J1 real v3 net at scale | `fable-fb2-j1` | data split DONE, trainer upgrade DONE, training RUNNING (checkpoints every 30 min) |
-| J2 datagen upgrade | `fable-fb2-j2` | not started |
-| J3 search improvements | `fable-fb2-j3` | not started |
-| J4 time management v2 | `fable-fb2-j4` | not started |
+| J1 real v3 net at scale | `fable-fb2-j1` | data split DONE, trainer DONE, training RUNNING (ckpt 1: 0.016094 vs AL1 0.014417); exe/NPS/sanity games pending |
+| J2 datagen upgrade | `fable-fb2-j2` | **DONE** (engine mode, FGB1 format, converter, exact round-trip tests, 10-min smoke) |
+| J3 search improvements | `fable-fb2-j3` | code + tests + fit DONE, identity ALL OK; 500-game self-play per option RUNNING; gate entries written |
+| J4 time management v2 | `fable-fb2-j4` | code + simulator DONE (2000 games x 2 TCs x 3 scenarios, 0 flag losses), identity ALL OK, 100 real games at 1+0.01 PASS; more games RUNNING |
 | J5 SMP v2 | `fable-fb2-j5` | not started |
-| J6 gate design | (file) `F:\opus_scratch\fable\GATE_BOUNDS.md` | not started |
+| J6 gate design | `F:\opus_scratch\fable\GATE_BOUNDS.md` (copy `fable_fb2/j6/`) | **DONE** (proposal only) |
 | J7 NNUE v4 ideas | `fable-fb2-j7` | not started |
 
 ## J1 — real v3 net, trained at scale (`fable-fb2-j1`, folder `fable_fb2/j1/`)
@@ -45,9 +46,9 @@ positions neither has seen; the rest of 013/014 is used nowhere (other plies of 
 | HCE alone | 0.017141 | 0.008421 | 0.005131 |
 | **AL1 lock net e32f003rec** (`src/nnue_weights.inc`, md5 f5f6a34a) | **0.014417** | 0.006808 | 0.004629 |
 
-(The run's `--target-loss` was set to 0.014310, the AL1 value on the full 1M-row S16 subset, before this number
-existed; it is stricter than 0.014417, so a net that reaches 0.014417 keeps training, which is harmless. The report
-compares every checkpoint with 0.014417.)
+(The run's `--target-loss` is 0.014310, the AL1 value on the full 1M-row S16 subset, set before this number
+existed; it is stricter than 0.014417, so a net reaching 0.014417 keeps training, which is harmless. The table
+below compares with 0.014417.)
 
 ### Trainer upgrade (DONE; `tools/nnue/fable_nnue_train.py`, driver `tools/nnue/fable_nnue_chunks.py`)
 
@@ -64,25 +65,98 @@ step/seen/schedules/checkpoint numbering, stop at the horizon.
 ### Training run (RUNNING; `F:\opus_scratch\fable\fb2\train_j1\`, log copy `fable_fb2/j1/logs/train_j1_log.txt`)
 
 Standalone (non-residual) H512, 8 mirrored king buckets, 8 output buckets, factoriser, QAT int16 (FB1 M3), batch
-8192, Adam, LR 1e-3 cosine to 5e-5 over 93,000 steps (762M positions, about 10 h at the measured 22.6k positions/s on
-one thread), warmup 500 steps, WDL lambda 0.9 -> 0.6 linear, shards sampled proportional to rows, buffer 8 x 250k rows.
-Checkpoint every 30 min; stop when exact b0.6 <= target or 3 checkpoints without improvement. Chunks of 240 min.
+8192, Adam, LR 1e-3 cosine to 5e-5 over 93,000 steps (762M positions, about 8.7 h at the measured 24.2k positions/s
+on one thread), warmup 500 steps, WDL lambda 0.9 -> 0.6 linear, shards sampled proportional to rows, buffer 8 x 250k
+rows. Checkpoint every 30 min; stop when exact b0.6 <= target or 3 checkpoints without improvement. Chunks of 240 min
+(driver `fable_nnue_chunks.py`; started 16:36 PC time).
 
-| ckpt | step | positions | train min | exact b0.6 | b0.8 | b1.0 | vs AL1 0.014417 | parity 10k |
-|---|---|---|---|---|---|---|---|---|
-| (filled in as checkpoints arrive; see `status.json`) | | | | | | | | |
+| ckpt | step | positions | train min | exact b0.6 | b0.8 | b1.0 | per-phase b0.6 (few pieces -> many) | vs AL1 0.014417 | parity 10k |
+|---|---|---|---|---|---|---|---|---|---|
+| 1 | 5,307 | 43.5M | 30 | **0.016094** | 0.007836 | 0.005008 | .0067 .0074 .0109 .0161 .0200 .0222 .0226 .0241 | +0.001677 (HCE is 0.017141) | PASS 10000/10000, max 1.02 cp |
+| (next checkpoints: `status.json` in the run dir) | | | | | | | | | |
+
+Torch quick validation (200k rows, blend 0.6) on the way: 0.105583 (0) -> 0.017014 (14.7M) -> 0.016369 (29.6M).
 
 ### Left for J1
 Build `forge_fable_v3.exe` (box recipe, OFF identity pins), NPS vs AL1 with the best net, 200 fast sanity games vs
-AL1 (crash / illegal-move check only). Done after the training stops.
+AL1 (crash / illegal-move check only) — scheduled as soon as a CPU thread frees up (the three-thread budget is
+taken by the training, the J3 self-play and the J4 games); they use `best.fnn3` of the latest checkpoint and are
+repeated with the final net if the session allows.
 
-## J2-J7
-Not started yet (in order after J1's training is running).
+## J2 — self-play datagen v2 (`fable-fb2-j2`, folder `fable_fb2/j2/`) — DONE
+
+- Engine: UCI command `datagen ...` (`include/forge/datagen2.hpp`, `src/datagen2.cpp`, hook in `src/uci.cpp`; the
+  normal paths are untouched: box exe OFF identity `ALL OK`, 0 warnings, FMA 0; `fable_fb2/j2/logs/identity_off_j2.log`).
+  FGB1 compact game format (start FEN + 5 bytes per ply: move, score, flags; FNV-1a trailer), opening diversity
+  (jittered random plies, softmax-sampled plies from per-move shallow searches, evaluation cap with redraw, FEN/EPD
+  book), win and draw adjudication, filters (in check, capture/promotion within the first k PV moves, mate scores,
+  score cap, min ply, random subsampling, optional gives-check), deterministic per-game seeds (same seed = same
+  bytes), direct FPOS/FHCE output (`--pos`) and text, JSON summary; `datagen convert <fgb> <prefix>` replays the games
+  with the engine's Board and recomputes the HCE labels.
+- Tests: `forge_datagen2_tests` (CTest; 2147 checks, 0 failures: 153-move encoding round trip incl. castling /
+  promotions / en passant, serialisation + corruption detection, 4 played games with flag/rule consistency, same
+  seed byte-identical, direct == converter files) and the independent python-chess decoder
+  `tools/nnue/fable_datagen_decode.py` (rows rebuilt without the engine == engine rows, byte for byte). Full CTest
+  15/15 (`logs/ctest_j2.log`), CI run on the push.
+- 10-minute smoke (box exe, 5000 nodes, 1 thread, `F:\opus_scratch\fable\datagen\smoke_j2.*`): **1,758 games,
+  263,270 plies, 246,243 searched, 115,862 records** (filters: 24,227 in check, 64,581 noisy PV, 1,794 mate, 1,818
+  score cap, 11,101 early, 38,790 subsampled), 395 opening redraws, 1,758 distinct post-opening positions, results
+  495/723/540 (B/D/W), terminations adj_win 1016, adj_draw 353, repetition 147, fifty 102, max_ply 69, insufficient
+  51, checkmate 19, stalemate 1; 1.26 G nodes. **Direct .pos/.hce == converted .pos/.hce (sha256 equal), python-chess
+  decoder: 115,862 rows equal, 0 replay problems.** Compact file 1.43 MB vs 4.29 MB FPOS+FHCE (5 bytes per ply incl.
+  the unkept plies vs 37 bytes per record). Evidence `fable_fb2/j2/logs/`.
+
+## J3 — search improvements behind options (`fable-fb2-j3`, folder `fable_fb2/j3/`) — code DONE, self-play RUNNING
+
+Four UCI check options, default false; all off = lock (box exe `forge_fable_j3.exe` OFF identity `ALL OK`, 0
+warnings, FMA 0). `IDEA_SOURCE.md` lists the ideas (Stockfish-family techniques, own fitting method); no code copied.
+
+| option | content |
+|---|---|
+| `CorrHistV2` | continuation (1- and 2-ply) correction history on top of the pawn/material corrections |
+| `SingularV2` | triple extensions (non-PV, margin 80, budget 4, no TT capture), PV double extensions (margin 60, budget 3), multicut when the singular search fails high, negative extensions -3 / -2 |
+| `LmrTableV2` | logistic model of P(reduced search raises alpha) fitted on **1,268,077 LMR decisions of bench 16** (quiet 1,098,387 rows, raise rate 4.1%, pseudo-R2 0.193; noisy 169,690, 2.9%, 0.342; calibrated deciles in `logs/lmr_fit_bench16.log`); reduction = lock table + 0.75 ply per sd of the fitted log-odds, continuous history term |
+| `TtPruneV2` | TT move exempt from futility/history/SEE pruning, IIR at cut nodes whose TT move carries an upper bound, opponent-worsening RFP margin, improving in quiet futility and history pruning |
+
+Tests: `forge_fb2_j3_tests` (CTest; 121 checks, 0 failures: every option changes all 6 depth-10 trees and restores
+the exact node counts when switched off; CorrHistV2 arithmetic through a friend probe incl. saturation and null/root
+keys; LmrTableV2 bounds/monotonicity; mates found and 25 random positions sane with all options on). Full CTest 15/15.
+Self-play: `opus_selfplay_check.py` (R3-1 checker, python-chess legality, mixed go modes) 500 games per option and
+all-on, running (first option 250/500 games, 0 errors so far). Gate entries: `fable_fb2/j3/GATE_ENTRY.md`.
+
+## J4 — time management v2 (`fable-fb2-j4`, folder `fable_fb2/j4/`) — code DONE, games RUNNING
+
+`TimeManV2` (default false; off = lock, box exe OFF identity `ALL OK`): node-based soft budget at the measured
+speed, scaled by the lock's stability / effort / score-drop factors, next-iteration prediction (EBF of the last two
+iterations), in-search soft node limit (budget x 130%), adaptive clock reads near the hard deadline (64..1024 nodes)
+in search and quiescence. Pure decision code in `include/forge/timeman.hpp`, shared with the simulator.
+
+| harness | result |
+|---|---|
+| `forge_timeman_sim 2000` (CTest): 2000 games x {1+0.01, 10+0.1} x {lock v1, v2}, 1 ms latency, Move Overhead 10 | **0 flag losses** for both; moves beyond the hard deadline 18,622 (v1) vs 4,885 (v2) at 1+0.01, 12,816 vs 0 at 10+0.1; max overshoot 2.6 ms (v1) vs 1.3 ms (v2); used/soft 1.47 vs 1.17 (v1 runs its last iteration to the hard limit) |
+| same with 5 ms scheduler stalls on 5% of moves | 0 flag losses; max overshoot 6.8 / 6.0 ms (the stall itself) |
+| same at 300 nodes/ms (sanitizer-like speed) | 0 flag losses; max overshoot 9.4 ms (v1) vs 2.5 ms (v2, adaptive reads) |
+| real games over UCI (`fable_timeman_games.py`), 100 games at 1+0.01, TimeManV2 both sides | **PASS: 0 flag losses** (`logs/games_1s_v2.json`) |
+| 100 games at 1+0.01 lock, 20 games at 10+0.1 v2 | running |
+
+## J6 — gate design (`F:\opus_scratch\fable\GATE_BOUNDS.md`, copy in `fable_fb2/j6/`) — DONE (proposal only)
+
+Key facts: 970 games/h; at the PC's 77% draw rate 1 Elo = 2.16 nElo, so [0,10] nElo is [0, 4.6] Elo; the expected
+games to decide at elo1 are 2 x 2.944 x 0.9 / (0.002878 x nElo1)^2 = 25,600 ([0,5]), 6,400 ([0,10]), 2,850 ([0,15]);
+the 1500-game cap decides nothing below about +13 Elo (simulation of 10 designs x 8 true Elos, the normal GSPRT that
+reproduces gate38's printed LLR 1.11). Recommendation: search features [0,10] cap 6000 (P(H1) 0.96 at +8, 0.61 at
++5, false accept 3%), speed changes = quiet-runner NPS + non-regression [-10,0] cap 3000, nets = holdout first then
+[0,20] cap 1500 screen. Ranking by expected Elo per gate hour under stated priors: J1 net (wide prior; only after it
+beats AL1), CorrHistV2, LmrTableV2, TtPruneV2, SingularV2, R3 search changes, TimeManV2, then the speed switches
+(not worth an Elo gate). Simulator `fable_fb2/j6/gate_bounds_sim.py`, tables `gate_bounds_tables.md`.
 
 ## Next steps for the next model
-1. If the training is still running: `status.json` and `chunks_log.txt` in `F:\opus_scratch\fable\fb2\train_j1\` show
-   the state; the driver resumes automatically after a crash; to restart by hand use the command in
-   `fable_fb2/j1/README.md` with `--resume F:/opus_scratch/fable/fb2/train_j1/ckpt.pt`.
-2. The best net is `best.fnn3` in the run dir; score it on the full 1M-row subset with
-   `fable_nnue_train.py score --net best.fnn3 --pos F:/opus_scratch/sol_S31/inputs/prod/holdout_013_014_s16.pos --hce ...hce --phases`
-   and compare with AL1's 0.014310.
+1. J1: watch `F:\opus_scratch\fable\fb2\train_j1\status.json`; the driver resumes after a crash; restart by hand with
+   the command in `fable_fb2/j1/README.md` plus `--resume <run>/ckpt.pt`. When it stops: build the exe
+   (`FORGE_EXTRA_SRCS="src/nnue_v3.cpp src/search_v3.cpp" build_pc.sh ... forge_fable_v3.exe`), identity, NPS
+   (`fable_nnue_nps.py <exe> best.fnn3 3 16 20`), 200 games vs AL1 (`tools/timeman/fable_timeman_games.py` with
+   `--opt-white NNUEArch=true --opt-white NNUEArchFile=<best.fnn3>`, then colours swapped), score `best.fnn3` on the
+   full 1M-row subset and compare with 0.014310.
+2. J3: read `fable_fb2/j3/logs/selfplay_*` when the runs finish (0 errors expected), record them in the report.
+3. J4: record `games_1s_v1.json` and `games_10s_v2.json`.
+4. J5 and J7 as specified in the brief.
