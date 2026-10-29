@@ -1,4 +1,4 @@
-# FABLE_REPORT_FB2.md — pack FB2 (Fable 5.1, 2026-10-28) — J2, J3, J4, J6, J7 DONE; J5 DONE except the Threads-3 timing; J1 training still running (UNPROVEN, no gate)
+# FABLE_REPORT_FB2.md — pack FB2 (Fable 5.1, 2026-10-28) — J2-J7 DONE; J1 training still running (UNPROVEN, no gate)
 
 Base of every `fable-fb2-*` branch: `fable-nnue-arch` head `08b589e1` (= AL1 lock `d4f4312` + CI baseline + the FB1
 NNUE v3 engine/trainer). No Elo claims anywhere (no gate was run); no speed claims (loaded PC: gates, self-play and
@@ -13,7 +13,7 @@ J3, J4, J6 were finished/advanced while J1 trains; J5 and J7 come last.
 | J2 datagen upgrade | `fable-fb2-j2` | **DONE** (engine mode, FGB1 format, converter, exact round-trip tests, 10-min smoke) |
 | J3 search improvements | `fable-fb2-j3` | **DONE**: four options, unit tests 121/0, identity ALL OK, CI green, 2,500 self-play games 0 errors, LMR fit, gate entries |
 | J4 time management v2 | `fable-fb2-j4` | **DONE**: simulator (2000 games x 2 TCs x 3 scenarios, 0 flag losses), identity ALL OK, CI green, 220 real-clock games 0 flag losses |
-| J5 SMP v2 | `fable-fb2-j5` | code DONE, unit tests 97/0, ctest 15/15, box exe identity ALL OK, pushed (CI incl. the SmpV2 TSan hook); the 1/2/3-thread time-to-depth measurement waits for free CPU threads |
+| J5 SMP v2 | `fable-fb2-j5` | **DONE**: code, unit tests 97/0, ctest 15/15, identity ALL OK, CI incl. the SmpV2 TSan hook green, time-to-depth at 1/2/3 threads measured (not distinguishable from the lock with one repetition) |
 | J6 gate design | `F:\opus_scratch\fable\GATE_BOUNDS.md` (copy `fable_fb2/j6/`) | **DONE** (proposal only) |
 | J7 NNUE v4 ideas | `fable-fb2-j7` | trainer prototypes written and smoke-tested (`--l2`, `--pairwise`, `--float-exact`); the 30-minute comparison runs wait for a free CPU thread |
 
@@ -246,14 +246,21 @@ loaded PC: the J1 training and a gate ran alongside, so wall numbers are advisor
 | off (lock) | 2 | 94.1 | 1.09 | 1.17 | 1.64 | 3.125 | 1.92 | 1.75 |
 | SmpV2 | 1 | 101.9 | 1.00 | 1.00 | 1.00 | 1.632 | 1.00 | 1.00 |
 | SmpV2 | 2 | 94.2 | 1.08 | 1.20 | 1.66 | 3.102 | 1.90 | 1.81 |
-| off / SmpV2 | 3 | **not run**: it needs 3 threads next to the training's one (4 > the 3-thread budget); the training could not be paused because stopping my background task leaves its Python children running (TaskStop kills only the shell; killing processes is forbidden) and the chunk driver relaunches the trainer after every chunk. Command ready: `F:\opus_scratch\fable\fb2\j5\run_j5.sh ttd3` (run when the training has stopped). | | | | | | |
+| off (lock), second run (training paused) | 1 | 95.9 | 1.00 | 1.00 | 1.00 | 1.734 | 1.00 | 1.00 |
+| off (lock) | 3 | 95.5 | 1.00 | 1.28 | 2.21 | 4.747 | 2.74 | 2.68 |
+| SmpV2 | 1 | 95.7 | 1.00 | 1.00 | 1.00 | 1.737 | 1.00 | 1.00 |
+| SmpV2 | 3 | 97.3 | 0.98 | 1.26 | 2.21 | 4.830 | 2.78 | 2.88 |
 
-Paired SmpV2 vs off (wall ratio geometric mean over the 30 positions, < 1 = SmpV2 faster): Threads 1 **0.998**
-(inert, as designed; 16/30 positions by noise), Threads 2 **0.970** (16/30 positions faster). Reading: at two
-threads SmpV2's per-position time-to-depth gain over the lock is about 3% with one repetition on a loaded PC,
-i.e. not distinguishable from noise here (R3-6Q needed quiet runners and 3 repetitions for 10% effects); the lock's
-own T2 scaling in this run (1.09 / 1.17) is already better than R3-6's 0.95 / 1.07 because the PC was less loaded.
-No speed claim; the SMP gate (Threads > 1 both sides) is the arbiter (`logs/smp_ttd_t12.log/.csv`).
+Paired SmpV2 vs off (wall ratio geometric mean over the 30 positions, < 1 = SmpV2 faster): Threads 1 **0.998** /
+0.998 (inert, as designed), Threads 2 **0.970** (16/30 positions faster), Threads 3 **1.015** gmean but median
+0.856 with 19/30 positions faster (a few positions much slower with SmpV2, most of them faster: a mixed,
+position-dependent effect). Reading: with one repetition SmpV2's time-to-depth is not distinguishable from the
+lock's at 2 or 3 threads; the lock's own scaling in these runs (1.09 / 1.17 at T2, 1.00 / 1.28 at T3 by sum /
+per-position gmean, node inflation 1.64 / 2.21) is similar to R3-6 (0.95 / 1.07 and 1.14 / 1.24). The helper
+diversification therefore does not shorten the main thread's critical path measurably at fixed depth; whether the
+deeper helper results help in games is the SMP gate's question (Threads > 1 both sides). No speed claim
+(`logs/smp_ttd_t12.log/.csv`, `logs/smp_ttd_t3.log/.csv`; the Threads-3 runs were made 22:36-22:41 PST with the
+training paused on `pause.flag`, so only the production load was present).
 
 ## J7 — NNUE v4 ideas (`fable-fb2-j7`, folder `fable_fb2/j7/`) — prototypes written, runs pending
 
