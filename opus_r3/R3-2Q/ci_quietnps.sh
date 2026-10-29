@@ -38,6 +38,7 @@ case "$CFG" in
   INT16)      SW="-DFORGE_NNUE_INT16=ON" ;;
   PROF)       SW="-DFORGE_PROF=ON" ;;
   ALL)        SW="-DFORGE_NNUE_O2=ON -DFORGE_NOZERO_MOVE_BUFFERS=ON -DFORGE_SPEEDSTACK=ON -DFORGE_S13_TT_CHILD_PREFETCH=ON -DFORGE_NNUE_LAZY_ACC=ON -DFORGE_NNUE_INT16=ON -DFORGE_PROF=ON" ;;
+  N2)         SW="-DFORGE_NNUE_O2=ON -DFORGE_NOZERO_MOVE_BUFFERS=ON -DFORGE_SPEEDSTACK=ON" ;;  # R5B: the N2 speed build
   DRIFT)      SW="" ;;  # OFF built from R3-2's first-pass head 2432670b (A) vs OFF at this head (B): R3-2's H3DRIFT row
   *) echo "unknown config $CFG"; exit 2 ;;
 esac
@@ -119,6 +120,18 @@ case "$CFG" in
            --note "INT16 build: NnueInt16 false vs true (same exe); the tree changes, NPS only" ;;
   PROF)  compare OPT "$OUT/forge_sw" "$OUT/forge_sw" --pins "$PINS" --cmd-b bench_prof \
            --note "PROF build: bench (counting off) vs bench_prof (counting on), same exe" ;;
+  N2)
+    # R5B: with -march=x86-64-v4 the N2 build uses the O2 512-bit accumulator kernels (the PC's znver5 build).
+    if [ "$(grep -o -w -E 'avx512(f|bw|cd|dq|vl)' /proc/cpuinfo | sort -u | wc -l)" -eq 5 ]; then
+      build off_v4 "$V4_FLAGS"
+      # shellcheck disable=SC2086
+      build sw_v4 "$V4_FLAGS" $SW
+      compare SW_V4 "$OUT/forge_off_v4" "$OUT/forge_sw_v4" --pins "$PINS" \
+        --note "x86-64-v4 (AVX-512) OFF vs N2: O2 512-bit kernels + NOZERO + SPEEDSTACK"
+    else
+      echo "runner has no AVX-512 (x86-64-v4): SW_V4 row skipped" | tee -a "$OUT/builds_${CFG}_${REP}.log"
+    fi
+    ;;
   O2)
     if [ "$(grep -o -w -E 'avx512(f|bw|cd|dq|vl)' /proc/cpuinfo | sort -u | wc -l)" -eq 5 ]; then
       build off_v4 "$V4_FLAGS"
