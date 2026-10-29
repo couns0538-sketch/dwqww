@@ -30,7 +30,7 @@
 #include <utility>
 #include <vector>
 
-// Test hooks (the hidden DebugSearchDelayMs option) exist only in debug builds
+// Test hooks (the DebugSearchDelayMs option) exist only in debug builds
 // (no NDEBUG) and in test-only builds that pass FORGE_DEBUG_HOOKS=1; release
 // builds (CMake Release, the box recipe) contain no trace of them.
 #ifndef FORGE_DEBUG_HOOKS
@@ -344,6 +344,12 @@ int main() {
     forge::Board board;
     forge::Searcher searcher;
     int move_overhead_ms = 10;
+    int requested_hash_mb = 32; // UCI owns this setting; bench uses a separate Searcher.
+    std::string syzygy_path;
+    bool preset_active = false;
+#ifdef FORGE_PROF
+    bool profile_requested = false;
+#endif
     bool ponder_enabled = false;
     forge::book::Book book;
     book.load_embedded();
@@ -363,7 +369,7 @@ int main() {
     bool stop_requested = false;
     bool ponder_hit_received = false;
 #if FORGE_DEBUG_HOOKS
-    // Hidden test hook (not advertised): the search thread waits this long before
+    // Test-only hook: the search thread waits this long before
     // searching, which simulates a starved search thread for the HardDeadline tests.
     int debug_search_delay_ms = 0;
 #endif
@@ -501,15 +507,15 @@ int main() {
             for (const std::string_view name : forge::tune::AdvertisedParameters) {
                 if (const forge::tune::Parameter* parameter = find_tunable(name)) print_tunable(*parameter);
             }
-#ifdef FORGE_EXPOSE_TUNABLES
-            // Development builds advertise the other search constants as well so
-            // match runners can set them; release builds accept them silently.
+            // Every accepted tunable must be discoverable by strict UCI match runners.
             for (const forge::tune::Parameter& parameter : forge::tune::parameters()) {
                 if (std::find(forge::tune::AdvertisedParameters.begin(), forge::tune::AdvertisedParameters.end(),
                               std::string_view(parameter.name)) == forge::tune::AdvertisedParameters.end()) {
                     print_tunable(parameter);
                 }
             }
+#if FORGE_DEBUG_HOOKS
+            std::cout << "option name DebugSearchDelayMs type spin default 0 min 0 max 10000\n";
 #endif
 #ifdef FORGE_S13_TT_CHILD_PREFETCH
             std::cout << "option name TtChildPrefetch type check default false\n";
@@ -542,6 +548,13 @@ int main() {
                 }
                 if (token == "value") input >> value_text;
             }
+            bool value_changed = false;
+            // Observe actual accepted changes without changing parsing/clamping or side effects.
+            // This runs only on the UCI thread after stop_search has joined every worker.
+            const auto assign_option = [&value_changed](auto& destination, const auto value) {
+                value_changed = value_changed || destination != value;
+                destination = value;
+            };
             bool handled_tunable = false;
             for (const forge::tune::Parameter& parameter : forge::tune::parameters()) {
                 if (name != parameter.name) continue;
@@ -552,15 +565,16 @@ int main() {
                     const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex());
                     std::cout << "info string invalid value for option " << name << std::endl;
                 } else {
-                    *parameter.value = std::clamp(value, parameter.minimum, parameter.maximum);
+                    assign_option(*parameter.value, std::clamp(value, parameter.minimum, parameter.maximum));
                     forge::tune::refresh();
                 }
             }
             if (handled_tunable) {
-                // Unlisted development options; nothing else to do.
+                // The advertised search tunable was handled above.
 #ifdef FORGE_S13_TT_CHILD_PREFETCH
             } else if (name == "TtChildPrefetch") {
                 if (value_text == "true" || value_text == "false") {
+                    value_changed = searcher.s13_tt_child_prefetch_enabled() != (value_text == "true");
                     searcher.set_s13_tt_child_prefetch(value_text == "true");
                 } else {
                     const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex());
@@ -570,15 +584,15 @@ int main() {
             } else if (name == "Clear Hash") {
                 searcher.clear_hash();
             } else if (name == "Ponder") {
-                if (value_text == "true") ponder_enabled = true;
-                else if (value_text == "false") ponder_enabled = false;
+                if (value_text == "true") assign_option(ponder_enabled, true);
+                else if (value_text == "false") assign_option(ponder_enabled, false);
                 else {
                     const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex());
                     std::cout << "info string invalid value for option Ponder" << std::endl;
                 }
             } else if (name == "OwnBook") {
-                if (value_text == "true") own_book = true;
-                else if (value_text == "false") own_book = false;
+                if (value_text == "true") assign_option(own_book, true);
+                else if (value_text == "false") assign_option(own_book, false);
                 else {
                     const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex());
                     std::cout << "info string invalid value for option OwnBook" << std::endl;
@@ -589,10 +603,10 @@ int main() {
                 std::string path = value_text + rest;
                 while (!path.empty() && (path.back() == ' ' || path.back() == '\r')) path.pop_back();
                 if (path.empty() || path == "<empty>") {
-                    book_file.clear();
+                    assign_option(book_file, std::string());
                     book.load_embedded();
                 } else if (book.load_file(path)) {
-                    book_file = path;
+                    assign_option(book_file, path);
                     const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex());
                     std::cout << "info string loaded book " << path << " with " << book.size() << " entries" << std::endl;
                 } else {
@@ -606,9 +620,9 @@ int main() {
                     const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex());
                     std::cout << "info string invalid value for option " << name << std::endl;
                 } else if (name == "Book Depth") {
-                    book_depth = std::clamp(value, 0, 100);
+                    assign_option(book_depth, std::clamp(value, 0, 100));
                 } else {
-                    book_variety = std::clamp(value, 0, 100);
+                    assign_option(book_variety, std::clamp(value, 0, 100));
                 }
             } else if (name == "SmpExactNodes" || name == "SmpBestThread" || name == "LocklessTT" ||
                        name == "SmpHelpersPastDepth") {
@@ -616,8 +630,8 @@ int main() {
                                : name == "SmpBestThread" ? forge::options::smp_best_thread
                                : name == "LocklessTT"    ? forge::options::lockless_tt
                                                          : forge::options::smp_helpers_past_depth;
-                if (value_text == "true") option = true;
-                else if (value_text == "false") option = false;
+                if (value_text == "true") assign_option(option, true);
+                else if (value_text == "false") assign_option(option, false);
                 else {
                     const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex());
                     std::cout << "info string invalid value for option " << name << std::endl;
@@ -634,6 +648,7 @@ int main() {
                 std::string path = value_text + rest;
                 while (!path.empty() && (path.back() == ' ' || path.back() == '\r')) path.pop_back();
                 const forge::syzygy::LoadSummary summary = forge::syzygy::load(path);
+                assign_option(syzygy_path, path == "<empty>" ? std::string() : path);
                 // Stored tablebase scores are encoded by whether tables are loaded (forge/syzygy.hpp).
                 searcher.clear_hash();
                 const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex());
@@ -652,11 +667,11 @@ int main() {
                     const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex());
                     std::cout << "info string invalid value for option " << name << std::endl;
                 } else {
-                    forge::options::syzygy_probe_depth = std::clamp(value, 1, 10);
+                    assign_option(forge::options::syzygy_probe_depth, std::clamp(value, 1, 10));
                 }
             } else if (name == "Syzygy50MoveRule") {
-                if (value_text == "true") forge::options::syzygy_50_move_rule = true;
-                else if (value_text == "false") forge::options::syzygy_50_move_rule = false;
+                if (value_text == "true") assign_option(forge::options::syzygy_50_move_rule, true);
+                else if (value_text == "false") assign_option(forge::options::syzygy_50_move_rule, false);
                 else {
                     const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex());
                     std::cout << "info string invalid value for option " << name << std::endl;
@@ -672,14 +687,17 @@ int main() {
                     const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex());
                     std::cout << "info string CorrHistPlus refused: CorrHistV2 is on (exclusive, see BUNDLES.md)" << std::endl;
                 } else {
-                    forge::options::corr_hist_plus = static_cast<std::uint8_t>(std::clamp(value, 0, 7));
+                    assign_option(forge::options::corr_hist_plus, static_cast<std::uint8_t>(std::clamp(value, 0, 7)));
                 }
 #if FORGE_DEBUG_HOOKS
             } else if (name == "DebugSearchDelayMs") {
                 int value = 0;
                 const auto parsed = std::from_chars(value_text.data(), value_text.data() + value_text.size(), value);
                 if (parsed.ec == std::errc{} && parsed.ptr == value_text.data() + value_text.size()) {
-                    debug_search_delay_ms = std::clamp(value, 0, 10000);
+                    assign_option(debug_search_delay_ms, std::clamp(value, 0, 10000));
+                } else {
+                    const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex());
+                    std::cout << "info string invalid value for option " << name << std::endl;
                 }
 #endif
             } else if (name == "HardDeadline") {
@@ -689,7 +707,7 @@ int main() {
                     const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex());
                     std::cout << "info string invalid value for option HardDeadline" << std::endl;
                 } else {
-                    forge::options::hard_deadline_ms = std::clamp(value, 0, 1000);
+                    assign_option(forge::options::hard_deadline_ms, std::clamp(value, 0, 1000));
                     // Start (and prioritise) the watchdog now, not inside a starved search.
                     if (forge::options::hard_deadline_ms > 0) deadline_watchdog.start();
                 }
@@ -700,7 +718,7 @@ int main() {
                     const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex());
                     std::cout << "info string invalid value for option " << name << std::endl;
                 } else {
-                    forge::options::corr_margins = static_cast<std::uint8_t>(std::clamp(value, 0, 1));
+                    assign_option(forge::options::corr_margins, static_cast<std::uint8_t>(std::clamp(value, 0, 1)));
                 }
             } else if (name == "CorrExt") {
                 int value = 0;
@@ -709,11 +727,11 @@ int main() {
                     const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex());
                     std::cout << "info string invalid value for option " << name << std::endl;
                 } else {
-                    forge::options::corr_ext = static_cast<std::uint8_t>(std::clamp(value, 0, 1));
+                    assign_option(forge::options::corr_ext, static_cast<std::uint8_t>(std::clamp(value, 0, 1)));
                 }
             } else if (name == "CuckooRep") {
-                if (value_text == "true") forge::options::cuckoo_rep = true;
-                else if (value_text == "false") forge::options::cuckoo_rep = false;
+                if (value_text == "true") assign_option(forge::options::cuckoo_rep, true);
+                else if (value_text == "false") assign_option(forge::options::cuckoo_rep, false);
                 else {
                     const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex());
                     std::cout << "info string invalid value for option CuckooRep" << std::endl;
@@ -725,7 +743,7 @@ int main() {
                     const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex());
                     std::cout << "info string invalid value for option " << name << std::endl;
                 } else {
-                    forge::search_options::hist_rework = std::clamp(value, 0, forge::hist_rework::MaxLevel);
+                    assign_option(forge::search_options::hist_rework, std::clamp(value, 0, forge::hist_rework::MaxLevel));
                 }
             } else if (name == "CorrHistV2" || name == "LmrTableV2" || name == "TtPruneV2") {
                 if (value_text != "true" && value_text != "false") {
@@ -737,9 +755,9 @@ int main() {
                     std::cout << "info string CorrHistV2 refused: CorrHistPlus is on (exclusive, see BUNDLES.md)" << std::endl;
                 } else {
                     const bool value = value_text == "true";
-                    if (name == "CorrHistV2") forge::fb2::requested.corr_hist_v2 = value;
-                    else if (name == "LmrTableV2") forge::fb2::requested.lmr_table_v2 = value;
-                    else forge::fb2::requested.tt_prune_v2 = value;
+                    if (name == "CorrHistV2") assign_option(forge::fb2::requested.corr_hist_v2, value);
+                    else if (name == "LmrTableV2") assign_option(forge::fb2::requested.lmr_table_v2, value);
+                    else assign_option(forge::fb2::requested.tt_prune_v2, value);
                 }
             } else if (name == "BundlePreset") {
                 static constexpr std::array<std::string_view, 5> Names{"OFF", "B1", "B2", "B3", "B4"};
@@ -750,6 +768,7 @@ int main() {
                 } else {
                     const auto bundle = static_cast<forge::fb2::Bundle>(it - Names.begin());
                     forge::fb2::apply_bundle(bundle);
+                    preset_active = bundle != forge::fb2::Bundle::Off;
                     const forge::fb2::BundleSettings b = forge::fb2::bundle_settings(bundle);
                     std::cout << "info string BundlePreset " << *it << ": CorrHistPlus=" << b.corr_hist_plus
                               << " HistRework=" << b.hist_rework << " CuckooRep=" << (b.cuckoo_rep ? "true" : "false")
@@ -758,16 +777,19 @@ int main() {
                               << " TtPruneV2=" << (b.fb2.tt_prune_v2 ? "true" : "false") << std::endl;
                 }
             } else if (name == "IntendedThreefold") {
-                if (value_text == "true") forge::options::intended_threefold = true;
-                else if (value_text == "false") forge::options::intended_threefold = false;
+                if (value_text == "true") assign_option(forge::options::intended_threefold, true);
+                else if (value_text == "false") assign_option(forge::options::intended_threefold, false);
                 else {
                     const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex());
                     std::cout << "info string invalid value for option IntendedThreefold" << std::endl;
                 }
 #if FORGE_NNUE_LAZY_ACC
             } else if (name == "NnueLazyAcc") {
-                if (value_text == "true") forge::lazy_acc::requested.store(true, std::memory_order_relaxed);
-                else if (value_text == "false") forge::lazy_acc::requested.store(false, std::memory_order_relaxed);
+                if (value_text == "true" || value_text == "false") {
+                    const bool value = value_text == "true";
+                    value_changed = forge::lazy_acc::requested.load(std::memory_order_relaxed) != value;
+                    forge::lazy_acc::requested.store(value, std::memory_order_relaxed);
+                }
                 else {
                     const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex());
                     std::cout << "info string invalid value for option NnueLazyAcc" << std::endl;
@@ -776,8 +798,10 @@ int main() {
 #endif
 #ifdef FORGE_PROF
             } else if (name == "Profile") {
-                if (value_text=="true") searcher.set_profiling(true);
-                else if (value_text=="false") searcher.set_profiling(false);
+                if (value_text == "true" || value_text == "false") {
+                    assign_option(profile_requested, value_text == "true");
+                    searcher.set_profiling(profile_requested);
+                }
                 else {
                     const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex());
                     std::cout << "info string invalid value for option Profile" << std::endl;
@@ -788,7 +812,9 @@ int main() {
                 // Integer inference (int16 weights, int32 accumulators); OFF = the
                 // float path. Takes effect at the next search's root refresh.
                 if (value_text == "true" || value_text == "false") {
+                    const bool previous = forge::nnue::int16_active();
                     const bool active = forge::nnue::set_int16(value_text == "true");
+                    value_changed = previous != active;
                     searcher.clear_hash();
                     const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex());
                     if (active) std::cout << "info string NnueInt16 active" << std::endl;
@@ -799,8 +825,8 @@ int main() {
                 }
 #endif
             } else if (name == "UseNNUE") {
-                if (value_text == "true") forge::nnue::enabled = true;
-                else if (value_text == "false") forge::nnue::enabled = false;
+                if (value_text == "true") assign_option(forge::nnue::enabled, true);
+                else if (value_text == "false") assign_option(forge::nnue::enabled, false);
                 else {
                     const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex());
                     std::cout << "info string invalid value for option UseNNUE" << std::endl;
@@ -813,7 +839,7 @@ int main() {
                 std::string path = value_text + rest;
                 while (!path.empty() && (path.back() == ' ' || path.back() == '\r')) path.pop_back();
                 // "<empty>" (the advertised default) clears the file part of the request.
-                nnue_file = path == "<empty>" ? std::string() : path;
+                assign_option(nnue_file, path == "<empty>" ? std::string() : path);
                 nnue_file_error.clear();
                 if (nnue_file.empty()) {
                     forge::nnue::v2::unload();
@@ -832,29 +858,29 @@ int main() {
                     const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex());
                     std::cout << "info string invalid value for option " << name << std::endl;
                 } else {
-                    if (name == "NNUEKingBuckets") forge::options::nnue_king_buckets = std::clamp(value, 0, 32);
-                    else forge::options::nnue_output_buckets = std::clamp(value, 0, 16);
+                    if (name == "NNUEKingBuckets") assign_option(forge::options::nnue_king_buckets, std::clamp(value, 0, 32));
+                    else assign_option(forge::options::nnue_output_buckets, std::clamp(value, 0, 16));
                 }
                 nnue_v2_changed();
             } else if (name == "NNUEThreats") {   // O6: spin 0-1 (true / false accepted as well)
-                if (value_text == "1" || value_text == "true") forge::options::nnue_threats = 1;
-                else if (value_text == "0" || value_text == "false") forge::options::nnue_threats = 0;
+                if (value_text == "1" || value_text == "true") assign_option(forge::options::nnue_threats, 1);
+                else if (value_text == "0" || value_text == "false") assign_option(forge::options::nnue_threats, 0);
                 else {
                     const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex());
                     std::cout << "info string invalid value for option NNUEThreats" << std::endl;
                 }
                 nnue_v2_changed();
             } else if (name == "NNUEPawnPairs") {   // O7: spin 0-1 (true / false accepted as well)
-                if (value_text == "1" || value_text == "true") forge::options::nnue_pawn_pairs = 1;
-                else if (value_text == "0" || value_text == "false") forge::options::nnue_pawn_pairs = 0;
+                if (value_text == "1" || value_text == "true") assign_option(forge::options::nnue_pawn_pairs, 1);
+                else if (value_text == "0" || value_text == "false") assign_option(forge::options::nnue_pawn_pairs, 0);
                 else {
                     const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex());
                     std::cout << "info string invalid value for option NNUEPawnPairs" << std::endl;
                 }
                 nnue_v2_changed();
             } else if (name == "PureNnue") {   // O4: spin 0-1 (true / false accepted as well)
-                if (value_text == "1" || value_text == "true") forge::options::pure_nnue = true;
-                else if (value_text == "0" || value_text == "false") forge::options::pure_nnue = false;
+                if (value_text == "1" || value_text == "true") assign_option(forge::options::pure_nnue, true);
+                else if (value_text == "0" || value_text == "false") assign_option(forge::options::pure_nnue, false);
                 else {
                     const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex());
                     std::cout << "info string invalid value for option PureNnue" << std::endl;
@@ -862,8 +888,8 @@ int main() {
                 nnue_v2_changed();
             } else if (name == "MaterialKeyTable") {
                 // S11 node-exact speed path: same search, different key arithmetic.
-                if (value_text == "true") forge::options::material_key_table = true;
-                else if (value_text == "false") forge::options::material_key_table = false;
+                if (value_text == "true") assign_option(forge::options::material_key_table, true);
+                else if (value_text == "false") assign_option(forge::options::material_key_table, false);
                 else {
                     const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex());
                     std::cout << "info string invalid value for option MaterialKeyTable" << std::endl;
@@ -878,7 +904,7 @@ int main() {
                 } else {
                     const int clamped = std::clamp(value, forge::net_scale::Minimum, forge::net_scale::Maximum);
                     if (clamped != forge::net_scale::percent) {
-                        forge::net_scale::percent = clamped;
+                        assign_option(forge::net_scale::percent, clamped);
                         // The TT stores static evaluations made at the old scale.
                         searcher.clear_hash();
                     }
@@ -890,12 +916,23 @@ int main() {
                 if (parsed.ec != std::errc{} || parsed.ptr != value_text.data() + value_text.size()) {
                     { const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex()); std::cout << "info string invalid value for option " << name << std::endl; }
                 } else if (name == "Hash") {
-                    searcher.resize_hash(static_cast<std::size_t>(std::clamp(value, 1, 2048)));
+                    const int clamped = std::clamp(value, 1, 2048);
+                    searcher.resize_hash(static_cast<std::size_t>(clamped));
+                    assign_option(requested_hash_mb, clamped);
                 } else if (name == "Threads") {
-                    searcher.set_threads(std::clamp(value, 1, 256));
+                    const int clamped = std::clamp(value, 1, 256);
+                    value_changed = searcher.threads() != clamped;
+                    searcher.set_threads(clamped);
                 } else {
-                    move_overhead_ms = std::clamp(value, 0, 1000);
+                    assign_option(move_overhead_ms, std::clamp(value, 0, 1000));
                 }
+            } else {
+                const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex());
+                std::cout << "info string unknown option " << name << std::endl;
+            }
+            if (preset_active && value_changed) {
+                const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex());
+                std::cout << "info string override " << name << " after preset" << std::endl;
             }
         } else if (command == "position") {
             stop_search();

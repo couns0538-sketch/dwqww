@@ -6,10 +6,9 @@
 
 namespace forge {
 
-// Search constants exposed for tuning. The UCI layer accepts them as unlisted
-// options (setoption name <Name> value <int>); defaults are the tested values.
-// The 20 named in AdvertisedParameters (below) are listed as UCI spin options in
-// every build; FORGE_EXPOSE_TUNABLES builds list all of them.
+// Search constants exposed for tuning. Every accepted constant is advertised as
+// a UCI spin option in every build; defaults remain the tested values. The 20
+// named in AdvertisedParameters are listed first for the existing SPSA workflow.
 namespace tune {
 struct Parameter {
     const char* name;

@@ -5,7 +5,7 @@ find_package(Threads REQUIRED)
 option(FORGE_ENABLE_SANITIZERS "Enable AddressSanitizer and UndefinedBehaviorSanitizer" OFF)
 option(FORGE_NNUE_LAZY_ACC "Enable experimental NnueLazyAcc UCI option (default OFF)" OFF)
 option(FORGE_NATIVE "Optimise for the build machine's CPU (-march=native)" OFF)
-option(FORGE_EXPOSE_TUNABLES "Advertise search tuning constants as UCI options (development builds)" OFF)
+option(FORGE_EXPOSE_TUNABLES "Compatibility switch: all search tuning constants are now always advertised" OFF)
 option(FORGE_NOZERO_MOVE_BUFFERS "Leave the MoveList/MovePicker move buffers uninitialised (node-exact speed candidate)" OFF)
 option(FORGE_PROF "Build opt-in search-only profiling counters" OFF)
 
@@ -550,4 +550,15 @@ if(FORGE_SYZYGY_PATH)
     if(Python3_Interpreter_FOUND)
         set_tests_properties(uci_options_regression PROPERTIES ENVIRONMENT "FORGE_SYZYGY_PATH=${FORGE_SYZYGY_PATH}")
     endif()
+endif()
+
+# Astra R2 B4: metadata completeness and explicit option diagnostics.
+if(Python3_Interpreter_FOUND)
+    add_test(NAME uci_strict_regression
+        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/uci_strict_tests.py
+                $<TARGET_FILE:forge> --log ${CMAKE_CURRENT_BINARY_DIR}/uci-strict-regression.log)
+    add_test(NAME uci_strict_debug_regression
+        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/uci_strict_tests.py
+                $<TARGET_FILE:forge_debughooks> --debug-hooks --log ${CMAKE_CURRENT_BINARY_DIR}/uci-strict-debug-regression.log)
+    set_tests_properties(uci_strict_regression uci_strict_debug_regression PROPERTIES TIMEOUT 120)
 endif()

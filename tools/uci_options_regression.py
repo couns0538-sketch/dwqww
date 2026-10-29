@@ -20,8 +20,8 @@ Checks, generic over whatever `uci` advertises (so options added later are cover
     full path or reads a file in a folder whose name has spaces); `<empty>` resets each;
   - the NNUE v2 options follow the fail-loud rule: a nonzero request without a net prints `info string ERROR
     NNUE v2: ...` at once and is withdrawn again before the next isready;
-  - unknown names, an empty name and a bare `setoption` are ignored silently; an unadvertised tunable name is
-    still parsed (invalid value reported by name);
+  - unknown names, an empty name and a bare `setoption` are reported explicitly; every registered tunable
+    is advertised (invalid value reported by name);
   - after the whole sweep (every option back at its default) bench gives the node count of the start and a
     search still returns a legal move; with --syzygy the real tables load and a tablebase win is reported.
 """
@@ -264,12 +264,14 @@ def run(s: Session, syzygy: str, workdir: Path) -> dict:
 
         # --- buttons, unknown names, malformed commands, unadvertised tunables ----------------------------------------
         assert s.setoption("Clear Hash", None) == []
-        for command in ("setoption name NoSuchOption value 5", "setoption name Hash2 value 64",
-                        "setoption name Threads Count value 2", "setoption name", "setoption",
-                        "setoption value 5", "setoption foo bar"):
+        for command, unknown in (("setoption name NoSuchOption value 5", "NoSuchOption"),
+                                 ("setoption name Hash2 value 64", "Hash2"),
+                                 ("setoption name Threads Count value 2", "Threads Count"),
+                                 ("setoption name", ""), ("setoption", ""),
+                                 ("setoption value 5", ""), ("setoption foo bar", "")):
             e.send(command)
-            assert s.sync() == [], command
-        s.ok("Clear Hash accepted without a value; unknown names, an empty name and a bare setoption are ignored silently")
+            assert s.sync() == [("info string unknown option " + unknown).rstrip()], command
+        s.ok("Clear Hash accepted without a value; unknown names, empty names and bare setoption are reported")
         if "RazorDepth" not in options:
             s.rejected("RazorDepth", "abc")
             s.ok("an unadvertised tunable name is still parsed (invalid value reported by name)")
