@@ -166,6 +166,9 @@ search keep the AL1 tree). 10 added and 2 changed lines in three files (git: 12 
   including K+pawns v K). There the side to move has no capture, so the two blocks only ever skipped or reduced quiet
   moves (and promotions, in K+pawns v K); node-level pruning (null move, reverse futility, ProbCut) and qsearch are
   unchanged.
+- Speed (advisory, loaded PC, 11:48 Vienna): bench 16 at Threads 1, ABBA x 3, fresh process per run: fix 1.706 Mnps
+  vs base 1.692 Mnps (+0.8 %, inside the +-2.8 % per-file noise R5B measured on this PC), same node counts
+  (`logs/nps_bench16_abba.log`). The one-thread hot path only gains one predictable branch per node.
 - Thread safety: `multi_worker` is a plain bool written by the searching thread before `std::thread` starts the
   helpers and after the previous search joined them (both happens-before edges); workers only read it.
 - Not changed (not this job, or not the cause): the SmpV2 selector defect above (SmpV2 mate selection is Astra's item;
