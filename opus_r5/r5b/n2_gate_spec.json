@@ -1,0 +1,81 @@
+{
+ "job": "Forge Opus round 5B (opus-r5b-speed)",
+ "commit": "N2 and OFF exes built from engine commit b2983d07 (M1 fix); later commits change no engine code outside a test-only macro",
+ "rule": "speed build vs the OFF build of the same tree and recipe; non-regression SPRT [-10,0] normalized; cap 3000; srand and openings start left blank for the queue owner",
+ "gates": [
+  {
+   "rank": 1,
+   "id": "R5B-N2",
+   "name": "N2 = O2 + NOZERO + SPEEDSTACK (znver5)",
+   "tag_suggestion": "gateR5B_n2_vs_off_z5",
+   "cand": {
+    "exe_install_name": "forge_r5b_n2.exe",
+    "exe_source": "F:\\opus_scratch\\r5\\r5b\\exe\\forge_r5b_n2_z5_b2983d07.exe",
+    "sha256": "1823fe614065211d50ff2fad36860dcd7ccadb35a3b3fbd78c68ad4f32f27ca4",
+    "build_flags": "-std=c++20 -O3 -DNDEBUG -DFORGE_NNUE_HIDDEN=256 -ffp-contract=off -fno-fast-math -march=znver5 -pthread -static -DFORGE_NNUE_O2=1 -DFORGE_NOZERO_MOVE_BUFFERS=1 -DFORGE_SPEEDSTACK=1",
+    "options": []
+   },
+   "opponent": {
+    "name": "base_r5b_off_z5",
+    "exe_install_name": "forge_r5b_off.exe",
+    "exe_source": "F:\\opus_scratch\\r5\\r5b\\exe\\forge_r5b_off_z5_m1fix.exe",
+    "sha256": "ca5b9331b8fe9132cac958bc7687f2d872aa60e997fde6eb5bd8b9508c6f1858",
+    "build_flags": "-std=c++20 -O3 -DNDEBUG -DFORGE_NNUE_HIDDEN=256 -ffp-contract=off -fno-fast-math -march=znver5 -pthread -static",
+    "options": []
+   },
+   "both_sides": [
+    "option.Threads=1",
+    "option.Hash=16",
+    "option.OwnBook=false"
+   ],
+   "tc_primary": "10+0.1",
+   "tc_secondary": null,
+   "sprt": {
+    "elo0": -10,
+    "elo1": 0,
+    "alpha": 0.05,
+    "beta": 0.05,
+    "model": "normalized"
+   },
+   "cap_games": 3000,
+   "cap_wall_hours_upper_bound_conc8": 3.4,
+   "srand": "",
+   "openings_start": "",
+   "book": {
+    "file": "C:\\Users\\Administrator\\grok-pc\\coder-fuzz\\8moves_v3.pgn",
+    "format": "pgn",
+    "order": "random"
+   },
+   "prebench_depths": [11, 13, 16, 20, 22],
+   "prebench": {
+    "cand_off": [312866, 862329, 3024920, 12389307, 34048354],
+    "cand_on": [312866, 862329, 3024920, 12389307, 34048354]
+   },
+   "off_identity": {
+    "bench_d11_d13_d16_d20_d22": [312866, 862329, 3024920, 12389307, 34048354],
+    "perft5_startpos": 4865609,
+    "perft5_kiwipete": 193690690,
+    "fma": 0
+   },
+   "expected_uci_line_cand": "info string nnue kernel: accumulator avx512, output avx2",
+   "nps": {
+    "pc_znver5_pass3_cpu_pct": {"d16": [2.05, 1.30, 2.80], "d20": [1.91, 1.47, 2.36], "aa_d16": [-0.67, -1.98, 0.65], "aa_d20": [-0.89, -1.73, -0.03]},
+    "pc_v3_pass1_cpu_pct": {"d16": [2.32, 1.66, 2.99], "d20": [2.02, 1.36, 2.69]},
+    "quiet_runners_v3_pooled6_cpu_pct": {"d16": [4.76, 3.83, 5.69], "d20": [4.84, 4.41, 5.27]},
+    "quiet_runners_v4_pooled2_cpu_pct": {"d16": [4.86, 4.08, 5.65], "d20": [5.40, 3.81, 7.02]},
+    "rule_lower_bound_2pct": {"pc": "not met", "quiet_runners": "met"}
+   },
+   "smoke": {
+    "verdict": "PASS",
+    "summary": "opus_r5/r5b/logs/m4b_smoke_n2_z5_summary.json",
+    "games": "200/200",
+    "failures": {"illegal": 0, "crash": 0, "time_loss": 0, "missing_bestmove": 0, "error_line": 0},
+    "stop_stress": "50/50 problems 0"
+   },
+   "node_exact_depth18": "50/50 positions identical (bestmove, nodes, score, pv)",
+   "reason": "Node-exact speed build: about +2 % CPU-time NPS on the loaded Zen 5 PC, +4.8 % pooled on quiet runners; the non-regression gate checks that the faster binary is not weaker at a short TC.",
+   "evidence": "opus_r5/r5b/REPORT.md M1-M4, N2_PROPOSAL.md",
+   "status": "UNPROVEN, no Elo claim; gate-ready candidate (owner installs both exes, adds srand/openings start)"
+  }
+ ]
+}
