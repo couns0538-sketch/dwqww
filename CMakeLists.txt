@@ -196,6 +196,9 @@ add_executable(forge_bad_capture_tests tests/bad_capture_tests.cpp)
 target_link_libraries(forge_bad_capture_tests PRIVATE forge_core Threads::Threads)
 add_executable(forge_fb2_bundle_tests tests/fb2_bundle_tests.cpp)
 target_link_libraries(forge_fb2_bundle_tests PRIVATE forge_core Threads::Threads)
+# R5A option echo and conflict guards (opus_r5/r5a); part B drives the forge executable.
+add_executable(forge_r5a_options_tests tests/r5a_options_tests.cpp)
+target_link_libraries(forge_r5a_options_tests PRIVATE forge_core Threads::Threads)
 
 # Search module unit tests (move picker stages, history math, time management).
 add_executable(forge_movepicker_tests tests/movepicker_tests.cpp)
@@ -393,6 +396,7 @@ add_test(NAME forge_nearest_pawn_tests COMMAND forge_nearest_pawn_tests)
 add_test(NAME forge_pv_metadata_tests COMMAND forge_pv_metadata_tests)
 add_test(NAME forge_bad_capture_tests COMMAND forge_bad_capture_tests)
 add_test(NAME forge_fb2_bundle_tests COMMAND forge_fb2_bundle_tests)
+add_test(NAME forge_r5a_options_tests COMMAND forge_r5a_options_tests $<TARGET_FILE:forge>)
 add_test(NAME forge_movepicker_tests COMMAND forge_movepicker_tests)
 add_test(NAME forge_history_tests COMMAND forge_history_tests)
 add_test(NAME forge_timeman_tests COMMAND forge_timeman_tests)

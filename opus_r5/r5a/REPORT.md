@@ -1,6 +1,6 @@
 # Forge Opus round 5A: gate-ready singles (CorrMargins, CorrExt, CorrHistPlus variants, NetScale) — IN PROGRESS
 
-**Status:** M1 done; M2 in progress. Last push 02:05 Vienna.
+**Status:** M1 done; M2 in progress (code written, build + tests next). Last push 02:08 Vienna.
 
 Branch `opus-r5a-singles` = `origin/forge-bundle-int` b7c17722 + the commits listed per milestone. Job started 01:52 Vienna
 (2026-10-29), hard stop 04:52 Vienna. No Elo claims: node counts are not strength; gates decide. Machine exclusive: no
@@ -39,7 +39,7 @@ already read 79.8-81.1 C at 121 W package power from the PC's own load (gates + 
 my first command (01:43-01:52 Vienna), i.e. the CPU regulates at about 80 C by itself; my 3-thread build added at
 most +0.5 C. If the owner meant Tctl/Tdie, every step of this job ran with Tctl at about 80 C (logged per milestone).
 
-## M1 per-option audit + ON benches (02:00-02:05 Vienna) — DONE
+## M1 per-option audit + ON benches (01:58-02:01 Vienna) — DONE
 
 No engine change. Tool `tools/m1_option_bench.py` (one fresh process per config, Threads 1 / Hash 16 / OwnBook false):
 setoption ON -> record every line printed before `readyok` -> bench d11/d13/d16 -> `go depth 10` on 4 positions
@@ -92,7 +92,7 @@ than h256_e12, the scale the search margins were tuned on; 99 maps it back (R3-3
 such measurement behind them (101/103 widen an already wide net).
 
 ## Milestones
-- M1 per-option audit + ON benches: DONE (02:05 Vienna)
+- M1 per-option audit + ON benches: DONE (02:01 Vienna, commit aeb6f093)
 - M2 effective-settings echo + conflict guards: not started
 - M3 smoke stability: not started
 - M4 gate pack: not started

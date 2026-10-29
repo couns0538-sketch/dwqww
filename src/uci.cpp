@@ -4,6 +4,7 @@
 #include "forge/net_scale.hpp"
 #include "forge/nnue.hpp"
 #include "forge/nnue_v2.hpp"
+#include "forge/r5a_options.hpp"
 #include "forge/search.hpp"
 #include "forge/syzygy.hpp"
 #include "forge/search_options.hpp"
@@ -428,6 +429,39 @@ int main() {
         return true;
     };
 
+    // R5A (forge/r5a_options.hpp): one `info string active: ...` line per go with every search option that is not
+    // at its default (nothing at the defaults, so default logs stay byte-identical), and a warning when an allowed
+    // but never-gated combination is formed by a setoption.
+    std::string syzygy_path;            // SyzygyPath as set ("" = none)
+    std::string bundle_preset = "OFF";  // the BundlePreset that set TtPruneV2 ("OFF" once TtPruneV2 is set on its own)
+    auto print_active_options = [&]() {
+        std::string active = forge::r5a::active_search_options();
+        const auto append = [&active](std::string_view item) {
+            if (!active.empty()) active += ' ';
+            active += item;
+        };
+        if (!nnue_file.empty()) append("NNUEFile=" + nnue_file);
+        if (!syzygy_path.empty()) append("SyzygyPath=" + syzygy_path);
+#if FORGE_NNUE_INT16
+        if (forge::nnue::int16_active()) append("NnueInt16=true");
+#endif
+#if FORGE_NNUE_LAZY_ACC
+        if (forge::lazy_acc::requested.load(std::memory_order_relaxed)) append("NnueLazyAcc=true");
+#endif
+#ifdef FORGE_S13_TT_CHILD_PREFETCH
+        if (searcher.s13_tt_child_prefetch_enabled()) append("TtChildPrefetch=true");
+#endif
+        if (active.empty()) return;
+        const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex());
+        std::cout << "info string active: " << active << std::endl;
+    };
+    auto warn_combination = [&bundle_preset]() {
+        const std::string warning = forge::r5a::combination_warning(bundle_preset);
+        if (warning.empty()) return;
+        const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex());
+        std::cout << "info string " << warning << std::endl;
+    };
+
     std::string line;
     while (true) {
         control_priority(forge::options::hard_deadline_ms > 0);
@@ -634,6 +668,7 @@ int main() {
                 std::string path = value_text + rest;
                 while (!path.empty() && (path.back() == ' ' || path.back() == '\r')) path.pop_back();
                 const forge::syzygy::LoadSummary summary = forge::syzygy::load(path);
+                syzygy_path = path == "<empty>" ? std::string() : path;   // R5A echo
                 // Stored tablebase scores are encoded by whether tables are loaded (forge/syzygy.hpp).
                 searcher.clear_hash();
                 const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex());
@@ -701,6 +736,7 @@ int main() {
                     std::cout << "info string invalid value for option " << name << std::endl;
                 } else {
                     forge::options::corr_margins = static_cast<std::uint8_t>(std::clamp(value, 0, 1));
+                    warn_combination();   // R5A: CorrMargins with TtPruneV2 (allowed, warned)
                 }
             } else if (name == "CorrExt") {
                 int value = 0;
@@ -740,23 +776,31 @@ int main() {
                     if (name == "CorrHistV2") forge::fb2::requested.corr_hist_v2 = value;
                     else if (name == "LmrTableV2") forge::fb2::requested.lmr_table_v2 = value;
                     else forge::fb2::requested.tt_prune_v2 = value;
+                    if (name == "TtPruneV2") {
+                        bundle_preset = "OFF";   // R5A: TtPruneV2 now set on its own
+                        warn_combination();
+                    }
                 }
             } else if (name == "BundlePreset") {
                 static constexpr std::array<std::string_view, 5> Names{"OFF", "B1", "B2", "B3", "B4"};
                 const auto it = std::find(Names.begin(), Names.end(), std::string_view(value_text));
-                const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex());
-                if (it == Names.end()) {
-                    std::cout << "info string invalid value for option " << name << std::endl;
-                } else {
-                    const auto bundle = static_cast<forge::fb2::Bundle>(it - Names.begin());
-                    forge::fb2::apply_bundle(bundle);
-                    const forge::fb2::BundleSettings b = forge::fb2::bundle_settings(bundle);
-                    std::cout << "info string BundlePreset " << *it << ": CorrHistPlus=" << b.corr_hist_plus
-                              << " HistRework=" << b.hist_rework << " CuckooRep=" << (b.cuckoo_rep ? "true" : "false")
-                              << " CorrHistV2=" << (b.fb2.corr_hist_v2 ? "true" : "false")
-                              << " LmrTableV2=" << (b.fb2.lmr_table_v2 ? "true" : "false")
-                              << " TtPruneV2=" << (b.fb2.tt_prune_v2 ? "true" : "false") << std::endl;
+                {
+                    const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex());
+                    if (it == Names.end()) {
+                        std::cout << "info string invalid value for option " << name << std::endl;
+                    } else {
+                        const auto bundle = static_cast<forge::fb2::Bundle>(it - Names.begin());
+                        forge::fb2::apply_bundle(bundle);
+                        const forge::fb2::BundleSettings b = forge::fb2::bundle_settings(bundle);
+                        std::cout << "info string BundlePreset " << *it << ": CorrHistPlus=" << b.corr_hist_plus
+                                  << " HistRework=" << b.hist_rework << " CuckooRep=" << (b.cuckoo_rep ? "true" : "false")
+                                  << " CorrHistV2=" << (b.fb2.corr_hist_v2 ? "true" : "false")
+                                  << " LmrTableV2=" << (b.fb2.lmr_table_v2 ? "true" : "false")
+                                  << " TtPruneV2=" << (b.fb2.tt_prune_v2 ? "true" : "false") << std::endl;
+                        bundle_preset = std::string(*it);   // R5A
+                    }
                 }
+                warn_combination();   // R5A: after the preset line, outside the output lock
             } else if (name == "IntendedThreefold") {
                 if (value_text == "true") forge::options::intended_threefold = true;
                 else if (value_text == "false") forge::options::intended_threefold = false;
@@ -937,6 +981,7 @@ int main() {
                 input.seekg(position);
                 forge::SearchLimits limits = parse_limits(input, board);
                 limits.move_overhead_ms = move_overhead_ms;
+                print_active_options();   // R5A: nothing when every search option is at its default
                 // Charge dispatch admission only to finite externally clocked searches.
                 if (!limits.infinite && !limits.ponder &&
                     (limits.time_ms >= 0 || limits.movetime_ms >= 0)) limits.start_time = command_start;
