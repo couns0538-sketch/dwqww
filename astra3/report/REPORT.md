@@ -9,3 +9,7 @@ IDEA_SOURCE: user round3 durable reporting contract.
 ## Timed review complete — 2026-10-29T03:16:27.211070-07:00
 
 Review receipt records1259.182seconds, exceeding the requested1200seconds. FINAL_REPORT_R3.md links the current A1 checkpointcf835231d7f4ea3999fa1bbd25f02b74ee4c64ab; TSan d22/perft/FMA remain pending. This report continues to mark later jobs deferred and A2 unresolved. No new experiments started.
+
+Checkpoint 2026-10-29T03:26:01.124465-07:00
+
+Updated the consolidated report with finalizer review/fixes and the current A1 publication. Engine source remains unchanged; native d22 is pending. Synthetic test fixtures are explicitly distinguished from original native evidence.

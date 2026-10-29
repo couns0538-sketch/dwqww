@@ -6,7 +6,7 @@ Accepted input remains`b7c177222038e9332965a95ec53ea3b94e90dbc9`. Integrated can
 
 | Job | Branch / checkpoint | Status | Result / next action |
 |---|---|---|---|
-| A1 integration | astra3-integration / cf835231d7f4ea3999fa1bbd25f02b74ee4c64ab | WIP | Five required merges, named presets, UCI/echo/ownership fixes and nominal-depth metadata implemented. Release/ASan qualification and requested TSan tests/stress complete; TSan d22 still running. |
+| A1 integration | astra3-integration / 106f78d5d2dc1bddee407cab502713d03e0c570b | WIP | Five required merges, named presets, UCI/echo/ownership fixes and nominal-depth metadata implemented. Release/ASan qualification and requested TSan tests/stress complete; TSan d22 still running. |
 | A2 mate root cause | astra3-smp-mate-rootcause / 6a9cc2b7a23ed29f6bc77ad9a496b4cfc6e6e391 | BLOCKED | Native fallback reproducer9/28 seeded CP vs0/28 controls. Root-score mask has no effect; child target absent. No production fix. Next: per-store/root-child TT provenance. |
 | A3 OFF speed | not created | BLOCKED / deferred budget | No ABBA or CI measurement. |
 | A4 autopromote patch | not created | BLOCKED / deferred budget | Attached script preserved read-only; no patch, installation or live execution. |
@@ -30,9 +30,9 @@ Five-depth OFF reference(d11/13/16/20/22):**312866 / 862329 / 3024920 / 12389307
 | ASan/UBSan/LSan |30633d03cc16f5ef82bed33139f463912d78c6df1b1fd7bca4893eb7b5a36d8a|All5 exact|4865609 / 193690690 /0|64/65; same four lines; zero sanitizer diagnostics|
 | TSan |9a77389b180ef495b8b9b59bc3e090f8f039f4b135c67b1ebcb95dc4e30c8809|d11/13/16/20 exact; d22PENDING|PENDING|8/9 then unchanged SMP replay1/1;256search stress; zero race reports|
 
-The six Release merge/fix milestone binaries each passed the full OFF vector, both perfts and FMA0. Exact hashes, commands, raw logs and NPS values are in the[A1 report](https://github.com/couns0538-sketch/dwqww/blob/cf835231d7f4ea3999fa1bbd25f02b74ee4c64ab/astra3/integration/REPORT.md). Their CTest totals were56/57,58/59,60/61,62/63,62/63,64/65; every failure was the same known forge_tests assertions.
+The six Release merge/fix milestone binaries each passed the full OFF vector, both perfts and FMA0. Exact hashes, commands, raw logs and NPS values are in the[A1 report](https://github.com/couns0538-sketch/dwqww/blob/106f78d5d2dc1bddee407cab502713d03e0c570b/astra3/integration/REPORT.md). Their CTest totals were56/57,58/59,60/61,62/63,62/63,64/65; every failure was the same known forge_tests assertions.
 
-Final Release option matrix:**75/75 PASS**. SingularV2=**404121/1005954/4120585/11497954/34264955**; N1=**277579/814055/2651984/18648191/40304213**; N1→OFF, SmpV2T1 and TmSoftHardClamp match OFF. All eight R5A singles reproduce their external gate pins. CorrMargins1/Scale100 uses**343365/858019/2522546/12894582/22287047**, as explicitly confirmed by the user; CorrMargins0/Scale100 stays OFF. Full values and original streams:[matrix](https://github.com/couns0538-sketch/dwqww/tree/cf835231d7f4ea3999fa1bbd25f02b74ee4c64ab/astra3/integration/final_matrix).
+Final Release option matrix:**75/75 PASS**. SingularV2=**404121/1005954/4120585/11497954/34264955**; N1=**277579/814055/2651984/18648191/40304213**; N1→OFF, SmpV2T1 and TmSoftHardClamp match OFF. All eight R5A singles reproduce their external gate pins. CorrMargins1/Scale100 uses**343365/858019/2522546/12894582/22287047**, as explicitly confirmed by the user; CorrMargins0/Scale100 stays OFF. Full values and original streams:[matrix](https://github.com/couns0538-sketch/dwqww/tree/106f78d5d2dc1bddee407cab502713d03e0c570b/astra3/integration/final_matrix).
 
 Known functional failures retained verbatim:
 
@@ -63,3 +63,7 @@ Gate handoff is identity/protocol evidence only. All eight R5A single identities
 Checkpoint timing breaches earlier in the turn are acknowledged in A1's report; this is not a claim that every interval met10minutes. All completed code and evidence are now on isolated branches, with final publication verification to follow.
 
 IDEA_SOURCE: user/Engine QA round3 handoff, reviewed same-repository Forge branches and original native evidence. No other-engine code or tuned constants imported.
+
+## Qualification tooling checkpoint
+
+Independent review of the new TSan finalizer found and fixed three gaps before native use: disabled assertions under optimized Python, missing build-receipt binding, and lost objdump failure output. Five synthetic-only regression methods pass under normal and optimized Python; original RED evidence is retained. These tests are not native engine or benchmark results. The original driver still runs d22; no result has been inferred from elapsed time.
