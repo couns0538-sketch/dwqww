@@ -1,6 +1,6 @@
 # Forge Opus round 5A: gate-ready singles (CorrMargins, CorrExt, CorrHistPlus variants, NetScale) — IN PROGRESS
 
-**Status:** M1 done; M2 code + tests done, CTest running; M3 smoke tooling written. Last push 02:13 Vienna.
+**Status:** M1, M2 done; M3 smoke starting. Last push 02:15 Vienna.
 
 Branch `opus-r5a-singles` = `origin/forge-bundle-int` b7c17722 + the commits listed per milestone. Job started 01:52 Vienna
 (2026-10-29), hard stop 04:52 Vienna. No Elo claims: node counts are not strength; gates decide. Machine exclusive: no
@@ -91,7 +91,7 @@ NetScale value for M4: **99**. S41 (`opus_round1/sol_S41/EVALSCALE_20261027.md`)
 than h256_e12, the scale the search margins were tuned on; 99 maps it back (R3-3 proposal R3-11). 97/101/103 have no
 such measurement behind them (101/103 widen an already wide net).
 
-## M2 effective-settings echo + conflict guards (02:02-02:20 Vienna)
+## M2 effective-settings echo + conflict guards (02:02-02:15 Vienna) — DONE
 
 What changed (engine, all OFF-identical):
 - `include/forge/r5a_options.hpp` + `src/search/r5a_options.inc` (included last in `src/search.cpp`, so no new
@@ -121,11 +121,14 @@ Evidence:
 - CMake (cmake_build.sh flags, Release, JOBS=3): all 126 targets build; 62 compiler warnings, all in files this job
   did not touch (alphabeta.inc 48, qsearch.inc 12, tt_lockless.inc 2, -Wconversion); none in r5a files or uci.cpp.
 - `forge_r5a_options_tests`: **ALL OK** (44/44).
-- CTest: see below (run on a 3-CPU affinity mask, BelowNormal).
+- CTest (`tools/run_ctest_3cpu.cmd`: BelowNormal, affinity 0x700 = 3 logical CPUs, children inherit both): **55/55 passed**,
+  every registered test except `forge_tests` (two of its checks search with 4 threads, above the job's 3-thread cap; CI runs it
+  with the known-failure check). The SmpExactNodes flake did not occur on 3 CPUs. Log `logs/ctest_m2_dbab5a41.log`.
+- GitHub CI: the M2 push is the first normal (non-[skip ci]) commit of the branch; run ids in the M3 section.
 
 ## Milestones
 - M1 per-option audit + ON benches: DONE (02:01 Vienna, commit aeb6f093)
-- M2 effective-settings echo + conflict guards: not started
+- M2 effective-settings echo + conflict guards: DONE (02:15 Vienna)
 - M3 smoke stability: not started
 - M4 gate pack: not started
 - M5 SPSA hooks (optional): not started
