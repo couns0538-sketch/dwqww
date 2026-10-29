@@ -1,4 +1,4 @@
-# FABLE_REPORT_FB2.md — pack FB2 (Fable 5.1, 2026-10-28) — IN PROGRESS
+# FABLE_REPORT_FB2.md — pack FB2 (Fable 5.1, 2026-10-28) — J2, J3, J4, J6, J7 DONE; J5 DONE except the Threads-3 timing; J1 training still running (UNPROVEN, no gate)
 
 Base of every `fable-fb2-*` branch: `fable-nnue-arch` head `08b589e1` (= AL1 lock `d4f4312` + CI baseline + the FB1
 NNUE v3 engine/trainer). No Elo claims anywhere (no gate was run); no speed claims (loaded PC: gates, self-play and
@@ -9,7 +9,7 @@ J3, J4, J6 were finished/advanced while J1 trains; J5 and J7 come last.
 
 | job | branch | status |
 |---|---|---|
-| J1 real v3 net at scale | `fable-fb2-j1` | data split DONE, trainer DONE, training RUNNING (ckpt 1: 0.016094 vs AL1 0.014417); exe/NPS/sanity games pending |
+| J1 real v3 net at scale | `fable-fb2-j1` | data split, trainer, exe (identity ALL OK), NPS, 200 sanity games DONE; training still RUNNING: 0.016094 -> 0.015054 after 338M positions vs AL1 0.014417, not plateaued, not beaten |
 | J2 datagen upgrade | `fable-fb2-j2` | **DONE** (engine mode, FGB1 format, converter, exact round-trip tests, 10-min smoke) |
 | J3 search improvements | `fable-fb2-j3` | **DONE**: four options, unit tests 121/0, identity ALL OK, CI green, 2,500 self-play games 0 errors, LMR fit, gate entries |
 | J4 time management v2 | `fable-fb2-j4` | **DONE**: simulator (2000 games x 2 TCs x 3 scenarios, 0 flag losses), identity ALL OK, CI green, 220 real-clock games 0 flag losses |
@@ -282,6 +282,32 @@ Operational note: the second-layer run was executed twice at once into the same 
 had stopped with TaskStop kept running and started it; processes may not be killed on this PC); the two copies are
 deterministic twins (same seed, data and batches), the table quotes the first copy's checkpoints (steps 1683 /
 3280 / ...), and the duplicate pair run was prevented by a read-only log (see `logs/run_l2_log.txt`).
+
+## Final 30-minute bug-test pass (user request; `F:\opus_scratch\fable\fb2\final_bug_pass.sh`, 20:48-21:02 PST, logs in `fable_fb2/final_pass/`)
+
+| check | result |
+|---|---|
+| OFF identity of every box exe (j2, j3, j4, j5, v3) against the lock pins | 5 x **ALL OK** |
+| unit tests re-run: datagen2 (2147 checks), J3 options (121), timeman sim 2000 games seed 7 and 1000 games with 8 ms stalls on 10% of moves, data split (synthetic), datagen decoder vs engine | all **0 failures / PASS** |
+| datagen 2 min with the v3 net (ckpt-7 `best.fnn3`, `NNUEArch true`): 640 games, 36,977 records | direct .pos/.hce == converter (cmp), python-chess decoder == engine rows, 0 replay problems |
+| real-clock games: J3 all four options on 60 games (1+0.01), J4 TimeManV2 40 games (0.5+0.005), J5 SmpV2 at Threads 2 both sides 30 games, v3 net both sides 40 games | 0 crashes, 0 illegal moves, 0 flag losses in 170 games (23,183 moves) |
+| best net parity (ckpt 7) engine int == Python int reference, 10,000 positions | 0 mismatches, fast-vs-reference 0 |
+| defects found by the pass | one in my own harness (the first datagen smoke mangled a Windows path through printf escapes and used a POSIX output path; the engine failed loudly and correctly; re-run with a command file: clean). No engine, trainer or tool defect found. |
+
+Also found during the session and fixed/handled: the checkpoint-7 parity tool start failure (transient Windows
+0xC0000142; re-run clean), the J7 run duplication after a TaskStop that does not stop children (documented, runs
+are deterministic twins), and the J1 driver's relaunch after its 4-hour chunk failing with the same 0xC0000142
+from the stale shell (a fresh driver resumed the run from `ckpt.pt` at 21:00; it continues with the new
+`pause.flag` / `driver_stop.flag` support).
+
+### J1 state at the end of the session
+The 240-minute chunk 1 ended at step 41,236 (337.8M positions, 20:46 PST) just before checkpoint 8 was due; the
+paused net `net.fnn3` (copy `fable_fb2/j1/logs/net_step41236` score/parity logs) scores **exact b0.6 0.015054** /
+b0.8 0.007160 / b1.0 0.004696 on the 200k holdout (AL1 0.014417, HCE 0.017141), parity 10000/10000. Chunk 2
+resumed at 21:00 (24k positions/s, LR 6.0e-4 of the cosine schedule, WDL lambda 0.77); the curve
+0.016094 / 0.015684 / 0.015563 / 0.015444 / 0.015326 / 0.015230 / 0.015156 / 0.015054 is still falling by about
+1e-4 per 30 minutes with 60% of the schedule left, so neither stop rule has fired. No Elo claim; the net has not
+beaten AL1 on the holdout and must not be gated yet.
 
 ## Next steps for the next model
 1. J1: watch `F:\opus_scratch\fable\fb2\train_j1\status.json`; the driver resumes after a crash; restart by hand with
