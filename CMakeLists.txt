@@ -468,6 +468,9 @@ if(FORGE_BUILD_TUNING_TOOLS)
 endif()
 find_package(Python3 3.10 COMPONENTS Interpreter QUIET)
 if(Python3_Interpreter_FOUND)
+    add_test(NAME bench_matrix_tool_tests
+        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/test_bench_matrix.py)
+    set_tests_properties(bench_matrix_tool_tests PROPERTIES TIMEOUT 120)
     add_test(NAME match_tool_tests
         COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tools/match/test_match_tools.py)
     add_test(NAME windows_validation_tests
