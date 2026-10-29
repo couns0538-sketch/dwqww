@@ -1,6 +1,6 @@
 # Forge Opus R5B: N2 speed build (O2 + NOZERO + SPEEDSTACK) — IN PROGRESS
 
-**Status:** 00_baseline done; M1 in progress. Last push: see the commit time (pushes every 10 min).
+**Status:** 00_baseline, M1 done; M2 driver done; M3 exes + identity done, NPS runs in progress. Last push: see the commit time (pushes every 10 min).
 
 Branch `opus-r5b-speed` = `origin/forge-bundle-int` b7c1772 + R5B commits. Job folder `opus_r5/r5b/`, scratch
 `F:\opus_scratch\r5\r5b\` (exes in `exe\`, sha256 in `EXES.txt` here and next to the exes).
@@ -70,9 +70,69 @@ functions' disassembly in `logs/m1_nnue_disasm_b7c1772.txt`):
 So on znver5 the O2 refresh is the same compiler-widened loop as OFF, and no `__m256` kernel exists in the exe;
 the update function differs only by the portable fused loops (castling included) that g++ widens to zmm.
 
-## M2: reproducible NPS bench (pending)
+### M1 fix (commit b2983d07, engine change, all under `#if FORGE_NNUE_O2`)
 
-## M3: per-switch and combined builds (pending)
+Cause: the guard at `src/nnue.cpp:60` (`!defined(__AVX512F__)`), not a missing flag: `-march=znver5` enables
+AVX-512, and O2 then fell back to the portable loops by design. Fix in the guard (the recipe stays the PC lock
+recipe): a 512-bit `Vec` (`__m512`, 16 lanes, `_mm512_load_ps/_store_ps/_add_ps/_sub_ps`) for AVX-512 targets,
+plugged into the existing kernel templates (`apply_sub_add`, `apply_sub_sub_add`, `apply_sub_add_sub_add`,
+register-blocked `accumulate_columns` with 8 vectors = 128 floats per block). Node-exact: every lane sees the same
+float operations in the same order as the portable loop and the AVX2 kernel (no FMA, no reassociation, IEEE add/sub
+lane by lane); O2's 64-byte alignment of the weights and the Accumulator already covers 512-bit aligned loads.
+Also: `forge::nnue::kernel_name()` and an `info string nnue kernel: <accumulator ...>, <output ...>` line before
+`uciok`, both only in O2 builds; the parity test's kernel label names the new kernel.
+
+| check | result | evidence |
+|---|---|---|
+| OFF exes unchanged | `forge_r5b_off_{v3,z5}_m1fix.exe` differ from the b7c1772 OFF exes in 4 bytes (PE timestamp) | `cmp -l`, EXES.txt |
+| identity O2 znver5 (avx512 kernel) | ALL OK | `logs/identity_o2_z5_m1fix.log` |
+| identity O2 v3 (avx2 kernel) | ALL OK | `logs/identity_o2_v3_m1fix.log` |
+| kernel in the binary | O2 znver5 refresh: 8 `vaddps zmm` + 8 stores per block (register-blocked); update: explicit zmm kernels; FMA 0 | `logs/m1_kernel_audit_m1fix.log`, `logs/m1_nnue_disasm_m1fix.txt` |
+| UCI line | O2 znver5: `info string nnue kernel: accumulator avx512, output avx2`; O2 v3: `accumulator avx2, output avx2`; OFF: no new line | manual `uci` |
+| bit parity vs AL1 s198 (tests/nnue_parity_tests.cpp, box recipe, `tools/parity_r5b.sh`) | AVX-512 (znver5), AVX2 (v3) and FORCE_SCALAR (znver5) builds: PASS, same digest `f807d80cbabc1d59` over 1,303,743 positions (1,270,681 updates, 32,135 refreshes, 249,957 in-place, 8,267 castles, 100,000 synthetic evaluations) | `logs/m1_parity_o2_{z5_avx512,v3_avx2,z5_scalar}.log` |
+
+Which O2 variant is faster on this PC is measured in M3 (arms `o2_portable` = b7c1772 O2 znver5 and
+`o2_avx512` = the fix, both against the same OFF znver5 exe).
+
+## M2: reproducible NPS bench (driver done)
+
+`opus_r5/r5b/nps_ab.py` (+ `nps_ab.sh` wrapper; PowerShell: `& <venv python> -I -B opus_r55b
+ps_ab.py ...`),
+my own Windows implementation of the R3-2Q CI method (`opus_r3/R3-2Q/ci_quietnps.sh` + `quiet_nps.py`):
+- arms: A (reference, the OFF build) + one or more B exes + with `--aa` the A/A control = a byte copy of A
+  (sha256-checked) under another file name; slot i runs the arms in list order for even i and reversed for odd i
+  (with two arms exactly ABBA), so linear drift cancels for every arm pair;
+- fresh process per run: `uci`, Threads 1, Hash 16, OwnBook false, `isready`, `bench <d>`, `quit`; default
+  depths 16 and 20, 12 pairs (minimum 10 enforced);
+- the driver pins itself to ONE logical CPU (`--core`, default 14) and sets BelowNormal before it starts engines;
+  children inherit the mask and are also created BelowNormal; the first run per arm logs the child's real affinity
+  mask and priority class (`arm A child affinity mask 0x4000 priority BelowNormal`);
+- primary speed = CPU-time NPS: nodes / QueryProcessCycleTime cycles between `readyok` and the bench line
+  (start-up and exit excluded; cycle rate calibrated at start, 4.696 GHz here, ratios do not depend on it).
+  GetProcessTimes is not used: it moves in 15.6 ms ticks (the first smoke run showed 0.172/0.188 s steps at d11);
+  secondary = the engine's own nps (wall clock);
+- every run of a depth must give the same node count and the pin (`--pins 16=3024920,20=12389307`), else exit 2;
+- per arm and depth: mean of paired log ratios, 95 % Student t CI, median ratio, and the rule line
+  (cpu lower bound >= +2 % at d16 AND d20); PC busy share (GetSystemTimes) per run and overall; JSON with every run;
+- cooperative stop: `--stop-file` (checked before every run).
+Noise: live gates keep the PC 80-85 % busy (all CPUs); the A/A arm is the noise floor at that moment. It cannot
+see code-layout effects (same bytes), which R3-2Q found to dominate PC switch rows (NOZERO -4.2 % on the PC vs
++1.6 % on quiet runners).
+
+## M3: per-switch and combined builds (exes + identity done; NPS running)
+
+Exes from engine tree b2983d07 (M1 fix): OFF and O2 = `forge_r5b_{off,o2}_{v3,z5}_m1fix.exe`, NOZERO / SPEEDSTACK /
+N2 = `forge_r5b_{nozero,speedstack,n2}_{v3,z5}_b2983d07.exe` (`tools/build_m3.sh`, log
+`logs/m3_build_identity_b2983d07.log`). Every exe: 0 warnings, FMA 0, lock identity ALL OK (switches are node-exact,
+so ON = the pins).
+
+| switch | flags | znver5 exe sha256 | v3 exe sha256 | identity (both) |
+|---|---|---|---|---|
+| OFF | (none) | ca5b9331... | 241368e8... | ALL OK |
+| O2 | `-DFORGE_NNUE_O2=1` | 1cd1e55a... (accumulator avx512) | d22e1ace... (accumulator avx2) | ALL OK |
+| NOZERO | `-DFORGE_NOZERO_MOVE_BUFFERS=1` | 5bbf4944... | 05c59931... | ALL OK |
+| SPEEDSTACK | `-DFORGE_SPEEDSTACK=1` | b8172950... | 368ee29e... | ALL OK |
+| N2 | all three | 1823fe61... | faac168d... | ALL OK |
 
 ## M4: non-regression evidence for N2 (pending)
 
