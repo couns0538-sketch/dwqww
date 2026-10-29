@@ -3,6 +3,7 @@
 
   export_fnn4.py export <checkpoint.pt> <out.fnn4> [--json report.json]
   export_fnn4.py parity <checkpoint.pt> <net.fnn4> <fens.txt> <engine_out.txt> [--json report.json] [--limit N]
+  export_fnn4.py holdout <net.fnn4> <holdout.pos> [--hce holdout.hce] [--json report.json]
 
 export: reads {"cfg", "state", "steps"} (torch, CPU, read-only), merges the factoriser into w1, quantises w1/b1 x QA
 (the trainer's fake-quant grid), l2w x QW, l2b x ONE, l2o x QO and b2 (trainer grid 1/(QA*64)) x ONE*QO, refuses a
@@ -12,6 +13,8 @@ parity: for every FEN, (1) the exact integer forward of FNN4_FORMAT.md in numpy 
 values (engine_out.txt from r5c_v4_eval: `scalar avx2` per line), (3) the trainer's float forward from the
 CHECKPOINT (fake-quantised w1/b1/b2 as in training, float l2). Integer reference == engine scalar == engine AVX2 must
 hold for every position; the float gap is reported (it is the cost of not fake-quantising layer 2).
+holdout: the exact integer MSE (blends 1.0 / 0.6 / 0.8) of an FNN4 file on an FPOS holdout (+ FHCE for residual nets),
+with the J7 trainer's loss definition; the input of the gate rule "holdout b0.6 < AL1 0.014417".
 Python: the PC venv (numpy, torch, python-chess), `-I -B`, OPENBLAS/OMP threads 1.
 """
 import argparse
@@ -178,6 +181,71 @@ def int_forward(net, idx, pieces):
     return np.clip(cp, -30000, 30000), acc
 
 
+def read_fpos(pos_path, hce_path):
+    """FPOS rows (fable_nnue_data.py layout): codes [N, 64] (1-6 white P..K, 7-12 black), score, meta, hce."""
+    head = np.fromfile(pos_path, np.uint8, 16)
+    if bytes(head[:4]) != b"FPOS":
+        raise SystemExit(f"{pos_path}: not an FPOS file")
+    n = int(np.frombuffer(head[8:16].tobytes(), "<u8")[0])
+    raw = np.memmap(pos_path, np.uint8, "r")
+    boards = np.asarray(raw[16:16 + 32 * n]).reshape(n, 32)
+    score = np.asarray(raw[16 + 32 * n:16 + 34 * n]).view("<i2").astype(np.int64)
+    meta = np.asarray(raw[16 + 34 * n:16 + 35 * n]).astype(np.int64)
+    codes = np.empty((n, 64), np.int64)
+    codes[:, 0::2] = boards & 15
+    codes[:, 1::2] = boards >> 4
+    hce = None
+    if hce_path:
+        hraw = np.memmap(hce_path, np.uint8, "r")
+        if bytes(hraw[:4]) != b"FHCE":
+            raise SystemExit(f"{hce_path}: not an FHCE file")
+        hce = np.asarray(hraw[16:16 + 2 * n]).view("<i2").astype(np.int64)
+    return codes, score, meta, hce
+
+
+def features_from_codes(codes, meta, king_map, mirror):
+    """[N, 2, 64] feature rows (-1 = empty square) for (side to move, opponent), piece counts [N]."""
+    sq = np.arange(64)
+    occupied = codes != 0
+    ptype = (codes - 1) % 6
+    out = []
+    for white in (True, False):
+        rel = (codes >= 7) if white else ((codes >= 1) & (codes <= 6))
+        own_king = 6 if white else 12
+        ksq = np.argmax(codes == own_king, axis=1)
+        kr = ksq if white else ksq ^ 56
+        flip = np.where(mirror & ((kr & 7) >= 4), 7, 0)
+        rsq = (sq if white else sq ^ 56)[None, :] ^ flip[:, None]
+        f = king_map[kr][:, None] * 768 + (rel.astype(np.int64) * 6 + ptype) * 64 + rsq
+        out.append(np.where(occupied, f, -1))
+    stm_black = (meta & 1).astype(bool)[:, None]
+    us = np.where(stm_black, out[1], out[0])
+    them = np.where(stm_black, out[0], out[1])
+    return np.stack([us, them], axis=1), np.minimum(occupied.sum(axis=1), 32)
+
+
+def holdout_mse(net, codes, score, meta, hce, chunk=2000):
+    """Exact integer holdout MSE (blends 1.0 / 0.6 / 0.8) of an FNN4 file; the trainer's loss definition (K 2.25,
+    teacher = sigmoid(clamp(score * K / 400, +-40)), result from meta, residual adds hce)."""
+    k = 2.25
+    sums = {1.0: 0.0, 0.6: 0.0, 0.8: 0.0}
+    n = codes.shape[0]
+    for start in range(0, n, chunk):
+        sl = slice(start, min(start + chunk, n))
+        idx, pieces = features_from_codes(codes[sl], meta[sl], net["king_map"], net["mirror"])
+        cp, _ = int_forward(net, idx, pieces)
+        logit = cp * (k / 400.0)
+        if net["residual"]:
+            logit = logit + hce[sl] * (k / 400.0)
+        pred = 1.0 / (1.0 + np.exp(-logit))
+        teacher = 1.0 / (1.0 + np.exp(-np.clip(score[sl] * (k / 400.0), -40.0, 40.0)))
+        white_result = (meta[sl] >> 1) * 0.5
+        stm_res = np.where((meta[sl] & 1) == 0, white_result, 1.0 - white_result)
+        for b in sums:
+            sums[b] += float(np.sum((pred - (b * teacher + (1.0 - b) * stm_res)) ** 2))
+    return {f"mse_b{b}": sums[b] / n for b in sums}
+
+
 def float_forward(cfg, w1f, t, idx, pieces):
     def fq(x, q):  # the trainer's fake quantisation (float32 product, round half to even), then float64
         return np.round(x * np.float32(q)).astype(np.float64) / q
@@ -206,7 +274,24 @@ def main():
     p.add_argument("engine_out")
     p.add_argument("--json")
     p.add_argument("--limit", type=int, default=0)
+    h = sub.add_parser("holdout")
+    h.add_argument("net")
+    h.add_argument("pos")
+    h.add_argument("--hce")
+    h.add_argument("--json")
     args = ap.parse_args()
+    if args.cmd == "holdout":
+        net = read_fnn4(args.net)
+        codes, score, meta, hce = read_fpos(args.pos, args.hce)
+        if net["residual"] and hce is None:
+            raise SystemExit("holdout: a residual net needs --hce")
+        report = {"net": args.net, "pos": args.pos, "rows": int(codes.shape[0]), **holdout_mse(net, codes, score, meta, hce),
+                  "gate_rule": "gate only if mse_b0.6 < 0.014417 (AL1 lock net on the same 200k holdout)"}
+        print(json.dumps(report, indent=1))
+        if args.json:
+            with open(args.json, "w", newline="\n") as f:
+                json.dump(report, f, indent=1)
+        return
     cfg, steps, w1f, t = load_ckpt(args.ckpt)
     if args.cmd == "export":
         w1, b1, l2w, l2b, l2o, b_out, stats = quantise(cfg, w1f, t)

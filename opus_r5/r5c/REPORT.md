@@ -27,6 +27,8 @@ Check: lock `2_build/uci_check.py <exe> --full` (fresh process, Threads 1, Hash 
 |---|---|---|---|---|---|---|---|
 | 00 baseline | forge_r5c_off_v3_b7c1772.exe | 01aed2d9... | 312866 / 862329 / 3024920 / 12389307 / 34048354 | 4865609 | 193690690 | 0 | ALL OK (`logs/identity_off_v3_b7c1772.log`) |
 | M1 | forge_r5c_m1.exe | decc0675... | 312866 / 862329 / 3024920 / 12389307 / 34048354 | 4865609 | 193690690 | 0 | ALL OK (`logs/identity_m1.log`) |
+| M3a (v4 path, untested) | forge_r5c_m3a.exe | 60d367f2... | 312866 / 862329 / 3024920 / 12389307 / 34048354 | 4865609 | 193690690 | 0 | ALL OK (`logs/identity_m3a.log`) |
+| M3b (+ tbhits; the gate exe) | forge_r5c_m3b.exe | bf9f6f16... | 312866 / 862329 / 3024920 / 12389307 / 34048354 | 4865609 | 193690690 | 0 | ALL OK (`logs/identity_m3b.log`) |
 
 ## M1: N3 hardening (done)
 
@@ -135,7 +137,38 @@ M1 exe `forge_r5c_m1.exe` (v3 recipe, M1 tree): 0 warnings, FMA 0, identity ALL 
   (`info string ERROR NNUE v4: cannot open ...; the default net evaluates`) and bench stayed 862329, the designed
   failure path; the re-run with the Windows path is below.
 
-## M5: handoff (pending)
+## M5: handoff
+
+What a long L2=16 run needs (Fable's trainer `tools/nnue/fable_nnue_train.py`, branch `fable-fb2-j7`; its files and
+runs are read-only for me):
+- The run_l2_60 configuration (`F:\opus_scratch\fable\fb2\j7\run_l2_60\log.txt`): `train --pos-glob
+  F:/opus_scratch/fable/data/train/fb2_train_*.pos --hce-dir F:/opus_scratch/fable/data/train --hidden 512
+  --king-buckets 8 --output-buckets 8 --mirror --l2 16 --eval-scale 400 --steps 93000 --batch 8192 --lr 1e-3
+  --lr-schedule cosine --lr-final 5e-5 --warmup-steps 500 --blend-schedule linear --blend-start 0.9 --blend-end 0.6
+  --exact-pos/--exact-hce <fb2_holdout_200k> --ckpt-every-minutes 15 --ckpt-at-pause --max-minutes 60` (standalone,
+  factoriser on). It paused at step 10,035 of 93,000 (82M positions in 60 min, 22.8k positions/s on one thread): the
+  rest of the cosine schedule is about 9.3 hours on one thread. `--resume <run>/ckpt.pt` needs the same `--out`
+  (trainer rule), i.e. Fable's folder: the owner decides, or copies the run folder first (FB2 `move_run.py` pattern).
+- Fix before the long run: fake-quantise layer 2 in the trainer (`quantised()`: l2w to 1/1024, l2b to 1/ONE, l2o to
+  1/256, as w1/b1/b2 already are). Today the exported integer net differs from the trained float by mean 0.96 cp,
+  max 4.85 cp (M4 parity); with fake quantisation the gap would be the truncating divisions only.
+- After training: `export_fnn4.py export <ckpt> <net.fnn4>`; `export_fnn4.py holdout <net.fnn4>
+  F:/opus_scratch/fable/data/holdout/fb2_holdout_200k.pos` (exact integer score); `r5c_v4_eval` + `export_fnn4.py
+  parity` on positions_100k.fen (must be 0 mismatches); engine smoke with `NNUEv4File` + `NNUEv4=true`.
+- Holdout rule: gate only if the exact holdout b0.6 is below AL1's 0.014417 on the same 200k rows. J7 best (step
+  10,035): see the M5 holdout line below. Then SPRT [0,10] normalized, cap 3000, the v4 net (candidate options
+  `option.NNUEv4File=<path>`, `option.NNUEv4=true`) vs the same exe at its defaults: a string option again, so the
+  N3 runner change (N3_GATE_SPEC.md) is needed here too.
+
+NPS cost of the v4 forward (advisory, loaded PC, Threads 1, `logs/m4_bench_nps.log`): bench 13 0.91-0.94 Mnps with
+the J7 net vs 1.52-1.60 Mnps default, about 0.59x. The v4 path rebuilds both accumulators at every evaluation; the
+incremental update and refresh cache of v3 (fable-nnue-arch) are the first engine task before a v4 net can play at
+equal time.
+
+Open risks: (1) the speed above; (2) the layer-2 quantisation gap until the trainer fake-quantises it; (3) J7 trains a
+standalone net (no HCE residual), the AL1 net is residual; (4) the gate runner has never passed a string option
+(0 of 63 RUN_INFO.json files); (5) v4 was exercised with Threads 1 only (the evaluation keeps no per-worker state and
+reads the loaded net read-only, so more threads add no shared writes).
 
 ## What to gate first (pending)
 
