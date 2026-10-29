@@ -1,6 +1,6 @@
 # Forge Opus round 5A: gate-ready singles (CorrMargins, CorrExt, CorrHistPlus variants, NetScale) — IN PROGRESS
 
-**Status:** M1, M2 done; M3 smoke running (corrmargins1 near done); M4 written (refreshed per smoke result); M5 code written, verify at the smoke pause. Last push 02:23 Vienna.
+**Status:** M1, M2 done; M3 smoke 1/8 PASS (corrmargins1), paused for the M5 build check; M4 written; M5 verify running. Last push 02:32 Vienna.
 
 Branch `opus-r5a-singles` = `origin/forge-bundle-int` b7c17722 + the commits listed per milestone. Job started 01:52 Vienna
 (2026-10-29), hard stop 04:52 Vienna. No Elo claims: node counts are not strength; gates decide. Machine exclusive: no
@@ -151,7 +151,9 @@ search identical to the base and to the M5 head, see M2/M5). Per config:
 Results (PGNs `smoke/<config>/games.pgn`, summaries `smoke/<config>/summary.json`):
 
 <!-- smoke-table -->
-(no smoke results yet)
+| config | ON options | games | illegal | crashes | time losses | missing bestmove | ERROR lines | echo mismatches | go/stop stress | avg plies | clock < 20 ms | engine restarts | ON points (not Elo) | terminations | time (Vienna) | verdict |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| corrmargins1 | `CorrMargins=1` | 200/200 | 0 | 0 | 0 | 0 | 0 | 0 | 50/50, 0 problems | 132.5 | 0 | 0 | 96.5/200 | threefold_repetition 139, checkmate 37, insufficient_material 16, fifty_moves 7, stalemate 1 | 02:16:09 Vienna-02:31:46 | **PASS** |
 <!-- /smoke-table -->
 
 ## M4 gate pack (02:16-02:30 Vienna, written while the smoke ran)
