@@ -13,7 +13,7 @@ J3, J4, J6 were finished/advanced while J1 trains; J5 and J7 come last.
 | J2 datagen upgrade | `fable-fb2-j2` | **DONE** (engine mode, FGB1 format, converter, exact round-trip tests, 10-min smoke) |
 | J3 search improvements | `fable-fb2-j3` | **DONE**: four options, unit tests 121/0, identity ALL OK, CI green, 2,500 self-play games 0 errors, LMR fit, gate entries |
 | J4 time management v2 | `fable-fb2-j4` | **DONE**: simulator (2000 games x 2 TCs x 3 scenarios, 0 flag losses), identity ALL OK, CI green, 220 real-clock games 0 flag losses |
-| J5 SMP v2 | `fable-fb2-j5` | analysis + code + tests + TSan hook written; build running; unit tests and 1/2/3-thread measurement wait for free CPU threads |
+| J5 SMP v2 | `fable-fb2-j5` | code DONE, unit tests 97/0, ctest 15/15, box exe identity ALL OK, pushed (CI incl. the SmpV2 TSan hook); the 1/2/3-thread time-to-depth measurement waits for free CPU threads |
 | J6 gate design | `F:\opus_scratch\fable\GATE_BOUNDS.md` (copy `fable_fb2/j6/`) | **DONE** (proposal only) |
 | J7 NNUE v4 ideas | `fable-fb2-j7` | trainer prototypes written and smoke-tested (`--l2`, `--pairwise`, `--float-exact`); the 30-minute comparison runs wait for a free CPU thread |
 
@@ -76,6 +76,7 @@ rows. Checkpoint every 30 min; stop when exact b0.6 <= target or 3 checkpoints w
 | 2 | 10,374 | 85.0M | 60 | **0.015684** | 0.007508 | 0.004761 | .0059 .0069 .0105 .0155 .0195 .0220 .0223 .0239 | +0.001267 | PASS 10000/10000, max 1.02 cp |
 | 3 | 15,476 | 126.8M | 90 | **0.015563** | 0.007420 | 0.004707 | .0057 .0067 .0103 .0153 .0193 .0221 .0223 .0239 | +0.001146 | PASS 10000/10000, max 1.02 cp |
 | 4 | 20,602 | 168.8M | 120 | **0.015444** | 0.007341 | 0.004667 | .0053 .0066 .0102 .0152 .0192 .0218 .0222 .0238 | +0.001027 | PASS 10000/10000, max 1.02 cp |
+| 5 | 25,700 | 210.5M | 150 | **0.015326** | 0.007280 | 0.004663 | .0052 .0065 .0101 .0151 .0191 .0217 .0221 .0237 | +0.000909 | PASS 10000/10000, max 1.02 cp |
 | (next checkpoints: `status.json` in the run dir; `tools/nnue/fable_nnue_ckpt_table.py <run>` prints this table) | | | | | | | | | |
 
 Torch quick validation (200k rows, blend 0.6) on the way: 0.105583 (0) -> 0.017014 (14.7M) -> 0.016369 (29.6M).
@@ -197,11 +198,14 @@ of its single-thread nodes while total nodes inflate 1.7-2.0x; R3-6's "helpers p
 but not the duplication (no time-to-depth gain on quiet runners). Fix implemented behind `SmpV2` (default false,
 inert at Threads 1): odd helpers search one ply ahead, even helpers use 2x/3x aspiration windows, and the deepest
 completed result of any thread is reported (`fb2::smp_depth_skew`, `smp_aspiration_multiplier`,
-`smp_select_result`). Tests `tests/fb2_j5_tests.cpp` (CTest; 3 threads for seconds); the CI TSan hook now also runs
-SmpV2 searches at Threads 2/3/4. Measurement tool `tools/smp/fable_smp_ttd.py` (R3-6's 30 positions, fixed depths,
-fresh process per run, paired on/off ratios). Build in progress; the Threads 2/3 runs need the CPU budget that the
-training and the J3 self-play occupy (scheduled after the self-play, Threads 3 while the training is paused at a
-checkpoint boundary).
+`smp_select_result`). Tests `tests/fb2_j5_tests.cpp` (CTest): **97 checks, 0 failures** (skew / multiplier /
+selection rules; Threads 1 inert: identical node counts on 5 positions; Threads 2 and 3 depth-9 and node-limited
+searches legal and finite with the option off and on; mate in 1 at 3 threads); full CTest 15/15; box exe
+`forge_fable_j5.exe` 0 warnings, FMA 0, **OFF identity ALL OK** (`fable_fb2/j5/logs/`). The CI TSan hook now also
+runs SmpV2 searches at Threads 2/3/4: **CI on the J5 head green (release, ASan, TSan incl. the SmpV2 hook: 0
+reports)**. Measurement tool `tools/smp/fable_smp_ttd.py` (R3-6's 30
+positions, fixed depths, fresh process per run, paired on/off ratios): the Threads 1/2 runs start when the J7 slot
+frees, Threads 3 while the training is paused at a checkpoint boundary (results in the table below when done).
 
 ## J7 — NNUE v4 ideas (`fable-fb2-j7`, folder `fable_fb2/j7/`) — prototypes written, runs pending
 
@@ -214,8 +218,8 @@ thread, same data/seed/batch/LR/WDL schedules as J1, float holdout b0.6 on the 2
 | run | 10 min | 20 min | 30 min (positions seen) |
 |---|---|---|---|
 | baseline H512 / 8 king buckets | 0.017107 (14.0M) | 0.016408 (27.5M) | **0.016088** (41.3M) |
-| H1024 / 8 (half the throughput) | 0.017935 (7.6M) | 0.016738 (14.9M) | running |
-| H512 / 16 king buckets | queued | | |
+| H1024 / 8 (half the throughput) | 0.017935 (7.6M) | 0.016738 (14.9M) | 0.016401 (22.1M) |
+| H512 / 16 king buckets | running | | |
 | H512 / 8 + second layer 16 | queued | | |
 | H512 / 8 + pairwise term | queued | | |
 
