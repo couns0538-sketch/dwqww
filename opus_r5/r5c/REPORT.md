@@ -1,7 +1,7 @@
 # Forge Opus R5C: v4 NNUE (J7 L2=16) engine support + N3 Syzygy / IntendedThreefold / HardDeadline hardening — IN PROGRESS
 
 **Status:** finishing (paused 09:52-11:00 Vienna for job R5D at the user's request). M1 done. M2: tables 290/290 sha
-OK, N3 smoke 200/200 clean (re-run with `tbhits` counting and the fixed stress board: 140/200 clean at 11:41), prebench
+OK, N3 smoke re-run with `tbhits` counting and the fixed stress board PASS (200/200, stress 50/50), prebench
 pins, `N3_GATE_SPEC.md` + `n3_gate_spec.json` (runner change needed: a candidate-only string option). M3: FNN4 format,
 loader + scalar / AVX2 forward + UCI `NNUEv4` / `NNUEv4File`, OFF identity ALL OK, v4 unit test 54 checks PASS. M4:
 `export_fnn4.py` from the real J7 checkpoint, parity 100,000 positions 0 mismatches (scalar and AVX2), float gap mean
@@ -95,7 +95,7 @@ Findings (no bug fixed in the search):
 
 M1 exe `forge_r5c_m1.exe` (v3 recipe, M1 tree): 0 warnings, FMA 0, identity ALL OK (`logs/identity_m1.log`).
 
-## M2: N3 gate pack (in progress; paused for R5D)
+## M2: N3 gate pack (done)
 
 - Tables: 290/290 files sha256 OK against opus_r3/R3-1L/syzygy345.sha256 (`logs/m2_syzygy345_sha256_check.log`;
   the checked-out sha list has CRLF, so the check uses an LF copy).
@@ -117,8 +117,14 @@ M1 exe `forge_r5c_m1.exe` (v3 recipe, M1 tree): 0 warnings, FMA 0, identity ALL 
   root `8/8/4k3/8/2p5/2KR4/P7/3q4 w`, go depth 12): no tables -> 12 info lines, none with `tbhits`; 3-4-5 tables ->
   every info line has it, `tbhits 23` at depth 12. A 4-piece root (`logs/tbhits_*.log`) reports `tbhits 0`, as it
   should: a DTZ-ranked root switches in-search probing off.
+- **Smoke re-run 11:26-11:48 Vienna** (`smoke_n3.py` with both fixes, `forge_r5c_m3b.exe` N3-ON vs the same exe OFF,
+  200 games from `n3_endgame_book.epd`, Threads 1, 5+0.05, concurrency 1, seed 1, BelowNormal): **PASS** - 200/200
+  games, 0 illegal, 0 crashes, 0 time losses, 0 missing bestmoves, 0 error lines, 0 moves under 20 ms left; go/stop
+  stress **50/50 with 0 problems** (the 96 false "illegal" reports of the first run are gone). TB hits counted from
+  the info output: ON 11,369,061 in-search hits over 2,033 moves with hits, OFF 0 (no tables, no `tbhits` field).
+  Endings: 80 mates, 77 threefold, 38 insufficient material, 5 fifty-move (`logs/m2_smoke_n3_rerun_summary.json`).
 
-## M3: v4 format + engine inference (in progress)
+## M3: v4 format + engine inference (done)
 
 - `tests/r5c_v4_tests.cpp` (CTest `forge_r5c_v4_tests`; standalone build PASS, 54 checks, 0 failures,
   `logs/v4_tests_m3b.log`; CMake build pending): nets built and serialised by the
@@ -127,7 +133,7 @@ M1 exe `forge_r5c_m1.exe` (v3 recipe, M1 tree): 0 warnings, FMA 0, identity ALL 
   written from FNN4_FORMAT.md == AVX2 on random-game positions for five shapes (H 64..512, KB 1..32, OB 1..16, L2
   1..64, mirror/residual flags) and on a net at the accumulator bound (767 + 32 * 1000 = 32767, 32 pieces).
 
-## M4: exporter + parity (in progress)
+## M4: exporter + parity (done)
 
 - Real J7 checkpoint (read-only): `F:\opus_scratch\fable\fb2\j7\run_l2_60\best.pt` (step 10,035, float holdout b0.6
   0.015417 per its status.json; sha256 9b390b26...). `tools/nnue/export_fnn4.py export` (own code; the trainer's
