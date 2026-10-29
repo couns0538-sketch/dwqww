@@ -206,6 +206,34 @@ and AA. `--copies 20 --pairs 20`: no two slots share a file, so the per-file off
   (lower bounds +1.30 / +1.47 < +2). This agrees with the v3 pass 1 (N2 +2.32 [+1.66, +2.99] / +2.02 [+1.36, +2.69]);
   pass 1-2's larger znver5 N2 values (d20 +3.03, +2.43) carried per-file offsets.
 
+### Quiet runners (GitHub, the CI method; run 40837780229, dispatched 08:48 Vienna on 3da5dbc7)
+
+`opus_r3/R3-2Q/ci_quietnps.sh` got an `N2` config (R5B): per runner, g++-14 CMake Release with the box flags
+(x86-64-v3), OFF vs N2 (and OFF vs a byte copy, A/A), paired ABBA CPU-time NPS, 10 pairs at d16 and 8 at d20; on an
+AVX-512 runner also OFF_v4 vs N2_v4 built with -march=x86-64-v4 (the O2 512-bit kernels). 6 reps; logs and per-run
+JSON in `logs/quietnps/`, pooled with `opus_r3/R3-2Q/analyze_quietnps.py`:
+
+| config | row | rep | runner CPU | nodes equal | NPS delta % [95% CI] d16 | d20 | A/A d16 | A/A d20 | rule | median d16 / d20 | spread % d16 / d20 | PC (R3-2) |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| N2 | SW | 1 | AMD EPYC 7763 64-Core Processor | d16 yes; d20 yes | +5.27 [+4.45, +6.10] | +4.57 [+3.68, +5.46] | -0.40 [-1.21, +0.40] | -0.39 [-0.90, +0.13] | MET | +5.12 / +4.87 | 2.8 / 3.0 |  |
+| N2 | SW | 2 | AMD EPYC 7763 64-Core Processor | d16 yes; d20 yes | +5.56 [+4.76, +6.36] | +5.44 [+4.47, +6.43] | +0.05 [-0.66, +0.77] | -0.01 [-0.84, +0.83] | MET | +5.44 / +4.95 | 3.9 / 4.7 |  |
+| N2 | SW | 3 | AMD EPYC 7763 64-Core Processor | d16 yes; d20 yes | +5.91 [+4.84, +6.99] | +6.32 [+4.39, +8.28] | +0.34 [-0.93, +1.64] | +0.80 [-0.15, +1.75] | MET | +6.22 / +6.22 | 6.5 / 8.4 |  |
+| N2 | SW | 4 | INTEL(R) XEON(R) PLATINUM 8573C (AVX-512) | d16 yes; d20 yes | +5.93 [+4.60, +7.27] | +5.91 [+5.13, +6.70] | -0.27 [-1.25, +0.72] | +0.06 [-0.70, +0.83] | MET | +5.86 / +6.24 | 4.5 / 3.0 |  |
+| N2 | SW | 5 | AMD EPYC 9V45 96-Core Processor (AVX-512) | d16 yes; d20 yes | +0.28 [-4.72, +5.54] | +1.68 [+0.31, +3.06] | +0.17 [-3.54, +4.01] | +0.73 [-0.63, +2.11] | not met | +2.69 / +1.80 | 28.1 / 11.7 |  |
+| N2 | SW | 6 | AMD EPYC 7763 64-Core Processor | d16 yes; d20 yes | +5.71 [+4.89, +6.54] | +5.19 [+4.31, +6.09] | +0.15 [-0.47, +0.78] | -0.16 [-0.69, +0.38] | MET | +5.70 / +5.31 | 3.1 / 4.8 |  |
+| N2 | SW | all (6) | 6 runners | | **+4.76 [+3.83, +5.69]** | **+4.84 [+4.41, +5.27]** | +0.01 [-0.66, +0.68] | +0.17 [-0.14, +0.48] | MET | | | |
+| N2 | SW_V4 | 4 | INTEL(R) XEON(R) PLATINUM 8573C (AVX-512) | d16 yes; d20 yes | +5.94 [+5.07, +6.81] | +6.03 [+5.62, +6.43] | -0.27 [-1.25, +0.72] | +0.06 [-0.70, +0.83] | MET | +6.24 / +5.97 | 2.4 / 3.9 |  |
+| N2 | SW_V4 | 5 | AMD EPYC 9V45 96-Core Processor (AVX-512) | d16 yes; d20 yes | +3.80 [+2.40, +5.23] | +4.79 [+1.64, +8.02] | +0.17 [-3.54, +4.01] | +0.73 [-0.63, +2.11] | not met | +3.92 / +4.02 | 6.2 / 10.3 |  |
+| N2 | SW_V4 | all (2) | 2 runners | | **+4.86 [+4.08, +5.65]** | **+5.40 [+3.81, +7.02]** | -0.05 [-1.94, +1.88] | +0.39 [-0.33, +1.12] | MET | | | |
+
+- **Pooled over 6 runners N2 = +4.76 [+3.83, +5.69] at d16 and +4.84 [+4.41, +5.27] at d20: rule MET** (A/A
+  +0.01 / +0.17). On the Zen 3 (EPYC 7763) and Intel runners every rep alone meets it (+4.6 to +6.3 %).
+- **Zen 5 is the exception:** the one EPYC 9V45 runner (the PC's core family; noisy, spread 28 % at d16) gives
+  +0.28 / +1.68 for the x86-64-v3 build, and +3.80 [+2.40, +5.23] / +4.79 [+1.64, +8.02] for the x86-64-v4 build
+  (512-bit kernels). The PC (Zen 5 Ryzen 7 9850X3D) measured about +2 % (passes 1 and 3).
+- So N2 is a real, larger-than-the-singles speed-up wherever it was measured; it clears the +2 % lower-bound rule on
+  the quiet runners (the rule's proxy, forge-engine-verify) and does not clear it on the loaded Zen 5 PC.
+
 ## CI (GitHub Actions)
 
 | run | workflow | commit | result | note |
@@ -217,7 +245,7 @@ and AA. `--copies 20 --pairs 20`: no two slots share a file, so the per-file off
 | 40835194501 | opus-r5b-n2 | 5c80ffe3 | success (incl. memcheck with the poison identities) | |
 | 40835194560 | opus-ci | 5c80ffe3 | success | |
 | 40834819007 | opus-ci | f99966f7 | success | |
-| 40837780229 | opus-r3-quietnps (dispatch, configs ["N2"], reps 1-6) | 3da5dbc7 | running | quiet-runner N2 NPS (v3, and v4 on AVX-512 runners) |
+| 40837780229 | opus-r3-quietnps (dispatch, configs ["N2"], reps 1-6) | 3da5dbc7 | success | quiet-runner N2 NPS (v3, and v4 on AVX-512 runners) |
 
 The red opus-ci jobs are a nondeterministic two-thread test, not this job's code: the opus-ci default
 configuration builds none of the R5B code (every engine change is under `#if FORGE_NNUE_O2` or the test-only poison
