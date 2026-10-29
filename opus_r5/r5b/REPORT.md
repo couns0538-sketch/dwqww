@@ -134,6 +134,40 @@ so ON = the pins).
 | SPEEDSTACK | `-DFORGE_SPEEDSTACK=1` | b8172950... | 368ee29e... | ALL OK |
 | N2 | all three | 1823fe61... | faac168d... | ALL OK |
 
+### NPS pass 1 (08:12-08:27 Vienna; both recipes in parallel on cores 14 and 12, 12 pairs, one file per arm)
+
+CPU-time NPS (primary) and engine NPS, B vs the OFF exe of the same recipe, % with 95 % CI; logs
+`logs/m3_nps_{z5,v3}.log`, every run in `logs/m3_nps_{z5,v3}.json`.
+
+| run | arm (B vs A) | cpu d16 % | cpu d20 % | engine d16 % | engine d20 % | median cpu ratio d16 / d20 | rule |
+|---|---|---|---|---|---|---|---|
+| m3_nps_z5.json (A = forge_r5b_off_z5_m1fix.exe, core 14, 12 pairs, PC busy 0.85) | o2_portable | +1.89 [+0.67, +3.12] | -0.15 [-0.78, +0.48] | +1.85 [+0.60, +3.12] | -0.14 [-0.86, +0.59] | 1.0217 / 0.9953 | not met |
+|  | o2_avx512 | +0.91 [+0.03, +1.80] | -0.26 [-0.97, +0.46] | +0.88 [-0.01, +1.78] | -0.19 [-0.95, +0.58] | 1.0060 / 0.9986 | not met |
+|  | nozero | +1.59 [+0.80, +2.39] | -0.14 [-0.78, +0.51] | +1.59 [+0.79, +2.40] | -0.02 [-0.73, +0.69] | 1.0152 / 0.9971 | not met |
+|  | speedstack | +3.46 [+2.23, +4.70] | +1.21 [+0.63, +1.79] | +3.46 [+2.28, +4.65] | +1.29 [+0.61, +1.97] | 1.0326 / 1.0127 | not met |
+|  | n2 | +4.94 [+3.55, +6.36] | +3.03 [+2.34, +3.72] | +4.96 [+3.59, +6.36] | +3.14 [+2.38, +3.92] | 1.0468 / 1.0304 | MET |
+|  | AA | +2.55 [+1.27, +3.85] | +0.31 [-0.58, +1.21] | +2.54 [+1.23, +3.86] | +0.39 [-0.57, +1.37] | 1.0233 / 1.0043 | A/A control |
+| m3_nps_v3.json (A = forge_r5b_off_v3_m1fix.exe, core 12, 12 pairs, PC busy 0.86) | o2_avx2 | +0.59 [+0.03, +1.16] | +0.21 [-0.25, +0.67] | +0.14 [-0.62, +0.91] | +0.19 [-0.45, +0.83] | 1.0085 / 1.0012 | not met |
+|  | nozero | +0.69 [-0.39, +1.78] | +0.64 [-0.29, +1.59] | +0.60 [-0.54, +1.76] | +0.71 [-0.36, +1.79] | 1.0001 / 1.0089 | not met |
+|  | speedstack | +0.25 [-0.67, +1.18] | +1.02 [+0.50, +1.55] | +0.10 [-0.95, +1.16] | +1.06 [+0.18, +1.95] | 1.0015 / 1.0089 | not met |
+|  | n2 | +2.32 [+1.66, +2.99] | +2.02 [+1.36, +2.69] | +2.10 [+1.33, +2.89] | +2.12 [+1.35, +2.90] | 1.0209 / 1.0193 | not met |
+|  | AA | -0.01 [-0.85, +0.85] | +0.12 [-0.52, +0.76] | -0.18 [-1.12, +0.77] | -0.01 [-0.90, +0.90] | 0.9983 / 1.0028 | A/A control |
+
+Reading pass 1:
+- **v3 run: the A/A control is clean** (-0.01 / +0.12 %). N2 +2.32 [+1.66, +2.99] / +2.02 [+1.36, +2.69]: a real gain
+  that does **not** meet the +2 % lower-bound rule. The singles add up to about N2 (O2 +0.6 / +0.2, NOZERO +0.7 /
+  +0.6, SPEEDSTACK +0.3 / +1.0). O2's AVX2 kernels give much less on this Zen 5 core than on the quiet CI runners
+  (R3-2Q all-runner +3.1 / +3.0 %, mostly Zen 3 EPYC 7763).
+- **znver5 run: the A/A control FAILED at d16** (+2.55 [+1.27, +3.85] for byte-identical files): the A exe ran about
+  3 % slower than its copy in slots 0-7 and caught up from slot 8 (per-slot dump in this section's JSON); at d20 A/A
+  is clean (+0.31). So every znver5 d16 row of pass 1 is biased by about +2.5 % and is not used. At d20: O2
+  (either kernel) and NOZERO about 0, SPEEDSTACK +1.2, but N2 +3.03 [+2.34, +3.72], more than the sum of its parts:
+  the signature of a code-layout effect (R3-2Q), not of the three switches.
+- Likely cause of the A/A failure: the exes are `DYNAMIC_BASE` + `HIGH_ENTROPY_VA` (objdump -p), so every file gets
+  its own ASLR image base; branch-predictor aliasing then differs per file, and an image re-mapped under the PC's
+  RAM pressure can change speed mid-run. Not proven; the fix is to sample it: `nps_ab.py --copies K` runs K byte
+  copies per arm in rotation (pass 2).
+
 ## M4: non-regression evidence for N2 (in progress)
 
 ### (c) uninitialised reads (the NOZERO risk)
