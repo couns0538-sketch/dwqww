@@ -156,7 +156,7 @@ Fix tree checks (PC, BelowNormal, <= 3 threads):
 | full CTest on a 3-CPU mask (forge_tests apart) | **63 / 63 passed** | `logs/ctest_bkm.log` |
 | forge_tests | only the 4 known FAIL lines: KNOWN-FAILURE CHECK PASS | `logs/ctest_forge_tests_bkm.log`, `logs/chain_tools.out` |
 
-## 4. Proof (pending)
+## 4. Proof (running; partial rows at 10:52 Vienna in `logs/proof_partial_1052.tsv`: fix 0 misses in 40,000 KRK runs, base 180 in 8,000)
 
 ## 5. CI test
 
