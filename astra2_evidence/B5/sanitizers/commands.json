@@ -1,0 +1,26 @@
+{
+  "configure": [
+    "/workspace/.cloud-setup/venv/lib/python3.12/site-packages/cmake/data/bin/cmake",
+    "-S",
+    "/tmp/forge-astra2-b5",
+    "-B",
+    "/tmp/forge-astra2-build-b5-san",
+    "-DCMAKE_BUILD_TYPE=RelWithDebInfo",
+    "-DCMAKE_CXX_COMPILER=/usr/bin/g++-14",
+    "-DCMAKE_CXX_FLAGS=-march=x86-64-v3 -mtune=znver5 -fno-fast-math -ffp-contract=off -DFORGE_NNUE_HIDDEN=256 -fno-pie",
+    "-DCMAKE_CXX_FLAGS_RELWITHDEBINFO=-O1 -g1 -DNDEBUG",
+    "-DCMAKE_EXE_LINKER_FLAGS=-no-pie",
+    "-DFORGE_ENABLE_SANITIZERS=ON"
+  ],
+  "build": [
+    "/workspace/.cloud-setup/venv/lib/python3.12/site-packages/cmake/data/bin/cmake",
+    "--build",
+    "/tmp/forge-astra2-build-b5-san",
+    "-j4"
+  ],
+  "environment": {
+    "ASAN_OPTIONS": "detect_leaks=1:halt_on_error=1",
+    "UBSAN_OPTIONS": "halt_on_error=1:print_stacktrace=1"
+  },
+  "note": "Non-PIE avoids randomized ASan shadow mapping collisions; full ASan/UBSan build, not TSan."
+}
