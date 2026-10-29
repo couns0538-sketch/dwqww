@@ -8,3 +8,4 @@
 | corrhistplus4 | `CorrHistPlus=4` | 200/200 | 0 | 0 | 0 | 0 | 0 | 0 | 50/50, 0 problems | 127.9 | 0 | 0 | 97.5/200 | threefold_repetition 140, checkmate 43, insufficient_material 12, fifty_moves 3, stalemate 2 | 03:08:30 Vienna-03:23:47 | **PASS** |
 | corrhistplus6 | `CorrHistPlus=6` | 200/200 | 0 | 0 | 0 | 0 | 0 | 0 | 50/50, 0 problems | 127.5 | 0 | 0 | 102/200 | threefold_repetition 141, checkmate 48, insufficient_material 10, fifty_moves 1 | 03:25:17 Vienna-03:40:28 | **PASS** |
 | netscale99 | `NetScale=99` | 200/200 | 0 | 0 | 0 | 0 | 0 | 0 | 50/50, 0 problems | 131.1 | 0 | 0 | 101.5/200 | threefold_repetition 123, checkmate 55, insufficient_material 19, fifty_moves 3 | 03:40:28 Vienna-03:56:05 | **PASS** |
+| histrework3 | `HistRework=3` | 200/200 | 0 | 0 | 0 | 0 | 0 | 0 | 50/50, 0 problems | 131.2 | 0 | 0 | 101.5/200 | threefold_repetition 132, checkmate 55, insufficient_material 9, fifty_moves 4 | 03:56:08 Vienna-04:11:45 | **PASS** |
