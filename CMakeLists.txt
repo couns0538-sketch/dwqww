@@ -169,6 +169,9 @@ target_link_libraries(forge_tt_tests PRIVATE forge_core Threads::Threads)
 
 add_executable(forge_intended_threefold_tests tests/intended_threefold_tests.cpp)
 target_link_libraries(forge_intended_threefold_tests PRIVATE forge_core Threads::Threads)
+# R5C M1: the N3 options together (Syzygy + IntendedThreefold, x CuckooRep); real tables via FORGE_SYZYGY_PATH.
+add_executable(forge_r5c_n3_tests tests/r5c_n3_tests.cpp)
+target_link_libraries(forge_r5c_n3_tests PRIVATE forge_core Threads::Threads)
 
 add_executable(forge_rule50_tests tests/rule50_tests.cpp)
 target_link_libraries(forge_rule50_tests PRIVATE forge_core Threads::Threads)
@@ -421,6 +424,8 @@ add_test(NAME forge_rule50_tests COMMAND forge_rule50_tests)
 add_test(NAME forge_syzygy_tests COMMAND forge_syzygy_tests
     ${CMAKE_CURRENT_SOURCE_DIR}/tests/syzygy_fixtures.tsv ${CMAKE_CURRENT_SOURCE_DIR}/tests/syzygy_reference.tsv
     ${FORGE_SYZYGY_PATH})
+add_test(NAME forge_r5c_n3_tests COMMAND forge_r5c_n3_tests
+    ${CMAKE_CURRENT_SOURCE_DIR}/tests/syzygy_reference.tsv ${FORGE_SYZYGY_PATH})
 add_test(NAME forge_tt_prefetch_probe COMMAND forge_tt_prefetch_probe)
 add_test(NAME forge_material_key_tests COMMAND forge_material_key_tests
     ${CMAKE_CURRENT_SOURCE_DIR}/tools/openings/forge-10000.epd)
