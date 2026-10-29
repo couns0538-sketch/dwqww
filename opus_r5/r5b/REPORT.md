@@ -93,7 +93,7 @@ Also: `forge::nnue::kernel_name()` and an `info string nnue kernel: <accumulator
 
 | check | result | evidence |
 |---|---|---|
-| OFF exes unchanged | `forge_r5b_off_{v3,z5}_m1fix.exe` differ from the b7c1772 OFF exes in 4 bytes (PE timestamp) | `cmp -l`, EXES.txt |
+| OFF exes unchanged | `forge_r5b_off_{v3,z5}_m1fix.exe` differ from the b7c1772 OFF exes in 4 bytes (PE timestamp/checksum fields) | `cmp -l`, EXES.txt |
 | identity O2 znver5 (avx512 kernel) | ALL OK | `logs/identity_o2_z5_m1fix.log` |
 | identity O2 v3 (avx2 kernel) | ALL OK | `logs/identity_o2_v3_m1fix.log` |
 | kernel in the binary | O2 znver5 refresh: 8 `vaddps zmm` + 8 stores per block (register-blocked); update: explicit zmm kernels; FMA 0 | `logs/m1_kernel_audit_m1fix.log`, `logs/m1_nnue_disasm_m1fix.txt` |
@@ -264,7 +264,7 @@ JSON in `logs/quietnps/`, pooled with `opus_r3/R3-2Q/analyze_quietnps.py`:
 
 The red opus-ci jobs are a nondeterministic two-thread test, not this job's code: the opus-ci default
 configuration builds none of the R5B code (every engine change is under `#if FORGE_NNUE_O2` or the test-only poison
-macro; the OFF exes differ from b7c1772 only in the PE timestamp), the same check failed in a release job and in an
+macro; the OFF exes differ from b7c1772 only in the PE timestamp/checksum fields), the same check failed in a release job and in an
 asan job on two different CPU types, and it passed in the other jobs of the same commits. The search behind it (a
 two-thread search on a shared TT not finding the mate in 3) is the SmpV2 mate area that Astra owns (rule 9), so I
 neither edit nor weaken it; the failed jobs were re-run (attempts 2) and the base-tree rate is measured on the PC
@@ -313,7 +313,7 @@ repeat a lot). N2 scored 98/200 (not a strength measurement). `logs/m4b_smoke_n2
   `-DFORGE_R5B_POISON_MOVE_BUFFERS=<byte>` every `UninitArray` (the MoveList and MovePicker buffers under NOZERO)
   fills its storage with that byte when constructed. A read of an element that was never written then sees the
   pattern and would change the nodes or crash. Without the macro the hook does not exist: N2 rebuilt from the hook
-  tree differs from the b2983d07 N2 exe in 4 bytes (PE timestamp).
+  tree differs from the b2983d07 N2 exe in 4 bytes (PE timestamp/checksum fields).
 - **Poisoned N2 (znver5, box recipe): `-DFORGE_R5B_POISON_MOVE_BUFFERS=0xFE` and `=0x5A`: 0 warnings, FMA 0,
   identity ALL OK** (bench d11-d22 + perft startpos/kiwipete; perft walks MoveList, the bench search MovePicker and
   MoveList). `logs/identity_n2_z5_poison0x{FE,5A}.log`, `logs/build_n2_z5_poison0x{FE,5A}.log`.

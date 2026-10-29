@@ -8,13 +8,13 @@ data: `n2_gate_spec.json` (same content as the table at the end).
 | role | exe (F:\opus_scratch\r5\r5b\exe) | sha256 | flags on top of the recipe |
 |---|---|---|---|
 | candidate N2 | `forge_r5b_n2_z5_b2983d07.exe` | `1823fe614065211d50ff2fad36860dcd7ccadb35a3b3fbd78c68ad4f32f27ca4` | `-DFORGE_NNUE_O2=1 -DFORGE_NOZERO_MOVE_BUFFERS=1 -DFORGE_SPEEDSTACK=1` |
-| opponent OFF | `forge_r5b_off_z5_m1fix.exe` | `ca5b9331b8fe9132cac958bc7687f2d872aa60e997fde6eb5bd8b9508c6f1858` | none (code = b7c1772 OFF; only the 4-byte PE timestamp differs) |
+| opponent OFF | `forge_r5b_off_z5_m1fix.exe` | `ca5b9331b8fe9132cac958bc7687f2d872aa60e997fde6eb5bd8b9508c6f1858` | none (code = b7c1772 OFF; only the PE timestamp/checksum bytes differ) |
 | alternative pair (job-spec flags `-march=x86-64-v3 -mtune=znver5`) | `forge_r5b_n2_v3_b2983d07.exe` vs `forge_r5b_off_v3_m1fix.exe` | `faac168d92a18f7a2eb2164655c5907d75fe26fc91cd0f0ae7589c913041aee5` / `241368e87d4ed9f4b247c840e0d18b42d8028b5543d7710d2b3b728f0e1350cc` | same |
 
 Recipe (both exes of a pair): MSYS2 ucrt64 g++ 15.2, `-std=c++20 -O3 -DNDEBUG -DFORGE_NNUE_HIDDEN=256
 -ffp-contract=off -fno-fast-math -march=znver5 -pthread -static`, built by `opus_r5/r5b/tools/build_r5b.sh`
 (RECIPE=znver5). Engine tree: commit b2983d07 (the M1 fix). Later commits add only a test-only macro, tools and
-reports: N2 rebuilt from the final branch head is byte-identical to this exe apart from the PE timestamp (REPORT.md
+reports: N2 rebuilt from the final branch head is byte-identical to this exe apart from the PE timestamp/checksum fields (REPORT.md
 "Final checks"). Why znver5: it is the PC lock exe's recipe (lock archive `2_build/BUILD.md` "Windows", `build_pc.sh`,
 used for the R3 gate exes); the job spec's v3 flags give the alternative pair (identical evidence below).
 
