@@ -1,6 +1,6 @@
 # Forge Opus round 5A: gate-ready singles (CorrMargins, CorrExt, CorrHistPlus variants, NetScale) — IN PROGRESS
 
-**Status:** M1, M2, M5 done; M3 smoke 3/8 PASS (CorrMargins, CorrExt, CorrHistPlus=2), CorrHistPlus=4 running; M4 written + validated. Last push 03:08 Vienna.
+**Status:** M1, M2, M5 done (CI green on both engine commits); M3 smoke 3/8 PASS, CorrHistPlus=4 running; M4 written + validated. Last push 03:09 Vienna.
 
 Branch `opus-r5a-singles` = `origin/forge-bundle-int` b7c17722 + the commits listed per milestone. Job started 01:52 Vienna
 (2026-10-29), hard stop 04:52 Vienna. No Elo claims: node counts are not strength; gates decide. Machine exclusive: no
@@ -255,7 +255,7 @@ Evidence (exe `forge_r5a_m5_9ad9158d.exe`, sha256 `ae6f891e5766f5da3ea005ceca6d6
 | commit | run | release | asan | tsan | notes |
 |---|---|---|---|---|---|
 | e22d3649 (M2) | 40799232252 | success | success | success | each job: 56 tests, 1 failed = forge_tests with only the 4 known lines, `KNOWN-FAILURE CHECK: PASS`; `TSan: 0 reports`; forge_r5a_options_tests passed in all three |
-| 4ba7bc99 (M5) | 40801582869 | success | running | running | (filled when done) |
+| 4ba7bc99 (M5) | 40801582869 | success | success | success | each job: 56 tests, only forge_tests' 4 known lines fail, `KNOWN-FAILURE CHECK: PASS`; `TSan: 0 reports`; forge_r5a_options_tests, opus_spsa_engine_options (updated) and uci_options_regression (sweeps the two new spins) pass in all three |
 
 Every other push of this branch is `[skip ci]` (WIP, docs, smoke evidence); the engine code of the head equals 4ba7bc99.
 
@@ -283,7 +283,7 @@ Every other push of this branch is `[skip ci]` (WIP, docs, smoke evidence); the 
 - Smoke: see the M3 table for the configs that finished; any config missing there (or marked PARTIAL) did not fit
   the 3-thread budget before the stop time (each config costs ~16 min of all 3 threads).
 - `forge_tests` was not run on the PC: two of its checks search with 4 threads, above the job's cap. GitHub CI ran it
-  with the known-failure check (M2 run green; see the CI section for the M5 run).
+  with the known-failure check (M2 and M5 runs green, CI section).
 - No full build / CTest of the R5A `#if` blocks with the build switches (only syntax-only compiles, M5 pause checks);
   CI's `opus-r3-switches` workflow runs on `forge-bundle-*` branches only, i.e. after a merge into forge-bundle-int.
 - ON pins only at d11/d13/d16 (what M1 asks); no d20/d22 ON pins for the gate entries.
