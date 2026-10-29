@@ -1,0 +1,40 @@
+Bundle base: b7c177222038e9332965a95ec53ea3b94e90dbc9
+Port source: fable-fb2-j3 1efc0b2c9e09d38642eabd1d6282acceeb38c0b8
+Source src/search.cpp SHA256: 0ad09d74ef35f6d27cd74d6f56bbe5c2e8d31b70e3b4eb8f10eb8f2b9613cb99
+Source lines 1200-1235:
+        if (!root_node && depth >= tune::SingularDepth && move == tt_move && excluded.is_none() && tt_bound != BoundUpper &&
+            tt_score != ValueNone && !is_mate_score(tt_score) && tt_depth >= depth - 3) {
+            const int singular_beta = tt_score - tune::SingularMargin * depth;
+            const int singular_depth = (depth - 1) / 2;
+            const bool saved_tt_pv = ss->tt_pv;
+            ss->excluded_move = move;
+            const int singular_score = search(board, ss, singular_depth, singular_beta - 1, singular_beta, cut_node);
+            ss->tt_pv = saved_tt_pv;
+            ss->double_extensions = inherited_double_extensions;
+            ss->excluded_move = Move::none();
+            if (aborted_) return 0;
+            if (singular_score < singular_beta) {
+                extension = 1;
+                if (!pv_node && singular_score < singular_beta - 24 && inherited_double_extensions <= 6) {
+                    extension = 2;
+                }
+                if (fb2::SingularV2) {
+                    // Triple extension: the TT move is far ahead of everything else and the path has room left.
+                    if (!pv_node && singular_score < singular_beta - 80 && inherited_double_extensions <= 4 && !tt_capture) extension = 3;
+                    // PV nodes may double-extend too, with a wider margin and a tighter budget.
+                    else if (pv_node && singular_score < singular_beta - 60 && inherited_double_extensions <= 3) extension = 2;
+                }
+            } else if (singular_beta >= beta) {
+                return singular_beta;
+            } else if (fb2::SingularV2 && singular_score >= beta && !is_mate_score(singular_score)) {
+                // Multicut: the reduced search without the TT move also failed high, so several moves beat beta.
+                return singular_score;
+            } else if (tt_score >= beta) {
+                extension = fb2::SingularV2 && !pv_node ? -3 : -2;
+            } else if (cut_node) {
+                extension = fb2::SingularV2 ? -2 : -1;
+            }
+        } else if (gives_check && depth >= tune::CheckExtensionDepth && !root_node &&
+                   (picker.last_move_see_nonnegative() || board.see_ge(move, 0))) {
+            extension = 1;
+        }

@@ -496,7 +496,8 @@ int main() {
             std::cout << "option name CorrHistV2 type check default false\n"
                          "option name LmrTableV2 type check default false\n"
                          "option name TtPruneV2 type check default false\n"
-                         "option name BundlePreset type combo default OFF var OFF var B1 var B2 var B3 var B4\n";
+                         "option name SingularV2 type spin default 0 min 0 max 1\n"
+                         "option name BundlePreset type combo default OFF var OFF var B1 var B2 var B3 var B4 var N1\n";
 #if FORGE_NNUE_LAZY_ACC
             if (forge::nnue::available()) std::cout << "option name NnueLazyAcc type check default false\n";
 #endif
@@ -728,8 +729,22 @@ int main() {
                 if (parsed.ec != std::errc{} || parsed.ptr != value_text.data() + value_text.size()) {
                     const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex());
                     std::cout << "info string invalid value for option " << name << std::endl;
+                } else if (value > 0 && forge::fb2::requested.singular_v2) {
+                    const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex());
+                    std::cout << "info string CorrExt refused: SingularV2 is on (exclusive path budgets)" << std::endl;
                 } else {
                     assign_option(forge::options::corr_ext, static_cast<std::uint8_t>(std::clamp(value, 0, 1)));
+                }
+            } else if (name == "SingularV2") {
+                int value = 0;
+                const auto parsed = std::from_chars(value_text.data(), value_text.data() + value_text.size(), value);
+                const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex());
+                if (parsed.ec != std::errc{} || parsed.ptr != value_text.data() + value_text.size() || value < 0 || value > 1) {
+                    std::cout << "info string invalid value for option SingularV2" << std::endl;
+                } else if (value != 0 && forge::options::corr_ext != 0) {
+                    std::cout << "info string SingularV2 refused: CorrExt is on (exclusive path budgets)" << std::endl;
+                } else {
+                    forge::fb2::requested.singular_v2 = value != 0;
                 }
             } else if (name == "CuckooRep") {
                 if (value_text == "true") assign_option(forge::options::cuckoo_rep, true);
@@ -776,11 +791,14 @@ int main() {
                     std::cout << "info string invalid value for option TmSoftHardClamp" << std::endl;
                 }
             } else if (name == "BundlePreset") {
-                static constexpr std::array<std::string_view, 5> Names{"OFF", "B1", "B2", "B3", "B4"};
+                static constexpr std::array<std::string_view, 6> Names{"OFF", "B1", "B2", "B3", "B4", "N1"};
                 const auto it = std::find(Names.begin(), Names.end(), std::string_view(value_text));
                 const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex());
                 if (it == Names.end()) {
                     std::cout << "info string invalid value for option " << name << std::endl;
+                } else if (*it == "N1" && forge::options::corr_ext != 0) {
+                    // Refuse before apply_bundle: no member of the previous preset is changed.
+                    std::cout << "info string BundlePreset N1 refused: CorrExt is on (exclusive path budgets)" << std::endl;
                 } else {
                     const auto bundle = static_cast<forge::fb2::Bundle>(it - Names.begin());
                     forge::fb2::apply_bundle(bundle);
@@ -790,7 +808,8 @@ int main() {
                               << " HistRework=" << b.hist_rework << " CuckooRep=" << (b.cuckoo_rep ? "true" : "false")
                               << " CorrHistV2=" << (b.fb2.corr_hist_v2 ? "true" : "false")
                               << " LmrTableV2=" << (b.fb2.lmr_table_v2 ? "true" : "false")
-                              << " TtPruneV2=" << (b.fb2.tt_prune_v2 ? "true" : "false") << std::endl;
+                              << " TtPruneV2=" << (b.fb2.tt_prune_v2 ? "true" : "false")
+                              << " SingularV2=" << (b.fb2.singular_v2 ? 1 : 0) << std::endl;
                 }
             } else if (name == "IntendedThreefold") {
                 if (value_text == "true") assign_option(forge::options::intended_threefold, true);

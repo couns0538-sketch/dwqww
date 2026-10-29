@@ -75,3 +75,9 @@ Source `8c10a4cbd6b21caf66ce8071c6bca8b9e17106b1`; exe SHA256 `db50cb6c9130d0180
 | 22 | 34048354 | 34382 | 990295 |
 
 Exact commands (same configured rule5 build): `cmake --build /tmp/forge-astra3-build-integration -j4`; `python3 astra3/integration/tools/identity_bench.py /tmp/forge-astra3-build-integration/forge astra3/integration/M3/pins`; `python3 astra3/integration/tools/run_full_ctest.py /tmp/forge-astra3-build-integration astra3/integration/M3/ctest`; `python3 astra3/integration/tools/check_milestone.py /tmp/forge-astra3-build-integration/forge astra3/integration/M3 --source 8c10a4cbd6b21caf66ce8071c6bca8b9e17106b1`. Flags, raw output, original executable and receipt retained in M3. These timings make no speed or Elo claim. Full integrated ON matrix/SAN/TSan remains pending until the final A1 head.
+
+## M4: B5 merge — 2026-10-29 00:45:03 PDT
+
+WIP. Real no-ff merge5c6ee0d. Retained both timing and SingularV2 UCI test registrations, all source citations and historical checkpoint text. FB2 fields temporarily retain SingularV2 as the4th bool so the existing N1 initializer means what B5 measured; independent SmpV2/timing follow it. apply_bundle explicitly assigns its newly owned singular_v2 field, preserving both independent flags. Corrected stale BUNDLES/header exclusions. All search hooks and CorrExt exclusivity remain B5's reviewed implementation.
+
+Full build/OFF qualification now starts. Per QA requirement, the FIRST commit after this merge will contain the named-preset F1 fix, static assertions and reordered-field negative proof; there will be no intervening evidence-only commit. M4 raw evidence will be included with that commit. No N1 gate is run.

@@ -49,3 +49,6 @@ Opponent for any gate = the **locked ep10 tree** (/workspace/forge-coder/fc_nnue
 
 ## Artifacts
 artifacts/: diff_rq.txt, changed_files.txt/.sha256, build.log, ctest.log, bench.log, check_nnue_simd.log, uci_smoke.log (+ uci_smoke_proper.py), binary_sha256.txt, timing csv/summary/scripts.
+
+## Astra round 2 B5: default-off SingularV2 and N1 (2026-10-29)
+This branch is based on forge-bundle-int b7c177222038e9332965a95ec53ea3b94e90dbc9, not the historical h256-only build described above. `SingularV2` is a spin option, default 0, range 0..1. `BundlePreset N1` sets CorrHistPlus=4 and SingularV2=1 and resets the other five preset-owned options. CorrExt and SingularV2 are exclusive; either refusal leaves the previous option values unchanged. `BundlePreset OFF` resets all seven preset-owned options. See PORT_NOTES.md and astra2_evidence/B5 for the exact same-repository source attribution, line inventory, tests and raw qualification. Idea source: Forge FB2-J3 at 1efc0b2c9e09d38642eabd1d6282acceeb38c0b8 and the requested N1 combination. No code or tuned values from another engine; no Elo claim.

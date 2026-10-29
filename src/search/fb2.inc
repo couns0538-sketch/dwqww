@@ -50,6 +50,7 @@ void apply_bundle(Bundle bundle) {
     requested.corr_hist_v2 = s.fb2.corr_hist_v2;
     requested.lmr_table_v2 = s.fb2.lmr_table_v2;
     requested.tt_prune_v2 = s.fb2.tt_prune_v2;
+    requested.singular_v2 = s.fb2.singular_v2;
 }
 
 // SmpV2: same helper diversification as Forge FB2-J5, with a corrected selector.
