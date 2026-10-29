@@ -1,6 +1,6 @@
 # Forge Opus round 5A: gate-ready singles (CorrMargins, CorrExt, CorrHistPlus variants, NetScale) — IN PROGRESS
 
-**Status:** M1, M2, M5 done (CI green on both engine commits); M3 smoke 3/8 PASS, CorrHistPlus=4 running; M4 written + validated. Last push 03:09 Vienna.
+**Status:** M1, M2, M5 done (CI green); M3 smoke 3/8 PASS, CorrHistPlus=4 at 120/200 (0 failures), then a d20/d22 pin pause; M4 written + validated. Last push 03:18 Vienna.
 
 Branch `opus-r5a-singles` = `origin/forge-bundle-int` b7c17722 + the commits listed per milestone. Job started 01:52 Vienna
 (2026-10-29), hard stop 04:52 Vienna. No Elo claims: node counts are not strength; gates decide. Machine exclusive: no

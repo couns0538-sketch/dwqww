@@ -95,9 +95,25 @@ def smoke_verdict(name):
                            f"{len(stress.get('problems', []))}" if stress else "skipped"}
 
 
+def deep_pins():
+    """d20/d22 ON pins from logs/deep_pins.txt ("Name=value d20 d22" per line, tools/deep_pins.sh), if measured."""
+    path = os.path.join(R5A, "logs", "deep_pins.txt")
+    pins = {}
+    if os.path.exists(path):
+        for line in open(path, encoding="utf-8"):
+            parts = line.split()
+            if len(parts) == 3 and parts[1].isdigit() and parts[2].isdigit():
+                pins[parts[0]] = [int(parts[1]), int(parts[2])]
+    return pins
+
+
 def main():
     entries = []
+    deep = deep_pins()
     for rank, gid, name, opts, tc, smoke, pins, conflicts, reason, evidence in GATES:
+        if name in deep:
+            pins = pins + deep[name]
+        depths = [11, 13, 16, 20, 22][:len(pins)]
         entries.append({
             "rank": rank, "id": gid, "name": name,
             "tag_suggestion": f"gate{gid.replace('-', '_')}_{name.replace('=', '').lower()}_vs_r5aoff",
@@ -110,8 +126,8 @@ def main():
             "cap_wall_hours_upper_bound_conc8": cap_hours(tc),
             "srand": "", "openings_start": "",
             "book": {"file": BOOK, "format": "pgn", "order": "random"},
-            "prebench_depths": [11, 13, 16],
-            "prebench": {"cand_off": OFF_PINS[:3], "cand_on": pins},
+            "prebench_depths": depths,
+            "prebench": {"cand_off": OFF_PINS[:len(depths)], "cand_on": pins},
             "off_identity": {"bench_d11_d13_d16_d20_d22": OFF_PINS, "perft5_startpos": 4865609,
                              "perft5_kiwipete": 193690690, "fma": 0},
             "expected_echo": f"info string active: {' '.join(opts)}",
@@ -145,7 +161,8 @@ def main():
     md.append("- SPRT `elo0=0 elo1=10 alpha=0.05 beta=0.05 model=normalized`; `cap_games` 3000 (int); "
               "**srand: blank; openings start: blank** (queue owner fills both).")
     md.append(f"- Book `{BOOK}` (pgn, order random).")
-    md.append("- Pins: `prebench.cand_on` are the M1 ON benches d11/d13/d16 (Threads 1, Hash 16); "
+    md.append("- Pins: `prebench.cand_on` are the M1 ON benches d11/d13/d16 plus, where measured, d20/d22 "
+              "(tools/deep_pins.sh, `logs/deep_pins.txt`; Threads 1, Hash 16); "
               "`cand_off` the lock pins. The candidate prints `info string active: <Name>=<value>` at every go "
               "(M2), so the gate log shows the option really applied; the opponent prints nothing new.")
     md.append("- Smoke (M3): 200 games ON vs OFF at 5+0.05 + 50x go/stop stress per option; verdict below "
@@ -177,8 +194,9 @@ def main():
         md.append(f"| SPRT / cap | [0,10] normalized, a=b=0.05; cap_games 3000 (wall time to the cap at concurrency 8: "
                   f"at most ~{e['cap_wall_hours_upper_bound_conc8']} h, from 2 x (base + 65 x inc) per game) |")
         md.append(f"| srand / openings start | blank / blank |")
-        md.append(f"| prebench cand_on (d11/d13/d16) | {' / '.join(str(x) for x in e['prebench']['cand_on'])} |")
-        md.append(f"| prebench cand_off | 312866 / 862329 / 3024920 |")
+        dl = "/".join(f"d{d}" for d in e["prebench_depths"])
+        md.append(f"| prebench cand_on ({dl}) | {' / '.join(str(x) for x in e['prebench']['cand_on'])} |")
+        md.append(f"| prebench cand_off ({dl}) | {' / '.join(str(x) for x in e['prebench']['cand_off'])} |")
         md.append(f"| expected echo | `{e['expected_echo']}` |")
         sm = e["smoke"]
         md.append(f"| smoke | {sm['verdict']}" + (f": {sm['games']} games, failures {sm['failures']}, stop stress {sm['stop_stress']} (`{sm['summary']}`)" if sm['verdict'] != 'pending' else "") + " |")

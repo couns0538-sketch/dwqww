@@ -5,7 +5,7 @@ Checks: one option set per gate (one option each); candidate and opponent are th
 options; both sides Threads=1 Hash=16 OwnBook=false; SPRT elo0=0 elo1=10 alpha=beta=0.05 normalized; cap_games is
 the int 3000; srand and openings_start are blank; primary TC 40+0.4 for CorrExt and CorrMargins, 10+0.1 otherwise;
 at most one NetScale entry; prebench cand_off = the lock pins and cand_on = the M1 ON benches in
-logs/m1_bench_base.json; the exe sha256 values match the files when they exist (F:\\opus_scratch\\r5\\r5a\\exe).
+logs/m1_bench_base.json (+ d20/d22 from logs/deep_pins.txt when the entry lists 5 depths); the exe sha256 values match the files when they exist (F:\\opus_scratch\\r5\\r5a\\exe).
 usage: check_gate_specs.py <r5a dir>          exit 0 = every check passed
 """
 import hashlib
@@ -19,6 +19,13 @@ m1 = json.load(open(os.path.join(R5A, "logs", "m1_bench_base.json"), encoding="u
 on_pins = {f"{c['option']}={c['value']}": [c["on"][str(d)] if str(d) in c["on"] else c["on"][d] for d in (11, 13, 16)]
            for c in m1["configs"]}
 problems = []
+LOCK = [312866, 862329, 3024920, 12389307, 34048354]
+deep = {}
+if os.path.exists(os.path.join(R5A, "logs", "deep_pins.txt")):
+    for line in open(os.path.join(R5A, "logs", "deep_pins.txt"), encoding="utf-8"):
+        parts = line.split()
+        if len(parts) == 3 and parts[1].isdigit() and parts[2].isdigit():
+            deep[parts[0]] = [int(parts[1]), int(parts[2])]
 
 
 def check(ok, what):
@@ -52,8 +59,11 @@ for g in spec["gates"]:
     check(g["srand"] == "" and g["openings_start"] == "", f"{gid}: srand/openings_start not blank")
     long_tc = name.split("=")[0] in ("CorrExt", "CorrMargins")
     check(g["tc_primary"] == ("40+0.4" if long_tc else "10+0.1"), f"{gid}: primary TC {g['tc_primary']}")
-    check(g["prebench"]["cand_off"] == [312866, 862329, 3024920], f"{gid}: cand_off pins")
-    check(g["prebench"]["cand_on"] == on_pins.get(name), f"{gid}: cand_on {g['prebench']['cand_on']} != M1 {on_pins.get(name)}")
+    depths = g["prebench_depths"]
+    check(depths in ([11, 13, 16], [11, 13, 16, 20, 22]), f"{gid}: prebench depths {depths}")
+    check(g["prebench"]["cand_off"] == LOCK[:len(depths)], f"{gid}: cand_off pins")
+    want_on = (on_pins.get(name) or []) + (deep.get(name, []) if len(depths) == 5 else [])
+    check(g["prebench"]["cand_on"] == want_on, f"{gid}: cand_on {g['prebench']['cand_on']} != measured {want_on}")
     check(g["expected_echo"] == f"info string active: {name}", f"{gid}: expected echo")
     netscale += name.startswith("NetScale=")
 check(netscale <= 1, f"{netscale} NetScale entries (at most one allowed)")
