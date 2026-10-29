@@ -1,0 +1,49 @@
+test_invalid_pin_never_passes_under_optimized_python (__main__.FinalizerTests.test_invalid_pin_never_passes_under_optimized_python) ... FAIL
+test_objdump_failure_preserves_original_streams (__main__.FinalizerTests.test_objdump_failure_preserves_original_streams) ... ERROR
+test_valid_control (__main__.FinalizerTests.test_valid_control) ... ok
+test_wrong_build_digest (__main__.FinalizerTests.test_wrong_build_digest) ... FAIL
+test_wrong_build_source (__main__.FinalizerTests.test_wrong_build_source) ... FAIL
+
+======================================================================
+ERROR: test_objdump_failure_preserves_original_streams (__main__.FinalizerTests.test_objdump_failure_preserves_original_streams)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/tmp/forge-astra3-integration/astra3/integration/final_review/finalizer_checks/test_finalize_tsan_identity.py", line 112, in test_objdump_failure_preserves_original_streams
+    self.assertEqual((directory/'objdump.stdout').read_bytes(), raw_out)
+                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/pathlib.py", line 1019, in read_bytes
+    with self.open(mode='rb') as f:
+         ^^^^^^^^^^^^^^^^^^^^
+  File "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/pathlib.py", line 1013, in open
+    return io.open(self, mode, buffering, encoding, errors, newline)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+FileNotFoundError: [Errno 2] No such file or directory: '/tmp/forge-astra3-integration/astra3/integration/final_review/finalizer_checks/red_fixtures/test_objdump_failure_preserves_original_streams-835r20jk/tsan/final_identity/objdump.stdout'
+
+======================================================================
+FAIL: test_invalid_pin_never_passes_under_optimized_python (__main__.FinalizerTests.test_invalid_pin_never_passes_under_optimized_python)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/tmp/forge-astra3-integration/astra3/integration/final_review/finalizer_checks/test_finalize_tsan_identity.py", line 86, in test_invalid_pin_never_passes_under_optimized_python
+    self.assertIsNotNone(error)
+AssertionError: unexpectedly None
+
+======================================================================
+FAIL: test_wrong_build_digest (__main__.FinalizerTests.test_wrong_build_digest)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/tmp/forge-astra3-integration/astra3/integration/final_review/finalizer_checks/test_finalize_tsan_identity.py", line 94, in test_wrong_build_digest
+    self.assertIsNotNone(error)
+AssertionError: unexpectedly None
+
+======================================================================
+FAIL: test_wrong_build_source (__main__.FinalizerTests.test_wrong_build_source)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/tmp/forge-astra3-integration/astra3/integration/final_review/finalizer_checks/test_finalize_tsan_identity.py", line 102, in test_wrong_build_source
+    self.assertIsNotNone(error)
+AssertionError: unexpectedly None
+
+----------------------------------------------------------------------
+Ran 5 tests in 0.064s
+
+FAILED (failures=3, errors=1)
