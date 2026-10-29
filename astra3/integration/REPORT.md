@@ -1,6 +1,27 @@
 # Astra round3 A1 integration
 
-## Current status — 2026-10-29T03:00:18.944941-07:00
+## Final status — 2026-10-29T03:34:15.139561-07:00
+
+**DONE: primary Linux integration qualification and the requested final review.** Candidate engine source`926c55f33227bc4a030d7ce5b1140528aeba75af`; accepted input`b7c177222038e9332965a95ec53ea3b94e90dbc9` remains unchanged. No accepted/live branch or PC state was modified. This completion does not mean the A2 mate bug or later jobs are finished.
+
+| Check | Final observed result |
+|---|---|
+| Release OFF+ON matrix |75/75 external fixed-node cells match|
+| Primary Release, ASan/UBSan and TSan OFF d11/13/16/20/22 |312866 /862329 /3024920 /12389307 /34048354 in all3|
+| Startpos/kiwipete perft5, all3 primary binaries |4865609 /193690690|
+| Whole-executable FMA, all3 primary binaries |0|
+| Full Release and ASan/UBSan CTest |64/65 each, actual exit8; only the same4 known functional failures|
+| TSan requested option/SMP tests |9/9 across original8/9 run and unchanged longer-deadline replay1/1; initial timeout retained|
+| TSan live stop/option stress |250stop cycles+6live option changes,256bestmoves,0race diagnostics|
+| Advertised-option contract |102/102 in each recorded configuration|
+| Fastchess strict smoke |2draws/exit0; unknown optionexit1/no played game; original extra-check FAIL retained with addendum|
+| Final review |1259.182seconds, source/evidence findings corrected; subsequent finalizer review also passed its regression checks|
+
+TSan's final original receipt and copied executable are in`tsan/final_identity`; all five counts, both perfts and FMA0 pass against the recorded build digest. ASan is in`asan_ubsan/qualification.json`; Release in`M5/qualification.json`. Older PENDING receipts below are preserved chronological history, superseded by these final results.
+
+**Limits:** the4functional failures remain; the A2 mate root cause/repair remains BLOCKED, so SmpV2-on is not qualified for adoption by this work. Windows/PS5.1, successful real Syzygy loading and separate deep identity of3test-only debughook binaries remain UNVERIFIED. No speed or Elo claim. QA/CR control adoption. No later A3/A4/Cjob was started under the remaining-usage instruction.
+
+## Earlier checkpoint status — 2026-10-29T03:00:18.944941-07:00
 
 A1 implementation and required Linux Release/ASan/UBSan/native TSan test coverage are complete; final review and the extra deep TSan binary identity are still running. Engine source remains `926c55f33227bc4a030d7ce5b1140528aeba75af`; accepted base remains `b7c177222038e9332965a95ec53ea3b94e90dbc9`. All later changes are tools/evidence/docs. No accepted branch, live gate, network or lock was changed.
 
@@ -258,3 +279,21 @@ Finalizer regression evidence is complete:5methods PASS under both normal and op
 ### Adoption limitation checkpoint — 2026-10-29T03:30:52.326822-07:00
 
 GATE_NOTES now explicitly separates A1 identity/protocol qualification from the unresolved A2 mate defect: SmpV2-on is not qualified for adoption by these integration results. Its default remainsfalse and the R5A single tests preserve that setting. No live gate or accepted branch changed. TSan d22 remains the only running bench.
+
+## Final instrumented OFF identities — 2026-10-29T03:32:13.865583-07:00
+
+All five depths match fixed external pins in both primary sanitizer binaries. Timings/NPS below are raw instrumented observations, not performance-comparison or Elo evidence.
+
+| Depth | ASan/UBSan nodes | ms | NPS | TSan nodes | ms | NPS |
+|---:|---:|---:|---:|---:|---:|---:|
+|11|312866|4756|65783|312866|12561|24907|
+|13|862329|13858|62226|862329|32949|26171|
+|16|3024920|64958|46567|3024920|131721|22964|
+|20|12389307|168514|73520|12389307|584664|21190|
+|22|34048354|611725|55659|34048354|1353287|25159|
+
+ASan/UBSan perft4865609/193690690 and FMA0 are qualified. TSan startpos4865609 is complete; its final kiwipete/FMA receipt is still executing. Primary binary hashes are unchanged from build receipts.
+
+### Final native sealing checkpoint — 2026-10-29T03:34:15.139561-07:00
+
+TSan finalizer exited0 with PASS, startpos4865609, kiwipete193690690 and whole-binary FMA0. Exact binary9a77389b180ef495b8b9b59bc3e090f8f039f4b135c67b1ebcb95dc4e30c8809 is copied with its compile flags, original perft streams, command/environment receipt and manifest. No owned native experiment remains running. All source/build/test failures and unfinished hypotheses are preserved.

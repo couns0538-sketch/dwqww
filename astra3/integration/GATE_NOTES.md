@@ -1,6 +1,6 @@
 # A1 integration gate handoff — 2026-10-29
 
-Status: Linux identity/protocol qualification complete; Windows and final review pending. No gate is run and no queued gate, lock, or live executable is changed.
+Status: primary Linux identity/protocol/sanitizer qualification and final review complete; Windows/adoption pending. No gate is run and no queued gate, lock, or live executable is changed.
 
 The accepted integration input is b7c177222038e9332965a95ec53ea3b94e90dbc9. The isolated astra3-integration branch uses real no-ff merges in the supplied order. See REPORT.md for each tested source and its binary SHA256.
 
@@ -21,3 +21,7 @@ Source926c55f33227bc4a030d7ce5b1140528aeba75af passes all75 matrix cells. All ei
 ## A2 adoption limitation
 
 The isolated A2 diagnostic branch6a9cc2b7a23ed29f6bc77ad9a496b4cfc6e6e391 reproduces main-worker mate loss after serialized helper TT seeding. No production fix is demonstrated. Do not interpret A1 integration qualification as resolving that bug or qualifying SmpV2-on for adoption. R5A single identities here use SmpV2 defaultfalse. This is a review limitation for future adoption; no running or queued gate is changed.
+
+## Final primary sanitizer identity
+
+ASan/UBSan and TSan both match all five fixed OFF pins, both perfts and FMA0. Full ASan/UBSan has only the four permitted functional failures and no sanitizer diagnostics. Requested TSan tests/stress pass with the original timeout/replay documented. This does not resolve A2 or authorize SmpV2-on/live adoption.
