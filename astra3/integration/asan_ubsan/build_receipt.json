@@ -1,0 +1,36 @@
+{
+  "source_commit": "926c55f33227bc4a030d7ce5b1140528aeba75af",
+  "start_utc": "2026-10-29T08:42:50.079540+00:00",
+  "status": "RUNNING",
+  "commands": {
+    "kind": "asan_ubsan",
+    "status": "PREPARED_NOT_RUN",
+    "source_commit": "926c55f33227bc4a030d7ce5b1140528aeba75af",
+    "build_dir": "/tmp/forge-astra3-build-asan_ubsan",
+    "configure": [
+      "/workspace/.cloud-setup/venv/lib/python3.12/site-packages/cmake/data/bin/cmake",
+      "-S",
+      "/tmp/forge-astra3-integration",
+      "-B",
+      "/tmp/forge-astra3-build-asan_ubsan",
+      "-DCMAKE_BUILD_TYPE=RelWithDebInfo",
+      "-DCMAKE_CXX_COMPILER=/usr/bin/g++-14",
+      "-DCMAKE_CXX_FLAGS=-march=x86-64-v3 -mtune=znver5 -fno-fast-math -ffp-contract=off -DFORGE_NNUE_HIDDEN=256 -fno-pie",
+      "-DCMAKE_CXX_FLAGS_RELWITHDEBINFO=-O1 -g1 -DNDEBUG",
+      "-DCMAKE_EXE_LINKER_FLAGS=-no-pie",
+      "-DFORGE_ENABLE_SANITIZERS=ON"
+    ],
+    "build": [
+      "/workspace/.cloud-setup/venv/lib/python3.12/site-packages/cmake/data/bin/cmake",
+      "--build",
+      "/tmp/forge-astra3-build-asan_ubsan",
+      "-j4"
+    ],
+    "runtime_environment": {
+      "ASAN_OPTIONS": "detect_leaks=1:halt_on_error=1",
+      "UBSAN_OPTIONS": "halt_on_error=1:print_stacktrace=1"
+    },
+    "runtime": "outside tracing sandbox; do not disable leak/race checks"
+  },
+  "configure_exit": 0
+}

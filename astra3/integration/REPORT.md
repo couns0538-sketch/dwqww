@@ -169,3 +169,27 @@ Status RUNNING; 44/75 cells recorded, all completed cells match externally pinne
 | R5A-2 | 312961 / 838790 / 2891507 / 12313394 / PENDING |
 
 Matrix parser repair is complete: original expression replay exposes7 failing regression subcases; fixed parser passes8 methods and rejects malformed duplicates/errors on either stream. The native matrix started only after that repair. The negative strict-smoke audit proves no go/position/bestmove and an empty PGN; Fastchess emits its Started-game label before validation. qualified_interpretation.json records PASS for the user contract while original FAIL receipts remain untouched. Sanitizers remain pending; no gate-ready or Elo claim.
+
+## Final Release matrix — 2026-10-29 01:43:49 PDT
+
+PASS75/75 cells. Source `926c55f33227bc4a030d7ce5b1140528aeba75af`, binary SHA256 `8733bcb06e2ba0d7ecb9b2e29de9fcedb870db71cca8ad50bfeea015cbbd9bbc`. Every cell used a fresh process, Threads1, Hash16, OwnBookfalse and an external fixed reference. Original stdin/stdout/stderr, NPS/time values, source/spec hashes and full manifest are in final_matrix.
+
+| Mode | d11 | d13 | d16 | d20 | d22 |
+|---|---:|---:|---:|---:|---:|
+| OFF | 312866 | 862329 | 3024920 | 12389307 | 34048354 |
+| SingularV2 | 404121 | 1005954 | 4120585 | 11497954 | 34264955 |
+| N1 | 277579 | 814055 | 2651984 | 18648191 | 40304213 |
+| N1_then_OFF | 312866 | 862329 | 3024920 | 12389307 | 34048354 |
+| SmpV2_T1 | 312866 | 862329 | 3024920 | 12389307 | 34048354 |
+| TmSoftHardClamp | 312866 | 862329 | 3024920 | 12389307 | 34048354 |
+| CorrMargins_OFF_Scale100 | 312866 | 862329 | 3024920 | 12389307 | 34048354 |
+| R5A-1 | 340927 | 734347 | 2794671 | 12132495 | 37005405 |
+| R5A-2 | 312961 | 838790 | 2891507 | 12313394 | 33298237 |
+| R5A-3 | 343365 | 858019 | 2522546 | 12894582 | 22287047 |
+| R5A-4 | 296553 | 824640 | 2914749 | 13945117 | 40489211 |
+| R5A-5 | 357478 | 747883 | 2544596 | 9007492 | 23436414 |
+| R5A-6 | 308948 | 917342 | 2601047 | 14196959 | 32409747 |
+| R5A-7 | 336192 | 869621 | 3052885 | 15664938 | 35705218 |
+| R5A-8 | 373261 | 1043893 | 3399770 | 13180132 | 35699757 |
+
+R5A1=CorrHistPlus4;2=CorrExt1;3=CorrMargins1/Scale100;4=CorrHistPlus2;5=CorrHistPlus6;6=NetScale99;7=HistRework3;8=HistRework1. This verifies node identity, not speed or Elo. Full ASan/UBSan build has now started from unchanged M5 engine source; full sanitized CTest and TSan remain pending.

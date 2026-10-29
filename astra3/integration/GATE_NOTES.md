@@ -13,3 +13,7 @@ Even after native identity passes, these identities are not Elo or speed evidenc
 For any later authorized strength gate proposal: one explicit option set, normalized SPRT[0,10], cap_games3000 as an integer, and empty srand/openings_start for QA assignment. Node-identical speed switches instead require NPS evidence and a[-10,0] non-regression proposal. No result is claimed here.
 
 IDEA_SOURCE: Engine QA round-three contract, same-repository R5A gate specifications, and the user's CorrMargins clarification.
+
+## Native Release qualification update
+
+Source926c55f33227bc4a030d7ce5b1140528aeba75af passes all75 matrix cells. All eight queued R5A singles have their exact five ON counts; the fixed OFF counts, both perfts and FMA0 pass. CTest64/65 has only the four known forge_tests lines. All102 advertised-option contract cases pass; strict positive two-game and named-negative exit1 checks meet the user contract. These are identity/protocol prerequisites only: full sanitizers and Windows execution remain pending. No live gate migration is authorized or performed by this report.
