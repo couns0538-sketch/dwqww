@@ -85,6 +85,12 @@ extern bool enabled;
 [[nodiscard]] bool set_int16(bool requested);
 #endif // FORGE_NNUE_INT16
 
+#if FORGE_NNUE_O2
+// The float kernels compiled into this O2 build, e.g. "accumulator avx512,
+// output avx2" (R5B; the UCI layer prints it as an info string at "uci").
+[[nodiscard]] const char* kernel_name();
+#endif // FORGE_NNUE_O2
+
 void refresh(const Board& board, Accumulator& accumulator);
 void update(const Accumulator& parent, Accumulator& child, const DirtyPieces& dirty);
 // Side-to-move evaluation in centipawns.

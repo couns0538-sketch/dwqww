@@ -514,6 +514,9 @@ int main() {
 #ifdef FORGE_S13_TT_CHILD_PREFETCH
             std::cout << "option name TtChildPrefetch type check default false\n";
 #endif
+#if FORGE_NNUE_O2
+            std::cout << "info string nnue kernel: " << forge::nnue::kernel_name() << '\n';
+#endif // FORGE_NNUE_O2
             std::cout << "option name Clear Hash type button\n"
                          "uciok" << std::endl;
         } else if (command == "isready") {

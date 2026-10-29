@@ -674,6 +674,8 @@ int main(int argc, char** argv) {
                   << " synthetic evaluations " << stats.synthetic << '\n';
 #if defined(FORGE_NNUE_FORCE_SCALAR)
         const char* target = "portable (FORGE_NNUE_FORCE_SCALAR)";
+#elif defined(__AVX512F__) && FORGE_NNUE_O2
+        const char* target = "AVX-512 (O2 512-bit accumulator kernels, R5B; AVX2 output layer)";
 #elif defined(__AVX512F__)
         const char* target = "AVX-512 target (portable kernels, compiler-widened; AVX2 output layer)";
 #elif defined(__AVX2__)

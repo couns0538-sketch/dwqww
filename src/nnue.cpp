@@ -54,9 +54,15 @@
 #endif
 
 #if FORGE_NNUE_O2
-// Accumulator kernels (refresh/update): explicit AVX2 or SSE2 vectors, else the
-// portable loops. AVX-512 targets keep the portable loops, which the compiler
-// widens to 512 bits itself as it does for AL1 s198.
+// Accumulator kernels (refresh/update): explicit AVX-512, AVX2 or SSE2 vectors,
+// else the portable loops. R5B: AVX-512 targets (the PC lock recipe
+// -march=znver5) get the 512-bit kernel; before, they kept the portable loops
+// (compiler-widened to 512 bits), so a PC O2 build had no explicit kernel.
+#if FORGE_NNUE_AVX2 && defined(__AVX512F__)
+#define FORGE_NNUE_KERNEL_AVX512 1
+#else
+#define FORGE_NNUE_KERNEL_AVX512 0
+#endif
 #if FORGE_NNUE_AVX2 && !defined(__AVX512F__)
 #define FORGE_NNUE_KERNEL_AVX2 1
 #else
@@ -167,7 +173,14 @@ inline void sub_feature(std::array<float, HiddenSize>& acc, const float* column)
 // One accumulator vector: the kernels below are written once against these
 // helpers. Lanes never interact, so the vector width only changes how many
 // lanes one instruction handles, never the operations a lane sees.
-#if FORGE_NNUE_KERNEL_AVX2
+#if FORGE_NNUE_KERNEL_AVX512
+using Vec = __m512;
+constexpr int VecWidth = 16;
+inline Vec vec_load(const float* p) { return _mm512_load_ps(p); }
+inline void vec_store(float* p, Vec v) { _mm512_store_ps(p, v); }
+inline Vec vec_add(Vec a, Vec b) { return _mm512_add_ps(a, b); }
+inline Vec vec_sub(Vec a, Vec b) { return _mm512_sub_ps(a, b); }
+#elif FORGE_NNUE_KERNEL_AVX2
 using Vec = __m256;
 constexpr int VecWidth = 8;
 inline Vec vec_load(const float* p) { return _mm256_load_ps(p); }
@@ -220,7 +233,7 @@ inline void apply_sub_add_sub_add(float* out, const float* in, const float* r0, 
 // Refresh kernel: out = bias + columns[0] + columns[1] + ..., lane by lane in
 // column order (the order in which AL1 s198 adds the pieces).
 inline void accumulate_columns(float* out, const float* bias, const float* const* columns, std::size_t count) {
-#if FORGE_NNUE_KERNEL_AVX2 || FORGE_NNUE_KERNEL_SSE2
+#if FORGE_NNUE_KERNEL_AVX512 || FORGE_NNUE_KERNEL_AVX2 || FORGE_NNUE_KERNEL_SSE2
     // Register-blocked: a block of Regs vectors stays in registers while every
     // column is added, instead of a load and a store per column and vector.
     constexpr int Regs = HiddenSize % (8 * VecWidth) == 0 ? 8 : HiddenSize % (4 * VecWidth) == 0 ? 4 : 1;
@@ -256,6 +269,28 @@ inline void accumulate_columns(float* out, const float* bias, const float* const
 bool available() { return FORGE_HAS_NNUE != 0; }
 
 bool residual() { return FORGE_HAS_NNUE != 0 && FORGE_NNUE_RESIDUAL != 0; }
+
+#if FORGE_NNUE_O2
+const char* kernel_name() {
+#if FORGE_NNUE_KERNEL_AVX512
+#define FORGE_NNUE_ACC_NAME "accumulator avx512"
+#elif FORGE_NNUE_KERNEL_AVX2
+#define FORGE_NNUE_ACC_NAME "accumulator avx2"
+#elif FORGE_NNUE_KERNEL_SSE2
+#define FORGE_NNUE_ACC_NAME "accumulator sse2"
+#else
+#define FORGE_NNUE_ACC_NAME "accumulator portable"
+#endif
+#if FORGE_NNUE_AVX2
+    return FORGE_NNUE_ACC_NAME ", output avx2";
+#elif FORGE_NNUE_SSE
+    return FORGE_NNUE_ACC_NAME ", output sse";
+#else
+    return FORGE_NNUE_ACC_NAME ", output portable";
+#endif
+#undef FORGE_NNUE_ACC_NAME
+}
+#endif // FORGE_NNUE_O2
 
 void refresh(const Board& board, Accumulator& accumulator) {
 #ifdef FORGE_PROF
