@@ -81,3 +81,25 @@ Exact commands (same configured rule5 build): `cmake --build /tmp/forge-astra3-b
 WIP. Real no-ff merge5c6ee0d. Retained both timing and SingularV2 UCI test registrations, all source citations and historical checkpoint text. FB2 fields temporarily retain SingularV2 as the4th bool so the existing N1 initializer means what B5 measured; independent SmpV2/timing follow it. apply_bundle explicitly assigns its newly owned singular_v2 field, preserving both independent flags. Corrected stale BUNDLES/header exclusions. All search hooks and CorrExt exclusivity remain B5's reviewed implementation.
 
 Full build/OFF qualification now starts. Per QA requirement, the FIRST commit after this merge will contain the named-preset F1 fix, static assertions and reordered-field negative proof; there will be no intervening evidence-only commit. M4 raw evidence will be included with that commit. No N1 gate is run.
+
+### CorrMargins requirement resolved — 2026-10-29 00:48:19 PDT
+
+The user explicitly confirmed: qualify CorrMargins=1, CorrMarginsScale=100 against R5A ON343365/858019/2522546/12894582/22287047; CorrMargins=0 withScale100 must retainOFF pins. Preserve queued gate semantics. This supersedes the contradictory single line in the supplied pack; it is no longer an acceptance blocker.
+
+### M4 qualification — 2026-10-29 00:52:53 PDT
+
+Source `0fe9b372dec2072bbd29daaef7f2bf4ca0ff6f00`; exe SHA256 `09e238a6a98541079700f0d79ce44df6747ea7f640352061e223409f657dc5a0`. Complete Release build succeeded. Full CTest 62/63, raw exit 8; failures: [['forge_tests', 'Failed']]. Original diagnostics: ['FAIL: WAC 001 expected g3g6 got f6h5', 'FAIL: WAC 001 score 623 below 31997', 'FAIL: unrestricted search chooses the winning rook underpromotion over stalemating queen promotion', 'FAIL: unrestricted search chooses the winning rook underpromotion over stalemating queen promotion']. Startpos perft5=4865609; kiwipete5=193690690; whole-binary FMA=0.
+
+| Depth | OFF nodes | ms | NPS |
+|---:|---:|---:|---:|
+| 11 | 312866 | 387 | 808439 |
+| 13 | 862329 | 1165 | 740196 |
+| 16 | 3024920 | 3553 | 851370 |
+| 20 | 12389307 | 13134 | 943300 |
+| 22 | 34048354 | 42682 | 797721 |
+
+Exact commands (same configured rule5 build): `cmake --build /tmp/forge-astra3-build-integration -j4`; `python3 astra3/integration/tools/identity_bench.py /tmp/forge-astra3-build-integration/forge astra3/integration/M4/pins`; `python3 astra3/integration/tools/run_full_ctest.py /tmp/forge-astra3-build-integration astra3/integration/M4/ctest`; `python3 astra3/integration/tools/check_milestone.py /tmp/forge-astra3-build-integration/forge astra3/integration/M4 --source 0fe9b372dec2072bbd29daaef7f2bf4ca0ff6f00`. Flags, raw output, original executable and receipt retained in M4. These timings make no speed or Elo claim. Full integrated ON matrix/SAN/TSan remains pending until the final A1 head.
+
+## F1 HIGH: first commit after B5 merge
+
+M4 is qualified above. Replaced every production preset, includingOFF, with named C++20 designators and converted all nonempty FB2 Options test initializers. Added compile-time N1/independent-bit assertions and exhaustive runtime preset preservation combinations. The pre-fix copied-header proof passed normally and FAILED the two intended N1 assertions after swapping only SmpV2/SingularV2 declarations; exact original/brokencopies and diagnostics are retained under F1_pending, never used as live engine code. Post-fix permutation verification follows. This first post-merge commit contains the repair; full engine requalification of it remains WIP. Toolingprovenance confirms an official serial-built Fastchess with -strict and private PS7.5.2; no games or supplied scripts were executed.

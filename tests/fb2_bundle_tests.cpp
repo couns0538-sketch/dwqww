@@ -33,7 +33,7 @@ void check(bool ok, const std::string& what) {
     if (!ok) { ++failures; std::cout << "FAIL: " << what << '\n'; }
 }
 
-void set_all(bool v) { fb2::requested = fb2::Options{v, v, v}; }
+void set_all(bool v) { fb2::requested = fb2::Options{.corr_hist_v2 = v, .lmr_table_v2 = v, .tt_prune_v2 = v}; }
 void set_defaults() {
     fb2::apply_bundle(fb2::Bundle::Off);
 }
@@ -197,7 +197,7 @@ int main() {
     // 5. CorrHist exclusivity: effective() drops CorrHistV2 whenever CorrHistPlus is nonzero, so a search with both
     //    requested runs exactly the CorrHistPlus search.
     {
-        constexpr fb2::Options all{true, true, true};
+        constexpr fb2::Options all{.corr_hist_v2 = true, .lmr_table_v2 = true, .tt_prune_v2 = true};
         static_assert(fb2::effective(all, 0) == all);
         for (int chp = 1; chp <= 7; ++chp) {
             const fb2::Options e = fb2::effective(all, chp);
@@ -215,7 +215,7 @@ int main() {
         (void)b.set_fen(kFens[2]);
         SearchLimits limits;
         limits.depth = 10;
-        limits.fb2 = fb2::Options{true, false, false};
+        limits.fb2 = fb2::Options{.corr_hist_v2 = true};
         s.clear();
         check(s.search(b, limits, false, Searcher::TTAccess::Exclusive).nodes == plus_only[2], "SearchLimits::fb2 from the caller is overwritten by the snapshot");
         set_defaults();
@@ -227,10 +227,10 @@ int main() {
         const auto b1 = fb2::bundle_settings(Bundle::B1), b2 = fb2::bundle_settings(Bundle::B2),
                    b3 = fb2::bundle_settings(Bundle::B3), b4 = fb2::bundle_settings(Bundle::B4),
                    off = fb2::bundle_settings(Bundle::Off);
-        check(b1.corr_hist_plus == 1 && b1.hist_rework == 2 && b1.cuckoo_rep && b1.fb2 == fb2::Options{false, false, true}, "B1 = CorrHistPlus + HistRework=2 + CuckooRep + TtPruneV2");
-        check(b2.corr_hist_plus == 0 && b2.hist_rework == 0 && b2.cuckoo_rep && b2.fb2 == fb2::Options{true, true, true}, "B2 = CorrHistV2 + LmrTableV2 + CuckooRep + TtPruneV2");
-        check(b3.corr_hist_plus == 1 && b3.hist_rework == 0 && b3.cuckoo_rep && b3.fb2 == fb2::Options{false, true, true}, "B3 = CorrHistPlus + LmrTableV2 + CuckooRep + TtPruneV2");
-        check(b4.corr_hist_plus == 0 && b4.hist_rework == 2 && b4.cuckoo_rep && b4.fb2 == fb2::Options{true, false, true}, "B4 = CorrHistV2 + HistRework=2 + CuckooRep + TtPruneV2");
+        check(b1.corr_hist_plus == 1 && b1.hist_rework == 2 && b1.cuckoo_rep && b1.fb2 == fb2::Options{.tt_prune_v2 = true}, "B1 = CorrHistPlus + HistRework=2 + CuckooRep + TtPruneV2");
+        check(b2.corr_hist_plus == 0 && b2.hist_rework == 0 && b2.cuckoo_rep && b2.fb2 == fb2::Options{.corr_hist_v2 = true, .lmr_table_v2 = true, .tt_prune_v2 = true}, "B2 = CorrHistV2 + LmrTableV2 + CuckooRep + TtPruneV2");
+        check(b3.corr_hist_plus == 1 && b3.hist_rework == 0 && b3.cuckoo_rep && b3.fb2 == fb2::Options{.lmr_table_v2 = true, .tt_prune_v2 = true}, "B3 = CorrHistPlus + LmrTableV2 + CuckooRep + TtPruneV2");
+        check(b4.corr_hist_plus == 0 && b4.hist_rework == 2 && b4.cuckoo_rep && b4.fb2 == fb2::Options{.corr_hist_v2 = true, .tt_prune_v2 = true}, "B4 = CorrHistV2 + HistRework=2 + CuckooRep + TtPruneV2");
         check(off.corr_hist_plus == 0 && off.hist_rework == 0 && !off.cuckoo_rep && off.fb2 == fb2::Options{}, "OFF = defaults");
         for (const Bundle bundle : {Bundle::B1, Bundle::B2, Bundle::B3, Bundle::B4}) {
             const auto b = fb2::bundle_settings(bundle);
@@ -258,6 +258,21 @@ int main() {
         set_defaults();
     }
 
+    // Integration regression: presets must preserve independent flags in every combination.
+    for (bool smp : {false, true}) for (bool clamp : {false, true}) {
+        for (auto bundle : {fb2::Bundle::Off, fb2::Bundle::B1, fb2::Bundle::B2,
+                            fb2::Bundle::B3, fb2::Bundle::B4, fb2::Bundle::N1}) {
+            fb2::requested.smp_v2 = smp;
+            fb2::requested.tm_soft_hard_clamp = clamp;
+            fb2::apply_bundle(bundle);
+            check(fb2::requested.smp_v2 == smp && fb2::requested.tm_soft_hard_clamp == clamp,
+                  "presets preserve both independent flags in every value combination");
+            check(fb2::requested.singular_v2 == (bundle == fb2::Bundle::N1),
+                  "only N1 enables SingularV2; OFF resets it");
+        }
+    }
+    fb2::requested = {};
+    set_defaults();
     std::cout << checks << " checks, " << failures << " failures\n";
     return failures == 0 ? 0 : 1;
 }

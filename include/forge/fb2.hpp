@@ -86,16 +86,31 @@ struct BundleSettings {
     Options fb2{};
 };
 [[nodiscard]] constexpr BundleSettings bundle_settings(Bundle bundle) {
+    // Designators bind option names, never the ordinal position of a new bool.
     switch (bundle) {
-        case Bundle::B1: return {1, 2, true, {false, false, true}};
-        case Bundle::B2: return {0, 0, true, {true, true, true}};
-        case Bundle::B3: return {1, 0, true, {false, true, true}};
-        case Bundle::B4: return {0, 2, true, {true, false, true}};
-        case Bundle::N1: return {4, 0, false, {false, false, false, true}};
-        case Bundle::Off: break;
+        case Bundle::B1: return {.corr_hist_plus = 1, .hist_rework = 2, .cuckoo_rep = true,
+                                .fb2 = {.tt_prune_v2 = true}};
+        case Bundle::B2: return {.cuckoo_rep = true,
+                                .fb2 = {.corr_hist_v2 = true, .lmr_table_v2 = true, .tt_prune_v2 = true}};
+        case Bundle::B3: return {.corr_hist_plus = 1, .cuckoo_rep = true,
+                                .fb2 = {.lmr_table_v2 = true, .tt_prune_v2 = true}};
+        case Bundle::B4: return {.hist_rework = 2, .cuckoo_rep = true,
+                                .fb2 = {.corr_hist_v2 = true, .tt_prune_v2 = true}};
+        case Bundle::N1: return {.corr_hist_plus = 4, .fb2 = {.singular_v2 = true}};
+        case Bundle::Off: return {.corr_hist_plus = 0, .hist_rework = 0, .cuckoo_rep = false, .fb2 = {}};
     }
-    return {};
+    return {.fb2 = {}};
 }
+static_assert(bundle_settings(Bundle::N1).fb2.singular_v2);
+static_assert(!bundle_settings(Bundle::N1).fb2.smp_v2);
+static_assert(!bundle_settings(Bundle::N1).fb2.tm_soft_hard_clamp);
+static_assert([] {
+    for (const Bundle bundle : {Bundle::Off, Bundle::B1, Bundle::B2, Bundle::B3, Bundle::B4}) {
+        const Options options = bundle_settings(bundle).fb2;
+        if (options.singular_v2 || options.smp_v2 || options.tm_soft_hard_clamp) return false;
+    }
+    return true;
+}());
 // Writes the seven options of `bundle` (UCI thread only, no search running).
 void apply_bundle(Bundle bundle);
 

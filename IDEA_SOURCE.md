@@ -37,3 +37,6 @@ IDEA_SOURCE: user strict-UCI contract, Forge existing option registry and parser
 
 ## Astra R2 B5 — SingularV2 and N1 (2026-10-29)
 IDEA_SOURCE: The requested default-off port uses Forge FB2-J3 at 1efc0b2c9e09d38642eabd1d6282acceeb38c0b8, src/search.cpp singular-extension rules; the N1 combination and safe separation from CorrExt follow the round-two task. No implementation or tuned values from another engine were used. See PORT_NOTES.md for source identity and interactions.
+
+## Astra R3 A1 F1: named preset construction
+IDEA_SOURCE: Engine QA CR_ASTRA2 F1 HIGH in supplied round3 pack; C++20 designated aggregate initialization. Bind preset fields by name and assert N1/independent flags at compile time; no new search algorithm or constants.

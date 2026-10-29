@@ -83,7 +83,7 @@ int main() {
         check(singular_v2::events_after(prior, 2) == prior + 1, "double costs one event");
         check(singular_v2::events_after(prior, 3) == prior + 1, "triple costs one event, not zero or two");
     }
-    fb2::Options all{true, true, true, true};
+    fb2::Options all{.corr_hist_v2 = true, .lmr_table_v2 = true, .tt_prune_v2 = true, .singular_v2 = true};
     const auto compatible = fb2::effective(all, 4, 0);
     check(!compatible.corr_hist_v2 && compatible.singular_v2, "CorrHistPlus4 remains compatible with SingularV2");
     const auto incompatible = fb2::effective(all, 4, 1);
@@ -91,7 +91,7 @@ int main() {
           "snapshot independently enforces both exclusive pairs");
     const auto n1 = fb2::bundle_settings(fb2::Bundle::N1);
     check(n1.corr_hist_plus == 4 && n1.hist_rework == 0 && !n1.cuckoo_rep &&
-          n1.fb2 == fb2::Options{false, false, false, true}, "N1 owns exactly CorrHistPlus4 and SingularV2");
+          n1.fb2 == fb2::Options{.singular_v2 = true}, "N1 owns exactly CorrHistPlus4 and SingularV2");
     for (auto preset : {fb2::Bundle::Off, fb2::Bundle::B1, fb2::Bundle::B2, fb2::Bundle::B3, fb2::Bundle::B4}) {
         fb2::apply_bundle(fb2::Bundle::N1);
         fb2::apply_bundle(preset);
