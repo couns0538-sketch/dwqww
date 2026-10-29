@@ -42,3 +42,5 @@ B1 user-review corrections implemented and native-linked tests PASS 99/99. Main 
 matches OFF across five fresh node caps; both TB signs protected; selector comparison depth capped at the
 requested depth/mate limit. Fixed-move regression expectation removed. Independent source review PASS.
 Rebuilt all Release targets; reviewed binary pin/perft checks and complete CTest are running serially.
+
+B1 COMPLETE after user review: source931bd49; Release99nativechecksPASS, CTest56/57 (onlysamefourforge_testslines), OFF/ONall5pinsPASS, perft54865609, NNUEFMA0. SeeB1/final_qualification.json andBENCH_RESULTS.md. B2 nowimplementing onindependentastra2-tm-softhard fromb7; B3v2tests,B4protocol,B5SingularV2,B6matrix,B7report pending.

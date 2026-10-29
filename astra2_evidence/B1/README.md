@@ -118,3 +118,13 @@ be reported separately; this patch changes no existing test expectation.
 Required OFF bench pins (d11/13/16/20/22): **312866 / 862329 / 3024920 / 12389307 / 34048354**.
 Required startpos perft5: **4865609**. Actual raw runs and qualification verdict are root-recorded;
 unexecuted checks remain UNVERIFIED until those logs exist.
+
+## Final reviewed qualification
+
+Source implementation: `931bd49552a7233bde84b8a207c7a503f8bf862c`. Binary SHA256: `cc1d2ed7fbdeea50516650fd0b9d1cca539d0d6cefc11cbc8a51cfcdb2daab0b`.
+
+Release build PASS; native regression **99/99**. Full CTest **56/57**, exit8: only `forge_tests`, with the four unchanged tactical diagnostics; SmpExactNodes and both new tests PASS. Raw outputs, successful-test streams and exit status are under `review_ctest/`.
+
+Final OFF and ON (Threads1) bench d11/13/16/20/22: **312866 / 862329 / 3024920 / 12389307 / 34048354**. Perft5 **4865609**. NNUE FMA **0**. All25 qualification bench records, including superseded runs, are in `BENCH_RESULTS.md`; original streams remain beside their JSON receipts.
+
+Ready for independent review and a separate strength gate; not merged/adopted. This round did not run Windows, real tablebase files, ASan/UBSan or TSan; these remain UNVERIFIED. No Elo/speed claim.
