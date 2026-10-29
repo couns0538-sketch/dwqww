@@ -74,5 +74,16 @@ def report():
 
 
 atexit.register(report)
+# train.py ends with os._exit(0) on win32, which skips atexit: report first.
+_real_exit = os._exit
+
+
+def _exit_with_report(code):
+    report()
+    sys.stdout.flush()
+    _real_exit(code)
+
+
+os._exit = _exit_with_report
 sys.argv = ["train.py", *sys.argv[1:]]
 runpy.run_path("train.py", run_name="__main__")
