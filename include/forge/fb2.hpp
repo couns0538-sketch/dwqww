@@ -46,14 +46,17 @@ extern Options requested;
     return options;
 }
 
-// B1: SmpV2 diversification/selection acts with multiple workers; its completed-tuple
-// abort policy applies to every worker while enabled. A helper replaces a proven main/current
+// B1: SmpV2 acts with multiple workers. Only helpers retain their completed tuple
+// on abort; the main worker keeps its original partial-PV policy. A helper replaces a proven main/current
 // result only at a strictly greater depth and with an equal-or-better proven score.
-// Valid mate scores (either sign) and positive TB scores while tables are loaded
+// Valid mate and TB scores (either sign, TB only while tables are loaded)
 // are protected; SearchInfo has no independent proof tag. Sentinels are rejected.
 [[nodiscard]] int smp_depth_skew(int id);
 [[nodiscard]] int smp_aspiration_multiplier(int id);
-[[nodiscard]] SearchInfo smp_select_result(const SearchInfo& main, const std::vector<SearchInfo>& helpers);
+// Depth ranking is capped at the requested go depth / mate-depth limit. A skewed
+// helper at N+1 must not displace a completed main result at requested depth N.
+[[nodiscard]] SearchInfo smp_select_result(const SearchInfo& main, const std::vector<SearchInfo>& helpers,
+                                         int depth_cap = 64);
 
 // LmrTableV2: reduction in plies for one LMR decision (before the shared tt_pv / improving / cut-node / check terms).
 [[nodiscard]] int lmr_v2_reduction(bool quiet, int depth, int moves, int history, bool improving, bool cut_node,

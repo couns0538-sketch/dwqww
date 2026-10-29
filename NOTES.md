@@ -37,3 +37,8 @@ requested depth; protect losing TB scores; replace brittle node-cap pin with beh
 Pre-review candidate full Release build completed; binary SHA256 3855161fa385bbf7d75312ca3e5a47561b74f2fd4baa08ac0b9fad284019728a.
 Its OFF and ON Threads=1 benches both matched all five pins; perft5 4865609. Native selector 74/74 and 16 UCI
 searches passed before this review; these are historical pre-review results, not qualification of the upcoming changes.
+
+B1 user-review corrections implemented and native-linked tests PASS 99/99. Main partial-iteration behavior
+matches OFF across five fresh node caps; both TB signs protected; selector comparison depth capped at the
+requested depth/mate limit. Fixed-move regression expectation removed. Independent source review PASS.
+Rebuilt all Release targets; reviewed binary pin/perft checks and complete CTest are running serially.

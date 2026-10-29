@@ -100,7 +100,12 @@ SearchInfo Searcher::search(Board board, const SearchLimits& limits, bool emit_i
             for (auto& worker : workers_) result.nodes += worker->nodes();
         }
         // Select from the original main result: the older selector must not run first.
-        if (worker_limits.fb2.smp_v2) select_smp_v2_thread(result, helper_results, emit_info);
+        if (worker_limits.fb2.smp_v2) {
+            const int mate_moves = std::clamp(worker_limits.mate_moves, 0, 32);
+            const int mate_depth = mate_moves > 0 ? mate_moves * 2 - 1 : 64;
+            const int depth_cap = std::clamp(std::min(worker_limits.depth, mate_depth), 1, 64);
+            select_smp_v2_thread(result, helper_results, depth_cap, emit_info);
+        }
         else if (options::smp_best_thread) select_best_thread(result, helper_results, emit_info);
     }
 #if FORGE_NNUE_LAZY_ACC
@@ -169,8 +174,8 @@ SearchInfo Searcher::search(Board board, const SearchLimits& limits, bool emit_i
 
 // SmpV2 winner is chosen only after every helper has joined; no worker races these snapshots.
 [[gnu::cold]] void Searcher::select_smp_v2_thread(SearchInfo& result, const std::vector<SearchInfo>& helper_results,
-                                                bool emit_info) {
-    const auto selected = fb2::smp_select_result(result, helper_results);
+                                                int depth_cap, bool emit_info) {
+    const auto selected = fb2::smp_select_result(result, helper_results, depth_cap);
     const bool changed = selected.best_move != result.best_move || selected.score != result.score ||
                          selected.depth != result.depth || selected.pv != result.pv;
     result = selected;

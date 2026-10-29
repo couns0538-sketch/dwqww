@@ -204,10 +204,9 @@ SearchInfo Worker::search(Board board, const SearchLimits& limits, bool emit_inf
             // A partially searched iteration that already raised alpha at the
             // root has found a move at least as good as the previous best
             // (within the depth limit: SmpHelpersPastDepth iterations past it do not count).
-            // SmpV2 selects proven scores across workers, so a returned result must retain
-            // its completed score/depth/PV tuple. The old path may attach a partial new PV
-            // to the previous score; keep it unchanged only when SmpV2 is off.
-            if (!fb2_.smp_v2 && depth <= max_depth && ss->pv_length > 0 && !(result.pv.size() > 0 && result.pv[0] == ss->pv[0])) {
+            // SmpV2 compares completed helper scores. Helpers therefore keep their completed
+            // tuple on abort, while the main worker retains its normal partial-PV policy.
+            if ((!fb2_.smp_v2 || is_main()) && depth <= max_depth && ss->pv_length > 0 && !(result.pv.size() > 0 && result.pv[0] == ss->pv[0])) {
                 result.best_move = ss->pv[0];
                 result.pv.assign(ss->pv.begin(), ss->pv.begin() + ss->pv_length);
                 result.ponder_move = result.pv.size() > 1 ? result.pv[1] : Move::none();

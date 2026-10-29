@@ -3,7 +3,11 @@
 Base: `opus-r3-stack` da15814 + `fable-review-buffix` (bad_captures_ sized to MoveList::Capacity, CR Fable R1 P1 PASS),
 plus the FB2-J3 search options CorrHistV2 / LmrTableV2 / TtPruneV2 ported from `fable-fb2-j3` 33e295b.
 Not included: FB2-J3 SingularV2 (no bundle uses it; overlaps O8 CorrExt), FB2-J4 TimeManV2 (crew vote 7/7 out),
-FB2-J5 SmpV2 (CR Fable R1: MED, a deeper helper can override a main-thread mate), fable-nnue-arch / NNUE v3.
+fable-nnue-arch / NNUE v3.
+
+Astra R2 B1 adds default-OFF `SmpV2` independently of the presets: helper diversification from FB2-J5, with
+mate/TB score protection, depth comparisons capped at the requested limit, and unchanged main-thread partial
+iteration behavior. See `astra2_evidence/B1/README.md` for exact source provenance and qualification.
 Gate plan (crew vote): [0,10] nElo, 6000-game cap, at most 2 gates in parallel; QA builds/queues after CR_PASS.
 
 ## IDEA_SOURCE

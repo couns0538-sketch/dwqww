@@ -55,17 +55,19 @@ void apply_bundle(Bundle bundle) {
 int smp_depth_skew(int id) { return id > 0 && (id & 1) != 0 ? 1 : 0; }
 int smp_aspiration_multiplier(int id) { return id > 0 && (id & 1) == 0 ? 1 + ((id >> 1) % 3) : 1; }
 
-[[gnu::cold]] SearchInfo smp_select_result(const SearchInfo& main, const std::vector<SearchInfo>& helpers) {
+[[gnu::cold]] SearchInfo smp_select_result(const SearchInfo& main, const std::vector<SearchInfo>& helpers, int depth_cap) {
     if (main.restricted_root_empty) return main;
+    depth_cap = std::clamp(depth_cap, 1, 64);
+    const auto ranked_depth = [depth_cap](int depth) { return std::min(depth, depth_cap); };
     const auto valid_score = [](int score) { return score >= -MateValue && score <= MateValue; };
     const auto proven = [&](int score) {
         return valid_score(score) && (is_mate_score(score) ||
-               (syzygy::tb_scores && score >= syzygy::TbWinInMaxPly));
+               (syzygy::tb_scores && (score >= syzygy::TbWinInMaxPly || score <= -syzygy::TbWinInMaxPly)));
     };
     const SearchInfo* best = &main;
     for (const auto& helper : helpers) {
         if (helper.best_move.is_none() || helper.pv.empty() || helper.pv.front() != helper.best_move ||
-            helper.restricted_root_empty || helper.depth <= best->depth || !valid_score(helper.score)) continue;
+            helper.restricted_root_empty || ranked_depth(helper.depth) <= ranked_depth(best->depth) || !valid_score(helper.score)) continue;
         // Depth alone cannot erase a proven score, even after one helper has been selected.
         if (proven(best->score) && (!proven(helper.score) || helper.score < best->score)) continue;
         best = &helper;

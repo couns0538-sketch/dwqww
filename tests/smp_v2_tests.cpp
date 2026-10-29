@@ -11,9 +11,6 @@
 #include <string>
 #include <vector>
 
-namespace forge::fb2 {
-SearchInfo smp_select_result(const SearchInfo&, const std::vector<SearchInfo>&);
-}
 using namespace forge;
 namespace {
 int checks = 0, failures = 0;
@@ -32,8 +29,8 @@ SearchInfo info(int depth, int score, int index) {
     return r;
 }
 void expect(const SearchInfo& main, const std::vector<SearchInfo>& helpers,
-            const SearchInfo& winner, const std::string& name) {
-    const auto got = fb2::smp_select_result(main, helpers);
+            const SearchInfo& winner, const std::string& name, int depth_cap = 64) {
+    const auto got = fb2::smp_select_result(main, helpers, depth_cap);
     check(got.best_move == winner.best_move && got.ponder_move == winner.ponder_move &&
           got.score == winner.score && got.depth == winner.depth && got.pv == winner.pv, name);
     check(got.nodes == main.nodes && got.elapsed_ms == main.elapsed_ms, name + ": preserve main accounting");
@@ -65,11 +62,34 @@ int main() {
     expect(tb_win, {shorter_mate}, shorter_mate, "deeper mate improves TB win");
     auto boundary = info(12, syzygy::TbWinInMaxPly, 0);
     expect(boundary, {ordinary}, boundary, "lowest reserved TB winning score protected");
+    auto tb_loss = info(12, -syzygy::TbWin + 3, 0);
+    expect(tb_loss, {ordinary}, tb_loss, "deeper ordinary helper cannot erase main proven TB loss");
+    expect(tb_loss, {info(20, -syzygy::TbWin + 2, 1)}, tb_loss, "deeper worse TB loss cannot replace");
+    auto better_loss = info(13, -syzygy::TbWin + 4, 1);
+    expect(tb_loss, {better_loss}, better_loss, "deeper equal-or-better proven TB loss accepted");
+    auto negative_boundary = info(12, -syzygy::TbWinInMaxPly, 0);
+    expect(negative_boundary, {ordinary}, negative_boundary, "negative TB boundary is protected");
     syzygy::tb_scores = false;
+    expect(tb_loss, {ordinary}, ordinary, "without TBs negative numeric band uses ordinary ranking");
     expect(tb_win, {ordinary}, ordinary, "without loaded TBs same numeric band uses ordinary ranking");
     auto main = info(12, 300, 0);
     expect(main, {ordinary}, ordinary, "ordinary deeper helper wins despite lower or higher score");
     expect(main, {info(12, 900, 1)}, main, "ordinary ties stay main even with higher score");
+    // Requested-depth ranking: N+1 is useful helper work, not a deeper completed
+    // result for deciding between workers that both completed the user's N.
+    expect(main, {info(13, 900, 1)}, main, "requested N: main N ties helper N+1", 12);
+    expect(mate, {shorter_mate}, mate, "requested N: better proven helper N+1 still ties main N", 12);
+    const auto below_cap = info(11, 300, 0);
+    const auto at_cap = info(12, 350, 1);
+    expect(below_cap, {at_cap}, at_cap, "helper genuinely deeper below requested cap can win", 12);
+    const auto above_cap = info(13, 350, 1);
+    expect(below_cap, {above_cap, info(14, 400, 2)}, above_cap,
+           "helpers over cap tie; first qualifying helper is retained", 12);
+    auto below_mate = info(11, mate.score, 0);
+    auto at_mate = info(12, mate.score, 1);
+    expect(below_mate, {at_mate}, at_mate, "deeper equal proven result below cap accepted", 12);
+    auto mate_one = info(1, MateValue - 1, 0);
+    expect(mate_one, {info(2, MateValue - 1, 1)}, mate_one, "mate search depth cap preserves main", 1);
     for (int bad : {Infinite, ValueNone, -Infinite, std::numeric_limits<int>::min(), std::numeric_limits<int>::max()}) {
         expect(mate, {info(20, bad, 1)}, mate, "invalid sentinel cannot be proven " + std::to_string(bad));
         expect(main, {info(20, bad, 1)}, main, "invalid sentinel cannot replace ordinary " + std::to_string(bad));
@@ -94,27 +114,24 @@ int main() {
     fb2::requested.smp_v2 = false;
     check(snapshot.smp_v2, "per-search snapshot survives next pending option update");
     fb2::apply_bundle(fb2::Bundle::Off);
-    // Production Worker abort regression (fresh deterministic single-worker searches).
-    // Before the guard, nodes=1000 returns depth4/score30 with a different, partial
-    // PV from the completed depth4 PV. A selector must not treat that tuple as proof.
-    fb2::requested.smp_v2 = true;
-    SearchLimits capped; capped.nodes = 1000; capped.nodes_specified = true;
-    Searcher interrupted(16, 1);
-    const SearchInfo partial = interrupted.search(Board{}, capped);
-    SearchLimits fixed; fixed.depth = partial.depth;
-    Searcher completed(16, 1);
-    const SearchInfo exact = completed.search(Board{}, fixed);
-    check(partial.depth > 0 && partial.score == exact.score && partial.best_move == exact.best_move && partial.pv == exact.pv,
-          "SmpV2 abort retains the completed score/depth/PV tuple");
+    // SmpV2 must not change the main worker's partial-iteration adoption policy.
+    // Compare fresh ON/OFF searches, without pinning a particular move or score.
+    for (const std::uint64_t cap : {100U, 500U, 1000U, 2000U, 5000U}) {
+        SearchLimits limits; limits.nodes = cap; limits.nodes_specified = true;
+        fb2::requested.smp_v2 = false;
+        Searcher off_search(16, 1);
+        const SearchInfo off = off_search.search(Board{}, limits);
+        fb2::requested.smp_v2 = true;
+        Searcher on_search(16, 1);
+        const SearchInfo on = on_search.search(Board{}, limits);
+        check(on.best_move == off.best_move && on.ponder_move == off.ponder_move && on.pv == off.pv &&
+              on.score == off.score && on.depth == off.depth && on.seldepth == off.seldepth && on.nodes == off.nodes,
+              "Threads1 ON/OFF main behavior identical at node cap " + std::to_string(cap));
+        std::cout << "main identity cap=" << cap << " OFF depth=" << off.depth << " score=" << off.score
+                  << " move=" << Board::move_to_uci(off.best_move) << " ON depth=" << on.depth
+                  << " score=" << on.score << " move=" << Board::move_to_uci(on.best_move) << '\n';
+    }
     fb2::requested.smp_v2 = false;
-    Searcher original(16, 1);
-    const SearchInfo off = original.search(Board{}, capped);
-    check(off.depth == 4 && off.score == 30 && Board::move_to_uci(off.best_move) == "c2c4",
-          "OFF retains existing node1000 partial-PV behavior");
-    std::cout << "abort fixture: OFF depth=" << off.depth << " score=" << off.score
-              << " move=" << Board::move_to_uci(off.best_move) << "; ON depth=" << partial.depth
-              << " score=" << partial.score << " move=" << Board::move_to_uci(partial.best_move)
-              << "; completed move=" << Board::move_to_uci(exact.best_move) << '\n';
 #endif
     std::cout << "smp_v2 selector: checks=" << checks << " failures=" << failures << '\n';
     return failures == 0 ? 0 : 1;
