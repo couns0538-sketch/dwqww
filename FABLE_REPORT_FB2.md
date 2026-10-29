@@ -73,15 +73,34 @@ rows. Checkpoint every 30 min; stop when exact b0.6 <= target or 3 checkpoints w
 | ckpt | step | positions | train min | exact b0.6 | b0.8 | b1.0 | per-phase b0.6 (few pieces -> many) | vs AL1 0.014417 | parity 10k |
 |---|---|---|---|---|---|---|---|---|---|
 | 1 | 5,307 | 43.5M | 30 | **0.016094** | 0.007836 | 0.005008 | .0067 .0074 .0109 .0161 .0200 .0222 .0226 .0241 | +0.001677 (HCE is 0.017141) | PASS 10000/10000, max 1.02 cp |
-| (next checkpoints: `status.json` in the run dir) | | | | | | | | | |
+| 2 | 10,374 | 85.0M | 60 | **0.015684** | 0.007508 | 0.004761 | .0059 .0069 .0105 .0155 .0195 .0220 .0223 .0239 | +0.001267 | PASS 10000/10000, max 1.02 cp |
+| (next checkpoints: `status.json` in the run dir; `tools/nnue/fable_nnue_ckpt_table.py <run>` prints this table) | | | | | | | | | |
 
 Torch quick validation (200k rows, blend 0.6) on the way: 0.105583 (0) -> 0.017014 (14.7M) -> 0.016369 (29.6M).
 
-### Left for J1
-Build `forge_fable_v3.exe` (box recipe, OFF identity pins), NPS vs AL1 with the best net, 200 fast sanity games vs
-AL1 (crash / illegal-move check only) — scheduled as soon as a CPU thread frees up (the three-thread budget is
-taken by the training, the J3 self-play and the J4 games); they use `best.fnn3` of the latest checkpoint and are
-repeated with the final net if the session allows.
+### Engine, NPS and sanity games (with the checkpoint-1 net; repeated with the final net if the session allows)
+
+- `forge_fable_v3.exe` = box recipe of the J1 tree (the FB1 engine sources: `FORGE_EXTRA_SRCS="src/nnue_v3.cpp
+  src/search_v3.cpp"`), sha256 `70a19218…`, 0 warnings, FMA 0; **OFF identity `ALL OK`** (bench d11/13/16/20/22 =
+  312866/862329/3024920/12389307/34048354, perft5 4865609, kiwipete 193690690; `fable_fb2/j1/logs/finish_ckpt1/identity_off_v3.log`).
+- NPS vs AL1 (`fable_nnue_nps.py`, ABBA, 3 rounds, Threads 1, Hash 16, CPU time; the ON side runs the standalone
+  ckpt-1 net `ck01_step0005307.fnn3`, the OFF side the AL1 lock net; the trees differ, so this is a per-node cost
+  ratio on a loaded PC, advisory): depth 16 **ON/OFF 1.114 (+-0.014)**, depth 20 **1.063 (+-0.009)**; time per node
+  0.90 / 0.94 of AL1 (`logs/finish_ckpt1/nps_vs_al1.log`). FB1's 1.17-1.19 was measured with a barely trained net on
+  a smaller tree; the direction (standalone v3 faster per node than the AL1 residual path) holds.
+- 200 sanity games vs AL1 at 1+0.01 (100 per colour, `fable_timeman_games.py` with `NNUEArchFile`/`NNUEArch=true` on
+  the v3 side; python-chess legality of every move, crash / illegal-move / flag check only, no Elo claim):
+
+| v3 side (ckpt-1 net) | games | moves | crashes / illegal / flags | result (v3 W-L-D) | evidence |
+|---|---|---|---|---|---|
+| white (ckpt-1 net) | 100 | 12,278 | 0 / 0 / 0 | 19-42-39 | `logs/finish_ckpt1/games_v3_white.json` |
+| black (ckpt-2 net: `best.fnn3` was refreshed by checkpoint 2 at 17:39, between the two runs) | 100 | 12,579 | 0 / 0 / 0 | 8-52-40 | `logs/finish_ckpt1/games_v3_black.json` |
+
+The early nets lose more than they win against AL1, as their holdout loss predicts; the games only show that the
+engine plays legally and stably with the v3 net (max 245 ms per move at 1+0.01, no flag). The chain's full-subset
+score (`logs/finish_ckpt1/score_full_subset.log`, 1,024,286 rows of 013+014) ran on the ckpt-2 file:
+**b0.6 0.015598** / b0.8 0.007451 / b1.0 0.004715 vs AL1 0.014310 / 0.006735 / 0.004572 and HCE 0.017059 (the
+explicit re-score of `ck02_step0010374.fnn3` is in `logs/score_ck02_full_subset.log`).
 
 ## J2 — self-play datagen v2 (`fable-fb2-j2`, folder `fable_fb2/j2/`) — DONE
 
@@ -127,7 +146,8 @@ isready barriers), 500 games per option and all-on, one at a time on one thread 
 | configuration | games | plies | errors (crash / illegal / double bestmove / timeout / malformed) |
 |---|---|---|---|
 | CorrHistV2 | 500/500 | 59,794 | **0** (`logs/selfplay/CorrHistV2.summary.json`) |
-| SingularV2, LmrTableV2, TtPruneV2, all four | running in this order | | |
+| SingularV2 | 500/500 | 59,218 | **0** (`logs/selfplay/SingularV2.summary.json`) |
+| LmrTableV2, TtPruneV2, all four | running in this order | | |
 
 Gate entries: `fable_fb2/j3/GATE_ENTRY.md` (one per option vs all-off, design 1 of GATE_BOUNDS.md).
 
