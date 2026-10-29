@@ -44,3 +44,7 @@ IDEA_SOURCE: Engine QA CR_ASTRA2 F1 HIGH in supplied round3 pack; C++20 designat
 ### Astra R3 A1 integration contract
 
 IDEA_SOURCE: Engine QA/Code Review findings in astra3/integration/ROUND3_JOB_PACK.md, with the user's confirmed R5A CorrMargins pins. Named preset construction, seven-owned-option diagnostics, complete truthful active echoes and nominal helper-depth metadata are original repairs to same-repository Forge integration. No external engine code or tuned constants.
+
+### Astra R3 A2 diagnostic preparation
+
+IDEA_SOURCE: supplied Engine QA KRK main-thread mate-to-cp investigation and Forge's own Worker/TT lifecycle. Original test-only serial helper-content controls and seeded start-skew experiment; no other-engine code or constants.
