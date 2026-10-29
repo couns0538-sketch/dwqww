@@ -679,6 +679,10 @@ def cmd_train(args):
         if args.max_minutes and (time.time() - t_start) / 60.0 >= args.max_minutes:
             say(f"pausing at step {step}: --max-minutes {args.max_minutes} reached (resume with --resume {os.path.join(args.out, 'ckpt.pt')})")
             break
+        if now - last_report < 1.0 and os.path.exists(os.path.join(args.out, "pause.flag")):
+            # cooperative pause (checked once per progress report): the chunk ends here with a checkpoint
+            say(f"pausing at step {step}: pause.flag present (resume with --resume {os.path.join(args.out, 'ckpt.pt')} after removing the flag)")
+            break
     now = time.time()
     tstate["train_seconds"] = train_seconds_base + (now - t_start)
     if step >= args.steps and not tstate["stop_reason"]:

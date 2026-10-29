@@ -36,7 +36,14 @@ def main():
 
     ckpt = os.path.join(args.out, "ckpt.pt")
     status_path = os.path.join(args.out, "status.json")
+    stop_flag = os.path.join(args.out, "driver_stop.flag")
     for chunk in range(1, args.max_chunks + 1):
+        if os.path.exists(stop_flag) or os.path.exists(os.path.join(args.out, "pause.flag")):
+            # Cooperative stop (killing processes is not allowed on this PC): create <out>/driver_stop.flag (the
+            # driver ends after the running chunk) or <out>/pause.flag (the trainer pauses within a minute and the
+            # driver does not relaunch it); resume by starting the driver again without the flag files.
+            say(f"stop/pause flag present in {args.out}: not starting chunk {chunk}")
+            sys.exit(0)
         run = list(cmd)
         if os.path.exists(ckpt):
             run += ["--resume", ckpt]

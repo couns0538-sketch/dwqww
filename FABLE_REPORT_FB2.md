@@ -77,6 +77,7 @@ rows. Checkpoint every 30 min; stop when exact b0.6 <= target or 3 checkpoints w
 | 3 | 15,476 | 126.8M | 90 | **0.015563** | 0.007420 | 0.004707 | .0057 .0067 .0103 .0153 .0193 .0221 .0223 .0239 | +0.001146 | PASS 10000/10000, max 1.02 cp |
 | 4 | 20,602 | 168.8M | 120 | **0.015444** | 0.007341 | 0.004667 | .0053 .0066 .0102 .0152 .0192 .0218 .0222 .0238 | +0.001027 | PASS 10000/10000, max 1.02 cp |
 | 5 | 25,700 | 210.5M | 150 | **0.015326** | 0.007280 | 0.004663 | .0052 .0065 .0101 .0151 .0191 .0217 .0221 .0237 | +0.000909 | PASS 10000/10000, max 1.02 cp |
+| 6 | 30,851 | 252.7M | 180 | **0.015230** | 0.007227 | 0.004654 | .0051 .0064 .0100 .0149 .0190 .0217 .0219 .0236 | +0.000813 | PASS 10000/10000, max 1.02 cp |
 | (next checkpoints: `status.json` in the run dir; `tools/nnue/fable_nnue_ckpt_table.py <run>` prints this table) | | | | | | | | | |
 
 Torch quick validation (200k rows, blend 0.6) on the way: 0.105583 (0) -> 0.017014 (14.7M) -> 0.016369 (29.6M).
@@ -213,7 +214,7 @@ loaded PC: the J1 training and a gate ran alongside, so wall numbers are advisor
 | off (lock) | 2 | 94.1 | 1.09 | 1.17 | 1.64 | 3.125 | 1.92 | 1.75 |
 | SmpV2 | 1 | 101.9 | 1.00 | 1.00 | 1.00 | 1.632 | 1.00 | 1.00 |
 | SmpV2 | 2 | 94.2 | 1.08 | 1.20 | 1.66 | 3.102 | 1.90 | 1.81 |
-| off / SmpV2 | 3 | (run while the training is paused at checkpoint 6; see below) | | | | | | |
+| off / SmpV2 | 3 | **not run**: it needs 3 threads next to the training's one (4 > the 3-thread budget); the training could not be paused because stopping my background task leaves its Python children running (TaskStop kills only the shell; killing processes is forbidden) and the chunk driver relaunches the trainer after every chunk. Command ready: `F:\opus_scratch\fable\fb2\j5\run_j5.sh ttd3` (run when the training has stopped). | | | | | | |
 
 Paired SmpV2 vs off (wall ratio geometric mean over the 30 positions, < 1 = SmpV2 faster): Threads 1 **0.998**
 (inert, as designed; 16/30 positions by noise), Threads 2 **0.970** (16/30 positions faster). Reading: at two
