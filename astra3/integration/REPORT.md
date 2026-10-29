@@ -151,3 +151,21 @@ Exact commands (same configured rule5 build): `cmake --build /tmp/forge-astra3-b
 The complete advertised-option contract passes102/102 cases; original separate streams and fixture hashes are copied unchanged under M5/option_contract_native. F6 native selector tests pass108 checks. The Fastchess strict positive smoke exits0 with two completed draw PGNs, no illegal/crash/time-forfeit terminations observed. The negative unknown-option smoke exits1 and names Astra3UnknownOptionProbe, with zero completed PGNs; an extra harness guard rejects its pre-validation "Started game" announcement. Original FAIL receipt is retained while the engine command log is reviewed for actual go/search activity. No strength inference follows from two protocol games.
 
 Independent review found a fail-open condition in the new matrix parser (malformed extra bench line or explicit error could pass alongside one valid line). A focused parser regression/fix is in progress before any matrix run. Exact R5A JSON bytes are materialized from Git with provenance because historical evidence paths are sparse in this worktree. No gate specification is changed. Sanitizer commands are prepared but not yet run.
+
+### ON matrix rolling checkpoint — 2026-10-29 01:35:25 PDT
+
+Status RUNNING; 44/75 cells recorded, all completed cells match externally pinned nodes. This remains partial until the runner writes PASS.
+
+| Mode | Observed nodes at d11 / d13 / d16 / d20 / d22 |
+|---|---|
+| OFF | 312866 / 862329 / 3024920 / 12389307 / 34048354 |
+| SingularV2 | 404121 / 1005954 / 4120585 / 11497954 / 34264955 |
+| N1 | 277579 / 814055 / 2651984 / 18648191 / 40304213 |
+| N1_then_OFF | 312866 / 862329 / 3024920 / 12389307 / 34048354 |
+| SmpV2_T1 | 312866 / 862329 / 3024920 / 12389307 / 34048354 |
+| TmSoftHardClamp | 312866 / 862329 / 3024920 / 12389307 / 34048354 |
+| CorrMargins_OFF_Scale100 | 312866 / 862329 / 3024920 / 12389307 / 34048354 |
+| R5A-1 | 340927 / 734347 / 2794671 / 12132495 / 37005405 |
+| R5A-2 | 312961 / 838790 / 2891507 / 12313394 / PENDING |
+
+Matrix parser repair is complete: original expression replay exposes7 failing regression subcases; fixed parser passes8 methods and rejects malformed duplicates/errors on either stream. The native matrix started only after that repair. The negative strict-smoke audit proves no go/position/bestmove and an empty PGN; Fastchess emits its Started-game label before validation. qualified_interpretation.json records PASS for the user contract while original FAIL receipts remain untouched. Sanitizers remain pending; no gate-ready or Elo claim.
