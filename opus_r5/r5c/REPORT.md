@@ -197,8 +197,12 @@ equal time.
 
 Open risks: (1) the speed above; (2) the layer-2 quantisation gap until the trainer fake-quantises it; (3) J7 trains a
 standalone net (no HCE residual), the AL1 net is residual; (4) the gate runner has never passed a string option
-(0 of 63 RUN_INFO.json files); (5) v4 was exercised with Threads 1 only (the evaluation keeps no per-worker state and
-reads the loaded net read-only, so more threads add no shared writes).
+(0 of 63 RUN_INFO.json files); (5) v4 with several threads has one short smoke only (below; the evaluation keeps no
+per-worker state and reads the loaded net read-only, so more threads add no shared writes).
+
+v4 at Threads 2 (11:52-11:57 Vienna, `smoke_n3.py`, ON = v4 net at Threads 2, OFF = default net at Threads 1, 20
+games, 5+0.05, concurrency 1, seed 3): **PASS** - 20/20 games, 0 illegal, 0 crashes, 0 time losses, 0 missing
+bestmoves; stop stress on the Threads 2 v4 engine 20/20 with 0 problems (`logs/m5_v4_t2_summary.json`).
 
 Final checks of the branch head (PC, 11:48-11:50 Vienna): CMake Release build of all targets (`cmake_m3b`, 62 warning
 lines, all pre-existing `-Wconversion` / `-Wclass-memaccess` in unchanged TT code), CTest on a 3-CPU mask **57/57
@@ -219,5 +223,6 @@ CI: the push of this report commit runs opus-ci on the head (the engine and test
 ## What I did not finish
 
 - No v4 incremental accumulator update (every evaluation rebuilds both accumulators); NPS 0.59x of the default.
-- The v4 path is exercised with Threads 1 only (unit test, parity, smokes); no Threads >= 2 v4 games.
+- v4 with several threads: only the 20-game Threads 2 smoke above (no TSan run of the v4 search: CI's TSan job runs
+  the v4 unit test single-threaded).
 - The trainer-side fake quantisation of layer 2 is a proposal for Fable's trainer, not done (not my file).
