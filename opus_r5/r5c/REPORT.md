@@ -84,7 +84,10 @@ Findings (no bug fixed in the search):
 - No wrong draw score and no mate-score corruption in any combination. CuckooRep changes when a mate is found: with
   it on, the KR mate in 3 (`4R3/8/8/k2K4/8/8/8/8 w`) is reported from depth 14, with it off from depth 10 (`go depth
   24`, both report mate 3 afterwards); its draw bounds on the rook shuffles reorder the moves. Not a correctness
-  problem, but a CuckooRep gate should know that shallow mates can come a few plies later.
+  problem, but a CuckooRep gate should know that shallow mates can come a few plies later. R5D (branch
+  opus-r5d-matefix, `opus_r5/r5d/MATEFIX_REPORT.md`) later traced this KRK position's late mates to forward pruning of
+  the only mating quiet move (Re7 after 1.Kc5 Ka6): any change of the move order there, CuckooRep's bounds included,
+  can hide the mate until a deeper iteration.
 - In TB roots the search score and the reported score differ by design (search 1744 vs reported 31870): tools that
   read `SearchInfo.score` directly must apply `syzygy::display_score` as the UCI layer does.
 - The watchdog never had to fire in these runs (the search answered on time by itself); the starved-search case is
