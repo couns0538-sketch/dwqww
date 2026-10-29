@@ -238,3 +238,7 @@ The requested final20-minute review starts at this timestamp. Scope: source and 
 ### Review checkpoint — 2026-10-29T03:00:18.944941-07:00
 
 Evidence re-audit strictly reparsed35 frozen OFF transcripts plus75 final-matrix transcripts, verified seven saved binary hashes, and checked2151 manifest entries. One historical README change is explicitly documented/recovered; no original engine output changed. Source review revisited preset ownership, mutex scope, nominal depth propagation, timing clamp and TT intervention isolation. No new engine defect requiring a patch was established. The20-minute review remains in progress.
+
+### Review coverage and limits — 2026-10-29T03:09:10.561479-07:00
+
+Reviewed preset/locking/metadata/timing/UCI paths and audited original diagnostics. Three test-only debughook binaries are hash-inventoried; separate deep bench/perft/FMA qualification for those auxiliary executables is UNVERIFIED, and they are not release candidates. The full main Release and ASan identities are already verified. TSan d11/13/16 match312866/862329/3024920; deeper checks continue. See final_review/REVIEW_WORKING_LOG.md for actual work and remaining review steps.
