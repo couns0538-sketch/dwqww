@@ -63,3 +63,14 @@ old plan fixture is not a match runner. An actual fastchess `-strict` invocation
 one is available. The native protocol regression verifies discoverability and option acceptance directly.
 No playing-strength or speed claim. Windows and sanitizer execution of this branch remain root-owned
 and must be reported as UNVERIFIED unless corresponding original receipts exist.
+
+## Final qualification
+
+Final source checkpoint `2beaad887ffdc20315a5be9322b53234ed90cece`. Complete Release build PASS;
+Release protocol150/150 and debug155/155. Full CTest **56/57**, only the four unchanged `forge_tests`
+diagnostics. All64 registered tunables advertised, with no changes to their values or ranges.
+OFF bench d11/13/16/20/22: **312866 / 862329 / 3024920 / 12389307 / 34048354**;
+perft5 **4865609**, NNUE FMA **0**. See `qualification.json`, `BENCH_RESULTS.md` and original `ctest/` logs.
+The protocol tests exercise the native engine; actual fastchess `-strict` remains UNVERIFIED because no
+runner is installed. No search or evaluation change and no Elo/speed claim. Windows and full-engine
+sanitizers were not run for this branch. The next implementation is B5 SingularV2, independently based on b7.

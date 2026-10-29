@@ -1,15 +1,15 @@
-# Astra round 2 B4 checkpoint — 2026-10-29
+# B4 continuation checkpoint — 2026-10-29
 
-Base `b7c177222038e9332965a95ec53ea3b94e90dbc9`; branch `astra2-uci-strict`.
-B4 implementation is ready for complete native build and qualification. No search or tuned-value changes.
-New protocol regression reproduced 90 failures across 150 checks on the real baseline before changes.
-All original output is under `astra2_evidence/B4/`; source behavior and exact commands are in its README.
+Base b7c177222038e9332965a95ec53ea3b94e90dbc9; final source2beaad8.
+All64 tunables advertised; unknown names diagnosed; accepted actual changes after B1-B4 presets diagnosed.
+OFF resets preset tracking. Invalid/refused/no-op assignments retain old values and do not claim overrides.
+Native Release150 and debug155 checks PASS; full CTest56/57 (onlyfourknownforge_testslines).
+Allfive OFF pins and perft54865609 PASS, FMA0. No search values changed; no speed/Elo claim.
+Actualfastchess-strict, Windows and full-engine sanitizer qualification remain UNVERIFIED.
+Read astra2_evidence/B4/README.md for all original evidence and reproduction commands.
 
-Next: build all Release targets, run both new UCI CTests and the full existing suite, verify all five OFF
-bench pins and startpos perft5=4865609, preserve raw output/hashes, commit and push. Root owns publication.
-An actual fastchess-strict run is unavailable because the native runner is not installed.
-
-IDEA_SOURCE: user B4 specification and Forge's existing registry/parser; original diagnostics, no external engine code.
-
-Release build completed. New native protocol tests PASS: 150 checks in Release and 155 in the debug-hook
-build. Final build includes the comment/format cleanup; OFF pins, perft and complete CTest now running.
+B1 final23e940b; B2 final45314a5 (additional baseline SMP mate-test failure preserved);
+B3 final9a09e76. B5 now implementing defaultzero SingularV2/N1 on its own b7 branch.
+B6 bench matrix and B7 final report remain. When combining branches, new B1/B2/B5 option setters
+must use B4's assign_option observer and retain each feature's preset ownership rules.
+IDEA_SOURCE: user strict-UCI requirements and Forge's own option registry.
