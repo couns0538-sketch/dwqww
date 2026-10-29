@@ -1,0 +1,70 @@
+# R5B (branch opus-r5b-speed): the N2 speed build (O2 + NOZERO + SPEEDSTACK, all node-exact) through the opus-ci
+# evidence (release identity + CTest with the known-failure check, ASan+UBSan, TSan) with exactly these three
+# switches ON, plus the uninitialised-read checks of opus_r5/r5b/ci_n2_memcheck.sh (valgrind memcheck of OFF and N2,
+# -ftrivial-auto-var-init=pattern/zero identity). opus-ci.yml builds only the default configuration and
+# opus-r3-switches.yml runs every switch at once on other branches.
+name: opus-r5b-n2
+on:
+  push:
+    branches: ['opus-r5b-speed']
+    paths-ignore:
+      - 'opus_r5/**/*.md'
+      - 'opus_r5/**/*.log'
+      - 'opus_r5/**/*.json'
+      - 'opus_r5/**/*.txt'
+      - 'opus_r5/**/SHA256SUMS'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  linux:
+    strategy:
+      fail-fast: false
+      matrix:
+        mode: [release, asan, tsan]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 75
+    env:
+      EXTRA_CMAKE_ARGS: -DFORGE_NNUE_O2=ON -DFORGE_NOZERO_MOVE_BUFFERS=ON -DFORGE_SPEEDSTACK=ON
+    steps:
+      - uses: actions/checkout@v4
+      - name: Toolchain
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq g++-14 ninja-build cmake python3
+          g++-14 --version | head -1
+          nproc; lscpu | grep -E 'Model name|Flags' | cut -c1-200
+      - name: Run ${{ matrix.mode }} with the N2 switches ON
+        run: bash opus_round1/ci/run_ci.sh ${{ matrix.mode }} ci_out
+      - name: Upload logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: opus-r5b-n2-${{ matrix.mode }}
+          path: |
+            ci_out/*.log
+            ci_out/**/sanitizer_logs_*/**
+            ci_out/*.txt
+          if-no-files-found: warn
+  memcheck:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 75
+    steps:
+      - uses: actions/checkout@v4
+      - name: Toolchain
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq g++-14 ninja-build cmake python3 valgrind
+          g++-14 --version | head -1; valgrind --version
+          nproc; lscpu | grep -E 'Model name|Flags' | cut -c1-200
+      - name: valgrind memcheck (OFF control, N2) and N2 auto-var-init identity
+        run: bash opus_r5/r5b/ci_n2_memcheck.sh ci_out
+      - name: Upload logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: opus-r5b-n2-memcheck
+          path: |
+            ci_out/*.log
+            ci_out/*.txt
+          if-no-files-found: warn
