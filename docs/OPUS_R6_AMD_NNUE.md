@@ -50,8 +50,11 @@ live DirectML trainer shares the GPU, and gates and self-play load the CPU.
   driver needs `rocm-sdk` on PATH; otherwise it fails with `'hip/hip_runtime.h' file not found`
   (`logs/triton_without_venv_on_PATH.log`).
   - The R6 kernels then fall back to torch (one-time probes).
-  - Upstream's loader transport (`data_loader/_cuda_transport.py`, also Triton) has no fallback and fails on
-    the first packed batch.
+  - **torch.compile has no such fallback.** Inductor needs Triton, so a run without the venv on PATH fails at
+    the first compiled step (Grok Bot's 13:25 `COMPILE_FAIL`) unless `TORCHDYNAMO_DISABLE=1` is set.
+  - Upstream's Triton loader transport (`_cuda_transport.py`) is not affected: `_transport.move_indices` packs
+    only when `torch.version.hip is None`, so on ROCm it never runs. An earlier version of this report said
+    otherwise; that was wrong.
 
 ## Flags
 | env var | values | default |
@@ -166,7 +169,7 @@ epoch-end timestamps; the table shows the median of the 9 timed epochs (`logs/fi
 - Full-feature benchmark at upstream sizes (L1 1024): not run (forbidden size). The small-size pair F1/F2 was run.
 - Real `cl.exe` builds of the loader are untested (only clang++ with an MSVC target). No clang PGO (no matching
   `llvm-profdata`).
-- Upstream's Triton transport has no launch probe (see "Must-know").
+- torch.compile has no fallback when Triton cannot launch (venv not on PATH); see "Must-know".
 - FT kernel tuning knobs exist but the sweep was not run (FT is no longer the bottleneck at smoke size).
 - Next bottleneck: loader/H2D/Python at 4 ms/step. More loader workers would help but cost CPU threads
   (budget 3).

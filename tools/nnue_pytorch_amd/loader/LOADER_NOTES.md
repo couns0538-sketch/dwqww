@@ -62,9 +62,9 @@ with 1 or 2 workers gave 424k-436k pos/s, all GPU-bound.
 - If cross-compiler reproducibility matters, replace `std::shuffle` with an explicit Fisher-Yates that draws from
   the engine directly. That is an idea only, not done in R6.
 
-## Must-know since triton-windows was installed
-upstream `data_loader/_transport.py` imports the Triton unpack kernel (`_cuda_transport.py`) whenever Triton can
-be imported, and has no launch probe. Without the venv's `Scripts` folder on PATH, Triton's AMD driver cannot find
-the HIP headers (`hip_utils.c: fatal error: 'hip/hip_runtime.h' file not found`), so the loader fails on the first
-packed batch. **Activate the venv (or `source env.sh`) for every run.** The R6 FT and RangerLite kernels fall back
-to torch in that case; upstream's transport does not.
+## Triton and the loader
+upstream `data_loader/_transport.py` imports a Triton unpack kernel (`_cuda_transport.py`), but `move_indices`
+packs only when `torch.version.hip is None`. **On ROCm the loader never uses Triton** and sends dense index rows;
+the prefetch stream only does the H2D copy. An earlier version of these notes said the loader would fail without
+the venv on PATH; that was wrong. What does need the venv on PATH is Triton itself: the R6 kernels (they fall back
+to torch) and torch.compile (it does not fall back).

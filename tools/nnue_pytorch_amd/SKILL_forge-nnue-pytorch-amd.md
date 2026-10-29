@@ -24,6 +24,14 @@ on PATH. **Triton needs this**: its AMD driver gets the HIP include dir from `ro
 it, the build fails with `hip_utils.c: fatal error: 'hip/hip_runtime.h' file not found` (Grok Bot's 13:25
 failure). env.sh also sets the thread caps, TMP, `TRITON_CACHE_DIR` and `TORCHINDUCTOR_CACHE_DIR` under scratch.
 Always add `TORCHINDUCTOR_COMPILE_THREADS=1` (inductor otherwise spawns a worker per CPU) and run under `nice -n 10`.
+Without the venv on PATH:
+- the R6 kernels fall back to torch (probes), but torch.compile fails (no fallback; use `TORCHDYNAMO_DISABLE=1`);
+- the loader transport does not use Triton on ROCm (`move_indices` packs only when `torch.version.hip is None`).
+
+Run every torch job through `tools/nnue_pytorch_amd/guard/guard_exec.py` (`F:\opus_scratch\r6\tools\guard_exec.py`).
+It is an in-process RAM watchdog that calls `os._exit(97)` below `R6_MIN_FREE_GB` (7) and logs the minimum free
+RAM and its own peak. `R6_EPOCH_TIMER=1 R6_EPOCH_SIZE=<epoch size>` prints pos/s per epoch.
+`bench/final_bench.sh k32|full` is the guarded final A/B set.
 
 ## Flags
 - `NNUE_FT_BACKEND`: `auto` = CuPy if present, else Triton if a probe kernel passes, else torch. Other values:
@@ -52,7 +60,12 @@ the peak first (Process.PrivateMemorySize64 sampled during the run) and require 
 - Output: `F:/opus_scratch/r6/bench/NAME/result.json`, pos/s per epoch from epoch-end timestamps.
 - The runner refuses to start below 6 GB free RAM. Take the median of epochs 2..N, and always A/B in the same
   session: the GPU is shared with the live trainer, so absolute numbers move ±20%.
-- R6 numbers: torch eager 165k, Triton FT + Triton RangerLite + compile 436k (2.1x the 210k setup reference).
+- R6 final numbers (15:22-15:26, guarded, smoke size):
+  - torch eager 196k / 221k (= the 210k reference); Triton FT only 283k; Triton all, eager 348k;
+    torch + compile 328k; **Triton all + compile 448k / 467k**.
+  - Full features at L1 256: 35k -> 277k.
+  - Breakdown after: forward 2.2, backward 4.1, optimizer 1.9, loader/H2D/Python 4.0 ms/step. The loader side is
+    the next bottleneck.
 - `bench/profile_train.py` gives a synced per-phase breakdown. Note that train.py ends with `os._exit(0)` on
   win32, so the atexit report only prints when main() raises: patch `os._exit` or call main() yourself.
 
