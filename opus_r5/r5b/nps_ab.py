@@ -5,6 +5,10 @@ Arms: A (the reference, e.g. the OFF build), one or more B exes, and with --aa a
 (written to --copy-dir under another name). Every run is a fresh process: uci, Threads 1, Hash 16, OwnBook false,
 isready, `bench <depth>`, quit. Order per depth: slot i runs the arms in list order for even i and reversed for odd i
 (two arms: A B B A A B B A ..., the classic ABBA), so a linear drift cancels over every two slots for every arm pair.
+With --copies K every arm (A, each B, AA) runs K byte copies of its exe in rotation (slot i uses copy i % K): the exes
+are DYNAMIC_BASE, every file gets its own ASLR image base, and a per-file speed offset is then sampled into the CI
+instead of biasing one arm (seen in R5B M3: A ran ~3 % slower than its byte copy for 8 of 12 d16 slots). With --aa,
+each B is also compared against AA (second reference, `cpu vs AA`).
 
 Machine rules: the driver pins itself to ONE logical CPU (--core, default 14) and sets BelowNormal priority before
 it starts any engine; Windows children inherit the affinity mask, and every engine is also created with
@@ -24,7 +28,8 @@ pinned count; otherwise the driver aborts at once (exit 2).
 Rule line: the speed rule needs the cpu lower bound >= +2 % at d16 AND d20.
 
 usage: python -I -B nps_ab.py --a OFF.exe --b X.exe [Y.exe ...] [--names x,y] [--aa] [--depths 16,20] [--pairs 12]
-                              [--core 14] [--pins 16=3024920,20=12389307] [--copy-dir DIR] [--json out.json]
+                              [--core 14] [--pins 16=3024920,20=12389307] [--copies 1] [--copy-dir DIR]
+                              [--json out.json]
                               [--stop-file PATH]
 exit 0 = all runs done and node rules hold; 2 = node mismatch / engine failure; 3 = stopped by --stop-file.
 """
@@ -219,7 +224,9 @@ def main():
     ap.add_argument("--pairs", type=int, default=12)
     ap.add_argument("--core", type=int, default=14, help="logical CPU to pin to (0-based)")
     ap.add_argument("--pins", default="", help="depth=nodes,... node pins checked on every run")
-    ap.add_argument("--copy-dir", default="F:/opus_scratch/r5/r5b/tmp", help="where the A/A byte copy is written")
+    ap.add_argument("--copy-dir", default="F:/opus_scratch/r5/r5b/tmp", help="where byte copies are written")
+    ap.add_argument("--copies", type=int, default=1,
+                    help="byte copies per arm, used in rotation (slot %% K); 1 = the arms' own files")
     ap.add_argument("--json", default="")
     ap.add_argument("--stop-file", default="", help="stop cleanly (exit 3) before the next run if this file exists")
     args = ap.parse_args()
@@ -233,37 +240,50 @@ def main():
         ap.error("--names needs one name per --b exe")
     arms = [("A", args.a)] + list(zip(names, args.b))
     if args.aa:
-        os.makedirs(args.copy_dir, exist_ok=True)
-        copy = os.path.join(args.copy_dir, "aa_copy_" + os.path.basename(args.a))
-        shutil.copyfile(args.a, copy)
-        if sha256(copy) != sha256(args.a):
-            raise SystemExit("A/A copy differs from A")
-        arms.append(("AA", copy))
+        arms.append(("AA", args.a))
+    # files[name][k]: the exe file arm `name` runs in slots with slot % copies == k. With --copies 1 the arms run
+    # their own files and AA one byte copy of A. With --copies K every arm runs K byte copies in rotation: each
+    # file gets its own ASLR image base (the exes are DYNAMIC_BASE), so the base-address effect is sampled
+    # instead of being fixed per arm (R5B M3: A ran ~3 % slower than its byte copy for 8 of 12 d16 slots).
+    os.makedirs(args.copy_dir, exist_ok=True)
+    files = {}
+    for name, exe in arms:
+        if args.copies == 1 and name != "AA":
+            files[name] = [exe]
+            continue
+        files[name] = []
+        for k in range(args.copies):
+            copy = os.path.join(args.copy_dir, f"c{k}_{name}_" + os.path.basename(exe))
+            shutil.copyfile(exe, copy)
+            if sha256(copy) != sha256(exe):
+                raise SystemExit(f"copy {copy} differs from {exe}")
+            files[name].append(copy)
 
     pin_self(args.core)
     cycle_hz = calibrate_cycle_rate()
     print(f"nps_ab: core {args.core} (mask {1 << args.core:#x}), driver priority BelowNormal, pairs {args.pairs}, "
           f"depths {depths}, order: arms forward on even slots, reversed on odd slots, "
-          f"cycle rate {cycle_hz / 1e9:.3f} GHz (calibrated)", flush=True)
+          f"cycle rate {cycle_hz / 1e9:.3f} GHz (calibrated), copies per arm {args.copies}", flush=True)
     for name, exe in arms:
-        print(f"arm {name}: {exe} sha256 {sha256(exe)}", flush=True)
+        print(f"arm {name}: {exe} sha256 {sha256(exe)} runs {', '.join(files[name])}", flush=True)
 
     runs = []
     for depth in depths:
         expected = pins.get(depth)
         for slot in range(args.pairs):
             order = arms if slot % 2 == 0 else arms[::-1]
-            for name, exe in order:
+            for name, _ in order:
                 if args.stop_file and os.path.exists(args.stop_file):
                     print(f"stop file {args.stop_file} found: stopping", flush=True)
                     return 3
                 first = not any(r["arm"] == name for r in runs)
+                exe = files[name][slot % args.copies]
                 try:
                     r = bench_run(exe, depth, cycle_hz, want_proc_info=first)
                 except (EngineError, OSError, subprocess.TimeoutExpired) as error:
                     print(f"ABORT: {error}", flush=True)
                     return 2
-                r.update({"arm": name, "depth": depth, "slot": slot})
+                r.update({"arm": name, "depth": depth, "slot": slot, "copy": slot % args.copies})
                 runs.append(r)
                 if r["proc"]:
                     print(f"  arm {name} child affinity mask {r['proc'][0]:#x} priority {r['proc'][1]}", flush=True)
@@ -288,6 +308,13 @@ def main():
                 row[f"d{depth}_{metric}"] = s
                 print(f"{name:>12s} d{depth} {metric:10s} {s['pct']:+6.2f}% [{s['lo']:+6.2f}, {s['hi']:+6.2f}] "
                       f"median ratio {s['median_ratio']:.4f} n {s['n']}", flush=True)
+            if args.aa and name != "AA":
+                # second reference: the same B runs against the A/A arm (byte copies of A, other files/bases)
+                aa = {r["slot"]: r for r in runs if r["arm"] == "AA" and r["depth"] == depth}
+                s = summarize([b[k]["nps_cpu"] / aa[k]["nps_cpu"] for k in sorted(aa)])
+                row[f"d{depth}_nps_cpu_vs_AA"] = s
+                print(f"{name:>12s} d{depth} cpu vs AA  {s['pct']:+6.2f}% [{s['lo']:+6.2f}, {s['hi']:+6.2f}] "
+                      f"(second reference)", flush=True)
         if name != "AA":
             met = all(row[f"d{d}_nps_cpu"]["lo"] >= 2.0 for d in (16, 20) if f"d{d}_nps_cpu" in row)
             row["rule_met"] = met and all(f"d{d}_nps_cpu" in row for d in (16, 20))
@@ -299,7 +326,8 @@ def main():
           f"max {max(busy):.2f}", flush=True)
     if args.json:
         with open(args.json, "w", newline="\n") as f:
-            json.dump({"args": vars(args), "cycle_hz": cycle_hz, "arms": [{"name": n, "exe": e, "sha256": sha256(e)} for n, e in arms],
+            json.dump({"args": vars(args), "cycle_hz": cycle_hz,
+                       "arms": [{"name": n, "exe": e, "sha256": sha256(e), "files": files[n]} for n, e in arms],
                        "runs": runs, "summary": summary}, f, indent=1)
     return 0
 
