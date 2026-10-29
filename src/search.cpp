@@ -658,6 +658,32 @@ void Worker::update_correction(const Board& board, int depth, int best_score, in
     if (tune::MaterialCorrectionWeight > 0) apply((*material_correction_)[side][material_key(board) & (CorrectionSize - 1U)]);
 }
 
+// ---------------------------------------------------------------------------
+// FB2-J5 Lazy SMP v2
+
+namespace fb2 {
+bool SmpV2 = false;
+
+int smp_depth_skew(int id) { return id > 0 && (id & 1) ? 1 : 0; }
+
+int smp_aspiration_multiplier(int id) { return id > 0 && (id & 1) == 0 ? 1 + ((id >> 1) % 3) : 1; }
+
+SearchInfo smp_select_result(const SearchInfo& main, const std::vector<SearchInfo>& helpers) {
+    SearchInfo best = main;
+    for (const SearchInfo& h : helpers) {
+        if (h.best_move.is_none() || h.pv.empty()) continue;
+        if (h.depth > best.depth) {
+            const std::uint64_t nodes = best.nodes;
+            const std::uint64_t elapsed = best.elapsed_ms;
+            best = h;
+            best.nodes = nodes;            // the reported node count and time stay the main thread's totals
+            best.elapsed_ms = elapsed;
+        }
+    }
+    return best;
+}
+} // namespace fb2
+
 std::int64_t Worker::elapsed_ms() const {
     auto origin = start_;
     if (pondering_) {
@@ -1380,9 +1406,13 @@ SearchInfo Worker::search(Board board, const SearchLimits& limits, bool emit_inf
     assert(root_effort_count_ <= root_effort_moves_.size());
     std::copy(root_candidates.begin(), root_candidates.end(), root_effort_moves_.begin());
     root_move_nodes_.fill(0);
+    // FB2-J5 SmpV2: helpers diversify (odd ids one ply ahead, even ids wider aspiration windows); inert for the main thread.
+    const int smp_skew = fb2::SmpV2 && !is_main() ? fb2::smp_depth_skew(id_) : 0;
+    const int smp_delta_multiplier = fb2::SmpV2 && !is_main() ? fb2::smp_aspiration_multiplier(id_) : 1;
     for (int depth = 1; depth <= max_depth; ++depth) {
         root_depth_ = depth;
-        int delta = tune::AspirationDelta;
+        const int search_depth = std::min(depth + smp_skew, 64);
+        int delta = tune::AspirationDelta * smp_delta_multiplier;
         int alpha = -Infinite;
         int beta = Infinite;
         if (depth >= 4) {
@@ -1392,7 +1422,7 @@ SearchInfo Worker::search(Board board, const SearchLimits& limits, bool emit_inf
         int iteration_score = score;
         while (true) {
             ss->ply = 0;
-            iteration_score = search(board, ss, depth, alpha, beta, false);
+            iteration_score = search(board, ss, search_depth, alpha, beta, false);
             if (aborted_) break;
             if (iteration_score <= alpha) {
                 beta = (alpha + beta) / 2;
@@ -1418,7 +1448,7 @@ SearchInfo Worker::search(Board board, const SearchLimits& limits, bool emit_inf
         }
         score = iteration_score;
         result.score = score;
-        result.depth = depth;
+        result.depth = search_depth;
         result.seldepth = std::max(seldepth_, depth);
         result.pv.assign(ss->pv.begin(), ss->pv.begin() + ss->pv_length);
         if (!result.pv.empty()) result.best_move = result.pv.front();
@@ -1518,9 +1548,10 @@ SearchInfo Searcher::search(Board board, const SearchLimits& limits, bool emit_i
         exclusive.emplace(shared_.tt);
     }
     std::vector<std::thread> helpers;
+    std::vector<SearchInfo> helper_results(workers_.size());
     for (std::size_t i = 1; i < workers_.size(); ++i) {
-        helpers.emplace_back([this, i, board, &worker_limits, &all]() {
-            (void)workers_[i]->search(board, worker_limits, false, all);
+        helpers.emplace_back([this, i, board, &worker_limits, &all, &helper_results]() {
+            helper_results[i] = workers_[i]->search(board, worker_limits, false, all);
         });
     }
     SearchInfo result = workers_.front()->search(board, worker_limits, emit_info, all);
@@ -1529,6 +1560,8 @@ SearchInfo Searcher::search(Board board, const SearchLimits& limits, bool emit_i
     shared_.stop.store(true, std::memory_order_relaxed);
     for (auto& helper : helpers) helper.join();
     shared_.stop.store(external_stop, std::memory_order_relaxed);
+    // FB2-J5 SmpV2: report the deepest completed result of any thread (helpers run one ply ahead).
+    if (fb2::SmpV2 && workers_.size() > 1 && !result.restricted_root_empty) result = fb2::smp_select_result(result, helper_results);
     return result;
 }
 

@@ -249,6 +249,19 @@ extern int FailLowContinuationBonus; // x0.01 of the history bonus given to the 
 void refresh();
 } // namespace tune
 
+struct SearchInfo;
+// FB2-J5: Lazy SMP v2 (UCI check option SmpV2, default false; inert at Threads 1). Helpers diversify their trees
+// (odd helpers search one ply ahead of the main thread, even helpers use wider aspiration windows) and the
+// deepest completed result of any thread is reported.
+namespace fb2 {
+extern bool SmpV2;
+// Depth offset of worker `id` (0 = main) and its aspiration-delta multiplier.
+[[nodiscard]] int smp_depth_skew(int id);
+[[nodiscard]] int smp_aspiration_multiplier(int id);
+// The result to report: the deepest completed search with a best move; the main thread wins ties.
+[[nodiscard]] SearchInfo smp_select_result(const SearchInfo& main, const std::vector<SearchInfo>& helpers);
+} // namespace fb2
+
 // Move-ordering statistics.
 using ButterflyHistory = std::array<std::array<std::array<std::int16_t, 64>, 64>, 2>;
 using PieceToHistory = std::array<std::array<std::int16_t, 64>, 13>;
