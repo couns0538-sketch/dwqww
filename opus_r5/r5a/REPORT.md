@@ -1,6 +1,6 @@
 # Forge Opus round 5A: gate-ready singles (CorrMargins, CorrExt, CorrHistPlus variants, NetScale) — IN PROGRESS
 
-**Status:** M1, M2, M5 done; M3 smoke 1/8 PASS, corrext1 running (then a 2-min check pause, then CorrHistPlus 2/4/6, NetScale 99, HistRework 3, 1); M4 written. Last push 02:42 Vienna.
+**Status:** M1, M2, M5 done; M3 smoke 1/8 PASS, corrext1 running (then a 2-min check pause, then CorrHistPlus 2/4/6, NetScale 99, HistRework 3, 1); M4 written. Last push 02:44 Vienna.
 
 Branch `opus-r5a-singles` = `origin/forge-bundle-int` b7c17722 + the commits listed per milestone. Job started 01:52 Vienna
 (2026-10-29), hard stop 04:52 Vienna. No Elo claims: node counts are not strength; gates decide. Machine exclusive: no
@@ -146,7 +146,7 @@ Evidence:
   every registered test except `forge_tests` (two of its checks search with 4 threads, above the job's 3-thread cap; CI runs it
   with the known-failure check). The SmpExactNodes flake did not occur on 3 CPUs. Log `logs/ctest_m2_dbab5a41.log`.
 - GitHub CI: the M2 push is the first normal (non-[skip ci]) commit of the branch; opus-ci run 40799232252
-  (e22d3649): linux release success, linux asan success, linux tsan see the final CI line below.
+  (e22d3649): release, asan and tsan all success (CI section below).
 
 ## M3 smoke stability per option (from 02:15 Vienna) — IN PROGRESS
 
@@ -233,6 +233,15 @@ Evidence (exe `forge_r5a_m5_9ad9158d.exe`, sha256 `ae6f891e5766f5da3ea005ceca6d6
 - Tuning-gate use: `option.CorrMargins=1 option.CorrMarginsScale=<x>` (SPSA range e.g. 25..200) and
   `option.CorrExt=1 option.CorrExtTripleCorr=<y>` (e.g. 16..96); fastchess -strict accepts both because they are
   advertised.
+
+## CI (GitHub opus-ci: linux release, asan, tsan; full CTest incl. forge_tests + known-failure check)
+
+| commit | run | release | asan | tsan | notes |
+|---|---|---|---|---|---|
+| e22d3649 (M2) | 40799232252 | success | success | success | each job: 56 tests, 1 failed = forge_tests with only the 4 known lines, `KNOWN-FAILURE CHECK: PASS`; `TSan: 0 reports`; forge_r5a_options_tests passed in all three |
+| 4ba7bc99 (M5) | 40801582869 | success | running | running | (filled when done) |
+
+Every other push of this branch is `[skip ci]` (WIP, docs, smoke evidence); the engine code of the head equals 4ba7bc99.
 
 ## Milestones
 - M1 per-option audit + ON benches: DONE (02:01 Vienna, commit aeb6f093)
