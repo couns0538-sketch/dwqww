@@ -29,6 +29,7 @@ Check: lock `2_build/uci_check.py <exe> --full` (fresh process, Threads 1, Hash 
 | M1 | forge_r5c_m1.exe | decc0675... | 312866 / 862329 / 3024920 / 12389307 / 34048354 | 4865609 | 193690690 | 0 | ALL OK (`logs/identity_m1.log`) |
 | M3a (v4 path, untested) | forge_r5c_m3a.exe | 60d367f2... | 312866 / 862329 / 3024920 / 12389307 / 34048354 | 4865609 | 193690690 | 0 | ALL OK (`logs/identity_m3a.log`) |
 | M3b (+ tbhits; the gate exe) | forge_r5c_m3b.exe | bf9f6f16... | 312866 / 862329 / 3024920 / 12389307 / 34048354 | 4865609 | 193690690 | 0 | ALL OK (`logs/identity_m3b.log`) |
+| rebuild of the committed tree (LF `git archive` of 1004ed26, 11:25 Vienna) | forge_r5c_final.exe | fb94819d... | 312866 / 862329 / 3024920 / 12389307 / 34048354 | 4865609 | 193690690 | 0 | ALL OK; differs from m3b in 4 bytes (PE timestamp and checksum) (`logs/m5_identity_final.log`, `logs/m5_build_final.log`) |
 
 ## M1: N3 hardening (done)
 
@@ -136,6 +137,14 @@ M1 exe `forge_r5c_m1.exe` (v3 recipe, M1 tree): 0 warnings, FMA 0, identity ALL 
 - A first engine smoke passed the net as an MSYS path (`/f/...`): the engine refused it loudly
   (`info string ERROR NNUE v4: cannot open ...; the default net evaluates`) and bench stayed 862329, the designed
   failure path; the re-run with the Windows path is below.
+- Engine with the net (`forge_r5c_m3b.exe`, Threads 1): `info string NNUE v4: loaded ...: H512 KB8 OB8 L2 16
+  mirrored standalone eval_scale 400 checksum 7e6e69fb36b5b6e0, kernel avx2` and `info string NNUE v4 active: ...`;
+  `go depth 12` from the start position: score cp 20, bestmove e2e4; bench 13 with v4: 746,646 nodes in all 4 runs
+  (deterministic), default 862,329 (`logs/m4_bench_nps.log`, `logs/m5_engine_smoke.log`).
+- 50-game legality smoke, v4 net (ON) vs the default net (OFF), same exe, Threads 1, 5+0.05, 8-move book
+  (`smoke_n3.py`, `logs/m4_v4_smoke_summary.json`): **PASS**, 50/50 games, 0 illegal, 0 crashes, 0 time losses,
+  0 missing bestmoves, 0 error lines, stop stress 20/20 with 0 problems; 29 mates, 18 threefold, 3 insufficient
+  material. (ON scored 12.5/50: a 1-hour prototype net at 0.59x speed; not a strength measurement.)
 
 ## M5: handoff
 
@@ -156,7 +165,10 @@ runs are read-only for me):
   F:/opus_scratch/fable/data/holdout/fb2_holdout_200k.pos` (exact integer score); `r5c_v4_eval` + `export_fnn4.py
   parity` on positions_100k.fen (must be 0 mismatches); engine smoke with `NNUEv4File` + `NNUEv4=true`.
 - Holdout rule: gate only if the exact holdout b0.6 is below AL1's 0.014417 on the same 200k rows. J7 best (step
-  10,035): see the M5 holdout line below. Then SPRT [0,10] normalized, cap 3000, the v4 net (candidate options
+  10,035), exported FNN4 scored exactly (`export_fnn4.py holdout`, `logs/m5_holdout.json`): **b0.6 0.015422**
+  (b0.8 0.007314, b1.0 0.004636); the trainer's float metric for the same checkpoint was 0.015417 / 0.007313 /
+  0.004639, so the exporter, the FPOS reader and the loss agree with Fable's scorer to 5e-6. 0.015422 > 0.014417:
+  **not gate-eligible**. Then SPRT [0,10] normalized, cap 3000, the v4 net (candidate options
   `option.NNUEv4File=<path>`, `option.NNUEv4=true`) vs the same exe at its defaults: a string option again, so the
   N3 runner change (N3_GATE_SPEC.md) is needed here too.
 
