@@ -1,15 +1,11 @@
-# Round3 consolidated handoff checkpoint
+# Round3 final handoff
 
-Status: WIP. 2026-10-29T03:14:10.717214-07:00
+Status: **DONE (reporting)**. 2026-10-29T03:36:18.169864-07:00.
 
-FINAL_REPORT_R3.md records each job, exact source/binary identity, completed tests and remaining limits. A1 TSan d22 and final review completion remain pending; A2 is BLOCKED with a native fallback repro and preserved failed intervention. No new experiments start.
+FINAL_REPORT_R3.md records every job and its actual completion state. A1 primary Linux qualification is complete one0d76ce8a6450573b503852aeca12b929bf4a17a; A2 remains BLOCKED on6a9cc2b7a23ed29f6bc77ad9a496b4cfc6e6e391; A3/A4/C1-C8 are deferred, not finished. The accepted input remainsb7c177222038e9332965a95ec53ea3b94e90dbc9; integrated engine source remains926c55f33227bc4a030d7ce5b1140528aeba75af.
 
-IDEA_SOURCE: user round3 durable reporting contract.
+All3 primary builds match312866/862329/3024920/12389307/34048354, perft4865609/193690690 andFMA0. Release and full ASan/UBSan CTest64/65 retain only4known functional lines. TSan requested9targets pass with the documented timeout/replay, plus256search stress cycles;0sanitizer diagnostics. Review elapsed1259.182seconds. No Elo/speed claim or SmpV2-on adoption claim. Windows/real Syzygy and separate deep identity of test-only debughook binaries remain UNVERIFIED.
 
-## Timed review complete — 2026-10-29T03:16:27.211070-07:00
+No native job remains running. Original failures, incomplete A2 intervention and precise next actions are preserved. A1/A2 GitHub remote tips were verified; verify this report branch immediately after push. Earlier checkpoint cadence breaches remain disclosed in A1's history.
 
-Review receipt records1259.182seconds, exceeding the requested1200seconds. FINAL_REPORT_R3.md links the current A1 checkpointcf835231d7f4ea3999fa1bbd25f02b74ee4c64ab; TSan d22/perft/FMA remain pending. This report continues to mark later jobs deferred and A2 unresolved. No new experiments started.
-
-Checkpoint 2026-10-29T03:26:01.124465-07:00
-
-Updated the consolidated report with finalizer review/fixes and the current A1 publication. Engine source remains unchanged; native d22 is pending. Synthetic test fixtures are explicitly distinguished from original native evidence.
+IDEA_SOURCE: user/Engine QA round3 durable reporting contract and original Forge evidence.
