@@ -1,11 +1,12 @@
+# R5B exes in F:/opus_scratch/r5/r5b/exe (also EXES.txt there): name | recipe | flags | sha256 | engine tree commit | FMA | checks
 forge_r5b_off_v3_b7c1772.exe | v3 | (none) | 718432666eaff4ebba3994a63048dbcef08a05d32272f67eba6b9a9e8d11670f | b7c17722 | FMA 0 | identity ALL OK
 forge_r5b_off_z5_b7c1772.exe | znver5 | (none) | 88e15c7ddfd73f44a4e096a77f532772d4cc2f1d8d10ad7402da371ec50f46f2 | b7c17722 | FMA 0 | identity ALL OK
-forge_r5b_off_v3_m1fix.exe | v3 | (none) | 241368e87d4ed9f4b247c840e0d18b42d8028b5543d7710d2b3b728f0e1350cc | M1 fix tree | FMA 0 | OFF code = b7c1772 OFF (4 bytes PE timestamp)
-forge_r5b_off_z5_m1fix.exe | znver5 | (none) | ca5b9331b8fe9132cac958bc7687f2d872aa60e997fde6eb5bd8b9508c6f1858 | M1 fix tree | FMA 0 | OFF code = b7c1772 OFF (4 bytes PE timestamp)
+forge_r5b_off_v3_m1fix.exe | v3 | (none) | 241368e87d4ed9f4b247c840e0d18b42d8028b5543d7710d2b3b728f0e1350cc | b2983d07 | FMA 0 | identity ALL OK; OFF code = b7c1772 OFF (PE timestamp only)
+forge_r5b_off_z5_m1fix.exe | znver5 | (none) | ca5b9331b8fe9132cac958bc7687f2d872aa60e997fde6eb5bd8b9508c6f1858 | b2983d07 | FMA 0 | identity ALL OK; OFF code = b7c1772 OFF (PE timestamp only)
 forge_r5b_o2_v3_b7c1772.exe | v3 | -DFORGE_NNUE_O2=1 | f0ec299ee7810af265eea0e58f5ffc9b30d8edb2c4c484c1ae191cef9443d4cc | b7c17722 | FMA 0 | AVX2 kernels
 forge_r5b_o2_z5_b7c1772.exe | znver5 | -DFORGE_NNUE_O2=1 | 36148d8417bc2c7d308f9afd811a552132333e5310f9670bada8ad55ffeeb767 | b7c17722 | FMA 0 | portable kernels (AVX2 compiled out)
-forge_r5b_o2_v3_m1fix.exe | v3 | -DFORGE_NNUE_O2=1 | d22e1ace5702ef6496dcbc54cbd02510a0f2e10e8522f60044622bdbb1d079c9 | M1 fix tree | FMA 0 | identity ALL OK, accumulator avx2
-forge_r5b_o2_z5_m1fix.exe | znver5 | -DFORGE_NNUE_O2=1 | 1cd1e55a4c947a1a0a4a2906e855e523beca6371e179877cc19232d787345f36 | M1 fix tree | FMA 0 | identity ALL OK, accumulator avx512
+forge_r5b_o2_v3_m1fix.exe | v3 | -DFORGE_NNUE_O2=1 | d22e1ace5702ef6496dcbc54cbd02510a0f2e10e8522f60044622bdbb1d079c9 | b2983d07 | FMA 0 | identity ALL OK, accumulator avx2
+forge_r5b_o2_z5_m1fix.exe | znver5 | -DFORGE_NNUE_O2=1 | 1cd1e55a4c947a1a0a4a2906e855e523beca6371e179877cc19232d787345f36 | b2983d07 | FMA 0 | identity ALL OK, accumulator avx512
 forge_r5b_nozero_z5_b2983d07.exe | znver5 | -DFORGE_NOZERO_MOVE_BUFFERS=1 | 5bbf4944cc45eedb6a7bc3eb8130e45f03e6a891342fbafd76b697a51c6867b0 | b2983d07 | FMA 0 | identity ALL OK
 forge_r5b_speedstack_z5_b2983d07.exe | znver5 | -DFORGE_SPEEDSTACK=1 | b8172950bdc42bf23aa55b6d3c955a89c9c464d6f83b74e52b278546d68d60aa | b2983d07 | FMA 0 | identity ALL OK
 forge_r5b_n2_z5_b2983d07.exe | znver5 | -DFORGE_NNUE_O2=1 -DFORGE_NOZERO_MOVE_BUFFERS=1 -DFORGE_SPEEDSTACK=1 | 1823fe614065211d50ff2fad36860dcd7ccadb35a3b3fbd78c68ad4f32f27ca4 | b2983d07 | FMA 0 | identity ALL OK
@@ -16,3 +17,8 @@ forge_r5b_n2_z5_poison0xFE.exe | znver5 | N2 + -DFORGE_R5B_POISON_MOVE_BUFFERS=0
 forge_r5b_n2_z5_poison0x5A.exe | znver5 | N2 + -DFORGE_R5B_POISON_MOVE_BUFFERS=0x5A (test hook) | 6f2bb10a907167cd9b0d431930e5918f337642452f1a6850faaec2bd7e14bcb6 | 5c80ffe3 | FMA 0 | identity ALL OK (test exe, not for gates)
 forge_r5b_n2_z5_initpattern_b2983d07.exe | znver5 | N2 + -ftrivial-auto-var-init=pattern | 129203457bf60ca47539b31af2bbe58eb40c3e8aea48625c4d948ab9369592ee | b2983d07 | FMA 0 | identity ALL OK (test exe, not for gates)
 forge_r5b_n2_z5_initzero_b2983d07.exe | znver5 | N2 + -ftrivial-auto-var-init=zero | a02358017228f1d176427f55fef76a39672f3b0ee631adc23f71ab5536b4a876 | b2983d07 | FMA 0 | identity ALL OK (test exe, not for gates)
+forge_r5b_off_z5_relink_m1fix.exe | znver5 | (none), objects of forge_r5b_off_z5_m1fix re-linked in reverse unit order (layout control) | e3560fc5cf8171ec71c09d24e9a6565889553d7556751f22b3dfe88c487732e1 | b2983d07 | FMA 0 | identity ALL OK (test exe)
+forge_r5b_off_z5_final_4129663d.exe | znver5 | (none) | ea3a87780fb8f39d8282e5cdf032cf62e3d752dee7053ef4f66d109250b1af73 | 4129663d | FMA 0 | identity ALL OK, = off_z5_m1fix code
+forge_r5b_off_v3_final_4129663d.exe | v3 | (none) | 024802282800409f29e9f9b85d94aaf8928bd553054abcd246f169f89f98b97f | 4129663d | FMA 0 | identity ALL OK, = off_v3_m1fix code
+forge_r5b_n2_z5_final_4129663d.exe | znver5 | -DFORGE_NNUE_O2=1 -DFORGE_NOZERO_MOVE_BUFFERS=1 -DFORGE_SPEEDSTACK=1 | 34f241927a814b27f81804e922fd71f88ee7c07d097322325a1fcda66b4631ee | 4129663d | FMA 0 | identity ALL OK, = n2_z5_b2983d07 code
+forge_r5b_n2_v3_final_4129663d.exe | v3 | -DFORGE_NNUE_O2=1 -DFORGE_NOZERO_MOVE_BUFFERS=1 -DFORGE_SPEEDSTACK=1 | d93b4e318398ba5b8dc434652256fe7bbe7689c5c6d17221da2b10ab24ea34b4 | 4129663d | FMA 0 | identity ALL OK, = n2_v3_b2983d07 code

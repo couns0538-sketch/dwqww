@@ -1,6 +1,6 @@
-# Forge Opus R5B: N2 speed build (O2 + NOZERO + SPEEDSTACK) — IN PROGRESS
+# Forge Opus R5B: N2 speed build (O2 + NOZERO + SPEEDSTACK) — DONE
 
-**Status:** 00_baseline, M1, M2 done; M3 exes + identity done, NPS pass 3 + quiet-runner NPS running; M4(a), M4(c) done, M4(b) smoke running. Push gap note: 08:33 -> 08:48 Vienna was 15 min (rule 1 says 10; while I chased the CI failure). Last push: see the commit time (pushes every 10 min).
+**Status:** DONE (all milestones M1-M5 and the final checks); last push: the head commit of `opus-r5b-speed` (times in the commit list below). Push cadence: every push within 10 min except one gap, 08:33 -> 08:48 Vienna (15 min, while I chased the CI failure).
 
 Branch `opus-r5b-speed` = `origin/forge-bundle-int` b7c1772 + R5B commits. Job folder `opus_r5/r5b/`, scratch
 `F:\opus_scratch\r5\r5b\` (exes in `exe\`, sha256 in `EXES.txt` here and next to the exes).
@@ -34,8 +34,17 @@ Check: lock `uci_check.py <exe> --full` (fresh process, Threads 1, Hash 16, OwnB
 |---|---|---|---|---|---|---|---|---|
 | 00 baseline | forge_r5b_off_v3_b7c1772.exe | v3 | 71843266... | 312866 / 862329 / 3024920 / 12389307 / 34048354 | 4865609 | 193690690 | 0 | ALL OK (`logs/identity_off_v3_b7c1772.log`) |
 | 00 baseline | forge_r5b_off_z5_b7c1772.exe | znver5 | 88e15c7d... | 312866 / 862329 / 3024920 / 12389307 / 34048354 | 4865609 | 193690690 | 0 | ALL OK (`logs/identity_off_z5_b7c1772.log`) |
+| M1 (b2983d07) | forge_r5b_off_v3_m1fix.exe | v3 | 241368e8... | 312866 / 862329 / 3024920 / 12389307 / 34048354 | 4865609 | 193690690 | 0 | ALL OK (`logs/identity_off_v3_m1fix.log`) |
+| M1 (b2983d07) | forge_r5b_off_z5_m1fix.exe | znver5 | ca5b9331... | 312866 / 862329 / 3024920 / 12389307 / 34048354 | 4865609 | 193690690 | 0 | ALL OK (`logs/identity_off_z5_m1fix.log`) |
+| final (head 4129663d, after M2-M5) | forge_r5b_off_v3_final_4129663d.exe | v3 | 02480228... | 312866 / 862329 / 3024920 / 12389307 / 34048354 | 4865609 | 193690690 | 0 | ALL OK (`logs/identity_off_v3_final_4129663d.log`) |
+| final (head 4129663d, after M2-M5) | forge_r5b_off_z5_final_4129663d.exe | znver5 | ea3a8778... | 312866 / 862329 / 3024920 / 12389307 / 34048354 | 4865609 | 193690690 | 0 | ALL OK (`logs/identity_off_z5_final_4129663d.log`) |
 
-## M1: is O2 really on? (in progress)
+Between M1 and the end the only engine-source change is the test-only macro hook of 5c80ffe3 (M4), which does not
+exist in an OFF or N2 build: the final OFF and N2 rebuilds differ from the M1 exes only at file offsets 137-138 and
+217-219, the PE TimeDateStamp and CheckSum fields (`logs/final_checks_4129663d.log`). M2 (tools) and M3 (switch
+builds of the same tree) change no engine source.
+
+## M1: is O2 really on? (done)
 
 **Answer: on the PC lock recipe (`-march=znver5`) the O2 AVX2 kernels are compiled out; on the job-spec recipe
 (`-march=x86-64-v3 -mtune=znver5`) they are on.** (R3-2Q already noted this for its x86-64-v4 CI row; here it is
@@ -94,7 +103,7 @@ Also: `forge::nnue::kernel_name()` and an `info string nnue kernel: <accumulator
 Which O2 variant is faster on this PC is measured in M3 (arms `o2_portable` = b7c1772 O2 znver5 and
 `o2_avx512` = the fix, both against the same OFF znver5 exe).
 
-## M2: reproducible NPS bench (driver done)
+## M2: reproducible NPS bench (done)
 
 `opus_r5/r5b/nps_ab.py` (+ `nps_ab.sh` wrapper; PowerShell: `& <venv python> -I -B opus_r5\r5b\nps_ab.py ...`),
 my own Windows implementation of the R3-2Q CI method (`opus_r3/R3-2Q/ci_quietnps.sh` + `quiet_nps.py`):
@@ -113,12 +122,18 @@ my own Windows implementation of the R3-2Q CI method (`opus_r3/R3-2Q/ci_quietnps
 - every run of a depth must give the same node count and the pin (`--pins 16=3024920,20=12389307`), else exit 2;
 - per arm and depth: mean of paired log ratios, 95 % Student t CI, median ratio, and the rule line
   (cpu lower bound >= +2 % at d16 AND d20); PC busy share (GetSystemTimes) per run and overall; JSON with every run;
-- cooperative stop: `--stop-file` (checked before every run).
-Noise: live gates keep the PC 80-85 % busy (all CPUs); the A/A arm is the noise floor at that moment. It cannot
-see code-layout effects (same bytes), which R3-2Q found to dominate PC switch rows (NOZERO -4.2 % on the PC vs
-+1.6 % on quiet runners).
+- cooperative stop: `--stop-file` (checked before every run);
+- `--copies K` (added after pass 1): every arm runs K byte copies of its exe in rotation; with K = pairs every slot
+  runs fresh files, so per-file speed offsets (ASLR image base / page placement; seen as A/A failures of +2.55 and
+  -2.76 % at d16 in passes 1-2) are sampled into the CI (pass 3: A/A back to about 1 %); with `--aa` every arm is
+  also compared against the A/A arm (`cpu vs AA`, a second reference); `--names` are checked (unique, not A/AA).
+Noise: live gates keep the PC 80-97 % busy (all CPUs, per-run GetSystemTimes); the A/A arm is the noise floor at
+that moment. It cannot see code-layout effects of a different binary (same bytes), which R3-2Q found to dominate PC
+switch rows (NOZERO -4.2 % on the PC vs +1.6 % on quiet runners); `tools/relink_layout.sh` builds a layout control
+(same objects, other link order).
+Known limit: the per-run timeout is soft (checked when a line arrives).
 
-## M3: per-switch and combined builds (exes + identity done; NPS running)
+## M3: per-switch and combined builds (done)
 
 Exes from engine tree b2983d07 (M1 fix): OFF and O2 = `forge_r5b_{off,o2}_{v3,z5}_m1fix.exe`, NOZERO / SPEEDSTACK /
 N2 = `forge_r5b_{nozero,speedstack,n2}_{v3,z5}_b2983d07.exe` (`tools/build_m3.sh`, log
@@ -255,13 +270,18 @@ two-thread search on a shared TT not finding the mate in 3) is the SmpV2 mate ar
 neither edit nor weaken it; the failed jobs were re-run (attempts 2) and the base-tree rate is measured on the PC
 below. Owner/Astra item: `tests/tt_mate_tb_tests.cpp` Threads 2 check is flaky on CI runners.
 
+Final state of the run list: every run of every workflow on the branch is green (two opus-ci runs after one re-run
+of the failed job each). The last commit that changes anything a workflow builds is 5c80ffe3 (opus-ci and
+opus-r5b-n2 green); later commits change reports, job tools and `opus_r3/R3-2Q/ci_quietnps.sh` (used only by the
+dispatched quietnps run, green) and carry `[skip ci]`.
+
 Base-tree evidence (`tools/flake_tt_mate.sh`, `logs/ci_flake_tt_mate_tb.log`, 08:56-08:57 Vienna): the test built
 the same way from a `git archive` of b7c1772 and from this branch's head (box flags, -O3, static), 40 runs each with
 its CTest argument `tests/syzygy_reference.tsv`: **base 1 of 40 failed, with the same message** ("Threads 2, search 1
 on the shared TT: a real mate, never shorter than mate in 3 (455 e8e4)"); head 0 of 40. So the flake predates R5B;
 on 4-vCPU CI runners it shows more often (2 of the first 6 opus-ci jobs here).
 
-## M4: non-regression evidence for N2 (in progress)
+## M4: non-regression evidence for N2 (done)
 
 ### (a) node-exact proof with real searches
 
@@ -300,9 +320,82 @@ repeat a lot). N2 scored 98/200 (not a strength measurement). `logs/m4b_smoke_n2
 - ASan/UBSan catch out-of-bounds and UB, not uninitialised reads; valgrind memcheck does. Both run in the new CI
   workflow `.github/workflows/opus-r5b-n2.yml` (asan job; `memcheck` job = `ci_n2_memcheck.sh`: valgrind memcheck of
   OFF (control) and N2 on bench 11, perft 4 and four depth-10 searches, plus the poison and pattern identities).
+- **CI results** (artifacts of run 40835194501, checked, not only the job status): valgrind memcheck
+  `ERROR SUMMARY: 0 errors from 0 contexts` for OFF and for N2; on Linux too the N2 poison identities (0xFE, 0x5A)
+  and the pattern identity are ALL OK; N2 release / ASan+UBSan / TSan CTest with the known-failure check: PASS (only
+  the 4 known forge_tests lines; no sanitizer report). N2 built with -march=x86-64-v4 (the 512-bit kernels): release
+  on an AVX-512 runner, identity ALL OK and KNOWN-FAILURE CHECK PASS (run 40835194501); ASan+UBSan on an AVX-512
+  runner PASS with no sanitizer report (run 40834819014; the later run's v4 ASan job drew a runner without AVX-512
+  and skipped with a notice).
+- **Local CTest of N2 with the PC toolchain** (MinGW g++ 15.2, `-march=znver5`, CMake Release with the three switches,
+  all targets, 62 compiler warnings, all in `src/search/{alphabeta,qsearch,tt_lockless}.inc`, none in a file R5B
+  touched; `logs/cmake_n2_z5.build.log`): **54/54 tests passed** on a 3-CPU mask at BelowNormal
+  (`tools/run_ctest_3cpu.cmd`, `logs/ctest_n2_z5.log`; forge_tests excluded as in R5A because two of its checks
+  search with 4 threads; CI runs it). The CMake-built parity test reports `AVX-512 (O2 512-bit accumulator kernels,
+  R5B; AVX2 output layer)`, digest `f807d80cbabc1d59`, PASS.
 
-## M5: proposal (pending)
+## Final checks (09:03-09:05 Vienna, head 4129663d; `tools/final_checks.sh`, `logs/final_checks_4129663d.log`)
 
-## What to gate first (pending)
+| exe rebuilt from the head | compared with | differing bytes (file offsets) | identity | FMA | warnings |
+|---|---|---|---|---|---|
+| forge_r5b_off_z5_final_4129663d.exe | forge_r5b_off_z5_m1fix.exe | 4 (137-138, 217-218) | ALL OK | 0 | 0 |
+| forge_r5b_off_v3_final_4129663d.exe | forge_r5b_off_v3_m1fix.exe | 5 (137-138, 217-219) | ALL OK | 0 | 0 |
+| forge_r5b_n2_z5_final_4129663d.exe | forge_r5b_n2_z5_b2983d07.exe (the candidate) | 5 (137-138, 217-219) | ALL OK | 0 | 0 |
+| forge_r5b_n2_v3_final_4129663d.exe | forge_r5b_n2_v3_b2983d07.exe | 4 (137-138, 217-218) | ALL OK | 0 | 0 |
 
-## What I did not finish (pending)
+Offsets 137-138 and 217-219 are the PE TimeDateStamp and CheckSum fields: the head builds the same code as the
+proposal's exes. UCI kernel lines of the rebuilt N2 exes: znver5 `accumulator avx512, output avx2`, v3 `accumulator
+avx2, output avx2`. The M1-fix OFF exes also passed the lock identity here (the "M1" rows of the rule-7 table).
+
+## M5: proposal (done)
+
+`N2_PROPOSAL.md` (and the same gate as data in `n2_gate_spec.json`): candidate `forge_r5b_n2_z5_b2983d07.exe`
+(sha256 1823fe61...) vs `forge_r5b_off_z5_m1fix.exe` (ca5b9331...), both the PC lock recipe; identity table; the O2
+fix spelled out; NPS with CI and the A/A floor (PC about +2 %, rule not met; quiet runners +4.8 %, rule met);
+non-regression SPRT [-10, 0] nElo normalized, alpha = beta = 0.05, 10+0.1, cap_games 3000, srand / openings start
+blank. Optional extra speed idea: not done (see below).
+
+## What to gate first
+
+1. **R5B-N2** (`N2_PROPOSAL.md`, `n2_gate_spec.json`): N2 znver5 vs OFF znver5, non-regression SPRT [-10, 0] nElo,
+   10+0.1, cap 3000, srand / openings start blank. Node-exact, about +2 % CPU-time NPS on this PC and +4.8 % on quiet
+   runners; the gate checks that the faster binary is not weaker. If the queue prefers the job-spec flags, gate the
+   v3 pair instead (same evidence; both pairs pass identity).
+2. Nothing else from R5B needs a gate: the singles are inside N2, and on this PC O2 alone is about 0 and NOZERO /
+   SPEEDSTACK about +1 % each (rule not met).
+
+## What I did not finish
+
+- Optional M5 speed idea: not done. Candidate for a later job: a 512-bit output layer in `nnue::evaluate` (one zmm of
+  16 lanes is exactly the existing lane assignment `index % 16`, so it is bit-exact by construction); it needs a
+  profile and a quiet-runner A/B, because the PC's floor (about 1 %) cannot show a sub-percent gain.
+- The +2 % rule was never met on the PC; a measurement on an idle PC was not possible (machine not exclusive).
+- The cause of the per-file A/A offsets (ASLR image base or physical page placement) is not isolated; the
+  fresh-copy design only samples it. The layout control is one relink sample, not a layout distribution.
+- Local (PC toolchain) CMake + CTest only for N2 znver5; OFF and the three singles got CTest on Linux CI only (release
+  + known-failure check, green). ASan/TSan are Linux-only (MinGW has no ASan).
+- O2's 512-bit kernel is proven bit-exact and present in the binary, but on this PC it is not measurably faster than
+  the portable loops it replaced (passes 1-2: both about 0 vs OFF at d20).
+- `tests/tt_mate_tb_tests.cpp` Threads 2 flake: pre-existing (base 1/40 on the PC), owner/Astra item; not touched.
+- One push gap of 15 min (08:33 -> 08:48 Vienna).
+
+## Owner items
+
+- Install the gate pair (`forge_r5b_n2.exe`, `forge_r5b_off.exe` from `F:\opus_scratch\r5\r5b\exe\`, sha256 in
+  `EXES.txt`), fill srand and openings start, queue R5B-N2.
+- Astra / owner: the `forge_tt_mate_tb_tests` Threads 2 check fails on CI runners now and then (2 of the first 6
+  opus-ci jobs here, base 1/40 on the PC); a re-run of the failed job turned both runs green.
+- Merge decision: the M1 fix (commit b2983d07) and the test hook (5c80ffe3) are engine changes for
+  `forge-bundle-int`; `opus-r3-switches` (every switch at once) only runs there.
+- Recipe decision for later bundles: znver5 (PC lock exe) or v3 (job spec); R5A used v3, this proposal uses znver5.
+
+## Time and machine (measured)
+
+- Commits: 18 from 07:58 to 09:03 Vienna (first 46b8a57e, M1 fix b2983d07 at 08:07, last 4129663d), plus the final
+  report commits; job start 07:53 Vienna, so about 1 h 20 min of the 3 h cap were used. The depth not bought by the
+  shorter time: no extra speed idea, one layout sample, no local CTest of the singles.
+- Temperatures (HWiNFO via `tools/cpu_temp.sh`, rule sensor taken as "CPU IOD Hotspot" as in R5A): 49.2-50.5 C at
+  every check (07:56, 08:05, 08:13, 08:34); Tctl/Tdie 80.8-83.0 C (80.9 C before my first build, from the PC's own
+  gate and training load). Threads: at most 3 of mine at any time (builds JOBS <= 3 alone; NPS 1 + smoke 2;
+  CTest on a 3-CPU mask). BelowNormal throughout; no process killed, nothing deleted, nothing written to E:, gates,
+  queue, manifest, forge_push and training untouched.
