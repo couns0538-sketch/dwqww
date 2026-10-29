@@ -12,7 +12,14 @@ R5A = sys.argv[1]
 EXE_SRC = r"F:\opus_scratch\r5\r5a\exe\forge_r5a_m2_0a01ec53.exe"
 EXE_SHA = "fda298e6df180a067c323d0bf68434e365cd2eef55617e671c57b4dea700738a"
 EXE_INSTALL = "forge_r5a_singles.exe"
-COMMIT = "e22d3649 (M2 push; search identical to forge-bundle-int b7c17722)"
+HEAD_EXE = r"F:\opus_scratch\r5\r5a\exe\forge_r5a_m5_9ad9158d.exe"
+HEAD_SHA = "ae6f891e5766f5da3ea005ceca6d64e030b0215f58f9404fec5233caf6bada62"
+HEAD_NOTE = ("branch head (M5, engine sources of 4ba7bc99): the same OFF pins and the same ON pins for every entry "
+             "(REPORT.md M5 + the pause re-check of the whole M1 table), plus two advertised spins at their defaults "
+             "(CorrMarginsScale 100, CorrExtTripleCorr 48); required for a tuning gate, interchangeable for these "
+             "singles. The smoke ran on the M2 exe.")
+COMMIT = ("M2 exe built from 0a01ec53 (engine sources = M2 commit e22d3649; search identical to forge-bundle-int "
+          "b7c17722); branch head engine = M5 commit 4ba7bc99")
 OFF_PINS = [312866, 862329, 3024920, 12389307, 34048354]
 BOOK = r"C:\Users\Administrator\grok-pc\coder-fuzz\8moves_v3.pgn"
 SPRT = {"elo0": 0, "elo1": 10, "alpha": 0.05, "beta": 0.05, "model": "normalized"}
@@ -109,6 +116,7 @@ def main():
            "exe": {"source": EXE_SRC, "sha256": EXE_SHA, "install_name": EXE_INSTALL,
                    "build": "opus_r5/r5a/tools/build_r5a.sh (g++ 15.2 -O3 -DNDEBUG -march=x86-64-v3 -mtune=znver5 "
                             "-fno-fast-math -ffp-contract=off -DFORGE_NNUE_HIDDEN=256, static)"},
+           "exe_alternative": {"source": HEAD_EXE, "sha256": HEAD_SHA, "note": HEAD_NOTE},
            "gates": entries}
     with open(os.path.join(R5A, "gate_specs.json"), "w", newline="\n", encoding="utf-8") as f:
         json.dump(doc, f, indent=1)
@@ -123,6 +131,7 @@ def main():
               f"name `{EXE_INSTALL}` (the owner installs it; this job never touches forge_push\\bin or the manifest).")
     md.append("  Default build: every option OFF; OFF identity bench d11/13/16/20/22 = 312866 / 862329 / 3024920 / "
               "12389307 / 34048354, perft 5 = 4865609, kiwipete 193690690, FMA 0 (REPORT.md M2).")
+    md.append(f"- Alternative exe `{HEAD_EXE}`, sha256 `{HEAD_SHA}`: {HEAD_NOTE}")
     md.append("- Both sides: `Threads=1 Hash=16 OwnBook=false`; the candidate adds only its `option.<Name>=<value>`.")
     md.append("- SPRT `elo0=0 elo1=10 alpha=0.05 beta=0.05 model=normalized`; `cap_games` 3000 (int); "
               "**srand: blank; openings start: blank** (queue owner fills both).")
