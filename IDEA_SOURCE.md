@@ -48,3 +48,5 @@ IDEA_SOURCE: Engine QA/Code Review findings in astra3/integration/ROUND3_JOB_PAC
 ## Astra A1 data tooling (2026-10-30)
 
 IDEA_SOURCE: user task for stronger/cleaner/diverse Forge NNUE data; same-repository FPOS/FHCE contract and v3b trainer at e0d76ce; prior original JobD streaming filter; R8 driver at5dd3a57d6f286f09b8881671ba8a368f6d34f717. Use original implementations around existing Forge APIs; no external engine source or tuned constants. Data cleaning and new labels are hypotheses, not Elo evidence.
+
+IDEA_SOURCE: 2026-10-30 Astra job pack; Forge R10 loader7f79c349 format/math; MIT Bullet checkpoint layout. Original exporter implementation, no other-engine code.
