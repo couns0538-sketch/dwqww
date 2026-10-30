@@ -66,5 +66,5 @@ say(("sanity check passed" if zt >= 1 else "sanity check inconclusive (recorded)
 chain_stop()
 stc = runs / "stc1"
 tune("stc_main.json", stc, ["--until", until])
-make_report(stc, reports / "stc1", "R9 STC 8+0.08 SPSA run (16 parameters from the lock values)")
+make_report(stc, reports / "stc1_final", "R9 STC 8+0.08 SPSA run (16 parameters from the lock values)")
 say("done")
