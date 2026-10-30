@@ -391,10 +391,15 @@ bool search(Engine& e, const Game& g, int nodes, Reply& r, Stats& st) {
 void worker(int id, const Options& o, Output& out, Stats& st, const std::vector<std::vector<std::string>>& openings,
             std::atomic<std::size_t>& next_opening, std::atomic<bool>& stop) {
     Engine e;
+    // CPU mask: with more CPUs than workers each worker gets its own contiguous slice (CPUs 12-15 and 2 workers ->
+    // 12-13 and 14-15: one physical core each with SMT), with as many workers as CPUs one CPU each, with fewer CPUs
+    // than workers (or one worker) every worker gets all of them (the live script pins all workers to all CPUs).
     DWORD_PTR mask = 0;
     if (!o.cpus.empty()) {
-        if (o.workers <= static_cast<int>(o.cpus.size()) && o.workers > 1) {
-            mask = static_cast<DWORD_PTR>(1) << o.cpus[static_cast<std::size_t>(id) % o.cpus.size()];
+        const std::size_t n = o.cpus.size(), w = static_cast<std::size_t>(o.workers);
+        if (w > 1 && w <= n) {
+            const std::size_t slice = n / w, first = static_cast<std::size_t>(id) * slice;
+            for (std::size_t k = first; k < first + slice; ++k) mask |= static_cast<DWORD_PTR>(1) << o.cpus[k];
         } else {
             for (int c : o.cpus) mask |= static_cast<DWORD_PTR>(1) << c;
         }
