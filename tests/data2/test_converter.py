@@ -55,16 +55,33 @@ class ConverterTests(unittest.TestCase):
   c.run(self.args()); chunk=c.read_chunks(self.root/'out')[0]
   with (self.root/'out'/chunk['bullet']).open('ab') as f:f.write(b'x')
   with self.assertRaisesRegex(ValueError,'hash mismatch'): c.verify(self.root/'out')
+ def test_summary_counts_corruption_rejected(self):
+  c.run(self.args());p=self.root/'out'/'COMPLETE.json';data=json.loads(p.read_text());data['counts']['in_check']=400;p.write_text(json.dumps(data))
+  with self.assertRaisesRegex(ValueError,'aggregate counts'):c.verify(self.root/'out')
+ def test_summary_chunk_count_corruption_rejected(self):
+  c.run(self.args());p=self.root/'out'/'COMPLETE.json';data=json.loads(p.read_text());data['chunks']=999;p.write_text(json.dumps(data))
+  with self.assertRaisesRegex(ValueError,'chunk-count'):c.verify(self.root/'out')
+ def test_unknown_count_corruption_rejected(self):
+  c.run(self.args());p=self.root/'out'/'COMPLETE.json';data=json.loads(p.read_text());data['counts']['unreported_drop']=1;p.write_text(json.dumps(data))
+  with self.assertRaisesRegex(ValueError,'counts keys'):c.verify(self.root/'out')
+ def test_bool_count_rejected(self):
+  with self.assertRaises(ValueError):c.checked_counts({'kept':True})
  def test_holdout_all_overlap_zero_remain(self):
   result=c.run(self.args('--holdout',str(self.src)))
   self.assertEqual(result['counts']['holdout_position'],3); self.assertEqual(c.verify(self.root/'out')['rows'],0)
  def test_game_exclusion_removes_distinct_position(self):
   hold=self.root/'hold.txt';hold.write_text(FENS[0]); hgid=self.root/'hgame.txt';hgid.write_text('gameA\n')
   gid=self.root/'games.txt';gid.write_text('gameA\ngameA\ngameB\n')
-  result=c.run(self.args('--holdout',str(hold),'--holdout-game-ids',str(hgid),'--game-ids',str(gid),'--require-game-clearance'))
+  result=c.run(self.args('--holdout',str(hold),'--holdout-game-ids',str(hgid),'--game-ids',str(gid),'--require-game-clearance','--shard-id','003'))
   self.assertEqual(result['counts']['holdout_game'],2);self.assertEqual(result['counts']['kept'],1)
- def test_absent_game_ids_cannot_claim_production(self):
+ def test_absent_shard_id_cannot_claim_split(self):
   with self.assertRaisesRegex(ValueError,'game clearance'):c.run(self.args('--require-game-clearance'))
+ def test_holdout_shard_rejected(self):
+  with self.assertRaisesRegex(ValueError,'holdout shard'):c.run(self.args('--shard-id','013'))
+ def test_accepted_shard_split_no_invented_game_ids(self):
+  result=c.run(self.args('--shard-id','003','--require-game-clearance'))
+  self.assertEqual(result['game_clearance'],'ACCEPTED_WHOLE_SHARD_SPLIT_013_014')
+  self.assertFalse(result['game_id_exclusion'])
  def test_truncated_game_ids(self):
   gid=self.root/'games.txt';gid.write_text('A\n')
   with self.assertRaisesRegex(ValueError,'truncated'):c.run(self.args('--game-ids',str(gid)))

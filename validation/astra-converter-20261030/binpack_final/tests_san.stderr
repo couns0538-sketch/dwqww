@@ -1,0 +1,96 @@
+test_bad_score_rejected (__main__.Adapter.test_bad_score_rejected) ... ok
+test_corrupt_chunk_rejected (__main__.Adapter.test_corrupt_chunk_rejected) ... ok
+test_corrupt_occupancy_rejected (__main__.Adapter.test_corrupt_occupancy_rejected) ... FAIL
+test_deterministic (__main__.Adapter.test_deterministic) ... FAIL
+test_empty (__main__.Adapter.test_empty) ... FAIL
+test_exact_fen_score_result_inert_ep_and_rights (__main__.Adapter.test_exact_fen_score_result_inert_ep_and_rights) ... FAIL
+test_halfmove_overflow_rejected (__main__.Adapter.test_halfmove_overflow_rejected) ... ok
+test_illegal_supplied_move (__main__.Adapter.test_illegal_supplied_move) ... ok
+test_missing_king_rejected_without_crash (__main__.Adapter.test_missing_king_rejected_without_crash) ... ok
+test_no_overwrite (__main__.Adapter.test_no_overwrite) ... FAIL
+test_ply_overflow_rejected (__main__.Adapter.test_ply_overflow_rejected) ... ok
+test_requires_explicit_fallback (__main__.Adapter.test_requires_explicit_fallback) ... ok
+test_supplied_move (__main__.Adapter.test_supplied_move) ... FAIL
+
+======================================================================
+FAIL: test_corrupt_occupancy_rejected (__main__.Adapter.test_corrupt_occupancy_rejected)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/tmp/astra-binpack-work/test_binpack_adapter.py", line 46, in test_corrupt_occupancy_rejected
+    r,out=self.encode(f'{START} | 0 | 0.5\n');self.assertEqual(r.returncode,0,r.stderr)
+                                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 1 != 0 : {"rows":1,"transport_move_fallbacks":1,"status":"PASS"}
+==460073==LeakSanitizer has encountered a fatal error.
+==460073==HINT: For debugging, try setting environment variable LSAN_OPTIONS=verbosity=1:log_threads=1
+==460073==HINT: LeakSanitizer does not work under ptrace (strace, gdb, etc)
+
+
+======================================================================
+FAIL: test_deterministic (__main__.Adapter.test_deterministic)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/tmp/astra-binpack-work/test_binpack_adapter.py", line 50, in test_deterministic
+    r,out=self.encode(f'{START} | 0 | 0.5\n');self.assertEqual(r.returncode,0,r.stderr)
+                                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 1 != 0 : {"rows":1,"transport_move_fallbacks":1,"status":"PASS"}
+==460088==LeakSanitizer has encountered a fatal error.
+==460088==HINT: For debugging, try setting environment variable LSAN_OPTIONS=verbosity=1:log_threads=1
+==460088==HINT: LeakSanitizer does not work under ptrace (strace, gdb, etc)
+
+
+======================================================================
+FAIL: test_empty (__main__.Adapter.test_empty)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/tmp/astra-binpack-work/test_binpack_adapter.py", line 41, in test_empty
+    r,out=self.encode('');self.assertEqual(r.returncode,0,r.stderr);d=self.run_tool('decode',out);self.assertEqual(d.returncode,0,d.stderr);self.assertEqual(d.stdout,'')
+                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 1 != 0 : {"rows":0,"transport_move_fallbacks":0,"status":"PASS"}
+==460090==LeakSanitizer has encountered a fatal error.
+==460090==HINT: For debugging, try setting environment variable LSAN_OPTIONS=verbosity=1:log_threads=1
+==460090==HINT: LeakSanitizer does not work under ptrace (strace, gdb, etc)
+
+
+======================================================================
+FAIL: test_exact_fen_score_result_inert_ep_and_rights (__main__.Adapter.test_exact_fen_score_result_inert_ep_and_rights)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/tmp/astra-binpack-work/test_binpack_adapter.py", line 18, in test_exact_fen_score_result_inert_ep_and_rights
+    r,out=self.encode(text);self.assertEqual(r.returncode,0,r.stderr)
+                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 1 != 0 : {"rows":2,"transport_move_fallbacks":2,"status":"PASS"}
+==460104==LeakSanitizer has encountered a fatal error.
+==460104==HINT: For debugging, try setting environment variable LSAN_OPTIONS=verbosity=1:log_threads=1
+==460104==HINT: LeakSanitizer does not work under ptrace (strace, gdb, etc)
+
+
+======================================================================
+FAIL: test_no_overwrite (__main__.Adapter.test_no_overwrite)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/tmp/astra-binpack-work/test_binpack_adapter.py", line 29, in test_no_overwrite
+    r,out=self.encode(f'{START} | 1 | 0.5\n');self.assertEqual(r.returncode,0,r.stderr)
+                                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 1 != 0 : {"rows":1,"transport_move_fallbacks":1,"status":"PASS"}
+==460131==LeakSanitizer has encountered a fatal error.
+==460131==HINT: For debugging, try setting environment variable LSAN_OPTIONS=verbosity=1:log_threads=1
+==460131==HINT: LeakSanitizer does not work under ptrace (strace, gdb, etc)
+
+
+======================================================================
+FAIL: test_supplied_move (__main__.Adapter.test_supplied_move)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/tmp/astra-binpack-work/test_binpack_adapter.py", line 23, in test_supplied_move
+    r,out=self.encode(f'{START} | -9 | 0.0 | e2e4\n',False);self.assertEqual(r.returncode,0,r.stderr)
+                                                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 1 != 0 : {"rows":1,"transport_move_fallbacks":0,"status":"PASS"}
+==460144==LeakSanitizer has encountered a fatal error.
+==460144==HINT: For debugging, try setting environment variable LSAN_OPTIONS=verbosity=1:log_threads=1
+==460144==HINT: LeakSanitizer does not work under ptrace (strace, gdb, etc)
+
+
+----------------------------------------------------------------------
+Ran 13 tests in 4.601s
+
+FAILED (failures=6)

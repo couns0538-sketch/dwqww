@@ -5,7 +5,7 @@ IDEA_SOURCE: user20261030 contract; existing Forge A1 format/probe; MIT bulletfo
 No engine code, live trainer or source-data file is modified.
 """
 from __future__ import annotations
-import argparse, collections, hashlib, itertools, json, os, shutil, sqlite3, sys, time, uuid
+import argparse, collections, hashlib, itertools, json, os, shutil, sqlite3, subprocess, sys, time, uuid
 from contextlib import ExitStack
 from pathlib import Path
 
@@ -14,6 +14,14 @@ from forge_pos import PosReader, aligned_records, text_record
 from forge_probe import ProbeClient
 from filter_positions import disagreement
 from bullet_records import encode, verify_record
+
+RULES = ('holdout_game','holdout_position','duplicate','score_cap','result_disagreement','in_check','terminal','teacher_incomplete','bestmove_capture','bestmove_promotion','kept')
+
+
+def checked_counts(value):
+    if not isinstance(value, dict) or set(value) - set(RULES) or any(type(n) is not int or n < 0 for n in value.values()):
+        raise ValueError('invalid counts keys/types/values')
+    return {k: value.get(k, 0) for k in RULES}
 
 
 def sha(path):
@@ -108,8 +116,11 @@ def read_chunks(out, verify=True):
         if p.name != f'chunk_{i:06d}.json':
             raise ValueError('noncontiguous sealed chunks')
         chunk = json.loads(p.read_text())
-        if chunk['start_row'] != next_row or chunk['input_rows'] < 1:
+        if type(chunk['start_row']) is not int or type(chunk['input_rows']) is not int or chunk['start_row'] != next_row or chunk['input_rows'] < 1:
             raise ValueError('noncontiguous source range')
+        counts = checked_counts(chunk['counts'])
+        if type(chunk['kept']) is not int or counts['kept'] != chunk['kept'] or sum(counts.values()) != chunk['input_rows']:
+            raise ValueError('chunk waterfall/count mismatch')
         for rel, meta in chunk['files'].items():
             file = out / rel
             if file.resolve().parent.parent != out.resolve():
@@ -128,14 +139,23 @@ def run(args):
         raise ValueError('filtering requires --probe; use explicit --no-filters only for format qualification')
     if args.score_cap < 0 or args.disagreement_cp < 1 or args.nodes < 1:
         raise ValueError('invalid score/budget thresholds')
-    if args.require_game_clearance and (not args.game_ids or not args.holdout_game_ids or not args.holdout):
-        raise ValueError('production game clearance requires input AND holdout game-ID sidecars')
+    if not args.no_filters and not args.shard_id:
+        raise ValueError('production conversion requires explicit --shard-id; holdout013/014 cannot train')
+    if args.shard_id is not None and (len(args.shard_id) != 3 or not args.shard_id.isdigit() or not 1 <= int(args.shard_id) <= 39):
+        raise ValueError('shard identity must be001..039')
+    if args.shard_id in ('013','014'):
+        raise ValueError('holdout shard013/014 cannot be converted as training')
+    if args.require_game_clearance and not args.shard_id:
+        raise ValueError('accepted game clearance policy requires explicit nonholdout shard identity')
     inputs = [identity(args.input)]
-    for p in [args.pos, args.game_ids, args.probe, *args.holdout, *args.holdout_game_ids]:
+    if args.binpack_tool and args.no_filters and not args.allow_transport_moves:
+        raise ValueError('format-only binpack requires explicit --allow-transport-moves')
+    for p in [args.pos, args.game_ids, args.probe, args.binpack_tool, *args.holdout, *args.holdout_game_ids]:
         if p: inputs.append(identity(p))
     config = {k: v for k, v in vars(args).items() if k not in ('out', 'resume', 'stop_after_chunks', 'command')}
     config['inputs'] = inputs
-    config['tool_sha256'] = {p.name: sha(p) for p in [Path(__file__), Path(__file__).with_name('bullet_records.py')]}
+    dependency_dir = Path(__file__).resolve().parents[1] / 'data'
+    config['tool_sha256'] = {p.name: sha(p) for p in [Path(__file__), Path(__file__).with_name('bullet_records.py'), *(dependency_dir/n for n in ('forge_pos.py','forge_probe.py','filter_positions.py'))]}
     out = Path(args.out)
     if args.resume:
         if json.loads((out / 'config.json').read_text()) != config:
@@ -161,7 +181,7 @@ def run(args):
                 db.execute('INSERT INTO kept VALUES(?)', (key(text_record(line)[0]),))
     db.commit()
     before = time.monotonic()
-    total = collections.Counter()
+    total = collections.Counter({k: 0 for k in RULES})
     for c in chunks: total.update(c['counts'])
     try:
         with ExitStack() as stack:
@@ -178,7 +198,11 @@ def run(args):
                 chunkdir = out / ('data_' + uuid.uuid4().hex)
                 chunkdir.mkdir()
                 counts = collections.Counter(); consumed = 0; kept = 0
-                with (chunkdir / 'rows.txt').open('x', encoding='utf8', newline='\n') as txt, (chunkdir / 'rows.bullet').open('xb') as binary, (chunkdir / 'provenance.tsv').open('x', encoding='utf8', newline='\n') as provenance:
+                with ExitStack() as files_stack:
+                    txt = files_stack.enter_context((chunkdir / 'rows.txt').open('x', encoding='utf8', newline='\n'))
+                    binary = files_stack.enter_context((chunkdir / 'rows.bullet').open('xb'))
+                    provenance = files_stack.enter_context((chunkdir / 'provenance.tsv').open('x', encoding='utf8', newline='\n'))
+                    binpack_input = files_stack.enter_context((chunkdir/'binpack_input.txt').open('x', encoding='utf8', newline='\n')) if args.binpack_tool else None
                     for _ in range(min(args.chunk_rows, args.limit - start) if args.limit else args.chunk_rows):
                         pair = next(source, None)
                         if pair is None:
@@ -189,7 +213,7 @@ def run(args):
                         gid = next(gids, None)
                         if gid is None: raise ValueError('input game-ID sidecar truncated')
                         r, fen = pair; row_index = start + consumed; consumed += 1
-                        why = None; k = key(r)
+                        why = None; k = key(r); proof = None
                         if gid and db.execute('SELECT 1 FROM holdout_games WHERE id=?', (gid,)).fetchone(): why = 'holdout_game'
                         elif db.execute('SELECT 1 FROM holdout WHERE key=?', (k,)).fetchone(): why = 'holdout_position'
                         elif not args.no_dedupe and db.execute('SELECT 1 FROM kept WHERE key=?', (k,)).fetchone(): why = 'duplicate'
@@ -216,10 +240,18 @@ def run(args):
                             counts[why] += 1
                             continue
                         binary.write(encode(r)); txt.write(canonical(r, fen)); provenance.write(f'{row_index}\t{gid}\n')
+                        if binpack_input:
+                            binpack_input.write(canonical(r, fen).rstrip('\n') + (' | ' + proof['bestmove'] if proof else '') + '\n')
                         if not args.no_dedupe: db.execute('INSERT INTO kept VALUES(?)', (k,))
                         kept += 1
-                    for f in (txt, binary, provenance): f.flush(); os.fsync(f.fileno())
+                    for f in (txt, binary, provenance, binpack_input):
+                        if f is not None: f.flush(); os.fsync(f.fileno())
                 if consumed == 0: break
+                if args.binpack_tool:
+                    command = [args.binpack_tool, 'encode', str(chunkdir/'binpack_input.txt'), str(chunkdir/'rows.binpack')]
+                    if args.allow_transport_moves: command.append('--allow-transport-move')
+                    with (chunkdir/'binpack.stdout').open('xb') as stdout, (chunkdir/'binpack.stderr').open('xb') as stderr:
+                        subprocess.run(command, stdout=stdout, stderr=stderr, check=True)
                 counts['kept'] = kept
                 files = {str(p.relative_to(out)): {'bytes': p.stat().st_size, 'sha256': sha(p)} for p in sorted(chunkdir.iterdir())}
                 chunk = {'start_row': start, 'input_rows': consumed, 'kept': kept, 'counts': dict(counts), 'text': str((chunkdir/'rows.txt').relative_to(out)), 'bullet': str((chunkdir/'rows.bullet').relative_to(out)), 'provenance': str((chunkdir/'provenance.tsv').relative_to(out)), 'files': files}
@@ -231,13 +263,13 @@ def run(args):
                     return {'status': 'CHECKPOINT', 'input_rows': start, 'counts': dict(total)}
         for item in inputs:
             if identity(item['path']) != item: raise ValueError('input changed during run')
-        result = {'status': 'COMPLETE', 'input_rows': start, 'counts': dict(total), 'chunks': len(chunks), 'holdouts': holdout_counts, 'game_clearance': 'SUPPLIED_GAME_IDS_EXCLUDED' if args.game_ids and args.holdout_game_ids else 'UNVERIFIED_NO_AUTHENTICATED_GAME_IDS', 'elapsed_seconds_this_attempt': time.monotonic()-before, 'representation': 'bullet32 + exact aligned full-FEN/STM-score/White-result sidecar; raw bullet loses state', 'binpack': 'NOT_REQUESTED'}
+        result = {'status': 'COMPLETE', 'input_rows': start, 'counts': dict(total), 'chunks': len(chunks), 'holdouts': holdout_counts, 'game_clearance': 'ACCEPTED_WHOLE_SHARD_SPLIT_013_014' if args.shard_id else 'FORMAT_ONLY_NO_SHARD_ID', 'shard_id': args.shard_id, 'game_id_exclusion': bool(args.game_ids and args.holdout_game_ids), 'elapsed_seconds_this_attempt': time.monotonic()-before, 'representation': 'bullet32 + exact aligned full-FEN/STM-score/White-result sidecar; raw bullet loses state', 'binpack': 'GENERATED' if args.binpack_tool else 'NOT_REQUESTED', 'chunk_receipts': {p.name:sha(p) for p in sorted(out.glob('chunk_*.json'))}}
         dump_new(out / 'COMPLETE.json', result)
         return result
     finally: db.close()
 
 
-def verify(out):
+def verify(out, binpack_tool=None):
     out = Path(out); chunks = read_chunks(out)
     count = 0
     for c in chunks:
@@ -249,22 +281,45 @@ def verify(out):
                 n += 1
             if binary.read(1) or prov.readline(): raise ValueError('extra records')
         if n != c['kept']: raise ValueError('chunk kept-count mismatch')
+        binpack = (out / c['text']).with_name('rows.binpack')
+        if binpack.exists() and binpack_tool:
+            process = subprocess.Popen([str(binpack_tool), 'decode', str(binpack)], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            try:
+                with (out/c['text']).open('rb') as expected:
+                    for line in expected:
+                        if process.stdout.readline() != line:
+                            raise ValueError('binpack native decode differs from exact FEN/score/result sidecar')
+                    if process.stdout.read(1): raise ValueError('extra binpack decoded rows')
+                stderr = process.stderr.read()
+                if process.wait(): raise ValueError('binpack decoder failed: '+stderr.decode(errors='replace'))
+            finally:
+                if process.poll() is None: process.terminate(); process.wait()
+                process.stdout.close(); process.stderr.close()
         count += n
     result = json.loads((out/'COMPLETE.json').read_text())
-    if result['input_rows'] != sum(c['input_rows'] for c in chunks) or count != result['counts'].get('kept', 0): raise ValueError('summary count mismatch')
-    return {'status': 'PASS', 'rows': count, 'chunks': len(chunks), 'scope': 'all chunk hashes; every bullet32/sidecar row and record count'}
+    totals = collections.Counter({k: 0 for k in RULES})
+    for c in chunks: totals.update(c['counts'])
+    if result.get('status') != 'COMPLETE' or type(result.get('chunks')) is not int or result['chunks'] != len(chunks):
+        raise ValueError('summary status/chunk-count mismatch')
+    if checked_counts(result.get('counts')) != dict(totals):
+        raise ValueError('summary aggregate counts mismatch')
+    if 'chunk_receipts' in result and result['chunk_receipts'] != {p.name:sha(p) for p in sorted(out.glob('chunk_*.json'))}:
+        raise ValueError('sealed chunk receipt changed')
+    if type(result.get('input_rows')) is not int or result['input_rows'] != sum(c['input_rows'] for c in chunks) or count != result['counts'].get('kept', 0): raise ValueError('summary count mismatch')
+    return {'status': 'PASS', 'rows': count, 'chunks': len(chunks), 'scope': 'all chunk hashes; every bullet32/sidecar row and record count', 'binpack_decode': 'PERFORMED_WHERE_PRESENT' if binpack_tool else 'NOT_REQUESTED_HASHES_ONLY'}
 
 
 def parser():
     p = argparse.ArgumentParser(description=__doc__)
     sub = p.add_subparsers(dest='command', required=True)
-    v = sub.add_parser('verify'); v.add_argument('--out', required=True)
+    v = sub.add_parser('verify'); v.add_argument('--out', required=True); v.add_argument('--binpack-tool')
     for command in ('convert', 'holdout-dedup'):
         c = sub.add_parser(command)
         c.add_argument('--input', required=True); c.add_argument('--pos'); c.add_argument('--sidecar-format', choices=('text','fen'), default='text'); c.add_argument('--out', required=True)
-        c.add_argument('--game-ids'); c.add_argument('--holdout', action='append', default=[]); c.add_argument('--holdout-game-ids', action='append', default=[]); c.add_argument('--require-game-clearance', action='store_true')
+        c.add_argument('--game-ids'); c.add_argument('--shard-id'); c.add_argument('--holdout', action='append', default=[]); c.add_argument('--holdout-game-ids', action='append', default=[]); c.add_argument('--require-game-clearance', action='store_true')
         c.add_argument('--limit', type=int); c.add_argument('--chunk-rows', type=int, default=100000); c.add_argument('--min-free-mb', type=int, default=256); c.add_argument('--resume', action='store_true'); c.add_argument('--stop-after-chunks', type=int)
         c.add_argument('--probe'); c.add_argument('--nodes', type=int, default=1024); c.add_argument('--score-cap', type=int, default=3000); c.add_argument('--disagreement-cp', type=int, default=400); c.add_argument('--draw-disagreement-cp', type=int, default=800)
+        c.add_argument('--binpack-tool'); c.add_argument('--allow-transport-moves', action='store_true')
         c.add_argument('--no-filters', action='store_true'); c.add_argument('--no-dedupe', action='store_true')
     return p
 
@@ -274,7 +329,7 @@ def main():
     if a.command == 'holdout-dedup':
         if not a.holdout: raise ValueError('holdout-dedup requires --holdout')
         a.no_filters = True
-    print(json.dumps(verify(a.out) if a.command == 'verify' else run(a), sort_keys=True))
+    print(json.dumps(verify(a.out, a.binpack_tool) if a.command == 'verify' else run(a), sort_keys=True))
 
 
 if __name__ == '__main__': main()
