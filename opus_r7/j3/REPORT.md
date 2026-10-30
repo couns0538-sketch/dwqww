@@ -34,7 +34,8 @@ returns a deferred (unlocked) lock, because bench and UCI `go` with one worker h
 | `forge_r7_j3b.exe` (adds R7PrefetchEarly) identity | OFF, R7PrefetchEarly ON, all four ON: ALL OK | `logs/identity_j3b_{off,pe,all4}.log` |
 | key after move == make_move's key | 29,389,885 moves exact; the only differences are 240,918 double pushes that create a legal en passant (allowed by design) | `logs/quiet_gen_and_key_after_test.log` |
 | instructions (callgrind bench 13, Linux runner, run 40895783133) | same nodes 862,329 for every set; R7TtExclusive -1.26%, R7QuietGen -0.35%, R7EvalPrefetch +0.08%, all three -1.53% (totals include bench start-up and per-position clears) | `logs/ci_prof2_options/option_sets.log` |
-| CI (release, ASan+UBSan, TSan + profile) | profile run 40895783133 success; opus-ci run 40895783124: see the status commit | GitHub runs on `2d9889cf` |
+| CI (release, ASan+UBSan, TSan + profile) | `2d9889cf`: opus-ci 40895783124 success, profile 40895783133 success; `c34a9739`: opus-ci 40900192786 success, profile 40900192820 success | GitHub |
+| instructions incl. R7PrefetchEarly (run 40900192820, same nodes) | tt -1.26%, qg -0.35%, pf +0.08%, **pe +0.84%** (the key computation), all four -0.69% | `logs/ci_prof3_c34a9739/` |
 
 ## NPS (PC, same exe, option toggled by `setoption`, fresh process per run, rotated order, `tools/nps_opts_ab.py`)
 Paired per-round ratios, geometric mean with 95% t-interval (`tools/nps_ci.py`, `logs/nps_ci_pooled.txt`):
