@@ -1,0 +1,135 @@
+usage: train_resid_v3b.py [-h] [--train TRAIN [TRAIN ...]] --holdout HOLDOUT
+                          [HOLDOUT ...] [--hce-dir HCE_DIR]
+                          [--device {directml,cpu}]
+                          [--device-index DEVICE_INDEX] [--shape SHAPE]
+                          [--residual] [--baseline-only] [--epochs EPOCHS]
+                          [--batch-size BATCH_SIZE] [--lr LR]
+                          [--min-lr-frac MIN_LR_FRAC]
+                          [--warmup-steps WARMUP_STEPS]
+                          [--blend-start BLEND_START] [--blend-end BLEND_END]
+                          [--sigmoid-k SIGMOID_K] [--no-qat]
+                          [--max-train MAX_TRAIN]
+                          [--val-positions VAL_POSITIONS] [--final-full-val]
+                          [--steps-per-epoch STEPS_PER_EPOCH] [--seed SEED]
+                          [--run-dir RUN_DIR] [--resume RESUME]
+                          [--log-every LOG_EVERY] [--adam-impl {dml,torch}]
+                          [--loss-sync-every LOSS_SYNC_EVERY] [--init-check]
+                          [--guard-tag GUARD_TAG] [--dev-scalars {0,1}]
+                          [--order-buffers {1,2}] [--mmap-data]
+                          [--max-ram-gb MAX_RAM_GB]
+                          [--king-buckets KING_BUCKETS] [--king-map KING_MAP]
+                          [--king-mirror {0,1}] [--king-factor {0,1}]
+                          [--export-v2] [--threats] [--pawn-pairs]
+                          [--output-buckets OUTPUT_BUCKETS]
+                          [--output-map OUTPUT_MAP] [--pure]
+
+Forge-768 residual NNUE trainer (GPU, DirectML/CPU). Own code, derived in
+structure from the supplied train_nnue.py (md5 5A161C70...), but fed from pre-
+converted binaries: *.pos (tools/fen2bin.cpp) nibble boards + int16 teacher
+score (STM cp) + meta (stm, WHITE result) *.hce (tools/hce_dump.cpp) int16
+Forge-1ab50b2d evaluate_uncached (STM cp), line-aligned with .pos Model/export
+are the same Forge net (768 -> H per perspective, SCReLU, 2H -> 1, int16 QAT,
+scale 4096). --residual: logit = net(x) + K*hce/400, output layer starts at
+zero => first forward == HCE alone, export writes FORGE_NNUE_RESIDUAL 1. Loss
+= MSE(sigmoid(logit), blend*sigmoid(K*score/400) + (1-blend)*stm_result).
+--pure (Opus O4): stand-alone net, logit = net(x) (no HCE term; same target),
+exports .fnn2 with the residual flag 0 for the engine's PureNnue option; .hce
+files are then optional (used only for the HCE-alone baseline report). Holdout
+= whole files (never trained on). Blend ramps linearly over training progress.
+
+options:
+  -h, --help            show this help message and exit
+  --train TRAIN [TRAIN ...]
+                        train .pos files/globs (hce files expected in --hce-
+                        dir)
+  --holdout HOLDOUT [HOLDOUT ...]
+                        holdout .pos files (whole files)
+  --hce-dir HCE_DIR     directory of the .hce files (required, except with
+                        --pure)
+  --device {directml,cpu}
+  --device-index DEVICE_INDEX
+  --shape SHAPE         hidden width H
+  --residual
+  --baseline-only       report HCE-alone loss on the holdout and exit
+  --epochs EPOCHS
+  --batch-size BATCH_SIZE
+  --lr LR
+  --min-lr-frac MIN_LR_FRAC
+  --warmup-steps WARMUP_STEPS
+  --blend-start BLEND_START
+  --blend-end BLEND_END
+  --sigmoid-k SIGMOID_K
+  --no-qat
+  --max-train MAX_TRAIN
+                        limit training positions (file prefixes); 0 = all
+  --val-positions VAL_POSITIONS
+                        fixed random holdout subset per epoch (0 = all)
+  --final-full-val
+  --steps-per-epoch STEPS_PER_EPOCH
+  --seed SEED
+  --run-dir RUN_DIR
+  --resume RESUME
+  --log-every LOG_EVERY
+  --adam-impl {dml,torch}
+                        dml = Adam without lerp_ (same math, runs on
+                        DirectML); torch = stock
+  --loss-sync-every LOSS_SYNC_EVERY
+                        read the training loss back to the CPU every N steps
+                        (1 = old behaviour)
+  --init-check          assert residual init val == baseline val
+  --guard-tag GUARD_TAG
+                        ignored; lets gpu_guard v3 (matches train_resid_v2.py)
+                        see this trainer
+  --dev-scalars {0,1}   v3b: per-step lr/blend/Adam factors as device tensors
+                        updated by copy_ (1, default) or Python floats as v3a
+                        (0)
+  --order-buffers {1,2}
+                        v3b: int32 shuffle buffers; 1 = one reused buffer
+                        (next order built after the producer finished), 2 =
+                        ping-pong (full overlap)
+  --mmap-data           v3b: keep the train set memory-mapped instead of
+                        loading it (off by default)
+  --max-ram-gb MAX_RAM_GB
+                        v3b: print a WARNING when trainer private memory
+                        exceeds this (0 = off); never stops
+  --king-buckets KING_BUCKETS
+                        C4: N >= 1 trains the king-bucketed input layer
+                        (standard layouts 1, 2, 4, 6, 8, 16, 32; see
+                        forge_nnue_v2.py) and exports .fnn2 (engine: NNUEFile
+                        + NNUEKingBuckets N); 0 = off (default, unchanged
+                        trainer)
+  --king-map KING_MAP   C4: explicit king bucket map, 32 (half board, files
+                        a-d, ranks 1-8, mirrored symmetric) or 64 comma-
+                        separated entries
+  --king-mirror {0,1}   C4: mirror files e-h onto d-a per perspective (default
+                        1)
+  --king-factor {0,1}   C4: shared factoriser block during training, folded
+                        into every bucket on export (default 1)
+  --export-v2           C4: also write <epoch>.fnn2 (format v2, 1 bucket) for
+                        the standard model
+  --threats             O6: add the threat inputs (12 x 12 x 64
+                        attacker/victim/square pair counts, one block shared
+                        by every king bucket; definition above threat_tables)
+                        to the standard or the king-bucketed model; such nets
+                        exist only as .fnn2 (engine: NNUEFile + NNUEThreats 1)
+  --pawn-pairs          O7: add the pawn-pair inputs (4 x 7 x 64: colour pair,
+                        offset, anchor square of every pawn pair on the same
+                        or adjacent files at most two ranks apart; definition
+                        above pawn_tables) to any model, also together with
+                        --threats; such nets exist only as .fnn2 (engine:
+                        NNUEFile + NNUEPawnPairs 1)
+  --output-buckets OUTPUT_BUCKETS
+                        C5: N >= 2 output heads selected by the piece count
+                        (default map: n = non-king pieces -> min(N-1,
+                        n*N//32)); exports .fnn2 (engine: NNUEFile +
+                        NNUEOutputBuckets N); 0 = off
+  --output-map OUTPUT_MAP
+                        C5: explicit output bucket map, 33 entries (pieces
+                        0..32 incl. kings)
+  --pure                O4: stand-alone (pure) NNUE: the net predicts the
+                        whole score, logit = net(x) with no HCE term (same
+                        target: blend of teacher score and game result); every
+                        epoch also writes .fnn2 with the residual flag 0
+                        (engine: NNUEFile + PureNnue 1); --hce-dir becomes
+                        optional (only the HCE-alone baseline report needs
+                        it); not with --residual or --init-check

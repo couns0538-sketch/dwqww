@@ -36,3 +36,11 @@ Native helper compiled warning-free and passed 8 regression tests; source/core u
 Full sidecar verification PASS: all10,000,000 rows match board/STM/score/White-result and total count, input hashes unchanged. Pilot10k kept9274 (capture455,promotion2,near268,disagreement1). Full attempt1 aborted unsealed at row27772 because a1024-node search completed no iteration; original evidence retained. Added an explicit teacher_incomplete exclusion for legitimate insufficient-budget results; all other errors still abort. New helperSHA256 ddf8713016863512ffd6227c5b3f623d53a87e9964f0bbb8c94c146525d58ff3,9native tests pass. Full10M v2 running,3workers,T1/Hash1,1024nodes,known013head holdout included; output not yet accepted.
 
 A256-position deterministic strided real slice was relabeled at65536nodes:256exact-full-FEN rows,21.189165 total pipeline CPU seconds,43493.93 positions/core-hour (Linux pilot only). Full-FEN lacks prior repetition history; exact denotes preserved current state, not game history. Original teacher budget is unknown; no label-quality or Elo claim. Results/hashes/original responses preserved. Relabel integrity10tests and IPC8tests pass after fixing reconstruction provenance and native result validation.
+
+## Qualification checkpoint — 2026-10-30T02:37:07.289663+00:00
+
+Fresh unchanged engine OFF pins PASS:312866/862329/3024920/12389307/34048354; startposperft5=4865609,kiwipeteperft4=4085603; fullhelper executableFMA=0. ASan/UBSan/leak checks PASS (9native tests and256real FEN comparisons); initial ptrace/sandbox failure retained and successfully rerun untraced. Newstandalonebuild reproduces the qualified helper byte-for-byte.
+
+Openinggeneration PASS: two64-position standardbooks byte-identical;16no-castling960-styleFENs separately generated. Native replay707legalplies/787score-depth-nodechecks,0mismatches,maximumabs148cp. WindowsR8execution remainsUNVERIFIED. CPU-only unchangedtrainer smoke passed four optimizerupdates with512realtrain/512heldoutrows,trainMSE0.004578 andteacherholdoutMSE0.005856420306372456; plumbingtest only. Initialwrapper run-dir errorretained.
+
+Full10Mv2 currently RUNNING, processed635392,kept584780; no finalfractionclaimuntilsealed. Finalreport/Windowscommands and final-manifest failurehardening inprogress.

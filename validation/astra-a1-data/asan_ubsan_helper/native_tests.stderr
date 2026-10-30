@@ -1,0 +1,162 @@
+test_capture_analysis_and_accounting (__main__.ProbeTests.test_capture_analysis_and_accounting) ... FAIL
+test_cold_independent_of_input_order (__main__.ProbeTests.test_cold_independent_of_input_order) ... FAIL
+test_filter_skips_checked_and_terminal_roots (__main__.ProbeTests.test_filter_skips_checked_and_terminal_roots) ... FAIL
+test_inspect_start_and_kiwipete (__main__.ProbeTests.test_inspect_start_and_kiwipete) ... FAIL
+test_invalid_config_rejected (__main__.ProbeTests.test_invalid_config_rejected) ... 
+  test_invalid_config_rejected (__main__.ProbeTests.test_invalid_config_rejected) (args=('--nodes', '0')) ... FAIL
+  test_invalid_config_rejected (__main__.ProbeTests.test_invalid_config_rejected) (args=('--nodes', '-1')) ... FAIL
+  test_invalid_config_rejected (__main__.ProbeTests.test_invalid_config_rejected) (args=('--hash-mb', '0')) ... FAIL
+  test_invalid_config_rejected (__main__.ProbeTests.test_invalid_config_rejected) (args=('--max-depth', '65')) ... FAIL
+  test_invalid_config_rejected (__main__.ProbeTests.test_invalid_config_rejected) (args=('--unknown', '1')) ... FAIL
+test_invalid_config_rejected (__main__.ProbeTests.test_invalid_config_rejected) ... FAIL
+test_invalid_roots_and_recovery (__main__.ProbeTests.test_invalid_roots_and_recovery) ... FAIL
+test_oversized_and_malformed_protocol_recovers (__main__.ProbeTests.test_oversized_and_malformed_protocol_recovers) ... FAIL
+test_real_quiescence_root_can_exhaust_budget_before_depth_one (__main__.ProbeTests.test_real_quiescence_root_can_exhaust_budget_before_depth_one) ... FAIL
+test_special_move_flags (__main__.ProbeTests.test_special_move_flags) ... FAIL
+
+======================================================================
+FAIL: test_capture_analysis_and_accounting (__main__.ProbeTests.test_capture_analysis_and_accounting)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/tmp/forge-astra-a1-data/tests/data/test_probe.py", line 81, in test_capture_analysis_and_accounting
+    item=query([('analyze',capture)])[0]
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/tmp/forge-astra-a1-data/tests/data/test_probe.py", line 35, in query
+    if p.returncode:raise AssertionError((p.returncode,p.stderr))
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: (1, b'==298671==LeakSanitizer has encountered a fatal error.\n==298671==HINT: For debugging, try setting environment variable LSAN_OPTIONS=verbosity=1:log_threads=1\n==298671==HINT: LeakSanitizer does not work under ptrace (strace, gdb, etc)\n')
+
+======================================================================
+FAIL: test_cold_independent_of_input_order (__main__.ProbeTests.test_cold_independent_of_input_order)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/tmp/forge-astra-a1-data/tests/data/test_probe.py", line 91, in test_cold_independent_of_input_order
+    a,b,c=query([('analyze',START),('analyze',KIWI),('analyze',START)])
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/tmp/forge-astra-a1-data/tests/data/test_probe.py", line 35, in query
+    if p.returncode:raise AssertionError((p.returncode,p.stderr))
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: (1, b'==298675==LeakSanitizer has encountered a fatal error.\n==298675==HINT: For debugging, try setting environment variable LSAN_OPTIONS=verbosity=1:log_threads=1\n==298675==HINT: LeakSanitizer does not work under ptrace (strace, gdb, etc)\n')
+
+======================================================================
+FAIL: test_filter_skips_checked_and_terminal_roots (__main__.ProbeTests.test_filter_skips_checked_and_terminal_roots)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/tmp/forge-astra-a1-data/tests/data/test_probe.py", line 70, in test_filter_skips_checked_and_terminal_roots
+    a,b,c=query([('filter',check),('filter',mate),('analyze',stale)])
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/tmp/forge-astra-a1-data/tests/data/test_probe.py", line 35, in query
+    if p.returncode:raise AssertionError((p.returncode,p.stderr))
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: (1, b'==298684==LeakSanitizer has encountered a fatal error.\n==298684==HINT: For debugging, try setting environment variable LSAN_OPTIONS=verbosity=1:log_threads=1\n==298684==HINT: LeakSanitizer does not work under ptrace (strace, gdb, etc)\n')
+
+======================================================================
+FAIL: test_inspect_start_and_kiwipete (__main__.ProbeTests.test_inspect_start_and_kiwipete)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/tmp/forge-astra-a1-data/tests/data/test_probe.py", line 44, in test_inspect_start_and_kiwipete
+    a,b=query([('inspect',START),('inspect',KIWI)])
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/tmp/forge-astra-a1-data/tests/data/test_probe.py", line 35, in query
+    if p.returncode:raise AssertionError((p.returncode,p.stderr))
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: (1, b'==298692==LeakSanitizer has encountered a fatal error.\n==298692==HINT: For debugging, try setting environment variable LSAN_OPTIONS=verbosity=1:log_threads=1\n==298692==HINT: LeakSanitizer does not work under ptrace (strace, gdb, etc)\n')
+
+======================================================================
+FAIL: test_invalid_config_rejected (__main__.ProbeTests.test_invalid_config_rejected) (args=('--nodes', '0'))
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/tmp/forge-astra-a1-data/tests/data/test_probe.py", line 130, in test_invalid_config_rejected
+    p=run(extra=args);self.assertEqual(p.returncode,2);self.assertEqual(p.stdout,b'')
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 1 != 2
+
+======================================================================
+FAIL: test_invalid_config_rejected (__main__.ProbeTests.test_invalid_config_rejected) (args=('--nodes', '-1'))
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/tmp/forge-astra-a1-data/tests/data/test_probe.py", line 130, in test_invalid_config_rejected
+    p=run(extra=args);self.assertEqual(p.returncode,2);self.assertEqual(p.stdout,b'')
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 1 != 2
+
+======================================================================
+FAIL: test_invalid_config_rejected (__main__.ProbeTests.test_invalid_config_rejected) (args=('--hash-mb', '0'))
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/tmp/forge-astra-a1-data/tests/data/test_probe.py", line 130, in test_invalid_config_rejected
+    p=run(extra=args);self.assertEqual(p.returncode,2);self.assertEqual(p.stdout,b'')
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 1 != 2
+
+======================================================================
+FAIL: test_invalid_config_rejected (__main__.ProbeTests.test_invalid_config_rejected) (args=('--max-depth', '65'))
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/tmp/forge-astra-a1-data/tests/data/test_probe.py", line 130, in test_invalid_config_rejected
+    p=run(extra=args);self.assertEqual(p.returncode,2);self.assertEqual(p.stdout,b'')
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 1 != 2
+
+======================================================================
+FAIL: test_invalid_config_rejected (__main__.ProbeTests.test_invalid_config_rejected) (args=('--unknown', '1'))
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/tmp/forge-astra-a1-data/tests/data/test_probe.py", line 130, in test_invalid_config_rejected
+    p=run(extra=args);self.assertEqual(p.returncode,2);self.assertEqual(p.stdout,b'')
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 1 != 2
+
+======================================================================
+FAIL: test_invalid_config_rejected (__main__.ProbeTests.test_invalid_config_rejected)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/tmp/forge-astra-a1-data/tests/data/test_probe.py", line 131, in test_invalid_config_rejected
+    p=run(extra=('--version',));self.assertEqual(p.returncode,0)
+                                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 1 != 0
+
+======================================================================
+FAIL: test_invalid_roots_and_recovery (__main__.ProbeTests.test_invalid_roots_and_recovery)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/tmp/forge-astra-a1-data/tests/data/test_probe.py", line 115, in test_invalid_roots_and_recovery
+    rows=query([('inspect',x) for x in invalid]+[('inspect',START)])
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/tmp/forge-astra-a1-data/tests/data/test_probe.py", line 35, in query
+    if p.returncode:raise AssertionError((p.returncode,p.stderr))
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: (1, b'==298713==LeakSanitizer has encountered a fatal error.\n==298713==HINT: For debugging, try setting environment variable LSAN_OPTIONS=verbosity=1:log_threads=1\n==298713==HINT: LeakSanitizer does not work under ptrace (strace, gdb, etc)\n')
+
+======================================================================
+FAIL: test_oversized_and_malformed_protocol_recovers (__main__.ProbeTests.test_oversized_and_malformed_protocol_recovers)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/tmp/forge-astra-a1-data/tests/data/test_probe.py", line 121, in test_oversized_and_malformed_protocol_recovers
+    self.assertEqual(p.returncode,0)
+AssertionError: 1 != 0
+
+======================================================================
+FAIL: test_real_quiescence_root_can_exhaust_budget_before_depth_one (__main__.ProbeTests.test_real_quiescence_root_can_exhaust_budget_before_depth_one)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/tmp/forge-astra-a1-data/tests/data/test_probe.py", line 102, in test_real_quiescence_root_can_exhaust_budget_before_depth_one
+    self.assertEqual(p.returncode,0)
+AssertionError: 1 != 0
+
+======================================================================
+FAIL: test_special_move_flags (__main__.ProbeTests.test_special_move_flags)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/tmp/forge-astra-a1-data/tests/data/test_probe.py", line 58, in test_special_move_flags
+    a,b=query([('inspect',ep),('inspect',promotion)])
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/tmp/forge-astra-a1-data/tests/data/test_probe.py", line 35, in query
+    if p.returncode:raise AssertionError((p.returncode,p.stderr))
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: (1, b'==298721==LeakSanitizer has encountered a fatal error.\n==298721==HINT: For debugging, try setting environment variable LSAN_OPTIONS=verbosity=1:log_threads=1\n==298721==HINT: LeakSanitizer does not work under ptrace (strace, gdb, etc)\n')
+
+----------------------------------------------------------------------
+Ran 9 tests in 2.649s
+
+FAILED (failures=14)
