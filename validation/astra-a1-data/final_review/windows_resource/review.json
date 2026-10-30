@@ -1,0 +1,45 @@
+{
+  "review_type": "independent source review, Windows/resource subset",
+  "first_recorded_clock_utc": "2026-10-30T04:17:47Z",
+  "recorded_utc": "2026-10-30T04:21:31.433571+00:00",
+  "platform": "Linux",
+  "powershell_available": false,
+  "native_or_build_workloads_run": false,
+  "implementation_files_changed": false,
+  "findings": [],
+  "reviewed_sha256": {
+    "tools/data/run_idle_spare.ps1": "ddcc0525e5fc886d3b8fb19eebdf051ae87e3c9490d05cd02544ceb761b4068c",
+    "tools/data/build_probe.py": "e3aa296b345b4d32ab6db694d2cd4ac95ed331fd20cedbb75353f21b7b75b9ce",
+    "tools/data/forge_probe.py": "980c20ccca62dae8b332ba3614e22362d35e937a464360326493f44978375d82",
+    "tools/data/forge_data_probe.cpp": "d7e146be97c636a056fc5df5371393a7ea9bcbab9540dbdd85a4bf47a574cb08",
+    "tools/data/relabel_positions.py": "57054bcbcb2c57b9fa18df7d68b10eae8fffcf0e21fe3a49fd32e311636742e1",
+    "tools/data/check_data_bundle.py": "6136c3d56d5253560a383e26abd80d7f7233b104d1ad272c874765e639094f14",
+    "docs/ASTRA_A1_WINDOWS.md": "f702f3ac87a47d6174a175da047cea5255045061b616bee5d628220a8f1120f6",
+    "tests/data/test_build_probe.py": "5c2661abf4570d8dbe9e63058c324f05180fdf29fad61b090be889f8c03e3132",
+    "tests/data/test_probe_client.py": "bfdb8b2f8d578d71dc97044d837771737f511b3143134fa3898d404b8fc44404"
+  },
+  "source_checks": [
+    "Launcher validates explicit CPU indices against inherited allowed mask, sets parent affinity and Idle before spawning, verifies settings, and restores original affinity/priority/thread environment in nested finally blocks.",
+    "Probe creation explicitly supplies IDLE_PRIORITY_CLASS and CREATE_NO_WINDOW on Windows; inherited CPU affinity is the documented runbook assumption, not a runtime-verified result.",
+    "Native Windows CPU timing and Python post-exit GetProcessTimes both combine high and low FILETIME words; native values convert 100-nanosecond ticks to nanoseconds and parent values convert to seconds.",
+    "Relabel Windows total CPU uses parent process CPU plus all owned child totals after pool close; unavailable child totals remain null and explicitly unverified.",
+    "Build uses explicit GCC-compatible compiler, strict floating-point flags, all current FORGE options OFF, one requested build job by default, source hashes before and after, and whole-executable FMA disassembly checks.",
+    "Windows runbook uses PowerShell 7 arrays for native arguments, absolute paths, new GUID output/log directories, explicit MSYS2 UCRT64 tools, and documented no-hard-memory-cap limitation.",
+    "Bundle checker normalizes Windows separators before mapping process receipt paths and file coverage; source writer backslash path formatting is supported."
+  ],
+  "limitations": [
+    "No PowerShell or Windows execution was available; this review cannot qualify the wrapper, MinGW build, process inheritance, or Windows throughput.",
+    "No new native searches, builds, test suites, benchmarks, or active filter modifications were performed.",
+    "No claim that unusual external-child behavior beyond the fixed native protocol is exhaustively covered."
+  ],
+  "commands_executed": [
+    "nl -ba tools/data/run_idle_spare.ps1; nl -ba tools/data/build_probe.py",
+    "nl -ba tools/data/forge_probe.py; cat docs/ASTRA_A1_WINDOWS.md; cat tests/data/test_build_probe.py; cat tests/data/test_probe_client.py",
+    "sed -n 1,85p docs/ASTRA_A1_WINDOWS.md; sed -n 60,145p tools/data/forge_probe.py; sed -n 1,230p tools/data/forge_data_probe.cpp",
+    "rg resource/cpu/affinity/memory/workers/timeout in data scripts; rg build options in CMakeLists.txt; command -v pwsh",
+    "rg Windows include/API usage in include and src; sed -n 1,180p tools/data/relabel_positions.py; sed -n 1,155p CMakeLists.txt",
+    "cat tools/data/check_data_bundle.py; inspect filter finalization and generate_openings seal; rg path normalization",
+    "git diff e0d76ce8a6450573b503852aeca12b929bf4a17a -- CMakeLists.txt src include (empty)",
+    "python3 evidence writer: hashes reviewed files and writes this JSON without executing implementation code"
+  ]
+}

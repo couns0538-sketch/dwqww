@@ -1,0 +1,65 @@
+--- frozen/filter_positions.py
++++ current/filter_positions.py
+@@ -12,6 +12,7 @@
+ import gzip
+ import hashlib
+ import json
++import os
+ import re
+ from pathlib import Path
+ import sqlite3
+@@ -154,6 +155,42 @@
+     with path.open('x' if exclusive else 'w', encoding='utf8', newline='\n') as handle:
+         json.dump(value, handle, indent=2, sort_keys=True)
+         handle.write('\n')
++
++
++def _write_synced(path: Path, content: bytes, *, exclusive: bool = True) -> None:
++    with path.open('xb' if exclusive else 'wb') as handle:
++        handle.write(content)
++        handle.flush()
++        os.fsync(handle.fileno())
++
++
++def _planned_digest(path: Path, content: bytes) -> dict[str, Any]:
++    return {'path': str(path.resolve()), 'bytes': len(content),
++            'sha256': hashlib.sha256(content).hexdigest(), 'md5': hashlib.md5(content).hexdigest()}
++
++
++def _publish_final(out: Path, stats: dict[str, Any]) -> None:
++    """Publish summary last as the commit receipt; retain every pending file.
++
++    The manifest covers the eventual summary/progress bytes and all other files
++    present before publication. It excludes itself and its identical pending
++    hard link, which cannot include their own hash. A manifest without the final
++    summary is an uncommitted run and must never be accepted as sealed.
++    """
++    final_bytes = (json.dumps(stats, indent=2, sort_keys=True) + '\n').encode('utf8')
++    summary_pending = out/'summary.json.pending'
++    _write_synced(summary_pending, final_bytes)
++    manifest = {str(p.relative_to(out)): digest_file(p) for p in sorted(out.rglob('*')) if p.is_file()}
++    for name in ('summary.json', 'progress.json'):
++        manifest[name] = _planned_digest(out/name, final_bytes)
++    manifest_pending = out/'manifest.json.pending'
++    _write_synced(manifest_pending, (json.dumps(manifest, indent=2, sort_keys=True)+'\n').encode('utf8'))
++    os.link(manifest_pending, out/'manifest.json')
++    # Progress is mutable throughout a run. Any failure here is recorded before
++    # the final summary exists; the prepared bytes and manifest remain inspectable.
++    _write_synced(out/'progress.json', final_bytes, exclusive=False)
++    # Last fallible publication operation: an atomic no-replace commit receipt.
++    os.link(summary_pending, out/'summary.json')
+ 
+ 
+ def _validate_config(config: Config) -> None:
+@@ -384,10 +421,7 @@
+         provenance.close(); provenance = None; database.close(); database = None
+         stats.update(status='SEALED', finished_utc=datetime.now(timezone.utc).isoformat(), wall_seconds=time.monotonic()-started)
+         stats['output'] = {suffix: digest_file(config.out/(config.stem+suffix)) for suffix in ('.pos', '.hce', '.fen')}
+-        _json(config.out/'summary.json', stats, exclusive=True)
+-        _json(config.out/'progress.json', stats)
+-        manifest = {str(p.relative_to(config.out)): digest_file(p) for p in sorted(config.out.rglob('*')) if p.is_file()}
+-        _json(config.out/'manifest.json', manifest, exclusive=True)
++        _publish_final(config.out, stats)
+         return stats
+     except BaseException as error:
+         stats.update(status='FAILED_UNSEALED', error_type=type(error).__name__, error=str(error), wall_seconds=time.monotonic()-started)

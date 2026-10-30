@@ -118,6 +118,34 @@ def directory_inventory(mappings):
     return sorted(result,key=lambda row:row['archivepath'])
 
 
+def validate_archive_namespace(files,directories):
+    """One portable namespace for files, directories and implied parents.
+
+    An exact-spelling implicit parent may be referenced many times, including
+    by sibling mappings. Distinct explicit entries may never alias or turn a
+    file into a directory on a case-insensitive extraction filesystem.
+    """
+    names={}
+    def register(name,kind,explicit):
+        safe_name(name);key=name.casefold();previous=names.get(key)
+        if previous is None:
+            names[key]=[name,kind,explicit];return
+        require(previous[0]==name,'archive namespace case alias: '+previous[0]+' / '+name)
+        require(previous[1]==kind,'archive namespace file/directory or file-ancestor conflict: '+name)
+        require(kind=='directory' and not (previous[2] and explicit), 'archive namespace duplicate explicit entry: '+name)
+        previous[2]=previous[2] or explicit
+
+    def add(name,kind):
+        safe_name(name);parts=name.split('/')
+        for length in range(1,len(parts)):
+            register('/'.join(parts[:length]),'directory',False)
+        register(name,kind,True)
+
+    add(MANIFEST_NAME,'file')
+    for row in directories:add(row['archivepath'],'directory')
+    for row in files:add(row['archivepath'],'file')
+
+
 def open_source(row):
     path=Path(row['sourcepath'])
     require(signature(path)==row['stat'], 'source changed: '+str(path))
@@ -155,6 +183,7 @@ def tar_info(name,size):
 
 
 def write_archive(path,files,manifest):
+    validate_archive_namespace(files,manifest.get('directories',[]))
     with Path(path).open('xb') as raw:
         with gzip.GzipFile(filename='',mode='wb',fileobj=raw,compresslevel=1,mtime=0) as compressed:
             with tarfile.open(fileobj=compressed,mode='w|',format=tarfile.PAX_FORMAT) as archive:
@@ -173,6 +202,7 @@ def write_archive(path,files,manifest):
 
 
 def verify_archive(path,files,manifest):
+    validate_archive_namespace(files,manifest.get('directories',[]))
     expected={row['archivepath']:(row['sha256'],row['stat'][2]) for row in files}
     directories={row['archivepath'] for row in manifest.get('directories',[])}
     data=stable_json(manifest);expected[MANIFEST_NAME]=(hashlib.sha256(data).hexdigest(),len(data))
@@ -209,6 +239,7 @@ def package(mappings,output,references=None,max_bytes=2147483647):
     try:
         files=inventory(mappings)
         directories=directory_inventory(mappings)
+        validate_archive_namespace(files,directories)
         references=[] if references is None else references
         require(isinstance(references,list),'references must be a list')
         for reference in references:

@@ -142,5 +142,60 @@ class PackagingTests(unittest.TestCase):
         mapping=self.root/'mapping.json';mapping.write_text(json.dumps(self.mapping))
         self.assertEqual(pack.main(['--mapping-json',str(mapping),'--output',str(self.output)]),0)
 
+    def test_file_directory_case_collision_rejected_before_archive(self):
+        (self.source/'A').mkdir()
+        (self.source/'A'/'child.txt').write_text('child')
+        (self.source/'a').write_text('conflicting file')
+        with self.assertRaisesRegex(ValueError,'archive namespace'):
+            pack.package(self.mapping,self.output)
+        self.assertFalse(Path(str(self.output)+'.partial').exists())
+
+    def test_distinct_case_alias_directories_rejected(self):
+        for name,leaf in [('A','first.txt'),('a','second.txt')]:
+            (self.source/name).mkdir()
+            (self.source/name/leaf).write_text(name)
+        with self.assertRaisesRegex(ValueError,'archive namespace'):
+            pack.package(self.mapping,self.output)
+        self.assertFalse(Path(str(self.output)+'.partial').exists())
+
+    def test_implicit_ancestor_case_alias_rejected_across_mappings(self):
+        mapping=[{'sourcepath':str(self.source/'data.bin'),'archiveprefix':'Evidence/left.bin','kind':'auxiliary'},
+                 {'sourcepath':str(self.source/'summary.json'),'archiveprefix':'evidence/right.json','kind':'auxiliary'}]
+        with self.assertRaisesRegex(ValueError,'archive namespace'):
+            pack.package(mapping,self.output)
+        self.assertFalse(Path(str(self.output)+'.partial').exists())
+
+    def test_exact_spelling_implicit_ancestors_can_be_shared(self):
+        other=self.root/'other';other.mkdir()
+        (other/'summary.json').write_text('{"status":"SEALED"}')
+        (other/'manifest.json').write_text('{}')
+        mapping=self.mapping+[{'sourcepath':str(other),'archiveprefix':'completed/relabel','kind':'sealed'}]
+        result=pack.package(mapping,self.output)
+        self.assertEqual(result['status'],'PASS')
+        with tarfile.open(self.output,'r:gz') as archive:
+            self.assertTrue(archive.getmember('completed/full10m').isdir())
+            self.assertTrue(archive.getmember('completed/relabel').isdir())
+
+    def test_file_ancestor_mapping_rejected(self):
+        mapping=[{'sourcepath':str(self.source/'data.bin'),'archiveprefix':'evidence/ancestor','kind':'auxiliary'},
+                 {'sourcepath':str(self.source/'summary.json'),'archiveprefix':'evidence/ancestor/child','kind':'auxiliary'}]
+        with self.assertRaises(ValueError):pack.package(mapping,self.output)
+        self.assertFalse(Path(str(self.output)+'.partial').exists())
+
+    def test_direct_namespace_rejects_file_ancestor_and_duplicate_directory(self):
+        files=[{'archivepath':'evidence/a'}, {'archivepath':'evidence/a/child'}]
+        with self.assertRaisesRegex(ValueError,'file-ancestor'):
+            pack.validate_archive_namespace(files,[])
+        directories=[{'archivepath':'evidence/a'},{'archivepath':'evidence/a'}]
+        with self.assertRaisesRegex(ValueError,'duplicate explicit'):
+            pack.validate_archive_namespace([],directories)
+
+    def test_direct_archive_writer_rejects_namespace_before_creation(self):
+        files=[{'archivepath':'evidence/a'}]
+        manifest={'directories':[{'archivepath':'evidence/A'}]}
+        with self.assertRaisesRegex(ValueError,'archive namespace'):
+            pack.write_archive(self.output,files,manifest)
+        self.assertFalse(self.output.exists())
+
 
 if __name__=='__main__':unittest.main()
