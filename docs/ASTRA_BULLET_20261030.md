@@ -16,3 +16,10 @@ Runtime limitations: no Cargo/Rust/HIP tools in PATH; official Bullet uses GPU b
 Job2 is separate astra-fen-convert-20261030. Standard Bullet format loses castling,EP,clocks and original side-to-move: exact recovery requires verified row-aligned sidecar. Original game IDs absent; no game-level isolation claim. Full013/014 remain private; handoff says281 retained A1 rows overlap and must be removed on PC.
 
 Next: finish exporter tests, build exact QA source, native12k parity, corruption test,OFF pins; then converter qualification. Reserve20minutes for final bug review. Original logs live validation/astra-bullet-export.
+
+## User clarification, superseding primary architecture
+The user explicitly selected the AL1 lock graph at294dbed3 and accepts whole-shard013/014 exclusion in place of unavailable gameIDs. R10 K32H3 and AL1 architectures are incompatible. Preserve R10 exporter/tests as supplementary work; primary target is shared768→256 FT, dualSCReLU, residuallinearoutput, allfourparameters int16/4096. ExactAL1 has an embedded nnue_weights.inc and no runtime .nnue loader; no fabricated R10 compatibility.
+
+Original Bullet graph recipe and AL1 include exporter are being implemented. A CPU-equivalent PyTorch bounded smoke is supplemental; it is NOT a Bullet-trained checkpoint. ActualBullettraining remains unavailable withoutGPU. Full10M training is not claimed. Acceptedholdoutpolicy excludeswhole013/014, plus separateboard+STMdedup onprivatePCfiles. No inferredgameIDs.
+
+CMake4.4.4 installed locally; complete unchangedR10 Release build finished. Nativequalification underway; preliminaryctest14/15withonlyforge_tests'sfourknownlines. Finalnumbers follow originals undernative/.
