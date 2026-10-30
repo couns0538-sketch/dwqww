@@ -1,6 +1,6 @@
 ---
 name: forge-nnue-pipeline
-description: The R11 automated NNUE pipeline for Forge (branch opus-r11-nnue-pipeline) - one command from our self-play data (forge_push FPOS/FHCE, R8 v5 .dedup.pos, Astra's filtered set) to deduplicated nnue-pytorch binpacks with a 013/014 holdout, yield-only GPU training with auto-resume and checkpoint rotation, export, exact HalfKA parity, ON/OFF benches, WAC and a gate-ready package; its Code Review rules (Idle + I/O very low + memory low on 3 cores, never background mode, no STOP/PAUSE files, 40 GB D: floor, full sha256 inputs, .part->verify->rename, holdout proof before training) and its pitfalls. Use for any task that converts self-play data to binpack, trains / exports / checks / packages a K32H3^ net, resumes or extends R11, or reviews it.
+description: The R11 automated NNUE pipeline for Forge (branch opus-r11-nnue-pipeline) - one command from our self-play data (forge_push FPOS/FHCE, R8 v5 .dedup.pos, Astra's filtered set) to deduplicated nnue-pytorch binpacks with a 013/014 holdout, yield-only GPU training with auto-resume (no checkpoint deleted), export, exact HalfKA parity, ON/OFF benches, WAC and a gate-ready package; its Code Review rules (Idle + I/O very low + memory low on 3 cores, never background mode, no STOP/PAUSE files, 40 GB D: floor, full sha256 inputs, .part->verify->rename, holdout proof before training) and its pitfalls. Use for any task that converts self-play data to binpack, trains / exports / checks / packages a K32H3^ net, resumes or extends R11, or reviews it.
 ---
 
 # R11 NNUE pipeline (2026-10-30)
@@ -35,7 +35,8 @@ Stop it by its PID (`<root>\run\pipeline.pid.json`); hold it with `r11_hold.py h
   change.
 - train: yield-only (never next to a production trainer; exit 76 when one appears; the check runs before `import torch`,
   again right after the imports (they took 11 min under the old cap while production started) and at fit start),
-  RAM floors (exit 75 / 97), disk floor before each checkpoint, rotation newest 2 + best by val_loss across restarts,
+  RAM floors (exit 75 / 97), disk floor before each checkpoint, NO checkpoint is deleted (CR R3: keep_last >= 1,000,000, lower values are
+  refused by the driver and the entry; the best by val_loss is tracked across restarts),
   exact resume (`r11_next_epoch`), checkpoints zip-checked before rename.
 - export: serialize.py `--features=K32H3^ --l1=N` on the CPU; the `.part.nnue` must load in the HalfKA tool.
 - check: AVX2 x86-64-v3 build of 7f79c349 from `git archive` (FMA 0, zmm 0; never znver5, never exe 9b7e2fcd),
@@ -79,4 +80,4 @@ Stop it by its PID (`<root>\run\pipeline.pid.json`); hold it with `r11_hold.py h
 `opus_r11/tests/test_r11_tools.py <new dir>` (Astra staging/pins, hold event, priority, psutil, disk, sha256, GPL
 boundary, yield-only, check before torch), `test_r11_data.py <writer exe> <new dir>` (dedup/holdout/supersede/resume/
 writer drop/.part/holdout test + gate on synthetic data), `test_r11_train.py <new dir>` (the one command end to end on
-the CPU: gate, train 2 epochs, resume to 4, rotation, export, parity, benches, WAC, smoke package, yield).
+the CPU: gate, train 2 epochs, resume to 4, nothing deleted, export, parity, benches, WAC, smoke package, yield).

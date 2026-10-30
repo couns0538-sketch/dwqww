@@ -6,9 +6,10 @@ GPL-3.0 (imports the trainer's modules at run time from --r11-clone; nothing is 
    - after every validation (the epoch's scheduler step is done and val_loss_epoch is known) it writes
      <run>/checkpoints/epoch=E-step=S.ckpt atomically (temp name + rename) with "r11_next_epoch" = E + 1;
      without a validation loader it saves at the epoch end with "r11_next_epoch" = E (the trainer's own redo rule);
-   - it keeps the newest --r11-keep-last periodic checkpoints plus the best by val_loss_epoch and removes older
-     ones it wrote itself (listed in <run>/checkpoints/r11_ckpt_index.json; every removal is logged to
-     rotation.jsonl). The index survives restarts, so rotation works across auto-resumes (the trainer's own
+   - CR R3: it never deletes a checkpoint - --r11-keep-last must be >= 1,000,000 (default; a lower value is
+     refused), so the rotation below keeps every file; the drive is protected by the disk-floor check before
+     each save instead (exit 75 and wait). It tracks the best by val_loss_epoch in
+     <run>/checkpoints/r11_ckpt_index.json. The index survives restarts (the trainer's own
      save_top_k only knows the checkpoints of the current process);
    - one fixed directory for all restarts (the trainer's default changes with every TensorBoard version).
 2. Exact resume: SimpleTrainer.load_checkpoint continues at "r11_next_epoch" (the trainer restarts at the saved
@@ -23,7 +24,7 @@ GPL-3.0 (imports the trainer's modules at run time from --r11-clone; nothing is 
      nothing trained, nothing saved) and during training; when a production
      trainer appears (command-line regex list; psutil missing = fail, an unreadable python command line = running)
      the entry saves and exits 76, the driver waits for it to end and resumes.
-Usage: <trainer venv python> -B r11_train_entry.py --r11-clone <clone> --r11-run-dir <dir> [--r11-keep-last 2]
+Usage: <trainer venv python> -B r11_train_entry.py --r11-clone <clone> --r11-run-dir <dir> [--r11-keep-last 1000000]
        [--r11-min-free-ram-gb 8] [--r11-hard-ram-gb 7] --r11-patterns-file <json list of regexes>
        [--r11-check-seconds 20]
        (the production regexes come from a FILE: on a command line they would match the entry's own launcher)
@@ -42,6 +43,7 @@ from ctypes import wintypes
 
 EXIT_RESOURCE, EXIT_YIELD, EXIT_HARD = 75, 76, 97
 EXIT_PRIORITY = 78  # CR R3: could not lower this process -> fail closed (the driver reports FAIL, no restart)
+KEEP_ALL = 1_000_000  # CR R3: checkpoint rotation must not delete - a keep_last this high never removes a file
 
 
 class R11Stop(Exception):
@@ -56,7 +58,7 @@ def parse_own_args(argv: list[str]) -> tuple[dict, list[str]]:
         raise SystemExit("usage: r11_train_entry.py --r11-... -- <train.py args>")
     i = argv.index("--")
     own, rest = argv[:i], argv[i + 1:]
-    opts = {"clone": None, "run_dir": None, "keep_last": 2,
+    opts = {"clone": None, "run_dir": None, "keep_last": KEEP_ALL,
             "min_free_ram_gb": 8.0, "hard_ram_gb": 7.0, "patterns_file": None,
             "check_seconds": 20.0, "affinity": "0x700", "disk_floor_gb": 40.0}
     k = 0
@@ -72,6 +74,9 @@ def parse_own_args(argv: list[str]) -> tuple[dict, list[str]]:
         k += 2
     if not opts["clone"] or not opts["run_dir"]:
         raise SystemExit("--r11-clone and --r11-run-dir are required")
+    if opts["keep_last"] < KEEP_ALL:
+        raise SystemExit(f"--r11-keep-last {opts['keep_last']} could delete checkpoints; CR R3: rotation must "
+                         f"not delete - use >= {KEEP_ALL}")
     return opts, rest
 
 

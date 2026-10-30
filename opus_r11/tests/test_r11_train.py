@@ -5,11 +5,12 @@ bench -> package, on the CPU (no GPU, nothing of production touched; ~5 GB RAM f
   2 run 1: r11_pipeline run --profile cpu_test (2 epochs) -> PASS: data converted, holdout test PASS, K32H3^ L1 64
     trained by the unchanged R6 trainer through the R11 entry, the best checkpoint exported (loads in the HalfKA tool),
     fens_12k parity exact, OFF identity, ON bench, WAC, smoke package (not a gate candidate);
-  3 run 2: the same run with max_epochs 4 resumes at epoch 2 (exact resume), trains 2 more epochs, rotation keeps the
-    newest 2 checkpoints + the best one (logged in rotation.jsonl), the pipeline PASSes again.
+  3 run 2: the same run with max_epochs 4 resumes at epoch 2 (exact resume), trains 2 more epochs, NO checkpoint is
+    removed (CR R3: rotation must not delete; keep_last 1,000,000), the best one is tracked, the pipeline PASSes again.
 It reuses the synthetic positions of test_r11_data.py. Includes the real production patterns: if a production trainer
 runs, the test SKIPS (exit 0, "SKIPPED") instead of training next to it.
-Usage: test_r11_train.py <scratch dir (new)> [--gpu]   -> prints "R11 TRAIN E2E SELFTEST PASS"
+Usage: test_r11_train.py <scratch dir (new)> [--gpu] [--wait]   -> prints "R11 TRAIN E2E SELFTEST PASS"
+  --wait: when a production trainer runs, wait until it ends instead of printing SKIPPED.
   --gpu: the same run on the AMD GPU through the R6 Triton/ROCm trainer (only when no production trainer runs: the
          pipeline yields otherwise; smoke size: L1 64, batch 1024, 1 loader worker).
 """
@@ -49,8 +50,13 @@ def main() -> int:
         return 2
     real = C.read_json(os.path.join(REPO, "opus_r11", "pipeline", "r11_config.json"))
     if C.production_processes(real["train"]["production_patterns"]):
-        print("R11 TRAIN E2E SELFTEST SKIPPED (a production trainer is running; training yields)")
-        return 0
+        if "--wait" not in sys.argv[2:]:
+            print("R11 TRAIN E2E SELFTEST SKIPPED (a production trainer is running; training yields)")
+            return 0
+        print("a production trainer is running; --wait: polling every 60 s until it ends", flush=True)
+        while C.production_processes(real["train"]["production_patterns"]):
+            time.sleep(60)
+        print(f"production idle at {time.strftime('%H:%M:%S')}; starting", flush=True)
     src = os.path.join(scratch, "src")
     for name, n in (("h_001", 3000), ("t_001", 6000), ("t_002", 6000), ("t_003", 6000)):
         b, s, m = TD.random_rows(n)
@@ -73,7 +79,7 @@ def main() -> int:
     cfg["train"]["profiles"] = {"cpu_test": {
         "accelerator": accel, "gpu_policy": "yield", "l1": 64, "batch_size": 1024, "num_workers": 1, "threads": 1,
         "epoch_size": 20480, "max_epochs": 2, "validation_size": 4096, "lr": 0.000875, "start_lambda": 1.0,
-        "end_lambda": 1.0, "seed": 1, "need_ram_gb": 6.0, "need_disk_gb": 0.5, "compile": False, "keep_last": 2,
+        "end_lambda": 1.0, "seed": 1, "need_ram_gb": 6.0, "need_disk_gb": 0.5, "compile": False, "keep_last": 1_000_000,
         "max_restarts": 3}}
     cfg_path = os.path.join(scratch, "cfg.json")
     C.write_json(cfg_path, cfg)
@@ -124,7 +130,7 @@ def main() -> int:
     check(res.get("waiting_for_gpu") is True and not started,
           f"a running production trainer -> the train stage yields and starts no trainer ({res}, logs {started})")
 
-    # 3 run 2: 4 epochs -> exact resume at epoch 2, rotation newest 2 + best
+    # 3 run 2: 4 epochs -> exact resume at epoch 2; no checkpoint is removed (CR R3), the best is tracked
     cfg2 = copy.deepcopy(cfg)
     cfg2["train"]["profiles"]["cpu_test"]["max_epochs"] = 4
     cfg2_path = os.path.join(scratch, "cfg4.json")
@@ -135,15 +141,15 @@ def main() -> int:
     resumed = [e for e in events if e["event"] == "resumed"]
     check(bool(resumed) and resumed[-1]["epoch"] == 2, f"run 2 resumed at epoch 2 (exact resume): {resumed[-1:]}")
     ix = T.read_index(run_dir)
-    live = sorted(os.path.basename(x["path"]) for x in ix["entries"] if os.path.isfile(x["path"]))
-    newest2 = sorted(ix["entries"], key=lambda x: (x["next_epoch"], x["step"]))[-2:]
+    written = sorted({os.path.basename(e["path"]) for e in events if e["event"] == "checkpoint"})
+    on_disk = sorted(x for x in os.listdir(os.path.join(run_dir, "checkpoints")) if x.endswith(".ckpt"))
+    check(on_disk == written and len(written) >= 4,
+          f"every checkpoint ever written is still on disk (CR R3: rotation never deletes): {on_disk}")
+    check(not os.path.exists(os.path.join(run_dir, "checkpoints", "rotation.jsonl")) and not ix.get("removed"),
+          "nothing was rotated away (no rotation.jsonl, the index lists no removal)")
     best = ix.get("best") or {}
-    expect = sorted({os.path.basename(x["path"]) for x in newest2} | ({os.path.basename(best["path"])} if best else set()))
-    check(live == expect and 2 <= len(live) <= 3, f"rotation keeps the newest 2 + the best: {live}")
-    rot = os.path.join(run_dir, "checkpoints", "rotation.jsonl")
-    check(os.path.isfile(rot) and sum(1 for _ in open(rot, encoding="utf-8")) >= 1, "removed checkpoints are logged in rotation.jsonl")
-    files = [x for x in os.listdir(os.path.join(run_dir, "checkpoints")) if x.endswith(".ckpt")]
-    check(sorted(files) == live, f"no other checkpoint file on disk: {sorted(files)}")
+    check(bool(best.get("path")) and os.path.isfile(best["path"]),
+          f"the best checkpoint by val_loss is tracked in the index: {os.path.basename(best.get('path') or '')}")
 
     print(f"\n{len(FAILS)} failed checks")
     print("R11 TRAIN E2E SELFTEST " + ("PASS" if not FAILS else "FAIL"))

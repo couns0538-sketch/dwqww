@@ -26,7 +26,7 @@ Stop: end the process with the PID in `D:\grok-pc-data\r11_nnue\run\pipeline.pid
 |---|---|---|
 | data | `pipeline/r11_data.py --config <cfg> run` | inventory -> registry (013/014 first, full sha256) -> hce for r8v5 -> dedup -> binpacks (.part -> verify -> rename) under the 40 GB D: floor -> MANIFEST, train_files.txt, holdout_files.txt |
 | holdout proof | `tests/test_r11_holdout_real.py --config <cfg>` | 013/014 only holdout, no training row with a holdout position, dedup order; writes HOLDOUT_TEST.json (the train gate) |
-| train | `pipeline/r11_train.py --config <cfg> --profile smoke\|full` | R6 trainer through `tools/nnue_pytorch_amd/r11/r11_train_entry.py`: yield-only, exact resume, newest 2 + best checkpoints |
+| train | `pipeline/r11_train.py --config <cfg> --profile smoke\|full` | R6 trainer through `tools/nnue_pytorch_amd/r11/r11_train_entry.py`: yield-only, exact resume, no checkpoint deleted (CR R3), best tracked |
 | export + check | `pipeline/r11_check.py --config <cfg> --net <nnue> [--ckpt <ckpt>] --l1 N --out <dir>` | AVX2 x86-64-v3 build of 7f79c349, serialize.py export, fens_12k parity, OFF identity, ON bench d11-d22, WAC 300 |
 | package | `pipeline/r11_package.py --config <cfg> --check <dir>` | gate_ready/ (or smoke_packages/) folder with GATE_EXE.txt (exe sha256), README, SHA256SUMS; never queued |
 | Astra | `pipeline/r11_astra.py download\|verify\|list\|extract` | release astra-a1-data-results-20261030, pinned sha256, staged extract |

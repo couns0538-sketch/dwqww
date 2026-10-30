@@ -209,7 +209,7 @@ def main() -> int:
         "trainer/callbacks.py": "class Callback:\n    pass\n",
         "trainer/engine.py": "class SimpleTrainer:\n    def load_checkpoint(self, path):\n        return {}\n\n"
                              "    def fit(self, train_loader, val_loader=None):\n        return None\n",
-        "train.py": "import os, subprocess, sys, time\n"
+        "train.py": "import os, subprocess, sys, time, zipfile\n"
                     "MODE = os.environ['R11_STUB_MODE']\n\n\n"
                     "def production_starts():\n"
                     "    subprocess.Popen([sys.executable, '-c', 'import time; time.sleep(6)', os.environ['R11_STUB_MARKER']])\n"
@@ -217,8 +217,20 @@ def main() -> int:
                     "if MODE == 'import':\n    production_starts()\n\n\n"
                     "class CheckpointManager:\n    pass\n\n\n"
                     "class FakeTrainer:\n"
-                    "    check_val_every_n_epoch, current_epoch, global_step, max_epochs = 1, 0, 0, 1\n\n\n"
+                    "    check_val_every_n_epoch, current_epoch, global_step, max_epochs = 1, 0, 0, 1\n\n"
+                    "    def save_checkpoint(self, path):\n"
+                    "        with zipfile.ZipFile(path, 'w') as z:\n"
+                    "            z.writestr('archive/data.pkl', b'stub')\n\n"
+                    "    def flush_checkpoints(self):\n"
+                    "        pass\n\n\n"
                     "def main():\n"
+                    "    if MODE == 'rotate':  # the entry's real _save + rotation on six epochs\n"
+                    "        cm, t = CheckpointManager(), FakeTrainer()\n"
+                    "        for e, v in enumerate([0.9, 0.5, 0.7, 0.6, 0.8, 0.95]):\n"
+                    "            t.current_epoch, t.global_step = e, 10 * (e + 1)\n"
+                    "            cm._save(t, e + 1, True, v)\n"
+                    "        print('STUB ROTATE END', flush=True)\n"
+                    "        return\n"
                     "    if MODE == 'fit':\n        production_starts()\n"
                     "    CheckpointManager().on_fit_start(FakeTrainer())\n"
                     "    print('STUB MAIN END', flush=True)\n",
@@ -290,6 +302,39 @@ def main() -> int:
         check(False, "a share profile must be refused")
     except C.StageFailed as e:
         check("yield is the only GPU policy" in str(e), "the train stage refuses a share profile")
+    # CR R3-3: checkpoint rotation must not delete - the shipped profiles keep >= 1,000,000, the entry and the driver
+    # refuse less, and the entry's real save/rotate code keeps all six checkpoints of a stub run and tracks the best
+    profs = real_cfg["train"]["profiles"]
+    check(all(int(p.get("keep_last", 0)) >= 1_000_000 for p in profs.values()),
+          f"the shipped profiles keep every checkpoint: {[(k, p.get('keep_last')) for k, p in profs.items()]}")
+    try:
+        entry.parse_own_args(["--r11-clone", "x", "--r11-run-dir", "y", "--r11-keep-last", "2", "--"])
+        check(False, "the entry must refuse --r11-keep-last 2")
+    except SystemExit as e:
+        check("CR R3" in str(e), "the entry refuses --r11-keep-last 2 (it could delete checkpoints)")
+    check(entry.parse_own_args(["--r11-clone", "x", "--r11-run-dir", "y", "--"])[0]["keep_last"] == 1_000_000,
+          "the entry's default keep_last is 1,000,000")
+    cfg_k = json.loads(json.dumps(real_cfg))
+    cfg_k["train"]["profiles"]["smoke"]["keep_last"] = 2
+    try:
+        TR.run_train(cfg_k, "smoke", C.Log(None, "train"), None)
+        check(False, "the train driver must refuse keep_last 2")
+    except C.StageFailed as e:
+        check("could delete checkpoints" in str(e), "the train driver refuses a profile with keep_last 2")
+    rd = os.path.join(scratch, "run_r3_rotate")
+    rr = subprocess.run([sys.executable, "-I", "-B", spec.origin, "--r11-clone", stub, "--r11-run-dir", rd,
+                         "--r11-patterns-file", pfile, "--r11-affinity", "0x700", "--r11-disk-floor-gb", "1", "--",
+                         "dummy.binpack"], capture_output=True, text=True, timeout=600,
+                        env=dict(os.environ, R11_STUB_MODE="rotate", R11_STUB_MARKER=marker))
+    cdir = os.path.join(rd, "checkpoints")
+    ck = sorted(x for x in os.listdir(cdir) if x.endswith(".ckpt")) if os.path.isdir(cdir) else []
+    ixp = os.path.join(cdir, "r11_ckpt_index.json")
+    ix = json.load(open(ixp, encoding="utf-8")) if os.path.isfile(ixp) else {}
+    best = os.path.basename((ix.get("best") or {}).get("path") or "")
+    check(rr.returncode == 0 and len(ck) == 6 and not os.path.exists(os.path.join(cdir, "rotation.jsonl")) and
+          not ix.get("removed") and best == "epoch=1-step=20.ckpt",
+          f"the entry's save/rotate code keeps all 6 checkpoints and tracks the best (val 0.5): rc {rr.returncode}, "
+          f"{len(ck)} files, best {best}, removed {ix.get('removed')} {rr.stderr[-200:]}")
 
     # 1h CR fix 10: sealed inputs are identified by their full sha256; a change in the middle of a big file (which a
     # first/last-MiB fingerprint misses) is detected

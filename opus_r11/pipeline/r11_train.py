@@ -1,7 +1,7 @@
-"""R11 train stage: nnue-pytorch (R6 AMD Triton clone) on the R11 binpacks with auto-resume and checkpoint rotation.
+"""R11 train stage: nnue-pytorch (R6 AMD Triton clone) on the R11 binpacks with auto-resume; no checkpoint is deleted.
 
-The trainer runs in its own process through tools/nnue_pytorch_amd/r11/r11_train_entry.py (keeps the newest
-`keep_last` checkpoints + the best by validation loss, exact resume, hold event Local\\Forge_R11_Hold, RAM floors,
+The trainer runs in its own process through tools/nnue_pytorch_amd/r11/r11_train_entry.py (keeps EVERY
+checkpoint - CR R3: keep_last >= 1,000,000, lower values are refused - and tracks the best by validation loss, exact resume, hold event Local\\Forge_R11_Hold, RAM floors,
 production policy; there are no STOP/PAUSE files: stop R11 by its own PID, it resumes from the newest checkpoint).
 This driver:
   - picks the run folder <train.runs_dir>/<run name>, the datasets (data/train_files.txt) and the validation files
@@ -31,6 +31,7 @@ import r11_common as C  # noqa: E402
 
 REPO = os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", ".."))
 ENTRY = os.path.join(REPO, "tools", "nnue_pytorch_amd", "r11", "r11_train_entry.py")
+KEEP_ALL = 1_000_000  # CR R3: checkpoint rotation must not delete (the entry refuses lower values too)
 
 
 def run_name(profile_name: str, prof: dict) -> str:
@@ -64,7 +65,7 @@ def trainer_cmd(cfg: dict, prof: dict, run_dir: str, resume: str | None) -> tupl
     if not train_files or not hold_files:
         raise C.StageFailed("no train or holdout binpacks yet (run the data stage first)")
     cmd = [t["python"], "-B", ENTRY, "--r11-clone", t["clone"], "--r11-run-dir", C.winpath(run_dir),
-           "--r11-keep-last", str(prof.get("keep_last", 2)),
+           "--r11-keep-last", str(prof.get("keep_last", KEEP_ALL)),
            "--r11-min-free-ram-gb", str(cfg["limits"]["min_free_ram_gb"] + 1.0),
            "--r11-hard-ram-gb", str(cfg["limits"]["min_free_ram_gb"]),
            "--r11-patterns-file", C.winpath(patterns_file(cfg, run_dir)),
@@ -134,6 +135,9 @@ def run_train(cfg: dict, profile_name: str, log: C.Log, gov: C.Governor, name: s
     prof = dict(cfg["train"]["profiles"][profile_name])
     if prof.get("gpu_policy", "yield") != "yield" or "share_duty" in prof:
         raise C.StageFailed(f"profile {profile_name}: yield is the only GPU policy (CR R2 H1: no share, no duty cycle)")
+    if int(prof.get("keep_last", KEEP_ALL)) < KEEP_ALL:
+        raise C.StageFailed(f"profile {profile_name}: keep_last {prof['keep_last']} could delete checkpoints; "
+                            f"CR R3: rotation must not delete - use >= {KEEP_ALL}")
     holdout_gate(cfg, log)
     run_dir = os.path.join(cfg["train"]["runs_dir"], name or run_name(profile_name, prof))
     C.assert_writable_path(run_dir)

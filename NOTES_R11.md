@@ -47,7 +47,8 @@ PC crash/reboot 11:38 (nothing of R11 was half-written: the run died in dedup be
   check exe = ed6a0b189ee0a456baade51c39d05857922efbab8e12e408cb471d1011da12ad (the sha256, not the commit);
   record in `opus_r11/logs/check_npt_line104_ep20/GATE_EXE.txt`; future packages carry GATE_EXE.txt.
 - Train stage `r11_train.py` + `tools/nnue_pytorch_amd/r11/r11_train_entry.py` (unchanged R6 trainer imported):
-  rotation newest 2 + best by val_loss across restarts, exact resume (r11_next_epoch), hold event, RAM floors,
+  every checkpoint kept (CR R3: rotation must not delete; keep_last >= 1,000,000, lower values refused), best by
+  val_loss tracked across restarts, exact resume (r11_next_epoch), hold event, RAM floors,
   disk floor before every checkpoint, yield-only GPU policy, production check before `import torch`, holdout gate.
 - Package stage `r11_package.py` (gate-ready folder, SHA256SUMS, README, GATE_EXE.txt).
 
