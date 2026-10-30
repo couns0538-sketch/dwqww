@@ -104,11 +104,16 @@ Startpos perft5 **4865609**; kiwipete perft4 **4085603** and perft5 **193690690*
 
 Python policy, format, process, publication and manifest tests: **129 pass**. Discovery reports 130 cases with one explicit native-fixture skip; its standalone **9-test** invocation also passes. Latest full-discovery log: `validation/astra-a1-data/all_unit_final_transport.log`. Original earlier runs remain preserved. The archive namespace regression failed before the correction and passes afterward, including under `python -O`; failed implementations and experiments remain alongside their corrected tests.
 
-The independent final review ran for 19.6 minutes and is recorded in
-[ASTRA_A1_FINAL_REVIEW.md](ASTRA_A1_FINAL_REVIEW.md). It found and rechecked
+The independent review took 24.3 minutes in total: the 19.6-minute main review
+in [ASTRA_A1_FINAL_REVIEW.md](ASTRA_A1_FINAL_REVIEW.md), plus a 4.8-minute
+[recovery-command addendum](../validation/astra-a1-data/final_review_addendum/REVIEW.md)
+(rounding explains the displayed sum). It found and rechecked
 one Windows archive file/directory collision repair; independently replayed
 1,024 saved relabel rows and 5,998 opening requests; and verified four
-no-overwrite boundaries. No concrete finding remained open. Final full-data
+no-overwrite boundaries. The addendum repaired direct-download setup, enforced checksum comparison and
+outside-seal verification logging. Ten independent auditor regression tests
+also pass, including corrupt native evidence and original holdout coverage.
+No concrete finding remained open. Final full-data
 acceptance and transport publication are separate checks performed after the
 active filter exits.
 
@@ -165,3 +170,5 @@ Checkpoint 20261030T043607Z: full10M status RUNNING, processed 7613696, kept 700
 Checkpoint 20261030T044611Z: full10M status RUNNING, processed 8239616, kept 7584637. Final independent bundle verification is still required. No Elo claim.
 
 Checkpoint 20261030T045615Z: full10M status RUNNING, processed 8883456, kept 8177804. Final independent bundle verification is still required. No Elo claim.
+
+Checkpoint 20261030T050617Z: full10M status RUNNING, processed 9486848, kept 8733885. Final independent bundle verification is still required. No Elo claim.

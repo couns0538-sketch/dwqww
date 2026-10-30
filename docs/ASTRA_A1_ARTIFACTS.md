@@ -15,8 +15,9 @@ user's `data-sample-10m-20261030` release and is referenced by URL, size and has
 
 Use the exact source from `astra-a1-data`. Obtain the verified artifacts listed
 in the final publication receipt. Keep downloads outside the repository and
-outside any previously sealed output. Reserve room for both the archive and its
-extracted files; original spools and logs are intentionally retained.
+outside any previously sealed output. Reserve room for downloaded chunks (if
+used), the complete archive, and its extracted files; original spools and logs
+are intentionally retained.
 
 Run the blocks below from the checked-out repository in PowerShell 7 with Python
 3.10 or later. Set these shared values for either download method. Use the actual
@@ -86,8 +87,9 @@ Get-Content -LiteralPath $VerificationLog
 
 The deeper independent audit is Linux-only and also uses the original input
 paths from the run. Its preserved receipt covers all native responses and the
-supplied original holdout prefix; `full10m_audit/AUDIT_USAGE.md` documents its
-scope. Portable seal verification alone does not replay all native semantics.
+supplied original holdout prefix;
+[full10m_audit/AUDIT_USAGE.md](../validation/astra-a1-data/full10m_audit/AUDIT_USAGE.md)
+documents its scope. Portable seal verification alone does not replay all native semantics.
 Neither audit establishes training quality, game-level isolation or Elo.
 
 IDEA_SOURCE: user-requested durable original evidence, same-project data formats
