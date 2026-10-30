@@ -17,6 +17,7 @@ class ProbeClient:
     def __init__(self, exe, nodes, hash_mb=1, workdir=None, timeout=60):
         if nodes<1 or hash_mb<1 or timeout<=0:raise ValueError('positive budget/hash/timeout required')
         self.exe=Path(exe).resolve(strict=True);self.timeout=timeout;self.count=0;self.cpu_ns=0
+        self.response_count=0;self.total_child_cpu_seconds=None
         self.lock=threading.Lock();self.done=threading.Event();self.queue=queue.Queue(maxsize=2);self.files=[]
         self.directory=Path(workdir) if workdir is not None else None
         self.requests=None;self.responses=None;self.stderr=None
@@ -43,6 +44,7 @@ class ProbeClient:
                 raw=self.process.stdout.readline(131073)
                 if not raw:break
                 if self.responses:self.responses.write(raw)
+                self.response_count+=1
                 if len(raw)>131072 or not raw.endswith(b'\n'):
                     self._enqueue(ProbeError('overlong or incomplete native response'));break
                 self._enqueue(raw)
@@ -66,10 +68,11 @@ class ProbeClient:
             try:result=json.loads(line)
             except (ValueError,UnicodeError) as e:raise ProbeError('invalid native JSON') from e
             if not isinstance(result,dict) or str(result.get('id'))!=ident:raise ProbeError('native response id/type mismatch')
+            if result.get('operation')!=op:raise ProbeError('native operation mismatch')
             if result.get('ok') is not True:raise ProbeError('native rejected '+ident+': '+str(result.get('error')))
             self.count+=1;self.cpu_ns+=int(result.get('cpu_ns',0))
             return result
-    def close(self):
+    def close(self, raise_on_error=True):
         if getattr(self,'closed',False):return
         self.closed=True
         try:
@@ -80,11 +83,23 @@ class ProbeClient:
             self.done.set();self.reader.join(timeout=2)
             if self.process.stdout:self.process.stdout.close()
             for f in self.files:f.close()
+            if os.name=='nt' and self.process.poll() is not None:
+                import ctypes
+                from ctypes import wintypes
+                creation,exit_time,kernel,user=(wintypes.FILETIME() for _ in range(4))
+                get_times=ctypes.windll.kernel32.GetProcessTimes
+                get_times.argtypes=[wintypes.HANDLE]+[ctypes.POINTER(wintypes.FILETIME)]*4
+                get_times.restype=wintypes.BOOL
+                if get_times(wintypes.HANDLE(int(self.process._handle)),ctypes.byref(creation),ctypes.byref(exit_time),ctypes.byref(kernel),ctypes.byref(user)):
+                    self.total_child_cpu_seconds=((kernel.dwHighDateTime<<32)+kernel.dwLowDateTime+(user.dwHighDateTime<<32)+user.dwLowDateTime)/10_000_000
+            unchanged=sha256(self.exe)==self.binary_sha256
             if self.directory:
-                record={'argv':self.command,'binary_sha256':self.binary_sha256,'returncode':self.process.poll(),'successful_requests':self.count,'reported_query_cpu_ns':self.cpu_ns,'binary_unchanged':sha256(self.exe)==self.binary_sha256}
+                record={'argv':self.command,'binary_sha256':self.binary_sha256,'returncode':self.process.poll(),'successful_requests':self.count,'reported_query_cpu_ns':self.cpu_ns,'binary_unchanged':unchanged,'response_count':self.response_count,'total_child_cpu_seconds':self.total_child_cpu_seconds}
                 (self.directory/'process.json').write_text(json.dumps(record,indent=2)+'\n')
+            if raise_on_error and (self.process.poll()!=0 or not unchanged or self.response_count!=self.count):
+                raise ProbeError('native shutdown, binary identity or response-count failure; see process receipt')
     def __enter__(self):return self
-    def __exit__(self,*args):self.close()
+    def __exit__(self,*args):self.close(raise_on_error=args[0] is None)
 
 class ProbePool:
     def __init__(self,exe,nodes,workers=1,workdir=None,hash_mb=1,timeout=60):
@@ -103,8 +118,16 @@ class ProbePool:
         for f in futures:
             for i,value in f.result():answer[i]=value
         return answer
-    def close(self):
+    def close(self,raise_on_error=True):
         if self.executor:self.executor.shutdown(wait=True);self.executor=None
-        for c in self.clients:c.close()
+        errors=[]
+        for c in self.clients:
+            try:c.close(raise_on_error=raise_on_error)
+            except BaseException as e:errors.append(e)
+        if errors and raise_on_error:raise errors[0]
+    @property
+    def total_child_cpu_seconds(self):
+        values=[c.total_child_cpu_seconds for c in self.clients]
+        return sum(values) if all(v is not None for v in values) else None
     def __enter__(self):return self
-    def __exit__(self,*args):self.close()
+    def __exit__(self,*args):self.close(raise_on_error=args[0] is None)

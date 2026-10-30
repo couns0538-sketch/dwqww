@@ -6,12 +6,13 @@ The documented ordered waterfall is a data policy, not an Elo claim.
 """
 from __future__ import annotations
 import argparse
-from collections import Counter, deque
+from collections import deque
 from dataclasses import dataclass, asdict
 from datetime import datetime, timezone
 import gzip
 import hashlib
 import json
+import re
 from pathlib import Path
 import sqlite3
 import sys
@@ -158,8 +159,8 @@ def _json(path: Path, value: Any, *, exclusive: bool = False) -> None:
 def _validate_config(config: Config) -> None:
     require(bool(config.positions) and len(config.positions) == len(config.sidecars),
             'each .pos needs one aligned full-FEN sidecar')
-    require(config.nodes >= 1 and config.workers >= 1 and config.batch_size >= 1 and config.hash_mb >= 1,
-            'nodes/workers/batch/hash must be positive')
+    require(config.nodes >= 1 and 1 <= config.workers <= 3 and config.batch_size >= 1 and config.hash_mb >= 1,
+            'nodes/batch/hash must be positive and workers must be1..3')
     require(config.limit is None or config.limit >= 1, 'limit must be positive')
     require(config.disagreement_cp > 0 and config.draw_disagreement_cp > 0,
             'disagreement thresholds must be positive')
@@ -169,6 +170,7 @@ def _validate_config(config: Config) -> None:
     for path in paths:
         require(path.is_file(), 'input is not a file: '+str(path))
         require(not any(c in str(path) for c in '\t\r\n'), 'control character in input path')
+    require(config.probe.is_file(), 'probe is not a file: '+str(config.probe))
     require(len({p.resolve() for p in config.positions}) == len(config.positions), 'duplicate input .pos')
     require(len({p.resolve() for p in config.sidecars}) == len(config.sidecars), 'duplicate sidecar')
 
@@ -189,7 +191,12 @@ def run(config: Config, pool_factory=None) -> dict[str, Any]:
         'policy_order': list(RULES), 'rules': counts, 'input_rows': 0, 'kept': 0,
         'native_queries': 0, 'speculative_native_queries_not_used': 0, 'native_cpu_ns': 0,
         'exact_label_rows': 0, 'reconstructed_label_rows': 0,
-        'source_alignment': [], 'inputs': [], 'holdouts': [], 'game_overlap': 'UNVERIFIED_NO_AUTHENTICATED_GAME_IDS',
+        'source_alignment': [], 'inputs': [], 'holdouts': [],
+        'shards': [{'path': str(p), 'input_rows': 0, 'kept': 0,
+                    'rules': {r: {'eligible': 0, 'dropped': 0} for r in RULES}} for p in config.positions],
+        'command': list(sys.argv),
+        'validation_scope': 'Selected rows have structural FPOS/FEN alignment checks; native legal-state validation runs only on rows surviving the cheap rules.',
+        'game_overlap': 'UNVERIFIED_NO_AUTHENTICATED_GAME_IDS',
         'near_policy': 'Prior kept rows within near_window ORIGINAL input indices; same STM/result/castling/EP/pawn+king squares/inventory; one nonpawn nonking relocation; source score within delta. Clocks are not used; this is explicitly a sampling heuristic.',
         'exact_identity': 'SHA256(board32 || STM), with stored full-key collision check',
         'holdout_scope': 'Only the explicit supplied holdouts; missing holdout shards/game provenance are not certified.',
@@ -207,6 +214,8 @@ def run(config: Config, pool_factory=None) -> dict[str, Any]:
                            for p, f in zip(config.positions, config.sidecars)]
         if config.probe.is_file():
             stats['probe'] = digest_file(config.probe)
+        stats['implementation'] = {name: digest_file(Path(__file__).with_name(name))
+                                   for name in ('filter_positions.py', 'forge_pos.py', 'forge_probe.py')}
         for path in config.holdouts or []:
             info = digest_file(path); count = 0
             if path.suffix.lower() == '.pos':
@@ -219,7 +228,7 @@ def run(config: Config, pool_factory=None) -> dict[str, Any]:
                         record, _ = text_record(line)
                         database.add('holdout', fingerprint(record)); count += 1
             info['rows'] = count; stats['holdouts'].append(info); database.commit()
-        writer = PosWriter(config.out, config.stem, with_hce=True)
+        writer = PosWriter(config.out, config.stem, with_hce=True, with_fen=True)
         decisions_raw = (config.out/'decisions.tsv.gz').open('xb')
         decisions = gzip.GzipFile(filename='', fileobj=decisions_raw, mode='wb', mtime=0, compresslevel=1)
         decisions.write(b'input_index\tdecision\tbestmove\tteacher_score\tnodes\n')
@@ -270,14 +279,16 @@ def run(config: Config, pool_factory=None) -> dict[str, Any]:
                             counts['terminal']['eligible'] += 1
                             if response['terminal']: drop = 'terminal'
                             else:
-                                require(response.get('analyzed', True) is True and type(response.get('depth')) is int and response['depth'] >= 1,
+                                require(response.get('analyzed') is True and type(response.get('depth')) is int and response['depth'] >= 1,
                                         'no completed teacher iteration: '+repr(response))
                                 require(type(response.get('nodes')) is int and response['nodes'] > 0, 'invalid searched node count')
                                 require(type(response.get('score')) is int and -32000 <= response['score'] <= 32000, 'invalid teacher score')
                                 require(type(response.get('hce')) is int and -32767 <= response['hce'] <= 32767, 'invalid HCE')
                                 for flag in ('capture', 'promotion'):
                                     require(type(response.get(flag)) is bool, 'missing native boolean '+flag)
-                                require(isinstance(response.get('bestmove'), str) and response['bestmove'], 'missing native bestmove')
+                                require(isinstance(response.get('bestmove'), str) and
+                                        re.fullmatch(r'[a-h][1-8][a-h][1-8][nbrq]?', response['bestmove']) is not None,
+                                        'missing/invalid native bestmove')
                                 counts['bestmove_capture']['eligible'] += 1
                                 if response['capture']: drop = 'bestmove_capture'
                                 else:
@@ -285,6 +296,14 @@ def run(config: Config, pool_factory=None) -> dict[str, Any]:
                                     if response['promotion']: drop = 'bestmove_promotion'
                         if drop is not None: counts[drop]['dropped'] += 1
                     stats['input_rows'] += 1
+                    shard = stats['shards'][file_index]
+                    shard['input_rows'] += 1
+                    for rule in RULES:
+                        shard['rules'][rule]['eligible'] += 1
+                        if drop == rule:
+                            shard['rules'][rule]['dropped'] += 1
+                            break
+                    if drop is None: shard['kept'] += 1
                     decision = drop or 'kept'
                     decisions.write((f"{index}\t{decision}\t{response.get('bestmove','') if response else ''}\t{response.get('score','') if response else ''}\t{response.get('nodes','') if response else ''}\n").encode())
                     if drop is None:
@@ -322,14 +341,26 @@ def run(config: Config, pool_factory=None) -> dict[str, Any]:
             if batch: process(batch)
         require(stats['input_rows'] == selected, 'processing count mismatch')
         require(stats['kept'] + sum(v['dropped'] for v in counts.values()) == selected, 'waterfall count mismatch')
-        for values in counts.values():
-            values['fraction_input'] = values['dropped']/selected if selected else 0.0
-            values['fraction_eligible'] = values['dropped']/values['eligible'] if values['eligible'] else None
-            values['not_evaluated_after_earlier_rule'] = selected-values['eligible']
+        for local_counts, denominator in [(counts, selected)] + [(s['rules'], s['input_rows']) for s in stats['shards']]:
+            for values in local_counts.values():
+                values['fraction_input'] = values['dropped']/denominator if denominator else 0.0
+                values['fraction_eligible'] = values['dropped']/values['eligible'] if values['eligible'] else None
+                values['not_evaluated_after_earlier_rule'] = denominator-values['eligible']
         overlap = database.db.execute('SELECT COUNT(*) FROM kept JOIN holdout USING(digest) WHERE kept.key=holdout.key').fetchone()[0]
         require(overlap == 0, 'held-out position survived filtering')
         stats['supplied_holdout_position_overlap'] = overlap if config.holdouts else None
         stats['holdout_unique_positions'] = database.db.execute('SELECT COUNT(*) FROM holdout').fetchone()[0]
+        # The source release is read-only by contract; verify it stayed that way before sealing.
+        for source in stats['inputs']:
+            for kind in ('pos', 'sidecar'):
+                current = digest_file(Path(source[kind]['path']))
+                require(current['sha256'] == source[kind]['sha256'] and current['bytes'] == source[kind]['bytes'],
+                        'source changed during filtering: '+source[kind]['path'])
+        for holdout in stats['holdouts']:
+            current = digest_file(Path(holdout['path']))
+            require(current['sha256'] == holdout['sha256'] and current['bytes'] == holdout['bytes'],
+                    'holdout changed during filtering: '+holdout['path'])
+        stats['source_hashes_unchanged'] = True
         writer.close(); writer = None
         decisions.close(); decisions = None; decisions_raw.close(); decisions_raw = None
         provenance.close(); provenance = None; database.close(); database = None
@@ -362,8 +393,8 @@ def main(argv=None) -> int:
     parser.add_argument('--out', type=Path, required=True)
     parser.add_argument('--probe', type=Path, required=True)
     parser.add_argument('--holdout', nargs='*', type=Path, default=[])
-    parser.add_argument('--nodes', type=int, default=1024)
-    parser.add_argument('--workers', type=int, default=1)
+    parser.add_argument('--probe-nodes', '--nodes', dest='nodes', type=int, default=1024)
+    parser.add_argument('--probe-workers', '--workers', dest='workers', type=int, default=1)
     parser.add_argument('--batch-size', type=int, default=256)
     parser.add_argument('--hash-mb', type=int, default=1)
     parser.add_argument('--limit', type=int)
