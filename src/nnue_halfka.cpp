@@ -4,6 +4,7 @@
 #include <array>
 #include <bit>
 #include <cstring>
+#include <filesystem>
 #include <fstream>
 #include <memory>
 #include <sstream>
@@ -307,6 +308,19 @@ std::uint8_t sqr(std::int32_t s, int shift, std::int64_t add) {
 bool load(const std::string& path, std::string& error) {
     std::ifstream f(path, std::ios::binary);
     if (!f) return fail(error, "cannot open " + path);
+    {
+        // Reject oversized files before reading them whole: no valid K32H3^ net is larger than the biggest
+        // shape this loader accepts (longest description, L1 MaxL1, L2 MaxL2, L3 MaxL3).
+        std::error_code ec;
+        const std::uintmax_t size = std::filesystem::file_size(path, ec);
+        const std::uint64_t max_size = file_size_for(12 + (1ULL << 20), MaxL1, MaxL2, MaxL3);
+        if (ec) return fail(error, "cannot read the size of " + path);
+        if (size > max_size) {
+            std::ostringstream s;
+            s << "file size " << size << " is larger than the largest valid HalfKA net (" << max_size << " bytes)";
+            return fail(error, s.str());
+        }
+    }
     std::vector<std::uint8_t> data((std::istreambuf_iterator<char>(f)), std::istreambuf_iterator<char>());
     Reader r(data);
     std::uint32_t version = 0, net_hash = 0, desc_len = 0, ft_hash = 0;

@@ -597,7 +597,7 @@ namespace {
 } // namespace
 
 int Worker::static_evaluate(const Board& board, SearchStack* ss) {
-    if (halfka::active()) return halfka_evaluate(board, ss);
+    if (halfka::active() && nnue::enabled) return halfka_evaluate(board, ss);
     if (!nnue::enabled || !nnue::available()) return evaluator_.evaluate(board);
     const bool residual = nnue::residual();
     if (!ss->accumulator.valid) {
@@ -688,8 +688,8 @@ int Worker::halfka_evaluate(const Board& board, SearchStack* ss) {
         ++g_halfka_verified;
 #endif
     }
-    return std::clamp(halfka::evaluate(board, acc.row(entry, White), acc.row(entry, Black)), -MateInMaxPly + 1,
-                      MateInMaxPly - 1);
+    // keep the net's output well clear of mate scores
+    return std::clamp(halfka::evaluate(board, acc.row(entry, White), acc.row(entry, Black)), -30000, 30000);
 }
 
 int Worker::corrected_eval(const Board& board, int raw_eval) const {
