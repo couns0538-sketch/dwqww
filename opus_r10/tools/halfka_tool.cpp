@@ -25,6 +25,15 @@
 
 using namespace forge;
 
+// the kernels this tool was compiled with (it is built with the engine sources and the same flags)
+#if defined(__AVX512VNNI__) && defined(__AVX512BW__)
+constexpr const char* SimdName = "AVX-512 VNNI";
+#elif defined(__AVX2__)
+constexpr const char* SimdName = "AVX2";
+#else
+constexpr const char* SimdName = "none";
+#endif
+
 namespace {
 
 int eval_mode(const std::string& fens, const std::string& out_path) {
@@ -53,7 +62,7 @@ int eval_mode(const std::string& fens, const std::string& out_path) {
         ++n;
     }
     std::printf("eval: %lld positions, %lld bad FENs, SIMD (%s) vs scalar mismatches %lld, net %s\n", n, bad,
-                halfka::simd_compiled() ? "AVX2" : "none", simd_mismatch, halfka::description().c_str());
+                SimdName, simd_mismatch, halfka::description().c_str());
     return simd_mismatch == 0 && bad == 0 ? 0 : 1;
 }
 
@@ -189,7 +198,7 @@ int speed_mode(const std::string& fens, int reps) {
     }
     halfka::set_force_scalar(false);
     std::printf("speed: %zu positions x %d reps, net %s, SIMD %s\n", n, reps, halfka::description().c_str(),
-                halfka::simd_compiled() ? "AVX2" : "none");
+                SimdName);
     std::printf("HalfKA   refresh, one perspective              %8.1f ns\n", h_refresh);
     std::printf("HalfKA   apply one ply from the parent, one persp. %8.1f ns  (%zu of %zu perspective-moves keep the orientation)\n",
                 h_apply, same.size(), 2 * n);

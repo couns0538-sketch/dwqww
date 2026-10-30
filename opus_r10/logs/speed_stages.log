@@ -1,0 +1,36 @@
+run_pinned: affinity mask 0xff0, BelowNormal: opus_r10/tools/bash_run.py
+F:/opus_scratch/r10/build/halfka_tool_speed.exe: F:/opus_scratch/r10/build/halfka_tool_speed.exe: cannot execute binary file
+run_pinned: affinity mask 0xff0, BelowNormal: opus_r10/tools/bash_run.py
+F:/opus_scratch/r10/build/halfka_tool_speed.exe: F:/opus_scratch/r10/build/halfka_tool_speed.exe: cannot execute binary file
+run_pinned: affinity mask 0xff0, BelowNormal: opus_r10/tools/bash_run.py
+F:/opus_scratch/r10/build/halfka_tool_speed.exe: F:/opus_scratch/r10/build/halfka_tool_speed.exe: cannot execute binary file
+run_pinned: affinity mask 0xff0, BelowNormal: opus_r10/tools/exe_run.py
+speed: 12000 positions x 50 reps, net F:/opus_scratch/r10/nets/smoke_k32h3_l64.nnue: K32H3^ 64x32x32, 32 layer stacks, hash 0xc8332d89, SIMD AVX2
+HalfKA   refresh, one perspective                  96.7 ns
+HalfKA   apply one ply from the parent, one persp.     22.6 ns  (21741 of 24000 perspective-moves keep the orientation)
+HalfKA   forward (pairwise, l1, l2, output) AVX2     288.4 ns, scalar    299.2 ns
+FORGENN2 refresh, both perspectives               428.7 ns
+FORGENN2 update one ply, both perspectives         57.6 ns
+FORGENN2 evaluate (SCReLU output)                  48.4 ns
+HCE      evaluate (public API, upper bound; residual net: yes)    243.1 ns
+per searched eval, accumulators updated from the parent: HalfKA 2 x apply + forward = 333.7 ns; lock = update + evaluate + HCE = 349.1 ns
+run_pinned: affinity mask 0xff0, BelowNormal: opus_r10/tools/exe_run.py
+speed: 12000 positions x 50 reps, net F:/opus_scratch/r10/nets/r6_k32h3_l256.nnue: K32H3^ 256x32x32, 32 layer stacks, hash 0xc8332fb9, SIMD AVX2
+HalfKA   refresh, one perspective                 171.9 ns
+HalfKA   apply one ply from the parent, one persp.     39.7 ns  (21741 of 24000 perspective-moves keep the orientation)
+HalfKA   forward (pairwise, l1, l2, output) AVX2     377.1 ns, scalar    354.2 ns
+FORGENN2 refresh, both perspectives               433.1 ns
+FORGENN2 update one ply, both perspectives         57.0 ns
+FORGENN2 evaluate (SCReLU output)                  45.9 ns
+HCE      evaluate (public API, upper bound; residual net: yes)    246.7 ns
+per searched eval, accumulators updated from the parent: HalfKA 2 x apply + forward = 456.4 ns; lock = update + evaluate + HCE = 349.7 ns
+run_pinned: affinity mask 0xff0, BelowNormal: opus_r10/tools/exe_run.py
+speed: 12000 positions x 50 reps, net F:/opus_scratch/r10/nets/init_k32h3_l1024.nnue: K32H3^ 1024x32x32, 32 layer stacks, hash 0xc83325f9, SIMD AVX2
+HalfKA   refresh, one perspective                 540.2 ns
+HalfKA   apply one ply from the parent, one persp.    126.0 ns  (21741 of 24000 perspective-moves keep the orientation)
+HalfKA   forward (pairwise, l1, l2, output) AVX2     872.5 ns, scalar    608.3 ns
+FORGENN2 refresh, both perspectives               387.0 ns
+FORGENN2 update one ply, both perspectives         55.2 ns
+FORGENN2 evaluate (SCReLU output)                  48.6 ns
+HCE      evaluate (public API, upper bound; residual net: yes)    249.1 ns
+per searched eval, accumulators updated from the parent: HalfKA 2 x apply + forward = 1124.5 ns; lock = update + evaluate + HCE = 352.9 ns

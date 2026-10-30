@@ -2,6 +2,7 @@
 """R7 J3: NPS of one exe with UCI option sets toggled (OFF vs ON), fresh process per measurement.
 usage: nps_opts_ab.py <forge_exe> --runs N --depths 16 20 --set off= --set tt=R7TtExclusive=true [...] [--json out]
   --set NAME=Opt=val[,Opt=val...]  (NAME=  with nothing after = is the all-defaults reference; the first set is it)
+  R10: the pseudo-option exe=<path> in a set runs that program instead of <forge_exe> (two builds, same options)
 Each round measures every set once per depth, in an order rotated by one each round (Latin square: drift and
 warm-up effects fall on every set equally). Every measurement: start the exe, Threads 1, Hash 16, OwnBook false, the
 set's options, isready, `bench 1` (warms up), CPU time t0 (GetProcessTimes on the running child), `bench D`, CPU
@@ -47,7 +48,10 @@ def cpu_seconds(handle):
 
 
 def measure(opts, depth):
-    p = subprocess.Popen([exe], stdin=subprocess.PIPE, stdout=subprocess.PIPE, text=True, bufsize=1)
+    # R10: a set may name its own program with the pseudo-option exe=<path> (two builds, same options)
+    prog = next((v for k, v in opts if k == "exe"), exe)
+    opts = [(k, v) for k, v in opts if k != "exe"]
+    p = subprocess.Popen([prog], stdin=subprocess.PIPE, stdout=subprocess.PIPE, text=True, bufsize=1)
 
     def send(s):
         p.stdin.write(s + "\n")

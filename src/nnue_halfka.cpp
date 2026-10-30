@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <array>
+#include <bit>
 #include <cstring>
 #include <fstream>
 #include <memory>
@@ -18,11 +19,14 @@ struct Stack {
     std::vector<std::int32_t> b1, b2;
     std::int32_t b3 = 0;
     std::vector<std::int8_t> w1, w2, w3;  // row-major [output][padded input]
+    // w1 / w2 regrouped for the block kernel: per block of 4 inputs, the 4 weights of every output (outputs padded to 16)
+    std::vector<std::int8_t> w1b, w2b;
 };
 
 struct Net {
     int l1 = 0, l2 = 0, l3 = 0;
     int in1 = 0, in2 = 0, in3 = 0;  // input widths padded to 32 as stored in the file
+    int out1 = 0, out2 = 0;         // l2 and l3 padded to 16 (the block kernel's output groups)
     std::uint32_t hash = 0;
     std::string path, text;
     std::vector<std::int16_t> ft_bias;
@@ -52,6 +56,18 @@ constexpr int orient(Color perspective, int square, int king_square) {
 }
 
 int pad32(int n) { return (n + 31) / 32 * 32; }
+int pad16(int n) { return (n + 15) / 16 * 16; }
+
+// [out][in] row-major -> [in / 4][outp][4]: for each block of 4 inputs, the 4 weights of every output; padded outputs
+// get zero weights
+std::vector<std::int8_t> regroup(const std::vector<std::int8_t>& w, int out, int in, int outp) {
+    std::vector<std::int8_t> r(static_cast<std::size_t>(in) * static_cast<std::size_t>(outp), 0);
+    for (int k = 0; k < out; ++k)
+        for (int i = 0; i < in; ++i)
+            r[(static_cast<std::size_t>(i / 4) * static_cast<std::size_t>(outp) + static_cast<std::size_t>(k)) * 4 +
+              static_cast<std::size_t>(i % 4)] = w[static_cast<std::size_t>(k) * static_cast<std::size_t>(in) + static_cast<std::size_t>(i)];
+    return r;
+}
 
 std::uint32_t fc_hash(int l1, int l2, int l3) {
     std::uint32_t prev = 0xEC42E90DU ^ static_cast<std::uint32_t>(l1 * 2);
@@ -104,8 +120,18 @@ bool fail(std::string& error, const std::string& why) {
 }
 
 // ---------------------------------------------------------------- kernels
+// (L1 is a multiple of 64, so every row length below is a multiple of 32 int16 values)
 void row_add(std::int16_t* acc, const std::int8_t* w, int n) {
-#if defined(__AVX2__)
+#if defined(__AVX512BW__)
+    if (!g_force_scalar) {
+        for (int j = 0; j < n; j += 32) {
+            const __m512i a = _mm512_loadu_si512(acc + j);
+            const __m512i b = _mm512_cvtepi8_epi16(_mm256_loadu_si256(reinterpret_cast<const __m256i*>(w + j)));
+            _mm512_storeu_si512(acc + j, _mm512_add_epi16(a, b));
+        }
+        return;
+    }
+#elif defined(__AVX2__)
     if (!g_force_scalar) {
         for (int j = 0; j < n; j += 16) {
             const __m256i a = _mm256_loadu_si256(reinterpret_cast<const __m256i*>(acc + j));
@@ -119,7 +145,16 @@ void row_add(std::int16_t* acc, const std::int8_t* w, int n) {
 }
 
 void row_sub(std::int16_t* acc, const std::int8_t* w, int n) {
-#if defined(__AVX2__)
+#if defined(__AVX512BW__)
+    if (!g_force_scalar) {
+        for (int j = 0; j < n; j += 32) {
+            const __m512i a = _mm512_loadu_si512(acc + j);
+            const __m512i b = _mm512_cvtepi8_epi16(_mm256_loadu_si256(reinterpret_cast<const __m256i*>(w + j)));
+            _mm512_storeu_si512(acc + j, _mm512_sub_epi16(a, b));
+        }
+        return;
+    }
+#elif defined(__AVX2__)
     if (!g_force_scalar) {
         for (int j = 0; j < n; j += 16) {
             const __m256i a = _mm256_loadu_si256(reinterpret_cast<const __m256i*>(acc + j));
@@ -156,6 +191,13 @@ void pairwise(const std::int16_t* a, std::uint8_t* out, int half) {
 
 // sum_i w[i] * x[i] over n inputs (n a multiple of 32; x values 0..127, w int8)
 std::int32_t dot(const std::int8_t* w, const std::uint8_t* x, int n) {
+#if defined(__AVX512VNNI__) && defined(__AVX512BW__)
+    if (!g_force_scalar && n % 64 == 0) {
+        __m512i acc = _mm512_setzero_si512();
+        for (int i = 0; i < n; i += 64) acc = _mm512_dpbusd_epi32(acc, _mm512_loadu_si512(x + i), _mm512_loadu_si512(w + i));
+        return _mm512_reduce_add_epi32(acc);
+    }
+#endif
 #if defined(__AVX2__)
     if (!g_force_scalar) {
         __m256i acc = _mm256_setzero_si256();
@@ -174,6 +216,82 @@ std::int32_t dot(const std::int8_t* w, const std::uint8_t* x, int n) {
     std::int32_t sum = 0;
     for (int i = 0; i < n; ++i) sum += static_cast<std::int32_t>(w[i]) * x[i];
     return sum;
+}
+
+#if defined(__AVX512VNNI__) && defined(__AVX512BW__)
+// Block kernel: s[k] = sum_i w[k][i] * x[i] for NQ x 16 outputs. Each block of 4 inputs is broadcast and multiplied with
+// the 4 weights of every output (regroup() layout); blocks whose 4 inputs are all zero are skipped, which leaves the
+// integer sums unchanged.
+template <int NQ>
+void block_affine(const std::uint8_t* x, int in, const std::int8_t* wb, std::int32_t* s) {
+    __m512i acc[NQ];
+    for (int q = 0; q < NQ; ++q) acc[q] = _mm512_setzero_si512();
+    for (int c = 0; c < in; c += 64) {
+        unsigned mask = in - c >= 64 ? static_cast<unsigned>(_mm512_test_epi32_mask(_mm512_loadu_si512(x + c), _mm512_loadu_si512(x + c)))
+                                     : static_cast<unsigned>(_mm256_test_epi32_mask(_mm256_loadu_si256(reinterpret_cast<const __m256i*>(x + c)),
+                                                                                    _mm256_loadu_si256(reinterpret_cast<const __m256i*>(x + c))));
+        while (mask != 0) {
+            const int b = c / 4 + std::countr_zero(mask);
+            mask &= mask - 1;
+            std::int32_t four = 0;
+            std::memcpy(&four, x + 4 * b, 4);
+            const __m512i xb = _mm512_set1_epi32(four);
+            const std::int8_t* w = wb + static_cast<std::size_t>(b) * NQ * 64;
+            for (int q = 0; q < NQ; ++q) acc[q] = _mm512_dpbusd_epi32(acc[q], xb, _mm512_loadu_si512(w + q * 64));
+        }
+    }
+    for (int q = 0; q < NQ; ++q) _mm512_storeu_si512(s + q * 16, acc[q]);
+}
+#elif defined(__AVX2__)
+// Block kernel (AVX2): as above with NQ x 8 outputs; x <= 127 and |w| <= 128 keep maddubs's pair sums inside int16.
+template <int NQ>
+void block_affine(const std::uint8_t* x, int in, const std::int8_t* wb, std::int32_t* s) {
+    __m256i acc[NQ];
+    for (int q = 0; q < NQ; ++q) acc[q] = _mm256_setzero_si256();
+    const __m256i ones = _mm256_set1_epi16(1), zero = _mm256_setzero_si256();
+    for (int c = 0; c < in; c += 32) {
+        const __m256i v = _mm256_loadu_si256(reinterpret_cast<const __m256i*>(x + c));
+        unsigned mask = static_cast<unsigned>(_mm256_movemask_ps(_mm256_castsi256_ps(_mm256_cmpgt_epi32(v, zero))));
+        while (mask != 0) {
+            const int b = c / 4 + std::countr_zero(mask);
+            mask &= mask - 1;
+            std::int32_t four = 0;
+            std::memcpy(&four, x + 4 * b, 4);
+            const __m256i xb = _mm256_set1_epi32(four);
+            const std::int8_t* w = wb + static_cast<std::size_t>(b) * NQ * 32;
+            for (int q = 0; q < NQ; ++q)
+                acc[q] = _mm256_add_epi32(acc[q], _mm256_madd_epi16(_mm256_maddubs_epi16(xb, _mm256_loadu_si256(reinterpret_cast<const __m256i*>(w + q * 32))), ones));
+        }
+    }
+    for (int q = 0; q < NQ; ++q) _mm256_storeu_si256(reinterpret_cast<__m256i*>(s + q * 8), acc[q]);
+}
+#endif
+
+// s[k] = b[k] + sum_i w[k][i] * x[i] for k < out. SIMD: the block kernel on the regrouped weights (outp = out padded to
+// 16 sums are written, s needs room for them); scalar: one dense dot per output row of the file layout.
+void layer(const std::uint8_t* x, int in, const std::vector<std::int8_t>& w, const std::vector<std::int8_t>& wb,
+           const std::vector<std::int32_t>& b, int out, int outp, std::int32_t* s) {
+#if (defined(__AVX512VNNI__) && defined(__AVX512BW__)) || defined(__AVX2__)
+    if (!g_force_scalar) {
+#if defined(__AVX512VNNI__) && defined(__AVX512BW__)
+        constexpr int Group = 16;
+#else
+        constexpr int Group = 8;
+#endif
+        switch (outp) {  // pad16(L2 or L3), L2 / L3 <= 64
+        case 16: block_affine<16 / Group>(x, in, wb.data(), s); break;
+        case 32: block_affine<32 / Group>(x, in, wb.data(), s); break;
+        case 48: block_affine<48 / Group>(x, in, wb.data(), s); break;
+        default: block_affine<64 / Group>(x, in, wb.data(), s); break;
+        }
+        for (int k = 0; k < out; ++k) s[k] += b[static_cast<std::size_t>(k)];
+        return;
+    }
+#endif
+    (void)wb;
+    (void)outp;
+    for (int k = 0; k < out; ++k)
+        s[k] = b[static_cast<std::size_t>(k)] + dot(w.data() + static_cast<std::size_t>(k) * static_cast<std::size_t>(in), x, in);
 }
 
 std::uint8_t lin(std::int32_t s, int shift) { return static_cast<std::uint8_t>(std::clamp(s >> shift, 0, 127)); }
@@ -230,6 +348,8 @@ bool load(const std::string& path, std::string& error) {
     net->in1 = pad32(l1);
     net->in2 = pad32(2 * l2);
     net->in3 = pad32(2 * l2 + 2 * l3);
+    net->out1 = pad16(l2);
+    net->out2 = pad16(l3);
     net->hash = net_hash;
     net->path = path;
     if (!r.array(net->ft_bias, static_cast<std::size_t>(l1)) ||
@@ -246,6 +366,8 @@ bool load(const std::string& path, std::string& error) {
             !r.array(b3, 1) || !r.array(st.w3, static_cast<std::size_t>(net->in3)))
             return fail(error, "file ends inside a layer stack");
         st.b3 = b3[0];
+        st.w1b = regroup(st.w1, l2, net->in1, net->out1);
+        st.w2b = regroup(st.w2, l3, net->in2, net->out2);
     }
     if (r.pos() != data.size()) return fail(error, "trailing bytes after the last layer stack");
     // int16 accumulators must not overflow: bias + 32 active features x the largest weight of each output
@@ -311,13 +433,45 @@ void refresh(const Board& board, Color perspective, std::int16_t* out) {
 void apply(const std::int16_t* parent, std::int16_t* child, Color perspective, int king_square, int bucket,
            const nnue::DirtyPieces& dirty) {
     const Net& n = *g_net;
-    if (child != parent) std::memcpy(child, parent, sizeof(std::int16_t) * static_cast<std::size_t>(n.l1));
+    std::array<const std::int8_t*, 4> rows{};
+    std::array<bool, 4> adds{};
     for (int c = 0; c < dirty.count; ++c) {
         const nnue::PieceChange& pc = dirty.changes[static_cast<std::size_t>(c)];
-        const std::int8_t* w = n.ft_weight.data() +
-                               static_cast<std::size_t>(feature_index(perspective, pc.piece, pc.square, king_square, bucket)) * n.l1;
-        if (pc.add) row_add(child, w, n.l1);
-        else row_sub(child, w, n.l1);
+        rows[static_cast<std::size_t>(c)] =
+            n.ft_weight.data() + static_cast<std::size_t>(feature_index(perspective, pc.piece, pc.square, king_square, bucket)) * n.l1;
+        adds[static_cast<std::size_t>(c)] = pc.add;
+    }
+    // one pass: every chunk of the parent row is loaded once, all changes applied in registers, stored once (int16
+    // additions wrap, so the order of the changes does not matter; parent may equal child)
+#if defined(__AVX512BW__)
+    if (!g_force_scalar) {
+        for (int j = 0; j < n.l1; j += 32) {
+            __m512i a = _mm512_loadu_si512(parent + j);
+            for (int c = 0; c < dirty.count; ++c) {
+                const __m512i w = _mm512_cvtepi8_epi16(_mm256_loadu_si256(reinterpret_cast<const __m256i*>(rows[static_cast<std::size_t>(c)] + j)));
+                a = adds[static_cast<std::size_t>(c)] ? _mm512_add_epi16(a, w) : _mm512_sub_epi16(a, w);
+            }
+            _mm512_storeu_si512(child + j, a);
+        }
+        return;
+    }
+#elif defined(__AVX2__)
+    if (!g_force_scalar) {
+        for (int j = 0; j < n.l1; j += 16) {
+            __m256i a = _mm256_loadu_si256(reinterpret_cast<const __m256i*>(parent + j));
+            for (int c = 0; c < dirty.count; ++c) {
+                const __m256i w = _mm256_cvtepi8_epi16(_mm_loadu_si128(reinterpret_cast<const __m128i*>(rows[static_cast<std::size_t>(c)] + j)));
+                a = adds[static_cast<std::size_t>(c)] ? _mm256_add_epi16(a, w) : _mm256_sub_epi16(a, w);
+            }
+            _mm256_storeu_si256(reinterpret_cast<__m256i*>(child + j), a);
+        }
+        return;
+    }
+#endif
+    if (child != parent) std::memcpy(child, parent, sizeof(std::int16_t) * static_cast<std::size_t>(n.l1));
+    for (int c = 0; c < dirty.count; ++c) {
+        if (adds[static_cast<std::size_t>(c)]) row_add(child, rows[static_cast<std::size_t>(c)], n.l1);
+        else row_sub(child, rows[static_cast<std::size_t>(c)], n.l1);
     }
 }
 
@@ -325,26 +479,26 @@ std::int64_t evaluate_raw(const Board& board, const std::int16_t* white, const s
     const Net& n = *g_net;
     const Stack& st = n.stacks[static_cast<std::size_t>(stack_index(board))];
     const bool white_to_move = board.side_to_move() == White;
-    alignas(64) std::array<std::uint8_t, MaxL1> ft{};
+    // pairwise() writes all of [0, l1) = [0, in1) (l1 is a multiple of 64): no zero fill needed
+    alignas(64) std::array<std::uint8_t, MaxL1> ft;
     const int half = n.l1 / 2;
     pairwise(white_to_move ? white : black, ft.data(), half);
     pairwise(white_to_move ? black : white, ft.data() + half, half);
-    std::array<std::int32_t, MaxL2> s1{};
-    alignas(64) std::array<std::uint8_t, 2 * MaxL2 + 2 * MaxL3 + 32> x{};  // [sq1, lin1, sq2, lin2], zero padding
+    alignas(64) std::array<std::int32_t, MaxL2> s1;  // layer() writes out1 = pad16(l2) <= MaxL2 sums
+    layer(ft.data(), n.in1, st.w1, st.w1b, st.b1, n.l2, n.out1, s1.data());
+    // [sq1, lin1] feed l2 (zero padding up to in2); [sq1, lin1, sq2, lin2] feed the output (zero padding up to in3)
+    alignas(64) std::array<std::uint8_t, 2 * MaxL2 + 2 * MaxL3 + 32> x;
     for (int k = 0; k < n.l2; ++k) {
-        s1[static_cast<std::size_t>(k)] = st.b1[static_cast<std::size_t>(k)] +
-                                          dot(st.w1.data() + static_cast<std::size_t>(k) * n.in1, ft.data(), n.in1);
         x[static_cast<std::size_t>(k)] = sqr(s1[static_cast<std::size_t>(k)], 21, 20);
         x[static_cast<std::size_t>(n.l2 + k)] = lin(s1[static_cast<std::size_t>(k)], 7);
     }
-    alignas(64) std::array<std::uint8_t, 2 * MaxL3 + 32> x3{};
+    std::fill(x.begin() + 2 * n.l2, x.begin() + n.in2, std::uint8_t{0});
+    alignas(64) std::array<std::int32_t, MaxL3> s2;
+    layer(x.data(), n.in2, st.w2, st.w2b, st.b2, n.l3, n.out2, s2.data());
     for (int k = 0; k < n.l3; ++k) {
-        const std::int32_t s2 = st.b2[static_cast<std::size_t>(k)] + dot(st.w2.data() + static_cast<std::size_t>(k) * n.in2, x.data(), n.in2);
-        x3[static_cast<std::size_t>(k)] = sqr(s2, 19, 5);
-        x3[static_cast<std::size_t>(n.l3 + k)] = lin(s2, 6);
+        x[static_cast<std::size_t>(2 * n.l2 + k)] = sqr(s2[static_cast<std::size_t>(k)], 19, 5);
+        x[static_cast<std::size_t>(2 * n.l2 + n.l3 + k)] = lin(s2[static_cast<std::size_t>(k)], 6);
     }
-    // the output layer reads [sq1, lin1, sq2, lin2]: copy the second block right behind the first
-    std::copy(x3.begin(), x3.begin() + 2 * n.l3, x.begin() + 2 * n.l2);
     std::fill(x.begin() + 2 * n.l2 + 2 * n.l3, x.begin() + n.in3, std::uint8_t{0});
     const std::int64_t s3 = st.b3 + dot(st.w3.data(), x.data(), n.in3);
     const std::int64_t total = s3 + s1[static_cast<std::size_t>(n.l2 - 2)] - s1[static_cast<std::size_t>(n.l2 - 1)];
