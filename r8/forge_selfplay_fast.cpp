@@ -52,6 +52,7 @@ namespace {
 
 struct Options {
     std::string engine, out, openings, prefix = "forge_selfplay_fast";
+    int check_nodes = 0;  // > 0: nodes for in-check positions (never recorded); 0 = --nodes (the live rule)
     int workers = 1, nodes = 5000, hash = 16, opening_plies = 8, max_ply = 300, adjudicate_cp = 2000,
         adjudicate_plies = 4, max_score = 3000;
     double max_minutes = 0, progress_seconds = 60;
@@ -457,7 +458,8 @@ void worker(int id, const Options& o, Output& out, Stats& st, const std::vector<
             if (result >= 0) break;
             if (stop) { result = -2; break; }
             Reply r;
-            if (!search(e, g, o.nodes, r, st)) { result = -3; break; }
+            const int budget = (o.check_nodes > 0 && g.board.in_check()) ? o.check_nodes : o.nodes;
+            if (!search(e, g, budget, r, st)) { result = -3; break; }
             const auto mv = g.board.parse_uci(r.best);
             if (!mv || !r.has_score) { ++st.errors; result = -3; break; }  // python: RuntimeError (no score / illegal)
             const Move m = *mv;
@@ -523,6 +525,7 @@ int main(int argc, char** argv) {
         else if (k == "--workers") o.workers = std::stoi(v);
         else if (k == "--cpus") o.cpus = parse_cpus(v);
         else if (k == "--nodes") o.nodes = std::stoi(v);
+        else if (k == "--check-nodes") o.check_nodes = std::stoi(v);
         else if (k == "--hash") o.hash = std::stoi(v);
         else if (k == "--max-minutes") o.max_minutes = std::stod(v);
         else if (k == "--games-per-worker") o.games_per_worker = std::stoll(v);
