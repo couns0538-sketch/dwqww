@@ -6,6 +6,35 @@ rules of the driver). Everything new is in `r8/` (README = how to build, run and
 touched; every test ran beside them in `F:\opus_scratch\r8\`, BelowNormal, pinned to CPUs 0-11 (tests on 8-9),
 <= 3 threads.
 
+## R8 review fixes (v5, 2026-10-29 19:43-20:20 PC clock) — DONE
+The code review of `1436e922` said FIX; all seven items are in `r8/forge_selfplay_fast.cpp` v5 (final build sha256
+`26b0ed13...` in `F:\opus_scratch\r8\v5final\` with its `dedup_against_db.py`; all hashes in `r8/logs/v5/EXES_SHA256.txt`),
+`r8/tools/dedup_against_db.py`, `r8/tests/`. The test suite passed 15/15 three times (two v5 builds, the final one:
+`r8/logs/v5/test_run{1,2,3_final}.log`). Tests ran beside the live
+pipeline on CPUs 2-3 (driver BelowNormal, engines Idle); live self-play, gate and trainer were not touched.
+
+| # | review item | v5 | evidence |
+|---|---|---|---|
+| 1 HIGH | seed when `--seed` is missing | `random_device ^ time ^ pid`, printed at start (`seed=...`) and in every `.pos.info`; `--seed S` reproduces a run | `seed_random` (two runs: different seeds, different games), `seed_fixed` (same seed twice: identical bytes), `r8/logs/v5/test_run2.log` |
+| 2 | engine timeout | 180 s deadline on every answer (uciok, readyok, bestmove) by a watchdog; a silent engine is killed and restarted, a dead one restarted; 6 failures in a row end a worker; exit 3 when every engine is dead | `timeout_kill_restart` (hang at the 5th go: killed after 3 s, restarted, 2 games done), `exit_restart`, `all_dead_exit3` (2 workers, rc 3) |
+| 3 | safe shards | `.txt.part` / `.pos.part` renamed only when complete; 1,000,000 lines or 30 min per shard; flush at game boundaries every 5 s; STOP file = clean exit; `--resume` keeps every complete line of a killed shard and rebuilds its `.pos` | `stop_rotation` (3 shards, no `.part` left, each `.pos` == text), `stop_file_blocks_start`, `hard_kill_leaves_part` (47,141 complete lines, 0 torn bytes, no engine left alive), `resume_salvage` (all 47,141 kept, `.pos` == text) |
+| 4 | RAM | dedup table 64 MB (was 512), `.pos` boards streamed to disk (3 bytes/record in memory, was 35); real RSS: driver **70.9 MB**, engine 25 MB, job peak commit **120 MB** (1 worker, real engine); driver peak **75.6 MB** over a full 1M-line shard with `--pos`; post-step peak 224 MB for ~25-90 s per 1M-line shard | `r8/logs/v5/rss.log` |
+| 5 | dedup | the driver runs `dedup_against_db.py --shard` after every shard (live DB read only + own DB of the folder) -> `.dedup.txt/.pos/.json`; `--no-global-dedup` records the data change in every `.pos.info` | `post_step_unit` (live / own / inside / killed-attempt / stale-output cases), `post_step_driver` (10 planted keys found, `.dedup.pos` == text), real engine 2 min: 8.6% already in the live DB (R8: 8.5%), `r8/logs/v5/post_step_*.json` |
+| 6 | lows | every write / flush / rename / close checked (exit 4, `.part` kept); existing `--out` refused without `--resume`; one driver per folder; driver BelowNormal, pinned to `--cpus` (default 12-15), in a kill-on-close job object with its engines and post-steps | `write_error_exit4`, `refuse_out`, `one_driver_per_folder`, `hard_kill_leaves_part` (0 engines alive after the kill) |
+| 7 | identity, rebuild, 60-opening compare | PC copy sha256 `9ff8a48b...` = git blob `43b5a863` = `tools/nnue/forge_selfplay.py` of commit `24aa08c6`; **`0ba4f696` does not resolve** (not a commit/object here or on GitHub, not a hash prefix of the file): owner item. Rebuilt on the PC; the live `play_game()` and the v5 driver give **byte-identical** 5,499 records on the 60 openings (sha256 `5d1e6783...`, = the R8 reference) | `r8/logs/v5/forge_selfplay_identity.txt`, `r8/logs/v5/eq.log` |
+
+Findings while fixing:
+- The live DB is written while the live pipeline runs (checkpoint every few seconds): an `immutable=1` reader's page
+  cache goes stale and a lookup fails with "database disk image is malformed" (1 of 2 whole-shard runs at 20:03, then
+  every retry). The tool now retries each failed lookup on a fresh connection and refreshes the connection every
+  20,000 lookups: 1M lines then finished in 24.5 s with 1 retried error, and the JSON says `exact: false`
+  (best effort; exact once the live pipeline is stopped). Writing to the live DB's `-shm` (what a normal WAL reader
+  does) is not allowed, so a consistent snapshot read is not possible beside the live pipeline.
+- The venv `python.exe` is a launcher that starts the real interpreter as a child: memory of a Python step must be
+  measured over the process tree (`r8/tests/peak_rss.py`), the first post-step reading (4.9 MB) was the launcher only.
+- `equivalence_ref.py` passed `--cpus 8-9` to the live parser, which checks it against the process's CPUs: it now has
+  `--cpus` (the value is only validated, the reference pins nothing).
+
 ## Summary
 | | live pipeline (baseline) | `forge_selfplay_fast` (after) |
 |---|---|---|
@@ -104,14 +133,16 @@ process stalls the workers. Nothing was killed or restarted; restarting is the o
 
 ## How to switch on (owner)
 See `r8/README.md`. In short:
-1. Take `F:\opus_scratch\r8\driver\forge_selfplay_fast_v4.exe` (sha256 `1768770ebff208edca0968bb12a10ea5101d382b32699c19fcf48ab8f7be2861`)
-   or build it from this branch (`r8/tools/build_driver.py`).
+1. Take the v5 build `F:\opus_scratch\r8\v5final\forge_selfplay_fast.exe` (with `dedup_against_db.py` next to it; sha256
+   in `r8/logs/v5/EXES_SHA256.txt`) or build it from this branch (`r8/tools/build_driver.py`) into a new folder.
 2. Run it instead of the `forge_selfplay.py` line of `selfplay_guard.py`, with the same engine and CPUs, into a new
-   folder: `forge_selfplay_fast_v4.exe --engine C:\Users\Administrator\grok-pc\nnue\forge.exe --out
-   D:\grok-pc-data\selfplay_out_fast --workers 2 --cpus 12-15 --nodes 5000 --hash 16 --pos`. It writes the same text
-   lines plus ready `.pos` + `.pos.info` files (the text -> .pos step can be skipped).
-3. Optional: `r8/tools/dedup_against_db.py <live forge_seen_hashes.sqlite3> <kept.txt> <driver.txt>` before
-   training, to keep the global de-duplication (about 8.5% of new positions are old ones).
+   folder: `forge_selfplay_fast.exe --engine C:\Users\Administrator\grok-pc\nnue\forge.exe --out
+   D:\grok-pc-data\selfplay_out_fast --workers 2 --nodes 5000 --hash 16 --pos` (v5: CPUs 12-15, driver
+   BelowNormal in a job object, 1M-line / 30-minute shards, STOP file `<out>\STOP`, `--resume` after a stop or kill).
+   It writes the same text lines plus ready `.pos` + `.pos.info` files (the text -> .pos step can be skipped).
+3. v5: the global de-duplication runs by itself after every shard (`<shard>.dedup.txt/.pos`, about 8.5% of new
+   positions are old ones); train on the `.dedup.*` files. Stop the live pipeline first: while it writes its DB the
+   lookups are best effort (`exact: false` in `.dedup.json`).
 Expected with the live layout (2 workers, CPUs 12-15): about +33% positions per hour at the same CPU footprint
 (projected from the 1-worker A/B; 2 workers on 12-15 were not run, they belong to the live pipeline's CPUs).
 

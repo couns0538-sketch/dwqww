@@ -1269,7 +1269,12 @@ int main(int argc, char** argv) {
     if (!make_job(o.job_memory_mb, job_note)) return usage(job_note.c_str());
     SetConsoleCtrlHandler(on_console, TRUE);
 
-    // the output folder: new unless --resume, one driver at a time, the STOP file, the post-step tools
+    // the post-step tools (checked before --out is touched), then the output folder: new unless --resume, one driver
+    // at a time, the STOP file
+    if (o.global_dedup) {
+        for (const std::string* p : {&o.dedup_db, &o.post_python, &o.post_script})
+            if (!exists(*p)) return usage(("global dedup needs " + *p + " (or pass --no-global-dedup, a data change)").c_str());
+    }
     const DWORD attr = GetFileAttributesA(o.out.c_str());
     if (attr != INVALID_FILE_ATTRIBUTES && !o.resume) return usage(("--out " + o.out + " exists: pass --resume to continue in it").c_str());
     if (attr != INVALID_FILE_ATTRIBUTES && !(attr & FILE_ATTRIBUTE_DIRECTORY)) return usage(("--out " + o.out + " is a file").c_str());
@@ -1281,10 +1286,6 @@ int main(int argc, char** argv) {
     if (exists(o.stop_file)) {
         say("STOP file %s exists: not starting (remove it to run)", o.stop_file.c_str());
         return 0;
-    }
-    if (o.global_dedup) {
-        for (const std::string* p : {&o.dedup_db, &o.post_python, &o.post_script})
-            if (!exists(*p)) return usage(("global dedup needs " + *p + " (or pass --no-global-dedup, a data change)").c_str());
     }
     const auto openings = o.openings.empty() ? std::vector<std::vector<std::string>>{} : load_openings(o.openings);
 

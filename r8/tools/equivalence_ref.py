@@ -3,7 +3,7 @@ plays fixed openings, so its records can be compared line by line with forge_sel
 
 usage:
   python -I -B equivalence_ref.py gen <n> <seed> <openings.txt>      n openings of 8 uniformly random legal plies
-  python -I -B equivalence_ref.py ref <engine.exe> <openings.txt> <out.txt> [--own-book false]
+  python -I -B equivalence_ref.py ref <engine.exe> <openings.txt> <out.txt> [--own-book false] [--cpus 8-9]
 'ref' builds the live script's arguments with its own defaults (nodes 5000, opening plies 8, max ply 300,
 adjudication 2000 cp x 4 plies, max score 3000), opens the engine with the live MeteredUCI protocol, configures
 Threads 1, Hash 16 (and OwnBook, default false here as in the driver), and for each opening calls play_game() with a
@@ -65,9 +65,9 @@ def gen(n, seed, path):
     print(f"wrote {n} openings to {path}")
 
 
-def ref(engine_exe, openings, out_path, own_book):
+def ref(engine_exe, openings, out_path, own_book, cpus="8-9"):
     live = load_live()
-    args = live.arguments(["--engine", engine_exe, "--workers", "1", "--cpus", "8-9", "--nodes", "5000"])
+    args = live.arguments(["--engine", engine_exe, "--workers", "1", "--cpus", cpus, "--nodes", "5000"])  # cpus: only checked by the live parser
     engine = chess.engine.SimpleEngine.popen(live.MeteredUCI, [args.engine], timeout=args.engine_timeout)
     engine.configure({"Threads": 1, "Hash": 16, "OwnBook": own_book})
     lines, games = [], 0
@@ -93,4 +93,5 @@ if __name__ == "__main__":
         gen(int(sys.argv[2]), int(sys.argv[3]), sys.argv[4])
     else:
         ob = sys.argv[sys.argv.index("--own-book") + 1] == "true" if "--own-book" in sys.argv else False
-        ref(sys.argv[2], sys.argv[3], sys.argv[4], ob)
+        cpus = sys.argv[sys.argv.index("--cpus") + 1] if "--cpus" in sys.argv else "8-9"
+        ref(sys.argv[2], sys.argv[3], sys.argv[4], ob, cpus)

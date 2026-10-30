@@ -14,8 +14,11 @@ usage 2 (R8, ad hoc):
   A line is kept when its key is neither in the database nor already kept in this run; --count-only measures the
   duplicate rate without writing <out.txt>. Prints lines read, kept, duplicates vs the database and inside the input.
 Key = blake2b-128 of the first four FEN fields, exactly forge_selfplay.position_hash(). With immutable=1, rows that
-are still only in the live DB's WAL are not seen, and the file must not change while it is read: when the live
-pipeline runs at the same time a lookup can fail (exit 3; the driver retries the shard on --resume)."""
+are still only in the live DB's WAL are not seen. The result is exact when the live DB does not change (the live
+pipeline is stopped, i.e. after the switch to the driver). While the live pipeline writes (a WAL checkpoint every few
+seconds) an immutable connection sees stale or torn pages: the tool then retries each failed lookup on a fresh
+connection (and opens a fresh one every 20,000 lookups), so it finishes, but a few keys can be missed; the JSON
+records live_db.changed_during_scan, read_errors_retried and exact (2026-10-29: 1M lines, 1 retried error, 24.5 s)."""
 import hashlib
 import json
 import os
@@ -36,6 +39,92 @@ def open_live(path):
     con = sqlite3.connect(uri, uri=True)
     con.execute("PRAGMA query_only=1")
     return con
+
+
+LIVE_ATTEMPTS, LIVE_REFRESH = 8, 20000
+
+
+class LiveReadError(Exception):
+    pass
+
+
+class LiveDB:
+    """Lookups in the live hash DB, read only (immutable=1). While the live pipeline writes to it (a WAL checkpoint
+    every few seconds), an immutable connection's page cache goes stale and a lookup can fail ("database disk image
+    is malformed") or, rarely, miss a key. So: a small cache, a fresh connection every LIVE_REFRESH lookups and after
+    every error, and up to LIVE_ATTEMPTS tries per lookup. The result is exact for a static DB (the live pipeline
+    stopped) and best effort while it writes; size/mtime before and after are recorded."""
+
+    def __init__(self, path):
+        self.path, self.con, self.n, self.errors = path, None, 0, 0
+        self.before = self.stat()
+        self.reopen()
+
+    def stat(self):
+        wal = self.path + "-wal"
+        return {"bytes": os.path.getsize(self.path), "mtime": os.path.getmtime(self.path),
+                "wal_bytes": os.path.getsize(wal) if os.path.exists(wal) else 0}
+
+    def reopen(self):
+        if self.con is not None:
+            self.con.close()
+        self.con = open_live(self.path)
+        self.con.execute("PRAGMA cache_size=64")
+        self.n = 0
+
+    def contains(self, key):
+        for attempt in range(1, LIVE_ATTEMPTS + 1):
+            try:
+                if self.n >= LIVE_REFRESH:
+                    self.reopen()
+                self.n += 1
+                return self.con.execute("SELECT 1 FROM hashes WHERE hash = ?", (key,)).fetchone() is not None
+            except sqlite3.DatabaseError as exc:
+                self.errors += 1
+                if attempt == LIVE_ATTEMPTS:
+                    raise LiveReadError(f"{exc} ({LIVE_ATTEMPTS} tries)") from exc
+                time.sleep(0.05 * attempt)
+                self.reopen()
+
+    def close(self):
+        self.con.close()
+
+    def summary(self):
+        after = self.stat()
+        return {"path": self.path, "bytes": after["bytes"],
+                "mtime": time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(after["mtime"])),
+                "changed_during_scan": after != self.before, "read_errors_retried": self.errors,
+                "exact": after == self.before and after["wal_bytes"] == 0}
+
+
+def scan(txt, out_part, live, own, sid):
+    """One pass over the shard: classify every line, write the kept ones to out_part (rewritten by a retry)."""
+    seen, keep = set(), array("L")
+    read = dup_live = dup_own = dup_self = 0
+    with open(txt, "rb") as f, open(out_part, "wb") as w:  # the .part is the tool's own temp file
+        for raw in f:
+            if not raw.endswith(b"\n"):
+                raise ValueError(f"unterminated last line in {txt}")
+            key = position_key(raw.split(b"|", 1)[0].strip())
+            if key in seen:
+                dup_self += 1
+                read += 1
+                continue
+            if live is not None and live.contains(key):
+                dup_live += 1
+                read += 1
+                continue
+            row = own.execute("SELECT shard FROM hashes WHERE hash = ?", (key,)).fetchone()
+            if row is not None and row[0] != sid:  # rows of this shard itself come from an earlier, killed attempt
+                dup_own += 1
+            else:
+                seen.add(key)
+                keep.append(read)
+                w.write(raw)
+            read += 1
+        w.flush()
+        os.fsync(w.fileno())
+    return seen, keep, read, dup_live, dup_own, dup_self
 
 
 def publish(part, final):
@@ -63,7 +152,7 @@ def shard_mode(base, live_db, own_db):
         print(f"ERROR: {txt} not found")
         return 3
     t0 = time.time()
-    live = None if live_db.lower() == "none" else open_live(live_db)
+    live = None if live_db.lower() == "none" else LiveDB(live_db)
     own = sqlite3.connect(own_db)
     own.execute("PRAGMA journal_mode=WAL")
     own.execute("PRAGMA synchronous=FULL")
@@ -75,29 +164,14 @@ def shard_mode(base, live_db, own_db):
     with own:
         own.execute("INSERT OR IGNORE INTO shards(name) VALUES (?)", (name,))
     sid = own.execute("SELECT id FROM shards WHERE name = ?", (name,)).fetchone()[0]
-    seen, keep = set(), array("L")
-    read = dup_live = dup_own = dup_self = 0
-    with open(txt, "rb") as f, open(out_txt + ".part", "wb") as w:  # the .part is the tool's own temp file
-        for raw in f:
-            if not raw.endswith(b"\n"):
-                print(f"ERROR: unterminated last line in {txt}")
-                return 3
-            key = position_key(raw.split(b"|", 1)[0].strip())
-            if key in seen:
-                dup_self += 1
-            elif live is not None and live.execute("SELECT 1 FROM hashes WHERE hash = ?", (key,)).fetchone():
-                dup_live += 1
-            else:
-                row = own.execute("SELECT shard FROM hashes WHERE hash = ?", (key,)).fetchone()
-                if row is not None and row[0] != sid:  # rows of this shard itself come from an earlier, killed attempt
-                    dup_own += 1
-                else:
-                    seen.add(key)
-                    keep.append(read)
-                    w.write(raw)
-            read += 1
-        w.flush()
-        os.fsync(w.fileno())
+    try:
+        seen, keep, read, dup_live, dup_own, dup_self = scan(txt, out_txt + ".part", live, own, sid)
+    except LiveReadError as exc:
+        print(f"ERROR: the live DB could not be read: {exc} (is the live pipeline writing to it?)")
+        return 3
+    except ValueError as exc:
+        print(f"ERROR: {exc}")
+        return 3
     have_pos = os.path.exists(pos)
     if have_pos:
         data = Path(pos).read_bytes()
@@ -114,7 +188,9 @@ def shard_mode(base, live_db, own_db):
     with own:  # one transaction: the kept keys of this shard
         own.executemany("INSERT OR IGNORE INTO hashes(hash, shard) VALUES (?, ?)", ((k, sid) for k in seen))
     own.close()
+    live_stat = None
     if live is not None:
+        live_stat = live.summary()
         live.close()
     if have_pos:
         info = (f"source={out_txt}\nlines={len(keep)}\nrecords={len(keep)}\nbad=0\n"
@@ -124,15 +200,16 @@ def shard_mode(base, live_db, own_db):
         publish(out_info + ".part", out_info)
     publish(out_txt + ".part", out_txt)
     el = time.time() - t0
-    live_stat = None if live is None else {"path": live_db, "bytes": os.path.getsize(live_db),
-                                           "mtime": time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(os.path.getmtime(live_db)))}
     summary = {"shard": name, "txt": txt, "pos": pos if have_pos else None, "read": read, "kept": len(keep),
                "dup_live": dup_live, "dup_own": dup_own, "dup_self": dup_self, "seconds": round(el, 1),
                "live_db": live_stat, "own_db": own_db, "tool": "dedup_against_db.py --shard (R8 v5)"}
     write_part(done + ".part", (json.dumps(summary, indent=1) + "\n").encode("ascii"))
     publish(done + ".part", done)
+    note = "" if live_stat is None else (
+        "; live DB static: exact" if live_stat["exact"] else
+        f"; live DB changed during the scan ({live_stat['read_errors_retried']} read errors retried): best effort")
     print(f"{name}: read {read}, kept {len(keep)}, duplicates: live DB {dup_live}, own DB {dup_own}, inside {dup_self}; "
-          f"{el:.1f} s")
+          f"{el:.1f} s{note}")
     return 0
 
 

@@ -1,0 +1,87 @@
+== 19:59:09 RSS test A: fake engine, defaults (dedup 64 MB bounded, 1M lines per shard) + --pos, 1 worker, CPUs 2-3, 2.5 min
+[19:59:09] forge_selfplay_fast v5: 1 worker(s), CPUs 2,3, Threads=1, Hash=16, OwnBook=false; 5000 nodes/move; engine F:\opus_scratch\r8\v5\fake_engine.exe; out F:\opus_scratch\r8\v5\rss\fakeA
+[19:59:09] seed=12058025948535954476 (random_device ^ time ^ pid)
+[19:59:09] driver BelowNormal on mask 0xc; engines Idle; driver, engines and post-steps in one job object (kill on close)
+[19:59:09] shards: 1000000 lines or 30.0 minutes, flush every 5.0 s, STOP file F:\opus_scratch\r8\v5\rss\fakeA\STOP; engine timeout 180 s, 5 restarts in a row
+[19:59:09] DATA CHANGE: global dedup OFF (--no-global-dedup): positions already in the live hash DB are kept; recorded in .pos.info
+[19:59:09] worker 1: engine PID 5080, affinity 0xc, Idle
+[19:59:29] Elapsed 0.006 h: games=818 positions=155160 positions/h=27880905 eligible=156583 errors=0 restarts=0 search=94.1% shards=0; RSS driver 73.0 MB (peak 73.2, private 70.5), engines 6.6 MB (private 2.9), job peak commit 74.6 MB
+[19:59:49] Elapsed 0.011 h: games=1609 positions=308300 positions/h=27659946 eligible=311077 errors=0 restarts=0 search=94.4% shards=0; RSS driver 73.6 MB (peak 73.7, private 71.3), engines 6.8 MB (private 3.0), job peak commit 75.7 MB
+[20:00:10] Elapsed 0.017 h: games=2426 positions=464963 positions/h=27799508 eligible=469033 errors=0 restarts=0 search=94.4% shards=0; RSS driver 73.9 MB (peak 73.9, private 71.5), engines 6.7 MB (private 2.9), job peak commit 75.7 MB
+[20:00:30] Elapsed 0.022 h: games=3217 positions=619959 positions/h=27812594 eligible=625295 errors=0 restarts=0 search=94.5% shards=0; RSS driver 74.4 MB (peak 75.0, private 72.8), engines 6.9 MB (private 3.1), job peak commit 77.8 MB
+[20:00:50] Elapsed 0.028 h: games=4022 positions=773255 positions/h=27758008 eligible=779988 errors=0 restarts=0 search=94.5% shards=0; RSS driver 74.8 MB (peak 75.0, private 72.8), engines 7.0 MB (private 3.2), job peak commit 77.8 MB
+[20:01:10] Elapsed 0.033 h: games=4843 positions=929995 positions/h=27830552 eligible=938180 errors=0 restarts=0 search=94.5% shards=0; RSS driver 75.2 MB (peak 75.2, private 73.5), engines 7.0 MB (private 3.3), job peak commit 77.9 MB
+[20:01:19] finished F:\opus_scratch\r8\v5\rss\fakeA\forge_selfplay_fast_001.txt: 1000000 lines (+ .pos, .pos.info)
+[20:01:30] Elapsed 0.039 h: games=5604 positions=1079570 positions/h=27693518 eligible=1089051 errors=0 restarts=0 search=94.5% shards=1; RSS driver 75.5 MB (peak 75.6, private 72.8), engines 7.1 MB (private 3.3), job peak commit 77.9 MB
+[20:01:40] Elapsed 0.042 h: games=5977 positions=1152044 positions/h=27583234 eligible=1162116 errors=0 restarts=0 search=94.4% shards=1; RSS driver 75.4 MB (peak 75.6, private 72.8), engines 0.0 MB (private 0.0), job peak commit 77.9 MB
+[20:01:40] finished F:\opus_scratch\r8\v5\rss\fakeA\forge_selfplay_fast_002.txt: 152044 lines (+ .pos, .pos.info)
+[20:01:40] searches=1376255 not recorded: bound=0 in_check=82035 capture_or_promotion=132052 mate=0 abs_cp_over_max=0 (games that did not finish are not counted as positions)
+[20:01:40] DONE: 0.042 h, games=5977 positions=1152044 positions/h=27582797 eligible=1162116 errors=0 dedup_removed=10072 restarts=0 timeouts=0 shards=2 post_steps=0 post_failures=0; RSS driver 75.4 MB (peak 75.6, private 72.8), engines 0.0 MB (private 0.0), job peak commit 77.9 MB
+[20:01:40] exit code 0
+peak_rss: exit 0, 150.4 s, peak working set 75.6 MB, peak private 73.5 MB
+== 20:01:52 post-step on the full 1M-line shard: live DB (read only, immutable) + own DB, peak RSS
+run_pinned: affinity mask 0xc, BelowNormal: r8/tests/peak_rss.py
+forge_selfplay_fast_001: read 1000000, kept 998234, duplicates: live DB 1766, own DB 0, inside 0; 87.2 s
+peak_rss: exit 0, 87.5 s, peak working set 4.9 MB, peak private 0.8 MB
+== 20:03:46 post-step again on a copy of the 1M-line shard (fresh own DB), peak RSS of the process tree
+run_pinned: affinity mask 0xc, BelowNormal: r8/tests/peak_rss.py
+Traceback (most recent call last):
+  File "D:\grok-pc-data\dwqww\.claude\worktrees\opus-r8-datagen\r8\tools\dedup_against_db.py", line 178, in <module>
+    sys.exit(shard_mode(arg("--shard"), arg("--live-db"), arg("--own-db")))
+  File "D:\grok-pc-data\dwqww\.claude\worktrees\opus-r8-datagen\r8\tools\dedup_against_db.py", line 88, in shard_mode
+    elif live is not None and live.execute("SELECT 1 FROM hashes WHERE hash = ?", (key,)).fetchone():
+sqlite3.DatabaseError: database disk image is malformed
+peak_rss: exit 1, 4.2 s, peak working set 47.6 MB, peak private 36.1 MB
+== 20:04:31 post-step (with live-DB retry) on the copy of the 1M-line shard, peak RSS of the process tree
+run_pinned: affinity mask 0xc, BelowNormal: r8/tests/peak_rss.py
+live DB read failed (database disk image is malformed), attempt 1 of 5: retry in 15 s
+live DB read failed (database disk image is malformed), attempt 2 of 5: retry in 15 s
+live DB read failed (database disk image is malformed), attempt 3 of 5: retry in 15 s
+live DB read failed (database disk image is malformed), attempt 4 of 5: retry in 15 s
+live DB read failed (database disk image is malformed), attempt 5 of 5
+ERROR: the live DB could not be read consistently (is the live pipeline writing to it?)
+peak_rss: exit 3, 91.4 s, peak working set 99.3 MB, peak private 87.9 MB
+== 20:07:38 post-step (per-lookup retry, fresh connection every 20k lookups) on the copy of the 1M-line shard, peak RSS of the tree
+run_pinned: affinity mask 0xc, BelowNormal: r8/tests/peak_rss.py
+c_001: read 1000000, kept 998233, duplicates: live DB 1767, own DB 0, inside 0; 24.5 s; live DB changed during the scan (1 read errors retried): best effort
+peak_rss: exit 0, 24.8 s, peak working set 224.0 MB, peak private 213.4 MB
+{
+ "shard": "c_001",
+ "txt": "F:\\opus_scratch\\r8\\v5\\rss\\copyA\\c_001.txt",
+ "pos": "F:\\opus_scratch\\r8\\v5\\rss\\copyA\\c_001.pos",
+ "read": 1000000,
+ "kept": 998233,
+ "dup_live": 1767,
+ "dup_own": 0,
+ "dup_self": 0,
+ "seconds": 24.5,
+ "live_db": {
+  "path": "D:\\grok-pc-data\\selfplay_out\\forge_seen_hashes.sqlite3",
+  "bytes": 7581011968,
+  "mtime": "2026-10-29 20:08:01",
+  "changed_during_scan": true,
+  "read_errors_retried": 1,
+  "exact": false
+ },
+ "own_db": "F:\\opus_scratch\\r8\\v5\\rss\\copyA\\own.sqlite3",
+ "tool": "dedup_against_db.py --shard (R8 v5)"
+}
+== 20:09:17 RSS test B: real engine (forge_live_copy, sha 00e4178c), defaults + --pos + global dedup vs the live DB, 1 worker Idle, CPUs 2-3, 2 min
+[20:09:17] forge_selfplay_fast v5: 1 worker(s), CPUs 2,3, Threads=1, Hash=16, OwnBook=false; 5000 nodes/move; engine F:\opus_scratch\r8\engine\forge_live_copy.exe; out F:\opus_scratch\r8\v5\rss\realB
+[20:09:17] seed=13934751589360571908 (random_device ^ time ^ pid)
+[20:09:17] driver BelowNormal on mask 0xc; engines Idle; driver, engines and post-steps in one job object (kill on close)
+[20:09:17] shards: 1000000 lines or 30.0 minutes, flush every 5.0 s, STOP file F:\opus_scratch\r8\v5\rss\realB\STOP; engine timeout 180 s, 5 restarts in a row
+[20:09:17] global dedup: post-step F:\opus_scratch\r8\v5\rss\dedup_against_db_final.py after each shard (live DB D:\grok-pc-data\selfplay_out\forge_seen_hashes.sqlite3, read only)
+[20:09:18] worker 1: engine PID 5988, affinity 0xc, Idle
+[20:09:48] Elapsed 0.008 h: games=107 positions=9482 positions/h=1136119 eligible=9651 errors=0 restarts=0 search=99.1% shards=0; RSS driver 70.7 MB (peak 70.7, private 66.6), engines 24.9 MB (private 21.8), job peak commit 120.3 MB
+[20:10:18] Elapsed 0.017 h: games=213 positions=19370 positions/h=1159994 eligible=19707 errors=0 restarts=0 search=99.2% shards=0; RSS driver 70.7 MB (peak 70.7, private 66.7), engines 25.3 MB (private 22.1), job peak commit 120.3 MB
+[20:10:48] Elapsed 0.025 h: games=316 positions=28839 positions/h=1151861 eligible=29353 errors=0 restarts=0 search=99.3% shards=0; RSS driver 70.8 MB (peak 70.8, private 66.7), engines 25.2 MB (private 22.1), job peak commit 120.3 MB
+[20:11:18] Elapsed 0.033 h: games=418 positions=38482 positions/h=1152921 eligible=39206 errors=0 restarts=0 search=99.3% shards=0; RSS driver 70.8 MB (peak 70.8, private 66.8), engines 25.1 MB (private 21.9), job peak commit 120.3 MB
+[20:11:18] Elapsed 0.033 h: games=418 positions=38482 positions/h=1150944 eligible=39206 errors=0 restarts=0 search=99.1% shards=0; RSS driver 70.8 MB (peak 70.8, private 66.7), engines 0.0 MB (private 0.0), job peak commit 120.3 MB
+[20:11:18] finished F:\opus_scratch\r8\v5\rss\realB\forge_selfplay_fast_001.txt: 38482 lines (+ .pos, .pos.info)
+[20:11:18] waiting for 1 global-dedup post-step(s)
+[20:11:21] global dedup F:\opus_scratch\r8\v5\rss\realB\forge_selfplay_fast_001: read 38482, kept 35154 (duplicates: live DB 3328, own DB 0, inside 0) in 3 s
+[20:11:21] searches=54411 not recorded: bound=0 in_check=4914 capture_or_promotion=9593 mate=541 abs_cp_over_max=7 (games that did not finish are not counted as positions)
+[20:11:21] DONE: 0.034 h, games=418 positions=38482 positions/h=1125554 eligible=39206 errors=0 dedup_removed=724 restarts=0 timeouts=0 shards=1 post_steps=1 post_failures=0; RSS driver 70.9 MB (peak 70.9, private 66.8), engines 0.0 MB (private 0.0), job peak commit 120.3 MB
+[20:11:21] exit code 0
+peak_rss: exit 0, 123.3 s, peak working set 105.4 MB, peak private 90.1 MB
