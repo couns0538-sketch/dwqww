@@ -59,6 +59,10 @@ Stop it by its PID (`<root>\run\pipeline.pid.json`); hold it with `r11_hold.py h
   445k page faults/s). Use Idle (0x40) + `psutil.Process().ionice(psutil.IOPRIO_VERYLOW)` + memory priority low
   (`SetProcessInformation(ProcessMemoryPriority=0, MEMORY_PRIORITY_LOW=2)`) + the 3-core mask: all four are inherited
   by children (`r11_common.set_idle_background`, test 1e in test_r11_tools.py checks it and the missing cap).
+  A process that is already capped (flags 0x6 in GetProcessWorkingSetSizeEx) can be un-capped from OUTSIDE without
+  stopping it: `SetProcessWorkingSetSizeEx(pid, 204800, 1413120, HARDWS_MIN_DISABLE|HARDWS_MAX_DISABLE)` (needs
+  PROCESS_SET_QUOTA on your own process) -> the working set grows at once (`opus_r11/logs/cr2_amendment/`).
+  The venv `python.exe` is a launcher: the real interpreter is its CHILD (pick the child PID, not the 5 MB launcher).
 - psutil AccessDenied: a SYSTEM kernel child (ppid 4, no name) has an unreadable command line; count unreadable python
   (or unnamed non-kernel) processes as production, skip kernel children, or the wait never ends.
 - A `comment*` key in `limits` broke `Limits(**...)` for every stage (selftests use their own configs): use

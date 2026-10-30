@@ -15,8 +15,15 @@ PC crash/reboot 11:38 (nothing of R11 was half-written: the run died in dedup be
   6 key-range passes (pass 1 1718.2 s under the cap, pass 2 139.8 s after the lift: 12.3x); conversion stops before D: would drop below 40 GB + 2 GB
   margin (resumable). Its cap was lifted from outside at 12:52 (see Facts); log `r11_nnue\logs\lift_wscap.log`.
 - One-command driver `opus_r11/pipeline/r11_pipeline.py` (run/status/selftest; exit 0 PASS, 1 FAIL, 3 WAIT).
-- E2E CPU test `test_r11_train.py` (e2e_3): data, holdout test and train gate passed; the CPU training ran 731 s, then
-  a production trainer started (12:51) and the entry yielded (exit 76) as designed; the test waits for the GPU queue.
+  Real net: `run --net <ep20>` -> R11 PIPELINE PASS in 192 s (13:00-13:04: parity 12000/12000, OFF d11 312866, ON d11-d22
+  equal, WAC ON 267 / OFF 272 at 200 ms under 93 % CPU load; existing package recognised, not rewritten); the same
+  command again: check reused, PASS in 0 s. Evidence `opus_r11/logs/onecmd_ep20/`.
+- E2E CPU test `test_r11_train.py` (e2e_3): data, holdout test and train gate passed; production trainers started at
+  12:44:54-57 while the entry was still importing torch (11 min under the 32 MB cap; its pre-import check had passed at
+  12:39); the first in-training check (12:51:15, 17 s after fit start) saw production, saved stop-epoch=0-step=1.ckpt and
+  exited 76; the test waits for the GPU queue. Hardening (M1): the entry now also checks right after the imports
+  (exit 76 before the trainer's main) and at fit start (exit 76, nothing trained, no save); stub-clone test in
+  test_r11_tools.
 - Next: real holdout proof on 013/014 (`opus_r11/tests/test_r11_holdout_real.py`) after the dedup, then training waits
   for the GPU (yield-only) and for that proof.
 
