@@ -43,14 +43,16 @@ def write_new(path: Path, payload: bytes) -> None:
         f.write(payload)
 
 
-def read_checkpoint(path: Path) -> dict[str, np.ndarray]:
+def read_checkpoint(path: Path, expected_sha: str | None = None) -> dict[str, np.ndarray]:
     size = path.stat().st_size
     if not 0 < size <= MAX_CHECKPOINT:
         raise ValueError('checkpoint empty or above 1200 MiB parser bound')
     tensors = {}
+    digest = hashlib.sha256()
     with path.open('rb') as f:
         while f.tell() < size:
             name = f.readline(257)
+            digest.update(name)
             if not name.endswith(b'\n') or len(name) <= 1 or len(name) > 256:
                 raise ValueError('invalid or overlong tensor ID')
             try:
@@ -60,17 +62,24 @@ def read_checkpoint(path: Path) -> dict[str, np.ndarray]:
             if not re.fullmatch(r'[A-Za-z0-9_.-]+', name) or name in tensors:
                 raise ValueError('invalid or duplicate tensor ID')
             header = f.read(8)
+            digest.update(header)
             if len(header) != 8:
                 raise ValueError('truncated 64-bit tensor element count')
             n, = struct.unpack('<Q', header)
             if n == 0 or n > (size - f.tell()) // 4:
                 raise ValueError('zero or truncated tensor size')
-            a = np.frombuffer(f.read(n * 4), dtype='<f4').copy()
+            payload = f.read(n * 4)
+            if len(payload) != n * 4:
+                raise ValueError('checkpoint changed or truncated while reading')
+            digest.update(payload)
+            a = np.frombuffer(payload, dtype='<f4').copy()
             if not np.all(np.isfinite(a)):
                 raise ValueError('checkpoint contains nonfinite tensor')
             tensors[name] = a
     if not tensors:
         raise ValueError('empty checkpoint')
+    if expected_sha is not None and digest.hexdigest() != expected_sha:
+        raise ValueError('parsed checkpoint SHA256 does not match manifest')
     return tensors
 
 
@@ -82,7 +91,9 @@ def quantize(a: np.ndarray, scale: float, rounding: str, dtype: str) -> np.ndarr
     if rounding == 'truncate':
         z = np.trunc(z)
     elif rounding == 'nearest_ties_away':
-        z = np.copysign(np.floor(np.abs(z) + .5), z)
+        magnitude = np.abs(z)
+        integral = np.floor(magnitude)
+        z = np.copysign(integral + ((magnitude - integral) >= .5), z)
     else:
         raise ValueError('unsupported rounding: use truncate or nearest_ties_away')
     limits = np.iinfo(np.dtype(dtype))
@@ -109,6 +120,8 @@ def shapes(l1: int, l2: int, l3: int) -> dict[str, tuple[int, int]]:
 
 def load_quantized(checkpoint: Path, manifest: Path) -> Net:
     m = json.loads(manifest.read_text(encoding='utf-8'))
+    if not isinstance(m, dict):
+        raise ValueError('manifest must be a JSON object')
     if m.get('schema') != 1 or m.get('architecture') != ARCH or m.get('usize_bytes') != 8:
         raise ValueError('requires explicit Forge R10 architecture and x64 Bullet checkpoint contract')
     if m.get('bullet_commit') != BULLET_COMMIT:
@@ -124,9 +137,9 @@ def load_quantized(checkpoint: Path, manifest: Path) -> Net:
     if not isinstance(description,str) or len(description.encode('utf-8')) > 1024*1024:
         raise ValueError('invalid description')
     spec = m.get('tensors',{})
-    if set(spec) != set(ROLES):
+    if not isinstance(spec, dict) or set(spec) != set(ROLES) or any(not isinstance(x,dict) for x in spec.values()):
         raise ValueError('manifest must name exactly the eight supported tensor roles')
-    original = read_checkpoint(checkpoint)
+    original = read_checkpoint(checkpoint, m['checkpoint_sha256'])
     quantized = {}
     used = []
     for role, shape in shapes(l1,l2,l3).items():
@@ -283,7 +296,9 @@ def corrupt_active_weight(net: Net,payload: bytes,fen: str) -> tuple[bytes,dict]
     # Include the skip term through an isolated copied tensor, without changing original.
     changed_t={k:v.copy() for k,v in net.tensors.items()}
     changed_t['l3w'][stack,0,column]=new
-    after=evaluate(Net(net.l1,net.l2,net.l3,net.description,changed_t),fen)
+    changed_net=Net(net.l1,net.l2,net.l3,net.description,changed_t)
+    validate_bounds(changed_net)
+    after=evaluate(changed_net,fen)
     if before==after: raise ValueError('selected corruption does not change raw score')
     return bytes(mutated),{'kind':'single_output_weight_byte','stack':stack,'column':column,'byte_offset':offset,'old':old,'new':new,'raw_before':before,'raw_after':after}
 

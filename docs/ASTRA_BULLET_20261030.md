@@ -23,3 +23,17 @@ The user explicitly selected the AL1 lock graph at294dbed3 and accepts whole-sha
 Original Bullet graph recipe and AL1 include exporter are being implemented. A CPU-equivalent PyTorch bounded smoke is supplemental; it is NOT a Bullet-trained checkpoint. ActualBullettraining remains unavailable withoutGPU. Full10M training is not claimed. Acceptedholdoutpolicy excludeswhole013/014, plus separateboard+STMdedup onprivatePCfiles. No inferredgameIDs.
 
 CMake4.4.4 installed locally; complete unchangedR10 Release build finished. Nativequalification underway; preliminaryctest14/15withonlyforge_tests'sfourknownlines. Finalnumbers follow originals undernative/.
+
+## Verified checkpoint before final review closes
+- Exact AL1 fresh Release build: OFF d11/13/16/20/22 **312866 / 862329 / 3024920 / 12389307 / 34048354**; startpos5 **4865609**, kiwipete5 **193690690**, whole-binary FMA **0**. Native source294dbed3 unchanged. Original logs: `validation/astra-bullet-export/lock_native/full_engine/`.
+- AL1 lock include → synthetic Bullet interchange → independent reference: **12000/12000 native residual-cp matches**. Separate supplemental CPU-trained8192-row one-epoch sample → include → exactAL1 native: **12000/12000 matches**; all8192HCE labels match exactAL1 evaluator. No Bullet GPU training occurred.
+- CPU smoke uses original shared768→256 dualSCReLU residual graph and HCE-aware sigmoidloss.8192/8192rows,64updates,1CPUthread. Same-slice MSE0.004648477338154236→0.002897180728021214. This is a pipeline check, not heldout/generalization/playing-strength evidence. Original checkpoint/include/slice/logs preserved undercpu_smoke/run1.
+- Supplementary R10 smoke-net → syntheticcheckpoint → `.nnue`:12000exactreference/native andscalar/SIMDmatches. One output-weight corruption causesexpectedparityfailure. Firstinvocationmissingdimensionarguments preserved separately.
+- ExactR10CTest14/15: onlyfourknownforge_tests diagnostics (WAC001move/score androokunderpromotion twice); no new enginefix claimed.
+- Review found/fixed nativeoracle outputoverwrite/aliasrisk (red6failures→green7tests); existing-data safety nowusesexclusivecreation. Review remains open.
+
+### License correction
+The firsthigh-level `bullet_lib` wrapper typecheck succeeded but its dependencyclosure contains GPL/AGPL format crates. That approach is **rejected**; source/build/lockfile metadata retained only as failed-attempt evidence. Activegraph is being replaced with lower-level MITBullet compiler/trainer APIs and an original HCE-awaregraph. No GPL/AGPL source was copied into this repository. Do not run the preserved rejectedwrapper recipe. Final active-dependency audit and graph receipts follow.
+
+### Remaining
+ActualBulletGPUtraining is BLOCKED(noHIP/CUDAdevice); there is no runtimeAL1 `.nnue` loader. The exported `.inc` must be compiled into an isolated engine. Fullprivate013/014 positiondedup and WindowsGPUqualification remain PCtasks. Job2 separatebranch `astra-fen-convert-20261030` has1Mformat/nativebinpack/officialBulletloader checks; its finalreview is ongoing. No live trainer/gate was touched.

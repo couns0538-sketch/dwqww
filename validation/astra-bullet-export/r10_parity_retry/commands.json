@@ -1,0 +1,125 @@
+[
+  {
+    "name": "synthetic_bridge",
+    "args": [
+      "/tmp/astra-a1-torch-cpu-env/bin/python",
+      "/tmp/forge-astra-bullet-export/tools/bullet/make_checkpoint_fixture.py",
+      "--net",
+      "/tmp/forge-astra-r10-buildsrc/opus_r10/nets/smoke_k32h3_l64.nnue",
+      "--out",
+      "/tmp/astra-r10-export-fixture/roundtrip",
+      "--l1",
+      "64",
+      "--l2",
+      "32",
+      "--l3",
+      "32"
+    ],
+    "actual_exit": 0,
+    "expected_exit": 0
+  },
+  {
+    "name": "export",
+    "args": [
+      "/tmp/astra-a1-torch-cpu-env/bin/python",
+      "/tmp/forge-astra-bullet-export/tools/bullet/export_forge.py",
+      "export",
+      "--checkpoint",
+      "/tmp/astra-r10-export-fixture/roundtrip/weights.bin",
+      "--manifest",
+      "/tmp/astra-r10-export-fixture/roundtrip/manifest.json",
+      "--out",
+      "/tmp/astra-r10-export-fixture/exported.nnue"
+    ],
+    "actual_exit": 0,
+    "expected_exit": 0
+  },
+  {
+    "name": "reference",
+    "args": [
+      "/tmp/astra-a1-torch-cpu-env/bin/python",
+      "/tmp/forge-astra-bullet-export/tools/bullet/export_forge.py",
+      "reference",
+      "--checkpoint",
+      "/tmp/astra-r10-export-fixture/roundtrip/weights.bin",
+      "--manifest",
+      "/tmp/astra-r10-export-fixture/roundtrip/manifest.json",
+      "--fens",
+      "/tmp/forge-astra-r10-buildsrc/opus_r10/parity/fens_12k.txt",
+      "--out",
+      "/tmp/forge-astra-bullet-export/validation/astra-bullet-export/r10_parity_retry/reference.txt"
+    ],
+    "actual_exit": 0,
+    "expected_exit": 0
+  },
+  {
+    "name": "native",
+    "args": [
+      "/tmp/astra-r10-native/halfka_tool",
+      "eval",
+      "/tmp/astra-r10-export-fixture/exported.nnue",
+      "/tmp/forge-astra-r10-buildsrc/opus_r10/parity/fens_12k.txt",
+      "/tmp/forge-astra-bullet-export/validation/astra-bullet-export/r10_parity_retry/native.txt"
+    ],
+    "actual_exit": 0,
+    "expected_exit": 0
+  },
+  {
+    "name": "compare",
+    "args": [
+      "/tmp/astra-a1-torch-cpu-env/bin/python",
+      "/tmp/forge-astra-bullet-export/tools/bullet/export_forge.py",
+      "compare",
+      "--reference",
+      "/tmp/forge-astra-bullet-export/validation/astra-bullet-export/r10_parity_retry/reference.txt",
+      "--native",
+      "/tmp/forge-astra-bullet-export/validation/astra-bullet-export/r10_parity_retry/native.txt"
+    ],
+    "actual_exit": 0,
+    "expected_exit": 0
+  },
+  {
+    "name": "mutate",
+    "args": [
+      "/tmp/astra-a1-torch-cpu-env/bin/python",
+      "/tmp/forge-astra-bullet-export/tools/bullet/export_forge.py",
+      "corrupt",
+      "--checkpoint",
+      "/tmp/astra-r10-export-fixture/roundtrip/weights.bin",
+      "--manifest",
+      "/tmp/astra-r10-export-fixture/roundtrip/manifest.json",
+      "--fens",
+      "/tmp/forge-astra-r10-buildsrc/opus_r10/parity/fens_12k.txt",
+      "--out",
+      "/tmp/astra-r10-export-fixture/mutated.nnue"
+    ],
+    "actual_exit": 0,
+    "expected_exit": 0
+  },
+  {
+    "name": "native_mutated",
+    "args": [
+      "/tmp/astra-r10-native/halfka_tool",
+      "eval",
+      "/tmp/astra-r10-export-fixture/mutated.nnue",
+      "/tmp/forge-astra-r10-buildsrc/opus_r10/parity/fens_12k.txt",
+      "/tmp/forge-astra-bullet-export/validation/astra-bullet-export/r10_parity_retry/native_mutated.txt"
+    ],
+    "actual_exit": 0,
+    "expected_exit": 0
+  },
+  {
+    "name": "compare_mutated",
+    "args": [
+      "/tmp/astra-a1-torch-cpu-env/bin/python",
+      "/tmp/forge-astra-bullet-export/tools/bullet/export_forge.py",
+      "compare",
+      "--reference",
+      "/tmp/forge-astra-bullet-export/validation/astra-bullet-export/r10_parity_retry/reference.txt",
+      "--native",
+      "/tmp/forge-astra-bullet-export/validation/astra-bullet-export/r10_parity_retry/native_mutated.txt"
+    ],
+    "actual_exit": 1,
+    "expected_exit": 1
+  }
+]

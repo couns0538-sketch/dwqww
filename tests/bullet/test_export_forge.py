@@ -22,6 +22,8 @@ class CheckpointTests(unittest.TestCase):
         a = np.array([-1.5, -.5, .5, 1.5], dtype=np.float32)
         self.assertEqual(ef.quantize(a, 1, 'nearest_ties_away', 'i1').tolist(), [-2,-1,1,2])
         self.assertEqual(ef.quantize(a, 1, 'truncate', 'i1').tolist(), [-1,0,0,1])
+    def test_halfway_adjacent_scale(self):
+        self.assertEqual(ef.quantize(np.array([1],dtype=np.float32),math.nextafter(.5,0),'nearest_ties_away','i1').item(),0)
     def test_nonfinite_and_overflow(self):
         for x in [float('nan'), float('inf'), 128, -129]:
             with self.subTest(x=x), self.assertRaises(ValueError):
@@ -34,6 +36,7 @@ class CheckpointTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as d:
             p=Path(d)/'weights.bin'; p.write_bytes(valid)
             self.assertEqual(ef.read_checkpoint(p)['abc'].tolist(), [.25])
+            with self.assertRaises(ValueError): ef.read_checkpoint(p, '0'*64)
             for content in [valid[:-1], valid+valid, b'abc', b'abc\n'+struct.pack('<Q',2**63), b'\xff\n'+struct.pack('<Q',0), b'\n'+struct.pack('<Q',0)]:
                 p.write_bytes(content)
                 with self.subTest(content=content[:20]), self.assertRaises(ValueError): ef.read_checkpoint(p)
@@ -89,6 +92,10 @@ class ExportTests(unittest.TestCase):
         for field,value in [('checkpoint_sha256','0'*64),('architecture','stock_bullet_768'),('usize_bytes',4),('bullet_commit','main')]:
             m=dict(original);m[field]=value;p=self.d/(field+'.json');p.write_text(json.dumps(m))
             with self.subTest(field=field), self.assertRaises(ValueError):ef.load_quantized(self.checkpoint,p)
+    def test_malformed_manifest_types(self):
+        for value in [[],None,4,{'schema':1,'tensors':[]}]:
+            p=self.d/'malformed.json';p.write_text(json.dumps(value))
+            with self.assertRaises(ValueError):ef.load_quantized(self.checkpoint,p)
     def test_no_overwrite(self):
         out=self.d/'existing.nnue';out.write_bytes(b'keep')
         with self.assertRaises(FileExistsError):ef.write_new(out, b'new')

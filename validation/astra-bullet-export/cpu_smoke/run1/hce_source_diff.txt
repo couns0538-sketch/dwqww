@@ -1,0 +1,23 @@
+diff --git a/src/eval.cpp b/src/eval.cpp
+index 8e0ae37..c9ef80b 100644
+--- a/src/eval.cpp
++++ b/src/eval.cpp
+@@ -1,4 +1,7 @@
+ #include "forge/eval.hpp"
++#ifdef FORGE_PROF
++#include "forge/profile.hpp"
++#endif
+ #include "forge/eval_params.hpp"
+ #include "forge/nnue.hpp"
+ 
+@@ -374,6 +377,10 @@ int scale_factor(const Board& board, int eg) {
+ template <bool Trace>
+ int evaluate_position(const Board& board, Evaluator::PawnEntry* cache, EvalTrace* trace,
+                       const Evaluator::RuntimePsqt* runtime = nullptr) {
++#ifdef FORGE_PROF
++    prof::count(prof::Counter::HceComputations);
++#endif
++
+     EvalInfo info{};
+     Accumulator<Trace> acc;
+     acc.trace = trace;
