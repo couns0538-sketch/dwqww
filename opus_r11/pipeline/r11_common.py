@@ -367,7 +367,10 @@ def set_idle_background(mask: int = DEFAULT_AFFINITY) -> dict:
         raise StageFailed(f"affinity mask {hex(mask)} must select 1..3 CPUs")
     if sys.platform != "win32":
         return {}
-    import psutil
+    try:
+        import psutil
+    except ImportError as e:
+        raise StageFailed("psutil is missing: cannot set the I/O priority (fail)") from e
     k32 = ctypes.windll.kernel32
     k32.GetCurrentProcess.restype = wintypes.HANDLE
     k32.SetPriorityClass.argtypes = [wintypes.HANDLE, wintypes.DWORD]
@@ -375,13 +378,18 @@ def set_idle_background(mask: int = DEFAULT_AFFINITY) -> dict:
     k32.SetProcessInformation.argtypes = [wintypes.HANDLE, ctypes.c_int, ctypes.c_void_p, wintypes.DWORD]
     h = k32.GetCurrentProcess()
     ok_idle = bool(k32.SetPriorityClass(h, IDLE_PRIORITY_CLASS))
-    psutil.Process().ionice(psutil.IOPRIO_VERYLOW)
+    try:
+        psutil.Process().ionice(psutil.IOPRIO_VERYLOW)
+        ok_io = True
+    except (OSError, psutil.Error):
+        ok_io = False
     low = wintypes.ULONG(MEMORY_PRIORITY_LOW)
     ok_mem = bool(k32.SetProcessInformation(h, _PROCESS_MEMORY_PRIORITY, ctypes.byref(low), 4))
     ok_aff = bool(k32.SetProcessAffinityMask(h, mask))
-    if not (ok_idle and ok_aff):
-        raise StageFailed(f"could not set Idle priority / affinity {hex(mask)} (idle {ok_idle}, affinity {ok_aff})")
-    return {"priority": "Idle", "io": "very low", "memory_priority_low": ok_mem, "affinity": hex(mask)}
+    if not (ok_idle and ok_io and ok_mem and ok_aff):
+        raise StageFailed(f"could not lower this process (Idle {ok_idle}, I/O very low {ok_io}, memory low {ok_mem}, "
+                          f"affinity {hex(mask)} {ok_aff})")
+    return {"priority": "Idle", "io": "very low", "memory": "low", "affinity": hex(mask)}
 
 
 def priority_name() -> str:
