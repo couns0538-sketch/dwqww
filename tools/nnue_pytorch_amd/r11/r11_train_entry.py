@@ -218,6 +218,17 @@ def main() -> int:
                                   "r11_val_loss": val_loss}
             trainer.save_checkpoint(tmp)
             trainer.flush_checkpoints()
+            # CR fix 7: verify before the rename - torch.save writes a zip whose central directory is written last,
+            # so a complete, readable directory with the state dict proves the file was finished
+            import zipfile
+            try:
+                with zipfile.ZipFile(tmp) as z:
+                    names = z.namelist()
+                if not any(n.endswith("data.pkl") for n in names):
+                    raise ValueError("no data.pkl in the checkpoint archive")
+            except Exception as ex:  # noqa: BLE001
+                os.remove(tmp)
+                raise R11Stop(EXIT_RESOURCE, f"checkpoint {tmp} failed its check ({ex}); removed, will retry")
             os.replace(tmp, path)
             ix = load_index()
             ix["entries"] = [x for x in ix["entries"] if x["path"] != path]

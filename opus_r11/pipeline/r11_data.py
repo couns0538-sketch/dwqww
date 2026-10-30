@@ -557,7 +557,11 @@ def dedup(cfg: dict, reg: dict, log: C.Log, gov: C.Governor) -> None:
         dest[bi] = C.DEST_BAD
         dpath, jpath = decision_paths(d, e["id"])
         os.makedirs(os.path.dirname(dpath), exist_ok=True)
-        C.pack_dest(dest).tofile(dpath + ".tmp")
+        packed = C.pack_dest(dest)
+        packed.tofile(dpath + ".tmp")
+        back = C.unpack_dest(np.fromfile(dpath + ".tmp", np.uint8), n)  # CR fix 7: verify before the rename
+        if not np.array_equal(back, dest):
+            raise C.StageFailed(f"decision file {dpath}.tmp does not read back equal")
         os.replace(dpath + ".tmp", dpath)
         kc = int(kept.sum())
         C.write_json(jpath, {"id": e["id"], "index": e["index"], "rows": n, "kept": kc, "dropped": n - kc - int(bi.size),
@@ -598,7 +602,17 @@ def _run_tool(cmd: list[str]) -> dict:
     return js
 
 
-def convert(cfg: dict, e: dict, log: C.Log, gov: C.Governor, verify: bool) -> dict:
+def _drop_parts(paths: list[str], log: C.Log) -> None:
+    """Failed or unverified .part files of THIS conversion are removed (CR: no unverified partial data stays)."""
+    for p in paths:
+        if os.path.exists(p):
+            os.remove(p)
+            log.info(f"removed unverified partial file {p}")
+
+
+def convert(cfg: dict, e: dict, log: C.Log, gov: C.Governor) -> dict:
+    """CR fix 7: the writer writes .partN files, they are VERIFIED (counts, sizes, the loader's own reader square by
+    square, the side-car .hce) and only then renamed to their final names; the done marker is written last."""
     d = cfg["data"]
     marker = out_marker(d, e["id"])
     done = C.read_json(marker)
@@ -627,40 +641,44 @@ def convert(cfg: dict, e: dict, log: C.Log, gov: C.Governor, verify: bool) -> di
         if with_hce:
             cmd += ["--hce-hold" if e["holdout"] else "--hce-train", tmp_hce]
     t0 = time.time()
-    js = _run_tool(cmd)
-    recs = js["hold_records"] if e["holdout"] else js["train_records"]
-    if js["writer_bad"] != 0:
-        raise C.StageFailed(f"writer dropped {js['writer_bad']} rows of {e['id']} (CR fix 6: never a silent skip)")
-    if js["dest_train"] + js["dest_hold"] != dec["kept"] or recs != dec["kept"]:
-        raise C.StageFailed(f"writer counts disagree with the decision for {e['id']}: {js} vs kept {dec['kept']}")
-    res = {"id": e["id"], "split": split, "records": recs, "writer": js, "writer_exe": d["writer_exe"],
-           "writer_exe_sha256": C.sha256_file(d["writer_exe"]), "outputs": {}}
-    if recs:
-        if os.path.getsize(tmp) != (js["hold_bytes"] if e["holdout"] else js["train_bytes"]):
-            raise C.StageFailed(f"output size mismatch for {e['id']}")
-        os.replace(tmp, final)
-        res["outputs"]["binpack"] = {"path": C.winpath(final), "bytes": os.path.getsize(final),
-                                     "sha256": C.sha256_file(final)}
-        if with_hce:
-            if C.fhce_rows(tmp_hce) != recs:
+    try:
+        js = _run_tool(cmd)
+        recs = js["hold_records"] if e["holdout"] else js["train_records"]
+        if js["writer_bad"] != 0:
+            raise C.StageFailed(f"writer dropped {js['writer_bad']} rows of {e['id']} (CR fix 6: never a silent skip)")
+        if js["dest_train"] + js["dest_hold"] != dec["kept"] or recs != dec["kept"]:
+            raise C.StageFailed(f"writer counts disagree with the decision for {e['id']}: {js} vs kept {dec['kept']}")
+        res = {"id": e["id"], "split": split, "records": recs, "writer": js, "writer_exe": d["writer_exe"],
+               "writer_exe_sha256": C.sha256_file(d["writer_exe"]), "outputs": {}}
+        if recs:
+            if os.path.getsize(tmp) != (js["hold_bytes"] if e["holdout"] else js["train_bytes"]):
+                raise C.StageFailed(f"output size mismatch for {e['id']}")
+            if with_hce and C.fhce_rows(tmp_hce) != recs:
                 raise C.StageFailed(f"side-car hce rows != records for {e['id']}")
-            os.replace(tmp_hce, final_hce)
-            res["outputs"]["hce"] = {"path": C.winpath(final_hce), "bytes": os.path.getsize(final_hce),
-                                     "sha256": C.sha256_file(final_hce)}
-        if verify:
             vcmd = [d["writer_exe"], "verify", "--pos", e["pos"], "--dest", C.winpath(dpath), "--code",
-                    str(C.DEST_HOLD if e["holdout"] else C.DEST_TRAIN), "--file", C.winpath(final),
+                    str(C.DEST_HOLD if e["holdout"] else C.DEST_TRAIN), "--file", C.winpath(tmp),
                     "--ply", str(d.get("ply", 40))]
             if with_hce:
-                vcmd += ["--hce", e["hce"], "--hce-file", C.winpath(final_hce)]
+                vcmd += ["--hce", e["hce"], "--hce-file", C.winpath(tmp_hce)]
             v = _run_tool(vcmd)
-            if not v.get("ok"):
-                raise C.StageFailed(f"verify failed for {final}: {v}")
-            res["verify"] = v
+            if not v.get("ok") or v.get("expected") != recs:
+                raise C.StageFailed(f"verify of the .part output failed for {e['id']}: {v}")
+            res["verify"] = dict(v, verified_before_rename=True)
+            res["outputs"]["binpack"] = {"path": C.winpath(final), "bytes": os.path.getsize(tmp),
+                                         "sha256": C.sha256_file(tmp)}
+            if with_hce:
+                res["outputs"]["hce"] = {"path": C.winpath(final_hce), "bytes": os.path.getsize(tmp_hce),
+                                         "sha256": C.sha256_file(tmp_hce)}
+    except C.StageFailed:
+        _drop_parts([tmp, tmp_hce], log)
+        raise
+    if recs:  # every check passed: rename, then the done marker
+        os.replace(tmp, final)
+        if with_hce:
+            os.replace(tmp_hce, final_hce)
     res["seconds"] = round(time.time() - t0, 2)
     C.write_json(marker, res)
-    log.info(f"converted {e['id']} -> {split}: {recs} records, writer_bad {js['writer_bad']}, "
-             f"{'verified' if res.get('verify') else 'not verified'}, {res['seconds']} s")
+    log.info(f"converted {e['id']} -> {split}: {recs} records, verified before rename, {res['seconds']} s")
     return res
 
 
@@ -774,7 +792,8 @@ def run(cfg: dict, log: C.Log, gov: C.Governor, max_convert: int | None = None, 
         return {"shards": shards, "superseded": supersede, "notes": notes}
     reg = register(cfg, shards, supersede, log)
     supersede_check(cfg, reg, shards, log, gov)
-    verify_mode = d.get("verify", "all")
+    if d.get("verify", "all") != "all":
+        raise C.StageFailed("data.verify must be 'all': every output is verified before it is renamed (CR fix 7)")
     for e in reg["order"]:
         generate_hce(cfg, e, log, gov)
         if d.get("keys_cache", False):
@@ -805,13 +824,7 @@ def run(cfg: dict, log: C.Log, gov: C.Governor, max_convert: int | None = None, 
                      f"{floor:.0f} GB floor")
             stopped_for_disk = True
             break
-        if verify_mode == "all":
-            verify = True
-        elif verify_mode.startswith("sample:"):
-            verify = e["index"] % int(verify_mode.split(":")[1]) == 0
-        else:
-            verify = False
-        r = convert(cfg, e, log, gov, verify)
+        r = convert(cfg, e, log, gov)
         if not r:
             break
         converted += 1

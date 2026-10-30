@@ -132,10 +132,14 @@ def trainer_env(cfg: dict) -> dict:
     return env
 
 
-def export_net(cfg: dict, ckpt: str, out_net: str, l1: int, log: C.Log, gov: C.Governor) -> str:
+def export_net(cfg: dict, ckpt: str, out_net: str, l1: int, log: C.Log, gov: C.Governor,
+               build: dict | None = None) -> str:
+    """serialize.py writes <net>.part.nnue; it is renamed only after Forge's HalfKA loader (the checked tool build)
+    loaded it and evaluated 16 FENs without a bad FEN (CR fix 7); a .part that fails is removed."""
     C.assert_writable_path(out_net)
     if os.path.isfile(out_net):
         return out_net
+    build = build or build_engine(cfg, log)
     need = max(2.0, 2.5 * os.path.getsize(ckpt) / 2**30)
     gov.wait_ok(f"export {os.path.basename(ckpt)}", need_ram_gb=need)
     tmp = out_net + ".part.nnue"
@@ -147,9 +151,21 @@ def export_net(cfg: dict, ckpt: str, out_net: str, l1: int, log: C.Log, gov: C.G
     with open(out_net + ".export.log", "w", encoding="utf-8", newline="\n") as f:
         f.write(r.stdout[-20000:] + "\n--- stderr ---\n" + r.stderr[-20000:])
     if r.returncode != 0 or not os.path.isfile(tmp):
+        if os.path.exists(tmp):
+            os.remove(tmp)
         raise C.StageFailed(f"serialize.py failed ({r.returncode}): {r.stderr[-600:]}")
+    probe = out_net + ".probe_fens.txt"
+    with open(cfg["check"]["fens"], encoding="ascii") as fin, open(probe, "w", encoding="ascii", newline="\n") as fout:
+        for i, line in enumerate(fin):
+            if i >= 16:
+                break
+            fout.write(line)
+    rv = _run([build["tool"], "eval", tmp, probe, out_net + ".probe_raw.txt"], log, "export: load check of the .part net")
+    if rv.returncode != 0 or "eval: 16 positions, 0 bad FENs" not in rv.stdout:
+        os.remove(tmp)
+        raise C.StageFailed(f"the exported net does not load in Forge's HalfKA loader: {rv.stdout[-300:]} {rv.stderr[-300:]}")
     os.replace(tmp, out_net)
-    log.info(f"exported {ckpt} -> {out_net} ({os.path.getsize(out_net)} bytes)")
+    log.info(f"exported {ckpt} -> {out_net} ({os.path.getsize(out_net)} bytes), loads in the HalfKA tool")
     return out_net
 
 
@@ -332,7 +348,7 @@ def run_check(cfg: dict, net: str, out: str, l1: int, log: C.Log, gov: C.Governo
     os.makedirs(out, exist_ok=True)
     build = build_engine(cfg, log)
     if ckpt:
-        net = export_net(cfg, ckpt, net, l1, log, gov)
+        net = export_net(cfg, ckpt, net, l1, log, gov, build)
     res = {"net": C.winpath(net), "net_sha256": C.sha256_file(net), "net_bytes": os.path.getsize(net), "l1": l1,
            "build": build, "started": time.strftime("%Y-%m-%dT%H:%M:%S")}
     gov.wait_ok("parity", need_ram_gb=1.0)

@@ -352,6 +352,13 @@ def main() -> int:
     marker = D.out_marker(cfg_w["data"], "a:a_001")
     final = os.path.join(cfg_w["data"]["dir"], "train", "a__a_001.binpack")
     check(not os.path.exists(marker) and not os.path.exists(final), "no done marker and no final output for that shard")
+    tdir = os.path.dirname(final)
+    leftovers = [x for x in os.listdir(tdir)] if os.path.isdir(tdir) else []
+    check(leftovers == [], f"CR fix 7: the failed conversion left no .part files behind ({leftovers})")
+    man = C.read_json(os.path.join(cfg["data"]["dir"], "MANIFEST.json"))
+    vb = [C.read_json(D.out_marker(cfg["data"], r["id"])).get("verify", {}).get("verified_before_rename")
+          for r in man["shards"] if r["records"]]
+    check(vb and all(vb), f"CR fix 7: every output was verified as .part before its rename ({len(vb)} outputs)")
 
     print(f"\n{len(FAILS)} failed checks")
     print("R11 DATA SELFTEST " + ("PASS" if not FAILS else "FAIL"))
