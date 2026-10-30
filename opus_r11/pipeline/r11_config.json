@@ -80,5 +80,85 @@
    "fp"
   ],
   "comment_disk": "QA rule 2026-10-30: the target drive keeps >= 40 GB free after the run; conversion stops (resumable) before a shard would cross 40 + margin GB"
+ },
+ "engine": {
+  "commit": "7f79c349",
+  "march": "x86-64-v3",
+  "extra_srcs": [
+   "src/nnue_halfka.cpp"
+  ],
+  "build_script": "D:/grok-pc-data/dwqww/.claude/worktrees/b/tools/build_pc.sh",
+  "comment": "QA rule: AVX2 x86-64-v3 build of 7f79c349 (not znver5, never exe 9b7e2fcd); FMA 0 and no zmm checked"
+ },
+ "trainer": {
+  "python": "F:/nnue_pytorch/venv/Scripts/python.exe",
+  "clone": "F:/opus_scratch/r6/nnue-pytorch-amd",
+  "loader_lib": "F:/opus_scratch/r6/nnue-pytorch-amd/build/libtraining_data_loader.dll"
+ },
+ "check": {
+  "fens": "D:/grok-pc-data/dwqww/.claude/worktrees/opus-r11-nnue-pipeline/opus_r10/parity/fens_12k.txt",
+  "python_chess": "C:/Users/Administrator/grok-pc/nnue/.venv/Scripts/python.exe",
+  "uci_check": "D:/grok-pc-data/dwqww/.claude/worktrees/b/pkg/forge_LOCK_AL1_s198_FULL_20261026_1039/2_build/uci_check.py",
+  "wac_suite": "D:/grok-pc-data/dwqww/.claude/worktrees/b/pkg/forge_LOCK_AL1_s198_FULL_20261026_1039/4_tests/suites/wac300.epd",
+  "wac_movetime_ms": 200,
+  "on_bench_depths": [
+   11,
+   13,
+   16,
+   20,
+   22
+  ]
+ },
+ "train": {
+  "runs_dir": "D:/grok-pc-data/r11_nnue/runs",
+  "production_patterns": [
+   "guard.tag",
+   "forge_nnue_train[\\/]runs"
+  ],
+  "comment": "production trainers are started by the supervisor with --guard-tag / -X guard_tag and write to forge_nnue_train/runs; the check fails closed",
+  "profiles": {
+   "smoke": {
+    "accelerator": "cuda",
+    "gpu_policy": "share",
+    "share_duty": 0.5,
+    "l1": 256,
+    "batch_size": 4096,
+    "num_workers": 1,
+    "threads": 1,
+    "epoch_size": 2000000,
+    "max_epochs": 4,
+    "validation_size": 200000,
+    "lr": 0.000875,
+    "start_lambda": 1.0,
+    "end_lambda": 1.0,
+    "seed": 1,
+    "need_ram_gb": 5.0,
+    "compile": false,
+    "keep_last": 2,
+    "max_restarts": 5,
+    "comment": "PC rules: next to the live trainer only smoke size (batch <= 4096, L1 <= 256, 1 loader worker)"
+   },
+   "full": {
+    "accelerator": "cuda",
+    "gpu_policy": "wait",
+    "l1": 1024,
+    "batch_size": 16384,
+    "num_workers": 2,
+    "threads": 2,
+    "epoch_size": 152500000,
+    "max_epochs": 20,
+    "validation_size": 1000000,
+    "lr": 0.000875,
+    "start_lambda": 1.0,
+    "end_lambda": 1.0,
+    "seed": 1,
+    "need_ram_gb": 8.0,
+    "need_disk_gb": 6.0,
+    "compile": true,
+    "keep_last": 2,
+    "max_restarts": 50,
+    "comment": "the owner's npt line-104 recipe; starts only when no production trainer runs (wait), yields when one appears"
+   }
+  }
  }
 }
