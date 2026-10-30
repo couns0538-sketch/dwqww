@@ -133,8 +133,9 @@ const std::vector<Parameter>& parameters() {
         {"LmrCutoffCount", &LmrCutoffCount, 0, 4096},
         {"HistoryBonusOffset", &HistoryBonusOffset, -200, 300},  {"HistoryMalusPercent", &HistoryMalusPercent, 0, 300},
         {"HistoryDepthBonusMargin", &HistoryDepthBonusMargin, 0, 1000},
-        {"AspirationMinDepth", &AspirationMinDepth, 1, 16},      {"AspirationGrowPercent", &AspirationGrowPercent, 0, 300},
-        {"AspirationGrowAdd", &AspirationGrowAdd, 0, 100},       {"QuietCheckBonus", &QuietCheckBonus, 0, 40000},
+        // window growth floors keep every re-search loop widening (0 / 0 would never widen the window)
+        {"AspirationMinDepth", &AspirationMinDepth, 1, 16},      {"AspirationGrowPercent", &AspirationGrowPercent, 10, 300},
+        {"AspirationGrowAdd", &AspirationGrowAdd, 1, 100},       {"QuietCheckBonus", &QuietCheckBonus, 0, 40000},
     };
     return table;
 }
