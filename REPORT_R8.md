@@ -50,8 +50,8 @@ tree; Obsidian (GPL-3.0): trains on Lc0 data. No code was copied.
   first four FEN fields in memory, one write per finished game (1 MiB buffer, no fsync per game), optional direct
   FPOS `.pos` (`--pos`) + `.pos.info`, never overwrites a file.
 - **Proof of identical data**: on 60 fixed openings the live script's own `play_game()` (imported unchanged) and the
-  driver produce the same 5,499 records, byte for byte (sha256 `5d1e6783...`, `r8/logs/equivalence/`), for v1 and
-  for the final v3. The `.pos` equals the text record by record (435,554 of 435,554; the live 015 pair checked the
+  driver produce the same 5,499 records, byte for byte (sha256 `5d1e6783...`, `r8/logs/equivalence/`), for v1, v3
+  and the final v4. The `.pos` equals the text record by record (435,554 of 435,554; the live 015 pair checked the
   same way: 200,000 of 200,000).
 - **Quality on random openings** (`r8/tools/quality_check.py`, 229,809 vs 435,554 records): cp std 537.1 vs 534.5,
   median |cp| 168 vs 167, |cp| <= 50 / 200 / 600 / 1500: 22.1/54.1/82.3/97.2% vs 22.3/54.3/82.4/97.2%, full-move
@@ -98,7 +98,7 @@ tree; Obsidian (GPL-3.0): trains on Lc0 data. No code was copied.
 
 ## Incident (owner item)
 The live self-play (`forge_selfplay.py`, 2 workers at Idle priority pinned to CPUs 12-15) stopped writing at
-17:04:36 and its processes sat at 0 CPU (still at 17:13). That began while an unpinned R7 test of mine (a conc-3
+17:04:36 and its processes sat at 0 CPU (still so at 18:38, ~1.5 h without output). That began while an unpinned R7 test of mine (a conc-3
 mini-gate, BelowNormal) ran; the cause is not proven. The pipeline's output queue is bounded (4), so a blocked main
 process stalls the workers. Nothing was killed or restarted; restarting is the owner's decision.
 
@@ -121,4 +121,5 @@ Expected with the live layout (2 workers, CPUs 12-15): about +33% positions per 
 - The live self-play is stalled since 17:04:36 (above); the live script's OwnBook=true can crash it again.
 
 ## Time
-R8 started 17:20 (after R7 was pushed); commits 17:46-18:4x on `opus-r8-datagen`; measurements 17:24-18:37.
+R8 started 17:20 (after R7 was pushed); commits 17:46:18-18:38:14 (5 commits) plus this review fix on `opus-r8-datagen`;
+measurements 17:24-18:37 (about 1 h 20 min of the ~4 h budget; the SMT / 4-worker layouts were the depth not reached).
