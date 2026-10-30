@@ -134,11 +134,19 @@ function Get-PythonScriptArgument([string[]]$Arguments) {
     return $null
 }
 
+function ConvertTo-GateExeNames([string[]]$Values) {
+    foreach ($value in $Values) {
+        foreach ($entry in ($value -split ',')) {
+            $name = $entry.Trim()
+            if ([string]::IsNullOrWhiteSpace($name) -or $name -match '[\\/*?]' -or $name -notmatch '(?i)\.exe$') { throw 'GateExeNames requires comma-separated exact .exe basenames without empty entries, paths or wildcards' }
+            $name
+        }
+    }
+}
+
 function Assert-ProcessPolicyOptions {
     param([string[]]$GateExeNames = @(), [string[]]$GateExePaths = @(), [string[]]$ProductionTrainScriptPaths = @())
-    foreach ($name in $GateExeNames) {
-        if ([string]::IsNullOrWhiteSpace($name) -or $name -match '[\\/*?]' -or $name -notmatch '(?i)\.exe$') { throw 'GateExeNames requires exact .exe basenames without paths or wildcards' }
-    }
+    $null = @(ConvertTo-GateExeNames $GateExeNames)
     foreach ($path in @($GateExePaths) + @($ProductionTrainScriptPaths)) {
         if ([string]::IsNullOrWhiteSpace($path) -or $path -match '[*?]' -or $path -notmatch '^(?:[a-z]:[\\/]|\\\\[^\\]+\\[^\\]+\\)') { throw 'Production path options require absolute paths without wildcards' }
     }
@@ -146,6 +154,7 @@ function Assert-ProcessPolicyOptions {
 
 function Assert-NoProductionProcess {
     param([object[]]$Processes, [string[]]$GateExeNames = @(), [string[]]$GateExePaths = @(), [string[]]$ProductionTrainScriptPaths = @())
+    $GateExeNames = @(ConvertTo-GateExeNames $GateExeNames)
     if (-not $Processes -or $Processes.Count -eq 0) { throw 'Process telemetry unavailable or empty' }
     foreach ($process in $Processes) {
         if ($null -eq $process -or $null -eq $process.PSObject.Properties['ProcessId'] -or $null -eq $process.PSObject.Properties['Name'] -or [string]::IsNullOrWhiteSpace([string]$process.Name)) { throw 'Incomplete process telemetry' }
@@ -294,6 +303,7 @@ try {
     if (-not $GpuFreeSlotConfirmed) { throw 'GPU-free scheduled slot must be explicitly confirmed; never run alongside the live AMD trainer' }
     if ($env:OS -ne 'Windows_NT' -or -not [Environment]::Is64BitProcess) { throw 'Requires 64-bit Windows PowerShell 5.1 or newer' }
     $affinity = ConvertTo-AffinityMask $CpuAffinityMask
+    $GateExeNames = @(ConvertTo-GateExeNames $GateExeNames)
     $repo = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..\..'))
     Assert-ScratchPath -Path $RunRoot -RepoRoot $repo
     Assert-ScratchPath -Path $TargetDir -RepoRoot $repo

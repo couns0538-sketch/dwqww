@@ -67,6 +67,15 @@ class HipDocumentationTests(unittest.TestCase):
         key = next(line for line in source.splitlines() if "$engineKey =" in line)
         self.assertNotIn("$Matches.kind", key)
 
+    def test_gate_names_support_comma_separated_cli(self):
+        source = (ROOT / "tools/bullet/run_hip_smoke.ps1").read_text()
+        readme = (ROOT / "tools/bullet/README.md").read_text()
+        self.assertIn("function ConvertTo-GateExeNames", source)
+        self.assertIn("$value -split ','", source)
+        self.assertIn("$name = $entry.Trim()", source)
+        self.assertEqual(source.count("$GateExeNames = @(ConvertTo-GateExeNames $GateExeNames)"), 2)
+        self.assertIn("-GateExeNames 'forge_gate_candidate.exe,stockfish_gate.exe'", readme)
+
     def test_current_recipe_describes_refined_policy_and_runtime_limit(self):
         readme = (ROOT / "tools/bullet/README.md").read_text()
         for text in ("five valid snapshots", "strictly greater than 2%",

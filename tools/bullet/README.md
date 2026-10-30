@@ -205,12 +205,15 @@ opening `nnue-pytorch\train.py` or a script receiving that filename as input is
 allowed too. `forge.exe` and `stockfish.exe` are not assumed to be gates.
 
 For a gate with an arbitrary binary name, pass exact basenames with
-`-GateExeNames @('forge_gate_candidate.exe')` or exact absolute paths with
+`-GateExeNames 'forge_gate_candidate.exe,stockfish_gate.exe'` or exact absolute paths with
 `-GateExePaths @('F:\gates\forge.exe')`. For a known trainer outside nnue-pytorch,
 use `-ProductionTrainScriptPaths @('F:\forge\tools\nnue\train_resid_v3b.py')`.
-To pass multiple values, invoke the script with `& .\tools\bullet\run_hip_smoke.ps1`
-from an existing PowerShell session; Windows `powershell.exe -File` cannot pass
-array parameters.
+`GateExeNames` accepts a comma-separated string from `powershell.exe -File`,
+trims each name, and also accepts arrays from a PowerShell session. Empty
+entries, paths and wildcards are rejected. To pass multiple `GateExePaths` or
+`ProductionTrainScriptPaths`, invoke the script with
+`& .\tools\bullet\run_hip_smoke.ps1` from an existing PowerShell session;
+Windows `powershell.exe -File` cannot pass array parameters.
 Matching is case-insensitive and paths are normalized; wildcards are rejected.
 Full paths distinguish a selected binary/script from unrelated copies with the
 same name. Launch configured trainer scripts using their full path: CIM does

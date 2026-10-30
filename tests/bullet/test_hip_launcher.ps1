@@ -92,6 +92,10 @@ Expect-Refusal { Assert-NoProductionProcess @((New-TestProcess 'python.exe' 'pyt
 Expect-Refusal { Assert-NoProductionProcess @((New-TestProcess 'python.exe' 'python F:\toy\train_resid_v3b.py')) -ProductionTrainScriptPaths @('F:\forge\tools\nnue\train_resid_v3b.py') }
 Assert-NoProductionProcess @((New-TestProcess 'editor.exe' 'editor.exe "F:\nnue-pytorch\train.py"'))
 Expect-Refusal { Assert-NoProductionProcess @((New-TestProcess 'FORGE.exe' 'forge.exe')) -GateExeNames @('forge.exe') }
+foreach ($name in @('FORGE.exe', 'stockfish.exe')) {
+    Expect-Refusal { Assert-NoProductionProcess @((New-TestProcess $name $name)) -GateExeNames ' forge.exe , stockfish.exe ' }
+}
+Assert-NoProductionProcess @((New-TestProcess 'forge_other.exe' 'forge_other.exe')) -GateExeNames ' forge.exe , stockfish.exe '
 Assert-NoProductionProcess @((New-TestProcess 'forge_other.exe' 'forge_other.exe')) -GateExeNames @('forge.exe')
 Expect-Refusal { Assert-NoProductionProcess @((New-TestProcess 'forge.exe' 'forge.exe' 'F:\gates\forge.exe')) -GateExePaths @('f:\GATES\forge.exe') }
 Assert-NoProductionProcess @((New-TestProcess 'forge.exe' 'forge.exe' 'F:\analysis\forge.exe')) -GateExePaths @('F:\gates\forge.exe')
@@ -101,6 +105,11 @@ Assert-NoProductionProcess @((New-TestProcess 'editor.exe' 'editor.exe "F:\gates
 
 Assert-ProcessPolicyOptions
 Expect-Refusal { Assert-ProcessPolicyOptions -GateExeNames @('forge*.exe') }
+Expect-Refusal { Assert-ProcessPolicyOptions -GateExeNames 'forge.exe,,stockfish.exe' }
+Expect-Refusal { Assert-ProcessPolicyOptions -GateExeNames 'forge.exe,F:\gate.exe' }
+Assert-ProcessPolicyOptions -GateExeNames ' forge.exe , stockfish.exe '
+$normalizedNames = @(ConvertTo-GateExeNames @(' forge.exe , stockfish.exe ', 'candidate.exe'))
+if ($normalizedNames.Count -ne 3 -or $normalizedNames[0] -cne 'forge.exe' -or $normalizedNames[1] -cne 'stockfish.exe' -or $normalizedNames[2] -cne 'candidate.exe') { throw 'Comma-separated gate names were not normalized' }
 Expect-Refusal { Assert-ProcessPolicyOptions -GateExePaths @('forge.exe') }
 Expect-Refusal { Assert-ProcessPolicyOptions -ProductionTrainScriptPaths @('F:\train*.py') }
 Assert-ProcessPolicyOptions -GateExeNames @('forge.exe') -GateExePaths @('F:\gates\forge.exe') -ProductionTrainScriptPaths @('F:\forge\train.py')
