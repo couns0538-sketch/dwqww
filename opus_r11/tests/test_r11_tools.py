@@ -150,6 +150,29 @@ def main() -> int:
         check(False, f"the shipped r11_config.json does not load: {e}")
     for section in ("data", "engine", "trainer", "check", "train"):
         check(section in real_cfg, f"config section {section!r} present")
+    # CR R2 H1: yield is the only GPU policy - no share / duty cycle anywhere
+    profs = real_cfg["train"]["profiles"]
+    check(all(p.get("gpu_policy") == "yield" and "share_duty" not in p for p in profs.values()),
+          f"every training profile yields to production, none shares ({ {k: p.get('gpu_policy') for k, p in profs.items()} })")
+    import importlib.util
+    spec = importlib.util.spec_from_file_location("r11_train_entry", os.path.join(REPO, "tools", "nnue_pytorch_amd", "r11",
+                                                                                   "r11_train_entry.py"))
+    entry = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(entry)  # defines functions only; nothing of the trainer is imported
+    for bad in (["--r11-policy", "share"], ["--r11-share-duty", "0.5"]):
+        try:
+            entry.parse_own_args(bad + ["--r11-clone", "x", "--r11-run-dir", "y", "--"])
+            check(False, f"the entry must refuse {bad[0]}")
+        except SystemExit as e:
+            check("unknown option" in str(e), f"the entry refuses {bad[0]} (no share policy left)")
+    import r11_train as TR
+    cfg_share = json.loads(json.dumps(real_cfg))
+    cfg_share["train"]["profiles"]["smoke"]["gpu_policy"] = "share"
+    try:
+        TR.run_train(cfg_share, "smoke", C.Log(None, "train"), None)
+        check(False, "a share profile must be refused")
+    except C.StageFailed as e:
+        check("yield is the only GPU policy" in str(e), "the train stage refuses a share profile")
 
     # 1h CR fix 10: sealed inputs are identified by their full sha256; a change in the middle of a big file (which a
     # first/last-MiB fingerprint misses) is detected

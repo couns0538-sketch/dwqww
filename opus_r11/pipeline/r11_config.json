@@ -129,8 +129,7 @@
   "profiles": {
    "smoke": {
     "accelerator": "cuda",
-    "gpu_policy": "share",
-    "share_duty": 0.5,
+    "gpu_policy": "yield",
     "l1": 256,
     "batch_size": 4096,
     "num_workers": 1,
@@ -146,11 +145,11 @@
     "compile": false,
     "keep_last": 2,
     "max_restarts": 5,
-    "comment": "PC rules: next to the live trainer only smoke size (batch <= 4096, L1 <= 256, 1 loader worker)"
+    "comment": "smoke size (batch 4096, L1 256, 1 loader worker); yields to production like every profile (CR R2 H1: no sharing, no duty cycle)"
    },
    "full": {
     "accelerator": "cuda",
-    "gpu_policy": "wait",
+    "gpu_policy": "yield",
     "l1": 1024,
     "batch_size": 16384,
     "num_workers": 2,
@@ -167,7 +166,7 @@
     "compile": true,
     "keep_last": 2,
     "max_restarts": 50,
-    "comment": "the owner's npt line-104 recipe; starts only when no production trainer runs (wait), yields when one appears"
+    "comment": "the owner's npt line-104 recipe; starts only when no production trainer runs, exits 76 when one appears"
    }
   }
  }

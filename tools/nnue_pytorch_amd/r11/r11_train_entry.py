@@ -18,12 +18,13 @@ GPL-3.0 (imports the trainer's modules at run time from --r11-clone; nothing is 
      its own PID and resumes from the newest checkpoint);
    - free RAM below --r11-min-free-ram-gb: save and exit 75 (the driver resumes when RAM is back); a watchdog thread
      exits 97 at once below --r11-hard-ram-gb (no save: the live trainer comes first);
-   - --r11-policy yield: when a production trainer appears (command-line regex list, fail closed when the process
-     list is unavailable) save and exit 76, the driver waits for it to end and resumes; share: keep running, sleep
-     so the GPU duty is at most --r11-share-duty; ignore: nothing.
+   - YIELD is the only GPU policy (CR R2 H1: no sharing, no duty cycle): the production-trainer check runs before
+     torch is imported (CR R2 M1: exit 76 at once, nothing loaded) and again during training; when a production
+     trainer appears (command-line regex list; psutil missing = fail, an unreadable python command line = running)
+     the entry saves and exits 76, the driver waits for it to end and resumes.
 Usage: <trainer venv python> -B r11_train_entry.py --r11-clone <clone> --r11-run-dir <dir> [--r11-keep-last 2]
-       [--r11-policy yield|share|ignore] [--r11-share-duty 1.0] [--r11-min-free-ram-gb 8] [--r11-hard-ram-gb 7]
-       [--r11-patterns 'regex1;regex2'] [--r11-check-seconds 20] -- <train.py arguments>
+       [--r11-min-free-ram-gb 8] [--r11-hard-ram-gb 7] [--r11-patterns 'regex1;regex2'] [--r11-check-seconds 20]
+       [--r11-affinity 0x700] [--r11-disk-floor-gb 40] -- <train.py arguments>
 """
 from __future__ import annotations
 
@@ -51,7 +52,7 @@ def parse_own_args(argv: list[str]) -> tuple[dict, list[str]]:
         raise SystemExit("usage: r11_train_entry.py --r11-... -- <train.py args>")
     i = argv.index("--")
     own, rest = argv[:i], argv[i + 1:]
-    opts = {"clone": None, "run_dir": None, "keep_last": 2, "policy": "share", "share_duty": 1.0,
+    opts = {"clone": None, "run_dir": None, "keep_last": 2,
             "min_free_ram_gb": 8.0, "hard_ram_gb": 7.0, "patterns": "guard.tag;forge_nnue_train[\\\\/]runs",
             "check_seconds": 20.0, "affinity": "0x700", "disk_floor_gb": 40.0}
     k = 0
@@ -206,7 +207,6 @@ def main() -> int:
             super().__init__()
             self.keep_last = int(opts["keep_last"])
             self.last_check = 0.0
-            self.t_batch = None
             self.has_val = False
 
         # ---- saving and rotation
@@ -295,14 +295,8 @@ def main() -> int:
             trainer.flush_checkpoints()
             log_event(run_dir, "train_end", epoch=trainer.current_epoch, step=trainer.global_step)
 
-        # ---- control, governor, duty cycle
-        def on_train_batch_start(self, trainer, batch, batch_idx):
-            self.t_batch = time.perf_counter()
-
+        # ---- control and governor (yield is the only GPU policy: CR R2 H1, no duty-cycle sharing)
         def on_train_batch_end(self, trainer, batch, batch_idx, outputs):
-            if opts["policy"] == "share" and opts["share_duty"] < 1.0 and self.t_batch is not None:
-                dt = time.perf_counter() - self.t_batch
-                time.sleep(dt * (1.0 / max(0.05, opts["share_duty"]) - 1.0))
             now = time.time()
             if now - self.last_check < opts["check_seconds"]:
                 return
@@ -316,14 +310,13 @@ def main() -> int:
             if held:
                 log_event(run_dir, "hold_released")
             reason, code = None, 0
-            if True:
-                ram, commit = free_gb()
-                if ram < opts["min_free_ram_gb"] or commit < opts["min_free_ram_gb"]:
-                    reason, code = f"free RAM {ram:.2f} GB / commit {commit:.2f} GB < {opts['min_free_ram_gb']} GB", EXIT_RESOURCE
-                elif opts["policy"] == "yield":
-                    hit = production_running(patterns)
-                    if hit:
-                        reason, code = f"production trainer running ({hit})", EXIT_YIELD
+            ram, commit = free_gb()
+            if ram < opts["min_free_ram_gb"] or commit < opts["min_free_ram_gb"]:
+                reason, code = f"free RAM {ram:.2f} GB / commit {commit:.2f} GB < {opts['min_free_ram_gb']} GB", EXIT_RESOURCE
+            else:
+                hit = production_running(patterns)
+                if hit:
+                    reason, code = f"production trainer running ({hit})", EXIT_YIELD
             if reason:
                 path = self._save(trainer, trainer.current_epoch, False, None, tag="stop-")
                 raise R11Stop(code, f"{reason}; saved {path}")
@@ -346,7 +339,7 @@ def main() -> int:
     E.SimpleTrainer.load_checkpoint = load_checkpoint
     E.SimpleTrainer.fit = fit
     sys.argv = [os.path.join(clone, "train.py")] + train_args
-    log_event(run_dir, "start", argv=train_args, policy=opts["policy"], keep_last=opts["keep_last"])
+    log_event(run_dir, "start", argv=train_args, policy="yield", keep_last=opts["keep_last"])
     try:
         T.main()
     except R11Stop as s:

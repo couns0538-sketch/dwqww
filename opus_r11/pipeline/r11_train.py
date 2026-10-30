@@ -6,13 +6,14 @@ production policy; there are no STOP/PAUSE files: stop R11 by its own PID, it re
 This driver:
   - picks the run folder <train.runs_dir>/<run name>, the datasets (data/train_files.txt) and the validation files
     (data/holdout_files.txt);
-  - waits before starting until free RAM >= limits floor + profile.need_ram_gb, and with gpu_policy "wait" until no
-    production trainer is running (process check fails closed);
+  - YIELD is the only GPU policy (CR R2 H1: no sharing, no duty cycle): before starting it waits until no production
+    trainer is running (psutil missing = fail, an unreadable python command line = running) and until free RAM >=
+    limits floor + profile.need_ram_gb; the entry yields (exit 76) when a production trainer appears;
   - resumes from the newest checkpoint of the run's own index; a finished run is not started again;
-  - handles the entry's exit codes: 0 finished/stopped, 75 RAM (wait, resume), 76 production appeared (wait until it
+  - handles the entry's exit codes: 0 finished, 75 RAM / disk (wait, resume), 76 production trainer (wait until it
     ends, resume), 97 hard RAM floor (wait, resume), anything else FAIL; at most `max_restarts` restarts.
-Profiles (config train.profiles): "smoke" (L1 256, batch 4096, 1 loader worker: the size the PC rules allow next to the
-live trainer; gpu_policy share) and "full" (the owner's L1 1024 recipe; gpu_policy wait).
+Profiles (config train.profiles): "smoke" (L1 256, batch 4096, 1 loader worker, short) and "full" (the owner's L1
+1024 recipe); both yield to production.
 Usage: r11_train.py --config <cfg.json> --profile smoke|full [--name <run name>]
 """
 from __future__ import annotations
@@ -53,10 +54,8 @@ def trainer_cmd(cfg: dict, prof: dict, run_dir: str, resume: str | None) -> tupl
         train_files = train_files[: int(prof["max_train_files"])]
     if not train_files or not hold_files:
         raise C.StageFailed("no train or holdout binpacks yet (run the data stage first)")
-    policy = {"wait": "yield", "share": "share", "ignore": "ignore"}[prof.get("gpu_policy", "wait")]
     cmd = [t["python"], "-B", ENTRY, "--r11-clone", t["clone"], "--r11-run-dir", C.winpath(run_dir),
-           "--r11-keep-last", str(prof.get("keep_last", 2)), "--r11-policy", policy,
-           "--r11-share-duty", str(prof.get("share_duty", 1.0)),
+           "--r11-keep-last", str(prof.get("keep_last", 2)),
            "--r11-min-free-ram-gb", str(cfg["limits"]["min_free_ram_gb"] + 1.0),
            "--r11-hard-ram-gb", str(cfg["limits"]["min_free_ram_gb"]),
            "--r11-patterns", ";".join(cfg["train"]["production_patterns"]),
@@ -99,6 +98,8 @@ def trainer_cmd(cfg: dict, prof: dict, run_dir: str, resume: str | None) -> tupl
 
 def run_train(cfg: dict, profile_name: str, log: C.Log, gov: C.Governor, name: str | None = None) -> dict:
     prof = dict(cfg["train"]["profiles"][profile_name])
+    if prof.get("gpu_policy", "yield") != "yield" or "share_duty" in prof:
+        raise C.StageFailed(f"profile {profile_name}: yield is the only GPU policy (CR R2 H1: no share, no duty cycle)")
     run_dir = os.path.join(cfg["train"]["runs_dir"], name or run_name(profile_name, prof))
     C.assert_writable_path(run_dir)
     os.makedirs(run_dir, exist_ok=True)
@@ -112,19 +113,18 @@ def run_train(cfg: dict, profile_name: str, log: C.Log, gov: C.Governor, name: s
             log.ok(f"train {os.path.basename(run_dir)}: finished ({prof['max_epochs']} epochs); best "
                    f"{(ix.get('best') or {}).get('path')} val {(ix.get('best') or {}).get('val_loss')}")
             return {"run_dir": C.winpath(run_dir), "finished": True, "best": ix.get("best"), "last": last}
-        # production policy
-        if prof.get("gpu_policy", "wait") == "wait":
-            t0 = time.time()
-            while True:
-                hits = C.production_processes(patterns)
-                if not hits:
-                    break
-                if time.time() - t0 < 1 or int(time.time() - t0) % 600 < cfg["limits"]["poll_seconds"]:
-                    log.wait(f"train {profile_name}: production trainer running ({hits[0]['pattern']}, pid "
-                             f"{hits[0]['pid']}); full-size training waits (gpu_policy wait)")
-                if prof.get("max_wait_s") is not None and time.time() - t0 > prof["max_wait_s"]:
-                    return {"run_dir": C.winpath(run_dir), "finished": False, "waiting_for_gpu": True}
-                time.sleep(cfg["limits"]["poll_seconds"])
+        # yield: the GPU belongs to production; never start next to a production trainer (CR R2 H1)
+        t0 = time.time()
+        while True:
+            hits = C.production_processes(patterns)
+            if not hits:
+                break
+            if time.time() - t0 < 1 or int(time.time() - t0) % 600 < cfg["limits"]["poll_seconds"]:
+                log.wait(f"train {profile_name}: production trainer running ({hits[0]['pattern']}, pid "
+                         f"{hits[0]['pid']}); training yields until it ends")
+            if prof.get("max_wait_s") is not None and time.time() - t0 > prof["max_wait_s"]:
+                return {"run_dir": C.winpath(run_dir), "finished": False, "waiting_for_gpu": True}
+            time.sleep(cfg["limits"]["poll_seconds"])
         if not gov.wait_ok(f"train {profile_name}", need_ram_gb=prof["need_ram_gb"], disk_path=run_dir,
                            need_disk_gb=prof.get("need_disk_gb", 2.0)):
             return {"run_dir": C.winpath(run_dir), "finished": False, "stopped": True}
