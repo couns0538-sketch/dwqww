@@ -4,7 +4,11 @@ Status: **PROPOSED; NOT INSTALLED** (2026-10-30). Extend the existing
 [validate-chess-engine skill](skill://user/6ad5f7d7bfb4819190376efc04503df1/validate-chess-engine/SKILL.md)
 under its correctness/evidence guidance; do not create another engine skill.
 The provider exposes reading, but no callable skill-creator or skill-edit tool
-was found in this session. This repository document is the reviewable change.
+was found in this session. The actual proposed skill files are now in
+[`skills/validate-chess-engine`](../skills/validate-chess-engine/SKILL.md), retaining
+the existing name and recovered references. This document records their provenance
+and validation limits. See the [bundle notes](../skills/validate-chess-engine/BUNDLE.md)
+for the unavailable provider script and how to preserve an existing installation.
 
 IDEA_SOURCE: Forge's own FPOS/FHCE producer, trainer and Job D parser;
 the user’s immutable-data and exact-label requirements; local regression tests.
@@ -13,35 +17,27 @@ Skill authoring guidance: `superpowers:writing-skills` and
 
 ## Proposed reusable guidance
 
-For training-data work, record the following before claiming an output valid:
-
-| Required field | Validation contract |
-|---|---|
-| Format and orientation | Identify the producer/trainer revision and hashes. FPOS v1 is columnar, not row-interleaved: header, packed boards, STM scores, metadata. Results are White-relative. FHCE stores STM HCE values. Verify counts, sizes, piece nibbles and label ranges. |
-| State provenance | FPOS omits castling, en passant, clocks, game IDs and best moves. Exact labels require an authoritative full-state sidecar. Match every full text row by board, STM, original score and White result, with identical row count/order. Counting a suffix without decoding it proves count only. |
-| Derived-state provenance | A reconstructed no-castling/no-EP/clock-zero FEN is a distinct input policy. Keep that origin in every downstream manifest and require explicit origin when consuming FEN-only sidecars. Saving reconstructed state as a full FEN does not make it original; exclude it from exact-label counts. |
-| Holdout scope | Exclude supplied holdout 013 and 014 positions. Record which complete holdouts or prefixes were actually available. Position overlap zero does not prove game exclusion: that requires authoritative game IDs. Missing 014 or game IDs remains an explicit limitation. |
-| Immutable inputs and publication | Hash original inputs, binary and source. Write only new output prefixes; retain failed partials and original evidence. Publish success after all checks and owned workers exit cleanly. Serialize manifests before publication; malformed metadata must not leave a final manifest. |
-| Native process evidence | Retain original requests, responses, stderr, command and actual child exit status. Check request IDs, operations, response count, output bounds and binary identity. A shell pipeline’s last exit code is not the test process exit code. Terminate only processes owned by this run. |
-| CPU throughput | Report actual OS CPU time for the measured process scope and wall time separately. Per-query timers omit startup/idle/shutdown; cores × elapsed time is allocated capacity, not measured CPU. Include thread/hash/node settings, affinity, sample scope and counted successful rows. |
-| Interrupted collaboration | Check agent status after user steering. A message alone does not resume an interrupted/idle worker; use a follow-up task to trigger continuation, preserving file ownership and current progress. |
-| Seal boundary | Keep external verification and console receipts outside sealed output folders. Adding an unmanifested file changes the bundle even if its data bytes are unchanged. Require process exit zero, all hashes and independent accounting checks before accepting a legacy run whose summary was published before its manifest. |
-| Search completion | Distinguish completed search depth/score from an aborted iteration's displayed depth and partial bestmove. An initial UCI cp0 placeholder is not a completed label. A documented insufficient-budget response is an explicit exclusion, not permission to invent a score. |
-| Portable evidence | Validate one case-insensitive namespace for archive files, explicit directories, implied parents and the built-in manifest. File-only collision checks miss Windows file/directory aliases. Re-read every archived payload and verify the published server digest. |
-| Publication endpoints | A successful Git push, API write or release-page creation does not prove asset upload works at uploads.github.com. Verify a small intended upload first. If a supported repository runner delivers original bytes, require content hashes before/after transport and final server asset size/digest checks; a started job or temporary Git object is not durable artifact publication. |
-
-Report format correctness, native legality/search validity, trainer compatibility,
-throughput and training/playing strength as separate conclusions. Unit fixtures
-are not real sample measurements; loss or throughput changes establish no Elo.
+The consolidated guidance is now in
+[`references/training-data.md`](../skills/validate-chess-engine/references/training-data.md).
+It requires complete row/metadata validation, state-origin preservation, output
+accounting, real-holdout scope, native exit evidence, sealed publication, and
+separate format, throughput and strength conclusions. It also covers writable
+fsync descriptors, POSIX-only inode-change semantics for ctime, PowerShell 5.1
+stderr handling, and per-shard storage measurements with all retained indexes
+and cumulative prior keys. Under the crew retention policy, no routine prune or
+delete step is authorized; explicit crew approval is required.
 
 ## Evidence and validation status
 
-The I/O suite passed **16/16**, both normally and with `python -O`, against
-the exact source hashes recorded in
-[`format_tests/evidence_manifest.json`](../validation/astra-a1-data/format_tests/evidence_manifest.json).
-Original normal/optimized stdout, stderr, exit metadata, and the earlier manifest
-failure are preserved there. The manifest regression failed first (exit 1), then
-passed after publication was repaired; the failed source snapshot is retained.
+The earlier I/O report recorded **16/16**, both normally and with `python -O`,
+against source hashes in `validation/astra-a1-data/format_tests/evidence_manifest.json`.
+That historical manifest is absent from this checkout; this bundle does not
+reverify the earlier result.
+The earlier report identifies original normal/optimized stdout, stderr, exit
+metadata, and the earlier manifest failure at that location. It records a
+manifest regression failing first (exit 1), then passing after publication was
+repaired, with the failed source snapshot retained. Those historical preservation
+claims were not independently rechecked for this bundle.
 
 Relevant executable regressions:
 
@@ -57,18 +53,14 @@ Relevant executable regressions:
 - [`test_probe_client.py`](../tests/data/test_probe_client.py): original IPC,
   framing/ID mismatches, nonzero shutdown, changed executable and owned timeout.
 
-**Skill behavioral validation is UNVERIFIED.** Code regression tests establish the
-data-tool contracts, not future agent compliance. Before applying this addendum
-to the provider skill, run no-guidance/with-guidance scenarios covering a partial
-sidecar, a reconstructed sidecar relabeled twice, unavailable holdout game IDs,
-and a successful query followed by nonzero child exit. Preserve actual responses
-and correct any omissions. The interrupted-agent rule and CPU accounting rule
-also require workflow-level checks; they are not claimed as covered by the I/O
-suite. No installation or provider edit has been performed.
-
-The additional seal-boundary, search-completion and portable-evidence guidance
-comes from this session's preserved failures and subsequent regressions. Those
-code checks do not replace the behavioral skill-validation requirement above.
+**Broad skill behavioral validation remains UNVERIFIED.** A bounded baseline
+and with-guidance review is recorded in the bundle's
+[`review-scenarios.md`](../skills/validate-chess-engine/review-scenarios.md).
+The baseline already recognized the principal defects; this is a retrieval and
+technical-review check, not evidence that the guidance caused a behavioral gain.
+It does not replace Windows runtime checks or original software regressions.
+The interrupted-agent and CPU-accounting guidance still lacks workflow-level
+validation. No installation or provider edit has been performed.
 
 ## Proposed QA extension: optional dependencies and large indexes
 
@@ -76,15 +68,13 @@ Status remains PROPOSED / NOT INSTALLED. No duplicate skill was created. The
 installed skill provider is read-only in this environment; these additions belong
 in the same existing validator's training-data guidance after review.
 
-| Required field | Validation contract |
-|---|---|
-| Complete dependency provenance | Read the full source notices and compiled include/dependency closure, not only leading licence headers. Record embedded third-party attribution and effective combined-tool treatment. Keep incompatible optional tooling external and disabled by default, with explicit opt-in and a dependency manifest. |
-| Scratch disk lifecycle | Record per-row/key database measurements separately from extrapolations, peak coexistence of index/output/journal, reserve and in-loop check interval. Require explicit prune opt-in; only then remove owned reconstructible indexes after validating immutable outputs; retain raw logs and source data. Review resume and failure paths, not just successful completion. |
-| Real holdout certification | Bind full-shard identities to trusted expected SHA256 and row counts, independently scan the verified output against both holdouts, and publish actual unique-key and row overlap counts. Synthetic tests qualify the audit tool only. If the user explicitly accepts whole-shard separation, state that policy rather than inventing game IDs. Missing real holdouts block training clearance. |
-| Windows native launch | PowerShell 5.1 native stderr is not necessarily failure. Capture stdout/stderr separately through Process APIs, preserve the native exit code, set Idle/affinity before launch, and verify a GPU-free scheduled slot immediately before GPU execution, after compilation. Unknown GPU/process telemetry is a refusal. |
+These requirements are consolidated in the same training-data reference: full
+dependency notice/include review, retained-index disk accounting, trusted complete
+holdout identities, Windows native launch and portable file validation. The
+repository bundle extends the existing skill; it introduces no duplicate skill.
 
 Evidence for these concrete workflow failures and regressions is in
 `validation/astra-converter-20261030/qa_licence_fix/`, `qa_fix_disk/`, and
 `qa_holdout_clearance/`, plus Job1's `qa_windows_fix/` on the exporter branch.
-These are software regression checks, not a claim that the proposed skill was
-installed or that an independent skill-behaviour test was completed.
+These are software regression checks, not evidence of skill installation or
+general agent compliance. Historical raw logs remain unchanged.
