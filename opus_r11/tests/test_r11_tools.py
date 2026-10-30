@@ -399,6 +399,56 @@ def main() -> int:
     except C.StageFailed:
         check(True, "a 4-CPU mask is refused")
 
+    # 1f CR R3: the cap lifter for processes started before the fix 2 amendment (logs/cr2_amendment/
+    # lift_wscap_watch.py) - identity (a root must be running and carry the expected text; PIDs are never re-opened
+    # blindly) and fail-closed; a probe enters background mode like the old code and prints its working-set flags
+    watcher = os.path.join(REPO, "opus_r11", "logs", "cr2_amendment", "lift_wscap_watch.py")
+    lmark = f"R11LIFTPROBE{os.getpid()}"
+    lprobe = os.path.join(scratch, "lift_probe.py")
+    with open(lprobe, "w", encoding="utf-8", newline="\n") as f:
+        f.write("import ctypes, sys, time\n"
+                "from ctypes import wintypes\n"
+                "import numpy as np\n"
+                "k32 = ctypes.windll.kernel32\n"
+                "k32.GetCurrentProcess.restype = wintypes.HANDLE\n"
+                "k32.SetPriorityClass.argtypes = [wintypes.HANDLE, wintypes.DWORD]\n"
+                "k32.GetProcessWorkingSetSizeEx.argtypes = [wintypes.HANDLE, ctypes.POINTER(ctypes.c_size_t),\n"
+                "                                           ctypes.POINTER(ctypes.c_size_t), ctypes.POINTER(wintypes.DWORD)]\n"
+                "h = k32.GetCurrentProcess()\n"
+                "k32.SetPriorityClass(h, 0x00100000)  # background mode, as the code before the amendment did\n"
+                "k32.SetPriorityClass(h, 0x40)\n"
+                "a = np.ones(64 * 2**20 // 8)\n"
+                "for i in range(40):\n"
+                "    mn, mx, fl = ctypes.c_size_t(), ctypes.c_size_t(), wintypes.DWORD()\n"
+                "    k32.GetProcessWorkingSetSizeEx(h, ctypes.byref(mn), ctypes.byref(mx), ctypes.byref(fl))\n"
+                "    print(hex(fl.value), flush=True)\n"
+                "    a += 1.0\n"
+                "    time.sleep(0.5)\n")
+
+    def run_watcher(args: list[str]) -> subprocess.CompletedProcess:
+        return subprocess.run([sys.executable, "-I", "-B", watcher] + args, capture_output=True, text=True, timeout=120)
+
+    wl = os.path.join(scratch, "lift_wscap.log")
+    lp = subprocess.Popen([sys.executable, "-I", "-B", lprobe, lmark], stdout=subprocess.PIPE, text=True)
+    time.sleep(3.0)
+    r_expect = run_watcher([wl, "--expect", "NOT-IN-ANY-COMMAND-LINE", "--once", str(lp.pid)])
+    gone = subprocess.Popen([sys.executable, "-c", "pass"])
+    gone.wait()
+    r_dead = run_watcher([wl, "--expect", lmark, "--once", str(gone.pid)])
+    r_mask = run_watcher([wl, "--expect", lmark, "--affinity", hex(1 << 40), "--once", str(lp.pid)])
+    before = open(wl, encoding="utf-8").read() if os.path.isfile(wl) else ""
+    check(r_expect.returncode == 2 and r_dead.returncode == 2 and r_mask.returncode == 2 and
+          "soft defaults" not in before and before.count("FAIL") == 3,
+          f"lifter refuses (exit 2, nothing changed): a root without the expected text {r_expect.returncode}, a dead "
+          f"root {r_dead.returncode}, a mask it cannot set {r_mask.returncode}")
+    r_ok = run_watcher([wl, "--expect", lmark, "--once", str(lp.pid)])
+    out, _ = lp.communicate(timeout=120)  # the probe ends by itself (20 s); nothing is killed
+    flags = out.split()
+    lifted = [ln for ln in open(wl, encoding="utf-8").read().splitlines() if "soft defaults" in ln]
+    check(r_ok.returncode == 0 and len(lifted) == 1 and flags[:1] == ["0x6"] and flags[-1:] == ["0xa"],
+          f"lifter un-caps exactly the capped probe (the venv launcher's child): exit {r_ok.returncode}, "
+          f"{len(lifted)} change(s), probe flags {flags[0] if flags else '?'} -> {flags[-1] if flags else '?'}")
+
     # 2 CR fix 4: the process check FAILS without psutil; an unreadable python command line counts as production
     saved = sys.modules.get("psutil", "absent")
     sys.modules["psutil"] = None  # makes "import psutil" raise ImportError
