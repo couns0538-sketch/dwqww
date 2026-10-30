@@ -1,0 +1,67 @@
+name: Forge Astra A1 verified evidence delivery
+
+on:
+  push:
+    branches: [astra-a1-data]
+    paths: [validation/astra-a1-data/github_delivery/blob_assets.json]
+
+permissions:
+  contents: write
+
+concurrency:
+  group: forge-astra-a1-evidence-delivery
+  cancel-in-progress: false
+
+jobs:
+  publish-original-evidence:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Check out the triggering source revision
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+          fetch-depth: 1
+          sparse-checkout: validation/astra-a1-data/github_delivery
+      - name: Validate publisher fixtures
+        run: python3 validation/astra-a1-data/github_delivery/test_publish_blob_assets.py
+      - name: Deliver and verify original evidence assets
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          python3 validation/astra-a1-data/github_delivery/publish_blob_assets.py \
+            --manifest validation/astra-a1-data/github_delivery/blob_assets.json \
+            --out "$RUNNER_TEMP/forge-delivery-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT"
+      - name: Summarize the delivery receipt
+        if: always()
+        run: |
+          python3 - <<'PY'
+          import json, os
+          from pathlib import Path
+          path = Path(os.environ['RUNNER_TEMP']) / ('forge-delivery-' + os.environ['GITHUB_RUN_ID'] + '-' + os.environ['GITHUB_RUN_ATTEMPT']) / 'receipt.json'
+          if path.is_file():
+              receipt = json.loads(path.read_text())
+              text = 'Delivery: ' + receipt['status'] + '\n\n'
+              text += '\n'.join('- ' + row['name'] + ': ' + row['decision'] + ' (' + str(row['bytes']) + ' bytes, SHA256 ' + row['sha256'] + ')' for row in receipt['assets'])
+              if 'error' in receipt:
+                  text += '\n\n' + receipt['error']
+              with open(os.environ['GITHUB_STEP_SUMMARY'], 'a') as stream:
+                  stream.write(text + '\n')
+              print(json.dumps(receipt, sort_keys=True))
+          else:
+              print('No delivery receipt: publisher did not start or failed before output creation.')
+          PY
+      - name: Preserve original delivery receipts and logs
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: forge-astra-a1-delivery-${{ github.run_id }}-${{ github.run_attempt }}
+          if-no-files-found: warn
+          retention-days: 90
+          path: |
+            ${{ runner.temp }}/forge-delivery-${{ github.run_id }}-${{ github.run_attempt }}/manifest.json
+            ${{ runner.temp }}/forge-delivery-${{ github.run_id }}-${{ github.run_attempt }}/receipt.json
+            ${{ runner.temp }}/forge-delivery-${{ github.run_id }}-${{ github.run_attempt }}/events.jsonl
+            ${{ runner.temp }}/forge-delivery-${{ github.run_id }}-${{ github.run_attempt }}/server_assets_initial.json
+            ${{ runner.temp }}/forge-delivery-${{ github.run_id }}-${{ github.run_attempt }}/server_assets_final.json
+            ${{ runner.temp }}/forge-delivery-${{ github.run_id }}-${{ github.run_attempt }}/logs/

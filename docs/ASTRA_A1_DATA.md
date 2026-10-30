@@ -176,3 +176,5 @@ omits that context; the measured clock frequencies above motivate investigation,
 not an additional filter or a claimed gain in this run.
 
 Earlier checkpoints are retained in [ASTRA_A1_CHECKPOINT_HISTORY.md](ASTRA_A1_CHECKPOINT_HISTORY.md) and Git history. IDEA_SOURCE: user's data task, same-project FPOS/FHCE/native search/trainer/R8 contracts; original implementations and thresholds, no other-engine code or tuned constants.
+
+Delivery checkpoint: authenticated Git-blob creation passed for the 698-byte transport manifest and an 8MiB original chunk, with exact server Git hashes. Publisher fixtures pass 10/10; the first branch-triggered runner smoke transfers only the real transport manifest. No full release publication is claimed yet.
