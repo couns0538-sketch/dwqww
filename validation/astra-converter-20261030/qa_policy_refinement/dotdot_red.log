@@ -1,0 +1,43 @@
+test_accepted_adapter_must_be_outside_repository (test_runtime_policy.RuntimePolicy.test_accepted_adapter_must_be_outside_repository) ... ok
+test_acknowledged_external_tool_is_accepted (test_runtime_policy.RuntimePolicy.test_acknowledged_external_tool_is_accepted) ... ok
+test_bare_repository_tool_is_rejected (test_runtime_policy.RuntimePolicy.test_bare_repository_tool_is_rejected) ... ok
+test_completion_retains_index_until_explicit_verify_prune (test_runtime_policy.RuntimePolicy.test_completion_retains_index_until_explicit_verify_prune) ... ok
+test_convert_requires_gpl_ack_before_output_created (test_runtime_policy.RuntimePolicy.test_convert_requires_gpl_ack_before_output_created) ... ok
+test_empty_git_placeholder_is_not_a_repository (test_runtime_policy.RuntimePolicy.test_empty_git_placeholder_is_not_a_repository) ... ok
+test_repository_symlink_to_external_tool_is_rejected (test_runtime_policy.RuntimePolicy.test_repository_symlink_to_external_tool_is_rejected) ... ok
+test_resume_never_deletes_prior_indexes_implicitly (test_runtime_policy.RuntimePolicy.test_resume_never_deletes_prior_indexes_implicitly) ... ok
+test_symlink_dotdot_cannot_check_outside_then_execute_inside_repo (test_runtime_policy.RuntimePolicy.test_symlink_dotdot_cannot_check_outside_then_execute_inside_repo) ... {"disk_preflight": {"index_keys_upper_bound": 2, "index_bytes_per_key": 64, "index_bytes_estimate": 1048704, "remaining_input_rows": 2, "output_bytes_estimate": 656, "probe_log_bytes_estimate": 0, "reserve_bytes": 0}}
+ERROR
+test_symlink_into_repository_is_rejected (test_runtime_policy.RuntimePolicy.test_symlink_into_repository_is_rejected) ... ok
+test_verify_cli_requires_ack_without_modifying_output (test_runtime_policy.RuntimePolicy.test_verify_cli_requires_ack_without_modifying_output) ... ok
+test_verify_repository_tool_is_rejected_even_with_gpl_ack (test_runtime_policy.RuntimePolicy.test_verify_repository_tool_is_rejected_even_with_gpl_ack) ... ok
+test_verify_requires_gpl_ack_before_adapter_runs (test_runtime_policy.RuntimePolicy.test_verify_requires_gpl_ack_before_adapter_runs) ... ok
+
+======================================================================
+ERROR: test_symlink_dotdot_cannot_check_outside_then_execute_inside_repo (test_runtime_policy.RuntimePolicy.test_symlink_dotdot_cannot_check_outside_then_execute_inside_repo)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/tmp/forge-astra-fen-convert/tests/data2/test_runtime_policy.py", line 33, in test_symlink_dotdot_cannot_check_outside_then_execute_inside_repo
+    with self.assertRaisesRegex(ValueError,'outside'):c.run(args)
+                                                      ^^^^^^^^^^^
+  File "/tmp/forge-astra-fen-convert/tools/data2/convert_dataset.py", line 364, in run
+    return convert_locked(args, out, config, inputs, bindings)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/tmp/forge-astra-fen-convert/tools/data2/convert_dataset.py", line 466, in convert_locked
+    if args.binpack_tool: encode_binpack(args, chunkdir, guard)
+                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/tmp/forge-astra-fen-convert/tools/data2/convert_dataset.py", line 294, in encode_binpack
+    subprocess.run(command, stdout=stdout, stderr=stderr, check=True)
+  File "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/subprocess.py", line 548, in run
+    with Popen(*popenargs, **kwargs) as process:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/subprocess.py", line 1026, in __init__
+    self._execute_child(args, executable, preexec_fn, close_fds,
+  File "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/subprocess.py", line 1955, in _execute_child
+    raise child_exception_type(errno_num, err_msg, err_filename)
+PermissionError: [Errno 13] Permission denied: '/tmp/tmprqv3dnzm/repo/adapter.py'
+
+----------------------------------------------------------------------
+Ran 13 tests in 0.297s
+
+FAILED (errors=1)

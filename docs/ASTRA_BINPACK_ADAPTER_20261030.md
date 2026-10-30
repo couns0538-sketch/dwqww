@@ -9,7 +9,8 @@ do not override embedded third-party provenance. Preserve all notices. The
 manifest pins five dependency files, but does not certify a MIT-only closure.
 
 Default conversion uses bulletformat plus its sidecar and needs none of this
-tooling. Binpack is optional/OFF until `--binpack-tool` is explicitly provided.
+tooling. Binpack is optional/OFF until `--binpack-tool` and `--accept-gpl3` are explicitly provided.
+Conversion and verification check the executable path before invoking it.
 Only the original wrapper/tests stay here; fetch headers and build the executable
 **outside every repository**. The fetcher requires `--accept-gpl3` and rejects
 Git directories. Historical raw logs are retained and their MIT-only descriptions

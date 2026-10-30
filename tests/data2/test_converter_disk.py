@@ -20,7 +20,7 @@ class DiskTests(unittest.TestCase):
   self.temp = tempfile.TemporaryDirectory(dir='/tmp'); self.addCleanup(self.temp.cleanup)
   self.root = Path(self.temp.name); self.src = self.root/'input.txt'; self.src.write_text(''.join(FENS))
  def args(self, *extra, out='out'):
-  return c.parser().parse_args(['convert','--input',str(self.src),'--out',str(self.root/out),'--no-filters','--min-free-mb','0',*extra])
+  return c.parser().parse_args(['convert','--input',str(self.src),'--out',str(self.root/out),'--no-filters','--min-free-mb','0',*(['--accept-gpl3'] if '--binpack-tool' in extra else []),*extra])
  def test_default_reserve_rejects_ten_gib_free(self):
   args = self.args(); args.min_free_mb = c.parser().parse_args(['convert','--input',str(self.src),'--out',str(self.root/'unused')]).min_free_mb
   with mock.patch.object(c.shutil,'disk_usage',return_value=type('Usage',(),{'free':10*1024**3})()):
@@ -62,9 +62,13 @@ class DiskTests(unittest.TestCase):
   self.assert_loading_guard('--holdout','holdout')
  def test_prior_loading_checks_disk_before_next_batch(self):
   self.assert_loading_guard('--dedup-against','prior')
- def test_verified_completion_prunes_only_owned_index(self):
+ def prune(self):
+  with mock.patch.object(sys,'argv',['convert_dataset.py','verify','--out',str(self.root/'out'),'--prune-indexes']):c.main()
+ def test_explicit_verified_cleanup_prunes_only_owned_index(self):
   result=c.run(self.args())
   self.assertEqual(result['counts']['kept'],2)
+  self.assertTrue(list((self.root/'out').glob('attempt_*/index.sqlite')))
+  self.prune()
   self.assertFalse(list((self.root/'out').glob('attempt_*/index.sqlite')))
   self.assertEqual(self.src.read_text(),''.join(FENS))
   self.assertEqual(c.verify(self.root/'out')['rows'],2)
@@ -74,6 +78,8 @@ class DiskTests(unittest.TestCase):
   self.assertTrue(list((self.root/'out').glob('attempt_*/index.sqlite')))
   result=c.run(self.args('--chunk-rows','1','--resume'))
   self.assertEqual(result['counts']['kept'],2);self.assertEqual(result['counts']['duplicate'],1)
+  self.assertTrue(list((self.root/'out').glob('attempt_*/index.sqlite')))
+  self.prune()
   self.assertFalse(list((self.root/'out').glob('attempt_*/index.sqlite')))
   self.assertEqual(c.run(self.args('--chunk-rows','1','--resume'))['rows'],2)
  def test_corrupt_checkpoint_retains_index(self):
@@ -104,12 +110,13 @@ class DiskTests(unittest.TestCase):
  def test_unowned_legacy_index_is_not_pruned(self):
   c.run(self.args('--chunk-rows','1','--stop-after-chunks','1'))
   old=self.root/'out'/('attempt_'+'a'*32);old.mkdir();(old/'index.sqlite').write_bytes(b'legacy evidence')
-  c.run(self.args('--chunk-rows','1','--resume'))
+  c.run(self.args('--chunk-rows','1','--resume'));self.prune()
   self.assertEqual((old/'index.sqlite').read_bytes(),b'legacy evidence')
- def test_symlink_index_fails_closed_without_deleting_target(self):
+ def test_explicit_prune_refuses_symlink_index_without_deleting_target(self):
   c.run(self.args('--chunk-rows','1','--stop-after-chunks','1'))
   index=next((self.root/'out').glob('attempt_*/index.sqlite'));index.unlink();index.symlink_to(self.src)
-  with self.assertRaisesRegex(ValueError,'symlink|unsafe'):c.run(self.args('--chunk-rows','1','--resume'))
+  c.run(self.args('--chunk-rows','1','--resume'))
+  with self.assertRaisesRegex(ValueError,'symlink|unsafe'):self.prune()
   self.assertEqual(self.src.read_text(),''.join(FENS))
  def adapter(self):
   path=self.root/'adapter.py'
@@ -150,27 +157,27 @@ pathlib.Path(sys.argv[3]).write_text(''.join(rows))
   return decoder
  def test_binpack_decode_accepts_only_transport_crlf(self):
   decoder=self.decoded_payload(''.join(FENS).encode().replace(b'\n',b'\r\n'))
-  try: result=c.verify(self.root/'out',decoder)
+  try: result=c.verify(self.root/'out',decoder,accept_gpl3=True)
   except ValueError as error:self.fail('valid CRLF decoder transport rejected: '+str(error))
   self.assertEqual(result['binpack_decoded_rows'],2)
  def test_binpack_decode_rejects_changed_value_with_crlf(self):
   decoder=self.decoded_payload(''.join(FENS).encode().replace(b'| 61 |',b'| 62 |').replace(b'\n',b'\r\n'))
-  with self.assertRaisesRegex(ValueError,'differs'):c.verify(self.root/'out',decoder)
+  with self.assertRaisesRegex(ValueError,'differs'):c.verify(self.root/'out',decoder,accept_gpl3=True)
  def test_binpack_decode_rejects_embedded_cr_with_crlf(self):
   decoder=self.decoded_payload(''.join(FENS).encode().replace(b'| 61 |',b'| 6\r1 |').replace(b'\n',b'\r\n'))
-  with self.assertRaisesRegex(ValueError,'differs'):c.verify(self.root/'out',decoder)
+  with self.assertRaisesRegex(ValueError,'differs'):c.verify(self.root/'out',decoder,accept_gpl3=True)
  def test_binpack_decode_rejects_extra_terminal_cr(self):
   decoder=self.decoded_payload(''.join(FENS).encode().replace(b'\n',b'\r\r\n'))
-  with self.assertRaisesRegex(ValueError,'differs'):c.verify(self.root/'out',decoder)
+  with self.assertRaisesRegex(ValueError,'differs'):c.verify(self.root/'out',decoder,accept_gpl3=True)
  def test_binpack_decode_rejects_changed_whitespace(self):
   decoder=self.decoded_payload(''.join(FENS).encode().replace(b' | ',b'  | ',1).replace(b'\n',b'\r\n'))
-  with self.assertRaisesRegex(ValueError,'differs'):c.verify(self.root/'out',decoder)
+  with self.assertRaisesRegex(ValueError,'differs'):c.verify(self.root/'out',decoder,accept_gpl3=True)
  def test_binpack_decode_rejects_extra_crlf_row(self):
   decoder=self.decoded_payload((''.join(FENS)+FENS[0]).encode().replace(b'\n',b'\r\n'))
-  with self.assertRaisesRegex(ValueError,'extra binpack decoded rows'):c.verify(self.root/'out',decoder)
+  with self.assertRaisesRegex(ValueError,'extra binpack decoded rows'):c.verify(self.root/'out',decoder,accept_gpl3=True)
  def test_binpack_decode_rejects_unterminated_last_row(self):
   decoder=self.decoded_payload(''.join(FENS).encode().replace(b'\n',b'\r\n').removesuffix(b'\r\n'))
-  with self.assertRaisesRegex(ValueError,'differs'):c.verify(self.root/'out',decoder)
+  with self.assertRaisesRegex(ValueError,'differs'):c.verify(self.root/'out',decoder,accept_gpl3=True)
 
 
 if __name__=='__main__':unittest.main()

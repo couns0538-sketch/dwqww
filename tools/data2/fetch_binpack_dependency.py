@@ -4,6 +4,7 @@ Headers and the compiled adapter must remain outside every repository.
 """
 from __future__ import annotations
 import argparse, hashlib, json, pathlib, urllib.request
+from external_tool_policy import require_external_path
 
 
 def main():
@@ -14,9 +15,10 @@ def main():
     a=ap.parse_args()
     if not a.accept_gpl3:
         ap.error('external GPL-3.0 tooling requires --accept-gpl3; default bulletformat needs none')
-    a.out = a.out.resolve()
-    if any((p / '.git').exists() for p in (a.out, *a.out.parents)):
-        ap.error('GPL-3.0 dependencies and compiled adapter must stay outside every repository')
+    try:
+        a.out = require_external_path(a.out)
+    except ValueError as error:
+        ap.error(str(error))
     spec=json.loads(a.manifest.read_text())
     if spec.get('effective_tool_license') != 'GPL-3.0' or spec.get('enabled_by_default') is not False:
         raise ValueError('dependency manifest must disclose optional GPL-3.0 tooling')

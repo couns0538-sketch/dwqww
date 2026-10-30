@@ -1,0 +1,160 @@
+test_accepted_adapter_must_be_outside_repository (test_runtime_policy.RuntimePolicy.test_accepted_adapter_must_be_outside_repository) ... {"disk_preflight": {"index_keys_upper_bound": 2, "index_bytes_per_key": 64, "index_bytes_estimate": 1048704, "remaining_input_rows": 2, "output_bytes_estimate": 656, "probe_log_bytes_estimate": 0, "reserve_bytes": 0}}
+ERROR
+test_completion_retains_index_until_explicit_verify_prune (test_runtime_policy.RuntimePolicy.test_completion_retains_index_until_explicit_verify_prune) ... FAIL
+test_convert_requires_gpl_ack_before_output_created (test_runtime_policy.RuntimePolicy.test_convert_requires_gpl_ack_before_output_created) ... ERROR
+test_repository_symlink_to_external_tool_is_rejected (test_runtime_policy.RuntimePolicy.test_repository_symlink_to_external_tool_is_rejected) ... {"disk_preflight": {"index_keys_upper_bound": 2, "index_bytes_per_key": 64, "index_bytes_estimate": 1048704, "remaining_input_rows": 2, "output_bytes_estimate": 656, "probe_log_bytes_estimate": 0, "reserve_bytes": 0}}
+ERROR
+test_resume_never_deletes_prior_indexes_implicitly (test_runtime_policy.RuntimePolicy.test_resume_never_deletes_prior_indexes_implicitly) ... ERROR
+test_symlink_into_repository_is_rejected (test_runtime_policy.RuntimePolicy.test_symlink_into_repository_is_rejected) ... {"disk_preflight": {"index_keys_upper_bound": 2, "index_bytes_per_key": 64, "index_bytes_estimate": 1048704, "remaining_input_rows": 2, "output_bytes_estimate": 656, "probe_log_bytes_estimate": 0, "reserve_bytes": 0}}
+ERROR
+test_verify_cli_requires_ack_without_modifying_output (test_runtime_policy.RuntimePolicy.test_verify_cli_requires_ack_without_modifying_output) ... FAIL
+test_verify_repository_tool_is_rejected_even_with_gpl_ack (test_runtime_policy.RuntimePolicy.test_verify_repository_tool_is_rejected_even_with_gpl_ack) ... FAIL
+test_verify_requires_gpl_ack_before_adapter_runs (test_runtime_policy.RuntimePolicy.test_verify_requires_gpl_ack_before_adapter_runs) ... FAIL
+
+======================================================================
+ERROR: test_accepted_adapter_must_be_outside_repository (test_runtime_policy.RuntimePolicy.test_accepted_adapter_must_be_outside_repository)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/tmp/forge-astra-fen-convert/tests/data2/test_runtime_policy.py", line 40, in test_accepted_adapter_must_be_outside_repository
+    with self.assertRaisesRegex(ValueError,'outside'):c.run(args)
+                                                      ^^^^^^^^^^^
+  File "/tmp/forge-astra-fen-convert/tools/data2/convert_dataset.py", line 351, in run
+    return convert_locked(args, out, config, inputs, bindings)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/tmp/forge-astra-fen-convert/tools/data2/convert_dataset.py", line 454, in convert_locked
+    if args.binpack_tool: encode_binpack(args, chunkdir, guard)
+                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/tmp/forge-astra-fen-convert/tools/data2/convert_dataset.py", line 281, in encode_binpack
+    subprocess.run(command, stdout=stdout, stderr=stderr, check=True)
+  File "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/subprocess.py", line 571, in run
+    raise CalledProcessError(retcode, process.args,
+subprocess.CalledProcessError: Command '['/tmp/tmp90vc2dj8/adapter.py', 'encode', '/tmp/tmp90vc2dj8/out/data_09796a93d000467bac06cfab954651ad/rows.txt', '/tmp/tmp90vc2dj8/out/data_09796a93d000467bac06cfab954651ad/rows.binpack', '--allow-transport-move']' returned non-zero exit status 1.
+
+======================================================================
+ERROR: test_convert_requires_gpl_ack_before_output_created (test_runtime_policy.RuntimePolicy.test_convert_requires_gpl_ack_before_output_created)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/tmp/forge-astra-fen-convert/tests/data2/test_runtime_policy.py", line 32, in test_convert_requires_gpl_ack_before_output_created
+    with self.assertRaisesRegex(ValueError,'accept-gpl3'):self.convert('--binpack-tool',str(self.tool),'--allow-transport-moves')
+                                                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/tmp/forge-astra-fen-convert/tests/data2/test_runtime_policy.py", line 18, in convert
+    with contextlib.redirect_stdout(io.StringIO()): return c.run(self.args(*extra))
+                                                           ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/tmp/forge-astra-fen-convert/tools/data2/convert_dataset.py", line 351, in run
+    return convert_locked(args, out, config, inputs, bindings)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/tmp/forge-astra-fen-convert/tools/data2/convert_dataset.py", line 454, in convert_locked
+    if args.binpack_tool: encode_binpack(args, chunkdir, guard)
+                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/tmp/forge-astra-fen-convert/tools/data2/convert_dataset.py", line 281, in encode_binpack
+    subprocess.run(command, stdout=stdout, stderr=stderr, check=True)
+  File "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/subprocess.py", line 571, in run
+    raise CalledProcessError(retcode, process.args,
+subprocess.CalledProcessError: Command '['/tmp/tmpxqaau18s/adapter.py', 'encode', '/tmp/tmpxqaau18s/out/data_9a255f215b904888bc10d268328185b5/rows.txt', '/tmp/tmpxqaau18s/out/data_9a255f215b904888bc10d268328185b5/rows.binpack', '--allow-transport-move']' returned non-zero exit status 1.
+
+======================================================================
+ERROR: test_repository_symlink_to_external_tool_is_rejected (test_runtime_policy.RuntimePolicy.test_repository_symlink_to_external_tool_is_rejected)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/tmp/forge-astra-fen-convert/tests/data2/test_runtime_policy.py", line 51, in test_repository_symlink_to_external_tool_is_rejected
+    with self.assertRaisesRegex(ValueError,'outside'):c.run(args)
+                                                      ^^^^^^^^^^^
+  File "/tmp/forge-astra-fen-convert/tools/data2/convert_dataset.py", line 351, in run
+    return convert_locked(args, out, config, inputs, bindings)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/tmp/forge-astra-fen-convert/tools/data2/convert_dataset.py", line 454, in convert_locked
+    if args.binpack_tool: encode_binpack(args, chunkdir, guard)
+                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/tmp/forge-astra-fen-convert/tools/data2/convert_dataset.py", line 281, in encode_binpack
+    subprocess.run(command, stdout=stdout, stderr=stderr, check=True)
+  File "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/subprocess.py", line 571, in run
+    raise CalledProcessError(retcode, process.args,
+subprocess.CalledProcessError: Command '['/tmp/tmpn297pf6t/adapter.py', 'encode', '/tmp/tmpn297pf6t/out/data_0ef945b8ad1f470597ff16f402bc365c/rows.txt', '/tmp/tmpn297pf6t/out/data_0ef945b8ad1f470597ff16f402bc365c/rows.binpack', '--allow-transport-move']' returned non-zero exit status 1.
+
+======================================================================
+ERROR: test_resume_never_deletes_prior_indexes_implicitly (test_runtime_policy.RuntimePolicy.test_resume_never_deletes_prior_indexes_implicitly)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/tmp/forge-astra-fen-convert/tests/data2/test_runtime_policy.py", line 29, in test_resume_never_deletes_prior_indexes_implicitly
+    self.assertEqual(old.read_bytes(),before);self.assertEqual(len(list(self.out.glob('attempt_*/index.sqlite'))),2)
+                     ^^^^^^^^^^^^^^^^
+  File "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/pathlib.py", line 1019, in read_bytes
+    with self.open(mode='rb') as f:
+         ^^^^^^^^^^^^^^^^^^^^
+  File "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/pathlib.py", line 1013, in open
+    return io.open(self, mode, buffering, encoding, errors, newline)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+FileNotFoundError: [Errno 2] No such file or directory: '/tmp/tmpzgk3qpa0/out/attempt_15e23257610e4dae9353e211a64aa9be/index.sqlite'
+
+======================================================================
+ERROR: test_symlink_into_repository_is_rejected (test_runtime_policy.RuntimePolicy.test_symlink_into_repository_is_rejected)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/tmp/forge-astra-fen-convert/tests/data2/test_runtime_policy.py", line 46, in test_symlink_into_repository_is_rejected
+    with self.assertRaisesRegex(ValueError,'outside'):c.run(args)
+                                                      ^^^^^^^^^^^
+  File "/tmp/forge-astra-fen-convert/tools/data2/convert_dataset.py", line 351, in run
+    return convert_locked(args, out, config, inputs, bindings)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/tmp/forge-astra-fen-convert/tools/data2/convert_dataset.py", line 454, in convert_locked
+    if args.binpack_tool: encode_binpack(args, chunkdir, guard)
+                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/tmp/forge-astra-fen-convert/tools/data2/convert_dataset.py", line 281, in encode_binpack
+    subprocess.run(command, stdout=stdout, stderr=stderr, check=True)
+  File "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/subprocess.py", line 548, in run
+    with Popen(*popenargs, **kwargs) as process:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/subprocess.py", line 1026, in __init__
+    self._execute_child(args, executable, preexec_fn, close_fds,
+  File "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/subprocess.py", line 1955, in _execute_child
+    raise child_exception_type(errno_num, err_msg, err_filename)
+PermissionError: [Errno 13] Permission denied: '/tmp/tmp9az9hnfm/nested/adapter'
+
+======================================================================
+FAIL: test_completion_retains_index_until_explicit_verify_prune (test_runtime_policy.RuntimePolicy.test_completion_retains_index_until_explicit_verify_prune)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/tmp/forge-astra-fen-convert/tests/data2/test_runtime_policy.py", line 20, in test_completion_retains_index_until_explicit_verify_prune
+    self.convert(); indexes=list(self.out.glob('attempt_*/index.sqlite'));self.assertEqual(len(indexes),1)
+                                                                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 0 != 1
+
+======================================================================
+FAIL: test_verify_cli_requires_ack_without_modifying_output (test_runtime_policy.RuntimePolicy.test_verify_cli_requires_ack_without_modifying_output)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/tmp/forge-astra-fen-convert/tests/data2/test_runtime_policy.py", line 61, in test_verify_cli_requires_ack_without_modifying_output
+    self.assertNotEqual(result.returncode,0);self.assertIn('accept-gpl3',result.stderr)
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 0 == 0
+
+======================================================================
+FAIL: test_verify_repository_tool_is_rejected_even_with_gpl_ack (test_runtime_policy.RuntimePolicy.test_verify_repository_tool_is_rejected_even_with_gpl_ack)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/tmp/forge-astra-fen-convert/tests/data2/test_runtime_policy.py", line 56, in test_verify_repository_tool_is_rejected_even_with_gpl_ack
+    with self.assertRaisesRegex(ValueError,'outside'):c.verify(self.out,self.tool,accept_gpl3=True)
+                                                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+TypeError: verify() got an unexpected keyword argument 'accept_gpl3'
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/tmp/forge-astra-fen-convert/tests/data2/test_runtime_policy.py", line 57, in test_verify_repository_tool_is_rejected_even_with_gpl_ack
+    except TypeError as e:self.fail('verify needs explicit GPL runtime gate: '+str(e))
+                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: verify needs explicit GPL runtime gate: verify() got an unexpected keyword argument 'accept_gpl3'
+
+======================================================================
+FAIL: test_verify_requires_gpl_ack_before_adapter_runs (test_runtime_policy.RuntimePolicy.test_verify_requires_gpl_ack_before_adapter_runs)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/tmp/forge-astra-fen-convert/tests/data2/test_runtime_policy.py", line 36, in test_verify_requires_gpl_ack_before_adapter_runs
+    with self.assertRaisesRegex(ValueError,'accept-gpl3'):c.verify(self.out,self.tool)
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: ValueError not raised
+
+----------------------------------------------------------------------
+Ran 9 tests in 0.293s
+
+FAILED (failures=4, errors=5)

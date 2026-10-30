@@ -56,7 +56,8 @@ approval. No Elo, training gain or speed claim is made.
   White-relative result, in the original retained order.
 - `provenance.tsv`: original input row and optional authenticated game ID.
 - `rows.binpack`, a small move sidecar and adapter logs only when an external
-  `--binpack-tool` is explicitly provided. No duplicate full-FEN adapter input is kept.
+  `--binpack-tool` and `--accept-gpl3` are explicitly provided and the tool
+  resolves outside every Git repository. No duplicate full-FEN adapter input is kept.
 
 **Standard bulletformat alone loses original STM, castling, EP and clocks.**
 Exact FEN recovery is a property of the record plus its verified sidecar, not the
@@ -110,8 +111,9 @@ with repeatable `--dedup-against`. These immutable inputs seed the dedup index;
 hits count as `duplicate`, not holdout. Their hashes and path bindings receive the
 same identity checks as source/holdout inputs. The receipt records indexed rows
 and unique prior keys. This makes a correct sequential pipeline possible, but
-index construction is repeated but the verified disposable index is pruned,
-so prior indexes do not accumulate across completed shards. Full 305M runtime
+index construction is repeated and **indexes are retained by default**, including
+on resume. Run explicit `verify --prune-indexes` after each completed shard if
+you want to reclaim them; without that opt-in cumulative index storage grows. Full 305M runtime
 remains unmeasured. Omitting earlier outputs does not certify
 zero cross-shard duplicates.
 
@@ -231,7 +233,9 @@ $ConverterArgs = @('convert', '--input', (Join-Path $TxtDir 'forge_selfplay_003.
 Add **all** previous retained chunks via `--dedup-against` for cumulative runs.
 Verify with the same launcher, a fresh log directory, and arguments
 `@('verify', '--out', $Run)`. Only an explicit external binpack opt-in adds
-`--binpack-tool` to conversion and verification.
+`--binpack-tool EXTERNAL_EXE --accept-gpl3` to both conversion and verification.
+Both its original path and resolved target are checked; a repository-local alias
+or a target inside a repository is refused before execution.
 
 ### Required real-holdout clearance before training
 
@@ -264,8 +268,9 @@ Every input, tool and native executable is hashed. Actual reads use the initiall
 resolved paths; original symlink bindings are checked again before completion.
 Chunks and final receipts are published by atomic exclusive hard links after data
 fsync. Source data, sealed outputs and original logs are never overwritten or
-deleted. Only explicitly owned, reconstructible temporary indexes are pruned
-after verification; this is the QA-authorized exception for scratch disk. Filesystems must support same-volume hard links. Resume uses the
+deleted. Conversion and resume never prune indexes automatically. The explicit
+`verify --prune-indexes` command removes only owned, reconstructible indexes
+after verification. Filesystems must support same-volume hard links. Resume uses the
 same command with `--resume`, verifies the same source/tool hashes and every
 sealed chunk, rebuilds dedup state from those chunks, and retains unsealed tails.
 A changed tool cannot silently resume an older protocol; frozen 1M tool bytes are
@@ -274,8 +279,9 @@ included in the evidence.
 The default free-space reserve is **20,000 MiB**, plus a preflight index/output
 budget. Index loading, recovery and row processing also check remaining space.
 These guards are not quotas: other processes can consume disk between checks.
-Only one Idle conversion should run at a time. Completed indexes are disposable;
-receipts, input hashes and output verification are retained. See the measured
+Only one Idle conversion should run at a time. Completed indexes are disposable
+but retained unless cleanup is explicitly requested; receipts, input hashes and
+output verification are retained in either case. See the measured
 budget addendum below for sample sizes and conservative projections.
 
 The final review found and repaired: incomplete COMPLETE-accounting validation,
@@ -306,10 +312,13 @@ MIT-only. No upstream header or compiled adapter is vendored or linked to Forge.
 Measurements below are box-only, with binpack **OFF**. The bounded fixtures used
 `--min-free-mb 0` because this cloud scratch volume has less than 20 GiB free;
 production defaults remain **20,000 MiB**. This override is not the PC recipe.
-Original commands, source hashes, before-prune bytes and logs are in
+**The measurements below used the previous automatic cleanup policy.** With
+the current policy those index bytes remain until `verify --prune-indexes`;
+unchanged raw logs describe their original runs. Original commands, source
+hashes, before-prune bytes and logs are in
 `validation/astra-converter-20261030/qa_fix_disk/`.
 
-| Measured slice | Retained rows | Live index before verification | Index after verification | Retained files/logs |
+| Measured slice | Retained rows | Live index before verification | Index after explicit cleanup / historical cleanup | Retained files/logs |
 |---|---:|---:|---:|---:|
 | First 50,000 real rows, with interruption/resume | 49,999 | 2,203,648 B | 0 B | 5,140,974 B |
 | Next 50,000, seeded from all prior retained chunks | 49,994 | 4,362,240 B (99,993 cumulative keys) | 0 B | 5,166,932 B |
@@ -326,8 +335,8 @@ at the 100k sample rate are about 1.03 GB per shard; native logs at the pilot ra
 add about 0.70 GB. Actual filtering, FEN lengths and compression change these
 figures. The second index measured 43.63 bytes per cumulative unique key, about
 0.44 GB per 10M keys; its size grows with prior retained keys plus holdout keys,
-but only one completed shard's working index exists at a time. It is no longer
-retained 37 times. Existing source files and earlier retained outputs are separate
+and stays on disk by default. Explicitly cleaning each verified shard prevents
+retaining those cumulative indexes 37 times. Existing source files and earlier retained outputs are separate
 persistent storage, not deleted to reclaim scratch.
 
 Preflight deliberately budgets **64 bytes per possible index key**, a 1 MiB
@@ -341,11 +350,11 @@ The native log allowance, largest cumulative index and new shard output coexist;
 do not plan using output size alone. Guards recheck every 1,024 rows while
 loading holdouts/prior/recovered keys and while processing new rows.
 
-Only disposable indexes carrying a matching config-bound `INDEX_OWNER.json`
-marker are removed, under the converter's exclusive output lock, **after sealed
-hashes and row parity verify**. Logs, source data, unsealed tails and receipts
-remain. Interrupted indexes are retained until a verified resume replaces them;
-no recovery trusts their contents. Journal recovery is disabled solely for this
+Only explicit `verify --prune-indexes` removes disposable indexes carrying a
+matching config-bound `INDEX_OWNER.json` marker, under the converter's exclusive
+output lock, **after sealed hashes and row parity verify**. Logs, source data,
+unsealed tails and receipts remain. Resume retains earlier indexes and builds a
+fresh one; no recovery trusts the retained database contents. Journal recovery is disabled solely for this
 reconstructible scratch database. Old unmarked indexes are not automatically
 removed. Completed old output can still be verified; unfinished old-code
 checkpoints require their original frozen tool.
@@ -359,7 +368,10 @@ python3 tools/data2/convert_dataset.py verify --out /verified/output --prune-ind
 Plain `verify` stays read-only. Passing `--prune-indexes` explicitly takes the
 output lock and verifies before cleanup. The full private-holdout clearance audit
 has its own output-key index (96 bytes per row plus 16 MiB preflight margin),
-streaming checks, and cleanup; it requires additional scratch during that stage.
+streaming checks, and opt-in `--prune-indexes` cleanup after validated completion.
+Its default also retains the owned database and reports its path and size; failed
+identity checks retain it even if pruning was requested. It requires additional
+scratch during that stage.
 
 QA validation: **86/86 data2 tests passed** with the explicitly selected external
 adapter; the default suite skips the 13 optional adapter tests. This includes
@@ -382,3 +394,31 @@ skip; that separate native suite passed9/9 with its original probe. Initial
 attempts failed because sparse checkout omitted tests/source/two helper scripts;
 restoring the exact tracked bytes resolved those setup failures. Their original
 logs remain preserved. No A1 code or expected value was changed.
+
+
+## Policy refinement: explicit cleanup and GPL acknowledgement
+
+Current defaults retain indexes. To opt into cleanup after verification:
+
+```bash
+python3 tools/data2/convert_dataset.py verify --out /verified/output --prune-indexes
+```
+
+For optional external binpack verification, both flags are required:
+
+```bash
+python3 tools/data2/convert_dataset.py verify --out /verified/output \
+  --binpack-tool /external/forge_binpack_adapter --accept-gpl3
+```
+
+`convert` and `holdout-dedup` require the same acknowledgement when an adapter
+is selected. No acknowledgement is needed for default bulletformat + sidecar.
+The shared path check recognizes Git worktrees and bare repositories; it checks
+both the supplied alias and actual target, preserving symlink/`..` resolution.
+Empty managed-filesystem `.git` placeholder directories are not repositories.
+
+The separate audit likewise keeps its scratch database by default. Add
+`--prune-indexes` to that audit's existing command only when cleanup is wanted;
+its report records the path, retained bytes, requested policy, and actual result.
+No default command deletes a retained converter/audit index. Earlier raw
+measurements and checkpoints remain historical evidence rather than being edited.

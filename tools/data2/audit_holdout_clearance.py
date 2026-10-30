@@ -4,7 +4,8 @@
 The caller must supply SHA-256 and row counts from trusted full-shard manifests.
 A PASS proves zero board32+STM overlap for exactly the artifacts in the report;
 it does not establish game provenance, filtering quality, or overall trainability.
-Only the command's newly owned temporary index is removed. Evidence is retained.
+Indexes are retained by default. Explicit --prune-indexes removes only this
+command's owned index after a completed PASS/FAIL audit. Evidence is retained.
 """
 from __future__ import annotations
 
@@ -29,6 +30,7 @@ BATCH_ROWS = 10000
 KEY_POLICY = 'board32 plus STM; score, result, castling, EP and clocks excluded'
 TOOL_FILES = (Path(__file__), Path(__file__).with_name('convert_dataset.py'),
               Path(__file__).with_name('bullet_records.py'),
+              Path(__file__).with_name('external_tool_policy.py'),
               Path(__file__).parents[1] / 'data/forge_pos.py')
 
 
@@ -196,64 +198,67 @@ def run(args):
                 raise ValueError('free-space reserve plus estimated index exceeds available scratch space')
             # Size scales with kept output keys, never with both complete
             # holdouts. A bounded SQLite cache prevents a Python set of keys.
-            with tempfile.TemporaryDirectory(prefix='holdout-clearance-', dir=work) as scratch:
-                index_path = Path(scratch) / 'output_keys.sqlite'
-                event('owned_index_created', path=str(index_path))
-                with closing(sqlite3.connect(index_path)) as db:
-                    db.execute('PRAGMA cache_size=-16384')
-                    db.execute('PRAGMA temp_store=FILE')
-                    # Disposable index: no crash recovery or resume uses this
-                    # database, so journal growth must not consume the reserve.
-                    db.execute('PRAGMA journal_mode=OFF')
-                    db.execute('PRAGMA synchronous=OFF')
-                    db.execute('CREATE TABLE keys(key BLOB PRIMARY KEY, rows INTEGER NOT NULL, mask INTEGER NOT NULL DEFAULT 0) WITHOUT ROWID')
+            scratch = Path(tempfile.mkdtemp(prefix='holdout-clearance-', dir=work))
+            owned_directory_stat = scratch.stat()
+            index_path = scratch / 'output_keys.sqlite'
+            report['index'] = {'strategy': 'unique output keys', 'path': str(index_path),
+                               'database_bytes': 0, 'retained_bytes': 0,
+                               'cache_kib': 16384, 'journal': 'OFF_DISPOSABLE_NO_RESUME',
+                               'prune_requested': args.prune_indexes, 'pruned': False,
+                               'owned_ephemeral_index_removed': False}
+            event('owned_index_created', path=str(index_path))
+            with closing(sqlite3.connect(index_path)) as db:
+                owned_index_stat = index_path.stat()
+                db.execute('PRAGMA cache_size=-16384')
+                db.execute('PRAGMA temp_store=FILE')
+                # Disposable index: no crash recovery or resume uses this
+                # database, so journal growth must not consume the reserve.
+                db.execute('PRAGMA journal_mode=OFF')
+                db.execute('PRAGMA synchronous=OFF')
+                db.execute('CREATE TABLE keys(key BLOB PRIMARY KEY, rows INTEGER NOT NULL, mask INTEGER NOT NULL DEFAULT 0) WITHOUT ROWID')
 
-                    def checkpoint(stage, rows):
-                        db.commit()
-                        guard()
-                        page_size = db.execute('PRAGMA page_size').fetchone()[0]
-                        current_pages = db.execute('PRAGMA page_count').fetchone()[0]
-                        # Include a small filesystem allocation margin, and cap
-                        # SQLite growth before its next bounded transaction.
-                        available = shutil.disk_usage(work).free - report['minimum_free_bytes'] - 1024 * 1024
-                        pages = max(current_pages, current_pages + max(0, available) // page_size)
-                        db.execute('PRAGMA max_page_count=' + str(min(pages, 2147483646)))
-                        event(stage, rows=rows, index_bytes=index_path.stat().st_size)
+                def checkpoint(stage, rows):
+                    db.commit()
+                    guard()
+                    page_size = db.execute('PRAGMA page_size').fetchone()[0]
+                    current_pages = db.execute('PRAGMA page_count').fetchone()[0]
+                    # Include a small filesystem allocation margin, and cap
+                    # SQLite growth before its next bounded transaction.
+                    available = shutil.disk_usage(work).free - report['minimum_free_bytes'] - 1024 * 1024
+                    pages = max(current_pages, current_pages + max(0, available) // page_size)
+                    db.execute('PRAGMA max_page_count=' + str(min(pages, 2147483646)))
+                    event(stage, rows=rows, index_bytes=index_path.stat().st_size)
 
-                    checkpoint('index_started', 0)
-                    output_rows = 0
-                    for chunk in chunks:
-                        with (out / chunk['text']).open(encoding='utf8') as rows:
-                            for line in rows:
-                                record, _ = text_record(line)
-                                db.execute('INSERT INTO keys(key, rows) VALUES(?, 1) ON CONFLICT(key) DO UPDATE SET rows=rows+1', (key(record),))
-                                output_rows += 1
-                                if output_rows % BATCH_ROWS == 0:
-                                    checkpoint('indexing_output', output_rows)
-                    checkpoint('output_indexed', output_rows)
-                    if output_rows != verified['rows']:
-                        raise ValueError('sealed output row count changed during indexing')
-                    report['output']['unique_keys'] = db.execute('SELECT COUNT(*) FROM keys').fetchone()[0]
-                    for bit, (path, item) in enumerate(zip(holdout_paths, report['holdouts'])):
-                        flag = 1 << bit
-                        with PosReader(path) as reader:
-                            for record in reader:
-                                found = db.execute('UPDATE keys SET mask=mask|? WHERE key=?', (flag, key(record))).rowcount
-                                item['rows_scanned'] += 1
-                                item['overlap_holdout_rows'] += int(found > 0)
-                                if item['rows_scanned'] % BATCH_ROWS == 0:
-                                    checkpoint('scanning_holdout_' + item['shard_id'], item['rows_scanned'])
-                        checkpoint('holdout_' + item['shard_id'] + '_scanned', item['rows_scanned'])
-                        if item['rows_scanned'] != item['expected_rows']:
-                            raise ValueError('holdout ' + item['shard_id'] + ' actual row count mismatch')
-                        item['overlap_unique_keys'], item['overlap_output_rows'] = db.execute(
-                            'SELECT COUNT(*), COALESCE(SUM(rows),0) FROM keys WHERE mask&? != 0', (flag,)).fetchone()
-                    report['overlap_unique_keys'], report['overlap_output_rows'] = db.execute(
-                        'SELECT COUNT(*), COALESCE(SUM(rows),0) FROM keys WHERE mask != 0').fetchone()
-                    report['index'] = {'strategy': 'unique output keys', 'database_bytes': index_path.stat().st_size,
-                                       'cache_kib': 16384, 'journal': 'OFF_DISPOSABLE_NO_RESUME',
-                                       'owned_ephemeral_index_removed': False}
-            report['index']['owned_ephemeral_index_removed'] = True
+                checkpoint('index_started', 0)
+                output_rows = 0
+                for chunk in chunks:
+                    with (out / chunk['text']).open(encoding='utf8') as rows:
+                        for line in rows:
+                            record, _ = text_record(line)
+                            db.execute('INSERT INTO keys(key, rows) VALUES(?, 1) ON CONFLICT(key) DO UPDATE SET rows=rows+1', (key(record),))
+                            output_rows += 1
+                            if output_rows % BATCH_ROWS == 0:
+                                checkpoint('indexing_output', output_rows)
+                checkpoint('output_indexed', output_rows)
+                if output_rows != verified['rows']:
+                    raise ValueError('sealed output row count changed during indexing')
+                report['output']['unique_keys'] = db.execute('SELECT COUNT(*) FROM keys').fetchone()[0]
+                for bit, (path, item) in enumerate(zip(holdout_paths, report['holdouts'])):
+                    flag = 1 << bit
+                    with PosReader(path) as reader:
+                        for record in reader:
+                            found = db.execute('UPDATE keys SET mask=mask|? WHERE key=?', (flag, key(record))).rowcount
+                            item['rows_scanned'] += 1
+                            item['overlap_holdout_rows'] += int(found > 0)
+                            if item['rows_scanned'] % BATCH_ROWS == 0:
+                                checkpoint('scanning_holdout_' + item['shard_id'], item['rows_scanned'])
+                    checkpoint('holdout_' + item['shard_id'] + '_scanned', item['rows_scanned'])
+                    if item['rows_scanned'] != item['expected_rows']:
+                        raise ValueError('holdout ' + item['shard_id'] + ' actual row count mismatch')
+                    item['overlap_unique_keys'], item['overlap_output_rows'] = db.execute(
+                        'SELECT COUNT(*), COALESCE(SUM(rows),0) FROM keys WHERE mask&? != 0', (flag,)).fetchone()
+                report['overlap_unique_keys'], report['overlap_output_rows'] = db.execute(
+                    'SELECT COUNT(*), COALESCE(SUM(rows),0) FROM keys WHERE mask != 0').fetchone()
             event('rechecking_artifact_identities')
             for item in report['holdouts']:
                 if fingerprint(item['identity']['path'], guard) != item['identity']:
@@ -275,15 +280,37 @@ def run(args):
             report['position_overlap_clear'] = report['overlap_output_rows'] == 0
             report['status'] = ('FAIL' if not report['position_overlap_clear'] else
                                 'PASS' if output_rows else 'BLOCKED_EMPTY_OUTPUT')
+            report['index']['database_bytes'] = index_path.stat().st_size
+            if args.prune_indexes and report['status'] in ('PASS', 'FAIL'):
+                if (scratch.is_symlink() or index_path.is_symlink()
+                        or not os.path.samestat(owned_directory_stat, scratch.stat())
+                        or not os.path.samestat(owned_index_stat, index_path.stat())):
+                    raise ValueError('owned index identity changed before pruning')
+                index_path.unlink()
+                report['index']['pruned'] = True
+                report['index']['owned_ephemeral_index_removed'] = True
+                event('owned_index_pruned', path=str(index_path))
+                try:
+                    scratch.rmdir()  # Never recursively remove unrelated files.
+                except OSError as error:
+                    event('owned_index_directory_retained', path=str(scratch), error=str(error))
             event('finished', status=report['status'], overlap_output_rows=report['overlap_output_rows'],
                   overlap_unique_keys=report['overlap_unique_keys'], output_rows=output_rows)
         except Exception as error:
             report['status'] = 'BLOCKED'
             report['position_overlap_clear'] = False
             report['error'] = type(error).__name__ + ': ' + str(error)
-            if index_path is not None:
-                report.setdefault('index', {})['owned_ephemeral_index_removed'] = not index_path.exists()
             event('blocked', error=report['error'])
+        if index_path is not None:
+            try:
+                retained_bytes = index_path.stat().st_size if index_path.exists() else 0
+                report['index']['retained_bytes'] = retained_bytes
+                if not report['index']['pruned']:
+                    report['index']['database_bytes'] = retained_bytes
+                event('index_retention', **report['index'])
+            except OSError as error:
+                report['index']['retained_bytes'] = None
+                report['index']['retention_error'] = str(error)
         report['elapsed_seconds'] = time.monotonic() - started
         report['finished_utc'] = now()
         log.flush()
@@ -303,6 +330,8 @@ def parser():
         result.add_argument('--holdout-' + shard + '-rows', required=True, type=int, help='Trusted full-shard row count')
     result.add_argument('--report', required=True, help='New JSON report path; .claim and .log.jsonl evidence are retained')
     result.add_argument('--work-dir', help='Existing scratch directory, default: report parent')
+    result.add_argument('--prune-indexes', action='store_true',
+                        help='Remove this run\'s owned index after completed PASS/FAIL identity validation; default: retain')
     result.add_argument('--min-free-mb', type=int, default=20480, help='Free-space reserve in MiB (default: 20480)')
     return result
 

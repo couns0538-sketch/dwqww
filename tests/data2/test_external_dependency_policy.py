@@ -26,7 +26,7 @@ class ExternalPolicy(unittest.TestCase):
             self.assertFalse(dest.exists())
     def test_fetch_rejects_symlink_into_repository(self):
         with tempfile.TemporaryDirectory() as tmp:
-            base=pathlib.Path(tmp); repo=base/'repo'; repo.mkdir();(repo/'.git').mkdir()
+            base=pathlib.Path(tmp); repo=base/'repo'; repo.mkdir();(repo/'.git').mkdir(); (repo/'.git'/'HEAD').write_text('ref: refs/heads/test\n'); (repo/'.git'/'objects').mkdir()
             (base/'alias').symlink_to(repo,target_is_directory=True)
             p=subprocess.run([sys.executable,str(FETCH),'--accept-gpl3','--out',str(base/'alias'/'deps')],capture_output=True,text=True)
             self.assertNotEqual(p.returncode,0); self.assertIn('outside',p.stderr)

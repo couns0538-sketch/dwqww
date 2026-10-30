@@ -64,3 +64,7 @@ Its fetched headers and compiled executable stay outside every repository. Only
 our original wrapper/test source is retained here; Forge does not link this tool.
 Default bulletformat plus its exact sidecar uses neither these headers nor this
 executable. Historical raw licence logs are retained as superseded evidence.
+
+IDEA_SOURCE (QA policy refinement20261030): user explicit-only index cleanup and
+GPL adapter acknowledgement; Git worktree/bare metadata and original alias
+resolution regressions. No engine code or third-party implementation copied.

@@ -6,6 +6,7 @@ import io
 import json
 from pathlib import Path
 import shutil
+import sqlite3
 import subprocess
 import sys
 import tempfile
@@ -63,9 +64,78 @@ class HoldoutClearanceTests(unittest.TestCase):
         with contextlib.redirect_stderr(io.StringIO()):
             report = self.audit.run(self.audit.parser().parse_args(argv or self.argv()))
         self.assertEqual(json.loads((self.root / 'clearance.json').read_text()), report)
-        self.assertEqual(list(self.work.iterdir()), [], 'owned ephemeral indexes must not accumulate')
+        if 'index' not in report:
+            self.assertEqual(list(self.work.iterdir()), [], 'blocked preflight must not create indexes')
         self.assertEqual(hashlib.sha256(Path(report['log']['path']).read_bytes()).hexdigest(), report['log']['sha256'])
         return report
+
+    def test_completed_audit_retains_queryable_index_by_default(self):
+        self.convert([FENS[2]])
+        result = self.run_audit()
+        self.assertEqual(result['status'], 'PASS')
+        self.assertIn('path', result['index'])
+        index = result['index']
+        path = Path(index['path'])
+        self.assertEqual(path.parent.parent, self.work)
+        self.assertTrue(path.is_file())
+        self.assertGreater(index['retained_bytes'], 0)
+        self.assertEqual(index['retained_bytes'], path.stat().st_size)
+        self.assertEqual(index['database_bytes'], index['retained_bytes'])
+        self.assertFalse(index['prune_requested'])
+        self.assertFalse(index['pruned'])
+        self.assertFalse(index['owned_ephemeral_index_removed'])
+        with contextlib.closing(sqlite3.connect(path)) as db:
+            self.assertEqual(db.execute('SELECT rows, mask FROM keys').fetchall(), [(1, 0)])
+
+    def test_opt_in_prunes_completed_audit_and_preserves_old_files(self):
+        self.convert([FENS[2]])
+        old_index = self.work / 'holdout-clearance-old'
+        old_index.mkdir()
+        sentinel = old_index / 'output_keys.sqlite'
+        sentinel.write_bytes(b'previous run index')
+        result = self.run_audit(self.argv() + ['--prune-indexes'])
+        self.assertEqual(result['status'], 'PASS')
+        index = result['index']
+        self.assertTrue(index['prune_requested'])
+        self.assertTrue(index['pruned'])
+        self.assertTrue(index['owned_ephemeral_index_removed'])
+        self.assertEqual(index['retained_bytes'], 0)
+        self.assertGreater(index['database_bytes'], 0)
+        self.assertFalse(Path(index['path']).exists())
+        self.assertEqual(sentinel.read_bytes(), b'previous run index')
+        self.assertEqual(list(self.work.iterdir()), [old_index])
+
+    def test_opt_in_prunes_completed_overlap_failure(self):
+        self.convert([FENS[0]])
+        result = self.run_audit(self.argv() + ['--prune-indexes'])
+        self.assertEqual(result['status'], 'FAIL')
+        self.assertEqual(result['overlap_output_rows'], 1)
+        self.assertTrue(result['index']['pruned'])
+        self.assertEqual(result['index']['retained_bytes'], 0)
+        self.assertFalse(Path(result['index']['path']).exists())
+
+    def test_opt_in_retains_index_after_failed_final_identity_check(self):
+        self.convert([FENS[2]])
+        target = self.h13
+        class ChangingReader(PosReader):
+            def __iter__(self):
+                yield from super().__iter__()
+                if self.pos == target:
+                    raw = bytearray(target.read_bytes())
+                    raw[-1] ^= 2
+                    target.write_bytes(raw)
+        with mock.patch.object(self.audit, 'PosReader', ChangingReader):
+            result = self.run_audit(self.argv() + ['--prune-indexes'])
+        self.assertEqual(result['status'], 'BLOCKED')
+        self.assertIn('changed', result['error'])
+        index = result['index']
+        path = Path(index['path'])
+        self.assertTrue(index['prune_requested'])
+        self.assertFalse(index['pruned'])
+        self.assertFalse(index['owned_ephemeral_index_removed'])
+        self.assertTrue(path.is_file())
+        self.assertEqual(index['retained_bytes'], path.stat().st_size)
+        self.assertGreater(index['retained_bytes'], 0)
 
     def test_zero_overlap_records_actual_rows_and_source_hashes(self):
         self.convert([FENS[2]])

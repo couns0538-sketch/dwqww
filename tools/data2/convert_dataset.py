@@ -15,6 +15,7 @@ from forge_pos import PosReader, aligned_records, text_record
 from forge_probe import ProbeClient
 from filter_positions import disagreement
 from bullet_records import encode, verify_record
+from external_tool_policy import require_external_path
 
 RULES = ('holdout_game','holdout_position','duplicate','score_cap','result_disagreement','in_check','terminal','teacher_incomplete','bestmove_capture','bestmove_promotion','kept')
 DISK_CHECK_ROWS = 1024
@@ -108,6 +109,18 @@ def prune_owned_indexes(out, config):
                 raise ValueError('unsafe disposable index path: ' + str(path))
             path.unlink(); removed_bytes += info.st_size
     return removed_bytes
+
+
+def external_binpack_tool(path, accept_gpl3=False):
+    """Require acknowledgement and an external executable before invocation."""
+    if not path:
+        return None
+    if not accept_gpl3:
+        raise ValueError('--binpack-tool requires --accept-gpl3 for external GPL-3.0 tooling')
+    resolved = require_external_path(path).resolve(strict=True)
+    if not resolved.is_file():
+        raise ValueError('--binpack-tool must be an external executable file')
+    return str(resolved)
 
 
 def checked_counts(value):
@@ -315,6 +328,7 @@ def run(args):
         raise ValueError('holdout shard013/014 cannot be converted as training')
     if args.require_game_clearance and not args.shard_id:
         raise ValueError('accepted game clearance policy requires explicit nonholdout shard identity')
+    external_binpack_tool(args.binpack_tool, args.accept_gpl3)
     inputs = []; bindings = []
     if args.binpack_tool and args.no_filters and not args.allow_transport_moves:
         raise ValueError('format-only binpack requires explicit --allow-transport-moves')
@@ -336,7 +350,7 @@ def run(args):
     config['input_bindings'] = bindings
     config['index_lifecycle'] = INDEX_LIFECYCLE
     dependency_dir = Path(__file__).resolve().parents[1] / 'data'
-    config['tool_sha256'] = {p.name: sha(p) for p in [Path(__file__), Path(__file__).with_name('bullet_records.py'), *(dependency_dir/n for n in ('forge_pos.py','forge_probe.py','filter_positions.py'))]}
+    config['tool_sha256'] = {p.name: sha(p) for p in [Path(__file__), Path(__file__).with_name('bullet_records.py'), Path(__file__).with_name('external_tool_policy.py'), *(dependency_dir/n for n in ('forge_pos.py','forge_probe.py','filter_positions.py'))]}
     out = Path(args.out)
     if not args.resume: out.mkdir(parents=True, exist_ok=False)
     with output_lock(out):
@@ -345,7 +359,6 @@ def run(args):
                 raise ValueError('resume config/source/tool identity mismatch; old checkpoints require their frozen converter')
             if (out / 'COMPLETE.json').exists():
                 result = verify(out)
-                prune_owned_indexes(out, config)
                 return result
         else: dump_new(out / 'config.json', config)
         return convert_locked(args, out, config, inputs, bindings)
@@ -356,7 +369,6 @@ def convert_locked(args, out, config, inputs, bindings):
     start = sum(c['input_rows'] for c in chunks)
     if args.resume:
         verify_chunk_rows(out, chunks)
-        prune_owned_indexes(out, config)
     guard = lambda phase: disk_guard(out, args.min_free_mb, phase)
     guard('before index creation')
     budget = disk_budget(args, chunks)
@@ -478,12 +490,12 @@ def convert_locked(args, out, config, inputs, bindings):
         dump_new(out / 'COMPLETE.json', result)
         db.close()
         verify(out)
-        prune_owned_indexes(out, config)
         return result
     finally: db.close()
 
 
-def verify(out, binpack_tool=None):
+def verify(out, binpack_tool=None, *, accept_gpl3=False):
+    binpack_tool = external_binpack_tool(binpack_tool, accept_gpl3)
     out = Path(out); chunks = read_chunks(out)
     config = json.loads((out/'config.json').read_text())
     wants_binpack = bool(config.get('binpack_tool'))
@@ -541,7 +553,7 @@ def verify(out, binpack_tool=None):
 def parser():
     p = argparse.ArgumentParser(description=__doc__)
     sub = p.add_subparsers(dest='command', required=True)
-    v = sub.add_parser('verify'); v.add_argument('--out', required=True); v.add_argument('--binpack-tool')
+    v = sub.add_parser('verify'); v.add_argument('--out', required=True); v.add_argument('--binpack-tool'); v.add_argument('--accept-gpl3', action='store_true', help='Acknowledge optional external GPL-3.0 adapter')
     v.add_argument('--prune-indexes', action='store_true', help='After full verification, remove only marked disposable converter indexes; retain all source/output data and logs.')
     for command in ('convert', 'holdout-dedup'):
         c = sub.add_parser(command)
@@ -550,22 +562,23 @@ def parser():
         c.add_argument('--dedup-against', action='append', default=[], help='Prior kept rows.txt or FPOS input; repeat for all preceding training chunks. Counts as duplicate, never holdout.')
         c.add_argument('--limit', type=int); c.add_argument('--chunk-rows', type=int, default=100000); c.add_argument('--min-free-mb', type=int, default=20000); c.add_argument('--resume', action='store_true'); c.add_argument('--stop-after-chunks', type=int)
         c.add_argument('--probe'); c.add_argument('--nodes', type=int, default=1024); c.add_argument('--score-cap', type=int, default=3000); c.add_argument('--disagreement-cp', type=int, default=400); c.add_argument('--draw-disagreement-cp', type=int, default=800)
-        c.add_argument('--binpack-tool'); c.add_argument('--allow-transport-moves', action='store_true')
+        c.add_argument('--binpack-tool'); c.add_argument('--accept-gpl3', action='store_true', help='Acknowledge optional external GPL-3.0 adapter'); c.add_argument('--allow-transport-moves', action='store_true')
         c.add_argument('--no-filters', action='store_true'); c.add_argument('--no-dedupe', action='store_true')
     return p
 
 
 def main():
     a = parser().parse_args()
+    external_binpack_tool(a.binpack_tool, a.accept_gpl3)
     if a.command == 'holdout-dedup':
         if not a.holdout: raise ValueError('holdout-dedup requires --holdout')
         a.no_filters = True
     if a.command == 'verify' and a.prune_indexes:
         out = Path(a.out)
         with output_lock(out):
-            result = verify(out, a.binpack_tool)
+            result = verify(out, a.binpack_tool, accept_gpl3=a.accept_gpl3)
             result['pruned_index_bytes'] = prune_owned_indexes(out, json.loads((out/'config.json').read_text()))
-    else: result = verify(a.out, a.binpack_tool) if a.command == 'verify' else run(a)
+    else: result = verify(a.out, a.binpack_tool, accept_gpl3=a.accept_gpl3) if a.command == 'verify' else run(a)
     print(json.dumps(result, sort_keys=True))
 
 
