@@ -3,6 +3,10 @@
 Branch: `astra-fen-convert-20261030`. Base: `110f0c4a819756b79a77d88a5ef525b6dafd925b`.
 This is offline tooling. Engine source, search, live trainers and gates are unchanged.
 
+**Current policy:** indexes are retained by default. Cleanup requires explicit
+`--prune-indexes`. An external `--binpack-tool` requires `--accept-gpl3` for every
+conversion or verification invocation, plus a repository-path check.
+
 ## QA correction and training status
 
 **NOT CLEARED FOR TRAINING:** complete private holdouts 013 and 014 are unavailable
