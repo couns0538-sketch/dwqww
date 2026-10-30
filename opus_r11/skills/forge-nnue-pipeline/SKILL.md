@@ -75,6 +75,20 @@ Stop it by its PID (`<root>\run\pipeline.pid.json`); hold it with `r11_hold.py h
 - D: free space moves with other jobs (67 -> 39 -> 45 -> 42 GB in two hours): the conversion stops before 40 + 2 GB and
   resumes later; small state files (< 64 MiB) only need 1 GB free.
 - The permission settings' ask rule `Bash(git push *)` prompts on every push; changing settings is blocked for the agent.
+  Keep it: only the owner (Couns) changes it.
+- A weak net makes the ON bench explode: a 2-epoch L1 64 net on 18k synthetic rows needed 92.7M nodes at d11 and
+  331.5M at d13 (the real ep20 net: 346k at d11); d16-d22 would take hours to a day. Profiles set `on_bench_depths`
+  ([11] for the E2E test, [11, 13] for smoke); only the full net is benched at d11-d22.
+- Stopping a background task (TaskStop) on Windows ends only its shell wrapper: the python test and its engine kept
+  running. A runaway OWN process can be suspended (psutil `suspend()`, reversible) after an identity check (name, exe
+  path under the job's scratch, parent = the test); list its PIDs for QA, who may end them.
+- Checkpoints: an L1 1024 checkpoint is 1.44 GiB (weights + optimizer state). Nothing is deleted (CR R3), so the
+  profile key `save_every_epochs` is what keeps a run inside the D: floor (full = 20: one checkpoint at the end);
+  the first checkpoint's floor reserve follows L1 (1.6 MiB per unit, at least 512 MiB).
+- The R8 v5 self-play folder keeps growing: a later data run registers the new `.dedup` shards after the existing ones
+  (4 new between 12:24 and 14:00 on 2026-10-30), so the holdout proof has to be rerun after every data run.
+- Production gap protocol (2026-10-30): QA pauses the supervisor queue for R11 and restarts it only after the line
+  "R11 DONE — QA may restart production" (net path, sha256, parity, bench, D: free); say early if the gap must be longer.
 
 ## Tests
 `opus_r11/tests/test_r11_tools.py <new dir>` (Astra staging/pins, hold event, priority, psutil, disk, sha256, GPL
