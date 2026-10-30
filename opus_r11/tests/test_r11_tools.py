@@ -18,6 +18,7 @@ import os
 import subprocess
 import sys
 import tarfile
+import time
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 REPO = os.path.abspath(os.path.join(HERE, "..", ".."))
@@ -165,6 +166,25 @@ def main() -> int:
             check(False, f"the entry must refuse {bad[0]}")
         except SystemExit as e:
             check("unknown option" in str(e), f"the entry refuses {bad[0]} (no share policy left)")
+    # CR R2 M1: the entry checks for production BEFORE importing torch: with a dummy clone (no train.py, no trainer
+    # modules) and a running "production" marker process it must exit 76, never reach an import
+    marker = f"R11M1MARKER{os.getpid()}"
+    dummy = subprocess.Popen([sys.executable, "-c", "import time; time.sleep(12)", marker])
+    try:
+        time.sleep(1.0)
+        fake_clone = os.path.join(scratch, "fake_clone")
+        os.makedirs(fake_clone)
+        run_m1 = os.path.join(scratch, "run_m1")
+        r = subprocess.run([sys.executable, "-I", "-B", spec.origin, "--r11-clone", fake_clone, "--r11-run-dir", run_m1,
+                            "--r11-patterns", marker, "--r11-affinity", "0x700", "--", "dummy.binpack"],
+                           capture_output=True, text=True, timeout=120)
+    finally:
+        dummy.wait(timeout=60)
+    ev = open(os.path.join(run_m1, "r11_events.jsonl"), encoding="utf-8").read() if os.path.isfile(
+        os.path.join(run_m1, "r11_events.jsonl")) else ""
+    check(r.returncode == 76 and "yield_before_import" in ev and "ModuleNotFoundError" not in r.stderr,
+          f"production check before import torch: exit {r.returncode}, event yield_before_import "
+          f"{'present' if 'yield_before_import' in ev else 'missing'}")
     import r11_train as TR
     cfg_share = json.loads(json.dumps(real_cfg))
     cfg_share["train"]["profiles"]["smoke"]["gpu_policy"] = "share"

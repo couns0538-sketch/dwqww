@@ -171,6 +171,14 @@ def main() -> int:
         k32.SetProcessAffinityMask(h, mask)
     patterns = [p for p in opts["patterns"].split(";") if p]
 
+    # CR R2 M1: the production-trainer check runs BEFORE torch or any trainer module is imported - when production is
+    # running the entry exits 76 at once: no GPU context, no RAM taken, nothing loaded
+    hit = production_running(patterns)
+    if hit:
+        log_event(run_dir, "yield_before_import", pattern=hit)
+        sys.stdout.flush()
+        os._exit(EXIT_YIELD)
+
     # hard RAM watchdog: exit at once (no save) - the live trainer must never be pushed into the commit limit
     def watchdog() -> None:
         while True:
