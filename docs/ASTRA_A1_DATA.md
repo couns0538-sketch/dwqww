@@ -1,7 +1,7 @@
 # Astra A1: Forge training-data work, 2026-10-30
 
-**Current status: tools and bounded native experiments complete; full 10M filtering is RUNNING.**
-Final full-data removal rates and output acceptance remain pending. No engine strength, label-quality improvement or Elo gain is claimed.
+**Current status: full 10M filtering and full-record verification PASS; independent native-log audit is RUNNING.**
+The run retained 9,206,371 rows. Final output acceptance and publication remain pending. No engine strength, label-quality improvement or Elo gain is claimed.
 
 ## Source and data identity
 
@@ -39,6 +39,32 @@ The frozen full-run protocol uses 1,024 nodes, one search thread and 1 MB Hash p
 The first 10k pilot retained 9,274 rows: 455 capture-best-move, 2 promotion, 268 near-duplicate and 1 disagreement drops. Those figures are **pilot-only**. Full attempt 1 stopped safely at original row 27772 because 1,024 nodes completed no iteration; its partial data and error are preserved. Full attempt 2 uses the explicit insufficient-budget exclusion. Its exact loaded source is archived in `validation/astra-a1-data/filter_full10m_v2_protocol`.
 
 Current tools add tested summary-last publication hardening after that run started; filtering policy is unchanged. The completed full run must pass the independent bundle checker before acceptance. A path containing `.pos` alone is not a seal.
+
+### Completed 10M run: full-record PASS; native audit pending
+
+The native run exited 0 after processing **10,000,000** rows and retaining **9,206,371 (92.06371%)**. Its reported waterfall is below; the full-record checker passed and the independent original-log audit is still running.
+
+| Rule (first-drop order) | Removed | % of all 10M | % reaching this rule |
+|---|---:|---:|---:|
+| `holdout` | 52 | 0.00052% | 0.00052% |
+| `disagreement` | 5,477 | 0.05477% | 0.05477% |
+| `exact_duplicate` | 835 | 0.00835% | 0.00835% |
+| `near_duplicate` | 307,691 | 3.07691% | 3.07887% |
+| `in_check` | 0 | 0.00000% | 0.00000% |
+| `terminal` | 0 | 0.00000% | 0.00000% |
+| `teacher_incomplete` | 857 | 0.00857% | 0.00885% |
+| `bestmove_capture` | 467,148 | 4.67148% | 4.82337% |
+| `bestmove_promotion` | 11,569 | 0.11569% | 0.12551% |
+
+Total removed: **793,629 (7.93629%)**. The zero in-check/terminal counts apply at their declared waterfall stages. There were **9,976,584** original native queries, including **290,639** speculative queries not used after cheap-rule rejection. The recorded query CPU total is **14,968.361051 seconds**, excluding non-query driver/startup/shutdown work. Filter wall time through final summary calculation was **10,151.382 seconds**; manifest finalization completed afterward. Sampled parent-plus-workers peak RSS was **452.277 MiB** across 305 samples, not a hard cap or an exact unsampled peak.
+
+Compact original summary, manifest, console and resource logs are in `validation/astra-a1-data/full10m_completed`. The legacy run exposed its summary before its manifest at 05:15:23 UTC; acceptance was withheld until process exit and all independent checks. That observation and the final exit receipt are preserved in `release_preparation`.
+
+| Output | SHA256 |
+|---|---|
+| `forge_filtered.pos` | `2019bf8e560e4821b8c50286a257ba7f4d4435521e90b2324e0e35dfcc324802` |
+| `forge_filtered.hce` | `9c5f4e6db58b59fc40465ff00c38cb71c8b05161bfb9aacc5d0e309b312b8e87` |
+| `forge_filtered.fen` | `beb3c31d377d4f5f610c2fa2b877fe434177230197e074ee54a35b59f7d41c97` |
 
 ## Job 2: real fixed-node relabeling
 
@@ -136,7 +162,7 @@ Existing coordinator/validation/engine-development skills were reused. [The skil
 
 ## Next action / continuation
 
-Finish and independently verify the active 10M run; publish its original evidence and output hashes; replace the RUNNING status with measured full-data rates. Current run directory `/tmp/astra-a1-filter-full-10m-v2`, original probe frozen at the SHA above. A supervisor verifies branch/engine-change guards and pushes checkpoints about every ten minutes. Do not restart this completed preprocessing or replace the engine base with an older lock.
+The full 10M run completed, its full-record checker passed, and the archive was byte-verified. Finish the running native-log/original-holdout audit, verify archive transport chunks and publish the original evidence. Current result directory `/tmp/astra-a1-filter-full-10m-v2`; its original probe remains frozen at the SHA above. The automatic checkpoint supervisor finished successfully; final validation/publication checkpoints are now saved manually. Do not rerun this completed native preprocessing or replace the engine base with an older lock.
 
 Then review the complete 013/014/game-ID coverage and choose a teacher budget using the saved sensitivity experiment before the matched training ablations. No data or smoke network is automatically installed into training or the engine.
 
