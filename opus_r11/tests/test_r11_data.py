@@ -197,7 +197,7 @@ def expected(w: dict, order: list[str]) -> dict:
 
 def run_stage(cfg: dict, max_convert=None) -> dict:
     log = C.Log(os.path.join(cfg["root"], "logs", "pipeline.log"), "data")
-    gov = C.Governor(cfg["root"], C.Limits(**cfg["limits"]), log)
+    gov = C.Governor(cfg["root"], C.limits_from(cfg), log)
     return D.run(cfg, log, gov, max_convert)
 
 

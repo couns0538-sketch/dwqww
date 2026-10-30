@@ -905,7 +905,7 @@ def main(argv: list[str]) -> int:
     root = cfg["root"]
     C.write_pid_file(root, "data")
     log = C.Log(os.path.join(root, "logs", "pipeline.log"), "data")
-    gov = C.Governor(root, C.Limits(**cfg.get("limits", {})), log)
+    gov = C.Governor(root, C.limits_from(cfg), log)
     try:
         if a.cmd == "status":
             man = C.read_json(os.path.join(cfg["data"]["dir"], "MANIFEST.json"))

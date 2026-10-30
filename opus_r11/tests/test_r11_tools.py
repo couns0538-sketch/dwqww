@@ -140,6 +140,17 @@ def main() -> int:
     C.SMALL_WRITE_FLOOR_GB = saved_small
     check(rc != 0 and os.listdir(out5) == [], "Astra extract refused for lack of space leaves nothing behind")
 
+    # 0 the shipped config loads (a comment key in limits once broke every stage after the fix-8 commit)
+    real_cfg = C.read_json(os.path.join(REPO, "opus_r11", "pipeline", "r11_config.json"))
+    try:
+        lim = C.limits_from(real_cfg)
+        check(lim.min_disk_free_gb == 40.0 and lim.disk_floor_gb.get("D:") == 40.0,
+              "the shipped r11_config.json loads (limits_from) with the 40 GB D: floor")
+    except Exception as e:  # noqa: BLE001
+        check(False, f"the shipped r11_config.json does not load: {e}")
+    for section in ("data", "engine", "trainer", "check", "train"):
+        check(section in real_cfg, f"config section {section!r} present")
+
     # 1h CR fix 10: sealed inputs are identified by their full sha256; a change in the middle of a big file (which a
     # first/last-MiB fingerprint misses) is detected
     big = os.path.join(scratch, "sealed_big.bin")

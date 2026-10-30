@@ -384,7 +384,7 @@ def main(argv: list[str]) -> int:
     C.set_idle_background(C.affinity_from_cfg(cfg))
     C.write_pid_file(cfg["root"], "check")
     log = C.Log(os.path.join(cfg["root"], "logs", "pipeline.log"), "check")
-    gov = C.Governor(cfg["root"], C.Limits(**cfg.get("limits", {})), log)
+    gov = C.Governor(cfg["root"], C.limits_from(cfg), log)
     try:
         res = run_check(cfg, a.net, a.out, a.l1, log, gov, a.ckpt)
         return 0 if res["pass"] else 1

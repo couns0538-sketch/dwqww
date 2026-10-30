@@ -448,6 +448,16 @@ class Limits:
     disk_floor_gb: dict | None = None  # per drive, e.g. {"D:": 40, "F:": 40, "C:": 10}; default min_disk_free_gb
 
 
+def limits_from(cfg: dict) -> Limits:
+    """Limits from cfg["limits"]: keys starting with "comment" are notes; any other unknown key is an error (typos)."""
+    raw = {k: v for k, v in cfg.get("limits", {}).items() if not k.startswith("comment")}
+    known = set(Limits.__dataclass_fields__)
+    unknown = sorted(set(raw) - known)
+    if unknown:
+        raise StageFailed(f"unknown keys in limits: {unknown}")
+    return Limits(**raw)
+
+
 HOLD_EVENT = "Local\\Forge_R11_Hold"
 
 
