@@ -3,8 +3,8 @@
 Branch: `astra-fen-convert-20261030`. Base: `110f0c4a819756b79a77d88a5ef525b6dafd925b`.
 This is offline tooling. Engine source, search, live trainers and gates are unchanged.
 
-**Current policy:** indexes are retained by default. Cleanup requires explicit
-`--prune-indexes`. An external `--binpack-tool` requires `--accept-gpl3` for every
+**Current policy:** indexes are retained by default. This runbook includes no
+cleanup step; any index pruning requires a separate crew vote. An external `--binpack-tool` requires `--accept-gpl3` for every
 conversion or verification invocation, plus a repository-path check.
 
 ## QA correction and training status
@@ -116,8 +116,8 @@ hits count as `duplicate`, not holdout. Their hashes and path bindings receive t
 same identity checks as source/holdout inputs. The receipt records indexed rows
 and unique prior keys. This makes a correct sequential pipeline possible, but
 index construction is repeated and **indexes are retained by default**, including
-on resume. Run explicit `verify --prune-indexes` after each completed shard if
-you want to reclaim them; without that opt-in cumulative index storage grows. Full 305M runtime
+on resume. Budget every retained index cumulatively; no pruning is authorized by
+this runbook. Full 305M runtime
 remains unmeasured. Omitting earlier outputs does not certify
 zero cross-shard duplicates.
 
@@ -139,7 +139,7 @@ Production filtering to bulletformat + sidecar, one new output directory:
 ```bash
 python3 tools/data2/convert_dataset.py convert \
   --input /data/forge_selfplay_003.txt --pos /data/forge_selfplay_003.pos \
-  --shard-id 003 --out /new/filtered003 --min-free-mb 20000 \
+  --shard-id 003 --out /new/filtered003 --min-free-mb 32768 \
   --probe /path/forge_data_probe --nodes 1024 \
   --holdout /private/forge_selfplay_013.pos \
   --holdout /private/forge_selfplay_014.pos
@@ -157,7 +157,7 @@ Separate private holdout exclusion on text data:
 python3 tools/data2/convert_dataset.py holdout-dedup \
   --input /data/forge_selfplay_003.txt --shard-id 003 \
   --holdout /private/forge_selfplay_013.pos \
-  --holdout /private/forge_selfplay_014.pos --out /new/dedup003 --min-free-mb 20000
+  --holdout /private/forge_selfplay_014.pos --out /new/dedup003 --min-free-mb 32768
 python3 tools/data2/convert_dataset.py verify --out /new/dedup003
 ```
 
@@ -169,7 +169,7 @@ example, after verified shard 001 output:
 ```bash
 python3 tools/data2/convert_dataset.py convert \
   --input /data/forge_selfplay_002.txt --pos /data/forge_selfplay_002.pos \
-  --shard-id 002 --out /new/filtered002 --min-free-mb 20000 \
+  --shard-id 002 --out /new/filtered002 --min-free-mb 32768 \
   --probe /path/forge_data_probe --nodes 1024 \
   --holdout /private/forge_selfplay_013.pos \
   --holdout /private/forge_selfplay_014.pos \
@@ -184,6 +184,28 @@ unsealed tail. `--dedup-against` conflicts with `--no-dedupe` and fails closed.
 Holdout position keys still have precedence and their counts remain distinct.
 No prior shard file is modified, and a changed prior file prevents resume.
 
+### Retained-storage record required for every shard
+
+Every retained index remains allocated, including indexes from earlier attempts.
+Estimate the next index from complete holdouts, all verified prior retained rows,
+and the current source rows; record actual storage after each shard completes:
+
+| Storage field | Required estimate or completion record |
+|---|---|
+| `next_index_bytes` | `64 * (holdout_rows + prior_retained_rows + current_input_rows) + 1 MiB` |
+| `next_output_bytes` | Full source text bytes, optional UTF-8 game-ID bytes, 64 bytes per current input row for records/provenance, and 128 bytes per input row for probe logs; add optional binpack output when selected. |
+| `index_path`, `actual_index_bytes` | Record the path and measured bytes of **each** retained SQLite index, including every retained attempt; do not substitute the newest index for their sum. |
+| `actual_output_bytes`, `actual_retained_rows` | Record the completed output size and verified retained row count for the next shard's budget and dedup inputs. |
+
+Before **each** shard, measure free space again on its intended output volume and
+record the measurement time. Require
+`fresh_free_bytes >= 32 GiB + next_index_bytes + next_output_bytes`.
+If that inequality fails, stop before launching the next shard. Existing source
+files, outputs, retained indexes and failed attempts already reduce measured free
+space; a batch boundary cannot reclaim them. Keep the converter's fresh preflight
+receipt as well. No pruning or deletion is part of this runbook; any such change
+requires a separate crew vote.
+
 `holdout-dedup` performs exclusion/deduplication only; it does not silently claim
 root filtering. To request a format-only binpack test, explicitly supply
 `--no-filters --no-dedupe --allow-transport-moves`. The standalone reproducible 1M
@@ -192,7 +214,7 @@ binpack test is:
 ```bash
 python3 tools/data2/run_1m_roundtrip.py \
   --input /data/forge_selfplay_003.txt \
-  --adapter /new/bin/forge_binpack_adapter \
+  --adapter /new/bin/forge_binpack_adapter --accept-gpl3 \
   --adapter-source tools/data2/forge_binpack_adapter.cpp --out /new/roundtrip1m
 ```
 
@@ -226,7 +248,7 @@ $TxtDir = 'D:\grok-pc-data\selfplay_out'
 $Run = Join-Path 'D:\grok-pc-data' ('astra_convert_' + [Guid]::NewGuid().ToString('N'))
 $ConverterArgs = @('convert', '--input', (Join-Path $TxtDir 'forge_selfplay_003.txt'),
   '--pos', (Join-Path $PosDir 'forge_selfplay_003.pos'), '--shard-id', '003',
-  '--out', $Run, '--probe', $Probe, '--nodes', '1024', '--min-free-mb', '20000',
+  '--out', $Run, '--probe', $Probe, '--nodes', '1024', '--min-free-mb', '32768',
   '--holdout', (Join-Path $PosDir 'forge_selfplay_013.pos'),
   '--holdout', (Join-Path $PosDir 'forge_selfplay_014.pos'))
 & (Join-Path $Repo 'tools\data\run_idle_spare.ps1') `
@@ -255,7 +277,7 @@ $AuditArgs = @('--out', $Run,
   '--holdout-014', (Join-Path $PosDir 'forge_selfplay_014.pos'),
   '--holdout-013-sha256', $Trusted013Sha256, '--holdout-013-rows', $Trusted013Rows,
   '--holdout-014-sha256', $Trusted014Sha256, '--holdout-014-rows', $Trusted014Rows,
-  '--min-free-mb', '20000', '--work-dir', 'D:\grok-pc-data',
+  '--min-free-mb', '32768', '--work-dir', 'D:\grok-pc-data',
   '--report', ($Run + '_real_013_014_clearance.json'))
 & (Join-Path $Repo 'tools\data\run_idle_spare.ps1') `
   -Python $Python -Script (Join-Path $Repo 'tools\data2\audit_holdout_clearance.py') `
@@ -272,20 +294,19 @@ Every input, tool and native executable is hashed. Actual reads use the initiall
 resolved paths; original symlink bindings are checked again before completion.
 Chunks and final receipts are published by atomic exclusive hard links after data
 fsync. Source data, sealed outputs and original logs are never overwritten or
-deleted. Conversion and resume never prune indexes automatically. The explicit
-`verify --prune-indexes` command removes only owned, reconstructible indexes
-after verification. Filesystems must support same-volume hard links. Resume uses the
+deleted. Conversion and resume never prune indexes automatically. The optional cleanup
+interface requires separate crew approval and is outside this runbook. Filesystems must support same-volume hard links. Resume uses the
 same command with `--resume`, verifies the same source/tool hashes and every
 sealed chunk, rebuilds dedup state from those chunks, and retains unsealed tails.
 A changed tool cannot silently resume an older protocol; frozen 1M tool bytes are
 included in the evidence.
 
-The default free-space reserve is **20,000 MiB**, plus a preflight index/output
+The default free-space reserve is **32,768 MiB (32 GiB)**, plus a preflight index/output
 budget. Index loading, recovery and row processing also check remaining space.
 These guards are not quotas: other processes can consume disk between checks.
-Only one Idle conversion should run at a time. Completed indexes are disposable
-but retained unless cleanup is explicitly requested; receipts, input hashes and
-output verification are retained in either case. See the measured
+Only one Idle conversion should run at a time. Completed indexes remain on disk, including indexes from failed attempts and
+resumes. Their cumulative storage must be present in each fresh free-space
+measurement; receipts, input hashes and output verification remain retained. See the measured
 budget addendum below for sample sizes and conservative projections.
 
 The final review found and repaired: incomplete COMPLETE-accounting validation,
@@ -315,9 +336,9 @@ MIT-only. No upstream header or compiled adapter is vendored or linked to Forge.
 
 Measurements below are box-only, with binpack **OFF**. The bounded fixtures used
 `--min-free-mb 0` because this cloud scratch volume has less than 20 GiB free;
-production defaults remain **20,000 MiB**. This override is not the PC recipe.
+the current production default is **32,768 MiB**. This override is not the PC recipe.
 **The measurements below used the previous automatic cleanup policy.** With
-the current policy those index bytes remain until `verify --prune-indexes`;
+the current policy those index bytes remain; this runbook authorizes no pruning;
 unchanged raw logs describe their original runs. Original commands, source
 hashes, before-prune bytes and logs are in
 `validation/astra-converter-20261030/qa_fix_disk/`.
@@ -339,43 +360,35 @@ at the 100k sample rate are about 1.03 GB per shard; native logs at the pilot ra
 add about 0.70 GB. Actual filtering, FEN lengths and compression change these
 figures. The second index measured 43.63 bytes per cumulative unique key, about
 0.44 GB per 10M keys; its size grows with prior retained keys plus holdout keys,
-and stays on disk by default. Explicitly cleaning each verified shard prevents
-retaining those cumulative indexes 37 times. Existing source files and earlier retained outputs are separate
+and stays on disk by default. All 37 cumulative indexes must therefore be
+budgeted when using one volume. Existing source files and earlier retained outputs are separate
 persistent storage, not deleted to reclaim scratch.
 
 Preflight deliberately budgets **64 bytes per possible index key**, a 1 MiB
 index margin, full source text, original UTF-8 game-ID file bytes if any, output
-records/provenance, and **2,048 bytes per input row for native logs**. The last
-allowance is 20.48 GB for 10M inputs and is intentionally much larger than this
-pilot's 0.70 GB projection; it is not a measured requirement or a hard quota for
-arbitrary external stderr. The printed `disk_preflight` JSON gives the exact
-estimate for each shard's actual arguments, on top of the 20,000 MiB reserve.
+records/provenance, and **128 bytes per input row for native logs**. This log
+allowance is 1.28 GB for 10M inputs, compared with the measured pilot's 0.70 GB
+projection. The previous 2,048-byte estimate appears in historical receipts; it
+is superseded, not a measured requirement. Neither estimate caps arbitrary
+external stderr. The printed `disk_preflight` JSON gives the estimate for each
+shard's actual arguments, on top of the **32,768 MiB reserve**.
 The native log allowance, largest cumulative index and new shard output coexist;
 do not plan using output size alone. Guards recheck every 1,024 rows while
 loading holdouts/prior/recovered keys and while processing new rows.
 
-Only explicit `verify --prune-indexes` removes disposable indexes carrying a
-matching config-bound `INDEX_OWNER.json` marker, under the converter's exclusive
-output lock, **after sealed hashes and row parity verify**. Logs, source data,
-unsealed tails and receipts remain. Resume retains earlier indexes and builds a
-fresh one; no recovery trusts the retained database contents. Journal recovery is disabled solely for this
-reconstructible scratch database. Old unmarked indexes are not automatically
-removed. Completed old output can still be verified; unfinished old-code
-checkpoints require their original frozen tool.
+Indexes carrying a matching config-bound ownership marker are reconstructible,
+but no deletion or pruning step is part of the current crew-approved workflow.
+Resume keeps earlier indexes and builds a fresh one; budget that coexistence.
+Old unmarked indexes also remain. Completed old output can still be verified;
+unfinished old-code checkpoints require their original frozen tool. Plain
+`verify` remains read-only and verifies without reclaiming disk.
 
-For an interrupted cleanup after COMPLETE, run:
-
-```bash
-python3 tools/data2/convert_dataset.py verify --out /verified/output --prune-indexes
-```
-
-Plain `verify` stays read-only. Passing `--prune-indexes` explicitly takes the
-output lock and verifies before cleanup. The full private-holdout clearance audit
-has its own output-key index (96 bytes per row plus 16 MiB preflight margin),
-streaming checks, and opt-in `--prune-indexes` cleanup after validated completion.
-Its default also retains the owned database and reports its path and size; failed
-identity checks retain it even if pruning was requested. It requires additional
-scratch during that stage.
+The full private-holdout clearance audit has its own retained output-key index
+(96 bytes per output row plus 16 MiB preflight margin), streaming checks, and
+32,768 MiB reserve. Budget it in addition to every retained conversion index and
+output. A failed identity check retains its evidence and database. The shard
+planner below covers conversion only; the final clearance scratch is a separate
+stage with its own fresh disk measurement.
 
 QA validation: **86/86 data2 tests passed** with the explicitly selected external
 adapter; the default suite skips the 13 optional adapter tests. This includes
@@ -400,13 +413,12 @@ restoring the exact tracked bytes resolved those setup failures. Their original
 logs remain preserved. No A1 code or expected value was changed.
 
 
-## Policy refinement: explicit cleanup and GPL acknowledgement
+## Policy refinement: index retention and GPL acknowledgement
 
-Current defaults retain indexes. To opt into cleanup after verification:
-
-```bash
-python3 tools/data2/convert_dataset.py verify --out /verified/output --prune-indexes
-```
+Current defaults retain indexes. The cleanup API remains available for a
+separately approved crew decision; this runbook contains no cleanup invocation.
+No default command deletes a retained converter/audit index. Earlier raw
+measurements and checkpoints remain historical evidence rather than being edited.
 
 For optional external binpack verification, both flags are required:
 
@@ -420,9 +432,3 @@ is selected. No acknowledgement is needed for default bulletformat + sidecar.
 The shared path check recognizes Git worktrees and bare repositories; it checks
 both the supplied alias and actual target, preserving symlink/`..` resolution.
 Empty managed-filesystem `.git` placeholder directories are not repositories.
-
-The separate audit likewise keeps its scratch database by default. Add
-`--prune-indexes` to that audit's existing command only when cleanup is wanted;
-its report records the path, retained bytes, requested policy, and actual result.
-No default command deletes a retained converter/audit index. Earlier raw
-measurements and checkpoints remain historical evidence rather than being edited.
