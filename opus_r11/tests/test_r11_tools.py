@@ -83,6 +83,33 @@ def main() -> int:
     left = os.listdir(out2) if os.path.isdir(out2) else []
     check(rc != 0 and left == [], f"astra: checksum failure removes the partial files (left: {left})")
 
+    # 1d CR fix 1: no STOP/PAUSE control files anywhere in the pipeline; the hold is the named event
+    import ctypes
+    from ctypes import wintypes
+    k32 = ctypes.windll.kernel32
+    k32.CreateEventW.restype = wintypes.HANDLE
+    k32.CreateEventW.argtypes = [ctypes.c_void_p, wintypes.BOOL, wintypes.BOOL, wintypes.LPCWSTR]
+    k32.ResetEvent.argtypes = [wintypes.HANDLE]
+    k32.SetEvent.argtypes = [wintypes.HANDLE]
+    k32.CloseHandle.argtypes = [wintypes.HANDLE]
+    check(not C.hold_requested(), "no hold before the event exists")
+    h = k32.CreateEventW(None, True, True, C.HOLD_EVENT)
+    check(bool(h) and C.hold_requested(), f"hold active while {C.HOLD_EVENT} is signalled")
+    k32.ResetEvent(h)
+    check(not C.hold_requested(), "no hold while the event is reset")
+    k32.SetEvent(h)
+    k32.CloseHandle(h)
+    check(not C.hold_requested(), "no hold after the last handle is closed")
+    offenders = []
+    for d in ("opus_r11/pipeline", "tools/nnue_pytorch_amd/r11"):
+        for fn in os.listdir(os.path.join(REPO, d)):
+            if fn.endswith(".py"):
+                text = open(os.path.join(REPO, d, fn), encoding="utf-8").read()
+                for marker in ('"STOP"', '"PAUSE"', "stop_requested", "control/STOP", "control/PAUSE", '"control"'):
+                    if marker in text:
+                        offenders.append(f"{d}/{fn}: {marker}")
+    check(offenders == [], f"no STOP/PAUSE control files in the pipeline code: {offenders}")
+
     # 2 fail closed without psutil
     saved = sys.modules.get("psutil", "absent")
     sys.modules["psutil"] = None  # makes "import psutil" raise ImportError

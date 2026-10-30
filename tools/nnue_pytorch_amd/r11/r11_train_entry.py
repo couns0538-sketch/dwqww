@@ -14,7 +14,8 @@ GPL-3.0 (imports the trainer's modules at run time from --r11-clone; nothing is 
 2. Exact resume: SimpleTrainer.load_checkpoint continues at "r11_next_epoch" (the trainer restarts at the saved
    epoch, which trains the last finished epoch twice).
 3. Control and governor, checked every --r11-check-seconds during training:
-   - <run>/control/PAUSE: sleep while it exists;  <run>/control/STOP: save a mid-epoch checkpoint, exit 0;
+   - hold: sleep while the named event Local\\Forge_R11_Hold is signalled (no STOP/PAUSE files: R11 is stopped by
+     its own PID and resumes from the newest checkpoint);
    - free RAM below --r11-min-free-ram-gb: save and exit 75 (the driver resumes when RAM is back); a watchdog thread
      exits 97 at once below --r11-hard-ram-gb (no save: the live trainer comes first);
    - --r11-policy yield: when a production trainer appears (command-line regex list, fail closed when the process
@@ -86,6 +87,27 @@ def free_gb() -> tuple[float, float]:
     return ms.ullAvailPhys / 2**30, ms.ullAvailPageFile / 2**30
 
 
+HOLD_EVENT = "Local\\Forge_R11_Hold"
+
+
+def hold_requested() -> bool:
+    """True while the named event Local\\Forge_R11_Hold exists and is signalled."""
+    if sys.platform != "win32":
+        return False
+    k32 = ctypes.windll.kernel32
+    k32.OpenEventW.restype = wintypes.HANDLE
+    k32.OpenEventW.argtypes = [wintypes.DWORD, wintypes.BOOL, wintypes.LPCWSTR]
+    k32.WaitForSingleObject.argtypes = [wintypes.HANDLE, wintypes.DWORD]
+    k32.CloseHandle.argtypes = [wintypes.HANDLE]
+    h = k32.OpenEventW(0x00100000, False, HOLD_EVENT)  # SYNCHRONIZE
+    if not h:
+        return False
+    try:
+        return k32.WaitForSingleObject(h, 0) == 0
+    finally:
+        k32.CloseHandle(h)
+
+
 def production_running(patterns: list[str]) -> str | None:
     """Matched pattern or None. Fails closed: no psutil / no process list -> treated as running."""
     try:
@@ -123,9 +145,7 @@ def main() -> int:
     opts, train_args = parse_own_args(sys.argv[1:])
     run_dir = os.path.abspath(opts["run_dir"])
     ckpt_dir = os.path.join(run_dir, "checkpoints")
-    ctrl_dir = os.path.join(run_dir, "control")
     os.makedirs(ckpt_dir, exist_ok=True)
-    os.makedirs(ctrl_dir, exist_ok=True)
     clone = os.path.abspath(opts["clone"])
     sys.path.insert(0, clone)
     os.chdir(clone)
@@ -250,14 +270,16 @@ def main() -> int:
             if now - self.last_check < opts["check_seconds"]:
                 return
             self.last_check = now
-            while os.path.exists(os.path.join(ctrl_dir, "PAUSE")):
-                if os.path.exists(os.path.join(ctrl_dir, "STOP")):
-                    break
+            held = False
+            while hold_requested():
+                if not held:
+                    log_event(run_dir, "hold", event=HOLD_EVENT)
+                    held = True
                 time.sleep(10)
+            if held:
+                log_event(run_dir, "hold_released")
             reason, code = None, 0
-            if os.path.exists(os.path.join(ctrl_dir, "STOP")):
-                reason, code = "STOP file", 0
-            else:
+            if True:
                 ram, commit = free_gb()
                 if ram < opts["min_free_ram_gb"] or commit < opts["min_free_ram_gb"]:
                     reason, code = f"free RAM {ram:.2f} GB / commit {commit:.2f} GB < {opts['min_free_ram_gb']} GB", EXIT_RESOURCE

@@ -771,9 +771,6 @@ def run(cfg: dict, log: C.Log, gov: C.Governor, max_convert: int | None = None, 
     supersede_check(cfg, reg, shards, log, gov)
     verify_mode = d.get("verify", "all")
     for e in reg["order"]:
-        if gov.stop_requested():
-            log.info("STOP file present: stopping before hce/keys")
-            return {"stopped": True}
         generate_hce(cfg, e, log, gov)
         if d.get("keys_cache", False):
             make_keys(cfg, e, log, gov)
@@ -793,8 +790,8 @@ def run(cfg: dict, log: C.Log, gov: C.Governor, max_convert: int | None = None, 
     converted = 0
     stopped_for_disk = False
     for e in conversion_order(d, todo):
-        if gov.stop_requested() or (max_convert is not None and converted >= max_convert):
-            log.info("stopping before the next conversion (STOP file or --max-convert)")
+        if max_convert is not None and converted >= max_convert:
+            log.info("stopping before the next conversion (--max-convert)")
             break
         need_gb = sizes[e["id"]] / 2**30
         free = C.disk_free_gb(d["dir"])
@@ -837,6 +834,7 @@ def main(argv: list[str]) -> int:
     cfg = C.read_json(a.config)
     C.set_below_normal()
     root = cfg["root"]
+    C.write_pid_file(root, "data")
     log = C.Log(os.path.join(root, "logs", "pipeline.log"), "data")
     gov = C.Governor(root, C.Limits(**cfg.get("limits", {})), log)
     try:

@@ -368,27 +368,53 @@ class Limits:
     poll_seconds: float = 30.0
 
 
+HOLD_EVENT = "Local\\Forge_R11_Hold"
+
+
+def hold_requested() -> bool:
+    """True while the named event Local\\Forge_R11_Hold exists and is signalled (CR fix 1: no STOP/PAUSE files).
+    Hold with `r11_hold.py hold [--minutes N]`; stop R11 by its own PID (it resumes from its done markers)."""
+    if sys.platform != "win32":
+        return False
+    k32 = ctypes.windll.kernel32
+    k32.OpenEventW.restype = wintypes.HANDLE
+    k32.OpenEventW.argtypes = [wintypes.DWORD, wintypes.BOOL, wintypes.LPCWSTR]
+    k32.WaitForSingleObject.argtypes = [wintypes.HANDLE, wintypes.DWORD]
+    k32.CloseHandle.argtypes = [wintypes.HANDLE]
+    SYNCHRONIZE = 0x00100000
+    h = k32.OpenEventW(SYNCHRONIZE, False, HOLD_EVENT)
+    if not h:
+        return False
+    try:
+        return k32.WaitForSingleObject(h, 0) == 0  # WAIT_OBJECT_0: signalled
+    finally:
+        k32.CloseHandle(h)
+
+
+def write_pid_file(root: str, stage: str) -> str:
+    """<root>/run/<stage>.pid.json: the PID to stop this R11 process by (it resumes from its done markers)."""
+    path = os.path.join(root, "run", f"{stage}.pid.json")
+    write_json(path, {"pid": os.getpid(), "stage": stage, "started": time.strftime("%Y-%m-%dT%H:%M:%S"),
+                      "argv": sys.argv[:6]})
+    return path
+
+
 class Governor:
-    """Waits (never kills anything) until free RAM / commit, system CPU and disk are inside the limits.
-    Control files: <root>/control/PAUSE (wait while present), <root>/control/STOP (stop at the next unit)."""
+    """Waits (never kills anything) until free RAM / commit, system CPU and disk are inside the limits and no hold
+    is requested (named event Local\\Forge_R11_Hold). There is no STOP file: R11 is stopped by its own PID."""
 
     def __init__(self, root: str, limits: Limits, log: Log):
         self.root = root
         self.limits = limits
         self.log = log
-        self.ctrl = os.path.join(root, "control")
-        os.makedirs(self.ctrl, exist_ok=True)
-
-    def stop_requested(self) -> bool:
-        return os.path.exists(os.path.join(self.ctrl, "STOP"))
 
     def state(self, need_ram_gb: float = 0.0, disk_path: str | None = None, need_disk_gb: float = 0.0,
               cpu_interval: float = 1.0) -> tuple[bool, str]:
         ram, commit = memory_gb()
         cpu = cpu_load(cpu_interval)
         reasons = []
-        if os.path.exists(os.path.join(self.ctrl, "PAUSE")):
-            reasons.append("PAUSE file")
+        if hold_requested():
+            reasons.append(f"hold event {HOLD_EVENT}")
         if ram - need_ram_gb < self.limits.min_free_ram_gb:
             reasons.append(f"free RAM {ram:.1f} GB - need {need_ram_gb:.1f} < floor {self.limits.min_free_ram_gb}")
         if commit - need_ram_gb < self.limits.min_free_commit_gb:
@@ -404,19 +430,17 @@ class Governor:
 
     def wait_ok(self, what: str, need_ram_gb: float = 0.0, disk_path: str | None = None, need_disk_gb: float = 0.0,
                 max_wait_s: float | None = None) -> bool:
-        """True when it is fine to start `what`; False on STOP or after max_wait_s."""
+        """True when it is fine to start `what`; False only after max_wait_s."""
         t0 = time.time()
         last_log = 0.0
         cpu_hits = 0
         while True:
-            if self.stop_requested():
-                self.log.info(f"STOP file present: not starting {what}")
-                return False
             ok, status = self.state(need_ram_gb, disk_path, need_disk_gb)
             if ok:
                 return True
             # a single CPU spike is not a reason to wait; three consecutive over-cap samples are
-            if "CPU" in status.split("|")[-1] and all(k not in status.split("|")[-1] for k in ("RAM", "commit", "disk", "PAUSE")):
+            why = status.split("|")[-1]
+            if "CPU" in why and all(k not in why for k in ("RAM", "commit", "disk", "hold")):
                 cpu_hits += 1
                 if cpu_hits < 3:
                     continue

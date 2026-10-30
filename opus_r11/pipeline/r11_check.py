@@ -361,6 +361,7 @@ def main(argv: list[str]) -> int:
     a = ap.parse_args(argv)
     cfg = C.read_json(a.config)
     C.set_below_normal()
+    C.write_pid_file(cfg["root"], "check")
     log = C.Log(os.path.join(cfg["root"], "logs", "pipeline.log"), "check")
     gov = C.Governor(cfg["root"], C.Limits(**cfg.get("limits", {})), log)
     try:

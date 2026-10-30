@@ -1,7 +1,8 @@
 """R11 train stage: nnue-pytorch (R6 AMD Triton clone) on the R11 binpacks with auto-resume and checkpoint rotation.
 
 The trainer runs in its own process through tools/nnue_pytorch_amd/r11/r11_train_entry.py (keeps the newest
-`keep_last` checkpoints + the best by validation loss, exact resume, PAUSE/STOP files, RAM floors, production policy).
+`keep_last` checkpoints + the best by validation loss, exact resume, hold event Local\\Forge_R11_Hold, RAM floors,
+production policy; there are no STOP/PAUSE files: stop R11 by its own PID, it resumes from the newest checkpoint).
 This driver:
   - picks the run folder <train.runs_dir>/<run name>, the datasets (data/train_files.txt) and the validation files
     (data/holdout_files.txt);
@@ -109,9 +110,6 @@ def run_train(cfg: dict, profile_name: str, log: C.Log, gov: C.Governor, name: s
             log.ok(f"train {os.path.basename(run_dir)}: finished ({prof['max_epochs']} epochs); best "
                    f"{(ix.get('best') or {}).get('path')} val {(ix.get('best') or {}).get('val_loss')}")
             return {"run_dir": C.winpath(run_dir), "finished": True, "best": ix.get("best"), "last": last}
-        if gov.stop_requested():
-            log.info("STOP file present: not starting the trainer")
-            return {"run_dir": C.winpath(run_dir), "finished": False, "stopped": True, "best": ix.get("best"), "last": last}
         # production policy
         if prof.get("gpu_policy", "wait") == "wait":
             t0 = time.time()
@@ -119,8 +117,6 @@ def run_train(cfg: dict, profile_name: str, log: C.Log, gov: C.Governor, name: s
                 hits = C.production_processes(patterns)
                 if not hits:
                     break
-                if gov.stop_requested():
-                    return {"run_dir": C.winpath(run_dir), "finished": False, "stopped": True}
                 if time.time() - t0 < 1 or int(time.time() - t0) % 600 < cfg["limits"]["poll_seconds"]:
                     log.wait(f"train {profile_name}: production trainer running ({hits[0]['pattern']}, pid "
                              f"{hits[0]['pid']}); full-size training waits (gpu_policy wait)")
@@ -144,12 +140,6 @@ def run_train(cfg: dict, profile_name: str, log: C.Log, gov: C.Governor, name: s
             last = newest(ix)
             if last and last["complete"] and last["next_epoch"] >= prof["max_epochs"]:
                 continue  # the loop top reports "finished"
-            events = open(os.path.join(run_dir, "r11_events.jsonl"), encoding="utf-8").read() \
-                if os.path.isfile(os.path.join(run_dir, "r11_events.jsonl")) else ""
-            if '"stopped"' in events.splitlines()[-1] if events else False:
-                log.info(f"train {profile_name}: stopped by the STOP file; resumable")
-                return {"run_dir": C.winpath(run_dir), "finished": False, "stopped": True, "best": ix.get("best"),
-                        "last": last}
             raise C.StageFailed(f"trainer exited 0 without finishing; see {logf}")
         if rc in (75, 76, 97):
             restarts += 1
@@ -171,6 +161,7 @@ def main(argv: list[str]) -> int:
     a = ap.parse_args(argv)
     cfg = C.read_json(a.config)
     C.set_below_normal()
+    C.write_pid_file(cfg["root"], "train")
     log = C.Log(os.path.join(cfg["root"], "logs", "pipeline.log"), "train")
     gov = C.Governor(cfg["root"], C.Limits(**cfg.get("limits", {})), log)
     try:
