@@ -96,10 +96,33 @@ def trainer_cmd(cfg: dict, prof: dict, run_dir: str, resume: str | None) -> tupl
     return cmd, env
 
 
+def holdout_gate(cfg: dict, log: C.Log) -> dict:
+    """CR R2 M3: nothing is trained until the holdout test passed on the REAL data (013/014 holdout-first, no TRAIN row
+    with a holdout position, dedup order) AND the data has not changed since: registry, decisions and file lists
+    must hash exactly as recorded in <data.dir>/HOLDOUT_TEST.json."""
+    import r11_data as D
+    d = cfg["data"]
+    rec = C.read_json(os.path.join(d["dir"], "HOLDOUT_TEST.json"))
+    if not rec or not rec.get("pass"):
+        raise C.StageFailed("no passing holdout test for this data (CR R2 M3): run opus_r11/tests/test_r11_holdout_real.py "
+                            "--config <cfg> first")
+    reg = C.read_json(os.path.join(d["dir"], "state", "registry.json"))
+    now = D.data_hashes(d, reg)
+    changed = [k for k, v in now.items() if rec.get(k) != v]
+    if changed:
+        raise C.StageFailed(f"the data changed since the holdout test passed ({changed}); re-run test_r11_holdout_real.py")
+    if rec.get("holdout") != d.get("holdout"):
+        raise C.StageFailed(f"the holdout test covered {rec.get('holdout')}, the config holds out {d.get('holdout')}")
+    log.ok(f"holdout gate: test passed {rec['at']} on {rec['holdout']} ({rec['holdout_unique_positions']:,} holdout "
+           f"positions, leak hits {rec['leak_hits']}, dedup order sample {rec['dedup_sample_rows']:,} rows); data unchanged")
+    return rec
+
+
 def run_train(cfg: dict, profile_name: str, log: C.Log, gov: C.Governor, name: str | None = None) -> dict:
     prof = dict(cfg["train"]["profiles"][profile_name])
     if prof.get("gpu_policy", "yield") != "yield" or "share_duty" in prof:
         raise C.StageFailed(f"profile {profile_name}: yield is the only GPU policy (CR R2 H1: no share, no duty cycle)")
+    holdout_gate(cfg, log)
     run_dir = os.path.join(cfg["train"]["runs_dir"], name or run_name(profile_name, prof))
     C.assert_writable_path(run_dir)
     os.makedirs(run_dir, exist_ok=True)

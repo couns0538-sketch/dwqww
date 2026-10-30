@@ -725,6 +725,22 @@ def convert(cfg: dict, e: dict, log: C.Log, gov: C.Governor, sealed: C.SealedInp
     return res
 
 
+def data_hashes(d: dict, reg: dict) -> dict:
+    """The identity of what a training run would read (CR R2 M3): the registry, every decision file, the two file
+    lists. The holdout test records it; the train stage refuses data whose current identity differs."""
+    import hashlib
+    h = hashlib.sha256()
+    for e in reg["order"]:
+        dp, _ = decision_paths(d, e["id"])
+        h.update((e["id"] + ":" + (C.sha256_file(dp) if os.path.isfile(dp) else "missing") + "\n").encode())
+    out = {"registry_sha256": C.sha256_file(os.path.join(d["dir"], "state", "registry.json")),
+           "decisions_sha256": h.hexdigest()}
+    for name in ("train_files.txt", "holdout_files.txt"):
+        p = os.path.join(d["dir"], name)
+        out[name.replace(".", "_") + "_sha256"] = C.sha256_file(p) if os.path.isfile(p) else None
+    return out
+
+
 def disk_floor_gb_data(cfg: dict, path: str) -> float:
     """Bulk floor for data outputs: the drive floor plus data.disk_margin_gb (QA: >= 40 GB stay free after the run)."""
     base = C.disk_floor_gb(path, float(cfg.get("limits", {}).get("min_disk_free_gb", 40.0)))

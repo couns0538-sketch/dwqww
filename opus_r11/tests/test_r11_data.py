@@ -27,6 +27,7 @@ import numpy as np
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, os.path.join(HERE, "..", "pipeline"))
+sys.path.insert(0, HERE)  # python -I does not add the script folder
 import r11_common as C  # noqa: E402
 import r11_data as D  # noqa: E402
 
@@ -372,6 +373,41 @@ def main() -> int:
     vb = [C.read_json(D.out_marker(cfg["data"], r["id"])).get("verify", {}).get("verified_before_rename")
           for r in man["shards"] if r["records"]]
     check(vb and all(vb), f"CR fix 7: every output was verified as .part before its rename ({len(vb)} outputs)")
+
+    # 9 CR R2 M3: the holdout test (the same script that proves the REAL data) passes on correct data, the train-stage
+    # gate accepts it and refuses changed data, and a planted holdout leak fails the test
+    import test_r11_holdout_real as HT
+    import r11_train as TR
+    cfg_path = os.path.join(scratch, "cfg_partial.json")
+    with open(cfg_path, "w", encoding="utf-8") as f:
+        json.dump(cfg, f)
+    rc = HT.main(["--config", cfg_path, "--sample-prefixes", "65536"])
+    check(rc == 0 and os.path.isfile(os.path.join(cfg["data"]["dir"], "HOLDOUT_TEST.json")),
+          "holdout test PASS on the synthetic data (full key space for the dedup order)")
+    try:
+        TR.holdout_gate(cfg, C.Log(None, "train"))
+        check(True, "train gate accepts the data the holdout test passed")
+    except C.StageFailed as e:
+        check(False, f"train gate refused passing data: {e}")
+    tfl = os.path.join(cfg["data"]["dir"], "train_files.txt")
+    saved_tfl = open(tfl, "rb").read()
+    with open(tfl, "ab") as f:
+        f.write(b"D:/somewhere/extra.binpack\n")
+    try:
+        TR.holdout_gate(cfg, C.Log(None, "train"))
+        check(False, "train gate must refuse changed data")
+    except C.StageFailed as e:
+        check("changed since the holdout test" in str(e), "train gate refuses data changed after the holdout test")
+    with open(tfl, "wb") as f:
+        f.write(saved_tfl)
+    dp = D.decision_paths(cfg["data"], "a:a_003")[0]
+    dest = C.unpack_dest(np.fromfile(dp, np.uint8), 8000)
+    check(dest[100] == C.DEST_DROP, "a_003 row 100 (a copy of holdout row a_001:1000) was dropped by the dedup")
+    dest[100] = C.DEST_TRAIN  # planted leak
+    C.pack_dest(dest).tofile(dp)
+    HT.FAILS.clear()
+    rc = HT.main(["--config", cfg_path, "--sample-prefixes", "65536"])
+    check(rc != 0, "a planted holdout leak (a training copy of a holdout row marked TRAIN) fails the holdout test")
 
     print(f"\n{len(FAILS)} failed checks")
     print("R11 DATA SELFTEST " + ("PASS" if not FAILS else "FAIL"))
