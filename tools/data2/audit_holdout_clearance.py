@@ -35,8 +35,13 @@ TOOL_FILES = (Path(__file__), Path(__file__).with_name('convert_dataset.py'),
 
 
 def stat_identity(value):
-    return {'device': value.st_dev, 'inode': value.st_ino, 'size': value.st_size,
-            'mtime_ns': value.st_mtime_ns, 'ctime_ns': value.st_ctime_ns}
+    result = {'device': value.st_dev, 'inode': value.st_ino, 'size': value.st_size,
+              'mtime_ns': value.st_mtime_ns}
+    # Windows Python 3.12 stat/fstat expose different ctime semantics.
+    # Retain POSIX change-time protection without false Windows mismatches.
+    if os.name == 'posix':
+        result['ctime_ns'] = value.st_ctime_ns
+    return result
 
 
 def now():
