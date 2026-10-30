@@ -25,6 +25,7 @@ GPL-3.0 (imports the trainer's modules at run time from --r11-clone; nothing is 
      trainer appears (command-line regex list; psutil missing = fail, an unreadable python command line = running)
      the entry saves and exits 76, the driver waits for it to end and resumes.
 Usage: <trainer venv python> -B r11_train_entry.py --r11-clone <clone> --r11-run-dir <dir> [--r11-keep-last 1000000]
+       [--r11-save-every N]  (checkpoint every N epochs and at the last; the driver validates every N epochs too)
        [--r11-min-free-ram-gb 8] [--r11-hard-ram-gb 7] --r11-patterns-file <json list of regexes>
        [--r11-check-seconds 20]
        (the production regexes come from a FILE: on a command line they would match the entry's own launcher)
@@ -58,7 +59,7 @@ def parse_own_args(argv: list[str]) -> tuple[dict, list[str]]:
         raise SystemExit("usage: r11_train_entry.py --r11-... -- <train.py args>")
     i = argv.index("--")
     own, rest = argv[:i], argv[i + 1:]
-    opts = {"clone": None, "run_dir": None, "keep_last": KEEP_ALL,
+    opts = {"clone": None, "run_dir": None, "keep_last": KEEP_ALL, "save_every": 1,
             "min_free_ram_gb": 8.0, "hard_ram_gb": 7.0, "patterns_file": None,
             "check_seconds": 20.0, "affinity": "0x700", "disk_floor_gb": 40.0}
     k = 0
@@ -77,7 +78,17 @@ def parse_own_args(argv: list[str]) -> tuple[dict, list[str]]:
     if opts["keep_last"] < KEEP_ALL:
         raise SystemExit(f"--r11-keep-last {opts['keep_last']} could delete checkpoints; CR R3: rotation must "
                          f"not delete - use >= {KEEP_ALL}")
+    if opts["save_every"] < 1:
+        raise SystemExit("--r11-save-every must be >= 1")
     return opts, rest
+
+
+def first_ckpt_need(train_args: list[str]) -> int:
+    """Bytes the disk-floor check reserves for a run's FIRST checkpoint (later ones use the largest saved so far):
+    ~1.6 MiB per L1 unit, at least 512 MiB - measured: L1 64 78.5 MB, L1 1024 1.44 GiB (weights + optimizer state);
+    a fixed 512 MiB would let the first L1 1024 checkpoint cross the floor by ~1 GiB."""
+    l1 = int(train_args[train_args.index("--l1") + 1]) if "--l1" in train_args else 1024
+    return max(512 << 20, int(l1 * 1.6 * 2**20))
 
 
 def lower_this_process(mask: int) -> list[str]:
@@ -273,7 +284,7 @@ def main() -> int:
             # without writing (the driver waits and resumes from the newest checkpoint)
             import shutil
             sizes = [x.get("bytes", 0) for x in load_index().get("entries", [])]
-            need = max(sizes) if sizes else 512 << 20
+            need = max(sizes) if sizes else first_ckpt_need(train_args)
             free = shutil.disk_usage(ckpt_dir).free
             if (free - need) / 2**30 < opts["disk_floor_gb"]:
                 raise R11Stop(EXIT_RESOURCE, f"disk: {free / 2**30:.1f} GB free, a {need / 2**30:.2f} GB checkpoint "
@@ -346,10 +357,14 @@ def main() -> int:
             self._save(trainer, trainer.current_epoch + 1, True, val)
 
         def on_train_epoch_end(self, trainer):
-            # with validation the save happens after it; without, save here (the trainer's own redo rule)
+            # with validation the save happens after it; without, save here (the trainer's own redo rule) - but only
+            # every --r11-save-every epochs and at the last one: nothing is ever deleted (CR R3), so the save interval
+            # is what keeps a run inside the disk floor (an L1 1024 checkpoint is 1.44 GiB)
             will_validate = getattr(trainer, "_r11_val_loader", None) is not None and \
                 (trainer.current_epoch + 1) % max(1, trainer.check_val_every_n_epoch) == 0
-            if not will_validate:
+            due = (trainer.current_epoch + 1) % opts["save_every"] == 0 or \
+                trainer.current_epoch + 1 >= trainer.max_epochs
+            if not will_validate and due:
                 self._save(trainer, trainer.current_epoch, False, None)
 
         def on_train_end(self, trainer):

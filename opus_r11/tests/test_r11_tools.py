@@ -217,7 +217,8 @@ def main() -> int:
                     "if MODE == 'import':\n    production_starts()\n\n\n"
                     "class CheckpointManager:\n    pass\n\n\n"
                     "class FakeTrainer:\n"
-                    "    check_val_every_n_epoch, current_epoch, global_step, max_epochs = 1, 0, 0, 1\n\n"
+                    "    check_val_every_n_epoch, current_epoch, global_step, max_epochs = 1, 0, 0, 1\n"
+                    "    callback_metrics, _r11_val_loader = {}, None\n\n"
                     "    def save_checkpoint(self, path):\n"
                     "        with zipfile.ZipFile(path, 'w') as z:\n"
                     "            z.writestr('archive/data.pkl', b'stub')\n\n"
@@ -230,6 +231,17 @@ def main() -> int:
                     "            t.current_epoch, t.global_step = e, 10 * (e + 1)\n"
                     "            cm._save(t, e + 1, True, v)\n"
                     "        print('STUB ROTATE END', flush=True)\n"
+                    "        return\n"
+                    "    if MODE == 'epochs':  # the entry's real epoch-end / validation-end saves: 6 epochs, validation every 3\n"
+                    "        cm, t = CheckpointManager(), FakeTrainer()\n"
+                    "        t.max_epochs, t.check_val_every_n_epoch, t._r11_val_loader = 6, 3, object()\n"
+                    "        for e in range(6):\n"
+                    "            t.current_epoch, t.global_step = e, 10 * (e + 1)\n"
+                    "            cm.on_train_epoch_end(t)\n"
+                    "            if (e + 1) % 3 == 0:\n"
+                    "                t.callback_metrics = {'val_loss_epoch': 1.0 - 0.1 * e}\n"
+                    "                cm.on_validation_end(t)\n"
+                    "        print('STUB EPOCHS END', flush=True)\n"
                     "        return\n"
                     "    if MODE == 'fit':\n        production_starts()\n"
                     "    CheckpointManager().on_fit_start(FakeTrainer())\n"
@@ -335,6 +347,37 @@ def main() -> int:
           not ix.get("removed") and best == "epoch=1-step=20.ckpt",
           f"the entry's save/rotate code keeps all 6 checkpoints and tracks the best (val 0.5): rc {rr.returncode}, "
           f"{len(ck)} files, best {best}, removed {ix.get('removed')} {rr.stderr[-200:]}")
+    # save interval (nothing is deleted, so the interval keeps a run inside the disk floor): the entry's real
+    # epoch-end / validation-end logic saves every N epochs and at the last; the first checkpoint's floor reserve
+    # follows L1 (a fixed 512 MiB let an L1 1024 checkpoint, 1.44 GiB, cross the floor)
+    gib = 2**30
+    check(1.5 * gib <= entry.first_ckpt_need(["--l1", "1024"]) <= 1.7 * gib and
+          entry.first_ckpt_need(["--l1", "64"]) == 512 << 20,
+          "first-checkpoint floor reserve: L1 1024 -> 1.6 GiB (actual 1.44), L1 64 -> 512 MiB")
+    try:
+        entry.parse_own_args(["--r11-clone", "x", "--r11-run-dir", "y", "--r11-save-every", "0", "--"])
+        check(False, "the entry must refuse --r11-save-every 0")
+    except SystemExit:
+        check(True, "the entry refuses --r11-save-every 0")
+    saved = {}
+    for label, extra in (("every3", ["--r11-save-every", "3"]), ("default", [])):
+        rd = os.path.join(scratch, f"run_save_{label}")
+        rr = subprocess.run([sys.executable, "-I", "-B", spec.origin, "--r11-clone", stub, "--r11-run-dir", rd,
+                             "--r11-patterns-file", pfile, "--r11-affinity", "0x700", "--r11-disk-floor-gb", "1"] + extra
+                            + ["--", "dummy.binpack"], capture_output=True, text=True, timeout=600,
+                            env=dict(os.environ, R11_STUB_MODE="epochs", R11_STUB_MARKER=marker))
+        cdir = os.path.join(rd, "checkpoints")
+        saved[label] = (rr.returncode, sorted(x for x in os.listdir(cdir) if x.endswith(".ckpt")) if os.path.isdir(cdir) else [])
+    check(saved["every3"] == (0, ["epoch=2-step=30.ckpt", "epoch=5-step=60.ckpt"]),
+          f"--r11-save-every 3: checkpoints only at the validated epochs 3 and 6: {saved['every3']}")
+    check(saved["default"][0] == 0 and len(saved["default"][1]) == 6,
+          f"default (every epoch): 6 checkpoints: {saved['default']}")
+    try:
+        TR.save_every({"save_every_epochs": 7, "max_epochs": 20})
+        check(False, "the driver must refuse a save interval that does not divide max_epochs")
+    except C.StageFailed:
+        check(all(TR.save_every(p) >= 1 for p in profs.values()),
+              "the driver refuses save_every_epochs 7 for 20 epochs; the shipped profiles divide their max_epochs")
 
     # 1h CR fix 10: sealed inputs are identified by their full sha256; a change in the middle of a big file (which a
     # first/last-MiB fingerprint misses) is detected

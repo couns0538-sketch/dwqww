@@ -55,6 +55,16 @@ def patterns_file(cfg: dict, run_dir: str) -> str:
     return path
 
 
+def save_every(prof: dict) -> int:
+    """Checkpoint (and validation) interval in epochs. Nothing is deleted (CR R3), so this interval is what keeps a run
+    inside the disk floor: an L1 1024 checkpoint is 1.44 GiB. max_epochs must be a multiple, so the last epoch is a
+    validated, complete save (an unvalidated last save would make the driver redo that epoch for ever)."""
+    n = int(prof.get("save_every_epochs", 1))
+    if n < 1 or prof["max_epochs"] % n:
+        raise C.StageFailed(f"save_every_epochs {n} must be >= 1 and divide max_epochs {prof['max_epochs']}")
+    return n
+
+
 def trainer_cmd(cfg: dict, prof: dict, run_dir: str, resume: str | None) -> tuple[list[str], dict]:
     t = cfg["trainer"]
     d = cfg["data"]
@@ -66,6 +76,7 @@ def trainer_cmd(cfg: dict, prof: dict, run_dir: str, resume: str | None) -> tupl
         raise C.StageFailed("no train or holdout binpacks yet (run the data stage first)")
     cmd = [t["python"], "-B", ENTRY, "--r11-clone", t["clone"], "--r11-run-dir", C.winpath(run_dir),
            "--r11-keep-last", str(prof.get("keep_last", KEEP_ALL)),
+           "--r11-save-every", str(save_every(prof)),
            "--r11-min-free-ram-gb", str(cfg["limits"]["min_free_ram_gb"] + 1.0),
            "--r11-hard-ram-gb", str(cfg["limits"]["min_free_ram_gb"]),
            "--r11-patterns-file", C.winpath(patterns_file(cfg, run_dir)),
@@ -74,7 +85,7 @@ def trainer_cmd(cfg: dict, prof: dict, run_dir: str, resume: str | None) -> tupl
     cmd += train_files
     for h in hold_files:
         cmd += ["--validation-datasets", h]
-    cmd += ["--validation-size", str(prof["validation_size"]), "--check-val-every-n-epoch", "1",
+    cmd += ["--validation-size", str(prof["validation_size"]), "--check-val-every-n-epoch", str(save_every(prof)),
             "--default-root-dir", C.winpath(os.path.join(run_dir, "npt")),
             "--features", "K32H3^", "--l1", str(prof["l1"]), "--batch-size", str(prof["batch_size"]),
             "--num-workers", str(prof["num_workers"]), "--threads", str(prof["threads"]),
@@ -138,6 +149,7 @@ def run_train(cfg: dict, profile_name: str, log: C.Log, gov: C.Governor, name: s
     if int(prof.get("keep_last", KEEP_ALL)) < KEEP_ALL:
         raise C.StageFailed(f"profile {profile_name}: keep_last {prof['keep_last']} could delete checkpoints; "
                             f"CR R3: rotation must not delete - use >= {KEEP_ALL}")
+    save_every(prof)  # refuse an interval that does not divide max_epochs before anything starts
     holdout_gate(cfg, log)
     run_dir = os.path.join(cfg["train"]["runs_dir"], name or run_name(profile_name, prof))
     C.assert_writable_path(run_dir)

@@ -146,6 +146,9 @@
     "compile": false,
     "keep_last": 1000000,
     "comment_keep_last": "CR R3: rotation must not delete; every checkpoint stays (disk floor check before each save)",
+    "save_every_epochs": 4,
+    "need_disk_gb": 0.6,
+    "comment_save_every": "one checkpoint at the end (~0.4 GB at L1 256): nothing is deleted, the D: floor budget is small",
     "max_restarts": 5,
     "comment": "smoke size (batch 4096, L1 256, 1 loader worker); yields to production like every profile (CR R2 H1: no sharing, no duty cycle)"
    },
@@ -164,9 +167,11 @@
     "end_lambda": 1.0,
     "seed": 1,
     "need_ram_gb": 8.0,
-    "need_disk_gb": 6.0,
+    "need_disk_gb": 1.7,
     "compile": true,
     "keep_last": 1000000,
+    "save_every_epochs": 20,
+    "comment_save_every": "one checkpoint at epoch 20 (1.44 GiB at L1 1024) plus stop checkpoints: after the 11.5 GB conversion D: keeps ~3 GiB above its 40 GB floor and nothing is deleted",
     "max_restarts": 50,
     "comment": "the owner's npt line-104 recipe; starts only when no production trainer runs, exits 76 when one appears"
    }
