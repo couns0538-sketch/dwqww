@@ -590,6 +590,9 @@ def _run_tool(cmd: list[str]) -> dict:
     for line in r.stdout.splitlines():
         if line.startswith("{"):
             js = json.loads(line)
+    if js is not None and js.get("writer_bad", 0) > 0:  # CR fix 6 (the writer also exits 3)
+        raise C.StageFailed(f"writer dropped {js['writer_bad']} rows marked train/holdout (the cheap row checks let them "
+                            f"through, the converter rejected them): {' '.join(cmd)}\n{json.dumps(js)}")
     if r.returncode != 0 or js is None:
         raise C.StageFailed(f"tool failed ({r.returncode}): {' '.join(cmd)}\n{r.stdout[-500:]}\n{r.stderr[-500:]}")
     return js
@@ -626,7 +629,9 @@ def convert(cfg: dict, e: dict, log: C.Log, gov: C.Governor, verify: bool) -> di
     t0 = time.time()
     js = _run_tool(cmd)
     recs = js["hold_records"] if e["holdout"] else js["train_records"]
-    if js["dest_train"] + js["dest_hold"] != dec["kept"] or recs + js["writer_bad"] != dec["kept"]:
+    if js["writer_bad"] != 0:
+        raise C.StageFailed(f"writer dropped {js['writer_bad']} rows of {e['id']} (CR fix 6: never a silent skip)")
+    if js["dest_train"] + js["dest_hold"] != dec["kept"] or recs != dec["kept"]:
         raise C.StageFailed(f"writer counts disagree with the decision for {e['id']}: {js} vs kept {dec['kept']}")
     res = {"id": e["id"], "split": split, "records": recs, "writer": js, "writer_exe": d["writer_exe"],
            "writer_exe_sha256": C.sha256_file(d["writer_exe"]), "outputs": {}}

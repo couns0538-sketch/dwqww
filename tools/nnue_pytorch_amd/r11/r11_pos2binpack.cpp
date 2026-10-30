@@ -360,6 +360,12 @@ int run_convert(const Args& a) {
                   (unsigned long long)outH.bytes, (unsigned long long)outT.chunks, (unsigned long long)outH.chunks,
                   (unsigned long long)hT.n, (unsigned long long)hH.n, a.ply, secs);
     emit_json(a, buf);
+    // CR fix 6: a row the R11 dest map marked train/holdout that the writer cannot convert is a failure, not a skip
+    if (writerBad > 0) {
+        std::fprintf(stderr, "r11_pos2binpack: %llu rows marked train/holdout were rejected by the converter\n",
+                     (unsigned long long)writerBad);
+        return 3;
+    }
     return 0;
 }
 
@@ -479,7 +485,7 @@ int run_verify(const Args& a) {
     if (withHce && hceOut.f.n != expected) ++hceMism;
     const double secs = std::chrono::duration<double>(std::chrono::steady_clock::now() - t0).count();
     const bool ok = formatErrors == 0 && mismatches == 0 && hceMism == 0 && structRecords == expected &&
-                    readerRecords == expected && expected > 0;
+                    readerRecords == expected && expected > 0 && writerBad == 0;  // CR fix 6: no dropped rows
     char buf[4096];
     std::snprintf(buf, sizeof buf,
                   "{\"mode\": \"verify\", \"file\": \"%s\", \"code\": %d, \"expected\": %llu, \"struct_records\": %llu, "

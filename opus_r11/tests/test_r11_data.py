@@ -328,6 +328,31 @@ def main() -> int:
                         "--code", "1", "--file", bad_copy], capture_output=True, text=True)
     check(v.returncode != 0 and "VERIFY FAILED" in v.stdout, "planted 1-byte corruption rejected by verify")
 
+    # 8 CR fix 6: a row the cheap checks let through but the converter rejects (white pawn on a1) fails the shard
+    wsrc = os.path.join(scratch, "src_writerdrop")
+    wb, ws, wm = random_rows(50)
+    sq = np.zeros(64, np.uint8)
+    sq[4], sq[60], sq[0] = 6, 12, 1  # Ke1, ke8, Pa1: one king each, valid codes -> passes bad_rows()
+    wb[7] = sq[0::2] | (sq[1::2] << 4)
+    wm[7] = 0 | (1 << 1)  # white to move, draw
+    check(not C.bad_rows(wb[7:8], wm[7:8]).any(), "the planted row passes the cheap row checks")
+    write_fpos(os.path.join(wsrc, "a", "a_001.pos"), wb, ws, wm, RNG.integers(-100, 100, 50).astype(np.int16))
+    b2, s2, m2 = random_rows(40)
+    write_fpos(os.path.join(wsrc, "b", "b_001.pos"), b2, s2, m2, RNG.integers(-100, 100, 40).astype(np.int16))
+    wsup = os.path.join(wsrc, "sup")
+    os.makedirs(wsup)
+    cfg_w = config(os.path.join(scratch, "run_writerdrop"), wsrc, writer, mem_gb=1.0)
+    cfg_w["data"]["sources"] = cfg_w["data"]["sources"][:2]
+    cfg_w["data"]["holdout"] = ["b:b_001"]
+    try:
+        run_stage(cfg_w)
+        check(False, "a dropped row must fail the stage")
+    except C.StageFailed as e:
+        check("writer dropped" in str(e), f"writer drop fails the stage: {str(e)[:120]}")
+    marker = D.out_marker(cfg_w["data"], "a:a_001")
+    final = os.path.join(cfg_w["data"]["dir"], "train", "a__a_001.binpack")
+    check(not os.path.exists(marker) and not os.path.exists(final), "no done marker and no final output for that shard")
+
     print(f"\n{len(FAILS)} failed checks")
     print("R11 DATA SELFTEST " + ("PASS" if not FAILS else "FAIL"))
     return 0 if not FAILS else 1
