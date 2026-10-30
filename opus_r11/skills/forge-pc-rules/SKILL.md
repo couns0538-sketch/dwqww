@@ -177,7 +177,9 @@ description: Binding safety rules for ANY command run on the Forge PC (chess eng
 - Priority: **Idle (0x40) + I/O priority very low + memory priority low, at most 3 cores** (mask 0x700 = CPUs 8-10) for
   every own process; BelowNormal outranks the Idle trainer and self-play. All four are inherited by children. Do NOT use
   background mode (PROCESS_MODE_BACKGROUND_BEGIN; CR fix 2 amendment 2026-10-30): it caps the working set at 32 MB, so
-  any process with a few hundred MB of data pages itself to death (dedup >18 min instead of ~2, 445k page faults/s).
+  any process with a few hundred MB of data pages itself to death (a dedup pass 1718 s instead of ~130 s, 445k page
+  faults/s). CR R3: check the result of EVERY priority / ionice / memory-priority / affinity call and stop when one
+  fails (fail closed: the train entry exits 78, the build builds nothing) - never just call and continue.
 - **No STOP/PAUSE control files** (they break the owner's rule); a hold is the named event `Local\Forge_R11_Hold`;
   stopping is by PID (the owner does it; Stop-Process is denied for the agent, even for its own processes) and every
   stage resumes from its done markers. A process can be lowered instead: `(Get-Process -Id N).PriorityClass='Idle'`.
@@ -187,7 +189,12 @@ description: Binding safety rules for ANY command run on the Forge PC (chess eng
 - Inputs: full sha256 for sealed inputs (no first/last-MiB fingerprints); outputs `.part` -> verify -> rename; delete
   only your own partial files after a failed check.
 - GPU: yield-only (never train next to a production trainer, exit when one appears); the production-process check runs
-  before `import torch`; psutil missing = FAIL, an unreadable python command line = production (wait).
+  before `import torch`, right after the imports and at fit start (production started during a slow import once);
+  psutil missing = FAIL, an unreadable python command line = production (wait).
+- Checkpoints: NO deletes (CR R3) - keep_last 1,000,000, lower values refused; the disk floor stops a run instead.
+- Acting on another process by PID: resolve it ONCE into a psutil.Process (check its command line), then change it
+  only through a handle and only when is_running() (pid + create time) still holds after the handle was opened;
+  never act on a remembered raw PID (it may now name a production process).
 - Engine for checks/gates: AVX2 `-march=x86-64-v3` build of the named commit (never znver5, never exe 9b7e2fcd);
   GATE_EXE is always the exe sha256, never the commit. Hand packages to QA; never queue (no queue.txt /
   queue_state.json / forge_gates.json / locks / baselines).
