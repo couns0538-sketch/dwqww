@@ -1,27 +1,47 @@
-# R9 SPSA search-parameter tuning for Forge — IN PROGRESS (steps 1-2 done; 3-5 wait for CPU under the 70% cap)
+# R9 SPSA search-parameter tuning for Forge — IN PROGRESS
 
-Branch `opus-r9-spsa` = AL1 lock `d4f4312` + CI baseline `0d99f02` + R9 commits. PC clock times (2026-10-29).
-Machine exclusive: no (gate conc 4 x Threads 2, live self-play, NNUE trainer). No Elo claims: only QA's gate decides.
+Branch `opus-r9-spsa` = AL1 lock `d4f4312` + CI baseline `0d99f02` + R9 commits. PC clock times. Machine exclusive:
+no (PC gates, live self-play and the NNUE trainer ran beside it; the user paused self-play at about 23:30).
+**No Elo claims:** only QA's gate can show whether the tuned values are better.
 
 ## Acceptance
 | step | result | evidence |
 |---|---|---|
-| 1 expose the parameters behind one `R9Tune` switch, default off | 74 tunables (the lock's 51 `forge::tune` constants + 23 former literals) as advertised spin options, lock values as defaults; `R9Tune` off: **bench 312866 / 862329 / 3024920 / 12389307 / 34048354, perft5 4865609, kiwipete 193690690 = ALL OK**; `R9Tune` on at the defaults: **ALL OK** too (the new parameters reproduce the literals exactly); with R9Tune off a changed tunable leaves bench unchanged, with it on 58 of 74 move bench 11 by themselves (the 11 time-manager parameters cannot move a fixed-depth bench; the other 5 move it with larger values or are off in the lock: `CaptureFutility*` while its base is 0) | `opus_r9/logs/identity_off_c.log`, `identity_on_defaults_c.log`, `option_check_c.log/.json`, `option_check_b_probes.log` |
-| 1 tests | box build 0 warnings, FMA 0; CMake all 30 targets + CTest 14 tests: only the 4 known `forge_tests` lines (KNOWN-FAILURE CHECK: PASS, also `uci_regression` with the new options); opus-ci green on `8856be4a` and `22b1f2ba` (release ALL OK, ASan / TSan KNOWN-FAILURE CHECK: PASS, TSan: 0 reports) | `opus_r9/logs/ctest_c1.log(.known)`, runs 40932114844, 40935706032 |
-| 2 own SPSA tuner driving fastchess | `opus_r9/tuner/r9_spsa.py`: Fishtest-style schedule counted in game pairs, `pairs_per_batch` pairs per perturbation, values rounded to the engine's integers, append-only resumable state (`iterations.jsonl`, fsync per batch), `history.csv`, `tuner.log`, every game as PGN, STOP file, load governor for the 70% cap; report `r9_spsa_report.py` with a null-gradient noise level per parameter; ideas only (Fishtest, OpenBench, Weather Factory: `IDEA_SOURCE.md`) | `opus_r9/tuner/`, `opus_r9/IDEA_SOURCE.md` |
-| 2 tests | simulated matches with a known optimum: a parameter 100 below its optimum moves up (z +8.5), one 100 above moves down (z -8.4), one at its optimum stays within 3 sigma, a stopped and resumed run equals an uninterrupted one batch for batch: SIM TESTS OK; fastchess smoke (2 games) shows the options reach both engines | `opus_r9/tuner/test_r9_spsa_sim.py`, `opus_r9/logs/` |
-| 3 sanity check (one parameter wrong) | PENDING: `configs/sanity.json` (LmrQuietDivisor 120 vs lock 220, HistoryMalusPercent at its lock value as a control, 4+0.04, 200 pairs) is running and waits for CPU | `F:\opus_scratch\r9\runs\sanity2` |
-| 4 real run STC 8+0.08 | PENDING: `configs/stc_main.json` (16 parameters, 1200 pairs planned) | |
-| 5 deliver | PENDING | |
+| 1 parameters behind one `R9Tune` switch, default off | 74 tunables (the lock's 51 `forge::tune` constants + 23 former literals) as advertised spin options with the lock values as defaults. `R9Tune` off: bench **312866 / 862329 / 3024920 / 12389307 / 34048354, perft5 4865609** (and kiwipete 193690690) = ALL OK; `R9Tune` on at the defaults: ALL OK too (the former literals are reproduced exactly); off + a changed tunable: bench unchanged; on: 58 of 74 move bench 11 by themselves (time-manager parameters cannot move a fixed-depth bench; the rest need larger values or are off in the lock) | `opus_r9/logs/identity_off_c.log`, `identity_on_defaults_c.log`, `option_check_c.log/.json`, `option_check_b_probes.log` |
+| 1 tests | box build 0 warnings, FMA 0; CMake 30 targets + CTest 14 tests: only the 4 known `forge_tests` lines; opus-ci green on `8856be4a` and `22b1f2ba` (release ALL OK, ASan/TSan KNOWN-FAILURE CHECK: PASS, TSan 0 reports) | `opus_r9/logs/ctest_c1.log(.known)`, runs 40932114844, 40935706032 |
+| 2 own SPSA tuner driving fastchess | `opus_r9/tuner/r9_spsa.py` (Fishtest-style schedule counted in game pairs, values rounded to the engine's integers, append-only resumable state, `history.csv`, `tuner.log`, every game kept as PGN, STOP file, load governor), report with a null-gradient noise level per parameter, trajectory chart; ideas only, sources in `IDEA_SOURCE.md` | `opus_r9/tuner/`, `opus_r9/IDEA_SOURCE.md` |
+| 2 tests | simulated matches with a known optimum: up z +8.5, down z -8.4, at-optimum within 3 sigma, stopped+resumed == uninterrupted; real games: every sanity2 result re-counted from the PGNs (0 attribution mismatches), option values checked in the engine logs | `opus_r9/tuner/test_r9_spsa_sim.py`, `opus_r9/logs/tuner_sim_test_trajectories.svg` |
+| 3 sanity: one parameter set wrong | both runs moved the wrong parameter **toward its lock value**: LmrQuietDivisor 120 -> 138.6 (lock 220, z +1.27, 200 pairs), LmrQuietBase 250 -> 189.3 (lock 85, z +1.48 toward it, 240 pairs); neither beyond 2 sigma alone, combined z 1.94 (one-sided p about 0.03); controls (HistoryMalusPercent at its lock value) z +1.02 and -1.88 | `opus_r9/results/sanity2/`, `opus_r9/results/sanity3/` (tables + charts) |
+| 4 real run, STC 8+0.08 | RUNNING (`F:\opus_scratch\r9\runs\stc1`, until 04:45) | `opus_r9/runs/stc1/` (snapshots every 10 min) |
+| 5 deliver | after the run | |
 
-## Why steps 3-5 wait
-The PC sat at 72-82% CPU without any of this job's work from 19:50 on (psutil and process CPU-time survey: gate
-`gateR5D_matefix_t2_nonreg_vs_a3base` conc 4 x Threads 2 = 8.0 CPUs, the live self-play 2.1 CPUs since its owner restart,
-the NNUE trainer 1.3 CPUs). One game of 8+0.08 needs about one CPU (6.25% of the 16): under the 70% cap no game fits
-while that gate runs (at 20:50: 1,333 of 3,000 games, LLR -1.35). The tuner's governor samples the load between batches
-and starts as soon as the cap leaves room. Asked the user at 19:56 for a temporary cap if the runs should start earlier.
+## Sanity runs (4+0.04, Threads 1, Hash 16, 2 pairs per batch)
+- sanity2 (`configs/sanity.json`): LmrQuietDivisor started at 120 (lock 220). 200 pairs, +47 -64 =289 (72% draws). It waited for CPU from 20:56 to 23:31 under the first 70% cap.
+- sanity3 (`configs/sanity3.json`): LmrQuietBase started at 250 (lock 85, +1.65 plies of reduction on every late quiet move), larger perturbation. 240 pairs, +62 -60 =358 (75% draws).
+- Reading: the direction is right in both runs, the size is not beyond the noise band of 200-240 pairs. Games of
+  nearly equal engines at 4+0.04 end drawn 72-75% of the time, so each pair carries little information; the same limit
+  applies to the STC run (see below). The update rule itself is proven by the simulated test (z +-8.5).
+
+## Load and the governor
+- 19:50-23:30: the PC sat at 72-82% CPU without this job (gate conc 4 x Threads 2 = 8.0 CPUs, live self-play 2.1, NNUE
+  trainer 1.3); under the first 70% cap no game could run (the governor waited, sanity2 waited 8,820 s).
+- 23:3x: the user raised the cap: start a batch while the load without the tuner is <= 80%, play as many games as keep
+  the total <= 90% (at most 4, BelowNormal, CPUs 0-3), pause between batches if the total stays above 90% for 60 s or
+  free RAM < 8 GB (never kill). The user paused self-play at about 23:30; the gate ended at its 3,000-game cap at 00:10.
+- Every batch records the load it started at, its concurrency and what it saw while it played (`iterations.jsonl`).
+
+## Findings
+- The lock already kept 51 search constants in `forge::tune`, accepted silently by `setoption`; R9 makes them
+  advertised options (the gate runner checks that options it sets are advertised) and gates them behind `R9Tune`.
+- Truncating fractional LMR adjustments made a sub-ply change invisible unless the sum crossed a whole ply; R9 rounds to
+  the nearest ply (identical for the lock's whole-ply values).
+- `AspirationGrowPercent = 0` with `AspirationGrowAdd = 0` (inside the old-style ranges) would never widen the window: R9
+  floors them at 10 and 1.
+- Short SPSA runs at fast TCs are noise-limited (72-75% draws at 4+0.04): read every move against its noise sigma; a gate
+  of many noise-sized moves of near-optimal parameters can cost Elo, so the likely-real subset is the safer second gate.
 
 ## The 74 parameters
+
 | # | parameter | lock value | engine range | origin | bench 11 moves | tuned in stc_main (range, c_end) |
 |---|---|---|---|---|---|---|
 | 1 | LmrQuietBase | 85 | 0..300 | lock tune:: | yes | yes (0..200, 12) |
@@ -99,7 +119,6 @@ and starts as soon as the cap leaves room. Asked the user at 19:56 for a tempora
 | 73 | AspirationGrowAdd | 4 | 1..100 | R9 (former literal) | yes |  |
 | 74 | QuietCheckBonus | 12000 | 0..40000 | R9 (former literal) | yes | yes (0..30000, 1500) |
 
-Ranges are the engine's clamps (`setoption` values outside are clamped); the tuner uses the narrower ranges in its
-config. LMR adjustments are in 1/1024 ply, summed and rounded to the nearest whole ply (`(r1024 + 512) >> 10`; the lock's
-integer adjustments are the multiples of 1024, so the default reductions are unchanged). Aspiration growth has floors
-(10% and 1) so no setting can stop the window from widening.
+## Time
+Commits on this branch after the base: 17, 2026-10-29 20:31:25 -0700 .. 2026-10-30 00:53:51 -0700 (git log). The work before them (R7/R8 fixes) is on `opus-r7-speed` and `opus-r8-datagen`.
+
