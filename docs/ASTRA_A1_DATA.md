@@ -102,7 +102,15 @@ Fresh GCC 14.2 Release: H256, `-march=x86-64-v3 -mtune=znver5 -fno-fast-math -ff
 
 Startpos perft5 **4865609**; kiwipete perft4 **4085603** and perft5 **193690690**. The first extra perft5 harness used an unsupported bare command; its empty result and corrected `go perft 5` run are both retained. Native probe tests: 9/9. ASan/UBSan with leak detection: 9 tests plus all 256 real-FEN responses equal to Release excluding timing, no diagnostics. Initial sandbox/ptrace failures are retained; the successful run used the supported untraced path. Existing core compiler warnings remain recorded, not silently removed. The complete pre-existing engine ctest suite was not rerun for this tool-only change; no claim that its historical failures were repaired here.
 
-Python policy, format, process, publication and manifest tests: **114 pass**. Discovery reports 115 cases with one explicit native-fixture skip; its standalone **9-test** invocation also passes. Latest full-discovery log: `validation/astra-a1-data/all_unit_final_namespace.log`. Original earlier runs remain preserved. The archive namespace regression failed before the correction and passes afterward, including under `python -O`; failed implementations and experiments remain alongside their corrected tests.
+Python policy, format, process, publication and manifest tests: **129 pass**. Discovery reports 130 cases with one explicit native-fixture skip; its standalone **9-test** invocation also passes. Latest full-discovery log: `validation/astra-a1-data/all_unit_final_transport.log`. Original earlier runs remain preserved. The archive namespace regression failed before the correction and passes afterward, including under `python -O`; failed implementations and experiments remain alongside their corrected tests.
+
+The independent final review ran for 19.6 minutes and is recorded in
+[ASTRA_A1_FINAL_REVIEW.md](ASTRA_A1_FINAL_REVIEW.md). It found and rechecked
+one Windows archive file/directory collision repair; independently replayed
+1,024 saved relabel rows and 5,998 opening requests; and verified four
+no-overwrite boundaries. No concrete finding remained open. Final full-data
+acceptance and transport publication are separate checks performed after the
+active filter exits.
 
 ## Reproduce and review
 
@@ -153,3 +161,5 @@ Checkpoint 20261030T041603Z: full10M status RUNNING, processed 6424832, kept 591
 Checkpoint 20261030T042605Z: full10M status RUNNING, processed 7004416, kept 6445540. Final independent bundle verification is still required. No Elo claim.
 
 Checkpoint 20261030T043607Z: full10M status RUNNING, processed 7613696, kept 7007403. Final independent bundle verification is still required. No Elo claim.
+
+Checkpoint 20261030T044611Z: full10M status RUNNING, processed 8239616, kept 7584637. Final independent bundle verification is still required. No Elo claim.

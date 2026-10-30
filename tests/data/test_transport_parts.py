@@ -120,7 +120,7 @@ class TransportTests(unittest.TestCase):
                 self.split()
         directory = self.root / 'parts'
         self.assertFalse((directory / 'transport_manifest.json').exists())
-        retained = sorted(directory.glob('transport_part_*.bin'))
+        retained = sorted(directory.glob(self.source.name + '.part*'))
         self.assertTrue(retained)
         self.assertEqual(b''.join(path.read_bytes() for path in retained), self.payload)
 
@@ -149,6 +149,24 @@ class TransportTests(unittest.TestCase):
         self.assertEqual(partial.read_bytes(), b'prior failed attempt')
         self.assertFalse(target.exists())
 
+    def test_excessive_part_count_is_rejected_by_manifest_validation(self):
+        count = 10001
+        data = {'format': 'forge-transport-v1', 'part_bytes': 1,
+                'whole': {'name': 'large.bin', 'size': count,
+                          'sha256': hashlib.sha256(b'a' * count).hexdigest()},
+                'parts': [{'name': f'large.bin.part{i:06d}', 'offset': i,
+                           'size': 1, 'sha256': hashlib.sha256(b'a').hexdigest()}
+                          for i in range(count)]}
+        with self.assertRaisesRegex(ValueError, 'part count'):
+            self.tool.validate(data)
+
+    def test_excessive_split_part_count_does_not_create_files(self):
+        self.source.write_bytes(b'a' * 10001)
+        directory = self.root / 'excessive-parts'
+        with self.assertRaisesRegex(ValueError, 'part count'):
+            self.tool.split(self.source, directory, 1)
+        self.assertFalse(directory.exists())
+
     def test_empty_file_roundtrip(self):
         self.source.write_bytes(b'')
         manifest = self.split()
@@ -156,6 +174,27 @@ class TransportTests(unittest.TestCase):
         target = self.root / 'empty_joined'
         self.tool.join(manifest, target)
         self.assertEqual(target.read_bytes(), b'')
+
+    def test_manifest_rejects_traversal_controls_and_windows_reserved_names(self):
+        for name in ('../outside.zip', '..\\outside.zip', 'bad\nname.zip',
+                     'bad\x85name.zip', 'NUL.zip', 'com1.tar.xz', 'CONIN$.zip',
+                     'a' * 245):
+            data = {'format': 'forge-transport-v1', 'part_bytes': 97,
+                    'whole': {'name': name, 'size': 0,
+                              'sha256': hashlib.sha256(b'').hexdigest()}, 'parts': []}
+            with self.subTest(name=name), self.assertRaisesRegex(ValueError, 'unsafe whole filename'):
+                self.tool.validate(data)
+
+    def test_largest_portable_names_fit_manifest_reader_bound(self):
+        name = 'é' * 122  # 244 UTF-8 bytes; JSON's escaped spelling is longer.
+        count, cap = self.tool.MAX_PARTS, self.tool.MAX_PART
+        data = {'format': 'forge-transport-v1', 'part_bytes': cap,
+                'whole': {'name': name, 'size': count * cap, 'sha256': '0' * 64},
+                'parts': [{'name': f'{name}.part{i:06d}', 'offset': i * cap,
+                           'size': cap, 'sha256': '0' * 64} for i in range(count)]}
+        self.tool.validate(data)
+        self.assertLessEqual(len(json.dumps(data, sort_keys=True, indent=2).encode()) + 1,
+                             4 * self.tool.BUFFER)
 
     @unittest.skipUnless(hasattr(Path, 'symlink_to'), 'symlinks unavailable')
     def test_symlinked_part_is_rejected(self):

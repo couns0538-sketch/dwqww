@@ -14,6 +14,7 @@ from __future__ import annotations
 import csv
 import gzip
 import hashlib
+import importlib.util
 import json
 import os
 from pathlib import Path
@@ -29,6 +30,7 @@ HERE = Path(__file__).resolve().parent
 AUDITOR = Path(os.environ.get("ASTRA_AUDIT_SCRIPT", str(HERE / "audit_sealed_filter.py")))
 PILOT = Path(os.environ.get("ASTRA_AUDIT_PILOT", "/tmp/astra-a1-filter-pilot-10000"))
 FIXTURES = HERE / "fixtures"
+FROZEN = HERE.parent / "filter_full10m_v2_protocol"
 
 
 def file_hashes(path: Path) -> dict[str, int | str]:
@@ -51,6 +53,19 @@ def snapshot_tree(root: Path) -> dict[str, dict[str, int | str]]:
 
 def write_json(path: Path, value: object) -> None:
     path.write_text(json.dumps(value, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+
+
+def load_module(path: Path, name: str):
+    spec = importlib.util.spec_from_file_location(name, path)
+    module = importlib.util.module_from_spec(spec)
+    sys.modules[name] = module
+    previous = sys.dont_write_bytecode
+    try:
+        sys.dont_write_bytecode = True
+        spec.loader.exec_module(module)
+    finally:
+        sys.dont_write_bytecode = previous
+    return module
 
 
 def reseal_changed_file(root: Path, relative: str) -> None:
@@ -214,6 +229,133 @@ class SealedAuditTests(unittest.TestCase):
             reseal_changed_file(source, relative)
         reseal_changed_file(source, "position_index.sqlite")
         self.audit(source, "sql-holdout-overlap", passes=False)
+
+
+class HoldoutSourceTests(unittest.TestCase):
+    """Tiny synthetic helper fixtures; these are not production audit results."""
+
+    @classmethod
+    def setUpClass(cls) -> None:
+        cls.parser_path = FROZEN / "forge_pos.py"
+        cls.parser = load_module(cls.parser_path, "fixture_frozen_forge_pos")
+        cls.auditor = load_module(AUDITOR, "fixture_sealed_filter_auditor")
+        if not hasattr(cls.auditor, "verify_holdout_sources"):
+            raise RuntimeError("Auditor does not yet expose verify_holdout_sources")
+        FIXTURES.mkdir(parents=True, exist_ok=True)
+        cls.session = FIXTURES / f"holdout-helper-{time.time_ns()}-{os.getpid()}"
+        cls.session.mkdir()
+        cls.originals = {str(path): file_hashes(path) for path in (cls.parser_path, AUDITOR)}
+        write_json(cls.session / "implementation-before.json", cls.originals)
+        snapshot = cls.session / "implementation_snapshot"
+        snapshot.mkdir()
+        for path in (cls.parser_path, AUDITOR):
+            shutil.copy2(path, snapshot / path.name)
+        print(f"Retained holdout helper fixtures: {cls.session}", file=sys.stderr)
+
+    @classmethod
+    def tearDownClass(cls) -> None:
+        after = {str(Path(path)): file_hashes(Path(path)) for path in cls.originals}
+        write_json(cls.session / "implementation-after.json", after)
+        if cls.originals != after:
+            raise AssertionError("Frozen parser or auditor changed during helper tests")
+
+    def make_fixture(self, name: str, extension: str, *, missing_key: bool = False):
+        root = self.session / f"{name}-{extension}"
+        root.mkdir()
+        # Both STM variants are legal; the duplicate confirms that declared rows
+        # count source records, not merely the number of unique SQL keys.
+        white = "4k3/8/8/8/8/8/4P3/4K3 w - - 0 1 | 12 | 0.5"
+        black = "4k3/8/8/8/8/8/4P3/4K3 b - - 0 1 | -7 | 1"
+        lines = [white, black, white]
+        records = [self.parser.text_record(line)[0] for line in lines]
+        text_path = root / "synthetic-holdout.txt"
+        text_path.write_text("\n".join(lines) + "\n", encoding="utf-8")
+        if extension == "pos":
+            writer = self.parser.PosWriter(root, "synthetic-holdout", False, with_fen=False)
+            for record in records:
+                writer.append(record)
+            writer.seal()
+        source = root / f"synthetic-holdout.{extension}"
+        database = root / "synthetic-holdout.sqlite"
+        db = sqlite3.connect(database)
+        try:
+            db.execute("CREATE TABLE holdout(digest BLOB PRIMARY KEY, key BLOB NOT NULL) WITHOUT ROWID")
+            for record in records[:1] if missing_key else records:
+                key = record.board + bytes([record.meta & 1])
+                db.execute("INSERT OR IGNORE INTO holdout VALUES (?, ?)",
+                           (hashlib.sha256(key).digest(), key))
+            db.commit()
+        finally:
+            db.close()
+        summary = {
+            "holdouts": [{"path": str(source), **file_hashes(source), "rows": len(records)}],
+            "implementation": {"forge_pos.py": {
+                "path": str(self.parser_path), **file_hashes(self.parser_path)
+            }},
+        }
+        return root, database, source, summary
+
+    def check_helper(self, root, database, source, summary, *, expected_error=None):
+        write_json(root / "synthetic-summary.json", summary)
+        before = {str(path): file_hashes(path) for path in (database, source)}
+        write_json(root / "inputs-before.json", before)
+        stamps = {}
+        reports, error = None, None
+        db = sqlite3.connect(database.as_uri() + "?mode=ro&immutable=1", uri=True)
+        try:
+            db.execute("PRAGMA query_only=ON")
+            try:
+                reports = self.auditor.verify_holdout_sources(summary, FROZEN, db, stamps)
+            except Exception as caught:
+                error = caught
+        finally:
+            db.close()
+        after = {str(path): file_hashes(path) for path in (database, source)}
+        write_json(root / "inputs-after.json", after)
+        write_json(root / "helper-result.json", {
+            "synthetic_fixture_only": True,
+            "reports": reports,
+            "error": str(error) if error else None,
+            "exception_type": type(error).__name__ if error else None,
+            "stamps": stamps,
+        })
+        self.assertEqual(before, after, "Helper modified its source or read-only database")
+        if expected_error is not None:
+            self.assertIsInstance(error, ValueError, "Malformed fixture must fail with ValueError")
+            self.assertRegex(str(error).lower(), expected_error)
+        else:
+            if error is not None:
+                raise error
+            self.assertIsInstance(reports, list)
+            self.assertEqual(len(reports), 1)
+            self.assertEqual(reports[0]["original_rows_checked"], 3)
+            self.assertEqual(reports[0]["missing_or_mismatched_rows"], 0)
+            self.assertEqual(reports[0]["parser_sha256"], file_hashes(self.parser_path)["sha256"])
+
+    def test_holdout_source_membership_and_count_pass(self) -> None:
+        for extension in ("txt", "pos"):
+            with self.subTest(extension=extension):
+                self.check_helper(*self.make_fixture("valid", extension))
+
+    def test_holdout_source_missing_key_is_rejected(self) -> None:
+        for extension in ("txt", "pos"):
+            with self.subTest(extension=extension):
+                self.check_helper(*self.make_fixture("missing-key", extension, missing_key=True),
+                                  expected_error=r"missing|membership|mismatch")
+
+    def test_holdout_source_wrong_row_count_is_rejected(self) -> None:
+        for extension in ("txt", "pos"):
+            with self.subTest(extension=extension):
+                root, database, source, summary = self.make_fixture("wrong-count", extension)
+                summary["holdouts"][0]["rows"] = 4
+                self.check_helper(root, database, source, summary, expected_error=r"row|count")
+
+    def test_holdout_frozen_parser_mismatch_is_rejected(self) -> None:
+        root, database, source, summary = self.make_fixture("wrong-parser", "txt")
+        expected = summary["implementation"]["forge_pos.py"]
+        expected["sha256"] = "0" * 64
+        self.check_helper(root, database, source, summary,
+                          expected_error=r"parser|implementation|frozen")
 
 
 if __name__ == "__main__":

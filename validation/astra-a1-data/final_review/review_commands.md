@@ -16,3 +16,7 @@ The first attempted bulk `wc` command returned 1 because `__pycache__` is a dire
 Child review commands and hashes are recorded separately in `windows_resource/review.json`. No full10M process was signaled, stopped, changed, rehashed, or independently searched. No engine build, benchmark, trainer run, Git commit/push, or network publication was performed by this reviewer.
 
 - `PYTHONDONTWRITEBYTECODE=1 python3 validation/astra-a1-data/final_review/check_no_overwrite_boundaries.py` — four real-filesystem publication collisions rejected with original bytes preserved; no native child.
+
+- Read `transport_parts.py` (source only); no blocking default-path concern found. Its author/root own separate tests and acceptance.
+- Direct final byte/JSON comparison of the historical and separate current-helper opening generation: three files byte-identical; 64 metadata records differ only in `probe_binary_sha256`. No native child.
+- Final Python closeout: verify engine/trainer diff remains empty, hash reviewed sources and all final-review evidence, and record actual UTC closeout.

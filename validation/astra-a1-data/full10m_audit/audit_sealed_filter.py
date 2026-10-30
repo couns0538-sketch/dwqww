@@ -9,6 +9,7 @@ from contextlib import ExitStack
 import gzip
 import hashlib
 import heapq
+import importlib.util
 import json
 import math
 import mmap
@@ -125,6 +126,45 @@ def native_stream(worker,config,probe_sha,worker_reports):
                            'stderr_bytes':(worker/'stderr.bin').stat().st_size,'exit_code':receipt['returncode']})
 
 
+def verify_holdout_sources(summary,frozen_dir,db,stamps):
+    """Prove every supplied original holdout row is represented in the stored index.
+
+    This is position membership coverage, not game exclusion or a proof that the
+    index contains no additional identities. Duplicated source rows remain counted.
+    """
+    require(frozen_dir is not None,'holdout source verification requires --frozen-dir')
+    parser_path=Path(frozen_dir)/'forge_pos.py';parser_digest=digest(parser_path)
+    expected_parser=summary['implementation']['forge_pos.py']
+    require(all(parser_digest[k]==expected_parser[k] for k in ('bytes','sha256','md5')),'holdout parser hash mismatch')
+    spec=importlib.util.spec_from_file_location('forge_audit_frozen_pos',parser_path)
+    parser=importlib.util.module_from_spec(spec);sys.modules[spec.name]=parser
+    # Loading the frozen parser must not create __pycache__ beside source files,
+    # even when this auditor is called without Python's -B switch.
+    exec(compile(parser_path.read_bytes(),str(parser_path),'exec'),parser.__dict__)
+    reports=[]
+    for expected in summary['holdouts']:
+        path=Path(expected['path']);before=digest(path)
+        require(all(before[k]==expected[k] for k in ('bytes','sha256','md5')),'original holdout hash mismatch')
+        stamps[str(path)]=stamp(path);count=0
+        def check(record):
+            key=record.board+bytes([record.meta&1]);hash_value=hashlib.sha256(key).digest()
+            found=db.execute('SELECT key FROM holdout WHERE digest=?',(hash_value,)).fetchone()
+            require(found is not None and found[0]==key,'original holdout row missing/mismatched in index')
+        if path.suffix.lower()=='.pos':
+            with parser.PosReader(path) as reader:
+                for record in reader:check(record);count+=1
+        else:
+            with path.open(encoding='utf8') as source:
+                for line in source:
+                    record,_=parser.text_record(line);check(record);count+=1
+        require(count==expected['rows'],'original holdout source row-count mismatch')
+        require(digest(path)==before,'original holdout changed during membership audit')
+        reports.append({'path':str(path),**before,'original_rows_checked':count,
+                        'missing_or_mismatched_rows':0,'parser_sha256':parser_digest['sha256'],
+                        'coverage':'Every supplied original board+STM identity is represented in the read-only index; repeated rows counted separately.'})
+    return reports
+
+
 def audit(args,report):
     run=args.run_dir.resolve(strict=True);out=args.out.resolve()
     require(run!=out and run not in out.parents,'audit output must be outside sealed source')
@@ -182,6 +222,10 @@ def audit(args,report):
         equal,different=db.execute('SELECT coalesce(sum(k.key=h.key),0),coalesce(sum(k.key<>h.key),0) FROM holdout h JOIN kept k USING(digest)').fetchone()
         require(equal==0 and different==0,'SQL retained/holdout overlap or digest collision')
         report['sql']={'kept_count':kept_sql,'holdout_count':hold_sql,'identity_overlap':equal,'digest_key_collisions':different}
+        if args.verify_holdout_source:
+            report['original_holdout_source_coverage']=verify_holdout_sources(summary,args.frozen_dir,db,stamps)
+        else:
+            report['original_holdout_source_coverage']='UNVERIFIED_THIS_AUDIT; overlap covers stored index only'
         with ExitStack() as stack:
             output=Columns(run/(config['stem']+'.pos'),b'FPOS',35,stack)
             output_hce=Columns(run/(config['stem']+'.hce'),b'FHCE',2,stack)
@@ -288,6 +332,7 @@ def main():
     parser.add_argument('--run-dir',type=Path,required=True);parser.add_argument('--out',type=Path,required=True)
     parser.add_argument('--frozen-dir',type=Path);parser.add_argument('--expected-rows',type=int)
     parser.add_argument('--verify-external-hashes',action='store_true')
+    parser.add_argument('--verify-holdout-source',action='store_true')
     args=parser.parse_args();run=args.run_dir.resolve();out=args.out.resolve()
     if run==out or run in out.parents:raise SystemExit('Audit output must be outside source run')
     out.mkdir(parents=True,exist_ok=False)

@@ -17,6 +17,7 @@ from pathlib import Path, PureWindowsPath
 import re
 
 MAX_PART = 1_800_000_000
+MAX_PARTS = 4_000  # Escaped portable filenames still fit the 4 MiB manifest cap.
 BUFFER = 1024 * 1024
 MANIFEST = 'transport_manifest.json'
 
@@ -29,7 +30,10 @@ def require(condition, message):
 def name_ok(name):
     return (isinstance(name, str) and name not in ('', '.', '..')
             and not any(c in name for c in '/\\\x00:<>"|?*')
-            and not name.endswith(('.', ' ')) and not PureWindowsPath(name).drive)
+            and not any(ord(c) < 32 or 127 <= ord(c) <= 159 for c in name)
+            and not name.endswith(('.', ' ')) and not PureWindowsPath(name).drive
+            and len(name.encode('utf-8')) <= 244  # Leaves room for .part000000.
+            and not re.match(r'^(CON|PRN|AUX|NUL|CONIN\$|CONOUT\$|CLOCK\$|COM[1-9¹²³]|LPT[1-9¹²³])(?:[ .]|$)', name, re.IGNORECASE))
 
 
 def digest(path):
@@ -61,11 +65,12 @@ def validate(data):
     require(isinstance(whole, dict) and name_ok(whole.get('name')), 'unsafe whole filename')
     require(type(whole.get('size')) is int and whole['size'] >= 0, 'whole size')
     require(isinstance(parts, list), 'parts list')
+    require(len(parts) <= MAX_PARTS, f'transport part count exceeds {MAX_PARTS}')
     require(isinstance(whole.get('sha256'), str) and re.fullmatch('[0-9a-f]{64}', whole['sha256']), 'whole digest syntax')
     offset = 0
     for index, part in enumerate(parts):
         require(isinstance(part, dict), 'part entry')
-        require(part.get('name') == f'transport_part_{index:06d}.bin', 'unsafe or unordered part filename')
+        require(part.get('name') == f'{whole["name"]}.part{index:06d}', 'unsafe or unordered part filename')
         require(type(part.get('offset')) is int and part['offset'] == offset, 'part offset')
         require(type(part.get('size')) is int and part['size'] == min(cap, whole['size'] - offset) and part['size'] > 0, 'part size')
         require(isinstance(part.get('sha256'), str) and re.fullmatch('[0-9a-f]{64}', part['sha256']), 'part digest syntax')
@@ -118,6 +123,8 @@ def split(archive, directory, part_bytes=MAX_PART):
     require(type(part_bytes) is int and 1 <= part_bytes <= MAX_PART, 'part size outside transport limit')
     require(name_ok(archive.name) and not archive.is_symlink() and archive.is_file(), 'invalid source archive')
     before = snapshot(archive)
+    require((before[2] + part_bytes - 1) // part_bytes <= MAX_PARTS,
+            f'transport part count exceeds {MAX_PARTS}; increase --part-bytes')
     directory.mkdir(parents=True, exist_ok=False)
     data = {'format': 'forge-transport-v1', 'part_bytes': part_bytes,
             'whole': {'name': archive.name, 'size': before[2]}, 'parts': []}
@@ -125,7 +132,7 @@ def split(archive, directory, part_bytes=MAX_PART):
     with archive.open('rb') as source:
         while offset < before[2]:
             size = min(part_bytes, before[2] - offset)
-            part = {'name': f'transport_part_{len(data["parts"]):06d}.bin', 'offset': offset, 'size': size}
+            part = {'name': f'{archive.name}.part{len(data["parts"]):06d}', 'offset': offset, 'size': size}
             actual, left = hashlib.sha256(), size
             with (directory / part['name']).open('xb') as target:
                 while left:
