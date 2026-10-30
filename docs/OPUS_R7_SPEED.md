@@ -113,8 +113,9 @@ Engine branch `opus-r7-nps`: base `opus-r5d-matefix` 5882c383, profile workflow 
   `key_after_r7` exact for 29.4M moves (only double pushes creating a legal en passant differ, by design);
   identity ALL OK; NPS 6 runs -2.11% (d16) / +1.46% (d20): no clear gain, not suggested.
 - **Instructions** (callgrind bench 13, Linux CI, same nodes): R7TtExclusive -1.26%, R7QuietGen -0.35%,
-  R7EvalPrefetch +0.08%. **CI**: opus-ci run 40895783124 on `2d9889cf` green (release, ASan+UBSan, TSan, incl.
-  `forge_r7_quiet_gen_tests` and `uci_options_regression`); profile runs green; `c34a9739` runs queued at report time.
+  R7EvalPrefetch +0.08%, R7PrefetchEarly +0.84% (its key computation). **CI**: opus-ci run 40895783124 on
+  `2d9889cf` and 40900192786 on `c34a9739` green (release, ASan+UBSan, TSan, incl. `forge_r7_quiet_gen_tests` and
+  `uci_options_regression`); profile runs 40895783133 / 40900192820 green. Engine branch head `b088b954`.
 - **Gate**: `F:\opus_scratch\r7\j3\exe\forge_r7_j3a.exe` (sha256 `61f641d8...`, source `2d9889cf`) with
   `option.R7TtExclusive=true` vs the same exe at defaults (node-exact, so a non-regression SPRT fits).
 
