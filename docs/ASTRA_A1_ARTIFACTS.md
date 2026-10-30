@@ -1,8 +1,11 @@
 # Astra A1 original data and evidence artifacts
 
-All local data checks passed. Direct release-asset upload is currently BLOCKED by HTTP401 from uploads.github.com; the release page exists but no artifact availability is claimed. An exact-byte repository Actions delivery route is being tested.
-The final publication receipt will identify actual GitHub asset URLs, byte sizes
-and SHA256 values. A local archive or a planned URL is not verified publication.
+All local data checks passed and **all six release assets are published** at
+[astra-a1-data-results-20261030](https://github.com/couns0538-sketch/dwqww/releases/tag/astra-a1-data-results-20261030).
+The [verified publication receipt](../validation/astra-a1-data/publication/verified_publication.json)
+records every asset URL, byte size and SHA256, independently compared with
+GitHub's uploaded-state metadata. The initial cloud HTTP401 is preserved;
+repository Actions successfully delivered the exact original bytes instead.
 
 The results archive preserves complete sealed filter/relabel directories,
 including native request/response logs, decisions, retained-row provenance,
@@ -96,3 +99,14 @@ Neither audit establishes training quality, game-level isolation or Elo.
 
 IDEA_SOURCE: user-requested durable original evidence, same-project data formats
 and publication contracts, and Python binary streaming/filesystem APIs.
+
+## Published files
+
+| File | Bytes | SHA256 |
+|---|---:|---|
+| [forge_astra_a1_data_results_20261030.tar.gz.part000000](https://github.com/couns0538-sketch/dwqww/releases/download/astra-a1-data-results-20261030/forge_astra_a1_data_results_20261030.tar.gz.part000000) | 1,800,000,000 | `9cee994b0933babed9eca05d8121a808b2c16cc0ca8568c63eedeedab22d7a3e` |
+| [forge_astra_a1_data_results_20261030.tar.gz.part000001](https://github.com/couns0538-sketch/dwqww/releases/download/astra-a1-data-results-20261030/forge_astra_a1_data_results_20261030.tar.gz.part000001) | 529,781,152 | `150ee0160a8d6c0b07730a0b28d406d7c332597e3f558e15d770b0c423b71ef0` |
+| [transport_manifest.json](https://github.com/couns0538-sketch/dwqww/releases/download/astra-a1-data-results-20261030/transport_manifest.json) | 698 | `2bfb4ac70b683580261de00d182ffc3a0948ae952e2c81b429a12a406679afe1` |
+| [forge_astra_a1_data_unsealed_attempt1_20261030.tar.gz](https://github.com/couns0538-sketch/dwqww/releases/download/astra-a1-data-results-20261030/forge_astra_a1_data_unsealed_attempt1_20261030.tar.gz) | 94,455,551 | `beb2f5c265357071c3408457ca02622700bc925781661f2f9f8f76f5c25e2ca8` |
+| [forge_astra_a1_data_results_20261030.tar.gz.receipt.json](https://github.com/couns0538-sketch/dwqww/releases/download/astra-a1-data-results-20261030/forge_astra_a1_data_results_20261030.tar.gz.receipt.json) | 67,470 | `e050cdb345985daeddfd2448c43b115b5bb41d40c9478f92671e620016c6b0aa` |
+| [forge_astra_a1_data_unsealed_attempt1_20261030.tar.gz.receipt.json](https://github.com/couns0538-sketch/dwqww/releases/download/astra-a1-data-results-20261030/forge_astra_a1_data_unsealed_attempt1_20261030.tar.gz.receipt.json) | 12,524 | `41028197d97b175deb5dea12a12f7dca28627285af739b7274fa07b251109889` |

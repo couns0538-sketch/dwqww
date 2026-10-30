@@ -1,6 +1,6 @@
 # Astra A1: Forge training-data work, 2026-10-30
 
-**Current status: all five A1 deliverables and completed Linux data checks are ready; full Actions artifact delivery is being triggered after a successful smoke.**
+**Current status: all five A1 deliverables, completed Linux data checks and original-artifact publication are complete within the stated validation scope.**
 The 10M filter retained 9,206,371 rows. Full-record, original-response and supplied-holdout coverage audits PASS. This accepts the recorded format/provenance checks, not production training quality or complete holdout/game isolation. No engine strength, label-quality improvement or Elo gain is claimed.
 
 ## Source and data identity
@@ -143,7 +143,7 @@ outside-seal verification logging. Ten independent auditor regression tests
 also pass, including corrupt native evidence and original holdout coverage.
 No concrete finding remained open. Full-data acceptance followed separate passing checks after the filter exited.
 Original archive payloads and transport chunks also passed their byte checks;
-GitHub publication is the remaining delivery step.
+All six GitHub assets are now published and independently verified against their exact sizes and server SHA256 digests.
 
 ## Reproduce and review
 
@@ -158,13 +158,21 @@ python3 tools/data/relabel_positions.py --pos /DATA/forge_selfplay_003.pos --sid
 python3 tools/data/check_data_bundle.py /NEW/relabel --full-records > /NEW/relabel-verification.json
 ```
 
-All output folders must be new. Keep verification receipts outside sealed folders. Full position/game holdout clearance, production training gains, equal-time matches and Elo remain unverified. GitHub contains source and compact original evidence; the verified 2,329,781,152-byte original results archive is ready for publication in two transport chunks. Its whole SHA256 is `148803c5a45a5e291c18f667b918100ec1fa1a8e08d5a74dfe430651b3f1418f`. See [artifact recovery instructions](ASTRA_A1_ARTIFACTS.md).
+All output folders must be new. Keep verification receipts outside sealed folders. Full position/game holdout clearance, production training gains, equal-time matches and Elo remain unverified. GitHub contains source, compact original evidence and the published 2,329,781,152-byte original results archive in two transport chunks. Its whole SHA256 is `148803c5a45a5e291c18f667b918100ec1fa1a8e08d5a74dfe430651b3f1418f`. See [artifact recovery instructions](ASTRA_A1_ARTIFACTS.md).
 
 Existing coordinator/validation/engine-development skills were reused. [The skill addendum](ASTRA_A1_SKILL_ADDENDUM.md) improves the existing validation workflow without duplication; it is **proposed, not installed** because a provider editor/skill-creator is unavailable. GitHub CLI/Git and native tools were usable; optional connector failures were not pursued.
 
+## Verified publication
+
+[Original data and evidence release](https://github.com/couns0538-sketch/dwqww/releases/tag/astra-a1-data-results-20261030) contains both numbered archive chunks, their transport manifest, the original failed-attempt archive and both archive receipts. [Publication receipt](../validation/astra-a1-data/publication/verified_publication.json) records exact asset IDs, URLs, byte sizes and hashes. The joined results archive SHA256 is `148803c5a45a5e291c18f667b918100ec1fa1a8e08d5a74dfe430651b3f1418f`.
+
+Direct cloud upload returned HTTP401 at uploads.github.com. The supported repository runner route then succeeded: 294 bounded Git objects preserved the original bytes; the runner independently checked Git SHA1, chunk/whole SHA256, and all uploaded server digests. Root independently compared the six server asset records again. [Full delivery run](https://github.com/couns0538-sketch/dwqww/actions/runs/41011311277) and its original receipt/logs are preserved under `validation/astra-a1-data/github_delivery/full_run_41011311277`. The full release was not downloaded a second time; verification used the original byte chain and server-computed digests. The ten publisher fixtures pass normally and under `python -O`.
+
+The release tag pins validated data-tool source `8007f17d77cea0a20363aab240bd1febc093d016`; delivery ran from `a71ad7df87cbad34e108e7d478373d186d71efa1`. The final branch checkpoint adds publication evidence and documentation. An optional `FORGE_RELEASE_TOKEN` requirement was drafted during diagnosis but never supplied or activated; it is unnecessary for this completed delivery. No credential change is required. Engine and live trainer remained unchanged.
+
 ## Next action / continuation
 
-The full 10M run, full-record checker, complete native-log/original-holdout audit and archive/transport verification all passed. Direct release upload failed at uploads.github.com with HTTP401 despite working Git/API writes. Preserve all six local assets; finish the exact-byte Git-blob/Actions delivery test, then verify release digests and save the final publication receipt. If that route is unavailable, the saved optional upload credential requirement needs secure environment review; no secret value belongs in chat. Current original result directory `/tmp/astra-a1-filter-full-10m-v2`; archive and chunks are in `/tmp/astra-a1-publication`. Do not rerun completed native preprocessing or replace the engine base with an older lock.
+The full 10M run, full-record checker, complete native-log/original-holdout audit, archive/transport verification and all six published server asset digests passed. Original local result directory: `/tmp/astra-a1-filter-full-10m-v2`; archive/chunks: `/tmp/astra-a1-publication`. Permanent recovery is now through the release and this source branch. Do not rerun completed native preprocessing or replace the engine base with an older lock.
 
 Then review the complete 013/014/game-ID coverage and choose a teacher budget using the saved sensitivity experiment before the matched training ablations. No data or smoke network is automatically installed into training or the engine.
 
@@ -176,7 +184,3 @@ omits that context; the measured clock frequencies above motivate investigation,
 not an additional filter or a claimed gain in this run.
 
 Earlier checkpoints are retained in [ASTRA_A1_CHECKPOINT_HISTORY.md](ASTRA_A1_CHECKPOINT_HISTORY.md) and Git history. IDEA_SOURCE: user's data task, same-project FPOS/FHCE/native search/trainer/R8 contracts; original implementations and thresholds, no other-engine code or tuned constants.
-
-Delivery checkpoint: authenticated Git-blob creation passed for the 698-byte transport manifest and an 8MiB original chunk, with exact server Git hashes. Publisher fixtures pass 10/10; the first branch-triggered runner smoke transfers only the real transport manifest. No full release publication is claimed yet.
-
-Delivery checkpoint: all 294 bounded original-byte Git objects were acknowledged with content hashes and unchanged local source hashes. Full runner delivery is now triggered by the six-asset manifest; final release digest verification remains pending. The original 698-byte manifest smoke succeeded at https://github.com/couns0538-sketch/dwqww/actions/runs/41010526993 .

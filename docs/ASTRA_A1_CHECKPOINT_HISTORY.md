@@ -84,3 +84,9 @@ Checkpoint 20261030T045615Z: full10M status RUNNING, processed 8883456, kept 817
 Checkpoint 20261030T050617Z: full10M status RUNNING, processed 9486848, kept 8733885. Final independent bundle verification is still required. No Elo claim.
 
 Checkpoint 20261030T051519Z: full10M status SEALED, processed 10000000, kept 9206371. Final independent bundle verification is still required. No Elo claim.
+
+## Publication-route checkpoints preserved at completion
+
+Delivery checkpoint: authenticated Git-blob creation passed for the 698-byte transport manifest and an 8MiB original chunk, with exact server Git hashes. Publisher fixtures pass 10/10; the first branch-triggered runner smoke transfers only the real transport manifest. No full release publication is claimed yet.
+
+Delivery checkpoint: all 294 bounded original-byte Git objects were acknowledged with content hashes and unchanged local source hashes. Full runner delivery is now triggered by the six-asset manifest; final release digest verification remains pending. The original 698-byte manifest smoke succeeded at https://github.com/couns0538-sketch/dwqww/actions/runs/41010526993 .
