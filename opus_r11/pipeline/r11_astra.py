@@ -3,8 +3,9 @@
 The release ships one .tar.gz split into numbered byte chunks plus transport_manifest.json
 (format forge-transport-v1: parts with offset/size/sha256 and the whole-file sha256). This tool
 checks every part, streams the parts in order straight into tarfile (no reassembled copy on disk),
-checks the whole-archive sha256 while streaming, and extracts only the requested members with
-tarfile's 'data' filter (no absolute paths, no links out of the target folder).
+checks the whole-archive sha256 while streaming, and extracts only the requested members (regular files, by
+base name) into a staging folder; they are renamed into place only after the whole archive matched the PINNED
+sha256 148803c5... and size 2,329,781,152 and each pinned member its sha256 (CR fix 3).
 
 Usage (run with python -I; paths are arguments, never the current directory):
   r11_astra.py download <dl_dir>                 # gh release download into an EMPTY folder
@@ -27,13 +28,23 @@ import time
 RELEASE = "astra-a1-data-results-20261030"
 REPO = "couns0538-sketch/dwqww"
 MANIFEST = "transport_manifest.json"
+# CR fix 3: the whole archive is pinned (release notes + Astra's report), not taken from the downloaded manifest
+PINNED_WHOLE_SHA256 = "148803c5a45a5e291c18f667b918100ec1fa1a8e08d5a74dfe430651b3f1418f"
+PINNED_WHOLE_SIZE = 2_329_781_152
+PINNED_MEMBERS = {  # docs/ASTRA_A1_DATA.md on astra-a1-data, "Output | SHA256"
+    "completed/full10m/forge_filtered.pos": "2019bf8e560e4821b8c50286a257ba7f4d4435521e90b2324e0e35dfcc324802",
+    "completed/full10m/forge_filtered.hce": "9c5f4e6db58b59fc40465ff00c38cb71c8b05161bfb9aacc5d0e309b312b8e87",
+}
 
 
-def load_manifest(dl_dir: str) -> dict:
+def load_manifest(dl_dir: str, pins: tuple[str, int] | None = (PINNED_WHOLE_SHA256, PINNED_WHOLE_SIZE)) -> dict:
     with open(os.path.join(dl_dir, MANIFEST), "r", encoding="utf-8") as f:
         man = json.load(f)
     if man.get("format") != "forge-transport-v1":
         raise SystemExit(f"FAIL unknown transport format {man.get('format')!r}")
+    if pins is not None and (man["whole"]["sha256"] != pins[0] or man["whole"]["size"] != pins[1]):
+        raise SystemExit(f"FAIL manifest whole sha256/size {man['whole']['sha256']} / {man['whole']['size']} != pinned "
+                         f"{pins[0]} / {pins[1]}")
     parts = sorted(man["parts"], key=lambda p: p["offset"])
     off = 0
     for p in parts:
@@ -70,8 +81,8 @@ def cmd_download(dl_dir: str) -> int:
     return subprocess.call(cmd)
 
 
-def cmd_verify(dl_dir: str) -> int:
-    man = load_manifest(dl_dir)
+def cmd_verify(dl_dir: str, pins: tuple[str, int] | None = (PINNED_WHOLE_SHA256, PINNED_WHOLE_SIZE)) -> int:
+    man = load_manifest(dl_dir, pins)
     ok = True
     for p in man["parts"]:
         path = os.path.join(dl_dir, p["name"])
@@ -120,15 +131,15 @@ class ConcatReader:
             pass
 
 
-def _stream(dl_dir: str):
-    man = load_manifest(dl_dir)
+def _stream(dl_dir: str, pins: tuple[str, int] | None):
+    man = load_manifest(dl_dir, pins)
     reader = ConcatReader(dl_dir, man)
     tf = tarfile.open(fileobj=reader, mode="r|gz")
     return man, reader, tf
 
 
-def cmd_list(dl_dir: str, out: str | None) -> int:
-    man, reader, tf = _stream(dl_dir)
+def cmd_list(dl_dir: str, out: str | None, pins: tuple[str, int] | None = (PINNED_WHOLE_SHA256, PINNED_WHOLE_SIZE)) -> int:
+    man, reader, tf = _stream(dl_dir, pins)
     lines = []
     for m in tf:
         lines.append(f"{m.size}\t{m.type.decode() if isinstance(m.type, bytes) else m.type}\t{m.name}")
@@ -155,52 +166,76 @@ def _remove_partial(paths: list[str]) -> None:
             print(f"removed unverified partial file {p}")
 
 
-def cmd_extract(dl_dir: str, out_dir: str, globs: list[str], json_out: str | None) -> int:
+def cmd_extract(dl_dir: str, out_dir: str, globs: list[str], json_out: str | None,
+                pins: tuple[str, int] | None = (PINNED_WHOLE_SHA256, PINNED_WHOLE_SIZE),
+                member_pins: dict[str, str] | None = None) -> int:
+    """CR fix 3: members are written into <out_dir>/.staging_<pid>_<time>/ and renamed into <out_dir> only after the
+    whole archive matched the pinned sha256 + size and every pinned member its sha256; on any failure the staged
+    files are deleted (CR flag: no unverified partial data stays behind)."""
+    member_pins = PINNED_MEMBERS if member_pins is None else member_pins
     os.makedirs(out_dir, exist_ok=True)
-    man, reader, tf = _stream(dl_dir)
+    try:
+        man, reader, tf = _stream(dl_dir, pins)
+    except SystemExit as e:
+        print(str(e))
+        return 1
+    staging = os.path.join(out_dir, f".staging_{os.getpid()}_{time.strftime('%Y%m%d_%H%M%S')}")
+    os.makedirs(staging)
     got = []
-    created: list[str] = []  # every path this run created (finals and .part files)
+    created: list[str] = []  # every path this run created inside the staging folder
     t0 = time.time()
+
+    def abort(code: int) -> int:
+        _remove_partial(created)
+        if os.path.isdir(staging) and not os.listdir(staging):
+            os.rmdir(staging)  # the empty staging folder this run made
+        return code
+
     try:
         for m in tf:
             if not m.isfile():
                 continue
             if not any(fnmatch.fnmatch(m.name, g) for g in globs):
                 continue
-            target = os.path.join(out_dir, os.path.basename(m.name))
-            if os.path.exists(target):
-                print(f"FAIL target exists, not overwriting: {target}")
-                _remove_partial(created)
-                return 2
+            final = os.path.join(out_dir, os.path.basename(m.name))
+            if os.path.exists(final):
+                print(f"FAIL target exists, not overwriting: {final}")
+                return abort(2)
+            staged = os.path.join(staging, os.path.basename(m.name))
             src = tf.extractfile(m)
             h = hashlib.sha256()
-            tmp = target + ".part"
-            with open(tmp, "xb") as f:
-                created.append(tmp)
+            with open(staged, "xb") as f:
+                created.append(staged)
                 while True:
                     b = src.read(1 << 22)
                     if not b:
                         break
                     h.update(b)
                     f.write(b)
-            if os.path.getsize(tmp) != m.size:
-                raise OSError(f"member {m.name}: wrote {os.path.getsize(tmp)} bytes, expected {m.size}")
-            os.replace(tmp, target)
-            created.append(target)
-            got.append({"member": m.name, "path": target, "size": m.size, "sha256": h.hexdigest()})
-            print(f"extracted {m.name} -> {target} ({m.size} bytes, sha256 {h.hexdigest()})", flush=True)
+            if os.path.getsize(staged) != m.size:
+                raise OSError(f"member {m.name}: wrote {os.path.getsize(staged)} bytes, expected {m.size}")
+            got.append({"member": m.name, "staged": staged, "path": final, "size": m.size, "sha256": h.hexdigest()})
+            print(f"staged {m.name} ({m.size} bytes, sha256 {h.hexdigest()})", flush=True)
         tf.close()
         reader.drain()
     except Exception as e:  # noqa: BLE001 - any extraction error leaves no partial files behind
         print(f"FAIL extraction error: {type(e).__name__}: {e}")
-        _remove_partial(created)
-        return 1
+        return abort(1)
     whole_ok = reader.h.hexdigest() == man["whole"]["sha256"] and reader.total == man["whole"]["size"]
-    if not whole_ok:
-        print(f"FAIL whole-archive checksum {reader.h.hexdigest()} size {reader.total} != manifest "
-              f"{man['whole']['sha256']} size {man['whole']['size']}")
-        _remove_partial(created)
-        got = []
+    if pins is not None:
+        whole_ok &= reader.h.hexdigest() == pins[0] and reader.total == pins[1]
+    bad_members = [g["member"] for g in got if g["member"] in member_pins and member_pins[g["member"]] != g["sha256"]]
+    if not whole_ok or bad_members:
+        print(f"FAIL whole-archive checksum {reader.h.hexdigest()} size {reader.total} (manifest "
+              f"{man['whole']['sha256']} size {man['whole']['size']}, pinned {pins}); pinned members that differ: "
+              f"{bad_members}")
+        return abort(1)
+    for g in got:  # every check passed: move the staged files into place
+        if os.path.exists(g["path"]):
+            print(f"FAIL target appeared meanwhile, not overwriting: {g['path']}")
+            return abort(2)
+        os.replace(g.pop("staged"), g["path"])
+    os.rmdir(staging)
     res = {"release": RELEASE, "whole_sha256": reader.h.hexdigest(), "whole_size": reader.total,
            "whole_ok": whole_ok, "members": got, "seconds": round(time.time() - t0, 1)}
     if json_out:

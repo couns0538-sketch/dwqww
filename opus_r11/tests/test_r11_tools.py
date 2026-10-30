@@ -34,9 +34,11 @@ def check(cond: bool, what: str) -> None:
         FAILS.append(what)
 
 
-def make_transport(dl: str, whole_sha_override: str | None = None) -> None:
+def make_transport(dl: str, whole_sha_override: str | None = None) -> tuple[tuple[str, int], dict]:
+    """A synthetic transport set; returns (pins of the real blob, member sha256s)."""
     os.makedirs(dl)
     buf = io.BytesIO()
+    members = {}
     with tarfile.open(fileobj=buf, mode="w:gz") as tf:
         for name, data in (("completed/full10m/forge_filtered.pos", os.urandom(300_000)),
                            ("completed/full10m/forge_filtered.hce", os.urandom(50_000)),
@@ -44,7 +46,9 @@ def make_transport(dl: str, whole_sha_override: str | None = None) -> None:
             ti = tarfile.TarInfo(name)
             ti.size = len(data)
             tf.addfile(ti, io.BytesIO(data))
+            members[name] = hashlib.sha256(data).hexdigest()
     blob = buf.getvalue()
+    pins = (hashlib.sha256(blob).hexdigest(), len(blob))
     half = len(blob) // 2
     parts = []
     for i, (off, chunk) in enumerate(((0, blob[:half]), (half, blob[half:]))):
@@ -56,6 +60,11 @@ def make_transport(dl: str, whole_sha_override: str | None = None) -> None:
            "whole": {"name": "t.tar.gz", "size": len(blob), "sha256": whole_sha_override or hashlib.sha256(blob).hexdigest()}}
     with open(os.path.join(dl, A.MANIFEST), "w", encoding="utf-8") as f:
         json.dump(man, f)
+    return pins, members
+
+
+def no_staging(out: str) -> bool:
+    return not os.path.isdir(out) or not any(x.startswith(".staging_") for x in os.listdir(out))
 
 
 def main() -> int:
@@ -65,23 +74,45 @@ def main() -> int:
         return 2
     globs = ["completed/full10m/forge_filtered.pos", "completed/full10m/forge_filtered.hce"]
 
-    # 1a correct archive
+    # 1a correct archive (pins of the synthetic blob; the CLI uses the real pins)
     dl, out = os.path.join(scratch, "dl_ok"), os.path.join(scratch, "out_ok")
-    make_transport(dl)
-    check(A.cmd_verify(dl) == 0, "astra: part checksums verify")
-    rc = A.cmd_extract(dl, out, globs, os.path.join(scratch, "ok.json"))
-    check(rc == 0 and sorted(os.listdir(out)) == ["forge_filtered.hce", "forge_filtered.pos"],
-          "astra: correct archive extracts exactly the requested members")
+    pins, mem = make_transport(dl)
+    check(A.cmd_verify(dl, pins) == 0, "astra: part checksums verify")
+    rc = A.cmd_extract(dl, out, globs, os.path.join(scratch, "ok.json"), pins, mem)
+    check(rc == 0 and sorted(os.listdir(out)) == ["forge_filtered.hce", "forge_filtered.pos"] and no_staging(out),
+          "astra: correct archive -> staged, checked, renamed: exactly the requested members, no staging left")
     # 1b existing target is never overwritten
-    rc = A.cmd_extract(dl, out, globs, None)
-    check(rc == 2 and sorted(os.listdir(out)) == ["forge_filtered.hce", "forge_filtered.pos"],
-          "astra: existing targets are not overwritten (and the earlier files stay)")
-    # 1c whole-archive checksum failure -> partial files deleted
+    rc = A.cmd_extract(dl, out, globs, None, pins, mem)
+    check(rc == 2 and sorted(os.listdir(out)) == ["forge_filtered.hce", "forge_filtered.pos"] and no_staging(out),
+          "astra: existing targets are not overwritten (earlier files stay, staging cleaned)")
+    # 1c whole-archive checksum failure (manifest consistent with itself, data different) -> nothing in place
     dl2, out2 = os.path.join(scratch, "dl_bad"), os.path.join(scratch, "out_bad")
-    make_transport(dl2, whole_sha_override="0" * 64)
-    rc = A.cmd_extract(dl2, out2, globs, os.path.join(scratch, "bad.json"))
+    pins2, mem2 = make_transport(dl2, whole_sha_override="0" * 64)
+    rc = A.cmd_extract(dl2, out2, globs, os.path.join(scratch, "bad.json"), ("0" * 64, pins2[1]), mem2)
     left = os.listdir(out2) if os.path.isdir(out2) else []
-    check(rc != 0 and left == [], f"astra: checksum failure removes the partial files (left: {left})")
+    check(rc != 0 and left == [], f"astra: checksum failure leaves nothing (staged files deleted; left: {left})")
+    # 1d CR fix 3: a manifest that does not match the pins is refused before anything is written
+    out3 = os.path.join(scratch, "out_pin")
+    rc = A.cmd_extract(dl, out3, globs, None, ("f" * 64, pins[1]), mem)
+    check(rc != 0 and (not os.path.isdir(out3) or os.listdir(out3) == []),
+          "astra: manifest whole sha256 != pinned value -> refused, nothing written")
+    rc = A.cmd_extract(dl, out3, globs, None, (pins[0], pins[1] + 1), mem)
+    check(rc != 0 and (not os.path.isdir(out3) or os.listdir(out3) == []),
+          "astra: manifest whole size != pinned size -> refused, nothing written")
+    # 1e a pinned member with another sha256 -> staged files deleted, nothing renamed
+    out4 = os.path.join(scratch, "out_member")
+    bad_mem = dict(mem)
+    bad_mem["completed/full10m/forge_filtered.pos"] = "e" * 64
+    rc = A.cmd_extract(dl, out4, globs, None, pins, bad_mem)
+    check(rc != 0 and os.listdir(out4) == [], f"astra: member pin mismatch -> nothing in place ({os.listdir(out4)})")
+    # 1f the CLI pins are the release's values, and the real download's manifest matches them
+    check(A.PINNED_WHOLE_SHA256 == "148803c5a45a5e291c18f667b918100ec1fa1a8e08d5a74dfe430651b3f1418f"
+          and A.PINNED_WHOLE_SIZE == 2_329_781_152, "astra: pinned whole sha256 148803c5... and size 2,329,781,152")
+    real = "D:/grok-pc-data/r11_nnue/astra_dl/transport_manifest.json"
+    if os.path.isfile(real):
+        rm = json.load(open(real, encoding="utf-8"))
+        check(rm["whole"]["sha256"] == A.PINNED_WHOLE_SHA256 and rm["whole"]["size"] == A.PINNED_WHOLE_SIZE,
+              "astra: the downloaded transport manifest matches the pins")
 
     # 1d CR fix 1: no STOP/PAUSE control files anywhere in the pipeline; the hold is the named event
     import ctypes
