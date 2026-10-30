@@ -1,0 +1,1 @@
+Original independent review and exact reproduction trees. Symlinks retain their original targets and are evidence only, not portable input paths. Historical review wording about untracked files reflects its recorded inspection; the files had already been checkpointed by delivery time. Current main report supersedes older prose; raw observations are preserved unchanged.

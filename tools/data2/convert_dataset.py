@@ -6,6 +6,7 @@ No engine code, live trainer or source-data file is modified.
 """
 from __future__ import annotations
 import argparse, collections, hashlib, itertools, json, os, shutil, sqlite3, subprocess, sys, time, uuid
+import copy
 from contextlib import ExitStack
 from pathlib import Path
 
@@ -89,9 +90,10 @@ def load_holdouts(db, paths, game_paths):
     for hi, path in enumerate(paths):
         n = 0
         gids = games(game_paths[hi] if game_paths else None)
-        reader = PosReader(path) if Path(path).suffix == '.pos' else None
-        try:
-            rows = iter(reader) if reader else (text_record(s)[0] for s in Path(path).open(encoding='utf8'))
+        with ExitStack() as stack:
+            reader = stack.enter_context(PosReader(path)) if Path(path).suffix == '.pos' else None
+            text = None if reader else stack.enter_context(Path(path).open(encoding='utf8'))
+            rows = iter(reader) if reader else (text_record(s)[0] for s in text)
             for r in rows:
                 gid = next(gids, None)
                 if gid is None:
@@ -102,8 +104,6 @@ def load_holdouts(db, paths, game_paths):
                 n += 1
             if game_paths and next(gids, None) is not None:
                 raise ValueError('holdout game-ID sidecar has extra rows')
-        finally:
-            if reader: reader.close()
         counts.append({'path': str(Path(path).resolve()), 'rows': n})
     db.commit()
     return counts
@@ -121,10 +121,18 @@ def read_chunks(out, verify=True):
         counts = checked_counts(chunk['counts'])
         if type(chunk['kept']) is not int or counts['kept'] != chunk['kept'] or sum(counts.values()) != chunk['input_rows']:
             raise ValueError('chunk waterfall/count mismatch')
+        if not isinstance(chunk['files'], dict): raise ValueError('invalid files manifest')
+        roles = [chunk[k] for k in ('text','bullet','provenance')]
+        if len(set(roles)) != 3 or any(not isinstance(r, str) or r not in chunk['files'] for r in roles):
+            raise ValueError('required data role absent from files manifest')
+        if len({str(Path(r).parent) for r in roles}) != 1:
+            raise ValueError('data roles must share one chunk directory')
         for rel, meta in chunk['files'].items():
             file = out / rel
-            if file.resolve().parent.parent != out.resolve():
+            if not isinstance(rel, str) or Path(rel).is_absolute() or '..' in Path(rel).parts or file.resolve().parent.parent != out.resolve():
                 raise ValueError('unsafe manifest path')
+            if type(meta.get('bytes')) is not int or meta['bytes'] < 0 or not isinstance(meta.get('sha256'),str) or len(meta['sha256']) != 64:
+                raise ValueError('invalid file metadata')
             if verify and (file.stat().st_size != meta['bytes'] or sha(file) != meta['sha256']):
                 raise ValueError('sealed chunk hash mismatch: ' + rel)
         next_row += chunk['input_rows']
@@ -133,6 +141,9 @@ def read_chunks(out, verify=True):
 
 
 def run(args):
+    # Bind the actual reads to the exact resolved paths hashed here. Also retain
+    # and recheck each caller's original path binding, including symlinks.
+    args = copy.deepcopy(args)
     if args.chunk_rows < 1 or args.limit is not None and args.limit < 1:
         raise ValueError('positive chunk/limit required')
     if not args.no_filters and not args.probe:
@@ -147,13 +158,23 @@ def run(args):
         raise ValueError('holdout shard013/014 cannot be converted as training')
     if args.require_game_clearance and not args.shard_id:
         raise ValueError('accepted game clearance policy requires explicit nonholdout shard identity')
-    inputs = [identity(args.input)]
+    inputs = []; bindings = []
     if args.binpack_tool and args.no_filters and not args.allow_transport_moves:
         raise ValueError('format-only binpack requires explicit --allow-transport-moves')
-    for p in [args.pos, args.game_ids, args.probe, args.binpack_tool, *args.holdout, *args.holdout_game_ids]:
-        if p: inputs.append(identity(p))
+    for name in ('input','pos','game_ids','probe','binpack_tool','holdout','holdout_game_ids'):
+        value = getattr(args,name)
+        values = value if isinstance(value,list) else [value]
+        pinned = []
+        for p in values:
+            if p:
+                observed = identity(p); inputs.append(observed)
+                bindings.append({'reference': os.path.abspath(p), 'resolved': observed['path']})
+                pinned.append(observed['path'])
+            else: pinned.append(p)
+        setattr(args,name,pinned if isinstance(value,list) else pinned[0])
     config = {k: v for k, v in vars(args).items() if k not in ('out', 'resume', 'stop_after_chunks', 'command')}
     config['inputs'] = inputs
+    config['input_bindings'] = bindings
     dependency_dir = Path(__file__).resolve().parents[1] / 'data'
     config['tool_sha256'] = {p.name: sha(p) for p in [Path(__file__), Path(__file__).with_name('bullet_records.py'), *(dependency_dir/n for n in ('forge_pos.py','forge_probe.py','filter_positions.py'))]}
     out = Path(args.out)
@@ -167,6 +188,8 @@ def run(args):
         dump_new(out / 'config.json', config)
     chunks = read_chunks(out)
     start = sum(c['input_rows'] for c in chunks)
+    if shutil.disk_usage(out).free < args.min_free_mb * 1024 * 1024:
+        raise ValueError('free-space guard before index creation')
     attempt = out / ('attempt_' + uuid.uuid4().hex)
     attempt.mkdir()
     db = sqlite3.connect(attempt / 'index.sqlite')
@@ -188,6 +211,8 @@ def run(args):
             probe = stack.enter_context(ProbeClient(args.probe, args.nodes, workdir=attempt / 'probe')) if not args.no_filters else None
             gids = games(args.game_ids)
             source = iter(sources(args))
+            stack.callback(gids.close)
+            stack.callback(source.close)
             for _ in range(start):
                 if next(source, None) is None or next(gids, None) is None:
                     raise ValueError('source truncated while resuming')
@@ -252,6 +277,14 @@ def run(args):
                     if args.allow_transport_moves: command.append('--allow-transport-move')
                     with (chunkdir/'binpack.stdout').open('xb') as stdout, (chunkdir/'binpack.stderr').open('xb') as stderr:
                         subprocess.run(command, stdout=stdout, stderr=stderr, check=True)
+                # Persist every sealed data file, including the native adapter's
+                # output and logs, before publishing the commit receipt.
+                for p in chunkdir.iterdir():
+                    with p.open('rb') as f: os.fsync(f.fileno())
+                if os.name == 'posix':
+                    fd = os.open(chunkdir, os.O_RDONLY)
+                    try: os.fsync(fd)
+                    finally: os.close(fd)
                 counts['kept'] = kept
                 files = {str(p.relative_to(out)): {'bytes': p.stat().st_size, 'sha256': sha(p)} for p in sorted(chunkdir.iterdir())}
                 chunk = {'start_row': start, 'input_rows': consumed, 'kept': kept, 'counts': dict(counts), 'text': str((chunkdir/'rows.txt').relative_to(out)), 'bullet': str((chunkdir/'rows.bullet').relative_to(out)), 'provenance': str((chunkdir/'provenance.tsv').relative_to(out)), 'files': files}
@@ -263,6 +296,9 @@ def run(args):
                     return {'status': 'CHECKPOINT', 'input_rows': start, 'counts': dict(total)}
         for item in inputs:
             if identity(item['path']) != item: raise ValueError('input changed during run')
+        for binding in bindings:
+            if str(Path(binding['reference']).resolve(strict=True)) != binding['resolved']:
+                raise ValueError('input path binding changed during run')
         result = {'status': 'COMPLETE', 'input_rows': start, 'counts': dict(total), 'chunks': len(chunks), 'holdouts': holdout_counts, 'game_clearance': 'ACCEPTED_WHOLE_SHARD_SPLIT_013_014' if args.shard_id else 'FORMAT_ONLY_NO_SHARD_ID', 'shard_id': args.shard_id, 'game_id_exclusion': bool(args.game_ids and args.holdout_game_ids), 'elapsed_seconds_this_attempt': time.monotonic()-before, 'representation': 'bullet32 + exact aligned full-FEN/STM-score/White-result sidecar; raw bullet loses state', 'binpack': 'GENERATED' if args.binpack_tool else 'NOT_REQUESTED', 'chunk_receipts': {p.name:sha(p) for p in sorted(out.glob('chunk_*.json'))}}
         dump_new(out / 'COMPLETE.json', result)
         return result
@@ -271,7 +307,9 @@ def run(args):
 
 def verify(out, binpack_tool=None):
     out = Path(out); chunks = read_chunks(out)
-    count = 0
+    config = json.loads((out/'config.json').read_text())
+    wants_binpack = bool(config.get('binpack_tool'))
+    count = 0; decoded_chunks = 0; decoded_rows = 0
     for c in chunks:
         n = 0
         with (out/c['bullet']).open('rb') as binary, (out/c['text']).open(encoding='utf8') as txt, (out/c['provenance']).open(encoding='utf8') as prov:
@@ -282,7 +320,10 @@ def verify(out, binpack_tool=None):
             if binary.read(1) or prov.readline(): raise ValueError('extra records')
         if n != c['kept']: raise ValueError('chunk kept-count mismatch')
         binpack = (out / c['text']).with_name('rows.binpack')
-        if binpack.exists() and binpack_tool:
+        binpack_rel = str(binpack.relative_to(out))
+        if wants_binpack and (binpack_rel not in c['files'] or not binpack.is_file()):
+            raise ValueError('required binpack missing from sealed files')
+        if wants_binpack and binpack_tool:
             process = subprocess.Popen([str(binpack_tool), 'decode', str(binpack)], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
             try:
                 with (out/c['text']).open('rb') as expected:
@@ -292,11 +333,14 @@ def verify(out, binpack_tool=None):
                     if process.stdout.read(1): raise ValueError('extra binpack decoded rows')
                 stderr = process.stderr.read()
                 if process.wait(): raise ValueError('binpack decoder failed: '+stderr.decode(errors='replace'))
+                decoded_chunks += 1; decoded_rows += n
             finally:
                 if process.poll() is None: process.terminate(); process.wait()
                 process.stdout.close(); process.stderr.close()
         count += n
     result = json.loads((out/'COMPLETE.json').read_text())
+    if result.get('binpack') != ('GENERATED' if wants_binpack else 'NOT_REQUESTED'):
+        raise ValueError('summary/config binpack expectation mismatch')
     totals = collections.Counter({k: 0 for k in RULES})
     for c in chunks: totals.update(c['counts'])
     if result.get('status') != 'COMPLETE' or type(result.get('chunks')) is not int or result['chunks'] != len(chunks):
@@ -306,7 +350,7 @@ def verify(out, binpack_tool=None):
     if 'chunk_receipts' in result and result['chunk_receipts'] != {p.name:sha(p) for p in sorted(out.glob('chunk_*.json'))}:
         raise ValueError('sealed chunk receipt changed')
     if type(result.get('input_rows')) is not int or result['input_rows'] != sum(c['input_rows'] for c in chunks) or count != result['counts'].get('kept', 0): raise ValueError('summary count mismatch')
-    return {'status': 'PASS', 'rows': count, 'chunks': len(chunks), 'scope': 'all chunk hashes; every bullet32/sidecar row and record count', 'binpack_decode': 'PERFORMED_WHERE_PRESENT' if binpack_tool else 'NOT_REQUESTED_HASHES_ONLY'}
+    return {'status': 'PASS', 'rows': count, 'chunks': len(chunks), 'scope': 'all chunk hashes; every bullet32/sidecar row and record count', 'binpack_decode': 'PERFORMED' if decoded_chunks else 'NOT_REQUESTED_HASHES_ONLY', 'binpack_decoded_chunks': decoded_chunks, 'binpack_decoded_rows': decoded_rows}
 
 
 def parser():

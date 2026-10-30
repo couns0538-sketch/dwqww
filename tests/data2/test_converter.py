@@ -5,6 +5,7 @@ import struct
 import sys
 import tempfile
 import unittest
+from unittest import mock
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2] / 'tools/data2'))
 import convert_dataset as c
@@ -66,6 +67,24 @@ class ConverterTests(unittest.TestCase):
   with self.assertRaisesRegex(ValueError,'counts keys'):c.verify(self.root/'out')
  def test_bool_count_rejected(self):
   with self.assertRaises(ValueError):c.checked_counts({'kept':True})
+ def test_data_role_must_be_hashed(self):
+  c.run(self.args());p=self.root/'out'/'chunk_000000.json';data=json.loads(p.read_text());data['text']='../input.txt';p.write_text(json.dumps(data))
+  with self.assertRaisesRegex(ValueError,'data role'):c.verify(self.root/'out')
+ def test_requested_binpack_cannot_disappear(self):
+  c.run(self.args());p=self.root/'out'/'config.json';data=json.loads(p.read_text());data['binpack_tool']='declared_adapter';p.write_text(json.dumps(data))
+  p=self.root/'out'/'COMPLETE.json';data=json.loads(p.read_text());data['binpack']='GENERATED';p.write_text(json.dumps(data))
+  with self.assertRaisesRegex(ValueError,'required binpack'):c.verify(self.root/'out')
+ def test_retargeted_symlink_cannot_seal_wrong_source(self):
+  link=self.root/'alias.txt';link.symlink_to(self.src);other=self.root/'other.txt';other.write_text(FENS[1]);a=self.args();a.input=str(link)
+  original=c.sources
+  def retarget_then_read(args):
+   link.rename(self.root/'old_alias.txt');link.symlink_to(other)
+   yield from original(args)
+  with mock.patch.object(c,'sources',retarget_then_read):
+   with self.assertRaisesRegex(ValueError,'binding changed'):c.run(a)
+  self.assertFalse((self.root/'out'/'COMPLETE.json').exists())
+  chunk=c.read_chunks(self.root/'out')[0]
+  self.assertEqual((self.root/'out'/chunk['text']).read_text(),''.join(FENS))
  def test_holdout_all_overlap_zero_remain(self):
   result=c.run(self.args('--holdout',str(self.src)))
   self.assertEqual(result['counts']['holdout_position'],3); self.assertEqual(c.verify(self.root/'out')['rows'],0)
