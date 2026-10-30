@@ -72,5 +72,17 @@ missing-last-response case additionally passes with an explicit count mismatch.
 Original tests, copies, pre-mutation bytes, logs and source hashes are retained
 under `fixtures/`.
 
+The final source-coverage revision passes **10 test methods**: eight CLI audits
+plus seven direct helper calls. Tiny legal text and FPOS holdouts (three rows,
+two unique identities) pass; a missing key, wrong original row count and wrong
+parser hash each fail explicitly. Parser/auditor snapshots and before/after
+hashes are preserved in `fixtures/holdout-helper-1793335523272569051-354789/`;
+final CLI evidence is in `fixtures/run-1793335523351075214-354789/`.
+The tested auditor SHA256 is
+`e8f37f824a4fa2458a388bdfd8850b4a3cccfba5e0733ebf26a14fbed0e2d716`.
+The initial tested revision remains in Git commit
+`2d1076e7fbdb5e11225328eddcc0376f519c7b2e`, with SHA256
+`133f97c6c60292454b9e9d9ed14bc09f103f643f293fd5a94895b7224630ab8f`.
+
 IDEA_SOURCE: this project's frozen filter/IPC/FPOS contracts and original
 evidence; the user's read-only, exact-revision and preservation requirements.
