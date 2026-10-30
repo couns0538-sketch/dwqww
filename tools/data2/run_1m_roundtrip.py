@@ -1,7 +1,14 @@
 """Original streaming real-sample roundtrip; all evidence retained."""
 import argparse,hashlib,json,pathlib,resource,subprocess,time
-ap=argparse.ArgumentParser(description=__doc__);ap.add_argument('--input',required=True,type=pathlib.Path);ap.add_argument('--adapter',required=True,type=pathlib.Path);ap.add_argument('--out',required=True,type=pathlib.Path);ap.add_argument('--adapter-source',required=True,type=pathlib.Path);a=ap.parse_args()
-r=a.out;r.mkdir(parents=True,exist_ok=False);(r/'evidence').mkdir();src=a.input;out=r/'sample_first_1000000.binpack';exe=a.adapter
+from external_tool_policy import require_external_path
+ap=argparse.ArgumentParser(description=__doc__);ap.add_argument('--input',required=True,type=pathlib.Path);ap.add_argument('--adapter',required=True,type=pathlib.Path);ap.add_argument('--out',required=True,type=pathlib.Path);ap.add_argument('--adapter-source',required=True,type=pathlib.Path);ap.add_argument('--accept-gpl3',action='store_true',help='Explicitly accept the optional external GPL-3.0 adapter');a=ap.parse_args()
+if not a.accept_gpl3: ap.error('--adapter requires --accept-gpl3 (optional external GPL-3.0 tooling)')
+try:
+ exe=require_external_path(a.adapter).resolve(strict=True)
+ if not exe.is_file(): raise ValueError('adapter must be a file')
+except (OSError,ValueError,RuntimeError) as error:
+ ap.error(str(error))
+r=a.out;r.mkdir(parents=True,exist_ok=False);(r/'evidence').mkdir();src=a.input;out=r/'sample_first_1000000.binpack'
 def sha(p):
  h=hashlib.sha256()
  with p.open('rb') as f:

@@ -1,0 +1,73 @@
+test_ack_external_adapter_reaches_execution (test_roundtrip_policy.RoundtripPolicy.test_ack_external_adapter_reaches_execution) ... FAIL
+test_repo_and_bare_and_worktree_refuse_even_with_ack (test_roundtrip_policy.RoundtripPolicy.test_repo_and_bare_and_worktree_refuse_even_with_ack) ... 
+  test_repo_and_bare_and_worktree_refuse_even_with_ack (test_roundtrip_policy.RoundtripPolicy.test_repo_and_bare_and_worktree_refuse_even_with_ack) (kind='repo') ... FAIL
+  test_repo_and_bare_and_worktree_refuse_even_with_ack (test_roundtrip_policy.RoundtripPolicy.test_repo_and_bare_and_worktree_refuse_even_with_ack) (kind='bare') ... FAIL
+  test_repo_and_bare_and_worktree_refuse_even_with_ack (test_roundtrip_policy.RoundtripPolicy.test_repo_and_bare_and_worktree_refuse_even_with_ack) (kind='worktree') ... FAIL
+test_symlink_dotdot_repo_target_refuses_before_writes (test_roundtrip_policy.RoundtripPolicy.test_symlink_dotdot_repo_target_refuses_before_writes) ... FAIL
+test_without_ack_refuses_before_writes_or_execution (test_roundtrip_policy.RoundtripPolicy.test_without_ack_refuses_before_writes_or_execution) ... ERROR
+
+======================================================================
+ERROR: test_without_ack_refuses_before_writes_or_execution (test_roundtrip_policy.RoundtripPolicy.test_without_ack_refuses_before_writes_or_execution)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/tmp/forge-astra-fen-convert/tests/data2/test_roundtrip_policy.py", line 37, in test_without_ack_refuses_before_writes_or_execution
+    code, message = self.run_script()
+                    ^^^^^^^^^^^^^^^^^
+  File "/tmp/forge-astra-fen-convert/tests/data2/test_roundtrip_policy.py", line 30, in run_script
+    runpy.run_path(args[0], run_name='__main__')
+  File "<frozen runpy>", line 287, in run_path
+  File "<frozen runpy>", line 98, in _run_module_code
+  File "<frozen runpy>", line 88, in _run_code
+  File "/tmp/forge-astra-fen-convert/tools/data2/run_1m_roundtrip.py", line 14, in <module>
+    with src.open('rb') as f:
+         ^^^^^^^^^^^^^^
+  File "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/pathlib.py", line 1013, in open
+    return io.open(self, mode, buffering, encoding, errors, newline)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+FileNotFoundError: [Errno 2] No such file or directory: '/tmp/tmp_uz_aa7w/input'
+
+======================================================================
+FAIL: test_ack_external_adapter_reaches_execution (test_roundtrip_policy.RoundtripPolicy.test_ack_external_adapter_reaches_execution)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/tmp/forge-astra-fen-convert/tests/data2/test_roundtrip_policy.py", line 66, in test_ack_external_adapter_reaches_execution
+    with self.assertRaisesRegex(RuntimeError, 'execution boundary'):
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: RuntimeError not raised
+
+======================================================================
+FAIL: test_repo_and_bare_and_worktree_refuse_even_with_ack (test_roundtrip_policy.RoundtripPolicy.test_repo_and_bare_and_worktree_refuse_even_with_ack) (kind='repo')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/tmp/forge-astra-fen-convert/tests/data2/test_roundtrip_policy.py", line 60, in test_repo_and_bare_and_worktree_refuse_even_with_ack
+    self.assertIn('outside', message)
+AssertionError: 'outside' not found in 'usage: run_1m_roundtrip.py [-h] --input INPUT --adapter ADAPTER --out OUT\n                           --adapter-source ADAPTER_SOURCE\nrun_1m_roundtrip.py: error: unrecognized arguments: --accept-gpl3\n'
+
+======================================================================
+FAIL: test_repo_and_bare_and_worktree_refuse_even_with_ack (test_roundtrip_policy.RoundtripPolicy.test_repo_and_bare_and_worktree_refuse_even_with_ack) (kind='bare')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/tmp/forge-astra-fen-convert/tests/data2/test_roundtrip_policy.py", line 60, in test_repo_and_bare_and_worktree_refuse_even_with_ack
+    self.assertIn('outside', message)
+AssertionError: 'outside' not found in 'usage: run_1m_roundtrip.py [-h] --input INPUT --adapter ADAPTER --out OUT\n                           --adapter-source ADAPTER_SOURCE\nrun_1m_roundtrip.py: error: unrecognized arguments: --accept-gpl3\n'
+
+======================================================================
+FAIL: test_repo_and_bare_and_worktree_refuse_even_with_ack (test_roundtrip_policy.RoundtripPolicy.test_repo_and_bare_and_worktree_refuse_even_with_ack) (kind='worktree')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/tmp/forge-astra-fen-convert/tests/data2/test_roundtrip_policy.py", line 60, in test_repo_and_bare_and_worktree_refuse_even_with_ack
+    self.assertIn('outside', message)
+AssertionError: 'outside' not found in 'usage: run_1m_roundtrip.py [-h] --input INPUT --adapter ADAPTER --out OUT\n                           --adapter-source ADAPTER_SOURCE\nrun_1m_roundtrip.py: error: unrecognized arguments: --accept-gpl3\n'
+
+======================================================================
+FAIL: test_symlink_dotdot_repo_target_refuses_before_writes (test_roundtrip_policy.RoundtripPolicy.test_symlink_dotdot_repo_target_refuses_before_writes)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/tmp/forge-astra-fen-convert/tests/data2/test_roundtrip_policy.py", line 81, in test_symlink_dotdot_repo_target_refuses_before_writes
+    self.assertIn('outside', message)
+AssertionError: 'outside' not found in 'usage: run_1m_roundtrip.py [-h] --input INPUT --adapter ADAPTER --out OUT\n                           --adapter-source ADAPTER_SOURCE\nrun_1m_roundtrip.py: error: unrecognized arguments: --accept-gpl3\n'
+
+----------------------------------------------------------------------
+Ran 4 tests in 0.019s
+
+FAILED (failures=5, errors=1)
