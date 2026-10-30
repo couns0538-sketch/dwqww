@@ -3,6 +3,7 @@
 #include "forge/board.hpp"
 #include "forge/eval.hpp"
 #include "forge/nnue.hpp"
+#include "forge/nnue_halfka.hpp"
 
 #include <array>
 #include <atomic>
@@ -322,6 +323,8 @@ private:
     std::unique_ptr<CorrectionHistory> correction_history_;
     std::unique_ptr<CorrectionHistory> material_correction_;
     std::array<SearchStack, MaxPly + 8> stack_{};
+    // R10: HalfKA (K32H3^) accumulators, one entry per stack_ entry (used only while EvalFileHalfKA is loaded)
+    halfka::AccumulatorStack halfka_acc_;
     std::array<Move, 256> root_effort_moves_{};
     std::array<std::uint64_t, 256> root_move_nodes_{};
     std::size_t root_effort_count_ = 0;
@@ -360,6 +363,7 @@ private:
     [[nodiscard]] int corrected_eval(const Board& board, int raw_eval) const;
     void update_correction(const Board& board, int depth, int best_score, int static_eval);
     [[nodiscard]] int static_evaluate(const Board& board, SearchStack* ss);
+    [[nodiscard]] int halfka_evaluate(const Board& board, SearchStack* ss);
     void record_move(SearchStack* ss, const Board& board, const Move& move);
     void record_null_move(SearchStack* ss);
 };

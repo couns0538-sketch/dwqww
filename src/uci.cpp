@@ -1,6 +1,7 @@
 #include "forge/board.hpp"
 #include "forge/book.hpp"
 #include "forge/nnue.hpp"
+#include "forge/nnue_halfka.hpp"
 #include "forge/search.hpp"
 #include "forge/uci_output.hpp"
 
@@ -171,6 +172,8 @@ int main() {
                          "option name Book Depth type spin default 30 min 0 max 100\n"
                          "option name Book Variety type spin default 30 min 0 max 100\n";
             if (forge::nnue::available()) std::cout << "option name UseNNUE type check default true\n";
+            // R10: a K32H3^ (HalfKAv2_hm family) .nnue from the nnue-pytorch trainer; empty = off (the lock's eval)
+            std::cout << "option name EvalFileHalfKA type string default <empty>\n";
 #ifdef FORGE_EXPOSE_TUNABLES
             // Development builds advertise the search constants so match
             // runners can set them; release builds accept them silently.
@@ -259,6 +262,25 @@ int main() {
                 } else {
                     book_variety = std::clamp(value, 0, 100);
                 }
+            } else if (name == "EvalFileHalfKA") {
+                std::string rest;
+                std::getline(input, rest);
+                std::string path = value_text + rest;
+                while (!path.empty() && (path.back() == ' ' || path.back() == '\r')) path.pop_back();
+                const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex());
+                if (path.empty() || path == "<empty>") {
+                    forge::halfka::unload();
+                    std::cout << "info string EvalFileHalfKA off" << std::endl;
+                } else {
+                    std::string error;
+                    if (forge::halfka::load(path, error)) {
+                        std::cout << "info string EvalFileHalfKA loaded " << forge::halfka::description() << std::endl;
+                    } else {
+                        forge::halfka::unload();
+                        std::cout << "info string ERROR EvalFileHalfKA: " << error << " (HalfKA eval off)" << std::endl;
+                    }
+                }
+                searcher.clear_hash();
             } else if (name == "UseNNUE") {
                 if (value_text == "true") forge::nnue::enabled = true;
                 else if (value_text == "false") forge::nnue::enabled = false;
