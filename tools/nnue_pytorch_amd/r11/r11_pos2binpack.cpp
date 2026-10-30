@@ -248,6 +248,16 @@ struct HceOut {
     }
 };
 
+std::string json_escape(const std::string& in) {
+    std::string out;
+    for (const char c : in) {
+        if (c == '\\' || c == '"') out += '\\';
+        if (static_cast<unsigned char>(c) < 0x20) continue;
+        out += c;
+    }
+    return out;
+}
+
 // The JSON summary goes to stdout as one line starting with '{'; the Python driver stores it.
 void emit_json(const Args&, const std::string& body) {
     std::printf("%s\n", body.c_str());
@@ -455,12 +465,12 @@ int run_verify(const Args& a) {
     const double secs = std::chrono::duration<double>(std::chrono::steady_clock::now() - t0).count();
     const bool ok = formatErrors == 0 && mismatches == 0 && hceMism == 0 && structRecords == expected &&
                     readerRecords == expected && expected > 0;
-    char buf[1024];
+    char buf[4096];
     std::snprintf(buf, sizeof buf,
                   "{\"mode\": \"verify\", \"file\": \"%s\", \"code\": %d, \"expected\": %llu, \"struct_records\": %llu, "
                   "\"reader_records\": %llu, \"format_errors\": %llu, \"mismatches\": %llu, \"mask\": %d, \"writer_bad\": %llu, "
                   "\"hce_checked\": %s, \"hce_mismatches\": %llu, \"seconds\": %.2f, \"ok\": %s}",
-                  a.file.c_str(), a.code, (unsigned long long)expected, (unsigned long long)structRecords,
+                  json_escape(a.file).c_str(), a.code, (unsigned long long)expected, (unsigned long long)structRecords,
                   (unsigned long long)readerRecords, (unsigned long long)formatErrors, (unsigned long long)mismatches, mask,
                   (unsigned long long)writerBad, withHce ? "true" : "false", (unsigned long long)hceMism, secs,
                   ok ? "true" : "false");
