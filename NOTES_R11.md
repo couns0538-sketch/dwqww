@@ -5,7 +5,21 @@ Job folder `opus_r11/` (pipeline + tests + evidence logs), GPL trainer-side code
 (run-only, never in src/include/tests). Output root on D: `D:\grok-pc-data\r11_nnue\`. Started 2026-10-30 10:14 PC clock;
 PC crash/reboot 11:38 (nothing of R11 was half-written: the run died in dedup before any output).
 
-## Status (2026-10-30 13:30) - PARTIAL, see opus_r11/REPORT.md
+## Status (2026-10-30 14:30) - production gap (QA paused production NNUE training at 13:46:56)
+- DONE in the gap: e2e self-test PASS (e2e_5); conversion of 72 shards (332,562,972 train + 16,387,223 holdout
+  records, 11.8 GB, bad 0); real holdout proof PASS on the converted data (14:17); first net from our own data =
+  smoke profile through the one command (PASS, net sha256 e0462a87..., parity 12000/12000, OFF d11 312866, ON d11
+  341450 d13 946351, WAC 249/272); CR R4 LOW 1/2/3 (bf0e1792, b1ca03bf, afdfa4ae) + save interval (3c856944) + bench
+  depths (66e0c488) + full save every 5 epochs (05687908); patch files 21-25.
+- RUNNING: full profile (owner's recipe, L1 1024, 20 x 152.5M) since 14:24:07 at ~105k pos/s (6.43 it/s), ~24 min
+  per epoch -> ends ~22:30; checkpoints at epochs 5/10/15/20 (1.44 GiB each). It yields if production restarts.
+  Run dir D:\grok-pc-data\r11_nnue\runs\r11_full_k32h3_l1024_bs16384_e20x152500000_s1; driver log
+  D:\grok-pc-data\r11_nnue\logs\full_run.out. When it ends the one command exports, checks (d11-d22) and packages
+  the net into gate_ready\ by itself.
+- e2e_4 leftovers (stopped, its ON bench of a 2-epoch synthetic net would have taken hours): engine PID 3624
+  suspended, test python PIDs 11312 / 12764 waiting - QA may end them.
+
+## Status before the gap (2026-10-30 13:30)
 - CR fixes 1-10 (cf7e435a review), CR R2 H1/M1/M3, the fix 2 amendment, the M1 hardening and CR R3-1/2/3 are
   pushed as separate commits (list below); one patch file per commit in D:\grok-pc-data\r11_nnue\cr_patches.
 - **CR fix 2 amendment (for CR re-review):** background mode is gone - it capped every R11 process at a 32 MB working
