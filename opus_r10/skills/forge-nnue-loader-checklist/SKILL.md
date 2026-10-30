@@ -42,6 +42,24 @@ Older paths: [[forge-nnue-v3]] (FORGENN3/4).
 - Box build with `FORGE_EXTRA_SRCS="src/<new>.cpp"`, add the file to `forge_core` in CMakeLists, then CMake all targets
   + CTest (KNOWN-FAILURE CHECK: PASS) before the CI push; the 6 `-Wconversion` warnings in search.cpp are the lock's.
 
+## Speed (lessons of the R10 v2 kernels, 2026-10-30)
+- Time every stage before optimising (`opus_r10/tools/halfka_tool.cpp speed`): refresh, update, forward, and the lock's
+  FORGENN2 + HCE for comparison. In R10 (v1) the forward was 73-83% of the HalfKA cost per evaluation.
+- Always time the SIMD path against the "scalar" one: with `-march=znver5` GCC turns a plain int8 x uint8 dot loop into
+  AVX-512 VNNI (`vpdpbusd` zmm), which beat the first hand-written AVX2 forward at L1 1024 (608 vs 873 ns).
+- No per-call zero fill of large buffers (the first forward cleared a 4 KB `std::array{}` every evaluation); zero only
+  the padding that a kernel reads.
+- Column-wise block kernel for the first dense layer: regroup the weights at load time (per 4-input block, the 4 weights
+  of every output), broadcast each nonzero block, no horizontal sums; integer sums stay exact in any order.
+- `std::vector` storage is only 16-byte aligned on MinGW: 512-bit row loads split cache lines (the AVX-512 refresh was
+  slower than AVX2 at L1 256/1024); align FT rows and accumulator rows to 64 bytes before blaming the kernel.
+- Measure a kernel change with the SAME net in two builds (identical trees, node counts must match), plus an A/A set:
+  `nps_opts_ab.py --set old=exe=<v1>,EvalFileHalfKA=<net> --set new=exe=<v2>,... --set aa=exe=<v1>,...`.
+- The OFF path must cost nothing: A/B the new exe with the option off against the lock exe
+  (`D:/grok-pc-data/dwqww/.claude/worktrees/b/base/forge_lock_copy.exe`, sha256 5d4df7f1...).
+- Check the eval sign and scale with a mirrored pair of queen-up FENs (`opus_r10/logs/sign_check.log`): the R10 test
+  nets had the right sign but a queen worth only 2.5-4 pawns, which the lock's search margins do not expect.
+
 ## Mistakes made (do not repeat)
 - `AccumulatorStack::ensure()` called `l1()`, which inside the class meant the member (0), not the namespace function:
   zero-size buffer, segfault on the first ON search. Qualify (`forge::halfka::l1()`), and debug crashes with a `-g -O1`

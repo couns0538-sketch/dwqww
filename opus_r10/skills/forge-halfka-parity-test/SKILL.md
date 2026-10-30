@@ -35,6 +35,25 @@ Trainer facts: [[forge-nnue-pytorch-amd]]. Loader checklist: [[forge-nnue-loader
   `opus_r10/tools/verify_search.py <exe> <net> --threads 3 --depth 13`: every lazily built row in the real search is
   compared with a refresh, a mismatch aborts; 3,028,552 rows equal (bench 13 + four 3-thread searches).
 
+## After any kernel change (v2 recipe, 2026-10-30)
+1. Build the tool twice: znver5 (`build_tool.py <repo> opus_r10/tools/halfka_tool.cpp <exe>`, AVX-512 VNNI kernels)
+   and AVX2-only (same + `-march=x86-64-v3`; a later -march replaces znver5's, check `g++ ... -dM -E` has no AVX512).
+2. `eval` on the three sets and `cmp` with the v1 outputs, which equal nnue-pytorch: scratch `F:\opus_scratch\r10\parity\`
+   `forge_raw_12k.txt` (R6), `forge_raw_12k_smoke.txt`, `forge_raw_2k_l1024.txt`; also `parity_nnue_pytorch.py compare`
+   against `ref64_*`. **The valid 12k FEN file is `opus_r10/parity/fens_12k.txt` = scratch `fens_12k_v2.txt`; scratch
+   `fens_12k.txt` is the broken awk cut** (the tool prints "12000 bad FENs").
+3. `walk` in both builds, the `-DFORGE_HALFKA_VERIFY` engine with `verify_search.py`, OFF `uci_check.py --full`, ON
+   `halfka_uci_check.py <exe> <net> <scratch dir>` (ON bench must stay 489,790 R6 / 305,623 smoke).
+4. CTest `forge_halfka_tests` (tests/halfka_tests.cpp: 300 exact values SIMD + scalar, incremental == refresh,
+   truncated net rejected, 2-thread searches); CI builds `-march=x86-64-v3`, so CI covers the AVX2 kernels under
+   ASan/UBSan/TSan. Planted bugs: `opus_r10/tools/mutants_halfka.py <repo> <fresh scratch dir>`.
+5. Speed: same net in two builds gives identical trees, so `nps_opts_ab.py <exe> --set old=exe=<v1>,EvalFileHalfKA=<net>
+   --set new=exe=<v2>,EvalFileHalfKA=<net> --set aa=exe=<v1>,...` + `nps_ci.py --ref old --sets new aa` is a clean
+   per-node cost ratio. Stage costs: `halfka_tool speed <net> <fens> 50` (run exes under run_pinned with
+   `opus_r10/tools/exe_run.py`; `bash_run.py` only runs bash scripts).
+v2 results: 26,000 evaluations byte-identical in both builds, walk 311,568 + 49,934 / 0, verify 3,208,448 rows; NPS
++20.1% [+18.3, +21.9] d16 on the R6 net (A/A -0.1%), +16.2% on the smoke net.
+
 ## The exact integer rules (why parity is exact)
 FT `clamp(a,0,255)*clamp(b,0,255) >> 9` per half, [stm, other]; l1 `s1 = b + sum w*x` (scale 2^14), linear
 `clamp(s1 >> 7, 0, 127)`, square `min(127, (s1*s1 + 20) >> 21)`; l2 linear `clamp(s2 >> 6)`, square
