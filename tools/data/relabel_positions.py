@@ -24,6 +24,7 @@ class Config:
     batch_size: int=128
     allow_reconstructed: bool=False
     stem: str='relabeled'
+    sidecar_origin: str='auto'
 
 def require(ok,message):
     if not ok:raise ValueError(message)
@@ -37,6 +38,7 @@ def run(c:Config,pool_factory=ProbePool):
     require(c.nodes>0 and 1<=c.workers<=3 and c.hash_mb>0,'invalid probe resources')
     require(c.start>=0 and 0<c.count<=100000 and c.stride>0 and 0<c.batch_size<=4096,'invalid slice: count1..100000, batch1..4096; use separate slices for larger jobs')
     require(c.sidecar is not None or c.allow_reconstructed,'full FEN sidecar required unless --allow-reconstructed')
+    require(c.sidecar_origin in ('auto','original_full_fen','reconstructed'),'invalid sidecar origin')
     c.out.mkdir(parents=True,exist_ok=False)
     started=time.monotonic();parent_cpu=time.process_time();total_cpu_start=cpu_total() if os.name!='nt' else None
     report={'status':'RUNNING','started_utc':datetime.now(timezone.utc).isoformat(),'config':{k:str(v) if isinstance(v,Path) else v for k,v in vars(c).items()},'selected':0,'exact_label_rows':0,'reconstructed_label_rows':0,'score_changed':0,'sum_absolute_score_change':0,'search_nodes':0,'query_cpu_ns':0,'depth_histogram':{},'claim':'Deeper-budget labels, not demonstrated stronger labels or Elo. Original teacher budget may be unknown.'}
@@ -53,7 +55,14 @@ def run(c:Config,pool_factory=ProbePool):
             report['input_record_count']=reader.n
             indices=iter(range(c.start,last+1,c.stride));wanted=next(indices,None)
             if c.sidecar is not None:
-                lines=0
+                lines=0;origins=set()
+                inherited=None
+                source_summary=c.sidecar.parent/'summary.json'
+                if source_summary.is_file():
+                    inherited=json.loads(source_summary.read_text()).get('state_origin')
+                    inputs['source_summary']={'path':str(source_summary.resolve()),'sha256':sha256(source_summary)}
+                if inherited and 'reconstructed' in inherited:
+                    require(c.sidecar_origin!='original_full_fen','reconstructed sidecar cannot be promoted to original state')
                 with c.sidecar.open(encoding='utf8') as source:
                     for i,line in enumerate(source):
                         require(i<reader.n,'sidecar longer than POS');lines=i+1
@@ -62,14 +71,19 @@ def run(c:Config,pool_factory=ProbePool):
                         if '|' in line:
                             supplied,fen=text_record(line)
                             require((supplied.board,supplied.score,supplied.meta)==(record.board,record.score,record.meta),f'sidecar record mismatch at{i}')
+                            origins.add('reconstructed' if c.sidecar_origin=='reconstructed' or (inherited and 'reconstructed' in inherited) else 'original_full_fen')
                         else:
                             # A relabeler-emitted .fen sidecar has no old score/result; verify its feature state.
                             fen=line.strip();white_result=(record.meta>>1)/2
                             supplied,_=text_record(f'{fen} | {record.score} | {white_result}')
                             require((supplied.board,supplied.meta&1)==(record.board,record.meta&1),f'FEN state mismatch at{i}')
+                            require(c.sidecar_origin!='auto','FEN-only sidecar requires explicit --sidecar-origin original_full_fen or reconstructed')
+                            origins.add(c.sidecar_origin)
                         selected.append((i,fen));records.append(record);wanted=next(indices,None)
                 require(lines==reader.n,'sidecar shorter than POS')
-                report['state_origin']='original_full_fen';report['alignment_scope']='all sidecar row count; selected board/STM/score/result matches (full corpus audit is separate)'
+                require(len(origins)==1,'mixed sidecar state origin is not supported')
+                report['state_origin']='reconstructed_no_castling_no_ep_clock0' if origins=={'reconstructed'} else 'original_full_fen'
+                report['alignment_scope']='all sidecar row count; selected board/STM/score/result matches (full corpus audit is separate)'
             else:
                 for i in range(c.start,last+1,c.stride):
                     record=reader.row(i);selected.append((i,board_to_fen(record,policy=RECONSTRUCTION_POLICY)));records.append(record)
@@ -85,6 +99,10 @@ def run(c:Config,pool_factory=ProbePool):
                             require(answer.get('ok') is True and str(answer.get('id'))==str(index),'native failure/misalignment')
                             require(answer.get('terminal') is False and int(answer.get('depth',0))>=1,'terminal or incomplete search cannot be an exact searched label')
                             for field in ('score','hce','nodes','depth','cpu_ns'):require(type(answer.get(field)) is int,'invalid native '+field)
+                            require(answer.get('analyzed') is True,'native result was not analyzed')
+                            require(0<answer['nodes']<=c.nodes and answer['cpu_ns']>=0,'invalid native node/CPU bounds')
+                            require(answer.get('nodes_limit')==c.nodes and answer.get('hash_mb')==c.hash_mb and answer.get('threads')==1,'native configuration differs from request')
+                            require(' '.join(str(answer.get('fen','')).split())==' '.join(fen.split()),'native FEN differs from request')
                             score=answer['score'];hce=answer['hce']
                             require(-32767<=score<=32767 and -32767<=hce<=32767,'FPOS/FHCE score overflow')
                             writer.append(Record(old.board,score,old.meta,hce),fen=fen)
@@ -96,8 +114,8 @@ def run(c:Config,pool_factory=ProbePool):
             require(report['selected']==c.count,'incomplete selected slice')
         for item in inputs.values():require(sha256(item['path'])==item['sha256'],'input changed during run')
         writer.close();writer=None
-        report['exact_label_rows']=c.count if c.sidecar is not None else 0
-        report['reconstructed_label_rows']=c.count if c.sidecar is None else 0
+        report['exact_label_rows']=c.count if report['state_origin']=='original_full_fen' else 0
+        report['reconstructed_label_rows']=c.count-report['exact_label_rows']
         report['wall_seconds']=time.monotonic()-started;report['parent_cpu_seconds']=time.process_time()-parent_cpu
         report['query_cpu_seconds']=report['query_cpu_ns']/1e9
         if total_cpu_start is not None:
@@ -127,6 +145,7 @@ def main(argv=None):
     p=argparse.ArgumentParser(description=__doc__)
     for name in ('pos','out','probe'):p.add_argument('--'+name,type=Path,required=True)
     p.add_argument('--sidecar',type=Path);p.add_argument('--allow-reconstructed',action='store_true')
+    p.add_argument('--sidecar-origin',choices=('auto','original_full_fen','reconstructed'),default='auto')
     for name,default in [('nodes',65536),('workers',1),('hash-mb',1),('start',0),('count',4096),('stride',1),('batch-size',128)]:p.add_argument('--'+name,type=int,default=default)
     p.add_argument('--stem',default='relabeled');a=p.parse_args(argv)
     report=run(Config(**vars(a)));print(json.dumps(report,indent=2));return 0

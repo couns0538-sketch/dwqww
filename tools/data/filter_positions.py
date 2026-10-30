@@ -20,7 +20,7 @@ import time
 from typing import Any
 
 RULES = ('holdout', 'disagreement', 'exact_duplicate', 'near_duplicate',
-         'in_check', 'terminal', 'bestmove_capture', 'bestmove_promotion')
+         'in_check', 'terminal', 'teacher_incomplete', 'bestmove_capture', 'bestmove_promotion')
 
 @dataclass
 class Config:
@@ -201,6 +201,7 @@ def run(config: Config, pool_factory=None) -> dict[str, Any]:
         'exact_identity': 'SHA256(board32 || STM), with stored full-key collision check',
         'holdout_scope': 'Only the explicit supplied holdouts; missing holdout shards/game provenance are not certified.',
         'fractions': 'Ordered first-drop waterfall, not independent marginal rule prevalence.',
+        'teacher_incomplete_policy': 'Drop only explicit insufficient_budget/depth0 with null score and move; do not treat other native failures as filtered data.',
         'claim': 'Data filtering measurements only; no Elo or training-gain claim.'}
     _json(config.out/'progress.json', stats)
     database = ExactIndex(config.out/'position_index.sqlite')
@@ -250,10 +251,16 @@ def run(config: Config, pool_factory=None) -> dict[str, Any]:
                 responses = pool.map(requests, op='filter') if requests else []
                 require(len(responses) == len(requests), 'native response count mismatch')
                 answers = {}
-                for (identifier, _), response in zip(requests, responses):
+                for (identifier, requested_fen), response in zip(requests, responses):
                     require(str(response.get('id')) == identifier and response.get('ok') is True,
                             'native failure/misaligned response: '+repr(response))
                     require(identifier not in answers, 'duplicate native response ID')
+                    require(isinstance(response.get('fen'), str) and
+                            ' '.join(response['fen'].split()) == ' '.join(requested_fen.split()),
+                            'native response FEN differs from requested full state')
+                    for name, expected in (('nodes_limit', config.nodes), ('hash_mb', config.hash_mb), ('threads', 1)):
+                        require(type(response.get(name)) is int and response[name] == expected,
+                                'native configuration mismatch: '+name)
                     answers[identifier] = response
                     cpu = response.get('cpu_ns', 0)
                     require(type(cpu) is int and cpu >= 0, 'invalid native CPU accounting')
@@ -279,21 +286,32 @@ def run(config: Config, pool_factory=None) -> dict[str, Any]:
                             counts['terminal']['eligible'] += 1
                             if response['terminal']: drop = 'terminal'
                             else:
-                                require(response.get('analyzed') is True and type(response.get('depth')) is int and response['depth'] >= 1,
-                                        'no completed teacher iteration: '+repr(response))
-                                require(type(response.get('nodes')) is int and response['nodes'] > 0, 'invalid searched node count')
-                                require(type(response.get('score')) is int and -32000 <= response['score'] <= 32000, 'invalid teacher score')
-                                require(type(response.get('hce')) is int and -32767 <= response['hce'] <= 32767, 'invalid HCE')
-                                for flag in ('capture', 'promotion'):
-                                    require(type(response.get(flag)) is bool, 'missing native boolean '+flag)
-                                require(isinstance(response.get('bestmove'), str) and
-                                        re.fullmatch(r'[a-h][1-8][a-h][1-8][nbrq]?', response['bestmove']) is not None,
-                                        'missing/invalid native bestmove')
-                                counts['bestmove_capture']['eligible'] += 1
-                                if response['capture']: drop = 'bestmove_capture'
+                                counts['teacher_incomplete']['eligible'] += 1
+                                if response.get('analyzed') is False:
+                                    require(response.get('analysis_status') == 'insufficient_budget' and
+                                            type(response.get('depth')) is int and response['depth'] == 0 and
+                                            type(response.get('nodes')) is int and 0 <= response['nodes'] <= config.nodes and
+                                            'bestmove' in response and response['bestmove'] is None and
+                                            'score' in response and response['score'] is None,
+                                            'unrecognized incomplete teacher result: '+repr(response))
+                                    drop = 'teacher_incomplete'
                                 else:
-                                    counts['bestmove_promotion']['eligible'] += 1
-                                    if response['promotion']: drop = 'bestmove_promotion'
+                                    require(response.get('analyzed') is True and type(response.get('depth')) is int and response['depth'] >= 1,
+                                            'no completed teacher iteration: '+repr(response))
+                                    require(type(response.get('nodes')) is int and 0 < response['nodes'] <= config.nodes,
+                                            'searched node count outside requested budget')
+                                    require(type(response.get('score')) is int and -32000 <= response['score'] <= 32000, 'invalid teacher score')
+                                    require(type(response.get('hce')) is int and -32767 <= response['hce'] <= 32767, 'invalid HCE')
+                                    for flag in ('capture', 'promotion'):
+                                        require(type(response.get(flag)) is bool, 'missing native boolean '+flag)
+                                    require(isinstance(response.get('bestmove'), str) and
+                                            re.fullmatch(r'[a-h][1-8][a-h][1-8][nbrq]?', response['bestmove']) is not None,
+                                            'missing/invalid native bestmove')
+                                    counts['bestmove_capture']['eligible'] += 1
+                                    if response['capture']: drop = 'bestmove_capture'
+                                    else:
+                                        counts['bestmove_promotion']['eligible'] += 1
+                                        if response['promotion']: drop = 'bestmove_promotion'
                         if drop is not None: counts[drop]['dropped'] += 1
                     stats['input_rows'] += 1
                     shard = stats['shards'][file_index]

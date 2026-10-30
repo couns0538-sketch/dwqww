@@ -240,15 +240,19 @@ def file_hash(path: str | Path, algorithm='sha256') -> str:
 
 def write_manifest(path: str | Path, files: Iterable[str | Path], *, metadata=None) -> dict:
     path = Path(path)
+    part = path.with_name(path.name + '.part')
+    if path.exists() or path.is_symlink() or part.exists() or part.is_symlink():
+        raise FileExistsError('manifest output or partial already exists: ' + str(path))
     entries = []
     for name in files:
         p = Path(name)
         entries.append({'path': str(p), 'bytes': p.stat().st_size,
                         'sha256': file_hash(p), 'md5': file_hash(p, 'md5')})
     result = {'files': entries, 'metadata': metadata or {}}
-    with path.open('x', encoding='utf-8', newline='\n') as f:
-        json.dump(result, f, indent=2, sort_keys=True, allow_nan=False)
-        f.write('\n'); f.flush(); os.fsync(f.fileno())
+    encoded = (json.dumps(result, indent=2, sort_keys=True, allow_nan=False)+'\n').encode('utf-8')
+    with part.open('xb') as f:
+        f.write(encoded); f.flush(); os.fsync(f.fileno())
+    os.link(part, path)  # atomic, no replacement; retain the sealed partial
     return result
 
 

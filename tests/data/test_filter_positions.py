@@ -94,7 +94,8 @@ class IntegrationTests(unittest.TestCase):
     @staticmethod
     def fake_pool(responses):
         class Pool:
-            def __init__(self,*args,**kwargs): self.calls=[]
+            def __init__(self,*args,**kwargs):
+                self.calls=[];self.nodes=args[1];self.hash_mb=kwargs.get('hash_mb',1)
             def __enter__(self): return self
             def __exit__(self,*args): pass
             def map(self,requests,op='filter'):
@@ -102,7 +103,8 @@ class IntegrationTests(unittest.TestCase):
                 for identifier,fen in requests:
                     record={'id':identifier,'ok':True,'in_check':False,'terminal':False,'analyzed':True,
                             'hce':11,'depth':4,'nodes':1024,'cpu_ns':10,'score':18,'bestmove':'a1a2',
-                            'capture':False,'promotion':False}
+                            'capture':False,'promotion':False,'fen':fen,'nodes_limit':self.nodes,
+                            'hash_mb':self.hash_mb,'threads':1}
                     record.update(responses.get(int(identifier),{}));output.append(record)
                 return output
         return Pool
@@ -209,6 +211,42 @@ class IntegrationTests(unittest.TestCase):
         for suffix in ('.pos','.hce','.fen'):
             self.assertEqual((self.root/('batch-1/forge_filtered'+suffix)).read_bytes(),
                              (self.root/('batch-256/forge_filtered'+suffix)).read_bytes())
+
+    def test_documented_incomplete_is_a_drop_and_does_not_seed_deduplication(self):
+        fen='4k3/8/8/8/8/8/8/R3K3 w - - 0 1'
+        paths=self.make_input([(fen,10,.5),(fen,10,.5)])
+        incomplete={'analyzed':False,'analysis_status':'insufficient_budget',
+                    'depth':0,'nodes':1024,'bestmove':None,'score':None}
+        summary=target.run(self.config(paths),self.fake_pool({0:incomplete}))
+        self.assertEqual(summary['kept'],1)
+        self.assertEqual(summary['rules']['teacher_incomplete']['dropped'],1)
+        self.assertEqual(summary['rules']['teacher_incomplete']['eligible'],2)
+        self.assertEqual(summary['rules']['teacher_incomplete']['fraction_input'],0.5)
+        self.assertEqual(summary['rules']['bestmove_capture']['eligible'],1)
+        self.assertEqual(summary['rules']['exact_duplicate']['dropped'],0)
+
+    def test_undocumented_or_malformed_incomplete_still_aborts(self):
+        fen='4k3/8/8/8/8/8/8/R3K3 w - - 0 1'
+        paths=self.make_input([(fen,10,.5)])
+        incomplete={'analyzed':False,'analysis_status':'insufficient_budget',
+                    'depth':0,'nodes':1024,'bestmove':None,'score':None}
+        for index,change in enumerate(({'analysis_status':'error'},{'nodes':1025},{'depth':1},
+                                       {'score':0},{'bestmove':'a1a2'},{'nodes':-1})):
+            with self.subTest(change=change):
+                response={**incomplete,**change}
+                with self.assertRaisesRegex(ValueError,'unrecognized incomplete'):
+                    target.run(self.config(paths,'bad-incomplete-'+str(index)),self.fake_pool({0:response}))
+                self.assertFalse((self.root/('bad-incomplete-'+str(index))/'summary.json').exists())
+
+    def test_native_full_state_and_budget_are_checked(self):
+        fen='4k3/8/8/8/8/8/8/R3K3 w - - 0 1'
+        paths=self.make_input([(fen,10,.5)])
+        bad=({'fen':fen.replace(' 0 1',' 99 1')},{'nodes':1025},{'nodes_limit':1025},
+             {'hash_mb':2},{'threads':2})
+        for index,response in enumerate(bad):
+            with self.subTest(response=response):
+                with self.assertRaisesRegex(ValueError,'FEN differs|node count|configuration mismatch'):
+                    target.run(self.config(paths,'contract-'+str(index)),self.fake_pool({0:response}))
 
     def test_native_error_is_not_a_drop_and_retains_failure(self):
         fen='4k3/8/8/8/8/8/8/R3K3 w - - 0 1'

@@ -1,0 +1,168 @@
+{
+  "claim": "Data filtering measurements only; no Elo or training-gain claim.",
+  "command": [
+    "tools/data/filter_positions.py",
+    "--pos",
+    "/tmp/astra-a1-data-input/extracted/forge_selfplay_003.pos",
+    "--sidecar",
+    "/tmp/astra-a1-data-input/extracted/forge_selfplay_003.txt",
+    "--out",
+    "/tmp/astra-a1-filter-full-10m-v2",
+    "--probe",
+    "/tmp/astra-a1-native-build/budget-status/forge_data_probe",
+    "--probe-nodes",
+    "1024",
+    "--probe-workers",
+    "3",
+    "--batch-size",
+    "256",
+    "--hash-mb",
+    "1",
+    "--disagreement-cp",
+    "400",
+    "--draw-disagreement-cp",
+    "800",
+    "--near-window",
+    "64",
+    "--near-score-delta",
+    "25",
+    "--holdout",
+    "/workspace/forge-nnue-handoff-20261023/selfplay-input/payload/forge_selfplay_013_head.txt"
+  ],
+  "config": {
+    "batch_size": 256,
+    "disagreement_cp": 400,
+    "draw_disagreement_cp": 800,
+    "hash_mb": 1,
+    "holdouts": [
+      "/workspace/forge-nnue-handoff-20261023/selfplay-input/payload/forge_selfplay_013_head.txt"
+    ],
+    "limit": null,
+    "near_score_delta": 25,
+    "near_window": 64,
+    "nodes": 1024,
+    "out": "/tmp/astra-a1-filter-full-10m-v2",
+    "positions": [
+      "/tmp/astra-a1-data-input/extracted/forge_selfplay_003.pos"
+    ],
+    "probe": "/tmp/astra-a1-native-build/budget-status/forge_data_probe",
+    "sidecars": [
+      "/tmp/astra-a1-data-input/extracted/forge_selfplay_003.txt"
+    ],
+    "stem": "forge_filtered",
+    "workers": 3
+  },
+  "exact_identity": "SHA256(board32 || STM), with stored full-key collision check",
+  "exact_label_rows": 0,
+  "fractions": "Ordered first-drop waterfall, not independent marginal rule prevalence.",
+  "game_overlap": "UNVERIFIED_NO_AUTHENTICATED_GAME_IDS",
+  "holdout_scope": "Only the explicit supplied holdouts; missing holdout shards/game provenance are not certified.",
+  "holdouts": [],
+  "input_rows": 0,
+  "inputs": [],
+  "kept": 0,
+  "native_cpu_ns": 0,
+  "native_queries": 0,
+  "near_policy": "Prior kept rows within near_window ORIGINAL input indices; same STM/result/castling/EP/pawn+king squares/inventory; one nonpawn nonking relocation; source score within delta. Clocks are not used; this is explicitly a sampling heuristic.",
+  "policy_order": [
+    "holdout",
+    "disagreement",
+    "exact_duplicate",
+    "near_duplicate",
+    "in_check",
+    "terminal",
+    "teacher_incomplete",
+    "bestmove_capture",
+    "bestmove_promotion"
+  ],
+  "reconstructed_label_rows": 0,
+  "rules": {
+    "bestmove_capture": {
+      "dropped": 0,
+      "eligible": 0
+    },
+    "bestmove_promotion": {
+      "dropped": 0,
+      "eligible": 0
+    },
+    "disagreement": {
+      "dropped": 0,
+      "eligible": 0
+    },
+    "exact_duplicate": {
+      "dropped": 0,
+      "eligible": 0
+    },
+    "holdout": {
+      "dropped": 0,
+      "eligible": 0
+    },
+    "in_check": {
+      "dropped": 0,
+      "eligible": 0
+    },
+    "near_duplicate": {
+      "dropped": 0,
+      "eligible": 0
+    },
+    "teacher_incomplete": {
+      "dropped": 0,
+      "eligible": 0
+    },
+    "terminal": {
+      "dropped": 0,
+      "eligible": 0
+    }
+  },
+  "shards": [
+    {
+      "input_rows": 0,
+      "kept": 0,
+      "path": "/tmp/astra-a1-data-input/extracted/forge_selfplay_003.pos",
+      "rules": {
+        "bestmove_capture": {
+          "dropped": 0,
+          "eligible": 0
+        },
+        "bestmove_promotion": {
+          "dropped": 0,
+          "eligible": 0
+        },
+        "disagreement": {
+          "dropped": 0,
+          "eligible": 0
+        },
+        "exact_duplicate": {
+          "dropped": 0,
+          "eligible": 0
+        },
+        "holdout": {
+          "dropped": 0,
+          "eligible": 0
+        },
+        "in_check": {
+          "dropped": 0,
+          "eligible": 0
+        },
+        "near_duplicate": {
+          "dropped": 0,
+          "eligible": 0
+        },
+        "teacher_incomplete": {
+          "dropped": 0,
+          "eligible": 0
+        },
+        "terminal": {
+          "dropped": 0,
+          "eligible": 0
+        }
+      }
+    }
+  ],
+  "source_alignment": [],
+  "speculative_native_queries_not_used": 0,
+  "started_utc": "2026-10-30T02:25:42.333766+00:00",
+  "status": "RUNNING",
+  "teacher_incomplete_policy": "Drop only explicit insufficient_budget/depth0 with null score and move; do not treat other native failures as filtered data.",
+  "validation_scope": "Selected rows have structural FPOS/FEN alignment checks; native legal-state validation runs only on rows surviving the cheap rules."
+}

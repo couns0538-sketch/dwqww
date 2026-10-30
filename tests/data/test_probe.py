@@ -94,6 +94,19 @@ class ProbeTests(unittest.TestCase):
         self.assertEqual({k:a[k] for k in fields},{k:c[k] for k in fields})
         self.assertLessEqual(a['nodes'],2048)
 
+    def test_real_quiescence_root_can_exhaust_budget_before_depth_one(self):
+        # Original 10M filter input row 27772. The 1024-node budget is consumed
+        # by a legal, non-check root's first iteration, not a malformed position.
+        fen='r1bq2k1/pp3r1p/3b1n2/P2p1Np1/5p2/3Q2P1/1BP1PPBP/R4RK1 b - - 8 21'
+        p=run(['27772\tfilter\t'+fen,'next\tanalyze\t'+START],extra=('--nodes','1024'))
+        self.assertEqual(p.returncode,0)
+        a,b=[json.loads(x) for x in p.stdout.splitlines()]
+        self.assertTrue(a['ok']);self.assertFalse(a['terminal']);self.assertFalse(a['in_check'])
+        self.assertFalse(a['analyzed']);self.assertEqual(a['analysis_status'],'insufficient_budget')
+        self.assertEqual(a['depth'],0);self.assertEqual(a['nodes'],1024)
+        self.assertIsNone(a['score']);self.assertIsNone(a['bestmove'])
+        self.assertTrue(b['ok']);self.assertTrue(b['analyzed'])
+
     def test_invalid_roots_and_recovery(self):
         invalid=['nonsense','8/8/8/8/8/8/8/Kk6 w - - 0 1',
                  '4k3/8/8/8/8/8/8/4K3 w K - 0 1',

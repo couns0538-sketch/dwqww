@@ -122,7 +122,13 @@ std::string request(std::string_view id, std::string_view op, std::string_view f
         searcher.clear(); searcher.reset_stop();
         SearchLimits limits; limits.depth = cfg.depth; limits.nodes = cfg.nodes; limits.nodes_specified = true;
         const auto result = searcher.search(board, limits, false, Searcher::TTAccess::Exclusive);
-        if (result.depth <= 0) throw std::runtime_error("node budget completed no iterative-deepening iteration");
+        if (result.depth <= 0) {
+            // A legal tactical root can spend the entire budget in its first
+            // iteration. Preserve the work accounting, never invent a label.
+            out << ",\"analyzed\":false,\"analysis_status\":\"insufficient_budget\",\"bestmove\":null,\"capture\":false,\"promotion\":false,\"score\":null,\"nodes\":"
+                << result.nodes << ",\"depth\":" << result.depth;
+            timing(out, started, cpu_start); out << '}'; return out.str();
+        }
         if (result.score < -MateValue || result.score > MateValue) throw std::runtime_error("invalid search score sentinel");
         if (result.best_move.is_none() || std::find(moves.begin(), moves.end(), result.best_move) == moves.end())
             throw std::runtime_error("search returned no legal best move");

@@ -1,0 +1,31 @@
+Traceback (most recent call last):
+  File "/tmp/forge-astra-a1-data/tools/data/filter_positions.py", line 422, in <module>
+    raise SystemExit(main())
+                     ^^^^^^
+  File "/tmp/forge-astra-a1-data/tools/data/filter_positions.py", line 417, in main
+    summary = run(config)
+              ^^^^^^^^^^^
+  File "/tmp/forge-astra-a1-data/tools/data/filter_positions.py", line 343, in run
+    process(batch); batch = []
+    ^^^^^^^^^^^^^^
+  File "/tmp/forge-astra-a1-data/tools/data/filter_positions.py", line 250, in process
+    responses = pool.map(requests, op='filter') if requests else []
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/tmp/forge-astra-a1-data/tools/data/forge_probe.py", line 119, in map
+    for i,value in f.result():answer[i]=value
+                   ^^^^^^^^^^
+  File "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/concurrent/futures/_base.py", line 449, in result
+    return self.__get_result()
+           ^^^^^^^^^^^^^^^^^^^
+  File "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/concurrent/futures/_base.py", line 401, in __get_result
+    raise self._exception
+  File "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/concurrent/futures/thread.py", line 59, in run
+    result = self.fn(*self.args, **self.kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/tmp/forge-astra-a1-data/tools/data/forge_probe.py", line 116, in run
+    def run(k):return [(i,self.clients[k].query(fen,op,ident)) for i,(ident,fen) in enumerate(items) if i%n==k]
+                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/tmp/forge-astra-a1-data/tools/data/forge_probe.py", line 72, in query
+    if result.get('ok') is not True:raise ProbeError('native rejected '+ident+': '+str(result.get('error')))
+                                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+forge_probe.ProbeError: native rejected 27772: node budget completed no iterative-deepening iteration

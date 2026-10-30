@@ -136,6 +136,7 @@ def generate(config, probe, *, prepared=False):
     config.validate(); out = Path(config.out)
     if not prepared: prepare_output(config)
     elif not (out/'settings.json').is_file(): raise ValueError('prepared output reservation is missing')
+    elif json.loads((out/'settings.json').read_text()) != settings(config): raise ValueError('prepared settings differ from requested configuration')
     rng = random.Random(config.seed)
     filename = 'openings.moves' if config.format == 'r8' else 'openings.fen'
     counters = dict(attempts=0, accepted=0, rejected_terminal=0, rejected_check=0,
@@ -149,23 +150,24 @@ def generate(config, probe, *, prepared=False):
             start = chess960_style_fen(rng) if config.chess960_style else STANDARD_FEN
             fen = start; moves = []; checks = []; rejected = False
             length = rng.randint(config.min_plies, config.max_plies)
+            state = inspect(probe, fen); counters['inspect_queries'] += 1
+            if state['terminal']:
+                counters['rejected_terminal'] += 1; continue
             if not config.final_only:
                 item = analyze(probe, fen, 0); counters['analysis_queries'] += 1; checks.append(item)
                 if abs(item['score_stm_cp']) > config.max_abs_cp:
                     counters['rejected_band'] += 1; continue
             for ply in range(1, length + 1):
+                choice = rng.choice(sorted(state['moves'], key=lambda x: x['uci']))
+                fen = choice['fen']; moves.append(choice['uci'])
                 state = inspect(probe, fen); counters['inspect_queries'] += 1
                 if state['terminal']:
                     counters['rejected_terminal'] += 1; rejected = True; break
-                choice = rng.choice(sorted(state['moves'], key=lambda x: x['uci']))
-                fen = choice['fen']; moves.append(choice['uci'])
                 if not config.final_only:
                     item = analyze(probe, fen, ply); counters['analysis_queries'] += 1; checks.append(item)
                     if abs(item['score_stm_cp']) > config.max_abs_cp:
                         counters['rejected_band'] += 1; rejected = True; break
             if rejected: continue
-            state = inspect(probe, fen); counters['inspect_queries'] += 1
-            if state['terminal']: counters['rejected_terminal'] += 1; continue
             if state['in_check']: counters['rejected_check'] += 1; continue
             if config.final_only:
                 item = analyze(probe, fen, length); counters['analysis_queries'] += 1; checks.append(item)
