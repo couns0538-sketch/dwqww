@@ -11,8 +11,8 @@ PC crash/reboot 11:38 (nothing of R11 was half-written: the run died in dedup be
   smoke profile through the one command (PASS, net sha256 e0462a87..., parity 12000/12000, OFF d11 312866, ON d11
   341450 d13 946351, WAC 249/272); CR R4 LOW 1/2/3 (bf0e1792, b1ca03bf, afdfa4ae) + save interval (3c856944) + bench
   depths (66e0c488) + full save every 5 epochs (05687908); patch files 21-25.
-- RUNNING: full profile (owner's recipe, L1 1024, 20 x 152.5M) since 14:24:07 at ~105k pos/s (6.43 it/s), ~24 min
-  per epoch -> ends ~22:30; checkpoints at epochs 5/10/15/20 (1.44 GiB each). It yields if production restarts.
+- RUNNING: full profile (owner's recipe, L1 1024, 20 x 152.5M) since 14:24:07; epoch 0 slow (compile warm-up, cold
+  cache), epochs 1-2 at 12.05-12.43 it/s (~200k pos/s), 12.5-13 min per epoch -> ends ~18:45, package ~18:55; checkpoints at epochs 5/10/15/20 (1.44 GiB each). It yields if production restarts.
   Run dir D:\grok-pc-data\r11_nnue\runs\r11_full_k32h3_l1024_bs16384_e20x152500000_s1; driver log
   D:\grok-pc-data\r11_nnue\logs\full_run.out. When it ends the one command exports, checks (d11-d22) and packages
   the net into gate_ready\ by itself.

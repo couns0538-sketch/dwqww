@@ -8,9 +8,10 @@ was paused by QA from 13:46:56 for the R11 gap). Handover notes: `../NOTES_R11.m
 changes): runs 41044452098, 41044616304, 41045785514, 41048252114 all success; later pushes are mostly `[skip ci]`.
 
 Status at 14:30: everything QA asked for in the gap is done except the 20-epoch L1 1024 net, which is training now
-(started 14:24:07). Measured on R11's allowed resources (Idle, CPUs 8-10, gates at BelowNormal on CPUs 4-13): 6.43
-it/s x 16,384 = ~105k positions/s, ~24 min per epoch, so the 20 epochs end around 22:30 (the owner's production run
-of the same recipe took 2 h 27 min with full resources). If production restarts earlier, the run yields within ~20 s
+(started 14:24:07). Measured on R11's allowed resources (Idle, CPUs 8-10, gates at BelowNormal on CPUs 4-13): the
+first 20 % of epoch 0 ran at 6.43 it/s (compile warm-up, cold file cache), epochs 1 and 2 at 12.05 / 12.43 it/s x
+16,384 = ~200k positions/s, 12.5-13 min per epoch, so the 20 epochs end around 18:45 and the package ~18:55 (the
+owner's production run of the same recipe took 2 h 27 min with full resources). If production restarts earlier, the run yields within ~20 s
 (stop checkpoint, exit 76) and resumes from it in a later gap.
 
 ## Acceptance
@@ -51,8 +52,8 @@ of the same recipe took 2 h 27 min with full resources). If production restarts 
 ## Findings
 - Background mode is the wrong tool for "low priority" on this PC: hard 32 MB working set; a child of a
   background-mode process does not inherit the cap (only memory priority 1).
-- At Idle on CPUs 8-10 R11 trains at ~105k positions/s at L1 1024 (gates at BelowNormal own CPUs 4-13): the owner's
-  20-epoch recipe needs ~8 h there vs 2.5 h as a production job.
+- At Idle on CPUs 8-10 R11 trains at ~200k positions/s at L1 1024 once compiled and cached (gates at BelowNormal own
+  CPUs 4-13): the owner's 20-epoch recipe needs ~4.4 h there vs 2.5 h as a production job.
 - The R8 v5 self-play folder keeps growing (5 new shards today): every data run registers them, so the holdout proof
   is rerun after every data run (the one command does that itself).
 - A weak net makes the ON bench explode (hours at d16-d22); smoke and test profiles bench shallower.
@@ -61,7 +62,7 @@ of the same recipe took 2 h 27 min with full resources). If production restarts 
 
 ## Left for the owner / QA
 1. The 20-epoch L1 1024 run (`D:\grok-pc-data\r11_nnue\runs\r11_full_k32h3_l1024_bs16384_e20x152500000_s1`): either keep
-   the gap until ~22:30, or restart production - R11 then yields (stop checkpoint) and resumes in a later gap. Faster:
+   the gap until ~18:55, or restart production - R11 then yields (stop checkpoint) and resumes in a later gap. Faster:
    QA queues the same recipe as a production job on R11's binpacks (`D:\grok-pc-data\r11_nnue\data\train_files.txt`,
    holdout `holdout_files.txt`; ~2.5 h), then `r11_pipeline.py --config opus_r11/pipeline/r11_config.json run --ckpt
    <final .ckpt> --l1 1024` exports, checks and packages it.
