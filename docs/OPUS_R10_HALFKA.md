@@ -19,11 +19,11 @@ QA_R6AMD_20261030.md`, `CR_R6AMD_20261030.md`) are not on this PC or in the repo
 | job | result | evidence |
 |---|---|---|
 | 1 loader + `EvalFileHalfKA` (off by default) | `src/nnue_halfka.cpp` reads Stockfish-format `.nnue` from the R6 export: version `0x6A448AFA`, network / FT / 32 stack hashes, L1 from the FT hash, (L2, L3) from the network hash + exact file size, int16-overflow bound; any L1 multiple of 64 up to 4096, L2/L3 <= 64. Option OFF: **bench 312866 / 862329 / 3024920 / 12389307 / 34048354, perft5 4865609, kiwipete 193690690 = ALL OK**. Truncated, wrong-version, garbage, empty and missing files answer `info string ERROR EvalFileHalfKA: ...` and leave the lock's eval (bench back to the pin) | `opus_r10/logs/identity_off_a.log`, `uci_check_b.log`, `uci_check_smoke.log` |
-| 2 incremental accumulators, AVX2 + scalar, threads | per-worker accumulator stack indexed like the search stack; lazy update from the nearest valid ancestor with the same own-king square and state (else refresh: king move, mirror flip, queen/rook state change); AVX2 kernels (int8->int16 row add/sub, pairwise product, `maddubs`+`madd` dot products) with scalar fallbacks; read-only shared net, one stack per worker | `src/nnue_halfka.cpp`, `src/search.cpp` (`halfka_evaluate`) |
-| 3 parity vs nnue-pytorch | the trainer's own `NNUEReader` + C++ feature extractor (`get_sparse_batch_from_fens("K32H3")`) + fake-quantized `model.forward` (float64) vs Forge's raw output: **R6 net (256x32x32): 12,000 / 12,000 exact** (also exact in float32); **smoke net (64x32x32): 12,000 / 12,000 exact**; **untrained 1024x32x32: 2,000 / 2,000 exact**. AVX2 == scalar on every position. Incremental == refresh: **204,694 checks / 0 mismatches** on 200 random games (parent and 2-4 plies back) and 31,602 / 0 at L1 1024; in-search verify build (`-DFORGE_HALFKA_VERIFY`): **3,028,552 lazily built rows equal a full refresh** (bench 13 + four 3-thread depth-13 searches) | `opus_r10/logs/parity_*`, `walk_1.log`, `verify_search.log`, `opus_r10/parity/` |
-| 4 smoke net end to end | K32H3^ 64x32x32 trained on the box CPU (2 threads, 6 epochs x 200k positions of a 17 MB Forge self-play slice, loss 0.0505 -> 0.0115; the R6 RAM guard ended the run at 7 GB free after the sixth epoch, index 5, whose checkpoint is the net), exported by the trainer's `serialize.py`, loads, **ON bench 11 = 305,623 (stable over repeats and a reload)**; WAC 300 at 200 ms: see below; 200 fast games: see below | `opus_r10/nets/smoke_k32h3_l64.nnue`, `opus_r10/logs/smoke2_train_summary.log` |
-| 5 NPS vs FORGENN2 | see below | `opus_r10/logs/nps_r10.log/.json` |
-| tests / CI | box build 0 warnings, FMA 0; CMake all targets + CTest: only the 4 known `forge_tests` lines (KNOWN-FAILURE CHECK: PASS); opus-ci green on `cadf1d91` (release ALL OK, ASan/TSan KNOWN-FAILURE CHECK: PASS, TSan 0 reports) | `opus_r10/logs/ctest_b1.log(.known)`, run 40986475892 |
+| 2 incremental accumulators, AVX2 + scalar, threads | per-worker accumulator stack indexed like the search stack; lazy update from the nearest valid ancestor with the same own-king square and state (else refresh: king move, mirror flip, queen/rook state change); kernels: AVX-512 (VNNI) on the box build, AVX2 on CI / other CPUs (`-march=x86-64-v3`), scalar fallbacks for everything (v2: one-pass update, block kernel for l1/l2, see "Speedup done in R10"); read-only shared net, one stack per worker | `src/nnue_halfka.cpp`, `src/search.cpp` (`halfka_evaluate`) |
+| 3 parity vs nnue-pytorch | the trainer's own `NNUEReader` + C++ feature extractor (`get_sparse_batch_from_fens("K32H3")`) + fake-quantized `model.forward` (float64) vs Forge's raw output: **R6 net (256x32x32): 12,000 / 12,000 exact** (also exact in float32); **smoke net (64x32x32): 12,000 / 12,000 exact**; **untrained 1024x32x32: 2,000 / 2,000 exact**. AVX2 == scalar on every position. Incremental == refresh: **204,694 checks / 0 mismatches** on 200 random games (parent and 2-4 plies back) and 31,602 / 0 at L1 1024; in-search verify build (`-DFORGE_HALFKA_VERIFY`): **3,028,552 lazily built rows equal a full refresh** (bench 13 + four 3-thread depth-13 searches). v2 kernels: outputs byte-identical to v1 on all 26,000 evaluations (AVX-512 and AVX2 builds), walk 361,502 checks / 0, verify 3,208,448 rows | `opus_r10/logs/parity_*`, `walk_1.log`, `walk_v2.log`, `verify_search*.log`, `opus_r10/parity/` |
+| 4 smoke net end to end | K32H3^ 64x32x32 trained on the box CPU (2 threads, 6 epochs x 200k positions of a 17 MB Forge self-play slice, loss 0.0505 -> 0.0115; the R6 RAM guard ended the run at 7 GB free after the sixth epoch, index 5, whose checkpoint is the net), exported by the trainer's `serialize.py`, loads, **ON bench 11 = 305,623 (stable over repeats and a reload)**; WAC 300 at 200 ms: 260 solved (OFF 272), a move on 300 / 300; **200 fast games vs the option off: no illegal move, no crash, no time loss** (it scored 0.5 / 200: a test net) | `opus_r10/nets/smoke_k32h3_l64.nnue`, `opus_r10/logs/smoke2_train_summary.log`, `logs/wac/`, `logs/fast_games_smoke.log` |
+| 5 NPS vs FORGENN2 | ON vs OFF in one exe, first kernels: d16 -23.9% (L1 64), -39.8% (L1 256), -62.3% (L1 1024); v2 kernels (same trees): +16.2% / +20.1% / +67% NPS over v1; ON vs OFF with v2: see "NPS with the v2 kernels"; OFF costs nothing measurable vs the lock exe (d16 -0.1% [-2.2, +2.0]) | `opus_r10/logs/nps_*.log/.json` |
+| tests / CI | box build 0 warnings, FMA 0; CMake all targets + CTest: only the 4 known `forge_tests` lines (KNOWN-FAILURE CHECK: PASS); opus-ci green on `cadf1d91` (release ALL OK, ASan/TSan KNOWN-FAILURE CHECK: PASS, TSan 0 reports). New CTest `forge_halfka_tests` (v2): CTEST_C1_PENDING | `opus_r10/logs/ctest_b1.log(.known)`, run 40986475892, CI_V2_PENDING |
 
 ## Integer arithmetic (why the parity is exact)
 FT `clamp(a, 0, 255) * clamp(b, 0, 255) >> 9` per half, [side to move, other side]; l1 sums `s1` (scale 2^14), linear
@@ -118,10 +118,23 @@ vectorises the scalar dot product with AVX-512 VNNI (`vpdpbusd`, zmm) under `-ma
   | R6 256x32x32 | **+22.8% [+20.0, +25.6]** | **+20.1% [+18.3, +21.9]** |
   | A/A control (v1 vs v1) | -0.0% [-1.8, +1.8] | -0.1% [-1.6, +1.3] |
   | smoke 64x32x32 | +17.9% [+15.4, +20.6] | +16.2% [+13.6, +18.9] |
-  | untrained 1024x32x32 | L1024_PENDING | - |
+  | untrained 1024x32x32 (5 rounds) | +67.0% [+64.3, +69.7] | - |
 
   Measured on the loaded PC, so the numbers are advisory; the PC speed rule (lower bound >= +2% at d16 and d20 on the
-  quiet runner) was not run. The OFF path is not touched by v2 (OFF identity is the lock's; see the OFF A/B below).
+  quiet runner) was not run.
+- **The option OFF costs nothing measurable**: the R10 exe (v2) with the option off vs the lock exe
+  (`forge_lock_copy.exe`, sha256 `5d4df7f1...`, the same box recipe), 10 rounds, equal nodes: d13 +0.4% [-2.9, +3.7],
+  d16 -0.1% [-2.2, +2.0]; the lock-vs-lock A/A read +1.4% [-1.0, +3.7] and +1.8% [-0.7, +4.4] (`nps_off_vs_lock.*`).
+
+## NPS with the v2 kernels: HalfKA ON vs OFF (same method as the first table, `forge_r10_c.exe`, 3 rounds)
+| set | d13 CPU NPS | vs OFF | d16 CPU NPS | vs OFF |
+|---|---|---|---|---|
+| OFF (lock eval) | 1,839,635 | - | 1,897,989 | - |
+| smoke 64x32x32 | 1,695,709 | -7.8% [-17.0..-1.9] | 1,756,559 | -8.3% [-8.4..-6.6] |
+| R6 256x32x32 | 1,515,787 | -20.6% [-25.8..-17.6] | 1,421,705 | -25.1% [-28.0..-24.8] |
+| untrained 1024x32x32 | 1,259,213 | -31.1% [-31.6..-29.3] | not run | |
+
+Again the trees differ (`opus_r10/logs/nps_r10_v2*.log/.json`); not a speed claim.
 
 ## Next speedups (measured where they come from; none of them done)
 1. **64-byte alignment** of the FT weight rows and the accumulator rows. The v2 AVX-512 refresh got slower than v1's
