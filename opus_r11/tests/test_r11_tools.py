@@ -293,12 +293,12 @@ def main() -> int:
     evs = [json.loads(x) for x in open(os.path.join(rd, "r11_events.jsonl"), encoding="utf-8")] \
         if os.path.isfile(os.path.join(rd, "r11_events.jsonl")) else []
     check(rr.returncode == 78 and [e["event"] for e in evs] == ["priority_failed"] and
-          evs[0].get("failed") == [f"affinity {bad_mask}"],
+          evs[0].get("failed") == [f"affinity {bad_mask} (error 87)"],  # CR R4: ERROR_INVALID_PARAMETER logged
           f"entry: a failed affinity call -> exit 78, event priority_failed, nothing imported: rc {rr.returncode} {evs}")
     build = os.path.join(REPO, "tools", "nnue_pytorch_amd", "r11", "build_r11_tools.py")
     rb = subprocess.run([sys.executable, "-I", "-B", build, "--affinity", bad_mask, "--out-dir",
                          os.path.join(scratch, "build_must_not_exist")], capture_output=True, text=True, timeout=300)
-    check(rb.returncode == 2 and "FAIL could not lower this process" in rb.stdout and
+    check(rb.returncode == 2 and f"affinity {bad_mask} (error 87)" in rb.stdout and
           not os.path.exists(os.path.join(scratch, "build_must_not_exist")),
           f"build_r11_tools: a failed affinity call -> FAIL, nothing built: rc {rb.returncode} {rb.stdout.strip()[-160:]}")
     try:

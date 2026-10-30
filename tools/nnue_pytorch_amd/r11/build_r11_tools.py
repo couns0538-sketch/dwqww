@@ -44,7 +44,7 @@ def main() -> int:
         if bin(mask).count("1") > 3 or mask <= 0:
             print("FAIL --affinity must select 1..3 CPUs")
             return 2
-        k32 = ctypes.windll.kernel32
+        k32 = ctypes.WinDLL("kernel32", use_last_error=True)  # CR R4: failures carry their GetLastError
         k32.GetCurrentProcess.restype = wintypes.HANDLE
         k32.SetPriorityClass.argtypes = [wintypes.HANDLE, wintypes.DWORD]
         k32.SetProcessAffinityMask.argtypes = [wintypes.HANDLE, ctypes.c_size_t]
@@ -53,16 +53,16 @@ def main() -> int:
         # CR R3: fail closed - no compiler is started unless all four settings were applied
         failed = []
         if not k32.SetPriorityClass(h, 0x00000040):
-            failed.append("Idle class")
+            failed.append(f"Idle class (error {ctypes.get_last_error()})")
         try:
             psutil.Process().ionice(psutil.IOPRIO_VERYLOW)
-        except (OSError, psutil.Error):
-            failed.append("I/O priority very low")
+        except (OSError, psutil.Error) as e:
+            failed.append(f"I/O priority very low ({type(e).__name__}: {e})")
         low = wintypes.ULONG(2)  # MEMORY_PRIORITY_LOW
         if not k32.SetProcessInformation(h, 0, ctypes.byref(low), 4):  # ProcessMemoryPriority
-            failed.append("memory priority low")
+            failed.append(f"memory priority low (error {ctypes.get_last_error()})")
         if not k32.SetProcessAffinityMask(h, mask):
-            failed.append(f"affinity {hex(mask)}")
+            failed.append(f"affinity {hex(mask)} (error {ctypes.get_last_error()})")
         if failed:
             print(f"FAIL could not lower this process ({', '.join(failed)}); nothing built")
             return 2

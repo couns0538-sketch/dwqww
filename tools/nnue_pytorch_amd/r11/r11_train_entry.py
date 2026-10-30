@@ -99,7 +99,7 @@ def lower_this_process(mask: int) -> list[str]:
         import psutil
     except ImportError:
         return ["psutil missing (I/O priority)"]
-    k32 = ctypes.windll.kernel32
+    k32 = ctypes.WinDLL("kernel32", use_last_error=True)  # CR R4: every failure carries its GetLastError
     k32.GetCurrentProcess.restype = wintypes.HANDLE
     k32.SetPriorityClass.argtypes = [wintypes.HANDLE, wintypes.DWORD]
     k32.SetProcessAffinityMask.argtypes = [wintypes.HANDLE, ctypes.c_size_t]
@@ -107,16 +107,16 @@ def lower_this_process(mask: int) -> list[str]:
     h = k32.GetCurrentProcess()
     failed = []
     if not k32.SetPriorityClass(h, 0x00000040):
-        failed.append("Idle class")
+        failed.append(f"Idle class (error {ctypes.get_last_error()})")
     try:
         psutil.Process().ionice(psutil.IOPRIO_VERYLOW)
-    except (OSError, psutil.Error):
-        failed.append("I/O priority very low")
+    except (OSError, psutil.Error) as e:
+        failed.append(f"I/O priority very low ({type(e).__name__}: {e})")
     low = wintypes.ULONG(2)  # MEMORY_PRIORITY_LOW
     if not k32.SetProcessInformation(h, 0, ctypes.byref(low), 4):  # ProcessMemoryPriority
-        failed.append("memory priority low")
+        failed.append(f"memory priority low (error {ctypes.get_last_error()})")
     if not k32.SetProcessAffinityMask(h, mask):
-        failed.append(f"affinity {hex(mask)}")
+        failed.append(f"affinity {hex(mask)} (error {ctypes.get_last_error()})")
     return failed
 
 
