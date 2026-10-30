@@ -31,7 +31,8 @@ Evidence paths below are under `validation/astra-bullet-export/`.
 | Selected HCE labels against exact AL1 | PASS: all 8,192 exact | `lock_native/hce_subset_comparison.json` |
 | One output weight deliberately corrupted | Negative control PASS: 9,190 mismatches detected | `lock_native/sample_one_weight_comparison.json` |
 | ASan/UBSan and leak detection | PASS: 12,000 sample evaluations, no diagnostics | `lock_native/sample_sanitized_untraced_comparison.json` |
-| Python and native output-safety tests | PASS: 40 at this review checkpoint | `final_review/suite/bullet.stderr` |
+| Python and native output-safety tests | PASS: 40, no skips in root run | `final_review/suite/bullet.stderr` |
+| Bullet backward graph / CPU input mapper | PASS: 2 Rust tests; 8192 rows / 64 batches; no training | `lock_gpu_driver_backward_tests.log`, `bullet_mapper_backward_smoke.stdout` |
 | Supplementary R10 export | PASS: 12,000 exact; corrupted weight fails parity | `r10_parity_retry/` |
 | Unchanged R10 CTest | 14/15; four existing forge_tests diagnostics | `native/ctest/` |
 | Bullet GPU training, HIP, Windows runtime | UNVERIFIED | No supported GPU exposed here |
@@ -58,9 +59,9 @@ The earlier R10 K32H3 exporter is preserved as supplementary work. Its synthetic
 
 ## Review and continuation
 
-The requested 20-minute review is still open at this checkpoint. Repaired findings include oracle output overwrite/alias protection, quantization boundary handling and manifest validation. Job 2 independently repaired incorrect completion counts, unbound file roles, omitted binpack checks and a source-symlink identity race.
+The requested review completed over **24.54 minutes** (2026-10-30T09:24:49.089013+00:00 to 2026-10-30T09:49:21.552640+00:00). Repaired findings include oracle output overwrite/alias protection, quantization boundary handling and manifest validation. Job 2 independently repaired incorrect completion counts, unbound file roles, omitted binpack checks and a source-symlink identity race. Cumulative cross-shard dedup passed an additional independent recovery test. Original reproductions, fixes and rechecks are preserved; see `validation/astra-bullet-export/final_review/review_complete.json`.
 
-Job 2 is on `astra-fen-convert-20261030`, with report `docs/ASTRA_CONVERTER_20261030.md`. Next: finish review, run the isolated HIP smoke on the PC, export its checkpoint and check all 12,000 FENs, then run position dedup against the complete private holdouts. Whole-shard 013/014 exclusion follows the user's accepted policy; game IDs are not inferred. Filtered 003 must replace raw 003 in an ablation, not be appended and double-weighted.
+Job 2 is on `astra-fen-convert-20261030`, at **`41d23db076f1b217d90a6f26779deb7125361edc`**, with report `docs/ASTRA_CONVERTER_20261030.md`. It passed exact 1M-row binpack/Bullet-plus-sidecar checks, 45 unit tests, 13 native sanitizer tests and synthetic holdout exclusion (1000 removed, 0 remaining). Next: run the isolated HIP smoke on the PC, export its checkpoint and check all 12,000 FENs, then run position dedup against the complete private holdouts. Whole-shard 013/014 exclusion follows the user's accepted policy; game IDs are not inferred. Filtered 003 must replace raw 003 in an ablation, not be appended and double-weighted.
 
 Original progress checkpoints remain in [checkpoint history](ASTRA_BULLET_CHECKPOINTS_20261030.md). No playing-strength claim is made.
 

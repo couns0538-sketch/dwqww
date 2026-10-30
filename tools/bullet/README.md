@@ -133,12 +133,22 @@ On the PC, after configuring the installed HIP SDK as Bullet documents
 (`HIP_PATH`, with `GCN_ARCH_NAME` obtained from `hipinfo`), the intended command is:
 
 ```powershell
-Get-FileHash .\NEW_BULLET_INPUT\input.fbs -Algorithm SHA256
-# Compare exactly with NEW_BULLET_INPUT\manifest.json input_sha256 before use.
-cargo run --release --locked --features rocm --manifest-path tools/bullet/lock_graph/Cargo.toml --bin train_smoke -- NEW_BULLET_INPUT/input.fbs NEW_GPU_SMOKE_OUTPUT 128 2>&1 | Tee-Object NEW_GPU_SMOKE_RUN.txt
-if ($LASTEXITCODE -ne 0) { throw "Bullet GPU smoke failed; retain all logs" }
-python tools/bullet/lock_export.py manifest --checkpoint NEW_GPU_SMOKE_OUTPUT/weights.bin --out NEW_GPU_MANIFEST.json --provenance 'Actual Bullet GPU smoke; source SHA and saved log path'
-python tools/bullet/lock_export.py export --checkpoint NEW_GPU_SMOKE_OUTPUT/weights.bin --manifest NEW_GPU_MANIFEST.json --out NEW_GPU_nnue_weights.inc
+$ErrorActionPreference = 'Stop'
+$InputDir = (Resolve-Path 'validation/astra-bullet-export/bullet_gpu_input').Path
+$InputFile = Join-Path $InputDir 'input.fbs'
+$Expected = (Get-Content -Raw (Join-Path $InputDir 'manifest.json') | ConvertFrom-Json).input_sha256
+if ((Get-FileHash $InputFile -Algorithm SHA256).Hash -ine $Expected) { throw 'Smoke input hash mismatch' }
+$Run = Join-Path $PWD ('astra_bullet_smoke_' + [Guid]::NewGuid().ToString('N'))
+$null = New-Item -ItemType Directory -Path $Run -ErrorAction Stop
+$Output = Join-Path $Run 'checkpoint'
+$Manifest = Join-Path $Run 'export_manifest.json'
+$Include = Join-Path $Run 'nnue_weights.inc'
+cargo run --release --locked --features rocm --manifest-path tools/bullet/lock_graph/Cargo.toml --bin train_smoke -- $InputFile $Output 128 2>&1 | Tee-Object (Join-Path $Run 'original_training.log')
+if ($LASTEXITCODE -ne 0) { throw 'Bullet GPU smoke failed; retain the run directory' }
+python tools/bullet/lock_export.py manifest --checkpoint (Join-Path $Output 'weights.bin') --out $Manifest --provenance "Actual Bullet GPU smoke; original log in $Run"
+if ($LASTEXITCODE -ne 0) { throw 'Checkpoint manifest failed' }
+python tools/bullet/lock_export.py export --checkpoint (Join-Path $Output 'weights.bin') --manifest $Manifest --out $Include
+if ($LASTEXITCODE -ne 0) { throw 'Include export failed' }
 ```
 
 GPU execution/HIP build are **UNVERIFIED here**. Inspect `COMPLETE.txt` only after
