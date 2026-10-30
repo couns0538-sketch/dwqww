@@ -7,9 +7,7 @@ one terminal. They do not start training or modify the engine or input shards.
 
 ## Paths and explicit spare CPUs
 
-Edit `$Data` if your input location differs. Confirm that the three logical CPU
-indices below are spare before running; affinity identifies logical CPUs, not
-physical cores. Choose at most three workers, and fewer if fewer CPUs are free.
+The sealed10M run is already complete: do not rerun it. These are historical reproduction commands, corrected by the independent QA handoff20261030. Use one Idle worker only after identifying an actually spare logical CPU; do not assume any fixed CPU index is free.
 All substantial jobs below use `run_idle_spare.ps1`: it verifies Idle priority
 and affinity on the launching PowerShell process before Python starts. Native
 probes explicitly request Idle priority and use one search thread each. Windows
@@ -23,12 +21,14 @@ $Repo = (& git rev-parse --show-toplevel).Trim()
 if ($LASTEXITCODE -ne 0 -or !(Test-Path -LiteralPath $Repo -PathType Container)) {
     throw 'Run this terminal inside the astra-a1-data checkout.'
 }
-$Data = 'D:\grok-pc-data\selfplay_out' # EDIT if different; input files are read-only.
-$SpareCpus = @(12, 13, 14)             # EDIT to the logical CPUs actually free.
-$Workers = [Math]::Min(3, $SpareCpus.Count)
+$PosDir = 'D:\grok-pc-data\forge_push\nnue_data\pos'
+$TxtDir = 'D:\grok-pc-data\selfplay_out'
+$SpareCpus = @() # REQUIRED: fill with ONE actually spare logical CPU index.
+$Workers = 1
+if ($SpareCpus.Count -ne 1) { throw 'Set exactly one verified spare logical CPU; do not disturb live gates/trainers.' }
 if ($Workers -lt 1) { throw 'At least one explicitly spare CPU is required.' }
 $Launcher = Join-Path $Repo 'tools\data\run_idle_spare.ps1'
-$RunRoot = Join-Path (Split-Path -Parent $Data) ('astra_a1_' + [Guid]::NewGuid().ToString('N'))
+$RunRoot = Join-Path (Split-Path -Parent $TxtDir) ('astra_a1_' + [Guid]::NewGuid().ToString('N'))
 $null = New-Item -ItemType Directory -Path $RunRoot -ErrorAction Stop
 
 function New-RunPath([string]$Name) {
@@ -43,8 +43,8 @@ function Invoke-DataTool {
     Write-Host "Original command/output/exit receipt: $Log"
 }
 
-$Pos = Join-Path $Data 'forge_selfplay_003.pos'
-$Sidecar = Join-Path $Data 'forge_selfplay_003.txt'
+$Pos = Join-Path $PosDir 'forge_selfplay_003.pos'
+$Sidecar = Join-Path $TxtDir 'forge_selfplay_003.txt'
 foreach ($File in @($Pos, $Sidecar)) {
     if (!(Test-Path -LiteralPath $File -PathType Leaf)) { throw "Missing input: $File" }
 }
@@ -126,8 +126,8 @@ if ($Verified.status -ne 'PASS') { throw 'Do not use an unverified sidecar.' }
 
 # Full production exclusion requires BOTH complete holdouts. Missing paths stop here.
 $Holdouts = @(
-    (Join-Path $Data 'forge_selfplay_013.pos'),
-    (Join-Path $Data 'forge_selfplay_014.pos')
+    (Join-Path $PosDir 'forge_selfplay_013.pos'),
+    (Join-Path $PosDir 'forge_selfplay_014.pos')
 )
 foreach ($File in $Holdouts) {
     if (!(Test-Path -LiteralPath $File -PathType Leaf)) { throw "Missing full holdout: $File" }
