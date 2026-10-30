@@ -109,7 +109,11 @@ def cmd_run(cfg: dict, a, log: C.Log, gov: C.Governor) -> int:
                 "data_manifest_sha256": C.sha256_file(os.path.join(cfg["data"]["dir"], "MANIFEST.json")),
                 "holdout_test": {k: hold.get(k) for k in ("at", "pass", "holdout", "leak_hits", "registry_sha256")}}
         kind = prof.get("package", "gate_ready" if a.profile == "full" else "smoke")
-        res = check_and_package(cfg, net, prof["l1"], log, gov, prov, kind)
+        cfg_check = cfg
+        if prof.get("on_bench_depths"):  # a weak smoke net searches huge trees at d16-d22 (hours): bench it shallower
+            cfg_check = json.loads(json.dumps(cfg))
+            cfg_check["check"]["on_bench_depths"] = [int(d) for d in prof["on_bench_depths"]]
+        res = check_and_package(cfg_check, net, prof["l1"], log, gov, prov, kind)
     secs = round(time.time() - t0)
     if res["pass"]:
         log.ok(f"pipeline: {res.get('package')} ({secs} s)")

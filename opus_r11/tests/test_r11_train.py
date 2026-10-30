@@ -80,6 +80,7 @@ def main() -> int:
         "accelerator": accel, "gpu_policy": "yield", "l1": 64, "batch_size": 1024, "num_workers": 1, "threads": 1,
         "epoch_size": 20480, "max_epochs": 2, "validation_size": 4096, "lr": 0.000875, "start_lambda": 1.0,
         "end_lambda": 1.0, "seed": 1, "need_ram_gb": 6.0, "need_disk_gb": 0.5, "compile": False, "keep_last": 1_000_000,
+        "on_bench_depths": [11],  # a 2-epoch net on 18k synthetic rows: d13 already took 331M nodes (e2e_4)
         "max_restarts": 3}}
     cfg_path = os.path.join(scratch, "cfg.json")
     C.write_json(cfg_path, cfg)

@@ -1,0 +1,107 @@
+ok   train stage refuses to start without a passing holdout test (CR R2 M3)
+2026-10-30T14:01:00 [data] INFO writer exe: C:/Users/Administrator/.claude/jobs/9cfd0095/tmp/e2e_5/root/bin/r11_pos2binpack_9f191c200e4b.exe
+2026-10-30T14:01:00 [data] INFO inventory: 4 ready shards, 21000 rows, superseded {}
+2026-10-30T14:01:00 [data] INFO registered #0 s:h_001 rows 3000 holdout True hce source sha256 510ee750b078
+2026-10-30T14:01:00 [data] INFO registered #1 s:t_001 rows 6000 holdout False hce source sha256 323f077607cf
+2026-10-30T14:01:00 [data] INFO registered #2 s:t_002 rows 6000 holdout False hce source sha256 209c600a32bf
+2026-10-30T14:01:00 [data] INFO registered #3 s:t_003 rows 6000 holdout False hce source sha256 0935de386f74
+2026-10-30T14:01:00 [data] INFO dedup: 4 pending shards (21000 rows), 0 earlier shards to check against, 1 key-range passes, keys recomputed from the .pos files
+2026-10-30T14:01:01 [data] INFO dedup pass 1/1: prefixes [0, 65536), 21000 first occurrences, 0 shadowed by earlier shards, 0.0 s
+2026-10-30T14:01:01 [data] INFO decision s:h_001: kept 3000 of 3000 (100.000%), bad 0, holdout
+2026-10-30T14:01:01 [data] INFO decision s:t_001: kept 6000 of 6000 (100.000%), bad 0, train
+2026-10-30T14:01:01 [data] INFO decision s:t_002: kept 6000 of 6000 (100.000%), bad 0, train
+2026-10-30T14:01:01 [data] INFO decision s:t_003: kept 6000 of 6000 (100.000%), bad 0, train
+2026-10-30T14:01:01 [data] PASS dedup: 4 shards decided in 1.1 s
+2026-10-30T14:01:01 [data] INFO disk: 28.6 GB free on the target drive, 4 shards to convert = 0.00 GB, projected free after the full run 28.6 GB (floor 5 GB)
+2026-10-30T14:01:02 [data] INFO converted s:h_001 -> holdout: 3000 records, verified before rename, 0.06 s
+2026-10-30T14:01:03 [data] INFO converted s:t_003 -> train: 6000 records, verified before rename, 0.09 s
+2026-10-30T14:01:04 [data] INFO converted s:t_002 -> train: 6000 records, verified before rename, 0.23 s
+2026-10-30T14:01:05 [data] INFO converted s:t_001 -> train: 6000 records, verified before rename, 0.05 s
+2026-10-30T14:01:05 [data] PASS data: 4 shards, train 18,000 holdout 3,000 records, dropped 0 duplicates, bad 0, complete True
+2026-10-30T14:01:05 [holdout] INFO holdout gate: no passing holdout test for this data (CR R2 M3): run opus_r11/tests/test_r11_holdout_real.py --config <cfg> first; running the holdout test on the real data now
+ok   holdout shards ['s:h_001'] are registry entries #0..#0 and flagged holdout
+ok   no other registry entry is holdout
+ok   superseded shards are not registered: []
+ok   every registered shard has a decision (4/4)
+ok   all 4 inputs match their registered full sha256
+ok   s:h_001: no TRAIN code (3000 holdout rows)
+ok   decision codes: TRAIN only outside the holdout shards, HOLD only inside
+holdout positions (unique keys over ALL rows of the holdout shards): 3000
+ok   no TRAIN row shares a position with any row of the holdout shards (hits 0)
+ok   dedup order on 653 rows (key prefixes [0, 2048) of 65536): the kept row is always the first good occurrence in registry order (wrong kept 0, first occurrence not kept 0, keys kept twice 0)
+ok   train_files.txt (3 files) names no holdout shard
+ok   holdout_files.txt (1 files) names only holdout shards
+{
+ "pass": true,
+ "at": "2026-10-30T14:01:05",
+ "seconds": 0.0,
+ "holdout": [
+  "s:h_001"
+ ],
+ "holdout_unique_positions": 3000,
+ "leak_hits": 0,
+ "dedup_sample_rows": 653,
+ "sample_prefixes": 2048,
+ "manifest_complete": true,
+ "registry_sha256": "3b20dbc13c965331b453796506debb98b910bcad807222618d22de702233b4c3",
+ "decisions_sha256": "7b017c44d722a9a08d1dab40c7c607c99311567e44b0a091bd249e340b767d86",
+ "train_files_txt_sha256": "32d47e9808286f05a1c4c64576b2192ee705044187fcf52b46f403ab3d1bf5d5",
+ "holdout_files_txt_sha256": "0e1c5c130e44716f68f3f8ac7eeaee26529e5beec0e3de7dc7fc92602d71a3bb"
+}
+R11 HOLDOUT TEST PASS
+2026-10-30T14:01:05 [holdout] PASS holdout gate: test passed 2026-10-30T14:01:05 on ['s:h_001'] (3,000 holdout positions, leak hits 0, dedup order sample 653 rows); data unchanged
+2026-10-30T14:01:05 [train] PASS holdout gate: test passed 2026-10-30T14:01:05 on ['s:h_001'] (3,000 holdout positions, leak hits 0, dedup order sample 653 rows); data unchanged
+2026-10-30T14:01:08 [train] INFO train cpu_test: start (fresh), log C:/Users/Administrator/.claude/jobs/9cfd0095/tmp/e2e_5\root\runs\e2e\trainer_20261030_140108.log
+2026-10-30T14:03:10 [train] INFO train cpu_test: trainer exit 0 after 122 s
+2026-10-30T14:03:10 [train] PASS train e2e: finished (2 epochs); best C:\Users\Administrator\.claude\jobs\9cfd0095\tmp\e2e_5\root\runs\e2e\checkpoints\epoch=1-step=40.ckpt val 0.12217937409877777
+2026-10-30T14:03:10 [check] INFO exported 7f79c349 (7f79c34901fdd118bc4bf904f4bcaec4006047c6) src + include to C:/Users/Administrator/.claude/jobs/9cfd0095/tmp/e2e_5\root\build\src_7f79c349
+2026-10-30T14:03:40 [check] INFO build engine 7f79c349_x86-64-v3: exit 0 in 30.1 s
+2026-10-30T14:04:05 [check] INFO build halfka_tool 7f79c349_x86-64-v3: exit 0 in 25.6 s
+2026-10-30T14:04:14 [check] PASS build 7f79c349_x86-64-v3: exe b285ec54f1bd tool a1774ea346d2 FMA 0 zmm 0 warnings 0
+2026-10-30T14:04:21 [export] INFO export C:\Users\Administrator\.claude\jobs\9cfd0095\tmp\e2e_5\root\runs\e2e\checkpoints\epoch=1-step=40.ckpt: exit 0 in 5.5 s
+2026-10-30T14:04:21 [export] INFO export: load check of the .part net: exit 0 in 0.1 s
+2026-10-30T14:04:21 [export] INFO exported C:\Users\Administrator\.claude\jobs\9cfd0095\tmp\e2e_5\root\runs\e2e\checkpoints\epoch=1-step=40.ckpt -> C:/Users/Administrator/.claude/jobs/9cfd0095/tmp/e2e_5\root\nets\e2e_e1_best.nnue (4469220 bytes), loads in the HalfKA tool
+2026-10-30T14:04:22 [check] INFO parity: halfka_tool eval: exit 0 in 0.3 s
+2026-10-30T14:04:29 [check] INFO parity: nnue-pytorch reference (float64): exit 0 in 5.9 s
+2026-10-30T14:04:29 [check] PASS parity e2e_e1_best.nnue on 12000 FENs: 12000/12000 raw outputs exact vs nnue-pytorch (float64), max |raw diff| 0, bad FENs 0, SIMD (AVX2) vs scalar mismatches 0
+2026-10-30T14:05:08 [check] INFO OFF identity uci_check --full: exit 0 in 39.0 s
+2026-10-30T14:05:08 [check] PASS OFF identity (uci_check --full): ALL OK, bench d11 312866 (lock 312866)
+2026-10-30T14:05:15 [check] INFO ON bench d11: info string bench depth 11 nodes 8004797 time 6666 nps 1200839
+2026-10-30T14:05:27 [check] PASS ON bench e2e_e1_best.nnue: d11 8004797; d11 stable True, reload True, OFF after 312866
+2026-10-30T14:06:23 [check] INFO WAC 300 on: exit 0 in 55.6 s
+2026-10-30T14:06:23 [check] INFO WAC 300 on: 174/300 at 200 ms
+2026-10-30T14:07:20 [check] INFO WAC 300 off: exit 0 in 56.8 s
+2026-10-30T14:07:20 [check] INFO WAC 300 off: 264/300 at 200 ms
+2026-10-30T14:07:20 [check] PASS check e2e_e1_best.nnue: parity 12000/12000, OFF d11 312866, ON d11 8004797, WAC ON 174/300 (OFF 264/300)
+2026-10-30T14:07:20 [package] PASS package e2e_e1_best: gate-ready folder C:/Users/Administrator/.claude/jobs/9cfd0095/tmp/e2e_5/root/smoke_packages/e2e_e1_best_3d08d2a8 (9 files)
+2026-10-30T14:07:20 [pipeline] PASS pipeline: C:/Users/Administrator/.claude/jobs/9cfd0095/tmp/e2e_5/root/smoke_packages/e2e_e1_best_3d08d2a8 (401 s)
+R11 PIPELINE PASS C:/Users/Administrator/.claude/jobs/9cfd0095/tmp/e2e_5/root/smoke_packages/e2e_e1_best_3d08d2a8
+ok   r11_pipeline run --profile cpu_test (2 epochs) -> exit 0
+ok   the pipeline ran the holdout test itself: PASS, 0 leak hits
+ok   run 1 finished 2 epochs (newest {'path': 'C:\\Users\\Administrator\\.claude\\jobs\\9cfd0095\\tmp\\e2e_5\\root\\runs\\e2e\\checkpoints\\epoch=1-step=40.ckpt', 'epoch': 1, 'next_epoch': 2, 'step': 40, 'val_loss': 0.12217937409877777, 'complete': True, 'saved': '2026-10-30T14:03:09', 'bytes': 99211553})
+ok   smoke package written: ['e2e_e1_best_3d08d2a8']
+ok   trained net parity 12000/12000 exact vs nnue-pytorch
+ok   OFF identity and ON bench pass for the trained net
+ok   the smoke package says it is not a gate candidate
+ok   no gate-ready folder for a smoke run
+2026-10-30T14:07:21 [train] PASS holdout gate: test passed 2026-10-30T14:01:05 on ['s:h_001'] (3,000 holdout positions, leak hits 0, dedup order sample 653 rows); data unchanged
+2026-10-30T14:07:22 [train] WAIT train cpu_test: production trainer running (R11E2EPROD8160, pid 12960); training yields until it ends
+ok   a running production trainer -> the train stage yields and starts no trainer ({'run_dir': 'C:/Users/Administrator/.claude/jobs/9cfd0095/tmp/e2e_5/root/runs/yield_probe', 'finished': False, 'waiting_for_gpu': True}, logs [])
+2026-10-30T14:07:40 [holdout] PASS holdout gate: test passed 2026-10-30T14:01:05 on ['s:h_001'] (3,000 holdout positions, leak hits 0, dedup order sample 653 rows); data unchanged
+2026-10-30T14:07:40 [train] PASS holdout gate: test passed 2026-10-30T14:01:05 on ['s:h_001'] (3,000 holdout positions, leak hits 0, dedup order sample 653 rows); data unchanged
+2026-10-30T14:07:42 [train] INFO train cpu_test: start (resume from epoch=1-step=40.ckpt), log C:/Users/Administrator/.claude/jobs/9cfd0095/tmp/e2e_5\root\runs\e2e\trainer_20261030_140742.log
+2026-10-30T14:09:32 [train] INFO train cpu_test: trainer exit 0 after 110 s
+2026-10-30T14:09:32 [train] PASS train e2e: finished (4 epochs); best C:\Users\Administrator\.claude\jobs\9cfd0095\tmp\e2e_5\root\runs\e2e\checkpoints\epoch=1-step=40.ckpt val 0.12217937409877777
+2026-10-30T14:09:32 [check] INFO check e2e_e1_best.nnue: already PASSED for this net and exe (2026-10-30T14:07:20); reused
+2026-10-30T14:09:32 [package] INFO package e2e_e1_best: already done (C:/Users/Administrator/.claude/jobs/9cfd0095/tmp/e2e_5\root\smoke_packages\e2e_e1_best_3d08d2a8)
+2026-10-30T14:09:32 [pipeline] PASS pipeline: C:/Users/Administrator/.claude/jobs/9cfd0095/tmp/e2e_5/root/smoke_packages/e2e_e1_best_3d08d2a8 (112 s)
+R11 PIPELINE PASS C:/Users/Administrator/.claude/jobs/9cfd0095/tmp/e2e_5/root/smoke_packages/e2e_e1_best_3d08d2a8
+ok   rerun with max_epochs 4 -> exit 0
+ok   run 2 resumed at epoch 2 (exact resume): [{'t': '2026-10-30T14:07:52', 'event': 'resumed', 'path': 'C:/Users/Administrator/.claude/jobs/9cfd0095/tmp/e2e_5/root/runs/e2e/checkpoints/epoch=1-step=40.ckpt', 'epoch': 2, 'step': 40}]
+ok   every checkpoint ever written is still on disk (CR R3: rotation never deletes): ['epoch=0-step=20.ckpt', 'epoch=1-step=40.ckpt', 'epoch=2-step=60.ckpt', 'epoch=3-step=80.ckpt']
+ok   nothing was rotated away (no rotation.jsonl, the index lists no removal)
+ok   the best checkpoint by val_loss is tracked in the index: epoch=1-step=40.ckpt
+
+0 failed checks
+R11 TRAIN E2E SELFTEST PASS
+exit=0
