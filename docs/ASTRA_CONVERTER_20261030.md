@@ -206,6 +206,97 @@ space; a batch boundary cannot reclaim them. Keep the converter's fresh prefligh
 receipt as well. No pruning or deletion is part of this runbook; any such change
 requires a separate crew vote.
 
+### 37-shard storage plan and stop rule
+
+**PC capacity is UNKNOWN here. No grok-pc access or free-space measurement was
+available, so no claim that the 37 shards fit the actual PC is made.** The
+offline planner reads an explicit inventory and emits a JSON projection. It
+does not launch conversion, allocate data, move archives or delete anything.
+
+The stable training order is:
+
+```text
+001 002 003 004 005 006 007 008 009 010 011 012
+015 016 017 018 019 020 021 022 023 024 025 026
+027 028 029 030 031 032 033 034 035 036 037 038 039
+```
+
+Supply `inventory.json` with `schema: 1`, `holdout_rows` (the combined complete
+013/014 row count), and a `shards` array containing exactly those 37 unique IDs.
+Each entry requires `id` as a three-digit string, `rows` as its actual source row
+count, and `text_bytes` as its complete source text file size in bytes. Optional
+`game_id_bytes` is the full UTF-8 source game-ID sidecar size; omit it when there
+is no such sidecar. Counts and sizes are nonnegative integers from verified
+source files or a trusted inventory. Do not substitute 37 identical 10M-row
+estimates. This planner covers position holdouts; runs using additional holdout
+game-ID indexes also need that separate index budget from the converter.
+
+For shard j, with H complete holdout rows, P verified prior retained rows, Rj
+source rows, Tj source text bytes and Gj source game-ID bytes, the projection is:
+
+```text
+new retained index = 64 * (H + P + Rj) + 1 MiB
+new output/logs    = Tj + Gj + (32 + 32 + 128) * Rj
+required free     = new retained index + new output/logs + 32,768 MiB reserve
+```
+
+The next forecast assumes all Rj rows survive and adds them to P. Each prior
+index and output stays allocated on its assigned volume. Optional `--binpack`
+adds `Tj + 128 * Rj` output bytes. Estimates include the fixed 1 MiB index margin
+and reserve, but are not filesystem quotas; other writers and stderr can exceed
+an estimate. Source files already occupy disk and are reflected in measured
+free space. Splitting one volume into batches cannot reset its free space.
+
+On the PC, supply an existing output-volume directory to measure locally:
+
+```powershell
+& $Python (Join-Path $Repo 'tools\data2\plan_shard_batches.py') `
+  --inventory $Inventory --volume-root 'data=D:\grok-pc-data' `
+  --min-free-mb 32768 > $NewPlanReceipt
+if ($LASTEXITCODE -ne 0) { throw 'Storage plan blocked or invalid; inspect receipt.' }
+```
+
+For planning elsewhere, replace `--volume-root` with
+`--observed-free-gib "data=$ObservedFreeGiB"`, using a freshly observed value
+from the actual target volume. GiB means 1,073,741,824 bytes; decimal GB must be
+converted first. Never use cloud workspace free space as a PC measurement.
+Redirect each receipt to a new path outside sealed output folders.
+
+Provisioned separate volumes may form separate batches. For example, provide
+both `--volume-root 'data=D:\grok-pc-data'` and
+`--volume-root 'archive=E:\astra-retained'`, plus `--independent-volumes`, only
+after confirming these are distinct storage volumes and both are accessible.
+Two directories on the same measured device are rejected. User-observed
+capacities cannot be checked remotely; the independence flag records an
+explicit assertion, not a detected hardware fact. Outputs and indexes are
+planned directly on the assigned volume. The planner performs no archive
+transfer and gives no credit for hypothetical future removals. All earlier
+retained chunks must remain readable for cumulative deduplication.
+
+Before **each** shard, including the first shard of a later batch:
+
+1. Verify all completed outputs and record their actual retained row totals.
+   Keep all indexes, logs, source files, failed partials and sealed chunks.
+2. Measure current free space again on each intended output volume. Replan
+   with `--start-at NEXT_ID --prior-retained-rows ACTUAL_PRIOR_ROWS`. Existing
+   files already reduce that observed free space; the planner adds only new
+   work. Previously forecast free space is not a new observation. For an
+   interrupted shard, stop this new-shard plan and use the frozen resume
+   protocol, budgeting both old attempts and the rebuilt index.
+3. Require the next shard to appear in a fitting batch, and run the converter's
+   own fresh preflight with **all** prior verified `rows.txt` chunks supplied.
+   Preserve its printed `disk_preflight` JSON and run at Idle on one spare CPU.
+4. If the next shard cannot fit plus reserve, stop before launching it. The
+   planner returns exit 1 and `BLOCKED` with its first unplanned shard; exit 2
+   means invalid/missing inventory or capacity. A partial fitting prefix is
+   not a plan for all 37. Provision independent capacity and remeasure to
+   continue. Pruning or deleting evidence requires a separate crew vote.
+
+The final real-holdout audit needs an additional retained index of
+`96 * output_rows + 16 MiB` plus reserve. Its separate preflight must pass
+before starting. A fitted conversion plan does not certify holdout clearance,
+training validity, Windows runtime behavior or total runtime.
+
 `holdout-dedup` performs exclusion/deduplication only; it does not silently claim
 root filtering. To request a format-only binpack test, explicitly supply
 `--no-filters --no-dedupe --allow-transport-moves`. The standalone reproducible 1M
