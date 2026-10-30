@@ -40,16 +40,21 @@ def _copy_verified(src: str, dst: str, sha: str) -> None:
     os.replace(tmp, dst)
 
 
-def package(cfg: dict, check_dir: str, log: C.Log, provenance: dict | None = None) -> dict:
+def package(cfg: dict, check_dir: str, log: C.Log, provenance: dict | None = None, kind: str = "gate_ready") -> dict:
+    """kind "gate_ready": a candidate for QA's gate queue; kind "smoke": a pipeline test net (smoke_packages/, the
+    README says it is NOT a gate candidate)."""
+    if kind not in ("gate_ready", "smoke"):
+        raise C.StageFailed(f"unknown package kind {kind}")
     chk = C.read_json(os.path.join(check_dir, "check.json"))
     if not chk:
         raise C.StageFailed(f"no check.json in {check_dir}")
     net = chk["net"]
     stem = os.path.splitext(os.path.basename(net))[0]
     if not chk.get("pass"):
-        log.fail(f"package {stem}: the check did not pass; no gate-ready folder")
+        log.fail(f"package {stem}: the check did not pass; no package")
         return {"packaged": False, "reason": "check failed"}
-    out = os.path.join(cfg["root"], "gate_ready", f"{stem}_{chk['net_sha256'][:8]}")
+    out = os.path.join(cfg["root"], "gate_ready" if kind == "gate_ready" else "smoke_packages",
+                       f"{stem}_{chk['net_sha256'][:8]}")
     C.assert_writable_path(out)
     if os.path.isfile(os.path.join(out, "PACKAGE_DONE")):
         log.info(f"package {stem}: already done ({out})")
@@ -86,9 +91,9 @@ def package(cfg: dict, check_dir: str, log: C.Log, provenance: dict | None = Non
     prov = provenance or {}
     C.write_json(os.path.join(out, "provenance.json"), prov)
     p = chk["parity"]
-    readme = f"""# Gate-ready package: {os.path.basename(net)}
-
-Made by the R11 NNUE pipeline (branch opus-r11-nnue-pipeline) on {time.strftime('%Y-%m-%d %H:%M')} PC clock.
+    head = ("# Gate-ready package: " + os.path.basename(net) + "\n\n" if kind == "gate_ready" else
+            "# SMOKE package (pipeline test, NOT a gate candidate): " + os.path.basename(net) + "\n\n")
+    readme = head + f"""Made by the R11 NNUE pipeline (branch opus-r11-nnue-pipeline) on {time.strftime('%Y-%m-%d %H:%M')} PC clock.
 **Hand-off to QA. Not queued: no queue.txt / queue_state.json / forge_gates.json / lock / baseline was touched.**
 QA runs Code Review and queues it against the current lock.
 

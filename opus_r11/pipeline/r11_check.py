@@ -354,6 +354,11 @@ def run_check(cfg: dict, net: str, out: str, l1: int, log: C.Log, gov: C.Governo
     build = build_engine(cfg, log)
     if ckpt:
         net = export_net(cfg, ckpt, net, l1, log, gov, build)
+    prev = C.read_json(os.path.join(out, "check.json"))
+    if prev and prev.get("pass") and prev.get("net_sha256") == C.sha256_file(net) and \
+            prev.get("build", {}).get("exe_sha256") == build["exe_sha256"]:
+        log.info(f"check {os.path.basename(net)}: already PASSED for this net and exe ({prev['finished']}); reused")
+        return prev
     res = {"net": C.winpath(net), "net_sha256": C.sha256_file(net), "net_bytes": os.path.getsize(net), "l1": l1,
            "build": build, "started": time.strftime("%Y-%m-%dT%H:%M:%S")}
     gov.wait_ok("parity", need_ram_gb=1.0)
