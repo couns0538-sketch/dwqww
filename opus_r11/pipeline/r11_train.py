@@ -93,12 +93,15 @@ def trainer_cmd(cfg: dict, prof: dict, run_dir: str, resume: str | None) -> tupl
                 "NNUE_DATA_LOADER_LIB": t["loader_lib"], "PYTHONPATH": t["clone"], "TMP": tmp, "TEMP": tmp,
                 "OMP_NUM_THREADS": str(prof["threads"]), "OPENBLAS_NUM_THREADS": "1", "MKL_NUM_THREADS": "1",
                 "TORCHINDUCTOR_COMPILE_THREADS": "1",
-                "TRITON_CACHE_DIR": os.path.join(cfg["root"], "cache", "triton"),
-                "TORCHINDUCTOR_CACHE_DIR": os.path.join(cfg["root"], "cache", "inductor")})
+                # one fixed cache (Triton compiles its HIP helper with clang on first use: minutes at Idle priority)
+                "TRITON_CACHE_DIR": os.path.join(t.get("cache_dir") or os.path.join(cfg["root"], "cache"), "triton"),
+                "TORCHINDUCTOR_CACHE_DIR": os.path.join(t.get("cache_dir") or os.path.join(cfg["root"], "cache"),
+                                                        "inductor")})
     if not prof.get("compile", False):
         env["TORCHDYNAMO_DISABLE"] = "1"
     if prof.get("accelerator") == "cpu":
         env["NNUE_FT_BACKEND"] = "torch"
+        env["NNUE_RANGER_FUSED"] = "0"  # the Python RangerLite path: a CPU run never imports Triton
         env["CUDA_VISIBLE_DEVICES"] = ""
         env["HIP_VISIBLE_DEVICES"] = ""
     return cmd, env

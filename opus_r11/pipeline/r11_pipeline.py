@@ -189,6 +189,10 @@ def main(argv: list[str]) -> int:
             raise C.StageFailed(f"unknown profile {a.profile}; the config has {sorted(cfg['train']['profiles'])}")
         return cmd_run(cfg, a, log, gov)
     except C.StageFailed as e:
+        if str(e).startswith("disk:"):  # a resource condition, not a defect: rerun when space is back
+            log.wait(str(e))
+            print(f"R11 PIPELINE WAIT ({e})")
+            return EXIT_WAIT
         log.fail(str(e))
         print(f"R11 PIPELINE FAIL ({e})")
         return EXIT_FAIL

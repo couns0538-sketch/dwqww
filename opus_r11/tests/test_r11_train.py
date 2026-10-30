@@ -9,7 +9,9 @@ bench -> package, on the CPU (no GPU, nothing of production touched; ~5 GB RAM f
     newest 2 checkpoints + the best one (logged in rotation.jsonl), the pipeline PASSes again.
 It reuses the synthetic positions of test_r11_data.py. Includes the real production patterns: if a production trainer
 runs, the test SKIPS (exit 0, "SKIPPED") instead of training next to it.
-Usage: test_r11_train.py <scratch dir (new)>   -> prints "R11 TRAIN E2E SELFTEST PASS"
+Usage: test_r11_train.py <scratch dir (new)> [--gpu]   -> prints "R11 TRAIN E2E SELFTEST PASS"
+  --gpu: the same run on the AMD GPU through the R6 Triton/ROCm trainer (only when no production trainer runs: the
+         pipeline yields otherwise; smoke size: L1 64, batch 1024, 1 loader worker).
 """
 from __future__ import annotations
 
@@ -67,8 +69,9 @@ def main() -> int:
         "keys_cache": False, "disk_margin_gb": 0.0, "convert_order": ["holdout", "s"]}
     cfg["train"]["runs_dir"] = os.path.join(cfg["root"], "runs")
     cfg["train"]["production_patterns"] = real["train"]["production_patterns"] + [marker]
+    accel = "cuda" if "--gpu" in sys.argv[2:] else "cpu"
     cfg["train"]["profiles"] = {"cpu_test": {
-        "accelerator": "cpu", "gpu_policy": "yield", "l1": 64, "batch_size": 1024, "num_workers": 1, "threads": 1,
+        "accelerator": accel, "gpu_policy": "yield", "l1": 64, "batch_size": 1024, "num_workers": 1, "threads": 1,
         "epoch_size": 20480, "max_epochs": 2, "validation_size": 4096, "lr": 0.000875, "start_lambda": 1.0,
         "end_lambda": 1.0, "seed": 1, "need_ram_gb": 6.0, "need_disk_gb": 0.5, "compile": False, "keep_last": 2,
         "max_restarts": 3}}
