@@ -1,8 +1,9 @@
 # R11: automated NNUE pipeline (data -> train -> export -> parity -> bench -> package)
 
 Status, numbers and next steps: `../NOTES_R11.md`. Skill: `skills/forge-nnue-pipeline/SKILL.md` (copy of the project
-skill). Ideas and sources: `IDEA_SOURCE.md`. Every script runs itself at Idle priority in background mode on at most
-3 cores (mask 0x700) and never touches production, gates, queue files, locks or baselines.
+skill). Ideas and sources: `IDEA_SOURCE.md`. Every script runs itself at Idle priority with very low I/O priority and
+low memory priority on at most 3 cores (mask 0x700; not background mode: it caps the working set at 32 MB) and never
+touches production, gates, queue files, locks or baselines.
 
 ## One command
 ```

@@ -174,9 +174,10 @@ description: Binding safety rules for ANY command run on the Forge PC (chess eng
   most 4 threads, BelowNormal, CPUs 0-3; keep pushing every 10 minutes. The owner paused self-play at ~23:30 (load 62%).
 
 ## R11 (2026-10-30, QA + Code Review rules for the NNUE pipeline; binding until changed) - see [[forge-nnue-pipeline]]
-- Priority: **Idle (0x40) + background mode, at most 3 cores** (mask 0x700 = CPUs 8-10) for every own process; BelowNormal
-  outranks the Idle trainer and self-play. Set PROCESS_MODE_BACKGROUND_BEGIN FIRST and Idle second: the other order
-  leaves the class at Normal (base priority 8) and children inherit Normal (measured with psutil nice/ionice).
+- Priority: **Idle (0x40) + I/O priority very low + memory priority low, at most 3 cores** (mask 0x700 = CPUs 8-10) for
+  every own process; BelowNormal outranks the Idle trainer and self-play. All four are inherited by children. Do NOT use
+  background mode (PROCESS_MODE_BACKGROUND_BEGIN; CR fix 2 amendment 2026-10-30): it caps the working set at 32 MB, so
+  any process with a few hundred MB of data pages itself to death (dedup >18 min instead of ~2, 445k page faults/s).
 - **No STOP/PAUSE control files** (they break the owner's rule); a hold is the named event `Local\Forge_R11_Hold`;
   stopping is by PID (the owner does it; Stop-Process is denied for the agent, even for its own processes) and every
   stage resumes from its done markers. A process can be lowered instead: `(Get-Process -Id N).PriorityClass='Idle'`.

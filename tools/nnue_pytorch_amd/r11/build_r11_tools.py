@@ -32,8 +32,10 @@ def main() -> int:
     ap.add_argument("--affinity", default="0x700", help="at most 3 CPUs (CR fix 2); default CPUs 8-10")
     a = ap.parse_args()
     if sys.platform == "win32":
-        # CR fix 2: Idle (0x40) + background mode, at most 3 cores; the compiler inherits Idle and the mask
+        # CR fix 2 (amended): Idle (0x40) + I/O priority very low + memory priority low, at most 3 cores; the compiler
+        # inherits all four. NOT background mode: it caps the working set at 32 MB (g++ would page constantly)
         from ctypes import wintypes
+        import psutil
         mask = int(a.affinity, 0)
         if bin(mask).count("1") > 3:
             print("FAIL --affinity must select at most 3 CPUs")
@@ -42,9 +44,12 @@ def main() -> int:
         k32.GetCurrentProcess.restype = wintypes.HANDLE
         k32.SetPriorityClass.argtypes = [wintypes.HANDLE, wintypes.DWORD]
         k32.SetProcessAffinityMask.argtypes = [wintypes.HANDLE, ctypes.c_size_t]
+        k32.SetProcessInformation.argtypes = [wintypes.HANDLE, ctypes.c_int, ctypes.c_void_p, wintypes.DWORD]
         h = k32.GetCurrentProcess()
-        k32.SetPriorityClass(h, 0x00100000)  # background mode first: it resets the class to Normal
-        k32.SetPriorityClass(h, 0x00000040)  # then Idle (inherited by the compiler with the very low I/O priority)
+        k32.SetPriorityClass(h, 0x00000040)
+        psutil.Process().ionice(psutil.IOPRIO_VERYLOW)
+        low = wintypes.ULONG(2)  # MEMORY_PRIORITY_LOW
+        k32.SetProcessInformation(h, 0, ctypes.byref(low), 4)  # ProcessMemoryPriority
         k32.SetProcessAffinityMask(h, mask)
     src = os.path.join(HERE, "r11_pos2binpack.cpp")
     inc = os.path.join(a.clone, "data_loader", "cpp")

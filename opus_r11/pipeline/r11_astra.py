@@ -264,7 +264,7 @@ def main(argv: list[str]) -> int:
     s = sub.add_parser("extract"); s.add_argument("dl_dir"); s.add_argument("out_dir"); s.add_argument("globs", nargs="+")
     s.add_argument("--json")
     a = ap.parse_args(argv)
-    C.set_idle_background()  # CR fix 2: Idle + background mode on 3 cores
+    C.set_idle_background()  # CR fix 2: Idle, I/O very low, memory low, 3 cores
     if a.cmd == "download":
         return cmd_download(a.dl_dir)
     if a.cmd == "verify":

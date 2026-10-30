@@ -15,6 +15,7 @@ import hashlib
 import io
 import json
 import os
+import re
 import subprocess
 import sys
 import tarfile
@@ -262,27 +263,52 @@ def main() -> int:
                         offenders.append(f"{d}/{fn}: {marker}")
     check(offenders == [], f"no STOP/PAUSE control files in the pipeline code: {offenders}")
 
-    # 1e CR fix 2: Idle priority + background mode on <= 3 cores, inherited by a child process
+    # 1e CR fix 2 (amended): Idle priority + I/O priority very low + memory priority low on <= 3 cores, inherited by a
+    # child process, and NO working-set cap (background mode capped it at 32 MB: 300 MB touched stayed at 32 MB)
     probe = os.path.join(scratch, "prio_probe.py")
     with open(probe, "w", encoding="utf-8", newline="\n") as f:
-        f.write("import os, sys, json, subprocess, psutil\n"
+        f.write("import ctypes, json, subprocess, sys\n"
+                "from ctypes import wintypes\n"
+                "import numpy as np, psutil\n"
                 f"sys.path.insert(0, {os.path.join(REPO, 'opus_r11', 'pipeline')!r})\n"
                 "import r11_common as C\n"
+                "def state():\n"
+                "    k32 = ctypes.windll.kernel32\n"
+                "    k32.GetCurrentProcess.restype = wintypes.HANDLE\n"
+                "    k32.GetProcessInformation.argtypes = [wintypes.HANDLE, ctypes.c_int, ctypes.c_void_p, wintypes.DWORD]\n"
+                "    v = wintypes.ULONG(99)\n"
+                "    ok = k32.GetProcessInformation(k32.GetCurrentProcess(), 0, ctypes.byref(v), 4)\n"
+                "    p = psutil.Process()\n"
+                "    return {'nice': int(p.nice()), 'io': int(p.ionice()), 'mem': int(v.value) if ok else -1,\n"
+                "            'aff': p.cpu_affinity()}\n"
+                "if sys.argv[1:] == ['child']:\n"
+                "    print(json.dumps(state()))\n"
+                "    sys.exit(0)\n"
                 "info = C.set_idle_background(0x700)\n"
-                "me = psutil.Process()\n"
-                "child = subprocess.run([sys.executable, '-c', 'import psutil; p = psutil.Process(); "
-                "print(int(p.nice()), int(p.ionice()), p.cpu_affinity())'], capture_output=True, text=True).stdout.strip()\n"
-                "print(json.dumps({'info': info, 'nice': int(me.nice()), 'io': int(me.ionice()), 'aff': me.cpu_affinity(), "
-                "'child': child}))\n")
+                "a = np.ones(300 * 2**20 // 8)\n"
+                "wset_mb = psutil.Process().memory_info().wset / 2**20\n"
+                "child = subprocess.run([sys.executable, '-I', '-B', __file__, 'child'], capture_output=True, text=True)\n"
+                "print(json.dumps({'info': info, **state(), 'wset_mb': round(wset_mb), "
+                "'child': json.loads(child.stdout.strip().splitlines()[-1])}))\n")
     r = subprocess.run([sys.executable, "-I", "-B", probe], capture_output=True, text=True)
     try:
         pr = json.loads(r.stdout.strip().splitlines()[-1])
     except Exception:  # noqa: BLE001
         pr = {"error": r.stdout[-300:] + r.stderr[-300:]}
-    check(pr.get("nice") == 0x40 and pr.get("io") == 0 and pr.get("aff") == [8, 9, 10],
-          f"set_idle_background: Idle (0x40), I/O priority very low (background mode), CPUs 8-10: {pr}")
-    check(str(pr.get("child", "")).startswith("64 0 [8, 9, 10]"),
-          f"a child inherits Idle, the very low I/O priority and the 3-core mask: {pr.get('child')}")
+    want = {"nice": 0x40, "io": 0, "mem": 2, "aff": [8, 9, 10]}
+    check(all(pr.get(k) == v for k, v in want.items()),
+          f"set_idle_background: Idle (0x40), I/O priority very low (0), memory priority low (2), CPUs 8-10: {pr}")
+    check(all((pr.get("child") or {}).get(k) == v for k, v in want.items()),
+          f"a child inherits Idle, I/O very low, memory low and the 3-core mask: {pr.get('child')}")
+    check((pr.get("wset_mb") or 0) >= 200,
+          f"no working-set cap: 300 MB touched -> working set {pr.get('wset_mb')} MB (background mode kept it at 32 MB)")
+    bg = re.compile(r"SetPriorityClass\([^)]*(0x00100000|PROCESS_MODE_BACKGROUND_BEGIN)")
+    bg_users = []
+    for d in ("opus_r11/pipeline", "tools/nnue_pytorch_amd/r11"):
+        for fn in os.listdir(os.path.join(REPO, d)):
+            if fn.endswith((".py", ".cpp")) and bg.search(open(os.path.join(REPO, d, fn), encoding="utf-8").read()):
+                bg_users.append(f"{d}/{fn}")
+    check(bg_users == [], f"no process enters background mode (PROCESS_MODE_BACKGROUND_BEGIN): {bg_users}")
     try:
         C.set_idle_background(0xF)
         check(False, "a 4-CPU mask must be refused")

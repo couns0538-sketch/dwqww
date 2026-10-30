@@ -1,0 +1,75 @@
+2026-10-30T12:55:32 [data] INFO removed unverified partial file C:/Users/Administrator/.claude/jobs/9cfd0095/tmp/data_amend1\run_writerdrop\data\train\a__a_001.binpack.part1.hce
+ok   writer drop fails the stage: writer dropped 1 rows marked train/holdout (the cheap row checks let them through, the converter rejected them): D:/grok
+ok   no done marker and no final output for that shard
+ok   CR fix 7: the failed conversion left no .part files behind ([])
+ok   CR fix 7: every output was verified as .part before its rename (6 outputs)
+ok   holdout shards ['a:a_001'] are registry entries #0..#0 and flagged holdout
+ok   no other registry entry is holdout
+ok   superseded shards are not registered: ['a:a_002']
+ok   every registered shard has a decision (6/6)
+ok   all 6 inputs match their registered full sha256
+ok   a:a_001: no TRAIN code (6000 holdout rows)
+ok   decision codes: TRAIN only outside the holdout shards, HOLD only inside
+holdout positions (unique keys over ALL rows of the holdout shards): 6000
+ok   no TRAIN row shares a position with any row of the holdout shards (hits 0)
+ok   dedup order on 34,334 rows (key prefixes [0, 65536) of 65536): the kept row is always the first good occurrence in registry order (wrong kept 0, first occurrence not kept 0, keys kept twice 0)
+ok   train_files.txt (5 files) names no holdout shard
+ok   holdout_files.txt (1 files) names only holdout shards
+{
+ "pass": true,
+ "at": "2026-10-30T12:55:32",
+ "seconds": 0.1,
+ "holdout": [
+  "a:a_001"
+ ],
+ "holdout_unique_positions": 6000,
+ "leak_hits": 0,
+ "dedup_sample_rows": 34334,
+ "sample_prefixes": 65536,
+ "manifest_complete": true,
+ "registry_sha256": "f006625d7fafc1404baeb28676e21d21f2dc37bbee0d06a9c58a58ba5a17ab7c",
+ "decisions_sha256": "434119dd51345c06fd6968418b7b4af9eaf049198c2e53c730c9909985cc6737",
+ "train_files_txt_sha256": "ff7f7e7c3fa6f1493d703f50eb500958e93c1c6593985efa09a057c4c36321dd",
+ "holdout_files_txt_sha256": "d98dd0a2e60f6586121a2e6e6ad3c8d3bcee19b56820293f321dba567e0347c9"
+}
+R11 HOLDOUT TEST PASS
+ok   holdout test PASS on the synthetic data (full key space for the dedup order)
+2026-10-30T12:55:32 [train] PASS holdout gate: test passed 2026-10-30T12:55:32 on ['a:a_001'] (6,000 holdout positions, leak hits 0, dedup order sample 34,334 rows); data unchanged
+ok   train gate accepts the data the holdout test passed
+ok   train gate refuses data changed after the holdout test
+ok   a_003 row 100 (a copy of holdout row a_001:1000) was dropped by the dedup
+ok   holdout shards ['a:a_001'] are registry entries #0..#0 and flagged holdout
+ok   no other registry entry is holdout
+ok   superseded shards are not registered: ['a:a_002']
+ok   every registered shard has a decision (6/6)
+ok   all 6 inputs match their registered full sha256
+ok   a:a_001: no TRAIN code (6000 holdout rows)
+ok   decision codes: TRAIN only outside the holdout shards, HOLD only inside
+holdout positions (unique keys over ALL rows of the holdout shards): 6000
+FAIL no TRAIN row shares a position with any row of the holdout shards (hits 1)
+FAIL dedup order on 34,334 rows (key prefixes [0, 65536) of 65536): the kept row is always the first good occurrence in registry order (wrong kept 1, first occurrence not kept 0, keys kept twice 1)
+ok   train_files.txt (5 files) names no holdout shard
+ok   holdout_files.txt (1 files) names only holdout shards
+{
+ "pass": false,
+ "at": "2026-10-30T12:55:32",
+ "seconds": 0.1,
+ "holdout": [
+  "a:a_001"
+ ],
+ "holdout_unique_positions": 6000,
+ "leak_hits": 1,
+ "dedup_sample_rows": 34334,
+ "sample_prefixes": 65536,
+ "manifest_complete": true,
+ "registry_sha256": "f006625d7fafc1404baeb28676e21d21f2dc37bbee0d06a9c58a58ba5a17ab7c",
+ "decisions_sha256": "a31dd5f98323df9f045e1dfd05c858ec881824e2d20a237ca7a3ab7717b83a3b",
+ "train_files_txt_sha256": "ff7f7e7c3fa6f1493d703f50eb500958e93c1c6593985efa09a057c4c36321dd",
+ "holdout_files_txt_sha256": "d98dd0a2e60f6586121a2e6e6ad3c8d3bcee19b56820293f321dba567e0347c9"
+}
+R11 HOLDOUT TEST FAIL
+ok   a planted holdout leak (a training copy of a holdout row marked TRAIN) fails the holdout test
+
+0 failed checks
+R11 DATA SELFTEST PASS
+exit=0

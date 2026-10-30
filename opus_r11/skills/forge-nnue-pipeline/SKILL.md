@@ -1,6 +1,6 @@
 ---
 name: forge-nnue-pipeline
-description: The R11 automated NNUE pipeline for Forge (branch opus-r11-nnue-pipeline) - one command from our self-play data (forge_push FPOS/FHCE, R8 v5 .dedup.pos, Astra's filtered set) to deduplicated nnue-pytorch binpacks with a 013/014 holdout, yield-only GPU training with auto-resume and checkpoint rotation, export, exact HalfKA parity, ON/OFF benches, WAC and a gate-ready package; its Code Review rules (Idle + background mode on 3 cores, no STOP/PAUSE files, 40 GB D: floor, full sha256 inputs, .part->verify->rename, holdout proof before training) and its pitfalls. Use for any task that converts self-play data to binpack, trains / exports / checks / packages a K32H3^ net, resumes or extends R11, or reviews it.
+description: The R11 automated NNUE pipeline for Forge (branch opus-r11-nnue-pipeline) - one command from our self-play data (forge_push FPOS/FHCE, R8 v5 .dedup.pos, Astra's filtered set) to deduplicated nnue-pytorch binpacks with a 013/014 holdout, yield-only GPU training with auto-resume and checkpoint rotation, export, exact HalfKA parity, ON/OFF benches, WAC and a gate-ready package; its Code Review rules (Idle + I/O very low + memory low on 3 cores, never background mode, no STOP/PAUSE files, 40 GB D: floor, full sha256 inputs, .part->verify->rename, holdout proof before training) and its pitfalls. Use for any task that converts self-play data to binpack, trains / exports / checks / packages a K32H3^ net, resumes or extends R11, or reviews it.
 ---
 
 # R11 NNUE pipeline (2026-10-30)
@@ -53,8 +53,12 @@ Stop it by its PID (`<root>\run\pipeline.pid.json`); hold it with `r11_hold.py h
 - Check exe GATE_EXE ed6a0b189ee0a456baade51c39d05857922efbab8e12e408cb471d1011da12ad.
 
 ## Pitfalls seen
-- Background mode resets the priority class: `SetPriorityClass(PROCESS_MODE_BACKGROUND_BEGIN)` after Idle gives Normal
-  (base 8) and Normal children; set background FIRST, Idle second (then class Idle, I/O very low, both inherited).
+- NEVER use background mode (`SetPriorityClass(PROCESS_MODE_BACKGROUND_BEGIN)`): besides resetting the class to Normal
+  it caps the process working set at **32 MB** (measured 2026-10-30: 300 MB touched stayed at 32 MB, 4.8x page faults,
+  re-read 14x slower; the real dedup crawled for >18 min instead of ~2 min, the train entry ran at 90 % kernel time with
+  445k page faults/s). Use Idle (0x40) + `psutil.Process().ionice(psutil.IOPRIO_VERYLOW)` + memory priority low
+  (`SetProcessInformation(ProcessMemoryPriority=0, MEMORY_PRIORITY_LOW=2)`) + the 3-core mask: all four are inherited
+  by children (`r11_common.set_idle_background`, test 1e in test_r11_tools.py checks it and the missing cap).
 - psutil AccessDenied: a SYSTEM kernel child (ppid 4, no name) has an unreadable command line; count unreadable python
   (or unnamed non-kernel) processes as production, skip kernel children, or the wait never ends.
 - A `comment*` key in `limits` broke `Limits(**...)` for every stage (selftests use their own configs): use

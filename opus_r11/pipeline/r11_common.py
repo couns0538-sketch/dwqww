@@ -343,7 +343,6 @@ def cpu_load(interval: float = 1.0) -> float:
 
 
 IDLE_PRIORITY_CLASS = 0x00000040
-PROCESS_MODE_BACKGROUND_BEGIN = 0x00100000
 DEFAULT_AFFINITY = 0x700  # CPUs 8-10: three cores (the PC's known 3-CPU mask)
 
 
@@ -352,27 +351,37 @@ def affinity_from_cfg(cfg: dict) -> int:
     return int(v, 0) if isinstance(v, str) else int(v)
 
 
+MEMORY_PRIORITY_LOW = 2
+_PROCESS_MEMORY_PRIORITY = 0  # PROCESS_INFORMATION_CLASS ProcessMemoryPriority
+
+
 def set_idle_background(mask: int = DEFAULT_AFFINITY) -> dict:
-    """CR fix 2: background mode (very low I/O and memory priority) + Idle priority class (0x40) on at most 3 cores.
+    """CR fix 2 (amended 2026-10-30): Idle priority class (0x40) + I/O priority very low + memory priority low, on at
+    most 3 cores; all four are inherited by child processes (measured: nice 64, ionice 0, memory priority 2).
     BelowNormal would outrank the Idle trainer and self-play.
-    ORDER MATTERS (measured 2026-10-30): PROCESS_MODE_BACKGROUND_BEGIN resets the class to Normal (base priority 8)
-    and children then inherit Normal; background first and Idle second gives class Idle (base 4) with I/O priority
-    very low, and children inherit both and the affinity mask."""
+    NOT PROCESS_MODE_BACKGROUND_BEGIN: measured on this PC it caps the process working set at 32 MB - a 300 MB array
+    stayed at a 32 MB working set with 4.8x the page faults, writes 6x and re-reads 14x slower; the real data stage and
+    the trainer entry ran at ~90 % kernel time (445k page faults/s). The amendment keeps the same resource classes
+    (CPU idle, I/O very low, memory low) without that cap."""
     if bin(mask).count("1") > 3 or mask <= 0:
         raise StageFailed(f"affinity mask {hex(mask)} must select 1..3 CPUs")
     if sys.platform != "win32":
         return {}
+    import psutil
     k32 = ctypes.windll.kernel32
     k32.GetCurrentProcess.restype = wintypes.HANDLE
     k32.SetPriorityClass.argtypes = [wintypes.HANDLE, wintypes.DWORD]
     k32.SetProcessAffinityMask.argtypes = [wintypes.HANDLE, ctypes.c_size_t]
+    k32.SetProcessInformation.argtypes = [wintypes.HANDLE, ctypes.c_int, ctypes.c_void_p, wintypes.DWORD]
     h = k32.GetCurrentProcess()
-    ok_bg = bool(k32.SetPriorityClass(h, PROCESS_MODE_BACKGROUND_BEGIN))
     ok_idle = bool(k32.SetPriorityClass(h, IDLE_PRIORITY_CLASS))
+    psutil.Process().ionice(psutil.IOPRIO_VERYLOW)
+    low = wintypes.ULONG(MEMORY_PRIORITY_LOW)
+    ok_mem = bool(k32.SetProcessInformation(h, _PROCESS_MEMORY_PRIORITY, ctypes.byref(low), 4))
     ok_aff = bool(k32.SetProcessAffinityMask(h, mask))
     if not (ok_idle and ok_aff):
         raise StageFailed(f"could not set Idle priority / affinity {hex(mask)} (idle {ok_idle}, affinity {ok_aff})")
-    return {"priority": "Idle", "background_mode": ok_bg, "affinity": hex(mask)}
+    return {"priority": "Idle", "io": "very low", "memory_priority_low": ok_mem, "affinity": hex(mask)}
 
 
 def priority_name() -> str:

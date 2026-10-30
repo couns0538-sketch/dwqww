@@ -4,7 +4,7 @@ Every stage skips work whose done marker exists, so the command can be rerun at 
 R11 was stopped by its PID); each stage logs one PASS/FAIL/WAIT line to <root>/logs/pipeline.log and the run ends with
 exactly one "R11 PIPELINE PASS", "R11 PIPELINE WAIT" or "R11 PIPELINE FAIL" line.
 
-Usage (python -I -B, Idle + background mode on 3 cores is set by the script itself):
+Usage (python -I -B; Idle, I/O very low, memory low on 3 cores is set by the script itself):
   r11_pipeline.py --config <cfg.json> run --profile smoke|full [--skip-data] [--name <run name>]
   r11_pipeline.py --config <cfg.json> run --ckpt <file.ckpt> --l1 N [--name <net stem>]   (an existing checkpoint)
   r11_pipeline.py --config <cfg.json> run --net <file.nnue> --l1 N                         (an existing net)
