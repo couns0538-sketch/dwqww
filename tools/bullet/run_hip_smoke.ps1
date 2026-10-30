@@ -146,7 +146,7 @@ function ConvertTo-GateExeNames([string[]]$Values) {
     foreach ($value in $Values) {
         foreach ($entry in ($value -split ',')) {
             $name = $entry.Trim()
-            if ([string]::IsNullOrWhiteSpace($name) -or $name -match '[\\/*?]' -or $name -notmatch '(?i)\.exe$') { throw 'GateExeNames requires comma-separated exact .exe basenames without empty entries, paths or wildcards' }
+            if ([string]::IsNullOrWhiteSpace($name) -or $name -match '[\\/*?:]' -or $name -notmatch '(?i)\.exe$') { throw 'GateExeNames requires comma-separated exact .exe basenames without empty entries, paths or wildcards' }
             $name
         }
     }

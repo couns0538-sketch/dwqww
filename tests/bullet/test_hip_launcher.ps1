@@ -107,6 +107,7 @@ Assert-ProcessPolicyOptions
 Expect-Refusal { Assert-ProcessPolicyOptions -GateExeNames @('forge*.exe') }
 Expect-Refusal { Assert-ProcessPolicyOptions -GateExeNames 'forge.exe,,stockfish.exe' }
 Expect-Refusal { Assert-ProcessPolicyOptions -GateExeNames 'forge.exe,R:\gate.exe' }
+Expect-Refusal { Assert-ProcessPolicyOptions -GateExeNames 'R:forge.exe' }
 Assert-ProcessPolicyOptions -GateExeNames ' forge.exe , stockfish.exe '
 $normalizedNames = @(ConvertTo-GateExeNames @(' forge.exe , stockfish.exe ', 'candidate.exe'))
 if ($normalizedNames.Count -ne 3 -or $normalizedNames[0] -cne 'forge.exe' -or $normalizedNames[1] -cne 'stockfish.exe' -or $normalizedNames[2] -cne 'candidate.exe') { throw 'Comma-separated gate names were not normalized' }

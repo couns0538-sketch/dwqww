@@ -92,6 +92,13 @@ class HipDocumentationTests(unittest.TestCase):
         self.assertIn("scratch_drive=$ScratchDrive", source)
         self.assertIn("-ScratchDrive '<APPROVED_DRIVE_LETTER>:'", readme)
 
+    def test_gate_basename_pattern_rejects_drive_relative_paths(self):
+        source = (ROOT / "tools/bullet/run_hip_smoke.ps1").read_text()
+        forbidden = re.search(r"\$name -match '([^']+)' -or \$name -notmatch", source).group(1)
+        for name in ("R:forge.exe", r"R:\gates\forge.exe", "forge*.exe", "gates/forge.exe"):
+            self.assertIsNotNone(re.search(forbidden, name), name)
+        self.assertIsNone(re.search(forbidden, "forge_gate.exe"))
+
     def test_current_recipe_describes_refined_policy_and_runtime_limit(self):
         readme = (ROOT / "tools/bullet/README.md").read_text()
         for text in ("five valid snapshots", "strictly greater than 2%",
