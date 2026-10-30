@@ -168,20 +168,41 @@ def main() -> int:
     except C.StageFailed:
         check(True, "a 4-CPU mask is refused")
 
-    # 2 fail closed without psutil
+    # 2 CR fix 4: the process check FAILS without psutil; an unreadable python command line counts as production
     saved = sys.modules.get("psutil", "absent")
     sys.modules["psutil"] = None  # makes "import psutil" raise ImportError
     try:
-        res = C.production_processes(["anything"])
+        C.production_processes(["anything"])
+        failed = False
+    except C.StageFailed:
+        failed = True
     finally:
         if saved == "absent":
             del sys.modules["psutil"]
         else:
             sys.modules["psutil"] = saved
-    check(len(res) == 1 and res[0]["pid"] == -1 and "fail closed" in res[0]["pattern"],
-          f"process check fails closed without psutil: {res}")
+    check(failed, "process check fails (StageFailed) when psutil is missing")
     res = C.production_processes([r"this-pattern-matches-no-process-\d{40}"])
     check(res == [], "process check with psutil and no match returns []")
+    import psutil
+
+    class FakeProc:
+        def __init__(self, pid, name, cmdline, ppid=1000):
+            self.info = {"pid": pid, "ppid": ppid, "name": name, "cmdline": cmdline}
+
+    real_iter = psutil.process_iter
+    psutil.process_iter = lambda attrs=None: iter([FakeProc(999001, "python.exe", None),
+                                                   FakeProc(999002, "System", None),
+                                                   FakeProc(999003, "notepad.exe", ["notepad.exe", "x.txt"]),
+                                                   FakeProc(999004, None, None, ppid=4),
+                                                   FakeProc(999005, None, None, ppid=1234)])
+    try:
+        res = C.production_processes([r"no-such-pattern-\d{30}"])
+    finally:
+        psutil.process_iter = real_iter
+    check([r["pid"] for r in res] == [999001, 999005] and all(r["pattern"] == C.UNREADABLE for r in res),
+          "unreadable command line: python and unnamed non-kernel processes count as production (wait); "
+          f"System and kernel children (ppid 4) do not: {res}")
 
     # 3 protected folders
     for p in ("F:/forge_j1_data/x.binpack", "D:/forge_nnue_train/exports/y", "C:/Users/Administrator/grok-pc/z",

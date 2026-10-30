@@ -109,24 +109,30 @@ def hold_requested() -> bool:
 
 
 def production_running(patterns: list[str]) -> str | None:
-    """Matched pattern or None. Fails closed: no psutil / no process list -> treated as running."""
+    """Matched pattern or None. CR fix 4: psutil missing / no process list -> SystemExit (the run fails); a python
+    process whose command line cannot be read (AccessDenied) counts as running (yield), never as "no match"."""
     try:
         import psutil
     except ImportError:
-        return "psutil missing (fail closed)"
+        raise SystemExit("[r11] psutil is missing: cannot check for production trainers (fail)")
     regs = [re.compile(p, re.I) for p in patterns if p]
     me = os.getpid()
     try:
-        procs = list(psutil.process_iter(["pid", "cmdline"]))
+        procs = list(psutil.process_iter(["pid", "ppid", "name", "cmdline"]))
     except Exception as e:  # noqa: BLE001
-        return f"process list unavailable: {type(e).__name__} (fail closed)"
+        raise SystemExit(f"[r11] process list unavailable ({type(e).__name__}): cannot check for production trainers")
     for p in procs:
-        try:
-            if p.info["pid"] == me:
-                continue
-            cmd = " ".join(p.info["cmdline"] or [])
-        except Exception:  # noqa: BLE001
+        info = p.info
+        if info.get("pid") == me:
             continue
+        name = info.get("name") or ""
+        cmdline = info.get("cmdline")
+        if cmdline is None:
+            kernel = not name and info.get("ppid") in (0, 4)  # Registry, Memory Compression, Secure System
+            if not kernel and (not name or name.lower().startswith("python")):
+                return "command line unreadable (AccessDenied): treated as a production trainer"
+            continue
+        cmd = " ".join(cmdline)
         for r in regs:
             if r.search(cmd):
                 return r.pattern

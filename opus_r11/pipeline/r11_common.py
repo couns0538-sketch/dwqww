@@ -337,35 +337,42 @@ def priority_name() -> str:
     return {0x40: "Idle", 0x4000: "BelowNormal", 0x20: "Normal", 0x8000: "AboveNormal", 0x80: "High"}.get(pc, hex(pc))
 
 
-FAIL_CLOSED = {"pid": -1, "name": "unknown", "pattern": "process list unavailable (fail closed)"}
+UNREADABLE = "command line unreadable (AccessDenied): treated as a production trainer"
 
 
 def production_processes(patterns: list[str]) -> list[dict]:
     """Processes whose command line matches one of the regexes. Only pid, name and the matched pattern are
     returned (command lines are never logged).
-    Fails CLOSED: when psutil is missing or the process list cannot be read, the result is a single
-    FAIL_CLOSED entry, so every caller treats production as running (wait / do not start)."""
+    CR fix 4: psutil missing or no process list -> StageFailed (the stage fails, nothing starts); a python process
+    whose command line cannot be read (AccessDenied) counts as a match (the caller waits), never as "no match".
+    Non-python processes with an unreadable command line (System, services) and kernel processes without a readable
+    name (parent PID 0 or 4: Registry, Memory Compression, Secure System) cannot be a trainer and are skipped."""
     try:
         import psutil
-    except ImportError:
-        return [dict(FAIL_CLOSED, pattern="psutil missing (fail closed)")]
+    except ImportError as e:
+        raise StageFailed("psutil is missing: cannot check for production trainers (fail)") from e
     me = os.getpid()
     found = []
     regs = [re.compile(p, re.I) for p in patterns]
     try:
-        procs = list(psutil.process_iter(["pid", "name", "cmdline"]))
-    except Exception as e:  # noqa: BLE001 - any failure to list processes must fail closed
-        return [dict(FAIL_CLOSED, pattern=f"process_iter failed: {type(e).__name__} (fail closed)")]
+        procs = list(psutil.process_iter(["pid", "ppid", "name", "cmdline"]))  # unreadable attributes come back as None
+    except Exception as e:  # noqa: BLE001
+        raise StageFailed(f"process list unavailable ({type(e).__name__}): cannot check for production trainers") from e
     for p in procs:
-        try:
-            if p.info["pid"] == me:
-                continue
-            cmd = " ".join(p.info["cmdline"] or [])
-        except Exception:
+        info = p.info
+        if info.get("pid") == me:
             continue
+        name = info.get("name") or ""
+        cmdline = info.get("cmdline")
+        if cmdline is None:
+            kernel = not name and info.get("ppid") in (0, 4)
+            if not kernel and (not name or name.lower().startswith("python")):
+                found.append({"pid": info.get("pid"), "name": name or "?", "pattern": UNREADABLE})
+            continue
+        cmd = " ".join(cmdline)
         for r in regs:
             if r.search(cmd):
-                found.append({"pid": p.info["pid"], "name": p.info["name"], "pattern": r.pattern})
+                found.append({"pid": info.get("pid"), "name": name, "pattern": r.pattern})
                 break
     return found
 
