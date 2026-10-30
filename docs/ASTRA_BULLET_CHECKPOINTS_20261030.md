@@ -1,0 +1,39 @@
+# Forge Bullet export checkpoint — 2026-10-30
+
+Status: WIP, no training or parity acceptance yet.
+Base: astra-a1-data 110f0c4a819756b79a77d88a5ef525b6dafd925b.
+Target loader: 7f79c34901fdd118bc4bf904f4bcaec4006047c6 (detached native build source).
+Handoff: 1aa5b173; lock source294dbed3a15dfd821aaf9d4edc6e5f62832fd460.
+
+Verified archive SHA256:1d6160dd859740fe617c8dc6c6e6ad8fbcdd0ba40b59ee9cee84342f9202cca5.
+Verified fens_12k SHA256:c01c0e6a49fb9aaab535058bd7280c33b8735e0f8bd40834f1c029843a75a265.
+Verified embedded lock net SHA256:a7ebcf3a319675f347e6e8e3f2539901d38d8036cb9b5935f31dd43d084c9638.
+
+Design: original Python exporter reads Bullet weights.bin with an explicit architecture/tensor/quantization manifest, rejects incompatible architecture, emits R10 K32H3 net and computes an independent integer reference. Native QA loader supplies parity oracle. Standard Bullet network architectures cannot be converted by merely renaming tensors. Supported target must match R10's pairwise FT,32stacks, squared+linear layers and skip outputs.
+
+Runtime limitations: no Cargo/Rust/HIP tools in PATH; official Bullet uses GPU backends and MockGpu cannot train. Actual Bullet smoke training remains blocked unless a compatible trained checkpoint or GPU execution is provided. CMake absent in current PATH; first configure failure saved and a local install is underway. No engine/search changes; no live training/gates touched.
+
+Job2 is separate astra-fen-convert-20261030. Standard Bullet format loses castling,EP,clocks and original side-to-move: exact recovery requires verified row-aligned sidecar. Original game IDs absent; no game-level isolation claim. Full013/014 remain private; handoff says281 retained A1 rows overlap and must be removed on PC.
+
+Next: finish exporter tests, build exact QA source, native12k parity, corruption test,OFF pins; then converter qualification. Reserve20minutes for final bug review. Original logs live validation/astra-bullet-export.
+
+## User clarification, superseding primary architecture
+The user explicitly selected the AL1 lock graph at294dbed3 and accepts whole-shard013/014 exclusion in place of unavailable gameIDs. R10 K32H3 and AL1 architectures are incompatible. Preserve R10 exporter/tests as supplementary work; primary target is shared768→256 FT, dualSCReLU, residuallinearoutput, allfourparameters int16/4096. ExactAL1 has an embedded nnue_weights.inc and no runtime .nnue loader; no fabricated R10 compatibility.
+
+Original Bullet graph recipe and AL1 include exporter are being implemented. A CPU-equivalent PyTorch bounded smoke is supplemental; it is NOT a Bullet-trained checkpoint. ActualBullettraining remains unavailable withoutGPU. Full10M training is not claimed. Acceptedholdoutpolicy excludeswhole013/014, plus separateboard+STMdedup onprivatePCfiles. No inferredgameIDs.
+
+CMake4.4.4 installed locally; complete unchangedR10 Release build finished. Nativequalification underway; preliminaryctest14/15withonlyforge_tests'sfourknownlines. Finalnumbers follow originals undernative/.
+
+## Verified checkpoint before final review closes
+- Exact AL1 fresh Release build: OFF d11/13/16/20/22 **312866 / 862329 / 3024920 / 12389307 / 34048354**; startpos5 **4865609**, kiwipete5 **193690690**, whole-binary FMA **0**. Native source294dbed3 unchanged. Original logs: `validation/astra-bullet-export/lock_native/full_engine/`.
+- AL1 lock include → synthetic Bullet interchange → independent reference: **12000/12000 native residual-cp matches**. Separate supplemental CPU-trained8192-row one-epoch sample → include → exactAL1 native: **12000/12000 matches**; all8192HCE labels match exactAL1 evaluator. No Bullet GPU training occurred.
+- CPU smoke uses original shared768→256 dualSCReLU residual graph and HCE-aware sigmoidloss.8192/8192rows,64updates,1CPUthread. Same-slice MSE0.004648477338154236→0.002897180728021214. This is a pipeline check, not heldout/generalization/playing-strength evidence. Original checkpoint/include/slice/logs preserved undercpu_smoke/run1.
+- Supplementary R10 smoke-net → syntheticcheckpoint → `.nnue`:12000exactreference/native andscalar/SIMDmatches. One output-weight corruption causesexpectedparityfailure. Firstinvocationmissingdimensionarguments preserved separately.
+- ExactR10CTest14/15: onlyfourknownforge_tests diagnostics (WAC001move/score androokunderpromotion twice); no new enginefix claimed.
+- Review found/fixed nativeoracle outputoverwrite/aliasrisk (red6failures→green7tests); existing-data safety nowusesexclusivecreation. Review remains open.
+
+### License correction
+The firsthigh-level `bullet_lib` wrapper typecheck succeeded but its dependencyclosure contains GPL/AGPL format crates. That approach is **rejected**; source/build/lockfile metadata retained only as failed-attempt evidence. Activegraph is being replaced with lower-level MITBullet compiler/trainer APIs and an original HCE-awaregraph. No GPL/AGPL source was copied into this repository. Do not run the preserved rejectedwrapper recipe. Final active-dependency audit and graph receipts follow.
+
+### Remaining
+ActualBulletGPUtraining is BLOCKED(noHIP/CUDAdevice); there is no runtimeAL1 `.nnue` loader. The exported `.inc` must be compiled into an isolated engine. Fullprivate013/014 positiondedup and WindowsGPUqualification remain PCtasks. Job2 separatebranch `astra-fen-convert-20261030` has1Mformat/nativebinpack/officialBulletloader checks; its finalreview is ongoing. No live trainer/gate was touched.

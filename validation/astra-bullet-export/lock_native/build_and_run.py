@@ -3,6 +3,7 @@
 import datetime
 import hashlib
 import json
+import os
 from pathlib import Path
 import re
 import shutil
@@ -11,6 +12,8 @@ import sys
 import time
 
 name, include_path, fens_path, *extra = sys.argv[1:]
+assert set(extra) <= {'--hce', '--sanitize'}, extra
+sanitize = '--sanitize' in extra
 assert re.fullmatch(r'[a-z0-9_]+', name), name
 include_path, fens_path = Path(include_path).resolve(), Path(fens_path).resolve()
 evidence = Path(__file__).resolve().parent / name
@@ -38,23 +41,28 @@ def run(label, cmd):
     start = time.monotonic()
     record = {'argv': [str(x) for x in cmd], 'cwd': str(build),
               'started_utc': datetime.datetime.now(datetime.timezone.utc).isoformat()}
+    environment = dict(os.environ)
+    if sanitize:
+        environment['ASAN_OPTIONS'] = 'detect_leaks=1:halt_on_error=1'
+        environment['UBSAN_OPTIONS'] = 'halt_on_error=1:print_stacktrace=1'
+        record['environment_overrides'] = {k:environment[k] for k in ['ASAN_OPTIONS','UBSAN_OPTIONS']}
     with (evidence/f'{label}.stdout.log').open('w') as out, (evidence/f'{label}.stderr.log').open('w') as err:
-        proc = subprocess.run(cmd, cwd=build, stdout=out, stderr=err, timeout=900)
+        proc = subprocess.run(cmd, cwd=build, stdout=out, stderr=err, timeout=900, env=environment)
     record.update(returncode=proc.returncode, duration_seconds=time.monotonic()-start)
     commands.append(record)
     (evidence/'commands.json').write_text(json.dumps(commands, indent=2)+'\n')
     assert proc.returncode == 0, record
 
 binary = build / 'lock_oracle'
-run('build', ['/usr/bin/c++', '-std=c++20', '-O3', '-DNDEBUG', '-march=x86-64-v3', '-mtune=znver5',
+optimization = ['-O1', '-g', '-fsanitize=address,undefined', '-fno-omit-frame-pointer'] if sanitize else ['-O3']
+run('build', ['/usr/bin/c++', '-std=c++20', *optimization, '-DNDEBUG', '-march=x86-64-v3', '-mtune=znver5',
     '-ffp-contract=off', '-fno-fast-math', '-DFORGE_NNUE_HIDDEN=256', '-pthread', '-Wall', '-Wextra',
     '-I'+str(source/'include'), repo/'tools/bullet/lock_oracle.cpp', source/'src/bitboard.cpp',
     source/'src/board.cpp', source/'src/eval.cpp', source/'src/eval_params.cpp', build/'nnue.cpp', '-o', binary])
 identity['binary_sha256'] = sha(binary)
 (evidence/'identity.json').write_text(json.dumps(identity, indent=2)+'\n')
 args = [binary, fens_path, evidence/'native_cp.txt']
-if extra:
-    assert extra == ['--hce'], extra
+if '--hce' in extra:
     args += ['--hce', evidence/'native_hce.txt']
 run('evaluate', args)
 dis = subprocess.run(['objdump','-d',binary],capture_output=True,text=True,check=True)

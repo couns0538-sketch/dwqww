@@ -77,14 +77,15 @@ The graph's four learned tensors alone are exported. The initializer's seed is
 Bullet-written checkpoint:
 
 ```bash
-cargo run --locked --manifest-path tools/bullet/lock_graph/Cargo.toml -- NEW_weights.bin
+cargo run --locked --manifest-path tools/bullet/lock_graph/Cargo.toml --bin forge-lock-bullet-graph -- NEW_weights.bin
 python tools/bullet/lock_export.py manifest --checkpoint NEW_weights.bin \
   --out NEW_manifest.json --provenance 'Bullet initialization only; NOT TRAINED'
 ```
 
 **This binary initializes weights and writes a checkpoint; it does not train.**
-A custom GPU input mapper/optimizer driver using the lower-level MIT crates is
-still required for Bullet training. No GPU smoke or HIP execution is claimed.
+A separate `train_smoke` binary supplies an original bounded input mapper and
+one-epoch optimizer driver using only the lower-level MIT crates. Its CPU mapper
+mode can run without a GPU; actual GPU smoke and HIP execution remain unverified.
 The separate CPU PyTorch smoke is explicitly labelled PyTorch, never Bullet.
 
 ## Fixture status and safety
@@ -100,3 +101,53 @@ fail. No engine strength or training-gain conclusion follows from any fixture.
 NumPy is required. Tests are under `tests/bullet/`; native oracle tests also
 require their explicit binary environment variable. Use the saved validation
 logs to distinguish an executed test from a conditional skip.
+
+## Bounded one-epoch Bullet GPU smoke driver
+
+The optional `train_smoke` binary uses the same four tensorIDs and HCE-conditioned
+score-only loss. Its input is a bounded original **FBS1 mapper interchange**, not
+bulletformat or binpack. This lets the CPU and GPU checks use exactly the saved
+A1 slice and true HCE labels; it does not replace the Job2 dataset converters.
+
+Prepare a new input directory, or use the committed `bullet_gpu_input` receipt
+and binary. Preparation verifies every selected FEN against FPOS and rechecks
+all three original source hashes. The selected8192 rows are one bounded slice,
+not an epoch over10M or305M rows.
+
+```bash
+python tools/bullet/prepare_lock_smoke_data.py \
+  --pos subset.pos --hce subset.hce --fen subset.fen \
+  --rows 8192 --out NEW_BULLET_INPUT
+cargo run --locked --manifest-path tools/bullet/lock_graph/Cargo.toml \
+  --bin train_smoke -- NEW_BULLET_INPUT/input.fbs UNUSED_NEW_DIR 128 --check-input
+```
+
+The CPU check compiles the actual backward tensor graph and maps all8192 rows
+through Bullet's real `ModelInputsMapper`/`ReadMapLoader`. It does not execute
+training kernels. The driver rejects malformed/truncated data, invalid sparse
+indices or padding, nonfinite labels, existing output directories and any batch
+size that would drop a tail. A no-backend training request exits with an explicit
+error and creates no output directory.
+
+On the PC, after configuring the installed HIP SDK as Bullet documents
+(`HIP_PATH`, with `GCN_ARCH_NAME` obtained from `hipinfo`), the intended command is:
+
+```powershell
+Get-FileHash .\NEW_BULLET_INPUT\input.fbs -Algorithm SHA256
+# Compare exactly with NEW_BULLET_INPUT\manifest.json input_sha256 before use.
+cargo run --release --locked --features rocm --manifest-path tools/bullet/lock_graph/Cargo.toml --bin train_smoke -- NEW_BULLET_INPUT/input.fbs NEW_GPU_SMOKE_OUTPUT 128 2>&1 | Tee-Object NEW_GPU_SMOKE_RUN.txt
+if ($LASTEXITCODE -ne 0) { throw "Bullet GPU smoke failed; retain all logs" }
+python tools/bullet/lock_export.py manifest --checkpoint NEW_GPU_SMOKE_OUTPUT/weights.bin --out NEW_GPU_MANIFEST.json --provenance 'Actual Bullet GPU smoke; source SHA and saved log path'
+python tools/bullet/lock_export.py export --checkpoint NEW_GPU_SMOKE_OUTPUT/weights.bin --manifest NEW_GPU_MANIFEST.json --out NEW_GPU_nnue_weights.inc
+```
+
+GPU execution/HIP build are **UNVERIFIED here**. Inspect `COMPLETE.txt` only after
+successful exit; it records one epoch, row count, batch size and seed. Failures
+retain partial outputs without this completion marker. The intended optimizer
+is AdamW with zero decay, LR0.0001, fixedseed20261030, sequential source order and
+int16/4096 representable-range clipping. This GPU graph does **not** implement
+quantization-aware training; the separate PyTorch smoke does. Export quantizes
+all tensors; the resulting exported net still needs the native12k parity run.
+No GPU throughput, training loss, gain or playing strength is inferred from the
+CPU mapper check. The supplied source does not launch itself or change an
+existing trainer or gate.

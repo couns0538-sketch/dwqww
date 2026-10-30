@@ -1,0 +1,13 @@
+# Bullet/Forge recon — 2026-10-30
+
+Source pins: Forge lock294dbed3a15dfd821aaf9d4edc6e5f62832fd460; R10loader7f79c34901fdd118bc4bf904f4bcaec4006047c6; officialMITBulletda426a49b2a4b79a55a87031cd51c89bdf1ff030.
+
+Current user steering targets exactAL1: shared768->256 transform, twoSCReLU perspectives, linear1 residual. Embedded int16storage at4096; runtimeweights/accumulators/outputfloat32;16orderedoutputlanes;cp=trunc(clamp(out*400/2.25,±30000)). No runtime.nnue loader. Native currentnet/reference12kcp parity independently reportedPASS bynativeagent. Primaryimplementationtools/bullet/lock_export.py; sourceunchanged.
+
+InitialR10 target preservedseparately:67,584features,32kingbuckets*3states*704planes,FTint8+int16bias,pairwiseactivation,32outputstacks,version0x6A448AFA/featurehash0xAB005CEF. It cannotreplaceAL1format. OriginalR10serializer/reference andsyntheticcheckpointbridge retainverificationvalue but arenotcurrentlockdeliverable.
+
+Bulletweights.bin: tensorIDASCII+LF,uint64LEcount(x64),float32LE,columnmajor. Noarchitectureorquantizationschema; explicitSHA-boundmanifestrequired. Bulletquant usesf64scale*f64storedf32 then truncorroundtiesaway. Actualparsedstreamhash validated, notonlyinitialpathhash.
+
+Importantlicensefinding: bullet_lib wrapper itselfMIT, butunconditionaldependenciesmontyformat0.9.2AGPL3andsfbinpack0.6.5GPL3 violateuserconstraint. Rejectedwrapperrecipe/evidencepreserved. Activeoriginalgraphuseslowerlevelbullet-compiler+bullet-trainer,21resolvedLinuxpackages,0GPL/AGPL/unknown. Cargo checkPASSED; actualBulletModelWeightsinitializerexecutedCPUandwrotecheckpoint9a7f1fa7...; thisisNOTtraining. GraphHCEconditionedlossmatchesCPUobjective. GPUdriver/custommapperstillneeded; noHIP/GPUtrainingclaimed.
+
+CurrentBullet hasMockGpu forAPItypecheckingonly; kernel/GEMM returnsunsupportederrors. No actualBulletCPUtrainerprovided. OriginalCPUtorchsmokeisasetofseparateexplicitlylabelledtests, notBullettraining.
