@@ -21,7 +21,7 @@ using namespace forge;
 
 namespace {
 
-int eval_mode(const std::string& net, const std::string& fens, const std::string& out_path) {
+int eval_mode(const std::string& fens, const std::string& out_path) {
     std::ifstream in(fens);
     std::ofstream out(out_path, std::ios::binary);
     std::string line;
@@ -122,7 +122,7 @@ int main(int argc, char** argv) {
         return 2;
     }
     const std::string mode = argv[1];
-    if (mode == "eval" && argc >= 5) return eval_mode(argv[2], argv[3], argv[4]);
+    if (mode == "eval" && argc >= 5) return eval_mode(argv[3], argv[4]);
     if (mode == "walk" && argc >= 6)
         return walk_mode(static_cast<unsigned>(std::stoul(argv[3])), std::stoi(argv[4]), std::stoi(argv[5]));
     std::fprintf(stderr, "bad arguments\n");
