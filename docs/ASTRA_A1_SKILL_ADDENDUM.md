@@ -25,6 +25,9 @@ For training-data work, record the following before claiming an output valid:
 | Native process evidence | Retain original requests, responses, stderr, command and actual child exit status. Check request IDs, operations, response count, output bounds and binary identity. A shell pipeline’s last exit code is not the test process exit code. Terminate only processes owned by this run. |
 | CPU throughput | Report actual OS CPU time for the measured process scope and wall time separately. Per-query timers omit startup/idle/shutdown; cores × elapsed time is allocated capacity, not measured CPU. Include thread/hash/node settings, affinity, sample scope and counted successful rows. |
 | Interrupted collaboration | Check agent status after user steering. A message alone does not resume an interrupted/idle worker; use a follow-up task to trigger continuation, preserving file ownership and current progress. |
+| Seal boundary | Keep external verification and console receipts outside sealed output folders. Adding an unmanifested file changes the bundle even if its data bytes are unchanged. Require process exit zero, all hashes and independent accounting checks before accepting a legacy run whose summary was published before its manifest. |
+| Search completion | Distinguish completed search depth/score from an aborted iteration's displayed depth and partial bestmove. An initial UCI cp0 placeholder is not a completed label. A documented insufficient-budget response is an explicit exclusion, not permission to invent a score. |
+| Portable evidence | Validate one case-insensitive namespace for archive files, explicit directories, implied parents and the built-in manifest. File-only collision checks miss Windows file/directory aliases. Re-read every archived payload and verify the published server digest. |
 
 Report format correctness, native legality/search validity, trainer compatibility,
 throughput and training/playing strength as separate conclusions. Unit fixtures
@@ -61,3 +64,7 @@ and a successful query followed by nonzero child exit. Preserve actual responses
 and correct any omissions. The interrupted-agent rule and CPU accounting rule
 also require workflow-level checks; they are not claimed as covered by the I/O
 suite. No installation or provider edit has been performed.
+
+The additional seal-boundary, search-completion and portable-evidence guidance
+comes from this session's preserved failures and subsequent regressions. Those
+code checks do not replace the behavioral skill-validation requirement above.

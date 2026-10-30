@@ -75,7 +75,12 @@ Reconstruction is opt-in and never counted as exact. A derived FEN-only sidecar 
 - Book: `validation/astra-a1-data/openings-unbalanced-25/standard-one/openings.moves`.
 - Book SHA256: `7237efd96cb0b9b60a0717679d867e5ce04eddd2d46e56234cef77820066ee81`.
 
-The min-zero control was generated twice with identical book/metadata bytes; its combined standard/optional-FEN audit covered 707 plies and 787 comparisons. Sixteen no-castling Chess960-style FENs were also produced. They are **not true Chess960 and cannot be loaded by unchanged R8**. Standard books match R8's exact move-only contract at `5dd3a57d6f286f09b8881671ba8a368f6d34f717`. Windows R8 execution and a second min-25 generation are unverified.
+The min-zero control was generated twice with identical book/metadata bytes; its combined standard/optional-FEN audit covered 707 plies and 787 comparisons. Sixteen no-castling Chess960-style FENs were also produced. They are **not true Chess960 and cannot be loaded by unchanged R8**. Standard books match R8's exact move-only contract at `5dd3a57d6f286f09b8881671ba8a368f6d34f717`. Windows R8 execution is unverified. A second min-25 generation using the current helper reproduced the book, settings and generation-statistics bytes; metadata differed only in its 64 helper-SHA fields. Full comparison and original IPC are in `validation/astra-a1-data/openings-currenthelper-repeat`.
+
+Opening generation and its native audits used the earlier helper SHA256
+`ad2fa25e384d71fc30bf5c22108da0336675d93a21fd9b11604964acb771c498`.
+The full filter and relabel receipts instead identify the later `ddf871…`
+helper listed above; their original evidence retains these distinct identities.
 
 ## Job 4: trainer compatibility and experiment plan
 
@@ -97,7 +102,7 @@ Fresh GCC 14.2 Release: H256, `-march=x86-64-v3 -mtune=znver5 -fno-fast-math -ff
 
 Startpos perft5 **4865609**; kiwipete perft4 **4085603** and perft5 **193690690**. The first extra perft5 harness used an unsupported bare command; its empty result and corrected `go perft 5` run are both retained. Native probe tests: 9/9. ASan/UBSan with leak detection: 9 tests plus all 256 real-FEN responses equal to Release excluding timing, no diagnostics. Initial sandbox/ptrace failures are retained; the successful run used the supported untraced path. Existing core compiler warnings remain recorded, not silently removed. The complete pre-existing engine ctest suite was not rerun for this tool-only change; no claim that its historical failures were repaired here.
 
-Python policy, format, process, publication and manifest tests: **89 pass**. Discovery reports 90 cases with one explicit native-fixture skip; its standalone **9-test** invocation also passes. Exact logs are in `validation/astra-a1-data/all_unit_reviewed.log`. Failed implementations and experiments remain alongside their corrected tests.
+Python policy, format, process, publication and manifest tests: **114 pass**. Discovery reports 115 cases with one explicit native-fixture skip; its standalone **9-test** invocation also passes. Latest full-discovery log: `validation/astra-a1-data/all_unit_final_namespace.log`. Original earlier runs remain preserved. The archive namespace regression failed before the correction and passes afterward, including under `python -O`; failed implementations and experiments remain alongside their corrected tests.
 
 ## Reproduce and review
 
@@ -146,3 +151,5 @@ Checkpoint 20261030T040600Z: full10M status RUNNING, processed 5920512, kept 544
 Checkpoint 20261030T041603Z: full10M status RUNNING, processed 6424832, kept 5911136. Final independent bundle verification is still required. No Elo claim.
 
 Checkpoint 20261030T042605Z: full10M status RUNNING, processed 7004416, kept 6445540. Final independent bundle verification is still required. No Elo claim.
+
+Checkpoint 20261030T043607Z: full10M status RUNNING, processed 7613696, kept 7007403. Final independent bundle verification is still required. No Elo claim.

@@ -64,6 +64,13 @@ Windows job-object memory cap. Run large jobs sequentially and check free disk:
 original query logs, decisions, output shards and the deduplication index are
 preserved.
 
+Use an output filesystem that supports ordinary same-volume hard links
+(for example NTFS). Atomic no-overwrite publication uses `os.link`; FAT/exFAT
+and some network shares do not support that contract. Before the 10M run, run
+a small filter pilot in a new folder on the same volume and verify its seal.
+Unsupported publication fails closed and retains partials; it is not a
+completed dataset.
+
 ## Build the standalone probe: GCC 15.2, Zen 5, static
 
 Use MSYS2 **UCRT64** GCC 15.2, CMake and either Ninja or MinGW Makefiles. Change
@@ -214,9 +221,9 @@ require a final absolute score of 25–150 cp for unbalanced openings. The earli
 not the unbalanced-book qualification. The separate Linux `openings-unbalanced-25`
 book has 64 unique positions with final absolute scores 25–148 cp, evenly split
 between White and Black advantages. Fresh native replay verified all 562 legal
-plies and 626 selected-position scores/depths/node counts. Its second generation
-and extra min-25 960-style batch were not run under the CPU budget; Windows
-execution remains UNVERIFIED. `SUCCESS.json` and the final manifest are
+plies and 626 selected-position scores/depths/node counts. A second standard generation using the current helper reproduced the book and
+settings exactly; metadata changed only in helper-hash fields. An extra min-25
+960-style batch was not run. Windows execution remains UNVERIFIED. `SUCCESS.json` and the final manifest are
 the seal authority; generation-phase status alone is not a completed run.
 
 R8 v5 commit `5dd3a57d6f286f09b8881671ba8a368f6d34f717` accepts the standard
