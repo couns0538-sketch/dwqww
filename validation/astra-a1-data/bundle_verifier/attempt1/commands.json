@@ -1,0 +1,54 @@
+{
+  "utc": "2026-10-30T02:48:10.167530+00:00",
+  "commands": [
+    {
+      "name": "unit",
+      "argv": [
+        "python3",
+        "tests/data/test_check_data_bundle.py",
+        "-v"
+      ],
+      "exit_code": 0
+    },
+    {
+      "name": "filter_pilot_full",
+      "argv": [
+        "python3",
+        "tools/data/check_data_bundle.py",
+        "/tmp/astra-a1-filter-pilot-10000",
+        "--full-records"
+      ],
+      "exit_code": 0
+    },
+    {
+      "name": "relabel_256_full",
+      "argv": [
+        "python3",
+        "tools/data/check_data_bundle.py",
+        "/tmp/astra-a1-relabel-256-1024",
+        "--full-records"
+      ],
+      "exit_code": 0
+    },
+    {
+      "name": "failed_original_run",
+      "argv": [
+        "python3",
+        "tools/data/check_data_bundle.py",
+        "/tmp/astra-a1-filter-full-10m"
+      ],
+      "exit_code": 1
+    }
+  ],
+  "expected_exit_codes": [
+    0,
+    0,
+    0,
+    1
+  ],
+  "source_sha256": {
+    "tools/data/check_data_bundle.py": "c665df2704b2b47faa6a995234f1844bc0d70156100196f872e1d0cc95b6c658",
+    "tests/data/test_check_data_bundle.py": "fba321de5f2beedffb73de1f719cf0a23d6a770c07574c1ef984ff56278b0a0f",
+    "tools/data/forge_pos.py": "1a9f31d3ec14577d84b52f5ea5493411186e1e0b6371b27fb683a871cb92b069"
+  }
+}

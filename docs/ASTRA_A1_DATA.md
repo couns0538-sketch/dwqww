@@ -44,3 +44,9 @@ Fresh unchanged engine OFF pins PASS:312866/862329/3024920/12389307/34048354; st
 Openinggeneration PASS: two64-position standardbooks byte-identical;16no-castling960-styleFENs separately generated. Native replay707legalplies/787score-depth-nodechecks,0mismatches,maximumabs148cp. WindowsR8execution remainsUNVERIFIED. CPU-only unchangedtrainer smoke passed four optimizerupdates with512realtrain/512heldoutrows,trainMSE0.004578 andteacherholdoutMSE0.005856420306372456; plumbingtest only. Initialwrapper run-dir errorretained.
 
 Full10Mv2 currently RUNNING, processed635392,kept584780; no finalfractionclaimuntilsealed. Finalreport/Windowscommands and final-manifest failurehardening inprogress.
+
+## Review checkpoint — 2026-10-30T02:49:51.948371+00:00
+
+Full10Mv2 processed 1315584 rows so far,kept 1211556; finalresults pending. Read-only monitoring recordsownedparent/threechildrenRSS andCPU. Filter and relabel publication now write summaryLAST aftermanifest, with injectedfailureregressions; runningv2 retains its archivedstartupcode and will require independentcompletebundle verification. Added read-only bundlechecker, verifiedrealpilot andrealrelabel fullrecordalignment, and rejection of failed10Mattempt. Windowslauncher nowrestoresCPUenvironment/priority/affinity; Windowsruntime remainsUNVERIFIED.
+
+Unchanged trainer mmap reader matches allboards/scores/meta/HCE of both256-row relabels and256stridedoriginal10Mrows (0mismatches). Full-FENs preserve rights/EP/clocks, but nohistorybeforetheFEN. Source/native/search remainunchanged. Knownlimits: incomplete013/full014/game IDs missing; exactexclusiononlysupplied013head. Full10Mcurrentrunuses1024-nodequiet teacher, notdeeperrelabeling.

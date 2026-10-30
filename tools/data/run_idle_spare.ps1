@@ -17,6 +17,10 @@ if ($CpuList.Count -eq 0) { throw 'Explicit spare logical CPUs are required.' }
 $Self = [Diagnostics.Process]::GetCurrentProcess()
 $OldAffinity = $Self.ProcessorAffinity
 $OldPriority = $Self.PriorityClass
+$OldThreadEnvironment = @{}
+foreach ($Name in @('OMP_NUM_THREADS','MKL_NUM_THREADS','OPENBLAS_NUM_THREADS')) {
+    $OldThreadEnvironment[$Name] = [Environment]::GetEnvironmentVariable($Name, 'Process')
+}
 [int64]$Mask = 0
 foreach ($Cpu in ($CpuList | Select-Object -Unique)) {
     # This tool deliberately supports a single Windows processor group only.
@@ -57,7 +61,14 @@ try {
     [ordered]@{exit_code=$ExitCode;finished_utc=[DateTime]::UtcNow.ToString('o')} |
         ConvertTo-Json | Set-Content -LiteralPath (Join-Path $LogDirectory 'exit.json') -Encoding UTF8
 } finally {
-    $Self.ProcessorAffinity = $OldAffinity
-    $Self.PriorityClass = $OldPriority
+    try { $Self.ProcessorAffinity = $OldAffinity }
+    finally {
+        try { $Self.PriorityClass = $OldPriority }
+        finally {
+            foreach ($Name in $OldThreadEnvironment.Keys) {
+                [Environment]::SetEnvironmentVariable($Name, $OldThreadEnvironment[$Name], 'Process')
+            }
+        }
+    }
 }
 if ($ExitCode -ne 0) { throw "Data job failed with exit code $ExitCode; evidence is in $LogDirectory" }

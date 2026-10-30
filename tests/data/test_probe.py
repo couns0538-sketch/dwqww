@@ -40,6 +40,11 @@ def query(rows):
     return result
 
 class ProbeTests(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        if CONFIG is None:
+            raise unittest.SkipTest('Native suite: run test_probe.py --probe EXE --evidence NEW_DIRECTORY')
+
     def test_inspect_start_and_kiwipete(self):
         a,b=query([('inspect',START),('inspect',KIWI)])
         self.assertTrue(a['ok']);self.assertTrue(b['ok'])

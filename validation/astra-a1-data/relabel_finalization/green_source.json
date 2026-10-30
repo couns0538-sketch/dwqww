@@ -1,0 +1,22 @@
+{
+  "status": "PASS",
+  "synthetic_fixtures": true,
+  "scope": "Finalization I/O failure injection; no training or native performance evidence",
+  "results": {
+    "relabel_tests": 14,
+    "relabel_failed": 0,
+    "probe_client_tests": 8,
+    "probe_client_failed": 0
+  },
+  "commands": [
+    "python3 -m unittest discover -s tests/data -p test_relabel_positions.py -v",
+    "python3 -m unittest discover -s tests/data -p test_probe_client.py -v",
+    "python3 -m py_compile tools/data/relabel_positions.py tests/data/test_relabel_positions.py",
+    "git diff --check -- tools/data/relabel_positions.py tests/data/test_relabel_positions.py"
+  ],
+  "sources": {
+    "tools/data/relabel_positions.py": "b24a7f540fcb82d6eeebeca4edb2a50da9b3cf46dbb19e1215fbfa4dcd6670c9",
+    "tests/data/test_relabel_positions.py": "6dc8f7cda88e853e5c7dcffe42506712eb7229716457c9ceb2dcd269c541ab7a",
+    "tests/data/test_probe_client.py": "bfdb8b2f8d578d71dc97044d837771737f511b3143134fa3898d404b8fc44404"
+  }
+}

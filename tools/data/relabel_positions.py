@@ -33,6 +33,30 @@ def cpu_total():
     import resource
     return sum((resource.getrusage(w).ru_utime+resource.getrusage(w).ru_stime) for w in (resource.RUSAGE_SELF,resource.RUSAGE_CHILDREN))
 
+def _write_synced(path,content,exclusive=True):
+    with path.open('xb' if exclusive else 'wb') as handle:
+        handle.write(content);handle.flush();os.fsync(handle.fileno())
+
+def _publish_final(out,report):
+    """Publish the summary receipt last; pending files remain after any failure.
+
+    IDEA_SOURCE: this project's filter summary-last publication workflow.
+    Manifest values retain the relabeler's existing relative-path -> SHA256 format.
+    The manifest excludes itself and its pending hard link, avoiding self-hashes.
+    """
+    content=(json.dumps(report,indent=2)+'\n').encode('utf8')
+    pending=out/'summary.json.pending'
+    _write_synced(pending,content)
+    manifest={str(p.relative_to(out)):sha256(p) for p in sorted(out.rglob('*')) if p.is_file()}
+    for name in ('summary.json','progress.json'):
+        manifest[name]=hashlib.sha256(content).hexdigest()
+    manifest_pending=out/'manifest.json.pending'
+    _write_synced(manifest_pending,(json.dumps(manifest,indent=2)+'\n').encode('utf8'))
+    os.link(manifest_pending,out/'manifest.json')
+    _write_synced(out/'progress.json',content,exclusive=False)
+    # No fallible I/O after this atomic no-replace commit receipt.
+    os.link(pending,out/'summary.json')
+
 def run(c:Config,pool_factory=ProbePool):
     from forge_pos import PosReader, PosWriter, Record, text_record, board_to_fen, RECONSTRUCTION_POLICY
     require(c.nodes>0 and 1<=c.workers<=3 and c.hash_mb>0,'invalid probe resources')
@@ -130,9 +154,7 @@ def run(c:Config,pool_factory=ProbePool):
         report['mean_absolute_score_change']=report['sum_absolute_score_change']/c.count
         report.update(status='SEALED',finished_utc=datetime.now(timezone.utc).isoformat())
         report['outputs']={suffix:sha256(c.out/(c.stem+suffix)) for suffix in ('.pos','.hce','.fen')}
-        (c.out/'summary.json').write_text(json.dumps(report,indent=2)+'\n');progress()
-        manifest={str(p.relative_to(c.out)):sha256(p) for p in sorted(c.out.rglob('*')) if p.is_file()}
-        (c.out/'manifest.json').write_text(json.dumps(manifest,indent=2)+'\n')
+        _publish_final(c.out,report)
         return report
     except BaseException as e:
         report.update(status='FAILED_UNSEALED',error_type=type(e).__name__,error=str(e));progress()

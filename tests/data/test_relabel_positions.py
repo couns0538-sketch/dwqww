@@ -8,6 +8,7 @@ from pathlib import Path
 import sys
 import tempfile
 import unittest
+from unittest import mock
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2] / 'tools/data'))
 import forge_pos as fmt
@@ -175,6 +176,69 @@ class RelabelTests(unittest.TestCase):
             self.assertEqual((self.root/('single/relabeled'+suffix)).read_bytes(),(self.root/('three/relabeled'+suffix)).read_bytes())
         pool,_=self.fake_pool()
         with self.assertRaises(FileExistsError): target.run(self.config('single'),pool)
+
+    def test_manifest_write_failure_never_publishes_sealed_summary(self):
+        real_open = Path.open
+        def fail_manifest(path, mode='r', *args, **kwargs):
+            if path.name.startswith('manifest.json') and any(c in mode for c in 'wax'):
+                raise OSError('injected manifest write failure')
+            return real_open(path, mode, *args, **kwargs)
+        pool,_=self.fake_pool()
+        with mock.patch.object(Path, 'open', fail_manifest):
+            with self.assertRaisesRegex(OSError, 'injected manifest write failure'):
+                target.run(self.config(count=1), pool)
+        self.assertFalse((self.root/'out/summary.json').exists())
+        self.assertFalse((self.root/'out/manifest.json').exists())
+        for name in ('failure.json','progress.json'):
+            self.assertEqual(json.loads((self.root/'out'/name).read_text())['status'],'FAILED_UNSEALED')
+        # Sealed data bytes remain inspectable; the missing receipt rejects the run.
+        self.assertTrue((self.root/'out/relabeled.pos').exists())
+        self.assertTrue((self.root/'out/labels.jsonl').exists())
+
+    def test_final_progress_write_failure_keeps_summary_unpublished(self):
+        real_open=Path.open
+        def fail_final_progress(path, mode='r', *args, **kwargs):
+            if path.name=='progress.json' and mode=='wb' and (path.parent/'manifest.json').exists():
+                raise OSError('injected final progress failure')
+            return real_open(path, mode, *args, **kwargs)
+        pool,_=self.fake_pool()
+        with mock.patch.object(Path,'open',fail_final_progress):
+            with self.assertRaisesRegex(OSError,'injected final progress failure'):
+                target.run(self.config(count=1),pool)
+        self.assertFalse((self.root/'out/summary.json').exists())
+        self.assertTrue((self.root/'out/manifest.json').exists())
+        self.assertTrue((self.root/'out/summary.json.pending').exists())
+        for name in ('failure.json','progress.json'):
+            self.assertEqual(json.loads((self.root/'out'/name).read_text())['status'],'FAILED_UNSEALED')
+
+    def test_summary_link_failure_retains_unsealed_receipts(self):
+        real_link=target.os.link
+        def fail_summary(source,destination,*args,**kwargs):
+            if Path(destination).name=='summary.json':
+                raise OSError('injected final summary link failure')
+            return real_link(source,destination,*args,**kwargs)
+        pool,_=self.fake_pool()
+        with mock.patch.object(target.os,'link',fail_summary):
+            with self.assertRaisesRegex(OSError,'injected final summary link failure'):
+                target.run(self.config(count=1),pool)
+        out=self.root/'out'
+        self.assertFalse((out/'summary.json').exists())
+        for name in ('manifest.json','manifest.json.pending','summary.json.pending','relabeled.pos'):
+            self.assertTrue((out/name).exists(),name)
+        for name in ('failure.json','progress.json'):
+            self.assertEqual(json.loads((out/name).read_text())['status'],'FAILED_UNSEALED')
+
+    def test_manifest_covers_final_summary_progress_and_retained_evidence(self):
+        pool,_=self.fake_pool();result=target.run(self.config(count=1),pool)
+        self.assertEqual(result['status'],'SEALED')
+        out=self.root/'out'
+        manifest=json.loads((out/'manifest.json').read_text())
+        self.assertIn('summary.json',manifest);self.assertIn('progress.json',manifest)
+        self.assertIn('labels.jsonl',manifest);self.assertIn('relabeled.pos',manifest)
+        self.assertEqual((out/'summary.json').read_bytes(),(out/'progress.json').read_bytes())
+        for name,expected in manifest.items():
+            self.assertIsInstance(expected,str)
+            self.assertEqual(target.sha256(out/name),expected,name)
 
     def test_slice_bounds_fail_without_probe_queries(self):
         pool,calls=self.fake_pool()

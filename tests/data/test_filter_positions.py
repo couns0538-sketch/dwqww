@@ -3,11 +3,13 @@
 IDEA_SOURCE: user data-integrity contract and the original filter implementation.
 """
 from __future__ import annotations
+import hashlib
 import json
 from pathlib import Path
 import sys
 import tempfile
 import unittest
+from unittest import mock
 from dataclasses import dataclass
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]/'tools/data'))
@@ -247,6 +249,63 @@ class IntegrationTests(unittest.TestCase):
             with self.subTest(response=response):
                 with self.assertRaisesRegex(ValueError,'FEN differs|node count|configuration mismatch'):
                     target.run(self.config(paths,'contract-'+str(index)),self.fake_pool({0:response}))
+
+    def test_manifest_write_failure_does_not_publish_sealed_summary(self):
+        fen='4k3/8/8/8/8/8/8/R3K3 w - - 0 1'
+        paths=self.make_input([(fen,10,.5)])
+        real_open=Path.open
+        def failing_open(path,mode='r',*args,**kwargs):
+            if path.name in ('manifest.json','manifest.json.pending') and ('w' in mode or 'x' in mode):
+                raise OSError('injected manifest write failure')
+            return real_open(path,mode,*args,**kwargs)
+        with mock.patch.object(Path,'open',new=failing_open):
+            with self.assertRaisesRegex(OSError,'injected manifest write failure'):
+                target.run(self.config(paths),self.fake_pool({}))
+        out=self.root/'out'
+        self.assertFalse((out/'summary.json').exists(), 'a failed manifest must never leave a SEALED summary')
+        self.assertEqual(json.loads((out/'failure.json').read_text())['status'],'FAILED_UNSEALED')
+        self.assertEqual(json.loads((out/'progress.json').read_text())['status'],'FAILED_UNSEALED')
+
+    def test_publication_failures_leave_no_final_sealed_summary(self):
+        fen='4k3/8/8/8/8/8/8/R3K3 w - - 0 1'
+        paths=self.make_input([(fen,10,.5)])
+        real_link=target.os.link
+        for name in ('manifest.json','summary.json'):
+            with self.subTest(failed_publication=name):
+                out=self.root/('failed-'+name)
+                def failing_link(source,destination,**kwargs):
+                    if Path(destination).name==name:
+                        raise OSError('injected publication failure '+name)
+                    return real_link(source,destination,**kwargs)
+                with mock.patch.object(target.os,'link',side_effect=failing_link):
+                    with self.assertRaisesRegex(OSError,'injected publication failure'):
+                        target.run(self.config(paths,out.name),self.fake_pool({}))
+                self.assertFalse((out/'summary.json').exists())
+                self.assertTrue((out/'summary.json.pending').exists())
+                self.assertTrue((out/'manifest.json.pending').exists())
+                self.assertEqual(json.loads((out/'failure.json').read_text())['status'],'FAILED_UNSEALED')
+                self.assertEqual(json.loads((out/'progress.json').read_text())['status'],'FAILED_UNSEALED')
+                self.assertEqual((out/'manifest.json').exists(),name=='summary.json')
+
+    def test_manifest_hashes_final_receipts_and_retained_staging(self):
+        fen='4k3/8/8/8/8/8/8/R3K3 w - - 0 1'
+        paths=self.make_input([(fen,10,.5)])
+        summary=target.run(self.config(paths),self.fake_pool({}))
+        out=self.root/'out'
+        self.assertEqual(summary['status'],'SEALED')
+        self.assertFalse((out/'failure.json').exists())
+        self.assertEqual((out/'summary.json').read_bytes(),(out/'summary.json.pending').read_bytes())
+        self.assertEqual((out/'summary.json').read_bytes(),(out/'progress.json').read_bytes())
+        self.assertEqual((out/'manifest.json').read_bytes(),(out/'manifest.json.pending').read_bytes())
+        manifest=json.loads((out/'manifest.json').read_text())
+        for name,metadata in manifest.items():
+            raw=(out/name).read_bytes()
+            self.assertEqual(metadata['bytes'],len(raw),name)
+            self.assertEqual(metadata['sha256'],hashlib.sha256(raw).hexdigest(),name)
+            self.assertEqual(metadata['md5'],hashlib.md5(raw).hexdigest(),name)
+        self.assertIn('summary.json',manifest)
+        self.assertIn('progress.json',manifest)
+        self.assertIn('summary.json.pending',manifest)
 
     def test_native_error_is_not_a_drop_and_retains_failure(self):
         fen='4k3/8/8/8/8/8/8/R3K3 w - - 0 1'
