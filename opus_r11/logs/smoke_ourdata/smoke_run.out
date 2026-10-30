@@ -1,0 +1,67 @@
+2026-10-30T14:13:29 [data] INFO writer exe: D:/grok-pc-data/r11_nnue/bin/r11_pos2binpack_9f191c200e4b.exe
+2026-10-30T14:13:29 [data] INFO inventory: 72 ready shards, 349064671 rows, superseded {'fp:forge_selfplay_003': ['astra:forge_filtered']}
+2026-10-30T14:13:29 [data] INFO registered #71 r8v5:forge_selfplay_fast_033.dedup rows 926132 holdout False hce generated sha256 89f57d9f25a4
+2026-10-30T14:13:37 [data] INFO hce generated r8v5:forge_selfplay_fast_033.dedup: 926132 rows, 256/256 sampled boards match the .pos, 7.1 s
+2026-10-30T14:13:37 [data] INFO dedup: 1 pending shards (926132 rows), 71 earlier shards to check against, 1 key-range passes, keys recomputed from the .pos files
+2026-10-30T14:15:47 [data] INFO dedup pass 1/1: prefixes [0, 65536), 926069 first occurrences, 363 shadowed by earlier shards, 114.0 s
+2026-10-30T14:15:47 [data] INFO decision r8v5:forge_selfplay_fast_033.dedup: kept 925706 of 926132 (99.954%), bad 0, train
+2026-10-30T14:15:47 [data] PASS dedup: 1 shards decided in 115.0 s
+2026-10-30T14:15:47 [data] INFO disk: 58.1 GB free on the target drive, 1 shards to convert = 0.03 GB, projected free after the full run 58.0 GB (floor 42 GB)
+2026-10-30T14:15:50 [data] INFO converted r8v5:forge_selfplay_fast_033.dedup -> train: 925706 records, verified before rename, 1.63 s
+2026-10-30T14:15:50 [data] PASS data: 72 shards, train 332,562,972 holdout 16,387,223 records, dropped 114,476 duplicates, bad 0, complete True
+2026-10-30T14:15:50 [holdout] INFO holdout gate: the data changed since the holdout test passed (['registry_sha256', 'decisions_sha256', 'train_files_txt_sha256', 'holdout_files_txt_sha256']); re-run test_r11_holdout_real.py; running the holdout test on the real data now
+ok   holdout shards ['fp:forge_selfplay_013', 'fp:forge_selfplay_014'] are registry entries #0..#1 and flagged holdout
+ok   no other registry entry is holdout
+ok   superseded shards are not registered: ['fp:forge_selfplay_003']
+ok   every registered shard has a decision (72/72)
+ok   all 72 inputs match their registered full sha256
+ok   fp:forge_selfplay_013: no TRAIN code (9999250 holdout rows)
+ok   fp:forge_selfplay_014: no TRAIN code (6387973 holdout rows)
+ok   decision codes: TRAIN only outside the holdout shards, HOLD only inside
+holdout positions (unique keys over ALL rows of the holdout shards): 16387223
+ok   no TRAIN row shares a position with any row of the holdout shards (hits 0)
+ok   dedup order on 10,906,390 rows (key prefixes [0, 2048) of 65536): the kept row is always the first good occurrence in registry order (wrong kept 0, first occurrence not kept 0, keys kept twice 0)
+ok   train_files.txt (70 files) names no holdout shard
+ok   holdout_files.txt (2 files) names only holdout shards
+{
+ "pass": true,
+ "at": "2026-10-30T14:17:15",
+ "seconds": 84.3,
+ "holdout": [
+  "fp:forge_selfplay_013",
+  "fp:forge_selfplay_014"
+ ],
+ "holdout_unique_positions": 16387223,
+ "leak_hits": 0,
+ "dedup_sample_rows": 10906390,
+ "sample_prefixes": 2048,
+ "manifest_complete": true,
+ "registry_sha256": "a12e713c75b2ca28ffe6eff0487b1ac3597032b272c5bda38c339c3c6d3d5cfd",
+ "decisions_sha256": "c70f1d7fb80fec1d32a1f92c5ce0f5d77d30f3dcdca7194eb978b1e23bf499b8",
+ "train_files_txt_sha256": "6d08be8c7720119a9d41b73e319d754df39fdce43d2cc6849f29c9f98ec978df",
+ "holdout_files_txt_sha256": "c45d1544771ab0e3171e92b4534607a844b78951c102455159fee5c97985d4b9"
+}
+R11 HOLDOUT TEST PASS
+2026-10-30T14:17:16 [holdout] PASS holdout gate: test passed 2026-10-30T14:17:15 on ['fp:forge_selfplay_013', 'fp:forge_selfplay_014'] (16,387,223 holdout positions, leak hits 0, dedup order sample 10,906,390 rows); data unchanged
+2026-10-30T14:17:16 [train] PASS holdout gate: test passed 2026-10-30T14:17:15 on ['fp:forge_selfplay_013', 'fp:forge_selfplay_014'] (16,387,223 holdout positions, leak hits 0, dedup order sample 10,906,390 rows); data unchanged
+2026-10-30T14:17:18 [train] INFO train smoke: start (fresh), log D:/grok-pc-data/r11_nnue/runs\r11_smoke_k32h3_l256_bs4096_e4x2000000_s1\trainer_20261030_141718.log
+2026-10-30T14:21:51 [train] INFO train smoke: trainer exit 0 after 273 s
+2026-10-30T14:21:51 [train] PASS train r11_smoke_k32h3_l256_bs4096_e4x2000000_s1: finished (4 epochs); best D:\grok-pc-data\r11_nnue\runs\r11_smoke_k32h3_l256_bs4096_e4x2000000_s1\checkpoints\epoch=3-step=1952.ckpt val 0.0009167084353975952
+2026-10-30T14:22:01 [export] INFO export D:\grok-pc-data\r11_nnue\runs\r11_smoke_k32h3_l256_bs4096_e4x2000000_s1\checkpoints\epoch=3-step=1952.ckpt: exit 0 in 9.0 s
+2026-10-30T14:22:02 [export] INFO export: load check of the .part net: exit 0 in 0.5 s
+2026-10-30T14:22:02 [export] INFO exported D:\grok-pc-data\r11_nnue\runs\r11_smoke_k32h3_l256_bs4096_e4x2000000_s1\checkpoints\epoch=3-step=1952.ckpt -> D:/grok-pc-data/r11_nnue\nets\r11_smoke_k32h3_l256_bs4096_e4x2000000_s1_e3_best.nnue (17642340 bytes), loads in the HalfKA tool
+2026-10-30T14:22:04 [check] INFO parity: halfka_tool eval: exit 0 in 1.1 s
+2026-10-30T14:22:33 [check] INFO parity: nnue-pytorch reference (float64): exit 0 in 27.7 s
+2026-10-30T14:22:33 [check] PASS parity r11_smoke_k32h3_l256_bs4096_e4x2000000_s1_e3_best.nnue on 12000 FENs: 12000/12000 raw outputs exact vs nnue-pytorch (float64), max |raw diff| 0, bad FENs 0, SIMD (AVX2) vs scalar mismatches 0
+2026-10-30T14:22:33 [check] PASS OFF identity (uci_check --full): ALL OK, bench d11 312866 (lock 312866)
+2026-10-30T14:22:34 [check] INFO ON bench d11: info string bench depth 11 nodes 341450 time 247 nps 1382388
+2026-10-30T14:22:35 [check] INFO ON bench d13: info string bench depth 13 nodes 946351 time 777 nps 1217954
+2026-10-30T14:22:36 [check] PASS ON bench r11_smoke_k32h3_l256_bs4096_e4x2000000_s1_e3_best.nnue: d11 341450, d13 946351; d11 stable True, reload True, OFF after 312866
+2026-10-30T14:23:44 [check] INFO WAC 300 on: exit 0 in 67.6 s
+2026-10-30T14:23:44 [check] INFO WAC 300 on: 249/300 at 200 ms
+2026-10-30T14:23:44 [check] INFO WAC 300 off: 272/300 at 200 ms
+2026-10-30T14:23:44 [check] PASS check r11_smoke_k32h3_l256_bs4096_e4x2000000_s1_e3_best.nnue: parity 12000/12000, OFF d11 312866, ON d11 341450, WAC ON 249/300 (OFF 272/300)
+2026-10-30T14:23:44 [package] PASS package r11_smoke_k32h3_l256_bs4096_e4x2000000_s1_e3_best: gate-ready folder D:/grok-pc-data/r11_nnue/smoke_packages/r11_smoke_k32h3_l256_bs4096_e4x2000000_s1_e3_best_e0462a87 (9 files)
+2026-10-30T14:23:44 [pipeline] PASS pipeline: D:/grok-pc-data/r11_nnue/smoke_packages/r11_smoke_k32h3_l256_bs4096_e4x2000000_s1_e3_best_e0462a87 (616 s)
+R11 PIPELINE PASS D:/grok-pc-data/r11_nnue/smoke_packages/r11_smoke_k32h3_l256_bs4096_e4x2000000_s1_e3_best_e0462a87
+exit=0
