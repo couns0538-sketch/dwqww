@@ -96,7 +96,7 @@ function Split-WindowsCommandLine([string]$CommandLine) {
             }
             $null = $value.Append($CommandLine[$position]); $position++
         }
-        if ($quoted) { return @() } # Unclassifiable command line is not a production identity.
+        if ($quoted) { return @() } # Caller refuses unclassifiable command lines.
         $result.Add($value.ToString())
     }
     return $result.ToArray()
@@ -150,11 +150,17 @@ function Assert-NoProductionProcess {
         if ($null -eq $process -or $null -eq $process.PSObject.Properties['ProcessId'] -or $null -eq $process.PSObject.Properties['Name'] -or [string]::IsNullOrWhiteSpace([string]$process.Name)) { throw 'Incomplete process telemetry' }
         if ([int]$process.ProcessId -eq $PID) { continue }
         $name = [string]$process.Name
-        if ($name -match '^(?:selfplay(?:[_-][^.]+)?|fastchess|cutechess(?:-cli)?|gate(?:_[^.]+)?)\.exe$' -or $name -in $GateExeNames) { throw "Production process present: $name PID $($process.ProcessId)" }
-        $arguments = @()
-        if ($null -ne $process.PSObject.Properties['CommandLine'] -and -not [string]::IsNullOrWhiteSpace([string]$process.CommandLine)) {
-            $arguments = @(Split-WindowsCommandLine ([string]$process.CommandLine))
-        }
+        if ($name -match '^(?:selfplay(?:[_-][^.]+)?|fastchess|cutechess(?:-cli)?|gate(?:_[^.]+)?|r11_train_entry)\.exe$' -or $name -in $GateExeNames) { throw "Production process present: $name PID $($process.ProcessId)" }
+        # A denied, absent or null command line cannot establish an idle slot.
+        # Readable plain python.exe remains allowed below.
+        try {
+            $commandProperty = $process.PSObject.Properties['CommandLine']
+            if ($null -eq $commandProperty -or [string]::IsNullOrWhiteSpace([string]$commandProperty.Value)) { throw 'Missing command line' }
+            $commandLine = [string]$commandProperty.Value
+        } catch { throw "Production status unknown: unreadable command line for $name PID $($process.ProcessId)" }
+        if ($commandLine -match '--guard-tag') { throw "Production guard tag present: $name PID $($process.ProcessId)" }
+        $arguments = @(Split-WindowsCommandLine $commandLine)
+        if ($arguments.Count -eq 0) { throw "Production status unknown: malformed command line for $name PID $($process.ProcessId)" }
         $executable = $null
         if ($null -ne $process.PSObject.Properties['ExecutablePath'] -and -not [string]::IsNullOrWhiteSpace([string]$process.ExecutablePath)) {
             $executable = [string]$process.ExecutablePath
@@ -184,7 +190,7 @@ function Assert-NoProductionProcess {
             $script = $components -join '\'
         }
         $basename = [IO.Path]::GetFileName($script)
-        if (($basename -match '^train[^\\/]*\.py$' -and $script -match '(?:^|[\\/])nnue-pytorch[\\/]') -or $basename -match '^selfplay(?:[_-][^.]+)?\.py$') { throw "Production Python script present: $script PID $($process.ProcessId)" }
+        if ($basename -match '^(?:train_resid[^\\/]*\.py|r11_train_entry(?:\.py)?|selfplay(?:[_-][^.]+)?\.py)$' -or ($basename -match '^train[^\\/]*\.py$' -and $script -match '(?:^|[\\/])nnue-pytorch[\\/]')) { throw "Production Python script present: $script PID $($process.ProcessId)" }
         if ([IO.Path]::IsPathRooted($script)) {
             foreach ($path in $ProductionTrainScriptPaths) {
                 if ([IO.Path]::GetFullPath($script) -ieq [IO.Path]::GetFullPath($path)) { throw "Configured production trainer present: $script PID $($process.ProcessId)" }

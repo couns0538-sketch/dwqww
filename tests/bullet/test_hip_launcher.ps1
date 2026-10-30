@@ -50,14 +50,17 @@ function New-TestProcess([string]$Name, [string]$CommandLine, [string]$Executabl
 Expect-Refusal { Assert-NoProductionProcess @() }
 foreach ($command in @('python F:\nnue-pytorch\train.py', 'python -u -X utf8 -W ignore "F:\nnue-pytorch\train_resid_v3b.py"',
                        'python -- "F:\training jobs\nnue-pytorch\train.py"', 'py -3.11 F:\nnue-pytorch\train.py',
-                       'python selfplay.py', 'python -uW ignore F:\nnue-pytorch\train.py',
+                       'python selfplay.py', 'python -u train_resid_v2.py', 'python .\TRAIN_RESID_V3B.PY',
+                       'python F:\toy\train_resid_v3b.py', 'python -u r11_train_entry.py',
+                       'python "F:\training jobs\R11_TRAIN_ENTRY.PY"', 'python r11_train_entry',
+                       'python -uW ignore F:\nnue-pytorch\train.py',
                        'python -uX utf8 F:\nnue-pytorch\train.py', 'python -uWignore F:\nnue-pytorch\train.py',
                        'python -uXutf8 F:\nnue-pytorch\train.py', 'py -V:3.11 F:\nnue-pytorch\train.py', 'python -v F:\nnue-pytorch\train.py', 'python -x F:\nnue-pytorch\train.py',
                        '"F:\Python Env\python.exe" -u "F:\nnue-pytorch\train.py"')) {
     $name = if ($command.StartsWith('py ')) { 'py.exe' } else { 'python.exe' }
     Expect-Refusal { Assert-NoProductionProcess @((New-TestProcess $name $command)) }
 }
-foreach ($name in @('selfplay.exe', 'selfplay_worker.exe', 'fastchess.exe', 'cutechess.exe', 'cutechess-cli.exe', 'gate.exe', 'gate_candidate.exe')) {
+foreach ($name in @('selfplay.exe', 'selfplay_worker.exe', 'fastchess.exe', 'cutechess.exe', 'cutechess-cli.exe', 'gate.exe', 'gate_candidate.exe', 'R11_TRAIN_ENTRY.EXE')) {
     Expect-Refusal { Assert-NoProductionProcess @((New-TestProcess $name $name)) }
 }
 foreach ($name in @('explorer.exe', 'python.exe', 'pythonw.exe', 'python3.11.exe', 'cargo.exe', 'rustc.exe', 'cmake.exe', 'ninja.exe', 'clang++.exe', 'cl.exe', 'hipcc.exe', 'forge.exe', 'stockfish.exe', 'gatekeeper.exe', 'editor.exe')) {
@@ -70,10 +73,22 @@ foreach ($command in @('python tools\convert.py --input train.py', 'python -c "p
                        'python "F:\nnue-pytorch\inspect.py"', 'python -W train.py tools\inspect.py')) {
     Assert-NoProductionProcess @((New-TestProcess 'python.exe' $command))
 }
-Assert-NoProductionProcess @([pscustomobject]@{ ProcessId=999999; Name='python.exe'; CommandLine=$null })
+Assert-NoProductionProcess @((New-TestProcess 'python.exe' 'python.exe'))
+foreach ($name in @('python.exe', 'worker.exe')) {
+    Expect-Refusal { Assert-NoProductionProcess @([pscustomobject]@{ ProcessId=999999; Name=$name; CommandLine=$null }) }
+    Expect-Refusal { Assert-NoProductionProcess @([pscustomobject]@{ ProcessId=999999; Name=$name }) }
+    Expect-Refusal { Assert-NoProductionProcess @((New-TestProcess $name '')) }
+    $denied = [pscustomobject]@{ ProcessId=999999; Name=$name }
+    $denied | Add-Member ScriptProperty CommandLine { throw [UnauthorizedAccessException]::new('AccessDenied') }
+    Expect-Refusal { Assert-NoProductionProcess @($denied) }
+}
+foreach ($command in @('python tools\inspect.py --guard-tag r11', 'python.exe --GUARD-TAG=production', 'worker.exe --guard-tag')) {
+    Expect-Refusal { Assert-NoProductionProcess @((New-TestProcess 'worker.exe' $command)) }
+}
+Expect-Refusal { Assert-NoProductionProcess @((New-TestProcess 'python.exe' 'python "unterminated')) }
 Assert-NoProductionProcess @((New-TestProcess 'worker.exe' 'train_resid_v3b.py'))
 Expect-Refusal { Assert-NoProductionProcess @((New-TestProcess 'python.exe' 'python F:\forge\tools\nnue\train_resid_v3b.py')) -ProductionTrainScriptPaths @('F:\forge\tools\nnue\train_resid_v3b.py') }
-Assert-NoProductionProcess @((New-TestProcess 'python.exe' 'python F:\toy\train_resid_v3b.py')) -ProductionTrainScriptPaths @('F:\forge\tools\nnue\train_resid_v3b.py')
+Expect-Refusal { Assert-NoProductionProcess @((New-TestProcess 'python.exe' 'python F:\toy\train_resid_v3b.py')) -ProductionTrainScriptPaths @('F:\forge\tools\nnue\train_resid_v3b.py') }
 Assert-NoProductionProcess @((New-TestProcess 'editor.exe' 'editor.exe "F:\nnue-pytorch\train.py"'))
 Expect-Refusal { Assert-NoProductionProcess @((New-TestProcess 'FORGE.exe' 'forge.exe')) -GateExeNames @('forge.exe') }
 Assert-NoProductionProcess @((New-TestProcess 'forge_other.exe' 'forge_other.exe')) -GateExeNames @('forge.exe')

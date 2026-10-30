@@ -192,9 +192,12 @@ with exit 76**.
 Production detection uses actual executable names and Python's invoked script
 argument. It rejects `fastchess.exe`, `cutechess.exe`, `cutechess-cli.exe`,
 `selfplay.exe` / `selfplay_*.exe` / `selfplay-*.exe`, `selfplay.py` and analogous
-selfplay script suffixes, and `train*.py` invoked from a path with an
-`nnue-pytorch` component. Built-in gate names are exactly `gate.exe` and
-`gate_*.exe`. Unrelated Python and all compiler processes are allowed; an editor
+selfplay script suffixes, any relative or absolute `train_resid*.py`,
+`r11_train_entry.py` / `r11_train_entry` (also `r11_train_entry.exe`), and
+`train*.py` invoked from a path with an `nnue-pytorch` component. A command line
+containing `--guard-tag` also refuses. Built-in gate names are exactly `gate.exe`
+and `gate_*.exe`. Unrelated Python and compiler processes with readable command
+lines are allowed; an editor
 opening `nnue-pytorch\train.py` or a script receiving that filename as input is
 allowed too. `forge.exe` and `stockfish.exe` are not assumed to be gates.
 
@@ -208,10 +211,14 @@ array parameters.
 Matching is case-insensitive and paths are normalized; wildcards are rejected.
 Full paths distinguish a selected binary/script from unrelated copies with the
 same name. Launch configured trainer scripts using their full path: CIM does
-not expose their working directory, so bare `train.py`, ambiguous relative
-script paths, missing per-process command lines, and `-c`/`-m` wrappers cannot
-establish a trainer identity. A missing or failed whole process inventory still
-refuses the preflight. The configured identity lists are saved in `preflight.json`.
+not expose their working directory, so bare `train.py` and `-c`/`-m` wrappers
+cannot establish that configured full-path identity. Built-in script basenames
+are matched in relative and absolute paths, case-insensitively. Missing, null,
+empty, denied or malformed command lines on any other process refuse the slot;
+this conservative policy may also block inaccessible Windows system metadata.
+A readable command line containing only `python.exe` is allowed. A missing or
+failed whole process inventory also refuses. The configured identity lists are
+saved in `preflight.json`.
 
 These snapshots cannot reserve the GPU: keep the scheduled slot exclusive for
 the entire build and smoke. The launcher never stops, kills, pauses, or changes

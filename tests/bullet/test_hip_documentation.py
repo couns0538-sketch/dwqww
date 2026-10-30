@@ -1,5 +1,6 @@
 """Portable documentation/source checks only; they do not execute PowerShell."""
 from pathlib import Path
+import re
 import unittest
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -29,6 +30,27 @@ class HipDocumentationTests(unittest.TestCase):
         self.assertIn("$sampleIndex -lt 5", source)
         self.assertIn("$sampleIndex -lt 4", source)
         self.assertNotIn("$util -gt 0", source)
+
+    def test_production_basename_pattern_covers_final2_regressions(self):
+        source = (ROOT / "tools/bullet/run_hip_smoke.ps1").read_text()
+        patterns = re.findall(r"\$basename -match '([^']+)'", source)
+        # Exercise the literal source regex portably; PowerShell behavior is
+        # covered by the separately shipped, Windows-only regression script.
+        pattern = next((p for p in patterns if "train_resid" in p), "(?!)")
+        for name in ("train_resid_v2.py", "TRAIN_RESID_V3B.PY",
+                     "r11_train_entry.py", "R11_TRAIN_ENTRY", "selfplay.py"):
+            with self.subTest(name=name):
+                self.assertRegex(name.lower(), pattern)
+        for name in ("README_train_resid_v2.py", "inspect.py", "train_metrics.py"):
+            self.assertIsNone(re.search(pattern, name, re.IGNORECASE))
+
+    def test_unknown_process_metadata_and_guard_tag_refuse(self):
+        source = (ROOT / "tools/bullet/run_hip_smoke.ps1").read_text()
+        behavior = (ROOT / "tests/bullet/test_hip_launcher.ps1").read_text()
+        self.assertIn("Production status unknown: unreadable command line", source)
+        self.assertIn("$commandLine -match '--guard-tag'", source)
+        self.assertIn("UnauthorizedAccessException", behavior)
+        self.assertIn("New-TestProcess 'python.exe' 'python.exe'", behavior)
 
     def test_current_recipe_describes_refined_policy_and_runtime_limit(self):
         readme = (ROOT / "tools/bullet/README.md").read_text()
