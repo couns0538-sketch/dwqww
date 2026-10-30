@@ -11,6 +11,7 @@
 #include <cstdint>
 #include <memory>
 #include <mutex>
+#include <string_view>
 #include <thread>
 #include <vector>
 
@@ -243,9 +244,41 @@ extern int CaptureFutilityBase;   // futility pruning of captures: base margin (
 extern int CaptureFutilityMultiplier;
 extern int CaptureFutilityDepth;
 extern int FailLowContinuationBonus; // x0.01 of the history bonus given to the parent move on fail low (0 = off)
+// R9 (SPSA tuning): former literals of the search, at the lock's values.
+extern int NmpEvalDepthMargin;    // null move needs static eval >= beta - margin * depth + base
+extern int NmpEvalBase;
+extern int NullMoveEvalMax;       // cap of (eval - beta) / NullMoveEvalDivisor in the null-move reduction
+extern int NullMoveVerifyDepth;   // null-move cutoffs from this depth on are verified
+extern int ProbcutImproving;      // ProbCut beta is lowered by this when improving
+extern int ProbcutReduction;      // depth reduction of the ProbCut verification search
+extern int SingularTtDepth;       // singular extension needs tt depth >= depth - this
+extern int SingularDoubleMargin;  // double extension when the singular score is this far below singular beta
+extern int SingularDoubleLimit;   // ... and at most this many double extensions on the path
+extern int LmrTtPv;               // LMR adjustments in 1/1024 ply: subtracted at tt-pv nodes
+extern int LmrNotImproving;       // added when not improving
+extern int LmrCutNode;            // added at expected cut nodes
+extern int LmrTtCapture;          // added for quiet moves when the tt move is a capture
+extern int LmrGivesCheck;         // subtracted for checking moves
+extern int LmrInCheck;            // subtracted when in check
+extern int LmrCutoffCount;        // added when the child had more than LmrCutoffThreshold cutoffs
+extern int HistoryBonusOffset;    // history bonus = min(max, quadratic * d * d + linear * d - offset)
+extern int HistoryMalusPercent;   // malus of the other tried moves = bonus * percent / 100
+extern int HistoryDepthBonusMargin; // a cutoff beating beta by more than this updates history one ply deeper
+extern int AspirationMinDepth;    // aspiration windows from this iteration on
+extern int AspirationGrowPercent; // after a fail: delta += delta * percent / 100 + add
+extern int AspirationGrowAdd;
+extern int QuietCheckBonus;       // move-ordering bonus of a quiet direct check
 [[nodiscard]] const std::vector<Parameter>& parameters();
 // Call after changing LMR parameters.
 void refresh();
+// R9Tune (UCI option, default off). While it is off the search uses the lock's values above, whatever the tunable
+// options say; while it is on, the values given with `setoption name <Name> value <int>` (kept while it is off).
+[[nodiscard]] bool r9_enabled();
+void r9_set_enabled(bool on);
+// Stores a tunable option (clamped to its range), live at once while R9Tune is on; false: not a tunable name.
+bool r9_set(std::string_view name, int value);
+// The lock's value of parameters()[index] (the option's advertised default).
+[[nodiscard]] int lock_default(std::size_t index);
 } // namespace tune
 
 // Move-ordering statistics.

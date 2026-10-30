@@ -171,14 +171,15 @@ int main() {
                          "option name Book Depth type spin default 30 min 0 max 100\n"
                          "option name Book Variety type spin default 30 min 0 max 100\n";
             if (forge::nnue::available()) std::cout << "option name UseNNUE type check default true\n";
-#ifdef FORGE_EXPOSE_TUNABLES
-            // Development builds advertise the search constants so match
-            // runners can set them; release builds accept them silently.
-            for (const forge::tune::Parameter& parameter : forge::tune::parameters()) {
-                std::cout << "option name " << parameter.name << " type spin default " << *parameter.value
-                          << " min " << parameter.minimum << " max " << parameter.maximum << "\n";
+            // R9: every build advertises the search constants (match runners check that the options they set
+            // exist; FORGE_EXPOSE_TUNABLES is no longer needed). They take effect only while R9Tune is on;
+            // the defaults shown are the lock's values.
+            std::cout << "option name R9Tune type check default false\n";
+            const std::vector<forge::tune::Parameter>& tunables = forge::tune::parameters();
+            for (std::size_t i = 0; i < tunables.size(); ++i) {
+                std::cout << "option name " << tunables[i].name << " type spin default " << forge::tune::lock_default(i)
+                          << " min " << tunables[i].minimum << " max " << tunables[i].maximum << "\n";
             }
-#endif
             std::cout << "option name Clear Hash type button\n"
                          "uciok" << std::endl;
         } else if (command == "isready") {
@@ -210,12 +211,18 @@ int main() {
                     const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex());
                     std::cout << "info string invalid value for option " << name << std::endl;
                 } else {
-                    *parameter.value = std::clamp(value, parameter.minimum, parameter.maximum);
-                    forge::tune::refresh();
+                    (void)forge::tune::r9_set(name, value);  // clamped; live only while R9Tune is on
                 }
             }
             if (handled_tunable) {
-                // Unlisted development options; nothing else to do.
+                // A tunable search constant (R9): stored above.
+            } else if (name == "R9Tune") {
+                if (value_text == "true") forge::tune::r9_set_enabled(true);
+                else if (value_text == "false") forge::tune::r9_set_enabled(false);
+                else {
+                    const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex());
+                    std::cout << "info string invalid value for option R9Tune" << std::endl;
+                }
             } else if (name == "Clear Hash") {
                 searcher.clear_hash();
             } else if (name == "Ponder") {

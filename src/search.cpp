@@ -62,6 +62,30 @@ int CaptureFutilityBase = 0;
 int CaptureFutilityMultiplier = 250;
 int CaptureFutilityDepth = 6;
 int FailLowContinuationBonus = 0;
+// R9: former literals (lock values).
+int NmpEvalDepthMargin = 24;
+int NmpEvalBase = 180;
+int NullMoveEvalMax = 3;
+int NullMoveVerifyDepth = 14;
+int ProbcutImproving = 50;
+int ProbcutReduction = 4;
+int SingularTtDepth = 3;
+int SingularDoubleMargin = 24;
+int SingularDoubleLimit = 6;
+int LmrTtPv = 1024;
+int LmrNotImproving = 1024;
+int LmrCutNode = 2048;
+int LmrTtCapture = 1024;
+int LmrGivesCheck = 1024;
+int LmrInCheck = 1024;
+int LmrCutoffCount = 1024;
+int HistoryBonusOffset = 32;
+int HistoryMalusPercent = 100;
+int HistoryDepthBonusMargin = 100;
+int AspirationMinDepth = 4;
+int AspirationGrowPercent = 50;
+int AspirationGrowAdd = 4;
+int QuietCheckBonus = 12000;
 
 const std::vector<Parameter>& parameters() {
     static const std::vector<Parameter> table{
@@ -97,6 +121,20 @@ const std::vector<Parameter>& parameters() {
         {"TmFallingEvalPercent", &TmFallingEvalPercent, 0, 400}, {"TmMinFactorPercent", &TmMinFactorPercent, 10, 100},
         {"CaptureFutilityBase", &CaptureFutilityBase, 0, 1000},  {"CaptureFutilityMultiplier", &CaptureFutilityMultiplier, 0, 1000},
         {"CaptureFutilityDepth", &CaptureFutilityDepth, 0, 15},  {"FailLowContinuationBonus", &FailLowContinuationBonus, 0, 300},
+        // R9: former literals
+        {"NmpEvalDepthMargin", &NmpEvalDepthMargin, 0, 100},     {"NmpEvalBase", &NmpEvalBase, -200, 600},
+        {"NullMoveEvalMax", &NullMoveEvalMax, 0, 10},            {"NullMoveVerifyDepth", &NullMoveVerifyDepth, 6, 64},
+        {"ProbcutImproving", &ProbcutImproving, 0, 200},         {"ProbcutReduction", &ProbcutReduction, 2, 8},
+        {"SingularTtDepth", &SingularTtDepth, 1, 8},             {"SingularDoubleMargin", &SingularDoubleMargin, 0, 200},
+        {"SingularDoubleLimit", &SingularDoubleLimit, 0, 20},
+        {"LmrTtPv", &LmrTtPv, 0, 4096},                          {"LmrNotImproving", &LmrNotImproving, 0, 4096},
+        {"LmrCutNode", &LmrCutNode, 0, 6144},                    {"LmrTtCapture", &LmrTtCapture, 0, 4096},
+        {"LmrGivesCheck", &LmrGivesCheck, 0, 4096},              {"LmrInCheck", &LmrInCheck, 0, 4096},
+        {"LmrCutoffCount", &LmrCutoffCount, 0, 4096},
+        {"HistoryBonusOffset", &HistoryBonusOffset, -200, 300},  {"HistoryMalusPercent", &HistoryMalusPercent, 0, 300},
+        {"HistoryDepthBonusMargin", &HistoryDepthBonusMargin, 0, 1000},
+        {"AspirationMinDepth", &AspirationMinDepth, 1, 16},      {"AspirationGrowPercent", &AspirationGrowPercent, 0, 300},
+        {"AspirationGrowAdd", &AspirationGrowAdd, 0, 100},       {"QuietCheckBonus", &QuietCheckBonus, 0, 40000},
     };
     return table;
 }
@@ -151,7 +189,7 @@ ReductionTable Reductions;
 }
 
 [[nodiscard]] int history_bonus(int depth) {
-    return std::min(tune::HistoryBonusMax, tune::HistoryBonusQuadratic * depth * depth + tune::HistoryBonusLinear * depth - 32);
+    return std::min(tune::HistoryBonusMax, tune::HistoryBonusQuadratic * depth * depth + tune::HistoryBonusLinear * depth - tune::HistoryBonusOffset);
 }
 
 void apply_history(std::int16_t& entry, int bonus) {
@@ -177,6 +215,44 @@ std::string format_score(int score) {
 } // namespace
 
 void tune::refresh() { Reductions.refresh(); }
+
+// R9Tune: the lock's values are captured before anything can change them (the variables are constant-initialised);
+// R9Values holds what the tunable options say and is live only while R9Tune is on.
+namespace {
+std::vector<int> capture_lock_defaults() {
+    std::vector<int> values;
+    for (const tune::Parameter& parameter : tune::parameters()) values.push_back(*parameter.value);
+    return values;
+}
+const std::vector<int> LockDefaults = capture_lock_defaults();
+std::vector<int> R9Values = LockDefaults;
+bool R9Enabled = false;
+} // namespace
+
+bool tune::r9_enabled() { return R9Enabled; }
+
+void tune::r9_set_enabled(bool on) {
+    R9Enabled = on;
+    const std::vector<Parameter>& table = parameters();
+    for (std::size_t i = 0; i < table.size(); ++i) *table[i].value = on ? R9Values[i] : LockDefaults[i];
+    refresh();
+}
+
+bool tune::r9_set(std::string_view name, int value) {
+    const std::vector<Parameter>& table = parameters();
+    for (std::size_t i = 0; i < table.size(); ++i) {
+        if (name != table[i].name) continue;
+        R9Values[i] = std::clamp(value, table[i].minimum, table[i].maximum);
+        if (R9Enabled) {
+            *table[i].value = R9Values[i];
+            refresh();
+        }
+        return true;
+    }
+    return false;
+}
+
+int tune::lock_default(std::size_t index) { return LockDefaults.at(index); }
 
 // ---------------------------------------------------------------------------
 // Transposition table
@@ -529,7 +605,7 @@ private:
         for (const Move move : buffer_) {
             if (move.is_capture() || move.is_promotion()) continue;
             int score = searcher_.quiet_history(board_, ss_, move);
-            if (direct_check(move)) score += 12000;
+            if (direct_check(move)) score += tune::QuietCheckBonus;
             moves_[count_++] = Scored{move, score};
         }
         sort_moves();
@@ -547,7 +623,7 @@ private:
                 score = 1'000'000 + 10 * capture_value(board_, move) -
                         SeePieceValue[static_cast<std::size_t>(piece_type(board_.moved_piece(move)))] / 10;
             } else {
-                score = searcher_.quiet_history(board_, ss_, move) + (direct_check(move) ? 12000 : 0);
+                score = searcher_.quiet_history(board_, ss_, move) + (direct_check(move) ? tune::QuietCheckBonus : 0);
             }
             moves_[count_++] = Scored{move, score};
         }
@@ -741,11 +817,12 @@ void Worker::update_quiet_stats(const Board& board, SearchStack* ss, Move move, 
     const Piece piece = board.moved_piece(move);
     apply_history((*main_history_)[static_cast<std::size_t>(us)][move.from][move.to], bonus);
     update_continuation(ss, piece, move.to, bonus);
+    const int malus = bonus * tune::HistoryMalusPercent / 100;
     for (int i = 0; i < quiet_count; ++i) {
         const Move quiet = quiets[i];
         if (quiet == move) continue;
-        apply_history((*main_history_)[static_cast<std::size_t>(us)][quiet.from][quiet.to], -bonus);
-        update_continuation(ss, board.moved_piece(quiet), quiet.to, -bonus);
+        apply_history((*main_history_)[static_cast<std::size_t>(us)][quiet.from][quiet.to], -malus);
+        update_continuation(ss, board.moved_piece(quiet), quiet.to, -malus);
     }
 }
 
@@ -756,12 +833,13 @@ void Worker::update_capture_stats(const Board& board, Move best, int depth, cons
         const int captured = piece_type(board.captured_piece(best));
         apply_history((*capture_history_)[static_cast<std::size_t>(piece)][best.to][static_cast<std::size_t>(captured)], bonus);
     }
+    const int malus = bonus * tune::HistoryMalusPercent / 100;
     for (int i = 0; i < capture_count; ++i) {
         const Move capture = captures[i];
         if (capture == best) continue;
         const Piece piece = board.moved_piece(capture);
         const int captured = piece_type(board.captured_piece(capture));
-        apply_history((*capture_history_)[static_cast<std::size_t>(piece)][capture.to][static_cast<std::size_t>(captured)], -bonus);
+        apply_history((*capture_history_)[static_cast<std::size_t>(piece)][capture.to][static_cast<std::size_t>(captured)], -malus);
     }
 }
 
@@ -962,13 +1040,13 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
             return eval;
         }
         // Null move pruning.
-        if (depth >= tune::NullMoveMinDepth && eval >= beta && ss->static_eval >= beta - 24 * depth + 180 &&
+        if (depth >= tune::NullMoveMinDepth && eval >= beta && ss->static_eval >= beta - tune::NmpEvalDepthMargin * depth + tune::NmpEvalBase &&
             ss->null_move_allowed && !(ss - 1)->current_move.is_none() &&
             board.has_non_pawn_material(board.side_to_move()) &&
             !(tt_hit && tt_bound == BoundUpper && tt_score < beta)) {
             ++null_tries_;
             const int reduction = tune::NullMoveBase + depth / tune::NullMoveDepthDivisor +
-                                  std::min((eval - beta) / tune::NullMoveEvalDivisor, 3);
+                                  std::min((eval - beta) / tune::NullMoveEvalDivisor, tune::NullMoveEvalMax);
             ss->current_move = Move::none();
             ss->moved_piece = Empty;
             ss->continuation = &(*continuation_history_)[Empty][0];
@@ -981,7 +1059,7 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
             if (aborted_) return 0;
             if (null_score >= beta) {
                 if (is_mate_score(null_score)) null_score = beta;
-                if (depth < 14) {
+                if (depth < tune::NullMoveVerifyDepth) {
                     ++null_cutoffs_;
                     return null_score;
                 }
@@ -998,7 +1076,7 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
             }
         }
         // ProbCut: a good capture that beats beta by a margin at reduced depth.
-        const int probcut_beta = beta + tune::ProbcutMargin - 50 * improving;
+        const int probcut_beta = beta + tune::ProbcutMargin - tune::ProbcutImproving * improving;
         if (depth >= tune::ProbcutDepth && !is_mate_score(beta) &&
             !(tt_hit && tt_depth >= depth - 3 && tt_score != ValueNone && tt_score < probcut_beta)) {
             MovePicker picker(board, *this, ss, tt_move, MovePicker::Mode::Quiescence);
@@ -1015,7 +1093,7 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
                 (void)board.make_move(move, undo);
                 int value = -qsearch(board, ss + 1, -probcut_beta, -probcut_beta + 1);
                 if (value >= probcut_beta && !aborted_) {
-                    value = -search(board, ss + 1, depth - 4, -probcut_beta, -probcut_beta + 1, !cut_node);
+                    value = -search(board, ss + 1, depth - tune::ProbcutReduction, -probcut_beta, -probcut_beta + 1, !cut_node);
                 }
                 board.unmake_move(move, undo);
                 if (aborted_) return 0;
@@ -1087,7 +1165,7 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
         // Extensions.
         int extension = 0;
         if (!root_node && depth >= tune::SingularDepth && move == tt_move && excluded.is_none() && tt_bound != BoundUpper &&
-            tt_score != ValueNone && !is_mate_score(tt_score) && tt_depth >= depth - 3) {
+            tt_score != ValueNone && !is_mate_score(tt_score) && tt_depth >= depth - tune::SingularTtDepth) {
             const int singular_beta = tt_score - tune::SingularMargin * depth;
             const int singular_depth = (depth - 1) / 2;
             const bool saved_tt_pv = ss->tt_pv;
@@ -1099,7 +1177,8 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
             if (aborted_) return 0;
             if (singular_score < singular_beta) {
                 extension = 1;
-                if (!pv_node && singular_score < singular_beta - 24 && inherited_double_extensions <= 6) {
+                if (!pv_node && singular_score < singular_beta - tune::SingularDoubleMargin &&
+                    inherited_double_extensions <= tune::SingularDoubleLimit) {
                     extension = 2;
                 }
             } else if (singular_beta >= beta) {
@@ -1135,14 +1214,17 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
         int score = -Infinite;
         bool full_depth_needed = !pv_node || move_count > 1;
         if (depth >= 2 && move_count > 1 + (root_node ? 1 : 0) && (quiet || !ss->tt_pv || move_count > 4)) {
-            int r = reduction(quiet, depth, move_count);
-            if (ss->tt_pv) r -= 1;
-            if (!improving) r += 1;
-            if (cut_node) r += 2;
-            if (tt_capture && quiet) r += 1;
-            if (gives_check) r -= 1;
-            if (in_check) r -= 1;
-            if (tune::LmrCutoffThreshold > 0 && (ss + 1)->cutoff_count > tune::LmrCutoffThreshold) r += 1;
+            int r1024 = 1024 * reduction(quiet, depth, move_count);
+            if (ss->tt_pv) r1024 -= tune::LmrTtPv;
+            if (!improving) r1024 += tune::LmrNotImproving;
+            if (cut_node) r1024 += tune::LmrCutNode;
+            if (tt_capture && quiet) r1024 += tune::LmrTtCapture;
+            if (gives_check) r1024 -= tune::LmrGivesCheck;
+            if (in_check) r1024 -= tune::LmrInCheck;
+            if (tune::LmrCutoffThreshold > 0 && (ss + 1)->cutoff_count > tune::LmrCutoffThreshold) r1024 += tune::LmrCutoffCount;
+            // Nearest whole ply (floor of r1024 / 1024 + 0.5; >> on a negative int is a floor in C++20). The default
+            // adjustments are multiples of 1024, so this equals the lock's integer sum exactly.
+            int r = (r1024 + 512) >> 10;
             if (quiet) r -= std::clamp(history / tune::LmrHistoryDivisor, -2, 2);
             const int reduced_depth = std::clamp(new_depth - r, 1, new_depth);
             score = -search(board, ss + 1, reduced_depth, -alpha - 1, -alpha, true);
@@ -1195,7 +1277,7 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
 
     if (best_score >= beta) {
         if (!best_move.is_capture() && !best_move.is_promotion()) {
-            update_quiet_stats(board, ss, best_move, depth + (best_score > beta + 100), quiets_tried.data(), quiet_count);
+            update_quiet_stats(board, ss, best_move, depth + (best_score > beta + tune::HistoryDepthBonusMargin), quiets_tried.data(), quiet_count);
         }
         update_capture_stats(board, best_move, depth, captures_tried.data(), capture_count);
     } else if (!best_move.is_none() && (!best_move.is_capture() && !best_move.is_promotion())) {
@@ -1381,7 +1463,7 @@ SearchInfo Worker::search(Board board, const SearchLimits& limits, bool emit_inf
         int delta = tune::AspirationDelta;
         int alpha = -Infinite;
         int beta = Infinite;
-        if (depth >= 4) {
+        if (depth >= tune::AspirationMinDepth) {
             alpha = std::max(score - delta, -Infinite);
             beta = std::min(score + delta, Infinite);
         }
@@ -1398,7 +1480,7 @@ SearchInfo Worker::search(Board board, const SearchLimits& limits, bool emit_inf
             } else {
                 break;
             }
-            delta += delta / 2 + 4;
+            delta += delta * tune::AspirationGrowPercent / 100 + tune::AspirationGrowAdd;
         }
         if (aborted_) {
             // A partially searched iteration that already raised alpha at the
