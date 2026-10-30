@@ -20,7 +20,7 @@ from external_tool_policy import require_external_path
 RULES = ('holdout_game','holdout_position','duplicate','score_cap','result_disagreement','in_check','terminal','teacher_incomplete','bestmove_capture','bestmove_promotion','kept')
 DISK_CHECK_ROWS = 1024
 INDEX_BYTES_PER_KEY = 64  # Measured ~42.5 bytes/key, with allocation headroom.
-PROBE_LOG_BYTES_PER_ROW = 2048  # Conservative estimate, including gzip framing/stderr allowance.
+PROBE_LOG_BYTES_PER_ROW = 128  # QA measured ~70 B/row; allowance, not a hard bound. Live guards remain.
 INDEX_LIFECYCLE = 'verified-disposable-v1'
 
 

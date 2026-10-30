@@ -44,7 +44,8 @@ class DiskTests(unittest.TestCase):
    def __enter__(self):return self
    def __exit__(self,*args):pass
    def query(self,fen,*args):return dict(fen=fen,nodes_limit=1024,threads=1,hash_mb=1,in_check=False,terminal=False,analyzed=True,depth=1,capture=False,promotion=False,bestmove='e2e4')
-  with mock.patch.object(c,'ProbeClient',Probe), mock.patch.object(c.shutil,'disk_usage',return_value=type('Usage',(),{'free':1024*1024+1000})()):
+  budget=c.disk_budget(a,[]);free=budget['index_bytes_estimate']+budget['output_bytes_estimate']-budget['probe_log_bytes_estimate']+1
+  with mock.patch.object(c,'ProbeClient',Probe), mock.patch.object(c.shutil,'disk_usage',return_value=type('Usage',(),{'free':free})()):
    with self.assertRaisesRegex(ValueError,'preflight'):c.run(a)
  def assert_loading_guard(self, option, label):
   prior=self.root/'prior.txt';prior.write_text(FENS[0]*1024+'INVALID\n')
