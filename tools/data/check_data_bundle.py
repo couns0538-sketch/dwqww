@@ -10,6 +10,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import math
 from pathlib import Path, PureWindowsPath
 import re
 import sys
@@ -104,6 +105,9 @@ def check_bundle(folder: Path, *, full_records=False):
         measured[name] = actual
     for receipt in ('summary.json','progress.json'):
         require(receipt in entries, 'manifest does not cover '+receipt)
+    if 'summary.json.pending' in measured:
+        require(measured['summary.json.pending']==measured['summary.json'],
+                'pending summary differs from committed summary')
     for path in root.rglob('*'):
         name = path.relative_to(root).as_posix()
         if path.is_symlink():
@@ -134,14 +138,35 @@ def check_bundle(folder: Path, *, full_records=False):
     if is_filter:
         original = _count(summary['input_rows'],'input_rows')
         rules = summary.get('rules'); require(isinstance(rules,dict) and bool(rules), 'missing filter rules')
-        dropped = 0
-        for name,rule in rules.items():
+        order = summary.get('policy_order')
+        require(isinstance(order,list) and all(isinstance(name,str) for name in order) and
+                len(order)==len(rules) and set(order)==set(rules), 'invalid/missing filter policy_order')
+        remaining = original
+        for name in order:
+            rule = rules[name]
             require(isinstance(rule,dict), 'invalid filter rule: '+name)
             eligible = _count(rule.get('eligible'),name+' eligible')
             n = _count(rule.get('dropped'),name+' dropped')
             require(n <= eligible <= original, 'invalid waterfall bounds: '+name)
-            dropped += n
-        require(count+dropped==original, 'filter kept+dropped differs from input_rows')
+            require(eligible==remaining, 'ordered waterfall eligibility mismatch: '+name)
+            remaining -= n
+            if 'not_evaluated_after_earlier_rule' in rule:
+                require(_count(rule['not_evaluated_after_earlier_rule'],name+' not evaluated')==original-eligible,
+                        'ordered waterfall not-evaluated mismatch: '+name)
+            for field,denominator in (('fraction_input',original),('fraction_eligible',eligible)):
+                if field not in rule: continue
+                value = rule[field]
+                expected = n/denominator if denominator else (0.0 if field=='fraction_input' else None)
+                require((value is None and expected is None) or
+                        (expected is not None and type(value) in (int,float) and math.isfinite(value) and
+                         math.isclose(value,expected,rel_tol=1e-12,abs_tol=1e-12)),
+                        'waterfall fraction mismatch: '+name+' '+field)
+        require(count==remaining, 'filter kept+dropped differs from input_rows')
+        queries = _count(summary.get('native_queries'),'native_queries')
+        require(queries>=count, 'native queries fewer than kept rows')
+        if 'in_check' in rules and 'speculative_native_queries_not_used' in summary:
+            extra = _count(summary['speculative_native_queries_not_used'],'speculative native queries')
+            require(queries==rules['in_check']['eligible']+extra, 'native query eligibility/speculation mismatch')
         overlap = summary.get('supplied_holdout_position_overlap')
         if overlap is not None or config.get('holdouts'):
             require(type(overlap) is int and overlap==0, 'supplied holdout overlap is not verified zero')
@@ -190,7 +215,7 @@ def check_bundle(folder: Path, *, full_records=False):
             'native_requests_verified_from_receipts':total_requests,'supplied_holdout_position_overlap':overlap,
             'scope':('Hashes, sealed receipts, accounting, FPOS/FHCE headers and every record/FEN board+STM match.' if full_records else
                      'Hashes, sealed receipts, accounting, FPOS/FHCE headers and FEN line count. Record values and FEN board/STM matches NOT checked.'),
-            'limitations':'No game-holdout, native-log semantic replay, legal-history, training-quality or Elo certification.'}
+            'limitations':'Holdout overlap is checked as reported, not recomputed. No game-holdout, native-log semantic replay, legal-history, training-quality or Elo certification.'}
 
 
 def main(argv=None):

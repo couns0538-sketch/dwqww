@@ -1,0 +1,65 @@
+{
+  "utc": "2026-10-30T02:52:34.691350+00:00",
+  "commands": [
+    {
+      "name": "unit",
+      "argv": [
+        "python3",
+        "tests/data/test_check_data_bundle.py",
+        "-v"
+      ],
+      "exit_code": 0
+    },
+    {
+      "name": "filter_pilot_full",
+      "argv": [
+        "python3",
+        "tools/data/check_data_bundle.py",
+        "/tmp/astra-a1-filter-pilot-10000",
+        "--full-records"
+      ],
+      "exit_code": 0
+    },
+    {
+      "name": "relabel_256_full",
+      "argv": [
+        "python3",
+        "tools/data/check_data_bundle.py",
+        "/tmp/astra-a1-relabel-256-1024",
+        "--full-records"
+      ],
+      "exit_code": 0
+    },
+    {
+      "name": "failed_original_run",
+      "argv": [
+        "python3",
+        "tools/data/check_data_bundle.py",
+        "/tmp/astra-a1-filter-full-10m"
+      ],
+      "exit_code": 1
+    },
+    {
+      "name": "review_inconsistent_waterfall",
+      "argv": [
+        "python3",
+        "tools/data/check_data_bundle.py",
+        "/tmp/forge-bundle-audit-test-qj6zcs4i/filter"
+      ],
+      "exit_code": 1
+    }
+  ],
+  "expected_exit_codes": [
+    0,
+    0,
+    0,
+    1,
+    1
+  ],
+  "source_sha256": {
+    "tools/data/check_data_bundle.py": "6136c3d56d5253560a383e26abd80d7f7233b104d1ad272c874765e639094f14",
+    "tests/data/test_check_data_bundle.py": "a97adec7ef6105caa3a72a0b121fc4d40c547513ba0896cfd8c7d0ca67d663a7",
+    "tools/data/forge_pos.py": "1a9f31d3ec14577d84b52f5ea5493411186e1e0b6371b27fb683a871cb92b069"
+  },
+  "review_fixes": "Verify ordered eligibility/fractions, minimum native queries and precise speculative-query accounting where supplied, equality of pending summary."
+}

@@ -52,3 +52,16 @@ artifacts/: diff_rq.txt, changed_files.txt/.sha256, build.log, ctest.log, bench.
 
 ## Astra round 2 B5: default-off SingularV2 and N1 (2026-10-29)
 This branch is based on forge-bundle-int b7c177222038e9332965a95ec53ea3b94e90dbc9, not the historical h256-only build described above. `SingularV2` is a spin option, default 0, range 0..1. `BundlePreset N1` sets CorrHistPlus=4 and SingularV2=1 and resets the other five preset-owned options. CorrExt and SingularV2 are exclusive; either refusal leaves the previous option values unchanged. `BundlePreset OFF` resets all seven preset-owned options. See PORT_NOTES.md and astra2_evidence/B5 for the exact same-repository source attribution, line inventory, tests and raw qualification. Idea source: Forge FB2-J3 at 1efc0b2c9e09d38642eabd1d6282acceeb38c0b8 and the requested N1 combination. No code or tuned values from another engine; no Elo claim.
+
+## Astra A1: offline training-data tools (2026-10-30)
+
+Branch `astra-a1-data` adds offline FPOS/FHCE validation, filtering, fixed-node
+relabeling and opening generation under `tools/data`. Engine and trainer sources
+are unchanged from the round-three checkpoint. See [the data report](docs/ASTRA_A1_DATA.md),
+[Windows Idle/spare-core commands](docs/ASTRA_A1_WINDOWS.md), and
+[the blend experiment plan](docs/ASTRA_A1_BLEND_PLAN.md). Original test and
+measurement evidence is under `validation/astra-a1-data`.
+
+IDEA_SOURCE: the user's data-quality task, Forge's own public search and binary
+format APIs, and its R8 opening-book contract. No other-engine code or tuned
+values were used. Data-policy and label-budget experiments do not establish Elo.

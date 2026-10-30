@@ -1,0 +1,303 @@
+{
+  "completed_result_comparisons": "PASS 32/32 against actual completed-iteration info lines, including bestmove",
+  "initial_last_line_comparison": "FAIL 3 cases; original summary and raw streams retained unchanged",
+  "uci_partial_revision_depth_differences": [
+    "57",
+    "131"
+  ],
+  "incomplete_budget_case": "budget27772: intentionally no helper score; UCI emits attempted-depth1 cp0, not a completed evaluation",
+  "source_evidence": {
+    "path": "src/search/iterative.inc",
+    "sha256": "cfa84bf27664a04312f581c12b6c4f3a1cb3b557d50cbadd78d756027452d4e7",
+    "lines_204_220": [
+      "        if (aborted_) {",
+      "            // A partially searched iteration that already raised alpha at the",
+      "            // root has found a move at least as good as the previous best",
+      "            // (within the depth limit: SmpHelpersPastDepth iterations past it do not count).",
+      "            // SmpV2 compares completed helper scores. Helpers therefore keep their completed",
+      "            // tuple on abort, while the main worker retains its normal partial-PV policy.",
+      "            if ((!fb2_.smp_v2 || is_main()) && depth <= max_depth && ss->pv_length > 0 && !(result.pv.size() > 0 && result.pv[0] == ss->pv[0])) {",
+      "                result.best_move = ss->pv[0];",
+      "                result.pv.assign(ss->pv.begin(), ss->pv.begin() + ss->pv_length);",
+      "                result.ponder_move = result.pv.size() > 1 ? result.pv[1] : Move::none();",
+      "                if (options::hard_deadline_ms > 0) publish_best_move(result);",
+      "                // Publish the revised line so GUIs see a PV consistent with the move.",
+      "                // A tablebase root (UCI SyzygyPath) reports the tablebase result.",
+      "                emit(depth, syzygy::root_display.load(std::memory_order_relaxed) != 0 ? syzygy::display_score(result.score)",
+      "                                                                                     : result.score, result.pv);",
+      "            }",
+      "            break;"
+    ],
+    "interpretation": "On abort, the code updates only bestmove/PV then emits attempted depth with the old result.score. It breaks without assigning result.depth or the new iteration score."
+  },
+  "node_accounting": "All helper searches report final1024; ordinary UCI completed lines can report fewer. Revised-PV lines at the node cap report1024. No arbitrary node mismatch accepted.",
+  "open_issue": "Existing UCI partial-revision info depth can be mistaken for completed depth; first-iteration abort can print the initial cp0 placeholder. No engine patch in this data task.",
+  "rows": [
+    {
+      "id": "0",
+      "completed_depth_score_bestmove": "PASS",
+      "completed_info": "info depth 5 seldepth 12 score cp 17 nodes 541 nps 0 hashfull 4 time 0 pv e2e4 f8a3 d1h5 e8f8 b2a3 c6e7",
+      "revised_partial_info": [],
+      "final_nodes": 1024,
+      "last_completed_info_nodes": 541
+    },
+    {
+      "id": "8",
+      "completed_depth_score_bestmove": "PASS",
+      "completed_info": "info depth 6 seldepth 8 score cp -86 nodes 586 nps 0 hashfull 3 time 0 pv d1d3 e4d3 c3d3 h7g8 h2h3 c5d4",
+      "revised_partial_info": [],
+      "final_nodes": 1024,
+      "last_completed_info_nodes": 586
+    },
+    {
+      "id": "16",
+      "completed_depth_score_bestmove": "PASS",
+      "completed_info": "info depth 5 seldepth 9 score cp -127 nodes 833 nps 0 hashfull 5 time 0 pv b5h5 d3h3 h5h8 f6g5 h8g8 g5f4",
+      "revised_partial_info": [],
+      "final_nodes": 1024,
+      "last_completed_info_nodes": 833
+    },
+    {
+      "id": "24",
+      "completed_depth_score_bestmove": "PASS",
+      "completed_info": "info depth 5 seldepth 9 score cp -134 nodes 938 nps 938000 hashfull 5 time 1 pv e1a1 a6c8 f1e3 a7a6 e3f5 g4f5",
+      "revised_partial_info": [],
+      "final_nodes": 1024,
+      "last_completed_info_nodes": 938
+    },
+    {
+      "id": "32",
+      "completed_depth_score_bestmove": "PASS",
+      "completed_info": "info depth 5 seldepth 9 score cp -31 nodes 1013 nps 506500 hashfull 5 time 2 pv d1e1 a8d8 e1f2 f8g8 d2f3 g4f3",
+      "revised_partial_info": [],
+      "final_nodes": 1024,
+      "last_completed_info_nodes": 1013
+    },
+    {
+      "id": "41",
+      "completed_depth_score_bestmove": "PASS",
+      "completed_info": "info depth 5 seldepth 13 score cp -1111 nodes 992 nps 0 hashfull 7 time 0 pv c8d7 d2d4 d7c6 h2h3 c5d4",
+      "revised_partial_info": [],
+      "final_nodes": 1024,
+      "last_completed_info_nodes": 992
+    },
+    {
+      "id": "49",
+      "completed_depth_score_bestmove": "PASS",
+      "completed_info": "info depth 4 seldepth 7 score cp 84 nodes 425 nps 0 hashfull 4 time 0 pv c1d2 a7a5 e1e2 g7g5",
+      "revised_partial_info": [],
+      "final_nodes": 1024,
+      "last_completed_info_nodes": 425
+    },
+    {
+      "id": "57",
+      "completed_depth_score_bestmove": "PASS",
+      "completed_info": "info depth 5 seldepth 7 score cp -1215 nodes 703 nps 703000 hashfull 3 time 1 pv c4e2 d4f2 f1f2 g7g2 f2f3 g2g3 f3f2",
+      "revised_partial_info": [
+        "info depth 6 seldepth 8 score cp -1215 nodes 1024 nps 1024000 hashfull 5 time 1 pv f2d4 e5d4 c4e6 g7h7 f1f2 d4c5"
+      ],
+      "final_nodes": 1024,
+      "last_completed_info_nodes": 703
+    },
+    {
+      "id": "65",
+      "completed_depth_score_bestmove": "PASS",
+      "completed_info": "info depth 5 seldepth 10 score cp 79 nodes 780 nps 780000 hashfull 6 time 1 pv b8c6 d5c6 c8a6 g2g4 f5g4 h3g4",
+      "revised_partial_info": [],
+      "final_nodes": 1024,
+      "last_completed_info_nodes": 780
+    },
+    {
+      "id": "74",
+      "completed_depth_score_bestmove": "PASS",
+      "completed_info": "info depth 4 seldepth 7 score cp 197 nodes 606 nps 606000 hashfull 4 time 1 pv f3f4 c4a2 f4e3 f6f8",
+      "revised_partial_info": [],
+      "final_nodes": 1024,
+      "last_completed_info_nodes": 606
+    },
+    {
+      "id": "82",
+      "completed_depth_score_bestmove": "PASS",
+      "completed_info": "info depth 4 seldepth 10 score cp -380 nodes 957 nps 957000 hashfull 10 time 1 pv h7g6 d6d5 g2g1q f2g1 g6g1",
+      "revised_partial_info": [],
+      "final_nodes": 1024,
+      "last_completed_info_nodes": 957
+    },
+    {
+      "id": "90",
+      "completed_depth_score_bestmove": "PASS",
+      "completed_info": "info depth 5 seldepth 13 score cp 87 nodes 1014 nps 1014000 hashfull 7 time 1 pv g7g6 d4c2 c6c5 d2d4 e4d3",
+      "revised_partial_info": [],
+      "final_nodes": 1024,
+      "last_completed_info_nodes": 1014
+    },
+    {
+      "id": "98",
+      "completed_depth_score_bestmove": "PASS",
+      "completed_info": "info depth 6 seldepth 10 score cp 1643 nodes 677 nps 677000 hashfull 2 time 1 pv f6e7 c8b8 a7a1 b8b7 a1c1 b7a8",
+      "revised_partial_info": [],
+      "final_nodes": 1024,
+      "last_completed_info_nodes": 677
+    },
+    {
+      "id": "106",
+      "completed_depth_score_bestmove": "PASS",
+      "completed_info": "info depth 4 seldepth 8 score cp -13 nodes 955 nps 955000 hashfull 7 time 1 pv c8b7 c1b2 c3a4 b2c2 b6b5",
+      "revised_partial_info": [],
+      "final_nodes": 1024,
+      "last_completed_info_nodes": 955
+    },
+    {
+      "id": "115",
+      "completed_depth_score_bestmove": "PASS",
+      "completed_info": "info depth 5 seldepth 15 score cp 143 nodes 911 nps 455500 hashfull 4 time 2 pv e5e6 f7e6 f5g6 h7g8 h2h4 f8g7",
+      "revised_partial_info": [],
+      "final_nodes": 1024,
+      "last_completed_info_nodes": 911
+    },
+    {
+      "id": "123",
+      "completed_depth_score_bestmove": "PASS",
+      "completed_info": "info depth 4 seldepth 6 score cp -140 nodes 388 nps 0 hashfull 1 time 0 pv f7f6 g3g4 h5g4 h4g4",
+      "revised_partial_info": [],
+      "final_nodes": 1024,
+      "last_completed_info_nodes": 388
+    },
+    {
+      "id": "131",
+      "completed_depth_score_bestmove": "PASS",
+      "completed_info": "info depth 5 seldepth 6 score cp 235 nodes 416 nps 0 hashfull 3 time 0 pv d2d3 f5d6 a4a5 d6b5 h3h4",
+      "revised_partial_info": [
+        "info depth 6 seldepth 9 score cp 235 nodes 1024 nps 1024000 hashfull 7 time 1 pv d6a3 d3f4 g2f1 g8g7 d2c3 d5d4 c3d2"
+      ],
+      "final_nodes": 1024,
+      "last_completed_info_nodes": 416
+    },
+    {
+      "id": "139",
+      "completed_depth_score_bestmove": "PASS",
+      "completed_info": "info depth 4 seldepth 8 score cp 228 nodes 364 nps 0 hashfull 1 time 0 pv d1d4 f7f6 g1f3 a7a6",
+      "revised_partial_info": [],
+      "final_nodes": 1024,
+      "last_completed_info_nodes": 364
+    },
+    {
+      "id": "148",
+      "completed_depth_score_bestmove": "PASS",
+      "completed_info": "info depth 5 seldepth 7 score cp -25 nodes 680 nps 680000 hashfull 7 time 1 pv a4c3 a5b4 c3d5 e3d5 d7c6",
+      "revised_partial_info": [],
+      "final_nodes": 1024,
+      "last_completed_info_nodes": 680
+    },
+    {
+      "id": "156",
+      "completed_depth_score_bestmove": "PASS",
+      "completed_info": "info depth 5 seldepth 10 score cp 523 nodes 1000 nps 1000000 hashfull 9 time 1 pv c3d4 c5d4 f1c1 a7a6 g2c6 b7c6 b5a6",
+      "revised_partial_info": [],
+      "final_nodes": 1024,
+      "last_completed_info_nodes": 1000
+    },
+    {
+      "id": "164",
+      "completed_depth_score_bestmove": "PASS",
+      "completed_info": "info depth 4 seldepth 9 score cp 101 nodes 926 nps 926000 hashfull 6 time 1 pv f8c5 a1a2 b7b6 a5b6 a7b6",
+      "revised_partial_info": [],
+      "final_nodes": 1024,
+      "last_completed_info_nodes": 926
+    },
+    {
+      "id": "172",
+      "completed_depth_score_bestmove": "PASS",
+      "completed_info": "info depth 5 seldepth 8 score cp -109 nodes 766 nps 0 hashfull 5 time 0 pv h4h5 g6h5 d3h7 d6h2 h7g8 e6e7",
+      "revised_partial_info": [],
+      "final_nodes": 1024,
+      "last_completed_info_nodes": 766
+    },
+    {
+      "id": "180",
+      "completed_depth_score_bestmove": "PASS",
+      "completed_info": "info depth 4 seldepth 5 score cp 68 nodes 462 nps 0 hashfull 4 time 0 pv c3c6 e3e4 c6c3 g7e5",
+      "revised_partial_info": [],
+      "final_nodes": 1024,
+      "last_completed_info_nodes": 462
+    },
+    {
+      "id": "189",
+      "completed_depth_score_bestmove": "PASS",
+      "completed_info": "info depth 5 seldepth 9 score cp -1819 nodes 1021 nps 1021000 hashfull 7 time 1 pv b2c1 g8f8 b7a7 b3b4 a7a6",
+      "revised_partial_info": [],
+      "final_nodes": 1024,
+      "last_completed_info_nodes": 1021
+    },
+    {
+      "id": "197",
+      "completed_depth_score_bestmove": "PASS",
+      "completed_info": "info depth 7 seldepth 8 score cp 1964 nodes 1001 nps 1001000 hashfull 5 time 1 pv e6e7 c4d3 e4e5 g5g4 h3g4 d3d2 e7e8q",
+      "revised_partial_info": [],
+      "final_nodes": 1024,
+      "last_completed_info_nodes": 1001
+    },
+    {
+      "id": "205",
+      "completed_depth_score_bestmove": "PASS",
+      "completed_info": "info depth 5 seldepth 6 score cp -52 nodes 713 nps 237666 hashfull 4 time 3 pv e5f5 d3d4 a8h1 d4c5 h1f3",
+      "revised_partial_info": [],
+      "final_nodes": 1024,
+      "last_completed_info_nodes": 713
+    },
+    {
+      "id": "213",
+      "completed_depth_score_bestmove": "PASS",
+      "completed_info": "info depth 4 seldepth 8 score cp -182 nodes 626 nps 0 hashfull 5 time 0 pv h2h4 g8f7 h1h2 d6d5",
+      "revised_partial_info": [],
+      "final_nodes": 1024,
+      "last_completed_info_nodes": 626
+    },
+    {
+      "id": "222",
+      "completed_depth_score_bestmove": "PASS",
+      "completed_info": "info depth 5 seldepth 8 score cp -465 nodes 1015 nps 0 hashfull 8 time 0 pv g7b7 h5d5 b7b2 d5d4 b2b6 e6f5",
+      "revised_partial_info": [],
+      "final_nodes": 1024,
+      "last_completed_info_nodes": 1015
+    },
+    {
+      "id": "230",
+      "completed_depth_score_bestmove": "PASS",
+      "completed_info": "info depth 4 seldepth 6 score cp -43 nodes 750 nps 750000 hashfull 8 time 1 pv e4f4 b5c5 e5f3 g8f8 f4e4",
+      "revised_partial_info": [],
+      "final_nodes": 1024,
+      "last_completed_info_nodes": 750
+    },
+    {
+      "id": "238",
+      "completed_depth_score_bestmove": "PASS",
+      "completed_info": "info depth 5 seldepth 6 score cp -619 nodes 575 nps 287500 hashfull 2 time 2 pv a4a3 b2a3 b8a8 e1e6 a8a3 c3b2",
+      "revised_partial_info": [],
+      "final_nodes": 1024,
+      "last_completed_info_nodes": 575
+    },
+    {
+      "id": "246",
+      "completed_depth_score_bestmove": "PASS",
+      "completed_info": "info depth 5 seldepth 9 score cp 20 nodes 695 nps 231666 hashfull 5 time 3 pv b6b4 c2c3 b4d6 d1c2 e7e6",
+      "revised_partial_info": [],
+      "final_nodes": 1024,
+      "last_completed_info_nodes": 695
+    },
+    {
+      "id": "255",
+      "completed_depth_score_bestmove": "PASS",
+      "completed_info": "info depth 4 seldepth 9 score cp 1679 nodes 736 nps 0 hashfull 2 time 0 pv d1e1 e5d5 e1h4 d5c6",
+      "revised_partial_info": [],
+      "final_nodes": 1024,
+      "last_completed_info_nodes": 736
+    },
+    {
+      "id": "budget27772",
+      "classification": "insufficient_budget preserved; UCI partial-revision line is not a valid completed label",
+      "uci_partial_info": "info depth 1 seldepth 16 score cp 0 nodes 1024 nps 146285 hashfull 14 time 7 pv c8f5 d3f5",
+      "helper_label": null
+    }
+  ]
+}

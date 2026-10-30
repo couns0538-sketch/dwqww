@@ -72,6 +72,7 @@ def run(c:Config,pool_factory=ProbePool):
         inputs={'pos':{'path':str(c.pos.resolve()),'sha256':sha256(c.pos)}}
         if c.sidecar is not None:inputs['sidecar']={'path':str(c.sidecar.resolve()),'sha256':sha256(c.sidecar)}
         report['inputs']=inputs;report['probe_sha256']=sha256(c.probe)
+        report['implementation_sha256']={name:sha256(Path(__file__).with_name(name)) for name in ('relabel_positions.py','forge_pos.py','forge_probe.py')}
         selected=[];records=[]
         with PosReader(c.pos) as reader:
             last=c.start+(c.count-1)*c.stride

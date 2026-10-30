@@ -50,3 +50,9 @@ Full10Mv2 currently RUNNING, processed635392,kept584780; no finalfractionclaimun
 Full10Mv2 processed 1315584 rows so far,kept 1211556; finalresults pending. Read-only monitoring recordsownedparent/threechildrenRSS andCPU. Filter and relabel publication now write summaryLAST aftermanifest, with injectedfailureregressions; runningv2 retains its archivedstartupcode and will require independentcompletebundle verification. Added read-only bundlechecker, verifiedrealpilot andrealrelabel fullrecordalignment, and rejection of failed10Mattempt. Windowslauncher nowrestoresCPUenvironment/priority/affinity; Windowsruntime remainsUNVERIFIED.
 
 Unchanged trainer mmap reader matches allboards/scores/meta/HCE of both256-row relabels and256stridedoriginal10Mrows (0mismatches). Full-FENs preserve rights/EP/clocks, but nohistorybeforetheFEN. Source/native/search remainunchanged. Knownlimits: incomplete013/full014/game IDs missing; exactexclusiononlysupplied013head. Full10Mcurrentrunuses1024-nodequiet teacher, notdeeperrelabeling.
+
+## Data-budget checkpoint — 2026-10-30T03:05:16.950171+00:00
+
+Full10Mv2: 2230272 processed, 2052887 kept; stillrunning/unsealed. Paired256positions at1024vs65536nodes changedcapture/quietclassification15times (10capture→quiet,5quiet→capture). The1024nodefilter isabudget-specificscreeningpolicy,notproductiontrainingacceptance. Scoresandbestmoves fromhelpermatched32completed UCIcases; twoUCIabortlinesreportattempteddepth instead ofcompleteddepth, and row27772emitsUCIcp0despitenocompletediteration. Nativehelperexplicitlyexcludeslatter. Rawinitial3FAILcomparisonand source-groundedaddendum retained; engineunchanged.
+
+Newrecommendedopeningbook64positionsrequires25≤abs(finalcp)≤150at1024nodes:32White/32Blackadvantages,observed25..148cp. Nativeaudit562legalplies/626score-depth-nodechecks,0mismatch. Controlmin0bookdeterminismtestedseparately. Fullholdoutpathsoptionalquestionpending; currentcoverageonly013head.

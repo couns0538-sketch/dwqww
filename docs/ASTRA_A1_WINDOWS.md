@@ -211,7 +211,12 @@ requires a nonterminal, non-check final position. The commands above explicitly
 require a final absolute score of 25–150 cp for unbalanced openings. The earlier
 `openings-native` experiment is a separate control with the tool default
 `--min-abs-cp 0`: only 43/64 of its standard positions reached 25 cp, so it is
-not the unbalanced-book qualification. `SUCCESS.json` and the final manifest are
+not the unbalanced-book qualification. The separate Linux `openings-unbalanced-25`
+book has 64 unique positions with final absolute scores 25–148 cp, evenly split
+between White and Black advantages. Fresh native replay verified all 562 legal
+plies and 626 selected-position scores/depths/node counts. Its second generation
+and extra min-25 960-style batch were not run under the CPU budget; Windows
+execution remains UNVERIFIED. `SUCCESS.json` and the final manifest are
 the seal authority; generation-phase status alone is not a completed run.
 
 R8 v5 commit `5dd3a57d6f286f09b8881671ba8a368f6d34f717` accepts the standard

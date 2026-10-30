@@ -34,7 +34,7 @@ class BundleTests(unittest.TestCase):
         common={'status':'SEALED','config':{'stem':'fixture','workers':1},'synthetic_fixture':True}
         if kind=='filter':
             summary={**common,'kept':1,'input_rows':1,'rules':{'example':{'eligible':1,'dropped':0}},
-                     'native_queries':1,'probe':{'sha256':BINARY},'supplied_holdout_position_overlap':None}
+                     'policy_order':['example'],'native_queries':1,'probe':{'sha256':BINARY},'supplied_holdout_position_overlap':None}
         else:
             summary={**common,'selected':1,'probe_sha256':BINARY}
             summary['config']['count']=1
@@ -131,12 +131,35 @@ class BundleTests(unittest.TestCase):
     def test_waterfall_holdout_and_fen_count(self):
         out=self.fixture();summary=json.loads((out/'summary.json').read_text())
         summary['input_rows']=2;self.seal(out,summary)
-        with self.assertRaisesRegex(ValueError,'kept.dropped'):target.check_bundle(out)
+        with self.assertRaisesRegex(ValueError,'waterfall|kept.dropped'):target.check_bundle(out)
         summary['input_rows']=1;summary['supplied_holdout_position_overlap']=1;self.seal(out,summary)
         with self.assertRaisesRegex(ValueError,'holdout overlap'):target.check_bundle(out)
         summary['supplied_holdout_position_overlap']=0
         (out/'fixture.fen').write_text(FEN+'\n'+FEN+'\n');self.seal(out,summary)
         with self.assertRaisesRegex(ValueError,'FEN line count'):target.check_bundle(out)
+
+    def test_ordered_eligibility_fractions_and_native_minimum(self):
+        out=self.fixture();summary=json.loads((out/'summary.json').read_text())
+        summary.update(input_rows=2,policy_order=['first','second'],
+                       rules={'first':{'eligible':2,'dropped':1},'second':{'eligible':2,'dropped':0}})
+        self.seal(out,summary)
+        with self.assertRaisesRegex(ValueError,'ordered waterfall eligibility'):target.check_bundle(out)
+        summary['rules']['second']['eligible']=1
+        summary['rules']['first']['fraction_input']=0.2;self.seal(out,summary)
+        with self.assertRaisesRegex(ValueError,'fraction mismatch'):target.check_bundle(out)
+        summary['rules']['first']['fraction_input']=0.5
+        summary['native_queries']=0;self.seal(out,summary)
+        process_path=out/'probe_logs/worker-0/process.json';process=json.loads(process_path.read_text())
+        process.update(successful_requests=0,response_count=0);process_path.write_text(json.dumps(process));self.seal(out,summary)
+        with self.assertRaisesRegex(ValueError,'queries fewer than kept'):target.check_bundle(out)
+
+    def test_pending_summary_must_match_final(self):
+        out=self.fixture(pending=True);(out/'summary.json.pending').write_text('different staged receipt')
+        # Preserve the altered pending bytes while updating manifest hashes only.
+        manifest=json.loads((out/'manifest.json').read_text())
+        manifest['summary.json.pending']=target.digest(out/'summary.json.pending')
+        for name in ('manifest.json','manifest.json.pending'):(out/name).write_text(json.dumps(manifest))
+        with self.assertRaisesRegex(ValueError,'pending summary differs'):target.check_bundle(out)
 
     def test_missing_manifest_coverage_and_extra_file(self):
         out=self.fixture();manifest=json.loads((out/'manifest.json').read_text())
