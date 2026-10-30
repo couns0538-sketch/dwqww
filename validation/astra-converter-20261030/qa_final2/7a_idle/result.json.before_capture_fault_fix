@@ -1,0 +1,84 @@
+{
+  "item": "7A",
+  "base_commit": "beb1074d60f5c1becf59cadfca02f83b2ebd0ee8",
+  "status": "SOURCE_PATCH_READY_WINDOWS_RUNTIME_UNVERIFIED",
+  "windows_runtime": "UNVERIFIED: Linux environment, no Windows PC access and neither powershell nor pwsh installed",
+  "environment": {
+    "platform": "Linux-6.18.55-x86_64-with-glibc2.41",
+    "python": "3.12.14",
+    "powershell": null,
+    "pwsh": null
+  },
+  "production_change": "Use .NET ProcessStartInfo without a shell; drain stdout/stderr concurrently to separate raw logs; observe native ExitCode; retain Idle/affinity setup and restoration.",
+  "compatibility": {
+    "parameters": "unchanged",
+    "command_json": "retained plus log-layout fields",
+    "exit_json": "retains original native exit_code",
+    "last_exit_code": "set to native ExitCode",
+    "console_log": "byte-preserving stdout then stderr after process exit; no inter-stream ordering claim",
+    "nonzero_failure": "original throwing contract retained"
+  },
+  "source_hashes_sha256": {
+    "tools/data/run_idle_spare.ps1": "6d7109058fc5d7b2a2695bebbd127daa8282626ea5a1fbe440058118a2090bd0",
+    "tests/data/test_idle_launcher.ps1": "bc1137f4abfd831f409b9ed5193e518e12a7ea490fa786dc6b3c726e0e797893",
+    "tests/data/test_idle_launcher_static.py": "776687b69baa73b9f9de214f64ca4793d2174dec0c4797dc5d00f7754ff51633"
+  },
+  "validation": [
+    {
+      "command": "python3 tests/data/test_idle_launcher_static.py",
+      "phase": "RED before production edit",
+      "exit_code": 1,
+      "tests": 3,
+      "failures": 2,
+      "classification": "PORTABLE STATIC ONLY; not PowerShell execution",
+      "log": "static_red.log"
+    },
+    {
+      "command": "python3 tests/data/test_idle_launcher_static.py",
+      "phase": "GREEN after production edit",
+      "exit_code": 0,
+      "tests": 3,
+      "failures": 0,
+      "classification": "PORTABLE STATIC ONLY; not PowerShell execution",
+      "log": "static_green.log"
+    },
+    {
+      "command": "python3 -m unittest discover -s tests/data -p 'test_*.py' -v",
+      "exit_code": 0,
+      "tests": 133,
+      "skipped": 1,
+      "skip": "setUpClass (test_probe.ProbeTests): Native suite: run test_probe.py --probe EXE --evidence NEW_DIRECTORY",
+      "log": "data_suite.log"
+    },
+    {
+      "command": "git diff --check -- tools/data/run_idle_spare.ps1 tests/data/test_idle_launcher.ps1 tests/data/test_idle_launcher_static.py",
+      "exit_code": 0
+    },
+    {
+      "command": "& .\\tests\\data\\test_idle_launcher.ps1 -Python $Python -CpuList @($VerifiedSpareCpu) -EvidenceDirectory $NewEvidenceDirectory",
+      "result": "NOT_RUN: requires Windows, specifically run Windows PowerShell 5.1 for this regression",
+      "expected_coverage": [
+        "normal stderr with zero native exit does not throw under Stop",
+        "nonzero native exit 17 recorded and thrown",
+        "empty/quoted/backslash/Unicode/newline argument round trip",
+        "both outputs exceed a pipe buffer",
+        "raw logs plus legacy console log preserved",
+        "child Idle and explicit affinity inheritance",
+        "parent scheduling/environment restoration",
+        "existing log directory refused without overwrite"
+      ]
+    }
+  ],
+  "independent_review": {
+    "agent": "/root/final2_idle_launcher/review_idle_patch",
+    "scope": "source review only, no edits",
+    "conclusion": "No blocker for the reported benign-stderr regression",
+    "remaining_robustness_limit": "If a stream-copy task faults (for example disk full), WaitForExit can remain blocked while a verbose child waits on the undrained pipe. No process termination logic added."
+  },
+  "constraints": {
+    "no_commits_or_pushes": true,
+    "no_source_or_data_deletions": true,
+    "no_queue_stop_or_pause_files": true,
+    "no_external_processes_modified_or_killed": true
+  }
+}

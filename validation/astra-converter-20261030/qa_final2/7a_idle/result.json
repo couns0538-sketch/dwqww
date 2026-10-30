@@ -1,0 +1,120 @@
+{
+  "item": "7A",
+  "base_commit": "beb1074d60f5c1becf59cadfca02f83b2ebd0ee8",
+  "status": "SOURCE_PATCH_READY_WINDOWS_RUNTIME_UNVERIFIED",
+  "windows_runtime": "UNVERIFIED: Linux environment, no Windows PC access and neither powershell nor pwsh installed",
+  "environment": {
+    "platform": "Linux-6.18.55-x86_64-with-glibc2.41",
+    "python": "3.12.14",
+    "powershell": null,
+    "pwsh": null
+  },
+  "production_change": "Use .NET ProcessStartInfo without a shell; drain stdout/stderr concurrently to separate raw logs; observe native ExitCode; retain Idle/affinity setup and restoration. A bounded C#5 async helper records sink write/flush failure and continues draining to EOF; individual disposal and console-copy errors are recorded too, before exit receipt and deferred throw.",
+  "compatibility": {
+    "parameters": "unchanged",
+    "command_json": "retained plus log-layout fields",
+    "exit_json": "retains original native exit_code and adds capture_errors; if a full disk prevents the receipt, thrown error still includes native exit and capture error",
+    "last_exit_code": "set to native ExitCode",
+    "console_log": "byte-preserving stdout then stderr after process exit; no inter-stream ordering claim",
+    "nonzero_failure": "original throwing contract retained"
+  },
+  "source_hashes_sha256": {
+    "tools/data/run_idle_spare.ps1": "58f49f51da699736dafc869070e4820cc5693e340369ef705a3ac08cf30d861b",
+    "tests/data/test_idle_launcher.ps1": "0c0c42c1733dbad95d9069e778973977ede9ea31236210933f7f3123b69293d9",
+    "tests/data/test_idle_launcher_static.py": "d3e4adc30f00f6fa25cc33c189ffa81391c3ee21e84431baff90aa45e2a0ea55"
+  },
+  "validation": [
+    {
+      "command": "python3 tests/data/test_idle_launcher_static.py",
+      "phase": "RED before production edit",
+      "exit_code": 1,
+      "tests": 3,
+      "failures": 2,
+      "classification": "PORTABLE STATIC ONLY; not PowerShell execution",
+      "log": "static_red.log"
+    },
+    {
+      "command": "python3 tests/data/test_idle_launcher_static.py",
+      "phase": "GREEN after production edit",
+      "exit_code": 0,
+      "tests": 3,
+      "failures": 0,
+      "classification": "PORTABLE STATIC ONLY; not PowerShell execution",
+      "log": "static_green.log"
+    },
+    {
+      "command": "python3 -m unittest discover -s tests/data -p 'test_*.py' -v",
+      "exit_code": 0,
+      "tests": 133,
+      "skipped": 1,
+      "skip": "setUpClass (test_probe.ProbeTests): Native suite: run test_probe.py --probe EXE --evidence NEW_DIRECTORY",
+      "log": "data_suite.log"
+    },
+    {
+      "command": "git diff --check -- tools/data/run_idle_spare.ps1 tests/data/test_idle_launcher.ps1 tests/data/test_idle_launcher_static.py",
+      "exit_code": 0
+    },
+    {
+      "command": "& .\\tests\\data\\test_idle_launcher.ps1 -Python $Python -CpuList @($VerifiedSpareCpu) -EvidenceDirectory $NewEvidenceDirectory",
+      "result": "NOT_RUN: requires Windows, specifically run Windows PowerShell 5.1 for this regression",
+      "expected_coverage": [
+        "normal stderr with zero native exit does not throw under Stop",
+        "nonzero native exit 17 recorded and thrown",
+        "empty/quoted/backslash/Unicode/newline argument round trip",
+        "both outputs exceed a pipe buffer",
+        "raw logs plus legacy console log preserved",
+        "child Idle and explicit affinity inheritance",
+        "parent scheduling/environment restoration",
+        "existing log directory refused without overwrite",
+        "exact loaded production helper drains stdout after test-only sink failure while a real verbose child exits naturally with 17",
+        "same sink-failure regression for stderr; intact opposite stream retained in memory and asserted"
+      ]
+    },
+    {
+      "command": "python3 tests/data/test_idle_launcher_static.py",
+      "phase": "capture-fault RED before production edit",
+      "exit_code": 1,
+      "tests": 4,
+      "failures": 2,
+      "classification": "PORTABLE STATIC ONLY; not PowerShell execution",
+      "log": "capture_fault_static_red.log"
+    },
+    {
+      "command": "python3 tests/data/test_idle_launcher_static.py",
+      "phase": "capture-fault GREEN after production edit",
+      "exit_code": 0,
+      "tests": 4,
+      "failures": 0,
+      "classification": "PORTABLE STATIC ONLY; not PowerShell execution",
+      "log": "capture_fault_static_green.log"
+    },
+    {
+      "command": "python3 -m unittest discover -s tests/data -p 'test_*.py' -v",
+      "phase": "after capture-fault fix",
+      "exit_code": 0,
+      "tests": 134,
+      "skipped": 1,
+      "skip": "setUpClass (test_probe.ProbeTests): Native suite: run test_probe.py --probe EXE --evidence NEW_DIRECTORY",
+      "log": "capture_fault_data_suite.log"
+    },
+    {
+      "command": "git diff --check -- tools/data/run_idle_spare.ps1 tests/data/test_idle_launcher.ps1 tests/data/test_idle_launcher_static.py",
+      "phase": "after capture-fault fix",
+      "exit_code": 0
+    }
+  ],
+  "independent_review": {
+    "agent": "/root/final2_idle_launcher/review_idle_patch",
+    "scope": "source review only; no edits; Windows behavior unexecuted",
+    "conclusion": "No blocker in updated sink-failure handling; bounded draining continues after sink errors, native exit survives console/disposal errors",
+    "minor_feedback_addressed": "Guarded test Add-Type against a previously loaded IdleTestFailingSink so regression can be rerun in the same host",
+    "previous_hang_finding": "Addressed in source by continuing reads to EOF after first sink write/flush failure; executable Windows fault regression added but unexecuted here",
+    "runtime_limits": "Windows/PowerShell5.1 and C# helper compilation remain UNVERIFIED in this Linux environment; no powershell, pwsh, dotnet, csc or mcs available"
+  },
+  "constraints": {
+    "no_commits_or_pushes": true,
+    "no_source_or_data_deletions": true,
+    "no_queue_stop_or_pause_files": true,
+    "no_external_processes_modified_or_killed": true
+  }
+}
