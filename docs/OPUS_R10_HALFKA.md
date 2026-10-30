@@ -59,6 +59,85 @@ crash-fix check export (`F:\opus_scratch\r6\bench\crashfix_check`, 2026-10-29 14
 the trainer repo's own `.pgo/small.binpack`, 12 s on the GPU). Fewer solved positions are expected and say nothing
 about a trained net.
 
+## 200 fast games (no illegal moves)
+`opus_r10/tools/fast_games.py`: fastchess, the R10 exe with the smoke net vs the same exe with the option off, 2+0.02,
+Threads 1, Hash 16, OwnBook false, 8moves_v3.pgn, conc 2, pinned to CPUs 4-11 at BelowNormal (8 min 29 s, 04:13-04:21).
+**200 / 200 games finished normally: no illegal move, no crash, no disconnect, no time loss** (`opus_r10/logs/
+fast_games_smoke.log`, `games_smoke/fastchess.out`; the PGN, 574,523 bytes, stays in `F:\opus_scratch\r10\games_smoke`,
+sha256 in `games_pgn.sha256`). The smoke net scored 0.5 / 200: a 1.2M-position test net against the lock's eval.
+Its eval has the right sign (`opus_r10/logs/sign_check.log`: a queen up is +426 cp for the side to move and -395 for
+the side without it, mirrored positions give equal values), but a compressed scale (a queen is about 4 pawns for the
+smoke net and 2.5 for the R6 net) under search margins tuned for the lock's scale.
+
+## NPS: HalfKA ON vs the lock's eval (FORGENN2 + HCE), first kernels
+`opus_r10/tools/nps_opts_ab.py`, one exe (`forge_r10_b.exe`), option sets in a rotated order, 3 rounds, `bench 13` and
+`bench 16` (Threads 1), CPU-time NPS of the bench window, CPUs 4-11 at BelowNormal beside the gate and R9 (03:46-04:11).
+Gain vs OFF = median of the per-round ratios [min..max]. The ON and OFF trees differ (different evaluations), so this
+mixes the cost per node with the tree shape; it is not a speed claim.
+
+| set | d13 CPU NPS | vs OFF | d16 CPU NPS | vs OFF |
+|---|---|---|---|---|
+| OFF (lock eval) | 1,839,635 | - | 1,935,949 | - |
+| smoke 64x32x32 | 1,472,589 | -22.0% [-22.6..-15.1] | 1,463,799 | -23.9% [-25.0..-23.6] |
+| R6 256x32x32 | 1,217,223 | -33.8% [-36.0..-29.5] | 1,165,008 | -39.8% [-40.8..-39.0] |
+| untrained 1024x32x32 | 743,098 | -60.1% [-60.6..-58.3] | 730,752 | -62.3% [-62.9..-61.7] |
+
+## Where the time goes (ns per call, `halfka_tool speed`, 12,000 positions x 50, one random legal move each)
+| stage | L1 64 v1 -> v2 | L1 256 v1 -> v2 | L1 1024 v1 -> v2 |
+|---|---|---|---|
+| refresh, one perspective | 96.7 -> 87.1 | 171.9 -> 189.4 | 540.2 -> 626.5 |
+| update from the parent, one perspective | 22.6 -> 17.2 | 39.7 -> 31.4 | 126.0 -> 124.5 |
+| forward (pairwise, l1, l2, output) | 288.4 -> 162.6 | 377.1 -> 218.8 | 872.5 -> 279.2 |
+| forward with the scalar code | 299.2 / 300.2 | 354.2 / 333.8 | 608.3 / 676.8 |
+
+The lock's eval in the same tool: FORGENN2 refresh 387-433 ns (both perspectives), update 55-58 ns (both), evaluate
+46-49 ns, plus the HCE (public `evaluate`, an upper bound of the search's runtime path) 243-249 ns. 21,741 of 24,000
+perspective-moves kept the orientation (an update); the rest need a refresh (king move, mirror flip, state change).
+Findings that drove v2: the first AVX2 forward was **slower than the plain C++ loop** at L1 1024, because GCC
+vectorises the scalar dot product with AVX-512 VNNI (`vpdpbusd`, zmm) under `-march=znver5`; the forward also zeroed a
+4 KB buffer per call; the l1 layer did one horizontal sum per output.
+
+## Speedup done in R10 (v2 kernels, outputs unchanged)
+- l1 and l2 weights are regrouped at load time into blocks of 4 inputs x every output; the forward broadcasts each
+  block of 4 inputs and multiplies it with all outputs at once (AVX-512 VNNI `dpbusd` on znver5, AVX2 `maddubs`+`madd`
+  elsewhere), **skipping blocks whose 4 inputs are zero**, with no horizontal sums; the output layer's dot product uses
+  VNNI; no zero fill of the 4 KB input buffer; the accumulator update loads each chunk of the parent row once, applies
+  all changes in registers and stores once; AVX-512 row kernels for refresh.
+- Proof: raw outputs **byte-identical to v1 (and so to nnue-pytorch) on 12,000 + 12,000 + 2,000 positions with both the
+  AVX-512 VNNI build and an AVX2-only build (`-march=x86-64-v3`)**, SIMD == scalar on every position
+  (`opus_r10/logs/parity_v2_kernels.log`); walk 311,568 + 49,934 checks, 0 mismatches, in both builds (`walk_v2.log`);
+  in-search verify **3,208,448 rows equal a full refresh** (Threads 3, `verify_search_c.log`); OFF identity ALL OK
+  (`identity_off_c.log`); ON bench unchanged (489,790 / 305,623) and every bad file still rejected (`uci_check_c_*.log`).
+- Speed, same net in both builds, so the trees are identical (equal node counts on every run) and the ratio is the
+  per-node cost alone. `nps_opts_ab.py` with the new `exe=` sets (v1 `forge_r10_b.exe` vs v2 `forge_r10_c.exe`), 10
+  rounds in rotated order, CPU-time NPS, CPUs 4-11 at BelowNormal beside the gate and R9 (04:24-04:35); `nps_ci.py`:
+  geometric mean of the paired ratios with a 95% t-interval (`opus_r10/logs/nps_v2_*.log/.json`):
+
+  | net | d13 | d16 |
+  |---|---|---|
+  | R6 256x32x32 | **+22.8% [+20.0, +25.6]** | **+20.1% [+18.3, +21.9]** |
+  | A/A control (v1 vs v1) | -0.0% [-1.8, +1.8] | -0.1% [-1.6, +1.3] |
+  | smoke 64x32x32 | +17.9% [+15.4, +20.6] | +16.2% [+13.6, +18.9] |
+  | untrained 1024x32x32 | L1024_PENDING | - |
+
+  Measured on the loaded PC, so the numbers are advisory; the PC speed rule (lower bound >= +2% at d16 and d20 on the
+  quiet runner) was not run. The OFF path is not touched by v2 (OFF identity is the lock's; see the OFF A/B below).
+
+## Next speedups (measured where they come from; none of them done)
+1. **64-byte alignment** of the FT weight rows and the accumulator rows. The v2 AVX-512 refresh got slower than v1's
+   AVX2 one at L1 256 and 1024 (172 -> 189 ns, 540 -> 627 ns): the vectors are 16-byte aligned, so every 64-byte load
+   or store of a row crosses two cache lines.
+2. **Vectorised activations**: 2 x 32 scalar square / clamp steps per evaluation. They can be done exactly in 32-bit
+   lanes, because the square saturates at 127 for |s| >= 16,321 (l1) and |s| >= 8,160 (l2): clamp |s| to 16,383 / 8,191
+   first.
+3. **Refresh cache per feature bucket**: 9.4% of the perspective updates in the timing set are refreshes (king move,
+   mirror flip, queen/rook state change), at 5-6x the cost of an update. Keeping the last row and piece set per
+   (perspective, bucket) turns a refresh into a difference against the cached position.
+4. **Prefetch FT rows when the move is recorded**: at L1 1024 an update costs 125 ns vs 31 ns at L1 256 (a 69 MB weight
+   table; the rows miss the caches). `record_move` knows the changed features one ply before they are needed.
+5. **Net width**: the forward cost grows little with L1 (219 ns at 256, 279 ns at 1024), the update and refresh costs
+   grow linearly. A trained net of the same strength is cheaper at 256-512 than at 1024.
+
 ## Gate command (for a trained K32H3^ net; SPRT [0,10] nElo, cap 3000, vs AL1 s198)
 Base = the queue's AL1 exe `C:\Users\Administrator\grok-pc\forge_push\bin\forge_h256_s198.exe` (sha256 `833c47f3...`,
 name `base_AUTOLOCK_1_gate120_e32f003rec_s198`, as in gates G98-G123). Candidate = the R10 exe built from this branch
