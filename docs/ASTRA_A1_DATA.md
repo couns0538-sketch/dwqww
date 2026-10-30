@@ -140,3 +140,5 @@ Checkpoint 20261030T033552Z: full10M status RUNNING, processed 4167424, kept 383
 Checkpoint 20261030T034554Z: full10M status RUNNING, processed 4805120, kept 4421349. Final independent bundle verification is still required. No Elo claim.
 
 Checkpoint 20261030T035557Z: full10M status RUNNING, processed 5398528, kept 4967198. Final independent bundle verification is still required. No Elo claim.
+
+Checkpoint 20261030T040600Z: full10M status RUNNING, processed 5920512, kept 5446810. Final independent bundle verification is still required. No Elo claim.

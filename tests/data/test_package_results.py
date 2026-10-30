@@ -66,6 +66,21 @@ class PackagingTests(unittest.TestCase):
         self.mapping[0]['kind']='unsealed'
         with self.assertRaises(ValueError): pack.inventory(self.mapping)
 
+    def test_reserved_manifest_prefix_rejected_case_insensitively(self):
+        for prefix in ('ASTRA_A1_PACKAGE_MANIFEST.JSON',
+                       'astra_a1_package_manifest.json/subdir',
+                       'ASTRA_A1_PACKAGE_MANIFEST.JSON/subdir'):
+            with self.subTest(prefix=prefix):
+                self.mapping[0]['archiveprefix']=prefix
+                with self.assertRaisesRegex(ValueError,'reserved archive manifest'):
+                    pack.inventory(self.mapping)
+
+    def test_reserved_manifest_auxiliary_file_rejected(self):
+        item={'sourcepath':str(self.source/'data.bin'),
+              'archiveprefix':'ASTRA_A1_PACKAGE_MANIFEST.JSON','kind':'auxiliary'}
+        with self.assertRaisesRegex(ValueError,'reserved archive manifest'):
+            pack.inventory([item])
+
     def test_rejects_symlink_file_and_source(self):
         link=self.source/'linked.bin'
         try:link.symlink_to(self.source/'data.bin')

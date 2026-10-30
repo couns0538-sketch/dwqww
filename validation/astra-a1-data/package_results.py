@@ -67,13 +67,15 @@ def signature(path):
 
 def inventory(mappings):
     require(isinstance(mappings,list) and mappings, 'mapping JSON must be a nonempty list')
-    files=[];names=set();prefixes=[]
+    files=[];names={MANIFEST_NAME.casefold()};prefixes=[]
     for item in mappings:
         require(isinstance(item,dict) and set(item)=={'sourcepath','archiveprefix','kind'}, 'mapping needs exactly sourcepath/archiveprefix/kind')
         source=no_symlink(item['sourcepath'])
         prefix=safe_name(item['archiveprefix']);kind=item['kind']
         require(kind in ('sealed','unsealed','auxiliary'), 'unknown mapping kind')
-        require(prefix!=MANIFEST_NAME, 'reserved archive manifest name')
+        # Reserve the entire root component, including case variants and paths
+        # below it: the built-in manifest is a file on case-insensitive PCs too.
+        require(prefix.split('/',1)[0].casefold()!=MANIFEST_NAME.casefold(), 'reserved archive manifest name')
         require(not any(prefix.casefold()==p.casefold() or prefix.casefold().startswith(p.casefold()+'/') or p.casefold().startswith(prefix.casefold()+'/') for p in prefixes), 'overlapping archive prefixes')
         prefixes.append(prefix)
         if kind=='unsealed': require(prefix.startswith('UNSEALED/'), 'unsealed evidence requires UNSEALED/ prefix')
@@ -94,7 +96,7 @@ def inventory(mappings):
         else:pairs=[(source,prefix)]
         for path,name in pairs:
             safe_name(name)
-            require(name.casefold() not in names and name!=MANIFEST_NAME,'duplicate/reserved archive member')
+            require(name.casefold() not in names,'duplicate/reserved archive member')
             names.add(name.casefold())
             files.append({'sourcepath':str(path),'archivepath':name,'kind':kind,'stat':signature(path)})
     return sorted(files,key=lambda row:row['archivepath'])

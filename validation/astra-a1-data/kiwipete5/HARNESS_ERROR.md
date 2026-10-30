@@ -1,0 +1,1 @@
+The first harness used bare perft 5, which is not a Forge UCI command. The engine correctly produced no perft result; this is a harness failure, not a node mismatch. The exact original command/result remains. The corrected go perft 5 run is in ../kiwipete5_corrected.
