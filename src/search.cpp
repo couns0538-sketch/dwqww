@@ -645,6 +645,15 @@ void Worker::record_null_move(SearchStack* ss) {
     }
 }
 
+#ifdef FORGE_HALFKA_VERIFY
+namespace {
+std::atomic<long long> g_halfka_verified{0};
+struct HalfkaVerifyReport {
+    ~HalfkaVerifyReport() { std::cerr << "HALFKA VERIFY: " << g_halfka_verified.load() << " lazily built rows equal a full refresh" << std::endl; }
+} g_halfka_verify_report;
+} // namespace
+#endif
+
 // R10: HalfKA evaluation with lazy accumulators. A perspective's row is built from the nearest ancestor row on the
 // current path when that ancestor had the same own-king square and material state (the same feature bucket and
 // orientation): the recorded piece changes of every ply in between are applied in order. Otherwise (king move,
@@ -668,6 +677,16 @@ int Worker::halfka_evaluate(const Board& board, SearchStack* ss) {
         acc.valid[c][entry] = true;
         acc.king[c][entry] = king;
         acc.bucket[c][entry] = bucket;
+#ifdef FORGE_HALFKA_VERIFY
+        // test builds only: every lazily built row must equal a full refresh
+        std::vector<std::int16_t> fresh(static_cast<std::size_t>(halfka::l1()));
+        halfka::refresh(board, c, fresh.data());
+        if (!std::equal(fresh.begin(), fresh.end(), row)) {
+            std::cerr << "HALFKA VERIFY FAILED at ply " << ss->ply << " perspective " << c << " fen " << board.fen() << std::endl;
+            std::abort();
+        }
+        ++g_halfka_verified;
+#endif
     }
     return std::clamp(halfka::evaluate(board, acc.row(entry, White), acc.row(entry, Black)), -MateInMaxPly + 1,
                       MateInMaxPly - 1);
