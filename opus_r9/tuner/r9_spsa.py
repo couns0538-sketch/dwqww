@@ -3,7 +3,7 @@ they come from are in opus_r9/IDEA_SOURCE.md).
 
 usage:
   python -I -B run_pinned.py --mask 0x000F -- r9_spsa.py run <config.json> <run_dir> [--resume] [--max-pairs N]
-                                                            [--max-hours H] [--until HH:MM]
+                                                            [--total-pairs N] [--max-hours H] [--until HH:MM]
   python -I -B r9_spsa.py status <run_dir>
 
 Algorithm (simultaneous perturbation stochastic approximation, counted in game pairs as in Fishtest):
@@ -16,10 +16,14 @@ State and evidence (append-only, nothing is ever overwritten): <run_dir>/config.
 must use the same one), iterations.jsonl (one record per finished batch: delta, c_k, a_k/c_k, the two value sets,
 W/L/D, terminations, theta before/after, load, seconds), history.csv (theta after every batch), tuner.log, and
 games/b<batch>_a<attempt>.pgn (+ fastchess .config.json, .out). --resume continues after the last complete record.
-Load governor (PC rules): before every batch the system CPU load is sampled while no game of this tuner runs; the
-batch runs with concurrency floor((cap_percent - load) * cpus / 100) clamped to [0, max_concurrency], and waits
-(re-checking every wait_seconds) while that is 0 or free RAM is below min_free_gb. The STOP file <run_dir>/STOP ends
-the run after the current batch."""
+Load governor (PC rules, user 2026-10-29 23:3x): before every batch the system CPU load is sampled while no game of
+this tuner runs. A batch starts only while that load is <= cap_percent (80) and free RAM >= min_free_gb (8); it plays
+as many games at once as keep the expected total <= pause_percent (90), at least 1, at most max_concurrency (4).
+While a batch plays, CPU and RAM are sampled every 10 s; if the total stayed above pause_percent for pause_after
+seconds or RAM fell below the minimum, the tuner pauses after that batch (never stops a game, never kills anything)
+until the load is back at cap_percent. Configs without pause_percent use floor((cap - load) * cpus / 100) games.
+A resumed run may change only its governor section (recorded in governor_changes.jsonl). The STOP file <run_dir>/STOP
+ends the run after the current batch; one older than the session start is ignored (so a stopped run can resume)."""
 import csv
 import json
 import math
@@ -103,27 +107,97 @@ def cpu_load(seconds):
     return psutil.cpu_percent(interval=seconds)
 
 
+SESSION_START = time.time()
+
+
+def stop_requested(path):
+    """A STOP file counts only when it was created after this tuner session started (an old one from the stop
+    that ended the previous session is kept on disk and ignored, so a run can be resumed without deleting it)."""
+    try:
+        return path.stat().st_mtime >= SESSION_START - 1
+    except OSError:
+        return False
+
+
+def slots_for(g, load, ncpu):
+    """Games to run next: none while the load without this tuner is above cap_percent; otherwise as many as keep
+    the expected total at or below pause_percent (one game ~ cpus_per_game CPUs), at least 1, at most
+    max_concurrency. Without pause_percent (old configs): floor((cap - load) * cpus / 100)."""
+    per_game = g.get("cpus_per_game", 1.0)
+    if "pause_percent" not in g:
+        return max(0, min(int(math.floor((g["cap_percent"] - load) * ncpu / 100.0 / per_game)), g["max_concurrency"]))
+    if load > g["cap_percent"]:
+        return 0
+    fit = int(math.floor((g["pause_percent"] - load) * ncpu / 100.0 / per_game))
+    return max(1, min(fit, g["max_concurrency"]))
+
+
 def governor(run):
     """Concurrency allowed now (> 0), after waiting while the PC is too busy; None if the STOP file appeared."""
     g = run.cfg["governor"]
     ncpu = psutil.cpu_count(logical=True)
     waited = 0
     while True:
-        if (run.dir / "STOP").exists():
+        if stop_requested(run.dir / "STOP"):
             return None, None, None
         load = cpu_load(g.get("sample_seconds", 3))
         free_gb = psutil.virtual_memory().available / 2 ** 30
-        slots = int(math.floor((g["cap_percent"] - load) * ncpu / 100.0 / g.get("cpus_per_game", 1.0)))
-        slots = max(0, min(slots, g["max_concurrency"]))
+        slots = slots_for(g, load, ncpu)
         if slots > 0 and free_gb >= g["min_free_gb"]:
             if waited:
                 run.log(f"governor: resuming after {waited} s of waiting (load {load:.0f}%, free RAM {free_gb:.1f} GB)")
             return slots, load, free_gb
         if waited % 600 == 0:
-            run.log(f"governor: waiting (system load {load:.0f}% without this tuner, cap {g['cap_percent']}%, "
+            run.log(f"governor: waiting (system load {load:.0f}% without this tuner, start at <= {g['cap_percent']}%, "
                     f"free RAM {free_gb:.1f} GB, min {g['min_free_gb']} GB)")
         time.sleep(g.get("wait_seconds", 60))
         waited += g.get("wait_seconds", 60)
+
+
+class BatchWatch:
+    """Samples the system CPU and free RAM every `every` seconds while a batch plays (a thread; read only). After the
+    batch: the longest stretch with the total above pause_percent and the lowest free RAM, for the log and the record.
+    The tuner never stops a game: a batch that saw the total stay above pause_percent for `pause_after` seconds, or
+    free RAM below min_free_gb, is followed by a pause until the load without this tuner is back at the start level."""
+
+    def __init__(self, g, every=10.0):
+        import threading
+        self.g, self.every, self.samples = g, every, []
+        self._stop = threading.Event()
+        self._t = threading.Thread(target=self._run, daemon=True)
+
+    def _run(self):
+        psutil.cpu_percent(interval=None)
+        while not self._stop.wait(self.every):
+            self.samples.append((psutil.cpu_percent(interval=None), psutil.virtual_memory().available / 2 ** 30))
+
+    def __enter__(self):
+        self._t.start()
+        return self
+
+    def __exit__(self, *exc):
+        self._stop.set()
+        self._t.join()
+
+    def summary(self):
+        limit = self.g.get("pause_percent", 101)
+        run_len = longest = 0
+        for cpu, _ in self.samples:
+            run_len = run_len + 1 if cpu > limit else 0
+            longest = max(longest, run_len)
+        min_free = min((f for _, f in self.samples), default=None)
+        high_s = longest * self.every
+        pause = high_s >= self.g.get("pause_after", 60) or (min_free is not None and min_free < self.g["min_free_gb"])
+        return {"cpu_max": max((c for c, _ in self.samples), default=None), "cpu_above_pause_s": high_s,
+                "min_free_gb": None if min_free is None else round(min_free, 1), "pause": pause}
+
+
+def wait_after_pause(run, why):
+    """Pause (no new games) until the load without this tuner is at or below cap_percent and RAM is back."""
+    g = run.cfg["governor"]
+    run.log(f"governor: pause after this batch ({why}); waiting for load <= {g['cap_percent']}% and free RAM >= "
+            f"{g['min_free_gb']} GB")
+    time.sleep(g.get("wait_seconds", 60))
 
 
 def fastchess(run, plus, minus, pairs, conc, start, base):
@@ -160,20 +234,30 @@ def fastchess(run, plus, minus, pairs, conc, start, base):
     return rc, w, l, d, terms, secs
 
 
-def cmd_run(cfg_path, run_dir, resume, max_pairs, max_hours, until):
+def cmd_run(cfg_path, run_dir, resume, max_pairs, max_hours, until, total_pairs=None):
     cfg = json.loads(Path(cfg_path).read_text(encoding="utf-8"))
     d = Path(run_dir)
     if d.exists() and not resume:
         raise SystemExit(f"{d} exists: pass --resume to continue it")
     (d / "games").mkdir(parents=True, exist_ok=True)
     saved = d / "config.json"
+    governor_change = None
     if saved.exists():
-        if json.loads(saved.read_text(encoding="utf-8")) != cfg:
-            raise SystemExit(f"{cfg_path} differs from the run's {saved}: a resumed run must keep its config")
+        old = json.loads(saved.read_text(encoding="utf-8"))
+        strip = lambda c: {k: v for k, v in c.items() if k != "governor"}
+        if strip(old) != strip(cfg):
+            raise SystemExit(f"{cfg_path} differs from the run's {saved}: a resumed run must keep its config "
+                             "(only the governor section may change)")
+        if old.get("governor") != cfg.get("governor"):  # the load rules changed: allowed, recorded (append-only)
+            governor_change = {"time": now(), "old": old.get("governor"), "new": cfg.get("governor")}
+            with open(d / "governor_changes.jsonl", "a", encoding="ascii", newline="\n") as f:
+                f.write(json.dumps(governor_change) + "\n")
     else:
         with open(saved, "x", encoding="utf-8", newline="\n") as f:
             json.dump(cfg, f, indent=1)
     run = Run(cfg, d)
+    if governor_change:
+        run.log(f"governor changed on resume: {governor_change['old']} -> {governor_change['new']}")
     theta, k, batch = load_state(run)
     pairs = cfg["pairs_per_batch"]
     hist = d / "history.csv"
@@ -196,6 +280,9 @@ def cmd_run(cfg_path, run_dir, resume, max_pairs, max_hours, until):
     n_openings = cfg.get("book_openings", 34700)
     done_pairs = 0
     while True:
+        if total_pairs and k >= total_pairs:
+            run.log(f"stop: --total-pairs {total_pairs} reached")
+            break
         if max_pairs and done_pairs >= max_pairs:
             run.log(f"stop: --max-pairs {max_pairs} reached")
             break
@@ -218,7 +305,9 @@ def cmd_run(cfg_path, run_dir, resume, max_pairs, max_hours, until):
             base = str(d / "games" / f"b{batch:06d}_a{attempt}")
             if Path(base + ".out").exists():
                 continue  # an attempt of a killed run: keep its files, use the next number
-            rc, w, l, dr, terms, secs = fastchess(run, plus, minus, pairs, min(conc, 2 * pairs), start, base)
+            with BatchWatch(cfg["governor"]) as watch:
+                rc, w, l, dr, terms, secs = fastchess(run, plus, minus, pairs, min(conc, 2 * pairs), start, base)
+            seen = watch.summary()
             if rc == 0 and w + l + dr == 2 * pairs:
                 break
             fails += 1
@@ -235,7 +324,7 @@ def cmd_run(cfg_path, run_dir, resume, max_pairs, max_hours, until):
                "concurrency": min(conc, 2 * pairs), "load_percent": load, "free_gb": round(free_gb, 1), "seconds": round(secs, 1),
                "delta": delta, "c_k": [round(x, 4) for x in ck], "a_over_c": [round(x, 6) for x in g], "plus": plus,
                "minus": minus, "W": w, "L": l, "D": dr, "R": r, "terminations": terms, "theta_before": before,
-               "theta_after": dict(zip(run.names, theta))}
+               "theta_after": dict(zip(run.names, theta)), "during": seen}
         with open(d / "iterations.jsonl", "a", encoding="ascii", newline="\n") as f:
             f.write(json.dumps(rec) + "\n")
             f.flush()
@@ -249,6 +338,9 @@ def cmd_run(cfg_path, run_dir, resume, max_pairs, max_hours, until):
                 f"{secs:.0f} s{' terminations ' + str(bad) if bad else ''}; "
                 + ", ".join(f"{n} {t:.1f}" for n, t in list(zip(run.names, theta))[:6]) + (" ..." if len(theta) > 6 else ""))
         batch += 1
+        if seen["pause"]:
+            wait_after_pause(run, f"total CPU above {cfg['governor'].get('pause_percent')}% for {seen['cpu_above_pause_s']:.0f} s"
+                                  f" (max {seen['cpu_max']}%), lowest free RAM {seen['min_free_gb']} GB")
     hist_f.close()
     run.log(f"end: pair count {k}, {done_pairs} pairs in this session")
 
@@ -274,6 +366,7 @@ if __name__ == "__main__":
     elif len(a) >= 4 and a[1] == "run":
         def opt(name, conv):
             return conv(a[a.index(name) + 1]) if name in a else None
-        cmd_run(a[2], a[3], "--resume" in a, opt("--max-pairs", int), opt("--max-hours", float), opt("--until", str))
+        cmd_run(a[2], a[3], "--resume" in a, opt("--max-pairs", int), opt("--max-hours", float), opt("--until", str),
+                opt("--total-pairs", int))
     else:
         raise SystemExit(__doc__)
