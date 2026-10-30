@@ -1,6 +1,6 @@
 # Astra A1 original data and evidence artifacts
 
-Publication is pending until the completed 10M run passes its independent checks.
+All local data checks passed. Direct release-asset upload is currently BLOCKED by HTTP401 from uploads.github.com; the release page exists but no artifact availability is claimed. An exact-byte repository Actions delivery route is being tested.
 The final publication receipt will identify actual GitHub asset URLs, byte sizes
 and SHA256 values. A local archive or a planned URL is not verified publication.
 

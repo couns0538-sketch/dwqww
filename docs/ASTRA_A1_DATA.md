@@ -1,6 +1,6 @@
 # Astra A1: Forge training-data work, 2026-10-30
 
-**Current status: all five A1 deliverables and completed Linux data checks are ready; GitHub artifact publication is pending.**
+**Current status: all five A1 deliverables and completed Linux data checks are ready; direct GitHub asset upload is BLOCKED by HTTP401.**
 The 10M filter retained 9,206,371 rows. Full-record, original-response and supplied-holdout coverage audits PASS. This accepts the recorded format/provenance checks, not production training quality or complete holdout/game isolation. No engine strength, label-quality improvement or Elo gain is claimed.
 
 ## Source and data identity
@@ -164,7 +164,7 @@ Existing coordinator/validation/engine-development skills were reused. [The skil
 
 ## Next action / continuation
 
-The full 10M run, full-record checker, complete native-log/original-holdout audit and archive/transport verification all passed. Publish the six prepared release assets and verify their GitHub digests, then preserve the publication receipt and final commit. Current original result directory `/tmp/astra-a1-filter-full-10m-v2`; archive and chunks are in `/tmp/astra-a1-publication`. Do not rerun completed native preprocessing or replace the engine base with an older lock.
+The full 10M run, full-record checker, complete native-log/original-holdout audit and archive/transport verification all passed. Direct release upload failed at uploads.github.com with HTTP401 despite working Git/API writes. Preserve all six local assets; finish the exact-byte Git-blob/Actions delivery test, then verify release digests and save the final publication receipt. If that route is unavailable, the saved optional upload credential requirement needs secure environment review; no secret value belongs in chat. Current original result directory `/tmp/astra-a1-filter-full-10m-v2`; archive and chunks are in `/tmp/astra-a1-publication`. Do not rerun completed native preprocessing or replace the engine base with an older lock.
 
 Then review the complete 013/014/game-ID coverage and choose a teacher budget using the saved sensitivity experiment before the matched training ablations. No data or smoke network is automatically installed into training or the engine.
 
