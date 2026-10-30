@@ -299,3 +299,70 @@ and native probe; MIT bulletformat wire layout at
 notice review at `ec2ead9feeb5677b828536fc53000d1379a1d207`. New wrappers and
 conversion code are original. Do not describe the compiled binpack closure as
 MIT-only. No upstream header or compiled adapter is vendored or linked to Forge.
+
+
+## QA disk measurements and recovery
+
+Measurements below are box-only, with binpack **OFF**. The bounded fixtures used
+`--min-free-mb 0` because this cloud scratch volume has less than 20 GiB free;
+production defaults remain **20,000 MiB**. This override is not the PC recipe.
+Original commands, source hashes, before-prune bytes and logs are in
+`validation/astra-converter-20261030/qa_fix_disk/`.
+
+| Measured slice | Retained rows | Live index before verification | Index after verification | Retained files/logs |
+|---|---:|---:|---:|---:|
+| First 50,000 real rows, with interruption/resume | 49,999 | 2,203,648 B | 0 B | 5,140,974 B |
+| Next 50,000, seeded from all prior retained chunks | 49,994 | 4,362,240 B (99,993 cumulative keys) | 0 B | 5,166,932 B |
+| Native filtered 1,024-row pilot | 977 | Disposable | 0 B | 181,536 B |
+
+The native pilot removed 46 capture-root rows and 1 result disagreement. It kept
+71,439 bytes of original compressed request/response/process logs (69.765 bytes
+per input row). A real native bestmove was also streamed through the optional
+external adapter in a separate one-row test: exact decode passed, no duplicated
+full-FEN input remained, and the verified index was pruned.
+
+**10M-row shard projections, not full-shard measurements:** transport-only bytes
+at the 100k sample rate are about 1.03 GB per shard; native logs at the pilot rate
+add about 0.70 GB. Actual filtering, FEN lengths and compression change these
+figures. The second index measured 43.63 bytes per cumulative unique key, about
+0.44 GB per 10M keys; its size grows with prior retained keys plus holdout keys,
+but only one completed shard's working index exists at a time. It is no longer
+retained 37 times. Existing source files and earlier retained outputs are separate
+persistent storage, not deleted to reclaim scratch.
+
+Preflight deliberately budgets **64 bytes per possible index key**, a 1 MiB
+index margin, full source text, original UTF-8 game-ID file bytes if any, output
+records/provenance, and **2,048 bytes per input row for native logs**. The last
+allowance is 20.48 GB for 10M inputs and is intentionally much larger than this
+pilot's 0.70 GB projection; it is not a measured requirement or a hard quota for
+arbitrary external stderr. The printed `disk_preflight` JSON gives the exact
+estimate for each shard's actual arguments, on top of the 20,000 MiB reserve.
+The native log allowance, largest cumulative index and new shard output coexist;
+do not plan using output size alone. Guards recheck every 1,024 rows while
+loading holdouts/prior/recovered keys and while processing new rows.
+
+Only disposable indexes carrying a matching config-bound `INDEX_OWNER.json`
+marker are removed, under the converter's exclusive output lock, **after sealed
+hashes and row parity verify**. Logs, source data, unsealed tails and receipts
+remain. Interrupted indexes are retained until a verified resume replaces them;
+no recovery trusts their contents. Journal recovery is disabled solely for this
+reconstructible scratch database. Old unmarked indexes are not automatically
+removed. Completed old output can still be verified; unfinished old-code
+checkpoints require their original frozen tool.
+
+For an interrupted cleanup after COMPLETE, run:
+
+```bash
+python3 tools/data2/convert_dataset.py verify --out /verified/output --prune-indexes
+```
+
+Plain `verify` stays read-only. Passing `--prune-indexes` explicitly takes the
+output lock and verifies before cleanup. The full private-holdout clearance audit
+has its own output-key index (96 bytes per row plus 16 MiB preflight margin),
+streaming checks, and cleanup; it requires additional scratch during that stage.
+
+QA validation: **86/86 data2 tests passed** with the explicitly selected external
+adapter; the default suite skips the 13 optional adapter tests. This includes
+21 new holdout-audit cases. Nine additional independent disk/ownership/resume
+checks passed. No source or engine search/evaluation/network was changed by
+these tooling fixes, and no new bench, speed or Elo result is asserted.

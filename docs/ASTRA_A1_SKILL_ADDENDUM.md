@@ -69,3 +69,22 @@ suite. No installation or provider edit has been performed.
 The additional seal-boundary, search-completion and portable-evidence guidance
 comes from this session's preserved failures and subsequent regressions. Those
 code checks do not replace the behavioral skill-validation requirement above.
+
+## Proposed QA extension: optional dependencies and large indexes
+
+Status remains PROPOSED / NOT INSTALLED. No duplicate skill was created. The
+installed skill provider is read-only in this environment; these additions belong
+in the same existing validator's training-data guidance after review.
+
+| Required field | Validation contract |
+|---|---|
+| Complete dependency provenance | Read the full source notices and compiled include/dependency closure, not only leading licence headers. Record embedded third-party attribution and effective combined-tool treatment. Keep incompatible optional tooling external and disabled by default, with explicit opt-in and a dependency manifest. |
+| Scratch disk lifecycle | Record per-row/key database measurements separately from extrapolations, peak coexistence of index/output/journal, reserve and in-loop check interval. Prune only owned reconstructible indexes after validating immutable outputs; retain raw logs and source data. Review resume and failure paths, not just successful completion. |
+| Real holdout certification | Bind full-shard identities to trusted expected SHA256 and row counts, independently scan the verified output against both holdouts, and publish actual unique-key and row overlap counts. Synthetic tests qualify the audit tool only. If the user explicitly accepts whole-shard separation, state that policy rather than inventing game IDs. Missing real holdouts block training clearance. |
+| Windows native launch | PowerShell 5.1 native stderr is not necessarily failure. Capture stdout/stderr separately through Process APIs, preserve the native exit code, set Idle/affinity before launch, and verify a GPU-free scheduled slot immediately before GPU execution, after compilation. Unknown GPU/process telemetry is a refusal. |
+
+Evidence for these concrete workflow failures and regressions is in
+`validation/astra-converter-20261030/qa_licence_fix/`, `qa_fix_disk/`, and
+`qa_holdout_clearance/`, plus Job1's `qa_windows_fix/` on the exporter branch.
+These are software regression checks, not a claim that the proposed skill was
+installed or that an independent skill-behaviour test was completed.

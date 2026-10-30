@@ -1,0 +1,115 @@
+test_binpack_filtered_stream_preserves_native_bestmove (test_converter_disk.DiskTests.test_binpack_filtered_stream_preserves_native_bestmove) ... ERROR
+test_binpack_format_uses_existing_rows_directly (test_converter_disk.DiskTests.test_binpack_format_uses_existing_rows_directly) ... ERROR
+test_checkpoint_resume_recovers_duplicates_then_prunes_indexes (test_converter_disk.DiskTests.test_checkpoint_resume_recovers_duplicates_then_prunes_indexes) ... FAIL
+test_corrupt_checkpoint_retains_index (test_converter_disk.DiskTests.test_corrupt_checkpoint_retains_index) ... ok
+test_default_reserve_rejects_ten_gib_free (test_converter_disk.DiskTests.test_default_reserve_rejects_ten_gib_free) ... FAIL
+test_holdout_loading_checks_disk_before_next_batch (test_converter_disk.DiskTests.test_holdout_loading_checks_disk_before_next_batch) ... FAIL
+test_preflight_budgets_index_before_creation (test_converter_disk.DiskTests.test_preflight_budgets_index_before_creation) ... FAIL
+test_prior_loading_checks_disk_before_next_batch (test_converter_disk.DiskTests.test_prior_loading_checks_disk_before_next_batch) ... FAIL
+test_symlink_index_fails_closed_without_deleting_target (test_converter_disk.DiskTests.test_symlink_index_fails_closed_without_deleting_target) ... FAIL
+test_unowned_legacy_index_is_not_pruned (test_converter_disk.DiskTests.test_unowned_legacy_index_is_not_pruned) ... ok
+test_verified_completion_prunes_only_owned_index (test_converter_disk.DiskTests.test_verified_completion_prunes_only_owned_index) ... FAIL
+
+======================================================================
+ERROR: test_binpack_filtered_stream_preserves_native_bestmove (test_converter_disk.DiskTests.test_binpack_filtered_stream_preserves_native_bestmove)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/tmp/forge-astra-fen-convert/tests/data2/test_converter_disk.py", line 107, in test_binpack_filtered_stream_preserves_native_bestmove
+    with mock.patch.object(c,'ProbeClient',Probe):result=c.run(a)
+                                                         ^^^^^^^^
+  File "/tmp/forge-astra-fen-convert/tools/data2/convert_dataset.py", line 301, in run
+    subprocess.run(command, stdout=stdout, stderr=stderr, check=True)
+  File "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/subprocess.py", line 571, in run
+    raise CalledProcessError(retcode, process.args,
+subprocess.CalledProcessError: Command '['/tmp/tmpw67s4wsc/adapter.py', 'encode', '/tmp/tmpw67s4wsc/out/data_c8b63ff9921d42b0a18177ecc56b6ff6/binpack_input.txt', '/tmp/tmpw67s4wsc/out/data_c8b63ff9921d42b0a18177ecc56b6ff6/rows.binpack']' returned non-zero exit status 1.
+
+======================================================================
+ERROR: test_binpack_format_uses_existing_rows_directly (test_converter_disk.DiskTests.test_binpack_format_uses_existing_rows_directly)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/tmp/forge-astra-fen-convert/tests/data2/test_converter_disk.py", line 96, in test_binpack_format_uses_existing_rows_directly
+    result=c.run(self.args('--binpack-tool',str(self.adapter()),'--allow-transport-moves'))
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/tmp/forge-astra-fen-convert/tools/data2/convert_dataset.py", line 301, in run
+    subprocess.run(command, stdout=stdout, stderr=stderr, check=True)
+  File "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/subprocess.py", line 571, in run
+    raise CalledProcessError(retcode, process.args,
+subprocess.CalledProcessError: Command '['/tmp/tmpowr22c41/adapter.py', 'encode', '/tmp/tmpowr22c41/out/data_670714e1e5ea4a3aa7dd63b4c180cb6b/binpack_input.txt', '/tmp/tmpowr22c41/out/data_670714e1e5ea4a3aa7dd63b4c180cb6b/rows.binpack', '--allow-transport-move']' returned non-zero exit status 1.
+
+======================================================================
+FAIL: test_checkpoint_resume_recovers_duplicates_then_prunes_indexes (test_converter_disk.DiskTests.test_checkpoint_resume_recovers_duplicates_then_prunes_indexes)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/tmp/forge-astra-fen-convert/tests/data2/test_converter_disk.py", line 62, in test_checkpoint_resume_recovers_duplicates_then_prunes_indexes
+    self.assertFalse(list((self.root/'out').glob('attempt_*/index.sqlite')))
+AssertionError: [PosixPath('/tmp/tmp182_mkw7/out/attempt_5989ace58e024187b5731c2bc13b33b8/index.sqlite'), PosixPath('/tmp/tmp182_mkw7/out/attempt_864a5e52e61947d9b2b8fedaed9cae2a/index.sqlite')] is not false
+
+======================================================================
+FAIL: test_default_reserve_rejects_ten_gib_free (test_converter_disk.DiskTests.test_default_reserve_rejects_ten_gib_free)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/tmp/forge-astra-fen-convert/tests/data2/test_converter_disk.py", line 27, in test_default_reserve_rejects_ten_gib_free
+    with self.assertRaisesRegex(ValueError,'free-space guard'): c.run(args)
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: ValueError not raised
+
+======================================================================
+FAIL: test_holdout_loading_checks_disk_before_next_batch (test_converter_disk.DiskTests.test_holdout_loading_checks_disk_before_next_batch)
+----------------------------------------------------------------------
+ValueError: expected FEN | integer STM score | WHITE result
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/tmp/forge-astra-fen-convert/tests/data2/test_converter_disk.py", line 47, in test_holdout_loading_checks_disk_before_next_batch
+    self.assert_loading_guard('--holdout','holdout')
+  File "/tmp/forge-astra-fen-convert/tests/data2/test_converter_disk.py", line 44, in assert_loading_guard
+    with self.assertRaisesRegex(ValueError,'loading '+label): c.run(self.args(option,str(prior),'--min-free-mb','1'))
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: "loading holdout" does not match "expected FEN | integer STM score | WHITE result"
+
+======================================================================
+FAIL: test_preflight_budgets_index_before_creation (test_converter_disk.DiskTests.test_preflight_budgets_index_before_creation)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/tmp/forge-astra-fen-convert/tests/data2/test_converter_disk.py", line 32, in test_preflight_budgets_index_before_creation
+    with self.assertRaisesRegex(ValueError,'preflight'): c.run(self.args('--dedup-against',str(prior)))
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: ValueError not raised
+
+======================================================================
+FAIL: test_prior_loading_checks_disk_before_next_batch (test_converter_disk.DiskTests.test_prior_loading_checks_disk_before_next_batch)
+----------------------------------------------------------------------
+ValueError: expected FEN | integer STM score | WHITE result
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/tmp/forge-astra-fen-convert/tests/data2/test_converter_disk.py", line 49, in test_prior_loading_checks_disk_before_next_batch
+    self.assert_loading_guard('--dedup-against','prior')
+  File "/tmp/forge-astra-fen-convert/tests/data2/test_converter_disk.py", line 44, in assert_loading_guard
+    with self.assertRaisesRegex(ValueError,'loading '+label): c.run(self.args(option,str(prior),'--min-free-mb','1'))
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: "loading prior" does not match "expected FEN | integer STM score | WHITE result"
+
+======================================================================
+FAIL: test_symlink_index_fails_closed_without_deleting_target (test_converter_disk.DiskTests.test_symlink_index_fails_closed_without_deleting_target)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/tmp/forge-astra-fen-convert/tests/data2/test_converter_disk.py", line 78, in test_symlink_index_fails_closed_without_deleting_target
+    with self.assertRaisesRegex(ValueError,'symlink|unsafe'):c.run(self.args('--chunk-rows','1','--resume'))
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: ValueError not raised
+
+======================================================================
+FAIL: test_verified_completion_prunes_only_owned_index (test_converter_disk.DiskTests.test_verified_completion_prunes_only_owned_index)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/tmp/forge-astra-fen-convert/tests/data2/test_converter_disk.py", line 53, in test_verified_completion_prunes_only_owned_index
+    self.assertFalse(list((self.root/'out').glob('attempt_*/index.sqlite')))
+AssertionError: [PosixPath('/tmp/tmphigyx5tl/out/attempt_e825cce4325a4714b1036d6cdb879421/index.sqlite')] is not false
+
+----------------------------------------------------------------------
+Ran 11 tests in 0.259s
+
+FAILED (failures=7, errors=2)

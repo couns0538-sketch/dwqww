@@ -6,8 +6,8 @@ No engine code, live trainer or source-data file is modified.
 """
 from __future__ import annotations
 import argparse, collections, hashlib, itertools, json, os, shutil, sqlite3, subprocess, sys, time, uuid
-import copy
-from contextlib import ExitStack
+import copy, re, stat
+from contextlib import ExitStack, contextmanager
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'data'))
@@ -17,6 +17,97 @@ from filter_positions import disagreement
 from bullet_records import encode, verify_record
 
 RULES = ('holdout_game','holdout_position','duplicate','score_cap','result_disagreement','in_check','terminal','teacher_incomplete','bestmove_capture','bestmove_promotion','kept')
+DISK_CHECK_ROWS = 1024
+INDEX_BYTES_PER_KEY = 64  # Measured ~42.5 bytes/key, with allocation headroom.
+PROBE_LOG_BYTES_PER_ROW = 2048  # Conservative estimate, including gzip framing/stderr allowance.
+INDEX_LIFECYCLE = 'verified-disposable-v1'
+
+
+def disk_guard(out, min_free_mb, phase, additional_bytes=0):
+    required = min_free_mb * 1024 * 1024 + additional_bytes
+    free = shutil.disk_usage(out).free
+    if free < required:
+        raise ValueError(f'free-space guard: {phase}; free={free}, required={required} bytes; use another volume, do not remove source data')
+
+
+def row_count(path):
+    if Path(path).suffix == '.pos':
+        with PosReader(path) as reader: return len(reader)
+    count = 0; last = b''
+    with Path(path).open('rb') as f:
+        for block in iter(lambda: f.read(4 * 1024 * 1024), b''):
+            count += block.count(b'\n'); last = block[-1:]
+    return count + bool(last and last != b'\n')
+
+
+def disk_budget(args, chunks):
+    source_rows = row_count(args.pos or args.input)
+    remaining = max(0, min(source_rows, args.limit or source_rows) - sum(c['input_rows'] for c in chunks))
+    holdout_rows = sum(row_count(p) for p in args.holdout)
+    prior_rows = sum(row_count(p) for p in args.dedup_against)
+    recovered_rows = sum(c['kept'] for c in chunks)
+    keys = holdout_rows + (prior_rows + recovered_rows + remaining if not args.no_dedupe else 0)
+    # Budget the full input text even for a bounded slice: no dependence on a
+    # potentially unrepresentative average line size. IDs are <=256 characters,
+    # not bytes; charge their entire UTF-8 file instead of assuming ASCII.
+    text_bytes = Path(args.input).stat().st_size if remaining else 0
+    game_id_bytes = Path(args.game_ids).stat().st_size if args.game_ids and remaining else 0
+    probe_log_bytes = remaining * PROBE_LOG_BYTES_PER_ROW if not args.no_filters else 0
+    output_bytes = text_bytes + game_id_bytes + remaining * (32 + 32) + probe_log_bytes
+    if args.binpack_tool: output_bytes += text_bytes + remaining * 128
+    game_index_bytes = sum(Path(p).stat().st_size + row_count(p) * INDEX_BYTES_PER_KEY for p in args.holdout_game_ids)
+    return {'index_keys_upper_bound': keys, 'index_bytes_per_key': INDEX_BYTES_PER_KEY,
+            'index_bytes_estimate': keys * INDEX_BYTES_PER_KEY + game_index_bytes + 1024 * 1024,
+            'remaining_input_rows': remaining, 'output_bytes_estimate': output_bytes,
+            'probe_log_bytes_estimate': probe_log_bytes,
+            'reserve_bytes': args.min_free_mb * 1024 * 1024}
+
+
+@contextmanager
+def output_lock(out):
+    """Serialize converter/pruner processes; the lock file is never removed."""
+    path = out / '.converter.lock'
+    if path.is_symlink(): raise ValueError('unsafe output lock symlink')
+    fd = os.open(path, os.O_RDWR | os.O_CREAT | getattr(os, 'O_NOFOLLOW', 0), 0o600)
+    with os.fdopen(fd, 'r+b') as f:
+        if not stat.S_ISREG(os.fstat(f.fileno()).st_mode): raise ValueError('unsafe output lock')
+        if os.name == 'nt':
+            import msvcrt
+            if not os.fstat(f.fileno()).st_size: f.write(b'0'); f.flush()
+            f.seek(0)
+            try: msvcrt.locking(f.fileno(), msvcrt.LK_NBLCK, 1)
+            except OSError: raise ValueError('output is locked by another converter/pruner') from None
+            try: yield
+            finally: f.seek(0); msvcrt.locking(f.fileno(), msvcrt.LK_UNLCK, 1)
+        else:
+            import fcntl
+            try: fcntl.flock(f.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
+            except BlockingIOError: raise ValueError('output is locked by another converter/pruner') from None
+            try: yield
+            finally: fcntl.flock(f.fileno(), fcntl.LOCK_UN)
+
+
+def prune_owned_indexes(out, config):
+    """Caller holds output_lock and has verified all retained sealed data."""
+    if config.get('index_lifecycle') != INDEX_LIFECYCLE: return 0
+    config_sha = sha(out / 'config.json'); removed_bytes = 0
+    protected = {Path(item['path']).resolve() for item in config['inputs']}
+    for attempt in sorted(out.glob('attempt_*')):
+        if not re.fullmatch(r'attempt_[0-9a-f]{32}', attempt.name): continue
+        if attempt.is_symlink(): raise ValueError('unsafe attempt directory symlink')
+        marker = attempt / 'INDEX_OWNER.json'
+        if not marker.exists(): continue  # Old, unmarked evidence is never removed.
+        if marker.is_symlink(): raise ValueError('unsafe index ownership symlink')
+        if json.loads(marker.read_text()) != {'schema': 1, 'attempt': attempt.name, 'config_sha256': config_sha}:
+            raise ValueError('index ownership/config mismatch; refusing prune')
+        for name in ('index.sqlite', 'index.sqlite-journal', 'index.sqlite-wal', 'index.sqlite-shm'):
+            path = attempt / name
+            if not path.exists() and not path.is_symlink(): continue
+            info = path.lstat()
+            if not stat.S_ISREG(info.st_mode) or info.st_nlink != 1 or path.resolve() in protected:
+                raise ValueError('unsafe disposable index path: ' + str(path))
+            path.unlink(); removed_bytes += info.st_size
+    return removed_bytes
 
 
 def checked_counts(value):
@@ -83,7 +174,7 @@ def games(path, count=None):
             yield s
 
 
-def load_holdouts(db, paths, game_paths):
+def load_holdouts(db, paths, game_paths, guard=lambda phase: None):
     counts = []
     if game_paths and len(game_paths) != len(paths):
         raise ValueError('each holdout needs one --holdout-game-ids path')
@@ -102,14 +193,17 @@ def load_holdouts(db, paths, game_paths):
                 if gid:
                     db.execute('INSERT OR IGNORE INTO holdout_games VALUES(?)', (gid,))
                 n += 1
+                if n % DISK_CHECK_ROWS == 0:
+                    guard('loading holdout index')
             if game_paths and next(gids, None) is not None:
                 raise ValueError('holdout game-ID sidecar has extra rows')
         counts.append({'path': str(Path(path).resolve()), 'rows': n})
+        guard('loading holdout index')
     db.commit()
     return counts
 
 
-def load_prior_training(db, paths):
+def load_prior_training(db, paths, guard=lambda phase: None):
     """Seed the same exact-key dedup index from immutable prior kept shards."""
     sources = []; total_rows = 0
     for path in paths:
@@ -121,7 +215,10 @@ def load_prior_training(db, paths):
             for record in rows:
                 db.execute('INSERT OR IGNORE INTO kept VALUES(?)', (key(record),))
                 count += 1
+                if count % DISK_CHECK_ROWS == 0:
+                    guard('loading prior training index')
         sources.append({'path': path, 'rows': count}); total_rows += count
+        guard('loading prior training index')
     db.commit()
     return {'sources': sources, 'rows_indexed': total_rows,
             'unique_keys': db.execute('SELECT COUNT(*) FROM kept').fetchone()[0],
@@ -159,12 +256,53 @@ def read_chunks(out, verify=True):
     return chunks
 
 
+def verify_chunk_rows(out, chunks):
+    count = 0
+    for chunk in chunks:
+        n = 0
+        with (out/chunk['bullet']).open('rb') as binary, (out/chunk['text']).open(encoding='utf8') as txt, (out/chunk['provenance']).open(encoding='utf8') as prov:
+            for line in txt:
+                record, _ = text_record(line); verify_record(binary.read(32), record)
+                if not prov.readline(): raise ValueError('provenance truncated')
+                n += 1
+            if binary.read(1) or prov.readline(): raise ValueError('extra records')
+        if n != chunk['kept']: raise ValueError('chunk kept-count mismatch')
+        count += n
+    return count
+
+
+def encode_binpack(args, chunkdir, guard):
+    moves_path = chunkdir / 'bestmoves.txt'
+    command = [args.binpack_tool, 'encode', '-' if moves_path.exists() else str(chunkdir/'rows.txt'), str(chunkdir/'rows.binpack')]
+    if args.allow_transport_moves: command.append('--allow-transport-move')
+    guard('before binpack encoding')
+    with (chunkdir/'binpack.stdout').open('xb') as stdout, (chunkdir/'binpack.stderr').open('xb') as stderr:
+        if not moves_path.exists():
+            subprocess.run(command, stdout=stdout, stderr=stderr, check=True)
+        else:
+            process = subprocess.Popen(command, stdin=subprocess.PIPE, stdout=stdout, stderr=stderr, text=True)
+            try:
+                with (chunkdir/'rows.txt').open(encoding='utf8') as rows, moves_path.open(encoding='utf8') as moves:
+                    for i, pair in enumerate(itertools.zip_longest(rows, moves), 1):
+                        row, move = pair
+                        if row is None or move is None: raise ValueError('binpack bestmove sidecar row mismatch')
+                        process.stdin.write(row.rstrip('\n') + ' | ' + move)
+                        if i % DISK_CHECK_ROWS == 0: guard('streaming binpack output')
+                process.stdin.close()
+                if process.wait(): raise subprocess.CalledProcessError(process.returncode, command)
+            finally:
+                if process.poll() is None: process.terminate(); process.wait()
+                process.stdin.close()
+    guard('after binpack encoding')
+
+
 def run(args):
     # Bind the actual reads to the exact resolved paths hashed here. Also retain
     # and recheck each caller's original path binding, including symlinks.
     args = copy.deepcopy(args)
     if args.chunk_rows < 1 or args.limit is not None and args.limit < 1:
         raise ValueError('positive chunk/limit required')
+    if args.min_free_mb < 0: raise ValueError('min-free-mb cannot be negative')
     if not args.no_filters and not args.probe:
         raise ValueError('filtering requires --probe; use explicit --no-filters only for format qualification')
     if args.score_cap < 0 or args.disagreement_cp < 1 or args.nodes < 1:
@@ -196,39 +334,59 @@ def run(args):
     config = {k: v for k, v in vars(args).items() if k not in ('out', 'resume', 'stop_after_chunks', 'command')}
     config['inputs'] = inputs
     config['input_bindings'] = bindings
+    config['index_lifecycle'] = INDEX_LIFECYCLE
     dependency_dir = Path(__file__).resolve().parents[1] / 'data'
     config['tool_sha256'] = {p.name: sha(p) for p in [Path(__file__), Path(__file__).with_name('bullet_records.py'), *(dependency_dir/n for n in ('forge_pos.py','forge_probe.py','filter_positions.py'))]}
     out = Path(args.out)
-    if args.resume:
-        if json.loads((out / 'config.json').read_text()) != config:
-            raise ValueError('resume config/source/tool identity mismatch')
-        if (out / 'COMPLETE.json').exists():
-            return verify(out)
-    else:
-        out.mkdir(parents=True, exist_ok=False)
-        dump_new(out / 'config.json', config)
+    if not args.resume: out.mkdir(parents=True, exist_ok=False)
+    with output_lock(out):
+        if args.resume:
+            if json.loads((out / 'config.json').read_text()) != config:
+                raise ValueError('resume config/source/tool identity mismatch; old checkpoints require their frozen converter')
+            if (out / 'COMPLETE.json').exists():
+                result = verify(out)
+                prune_owned_indexes(out, config)
+                return result
+        else: dump_new(out / 'config.json', config)
+        return convert_locked(args, out, config, inputs, bindings)
+
+
+def convert_locked(args, out, config, inputs, bindings):
     chunks = read_chunks(out)
     start = sum(c['input_rows'] for c in chunks)
-    if shutil.disk_usage(out).free < args.min_free_mb * 1024 * 1024:
-        raise ValueError('free-space guard before index creation')
+    if args.resume:
+        verify_chunk_rows(out, chunks)
+        prune_owned_indexes(out, config)
+    guard = lambda phase: disk_guard(out, args.min_free_mb, phase)
+    guard('before index creation')
+    budget = disk_budget(args, chunks)
+    print(json.dumps({'disk_preflight': budget}), flush=True)
+    disk_guard(out, args.min_free_mb, 'preflight index/output budget', budget['index_bytes_estimate'] + budget['output_bytes_estimate'])
     attempt = out / ('attempt_' + uuid.uuid4().hex)
     attempt.mkdir()
+    dump_new(attempt / 'INDEX_OWNER.json', {'schema': 1, 'attempt': attempt.name, 'config_sha256': sha(out / 'config.json')})
     db = sqlite3.connect(attempt / 'index.sqlite')
-    db.execute('PRAGMA cache_size=-16384')
-    for table in ('kept', 'holdout'):
-        db.execute(f'CREATE TABLE {table}(key BLOB PRIMARY KEY) WITHOUT ROWID')
-    db.execute('CREATE TABLE holdout_games(id TEXT PRIMARY KEY) WITHOUT ROWID')
-    holdout_counts = load_holdouts(db, args.holdout, args.holdout_game_ids)
-    prior_training = load_prior_training(db, args.dedup_against)
-    for c in chunks if not args.no_dedupe else []:
-        with (out / c['text']).open(encoding='utf8') as f:
-            for line in f:
-                db.execute('INSERT INTO kept VALUES(?)', (key(text_record(line)[0]),))
-    db.commit()
     before = time.monotonic()
     total = collections.Counter({k: 0 for k in RULES})
     for c in chunks: total.update(c['counts'])
     try:
+        db.execute('PRAGMA cache_size=-16384')
+        # This index is disposable, never a recovery authority. Avoid a second
+        # full-size rollback journal; every resume rebuilds from verified rows.
+        db.execute('PRAGMA journal_mode=OFF')
+        db.execute('PRAGMA synchronous=OFF')
+        for table in ('kept', 'holdout'):
+            db.execute(f'CREATE TABLE {table}(key BLOB PRIMARY KEY) WITHOUT ROWID')
+        db.execute('CREATE TABLE holdout_games(id TEXT PRIMARY KEY) WITHOUT ROWID')
+        holdout_counts = load_holdouts(db, args.holdout, args.holdout_game_ids, guard)
+        prior_training = load_prior_training(db, args.dedup_against, guard)
+        for c in chunks if not args.no_dedupe else []:
+            with (out / c['text']).open(encoding='utf8') as f:
+                for i, line in enumerate(f, 1):
+                    db.execute('INSERT INTO kept VALUES(?)', (key(text_record(line)[0]),))
+                    if i % DISK_CHECK_ROWS == 0:
+                        guard('loading recovered training index')
+        db.commit(); guard('after loading indexes')
         with ExitStack() as stack:
             probe = stack.enter_context(ProbeClient(args.probe, args.nodes, workdir=attempt / 'probe')) if not args.no_filters else None
             gids = games(args.game_ids)
@@ -240,8 +398,7 @@ def run(args):
                     raise ValueError('source truncated while resuming')
             exhausted = False
             while not exhausted and (args.limit is None or start < args.limit):
-                if shutil.disk_usage(out).free < args.min_free_mb * 1024 * 1024:
-                    raise ValueError('free-space guard: start another volume, do not remove source data')
+                guard('before output chunk')
                 chunkdir = out / ('data_' + uuid.uuid4().hex)
                 chunkdir.mkdir()
                 counts = collections.Counter(); consumed = 0; kept = 0
@@ -249,8 +406,9 @@ def run(args):
                     txt = files_stack.enter_context((chunkdir / 'rows.txt').open('x', encoding='utf8', newline='\n'))
                     binary = files_stack.enter_context((chunkdir / 'rows.bullet').open('xb'))
                     provenance = files_stack.enter_context((chunkdir / 'provenance.tsv').open('x', encoding='utf8', newline='\n'))
-                    binpack_input = files_stack.enter_context((chunkdir/'binpack_input.txt').open('x', encoding='utf8', newline='\n')) if args.binpack_tool else None
+                    bestmoves = files_stack.enter_context((chunkdir/'bestmoves.txt').open('x', encoding='utf8', newline='\n')) if args.binpack_tool and probe else None
                     for _ in range(min(args.chunk_rows, args.limit - start) if args.limit else args.chunk_rows):
+                        if consumed and consumed % DISK_CHECK_ROWS == 0: guard('writing output chunk/index')
                         pair = next(source, None)
                         if pair is None:
                             exhausted = True
@@ -287,18 +445,13 @@ def run(args):
                             counts[why] += 1
                             continue
                         binary.write(encode(r)); txt.write(canonical(r, fen)); provenance.write(f'{row_index}\t{gid}\n')
-                        if binpack_input:
-                            binpack_input.write(canonical(r, fen).rstrip('\n') + (' | ' + proof['bestmove'] if proof else '') + '\n')
+                        if bestmoves: bestmoves.write(proof['bestmove'] + '\n')
                         if not args.no_dedupe: db.execute('INSERT INTO kept VALUES(?)', (k,))
                         kept += 1
-                    for f in (txt, binary, provenance, binpack_input):
+                    for f in (txt, binary, provenance, bestmoves):
                         if f is not None: f.flush(); os.fsync(f.fileno())
                 if consumed == 0: break
-                if args.binpack_tool:
-                    command = [args.binpack_tool, 'encode', str(chunkdir/'binpack_input.txt'), str(chunkdir/'rows.binpack')]
-                    if args.allow_transport_moves: command.append('--allow-transport-move')
-                    with (chunkdir/'binpack.stdout').open('xb') as stdout, (chunkdir/'binpack.stderr').open('xb') as stderr:
-                        subprocess.run(command, stdout=stdout, stderr=stderr, check=True)
+                if args.binpack_tool: encode_binpack(args, chunkdir, guard)
                 # Persist every sealed data file, including the native adapter's
                 # output and logs, before publishing the commit receipt.
                 for p in chunkdir.iterdir():
@@ -323,6 +476,9 @@ def run(args):
                 raise ValueError('input path binding changed during run')
         result = {'status': 'COMPLETE', 'input_rows': start, 'counts': dict(total), 'chunks': len(chunks), 'holdouts': holdout_counts, 'prior_training_index': prior_training, 'game_clearance': 'ACCEPTED_WHOLE_SHARD_SPLIT_013_014' if args.shard_id else 'FORMAT_ONLY_NO_SHARD_ID', 'shard_id': args.shard_id, 'game_id_exclusion': bool(args.game_ids and args.holdout_game_ids), 'elapsed_seconds_this_attempt': time.monotonic()-before, 'representation': 'bullet32 + exact aligned full-FEN/STM-score/White-result sidecar; raw bullet loses state', 'binpack': 'GENERATED' if args.binpack_tool else 'NOT_REQUESTED', 'chunk_receipts': {p.name:sha(p) for p in sorted(out.glob('chunk_*.json'))}}
         dump_new(out / 'COMPLETE.json', result)
+        db.close()
+        verify(out)
+        prune_owned_indexes(out, config)
         return result
     finally: db.close()
 
@@ -331,16 +487,9 @@ def verify(out, binpack_tool=None):
     out = Path(out); chunks = read_chunks(out)
     config = json.loads((out/'config.json').read_text())
     wants_binpack = bool(config.get('binpack_tool'))
-    count = 0; decoded_chunks = 0; decoded_rows = 0
+    count = verify_chunk_rows(out, chunks); decoded_chunks = 0; decoded_rows = 0
     for c in chunks:
-        n = 0
-        with (out/c['bullet']).open('rb') as binary, (out/c['text']).open(encoding='utf8') as txt, (out/c['provenance']).open(encoding='utf8') as prov:
-            for line in txt:
-                r, fen = text_record(line); verify_record(binary.read(32), r)
-                if not prov.readline(): raise ValueError('provenance truncated')
-                n += 1
-            if binary.read(1) or prov.readline(): raise ValueError('extra records')
-        if n != c['kept']: raise ValueError('chunk kept-count mismatch')
+        n = c['kept']
         binpack = (out / c['text']).with_name('rows.binpack')
         binpack_rel = str(binpack.relative_to(out))
         if wants_binpack and (binpack_rel not in c['files'] or not binpack.is_file()):
@@ -359,7 +508,6 @@ def verify(out, binpack_tool=None):
             finally:
                 if process.poll() is None: process.terminate(); process.wait()
                 process.stdout.close(); process.stderr.close()
-        count += n
     result = json.loads((out/'COMPLETE.json').read_text())
     prior_paths = config.get('dedup_against', [])
     if prior_paths:
@@ -389,12 +537,13 @@ def parser():
     p = argparse.ArgumentParser(description=__doc__)
     sub = p.add_subparsers(dest='command', required=True)
     v = sub.add_parser('verify'); v.add_argument('--out', required=True); v.add_argument('--binpack-tool')
+    v.add_argument('--prune-indexes', action='store_true', help='After full verification, remove only marked disposable converter indexes; retain all source/output data and logs.')
     for command in ('convert', 'holdout-dedup'):
         c = sub.add_parser(command)
         c.add_argument('--input', required=True); c.add_argument('--pos'); c.add_argument('--sidecar-format', choices=('text','fen'), default='text'); c.add_argument('--out', required=True)
         c.add_argument('--game-ids'); c.add_argument('--shard-id'); c.add_argument('--holdout', action='append', default=[]); c.add_argument('--holdout-game-ids', action='append', default=[]); c.add_argument('--require-game-clearance', action='store_true')
         c.add_argument('--dedup-against', action='append', default=[], help='Prior kept rows.txt or FPOS input; repeat for all preceding training chunks. Counts as duplicate, never holdout.')
-        c.add_argument('--limit', type=int); c.add_argument('--chunk-rows', type=int, default=100000); c.add_argument('--min-free-mb', type=int, default=256); c.add_argument('--resume', action='store_true'); c.add_argument('--stop-after-chunks', type=int)
+        c.add_argument('--limit', type=int); c.add_argument('--chunk-rows', type=int, default=100000); c.add_argument('--min-free-mb', type=int, default=20000); c.add_argument('--resume', action='store_true'); c.add_argument('--stop-after-chunks', type=int)
         c.add_argument('--probe'); c.add_argument('--nodes', type=int, default=1024); c.add_argument('--score-cap', type=int, default=3000); c.add_argument('--disagreement-cp', type=int, default=400); c.add_argument('--draw-disagreement-cp', type=int, default=800)
         c.add_argument('--binpack-tool'); c.add_argument('--allow-transport-moves', action='store_true')
         c.add_argument('--no-filters', action='store_true'); c.add_argument('--no-dedupe', action='store_true')
@@ -406,7 +555,13 @@ def main():
     if a.command == 'holdout-dedup':
         if not a.holdout: raise ValueError('holdout-dedup requires --holdout')
         a.no_filters = True
-    print(json.dumps(verify(a.out, a.binpack_tool) if a.command == 'verify' else run(a), sort_keys=True))
+    if a.command == 'verify' and a.prune_indexes:
+        out = Path(a.out)
+        with output_lock(out):
+            result = verify(out, a.binpack_tool)
+            result['pruned_index_bytes'] = prune_owned_indexes(out, json.loads((out/'config.json').read_text()))
+    else: result = verify(a.out, a.binpack_tool) if a.command == 'verify' else run(a)
+    print(json.dumps(result, sort_keys=True))
 
 
 if __name__ == '__main__': main()
