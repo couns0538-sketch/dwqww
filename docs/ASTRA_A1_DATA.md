@@ -176,16 +176,3 @@ omits that context; the measured clock frequencies above motivate investigation,
 not an additional filter or a claimed gain in this run.
 
 Earlier checkpoints are retained in [ASTRA_A1_CHECKPOINT_HISTORY.md](ASTRA_A1_CHECKPOINT_HISTORY.md) and Git history. IDEA_SOURCE: user's data task, same-project FPOS/FHCE/native search/trainer/R8 contracts; original implementations and thresholds, no other-engine code or tuned constants.
-
-
-
-
-
-
-
-
-
-
-
-
-

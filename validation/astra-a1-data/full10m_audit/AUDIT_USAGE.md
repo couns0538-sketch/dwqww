@@ -62,7 +62,7 @@ At pilot qualification the strict 10M run had not been executed. It subsequently
 small-run CPU rate is roughly 10–12 CPU minutes; large SQL/cache/I/O effects may
 change that. Do not report a full-run PASS from this pilot.
 Original holdout coverage adds a full scalar parse and index lookup for each of
-the supplied 1.5M source rows; its complete runtime is not yet measured here.
+the supplied 1.5M source rows; that work is included in the full audit timing above; its standalone phase time was not separately measured.
 
 Six regression tests (eight initial audit executions) pass on retained copies:
 missing manifest, wrong retained index, native ID/score/ok corruption, missing
