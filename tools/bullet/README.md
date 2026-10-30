@@ -57,7 +57,9 @@ The native unchanged-engine oracle verifies centipawns on every FEN.
 
 ## Original Bullet graph and license boundary
 
-`lock_graph/` uses **only Bullet's lower-level MIT compiler/trainer crates**.
+`lock_graph/` requires Rust **1.87 or newer**; Rust 1.85 fails for this pinned
+dependency graph. `Cargo.toml` declares `rust-version = "1.87"`. It uses
+**only Bullet's lower-level MIT compiler/trainer crates**.
 The ordinary `bullet_lib` wrapper unconditionally depends on `montyformat`
 (AGPL-3.0) and `sfbinpack` (GPL-3.0) at the pinned revision. Its initial typecheck
 was rejected after dependency auditing. The original attempted wrapper source
@@ -92,7 +94,13 @@ The separate CPU PyTorch smoke is explicitly labelled PyTorch, never Bullet.
 
 `lock_export.py include-fixture` creates a synthetic checkpoint from an existing
 include. It is useful for validating layout and native parity, and is not a new
-training run. The R10 fixture bridge similarly labels its provenance synthetic.
+training run. Include round trips preserve tensor values, not the entire text:
+QA found differences in header lines 1–8 (comments and static-assert text/
+formatting), with identical tensors and compiled binaries. This QA fix locally
+rechecked tensor identity; compiled-binary identity is the independent QA
+result and was not recompiled here. Do not describe that original-include round trip as
+byte-identical. The separate deterministic exporter replay uses identical
+inputs and provenance and is a different claim. The R10 fixture bridge similarly labels its provenance synthetic.
 The R10 planted-corruption command changes one active output weight and verifies
 both changed arithmetic and safe bounds. `.nnue`'s format has no weight checksum,
 so successful native loading is expected; the original reference comparison must
@@ -129,27 +137,73 @@ indices or padding, nonfinite labels, existing output directories and any batch
 size that would drop a tail. A no-backend training request exits with an explicit
 error and creates no output directory.
 
-On the PC, after configuring the installed HIP SDK as Bullet documents
-(`HIP_PATH`, with `GCN_ARCH_NAME` obtained from `hipinfo`), the intended command is:
+The standalone [Windows launcher](run_hip_smoke.ps1) targets **64-bit Windows
+PowerShell 5.1 or newer**. Use it only in a **GPU-free scheduled slot**, **never alongside the live AMD trainer**,
+self-play, gates, or other production work. Preparing this launcher does not
+authorize its execution: **no grok-pc command was run for this QA fix**. A future
+operator must schedule the slot and choose genuinely spare logical CPUs.
+
+Configure the installed HIP SDK as Bullet documents (`HIP_PATH`, with
+`GCN_ARCH_NAME` verified from `hipinfo`). Supply an existing, explicitly pinned
+venv `Scripts\python.exe` with NumPy and its independently recorded SHA256;
+there is no fallback to system Python. In a fresh dedicated PowerShell process,
+replace every angle-bracket placeholder before using this future command:
 
 ```powershell
-$ErrorActionPreference = 'Stop'
-$InputDir = (Resolve-Path 'validation/astra-bullet-export/bullet_gpu_input').Path
-$InputFile = Join-Path $InputDir 'input.fbs'
-$Expected = (Get-Content -Raw (Join-Path $InputDir 'manifest.json') | ConvertFrom-Json).input_sha256
-if ((Get-FileHash $InputFile -Algorithm SHA256).Hash -ine $Expected) { throw 'Smoke input hash mismatch' }
-$Run = Join-Path $PWD ('astra_bullet_smoke_' + [Guid]::NewGuid().ToString('N'))
-$null = New-Item -ItemType Directory -Path $Run -ErrorAction Stop
-$Output = Join-Path $Run 'checkpoint'
-$Manifest = Join-Path $Run 'export_manifest.json'
-$Include = Join-Path $Run 'nnue_weights.inc'
-cargo run --release --locked --features rocm --manifest-path tools/bullet/lock_graph/Cargo.toml --bin train_smoke -- $InputFile $Output 128 2>&1 | Tee-Object (Join-Path $Run 'original_training.log')
-if ($LASTEXITCODE -ne 0) { throw 'Bullet GPU smoke failed; retain the run directory' }
-python tools/bullet/lock_export.py manifest --checkpoint (Join-Path $Output 'weights.bin') --out $Manifest --provenance "Actual Bullet GPU smoke; original log in $Run"
-if ($LASTEXITCODE -ne 0) { throw 'Checkpoint manifest failed' }
-python tools/bullet/lock_export.py export --checkpoint (Join-Path $Output 'weights.bin') --manifest $Manifest --out $Include
-if ($LASTEXITCODE -ne 0) { throw 'Include export failed' }
+powershell.exe -NoProfile -NonInteractive -File .\tools\bullet\run_hip_smoke.ps1 `
+  -CpuAffinityMask '<EXPLICIT_HEX_MASK_OF_SPARE_LOGICAL_CPUS>' `
+  -PythonExe '<ABSOLUTE_VENV_PATH>\Scripts\python.exe' `
+  -PythonSha256 '<RECORDED_64_HEX_SHA256>' `
+  -GpuFreeSlotConfirmed
 ```
+
+The mandatory affinity mask is hexadecimal (optional `0x` prefix), with no
+assumed spare CPU numbers. The launching process is set to **Idle** with that
+mask before any native tool starts; children inherit these restrictions. Cargo
+uses **`-j2`**, `CARGO_BUILD_JOBS=2`, and **`cargo fetch --locked`** before the
+locked build. The build explicitly uses `--target x86_64-pc-windows-msvc`
+and executes that target's matching binary, so inherited `CARGO_BUILD_TARGET`
+or Cargo `build.target` cannot redirect the build to a different binary while
+an old host executable runs. The launcher checks Rust >=1.87 and the pinned
+venv/NumPy.
+
+Fresh GUID run directories live under `F:\astra_bullet_smoke`, outside the
+repository. `CARGO_TARGET_DIR` defaults to `F:\astra_bullet_cargo_target`; both
+`TEMP` and `TMP` use the run's `temp` directory on **F:**. Custom roots must also
+be on F:, outside the repository, without junction/symlink ancestors. The
+launcher requires **at least 20 GiB free** before work and rechecks before the
+build and export. It never deletes prior evidence to make room.
+
+GPU and production-process prechecks run before work and again immediately
+before Cargo builds and, after compilation, immediately before the built HIP
+smoke executable starts. Its SHA256 is recorded before execution. WDDM GPU engine counters must provide two valid,
+zero-utilization samples; empty, unavailable, denied, or invalid telemetry,
+detected GPU use, known production/training/build processes, and insufficient
+space **fail closed with exit 76**. These snapshots cannot reserve the GPU:
+keep the scheduled slot exclusive for the entire build and smoke. The launcher
+never stops, kills, pauses, or changes another process. If counters are
+unavailable, diagnose them separately and leave the smoke blocked.
+
+Native tools run through `System.Diagnostics.Process`, with concurrent raw
+stdout/stderr copies into separate `*.stdout.log` / `*.stderr.log`, plus
+`*.command.json` and `*.exit` receipts. There is no native stderr-to-PowerShell
+error pipeline: Cargo progress on stderr therefore does not become the old
+PowerShell 5.1 `NativeCommandError` under `$ErrorActionPreference = 'Stop'`.
+Nonzero native exits remain failures with original output retained. Only a
+successful training marker followed by both exports produces
+`LAUNCHER_COMPLETE.txt`; it does not certify native parity or playing strength.
+
+The non-GPU Windows regression script is
+`tests/bullet/test_hip_launcher.ps1`. It exercises refusal cases and actual
+native stderr, argument quoting, and nonzero exits without invoking Cargo/HIP.
+It has **not been executed here** because neither Windows PowerShell nor `pwsh`
+is available. Local portable documentation checks and include tensor replay are
+recorded under `validation/astra-bullet-export/qa_windows_fix/`.
+
+Before training on converted data, require the converter branch's independent
+clearance receipt against both complete real 013/014 shards, with zero overlapping
+keys. That receipt is **UNVERIFIED here**; the synthetic fixture pass does not
+clear any real training data. Do not start this smoke before data clearance.
 
 GPU execution/HIP build are **UNVERIFIED here**. Inspect `COMPLETE.txt` only after
 successful exit; it records one epoch, row count, batch size and seed. Failures

@@ -61,8 +61,50 @@ The earlier R10 K32H3 exporter is preserved as supplementary work. Its synthetic
 
 The requested review completed over **24.54 minutes** (2026-10-30T09:24:49.089013+00:00 to 2026-10-30T09:49:21.552640+00:00). Repaired findings include oracle output overwrite/alias protection, quantization boundary handling and manifest validation. Job 2 independently repaired incorrect completion counts, unbound file roles, omitted binpack checks and a source-symlink identity race. Cumulative cross-shard dedup passed an additional independent recovery test. Original reproductions, fixes and rechecks are preserved; see `validation/astra-bullet-export/final_review/review_complete.json`.
 
-Job 2 is on `astra-fen-convert-20261030`, at **`41d23db076f1b217d90a6f26779deb7125361edc`**, with report `docs/ASTRA_CONVERTER_20261030.md`. It passed exact 1M-row binpack/Bullet-plus-sidecar checks, 45 unit tests, 13 native sanitizer tests and synthetic holdout exclusion (1000 removed, 0 remaining). Next: run the isolated HIP smoke on the PC, export its checkpoint and check all 12,000 FENs, then run position dedup against the complete private holdouts. Whole-shard 013/014 exclusion follows the user's accepted policy; game IDs are not inferred. Filtered 003 must replace raw 003 in an ablation, not be appended and double-weighted.
+The original, pre-QA Job 2 checkpoint is on `astra-fen-convert-20261030`, at **`41d23db076f1b217d90a6f26779deb7125361edc`**, with report `docs/ASTRA_CONVERTER_20261030.md`. It passed exact 1M-row binpack/Bullet-plus-sidecar checks, 45 unit tests, 13 native sanitizer tests and synthetic holdout exclusion (1000 removed, 0 remaining). This checkpoint requires the subsequent QA fixes on the same branch before PC use. Before any new training, independently verify zero overlap against both complete private holdouts using that branch's clearance tool. Only after data clearance and an exclusive GPU-free slot may the HIP smoke be run, followed by export and all 12,000 FENs. Whole-shard 013/014 exclusion follows the user's accepted policy; game IDs are not inferred. Filtered 003 must replace raw 003 in an ablation, not be appended and double-weighted.
 
 Original progress checkpoints remain in [checkpoint history](ASTRA_BULLET_CHECKPOINTS_20261030.md). No playing-strength claim is made.
 
+## QA follow-up: Windows launcher preparation
+
+The old inline PowerShell recipe was replaced by
+[`run_hip_smoke.ps1`](../tools/bullet/run_hip_smoke.ps1), targeting 64-bit
+PowerShell 5.1. Native stdout and stderr are captured separately through
+`System.Diagnostics.Process`, avoiding the PS5.1 `Stop`/native-stderr pipeline
+failure. Rust **1.87 or newer** is required; 1.85 fails, and the existing
+`Cargo.toml` already declares 1.87.
+
+The launcher requires an explicit CPU affinity mask, inherits Idle priority,
+uses Cargo `-j2` and `fetch --locked`, and pins the MSVC x64 target and matching
+executable. The venv Python executable is an explicit path plus SHA256. Cargo
+target storage, TEMP/TMP, and fresh run directories stay on F: outside the
+repository, guarded by at least 20 GiB free. Missing/busy GPU telemetry and
+known production processes refuse the run with exit 76. Checks repeat after
+compilation immediately before the hashed smoke executable runs. Use only a
+**GPU-free scheduled slot, never alongside the live AMD trainer**; snapshots
+alone cannot reserve that slot. No other process is stopped or killed.
+
+This follow-up ran **no grok-pc commands**. Windows/PowerShell execution,
+priority/affinity inheritance, and HIP/GPU training remain **UNVERIFIED**.
+Windows behavioral regressions are supplied but were not run because local
+PowerShell is unavailable. Local evidence in
+[`qa_windows_fix/`](../validation/astra-bullet-export/qa_windows_fix/) includes
+two failing-then-passing portable documentation checks and **42 passing Bullet
+Python/native-oracle tests** using the existing torch venv. The initial
+system-Python suite failed importing the unavailable `torch`; that log is
+retained alongside the successful venv run.
+
+The original include round trip is **tensor-identical, not byte-identical**:
+header lines 1–8 differ in comments and static-assert wording/formatting.
+All four tensor arrays were rechecked locally. Independent QA reported
+identical compiled binaries; this follow-up did not recompile that comparison.
+The earlier deterministic exporter replay claim concerns the same exporter
+inputs and provenance, not equality to the original include text. No engine
+search, training objective, dependency graph, or accepted network changed.
+
 IDEA_SOURCE: user job pack and clarification; Forge AL1/R10 source contracts; MIT Bullet public APIs and checkpoint format. Exporter code is original.
+
+The earlier `final_review/final_manifest.json` is a frozen pre-QA snapshot at
+`99f9d769`; it is not a manifest of the updated README/launcher. The QA follow-up
+manifest records the current changed files separately. Real private 013/014
+clearance remains UNVERIFIED; no new training is authorized by these test logs.
