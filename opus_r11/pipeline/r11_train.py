@@ -59,7 +59,8 @@ def trainer_cmd(cfg: dict, prof: dict, run_dir: str, resume: str | None) -> tupl
            "--r11-share-duty", str(prof.get("share_duty", 1.0)),
            "--r11-min-free-ram-gb", str(cfg["limits"]["min_free_ram_gb"] + 1.0),
            "--r11-hard-ram-gb", str(cfg["limits"]["min_free_ram_gb"]),
-           "--r11-patterns", ";".join(cfg["train"]["production_patterns"]), "--"]
+           "--r11-patterns", ";".join(cfg["train"]["production_patterns"]),
+           "--r11-affinity", hex(C.affinity_from_cfg(cfg)), "--"]
     cmd += train_files
     for h in hold_files:
         cmd += ["--validation-datasets", h]
@@ -160,7 +161,7 @@ def main(argv: list[str]) -> int:
     ap.add_argument("--name")
     a = ap.parse_args(argv)
     cfg = C.read_json(a.config)
-    C.set_below_normal()
+    C.set_idle_background(C.affinity_from_cfg(cfg))
     C.write_pid_file(cfg["root"], "train")
     log = C.Log(os.path.join(cfg["root"], "logs", "pipeline.log"), "train")
     gov = C.Governor(cfg["root"], C.Limits(**cfg.get("limits", {})), log)

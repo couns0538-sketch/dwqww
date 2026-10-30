@@ -122,6 +122,8 @@ def main(argv: list[str]) -> int:
     ap.add_argument("--provenance")
     a = ap.parse_args(argv)
     cfg = C.read_json(a.config)
+    C.set_idle_background(C.affinity_from_cfg(cfg))
+    C.write_pid_file(cfg["root"], "package")
     log = C.Log(os.path.join(cfg["root"], "logs", "pipeline.log"), "package")
     try:
         res = package(cfg, a.check, log, C.read_json(a.provenance) if a.provenance else None)

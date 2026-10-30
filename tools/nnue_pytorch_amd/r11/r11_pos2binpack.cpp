@@ -31,8 +31,23 @@
 #include <fstream>
 #include <string>
 #include <vector>
+#ifdef _WIN32
+// kernel32, declared by hand (<windows.h> pulls in names that clash with the loader headers in a static MinGW link)
+extern "C" __declspec(dllimport) void* __stdcall GetCurrentProcess();
+extern "C" __declspec(dllimport) int __stdcall SetPriorityClass(void*, unsigned long);
+#endif
 
 namespace {
+
+// CR fix 2: background mode (very low I/O and memory priority) and the Idle class for the writer itself (the R11
+// driver that starts it is already Idle + background on 3 cores; the 3-core mask is inherited). Background mode resets
+// the class to Normal, so Idle is set again after it (measured 2026-10-30).
+void enter_background_mode() {
+#ifdef _WIN32
+    SetPriorityClass(GetCurrentProcess(), 0x00100000UL);  // PROCESS_MODE_BACKGROUND_BEGIN
+    SetPriorityClass(GetCurrentProcess(), 0x00000040UL);  // IDLE_PRIORITY_CLASS
+#endif
+}
 
 const char* PIECE_CH = ".PNBRQKpnbrqk";
 constexpr std::uint64_t ENTRY_BYTES = sizeof(binpack::PackedTrainingDataEntry) + 2;
@@ -513,6 +528,7 @@ Args parse(int argc, char** argv) {
 }  // namespace
 
 int main(int argc, char** argv) {
+    enter_background_mode();
     const Args a = parse(argc, argv);
     if (a.mode == "convert") return run_convert(a);
     if (a.mode == "verify") return run_verify(a);

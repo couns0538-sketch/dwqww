@@ -110,6 +110,33 @@ def main() -> int:
                         offenders.append(f"{d}/{fn}: {marker}")
     check(offenders == [], f"no STOP/PAUSE control files in the pipeline code: {offenders}")
 
+    # 1e CR fix 2: Idle priority + background mode on <= 3 cores, inherited by a child process
+    probe = os.path.join(scratch, "prio_probe.py")
+    with open(probe, "w", encoding="utf-8", newline="\n") as f:
+        f.write("import os, sys, json, subprocess, psutil\n"
+                f"sys.path.insert(0, {os.path.join(REPO, 'opus_r11', 'pipeline')!r})\n"
+                "import r11_common as C\n"
+                "info = C.set_idle_background(0x700)\n"
+                "me = psutil.Process()\n"
+                "child = subprocess.run([sys.executable, '-c', 'import psutil; p = psutil.Process(); "
+                "print(int(p.nice()), int(p.ionice()), p.cpu_affinity())'], capture_output=True, text=True).stdout.strip()\n"
+                "print(json.dumps({'info': info, 'nice': int(me.nice()), 'io': int(me.ionice()), 'aff': me.cpu_affinity(), "
+                "'child': child}))\n")
+    r = subprocess.run([sys.executable, "-I", "-B", probe], capture_output=True, text=True)
+    try:
+        pr = json.loads(r.stdout.strip().splitlines()[-1])
+    except Exception:  # noqa: BLE001
+        pr = {"error": r.stdout[-300:] + r.stderr[-300:]}
+    check(pr.get("nice") == 0x40 and pr.get("io") == 0 and pr.get("aff") == [8, 9, 10],
+          f"set_idle_background: Idle (0x40), I/O priority very low (background mode), CPUs 8-10: {pr}")
+    check(str(pr.get("child", "")).startswith("64 0 [8, 9, 10]"),
+          f"a child inherits Idle, the very low I/O priority and the 3-core mask: {pr.get('child')}")
+    try:
+        C.set_idle_background(0xF)
+        check(False, "a 4-CPU mask must be refused")
+    except C.StageFailed:
+        check(True, "a 4-CPU mask is refused")
+
     # 2 fail closed without psutil
     saved = sys.modules.get("psutil", "absent")
     sys.modules["psutil"] = None  # makes "import psutil" raise ImportError

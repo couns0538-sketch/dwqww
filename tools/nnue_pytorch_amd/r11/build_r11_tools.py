@@ -29,9 +29,23 @@ def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--clone", default="F:/opus_scratch/r6/nnue-pytorch-amd")
     ap.add_argument("--out-dir", default="D:/grok-pc-data/r11_nnue/bin")
+    ap.add_argument("--affinity", default="0x700", help="at most 3 CPUs (CR fix 2); default CPUs 8-10")
     a = ap.parse_args()
     if sys.platform == "win32":
-        ctypes.windll.kernel32.SetPriorityClass(ctypes.windll.kernel32.GetCurrentProcess(), 0x00004000)
+        # CR fix 2: Idle (0x40) + background mode, at most 3 cores; the compiler inherits Idle and the mask
+        from ctypes import wintypes
+        mask = int(a.affinity, 0)
+        if bin(mask).count("1") > 3:
+            print("FAIL --affinity must select at most 3 CPUs")
+            return 2
+        k32 = ctypes.windll.kernel32
+        k32.GetCurrentProcess.restype = wintypes.HANDLE
+        k32.SetPriorityClass.argtypes = [wintypes.HANDLE, wintypes.DWORD]
+        k32.SetProcessAffinityMask.argtypes = [wintypes.HANDLE, ctypes.c_size_t]
+        h = k32.GetCurrentProcess()
+        k32.SetPriorityClass(h, 0x00100000)  # background mode first: it resets the class to Normal
+        k32.SetPriorityClass(h, 0x00000040)  # then Idle (inherited by the compiler with the very low I/O priority)
+        k32.SetProcessAffinityMask(h, mask)
     src = os.path.join(HERE, "r11_pos2binpack.cpp")
     inc = os.path.join(a.clone, "data_loader", "cpp")
     if not os.path.isfile(os.path.join(inc, "lib", "binpack.h")):

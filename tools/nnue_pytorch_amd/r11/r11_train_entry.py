@@ -53,7 +53,7 @@ def parse_own_args(argv: list[str]) -> tuple[dict, list[str]]:
     own, rest = argv[:i], argv[i + 1:]
     opts = {"clone": None, "run_dir": None, "keep_last": 2, "policy": "share", "share_duty": 1.0,
             "min_free_ram_gb": 8.0, "hard_ram_gb": 7.0, "patterns": "guard.tag;forge_nnue_train[\\\\/]runs",
-            "check_seconds": 20.0}
+            "check_seconds": 20.0, "affinity": "0x700"}
     k = 0
     while k < len(own):
         key = own[k]
@@ -150,7 +150,18 @@ def main() -> int:
     sys.path.insert(0, clone)
     os.chdir(clone)
     if sys.platform == "win32":
-        ctypes.windll.kernel32.SetPriorityClass(ctypes.windll.kernel32.GetCurrentProcess(), 0x00004000)
+        # CR fix 2: Idle (0x40) + background mode on at most 3 cores (the trainer's loader threads inherit the mask)
+        mask = int(opts["affinity"], 0)
+        if bin(mask).count("1") > 3:
+            raise SystemExit("--r11-affinity must select at most 3 CPUs")
+        k32 = ctypes.windll.kernel32
+        k32.GetCurrentProcess.restype = wintypes.HANDLE
+        k32.SetPriorityClass.argtypes = [wintypes.HANDLE, wintypes.DWORD]
+        k32.SetProcessAffinityMask.argtypes = [wintypes.HANDLE, ctypes.c_size_t]
+        h = k32.GetCurrentProcess()
+        k32.SetPriorityClass(h, 0x00100000)  # background mode first: it resets the class to Normal
+        k32.SetPriorityClass(h, 0x00000040)  # then Idle (base priority 4, I/O priority stays very low)
+        k32.SetProcessAffinityMask(h, mask)
     patterns = [p for p in opts["patterns"].split(";") if p]
 
     # hard RAM watchdog: exit at once (no save) - the live trainer must never be pushed into the commit limit

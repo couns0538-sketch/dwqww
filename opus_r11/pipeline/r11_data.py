@@ -832,7 +832,7 @@ def main(argv: list[str]) -> int:
     ap.add_argument("--max-convert", type=int)
     a = ap.parse_args(argv)
     cfg = C.read_json(a.config)
-    C.set_below_normal()
+    C.set_idle_background(C.affinity_from_cfg(cfg))
     root = cfg["root"]
     C.write_pid_file(root, "data")
     log = C.Log(os.path.join(root, "logs", "pipeline.log"), "data")

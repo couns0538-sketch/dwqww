@@ -360,7 +360,7 @@ def main(argv: list[str]) -> int:
     ap.add_argument("--out", required=True)
     a = ap.parse_args(argv)
     cfg = C.read_json(a.config)
-    C.set_below_normal()
+    C.set_idle_background(C.affinity_from_cfg(cfg))
     C.write_pid_file(cfg["root"], "check")
     log = C.Log(os.path.join(cfg["root"], "logs", "pipeline.log"), "check")
     gov = C.Governor(cfg["root"], C.Limits(**cfg.get("limits", {})), log)
