@@ -45,6 +45,14 @@ def newest(ix: dict) -> dict | None:
     return sorted(live, key=lambda x: (x["next_epoch"], x["step"], x["saved"]))[-1] if live else None
 
 
+def patterns_file(cfg: dict, run_dir: str) -> str:
+    """The production-trainer regexes go to the entry in a FILE: on its command line they would match the entry's own
+    launcher process (found 2026-10-30: the entry yielded to itself)."""
+    path = os.path.join(run_dir, "r11_production_patterns.json")
+    C.write_json(path, list(cfg["train"]["production_patterns"]))
+    return path
+
+
 def trainer_cmd(cfg: dict, prof: dict, run_dir: str, resume: str | None) -> tuple[list[str], dict]:
     t = cfg["trainer"]
     d = cfg["data"]
@@ -58,7 +66,7 @@ def trainer_cmd(cfg: dict, prof: dict, run_dir: str, resume: str | None) -> tupl
            "--r11-keep-last", str(prof.get("keep_last", 2)),
            "--r11-min-free-ram-gb", str(cfg["limits"]["min_free_ram_gb"] + 1.0),
            "--r11-hard-ram-gb", str(cfg["limits"]["min_free_ram_gb"]),
-           "--r11-patterns", ";".join(cfg["train"]["production_patterns"]),
+           "--r11-patterns-file", C.winpath(patterns_file(cfg, run_dir)),
            "--r11-affinity", hex(C.affinity_from_cfg(cfg)),
            "--r11-disk-floor-gb", str(C.disk_floor_gb(run_dir, cfg["limits"].get("min_disk_free_gb", 40.0))), "--"]
     cmd += train_files

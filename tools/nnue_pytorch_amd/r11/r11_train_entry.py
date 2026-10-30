@@ -23,7 +23,9 @@ GPL-3.0 (imports the trainer's modules at run time from --r11-clone; nothing is 
      trainer appears (command-line regex list; psutil missing = fail, an unreadable python command line = running)
      the entry saves and exits 76, the driver waits for it to end and resumes.
 Usage: <trainer venv python> -B r11_train_entry.py --r11-clone <clone> --r11-run-dir <dir> [--r11-keep-last 2]
-       [--r11-min-free-ram-gb 8] [--r11-hard-ram-gb 7] [--r11-patterns 'regex1;regex2'] [--r11-check-seconds 20]
+       [--r11-min-free-ram-gb 8] [--r11-hard-ram-gb 7] --r11-patterns-file <json list of regexes>
+       [--r11-check-seconds 20]
+       (the production regexes come from a FILE: on a command line they would match the entry's own launcher)
        [--r11-affinity 0x700] [--r11-disk-floor-gb 40] -- <train.py arguments>
 """
 from __future__ import annotations
@@ -53,7 +55,7 @@ def parse_own_args(argv: list[str]) -> tuple[dict, list[str]]:
     i = argv.index("--")
     own, rest = argv[:i], argv[i + 1:]
     opts = {"clone": None, "run_dir": None, "keep_last": 2,
-            "min_free_ram_gb": 8.0, "hard_ram_gb": 7.0, "patterns": "guard.tag;forge_nnue_train[\\\\/]runs",
+            "min_free_ram_gb": 8.0, "hard_ram_gb": 7.0, "patterns_file": None,
             "check_seconds": 20.0, "affinity": "0x700", "disk_floor_gb": 40.0}
     k = 0
     while k < len(own):
@@ -118,13 +120,17 @@ def production_running(patterns: list[str]) -> str | None:
         raise SystemExit("[r11] psutil is missing: cannot check for production trainers (fail)")
     regs = [re.compile(p, re.I) for p in patterns if p]
     me = os.getpid()
+    try:  # this process and its own launcher chain are never "production" (the venv launcher is a parent process)
+        own = {me} | {a.pid for a in psutil.Process(me).parents()}
+    except Exception:  # noqa: BLE001
+        own = {me}
     try:
         procs = list(psutil.process_iter(["pid", "ppid", "name", "cmdline"]))
     except Exception as e:  # noqa: BLE001
         raise SystemExit(f"[r11] process list unavailable ({type(e).__name__}): cannot check for production trainers")
     for p in procs:
         info = p.info
-        if info.get("pid") == me:
+        if info.get("pid") in own:
             continue
         name = info.get("name") or ""
         cmdline = info.get("cmdline")
@@ -169,7 +175,12 @@ def main() -> int:
         k32.SetPriorityClass(h, 0x00100000)  # background mode first: it resets the class to Normal
         k32.SetPriorityClass(h, 0x00000040)  # then Idle (base priority 4, I/O priority stays very low)
         k32.SetProcessAffinityMask(h, mask)
-    patterns = [p for p in opts["patterns"].split(";") if p]
+    if not opts["patterns_file"]:
+        raise SystemExit("--r11-patterns-file is required (the production-trainer regexes)")
+    with open(opts["patterns_file"], "r", encoding="utf-8") as f:
+        patterns = [p for p in json.load(f) if p]
+    if not patterns:
+        raise SystemExit("the production-trainer pattern list is empty")
 
     # CR R2 M1: the production-trainer check runs BEFORE torch or any trainer module is imported - when production is
     # running the entry exits 76 at once: no GPU context, no RAM taken, nothing loaded

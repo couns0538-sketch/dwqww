@@ -169,22 +169,34 @@ def main() -> int:
     # CR R2 M1: the entry checks for production BEFORE importing torch: with a dummy clone (no train.py, no trainer
     # modules) and a running "production" marker process it must exit 76, never reach an import
     marker = f"R11M1MARKER{os.getpid()}"
+    pfile = os.path.join(scratch, "patterns.json")
+    with open(pfile, "w", encoding="utf-8") as f:
+        json.dump([marker], f)  # from a FILE: on the command line the entry's own launcher would match
+    fake_clone = os.path.join(scratch, "fake_clone")
+    os.makedirs(fake_clone)
+
+    def run_entry(run_dir: str) -> subprocess.CompletedProcess:
+        return subprocess.run([sys.executable, "-I", "-B", spec.origin, "--r11-clone", fake_clone, "--r11-run-dir", run_dir,
+                               "--r11-patterns-file", pfile, "--r11-affinity", "0x700", "--", "dummy.binpack"],
+                              capture_output=True, text=True, timeout=300)
+
     dummy = subprocess.Popen([sys.executable, "-c", "import time; time.sleep(12)", marker])
     try:
         time.sleep(1.0)
-        fake_clone = os.path.join(scratch, "fake_clone")
-        os.makedirs(fake_clone)
         run_m1 = os.path.join(scratch, "run_m1")
-        r = subprocess.run([sys.executable, "-I", "-B", spec.origin, "--r11-clone", fake_clone, "--r11-run-dir", run_m1,
-                            "--r11-patterns", marker, "--r11-affinity", "0x700", "--", "dummy.binpack"],
-                           capture_output=True, text=True, timeout=120)
+        r = run_entry(run_m1)
     finally:
         dummy.wait(timeout=60)
     ev = open(os.path.join(run_m1, "r11_events.jsonl"), encoding="utf-8").read() if os.path.isfile(
         os.path.join(run_m1, "r11_events.jsonl")) else ""
-    check(r.returncode == 76 and "yield_before_import" in ev and "ModuleNotFoundError" not in r.stderr,
+    check(r.returncode == 76 and "yield_before_import" in ev and "No module named" not in r.stderr,
           f"production check before import torch: exit {r.returncode}, event yield_before_import "
           f"{'present' if 'yield_before_import' in ev else 'missing'}")
+    # negative: no production marker -> the entry gets past the check (it must not match its own launcher) and only
+    # then imports the trainer, which fails on the dummy clone
+    r2 = run_entry(os.path.join(scratch, "run_m1_neg"))
+    check(r2.returncode not in (0, 76) and "No module named 'train'" in r2.stderr,
+          f"no production -> the entry does not yield to itself and reaches the trainer import (exit {r2.returncode})")
     import r11_train as TR
     cfg_share = json.loads(json.dumps(real_cfg))
     cfg_share["train"]["profiles"]["smoke"]["gpu_policy"] = "share"

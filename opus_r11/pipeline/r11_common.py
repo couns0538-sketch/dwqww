@@ -397,6 +397,10 @@ def production_processes(patterns: list[str]) -> list[dict]:
     except ImportError as e:
         raise StageFailed("psutil is missing: cannot check for production trainers (fail)") from e
     me = os.getpid()
+    try:  # this process and its own launcher chain (venv launcher, shell) are never "production"
+        own = {me} | {a.pid for a in psutil.Process(me).parents()}
+    except Exception:  # noqa: BLE001
+        own = {me}
     found = []
     regs = [re.compile(p, re.I) for p in patterns]
     try:
@@ -405,7 +409,7 @@ def production_processes(patterns: list[str]) -> list[dict]:
         raise StageFailed(f"process list unavailable ({type(e).__name__}): cannot check for production trainers") from e
     for p in procs:
         info = p.info
-        if info.get("pid") == me:
+        if info.get("pid") in own:
             continue
         name = info.get("name") or ""
         cmdline = info.get("cmdline")
