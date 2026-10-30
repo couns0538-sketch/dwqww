@@ -1,14 +1,16 @@
 # R11 automated NNUE pipeline (data -> train -> export -> parity -> bench -> package) — PARTIAL
 
-Branch `opus-r11-nnue-pipeline` = base `7f79c349` (qa-r10v2-fix1) + the R11 commits (10:26-12:57 PC clock on
+Branch `opus-r11-nnue-pipeline` = base `7f79c349` (qa-r10v2-fix1) + the R11 commits (10:26-13:30 PC clock on
 2026-10-30, a PC crash/reboot at 11:38 in between). Tool-only: `git diff 7f79c349 HEAD -- src include tests
 CMakeLists.txt bench` is empty. Machine exclusive: no (the production trainer, self-play and gates ran throughout).
 Handover notes: `../NOTES_R11.md`. Code Review patches: `D:\grok-pc-data\r11_nnue\cr_patches\` (one file per commit).
+CI (opus-ci; the branch changes no engine code): runs 41044452098, 41044616304, 41045785514 and 41048252114 (head of
+the CR R3 push, b1b671ca) all success; later pushes are evidence/doc-only `[skip ci]` commits.
 
 PARTIAL because two things could not run in this window, both by rule, not by a defect:
 - no net was trained from our own data yet: QA put full-size training in wait mode, and the train stage is yield-only,
   so it does not start while a production trainer runs (production ran almost the whole time);
-- the real conversion stops at the D: floor (40 GB + 2 GB margin must stay free; D: free space moved between 38.8 and 67 GB during the day, ~40 GB at 13:00).
+- the real conversion stops at the D: floor (40 GB + 2 GB margin must stay free; D: free space moved between 37.8 and 67 GB during the day, 37.8 GB at 13:09).
 Everything else is built, tested and proven on real data or the known-good ep20 net.
 
 ## Acceptance
@@ -67,6 +69,9 @@ Everything else is built, tested and proven on real data or the known-good ep20 
    yields by itself whenever production starts and resumes from the newest checkpoint. The CPU end-to-end test
    `test_r11_train.py <new dir> --wait` (started 13:3x as e2e_4) runs by itself once production ends; the older
    e2e_3 run still carries keep_last 2 in memory and will end FAIL on the R3-3 guard - expected, ignore it.
+   Owner decision: the supervisor queue relaunches within ~2 s of each run's end (11:57:56 DONE -> 11:57:58
+   launched), so a yield-only train stage - even the CPU smoke test - only runs when the queue is EMPTY. Either
+   leave a gap in the queue, or allow CPU-only smoke training next to production (Idle, 3 cores, ~6 GB RAM).
 3. CR re-review: fix 2 amendment (patch files 15, 16), M1 hardening (17), CR R3-1/2/3 (18, 19, 20).
 4. Optional: remove the ask rule `Bash(git push *)` in `D:\grok-pc-data\dwqww\.claude\settings.json` (every push
    prompts; editing it myself was blocked as self-modification).

@@ -5,15 +5,18 @@ Job folder `opus_r11/` (pipeline + tests + evidence logs), GPL trainer-side code
 (run-only, never in src/include/tests). Output root on D: `D:\grok-pc-data\r11_nnue\`. Started 2026-10-30 10:14 PC clock;
 PC crash/reboot 11:38 (nothing of R11 was half-written: the run died in dedup before any output).
 
-## Status (2026-10-30 ~13:00)
-- CR fixes 1-10 (cf7e435a review) and CR R2 H1/M1/M3 pushed as separate commits (list below).
+## Status (2026-10-30 ~13:40) - PARTIAL, see opus_r11/REPORT.md
+- CR fixes 1-10 (cf7e435a review), CR R2 H1/M1/M3, the fix 2 amendment, the M1 hardening and CR R3-1/2/3 are
+  pushed as separate commits (list below); one patch file per commit in D:\grok-pc-data\r11_nnue\cr_patches.
 - **CR fix 2 amendment (for CR re-review):** background mode is gone - it capped every R11 process at a 32 MB working
   set (details and numbers under "Facts"). Now: Idle + I/O priority very low + memory priority low + mask 0x700, all
   inherited by children; test 1e checks the values, the inheritance, the missing cap and that no code enters
   background mode.
-- Real data stage running (started before the amendment): 67 shards / 344,441,194 rows, full sha256 recorded, dedup in
-  6 key-range passes (pass 1 1718.2 s under the cap, pass 2 139.8 s after the lift: 12.3x); conversion stops before D: would drop below 40 GB + 2 GB
-  margin (resumable). Its cap was lifted from outside at 12:52 (see Facts); log `r11_nnue\logs\lift_wscap.log`.
+- Real data stage DONE up to conversion (run 4, 13:09:47, exit 0): 67 shards / 344,441,194 rows, dedup PASS (kept
+  344,329,054, dropped 112,140, bad 0; pass 1 1718.2 s under the cap, then 124-151 s per pass); conversion did not
+  start: D: 37.8 GB free < 42 GB (all shards = 11.54 GB, so D: needs >= 53.6 GB). Evidence `opus_r11/logs/data_real/`.
+- Real holdout proof PASS (13:12, CR R2 M3): 16,387,223 holdout positions, 0 leak hits on a full scan, dedup order
+  exact on 10,762,375 sampled rows, 67 inputs re-verified by full sha256 -> HOLDOUT_TEST.json (train gate).
 - One-command driver `opus_r11/pipeline/r11_pipeline.py` (run/status/selftest; exit 0 PASS, 1 FAIL, 3 WAIT).
   Real net: `run --net <ep20>` -> R11 PIPELINE PASS in 192 s (13:00-13:04: parity 12000/12000, OFF d11 312866, ON d11-d22
   equal, WAC ON 267 / OFF 272 at 200 ms under 93 % CPU load; existing package recognised, not rewritten); the same
@@ -21,11 +24,12 @@ PC crash/reboot 11:38 (nothing of R11 was half-written: the run died in dedup be
 - E2E CPU test `test_r11_train.py` (e2e_3): data, holdout test and train gate passed; production trainers started at
   12:44:54-57 while the entry was still importing torch (11 min under the 32 MB cap; its pre-import check had passed at
   12:39); the first in-training check (12:51:15, 17 s after fit start) saw production, saved stop-epoch=0-step=1.ckpt and
-  exited 76; the test waits for the GPU queue. Hardening (M1): the entry now also checks right after the imports
-  (exit 76 before the trainer's main) and at fit start (exit 76, nothing trained, no save); stub-clone test in
-  test_r11_tools.
-- Next: real holdout proof on 013/014 (`opus_r11/tests/test_r11_holdout_real.py`) after the dedup, then training waits
-  for the GPU (yield-only) and for that proof.
+  exited 76. Hardening (M1): the entry now also checks right after the imports (exit 76 before the trainer's main)
+  and at fit start (exit 76, nothing trained, no save); stub-clone test in test_r11_tools. e2e_3 is obsolete (its
+  in-memory profile has keep_last 2, which the CR R3-3 entry refuses: it will end FAIL when production stops);
+  e2e_4 (`--wait`, job tmp 9cfd0095) waits for an empty production queue and then runs the whole loop.
+- Next (owner/QA): free D: and rerun the data stage; run the smoke profile when the GPU queue is empty; CR re-review
+  of patch files 15-20.
 
 ## Done
 - Writer `tools/nnue_pytorch_amd/r11/r11_pos2binpack.cpp` (nnue-pytorch `lib/binpack.h`, fpos2sf_mt rule): byte-identical
