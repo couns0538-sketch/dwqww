@@ -15,6 +15,15 @@ Final full-data removal rates and output acceptance remain pending. No engine st
 
 All **10,000,000 rows** passed exact board/STM/score/White-result/order/count comparison against the full-FEN sidecar. Source hashes remained unchanged. This verifies the supplied shard, not all 305M historical positions. FEN preserves current castling, en-passant and clocks; it does not encode prior repetition history.
 
+A separate read-only 10M profile found castling rights in **21.70414%** of rows
+and an EP target in **3.55647%**, reinforcing why reconstruction would lose real
+state. Halfmove clocks are at least 50 in **3.168%** and 90–99 in **0.4735%**;
+none reach 100. Original stored scores span **−3000..3000 cp**. Newly relabeled
+native scores retain mate-band values, so raw cp differences can include a
+different clipping convention; they are not label-quality measurements.
+The original profile, scalar-column crosscheck and hash receipts are in
+`validation/astra-a1-data/source_profile`.
+
 ## Job 1: filter and 10M measurement
 
 `tools/data/filter_positions.py` creates new FPOS, matching current-engine FHCE, full-FEN sidecar, original native IPC, row provenance and an audited decision waterfall. It never rewrites input shards. It preserves original scores/results; deeper labels are a separate job.
@@ -106,6 +115,13 @@ Finish and independently verify the active 10M run; publish its original evidenc
 
 Then review the complete 013/014/game-ID coverage and choose a teacher budget using the saved sensitivity experiment before the matched training ablations. No data or smoke network is automatically installed into training or the engine.
 
+If no historical game-ID mapping or source PGNs were retained, flat position
+files cannot prove whole-game isolation retrospectively. Future generation
+should retain game identifiers before splitting holdouts. A separate candidate
+data ablation could examine high halfmove clocks because the NNUE feature input
+omits that context; the measured clock frequencies above motivate investigation,
+not an additional filter or a claimed gain in this run.
+
 Earlier checkpoints are retained in [ASTRA_A1_CHECKPOINT_HISTORY.md](ASTRA_A1_CHECKPOINT_HISTORY.md) and Git history. IDEA_SOURCE: user's data task, same-project FPOS/FHCE/native search/trainer/R8 contracts; original implementations and thresholds, no other-engine code or tuned constants.
 
 Checkpoint 20261030T031548Z: full10M status RUNNING, processed 2868992, kept 2641524. Final independent bundle verification is still required. No Elo claim.
@@ -113,3 +129,5 @@ Checkpoint 20261030T031548Z: full10M status RUNNING, processed 2868992, kept 264
 Checkpoint 20261030T032550Z: full10M status RUNNING, processed 3499520, kept 3222140. Final independent bundle verification is still required. No Elo claim.
 
 Checkpoint 20261030T033552Z: full10M status RUNNING, processed 4167424, kept 3835087. Final independent bundle verification is still required. No Elo claim.
+
+Checkpoint 20261030T034554Z: full10M status RUNNING, processed 4805120, kept 4421349. Final independent bundle verification is still required. No Elo claim.
