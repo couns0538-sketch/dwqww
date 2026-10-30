@@ -197,5 +197,9 @@ extern bool r7_quiet_gen;
 // UCI R7EvalPrefetch: after each make_move of the main and quiescence search, prefetch the child's pawn-cache
 // entry of the hand-crafted evaluation (Evaluator::prefetch_pawn_entry).
 extern bool r7_eval_prefetch;
+// UCI R7PrefetchEarly: the main search prefetches the child's TT cluster as soon as a move survives the pruning
+// block, from Board::key_after_r7 (before the extension checks, record_move and make_move), instead of only
+// right after make_move (that prefetch stays).
+extern bool r7_prefetch_early;
 
 } // namespace forge::options

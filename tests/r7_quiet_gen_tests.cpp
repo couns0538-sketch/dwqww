@@ -20,6 +20,8 @@ std::uint64_t comparisons = 0;
 std::uint64_t quiet_moves = 0;
 std::uint64_t castles = 0;
 std::uint64_t double_pushes = 0;
+std::uint64_t keys_exact = 0;
+std::uint64_t keys_ep_double_push = 0;  // allowed: double push giving a legal en passant capture
 std::uint64_t random_state = 0x9e3779b97f4a7c15ULL;
 
 std::uint64_t random_word() {
@@ -52,6 +54,24 @@ void compare(const forge::Board& board) {
     }
     quiet_moves += i;
     ++comparisons;
+    // R7PrefetchEarly: key_after_r7 must equal the key make_move produces (ep exception: double pushes only).
+    forge::Board work = board;
+    for (const forge::Move move : full) {
+        if (!work.is_legal(move)) continue;
+        const std::uint64_t predicted = work.key_after_r7(move);
+        forge::Undo undo;
+        (void)work.make_move(move, undo);
+        const std::uint64_t actual = work.key();
+        const int ep = work.ep_square();
+        work.unmake_move(move, undo);
+        if (predicted == actual) {
+            ++keys_exact;
+        } else if (move.flags == forge::DoublePush && ep >= 0) {
+            ++keys_ep_double_push;
+        } else {
+            throw std::runtime_error("key_after_r7 differs for a move that is not a double push in " + board.fen());
+        }
+    }
 }
 
 void random_game(forge::Board board, int plies) {
@@ -123,13 +143,15 @@ int main(int argc, char** argv) {
             ++suite;
         }
         if (suite < 10000) throw std::runtime_error("opening suite too small: " + std::to_string(suite));
-        if (comparisons < 500000 || castles < 1000 || double_pushes < 10000) {
+        if (comparisons < 500000 || castles < 1000 || double_pushes < 10000 || keys_exact < 10000000) {
             throw std::runtime_error("coverage too small: " + std::to_string(comparisons) + " positions, " +
                                      std::to_string(castles) + " castles, " + std::to_string(double_pushes) +
                                      " double pushes");
         }
         std::cout << "r7 quiet gen: " << comparisons << " positions, " << quiet_moves << " quiet moves (" << castles
-                  << " castles, " << double_pushes << " double pushes) identical in content and order\nPASS\n";
+                  << " castles, " << double_pushes << " double pushes) identical in content and order\n"
+                  << "r7 key after move: " << keys_exact << " exact, " << keys_ep_double_push
+                  << " double pushes with a new legal en passant (allowed)\nPASS\n";
         return 0;
     } catch (const std::exception& error) {
         std::cerr << "FAIL: " << error.what() << "\n";

@@ -803,6 +803,32 @@ bool Board::has_legal_en_passant_capture() const {
     return false;
 }
 
+// R7 J3 (UCI R7PrefetchEarly): make_move's key arithmetic without the board update (see forge/board.hpp).
+__attribute__((section(".text.forge_r7"))) std::uint64_t Board::key_after_r7(const Move& move) const {
+    const Color us = side_;
+    const Piece moving = squares_[move.from];
+    std::uint64_t key = key_;
+    if (ep_square_ >= 0 && has_legal_en_passant_capture()) key ^= Z.ep[static_cast<std::size_t>(file_of(ep_square_))];
+    if ((move.flags & EnPassant) != 0U) {
+        const int captured_square = move.to - pawn_push_delta(us);
+        key ^= piece_key(captured_square, squares_[static_cast<std::size_t>(captured_square)]);
+    } else if (squares_[move.to] != Empty) {
+        key ^= piece_key(move.to, squares_[move.to]);
+    }
+    key ^= piece_key(move.from, moving);
+    key ^= move.is_promotion() ? piece_key(move.to, make_piece(us, move.promotion)) : piece_key(move.to, moving);
+    if (move.is_castle()) {
+        const bool king_side = (move.flags & KingCastle) != 0U;
+        const int rook_from = us == White ? (king_side ? 7 : 0) : (king_side ? 63 : 56);
+        const int rook_to = us == White ? (king_side ? 5 : 3) : (king_side ? 61 : 59);
+        const Piece rook = squares_[static_cast<std::size_t>(rook_from)];
+        key ^= piece_key(rook_from, rook) ^ piece_key(rook_to, rook);
+    }
+    const auto castling = static_cast<std::uint8_t>(castling_ & CastlingMasks[move.from] & CastlingMasks[move.to]);
+    key ^= Z.castling[castling_] ^ Z.castling[castling];
+    return key ^ Z.side;
+}
+
 bool Board::make_move(const Move& move, Undo& undo) {
     const Color us = side_;
     const Color them = opposite(us);

@@ -404,6 +404,9 @@ int Worker::FORGE_SEARCH_FN(Board& board, SearchStack* ss, int depth, int alpha,
             }
         }
 
+        // R7 J3 R7PrefetchEarly: this move will be searched; start loading its child's TT cluster now.
+        if (options::r7_prefetch_early) shared_.tt.prefetch(board.key_after_r7(move));
+
         // Extensions.
         int extension = 0;
 #ifdef FORGE_PROF
