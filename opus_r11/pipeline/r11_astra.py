@@ -146,36 +146,61 @@ def cmd_list(dl_dir: str, out: str | None) -> int:
     return 0 if whole_ok else 1
 
 
+def _remove_partial(paths: list[str]) -> None:
+    """Code Review flag (R11): files extracted by THIS run are deleted when the archive fails its checksum or the
+    extraction stops with an error, so no unverified data stays behind. Only files this run created are touched."""
+    for p in paths:
+        if os.path.exists(p):
+            os.remove(p)
+            print(f"removed unverified partial file {p}")
+
+
 def cmd_extract(dl_dir: str, out_dir: str, globs: list[str], json_out: str | None) -> int:
     os.makedirs(out_dir, exist_ok=True)
     man, reader, tf = _stream(dl_dir)
     got = []
+    created: list[str] = []  # every path this run created (finals and .part files)
     t0 = time.time()
-    for m in tf:
-        if not m.isfile():
-            continue
-        if not any(fnmatch.fnmatch(m.name, g) for g in globs):
-            continue
-        target = os.path.join(out_dir, os.path.basename(m.name))
-        if os.path.exists(target):
-            print(f"FAIL target exists, not overwriting: {target}")
-            return 2
-        src = tf.extractfile(m)
-        h = hashlib.sha256()
-        tmp = target + ".part"
-        with open(tmp, "xb") as f:
-            while True:
-                b = src.read(1 << 22)
-                if not b:
-                    break
-                h.update(b)
-                f.write(b)
-        os.replace(tmp, target)
-        got.append({"member": m.name, "path": target, "size": m.size, "sha256": h.hexdigest()})
-        print(f"extracted {m.name} -> {target} ({m.size} bytes, sha256 {h.hexdigest()})", flush=True)
-    tf.close()
-    reader.drain()
+    try:
+        for m in tf:
+            if not m.isfile():
+                continue
+            if not any(fnmatch.fnmatch(m.name, g) for g in globs):
+                continue
+            target = os.path.join(out_dir, os.path.basename(m.name))
+            if os.path.exists(target):
+                print(f"FAIL target exists, not overwriting: {target}")
+                _remove_partial(created)
+                return 2
+            src = tf.extractfile(m)
+            h = hashlib.sha256()
+            tmp = target + ".part"
+            with open(tmp, "xb") as f:
+                created.append(tmp)
+                while True:
+                    b = src.read(1 << 22)
+                    if not b:
+                        break
+                    h.update(b)
+                    f.write(b)
+            if os.path.getsize(tmp) != m.size:
+                raise OSError(f"member {m.name}: wrote {os.path.getsize(tmp)} bytes, expected {m.size}")
+            os.replace(tmp, target)
+            created.append(target)
+            got.append({"member": m.name, "path": target, "size": m.size, "sha256": h.hexdigest()})
+            print(f"extracted {m.name} -> {target} ({m.size} bytes, sha256 {h.hexdigest()})", flush=True)
+        tf.close()
+        reader.drain()
+    except Exception as e:  # noqa: BLE001 - any extraction error leaves no partial files behind
+        print(f"FAIL extraction error: {type(e).__name__}: {e}")
+        _remove_partial(created)
+        return 1
     whole_ok = reader.h.hexdigest() == man["whole"]["sha256"] and reader.total == man["whole"]["size"]
+    if not whole_ok:
+        print(f"FAIL whole-archive checksum {reader.h.hexdigest()} size {reader.total} != manifest "
+              f"{man['whole']['sha256']} size {man['whole']['size']}")
+        _remove_partial(created)
+        got = []
     res = {"release": RELEASE, "whole_sha256": reader.h.hexdigest(), "whole_size": reader.total,
            "whole_ok": whole_ok, "members": got, "seconds": round(time.time() - t0, 1)}
     if json_out:

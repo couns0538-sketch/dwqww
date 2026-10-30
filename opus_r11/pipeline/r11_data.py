@@ -185,6 +185,14 @@ def register(cfg: dict, shards: list[dict], supersede: dict, log: C.Log) -> dict
 # ----------------------------------------------------------------------------------------------------------------
 # supersede check (Astra: every row must be a row of the superseded shard, same board/stm/score/meta)
 # ----------------------------------------------------------------------------------------------------------------
+def _row_key2(k: np.ndarray, s: np.ndarray, m: np.ndarray) -> np.ndarray:
+    """64-bit identity of (position key, stored score, meta byte)."""
+    x = k ^ ((s.astype(np.int64).astype(np.uint64) & np.uint64(0xFFFF)) << np.uint64(8)) ^ m.astype(np.uint64)
+    with np.errstate(over="ignore"):
+        return C._fmix(x.copy())
+
+
+
 def supersede_check(cfg: dict, reg: dict, all_ready: list[dict], log: C.Log, gov: C.Governor) -> None:
     d = cfg["data"]
     for target, by_ids in reg.get("superseded", {}).items():
@@ -199,7 +207,7 @@ def supersede_check(cfg: dict, reg: dict, all_ready: list[dict], log: C.Log, gov
             C.write_json(out, {"target": target, "ok": False, "reason": "target file not found"})
             continue
         thce, _, _ = _hce_path_for(src, tpos, d["dir"])
-        gov.wait_ok(f"supersede check {target}", need_ram_gb=0.8)
+        gov.wait_ok(f"supersede check {target}", need_ram_gb=1.0)
         nt = C.fpos_rows(tpos)
         tb = C.read_boards(tpos, nt, 0, nt)
         tm = C.read_meta(tpos, nt, 0, nt)
@@ -207,8 +215,17 @@ def supersede_check(cfg: dict, reg: dict, all_ready: list[dict], log: C.Log, gov
         del tb
         ts = C.read_scores(tpos, nt, 0, nt)
         th = C.read_hce(thce, 0, nt) if thce and os.path.isfile(thce) else None
-        order = np.argsort(tk, kind="stable")
-        tks = tk[order]
+        # Match on (position, score, meta): the target may hold the same position twice with different scores
+        # (a filter that dropped the first copy keeps a later one). Rows identical in all three are
+        # interchangeable, so the order check uses only rows whose triple is unique in the target.
+        t2 = _row_key2(tk, ts, tm)
+        order = np.argsort(t2, kind="stable")
+        t2s = t2[order]
+        uniq = np.ones(nt, bool)
+        if nt > 1:
+            same_next = t2s[1:] == t2s[:-1]
+            uniq[1:] &= ~same_next
+            uniq[:-1] &= ~same_next
         res = {"target": target, "target_rows": nt, "by": []}
         ok = True
         for bid in by_ids:
@@ -219,22 +236,22 @@ def supersede_check(cfg: dict, reg: dict, all_ready: list[dict], log: C.Log, gov
             k = C.position_keys(b, m)
             del b
             s = C.read_scores(e["pos"], n, 0, n)
-            pos_ = np.searchsorted(tks, k)
-            inb = pos_ < nt
-            found = np.zeros(n, bool)
-            found[inb] = tks[pos_[inb]] == k[inb]
-            src_rows = order[np.minimum(pos_, nt - 1)]
-            same_score = found & (ts[src_rows] == s)
-            same_meta = found & (tm[src_rows] == m)
-            r = {"id": bid, "rows": n, "found": int(found.sum()), "score_equal": int(same_score.sum()),
-                 "meta_equal": int(same_meta.sum())}
+            s2 = _row_key2(k, s, m)
+            p = np.minimum(np.searchsorted(t2s, s2), nt - 1)
+            found = t2s[p] == s2
+            src_rows = order[p]
+            r = {"id": bid, "rows": n, "found_exact": int(found.sum()),
+                 "position_found": int(np.isin(k, tk).sum()),
+                 "score_equal": int((found & (ts[src_rows] == s)).sum()),
+                 "meta_equal": int((found & (tm[src_rows] == m)).sum())}
             if th is not None and e.get("hce") and os.path.isfile(e["hce"]):
                 h = C.read_hce(e["hce"], 0, n)
                 r["hce_equal"] = int((found & (th[src_rows] == h)).sum())
-            # source order must be preserved (a filter keeps rows in their original order)
-            fr = src_rows[found]
+            # a filter keeps rows in their original order: check it on the rows with a unique triple
+            fr = src_rows[found & uniq[p]]
+            r["order_checked_rows"] = int(fr.size)
             r["monotonic"] = bool(np.all(np.diff(fr) > 0)) if fr.size > 1 else True
-            r["ok"] = r["found"] == n and r["meta_equal"] == n and r["score_equal"] == n and r["monotonic"]
+            r["ok"] = r["found_exact"] == n and r["monotonic"] and r.get("hce_equal", n) == n
             ok &= r["ok"]
             res["by"].append(r)
             log.info(f"supersede check {bid} vs {target}: " + json.dumps(r))
@@ -424,10 +441,17 @@ def dedup(cfg: dict, reg: dict, log: C.Log, gov: C.Governor) -> None:
     budget = float(d.get("dedup_mem_gb", 1.0)) * 2**30
     total = sum(e["rows"] for e in pending)
     passes = max(1, math.ceil(total * KEY_BYTES_PER_ROW / budget))
+    use_cache = bool(d.get("keys_cache", False))
     log.info(f"dedup: {len(pending)} pending shards ({total} rows), {len(prev)} earlier shards to check against, "
-             f"{passes} key-range passes")
-    bad = {e["id"]: load_bad(d, e["id"]) for e in pending + prev}
-    goodmask_cache = {}
+             f"{passes} key-range passes, keys {'from the cache' if use_cache else 'recomputed from the .pos files'}")
+    if not use_cache:
+        # earlier shards are read again: their inputs must still be the registered versions
+        for e in prev:
+            if not os.path.isfile(e["pos"]) or not C.same_fingerprint(C.fingerprint(e["pos"]), e["fp_pos"]):
+                raise C.StageFailed(f"input of earlier shard {e['id']} is missing or changed; without data.keys_cache "
+                                    "the dedup of new shards needs it unchanged")
+    bad = {e["id"]: load_bad(d, e["id"]) for e in pending + prev} if use_cache else {}
+    found_bad: dict[str, list] = {e["id"]: [] for e in pending}
 
     def good_mask(sid: str, start: int, cnt: int) -> np.ndarray | None:
         bi = bad[sid]
@@ -439,6 +463,20 @@ def dedup(cfg: dict, reg: dict, log: C.Log, gov: C.Governor) -> None:
         g = np.ones(cnt, bool)
         g[sel] = False
         return g
+
+    def chunk(e: dict, start: int, cnt: int, first_pass: bool) -> tuple[np.ndarray, np.ndarray | None]:
+        """Keys of rows [start, start + cnt) and a good-row mask (None = all good)."""
+        if use_cache:
+            return read_keys(d, e["id"], start, cnt), good_mask(e["id"], start, cnt)
+        b = C.read_boards(e["pos"], e["rows"], start, cnt)
+        m = C.read_meta(e["pos"], e["rows"], start, cnt)
+        k = C.position_keys(b, m)
+        badm = C.bad_rows(b, m)
+        if not badm.any():
+            return k, None
+        if first_pass and e["id"] in found_bad:
+            found_bad[e["id"]].append(np.nonzero(badm)[0].astype(np.int64) + start)
+        return k, ~badm
 
     kept_bits = {e["id"]: np.zeros((e["rows"] + 7) // 8, np.uint8) for e in pending}
     slot_index = np.array([e["index"] for e in pending], dtype=np.int64)
@@ -453,10 +491,9 @@ def dedup(cfg: dict, reg: dict, log: C.Log, gov: C.Governor) -> None:
             n = e["rows"]
             for start in range(0, n, step):
                 cnt = min(step, n - start)
-                k = read_keys(d, e["id"], start, cnt)
+                k, gm = chunk(e, start, cnt, first_pass=g == 0)
                 pre = (k >> np.uint64(48)).astype(np.int64)
                 m = (pre >= lo) & (pre < hi)
-                gm = good_mask(e["id"], start, cnt)
                 if gm is not None:
                     m &= gm
                 idx = np.nonzero(m)[0]
@@ -483,10 +520,9 @@ def dedup(cfg: dict, reg: dict, log: C.Log, gov: C.Governor) -> None:
             n = e["rows"]
             for start in range(0, n, step):
                 cnt = min(step, n - start)
-                k = read_keys(d, e["id"], start, cnt)
+                k, gm = chunk(e, start, cnt, first_pass=False)
                 pre = (k >> np.uint64(48)).astype(np.int64)
                 m = (pre >= lo) & (pre < hi)
-                gm = good_mask(e["id"], start, cnt)
                 if gm is not None:
                     m &= gm
                 dk = k[m]
@@ -514,7 +550,10 @@ def dedup(cfg: dict, reg: dict, log: C.Log, gov: C.Governor) -> None:
         kept = np.unpackbits(kept_bits[e["id"]], count=n, bitorder="little").astype(bool)
         dest = np.zeros(n, np.uint8)
         dest[kept] = C.DEST_HOLD if e["holdout"] else C.DEST_TRAIN
-        bi = bad[e["id"]]
+        if use_cache:
+            bi = bad[e["id"]]
+        else:
+            bi = np.concatenate(found_bad[e["id"]]) if found_bad[e["id"]] else np.zeros(0, np.int64)
         dest[bi] = C.DEST_BAD
         dpath, jpath = decision_paths(d, e["id"])
         os.makedirs(os.path.dirname(dpath), exist_ok=True)
@@ -620,6 +659,28 @@ def convert(cfg: dict, e: dict, log: C.Log, gov: C.Governor, verify: bool) -> di
     return res
 
 
+def projected_bytes(d: dict, e: dict) -> int:
+    """Exact output size of a decided shard: 34 bytes per record + 8 per 30,841-record chunk + the .hce side-car
+    (an upper bound when the writer rejects rows the cheap checks let through)."""
+    dec = C.read_json(decision_paths(d, e["id"])[1])
+    kept = int(dec["kept"]) if dec else e["rows"]
+    chunks = (kept + 30840) // 30841
+    hce = 16 + 2 * kept if e.get("hce") else 0
+    return 34 * kept + 8 * chunks + hce
+
+
+def conversion_order(d: dict, todo: list[dict]) -> list[dict]:
+    """Shards in value order: data.convert_order lists 'holdout' and source names (default: holdout, then the
+    configured sources); inside a group the newest shard (highest registry index) comes first."""
+    groups = d.get("convert_order") or (["holdout"] + [s["name"] for s in d["sources"]])
+
+    def rank(e: dict) -> tuple[int, int]:
+        g = "holdout" if e["holdout"] else e["source"]
+        return (groups.index(g) if g in groups else len(groups), -e["index"])
+
+    return sorted(todo, key=rank)
+
+
 def write_manifest(cfg: dict, reg: dict, log: C.Log) -> dict:
     d = cfg["data"]
     rows = []
@@ -691,6 +752,11 @@ def resolve_writer(cfg: dict, log: C.Log) -> str:
 
 def run(cfg: dict, log: C.Log, gov: C.Governor, max_convert: int | None = None, inventory_only: bool = False) -> dict:
     d = cfg["data"]
+    C.assert_writable_path(d["dir"])
+    for src in d["sources"]:
+        gen = (src.get("hce") or {}).get("gen_dir")
+        if gen:
+            C.assert_writable_path(gen)
     os.makedirs(d["dir"], exist_ok=True)
     resolve_writer(cfg, log)
     if not os.path.isfile(d["writer_exe"]):
@@ -709,14 +775,33 @@ def run(cfg: dict, log: C.Log, gov: C.Governor, max_convert: int | None = None, 
             log.info("STOP file present: stopping before hce/keys")
             return {"stopped": True}
         generate_hce(cfg, e, log, gov)
-        make_keys(cfg, e, log, gov)
+        if d.get("keys_cache", False):
+            make_keys(cfg, e, log, gov)
     dedup(cfg, reg, log, gov)
+    # disk rule (QA, R11): the target drive must keep >= limits.min_disk_free_gb (+ data.disk_margin_gb) free
+    # AFTER the run. Exact output sizes are known once the decisions exist.
+    floor = float(cfg.get("limits", {}).get("min_disk_free_gb", 40.0)) + float(d.get("disk_margin_gb", 2.0))
+    todo = [e for e in reg["order"] if not os.path.isfile(out_marker(d, e["id"]))]
+    sizes = {e["id"]: projected_bytes(d, e) for e in todo}
+    free = C.disk_free_gb(d["dir"])
+    total_gb = sum(sizes.values()) / 2**30
+    log.info(f"disk: {free:.1f} GB free on the target drive, {len(todo)} shards to convert = {total_gb:.2f} GB, "
+             f"projected free after the full run {free - total_gb:.1f} GB (floor {floor:.0f} GB)")
+    if free - total_gb < floor:
+        log.info("disk: the full run does not fit above the floor; converting in value order "
+                 f"{d.get('convert_order', ['holdout'])} while the floor holds, the rest waits for space")
     converted = 0
-    for e in reg["order"]:
-        if os.path.isfile(out_marker(d, e["id"])):
-            continue
+    stopped_for_disk = False
+    for e in conversion_order(d, todo):
         if gov.stop_requested() or (max_convert is not None and converted >= max_convert):
             log.info("stopping before the next conversion (STOP file or --max-convert)")
+            break
+        need_gb = sizes[e["id"]] / 2**30
+        free = C.disk_free_gb(d["dir"])
+        if free - need_gb < floor:
+            log.info(f"disk: stop before {e['id']} ({need_gb:.2f} GB): {free:.1f} GB free would drop below the "
+                     f"{floor:.0f} GB floor")
+            stopped_for_disk = True
             break
         if verify_mode == "all":
             verify = True
@@ -728,6 +813,10 @@ def run(cfg: dict, log: C.Log, gov: C.Governor, max_convert: int | None = None, 
         if not r:
             break
         converted += 1
+    if stopped_for_disk:
+        left = [e for e in reg["order"] if not os.path.isfile(out_marker(d, e["id"]))]
+        log.info(f"disk: {len(left)} shards ({sum(sizes[x['id']] for x in left) / 2**30:.2f} GB) wait for disk space; "
+                 "a rerun continues where this one stopped")
     man = write_manifest(cfg, reg, log)
     t = man["totals"]
     msg = (f"data: {len(reg['order'])} shards, train {t['train']:,} holdout {t['holdout']:,} records, "

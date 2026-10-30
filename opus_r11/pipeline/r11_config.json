@@ -3,8 +3,8 @@
  "limits": {
   "min_free_ram_gb": 7.0,
   "min_free_commit_gb": 8.0,
-  "max_cpu_percent": 85.0,
-  "min_disk_free_gb": 15.0,
+  "max_cpu_percent": 90.0,
+  "min_disk_free_gb": 40.0,
   "poll_seconds": 30.0
  },
  "data": {
@@ -15,34 +15,70 @@
     "name": "fp",
     "comment": "selfplay_out text shards, converted 1:1 by the supervisor (fen2bin + hce_dump 1ab50b2d)",
     "pos_glob": "D:/grok-pc-data/forge_push/nnue_data/pos/forge_selfplay_[0-9][0-9][0-9].pos",
-    "ready": {"info_suffix": ".info", "min_age_s": 600},
-    "hce": {"dir": "D:/grok-pc-data/forge_push/nnue_data/hce", "strip": ".pos", "suffix": ".hce"}
+    "ready": {
+     "info_suffix": ".info",
+     "min_age_s": 600
+    },
+    "hce": {
+     "dir": "D:/grok-pc-data/forge_push/nnue_data/hce",
+     "strip": ".pos",
+     "suffix": ".hce"
+    }
    },
    {
     "name": "astra",
     "comment": "Astra A1 filtered set: 9,206,371 rows of forge_selfplay_003 (release astra-a1-data-results-20261030)",
     "pos_glob": "D:/grok-pc-data/r11_nnue/astra/forge_filtered.pos",
-    "hce": {"dir": "D:/grok-pc-data/r11_nnue/astra", "strip": ".pos", "suffix": ".hce"},
-    "supersedes": ["fp:forge_selfplay_003"]
+    "hce": {
+     "dir": "D:/grok-pc-data/r11_nnue/astra",
+     "strip": ".pos",
+     "suffix": ".hce"
+    },
+    "supersedes": [
+     "fp:forge_selfplay_003"
+    ]
    },
    {
     "name": "r8v5",
     "comment": "R8 v5 driver output, deduplicated against the live DB by its post-step; final once .dedup.json exists",
     "pos_glob": "D:/grok-pc-data/selfplay_out_r8v5_20261029/forge_selfplay_fast_[0-9][0-9][0-9].dedup.pos",
-    "ready": {"marker_replace": [".dedup.pos", ".dedup.json"]},
-    "hce": {"generate_from_text": [".dedup.pos", ".dedup.txt"], "gen_dir": "D:/grok-pc-data/r11_nnue/hce_gen/r8v5"}
+    "ready": {
+     "marker_replace": [
+      ".dedup.pos",
+      ".dedup.json"
+     ]
+    },
+    "hce": {
+     "generate_from_text": [
+      ".dedup.pos",
+      ".dedup.txt"
+     ],
+     "gen_dir": "D:/grok-pc-data/r11_nnue/hce_gen/r8v5"
+    }
    }
   ],
-  "holdout": ["fp:forge_selfplay_013", "fp:forge_selfplay_014"],
+  "holdout": [
+   "fp:forge_selfplay_013",
+   "fp:forge_selfplay_014"
+  ],
   "hce_tool": "F:/opus_scratch/rescore_d8/bin/hce_dump.exe",
   "hce_qualify": {
    "text": "D:/grok-pc-data/selfplay_out/forge_selfplay_037.txt",
    "hce": "D:/grok-pc-data/forge_push/nnue_data/hce/forge_selfplay_037.hce",
    "lines": 200000
   },
-  "dedup_mem_gb": 1.0,
+  "dedup_mem_gb": 2.0,
   "chunk_rows": 2000000,
   "ply": 40,
-  "verify": "all"
+  "verify": "all",
+  "disk_margin_gb": 2.0,
+  "keys_cache": false,
+  "convert_order": [
+   "holdout",
+   "astra",
+   "r8v5",
+   "fp"
+  ],
+  "comment_disk": "QA rule 2026-10-30: the target drive keeps >= 40 GB free after the run; conversion stops (resumable) before a shard would cross 40 + margin GB"
  }
 }

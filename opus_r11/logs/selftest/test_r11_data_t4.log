@@ -1,0 +1,157 @@
+2026-10-30T11:16:48 [data] INFO inventory: 5 ready shards, 30334 rows, superseded {'a:a_002': ['sup:sup_x']}
+2026-10-30T11:16:48 [data] INFO registered #0 a:a_001 rows 6000 holdout True hce source
+2026-10-30T11:16:48 [data] INFO registered #1 a:a_003 rows 8000 holdout False hce source
+2026-10-30T11:16:48 [data] INFO registered #2 b:b_001 rows 5000 holdout False hce source
+2026-10-30T11:16:48 [data] INFO registered #3 b:b_002 rows 9000 holdout False hce source
+2026-10-30T11:16:48 [data] INFO registered #4 sup:sup_x rows 2334 holdout False hce source
+2026-10-30T11:16:49 [data] INFO supersede check sup:sup_x vs a:a_002: {"id": "sup:sup_x", "rows": 2334, "found_exact": 2334, "position_found": 2334, "score_equal": 2334, "meta_equal": 2334, "hce_equal": 2334, "order_checked_rows": 2334, "monotonic": true, "ok": true}
+2026-10-30T11:16:49 [data] PASS supersede check a:a_002: every superseding row is a row of the target
+2026-10-30T11:16:49 [data] INFO dedup: 5 pending shards (30334 rows), 0 earlier shards to check against, 3 key-range passes, keys recomputed from the .pos files
+2026-10-30T11:16:50 [data] INFO dedup pass 1/3: prefixes [0, 21845), 9943 first occurrences, 0 shadowed by earlier shards, 0.0 s
+2026-10-30T11:16:51 [data] INFO dedup pass 2/3: prefixes [21845, 43690), 9702 first occurrences, 0 shadowed by earlier shards, 0.0 s
+2026-10-30T11:16:52 [data] INFO dedup pass 3/3: prefixes [43690, 65536), 9824 first occurrences, 0 shadowed by earlier shards, 0.0 s
+2026-10-30T11:16:52 [data] INFO decision a:a_001: kept 6000 of 6000 (100.000%), bad 0, holdout
+2026-10-30T11:16:52 [data] INFO decision a:a_003: kept 7300 of 8000 (91.250%), bad 0, train
+2026-10-30T11:16:52 [data] INFO decision b:b_001: kept 4850 of 5000 (97.000%), bad 0, train
+2026-10-30T11:16:52 [data] INFO decision b:b_002: kept 8985 of 9000 (99.833%), bad 15, train
+2026-10-30T11:16:52 [data] INFO decision sup:sup_x: kept 2334 of 2334 (100.000%), bad 0, train
+2026-10-30T11:16:52 [data] PASS dedup: 5 shards decided in 3.1 s
+2026-10-30T11:16:52 [data] INFO disk: 45.2 GB free on the target drive, 5 shards to convert = 0.00 GB, projected free after the full run 45.2 GB (floor 1 GB)
+2026-10-30T11:16:53 [data] INFO converted a:a_001 -> holdout: 6000 records, writer_bad 0, verified, 0.04 s
+2026-10-30T11:16:54 [data] INFO converted sup:sup_x -> train: 2334 records, writer_bad 0, verified, 0.02 s
+2026-10-30T11:16:54 [data] INFO stopping before the next conversion (STOP file or --max-convert)
+2026-10-30T11:16:54 [data] INFO data: 5 shards, train 2,334 holdout 6,000 records, dropped 0 duplicates, bad 0, complete False (incomplete: rerun to continue)
+ok   partial run (--max-convert 2) reports incomplete
+2026-10-30T11:16:54 [data] INFO inventory: 5 ready shards, 30334 rows, superseded {'a:a_002': ['sup:sup_x']}
+2026-10-30T11:16:54 [data] INFO disk: 45.2 GB free on the target drive, 3 shards to convert = 0.00 GB, projected free after the full run 45.2 GB (floor 1 GB)
+2026-10-30T11:16:55 [data] INFO converted b:b_002 -> train: 8985 records, writer_bad 0, verified, 0.03 s
+2026-10-30T11:16:56 [data] INFO converted b:b_001 -> train: 4850 records, writer_bad 0, verified, 0.02 s
+2026-10-30T11:16:57 [data] INFO converted a:a_003 -> train: 7300 records, writer_bad 0, verified, 0.03 s
+2026-10-30T11:16:57 [data] PASS data: 5 shards, train 23,469 holdout 6,000 records, dropped 850 duplicates, bad 15, complete True
+ok   resumed run completes
+ok   registry order holdout-first: ['a:a_001', 'a:a_003', 'b:b_001', 'b:b_002', 'sup:sup_x']
+ok   a_002 superseded by sup_x
+ok   supersede check ok (found, score, meta, hce, order)
+ok   a_001: kept 6000 (expected 6000), bad 0 (expected 0)
+ok   a_001: 6000 records written (writer_bad must be 0)
+ok   a_001: output verified by the loader reader
+ok   a_001: dest map equals the independent expectation row by row
+ok   a_003: kept 7300 (expected 7300), bad 0 (expected 0)
+ok   a_003: 7300 records written (writer_bad must be 0)
+ok   a_003: output verified by the loader reader
+ok   a_003: dest map equals the independent expectation row by row
+ok   b_001: kept 4850 (expected 4850), bad 0 (expected 0)
+ok   b_001: 4850 records written (writer_bad must be 0)
+ok   b_001: output verified by the loader reader
+ok   b_001: dest map equals the independent expectation row by row
+ok   b_002: kept 8985 (expected 8985), bad 15 (expected 15)
+ok   b_002: 8985 records written (writer_bad must be 0)
+ok   b_002: output verified by the loader reader
+ok   b_002: dest map equals the independent expectation row by row
+ok   sup_x: kept 2334 (expected 2334), bad 0 (expected 0)
+ok   sup_x: 2334 records written (writer_bad must be 0)
+ok   sup_x: output verified by the loader reader
+ok   sup_x: dest map equals the independent expectation row by row
+ok   holdout records 6000 == unique rows of a_001
+ok   a_003 lost its holdout copies and repeats
+ok   conversion order by value: ['a:a_001', 'sup:sup_x', 'b:b_002', 'b:b_001', 'a:a_003']
+2026-10-30T11:16:57 [data] INFO inventory: 5 ready shards, 30334 rows, superseded {'a:a_002': ['sup:sup_x']}
+2026-10-30T11:16:57 [data] INFO registered #0 a:a_001 rows 6000 holdout True hce source
+2026-10-30T11:16:57 [data] INFO registered #1 a:a_003 rows 8000 holdout False hce source
+2026-10-30T11:16:57 [data] INFO registered #2 b:b_001 rows 5000 holdout False hce source
+2026-10-30T11:16:57 [data] INFO registered #3 b:b_002 rows 9000 holdout False hce source
+2026-10-30T11:16:57 [data] INFO registered #4 sup:sup_x rows 2334 holdout False hce source
+2026-10-30T11:16:58 [data] INFO supersede check sup:sup_x vs a:a_002: {"id": "sup:sup_x", "rows": 2334, "found_exact": 2334, "position_found": 2334, "score_equal": 2334, "meta_equal": 2334, "hce_equal": 2334, "order_checked_rows": 2334, "monotonic": true, "ok": true}
+2026-10-30T11:16:58 [data] PASS supersede check a:a_002: every superseding row is a row of the target
+2026-10-30T11:16:59 [data] INFO keys a:a_001: 6000 rows, 0 bad, 0.0 s
+2026-10-30T11:17:00 [data] INFO keys a:a_003: 8000 rows, 0 bad, 0.0 s
+2026-10-30T11:17:01 [data] INFO keys b:b_001: 5000 rows, 0 bad, 0.0 s
+2026-10-30T11:17:02 [data] INFO keys b:b_002: 9000 rows, 15 bad, 0.0 s
+2026-10-30T11:17:03 [data] INFO keys sup:sup_x: 2334 rows, 0 bad, 0.0 s
+2026-10-30T11:17:03 [data] INFO dedup: 5 pending shards (30334 rows), 0 earlier shards to check against, 1 key-range passes, keys from the cache
+2026-10-30T11:17:04 [data] INFO dedup pass 1/1: prefixes [0, 65536), 29469 first occurrences, 0 shadowed by earlier shards, 0.0 s
+2026-10-30T11:17:04 [data] INFO decision a:a_001: kept 6000 of 6000 (100.000%), bad 0, holdout
+2026-10-30T11:17:04 [data] INFO decision a:a_003: kept 7300 of 8000 (91.250%), bad 0, train
+2026-10-30T11:17:04 [data] INFO decision b:b_001: kept 4850 of 5000 (97.000%), bad 0, train
+2026-10-30T11:17:04 [data] INFO decision b:b_002: kept 8985 of 9000 (99.833%), bad 15, train
+2026-10-30T11:17:04 [data] INFO decision sup:sup_x: kept 2334 of 2334 (100.000%), bad 0, train
+2026-10-30T11:17:04 [data] PASS dedup: 5 shards decided in 1.0 s
+2026-10-30T11:17:04 [data] INFO disk: 45.2 GB free on the target drive, 5 shards to convert = 0.00 GB, projected free after the full run 45.2 GB (floor 1 GB)
+2026-10-30T11:17:05 [data] INFO converted a:a_001 -> holdout: 6000 records, writer_bad 0, verified, 0.02 s
+2026-10-30T11:17:06 [data] INFO converted sup:sup_x -> train: 2334 records, writer_bad 0, verified, 0.02 s
+2026-10-30T11:17:07 [data] INFO converted b:b_002 -> train: 8985 records, writer_bad 0, verified, 0.03 s
+2026-10-30T11:17:08 [data] INFO converted b:b_001 -> train: 4850 records, writer_bad 0, verified, 0.03 s
+2026-10-30T11:17:09 [data] INFO converted a:a_003 -> train: 7300 records, writer_bad 0, verified, 0.03 s
+2026-10-30T11:17:09 [data] PASS data: 5 shards, train 23,469 holdout 6,000 records, dropped 850 duplicates, bad 15, complete True
+ok   partial+resume (multi-pass, keys recomputed) == single run (one pass, keys cache): same sha256 per output
+2026-10-30T11:17:09 [data] INFO inventory: 5 ready shards, 30334 rows, superseded {'a:a_002': ['sup:sup_x']}
+2026-10-30T11:17:09 [data] INFO registered #0 a:a_001 rows 6000 holdout True hce source
+2026-10-30T11:17:09 [data] INFO registered #1 a:a_003 rows 8000 holdout False hce source
+2026-10-30T11:17:09 [data] INFO registered #2 b:b_001 rows 5000 holdout False hce source
+2026-10-30T11:17:09 [data] INFO registered #3 b:b_002 rows 9000 holdout False hce source
+2026-10-30T11:17:09 [data] INFO registered #4 sup:sup_x rows 2334 holdout False hce source
+2026-10-30T11:17:10 [data] INFO supersede check sup:sup_x vs a:a_002: {"id": "sup:sup_x", "rows": 2334, "found_exact": 2334, "position_found": 2334, "score_equal": 2334, "meta_equal": 2334, "hce_equal": 2334, "order_checked_rows": 2334, "monotonic": true, "ok": true}
+2026-10-30T11:17:10 [data] PASS supersede check a:a_002: every superseding row is a row of the target
+2026-10-30T11:17:10 [data] INFO dedup: 5 pending shards (30334 rows), 0 earlier shards to check against, 1 key-range passes, keys recomputed from the .pos files
+2026-10-30T11:17:11 [data] INFO dedup pass 1/1: prefixes [0, 65536), 29469 first occurrences, 0 shadowed by earlier shards, 0.0 s
+2026-10-30T11:17:11 [data] INFO decision a:a_001: kept 6000 of 6000 (100.000%), bad 0, holdout
+2026-10-30T11:17:11 [data] INFO decision a:a_003: kept 7300 of 8000 (91.250%), bad 0, train
+2026-10-30T11:17:11 [data] INFO decision b:b_001: kept 4850 of 5000 (97.000%), bad 0, train
+2026-10-30T11:17:11 [data] INFO decision b:b_002: kept 8985 of 9000 (99.833%), bad 15, train
+2026-10-30T11:17:11 [data] INFO decision sup:sup_x: kept 2334 of 2334 (100.000%), bad 0, train
+2026-10-30T11:17:11 [data] PASS dedup: 5 shards decided in 1.0 s
+2026-10-30T11:17:11 [data] INFO disk: 45.2 GB free on the target drive, 5 shards to convert = 0.00 GB, projected free after the full run 45.2 GB (floor 1000000 GB)
+2026-10-30T11:17:11 [data] INFO disk: the full run does not fit above the floor; converting in value order ['holdout', 'sup', 'b', 'a'] while the floor holds, the rest waits for space
+2026-10-30T11:17:11 [data] INFO disk: stop before a:a_001 (0.00 GB): 45.2 GB free would drop below the 1000000 GB floor
+2026-10-30T11:17:11 [data] INFO disk: 5 shards (0.00 GB) wait for disk space; a rerun continues where this one stopped
+2026-10-30T11:17:11 [data] INFO data: 5 shards, train 0 holdout 0 records, dropped 0 duplicates, bad 0, complete False (incomplete: rerun to continue)
+ok   disk floor stops the conversion before any output is written
+2026-10-30T11:17:11 [data] INFO inventory: 5 ready shards, 30334 rows, superseded {'a:a_002': ['sup:sup_x']}
+2026-10-30T11:17:11 [data] INFO disk: 45.2 GB free on the target drive, 5 shards to convert = 0.00 GB, projected free after the full run 45.2 GB (floor 1 GB)
+2026-10-30T11:17:12 [data] INFO converted a:a_001 -> holdout: 6000 records, writer_bad 0, verified, 0.03 s
+2026-10-30T11:17:13 [data] INFO converted sup:sup_x -> train: 2334 records, writer_bad 0, verified, 0.02 s
+2026-10-30T11:17:14 [data] INFO converted b:b_002 -> train: 8985 records, writer_bad 0, verified, 0.03 s
+2026-10-30T11:17:15 [data] INFO converted b:b_001 -> train: 4850 records, writer_bad 0, verified, 0.02 s
+2026-10-30T11:17:16 [data] INFO converted a:a_003 -> train: 7300 records, writer_bad 0, verified, 0.03 s
+2026-10-30T11:17:17 [data] PASS data: 5 shards, train 23,469 holdout 6,000 records, dropped 850 duplicates, bad 15, complete True
+ok   after space is back the rerun completes identically
+ok   protected folder refused: refusing to write under a protected folder: F:/forge_j1_data/r11_selftest_must_not_exist (protected root f:/forge_j1_data)
+2026-10-30T11:17:17 [data] INFO inventory: 6 ready shards, 34334 rows, superseded {'a:a_002': ['sup:sup_x']}
+2026-10-30T11:17:17 [data] INFO registered #5 b:b_003 rows 4000 holdout False hce source
+2026-10-30T11:17:17 [data] INFO dedup: 1 pending shards (4000 rows), 5 earlier shards to check against, 1 key-range passes, keys recomputed from the .pos files
+2026-10-30T11:17:18 [data] INFO dedup pass 1/1: prefixes [0, 65536), 4000 first occurrences, 200 shadowed by earlier shards, 0.0 s
+2026-10-30T11:17:18 [data] INFO decision b:b_003: kept 3800 of 4000 (95.000%), bad 0, train
+2026-10-30T11:17:18 [data] PASS dedup: 1 shards decided in 1.0 s
+2026-10-30T11:17:18 [data] INFO disk: 45.2 GB free on the target drive, 1 shards to convert = 0.00 GB, projected free after the full run 45.2 GB (floor 1 GB)
+2026-10-30T11:17:19 [data] INFO converted b:b_003 -> train: 3800 records, writer_bad 0, verified, 0.03 s
+2026-10-30T11:17:19 [data] PASS data: 6 shards, train 27,269 holdout 6,000 records, dropped 1,050 duplicates, bad 15, complete True
+ok   incremental run left earlier outputs untouched
+ok   b_003 kept 3800 == expected 3800 (copies of earlier rows dropped)
+ok   new shard appended at the end of the registry
+2026-10-30T11:17:19 [data] INFO inventory: 6 ready shards, 34334 rows, superseded {'a:a_002': ['sup:sup_x']}
+2026-10-30T11:17:19 [data] INFO registered #0 a:a_001 rows 6000 holdout True hce source
+2026-10-30T11:17:19 [data] INFO registered #1 a:a_003 rows 8000 holdout False hce source
+2026-10-30T11:17:19 [data] INFO registered #2 b:b_001 rows 5000 holdout False hce source
+2026-10-30T11:17:19 [data] INFO registered #3 b:b_002 rows 9000 holdout False hce source
+2026-10-30T11:17:19 [data] INFO registered #4 b:b_003 rows 4000 holdout False hce source
+2026-10-30T11:17:19 [data] INFO registered #5 sup:sup_x rows 2334 holdout False hce source
+2026-10-30T11:17:20 [data] INFO supersede check sup:sup_x vs a:a_002: {"id": "sup:sup_x", "rows": 2334, "found_exact": 2334, "position_found": 2334, "score_equal": 2334, "meta_equal": 2334, "hce_equal": 2334, "order_checked_rows": 2334, "monotonic": true, "ok": true}
+2026-10-30T11:17:20 [data] PASS supersede check a:a_002: every superseding row is a row of the target
+2026-10-30T11:17:20 [data] INFO dedup: 6 pending shards (34334 rows), 0 earlier shards to check against, 1 key-range passes, keys recomputed from the .pos files
+2026-10-30T11:17:21 [data] INFO dedup pass 1/1: prefixes [0, 65536), 33269 first occurrences, 0 shadowed by earlier shards, 0.0 s
+2026-10-30T11:17:21 [data] INFO decision a:a_001: kept 6000 of 6000 (100.000%), bad 0, holdout
+2026-10-30T11:17:21 [data] INFO decision a:a_003: kept 7300 of 8000 (91.250%), bad 0, train
+2026-10-30T11:17:21 [data] INFO decision b:b_001: kept 4850 of 5000 (97.000%), bad 0, train
+2026-10-30T11:17:21 [data] INFO decision b:b_002: kept 8985 of 9000 (99.833%), bad 15, train
+2026-10-30T11:17:21 [data] INFO decision b:b_003: kept 3900 of 4000 (97.500%), bad 0, train
+2026-10-30T11:17:21 [data] INFO decision sup:sup_x: kept 2234 of 2334 (95.716%), bad 0, train
+2026-10-30T11:17:21 [data] PASS dedup: 6 shards decided in 1.0 s
+2026-10-30T11:17:21 [data] INFO disk: 45.2 GB free on the target drive, 6 shards to convert = 0.00 GB, projected free after the full run 45.2 GB (floor 1 GB)
+2026-10-30T11:17:21 [data] INFO stopping before the next conversion (STOP file or --max-convert)
+2026-10-30T11:17:21 [data] INFO data: 6 shards, train 0 holdout 0 records, dropped 0 duplicates, bad 0, complete False (incomplete: rerun to continue)
+2026-10-30T11:17:21 [data] INFO inventory: 6 ready shards, 34334 rows, superseded {'a:a_002': ['sup:sup_x']}
+ok   changed input detected: input changed since registration: D:/grok-pc-data/r11_nnue/selftest/data_t4/src/b/b_002.pos
+ok   planted 1-byte corruption rejected by verify
+
+0 failed checks
+R11 DATA SELFTEST PASS

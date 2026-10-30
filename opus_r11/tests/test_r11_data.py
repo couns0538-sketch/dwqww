@@ -151,11 +151,12 @@ def make_world(base: str) -> dict:
     return w
 
 
-def config(root: str, src_dir: str, writer: str, mem_gb: float) -> dict:
+def config(root: str, src_dir: str, writer: str, mem_gb: float, keys_cache: bool = False,
+           disk_floor_gb: float = 1.0) -> dict:
     return {
         "root": root,
-        "limits": {"min_free_ram_gb": 0.5, "min_free_commit_gb": 0.5, "max_cpu_percent": 100.0, "min_disk_free_gb": 1.0,
-                   "poll_seconds": 1.0},
+        "limits": {"min_free_ram_gb": 0.5, "min_free_commit_gb": 0.5, "max_cpu_percent": 100.0,
+                   "min_disk_free_gb": disk_floor_gb, "poll_seconds": 1.0},
         "data": {
             "dir": os.path.join(root, "data"), "writer_exe": writer,
             "sources": [
@@ -170,6 +171,7 @@ def config(root: str, src_dir: str, writer: str, mem_gb: float) -> dict:
                  "supersedes": ["a:a_002"]},
             ],
             "holdout": ["a:a_001"], "dedup_mem_gb": mem_gb, "chunk_rows": 1500, "ply": 40, "verify": "all",
+            "keys_cache": keys_cache, "disk_margin_gb": 0.0, "convert_order": ["holdout", "sup", "b", "a"],
         },
     }
 
@@ -245,10 +247,35 @@ def main() -> int:
     check(t["holdout"] == exp["a_001"]["kept"], f"holdout records {t['holdout']} == unique rows of a_001")
     check(exp["a_003"]["kept"] <= w["a_003"][0].shape[0] - 300 - 200, "a_003 lost its holdout copies and repeats")
 
-    # 3: an uninterrupted run with a big memory budget gives byte-identical outputs
-    cfg1 = config(os.path.join(scratch, "run_single"), src, writer, mem_gb=1.0)
+    # conversion followed the value order: holdout, sup, b (newest first), a
+    log_text = open(os.path.join(cfg["root"], "logs", "pipeline.log"), encoding="utf-8").read()
+    conv = [ln.split("converted ")[1].split(" ->")[0] for ln in log_text.splitlines() if "] INFO converted " in ln]
+    check(conv == ["a:a_001", "sup:sup_x", "b:b_002", "b:b_001", "a:a_003"], f"conversion order by value: {conv}")
+
+    # 3: an uninterrupted run with a big memory budget and the keys cache gives byte-identical outputs
+    cfg1 = config(os.path.join(scratch, "run_single"), src, writer, mem_gb=1.0, keys_cache=True)
     run_stage(cfg1)
-    check(outputs_sha(cfg) == outputs_sha(cfg1), "partial+resume (multi-pass) == single run (one pass): same sha256 per output")
+    check(outputs_sha(cfg) == outputs_sha(cfg1),
+          "partial+resume (multi-pass, keys recomputed) == single run (one pass, keys cache): same sha256 per output")
+
+    # 3b: disk floor: nothing is converted when every shard would cross the floor; the run stays resumable
+    cfg_d = config(os.path.join(scratch, "run_disk"), src, writer, mem_gb=1.0, disk_floor_gb=1e6)
+    man_d = run_stage(cfg_d)
+    log_d = open(os.path.join(cfg_d["root"], "logs", "pipeline.log"), encoding="utf-8").read()
+    check(not man_d["complete"] and man_d["totals"]["train"] == 0 and "disk: stop before" in log_d,
+          "disk floor stops the conversion before any output is written")
+    cfg_d["limits"]["min_disk_free_gb"] = 1.0
+    man_d = run_stage(cfg_d)
+    check(man_d["complete"] and outputs_sha(cfg_d) == outputs_sha(cfg1), "after space is back the rerun completes identically")
+
+    # 3c: protected output folders are refused before anything is written
+    cfg_p = config(os.path.join(scratch, "run_protected"), src, writer, mem_gb=1.0)
+    cfg_p["data"]["dir"] = "F:/forge_j1_data/r11_selftest_must_not_exist"
+    try:
+        run_stage(cfg_p)
+        check(False, "protected output folder must be refused")
+    except C.StageFailed as e:
+        check("protected" in str(e) and not os.path.exists(cfg_p["data"]["dir"]), f"protected folder refused: {e}")
 
     # 4: incremental shard b_003 (new rows + copies of earlier rows from a_001, b_002 and sup_x)
     before = outputs_sha(cfg)

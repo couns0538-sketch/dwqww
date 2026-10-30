@@ -311,17 +311,26 @@ def priority_name() -> str:
     return {0x40: "Idle", 0x4000: "BelowNormal", 0x20: "Normal", 0x8000: "AboveNormal", 0x80: "High"}.get(pc, hex(pc))
 
 
+FAIL_CLOSED = {"pid": -1, "name": "unknown", "pattern": "process list unavailable (fail closed)"}
+
+
 def production_processes(patterns: list[str]) -> list[dict]:
     """Processes whose command line matches one of the regexes. Only pid, name and the matched pattern are
-    returned (command lines are never logged)."""
+    returned (command lines are never logged).
+    Fails CLOSED: when psutil is missing or the process list cannot be read, the result is a single
+    FAIL_CLOSED entry, so every caller treats production as running (wait / do not start)."""
     try:
         import psutil
     except ImportError:
-        return []
+        return [dict(FAIL_CLOSED, pattern="psutil missing (fail closed)")]
     me = os.getpid()
     found = []
     regs = [re.compile(p, re.I) for p in patterns]
-    for p in psutil.process_iter(["pid", "name", "cmdline"]):
+    try:
+        procs = list(psutil.process_iter(["pid", "name", "cmdline"]))
+    except Exception as e:  # noqa: BLE001 - any failure to list processes must fail closed
+        return [dict(FAIL_CLOSED, pattern=f"process_iter failed: {type(e).__name__} (fail closed)")]
+    for p in procs:
         try:
             if p.info["pid"] == me:
                 continue
@@ -333,6 +342,21 @@ def production_processes(patterns: list[str]) -> list[dict]:
                 found.append({"pid": p.info["pid"], "name": p.info["name"], "pattern": r.pattern})
                 break
     return found
+
+
+# Paths the pipeline must never write into (production, live data, gate/lock/queue folders, other agents' data).
+PROTECTED_ROOTS = [
+    "f:/forge_j1_data", "f:/forge_nnue_train", "d:/forge_nnue_train", "d:/forge_j1_data_astra",
+    "d:/grok-pc-data/forge_push", "d:/grok-pc-data/selfplay_out", "d:/grok-pc-data/selfplay_out_r8v5_20261029",
+    "c:/users/administrator/grok-pc", "f:/nnue_pytorch",
+]
+
+
+def assert_writable_path(path: str) -> None:
+    p = winpath(path).lower().rstrip("/") + "/"
+    for root in PROTECTED_ROOTS:
+        if p.startswith(root.rstrip("/") + "/"):
+            raise StageFailed(f"refusing to write under a protected folder: {path} (protected root {root})")
 
 
 @dataclass
