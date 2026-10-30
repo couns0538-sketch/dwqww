@@ -1,0 +1,16 @@
+control: exit 0, 0 FAIL lines
+apply_add_sub_swapped: exit 1, 8542 FAIL lines
+block_kernel_skips_first_group: exit 1, 301 FAIL lines
+block_kernel_half_chunk: exit 1, 301 FAIL lines
+refresh_row_sub_for_add: exit 1, 17385 FAIL lines
+scalar_layer_drops_bias: exit 1, 300 FAIL lines
+square_epsilon_dropped: exit 0, 0 FAIL lines
+
+control | exit 0 | 0 FAIL lines; HALFKA TESTS OK (300 positions, 17084 incremental checks, 0 failures); first: -
+apply_add_sub_swapped | exit 1 | 8542 FAIL lines; HALFKA TESTS FAILED (300 positions, 17084 incremental checks, 8542 failures); first: FAIL: incremental (out of place) != refresh at rnbqkbnr/pppppppp/8/8/3P4/8/PPP1PPPP/RNBQKBNR b KQkq d3 0 1
+block_kernel_skips_first_group | exit 1 | 301 FAIL lines; HALFKA TESTS FAILED (300 positions, 17084 incremental checks, 301 failures); first: FAIL: SIMD raw 1045 != 758 for rnbqkb1r/2ppnppp/pp2p3/8/1P6/3PBN2/P1P1PPPP/RN1QKB1R w KQkq - 1 5
+block_kernel_half_chunk | exit 1 | 301 FAIL lines; HALFKA TESTS FAILED (300 positions, 17084 incremental checks, 301 failures); first: FAIL: SIMD raw -1606 != 758 for rnbqkb1r/2ppnppp/pp2p3/8/1P6/3PBN2/P1P1PPPP/RN1QKB1R w KQkq - 1 5
+refresh_row_sub_for_add | exit 1 | 17385 FAIL lines; HALFKA TESTS FAILED (300 positions, 17084 incremental checks, 17385 failures); first: FAIL: SIMD raw -348 != 758 for rnbqkb1r/2ppnppp/pp2p3/8/1P6/3PBN2/P1P1PPPP/RN1QKB1R w KQkq - 1 5
+scalar_layer_drops_bias | exit 1 | 300 FAIL lines; HALFKA TESTS FAILED (300 positions, 17084 incremental checks, 300 failures); first: FAIL: scalar raw 1306 != 758 for rnbqkb1r/2ppnppp/pp2p3/8/1P6/3PBN2/P1P1PPPP/RN1QKB1R w KQkq - 1 5
+square_epsilon_dropped | exit 0 | 0 FAIL lines; HALFKA TESTS OK (300 positions, 17084 incremental checks, 0 failures); first: -
+control PASS; mutants killed 5/6

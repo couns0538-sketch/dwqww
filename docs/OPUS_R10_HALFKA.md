@@ -23,7 +23,7 @@ QA_R6AMD_20261030.md`, `CR_R6AMD_20261030.md`) are not on this PC or in the repo
 | 3 parity vs nnue-pytorch | the trainer's own `NNUEReader` + C++ feature extractor (`get_sparse_batch_from_fens("K32H3")`) + fake-quantized `model.forward` (float64) vs Forge's raw output: **R6 net (256x32x32): 12,000 / 12,000 exact** (also exact in float32); **smoke net (64x32x32): 12,000 / 12,000 exact**; **untrained 1024x32x32: 2,000 / 2,000 exact**. AVX2 == scalar on every position. Incremental == refresh: **204,694 checks / 0 mismatches** on 200 random games (parent and 2-4 plies back) and 31,602 / 0 at L1 1024; in-search verify build (`-DFORGE_HALFKA_VERIFY`): **3,028,552 lazily built rows equal a full refresh** (bench 13 + four 3-thread depth-13 searches). v2 kernels: outputs byte-identical to v1 on all 26,000 evaluations (AVX-512 and AVX2 builds), walk 361,502 checks / 0, verify 3,208,448 rows | `opus_r10/logs/parity_*`, `walk_1.log`, `walk_v2.log`, `verify_search*.log`, `opus_r10/parity/` |
 | 4 smoke net end to end | K32H3^ 64x32x32 trained on the box CPU (2 threads, 6 epochs x 200k positions of a 17 MB Forge self-play slice, loss 0.0505 -> 0.0115; the R6 RAM guard ended the run at 7 GB free after the sixth epoch, index 5, whose checkpoint is the net), exported by the trainer's `serialize.py`, loads, **ON bench 11 = 305,623 (stable over repeats and a reload)**; WAC 300 at 200 ms: 260 solved (OFF 272), a move on 300 / 300; **200 fast games vs the option off: no illegal move, no crash, no time loss** (it scored 0.5 / 200: a test net) | `opus_r10/nets/smoke_k32h3_l64.nnue`, `opus_r10/logs/smoke2_train_summary.log`, `logs/wac/`, `logs/fast_games_smoke.log` |
 | 5 NPS vs FORGENN2 | ON vs OFF in one exe, first kernels: d16 -23.9% (L1 64), -39.8% (L1 256), -62.3% (L1 1024); v2 kernels (same trees): +16.2% / +20.1% / +67% NPS over v1; ON vs OFF with v2: see "NPS with the v2 kernels"; OFF costs nothing measurable vs the lock exe (d16 -0.1% [-2.2, +2.0]) | `opus_r10/logs/nps_*.log/.json` |
-| tests / CI | box build 0 warnings, FMA 0; CMake all targets + CTest: only the 4 known `forge_tests` lines (KNOWN-FAILURE CHECK: PASS); opus-ci green on `cadf1d91` (release ALL OK, ASan/TSan KNOWN-FAILURE CHECK: PASS, TSan 0 reports). New CTest `forge_halfka_tests` (v2): CTEST_C1_PENDING | `opus_r10/logs/ctest_b1.log(.known)`, run 40986475892, CI_V2_PENDING |
+| tests / CI | box build 0 warnings, FMA 0; CMake all targets + CTest: only the 4 known `forge_tests` lines (KNOWN-FAILURE CHECK: PASS); opus-ci green on `cadf1d91` (release ALL OK, ASan/TSan KNOWN-FAILURE CHECK: PASS, TSan 0 reports). New CTest `forge_halfka_tests` (v2): CMake all targets + CTest 15 tests, only the 4 known `forge_tests` lines (KNOWN-FAILURE CHECK: PASS), `forge_halfka_tests` passed, only the lock's 6 `-Wconversion` warnings; planted bugs: 5 / 6 killed (see below) | `opus_r10/logs/ctest_b1.log(.known)`, run 40986475892, CI_V2_PENDING |
 
 ## Integer arithmetic (why the parity is exact)
 FT `clamp(a, 0, 255) * clamp(b, 0, 255) >> 9` per half, [side to move, other side]; l1 sums `s1` (scale 2^14), linear
@@ -31,7 +31,19 @@ FT `clamp(a, 0, 255) * clamp(b, 0, 255) >> 9` per half, [side to move, other sid
 `min(127, (s2^2 + 5) >> 19)`; output over [sq1, lin1, sq2, lin2]; total = s3 + s1[L2-2] - s1[L2-1];
 raw = trunc(2 * total * 9600 / 32768) (the trainer's output value); evaluation = raw / 16 centipawns (truncated).
 The `+20` / `+5` reproduce the trainer's `floor(x * 128 + 1e-5)` on the squared activations, and the square is taken of
-the full-precision sum, as the trainer does.
+the full-precision sum, as the trainer does. (Dropping the l1 `+20` changed no output on the 24,000 test evaluations:
+it is the faithful form, but these test sets never reach the boundary it decides.)
+
+## CTest `forge_halfka_tests` and planted bugs
+`tests/halfka_tests.cpp` with the committed smoke net and `tests/halfka_smoke_expected.txt` (300 positions, every 40th
+of the parity set, all 8 piece-count buckets, the exact nnue-pytorch values): exact values with the SIMD and the scalar
+kernels, incremental (out of place and in place, SIMD and scalar) == refresh on 20 random games (17,084 checks), a
+truncated copy is rejected and leaves the loaded net in place, three 2-thread depth-9 searches return legal moves,
+`unload` turns the path off. CI builds with `-march=x86-64-v3`, so CI runs the AVX2 kernels under ASan/UBSan and TSan.
+`opus_r10/tools/mutants_halfka.py` (`logs/mutants_halfka.log`): control passes; killed: update add/sub swapped (8,542
+FAIL lines), block kernel skips its first output group (301), last input chunk scanned as 32 bytes (301), refresh row
+kernel subtracts (17,385), scalar layer drops the bias (300); **survived: the l1 square without the `+20`**, which is
+equivalent on all 24,000 parity evaluations too (no test data reaches the case it decides).
 
 ## How the engine uses it
 - `setoption name EvalFileHalfKA value <path>` loads the net (Windows path); `<empty>` (the default) or an empty value
