@@ -19,7 +19,8 @@ GPL-3.0 (imports the trainer's modules at run time from --r11-clone; nothing is 
    - free RAM below --r11-min-free-ram-gb: save and exit 75 (the driver resumes when RAM is back); a watchdog thread
      exits 97 at once below --r11-hard-ram-gb (no save: the live trainer comes first);
    - YIELD is the only GPU policy (CR R2 H1: no sharing, no duty cycle): the production-trainer check runs before
-     torch is imported (CR R2 M1: exit 76 at once, nothing loaded) and again during training; when a production
+     torch is imported (CR R2 M1: exit 76 at once, nothing loaded), again after the imports, at fit start (exit 76,
+     nothing trained, nothing saved) and during training; when a production
      trainer appears (command-line regex list; psutil missing = fail, an unreadable python command line = running)
      the entry saves and exits 76, the driver waits for it to end and resumes.
 Usage: <trainer venv python> -B r11_train_entry.py --r11-clone <clone> --r11-run-dir <dir> [--r11-keep-last 2]
@@ -302,6 +303,12 @@ def main() -> int:
             self.has_val = trainer.check_val_every_n_epoch is not None
             log_event(run_dir, "fit_start", epoch=trainer.current_epoch, step=trainer.global_step,
                       max_epochs=trainer.max_epochs)
+            # a production trainer that started while the model and the loaders were built: yield before the first
+            # batch; nothing new was trained, so nothing is saved (the driver resumes from the newest checkpoint)
+            hit = production_running(patterns)
+            if hit:
+                raise R11Stop(EXIT_YIELD, f"production trainer running at fit start ({hit}); nothing trained, not saved")
+            self.last_check = time.time()
 
         def on_validation_end(self, trainer):
             self.has_val = True
@@ -364,6 +371,13 @@ def main() -> int:
     E.SimpleTrainer.load_checkpoint = load_checkpoint
     E.SimpleTrainer.fit = fit
     sys.argv = [os.path.join(clone, "train.py")] + train_args
+    # CR R2 M1, hardened: check again after the imports - they take seconds (11 min under the old 32 MB working-set
+    # cap) and production can start meanwhile, while the trainer's main() puts the model on the device at once
+    hit = production_running(patterns)
+    if hit:
+        log_event(run_dir, "yield_after_import", pattern=hit)
+        sys.stdout.flush()
+        os._exit(EXIT_YIELD)
     log_event(run_dir, "start", argv=train_args, policy="yield", keep_last=opts["keep_last"])
     try:
         T.main()

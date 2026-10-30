@@ -1,0 +1,81 @@
+OK   t.tar.gz.part000000 size 175279 sha256 2472de8a3430c3653e2b1e4c77fedf1b0a93fb917d4d44f215d34c61e1d2b909
+OK   t.tar.gz.part000001 size 175280 sha256 9c9cde142d036303bca7a45d18ad3c84644fb40c445e6c1a5b7c2b51e8834885
+VERIFY PARTS PASS
+ok   astra: part checksums verify
+staged completed/full10m/forge_filtered.pos (300000 bytes, sha256 44173690a7416c40fcfa004205d783ece93d098d7fc51cfb36dfa2706a38accc)
+staged completed/full10m/forge_filtered.hce (50000 bytes, sha256 d29dbb94f50554bf209b9ae7540e58f26af758e21d6da576eeb1e09ed63ac2a7)
+EXTRACT PASS (2 members)
+ok   astra: correct archive -> staged, checked, renamed: exactly the requested members, no staging left
+FAIL target exists, not overwriting: C:/Users/Administrator/.claude/jobs/9cfd0095/tmp/tools_m1b\out_ok\forge_filtered.pos
+ok   astra: existing targets are not overwritten (earlier files stay, staging cleaned)
+staged completed/full10m/forge_filtered.pos (300000 bytes, sha256 5e102077ff5f58c5c143185722a781be8faf4e230aa8244c68118430f2b5e640)
+staged completed/full10m/forge_filtered.hce (50000 bytes, sha256 13ad170737c63cade7899672b3c8842636d3377446c7d7a05270866786c7b335)
+FAIL whole-archive checksum 84fb183b1d60c062aca9615b4d0c7425d5676b2823bd56344967a7ab43829e61 size 350549 (manifest 0000000000000000000000000000000000000000000000000000000000000000 size 350549, pinned ('0000000000000000000000000000000000000000000000000000000000000000', 350549)); pinned members that differ: []
+removed unverified partial file C:/Users/Administrator/.claude/jobs/9cfd0095/tmp/tools_m1b\out_bad\.staging_3976_20261030_130456\forge_filtered.pos
+removed unverified partial file C:/Users/Administrator/.claude/jobs/9cfd0095/tmp/tools_m1b\out_bad\.staging_3976_20261030_130456\forge_filtered.hce
+ok   astra: checksum failure leaves nothing (staged files deleted; left: [])
+FAIL manifest whole sha256/size 852b490c2ca2d2b07c1f1217bf3bb9f3a8b7ffff255179093c6f7258cc2009a5 / 350559 != pinned ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff / 350559
+ok   astra: manifest whole sha256 != pinned value -> refused, nothing written
+FAIL manifest whole sha256/size 852b490c2ca2d2b07c1f1217bf3bb9f3a8b7ffff255179093c6f7258cc2009a5 / 350559 != pinned 852b490c2ca2d2b07c1f1217bf3bb9f3a8b7ffff255179093c6f7258cc2009a5 / 350560
+ok   astra: manifest whole size != pinned size -> refused, nothing written
+staged completed/full10m/forge_filtered.pos (300000 bytes, sha256 44173690a7416c40fcfa004205d783ece93d098d7fc51cfb36dfa2706a38accc)
+staged completed/full10m/forge_filtered.hce (50000 bytes, sha256 d29dbb94f50554bf209b9ae7540e58f26af758e21d6da576eeb1e09ed63ac2a7)
+FAIL whole-archive checksum 852b490c2ca2d2b07c1f1217bf3bb9f3a8b7ffff255179093c6f7258cc2009a5 size 350559 (manifest 852b490c2ca2d2b07c1f1217bf3bb9f3a8b7ffff255179093c6f7258cc2009a5 size 350559, pinned ('852b490c2ca2d2b07c1f1217bf3bb9f3a8b7ffff255179093c6f7258cc2009a5', 350559)); pinned members that differ: ['completed/full10m/forge_filtered.pos']
+removed unverified partial file C:/Users/Administrator/.claude/jobs/9cfd0095/tmp/tools_m1b\out_member\.staging_3976_20261030_130456\forge_filtered.pos
+removed unverified partial file C:/Users/Administrator/.claude/jobs/9cfd0095/tmp/tools_m1b\out_member\.staging_3976_20261030_130456\forge_filtered.hce
+ok   astra: member pin mismatch -> nothing in place ([])
+ok   astra: pinned whole sha256 148803c5... and size 2,329,781,152
+ok   astra: the downloaded transport manifest matches the pins
+ok   a small write passes the 1 GB small-write floor
+ok   a bulk write below the drive floor is refused: disk: bulk write needs 0.098 GB on C:; 28.9 GB free would drop below the 1000000 GB floor
+FAIL disk: Astra release download needs 2.171 GB on C:; 28.9 GB free would drop below the 1000000 GB floor
+ok   Astra download refused before anything is written (floor)
+FAIL extraction error: StageFailed: disk: extract of completed/full10m/forge_filtered.pos needs 0.000 GB on C:; 28.9 GB free would drop below the 1000000 GB floor
+ok   Astra extract refused for lack of space leaves nothing behind
+ok   the shipped r11_config.json loads (limits_from) with the 40 GB D: floor
+ok   config section 'data' present
+ok   config section 'engine' present
+ok   config section 'trainer' present
+ok   config section 'check' present
+ok   config section 'train' present
+ok   every training profile yields to production, none shares ({'smoke': 'yield', 'full': 'yield'})
+ok   the entry refuses --r11-policy (no share policy left)
+ok   the entry refuses --r11-share-duty (no share policy left)
+ok   production check before import torch: exit 76, event yield_before_import present
+ok   no production -> the entry does not yield to itself and reaches the trainer import (exit 1)
+ok   no marker process left before stub mode import
+ok   no marker process left before stub mode fit
+ok   no marker process left before stub mode none
+ok   production starts during the imports -> exit 76 after the imports, trainer main never called: (76, ['yield_after_import'], [], '')
+ok   production starts before fit -> exit 76 at fit start, no checkpoint: (76, ['start', 'fit_start', 'stopped'], [], '')
+ok   no production -> the entry runs the trainer to its end (exit 0): (0, ['start', 'fit_start', 'finished'], [], '')
+ok   the stub's marker processes ended by themselves
+ok   the train stage refuses a share profile
+ok   the old first/last-MiB fingerprint does NOT see a change in the middle
+ok   the full sha256 detects the change in the middle
+ok   no hold before the event exists
+ok   hold active while Local\Forge_R11_Hold is signalled
+ok   no hold while the event is reset
+ok   no hold after the last handle is closed
+ok   no STOP/PAUSE control files in the pipeline code: []
+ok   set_idle_background: Idle (0x40), I/O priority very low (0), memory priority low (2), CPUs 8-10: {'info': {'priority': 'Idle', 'io': 'very low', 'memory': 'low', 'affinity': '0x700'}, 'nice': 64, 'io': 0, 'mem': 2, 'aff': [8, 9, 10], 'wset_mb': 332, 'child': {'nice': 64, 'io': 0, 'mem': 2, 'aff': [8, 9, 10]}}
+ok   a child inherits Idle, I/O very low, memory low and the 3-core mask: {'nice': 64, 'io': 0, 'mem': 2, 'aff': [8, 9, 10]}
+ok   no working-set cap: 300 MB touched -> working set 332 MB (background mode kept it at 32 MB)
+ok   no process enters background mode (PROCESS_MODE_BACKGROUND_BEGIN): []
+ok   a 4-CPU mask is refused
+ok   process check fails (StageFailed) when psutil is missing
+ok   process check with psutil and no match returns []
+ok   unreadable command line: python and unnamed non-kernel processes count as production (wait); System and kernel children (ppid 4) do not: [{'pid': 999001, 'name': 'python.exe', 'pattern': 'command line unreadable (AccessDenied): treated as a production trainer'}, {'pid': 999005, 'name': '?', 'pattern': 'command line unreadable (AccessDenied): treated as a production trainer'}]
+ok   protected path refused: F:/forge_j1_data/x.binpack
+ok   protected path refused: D:/forge_nnue_train/exports/y
+ok   protected path refused: C:/Users/Administrator/grok-pc/z
+ok   protected path refused: D:/grok-pc-data/selfplay_out/w
+ok   protected path refused: D:/forge_j1_data_astra/v
+ok   own output folders accepted
+ok   no change under src/, include/, tests/, CMakeLists.txt vs 7f79c349
+ok   files using nnue-pytorch code live in tools/nnue_pytorch_amd/ only (GPL users: ['opus_r10/tools/make_init_net.py', 'opus_r10/tools/parity_nnue_pytorch.py', 'tools/nnue_pytorch_amd/r11/r11_pos2binpack.cpp'])
+ok   nothing GPL under src/include/tests
+
+0 failed checks
+R11 TOOLS SELFTEST PASS
+exit=0

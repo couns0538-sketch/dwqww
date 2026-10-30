@@ -198,6 +198,65 @@ def main() -> int:
     r2 = run_entry(os.path.join(scratch, "run_m1_neg"))
     check(r2.returncode not in (0, 76) and "No module named 'train'" in r2.stderr,
           f"no production -> the entry does not yield to itself and reaches the trainer import (exit {r2.returncode})")
+    # M1 hardened (found live 2026-10-30: production started while the entry was importing torch): a stub clone whose
+    # train module starts the "production" marker during the imports (mode import) or inside main() before fit start
+    # (mode fit); the entry must yield after the imports / at fit start without a checkpoint, and run through with no
+    # marker (mode none)
+    stub = os.path.join(scratch, "stub_clone")
+    os.makedirs(os.path.join(stub, "trainer"))
+    for rel, text in {
+        "trainer/__init__.py": "",
+        "trainer/callbacks.py": "class Callback:\n    pass\n",
+        "trainer/engine.py": "class SimpleTrainer:\n    def load_checkpoint(self, path):\n        return {}\n\n"
+                             "    def fit(self, train_loader, val_loader=None):\n        return None\n",
+        "train.py": "import os, subprocess, sys, time\n"
+                    "MODE = os.environ['R11_STUB_MODE']\n\n\n"
+                    "def production_starts():\n"
+                    "    subprocess.Popen([sys.executable, '-c', 'import time; time.sleep(6)', os.environ['R11_STUB_MARKER']])\n"
+                    "    time.sleep(1.5)\n\n\n"
+                    "if MODE == 'import':\n    production_starts()\n\n\n"
+                    "class CheckpointManager:\n    pass\n\n\n"
+                    "class FakeTrainer:\n"
+                    "    check_val_every_n_epoch, current_epoch, global_step, max_epochs = 1, 0, 0, 1\n\n\n"
+                    "def main():\n"
+                    "    if MODE == 'fit':\n        production_starts()\n"
+                    "    CheckpointManager().on_fit_start(FakeTrainer())\n"
+                    "    print('STUB MAIN END', flush=True)\n",
+    }.items():
+        with open(os.path.join(stub, rel), "w", encoding="utf-8", newline="\n") as f:
+            f.write(text)
+
+    def marker_gone() -> bool:
+        import psutil
+        for _ in range(60):
+            if not any(marker in " ".join(p.info["cmdline"] or []) for p in psutil.process_iter(["cmdline"])):
+                return True
+            time.sleep(0.5)
+        return False
+
+    stub_res = {}
+    for mode in ("import", "fit", "none"):
+        check(marker_gone(), f"no marker process left before stub mode {mode}")
+        rd = os.path.join(scratch, f"run_m1_stub_{mode}")
+        env = dict(os.environ, R11_STUB_MODE=mode, R11_STUB_MARKER=marker)
+        rr = subprocess.run([sys.executable, "-I", "-B", spec.origin, "--r11-clone", stub, "--r11-run-dir", rd,
+                             "--r11-patterns-file", pfile, "--r11-affinity", "0x700", "--", "dummy.binpack"],
+                            capture_output=True, text=True, timeout=600, env=env)
+        evs = [json.loads(x)["event"] for x in open(os.path.join(rd, "r11_events.jsonl"), encoding="utf-8")] \
+            if os.path.isfile(os.path.join(rd, "r11_events.jsonl")) else []
+        ck = [x for x in os.listdir(os.path.join(rd, "checkpoints")) if x.endswith(".ckpt")] \
+            if os.path.isdir(os.path.join(rd, "checkpoints")) else []
+        stub_res[mode] = (rr.returncode, evs, ck, rr.stderr[-300:])
+    rc, evs, ck, err = stub_res["import"]
+    check(rc == 76 and evs == ["yield_after_import"] and not ck,
+          f"production starts during the imports -> exit 76 after the imports, trainer main never called: {stub_res['import']}")
+    rc, evs, ck, err = stub_res["fit"]
+    check(rc == 76 and evs == ["start", "fit_start", "stopped"] and not ck,
+          f"production starts before fit -> exit 76 at fit start, no checkpoint: {stub_res['fit']}")
+    rc, evs, ck, err = stub_res["none"]
+    check(rc == 0 and evs == ["start", "fit_start", "finished"],
+          f"no production -> the entry runs the trainer to its end (exit 0): {stub_res['none']}")
+    check(marker_gone(), "the stub's marker processes ended by themselves")
     import r11_train as TR
     cfg_share = json.loads(json.dumps(real_cfg))
     cfg_share["train"]["profiles"]["smoke"]["gpu_policy"] = "share"
