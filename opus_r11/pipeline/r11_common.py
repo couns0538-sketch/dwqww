@@ -1,0 +1,413 @@
+"""R11 pipeline: shared helpers (logging, atomic files, fingerprints, resource governor, FPOS/FHCE I/O, keys).
+
+Every stage logs one line per event to <root>/logs/pipeline.log and stdout:
+  2026-10-30T10:45:00 [data] PASS ...   /  FAIL ...  /  INFO ...  /  WAIT ...
+A stage ends with exactly one "[<stage>] PASS" or "[<stage>] FAIL" summary line.
+"""
+from __future__ import annotations
+
+import ctypes
+import fnmatch
+import glob
+import hashlib
+import json
+import os
+import re
+import shutil
+import sys
+import time
+from ctypes import wintypes
+from dataclasses import dataclass
+
+import numpy as np
+
+FPOS_MAGIC = b"FPOS"
+FHCE_MAGIC = b"FHCE"
+HEADER = 16
+
+
+# ----------------------------------------------------------------------------------------------------------------
+# logging
+# ----------------------------------------------------------------------------------------------------------------
+class Log:
+    def __init__(self, path: str | None, stage: str):
+        self.path = path
+        self.stage = stage
+        if path:
+            os.makedirs(os.path.dirname(path), exist_ok=True)
+
+    def _emit(self, kind: str, msg: str) -> None:
+        line = f"{time.strftime('%Y-%m-%dT%H:%M:%S')} [{self.stage}] {kind} {msg}"
+        print(line, flush=True)
+        if self.path:
+            with open(self.path, "a", encoding="utf-8", newline="\n") as f:
+                f.write(line + "\n")
+
+    def info(self, msg: str) -> None:
+        self._emit("INFO", msg)
+
+    def wait(self, msg: str) -> None:
+        self._emit("WAIT", msg)
+
+    def ok(self, msg: str) -> None:
+        self._emit("PASS", msg)
+
+    def fail(self, msg: str) -> None:
+        self._emit("FAIL", msg)
+
+    def sub(self, stage: str) -> "Log":
+        return Log(self.path, stage)
+
+
+class StageFailed(Exception):
+    pass
+
+
+# ----------------------------------------------------------------------------------------------------------------
+# files
+# ----------------------------------------------------------------------------------------------------------------
+def write_json(path: str, obj) -> None:
+    os.makedirs(os.path.dirname(os.path.abspath(path)), exist_ok=True)
+    tmp = path + ".part"
+    with open(tmp, "w", encoding="utf-8", newline="\n") as f:
+        json.dump(obj, f, indent=1, sort_keys=False)
+        f.write("\n")
+        f.flush()
+        os.fsync(f.fileno())
+    os.replace(tmp, path)
+
+
+def read_json(path: str, default=None):
+    if not os.path.isfile(path):
+        return default
+    with open(path, "r", encoding="utf-8-sig") as f:
+        return json.load(f)
+
+
+def write_text(path: str, text: str) -> None:
+    os.makedirs(os.path.dirname(os.path.abspath(path)), exist_ok=True)
+    tmp = path + ".part"
+    with open(tmp, "w", encoding="utf-8", newline="\n") as f:
+        f.write(text)
+    os.replace(tmp, path)
+
+
+def sha256_file(path: str, bufsize: int = 1 << 22) -> str:
+    h = hashlib.sha256()
+    with open(path, "rb") as f:
+        while True:
+            b = f.read(bufsize)
+            if not b:
+                break
+            h.update(b)
+    return h.hexdigest()
+
+
+def fingerprint(path: str) -> dict:
+    """Cheap identity of an input file: size, mtime and sha256 of its first and last MiB."""
+    st = os.stat(path)
+    h = hashlib.sha256()
+    with open(path, "rb") as f:
+        h.update(f.read(1 << 20))
+        if st.st_size > (1 << 20):
+            f.seek(max(0, st.st_size - (1 << 20)))
+            h.update(f.read(1 << 20))
+    return {"size": st.st_size, "mtime_ns": st.st_mtime_ns, "edges_sha256": h.hexdigest()}
+
+
+def same_fingerprint(a: dict, b: dict) -> bool:
+    return a.get("size") == b.get("size") and a.get("edges_sha256") == b.get("edges_sha256")
+
+
+def winpath(p: str) -> str:
+    """Windows-style absolute path with forward slashes (the engine and the trainer cannot open /d/... paths)."""
+    p = os.path.abspath(p)
+    m = re.match(r"^[\\/]([a-zA-Z])[\\/](.*)$", p)
+    if m:
+        p = m.group(1).upper() + ":/" + m.group(2)
+    return p.replace("\\", "/")
+
+
+# ----------------------------------------------------------------------------------------------------------------
+# FPOS / FHCE
+# ----------------------------------------------------------------------------------------------------------------
+def fpos_rows(path: str) -> int:
+    with open(path, "rb") as f:
+        head = f.read(HEADER)
+    if len(head) != HEADER or head[:4] != FPOS_MAGIC:
+        raise StageFailed(f"not an FPOS file: {path}")
+    ver = int.from_bytes(head[4:8], "little")
+    n = int.from_bytes(head[8:16], "little")
+    if ver != 1:
+        raise StageFailed(f"FPOS version {ver} != 1: {path}")
+    size = os.path.getsize(path)
+    if size != HEADER + 35 * n:
+        raise StageFailed(f"FPOS size {size} != 16 + 35 * {n}: {path}")
+    return n
+
+
+def fhce_rows(path: str) -> int:
+    with open(path, "rb") as f:
+        head = f.read(HEADER)
+    if len(head) != HEADER or head[:4] != FHCE_MAGIC:
+        raise StageFailed(f"not an FHCE file: {path}")
+    n = int.from_bytes(head[8:16], "little")
+    size = os.path.getsize(path)
+    if size != HEADER + 2 * n:
+        raise StageFailed(f"FHCE size {size} != 16 + 2 * {n}: {path}")
+    return n
+
+
+def read_boards(path: str, n: int, start: int, count: int) -> np.ndarray:
+    a = np.fromfile(path, dtype=np.uint8, count=count * 32, offset=HEADER + start * 32)
+    if a.size != count * 32:
+        raise StageFailed(f"short read of boards {path} [{start}, {start + count})")
+    return a.reshape(count, 32)
+
+
+def read_scores(path: str, n: int, start: int, count: int) -> np.ndarray:
+    a = np.fromfile(path, dtype="<i2", count=count, offset=HEADER + 32 * n + start * 2)
+    if a.size != count:
+        raise StageFailed(f"short read of scores {path}")
+    return a
+
+
+def read_meta(path: str, n: int, start: int, count: int) -> np.ndarray:
+    a = np.fromfile(path, dtype=np.uint8, count=count, offset=HEADER + 34 * n + start)
+    if a.size != count:
+        raise StageFailed(f"short read of meta {path}")
+    return a
+
+
+def read_hce(path: str, start: int, count: int) -> np.ndarray:
+    a = np.fromfile(path, dtype="<i2", count=count, offset=HEADER + start * 2)
+    if a.size != count:
+        raise StageFailed(f"short read of hce {path}")
+    return a
+
+
+_M1 = np.uint64(0xFF51AFD7ED558CCD)
+_M2 = np.uint64(0xC4CEB9FE1A85EC53)
+_SEED = np.uint64(0x52313149_44454450)  # "R11IDEDP"
+_STM = np.uint64(0x9E3779B97F4A7C15)
+_S33 = np.uint64(33)
+
+
+def _fmix(x: np.ndarray) -> np.ndarray:
+    x ^= x >> _S33
+    x *= _M1
+    x ^= x >> _S33
+    x *= _M2
+    x ^= x >> _S33
+    return x
+
+
+def position_keys(boards: np.ndarray, meta: np.ndarray) -> np.ndarray:
+    """64-bit identity of (32-byte board, side to move). Same board + stm -> same key in every source."""
+    w = np.ascontiguousarray(boards).view("<u8").reshape(-1, 4)
+    with np.errstate(over="ignore"):
+        h = _fmix(w[:, 0] ^ _SEED)
+        h ^= w[:, 1]
+        h = _fmix(h)
+        h ^= w[:, 2]
+        h = _fmix(h)
+        h ^= w[:, 3] ^ ((meta & 1).astype(np.uint64) * _STM)
+        h = _fmix(h)
+    return h
+
+
+def bad_rows(boards: np.ndarray, meta: np.ndarray) -> np.ndarray:
+    """Rows the binpack writer would reject cheaply: a nibble code > 12, not exactly one king per side,
+    a result code > 2."""
+    lo = boards & 15
+    hi = boards >> 4
+    bad = (lo > 12).any(axis=1) | (hi > 12).any(axis=1)
+    wk = (lo == 6).sum(axis=1) + (hi == 6).sum(axis=1)
+    bk = (lo == 12).sum(axis=1) + (hi == 12).sum(axis=1)
+    bad |= (wk != 1) | (bk != 1)
+    bad |= ((meta >> 1) & 3) > 2
+    return bad
+
+
+# dest codes, 2 bits per row (4 rows per byte, row i -> byte i >> 2, bits 2 * (i & 3))
+DEST_DROP, DEST_TRAIN, DEST_HOLD, DEST_BAD = 0, 1, 2, 3
+
+
+def pack_dest(dest: np.ndarray) -> np.ndarray:
+    n = dest.size
+    pad = (-n) % 4
+    d = np.concatenate([dest.astype(np.uint8), np.zeros(pad, np.uint8)]).reshape(-1, 4)
+    return (d[:, 0] | (d[:, 1] << 2) | (d[:, 2] << 4) | (d[:, 3] << 6)).astype(np.uint8)
+
+
+def unpack_dest(packed: np.ndarray, n: int) -> np.ndarray:
+    p = packed.astype(np.uint8)
+    d = np.stack([p & 3, (p >> 2) & 3, (p >> 4) & 3, (p >> 6) & 3], axis=1).reshape(-1)
+    return d[:n]
+
+
+# ----------------------------------------------------------------------------------------------------------------
+# machine state and governor
+# ----------------------------------------------------------------------------------------------------------------
+class _MEMORYSTATUSEX(ctypes.Structure):
+    _fields_ = [("dwLength", wintypes.DWORD), ("dwMemoryLoad", wintypes.DWORD),
+                ("ullTotalPhys", ctypes.c_ulonglong), ("ullAvailPhys", ctypes.c_ulonglong),
+                ("ullTotalPageFile", ctypes.c_ulonglong), ("ullAvailPageFile", ctypes.c_ulonglong),
+                ("ullTotalVirtual", ctypes.c_ulonglong), ("ullAvailVirtual", ctypes.c_ulonglong),
+                ("ullAvailExtendedVirtual", ctypes.c_ulonglong)]
+
+
+def memory_gb() -> tuple[float, float]:
+    """(available physical RAM GB, available commit GB) - the R6 incident was a commit-limit death."""
+    if sys.platform != "win32":
+        return 64.0, 64.0
+    ms = _MEMORYSTATUSEX()
+    ms.dwLength = ctypes.sizeof(_MEMORYSTATUSEX)
+    ctypes.windll.kernel32.GlobalMemoryStatusEx(ctypes.byref(ms))
+    return ms.ullAvailPhys / 2**30, ms.ullAvailPageFile / 2**30
+
+
+def _system_times() -> tuple[int, int, int]:
+    idle, kernel, user = wintypes.FILETIME(), wintypes.FILETIME(), wintypes.FILETIME()
+    ctypes.windll.kernel32.GetSystemTimes(ctypes.byref(idle), ctypes.byref(kernel), ctypes.byref(user))
+
+    def v(ft):
+        return (ft.dwHighDateTime << 32) | ft.dwLowDateTime
+
+    return v(idle), v(kernel), v(user)
+
+
+def cpu_load(interval: float = 1.0) -> float:
+    """System CPU load in percent over `interval` seconds (kernel time includes idle time on Windows)."""
+    if sys.platform != "win32":
+        return 0.0
+    i0, k0, u0 = _system_times()
+    time.sleep(interval)
+    i1, k1, u1 = _system_times()
+    total = (k1 - k0) + (u1 - u0)
+    if total <= 0:
+        return 0.0
+    return 100.0 * (1.0 - (i1 - i0) / total)
+
+
+def disk_free_gb(path: str) -> float:
+    p = os.path.abspath(path)
+    while not os.path.exists(p):
+        p = os.path.dirname(p)
+    return shutil.disk_usage(p).free / 2**30
+
+
+def set_below_normal() -> None:
+    """BelowNormal priority class for this process; children started without a priority flag inherit it."""
+    if sys.platform == "win32":
+        BELOW_NORMAL_PRIORITY_CLASS = 0x00004000
+        ctypes.windll.kernel32.SetPriorityClass(ctypes.windll.kernel32.GetCurrentProcess(), BELOW_NORMAL_PRIORITY_CLASS)
+
+
+def priority_name() -> str:
+    if sys.platform != "win32":
+        return "n/a"
+    pc = ctypes.windll.kernel32.GetPriorityClass(ctypes.windll.kernel32.GetCurrentProcess())
+    return {0x40: "Idle", 0x4000: "BelowNormal", 0x20: "Normal", 0x8000: "AboveNormal", 0x80: "High"}.get(pc, hex(pc))
+
+
+def production_processes(patterns: list[str]) -> list[dict]:
+    """Processes whose command line matches one of the regexes. Only pid, name and the matched pattern are
+    returned (command lines are never logged)."""
+    try:
+        import psutil
+    except ImportError:
+        return []
+    me = os.getpid()
+    found = []
+    regs = [re.compile(p, re.I) for p in patterns]
+    for p in psutil.process_iter(["pid", "name", "cmdline"]):
+        try:
+            if p.info["pid"] == me:
+                continue
+            cmd = " ".join(p.info["cmdline"] or [])
+        except Exception:
+            continue
+        for r in regs:
+            if r.search(cmd):
+                found.append({"pid": p.info["pid"], "name": p.info["name"], "pattern": r.pattern})
+                break
+    return found
+
+
+@dataclass
+class Limits:
+    min_free_ram_gb: float = 8.0
+    min_free_commit_gb: float = 8.0
+    max_cpu_percent: float = 85.0
+    min_disk_free_gb: float = 15.0
+    poll_seconds: float = 30.0
+
+
+class Governor:
+    """Waits (never kills anything) until free RAM / commit, system CPU and disk are inside the limits.
+    Control files: <root>/control/PAUSE (wait while present), <root>/control/STOP (stop at the next unit)."""
+
+    def __init__(self, root: str, limits: Limits, log: Log):
+        self.root = root
+        self.limits = limits
+        self.log = log
+        self.ctrl = os.path.join(root, "control")
+        os.makedirs(self.ctrl, exist_ok=True)
+
+    def stop_requested(self) -> bool:
+        return os.path.exists(os.path.join(self.ctrl, "STOP"))
+
+    def state(self, need_ram_gb: float = 0.0, disk_path: str | None = None, need_disk_gb: float = 0.0,
+              cpu_interval: float = 1.0) -> tuple[bool, str]:
+        ram, commit = memory_gb()
+        cpu = cpu_load(cpu_interval)
+        reasons = []
+        if os.path.exists(os.path.join(self.ctrl, "PAUSE")):
+            reasons.append("PAUSE file")
+        if ram - need_ram_gb < self.limits.min_free_ram_gb:
+            reasons.append(f"free RAM {ram:.1f} GB - need {need_ram_gb:.1f} < floor {self.limits.min_free_ram_gb}")
+        if commit - need_ram_gb < self.limits.min_free_commit_gb:
+            reasons.append(f"free commit {commit:.1f} GB - need {need_ram_gb:.1f} < floor {self.limits.min_free_commit_gb}")
+        if cpu > self.limits.max_cpu_percent:
+            reasons.append(f"CPU {cpu:.0f}% > cap {self.limits.max_cpu_percent:.0f}%")
+        if disk_path:
+            free = disk_free_gb(disk_path)
+            if free - need_disk_gb < self.limits.min_disk_free_gb:
+                reasons.append(f"disk {free:.1f} GB - need {need_disk_gb:.1f} < floor {self.limits.min_disk_free_gb}")
+        status = f"RAM {ram:.1f} GB commit {commit:.1f} GB CPU {cpu:.0f}%"
+        return (not reasons), status + ("" if not reasons else " | " + "; ".join(reasons))
+
+    def wait_ok(self, what: str, need_ram_gb: float = 0.0, disk_path: str | None = None, need_disk_gb: float = 0.0,
+                max_wait_s: float | None = None) -> bool:
+        """True when it is fine to start `what`; False on STOP or after max_wait_s."""
+        t0 = time.time()
+        last_log = 0.0
+        cpu_hits = 0
+        while True:
+            if self.stop_requested():
+                self.log.info(f"STOP file present: not starting {what}")
+                return False
+            ok, status = self.state(need_ram_gb, disk_path, need_disk_gb)
+            if ok:
+                return True
+            # a single CPU spike is not a reason to wait; three consecutive over-cap samples are
+            if "CPU" in status.split("|")[-1] and all(k not in status.split("|")[-1] for k in ("RAM", "commit", "disk", "PAUSE")):
+                cpu_hits += 1
+                if cpu_hits < 3:
+                    continue
+            if time.time() - last_log > 300:
+                self.log.wait(f"{what}: {status}")
+                last_log = time.time()
+            if max_wait_s is not None and time.time() - t0 > max_wait_s:
+                self.log.info(f"gave up waiting for {what} after {max_wait_s:.0f} s: {status}")
+                return False
+            time.sleep(self.limits.poll_seconds)
+
+
+def expand_glob(pattern: str) -> list[str]:
+    return sorted(glob.glob(pattern))
+
+
+def matches_any(name: str, globs: list[str]) -> bool:
+    return any(fnmatch.fnmatch(name, g) for g in globs)

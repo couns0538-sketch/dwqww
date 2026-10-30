@@ -1,0 +1,208 @@
+"""R11: fetch, verify and unpack Astra A1's filtered set (release astra-a1-data-results-20261030).
+
+The release ships one .tar.gz split into numbered byte chunks plus transport_manifest.json
+(format forge-transport-v1: parts with offset/size/sha256 and the whole-file sha256). This tool
+checks every part, streams the parts in order straight into tarfile (no reassembled copy on disk),
+checks the whole-archive sha256 while streaming, and extracts only the requested members with
+tarfile's 'data' filter (no absolute paths, no links out of the target folder).
+
+Usage (run with python -I; paths are arguments, never the current directory):
+  r11_astra.py download <dl_dir>                 # gh release download into an EMPTY folder
+  r11_astra.py verify <dl_dir>                   # part sizes + sha256 vs transport_manifest.json
+  r11_astra.py list <dl_dir> [--out list.txt]    # member names, sizes (streams the whole archive)
+  r11_astra.py extract <dl_dir> <out_dir> <member_glob> [<member_glob> ...] [--json result.json]
+"""
+from __future__ import annotations
+
+import argparse
+import fnmatch
+import hashlib
+import json
+import os
+import subprocess
+import sys
+import tarfile
+import time
+
+RELEASE = "astra-a1-data-results-20261030"
+REPO = "couns0538-sketch/dwqww"
+MANIFEST = "transport_manifest.json"
+
+
+def load_manifest(dl_dir: str) -> dict:
+    with open(os.path.join(dl_dir, MANIFEST), "r", encoding="utf-8") as f:
+        man = json.load(f)
+    if man.get("format") != "forge-transport-v1":
+        raise SystemExit(f"FAIL unknown transport format {man.get('format')!r}")
+    parts = sorted(man["parts"], key=lambda p: p["offset"])
+    off = 0
+    for p in parts:
+        if p["offset"] != off:
+            raise SystemExit(f"FAIL part {p['name']} offset {p['offset']} != expected {off}")
+        if os.path.basename(p["name"]) != p["name"]:
+            raise SystemExit(f"FAIL part name with a path: {p['name']!r}")
+        off += p["size"]
+    if off != man["whole"]["size"]:
+        raise SystemExit(f"FAIL parts add up to {off}, whole is {man['whole']['size']}")
+    man["parts"] = parts
+    return man
+
+
+def sha256_file(path: str, bufsize: int = 1 << 22) -> str:
+    h = hashlib.sha256()
+    with open(path, "rb") as f:
+        while True:
+            b = f.read(bufsize)
+            if not b:
+                break
+            h.update(b)
+    return h.hexdigest()
+
+
+def cmd_download(dl_dir: str) -> int:
+    os.makedirs(dl_dir, exist_ok=True)
+    if os.listdir(dl_dir):
+        print(f"FAIL download folder {dl_dir} is not empty (untrusted downloads go into a new empty folder)")
+        return 2
+    cmd = ["gh", "release", "download", RELEASE, "-R", REPO, "-D", dl_dir,
+           "-p", "forge_astra_a1_data_results_20261030.tar.gz.part*", "-p", MANIFEST]
+    print("running:", " ".join(cmd), flush=True)
+    return subprocess.call(cmd)
+
+
+def cmd_verify(dl_dir: str) -> int:
+    man = load_manifest(dl_dir)
+    ok = True
+    for p in man["parts"]:
+        path = os.path.join(dl_dir, p["name"])
+        if not os.path.isfile(path):
+            print(f"FAIL missing part {p['name']}")
+            ok = False
+            continue
+        size = os.path.getsize(path)
+        digest = sha256_file(path)
+        good = size == p["size"] and digest == p["sha256"]
+        ok &= good
+        print(f"{'OK  ' if good else 'FAIL'} {p['name']} size {size} sha256 {digest}")
+    print("VERIFY PARTS " + ("PASS" if ok else "FAIL"))
+    return 0 if ok else 1
+
+
+class ConcatReader:
+    """Read the parts in order as one stream; hash everything that passes through."""
+
+    def __init__(self, dl_dir: str, man: dict):
+        self.paths = [os.path.join(dl_dir, p["name"]) for p in man["parts"]]
+        self.idx = 0
+        self.f = open(self.paths[0], "rb")
+        self.h = hashlib.sha256()
+        self.total = 0
+
+    def read(self, n: int = -1) -> bytes:
+        out = bytearray()
+        want = n if n is not None and n >= 0 else 1 << 62
+        while want > 0 and self.f is not None:
+            b = self.f.read(min(want, 1 << 22))
+            if b:
+                out += b
+                want -= len(b)
+                continue
+            self.f.close()
+            self.idx += 1
+            self.f = open(self.paths[self.idx], "rb") if self.idx < len(self.paths) else None
+        data = bytes(out)
+        self.h.update(data)
+        self.total += len(data)
+        return data
+
+    def drain(self) -> None:
+        while self.read(1 << 22):
+            pass
+
+
+def _stream(dl_dir: str):
+    man = load_manifest(dl_dir)
+    reader = ConcatReader(dl_dir, man)
+    tf = tarfile.open(fileobj=reader, mode="r|gz")
+    return man, reader, tf
+
+
+def cmd_list(dl_dir: str, out: str | None) -> int:
+    man, reader, tf = _stream(dl_dir)
+    lines = []
+    for m in tf:
+        lines.append(f"{m.size}\t{m.type.decode() if isinstance(m.type, bytes) else m.type}\t{m.name}")
+    tf.close()
+    reader.drain()
+    whole_ok = reader.h.hexdigest() == man["whole"]["sha256"] and reader.total == man["whole"]["size"]
+    text = "\n".join(lines) + "\n"
+    if out:
+        with open(out, "w", encoding="utf-8", newline="\n") as f:
+            f.write(text)
+    else:
+        sys.stdout.write(text)
+    print(f"members {len(lines)}; whole sha256 {reader.h.hexdigest()} size {reader.total} -> "
+          + ("WHOLE PASS" if whole_ok else "WHOLE FAIL"))
+    return 0 if whole_ok else 1
+
+
+def cmd_extract(dl_dir: str, out_dir: str, globs: list[str], json_out: str | None) -> int:
+    os.makedirs(out_dir, exist_ok=True)
+    man, reader, tf = _stream(dl_dir)
+    got = []
+    t0 = time.time()
+    for m in tf:
+        if not m.isfile():
+            continue
+        if not any(fnmatch.fnmatch(m.name, g) for g in globs):
+            continue
+        target = os.path.join(out_dir, os.path.basename(m.name))
+        if os.path.exists(target):
+            print(f"FAIL target exists, not overwriting: {target}")
+            return 2
+        src = tf.extractfile(m)
+        h = hashlib.sha256()
+        tmp = target + ".part"
+        with open(tmp, "xb") as f:
+            while True:
+                b = src.read(1 << 22)
+                if not b:
+                    break
+                h.update(b)
+                f.write(b)
+        os.replace(tmp, target)
+        got.append({"member": m.name, "path": target, "size": m.size, "sha256": h.hexdigest()})
+        print(f"extracted {m.name} -> {target} ({m.size} bytes, sha256 {h.hexdigest()})", flush=True)
+    tf.close()
+    reader.drain()
+    whole_ok = reader.h.hexdigest() == man["whole"]["sha256"] and reader.total == man["whole"]["size"]
+    res = {"release": RELEASE, "whole_sha256": reader.h.hexdigest(), "whole_size": reader.total,
+           "whole_ok": whole_ok, "members": got, "seconds": round(time.time() - t0, 1)}
+    if json_out:
+        with open(json_out + ".part", "w", encoding="utf-8", newline="\n") as f:
+            json.dump(res, f, indent=1)
+        os.replace(json_out + ".part", json_out)
+    print("EXTRACT " + ("PASS" if whole_ok and got else "FAIL") + f" ({len(got)} members)")
+    return 0 if whole_ok and got else 1
+
+
+def main(argv: list[str]) -> int:
+    ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    sub = ap.add_subparsers(dest="cmd", required=True)
+    s = sub.add_parser("download"); s.add_argument("dl_dir")
+    s = sub.add_parser("verify"); s.add_argument("dl_dir")
+    s = sub.add_parser("list"); s.add_argument("dl_dir"); s.add_argument("--out")
+    s = sub.add_parser("extract"); s.add_argument("dl_dir"); s.add_argument("out_dir"); s.add_argument("globs", nargs="+")
+    s.add_argument("--json")
+    a = ap.parse_args(argv)
+    if a.cmd == "download":
+        return cmd_download(a.dl_dir)
+    if a.cmd == "verify":
+        return cmd_verify(a.dl_dir)
+    if a.cmd == "list":
+        return cmd_list(a.dl_dir, a.out)
+    return cmd_extract(a.dl_dir, a.out_dir, a.globs, a.json)
+
+
+if __name__ == "__main__":
+    sys.exit(main(sys.argv[1:]))
