@@ -142,6 +142,35 @@ pathlib.Path(sys.argv[3]).write_text(''.join(rows))
   moves=list((self.root/'out').glob('data_*/bestmoves.txt'));self.assertEqual(len(moves),1)
   self.assertEqual(moves[0].read_text(),'e2e4\n')
   self.assertEqual(moves[0].with_name('rows.binpack').read_text(),FENS[0].rstrip()+' | e2e4\n')
+ def decoded_payload(self, payload):
+  c.run(self.args('--binpack-tool',str(self.adapter()),'--allow-transport-moves'))
+  decoder=self.root/'decoder.py'
+  decoder.write_text('#!/usr/bin/env python3\nimport sys\nassert sys.argv[1] == "decode"\nsys.stdout.buffer.write('+repr(payload)+')\n')
+  decoder.chmod(0o700)
+  return decoder
+ def test_binpack_decode_accepts_only_transport_crlf(self):
+  decoder=self.decoded_payload(''.join(FENS).encode().replace(b'\n',b'\r\n'))
+  try: result=c.verify(self.root/'out',decoder)
+  except ValueError as error:self.fail('valid CRLF decoder transport rejected: '+str(error))
+  self.assertEqual(result['binpack_decoded_rows'],2)
+ def test_binpack_decode_rejects_changed_value_with_crlf(self):
+  decoder=self.decoded_payload(''.join(FENS).encode().replace(b'| 61 |',b'| 62 |').replace(b'\n',b'\r\n'))
+  with self.assertRaisesRegex(ValueError,'differs'):c.verify(self.root/'out',decoder)
+ def test_binpack_decode_rejects_embedded_cr_with_crlf(self):
+  decoder=self.decoded_payload(''.join(FENS).encode().replace(b'| 61 |',b'| 6\r1 |').replace(b'\n',b'\r\n'))
+  with self.assertRaisesRegex(ValueError,'differs'):c.verify(self.root/'out',decoder)
+ def test_binpack_decode_rejects_extra_terminal_cr(self):
+  decoder=self.decoded_payload(''.join(FENS).encode().replace(b'\n',b'\r\r\n'))
+  with self.assertRaisesRegex(ValueError,'differs'):c.verify(self.root/'out',decoder)
+ def test_binpack_decode_rejects_changed_whitespace(self):
+  decoder=self.decoded_payload(''.join(FENS).encode().replace(b' | ',b'  | ',1).replace(b'\n',b'\r\n'))
+  with self.assertRaisesRegex(ValueError,'differs'):c.verify(self.root/'out',decoder)
+ def test_binpack_decode_rejects_extra_crlf_row(self):
+  decoder=self.decoded_payload((''.join(FENS)+FENS[0]).encode().replace(b'\n',b'\r\n'))
+  with self.assertRaisesRegex(ValueError,'extra binpack decoded rows'):c.verify(self.root/'out',decoder)
+ def test_binpack_decode_rejects_unterminated_last_row(self):
+  decoder=self.decoded_payload(''.join(FENS).encode().replace(b'\n',b'\r\n').removesuffix(b'\r\n'))
+  with self.assertRaisesRegex(ValueError,'differs'):c.verify(self.root/'out',decoder)
 
 
 if __name__=='__main__':unittest.main()

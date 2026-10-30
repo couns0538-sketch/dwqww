@@ -499,7 +499,12 @@ def verify(out, binpack_tool=None):
             try:
                 with (out/c['text']).open('rb') as expected:
                     for line in expected:
-                        if process.stdout.readline() != line:
+                        decoded = process.stdout.readline()
+                        # Windows stdout may translate LF to CRLF. Normalize
+                        # only that terminal transport pair; every record byte
+                        # (including embedded CR and other whitespace) is exact.
+                        if decoded.endswith(b'\r\n'): decoded = decoded[:-2] + b'\n'
+                        if decoded != line:
                             raise ValueError('binpack native decode differs from exact FEN/score/result sidecar')
                     if process.stdout.read(1): raise ValueError('extra binpack decoded rows')
                 stderr = process.stderr.read()

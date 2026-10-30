@@ -366,3 +366,19 @@ adapter; the default suite skips the 13 optional adapter tests. This includes
 21 new holdout-audit cases. Nine additional independent disk/ownership/resume
 checks passed. No source or engine search/evaluation/network was changed by
 these tooling fixes, and no new bench, speed or Elo result is asserted.
+
+
+Final follow-up: the complete data2 suite is now **93/93 PASS**, including seven
+CRLF transport regressions. Optional decoder verification accepts only a terminal
+CRLF-to-LF normalization; fields, other whitespace, extra rows and missing final
+newlines still fail exact comparison. The new clearance CLI also processed
+49,999 real-derived output rows with two 1,000-row fake-holdout cases: it found
+1,000 overlapping keys in the positive control, and zero in the nonoverlap case.
+These holdouts came from shard003 and do **not** certify private013/014.
+Original reports/receipts are in `qa_final_review/real_slice_audit/`.
+
+The unchanged A1 suite passed 130 discovery cases with one explicit native-suite
+skip; that separate native suite passed9/9 with its original probe. Initial
+attempts failed because sparse checkout omitted tests/source/two helper scripts;
+restoring the exact tracked bytes resolved those setup failures. Their original
+logs remain preserved. No A1 code or expected value was changed.

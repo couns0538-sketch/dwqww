@@ -1,0 +1,60 @@
+test_binpack_decode_accepts_only_transport_crlf (test_converter_disk.DiskTests.test_binpack_decode_accepts_only_transport_crlf) ... FAIL
+test_binpack_decode_rejects_changed_value_with_crlf (test_converter_disk.DiskTests.test_binpack_decode_rejects_changed_value_with_crlf) ... ok
+test_binpack_decode_rejects_changed_whitespace (test_converter_disk.DiskTests.test_binpack_decode_rejects_changed_whitespace) ... ok
+test_binpack_decode_rejects_embedded_cr_with_crlf (test_converter_disk.DiskTests.test_binpack_decode_rejects_embedded_cr_with_crlf) ... ok
+test_binpack_decode_rejects_extra_crlf_row (test_converter_disk.DiskTests.test_binpack_decode_rejects_extra_crlf_row) ... FAIL
+test_binpack_decode_rejects_extra_terminal_cr (test_converter_disk.DiskTests.test_binpack_decode_rejects_extra_terminal_cr) ... ok
+test_binpack_decode_rejects_unterminated_last_row (test_converter_disk.DiskTests.test_binpack_decode_rejects_unterminated_last_row) ... ok
+test_binpack_filtered_stream_preserves_native_bestmove (test_converter_disk.DiskTests.test_binpack_filtered_stream_preserves_native_bestmove) ... ok
+test_binpack_format_uses_existing_rows_directly (test_converter_disk.DiskTests.test_binpack_format_uses_existing_rows_directly) ... ok
+test_budget_covers_utf8_game_id_output_bytes (test_converter_disk.DiskTests.test_budget_covers_utf8_game_id_output_bytes) ... ok
+test_checkpoint_resume_recovers_duplicates_then_prunes_indexes (test_converter_disk.DiskTests.test_checkpoint_resume_recovers_duplicates_then_prunes_indexes) ... ok
+test_corrupt_checkpoint_retains_index (test_converter_disk.DiskTests.test_corrupt_checkpoint_retains_index) ... ok
+test_default_reserve_rejects_ten_gib_free (test_converter_disk.DiskTests.test_default_reserve_rejects_ten_gib_free) ... ok
+test_holdout_loading_checks_disk_before_next_batch (test_converter_disk.DiskTests.test_holdout_loading_checks_disk_before_next_batch) ... ok
+test_output_lock_blocks_concurrent_resume (test_converter_disk.DiskTests.test_output_lock_blocks_concurrent_resume) ... ok
+test_partial_index_is_rebuilt_from_verified_rows (test_converter_disk.DiskTests.test_partial_index_is_rebuilt_from_verified_rows) ... ok
+test_preflight_budgets_index_before_creation (test_converter_disk.DiskTests.test_preflight_budgets_index_before_creation) ... ok
+test_preflight_reserves_native_probe_log_space (test_converter_disk.DiskTests.test_preflight_reserves_native_probe_log_space) ... ok
+test_prior_loading_checks_disk_before_next_batch (test_converter_disk.DiskTests.test_prior_loading_checks_disk_before_next_batch) ... ok
+test_symlink_index_fails_closed_without_deleting_target (test_converter_disk.DiskTests.test_symlink_index_fails_closed_without_deleting_target) ... ok
+test_unowned_legacy_index_is_not_pruned (test_converter_disk.DiskTests.test_unowned_legacy_index_is_not_pruned) ... ok
+test_verified_completion_prunes_only_owned_index (test_converter_disk.DiskTests.test_verified_completion_prunes_only_owned_index) ... ok
+test_verify_prunes_completed_crash_leftovers (test_converter_disk.DiskTests.test_verify_prunes_completed_crash_leftovers) ... ok
+
+======================================================================
+FAIL: test_binpack_decode_accepts_only_transport_crlf (test_converter_disk.DiskTests.test_binpack_decode_accepts_only_transport_crlf)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/tmp/forge-astra-fen-convert/tests/data2/test_converter_disk.py", line 153, in test_binpack_decode_accepts_only_transport_crlf
+    try: result=c.verify(self.root/'out',decoder)
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/tmp/forge-astra-fen-convert/tools/data2/convert_dataset.py", line 503, in verify
+    raise ValueError('binpack native decode differs from exact FEN/score/result sidecar')
+ValueError: binpack native decode differs from exact FEN/score/result sidecar
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/tmp/forge-astra-fen-convert/tests/data2/test_converter_disk.py", line 154, in test_binpack_decode_accepts_only_transport_crlf
+    except ValueError as error:self.fail('valid CRLF decoder transport rejected: '+str(error))
+                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: valid CRLF decoder transport rejected: binpack native decode differs from exact FEN/score/result sidecar
+
+======================================================================
+FAIL: test_binpack_decode_rejects_extra_crlf_row (test_converter_disk.DiskTests.test_binpack_decode_rejects_extra_crlf_row)
+----------------------------------------------------------------------
+ValueError: binpack native decode differs from exact FEN/score/result sidecar
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/tmp/forge-astra-fen-convert/tests/data2/test_converter_disk.py", line 170, in test_binpack_decode_rejects_extra_crlf_row
+    with self.assertRaisesRegex(ValueError,'extra binpack decoded rows'):c.verify(self.root/'out',decoder)
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: "extra binpack decoded rows" does not match "binpack native decode differs from exact FEN/score/result sidecar"
+
+----------------------------------------------------------------------
+Ran 23 tests in 0.899s
+
+FAILED (failures=2)
