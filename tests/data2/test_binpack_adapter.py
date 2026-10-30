@@ -1,9 +1,10 @@
 """Original adapter regression tests. Set FORGE_BINPACK_ADAPTER to the built tool."""
 import hashlib,json,os,pathlib,struct,subprocess,tempfile,unittest
-EXE=os.environ.get('FORGE_BINPACK_ADAPTER','/tmp/astra-binpack-work/forge_binpack_adapter')
+EXE=os.environ.get('FORGE_BINPACK_ADAPTER')
 START='rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1'
 EP='rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq e3 0 1'
 
+@unittest.skipUnless(EXE, 'external GPL-3.0 adapter is opt-in via FORGE_BINPACK_ADAPTER')
 class Adapter(unittest.TestCase):
     def setUp(self):
         self.root=pathlib.Path(tempfile.mkdtemp(prefix='astra-binpack-case-',dir='/tmp'))

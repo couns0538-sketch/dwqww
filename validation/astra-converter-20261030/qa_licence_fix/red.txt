@@ -1,0 +1,42 @@
+test_fetch_rejects_repository_directory_before_writing (test_external_dependency_policy.ExternalPolicy.test_fetch_rejects_repository_directory_before_writing) ... FAIL
+test_fetch_rejects_symlink_into_repository (test_external_dependency_policy.ExternalPolicy.test_fetch_rejects_symlink_into_repository) ... FAIL
+test_fetch_requires_explicit_license_opt_in_before_writing (test_external_dependency_policy.ExternalPolicy.test_fetch_requires_explicit_license_opt_in_before_writing) ... FAIL
+test_manifest_discloses_gpl_transitive_code (test_external_dependency_policy.ExternalPolicy.test_manifest_discloses_gpl_transitive_code) ... FAIL
+
+======================================================================
+FAIL: test_fetch_rejects_repository_directory_before_writing (test_external_dependency_policy.ExternalPolicy.test_fetch_rejects_repository_directory_before_writing)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/tmp/forge-astra-fen-convert/tests/data2/test_external_dependency_policy.py", line 25, in test_fetch_rejects_repository_directory_before_writing
+    self.assertIn('outside',p.stderr)
+AssertionError: 'outside' not found in 'usage: fetch_binpack_dependency.py [-h] --out OUT [--manifest MANIFEST]\nfetch_binpack_dependency.py: error: unrecognized arguments: --accept-gpl3\n'
+
+======================================================================
+FAIL: test_fetch_rejects_symlink_into_repository (test_external_dependency_policy.ExternalPolicy.test_fetch_rejects_symlink_into_repository)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/tmp/forge-astra-fen-convert/tests/data2/test_external_dependency_policy.py", line 32, in test_fetch_rejects_symlink_into_repository
+    self.assertNotEqual(p.returncode,0); self.assertIn('outside',p.stderr)
+                                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 'outside' not found in 'usage: fetch_binpack_dependency.py [-h] --out OUT [--manifest MANIFEST]\nfetch_binpack_dependency.py: error: unrecognized arguments: --accept-gpl3\n'
+
+======================================================================
+FAIL: test_fetch_requires_explicit_license_opt_in_before_writing (test_external_dependency_policy.ExternalPolicy.test_fetch_requires_explicit_license_opt_in_before_writing)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/tmp/forge-astra-fen-convert/tests/data2/test_external_dependency_policy.py", line 17, in test_fetch_requires_explicit_license_opt_in_before_writing
+    self.assertIn('--accept-gpl3',p.stderr)
+AssertionError: '--accept-gpl3' not found in 'Traceback (most recent call last):\n  File "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/urllib/request.py", line 1344, in do_open\n    h.request(req.get_method(), req.selector, req.data, headers,\n  File "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/http/client.py", line 1386, in request\n    self._send_request(method, url, body, headers, encode_chunked)\n  File "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/http/client.py", line 1432, in _send_request\n    self.endheaders(body, encode_chunked=encode_chunked)\n  File "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/http/client.py", line 1381, in endheaders\n    self._send_output(message_body, encode_chunked=encode_chunked)\n  File "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/http/client.py", line 1141, in _send_output\n    self.send(msg)\n  File "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/http/client.py", line 1085, in send\n    self.connect()\n  File "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/http/client.py", line 1520, in connect\n    super().connect()\n  File "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/http/client.py", line 1051, in connect\n    self.sock = self._create_connection(\n                ^^^^^^^^^^^^^^^^^^^^^^^^\n  File "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/socket.py", line 865, in create_connection\n    raise exceptions[0]\n  File "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/socket.py", line 845, in create_connection\n    sock = socket(af, socktype, proto)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/socket.py", line 233, in __init__\n    _socket.socket.__init__(self, family, type, proto, fileno)\nPermissionError: [Errno 1] Operation not permitted\n\nDuring handling of the above exception, another exception occurred:\n\nTraceback (most recent call last):\n  File "/tmp/forge-astra-fen-convert/tools/data2/fetch_binpack_dependency.py", line 29, in <module>\n    if __name__==\'__main__\':main()\n                            ^^^^^^\n  File "/tmp/forge-astra-fen-convert/tools/data2/fetch_binpack_dependency.py", line 20, in main\n    with urllib.request.urlopen(url,timeout=60) as r: data=r.read(300000)\n         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/urllib/request.py", line 215, in urlopen\n    return opener.open(url, data, timeout)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/urllib/request.py", line 515, in open\n    response = self._open(req, data)\n               ^^^^^^^^^^^^^^^^^^^^^\n  File "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/urllib/request.py", line 532, in _open\n    result = self._call_chain(self.handle_open, protocol, protocol +\n             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/urllib/request.py", line 492, in _call_chain\n    result = func(*args)\n             ^^^^^^^^^^^\n  File "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/urllib/request.py", line 1392, in https_open\n    return self.do_open(http.client.HTTPSConnection, req,\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/urllib/request.py", line 1347, in do_open\n    raise URLError(err)\nurllib.error.URLError: <urlopen error [Errno 1] Operation not permitted>\n'
+
+======================================================================
+FAIL: test_manifest_discloses_gpl_transitive_code (test_external_dependency_policy.ExternalPolicy.test_manifest_discloses_gpl_transitive_code)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/tmp/forge-astra-fen-convert/tests/data2/test_external_dependency_policy.py", line 9, in test_manifest_discloses_gpl_transitive_code
+    self.assertEqual(m.get('effective_tool_license'), 'GPL-3.0')
+AssertionError: None != 'GPL-3.0'
+
+----------------------------------------------------------------------
+Ran 4 tests in 0.288s
+
+FAILED (failures=4)

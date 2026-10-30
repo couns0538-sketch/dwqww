@@ -3,13 +3,31 @@
 Branch: `astra-fen-convert-20261030`. Base: `110f0c4a819756b79a77d88a5ef525b6dafd925b`.
 This is offline tooling. Engine source, search, live trainers and gates are unchanged.
 
+## QA correction and training status
+
+**NOT CLEARED FOR TRAINING:** complete private holdouts 013 and 014 are unavailable
+in this environment. Neither the old synthetic overlap test nor the new audit's
+fixtures certify those real files. Before any training use, run the independent
+clearance command below and require PASS with zero overlapping keys. No command
+was run on grok-pc for this correction.
+
+Earlier MIT-only binpack wording was wrong. Full notices at the pinned commit
+explicitly identify modified nodchip/Stockfish GPLv3 code in `nodchip.h:46-47`;
+`binpack.h` includes it and `chess.h` cites Cfish. Treat the compiled
+`forge_binpack_adapter` as **GPL-3.0 external tooling**, with dependencies and
+executable outside every repository. The repository retains our original wrapper
+and tests, not upstream headers or compiled binaries. This tool is optional and
+**OFF by default**. Default conversion uses only bulletformat plus its verified
+sidecar. Historical raw logs are preserved; their MIT-only descriptions are
+superseded by this correction and `qa_licence_fix/notice_verification.json`.
+
 ## Verified results
 
 | Check | Result | Original evidence |
 |---|---|---|
 | First 1,000,000 original shard 003 rows, lossless FEN/score/result sidecar | PASS, 0 mismatches against original text | `roundtrip_1m_original_compare.json` |
 | Official MIT bulletformat loader and parser on all 1M records | PASS, 0 mismatches | `bullet_loader_1m/` |
-| Native MIT binpack reader on all 1M records | PASS, byte-identical decoded text | `binpack_final/roundtrip_1m.json` |
+| External GPL-3.0 binpack reader on all 1M records | PASS, byte-identical decoded text | `binpack_final/roundtrip_1m.json` |
 | Castling and en passant in that slice | 216,652 castling rows; 35,547 EP rows preserved | Same original 1M receipts |
 | Synthetic overlap using 1,000 real sample rows as their own holdout | PASS: 1,000 removed, 0 remain | `fake_holdout_1000*`, `fake_holdout_original/` |
 | Prior-training dedup on 1,024 real rows, first 1,000 supplied as prior kept | PASS: 1,000 duplicates removed, 24 retained, 0 holdout removals | `prior_real1024*` |
@@ -37,7 +55,8 @@ approval. No Elo, training gain or speed claim is made.
 - `rows.txt`: the inseparable original six-field FEN, STM centipawn score and
   White-relative result, in the original retained order.
 - `provenance.tsv`: original input row and optional authenticated game ID.
-- `rows.binpack` and the adapter input/logs when `--binpack-tool` is provided.
+- `rows.binpack`, a small move sidecar and adapter logs only when an external
+  `--binpack-tool` is explicitly provided. No duplicate full-FEN adapter input is kept.
 
 **Standard bulletformat alone loses original STM, castling, EP and clocks.**
 Exact FEN recovery is a property of the record plus its verified sidecar, not the
@@ -91,34 +110,34 @@ with repeatable `--dedup-against`. These immutable inputs seed the dedup index;
 hits count as `duplicate`, not holdout. Their hashes and path bindings receive the
 same identity checks as source/holdout inputs. The receipt records indexed rows
 and unique prior keys. This makes a correct sequential pipeline possible, but
-repeated index construction is not an optimized 305M driver; that throughput and
-resource workload remains unmeasured. Omitting earlier outputs does not certify
+index construction is repeated but the verified disposable index is pruned,
+so prior indexes do not accumulate across completed shards. Full 305M runtime
+remains unmeasured. Omitting earlier outputs does not certify
 zero cross-shard duplicates.
 
 ## Build and Linux commands
 
-Fetch only the pinned five-header MIT dependency, outside the repository:
+Default conversion needs **no binpack fetch or build**. Optional external tooling
+must be explicitly opted into and built outside every repository:
 
 ```bash
-python3 tools/data2/fetch_binpack_dependency.py --out /new/external/binpack-mit
-c++ -std=c++20 -O2 -Wall -Wextra -I/new/external/binpack-mit \
-  tools/data2/forge_binpack_adapter.cpp -o /new/bin/forge_binpack_adapter
-FORGE_BINPACK_ADAPTER=/new/bin/forge_binpack_adapter \
+python3 tools/data2/fetch_binpack_dependency.py --accept-gpl3 --out /new/external/binpack-gpl3
+c++ -std=c++20 -O2 -Wall -Wextra -I/new/external/binpack-gpl3 \
+  tools/data2/forge_binpack_adapter.cpp -o /new/external/forge_binpack_adapter
+FORGE_BINPACK_ADAPTER=/new/external/forge_binpack_adapter \
   python3 -m unittest discover -s tests/data2 -v
 ```
 
-Production filtering and both formats, one new output directory:
+Production filtering to bulletformat + sidecar, one new output directory:
 
 ```bash
 python3 tools/data2/convert_dataset.py convert \
   --input /data/forge_selfplay_003.txt --pos /data/forge_selfplay_003.pos \
-  --shard-id 003 --out /new/filtered003 \
+  --shard-id 003 --out /new/filtered003 --min-free-mb 20000 \
   --probe /path/forge_data_probe --nodes 1024 \
-  --binpack-tool /new/bin/forge_binpack_adapter \
   --holdout /private/forge_selfplay_013.pos \
   --holdout /private/forge_selfplay_014.pos
-python3 tools/data2/convert_dataset.py verify --out /new/filtered003 \
-  --binpack-tool /new/bin/forge_binpack_adapter
+python3 tools/data2/convert_dataset.py verify --out /new/filtered003
 ```
 
 For A1's existing output use `--input forge_filtered.fen --pos forge_filtered.pos
@@ -132,7 +151,7 @@ Separate private holdout exclusion on text data:
 python3 tools/data2/convert_dataset.py holdout-dedup \
   --input /data/forge_selfplay_003.txt --shard-id 003 \
   --holdout /private/forge_selfplay_013.pos \
-  --holdout /private/forge_selfplay_014.pos --out /new/dedup003
+  --holdout /private/forge_selfplay_014.pos --out /new/dedup003 --min-free-mb 20000
 python3 tools/data2/convert_dataset.py verify --out /new/dedup003
 ```
 
@@ -144,9 +163,8 @@ example, after verified shard 001 output:
 ```bash
 python3 tools/data2/convert_dataset.py convert \
   --input /data/forge_selfplay_002.txt --pos /data/forge_selfplay_002.pos \
-  --shard-id 002 --out /new/filtered002 \
+  --shard-id 002 --out /new/filtered002 --min-free-mb 20000 \
   --probe /path/forge_data_probe --nodes 1024 \
-  --binpack-tool /new/bin/forge_binpack_adapter \
   --holdout /private/forge_selfplay_013.pos \
   --holdout /private/forge_selfplay_014.pos \
   --dedup-against /verified/filtered001/data_CHUNK_A/rows.txt \
@@ -181,53 +199,84 @@ cargo build --release --manifest-path tools/data2/bullet_loader_check/Cargo.toml
 
 ## PC execution at Idle priority
 
-Windows execution remains unverified. After building the standalone probe and
-adapter in new directories, use the existing checked launcher with one explicitly
-spare logical CPU. Supply the actual approved executable paths; do not replace a
-running engine, trainer, or gate. This example converts shard 003 in a new output
-folder; add all prior retained chunks with `--dedup-against` for a cumulative run.
+Windows execution remains UNVERIFIED. Save this block as a script and invoke it
+with `powershell.exe -NoProfile -NonInteractive -File ... -Cpu <spareCPU> -Python
+<absoluteVenvPython> -Probe <newProbeExe>`. All required values are mandatory
+parameters; there is no `Read-Host` prompt. Supply a verified spare CPU and paths.
+Use a new output folder, leave the live trainer/gates untouched, and do not rerun
+the sealed A1 10M job. The default does not fetch, build or invoke binpack.
 
 ```powershell
-$Repo = (& git rev-parse --show-toplevel).Trim()
+[CmdletBinding()]
+param(
+  [Parameter(Mandatory=$true)][ValidateRange(0,62)][int]$Cpu,
+  [Parameter(Mandatory=$true)][string]$Python,
+  [Parameter(Mandatory=$true)][string]$Probe,
+  [Parameter(Mandatory=$true)][string]$Repo
+)
+$ErrorActionPreference = 'Stop'
 $PosDir = 'D:\grok-pc-data\forge_push\nnue_data\pos'
 $TxtDir = 'D:\grok-pc-data\selfplay_out'
-$Probe = 'C:\EDIT\new-probe-build\forge_data_probe.exe'
-$Adapter = 'C:\EDIT\new-binpack-build\forge_binpack_adapter.exe'
-$Cpu = [int](Read-Host 'One logical CPU confirmed spare; do not guess')
 $Run = Join-Path 'D:\grok-pc-data' ('astra_convert_' + [Guid]::NewGuid().ToString('N'))
 $ConverterArgs = @('convert', '--input', (Join-Path $TxtDir 'forge_selfplay_003.txt'),
   '--pos', (Join-Path $PosDir 'forge_selfplay_003.pos'), '--shard-id', '003',
-  '--out', $Run, '--probe', $Probe, '--nodes', '1024', '--binpack-tool', $Adapter,
+  '--out', $Run, '--probe', $Probe, '--nodes', '1024', '--min-free-mb', '20000',
   '--holdout', (Join-Path $PosDir 'forge_selfplay_013.pos'),
   '--holdout', (Join-Path $PosDir 'forge_selfplay_014.pos'))
 & (Join-Path $Repo 'tools\data\run_idle_spare.ps1') `
-  -Python (Get-Command python.exe).Source `
-  -Script (Join-Path $Repo 'tools\data2\convert_dataset.py') -CpuList @($Cpu) `
-  -LogDirectory ($Run + '_logs') -ScriptArguments $ConverterArgs
+  -Python $Python -Script (Join-Path $Repo 'tools\data2\convert_dataset.py') `
+  -CpuList @($Cpu) -LogDirectory ($Run + '_logs') -ScriptArguments $ConverterArgs
 ```
 
-Verify with the same launcher, a fresh log directory, and script arguments
-`@('verify', '--out', $Run, '--binpack-tool', $Adapter)`. Avoid rerunning the sealed
-A1 10M job. Prior A1 Windows path errors are corrected in `ASTRA_A1_WINDOWS.md`;
-that document is a historical reproduction runbook, not a reason to repeat it.
+Add **all** previous retained chunks via `--dedup-against` for cumulative runs.
+Verify with the same launcher, a fresh log directory, and arguments
+`@('verify', '--out', $Run)`. Only an explicit external binpack opt-in adds
+`--binpack-tool` to conversion and verification.
+
+### Required real-holdout clearance before training
+
+The separate audit verifies the sealed output independently, indexes its unique
+board+STM keys, and reads **both full** FPOS holdouts. It requires expected hashes
+and row counts from the crew's trusted full-shard manifest, not a small sample's
+self-reported identity. Use the same Idle launcher on the PC with these script
+arguments (replace variables with the trusted values):
+
+```powershell
+$AuditArgs = @('--out', $Run,
+  '--holdout-013', (Join-Path $PosDir 'forge_selfplay_013.pos'),
+  '--holdout-014', (Join-Path $PosDir 'forge_selfplay_014.pos'),
+  '--holdout-013-sha256', $Trusted013Sha256, '--holdout-013-rows', $Trusted013Rows,
+  '--holdout-014-sha256', $Trusted014Sha256, '--holdout-014-rows', $Trusted014Rows,
+  '--min-free-mb', '20000', '--work-dir', 'D:\grok-pc-data',
+  '--report', ($Run + '_real_013_014_clearance.json'))
+& (Join-Path $Repo 'tools\data\run_idle_spare.ps1') `
+  -Python $Python -Script (Join-Path $Repo 'tools\data2\audit_holdout_clearance.py') `
+  -CpuList @($Cpu) -LogDirectory ($Run + '_holdout_logs') -ScriptArguments $AuditArgs
+```
+
+Any missing/mismatched full-shard identity, output corruption or positive overlap
+is a failed clearance. **Training stays blocked until a real PASS receipt is
+produced.** No such real 013/014 receipt is claimed in this cloud review.
 
 ## Restart and evidence contract
 
 Every input, tool and native executable is hashed. Actual reads use the initially
 resolved paths; original symlink bindings are checked again before completion.
 Chunks and final receipts are published by atomic exclusive hard links after data
-fsync. Existing outputs, source data and failed attempts are never deleted or
-overwritten. Filesystems must support same-volume hard links. Resume uses the
+fsync. Source data, sealed outputs and original logs are never overwritten or
+deleted. Only explicitly owned, reconstructible temporary indexes are pruned
+after verification; this is the QA-authorized exception for scratch disk. Filesystems must support same-volume hard links. Resume uses the
 same command with `--resume`, verifies the same source/tool hashes and every
 sealed chunk, rebuilds dedup state from those chunks, and retains unsealed tails.
 A changed tool cannot silently resume an older protocol; frozen 1M tool bytes are
 included in the evidence.
 
-The default disk guard reserves 256 MB before indexing and before each chunk.
-It is a guard, not a hard disk or memory quota. Indexes and original logs are
-retained, including on retries; budget disk for them. Run shard-by-shard on the PC,
-one Idle worker on an explicitly available logical CPU, and avoid competing gates.
-No full 305M throughput or resource estimate is asserted by this slice test.
+The default free-space reserve is **20,000 MiB**, plus a preflight index/output
+budget. Index loading, recovery and row processing also check remaining space.
+These guards are not quotas: other processes can consume disk between checks.
+Only one Idle conversion should run at a time. Completed indexes are disposable;
+receipts, input hashes and output verification are retained. See the measured
+budget addendum below for sample sizes and conservative projections.
 
 The final review found and repaired: incomplete COMPLETE-accounting validation,
 unhashed data-role paths, optional skipping of a requested missing binpack,
@@ -246,8 +295,7 @@ published on the isolated branch. No large output release is claimed.
 
 IDEA_SOURCE: user crew contract and accepted shard policy; same-project A1 reader
 and native probe; MIT bulletformat wire layout at
-`eddd9a2d77dbc1391d68f23ba524657e91bd9a73`; independently MIT-licensed binpack format
-headers at `ec2ead9feeb5677b828536fc53000d1379a1d207`. New wrappers and conversion
-code are original. No GPL/AGPL code is incorporated. The upstream nnue-pytorch
-repository as a whole is GPL; only the explicitly MIT five-file include closure
-is fetched externally with exact SHA256 pins and its full notices retained.
+`eddd9a2d77dbc1391d68f23ba524657e91bd9a73`; external GPL-3.0 binpack API and full
+notice review at `ec2ead9feeb5677b828536fc53000d1379a1d207`. New wrappers and
+conversion code are original. Do not describe the compiled binpack closure as
+MIT-only. No upstream header or compiled adapter is vendored or linked to Forge.

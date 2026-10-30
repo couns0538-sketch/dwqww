@@ -1,7 +1,9 @@
 // Original Forge data transport adapter, 2026-10-30.
-// IDEA_SOURCE: user-requested full-FEN roundtrip; MIT binpack format API at
+// IDEA_SOURCE: user-requested full-FEN roundtrip; GPL-3.0 EXTERNAL binpack tooling API at
 // official-stockfish/nnue-pytorch ec2ead9feeb5677b828536fc53000d1379a1d207.
-// No engine search/evaluation code is changed. Dependencies remain external.
+// Original wrapper only. Transitive nodchip.h code is GPL-3.0 despite MIT preambles.
+// Build dependencies and binary OUTSIDE the repository; optional and OFF by default.
+// No engine search/evaluation code is changed or linked to this external tool.
 #include "binpack.h"
 #include <filesystem>
 #include <iomanip>

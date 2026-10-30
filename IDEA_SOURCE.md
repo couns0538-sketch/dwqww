@@ -52,3 +52,15 @@ IDEA_SOURCE: user task for stronger/cleaner/diverse Forge NNUE data; same-reposi
 IDEA_SOURCE (Astra FEN converter20261030): user data-pipeline contract; same-project A1 readers/probe; MIT bulletformat ChessBoard wire schema eddd9a2d77dbc1391d68f23ba524657e91bd9a73. Original code only; no engine/search change.
 
 IDEA_SOURCE (Astra cumulative dedup20261030): user-authorized sequential retained-shard index; reuse existing original board-plus-STM identity and immutable source/resume contract. No external engine code.
+
+## QA correction: external binpack tooling (2026-10-30)
+
+IDEA_SOURCE: crew QA review of the complete dependency notices at nnue-pytorch
+`ec2ead9feeb5677b828536fc53000d1379a1d207`. Earlier MIT-only wording was incorrect:
+`nodchip.h:46-47` explicitly contains modified nodchip/Stockfish GPL-3.0 code;
+`binpack.h` includes it, and `chess.h` cites Cfish. Treat the combined
+`forge_binpack_adapter` as **GPL-3.0 external tooling**, optional and OFF by default.
+Its fetched headers and compiled executable stay outside every repository. Only
+our original wrapper/test source is retained here; Forge does not link this tool.
+Default bulletformat plus its exact sidecar uses neither these headers nor this
+executable. Historical raw licence logs are retained as superseded evidence.
