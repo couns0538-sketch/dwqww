@@ -262,10 +262,15 @@ public:
     }
 
 private:
+    static bool exists(const std::string& path) { return GetFileAttributesA(path.c_str()) != INVALID_FILE_ATTRIBUTES; }
     void open_next() {
-        char name[64];
-        std::snprintf(name, sizeof(name), "%s_%03d", o_.prefix.c_str(), ++file_no_);
-        base_ = o_.out + "\\" + name;
+        // Never overwrite: skip every number whose .txt, .txt.part, .txt.md5 or .pos already exists.
+        for (;;) {
+            char name[64];
+            std::snprintf(name, sizeof(name), "%s_%03d", o_.prefix.c_str(), ++file_no_);
+            base_ = o_.out + "\\" + name;
+            if (!exists(base_ + ".txt") && !exists(base_ + ".txt.part") && !exists(base_ + ".txt.md5") && !exists(base_ + ".pos")) break;
+        }
         text_.open(base_ + ".txt", std::ios::binary | std::ios::trunc);
         lines_ = 0;
     }
@@ -290,6 +295,9 @@ private:
             f.write(reinterpret_cast<const char*>(boards_.data()), static_cast<std::streamsize>(boards_.size()));
             f.write(reinterpret_cast<const char*>(scores_.data()), static_cast<std::streamsize>(n * 2));
             f.write(reinterpret_cast<const char*>(metas_.data()), static_cast<std::streamsize>(n));
+            f.close();
+            std::ofstream info(base_ + ".pos.info", std::ios::binary | std::ios::trunc);
+            info << "source=" << base_ << ".txt\nlines=" << n << "\nrecords=" << n << "\nbad=0\n";
             boards_.clear();
             scores_.clear();
             metas_.clear();
@@ -319,6 +327,8 @@ std::array<std::uint8_t, 32> fpos_board(const Board& b) {
 // ---------------------------------------------------------------- worker
 struct Stats {
     std::atomic<long long> games{0}, candidates{0}, kept{0}, errors{0}, attempts{0};
+    // searched positions and why one was not recorded (first matching reason, in this order)
+    std::atomic<long long> searches{0}, not_bound{0}, not_check{0}, not_noisy{0}, not_mate{0}, not_big{0};
     std::atomic<long long> search_us{0};
 };
 
@@ -447,10 +457,13 @@ void worker(int id, const Options& o, Output& out, Stats& st, const std::vector<
             if (!mv || !r.has_score) { ++st.errors; result = -3; break; }  // python: RuntimeError (no score / illegal)
             const Move m = *mv;
             const bool stm_white = g.board.side_to_move() == White;
-            if (!r.bound && !g.board.in_check() && !m.is_capture() && !m.is_promotion() && !r.mate &&
-                std::abs(r.value) <= o.max_score) {
-                recs.push_back({g.board.fen(), r.value, fpos_board(g.board), !stm_white});
-            }
+            ++st.searches;
+            if (r.bound) ++st.not_bound;
+            else if (g.board.in_check()) ++st.not_check;
+            else if (m.is_capture() || m.is_promotion()) ++st.not_noisy;
+            else if (r.mate) ++st.not_mate;
+            else if (std::abs(r.value) > o.max_score) ++st.not_big;
+            else recs.push_back({g.board.fen(), r.value, fpos_board(g.board), !stm_white});
             int side = 0;
             if (!r.bound) {
                 // python-chess Score order: mate(+n) is above every cp, mate(-n) below; Mate(0) is a loss for the mover
@@ -562,6 +575,10 @@ int main(int argc, char** argv) {
     out.close();
     const double el = std::chrono::duration<double>(std::chrono::steady_clock::now() - t0).count();
     const long long kept = out.total();
+    std::printf("searches=%lld not recorded: bound=%lld in_check=%lld capture_or_promotion=%lld mate=%lld abs_cp_over_max=%lld"
+                " (games that did not finish are not counted as positions)\n",
+                st.searches.load(), st.not_bound.load(), st.not_check.load(), st.not_noisy.load(), st.not_mate.load(),
+                st.not_big.load());
     std::printf("DONE: %.3f h, games=%lld positions=%lld positions/h=%.0f eligible=%lld errors=%lld dedup_removed=%lld\n",
                 el / 3600, st.games.load(), kept, kept * 3600.0 / std::max(el, 1e-9), st.candidates.load(), st.errors.load(),
                 st.candidates.load() - kept);
