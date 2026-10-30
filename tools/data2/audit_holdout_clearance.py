@@ -337,7 +337,7 @@ def parser():
     result.add_argument('--work-dir', help='Existing scratch directory, default: report parent')
     result.add_argument('--prune-indexes', action='store_true',
                         help='Remove this run\'s owned index after completed PASS/FAIL identity validation; default: retain')
-    result.add_argument('--min-free-mb', type=int, default=20480, help='Free-space reserve in MiB (default: 20480)')
+    result.add_argument('--min-free-mb', type=int, default=32768, help='Free-space reserve in MiB (default: 32768)')
     return result
 
 

@@ -1,0 +1,36 @@
+test_audit_default_reserves_32_gib (test_reserve_defaults.ReserveDefaults.test_audit_default_reserves_32_gib) ... FAIL
+test_converter_default_blocks_25_gib_before_any_index_work (test_reserve_defaults.ReserveDefaults.test_converter_default_blocks_25_gib_before_any_index_work) ... 
+  test_converter_default_blocks_25_gib_before_any_index_work (test_reserve_defaults.ReserveDefaults.test_converter_default_blocks_25_gib_before_any_index_work) (command='convert') ... FAIL
+  test_converter_default_blocks_25_gib_before_any_index_work (test_reserve_defaults.ReserveDefaults.test_converter_default_blocks_25_gib_before_any_index_work) (command='holdout-dedup') ... FAIL
+test_explicit_test_override_remains_available (test_reserve_defaults.ReserveDefaults.test_explicit_test_override_remains_available) ... ok
+
+======================================================================
+FAIL: test_audit_default_reserves_32_gib (test_reserve_defaults.ReserveDefaults.test_audit_default_reserves_32_gib)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/tmp/forge-astra-fen-convert/tests/data2/test_reserve_defaults.py", line 19, in test_audit_default_reserves_32_gib
+    self.assertEqual(audit.parser().get_default('min_free_mb') * 1024**2, 32*1024**3)
+AssertionError: 21474836480 != 34359738368
+
+======================================================================
+FAIL: test_converter_default_blocks_25_gib_before_any_index_work (test_reserve_defaults.ReserveDefaults.test_converter_default_blocks_25_gib_before_any_index_work) (command='convert')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/tmp/forge-astra-fen-convert/tests/data2/test_reserve_defaults.py", line 16, in test_converter_default_blocks_25_gib_before_any_index_work
+    with self.assertRaisesRegex(ValueError, 'free-space guard'):
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: ValueError not raised
+
+======================================================================
+FAIL: test_converter_default_blocks_25_gib_before_any_index_work (test_reserve_defaults.ReserveDefaults.test_converter_default_blocks_25_gib_before_any_index_work) (command='holdout-dedup')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/tmp/forge-astra-fen-convert/tests/data2/test_reserve_defaults.py", line 16, in test_converter_default_blocks_25_gib_before_any_index_work
+    with self.assertRaisesRegex(ValueError, 'free-space guard'):
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: ValueError not raised
+
+----------------------------------------------------------------------
+Ran 3 tests in 0.008s
+
+FAILED (failures=3)

@@ -560,7 +560,7 @@ def parser():
         c.add_argument('--input', required=True); c.add_argument('--pos'); c.add_argument('--sidecar-format', choices=('text','fen'), default='text'); c.add_argument('--out', required=True)
         c.add_argument('--game-ids'); c.add_argument('--shard-id'); c.add_argument('--holdout', action='append', default=[]); c.add_argument('--holdout-game-ids', action='append', default=[]); c.add_argument('--require-game-clearance', action='store_true')
         c.add_argument('--dedup-against', action='append', default=[], help='Prior kept rows.txt or FPOS input; repeat for all preceding training chunks. Counts as duplicate, never holdout.')
-        c.add_argument('--limit', type=int); c.add_argument('--chunk-rows', type=int, default=100000); c.add_argument('--min-free-mb', type=int, default=20000); c.add_argument('--resume', action='store_true'); c.add_argument('--stop-after-chunks', type=int)
+        c.add_argument('--limit', type=int); c.add_argument('--chunk-rows', type=int, default=100000); c.add_argument('--min-free-mb', type=int, default=32768); c.add_argument('--resume', action='store_true'); c.add_argument('--stop-after-chunks', type=int)
         c.add_argument('--probe'); c.add_argument('--nodes', type=int, default=1024); c.add_argument('--score-cap', type=int, default=3000); c.add_argument('--disagreement-cp', type=int, default=400); c.add_argument('--draw-disagreement-cp', type=int, default=800)
         c.add_argument('--binpack-tool'); c.add_argument('--accept-gpl3', action='store_true', help='Acknowledge optional external GPL-3.0 adapter'); c.add_argument('--allow-transport-moves', action='store_true')
         c.add_argument('--no-filters', action='store_true'); c.add_argument('--no-dedupe', action='store_true')
