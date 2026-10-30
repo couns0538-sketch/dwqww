@@ -33,7 +33,8 @@ Stop it by its PID (`<root>\run\pipeline.pid.json`); hold it with `r11_hold.py h
   them, no TRAIN row shares a position with ANY 013/014 row (full scan), dedup order on a key-space slice; PASS writes
   HOLDOUT_TEST.json with the hashes of registry/decisions/file lists. The train stage refuses without it or after a
   change.
-- train: yield-only (never next to a production trainer; exit 76 when one appears; the check runs before `import torch`),
+- train: yield-only (never next to a production trainer; exit 76 when one appears; the check runs before `import torch`,
+  again right after the imports (they took 11 min under the old cap while production started) and at fit start),
   RAM floors (exit 75 / 97), disk floor before each checkpoint, rotation newest 2 + best by val_loss across restarts,
   exact resume (`r11_next_epoch`), checkpoints zip-checked before rename.
 - export: serialize.py `--features=K32H3^ --l1=N` on the CPU; the `.part.nnue` must load in the HalfKA tool.
@@ -55,7 +56,7 @@ Stop it by its PID (`<root>\run\pipeline.pid.json`); hold it with `r11_hold.py h
 ## Pitfalls seen
 - NEVER use background mode (`SetPriorityClass(PROCESS_MODE_BACKGROUND_BEGIN)`): besides resetting the class to Normal
   it caps the process working set at **32 MB** (measured 2026-10-30: 300 MB touched stayed at 32 MB, 4.8x page faults,
-  re-read 14x slower; the real dedup crawled for >18 min instead of ~2 min, the train entry ran at 90 % kernel time with
+  re-read 14x slower; a real dedup pass took 1718 s instead of ~130 s, the train entry spent 89 % of its CPU time in the kernel with
   445k page faults/s). Use Idle (0x40) + `psutil.Process().ionice(psutil.IOPRIO_VERYLOW)` + memory priority low
   (`SetProcessInformation(ProcessMemoryPriority=0, MEMORY_PRIORITY_LOW=2)`) + the 3-core mask: all four are inherited
   by children (`r11_common.set_idle_background`, test 1e in test_r11_tools.py checks it and the missing cap).

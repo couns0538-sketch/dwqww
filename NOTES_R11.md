@@ -69,7 +69,8 @@ PC crash/reboot 11:38 (nothing of R11 was half-written: the run died in dedup be
 - Production after the reboot: nnue-pytorch adapter run (Idle, ~5.9 GB), self-play R8 v5 driver 5 workers on CPUs 0-15,
   conc-8 gate; CPU 50-100 %, free RAM 14-21 GB.
 - D: free space moves with other jobs (D:\forge_nnue_train exports/checkpoints, D:\forge_j1_data_astra): 67 GB at 10:20,
-  38.8 GB at 11:55, 45 GB at 12:20. The full conversion needs ~12.5 GB, so it only fits partially above 42 GB.
+  38.8 GB at 11:55, 45 GB at 12:20, 37.8 GB at 13:09. The full conversion needs 11.54 GB (all 67 shards, projected at
+  13:09), so D: needs >= 53.6 GB free for the whole run above the 40 GB floor + 2 GB margin.
 - Permission: the project settings' ask rule `Bash(git push *)` makes every push prompt; editing it was blocked for me
   (self-modification) - the owner can remove that line in D:\grok-pc-data\dwqww\.claude\settings.json.
 - **Background mode (PROCESS_MODE_BACKGROUND_BEGIN) = hard 32 MB working-set max** (GetProcessWorkingSetSizeEx: max

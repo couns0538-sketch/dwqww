@@ -361,7 +361,7 @@ def set_idle_background(mask: int = DEFAULT_AFFINITY) -> dict:
     BelowNormal would outrank the Idle trainer and self-play.
     NOT PROCESS_MODE_BACKGROUND_BEGIN: measured on this PC it caps the process working set at 32 MB - a 300 MB array
     stayed at a 32 MB working set with 4.8x the page faults, writes 6x and re-reads 14x slower; the real data stage and
-    the trainer entry ran at ~90 % kernel time (445k page faults/s). The amendment keeps the same resource classes
+    the trainer entry spent 89 % of its CPU time in the kernel (445k page faults/s). The amendment keeps the same resource classes
     (CPU idle, I/O very low, memory low) without that cap."""
     if bin(mask).count("1") > 3 or mask <= 0:
         raise StageFailed(f"affinity mask {hex(mask)} must select 1..3 CPUs")

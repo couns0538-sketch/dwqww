@@ -1,0 +1,15 @@
+Live yield of the R11 train entry to the real production trainer (E2E test test_r11_train.py, scratch e2e_3, CPU smoke profile)
+12:39:27  holdout gate PASS (synthetic data of the test), train stage starts the entry (trainer log trainer_20261030_123929.log)
+~12:39:3x entry: pre-import production check (CR R2 M1) -> none running -> imports torch + the trainer (under the OLD
+          background mode: 32 MB working-set cap, 89 % kernel time, 445k page faults/s)
+12:44:54  production trainer processes start (pids 10440/12052, grok-pc venv) and 12:44:57 (pids 4952/9496, guard_exec with
+          guard_tag; matched by the pattern 'guard.tag'); start times read with psutil create_time at 13:0x
+12:50:24  entry event "start" (imports done after ~11 min; this build had no post-import check yet)
+12:50:58  event "fit_start"
+12:51:15  first in-training check (end of batch 1): production running -> saved stop-epoch=0-step=1.ckpt, exit 76
+12:51:40  driver: "trainer exit 76 after 731 s ... waiting, then resuming from the newest checkpoint"
+12:51:44  driver WAIT "production trainer running (guard.tag, pid 4952); training yields until it ends"
+Consequence (commit 27c94568): the entry now also checks right after the imports and at fit start.
+Raw cap measurement of this entry (PID 2104, psutil, 5 s window, ~12:4x):
+  user 20.7 system 178.7 | +user 0.42 +system 3.30 in 5 s
+  page faults 117507300 -> +2228539 in 5 s   wset MB 32   peak wset MB 32   private MB 283

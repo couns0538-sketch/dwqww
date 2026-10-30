@@ -33,7 +33,7 @@ logs/selftest/test_r11_tools_m1b.log | 7619 | ee37a5cf05d2e908096c521e654ebdd41b
 logs/selftest/test_r11_tools_t2.log | 2763 | c5d3539caecfd6f40d5f181700bc21cb45c3516999a9c5fca252faaf184f1a76 | evidence log
 pipeline/r11_astra.py | 12536 | d4b44843e6d1b23e84052cf3e3fa7e3f5084038e1a3205f4568cc709d2586255 | Astra release: download / verify / list / staged extract with pinned sha256
 pipeline/r11_check.py | 22032 | 7d5e241b5d120ffdfeccabc086890d1b030fa74ca196342f52be7b4c7e5d9289 | check stage: AVX2 x86-64-v3 build of 7f79c349, export, fens_12k parity, OFF identity, ON bench d11-d22, WAC 300
-pipeline/r11_common.py | 23510 | c7aa834379c280cfb8e308ffdded516968ba054874a73523f14d05b392d24d93 | shared: config/limits, logging, governor (RAM/CPU/disk/hold), Idle + I/O very low + memory low on 3 cores, production-process check, sha256, disk floors
+pipeline/r11_common.py | 23526 | 8af5f47ddba985b8486502217763f0bc3893204718a98f5f80207d8c0d72bae4 | shared: config/limits, logging, governor (RAM/CPU/disk/hold), Idle + I/O very low + memory low on 3 cores, production-process check, sha256, disk floors
 pipeline/r11_config.json | 5312 | da72fec9f81bcae715e2a5c0d3fd5cd96a03d3838671609a2efcc8b28934fc21 | the shipped config (sources, holdout 013/014, floors, train profiles smoke/full, check inputs)
 pipeline/r11_data.py | 46969 | 30fef8efbe433ef31e07ba57a87c78a9a73c65f77157708f86cddc1ac0a36373 | data stage: inventory, registry (holdout first, full sha256), supersede, hce generation, multi-pass dedup, .part->verify->rename conversion under the disk floor, manifest
 pipeline/r11_hold.py | 1922 | 1d8f9d564326ca7b295bb7edaa19b4d78c78b19789770b8ea2e4336848491a92 | hold/release the named event Local\Forge_R11_Hold (no STOP/PAUSE files)
@@ -41,11 +41,26 @@ pipeline/r11_package.py | 8597 | 078e0ed05edd9774071c33a5c46a066b5197837658f266d
 pipeline/r11_pipeline.py | 10250 | 3f9da7b54621f431c3a93fd17b0de22487beb976dd628ac07fb66afc65e684c4 | ONE command: data -> holdout gate -> train -> export -> check -> package; run/status/selftest; exit 0 PASS / 1 FAIL / 3 WAIT
 pipeline/r11_train.py | 12637 | bba40ef963a0e6709f91c82eb6927832ddc8fab5a45f220d1088700518bcd0a3 | train stage: holdout gate, yield-only GPU policy, auto-resume, RAM/disk waits; launches the entry
 skills/forge-nnue-data/SKILL.md | 7075 | 046764d9c71790feae8edf330858696cb21a17371f6396756480fd6385b3c8b7 | copy of the project skill (R11 section added)
-skills/forge-nnue-pipeline/SKILL.md | 7427 | 779edf5ffea0eec6b9ab0d941a5b9ec7f127f693302483ec444cad076231b1d3 | copy of the new project skill
+skills/forge-nnue-pipeline/SKILL.md | 7551 | 58c2aee6a61df261544db39e463425078aa96922ab09d6b35b204e8b439f089f | copy of the new project skill
 skills/forge-nnue-pytorch-amd/SKILL.md | 12298 | c8585a96db6295c5b8d3d9d323897b755aa149df4bcf0016275388ce3a582412 | copy of the project skill (R11 section added)
 skills/forge-pc-rules/SKILL.md | 17580 | 256dd06ea1b377e8aeaa3267cdd7a45a8aaa3a0332e601bfabc3c7ff477cdd76 | copy of the project skill (R11 section added)
 tests/test_r11_data.py | 21513 | 2fc52a9f3d7a02077ae38579e8a38abf52123e34aa2ce5bad8c28d44aab82817 | self-test: the data stage on synthetic shards (69 checks: dedup order, holdout, supersede, writer_bad, .part, floors)
 tests/test_r11_holdout_real.py | 8464 | 8a78e01db1bd4a34c3985d9163faf165f737cb09aba201c8e4be7de70b22e874 | holdout + dedup-order proof on the REAL data (writes HOLDOUT_TEST.json, the train gate)
 tests/test_r11_tools.py | 25861 | 57648c762c7a70dc5de8ce41b04d88706d6fa2d1487468ddff5dc8487c289b16 | self-test: CR rules (hold event, priority + no working-set cap, psutil fail-closed, production check incl. after imports / at fit start, disk floors, sealed sha256, GPL boundary), Astra extract
 tests/test_r11_train.py | 8998 | 2436df9369627d75213501e4cd19801b8317addb735e9152eb7d03c441d4a425 | end-to-end self-test of the one command on CPU (data -> holdout -> train -> export -> check -> smoke package, yield, exact resume, rotation)
-REPORT.md | 7944 | b19bfed29cfa3e049621641ffacd754225c3ac2052537293ebcb213a46c4e139 | job report (written by the main session from the job's results)
+logs/data_real/MANIFEST.json | 578 | c9bfc3ecc2b310802411cdead1f36fcfe0bc07f1fa540d33b304e6952852f04f | evidence log
+logs/data_real/SHA256_of_live_state.txt | 226 | 9670930cca6f2dfffc55ca7878c50e79f42c98e2dcd0bd42c33740de8099637b | evidence log
+logs/data_real/SUMMARY.md | 282 | babf638e877c460a76a23bd9452bfb58d07115a7910d03355f155b5691dbeca7 | evidence log
+logs/data_real/data_run4.out | 21256 | de4e3147d61051374e67c4bf849dde4f1c37453af3960b5de733bd50ee4705f1 | evidence log
+logs/data_real/dedup_summary.txt | 1036 | cf723e0d06fb6aa99990210e07c265428d8df05a1bd0389f44e80f8b427a192f | evidence log
+logs/data_real/hce_tool_qualified.json | 368 | bd6e45636cde71780b630ec3cc3e479d50d804a4e278e0a38c0df14e39259f18 | evidence log
+logs/data_real/registry.json | 47980 | 59fe7c720e11d2a31bc31136a2f8f8dc48f091e2bf73f1628007f12408f9d6e8 | evidence log
+logs/data_real/supersede_fp__forge_selfplay_003.json | 357 | bf1a93b6f78038321d1daaada51c8460feeddb04c32d8537a47facca7097f654 | evidence log
+logs/e2e_live_yield/TIMELINE.txt | 1465 | 3e99791a786688cea44a736a55e76556049836c0e76112bb18ae7886b36c45b7 | evidence log
+logs/e2e_live_yield/r11_ckpt_index.json | 339 | 6c2cf4469c03cc98d48bafbafb170d4141193dc8e36e880c0c2ccd6f9714d9a6 | evidence log
+logs/e2e_live_yield/r11_events.jsonl | 1643 | d9d5589ddb42daeb6d5028ff2e2ec5e8199e07b30a8bf692f0510149bd75d8ed | evidence log
+logs/e2e_live_yield/test_r11_train_e2e_3.log | 4782 | 6a7ad2afc3f6f22b9f5283a9a55ea9149fe424d7c063a879d43d92e839f0a475 | evidence log
+logs/e2e_live_yield/trainer_20261030_123929.log | 3143 | 6ce467433bd36db6923dca1db405e1c21705643e7386c5453b4f01df1bc35de1 | evidence log
+logs/holdout_real/HOLDOUT_TEST.json | 663 | 5e319935c195de678e21bdc255d30bb09819fe8687f65f03db40a8a36f7872d5 | evidence log
+logs/holdout_real/test_r11_holdout_real.out | 1722 | 93365609e03eec01a25efdd34e0ad0d749b17c1d09e8fb575906dbfbbf1c823a | evidence log
+REPORT.md | 8502 | 0c13c0377be8d49a0dfd5ef945d2ffa6e0c28a078c20ea6fc84f46cfb7de894d | job report (written by the main session from the job's results)

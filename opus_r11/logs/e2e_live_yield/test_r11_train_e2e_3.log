@@ -1,0 +1,57 @@
+ok   train stage refuses to start without a passing holdout test (CR R2 M3)
+2026-10-30T12:39:21 [data] INFO writer exe: C:/Users/Administrator/.claude/jobs/2ec35f11/tmp/e2e_3/root/bin/r11_pos2binpack_32fdd066d7c6.exe
+2026-10-30T12:39:21 [data] INFO inventory: 4 ready shards, 21000 rows, superseded {}
+2026-10-30T12:39:21 [data] INFO registered #0 s:h_001 rows 3000 holdout True hce source sha256 510ee750b078
+2026-10-30T12:39:21 [data] INFO registered #1 s:t_001 rows 6000 holdout False hce source sha256 323f077607cf
+2026-10-30T12:39:21 [data] INFO registered #2 s:t_002 rows 6000 holdout False hce source sha256 209c600a32bf
+2026-10-30T12:39:21 [data] INFO registered #3 s:t_003 rows 6000 holdout False hce source sha256 0935de386f74
+2026-10-30T12:39:21 [data] INFO dedup: 4 pending shards (21000 rows), 0 earlier shards to check against, 1 key-range passes, keys recomputed from the .pos files
+2026-10-30T12:39:22 [data] INFO dedup pass 1/1: prefixes [0, 65536), 21000 first occurrences, 0 shadowed by earlier shards, 0.1 s
+2026-10-30T12:39:22 [data] INFO decision s:h_001: kept 3000 of 3000 (100.000%), bad 0, holdout
+2026-10-30T12:39:22 [data] INFO decision s:t_001: kept 6000 of 6000 (100.000%), bad 0, train
+2026-10-30T12:39:22 [data] INFO decision s:t_002: kept 6000 of 6000 (100.000%), bad 0, train
+2026-10-30T12:39:22 [data] INFO decision s:t_003: kept 6000 of 6000 (100.000%), bad 0, train
+2026-10-30T12:39:22 [data] PASS dedup: 4 shards decided in 1.1 s
+2026-10-30T12:39:22 [data] INFO disk: 29.1 GB free on the target drive, 4 shards to convert = 0.00 GB, projected free after the full run 29.1 GB (floor 5 GB)
+2026-10-30T12:39:23 [data] INFO converted s:h_001 -> holdout: 3000 records, verified before rename, 0.09 s
+2026-10-30T12:39:24 [data] INFO converted s:t_003 -> train: 6000 records, verified before rename, 0.05 s
+2026-10-30T12:39:25 [data] INFO converted s:t_002 -> train: 6000 records, verified before rename, 0.14 s
+2026-10-30T12:39:27 [data] INFO converted s:t_001 -> train: 6000 records, verified before rename, 0.09 s
+2026-10-30T12:39:27 [data] PASS data: 4 shards, train 18,000 holdout 3,000 records, dropped 0 duplicates, bad 0, complete True
+2026-10-30T12:39:27 [holdout] INFO holdout gate: no passing holdout test for this data (CR R2 M3): run opus_r11/tests/test_r11_holdout_real.py --config <cfg> first; running the holdout test on the real data now
+ok   holdout shards ['s:h_001'] are registry entries #0..#0 and flagged holdout
+ok   no other registry entry is holdout
+ok   superseded shards are not registered: []
+ok   every registered shard has a decision (4/4)
+ok   all 4 inputs match their registered full sha256
+ok   s:h_001: no TRAIN code (3000 holdout rows)
+ok   decision codes: TRAIN only outside the holdout shards, HOLD only inside
+holdout positions (unique keys over ALL rows of the holdout shards): 3000
+ok   no TRAIN row shares a position with any row of the holdout shards (hits 0)
+ok   dedup order on 653 rows (key prefixes [0, 2048) of 65536): the kept row is always the first good occurrence in registry order (wrong kept 0, first occurrence not kept 0, keys kept twice 0)
+ok   train_files.txt (3 files) names no holdout shard
+ok   holdout_files.txt (1 files) names only holdout shards
+{
+ "pass": true,
+ "at": "2026-10-30T12:39:27",
+ "seconds": 0.1,
+ "holdout": [
+  "s:h_001"
+ ],
+ "holdout_unique_positions": 3000,
+ "leak_hits": 0,
+ "dedup_sample_rows": 653,
+ "sample_prefixes": 2048,
+ "manifest_complete": true,
+ "registry_sha256": "daf872acb84554e54e5ed8939c55f7255878f9f11eef38ad033bfe001dfe9c0f",
+ "decisions_sha256": "7b017c44d722a9a08d1dab40c7c607c99311567e44b0a091bd249e340b767d86",
+ "train_files_txt_sha256": "0e5d3217a345ab25160a545f9eff3e71b31a745a4f6a0a42d2375f8c632e19cf",
+ "holdout_files_txt_sha256": "c787b5445ac7824089d59459e1e885bf23ebc0da19b31ee04c0b0965fae16517"
+}
+R11 HOLDOUT TEST PASS
+2026-10-30T12:39:27 [holdout] PASS holdout gate: test passed 2026-10-30T12:39:27 on ['s:h_001'] (3,000 holdout positions, leak hits 0, dedup order sample 653 rows); data unchanged
+2026-10-30T12:39:27 [train] PASS holdout gate: test passed 2026-10-30T12:39:27 on ['s:h_001'] (3,000 holdout positions, leak hits 0, dedup order sample 653 rows); data unchanged
+2026-10-30T12:39:29 [train] INFO train cpu_test: start (fresh), log C:/Users/Administrator/.claude/jobs/2ec35f11/tmp/e2e_3\root\runs\e2e\trainer_20261030_123929.log
+2026-10-30T12:51:40 [train] INFO train cpu_test: trainer exit 76 after 731 s
+2026-10-30T12:51:40 [train] INFO train cpu_test: exit 76 (production trainer appeared); waiting, then resuming from the newest checkpoint
+2026-10-30T12:51:44 [train] WAIT train cpu_test: production trainer running (guard.tag, pid 4952); training yields until it ends

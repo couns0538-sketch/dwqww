@@ -166,7 +166,7 @@ def main() -> int:
     if sys.platform == "win32":
         # CR fix 2 (amended): Idle (0x40) + I/O priority very low + memory priority low on at most 3 cores (the
         # trainer's loader threads inherit the mask). NOT background mode: it caps the working set at 32 MB (measured:
-        # this entry ran at 90 % kernel time, 445k page faults/s)
+        # this entry spent 89 % of its CPU time in the kernel, 445k page faults/s)
         mask = int(opts["affinity"], 0)
         if bin(mask).count("1") > 3:
             raise SystemExit("--r11-affinity must select at most 3 CPUs")
