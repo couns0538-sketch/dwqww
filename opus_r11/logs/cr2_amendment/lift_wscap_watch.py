@@ -13,17 +13,24 @@ Code Review R3 found that it ignored the results of its API calls and re-opened 
   Priority class, I/O priority and affinity of the targets are not changed. Nothing is killed;
 - fail closed: if this process cannot lower itself (Idle, I/O very low, memory low, affinity), or any call on a
   verified target fails, it logs FAIL and exits without touching anything else.
-Usage: lift_wscap_watch.py <log file> --expect <text in each root's command line> [--affinity 0x700] [--once]
-                           [--poll 5] <root pid> [<root pid> ...]
+- CR R4: --expect must itself name an R11 script (opus_r11/<dir>/r11_*.py or test_r11_*.py, e.g.
+  opus_r11/pipeline/r11_data.py), so only R11's own processes can be roots.
+Usage: lift_wscap_watch.py <log file> --expect <R11 script path in each root's command line> [--affinity 0x700]
+                           [--once] [--poll 5] <root pid> [<root pid> ...]
 Exit: 0 done (all roots ended, or one pass with --once), 1 a call on a verified target failed, 2 refused to start.
 """
 import argparse
 import ctypes
+import re
 import sys
 import time
 from ctypes import wintypes
 
 import psutil
+
+# CR R4: --expect must name an R11 script (opus_r11/<dir>/r11_*.py or test_r11_*.py), so the lifter can only ever be
+# pointed at R11's own processes, never at a generic "python"
+R11_SCRIPT = re.compile(r"opus_r11[\\/](?:[^\s]*[\\/])?(?:test_)?r11_\w*\.py")
 
 PROCESS_SET_INFORMATION, PROCESS_SET_QUOTA, PROCESS_QUERY_INFORMATION = 0x0200, 0x0100, 0x0400
 HARDWS_MIN_DISABLE, HARDWS_MAX_ENABLE, HARDWS_MAX_DISABLE = 0x2, 0x4, 0x8
@@ -122,6 +129,9 @@ def main(argv: list[str]) -> int:
     ap.add_argument("roots", nargs="+", type=int)
     a = ap.parse_args(argv)
     w = Watcher(a.log)
+    if not R11_SCRIPT.search(a.expect):
+        w.log(f"FAIL --expect {a.expect!r} must name an R11 script (opus_r11/.../r11_*.py); nothing changed")
+        return 2
     mask = int(a.affinity, 0)
     if bin(mask).count("1") > 3 or mask <= 0:
         w.log(f"FAIL --affinity {a.affinity} must select 1..3 CPUs; nothing changed")

@@ -492,7 +492,9 @@ def main() -> int:
     # blindly) and fail-closed; a probe enters background mode like the old code and prints its working-set flags
     watcher = os.path.join(REPO, "opus_r11", "logs", "cr2_amendment", "lift_wscap_watch.py")
     lmark = f"R11LIFTPROBE{os.getpid()}"
-    lprobe = os.path.join(scratch, "lift_probe.py")
+    lrel = os.path.join("opus_r11", "r11_lift_probe.py")  # CR R4: --expect must name an R11 script
+    lprobe = os.path.join(scratch, lrel)
+    os.makedirs(os.path.dirname(lprobe), exist_ok=True)
     with open(lprobe, "w", encoding="utf-8", newline="\n") as f:
         f.write("import ctypes, sys, time\n"
                 "from ctypes import wintypes\n"
@@ -519,17 +521,19 @@ def main() -> int:
     wl = os.path.join(scratch, "lift_wscap.log")
     lp = subprocess.Popen([sys.executable, "-I", "-B", lprobe, lmark], stdout=subprocess.PIPE, text=True)
     time.sleep(3.0)
-    r_expect = run_watcher([wl, "--expect", "NOT-IN-ANY-COMMAND-LINE", "--once", str(lp.pid)])
+    r_generic = run_watcher([wl, "--expect", lmark, "--once", str(lp.pid)])  # in the command line, but no R11 script
+    r_expect = run_watcher([wl, "--expect", os.path.join("opus_r11", "r11_other.py"), "--once", str(lp.pid)])
     gone = subprocess.Popen([sys.executable, "-c", "pass"])
     gone.wait()
-    r_dead = run_watcher([wl, "--expect", lmark, "--once", str(gone.pid)])
-    r_mask = run_watcher([wl, "--expect", lmark, "--affinity", hex(1 << 40), "--once", str(lp.pid)])
+    r_dead = run_watcher([wl, "--expect", lrel, "--once", str(gone.pid)])
+    r_mask = run_watcher([wl, "--expect", lrel, "--affinity", hex(1 << 40), "--once", str(lp.pid)])
     before = open(wl, encoding="utf-8").read() if os.path.isfile(wl) else ""
-    check(r_expect.returncode == 2 and r_dead.returncode == 2 and r_mask.returncode == 2 and
-          "soft defaults" not in before and before.count("FAIL") == 3,
-          f"lifter refuses (exit 2, nothing changed): a root without the expected text {r_expect.returncode}, a dead "
-          f"root {r_dead.returncode}, a mask it cannot set {r_mask.returncode}")
-    r_ok = run_watcher([wl, "--expect", lmark, "--once", str(lp.pid)])
+    rcs = (r_generic.returncode, r_expect.returncode, r_dead.returncode, r_mask.returncode)
+    check(rcs == (2, 2, 2, 2) and "soft defaults" not in before and before.count("FAIL") == 4 and
+          "must name an R11 script" in before,
+          f"lifter refuses (exit 2, nothing changed): --expect that names no R11 script, a root without the expected "
+          f"R11 script, a dead root, a mask it cannot set: {rcs}")
+    r_ok = run_watcher([wl, "--expect", lrel, "--once", str(lp.pid)])
     out, _ = lp.communicate(timeout=120)  # the probe ends by itself (20 s); nothing is killed
     flags = out.split()
     lifted = [ln for ln in open(wl, encoding="utf-8").read().splitlines() if "soft defaults" in ln]
