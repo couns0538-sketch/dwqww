@@ -326,6 +326,11 @@ def main() -> int:
         check("CR R3" in str(e), "the entry refuses --r11-keep-last 2 (it could delete checkpoints)")
     check(entry.parse_own_args(["--r11-clone", "x", "--r11-run-dir", "y", "--"])[0]["keep_last"] == 1_000_000,
           "the entry's default keep_last is 1,000,000")
+    # CR R4: no deletion code left in the rotation - the entry's only os.remove is a failed write's own .tmp
+    esrc = open(spec.origin, encoding="utf-8").read()
+    removes = re.findall(r"os\.remove\(([^)]*)\)", esrc)
+    check(removes == ["tmp"] and "rotation.jsonl" not in esrc,
+          f"the entry deletes nothing but a failed checkpoint's own .tmp (os.remove calls: {removes})")
     cfg_k = json.loads(json.dumps(real_cfg))
     cfg_k["train"]["profiles"]["smoke"]["keep_last"] = 2
     try:

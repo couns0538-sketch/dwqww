@@ -271,7 +271,6 @@ def main() -> int:
     class R11CheckpointManager(CB.Callback):
         def __init__(self, save_last=True, every_n_epochs=20, save_top_k=-1, dirpath=None):  # trainer's signature
             super().__init__()
-            self.keep_last = int(opts["keep_last"])
             self.last_check = 0.0
             self.has_val = False
 
@@ -317,22 +316,12 @@ def main() -> int:
             return path
 
         def _rotate(self, ix: dict) -> None:
+            # CR R3/R4: nothing is ever deleted - the rotation only tracks the best checkpoint by val_loss (the
+            # disk-floor check before each save and the save interval keep a run inside the floor)
             live = [x for x in ix["entries"] if os.path.isfile(x["path"])]
             scored = [x for x in live if isinstance(x.get("val_loss"), (int, float)) and x["val_loss"] == x["val_loss"]]
-            best = min(scored, key=lambda x: (x["val_loss"], -x["step"])) if scored else None
-            ix["best"] = best
-            newest = sorted(live, key=lambda x: (x["next_epoch"], x["step"], x["saved"]))[-self.keep_last:]
-            keep = {x["path"] for x in newest} | ({best["path"]} if best else set())
-            for x in live:
-                p = x["path"]
-                inside = os.path.dirname(os.path.abspath(p)) == os.path.abspath(ckpt_dir)
-                if p not in keep and inside and os.path.basename(p).endswith(".ckpt"):
-                    os.remove(p)  # R11 rule: newest N + best; only files this manager wrote (listed in its index)
-                    ix["removed"].append({"path": p, "at": time.strftime("%Y-%m-%dT%H:%M:%S")})
-                    with open(os.path.join(ckpt_dir, "rotation.jsonl"), "a", encoding="utf-8", newline="\n") as f:
-                        f.write(json.dumps({"removed": p, "epoch": x["epoch"], "val_loss": x.get("val_loss"),
-                                            "kept": sorted(keep)}) + "\n")
-            ix["entries"] = [x for x in ix["entries"] if os.path.isfile(x["path"])]
+            ix["best"] = min(scored, key=lambda x: (x["val_loss"], -x["step"])) if scored else None
+            ix["entries"] = live
 
         def on_save_checkpoint(self, trainer, checkpoint):
             meta = getattr(self, "_pending_meta", None)
