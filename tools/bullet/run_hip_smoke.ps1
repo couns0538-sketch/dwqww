@@ -49,16 +49,17 @@ function Assert-GpuIdleSample([object[]]$Samples) {
     foreach ($sample in $Samples) {
         if ($null -eq $sample -or $null -eq $sample.PSObject.Properties['Name']) { throw 'GPU counter identity unavailable' }
         # Per-process WDDM counters share an engine only when adapter LUID,
-        # physical GPU index, engine index AND type all match.
-        if ([string]$sample.Name -notmatch '^pid_\d+_luid_(?<luid>0x[0-9a-f]+_0x[0-9a-f]+)_phys_(?<phys>\d+)_eng_(?<eng>\d+)_engtype_(?<kind>[a-z0-9][a-z0-9_]*)$') { throw 'Malformed WDDM GPU counter identity' }
-        $engineKey = '{0}|{1}|{2}|{3}' -f $Matches.luid, $Matches.phys, $Matches.eng, $Matches.kind
+        # physical GPU index and engine index match. The type is a label,
+        # not another physical engine identity; WDDM labels may contain spaces.
+        if ([string]$sample.Name -notmatch '^pid_\d+_luid_(?<luid>0x[0-9a-f]+_0x[0-9a-f]+)_phys_(?<phys>\d+)_eng_(?<eng>\d+)_engtype_(?<kind>[a-z0-9]+(?:[ _][a-z0-9]+)*)$') { throw 'Malformed WDDM GPU counter identity' }
+        $engineKey = '{0}|{1}|{2}' -f $Matches.luid, $Matches.phys, $Matches.eng
         $kind = $Matches.kind
         $property = $sample.PSObject.Properties['UtilizationPercentage']
         if ($null -eq $property -or $null -eq $property.Value) { throw 'GPU utilization is unavailable' }
         $util = 0.0
         if (-not [double]::TryParse([string]$property.Value, [ref]$util) -or [double]::IsNaN($util) -or [double]::IsInfinity($util) -or $util -lt 0 -or $util -gt 100) { throw 'Invalid GPU telemetry' }
         # Copy/Video counters must be well formed but do not mark the GPU busy.
-        if ($kind -notmatch '^(?:3D|Compute(?:_?\d+)?)$') { continue }
+        if ($kind -notmatch '^(?:3D|Compute(?:[ _]?\d+)?|Graphics(?:[ _]?\d+)?)$') { continue }
         if (-not $engineTotals.ContainsKey($engineKey)) { $engineTotals[$engineKey] = 0.0 }
         $engineTotals[$engineKey] += $util
     }

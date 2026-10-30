@@ -52,6 +52,21 @@ class HipDocumentationTests(unittest.TestCase):
         self.assertIn("UnauthorizedAccessException", behavior)
         self.assertIn("New-TestProcess 'python.exe' 'python.exe'", behavior)
 
+    def test_wddm_source_patterns_allow_spaces_and_graphics_indices(self):
+        source = (ROOT / "tools/bullet/run_hip_smoke.ps1").read_text()
+        identity = re.search(r"\$sample.Name -notmatch '([^']+)'", source).group(1)
+        identity = re.sub(r"\(\?<([a-z]+)>", r"(?P<\1>", identity)
+        busy = re.search(r"\$kind -notmatch '([^']+)'", source).group(1)
+        for kind in ("3D", "Compute", "Compute_1", "Compute 1", "Graphics_1", "Graphics_99"):
+            self.assertIsNotNone(re.fullmatch(busy, kind, re.IGNORECASE), kind)
+        for kind in ("Video Decode", "Video Processing", "Graphics_1", "Compute 1"):
+            name = "pid_1_luid_0x0_0x1_phys_0_eng_1_engtype_" + kind
+            self.assertIsNotNone(re.fullmatch(identity, name, re.IGNORECASE), name)
+        for kind in ("Copy", "Video Decode"):
+            self.assertIsNone(re.fullmatch(busy, kind, re.IGNORECASE))
+        key = next(line for line in source.splitlines() if "$engineKey =" in line)
+        self.assertNotIn("$Matches.kind", key)
+
     def test_current_recipe_describes_refined_policy_and_runtime_limit(self):
         readme = (ROOT / "tools/bullet/README.md").read_text()
         for text in ("five valid snapshots", "strictly greater than 2%",

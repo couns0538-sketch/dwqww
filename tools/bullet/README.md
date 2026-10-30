@@ -180,14 +180,17 @@ smoke executable starts. Its SHA256 is recorded before execution. Each check
 requires **five valid snapshots**, one second apart (four delays), even when all
 samples are zero. Process counters on the **same physical GPU and engine** are
 summed within each snapshot, using the WDDM adapter LUID, physical GPU index,
-engine index and engine type. Only `3D`, `Compute`, `Compute0`/`Compute1` and
-`Compute_0`/`Compute_1` (any numeric suffix) count toward busy status. An aggregate
+and engine index; engine-type labels do not split the same physical engine.
+`3D`, `Compute`, `Compute0`/`Compute1`, `Compute_0`/`Compute_1`, and
+`Graphics` / `Graphics_0` / `Graphics_1` (every numeric index) count toward busy
+status. Compute/Graphics numeric labels may also use a space. An aggregate
 **strictly greater than 2%** in **any** snapshot refuses; exactly 2% is allowed.
 Separate GPUs/engines are never added together. Copy/Video utilization does not
 mark a GPU busy, but every returned counter must still have a valid WDDM name
-and finite utilization between 0 and 100. Empty, unavailable, denied, or malformed
+and finite utilization between 0 and 100. Valid labels with spaces, such as
+`Video Decode`, are accepted. Empty, unavailable, denied, or malformed
 GPU telemetry, a detected production job, and insufficient space **fail closed
-with exit 76**.
+with exit 76** immediately, with one clear refusal message and no retry loop.
 
 Production detection uses actual executable names and Python's invoked script
 argument. It rejects `fastchess.exe`, `cutechess.exe`, `cutechess-cli.exe`,

@@ -32,15 +32,16 @@ Assert-GpuIdleSample @((New-GpuSample 991 2))
 Assert-GpuIdleSample @((New-GpuSample 991 1), (New-GpuSample 992 1))
 Expect-Refusal { Assert-GpuIdleSample @((New-GpuSample 991 2.01)) }
 Expect-Refusal { Assert-GpuIdleSample @((New-GpuSample 991 1.1), (New-GpuSample 992 1.1)) }
-foreach ($kind in @('Compute', 'Compute0', 'Compute_0')) {
+foreach ($kind in @('Compute', 'Compute0', 'Compute_0', 'Compute 1', 'Graphics', 'Graphics_0', 'Graphics_1', 'Graphics_12')) {
     Expect-Refusal { Assert-GpuIdleSample @((New-GpuSample 991 2.01 -Kind $kind)) }
     Assert-GpuIdleSample @((New-GpuSample 991 2 -Kind $kind))
 }
 Assert-GpuIdleSample @((New-GpuSample 991 1.9), (New-GpuSample 992 1.9 -Engine 1))
 Assert-GpuIdleSample @((New-GpuSample 991 1.9), (New-GpuSample 992 1.9 -Physical 1))
 Assert-GpuIdleSample @((New-GpuSample 991 1.9), (New-GpuSample 992 1.9 -Luid '0x00000000_0x0000D197'))
-Assert-GpuIdleSample @((New-GpuSample 991 1.9), (New-GpuSample 992 1.9 -Kind 'Compute'))
-Assert-GpuIdleSample @((New-GpuSample 991 100 -Kind 'Copy'), (New-GpuSample 992 90 -Kind 'VideoDecode'))
+Expect-Refusal { Assert-GpuIdleSample @((New-GpuSample 991 1.9), (New-GpuSample 992 1.9 -Kind 'Compute')) }
+Expect-Refusal { Assert-GpuIdleSample @((New-GpuSample 991 1.1 -Kind 'Graphics_1'), (New-GpuSample 992 1.1 -Kind 'Graphics_1')) }
+Assert-GpuIdleSample @((New-GpuSample 991 100 -Kind 'Copy'), (New-GpuSample 992 90 -Kind 'VideoDecode'), (New-GpuSample 993 90 -Kind 'Video Decode'))
 # Ignored engine types still require valid telemetry.
 Expect-Refusal { Assert-GpuIdleSample @((New-GpuSample 991 -1 -Kind 'Copy')) }
 
@@ -111,6 +112,8 @@ $script:gpuReads = 0
 $script:processReads = 0
 $script:sleepCalls = 0
 $script:busyAt = 0
+$script:invalidAt = 0
+$script:invalidMode = ''
 try {
     function Assert-HipDiskSpace { }
     function Get-CimInstance {
@@ -121,6 +124,14 @@ try {
         }
         if ($ClassName -ne 'Win32_PerfFormattedData_GPUPerformanceCounters_GPUEngine' -or $Namespace -ne 'root\cimv2') { throw 'Unexpected telemetry query' }
         $script:gpuReads++
+        if ($script:gpuReads -eq $script:invalidAt) {
+            switch ($script:invalidMode) {
+                'missing' { return $null }
+                'malformed' { return [pscustomobject]@{ Name='invalid'; UtilizationPercentage=0 } }
+                'no_utilization' { return [pscustomobject]@{ Name='pid_991_luid_0x0_0x1_phys_0_eng_0_engtype_3D' } }
+                'denied' { throw [UnauthorizedAccessException]::new('GPU telemetry AccessDenied') }
+            }
+        }
         $util = if ($script:gpuReads -eq $script:busyAt) { 2.01 } else { 0 }
         return New-GpuSample 991 $util
     }
@@ -135,6 +146,15 @@ try {
         $script:gpuReads = 0; $script:processReads = 0; $script:sleepCalls = 0; $script:busyAt = $busyAt
         Expect-Refusal { Assert-HipSlot }
         if ($script:gpuReads -ne $busyAt) { throw 'Busy sample was not refused at its first occurrence' }
+    }
+    $script:busyAt = 0
+    foreach ($mode in @('missing', 'malformed', 'no_utilization', 'denied')) {
+        foreach ($invalidAt in 1..5) {
+            $script:gpuReads = 0; $script:processReads = 0; $script:sleepCalls = 0
+            $script:invalidAt = $invalidAt; $script:invalidMode = $mode
+            Expect-Refusal { Assert-HipSlot }
+            if ($script:gpuReads -ne $invalidAt -or $script:processReads -ne $invalidAt -or $script:sleepCalls -ne ($invalidAt - 1)) { throw 'Invalid telemetry was retried or accepted' }
+        }
     }
 } finally {
     Set-Item Function:\Assert-HipDiskSpace $diskCheck
