@@ -109,6 +109,25 @@ def load_holdouts(db, paths, game_paths):
     return counts
 
 
+def load_prior_training(db, paths):
+    """Seed the same exact-key dedup index from immutable prior kept shards."""
+    sources = []; total_rows = 0
+    for path in paths:
+        count = 0
+        with ExitStack() as stack:
+            reader = stack.enter_context(PosReader(path)) if Path(path).suffix == '.pos' else None
+            text = None if reader else stack.enter_context(Path(path).open(encoding='utf8'))
+            rows = iter(reader) if reader else (text_record(s)[0] for s in text)
+            for record in rows:
+                db.execute('INSERT OR IGNORE INTO kept VALUES(?)', (key(record),))
+                count += 1
+        sources.append({'path': path, 'rows': count}); total_rows += count
+    db.commit()
+    return {'sources': sources, 'rows_indexed': total_rows,
+            'unique_keys': db.execute('SELECT COUNT(*) FROM kept').fetchone()[0],
+            'identity': 'board32 plus STM; result, score, rights, EP and clocks excluded'}
+
+
 def read_chunks(out, verify=True):
     chunks = []
     next_row = 0
@@ -161,7 +180,9 @@ def run(args):
     inputs = []; bindings = []
     if args.binpack_tool and args.no_filters and not args.allow_transport_moves:
         raise ValueError('format-only binpack requires explicit --allow-transport-moves')
-    for name in ('input','pos','game_ids','probe','binpack_tool','holdout','holdout_game_ids'):
+    if args.dedup_against and args.no_dedupe:
+        raise ValueError('--dedup-against cannot be combined with --no-dedupe')
+    for name in ('input','pos','game_ids','probe','binpack_tool','holdout','holdout_game_ids','dedup_against'):
         value = getattr(args,name)
         values = value if isinstance(value,list) else [value]
         pinned = []
@@ -198,6 +219,7 @@ def run(args):
         db.execute(f'CREATE TABLE {table}(key BLOB PRIMARY KEY) WITHOUT ROWID')
     db.execute('CREATE TABLE holdout_games(id TEXT PRIMARY KEY) WITHOUT ROWID')
     holdout_counts = load_holdouts(db, args.holdout, args.holdout_game_ids)
+    prior_training = load_prior_training(db, args.dedup_against)
     for c in chunks if not args.no_dedupe else []:
         with (out / c['text']).open(encoding='utf8') as f:
             for line in f:
@@ -299,7 +321,7 @@ def run(args):
         for binding in bindings:
             if str(Path(binding['reference']).resolve(strict=True)) != binding['resolved']:
                 raise ValueError('input path binding changed during run')
-        result = {'status': 'COMPLETE', 'input_rows': start, 'counts': dict(total), 'chunks': len(chunks), 'holdouts': holdout_counts, 'game_clearance': 'ACCEPTED_WHOLE_SHARD_SPLIT_013_014' if args.shard_id else 'FORMAT_ONLY_NO_SHARD_ID', 'shard_id': args.shard_id, 'game_id_exclusion': bool(args.game_ids and args.holdout_game_ids), 'elapsed_seconds_this_attempt': time.monotonic()-before, 'representation': 'bullet32 + exact aligned full-FEN/STM-score/White-result sidecar; raw bullet loses state', 'binpack': 'GENERATED' if args.binpack_tool else 'NOT_REQUESTED', 'chunk_receipts': {p.name:sha(p) for p in sorted(out.glob('chunk_*.json'))}}
+        result = {'status': 'COMPLETE', 'input_rows': start, 'counts': dict(total), 'chunks': len(chunks), 'holdouts': holdout_counts, 'prior_training_index': prior_training, 'game_clearance': 'ACCEPTED_WHOLE_SHARD_SPLIT_013_014' if args.shard_id else 'FORMAT_ONLY_NO_SHARD_ID', 'shard_id': args.shard_id, 'game_id_exclusion': bool(args.game_ids and args.holdout_game_ids), 'elapsed_seconds_this_attempt': time.monotonic()-before, 'representation': 'bullet32 + exact aligned full-FEN/STM-score/White-result sidecar; raw bullet loses state', 'binpack': 'GENERATED' if args.binpack_tool else 'NOT_REQUESTED', 'chunk_receipts': {p.name:sha(p) for p in sorted(out.glob('chunk_*.json'))}}
         dump_new(out / 'COMPLETE.json', result)
         return result
     finally: db.close()
@@ -339,6 +361,16 @@ def verify(out, binpack_tool=None):
                 process.stdout.close(); process.stderr.close()
         count += n
     result = json.loads((out/'COMPLETE.json').read_text())
+    prior_paths = config.get('dedup_against', [])
+    if prior_paths:
+        prior = result.get('prior_training_index', {})
+        sources = prior.get('sources')
+        if not isinstance(sources, list) or [s.get('path') for s in sources] != prior_paths or any(type(s.get('rows')) is not int or s['rows'] < 0 for s in sources):
+            raise ValueError('prior training source accounting mismatch')
+        if type(prior.get('rows_indexed')) is not int or prior['rows_indexed'] != sum(s['rows'] for s in sources):
+            raise ValueError('prior training indexed row count mismatch')
+        if type(prior.get('unique_keys')) is not int or not 0 <= prior['unique_keys'] <= prior['rows_indexed']:
+            raise ValueError('prior training key count invalid')
     if result.get('binpack') != ('GENERATED' if wants_binpack else 'NOT_REQUESTED'):
         raise ValueError('summary/config binpack expectation mismatch')
     totals = collections.Counter({k: 0 for k in RULES})
@@ -361,6 +393,7 @@ def parser():
         c = sub.add_parser(command)
         c.add_argument('--input', required=True); c.add_argument('--pos'); c.add_argument('--sidecar-format', choices=('text','fen'), default='text'); c.add_argument('--out', required=True)
         c.add_argument('--game-ids'); c.add_argument('--shard-id'); c.add_argument('--holdout', action='append', default=[]); c.add_argument('--holdout-game-ids', action='append', default=[]); c.add_argument('--require-game-clearance', action='store_true')
+        c.add_argument('--dedup-against', action='append', default=[], help='Prior kept rows.txt or FPOS input; repeat for all preceding training chunks. Counts as duplicate, never holdout.')
         c.add_argument('--limit', type=int); c.add_argument('--chunk-rows', type=int, default=100000); c.add_argument('--min-free-mb', type=int, default=256); c.add_argument('--resume', action='store_true'); c.add_argument('--stop-after-chunks', type=int)
         c.add_argument('--probe'); c.add_argument('--nodes', type=int, default=1024); c.add_argument('--score-cap', type=int, default=3000); c.add_argument('--disagreement-cp', type=int, default=400); c.add_argument('--draw-disagreement-cp', type=int, default=800)
         c.add_argument('--binpack-tool'); c.add_argument('--allow-transport-moves', action='store_true')

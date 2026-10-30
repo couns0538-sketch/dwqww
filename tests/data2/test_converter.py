@@ -10,7 +10,7 @@ from unittest import mock
 sys.path.insert(0, str(Path(__file__).resolve().parents[2] / 'tools/data2'))
 import convert_dataset as c
 from bullet_records import encode, verify_record
-from forge_pos import text_record
+from forge_pos import text_record, PosWriter
 
 FENS = [
  'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1 | 61 | 0.0\n',
@@ -111,6 +111,35 @@ class ConverterTests(unittest.TestCase):
  def test_dedup_ignores_clocks_rights_by_policy(self):
   self.src.write_text(FENS[0]+FENS[0].replace('KQkq - 0 1','- - 2 3'))
   result=c.run(self.args());self.assertEqual(result['counts']['duplicate'],1)
+ def test_prior_training_result_does_not_change_identity(self):
+  prior=self.root/'prior.txt';prior.write_text(FENS[0].replace('61 | 0.0','-44 | 1.0'))
+  result=c.run(self.args('--dedup-against',str(prior)))
+  self.assertEqual(result['counts']['duplicate'],1);self.assertEqual(result['counts']['holdout_position'],0)
+  self.assertEqual(result['prior_training_index']['rows_indexed'],1);self.assertEqual(result['prior_training_index']['unique_keys'],1)
+ def test_prior_training_fpos(self):
+  writer=PosWriter(self.root/'prior','previous',False)
+  writer.append(text_record(FENS[0])[0]);writer.seal();writer.close()
+  result=c.run(self.args('--dedup-against',str(self.root/'prior'/'previous.pos')))
+  self.assertEqual(result['counts']['duplicate'],1);self.assertEqual(result['counts']['kept'],2)
+ def test_prior_training_stm_distinct(self):
+  prior=self.root/'prior.txt';prior.write_text(FENS[0]);self.src.write_text(FENS[0].replace(' w ',' b '))
+  self.assertEqual(c.run(self.args('--dedup-against',str(prior)))['counts']['kept'],1)
+ def test_prior_training_holdout_counts_separate(self):
+  prior=self.root/'prior.txt';prior.write_text(FENS[0]);hold=self.root/'hold.txt';hold.write_text(FENS[1])
+  result=c.run(self.args('--dedup-against',str(prior),'--holdout',str(hold)))
+  self.assertEqual(result['counts']['duplicate'],1);self.assertEqual(result['counts']['holdout_position'],1);self.assertEqual(result['counts']['kept'],1)
+ def test_prior_training_resume_and_input_change(self):
+  prior=self.root/'prior.txt';prior.write_text(FENS[0])
+  c.run(self.args('--dedup-against',str(prior),'--chunk-rows','1','--stop-after-chunks','1'))
+  result=c.run(self.args('--dedup-against',str(prior),'--chunk-rows','1','--resume'))
+  self.assertEqual(result['counts']['duplicate'],1);self.assertEqual(result['counts']['kept'],2)
+  prior.write_text(FENS[1])
+  with self.assertRaisesRegex(ValueError,'identity mismatch'):c.run(self.args('--dedup-against',str(prior),'--chunk-rows','1','--resume'))
+ def test_prior_training_no_dedupe_conflict(self):
+  with self.assertRaisesRegex(ValueError,'cannot be combined'):c.run(self.args('--dedup-against',str(self.src),'--no-dedupe'))
+ def test_prior_training_impossible_summary_rejected(self):
+  c.run(self.args('--dedup-against',str(self.src)));p=self.root/'out'/'COMPLETE.json';data=json.loads(p.read_text());data['prior_training_index']['unique_keys']=1000;p.write_text(json.dumps(data))
+  with self.assertRaisesRegex(ValueError,'key count invalid'):c.verify(self.root/'out')
  def test_filter_requires_native_proof(self):
   a=self.args();a.no_filters=False
   with self.assertRaisesRegex(ValueError,'requires --probe'):c.run(a)

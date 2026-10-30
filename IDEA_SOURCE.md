@@ -50,3 +50,5 @@ IDEA_SOURCE: Engine QA/Code Review findings in astra3/integration/ROUND3_JOB_PAC
 IDEA_SOURCE: user task for stronger/cleaner/diverse Forge NNUE data; same-repository FPOS/FHCE contract and v3b trainer at e0d76ce; prior original JobD streaming filter; R8 driver at5dd3a57d6f286f09b8881671ba8a368f6d34f717. Use original implementations around existing Forge APIs; no external engine source or tuned constants. Data cleaning and new labels are hypotheses, not Elo evidence.
 
 IDEA_SOURCE (Astra FEN converter20261030): user data-pipeline contract; same-project A1 readers/probe; MIT bulletformat ChessBoard wire schema eddd9a2d77dbc1391d68f23ba524657e91bd9a73. Original code only; no engine/search change.
+
+IDEA_SOURCE (Astra cumulative dedup20261030): user-authorized sequential retained-shard index; reuse existing original board-plus-STM identity and immutable source/resume contract. No external engine code.

@@ -12,9 +12,10 @@ This is offline tooling. Engine source, search, live trainers and gates are unch
 | Native MIT binpack reader on all 1M records | PASS, byte-identical decoded text | `binpack_final/roundtrip_1m.json` |
 | Castling and en passant in that slice | 216,652 castling rows; 35,547 EP rows preserved | Same original 1M receipts |
 | Synthetic overlap using 1,000 real sample rows as their own holdout | PASS: 1,000 removed, 0 remain | `fake_holdout_1000*`, `fake_holdout_original/` |
+| Prior-training dedup on 1,024 real rows, first 1,000 supplied as prior kept | PASS: 1,000 duplicates removed, 24 retained, 0 holdout removals | `prior_real1024*` |
 | Native Forge filtering, 1,024 original rows | PASS: 977 kept; 46 best-move captures and 1 result disagreement dropped | `native_1024*`, `native_1024_original/` |
 | Both filtered output formats | PASS: 977 records checked; native binpack decode matches exact sidecar | `native_1024_verify.*` |
-| Converter and adapter unit regressions | 38 PASS at latest checkpoint | `unit_review_identity.*` |
+| Converter and adapter unit regressions | 45 PASS, normal and optimized Python | `unit_prior_training_accounting*` |
 | Native adapter ASan/UBSan with leak detection | 13 PASS; no diagnostics in native run | `binpack_final/tests_san_native.*` |
 | GPU bullet training / a complete training epoch / exported trained-net parity | UNVERIFIED here | No GPU trainer run claimed |
 | Full private 013/014 position exclusion | UNVERIFIED here; command supplied for the PC | Those inputs were not uploaded |
@@ -84,9 +85,15 @@ files. Use both complete private shards on the PC. QA already found **281** A1
 retained rows overlapping complete 013/014; the cloud's original 013-head test is
 not a substitute for removing them. Filtered 003 must **replace** raw 003 in an
 isolated ablation, never be appended on top of a training set already containing
-003. This tool currently processes one source shard per invocation. Cross-shard
-training deduplication requires a shared global pass; independent invocations do
-not certify zero duplicates between different training shards.
+003. The tool processes one source shard per invocation. For cross-shard training
+deduplication, pass every earlier retained `rows.txt` chunk (or retained FPOS file)
+with repeatable `--dedup-against`. These immutable inputs seed the dedup index;
+hits count as `duplicate`, not holdout. Their hashes and path bindings receive the
+same identity checks as source/holdout inputs. The receipt records indexed rows
+and unique prior keys. This makes a correct sequential pipeline possible, but
+repeated index construction is not an optimized 305M driver; that throughput and
+resource workload remains unmeasured. Omitting earlier outputs does not certify
+zero cross-shard duplicates.
 
 ## Build and Linux commands
 
@@ -129,6 +136,30 @@ python3 tools/data2/convert_dataset.py holdout-dedup \
 python3 tools/data2/convert_dataset.py verify --out /new/dedup003
 ```
 
+Sequential cross-shard use: keep a stable order of the 37 training shard IDs,
+exclude 013/014 entirely, and use filtered 003 in place of raw 003. Verify each
+completed output before using every retained chunk to seed the next shard. For
+example, after verified shard 001 output:
+
+```bash
+python3 tools/data2/convert_dataset.py convert \
+  --input /data/forge_selfplay_002.txt --pos /data/forge_selfplay_002.pos \
+  --shard-id 002 --out /new/filtered002 \
+  --probe /path/forge_data_probe --nodes 1024 \
+  --binpack-tool /new/bin/forge_binpack_adapter \
+  --holdout /private/forge_selfplay_013.pos \
+  --holdout /private/forge_selfplay_014.pos \
+  --dedup-against /verified/filtered001/data_CHUNK_A/rows.txt \
+  --dedup-against /verified/filtered001/data_CHUNK_B/rows.txt
+```
+
+Use **all** actual prior retained chunks, not these example names. For shard 003
+include both prior 001 and 002 retained outputs, then continue cumulatively.
+Chunks are listed by the verified `chunk_*.json` receipts; never include an
+unsealed tail. `--dedup-against` conflicts with `--no-dedupe` and fails closed.
+Holdout position keys still have precedence and their counts remain distinct.
+No prior shard file is modified, and a changed prior file prevents resume.
+
 `holdout-dedup` performs exclusion/deduplication only; it does not silently claim
 root filtering. To request a format-only binpack test, explicitly supply
 `--no-filters --no-dedupe --allow-transport-moves`. The standalone reproducible 1M
@@ -147,6 +178,38 @@ The Rust loader test is `tools/data2/bullet_loader_check` (pinned MIT dependency
 cargo build --release --manifest-path tools/data2/bullet_loader_check/Cargo.toml
 /path/to/forge_bullet_loader_check /chunk/rows.bullet /chunk/rows.txt
 ```
+
+## PC execution at Idle priority
+
+Windows execution remains unverified. After building the standalone probe and
+adapter in new directories, use the existing checked launcher with one explicitly
+spare logical CPU. Supply the actual approved executable paths; do not replace a
+running engine, trainer, or gate. This example converts shard 003 in a new output
+folder; add all prior retained chunks with `--dedup-against` for a cumulative run.
+
+```powershell
+$Repo = (& git rev-parse --show-toplevel).Trim()
+$PosDir = 'D:\grok-pc-data\forge_push\nnue_data\pos'
+$TxtDir = 'D:\grok-pc-data\selfplay_out'
+$Probe = 'C:\EDIT\new-probe-build\forge_data_probe.exe'
+$Adapter = 'C:\EDIT\new-binpack-build\forge_binpack_adapter.exe'
+$Cpu = [int](Read-Host 'One logical CPU confirmed spare; do not guess')
+$Run = Join-Path 'D:\grok-pc-data' ('astra_convert_' + [Guid]::NewGuid().ToString('N'))
+$ConverterArgs = @('convert', '--input', (Join-Path $TxtDir 'forge_selfplay_003.txt'),
+  '--pos', (Join-Path $PosDir 'forge_selfplay_003.pos'), '--shard-id', '003',
+  '--out', $Run, '--probe', $Probe, '--nodes', '1024', '--binpack-tool', $Adapter,
+  '--holdout', (Join-Path $PosDir 'forge_selfplay_013.pos'),
+  '--holdout', (Join-Path $PosDir 'forge_selfplay_014.pos'))
+& (Join-Path $Repo 'tools\data\run_idle_spare.ps1') `
+  -Python (Get-Command python.exe).Source `
+  -Script (Join-Path $Repo 'tools\data2\convert_dataset.py') -CpuList @($Cpu) `
+  -LogDirectory ($Run + '_logs') -ScriptArguments $ConverterArgs
+```
+
+Verify with the same launcher, a fresh log directory, and script arguments
+`@('verify', '--out', $Run, '--binpack-tool', $Adapter)`. Avoid rerunning the sealed
+A1 10M job. Prior A1 Windows path errors are corrected in `ASTRA_A1_WINDOWS.md`;
+that document is a historical reproduction runbook, not a reason to repeat it.
 
 ## Restart and evidence contract
 
