@@ -154,6 +154,7 @@ powershell.exe -NoProfile -NonInteractive -File .\tools\bullet\run_hip_smoke.ps1
   -CpuAffinityMask '<EXPLICIT_HEX_MASK_OF_SPARE_LOGICAL_CPUS>' `
   -PythonExe '<ABSOLUTE_VENV_PATH>\Scripts\python.exe' `
   -PythonSha256 '<RECORDED_64_HEX_SHA256>' `
+  -ScratchDrive '<APPROVED_DRIVE_LETTER>:' `
   -GpuFreeSlotConfirmed
 ```
 
@@ -167,10 +168,13 @@ or Cargo `build.target` cannot redirect the build to a different binary while
 an old host executable runs. The launcher checks Rust >=1.87 and the pinned
 venv/NumPy.
 
-Fresh GUID run directories live under `F:\astra_bullet_smoke`, outside the
-repository. `CARGO_TARGET_DIR` defaults to `F:\astra_bullet_cargo_target`; both
-`TEMP` and `TMP` use the run's `temp` directory on **F:**. Custom roots must also
-be on F:, outside the repository, without junction/symlink ancestors. The
+`-ScratchDrive` explicitly selects the approved drive, for example `R:`.
+There is no assumed drive letter. Fresh GUID run directories default to
+`<ScratchDrive>\astra_bullet_smoke`, outside the repository. `CARGO_TARGET_DIR`
+defaults to `<ScratchDrive>\astra_bullet_cargo_target`; both `TEMP` and `TMP`
+use the run's `temp` directory on that same drive. Custom `RunRoot` and
+`TargetDir` must be absolute paths on the selected drive, outside the repository,
+without junction/symlink ancestors. The
 launcher requires **at least 20 GiB free** before work and rechecks before the
 build and export. It never deletes prior evidence to make room.
 
@@ -206,8 +210,8 @@ allowed too. `forge.exe` and `stockfish.exe` are not assumed to be gates.
 
 For a gate with an arbitrary binary name, pass exact basenames with
 `-GateExeNames 'forge_gate_candidate.exe,stockfish_gate.exe'` or exact absolute paths with
-`-GateExePaths @('F:\gates\forge.exe')`. For a known trainer outside nnue-pytorch,
-use `-ProductionTrainScriptPaths @('F:\forge\tools\nnue\train_resid_v3b.py')`.
+`-GateExePaths @('R:\gates\forge.exe')`. For a known trainer outside nnue-pytorch,
+use `-ProductionTrainScriptPaths @('R:\forge\tools\nnue\train_resid_v3b.py')`.
 `GateExeNames` accepts a comma-separated string from `powershell.exe -File`,
 trims each name, and also accepts arrays from a PowerShell session. Empty
 entries, paths and wildcards are rejected. To pass multiple `GateExePaths` or

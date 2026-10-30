@@ -49,15 +49,15 @@ function New-TestProcess([string]$Name, [string]$CommandLine, [string]$Executabl
     [pscustomobject]@{ ProcessId=999999; Name=$Name; CommandLine=$CommandLine; ExecutablePath=$ExecutablePath }
 }
 Expect-Refusal { Assert-NoProductionProcess @() }
-foreach ($command in @('python F:\nnue-pytorch\train.py', 'python -u -X utf8 -W ignore "F:\nnue-pytorch\train_resid_v3b.py"',
-                       'python -- "F:\training jobs\nnue-pytorch\train.py"', 'py -3.11 F:\nnue-pytorch\train.py',
+foreach ($command in @('python R:\nnue-pytorch\train.py', 'python -u -X utf8 -W ignore "R:\nnue-pytorch\train_resid_v3b.py"',
+                       'python -- "R:\training jobs\nnue-pytorch\train.py"', 'py -3.11 R:\nnue-pytorch\train.py',
                        'python selfplay.py', 'python -u train_resid_v2.py', 'python .\TRAIN_RESID_V3B.PY',
-                       'python F:\toy\train_resid_v3b.py', 'python -u r11_train_entry.py',
-                       'python "F:\training jobs\R11_TRAIN_ENTRY.PY"', 'python r11_train_entry',
-                       'python -uW ignore F:\nnue-pytorch\train.py',
-                       'python -uX utf8 F:\nnue-pytorch\train.py', 'python -uWignore F:\nnue-pytorch\train.py',
-                       'python -uXutf8 F:\nnue-pytorch\train.py', 'py -V:3.11 F:\nnue-pytorch\train.py', 'python -v F:\nnue-pytorch\train.py', 'python -x F:\nnue-pytorch\train.py',
-                       '"F:\Python Env\python.exe" -u "F:\nnue-pytorch\train.py"')) {
+                       'python R:\toy\train_resid_v3b.py', 'python -u r11_train_entry.py',
+                       'python "R:\training jobs\R11_TRAIN_ENTRY.PY"', 'python r11_train_entry',
+                       'python -uW ignore R:\nnue-pytorch\train.py',
+                       'python -uX utf8 R:\nnue-pytorch\train.py', 'python -uWignore R:\nnue-pytorch\train.py',
+                       'python -uXutf8 R:\nnue-pytorch\train.py', 'py -V:3.11 R:\nnue-pytorch\train.py', 'python -v R:\nnue-pytorch\train.py', 'python -x R:\nnue-pytorch\train.py',
+                       '"R:\Python Env\python.exe" -u "R:\nnue-pytorch\train.py"')) {
     $name = if ($command.StartsWith('py ')) { 'py.exe' } else { 'python.exe' }
     Expect-Refusal { Assert-NoProductionProcess @((New-TestProcess $name $command)) }
 }
@@ -68,10 +68,10 @@ foreach ($name in @('explorer.exe', 'python.exe', 'pythonw.exe', 'python3.11.exe
     Assert-NoProductionProcess @((New-TestProcess $name ($name + ' README_train.py nnue-pytorch selfplay fastchess cutechess')))
 }
 foreach ($command in @('python tools\convert.py --input train.py', 'python -c "print(''train.py'')"',
-                       'python -m unittest train.py', 'python -uc "print(''train.py'')" F:\nnue-pytorch\train.py', 'python --version train.py', 'python train.py',
-                       'python F:\toy\train_metrics.py', 'python -V F:\nnue-pytorch\train.py',
-                       'python F:\nnue-pytorch\..\toy\train_metrics.py', 'python nnue-pytorch\..\toy\train_metrics.py',
-                       'python "F:\nnue-pytorch\inspect.py"', 'python -W train.py tools\inspect.py')) {
+                       'python -m unittest train.py', 'python -uc "print(''train.py'')" R:\nnue-pytorch\train.py', 'python --version train.py', 'python train.py',
+                       'python R:\toy\train_metrics.py', 'python -V R:\nnue-pytorch\train.py',
+                       'python R:\nnue-pytorch\..\toy\train_metrics.py', 'python nnue-pytorch\..\toy\train_metrics.py',
+                       'python "R:\nnue-pytorch\inspect.py"', 'python -W train.py tools\inspect.py')) {
     Assert-NoProductionProcess @((New-TestProcess 'python.exe' $command))
 }
 Assert-NoProductionProcess @((New-TestProcess 'python.exe' 'python.exe'))
@@ -88,34 +88,34 @@ foreach ($command in @('python tools\inspect.py --guard-tag r11', 'python.exe --
 }
 Expect-Refusal { Assert-NoProductionProcess @((New-TestProcess 'python.exe' 'python "unterminated')) }
 Assert-NoProductionProcess @((New-TestProcess 'worker.exe' 'train_resid_v3b.py'))
-Expect-Refusal { Assert-NoProductionProcess @((New-TestProcess 'python.exe' 'python F:\forge\tools\nnue\train_resid_v3b.py')) -ProductionTrainScriptPaths @('F:\forge\tools\nnue\train_resid_v3b.py') }
-Expect-Refusal { Assert-NoProductionProcess @((New-TestProcess 'python.exe' 'python F:\toy\train_resid_v3b.py')) -ProductionTrainScriptPaths @('F:\forge\tools\nnue\train_resid_v3b.py') }
-Assert-NoProductionProcess @((New-TestProcess 'editor.exe' 'editor.exe "F:\nnue-pytorch\train.py"'))
+Expect-Refusal { Assert-NoProductionProcess @((New-TestProcess 'python.exe' 'python R:\forge\tools\nnue\train_resid_v3b.py')) -ProductionTrainScriptPaths @('R:\forge\tools\nnue\train_resid_v3b.py') }
+Expect-Refusal { Assert-NoProductionProcess @((New-TestProcess 'python.exe' 'python R:\toy\train_resid_v3b.py')) -ProductionTrainScriptPaths @('R:\forge\tools\nnue\train_resid_v3b.py') }
+Assert-NoProductionProcess @((New-TestProcess 'editor.exe' 'editor.exe "R:\nnue-pytorch\train.py"'))
 Expect-Refusal { Assert-NoProductionProcess @((New-TestProcess 'FORGE.exe' 'forge.exe')) -GateExeNames @('forge.exe') }
 foreach ($name in @('FORGE.exe', 'stockfish.exe')) {
     Expect-Refusal { Assert-NoProductionProcess @((New-TestProcess $name $name)) -GateExeNames ' forge.exe , stockfish.exe ' }
 }
 Assert-NoProductionProcess @((New-TestProcess 'forge_other.exe' 'forge_other.exe')) -GateExeNames ' forge.exe , stockfish.exe '
 Assert-NoProductionProcess @((New-TestProcess 'forge_other.exe' 'forge_other.exe')) -GateExeNames @('forge.exe')
-Expect-Refusal { Assert-NoProductionProcess @((New-TestProcess 'forge.exe' 'forge.exe' 'F:\gates\forge.exe')) -GateExePaths @('f:\GATES\forge.exe') }
-Assert-NoProductionProcess @((New-TestProcess 'forge.exe' 'forge.exe' 'F:\analysis\forge.exe')) -GateExePaths @('F:\gates\forge.exe')
+Expect-Refusal { Assert-NoProductionProcess @((New-TestProcess 'forge.exe' 'forge.exe' 'R:\gates\forge.exe')) -GateExePaths @('r:\GATES\forge.exe') }
+Assert-NoProductionProcess @((New-TestProcess 'forge.exe' 'forge.exe' 'R:\analysis\forge.exe')) -GateExePaths @('R:\gates\forge.exe')
 # An inaccessible ExecutablePath may be resolved from the actual argv[0].
-Expect-Refusal { Assert-NoProductionProcess @((New-TestProcess 'forge.exe' '"F:\gates\forge.exe"')) -GateExePaths @('F:\gates\forge.exe') }
-Assert-NoProductionProcess @((New-TestProcess 'editor.exe' 'editor.exe "F:\gates\forge.exe"')) -GateExePaths @('F:\gates\forge.exe')
+Expect-Refusal { Assert-NoProductionProcess @((New-TestProcess 'forge.exe' '"R:\gates\forge.exe"')) -GateExePaths @('R:\gates\forge.exe') }
+Assert-NoProductionProcess @((New-TestProcess 'editor.exe' 'editor.exe "R:\gates\forge.exe"')) -GateExePaths @('R:\gates\forge.exe')
 
 Assert-ProcessPolicyOptions
 Expect-Refusal { Assert-ProcessPolicyOptions -GateExeNames @('forge*.exe') }
 Expect-Refusal { Assert-ProcessPolicyOptions -GateExeNames 'forge.exe,,stockfish.exe' }
-Expect-Refusal { Assert-ProcessPolicyOptions -GateExeNames 'forge.exe,F:\gate.exe' }
+Expect-Refusal { Assert-ProcessPolicyOptions -GateExeNames 'forge.exe,R:\gate.exe' }
 Assert-ProcessPolicyOptions -GateExeNames ' forge.exe , stockfish.exe '
 $normalizedNames = @(ConvertTo-GateExeNames @(' forge.exe , stockfish.exe ', 'candidate.exe'))
 if ($normalizedNames.Count -ne 3 -or $normalizedNames[0] -cne 'forge.exe' -or $normalizedNames[1] -cne 'stockfish.exe' -or $normalizedNames[2] -cne 'candidate.exe') { throw 'Comma-separated gate names were not normalized' }
 Expect-Refusal { Assert-ProcessPolicyOptions -GateExePaths @('forge.exe') }
-Expect-Refusal { Assert-ProcessPolicyOptions -ProductionTrainScriptPaths @('F:\train*.py') }
-Assert-ProcessPolicyOptions -GateExeNames @('forge.exe') -GateExePaths @('F:\gates\forge.exe') -ProductionTrainScriptPaths @('F:\forge\train.py')
+Expect-Refusal { Assert-ProcessPolicyOptions -ProductionTrainScriptPaths @('R:\train*.py') }
+Assert-ProcessPolicyOptions -GateExeNames @('forge.exe') -GateExePaths @('R:\gates\forge.exe') -ProductionTrainScriptPaths @('R:\forge\train.py')
 
 # Fake only external telemetry/delay, exercising the real slot's sequencing.
-# F: DriveInfo stays real in production; this test replaces its wrapper.
+# DriveInfo uses the explicit scratch drive in production; this test replaces its wrapper.
 $diskCheck = ${function:Assert-HipDiskSpace}
 $script:gpuReads = 0
 $script:processReads = 0
@@ -124,7 +124,10 @@ $script:busyAt = 0
 $script:invalidAt = 0
 $script:invalidMode = ''
 try {
-    function Assert-HipDiskSpace { }
+    function Assert-HipDiskSpace {
+        param([string]$ScratchDrive)
+        if ($ScratchDrive -cne 'R:\') { throw 'Disk check did not use the configured scratch drive' }
+    }
     function Get-CimInstance {
         param([string]$ClassName, [string]$Namespace, [string]$ErrorAction)
         if ($ClassName -eq 'Win32_Process') {
@@ -149,11 +152,11 @@ try {
         if ($Seconds -ne 1) { throw 'Wrong sample interval' }
         $script:sleepCalls++
     }
-    Assert-HipSlot
+    Assert-HipSlot -ScratchDrive 'R:'
     if ($script:gpuReads -ne 5 -or $script:processReads -ne 5 -or $script:sleepCalls -ne 4) { throw 'Idle slot did not require five snapshots and four one-second delays' }
     foreach ($busyAt in 1..5) {
         $script:gpuReads = 0; $script:processReads = 0; $script:sleepCalls = 0; $script:busyAt = $busyAt
-        Expect-Refusal { Assert-HipSlot }
+        Expect-Refusal { Assert-HipSlot -ScratchDrive 'R:' }
         if ($script:gpuReads -ne $busyAt) { throw 'Busy sample was not refused at its first occurrence' }
     }
     $script:busyAt = 0
@@ -161,7 +164,7 @@ try {
         foreach ($invalidAt in 1..5) {
             $script:gpuReads = 0; $script:processReads = 0; $script:sleepCalls = 0
             $script:invalidAt = $invalidAt; $script:invalidMode = $mode
-            Expect-Refusal { Assert-HipSlot }
+            Expect-Refusal { Assert-HipSlot -ScratchDrive 'R:' }
             if ($script:gpuReads -ne $invalidAt -or $script:processReads -ne $invalidAt -or $script:sleepCalls -ne ($invalidAt - 1)) { throw 'Invalid telemetry was retried or accepted' }
         }
     }
@@ -169,9 +172,17 @@ try {
     Set-Item Function:\Assert-HipDiskSpace $diskCheck
     Remove-Item Function:\Get-CimInstance, Function:\Start-Sleep
 }
-Expect-Refusal { Assert-ScratchPath -Path 'C:\temp' -RepoRoot 'C:\repo' }
-Expect-Refusal { Assert-ScratchPath -Path 'F:\repo\run' -RepoRoot 'F:\repo' }
-Assert-ScratchPath -Path 'F:\runs' -RepoRoot 'F:\repo'
+Expect-Refusal { Assert-ScratchPath -Path 'C:\temp' -RepoRoot 'C:\repo' -ScratchDrive 'R:' }
+Expect-Refusal { Assert-ScratchPath -Path 'R:\repo\run' -RepoRoot 'R:\repo' -ScratchDrive 'R:' }
+Assert-ScratchPath -Path 'R:\runs' -RepoRoot 'R:\repo' -ScratchDrive 'R:'
+Assert-ScratchPath -Path 'S:\runs' -RepoRoot 'C:\repo' -ScratchDrive 's:\'
+Expect-Refusal { Assert-ScratchPath -Path 'R:\runs' -RepoRoot 'C:\repo' -ScratchDrive 'S:' }
+Expect-Refusal { Assert-ScratchPath -Path 'R:relative' -RepoRoot 'C:\repo' -ScratchDrive 'R:' }
+Expect-Refusal { Assert-ScratchPath -Path '\\server\share\runs' -RepoRoot 'C:\repo' -ScratchDrive 'R:' }
+foreach ($invalidDrive in @('', 'R', 'R:\runs', '\\server\share')) {
+    Expect-Refusal { ConvertTo-ScratchDrive $invalidDrive }
+}
+if ((ConvertTo-ScratchDrive 'r:') -cne 'R:\' -or (ConvertTo-ScratchDrive 's:/') -cne 'S:\') { throw 'Scratch drive normalization failed' }
 Expect-Refusal { Assert-FreeBytes (20GB - 1) }
 Assert-FreeBytes (20GB)
 Expect-Refusal { ConvertTo-AffinityMask '0' }
@@ -180,10 +191,10 @@ if ((ConvertTo-AffinityMask '0x3').ToInt64() -ne 3) { throw 'Wrong affinity mask
 $previousTarget = $env:CARGO_BUILD_TARGET
 try {
     $env:CARGO_BUILD_TARGET = 'aarch64-pc-windows-msvc'
-    $plan = Get-HipBuildPlan -TargetRoot 'F:\target' -Manifest 'C:\repo\Cargo.toml'
+    $plan = Get-HipBuildPlan -TargetRoot 'R:\target' -Manifest 'C:\repo\Cargo.toml'
     $targetIndex = [Array]::IndexOf($plan.Arguments, '--target')
     if ($targetIndex -lt 0 -or $plan.Arguments[$targetIndex + 1] -ne 'x86_64-pc-windows-msvc') { throw 'Foreign inherited Cargo target was not overridden' }
-    if ($plan.Executable -ne 'F:\target\x86_64-pc-windows-msvc\release\train_smoke.exe') { throw 'Executable path does not match explicit build target' }
+    if ($plan.Executable -ne 'R:\target\x86_64-pc-windows-msvc\release\train_smoke.exe') { throw 'Executable path does not match explicit build target' }
 } finally { $env:CARGO_BUILD_TARGET = $previousTarget }
 
 # Invoke an actual native process which writes stderr successfully under Stop,

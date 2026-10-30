@@ -8,8 +8,9 @@ param(
     [string]$PythonExe,
     [string]$PythonSha256,
     [string]$InputDir,
-    [string]$RunRoot = 'F:\astra_bullet_smoke',
-    [string]$TargetDir = 'F:\astra_bullet_cargo_target',
+    [string]$ScratchDrive,
+    [string]$RunRoot,
+    [string]$TargetDir,
     [string[]]$GateExeNames = @(),
     [string[]]$GateExePaths = @(),
     [string[]]$ProductionTrainScriptPaths = @(),
@@ -23,12 +24,19 @@ function ConvertTo-AffinityMask([string]$Value) {
     return [IntPtr]$mask
 }
 
-function Assert-ScratchPath([string]$Path, [string]$RepoRoot) {
+function ConvertTo-ScratchDrive([string]$Value) {
+    if ($Value -notmatch '^(?<drive>[a-z]):[\\/]?$') { throw 'ScratchDrive requires an explicit drive letter, such as R: or R:\' }
+    return $Matches.drive.ToUpperInvariant() + ':\'
+}
+
+function Assert-ScratchPath([string]$Path, [string]$RepoRoot, [string]$ScratchDrive) {
+    $scratchRoot = ConvertTo-ScratchDrive $ScratchDrive
+    if ($Path -notmatch '^[a-z]:[\\/]') { throw 'Scratch paths must be absolute drive paths' }
     $full = [IO.Path]::GetFullPath($Path).TrimEnd('\')
     $repo = [IO.Path]::GetFullPath($RepoRoot).TrimEnd('\')
-    if (-not $full.StartsWith('F:\', [StringComparison]::OrdinalIgnoreCase)) { throw 'Scratch, target and TEMP must be on F:' }
+    if (-not $full.StartsWith($scratchRoot, [StringComparison]::OrdinalIgnoreCase)) { throw "Scratch, target and TEMP must be on $scratchRoot" }
     if ($full.Equals($repo, [StringComparison]::OrdinalIgnoreCase) -or $full.StartsWith($repo + '\', [StringComparison]::OrdinalIgnoreCase)) { throw 'Run, target and TEMP must be outside the repository' }
-    # Reject junction/symlink ancestors, which could redirect writes off F:.
+    # Reject junction/symlink ancestors, which could redirect scratch writes.
     $parent = $full
     while ($parent) {
         if (Test-Path -LiteralPath $parent) {
@@ -40,7 +48,7 @@ function Assert-ScratchPath([string]$Path, [string]$RepoRoot) {
 }
 
 function Assert-FreeBytes([long]$Available) {
-    if ($Available -lt 20GB) { throw 'F: requires at least 20 GiB free; refusing work' }
+    if ($Available -lt 20GB) { throw 'Scratch drive requires at least 20 GiB free; refusing work' }
 }
 
 function Assert-GpuIdleSample([object[]]$Samples) {
@@ -209,14 +217,16 @@ function Assert-NoProductionProcess {
     }
 }
 
-function Assert-HipDiskSpace {
-    Assert-FreeBytes ([IO.DriveInfo]::new('F:\').AvailableFreeSpace)
+function Assert-HipDiskSpace([string]$ScratchDrive) {
+    $scratchRoot = ConvertTo-ScratchDrive $ScratchDrive
+    Assert-FreeBytes ([IO.DriveInfo]::new($scratchRoot).AvailableFreeSpace)
 }
 
 function Assert-HipSlot {
-    param([string[]]$GateExeNames = @(), [string[]]$GateExePaths = @(), [string[]]$ProductionTrainScriptPaths = @())
+    param([string]$ScratchDrive, [string[]]$GateExeNames = @(), [string[]]$GateExePaths = @(), [string[]]$ProductionTrainScriptPaths = @())
+    $ScratchDrive = ConvertTo-ScratchDrive $ScratchDrive
     Assert-ProcessPolicyOptions -GateExeNames $GateExeNames -GateExePaths $GateExePaths -ProductionTrainScriptPaths $ProductionTrainScriptPaths
-    Assert-HipDiskSpace
+    Assert-HipDiskSpace -ScratchDrive $ScratchDrive
     # Every successful check needs five valid snapshots and four one-second
     # delays, including an all-zero window. Any busy snapshot refuses at once.
     for ($sampleIndex = 0; $sampleIndex -lt 5; $sampleIndex++) {
@@ -304,10 +314,13 @@ try {
     if ($env:OS -ne 'Windows_NT' -or -not [Environment]::Is64BitProcess) { throw 'Requires 64-bit Windows PowerShell 5.1 or newer' }
     $affinity = ConvertTo-AffinityMask $CpuAffinityMask
     $GateExeNames = @(ConvertTo-GateExeNames $GateExeNames)
+    $ScratchDrive = ConvertTo-ScratchDrive $ScratchDrive
+    if (-not $RunRoot) { $RunRoot = Join-Path $ScratchDrive 'astra_bullet_smoke' }
+    if (-not $TargetDir) { $TargetDir = Join-Path $ScratchDrive 'astra_bullet_cargo_target' }
     $repo = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..\..'))
-    Assert-ScratchPath -Path $RunRoot -RepoRoot $repo
-    Assert-ScratchPath -Path $TargetDir -RepoRoot $repo
-    Assert-HipSlot -GateExeNames $GateExeNames -GateExePaths $GateExePaths -ProductionTrainScriptPaths $ProductionTrainScriptPaths
+    Assert-ScratchPath -Path $RunRoot -RepoRoot $repo -ScratchDrive $ScratchDrive
+    Assert-ScratchPath -Path $TargetDir -RepoRoot $repo -ScratchDrive $ScratchDrive
+    Assert-HipSlot -ScratchDrive $ScratchDrive -GateExeNames $GateExeNames -GateExePaths $GateExePaths -ProductionTrainScriptPaths $ProductionTrainScriptPaths
     if ($PythonSha256 -notmatch '^[0-9a-fA-F]{64}$' -or -not [IO.Path]::IsPathRooted($PythonExe)) { throw 'Supply absolute pinned venv PythonExe and its expected SHA256' }
     $python = (Resolve-Path -LiteralPath $PythonExe).Path
     if ([IO.Path]::GetFileName($python) -ine 'python.exe' -or [IO.Path]::GetFileName([IO.Path]::GetDirectoryName($python)) -ine 'Scripts' -or -not (Test-Path -LiteralPath (Join-Path ([IO.Path]::GetDirectoryName([IO.Path]::GetDirectoryName($python))) 'pyvenv.cfg'))) { throw 'PythonExe must identify an existing Windows venv Scripts\python.exe' }
@@ -325,7 +338,7 @@ try {
     $self.ProcessorAffinity = $affinity
     $run = Join-Path $RunRoot ([guid]::NewGuid().ToString('N'))
     $tempDir = Join-Path $run 'temp'
-    Assert-ScratchPath -Path $tempDir -RepoRoot $repo
+    Assert-ScratchPath -Path $tempDir -RepoRoot $repo -ScratchDrive $ScratchDrive
     $null = New-Item -ItemType Directory -Path $run -ErrorAction Stop
     $null = New-Item -ItemType Directory -Path $tempDir -ErrorAction Stop
     $null = New-Item -ItemType Directory -Path $TargetDir -Force -ErrorAction Stop
@@ -336,7 +349,7 @@ try {
     $env:OMP_NUM_THREADS = '1'
     $env:OPENBLAS_NUM_THREADS = '1'
     $env:MKL_NUM_THREADS = '1'
-    @{utc=[DateTime]::UtcNow.ToString('o'); input_sha256=$expected; python=$python; python_sha256=$PythonSha256; HIP_PATH=$env:HIP_PATH; GCN_ARCH_NAME=$env:GCN_ARCH_NAME; gpu_free_slot_confirmed=$true; gate_exe_names=$GateExeNames; gate_exe_paths=$GateExePaths; production_train_script_paths=$ProductionTrainScriptPaths} | ConvertTo-Json | Set-Content -LiteralPath (Join-Path $run 'preflight.json') -Encoding UTF8
+    @{utc=[DateTime]::UtcNow.ToString('o'); input_sha256=$expected; python=$python; python_sha256=$PythonSha256; HIP_PATH=$env:HIP_PATH; GCN_ARCH_NAME=$env:GCN_ARCH_NAME; gpu_free_slot_confirmed=$true; scratch_drive=$ScratchDrive; gate_exe_names=$GateExeNames; gate_exe_paths=$GateExePaths; production_train_script_paths=$ProductionTrainScriptPaths} | ConvertTo-Json | Set-Content -LiteralPath (Join-Path $run 'preflight.json') -Encoding UTF8
     Write-Host "Logs and outputs: $run"
     $phase = 'native'
     $code = Invoke-NativeLogged -FilePath $rustc -Arguments @('--version') -LogPrefix (Join-Path $run 'rustc_version') -Affinity $affinity -WorkingDirectory $run
@@ -349,7 +362,7 @@ try {
     $code = Invoke-NativeLogged -FilePath $cargo -Arguments @('fetch', '--locked', '--manifest-path', $manifest) -LogPrefix (Join-Path $run 'cargo_fetch') -Affinity $affinity -WorkingDirectory $run
     if ($code -ne 0) { throw "cargo fetch --locked exited $code" }
     $phase = 'preflight'
-    Assert-HipSlot -GateExeNames $GateExeNames -GateExePaths $GateExePaths -ProductionTrainScriptPaths $ProductionTrainScriptPaths
+    Assert-HipSlot -ScratchDrive $ScratchDrive -GateExeNames $GateExeNames -GateExePaths $GateExePaths -ProductionTrainScriptPaths $ProductionTrainScriptPaths
     $phase = 'native'
     $output = Join-Path $run 'checkpoint'
     $buildPlan = Get-HipBuildPlan -TargetRoot $env:CARGO_TARGET_DIR -Manifest $manifest
@@ -359,13 +372,13 @@ try {
     $trainingHash = (Get-FileHash -LiteralPath $trainingExe -Algorithm SHA256).Hash
     Write-NewLogText -Path (Join-Path $run 'train_smoke.sha256') -Text $trainingHash
     $phase = 'preflight'
-    Assert-HipSlot -GateExeNames $GateExeNames -GateExePaths $GateExePaths -ProductionTrainScriptPaths $ProductionTrainScriptPaths
+    Assert-HipSlot -ScratchDrive $ScratchDrive -GateExeNames $GateExeNames -GateExePaths $GateExePaths -ProductionTrainScriptPaths $ProductionTrainScriptPaths
     $phase = 'native'
     $code = Invoke-NativeLogged -FilePath $trainingExe -Arguments @($inputFile, $output, '128') -LogPrefix (Join-Path $run 'original_training') -Affinity $affinity -WorkingDirectory $run
     if ($code -ne 0) { throw "Bullet GPU smoke exited $code; partial outputs retained" }
     if (-not (Test-Path -LiteralPath (Join-Path $output 'COMPLETE.txt'))) { throw 'Training completion marker missing' }
     $phase = 'preflight'
-    Assert-FreeBytes ([IO.DriveInfo]::new('F:\').AvailableFreeSpace)
+    Assert-HipDiskSpace -ScratchDrive $ScratchDrive
     $phase = 'native'
     $weights = Join-Path $output 'weights.bin'
     $exportManifest = Join-Path $run 'export_manifest.json'

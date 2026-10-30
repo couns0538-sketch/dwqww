@@ -76,6 +76,22 @@ class HipDocumentationTests(unittest.TestCase):
         self.assertEqual(source.count("$GateExeNames = @(ConvertTo-GateExeNames $GateExeNames)"), 2)
         self.assertIn("-GateExeNames 'forge_gate_candidate.exe,stockfish_gate.exe'", readme)
 
+    def test_scratch_drive_is_explicit_throughout_launcher(self):
+        source = (ROOT / "tools/bullet/run_hip_smoke.ps1").read_text()
+        readme = (ROOT / "tools/bullet/README.md").read_text()
+        self.assertIn("[string]$ScratchDrive", source)
+        self.assertNotIn("F:", source)
+        self.assertIn("[IO.DriveInfo]::new($scratchRoot)", source)
+        self.assertIn("Join-Path $ScratchDrive 'astra_bullet_smoke'", source)
+        self.assertIn("Join-Path $ScratchDrive 'astra_bullet_cargo_target'", source)
+        calls = [line.strip() for line in source.splitlines()
+                 if line.strip().startswith(("Assert-HipSlot ", "Assert-HipDiskSpace ", "Assert-ScratchPath "))]
+        self.assertTrue(calls)
+        for call in calls:
+            self.assertIn("-ScratchDrive $ScratchDrive", call)
+        self.assertIn("scratch_drive=$ScratchDrive", source)
+        self.assertIn("-ScratchDrive '<APPROVED_DRIVE_LETTER>:'", readme)
+
     def test_current_recipe_describes_refined_policy_and_runtime_limit(self):
         readme = (ROOT / "tools/bullet/README.md").read_text()
         for text in ("five valid snapshots", "strictly greater than 2%",

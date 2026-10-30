@@ -77,7 +77,7 @@ failure. Rust **1.87 or newer** is required; 1.85 fails, and the existing
 The launcher requires an explicit CPU affinity mask, inherits Idle priority,
 uses Cargo `-j2` and `fetch --locked`, and pins the MSVC x64 target and matching
 executable. The venv Python executable is an explicit path plus SHA256. Cargo
-target storage, TEMP/TMP, and fresh run directories stay on F: outside the
+target storage, TEMP/TMP, and fresh run directories stay on the explicit ScratchDrive outside the
 repository, guarded by at least 20 GiB free. Missing/busy GPU telemetry and
 known production processes refuse the run with exit 76. Checks repeat after
 compilation immediately before the hashed smoke executable runs. Use only a
@@ -114,20 +114,25 @@ clearance remains UNVERIFIED; no new training is authorized by these test logs.
 
 The launcher now permits unrelated Python and compiler processes. It identifies
 production jobs by actual executable basename or the actual Python script
-argument: nnue-pytorch `train*.py`, selfplay, fastchess, cutechess, and defined
+argument: relative or absolute `train_resid*.py`, `r11_train_entry`, nnue-pytorch
+`train*.py`, selfplay, fastchess, cutechess, and defined
 gate names (`gate.exe`, `gate_*.exe`). Exact `GateExeNames` / `GateExePaths`
 options cover arbitrary gate binaries, while `ProductionTrainScriptPaths`
 covers explicitly selected trainer scripts elsewhere. Forge/Stockfish binaries
 are allowed unless selected as gates. Command-line text mentioning a production
-filename is insufficient by itself; see the launcher README for full-path and
-missing-command-line limitations.
+filename is insufficient by itself. Any `--guard-tag` refuses, as do missing,
+null, denied or malformed command lines on any non-self process. Readable plain
+`python.exe` remains allowed. Gate names accept a trimmed comma-separated list
+for `powershell.exe -File`; see the launcher README for full-path limitations.
 
 Each preflight requires five valid WDDM snapshots one second apart, including
 all-zero windows. It sums per-process counters only for the same adapter LUID,
-physical GPU index, engine index and engine type. A 3D or Compute engine
-(including `Compute0` and `Compute_0`) must exceed 2% in any snapshot to refuse;
+physical GPU index and engine index, regardless of the type label. 3D, Compute
+and Graphics engines (including `Compute_0` and every `Graphics_*` index) must
+exceed 2% in any snapshot to refuse;
 exactly 2% passes. Separate GPUs/engines and Copy/Video utilization are not added
-to that busy decision. Missing or malformed GPU telemetry still refuses.
+to that busy decision. Engine labels may contain spaces. Missing, denied or
+malformed GPU telemetry refuses once without retry.
 
 The expanded Windows behavioral script covers boundary and aggregate cases,
 separate GPUs/engines, Copy/Video, command-line false positives, exact gate and
@@ -137,5 +142,17 @@ unavailable. No grok-pc or GPU command was executed. Portable documentation/sour
 checks and their failure-before-change evidence are saved separately under
 [`qa_policy_refinement/`](../validation/astra-bullet-export/qa_policy_refinement/).
 Historical QA evidence is unchanged. PS5.1, pinned venv Python, Idle priority,
-explicit affinity, F: scratch/target/TEMP, 20 GiB free, `-j2`, locked Cargo fetch
+explicit affinity, explicit ScratchDrive scratch/target/TEMP, 20 GiB free, `-j2`, locked Cargo fetch
 and explicit MSVC x64 build-target constraints remain in force.
+
+
+## FINAL2 launcher fixes
+
+Production identity, WDDM Graphics/spaced labels, comma-separated gate names,
+and the explicit `-ScratchDrive` policy were updated in separate tested commits.
+Portable source/documentation regression logs and exact source/test SHA256
+manifests are under `validation/astra-bullet-export/qa_final2_item3_process/`,
+`qa_final2_item4_gpu/`, `qa_final2_item6b_gate_names/` and
+`qa_final2_item6c_scratch_drive/`. The shipped Windows behavioral script covers
+these cases but remains **UNVERIFIED** here: no Windows PowerShell, PC or HIP
+execution occurred. Historical validation logs were retained unchanged.
