@@ -1,6 +1,6 @@
 # Astra A1: Forge training-data work, 2026-10-30
 
-**Current status: all five A1 deliverables and completed Linux data checks are ready; direct GitHub asset upload is BLOCKED by HTTP401.**
+**Current status: all five A1 deliverables and completed Linux data checks are ready; full Actions artifact delivery is being triggered after a successful smoke.**
 The 10M filter retained 9,206,371 rows. Full-record, original-response and supplied-holdout coverage audits PASS. This accepts the recorded format/provenance checks, not production training quality or complete holdout/game isolation. No engine strength, label-quality improvement or Elo gain is claimed.
 
 ## Source and data identity
@@ -178,3 +178,5 @@ not an additional filter or a claimed gain in this run.
 Earlier checkpoints are retained in [ASTRA_A1_CHECKPOINT_HISTORY.md](ASTRA_A1_CHECKPOINT_HISTORY.md) and Git history. IDEA_SOURCE: user's data task, same-project FPOS/FHCE/native search/trainer/R8 contracts; original implementations and thresholds, no other-engine code or tuned constants.
 
 Delivery checkpoint: authenticated Git-blob creation passed for the 698-byte transport manifest and an 8MiB original chunk, with exact server Git hashes. Publisher fixtures pass 10/10; the first branch-triggered runner smoke transfers only the real transport manifest. No full release publication is claimed yet.
+
+Delivery checkpoint: all 294 bounded original-byte Git objects were acknowledged with content hashes and unchanged local source hashes. Full runner delivery is now triggered by the six-asset manifest; final release digest verification remains pending. The original 698-byte manifest smoke succeeded at https://github.com/couns0538-sketch/dwqww/actions/runs/41010526993 .

@@ -28,6 +28,7 @@ For training-data work, record the following before claiming an output valid:
 | Seal boundary | Keep external verification and console receipts outside sealed output folders. Adding an unmanifested file changes the bundle even if its data bytes are unchanged. Require process exit zero, all hashes and independent accounting checks before accepting a legacy run whose summary was published before its manifest. |
 | Search completion | Distinguish completed search depth/score from an aborted iteration's displayed depth and partial bestmove. An initial UCI cp0 placeholder is not a completed label. A documented insufficient-budget response is an explicit exclusion, not permission to invent a score. |
 | Portable evidence | Validate one case-insensitive namespace for archive files, explicit directories, implied parents and the built-in manifest. File-only collision checks miss Windows file/directory aliases. Re-read every archived payload and verify the published server digest. |
+| Publication endpoints | A successful Git push, API write or release-page creation does not prove asset upload works at uploads.github.com. Verify a small intended upload first. If a supported repository runner delivers original bytes, require content hashes before/after transport and final server asset size/digest checks; a started job or temporary Git object is not durable artifact publication. |
 
 Report format correctness, native legality/search validity, trainer compatibility,
 throughput and training/playing strength as separate conclusions. Unit fixtures
