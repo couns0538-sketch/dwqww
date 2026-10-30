@@ -176,13 +176,47 @@ build and export. It never deletes prior evidence to make room.
 
 GPU and production-process prechecks run before work and again immediately
 before Cargo builds and, after compilation, immediately before the built HIP
-smoke executable starts. Its SHA256 is recorded before execution. WDDM GPU engine counters must provide two valid,
-zero-utilization samples; empty, unavailable, denied, or invalid telemetry,
-detected GPU use, known production/training/build processes, and insufficient
-space **fail closed with exit 76**. These snapshots cannot reserve the GPU:
-keep the scheduled slot exclusive for the entire build and smoke. The launcher
-never stops, kills, pauses, or changes another process. If counters are
-unavailable, diagnose them separately and leave the smoke blocked.
+smoke executable starts. Its SHA256 is recorded before execution. Each check
+requires **five valid snapshots**, one second apart (four delays), even when all
+samples are zero. Process counters on the **same physical GPU and engine** are
+summed within each snapshot, using the WDDM adapter LUID, physical GPU index,
+engine index and engine type. Only `3D`, `Compute`, `Compute0`/`Compute1` and
+`Compute_0`/`Compute_1` (any numeric suffix) count toward busy status. An aggregate
+**strictly greater than 2%** in **any** snapshot refuses; exactly 2% is allowed.
+Separate GPUs/engines are never added together. Copy/Video utilization does not
+mark a GPU busy, but every returned counter must still have a valid WDDM name
+and finite utilization between 0 and 100. Empty, unavailable, denied, or malformed
+GPU telemetry, a detected production job, and insufficient space **fail closed
+with exit 76**.
+
+Production detection uses actual executable names and Python's invoked script
+argument. It rejects `fastchess.exe`, `cutechess.exe`, `cutechess-cli.exe`,
+`selfplay.exe` / `selfplay_*.exe` / `selfplay-*.exe`, `selfplay.py` and analogous
+selfplay script suffixes, and `train*.py` invoked from a path with an
+`nnue-pytorch` component. Built-in gate names are exactly `gate.exe` and
+`gate_*.exe`. Unrelated Python and all compiler processes are allowed; an editor
+opening `nnue-pytorch\train.py` or a script receiving that filename as input is
+allowed too. `forge.exe` and `stockfish.exe` are not assumed to be gates.
+
+For a gate with an arbitrary binary name, pass exact basenames with
+`-GateExeNames @('forge_gate_candidate.exe')` or exact absolute paths with
+`-GateExePaths @('F:\gates\forge.exe')`. For a known trainer outside nnue-pytorch,
+use `-ProductionTrainScriptPaths @('F:\forge\tools\nnue\train_resid_v3b.py')`.
+To pass multiple values, invoke the script with `& .\tools\bullet\run_hip_smoke.ps1`
+from an existing PowerShell session; Windows `powershell.exe -File` cannot pass
+array parameters.
+Matching is case-insensitive and paths are normalized; wildcards are rejected.
+Full paths distinguish a selected binary/script from unrelated copies with the
+same name. Launch configured trainer scripts using their full path: CIM does
+not expose their working directory, so bare `train.py`, ambiguous relative
+script paths, missing per-process command lines, and `-c`/`-m` wrappers cannot
+establish a trainer identity. A missing or failed whole process inventory still
+refuses the preflight. The configured identity lists are saved in `preflight.json`.
+
+These snapshots cannot reserve the GPU: keep the scheduled slot exclusive for
+the entire build and smoke. The launcher never stops, kills, pauses, or changes
+another process. If counters are unavailable, diagnose them separately and
+leave the smoke blocked.
 
 Native tools run through `System.Diagnostics.Process`, with concurrent raw
 stdout/stderr copies into separate `*.stdout.log` / `*.stderr.log`, plus
@@ -198,7 +232,10 @@ The non-GPU Windows regression script is
 native stderr, argument quoting, and nonzero exits without invoking Cargo/HIP.
 It has **not been executed here** because neither Windows PowerShell nor `pwsh`
 is available. Local portable documentation checks and include tensor replay are
-recorded under `validation/astra-bullet-export/qa_windows_fix/`.
+recorded under `validation/astra-bullet-export/qa_windows_fix/`. The later
+process/GPU policy refinement has separate portable source/documentation logs
+in `validation/astra-bullet-export/qa_policy_refinement/`; those logs do not
+execute or establish Windows PowerShell behavior.
 
 Before training on converted data, require the converter branch's independent
 clearance receipt against both complete real 013/014 shards, with zero overlapping

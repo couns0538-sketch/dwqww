@@ -108,3 +108,34 @@ The earlier `final_review/final_manifest.json` is a frozen pre-QA snapshot at
 `99f9d769`; it is not a manifest of the updated README/launcher. The QA follow-up
 manifest records the current changed files separately. Real private 013/014
 clearance remains UNVERIFIED; no new training is authorized by these test logs.
+
+
+## Process and GPU policy refinement
+
+The launcher now permits unrelated Python and compiler processes. It identifies
+production jobs by actual executable basename or the actual Python script
+argument: nnue-pytorch `train*.py`, selfplay, fastchess, cutechess, and defined
+gate names (`gate.exe`, `gate_*.exe`). Exact `GateExeNames` / `GateExePaths`
+options cover arbitrary gate binaries, while `ProductionTrainScriptPaths`
+covers explicitly selected trainer scripts elsewhere. Forge/Stockfish binaries
+are allowed unless selected as gates. Command-line text mentioning a production
+filename is insufficient by itself; see the launcher README for full-path and
+missing-command-line limitations.
+
+Each preflight requires five valid WDDM snapshots one second apart, including
+all-zero windows. It sums per-process counters only for the same adapter LUID,
+physical GPU index, engine index and engine type. A 3D or Compute engine
+(including `Compute0` and `Compute_0`) must exceed 2% in any snapshot to refuse;
+exactly 2% passes. Separate GPUs/engines and Copy/Video utilization are not added
+to that busy decision. Missing or malformed GPU telemetry still refuses.
+
+The expanded Windows behavioral script covers boundary and aggregate cases,
+separate GPUs/engines, Copy/Video, command-line false positives, exact gate and
+trainer overrides, five-snapshot/four-delay timing, and a busy sample in each
+of the five positions. It remains **UNVERIFIED** because local PowerShell is
+unavailable. No grok-pc or GPU command was executed. Portable documentation/source
+checks and their failure-before-change evidence are saved separately under
+[`qa_policy_refinement/`](../validation/astra-bullet-export/qa_policy_refinement/).
+Historical QA evidence is unchanged. PS5.1, pinned venv Python, Idle priority,
+explicit affinity, F: scratch/target/TEMP, 20 GiB free, `-j2`, locked Cargo fetch
+and explicit MSVC x64 build-target constraints remain in force.
