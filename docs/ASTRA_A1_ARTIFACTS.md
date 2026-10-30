@@ -17,21 +17,23 @@ Use the exact source from `astra-a1-data`. Obtain the verified artifacts listed
 in the final publication receipt. Keep downloads outside the repository and
 outside any previously sealed output. Reserve room for downloaded chunks (if
 used), the complete archive, and its extracted files; original spools and logs
-are intentionally retained.
+are intentionally retained. Exact Linux baseline/current/historical helper binaries are included under `binaries/`; these are evidence binaries, not Windows executables. Tar stores regular files without execute bits: on Linux, restore execute permission only for the binary you intend to run after verifying its hash.
 
 Run the blocks below from the checked-out repository in PowerShell 7 with Python
 3.10 or later. Set these shared values for either download method. Use the actual
 archive filename and whole-archive SHA256 from the final publication receipt;
-the placeholder deliberately prevents extraction before that value is supplied:
+the verified local archive hash is filled below and must also match the final publication receipt:
 
 ```powershell
 $ErrorActionPreference = 'Stop'
 $Archive = 'D:\astra_a1_downloads\forge_astra_a1_data_results_20261030.tar.gz'
-$ExpectedArchiveSha256 = 'REPLACE_WITH_WHOLE_ARCHIVE_SHA256_FROM_FINAL_PUBLICATION_RECEIPT'
+$ExpectedArchiveSha256 = '148803c5a45a5e291c18f667b918100ec1fa1a8e08d5a74dfe430651b3f1418f'
 if ($ExpectedArchiveSha256 -notmatch '^[0-9a-fA-F]{64}$') {
     throw 'Set ExpectedArchiveSha256 to the whole-archive hash in the final publication receipt.'
 }
 ```
+
+This release uses **two chunk assets**, because the complete archive is 2,329,781,152 bytes. Follow the chunk method below. The direct method applies only if you already possess the verified complete archive. Reserve at least 12 GB for download, reassembly and extraction.
 
 Choose the applicable download method:
 

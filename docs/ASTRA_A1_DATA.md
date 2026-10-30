@@ -1,7 +1,7 @@
 # Astra A1: Forge training-data work, 2026-10-30
 
-**Current status: full 10M filtering and full-record verification PASS; independent native-log audit is RUNNING.**
-The run retained 9,206,371 rows. Final output acceptance and publication remain pending. No engine strength, label-quality improvement or Elo gain is claimed.
+**Current status: all five A1 deliverables and completed Linux data checks are ready; GitHub artifact publication is pending.**
+The 10M filter retained 9,206,371 rows. Full-record, original-response and supplied-holdout coverage audits PASS. This accepts the recorded format/provenance checks, not production training quality or complete holdout/game isolation. No engine strength, label-quality improvement or Elo gain is claimed.
 
 ## Source and data identity
 
@@ -38,11 +38,11 @@ The frozen full-run protocol uses 1,024 nodes, one search thread and 1 MB Hash p
 
 The first 10k pilot retained 9,274 rows: 455 capture-best-move, 2 promotion, 268 near-duplicate and 1 disagreement drops. Those figures are **pilot-only**. Full attempt 1 stopped safely at original row 27772 because 1,024 nodes completed no iteration; its partial data and error are preserved. Full attempt 2 uses the explicit insufficient-budget exclusion. Its exact loaded source is archived in `validation/astra-a1-data/filter_full10m_v2_protocol`.
 
-Current tools add tested summary-last publication hardening after that run started; filtering policy is unchanged. The completed full run must pass the independent bundle checker before acceptance. A path containing `.pos` alone is not a seal.
+Current tools add tested summary-last publication hardening after that run started; filtering policy is unchanged. The completed full run passed the independent bundle checker and semantic audit. A path containing `.pos` alone is not a seal.
 
-### Completed 10M run: full-record PASS; native audit pending
+### Completed 10M run: independent checks PASS
 
-The native run exited 0 after processing **10,000,000** rows and retaining **9,206,371 (92.06371%)**. Its reported waterfall is below; the full-record checker passed and the independent original-log audit is still running.
+The native run exited 0 after processing **10,000,000** rows and retaining **9,206,371 (92.06371%)**. Both the full-record checker and the independent original-log auditor verified the waterfall below.
 
 | Rule (first-drop order) | Removed | % of all 10M | % reaching this rule |
 |---|---:|---:|---:|
@@ -65,6 +65,8 @@ Compact original summary, manifest, console and resource logs are in `validation
 | `forge_filtered.pos` | `2019bf8e560e4821b8c50286a257ba7f4d4435521e90b2324e0e35dfcc324802` |
 | `forge_filtered.hce` | `9c5f4e6db58b59fc40465ff00c38cb71c8b05161bfb9aacc5d0e309b312b8e87` |
 | `forge_filtered.fen` | `beb3c31d377d4f5f610c2fa2b877fe434177230197e074ee54a35b59f7d41c97` |
+
+The independent audit checked **all 10,000,000 decisions, all 9,206,371 retained originals/FENs/HCE values and all 9,976,584 native responses**. It recomputed retained/index identity consistency and **zero overlap** with the supplied holdout index, then verified **every one of the original 1,500,000 holdout rows** was represented in that index. Frozen source, original input/probe hashes and source stability passed. Audit time: 617.760 seconds wall, 605.169 seconds actual process CPU, 709,948 KiB peak RSS. Native contracts were checked from original logs; chess search was not rerun and cheap-rule hypotheses were not independently recomputed. Original receipts: `validation/astra-a1-data/full10m_audit/post_seal_10000000_20261030`.
 
 ## Job 2: real fixed-node relabeling
 
@@ -139,9 +141,9 @@ one Windows archive file/directory collision repair; independently replayed
 no-overwrite boundaries. The addendum repaired direct-download setup, enforced checksum comparison and
 outside-seal verification logging. Ten independent auditor regression tests
 also pass, including corrupt native evidence and original holdout coverage.
-No concrete finding remained open. Final full-data
-acceptance and transport publication are separate checks performed after the
-active filter exits.
+No concrete finding remained open. Full-data acceptance followed separate passing checks after the filter exited.
+Original archive payloads and transport chunks also passed their byte checks;
+GitHub publication is the remaining delivery step.
 
 ## Reproduce and review
 
@@ -156,13 +158,13 @@ python3 tools/data/relabel_positions.py --pos /DATA/forge_selfplay_003.pos --sid
 python3 tools/data/check_data_bundle.py /NEW/relabel --full-records > /NEW/relabel-verification.json
 ```
 
-All output folders must be new. Keep verification receipts outside sealed folders. Full position/game holdout clearance, production training gains, equal-time matches and Elo remain unverified. GitHub contains source and compact original evidence; final full-run artifact publication is pending.
+All output folders must be new. Keep verification receipts outside sealed folders. Full position/game holdout clearance, production training gains, equal-time matches and Elo remain unverified. GitHub contains source and compact original evidence; the verified 2,329,781,152-byte original results archive is ready for publication in two transport chunks. Its whole SHA256 is `148803c5a45a5e291c18f667b918100ec1fa1a8e08d5a74dfe430651b3f1418f`. See [artifact recovery instructions](ASTRA_A1_ARTIFACTS.md).
 
 Existing coordinator/validation/engine-development skills were reused. [The skill addendum](ASTRA_A1_SKILL_ADDENDUM.md) improves the existing validation workflow without duplication; it is **proposed, not installed** because a provider editor/skill-creator is unavailable. GitHub CLI/Git and native tools were usable; optional connector failures were not pursued.
 
 ## Next action / continuation
 
-The full 10M run completed, its full-record checker passed, and the archive was byte-verified. Finish the running native-log/original-holdout audit, verify archive transport chunks and publish the original evidence. Current result directory `/tmp/astra-a1-filter-full-10m-v2`; its original probe remains frozen at the SHA above. The automatic checkpoint supervisor finished successfully; final validation/publication checkpoints are now saved manually. Do not rerun this completed native preprocessing or replace the engine base with an older lock.
+The full 10M run, full-record checker, complete native-log/original-holdout audit and archive/transport verification all passed. Publish the six prepared release assets and verify their GitHub digests, then preserve the publication receipt and final commit. Current original result directory `/tmp/astra-a1-filter-full-10m-v2`; archive and chunks are in `/tmp/astra-a1-publication`. Do not rerun completed native preprocessing or replace the engine base with an older lock.
 
 Then review the complete 013/014/game-ID coverage and choose a teacher budget using the saved sensitivity experiment before the matched training ablations. No data or smoke network is automatically installed into training or the engine.
 
@@ -175,28 +177,15 @@ not an additional filter or a claimed gain in this run.
 
 Earlier checkpoints are retained in [ASTRA_A1_CHECKPOINT_HISTORY.md](ASTRA_A1_CHECKPOINT_HISTORY.md) and Git history. IDEA_SOURCE: user's data task, same-project FPOS/FHCE/native search/trainer/R8 contracts; original implementations and thresholds, no other-engine code or tuned constants.
 
-Checkpoint 20261030T031548Z: full10M status RUNNING, processed 2868992, kept 2641524. Final independent bundle verification is still required. No Elo claim.
 
-Checkpoint 20261030T032550Z: full10M status RUNNING, processed 3499520, kept 3222140. Final independent bundle verification is still required. No Elo claim.
 
-Checkpoint 20261030T033552Z: full10M status RUNNING, processed 4167424, kept 3835087. Final independent bundle verification is still required. No Elo claim.
 
-Checkpoint 20261030T034554Z: full10M status RUNNING, processed 4805120, kept 4421349. Final independent bundle verification is still required. No Elo claim.
 
-Checkpoint 20261030T035557Z: full10M status RUNNING, processed 5398528, kept 4967198. Final independent bundle verification is still required. No Elo claim.
 
-Checkpoint 20261030T040600Z: full10M status RUNNING, processed 5920512, kept 5446810. Final independent bundle verification is still required. No Elo claim.
 
-Checkpoint 20261030T041603Z: full10M status RUNNING, processed 6424832, kept 5911136. Final independent bundle verification is still required. No Elo claim.
 
-Checkpoint 20261030T042605Z: full10M status RUNNING, processed 7004416, kept 6445540. Final independent bundle verification is still required. No Elo claim.
 
-Checkpoint 20261030T043607Z: full10M status RUNNING, processed 7613696, kept 7007403. Final independent bundle verification is still required. No Elo claim.
 
-Checkpoint 20261030T044611Z: full10M status RUNNING, processed 8239616, kept 7584637. Final independent bundle verification is still required. No Elo claim.
 
-Checkpoint 20261030T045615Z: full10M status RUNNING, processed 8883456, kept 8177804. Final independent bundle verification is still required. No Elo claim.
 
-Checkpoint 20261030T050617Z: full10M status RUNNING, processed 9486848, kept 8733885. Final independent bundle verification is still required. No Elo claim.
 
-Checkpoint 20261030T051519Z: full10M status SEALED, processed 10000000, kept 9206371. Final independent bundle verification is still required. No Elo claim.

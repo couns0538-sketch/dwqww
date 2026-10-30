@@ -56,3 +56,31 @@ Unchanged trainer mmap reader matches allboards/scores/meta/HCE of both256-row r
 Full10Mv2: 2230272 processed, 2052887 kept; stillrunning/unsealed. Paired256positions at1024vs65536nodes changedcapture/quietclassification15times (10capture→quiet,5quiet→capture). The1024nodefilter isabudget-specificscreeningpolicy,notproductiontrainingacceptance. Scoresandbestmoves fromhelpermatched32completed UCIcases; twoUCIabortlinesreportattempteddepth instead ofcompleteddepth, and row27772emitsUCIcp0despitenocompletediteration. Nativehelperexplicitlyexcludeslatter. Rawinitial3FAILcomparisonand source-groundedaddendum retained; engineunchanged.
 
 Newrecommendedopeningbook64positionsrequires25≤abs(finalcp)≤150at1024nodes:32White/32Blackadvantages,observed25..148cp. Nativeaudit562legalplies/626score-depth-nodechecks,0mismatch. Controlmin0bookdeterminismtestedseparately. Fullholdoutpathsoptionalquestionpending; currentcoverageonly013head.
+
+## Full-run periodic checkpoints preserved at finalization
+
+Checkpoint 20261030T031548Z: full10M status RUNNING, processed 2868992, kept 2641524. Final independent bundle verification is still required. No Elo claim.
+
+Checkpoint 20261030T032550Z: full10M status RUNNING, processed 3499520, kept 3222140. Final independent bundle verification is still required. No Elo claim.
+
+Checkpoint 20261030T033552Z: full10M status RUNNING, processed 4167424, kept 3835087. Final independent bundle verification is still required. No Elo claim.
+
+Checkpoint 20261030T034554Z: full10M status RUNNING, processed 4805120, kept 4421349. Final independent bundle verification is still required. No Elo claim.
+
+Checkpoint 20261030T035557Z: full10M status RUNNING, processed 5398528, kept 4967198. Final independent bundle verification is still required. No Elo claim.
+
+Checkpoint 20261030T040600Z: full10M status RUNNING, processed 5920512, kept 5446810. Final independent bundle verification is still required. No Elo claim.
+
+Checkpoint 20261030T041603Z: full10M status RUNNING, processed 6424832, kept 5911136. Final independent bundle verification is still required. No Elo claim.
+
+Checkpoint 20261030T042605Z: full10M status RUNNING, processed 7004416, kept 6445540. Final independent bundle verification is still required. No Elo claim.
+
+Checkpoint 20261030T043607Z: full10M status RUNNING, processed 7613696, kept 7007403. Final independent bundle verification is still required. No Elo claim.
+
+Checkpoint 20261030T044611Z: full10M status RUNNING, processed 8239616, kept 7584637. Final independent bundle verification is still required. No Elo claim.
+
+Checkpoint 20261030T045615Z: full10M status RUNNING, processed 8883456, kept 8177804. Final independent bundle verification is still required. No Elo claim.
+
+Checkpoint 20261030T050617Z: full10M status RUNNING, processed 9486848, kept 8733885. Final independent bundle verification is still required. No Elo claim.
+
+Checkpoint 20261030T051519Z: full10M status SEALED, processed 10000000, kept 9206371. Final independent bundle verification is still required. No Elo claim.

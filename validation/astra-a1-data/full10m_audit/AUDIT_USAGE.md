@@ -58,7 +58,7 @@ Its holdout index is empty, so this pilot does not establish production holdout
 exclusion.
 
 The audit used 0.685 seconds of CPU, 0.728 seconds wall and 17,004 KiB peak RSS.
-The strict 10M run has **not been executed here**. A simple extrapolation of the
+At pilot qualification the strict 10M run had not been executed. It subsequently **PASSED**; see `post_seal_10000000_20261030/audit/summary.json` for all 10M decisions, 9,206,371 kept rows, 9,976,584 original native responses and 1.5M original holdout-row coverage. Actual full audit: 605.169 CPU seconds, 617.760 wall seconds, peak RSS 709,948 KiB. A simple extrapolation of the
 small-run CPU rate is roughly 10–12 CPU minutes; large SQL/cache/I/O effects may
 change that. Do not report a full-run PASS from this pilot.
 Original holdout coverage adds a full scalar parse and index lookup for each of
