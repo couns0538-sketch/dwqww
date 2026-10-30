@@ -1,8 +1,29 @@
-# OPUS R7 SPEED: AMD training path, data pipeline, engine NPS, gate throughput (WIP)
+# OPUS R7 SPEED: AMD training path, data pipeline, engine NPS, gate throughput — DONE
 
 Branch `opus-r7-speed` (from main 5176ddf7). Engine changes live on `opus-r7-nps` (from the R5D engine head
 `opus-r5d-matefix` 5882c383, because main carries no engine source). PC clock times. Machine exclusive: no
-(gate conc 8, the live NNUE trainer on the GPU and self-play kept running).
+(gate conc 8, the live NNUE trainer on the GPU and self-play kept running). Time: job start 16:01, commits
+16:08:37-17:17:30 (11 commits on the two branches), final report ~17:25.
+
+## Summary
+| job | result | numbers |
+|---|---|---|
+| J1 Forge v2 net on the AMD Triton path | DONE | **1.44M pos/s vs 363-396k plain (3.6-4.0x)**, batch 4096, 1 loader thread; parity max 1.59 cp on 10k; loads + benches in Forge |
+| J2 .pos -> binpack + loader | DONE | the old tool was already 7.8 s per 10M shard; `fpos2sf_mt` 2.27 s (3 threads), byte-identical, verify 0 bad / 0 mismatches; loader 3.9-5.5M pos/s |
+| J3 Forge NPS (Threads 1) | DONE | top 3: HCE eval 14.4%, picker 10.9%, TT probe 10.7%; **R7TtExclusive +3.6% (d16) / +4.0% (d20)**; R7QuietGen, R7EvalPrefetch, R7PrefetchEarly no measurable gain; OFF bench identical, CI green |
+| J4 gate games/hour | DONE | running gate 996-1,002 games/h at conc 8; adjudication +3.1% (0 results changed) to +6.9% (0.37% changed); mini-gate 350 -> 365/h; concurrency is the only big lever but the trainer runs at Idle priority |
+
+**To gate**: `F:\opus_scratch\r7\j3\exe\forge_r7_j3a.exe` (sha256 `61f641d8a2b5708d7de575cccf2e525e53627fc4625912f964e13bc236481454`,
+source `opus-r7-nps` `2d9889cf`) with `option.R7TtExclusive=true` vs the same exe at defaults (node-exact: only speed
+differs, so a non-regression SPRT). `forge_r7_j3b.exe` (`30bb0e20...`, `c34a9739`) has the same options plus
+R7PrefetchEarly and gives the same nodes; either exe works for this gate.
+
+**Incident (owner item)**: the live self-play (`forge_selfplay.py`, 2 workers at Idle priority pinned to CPUs
+12-15) stopped writing at **17:04:36**; its processes are alive at 0 CPU (still so at 17:13). Its bounded output
+queue (size 4) means a blocked main process stalls the workers and engines. The stall began while my second
+conc-3 mini-gate ran (17:00:58-17:07:31, 3 BelowNormal engines without an affinity mask), so my load may have
+triggered it. I did not touch the processes. From 17:10 every run of mine is pinned to CPUs 0-11
+(`tools/r7_gate/run_pinned.py --mask 0x0FFF`). Restarting self-play is the owner's decision.
 
 Rules kept: BelowNormal (`nice -n 10`), at most 3 CPU threads in total, every torch run inside the R6 RAM guard
 (aborts below 7 GB free; lowest free RAM seen in any of my runs: 7.73 GB, see J1), GPU runs at smoke size only
@@ -88,5 +109,58 @@ Engine branch `opus-r7-nps`: base `opus-r5d-matefix` 5882c383, profile workflow 
   -0.02% / -0.98%): **R7TtExclusive +3.59% [+1.38, +5.84] at d16, +3.97% [+1.23, +6.77] at d20** (15 runs; CPU time
   +3.07% / +3.80%); real, but the lower bounds miss the PC's +2% eligibility rule. R7QuietGen -0.08% / -1.51% and
   R7EvalPrefetch -0.60% / -1.33%: no measurable gain (intervals include 0), not suggested for a gate.
+- **R7PrefetchEarly** (`c34a9739`, child TT prefetch from `Board::key_after_r7` before the extension block):
+  `key_after_r7` exact for 29.4M moves (only double pushes creating a legal en passant differ, by design);
+  identity ALL OK; NPS 6 runs -2.11% (d16) / +1.46% (d20): no clear gain, not suggested.
+- **Instructions** (callgrind bench 13, Linux CI, same nodes): R7TtExclusive -1.26%, R7QuietGen -0.35%,
+  R7EvalPrefetch +0.08%. **CI**: opus-ci run 40895783124 on `2d9889cf` green (release, ASan+UBSan, TSan, incl.
+  `forge_r7_quiet_gen_tests` and `uci_options_regression`); profile runs green; `c34a9739` runs queued at report time.
 - **Gate**: `F:\opus_scratch\r7\j3\exe\forge_r7_j3a.exe` (sha256 `61f641d8...`, source `2d9889cf`) with
   `option.R7TtExclusive=true` vs the same exe at defaults (node-exact, so a non-regression SPRT fits).
+
+## J4 Gate throughput: DONE (measured; nothing on the running gate was changed)
+Tools: `tools/r7_gate/` (README). Evidence: `logs/r7/j4/`.
+- **Before (the running gate R5A_1, conc 8, 10+0.1, read from its PGN)**: **996 games/h** over 1.61 h (1,002 in the
+  last hour); mean game 28.3 s, 143 plies, every game ends "normal" (no adjudication configured). Theoretical
+  8 x 3600 / 28.32 s = 1,017/h, so the between-game overhead is only ~2%.
+- **Key fact**: at a fixed time control a game lasts ~28 s whatever the engine speed, so games/hour depends only
+  on concurrency, time control, game length (adjudication) and that ~2% overhead. NPS, affinity and book format
+  change game quality, not games/hour.
+- **Adjudication** (offline replay of all 1,626 games' score/time comments, `adjudication_sim.py`):
+
+| rule | adjudicated | results changed | games/h (from 1,002) | Elo of the same games |
+|---|---|---|---|---|
+| none (played) | 0% | - | 1,002 | +4.92 |
+| E resign 4x1000 two-sided + draw 40/10/5 | 46% | 0 | 1,033 (+3.1%) | +4.92 |
+| A resign 3x600 two-sided + draw 34/8/8 | 64% | 6 (0.37%) | 1,071 (+6.9%) | +4.92 |
+| B resign 3x400 two-sided + draw 34/8/20 | 70% | 14 (0.86%) | 1,120 (+11.7%) | +4.07 |
+
+  Real check at conc 3 (`mini_gate.sh`, 40 games each, same openings and seed, CPUs as the gate):
+  **before 350 games/h -> after (rule A + `engine=false` log) 365 games/h (+4.3%)**, 16/40 adjudicated. The 40-game
+  samples are noisy; the 1,626-game replay is the better estimate. Adjudication saves less than the ply counts
+  suggest because at 10+0.1 the late moves are played fast.
+- **Engine log**: `-log ... engine=true` wrote 1.07 GB for 1,600 games (25.5 MB per 40 games in the mini-gate) but
+  fastchess itself uses only 0.03 CPUs: turning it off saves disk (~2 GB per 3,000-game gate), not time.
+- **Concurrency** (`cpu_survey.ps1`, 20 s): the PC was 61-73% busy (gate 8.0 CPUs, trainer 1.3, self-play ~2.1).
+  More gate games in parallel is the only big lever (conc 10: ~+25% games/h), but **the live trainer runs at Idle
+  priority and the gate engines at BelowNormal, so extra gate threads would take CPU from the trainer first**;
+  self-play (Idle, pinned to CPUs 12-15) is the same. Owner item: raise the trainer to BelowNormal (or start extra
+  gate games at Idle) before raising concurrency; I did not change any priority.
+- **Book loading** (`book_load_time.py`, 3 runs each): fastchess starts the first game **0.10 s** after launch with
+  the 8 MB, 34,700-opening PGN and 0.016 s with an EPD copy. Once per gate start: not a lever (and an EPD book drops
+  the opening move history).
+- **Suggested flags** for the next gates (owner decision; adjudication changes a few results):
+  `-resign movecount=3 score=600 twosided=true -draw movenumber=34 movecount=8 score=8` (or rule E for zero
+  changes), and `-log ... engine=false`.
+
+## What is left (owner items and ideas)
+- Gate R7TtExclusive (above). R7QuietGen, R7EvalPrefetch and R7PrefetchEarly stay OFF in the tree.
+- Self-play stall since 17:04:36 (see Incident).
+- J1: bigger batches (8192) and 2 loader threads were not run (a batch-8192 / 2-thread run was refused by this
+  session's permission classifier as a risk to the live trainer); a real training run with the fast path (more
+  data, holdout scoring, then a gate) is the next step.
+- J2: the binpack null-move hazard with `filtered=True` (J2 finding); a parallel binpack reader if the loader ever
+  becomes the limit.
+- J4: owner choices: adjudication flags, `engine=false` logging, and the trainer's Idle priority before any
+  concurrency increase.
+- J3: HCE `evaluate_position` (hotspot 1) is untouched; ideas: the no-TLS path for `hashfull()`.

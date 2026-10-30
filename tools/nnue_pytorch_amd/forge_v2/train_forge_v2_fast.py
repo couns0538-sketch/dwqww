@@ -195,6 +195,8 @@ def main():
     if a.batch > MAX_BATCH or a.threads > MAX_THREADS or a.threads < 1:
         sys.exit(f"refused: batch {a.batch} (max {MAX_BATCH}) / threads {a.threads} (1..{MAX_THREADS}) "
                  "are this PC's safety caps while the live trainer runs")
+    if not 0 <= a.warmup < a.steps:
+        sys.exit(f"--warmup ({a.warmup}) must be >= 0 and below --steps ({a.steps}): the timed window would be empty")
     torch.manual_seed(a.seed)
     from data_loader import DataloaderSkipConfig
     from data_loader import stream as st
