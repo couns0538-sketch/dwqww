@@ -1,58 +1,111 @@
-# Astra A1: Forge training-data tools
+# Astra A1: Forge training-data work, 2026-10-30
 
-Status: WIP. Checkpoint UTC 2026-10-30T01:55:00.175833+00:00. Branch astra-a1-data, based on e0d76ce8a6450573b503852aeca12b929bf4a17a. Engine source is unchanged from926c55f33227bc4a030d7ce5b1140528aeba75af; pinned OFF nodes312866/862329/3024920/12389307/34048354. No search change, live trainer, main or Opus branch modification. No Elo claim.
+**Current status: tools and bounded native experiments complete; full 10M filtering is RUNNING.**
+Final full-data removal rates and output acceptance remain pending. No engine strength, label-quality improvement or Elo gain is claimed.
 
-## Scope and implementation contract
+## Source and data identity
 
-1. Stream validated FPOS/FHCE files; use a matched full-FEN sidecar for faithful search. Incoming user release data-sample-10m-20261030 contains the authoritative10M pair; download/verification pending. Prior verified003–010 text heads provide12M real rows for smoke/prefix crosschecks;013 is held out. Original305M corpus/014/game IDs are not available here.
-2. Offline filter: report ordered, non-overlapping removal counts and denominators for invalid/holdout/in-check/result disagreement/exact or near duplicate/teacher capture-or-promotion. Fixed-node teacher budget and all thresholds will be declared before the10M run. Near-duplicate definition will be explicit, not a claim of semantic equivalence.
-3. Relabel a bounded slice with cold-state, single-thread Forge searches at configurable fixed nodes. Preserve original boards/results and generate matching current HCE values, full FEN sidecar and provenance. Reconstructed fallback must be explicit and excluded from exact-label counts.
-4. Use original Python orchestration plus a standalone C++ helper linked to unchanged Forge core. No copied other-engine code. Stream with bounded memory; create only new output folders/files and preserve failures/partial outputs.
-5. Deterministic standard openings export as plain UCI move sequences for exact R8source5dd3a57d6f286f09b8881671ba8a368f6d34f717. R8 cannot consume arbitraryFEN/Chess960 starts; optional no-castling960-style FENs will be clearly separate and not advertised as R8-compatible.
-6. Trainer experiment plan uses actual v3b flags and teacher-fraction blend semantics; no training or data installation into the live system. Windows commands use Idle priority and explicit spare-core affinity for owned tools.
+- Branch: `astra-a1-data`; starting checkpoint `e0d76ce8a6450573b503852aeca12b929bf4a17a`.
+- Engine source: unchanged from `926c55f33227bc4a030d7ce5b1140528aeba75af`; no change to the trainer, accepted net, main or Opus branches.
+- Fresh Release engine SHA256: `8733bcb06e2ba0d7ecb9b2e29de9fcedb870db71cca8ad50bfeea015cbbd9bbc`.
+- Native data probe SHA256: `ddf8713016863512ffd6227c5b3f623d53a87e9964f0bbb8c94c146525d58ff3`. A fresh standalone build reproduced it byte-for-byte.
+- [User-supplied release](https://github.com/couns0538-sketch/dwqww/releases/tag/data-sample-10m-20261030): archive SHA256 `1d6160dd859740fe617c8dc6c6e6ad8fbcdd0ba40b59ee9cee84342f9202cca5`, matching both the published digest and downloaded bytes.
+- `forge_selfplay_003.pos`: 10,000,000 records, SHA256 `d322089c80c8c753bf9eb744d50b530af6d33a5f06bdd3aa5b86a51b61febb10`.
+- Matching original `.txt`: SHA256 `ccab2719f8b59ce2853af7f26f18b15876c5f6160867370983d147760af086f7`.
 
-## Current verification
+All **10,000,000 rows** passed exact board/STM/score/White-result/order/count comparison against the full-FEN sidecar. Source hashes remained unchanged. This verifies the supplied shard, not all 305M historical positions. FEN preserves current castling, en-passant and clocks; it does not encode prior repetition history.
 
-Read-only repository and network checks complete. GitHub connector/managed-environment status MCP are not exposed in this session; Git CLI through the configured proxy works outside tracing. Runtime cloud skill, existing coordinator/validation/engine-development skills are being reused. No provider skill editor or skill-creator has been found; skill changes will be marked proposed unless installation is actually possible.
+## Job 1: filter and 10M measurement
 
-Source recon independently verified13.5M original text rows/hashes, with12M outside013. Existing local data32 fixture is SYNTHETIC and will not be used for real removal-rate claims. FPOS stores board/STM/score/result but no castling/EP/clocks; user confirmed the new .txt preserves full FEN and matches .pos exactly. Native helper, shared format module and generator are being implemented independently; tests and all measurements are still pending.
+`tools/data/filter_positions.py` creates new FPOS, matching current-engine FHCE, full-FEN sidecar, original native IPC, row provenance and an audited decision waterfall. It never rewrites input shards. It preserves original scores/results; deeper labels are a separate job.
 
-## Next action
+The frozen full-run protocol uses 1,024 nodes, one search thread and 1 MB Hash per cold probe; three worker processes; batch 256. Ordered first-drop rules are supplied holdout → result disagreement → exact duplicate → near duplicate → in check → terminal → insufficient teacher budget → capture bestmove → promotion bestmove. Rates are conditional on that order, not independent marginal frequencies.
 
-Fetch and verify the release assets; complete sharedI/O/native helper; run cheap correctness and a throughput pilot; then freeze the10M filter protocol and execute it. Push all code and original results about every10minutes, including unfinished work.
+- Decisive outcome disagreement: at least 400 cp in the opposite STM direction. Draw disagreement: abs(score) at least 800 cp. These are original starting hypotheses.
+- Exact identity: board32 plus STM; SHA256 with stored full-key collision checks. Only retained rows seed duplicate rejection.
+- Near identity: a retained row within 64 original input indices, same STM/result/castling/EP/pawn and king placements/piece inventory; one nonpawn/nonking relocation and source scores within 25 cp. Clocks are ignored for this explicit sampling heuristic; no positional-equivalence claim.
+- Native errors abort. A valid search that completes no iteration has an explicit `insufficient_budget` response and is counted separately; it never receives a made-up label.
+- Known holdout input: verified 1.5M-row 013 head, with 1,499,915 unique feature identities. Complete 013, 014 and authenticated game IDs are unavailable. Only exclusion against the supplied head can be certified.
 
-## Release and implementation checkpoint — 2026-10-30T02:04:56.554501+00:00
+The first 10k pilot retained 9,274 rows: 455 capture-best-move, 2 promotion, 268 near-duplicate and 1 disagreement drops. Those figures are **pilot-only**. Full attempt 1 stopped safely at original row 27772 because 1,024 nodes completed no iteration; its partial data and error are preserved. Full attempt 2 uses the explicit insufficient-budget exclusion. Its exact loaded source is archived in `validation/astra-a1-data/filter_full10m_v2_protocol`.
 
-Release data-sample-10m-20261030 fetched read-only. ArchiveSHA2561d6160dd859740fe617c8dc6c6e6ad8fbcdd0ba40b59ee9cee84342f9202cca5 matches GitHubassetdigest and releasebody. Safe extraction retained originalarchive and produced FPOS1 count10000000,350000016bytes; full-FENtext645348352bytes. Row-by-row alignment and label provenance checks are pending. No measured removal fractions yet.
+Current tools add tested summary-last publication hardening after that run started; filtering policy is unchanged. The completed full run must pass the independent bundle checker before acceptance. A path containing `.pos` alone is not a seal.
 
-Added logged/bounded native-probe Python IPC and first offline filter implementation; sharedbinaryI/O, nativehelper and openinggenerator are inprogress. C++/Python correctness and real-data throughput remain unverified at this checkpoint. Dataset/binaries are outsideGit; source, exactreceipts and future raw compact evidence are committed. Initial checkpoint required gitadd--sparse due excludedvalidationpath; this is now handled explicitly.
+## Job 2: real fixed-node relabeling
 
-## Implementation checkpoint — 2026-10-30T02:18:49.779886+00:00
+`tools/data/relabel_positions.py` preserves board, STM, White result and full FEN; writes the current native score and `Evaluator::evaluate_uncached` HCE. Deterministic slice: 256 rows, start 0, stride 39062, from the supplied 10M shard. All four budgets completed and have original responses, new paired files and CPU receipts.
 
-Native helper compiled warning-free and passed 8 regression tests; source/core unchanged. Fixed helper SHA256 ad2fa25e384d71fc30bf5c22108da0336675d93a21fd9b11604964acb771c498. Shared-format tests 15/15 and filter tests 9/9 pass. First malformed error-response compile/test attempt retained, repaired before data use. Full 10M sidecar audit is running; no full-data removal or throughput results yet. Relabel/generator implementation and independent review are WIP. Blend plan is written and 7 actual trainer CLI configurations were statically checked; no training performed. Next: native pilot, freeze filter protocol, complete full10M run.
+| Nodes/position | Median completed depth | Pipeline CPU seconds | Positions/core-hour | Capture/quiet changes vs 65536 |
+|---|---:|---:|---:|---:|
+| 1,024 | 5 | 4.164 | 221,314 | 15 |
+| 4,096 | 7 | 6.955 | 132,500 | 14 |
+| 16,384 | 9 | 9.987 | 92,279 | 7 |
+| 65,536 | 12 | 21.189 | 43,494 | 0 |
 
-## Native data checkpoint — 2026-10-30T02:26:26.270564+00:00
+CPU accounting includes the entire input hash/sidecar-count scan and owned child CPU, so these small-slice numbers are not steady-state full-corpus estimates. Query-only CPU is also retained in `budget_sweep_256.json`. Windows throughput is unverified.
 
-Full sidecar verification PASS: all10,000,000 rows match board/STM/score/White-result and total count, input hashes unchanged. Pilot10k kept9274 (capture455,promotion2,near268,disagreement1). Full attempt1 aborted unsealed at row27772 because a1024-node search completed no iteration; original evidence retained. Added an explicit teacher_incomplete exclusion for legitimate insufficient-budget results; all other errors still abort. New helperSHA256 ddf8713016863512ffd6227c5b3f623d53a87e9964f0bbb8c94c146525d58ff3,9native tests pass. Full10M v2 running,3workers,T1/Hash1,1024nodes,known013head holdout included; output not yet accepted.
+At 1,024 versus 65,536 nodes, 10 capture choices became quiet and 5 quiet choices became captures. Median absolute score difference was 55.5 cp; mate-band outliers are preserved. Higher budget is a sensitivity reference, not ground truth. The full 10M filter is therefore a **budget-specific screening cohort**, pending training/strength evaluation. The original teacher's budget is unknown.
 
-A256-position deterministic strided real slice was relabeled at65536nodes:256exact-full-FEN rows,21.189165 total pipeline CPU seconds,43493.93 positions/core-hour (Linux pilot only). Full-FEN lacks prior repetition history; exact denotes preserved current state, not game history. Original teacher budget is unknown; no label-quality or Elo claim. Results/hashes/original responses preserved. Relabel integrity10tests and IPC8tests pass after fixing reconstruction provenance and native result validation.
+A native/UCI crosscheck matched all 32 completed scores and returned bestmoves. Two UCI abort messages report attempted depth 6 while `SearchInfo.depth` remains completed depth 5; another root emits an initial cp0 placeholder without completing an iteration. Initial comparison failures and the source-grounded explanation are retained. The probe correctly leaves the latter unlabeled. A public SearchInfo tuple may contain a partial-iteration bestmove alongside its previous completed score/depth; it is not a newly proven completed PV.
 
-## Qualification checkpoint — 2026-10-30T02:37:07.289663+00:00
+Reconstruction is opt-in and never counted as exact. A derived FEN-only sidecar requires an explicit origin, and known reconstructed provenance cannot silently upgrade to original state.
 
-Fresh unchanged engine OFF pins PASS:312866/862329/3024920/12389307/34048354; startposperft5=4865609,kiwipeteperft4=4085603; fullhelper executableFMA=0. ASan/UBSan/leak checks PASS (9native tests and256real FEN comparisons); initial ptrace/sandbox failure retained and successfully rerun untraced. Newstandalonebuild reproduces the qualified helper byte-for-byte.
+## Job 3: opening variety
 
-Openinggeneration PASS: two64-position standardbooks byte-identical;16no-castling960-styleFENs separately generated. Native replay707legalplies/787score-depth-nodechecks,0mismatches,maximumabs148cp. WindowsR8execution remainsUNVERIFIED. CPU-only unchangedtrainer smoke passed four optimizerupdates with512realtrain/512heldoutrows,trainMSE0.004578 andteacherholdoutMSE0.005856420306372456; plumbingtest only. Initialwrapper run-dir errorretained.
+`tools/data/generate_openings.py` uses deterministic random legal early moves, checking every selected position against the declared teacher's ±150 cp band. The recommended **standard R8 book** additionally requires final abs(score) at least 25 cp:
 
-Full10Mv2 currently RUNNING, processed635392,kept584780; no finalfractionclaimuntilsealed. Finalreport/Windowscommands and final-manifest failurehardening inprogress.
+- 64 unique positions from 338 attempts; final abs(score) 25–148 cp, mean 67.578125; White/Black advantages 32/32.
+- Fresh native audit: 562 legal plies, 626 score/depth/node checks, zero mismatches.
+- Book: `validation/astra-a1-data/openings-unbalanced-25/standard-one/openings.moves`.
+- Book SHA256: `7237efd96cb0b9b60a0717679d867e5ce04eddd2d46e56234cef77820066ee81`.
 
-## Review checkpoint — 2026-10-30T02:49:51.948371+00:00
+The min-zero control was generated twice with identical book/metadata bytes; its combined standard/optional-FEN audit covered 707 plies and 787 comparisons. Sixteen no-castling Chess960-style FENs were also produced. They are **not true Chess960 and cannot be loaded by unchanged R8**. Standard books match R8's exact move-only contract at `5dd3a57d6f286f09b8881671ba8a368f6d34f717`. Windows R8 execution and a second min-25 generation are unverified.
 
-Full10Mv2 processed 1315584 rows so far,kept 1211556; finalresults pending. Read-only monitoring recordsownedparent/threechildrenRSS andCPU. Filter and relabel publication now write summaryLAST aftermanifest, with injectedfailureregressions; runningv2 retains its archivedstartupcode and will require independentcompletebundle verification. Added read-only bundlechecker, verifiedrealpilot andrealrelabel fullrecordalignment, and rejection of failed10Mattempt. Windowslauncher nowrestoresCPUenvironment/priority/affinity; Windowsruntime remainsUNVERIFIED.
+## Job 4: trainer compatibility and experiment plan
 
-Unchanged trainer mmap reader matches allboards/scores/meta/HCE of both256-row relabels and256stridedoriginal10Mrows (0mismatches). Full-FENs preserve rights/EP/clocks, but nohistorybeforetheFEN. Source/native/search remainunchanged. Knownlimits: incomplete013/full014/game IDs missing; exactexclusiononlysupplied013head. Full10Mcurrentrunuses1024-nodequiet teacher, notdeeperrelabeling.
+[ASTRA_A1_BLEND_PLAN.md](ASTRA_A1_BLEND_PLAN.md) gives exact commands and matched two-seed controls: lambda 1→1, 1→0.8, 1→0.6, followed by separate filter/deeper-label/variety ablations. Lambda is teacher weight; the current trainer blends **linearly in optimizer steps**, despite its misleading “cosine blend” message. Only its learning rate uses cosine decay. No GPU or live trainer was touched.
 
-## Data-budget checkpoint — 2026-10-30T03:05:16.950171+00:00
+The unchanged trainer's mmap reader matched all board/score/meta/HCE values in both initial 256-row relabel outputs, plus board/score/meta for 256 strided original rows. Real CPU smoke: 512 train and 512 heldout rows, four updates, initialization check PASS, train MSE 0.004578, holdout teacher MSE 0.005856420306372456. Training positions had zero overlap with the supplied 013 head and the chosen smoke holdout. This proves format/finite-loss compatibility only; the smoke export is not an engine candidate.
 
-Full10Mv2: 2230272 processed, 2052887 kept; stillrunning/unsealed. Paired256positions at1024vs65536nodes changedcapture/quietclassification15times (10capture→quiet,5quiet→capture). The1024nodefilter isabudget-specificscreeningpolicy,notproductiontrainingacceptance. Scoresandbestmoves fromhelpermatched32completed UCIcases; twoUCIabortlinesreportattempteddepth instead ofcompleteddepth, and row27772emitsUCIcp0despitenocompletediteration. Nativehelperexplicitlyexcludeslatter. Rawinitial3FAILcomparisonand source-groundedaddendum retained; engineunchanged.
+## Correctness and raw benchmarks
 
-Newrecommendedopeningbook64positionsrequires25≤abs(finalcp)≤150at1024nodes:32White/32Blackadvantages,observed25..148cp. Nativeaudit562legalplies/626score-depth-nodechecks,0mismatch. Controlmin0bookdeterminismtestedseparately. Fullholdoutpathsoptionalquestionpending; currentcoverageonly013head.
+Fresh GCC 14.2 Release: H256, `-march=x86-64-v3 -mtune=znver5 -fno-fast-math -ffp-contract=off`; all Forge build options OFF. Full helper executable FMA count: **0**.
+
+| Depth | OFF nodes | Status | Observed NPS (contended; not comparable) |
+|---|---:|---|---:|
+| 11 | 312866 | PASS | 1012511 |
+| 13 | 862329 | PASS | 865792 |
+| 16 | 3024920 | PASS | 876280 |
+| 20 | 12389307 | PASS | 720601 |
+| 22 | 34048354 | PASS | 747067 |
+
+Startpos perft5 **4865609**; kiwipete perft4 **4085603**. Native probe tests: 9/9. ASan/UBSan with leak detection: 9 tests plus all 256 real-FEN responses equal to Release excluding timing, no diagnostics. Initial sandbox/ptrace failures are retained; the successful run used the supported untraced path. Existing core compiler warnings remain recorded, not silently removed. The complete pre-existing engine ctest suite was not rerun for this tool-only change; no claim that its historical failures were repaired here.
+
+Python policy, format, process, publication and manifest tests: **89 pass**. Discovery reports 90 cases with one explicit native-fixture skip; its standalone **9-test** invocation also passes. Exact logs are in `validation/astra-a1-data/all_unit_reviewed.log`. Failed implementations and experiments remain alongside their corrected tests.
+
+## Reproduce and review
+
+Use [ASTRA_A1_WINDOWS.md](ASTRA_A1_WINDOWS.md) for exact PowerShell/MSYS2 build and data commands at Idle priority on explicitly chosen spare logical CPUs. Windows runtime remains **UNVERIFIED**; no hard Windows memory cap is claimed. Linux tools use Python standard-library orchestration; PyTorch is needed only for optional trainer checks.
+
+```bash
+python3 tools/data/build_probe.py --output /NEW/probe-build --cxx g++-14 --jobs 1
+python3 tools/data/verify_sidecar.py --pos /DATA/forge_selfplay_003.pos --sidecar /DATA/forge_selfplay_003.txt --out /NEW/sidecar-check
+python3 tools/data/filter_positions.py --pos /DATA/forge_selfplay_003.pos --sidecar /DATA/forge_selfplay_003.txt --probe /NEW/probe-build/forge_data_probe --out /NEW/filter --probe-nodes 1024 --probe-workers 3 --hash-mb 1 --batch-size 256 --disagreement-cp 400 --draw-disagreement-cp 800 --near-window 64 --near-score-delta 25 --holdout /DATA/forge_selfplay_013_head.txt
+python3 tools/data/check_data_bundle.py /NEW/filter --full-records > /NEW/filter-verification.json
+python3 tools/data/relabel_positions.py --pos /DATA/forge_selfplay_003.pos --sidecar /DATA/forge_selfplay_003.txt --probe /NEW/probe-build/forge_data_probe --out /NEW/relabel --nodes 65536 --workers 1 --count 256 --stride 39062
+python3 tools/data/check_data_bundle.py /NEW/relabel --full-records > /NEW/relabel-verification.json
+```
+
+All output folders must be new. Keep verification receipts outside sealed folders. Full position/game holdout clearance, production training gains, equal-time matches and Elo remain unverified. GitHub contains source and compact original evidence; final full-run artifact publication is pending.
+
+Existing coordinator/validation/engine-development skills were reused. [The skill addendum](ASTRA_A1_SKILL_ADDENDUM.md) improves the existing validation workflow without duplication; it is **proposed, not installed** because a provider editor/skill-creator is unavailable. GitHub CLI/Git and native tools were usable; optional connector failures were not pursued.
+
+## Next action / continuation
+
+Finish and independently verify the active 10M run; publish its original evidence and output hashes; replace the RUNNING status with measured full-data rates. Current run directory `/tmp/astra-a1-filter-full-10m-v2`, original probe frozen at the SHA above. A supervisor verifies branch/engine-change guards and pushes checkpoints about every ten minutes. Do not restart this completed preprocessing or replace the engine base with an older lock.
+
+Then review the complete 013/014/game-ID coverage and choose a teacher budget using the saved sensitivity experiment before the matched training ablations. No data or smoke network is automatically installed into training or the engine.
+
+Earlier checkpoints are retained in [ASTRA_A1_CHECKPOINT_HISTORY.md](ASTRA_A1_CHECKPOINT_HISTORY.md) and Git history. IDEA_SOURCE: user's data task, same-project FPOS/FHCE/native search/trainer/R8 contracts; original implementations and thresholds, no other-engine code or tuned constants.
+
+Checkpoint 20261030T031548Z: full10M status RUNNING, processed 2868992, kept 2641524. Final independent bundle verification is still required. No Elo claim.
