@@ -60,7 +60,8 @@ def trainer_cmd(cfg: dict, prof: dict, run_dir: str, resume: str | None) -> tupl
            "--r11-min-free-ram-gb", str(cfg["limits"]["min_free_ram_gb"] + 1.0),
            "--r11-hard-ram-gb", str(cfg["limits"]["min_free_ram_gb"]),
            "--r11-patterns", ";".join(cfg["train"]["production_patterns"]),
-           "--r11-affinity", hex(C.affinity_from_cfg(cfg)), "--"]
+           "--r11-affinity", hex(C.affinity_from_cfg(cfg)),
+           "--r11-disk-floor-gb", str(C.disk_floor_gb(run_dir, cfg["limits"].get("min_disk_free_gb", 40.0))), "--"]
     cmd += train_files
     for h in hold_files:
         cmd += ["--validation-datasets", h]

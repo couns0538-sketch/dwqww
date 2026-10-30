@@ -34,6 +34,7 @@ class Log:
         self.path = path
         self.stage = stage
         if path:
+            require_disk(path, 16 << 20, "the pipeline log")  # CR fix 8 (log lines are tiny: checked per log)
             os.makedirs(os.path.dirname(path), exist_ok=True)
 
     def _emit(self, kind: str, msg: str) -> None:
@@ -64,9 +65,54 @@ class StageFailed(Exception):
 
 
 # ----------------------------------------------------------------------------------------------------------------
+# disk (CR fix 8: free space is checked before every write, download and extract)
+# ----------------------------------------------------------------------------------------------------------------
+SMALL_WRITE_FLOOR_GB = 1.0  # JSON / logs / decision files (a few MB): the drive must keep at least this much
+_FLOORS: dict[str, float] = {"D:": 40.0, "F:": 40.0}  # bulk-write floors per drive; set from limits.disk_floor_gb
+
+
+def set_disk_floors(floors: dict | None) -> None:
+    if floors:
+        _FLOORS.update({k.upper().rstrip("\\/"): float(v) for k, v in floors.items()})
+
+
+def _drive(path: str) -> str:
+    p = winpath(path)
+    return p[:2].upper() if len(p) > 1 and p[1] == ":" else p
+
+
+def disk_floor_gb(path: str, default: float = 40.0) -> float:
+    """Bulk-write floor of the drive that holds `path` (QA 2026-10-30: D: keeps >= 40 GB free)."""
+    return _FLOORS.get(_drive(path), default)
+
+
+def disk_free_gb(path: str) -> float:
+    p = os.path.abspath(path)
+    while not os.path.exists(p):
+        p = os.path.dirname(p)
+    return shutil.disk_usage(p).free / 2**30
+
+
+SMALL_WRITE_MAX_BYTES = 64 << 20
+
+
+def require_disk(path: str, need_bytes: int, what: str, floor_gb: float | None = None) -> None:
+    """Raise StageFailed unless writing need_bytes under `path` keeps the drive above its floor: writes under 64 MiB
+    (state JSON, decisions, .hce side-cars, logs) keep SMALL_WRITE_FLOOR_GB, bulk writes the drive's floor."""
+    if floor_gb is None:
+        floor_gb = SMALL_WRITE_FLOOR_GB if need_bytes < SMALL_WRITE_MAX_BYTES else disk_floor_gb(path)
+    floor = floor_gb
+    free = disk_free_gb(path)
+    if free - need_bytes / 2**30 < floor:
+        raise StageFailed(f"disk: {what} needs {need_bytes / 2**30:.3f} GB on {_drive(path)}; {free:.1f} GB free would "
+                          f"drop below the {floor:.0f} GB floor")
+
+
+# ----------------------------------------------------------------------------------------------------------------
 # files
 # ----------------------------------------------------------------------------------------------------------------
 def write_json(path: str, obj) -> None:
+    require_disk(path, 1 << 20, f"state file {os.path.basename(path)}", SMALL_WRITE_FLOOR_GB)
     os.makedirs(os.path.dirname(os.path.abspath(path)), exist_ok=True)
     tmp = path + ".part"
     with open(tmp, "w", encoding="utf-8", newline="\n") as f:
@@ -85,6 +131,7 @@ def read_json(path: str, default=None):
 
 
 def write_text(path: str, text: str) -> None:
+    require_disk(path, len(text.encode("utf-8")) + (1 << 20), f"text file {os.path.basename(path)}", SMALL_WRITE_FLOOR_GB)
     os.makedirs(os.path.dirname(os.path.abspath(path)), exist_ok=True)
     tmp = path + ".part"
     with open(tmp, "w", encoding="utf-8", newline="\n") as f:
@@ -290,13 +337,6 @@ def cpu_load(interval: float = 1.0) -> float:
     return 100.0 * (1.0 - (i1 - i0) / total)
 
 
-def disk_free_gb(path: str) -> float:
-    p = os.path.abspath(path)
-    while not os.path.exists(p):
-        p = os.path.dirname(p)
-    return shutil.disk_usage(p).free / 2**30
-
-
 IDLE_PRIORITY_CLASS = 0x00000040
 PROCESS_MODE_BACKGROUND_BEGIN = 0x00100000
 DEFAULT_AFFINITY = 0x700  # CPUs 8-10: three cores (the PC's known 3-CPU mask)
@@ -397,9 +437,10 @@ class Limits:
     min_free_ram_gb: float = 8.0
     min_free_commit_gb: float = 8.0
     max_cpu_percent: float = 85.0
-    min_disk_free_gb: float = 15.0
+    min_disk_free_gb: float = 40.0
     poll_seconds: float = 30.0
     affinity_mask: str | int = "0x700"
+    disk_floor_gb: dict | None = None  # per drive, e.g. {"D:": 40, "F:": 40, "C:": 10}; default min_disk_free_gb
 
 
 HOLD_EVENT = "Local\\Forge_R11_Hold"
@@ -441,6 +482,7 @@ class Governor:
         self.root = root
         self.limits = limits
         self.log = log
+        set_disk_floors(limits.disk_floor_gb)
 
     def state(self, need_ram_gb: float = 0.0, disk_path: str | None = None, need_disk_gb: float = 0.0,
               cpu_interval: float = 1.0) -> tuple[bool, str]:
@@ -457,8 +499,9 @@ class Governor:
             reasons.append(f"CPU {cpu:.0f}% > cap {self.limits.max_cpu_percent:.0f}%")
         if disk_path:
             free = disk_free_gb(disk_path)
-            if free - need_disk_gb < self.limits.min_disk_free_gb:
-                reasons.append(f"disk {free:.1f} GB - need {need_disk_gb:.1f} < floor {self.limits.min_disk_free_gb}")
+            floor = disk_floor_gb(disk_path, self.limits.min_disk_free_gb)
+            if free - need_disk_gb < floor:
+                reasons.append(f"disk {free:.1f} GB - need {need_disk_gb:.1f} < floor {floor:.0f}")
         status = f"RAM {ram:.1f} GB commit {commit:.1f} GB CPU {cpu:.0f}%"
         return (not reasons), status + ("" if not reasons else " | " + "; ".join(reasons))
 

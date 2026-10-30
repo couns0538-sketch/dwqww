@@ -53,7 +53,7 @@ def parse_own_args(argv: list[str]) -> tuple[dict, list[str]]:
     own, rest = argv[:i], argv[i + 1:]
     opts = {"clone": None, "run_dir": None, "keep_last": 2, "policy": "share", "share_duty": 1.0,
             "min_free_ram_gb": 8.0, "hard_ram_gb": 7.0, "patterns": "guard.tag;forge_nnue_train[\\\\/]runs",
-            "check_seconds": 20.0, "affinity": "0x700"}
+            "check_seconds": 20.0, "affinity": "0x700", "disk_floor_gb": 40.0}
     k = 0
     while k < len(own):
         key = own[k]
@@ -214,6 +214,15 @@ def main() -> int:
             name = f"{tag}epoch={trainer.current_epoch}-step={trainer.global_step}.ckpt"
             path = os.path.join(ckpt_dir, name)
             tmp = path + ".tmp"
+            # CR fix 8: a checkpoint the size of the newest one must fit above the run drive's floor, else exit 75
+            # without writing (the driver waits and resumes from the newest checkpoint)
+            import shutil
+            sizes = [x.get("bytes", 0) for x in load_index().get("entries", [])]
+            need = max(sizes) if sizes else 512 << 20
+            free = shutil.disk_usage(ckpt_dir).free
+            if (free - need) / 2**30 < opts["disk_floor_gb"]:
+                raise R11Stop(EXIT_RESOURCE, f"disk: {free / 2**30:.1f} GB free, a {need / 2**30:.2f} GB checkpoint "
+                                             f"would cross the {opts['disk_floor_gb']} GB floor; not saved")
             self._pending_meta = {"r11_next_epoch": int(next_epoch), "r11_epoch_complete": bool(complete),
                                   "r11_val_loss": val_loss}
             trainer.save_checkpoint(tmp)

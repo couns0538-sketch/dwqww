@@ -50,6 +50,7 @@ def export_tree(commit: str, dest: str, log: C.Log) -> str:
     done = os.path.join(dest, ".export_done")
     if os.path.isfile(done):
         return dest
+    C.require_disk(dest, 48 << 20, f"source export of {commit}")  # CR fix 8 (src + include are ~20 MB)
     os.makedirs(dest, exist_ok=True)
     r = subprocess.run(["git", "-C", REPO, "archive", "--format=tar", commit, "src", "include"], capture_output=True)
     if r.returncode != 0:
@@ -79,6 +80,7 @@ def build_engine(cfg: dict, log: C.Log) -> dict:
             and os.path.isfile(meta["tool"]) and C.sha256_file(meta["tool"]) == meta["tool_sha256"]:
         return meta
     src = export_tree(commit, os.path.join(bdir, f"src_{commit[:8]}"), log)
+    C.require_disk(bdir, 32 << 20, f"engine + tool build {tag}")  # CR fix 8 (two ~4 MB exes)
     exe = os.path.join(bdir, f"forge_{tag}.exe")
     tool = os.path.join(bdir, f"halfka_tool_{tag}.exe")
     for p in (exe, tool):
@@ -145,6 +147,8 @@ def export_net(cfg: dict, ckpt: str, out_net: str, l1: int, log: C.Log, gov: C.G
     tmp = out_net + ".part.nnue"
     if os.path.exists(tmp):
         raise C.StageFailed(f"leftover {tmp}; not overwriting")
+    # CR fix 8: a K32H3^ net is about (L1 / 1024) x 70 MB (+ the layer stacks)
+    C.require_disk(out_net, int(80e6 * max(1, l1) / 1024) + (16 << 20), f"export of {os.path.basename(ckpt)}")
     t = cfg["trainer"]
     r = _run([t["python"], "-B", os.path.join(t["clone"], "serialize.py"), ckpt, tmp, "--features=K32H3^", f"--l1={l1}"],
              log, f"export {ckpt}", env=trainer_env(cfg), cwd=t["clone"], timeout=3600)
@@ -345,6 +349,7 @@ def wac(cfg: dict, build: dict, net: str | None, out: str, log: C.Log) -> dict:
 
 def run_check(cfg: dict, net: str, out: str, l1: int, log: C.Log, gov: C.Governor, ckpt: str | None = None) -> dict:
     C.assert_writable_path(out)
+    C.require_disk(out, 16 << 20, "check outputs (raw values, logs, WAC json)")  # CR fix 8
     os.makedirs(out, exist_ok=True)
     build = build_engine(cfg, log)
     if ckpt:

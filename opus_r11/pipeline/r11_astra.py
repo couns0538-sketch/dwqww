@@ -25,6 +25,9 @@ import sys
 import tarfile
 import time
 
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import r11_common as C  # noqa: E402
+
 RELEASE = "astra-a1-data-results-20261030"
 REPO = "couns0538-sketch/dwqww"
 MANIFEST = "transport_manifest.json"
@@ -71,6 +74,11 @@ def sha256_file(path: str, bufsize: int = 1 << 22) -> str:
 
 
 def cmd_download(dl_dir: str) -> int:
+    try:  # CR fix 8: the pinned archive size must fit above the drive's floor before anything is downloaded
+        C.require_disk(dl_dir, PINNED_WHOLE_SIZE + (1 << 20), "Astra release download")
+    except C.StageFailed as e:
+        print(f"FAIL {e}")
+        return 2
     os.makedirs(dl_dir, exist_ok=True)
     if os.listdir(dl_dir):
         print(f"FAIL download folder {dl_dir} is not empty (untrusted downloads go into a new empty folder)")
@@ -202,6 +210,7 @@ def cmd_extract(dl_dir: str, out_dir: str, globs: list[str], json_out: str | Non
                 print(f"FAIL target exists, not overwriting: {final}")
                 return abort(2)
             staged = os.path.join(staging, os.path.basename(m.name))
+            C.require_disk(staging, m.size, f"extract of {m.name}")  # CR fix 8 (raises -> staged files removed)
             src = tf.extractfile(m)
             h = hashlib.sha256()
             with open(staged, "xb") as f:
@@ -255,8 +264,6 @@ def main(argv: list[str]) -> int:
     s = sub.add_parser("extract"); s.add_argument("dl_dir"); s.add_argument("out_dir"); s.add_argument("globs", nargs="+")
     s.add_argument("--json")
     a = ap.parse_args(argv)
-    sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-    import r11_common as C
     C.set_idle_background()  # CR fix 2: Idle + background mode on 3 cores
     if a.cmd == "download":
         return cmd_download(a.dl_dir)

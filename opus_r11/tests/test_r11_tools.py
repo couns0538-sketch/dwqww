@@ -114,6 +114,32 @@ def main() -> int:
         check(rm["whole"]["sha256"] == A.PINNED_WHOLE_SHA256 and rm["whole"]["size"] == A.PINNED_WHOLE_SIZE,
               "astra: the downloaded transport manifest matches the pins")
 
+    # 1g CR fix 8: free disk space is checked before writing, downloading and extracting
+    drive = C.winpath(scratch)[:2]
+    try:
+        C.require_disk(scratch, 1 << 20, "tiny write")
+        check(True, "a small write passes the 1 GB small-write floor")
+    except C.StageFailed as e:
+        check(False, f"a small write was refused: {e}")
+    saved_floors = dict(C._FLOORS)
+    C._FLOORS[drive] = 1e6
+    try:
+        C.require_disk(scratch, 100 << 20, "bulk write")
+        check(False, "a bulk write must be refused below the drive floor")
+    except C.StageFailed as e:
+        check("floor" in str(e), f"a bulk write below the drive floor is refused: {str(e)[:90]}")
+    dl_refused = os.path.join(scratch, "dl_refused")
+    rc = A.cmd_download(dl_refused)
+    check(rc == 2 and not os.path.exists(dl_refused), "Astra download refused before anything is written (floor)")
+    C._FLOORS.clear()
+    C._FLOORS.update(saved_floors)
+    saved_small = C.SMALL_WRITE_FLOOR_GB
+    C.SMALL_WRITE_FLOOR_GB = 1e6
+    out5 = os.path.join(scratch, "out_nospace")
+    rc = A.cmd_extract(dl, out5, globs, None, pins, mem)
+    C.SMALL_WRITE_FLOOR_GB = saved_small
+    check(rc != 0 and os.listdir(out5) == [], "Astra extract refused for lack of space leaves nothing behind")
+
     # 1d CR fix 1: no STOP/PAUSE control files anywhere in the pipeline; the hold is the named event
     import ctypes
     from ctypes import wintypes

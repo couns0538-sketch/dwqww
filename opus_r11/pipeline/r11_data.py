@@ -280,6 +280,7 @@ def qualify_hce_tool(cfg: dict, log: C.Log) -> None:
     os.makedirs(work, exist_ok=True)
     tag = time.strftime("%Y%m%d_%H%M%S")
     sample = os.path.join(work, f"sample_{tag}.txt")
+    C.require_disk(work, 64 * q["lines"] + 2 * q["lines"] + 4096, "hce tool qualification sample")  # CR fix 8
     with open(q["text"], "rb") as fin, open(sample, "wb") as fout:
         for i, line in enumerate(fin):
             if i >= q["lines"]:
@@ -324,6 +325,7 @@ def generate_hce(cfg: dict, e: dict, log: C.Log, gov: C.Governor) -> None:
         return
     qualify_hce_tool(cfg, log)
     gov.wait_ok(f"hce generation {e['id']}", need_ram_gb=0.3)
+    C.require_disk(e["hce"], 16 + 2 * e["rows"], f"hce generation {e['id']}")  # CR fix 8
     os.makedirs(os.path.dirname(e["hce"]), exist_ok=True)
     k = 1
     while os.path.exists(f"{e['hce']}.part{k}"):
@@ -377,6 +379,7 @@ def make_keys(cfg: dict, e: dict, log: C.Log, gov: C.Governor) -> dict:
         return meta
     os.makedirs(os.path.dirname(kpath), exist_ok=True)
     gov.wait_ok(f"keys {e['id']}", need_ram_gb=0.4, disk_path=d["dir"], need_disk_gb=e["rows"] * 8 / 2**30)
+    C.require_disk(d["dir"], 8 * e["rows"], f"keys cache {e['id']}")  # CR fix 8
     k = 1
     while os.path.exists(f"{kpath}.part{k}"):
         k += 1
@@ -556,6 +559,7 @@ def dedup(cfg: dict, reg: dict, log: C.Log, gov: C.Governor) -> None:
             bi = np.concatenate(found_bad[e["id"]]) if found_bad[e["id"]] else np.zeros(0, np.int64)
         dest[bi] = C.DEST_BAD
         dpath, jpath = decision_paths(d, e["id"])
+        C.require_disk(dpath, (n + 3) // 4, f"decision file {e['id']}")  # CR fix 8
         os.makedirs(os.path.dirname(dpath), exist_ok=True)
         packed = C.pack_dest(dest)
         packed.tofile(dpath + ".tmp")
@@ -629,6 +633,7 @@ def convert(cfg: dict, e: dict, log: C.Log, gov: C.Governor) -> dict:
     for p in (final, final_hce):
         if os.path.exists(p):
             raise C.StageFailed(f"{p} exists without a done marker; inspect it by hand (never overwritten)")
+    C.require_disk(final, projected_bytes(d, e), f"conversion of {e['id']}", disk_floor_gb_data(cfg, final))  # CR fix 8
     os.makedirs(os.path.dirname(final), exist_ok=True)
     tmp = _part_name(final)
     tmp_hce = tmp + ".hce"
@@ -680,6 +685,12 @@ def convert(cfg: dict, e: dict, log: C.Log, gov: C.Governor) -> dict:
     C.write_json(marker, res)
     log.info(f"converted {e['id']} -> {split}: {recs} records, verified before rename, {res['seconds']} s")
     return res
+
+
+def disk_floor_gb_data(cfg: dict, path: str) -> float:
+    """Bulk floor for data outputs: the drive floor plus data.disk_margin_gb (QA: >= 40 GB stay free after the run)."""
+    base = C.disk_floor_gb(path, float(cfg.get("limits", {}).get("min_disk_free_gb", 40.0)))
+    return base + float(cfg["data"].get("disk_margin_gb", 2.0))
 
 
 def projected_bytes(d: dict, e: dict) -> int:
@@ -801,7 +812,7 @@ def run(cfg: dict, log: C.Log, gov: C.Governor, max_convert: int | None = None, 
     dedup(cfg, reg, log, gov)
     # disk rule (QA, R11): the target drive must keep >= limits.min_disk_free_gb (+ data.disk_margin_gb) free
     # AFTER the run. Exact output sizes are known once the decisions exist.
-    floor = float(cfg.get("limits", {}).get("min_disk_free_gb", 40.0)) + float(d.get("disk_margin_gb", 2.0))
+    floor = disk_floor_gb_data(cfg, d["dir"])
     todo = [e for e in reg["order"] if not os.path.isfile(out_marker(d, e["id"]))]
     sizes = {e["id"]: projected_bytes(d, e) for e in todo}
     free = C.disk_free_gb(d["dir"])

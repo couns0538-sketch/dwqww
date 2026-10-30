@@ -54,8 +54,11 @@ def package(cfg: dict, check_dir: str, log: C.Log, provenance: dict | None = Non
     if os.path.isfile(os.path.join(out, "PACKAGE_DONE")):
         log.info(f"package {stem}: already done ({out})")
         return {"packaged": True, "dir": C.winpath(out), "existing": True}
-    os.makedirs(out, exist_ok=True)
     b = chk["build"]
+    # CR fix 8: the folder holds the net + the exe + a few small text files
+    C.require_disk(out, os.path.getsize(net) + os.path.getsize(b["exe"]) + (8 << 20), f"gate-ready package {stem}",
+                   C.disk_floor_gb(out))
+    os.makedirs(out, exist_ok=True)
     net_dst = os.path.join(out, os.path.basename(net))
     exe_dst = os.path.join(out, os.path.basename(b["exe"]))
     if C.sha256_file(net) != chk["net_sha256"]:
