@@ -53,6 +53,13 @@ Current tools add tested summary-last publication hardening after that run start
 
 CPU accounting includes the entire input hash/sidecar-count scan and owned child CPU, so these small-slice numbers are not steady-state full-corpus estimates. Query-only CPU is also retained in `budget_sweep_256.json`. Windows throughput is unverified.
 
+Complete portable sealed copies are under
+`validation/astra-a1-data/sealed_bundle_copies/relabel_256_<budget>`; all four
+pass the full-record bundle checker. Earlier sibling folders retain the original
+console logs alongside their manifests and are evidence assemblies, not seal
+roots. The packaging boundary was corrected without altering original outputs
+or deleting those earlier copies.
+
 At 1,024 versus 65,536 nodes, 10 capture choices became quiet and 5 quiet choices became captures. Median absolute score difference was 55.5 cp; mate-band outliers are preserved. Higher budget is a sensitivity reference, not ground truth. The full 10M filter is therefore a **budget-specific screening cohort**, pending training/strength evaluation. The original teacher's budget is unknown.
 
 A native/UCI crosscheck matched all 32 completed scores and returned bestmoves. Two UCI abort messages report attempted depth 6 while `SearchInfo.depth` remains completed depth 5; another root emits an initial cp0 placeholder without completing an iteration. Initial comparison failures and the source-grounded explanation are retained. The probe correctly leaves the latter unlabeled. A public SearchInfo tuple may contain a partial-iteration bestmove alongside its previous completed score/depth; it is not a newly proven completed PV.
@@ -131,3 +138,5 @@ Checkpoint 20261030T032550Z: full10M status RUNNING, processed 3499520, kept 322
 Checkpoint 20261030T033552Z: full10M status RUNNING, processed 4167424, kept 3835087. Final independent bundle verification is still required. No Elo claim.
 
 Checkpoint 20261030T034554Z: full10M status RUNNING, processed 4805120, kept 4421349. Final independent bundle verification is still required. No Elo claim.
+
+Checkpoint 20261030T035557Z: full10M status RUNNING, processed 5398528, kept 4967198. Final independent bundle verification is still required. No Elo claim.
