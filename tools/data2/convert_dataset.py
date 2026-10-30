@@ -467,7 +467,7 @@ def convert_locked(args, out, config, inputs, bindings):
                 # Persist every sealed data file, including the native adapter's
                 # output and logs, before publishing the commit receipt.
                 for p in chunkdir.iterdir():
-                    with p.open('rb') as f: os.fsync(f.fileno())
+                    with p.open('r+b') as f: os.fsync(f.fileno())
                 if os.name == 'posix':
                     fd = os.open(chunkdir, os.O_RDONLY)
                     try: os.fsync(fd)

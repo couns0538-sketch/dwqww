@@ -1,0 +1,33 @@
+test_sealed_regular_files_have_writable_descriptors_for_fsync (test_windows_fsync.WritableFsync.test_sealed_regular_files_have_writable_descriptors_for_fsync) ... ERROR
+
+======================================================================
+ERROR: test_sealed_regular_files_have_writable_descriptors_for_fsync (test_windows_fsync.WritableFsync.test_sealed_regular_files_have_writable_descriptors_for_fsync)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/tmp/forge-astra-fen-convert/tests/data2/test_windows_fsync.py", line 20, in test_sealed_regular_files_have_writable_descriptors_for_fsync
+    with mock.patch.object(c.os,'fsync',side_effect=windows_like_fsync),contextlib.redirect_stdout(io.StringIO()):result=c.run(args)
+                                                                                                                         ^^^^^^^^^^^
+  File "/tmp/forge-astra-fen-convert/tools/data2/convert_dataset.py", line 364, in run
+    return convert_locked(args, out, config, inputs, bindings)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/tmp/forge-astra-fen-convert/tools/data2/convert_dataset.py", line 470, in convert_locked
+    with p.open('rb') as f: os.fsync(f.fileno())
+                            ^^^^^^^^^^^^^^^^^^^^
+  File "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/unittest/mock.py", line 1139, in __call__
+    return self._mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/unittest/mock.py", line 1143, in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/unittest/mock.py", line 1204, in _execute_mock_call
+    result = effect(*args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/tmp/forge-astra-fen-convert/tests/data2/test_windows_fsync.py", line 17, in windows_like_fsync
+    if fcntl.fcntl(fd,fcntl.F_GETFL)&os.O_ACCMODE==os.O_RDONLY:raise OSError(9,'Windows CRT fsync requires writable file descriptor')
+                                                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+OSError: [Errno 9] Windows CRT fsync requires writable file descriptor
+
+----------------------------------------------------------------------
+Ran 1 test in 0.009s
+
+FAILED (errors=1)
