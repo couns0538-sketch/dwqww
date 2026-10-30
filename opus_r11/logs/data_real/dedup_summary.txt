@@ -1,0 +1,11 @@
+R11 real data stage, run 4 (2026-10-30 12:2x-13:09:47), dedup decisions summed from D:/grok-pc-data/r11_nnue/data/decisions/*.json
+6 key-range passes: 1718.2 s (under the 32 MB working-set cap), then 139.8, 127.0, 126.8, 151.0, 124.2 s (cap lifted at 12:52); stage total 2708.2 s
+source  shards  rows         kept         dropped(dup)  bad
+fp      38      311,388,148  311,294,143  94,005        0     (forge_push 001-039 minus 003, which Astra supersedes; includes holdout 013/014)
+astra   1       9,206,371    9,200,362    6,009         0
+r8v5    28      23,846,675   23,834,549   12,126        0
+total   67      344,441,194  344,329,054  112,140       0
+holdout (HOLD codes): fp:forge_selfplay_013 9,999,250 + fp:forge_selfplay_014 6,387,973 = 16,387,223 rows
+train (TRAIN codes): 344,329,054 - 16,387,223 = 327,941,831 rows
+conversion: none yet - D: 37.8 GB free < 42 GB (40 floor + 2 margin); all 67 shards = 11.54 GB, so D: needs >= 53.6 GB free;
+            value order holdout, astra, r8v5, fp; a rerun continues shard by shard
