@@ -5,7 +5,7 @@ Job folder `opus_r11/` (pipeline + tests + evidence logs), GPL trainer-side code
 (run-only, never in src/include/tests). Output root on D: `D:\grok-pc-data\r11_nnue\`. Started 2026-10-30 10:14 PC clock;
 PC crash/reboot 11:38 (nothing of R11 was half-written: the run died in dedup before any output).
 
-## Status (2026-10-30 ~13:40) - PARTIAL, see opus_r11/REPORT.md
+## Status (2026-10-30 13:30) - PARTIAL, see opus_r11/REPORT.md
 - CR fixes 1-10 (cf7e435a review), CR R2 H1/M1/M3, the fix 2 amendment, the M1 hardening and CR R3-1/2/3 are
   pushed as separate commits (list below); one patch file per commit in D:\grok-pc-data\r11_nnue\cr_patches.
 - **CR fix 2 amendment (for CR re-review):** background mode is gone - it capped every R11 process at a 32 MB working
