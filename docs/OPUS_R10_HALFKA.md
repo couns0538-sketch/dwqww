@@ -23,7 +23,7 @@ QA_R6AMD_20261030.md`, `CR_R6AMD_20261030.md`) are not on this PC or in the repo
 | 3 parity vs nnue-pytorch | the trainer's own `NNUEReader` + C++ feature extractor (`get_sparse_batch_from_fens("K32H3")`) + fake-quantized `model.forward` (float64) vs Forge's raw output: **R6 net (256x32x32): 12,000 / 12,000 exact** (also exact in float32); **smoke net (64x32x32): 12,000 / 12,000 exact**; **untrained 1024x32x32: 2,000 / 2,000 exact**. AVX2 == scalar on every position. Incremental == refresh: **204,694 checks / 0 mismatches** on 200 random games (parent and 2-4 plies back) and 31,602 / 0 at L1 1024; in-search verify build (`-DFORGE_HALFKA_VERIFY`): **3,028,552 lazily built rows equal a full refresh** (bench 13 + four 3-thread depth-13 searches). v2 kernels: outputs byte-identical to v1 on all 26,000 evaluations (AVX-512 and AVX2 builds), walk 361,502 checks / 0, verify 3,208,448 rows | `opus_r10/logs/parity_*`, `walk_1.log`, `walk_v2.log`, `verify_search*.log`, `opus_r10/parity/` |
 | 4 smoke net end to end | K32H3^ 64x32x32 trained on the box CPU (2 threads, 6 epochs x 200k positions of a 17 MB Forge self-play slice, loss 0.0505 -> 0.0115; the R6 RAM guard ended the run at 7 GB free after the sixth epoch, index 5, whose checkpoint is the net), exported by the trainer's `serialize.py`, loads, **ON bench 11 = 305,623 (stable over repeats and a reload)**; WAC 300 at 200 ms: 260 solved (OFF 272), a move on 300 / 300; **200 fast games vs the option off: no illegal move, no crash, no time loss** (it scored 0.5 / 200: a test net) | `opus_r10/nets/smoke_k32h3_l64.nnue`, `opus_r10/logs/smoke2_train_summary.log`, `logs/wac/`, `logs/fast_games_smoke.log` |
 | 5 NPS vs FORGENN2 | ON vs OFF in one exe, first kernels: d16 -23.9% (L1 64), -39.8% (L1 256), -62.3% (L1 1024); v2 kernels (same trees): +16.2% / +20.1% / +67% NPS over v1; ON vs OFF with v2: see "NPS with the v2 kernels"; OFF costs nothing measurable vs the lock exe (d16 -0.1% [-2.2, +2.0]) | `opus_r10/logs/nps_*.log/.json` |
-| tests / CI | box build 0 warnings, FMA 0; CMake all targets + CTest: only the 4 known `forge_tests` lines (KNOWN-FAILURE CHECK: PASS); opus-ci green on `cadf1d91` (release ALL OK, ASan/TSan KNOWN-FAILURE CHECK: PASS, TSan 0 reports). New CTest `forge_halfka_tests` (v2): CMake all targets + CTest 15 tests, only the 4 known `forge_tests` lines (KNOWN-FAILURE CHECK: PASS), `forge_halfka_tests` passed, only the lock's 6 `-Wconversion` warnings; planted bugs: 5 / 6 killed (see below) | `opus_r10/logs/ctest_b1.log(.known)`, run 40986475892, CI_V2_PENDING |
+| tests / CI | box build 0 warnings, FMA 0; CMake all targets + CTest: only the 4 known `forge_tests` lines (KNOWN-FAILURE CHECK: PASS); opus-ci green on `cadf1d91` (release ALL OK, ASan/TSan KNOWN-FAILURE CHECK: PASS, TSan 0 reports). New CTest `forge_halfka_tests` (v2): CMake all targets + CTest 15 tests, only the 4 known `forge_tests` lines (KNOWN-FAILURE CHECK: PASS), `forge_halfka_tests` passed, only the lock's 6 `-Wconversion` warnings; planted bugs: 5 / 6 killed (see below) opus-ci **green on `f9b44aae` (run 40992872199)**: release ALL OK, ASan+UBSan and TSan KNOWN-FAILURE CHECK: PASS, TSan 0 reports, `forge_halfka_tests` passed in all three jobs (CI's `run_ci.sh` builds with `-march=x86-64-v3`, so these are the AVX2 kernels) | `opus_r10/logs/ctest_b1.log(.known)`, `ctest_c1.log(.known)`, runs 40986475892 and 40992872199 (`ci_40992872199.log`) |
 
 ## Integer arithmetic (why the parity is exact)
 FT `clamp(a, 0, 255) * clamp(b, 0, 255) >> 9` per half, [side to move, other side]; l1 sums `s1` (scale 2^14), linear
@@ -174,7 +174,10 @@ queue's own start / srand):
 fastchess.exe -engine name=cand_r10_halfka cmd=C:\Users\Administrator\grok-pc\forge_push\bin\GATE_EXE option.Threads=2 option.Hash=16 option.OwnBook=false option.EvalFileHalfKA=C:\Users\Administrator\grok-pc\forge_push\bin\NET.nnue -engine name=base_AUTOLOCK_1_gate120_e32f003rec_s198 cmd=C:\Users\Administrator\grok-pc\forge_push\bin\forge_h256_s198.exe option.Threads=2 option.Hash=16 option.OwnBook=false -each tc=10+0.1 timemargin=1000 proto=uci -openings file=C:\Users\Administrator\grok-pc\coder-fuzz\8moves_v3.pgn format=pgn order=random start=<queue> -srand <queue> -games 2 -repeat -rounds 1500 -concurrency 4 -sprt elo0=0 elo1=10 alpha=0.05 beta=0.05 model=normalized -ratinginterval 10 -recover -pgnout file=<gate>.pgn
 ```
 
-`GATE_EXE` and its sha256 are in the "Gate exe" line below. Before queueing: `opus_r10/tools/halfka_uci_check.py <exe>
+**Gate exe**: `F:\opus_scratch\r10\build\forge_r10_c.exe`, sha256
+`9b7e2fcdaf8c6cf5e0208574b75b0109c7c3c9c4a955d09d7073a011ef2c0cae` (box recipe, FMA 0, 0 warnings; source = this
+branch, `src/` and `include/` unchanged since `0000cd12`; a rebuild from the branch head differs only in 4 PE header
+bytes). Copy it to the bin folder as `forge_r10_halfka_9b7e2fcd.exe` and use that name for `GATE_EXE`. Before queueing: `opus_r10/tools/halfka_uci_check.py <exe>
 <net>` (loads, ON bench stable, bad files rejected) and the parity check of the new net (`forge-halfka-parity-test`
 skill: `parity_nnue_pytorch.py` + `halfka_tool eval` on `opus_r10/parity/fens_12k.txt`, must be 12,000 / 12,000).
 The two nets in this branch are test nets, not candidates: a gate with them would only measure that they are tiny.
@@ -205,3 +208,10 @@ The two nets in this branch are test nets, not candidates: a gate with them woul
   were not on this PC; R10 did not read them.
 - The gate uses the queue's current Threads 2 / conc 4 settings; the older AL1 gates ran Threads 1 / conc 8. Pick one
   and keep it for every HalfKA gate (never pool across settings).
+
+## Time (from the commits, PC clock, 2026-10-30)
+Branch created 03:21:38 (reading the trainer's export and feature code before that left no commit to measure). Commits:
+03:31 loader + inference + OFF identity, 03:32 the CI push (green), 03:34 parity, 03:36 in-search verify, 03:42 smoke
+net, 03:57-04:08 report, WAC and gate line, 04:23 v2 kernels, 04:31 CTest, 04:37 the v2 CI push (green), then this
+report. About 1 h 20 min of commits, beside R9's last STC hour (its 10-minute snapshots kept going). What the time did
+not buy: a trained net, a gate, a quiet-runner NPS run at d20, and the next speedups listed above.
