@@ -20,3 +20,9 @@ Source recon independently verified13.5M original text rows/hashes, with12M outs
 ## Next action
 
 Fetch and verify the release assets; complete sharedI/O/native helper; run cheap correctness and a throughput pilot; then freeze the10M filter protocol and execute it. Push all code and original results about every10minutes, including unfinished work.
+
+## Release and implementation checkpoint — 2026-10-30T02:04:56.554501+00:00
+
+Release data-sample-10m-20261030 fetched read-only. ArchiveSHA2561d6160dd859740fe617c8dc6c6e6ad8fbcdd0ba40b59ee9cee84342f9202cca5 matches GitHubassetdigest and releasebody. Safe extraction retained originalarchive and produced FPOS1 count10000000,350000016bytes; full-FENtext645348352bytes. Row-by-row alignment and label provenance checks are pending. No measured removal fractions yet.
+
+Added logged/bounded native-probe Python IPC and first offline filter implementation; sharedbinaryI/O, nativehelper and openinggenerator are inprogress. C++/Python correctness and real-data throughput remain unverified at this checkpoint. Dataset/binaries are outsideGit; source, exactreceipts and future raw compact evidence are committed. Initial checkpoint required gitadd--sparse due excludedvalidationpath; this is now handled explicitly.
