@@ -10,13 +10,13 @@ touched; every test ran beside them in `F:\opus_scratch\r8\`, BelowNormal, pinne
 | | live pipeline (baseline) | `forge_selfplay_fast` (after) |
 |---|---|---|
 | what | `forge_selfplay.py` (Python, python-chess, SQLite) + Forge 6.2.0 `forge.exe` | native C++ driver + the **same** `forge.exe` |
-| positions/h, 1 worker, CPUs 8-9, Idle | **783,695** (17.6 min) | **1,045,080** (25 min), **+33.4%** |
+| positions/h, 1 worker, CPUs 8-9, Idle (A/B/A/B) | **783,695** (17.6 min) and 788,393 (9.2 min): **785.7k** over 26.8 min | **1,045,080** (25 min) and 1,035,851 (10 min): **1,041.6k** over 35 min, **+32.6%** |
 | CPU used (process tree) | 1.015 CPUs | 0.965 CPUs |
 | positions per CPU-hour | 772k | 1,083k (**+40%**) |
 | memory (tree) | 97.7 MB working set, 68.8 MB private | 80.9 MB working set, 72.5 MB private |
 | search duty (go -> bestmove / wall) | 85.8% | 99.4% |
 | data | text | identical text lines + direct `.pos` (FPOS v1) |
-| quality | | **byte-identical games on fixed openings**; same score/result/ply spread on random ones |
+| quality | | **byte-identical games on fixed openings** (v1, v3, final v4); same score/result/ply spread on random ones (4 runs) |
 
 ## 1. Baseline (measured before any change)
 - Live run on 2026-10-29: **stalled since 17:04:36** (see "Incident"); its rate before that, from file times:
@@ -72,8 +72,29 @@ tree; Obsidian (GPL-3.0): trains on Lc0 data. No code was copied.
 | adjudication rules | kept identical; draw adjudication (Stormphrax/Stockfish style) would end drawn games earlier, which removes positions without making the others cheaper: no positions/h gain, a change of the data mix; not adopted |
 | OwnBook | the live script leaves the engine's default `OwnBook=true`: a book hit returns a move without a score and the script dies ("Engine returned no score", `nnue/logs/selfplay.err.log`, Oct 18). The driver sets `OwnBook=false` (those rare games are searched instead) |
 
-## 5. Further measurements (chain, `r8/logs/chain/`)
-(filled in below)
+## 5. Further measurements (chains, `r8/logs/chain/`)
+- **Order and repeat**: baseline 17:24-17:42, after 17:49-18:14, baseline 18:15-18:25, after 18:25-18:35, same CPUs
+  (8-9), priority (Idle) and engine; each segment ends by itself. Segment rates 783,695 / 1,045,080 / 788,393 /
+  1,035,851 positions/h: the gain repeats (+33.4% and +31.4% against the neighbouring baseline segments).
+- **Final driver v4** (`forge_selfplay_fast_v4.exe`, sha256 `1768770e...`, = the committed source): byte-identical to the
+  live `play_game()` reference on the 60 fixed openings again; its bounded de-duplication (default, 512 MB table)
+  keeps exactly the same lines as the exact set on those games (5,395 lines, 104 duplicates).
+- **Waste** over 244,552 searches of the 10-minute run: 72.3% recorded; not recorded: capture/promotion best move
+  17.6%, in check 9.0%, mate 1.1%, |cp| > 3000 21 positions, bound scores 0.
+- **`--check-nodes`** (in-check positions with fewer nodes): 2500 -> +2.8%, 1000 -> +3.0% records/h on the fixed
+  openings, but the games diverge after the first such position; not worth a data change: OFF.
+- **Hash**: 8 MB +0% (1.193M vs 1.198M records/h), 4 MB +3% (1.235M), both with different games: not adopted.
+- **SMT (2 engines per core)**: not measured; the PC was at 62% before the test and two busy engines would have taken
+  it past the job's 70% CPU limit (the chain checks and skipped it).
+- **Global duplicates**: 8.50% of the 25-minute run's positions (37,032 of 435,554) are already in the live 7.56 GB
+  hash DB (`dedup_against_db.py --count-only`, opened read only and immutable, 45.7 s). The live pipeline removes
+  these at write time; the driver's run-local de-duplication does not, so use the post-filter (or count 8.5% fewer
+  new positions) when comparing with the live production rate.
+- **Quality, four runs** (229,809 / 435,554 / 120,863 / 172,752 records): cp std 537.1 / 534.5 / 536.7 / 531.1, median
+  |cp| 168 / 167 / 168 / 165, |cp| <= 200 54.1 / 54.3 / 54.0 / 54.8%, full-move quartiles 20/38/58 (20/37/58 for the
+  first driver run), score sign agrees with the result 63.6 / 63.5 / 63.4 / 63.9%, draws 32.0 / 31.6 / 31.5 / 31.3%;
+  each set 0 duplicates inside, 0.2-0.65% shared between sets. The baseline-to-baseline spread is as large as the
+  baseline-to-driver spread.
 
 ## Incident (owner item)
 The live self-play (`forge_selfplay.py`, 2 workers at Idle priority pinned to CPUs 12-15) stopped writing at
@@ -82,6 +103,22 @@ mini-gate, BelowNormal) ran; the cause is not proven. The pipeline's output queu
 process stalls the workers. Nothing was killed or restarted; restarting is the owner's decision.
 
 ## How to switch on (owner)
-See `r8/README.md`. In short: build or take `F:\opus_scratch\r8\driver\forge_selfplay_fast_v3.exe`, run it with the live
-engine, `--workers 2 --cpus 12-15 --nodes 5000 --hash 16 --pos --out <new folder>`, and (optionally) drop positions
-already in the live hash DB with `r8/tools/dedup_against_db.py` (read only).
+See `r8/README.md`. In short:
+1. Take `F:\opus_scratch\r8\driver\forge_selfplay_fast_v4.exe` (sha256 `1768770ebff208edca0968bb12a10ea5101d382b32699c19fcf48ab8f7be2861`)
+   or build it from this branch (`r8/tools/build_driver.py`).
+2. Run it instead of the `forge_selfplay.py` line of `selfplay_guard.py`, with the same engine and CPUs, into a new
+   folder: `forge_selfplay_fast_v4.exe --engine C:\Users\Administrator\grok-pc\nnue\forge.exe --out
+   D:\grok-pc-data\selfplay_out_fast --workers 2 --cpus 12-15 --nodes 5000 --hash 16 --pos`. It writes the same text
+   lines plus ready `.pos` + `.pos.info` files (the text -> .pos step can be skipped).
+3. Optional: `r8/tools/dedup_against_db.py <live forge_seen_hashes.sqlite3> <kept.txt> <driver.txt>` before
+   training, to keep the global de-duplication (about 8.5% of new positions are old ones).
+Expected with the live layout (2 workers, CPUs 12-15): about +33% positions per hour at the same CPU footprint
+(projected from the 1-worker A/B; 2 workers on 12-15 were not run, they belong to the live pipeline's CPUs).
+
+## Not done / owner items
+- The 2-engines-per-core and 4-workers-on-12-15 layouts (more total throughput, more CPU) were not measured
+  (70% limit). The live engine's source was not found, so no engine-level change was possible.
+- The live self-play is stalled since 17:04:36 (above); the live script's OwnBook=true can crash it again.
+
+## Time
+R8 started 17:20 (after R7 was pushed); commits 17:46-18:4x on `opus-r8-datagen`; measurements 17:24-18:37.

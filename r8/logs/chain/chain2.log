@@ -1,0 +1,47 @@
+== 18:35:15 1 build v4
+built F:\opus_scratch\r8\driver\forge_selfplay_fast_v4.exe sha256 1768770ebff208edca0968bb12a10ea5101d382b32699c19fcf48ab8f7be2861
+== 18:35:19 2 v4 equivalence (no dedup) vs the live play_game reference
+searches=7608 not recorded: bound=0 in_check=704 capture_or_promotion=1333 mate=71 abs_cp_over_max=1 (games that did not finish are not counted as positions)
+DONE: 0.005 h, games=60 positions=5499 positions/h=1199330 eligible=5499 errors=0 dedup_removed=0
+v4 == reference: IDENTICAL
+== 18:35:36 3 dedup modes on the same games: bounded (default) vs exact
+searches=7608 not recorded: bound=0 in_check=704 capture_or_promotion=1333 mate=71 abs_cp_over_max=1 (games that did not finish are not counted as positions)
+DONE: 0.005 h, games=60 positions=5395 positions/h=1131860 eligible=5499 errors=0 dedup_removed=104
+searches=7608 not recorded: bound=0 in_check=704 capture_or_promotion=1333 mate=71 abs_cp_over_max=1 (games that did not finish are not counted as positions)
+DONE: 0.005 h, games=60 positions=5395 positions/h=1175772 eligible=5499 errors=0 dedup_removed=104
+bounded == exact: IDENTICAL (5395 lines)
+== 18:36:09 4 --check-nodes 2500 (data change after in-check positions)
+searches=7219 not recorded: bound=0 in_check=657 capture_or_promotion=1332 mate=73 abs_cp_over_max=0 (games that did not finish are not counted as positions)
+DONE: 0.004 h, games=60 positions=5157 positions/h=1232868 eligible=5157 errors=0 dedup_removed=0
+== 18:36:25 4 --check-nodes 1000 (data change after in-check positions)
+searches=7678 not recorded: bound=0 in_check=804 capture_or_promotion=1349 mate=79 abs_cp_over_max=0 (games that did not finish are not counted as positions)
+DONE: 0.004 h, games=60 positions=5446 positions/h=1234838 eligible=5446 errors=0 dedup_removed=0
+== 18:36:41 5 global duplicate rate of the after run vs the live hash DB (read only, immutable)
+run_pinned: affinity mask 0xfff, BelowNormal: D:/grok-pc-data/dwqww/.claude/worktrees/opus-r8-datagen/r8/tools/dedup_against_db.py
+read 435554, kept 398522, duplicates vs database 37032 (8.50%), duplicates inside the input 0; 45.7 s (9522 lines/s)
+== 18:37:26 6 quality of the four runs
+metric                                         base1             fast1             base2             fast2
+records                                       229809            435554            120863            172752
+black_to_move                                 0.4996            0.5007            0.4989            0.4999
+cp_mean                                       0.1572            0.2180            1.3596            3.0815
+cp_std                                      537.1116          534.5184          536.6814          531.0795
+abs_cp_median                                    168          167.0000               168          165.0000
+white_win                                     0.4334            0.4215            0.4257            0.4356
+draw                                          0.3196            0.3158            0.3147            0.3129
+white_loss                                    0.2470            0.2627            0.2596            0.2515
+score_sign_agrees_with_result                 0.6357            0.6346            0.6343            0.6392
+fullmove_mean                                42.2101           42.1626           42.4402           42.0457
+duplicate_rate_inside                         0.0000            0.0000            0.0000            0.0000
+abs_cp <=50                                   0.2210            0.2231            0.2189            0.2256
+abs_cp <=200                                  0.5409            0.5431            0.5404            0.5480
+abs_cp <=600                                  0.8232            0.8236            0.8239            0.8263
+abs_cp <=1500                                 0.9719            0.9719            0.9709            0.9726
+abs_cp <=3000                                 1.0000            1.0000            1.0000            1.0000
+fullmove quartiles                          20/38/58          20/37/58          20/38/58          20/38/58
+overlap base1~fast1 {'shared_positions': 1300, 'share_of_base1': 0.0056568715759609065, 'share_of_fast1': 0.002984704537210082}
+overlap base1~base2 {'shared_positions': 508, 'share_of_base1': 0.0022105313542985696, 'share_of_base2': 0.004203105996045109}
+overlap base1~fast2 {'shared_positions': 741, 'share_of_base1': 0.003224416798297717, 'share_of_fast2': 0.004289385940539039}
+overlap fast1~base2 {'shared_positions': 790, 'share_of_fast1': 0.0018137819879968959, 'share_of_base2': 0.006536326253692197}
+overlap fast1~fast2 {'shared_positions': 1056, 'share_of_fast1': 0.0024244984548414204, 'share_of_fast2': 0.006112809113642679}
+overlap base2~fast2 {'shared_positions': 437, 'share_of_base2': 0.003615664016282899, 'share_of_fast2': 0.0025296378623691764}
+== 18:37:29 chain2 done

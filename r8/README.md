@@ -23,15 +23,22 @@ forge_selfplay_fast.exe --engine C:\Users\Administrator\grok-pc\nnue\forge.exe -
 - Output: `<prefix>_NNN.txt` (default prefix `forge_selfplay_fast`), "FEN | cp | result" lines identical to the live
   files, 10,000,000 lines per file; with `--pos` also `<prefix>_NNN.pos` (FPOS v1, the format of `nnue_data\pos`) and
   `.pos.info`. Existing files are never overwritten (the number skips to the next free one).
-- De-duplication is in memory for the run (first four FEN fields). To also drop positions already in the live
-  database, run `r8/tools/dedup_against_db.py <live forge_seen_hashes.sqlite3> <out.txt> <in.txt>` (read only).
+- De-duplication is in memory for the run (first four FEN fields): by default a bounded table of 64-bit
+  fingerprints (`--dedup-mb 512` = 67M slots, the newest key wins a slot collision, like the Stockfish generator;
+  memory does not grow), `--dedup exact` = an exact set (memory grows ~64 bytes per kept position; for tests).
+  To also drop positions already in the live database, run
+  `r8/tools/dedup_against_db.py <live forge_seen_hashes.sqlite3> <out.txt> <in.txt>` (read only).
+- A worker whose engine stops answering ends with an error message (the others go on).
+- With `--pos` a file's records are held in memory until the file is complete (35 bytes each, 350 MB for 10M lines)
+  and written at rotation or at a normal stop; if the process is killed, the last file has text only.
 - Stops after `--max-minutes` or `--games-per-worker`; otherwise runs until the process is ended.
 - `--openings FILE` plays fixed openings (one game per line, UCI moves) instead of random ones (used by the test).
 
 ## Options that change the data (all OFF / at the live values by default)
 `--own-book true` (the live script leaves the engine default `OwnBook=true`; the driver sets false, see the report),
 `--hash` (live 16), `--nodes` (live 5000), `--opening-plies` (8), `--max-ply` (300), `--adjudicate-cp` (2000),
-`--adjudicate-plies` (4), `--max-score` (3000), `--no-dedup`.
+`--adjudicate-plies` (4), `--max-score` (3000), `--no-dedup`, `--check-nodes N` (in-check positions, which are never
+recorded, searched with N nodes instead of `--nodes`: same labels, a different game path after them).
 
 ## Tests
 - `r8/tools/equivalence_ref.py gen 60 <seed> openings.txt`, then `ref <engine> openings.txt ref.txt` (the live

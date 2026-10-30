@@ -60,6 +60,8 @@ struct Options {
     std::uint64_t seed = 1;
     std::vector<int> cpus;
     bool pos = false, dedup = true, own_book = false, idle = true;
+    bool dedup_exact = false;  // false: bounded direct-mapped table of --dedup-mb MB (default); true: exact set
+    long long dedup_mb = 512;
 };
 
 // ---------------------------------------------------------------- engine process (UCI over pipes)
@@ -226,13 +228,15 @@ struct Record {
 
 class Output {
 public:
-    explicit Output(const Options& o) : o_(o) {}
+    explicit Output(const Options& o) : o_(o) {
+        if (o_.dedup && !o_.dedup_exact) table_.assign(static_cast<std::size_t>(o_.dedup_mb) * 1024 * 1024 / 8, 0);
+    }
     // returns the number of records kept
     long long add_game(const std::vector<Record>& recs, int white_result2) {
         std::lock_guard<std::mutex> lock(m_);
         long long kept = 0;
         for (const Record& r : recs) {
-            if (o_.dedup && !seen_.insert(hash_key(four_fields(r.fen))).second) continue;
+            if (o_.dedup && is_duplicate(hash_key(four_fields(r.fen)))) continue;
             if (!text_.is_open()) open_next();
             static const char* res[3] = {"0.0", "0.5", "1.0"};
             text_buf_ += r.fen;
@@ -263,6 +267,15 @@ public:
     }
 
 private:
+    // exact: every key of the run; bounded: slot = key mod size holds the newest fingerprint (0 = empty)
+    bool is_duplicate(const Hash128& h) {
+        if (o_.dedup_exact) return !seen_.insert(h).second;
+        const std::uint64_t fp = h.b | 1ULL;
+        std::uint64_t& slot = table_[static_cast<std::size_t>(h.a % table_.size())];
+        if (slot == fp) return true;
+        slot = fp;
+        return false;
+    }
     static bool exists(const std::string& path) { return GetFileAttributesA(path.c_str()) != INVALID_FILE_ATTRIBUTES; }
     void open_next() {
         // Never overwrite: skip every number whose .txt, .txt.part, .txt.md5 or .pos already exists.
@@ -307,6 +320,7 @@ private:
     const Options& o_;
     std::mutex m_;
     std::unordered_set<Hash128, Hash128Hasher> seen_;
+    std::vector<std::uint64_t> table_;
     std::ofstream text_;
     std::string text_buf_, base_;
     std::vector<std::uint8_t> boards_;
@@ -423,7 +437,8 @@ void worker(int id, const Options& o, Output& out, Stats& st, const std::vector<
     std::mt19937_64 rng(o.seed * 1000003ULL + static_cast<std::uint64_t>(id));
     Game g;
     long long my_games = 0;
-    while (!stop) {
+    bool engine_dead = false;
+    while (!stop && !engine_dead) {
         if (o.games_per_worker && my_games >= o.games_per_worker) break;
         ++st.attempts;
         g.reset();
@@ -450,7 +465,7 @@ void worker(int id, const Options& o, Output& out, Stats& st, const std::vector<
         if (aborted || terminal(g, o.max_ply) >= 0) continue;  // as play_game: no samples
         e.send("ucinewgame");
         e.send("isready");
-        e.wait_for("readyok");
+        if (!e.wait_for("readyok")) { engine_dead = true; break; }
         std::vector<Record> recs;
         int winner = 0, streak = 0, result = -1;  // winner: +1 White, -1 Black, 0 none
         for (;;) {
@@ -459,7 +474,7 @@ void worker(int id, const Options& o, Output& out, Stats& st, const std::vector<
             if (stop) { result = -2; break; }
             Reply r;
             const int budget = (o.check_nodes > 0 && g.board.in_check()) ? o.check_nodes : o.nodes;
-            if (!search(e, g, budget, r, st)) { result = -3; break; }
+            if (!search(e, g, budget, r, st)) { engine_dead = true; result = -3; break; }
             const auto mv = g.board.parse_uci(r.best);
             if (!mv || !r.has_score) { ++st.errors; result = -3; break; }  // python: RuntimeError (no score / illegal)
             const Move m = *mv;
@@ -487,13 +502,17 @@ void worker(int id, const Options& o, Output& out, Stats& st, const std::vector<
             if (streak >= o.adjudicate_plies) { result = winner > 0 ? 2 : 0; break; }
         }
         if (result < 0) {
-            if (result == -3) continue;
+            if (result == -3 && !engine_dead) continue;
             break;
         }
         ++my_games;
         ++st.games;
         st.candidates += static_cast<long long>(recs.size());
         st.kept += out.add_game(recs, result);
+    }
+    if (engine_dead) {
+        ++st.errors;
+        std::fprintf(stderr, "worker %d: the engine stopped answering (pipe closed); this worker ends\n", id + 1);
     }
     e.quit();
 }
@@ -541,6 +560,8 @@ int main(int argc, char** argv) {
         else if (k == "--max-score") o.max_score = std::stoi(v);
         else if (k == "--lines-per-file") o.lines_per_file = std::stoll(v);
         else if (k == "--priority") o.idle = v != "belownormal";
+        else if (k == "--dedup") o.dedup_exact = v == "exact";
+        else if (k == "--dedup-mb") o.dedup_mb = std::max(1LL, std::stoll(v));
         else { std::fprintf(stderr, "unknown option %s\n", k.c_str()); return 2; }
     }
     if (o.engine.empty() || o.out.empty() || o.workers < 1) {
