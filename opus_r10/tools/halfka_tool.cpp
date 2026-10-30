@@ -4,11 +4,17 @@
 //   halfka_tool walk <net.nnue> <seed> <games> <plies> random legal game lines: at every ply the incrementally updated
 //                                                     accumulators (parent + this ply's changes, and from 2..4 plies
 //                                                     back as the search's lazy walk does) must equal a full refresh
+//   halfka_tool speed <net.nnue> <fens.txt> <reps>    ns per call of every eval stage (one random legal move per FEN):
+//                                                     HalfKA refresh / apply / forward (AVX2 and scalar) and the lock's
+//                                                     eval (FORGENN2 refresh / update / evaluate + the HCE part)
 // FEN file: one FEN per line (anything after " | " is ignored).
 #include "forge/board.hpp"
+#include "forge/eval.hpp"
+#include "forge/nnue.hpp"
 #include "forge/nnue_halfka.hpp"
 
 #include <array>
+#include <chrono>
 #include <cstdio>
 #include <cstring>
 #include <fstream>
@@ -109,6 +115,135 @@ int walk_mode(unsigned seed, int games, int plies) {
     return mismatches == 0 ? 0 : 1;
 }
 
+volatile long long g_sink = 0;  // keeps the timed calls from being optimised away
+
+int speed_mode(const std::string& fens, int reps) {
+    struct Pos {
+        Board parent, child;
+        nnue::DirtyPieces dirty;
+    };
+    std::vector<Pos> pos;
+    std::mt19937 rng(20261030);
+    {
+        std::ifstream in(fens);
+        std::string line;
+        while (std::getline(in, line)) {
+            if (!line.empty() && line.back() == '\r') line.pop_back();
+            const std::size_t bar = line.find(" | ");
+            const std::string fen = bar == std::string::npos ? line : line.substr(0, bar);
+            Board b;
+            if (fen.empty() || !b.set_fen(fen)) continue;
+            const MoveList legal = b.legal_moves();
+            if (legal.size() == 0) continue;
+            const Move m = legal[static_cast<std::size_t>(rng() % legal.size())];
+            Pos p{b, b, nnue::dirty_pieces(b, m)};
+            Undo u;
+            (void)p.child.make_move(m, u);
+            pos.push_back(p);
+        }
+    }
+    const std::size_t n = pos.size(), L = static_cast<std::size_t>(halfka::l1());
+    using clk = std::chrono::steady_clock;
+    auto ns = [](clk::time_point a, clk::time_point b, double calls) {
+        return std::chrono::duration<double, std::nano>(b - a).count() / calls;
+    };
+    // HalfKA rows of every parent and child; apply is timed where the orientation stays (the search refreshes otherwise)
+    std::vector<std::int16_t> parent(n * 2 * L), child(n * 2 * L), scratch(L);
+    std::vector<std::pair<std::size_t, Color>> same;
+    for (std::size_t i = 0; i < n; ++i)
+        for (const Color c : {White, Black}) {
+            halfka::refresh(pos[i].parent, c, parent.data() + (i * 2 + c) * L);
+            halfka::refresh(pos[i].child, c, child.data() + (i * 2 + c) * L);
+            if (pos[i].parent.king_square(c) == pos[i].child.king_square(c) &&
+                halfka::feature_bucket(pos[i].parent, c) == halfka::feature_bucket(pos[i].child, c))
+                same.emplace_back(i, c);
+        }
+    auto t0 = clk::now();
+    for (int r = 0; r < reps; ++r)
+        for (std::size_t i = 0; i < n; ++i)
+            for (const Color c : {White, Black}) {
+                halfka::refresh(pos[i].child, c, scratch.data());
+                g_sink = g_sink + scratch[0];
+            }
+    auto t1 = clk::now();
+    const double h_refresh = ns(t0, t1, static_cast<double>(reps) * static_cast<double>(n) * 2);
+    t0 = clk::now();
+    for (int r = 0; r < reps; ++r)
+        for (const auto& [i, c] : same) {
+            const Board& b = pos[i].child;
+            halfka::apply(parent.data() + (i * 2 + c) * L, scratch.data(), c, b.king_square(c), halfka::feature_bucket(b, c),
+                          pos[i].dirty);
+            g_sink = g_sink + scratch[0];
+        }
+    t1 = clk::now();
+    const double h_apply = ns(t0, t1, static_cast<double>(reps) * static_cast<double>(same.size()));
+    double h_eval[2] = {0, 0};
+    for (const bool scalar : {false, true}) {
+        halfka::set_force_scalar(scalar);
+        t0 = clk::now();
+        for (int r = 0; r < reps; ++r)
+            for (std::size_t i = 0; i < n; ++i)
+                g_sink = g_sink + halfka::evaluate_raw(pos[i].child, child.data() + (i * 2 + White) * L, child.data() + (i * 2 + Black) * L);
+        t1 = clk::now();
+        h_eval[scalar ? 1 : 0] = ns(t0, t1, static_cast<double>(reps) * static_cast<double>(n));
+    }
+    halfka::set_force_scalar(false);
+    std::printf("speed: %zu positions x %d reps, net %s, SIMD %s\n", n, reps, halfka::description().c_str(),
+                halfka::simd_compiled() ? "AVX2" : "none");
+    std::printf("HalfKA   refresh, one perspective              %8.1f ns\n", h_refresh);
+    std::printf("HalfKA   apply one ply from the parent, one persp. %8.1f ns  (%zu of %zu perspective-moves keep the orientation)\n",
+                h_apply, same.size(), 2 * n);
+    std::printf("HalfKA   forward (pairwise, l1, l2, output) AVX2  %8.1f ns, scalar %8.1f ns\n", h_eval[0], h_eval[1]);
+    if (!nnue::available()) {
+        std::printf("FORGENN2 not compiled into this tool\n");
+        return 0;
+    }
+    // the lock's evaluation (option off): FORGENN2 accumulators (both perspectives per call) + the HCE part when residual
+    std::vector<nnue::Accumulator> np(n), nc(n);
+    for (std::size_t i = 0; i < n; ++i) {
+        nnue::refresh(pos[i].parent, np[i]);
+        nnue::refresh(pos[i].child, nc[i]);
+    }
+    nnue::Accumulator tmp;
+    t0 = clk::now();
+    for (int r = 0; r < reps; ++r)
+        for (std::size_t i = 0; i < n; ++i) {
+            nnue::refresh(pos[i].child, tmp);
+            g_sink = g_sink + static_cast<long long>(tmp.values[0][0]);
+        }
+    t1 = clk::now();
+    const double f_refresh = ns(t0, t1, static_cast<double>(reps) * static_cast<double>(n));
+    t0 = clk::now();
+    for (int r = 0; r < reps; ++r)
+        for (std::size_t i = 0; i < n; ++i) {
+            nnue::update(np[i], tmp, pos[i].dirty);
+            g_sink = g_sink + static_cast<long long>(tmp.values[0][0]);
+        }
+    t1 = clk::now();
+    const double f_update = ns(t0, t1, static_cast<double>(reps) * static_cast<double>(n));
+    t0 = clk::now();
+    for (int r = 0; r < reps; ++r)
+        for (std::size_t i = 0; i < n; ++i) g_sink = g_sink + nnue::evaluate(pos[i].child, nc[i]);
+    t1 = clk::now();
+    const double f_eval = ns(t0, t1, static_cast<double>(reps) * static_cast<double>(n));
+    Evaluator ev;
+    t0 = clk::now();
+    for (int r = 0; r < reps; ++r)
+        for (std::size_t i = 0; i < n; ++i) g_sink = g_sink + ev.evaluate(pos[i].child);
+    t1 = clk::now();
+    const double f_hce = ns(t0, t1, static_cast<double>(reps) * static_cast<double>(n));
+    std::printf("FORGENN2 refresh, both perspectives            %8.1f ns\n", f_refresh);
+    std::printf("FORGENN2 update one ply, both perspectives     %8.1f ns\n", f_update);
+    std::printf("FORGENN2 evaluate (SCReLU output)              %8.1f ns\n", f_eval);
+    // the search adds the HCE through a private runtime path that reuses an incremental PSQT; the public evaluate()
+    // recomputes it, so this is an upper bound of the HCE part
+    std::printf("HCE      evaluate (public API, upper bound; residual net: %s) %8.1f ns\n", nnue::residual() ? "yes" : "no", f_hce);
+    std::printf("per searched eval, accumulators updated from the parent: HalfKA 2 x apply + forward = %.1f ns; "
+                "lock = update + evaluate%s = %.1f ns\n", 2 * h_apply + h_eval[0], nnue::residual() ? " + HCE" : "",
+                f_update + f_eval + (nnue::residual() ? f_hce : 0.0));
+    return 0;
+}
+
 } // namespace
 
 int main(int argc, char** argv) {
@@ -125,6 +260,7 @@ int main(int argc, char** argv) {
     if (mode == "eval" && argc >= 5) return eval_mode(argv[3], argv[4]);
     if (mode == "walk" && argc >= 6)
         return walk_mode(static_cast<unsigned>(std::stoul(argv[3])), std::stoi(argv[4]), std::stoi(argv[5]));
+    if (mode == "speed" && argc >= 5) return speed_mode(argv[3], std::stoi(argv[4]));
     std::fprintf(stderr, "bad arguments\n");
     return 2;
 }
