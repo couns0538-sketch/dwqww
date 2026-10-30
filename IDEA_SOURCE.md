@@ -44,3 +44,7 @@ IDEA_SOURCE: Engine QA CR_ASTRA2 F1 HIGH in supplied round3 pack; C++20 designat
 ### Astra R3 A1 integration contract
 
 IDEA_SOURCE: Engine QA/Code Review findings in astra3/integration/ROUND3_JOB_PACK.md, with the user's confirmed R5A CorrMargins pins. Named preset construction, seven-owned-option diagnostics, complete truthful active echoes and nominal helper-depth metadata are original repairs to same-repository Forge integration. No external engine code or tuned constants.
+
+## Astra A1 data tooling (2026-10-30)
+
+IDEA_SOURCE: user task for stronger/cleaner/diverse Forge NNUE data; same-repository FPOS/FHCE contract and v3b trainer at e0d76ce; prior original JobD streaming filter; R8 driver at5dd3a57d6f286f09b8881671ba8a368f6d34f717. Use original implementations around existing Forge APIs; no external engine source or tuned constants. Data cleaning and new labels are hypotheses, not Elo evidence.
