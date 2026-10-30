@@ -96,7 +96,8 @@ QA runs Code Review and queues it against the current lock.
 |---|---|
 | net | `{os.path.basename(net)}`, {chk['net_bytes']:,} bytes, sha256 `{chk['net_sha256']}` |
 | architecture | nnue-pytorch b2614500 K32H3^ (HalfKAv2_hm family), L1 {chk['l1']} |
-| engine | `{os.path.basename(b['exe'])}`, sha256 `{b['exe_sha256']}`, built from `{b['commit_full']}` (qa-r10v2-fix1) with the box recipe + `-march={b['march']}` (AVX2, FMA {b['fma_count_exe']}, zmm {b['zmm_count_exe']}) |
+| GATE_EXE | `{b['exe_sha256']}` (the exe is identified by this sha256; the commit below is provenance only) |
+| engine | `{os.path.basename(b['exe'])}`, built from `{b['commit_full']}` (qa-r10v2-fix1) with the box recipe + `-march={b['march']}` (AVX2, FMA {b['fma_count_exe']}, zmm {b['zmm_count_exe']}) |
 | UCI | `setoption name EvalFileHalfKA value <absolute Windows path of the .nnue>` (empty = off = lock eval) |
 | parity (fens_12k) | **{p['exact']} / {p['fens_count']} exact** vs nnue-pytorch float64, max raw diff {p['max_raw_diff']}, SIMD ({p['simd']}) vs scalar mismatches {p['simd_vs_scalar_mismatches']} |
 | OFF identity | {'ALL OK' if off['ok'] else 'FAILED'} (bench d11 {off.get('bench_d11')}) |
@@ -107,6 +108,8 @@ Files: see `SHA256SUMS`. Details: `bench.txt`, `parity.log`, `wac.txt`, `check.j
 No Elo claim: strength is decided by QA's gate.
 """
     C.write_text(os.path.join(out, "README.md"), readme)
+    # CR R2: GATE_EXE is the exe's sha256 (never the commit)
+    C.write_text(os.path.join(out, "GATE_EXE.txt"), f"GATE_EXE={b['exe_sha256']}\nNET_SHA256={chk['net_sha256']}\n")
     sums = []
     for fn in sorted(os.listdir(out)):
         fp = os.path.join(out, fn)
