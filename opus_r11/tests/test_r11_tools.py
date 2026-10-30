@@ -257,6 +257,31 @@ def main() -> int:
     check(rc == 0 and evs == ["start", "fit_start", "finished"],
           f"no production -> the entry runs the trainer to its end (exit 0): {stub_res['none']}")
     check(marker_gone(), "the stub's marker processes ended by themselves")
+    # CR R3 fail-closed: a CPU mask the PC does not have (one bit, so it passes the 1..3-CPU check) makes
+    # SetProcessAffinityMask fail for real -> the entry exits 78 before importing anything, the build script builds
+    # nothing, set_idle_background raises
+    bad_mask = hex(1 << 40)
+    rd = os.path.join(scratch, "run_r3_fail_closed")
+    rr = subprocess.run([sys.executable, "-I", "-B", spec.origin, "--r11-clone", stub, "--r11-run-dir", rd,
+                         "--r11-patterns-file", pfile, "--r11-affinity", bad_mask, "--", "dummy.binpack"],
+                        capture_output=True, text=True, timeout=300, env=dict(os.environ, R11_STUB_MODE="none",
+                                                                              R11_STUB_MARKER=marker))
+    evs = [json.loads(x) for x in open(os.path.join(rd, "r11_events.jsonl"), encoding="utf-8")] \
+        if os.path.isfile(os.path.join(rd, "r11_events.jsonl")) else []
+    check(rr.returncode == 78 and [e["event"] for e in evs] == ["priority_failed"] and
+          evs[0].get("failed") == [f"affinity {bad_mask}"],
+          f"entry: a failed affinity call -> exit 78, event priority_failed, nothing imported: rc {rr.returncode} {evs}")
+    build = os.path.join(REPO, "tools", "nnue_pytorch_amd", "r11", "build_r11_tools.py")
+    rb = subprocess.run([sys.executable, "-I", "-B", build, "--affinity", bad_mask, "--out-dir",
+                         os.path.join(scratch, "build_must_not_exist")], capture_output=True, text=True, timeout=300)
+    check(rb.returncode == 2 and "FAIL could not lower this process" in rb.stdout and
+          not os.path.exists(os.path.join(scratch, "build_must_not_exist")),
+          f"build_r11_tools: a failed affinity call -> FAIL, nothing built: rc {rb.returncode} {rb.stdout.strip()[-160:]}")
+    try:
+        C.set_idle_background(1 << 40)
+        check(False, "set_idle_background must fail closed on a failed affinity call")
+    except C.StageFailed as e:
+        check("affinity" in str(e) and "False" in str(e), f"set_idle_background fails closed: {e}")
     import r11_train as TR
     cfg_share = json.loads(json.dumps(real_cfg))
     cfg_share["train"]["profiles"]["smoke"]["gpu_policy"] = "share"

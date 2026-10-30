@@ -11,7 +11,8 @@ This driver:
     limits floor + profile.need_ram_gb; the entry yields (exit 76) when a production trainer appears;
   - resumes from the newest checkpoint of the run's own index; a finished run is not started again;
   - handles the entry's exit codes: 0 finished, 75 RAM / disk (wait, resume), 76 production trainer (wait until it
-    ends, resume), 97 hard RAM floor (wait, resume), anything else FAIL; at most `max_restarts` restarts.
+    ends, resume), 97 hard RAM floor (wait, resume), 78 could not lower its own priority (FAIL, CR R3 fail-closed),
+    anything else FAIL; at most `max_restarts` restarts.
 Profiles (config train.profiles): "smoke" (L1 256, batch 4096, 1 loader worker, short) and "full" (the owner's L1
 1024 recipe); both yield to production.
 Usage: r11_train.py --config <cfg.json> --profile smoke|full [--name <run name>]
@@ -186,6 +187,9 @@ def run_train(cfg: dict, profile_name: str, log: C.Log, gov: C.Governor, name: s
             time.sleep(cfg["limits"]["poll_seconds"])
             continue
         tail = open(logf, encoding="utf-8", errors="replace").read()[-1500:]
+        if rc == 78:  # CR R3 fail-closed: no restart, the entry could not run as low as required
+            raise C.StageFailed(f"the train entry could not lower its own priority (Idle / I/O / memory / affinity), "
+                                f"exit 78, nothing trained; see {logf}\n{tail}")
         raise C.StageFailed(f"trainer failed with exit {rc}; see {logf}\n{tail}")
 
 

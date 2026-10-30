@@ -35,10 +35,14 @@ def main() -> int:
         # CR fix 2 (amended): Idle (0x40) + I/O priority very low + memory priority low, at most 3 cores; the compiler
         # inherits all four. NOT background mode: it caps the working set at 32 MB (g++ would page constantly)
         from ctypes import wintypes
-        import psutil
+        try:
+            import psutil
+        except ImportError:
+            print("FAIL psutil is missing: cannot set the I/O priority; nothing built")
+            return 2
         mask = int(a.affinity, 0)
-        if bin(mask).count("1") > 3:
-            print("FAIL --affinity must select at most 3 CPUs")
+        if bin(mask).count("1") > 3 or mask <= 0:
+            print("FAIL --affinity must select 1..3 CPUs")
             return 2
         k32 = ctypes.windll.kernel32
         k32.GetCurrentProcess.restype = wintypes.HANDLE
@@ -46,11 +50,22 @@ def main() -> int:
         k32.SetProcessAffinityMask.argtypes = [wintypes.HANDLE, ctypes.c_size_t]
         k32.SetProcessInformation.argtypes = [wintypes.HANDLE, ctypes.c_int, ctypes.c_void_p, wintypes.DWORD]
         h = k32.GetCurrentProcess()
-        k32.SetPriorityClass(h, 0x00000040)
-        psutil.Process().ionice(psutil.IOPRIO_VERYLOW)
+        # CR R3: fail closed - no compiler is started unless all four settings were applied
+        failed = []
+        if not k32.SetPriorityClass(h, 0x00000040):
+            failed.append("Idle class")
+        try:
+            psutil.Process().ionice(psutil.IOPRIO_VERYLOW)
+        except (OSError, psutil.Error):
+            failed.append("I/O priority very low")
         low = wintypes.ULONG(2)  # MEMORY_PRIORITY_LOW
-        k32.SetProcessInformation(h, 0, ctypes.byref(low), 4)  # ProcessMemoryPriority
-        k32.SetProcessAffinityMask(h, mask)
+        if not k32.SetProcessInformation(h, 0, ctypes.byref(low), 4):  # ProcessMemoryPriority
+            failed.append("memory priority low")
+        if not k32.SetProcessAffinityMask(h, mask):
+            failed.append(f"affinity {hex(mask)}")
+        if failed:
+            print(f"FAIL could not lower this process ({', '.join(failed)}); nothing built")
+            return 2
     src = os.path.join(HERE, "r11_pos2binpack.cpp")
     inc = os.path.join(a.clone, "data_loader", "cpp")
     if not os.path.isfile(os.path.join(inc, "lib", "binpack.h")):
