@@ -76,6 +76,17 @@ if stc:
                      f" {p['sigma']:.2f} | {p['z']:+.2f} | {'same way' if p['same_way'] else 'mixed'} | {'yes' if p['likely_real'] else 'no'} |")
     changed = [p for p in stc["params"] if p["end_int"] != int(round(p["start"]))]
     real = [p for p in stc["params"] if p["likely_real"]]
+    draws = 100 * stc["D"] / (stc["W"] + stc["L"] + stc["D"])
+    top = max(stc["params"], key=lambda p: abs(p["z"]))
+    if not real:
+        lines += ["", f"**Verdict: no parameter moved beyond its noise.** 0 of 16 reached |z| >= 2 (about 0.8 would by chance with no",
+                  f"true gradient at all); the largest was {top['name']} (z {top['z']:+.2f}). At 8+0.08 with {draws:.1f}% draws,",
+                  f"{stc['pairs']} pairs cannot separate these moves from noise: the lock values may sit near a local optimum for this",
+                  "TC, or the gradients are too small for this many games. The all-changed set below is a noise-level drift: QA can",
+                  "gate it, but a null result is the expected outcome. The likely-real set is empty (it is the lock's search), so",
+                  "there is no second gate. Mid-run (01:55) HistoryMalusPercent stood beyond 2 sigma and ended at z "
+                  f"{prow(stc, 'HistoryMalusPercent')['z']:+.2f}: mid-run z values are not evidence.",
+                  "Next run if wanted: 3,000+ pairs, or 4-6 parameters with larger perturbations, same TC."]
     opt_all = " ".join(["option.R9Tune=true"] + [f"option.{p['name']}={p['end_int']}" for p in changed])
     opt_real = " ".join(["option.R9Tune=true"] + [f"option.{p['name']}={p['end_int']}" for p in real])
     lines += ["", "## Tuned option sets", "",
@@ -91,15 +102,20 @@ if stc:
               " format=pgn order=random start=<queue> -srand <queue> -games 2 -repeat -rounds 1500 -concurrency 4"
               " -sprt elo0=0 elo1=10 alpha=0.05 beta=0.05 model=normalized -ratinginterval 10 -recover -pgnout file=<gate>.pgn",
               "```", "",
-              "The default side is the same exe with `R9Tune` off (its search is the lock's). A second, optional gate with only the",
-              "likely-real set uses the same line with the shorter option list.", ""]
+              "The default side is the same exe with `R9Tune` off (its search is the lock's). "
+              + ("A second, optional gate with only the likely-real set uses the same line with the shorter option list."
+                 if real else "No second gate: the likely-real set is empty."), ""]
 lines += ["## Load and the governor",
           "- 19:50-23:30: the PC sat at 72-82% CPU without this job (gate conc 4 x Threads 2 = 8.0 CPUs, live self-play 2.1, NNUE",
           "  trainer 1.3); under the first 70% cap no game could run (the governor waited, sanity2 waited 8,820 s).",
           "- 23:3x: the user raised the cap: start a batch while the load without the tuner is <= 80%, play as many games as keep",
           "  the total <= 90% (at most 4, BelowNormal, CPUs 0-3), pause between batches if the total stays above 90% for 60 s or",
           "  free RAM < 8 GB (never kill). The user paused self-play at about 23:30; the gate ended at its 3,000-game cap at 00:10.",
-          "- Every batch records the load it started at, its concurrency and what it saw while it played (`iterations.jsonl`).", ""]
+          "- Every batch records the load it started at, its concurrency and what it saw while it played (`iterations.jsonl`).",
+          "- STC batches before 03:21 (batch 0 at 00:12, the rest from 00:53): 143, 133 at concurrency 4 and 10 at 3, no wait.",
+          "  03:21-04:46: the R10 job (branch `opus-r10-halfka`, CPUs 4-11, BelowNormal) ran beside it and the governor gave way as",
+          "  designed: 65 batches at 4 / 3 / 2 = 29 / 19 / 17 and one 60 s wait (04:30, load 83% without the tuner). The run",
+          "  stopped at its 04:45 deadline with 832 of the 1,200 planned pairs.", ""]
 lines += ["## Findings", "- The lock already kept 51 search constants in `forge::tune`, accepted silently by `setoption`; R9 makes them",
           "  advertised options (the gate runner checks that options it sets are advertised) and gates them behind `R9Tune`.",
           "- Truncating fractional LMR adjustments made a sub-ply change invisible unless the sum crossed a whole ply; R9 rounds to",

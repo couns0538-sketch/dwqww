@@ -1,4 +1,4 @@
-# R9 SPSA search-parameter tuning for Forge — IN PROGRESS
+# R9 SPSA search-parameter tuning for Forge — DONE
 
 Branch `opus-r9-spsa` = AL1 lock `d4f4312` + CI baseline `0d99f02` + R9 commits. PC clock times. Machine exclusive:
 no (PC gates, live self-play and the NNUE trainer ran beside it; the user paused self-play at about 23:30).
@@ -12,8 +12,8 @@ no (PC gates, live self-play and the NNUE trainer ran beside it; the user paused
 | 2 own SPSA tuner driving fastchess | `opus_r9/tuner/r9_spsa.py` (Fishtest-style schedule counted in game pairs, values rounded to the engine's integers, append-only resumable state, `history.csv`, `tuner.log`, every game kept as PGN, STOP file, load governor), report with a null-gradient noise level per parameter, trajectory chart; ideas only, sources in `IDEA_SOURCE.md` | `opus_r9/tuner/`, `opus_r9/IDEA_SOURCE.md` |
 | 2 tests | simulated matches with a known optimum: up z +8.5, down z -8.4, at-optimum within 3 sigma, stopped+resumed == uninterrupted; real games: every sanity2 result re-counted from the PGNs (0 attribution mismatches), option values checked in the engine logs | `opus_r9/tuner/test_r9_spsa_sim.py`, `opus_r9/logs/tuner_sim_test_trajectories.svg` |
 | 3 sanity: one parameter set wrong | both runs moved the wrong parameter **toward its lock value**: LmrQuietDivisor 120 -> 138.6 (lock 220, z +1.27, 200 pairs), LmrQuietBase 250 -> 189.3 (lock 85, z +1.48 toward it, 240 pairs); neither beyond 2 sigma alone, combined z 1.94 (one-sided p about 0.03); controls (HistoryMalusPercent at its lock value) z +1.02 and -1.88 | `opus_r9/results/sanity2/`, `opus_r9/results/sanity3/` (tables + charts) |
-| 4 real run, STC 8+0.08 | RUNNING (`F:\opus_scratch\r9\runs\stc1`, until 04:45) | `opus_r9/runs/stc1/` (snapshots every 10 min) |
-| 5 deliver | after the run | |
+| 4 real run, STC 8+0.08 | 832 game pairs (1664 games) from the lock values, 16 parameters; 0 moved beyond 2 sigma | `opus_r9/results/stc1/`, `opus_r9/runs/stc1/` |
+| 5 deliver | `opus_r9/results/stc1/r9_tuned.ini` + option string, the table below, QA gate line below | this report |
 
 ## Sanity runs (4+0.04, Threads 1, Hash 16, 2 pairs per batch)
 - sanity2 (`configs/sanity.json`): LmrQuietDivisor started at 120 (lock 220). 200 pairs, +47 -64 =289 (72% draws). It waited for CPU from 20:56 to 23:31 under the first 70% cap.
@@ -22,6 +22,54 @@ no (PC gates, live self-play and the NNUE trainer ran beside it; the user paused
   nearly equal engines at 4+0.04 end drawn 72-75% of the time, so each pair carries little information; the same limit
   applies to the STC run (see below). The update rule itself is proven by the simulated test (z +-8.5).
 
+## STC run: start, end, move, noise (16 parameters, from the lock values)
+
+832 pairs, +203 -207 =1254; noise sigma = the spread this run would show with no true gradient; |z| >= 2 = likely real (with 16 parameters about 0.8 pass by chance).
+
+| parameter | start | end | end (int) | move | move / c_end | noise sigma | z | halves | likely real |
+|---|---|---|---|---|---|---|---|---|---|
+| LmrQuietBase | 85 | 80.01 | 80 | -4.99 | -0.42 | 4.99 | -1.00 | mixed | no |
+| LmrQuietDivisor | 220 | 225.15 | 225 | +5.14 | +0.32 | 6.66 | +0.77 | same way | no |
+| LmrCutNode | 2048 | 2039.82 | 2040 | -8.18 | -0.03 | 106.52 | -0.08 | mixed | no |
+| LmrNotImproving | 1024 | 1092.56 | 1093 | +68.56 | +0.36 | 79.89 | +0.86 | same way | no |
+| LmrTtPv | 1024 | 1021.60 | 1022 | -2.40 | -0.01 | 79.89 | -0.03 | mixed | no |
+| LmrGivesCheck | 1024 | 1062.85 | 1063 | +38.85 | +0.20 | 79.89 | +0.49 | same way | no |
+| NmpEvalBase | 180 | 163.56 | 164 | -16.43 | -0.55 | 12.48 | -1.32 | same way | no |
+| RfpMargin | 72 | 72.79 | 73 | +0.79 | +0.11 | 2.91 | +0.27 | mixed | no |
+| FutilityBase | 100 | 98.04 | 98 | -1.96 | -0.14 | 5.83 | -0.34 | mixed | no |
+| FutilityMultiplier | 110 | 104.33 | 104 | -5.67 | -0.47 | 4.99 | -1.13 | same way | no |
+| SeeQuietMultiplier | 24 | 22.14 | 22 | -1.86 | -0.62 | 1.25 | -1.49 | same way | no |
+| ProbcutMargin | 180 | 172.79 | 173 | -7.21 | -0.45 | 6.66 | -1.08 | same way | no |
+| SingularDoubleMargin | 24 | 22.47 | 22 | -1.53 | -0.31 | 2.08 | -0.74 | same way | no |
+| HistoryMalusPercent | 100 | 105.08 | 105 | +5.08 | +0.51 | 4.16 | +1.22 | same way | no |
+| AspirationDelta | 18 | 17.30 | 17 | -0.70 | -0.28 | 1.04 | -0.68 | same way | no |
+| QuietCheckBonus | 12000 | 12330.23 | 12330 | +330.23 | +0.22 | 624.14 | +0.53 | same way | no |
+
+**Verdict: no parameter moved beyond its noise.** 0 of 16 reached |z| >= 2 (about 0.8 would by chance with no
+true gradient at all); the largest was SeeQuietMultiplier (z -1.49). At 8+0.08 with 75.4% draws,
+832 pairs cannot separate these moves from noise: the lock values may sit near a local optimum for this
+TC, or the gradients are too small for this many games. The all-changed set below is a noise-level drift: QA can
+gate it, but a null result is the expected outcome. The likely-real set is empty (it is the lock's search), so
+there is no second gate. Mid-run (01:55) HistoryMalusPercent stood beyond 2 sigma and ended at z +1.22: mid-run z values are not evidence.
+Next run if wanted: 3,000+ pairs, or 4-6 parameters with larger perturbations, same TC.
+
+## Tuned option sets
+
+All changed values (`opus_r9/results/stc1/r9_tuned.ini`, `r9_tuned_options.txt`): `option.R9Tune=true option.LmrQuietBase=80 option.LmrQuietDivisor=225 option.LmrCutNode=2040 option.LmrNotImproving=1093 option.LmrTtPv=1022 option.LmrGivesCheck=1063 option.NmpEvalBase=164 option.RfpMargin=73 option.FutilityBase=98 option.FutilityMultiplier=104 option.SeeQuietMultiplier=22 option.ProbcutMargin=173 option.SingularDoubleMargin=22 option.HistoryMalusPercent=105 option.AspirationDelta=17 option.QuietCheckBonus=12330`
+
+Only the likely-real ones: `option.R9Tune=true`
+
+## QA gate line (tuned options vs the same exe at defaults, SPRT [0,10] nElo, cap 3000)
+
+Engine: `F:\opus_scratch\r9\build\forge_r9_c.exe` (sha256 `cad98f31562734124527f3d06a39cb01114d60e20289bea3f007cf3b7617b9e3`), built from this branch head with the box recipe; QA copies it to its
+bin folder. Settings as the PC queue's current gates (tc 10+0.1, Threads 2, Hash 16, OwnBook false, 8moves_v3.pgn, conc 4):
+
+```
+fastchess.exe -engine name=r9_tuned cmd=<bin>\forge_r9_spsa_cad98f31.exe option.Threads=2 option.Hash=16 option.OwnBook=false option.R9Tune=true option.LmrQuietBase=80 option.LmrQuietDivisor=225 option.LmrCutNode=2040 option.LmrNotImproving=1093 option.LmrTtPv=1022 option.LmrGivesCheck=1063 option.NmpEvalBase=164 option.RfpMargin=73 option.FutilityBase=98 option.FutilityMultiplier=104 option.SeeQuietMultiplier=22 option.ProbcutMargin=173 option.SingularDoubleMargin=22 option.HistoryMalusPercent=105 option.AspirationDelta=17 option.QuietCheckBonus=12330 -engine name=r9_default cmd=<bin>\forge_r9_spsa_cad98f31.exe option.Threads=2 option.Hash=16 option.OwnBook=false -each tc=10+0.1 timemargin=1000 proto=uci -openings file=C:\Users\Administrator\grok-pc\coder-fuzz\8moves_v3.pgn format=pgn order=random start=<queue> -srand <queue> -games 2 -repeat -rounds 1500 -concurrency 4 -sprt elo0=0 elo1=10 alpha=0.05 beta=0.05 model=normalized -ratinginterval 10 -recover -pgnout file=<gate>.pgn
+```
+
+The default side is the same exe with `R9Tune` off (its search is the lock's). No second gate: the likely-real set is empty.
+
 ## Load and the governor
 - 19:50-23:30: the PC sat at 72-82% CPU without this job (gate conc 4 x Threads 2 = 8.0 CPUs, live self-play 2.1, NNUE
   trainer 1.3); under the first 70% cap no game could run (the governor waited, sanity2 waited 8,820 s).
@@ -29,6 +77,10 @@ no (PC gates, live self-play and the NNUE trainer ran beside it; the user paused
   the total <= 90% (at most 4, BelowNormal, CPUs 0-3), pause between batches if the total stays above 90% for 60 s or
   free RAM < 8 GB (never kill). The user paused self-play at about 23:30; the gate ended at its 3,000-game cap at 00:10.
 - Every batch records the load it started at, its concurrency and what it saw while it played (`iterations.jsonl`).
+- STC batches before 03:21 (batch 0 at 00:12, the rest from 00:53): 143, 133 at concurrency 4 and 10 at 3, no wait.
+  03:21-04:46: the R10 job (branch `opus-r10-halfka`, CPUs 4-11, BelowNormal) ran beside it and the governor gave way as
+  designed: 65 batches at 4 / 3 / 2 = 29 / 19 / 17 and one 60 s wait (04:30, load 83% without the tuner). The run
+  stopped at its 04:45 deadline with 832 of the 1,200 planned pairs.
 
 ## Findings
 - The lock already kept 51 search constants in `forge::tune`, accepted silently by `setoption`; R9 makes them
@@ -120,5 +172,5 @@ no (PC gates, live self-play and the NNUE trainer ran beside it; the user paused
 | 74 | QuietCheckBonus | 12000 | 0..40000 | R9 (former literal) | yes | yes (0..30000, 1500) |
 
 ## Time
-Commits on this branch after the base: 17, 2026-10-29 20:31:25 -0700 .. 2026-10-30 00:53:51 -0700 (git log). The work before them (R7/R8 fixes) is on `opus-r7-speed` and `opus-r8-datagen`.
+Commits on this branch after the base: 42, 2026-10-29 20:31:25 -0700 .. 2026-10-30 04:34:38 -0700 (git log). The work before them (R7/R8 fixes) is on `opus-r7-speed` and `opus-r8-datagen`.
 
