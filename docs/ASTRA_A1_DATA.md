@@ -111,3 +111,5 @@ Earlier checkpoints are retained in [ASTRA_A1_CHECKPOINT_HISTORY.md](ASTRA_A1_CH
 Checkpoint 20261030T031548Z: full10M status RUNNING, processed 2868992, kept 2641524. Final independent bundle verification is still required. No Elo claim.
 
 Checkpoint 20261030T032550Z: full10M status RUNNING, processed 3499520, kept 3222140. Final independent bundle verification is still required. No Elo claim.
+
+Checkpoint 20261030T033552Z: full10M status RUNNING, processed 4167424, kept 3835087. Final independent bundle verification is still required. No Elo claim.
