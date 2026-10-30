@@ -140,6 +140,35 @@ def main() -> int:
     C.SMALL_WRITE_FLOOR_GB = saved_small
     check(rc != 0 and os.listdir(out5) == [], "Astra extract refused for lack of space leaves nothing behind")
 
+    # 1h CR fix 10: sealed inputs are identified by their full sha256; a change in the middle of a big file (which a
+    # first/last-MiB fingerprint misses) is detected
+    big = os.path.join(scratch, "sealed_big.bin")
+    with open(big, "wb") as f:
+        f.write(os.urandom(3 << 20))
+    sealed = C.SealedInputs()
+    registered = sealed.sha256(big)
+
+    def edges(path: str) -> str:  # the pre-fix-10 fingerprint, only to show what it missed
+        hh = hashlib.sha256()
+        with open(path, "rb") as fh:
+            hh.update(fh.read(1 << 20))
+            fh.seek(os.path.getsize(path) - (1 << 20))
+            hh.update(fh.read(1 << 20))
+        return hh.hexdigest()
+
+    before_edges = edges(big)
+    with open(big, "r+b") as f:
+        f.seek((3 << 20) // 2)
+        b = f.read(1)
+        f.seek((3 << 20) // 2)
+        f.write(bytes([b[0] ^ 1]))
+    check(edges(big) == before_edges, "the old first/last-MiB fingerprint does NOT see a change in the middle")
+    try:
+        C.SealedInputs().verify(big, registered, "test input")
+        check(False, "a changed sealed input must be refused")
+    except C.StageFailed as e:
+        check("input changed since registration" in str(e), "the full sha256 detects the change in the middle")
+
     # 1d CR fix 1: no STOP/PAUSE control files anywhere in the pipeline; the hold is the named event
     import ctypes
     from ctypes import wintypes

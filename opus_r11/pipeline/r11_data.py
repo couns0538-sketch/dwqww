@@ -136,7 +136,18 @@ def load_registry(path: str) -> dict | None:
     return C.read_json(path)
 
 
-def register(cfg: dict, shards: list[dict], supersede: dict, log: C.Log) -> dict:
+def save_registry(cfg: dict, reg: dict) -> None:
+    C.write_json(os.path.join(cfg["data"]["dir"], "state", "registry.json"), reg)
+
+
+def _pins_for(cfg: dict, source: str) -> dict:
+    src = next((s for s in cfg["data"]["sources"] if s["name"] == source), {})
+    return src.get("pins") or {}
+
+
+def register(cfg: dict, shards: list[dict], supersede: dict, log: C.Log, sealed: C.SealedInputs) -> dict:
+    """CR fix 10: every registered input carries its FULL sha256 (sha256_pos, sha256_hce for source .hce files);
+    unconverted registered inputs are re-verified each run; entries written before fix 10 are upgraded (logged)."""
     d = cfg["data"]
     path = os.path.join(d["dir"], "state", "registry.json")
     reg = load_registry(path)
@@ -162,23 +173,34 @@ def register(cfg: dict, shards: list[dict], supersede: dict, log: C.Log) -> dict
                 log.info(f"{sid}: input {e['pos']} is gone (already converted; fine)")
                 continue
             raise C.StageFailed(f"input of registered, unconverted shard is missing: {e['pos']}")
-        fp = C.fingerprint(e["pos"])
-        if not C.same_fingerprint(fp, e["fp_pos"]):
-            if converted:
-                log.info(f"{sid}: input changed after conversion (outputs keep the registered version)")
-                continue
-            raise C.StageFailed(f"input changed since registration: {e['pos']}")
+        if "sha256_pos" not in e:  # registered before CR fix 10 (edge fingerprint only): record the full sha256 now
+            e.pop("fp_pos", None)
+            e["sha256_pos"] = sealed.sha256(e["pos"])
+            if e.get("hce_origin") == "source" and e.get("hce"):
+                e["sha256_hce"] = sealed.sha256(e["hce"])
+            e["sha256_recorded"] = f"upgrade {time.strftime('%Y-%m-%dT%H:%M:%S')} (CR fix 10)"
+            log.info(f"{sid}: full sha256 recorded (registry upgrade, CR fix 10)")
+        elif not converted:
+            sealed.verify(e["pos"], e["sha256_pos"], f"{sid} .pos")
     new = [s for s in shards if s["id"] not in known]
     new.sort(key=lambda s: (0 if s["id"] in holdout else 1))  # stable: holdout first, then configured order
     for s in new:
         e = dict(s)
         e["index"] = len(reg["order"])
         e["holdout"] = s["id"] in holdout
-        e["fp_pos"] = C.fingerprint(s["pos"])
+        e["sha256_pos"] = sealed.sha256(s["pos"])
+        if e.get("hce_origin") == "source" and e.get("hce"):
+            e["sha256_hce"] = sealed.sha256(e["hce"])
+        pins = _pins_for(cfg, e["source"])
+        for fpath, key in ((e["pos"], "sha256_pos"), (e.get("hce"), "sha256_hce")):
+            pin = pins.get(os.path.basename(fpath)) if fpath else None
+            if pin and e.get(key) != pin:
+                raise C.StageFailed(f"{fpath} sha256 {e.get(key)} != pinned {pin}")
         e["registered"] = time.strftime("%Y-%m-%dT%H:%M:%S")
         reg["order"].append(e)
-        log.info(f"registered #{e['index']} {e['id']} rows {e['rows']} holdout {e['holdout']} hce {e['hce_origin']}")
-    C.write_json(path, reg)
+        log.info(f"registered #{e['index']} {e['id']} rows {e['rows']} holdout {e['holdout']} hce {e['hce_origin']} "
+                 f"sha256 {e['sha256_pos'][:12]}")
+    save_registry(cfg, reg)
     return reg
 
 
@@ -319,10 +341,18 @@ def _fen_board(fen: str) -> tuple[bytes, int]:
     return bytes(sq[2 * i] | (sq[2 * i + 1] << 4) for i in range(32)), (1 if stm == "b" else 0)
 
 
-def generate_hce(cfg: dict, e: dict, log: C.Log, gov: C.Governor) -> None:
-    """Make e['hce'] from e['hce_text'] with the qualified tool; check rows and a sample of boards."""
-    if e["hce_origin"] != "generated" or os.path.isfile(e["hce"]):
-        return
+def generate_hce(cfg: dict, e: dict, log: C.Log, gov: C.Governor, sealed: C.SealedInputs) -> bool:
+    """Make e['hce'] from e['hce_text'] with the qualified tool; check rows and a sample of boards. Records the full
+    sha256 of the generated file and of its text in the registry entry (CR fix 10). Returns True if e changed."""
+    if e["hce_origin"] != "generated":
+        return False
+    if os.path.isfile(e["hce"]):
+        if "sha256_hce" in e:
+            return False
+        e["sha256_hce"] = sealed.sha256(e["hce"])  # generated + checked by this pipeline before CR fix 10
+        e["sha256_hce_text"] = sealed.sha256(e["hce_text"]) if os.path.isfile(e["hce_text"]) else None
+        log.info(f"{e['id']}: full sha256 of the generated .hce recorded (CR fix 10)")
+        return True
     qualify_hce_tool(cfg, log)
     gov.wait_ok(f"hce generation {e['id']}", need_ram_gb=0.3)
     C.require_disk(e["hce"], 16 + 2 * e["rows"], f"hce generation {e['id']}")  # CR fix 8
@@ -358,9 +388,13 @@ def generate_hce(cfg: dict, e: dict, log: C.Log, gov: C.Governor) -> None:
         if bytes(row) != board or (meta & 1) != stm:
             bad += 1
     if bad:
+        os.remove(tmp)
         raise C.StageFailed(f"text rows do not match the .pos rows for {e['id']}: {bad}/256 sampled boards differ")
     os.replace(tmp, e["hce"])
+    e["sha256_hce"] = sealed.sha256(e["hce"])
+    e["sha256_hce_text"] = sealed.sha256(e["hce_text"])
     log.info(f"hce generated {e['id']}: {n} rows, 256/256 sampled boards match the .pos, {time.time() - t0:.1f} s")
+    return True
 
 
 # ----------------------------------------------------------------------------------------------------------------
@@ -371,14 +405,15 @@ def keys_paths(d: dict, sid: str) -> tuple[str, str, str]:
     return base + ".u64", base + ".json", base + ".bad.npy"
 
 
-def make_keys(cfg: dict, e: dict, log: C.Log, gov: C.Governor) -> dict:
+def make_keys(cfg: dict, e: dict, log: C.Log, gov: C.Governor, sealed: C.SealedInputs) -> dict:
     d = cfg["data"]
     kpath, jpath, bpath = keys_paths(d, e["id"])
     meta = C.read_json(jpath)
-    if meta and meta.get("rows") == e["rows"] and C.same_fingerprint(meta.get("fp_pos", {}), e["fp_pos"]):
+    if meta and meta.get("rows") == e["rows"] and meta.get("sha256_pos") == e["sha256_pos"]:
         return meta
     os.makedirs(os.path.dirname(kpath), exist_ok=True)
     gov.wait_ok(f"keys {e['id']}", need_ram_gb=0.4, disk_path=d["dir"], need_disk_gb=e["rows"] * 8 / 2**30)
+    sealed.verify(e["pos"], e["sha256_pos"], f"{e['id']} .pos (keys)")  # CR fix 10
     C.require_disk(d["dir"], 8 * e["rows"], f"keys cache {e['id']}")  # CR fix 8
     k = 1
     while os.path.exists(f"{kpath}.part{k}"):
@@ -404,7 +439,7 @@ def make_keys(cfg: dict, e: dict, log: C.Log, gov: C.Governor) -> dict:
         np.save(bpath + ".tmp.npy", bad_all)
         os.replace(bpath + ".tmp.npy", bpath)
     os.replace(tmp, kpath)
-    meta = {"id": e["id"], "rows": n, "bad": int(bad_all.size), "fp_pos": e["fp_pos"],
+    meta = {"id": e["id"], "rows": n, "bad": int(bad_all.size), "sha256_pos": e["sha256_pos"],
             "seconds": round(time.time() - t0, 2)}
     C.write_json(jpath, meta)
     log.info(f"keys {e['id']}: {n} rows, {bad_all.size} bad, {meta['seconds']} s")
@@ -432,7 +467,7 @@ def decision_paths(d: dict, sid: str) -> tuple[str, str]:
     return base + ".dest2", base + ".json"
 
 
-def dedup(cfg: dict, reg: dict, log: C.Log, gov: C.Governor) -> None:
+def dedup(cfg: dict, reg: dict, log: C.Log, gov: C.Governor, sealed: C.SealedInputs) -> None:
     d = cfg["data"]
     order = reg["order"]
     pending = [e for e in order if not os.path.isfile(decision_paths(d, e["id"])[1])]
@@ -447,12 +482,9 @@ def dedup(cfg: dict, reg: dict, log: C.Log, gov: C.Governor) -> None:
     use_cache = bool(d.get("keys_cache", False))
     log.info(f"dedup: {len(pending)} pending shards ({total} rows), {len(prev)} earlier shards to check against, "
              f"{passes} key-range passes, keys {'from the cache' if use_cache else 'recomputed from the .pos files'}")
-    if not use_cache:
-        # earlier shards are read again: their inputs must still be the registered versions
-        for e in prev:
-            if not os.path.isfile(e["pos"]) or not C.same_fingerprint(C.fingerprint(e["pos"]), e["fp_pos"]):
-                raise C.StageFailed(f"input of earlier shard {e['id']} is missing or changed; without data.keys_cache "
-                                    "the dedup of new shards needs it unchanged")
+    # CR fix 10: every input the dedup reads must still be its registered version (full sha256, once per run)
+    for e in pending + ([] if use_cache else prev):
+        sealed.verify(e["pos"], e["sha256_pos"], f"{e['id']} .pos (dedup input)")
     bad = {e["id"]: load_bad(d, e["id"]) for e in pending + prev} if use_cache else {}
     found_bad: dict[str, list] = {e["id"]: [] for e in pending}
 
@@ -569,7 +601,7 @@ def dedup(cfg: dict, reg: dict, log: C.Log, gov: C.Governor) -> None:
         os.replace(dpath + ".tmp", dpath)
         kc = int(kept.sum())
         C.write_json(jpath, {"id": e["id"], "index": e["index"], "rows": n, "kept": kc, "dropped": n - kc - int(bi.size),
-                             "bad": int(bi.size), "holdout": e["holdout"], "fp_pos": e["fp_pos"],
+                             "bad": int(bi.size), "holdout": e["holdout"], "sha256_pos": e["sha256_pos"],
                              "earlier_shards_checked": len([p for p in prev if p["index"] < e["index"]]) +
                              len([p for p in pending if p["index"] < e["index"]]),
                              "passes": passes, "at": time.strftime("%Y-%m-%dT%H:%M:%S")})
@@ -614,7 +646,7 @@ def _drop_parts(paths: list[str], log: C.Log) -> None:
             log.info(f"removed unverified partial file {p}")
 
 
-def convert(cfg: dict, e: dict, log: C.Log, gov: C.Governor) -> dict:
+def convert(cfg: dict, e: dict, log: C.Log, gov: C.Governor, sealed: C.SealedInputs) -> dict:
     """CR fix 7: the writer writes .partN files, they are VERIFIED (counts, sizes, the loader's own reader square by
     square, the side-car .hce) and only then renamed to their final names; the done marker is written last."""
     d = cfg["data"]
@@ -638,6 +670,12 @@ def convert(cfg: dict, e: dict, log: C.Log, gov: C.Governor) -> dict:
     tmp = _part_name(final)
     tmp_hce = tmp + ".hce"
     with_hce = bool(e.get("hce")) and os.path.isfile(e["hce"])
+    # CR fix 10: the writer reads the registered versions only (full sha256)
+    sealed.verify(e["pos"], e["sha256_pos"], f"{e['id']} .pos")
+    if with_hce:
+        if "sha256_hce" not in e:
+            raise C.StageFailed(f"{e['id']}: .hce has no registered sha256")
+        sealed.verify(e["hce"], e["sha256_hce"], f"{e['id']} .hce")
     cmd = [d["writer_exe"], "convert", "--pos", e["pos"], "--dest", dpath, "--ply", str(d.get("ply", 40))]
     if with_hce:
         cmd += ["--hce", e["hce"]]
@@ -801,15 +839,17 @@ def run(cfg: dict, log: C.Log, gov: C.Governor, max_convert: int | None = None, 
     log.info(f"inventory: {len(shards)} ready shards, {sum(s['rows'] for s in shards)} rows, superseded {supersede}")
     if inventory_only:
         return {"shards": shards, "superseded": supersede, "notes": notes}
-    reg = register(cfg, shards, supersede, log)
+    sealed = C.SealedInputs()
+    reg = register(cfg, shards, supersede, log, sealed)
     supersede_check(cfg, reg, shards, log, gov)
     if d.get("verify", "all") != "all":
         raise C.StageFailed("data.verify must be 'all': every output is verified before it is renamed (CR fix 7)")
     for e in reg["order"]:
-        generate_hce(cfg, e, log, gov)
+        if generate_hce(cfg, e, log, gov, sealed):
+            save_registry(cfg, reg)
         if d.get("keys_cache", False):
-            make_keys(cfg, e, log, gov)
-    dedup(cfg, reg, log, gov)
+            make_keys(cfg, e, log, gov, sealed)
+    dedup(cfg, reg, log, gov, sealed)
     # disk rule (QA, R11): the target drive must keep >= limits.min_disk_free_gb (+ data.disk_margin_gb) free
     # AFTER the run. Exact output sizes are known once the decisions exist.
     floor = disk_floor_gb_data(cfg, d["dir"])
@@ -835,7 +875,7 @@ def run(cfg: dict, log: C.Log, gov: C.Governor, max_convert: int | None = None, 
                      f"{floor:.0f} GB floor")
             stopped_for_disk = True
             break
-        r = convert(cfg, e, log, gov)
+        r = convert(cfg, e, log, gov, sealed)
         if not r:
             break
         converted += 1

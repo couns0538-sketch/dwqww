@@ -328,6 +328,19 @@ def main() -> int:
                         "--code", "1", "--file", bad_copy], capture_output=True, text=True)
     check(v.returncode != 0 and "VERIFY FAILED" in v.stdout, "planted 1-byte corruption rejected by verify")
 
+    # 7b CR fix 10: the registry carries full sha256s; a wrong pin refuses registration
+    reg = C.read_json(os.path.join(cfg["data"]["dir"], "state", "registry.json"))
+    check(all(len(e.get("sha256_pos", "")) == 64 for e in reg["order"]) and
+          all(len(e.get("sha256_hce", "")) == 64 for e in reg["order"] if e.get("hce_origin") == "source"),
+          "every registered input has a full sha256 (pos and source hce)")
+    cfg_pin = config(os.path.join(scratch, "run_pin"), src, writer, mem_gb=1.0)
+    cfg_pin["data"]["sources"][2]["pins"] = {"sup_x.pos": "0" * 64}
+    try:
+        run_stage(cfg_pin)
+        check(False, "a wrong pin must refuse registration")
+    except C.StageFailed as e:
+        check("pinned" in str(e), f"a wrong pin refuses registration: {str(e)[:100]}")
+
     # 8 CR fix 6: a row the cheap checks let through but the converter rejects (white pawn on a1) fails the shard
     wsrc = os.path.join(scratch, "src_writerdrop")
     wb, ws, wm = random_rows(50)

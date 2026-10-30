@@ -1,4 +1,4 @@
-"""R11 pipeline: shared helpers (logging, atomic files, fingerprints, resource governor, FPOS/FHCE I/O, keys).
+"""R11 pipeline: shared helpers (logging, atomic files, full-sha256 sealed inputs, resource governor, FPOS/FHCE I/O, keys).
 
 Every stage logs one line per event to <root>/logs/pipeline.log and stdout:
   2026-10-30T10:45:00 [data] PASS ...   /  FAIL ...  /  INFO ...  /  WAIT ...
@@ -139,7 +139,7 @@ def write_text(path: str, text: str) -> None:
     os.replace(tmp, path)
 
 
-def sha256_file(path: str, bufsize: int = 1 << 22) -> str:
+def sha256_file(path: str, bufsize: int = 1 << 23) -> str:
     h = hashlib.sha256()
     with open(path, "rb") as f:
         while True:
@@ -150,20 +150,25 @@ def sha256_file(path: str, bufsize: int = 1 << 22) -> str:
     return h.hexdigest()
 
 
-def fingerprint(path: str) -> dict:
-    """Cheap identity of an input file: size, mtime and sha256 of its first and last MiB."""
-    st = os.stat(path)
-    h = hashlib.sha256()
-    with open(path, "rb") as f:
-        h.update(f.read(1 << 20))
-        if st.st_size > (1 << 20):
-            f.seek(max(0, st.st_size - (1 << 20)))
-            h.update(f.read(1 << 20))
-    return {"size": st.st_size, "mtime_ns": st.st_mtime_ns, "edges_sha256": h.hexdigest()}
+class SealedInputs:
+    """CR fix 10: sealed inputs are identified by their FULL sha256 (never a first/last-MiB fingerprint). Each file is
+    hashed at most once per run; verify() raises StageFailed when a file differs from its registered sha256."""
 
+    def __init__(self):
+        self.cache: dict[str, str] = {}
 
-def same_fingerprint(a: dict, b: dict) -> bool:
-    return a.get("size") == b.get("size") and a.get("edges_sha256") == b.get("edges_sha256")
+    def sha256(self, path: str) -> str:
+        key = winpath(path).lower()
+        if key not in self.cache:
+            self.cache[key] = sha256_file(path)
+        return self.cache[key]
+
+    def verify(self, path: str, expected: str, what: str) -> None:
+        if not os.path.isfile(path):
+            raise StageFailed(f"sealed input missing: {what} {path}")
+        got = self.sha256(path)
+        if got != expected:
+            raise StageFailed(f"input changed since registration: {what} {path} sha256 {got} != registered {expected}")
 
 
 def winpath(p: str) -> str:
