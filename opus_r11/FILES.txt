@@ -2,7 +2,7 @@
 # GPL-3.0 trainer-side tools (run-only, outside this folder): tools/nnue_pytorch_amd/r11/{r11_pos2binpack.cpp,build_r11_tools.py,r11_train_entry.py}
 # Big outputs stay on D: (D:/grok-pc-data/r11_nnue: data, checks, gate_ready, cr_patches); their sha256 are in the evidence logs
 IDEA_SOURCE.md | 1184 | 612273bdfbf579f618e12544f62f85b1d496f0d65e37f1879d45367f61796deb | ideas and sources (no code copied from other engines)
-README.md | 3654 | 952cbd7aea355afee302a4a448d848061be19904b5f9ad81ee22d42c70c9ca56 | how to run: the one command, the stages, the tests
+README.md | 3670 | 2224c20f49d848fca062092d84358d64d0d66ac97a874efb6b0d583abcaeb189 | how to run: the one command, the stages, the tests
 logs/build_r11_pos2binpack_f3416d134a4e.json | 707 | 0d5022fe52b8214052be81de73cf636b28ea48b86eefd4393356108d00951ed8 | evidence log
 logs/hce_tool_qualification.txt | 715 | 53a46c910fb02aa01dd43f966f4c7232c4d6b5dba859d64a2fc52aa3e167ba36 | evidence log
 logs/writer_identity_001.txt | 899 | 35b8536cbb4c4437b59bce33fd4ccb53cb8194684a9215e76f349d5c6f4da267 | evidence log
@@ -19,7 +19,7 @@ logs/check_npt_line104_ep20/provenance.json | 992 | 52bb5f49d7f68d306883f2756388
 logs/check_npt_line104_ep20/wac.txt | 210 | 1c9f64d6e7747d997af8cf0da9e14dd6c48fa7021f0ab81b7fe3a6035836e95c | evidence log
 logs/cr2_amendment/lift_cap.py | 2721 | f18c47e437e2ffbe335796d4d1bf39399006c26bd4a22f554c6da51b8e8fd66c | evidence log
 logs/cr2_amendment/lift_wscap.log | 628 | 64cb3ac39df681e3ca9aeaa11379980bf864a12e6d44f6c86b39edad361e89f5 | evidence log
-logs/cr2_amendment/lift_wscap_watch.py | 3460 | 5f4f3cce7be3f2b732d7a2e736e155d8a1b4fe45b7f1eb5c504f887e6b354187 | evidence log
+logs/cr2_amendment/lift_wscap_watch.py | 8713 | 74eb12bb8356bf9a707efafd90272aa823bf964f1d10416e73235bf63116fe76 | evidence log
 logs/cr2_amendment/probe_bg.py | 820 | 5cb319d7c28b839812d9b32986f5fb52c446fff69831e51727688ce4f4c9593a | evidence log
 logs/cr2_amendment/probe_bg_lifted_at_7.out | 641 | ff9e0a268bd4edb1faa9f730e7b92bb9cd12241329e01956a6a98a533ce2b0ad | evidence log
 logs/cr2_amendment/test_r11_data_amend_tail.txt | 4195 | 3849e8be100861cf9873037c492eee3421d75fc2e4b582987add5ab426fff997 | evidence log
@@ -34,20 +34,20 @@ logs/selftest/test_r11_tools_t2.log | 2763 | c5d3539caecfd6f40d5f181700bc21cb45c
 pipeline/r11_astra.py | 12536 | d4b44843e6d1b23e84052cf3e3fa7e3f5084038e1a3205f4568cc709d2586255 | Astra release: download / verify / list / staged extract with pinned sha256
 pipeline/r11_check.py | 22032 | 7d5e241b5d120ffdfeccabc086890d1b030fa74ca196342f52be7b4c7e5d9289 | check stage: AVX2 x86-64-v3 build of 7f79c349, export, fens_12k parity, OFF identity, ON bench d11-d22, WAC 300
 pipeline/r11_common.py | 23526 | 8af5f47ddba985b8486502217763f0bc3893204718a98f5f80207d8c0d72bae4 | shared: config/limits, logging, governor (RAM/CPU/disk/hold), Idle + I/O very low + memory low on 3 cores, production-process check, sha256, disk floors
-pipeline/r11_config.json | 5312 | da72fec9f81bcae715e2a5c0d3fd5cd96a03d3838671609a2efcc8b28934fc21 | the shipped config (sources, holdout 013/014, floors, train profiles smoke/full, check inputs)
+pipeline/r11_config.json | 5444 | af96147ab61c34c14bd7c8103a8abbe604dc9f3a85956a82d5e6f0f8d507d256 | the shipped config (sources, holdout 013/014, floors, train profiles smoke/full, check inputs)
 pipeline/r11_data.py | 46969 | 30fef8efbe433ef31e07ba57a87c78a9a73c65f77157708f86cddc1ac0a36373 | data stage: inventory, registry (holdout first, full sha256), supersede, hce generation, multi-pass dedup, .part->verify->rename conversion under the disk floor, manifest
 pipeline/r11_hold.py | 1922 | 1d8f9d564326ca7b295bb7edaa19b4d78c78b19789770b8ea2e4336848491a92 | hold/release the named event Local\Forge_R11_Hold (no STOP/PAUSE files)
 pipeline/r11_package.py | 8597 | 078e0ed05edd9774071c33a5c46a066b5197837658f266d58d09edfdd0b8bfb8 | package stage: gate_ready / smoke_packages folder with GATE_EXE.txt, README, SHA256SUMS; never queues
 pipeline/r11_pipeline.py | 10250 | 3f9da7b54621f431c3a93fd17b0de22487beb976dd628ac07fb66afc65e684c4 | ONE command: data -> holdout gate -> train -> export -> check -> package; run/status/selftest; exit 0 PASS / 1 FAIL / 3 WAIT
-pipeline/r11_train.py | 12637 | bba40ef963a0e6709f91c82eb6927832ddc8fab5a45f220d1088700518bcd0a3 | train stage: holdout gate, yield-only GPU policy, auto-resume, RAM/disk waits; launches the entry
+pipeline/r11_train.py | 13418 | adf0e9a231d7e118f29f668894c8b583d22055d6b45d7d81f5198056124b51bf | train stage: holdout gate, yield-only GPU policy, auto-resume, RAM/disk waits; launches the entry
 skills/forge-nnue-data/SKILL.md | 7075 | 046764d9c71790feae8edf330858696cb21a17371f6396756480fd6385b3c8b7 | copy of the project skill (R11 section added)
-skills/forge-nnue-pipeline/SKILL.md | 7551 | 58c2aee6a61df261544db39e463425078aa96922ab09d6b35b204e8b439f089f | copy of the new project skill
+skills/forge-nnue-pipeline/SKILL.md | 7667 | 43d3877882235ff01073e386bf73a92a7bb7407209317b15343726e775bf7bda | copy of the new project skill
 skills/forge-nnue-pytorch-amd/SKILL.md | 12298 | c8585a96db6295c5b8d3d9d323897b755aa149df4bcf0016275388ce3a582412 | copy of the project skill (R11 section added)
 skills/forge-pc-rules/SKILL.md | 17580 | 256dd06ea1b377e8aeaa3267cdd7a45a8aaa3a0332e601bfabc3c7ff477cdd76 | copy of the project skill (R11 section added)
 tests/test_r11_data.py | 21513 | 2fc52a9f3d7a02077ae38579e8a38abf52123e34aa2ce5bad8c28d44aab82817 | self-test: the data stage on synthetic shards (69 checks: dedup order, holdout, supersede, writer_bad, .part, floors)
 tests/test_r11_holdout_real.py | 8464 | 8a78e01db1bd4a34c3985d9163faf165f737cb09aba201c8e4be7de70b22e874 | holdout + dedup-order proof on the REAL data (writes HOLDOUT_TEST.json, the train gate)
-tests/test_r11_tools.py | 25861 | 57648c762c7a70dc5de8ce41b04d88706d6fa2d1487468ddff5dc8487c289b16 | self-test: CR rules (hold event, priority + no working-set cap, psutil fail-closed, production check incl. after imports / at fit start, disk floors, sealed sha256, GPL boundary), Astra extract
-tests/test_r11_train.py | 8998 | 2436df9369627d75213501e4cd19801b8317addb735e9152eb7d03c441d4a425 | end-to-end self-test of the one command on CPU (data -> holdout -> train -> export -> check -> smoke package, yield, exact resume, rotation)
+tests/test_r11_tools.py | 34835 | ed1c9d82138fe9dc22ead00e8cbbc5fe7ed2c1e3a5a6db21de9d505556efdad7 | self-test: CR rules (hold event, priority + no working-set cap, psutil fail-closed, production check incl. after imports / at fit start, disk floors, sealed sha256, GPL boundary), Astra extract
+tests/test_r11_train.py | 9443 | 71773bdd882ab3e68847da16fc02de56e766dd42401e2b6e238877bd739f5ac2 | end-to-end self-test of the one command on CPU (data -> holdout -> train -> export -> check -> smoke package, yield, exact resume, rotation)
 logs/data_real/MANIFEST.json | 578 | c9bfc3ecc2b310802411cdead1f36fcfe0bc07f1fa540d33b304e6952852f04f | evidence log
 logs/data_real/SHA256_of_live_state.txt | 226 | 9670930cca6f2dfffc55ca7878c50e79f42c98e2dcd0bd42c33740de8099637b | evidence log
 logs/data_real/SUMMARY.md | 282 | babf638e877c460a76a23bd9452bfb58d07115a7910d03355f155b5691dbeca7 | evidence log
@@ -63,4 +63,8 @@ logs/e2e_live_yield/test_r11_train_e2e_3.log | 4782 | 6a7ad2afc3f6f22b9f5283a9a5
 logs/e2e_live_yield/trainer_20261030_123929.log | 3143 | 6ce467433bd36db6923dca1db405e1c21705643e7386c5453b4f01df1bc35de1 | evidence log
 logs/holdout_real/HOLDOUT_TEST.json | 663 | 5e319935c195de678e21bdc255d30bb09819fe8687f65f03db40a8a36f7872d5 | evidence log
 logs/holdout_real/test_r11_holdout_real.out | 1722 | 93365609e03eec01a25efdd34e0ad0d749b17c1d09e8fb575906dbfbbf1c823a | evidence log
-REPORT.md | 8502 | 0c13c0377be8d49a0dfd5ef945d2ffa6e0c28a078c20ea6fc84f46cfb7de894d | job report (written by the main session from the job's results)
+logs/selftest/test_r11_tools_r3a.log | 8111 | 3775fc19d5ca1a695a5b57c9e7bd22cd0fcc9743c69c89945dfee51eeb923ec3 | evidence log
+logs/selftest/test_r11_tools_r3b.log | 8352 | 52b370b2e64de71df7bb7edee8bddb0a21e5640bd3770be9a158fb935ac60280 | evidence log
+logs/selftest/test_r11_tools_r3b_lifter.log | 960 | 73f5232f901360a22377f5963d8d2d8d95ef1682dcdc922f87d17ce4b9595165 | evidence log
+logs/selftest/test_r11_tools_r3c.log | 8761 | 5bce2a90e0169b92ade85e0788a2e4a058c4859846f378d230ddd0111bcccb92 | evidence log
+REPORT.md | 9996 | c3fbe7c0b8d8fc87f41806940490670cc14b9c48c0c06c86ae6cd120ce573568 | job report (written by the main session from the job's results)

@@ -42,9 +42,19 @@ Everything else is built, tested and proven on real data or the known-good ep20 
   process sets Idle + I/O very low + memory priority low + mask 0x700 (all inherited by children); test 1e proves the
   values, the inheritance, a 300 MB working set and that no code enters background mode. The two R11 process trees
   started before the amendment were un-capped from outside (no stop): `logs/cr2_amendment/`.
+- **CR R3 (three items, separate commits):** R3-1 dda51ea2 - the train entry and the build script check every
+  priority / I/O / memory-priority / affinity result and stop when one fails (entry exit 78 before any import, the
+  driver reports FAIL; build: nothing compiled); R3-2 00a338a1 - the cap lifter resolves each root once into a
+  psutil.Process (running + expected command-line text, else it refuses), changes a target only through a handle
+  and after is_running() re-checks pid + create time, checks every call and stops on the first failure; R3-3
+  b1b671ca - no checkpoint is ever deleted: keep_last 1,000,000 in the profiles and as the default, lower values
+  refused by the driver and the entry (overrides the job's "last 2 + best"; the disk floor protects D:). Tests:
+  real failures (a CPU mask the PC does not have), a background-mode probe the lifter un-caps (0x6 -> 0xa) after
+  refusing three bad cases, the entry's real save/rotate code keeping all six stub checkpoints.
 
 ## Findings
-- Background mode is the wrong tool for "low priority" on this PC: it caps the working set at 32 MB (above).
+- Background mode is the wrong tool for "low priority" on this PC: it caps the working set at 32 MB (above); a child
+  of a background-mode process does not inherit the cap (only memory priority 1).
 - The production regexes must not be on the yielding process's own command line (it matched its own launcher).
 - A `comment*` key in `limits` broke config loading for every stage: tests now load the shipped config.
 - D: free space moves 10-20 GB per hour with other jobs; the 344M-row conversion (11.54 GB for all 67 shards) did not
@@ -54,7 +64,9 @@ Everything else is built, tested and proven on real data or the known-good ep20 
 1. Free D: to >= 54 GB (40 floor + 2 margin + 11.54 GB of binpacks) and rerun `r11_data.py ... run` (or the one command): it continues
    with the next shard.
 2. When the GPU queue is idle: `r11_pipeline.py ... run --profile smoke` (then `full` when QA lifts the wait); it
-   yields by itself whenever production starts and resumes from the newest checkpoint.
-3. CR re-review of the fix 2 amendment (patch files 15, 16) and the M1 hardening (patch file 17).
+   yields by itself whenever production starts and resumes from the newest checkpoint. The CPU end-to-end test
+   `test_r11_train.py <new dir> --wait` (started 13:3x as e2e_4) runs by itself once production ends; the older
+   e2e_3 run still carries keep_last 2 in memory and will end FAIL on the R3-3 guard - expected, ignore it.
+3. CR re-review: fix 2 amendment (patch files 15, 16), M1 hardening (17), CR R3-1/2/3 (18, 19, 20).
 4. Optional: remove the ask rule `Bash(git push *)` in `D:\grok-pc-data\dwqww\.claude\settings.json` (every push
    prompts; editing it myself was blocked as self-modification).

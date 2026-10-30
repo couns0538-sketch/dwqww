@@ -56,6 +56,9 @@ PC crash/reboot 11:38 (nothing of R11 was half-written: the run died in dedup be
 1 7e922c55 no STOP/PAUSE files; hold = named event Local\Forge_R11_Hold (`r11_hold.py`), stop by PID (run/<stage>.pid.json)
 2 7226c8b5 Idle + background mode on <= 3 cores (0x700); background FIRST, Idle second (measured: the other order gives Normal)
   AMENDED (commit "CR fix 2 amendment"): no background mode (32 MB working-set cap); Idle + I/O very low + memory low
+- CR R3: R3-1 dda51ea2 fail closed (entry exit 78, build FAIL); R3-2 00a338a1 lifter identity + fail closed;
+  R3-3 b1b671ca no checkpoint deleted (keep_last 1,000,000, lower refused). Patch files 18-20 in
+  D:\grok-pc-data\r11_nnue\cr_patches. The old lifter (dead root PID 4824 in its list) was stopped ~13:16.
 3 48f49cde Astra staging + pinned whole sha256/size + pinned members
 4 ab3e9ffe psutil missing = fail; unreadable python command line = production (wait); kernel children skipped
 6 6df41f3b writer_bad > 0 fails (writer exit 3, stage raises)
