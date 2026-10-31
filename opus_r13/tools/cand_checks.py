@@ -86,7 +86,9 @@ def main():
     ap.add_argument('exe')
     ap.add_argument('out')
     ap.add_argument('--line', action='append', default=[])
-    ap.add_argument('--new-opt', action='append', default=[])
+    ap.add_argument('--new-opt', action='append', default=[], help='switch option: advertised, default OFF')
+    ap.add_argument('--new-param', action='append', default=[], help='NAME=DEFAULT: advertised, default as given')
+    ap.add_argument('--skip-smoke', action='store_true')
     ap.add_argument('--mate-epd', default=os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'mate_probe.epd'))
     ap.add_argument('--mate-nodes', type=int, default=3000000)
     ap.add_argument('--movetime', type=int, default=1000)
@@ -104,10 +106,17 @@ def main():
         rows[n] = {'advertised': o is not None, 'default': None if o is None else o['default'], 'ok': ok}
         if not ok:
             res['fail'].append(f'option {n}: {rows[n]}')
+    for nv in a.new_param:
+        n, v = nv.split('=', 1)
+        o = opts.get(n)
+        ok = o is not None and o['default'] == v
+        rows[n] = {'advertised': o is not None, 'default': None if o is None else o['default'], 'expected': v, 'ok': ok}
+        if not ok:
+            res['fail'].append(f'param {n}: {rows[n]}')
     res['checks']['uci_options'] = rows
     # 2. movetime smoke
     smoke = []
-    for line in [''] + a.line:
+    for line in ([] if a.skip_smoke else [''] + a.line):
         for threads in (1, 4):
             for pos in FENS:
                 eng.send('ucinewgame')
@@ -161,7 +170,7 @@ def main():
     with open(a.out, 'w', newline='\n') as fh:
         json.dump(res, fh, indent=1)
     print(json.dumps({'result': res['result'], 'mates_found': res['summary'], 'fail': res['fail'][:10],
-                      'smoke_runs': len(smoke), 'options': rows if False else res['checks']['uci_options']}, indent=1))
+                      'smoke_runs': len(smoke), 'options': res['checks']['uci_options']}, indent=1))
     return 0 if not res['fail'] else 1
 
 
