@@ -1,0 +1,192 @@
+diff --git a/include/forge/large_pages.hpp b/include/forge/large_pages.hpp
+index 98e9041..1676c21 100644
+--- a/include/forge/large_pages.hpp
++++ b/include/forge/large_pages.hpp
+@@ -14,6 +14,8 @@
+ #include <memory>
+ #include <string>
+ #include <type_traits>
++#include <new>
++#include <vector>
+ 
+ namespace forge::large_pages {
+ 
+@@ -21,7 +23,17 @@ namespace forge::large_pages {
+ // (re)allocated, never on the search path.
+ extern bool requested;
+ 
+-enum class Kind : unsigned char { Heap, WindowsLarge, LinuxHuge };
++// FORGE_ALIGN_WEIGHTS (R13 P2 step 1a, build switch, default 0): net weight storage that is not in large pages
++// starts on a 64-byte boundary (one cache line), so no 64-byte SIMD load of a weight row splits two lines. 0 = the
++// S1 / lock allocation (new T[n]() and std::vector: 16-byte aligned on MinGW-w64). Large pages are 2 MiB aligned
++// either way. Weight values and order are unchanged, so search nodes are identical.
++#ifndef FORGE_ALIGN_WEIGHTS
++#define FORGE_ALIGN_WEIGHTS 0
++#endif
++inline constexpr std::size_t WeightAlignment = 64;
++
++enum class Kind : unsigned char { Heap, WindowsLarge, LinuxHuge, HeapAligned };
++[[nodiscard]] constexpr bool is_large(Kind kind) { return kind == Kind::WindowsLarge || kind == Kind::LinuxHuge; }
+ 
+ // Outcome of the last allocation attempt of one table, for the info line.
+ struct Report {
+@@ -49,6 +61,7 @@ struct Deleter {
+     template <class T>
+     void operator()(T* pointer) const noexcept {
+         if (kind == Kind::Heap) delete[] pointer;
++        else if (kind == Kind::HeapAligned) ::operator delete[](static_cast<void*>(pointer), std::align_val_t{WeightAlignment});
+         else release(pointer, bytes, kind);
+     }
+ };
+@@ -78,6 +91,49 @@ template <class T>
+ 
+ // One UCI info line ("LargePages: on (<MiB> MiB <what>)" or
+ // "LargePages: fallback (<what>: <reason>)"); empty when not attempted.
++// Net weights: make_array, but under FORGE_ALIGN_WEIGHTS the heap block (no large pages, or their fallback) is
++// 64-byte aligned. The large-page report of a requested attempt is kept.
++template <class T>
++[[nodiscard]] Array<T> make_weight_array(std::size_t n, bool large, Report& report) {
++#if FORGE_ALIGN_WEIGHTS
++    if (large) {
++        Array<T> block = make_array<T>(n, true, report);
++        if (report.ok) return block;
++    } else {
++        report = Report{};
++    }
++    T* elements = static_cast<T*>(::operator new[](n * sizeof(T), std::align_val_t{WeightAlignment}));
++    std::uninitialized_value_construct_n(elements, n);
++    return Array<T>(elements, Deleter{Kind::HeapAligned, n * sizeof(T)});
++#else
++    return make_array<T>(n, large, report);
++#endif
++}
++
++// Allocator for heap weight vectors under FORGE_ALIGN_WEIGHTS (64-byte aligned blocks).
++template <class T>
++struct AlignedAllocator {
++    using value_type = T;
++    AlignedAllocator() noexcept = default;
++    template <class U>
++    AlignedAllocator(const AlignedAllocator<U>&) noexcept {}
++    [[nodiscard]] T* allocate(std::size_t n) {
++        return static_cast<T*>(::operator new(n * sizeof(T), std::align_val_t{WeightAlignment}));
++    }
++    void deallocate(T* pointer, std::size_t) noexcept { ::operator delete(pointer, std::align_val_t{WeightAlignment}); }
++    template <class U>
++    bool operator==(const AlignedAllocator<U>&) const noexcept { return true; }
++    template <class U>
++    bool operator!=(const AlignedAllocator<U>&) const noexcept { return false; }
++};
++#if FORGE_ALIGN_WEIGHTS
++template <class T>
++using WeightVector = std::vector<T, AlignedAllocator<T>>;
++#else
++template <class T>
++using WeightVector = std::vector<T>;
++#endif
++
+ [[nodiscard]] std::string describe(const Report& report, const char* what);
+ 
+ } // namespace forge::large_pages
+diff --git a/src/nnue.cpp b/src/nnue.cpp
+index 30f3e8f..3e77bfa 100644
+--- a/src/nnue.cpp
++++ b/src/nnue.cpp
+@@ -64,7 +64,7 @@ Weights& weights_storage() {
+     static Weights instance = [] {
+         Weights w;
+         large_pages::Report unused;
+-        w.w1 = large_pages::make_array<float>(W1Count, false, unused);
++        w.w1 = large_pages::make_weight_array<float>(W1Count, false, unused);
+         fill_w1(w.w1.get());
+ #if FORGE_HAS_NNUE
+         for (std::size_t i = 0; i < HiddenSize; ++i) w.b1[i] = static_cast<float>(NnueB1[i]) / WeightScale;
+@@ -93,7 +93,7 @@ bool available() { return FORGE_HAS_NNUE != 0; }
+ large_pages::Report set_large_pages(bool large) {
+     Weights& w = weights_storage();
+     large_pages::Report report;
+-    const bool is_large = w.w1.get_deleter().kind != large_pages::Kind::Heap;
++    const bool is_large = large_pages::is_large(w.w1.get_deleter().kind);
+     if (large == is_large) {
+         // Nothing to move; still report the state for the info line.
+         report.attempted = large;
+@@ -102,7 +102,7 @@ large_pages::Report set_large_pages(bool large) {
+         return report;
+     }
+     if (large) w.w1.reset();   // free first: locked large pages are scarce
+-    auto fresh = large_pages::make_array<float>(W1Count, large, report);
++    auto fresh = large_pages::make_weight_array<float>(W1Count, large, report);
+     fill_w1(fresh.get());
+     w.w1 = std::move(fresh);
+     return report;
+diff --git a/src/nnue_halfka.cpp b/src/nnue_halfka.cpp
+index 6a97585..1036517 100644
+--- a/src/nnue_halfka.cpp
++++ b/src/nnue_halfka.cpp
+@@ -1,4 +1,5 @@
+ #include "forge/nnue_halfka.hpp"
++#include "forge/large_pages.hpp"
+ 
+ #include <algorithm>
+ #include <array>
+@@ -17,11 +18,11 @@ namespace forge::halfka {
+ namespace {
+ 
+ struct Stack {
+-    std::vector<std::int32_t> b1, b2;
++    large_pages::WeightVector<std::int32_t> b1, b2;
+     std::int32_t b3 = 0;
+-    std::vector<std::int8_t> w1, w2, w3;  // row-major [output][padded input]
++    large_pages::WeightVector<std::int8_t> w1, w2, w3;  // row-major [output][padded input]
+     // w1 / w2 regrouped for the block kernel: per block of 4 inputs, the 4 weights of every output (outputs padded to 16)
+-    std::vector<std::int8_t> w1b, w2b;
++    large_pages::WeightVector<std::int8_t> w1b, w2b;
+ };
+ 
+ struct Net {
+@@ -30,8 +31,8 @@ struct Net {
+     int out1 = 0, out2 = 0;         // l2 and l3 padded to 16 (the block kernel's output groups)
+     std::uint32_t hash = 0;
+     std::string path, text;
+-    std::vector<std::int16_t> ft_bias;
+-    std::vector<std::int8_t> ft_weight;  // NumFeatures rows of l1 values
++    large_pages::WeightVector<std::int16_t> ft_bias;
++    large_pages::WeightVector<std::int8_t> ft_weight;  // NumFeatures rows of l1 values
+     std::vector<Stack> stacks;
+ };
+ 
+@@ -61,8 +62,8 @@ int pad16(int n) { return (n + 15) / 16 * 16; }
+ 
+ // [out][in] row-major -> [in / 4][outp][4]: for each block of 4 inputs, the 4 weights of every output; padded outputs
+ // get zero weights
+-std::vector<std::int8_t> regroup(const std::vector<std::int8_t>& w, int out, int in, int outp) {
+-    std::vector<std::int8_t> r(static_cast<std::size_t>(in) * static_cast<std::size_t>(outp), 0);
++large_pages::WeightVector<std::int8_t> regroup(const large_pages::WeightVector<std::int8_t>& w, int out, int in, int outp) {
++    large_pages::WeightVector<std::int8_t> r(static_cast<std::size_t>(in) * static_cast<std::size_t>(outp), 0);
+     for (int k = 0; k < out; ++k)
+         for (int i = 0; i < in; ++i)
+             r[(static_cast<std::size_t>(i / 4) * static_cast<std::size_t>(outp) + static_cast<std::size_t>(k)) * 4 +
+@@ -93,9 +94,9 @@ class Reader {
+ public:
+     explicit Reader(const std::vector<std::uint8_t>& data) : d_(data) {}
+     bool u32(std::uint32_t& v) { return raw(&v, 4); }
+-    template <typename T> bool array(std::vector<T>& out, std::size_t n) {
++    template <typename V> bool array(V& out, std::size_t n) {
+         out.resize(n);
+-        return raw(out.data(), n * sizeof(T));
++        return raw(out.data(), n * sizeof(typename V::value_type));
+     }
+     bool raw(void* dst, std::size_t n) {
+         if (n > d_.size() - pos_) return false;
+@@ -270,8 +271,9 @@ void block_affine(const std::uint8_t* x, int in, const std::int8_t* wb, std::int
+ 
+ // s[k] = b[k] + sum_i w[k][i] * x[i] for k < out. SIMD: the block kernel on the regrouped weights (outp = out padded to
+ // 16 sums are written, s needs room for them); scalar: one dense dot per output row of the file layout.
+-void layer(const std::uint8_t* x, int in, const std::vector<std::int8_t>& w, const std::vector<std::int8_t>& wb,
+-           const std::vector<std::int32_t>& b, int out, int outp, std::int32_t* s) {
++void layer(const std::uint8_t* x, int in, const large_pages::WeightVector<std::int8_t>& w,
++           const large_pages::WeightVector<std::int8_t>& wb, const large_pages::WeightVector<std::int32_t>& b, int out,
++           int outp, std::int32_t* s) {
+ #if (defined(__AVX512VNNI__) && defined(__AVX512BW__)) || defined(__AVX2__)
+     if (!g_force_scalar) {
+ #if defined(__AVX512VNNI__) && defined(__AVX512BW__)

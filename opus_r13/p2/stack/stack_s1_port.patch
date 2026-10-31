@@ -1,0 +1,479 @@
+diff --git a/include/forge/large_pages.hpp b/include/forge/large_pages.hpp
+new file mode 100644
+index 0000000..98e9041
+--- /dev/null
++++ b/include/forge/large_pages.hpp
+@@ -0,0 +1,83 @@
++#pragma once
++
++// Optional large-page backing for the big read-mostly tables (transposition
++// table, NNUE first-layer weights). Off by default (UCI option LargePages);
++// when off, every table is allocated exactly as before (new T[n]()).
++//
++// Windows: needs the "Lock pages in memory" user right (SeLockMemoryPrivilege)
++// for the account that runs the engine; without it the allocation falls back
++// to the normal heap and the engine says so in one info string.
++// Linux: a 2 MiB-aligned block advised with madvise(MADV_HUGEPAGE) (a hint to
++// transparent huge pages, not a guarantee). Other systems: always fallback.
++
++#include <cstddef>
++#include <memory>
++#include <string>
++#include <type_traits>
++
++namespace forge::large_pages {
++
++// Process-wide request (UCI option LargePages). Read only when a table is
++// (re)allocated, never on the search path.
++extern bool requested;
++
++enum class Kind : unsigned char { Heap, WindowsLarge, LinuxHuge };
++
++// Outcome of the last allocation attempt of one table, for the info line.
++struct Report {
++    bool attempted = false;   // LargePages was on when the table was allocated
++    bool ok = false;          // the table lives in large / huge-advised pages
++    std::size_t bytes = 0;    // bytes reserved (rounded up to the page size)
++    std::string reason;       // why it fell back (empty when ok)
++};
++
++struct Block {
++    void* ptr = nullptr;
++    std::size_t bytes = 0;
++    Kind kind = Kind::Heap;
++};
++
++// Zero-filled large-page block of at least `bytes` bytes, aligned to at least
++// `alignment`. Returns ptr == nullptr (and fills report.reason) on failure.
++[[nodiscard]] Block allocate(std::size_t bytes, std::size_t alignment, Report& report);
++void release(void* ptr, std::size_t bytes, Kind kind) noexcept;
++
++// unique_ptr deleter that frees memory the way it was allocated.
++struct Deleter {
++    Kind kind = Kind::Heap;
++    std::size_t bytes = 0;
++    template <class T>
++    void operator()(T* pointer) const noexcept {
++        if (kind == Kind::Heap) delete[] pointer;
++        else release(pointer, bytes, kind);
++    }
++};
++
++template <class T>
++using Array = std::unique_ptr<T[], Deleter>;
++
++// Value-initialised array of n elements. With large == false this is exactly
++// the base allocation (new T[n](), as std::make_unique<T[]>(n) does).
++template <class T>
++[[nodiscard]] Array<T> make_array(std::size_t n, bool large, Report& report) {
++    static_assert(std::is_trivially_destructible_v<T>, "large-page arrays skip destructors");
++    report = Report{};
++    report.attempted = large;
++    if (large) {
++        Block block = allocate(n * sizeof(T), alignof(T), report);
++        if (block.ptr != nullptr) {
++            T* elements = static_cast<T*>(block.ptr);
++            std::uninitialized_value_construct_n(elements, n);
++            report.ok = true;
++            report.bytes = block.bytes;
++            return Array<T>(elements, Deleter{block.kind, block.bytes});
++        }
++    }
++    return Array<T>(new T[n](), Deleter{});
++}
++
++// One UCI info line ("LargePages: on (<MiB> MiB <what>)" or
++// "LargePages: fallback (<what>: <reason>)"); empty when not attempted.
++[[nodiscard]] std::string describe(const Report& report, const char* what);
++
++} // namespace forge::large_pages
+diff --git a/include/forge/nnue.hpp b/include/forge/nnue.hpp
+index 6b1eba2..5a01734 100644
+--- a/include/forge/nnue.hpp
++++ b/include/forge/nnue.hpp
+@@ -1,6 +1,7 @@
+ #pragma once
+ 
+ #include "forge/board.hpp"
++#include "forge/large_pages.hpp"
+ 
+ #include <array>
+ #include <cstdint>
+@@ -56,6 +57,12 @@ extern bool enabled;
+ 
+ void refresh(const Board& board, Accumulator& accumulator);
+ void update(const Accumulator& parent, Accumulator& child, const DirtyPieces& dirty);
++// Re-allocates the first-layer weights (w1) in large pages when `large` is
++// true, or back on the normal heap when false; the values are rebuilt from the
++// compiled-in network, so evaluation is unchanged. Call only while no search
++// runs. Returns the allocation report (attempted == false when off).
++large_pages::Report set_large_pages(bool large);
++
+ // Side-to-move evaluation in centipawns.
+ [[nodiscard]] int evaluate(const Board& board, const Accumulator& accumulator);
+ 
+diff --git a/include/forge/search.hpp b/include/forge/search.hpp
+index a5de92e..11b2310 100644
+--- a/include/forge/search.hpp
++++ b/include/forge/search.hpp
+@@ -2,6 +2,7 @@
+ 
+ #include "forge/board.hpp"
+ #include "forge/eval.hpp"
++#include "forge/large_pages.hpp"
+ #include "forge/nnue.hpp"
+ #include "forge/nnue_halfka.hpp"
+ 
+@@ -123,6 +124,8 @@ public:
+     [[nodiscard]] int hashfull() const;
+     [[nodiscard]] std::uint8_t generation() const { return generation_; }
+     [[nodiscard]] std::size_t cluster_count() const { return cluster_count_; }
++    [[nodiscard]] std::size_t size_mb() const { return size_mb_; }
++    [[nodiscard]] const large_pages::Report& large_pages_report() const { return large_pages_report_; }
+     void prefetch(std::uint64_t key) const {
+ #if defined(__GNUC__) || defined(__clang__)
+         __builtin_prefetch(&cluster_for(key));
+@@ -158,7 +161,9 @@ private:
+     mutable std::mutex exclusive_gate_;
+     std::atomic<bool> exclusive_requested_{false};
+     std::uint64_t epoch_ = 0;
+-    std::unique_ptr<TTCluster[]> clusters_;
++    large_pages::Array<TTCluster> clusters_;
++    large_pages::Report large_pages_report_{};
++    std::size_t size_mb_ = 0;
+     std::size_t cluster_count_ = 0;
+     std::uint8_t generation_ = 0;
+ 
+diff --git a/src/large_pages.cpp b/src/large_pages.cpp
+new file mode 100644
+index 0000000..08a295e
+--- /dev/null
++++ b/src/large_pages.cpp
+@@ -0,0 +1,161 @@
++#include "forge/large_pages.hpp"
++
++#include <cstdlib>
++#include <cstring>
++#include <limits>
++
++#if defined(_WIN32)
++#ifndef NOMINMAX
++#define NOMINMAX
++#endif
++#ifndef WIN32_LEAN_AND_MEAN
++#define WIN32_LEAN_AND_MEAN
++#endif
++#include <windows.h>
++#elif defined(__linux__)
++#include <cerrno>
++#include <sys/mman.h>
++#endif
++
++namespace forge::large_pages {
++
++bool requested = false;
++
++namespace {
++
++bool round_up(std::size_t bytes, std::size_t page, std::size_t& out) {
++    if (page == 0) return false;
++    const std::size_t remainder = bytes % page;
++    if (remainder == 0) { out = bytes; return bytes != 0; }
++    const std::size_t pad = page - remainder;
++    if (bytes > std::numeric_limits<std::size_t>::max() - pad) return false;
++    out = bytes + pad;
++    return true;
++}
++
++#if defined(_WIN32)
++// Enables SeLockMemoryPrivilege in the process token (Microsoft docs:
++// "Large-Page Support", AdjustTokenPrivileges). AdjustTokenPrivileges returns
++// TRUE even when the account lacks the right; only GetLastError() ==
++// ERROR_SUCCESS means the privilege is really enabled.
++bool enable_lock_memory_privilege(std::string& reason) {
++    HANDLE token = nullptr;
++    if (OpenProcessToken(GetCurrentProcess(), TOKEN_ADJUST_PRIVILEGES | TOKEN_QUERY, &token) == 0) {
++        reason = "OpenProcessToken error " + std::to_string(GetLastError());
++        return false;
++    }
++    TOKEN_PRIVILEGES privileges{};
++    privileges.PrivilegeCount = 1;
++    privileges.Privileges[0].Attributes = SE_PRIVILEGE_ENABLED;
++    if (LookupPrivilegeValue(nullptr, SE_LOCK_MEMORY_NAME, &privileges.Privileges[0].Luid) == 0) {
++        reason = "LookupPrivilegeValue error " + std::to_string(GetLastError());
++        CloseHandle(token);
++        return false;
++    }
++    const BOOL adjusted = AdjustTokenPrivileges(token, FALSE, &privileges, 0, nullptr, nullptr);
++    const DWORD error = GetLastError();
++    CloseHandle(token);
++    if (adjusted == 0) {
++        reason = "AdjustTokenPrivileges error " + std::to_string(error);
++        return false;
++    }
++    if (error == ERROR_NOT_ALL_ASSIGNED) {
++        reason = "account lacks 'Lock pages in memory' (SeLockMemoryPrivilege)";
++        return false;
++    }
++    if (error != ERROR_SUCCESS) {
++        reason = "AdjustTokenPrivileges last error " + std::to_string(error);
++        return false;
++    }
++    return true;
++}
++#endif
++
++} // namespace
++
++Block allocate(std::size_t bytes, std::size_t alignment, Report& report) {
++    Block block;
++#if defined(_WIN32)
++    if (!enable_lock_memory_privilege(report.reason)) return block;
++    const SIZE_T page = GetLargePageMinimum();
++    if (page == 0) {
++        report.reason = "GetLargePageMinimum is 0 (no large-page support)";
++        return block;
++    }
++    if (alignment > page) {
++        report.reason = "alignment above large-page size";
++        return block;
++    }
++    std::size_t size = 0;
++    if (!round_up(bytes, static_cast<std::size_t>(page), size)) {
++        report.reason = "size overflow";
++        return block;
++    }
++    void* memory = VirtualAlloc(nullptr, size, MEM_RESERVE | MEM_COMMIT | MEM_LARGE_PAGES, PAGE_READWRITE);
++    if (memory == nullptr) {
++        report.reason = "VirtualAlloc MEM_LARGE_PAGES error " + std::to_string(GetLastError());
++        return block;
++    }
++    block.ptr = memory;   // VirtualAlloc memory is zero-filled
++    block.bytes = size;
++    block.kind = Kind::WindowsLarge;
++#elif defined(__linux__) && defined(MADV_HUGEPAGE)
++    constexpr std::size_t page = std::size_t{2} * 1024U * 1024U;
++    if (alignment > page) {
++        report.reason = "alignment above huge-page size";
++        return block;
++    }
++    std::size_t size = 0;
++    if (!round_up(bytes, page, size)) {
++        report.reason = "size overflow";
++        return block;
++    }
++    void* memory = std::aligned_alloc(page, size);
++    if (memory == nullptr) {
++        report.reason = "aligned_alloc failed";
++        return block;
++    }
++    if (madvise(memory, size, MADV_HUGEPAGE) != 0) {
++        report.reason = std::string("madvise(MADV_HUGEPAGE) failed: ") + std::strerror(errno);
++        std::free(memory);
++        return block;
++    }
++    std::memset(memory, 0, size);
++    block.ptr = memory;
++    block.bytes = size;
++    block.kind = Kind::LinuxHuge;
++#else
++    (void)bytes;
++    (void)alignment;
++    report.reason = "not supported on this OS";
++#endif
++    return block;
++}
++
++void release(void* ptr, std::size_t bytes, Kind kind) noexcept {
++    (void)bytes;
++    if (ptr == nullptr) return;
++#if defined(_WIN32)
++    if (kind == Kind::WindowsLarge) { VirtualFree(ptr, 0, MEM_RELEASE); return; }
++#endif
++#if defined(__linux__)
++    if (kind == Kind::LinuxHuge) { std::free(ptr); return; }
++#endif
++    (void)kind;
++}
++
++std::string describe(const Report& report, const char* what) {
++    if (!report.attempted) return {};
++    if (report.ok) {
++        const std::size_t mib = (report.bytes + 1024U * 1024U - 1U) / (1024U * 1024U);
++        return std::string("LargePages: on (") + std::to_string(mib) + " MiB " + what +
++#if defined(_WIN32)
++               ")";
++#else
++               ", madvise THP hint)";
++#endif
++    }
++    return std::string("LargePages: fallback (") + what + ": " + report.reason + ")";
++}
++
++} // namespace forge::large_pages
+diff --git a/src/nnue.cpp b/src/nnue.cpp
+index e88cfc5..30f3e8f 100644
+--- a/src/nnue.cpp
++++ b/src/nnue.cpp
+@@ -44,20 +44,29 @@ bool enabled = true;
+ namespace {
+ 
+ struct Weights {
+-    std::unique_ptr<float[]> w1;   // [InputCount][HiddenSize]
++    large_pages::Array<float> w1;  // [InputCount][HiddenSize]
+     alignas(32) std::array<float, HiddenSize> b1{};
+     alignas(32) std::array<float, 2 * HiddenSize> w2{};
+     float b2 = 0.0F;
+ };
+ 
+-const Weights& weights() {
+-    static const Weights instance = [] {
++constexpr std::size_t W1Count = static_cast<std::size_t>(InputCount) * HiddenSize;
++
++void fill_w1([[maybe_unused]] float* w1) {
++#if FORGE_HAS_NNUE
++    for (std::size_t i = 0; i < W1Count; ++i) {
++        w1[i] = static_cast<float>(NnueW1[i]) / WeightScale;
++    }
++#endif
++}
++
++Weights& weights_storage() {
++    static Weights instance = [] {
+         Weights w;
+-        w.w1 = std::make_unique<float[]>(static_cast<std::size_t>(InputCount) * HiddenSize);
++        large_pages::Report unused;
++        w.w1 = large_pages::make_array<float>(W1Count, false, unused);
++        fill_w1(w.w1.get());
+ #if FORGE_HAS_NNUE
+-        for (std::size_t i = 0; i < static_cast<std::size_t>(InputCount) * HiddenSize; ++i) {
+-            w.w1[i] = static_cast<float>(NnueW1[i]) / WeightScale;
+-        }
+         for (std::size_t i = 0; i < HiddenSize; ++i) w.b1[i] = static_cast<float>(NnueB1[i]) / WeightScale;
+         for (std::size_t i = 0; i < 2 * HiddenSize; ++i) w.w2[i] = static_cast<float>(NnueW2[i]) / OutputScale;
+         w.b2 = static_cast<float>(NnueB2) / OutputScale;
+@@ -67,6 +76,8 @@ const Weights& weights() {
+     return instance;
+ }
+ 
++const Weights& weights() { return weights_storage(); }
++
+ inline void add_feature(std::array<float, HiddenSize>& acc, const float* column) {
+     for (int h = 0; h < HiddenSize; ++h) acc[static_cast<std::size_t>(h)] += column[h];
+ }
+@@ -79,6 +90,24 @@ inline void sub_feature(std::array<float, HiddenSize>& acc, const float* column)
+ 
+ bool available() { return FORGE_HAS_NNUE != 0; }
+ 
++large_pages::Report set_large_pages(bool large) {
++    Weights& w = weights_storage();
++    large_pages::Report report;
++    const bool is_large = w.w1.get_deleter().kind != large_pages::Kind::Heap;
++    if (large == is_large) {
++        // Nothing to move; still report the state for the info line.
++        report.attempted = large;
++        report.ok = large;
++        report.bytes = w.w1.get_deleter().bytes;
++        return report;
++    }
++    if (large) w.w1.reset();   // free first: locked large pages are scarce
++    auto fresh = large_pages::make_array<float>(W1Count, large, report);
++    fill_w1(fresh.get());
++    w.w1 = std::move(fresh);
++    return report;
++}
++
+ bool residual() { return FORGE_HAS_NNUE != 0 && FORGE_NNUE_RESIDUAL != 0; }
+ 
+ void refresh(const Board& board, Accumulator& accumulator) {
+diff --git a/src/search.cpp b/src/search.cpp
+index 78d9ce8..48e7f28 100644
+--- a/src/search.cpp
++++ b/src/search.cpp
+@@ -230,8 +230,13 @@ std::unique_lock<std::mutex> TranspositionTable::lock_stripe(std::size_t index)
+ void TranspositionTable::resize(std::size_t mb) {
+     const std::size_t bytes = std::max<std::size_t>(1, mb) * 1024U * 1024U;
+     const std::size_t new_count = std::max<std::size_t>(1, bytes / sizeof(TTCluster));
+-    auto new_clusters = std::make_unique<TTCluster[]>(new_count);
++    // LargePages off: the base allocation (new TTCluster[n]()) and order.
++    // On: free the old table first, since locked large pages are scarce.
++    const bool large = large_pages::requested;
++    if (large) clusters_.reset();
++    auto new_clusters = large_pages::make_array<TTCluster>(new_count, large, large_pages_report_);
+     clusters_ = std::move(new_clusters);
++    size_mb_ = std::max<std::size_t>(1, mb);
+     cluster_count_ = new_count;
+     generation_ = 0;
+     ++epoch_;
+diff --git a/src/uci.cpp b/src/uci.cpp
+index a02bbfb..8227b4f 100644
+--- a/src/uci.cpp
++++ b/src/uci.cpp
+@@ -1,5 +1,6 @@
+ #include "forge/board.hpp"
+ #include "forge/book.hpp"
++#include "forge/large_pages.hpp"
+ #include "forge/nnue.hpp"
+ #include "forge/nnue_halfka.hpp"
+ #include "forge/search.hpp"
+@@ -182,7 +183,8 @@ int main() {
+                           << " min " << parameter.minimum << " max " << parameter.maximum << "\n";
+             }
+ #endif
+-            std::cout << "option name Clear Hash type button\n"
++            std::cout << "option name LargePages type check default false\n"
++                         "option name Clear Hash type button\n"
+                          "uciok" << std::endl;
+         } else if (command == "isready") {
+             { const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex()); std::cout << "readyok" << std::endl; }
+@@ -289,6 +291,24 @@ int main() {
+                     std::cout << "info string invalid value for option UseNNUE" << std::endl;
+                 }
+                 searcher.clear_hash();
++            } else if (name == "LargePages") {
++                if (value_text == "true" || value_text == "false") {
++                    forge::large_pages::requested = value_text == "true";
++                    // Re-allocate both tables under the new setting.
++                    searcher.resize_hash(searcher.transposition_table().size_mb());
++                    const forge::large_pages::Report net = forge::nnue::set_large_pages(forge::large_pages::requested);
++                    const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex());
++                    if (forge::large_pages::requested) {
++                        std::cout << "info string "
++                                  << forge::large_pages::describe(searcher.transposition_table().large_pages_report(), "TT")
++                                  << "\ninfo string " << forge::large_pages::describe(net, "NNUE w1") << std::endl;
++                    } else {
++                        std::cout << "info string LargePages: off" << std::endl;
++                    }
++                } else {
++                    const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex());
++                    std::cout << "info string invalid value for option LargePages" << std::endl;
++                }
+             } else if (name == "Hash" || name == "Move Overhead" || name == "Threads") {
+                 int value = 0;
+                 const auto parsed = std::from_chars(
+@@ -297,6 +317,12 @@ int main() {
+                     { const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex()); std::cout << "info string invalid value for option " << name << std::endl; }
+                 } else if (name == "Hash") {
+                     searcher.resize_hash(static_cast<std::size_t>(std::clamp(value, 1, 2048)));
++                    if (forge::large_pages::requested) {
++                        const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex());
++                        std::cout << "info string "
++                                  << forge::large_pages::describe(searcher.transposition_table().large_pages_report(), "TT")
++                                  << std::endl;
++                    }
+                 } else if (name == "Threads") {
+                     searcher.set_threads(std::clamp(value, 1, 256));
+                 } else {
+@@ -415,6 +441,12 @@ int main() {
+             std::uint64_t total_nodes = 0;
+             const auto start = std::chrono::steady_clock::now();
+             forge::Searcher bench_searcher(16);
++            if (forge::large_pages::requested) {
++                const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex());
++                std::cout << "info string bench "
++                          << forge::large_pages::describe(bench_searcher.transposition_table().large_pages_report(), "TT")
++                          << std::endl;
++            }
+             for (const std::string_view fen : fens) {
+                 forge::Board bench_board;
+                 if (!bench_board.set_fen(fen)) continue;
