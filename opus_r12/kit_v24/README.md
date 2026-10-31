@@ -118,3 +118,21 @@ The .ps1 LTO+PGO use link adds `-Wl,--no-insert-timestamp`, so the MinGW PE Time
 
 ## v2.3 (2026-10-30)
 The .ps1 has a `-Expose` switch, the same as the .sh `--expose`: it adds `-DFORGE_EXPOSE_TUNABLES=1` to both the plain and the LTO+PGO builds so the gate options show in the uci list, and SUMMARY.txt records `expose True/False`. Only uci.cpp reads that macro. Without `-Expose` every command line is the same as v2.2. `--no-insert-timestamp` and the pc1 = pc2 exe sha256 rule are unchanged. An exposed build is a different exe from the non-exposed one, so it needs its own pc1 = pc2 and OFF = pins check.
+
+## v2.4 (Opus R12, 2026-10-30) - workload v2 for net builds, partial training switch
+- `-Workload v2` (default `v1`): frozen workload v2 (FROZEN_WORKLOAD.md, second part): v1's bench 11/13/16, the same with
+  EvalFileHalfKA = e19_final and = e9_best, and 8 `go nodes 200000` searches at Threads=2 per block. sha256 of
+  frozen_train_cmds_v2.txt (52b8299e...) and nets_v2.txt (8448dae9...) are checked; nets by `-NetE19` / `-NetE9`
+  (defaults: `grok-pc\forge_push\bin\r11_e19_final_bf1e347c.nnue`, `...\r11_e9_best_5380f866.nnue`). Training runs
+  through `tools\train_driver.py` (waits for real output, checks net sha256 and loads); 9 bench lines are required.
+- `-PartialTraining`: adds `-fprofile-partial-training` (GCC >= 10; the kit compiler is MSYS2 g++ 15.2.0) to every use
+  compile and to the use link (checked on the link line). Functions that never ran in training are then compiled as
+  without profile feedback (normal -O3) instead of for size. SUMMARY.txt records `workload ... partial_training ...`.
+- `-CheckOptPins`: one pin string per `-CheckOpt` run (e.g. the net bench counts), passed to `lp_check.py compare --pins`.
+- Multiple `-CheckOpt` / `-CheckOptPins` values need `powershell -Command "& build_ltopgo.ps1 ... -CheckOpt 'a','b'"`;
+  `-File` passes `'a,b'` as ONE string.
+- Defaults (no `-Workload v2`, no `-PartialTraining`, no `-CheckOptPins`) keep every v2.3 command line, so v1 builds
+  (lock FD3A5190 and the other v2.3 candidates) are unaffected. A v2 build is its own build mode: it needs its own
+  pc1 = pc2 exe sha256 and OFF = pins checks, and it is never compared or gated against a v1 build.
+- The .sh (box) is unchanged: v2 is PC-only for now (net paths, Windows driver call).
+- R12 runs: `opus_r12/tools/r12_build_chain.py` (waits for a free CPU pair, then runs the kit pinned to it).

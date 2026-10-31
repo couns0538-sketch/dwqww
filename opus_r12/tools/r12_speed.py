@@ -30,8 +30,9 @@ import psutil
 BELOW_NORMAL = 0x00004000
 
 
-def busy_masks(guard_mask):
-    """Processes that are not ours and whose affinity covers a CPU of guard_mask (gates, trainer, self-play)."""
+def busy_masks(guard_mask, ignore_idle=False):
+    """Processes that are not ours and whose affinity covers a CPU of guard_mask (gates, trainer, self-play, QA).
+    ignore_idle: Idle-class processes (trainer, self-play) do not count - only when QA freed the pair for R12."""
     hits = []
     for p in psutil.process_iter(["pid", "name"]):
         name = (p.info["name"] or "").lower()
@@ -42,7 +43,10 @@ def busy_masks(guard_mask):
         try:
             aff = p.cpu_affinity()
             cmd = " ".join(p.cmdline())
+            idle = p.nice() == psutil.IDLE_PRIORITY_CLASS
         except (psutil.Error, OSError):
+            continue
+        if ignore_idle and idle:
             continue
         mask = sum(1 << c for c in aff)
         if mask & guard_mask and mask != 0xFFFF and "opus_scratch" not in cmd and "opus_r12" not in cmd:
@@ -50,9 +54,12 @@ def busy_masks(guard_mask):
     return hits
 
 
+IGNORE_IDLE = False
+
+
 def wait_free(guard_mask, log):
     while True:
-        hits = busy_masks(guard_mask)
+        hits = busy_masks(guard_mask, IGNORE_IDLE)
         if not hits:
             return
         log("WAIT cpu pair %s not free: %s" % (hex(guard_mask), hits[:4]))
@@ -123,7 +130,11 @@ def main():
     ap.add_argument("--aa-pairs", type=int, default=3)
     ap.add_argument("--depths", type=int, nargs="+", default=[16, 20])
     ap.add_argument("--seed", type=int, default=20261030)
+    ap.add_argument("--ignore-idle", action="store_true",
+                    help="QA freed the pair for R12: Idle-class processes (trainer, self-play) do not block it")
     a = ap.parse_args()
+    global IGNORE_IDLE
+    IGNORE_IDLE = a.ignore_idle
     os.makedirs(a.out, exist_ok=True)
     guard = a.guard_mask if a.guard_mask is not None else (3 << (a.cpu & ~1))
     exes = dict(x.split("=", 1) for x in a.exe)

@@ -7,6 +7,8 @@
 TAG:pt adds -PartialTraining; TAG:full adds the two net -CheckOpt runs with their pins (else OFF identity only).
 Before every build it waits (30 s polls) until a CPU pair is free: no gate (fastchess + engines), trainer (python)
 or self-play (forge*) process may have either CPU in its affinity mask (unpinned 0xFFFF processes are ignored).
+With --pair MASK --ignore-idle (only after QA freed that pair for R12) Idle-class processes (trainer, self-play)
+do not block; gate and QA processes (BelowNormal and up) still do.
 The kit then runs pinned to that pair at BelowNormal (its own -Affinity / priority, inherited by children).
 Stops at the first build without 'RESULT PASS' in its SUMMARY.txt. Never kills or deletes anything.
 """
@@ -27,7 +29,9 @@ OFF_PINS = "d11=312866,d13=862329,d16=3024920,d20=12389307,d22=34048354"
 PERFT_PINS = "startpos=4865609,kiwipete=193690690"
 
 
-def busy_mask():
+def busy_mask(ignore_idle=False):
+    """CPUs held by gate / trainer / self-play / QA processes (forge*, fastchess*, python*), not ours.
+    ignore_idle: skip Idle-class processes (the trainer, self-play) - only when QA has freed that pair for R12."""
     m = 0
     for p in psutil.process_iter(["pid", "name"]):
         name = (p.info["name"] or "").lower()
@@ -36,16 +40,19 @@ def busy_mask():
         try:
             aff = sum(1 << c for c in p.cpu_affinity())
             cmd = " ".join(p.cmdline())
+            idle = p.nice() == psutil.IDLE_PRIORITY_CLASS
         except (psutil.Error, OSError):
             continue
         if aff == 0xFFFF or "opus_scratch" in cmd or "opus_r12" in cmd or p.pid == os.getpid():
+            continue
+        if ignore_idle and idle:
             continue
         m |= aff
     return m
 
 
-def free_pair(want):
-    busy = busy_mask()
+def free_pair(want, ignore_idle=False):
+    busy = busy_mask(ignore_idle)
     pairs = [want] if want else [3 << (2 * i) for i in range(8)]
     for pm in pairs:
         if not busy & pm:
@@ -60,9 +67,13 @@ def main():
     ap.add_argument("--log", required=True)
     ap.add_argument("--build", action="append", required=True)
     ap.add_argument("--pair", default="auto")
+    ap.add_argument("--ignore-idle", action="store_true",
+                    help="QA freed --pair for R12: Idle-class processes (trainer, self-play) do not block it")
     ap.add_argument("--python", default=sys.executable)
     a = ap.parse_args()
     want = None if a.pair == "auto" else int(a.pair, 0)
+    if a.ignore_idle and want is None:
+        sys.exit("--ignore-idle needs an explicit --pair")
     logf = open(a.log, "a", encoding="utf-8", newline="\n")
 
     def log(msg):
@@ -77,7 +88,7 @@ def main():
         parts = spec.split(":")
         tag, pt, full = parts[0], "pt" in parts[1:], "full" in parts[1:]
         while True:
-            pm, busy = free_pair(want)
+            pm, busy = free_pair(want, a.ignore_idle)
             if pm:
                 break
             if time.time() - last_wait > 300:
