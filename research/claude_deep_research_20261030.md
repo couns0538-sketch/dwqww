@@ -1,6 +1,11 @@
 # Claude deep research 2026-10-30: new ways to make Forge stronger or faster
 
-Status: **WIP, partial** (appended in place; pushed about every 10 minutes).
+Status: **STATUS: COMPLETE for this round** (2026-10-31 ~01:20 PC clock). At the owner's request
+("use what deep research has already") the workflow was stopped after its search and fetch
+phases, before the 3-vote verify phase, to save usage: section 11 holds its claims as read by
+one agent each; sections 0-10 were checked by me against the sources and Forge's code. The run
+can be resumed in the same Claude Code session (finished agents are cached) with
+`Workflow({scriptPath: <session>/workflows/scripts/deep-research-wf_d04a0303-91b.js, resumeFromRunId: "wf_d04a0303-91b"})`.
 Branch `claude-research-20261030` (from `main` 5176ddf7, report only, no engine code).
 Method: the Claude Code `/deep-research` workflow (5 search angles, source fetch, 3-vote adversarial
 claim check, synthesis; run `wf_d04a0303-91b`) plus my own direct checks: licence of every repo read
