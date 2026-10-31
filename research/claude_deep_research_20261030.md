@@ -29,6 +29,9 @@ already has.
 | 1 | E3 eval post-processing on the HalfKA path: material scaling, optimism, 50-move damping, draw jitter | Stockfish: about +8 to +12 Elo over 5 tests | 1 day + tuning | own code, ideas from GPL |
 | 2 | S1 Windows large pages for the TT and the 66 MiB HalfKA weights | +5-10% NPS typical in Stockfish (up to 30%); weights alone +3.9 Elo STC in Stockfish | 0.5 day | own code from Microsoft docs |
 | 3 | E2 reorder first-layer neurons by activation rate | ~2% NPS, bit-identical evals (about +4 Elo STC) | 0.5-1 day | own script, idea from GPL docs |
+| 3a | S3 accumulator update kernel: tile several registers, no per-chunk branch | Stockfish: +4% to +17% NPS from one tile constant (compiler-dependent) | hours | own code, idea from GPL |
+| 3b | T4 fastchess options gates do not use (`-check-mate-pvs`, draw/resign/TB adjudication, `-strict`) | faster gates (71% of gate125 games were draws), mate-PV checks | minutes | MIT, already installed |
+| 3c | S2 one shared copy of the net weights for all engine processes | Stockfish: +4.7 Elo on mixed hardware, +24.8 Elo / +38% NPS with many concurrent games; helps gates and datagen throughput | 1-2 days | own code, idea from GPL/AGPL |
 | 4 | D2 Lichess puzzles as a tactical regression gate | no Elo by itself, catches regressions before gates | 0.5 day | CC0 data |
 | 5 | E1 small second net for lopsided positions | Stockfish: about +2 Elo STC and LTC, +1.5 more with re-eval | 2-4 days | own code + own data |
 | 6 | D1 Lichess eval DB as validation (and maybe training) data | unproven for Forge | 1 day | CC0 data |
@@ -374,6 +377,125 @@ rights granted at all).
 
 All Stockfish-derived ideas in sections 2-4 also belong here: the idea is used, the code is
 written fresh.
+
+## 11. Added from the deep-research workflow (partial results)
+
+Taken from run `wf_d04a0303-91b` at 01:15 PC clock: 5 search agents done, 16 source fetches done,
+claims extracted from primary sources (GitHub PRs/commits, Stockfish wiki, Lichess, Hugging Face).
+The workflow's 3-vote adversarial check had **not** run yet, so these are single-reader claims;
+licences marked "checked" were re-read by me from the GitHub API / LICENSE file.
+
+### S2. Share the net weights between engine processes (gates and datagen run many copies)
+
+- **Source:** Stockfish shared-memory weights, fishtest STC
+  <https://tests.stockfishchess.org/tests/view/69074a49ea4b268f1fac236c> (2025-11); idea from
+  Monty PR #62 "Implement mmap" <https://github.com/official-monty/Monty/pull/62> and fishtest
+  issue #2077.
+- **Licence:** Stockfish GPL-3.0, Monty AGPL-3.0 -> **[IDEAS ONLY]**. On Windows it is a named
+  file mapping (`CreateFileMappingA`, Stockfish passes `SEC_LARGE_PAGES`) keyed by a hash of the
+  weights + exe, written from Microsoft's documentation.
+- **Evidence (workflow claim):** fixed 60,000-game STC on fishtest's mixed hardware
+  +4.69 +- 1.4 Elo; with many concurrent 1-thread games NPS rose by up to 38%, measured
+  +24.8 +- 1.9 Elo over 73,728 games; 8 threads per side only +5.2 +- 3.5 (18,432 games); a single
+  process gains nothing (-0.16% on one NUMA speed test). Stockfish's version is big (24 files,
+  +1,885 lines) because of NUMA and Linux paths; a Windows-only Forge version is much smaller.
+- **Forge fit:** the PC runs gate engines at concurrency 4 plus self-play engines, all with the
+  same 66 MiB HalfKA weights, on one 96 MB L3. One shared copy should raise NPS under that load,
+  i.e. more gate games and more datagen positions per hour. It does not make a single engine
+  stronger in a rating-list match.
+- **Effort:** 1-2 days. **How to test:** bench identity; NPS of N concurrent copies with and
+  without sharing (`--copies` A/A first, skill `forge-engine-verify`); datagen positions/hour
+  beside the live pipeline (skill `forge-selfplay-datagen`).
+
+### S3. Accumulator update kernel: tile several registers and drop the per-chunk add/sub branch
+
+- **Forge now:** `halfka::apply()` (56cf4844 `src/nnue_halfka.cpp:446-480`) walks the L1 row one
+  register at a time (32 int16 lanes on AVX-512, 16 on AVX2), widens int8 weights with
+  `cvtepi8_epi16` and picks `add` or `sub` with `adds[c] ? ... : ...` inside the inner loop for
+  every chunk.
+- **Source:** Stockfish PR #4796 (mstembera, commit 95fe2b9, 2023-09-22)
+  <https://github.com/official-stockfish/Stockfish/pull/4796>: one constant, the number of SIMD
+  registers per accumulator tile on AVX-512, 32 -> 16.
+- **Licence:** GPL-3.0 -> **[IDEAS ONLY]**.
+- **Evidence (workflow claim):** +13.3% NPS on an i9-7980XE (avx512, 100 runs), +12.6% on an
+  i7-11800H (vnni512, 50 runs); on AMD Zen 4 (Ryzen 7 Pro 7840U) +17.3% +- 0.4% with gcc 13 but
+  only +4.0% +- 0.4% with clang 17. No Elo test (fishtest had too few AVX-512 workers); the cause
+  (register spills) was never proven, so the best tile must be measured per compiler.
+- **Forge fit:** try 4/8/16-register tiles and a split into "all adds, then all subs" loops (no
+  branch), for both the AVX2 gate build (`x86-64-v3`) and the znver5 build.
+- **Effort:** hours. **How to test:** exact (no functional change): bench node count identical,
+  incremental == refresh check (skill `forge-halfka-parity-test`), NPS ABBA per tile size.
+
+### T4. fastchess options Forge's gates do not use yet (fastchess is MIT, already installed)
+
+From the workflow's read of the fastchess docs and of gate125's RESULT.md ("fastchess 1.8.2,
+10+0.1 timemargin=1000 ... SPRT normalized [0,10] ... -recover"):
+- `-check-mate-pvs`: checks that every reported mate PV has the announced length and ends in
+  mate. Fits the R5D "forced mate reported as cp" bug class; costs nothing.
+- `-tb PATHS -tbadjudicate BOTH|WIN_LOSS|DRAW` (`-tbpieces`, `-tbignore50`): Syzygy adjudication,
+  needs only WDL files.
+- `-resign movecount=3 score=600 -draw movenumber=34 movecount=8 score=20`: the Fishtest
+  adjudication rules. gate125 played all 1,500 games to the end and 1,068 (71%) were draws, so
+  draw/resign adjudication should cut gate wall time noticeably (not measured here).
+- `-show-latency`, `-pgnout timeleft=true latency=true`: per-move clock and latency for
+  time-management checks.
+- `--compliance` and `-strict` (exit 1 on any warning; PR #1028, v1.8.2-alpha 2026-07-26): a CI
+  UCI smoke test.
+- **Effort:** minutes per option. **How to test:** for adjudication, an A/A gate with and without
+  it on the same engines should give the same Elo within error, at fewer minutes per game.
+
+### T5. chess-library (MIT, checked): fast C++ PGN/FEN parsing for data tools
+
+- <https://github.com/Disservin/chess-library> (MIT, 193 stars, pushed 2026-10-27; single header
+  `chess.hpp`, C++17, by the fastchess author). Workflow claims: streaming PGN parser 413 MB/s on
+  a Lichess monthly dump (Ryzen 9 5950X), perft 355M nps; 24-byte packed board.
+- **Use:** the converter for the Lichess CC0 games/evals (D1) and any PGN -> training-data tool,
+  instead of python-chess (GPL-3.0). Caveat (workflow): the PGN reader does not validate moves and
+  skips NAGs; check legality separately.
+
+### T6. Arasan test suites (MIT, checked)
+
+- <https://github.com/jdart1/arasan-chess> `tests/`: the LICENSE puts the "doc, prj, tests, and
+  network directories" under the MIT text (GitHub shows NOASSERTION). Suites (workflow count):
+  `arasan2026.epd` 200, `ecmgcp.epd` 183, `iq4.epd` 183, `wacnew.epd` 300, `pet.epd` 48,
+  `eet.epd` 100, `bt2630.epd` 30, `lapuce2.epd` 35, with reference results in `tests/RESULTS`.
+- **Caveat:** solve counts swing a lot between Arasan releases on the same hardware (26.0 -> 26.1:
+  arasan2026 152 -> 110 of 200), so use them as a tactical smoke check next to D2, never instead
+  of an SPRT.
+
+### Details the workflow added to existing entries
+
+- **S1 large pages:** PR #2656 author measured 13.8 -> 14.6 Mnps (+6%, 32 GB hash, depth 30);
+  a Threadripper 3970X gained +8.9% (2 GB hash, 64 threads); one 1,000-game match at 60+1
+  gave +12.3 +- 11.3 Elo; with small hashes on an 8-node Opteron it regressed. Windows
+  fragments memory over time, so large pages can silently fail on a PC that is never rebooted:
+  check that they were really granted (Sysinternals RAMMap) before trusting an NPS A/B. Print
+  the status only after the `uci` handshake (Stockfish issue #3052 broke GUIs).
+- **E2 neuron reordering:** the sparse kernel's gain depends on the instruction set and is
+  smallest on AVX-512 (Xeon 8272CL: avx512 +0.6%, vnni512 +2.1%, vnni256 +7.2%, bmi2 +4.1%);
+  the reordering was about 2 percentage points of the total. Expect most of the gain on the
+  AVX2 gate build, little on znver5.
+- **E4 bigger L1:** at a fixed 25k nodes per move the L1-1536 net was **+26.9 +- 1.6 Elo** over
+  the L1-1024 net; it lost at STC only because it is slower. So a fixed-node match is the cheap
+  first test for any wider Forge net, and the NPS cost decides the gate result.
+- **D1 Lichess evals:** labels come from assorted in-browser Stockfish builds (depth 1 to 245,
+  knodes up to ~593M, no engine version column); FENs have no move counters; `cp` is from
+  **White's** point of view (convert to side-to-move for nnue-pytorch formats); mates are in a
+  separate column. Filter on depth/knodes before using rows as targets.
+- **D2 Lichess puzzles:** mined from 600M analysed games, re-checked by Stockfish NNUE at 40
+  meganodes, every solution move is an "only move". Broadcast games (1,263,913) are CC BY-SA 4.0.
+- **T2 tuners:** `fsmosca/Optuna-Game-Parameter-Tuner` (MIT, checked; TPE or CMA-ES, drives
+  fastchess, 32 games per trial by default, trinomial scoring). The author's own comparisons are
+  mixed: tuned results from -23.7 to +21.2 Elo at depth 6, and neither tuned set beat Deuterium's
+  hand-tuned piece values. Stockfish once merged a constant tuned locally with nevergrad4sf
+  (`vondele/nevergrad4sf`, GPL-3.0): +0.61 +- 0.35 Elo STC over 1,047,424 games and +0.82 +- 0.36
+  LTC over 796,236 games. Verdict: real but tiny gains; not a priority.
+- **Section 8 tablebases:** 6-man TB in RAM at STC: SF12 +7.2, SF13 +11.1, SF14 +7.3, SF15
+  +2.7 Elo; Stockfish 17.1 with TBs on a fast M.2 SSD: +1.26 +- 1.46 Elo over 50,000 games (not
+  significant). Pre-NNUE: 6-man about +20 over none, 5-man about +9, 4-man about 0.
+- **Dropped:** ChessBench / `google-deepmind/searchless_chess` - code Apache-2.0 but the data is
+  partly CC-BY-4.0 (not on the allowed list) and the README gives no evidence for alpha-beta
+  engines.
 
 ## 10. Checked and dropped
 
