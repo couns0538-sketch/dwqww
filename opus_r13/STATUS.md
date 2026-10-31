@@ -1,10 +1,10 @@
 # Forge R13 (Opus) - status, one line per phase
 
-Updated: 2026-10-31 16:05 PC clock. Plan: opus_r13/PLAN.md (block 1 = P1 items 1-2 + P2 steps 1/1a/1b). All results UNPROVEN (no gate).
+Updated: 2026-10-31 16:40 PC clock. Plan: opus_r13/PLAN.md (block 1 = P1 items 1-2 + P2 steps 1/1a/1b). All results UNPROVEN (no gate).
 
 | phase | state | branch | last commit |
 |---|---|---|---|
-| P1 near-miss ports (B1, packa w50/w60 first) | STARTING | opus-r13-p1-nearmiss-ports | - |
+| P1 near-miss ports | packa_w50 + packa_w60 READY (exe 07cc2393); B1 porting | opus-r13-p1-nearmiss-ports | 742bd43f |
 | P2 speed stack / align / net-path PGO / sparse L1 | TODO (block 1: steps 1, 1a, 1b) | opus-r13-p2-sparse-l1 | - |
 | P3 Sf26 split + SPSA | TODO | opus-r13-p3-sf26split | - |
 | P4 v2-feature nets (bullet) | TODO | opus-r13-p4-v2nets | - |
