@@ -25,5 +25,10 @@ CPU 0 (CPU 1 = its SMT sibling, idle except our own builds, which never overlapp
 - Decision: the gated net workload is **v2t1** = v2 without the Threads=2 part (node-deterministic bench only:
   no net, e19, e9 at Threads=1; sha256 dca15f66...). Workload v2 stays in the kit as the documented SMP experiment.
 
-### Workload v2t1 (reproducible net profile) - running
-(filled in when the builds and phase 2 finish)
+### Workload v2t1 (reproducible net profile)
+| build | workload | LTO+PGO exe sha256 | identity |
+|---|---|---|---|
+| r10fix1_v2t1_pc1 | v2t1 | e06e0348da4c6d4756cde5984f5c395c1b2055cca40489bf0630db5f6c75cd7a | OFF = lock pins, e19 + e9 = D8D90B68 pins d11..d22, plain = LTO+PGO: ALL OK |
+| r10fix1_v2t1_pc2 | v2t1 | e06e0348da4c6d4756cde5984f5c395c1b2055cca40489bf0630db5f6c75cd7a (byte-identical) | OFF ALL OK |
+
+Binding check v2t1: **PASS** (pc1 = pc2). Partial-training variant, 12k identity and speed: running.
