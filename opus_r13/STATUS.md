@@ -1,6 +1,6 @@
 # Forge R13 (Opus) - status, one line per phase
 
-Updated: 2026-10-31 (PC clock ~16:40). Plan: opus_r13/PLAN.md (block 1 = P1 items 1-2 + P2 steps 1/1a/1b). All results UNPROVEN (no gate).
+Updated: 2026-10-31 16:45 PC clock. Plan: opus_r13/PLAN.md (block 1 done for P1; P2 steps 1/1a/1b building; block 2 = P1 items 3-5, then P2 step 2). All UNPROVEN.
 
 | phase | state | branch | last commit |
 |---|---|---|---|

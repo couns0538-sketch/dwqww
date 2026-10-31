@@ -113,3 +113,20 @@ Push about every 10 minutes (`git push -q -u origin <branch>`), with RESULTS.md 
 on doc-only pushes of branches without CI. No new phase until the planned items are pushed with their checks. When this block is done:
 push a new short plan for the next items (P1 items 3-5: bnd68, packc28, eos49). If usage looks low: stop starting new work and write
 `opus_r13/FINAL_REPORT.md`.
+
+---
+# Block 2 plan (written 2026-10-31 ~16:45 PC clock, after block 1's P1 items were READY and P2 steps 1/1a/1b were building)
+
+Order = the prompt's order. Same pipeline and checks as block 1 (skills forge-lock-port, forge-candidate-checks).
+1. **P1 item 3, bnd68** (NonPawnCorr=1 PawnHist=1 NonPawnCorrWeight=50 ContHist4Pct=45 EvalOnlyStore=1 EvalOnlyStoreMinDepth=2):
+   port = diff of `packae2r_h256e12_src.zip` vs the lock source (only board.hpp/cpp + search.hpp/cpp differ; the
+   h256e12 base has the lock's search code, its net differs). Proof: line set vs the zip's own packa/packe2r patches,
+   plain OFF pins, ON live; kit v2.3 -Expose pc1/pc2; checks; CI ASan+UBSan; handoff `p1/bnd68`.
+2. **P1 item 4, packc28**: `packc.patch` (applies with -F0 on the lock); gate 28 line from its RUN_INFO:
+   AspFailHighReduce=1 AspFailHighMaxReduce=3 EvalSwingMult=24 EvalSwingMax=200. Same proof set; handoff `p1/packc28`.
+3. **P1 item 5, eos49** (EvalOnlyStore=1 EvalOnlyStoreMinDepth=2): port = diff of `packe2r_h256e12_src.zip` vs the lock
+   (search.hpp 4 lines, search.cpp 25 lines). Same proof set; handoff `p1/eos49`.
+4. **P2 step 2, sparse L1 (find-nnz)**, if credits allow: read the stack's L1 (fc_0 / HalfKA layer()), write the nnz-chunk
+   list + int8 dot over it behind `FORGE_SPARSE_L1` (default 0), bit-identical parity on the 12k FENs (embedded + FTP1
+   net), bench pins, sanitizer, advisory ABBA.
+If usage looks low at any point: stop starting new items, push, write `opus_r13/FINAL_REPORT.md` (Phase 8).
