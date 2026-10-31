@@ -1,0 +1,90 @@
+diff --git a/include/forge/search.hpp b/include/forge/search.hpp
+index e976c71..1438f24 100644
+--- a/include/forge/search.hpp
++++ b/include/forge/search.hpp
+@@ -243,6 +243,10 @@ extern int CaptureFutilityBase;   // futility pruning of captures: base margin (
+ extern int CaptureFutilityMultiplier;
+ extern int CaptureFutilityDepth;
+ extern int FailLowContinuationBonus; // x0.01 of the history bonus given to the parent move on fail low (0 = off)
++// Pack E2 (move ordering and TT eval store). Every option defaults to 0 = off, which leaves the search bit-identical.
++extern int ContHist4Pct;     // percent weight of the 4-ply continuation history in quiet ordering (0 = off)
++extern int EvalOnlyStore;    // 1 = store the static eval in the TT (no score, no move) before early pruning
++extern int EvalOnlyStoreMinDepth; // EvalOnlyStore=1 only: store the eval-only entry only when depth >= N (0 = always)
+ [[nodiscard]] const std::vector<Parameter>& parameters();
+ // Call after changing LMR parameters.
+ void refresh();
+diff --git a/src/search.cpp b/src/search.cpp
+index 74de5d3..0fbc702 100644
+--- a/src/search.cpp
++++ b/src/search.cpp
+@@ -62,6 +62,9 @@ int CaptureFutilityBase = 0;
+ int CaptureFutilityMultiplier = 250;
+ int CaptureFutilityDepth = 6;
+ int FailLowContinuationBonus = 0;
++int ContHist4Pct = 0;
++int EvalOnlyStore = 0;
++int EvalOnlyStoreMinDepth = 0;
+ 
+ const std::vector<Parameter>& parameters() {
+     static const std::vector<Parameter> table{
+@@ -97,6 +100,8 @@ const std::vector<Parameter>& parameters() {
+         {"TmFallingEvalPercent", &TmFallingEvalPercent, 0, 400}, {"TmMinFactorPercent", &TmMinFactorPercent, 10, 100},
+         {"CaptureFutilityBase", &CaptureFutilityBase, 0, 1000},  {"CaptureFutilityMultiplier", &CaptureFutilityMultiplier, 0, 1000},
+         {"CaptureFutilityDepth", &CaptureFutilityDepth, 0, 15},  {"FailLowContinuationBonus", &FailLowContinuationBonus, 0, 300},
++        {"ContHist4Pct", &ContHist4Pct, 0, 200},                 {"EvalOnlyStore", &EvalOnlyStore, 0, 1},
++        {"EvalOnlyStoreMinDepth", &EvalOnlyStoreMinDepth, 0, 64},
+     };
+     return table;
+ }
+@@ -107,6 +112,7 @@ namespace {
+ constexpr int HistoryMax = 16384;
+ 
+ [[nodiscard]] int score_to_tt(int score, int ply) {
++    if (score == ValueNone) return ValueNone; // no score (eval-only entry): never ply-adjusted into the mate range
+     if (score >= MateInMaxPly) return score + ply;
+     if (score <= -MateInMaxPly) return score - ply;
+     return score;
+@@ -526,10 +532,17 @@ private:
+         board_.generate_pseudo_legal(buffer_, false);
+         index_ = 0;
+         count_ = 0;
++        // Pack E2 ordering term. It only changes the order of quiet moves; it is not read by
++        // pruning or reductions (those use Worker::quiet_history, which is untouched).
++        const bool cont4_on = tune::ContHist4Pct > 0 && ss_ != nullptr && (ss_ - 4)->continuation != nullptr;
+         for (const Move move : buffer_) {
+             if (move.is_capture() || move.is_promotion()) continue;
+             int score = searcher_.quiet_history(board_, ss_, move);
+             if (direct_check(move)) score += 12000;
++            if (cont4_on) {
++                const Piece piece = board_.moved_piece(move);
++                score += (*(ss_ - 4)->continuation)[static_cast<std::size_t>(piece)][move.to] * tune::ContHist4Pct / 100;
++            }
+             moves_[count_++] = Scored{move, score};
+         }
+         sort_moves();
+@@ -935,6 +948,16 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
+         if (tt_hit && tte.eval != ValueNone) ss->raw_eval = tte.eval;
+         else ss->raw_eval = static_evaluate(board, ss);
+         eval = ss->static_eval = corrected_eval(board, ss->raw_eval);
++        // EvalOnlyStore: remember the raw eval of a position that missed the table, so a node that
++        // leaves through an early exit (razor, RFP, null move, ProbCut) does not lose it. The entry has
++        // no score (ValueNone), no move and depth 0; every later store to this key replaces it
++        // (depth + 4 > 0). All score reads of the table test ValueNone, see README audit.
++        // EvalOnlyStoreMinDepth: only nodes with depth >= N write the eval-only entry (0 = every node, the
++        // original behaviour; depth is >= 1 here, so N = 1 is identical to N = 0).
++        if (tune::EvalOnlyStore != 0 && !tt_hit && depth >= tune::EvalOnlyStoreMinDepth) {
++            shared_.tt.store(tt_probe, board.key(), ValueNone, ss->raw_eval, Move::none(), 0, BoundUpper, ss->tt_pv,
++                             static_cast<std::uint16_t>(board.halfmove_clock()));
++        }
+         if (tt_hit && tt_score != ValueNone &&
+             ((tt_bound == BoundLower && tt_score > eval) || (tt_bound == BoundUpper && tt_score < eval) ||
+              tt_bound == BoundExact)) {
+@@ -965,7 +988,7 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
+         if (depth >= tune::NullMoveMinDepth && eval >= beta && ss->static_eval >= beta - 24 * depth + 180 &&
+             ss->null_move_allowed && !(ss - 1)->current_move.is_none() &&
+             board.has_non_pawn_material(board.side_to_move()) &&
+-            !(tt_hit && tt_bound == BoundUpper && tt_score < beta)) {
++            !(tt_hit && tt_score != ValueNone && tt_bound == BoundUpper && tt_score < beta)) {
+             ++null_tries_;
+             const int reduction = tune::NullMoveBase + depth / tune::NullMoveDepthDivisor +
+                                   std::min((eval - beta) / tune::NullMoveEvalDivisor, 3);
