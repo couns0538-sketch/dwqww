@@ -1,0 +1,51 @@
+# R13 Phase 2: ASan+UBSan self-play smoke of the speed stack (r10fix1 7f79c349 + S1 LargePages + FORGE_ALIGN_WEIGHTS).
+# Per item: r10fix1 src/include + `patch -p1 -F0` of the stack patches, g++ -fsanitize=address,undefined (+ item flags),
+# then opus_r13/tools/selfplay_smoke.py (legality via `go perft 1`, sanitizer lines counted) for default and
+# LargePages=true (Linux path: aligned_alloc 2 MiB + madvise THP). No nets on the runner (net path: PC identity checks).
+name: opus-r13-san-p2
+on:
+  push:
+    branches: ['opus-r13-p2-sparse-l1']
+    paths: ['opus_r13/p2/stack/**', 'opus_r13/tools/selfplay_smoke.py', '.github/workflows/opus-r13-san-p2.yml']
+  workflow_dispatch:
+jobs:
+  san:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 75
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - item: stack_align0
+            flags: ''
+          - item: stack_align1
+            flags: '-DFORGE_ALIGN_WEIGHTS=1'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+      - name: r10fix1 source + stack patches
+        run: |
+          git fetch -q --depth 1 origin 7f79c34901fdd118bc4bf904f4bcaec4006047c6
+          mkdir stack && git archive FETCH_HEAD src include | tar -x -C stack
+          cd stack && patch -p1 -F0 < "$GITHUB_WORKSPACE/opus_r13/p2/stack/stack_s1_port.patch" && patch -p1 -F0 < "$GITHUB_WORKSPACE/opus_r13/p2/stack/stack_align.patch"
+          sha256sum src/*.cpp include/forge/*.hpp | tee ../src_sha256.txt
+      - name: build ASan+UBSan
+        run: |
+          cd stack && g++ --version | head -1
+          g++ -std=c++20 -O1 -g -fno-omit-frame-pointer -fsanitize=address,undefined -fno-sanitize-recover=all \
+            -DFORGE_NNUE_HIDDEN=256 -DFORGE_EXPOSE_TUNABLES=1 ${{ matrix.flags }} -march=x86-64-v3 -pthread -Iinclude src/*.cpp -o forge_san
+      - name: self-play smoke
+        env:
+          ASAN_OPTIONS: detect_leaks=1:abort_on_error=1
+          UBSAN_OPTIONS: print_stacktrace=1:halt_on_error=1
+        run: |
+          python3 opus_r13/tools/selfplay_smoke.py stack/forge_san --config default "" --config lp "LargePages=true" \
+            --games 4 --nodes 20000 --max-plies 160 --out san_${{ matrix.item }}
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: san_${{ matrix.item }}
+          path: |
+            san_${{ matrix.item }}*
+            src_sha256.txt
