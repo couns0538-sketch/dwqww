@@ -36,8 +36,11 @@ sha256.** gcda manifests are record only (value profiles hold addresses/timings)
   `bench` ignores Threads (own one-thread `Searcher(16)`, exclusive TT lease), so SMP code only runs under `go`.
   A `go` is aborted by the next UCI line -> v2 needs `tools/train_driver.py` (waits for bestmove/readyok, checks net
   sha256 + 'EvalFileHalfKA loaded', exit code 0 so the .gcda get written).
-- Threads=2 training is not node-deterministic (TT sharing + timing; single-mode counters race). Whether the exe still
-  reproduces is decided by the pc1 = pc2 check; see the R12 report for the measured answer before reusing v2.
+- **Measured (R12): v2 does NOT reproduce.** Two clean v2 builds: 8f162985 vs 18503c4d (v2 + partial training:
+  63ae405f vs ee5c8bea), 12 / 23 hot functions differ (`opus_r12/tools/exe_func_diff.py A.exe B.exe`). Timing-dependent
+  Threads=2 counts land in search/qsearch/eval. The pc1 = pc2 rule and an SMP profile cannot both hold.
+- **v2t1** (= v2 without the Threads=2 part: bench no net / e19 / e9, sha256 dca15f66) reproduces byte for byte:
+  e06e0348 (pc1 = pc2), with -PartialTraining 436ed8e1 (pc1 = pc2). Use `-Workload v2t1` for gated net builds.
 - `-PartialTraining` (GCC >= 10, MSYS2 g++ 15.2.0 here): functions never executed in training get normal -O3 instead of
   size optimization; never-executed blocks inside executed functions stay cold.
 
