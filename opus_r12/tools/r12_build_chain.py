@@ -89,10 +89,11 @@ def main():
         tag, pt, full = parts[0], "pt" in parts[1:], "full" in parts[1:]
         while True:
             pm, busy = free_pair(want, a.ignore_idle)
-            if pm:
+            free_gb = psutil.virtual_memory().available / 2 ** 30
+            if pm and free_gb >= 5.0:  # R12: keep about 4 GB free (+1 GB margin for the LTO link)
                 break
             if time.time() - last_wait > 300:
-                log("WAIT no free CPU pair (busy mask %s)" % hex(busy))
+                log("WAIT no free CPU pair (busy mask %s) or free RAM %.1f GB < 5" % (hex(busy), free_gb))
                 last_wait = time.time()
             time.sleep(30)
         # -Command (not -File): only -Command binds 'a','b' to the [string[]] -CheckOpt / -CheckOptPins parameters

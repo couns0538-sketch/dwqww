@@ -57,12 +57,16 @@ def busy_masks(guard_mask, ignore_idle=False):
 IGNORE_IDLE = False
 
 
+MIN_FREE_GB = 5.0  # R12 rule: keep about 4 GB of RAM free (+1 GB margin for our engines)
+
+
 def wait_free(guard_mask, log):
     while True:
         hits = busy_masks(guard_mask, IGNORE_IDLE)
-        if not hits:
+        free_gb = psutil.virtual_memory().available / 2 ** 30
+        if not hits and free_gb >= MIN_FREE_GB:
             return
-        log("WAIT cpu pair %s not free: %s" % (hex(guard_mask), hits[:4]))
+        log("WAIT cpu pair %s busy %s, free RAM %.1f GB" % (hex(guard_mask), hits[:4], free_gb))
         time.sleep(30)
 
 
