@@ -4,7 +4,7 @@ Branch `opus-r12-pgo-net` = 7f79c349 (r10fix1, the engine source of 9E5CB644 / D
 commits (kit v2.4, tools, logs, report, skill). No Elo or gate claim; QA gates. Machine exclusive: no (gates, NNUE
 trainer w4_s4 and self-play kept running). Cores: QA freed CPUs 0/1 at 20:14 PC clock (trainer mask 0x000F -> 0x000C);
 every R12 build ran pinned to 0x3 (CPUs 0+1), every timing and 12k run on CPU 0 with CPU 1 idle, all BelowNormal;
-free RAM stayed >= 13 GB (runners wait below 5 GB).
+free RAM was >= 10.6 GB at every logged check (runners wait below 5 GB).
 
 ## Verdict
 **Keep variant B: workload v2t1 + `-fprofile-partial-training`, exe `436ed8e1b0f63811d4dcd74f2e77d9c65c1b8d9b62047142c220c99baad2c720`** (pc1 = pc2, identity ALL OK, 12k 12000/12000).
