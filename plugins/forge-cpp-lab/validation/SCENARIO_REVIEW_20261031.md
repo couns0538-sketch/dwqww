@@ -16,3 +16,5 @@ The guided reviewer additionally found three wording defects, now corrected:
 Independent reviewer `/root/plugin_package_review` read helper code/tests, manifests and technical references, ran 15 tests with ResourceWarning as error, and found no concrete blocker. It verified no engine execution/writes/network in the helper and limited MIT scope. Its initial review preceded README/evidence-format completion; a final targeted read follows separately.
 
 Skill activation in the Codex app, native Windows behavior, long-term compliance and resulting engine gains remain UNVERIFIED. No installation was performed for these reviews.
+
+Final targeted independent review read the completed README and evidence-format reference and freshly checked Codex 0.159.2 help. It found no concrete mismatch in installation command syntax, helper schema/path/exit rules, limited claim scope or corrected guidance. No installation was attempted.
