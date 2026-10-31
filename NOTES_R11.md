@@ -5,7 +5,13 @@ Job folder `opus_r11/` (pipeline + tests + evidence logs), GPL trainer-side code
 (run-only, never in src/include/tests). Output root on D: `D:\grok-pc-data\r11_nnue\`. Started 2026-10-30 10:14 PC clock;
 PC crash/reboot 11:38 (nothing of R11 was half-written: the run died in dedup before any output).
 
-## Status (2026-10-30 14:30) - production gap (QA paused production NNUE training at 13:46:56)
+## Status (2026-10-30 18:40) - DONE; "R11 DONE — QA may restart production" posted 18:35
+- Full run (owner's recipe, L1 1024, 20 x 152.5M, 72 shards) 14:24:07-18:25:08 (14,461 s), R11 PIPELINE PASS;
+  gate-ready nets: e19_final bf1e347c... (val 0.000456, parity 12000/12000, OFF ok, ON d11 373062 ... d22 37006232,
+  WAC 256/272) and e9_best 5380f866... (val 0.000442, parity 12000/12000, OFF ok, ON d11 287095 ... d22 25323515,
+  WAC 261/272); D: 49.3 GiB free. Evidence opus_r11/logs/full_ourdata/. Details in opus_r11/REPORT.md.
+
+## Status during the gap (2026-10-30 14:30)
 - DONE in the gap: e2e self-test PASS (e2e_5); conversion of 72 shards (332,562,972 train + 16,387,223 holdout
   records, 11.8 GB, bad 0); real holdout proof PASS on the converted data (14:17); first net from our own data =
   smoke profile through the one command (PASS, net sha256 e0462a87..., parity 12000/12000, OFF d11 312866, ON d11

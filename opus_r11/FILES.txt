@@ -41,7 +41,7 @@ pipeline/r11_package.py | 8597 | 078e0ed05edd9774071c33a5c46a066b5197837658f266d
 pipeline/r11_pipeline.py | 10545 | 83e17a4f5e712f1530ca21ca08b5369f234ca5138d3400bd0e26afa7b2f40654 | ONE command: data -> holdout gate -> train -> export -> check -> package; run/status/selftest; exit 0 PASS / 1 FAIL / 3 WAIT
 pipeline/r11_train.py | 14177 | fb7a9fac87f8f66ef8fecc3fea6e0223b47c8233544484a29f556e2f504dc3fa | train stage: holdout gate, yield-only GPU policy, auto-resume, RAM/disk waits; launches the entry
 skills/forge-nnue-data/SKILL.md | 7075 | 046764d9c71790feae8edf330858696cb21a17371f6396756480fd6385b3c8b7 | copy of the project skill (R11 section added)
-skills/forge-nnue-pipeline/SKILL.md | 9137 | c59203e7bb5280eb319cdf925579b8b254f5c766b137d89b0c11725f43d0c8d7 | copy of the new project skill
+skills/forge-nnue-pipeline/SKILL.md | 9994 | 20bfa950f3785e5f293b641eef4c9cb29aa612c70ad8267599366217e28babb2 | copy of the new project skill
 skills/forge-nnue-pytorch-amd/SKILL.md | 12298 | c8585a96db6295c5b8d3d9d323897b755aa149df4bcf0016275388ce3a582412 | copy of the project skill (R11 section added)
 skills/forge-pc-rules/SKILL.md | 18310 | fe4f406ec8a33f0c96a598f4bc201d42f1f32dfec7b3c5f51277d1b486bb5fd8 | copy of the project skill (R11 section added)
 tests/test_r11_data.py | 21513 | 2fc52a9f3d7a02077ae38579e8a38abf52123e34aa2ce5bad8c28d44aab82817 | self-test: the data stage on synthetic shards (69 checks: dedup order, holdout, supersede, writer_bad, .part, floors)
@@ -94,4 +94,27 @@ logs/smoke_ourdata/r11_ckpt_index.json | 641 | e1813359eef869862e2e28704d17af281
 logs/smoke_ourdata/r11_events.jsonl | 6800 | 66d6bbbe65fe7e72780a93e4d78d2c8287b6deef1d518ba84fa4fb84fdfd2c29 | evidence log
 logs/smoke_ourdata/smoke_run.out | 6696 | a490551a153f5d385e0c5962a76870bba26046aeebcec405bec519a2ad80bfe0 | evidence log
 logs/smoke_ourdata/trainer_20261030_141718.log | 16103 | fa240ae1f7a6bebe3553a8dc0ffa940b964b6c64af8e3dc126c882c5f761c4c9 | evidence log
-REPORT.md | 9635 | 7e2b8c543d0ff2621b7b9e3125657f4253d3275189b7d7360830f26c63a79981 | job report (written by the main session from the job's results)
+logs/full_ourdata/FACTS.json | 1998 | b1ee7844fd8b9e6b14d3dd3f8266a4bc32864c45634a3f8fac3b492881de7272 | evidence log
+logs/full_ourdata/PACKAGE_E20_GATE_EXE.txt | 150 | 457599e565f59e340d56eec1cb688f8514c4ed0859127aa3f1b2b0d2a72ff3b5 | evidence log
+logs/full_ourdata/PACKAGE_E20_README.md | 1569 | 031f861f8378b91eb4d1513ada0fe0df40a63caea27ba782116ad36219676a7b | evidence log
+logs/full_ourdata/PACKAGE_E20_SHA256SUMS | 763 | d159f69ee32b22409e49fe4ef1054342fe44f3ef640d2a4c73003301732fcf3f | evidence log
+logs/full_ourdata/PACKAGE_E20_bench.txt | 1136 | da00d33de5e264204d463aefbf6371055e3677a51b501965661d2f8e27692445 | evidence log
+logs/full_ourdata/PACKAGE_E20_check.json | 3455 | b53623fdc71024b709794158582da7634f86b771e2c333b7ffa5164e09df40bb | evidence log
+logs/full_ourdata/PACKAGE_E20_parity.log | 424 | e52ac02f48cdf97a16d81246ffa02189914d0b810991c1994c6211a5674af173 | evidence log
+logs/full_ourdata/PACKAGE_E20_provenance.json | 203 | 55b3ec5002c41bea891f6def4e7a751606d9c8435c08241840c1d992d9556ff2 | evidence log
+logs/full_ourdata/PACKAGE_E20_wac.txt | 210 | cfef02d20f2cbbbdb03f1014f07ce549bc63125437136adf356a92a9964c544e | evidence log
+logs/full_ourdata/PACKAGE_GATE_EXE.txt | 150 | 56b591dabd5b52c9c3bfbe0215ae9cf3bd6ca93c37072153fa81f771505dfca2 | evidence log
+logs/full_ourdata/PACKAGE_README.md | 1565 | 022bd30808affe9c5cb40bdf8df21a588108758f48507afdcbedb8973d4110ca | evidence log
+logs/full_ourdata/PACKAGE_SHA256SUMS | 761 | fafa1486a78082e16683ab664d27b84633f1e8c05f2861385ee9f3bcd1cb7497 | evidence log
+logs/full_ourdata/PACKAGE_bench.txt | 1134 | 9e0925acbf1b498ef55b367e9253729151359133208c6ad8d602dbefd444f0dd | evidence log
+logs/full_ourdata/PACKAGE_check.json | 3445 | 8fc89c93f5c96ffb750f512c01a968d4c25ca6118fcbf434611f3218bb3e2e8b | evidence log
+logs/full_ourdata/PACKAGE_parity.log | 420 | 80b857e838327a75f9d8daac44c25ebf07a6282417edb1215d6ac69348979237 | evidence log
+logs/full_ourdata/PACKAGE_provenance.json | 674 | b0d7514af56f9ee3fae34aba296b3d4d47de76f857a6bbeb2d5c5eafd2da57ec | evidence log
+logs/full_ourdata/PACKAGE_wac.txt | 210 | 27df2c5cbcca662ec57ad27e9d63716c9925685e6b428803d82585f056f7b853 | evidence log
+logs/full_ourdata/full_e20_run.out | 2851 | 87b271a2aa2fd489c971b68050fcda37690dd1c7f2efa9a2154c19bf8d051537 | evidence log
+logs/full_ourdata/full_run.out | 4217 | b3093e52d23bff2f56b801909c0afab6a11644dde70b52ebc2336f5dbaa0be6a | evidence log
+logs/full_ourdata/r11_ckpt_index.json | 1601 | 03e13b6ce3bb8ee801ee939f167a169f8eaf5025f36decbb1e111e5eefbf8c3e | evidence log
+logs/full_ourdata/r11_events.jsonl | 7918 | 14b099b13477b2d8fe15134591ba95c42469224ee4243db2b1a63927cd57fa57 | evidence log
+logs/full_ourdata/r11_profile.json | 878 | 5546d788708cbcdee81f8739fdca5a909efcd0b352f5db4be9c7a50b72d8c84a | evidence log
+logs/full_ourdata/trainer_20261030_142407.log | 28091 | b69ae8fda2ef8ef68baec8197dd1edef3952c31e75b019c720be7059696bab0e | evidence log
+REPORT.md | 7847 | 6d35447317474b44fc5402b285c47e6fe3fadd9c0e105d29dc054a58c4bc963f | job report (written by the main session from the job's results)

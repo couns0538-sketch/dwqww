@@ -87,6 +87,14 @@ Stop it by its PID (`<root>\run\pipeline.pid.json`); hold it with `r11_hold.py h
   the first checkpoint's floor reserve follows L1 (1.6 MiB per unit, at least 512 MiB).
 - The R8 v5 self-play folder keeps growing: a later data run registers the new `.dedup` shards after the existing ones
   (4 new between 12:24 and 14:00 on 2026-10-30), so the holdout proof has to be rerun after every data run.
+- Speed on R11's resources (Idle, CPUs 8-10; gates at BelowNormal own CPUs 4-13): full recipe (L1 1024, batch 16384,
+  2 loader workers, compile) epoch 0 ~105k pos/s (compile warm-up, cold file cache), then ~200k pos/s, 12.5-13 min per
+  152.5M epoch -> 20 epochs in 4 h 01 min (production did it in 2 h 27 min). Smoke (1 worker, L1 256) only 22-40k pos/s.
+  Stay Idle even when BelowNormal is allowed: BelowNormal would take CPU from the gates' time controls. The loader
+  reads ~10 positions per kept one (preskip), so it is CPU-bound, not GPU-bound.
+- The one command exports the BEST checkpoint by val loss; the val losses of a 20-epoch run are within noise
+  (0.000442 / 0.000450 / 0.000456 at epochs 10/15/20), so also package the final epoch: `run --ckpt
+  <...epoch=19-step=...ckpt> --l1 1024 --name <run>_e19_final` (380 s) and let QA gate either.
 - Production gap protocol (2026-10-30): QA pauses the supervisor queue for R11 and restarts it only after the line
   "R11 DONE — QA may restart production" (net path, sha256, parity, bench, D: free); say early if the gap must be longer.
 
